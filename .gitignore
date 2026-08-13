@@ -1,6 +1,7 @@
 # Generated build output
 /bau/
 /debian/.debhelper/
+/debian/debhelper-build-stamp
 /debian/magnolie-organizer/
 /debian/files
 /debian/*.debhelper.log
