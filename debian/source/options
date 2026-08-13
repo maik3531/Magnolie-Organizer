@@ -1,0 +1,7 @@
+extend-diff-ignore = "(^|/)(REVIEW[^/]*|ENTWURF[^/]*|OFFENE-PUNKTE[^/]*|[^/]*(ANALYSE|PLAN|AUDIT)[^/]*)\.md$"
+tar-ignore = "REVIEW*.md"
+tar-ignore = "ENTWURF*.md"
+tar-ignore = "OFFENE-PUNKTE*.md"
+tar-ignore = "*ANALYSE*.md"
+tar-ignore = "*PLAN*.md"
+tar-ignore = "*AUDIT*.md"

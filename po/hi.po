@@ -1,0 +1,6328 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2026 THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the Magnolie Organizer
+# package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: Magnolie Organizer 2.0.0\n"
+"Report-Msgid-Bugs-To: maik3531@gmail.com\n"
+"POT-Creation-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"PO-Revision-Date: 2026-08-08 09:24+0200\n"
+"Last-Translator: Magnolie localization project\n"
+"Language-Team: Hindi\n"
+"Language: hi\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"Generated-By: Babel 2.18.0\n"
+
+msgid " (filtered)"
+msgstr " (फ़िल्टर किया हुआ)"
+
+msgid " (public holiday)"
+msgstr " (सार्वजनिक अवकाश)"
+
+msgid " (school holidays)"
+msgstr " (स्कूल की छुट्टियाँ)"
+
+msgid " at %(time)s"
+msgstr " %(time)s बजे"
+
+#, python-format
+msgid " at %s"
+msgstr " %s बजे"
+
+msgid " for %(years)s"
+msgstr " %(years)s के लिए"
+
+msgid " from %(branch)s"
+msgstr " %(branch)s से"
+
+msgid " – notification at the appointment time."
+msgstr " – अपॉइंटमेंट के समय सूचना।"
+
+msgid ""
+"%(appointment)s\n"
+"Click to edit"
+msgstr ""
+"%(appointment)s\n"
+"संपादित करने के लिए क्लिक करें"
+
+#, python-format
+msgid ""
+"%(branch)s offers contact synchronization. Please accept or reject it in the "
+"Organizer."
+msgstr ""
+"%(branch)s संपर्क सिंक्रनाइज़ेशन प्रस्तुत करता है। ऑर्गनाइज़र में इसे स्वीकार या अस्वीकार करें।"
+
+#, python-format
+msgid ""
+"%(branch)s wants to share a note. Please accept or reject it in the "
+"Organizer."
+msgstr ""
+"%(branch)s एक नोट साझा करना चाहता है। Organizer में इसे स्वीकार या अस्वीकार करें।"
+
+#, python-format
+msgid ""
+"%(branch)s wants to share a task. Please accept or reject it in the "
+"Organizer."
+msgstr ""
+"%(branch)s एक कार्य साझा करना चाहता है। Organizer में इसे स्वीकार या अस्वीकार करें।"
+
+#, python-format
+msgid ""
+"%(branch)s wants to share an address. Please accept or reject it in the "
+"Organizer."
+msgstr ""
+"%(branch)s एक पता साझा करना चाहता है। Organizer में इसे स्वीकार या अस्वीकार करें।"
+
+#, python-format
+msgid ""
+"%(branch)s wants to share an appointment. Please accept or reject it in the "
+"Organizer."
+msgstr ""
+"%(branch)s एक अपॉइंटमेंट साझा करना चाहता है। Organizer में इसे स्वीकार या अस्वीकार करें।"
+
+msgid ""
+"%(cards)s merged. Copies are stored under “Duplicates” in the recycle bin."
+msgstr ""
+"%(cards)s कार्ड मिला दिए गए। प्रतियाँ रीसायकल बिन के “Duplicates” में रखी गई हैं।"
+
+msgid "%(count)s anniversary"
+msgid_plural "%(count)s anniversaries"
+msgstr[0] "%(count)s वर्षगाँठ"
+msgstr[1] "%(count)s वर्षगाँठें"
+
+msgid "%(count)s anniversary entered"
+msgid_plural "%(count)s anniversaries entered"
+msgstr[0] "%(count)s वर्षगाँठ दर्ज की गई"
+msgstr[1] "%(count)s वर्षगाँठें दर्ज की गईं"
+
+msgid "%(count)s appointment"
+msgid_plural "%(count)s appointments"
+msgstr[0] "%(count)s अपॉइंटमेंट"
+msgstr[1] "%(count)s अपॉइंटमेंट"
+
+msgid "%(count)s attachment"
+msgid_plural "%(count)s attachments"
+msgstr[0] "%(count)s संलग्नक"
+msgstr[1] "%(count)s संलग्नक"
+
+msgid "%(count)s birthday"
+msgid_plural "%(count)s birthdays"
+msgstr[0] "%(count)s जन्मदिन"
+msgstr[1] "%(count)s जन्मदिन"
+
+msgid "%(count)s contact"
+msgid_plural "%(count)s contacts"
+msgstr[0] "%(count)s संपर्क"
+msgstr[1] "%(count)s संपर्क"
+
+msgid "%(count)s contact card"
+msgid_plural "%(count)s contact cards"
+msgstr[0] "%(count)s संपर्क कार्ड"
+msgstr[1] "%(count)s संपर्क कार्ड"
+
+msgid "%(count)s contact photo added"
+msgid_plural "%(count)s contact photos added"
+msgstr[0] "%(count)s संपर्क फ़ोटो जोड़ी गई"
+msgstr[1] "%(count)s संपर्क फ़ोटो जोड़ी गईं"
+
+msgid "%(count)s day"
+msgid_plural "%(count)s days"
+msgstr[0] "%(count)s दिन"
+msgstr[1] "%(count)s दिन"
+
+msgid "%(count)s day before"
+msgid_plural "%(count)s days before"
+msgstr[0] "%(count)s दिन पहले"
+msgstr[1] "%(count)s दिन पहले"
+
+msgid "%(count)s email address added"
+msgid_plural "%(count)s email addresses added"
+msgstr[0] "%(count)s ईमेल पता जोड़ा गया"
+msgstr[1] "%(count)s ईमेल पते जोड़े गए"
+
+msgid "%(count)s entry deleted."
+msgid_plural "%(count)s entries deleted."
+msgstr[0] "%(count)s प्रविष्टि हटाई गई।"
+msgstr[1] "%(count)s प्रविष्टियाँ हटाई गईं।"
+
+msgid "%(count)s existing entry skipped."
+msgid_plural "%(count)s existing entries skipped."
+msgstr[0] "%(count)s मौजूदा प्रविष्टि छोड़ी गई।"
+msgstr[1] "%(count)s मौजूदा प्रविष्टियाँ छोड़ी गईं।"
+
+msgid "%(count)s found"
+msgid_plural "%(count)s found"
+msgstr[0] "%(count)s मिला"
+msgstr[1] "%(count)s मिले"
+
+msgid "%(count)s group"
+msgid_plural "%(count)s groups"
+msgstr[0] "%(count)s समूह"
+msgstr[1] "%(count)s समूह"
+
+msgid "%(count)s holiday period"
+msgid_plural "%(count)s holiday periods"
+msgstr[0] "%(count)s अवकाश अवधि"
+msgstr[1] "%(count)s अवकाश अवधियाँ"
+
+msgid "%(count)s incoming offer"
+msgid_plural "%(count)s incoming offers"
+msgstr[0] "%(count)s आने वाला प्रस्ताव"
+msgstr[1] "%(count)s आने वाले प्रस्ताव"
+
+msgid "%(count)s match"
+msgid_plural "%(count)s matches"
+msgstr[0] "%(count)s मिलान"
+msgstr[1] "%(count)s मिलान"
+
+msgid "%(count)s minute"
+msgid_plural "%(count)s minutes"
+msgstr[0] "%(count)s मिनट"
+msgstr[1] "%(count)s मिनट"
+
+msgid "%(count)s more"
+msgid_plural "%(count)s more"
+msgstr[0] "%(count)s और"
+msgstr[1] "%(count)s और"
+
+msgid "%(count)s more entry"
+msgid_plural "%(count)s more entries"
+msgstr[0] "%(count)s और प्रविष्टि"
+msgstr[1] "%(count)s और प्रविष्टियाँ"
+
+msgid "%(count)s new Magnolienbaum request awaits your decision."
+msgid_plural "%(count)s new Magnolienbaum requests await your decision."
+msgstr[0] "%(count)s नई Magnolienbaum अनुरोध आपके निर्णय की प्रतीक्षा कर रही है।"
+msgstr[1] "%(count)s नई Magnolienbaum अनुरोध आपके निर्णय की प्रतीक्षा कर रही हैं।"
+
+msgid "%(count)s non-JPEG contact photo was omitted."
+msgid_plural "%(count)s non-JPEG contact photos were omitted."
+msgstr[0] "%(count)s गैर-JPEG संपर्क फ़ोटो छोड़ दिया गया।"
+msgstr[1] "%(count)s गैर-JPEG संपर्क फ़ोटो छोड़ दिए गए।"
+
+msgid "%(count)s note"
+msgid_plural "%(count)s notes"
+msgstr[0] "%(count)s नोट"
+msgstr[1] "%(count)s नोट"
+
+msgid "%(count)s notebook"
+msgid_plural "%(count)s notebooks"
+msgstr[0] "%(count)s नोटबुक"
+msgstr[1] "%(count)s नोटबुक"
+
+msgid "%(count)s open"
+msgstr "%(count)s खुले"
+
+msgid "%(count)s page"
+msgid_plural "%(count)s pages"
+msgstr[0] "%(count)s पृष्ठ"
+msgstr[1] "%(count)s पृष्ठ"
+
+msgid "%(count)s public holiday"
+msgid_plural "%(count)s public holidays"
+msgstr[0] "%(count)s सार्वजनिक अवकाश"
+msgstr[1] "%(count)s सार्वजनिक अवकाश"
+
+msgid "%(count)s recurring appointment imported only once."
+msgid_plural "%(count)s recurring appointments imported only once."
+msgstr[0] "%(count)s आवर्ती अपॉइंटमेंट केवल एक बार आयात किया गया।"
+msgstr[1] "%(count)s आवर्ती अपॉइंटमेंट केवल एक बार आयात किए गए।"
+
+msgid "%(count)s second"
+msgid_plural "%(count)s seconds"
+msgstr[0] "%(count)s सेकंड"
+msgstr[1] "%(count)s सेकंड"
+
+msgid "%(count)s task"
+msgid_plural "%(count)s tasks"
+msgstr[0] "%(count)s कार्य"
+msgstr[1] "%(count)s कार्य"
+
+msgid "%(count)s unreadable row omitted."
+msgid_plural "%(count)s unreadable rows omitted."
+msgstr[0] "%(count)s अपठनीय पंक्ति छोड़ी गई।"
+msgstr[1] "%(count)s अपठनीय पंक्तियाँ छोड़ी गईं।"
+
+msgid "%(count)s unusable contact was omitted."
+msgid_plural "%(count)s unusable contacts were omitted."
+msgstr[0] "%(count)s अनुपयोगी संपर्क छोड़ दिया गया।"
+msgstr[1] "%(count)s अनुपयोगी संपर्क छोड़ दिए गए।"
+
+msgid "%(date)s, %(time)s"
+msgstr "%(date)s, %(time)s"
+
+msgid "%(date)s, all day"
+msgstr "%(date)s, पूरे दिन"
+
+msgid "%(first)s and %(second)s"
+msgstr "%(first)s और %(second)s"
+
+msgid "%(first)s to %(last)s"
+msgstr "%(first)s से %(last)s"
+
+msgid "%(format)s (Ctrl+%(key)s)"
+msgstr "%(format)s (Ctrl+%(key)s)"
+
+msgid "%(from)s to %(to)s"
+msgstr "%(from)s से %(to)s"
+
+#, python-format
+msgid "%(name)s: Wedding anniversary in %(count)d day."
+msgid_plural "%(name)s: Wedding anniversary in %(count)d days."
+msgstr[0] "%(name)s: शादी की सालगिरह %(count)d दिन में।"
+msgstr[1] "%(name)s: शादी की सालगिरह %(count)d दिनों में।"
+
+msgid "%(ordinal)s death anniversary"
+msgstr "%(ordinal)s पुण्यतिथि"
+
+msgid "%(ordinal)s wedding anniversary"
+msgstr "%(ordinal)s शादी की सालगिरह"
+
+msgid "%(shown)s of %(count)s matches; refine your search."
+msgstr "%(count)s में से %(shown)s मिलान दिखाए गए; खोज को सीमित करें।"
+
+msgid "%(start)s to %(end)s"
+msgstr "%(start)s से %(end)s"
+
+#, python-format
+msgid "%(title)s – %(date)s%(time)s"
+msgstr "%(title)s – %(date)s%(time)s"
+
+msgid "%(title)s – %(when)s"
+msgstr "%(title)s – %(when)s"
+
+#, python-format
+msgid "%d appointment"
+msgid_plural "%d appointments"
+msgstr[0] "%d अपॉइंटमेंट"
+msgstr[1] "%d अपॉइंटमेंट"
+
+#, python-format
+msgid "%d birthday from the address book added as an anniversary."
+msgid_plural "%d birthdays from the address book added as anniversaries."
+msgstr[0] "पता पुस्तिका से %d जन्मदिन वर्षगाँठ के रूप में जोड़ा गया।"
+msgstr[1] "पता पुस्तिका से %d जन्मदिन वर्षगाँठ के रूप में जोड़े गए।"
+
+#, python-format
+msgid "%d contact"
+msgid_plural "%d contacts"
+msgstr[0] "%d संपर्क"
+msgstr[1] "%d संपर्क"
+
+#, python-format
+msgid "%d deleted"
+msgstr "%d हटाए गए"
+
+#, python-format
+msgid "%d error"
+msgid_plural "%d errors"
+msgstr[0] "%d त्रुटि"
+msgstr[1] "%d त्रुटियाँ"
+
+#, python-format
+msgid "%d holiday period"
+msgid_plural "%d holiday periods"
+msgstr[0] "%d अवकाश अवधि"
+msgstr[1] "%d अवकाश अवधियाँ"
+
+#, python-format
+msgid "%d notification today"
+msgid_plural "%d notifications today"
+msgstr[0] "आज %d सूचना"
+msgstr[1] "आज %d सूचनाएँ"
+
+#, python-format
+msgid "%d public holiday"
+msgid_plural "%d public holidays"
+msgstr[0] "%d सार्वजनिक अवकाश"
+msgstr[1] "%d सार्वजनिक अवकाश"
+
+#, python-format
+msgid "%d received"
+msgstr "%d प्राप्त"
+
+#, python-format
+msgid "%d synchronized"
+msgstr "%d सिंक्रनाइज़"
+
+#, python-format
+msgid "%d task"
+msgid_plural "%d tasks"
+msgstr[0] "%d कार्य"
+msgstr[1] "%d कार्य"
+
+#, python-format
+msgid "%d uploaded"
+msgstr "%d अपलोड"
+
+#, python-format
+msgid "%s has a birthday %s."
+msgstr "%s का जन्मदिन %s है।"
+
+#, python-format
+msgid "%s reported an unexpected error (technical detail: %s)."
+msgstr "%s ने एक अप्रत्याशित त्रुटि की सूचना दी (तकनीकी विवरण: %s)।"
+
+#, python-format
+msgid "%s – today"
+msgstr "%s – आज"
+
+#, python-format
+msgid "%s – today at %s"
+msgstr "%s – आज %s बजे"
+
+#, python-format
+msgid "%s: %s."
+msgstr "%s: %s।"
+
+#, python-format
+msgid "%s: Anniversary %s (%s)."
+msgstr "%s: वर्षगाँठ %s (%s)।"
+
+#, python-format
+msgid "%s: Wedding anniversary the day after tomorrow."
+msgstr "%s: परसों शादी की सालगिरह।"
+
+#, python-format
+msgid "%s: Wedding anniversary today."
+msgstr "%s: आज शादी की सालगिरह।"
+
+#, python-format
+msgid "%s: Wedding anniversary tomorrow."
+msgstr "%s: कल शादी की सालगिरह।"
+
+msgid "(starts when you sign in)"
+msgstr "(साइन इन करने पर शुरू होता है)"
+
+msgid "(unnamed)"
+msgstr "(बेनाम)"
+
+msgid "(used by the session service)"
+msgstr "(सत्र सेवा द्वारा उपयोग किया जाता है)"
+
+msgid "+ Address"
+msgstr "+ पता"
+
+msgid "+ Email address"
+msgstr "+ ईमेल पता"
+
+msgid "+ Emergency contact"
+msgstr "+ आपातकालीन संपर्क"
+
+msgid "+ Event"
+msgstr "+ घटना"
+
+msgid "+ More appointments"
+msgstr "+ और अपॉइंटमेंट"
+
+msgid "+ More tasks"
+msgstr "+ और कार्य"
+
+msgid "+ Phone number"
+msgstr "+ फ़ोन नंबर"
+
+msgid "+ Social medium"
+msgstr "+ सोशल मीडिया"
+
+msgid "+49 … or 0…"
+msgstr "+49 … या 0…"
+
+msgid ", imported from the session"
+msgstr ", सत्र से आयात किया गया"
+
+msgid "1 - high"
+msgstr "1 – उच्च"
+
+msgid "1 day before"
+msgstr "1 दिन पहले"
+
+msgid "1 hour before"
+msgstr "1 घंटा पहले"
+
+msgid "10 minutes before"
+msgstr "10 मिनट पहले"
+
+msgid "15 minutes before"
+msgstr "15 मिनट पहले"
+
+msgid "2 - medium"
+msgstr "2 – मध्यम"
+
+msgid "2 days before"
+msgstr "2 दिन पहले"
+
+msgid "2 hours before"
+msgstr "2 घंटे पहले"
+
+msgid "3 - low"
+msgstr "3 – निम्न"
+
+msgid "3 days before"
+msgstr "3 दिन पहले"
+
+msgid "30 days"
+msgstr "30 दिन"
+
+msgid "30 minutes before"
+msgstr "30 मिनट पहले"
+
+msgid "4 days before"
+msgstr "4 दिन पहले"
+
+msgid "5 days before"
+msgstr "5 दिन पहले"
+
+msgid "5 minutes before"
+msgstr "5 मिनट पहले"
+
+msgid "6 days before"
+msgstr "6 दिन पहले"
+
+msgid "7 days before"
+msgstr "7 दिन पहले"
+
+msgid "90 days"
+msgstr "90 दिन"
+
+#, python-format
+msgid ""
+"A component for spelling suggestions is missing. Install it with:  sudo apt "
+"install %s"
+msgstr ""
+"वर्तनी सुझावों के लिए एक घटक उपलब्ध नहीं है। इसे इस कमांड से स्थापित करें:  sudo apt "
+"install %s"
+
+msgid "A component required by the Magnolienbaum is missing."
+msgstr "Magnolienbaum के लिए आवश्यक एक घटक उपलब्ध नहीं है।"
+
+msgid ""
+"A component required by the Magnolienbaum is missing. Install it with:  sudo "
+"apt install python3-cryptography"
+msgstr ""
+"Magnolienbaum के लिए आवश्यक एक घटक उपलब्ध नहीं है। इसे इस कमांड से स्थापित करें:  sudo "
+"apt install python3-cryptography"
+
+msgid "A group with this name already exists."
+msgstr "इस नाम का समूह पहले से मौजूद है।"
+
+msgid "A known branch"
+msgstr "ज्ञात शाखा"
+
+msgid "A notebook with this name already exists in this group."
+msgstr "इस समूह में इस नाम की नोटबुक पहले से मौजूद है।"
+
+msgid ""
+"A numeric code can be entered conveniently using the keypad when opening; "
+"letters work as well. After three failed attempts, the organizer waits five "
+"minutes."
+msgstr ""
+"खोलते समय संख्यात्मक कोड को न्यूमेरिक कीपैड से आसानी से दर्ज किया जा सकता है; अक्षर भी "
+"काम करते हैं। तीन असफल प्रयासों के बाद Organizer पाँच मिनट प्रतीक्षा करता है।"
+
+msgid ""
+"A pairing file works like a one-time key. Give it only to the person whose "
+"Organizer you want to connect; it expires after 15 minutes."
+msgstr ""
+"पेयरिंग फ़ाइल एक बार इस्तेमाल होने वाली कुंजी की तरह काम करती है। इसे केवल उस व्यक्ति को "
+"दें जिसके Organizer से आप जुड़ना चाहते हैं; यह 15 मिनट बाद समाप्त हो जाती है।"
+
+msgid ""
+"A password initially locks out the background reminder service. Without the "
+"explicit permission below, notifications work only while the organizer is "
+"open and unlocked."
+msgstr ""
+"पासवर्ड शुरुआत में पृष्ठभूमि की रिमाइंडर सेवा को रोक देता है। नीचे दी गई स्पष्ट अनुमति के "
+"बिना सूचनाएँ केवल तब काम करती हैं जब Organizer खुला और अनलॉक हो।"
+
+msgid "A prepared password transaction file is missing or damaged."
+msgstr "तैयार की गई पासवर्ड ट्रांज़ैक्शन फ़ाइल गायब या क्षतिग्रस्त है।"
+
+msgid ""
+"A separate encrypted connection for device status and future phone modules."
+msgstr "डिवाइस की स्थिति और भविष्य के फ़ोन मॉड्यूल के लिए अलग एन्क्रिप्टेड कनेक्शन।"
+
+msgid "Aargau"
+msgstr "आरगाउ"
+
+msgid "About"
+msgstr "परिचय"
+
+msgid "About the Magnolie Organizer"
+msgstr "Magnolie Organizer के बारे में"
+
+msgid "Accept"
+msgstr "स्वीकार करें"
+
+msgid "Accept and remember"
+msgstr "स्वीकार करें और याद रखें"
+
+msgid "Accept “%(entry)s” into your own collection?"
+msgstr "“%(entry)s” को अपने संग्रह में स्वीकार करें?"
+
+msgid ""
+"Accept “%(entry)s” into your own collection?\n"
+"\n"
+"This consent applies only to this note. Future changes and attachments will "
+"then be applied automatically in both directions."
+msgstr ""
+"“%(entry)s” को अपने संग्रह में स्वीकार करें?\n"
+"\n"
+"यह सहमति केवल इस नोट पर लागू होती है। इसके बाद भविष्य के बदलाव और संलग्नक दोनों दिशाओं "
+"में अपने-आप लागू होंगे।"
+
+msgid "Accessibility"
+msgstr "सुलभता"
+
+msgid "Accessibility helper frame"
+msgstr "सुलभता सहायक फ़्रेम"
+
+msgid "Accessibility helper frame disabled"
+msgstr "सुलभता सहायक फ़्रेम बंद"
+
+msgid "Accessibility helper frame enabled"
+msgstr "सुलभता सहायक फ़्रेम चालू"
+
+msgid ""
+"Accessibility: The helper frame shows the current keyboard focus. It is "
+"disabled by default; press Ctrl+Alt+H at any time to switch it on or off."
+msgstr ""
+"सुलभता: सहायक फ़्रेम वर्तमान कीबोर्ड फ़ोकस दिखाता है। यह डिफ़ॉल्ट रूप से बंद है; इसे कभी भी "
+"चालू या बंद करने के लिए Ctrl+Alt+H दबाएँ।"
+
+msgid "According to language"
+msgstr "भाषा के अनुसार"
+
+msgid "Add"
+msgstr "जोड़ें"
+
+msgid "Add appointment"
+msgstr "अपॉइंटमेंट जोड़ें"
+
+msgid "Add cycle marker"
+msgstr "चक्र चिह्न जोड़ें"
+
+msgid "Add person"
+msgstr "व्यक्ति जोड़ें"
+
+msgid "Add scheme row"
+msgstr "योजना पंक्ति जोड़ें"
+
+msgid "Add shift"
+msgstr "शिफ़्ट जोड़ें"
+
+msgid "Add to dictionary"
+msgstr "शब्दकोश में जोड़ें"
+
+msgid "Add vacation period"
+msgstr "अवकाश अवधि जोड़ें"
+
+msgid "Add waste collection"
+msgstr "कचरा संग्रह जोड़ें"
+
+msgid "Adding the alarm monitor to autostart"
+msgstr "अलार्म मॉनिटर को ऑटोस्टार्ट में जोड़ा जा रहा है"
+
+msgid "Adding the tray applet to autostart"
+msgstr "सिस्टम ट्रे एप्लेट को ऑटोस्टार्ट में जोड़ा जा रहा है"
+
+msgid "Adding the word to the dictionary"
+msgstr "शब्द को शब्दकोश में जोड़ा जा रहा है"
+
+msgid "Address"
+msgstr "पता"
+
+msgid "Address book"
+msgstr "पता पुस्तिका"
+
+msgid "Address imported from LibreOffice."
+msgstr "LibreOffice से पता आयात किया गया।"
+
+msgid ""
+"Addressed to %(branch)s; it will be delivered when the branch is available."
+msgstr "%(branch)s के लिए; शाखा उपलब्ध होने पर इसे पहुँचा दिया जाएगा।"
+
+msgid "Addresses"
+msgstr "पते"
+
+msgid "After exercise"
+msgstr "व्यायाम के बाद"
+
+msgid "After meal"
+msgstr "भोजन के बाद"
+
+msgid "Alarm monitor in background: not running"
+msgstr "पृष्ठभूमि अलार्म मॉनिटर: नहीं चल रहा"
+
+msgid "Alarm monitor in background: running"
+msgstr "पृष्ठभूमि अलार्म मॉनिटर: चल रहा"
+
+#, python-format
+msgid "Alarm monitor log: still empty (%(path)s)"
+msgstr "अलार्म मॉनिटर लॉग अभी भी खाली है (%(path)s)"
+
+msgid "Alarm monitor start canceled – one is already running."
+msgstr "अलार्म मॉनिटर का प्रारंभ रद्द – एक पहले से चल रहा है।"
+
+#, python-format
+msgid ""
+"Alarm monitor started (process %(pid)d, display %(display)s%(session)s)."
+msgstr "अलार्म मॉनिटर शुरू हुआ (प्रक्रिया %(pid)d, डिस्प्ले %(display)s%(session)s)।"
+
+msgid "Alarm monitor stopped."
+msgstr "अलार्म मॉनिटर बंद हुआ।"
+
+msgid "All"
+msgstr "सभी"
+
+msgid "All cantons"
+msgstr "सभी कैंटन"
+
+msgid "All entries"
+msgstr "सभी प्रविष्टियाँ"
+
+msgid "All files"
+msgstr "सभी फ़ाइलें"
+
+msgid "All people"
+msgstr "सभी व्यक्ति"
+
+msgid "All six charts"
+msgstr "सभी छह चार्ट"
+
+msgid "All states"
+msgstr "सभी राज्य"
+
+msgid "Allow notifications despite password protection"
+msgstr "पासवर्ड सुरक्षा के बावजूद सूचनाएँ अनुमति दें"
+
+msgid "Also disclose appointments marked as confidential"
+msgstr "गोपनीय चिह्नित अपॉइंटमेंट भी साझा करें"
+
+msgid "Also hide past anniversaries"
+msgstr "बीती हुई वर्षगाँठें भी छिपाएँ"
+
+msgid "Also hide past school holidays"
+msgstr "बीती हुई स्कूल छुट्टियाँ भी छिपाएँ"
+
+msgid "Also remind me about anniversaries"
+msgstr "वर्षगाँठों की भी याद दिलाएँ"
+
+msgid "Also remind me about missed appointments"
+msgstr "छूटे हुए अपॉइंटमेंट की भी याद दिलाएँ"
+
+msgid "Also use the default notification"
+msgstr "डिफ़ॉल्ट सूचना भी उपयोग करें"
+
+msgid "Amount / unit"
+msgstr "मात्रा / इकाई"
+
+msgid "An ODS cell is too long."
+msgstr "ODS सेल बहुत लंबा है।"
+
+msgid "An ODS row has the wrong number of columns."
+msgstr "ODS पंक्ति में कॉलम की संख्या गलत है।"
+
+msgid ""
+"An appointment calendar, address book, task book and notepad in the guise of "
+"a leather-bound organizer —"
+msgstr "चमड़े से बँधे आयोजक के रूप में अपॉइंटमेंट कैलेंडर, पता पुस्तिका, कार्य पुस्तिका और नोटपैड —"
+
+msgid ""
+"An encryption component is missing. Install it with:  sudo apt install "
+"python3-cryptography"
+msgstr ""
+"एन्क्रिप्शन का एक घटक उपलब्ध नहीं है। इसे इस कमांड से स्थापित करें:  sudo apt install "
+"python3-cryptography"
+
+msgid ""
+"An encryption component is missing. Install it with: sudo apt install "
+"python3-cryptography"
+msgstr ""
+"एन्क्रिप्शन का एक घटक उपलब्ध नहीं है। इसे इस कमांड से स्थापित करें: sudo apt install "
+"python3-cryptography"
+
+msgid "Android version"
+msgstr "एंड्रॉइड संस्करण"
+
+msgid "Anniversaries"
+msgstr "वर्षगाँठें"
+
+msgid "Anniversaries (.ics)"
+msgstr "वर्षगाँठें (.ics)"
+
+msgid "Anniversary"
+msgstr "वर्षगाँठ"
+
+msgid "Another data operation is still running."
+msgstr "एक और डेटा संचालन अभी भी चल रहा है।"
+
+msgid "Appearance"
+msgstr "दिखावट"
+
+msgid "Appearance and sound follow your system notification settings."
+msgstr "दिखावट और ध्वनि आपके सिस्टम की सूचना सेटिंग का अनुसरण करती हैं।"
+
+msgid "Appearance: Magnolie sheet"
+msgstr "दिखावट: Magnolie शीट"
+
+msgid "Appearance: system notification"
+msgstr "दिखावट: सिस्टम सूचना"
+
+msgid "Appenzell Ausserrhoden"
+msgstr "अपेन्ज़ेल आउसररोडेन"
+
+msgid "Appenzell Innerrhoden"
+msgstr "अपेन्ज़ेल इनररोडेन"
+
+msgid ""
+"Applies only to content you enter yourself: appointments, tasks, contacts, "
+"notes and anniversaries. Headings, calendar pages and organizer labels "
+"remain unchanged."
+msgstr ""
+"यह केवल उस सामग्री पर लागू होता है जिसे आप स्वयं दर्ज करते हैं: अपॉइंटमेंट, कार्य, संपर्क, "
+"नोट और वर्षगाँठें। शीर्षक, कैलेंडर पृष्ठ और Organizer लेबल अपरिवर्तित रहते हैं।"
+
+msgid ""
+"Applies when scrolling over a time field. Hold Shift to change the time in "
+"whole hours."
+msgstr ""
+"समय फ़ील्ड पर स्क्रॉल करने पर लागू होता है। समय को पूरे घंटों में बदलने के लिए Shift दबाए "
+"रखें।"
+
+msgid "Apply"
+msgstr "लागू करें"
+
+msgid "Appointment"
+msgstr "अपॉइंटमेंट"
+
+msgid "Appointment could not be read"
+msgstr "अपॉइंटमेंट पढ़ा नहीं जा सका"
+
+msgid "Appointment is due"
+msgstr "अपॉइंटमेंट का समय हो गया है"
+
+msgid "Appointment overview"
+msgstr "अपॉइंटमेंट अवलोकन"
+
+msgid "Appointment reminder"
+msgstr "अपॉइंटमेंट रिमाइंडर"
+
+msgid "Appointment reminders"
+msgstr "अपॉइंटमेंट रिमाइंडर"
+
+msgid "Appointments"
+msgstr "अपॉइंटमेंट"
+
+msgid "Appointments (.ics)"
+msgstr "अपॉइंटमेंट (.ics)"
+
+msgid "Appointments as Lotus CSV"
+msgstr "Lotus CSV के रूप में अपॉइंटमेंट"
+
+msgid "Appointments for this person"
+msgstr "इस व्यक्ति के अपॉइंटमेंट"
+
+msgid "Appointments · %(period)s"
+msgstr "अपॉइंटमेंट · %(period)s"
+
+msgid "As usual (print)"
+msgstr "सामान्य रूप से (प्रिंट)"
+
+msgid "Assign shift"
+msgstr "शिफ़्ट निर्धारित करें"
+
+msgid "At bedtime"
+msgstr "सोने के समय"
+
+msgid "At least one health view must remain enabled."
+msgstr "कम से कम एक स्वास्थ्य दृश्य सक्षम रहना चाहिए।"
+
+msgid "At most 5,000 contacts can be exported at once."
+msgstr "एक बार में अधिकतम 5,000 संपर्क निर्यात किए जा सकते हैं।"
+
+msgid "At most 5,000 health records can be exported at once."
+msgstr "एक बार में अधिकतम 5,000 स्वास्थ्य रिकॉर्ड निर्यात किए जा सकते हैं।"
+
+msgid "Austria"
+msgstr "ऑस्ट्रिया"
+
+msgid "Author"
+msgstr "लेखक"
+
+msgid "Authority appointment"
+msgstr "सरकारी कार्यालय का अपॉइंटमेंट"
+
+msgid "Automatically choose a suitable application"
+msgstr "उपयुक्त एप्लिकेशन अपने-आप चुनें"
+
+#, python-format
+msgid "Autostart entry: %(path)s"
+msgstr "ऑटोस्टार्ट प्रविष्टि: %(path)s"
+
+msgid "Autostart entry: missing"
+msgstr "ऑटोस्टार्ट प्रविष्टि: उपलब्ध नहीं"
+
+msgid "B"
+msgstr "म"
+
+msgid "BMI"
+msgstr "बीएमआई"
+
+msgid ""
+"BMI\n"
+"kg/m²"
+msgstr ""
+"बीएमआई\n"
+"kg/m²"
+
+msgid "BMI from the latest stored height and weight"
+msgstr "अंतिम सहेजी गई लंबाई और वज़न के आधार पर बीएमआई"
+
+msgid "BZ"
+msgstr "BZ"
+
+msgid "Backup failed."
+msgstr "बैकअप विफल रहा।"
+
+#, python-format
+msgid "Backup failed: %s"
+msgstr "बैकअप विफल रहा: %s"
+
+msgid "Backup folder"
+msgstr "बैकअप फ़ोल्डर"
+
+msgid "Backup folder updated."
+msgstr "बैकअप फ़ोल्डर अपडेट किया गया।"
+
+msgid "Backup password"
+msgstr "बैकअप पासवर्ड"
+
+msgid "Backup restored. The previous data was backed up automatically."
+msgstr "बैकअप पुनर्स्थापित किया गया। पिछले डेटा का बैकअप अपने-आप बना लिया गया था।"
+
+msgid "Backup saved to: %(path)s"
+msgstr "बैकअप यहाँ सहेजा गया: %(path)s"
+
+msgid "Backups"
+msgstr "बैकअप"
+
+msgid ""
+"Backups outside the data location require a password with at least four "
+"characters."
+msgstr "डेटा स्थान के बाहर बैकअप के लिए कम से कम चार अक्षरों का पासवर्ड आवश्यक है।"
+
+msgid "Baden-Württemberg"
+msgstr "बाडेन-वुर्टेम्बर्ग"
+
+msgid "Baptism"
+msgstr "बपतिस्मा"
+
+msgid "Basal units"
+msgstr "बेसल इकाइयाँ"
+
+msgid "Basel-Landschaft"
+msgstr "बासेल-लांडशाफ्ट"
+
+msgid "Basel-Stadt"
+msgstr "बासेल-श्टाट"
+
+msgid "Basic operation and appearance of the organizer."
+msgstr "Organizer का मूल संचालन और रूप-रंग।"
+
+msgid "Battery"
+msgstr "पत्र"
+
+msgid "Bavaria"
+msgstr "बवेरिया"
+
+msgid "Before contact deletion"
+msgstr "संपर्क हटाने से पहले"
+
+msgid "Before contact import"
+msgstr "संपर्क आयात करने से पहले"
+
+msgid "Before contact merge"
+msgstr "संपर्क मर्ज करने से पहले"
+
+msgid "Before exercise"
+msgstr "व्यायाम से पहले"
+
+msgid "Before meal"
+msgstr "भोजन से पहले"
+
+msgid "Before restore"
+msgstr "पुनर्स्थापना से पहले"
+
+msgid "Before synchronization"
+msgstr "सिंक्रोनाइजेशन से पहले"
+
+msgid "Belgium"
+msgstr "बेल्जियम"
+
+msgid "Berlin"
+msgstr "बर्लिन"
+
+msgid "Bern"
+msgstr "बर्न"
+
+msgid "Birthday"
+msgstr "जन्मदिन"
+
+msgid "Birthday party"
+msgstr "जन्मदिन की पार्टी"
+
+msgid "Birthday today"
+msgstr "आज जन्मदिन"
+
+msgid "Black"
+msgstr "काला"
+
+msgid "Blank health form"
+msgstr "खाली स्वास्थ्य फ़ॉर्म"
+
+msgid "Blank template for handwriting"
+msgstr "हाथ से लिखने के लिए खाली प्रारूप"
+
+msgid "Bleeding · heavy"
+msgstr "रक्तस्राव · अधिक"
+
+msgid "Bleeding · light"
+msgstr "रक्तस्राव · हल्का"
+
+msgid "Bleeding · medium"
+msgstr "रक्तस्राव · मध्यम"
+
+msgid "Blood glucose"
+msgstr "रक्त शर्करा"
+
+msgid "Blood glucose scheme"
+msgstr "रक्त शर्करा योजना"
+
+msgid "Blood glucose table"
+msgstr "रक्त शर्करा तालिका"
+
+msgid "Blood glucose value"
+msgstr "रक्त शर्करा मान"
+
+msgid "Blood pressure"
+msgstr "रक्तचाप"
+
+msgid ""
+"Blood pressure\n"
+"mm/Hg"
+msgstr ""
+"रक्तचाप\n"
+"mm/Hg"
+
+msgid "Blue (fountain pen)"
+msgstr "नीला (फ़ाउंटेन पेन)"
+
+msgid "Bluetooth data fallback"
+msgstr "ब्लूटूथ डेटा फ़ॉलबैक"
+
+msgid "Bold"
+msgstr "मोटा"
+
+msgid ""
+"Both branches display the same six-digit code when connecting. Confirm it "
+"only if it matches, preventing anyone from intercepting the connection."
+msgstr ""
+"कनेक्ट करते समय दोनों शाखाएँ वही छह अंकों का कोड दिखाती हैं। केवल तभी पुष्टि करें जब दोनों "
+"कोड समान हों; इससे कोई तीसरा व्यक्ति कनेक्शन को बीच में रोक नहीं सकता।"
+
+msgid "Brandenburg"
+msgstr "ब्रांडेनबुर्ग"
+
+msgid "Bremen"
+msgstr "ब्रेमेन"
+
+msgid "Burgenland"
+msgstr "बुर्गेनलांड"
+
+msgid "By first name (Hans Müller)"
+msgstr "पहले नाम के अनुसार (Hans Müller)"
+
+msgid "By last name (Müller, Hans)"
+msgstr "उपनाम के अनुसार (Müller, Hans)"
+
+msgid "CSV files (*.csv)"
+msgstr "CSV फ़ाइलें (*.csv)"
+
+msgid "CW"
+msgstr "सप्ताह"
+
+msgid "Calculate the route to this address"
+msgstr "इस पते तक मार्ग निकालें"
+
+msgid "Calendar"
+msgstr "कैलेंडर"
+
+msgid "Calendar (*.ics)"
+msgstr "कैलेंडर (*.ics)"
+
+msgid "Calendar file (.ics/.vcs/.lcs) …"
+msgstr "कैलेंडर फ़ाइल (.ics/.vcs/.lcs) …"
+
+msgid "Calendar layout"
+msgstr "कैलेंडर लेआउट"
+
+msgid "Calendar week %(number)s"
+msgstr "कैलेंडर सप्ताह %(number)s"
+
+msgid "Calendars (multiple selections allowed)"
+msgstr "कैलेंडर (एक से अधिक चुने जा सकते हैं)"
+
+msgid "Call"
+msgstr "कॉल करें"
+
+msgid "Call this contact"
+msgstr "इस संपर्क को कॉल करें"
+
+msgid "Cancel"
+msgstr "रद्द करें"
+
+msgid "Canton"
+msgstr "कैंटन"
+
+msgid "Capsule"
+msgstr "कैप्सूल"
+
+msgid "Captured"
+msgstr "पकड़ा गया"
+
+msgid "Care service"
+msgstr "देखभाल सेवा"
+
+msgid "Carinthia"
+msgstr "कैरिन्थिया"
+
+msgid "Categories"
+msgstr "श्रेणियाँ"
+
+msgid "Categories:"
+msgstr "श्रेणियाँ:"
+
+msgid "Catholic confirmation"
+msgstr "कैथोलिक कन्फर्मेशन"
+
+msgid "Centered on the screen"
+msgstr "स्क्रीन के बीच में"
+
+msgid "Change password"
+msgstr "पासवर्ड बदलें"
+
+msgid "Changes are applied automatically"
+msgstr "परिवर्तन अपने-आप लागू होते हैं"
+
+msgid "Changing phone permission"
+msgstr "फोन अनुमति बदलना"
+
+msgid "Charging"
+msgstr "चार्जिंग"
+
+msgid "Charging state"
+msgstr "चार्जिंग स्थिति"
+
+msgid "Charts and BMI are documentation aids only and are not a diagnosis."
+msgstr "चार्ट और बीएमआई केवल दस्तावेज़ीकरण के साधन हैं, निदान नहीं।"
+
+msgid "Check for due appointments"
+msgstr "देय अपॉइंटमेंट जाँचें"
+
+msgid "Check for updates automatically every day"
+msgstr "हर दिन अपने-आप अपडेट जाँचें"
+
+msgid "Check now"
+msgstr "अभी जाँचें"
+
+msgid "Check spelling (red wavy lines)"
+msgstr "वर्तनी जाँचें (लाल लहरदार रेखाएँ)"
+
+msgid "Check the value and discuss repeated deviations with a doctor."
+msgstr "मान की जाँच करें और बार-बार होने वाले विचलनों के बारे में डॉक्टर से चर्चा करें।"
+
+msgid "Check-up appointment"
+msgstr "चेक-अप अपॉइंटमेंट"
+
+#, python-format
+msgid ""
+"Checked: nothing due (%(appointments)d appointments, lead time %(minutes)s "
+"min)"
+msgstr ""
+"जाँच पूरी: अभी कुछ देय नहीं (%(appointments)d अपॉइंटमेंट, अग्रिम समय %(minutes)s मिनट)"
+
+msgid "Checking online accounts …"
+msgstr "ऑनलाइन खातों की जाँच हो रही है …"
+
+msgid "Checking the current manual version …"
+msgstr "वर्तमान मैनुअल संस्करण की जाँच की जा रही है …"
+
+msgid "Checking the current version …"
+msgstr "वर्तमान संस्करण की जाँच हो रही है …"
+
+msgid ""
+"Choose a backup file. Before restoring it, the organizer automatically "
+"creates a copy of the current data. An encrypted backup requires its "
+"password."
+msgstr ""
+"बैकअप फ़ाइल चुनें। उसे पुनर्स्थापित करने से पहले Organizer मौजूदा डेटा की एक प्रति अपने-आप "
+"बना देता है। एन्क्रिप्टेड बैकअप के लिए उसका पासवर्ड चाहिए।"
+
+msgid "Choose a country first."
+msgstr "पहले देश चुनें।"
+
+msgid ""
+"Choose a phase or bleeding intensity. Assign it to the complete date range "
+"in the new appointment sheet."
+msgstr ""
+"चरण या रक्तस्राव की तीव्रता चुनें। नए अपॉइंटमेंट की शीट में इसे पूरे दिनांक दायरे पर लागू करें।"
+
+msgid "Choose a phone number to call"
+msgstr "कॉल करने के लिए एक फोन नंबर चुनें"
+
+msgid ""
+"Choose a predefined shift or enter a custom one. Assign it to one or more "
+"days in the new appointment sheet. Day markers do not send notifications."
+msgstr ""
+"पहले से तय शिफ़्ट चुनें या अपनी शिफ़्ट लिखें। नए अपॉइंटमेंट की शीट में इसे एक या अधिक दिनों पर "
+"लागू करें। दिन के चिह्न सूचनाएँ नहीं भेजते।"
+
+msgid "Choose a value and period to display its development."
+msgstr "उसका बदलाव दिखाने के लिए कोई मान और अवधि चुनें।"
+
+msgid ""
+"Choose a waste type or enter a custom collection. Set the first collection "
+"and the interval in days; 0 creates a one-time collection."
+msgstr ""
+"कचरे का प्रकार चुनें या अपनी संग्रह प्रविष्टि लिखें। पहला संग्रह और दिनों का अंतराल तय करें; "
+"0 एक बार का संग्रह बनाता है।"
+
+msgid "Choose at least four characters."
+msgstr "कम से कम चार अक्षर चुनें।"
+
+msgid "Choose entries to print, export or delete"
+msgstr "प्रिंट, निर्यात या हटाने के लिए प्रविष्टियाँ चुनें"
+
+msgid "Choose file…"
+msgstr "फ़ाइल चुनें…"
+
+msgid "Choose folder …"
+msgstr "फ़ोल्डर चुनें …"
+
+msgid "Choose or enter a phone number"
+msgstr "फ़ोन नंबर चुनें या दर्ज करें"
+
+msgid "Choose photo…"
+msgstr "फ़ोटो चुनें…"
+
+msgid "Choose print or export content…"
+msgstr "प्रिंट या निर्यात करने की सामग्री चुनें…"
+
+msgid "Choose service"
+msgstr "सेवा चुनें"
+
+msgid ""
+"Choose which sections appear as tabs on the organizer. The calendar always "
+"remains available."
+msgstr ""
+"चुनें कि ऑर्गनाइज़र में कौन से अनुभाग टैब के रूप में दिखाई दें। कैलेंडर हमेशा उपलब्ध रहता है।"
+
+msgid "Choose year…"
+msgstr "वर्ष चुनें…"
+
+msgid "City"
+msgstr "शहर"
+
+msgid "Claws Mail (.xml/.ldif) …"
+msgstr "Claws Mail (.xml/.ldif) …"
+
+msgid "Claws Mail address book (*.xml)"
+msgstr "Claws Mail पता पुस्तिका (*.xml)"
+
+msgid "Clear"
+msgstr "साफ़ करें"
+
+msgid "Clear filters"
+msgstr "फ़िल्टर साफ़ करें"
+
+msgid "Clearly abnormal reference value – check it and seek medical advice."
+msgstr "संदर्भ मान स्पष्ट रूप से असामान्य है – इसकी जाँच करें और चिकित्सकीय सलाह लें।"
+
+msgid "Click here to add an appointment"
+msgstr "अपॉइंटमेंट जोड़ने के लिए यहाँ क्लिक करें"
+
+msgid "Click to open"
+msgstr "खोलने के लिए क्लिक करें"
+
+msgid "Clicking a day"
+msgstr "किसी दिन पर क्लिक करना"
+
+msgid ""
+"Clicking an existing appointment opens it for editing in both cases. This "
+"setting applies only when you click an empty area in the box."
+msgstr ""
+"मौजूदा अपॉइंटमेंट पर क्लिक करने से दोनों स्थितियों में वह संपादन के लिए खुलता है। यह सेटिंग "
+"केवल तब लागू होती है जब आप बॉक्स के खाली क्षेत्र पर क्लिक करते हैं।"
+
+msgid "Close"
+msgstr "बंद करें"
+
+msgid "Close settings"
+msgstr "सेटिंग बंद करें"
+
+msgid "Club anniversary"
+msgstr "क्लब की वर्षगाँठ"
+
+msgid "Code matches"
+msgstr "कोड मेल खाता है"
+
+msgid "Codes differ"
+msgstr "कोड अलग हैं"
+
+msgid "Codes match"
+msgstr "कोड मेल खाता है"
+
+msgid "Color"
+msgstr "रंग"
+
+msgid ""
+"Colors and matching scheme rows are orientation aids. Enter or adjust the IE "
+"in the table to the amount actually administered."
+msgstr ""
+"रंग और उनसे मेल खाती योजना की पंक्तियाँ केवल मार्गदर्शन के लिए हैं। तालिका में इंसुलिन "
+"इकाइयों की संख्या को वास्तव में दी गई मात्रा के अनुसार दर्ज या समायोजित करें।"
+
+msgid "Columns in the ODS table"
+msgstr "ODS तालिका के कॉलम"
+
+msgid "Compact sender line (default)"
+msgstr "संक्षिप्त प्रेषक पंक्ति (डिफ़ॉल्ट)"
+
+msgid "Company"
+msgstr "कंपनी"
+
+msgid "Compare pairing code"
+msgstr "पेयरिंग फ़ाइल आयात हो रही है"
+
+msgid ""
+"Compare this fingerprint with the other branch, for example by phone, to "
+"verify the connection."
+msgstr ""
+"कनेक्शन सत्यापित करने के लिए इस फ़िंगरप्रिंट की दूसरी शाखा से तुलना करें, उदाहरण के लिए फ़ोन "
+"पर।"
+
+msgid "Completed (%(count)s)"
+msgstr "पूर्ण (%(count)s)"
+
+msgid "Completing secure pairing…"
+msgstr "पेयरिंग फ़ाइल बनाई जा रही है"
+
+msgid "Configuring Bluetooth data"
+msgstr "ब्लूटूथ डेटा कॉन्फ़िगर करना"
+
+msgid ""
+"Confirm only if exactly the same six-digit code is shown on both devices."
+msgstr "केवल तभी पुष्टि करें यदि दोनों उपकरणों पर बिल्कुल वही छह-अंकों का कोड दिख रहा हो।"
+
+msgid "Confirmation"
+msgstr "पुष्टि"
+
+msgid "Connect"
+msgstr "कनेक्ट करें"
+
+msgid "Connect phone via WLAN"
+msgstr "फोन को WLAN के माध्यम से कनेक्ट करें"
+
+msgid "Connecting to the online accounts"
+msgstr "ऑनलाइन खातों से कनेक्ट हो रहा है"
+
+#, python-format
+msgid "Contact %d contains an unreadable vCard."
+msgstr "संपर्क %d में एक अज्ञनीय vCard है।"
+
+#, python-format
+msgid "Contact %d contains an unreadable vCard: %s"
+msgstr "संपर्क %d में एक पढ़ने योग्य vCard नहीं है: %s"
+
+#, python-format
+msgid "Contact %d could not be serialized: %s"
+msgstr "संपर्क %d को सीरियलाइज़ नहीं किया जा सका: %s"
+
+#, python-format
+msgid "Contact %d has no UID."
+msgstr "संपर्क %d का कोई UID नहीं है।"
+
+msgid "Contact card"
+msgstr "संपर्क कार्ड"
+
+msgid "Contact cards"
+msgstr "संपर्क कार्ड"
+
+msgid "Contact cards (*.vcf)"
+msgstr "संपर्क कार्ड (*.vcf)"
+
+msgid "Contact deletion proposals were blocked by the safety limit."
+msgstr "संपर्क हटाने के प्रस्ताव सुरक्षा सीमा द्वारा रोके गए।"
+
+msgid "Contact photo preview"
+msgstr "संपर्क फ़ोटो पूर्वावलोकन"
+
+msgid "Contact synchronization"
+msgstr "संपर्क सिंक्रनाइज़ेशन"
+
+msgid ""
+"Contact synchronization preview: %(new)s new, %(changed)s changed, "
+"%(duplicates)s possible duplicates, %(deletions)s deletion proposals."
+msgstr ""
+"सिंक्रनाइज़ेशन पूर्वावलोकन: %(new)s नए, %(changed)s बदले, %(duplicates)s संभावित "
+"डुप्लिकेट, %(deletions)s हटाने के प्रस्ताव।"
+
+msgid ""
+"Contact synchronization was blocked because the bound snapshot is empty."
+msgstr "लिंक किया गया स्नैपशॉट खाली होने के कारण सिंक्रनाइज़ेशन रोक दिया गया।"
+
+#, python-format
+msgid ""
+"Contact synchronization was stopped because the address book was not read "
+"completely: %s"
+msgstr "संपर्क समन्वय रोका गया क्योंकि पता पुस्तिका पूरी तरह से नहीं पढ़ी गई: %s"
+
+msgid "Contacts"
+msgstr "संपर्क"
+
+msgid "Contacts (.vcf)"
+msgstr "संपर्क (.vcf)"
+
+msgid "Contacts (.vcf) …"
+msgstr "संपर्क (.vcf) …"
+
+msgid "Contacts are merged additively. No deletions are transmitted."
+msgstr "संपर्क जोड़कर मिलाए जाते हैं। हटाने की जानकारी नहीं भेजी जाती।"
+
+msgid "Contacts for Claws Mail (.ldif)"
+msgstr "Claws Mail के लिए संपर्क (.ldif)"
+
+msgid "Contacts: component gir1.2-ebook-1.2 is missing; skipped."
+msgstr "संपर्क: gir1.2-ebook-1.2 घटक उपलब्ध नहीं है; छोड़ दिया गया।"
+
+#, python-format
+msgid "Contacts: safe first import from %(source)s: %(count)d received."
+msgstr "संपर्क: %(source)s से पहली सुरक्षित आयात: %(count)d प्राप्त हुआ।"
+
+msgid "Content"
+msgstr "सामग्री"
+
+msgid "Content length is missing."
+msgstr "सामग्री की लंबाई उपलब्ध नहीं है।"
+
+msgid "Continued"
+msgstr "जारी"
+
+msgid "Copy"
+msgstr "कॉपी करें"
+
+#, python-format
+msgid "Copy stored at: %s"
+msgstr "कॉपी यहाँ सहेजी गई: %s"
+
+msgid "Cost center"
+msgstr "लागत केंद्र"
+
+#, python-format
+msgid "Could not create POT template: %s"
+msgstr "POT टेम्पलेट नहीं बनाया जा सका: %s"
+
+msgid "Country"
+msgstr "देश"
+
+msgid "Country & holidays"
+msgstr "देश और छुट्टियाँ"
+
+msgid "Country (optional)"
+msgstr "देश (वैकल्पिक)"
+
+msgid "Country and region"
+msgstr "देश और क्षेत्र"
+
+msgid "Country for searches"
+msgstr "खोज के लिए देश"
+
+msgid "Create"
+msgstr "बनाएँ"
+
+msgid "Create a backup copy of the data"
+msgstr "डेटा की बैकअप प्रति बनाएँ"
+
+msgid "Create a gettext POT template"
+msgstr "gettext POT टेम्पलेट बनाएँ"
+
+msgid "Create a new appointment immediately"
+msgstr "तुरंत नया अपॉइंटमेंट बनाएँ"
+
+msgid "Create an empty printable template"
+msgstr "खाली मुद्रण योग्य टेम्पलेट बनाएँ"
+
+msgid "Create backup"
+msgstr "बैकअप बनाएँ"
+
+msgid "Create contact"
+msgstr "संपर्क बनाएँ"
+
+msgid "Create encrypted backup"
+msgstr "एन्क्रिप्टेड बैकअप बनाएँ"
+
+msgid "Create group"
+msgstr "समूह बनाएँ"
+
+msgid "Create notebook"
+msgstr "नोटबुक बनाएँ"
+
+msgid "Create pairing file …"
+msgstr "पेयरिंग फ़ाइल बनाएँ …"
+
+msgid "Create snapshot now"
+msgstr "अब स्नैपशॉट बनाएं"
+
+msgid "Creating a recovery snapshot"
+msgstr "पुनर्प्राप्ति स्नैपशॉट बनाना"
+
+msgid "Creating the backup"
+msgstr "बैकअप बनाया जा रहा है"
+
+msgid "Creating the letter"
+msgstr "पत्र बनाया जा रहा है"
+
+msgid "Creating the log"
+msgstr "लॉग बनाया जा रहा है"
+
+msgid "Creating the pairing file"
+msgstr "पेयरिंग फ़ाइल बनाई जा रही है"
+
+msgid "Creating the print page"
+msgstr "प्रिंट पृष्ठ बनाया जा रहा है"
+
+msgid "Creating the required recovery snapshot"
+msgstr "आवश्यक रिकवरी स्नैपशॉट बनाना"
+
+msgid "Custom"
+msgstr "कस्टम"
+
+msgid "Custom notification"
+msgstr "कस्टम सूचना"
+
+msgid "Custom websites must begin with https://."
+msgstr "कस्टम वेबसाइट https:// से शुरू होनी चाहिए।"
+
+msgid "Customer no."
+msgstr "ग्राहक सं."
+
+msgid "Customize"
+msgstr "अनुकूलित करें"
+
+msgid "Customize notebooks"
+msgstr "नोटबुक अनुकूलित करें"
+
+msgid "Cut"
+msgstr "काटें"
+
+msgid "Cycle calendar"
+msgstr "चक्र कैलेंडर"
+
+msgid ""
+"Cycle markers are stored only in your local Organizer data and do not send "
+"notifications."
+msgstr "चक्र चिह्न केवल आपके स्थानीय Organizer डेटा में सहेजे जाते हैं और सूचनाएँ नहीं भेजते।"
+
+msgid "Czechia"
+msgstr "चेकिया"
+
+msgid "DIN 5008 Form B with fold marks"
+msgstr "फोल्ड चिह्नों वाला DIN 5008 फ़ॉर्म B"
+
+msgid "DOCTYPE is not allowed in a Claws Mail address book."
+msgstr "Claws Mail पता पुस्तिका में DOCTYPE की अनुमति नहीं है।"
+
+msgid "Daily"
+msgstr "प्रतिदिन"
+
+msgid "Daily view"
+msgstr "दैनिक दृश्य"
+
+msgid "Damaged"
+msgstr "क्षतिग्रस्त"
+
+#, python-format
+msgid "Data: %(path)s"
+msgstr "डेटा: %(path)s"
+
+msgid "Data: not found – open the organizer once."
+msgstr "डेटा: नहीं मिला – Organizer को एक बार खोलें।"
+
+msgid "Date"
+msgstr "दिनांक"
+
+msgid "Daughter"
+msgstr "बेटी"
+
+msgid "Day"
+msgstr "दिन"
+
+msgid "Day markers"
+msgstr "दिन चिह्न"
+
+msgid "Dear Sir or Madam,"
+msgstr "महोदय/महोदया,"
+
+msgid "Death anniversary"
+msgstr "पुण्यतिथि"
+
+#, python-format
+msgid "Debug logging could not be started: %s"
+msgstr "डीबग लॉगिंग शुरू नहीं की जा सकी: %s"
+
+msgid "Decrypting the data"
+msgstr "डेटा डिक्रिप्ट किया जा रहा है"
+
+msgid "Default: next to the data file"
+msgstr "डिफ़ॉल्ट: डेटा फ़ाइल के पास"
+
+msgid "Delegate to"
+msgstr "इसे सौंपें"
+
+msgid "Delete"
+msgstr "हटाएँ"
+
+msgid "Delete %(count)s selected entry for good?"
+msgid_plural "Delete %(count)s selected entries for good?"
+msgstr[0] "%(count)s चुनी गई प्रविष्टि हमेशा के लिए हटाएँ?"
+msgstr[1] "%(count)s चुनी गई प्रविष्टियाँ हमेशा के लिए हटाएँ?"
+
+msgid "Delete %(count)s selected entry? It moves to the wastebasket."
+msgid_plural "Delete %(count)s selected entries? They move to the wastebasket."
+msgstr[0] "%(count)s चुनी गई प्रविष्टि हटाएँ? यह रीसायकल बिन में जाएगी।"
+msgstr[1] "%(count)s चुनी गई प्रविष्टियाँ हटाएँ? ये रीसायकल बिन में जाएँगी।"
+
+msgid "Delete anniversary"
+msgstr "वर्षगाँठ हटाएँ"
+
+msgid "Delete anniversary “%(name)s”?"
+msgstr "वर्षगाँठ “%(name)s” हटाएँ?"
+
+msgid "Delete appointment “%(title)s”?"
+msgstr "अपॉइंटमेंट “%(title)s” हटाएँ?"
+
+msgid ""
+"Delete appointment “%(title)s”? This removes every occurrence in the series."
+msgstr "अपॉइंटमेंट “%(title)s” हटाएँ? इससे शृंखला की हर आवृत्ति हट जाएगी।"
+
+msgid "Delete contact card “%(name)s”?"
+msgstr "संपर्क कार्ड “%(name)s” हटाएँ?"
+
+msgid "Delete cycle marker"
+msgstr "चक्र चिह्न हटाएँ"
+
+msgid "Delete entries"
+msgstr "प्रविष्टियाँ हटाएँ"
+
+msgid "Delete entries…"
+msgstr "प्रविष्टियाँ हटाएँ…"
+
+msgid "Delete group"
+msgstr "समूह हटाएँ"
+
+msgid "Delete last character"
+msgstr "अंतिम अक्षर हटाएँ"
+
+msgid "Delete notebook"
+msgstr "नोटबुक हटाएँ"
+
+msgid "Delete notebook group “%(name)s”?"
+msgstr "नोटबुक समूह “%(name)s” हटाएँ?"
+
+msgid "Delete notebook “%(name)s”?"
+msgstr "नोटबुक “%(name)s” हटाएँ?"
+
+msgid "Delete page"
+msgstr "पृष्ठ हटाएँ"
+
+msgid "Delete permanently"
+msgstr "हमेशा के लिए हटाएँ"
+
+msgid "Delete selection"
+msgstr "चयन हटाएँ"
+
+msgid "Delete shift"
+msgstr "शिफ़्ट हटाएँ"
+
+msgid "Delete task"
+msgstr "कार्य हटाएँ"
+
+msgid "Delete task “%(title)s”?"
+msgstr "कार्य “%(title)s” हटाएँ?"
+
+msgid "Delete this note page (“%(title)s”)?"
+msgstr "यह नोट पृष्ठ (“%(title)s”) हटाएँ?"
+
+msgid "Delete this recovery snapshot permanently?"
+msgstr "क्या इस रिकवरी स्नैपशॉट को स्थायी रूप से हटाना है?"
+
+msgid "Delete vacation period"
+msgstr "अवकाश अवधि हटाएँ"
+
+msgid "Delete waste collection"
+msgstr "कचरा संग्रह हटाएँ"
+
+msgid ""
+"Deleted items first go to the recycle bin and can be restored from there. "
+"They are permanently removed only afterwards."
+msgstr ""
+"हटाने के प्रस्ताव केवल अलग से पुष्टि किए गए लिंक संपर्क हटा सकते हैं। इस शाखा के लिए सक्षम "
+"करें?हटाई गई चीज़ें पहले रीसायकल बिन में जाती हैं और वहाँ से पुनर्स्थापित की जा सकती हैं। इसके "
+"बाद ही वे स्थायी रूप से हटती हैं।"
+
+msgid "Deleting a recovery snapshot"
+msgstr "रिकवरी स्नैपशॉट हटाना"
+
+msgid ""
+"Deletion proposals can remove only individually confirmed, bound contacts. "
+"Enable deletion proposals for this branch?"
+msgstr ""
+"हटाने के प्रस्ताव केवल अलग से पुष्टि किए गए लिंक संपर्क हटा सकते हैं। इस शाखा के लिए सक्षम "
+"करें?"
+
+msgid "Delivered"
+msgstr "डिलीवर नहीं हुआ"
+
+msgid "Delivered to %(branch)s."
+msgstr "%(branch)s को पहुँचा दिया गया।"
+
+msgid "Dentist Dr. Hill — Preview of your entries"
+msgstr "दंत चिकित्सक डॉ. Hill — आपकी प्रविष्टियों का पूर्वावलोकन"
+
+msgid "Determining public IP address…"
+msgstr "सार्वजनिक IP पता पता लगाया जा रहा है…"
+
+msgid "Device status"
+msgstr "डिवाइस की स्थिति"
+
+msgid "Diabetes"
+msgstr "मधुमेह"
+
+msgid "Diastolic"
+msgstr "डायस्टोलिक"
+
+msgid "Digit %(digit)s"
+msgstr "अंक %(digit)s"
+
+msgid ""
+"Disabled: no listener, discovery, reconnect or phone tray entries are active."
+msgstr "अक्षम: कोई श्रोता, खोज, पुन: कनेक्ट या फोन ट्रे प्रविष्टियाँ सक्रिय नहीं हैं।"
+
+msgid "Discard"
+msgstr "त्यागें"
+
+msgid "Discharging"
+msgstr "त्यागें"
+
+msgid "Display"
+msgstr "डिस्प्ले"
+
+#, python-format
+msgid "Display: %(display)s"
+msgstr "डिस्प्ले: %(display)s"
+
+msgid "Display: none"
+msgstr "डिस्प्ले: कोई नहीं"
+
+msgid "Do not retrieve weather without a location"
+msgstr "स्थान के बिना मौसम प्राप्त न करें"
+
+msgid "Doctor appointment"
+msgstr "डॉक्टर का अपॉइंटमेंट"
+
+msgid "Document.pdf"
+msgstr "Document.pdf"
+
+msgid "Done"
+msgstr "पूर्ण"
+
+msgid "Dose type"
+msgstr "खुराक का प्रकार"
+
+msgid "Download manual"
+msgstr "हैंडबुक डाउनलोड करें"
+
+msgid "Download manual version %(version)s"
+msgstr "हैंडबुक संस्करण %(version)s डाउनलोड करें"
+
+msgid "Download version %(version)s …"
+msgstr "संस्करण %(version)s डाउनलोड करें …"
+
+msgid "Drag the attachment area up or down"
+msgstr "संलग्नक क्षेत्र को ऊपर या नीचे खींचें"
+
+msgid "Drops"
+msgstr "बूँदें"
+
+msgid "Due on"
+msgstr "नियत तिथि"
+
+msgid "Due on %(date)s"
+msgstr "नियत तिथि %(date)s"
+
+msgid "Due: %(date)s"
+msgstr "नियत: %(date)s"
+
+msgid "Duplicates"
+msgstr "डुप्लिकेट"
+
+msgid "Early shift"
+msgstr "सुबह की शिफ़्ट"
+
+msgid "Edit"
+msgstr "संपादित करें"
+
+msgid "Edit anniversary"
+msgstr "वर्षगाँठ संपादित करें"
+
+msgid "Edit appointment"
+msgstr "अपॉइंटमेंट संपादित करें"
+
+msgid "Edit contact"
+msgstr "संपर्क संपादित करें"
+
+msgid "Edit group"
+msgstr "समूह संपादित करें"
+
+msgid "Edit notebook"
+msgstr "नोटबुक संपादित करें"
+
+msgid "Edit notebook group"
+msgstr "नोटबुक समूह संपादित करें"
+
+msgid "Edit task"
+msgstr "कार्य संपादित करें"
+
+msgid "Edit the website or application used"
+msgstr "उपयोग की जाने वाली वेबसाइट या एप्लिकेशन संपादित करें"
+
+msgid "Email"
+msgstr "ईमेल"
+
+msgid "Email addresses"
+msgstr "ईमेल पते"
+
+msgid "Embed"
+msgstr "एम्बेड करें"
+
+msgid "Embed PDF"
+msgstr "PDF एम्बेड करें"
+
+msgid "Embed image"
+msgstr "चित्र एम्बेड करें"
+
+msgid "Embed links and files"
+msgstr "लिंक और फ़ाइलें एम्बेड करें"
+
+msgid "Embedded files"
+msgstr "एम्बेड की गई फ़ाइलें"
+
+msgid "Emergency contact"
+msgstr "आपातकालीन संपर्क"
+
+msgid "Emergency contact %(number)s"
+msgstr "आपातकालीन संपर्क %(number)s"
+
+msgid "Emergency contact phone"
+msgstr "आपातकालीन संपर्क का फ़ोन"
+
+msgid "Emergency contacts"
+msgstr "आपातकालीन संपर्क"
+
+msgid "Empty recycle bin"
+msgstr "रीसायकल बिन खाली करें"
+
+msgid "Enable"
+msgstr "सक्षम करें"
+
+msgid "Enable cycle calendar"
+msgstr "चक्र कैलेंडर सक्षम करें"
+
+msgid "Enable password protection"
+msgstr "पासवर्ड सुरक्षा सक्षम करें"
+
+msgid ""
+"Enable password protection? Your data will then be stored encrypted. Without "
+"the password, it will be irretrievably lost; keep the password in a safe "
+"place."
+msgstr ""
+"पासवर्ड सुरक्षा सक्षम करें? आपका डेटा इसके बाद एन्क्रिप्टेड रूप में सहेजा जाएगा। पासवर्ड के "
+"बिना वह हमेशा के लिए खो जाएगा; पासवर्ड को सुरक्षित स्थान पर रखें।"
+
+msgid "Enable reminders"
+msgstr "रिमाइंडर सक्षम करें"
+
+msgid "Enable shift planner"
+msgstr "शिफ़्ट प्लानर सक्षम करें"
+
+msgid "Enable tray applet"
+msgstr "सिस्टम ट्रे एप्लेट सक्षम करें"
+
+msgid "Enable vacation planner"
+msgstr "अवकाश प्लानर सक्षम करें"
+
+msgid "Enable waste collection calendar"
+msgstr "कचरा संग्रह कैलेंडर सक्षम करें"
+
+msgid "Encrypting the data"
+msgstr "डेटा एन्क्रिप्ट किया जा रहा है"
+
+msgid "Enjoy getting organized!"
+msgstr "व्यवस्थित रहने का आनंद लें!"
+
+msgid "Enter"
+msgstr "दर्ज करें"
+
+msgid ""
+"Enter a blood glucose value on the left to highlight matching scheme rows."
+msgstr ""
+"मिलती हुई योजना पंक्तियों को हाइलाइट करने के लिए बाईं ओर रक्त शर्करा का मान दर्ज करें।"
+
+msgid "Enter a complete phone number."
+msgstr "पूरा फ़ोन नंबर दर्ज करें।"
+
+msgid "Enter a medication name first."
+msgstr "पहले दवा का नाम दर्ज करें।"
+
+msgid "Enter a password with letters"
+msgstr "अक्षरों वाला पासवर्ड दर्ज करें"
+
+msgid "Enter a reachable IPv4 or IPv6 address of this computer first."
+msgstr "पहले इस कंप्यूटर का पहुँच योग्य IPv4 या IPv6 पता दर्ज करें।"
+
+msgid "Enter a remote address before setting its port."
+msgstr "Enter a remote address before setting its port."
+
+msgid "Enter a secure HTTPS address for the custom medium."
+msgstr "कस्टम माध्यम के लिए सुरक्षित HTTPS पता दर्ज करें।"
+
+msgid "Enter a title, date, or a word from the note."
+msgstr "नोट से कोई शीर्षक, दिनांक या शब्द दर्ज करें।"
+
+msgid "Enter a valid host name or IP address."
+msgstr "मान्य होस्ट नाम या IP पता दर्ज करें।"
+
+msgid "Enter a valid port between 1 and 65535."
+msgstr "Enter a valid port between 1 and 65535."
+
+msgid "Enter a valid reachable IPv4 or IPv6 address."
+msgstr "मान्य और पहुँच योग्य IPv4 या IPv6 पता दर्ज करें।"
+
+msgid "Enter a web or email address."
+msgstr "वेब या ईमेल पता दर्ज करें।"
+
+msgid "Enter at least four characters for the backup password."
+msgstr "बैकअप पासवर्ड के लिए कम से कम चार अक्षर दर्ज करें।"
+
+msgid "Enter height and weight to calculate BMI."
+msgstr "बीएमआई की गणना के लिए लंबाई और वज़न दर्ज करें।"
+
+msgid "Enter the backup password."
+msgstr "बैकअप पासवर्ड दर्ज करें।"
+
+msgid "Enter the complete Mastodon address @name@server or an HTTPS address."
+msgstr "पूरा Mastodon पता @name@server या HTTPS पता दर्ज करें।"
+
+msgid "Enter the password for this backup."
+msgstr "इस बैकअप का पासवर्ड दर्ज करें।"
+
+msgid ""
+"Enter your address above. No service can calculate directions without a "
+"starting point."
+msgstr "ऊपर अपना पता दर्ज करें। प्रारंभ बिंदु के बिना कोई सेवा दिशा-निर्देश नहीं बना सकती।"
+
+msgid "Entry"
+msgstr "प्रविष्टि"
+
+msgid "Errands"
+msgstr "काम-काज"
+
+#, python-format
+msgid "Error: %s"
+msgstr "त्रुटि: %s"
+
+msgid "Evening"
+msgstr "शाम"
+
+#, python-format
+msgid "Event loop is not available: %s"
+msgstr "इवेंट लूप उपलब्ध नहीं है: %s"
+
+msgid "Every 12 hours"
+msgstr "हर 12 घंटे"
+
+msgid "Every 6 hours"
+msgstr "हर 6 घंटे"
+
+msgid "Every filled medication row requires a name."
+msgstr "दवा की हर भरी हुई पंक्ति के लिए नाम आवश्यक है।"
+
+msgid "Every filled row requires a valid date."
+msgstr "हर भरी हुई पंक्ति के लिए मान्य तारीख आवश्यक है।"
+
+msgid "Everything is done - the list is empty."
+msgstr "सब पूरा हो गया – सूची खाली है।"
+
+msgid "Export"
+msgstr "निर्यात करें"
+
+msgid "Export failed."
+msgstr "निर्यात विफल रहा।"
+
+msgid "Export failed: %(error)s"
+msgstr "निर्यात विफल रहा: %(error)s"
+
+msgid "Export is available only in the installed application."
+msgstr "निर्यात केवल स्थापित एप्लिकेशन में उपलब्ध है।"
+
+msgid "Extend sharing"
+msgstr "साझाकरण बढ़ाएँ"
+
+msgid "Failed"
+msgstr "असफल"
+
+msgid "Fasting"
+msgstr "खाली पेट"
+
+msgid "Female caregiver"
+msgstr "महिला देखभालकर्ता"
+
+msgid "Female friend"
+msgstr "महिला मित्र"
+
+msgid "Female neighbor"
+msgstr "महिला पड़ोसी"
+
+msgid "Female partner"
+msgstr "महिला साथी"
+
+msgid "Female relative"
+msgstr "महिला रिश्तेदार"
+
+msgid "Fertile days"
+msgstr "उपजाऊ दिन"
+
+#, python-format
+msgid "File could not be read: %s"
+msgstr "फ़ाइल पढ़ी नहीं जा सकी: %s"
+
+msgid "Fill with stored values"
+msgstr "संग्रहित मानों से भरें"
+
+msgid ""
+"Finds contact cards with the same name, email address or phone number. You "
+"are asked twice before merging, and a copy of every removed card is kept in "
+"the recycle bin."
+msgstr ""
+"समान नाम, ईमेल पते या फ़ोन नंबर वाले संपर्क कार्ड ढूँढता है। विलय से पहले आपसे दो बार पूछा "
+"जाता है, और हटाए गए हर कार्ड की एक प्रति रीसायकल बिन में रखी जाती है।"
+
+msgid "Fingerprint"
+msgstr "फ़िंगरप्रिंट"
+
+msgid "Fingerprint, e.g. ABCD-1234-EF56-7890"
+msgstr "फ़िंगरप्रिंट, जैसे ABCD-1234-EF56-7890"
+
+msgid "First Communion"
+msgstr "प्रथम पवित्र परमप्रसाद"
+
+msgid "First choose a calendar or address book in Settings."
+msgstr "पहले सेटिंग में कोई कैलेंडर या पता पुस्तिका चुनें।"
+
+msgid "First collection"
+msgstr "पहला संग्रह"
+
+msgid "First date"
+msgstr "पहली तारीख"
+
+msgid "First name"
+msgstr "पहला नाम"
+
+msgid "First name Last name"
+msgstr "पहला नाम अंतिम नाम"
+
+msgid ""
+"First name Last name\n"
+"Street and house number\n"
+"Postal code City"
+msgstr ""
+"पहला नाम अंतिम नाम\n"
+"सड़क और मकान संख्या\n"
+"पिन कोड शहर"
+
+msgid "First select a calendar or address book from the online accounts."
+msgstr "पहले ऑनलाइन खातों से कोई कैलेंडर या पता पुस्तिका चुनें।"
+
+msgid "Fixed units"
+msgstr "निश्चित इकाइयाँ"
+
+msgid "Folder selection is available only in the installed application."
+msgstr "फ़ोल्डर चयन केवल स्थापित एप्लिकेशन में उपलब्ध है।"
+
+msgid "Follicular phase"
+msgstr "फॉलिक्युलर चरण"
+
+msgid "Follow up"
+msgstr "फ़ॉलो-अप"
+
+msgid "Font size"
+msgstr "फ़ॉन्ट आकार"
+
+msgid ""
+"For a direct IPv4 connection, port %(port)s may need to be forwarded by the "
+"router; CGNAT can prevent this. For IPv6, allow the port in the router and "
+"computer firewalls."
+msgstr ""
+"सीधे IPv4 कनेक्शन के लिए राउटर में पोर्ट %(port)s को फ़ॉरवर्ड करना पड़ सकता है; CGNAT "
+"इसे रोक सकता है। IPv6 के लिए राउटर और कंप्यूटर दोनों की फ़ायरवॉल में पोर्ट की अनुमति दें।"
+
+msgid ""
+"For this purpose, appointments, tasks, anniversaries and the names of "
+"responsible people are kept unencrypted in a separate file readable only by "
+"you. Contacts and notes are never written to it."
+msgstr ""
+"इस उद्देश्य के लिए अपॉइंटमेंट, कार्य, वर्षगाँठें और ज़िम्मेदार लोगों के नाम एक अलग फ़ाइल में "
+"बिना एन्क्रिप्शन के रखे जाते हैं, जिसे केवल आप पढ़ सकते हैं। संपर्क और नोट कभी उसमें नहीं लिखे "
+"जाते।"
+
+msgid "For: %(people)s"
+msgstr "के लिए: %(people)s"
+
+msgid "Form"
+msgstr "फ़ॉर्म"
+
+msgid "Forward Secrecy"
+msgstr "Forward Secrecy (भविष्य गोपनीयता)"
+
+msgid ""
+"Found %(groups)s containing %(cards)s in total, for example:\n"
+"%(examples)s%(more)s\n"
+"\n"
+"The most complete card in each group is retained, and missing fields are "
+"filled from the others. The remaining cards are moved to the recycle bin as "
+"“Duplicates” and can be restored from there. Continue?"
+msgstr ""
+"कुल %(cards)s कार्ड वाले %(groups)s समूह मिले, उदाहरण के लिए:\n"
+"%(examples)s%(more)s\n"
+"\n"
+"हर समूह का सबसे पूर्ण कार्ड रखा जाता है और बाकी कार्डों से गायब फ़ील्ड भरे जाते हैं। शेष "
+"कार्ड “Duplicates” के रूप में रीसायकल बिन में भेजे जाते हैं और वहाँ से पुनर्स्थापित किए जा "
+"सकते हैं। जारी रखें?"
+
+#, python-format
+msgid "Found – %s."
+msgstr "मिला – %s।"
+
+msgid "Founding day"
+msgstr "स्थापना दिवस"
+
+msgid "France"
+msgstr "फ़्रांस"
+
+msgid "Frequency"
+msgstr "आवृत्ति"
+
+msgid "Fribourg"
+msgstr "फ़्राइबुर्ग"
+
+msgid "Friday"
+msgstr "शुक्रवार"
+
+msgid "From"
+msgstr "से"
+
+msgid "From this computer (Evolution/Thunderbird)"
+msgstr "इस कंप्यूटर से (Evolution/Thunderbird)"
+
+msgid "Full"
+msgstr "पूरा"
+
+msgid "GNOME Maps"
+msgstr "GNOME Maps"
+
+msgid "GNOME Maps only"
+msgstr "केवल GNOME Maps"
+
+msgid "GNOME Maps, otherwise OpenStreetMap"
+msgstr "GNOME Maps, अन्यथा OpenStreetMap"
+
+msgid "GNU General Public License, version 3 or later"
+msgstr "GNU General Public License, संस्करण 3 या बाद का"
+
+msgid "GTK is not available"
+msgstr "GTK उपलब्ध नहीं है"
+
+msgid "General"
+msgstr "सामान्य"
+
+msgid "General network"
+msgstr "सामान्य नेटवर्क"
+
+msgid "General reference range"
+msgstr "सामान्य संदर्भ सीमा"
+
+msgid "Geneva"
+msgstr "जिनेवा"
+
+msgid "Germany"
+msgstr "जर्मनी"
+
+msgid "Glarus"
+msgstr "ग्लारुस"
+
+msgid "Go to calendar"
+msgstr "कैलेंडर पर जाएँ"
+
+msgid "Google Maps in the browser"
+msgstr "ब्राउज़र में Google Maps"
+
+msgid "Grisons"
+msgstr "ग्राउब्युंडेन"
+
+msgid "Group for %(notebook)s"
+msgstr "%(notebook)s के लिए समूह"
+
+msgid "HTTPS only; {wert} and {nummer} are replaced when opening."
+msgstr "केवल HTTPS; खोलते समय {wert} और {nummer} बदल दिए जाते हैं।"
+
+msgid "Hamburg"
+msgstr "हैम्बर्ग"
+
+msgid "Handle or profile address"
+msgstr "हैंडल या प्रोफ़ाइल पता"
+
+msgid "Handwriting"
+msgstr "हस्तलिपि"
+
+msgid "Head office"
+msgstr "मुख्य कार्यालय"
+
+msgid "Heading"
+msgstr "शीर्षक"
+
+msgid "Heading, text, images, and PDF files are shared encrypted."
+msgstr "शीर्षक, पाठ, चित्र और PDF फ़ाइलें एन्क्रिप्टेड रूप में साझा की जाती हैं।"
+
+msgid "Health"
+msgstr "स्वास्थ्य"
+
+msgid "Health history chart"
+msgstr "स्वास्थ्य इतिहास चार्ट"
+
+msgid "Health history charts"
+msgstr "स्वास्थ्य इतिहास के चार्ट"
+
+msgid "Health records"
+msgstr "स्वास्थ्य रिकॉर्ड"
+
+msgid ""
+"Health records stay in your encrypted organizer data. The section documents "
+"measurements and schedules but does not provide medical advice."
+msgstr ""
+"स्वास्थ्य रिकॉर्ड आपके एन्क्रिप्ट किए गए Organizer डेटा में रहते हैं। यह अनुभाग माप और समय-"
+"सारिणियाँ दर्ज करता है, लेकिन चिकित्सा सलाह नहीं देता।"
+
+msgid "Health table saved."
+msgstr "स्वास्थ्य तालिका सहेजी गई।"
+
+msgid "Heart"
+msgstr "हृदय"
+
+msgid "Height"
+msgstr "लंबाई"
+
+msgid "Here is how to find your way around:"
+msgstr "यहाँ से शुरुआत करें:"
+
+msgid "Hesse"
+msgstr "हेस्से"
+
+msgid "Hide in the tray when minimized"
+msgstr "मिनिमाइज़ करने पर सिस्टम ट्रे में छिपाएँ"
+
+msgid "Hide internet access"
+msgstr "इंटरनेट पहुँच छिपाएँ"
+
+msgid "Hide past appointments"
+msgstr "बीते हुए अपॉइंटमेंट छिपाएँ"
+
+msgid "History"
+msgstr "इतिहास"
+
+msgid "Holiday retrieval is available only in the installed application."
+msgstr "छुट्टियाँ प्राप्त करना केवल स्थापित एप्लिकेशन में उपलब्ध है।"
+
+msgid "Home"
+msgstr "घर"
+
+msgid "Home address"
+msgstr "घर का पता"
+
+msgid "Home phone"
+msgstr "घर का फ़ोन"
+
+msgid "Home visit"
+msgstr "घर पर मुलाक़ात"
+
+msgid "How the calendar should behave when you click a day."
+msgstr "किसी दिन पर क्लिक करने पर कैलेंडर कैसे व्यवहार करे।"
+
+msgid "Husband"
+msgstr "पति"
+
+msgid "I"
+msgstr "मैं"
+
+msgid "I would be very happy if you bought me a coffee."
+msgstr "अगर आप मुझे एक कॉफ़ी पिला दें तो मुझे बहुत खुशी होगी।"
+
+msgid "IE"
+msgstr "आईयू"
+
+msgid ""
+"If the year is unknown, enter only day and month.\n"
+"No age will then be shown.\n"
+"Anniversaries appear with ✱ in the calendar and planner."
+msgstr ""
+"यदि वर्ष अज्ञात है, तो केवल दिन और महीना दर्ज करें।\n"
+"तब उम्र नहीं दिखाई जाएगी।\n"
+"वर्षगाँठें कैलेंडर और प्लानर में ✱ के साथ दिखाई देती हैं।"
+
+msgid "Image"
+msgstr "चित्र"
+
+msgid "Image file"
+msgstr "चित्र फ़ाइल"
+
+msgid "Import"
+msgstr "आयात करें"
+
+msgid "Import Claws Mail contacts"
+msgstr "Claws Mail संपर्क आयात करें"
+
+msgid "Import Lotus Organizer CSV"
+msgstr "Lotus Organizer CSV आयात करें"
+
+msgid "Import calendar file"
+msgstr "कैलेंडर फ़ाइल आयात करें"
+
+msgid "Import contacts"
+msgstr "संपर्क आयात करें"
+
+msgid "Import failed: %(error)s"
+msgstr "आयात विफल रहा: %(error)s"
+
+msgid "Import from LibreOffice"
+msgstr "LibreOffice से आयात करें"
+
+msgid "Import is available only in the installed application."
+msgstr "आयात केवल स्थापित एप्लिकेशन में उपलब्ध है।"
+
+msgid "Import pairing file …"
+msgstr "पेयरिंग फ़ाइल आयात करें …"
+
+msgid "Import, export and synchronization"
+msgstr "आयात, निर्यात और सिंक्रनाइज़ेशन"
+
+msgid ""
+"Import, export and synchronization are available only in the installed "
+"application."
+msgstr "आयात, निर्यात और सिंक्रनाइज़ेशन केवल स्थापित एप्लिकेशन में उपलब्ध हैं।"
+
+msgid ""
+"Important: Without this password, nobody can access the data, including you. "
+"Keep it in a safe place."
+msgstr ""
+"महत्वपूर्ण: इस पासवर्ड के बिना कोई भी डेटा तक नहीं पहुँच सकता, आप भी नहीं। इसे सुरक्षित "
+"स्थान पर रखें।"
+
+#, python-format
+msgid "Imported from session: %(variables)s"
+msgstr "सत्र से आयात किया गया: %(variables)s"
+
+msgid "Imported: %(items)s."
+msgstr "आयात किया गया: %(items)s।"
+
+#, python-format
+msgid "Importing the old data failed: %s"
+msgstr "पुराना डेटा आयात करने में विफलता: %s"
+
+msgid "Importing the pairing file"
+msgstr "पेयरिंग फ़ाइल आयात हो रही है"
+
+msgid ""
+"In the DIN template, these lines appear as a multiline sender block and in "
+"small type in the address window. In the compact template, they form one "
+"line above the recipient address. No sender is added if this field is empty."
+msgstr ""
+"DIN टेम्पलेट में ये पंक्तियाँ बहुपंक्ति प्रेषक ब्लॉक के रूप में और पता विंडो में छोटे अक्षरों में दिखाई "
+"देती हैं। कॉम्पैक्ट टेम्पलेट में वे प्राप्तकर्ता के पते के ऊपर एक पंक्ति बनाती हैं। यह फ़ील्ड खाली "
+"हो तो प्रेषक नहीं जोड़ा जाता।"
+
+msgid "In the organizer%(selection)s: %(items)s%(years)s."
+msgstr "Organizer%(selection)s में: %(items)s%(years)s।"
+
+msgid "In the recycle bin: %(items)s"
+msgstr "रीसायकल बिन में: %(items)s"
+
+msgid "Include anniversaries"
+msgstr "वर्षगाँठें शामिल करें"
+
+msgid "Include appointments"
+msgstr "अपॉइंटमेंट शामिल करें"
+
+msgid "Include cycle markers"
+msgstr "चक्र चिह्न शामिल करें"
+
+msgid "Include personal vacation"
+msgstr "निजी अवकाश शामिल करें"
+
+msgid "Include public holidays in year planner"
+msgstr "वार्षिक प्लानर में सार्वजनिक अवकाश शामिल करें"
+
+msgid "Include school holidays"
+msgstr "स्कूल की छुट्टियाँ शामिल करें"
+
+msgid "Include school holidays in year planner"
+msgstr "वार्षिक प्लानर में स्कूल की छुट्टियाँ शामिल करें"
+
+msgid "Include shifts"
+msgstr "शिफ़्ट शामिल करें"
+
+msgid "Include waste collections"
+msgstr "कचरा संग्रह शामिल करें"
+
+msgid "Input"
+msgstr "इनपुट"
+
+msgid "Insert link"
+msgstr "लिंक डालें"
+
+msgid "Install the packages, for example with:"
+msgstr "पैकेज स्थापित करें, उदाहरण के लिए:"
+
+msgid "Installed manual version: %(version)s."
+msgstr "स्थापित मैनुअल संस्करण: %(version)s."
+
+msgid "Insulin scheme"
+msgstr "इंसुलिन खुराक योजना"
+
+msgid "Integrity"
+msgstr "ईमानदारी"
+
+msgid "Internet IP"
+msgstr "इंटरनेट IP"
+
+msgid "Interval in days"
+msgstr "दिनों में अंतराल"
+
+#, python-format
+msgid "Invalid language: %s. Use a supported language code or system."
+msgstr "अमान्य भाषा: %s। समर्थित भाषा कोड या system का उपयोग करें।"
+
+msgid "Italic"
+msgstr "इटैलिक"
+
+msgid "Italy"
+msgstr "इटली"
+
+msgid "Juice"
+msgstr "जूस"
+
+msgid "Jura"
+msgstr "जुरा"
+
+msgid "Keep a troubleshooting log"
+msgstr "समस्या निवारण लॉग रखें"
+
+msgid "LDIF address book (*.ldif)"
+msgstr "LDIF पता पुस्तिका (*.ldif)"
+
+msgid "Landline"
+msgstr "लैंडलाइन"
+
+msgid "Large"
+msgstr "बड़ा"
+
+msgid "Last check failed: %(error)s"
+msgstr "पिछली जाँच विफल रही: %(error)s"
+
+msgid "Last contact"
+msgstr "संपर्क बनाएँ"
+
+msgid "Last name"
+msgstr "अंतिम नाम"
+
+msgid "Last snapshot"
+msgstr "अंतिम स्नैपशॉट"
+
+msgid "Last synchronized: %(date)s, %(time)s."
+msgstr "अंतिम सिंक्रनाइज़ेशन: %(date)s, %(time)s।"
+
+msgid "Late shift"
+msgstr "देर की शिफ़्ट"
+
+msgid "Latest alarm monitor entries:"
+msgstr "अलार्म मॉनिटर की नवीनतम प्रविष्टियाँ:"
+
+msgid "Lead time"
+msgstr "अग्रिम समय"
+
+msgid "Letter"
+msgstr "पत्र"
+
+msgid "Letter template"
+msgstr "पत्र टेम्पलेट"
+
+#, python-format
+msgid "LibreOffice was not found. The letter is located at: %s"
+msgstr "LibreOffice नहीं मिला। पत्र यहाँ है: %s"
+
+msgid "License"
+msgstr "लाइसेंस"
+
+msgid "Liechtenstein"
+msgstr "लिकटेंस्टीन"
+
+msgid "Lined paper (lines on the writing sheet)"
+msgstr "लाइन वाला काग़ज़ (लेखन शीट पर रेखाएँ)"
+
+msgid "Link"
+msgstr "लिंक"
+
+msgid "Listener active"
+msgstr "अनिश्चित"
+
+msgid "Listener stopped"
+msgstr "सुनने वाला रुक गया"
+
+msgid "Location obtained from LibreOffice."
+msgstr "स्थान LibreOffice से प्राप्त किया गया।"
+
+msgid "Log file: ~/.local/state/magnolie-organizer/debug.log"
+msgstr "लॉग फ़ाइल: ~/.local/state/magnolie-organizer/debug.log"
+
+msgid "Log opened: %(path)s"
+msgstr "लॉग खोला गया: %(path)s"
+
+msgid "Long-acting insulin"
+msgstr "लंबे समय तक असर करने वाला इंसुलिन"
+
+msgid "Loose Notes"
+msgstr "ढीले नोट"
+
+msgid "Lotus Calendar (*.lcs)"
+msgstr "Lotus Calendar (*.lcs)"
+
+msgid "Lotus Organizer CSV …"
+msgstr "Lotus Organizer CSV …"
+
+msgid "Lower Austria"
+msgstr "लोअर ऑस्ट्रिया"
+
+msgid "Lower Saxony"
+msgstr "लोअर सैक्सोनी"
+
+msgid "Lucerne"
+msgstr "लूसर्न"
+
+msgid "Luxembourg"
+msgstr "लक्ज़मबर्ग"
+
+msgid "Magnolia tree"
+msgstr "मैग्नोलिया"
+
+msgid "Magnolia weather symbols only"
+msgstr "केवल Magnolie मौसम प्रतीक"
+
+msgid "Magnolie Organizer is not completely installed."
+msgstr "Magnolie Organizer पूरी तरह स्थापित नहीं है।"
+
+msgid "Magnolie Organizer requires GTK 3 and WebKit2GTK."
+msgstr "Magnolie Organizer को GTK 3 और WebKit2GTK चाहिए।"
+
+msgid "Magnolie Organizer – Tray Applet"
+msgstr "Magnolie Organizer – सिस्टम ट्रे एप्लेट"
+
+msgid "Magnolie Organizer – appointment reminders"
+msgstr "Magnolie Organizer – अपॉइंटमेंट रिमाइंडर"
+
+msgid "Magnolie Organizer – check appointments regularly"
+msgstr "Magnolie Organizer – अपॉइंटमेंट नियमित रूप से जाँचें"
+
+msgid "Magnolie Organizer – personal organizer in a paper design"
+msgstr "Magnolie Organizer – काग़ज़ी डिज़ाइन वाला निजी Organizer"
+
+msgid "Magnolie Organizer – reminders"
+msgstr "Magnolie Organizer – रिमाइंडर"
+
+msgid "Magnolie backup (*.json)"
+msgstr "Magnolie बैकअप (*.json)"
+
+msgid "Magnolie sheet"
+msgstr "Magnolie शीट"
+
+msgid "Magnolie-Contacts.ods"
+msgstr "Magnolie-Contacts.ods"
+
+#, python-format
+msgid "Magnolie-Month-Calendar-%04d-%02d.ods"
+msgstr "Magnolie-Month-Calendar-%04d-%02d.ods"
+
+#, python-format
+msgid "Magnolie-Year-Planner-%d.ods"
+msgstr "Magnolie-Year-Planner-%d.ods"
+
+msgid "Magnolienbaum"
+msgstr "मैग्नोलिया वृक्ष"
+
+msgid "Magnolienbaum pairing file (*.magnolie-paarung)"
+msgstr "Magnolienbaum पेयरिंग फ़ाइल (*.magnolie-paarung)"
+
+msgid "Male caregiver"
+msgstr "पुरुष देखभालकर्ता"
+
+msgid "Male friend"
+msgstr "पुरुष मित्र"
+
+msgid "Male neighbor"
+msgstr "पुरुष पड़ोसी"
+
+msgid "Male partner"
+msgstr "पुरुष साथी"
+
+msgid "Male relative"
+msgstr "पुरुष रिश्तेदार"
+
+msgid "Manage connection"
+msgstr "कनेक्शन प्रबंधित करें"
+
+msgid "Manage people"
+msgstr "लोग प्रबंधित करें"
+
+msgid "Manual"
+msgstr "मैनुअल"
+
+msgid "Manual version %(version)s is available."
+msgstr "मैनुअल संस्करण %(version)s उपलब्ध है।"
+
+msgid "Manufacturer"
+msgstr "निर्माता"
+
+msgid "Map"
+msgstr "मानचित्र"
+
+msgid ""
+"Map services often cannot find a street without a country. If the country is "
+"already part of the address, it is not added a second time."
+msgstr ""
+"मानचित्र सेवाएँ अक्सर देश के बिना किसी सड़क को नहीं ढूँढ पातीं। यदि देश पहले से पते का "
+"हिस्सा है, तो उसे दोबारा नहीं जोड़ा जाता।"
+
+msgid "Mark as completed"
+msgstr "पूर्ण के रूप में चिह्नित करें"
+
+msgid "Mark as open"
+msgstr "खुला के रूप में चिह्नित करें"
+
+msgid "Maximized"
+msgstr "अधिकतम आकार"
+
+msgid "Measurement context"
+msgstr "माप का संदर्भ"
+
+msgid "Mecklenburg-Western Pomerania"
+msgstr "मेक्लेनबुर्ग-वोर्पोमर्न"
+
+msgid "Medication"
+msgstr "दवा"
+
+msgid "Medication plan"
+msgstr "दवा योजना"
+
+msgid "Medium (slightly larger)"
+msgstr "मध्यम (थोड़ा बड़ा)"
+
+msgid "Meeting"
+msgstr "बैठक"
+
+msgid "Memorial day"
+msgstr "स्मृति दिवस"
+
+msgid "Merge"
+msgstr "मिलाएँ"
+
+msgid "Merge duplicate contact cards"
+msgstr "डुप्लिकेट संपर्क कार्ड मिलाएँ"
+
+msgid "Merge this pair individually"
+msgstr "इस जोड़ी को अलग से मिलाएँ"
+
+msgid "Message"
+msgstr "संदेश"
+
+msgid "Message text"
+msgstr "संदेश"
+
+msgid "Minimize to the tray when closed"
+msgstr "बंद करने पर सिस्टम ट्रे में छोटा करें"
+
+msgid "Minimize to tray"
+msgstr "सिस्टम ट्रे में छोटा करें"
+
+msgid "Missed appointment"
+msgstr "छूटी हुई अपॉइंटमेंट"
+
+msgid ""
+"Missed reminders are shown after the next startup. If the computer was off "
+"or the application was closed, the organizer reports a missed appointment "
+"shortly after login and provides a button to open it. All-day appointments "
+"are treated as starting at 8 a.m. A small reminder service starts at login "
+"to check appointments in the background and continues running when you close "
+"the organizer."
+msgstr ""
+"छूटे हुए रिमाइंडर अगली बार शुरू होने के बाद दिखाए जाते हैं। यदि कंप्यूटर बंद था या अनुप्रयोग "
+"बंद था, तो लॉगिन के थोड़ी देर बाद ऑर्गनाइज़र छूटी हुई अपॉइंटमेंट की सूचना देता है और उसे "
+"खोलने के लिए एक बटन देता है। पूरे दिन की अपॉइंटमेंट को सुबह 8 बजे से शुरू माना जाता है। "
+"लॉगिन पर एक छोटी रिमाइंडर सेवा शुरू होती है, जो पृष्ठभूमि में अपॉइंटमेंट जाँचती है और "
+"ऑर्गनाइज़र बंद करने के बाद भी चलती रहती है।"
+
+msgid ""
+"Misspelled words are marked with a red wavy underline while you type. Right-"
+"clicking a word opens a sheet with suggestions that can be applied with one "
+"click; you can add names to your personal dictionary in the same way. If the "
+"lines or suggestions are missing, install the dictionary with:  sudo apt "
+"install %(package)s"
+msgstr ""
+"टाइप करते समय गलत वर्तनी वाले शब्द लाल लहरदार रेखा से चिह्नित होते हैं। किसी शब्द पर "
+"दायाँ-क्लिक करने से सुझावों वाला पैनल खुलता है, जिन्हें एक क्लिक से लागू किया जा सकता है; "
+"इसी तरह आप अपने निजी शब्दकोश में नाम जोड़ सकते हैं। यदि रेखाएँ या सुझाव दिखाई न दें, तो "
+"शब्दकोश इस कमांड से स्थापित करें:  sudo apt install %(package)s"
+
+msgid "Mobile"
+msgstr "मोबाइल"
+
+msgid "Model"
+msgstr "मॉडल"
+
+msgid "Monday"
+msgstr "सोमवार"
+
+msgid "Month"
+msgstr "महीना"
+
+msgid "Month calendar"
+msgstr "मासिक कैलेंडर"
+
+msgid "Monthly view"
+msgstr "मासिक दृश्य"
+
+msgid "More fields"
+msgstr "और फ़ील्ड"
+
+msgid "More fields (Lotus)"
+msgstr "और फ़ील्ड (Lotus)"
+
+msgid "Morning"
+msgstr "सुबह"
+
+msgid "Mouse wheel over times"
+msgstr "समयों पर माउस व्हील"
+
+msgid "Move group down"
+msgstr "समूह नीचे ले जाएँ"
+
+msgid "Move group up"
+msgstr "समूह ऊपर ले जाएँ"
+
+msgid "Move notebook down"
+msgstr "नोटबुक नीचे ले जाएँ"
+
+msgid "Move notebook to another group"
+msgstr "नोटबुक दूसरे समूह में ले जाएँ"
+
+msgid "Move notebook up"
+msgstr "नोटबुक ऊपर ले जाएँ"
+
+msgid "Move the ticked entries to the wastebasket"
+msgstr "चिह्नित प्रविष्टियाँ कूड़ेदान में ले जाएँ"
+
+msgid "Name"
+msgstr "नाम"
+
+msgid "Name / occasion"
+msgstr "नाम / अवसर"
+
+msgid "Name day"
+msgstr "नाम दिवस"
+
+msgid "Name of this branch"
+msgstr "इस शाखा का नाम"
+
+msgid "Netherlands"
+msgstr "नीदरलैंड"
+
+msgid "Neuchâtel"
+msgstr "न्यूशातेल"
+
+msgid "Never"
+msgstr "कभी नहीं"
+
+msgid "Never synchronized."
+msgstr "कभी सिंक्रोनाइज़ नहीं किया गया।"
+
+msgid "New"
+msgstr "नया"
+
+msgid "New Magnolienbaum request"
+msgstr "नई Magnolienbaum अनुरोध"
+
+msgid "New Magnolienbaum request: %(entry)s."
+msgstr "नई Magnolienbaum अनुरोध: %(entry)s."
+
+msgid "New anniversary"
+msgstr "नई वर्षगाँठ"
+
+msgid "New appointment"
+msgstr "नई अपॉइंटमेंट"
+
+msgid "New backup password"
+msgstr "नया बैकअप पासवर्ड"
+
+msgid ""
+"New backups are stored in this folder. When the field is empty, they are "
+"stored next to the data file. For any other location, the organizer requires "
+"a backup password and encrypts the copy independently of the application's "
+"password protection."
+msgstr ""
+"नए बैकअप इस फ़ोल्डर में रखे जाते हैं। फ़ील्ड खाली होने पर वे डेटा फ़ाइल के पास रखे जाते हैं। "
+"किसी अन्य स्थान के लिए ऑर्गनाइज़र बैकअप पासवर्ड माँगता है और प्रति को अनुप्रयोग की "
+"पासवर्ड सुरक्षा से स्वतंत्र रूप से एन्क्रिप्ट करता है।"
+
+msgid "New contact"
+msgstr "नया संपर्क"
+
+msgid "New group"
+msgstr "नया समूह"
+
+msgid "New notebook"
+msgstr "नई नोटबुक"
+
+msgid "New notebook group"
+msgstr "नया नोटबुक समूह"
+
+msgid "New page"
+msgstr "नया पृष्ठ"
+
+msgid "New password"
+msgstr "नया पासवर्ड"
+
+msgid "New task"
+msgstr "नया कार्य"
+
+msgid "New version %(version)s is available."
+msgstr "नया संस्करण %(version)s उपलब्ध है।"
+
+msgid "Next appointment: %(title)s on %(date)s%(time)s%(notice)s"
+msgstr "अगली अपॉइंटमेंट: %(title)s, %(date)s%(time)s%(notice)s"
+
+msgid "Next month"
+msgstr "अगला महीना"
+
+msgid "Next page"
+msgstr "अगला पृष्ठ"
+
+msgid "Next snapshot"
+msgstr "अगला स्नैपशॉट"
+
+msgid "Next tab"
+msgstr "अगला टैब"
+
+msgid "Next table page"
+msgstr "अगला तालिका पृष्ठ"
+
+msgid "Next week"
+msgstr "अगला सप्ताह"
+
+msgid "Next year"
+msgstr "अगला वर्ष"
+
+msgid "Nidwalden"
+msgstr "निडवाल्डेन"
+
+msgid "Night"
+msgstr "रात"
+
+msgid "Night shift"
+msgstr "रात की शिफ्ट"
+
+msgid "No Claws Mail address book was detected."
+msgstr "Claws Mail की कोई पता-पुस्तिका नहीं मिली।"
+
+msgid "No additional modules permitted"
+msgstr "कोई अतिरिक्त मॉड्यूल की अनुमति नहीं है"
+
+msgid ""
+"No anniversaries yet.\n"
+"Birthdays and celebrations will automatically appear in the calendar."
+msgstr ""
+"अभी कोई वर्षगाँठ नहीं।\n"
+"जन्मदिन और उत्सव कैलेंडर में अपने-आप दिखाई देंगे।"
+
+msgid "No application was found for the manual package."
+msgstr "मैनुअल पैकेज के लिए कोई एप्लिकेशन नहीं मिला।"
+
+msgid "No appointment is scheduled."
+msgstr "कोई अपॉइंटमेंट निर्धारित नहीं है।"
+
+msgid "No calendars found."
+msgstr "कोई कैलेंडर नहीं मिला।"
+
+msgid "No data was found."
+msgstr "कोई डेटा नहीं मिला।"
+
+#, python-format
+msgid "No dictionary was found. Install one with:  sudo apt install %s"
+msgstr "कोई शब्दकोश नहीं मिला। इसे इस कमांड से स्थापित करें:  sudo apt install %s"
+
+msgid "No due date"
+msgstr "कोई नियत तारीख नहीं"
+
+msgid "No duplicate contact cards were found."
+msgstr "कोई डुप्लिकेट संपर्क कार्ड नहीं मिला।"
+
+msgid "No file selected"
+msgstr "कोई फ़ाइल चयनित नहीं"
+
+msgid "No history charts"
+msgstr "इतिहास का कोई चार्ट नहीं"
+
+msgid "No insulin dose is calculated automatically."
+msgstr "इंसुलिन की कोई खुराक अपने आप नहीं गणना की जाती।"
+
+msgid "No mail application was found."
+msgstr "कोई मेल अनुप्रयोग नहीं मिला।"
+
+msgid "No manual update check has been performed yet."
+msgstr "कोई मैनुअल अद्यतन जाँच अभी तक नहीं की गई है।"
+
+msgid ""
+"No map service was found. GNOME Maps can be installed with: sudo apt install "
+"gnome-maps"
+msgstr ""
+"कोई मानचित्र सेवा नहीं मिली। GNOME Maps को इस कमांड से स्थापित किया जा सकता है: "
+"sudo apt install gnome-maps"
+
+msgid "No matching open task found."
+msgstr "कोई मेल खाता खुला कार्य नहीं मिला।"
+
+msgid "No measurements in this period."
+msgstr "इस अवधि में कोई माप नहीं है।"
+
+msgid "No notebooks"
+msgstr "कोई नोटबुक नहीं"
+
+msgid "No other branch was found."
+msgstr "कोई दूसरी शाखा नहीं मिली।"
+
+msgid "No other branch yet. Search the network or enter an address."
+msgstr "अभी कोई दूसरी शाखा नहीं। नेटवर्क खोजें या पता दर्ज करें।"
+
+msgid "No package has been specified for the new version yet."
+msgstr "नए संस्करण के लिए अभी कोई पैकेज निर्दिष्ट नहीं है।"
+
+msgid ""
+"No people have been added yet.\n"
+"Enter a name below."
+msgstr ""
+"अभी कोई व्यक्ति नहीं जोड़ा गया।\n"
+"नीचे नाम दर्ज करें।"
+
+msgid ""
+"No people have been added yet. Use the People button above to add people "
+"responsible for tasks."
+msgstr ""
+"अभी कोई व्यक्ति नहीं जोड़ा गया। कार्यों के लिए जिम्मेदार लोगों को जोड़ने हेतु ऊपर का लोग "
+"बटन इस्तेमाल करें।"
+
+msgid "No phone paired yet."
+msgstr "अभी कोई कार्य लिंक नहीं है।"
+
+msgid "No photo"
+msgstr "कोई फ़ोटो नहीं"
+
+msgid "No photo selected"
+msgstr "कोई फ़ोटो चयनित नहीं"
+
+msgid "No public IP address was found."
+msgstr "कोई सार्वजनिक IP पता नहीं मिला।"
+
+msgid ""
+"No readable Evolution or Thunderbird stores were found on this computer."
+msgstr "इस कंप्यूटर पर Evolution या Thunderbird का कोई पढ़ने योग्य स्टोर नहीं मिला।"
+
+msgid ""
+"No regional data is retrieved without a selected canton. With “All”, each "
+"entry shows its canton and matching periods are combined."
+msgstr ""
+"कैंटन चुने बिना क्षेत्रीय डेटा प्राप्त नहीं किया जाता। “सभी” चुनने पर हर प्रविष्टि अपना कैंटन "
+"दिखाती है और मेल खाने वाली अवधियाँ मिला दी जाती हैं।"
+
+msgid ""
+"No regional data is retrieved without a selected state. With “All”, each "
+"entry shows its state and matching periods are combined."
+msgstr ""
+"राज्य चुने बिना क्षेत्रीय डेटा प्राप्त नहीं किया जाता। “सभी” चुनने पर हर प्रविष्टि अपना "
+"राज्य दिखाती है और मेल खाने वाली अवधियाँ मिला दी जाती हैं।"
+
+msgid "No scheme row matches this blood glucose value."
+msgstr "कोई भी योजना पंक्ति इस रक्त शर्करा मान से मेल नहीं खाती।"
+
+msgid "No sheet is open."
+msgstr "कोई शीट खुली नहीं है।"
+
+msgid "No shift"
+msgstr "कोई शिफ्ट नहीं"
+
+msgid "No snapshots yet."
+msgstr "अभी तक कोई स्नैपशॉट नहीं है।"
+
+msgid "No suggestions found."
+msgstr "कोई सुझाव नहीं मिला।"
+
+msgid "No suitable application was found."
+msgstr "कोई उपयुक्त अनुप्रयोग नहीं मिला।"
+
+msgid "No table (history only)"
+msgstr "कोई तालिका नहीं (केवल प्रगति)"
+
+msgid "No task linked yet."
+msgstr "अभी कोई कार्य लिंक नहीं है।"
+
+#, python-format
+msgid "No text viewer was found. The log is located at: %s"
+msgstr "कोई टेक्स्ट व्यूअर नहीं मिला। लॉग यहाँ है: %s"
+
+msgid "No update check has been performed yet."
+msgstr "अभी तक अपडेट जाँच नहीं की गई है।"
+
+msgid ""
+"No user data has been entered in LibreOffice yet (Tools ▸ Options ▸ User "
+"Data)."
+msgstr ""
+"LibreOffice में अभी तक उपयोगकर्ता डेटा दर्ज नहीं किया गया है (टूल्स ▸ विकल्प ▸ "
+"उपयोगकर्ता डेटा)।"
+
+msgid "No web browser was found."
+msgstr "कोई वेब ब्राउज़र नहीं मिला।"
+
+msgid "No word was provided."
+msgstr "कोई शब्द नहीं दिया गया।"
+
+msgid "None"
+msgstr "कोई नहीं"
+
+msgid "Noon"
+msgstr "दोपहर"
+
+msgid "Normal"
+msgstr "सामान्य"
+
+msgid "North Rhine-Westphalia"
+msgstr "नॉर्थ राइन-वेस्टफेलिया"
+
+msgid ""
+"Not all systems allow waking from suspend. If it does not work, the reminder "
+"appears as soon as the computer is running again."
+msgstr ""
+"सभी सिस्टम स्लीप से अपने-आप जागने की सुविधा नहीं देते। यदि यह काम न करे, तो कंप्यूटर के "
+"दोबारा चालू होते ही रिमाइंडर दिखाई देगा।"
+
+msgid "Not charging"
+msgstr "कोई बदलाव नहीं"
+
+msgid "Not enough protected disk space for a recovery snapshot."
+msgstr "रिकवरी स्नैपशॉट के लिए पर्याप्त सुरक्षित डिस्क स्थान नहीं है।"
+
+msgid "Not now"
+msgstr "अभी नहीं"
+
+msgid "Not sent."
+msgstr "नहीं भेजा गया।"
+
+msgid "Note"
+msgstr "नोट"
+
+msgid "Note text"
+msgstr "नोट का टेक्स्ट"
+
+msgid "Notebook"
+msgstr "नोटबुक"
+
+msgid "Notebook group"
+msgstr "नोटबुक समूह"
+
+msgid "Notes"
+msgstr "नोट्स"
+
+msgid "Notes and special instructions"
+msgstr "टिप्पणियाँ और विशेष निर्देश"
+
+msgid "Nothing can be encrypted without a password."
+msgstr "पासवर्ड के बिना कुछ भी एन्क्रिप्ट नहीं किया जा सकता।"
+
+msgid "Nothing found."
+msgstr "कुछ नहीं मिला।"
+
+msgid "Nothing has been entered under “%(letter)s” yet."
+msgstr "“%(letter)s” के अंतर्गत अभी कुछ दर्ज नहीं किया गया है।"
+
+msgid "Nothing is opened or sent while this option is disabled."
+msgstr "जब यह विकल्प बंद रहता है, तब कुछ भी खोला या भेजा नहीं जाता।"
+
+msgid "Nothing new was found."
+msgstr "कुछ नया नहीं मिला।"
+
+msgid "Notice: The connection to storage was not confirmed."
+msgstr "सूचना: संग्रहण से कनेक्शन की पुष्टि नहीं हुई।"
+
+msgid "Notification and sound"
+msgstr "सूचना और ध्वनि"
+
+msgid "Notification appeared: as a Magnolie sheet"
+msgstr "सूचना दिखाई दी: Magnolie शीट के रूप में"
+
+msgid "Notification appeared: as a system notification"
+msgstr "सूचना दिखाई दी: सिस्टम सूचना के रूप में"
+
+msgid "Notification appeared: not at all"
+msgstr "सूचना दिखाई ही नहीं दी"
+
+msgid "Notification appeared: unclear"
+msgstr "सूचना दिखाई दी: स्पष्ट नहीं"
+
+msgid "Notifications"
+msgstr "सूचनाएँ"
+
+msgid "Notifications are available only in the installed application."
+msgstr "सूचनाएँ केवल स्थापित अनुप्रयोग में उपलब्ध हैं।"
+
+msgid ""
+"Notifications are display-only; replying and remote actions are not "
+"available."
+msgstr "सूचनाएँ केवल स्थापित अनुप्रयोग में उपलब्ध हैं।"
+
+msgid "ODS"
+msgstr "ODS"
+
+msgid "OK"
+msgstr "ठीक है"
+
+msgid "Objects"
+msgstr "वस्तुएँ"
+
+msgid "Obwalden"
+msgstr "ओबवाल्डेन"
+
+msgid "Off"
+msgstr "बंद"
+
+msgid "Offline"
+msgstr "ऑनलाइन"
+
+msgid "Ointment"
+msgstr "मरहम"
+
+msgid "One backup could not be updated."
+msgid_plural "%(count)s backups could not be updated."
+msgstr[0] "एक बैकअप को अपडेट नहीं किया जा सका।"
+msgstr[1] "%(count)s बैकअप को अपडेट नहीं किया जा सका।"
+
+msgid "One completion update was received from the Magnolienbaum."
+msgid_plural ""
+"%(count)s completion updates were received from the Magnolienbaum."
+msgstr[0] "मैग्नोलिएनबाम से एक पूर्णता अद्यतन प्राप्त हुआ।"
+msgstr[1] "%(count)s पूरी करने के अपडेट मैग्नोलिएनबॉम से प्राप्त हुए।"
+
+msgid "One duplicate contact card was"
+msgid_plural "%(count)s duplicate contact cards were"
+msgstr[0] "एक डुप्लीकेट संपर्क कार्ड था"
+msgstr[1] "%(count)s डुप्लिकेट संपर्क कार्ड थे"
+
+msgid "One moment …"
+msgstr "एक क्षण …"
+
+msgid "One moment…"
+msgstr "एक क्षण…"
+
+#, python-format
+msgid ""
+"One obsolete device-status transmission was removed from the tree queue."
+msgid_plural ""
+"%(count)s obsolete device-status transmissions were removed from the tree "
+"queue."
+msgstr[0] "एक अप्रचलित डिवाइस-स्थिति प्रसारण को ट्री कतार से हटा दिया गया।"
+msgstr[1] "%(count)s पुरानी डिवाइस-स्थिति प्रसारण को ट्री क्यू से हटा दिया गया।"
+
+msgid "One shared note was updated."
+msgid_plural "%(count)s shared notes were updated."
+msgstr[0] "एक साझा नोट अपडेट किया गया।"
+msgstr[1] "%(count)s द्वारा साझा किए गए नोट्स अपडेट किए गए थे।"
+
+msgid "One table with chart"
+msgstr "चार्ट सहित एक तालिका"
+
+msgid "One year"
+msgstr "एक वर्ष"
+
+msgid "Online"
+msgstr "ऑनलाइन"
+
+#, python-format
+msgid ""
+"Online account integration (Evolution Data Server) is not available on this "
+"system. Install it with:\n"
+"sudo apt install %s"
+msgstr ""
+"ऑनलाइन खाता एकीकरण (Evolution Data Server) इस सिस्टम पर उपलब्ध नहीं है। इसे इस "
+"कमांड से स्थापित करें:\n"
+"sudo apt install %s"
+
+msgid ""
+"Online account integration is not available on this system. Install it "
+"with:  sudo apt install %(packages)s, then restart the application. You can "
+"also import contacts and appointments without this integration using “From "
+"this computer” above."
+msgstr ""
+"ऑनलाइन खाता एकीकरण इस सिस्टम पर उपलब्ध नहीं है। इसे इस कमांड से स्थापित करें:  sudo "
+"apt install %(packages)s, फिर अनुप्रयोग को पुनः आरंभ करें। आप इस एकीकरण के बिना भी "
+"ऊपर दिए “इस कंप्यूटर से” विकल्प से संपर्क और अपॉइंटमेंट आयात कर सकते हैं।"
+
+msgid "Online via Bluetooth data"
+msgstr "ब्लूटूथ डेटा के माध्यम से ऑनलाइन"
+
+msgid "Online via WLAN"
+msgstr "वायरलेस LAN के माध्यम से ऑनलाइन"
+
+msgid ""
+"Only the reliable system notification is available under Wayland; the "
+"Magnolie paper style would often remain invisible there."
+msgstr ""
+"Wayland में केवल विश्वसनीय सिस्टम सूचना उपलब्ध है; Magnolie की कागज़ी शैली वहाँ अक्सर "
+"दिखाई नहीं देगी।"
+
+msgid "Open"
+msgstr "खोलें"
+
+msgid "Open %(name)s"
+msgstr "%(name)s खोलें"
+
+msgid "Open %(service)s for this contact"
+msgstr "इस संपर्क के लिए %(service)s खोलें"
+
+msgid "Open Magnolie Organizer"
+msgstr "Magnolie Organizer खोलें"
+
+msgid "Open Magnolienbaum pairing file"
+msgstr "Magnolienbaum पेयरिंग फ़ाइल खोलें"
+
+msgid "Open day view for %(date)s"
+msgstr "%(date)s के लिए दिन दृश्य खोलें"
+
+msgid "Open manual"
+msgstr "हैंडबुक खोलें"
+
+msgid "Open maps with"
+msgstr "मानचित्र इससे खोलें"
+
+msgid "Open medication index"
+msgstr "दवा सूची खोलें"
+
+msgid "Open organizer"
+msgstr "ऑर्गनाइज़र खोलें"
+
+msgid "Open phone connection in Magnolie Notes and select this computer."
+msgstr "मैग्नोलिए नोट्स में फोन कनेक्शन खोलें और इस कंप्यूटर का चयन करें।"
+
+msgid "Open planner as an ODS spreadsheet"
+msgstr "प्लानर को ODS स्प्रेडशीट के रूप में खोलें"
+
+msgid "Open selected contacts as an ODS spreadsheet"
+msgstr "चयनित संपर्कों को ODS स्प्रेडशीट के रूप में खोलें"
+
+msgid "Open selected health records as an ODS spreadsheet"
+msgstr "चुने हुए स्वास्थ्य रिकॉर्ड ODS स्प्रेडशीट के रूप में खोलें"
+
+msgid "Open the application"
+msgstr "अनुप्रयोग खोलें"
+
+msgid "Open the day in the daily view"
+msgstr "दिन को दैनिक दृश्य में खोलें"
+
+msgid ""
+"Open the verified DEB with your software manager; the organizer never "
+"installs it automatically."
+msgstr "अपने सॉफ़्टवेयर प्रबंधक के साथ सत्यापित DEB खोलें; आयोजक इसे कभी भी स्वतः इंस्टॉल नहीं करता।"
+
+msgid "Open this address as a letter in LibreOffice"
+msgstr "इस पते को LibreOffice में पत्र के रूप में खोलें"
+
+msgid "Open this day"
+msgstr "यह दिन खोलें"
+
+msgid "Open year"
+msgstr "वर्ष खोलें"
+
+msgid "Open year in planner"
+msgstr "वर्ष को प्लानर में खोलें"
+
+msgid "OpenStreetMap in the browser"
+msgstr "ब्राउज़र में OpenStreetMap"
+
+msgid "Opened in %(application)s."
+msgstr "%(application)s में खोला गया।"
+
+msgid "Opening phone pairing"
+msgstr "पेयरिंग फ़ाइल पढ़ी जा रही है"
+
+#, python-format
+msgid "Operation ended (%s)."
+msgstr "क्रिया समाप्त हुई (%s)।"
+
+#, python-format
+msgid "Option %s requires a language."
+msgstr "विकल्प %s के लिए भाषा आवश्यक है।"
+
+msgid "Organic waste"
+msgstr "जैविक कचरा"
+
+msgid "Organizer style (paper sheet)"
+msgstr "ऑर्गनाइज़र शैली (कागज़ की शीट)"
+
+msgid "Organizer · Calendar · Contacts · Notes"
+msgstr "ऑर्गनाइज़र · कैलेंडर · संपर्क · नोट्स"
+
+msgid "Other"
+msgstr "अन्य"
+
+msgctxt "email type"
+msgid "Other"
+msgstr "अन्य"
+
+msgctxt "relationship"
+msgid "Other"
+msgstr "अन्य संबंध"
+
+msgid "Other addresses"
+msgstr "अन्य पते"
+
+msgid "Other phone numbers"
+msgstr "अन्य फ़ोन नंबर"
+
+msgid "Ovulation"
+msgstr "अंडोत्सर्ग"
+
+msgid "Own internet IP"
+msgstr "अपना इंटरनेट IP"
+
+msgid "Own window available: no"
+msgstr "अपनी विंडो उपलब्ध: नहीं"
+
+msgid "Own window available: yes"
+msgstr "अपनी विंडो उपलब्ध: हाँ"
+
+msgid "PDF file"
+msgstr "PDF फ़ाइल"
+
+#, python-format
+msgid "POT template written to: %s"
+msgstr "POT टेम्पलेट यहाँ लिखा गया: %s"
+
+msgid "Packaging / Yellow bin"
+msgstr "पैकेजिंग / पीला डिब्बा"
+
+msgid "Page %(page)s"
+msgstr "पृष्ठ %(page)s"
+
+msgid "Page %(page)s of %(count)s"
+msgstr "पृष्ठ %(page)s / %(count)s"
+
+msgid "Pages"
+msgstr "पृष्ठ"
+
+msgid "Pain"
+msgstr "दर्द"
+
+msgid "Pairing file"
+msgstr "पेयरिंग फ़ाइल"
+
+msgid "Pairing file saved to: %(path)s"
+msgstr "पेयरिंग फ़ाइल यहाँ सहेजी गई: %(path)s"
+
+msgid "Palm tree"
+msgstr "ताड़ का पेड़"
+
+msgid ""
+"Participate in the Magnolienbaum (opens port %(port)s on the local network)"
+msgstr "Magnolienbaum में भाग लें (स्थानीय नेटवर्क पर पोर्ट %(port)s खोलता है)"
+
+msgid "Partnership anniversary"
+msgstr "साझेदारी की वर्षगाँठ"
+
+msgid "Password"
+msgstr "पासवर्ड"
+
+msgid "Password or numeric code"
+msgstr "पासवर्ड या संख्यात्मक कोड"
+
+msgid "Password protection"
+msgstr "पासवर्ड सुरक्षा"
+
+msgid "Password protection is available only in the installed application."
+msgstr "पासवर्ड सुरक्षा केवल स्थापित अनुप्रयोग में उपलब्ध है।"
+
+msgid "Password protection is enabled – your data is encrypted."
+msgstr "पासवर्ड सुरक्षा चालू है – आपका डेटा एन्क्रिप्टेड है।"
+
+msgid "Password protection is enabled. Your data is now encrypted"
+msgstr "पासवर्ड सुरक्षा चालू है। आपका डेटा अब एन्क्रिप्टेड है"
+
+msgid "Password protection was removed."
+msgstr "पासवर्ड सुरक्षा हटा दी गई।"
+
+msgid "Paste"
+msgstr "चिपकाएँ"
+
+msgid "Patch"
+msgstr "पैच"
+
+msgid "Pay invoice"
+msgstr "चालान का भुगतान करें"
+
+msgid "Pen"
+msgstr "पेन"
+
+msgid "People"
+msgstr "लोग"
+
+msgid "Period"
+msgstr "अवधि"
+
+msgid "Permanently delete %(count)s completed task?"
+msgid_plural "Permanently delete %(count)s completed tasks?"
+msgstr[0] "%(count)s पूर्ण कार्य स्थायी रूप से हटाएँ?"
+msgstr[1] "%(count)s पूर्ण कार्य स्थायी रूप से हटाएँ?"
+
+msgid "Permanently delete %(count)s selected health record?"
+msgid_plural "Permanently delete %(count)s selected health records?"
+msgstr[0] "क्या चुना गया %(count)s स्वास्थ्य रिकॉर्ड स्थायी रूप से हटाना है?"
+msgstr[1] "क्या चुने गए %(count)s स्वास्थ्य रिकॉर्ड स्थायी रूप से हटाने हैं?"
+
+msgid "Permanently delete selected health records"
+msgstr "चुने गए स्वास्थ्य रिकॉर्ड स्थायी रूप से हटाएँ"
+
+msgid "Permanently delete the one item? This cannot be undone."
+msgid_plural "Permanently delete all %(count)s items? This cannot be undone."
+msgstr[0] "क्या आप इस एक आइटम को स्थायी रूप से हटाना चाहते हैं? इसे पूर्ववत नहीं किया जा सकता।"
+msgstr[1] "क्या आप सभी %(count)s आइटम स्थायी रूप से حذف करना चाहते हैं? इसे पूर्ववत किया नहीं जा सकता।"
+
+msgid "Person"
+msgstr "व्यक्ति"
+
+msgid "Person's name"
+msgstr "व्यक्ति का नाम"
+
+msgid "Phone"
+msgstr "फ़ोन"
+
+msgid "Phone call"
+msgstr "फ़ोन कॉल"
+
+msgid "Phone number"
+msgstr "फ़ोन नंबर"
+
+msgid "Phone numbers"
+msgstr "फ़ोन नंबर"
+
+msgid "Phone pairing failed."
+msgstr "पेयरिंग फ़ाइल"
+
+msgid "Phone “%(name)s” is securely paired."
+msgstr "“%(name)s” पुनर्स्थापित किया गया।"
+
+msgid "Phones"
+msgstr "फ़ोन"
+
+msgid "Photo"
+msgstr "फ़ोटो"
+
+msgid "Photo available"
+msgstr "फ़ोटो उपलब्ध"
+
+msgid "Photo of %(name)s"
+msgstr "%(name)s की फ़ोटो"
+
+msgid "Pick up"
+msgstr "लेने जाएँ"
+
+msgid "Planner"
+msgstr "प्लानर"
+
+msgid "Please create a notebook in another group first."
+msgstr "कृपया पहले किसी दूसरे समूह में एक नोटबुक बनाएँ।"
+
+msgid "Please enter a four-digit year from 1000 onwards."
+msgstr "कृपया 1000 या उसके बाद का चार अंकों वाला वर्ष दर्ज करें।"
+
+msgid "Please enter a name."
+msgstr "कृपया नाम दर्ज करें।"
+
+msgid "Please enter a realistic value."
+msgstr "कृपया कोई उचित मान दर्ज करें।"
+
+msgid "Please enter a title and date for every new appointment."
+msgstr "हर नई अपॉइंटमेंट के लिए शीर्षक और तारीख दर्ज करें।"
+
+msgid "Please enter a title for every new task."
+msgstr "हर नए कार्य के लिए शीर्षक दर्ज करें।"
+
+msgid "Please enter a title."
+msgstr "कृपया शीर्षक दर्ज करें।"
+
+msgid "Please enter a website or application for the custom action."
+msgstr "कस्टम क्रिया के लिए वेबसाइट या अनुप्रयोग दर्ज करें।"
+
+msgid "Please enter an address."
+msgstr "कृपया पता दर्ज करें।"
+
+msgid "Please enter at least a name or company."
+msgstr "कम-से-कम नाम या कंपनी दर्ज करें।"
+
+msgid "Please enter the internet IP and fingerprint in full."
+msgstr "इंटरनेट IP और फ़िंगरप्रिंट पूरा दर्ज करें।"
+
+msgid "Please select a PDF file."
+msgstr "कृपया PDF फ़ाइल चुनें।"
+
+msgid "Please select a date."
+msgstr "कृपया तारीख चुनें।"
+
+msgid "Please select a file first."
+msgstr "पहले कोई फ़ाइल चुनें।"
+
+msgid "Please select an image file."
+msgstr "कृपया कोई चित्र फ़ाइल चुनें।"
+
+msgid "Please select an image in JPEG, PNG, WebP, or GIF format."
+msgstr "JPEG, PNG, WebP या GIF प्रारूप में चित्र चुनें।"
+
+msgid "Please unlock"
+msgstr "कृपया अनलॉक करें"
+
+msgid "Poland"
+msgstr "पोलैंड"
+
+msgid "Port 8741 is unavailable. The phone listener could not start."
+msgstr "पोर्ट 8741 उपलब्ध नहीं है। फ़ोन श्रोता प्रारंभ नहीं कर सका।"
+
+msgid "Possible duplicates among local and incoming contacts"
+msgstr "स्थानीय और आने वाले संपर्कों में संभावित डुप्लिकेट"
+
+msgid "Postal address"
+msgstr "डाक पता"
+
+msgid "Postal code"
+msgstr "पिन कोड"
+
+msgid "Postal code / city"
+msgstr "पिन कोड / शहर"
+
+msgid "Powder"
+msgstr "पाउडर"
+
+msgid "Preview"
+msgstr "पूर्वावलोकन"
+
+msgid "Preview failed."
+msgstr "पूर्वावलोकन विफल हुआ।"
+
+msgid "Preview, print or export the year planner"
+msgstr "वर्ष प्लानर का पूर्वावलोकन, प्रिंट या निर्यात करें"
+
+msgid "Preview:"
+msgstr "पूर्वावलोकन:"
+
+msgid "Previewing a recovery snapshot"
+msgstr "रिकवरी स्नैपशॉट का पूर्वावलोकन करना"
+
+msgid "Previous month"
+msgstr "पिछला महीना"
+
+msgid "Previous page"
+msgstr "पिछला पृष्ठ"
+
+msgid "Previous tab"
+msgstr "पिछला टैब"
+
+msgid "Previous table page"
+msgstr "पिछला तालिका पृष्ठ"
+
+msgid "Previous week"
+msgstr "पिछला सप्ताह"
+
+msgid "Previous window state"
+msgstr "विंडो की पिछली स्थिति"
+
+msgid "Previous year"
+msgstr "पिछला वर्ष"
+
+msgid "Print"
+msgstr "प्रिंट"
+
+msgid "Print dialog"
+msgstr "प्रिंट संवाद"
+
+msgid "Print now"
+msgstr "अभी प्रिंट करें"
+
+msgid "Print preview"
+msgstr "प्रिंट पूर्वावलोकन"
+
+msgid "Print · %(title)s"
+msgstr "प्रिंट · %(title)s"
+
+msgid "Print · Health"
+msgstr "प्रिंट · स्वास्थ्य"
+
+msgid "Priority"
+msgstr "प्राथमिकता"
+
+msgid "Priority 1 is listed first. Overdue tasks are shown in red."
+msgstr ""
+"प्राथमिकता 1 सबसे पहले दिखाई जाती है। समय-सीमा पार कर चुके कार्य लाल रंग में दिखते हैं।"
+
+msgid "Private"
+msgstr "निजी"
+
+msgid ""
+"Private, integrity-checked snapshots are stored next to the application data."
+msgstr "निजी, ईमानदारी-जांच वाली स्नैपशॉट्स आवेदन डेटा के बगल में संग्रहित होती हैं।"
+
+msgid "Public IPv4 or IPv6 address of the other branch"
+msgstr "दूसरी शाखा का सार्वजनिक IPv4 या IPv6 पता"
+
+msgid ""
+"Public holidays and school holidays are governed regionally. Choose which "
+"ones apply here."
+msgstr ""
+"सार्वजनिक और स्कूल की छुट्टियाँ क्षेत्र के अनुसार निर्धारित होती हैं। यहाँ लागू होने वाली "
+"छुट्टियाँ चुनें।"
+
+msgid "Pulse"
+msgstr "नाड़ी"
+
+msgid ""
+"Pulse\n"
+"S/min"
+msgstr ""
+"नाड़ी\n"
+"S/min"
+
+msgid "Queue: %(open)s of %(count)s transmission awaits delivery."
+msgid_plural "Queue: %(open)s of %(count)s transmissions await delivery."
+msgstr[0] "कतार: %(count)s में से %(open)s ट्रांसमिशन डिलीवरी की प्रतीक्षा में है।"
+msgstr[1] "कतार: %(count)s में से %(open)s ट्रांसमिशन डिलीवरी की प्रतीक्षा में हैं।"
+
+msgid "Queued"
+msgstr "लंबित"
+
+msgid "Quit"
+msgstr "बाहर निकलें"
+
+msgid "Reachable IPv4 or IPv6 address of this computer"
+msgstr "इस कंप्यूटर का पहुँच योग्य IPv4 या IPv6 पता"
+
+msgid "Reading recovery snapshots"
+msgstr "पढ़ाई रिकवरी स्नैपशॉट्स"
+
+msgid "Reading the Magnolienbaum identity"
+msgstr "Magnolienbaum पहचान पढ़ी जा रही है"
+
+msgid "Reading the backup"
+msgstr "बैकअप पढ़ा जा रहा है"
+
+msgid "Reading the pairing file"
+msgstr "पेयरिंग फ़ाइल पढ़ी जा रही है"
+
+msgid "Reading the user data"
+msgstr "उपयोगकर्ता डेटा पढ़ा जा रहा है"
+
+msgid ""
+"Really merge %(cards)s? Review the result carefully afterwards. A copy of "
+"every removed card is kept in the recycle bin."
+msgstr ""
+"क्या वाकई %(cards)s को मिलाएँ? बाद में परिणाम ध्यान से जाँचें। हटाए गए हर कार्ड की एक "
+"प्रति कूड़ेदान में रखी जाती है।"
+
+msgid "Reason"
+msgstr "कारण"
+
+msgid "Receive SMS"
+msgstr "एसएमएस प्राप्त करें"
+
+msgid "Recovering the password transaction"
+msgstr "पासवर्ड लेन-देन पुनर्प्राप्त किया जा रहा है"
+
+msgid "Recovery snapshot created."
+msgstr "रिकवरी स्नैपशॉट बनाया गया।"
+
+msgid "Recovery snapshot deleted."
+msgstr "रिकवरी स्नैपशॉट हटा दिया गया।"
+
+msgid "Recovery snapshots"
+msgstr "रिकवरी स्नैपशॉट"
+
+msgid "Recycle bin"
+msgstr "कूड़ेदान"
+
+msgid "Refresh"
+msgstr "रीफ़्रेश"
+
+msgid "Reject"
+msgstr "अस्वीकार करें"
+
+msgid "Reject this offer permanently?"
+msgstr "इस प्रस्ताव को स्थायी रूप से अस्वीकार करें?"
+
+msgid "Related tasks"
+msgstr "संबंधित कार्य"
+
+msgid "Remind about appointments in the background"
+msgstr "पृष्ठभूमि में अपॉइंटमेंट याद दिलाएँ"
+
+msgid "Remind me again on the day itself"
+msgstr "उसी दिन फिर याद दिलाएँ"
+
+msgid "Reminder test"
+msgstr "रिमाइंडर परीक्षण"
+
+msgid ""
+"Reminders are running through session autostart; systemd was not found on "
+"this system."
+msgstr "रिमाइंडर सत्र ऑटोस्टार्ट के माध्यम से चल रहे हैं; इस सिस्टम पर systemd नहीं मिला।"
+
+msgid ""
+"Reminders could not be set up. They will be shown only while the organizer "
+"is open."
+msgstr "रिमाइंडर सेट नहीं हो सके। वे केवल ऑर्गनाइज़र खुले रहने पर दिखेंगे।"
+
+msgid ""
+"Reminders outside the application are available only in the installed "
+"version."
+msgstr "अनुप्रयोग के बाहर रिमाइंडर केवल स्थापित संस्करण में उपलब्ध हैं।"
+
+msgid "Reminders: disabled"
+msgstr "रिमाइंडर: बंद"
+
+msgid "Reminders: enabled"
+msgstr "रिमाइंडर: चालू"
+
+msgid "Reminds you about appointments even when the organizer is closed"
+msgstr "ऑर्गनाइज़र बंद होने पर भी अपॉइंटमेंट याद दिलाता है"
+
+msgid "Remote host name or IP address (optional)"
+msgstr "Remote host name or IP address (optional)"
+
+msgid "Remove"
+msgstr "हटाएँ"
+
+msgid "Remove address"
+msgstr "पता हटाएँ"
+
+msgid "Remove all public holidays and school holidays from the organizer?"
+msgstr "ऑर्गनाइज़र से सभी सार्वजनिक और स्कूल की छुट्टियाँ हटाएँ?"
+
+msgid "Remove appointment"
+msgstr "अपॉइंटमेंट हटाएँ"
+
+msgid "Remove connection"
+msgstr "कनेक्शन हटाएँ"
+
+msgid "Remove email address"
+msgstr "ईमेल पता हटाएँ"
+
+msgid "Remove embedded file “%(name)s”?"
+msgstr "एम्बेड की गई फ़ाइल “%(name)s” हटाएँ?"
+
+msgid "Remove emergency contact"
+msgstr "आपातकालीन संपर्क हटाएँ"
+
+msgid "Remove entries"
+msgstr "प्रविष्टियाँ हटाएँ"
+
+msgid "Remove event"
+msgstr "ईवेंट हटाएँ"
+
+msgid "Remove password protection"
+msgstr "पासवर्ड सुरक्षा हटाएँ"
+
+msgid ""
+"Remove password protection? Your data will then be stored unencrypted in "
+"your home directory again."
+msgstr ""
+"पासवर्ड सुरक्षा हटाएँ? इसके बाद आपका डेटा आपकी होम डायरेक्टरी में फिर से बिना एन्क्रिप्शन "
+"के रखा जाएगा।"
+
+msgid "Remove phone connection"
+msgstr "कनेक्शन हटाएँ"
+
+msgid "Remove phone number"
+msgstr "फ़ोन नंबर हटाएँ"
+
+msgid "Remove photo"
+msgstr "फ़ोटो हटाएँ"
+
+msgid "Remove social medium"
+msgstr "सोशल मीडिया हटाएँ"
+
+msgid "Remove task"
+msgstr "कार्य हटाएँ"
+
+msgid "Remove the connection to “%(branch)s”?"
+msgstr "“%(branch)s” से कनेक्शन हटाएँ?"
+
+msgid "Remove this phone connection and its queues and permissions?"
+msgstr "इस फोन कनेक्शन और इसके क्यू और अनुमतियाँ हटाएं?"
+
+msgid ""
+"Remove “%(name)s”? Their tasks will be kept but will no longer be assigned "
+"to anyone."
+msgstr ""
+"“%(name)s” को हटाएँ? उनके कार्य सुरक्षित रहेंगे, लेकिन अब किसी व्यक्ति को सौंपे नहीं रहेंगे।"
+
+msgid "Repeat for confirmation"
+msgstr "पुष्टि के लिए फिर दर्ज करें"
+
+msgid "Reply"
+msgstr "उत्तर दें"
+
+#, python-format
+msgid "Reported (%(method)s): %(title)s – %(body)s"
+msgstr "रिपोर्ट किया गया (%(method)s): %(title)s – %(body)s"
+
+msgid "Requesting the device status"
+msgstr "डिवाइस की स्थिति का अनुरोध कर रहा हूँ"
+
+msgid "Requires existing BlueZ system pairing. Data only, no HFP audio."
+msgstr "मौजूदा BlueZ सिस्टम पेयरिंग की आवश्यकता है। केवल डेटा, कोई HFP ऑडियो नहीं।"
+
+msgid "Residual waste"
+msgstr "शेष कचरा"
+
+msgid "Responsible"
+msgstr "जिम्मेदार"
+
+msgid "Restore"
+msgstr "पुनर्स्थापित करें"
+
+msgid "Restore backup"
+msgstr "बैकअप पुनर्स्थापित करें"
+
+msgid "Restore backup …"
+msgstr "बैकअप पुनर्स्थापित करें …"
+
+msgid "Restore completely"
+msgstr "पूरी तरह से पुनर्स्थापित करें"
+
+msgid "Restore failed."
+msgstr "पुनर्स्थापना विफल रही।"
+
+msgid ""
+"Restore this snapshot completely? A mandatory pre-restore snapshot is "
+"created first."
+msgstr "क्या इस स्नैपशॉट को पूरी तरह से पुनर्स्थापित करना है? पहले एक अनिवार्य पूर्व-पुनर्स्थापना स्नैपशॉट बनाया जाता है।"
+
+msgid "Restoring a recovery snapshot"
+msgstr "रिकवरी स्नैपशॉट को पुनर्स्थापित करना"
+
+msgid "Restoring backups is available only in the installed application."
+msgstr "बैकअप पुनर्स्थापित करना केवल स्थापित अनुप्रयोग में उपलब्ध है।"
+
+msgid "Restoring the backup"
+msgstr "बैकअप पुनर्स्थापित किया जा रहा है"
+
+msgid "Retrieval failed."
+msgstr "प्राप्ति विफल रही।"
+
+msgid "Retrieve now"
+msgstr "अभी प्राप्त करें"
+
+msgid "Retrieve public holidays and school holidays"
+msgstr "सार्वजनिक और स्कूल की छुट्टियाँ प्राप्त करें"
+
+msgid "Retrieved on %(date)s."
+msgstr "%(date)s को प्राप्त किया गया।"
+
+#, python-format
+msgid "Retrieved: %(items)s for %(years)s."
+msgstr "प्राप्त: %(years)s के लिए %(items)s।"
+
+msgid "Retrieving holidays"
+msgstr "छुट्टियाँ प्राप्त की जा रही हैं"
+
+#, python-format
+msgid "Retrieving holidays failed (%s)."
+msgstr "छुट्टियाँ प्राप्त करना विफल रहा (%s)।"
+
+msgid "Retrieving holidays …"
+msgstr "छुट्टियाँ प्राप्त की जा रही हैं …"
+
+msgid "Retrieving manual download information …"
+msgstr "मैन्युअल डाउनलोड जानकारी प्राप्त की जा रही है …"
+
+msgid "Retrieving weather"
+msgstr "मौसम प्राप्त किया जा रहा है"
+
+#, python-format
+msgid "Retrieving weather failed (%s)."
+msgstr "मौसम प्राप्त करना विफल रहा (%s)।"
+
+msgid "Retrieving weather…"
+msgstr "मौसम प्राप्त किया जा रहा है…"
+
+msgid "Rhineland-Palatinate"
+msgstr "राइनलैंड-पैलेटिनेट"
+
+msgid "Route"
+msgstr "मार्ग"
+
+msgid "Route: calculate directions immediately"
+msgstr "मार्ग: दिशा-निर्देश तुरंत निकालें"
+
+#, python-format
+msgid "Run failed: %s"
+msgstr "चलाना विफल रहा: %s"
+
+msgid ""
+"Run the downloaded installer visibly and keep the Manual component selected."
+msgstr "डाउनलोड किए गए इंस्टॉलर को दिखाई देने वाले तरीके से चलाएँ और मैन्युअल कम्पोनेंट का चयन बनाए रखें।"
+
+msgid "S"
+msgstr "S"
+
+#, python-format
+msgid "SMS from %(name)s"
+msgstr "%(name)s से एसएमएस"
+
+msgid "SMS is not available or permitted on a paired phone."
+msgstr "संदेश सेवा (SMS) युग्मित फोन पर उपलब्ध नहीं है या अनुमति नहीं है।"
+
+msgid "SMS reception"
+msgstr "दवा"
+
+msgid "SMS to %(name)s"
+msgstr "%(name)s की फ़ोटो"
+
+msgid "Saarland"
+msgstr "सारलैंड"
+
+msgid "Salzburg"
+msgstr "साल्ज़बुर्ग"
+
+msgid "Saturday"
+msgstr "शनिवार"
+
+msgid "Save"
+msgstr "सहेजें"
+
+msgid "Save Lotus CSV"
+msgstr "Lotus CSV सहेजें"
+
+msgid "Save Magnolienbaum pairing file"
+msgstr "Magnolienbaum पेयरिंग फ़ाइल सहेजें"
+
+msgid "Save anniversaries"
+msgstr "वर्षगाँठ सहेजें"
+
+msgid "Save appointments"
+msgstr "अपॉइंटमेंट सहेजें"
+
+msgid "Save as…"
+msgstr "इस रूप में सहेजें…"
+
+msgid "Save changes"
+msgstr "परिवर्तन सहेजें"
+
+msgctxt "contact action"
+msgid "Save changes"
+msgstr "परिवर्तन सहेजें"
+
+msgid "Save changes?"
+msgstr "परिवर्तन सहेजें?"
+
+msgid "Save contacts"
+msgstr "संपर्क सहेजें"
+
+msgid "Save contacts for Claws Mail"
+msgstr "Claws Mail के लिए संपर्क सहेजें"
+
+msgid "Save endpoint"
+msgstr "Save endpoint"
+
+msgid "Save rejected: The data is encrypted and has not been unlocked yet."
+msgstr "सहेजना अस्वीकार हुआ: डेटा एन्क्रिप्टेड है और अभी अनलॉक नहीं किया गया है।"
+
+msgid "Save tasks"
+msgstr "कार्य सहेजें"
+
+msgid "Saved"
+msgstr "सहेजा गया"
+
+msgid "Saved to: %(path)s (%(count)s entry)"
+msgid_plural "Saved to: %(path)s (%(count)s entries)"
+msgstr[0] "यहाँ सहेजा गया: %(path)s (%(count)s प्रविष्टि)"
+msgstr[1] "यहाँ सहेजा गया: %(path)s (%(count)s प्रविष्टियाँ)"
+
+msgid "Saved ✓ %(time)s"
+msgstr "सहेजा गया ✓ %(time)s"
+
+msgid "Saving failed!"
+msgstr "सहेजना विफल रहा!"
+
+#, python-format
+msgid "Saving failed: %s"
+msgstr "सहेजना विफल रहा: %s"
+
+msgid "Saving the branch settings"
+msgstr "Saving the branch settings"
+
+msgid "Saving the data"
+msgstr "डेटा सहेजा जा रहा है"
+
+msgid "Saving the tray settings"
+msgstr "सिस्टम ट्रे सेटिंग्स सहेजी जा रही हैं"
+
+msgid "Saving …"
+msgstr "सहेजा जा रहा है …"
+
+msgid "Saxony"
+msgstr "सैक्सोनी"
+
+msgid "Saxony-Anhalt"
+msgstr "सैक्सोनी-एनहाल्ट"
+
+msgid "Scanning this computer"
+msgstr "इस कंप्यूटर को स्कैन किया जा रहा है"
+
+msgid "Schaffhausen"
+msgstr "शाफ़हाउज़ेन"
+
+msgid "Schedule an appointment"
+msgstr "अपॉइंटमेंट निर्धारित करें"
+
+msgid "Scheduled"
+msgstr "निर्धारित"
+
+msgid "Scheme"
+msgstr "Scheme"
+
+msgid "Schleswig-Holstein"
+msgstr "श्लेस्विग-होल्स्टीन"
+
+msgid "Schwyz"
+msgstr "श्वीत्स"
+
+msgid "Screen notification only"
+msgstr "केवल स्क्रीन सूचना"
+
+msgid "Scrolling up makes the time earlier"
+msgstr "ऊपर स्क्रॉल करने से समय पहले होता है"
+
+msgid "Scrolling up makes the time later"
+msgstr "ऊपर स्क्रॉल करने से समय बाद का होता है"
+
+msgid "Search"
+msgstr "खोजें"
+
+msgid "Search local network"
+msgstr "स्थानीय नेटवर्क खोजें"
+
+msgid "Search title, date, or note…"
+msgstr "शीर्षक, तारीख या नोट खोजें…"
+
+msgid "Searching for suggestions…"
+msgstr "सुझाव खोजे जा रहे हैं…"
+
+msgid "Searching…"
+msgstr "खोज जारी है…"
+
+msgid "Search…"
+msgstr "खोजें…"
+
+msgid "Secondary office"
+msgstr "द्वितीयक कार्यालय"
+
+msgid "Secure HTTPS address"
+msgstr "सुरक्षित HTTPS पता"
+
+msgid "Securely connected to %(branch)s."
+msgstr "%(branch)s से सुरक्षित रूप से कनेक्ट है।"
+
+msgid "Security"
+msgstr "सुरक्षा"
+
+msgid "Select"
+msgstr "चुनें"
+
+msgid "Select a country first."
+msgstr "पहले कोई देश चुनें।"
+
+msgid "Select all"
+msgstr "सभी चुनें"
+
+msgid ""
+"Select an entry on the left,\n"
+"or create a contact card with New."
+msgstr ""
+"बाईं ओर कोई प्रविष्टि चुनें,\n"
+"या नया से संपर्क कार्ड बनाएँ।"
+
+msgid "Select at least one column."
+msgstr "कम-से-कम एक कॉलम चुनें।"
+
+msgid "Select at least one year."
+msgstr "कम-से-कम एक वर्ष चुनें।"
+
+msgid "Select backup folder"
+msgstr "बैकअप फ़ोल्डर चुनें"
+
+msgid "Select no more than three years."
+msgstr "अधिकतम तीन वर्ष चुनें।"
+
+msgid "Select something first."
+msgstr "पहले कुछ चुनें।"
+
+msgid "Select what you want to print on the left."
+msgstr "बाईं ओर चुनें कि क्या प्रिंट करना है।"
+
+msgid "Select your canton first or enable “All cantons”."
+msgstr "पहले अपना कैंटन चुनें या “सभी कैंटन” चालू करें।"
+
+msgid "Select your state first or enable “All states”."
+msgstr "पहले अपना राज्य चुनें या “सभी राज्य” चालू करें।"
+
+msgid "Select, preview, print, export or delete health records"
+msgstr "स्वास्थ्य रिकॉर्ड चुनें, पूर्वावलोकन करें, प्रिंट करें, निर्यात करें या हटाएँ"
+
+msgid ""
+"Selected columns that are empty for every contact are omitted automatically."
+msgstr "चुने गए ऐसे कॉलम जो हर संपर्क के लिए खाली हैं, अपने-आप छोड़ दिए जाते हैं।"
+
+msgid "Selected notifications"
+msgstr "सिस्टम सूचना"
+
+msgid "Selection options"
+msgstr "चयन विकल्प"
+
+msgid "Send SMS"
+msgstr "एसएमएस भेजें"
+
+msgid "Send documents"
+msgstr "दस्तावेज़ भेजें"
+
+msgid "Send secure request"
+msgstr "सुरक्षित अनुरोध भेजें"
+
+msgid "Sending SMS"
+msgstr "एसएमएस भेजना"
+
+msgid "Sent"
+msgstr "भेजा गया"
+
+msgid "Set varying doses by weekday"
+msgstr "सप्ताह के दिन के अनुसार अलग-अलग खुराक तय करें"
+
+msgid "Setting up reminders"
+msgstr "रिमाइंडर सेट किए जा रहे हैं"
+
+msgid "Setting up reminders …"
+msgstr "रिमाइंडर सेट किए जा रहे हैं …"
+
+msgid "Settings"
+msgstr "सेटिंग्स"
+
+msgid "Several Magnolie Organizers can connect and securely share tasks."
+msgstr "कई Magnolie Organizer आपस में जुड़कर कार्य सुरक्षित रूप से साझा कर सकते हैं।"
+
+msgid "Share"
+msgstr "साझा करें"
+
+msgid "Share address"
+msgstr "पता साझा करें"
+
+msgid "Share appointment"
+msgstr "अपॉइंटमेंट साझा करें"
+
+msgid "Share this entry explicitly with %(branch)s?"
+msgstr "इस प्रविष्टि को स्पष्ट रूप से %(branch)s के साथ साझा करें?"
+
+msgid "Share this entry explicitly with the workgroup?"
+msgstr "इस प्रविष्टि को स्पष्ट रूप से कार्यसमूह के साथ साझा करें?"
+
+msgid "Share this entry explicitly with this branch?"
+msgstr "इस प्रविष्टि को स्पष्ट रूप से इस शाखा के साथ साझा करें?"
+
+msgid "Share together"
+msgstr "मिलकर साझा करें"
+
+msgid "Shared note"
+msgstr "साझा नोट"
+
+msgid "Shift planner"
+msgstr "शिफ्ट प्लानर"
+
+msgid "Shopping"
+msgstr "खरीदारी"
+
+msgid "Short-acting insulin"
+msgstr "कम समय तक असर करने वाला इंसुलिन"
+
+msgid "Show Health after Planner"
+msgstr "प्लानर के बाद स्वास्थ्य दिखाएँ"
+
+msgid "Show all"
+msgstr "सभी दिखाएँ"
+
+msgid "Show calendar button in date fields"
+msgstr "तारीख फ़ील्ड में कैलेंडर बटन दिखाएँ"
+
+msgid "Show log"
+msgstr "लॉग दिखाएँ"
+
+msgid "Show more"
+msgstr "और दिखाएँ"
+
+msgid "Show preview"
+msgstr "पूर्वावलोकन दिखाएँ"
+
+msgid "Show selected notifications (read only)"
+msgstr "केवल स्क्रीन सूचना"
+
+msgid "Show social media and communication icons"
+msgstr "सोशल मीडिया और संचार आइकन दिखाएँ"
+
+msgid "Show symbol in calendar"
+msgstr "कैलेंडर में चिह्न दिखाएँ"
+
+msgid "Show the “Letter” button (LibreOffice)"
+msgstr "“पत्र” बटन दिखाएँ (LibreOffice)"
+
+msgid "Show the “Map” button"
+msgstr "“मानचित्र” बटन दिखाएँ"
+
+msgid "Show the “Selection options” button"
+msgstr "“चयन विकल्प” बटन दिखाएँ"
+
+msgid "Show this address on the map"
+msgstr "इस पते को मानचित्र पर दिखाएँ"
+
+msgid "Show this overview"
+msgstr "यह अवलोकन दिखाएँ"
+
+msgid "Show today's notification count on the tray icon"
+msgstr "सिस्टम ट्रे आइकन पर आज की सूचनाओं की संख्या दिखाएँ"
+
+msgid "Show weather for the next three days"
+msgstr "अगले तीन दिनों का मौसम दिखाएँ"
+
+msgid "Show week numbers in the monthly view"
+msgstr "मासिक दृश्य में सप्ताह संख्या दिखाएँ"
+
+msgid "Show week numbers in the planner"
+msgstr "प्लानर में सप्ताह संख्या दिखाएँ"
+
+msgid ""
+"Small action buttons appear on each contact card. You can hide anything you "
+"do not need here."
+msgstr ""
+"हर संपर्क कार्ड पर छोटे क्रिया बटन दिखाई देते हैं। जिनकी आपको आवश्यकता नहीं है, उन्हें यहाँ "
+"छिपा सकते हैं।"
+
+msgid "Snapshot interval"
+msgstr "स्नैपशॉट अंतराल"
+
+msgid "Snapshot restored. The first synchronization will not send deletions."
+msgstr "स्नैपशॉट पुनर्स्थापित किया गया। पहली सिंक्रनाइज़ेशन हटाए गए आइटम नहीं भेजेगी।"
+
+msgid "Snowman"
+msgstr "हिममानव"
+
+msgid "Social media"
+msgstr "सोशल मीडिया"
+
+msgid "Social medium"
+msgstr "सोशल माध्यम"
+
+msgid "Solothurn"
+msgstr "सोलोथुर्न"
+
+msgid "Someone"
+msgstr "कोई व्यक्ति"
+
+msgid "Son"
+msgstr "बेटा"
+
+msgid "Sort everything alphabetically"
+msgstr "सब कुछ वर्णानुक्रम में क्रमबद्ध करें"
+
+msgid "Sorting"
+msgstr "क्रमबद्ध करना"
+
+#, python-format
+msgid "Sound file: %(path)s"
+msgstr "ध्वनि फ़ाइल: %(path)s"
+
+msgid "Sound file: not found"
+msgstr "ध्वनि फ़ाइल: नहीं मिली"
+
+msgid "Sound only"
+msgstr "केवल ध्वनि"
+
+#, python-format
+msgid "Sound only: %(title)s – %(body)s"
+msgstr "केवल ध्वनि: %(title)s – %(body)s"
+
+#, python-format
+msgid "Sound through: %(method)s"
+msgstr "ध्वनि माध्यम: %(method)s"
+
+msgid "Sound through: no output method found"
+msgstr "ध्वनि माध्यम: कोई आउटपुट विधि नहीं मिली"
+
+msgid "Space for anything you want to remember…"
+msgstr "जो कुछ याद रखना चाहें, उसके लिए जगह…"
+
+msgid "Spain"
+msgstr "स्पेन"
+
+msgid "Special cases"
+msgstr "विशेष मामले"
+
+msgid "Spell checking"
+msgstr "वर्तनी जाँच"
+
+msgid "Spray"
+msgstr "स्प्रे"
+
+msgid "St. Gallen"
+msgstr "सेंट गैलेन"
+
+msgid "Start automatically when signing in"
+msgstr "साइन इन करते समय अपने-आप शुरू करें"
+
+msgid "Start the organizer in the tray"
+msgstr "ऑर्गनाइज़र को सिस्टम ट्रे में शुरू करें"
+
+msgid "Start through the tray applet"
+msgstr "सिस्टम ट्रे एप्लेट के माध्यम से शुरू करें"
+
+msgid "Starting the phone connection"
+msgstr "कनेक्शन प्रबंधित करें"
+
+msgid "Starts Magnolie Organizer when signing in"
+msgstr "साइन इन करते समय Magnolie Organizer शुरू करता है"
+
+msgid "State"
+msgstr "राज्य"
+
+msgid "Street / house number"
+msgstr "सड़क / मकान नंबर"
+
+msgid "Street and house number"
+msgstr "सड़क और मकान नंबर"
+
+msgid "Strength"
+msgstr "क्षमता"
+
+msgid "Strikethrough"
+msgstr "स्ट्राइकथ्रू"
+
+msgid "Styria"
+msgstr "स्टायरिया"
+
+msgid "Submitted"
+msgstr "प्रस्तुत"
+
+msgid "Suggestions are available only in the installed application."
+msgstr "सुझाव केवल स्थापित अनुप्रयोग में उपलब्ध हैं।"
+
+msgid "Sun symbol"
+msgstr "सूर्य का प्रतीक"
+
+msgid "Sunday"
+msgstr "रविवार"
+
+msgid "Suppository"
+msgstr "सपोसिटरी"
+
+msgid "Switzerland"
+msgstr "स्विट्ज़रलैंड"
+
+msgid "Symbol"
+msgstr "प्रतीक"
+
+msgid "Symbol and Vacation text"
+msgstr "प्रतीक और छुट्टी का टेक्स्ट"
+
+msgid "Symbol only"
+msgstr "केवल प्रतीक"
+
+msgid "Symbols and temperatures"
+msgstr "प्रतीक और तापमान"
+
+msgid "Symbols, temperatures and description"
+msgstr "प्रतीक, तापमान और विवरण"
+
+msgid "Synchronization"
+msgstr "सिंक्रोनाइज़ेशन"
+
+msgid "Synchronization (online accounts)"
+msgstr "सिंक्रोनाइज़ेशन (ऑनलाइन खाते)"
+
+msgid "Synchronization completed."
+msgstr "सिंक्रोनाइज़ेशन पूरा हुआ।"
+
+msgid "Synchronization failed."
+msgstr "सिंक्रोनाइज़ेशन विफल रहा।"
+
+msgid "Synchronization failed: %(error)s"
+msgstr "सिंक्रोनाइज़ेशन विफल रहा: %(error)s"
+
+msgid ""
+"Synchronization state, pending messages and metadata for this connection "
+"will be removed. Contacts already accepted and local data remain."
+msgstr ""
+"इस कनेक्शन की सिंक्रनाइज़ेशन स्थिति, लंबित संदेश और मेटाडेटा हटा दिए जाएँगे। पहले से स्वीकार "
+"किए गए संपर्क और स्थानीय डेटा बने रहेंगे।"
+
+msgid "Synchronize automatically at startup"
+msgstr "स्टार्टअप पर अपने-आप सिंक्रोनाइज़ करें"
+
+msgid "Synchronize contacts"
+msgstr "संपर्क सिंक्रनाइज़ करें"
+
+msgid "Synchronize everything"
+msgstr "Synchronize everything"
+
+msgid "Synchronize now"
+msgstr "अभी सिंक्रोनाइज़ करें"
+
+msgid ""
+"Synchronizes appointments and contacts with one or more calendars and an "
+"Evolution Data Server address book, using your system's online accounts. "
+"When entries differ, the most recently changed version wins."
+msgstr ""
+"आपके सिस्टम के ऑनलाइन खातों का उपयोग करके अपॉइंटमेंट और संपर्कों को एक या अधिक कैलेंडर तथा "
+"Evolution Data Server की पता-पुस्तिका के साथ सिंक्रोनाइज़ करता है। प्रविष्टियाँ अलग "
+"होने पर सबसे हाल में बदली गई प्रति लागू होती है।"
+
+msgid "Synchronizing …"
+msgstr "सिंक्रोनाइज़ किया जा रहा है …"
+
+msgid "System authentication for configuring UFW is unavailable."
+msgstr "UFW कॉन्फ़िगर करने के लिए सिस्टम प्रमाणीकरण उपलब्ध नहीं है।"
+
+msgid "System style (desktop notification)"
+msgstr "सिस्टम शैली (डेस्कटॉप सूचना)"
+
+msgid "System-paired phone Bluetooth address"
+msgstr "सिस्टम-जोड़ल फोन ब्लूटूथ पता"
+
+msgid "Systolic"
+msgstr "सिस्टोलिक"
+
+msgid "Tab %(letter)s"
+msgstr "टैब %(letter)s"
+
+msgid "Tab %(letter)s · %(count)s"
+msgstr "टैब %(letter)s · %(count)s"
+
+msgid "Tablet"
+msgstr "टैबलेट"
+
+msgid "Tabs"
+msgstr "टैब"
+
+msgid "Task"
+msgstr "कार्य"
+
+msgid "Task is due"
+msgstr "कार्य की नियत तारीख"
+
+msgid "Task reminder"
+msgstr "कार्य रिमाइंडर"
+
+msgid "Tasks"
+msgstr "कार्य"
+
+msgid "Tasks (.ics)"
+msgstr "कार्य (.ics)"
+
+msgid ""
+"Tasks can be assigned to people. When printing, you can select one person's "
+"tasks for a specific period, for example each family member's weekly tasks."
+msgstr ""
+"कार्य लोगों को सौंपे जा सकते हैं। प्रिंट करते समय आप किसी निश्चित अवधि के लिए एक व्यक्ति के "
+"कार्य चुन सकते हैं, जैसे परिवार के हर सदस्य के साप्ताहिक कार्य।"
+
+msgid "Tasks for this person"
+msgstr "इस व्यक्ति के कार्य"
+
+msgid "Tear out page"
+msgstr "पृष्ठ फाड़ें"
+
+msgid "Temperature"
+msgstr "तापमान"
+
+msgid "Test reminders and report what happens"
+msgstr "रिमाइंडर जाँचें और बताएँ कि क्या होता है"
+
+msgid "Text color"
+msgstr "टेक्स्ट रंग"
+
+msgid "Text formatting"
+msgstr "टेक्स्ट फ़ॉर्मेटिंग"
+
+msgid "That did not work."
+msgstr "यह काम नहीं किया।"
+
+msgid "That is not correct."
+msgstr "यह सही नहीं है।"
+
+msgid "The %(count)s note page it contains will be moved to “%(notebook)s”."
+msgid_plural ""
+"The %(count)s note pages it contains will be moved to “%(notebook)s”."
+msgstr[0] "इसमें मौजूद %(count)s नोट पृष्ठ “%(notebook)s” में ले जाया जाएगा।"
+msgstr[1] "इसमें मौजूद %(count)s नोट पृष्ठ “%(notebook)s” में ले जाए जाएँगे।"
+
+msgid "The CSV columns were not recognized."
+msgstr "CSV कॉलम पहचाने नहीं गए।"
+
+msgid "The Claws Mail address book contains too many people."
+msgstr "Claws Mail पता-पुस्तिका में बहुत अधिक लोग हैं।"
+
+msgid "The Claws Mail address book is larger than 32 megabytes."
+msgstr "Claws Mail पता-पुस्तिका 32 मेगाबाइट से बड़ी है।"
+
+msgid ""
+"The DIN template positions the recipient address for a window envelope, "
+"shows your address as a multiline sender block, and adds two fold marks and "
+"a punch mark."
+msgstr ""
+"DIN टेम्पलेट विंडो लिफ़ाफ़े के लिए प्राप्तकर्ता का पता सही जगह रखता है, आपका पता बहु-पंक्ति "
+"प्रेषक ब्लॉक के रूप में दिखाता है और मोड़ने के दो निशान तथा पंच का एक निशान जोड़ता है।"
+
+msgid "The LDIF address book contains too many people."
+msgstr "LDIF पता-पुस्तिका में बहुत अधिक लोग हैं।"
+
+msgid "The LDIF address book is larger than 32 megabytes."
+msgstr "LDIF पता-पुस्तिका 32 मेगाबाइट से बड़ी है।"
+
+msgid ""
+"The LibreOffice user data does not contain an address yet (Tools ▸ Options ▸ "
+"User Data)."
+msgstr ""
+"LibreOffice उपयोगकर्ता डेटा में अभी पता नहीं है (टूल्स ▸ विकल्प ▸ उपयोगकर्ता डेटा)।"
+
+msgid ""
+"The Lotus CSV uses the original columns VERTRAULICH, KATEGORIEN, "
+"ANFANGSDATUMZEIT, ENDDATUMZEIT, BESCHREIBUNG, KOSTENSTELLENCODE, "
+"KUNDENNUMMER and VORLAEUFIGZUSAGEN."
+msgstr ""
+"Lotus CSV मूल कॉलम VERTRAULICH, KATEGORIEN, ANFANGSDATUMZEIT, ENDDATUMZEIT, "
+"BESCHREIBUNG, KOSTENSTELLENCODE, KUNDENNUMMER और VORLAEUFIGZUSAGEN का उपयोग "
+"करता है।"
+
+msgid ""
+"The Magnolie manual is installed. It is best to read it through before you "
+"begin. Would you like to open it now?"
+msgstr ""
+"Magnolie हैंडबुक स्थापित है। शुरू करने से पहले इसे पढ़ लेना बेहतर है। क्या आप इसे अभी खोलना "
+"चाहेंगे?"
+
+msgid "The Magnolie manual is not installed."
+msgstr "Magnolie हैंडबुक स्थापित नहीं है।"
+
+msgid ""
+"The Magnolie manual is not installed. Version %(version)s can be downloaded "
+"now. Would you like to open the package download?"
+msgstr ""
+"Magnolie हैंडबुक स्थापित नहीं है। संस्करण %(version)s अभी डाउनलोड किया जा सकता है। "
+"क्या आप पैकेज डाउनलोड खोलना चाहेंगे?"
+
+msgid "The Magnolienbaum encryption key is unavailable."
+msgstr "Magnolienbaum एन्क्रिप्शन कुंजी उपलब्ध नहीं है।"
+
+msgid "The Magnolienbaum identity file is damaged."
+msgstr "Magnolienbaum पहचान फ़ाइल क्षतिग्रस्त है।"
+
+msgid "The Magnolienbaum identity is encrypted. Unlock the organizer first."
+msgstr "Magnolienbaum पहचान एन्क्रिप्टेड है। पहले ऑर्गनाइज़र अनलॉक करें।"
+
+msgid "The Magnolienbaum inbox could not be saved."
+msgstr "Magnolienbaum इनबॉक्स सहेजा नहीं जा सका।"
+
+msgid "The Magnolienbaum is available only in the installed application."
+msgstr "Magnolienbaum केवल स्थापित अनुप्रयोग में उपलब्ध है।"
+
+msgid "The Magnolienbaum is not available."
+msgstr "Magnolienbaum उपलब्ध नहीं है।"
+
+msgid "The Magnolienbaum is switched off."
+msgstr "Magnolienbaum बंद है।"
+
+msgid "The Magnolienbaum outbox could not be saved."
+msgstr "Magnolienbaum आउटबॉक्स सहेजा नहीं जा सका।"
+
+msgid "The Magnolienbaum storage is damaged."
+msgstr "Magnolienbaum संग्रहण क्षतिग्रस्त है।"
+
+msgid "The Magnolienbaum storage is encrypted. Unlock the organizer first."
+msgstr "Magnolienbaum संग्रहण एन्क्रिप्टेड है। पहले ऑर्गनाइज़र अनलॉक करें।"
+
+msgid "The ODS calendar content is invalid."
+msgstr "ODS कैलेंडर की सामग्री अमान्य है।"
+
+msgid "The ODS cell styles are invalid."
+msgstr "ODS सेल शैलियाँ अमान्य हैं।"
+
+msgid "The ODS columns are invalid."
+msgstr "ODS कॉलम अमान्य हैं।"
+
+msgid "The ODS export is too large."
+msgstr "ODS निर्यात बहुत बड़ा है।"
+
+msgid "The ODS row count is invalid."
+msgstr "ODS पंक्तियों की संख्या अमान्य है।"
+
+msgid "The ODS title is invalid."
+msgstr "ODS शीर्षक अमान्य है।"
+
+msgid "The Organizer chooses a suitable installed application."
+msgstr "ऑर्गनाइज़र कोई उपयुक्त स्थापित अनुप्रयोग चुनता है।"
+
+msgid "The address book backend could not be refreshed."
+msgstr "पता पुस्तक बैकएंड को ताज़ा नहीं किया जा सका।"
+
+msgid "The address book backend reported an incomplete read."
+msgstr "पता पुस्तक बैकएंड ने अधूरी पढ़ाई की रिपोर्ट दी।"
+
+#, python-format
+msgid "The address book contains the UID %s more than once."
+msgstr "पता पुस्तिका में यूआईडी %s एक से अधिक बार शामिल है।"
+
+#, python-format
+msgid "The address book could not be read: %s"
+msgstr "पता पुस्तिका पढ़ी नहीं जा सकी: %s"
+
+#, python-format
+msgid "The address book could not be refreshed: %s"
+msgstr "पता पुस्तिका को ताज़ा नहीं किया जा सका: %s"
+
+msgid ""
+"The attachments are too large together. Remove some files; the combined "
+"limit is approximately 18 MB."
+msgstr "सभी अटैचमेंट मिलाकर बहुत बड़े हैं। कुछ फ़ाइलें हटाएँ; संयुक्त सीमा लगभग 18 MB है।"
+
+msgid ""
+"The attachments in this note are too large together. Remove some files; the "
+"combined limit is approximately 18 MB."
+msgstr ""
+"इस नोट के सभी अटैचमेंट मिलाकर बहुत बड़े हैं। कुछ फ़ाइलें हटाएँ; संयुक्त सीमा लगभग 18 MB है।"
+
+msgid ""
+"The background reminder service cannot read the encrypted data and remains "
+"silent outside the open organizer."
+msgstr ""
+"पृष्ठभूमि रिमाइंडर सेवा एन्क्रिप्टेड डेटा नहीं पढ़ सकती और खुले ऑर्गनाइज़र के बाहर कोई सूचना "
+"नहीं देती।"
+
+msgid ""
+"The background reminder service may read the separate reminder data and "
+"therefore works even when the organizer is closed."
+msgstr ""
+"पृष्ठभूमि रिमाइंडर सेवा अलग रिमाइंडर डेटा पढ़ सकती है, इसलिए ऑर्गनाइज़र बंद होने पर भी "
+"काम करती है।"
+
+msgid "The backup could not be created."
+msgstr "बैकअप बनाया नहीं जा सका।"
+
+msgid "The backup could not be read."
+msgstr "बैकअप पढ़ा नहीं जा सका।"
+
+msgid "The backup could not be restored."
+msgstr "बैकअप पुनर्स्थापित नहीं किया जा सका।"
+
+msgid "The backup does not contain a complete data set."
+msgstr "बैकअप में पूर्ण डेटा सेट नहीं है।"
+
+msgid "The backup does not contain readable organizer data."
+msgstr "बैकअप में पढ़ने योग्य ऑर्गनाइज़र डेटा नहीं है।"
+
+msgid "The backup file is larger than 256 megabytes."
+msgstr "बैकअप फ़ाइल 256 मेगाबाइट से बड़ी है।"
+
+msgid "The backup file was not found."
+msgstr "बैकअप फ़ाइल नहीं मिली।"
+
+msgid ""
+"The backup will be stored outside the local data location and is therefore "
+"always encrypted. This password will be required to restore it later:\n"
+"%(path)s"
+msgstr ""
+"बैकअप स्थानीय डेटा स्थान से बाहर रखा जाएगा, इसलिए यह हमेशा एन्क्रिप्टेड रहेगा। बाद में इसे "
+"पुनर्स्थापित करने के लिए यह पासवर्ड आवश्यक होगा:\n"
+"%(path)s"
+
+msgid ""
+"The button in the bottom bar opens the selection for the section you have "
+"open. From there the ticked entries can be printed, exported or moved to the "
+"wastebasket."
+msgstr ""
+"नीचे की पट्टी वाला बटन खुले हुए अनुभाग के लिए चयन खोलता है। वहाँ से चिह्नित प्रविष्टियाँ "
+"प्रिंट, निर्यात या कूड़ेदान में भेजी जा सकती हैं।"
+
+msgid "The clipboard is empty."
+msgstr "क्लिपबोर्ड खाली है।"
+
+msgid "The communication method is incomplete."
+msgstr "संचार विधि अधूरी है।"
+
+msgid "The complete file is stored in this note (up to 8 megabytes)."
+msgstr "पूरी फ़ाइल इस नोट में संग्रहीत है (8 मेगाबाइट तक)।"
+
+msgid "The contact synchronization message is invalid."
+msgstr "संपर्क सिंक्रनाइज़ेशन संदेश अमान्य है।"
+
+msgid "The contact synchronization setting is invalid."
+msgstr "संपर्क सिंक्रनाइज़ेशन सेटिंग अमान्य है।"
+
+msgid "The content is unreadable."
+msgstr "सामग्री पढ़ी नहीं जा सकती।"
+
+msgid ""
+"The current data will be backed up first and then completely replaced with "
+"this file:\n"
+"%(path)s"
+msgstr ""
+"मौजूदा डेटा का पहले बैकअप बनाया जाएगा और फिर उसे पूरी तरह इस फ़ाइल से बदल दिया "
+"जाएगा:\n"
+"%(path)s"
+
+msgid "The current organizer data is incomplete."
+msgstr "मौजूदा ऑर्गनाइज़र डेटा अधूरा है।"
+
+msgid "The custom application command is invalid."
+msgstr "कस्टम अनुप्रयोग कमांड अमान्य है।"
+
+msgid "The custom application could not be started."
+msgstr "कस्टम अनुप्रयोग शुरू नहीं किया जा सका।"
+
+msgid "The custom application was not found."
+msgstr "कस्टम अनुप्रयोग नहीं मिला।"
+
+msgid "The custom website is not a secure HTTPS address."
+msgstr "कस्टम वेबसाइट सुरक्षित HTTPS पता नहीं है।"
+
+msgid "The data changed during password transaction recovery."
+msgstr "पासवर्ड लेन-देन पुनर्प्राप्ति के दौरान डेटा बदल गया।"
+
+msgid ""
+"The data is encrypted – background reminders have not been enabled under "
+"Settings > Security."
+msgstr "डेटा एन्क्रिप्टेड है – सेटिंग्स > सुरक्षा में पृष्ठभूमि रिमाइंडर चालू नहीं किए गए हैं।"
+
+msgid ""
+"The data is encrypted – the enabled, limited reminder data is being used."
+msgstr "डेटा एन्क्रिप्टेड है – चालू किए गए सीमित रिमाइंडर डेटा का उपयोग हो रहा है।"
+
+msgid "The data is encrypted. Unlock the organizer with the password first."
+msgstr "डेटा एन्क्रिप्टेड है। पहले पासवर्ड से ऑर्गनाइज़र अनलॉक करें।"
+
+msgid "The data is not a JSON object."
+msgstr "डेटा JSON ऑब्जेक्ट नहीं है।"
+
+msgid "The data is still encrypted. Try again."
+msgstr "डेटा अभी भी एन्क्रिप्टेड है। फिर प्रयास करें।"
+
+msgid "The data key is not available."
+msgstr "डेटा कुंजी उपलब्ध नहीं है।"
+
+msgid ""
+"The directory containing the interface (/usr/share/magnolie-organizer/web) "
+"was not found."
+msgstr "इंटरफ़ेस वाली डायरेक्टरी (/usr/share/magnolie-organizer/web) नहीं मिली।"
+
+msgid "The encrypted Magnolienbaum identity is damaged."
+msgstr "एन्क्रिप्टेड Magnolienbaum पहचान क्षतिग्रस्त है।"
+
+msgid "The encrypted Magnolienbaum storage is damaged."
+msgstr "एन्क्रिप्टेड Magnolienbaum संग्रहण क्षतिग्रस्त है।"
+
+msgid "The encrypted backup requires python3-cryptography."
+msgstr "एन्क्रिप्टेड बैकअप के लिए python3-cryptography आवश्यक है।"
+
+msgid "The encrypted file is damaged."
+msgstr "एन्क्रिप्टेड फ़ाइल क्षतिग्रस्त है।"
+
+msgid "The end date cannot be before the start date."
+msgstr "समाप्ति तारीख आरंभ तारीख से पहले नहीं हो सकती।"
+
+msgid "The entered fingerprint is incomplete."
+msgstr "दर्ज किया गया फ़िंगरप्रिंट अधूरा है।"
+
+msgid "The file could not be read."
+msgstr "फ़ाइल पढ़ी नहीं जा सकी।"
+
+#, python-format
+msgid "The file could not be written (%s)."
+msgstr "फ़ाइल लिखी नहीं जा सकी (%s)।"
+
+msgid "The file has an unsupported format."
+msgstr "फ़ाइल का प्रारूप समर्थित नहीं है।"
+
+msgid "The file is larger than 8 megabytes."
+msgstr "फ़ाइल 8 मेगाबाइट से बड़ी है।"
+
+#, python-format
+msgid "The fingerprint does not match (received: %(fingerprint)s)."
+msgstr "फ़िंगरप्रिंट मेल नहीं खाता (प्राप्त: %(fingerprint)s)।"
+
+msgid ""
+"The helper frame marks the control that currently has keyboard focus. This "
+"makes it easier to operate the Organizer with Tab, arrow keys, Enter and "
+"Space. Ctrl+Alt+H switches the frame on or off at any time."
+msgstr ""
+"सहायक फ़्रेम उस नियंत्रण को चिह्नित करता है जिस पर अभी कीबोर्ड फ़ोकस है। इससे Organizer "
+"को Tab, तीर कुंजियों, Enter और Space से चलाना आसान होता है। Ctrl+Alt+H से फ़्रेम को "
+"कभी भी चालू या बंद किया जा सकता है।"
+
+#, python-format
+msgid ""
+"The holiday service is unavailable. Is there an internet connection? (%s)"
+msgstr "छुट्टी सेवा उपलब्ध नहीं है। क्या इंटरनेट कनेक्शन है? (%s)"
+
+#, python-format
+msgid ""
+"The holiday service rejected the request (error %s). Check the country and "
+"region."
+msgstr "छुट्टी सेवा ने अनुरोध अस्वीकार कर दिया (त्रुटि %s)। देश और क्षेत्र जाँचें।"
+
+msgid "The holiday service returned an unreadable response."
+msgstr "छुट्टी सेवा ने पढ़ने योग्य उत्तर नहीं दिया।"
+
+msgid "The holiday service returned too much data."
+msgstr "छुट्टी सेवा ने बहुत अधिक डेटा लौटाया।"
+
+msgid "The holidays were imported."
+msgstr "छुट्टियाँ आयात की गईं।"
+
+msgid "The holidays were removed."
+msgstr "छुट्टियाँ हटा दी गईं।"
+
+msgid "The import file is larger than 32 megabytes."
+msgstr "आयात फ़ाइल 32 मेगाबाइट से बड़ी है।"
+
+msgid ""
+"The information is retrieved once from the open directory openholidaysapi."
+"org and then kept in the organizer. The application therefore needs an "
+"internet connection only once."
+msgstr ""
+"जानकारी खुले निर्देशिका openholidaysapi.org से एक बार प्राप्त की जाती है और फिर "
+"ऑर्गनाइज़र में रखी जाती है। इसलिए अनुप्रयोग को इंटरनेट कनेक्शन केवल एक बार चाहिए।"
+
+msgid "The internet service did not return a valid IP address."
+msgstr "इंटरनेट सेवा ने मान्य IP पता नहीं लौटाया।"
+
+msgid ""
+"The key of this branch has changed. Remove the old connection first and "
+"compare the new fingerprint particularly carefully."
+msgstr ""
+"इस शाखा की कुंजी बदल गई है। पहले पुराना कनेक्शन हटाएँ और नए फ़िंगरप्रिंट की विशेष सावधानी "
+"से तुलना करें।"
+
+msgid "The last notebook cannot be deleted."
+msgstr "अंतिम नोटबुक हटाई नहीं जा सकती।"
+
+msgid "The last notebook group cannot be deleted."
+msgstr "अंतिम नोटबुक समूह हटाया नहीं जा सकता।"
+
+msgid "The log could not be opened."
+msgstr "लॉग खोला नहीं जा सका।"
+
+msgid "The log is available only in the installed application."
+msgstr "लॉग केवल स्थापित अनुप्रयोग में उपलब्ध है।"
+
+msgid ""
+"The log records when the reminder service checked and what it reported. "
+"Entries older than 30 days are removed automatically, and the log never "
+"exceeds 200 lines."
+msgstr ""
+"लॉग दर्ज करता है कि रिमाइंडर सेवा ने कब जाँच की और उसने क्या रिपोर्ट किया। 30 दिन से "
+"पुरानी प्रविष्टियाँ अपने-आप हट जाती हैं और लॉग कभी 200 पंक्तियों से अधिक नहीं होता।"
+
+msgid "The manual"
+msgstr "हैंडबुक"
+
+msgid "The manual could not be opened."
+msgstr "हैंडबुक खोली नहीं जा सकी।"
+
+msgid "The manual download is available only in the installed application."
+msgstr "हैंडबुक डाउनलोड केवल स्थापित अनुप्रयोग में उपलब्ध है।"
+
+msgid "The manual download request is no longer valid."
+msgstr "मैनुअल डाउनलोड अनुरोध अब मान्य नहीं है।"
+
+msgid "The manual is installed; its version is unknown."
+msgstr "मैनुअल स्थापित किया गया है; इसका संस्करण अज्ञात है।"
+
+msgid "The manual is up to date."
+msgstr "मैन्युअल अद्यतनित है।"
+
+msgid "The manual package URL is not allowed."
+msgstr "हैंडबुक पैकेज URL अनुमत नहीं है।"
+
+msgid "The manual package checksum does not match."
+msgstr "मैनुअल पैकेज चेकसम मेल नहीं खाता।"
+
+msgid "The manual package could not be opened."
+msgstr "हैंडबुक पैकेज खोला नहीं जा सका।"
+
+msgid "The manual package is unexpectedly large."
+msgstr "मैन्युअल पैकेज अप्रत्याशित रूप से बड़ा है।"
+
+msgid "The manual update check failed."
+msgstr "मैनुअल अपडेट जांच विफल हो गई।"
+
+msgid "The manual update information is invalid."
+msgstr "मैन्युअल अपडेट जानकारी अमान्य है।"
+
+msgid "The maximum number of branches has been reached."
+msgstr "शाखाओं की अधिकतम संख्या पूरी हो गई है।"
+
+msgid "The message comes from another branch."
+msgstr "संदेश किसी दूसरी शाखा से आया है।"
+
+msgid "The message could not be opened."
+msgstr "संदेश खोला नहीं जा सका।"
+
+msgid "The message is damaged."
+msgstr "संदेश क्षतिग्रस्त है।"
+
+msgid "The message is too large."
+msgstr "संदेश बहुत बड़ा है।"
+
+msgid "The month is invalid."
+msgstr "महीना अमान्य है।"
+
+msgid "The offered entry is incomplete."
+msgstr "प्रस्तावित प्रविष्टि अधूरी है।"
+
+msgid "The organizer is not currently reminding you about appointments."
+msgstr "ऑर्गनाइज़र अभी आपको अपॉइंटमेंट की याद नहीं दिला रहा है।"
+
+msgid ""
+"The organizer notifies you before an appointment begins, even when the "
+"application is not open if you wish."
+msgstr ""
+"ऑर्गनाइज़र अपॉइंटमेंट शुरू होने से पहले आपको सूचित करता है; चाहें तो अनुप्रयोग बंद होने पर भी।"
+
+msgid "The other branch did not prove the pairing file."
+msgstr "दूसरी शाखा ने पेयरिंग फ़ाइल का प्रमाण नहीं दिया।"
+
+msgid "The other branch did not send a valid key."
+msgstr "दूसरी शाखा ने मान्य कुंजी नहीं भेजी।"
+
+#, python-format
+msgid "The other branch is not responding (%(error)s)."
+msgstr "दूसरी शाखा उत्तर नहीं दे रही है (%(error)s)।"
+
+msgid "The package URL is not allowed."
+msgstr "पैकेज URL अनुमत नहीं है।"
+
+msgid "The package could not be opened."
+msgstr "पैकेज खोला नहीं जा सका।"
+
+msgid "The pairing file could not be processed."
+msgstr "पेयरिंग फ़ाइल संसाधित नहीं की जा सकी।"
+
+msgid "The pairing file has been changed."
+msgstr "पेयरिंग फ़ाइल बदल दी गई है।"
+
+msgid "The pairing file is damaged."
+msgstr "पेयरिंग फ़ाइल क्षतिग्रस्त है।"
+
+msgid "The pairing file is invalid or has expired."
+msgstr "पेयरिंग फ़ाइल अमान्य है या उसकी अवधि समाप्त हो गई है।"
+
+msgid "The pairing file is no longer valid."
+msgstr "पेयरिंग फ़ाइल अब मान्य नहीं है।"
+
+msgid "The pairing file is too large or not a regular file."
+msgstr "पेयरिंग फ़ाइल बहुत बड़ी है या सामान्य फ़ाइल नहीं है।"
+
+msgid "The pairing file is too large."
+msgstr "पेयरिंग फ़ाइल बहुत बड़ी है।"
+
+msgid "The pairing request is incomplete."
+msgstr "पेयरिंग अनुरोध अधूरा है।"
+
+msgid "The pairing request is invalid."
+msgstr "पेयरिंग अनुरोध अमान्य है।"
+
+msgid "The password is incorrect."
+msgstr "पासवर्ड गलत है।"
+
+msgid "The password transaction could not be completed."
+msgstr "पासवर्ड लेन-देन पूरा नहीं किया जा सका।"
+
+msgid "The password transaction journal is damaged."
+msgstr "पासवर्ड लेन-देन जर्नल क्षतिग्रस्त है।"
+
+msgid "The phone connection is available only in the installed application."
+msgstr "फ़ोल्डर चयन केवल स्थापित एप्लिकेशन में उपलब्ध है।"
+
+msgid "The phone connection is not available."
+msgstr "Magnolienbaum उपलब्ध नहीं है।"
+
+msgid "The photo could not be read."
+msgstr "फ़ोटो पढ़ी नहीं जा सकी।"
+
+msgid "The photo is larger than 8 megabytes."
+msgstr "फ़ोटो 8 मेगाबाइट से बड़ी है।"
+
+msgid "The planner layout is invalid."
+msgstr "प्लानर लेआउट अमान्य है।"
+
+msgid "The port is invalid."
+msgstr "पोर्ट अमान्य है।"
+
+msgid "The previous data could not be backed up."
+msgstr "पिछले डेटा का बैकअप नहीं बन सका।"
+
+#, python-format
+msgid "The print page is located at: %s"
+msgstr "प्रिंट पृष्ठ यहाँ है: %s"
+
+#, python-format
+msgid "The public address could not be determined (%(error)s)."
+msgstr "सार्वजनिक पता निर्धारित नहीं किया जा सका (%(error)s)।"
+
+msgid "The public address could not be determined."
+msgstr "सार्वजनिक पता निर्धारित नहीं किया जा सका।"
+
+msgid "The public key is invalid."
+msgstr "सार्वजनिक कुंजी अमान्य है।"
+
+msgid "The recovery snapshot folder must not be a symbolic link."
+msgstr "रिकवरी स्नैपशॉट फ़ोल्डर प्रतीकात्मक लिंक नहीं होना चाहिए।"
+
+msgid "The recovery snapshot is missing or damaged."
+msgstr "रिकवरी स्नैपशॉट गायब है या क्षतिग्रस्त है।"
+
+msgid "The recovery snapshot manifest is invalid."
+msgstr "रिकवरी स्नैपशॉट मैनिफेस्ट अमान्य है।"
+
+msgid "The recovery snapshot manifest is too large."
+msgstr "रिकवरी स्नैपशॉट मैनिफेस्ट बहुत बड़ा है।"
+
+msgid "The recovery snapshot payload does not match its manifest."
+msgstr "रिकवरी स्नैपशॉट पेलोड उसके मेनिफेस्ट से मेल नहीं खाता।"
+
+msgid "The recovery snapshot was not found."
+msgstr "रिकवरी स्नैपशॉट नहीं मिला।"
+
+msgid "The recycle bin is empty."
+msgstr "कूड़ेदान खाली है।"
+
+msgid "The recycle bin was emptied."
+msgstr "कूड़ेदान खाली कर दिया गया।"
+
+msgid "The request is unreadable."
+msgstr "अनुरोध पढ़ा नहीं जा सकता।"
+
+msgid "The required recovery snapshot could not be created."
+msgstr "आवश्यक रिकवरी स्नैपशॉट बनाया नहीं जा सका।"
+
+msgid "The response is too large."
+msgstr "उत्तर बहुत बड़ा है।"
+
+msgid ""
+"The same code must appear on both computers:\n"
+"\n"
+"%(code)s\n"
+"\n"
+"Other branch: %(branch)s\n"
+"Fingerprint: %(fingerprint)s\n"
+"\n"
+"Does the code match?"
+msgstr ""
+"दोनों कंप्यूटरों पर एक ही कोड दिखना चाहिए:\n"
+"\n"
+"%(code)s\n"
+"\n"
+"दूसरी शाखा: %(branch)s\n"
+"फ़िंगरप्रिंट: %(fingerprint)s\n"
+"\n"
+"क्या कोड मेल खाता है?"
+
+msgid "The save request is invalid."
+msgstr "सहेजने का अनुरोध अमान्य है।"
+
+msgid "The secure interface could not be registered."
+msgstr "सुरक्षित इंटरफ़ेस पंजीकृत नहीं किया जा सका।"
+
+msgid "The secure message could not be opened."
+msgstr "सुरक्षित संदेश खोला नहीं जा सका।"
+
+msgid "The secure message is invalid."
+msgstr "सुरक्षित संदेश अमान्य है।"
+
+msgid "The secure session has already been used."
+msgstr "सुरक्षित सत्र पहले ही उपयोग किया जा चुका है।"
+
+msgid "The secure session is damaged."
+msgstr "सुरक्षित सत्र क्षतिग्रस्त है।"
+
+msgid "The secure session is unknown or expired."
+msgstr "सुरक्षित सत्र अज्ञात है या उसकी अवधि समाप्त हो गई है।"
+
+msgid "The secure session request is invalid."
+msgstr "सुरक्षित सत्र अनुरोध अमान्य है।"
+
+msgid "The secure session response is invalid."
+msgstr "सुरक्षित सत्र का उत्तर अमान्य है।"
+
+msgid "The selected contacts contain no values for these columns."
+msgstr "चयनित संपर्कों में इन कॉलमों के लिए कोई मान नहीं है।"
+
+msgid "The selected file is not a readable CSV file."
+msgstr "चयनित फ़ाइल पढ़ने योग्य CSV फ़ाइल नहीं है।"
+
+msgid "The selected file is not a readable iCalendar file."
+msgstr "चयनित फ़ाइल पढ़ने योग्य iCalendar फ़ाइल नहीं है।"
+
+msgid "The selected health records contain no printable values."
+msgstr "चुने गए स्वास्थ्य रिकॉर्ड में प्रिंट करने योग्य कोई मान नहीं है।"
+
+msgid "The selected iCalendar file is incomplete."
+msgstr "चयनित iCalendar फ़ाइल अधूरी है।"
+
+msgid "The selected path is not a regular file."
+msgstr "चयनित पथ सामान्य फ़ाइल नहीं है।"
+
+msgid "The selected source was not found. Select it again in Settings."
+msgstr "चयनित स्रोत नहीं मिला। सेटिंग्स में इसे फिर चुनें।"
+
+msgid "The service returned no entries for this selection."
+msgstr "इस चयन के लिए सेवा ने कोई प्रविष्टि नहीं लौटाई।"
+
+msgid ""
+"The sheet appears at the edge of the screen, accompanied by the Magnolie "
+"chime."
+msgstr "शीट स्क्रीन के किनारे Magnolie ध्वनि के साथ दिखाई देती है।"
+
+msgid ""
+"The small uniform icons open an installed application when possible. "
+"Otherwise, a secure web service is used in the browser."
+msgstr ""
+"छोटे एकरूप आइकन संभव होने पर स्थापित अनुप्रयोग खोलते हैं। अन्यथा ब्राउज़र में सुरक्षित वेब सेवा "
+"का उपयोग होता है।"
+
+msgid "The snapshot operation failed."
+msgstr "स्नैपशॉट ऑपरेशन असफल हो गया।"
+
+msgid "The start date must not be after the end date."
+msgstr "आरंभ तारीख समाप्ति तारीख के बाद नहीं होनी चाहिए।"
+
+msgid "The task is missing from the update."
+msgstr "अपडेट में कार्य मौजूद नहीं है।"
+
+msgid ""
+"The task will be sent to the selected branch. It will also remain here so "
+"you can keep track of it."
+msgstr ""
+"कार्य चयनित शाखा को भेजा जाएगा। इसे यहाँ भी रखा जाएगा ताकि आप इसकी स्थिति देख सकें।"
+
+msgid ""
+"The traffic-light colors are general reference ranges for adults, not a "
+"diagnosis. Check abnormal readings and discuss them with a doctor; seek "
+"immediate medical help for severe symptoms."
+msgstr ""
+"ट्रैफिक लाइट के रंग वयस्कों के लिए सामान्य संदर्भ सीमाएँ दर्शाते हैं, निदान नहीं। असामान्य "
+"मापों की जाँच करें और डॉक्टर से चर्चा करें; गंभीर लक्षण होने पर तुरंत चिकित्सा सहायता लें।"
+
+#, python-format
+msgid "The tray applet could not be started: %s"
+msgstr "सिस्टम ट्रे एप्लेट शुरू नहीं किया जा सका: %s"
+
+msgid "The tray applet is not available on this system."
+msgstr "सिस्टम ट्रे एप्लेट इस सिस्टम पर उपलब्ध नहीं है।"
+
+msgid ""
+"The tray applet requires Ayatana AppIndicator. On plain GNOME, the "
+"AppIndicator extension is also required."
+msgstr ""
+"सिस्टम ट्रे एप्लेट के लिए Ayatana AppIndicator आवश्यक है। सामान्य GNOME में "
+"AppIndicator एक्सटेंशन भी आवश्यक है।"
+
+msgid "The trust setting is invalid."
+msgstr "The trust setting is invalid."
+
+msgid "The two entries do not match."
+msgstr "दोनों प्रविष्टियाँ मेल नहीं खातीं।"
+
+msgid "The two new passwords do not match."
+msgstr "दोनों नए पासवर्ड मेल नहीं खाते।"
+
+msgid "The update check failed."
+msgstr "अपडेट जाँच विफल रही।"
+
+msgid "The update information does not contain a valid package checksum."
+msgstr "अपडेट जानकारी में मान्य पैकेज चेकसम नहीं है।"
+
+msgid "The update information does not contain a valid version."
+msgstr "अपडेट जानकारी में मान्य संस्करण नहीं है।"
+
+msgid "The update information does not refer to an allowed package URL."
+msgstr "अपडेट जानकारी अनुमत पैकेज URL को संदर्भित नहीं करती।"
+
+msgid "The update information has an invalid signature."
+msgstr "अपडेट जानकारी का हस्ताक्षर अमान्य है।"
+
+#, python-format
+msgid "The update information is currently unavailable (%s)."
+msgstr "अपडेट जानकारी अभी उपलब्ध नहीं है (%s)।"
+
+msgid "The update information is unexpectedly large."
+msgstr "अपडेट जानकारी अप्रत्याशित रूप से बड़ी है।"
+
+msgid "The update information is unreadable."
+msgstr "अपडेट जानकारी पढ़ी नहीं जा सकती।"
+
+msgid "The user data could not be read."
+msgstr "उपयोगकर्ता डेटा पढ़ा नहीं जा सका।"
+
+msgid "The value is outside the general green reference range."
+msgstr "मान सामान्य हरी संदर्भ सीमा से बाहर है।"
+
+msgid "The wake-up reminder"
+msgstr "जगाकर याद दिलाने वाला रिमाइंडर"
+
+msgid ""
+"The weather service estimated the location from your public IP address. Your "
+"own address in Contacts provides a more precise location."
+msgstr ""
+"मौसम सेवा ने आपके सार्वजनिक IP पते से स्थान का अनुमान लगाया। संपर्क में आपका अपना पता "
+"अधिक सटीक स्थान देता है।"
+
+#, python-format
+msgid ""
+"The weather service is unavailable. Is there an internet connection? (%s)"
+msgstr "मौसम सेवा उपलब्ध नहीं है। क्या इंटरनेट कनेक्शन है? (%s)"
+
+#, python-format
+msgid "The weather service rejected the request (error %s)."
+msgstr "मौसम सेवा ने अनुरोध अस्वीकार कर दिया (त्रुटि %s)।"
+
+msgid "The weather service returned no forecast."
+msgstr "मौसम सेवा ने कोई पूर्वानुमान नहीं दिया।"
+
+msgid "The weather service returned too much data."
+msgstr "मौसम सेवा ने बहुत अधिक डेटा लौटाया।"
+
+msgid "The weather service returned unreadable data."
+msgstr "मौसम सेवा ने पढ़ने योग्य डेटा नहीं लौटाया।"
+
+msgid ""
+"The year calendar shows all twelve months; the month calendar provides more "
+"room for entries."
+msgstr ""
+"वार्षिक कैलेंडर सभी बारह महीने दिखाता है; मासिक कैलेंडर प्रविष्टियों के लिए अधिक जगह देता "
+"है।"
+
+msgid "The year is invalid."
+msgstr "वर्ष अमान्य है।"
+
+msgid "There are no entries to export yet."
+msgstr "निर्यात करने के लिए अभी कोई प्रविष्टि नहीं है।"
+
+msgid "There are no entries."
+msgstr "कोई प्रविष्टि नहीं है।"
+
+msgid "There are no holidays in the organizer for this selection yet."
+msgstr "इस चयन के लिए ऑर्गनाइज़र में अभी कोई छुट्टी नहीं है।"
+
+msgid "There are no saved entries on this page."
+msgstr "इस पृष्ठ पर कोई सहेजी गई प्रविष्टि नहीं है।"
+
+msgid "There is no notebook in this group yet."
+msgstr "इस समूह में अभी कोई नोटबुक नहीं है।"
+
+msgid ""
+"There is nothing scheduled in this period.\n"
+"Click a day on the left to add an appointment."
+msgstr ""
+"इस अवधि में कुछ निर्धारित नहीं है।\n"
+"अपॉइंटमेंट जोड़ने के लिए बाईं ओर किसी दिन पर क्लिक करें।"
+
+msgid "There is nothing to print."
+msgstr "प्रिंट करने के लिए कुछ नहीं है।"
+
+msgid "This address can be selected and copied."
+msgstr "इस पते को चुनकर कॉपी किया जा सकता है।"
+
+msgid "This appointment will appear every %(weekday)s."
+msgstr "यह अपॉइंटमेंट हर %(weekday)s को दिखाई देगी।"
+
+msgid "This appointment will appear every day."
+msgstr "यह अपॉइंटमेंट हर दिन दिखाई देगा।"
+
+msgid "This appointment will appear every year on %(month)s %(day)s."
+msgstr "यह अपॉइंटमेंट हर वर्ष %(month)s %(day)s को दिखाई देगी।"
+
+msgid ""
+"This appointment will appear on day %(day)s of every month. In shorter "
+"months, it moves to the last day."
+msgstr ""
+"यह अपॉइंटमेंट हर महीने के %(day)sवें दिन दिखाई देगी। छोटे महीनों में यह अंतिम दिन पर चली "
+"जाएगी।"
+
+msgid "This backup cannot be used."
+msgstr "यह बैकअप उपयोग नहीं किया जा सकता।"
+
+msgid "This branch has not been confirmed."
+msgstr "इस शाखा की पुष्टि नहीं हुई है।"
+
+msgid "This branch has not yet been confirmed."
+msgstr "इस शाखा की अभी पुष्टि नहीं हुई है।"
+
+msgid "This branch is not known."
+msgstr "यह शाखा ज्ञात नहीं है।"
+
+msgid ""
+"This choice also determines how names appear on contact cards and under "
+"which letter they are filed in the index."
+msgstr ""
+"यह चयन यह भी तय करता है कि संपर्क कार्ड पर नाम कैसे दिखें और अनुक्रमणिका में किस अक्षर के "
+"अंतर्गत रखे जाएँ।"
+
+msgid "This contact card has no email address."
+msgstr "इस संपर्क कार्ड में ईमेल पता नहीं है।"
+
+msgid "This contact card has no postal address."
+msgstr "इस संपर्क कार्ड में डाक पता नहीं है।"
+
+msgid "This image format cannot be used."
+msgstr "इस चित्र प्रारूप का उपयोग नहीं किया जा सकता।"
+
+msgid "This is a reminder test."
+msgstr "यह रिमाइंडर परीक्षण है।"
+
+msgid "This is available only in the installed application."
+msgstr "यह केवल स्थापित अनुप्रयोग में उपलब्ध है।"
+
+msgid "This is how the organizer reminds you about an appointment."
+msgstr "ऑर्गनाइज़र आपको अपॉइंटमेंट की याद इस तरह दिलाता है।"
+
+msgid ""
+"This is how your notes look: <b>bold</b>, <i>italic</i>, <u>underlined</u> "
+"and <s>struck through</s>."
+msgstr ""
+"आपके नोट ऐसे दिखते हैं: <b>बोल्ड</b>, <i>इटैलिक</i>, <u>रेखांकित</u> और <s>कटा हुआ</s>।"
+
+msgid "This is not a Magnolienbaum message."
+msgstr "यह Magnolienbaum संदेश नहीं है।"
+
+msgid ""
+"This is one occurrence of a recurring appointment. Changes apply to all "
+"occurrences in this series."
+msgstr ""
+"यह दोहराई जाने वाली अपॉइंटमेंट की एक घटना है। बदलाव इस शृंखला की सभी घटनाओं पर लागू "
+"होंगे।"
+
+msgid ""
+"This leaves time to get something, followed by another reminder on the day "
+"itself. For example: “Max Mustermann has a birthday tomorrow” and the next "
+"day “Max Mustermann has a birthday today”. Anniversary reminders are shown "
+"in the morning."
+msgstr ""
+"इससे कुछ व्यवस्था करने का समय मिलता है, और उसी दिन एक और रिमाइंडर आता है। उदाहरण: "
+"“Max Mustermann का जन्मदिन कल है” और अगले दिन “Max Mustermann का जन्मदिन आज है”। "
+"वर्षगाँठ रिमाइंडर सुबह दिखाए जाते हैं।"
+
+msgid "This message has already been received."
+msgstr "यह संदेश पहले ही प्राप्त हो चुका है।"
+
+msgid "This notebook is still empty."
+msgstr "यह नोटबुक अभी भी खाली है।"
+
+msgid "This person's anniversaries"
+msgstr "इस व्यक्ति की वर्षगाँठ"
+
+msgid ""
+"This program is free software: you may redistribute and modify it. It is "
+"published in the hope that it will be useful, but without any warranty. The "
+"full license text is available at /usr/share/common-licenses/GPL-3."
+msgstr ""
+"यह प्रोग्राम मुक्त सॉफ़्टवेयर है: आप इसे पुनर्वितरित और संशोधित कर सकते हैं। इसे उपयोगी होने "
+"की आशा से प्रकाशित किया गया है, लेकिन किसी भी वारंटी के बिना। पूर्ण लाइसेंस पाठ /usr/"
+"share/common-licenses/GPL-3 पर उपलब्ध है।"
+
+msgid "This secure session already exists."
+msgstr "यह सुरक्षित सत्र पहले से मौजूद है।"
+
+msgid "This setting applies when you restore the window from the tray menu."
+msgstr "यह सेटिंग तब लागू होती है जब आप सिस्टम ट्रे मेनू से विंडो को पुनः खोलते हैं।"
+
+msgid ""
+"This system did not allow waking from suspend. The reminder will appear as "
+"soon as the computer is running again."
+msgstr ""
+"इस सिस्टम ने स्लीप से जगाने की अनुमति नहीं दी। कंप्यूटर दोबारा चालू होते ही रिमाइंडर "
+"दिखाई देगा।"
+
+msgid "This task came from “%(branch)s”."
+msgstr "यह कार्य “%(branch)s” से आया है।"
+
+msgid "This type cannot be shared."
+msgstr "इस प्रकार को साझा नहीं किया जा सकता।"
+
+msgid "Through"
+msgstr "तक"
+
+msgid ""
+"Thunderbird, the Mint/GNOME calendar and most other applications export "
+"appointments as .ics files and contacts as .vcf files."
+msgstr ""
+"Thunderbird, Mint/GNOME कैलेंडर और अधिकांश अन्य अनुप्रयोग अपॉइंटमेंट को .ics फ़ाइल और "
+"संपर्कों को .vcf फ़ाइल के रूप में निर्यात करते हैं।"
+
+msgid "Thurgau"
+msgstr "थुर्गाउ"
+
+msgid "Thuringia"
+msgstr "थुरिंगिया"
+
+msgid "Thursday"
+msgstr "गुरुवार"
+
+msgid "Thyroid"
+msgstr "थायरॉइड"
+
+msgid "Ticino"
+msgstr "टिचीनो"
+
+msgid "Time"
+msgstr "समय"
+
+msgid "Title"
+msgstr "शीर्षक"
+
+msgid "To"
+msgstr "तक"
+
+msgid ""
+"To change it, enter only the new password; the organizer is already unlocked."
+msgstr "इसे बदलने के लिए केवल नया पासवर्ड दर्ज करें; ऑर्गनाइज़र पहले से अनलॉक है।"
+
+msgid "Today"
+msgstr "आज"
+
+msgid "Today is %(date)s"
+msgstr "आज %(date)s है"
+
+msgid "Tomorrow"
+msgstr "कल"
+
+msgid "Too many failed attempts – wait %(duration)s."
+msgstr "बहुत अधिक विफल प्रयास – %(duration)s प्रतीक्षा करें।"
+
+msgid "Too many failed attempts. Wait a moment."
+msgstr "बहुत अधिक विफल प्रयास। थोड़ी देर प्रतीक्षा करें।"
+
+msgid "Too many pairing files are still valid."
+msgstr "बहुत अधिक पेयरिंग फ़ाइलें अभी भी मान्य हैं।"
+
+msgid "Too many pairing requests are awaiting confirmation."
+msgstr "बहुत अधिक पेयरिंग अनुरोध पुष्टि की प्रतीक्षा में हैं।"
+
+msgid "Too many regions were selected."
+msgstr "बहुत अधिक क्षेत्र चुने गए।"
+
+msgid "Too many requests."
+msgstr "बहुत अधिक अनुरोध।"
+
+msgid "Too many secure sessions are open."
+msgstr "बहुत अधिक सुरक्षित सत्र खुले हैं।"
+
+msgid "Tray applet"
+msgstr "सिस्टम ट्रे एप्लेट"
+
+msgid "Trust and accept tasks and notes automatically"
+msgstr "Trust and accept tasks and notes automatically"
+
+msgid "Tuesday"
+msgstr "मंगलवार"
+
+msgid "Turn back"
+msgstr "पीछे जाएँ"
+
+msgid "Turn forward"
+msgstr "आगे जाएँ"
+
+msgid "Two days back"
+msgstr "दो दिन पीछे"
+
+msgid "Two days forward"
+msgstr "दो दिन आगे"
+
+msgid "Type"
+msgstr "प्रकार"
+
+msgid "Typeface"
+msgstr "टाइपफ़ेस"
+
+msgid "Typography"
+msgstr "टाइपोग्राफी"
+
+msgid "Typography for your entries"
+msgstr "आपकी प्रविष्टियों की टाइपोग्राफी"
+
+msgid "Tyrol"
+msgstr "टायरोल"
+
+msgid "U"
+msgstr "U"
+
+msgid "UFW configuration was cancelled or failed."
+msgstr "UFW कॉन्फ़िगरेशन रद्द हुआ या विफल रहा।"
+
+#, python-format
+msgid "UFW could not be configured (%s)."
+msgstr "UFW कॉन्फ़िगर नहीं किया जा सका (%s)।"
+
+msgid "UFW is active, but its command could not be found."
+msgstr "UFW सक्रिय है, लेकिन उसका कमांड नहीं मिला।"
+
+msgid ""
+"Under Wayland, the compositor determines the exact window position; "
+"centering and maximizing are passed on as requests."
+msgstr ""
+"Wayland में विंडो की सटीक स्थिति कंपोज़िटर तय करता है; केंद्रित और अधिकतम करने के अनुरोध "
+"केवल उसे भेजे जाते हैं।"
+
+msgid "Underline"
+msgstr "रेखांकन"
+
+msgid "Unexpected error."
+msgstr "अप्रत्याशित त्रुटि।"
+
+msgid "Unit"
+msgstr "इकाई"
+
+msgid "Unknown"
+msgstr "अज्ञात"
+
+msgid "Unknown endpoint."
+msgstr "अज्ञात एंडपॉइंट।"
+
+msgid "Unknown phone"
+msgstr "अज्ञात एंडपॉइंट।"
+
+msgid "Unlink"
+msgstr "लिंक हटाएँ"
+
+msgid "Unlock"
+msgstr "अनलॉक करें"
+
+msgid "Unlock Magnolie Organizer"
+msgstr "Magnolie Organizer अनलॉक करें"
+
+msgid "Unlock the organizer before receiving Magnolienbaum messages."
+msgstr "Magnolienbaum संदेश प्राप्त करने से पहले ऑर्गनाइज़र को अनलॉक करें।"
+
+msgid "Unlocking the Magnolienbaum storage"
+msgstr "Magnolienbaum स्टोरेज अनलॉक किया जा रहा है"
+
+#, python-format
+msgid "Unreadable message from the interface: %s"
+msgstr "इंटरफ़ेस से अपठनीय संदेश: %s"
+
+msgid "Until (leave blank for no end)"
+msgstr "तक (कोई अंतिम तिथि न हो तो खाली छोड़ें)"
+
+msgid "Untitled"
+msgstr "बिना शीर्षक"
+
+msgid "Untitled appointment"
+msgstr "बिना शीर्षक की अपॉइंटमेंट"
+
+msgid "Update checking is available in the installed application."
+msgstr "अपडेट जाँच इंस्टॉल किए गए ऐप में उपलब्ध है।"
+
+msgid "Update checking is available only in the installed application."
+msgstr "अपडेट जाँच केवल इंस्टॉल किए गए ऐप में उपलब्ध है।"
+
+msgid "Update weather"
+msgstr "मौसम अपडेट करें"
+
+msgid "Updates"
+msgstr "अपडेट"
+
+msgid "Upper Austria"
+msgstr "अपर ऑस्ट्रिया"
+
+msgid "Uri"
+msgstr "URI"
+
+msgid "Usage:"
+msgstr "उपयोग:"
+
+msgid "Use a specific application or command"
+msgstr "किसी निश्चित ऐप या कमांड का उपयोग करें"
+
+msgid "Use a specific website"
+msgstr "किसी निश्चित वेबसाइट का उपयोग करें"
+
+msgid "Use a supported language code or system for this invocation"
+msgstr "इस बार चलाने के लिए समर्थित भाषा कोड या system का उपयोग करें"
+
+msgid "Use basal units"
+msgstr "बेसल इकाइयाँ उपयोग करें"
+
+msgid "Use contact addresses"
+msgstr "संपर्क के पते उपयोग करें"
+
+msgid "Use default"
+msgstr "डिफ़ॉल्ट उपयोग करें"
+
+msgid "Use numeric keypad"
+msgstr "न्यूमेरिक कीपैड का उपयोग करें"
+
+msgid ""
+"Use only schedules prescribed or confirmed by a healthcare professional."
+msgstr "केवल स्वास्थ्य पेशेवर द्वारा निर्धारित या पुष्टि की गई समय-सारिणियों का उपयोग करें।"
+
+msgid ""
+"Use the arrows to arrange groups and notebooks, or use the selection to move "
+"a notebook to another group."
+msgstr ""
+"समूहों और नोटबुकों को व्यवस्थित करने के लिए तीरों का उपयोग करें, या चयन का उपयोग करके "
+"किसी नोटबुक को दूसरे समूह में ले जाएँ।"
+
+msgid ""
+"Use the mouse wheel to change the time in 5-minute steps (hold Shift for "
+"whole hours)"
+msgstr ""
+"समय को 5-मिनट के चरणों में बदलने के लिए माउस व्हील का उपयोग करें (पूरे घंटों के लिए Shift "
+"दबाए रखें)"
+
+msgid "Use the recycle bin"
+msgstr "रीसायकल बिन का उपयोग करें"
+
+msgid ""
+"Uses its own identity and storage and listens only on fixed port %(port)s. "
+"It never uses Magnolienbaum partners, permissions, queues or Bluetooth "
+"identity."
+msgstr "अपनी खुद की पहचान और संग्रह का उपयोग करता है और केवल निश्चित पोर्ट %(port)s पर सुनता है। यह कभी भी Magnolienbaum भागीदारों, अनुमतियों, कतारों या ब्लूटूथ पहचान का उपयोग नहीं करता।"
+
+msgid "Vacation"
+msgstr "अवकाश"
+
+msgid ""
+"Vacation periods are local calendar markings. They do not send notifications "
+"and can be included separately when printing the planner."
+msgstr ""
+"अवकाश अवधियाँ कैलेंडर पर स्थानीय चिह्न हैं। वे सूचनाएँ नहीं भेजतीं और प्लानर प्रिंट करते समय "
+"अलग से शामिल की जा सकती हैं।"
+
+msgid "Vacation planner"
+msgstr "अवकाश प्लानर"
+
+msgid "Valais"
+msgstr "वैले"
+
+msgid "Value"
+msgstr "मान"
+
+msgid "Vaud"
+msgstr "वॉ"
+
+msgid "Verify after downloading with: %(command)s"
+msgstr "डाउनलोड के बाद इससे सत्यापित करें: %(command)s"
+
+msgid "Version %(version)s"
+msgstr "संस्करण %(version)s"
+
+msgid "Version %(version)s is up to date. Last checked: %(date)s."
+msgstr "संस्करण %(version)s नवीनतम है। अंतिम जाँच: %(date)s।"
+
+msgid "Via internet"
+msgstr "इंटरनेट के माध्यम से"
+
+msgid "Vienna"
+msgstr "वियना"
+
+msgid "View and edit appointment"
+msgstr "अपॉइंटमेंट देखें और संपादित करें"
+
+msgid "Vital signs"
+msgstr "महत्वपूर्ण स्वास्थ्य संकेत"
+
+msgid "Vital signs table"
+msgstr "महत्वपूर्ण स्वास्थ्य संकेतों की तालिका"
+
+msgid "Vorarlberg"
+msgstr "फोरार्लबर्ग"
+
+msgid ""
+"WLAN has priority. Bluetooth data starts only after WLAN failure and carries "
+"the same encrypted phone frames."
+msgstr "WLAN की प्राथमिकता है. ब्लूटूथ डेटा WLAN विफलता के बाद ही शुरू होता है और वही एन्क्रिप्टेड फ़ोन फ़्रेम ले जाता है।"
+
+msgid "Waiting for device status"
+msgstr "उपकरण की स्थिति का इंतजार कर रहे हैं"
+
+msgid ""
+"Waiting for the phone on port %(port)s. Pairing closes after %(seconds)s "
+"seconds."
+msgstr "पोर्ट %(port)s पर फ़ोन की प्रतीक्षा कर रहे हैं। पेयरिंग %(seconds)s सेकंड के बाद बंद हो जाएगी।"
+
+msgid "Wake the computer from suspend"
+msgstr "कंप्यूटर को सस्पेंड से जगाएँ"
+
+msgid "Warning: The data could not be saved."
+msgstr "चेतावनी: डेटा सहेजा नहीं जा सका।"
+
+#, python-format
+msgid "Warning: The data file could not be read (%s)."
+msgstr "चेतावनी: डेटा फ़ाइल पढ़ी नहीं जा सकी (%s)।"
+
+msgid "Waste collection calendar"
+msgstr "कचरा संग्रह कैलेंडर"
+
+msgid "We are glad you are here!"
+msgstr "हमें खुशी है कि आप यहाँ हैं!"
+
+msgid "Weather"
+msgstr "मौसम"
+
+msgid "Weather display"
+msgstr "मौसम प्रदर्शन"
+
+msgid "Weather for the next three days"
+msgstr "अगले तीन दिनों का मौसम"
+
+msgid "Weather is available in the installed application."
+msgstr "मौसम इंस्टॉल किए गए ऐप में उपलब्ध है।"
+
+msgid ""
+"Weather requests are sent to wttr.in. Your own address in Contacts is used "
+"first, followed by local LibreOffice user data. If neither contains a "
+"location and retrieval without one is allowed, wttr.in estimates the "
+"location from your internet connection's public IP address."
+msgstr ""
+"मौसम के अनुरोध wttr.in को भेजे जाते हैं। पहले संपर्क में आपका अपना पता उपयोग होता है, फिर "
+"LibreOffice के स्थानीय उपयोगकर्ता डेटा का। यदि दोनों में स्थान नहीं है और बिना स्थान के "
+"जानकारी प्राप्त करने की अनुमति है, तो wttr.in आपके इंटरनेट कनेक्शन के सार्वजनिक IP पते से "
+"स्थान का अनुमान लगाता है।"
+
+msgid "Weather was not retrieved because no location is available."
+msgstr "मौसम की जानकारी नहीं ली गई क्योंकि कोई स्थान उपलब्ध नहीं है।"
+
+msgid "Wedding anniversary"
+msgstr "विवाह वर्षगाँठ"
+
+msgid "Wednesday"
+msgstr "बुधवार"
+
+msgid "Week"
+msgstr "सप्ताह"
+
+msgid "Week %(number)s"
+msgstr "सप्ताह %(number)s"
+
+msgid "Week numbers"
+msgstr "सप्ताह क्रमांक"
+
+msgid "Weekly"
+msgstr "साप्ताहिक"
+
+msgid "Weekly variation for %(name)s"
+msgstr "%(name)s के लिए साप्ताहिक बदलाव"
+
+msgid "Weekly view"
+msgstr "साप्ताहिक दृश्य"
+
+msgid "Weight"
+msgstr "वज़न"
+
+msgid "Welcome ✱"
+msgstr "स्वागत है ✱"
+
+msgid "What is it about?"
+msgstr "यह किस बारे में है?"
+
+msgid "What needs to be done?"
+msgstr "क्या करना है?"
+
+msgid ""
+"When disabled, dates can still be entered as eight digits in day, month and "
+"four-digit year order."
+msgstr ""
+"इसे बंद करने पर भी तारीखें दिन, महीना और चार-अंकीय वर्ष के क्रम में आठ अंक लिखकर दर्ज की "
+"जा सकती हैं।"
+
+msgid ""
+"When disabled, you write on plain paper. Line spacing remains the same; only "
+"the lines disappear."
+msgstr ""
+"इसे बंद करने पर आप सादे कागज़ पर लिखते हैं। पंक्तियों के बीच की दूरी वही रहती है; केवल रेखाएँ "
+"गायब हो जाती हैं।"
+
+msgid "When opening from the tray"
+msgstr "सिस्टम ट्रे से खोलते समय"
+
+msgid ""
+"When selected, you can assign a photo to each person. Embedded photos are "
+"preserved during import, export and synchronization with an online address "
+"book. Email addresses on contact cards are always clickable and open your "
+"mail application."
+msgstr ""
+"इसे चुनने पर आप प्रत्येक व्यक्ति को एक फ़ोटो दे सकते हैं। एम्बेड की गई फ़ोटो ऑनलाइन पता "
+"पुस्तिका के साथ आयात, निर्यात और सिंक्रोनाइज़ेशन के दौरान बनी रहती हैं। संपर्क कार्ड पर "
+"ईमेल पते हमेशा क्लिक किए जा सकते हैं और आपका मेल ऐप खोलते हैं।"
+
+msgid ""
+"When writing a note, a small toolbar above the sheet provides bold, italic, "
+"underline and strikethrough. The same formatting is available with Ctrl+B, "
+"Ctrl+I, Ctrl+U and Ctrl+D."
+msgstr ""
+"नोट लिखते समय शीट के ऊपर एक छोटा टूलबार बोल्ड, इटैलिक, अंडरलाइन और स्ट्राइकथ्रू देता है। "
+"वही फ़ॉर्मेटिंग Ctrl+B, Ctrl+I, Ctrl+U और Ctrl+D से भी उपलब्ध है।"
+
+msgid "Whole month"
+msgstr "पूरा महीना"
+
+msgid "Wife"
+msgstr "पत्नी"
+
+msgid ""
+"With a password or numeric code, the organizer asks for it when opening and "
+"stores your data only in encrypted form in your home directory (AES-256)."
+msgstr ""
+"पासवर्ड या अंकीय कोड लगाने पर ऑर्गनाइज़र खुलते समय उसे माँगता है और आपके डेटा को होम "
+"डायरेक्टरी में केवल एन्क्रिप्टेड रूप में संग्रहीत करता है (AES-256)।"
+
+msgid "With photo"
+msgstr "फ़ोटो सहित"
+
+msgid ""
+"Without a shell; {ziel}, {wert}, and {nummer} can be used as placeholders. "
+"Flatpak and Snap can be selected as flatpak:APP-ID or snap:Name."
+msgstr ""
+"शेल के बिना; {ziel}, {wert} और {nummer} को प्लेसहोल्डर के रूप में उपयोग किया जा सकता "
+"है। Flatpak और Snap को flatpak:APP-ID या snap:Name के रूप में चुना जा सकता है।"
+
+msgid ""
+"Without this second selection, the background reminder service does not show "
+"notifications for confidential appointments."
+msgstr ""
+"इस दूसरे चयन के बिना बैकग्राउंड रिमाइंडर सेवा गोपनीय अपॉइंटमेंट के लिए सूचनाएँ नहीं दिखाती।"
+
+msgid "Work"
+msgstr "कार्य"
+
+msgid "Work address"
+msgstr "कार्यालय का पता"
+
+msgid "Work anniversary"
+msgstr "कार्य वर्षगाँठ"
+
+msgid "Work phone"
+msgstr "कार्यालय का फ़ोन"
+
+msgid "Workgroup (all)"
+msgstr "कार्यसमूह (सभी)"
+
+msgid "Workshop appointment"
+msgstr "वर्कशॉप अपॉइंटमेंट"
+
+msgid "Write a message to %(address)s"
+msgstr "%(address)s को संदेश लिखें"
+
+msgid "Write an SMS using the paired phone"
+msgstr "पेयर किए गए फोन का उपयोग करके एक एसएमएस लिखें"
+
+msgid "Write here …"
+msgstr "यहाँ लिखें …"
+
+msgid "Write startup and tray diagnostics to the debug log"
+msgstr "स्टार्टअप और सिस्टम ट्रे डायग्नॉस्टिक्स को डीबग लॉग में लिखें"
+
+msgid "Writing sheet"
+msgstr "लेखन शीट"
+
+msgid "X (formerly Twitter)"
+msgstr "X (पहले Twitter)"
+
+msgid "Year"
+msgstr "वर्ष"
+
+msgid "Year calendar"
+msgstr "वार्षिक कैलेंडर"
+
+msgid "Year planner %(year)s"
+msgstr "वार्षिक प्लानर %(year)s"
+
+msgid "Yes, merge"
+msgstr "हाँ, मर्ज करें"
+
+msgid "Yes, the code matches"
+msgstr "हाँ, कोड मेल खाता है"
+
+msgid "Your address"
+msgstr "आपका पता"
+
+msgid "Your address above is used as the starting point."
+msgstr "ऊपर दिया गया आपका पता शुरुआती बिंदु के रूप में उपयोग होता है।"
+
+msgid "Your data from “Organizer Klassik” has been imported."
+msgstr "„Organizer Klassik“ से आपका डेटा आयात कर लिया गया है।"
+
+msgid ""
+"Your data is stored at:\n"
+"%(path)s"
+msgstr ""
+"आपका डेटा यहाँ संग्रहीत है:\n"
+"%(path)s"
+
+msgid "Your data is stored at: %(path)s"
+msgstr "आपका डेटा यहाँ संग्रहीत है: %(path)s"
+
+msgid ""
+"Your own address is required as the starting point for a route. Enter it "
+"under Settings ▸ Contacts."
+msgstr "रूट के शुरुआती बिंदु के लिए आपका अपना पता आवश्यक है। इसे सेटिंग्स ▸ संपर्क में दर्ज करें।"
+
+msgid "Yours sincerely,"
+msgstr "सादर"
+
+msgid "Zug"
+msgstr "ज़ुग"
+
+msgid "Zurich"
+msgstr "ज़्यूरिख"
+
+msgid "after 30 days"
+msgstr "30 दिनों के बाद"
+
+msgid "after 7 days"
+msgstr "7 दिनों के बाद"
+
+msgid "after 90 days"
+msgstr "90 दिनों के बाद"
+
+msgid "after one year"
+msgstr "एक वर्ष के बाद"
+
+msgid "all cantons"
+msgstr "सभी कैंटन"
+
+msgid "all day"
+msgstr "पूरे दिन"
+
+#, python-format
+msgid "all except %(regions)s"
+msgstr "%(regions)s को छोड़कर सभी"
+
+msgid "all states"
+msgstr "सभी राज्य"
+
+msgid "also remind me about it"
+msgstr "इसके बारे में भी मुझे याद दिलाएँ"
+
+msgid "and"
+msgstr "और"
+
+msgid "and %(count)s more"
+msgid_plural "and %(count)s more"
+msgstr[0] "और %(count)s अतिरिक्त"
+msgstr[1] "और %(count)s अतिरिक्त"
+
+msgid "application {ziel}"
+msgstr "ऐप {ziel}"
+
+msgid "approximate area"
+msgstr "अनुमानित क्षेत्र"
+
+msgid "at %(time)s"
+msgstr "%(time)s बजे"
+
+msgid "at least four characters"
+msgstr "कम से कम चार अक्षर"
+
+msgid "at the appointment time"
+msgstr "अपॉइंटमेंट के समय"
+
+msgid "blood-glucose"
+msgstr "blood-glucose"
+
+msgid "browser storage"
+msgstr "ब्राउज़र स्टोरेज"
+
+msgid "confidential"
+msgstr "गोपनीय"
+
+msgid "confirmed"
+msgstr "पुष्ट"
+
+msgid "days"
+msgstr "दिन"
+
+msgid "due %(date)s"
+msgstr "नियत %(date)s"
+
+msgid "due by %(date)s"
+msgstr "%(date)s तक देय"
+
+msgid "due from"
+msgstr "इस तारीख से देय"
+
+#, python-format
+msgid "due in %d day"
+msgid_plural "due in %d days"
+msgstr[0] "%d दिन बाद देय"
+msgstr[1] "%d दिन बाद देय"
+
+msgid "e.g. 1 day before"
+msgstr "उदा. 1 दिन पहले"
+
+msgid "e.g. Birthday"
+msgstr "उदा. जन्मदिन"
+
+msgid "e.g. Doctor appointment"
+msgstr "उदा. डॉक्टर की अपॉइंटमेंट"
+
+msgid "e.g. Mobile"
+msgstr "उदा. मोबाइल"
+
+msgid "e.g. Private"
+msgstr "उदा. निजी"
+
+msgid "e.g. Send documents"
+msgstr "उदा. दस्तावेज़ भेजें"
+
+msgid "e.g. Son"
+msgstr "उदा. बेटा"
+
+msgid "e.g. Work"
+msgstr "उदा. कार्य"
+
+msgid "e.g. glass or hazardous waste"
+msgstr "उदा. काँच या खतरनाक कचरा"
+
+msgid "e.g. kitchen or workshop"
+msgstr "उदा. रसोई या वर्कशॉप"
+
+msgid "e.g. medication day"
+msgstr "उदा. दवा लेने का दिन"
+
+msgid "e.g. on-call duty"
+msgstr "उदा. ऑन-कॉल ड्यूटी"
+
+msgid "event loop"
+msgstr "इवेंट लूप"
+
+msgid "every"
+msgstr "हर"
+
+msgid "every 12 hours"
+msgstr "हर 12 घंटे"
+
+msgid "every 3 hours"
+msgstr "हर 3 घंटे"
+
+msgid "every 30 minutes"
+msgstr "हर 30 मिनट"
+
+msgid "every 6 hours"
+msgstr "हर 6 घंटे"
+
+msgid "every day"
+msgstr "हर दिन"
+
+msgid "every hour"
+msgstr "हर घंटे"
+
+msgid "every month on the same day"
+msgstr "हर महीने उसी तारीख को"
+
+msgid "every week on the same weekday"
+msgstr "हर सप्ताह उसी वार को"
+
+msgid "every year on the same date"
+msgstr "हर वर्ष उसी तारीख को"
+
+msgid "first on"
+msgstr "पहली बार"
+
+msgid "for the %(ordinal)s time"
+msgstr "%(ordinal)sवीं बार"
+
+msgid "from"
+msgstr "से"
+
+msgid "high"
+msgstr "उच्च"
+
+msgid "https://… (optionally with {wert} or {nummer})"
+msgstr "https://… (वैकल्पिक रूप से {wert} या {nummer} के साथ)"
+
+msgid "iCalendar (*.ics)"
+msgstr "iCalendar (*.ics)"
+
+msgid "in %(count)s day"
+msgid_plural "in %(count)s days"
+msgstr[0] "%(count)s दिन में"
+msgstr[1] "%(count)s दिनों में"
+
+#, python-format
+msgid "in %d day"
+msgid_plural "in %d days"
+msgstr[0] "%d दिन में"
+msgstr[1] "%d दिनों में"
+
+msgid "keep here"
+msgstr "यहीं रखें"
+
+msgid "low"
+msgstr "निम्न"
+
+msgid "medium"
+msgstr "मध्यम"
+
+msgid "modified %(date)s"
+msgstr "संशोधित %(date)s"
+
+msgid "name@example.com"
+msgstr "name@example.com"
+
+msgid "never – empty manually"
+msgstr "कभी नहीं – हाथ से खाली करें"
+
+msgid "new task for this appointment…"
+msgstr "इस अपॉइंटमेंट के लिए नया कार्य…"
+
+msgid "no changes"
+msgstr "कोई बदलाव नहीं"
+
+msgid "no reason given"
+msgstr "कोई कारण नहीं दिया गया"
+
+msgid "none"
+msgstr "कोई नहीं"
+
+msgid "not delivered"
+msgstr "डिलीवर नहीं हुआ"
+
+msgid "notification %(count)s minute before"
+msgid_plural "notification %(count)s minutes before"
+msgstr[0] "%(count)s मिनट पहले सूचना"
+msgstr[1] "%(count)s मिनट पहले सूचनाएँ"
+
+msgid "on the day only"
+msgstr "केवल उसी दिन"
+
+msgid "once"
+msgstr "एक बार"
+
+msgid "one backup was encrypted as well"
+msgid_plural "%(count)s backups were encrypted as well"
+msgstr[0] "एक बैकअप भी एन्क्रिप्ट किया गया था"
+msgstr[1] "%(count)s बैकअप भी एन्क्रिप्ट किए गए थे"
+
+msgid "one contact card"
+msgid_plural "%(count)s contact cards"
+msgstr[0] "एक संपर्क कार्ड"
+msgstr[1] "%(count)s संपर्क कार्ड"
+
+msgid "only %(year)s"
+msgstr "केवल %(year)s"
+
+msgid "or enter a host name or IP address"
+msgstr "या होस्ट नाम अथवा IP पता दर्ज करें"
+
+msgid "pulse"
+msgstr "नाड़ी"
+
+msgid "recurring appointment"
+msgstr "दोहराई जाने वाली अपॉइंटमेंट"
+
+msgid "remind me on the due date"
+msgstr "नियत तारीख पर मुझे याद दिलाएँ"
+
+msgid "system notification"
+msgstr "सिस्टम सूचना"
+
+msgid "systemd-run is required to schedule wake-up reminders on this system."
+msgstr "इस सिस्टम पर वेक-अप रिमाइंडर शेड्यूल करने के लिए systemd-run आवश्यक है।"
+
+msgid "tentative"
+msgstr "अनिश्चित"
+
+msgid "the day after tomorrow"
+msgstr "परसों"
+
+msgid "the other branch"
+msgstr "दूसरी शाखा"
+
+msgid "to"
+msgstr "तक"
+
+msgid "today"
+msgstr "आज"
+
+msgid "today!"
+msgstr "आज!"
+
+msgid "tomorrow"
+msgstr "कल"
+
+msgid "turns %(age)s"
+msgstr "%(age)s वर्ष का/की होगा/होगी"
+
+msgid "unknown"
+msgstr "अज्ञात"
+
+msgid "unknown error"
+msgstr "अज्ञात त्रुटि"
+
+msgid "untitled"
+msgstr "बिना शीर्षक"
+
+msgid "vCalendar (*.vcs)"
+msgstr "vCalendar (*.vcs)"
+
+msgid ""
+"vCard preserves more contact details. LDIF is intended for importing into "
+"Claws Mail; emergency contacts, social media, free labels and non-JPEG "
+"photos cannot be included."
+msgstr "vCard अधिक संपर्क विवरण सुरक्षित रखता है। LDIF, Claws Mail में आयात के लिए है; आपातकालीन संपर्क, सोशल मीडिया, स्वतंत्र लेबल और गैर-JPEG फ़ोटो शामिल नहीं किए जा सकते।vCard preserves more contact details. LDIF is intended for importing into Claws Mail; emergency contacts, social media, free labels and non-JPEG photos cannot be included."
+
+msgid "waiting loop"
+msgstr "प्रतीक्षा लूप"
+
+msgid "– Anniversaries automatically appear with ✱ in the calendar."
+msgstr "– वर्षगाँठ कैलेंडर में अपने-आप ✱ के साथ दिखाई देती हैं।"
+
+msgid ""
+"– Everything is saved automatically. Use “Create backup” at the bottom right "
+"to create an additional backup copy."
+msgstr ""
+"– सब कुछ अपने-आप सहेजा जाता है। अतिरिक्त बैकअप कॉपी बनाने के लिए नीचे दाईं ओर “बैकअप "
+"बनाएँ” का उपयोग करें।"
+
+msgid ""
+"– In the calendar, use the controls at the top to switch between month and "
+"week view."
+msgstr "– कैलेंडर में ऊपर दिए नियंत्रणों से माह और सप्ताह दृश्य के बीच बदलें।"
+
+msgid ""
+"– The colored tabs along the edge lead to the sections. Tabs you have "
+"already passed move to the left side, just like in a real ring binder."
+msgstr ""
+"– किनारे के रंगीन टैब अलग-अलग अनुभागों पर ले जाते हैं। जिन टैब से आप आगे बढ़ चुके हैं वे असली "
+"रिंग बाइंडर की तरह बाईं ओर चले जाते हैं।"
+
+msgid ""
+"– The folded corners at the bottom turn pages forward and back: by month in "
+"the calendar, by year in the planner, and page by page here."
+msgstr ""
+"– नीचे के मुड़े हुए कोने पन्ने आगे और पीछे पलटते हैं: कैलेंडर में माह-दर-माह, प्लानर में वर्ष-दर-"
+"वर्ष और यहाँ पन्ना-दर-पन्ना।"
+
+msgid ""
+"– Turn times in 5-minute increments with the mouse wheel (hold Shift for "
+"whole hours); the end time moves along with it. For appointments without a "
+"fixed time, select “All day”."
+msgstr ""
+"– माउस व्हील से समय को 5-मिनट के चरणों में बदलें (पूरे घंटों के लिए Shift दबाए रखें); "
+"समाप्ति समय भी साथ बदलता है। बिना निश्चित समय की अपॉइंटमेंट के लिए “पूरे दिन” चुनें।"
+
+msgid ""
+"– Under “Settings” at the bottom right, you can import appointments and "
+"addresses from other programs (.ics, .vcf, Lotus CSV), export them, and "
+"connect your system's online accounts. On the “Region & holidays” page, "
+"enter your country and state and import all public and school holidays once."
+msgstr ""
+"– नीचे दाईं ओर “सेटिंग्स” में आप अन्य प्रोग्रामों (.ics, .vcf, Lotus CSV) से अपॉइंटमेंट और "
+"पते आयात कर सकते हैं, उन्हें निर्यात कर सकते हैं और सिस्टम के ऑनलाइन खाते जोड़ सकते हैं। “क्षेत्र "
+"और अवकाश” पृष्ठ पर अपना देश और राज्य/क्षेत्र दर्ज करें और सभी सार्वजनिक व स्कूल अवकाश एक "
+"बार आयात करें।"
+
+msgid "— do not link —"
+msgstr "— लिंक न करें —"
+
+msgid "— not specified —"
+msgstr "— निर्दिष्ट नहीं —"
+
+msgid "— please select —"
+msgstr "— कृपया चुनें —"
+
+msgid "“%(name)s” was restored."
+msgstr "“%(name)s” पुनर्स्थापित किया गया।"
+
+msgid "“%(word)s” is now in the dictionary."
+msgstr "“%(word)s” अब शब्दकोश में है।"
+
+msgid ""
+"“From this computer” reads contacts, appointments and tasks directly from "
+"Evolution (including cached online accounts) and Thunderbird without further "
+"setup. It only reads these stores and does not change them. The organizer "
+"automatically detects whether a Lotus CSV contains appointments, contacts, "
+"tasks, anniversaries or notes. Calendar files provide appointments, annual "
+"recurrences as anniversaries, and tasks. Birthdays from contact files become "
+"anniversaries. Existing entries are not added twice."
+msgstr ""
+"“इस कंप्यूटर से” बिना अतिरिक्त सेटअप के Evolution (कैश किए गए ऑनलाइन खातों सहित) और "
+"Thunderbird से सीधे संपर्क, अपॉइंटमेंट और कार्य पढ़ता है। यह इन स्टोरों को केवल पढ़ता है, "
+"उनमें बदलाव नहीं करता। ऑर्गनाइज़र अपने-आप पहचानता है कि Lotus CSV में अपॉइंटमेंट, संपर्क, "
+"कार्य, वर्षगाँठ या नोट हैं। कैलेंडर फ़ाइलें अपॉइंटमेंट, वार्षिक पुनरावृत्तियों को वर्षगाँठ के रूप में "
+"और कार्य उपलब्ध कराती हैं। संपर्क फ़ाइलों के जन्मदिन वर्षगाँठ बनते हैं। मौजूदा प्रविष्टियाँ "
+"दोबारा नहीं जोड़ी जातीं।"
+
+msgid "… and %(count)s more item that will also be printed."
+msgid_plural "… and %(count)s more items that will also be printed."
+msgstr[0] "… और %(count)s अतिरिक्त आइटम, जो प्रिंट भी होगा।"
+msgstr[1] "… और %(count)s अतिरिक्त आइटम, जो प्रिंट भी होंगे।"
+
+msgid "＋ Add appointment"
+msgstr "＋ अपॉइंटमेंट जोड़ें"

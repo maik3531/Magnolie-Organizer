@@ -1,0 +1,34 @@
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: magnolie-organizer
+Upstream-Contact: Maik Walter <maik3531@gmail.com>
+
+Files: *
+Copyright: 2026 Maik Walter <maik3531@gmail.com>
+License: GPL-3+
+
+Files: io.gitlab.maik3531.MagnolieOrganizer.appdata.xml
+Copyright: 2026 Maik Walter <maik3531@gmail.com>
+License: CC0-1.0
+
+License: GPL-3+
+ Dieses Programm ist freie Software: Sie können es unter den Bedingungen
+ der GNU General Public License, wie von der Free Software Foundation
+ veröffentlicht, weitergeben und/oder verändern, entweder gemäß Version 3
+ der Lizenz oder (nach Ihrer Wahl) jeder späteren Version.
+ .
+ Die Veröffentlichung dieses Programms erfolgt in der Hoffnung, dass es
+ Ihnen von Nutzen sein wird, aber OHNE IRGENDEINE GARANTIE, sogar ohne die
+ implizite Garantie der MARKTREIFE oder der VERWENDBARKEIT FÜR EINEN
+ BESTIMMTEN ZWECK. Details finden Sie in der GNU General Public License.
+ .
+ Sie sollten ein Exemplar der GNU General Public License zusammen mit
+ diesem Programm erhalten haben. Falls nicht, siehe
+ <https://www.gnu.org/licenses/>.
+ .
+ Auf Debian-Systemen findet sich der vollständige Text der GNU General
+ Public License Version 3 unter /usr/share/common-licenses/GPL-3.
+
+License: CC0-1.0
+ Soweit gesetzlich möglich, hat der Urheber alle Urheber- und verwandten
+ Schutzrechte an diesen Metadaten weltweit aufgegeben. Die vollständigen
+ Bedingungen stehen unter <https://creativecommons.org/publicdomain/zero/1.0/>.

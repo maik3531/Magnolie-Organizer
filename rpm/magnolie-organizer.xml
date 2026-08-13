@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<service>
+  <short>Magnolie Organizer</short>
+  <description>Encrypted Magnolienbaum sharing and local discovery for Magnolie Organizer</description>
+  <port protocol="tcp" port="8737"/>
+  <port protocol="udp" port="8737"/>
+  <port protocol="udp" port="5353"/>
+</service>

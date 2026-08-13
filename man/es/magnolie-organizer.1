@@ -1,0 +1,94 @@
+.TH MAGNOLIE-ORGANIZER 1 "Agosto de 2026" "Magnolie Organizer 2.0.0" "Órdenes de usuario"
+.SH NOMBRE
+magnolie-organizer \- organizador personal con diseño clásico de agenda de papel
+.SH SINOPSIS
+.B magnolie-organizer
+.RI [ opción ]
+.RI [ \-\-sprache\  idioma ]
+.SH DESCRIPCIÓN
+.B Magnolie Organizer
+combina calendario, tareas, contactos, notas, aniversarios y un planificador
+anual. Los datos se almacenan localmente y, de forma opcional, se pueden
+sincronizar mediante Evolution Data Server o compartir a través del servicio
+cifrado Magnolienbaum.
+.PP
+Solo se abre una instancia gráfica por sesión de usuario. Si se vuelve a
+ejecutar la orden, se muestra la ventana existente, incluso si está oculta en
+la bandeja del sistema.
+.SH OPCIONES
+.TP
+.B \-\-erinnerung
+Comprobar si hay recordatorios vencidos. Normalmente, esta opción la utiliza el
+servicio de sesión.
+.TP
+.B \-\-wecker
+Ejecutar en segundo plano el monitor de recordatorios.
+.TP
+.B \-\-tray-start
+Iniciar el organizador mediante su entrada de inicio automático en la bandeja
+del sistema.
+.TP
+.B \-\-probe
+Probar los recordatorios e imprimir un informe de diagnóstico.
+.TP
+.B \-\-debug
+Continuar el funcionamiento normal mientras se escriben en
+\fB~/.local/state/magnolie-organizer/debug.log\fR diagnósticos privados y
+rotativos sobre el inicio, la sesión, la instancia única, la ventana y la
+bandeja del sistema. Cerrar cualquier instancia que ya esté en ejecución antes
+de iniciar un diagnóstico; una segunda invocación solo activa el proceso
+existente.
+.TP
+.BR \-\-sprache " " SPRACHE , " " \-\-language " " LANGUAGE
+Usar alemán (\fBde\fR), inglés (\fBen\fR) o el idioma del sistema
+(\fBsystem\fR) para esta invocación. Esto selecciona el idioma de la salida de
+la orden antes de los modos de ayuda, diagnóstico y segundo plano, así como el
+de la interfaz WebKit de una instancia gráfica recién abierta. Los ajustes
+guardados no se modifican.
+.TP
+.BR \-\-pot " [" DATEI "]", " " \-\-pot-template " [" FILE "]"
+Generar una plantilla gettext reproducible y salir. Si no se proporciona un
+argumento de archivo, escribir \fBmagnolie-organizer.pot\fR en el directorio
+actual; en caso contrario, escribir en la ruta especificada. Si la operación
+termina correctamente, se muestra la ruta absoluta de salida.
+.TP
+.BR \-\-hilfe , " " \-\-help
+Mostrar un resumen breve de las órdenes.
+.SH RED MAGNOLIENBAUM
+Cuando está activado, Magnolienbaum escucha en el puerto TCP 8737 mediante IPv4
+e IPv6. Las ramas locales se anuncian y se encuentran mediante mDNS/DNS-SD como
+\fB_magnolie._tcp.local.\fR. El puerto UDP 8737 sigue disponible como método
+alternativo limitado de descubrimiento para versiones anteriores; mDNS utiliza
+el puerto UDP 5353.
+.PP
+También se puede introducir manualmente un nombre de equipo, una dirección IPv4
+o una dirección IPv6. Los archivos de emparejamiento admiten literales IPv4 e
+IPv6 accesibles. Los corchetes de IPv6 que requieren los URL se añaden
+automáticamente y no deben guardarse en los archivos de emparejamiento.
+.SH PRIVACIDAD METEOROLÓGICA
+El pronóstico opcional envía solicitudes a \fBwttr.in\fR. Primero utiliza la
+ubicación de la dirección del usuario y, después, los datos de usuario de
+LibreOffice leídos localmente. Si ninguno contiene una ubicación, wttr.in puede
+estimarla a partir de la dirección IP pública visible para el servicio. En ese
+caso, la opción del calendario «No obtener datos meteorológicos sin una
+ubicación» impide cualquier solicitud meteorológica por la red.
+.SH ARCHIVOS
+.TP
+.I ~/.local/share/magnolie-organizer/
+Datos de usuario, ajustes, copias de seguridad y estado de los recordatorios.
+.TP
+.I ~/.config/autostart/magnolie-organizer-tray.desktop
+Entrada opcional de inicio automático en la bandeja del sistema.
+.TP
+.I ~/.local/state/magnolie-organizer/debug.log
+Registro de diagnóstico accesible solo por el propietario, que se crea al usar
+\fB\-\-debug\fR.
+.SH ENTORNO
+.TP
+.B MAGNOLIE_ORGANIZER_WEB
+Usar otro directorio que contenga la interfaz web. Está destinado al desarrollo
+y las pruebas.
+.SH VÉASE TAMBIÉN
+.BR magnolie-handbuch (1)
+.SH AUTOR
+Escrito por Maik Walter.

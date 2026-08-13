@@ -1,0 +1,68 @@
+#!/bin/sh
+set -eu
+
+test "$(ps -p 1 -o comm= | tr -d ' ')" = systemd
+test -x /usr/bin/magnolie-organizer
+
+benutzer="magnolieadt$$"
+heim="/home/$benutzer"
+uid=""
+
+bereinigen() {
+  if [ -n "$uid" ]; then
+    systemctl stop "user@$uid.service" >/dev/null 2>&1 || true
+  fi
+  loginctl disable-linger "$benutzer" >/dev/null 2>&1 || true
+  userdel --remove "$benutzer" >/dev/null 2>&1 || true
+}
+trap bereinigen EXIT HUP INT TERM
+
+useradd --create-home --shell /bin/sh "$benutzer"
+uid="$(id -u "$benutzer")"
+loginctl enable-linger "$benutzer"
+systemctl start "user@$uid.service"
+
+zaehler=0
+while [ ! -S "/run/user/$uid/bus" ]; do
+  zaehler=$((zaehler + 1))
+  test "$zaehler" -lt 100
+  sleep 0.1
+done
+
+als_benutzer() {
+  runuser -u "$benutzer" -- env HOME="$heim" \
+    XDG_RUNTIME_DIR="/run/user/$uid" \
+    DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$uid/bus" \
+    XDG_DATA_HOME="$heim/.local/share" XDG_CONFIG_HOME="$heim/.config" \
+    XDG_STATE_HOME="$heim/.local/state" GSETTINGS_BACKEND=memory \
+    "$@"
+}
+
+testskript="$heim/systemd-user.py"
+cp "$(dirname -- "$0")/systemd-user.py" "$testskript"
+chown "$benutzer:$benutzer" "$testskript"
+als_benutzer python3 "$testskript" enable
+als_benutzer systemctl --user is-enabled magnolie-erinnerung.timer
+als_benutzer systemctl --user is-active magnolie-erinnerung.timer
+als_benutzer systemd-analyze --user verify \
+  "$heim/.config/systemd/user/magnolie-erinnerung.service" \
+  "$heim/.config/systemd/user/magnolie-erinnerung.timer"
+desktop-file-validate "$heim/.config/autostart/magnolie-erinnerung.desktop"
+als_benutzer systemctl --user start magnolie-erinnerung.service
+test "$(als_benutzer systemctl --user show magnolie-erinnerung.service \
+  -p Result --value)" = success
+test "$(als_benutzer systemctl --user show magnolie-erinnerung.service \
+  -p ExecMainStatus --value)" = 0
+
+# Ein zweiter Durchlauf muss denselben aktiven Timer behalten.
+als_benutzer python3 "$testskript" enable
+als_benutzer systemctl --user is-active magnolie-erinnerung.timer
+
+als_benutzer python3 "$testskript" disable
+test ! -e "$heim/.config/systemd/user/magnolie-erinnerung.service"
+test ! -e "$heim/.config/systemd/user/magnolie-erinnerung.timer"
+test ! -e "$heim/.config/autostart/magnolie-erinnerung.desktop"
+if als_benutzer systemctl --user is-enabled magnolie-erinnerung.timer >/dev/null 2>&1; then
+  echo 'Der Timer blieb nach dem Abschalten aktiviert' >&2
+  exit 1
+fi

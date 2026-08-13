@@ -1,0 +1,93 @@
+.TH MAGNOLIE-ORGANIZER 1 "Agosto 2026" "Magnolie Organizer 2.0.0" "Comandi utente"
+.SH NOME
+magnolie-organizer \- agenda personale dal classico aspetto cartaceo
+.SH SINTASSI
+.B magnolie-organizer
+.RI [ opzione ]
+.RI [ \-\-sprache\  lingua ]
+.SH DESCRIZIONE
+.B Magnolie Organizer
+riunisce calendario, attività, contatti, note, ricorrenze e pianificatore
+annuale. I dati sono memorizzati localmente e, facoltativamente, possono essere
+sincronizzati tramite Evolution Data Server o condivisi mediante il servizio
+cifrato Magnolienbaum.
+.PP
+Per ogni sessione utente viene aperta una sola istanza grafica. Avviando di
+nuovo il comando viene visualizzata la finestra esistente, anche se nascosta
+nell'area di notifica.
+.SH OPZIONI
+.TP
+.B \-\-erinnerung
+Controlla i promemoria scaduti. Questa opzione è normalmente utilizzata dal
+servizio di sessione.
+.TP
+.B \-\-wecker
+Esegue in sottofondo il monitor dei promemoria.
+.TP
+.B \-\-tray-start
+Avvia l'agenda mediante la relativa voce di avvio automatico nell'area di
+notifica.
+.TP
+.B \-\-probe
+Verifica i promemoria e stampa un rapporto diagnostico.
+.TP
+.B \-\-debug
+Prosegue il normale funzionamento scrivendo diagnostica privata e a rotazione
+relativa ad avvio, sessione, istanza singola, finestra e area di notifica in
+\fB~/.local/state/magnolie-organizer/debug.log\fR. Chiudere un'istanza già in
+esecuzione prima di avviare una sessione diagnostica; una seconda invocazione
+attiva solamente il processo esistente.
+.TP
+.BR \-\-sprache " " SPRACHE , " " \-\-language " " LANGUAGE
+Usa il tedesco (\fBde\fR), l'inglese (\fBen\fR) o la lingua di sistema
+(\fBsystem\fR) per questa invocazione. La scelta si applica all'output del
+comando prima delle modalità di guida, diagnostica e sottofondo, nonché
+all'interfaccia WebKit di una nuova istanza grafica. Le impostazioni salvate non
+vengono modificate.
+.TP
+.BR \-\-pot " [" DATEI "]", " " \-\-pot-template " [" FILE "]"
+Genera un modello gettext riproducibile ed esce. Senza un argomento file, scrive
+\fBmagnolie-organizer.pot\fR nella directory corrente; altrimenti scrive nel
+percorso specificato. In caso di successo viene visualizzato il percorso
+assoluto del file di output.
+.TP
+.BR \-\-hilfe , " " \-\-help
+Mostra un breve riepilogo dei comandi.
+.SH RETE MAGNOLIENBAUM
+Quando è abilitato, Magnolienbaum resta in ascolto sulla porta TCP 8737 tramite
+IPv4 e IPv6. I rami locali vengono annunciati e rilevati mediante mDNS/DNS-SD
+come \fB_magnolie._tcp.local.\fR. La porta UDP 8737 rimane disponibile come
+meccanismo di ripiego limitato per il rilevamento da parte delle versioni
+precedenti; mDNS utilizza la porta UDP 5353.
+.PP
+È inoltre possibile inserire manualmente un nome host, un indirizzo IPv4 o un
+indirizzo IPv6. I file di associazione accettano valori letterali IPv4 e IPv6
+raggiungibili. Le parentesi quadre IPv6 richieste dagli URL vengono aggiunte
+automaticamente e non devono essere memorizzate nei file di associazione.
+.SH RISERVATEZZA METEO
+Le previsioni facoltative inviano richieste a \fBwttr.in\fR. Usano prima la
+località indicata nell'indirizzo dell'utente, quindi i dati utente di LibreOffice
+letti localmente. Se nessuno dei due contiene una località, wttr.in può stimarla
+dall'indirizzo IP pubblico visibile al servizio. In tal caso, l'opzione del
+calendario «Non recuperare il meteo senza una località» impedisce qualsiasi
+richiesta di rete relativa al meteo.
+.SH FILE
+.TP
+.I ~/.local/share/magnolie-organizer/
+Dati utente, impostazioni, copie di sicurezza e stato dei promemoria.
+.TP
+.I ~/.config/autostart/magnolie-organizer-tray.desktop
+Voce facoltativa di avvio automatico nell'area di notifica.
+.TP
+.I ~/.local/state/magnolie-organizer/debug.log
+Registro diagnostico accessibile solo al proprietario, creato quando viene
+utilizzato \fB\-\-debug\fR.
+.SH AMBIENTE
+.TP
+.B MAGNOLIE_ORGANIZER_WEB
+Usa una directory alternativa contenente l'interfaccia web. È destinata allo
+sviluppo e alle verifiche.
+.SH VEDERE ANCHE
+.BR magnolie-handbuch (1)
+.SH AUTORE
+Scritto da Maik Walter.

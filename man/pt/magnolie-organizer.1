@@ -1,0 +1,93 @@
+.TH MAGNOLIE-ORGANIZER 1 "Agosto de 2026" "Magnolie Organizer 2.0.0" "Comandos do utilizador"
+.SH NOME
+magnolie-organizer \- organizador pessoal com um desenho clássico em papel
+.SH SINOPSE
+.B magnolie-organizer
+.RI [ opção ]
+.RI [ \-\-sprache\  idioma ]
+.SH DESCRIÇÃO
+.B Magnolie Organizer
+combina um calendário, tarefas, contactos, notas, aniversários e um planeador
+anual. Os dados são guardados localmente e podem, opcionalmente, ser
+sincronizados através do Evolution Data Server ou partilhados através do
+serviço cifrado Magnolienbaum.
+.PP
+Só é aberta uma instância gráfica por sessão de utilizador. A execução do
+comando novamente apresenta a janela existente, mesmo que esteja oculta na área
+de notificação.
+.SH OPÇÕES
+.TP
+.B \-\-erinnerung
+Verifica se existem lembretes vencidos. Esta opção é normalmente utilizada pelo
+serviço de sessão.
+.TP
+.B \-\-wecker
+Executa o monitor de lembretes em segundo plano.
+.TP
+.B \-\-tray-start
+Inicia o organizador através da respetiva entrada de arranque automático na área
+de notificação.
+.TP
+.B \-\-probe
+Testa os lembretes e apresenta um relatório de diagnóstico.
+.TP
+.B \-\-debug
+Prossegue o funcionamento normal enquanto escreve diagnósticos privados e
+rotativos de arranque, sessão, instância única, janela e área de notificação em
+\fB~/.local/state/magnolie-organizer/debug.log\fR. Termine uma instância já em
+execução antes de iniciar uma execução de diagnóstico; uma segunda invocação
+apenas ativa o processo existente.
+.TP
+.BR \-\-sprache " " SPRACHE , " " \-\-language " " LANGUAGE
+Utiliza alemão (\fBde\fR), inglês (\fBen\fR) ou o idioma do sistema
+(\fBsystem\fR) nesta invocação. Esta opção seleciona o idioma da saída do
+comando antes dos modos de ajuda, diagnóstico e segundo plano, bem como o da
+interface WebKit de uma nova instância gráfica. As definições persistentes não
+são alteradas.
+.TP
+.BR \-\-pot " [" DATEI "]", " " \-\-pot-template " [" FILE "]"
+Gera um modelo gettext reprodutível e sai. Sem um argumento de ficheiro, escreve
+\fBmagnolie-organizer.pot\fR no diretório atual; caso contrário, escreve no
+caminho especificado. Em caso de êxito, é apresentado o caminho absoluto do
+ficheiro de saída.
+.TP
+.BR \-\-hilfe , " " \-\-help
+Apresenta um breve resumo dos comandos.
+.SH REDE MAGNOLIENBAUM
+Quando ativado, o Magnolienbaum escuta na porta TCP 8737 através de IPv4 e IPv6.
+Os ramos locais são anunciados e encontrados através de mDNS/DNS-SD como
+\fB_magnolie._tcp.local.\fR. A porta UDP 8737 permanece disponível como método
+alternativo limitado de descoberta para versões anteriores; o mDNS utiliza a
+porta UDP 5353.
+.PP
+Também é possível introduzir manualmente um nome de máquina, um endereço IPv4
+ou um endereço IPv6. Os ficheiros de emparelhamento aceitam literais IPv4 e IPv6
+acessíveis. Os parênteses retos de IPv6 exigidos pelos URL são adicionados
+automaticamente e não podem ser guardados nos ficheiros de emparelhamento.
+.SH PRIVACIDADE METEOROLÓGICA
+A previsão opcional envia pedidos para \fBwttr.in\fR. Utiliza primeiro a
+localidade no endereço do utilizador e, em seguida, os dados de utilizador do
+LibreOffice lidos localmente. Se nenhum deles contiver uma localidade, o
+wttr.in pode estimá-la a partir do endereço IP público visível para o serviço.
+Nesse caso, a opção do calendário «Não obter a meteorologia sem uma localidade»
+impede qualquer pedido de rede relativo à meteorologia.
+.SH FICHEIROS
+.TP
+.I ~/.local/share/magnolie-organizer/
+Dados do utilizador, definições, cópias de segurança e estado dos lembretes.
+.TP
+.I ~/.config/autostart/magnolie-organizer-tray.desktop
+Entrada opcional de arranque automático na área de notificação.
+.TP
+.I ~/.local/state/magnolie-organizer/debug.log
+Registo de diagnóstico acessível apenas pelo proprietário, criado quando
+\fB\-\-debug\fR é utilizado.
+.SH AMBIENTE
+.TP
+.B MAGNOLIE_ORGANIZER_WEB
+Utiliza um diretório alternativo que contém a interface web. Destina-se ao
+desenvolvimento e aos testes.
+.SH CONSULTE TAMBÉM
+.BR magnolie-handbuch (1)
+.SH AUTOR
+Escrito por Maik Walter.

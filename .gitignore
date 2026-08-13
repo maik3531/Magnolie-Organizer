@@ -1,0 +1,32 @@
+# Generated build output
+/bau/
+/debian/.debhelper/
+/debian/magnolie-organizer/
+/debian/files
+/debian/*.debhelper.log
+/debian/*.substvars
+/debian/*.buildinfo
+/debian/*.changes
+/debian/magnolie-organizer_*
+
+# Local test and tool caches
+/.pytest_cache/
+__pycache__/
+*.py[cod]
+*.egg-info/
+
+# Local release metadata and signing material
+/update.xml
+*.pem
+*.key
+*.p12
+*.pfx
+*.secret
+*.token
+.env
+.env.*
+
+# Local editor and OS files
+.DS_Store
+*~
+*.swp

@@ -1,0 +1,92 @@
+.TH MAGNOLIE-ORGANIZER 1 "sierpień 2026" "Magnolie Organizer 2.0.0" "Polecenia użytkownika"
+.SH NAZWA
+magnolie-organizer \- osobisty organizer o klasycznym, papierowym wyglądzie
+.SH SKŁADNIA
+.B magnolie-organizer
+.RI [ opcja ]
+.RI [ \-\-sprache\  język ]
+.SH OPIS
+.B Magnolie Organizer
+łączy kalendarz, zadania, kontakty, notatki, rocznice i terminarz roczny. Dane
+są przechowywane lokalnie i mogą być opcjonalnie synchronizowane przez
+Evolution Data Server lub udostępniane za pośrednictwem szyfrowanej usługi
+Magnolienbaum.
+.PP
+W jednej sesji użytkownika otwierana jest tylko jedna instancja graficzna.
+Ponowne uruchomienie polecenia wyświetla istniejące okno, również wtedy, gdy
+jest ono ukryte w obszarze powiadomień.
+.SH OPCJE
+.TP
+.B \-\-erinnerung
+Sprawdza oczekujące przypomnienia. Ta opcja jest zwykle używana przez usługę
+sesji.
+.TP
+.B \-\-wecker
+Uruchamia monitor przypomnień w tle.
+.TP
+.B \-\-tray-start
+Uruchamia organizer za pomocą wpisu autostartu w obszarze powiadomień.
+.TP
+.B \-\-probe
+Testuje przypomnienia i wyświetla raport diagnostyczny.
+.TP
+.B \-\-debug
+Kontynuuje zwykłe działanie, zapisując prywatne, rotowane informacje
+diagnostyczne dotyczące uruchamiania, sesji, pojedynczej instancji, okna i
+obszaru powiadomień do pliku
+\fB~/.local/state/magnolie-organizer/debug.log\fR. Przed uruchomieniem
+diagnostycznym należy zakończyć już działającą instancję; drugie wywołanie
+jedynie aktywuje istniejący proces.
+.TP
+.BR \-\-sprache " " SPRACHE , " " \-\-language " " LANGUAGE
+Używa dla tego wywołania języka niemieckiego (\fBde\fR), angielskiego
+(\fBen\fR) lub języka systemu (\fBsystem\fR). Wybór dotyczy komunikatów
+polecenia przed przejściem do trybu pomocy, diagnostycznego lub działania w tle
+oraz interfejsu WebKit nowo otwartej instancji graficznej. Zapisane ustawienia
+nie są zmieniane.
+.TP
+.BR \-\-pot " [" DATEI "]", " " \-\-pot-template " [" FILE "]"
+Tworzy powtarzalny szablon gettext i kończy działanie. Bez argumentu pliku
+zapisuje \fBmagnolie-organizer.pot\fR w bieżącym katalogu; w przeciwnym razie
+zapisuje go pod podaną ścieżką. Po pomyślnym wykonaniu wyświetlana jest
+bezwzględna ścieżka pliku wyjściowego.
+.TP
+.BR \-\-hilfe , " " \-\-help
+Wyświetla krótki przegląd poleceń.
+.SH SIEĆ MAGNOLIENBAUM
+Po włączeniu usługa Magnolienbaum nasłuchuje na porcie TCP 8737 przez IPv4 i
+IPv6. Lokalne gałęzie są ogłaszane i wykrywane przez mDNS/DNS-SD jako
+\fB_magnolie._tcp.local.\fR. Port UDP 8737 pozostaje dostępny jako ograniczony
+zapasowy mechanizm wykrywania dla starszych wersji; mDNS używa portu UDP 5353.
+.PP
+Nazwę hosta, adres IPv4 lub adres IPv6 można również wprowadzić ręcznie. Pliki
+parowania przyjmują osiągalne literały IPv4 i IPv6. Nawiasy kwadratowe IPv6
+wymagane w adresach URL są dodawane automatycznie i nie mogą być zapisywane w
+plikach parowania.
+.SH PRYWATNOŚĆ DANYCH POGODOWYCH
+Opcjonalna prognoza wysyła żądania do \fBwttr.in\fR. Najpierw używa
+miejscowości z adresu użytkownika, a następnie odczytanych lokalnie danych
+użytkownika LibreOffice. Jeśli żadne z tych źródeł nie zawiera miejscowości,
+wttr.in może ją oszacować na podstawie publicznego adresu IP widocznego dla
+usługi. Opcja kalendarza \(lqNie pobieraj pogody bez lokalizacji\(rq zapobiega
+w takim przypadku wszelkim sieciowym żądaniom danych pogodowych.
+.SH PLIKI
+.TP
+.I ~/.local/share/magnolie-organizer/
+Dane użytkownika, ustawienia, kopie zapasowe i stan przypomnień.
+.TP
+.I ~/.config/autostart/magnolie-organizer-tray.desktop
+Opcjonalny wpis autostartu w obszarze powiadomień.
+.TP
+.I ~/.local/state/magnolie-organizer/debug.log
+Dostępny tylko dla właściciela dziennik diagnostyczny tworzony po użyciu
+\fB\-\-debug\fR.
+.SH ŚRODOWISKO
+.TP
+.B MAGNOLIE_ORGANIZER_WEB
+Używa alternatywnego katalogu zawierającego interfejs WWW. Przeznaczone do
+programowania i testowania.
+.SH ZOBACZ TAKŻE
+.BR magnolie-handbuch (1)
+.SH AUTOR
+Autorem jest Maik Walter.

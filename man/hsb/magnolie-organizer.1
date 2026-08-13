@@ -1,0 +1,86 @@
+.TH MAGNOLIE-ORGANIZER 1 "awgust 2026" "Magnolie Organizer 2.0.0" "Wužiwarske přikazy"
+.SH MJENO
+magnolie-organizer \- wosobinski organizator w klasiskej papjerowej podobje
+.SH SYNOPSA
+.B magnolie-organizer
+.RI [ opcija ]
+.RI [ \-\-sprache\  rěč ]
+.SH WOPISANJE
+.B Magnolie Organizer
+zjednoća protyku, nadawki, kontakty, noticy, róčnicy a lětny planer. Daty so
+lokalnje składuja a móža so na přeće přez Evolution Data Server synchronizować
+abo přez zaklučowanu słužbu Magnolienbaum dźělić.
+.PP
+Na wužiwarske posedźenje so jenož jedna grafiska instanca wočini. Znowawolanje
+přikaza pokaže hižo eksistowace wokno, tež hdyž je w systemowej łopje schowane.
+.SH OPCIJE
+.TP
+.B \-\-erinnerung
+Terminowe dopomnjeća přepruwować. Tutu opciju zwjetša posedźenska słužba wužiwa.
+.TP
+.B \-\-wecker
+Dohladowanje dopomnjećow w pozadku wuwjesć.
+.TP
+.B \-\-tray-start
+Organizator přez jeho awtostartowy zapisk systemoweje łopy startować.
+.TP
+.B \-\-probe
+Dopomnjeća testować a diagnostisku rozprawu wudać.
+.TP
+.B \-\-debug
+Z normalnym dźěłom pokročować a při tym priwatnu, rotěrowacu diagnostiku wo
+starće, posedźenju, jednotliwej instancy, woknje a systemowej łopje do
+\fB~/.local/state/magnolie-organizer/debug.log\fR pisać. Skónčće hižo běžacu
+instancu před diagnostiskim startom; druhe wołanje jenož eksistowacy proces
+aktiwizuje.
+.TP
+.BR \-\-sprache " " SPRACHE , " " \-\-language " " LANGUAGE
+Za tute wołanje němčinu (\fBde\fR), jendźelšćinu (\fBen\fR) abo systemowu rěč
+(\fBsystem\fR) wužiwać. To wuběra rěč přikazoweho wudaća před pomocnym,
+diagnostiskim a pozadkowym modusom kaž tež rěč WebKit-powjercha nowo wočinjeneje
+grafiskeje instancy. Składowane nastajenja so njezměnja.
+.TP
+.BR \-\-pot " [" DATEI "]", " " \-\-pot-template " [" FILE "]"
+Reprodukowajomnu předłohu gettext wutworić a program skónčić. Bjez datajoweho
+argumenta so \fBmagnolie-organizer.pot\fR do aktualneho zapisa składuje, hewak
+do podateje šćežki. Po wuspěchu so absolutna wudawanska šćežka wuda.
+.TP
+.BR \-\-hilfe , " " \-\-help
+Krótki přehlad přikazow pokazać.
+.SH SYĆ MAGNOLIENBAUM
+Hdyž je Magnolienbaum zapinjeny, słucha přez IPv4 a IPv6 na TCP-porće 8737.
+Lokalne hałuzy so přez mDNS/DNS-SD jako \fB_magnolie._tcp.local.\fR
+wozjewjeja a namakaja. UDP-port 8737 dale jako wobmjezowana namakanska
+rezerwa za starše wersije k dispoziciji wostanje; mDNS wužiwa UDP-port 5353.
+.PP
+Mjeno hosta, IPv4-adresa abo IPv6-adresa da so tež manuelnje zapodać.
+Porowanske dataje přijimaja docpějomne literale IPv4 a IPv6. Kałate spinki
+IPv6, kotrež URL trjeba, so awtomatisce přidaja a njesmědźa so w porowanskich
+datajach składować.
+.SH PRI WJEDRJE DATY ŠKITOWAĆ
+Opcionalne wjedrowe předpowědźenje sćele naprašowanja na \fBwttr.in\fR.
+Najprjedy wužiwa městno z adresy wužiwarja, potom lokalnje čitane wužiwarske
+daty LibreOffice. Jeli žane z njeju městno njewobsahuje, móže wttr.in jo z
+wjawneje IP-adresy, kotruž słužba widźi, přibližnje zwěsćić. Protykowa opcija
+\(lqWjedro bjez městna njewotwołać\(rq w tutym padźe kóždemu syćowemu
+naprašowanju za wjedrom zadźěwa.
+.SH DATAJE
+.TP
+.I ~/.local/share/magnolie-organizer/
+Wužiwarske daty, nastajenja, zawěsćenja a staw dopomnjećow.
+.TP
+.I ~/.config/autostart/magnolie-organizer-tray.desktop
+Opcionalny awtostartowy zapisk systemoweje łopy.
+.TP
+.I ~/.local/state/magnolie-organizer/debug.log
+Jenož za wobstojerja čitajomny diagnostiski protokol, kotryž so při wužiwanju
+\fB\-\-debug\fR wutwori.
+.SH WOKOLINA
+.TP
+.B MAGNOLIE_ORGANIZER_WEB
+Alternatiwny zapis z webowym powjerchom wužiwać. Za wuwiwanje a testowanje
+myslene.
+.SH HLEJ TEŽ
+.BR magnolie-handbuch (1)
+.SH AWTOR
+Spisał Maik Walter.

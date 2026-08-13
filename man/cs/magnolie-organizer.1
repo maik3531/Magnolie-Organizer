@@ -1,0 +1,85 @@
+.TH MAGNOLIE-ORGANIZER 1 "srpen 2026" "Magnolie Organizer 2.0.0" "Uživatelské příkazy"
+.SH NÁZEV
+magnolie-organizer \- osobní organizér v klasickém papírovém vzhledu
+.SH POUŽITÍ
+.B magnolie-organizer
+.RI [ volba ]
+.RI [ \-\-sprache\  jazyk ]
+.SH POPIS
+.B Magnolie Organizer
+spojuje kalendář, úkoly, kontakty, poznámky, výročí a roční plánovač. Data se
+ukládají místně a volitelně je lze synchronizovat prostřednictvím Evolution
+Data Serveru nebo sdílet pomocí šifrované služby Magnolienbaum.
+.PP
+V rámci jednoho uživatelského sezení se otevře pouze jedna grafická instance.
+Opětovné spuštění příkazu zobrazí existující okno, i když je skryté v
+oznamovací oblasti.
+.SH VOLBY
+.TP
+.B \-\-erinnerung
+Zkontrolovat aktuální připomenutí. Tuto volbu obvykle používá služba sezení.
+.TP
+.B \-\-wecker
+Spustit sledování připomenutí na pozadí.
+.TP
+.B \-\-tray-start
+Spustit organizér pomocí jeho položky automatického spuštění v oznamovací
+oblasti.
+.TP
+.B \-\-probe
+Otestovat připomenutí a vypsat diagnostickou zprávu.
+.TP
+.B \-\-debug
+Pokračovat v běžném provozu a zároveň zapisovat soukromou rotovanou diagnostiku
+spuštění, sezení, jediné instance, okna a oznamovací oblasti do souboru
+\fB~/.local/state/magnolie-organizer/debug.log\fR. Před diagnostickým spuštěním
+ukončete již běžící instanci; druhé spuštění pouze aktivuje existující proces.
+.TP
+.BR \-\-sprache " " SPRACHE , " " \-\-language " " LANGUAGE
+Pro toto spuštění použít němčinu (\fBde\fR), angličtinu (\fBen\fR), nebo jazyk
+systému (\fBsystem\fR). Tím se zvolí jazyk výstupu příkazu před režimem
+nápovědy, diagnostiky či běhu na pozadí a také rozhraní WebKit nově otevřené
+grafické instance. Uložená nastavení se nezmění.
+.TP
+.BR \-\-pot " [" DATEI "]", " " \-\-pot-template " [" FILE "]"
+Vytvořit reprodukovatelnou šablonu gettext a skončit. Bez argumentu souboru se
+soubor \fBmagnolie-organizer.pot\fR zapíše do aktuálního adresáře; jinak se
+zapíše do zadané cesty. Při úspěchu se vypíše absolutní cesta výstupu.
+.TP
+.BR \-\-hilfe , " " \-\-help
+Zobrazit stručný přehled příkazů.
+.SH SÍŤ MAGNOLIENBAUM
+Je-li služba Magnolienbaum zapnutá, naslouchá na TCP portu 8737 přes IPv4 a
+IPv6. Místní větve se oznamují a vyhledávají prostřednictvím mDNS/DNS-SD jako
+\fB_magnolie._tcp.local.\fR. UDP port 8737 zůstává dostupný jako omezená
+záložní metoda vyhledávání pro starší verze; mDNS používá UDP port 5353.
+.PP
+Název hostitele, adresu IPv4 nebo adresu IPv6 lze zadat také ručně. Párovací
+soubory přijímají dosažitelné literály IPv4 a IPv6. Hranaté závorky IPv6
+vyžadované v URL se doplní automaticky a nesmějí být v párovacích souborech
+uloženy.
+.SH SOUKROMÍ PŘI ZJIŠŤOVÁNÍ POČASÍ
+Volitelná předpověď odesílá požadavky na \fBwttr.in\fR. Nejprve použije místo
+z adresy uživatele a poté místně načtené uživatelské údaje LibreOffice. Pokud
+ani jeden zdroj místo neobsahuje, může je wttr.in odhadnout z veřejné IP adresy
+viditelné službě. Volba kalendáře \(lqNestahovat počasí bez polohy\(rq v tomto
+případě zabrání jakémukoli síťovému požadavku na počasí.
+.SH SOUBORY
+.TP
+.I ~/.local/share/magnolie-organizer/
+Uživatelská data, nastavení, zálohy a stav připomenutí.
+.TP
+.I ~/.config/autostart/magnolie-organizer-tray.desktop
+Volitelná položka automatického spuštění v oznamovací oblasti.
+.TP
+.I ~/.local/state/magnolie-organizer/debug.log
+Diagnostický protokol přístupný pouze vlastníkovi, vytvořený při použití
+\fB\-\-debug\fR.
+.SH PROSTŘEDÍ
+.TP
+.B MAGNOLIE_ORGANIZER_WEB
+Použít jiný adresář obsahující webové rozhraní. Určeno pro vývoj a testování.
+.SH VIZ TAKÉ
+.BR magnolie-handbuch (1)
+.SH AUTOR
+Napsal Maik Walter.

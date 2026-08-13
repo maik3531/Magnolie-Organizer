@@ -1,0 +1,2346 @@
+magnolie-organizer (2.0.0) unstable; urgency=medium
+
+  * Vereinheitlicht Desktop-Pakete, Aktualisierungsmetadaten und Handbücher auf
+    die ausdrücklich freigegebene Fassung 2.0.0.
+  * Bereinigt Quellpakete um interne Arbeitsnotizen und prüft deren Inhalt.
+  * Der Google-/EDS-Adressbuchabgleich validiert vollständige Snapshots und
+    führt neue Quellen zunächst ausschließlich als sicheren Import aus.
+  * Adressbuch-Baselines werden je Quelle erst nach erfolgreicher Speicherung
+    aktiviert; Vorschau und Ergebnis trennen geplante und gelungene Vorgänge.
+
+ -- Maik Walter <maik3531@gmail.com>  Wed, 12 Aug 2026 12:00:00 +0200
+
+magnolie-organizer (1.31.95) unstable; urgency=medium
+
+  * Der verkürzte Abgleichstatus gemeinsamer Notizen beginnt bündig unter der
+    Freigabegruppe und nutzt den ohnehin reservierten Platz der ausgeblendeten
+    Formatleiste, sodass das Schreibblatt nicht mehr zusätzlich scrollt.
+
+ -- Maik Walter <maik3531@gmail.com>  Tue, 11 Aug 2026 12:23:36 +0200
+
+magnolie-organizer (1.31.94) unstable; urgency=medium
+
+  * Der Status gemeinsamer Notizen steht nun in einer eigenen Zeile unter den
+    Einfüge- und Freigabeknöpfen, sodass auch längere Übersetzungen deren Größe
+    und Anordnung nicht mehr verändern.
+
+ -- Maik Walter <maik3531@gmail.com>  Tue, 11 Aug 2026 11:41:18 +0200
+
+magnolie-organizer (1.31.93) unstable; urgency=medium
+
+  * Die neutral gestalteten medizinischen Hinweise des Medikamentenplans und
+    der Blutzuckertabelle stehen nun wie der Vitalwerte-Hinweis direkt unter
+    der jeweiligen Tabelle auf der linken Buchseite.
+  * Der bereits links angeordnete Hinweis im Verlauf verwendet ebenfalls die
+    ruhige Referenzgestaltung statt der roten Warnungsdarstellung.
+
+ -- Maik Walter <maik3531@gmail.com>  Tue, 11 Aug 2026 11:03:28 +0200
+
+magnolie-organizer (1.31.92) unstable; urgency=medium
+
+  * Gesundheitswerte zeigen ihre allgemeinen Referenzbereiche direkt am
+    Eingabefeld sowie dezent in Tabellenzelle und Messzeile in Grün, Orange
+    oder Rot; Gewicht wird dabei ausschließlich über den berechneten BMI
+    eingeordnet.
+  * Der medizinische Hinweis steht nun gut sichtbar auf der linken Buchseite
+    und bleibt durch seine neutrale Gestaltung klar von einer Warnung getrennt.
+
+ -- Maik Walter <maik3531@gmail.com>  Tue, 11 Aug 2026 10:29:42 +0200
+
+magnolie-organizer (1.31.91) unstable; urgency=medium
+
+  * Schlüsselgebundene Paarungsdateien markieren beide Zweige dauerhaft als
+    vertraut; ältere Code- und Legacy-Paarungen bleiben vorsichtshalber
+    unvertraut und lassen sich je Partner ausdrücklich freigeben.
+  * Partner können neben dem beobachteten lokalen Ziel einen direkten
+    Internet-, VPN-, Rückwärtstunnel- oder eigenen Server-Endpunkt erhalten,
+    der ohne zentralen Magnolie-Vermittler als zweiter Zustellweg dient.
+  * „Alles synchronisieren“ gleicht lokale Notizen und eigene Aufgaben mit
+    stabilen Kennungen vollständig ab. Verschlüsselte Sync-Anfragen antworten
+    nur vertrauenswürdigen Partnern und erzeugen keine Antwortschleife.
+  * Neue Notizen und Aufgaben bestätigter vertrauenswürdiger Partner werden
+    automatisch übernommen; unbekannte Inhalte bleiben entscheidungspflichtig.
+
+ -- Maik Walter <maik3531@gmail.com>  Tue, 11 Aug 2026 08:25:24 +0200
+
+magnolie-organizer (1.31.90) unstable; urgency=medium
+
+  * Der Medikamentenplan verwendet wieder die ursprünglichen 34 Pixel hohen
+    Datenzeilen, sodass alle zwanzig Zeilen einschließlich Plusknöpfen oberhalb
+    der Aktionsleiste vollständig auf die rechte Buchseite passen.
+  * Die WebKit-Prüfung öffnet den Medikamentenplan in allen Sprachen und weist
+    eine Überdeckung von Tabelle und Aktionsleiste ausdrücklich ab.
+  * Die italienische Mittagsbeschriftung verwendet das gleichbedeutende kurze
+    „Mezzodì“ und bleibt dadurch als ungetrenntes Wort vollständig lesbar.
+
+ -- Maik Walter <maik3531@gmail.com>  Tue, 11 Aug 2026 07:06:46 +0200
+
+magnolie-organizer (1.31.89) unstable; urgency=medium
+
+  * Gesundheits-ODS stellen einen einzelnen Verlauf als Messwertliste neben
+    seinem Diagramm und alle sechs Verläufe als echtes 2-mal-3-Diagrammraster
+    auf einer A4-Querformatseite dar.
+  * Gesundheitstabellen behalten in der Vollansicht ihre bisherige passende
+    Breite. Nur in schmaleren Fenstern schützt eine scrollbare Mindestbreite
+    lange übersetzte Einzelwörter vor Trennung und abgeschnittenem Text.
+  * Die echte WebKit-Layoutprüfung unterstützt zusätzliche Fenstergrößen und
+    prüft die Oberfläche in allen zwanzig Sprachen.
+
+ -- Maik Walter <maik3531@gmail.com>  Tue, 11 Aug 2026 06:28:59 +0200
+
+magnolie-organizer (1.31.88) unstable; urgency=medium
+
+  * Unter Allgemein lassen sich alle Register außer dem stets verfügbaren
+    Kalender einzeln ausblenden. Abhängige Optionen verschwinden mit.
+    Bis zu vier Register werden schmal und von oben nach unten beschriftet.
+  * Übersetzte Reiter, Knöpfe, Überschriften, Dialoge und Beschriftungen passen
+    sich durch Umbruch an Wortgrenzen oder Größenanpassung ihrer Fläche an;
+    einzelne untrennbare Wörter werden nicht auseinandergerissen.
+  * Der geschlossene WebKit-Ursprung liefert alle neunzehn Sprachkataloge; ein
+    echter Mindestfenster-Test prüft alle Sprachen und Einstellungsseiten.
+  * Gesundheitszahlen verwenden kommafähige Felder ohne kleine Pfeiltasten und
+    lassen sich mit dem Mausrad in passenden Einer- oder Zehntelschritten
+    ändern.
+  * Blutzucker und Blutdruck erhalten eine ausdrücklich nicht diagnostische
+    grün-orange-rote Referenzanzeige mit ärztlichem Sicherheitshinweis.
+  * Der Verlaufsrahmen ist geschlossen; Heute-Markierungen bleiben auch bei
+    Urlaub und nach Mitternacht oder dem Aufwachen des Rechners zuverlässig.
+  * Der Gesundheitsdruck bietet Bereich, Vorlage oder Werte, Von/Bis sowie ein
+    optionales Insulinschema und passt Tabellen auf A4 im Querformat ein.
+  * Vitalwerte füllen beide Buchseiten; Blutzucker steht ausschließlich links
+    und das Insulinschema rechts. Blutzucker und Medikamente erhalten mit den
+    Pfeilen dauerhaft getrennte, frei anlegbare Folgeseiten.
+  * Gesundheits-ODS verwenden eigene A4-Querformatblätter: Vitalwerte und
+    Blutzucker stehen als Halbseitentabellen neben Tabelle oder Insulinschema,
+    beim Medikamentenplan ergänzen sich Stamm- und Dosierungsdaten; ein freier
+    Mittelfalz erleichtert den Ausdruck als gefaltetes A5-Heft.
+  * Gesundheitseinheiten lassen sich automatisch nach Sprache oder ausdrücklich
+    als °C/°F, kg/lb, cm/in und mmol/L beziehungsweise mg/dL wählen; vorhandene
+    metrische Werte werden für Anzeige, Druck und ODS verlustarm umgerechnet.
+  * Unmögliche Messwerte werden abgewiesen, Null bleibt leer und die Knöpfe zum
+    Speichern oder Verwerfen bleiben beim Scrollen dauerhaft sichtbar.
+  * Schemaregeln unterstützen absolute IE mit = sowie Zu- und Abschläge auf
+    Basiseinheiten; die berechnete Schemaorientierung wird angezeigt, während
+    die tatsächlich verabreichte Menge bewusst manuell dokumentiert bleibt.
+  * Der Gesundheitsdruck zeigt wie der Planer eine echte A4-Vorschau; kompakte
+    ODS-Köpfe, korrekte Worttrennung und ein freier Mittelfalz verbessern den
+    Papierausdruck.
+  * Gesundheitsdaten korrigieren eindeutige Zifferneingaben wie 2082026 zu
+    20.08.2026 und schlagen heute sowie die beiden vorherigen Tage vor.
+  * Verlaufspunkte erhalten Innenabstand und der zuletzt gezeichnete Rahmen
+    bleibt dadurch auf allen vier Seiten sichtbar geschlossen.
+  * Die Gesundheitsvorschau verwendet CSP-kompatible A4-Miniaturen; Vitalwerte,
+    Medikamente und Blutzucker sind als exklusive Bereiche auswählbar.
+  * Lang- und Kurzzeitinsulin bieten getrennte Listen gebräuchlicher Präparate,
+    bleiben aber weiterhin frei beschreibbar.
+  * Verlaufs-ODS enthalten je Diagramm ein eigenes Messwertblatt; gespeicherte
+    Gesundheitseinträge lassen sich einzeln oder seitenweise löschen.
+  * Der rote Heute-Rahmen der Wochenansicht wird separat gezeichnet und kann
+    dadurch unter WebKit nicht mehr als halbe Linie in den Folgetag ragen.
+  * Einzelverläufe kombinieren Tabelle und Diagramm; alle sechs Diagramme
+    lassen sich auf einer Seite in zwei Spalten zu je drei Grafiken drucken.
+  * Eine einzige kanonische Desktop-ID entfernt den doppelten Klammerzusatz im
+    Startmenü, ohne die Bereinigung alter Kalenderzuordnungen zu verlieren.
+
+ -- Maik Walter <maik3531@gmail.com>  Mon, 10 Aug 2026 04:29:40 +0200
+
+magnolie-organizer (1.31.87) unstable; urgency=medium
+
+  * Kalenderzeichen für Gesundheitswerte erscheinen nur bei ausdrücklich
+    aktivierter Planung, nicht bereits durch gespeicherte Messwerte oder
+    Medikamenteneinträge.
+  * Blutdruck erhält getrennte systolische und diastolische Eingabefelder;
+    Messsituationen lassen sich frei beschreiben oder aus Vorschlägen wählen.
+  * Langzeit- und Kurzzeitinsulin unterstützen getrennt feste Einheiten oder
+    frei erweiterbare BZ-Regeln mit Vergleich und Zu-/Abschlag.
+  * Passende Insulinregeln werden nur als Orientierung hervorgehoben; die
+    tatsächlich gespritzten IE bleiben aus Sicherheitsgründen stets manuell.
+  * Medikamentenformen und die feste Arzneimittelinformation wurden erweitert;
+    die Locale-Dateien behalten im Debian-Paket ihre Sprachverzeichnisse.
+  * Some portions of this release were developed with assistance from
+    generative AI and were reviewed and tested before inclusion.
+
+ -- Maik Walter <maik3531@gmail.com>  Mon, 10 Aug 2026 01:48:05 +0200
+
+magnolie-organizer (1.31.86) unstable; urgency=medium
+
+  * Gesundheit lässt sich unter Kalender mit einzeln sichtbaren Bereichen und
+    eigenen Kalenderintervallen für Vitalwerte, Medikamente und Blutzucker
+    einrichten.
+  * Vitalwerte, Medikamentenplan und Blutzucker verwenden doppelseitige
+    Papier-Tabellen mit ungespeicherten Folgeseiten, Seitenpfeilen sowie
+    Speichern und Verwerfen.
+  * Medikamentenform, Einnahmezeiten, Gründe, Sonderfälle, wochentagsabhängige
+    Mengen, feste Online-Suche und ein getrenntes Insulinschema sind ergänzt.
+  * Verlauf, Auswahlvorschau, dauerhaftes Löschen, leere Druckvorlagen und
+    ausgefüllte ODS-Ausgaben berücksichtigen alle Gesundheitswerte.
+  * Sämtliche neuen Texte sind in allen neunzehn Oberflächensprachen
+    vollständig übersetzt.
+
+ -- Maik Walter <maik3531@gmail.com>  Mon, 10 Aug 2026 00:04:07 +0200
+
+magnolie-organizer (1.31.85) unstable; urgency=medium
+
+  * Tägliche Terminserien werden in Oberfläche, Erinnerung und ICS-Rundlauf
+    vollständig unterstützt.
+  * Neunzehn Sprachkataloge werden in Debian-Paket und AppImage eingebaut und
+    über System-, Einstellungs- oder Befehlszeilensprache ausgewählt.
+  * Der neue zuschaltbare Gesundheitsbereich dokumentiert Vitalwerte,
+    Blutzucker, Medikamenten- und Insulinpläne mit Kalenderzeichen, Verlauf,
+    Druck und ODS-Ausgabe.
+  * Das AppImage bündelt TLS-, GIO- und GStreamer-Komponenten sowie
+    Zertifikate, ohne inkompatible GVfs-Module des Wirts zu laden.
+
+ -- Maik Walter <maik3531@gmail.com>  Sun, 09 Aug 2026 22:47:40 +0200
+
+magnolie-organizer (1.31.84) unstable; urgency=medium
+
+  * Das AppImage startet WebKit-Hilfsprozesse aus seinem eigenen Laufzeitbaum,
+    statt den auf Arch Linux fehlenden Debian-Systempfad zu verwenden.
+  * Ein festes Adwaita-Theme und das gebündelte XApp-GTK-Modul verhindern
+    Fehler durch inkompatible Themes und GTK-Module des Wirts.
+
+ -- Maik Walter <maik3531@gmail.com>  Sat, 08 Aug 2026 08:31:48 +0200
+
+magnolie-organizer (1.31.83) unstable; urgency=medium
+
+  * Das AppImage bündelt XApp und AppIndicator passend zu seiner GTK-/GLib-
+    Laufzeit und lädt keine inkompatiblen GTK-Module des Wirts mehr.
+  * Fehler in optionalen Tray-Bibliotheken können den Programmstart nicht mehr
+    abbrechen.
+
+ -- Maik Walter <maik3531@gmail.com>  Sat, 08 Aug 2026 05:38:31 +0200
+
+magnolie-organizer (1.31.82) unstable; urgency=medium
+
+  * Thunderbird-Schema 23 übernimmt einfache Terminserien und ordnet
+    Geburtstage sowie weitere Jahrestage der richtigen Rubrik zu.
+  * Lotus-, ICS- und CSV-Importe bewahren lange Notizen und Nanosekundenzeiten;
+    unvollständige, binäre oder falsch benannte Dateien werden verständlich
+    abgewiesen.
+  * Das Kontextmenü kann Text wieder in Telefon- und E-Mail-Felder einfügen.
+  * Ein gebündeltes x86_64-AppImage gehört dauerhaft zum Release; die
+    Aktualisierungsprüfung bietet je nach Installation nur DEB oder AppImage an.
+  * Import-/Export-Vertragstests und 30.000er-Lasttests sperren künftige
+    Freigaben bei Datenverlusten; Geburtstage am 29. Februar bestehen nun auch
+    die eigene ICS-Export-/Import-Rundreise.
+
+ -- Maik Walter <maik3531@gmail.com>  Fri, 07 Aug 2026 19:16:41 +0200
+
+magnolie-organizer (1.31.81) unstable; urgency=medium
+
+  * Der Monatskalenderdruck bietet getrennte Schalter für Regel-/Zyklusmarker
+    und Müllentleerungen; beide gelten einheitlich für Vorschau, Druck und ODS.
+  * Monats-ODS zeigt Müllentleerungen und richtet Datum sowie Einträge wie die
+    Vorschau am oberen Rand der Tageszellen aus.
+
+ -- Maik Walter <maik3531@gmail.com>  Thu, 06 Aug 2026 16:32:00 +0200
+
+magnolie-organizer (1.31.80) unstable; urgency=medium
+
+  * Beschriftungen von Feiertagen und Ferien sind in Jahresvorschau,
+    Jahresdruck und Jahres-ODS jeweils eine Schriftstufe kleiner.
+
+ -- Maik Walter <maik3531@gmail.com>  Thu, 06 Aug 2026 14:02:00 +0200
+
+magnolie-organizer (1.31.79) unstable; urgency=medium
+
+  * Jahres-ODS verwendet kleinere Datums- und Eintragsschriften, damit Datum
+    und ausgewählte Feiertage vollständig in den schmalen Spalten stehen.
+  * Teams, Snapchat, TikTok, YouTube, Telegram, X, LinkedIn, Reddit und freie
+    soziale Dienste erhalten passende Magnolie-Symbole und sichere Ziele.
+  * Freie soziale Dienste bieten zusätzliche Symbolvorräte für Twitch, IRC,
+    Discord, Matrix, Slack und GitHub.
+  * Ein lokaler Müllkalender zeigt farbige Tonnen für Restmüll, Verpackungen,
+    Biomüll und freie Arten in einmaligen oder regelmäßigen Abständen.
+
+ -- Maik Walter <maik3531@gmail.com>  Thu, 06 Aug 2026 14:01:00 +0200
+
+magnolie-organizer (1.31.78) unstable; urgency=medium
+
+  * Datumsfelder ergänzen TTMM um das aktuelle Jahr, lassen sich segmentweise
+    mit Tab und Mausrad bedienen und setzen Pflichtangaben auf heute zurück.
+  * Jahrestage können ohne bekanntes Jahr einschließlich des 29. Februar
+    gespeichert werden; Altersangaben bleiben dann ausgeblendet.
+  * Jahres- und Monats-ODS entsprechen der A4-Querformat-Druckvorschau bei
+    Maßen, Farben, Schriften, Symbolen, Eintragszeilen und Druckbereich.
+
+ -- Maik Walter <maik3531@gmail.com>  Thu, 06 Aug 2026 14:00:00 +0200
+
+magnolie-organizer (1.31.77) unstable; urgency=medium
+
+  * Datumsfelder arbeiten standardmäßig ohne Popup, zeigen TT.MM.JJJJ und
+    nehmen eine achtstellige Tastatureingabe zuverlässig an.
+  * Barrierefreiheit ist unter Allgemein zugeklappt; Zyklussymbole bleiben in
+    ihren Schaltern und normale Starts vermeiden veraltete WebKit-Aufrufe.
+  * Der Tray-Zähler bleibt standardmäßig deaktiviert.
+
+ -- Maik Walter <maik3531@gmail.com>  Thu, 06 Aug 2026 12:20:00 +0200
+
+magnolie-organizer (1.31.76) unstable; urgency=medium
+
+  * Jahres- und Monats-ODS übernehmen feste Kalendermaße, Symbole und die
+    farbigen Eintragszeilen der Druckvorschau.
+  * Kalender- und Tray-Einstellungen starten zugeklappt; Wochennummern und
+    vergangene Termine sind übersichtlicher angeordnet.
+  * Früh-, Spät- und Nachtdienst sowie Zyklusphasen und Blutungsstärken sind
+    als Vorlagen verfügbar und über mehrere Tage zuweisbar.
+  * Ein lokaler Urlaubsplaner mit Datumsbereichen und Symbolwahl ist in
+    Kalender, Jahresplaner und Planerdruck ergänzt.
+  * Markierungen eines Tags stehen nun im normalen Seitenfluss und verdecken
+    weder Ferien noch Termine; der Tray-Zähler ist optional.
+  * Datumsfelder nehmen TTMMJJJJ direkt an, Terminzeiten bleiben beim Tippen
+    unabhängig und XApp zeigt den Tray-Zähler sichtbar an.
+
+ -- Maik Walter <maik3531@gmail.com>  Wed, 05 Aug 2026 08:34:00 +0200
+
+magnolie-organizer (1.31.75) unstable; urgency=medium
+
+  * Der Planerdruck bietet Jahres- oder Monatskalender, Monatswahl sowie
+    optionale Termine, Jahrestage und Schichten.
+  * Planer-ODS passt auf eine Druckseite; Monats-ODS erhält Kalenderwochen und
+    breite Tagesfelder.
+  * Kalenderoptionen sind nach Wochennummern, Wetter, Schichtdienst und
+    Regel-/Zykluskalender ausklappbar gegliedert.
+  * Frei definierbare Schichten und lokale Zyklusmarkierungen lassen sich im
+    neuen Terminblatt einem Tag zuweisen und erscheinen in Kalender und Planer.
+
+ -- Maik Walter <maik3531@gmail.com>  Wed, 05 Aug 2026 06:38:34 +0200
+
+magnolie-organizer (1.31.74) unstable; urgency=medium
+
+  * Ferien und Feiertage erscheinen nicht mehr als Termine in den
+    Auswahloptionen.
+  * Der Planer besitzt eine eigene Jahresvorschau mit optionalen Ferien und
+    Feiertagen sowie Ausgabe als Druck oder gestaltete ODS-Tabelle.
+
+ -- Maik Walter <maik3531@gmail.com>  Wed, 05 Aug 2026 05:03:21 +0200
+
+magnolie-organizer (1.31.73) unstable; urgency=medium
+
+  * Hilfsrahmen aller Bedienelemente im Notizeditor werden innerhalb ihrer
+    sichtbaren Flächen gezeichnet.
+  * Die Auswahloptionen können nun auch mehrere Notizen und Jahrestage über
+    denselben bestätigten Papierkorbweg wie die Einzelansicht löschen.
+  * Beim Löschen ausgewählter Geburtstage wird das zugehörige Kontaktfeld
+    ebenfalls bereinigt.
+  * Gerade und ungerade ODS-Datenzeilen erhalten identische explizite
+    Innenabstände, sodass keine scheinbaren führenden Leerzeichen mehr
+    auftreten.
+
+ -- Maik Walter <maik3531@gmail.com>  Wed, 05 Aug 2026 04:13:08 +0200
+
+magnolie-organizer (1.31.72) unstable; urgency=medium
+
+  * Cinnamon-ICONIFIED-Ereignisse aus dem eigenen Tray-Öffnungsvorgang lösen
+    kein sofortiges erneutes Verbergen mehr aus; die Nachprüfung versucht das
+    Entminimieren bei Bedarf mehrfach.
+  * Hilfsrahmen im rollenden Formular für neue und bearbeitete Kontakte werden
+    vollständig innerhalb der sichtbaren Eingabefläche gezeichnet.
+  * Der automatische Abgleichhinweis gemeinsamer Notizen ist nur bei aktivem
+    Magnolienbaum sichtbar und verschwindet sofort nach dessen Abschaltung.
+
+ -- Maik Walter <maik3531@gmail.com>  Wed, 05 Aug 2026 03:23:22 +0200
+
+magnolie-organizer (1.31.71) unstable; urgency=medium
+
+  * Das Cinnamon-Tray verwirft überholte Minimierungsereignisse, entminimiert
+    vor der Zustandswiederherstellung und prüft das sichtbare Fenster erneut.
+  * Die ODS-Spaltenwahl ist eine zunächst geschlossene, vertikale Aufklappliste;
+    zusätzliche Rufnummern werden ohne redundante Bezeichnungen ausgegeben.
+  * ODS-Geburtstage werden auch über unverknüpfte Namenseinträge gefunden; ein
+    anderer Kontaktjahrestag unterdrückt die Geburtstagsmigration nicht mehr.
+  * Hilfsrahmen liegen in rollenden Termin- und Auswahlflächen vollständig
+    innerhalb ihres sichtbaren Bereichs.
+
+ -- Maik Walter <maik3531@gmail.com>  Wed, 05 Aug 2026 02:46:06 +0200
+
+magnolie-organizer (1.31.70) unstable; urgency=medium
+
+  * Fehlt das Handbuch bei der Ersteinrichtung, bietet der Organizer dessen
+    geprüftes Paket aus dem erweiterten Aktualisierungsmanifest zum Download an.
+  * Kalender-Tagesseiten übersetzen Jahrestagsarten; beim altersbezogenen
+    Todestag entfällt die doppelte zusätzliche Typbezeichnung.
+  * Die Einstellung erklärt den Hilfsrahmen als sichtbaren Tastaturfokus; am
+    Termin-Notizfeld wird der Rahmen vollständig innerhalb der Fläche
+    gezeichnet.
+  * Der Kontakt-ODS-Export trennt Hauptanschrift, Festnetz und Mobilnummer,
+    entfernt redundante Standardbezeichnungen und bewahrt weitere Einträge in
+    eigenen Spalten.
+
+ -- Maik Walter <maik3531@gmail.com>  Wed, 05 Aug 2026 01:45:42 +0200
+
+magnolie-organizer (1.31.69) unstable; urgency=medium
+
+  * Strg+Alt+H schaltet den unter Allgemein eingeordneten, voreingestellt
+    deaktivierten Barrierefreiheits-Hilfsrahmen jederzeit ein oder aus.
+  * Der Ersteinrichtungsdialog hebt das Tastenkürzel fett hervor;
+    Produktdokumentation und Review-Entscheidungen erläutern Voreinstellung,
+    Einordnung und die inert-Grenze älterer WebKitGTK-Versionen.
+  * Realm-übergreifende DOM-Tests bewahren Sonderwerte statt über JSON zu
+    normalisieren; doppelte Aufrufwrapper und ein ungenutzter Import entfallen.
+  * Fokusanker werden per direktem Selektor statt über einen vollständigen
+    Dokumentscan gefunden, insbesondere für die Tastatursteuerung des Planers.
+
+ -- Maik Walter <maik3531@gmail.com>  Tue, 04 Aug 2026 17:21:02 +0200
+
+magnolie-organizer (1.31.68) unstable; urgency=medium
+
+  * Die Druckauswahl kann die angehakten Einträge auch löschen: neuer Knopf
+    „Auswahl löschen“ bei Adressen, Kalender und Aufgaben. Gelöscht wird über
+    denselben Weg wie an der Einzelkarte – mit Rückfrage, Grabstein für den
+    Abgleich und Papierkorb.
+  * Ein gelöschter Kontakt nimmt seine abgeleiteten Jahrestage mit; Verweise
+    aus Terminen und Aufgaben werden gelöst statt mitgelöscht.
+  * Der Knopf in der Fußleiste heißt jetzt „Auswahloptionen“ statt „Drucken“,
+    ebenso die zugehörige Einstellung; der Hinweistext nennt Drucken, Ausgeben
+    und Papierkorb.
+  * pruefungen/test.js vergleicht Objekte aus dem jsdom-Realm wieder
+    verlässlich: assert.deepStrictEqual prüft auch den Prototyp, weshalb jeder
+    Vergleich mit einem im Fenster erzeugten Objekt bisher scheiterte und den
+    Paketbau blockierte.
+  * Kalenderflächen, Einstellungsreiter und Listen erhalten semantische
+    Tastaturaktionen mit roving Fokus und sichtbarer Fokusdarstellung.
+  * Ein zentraler Modalstapel hält Tab und Umschalt+Tab im obersten Dialog,
+    schließt per Escape nur diese Ebene und deaktiviert den Hintergrund.
+  * Logische Fokusanker geben den Fokus nach Dialogen, Löschungen und
+    DOM-Neuzeichnungen zuverlässig an die passende Bedienfläche zurück.
+  * Der durchgezogene Barrierefreiheits-Hilfsrahmen ist unter Allgemein
+    optional und voreingestellt aus; der Auswahlhinweis nennt keinen
+    nicht mehr vorhandenen Druckknopf auf der Kontaktkarte.
+
+ -- Maik Walter <maik3531@gmail.com>  Tue, 04 Aug 2026 16:36:44 +0200
+
+magnolie-organizer (1.31.67) unstable; urgency=medium
+
+  * autopkgtest prüft installierte Dateien, DOM und einen echten GTK-/WebKit-
+    Lauf mit internem URI-Schema, JavaScript-Brücke und Navigationssperre.
+  * Isolierte Maschinentests führen reale User-systemd- und UFW-Lebenszyklen
+    einschließlich Idempotenz und vollständiger Bereinigung aus.
+  * Die Zeitzonenmatrix umfasst Berlin, UTC, New York und Lord Howe sowie
+    europäische, amerikanische und halbstündige DST-Sprünge.
+
+ -- Maik Walter <maik3531@gmail.com>  Tue, 04 Aug 2026 13:17:18 +0200
+
+magnolie-organizer (1.31.66) unstable; urgency=medium
+
+  * Die Magnolienbaum-Dokumentation bildet den tatsächlich ausgelieferten
+    Funktionsumfang mit Aufgaben, Terminen, Kontakten und gemeinsamen Notizen
+    ab.
+  * Paarungsdatei, Codeweg, baum-1 und baum-fs1 sind einschließlich
+    Einwilligung, Zustelllogik und kryptografischen Grenzen dokumentiert.
+  * Betriebs-, HTTP-, Netzwerk-, Speicher-, Firewall- und Lebenszyklusgrenzen
+    sowie verbleibende Einschränkungen werden vollständig offengelegt.
+  * Die Ist-Dokumentation wird im Debian-Paket installiert und durch eine
+    Regression gegen erneute inhaltliche Drift geschützt.
+
+ -- Maik Walter <maik3531@gmail.com>  Tue, 04 Aug 2026 12:48:33 +0200
+
+magnolie-organizer (1.31.65) unstable; urgency=medium
+
+  * Die Wettereinstellungen erklären ausdrücklich, dass wttr.in ohne lokalen
+    Ort die öffentliche IP-Adresse zur ungefähren Ortsbestimmung verwendet.
+  * Eine persistente Option unterbindet den Wetterabruf ohne eigenen oder
+    lokalen LibreOffice-Ort bereits vor jedem Netzwerkzugriff im Backend.
+  * Datenschutzentscheidungen trennen Cachewerte und erscheinen als neutraler
+    Zustand statt als Providerfehler.
+
+ -- Maik Walter <maik3531@gmail.com>  Tue, 04 Aug 2026 12:20:35 +0200
+
+magnolie-organizer (1.31.64) unstable; urgency=medium
+
+  * Der Magnolienbaum lauscht getrennt über IPv4 und IPv6 und serialisiert
+    IPv6-Ziele korrekt in URLs, Anzeigen und Paarungsdateien.
+  * Portable mDNS-/DNS-SD-Erkennung ersetzt Linux-spezifische ioctls und das
+    direkte Abtasten örtlicher IPv4-Netze.
+  * Der begrenzte IPv4-UDP-Rundruf bleibt für ältere Versionen erhalten;
+    Quelladressen und Hostnamen werden kanonisch geprüft.
+
+ -- Maik Walter <maik3531@gmail.com>  Tue, 04 Aug 2026 11:44:41 +0200
+
+magnolie-organizer (1.31.63) unstable; urgency=medium
+
+  * Kontrollierte Datenwerte verwenden mit Datenfassung 3 stabile
+    sprachneutrale IDs statt deutscher Bezeichnungen.
+  * Deutsche Bestandswerte, ICS-, vCard- und Lotus-Daten werden an den
+    Grenzen kanonisiert; freie Benutzereinträge bleiben unverändert.
+  * Kontakt-, Import- und Dublettenschlüssel vergleichen Unicode-Texte
+    unabhängig von Sprache, Akzenten und Großschreibung.
+  * Papierkorb-, Tray-, Feiertags-, Wiederholungs- und EDS-Pfade wenden
+    denselben Datenvertrag einschließlich historischer Aliase an.
+
+ -- Maik Walter <maik3531@gmail.com>  Tue, 04 Aug 2026 11:05:20 +0200
+
+magnolie-organizer (1.31.62) unstable; urgency=medium
+
+  * WebKit und Enchant verwenden nun die gewählte deutsche oder englische
+    Oberflächensprache statt eines fest eingestellten deutschen Wörterbuchs.
+  * Vorschlags-, Aufnahme- und Umschaltbefehle übertragen die effektive
+    Sprache; Eingabefelder erhalten denselben DOM-Sprachwert.
+  * Enchant-Wörterbücher werden getrennt je Sprache und threadsicher geladen.
+  * Installationshinweise und Debian-Empfehlungen nennen sowohl das deutsche
+    als auch das englische Hunspell-Wörterbuch passend zur Oberfläche.
+
+ -- Maik Walter <maik3531@gmail.com>  Tue, 04 Aug 2026 09:47:13 +0200
+
+magnolie-organizer (1.31.61) unstable; urgency=medium
+
+  * Die bewusste Produktgrenze für komplexe RFC-5545-Wiederholungen wurde
+    erneut bestätigt und für EXDATE, RDATE, RECURRENCE-ID, EXRULE sowie
+    mehrere oder nicht abbildbare RRULEs technisch abgesichert.
+  * Solche Serien werden nicht falsch angenähert; vorhandene ICS-Komponenten
+    werden als gemeldete Einzeltermine übernommen. Abgetrennte Instanzen
+    erhalten stabile eigene Kennungen und verschwinden nicht als Duplikate.
+  * Einfache wöchentliche, monatliche und jährliche Wiederholungen sowie ihre
+    Erinnerungsfelder überstehen nun auch den Webimport.
+  * Der EDS-Abgleich berücksichtigt Änderungen an einfachen Wiederholungen.
+    Komplexe Serien werden fail-closed ausgelassen und nie vereinfacht
+    zurückgeschrieben.
+
+ -- Maik Walter <maik3531@gmail.com>  Tue, 04 Aug 2026 08:16:45 +0200
+
+magnolie-organizer (1.31.60) unstable; urgency=medium
+
+  * Importe werden vor dem vollständigen Einlesen auf 32 MiB und
+    Sicherungsdateien auf 256 MiB begrenzt.
+  * OpenHolidays-Antworten dürfen einzeln höchstens 1 MiB und je Abruf
+    insgesamt höchstens 8 MiB umfassen; Content-Length und tatsächlich
+    gelesene Daten werden unabhängig voneinander geprüft.
+  * Dateiimporte akzeptieren ausschließlich reguläre Dateien und folgen keinen
+    symbolischen Verweisen oder Spezialdateien.
+  * Verständliche Größenfehler und Regressionstests decken exakte Grenzen,
+    Grenze plus ein Byte, irreführende HTTP-Längen und verschlüsselte
+    Sicherungen ab.
+
+ -- Maik Walter <maik3531@gmail.com>  Tue, 04 Aug 2026 06:21:57 +0200
+
+magnolie-organizer (1.31.59) unstable; urgency=medium
+
+  * Verschlüsselung und dauerhafte Dateisynchronisierung laufen nun in einem
+    seriellen Speicherarbeiter statt im GTK-Hauptfaden.
+  * Vorgangskennungen ordnen jede Speicherbestätigung ihrem Datenstand zu;
+    Schließen, Sicherung und Wiederherstellung warten auf den neuesten Save.
+  * Hauptdaten verwenden eine authentisierte Fassung-2-Hülle mit zufälligem
+    DEK; normale Saves leiten keinen Kennwortschlüssel mehr ab.
+  * Kennwortwechsel umhüllen nur den stabilen DEK neu, während alte
+    Fassung-1-Dateien nach erfolgreichem Entsperren atomar migriert werden.
+  * Fehlerhafte Saves verhindern das Beenden, beschädigte Nutzdaten werden von
+    falschen Kennwörtern unterschieden und Sicherungen kollisionsfrei angelegt.
+
+ -- Maik Walter <maik3531@gmail.com>  Tue, 04 Aug 2026 05:55:22 +0200
+
+magnolie-organizer (1.31.58) unstable; urgency=medium
+
+  * Der geöffnete und entsperrte Organizer stellt wartende Baum-Nachrichten
+    unabhängig von neuen Sendungen in einem regelmäßigen Wartungstakt erneut zu.
+  * Jeder Wartungslauf verarbeitet höchstens eine fällige Nachricht und kann
+    sich nicht mit einem bereits laufenden Zustellversuch überschneiden.
+  * Neue Nachrichten werden vor ihrem ersten Netzversuch dauerhaft abgelegt;
+    unveränderte Warteschlangen verursachen keine unnötigen Schreibzugriffe.
+  * Regressionstests decken Backoff-Grenzen, Sperr- und Abschaltzustand,
+    Persistenz, autonome Wiederholung und Single-Flight-Verhalten ab.
+
+ -- Maik Walter <maik3531@gmail.com>  Tue, 04 Aug 2026 05:06:58 +0200
+
+magnolie-organizer (1.31.57) unstable; urgency=medium
+
+  * Magnolienbaum-Verbindungen besitzen nun neben der Inaktivitätsgrenze eine
+    absolute 45-Sekunden-Frist, die auch fortgesetztes Byte-Tröpfeln beendet.
+  * Pro Quelladresse sind höchstens vier und insgesamt höchstens 16 aktive
+    Verbindungen erlaubt; abgewiesene Anfragen erzeugen keinen Arbeitsfaden.
+  * Jede TCP-Verbindung verarbeitet genau eine streng gerahmte HTTP-Anfrage;
+    mehrdeutige Längen, Transfer-Encoding und Expect werden abgewiesen.
+  * Beim Abschalten werden aktive Clients, Wächter, Serverfaden und flüchtige
+    Forward-Secrecy-Sitzungen deterministisch beendet und bereinigt.
+
+ -- Maik Walter <maik3531@gmail.com>  Tue, 04 Aug 2026 04:42:03 +0200
+
+magnolie-organizer (1.31.56) unstable; urgency=medium
+
+  * Die privilegierte WebKit-Brücke besitzt pro Fenster einen zufälligen Namen
+    und ist beidseitig an den bestätigten Organizer-Topframe gebunden.
+  * Ein eigenes sicheres URI-Schema liefert ausschließlich sechs erlaubte
+    Oberflächendateien; fremde lokale und skriptgesteuerte Navigation wird
+    gesperrt.
+  * Eine Content-Security-Policy unterbindet Skript-, Netz-, Frame- und
+    Objektinhalte; PDF-Anhänge bleiben als sichere Downloads verfügbar.
+  * Ein begrenzter Gettext-Parser ersetzt dynamische `Function()`-Auswertung und
+    unterstützt übliche mehrformige Pluralregeln ohne JavaScript-Kompilierung.
+
+ -- Maik Walter <maik3531@gmail.com>  Tue, 04 Aug 2026 04:18:58 +0200
+
+magnolie-organizer (1.31.55) unstable; urgency=medium
+
+  * Eine einmalige Paarungsdatei bindet Identität und Zieladresse mit einem
+    256-Bit-Geheimnis, läuft nach 15 Minuten ab und ist nur einmal verwendbar.
+  * Dateigepaarte Zweige nutzen pro Nachricht einen authentisierten
+    ephemer-ephemeren X25519-Austausch mit verschlüsselter Bestätigung.
+  * Flüchtige Sitzungsschlüssel werden nach einer Nachricht überschrieben;
+    Wiederholung, Manipulation und bloße HTTP-Erfolgsantworten werden verworfen.
+  * Oberfläche und Tests decken Dateiimport, Ablauf, Einmaligkeit, Commitment,
+    echte Rückschleifenzustellung und Forward Secrecy ab.
+
+ -- Maik Walter <maik3531@gmail.com>  Tue, 04 Aug 2026 03:39:24 +0200
+
+magnolie-organizer (1.31.54) unstable; urgency=medium
+
+  * Kennwort setzen, ändern und entfernen sowie Sicherungswiederherstellungen
+    wechseln Hauptdaten und alle Baumablagen über ein gemeinsames Journal.
+  * Sämtliche Enddateien werden vor dem Commit privat geschrieben und
+    synchronisiert; danach kann ein Neustart den Wechsel ohne Kennwort beenden.
+  * SHA-256 und feste Dateinamen verhindern, dass beschädigte Stufen oder ein
+    manipuliertes Journal unbemerkt über den Bestand geschrieben werden.
+  * Regressionstests simulieren Abbrüche vor und nach dem Journal, nach jedem
+    Dateiwechsel, während der Bereinigung und erneut mitten in der Recovery.
+
+ -- Maik Walter <maik3531@gmail.com>  Tue, 04 Aug 2026 02:45:50 +0200
+
+magnolie-organizer (1.31.53) unstable; urgency=medium
+
+  * Bei aktivem Organizerkennwort schützt eine eigene DEK-Hülle nun auch
+    `baum.json` mit privatem X25519-Schlüssel und sämtlichen Partnermetadaten.
+  * Kennwortwechsel umhüllen nur den zufälligen Datenschlüssel neu; der
+    verschlüsselte Baumzustand bleibt dabei bytegleich.
+  * Beschädigte, unbekannte oder nicht entschlüsselbare Baumidentitäten werden
+    niemals mehr still durch ein neues Schlüsselpaar ersetzt.
+  * Kryptografie ist nun ausdrücklich eine Paket-Bauabhängigkeit, weil die
+    vollständige Regression ihre Verschlüsselungspfade während des Baus prüft.
+
+ -- Maik Walter <maik3531@gmail.com>  Tue, 04 Aug 2026 02:15:44 +0200
+
+magnolie-organizer (1.31.52) unstable; urgency=medium
+
+  * Bei aktivem Organizerkennwort liegen Magnolienbaum-Postfach und -Eingang
+    nun authentisiert verschlüsselt statt als lesbare JSON-Dateien vor.
+  * Bestehende Ablagen werden beim Entsperren migriert und bei Kennwortwechsel,
+    Kennwortentfernung oder Wiederherstellung gemeinsam umgeschlüsselt.
+  * Der Baumdienst und die Verarbeitung eingehender Nachrichten bleiben bis
+    zur erfolgreichen Entsperrung vollständig angehalten.
+  * Die Handbuchseiten tragen wieder die aktuelle Programmversion.
+
+ -- Maik Walter <maik3531@gmail.com>  Tue, 04 Aug 2026 01:41:42 +0200
+
+magnolie-organizer (1.31.51) unstable; urgency=medium
+
+  * „Heute“, neue Terminvorschläge, absolute Zeitstempel und offene
+    Erinnerungen verwenden durchgängig die gewählte Organizer-Zeitzone.
+  * Der Hintergrundwecker berechnet seine Wandzeit in der Organizer-Zone und
+    übergibt diese Zone ausdrücklich an einmalige systemd-Weckrufe.
+  * Zeitgebundene Thunderbird-Importe mit UTC oder TZID werden in die
+    Organizer-Zeitzone umgerechnet; Ganztags- und schwebende Werte bleiben rein.
+
+ -- Maik Walter <maik3531@gmail.com>  Tue, 04 Aug 2026 01:21:47 +0200
+
+magnolie-organizer (1.31.50) unstable; urgency=medium
+
+  * Der Überlaufknopf in der Wochenansicht öffnet immer den betroffenen Tag,
+    statt bei aktiviertem Schnellanlage-Verhalten einen neuen Termin anzulegen.
+  * Klicks auf vorhandene Termine bearbeiten weiterhin den Termin; nur Klicks
+    auf wirklich freie Kalenderflächen verwenden die gewählte Schnellanlage.
+  * Registerbeschriftungen sitzen weiter links und mittig im sichtbaren Banner.
+    Lange Übersetzungen werden bei tatsächlicher Überbreite verkleinert.
+
+ -- Maik Walter <maik3531@gmail.com>  Tue, 04 Aug 2026 00:55:40 +0200
+
+magnolie-organizer (1.31.49) unstable; urgency=medium
+
+  * Zeitgebundene Wiederholungen exportieren UNTIL RFC-5545-konform als UTC
+    und lesen den UTC-Grenzzeitpunkt in der Organizer-Zeitzone zurück.
+  * ICS-Exporte mit TZID enthalten nun eine VTIMEZONE-Komponente, deren
+    STANDARD- und DAYLIGHT-Übergänge aus der IANA-zoneinfo-Datenbank stammen.
+  * Regressionstests decken Sommer- und Winterzeit sowie den bisher falschen
+    UNTIL-Kalendertag in Zonen westlich von Greenwich ab.
+
+ -- Maik Walter <maik3531@gmail.com>  Tue, 04 Aug 2026 00:34:09 +0200
+
+magnolie-organizer (1.31.48) unstable; urgency=medium
+
+  * JS-DOM-Tests normalisieren gezielt drei Cross-Realm-Werte und laufen damit
+    auch mit Node.js und jsdom auf Debian-Autobuildern zuverlässig.
+  * Der Aktualisierungsdialog zeigt vorhandene SHA-256-Prüfsummen mit
+    Kopierknopf und dem passenden sha256sum-Prüfbefehl an.
+  * Ein fünfsekündiger Wächter beendet das Fenster auch bei einer nicht mehr
+    antwortenden WebView; atomare Schreibvorgänge synchronisieren nun zusätzlich
+    den Verzeichniseintrag.
+  * Ein zwischengespeicherter regionaler Intl.Collator ersetzt die letzten fest
+    auf Deutsch eingestellten Sortiervergleiche.
+  * Fehlende Prüfkataloge werden vor der Python-Suite verständlich gemeldet.
+    Exporttests sichern die vorhandene Meldung ausgelassener Einträge ab.
+  * REVIEW-ENTSCHEIDUNGEN.md hält bewusst akzeptiertes Verhalten für spätere
+    Reviews fest, darunter Updates ohne Produktionsschlüssel, die dauerhafte
+    UFW-Freigabe und die begrenzte Abbildung komplexer ICS-Wiederholungen.
+
+ -- Maik Walter <maik3531@gmail.com>  Tue, 04 Aug 2026 00:14:13 +0200
+
+magnolie-organizer (1.31.47) unstable; urgency=medium
+
+  * Verschlüsselte Datendateien werden vor der Schlüsselableitung strikt auf
+    Hüllenversion, Verfahren, PBKDF2-Kostengrenzen, Base64 sowie feste Salz-
+    und Nonce-Längen geprüft, damit manipulierte Dateien keine unbeschränkte
+    Schlüsselableitung oder ungültige Kryptoparameter erzwingen können.
+
+ -- Maik Walter <maik3531@gmail.com>  Mon, 03 Aug 2026 23:43:14 +0200
+
+magnolie-organizer (1.31.46) unstable; urgency=medium
+
+  * Aktualisierungen funktionieren ohne eingerichteten Release-Schlüssel wie
+    bisher; mit Schlüssel werden SHA-256 und Ed25519 weiterhin strikt geprüft.
+  * ICS-Exporte überspringen beschädigte Termine, Aufgaben und Jahrestage
+    einzeln, falten Unicode-Zeilen nach RFC-Oktetten und ergänzen fehlende
+    Endzeiten mit der vorhandenen halbstündigen Vorgabedauer.
+  * Einfache wöchentliche, monatliche und jährliche RRULEs überstehen Import und
+    Export; komplexe Regeln werden weiterhin ehrlich als Einzeltermin gemeldet.
+  * TZID und UTC werden mit zoneinfo in die Organizer-Zeitzone umgerechnet;
+    zeitgebundene Exporte tragen die ermittelte IANA-Zeitzone.
+  * Hauptdaten, Sicherungen, Erinnerungs- und Baumdateien werden über einen
+    gemeinsamen atomaren Schreiber bereits ab Erzeugung mit 0600 geschützt.
+  * Regionalregeln für Wochenbeginn, 12-/24-Stunden-Zeit und Celsius/Fahrenheit
+    werden in Kalender, Planer, Wetter, Druck und Erinnerungsanzeigen angewandt.
+
+ -- Maik Walter <maik3531@gmail.com>  Mon, 03 Aug 2026 23:25:00 +0200
+
+magnolie-organizer (1.31.45) unstable; urgency=medium
+
+  * SOURCE_DATE_EPOCH wird beim Paketbau aus dem obersten Changelog-Eintrag
+    exportiert, sodass erzeugte Dateien und Debian-Archive feste Zeitstempel
+    erhalten.
+  * Zwei vollständig getrennte Kontrollbauten erzeugen nun bytegleiche
+    Binärpakete mit identischer SHA-256-Prüfsumme.
+
+ -- Maik Walter <maik3531@gmail.com>  Mon, 03 Aug 2026 21:58:00 +0200
+
+magnolie-organizer (1.31.44) unstable; urgency=medium
+
+  * Der Debian-Paketbau führt neben den Parser- und Abgleichtests nun auch die
+    vollständige DOM-Oberflächensuite automatisch aus.
+  * nodejs und node-jsdom sind als netzunabhängige Bauabhängigkeiten deklariert;
+    lokale Entwicklungsbauten können ersatzweise Bun verwenden.
+  * DEB_BUILD_OPTIONS=nocheck überspringt weiterhin sämtliche Tests, und die
+    Entwicklerdokumentation nennt jetzt tatsächlich ausführbare Testbefehle.
+
+ -- Maik Walter <maik3531@gmail.com>  Mon, 03 Aug 2026 21:54:00 +0200
+
+magnolie-organizer (1.31.43) unstable; urgency=medium
+
+  * Temporäre Briefe, Druckseiten und ODS-Kontakttabellen werden bevorzugt im
+    privaten Sitzungsverzeichnis abgelegt; Ordner erhalten 0700, Dateien 0600.
+  * Eigene Magnolie-Ausgabeverzeichnisse mit einem Alter von mehr als einer
+    Woche werden beim nächsten Erzeugen einer Ausgabe sicher bereinigt.
+  * Frische Ausgaben, fremde Verzeichnisse und symbolische Verweise bleiben
+    unangetastet; Regressionstests prüfen Rechte und Bereinigungsgrenzen.
+
+ -- Maik Walter <maik3531@gmail.com>  Tue, 04 Aug 2026 01:20:00 +0200
+
+magnolie-organizer (1.31.42) unstable; urgency=medium
+
+  * Breitere Registerzungen halten auch die englische Beschriftung
+    "Anniversaries" vollständig innerhalb des farbigen Registers.
+  * CardBook-vCards übernehmen Google-Telefontypen wie mobile, homeFax und
+    workFax sowie wiederholte TYPE-Parameter korrekt.
+  * Freie CardBook-Telefonlabels wie "Zuhause" und "Privates Mobiltelefon"
+    bleiben erhalten; HOME wird in der Kontaktbearbeitung nicht mehr pauschal
+    als "Privat" angezeigt.
+  * Beim Zusammenführen derselben Rufnummer überschreibt ein widersprüchlicher
+    Typ aus einem passiven Thunderbird-Adressbuch nicht mehr die bevorzugte
+    CardBook-Kennzeichnung.
+
+ -- Maik Walter <maik3531@gmail.com>  Tue, 04 Aug 2026 00:55:00 +0200
+
+magnolie-organizer (1.31.41) unstable; urgency=medium
+
+  * Das Startmenü bietet wie beim IPTV Recorder eine eigene Aktion zum Start
+    des Organizers im Debugmodus an.
+  * Vor dem ODS-Export lassen sich Namen, Firma, Geburtstag, Anschriften,
+    Telefonnummern, E-Mail-Adressen, Notfallkontakte und Notiz auswählen.
+  * Ausgewählte Spalten ohne einen einzigen Wert werden automatisch ausgelassen;
+    auch eine einzelne gewünschte Spalte ergibt eine gültige ODS-Tabelle.
+  * Zusätzliche DOM-, Desktop- und ODS-Smoke-Tests sichern die neuen Wege ab.
+
+ -- Maik Walter <maik3531@gmail.com>  Tue, 04 Aug 2026 00:20:00 +0200
+
+magnolie-organizer (1.31.40) unstable; urgency=medium
+
+  * Beim Schließen wartet das Fenster nun auf einen bestätigten Schreibvorgang;
+    fehlgeschlagene Speicherungen werden zuverlässig erneut versucht.
+  * Fremde vCards dürfen keine lokalen Bilddateien mehr einlesen; nur die
+    ausdrücklich vertrauenswürdigen Evolution-/Thunderbird-Wege tun dies.
+  * Autostart, Weckruf und Sitzungsdienst verwenden den tatsächlichen
+    Programmpfad; --tray-start startet bei verfügbarem Tray wirklich verborgen.
+  * Hilfszustände werden atomar mit privaten Rechten geschrieben, xdg-open wird
+    als Standardanwendung bevorzugt und xdg-utils empfohlen.
+  * Baumfehler sind übersetzbar, der WAV-Erzeuger ist Big-Endian-fest und die
+    POT-Version stammt automatisch aus debian/changelog.
+
+ -- Maik Walter <maik3531@gmail.com>  Mon, 03 Aug 2026 23:59:00 +0200
+
+magnolie-organizer (1.31.39) unstable; urgency=medium
+
+  * Verschlüsselte große Datenbestände werden vor jedem Schreiben zuverlässig
+    erkannt; Datenverzeichnis und Hauptdatei erhalten private Zugriffsrechte.
+  * Notiz- und Druck-HTML wird inert neu aufgebaut, aktive Inhalte werden
+    verworfen und die Druckansicht läuft ohne JavaScript sowie mit strenger CSP.
+  * Beschädigte Termine werden beim ICS-Export einzeln ausgelassen und gemeldet.
+  * Der Magnolienbaum begrenzt Paarungen, Nachrichtengröße, Anfragerate und
+    Serverfäden; gemeinsamer Zustand wird gegen parallele Änderungen geschützt.
+  * UFW wird nicht mehr bei der Paketinstallation geöffnet, sondern bei der
+    Baumaktivierung automatisch über die normale Systemauthentifizierung.
+
+ -- Maik Walter <maik3531@gmail.com>  Mon, 03 Aug 2026 23:55:00 +0200
+
+magnolie-organizer (1.31.38) unstable; urgency=medium
+
+  * Übersetzbare Register, Vorschlagslisten und Auswahlwerte werden erst nach
+    der tatsächlichen Sprachwahl aufgebaut; Datumsnamen folgen der Sprache und
+    bewahren zugleich die regionalen Regeln.
+  * Die Adress-Druckvorschau bleibt auch bei langen Namen und Bildern stabil;
+    der ODS-Knopf trägt nun ein Tabellenzeichen im Magnolie-Stil.
+  * ODS-Dateien verankern ein kompatibles PNG-Magnolienlogo sichtbar in Calc
+    und verwenden ein standardkonformes A4-Querformat.
+  * --debug schreibt eine private, rotierende Diagnose zu Start, Sitzung,
+    Einzelinstanz, Fenster und Tray.
+
+ -- Maik Walter <maik3531@gmail.com>  Mon, 03 Aug 2026 23:20:00 +0200
+
+magnolie-organizer (1.31.37) unstable; urgency=medium
+
+  * --sprache/--language selects German, English or the system language for
+    each invocation without changing the saved interface setting.
+  * --pot/--pot-template creates the gettext template reproducibly at the
+    default or requested output path.
+  * Contacts print preview can export the selected contacts as an ODS file
+    with an A4 landscape table, the Magnolie logo and the selected details.
+
+ -- Maik Walter <maik3531@gmail.com>  Mon, 03 Aug 2026 22:20:00 +0200
+
+magnolie-organizer (1.31.36) unstable; urgency=medium
+
+  * Verbliebene sichtbare Texte in Druckansicht, Notizeditor, Importen,
+    Fehlermeldungen und Anhangsrückfällen folgen nun der gewählten Sprache.
+  * Desktop-, Firewall- und Debian-Paketmetadaten verwenden Englisch als
+    Basissprache; deutsche Desktop-Felder bleiben ausdrücklich lokalisiert.
+  * Namenlose Anhänge erhalten erst bei der Anzeige einen übersetzten Namen,
+    sodass ein späterer Sprachwechsel keine gespeicherten Daten verfälscht.
+
+ -- Maik Walter <maik3531@gmail.com>  Mon, 03 Aug 2026 21:20:00 +0200
+
+magnolie-organizer (1.31.35) unstable; urgency=medium
+
+  * Neue Einträge des Erinnerungs- und Weckerprotokolls folgen vollständig der
+    gewählten Sprache; vorhandene historische Logzeilen bleiben unverändert.
+  * Zustellwege und Betriebsarten erhalten lokalisierte Anzeigenamen, während
+    interne Codes, Termintitel, Meldungstexte und technische Fehlerdetails
+    unverändert bleiben.
+
+ -- Maik Walter <maik3531@gmail.com>  Mon, 03 Aug 2026 20:20:00 +0200
+
+magnolie-organizer (1.31.34) unstable; urgency=medium
+
+  * Rückmeldungen für eine leere Zwischenablage, die erfolgreiche Aufnahme ins
+    Wörterbuch und eine ausbleibende Speicherantwort sind internationalisiert.
+  * Aufgenommene Wörter, Zwischenablageinhalte, Bridge-Befehle und Callback-
+    Namen bleiben unverändert und sind durch deutsche und englische DOM-Tests
+    abgesichert.
+
+ -- Maik Walter <maik3531@gmail.com>  Mon, 03 Aug 2026 18:20:00 +0200
+
+magnolie-organizer (1.31.33) unstable; urgency=medium
+
+  * Befehlszeilenhilfe, Erinnerungsprobe und sämtliche Statusfelder des
+    Diagnoseberichts folgen nun der gewählten Sprache.
+  * Fehlende GTK-/WebKit-Abhängigkeiten und eine unvollständige Installation
+    werden lokalisiert gemeldet; Optionen, Befehle, Pfade und technische
+    Fehlerdetails bleiben unverändert.
+
+ -- Maik Walter <maik3531@gmail.com>  Mon, 03 Aug 2026 17:20:00 +0200
+
+magnolie-organizer (1.31.32) unstable; urgency=medium
+
+  * Sichtbare Größen-, Mengen-, Format- und Sicherheitsfehler beim Import von
+    Claws-Mail- und LDIF-Adressbüchern sind vollständig internationalisiert.
+  * Dateiinhalte, Formatkennungen, Auswahlfilter und beliebige Systemfehler
+    bleiben unverändert; die lokalisierte Bridge-Fehlerkette ist geprüft.
+
+ -- Maik Walter <maik3531@gmail.com>  Mon, 03 Aug 2026 16:20:00 +0200
+
+magnolie-organizer (1.31.31) unstable; urgency=medium
+
+  * Die beim ersten Start angelegte Willkommensnotiz wird in der gewählten
+    Sprache gespeichert; vorhandene und bearbeitete Notizen bleiben unverändert.
+  * Datenpfade und Produktnamen werden unverändert eingesetzt, und die einmalige
+    Rückmeldung zur Übernahme aus Organizer Klassik ist internationalisiert.
+
+ -- Maik Walter <maik3531@gmail.com>  Mon, 03 Aug 2026 15:20:00 +0200
+
+magnolie-organizer (1.31.30) unstable; urgency=medium
+
+  * Sicherheitsseite, Papierkorb, Kennwortzustände und Sperrbildschirm sind
+    vollständig internationalisiert und verwenden regionale Datumsformate.
+  * Entsperr-, Verschlüsselungs- und Entschlüsselungsfehler des Programmkerns
+    sowie Berichte zur Umschlüsselung lokaler Sicherungen sind lokalisiert.
+  * Kryptohülle, Algorithmen, Kennwörter, Dateinamen, Einstellungswerte und
+    Bridge-Nutzlasten bleiben unverändert.
+
+ -- Maik Walter <maik3531@gmail.com>  Mon, 03 Aug 2026 14:20:00 +0200
+
+magnolie-organizer (1.31.29) unstable; urgency=medium
+
+  * Kontakt-Nutzungseinstellungen, Dublettenabgleich und Rückmeldungen für
+    LibreOffice, Karten, E-Post und Kommunikation sind internationalisiert.
+  * Briefanrede, Gruß, Datum sowie sichtbare Backendfehler verwenden nun
+    englische gettext-Quelltexte mit vollständiger deutscher Übersetzung.
+  * Anschriften, Länderwerte, Providerkennungen, URLs, Befehle, ODF-Struktur
+    und Bridge-Nutzlasten bleiben unverändert.
+
+ -- Maik Walter <maik3531@gmail.com>  Mon, 03 Aug 2026 13:20:00 +0200
+
+magnolie-organizer (1.31.28) unstable; urgency=medium
+
+  * Benachrichtigungseinstellungen, Vorschau, Erinnerungsstatus und
+    Protokollmeldungen verwenden nun englische gettext-Quelltexte.
+  * Termin-, Aufgaben- und Jahrestagsmeldungen sowie sichtbare Dienst-, Weck-
+    und Protokollfehler des Programmkerns sind vollständig lokalisiert.
+  * Einstellungswerte, Bridge-Befehle, Erinnerungskennungen, Systemkommandos
+    und Benutzerdaten bleiben unverändert.
+
+ -- Maik Walter <maik3531@gmail.com>  Mon, 03 Aug 2026 12:20:00 +0200
+
+magnolie-organizer (1.31.27) unstable; urgency=medium
+
+  * Über-Seite, Handbuchhinweis und Aktualisierungsstatus verwenden nun
+    englische gettext-Quelltexte mit vollständiger deutscher Übersetzung.
+  * Update-, Paket-, Browser- und Handbuchfehler des Programmkerns sind
+    lokalisiert; Prüfzeitpunkte folgen dem gewählten Formatgebiet.
+  * Fassungen, URLs, Paketpfade, Lizenzpfad und Bridge-Nutzlasten bleiben
+    unverändert.
+
+ -- Maik Walter <maik3531@gmail.com>  Mon, 03 Aug 2026 11:20:00 +0200
+
+magnolie-organizer (1.31.26) unstable; urgency=medium
+
+  * Wettersteuerung, Darstellungsarten, Aktualisierungsabstände und
+    Standort-Hinweise verwenden nun englische gettext-Quelltexte.
+  * wttr.in-Abfragen fordern passend zur Oberfläche deutsche oder englische
+    Beschreibungen an; Backend- und Parserfehler sind lokalisiert.
+  * Orte, Providertexte, Wettercodes, Cachewerte und Bridge-Nutzlasten bleiben
+    unverändert.
+
+ -- Maik Walter <maik3531@gmail.com>  Mon, 03 Aug 2026 10:45:00 +0200
+
+magnolie-organizer (1.31.25) unstable; urgency=medium
+
+  * Die Kalendereinstellungen für Tagesklick, Wochennummern und das Ausblenden
+    vergangener Einträge verwenden nun englische gettext-Quelltexte.
+  * Die vollständige deutsche Bestandsdarstellung bleibt erhalten.
+  * Gespeicherte Auswahlwerte, Ansichtskennungen und Kalenderdaten bleiben
+    unverändert.
+
+ -- Maik Walter <maik3531@gmail.com>  Mon, 03 Aug 2026 10:15:00 +0200
+
+magnolie-organizer (1.31.24) unstable; urgency=medium
+
+  * Typografie-, Tintenauswahl-, Größen- und Rechtschreibeinstellungen
+    verwenden nun englische gettext-Quelltexte mit deutscher Übersetzung.
+  * Vorschau, Wörterbuchhinweise und Backendfehler der Rechtschreibprüfung
+    sind vollständig lokalisiert.
+  * Gespeicherte Auswahlwerte, Bridge-Befehle, Wörterbuchwörter und Paketnamen
+    bleiben unverändert.
+
+ -- Maik Walter <maik3531@gmail.com>  Mon, 03 Aug 2026 09:50:00 +0200
+
+magnolie-organizer (1.31.23) unstable; urgency=medium
+
+  * Land-, Regions- und Feiertagseinstellungen verwenden nun englische
+    gettext-Quelltexte mit vollständiger deutscher Übersetzung.
+  * OpenHolidays-Abruf, Fortschritt, Berichte und Fehler folgen der aktiven
+    Sprache und verwenden korrekte Singular- und Pluralformen.
+  * ISO-Codes, API-Felder, Feiertagsarten und vorhandene gespeicherte Namen
+    bleiben unverändert.
+
+ -- Maik Walter <maik3531@gmail.com>  Mon, 03 Aug 2026 09:20:00 +0200
+
+magnolie-organizer (1.31.22) unstable; urgency=medium
+
+  * EDS-Synchronisation, Quellenauswahl, Fortschritt und Zeitangaben verwenden
+    nun englische gettext-Quelltexte mit deutscher Übersetzung.
+  * Abgleichberichte und Fehlerpfade sind einschließlich korrekter Pluralformen
+    vollständig lokalisiert.
+  * Quellenkennungen, Anbieternamen, Mehrkalenderzustand, Löschvermerke und
+    synchronisierte Benutzerdaten bleiben unverändert.
+
+ -- Maik Walter <maik3531@gmail.com>  Mon, 03 Aug 2026 08:40:00 +0200
+
+magnolie-organizer (1.31.21) unstable; urgency=medium
+
+  * Übernehmen und Weitergeben verwenden nun englische gettext-Quelltexte
+    mit vollständiger deutscher Übersetzung.
+  * Dateiauswahl, lokale Evolution-/Thunderbird-Suche sowie Import- und
+    Exportergebnisse sind einschließlich korrekter Pluralformen lokalisiert.
+  * Formatkennungen, Dateiendungen, Lotus-Spalten, Pfade und importierte
+    Benutzerdaten bleiben unverändert.
+
+ -- Maik Walter <maik3531@gmail.com>  Mon, 03 Aug 2026 08:00:00 +0200
+
+magnolie-organizer (1.31.20) unstable; urgency=medium
+
+  * Einstellungsrahmen und Seite Allgemein verwenden nun englische
+    gettext-Quelltexte mit vollständiger deutscher Übersetzung.
+  * Tray-Steuerung, Sicherungsordner, Sicherungsanlage und Wiederherstellung
+    sind einschließlich nativer Dialoge und Fehlermeldungen lokalisiert.
+  * Gespeicherte Schlüssel, Auswahlwerte, Pfade, Kennwörter und
+    Sicherungsinhalte bleiben unverändert.
+
+ -- Maik Walter <maik3531@gmail.com>  Mon, 03 Aug 2026 07:10:00 +0200
+
+magnolie-organizer (1.31.19) unstable; urgency=medium
+
+  * Das vollständige Kontaktformular verwendet nun englische
+    gettext-Quelltexte mit vollständiger deutscher Übersetzung.
+  * Foto, Rufnummern, E-Post, Anschriften, soziale Medien, Notfallkontakte,
+    Jahrestage sowie verknüpfte Termine und Aufgaben sind lokalisiert.
+  * Englische und deutsche Standardvorschläge werden auf dieselben internen
+    Typen abgebildet; vorhandene freie Bezeichnungen bleiben unverändert.
+
+ -- Maik Walter <maik3531@gmail.com>  Mon, 03 Aug 2026 06:20:00 +0200
+
+magnolie-organizer (1.31.18) unstable; urgency=medium
+
+  * Adressbuchübersicht, Suche, Register und Karteikarte verwenden nun
+    englische gettext-Quelltexte mit vollständiger deutscher Übersetzung.
+  * Kontaktwege für Brief, Karte, Route, Nachricht und soziale Dienste sowie
+    Freigabe-, Bearbeiten- und Löschaktionen sind lokalisiert.
+  * Freie Bezeichnungen und sämtliche Kontaktdaten bleiben unverändert.
+
+ -- Maik Walter <maik3531@gmail.com>  Mon, 03 Aug 2026 05:50:00 +0200
+
+magnolie-organizer (1.31.17) unstable; urgency=medium
+
+  * Monats-, Tages- und Wochenansicht sowie Wetter und Terminübersicht
+    verwenden nun englische gettext-Quelltexte mit deutscher Übersetzung.
+  * Der vollständige Termin-Editor einschließlich Wiederholungen,
+    Aufgabenverknüpfung, Lotus-Feldern und Validierungen ist lokalisiert.
+  * Suchsortierung und dynamische Kalendertexte folgen dem Formatgebiet;
+    gespeicherte Termin-, Aufgaben- und Wiederholungsdaten bleiben unverändert.
+
+ -- Maik Walter <maik3531@gmail.com>  Mon, 03 Aug 2026 05:30:00 +0200
+
+magnolie-organizer (1.31.16) unstable; urgency=medium
+
+  * Bearbeitungs- und Rechtschreib-Kontextmenüs verwenden nun englische
+    gettext-Quelltexte mit vollständiger deutscher Übersetzung.
+  * Ausschneiden, Kopieren, Einfügen, Alles auswählen, Vorschlagsstatus und
+    Wörterbuchaufnahme sind in allen Schreibfeldern lokalisiert.
+  * Markierter Text, Wörterbuchwörter und Ablageinhalte bleiben unveränderte
+    Benutzerdaten.
+
+ -- Maik Walter <maik3531@gmail.com>  Mon, 03 Aug 2026 05:00:00 +0200
+
+magnolie-organizer (1.31.15) unstable; urgency=medium
+
+  * Magnolienbaum-Einrichtung, lokale Suche, Internetverbindung und Paarung
+    verwenden nun englische gettext-Quelltexte mit deutscher Übersetzung.
+  * Partnerverwaltung, Verbindungsprüfung und Warteschlangenstände sind
+    einschließlich korrekter Pluralformen vollständig lokalisiert.
+  * Zugehörige Schlüssel-, Fingerabdruck-, Netzwerk- und Abhängigkeitsfehler
+    des Programmkerns sind übersetzbar; technische Werte bleiben unverändert.
+
+ -- Maik Walter <maik3531@gmail.com>  Mon, 03 Aug 2026 04:45:00 +0200
+
+magnolie-organizer (1.31.14) unstable; urgency=medium
+
+  * Direkte Magnolienbaum-Freigaben für Termine, Adressen und gemeinsame
+    Notizen verwenden nun englische gettext-Quelltexte.
+  * Eingehende Angebote, Annahme, Ablehnung, Zustell- und Abgleichmeldungen
+    sind einschließlich korrekter Pluralformen und Dateigrößen lokalisiert.
+  * Zugehörige Desktopbenachrichtigungen und Backendfehler sind übersetzbar;
+    Protokollwerte, Kennungen und übertragene Benutzerdaten bleiben unverändert.
+
+ -- Maik Walter <maik3531@gmail.com>  Mon, 03 Aug 2026 04:15:00 +0200
+
+magnolie-organizer (1.31.13) unstable; urgency=medium
+
+  * Linkdialog, Dateiauswahl und Notizanhänge verwenden nun englische
+    gettext-Quelltexte mit vollständiger deutscher Übersetzung.
+  * Bild- und PDF-Einbettung, Prüfung, Darstellung und Entfernung sind
+    einschließlich der barrierefreien Beschriftungen lokalisiert.
+  * MIME-Typen, gespeicherte Dateinamen und Anhangsdaten bleiben unverändert.
+
+ -- Maik Walter <maik3531@gmail.com>  Mon, 03 Aug 2026 03:30:00 +0200
+
+magnolie-organizer (1.31.12) unstable; urgency=medium
+
+  * Notizbuchstruktur, Suche, Schreibblatt und Strukturverwaltung verwenden
+    nun englische gettext-Quelltexte mit vollständiger deutscher Übersetzung.
+  * Auszeichnungswerkzeuge und Notizdruck sind lokalisiert und verwenden
+    korrekte Singular- und Pluralformen.
+  * Neue Standardgruppen und -notizbücher entstehen in der aktiven Sprache;
+    vorhandene Namen, Notiztexte und Dateinamen bleiben unverändert.
+
+ -- Maik Walter <maik3531@gmail.com>  Mon, 03 Aug 2026 03:10:00 +0200
+
+magnolie-organizer (1.31.11) unstable; urgency=medium
+
+  * Jahresnavigation, direkte Jahreswahl und Wochennummern des Planers
+    verwenden nun englische gettext-Quelltexte mit deutscher Übersetzung.
+  * Halbjahresüberschriften, Monate und Wochentage folgen dem Formatgebiet.
+  * Kalender- und Planerdruck verwenden lokalisierte Termin-, Zeit- und
+    Ganztagsschablonen sowie korrekte Singular- und Pluralformen.
+
+ -- Maik Walter <maik3531@gmail.com>  Mon, 03 Aug 2026 02:50:00 +0200
+
+magnolie-organizer (1.31.10) unstable; urgency=medium
+
+  * Jahrestagsliste, Formular, Abstands- und Alterstexte sowie der Ausdruck
+    verwenden nun englische gettext-Quelltexte mit deutscher Übersetzung.
+  * Englische Jahrestagsvorschläge und historische deutsche Typen werden
+    als semantische Aliase erkannt, ohne gespeicherte oder freie Arten
+    umzuschreiben.
+  * Jahrestage werden nach dem gewählten Formatgebiet sortiert und im Ausdruck
+    mit korrekten Singular- und Pluralformen gezählt.
+
+ -- Maik Walter <maik3531@gmail.com>  Mon, 03 Aug 2026 02:40:00 +0200
+
+magnolie-organizer (1.31.9) unstable; urgency=medium
+
+  * Aufgabenheft, Personenverwaltung, Filter und Aufgabendruck verwenden nun
+    englische gettext-Quelltexte mit vollständiger deutscher Übersetzung.
+  * Anzahltexte für Aufgaben, erledigte Einträge und lange Listen verwenden
+    korrekte Pluralformen.
+  * Aufgabensortierung und Druckdatum folgen dem gewählten Formatgebiet; dabei
+    bleiben Aufgabentitel und Personennamen unveränderte Benutzerdaten.
+
+ -- Maik Walter <maik3531@gmail.com>  Mon, 03 Aug 2026 02:30:00 +0200
+
+magnolie-organizer (1.31.8) unstable; urgency=medium
+
+  * Register, Kalendernavigation und zentrale Kalenderbegriffe verwenden nun
+    englische gettext-Quelltexte mit vollständiger deutscher Übersetzung.
+  * Datumsreihenfolge sowie Monats- und Wochentagsnamen folgen dem getrennten
+    Formatgebiet; das deutsche Bestandsformat bleibt dabei unverändert.
+  * Die POT-Erzeugung liest nun auch echte Übersetzungsaufrufe der Anwendung.
+
+ -- Maik Walter <maik3531@gmail.com>  Mon, 03 Aug 2026 02:15:00 +0200
+
+magnolie-organizer (1.31.7) unstable; urgency=medium
+
+  * Eine gettext-kompatible Internationalisierungsschicht mit englischer
+    Basissprache und vollständig geprüftem deutschen Startkatalog ist ergänzt.
+  * Die statische Weboberfläche wird aus englischen Quelltexten ohne sichtbare
+    Änderung ins bisherige Deutsch übersetzt.
+  * Schema 2 und ein getrennt gespeichertes deutsches Regionalprofil bereiten
+    Sprach-, 12/24-Stunden-, Wochen-, Temperatur- und Zeitzonenwahl vor.
+  * POT-, PO-, MO- und Webkataloge werden reproduzierbar erzeugt und beim Bau
+    auf Vollständigkeit, Pluralformen und unscharfe Einträge geprüft.
+
+ -- Maik Walter <maik3531@gmail.com>  Mon, 03 Aug 2026 02:00:00 +0200
+
+magnolie-organizer (1.31.6) unstable; urgency=medium
+
+  * Ferien erscheinen ohne den redundanten Zusatz „Schulferien“.
+  * Monatsansicht und Jahresplaner bieten getrennte ISO-Wochennummern.
+  * Vergangene Termine lassen sich ausblenden; Jahrestage und Ferien können
+    getrennt in diesen Filter einbezogen werden.
+  * Cinnamon-XApp-Trayklicks verwenden den tatsächlichen Trayzustand und
+    verwerfen keine schnellen Aktivierungen mehr.
+  * Englische und deutsche Manpages sind enthalten.
+
+ -- Maik Walter <maik3531@gmail.com>  Mon, 03 Aug 2026 01:15:00 +0200
+
+magnolie-organizer (1.31.5) unstable; urgency=medium
+
+  * Cinnamon verwendet sein natives XApp-Tray nun unter X11 und Wayland;
+    wiederholte Aktivierungssignale werden entprellt.
+  * Die letzte Vollbilddarstellung bleibt beim Verbergen und Zurückholen aus
+    dem Tray erhalten.
+  * Die Monatsansicht kann optional ISO-Wochennummern am linken Rand anzeigen.
+  * Ausdrücklich gewählte SMS-Aktionen haben Vorrang vor Valent.
+
+ -- Maik Walter <maik3531@gmail.com>  Mon, 03 Aug 2026 01:00:00 +0200
+
+magnolie-organizer (1.31.4) unstable; urgency=medium
+
+  * Der Anhangsbereich von Notizen lässt sich am oberen Trenngriff in der Höhe
+    verändern und merkt sich die gewählte Größe.
+  * Kleine Fenster begrenzen Anhänge auf einen Teil des Schreibblatts und
+    ersetzen große Bild- und PDF-Vorschauen automatisch durch kompakte Symbole.
+
+ -- Maik Walter <maik3531@gmail.com>  Mon, 03 Aug 2026 00:30:00 +0200
+
+magnolie-organizer (1.31.3) unstable; urgency=medium
+
+  * Cinnamon/X11 wertet den primären Tray-Klick direkt über Maustaste 1 aus,
+    statt sich auf das dort nicht zuverlässig ausgelöste activate-Signal zu
+    verlassen.
+
+ -- Maik Walter <maik3531@gmail.com>  Mon, 03 Aug 2026 00:15:00 +0200
+
+magnolie-organizer (1.31.2) unstable; urgency=medium
+
+  * Valent-Mint 1.0.0-13 erhält Rufnummern über die neue D-Bus-Aktion
+    messages-window-compose und öffnet damit unmittelbar einen SMS-Entwurf.
+  * Das Cinnamon/X11-Rechtsklickmenü enthält nur Einstellungen und Beenden;
+    Öffnen und Verbergen bleiben dem Linksklick vorbehalten.
+  * Eigene Programmaktionen unterstützen flatpak:APP-ID und snap:Name;
+    registrierte Desktop-URI-Handler berücksichtigen Sandbox-Anwendungen.
+
+ -- Maik Walter <maik3531@gmail.com>  Sun, 02 Aug 2026 23:59:00 +0200
+
+magnolie-organizer (1.31.1) unstable; urgency=medium
+
+  * Unter Cinnamon/X11 blendet ein Linksklick auf das Tray-Symbol das Fenster
+    ein oder aus; ein Rechtsklick öffnet das Menü samt Einstellungen.
+  * SMS wird als adressierter sms:-Entwurf an Valent oder KDE Connect übergeben.
+  * Der vertikale Formularscrollbalken bleibt sichtbar; Zahnradfelder und die
+    untere Aktionsleiste passen ohne abgeschnittene Knöpfe in die rechte Seite.
+
+ -- Maik Walter <maik3531@gmail.com>  Sun, 02 Aug 2026 23:50:00 +0200
+
+magnolie-organizer (1.31.0) unstable; urgency=medium
+
+  * Ein optionales Ayatana-AppIndicator-Tray bietet Öffnen, Minimieren und
+    Beenden unter Cinnamon, KDE und GNOME sowie unter X11 und Wayland.
+  * Unteroptionen für Minimieren, Schließen, Start im Tray, Sitzungsautostart
+    und die gewünschte Fensterdarstellung erscheinen erst nach Aktivierung.
+  * X11 kann die letzte Fensterposition wiederherstellen; unter Wayland werden
+    Zentrierung oder Maximierung compositorgerecht als Wunsch übergeben.
+  * Kommunikationsdienste erhalten erkennbare einfarbige Markenformen im
+    Magnolie-Stil; ein zweiter Programmstart holt die laufende Instanz hervor.
+
+ -- Maik Walter <maik3531@gmail.com>  Sun, 02 Aug 2026 23:30:00 +0200
+
+magnolie-organizer (1.30.1) unstable; urgency=medium
+
+  * Telefonbasierte Kommunikationswege bieten die Rufnummern des Kontakts an,
+    lassen aber weiterhin eine freie Eingabe zu.
+  * Ein Zahnrad blendet je Kommunikationsweg die Wahl zwischen automatischer
+    Auswahl, sicherer HTTPS-Adresse und einem eigenen Programmbefehl ein.
+  * Speichern und Abbrechen bleiben beim Scrollen im Kontaktformular sichtbar.
+
+ -- Maik Walter <maik3531@gmail.com>  Sun, 02 Aug 2026 23:00:00 +0200
+
+magnolie-organizer (1.30.0) unstable; urgency=medium
+
+  * Gemeinsame Notizen übertragen nach notizbezogener Zustimmung auch Bilder
+    und PDF-Anhänge; Ergänzungen und Löschungen werden anschließend automatisch
+    in beide Richtungen abgeglichen.
+  * Neue Magnolienbaum-Angebote erscheinen als System- und Programmmeldung.
+  * Große Netzwerknachrichten werden vor dem Einlesen begrenzt; Warteschlangen
+    mit Anhängen erhalten ausschließlich Eigentümerrechte.
+  * Kontakte erhalten beliebig viele Einträge für WhatsApp, Threema, Facebook,
+    Instagram, Signal, Mastodon, SMS und Telefonie samt vCard-Rundlauf.
+  * Einheitliche Magnolie-Symbole öffnen bevorzugt installierte Programme und
+    verwenden andernfalls kontrollierte Web-, SMS- oder Telefonziele.
+
+ -- Maik Walter <maik3531@gmail.com>  Sun, 02 Aug 2026 22:00:00 +0200
+
+magnolie-organizer (1.29.0) unstable; urgency=medium
+
+  * Die lokale Magnolienbaum-Suche verwendet Schnittstellen-Broadcasts und
+    einen auf das eigene /24 begrenzten direkten Fallback.
+  * Direkte Internetpaarungen zeigen die öffentliche IPv4-Adresse und prüfen
+    den vorab ausgetauschten Fingerabdruck vor dem Speichern.
+  * Bestätigte Schlüssel können nicht unbemerkt ersetzt werden.
+  * Aufgaben, Termine, Adressen und Notizen werden nur nach ausdrücklichen
+    Sicherheitsabfragen freigegeben und auf der Gegenstelle übernommen.
+  * Ausdrücklich gemeinsame Notizen gleichen Überschrift und Text in beide
+    Richtungen ab; mehrere Zweige lassen sich als Arbeitsgruppe ansprechen.
+  * Bei aktivem UFW richtet das Paket eigene Regeln für TCP und UDP 8737 ein
+    und entfernt sie beim Deinstallieren wieder.
+
+ -- Maik Walter <maik3531@gmail.com>  Sun, 02 Aug 2026 20:00:00 +0200
+
+magnolie-organizer (1.28.0) unstable; urgency=medium
+
+  * EDS-Kontakte werden über wiederholte typisierte Attribute gelesen, sodass
+    auch umfangreiche Kontakte mit beliebig vielen E-Post-Adressen und
+    Rufnummern vollständig übernommen werden.
+  * Rufnummern und Anschriften erhalten direkt beschreibbare eigene
+    Bezeichnungen; Android-/Apple-Bezeichnungen aus X-ABLabel bleiben in
+    vCards, Suche, Anzeige, Druck und Synchronisation erhalten.
+  * Jahrestagsarten sind ohne globale Umschaltung immer frei beschreibbar;
+    die bekannten Arten stehen weiterhin als Vorschläge bereit.
+  * Das Kontaktformular verwendet nur eine kontrollierte Rollfläche; Notiz und
+    Fotovorschau bleiben immer sichtbar.
+  * Neue Anschrifts-, Rufnummern- und Jahrestagsarten beginnen ohne Vorauswahl,
+    zeigen vollständige Vorschlagslisten und erlauben weiterhin freie Eingaben.
+  * E-Mail-Adressen erhalten dieselbe Bedienung mit den Vorschlägen Zuhause,
+    Privat, Arbeit und Sonstige sowie frei beschreibbaren Bezeichnungen.
+  * Beliebig viele Notfallkontakte lassen sich mit Name, Rufnummer und frei
+    beschreibbarer Beziehung samt vollständiger Vorschlagsliste hinterlegen.
+  * Der gestrichelte Rahmen kennzeichnet nun Notfallkontakte statt Anschriften.
+  * Termin- und Aufgabentitel bieten im Hauptformular und bei Kontakten typische
+    Vorschläge ohne feste Vorauswahl; freie Titel bleiben möglich.
+  * Kontakte können in einem Schritt beliebig viele verknüpfte Termine und
+    Aufgaben anlegen; die Kontakt-Notiz ist wieder dauerhaft sichtbar.
+  * Termine und Aufgaben erhalten individuelle Benachrichtigungen mit einem
+    wählbaren Vorlauf von 1 bis 7 Kalendertagen; die jeweilige Standardmeldung
+    bleibt aktiv und ist nur neben einer individuellen Meldung abwählbar.
+  * Der einstellbare Jahrestagsvorlauf reicht nun bis zu einer Woche.
+  * Aufgaben werden im Terminblatt über Titel, Fälligkeit, Notiz und zuständige
+    Person gesucht; begrenzte Detailtreffer unterscheiden gleiche Titel sicher.
+  * Linien folgen der tatsächlich skalierten Zeilenhöhe und bleiben damit bei
+    großer Systemschrift passend zum Text.
+  * Ein 3D-freier Deckel-Fallback zeigt die Prägung auch unter MATE/WebKit.
+
+ -- Maik Walter <maik3531@gmail.com>  Sun, 02 Aug 2026 18:00:00 +0200
+
+magnolie-organizer (1.26.2) unstable; urgency=medium
+
+  * Interne Evolution-Data-Server-Zeiger werden nicht mehr irrtümlich als
+    Mobilnummern in nahezu jede Karteikarte übernommen.
+  * Bereits gespeicherte Zeigerwerte werden beim Laden oder Abgleichen
+    automatisch aus den Rufnummernlisten entfernt.
+
+ -- Maik Walter <maik3531@gmail.com>  Fri, 31 Jul 2026 21:43:42 +0200
+
+magnolie-organizer (1.26.1) unstable; urgency=medium
+
+  * Karteikarten erhalten unter „Weitere Felder“ eine Kontaktperson für
+    Notfälle mit Name, Rufnummer und frei formulierbarem Status.
+  * Kontaktpersonen werden gespeichert, gesucht, angezeigt, gedruckt,
+    zusammengeführt, synchronisiert und in Magnolie-vCards mitgeführt.
+  * Neue E-Post-Nachrichten tragen im Empfängerfeld nun den Namen der
+    Karteikarte zusammen mit der E-Post-Adresse.
+
+ -- Maik Walter <maik3531@gmail.com>  Fri, 31 Jul 2026 21:24:43 +0200
+
+magnolie-organizer (1.26.0) unstable; urgency=medium
+
+  * Kontakte speichern beliebig viele typisierte Rufnummern und Anschriften;
+    alte Telefon-, Mobil- und Hauptanschriftfelder bleiben kompatibel.
+  * vCard, Thunderbird, Evolution, Claws, LDIF, Lotus und EDS-Abgleich
+    übernehmen und exportieren die vollständigen Kontaktlisten verlustfrei.
+  * Nationale Rufnummern und Schreibweisen mit +49, 0049 beziehungsweise
+    optionaler Null werden beim Suchen und Zusammenführen gleichgesetzt.
+  * Straße, Strasse und Str. sowie unterschiedlich groß geschriebene
+    E-Post-Adressen werden als gleiche Angaben erkannt.
+  * Thunderbird-Karten behalten ihre UID; fragmentierte Cache-Karten werden
+    sicherer wieder mit der vollständigen Google-Karte vereinigt.
+  * Formular, Karteikarte und Ausdruck zeigen alle Rufnummern und Anschriften.
+
+ -- Maik Walter <maik3531@gmail.com>  Fri, 31 Jul 2026 14:04:50 +0200
+
+magnolie-organizer (1.25.2) unstable; urgency=medium
+
+  * Claws-Mail-Adressbücher lassen sich direkt aus addrbook-XML oder aus
+    standardisierten LDIF- und LDI-Dateien übernehmen.
+  * Mehrere E-Mail-Adressen, Firma, Telefon, Mobilnummer, Anschrift, Notizen
+    und vorhandene Geburtstage werden den Magnolie-Bereichen zugeordnet.
+  * Gefaltete und Base64-kodierte LDIF-Werte werden unterstützt; technische
+    .invalid-Adressen und unsichere XML-Dokumenttypdefinitionen werden
+    verworfen.
+
+ -- Maik Walter <maik3531@gmail.com>  Thu, 30 Jul 2026 22:57:01 +0200
+
+magnolie-organizer (1.25.1) unstable; urgency=medium
+
+  * Technische EDS- und Google-Platzhalteradressen mit der reservierten Endung
+    .invalid werden verworfen und nicht mehr auf Karteikarten angezeigt.
+  * Eindeutige unvollständige Kontaktkopien werden beim Import und Abgleich mit
+    ihrer vollständigen Karte zusammengeführt, ohne gleichnamige Personen
+    auf Verdacht zu vermischen.
+  * In der Synchronisation lassen sich mehrere Kalender gleichzeitig wählen.
+    Termine und Löschungen bleiben ihrem jeweiligen Kalender zugeordnet; neue
+    lokale Termine werden nur in den zuerst gewählten Kalender hochgeladen.
+
+ -- Maik Walter <maik3531@gmail.com>  Thu, 30 Jul 2026 21:40:05 +0200
+
+magnolie-organizer (1.25.0) unstable; urgency=medium
+
+  * Adressen können Geburtstag und über einen Plusknopf weitere Ereignisse
+    erfassen, die ausschließlich unter Jahrestage geführt werden.
+  * Über ausklappbare weitere Felder lassen sich einmalig ein Termin und eine
+    Aufgabe anlegen; beide erscheinen nur in ihren jeweiligen Bereichen.
+  * Das Kontaktfoto steht oben und verwendet einen gemeinsamen Knopf zum
+    Auswählen oder Entfernen. Das Firmenfeld steht unmittelbar vor der Notiz.
+
+ -- Maik Walter <maik3531@gmail.com>  Thu, 30 Jul 2026 17:15:03 +0200
+
+magnolie-organizer (1.24.9) unstable; urgency=medium
+
+  * Im Wochenblatt entfällt die separate Wetterleiste. Jeder verfügbare
+    Vorhersagetag zeigt sein Wetter platzsparend im eigenen Tageskopf.
+  * Die schmalen Kästen für Samstag und Sonntag verzichten auch bei der
+    ausführlichen Darstellung auf den Beschreibungstext.
+
+ -- Maik Walter <maik3531@gmail.com>  Thu, 30 Jul 2026 16:08:20 +0200
+
+magnolie-organizer (1.24.8) unstable; urgency=medium
+
+  * Die Wettervorhersage erscheint nun in Monats-, Wochen- und Tagesansicht.
+    Damit ist sie auch bei einer dauerhaft gespeicherten Wochenansicht sichtbar.
+  * Eigene einfarbige Magnolie-Linienzeichnungen ersetzen die bunten
+    Wettersymbole des Systems.
+  * Wählbar sind nur Symbole, Symbole mit Temperaturen oder zusätzlich die
+    Wetterbeschreibung. Der Abrufabstand lässt sich auf 30 Minuten sowie
+    1, 3, 6 oder 12 Stunden einstellen und wird auch ohne Ansichtswechsel
+    automatisch eingehalten.
+
+ -- Maik Walter <maik3531@gmail.com>  Thu, 30 Jul 2026 15:50:15 +0200
+
+magnolie-organizer (1.24.7) unstable; urgency=medium
+
+  * Die Wahl zwischen fester und frei beschreibbarer Jahrestagsart steht nun
+    passend unter "Allgemein".
+  * Die optionale dreitägige Wettervorhersage steht nun passend unter
+    "Kalender". Anzeige, Ortsrangfolge und Abrufverhalten bleiben unverändert.
+
+ -- Maik Walter <maik3531@gmail.com>  Thu, 30 Jul 2026 15:32:50 +0200
+
+magnolie-organizer (1.24.6) unstable; urgency=medium
+
+  * Jahrestage verwenden voreingestellt wieder die direkte Auswahlliste mit
+    Geburtstag, Todestag, Hochzeitstag, Namenstag, Gedenktag und Sonstiges.
+    Unter "Kalender" lässt sich weiterhin die freie Eingabe eigener Arten
+    einschalten; bereits gespeicherte eigene Arten bleiben in beiden Modi
+    erhalten.
+  * Unter "Allgemein" lässt sich eine kompakte dreitägige Wettervorhersage
+    einschalten. Sie erscheint über der Terminübersicht und wird über wttr.in
+    höchstens alle drei Stunden abgerufen.
+  * Für das Wetter gilt der Ort der eigenen Anschrift, danach der Ort aus den
+    LibreOffice-Benutzerdaten und zuletzt eine ungefähre IP-Ermittlung. Bei
+    diesem Rückfall weist der Kalender auf die genauere eigene Anschrift hin.
+
+ -- Maik Walter <maik3531@gmail.com>  Thu, 30 Jul 2026 15:23:57 +0200
+
+magnolie-organizer (1.24.5) unstable; urgency=medium
+
+  * Jahrestagsarten lassen sich frei schreiben. Eine umfangreiche
+    Vorschlagsliste enthält nun ausdrücklich den Todestag; eigene Arten bleiben
+    beim Speichern
+    sowie beim ICS- und Lotus-Austausch unverändert erhalten.
+  * In Datumsfeldern lässt sich ein vierstelliges Jahr zusammenhängend tippen,
+    ohne dass Monat und Tag verloren gehen oder das Jahr auf zwei Stellen fällt.
+  * Ganztägige Feiertage aus synchronisierten Kalendern erscheinen rot statt als
+    normale Termine. Gleichnamige Einträge des Feiertagsabrufs werden vereinigt.
+  * Bei "Alle Bundesländer" werden gleichzeitig geltende Ferien derselben Art
+    pro Kalendertag zu einem Eintrag zusammengefasst. Geordnete, eindeutige
+    Kürzel zeigen alle betroffenen Länder ohne Wiederholungen wie "SH, SH".
+
+ -- Maik Walter <maik3531@gmail.com>  Thu, 30 Jul 2026 13:09:50 +0200
+
+magnolie-organizer (1.24.4) unstable; urgency=medium
+
+  * Mehrtägige Termine behalten ihr Enddatum bei ICS-, Lotus- und
+    Online-Konten-Rundläufen und erscheinen an jedem betroffenen Kalendertag.
+    Das exklusive DTEND ganztägiger ICS-Ereignisse wird RFC-konform behandelt.
+  * Der Rechner-Import ist wieder erreichbar und liest zusätzlich die aktuellen
+    normalisierten Kalender- und Aufgabentabellen von Thunderbird.
+  * Reale OpenHolidays-, iCalendar- und Evolution-Proben sowie Belastungstests
+    mit je 30.000 Einträgen in allen fünf Lotus-Bereichen sichern den Import ab.
+  * Unter "Über" lässt sich sofort oder höchstens einmal täglich automatisch
+    nach einer neuen Fassung auf GitLab suchen. Gefundene Pakete können über
+    eine auf das Magnolie-Verzeichnis beschränkte Adresse geöffnet werden.
+  * "für Linux" steht in der Programmbeschreibung vollständig in einer neuen
+    Zeile. Kalender und Terminblatt bleiben auch mit 30.000 Jahrestagen und
+    Aufgaben schnell bedienbar.
+  * Das Einstellungsblatt nutzt auf großen Bildschirmen mehr Höhe, sodass die
+    Seite "Über" samt Aktualisierung und Kaffeehinweis vollständig sichtbar ist.
+  * Ist das gesonderte Magnolie-Handbuch installiert, bietet der Organizer es
+    beim ersten Aufschlagen einmalig zum Lesen an. Unter "Über" bleibt es
+    anschließend jederzeit erreichbar.
+  * Karteikarten verwenden nur noch den allgemeinen Druckknopf in der
+    Fußleiste; der doppelte Knopf direkt an der Adresse ist entfernt.
+  * Ganztägige Schulferien aus einem synchronisierten Kalender erscheinen
+    wie eingelesene Ferien grün. Gleiche Zeiträume aus beiden Quellen werden
+    in den Kalenderansichten zu einem Eintrag zusammengeführt.
+
+ -- Maik Walter <maik3531@gmail.com>  Thu, 30 Jul 2026 00:43:00 +0200
+
+magnolie-organizer (1.24.3) unstable; urgency=medium
+
+  * Ausschneiden, Kopieren und Einfügen liegen nun auch in Magnolie-Dialogen
+    sichtbar über dem Dialogblatt.
+  * Eine neue Notizbuchgruppe enthält sofort ein Notizbuch und eine
+    aufgeschlagene leere Seite.
+  * Das Notiz-Suchfeld nutzt neben dem knappen Hinweis „Suche“ mehr Breite.
+    Daneben öffnet „Anpassen“ eine Verwaltung zum freien oder alphabetischen
+    Sortieren von Gruppen und Notizbüchern sowie zum Verschieben eines
+    Notizbuchs in eine andere Gruppe.
+
+ -- Maik Walter <maik3531@gmail.com>  Wed, 29 Jul 2026 21:37:34 +0200
+
+magnolie-organizer (1.24.2) unstable; urgency=medium
+
+  * Als E-Post-Anschriften erscheinen nur noch syntaktisch erkennbare
+    Mailadressen. Nummern und interne Kennungen aus importierten Kontaktfeldern
+    werden beim Laden, Importieren und Synchronisieren verworfen.
+  * Die unzuverlässige Systemkalender-Option wurde vollständig entfernt.
+    Eine von Fassung 1.24.1 gesetzte Zuordnung wird beim nächsten Start
+    aufgeräumt und der zuvor gemerkte Standardkalender wiederhergestellt.
+
+ -- Maik Walter <maik3531@gmail.com>  Wed, 29 Jul 2026 20:55:19 +0200
+
+magnolie-organizer (1.24.1) unstable; urgency=medium
+
+  * Eigene Magnolie-Dialoge ersetzen die fremden Browser-Eingaben für Links,
+    Notizbuchgruppen, Notizbücher sowie eingebettete Bilder und PDF-Dateien.
+    Gruppen und Notizbücher lassen sich umbenennen und sicher löschen; ihre
+    Notizseiten werden dabei in ein verbleibendes Notizbuch verschoben.
+  * Erneuter Adressimport und EDS-Abgleich vereinigen alle E-Post-Anschriften,
+    statt die Adressliste einer Seite durch die andere zu ersetzen.
+  * Im Jahresplaner lässt sich ein vierstelliges Jahr direkt aufschlagen.
+  * Magnolie kann auf Wunsch als Systemkalender eingetragen werden und stellt
+    beim Abschalten den vorigen Standard wieder her. Mit PIN oder Kennwort
+    bleibt diese Systemzuordnung aus.
+
+ -- Maik Walter <maik3531@gmail.com>  Wed, 29 Jul 2026 20:18:43 +0200
+
+magnolie-organizer (1.24.0) unstable; urgency=medium
+
+  * Sicherungen außerhalb des lokalen Datenstandorts werden immer mit einem
+    eigenen Kennwort verschlüsselt. Wiederherstellen gelingt nur mit genau
+    diesem Kennwort; Änderungen am Programmkennwort lassen es unangetastet.
+  * Kontaktbilder aus vCard, Thunderbird und EDS werden vollständiger gelesen.
+    Erneuter Import ergänzt fehlende Fotos bestehender Kontakte, und der
+    Abgleich überschreibt gefundene Bilder nicht mehr mit leeren PHOTO-Feldern.
+  * Der Lotus-Import erkennt neben Komma und Semikolon auch Tabulator und Pipe,
+    Windows-ANSI, allgemeine Kalender-Kopfzeilen, getrennte Datums-/Zeitspalten
+    sowie weitere deutsche, ISO- und zwölfstündige Datumsformate.
+  * Notizen sind in Notizbuchgruppen, Notizbücher und Seiten gegliedert. Eine
+    Suche findet Notizbücher und Notizen; Links, Bilder und PDF-Dateien lassen
+    sich sicher in eine Notiz einbetten.
+  * Der Löschdialog liegt über dem Terminblatt. Jahrestage erscheinen nicht
+    mehr vor ihrem Ausgangsjahr. Langes Drücken auf die Kalenderpfeile blättert
+    Monats-, Wochen- und Jahresansicht selbsttätig weiter.
+
+ -- Maik Walter <maik3531@gmail.com>  Wed, 29 Jul 2026 19:17:14 +0200
+
+magnolie-organizer (1.23.3) unstable; urgency=medium
+
+  * Unter "Allgemein" lässt sich eine Sicherungsdatei auswählen und sicher
+    wiederherstellen. Verschlüsselte Sicherungen fragen ihr Kennwort ab;
+    zuvor wird der aktuelle Bestand automatisch gesichert.
+  * Der Abgleich mit Gnome-Kontakte übernimmt Kontaktbilder zusätzlich aus
+    den strukturierten EDS-Feldern. Alle E-Post-Anschriften bleiben beim
+    Abgleich, Bearbeiten, Anzeigen, Drucken und Export erhalten.
+  * Die kompakte Briefvorlage ist wieder Standard und eindeutig benannt.
+    Die DIN-5008-Schriftgrößen wurden vereinheitlicht; Falt- und Lochmarken
+    liegen nun innerhalb des üblichen druckbaren Bereichs.
+
+ -- Maik Walter <maik3531@gmail.com>  Wed, 29 Jul 2026 18:05:00 +0200
+
+magnolie-organizer (1.23.2) unstable; urgency=medium
+
+  * Unter "Allgemein" kann nun ein eigener Sicherungsordner eingegeben
+    oder über die Ordnerwahl festgelegt werden. Auch Sicherungen dort
+    werden beim Ein- und Ausschalten des Kennwortschutzes berücksichtigt.
+  * Beim Abruf aus Gnome-Kontakte beziehungsweise dem Evolution-Data-Server
+    werden lokal gespeicherte Kontaktbilder vor der vCard-Ausgabe
+    eingebettet. Lokale file:-Bildverweise in vCards werden ebenfalls
+    sicher und ohne Netzzugriff übernommen.
+  * Neue Briefe verwenden voreingestellt DIN 5008 Form B: mehrzeiliger
+    Absenderblock, Anschriftfeld für Fensterumschläge, Datum sowie zwei
+    Faltmarken und eine Lochmarke. Die kompakte Absenderzeile der vorigen
+    Fassungen bleibt in den Adress-Einstellungen auswählbar.
+  * Eine fehlgeschlagene Sicherung wird nicht mehr fälschlich als
+    erfolgreich gemeldet.
+
+ -- Maik Walter <maik3531@gmail.com>  Wed, 29 Jul 2026 16:12:00 +0200
+
+magnolie-organizer (1.23.1) unstable; urgency=medium
+
+  * Kontaktfotos sind nun voreingestellt aktiviert, auch einmalig beim
+    Umstieg von der vorigen Fassung. Eine danach bewusst abgeschaltete
+    Einstellung bleibt erhalten.
+  * Das englische Dateifeld fuer Kontaktfotos wurde durch den deutschen,
+    zum Magnolie-Stil passenden Knopf "Foto auswaehlen ..." ersetzt.
+  * "Liniertes Papier" und die Mausradrichtung fuer Uhrzeiten stehen nun
+    im Reiter "Allgemein" statt unter "Schrift".
+  * Das Protokoll fuer die Fehlersuche ist voreingestellt deaktiviert.
+    Auch diese neue Voreinstellung wird einmalig uebernommen; ein spaeter
+    bewusst eingeschaltetes Protokoll bleibt eingeschaltet.
+  * Beschriftung und Wert des Fingerabdrucks im Magnolienbaum stehen in
+    getrennten, ausreichend breiten Spalten und ueberdecken sich nicht
+    mehr.
+
+ -- Maik Walter <maik3531@gmail.com>  Wed, 29 Jul 2026 15:11:00 +0200
+
+magnolie-organizer (1.23.0) unstable; urgency=medium
+
+  * Der Magnolienbaum meldet den Stand einer delegierten Aufgabe nun
+    verschluesselt an ihren Erschaffer zurueck. Abhaken und erneutes
+    Oeffnen werden auch nach voruebergehender Unerreichbarkeit zugestellt.
+  * Fuer Feiertage und Schulferien muss bei Laendern mit Unterteilungen
+    ein Bundesland oder Kanton gewaehlt werden. "Alle Bundeslaender"
+    bleibt eine ausdrueckliche Wahl; gleiche Ferien werden gebuendelt und
+    mit ihrem regionalen Geltungsbereich beschriftet.
+  * Kontaktfotos sind unter Einstellungen/Adressen zuschaltbar. Sie
+    erscheinen auf Karteikarte und Ausdruck und werden eingebettet ueber
+    vCard beziehungsweise den Adressabgleich mitgenommen.
+  * Erinnerungen koennen trotz Kennwortschutz mit ausdruecklicher
+    Zustimmung weiterlaufen. Dabei wird nur ein begrenzter Bestand ohne
+    Adressen und Notizen lesbar gehalten; vertrauliche Termine brauchen
+    eine zweite Zustimmung.
+  * Unter Wayland werden ausschliesslich Systembenachrichtigungen
+    angeboten. Ueberlappende Beschriftungen im Terminblatt sowie lange
+    Fingerabdruecke im Magnolienbaum wurden lesbar gemacht.
+  * Die Druckschaltflaeche liegt nun unter dem neuen Reiter "Allgemein"
+    und steuert den Druckknopf in allen Bereichen zuverlaessig.
+  * Die Beschreibung unter "Ueber" nennt Linux statt nur Linux Mint.
+
+ -- Maik Walter <maik3531@gmail.com>  Wed, 29 Jul 2026 15:00:00 +0200
+
+magnolie-organizer (1.22.0) unstable; urgency=low
+
+  * Neu: der Magnolienbaum. Mehrere Magnolie-Organizer im selben Netz
+    koennen sich zusammenschliessen und Aufgaben untereinander
+    weitergeben. Termine, Adressen und Notizen bleiben, wo sie sind.
+  * Jede Instanz erhaelt ein dauerhaftes Schluesselpaar (X25519). Der
+    geheime Schluessel liegt in einer eigenen Datei mit Rechten 0600 und
+    verlaesst den Rechner nie; er wird auch der Oberflaeche nicht
+    gezeigt.
+  * Bekanntschaft wird geschlossen, indem beide Seiten denselben
+    sechsstelligen Code vergleichen und bestaetigen. Der Code entsteht
+    aus beiden oeffentlichen Schluesseln - ein Lauscher dazwischen
+    koennte ihn nicht erzeugen. Zusaetzlich zeigt jede Seite einen
+    Fingerabdruck zum Vorlesen.
+  * Nachrichten reisen verschluesselt und beglaubigt (AES-256-GCM mit
+    einem ueber X25519 und HKDF abgeleiteten Schluessel). Ein Zaehler je
+    Partner verhindert, dass eine aufgezeichnete Nachricht erneut
+    eingespielt wird; jede Veraenderung unterwegs faellt auf.
+  * Ist die Gegenstelle aus, wandert die Sendung in eine Warteschlange
+    und wird spaeter zugestellt - mit wachsenden Abstaenden (1, 2, 5,
+    10, 30, 60 Minuten) und nach sieben Tagen als unzustellbar gemeldet.
+  * Wem eine Aufgabe gehoert, ist geregelt: Die neuere Aenderung
+    gewinnt; bei Gleichstand entscheidet die Herkunft; loeschen darf nur,
+    wer die Aufgabe erschaffen hat.
+  * Nachbarn lassen sich per Rundruf im Netz finden; die Adresse kann
+    auch von Hand eingetragen werden. Ohne den Haken "Am Magnolienbaum
+    teilnehmen" wird nichts geoeffnet und nichts gesendet.
+  * In der Aufgabenmaske gibt es das Feld "Delegieren an"; eingegangene
+    Aufgaben nennen den Zweig, von dem sie kamen.
+
+ -- Maik Walter <maik3531@gmail.com>  Tue, 28 Jul 2026 23:59:00 +0200
+
+magnolie-organizer (1.21.1) unstable; urgency=low
+
+  * Die Schrift schwebte zwischen den Linien, statt auf ihnen zu sitzen:
+    Die Linie lag am unteren Rand der Zeile, die Schriftlinie aber neun
+    Bildpunkte darueber. Die Linie sitzt nun bei 76 Hundertsteln der
+    Zeilenhoehe - also knapp unter der Schriftlinie, wie auf gedrucktem
+    Papier. Weil das ein Anteil ist, stimmt es in allen drei Groessen und
+    bei beiden Schriftarten; nachgemessen betraegt der Abstand ueberall
+    drei bis vier Bildpunkte.
+
+ -- Maik Walter <maik3531@gmail.com>  Tue, 28 Jul 2026 23:30:00 +0200
+
+magnolie-organizer (1.21.0) unstable; urgency=low
+
+  * Linien und Zeilen stammen jetzt aus einer gemeinsamen Groesse: Der
+    Abstand der Linien ist immer genau die Zeilenhoehe des Textes. Damit
+    sitzt die Schrift in jeder Schriftart und in allen drei Groessen
+    sauber auf den Linien. Zuvor setzten die Groessenregeln eine andere
+    Zeilenhoehe als der Linienabstand - daher das Verrutschen.
+  * Neu: Die Linien lassen sich abschalten (Einstellungen, Schrift), fuer
+    alle, die lieber auf glattem Papier schreiben.
+  * Neu: Die Drehrichtung des Mausrads bei Uhrzeiten ist einstellbar.
+  * Neu: Personen als Verantwortliche. Ueber den Knopf "Personen" auf der
+    Aufgabenseite lassen sich Personen anlegen; jede Aufgabe kann einer
+    oder mehreren zugewiesen werden. Ueber der Liste waehlt man Person
+    und Zeitraum - und der Ausdruck folgt dieser Auswahl, sodass sich
+    etwa die Wochenaufgaben einer einzelnen Person ausgeben lassen.
+  * Neu: Termine lassen sich mit Aufgaben verknuepfen. Im Terminblatt
+    koennen vorhandene Aufgaben verknuepft oder gleich neue angelegt
+    werden - auf Wunsch mit eigener Erinnerung am Faelligkeitstag.
+  * Der Wecker erinnert nun auch an faellige Aufgaben und nennt dabei die
+    zustaendige Person.
+
+ -- Maik Walter <maik3531@gmail.com>  Tue, 28 Jul 2026 22:00:00 +0200
+
+magnolie-organizer (1.20.0) unstable; urgency=low
+
+  * Der Magnolie Organizer steht nun unter der GNU General Public
+    License, Version 3 oder spaeter. Autor ist Maik Walter
+    <maik3531@gmail.com>. Lizenzkoepfe stehen in allen Quelldateien, die
+    Datei copyright und der Betreuereintrag wurden entsprechend
+    geaendert.
+  * Neuer Reiter "Ueber" in den Einstellungen: Programmname, Fassung,
+    Autor, Lizenz in verstaendlichen Worten - und die Bitte um einen
+    Kaffee unter maik3531@gmail.com. Die Anschrift steht dort als
+    schlichter Text und ist bewusst nicht anklickbar.
+  * Die Linierung im Notizfeld verschwand weiterhin, sobald laengerer
+    Text eingefuegt wurde. Sie lag zuletzt auf dem rollenden Rahmen,
+    dessen Hintergrund WebKit beim Rollen anders kachelt. Nun liegt sie
+    wieder auf der Schreibflaeche selbst - diese ist stets mindestens so
+    hoch wie der Rahmen und waechst mit dem Text, sodass die Linien immer
+    genau passen.
+
+ -- Maik Walter <maik3531@gmail.com>  Tue, 28 Jul 2026 20:00:00 +0200
+
+magnolie-organizer (1.19.1) unstable; urgency=low
+
+  * Die Route blieb ohne Ergebnis, weil kein Ausgangspunkt mitgegeben
+    wurde. Nun dient die eigene Anschrift als Startpunkt - dieselbe, die
+    auch fuer den Briefabsender hinterlegt ist. Aus ihr wird eine
+    Kartenzeile ohne Namen gebildet (Strasse, Postleitzahl, Ort, Land),
+    die als "from" an OpenStreetMap, als "origin" an Google Maps und als
+    "saddr" an Gnome-Karten geht.
+  * Fehlt die eigene Anschrift, sagt der Organizer das jetzt deutlich,
+    statt eine Route ohne Start zu oeffnen - sowohl beim Anklicken als
+    auch als Hinweis auf der Seite Adressen.
+
+ -- Magnolie Organizer <maik3531@gmail.com>  Tue, 28 Jul 2026 18:00:00 +0200
+
+magnolie-organizer (1.19.0) unstable; urgency=low
+
+  * Neu: wiederkehrende Termine. Unter "ganztaegig" laesst sich ein
+    Termin als wiederkehrend kennzeichnen - jede Woche am selben
+    Wochentag, jeden Monat am selben Tag oder jedes Jahr am selben
+    Datum, wahlweise mit Enddatum. Gespeichert wird nur ein Eintrag mit
+    seiner Regel; alle weiteren Male errechnet der Organizer beim
+    Anzeigen. Eine Aenderung wirkt damit auf die ganze Reihe.
+    Beispiele: jeden Dienstag um 8 Uhr die Muelltonne, an jedem 3. eines
+    Monats die Miete, jaehrlich die Gartenrechnung.
+  * Der Wecker erinnert auch an wiederkehrende Termine; jedes Mal wird
+    einzeln vermerkt, damit nichts doppelt meldet. Der 31. rueckt in
+    kuerzeren Monaten auf den letzten Tag, der 29. Februar in
+    Nicht-Schaltjahren auf den 28.
+  * Die Linierung im Notizfeld reichte nur bis zur Mitte und verschwand,
+    sobald der Rollbalken erschien. Sie liegt nun auf dem rollenden
+    Rahmen statt auf dem mitwachsenden Textfeld und reicht damit stets
+    ueber die ganze Hoehe. Dasselbe gilt fuer das Schreibblatt der
+    Notizen.
+
+ -- Magnolie Organizer <maik3531@gmail.com>  Tue, 28 Jul 2026 16:00:00 +0200
+
+magnolie-organizer (1.18.2) unstable; urgency=low
+
+  * Die fette Schrift beim Erscheinen des Rollbalkens ist nun an der
+    Wurzel behoben: Beschriebene Flaechen rollen gar nicht mehr selbst.
+    Das Schreibblatt der Notizen und das Notizfeld im Terminblatt
+    wachsen jetzt mit dem Text; gerollt wird ein Rahmen um sie herum.
+    Damit wird die Textflaeche nie zu einer eigenen Zeichenebene, und
+    WebKit kann ihre Schrift auch nicht anders zeichnen.
+
+ -- Magnolie Organizer <maik3531@gmail.com>  Tue, 28 Jul 2026 14:00:00 +0200
+
+magnolie-organizer (1.18.1) unstable; urgency=low
+
+  * Die fette Schrift beim Erscheinen des Rollbalkens ist behoben - und
+    die vorige Fassung hatte es sogar verschlimmert. WebKit hebt eine
+    Flaeche auf eine eigene Zeichenebene, sobald sie rollbar wird, und
+    zeichnet Text dort mit grauer statt farbiger Kantenglaettung, was ihn
+    fetter wirken laesst. Erzwungene Zeichenebenen sind nun entfernt, das
+    ganze Buch verwendet dieselbe Kantenglaettung, und im Schreibblatt
+    ist der Rollbalken stets vorhanden, damit auch die Breite gleich
+    bleibt.
+  * Das Menue mit Ausschneiden, Kopieren und Einfuegen erscheint jetzt
+    immer - auch ohne Markierung, zwischen den Woertern und bei richtig
+    geschriebenen Woertern. Verbesserungsvorschlaege kommen nur noch bei
+    tatsaechlichen Schreibfehlern. Neu im Menue: "Alles auswaehlen".
+  * Im Terminblatt stehen die weiteren Felder nicht mehr direkt hinter
+    "ganztaegig", sondern in einer eigenen Zeile darunter, abgesetzt
+    durch eine Trennlinie. Das Blatt selbst ist deutlich groesser.
+  * Neu bei den Adressen: ein Ankreuzfeld "Als Route". Damit zeigt die
+    Schaltflaeche nicht nur den Ort, sondern berechnet gleich den Weg
+    dorthin - in Gnome-Karten, auf OpenStreetMap oder bei Google Maps.
+  * Neue Voreinstellungen: Ein Klick auf einen freien Tag legt gleich
+    einen Termin an, und Erinnerungen erscheinen im Stil der Magnolie.
+
+ -- Magnolie Organizer <maik3531@gmail.com>  Tue, 28 Jul 2026 12:00:00 +0200
+
+magnolie-organizer (1.18.0) unstable; urgency=low
+
+  * Der Kalender hat nun drei Ansichten: Monat, Woche und Tag. Der
+    Umschalter traegt gezeichnete Sinnbilder im Stil des Buches; wird das
+    Fenster schmal, bleiben nur diese stehen.
+  * Die rechte Seite des Monatsblatts ist jetzt eine Terminuebersicht:
+    je Tag eine Datumszeile mit Wochentag, darunter die Termine nach
+    Uhrzeit geordnet, dazu Feiertage und Jahrestage. Ein Klick auf die
+    Datumszeile schlaegt den Tag auf.
+  * Neue Tagesansicht: links der gewaehlte Tag, rechts der folgende, mit
+    Stundenleiste von 6 bis 22 Uhr am linken Rand. Das Eselsohr blaettert
+    um zwei Tage weiter. Am Fuss jeder Spalte steht "Termin hinzufuegen".
+  * Termine werden nun in einem eigenen Blatt bearbeitet, aehnlich der
+    Druckvorschau: links Titel, Uhrzeit, ganztaegig und die aufklappbaren
+    Lotus-Felder, rechts die linierte Notizflaeche, unten "Einfuegen"
+    beziehungsweise "Termin bearbeiten" und "Loeschen". Es oeffnet sich
+    beim Klick auf einen Termin in jeder Ansicht.
+  * Ein Klick auf eine freie Stelle im Monats- oder Wochenblatt schlaegt
+    den Tag in der Tagesansicht auf; auf der neuen Einstellungsseite
+    "Kalender" laesst sich stattdessen "gleich einen Termin anlegen"
+    waehlen. Ein Klick auf eine freie Stunde im Tagesblatt uebernimmt
+    diese Uhrzeit gleich in das Terminblatt.
+  * Behoben: Im Schreibblatt wirkte die Schrift fett, sobald der
+    Rollbalken erschien. Ursache war der durchsichtige Hintergrund
+    rollender Flaechen - WebKit liess dabei den alten Text stehen, sodass
+    er doppelt gezeichnet wurde. Alle rollenden Flaechen haben nun einen
+    deckenden Papiergrund und eine eigene Zeichenebene.
+
+ -- Magnolie Organizer <maik3531@gmail.com>  Tue, 28 Jul 2026 09:00:00 +0200
+
+magnolie-organizer (1.17.1) unstable; urgency=low
+
+  * Der schwarze Augenblick beim Start ist fort: Das Fenster erscheint
+    nun erst, wenn die Seite fertig gezeichnet ist - vorher stand es
+    kurz leer auf dem Schirm. Ein Sicherheitsnetz zeigt es nach
+    spaetestens drei Sekunden auch dann, wenn das Laden haken sollte.
+    Zusaetzlich traegt das Fenster von Anfang an die Filzfarbe.
+  * Das Meldeblatt der Magnolie war rundherum schwarz: Es war als
+    durchsichtig ausgezeichnet, ohne dass die Bildmischung eingerichtet
+    war. Nun wird sie richtig angefordert; steht keine zur Verfuegung,
+    bleibt es beim gefuellten Lederrahmen mit eckigen Ecken statt eines
+    schwarzen Randes.
+
+ -- Magnolie Organizer <maik3531@gmail.com>  Mon, 27 Jul 2026 21:30:00 +0200
+
+magnolie-organizer (1.17.0) unstable; urgency=low
+
+  * Feinschliff am Aussehen: Der Deckel klappt beim Oeffnen nun ganz nach
+    hinten und blendet sich dabei aus, statt am Fensterrand abgeschnitten
+    zu werden. Beim Start blitzt kein schwarzer Bereich mehr auf - das
+    Fenster traegt von Anfang an die Filzfarbe. Das Meldeblatt der
+    Magnolie hat einen abgerundeten Lederrahmen statt eckiger Kanten.
+  * Mehr Luft in den Einstellungen: Ankreuzzeilen stehen nicht mehr
+    dicht an dicht, und ein Hinweis unter einer Ankreuzzeile ist
+    eingerueckt, damit die Zugehoerigkeit sichtbar ist. Auf kleinen
+    Schirmen bleibt der Papierkorb-Kasten niedriger.
+  * Die Belastungstests decken nun auch das Weitergeben ab: 30.000
+    Termine als ICS mit Notizen samt Rundlauf, 10.000 Adressen als
+    vCard, 5.000 Aufgaben und 1.000 Jahrestage - dazu die Druckseite fuer
+    den ganzen Adressbestand.
+
+ -- Magnolie Organizer <maik3531@gmail.com>  Mon, 27 Jul 2026 20:00:00 +0200
+
+magnolie-organizer (1.16.3) unstable; urgency=low
+
+  * "Kennwortschutz entfernen" blieb wirkungslos: Der Organizer verlangte
+    dafuer das bisherige Kennwort in einem Feld, das leicht zu uebersehen
+    war - blieb es leer, wurde die Bitte still abgewiesen. Da der
+    Organizer zu diesem Zeitpunkt ohnehin entsperrt ist, genuegt jetzt
+    die Rueckfrage. Nach dem Entfernen sieht der Programmkern nach, ob
+    die Datei wirklich offen daliegt, und meldet sich sonst deutlich.
+    Fehlermeldungen stehen nun sichtbar auf der Seite Sicherheit, nicht
+    nur als kurzer Zettel. Fuer das Aendern des Kennworts genuegt
+    ebenfalls das neue.
+  * Das Kontextmenue der Rechtschreibpruefung war vom neuen
+    Bearbeiten-Menue verdeckt. Nun gilt: Ist etwas markiert, erscheint
+    Ausschneiden, Kopieren und Einfuegen; steht die Schreibmarke nur in
+    einem Wort, kommen die Verbesserungsvorschlaege - und in deren Menue
+    laesst sich jetzt ebenfalls einfuegen. Ist die Rechtschreibpruefung
+    ausgeschaltet, bleibt in Schreibfeldern das Bearbeiten-Menue.
+
+ -- Magnolie Organizer <maik3531@gmail.com>  Mon, 27 Jul 2026 18:00:00 +0200
+
+magnolie-organizer (1.16.2) unstable; urgency=low
+
+  * Die PIN laesst sich nun auch ueber die Tastatur eingeben - Ziffern
+    von der oberen Reihe wie vom Zahlenblock, Ruecktaste loescht,
+    Eingabetaste entsperrt, Escape leert die Eingabe. Die zugehoerige
+    Taste des Zahlenschlosses leuchtet dabei kurz auf.
+  * Die Reiter der Einstellungen werden jetzt gemessen statt geraten:
+    Passen alle acht nebeneinander, stehen sie in einer Zeile; sonst
+    genau vier und vier - nicht mehr sieben oben und einer darunter.
+    Gemessen wird beim Oeffnen und bei jeder Aenderung der
+    Fenstergroesse, also auch beim Wechsel in den Vollbildbetrieb.
+
+ -- Magnolie Organizer <maik3531@gmail.com>  Mon, 27 Jul 2026 16:00:00 +0200
+
+magnolie-organizer (1.16.1) unstable; urgency=low
+
+  * Schwerer Fehler behoben: Nach gesetztem Kennwort verschwand die
+    Eingabe nach gut zwei Sekunden und ein leerer Organizer ging auf.
+    Ursache war die Notbremse beim Start, die einspringt, wenn der
+    Programmkern nicht antwortet - sie hielt das Warten auf das Kennwort
+    faelschlich fuer ein Ausbleiben der Antwort. Sie unterbleibt nun,
+    solange auf die Eingabe gewartet wird.
+  * Doppelt abgesichert, damit so etwas keine Daten kosten kann: Die
+    Oberflaeche speichert nichts, solange gesperrt ist, und der
+    Programmkern verweigert grundsaetzlich, ueber eine verschluesselte
+    Datei Klartext zu schreiben, solange das Kennwort nicht eingegeben
+    wurde. Das gilt auch fuer Sicherungskopien.
+  * Hinter der Sperre liegen die Daten auch im Arbeitsspeicher nicht mehr
+    vor.
+
+ -- Magnolie Organizer <maik3531@gmail.com>  Mon, 27 Jul 2026 14:00:00 +0200
+
+magnolie-organizer (1.16.0) unstable; urgency=low
+
+  * Neuer Kennwortschutz auf der Seite Sicherheit: Ein Kennwort oder eine
+    Zahlenfolge schuetzt den Zugang. Beim Einrichten wird zweimal
+    abgefragt, Einfuegen aus der Zwischenablage ist dabei unterbunden,
+    und nach drei Fehlversuchen wartet der Organizer fuenf Minuten - die
+    Sperre uebersteht auch einen Neustart.
+  * Der Sperrbildschirm ist im Stil des Buches gehalten: gepraegte
+    Magnolienbluete auf Papier, ein Zahlenschloss mit grossen Tasten und
+    Punkten fuer die eingegebenen Stellen, wahlweise umschaltbar auf ein
+    Feld fuer Kennwoerter mit Buchstaben. Bei falscher Eingabe zittert
+    das Blatt kurz.
+  * Ist ein Kennwort gesetzt, liegen die Daten nur noch verschluesselt im
+    Heimatverzeichnis: AES-256 im GCM-Verfahren, der Schluessel wird mit
+    PBKDF2-HMAC-SHA256 in 240.000 Runden aus dem Kennwort abgeleitet.
+    Jede Veraenderung der Datei faellt dadurch auf. Vorhandene
+    Sicherungskopien werden mitverschluesselt; beim Entfernen des
+    Schutzes wieder freigegeben.
+  * Die acht Reiter der Einstellungen ordnen sich nach Bildschirmgroesse:
+    nebeneinander auf breiten Schirmen, sonst zwei Reihen zu vier. Auf
+    kleinen Schirmen (1024 x 768) passt sich auch die Blatthoehe an.
+
+ -- Magnolie Organizer <maik3531@gmail.com>  Mon, 27 Jul 2026 12:00:00 +0200
+
+magnolie-organizer (1.15.0) unstable; urgency=low
+
+  * Gnome-Karten meldete "Geo-Adresse konnte nicht geoeffnet werden": Eine
+    geo-Adresse ohne Koordinaten versteht es nicht zuverlaessig. Der
+    Organizer uebergibt die Anschrift nun als Suchadresse (maps:q=…),
+    ersatzweise als schlichten Text und erst zuletzt als geo-Adresse.
+  * Rechtsklick auf markierten Text oeffnet ein Menue im Stil des Buches
+    mit Ausschneiden, Kopieren und Einfuegen; im Schreibblatt stehen
+    darunter zusaetzlich fett, kursiv, unterstrichen und
+    durchgestrichen. Die Zwischenablage laeuft ueber den Programmkern
+    und arbeitet daher mit allen anderen Programmen zusammen.
+  * Neue Einstellungsseite "Sicherheit" mit dem Papierkorb: Geloeschte
+    Termine, Adressen, Aufgaben, Notizen und Jahrestage wandern zuerst
+    dorthin, nach Art geordnet, und lassen sich einzeln zurueckholen.
+    Endgueltig geloescht wird nach 7, 30, 90 oder 365 Tagen - oder gar
+    nicht, dann leert man von Hand.
+  * Unter Adressen fuehrt ein Knopf doppelte Karteikarten zusammen:
+    gefunden wird ueber gleichen Namen, gleiche E-Post-Anschrift oder
+    gleiche Rufnummer; die vollstaendigste Karte bleibt und wird aus den
+    uebrigen ergaenzt. Es wird zweimal nachgefragt, und von jeder
+    entfernten Karte bleibt eine Kopie im Papierkorb unter "Duplikate".
+
+ -- Magnolie Organizer <maik3531@gmail.com>  Mon, 27 Jul 2026 10:00:00 +0200
+
+magnolie-organizer (1.14.0) unstable; urgency=low
+
+  * Gedruckt wird jetzt ueberall: Der Knopf "Drucken" steht unten in der
+    Statusleiste neben "Einstellungen" und richtet sich nach der
+    aufgeschlagenen Seite - Termine des angezeigten Monats (im Planer des
+    Jahres), Aufgaben mit Kaestchen und Faelligkeit, Notizseiten,
+    Jahrestage oder Adressen. Ausgewaehlt wird wie gehabt in der
+    Vorschau, mit "Alle" und "Keine".
+  * Die Kartendienste fanden Anschriften oft nicht, weil das Land fehlte.
+    Es wird nun angehaengt (voreingestellt Deutschland, in den
+    Einstellungen aenderbar) - steht es schon in der Anschrift, bleibt
+    es bei einer Nennung.
+  * Der Briefabsender laesst sich mit einem Knopf aus den Benutzerdaten
+    von LibreOffice uebernehmen (Extras - Optionen - Benutzerdaten).
+  * Neue Wahl der Sortierung im Adressbuch: nach Nachnamen wie bisher
+    ("Mueller, Hans") oder nach Vornamen ("Hans Mueller"). Sie bestimmt
+    auch das Register; nach dem Umschalten springt es auf den Buchstaben
+    des gewaehlten Namens.
+
+ -- Magnolie Organizer <maik3531@gmail.com>  Mon, 27 Jul 2026 08:00:00 +0200
+
+magnolie-organizer (1.13.0) unstable; urgency=low
+
+  * Anschriften lassen sich nun weiterverwenden. Auf jeder Karteikarte
+    stehen dafuer kleine Schaltflaechen im Stil des Buches:
+    - "Brief" legt einen Brief im ODF-Format an und oeffnet ihn in
+      LibreOffice; die eigene Anschrift erscheint auf Wunsch als
+      Absenderzeile darueber.
+    - "Karte" zeigt die Anschrift in Gnome-Karten, ersatzweise auf
+      OpenStreetMap; wahlweise auch fest OpenStreetMap oder Google Maps.
+    - E-Post-Anschriften sind anklickbar und oeffnen das eigene
+      Postprogramm mit einer neuen Nachricht.
+    - "Drucken" oeffnet zuerst eine Vorschau, in der sich mehrere
+      Karteikarten auswaehlen lassen ("Alle" / "Keine"); gedruckt wird
+      ueber den Druckdialog des Systems.
+  * Neue Einstellungsseite "Adressen": eigene Anschrift als Absender,
+    Wahl des Kartendienstes und Ein- oder Ausblenden der Schaltflaechen.
+
+ -- Magnolie Organizer <maik3531@gmail.com>  Mon, 27 Jul 2026 06:00:00 +0200
+
+magnolie-organizer (1.12.0) unstable; urgency=low
+
+  * Der Lotus-Import umfasst nun alle Bereiche: Neben Terminen liest der
+    Organizer auch Adressen mit Telefonnummern, Aufgaben mit Faelligkeit
+    und Rang, Jahrestage und Notizen. Welche Art vorliegt, erkennt er an
+    der Kopfzeile - man waehlt einfach die Datei aus. Die Spaltennamen
+    duerfen dabei abweichen: Deutsche wie englische Bezeichnungen und
+    verschiedene Schreibweisen werden zugeordnet, ebenso Semikolon als
+    Trenner und der Windows-Zeichensatz.
+  * Lange Listen werden haeppchenweise gezeigt (250 Eintraege, dann
+    "Mehr anzeigen" beziehungsweise "Alle anzeigen"). Bei 5.000 Aufgaben
+    verkuerzte das den Aufbau von 1,8 Sekunden auf gut zwei Zehntel.
+  * Die Belastungstests decken jetzt den ganzen Bestand ab: 30.000
+    Termine, 10.000 Adressen, 5.000 Aufgaben, 2.000 Notizen und 1.000
+    Jahrestage - samt Rundlauf ueber Export und erneuten Import.
+
+ -- Magnolie Organizer <maik3531@gmail.com>  Mon, 27 Jul 2026 04:00:00 +0200
+
+magnolie-organizer (1.11.0) unstable; urgency=low
+
+  * Fuer den Umstieg von Lotus Organizer geprueft: Ein Bestand von
+    30.000 Terminen wird in etwa einer Sekunde eingelesen, der Rundlauf
+    ueber Export und erneuten Import geht ohne jeden Verlust.
+  * Betreff und Notiz werden nun richtig getrennt: Lotus fuehrt beides
+    im Feld BESCHREIBUNG - die erste Zeile ist der Betreff, alles
+    Weitere gehoert zur Notiz. Bisher landete alles im Titel, und beim
+    Export ging die Notiz sogar verloren.
+  * Grosse Bestaende laufen fluessig: Die Termine werden nach Tagen
+    verzeichnet, statt fuer jedes Kalenderfeld die ganze Liste zu
+    durchsuchen - das Blaettern im Monatsblatt wurde damit doppelt so
+    schnell.
+  * Sparsamer speichern: Es wird nur geschrieben, wenn sich wirklich
+    etwas geaendert hat; die Oberflaeche reicht den fertigen Text
+    weiter, statt ihn zweimal umwandeln zu lassen; und bei grossen
+    Bestaenden wartet der Organizer etwas laenger, damit ein Tastendruck
+    nicht jedes Mal Megabyte bewegt. Grosse Dateien werden platzsparend
+    geschrieben.
+  * Neue Belastungstests im Quellpaket (pruefungen/last_test.py und
+    last_test.js) samt Erzeuger einer grossen Lotus-Datei.
+
+ -- Magnolie Organizer <maik3531@gmail.com>  Mon, 27 Jul 2026 02:00:00 +0200
+
+magnolie-organizer (1.10.0) unstable; urgency=low
+
+  * Das Protokoll des Weckers wirft Eintraege aelter als 30 Tage von
+    selbst hinaus; die Grenze von 200 Zeilen bleibt zusaetzlich
+    bestehen. Auf der Seite Benachrichtigung laesst es sich nun auch
+    ganz abschalten.
+  * Weniger ueberfluessige Arbeit: Dienst- und Autostart-Dateien werden
+    nur noch geschrieben, wenn sich ihr Inhalt geaendert hat - damit
+    entfaellt bei jedem Programmstart ein unnoetiges Neueinlesen der
+    Dienste. Der Wecker liest die Daten nur neu ein, wenn die Datei sich
+    tatsaechlich geaendert hat, statt alle halbe Minute. Und das
+    geoeffnete Programm laesst seine eigene Zeitschleife nun ganz weg,
+    da ohnehin der Wecker meldet.
+  * Aufgeraeumt: Die Tonwahl richtet sich ueberall einheitlich nach dem
+    gewaehlten Gewand; verwaiste Abfragen der frueheren Klang-
+    Einstellung sind entfernt.
+
+ -- Magnolie Organizer <maik3531@gmail.com>  Mon, 27 Jul 2026 00:30:00 +0200
+
+magnolie-organizer (1.9.6) unstable; urgency=low
+
+  * Doppelte Meldungen behoben: Wecker und Dienst meldeten dieselbe
+    Erinnerung. Nun meldet nur eine Stelle - laeuft der Wecker, haelt
+    sich der Dienst zurueck. Auch das geoeffnete Programm erinnert nicht
+    mehr selbst, sondern ueberlaesst das dem Wecker.
+  * Erinnerungen "zur Terminzeit" gingen verloren: Ein Durchgang ohne
+    Bildschirm hakte den Termin ab, ohne etwas zu zeigen. Abgehakt wird
+    jetzt nur, was tatsaechlich angekommen ist - sonst versucht es der
+    naechste Durchgang erneut.
+  * Der Klang gehoert nun zum Gewand: Im Stil des Systems entscheidet
+    dieses ueber Ton und Aussehen, im Stil der Magnolie erklingt ihr
+    Glockenspiel. Die eigene Tonauswahl ist entfallen, und die Wahl
+    zwischen Meldung, Ton oder beidem erscheint nur noch beim eigenen
+    Stil.
+  * Das Meldeblatt liess das Programm nach dem Schliessen als
+    "reagiert nicht" erscheinen. Der Wecker laeuft jetzt in einer
+    Ereignisschleife, sodass Fenster bedienbar bleiben.
+  * Neu: Erinnerung an Jahrestage - "Max Mustermann hat morgen
+    Geburtstag", wahlweise ein oder zwei Tage vorher und auf Wunsch noch
+    einmal am Tag selbst zum Gratulieren.
+  * Neu zur Fehlersuche: Knopf "Protokoll anzeigen" auf der Seite
+    Benachrichtigung, der das Protokoll des Weckers in xed oeffnet
+    (ersatzweise gedit, kate, mousepad oder xdg-open).
+
+ -- Magnolie Organizer <maik3531@gmail.com>  Sun, 26 Jul 2026 23:59:00 +0200
+
+magnolie-organizer (1.9.5) unstable; urgency=low
+
+  * Nach einem Neustart kam gar keine Erinnerung: Die liegengebliebene
+    Marke des Weckers trug eine Prozessnummer, die das System inzwischen
+    einem ganz anderen Programm gegeben hatte. Der Wecker hielt sich
+    daher fuer bereits laufend und beendete sich sofort - niemand sah
+    nach Terminen, bis der Organizer von Hand geoeffnet wurde. Jetzt
+    wird anhand der Befehlszeile geprueft, ob hinter der Nummer wirklich
+    unser Wecker steckt.
+
+ -- Magnolie Organizer <maik3531@gmail.com>  Sun, 26 Jul 2026 22:30:00 +0200
+
+magnolie-organizer (1.9.4) unstable; urgency=low
+
+  * Im eigenen Stil erschien die Meldung bei geoeffnetem Organizer nur im
+    Buch - war das Fenster verdeckt oder eingeklappt, sah man sie nicht.
+    Das Papierblatt erscheint nun auch dann auf dem Bildschirm.
+  * Der Wecker fuehrt jetzt ein kleines Protokoll (wecker.log neben den
+    Daten): Start, jeder Durchgang und jede Meldung samt Weg werden
+    festgehalten. "magnolie-organizer --probe" zeigt die letzten
+    Eintraege mit an - damit laesst sich nachsehen, warum eine
+    Erinnerung ausgeblieben ist.
+
+ -- Magnolie Organizer <maik3531@gmail.com>  Sun, 26 Jul 2026 21:00:00 +0200
+
+magnolie-organizer (1.9.3) unstable; urgency=low
+
+  * Nach dem Hochfahren blieben die Erinnerungen aus, solange der
+    Organizer nicht einmal geoeffnet wurde: der Zeitgeber der Sitzung
+    sprang von selbst nicht an. Der Organizer bringt jetzt einen eigenen
+    Wecker mit, der ueber den Autostart der Sitzung mitstartet, dort
+    Anzeige und Sitzungsbus vorfindet und regelmaessig nach Terminen
+    sieht - auch bei geschlossenem Organizer. Beim Anmelden sieht er
+    sofort nach, sodass Versaeumtes gleich gemeldet wird.
+  * Der Zeitgeber von systemd bleibt als Rueckhalt bestehen; laeuft der
+    Wecker bereits, haelt er sich zurueck, damit nichts doppelt meldet.
+  * Beim Einschalten der Erinnerungen startet der Wecker sofort - eine
+    neue Anmeldung ist dafuer nicht noetig.
+  * Der Aufruf "--probe" berichtet nun auch, ob der Autostart-Eintrag
+    vorhanden ist und ob der Wecker laeuft.
+
+ -- Magnolie Organizer <maik3531@gmail.com>  Sun, 26 Jul 2026 19:00:00 +0200
+
+magnolie-organizer (1.9.2) unstable; urgency=low
+
+  * Das Blatt im eigenen Stil blieb bei geschlossenem Programm aus, ohne
+    dass die Ersatzmeldung einsprang: Das Fenster galt schon als gezeigt,
+    sobald es angelegt war. Nun muss es nachweislich erschienen sein -
+    bleibt es binnen drei Sekunden unsichtbar, uebernimmt die Meldung des
+    Systems.
+  * Das Meldeblatt tritt jetzt als gewoehnliches Fenster auf statt als
+    Meldungsfenster, weil manche Fensterverwaltungen solche Fenster
+    fremder Programme ausblenden. Seine Lage richtet sich nach dem
+    Arbeitsbereich des Hauptbildschirms.
+  * Neuer Aufruf "magnolie-organizer --probe": fuehrt eine Erinnerung
+    genau wie der Dienst aus und berichtet, welche Anzeige gefunden
+    wurde, ob ein eigenes Blatt moeglich ist, ueber welchen Weg der Ton
+    lief und ob die Meldung ankam.
+
+ -- Magnolie Organizer <maik3531@gmail.com>  Sun, 26 Jul 2026 17:00:00 +0200
+
+magnolie-organizer (1.9.1) unstable; urgency=low
+
+  * Im eigenen Stil kam bei geschlossenem Programm gar keine Meldung:
+    Der Dienst im Hintergrund erbt keine Anzeige, und GTK bricht beim
+    ersten Fenster ohne Anzeige hart ab - damit blieb auch die
+    Ersatzmeldung des Systems aus. Der Dienst holt sich nun die
+    Umgebung der angemeldeten Sitzung (Anzeige, Sitzungsbus,
+    Berechtigungsdatei) aus einem laufenden Prozess derselben Anmeldung
+    und prueft vor jedem Fenster, ob eine Anzeige bereitsteht.
+  * Der Dienst wartet jetzt auf die angemeldete Sitzung und haengt nicht
+    mehr endlos an einer offenen Meldung.
+  * Beim Start frischt der Organizer die Dienstdateien auf, damit auch
+    eine aeltere Einrichtung die Verbesserungen erhaelt.
+
+ -- Magnolie Organizer <maik3531@gmail.com>  Sun, 26 Jul 2026 15:30:00 +0200
+
+magnolie-organizer (1.9.0) unstable; urgency=low
+
+  * Im eigenen Stil kam bisher kein Ton: das Papierblatt wartet auf den
+    Benutzer und hielt den Klang bis zum Schliessen auf. Der Ton
+    erklingt nun vor der Meldung.
+  * Eigener Erinnerungsklang: ein kurzes, absteigendes Glockenspiel aus
+    zwei Toenen, das beim Bau des Pakets berechnet wird. Auf der Seite
+    Benachrichtigung laesst sich zwischen diesem Klang und dem
+    Hinweiston des Systems waehlen. Abgespielt wird ueber paplay,
+    pw-play, aplay, canberra-gtk-play oder ffplay - je nachdem, was
+    vorhanden ist.
+  * Das Einstellungsblatt ist etwas hoeher geworden.
+
+ -- Magnolie Organizer <maik3531@gmail.com>  Sun, 26 Jul 2026 01:15:00 +0200
+
+magnolie-organizer (1.8.0) unstable; urgency=low
+
+  * Das Einstellungsblatt ist breiter: alle sechs Reiter stehen
+    nebeneinander, und jede Seite ist gleich hoch - beim Blättern
+    springt nichts mehr.
+  * Der Knopf "Organizer öffnen" in der Benachrichtigung wirkt jetzt
+    zuverlaessig. Der Hintergrunddienst erbt nicht immer die Umgebung
+    der Sitzung, weshalb der Start nun ueber den Desktop-Eintrag geht
+    (Gio, ersatzweise gtk-launch beziehungsweise gio launch).
+  * Neue Wahl "Aussehen" auf der Seite Benachrichtigung: Meldungen
+    erscheinen wahlweise wie gewohnt im Gewand des Systems oder als
+    Papierblatt im Stil des Organizers - im geoeffneten Programm im Buch
+    selbst, sonst als kleines Blatt am Bildschirmrand mit Knoepfen zum
+    Oeffnen und Schliessen.
+
+ -- Magnolie Organizer <maik3531@gmail.com>  Sun, 26 Jul 2026 00:30:00 +0200
+
+magnolie-organizer (1.7.0) unstable; urgency=low
+
+  * Neue Einstellungsseite "Benachrichtigung": Der Organizer erinnert auf
+    Wunsch an Termine - mit Bildschirmmeldung, Ton oder beidem und einem
+    Vorlauf von der Terminzeit bis zu zwei Stunden davor.
+  * Die Erinnerungen laufen auch bei geschlossenem Programm: dafuer legt
+    der Organizer beim Einschalten einen kleinen Dienst der Sitzung an
+    (systemd --user), der jede Minute nachsieht.
+  * Verpasste Termine werden auf Wunsch nachgereicht - war der Rechner
+    aus, meldet sich der Organizer kurz nach dem Hochfahren mit "Termin
+    verpasst" und einem Knopf zum Oeffnen. Ganztaegige Termine gelten
+    dabei als um 8 Uhr beginnend.
+  * Zusaetzlich laesst sich versuchen, den Rechner zur Erinnerung aus der
+    Bereitschaft zu wecken. Erlaubt das System das nicht, wird dies
+    verstaendlich gemeldet und die Erinnerung kommt, sobald der Rechner
+    wieder laeuft.
+  * Neuer Aufruf "magnolie-organizer --erinnerung" fuer den Dienst sowie
+    "--hilfe" fuer eine kurze Uebersicht.
+
+ -- Magnolie Organizer <maik3531@gmail.com>  Sat, 25 Jul 2026 23:45:00 +0200
+
+magnolie-organizer (1.6.1) unstable; urgency=low
+
+  * python3-enchant ist nun eine feste Abhaengigkeit statt einer
+    Empfehlung: die Verbesserungsvorschlaege der Rechtschreibpruefung
+    stehen damit auf jedem System sofort zur Verfuegung. Das Woerterbuch
+    hunspell-de-de bleibt eine Empfehlung, da es sprachabhaengig ist.
+
+ -- Magnolie Organizer <maik3531@gmail.com>  Sat, 25 Jul 2026 23:00:00 +0200
+
+magnolie-organizer (1.6.0) unstable; urgency=low
+
+  * Die Auswahl zum Auszeichnen (fett, kursiv, unterstrichen,
+    durchgestrichen) erscheint nun erst, wenn tatsaechlich geschrieben
+    oder etwas markiert wurde; ein leeres Blatt bleibt ruhig. Der Platz
+    bleibt dabei erhalten, damit das Papier nicht springt.
+  * Fenstergroesse, maximiertes Fenster und Vollbild werden beim Beenden
+    gemerkt und beim naechsten Start wiederhergestellt. F11 schaltet das
+    Vollbild um. Der Zustand liegt neben den Daten in fenster.json.
+  * Auch die zuletzt gewaehlte Kalenderansicht - Monats- oder
+    Wochenblatt - wird gemerkt und beim Start wiederhergestellt.
+
+ -- Magnolie Organizer <maik3531@gmail.com>  Sat, 25 Jul 2026 22:00:00 +0200
+
+magnolie-organizer (1.5.0) unstable; urgency=low
+
+  * Rechtsklick auf ein rot unterschlaengeltes Wort oeffnet nun ein
+    eigenes Vorschlagsblatt im Stil des Organizers - Papierton, Goldlinie
+    und Serifenschrift statt des Standard-Kontextmenues. Ein Klick auf
+    einen Vorschlag ersetzt das Wort, sowohl im Schreibblatt als auch in
+    den Eingabefeldern der Formulare.
+  * Eigene Namen lassen sich ueber denselben Weg ins persoenliche
+    Woerterbuch aufnehmen; es liegt neben den Daten in
+    eigene-woerter.txt.
+  * Fuer die Vorschlaege wird python3-enchant empfohlen und von
+    "apt install ./magnolie-organizer_1.5.0_all.deb" mitinstalliert.
+    Fehlt es, erklaert das Menue in einem Satz, was zu tun ist.
+
+ -- Magnolie Organizer <maik3531@gmail.com>  Sat, 25 Jul 2026 20:00:00 +0200
+
+magnolie-organizer (1.4.1) unstable; urgency=low
+
+  * Auszeichnungen lassen sich nun zuverlaessig wieder aufheben: bisher
+    legte ein zweiter Klick eine weitere Auszeichnung darueber, weil
+    WebKit die Markierung beim Anklicken eines Wortes ausserhalb der
+    Auszeichnung ablegt. Die Grenzen werden jetzt zugeschnitten, gleich-
+    bedeutende Formen wie <strong> ebenfalls erkannt, Teilstuecke sauber
+    herausgeloest und die Markierung bleibt danach stehen.
+  * Die Tastenkuerzel Strg+B, Strg+I, Strg+U und Strg+D wirken wieder.
+    Sie werden nun vor WebKits eigenem Fettschreiben abgefangen und
+    zusaetzlich ueber die Tastenposition erkannt, damit sie unabhaengig
+    von der Tastaturbelegung greifen.
+  * Die Werkzeugknoepfe zeigen hervorgehoben an, welche Auszeichnung an
+    der Schreibmarke gerade gilt.
+
+ -- Magnolie Organizer <maik3531@gmail.com>  Sat, 25 Jul 2026 18:00:00 +0200
+
+magnolie-organizer (1.4.0) unstable; urgency=low
+
+  * Schriftgroesse der eigenen Eintraege waehlbar: Normal wie bisher,
+    Mittel (etwas groesser) und Gross. Das linierte Schreibblatt der
+    Notizen passt seinen Zeilenabstand mit an.
+  * Auf Wunsch prueft das Programm die Rechtschreibung: falsch
+    geschriebene Woerter werden beim Tippen rot unterschlaengelt, ein
+    Rechtsklick schlaegt Verbesserungen vor. Die Sprache richtet sich
+    nach der Systemeinstellung, Deutsch dient als Rueckfall. Das
+    Woerterbuch hunspell-de-de wird nun empfohlen und von
+    "apt install ./magnolie-organizer_1.4.0_all.deb" mitinstalliert.
+
+ -- Magnolie Organizer <maik3531@gmail.com>  Sat, 25 Jul 2026 16:00:00 +0200
+
+magnolie-organizer (1.3.0) unstable; urgency=low
+
+  * Neue Einstellungsseite "Schrift": die selbst eingetragenen Inhalte
+    lassen sich wahlweise in der gewohnten Druckschrift oder in einer
+    Handschrift darstellen, in schwarzer oder blauer Tinte. Eine Vorschau
+    zeigt die Wirkung sofort. Ueberschriften, Kalenderblaetter und
+    Beschriftungen des Organizers bleiben unveraendert.
+  * Das Schreibblatt der Notizen ist nun eine beschreibbare Flaeche mit
+    einer kleinen Auswahl fuer fett, kursiv, unterstrichen und
+    durchgestrichen - auch ueber Strg+B, Strg+I, Strg+U und Strg+D.
+    Beim Einlesen werden nur diese schlichten Auszeichnungen zugelassen.
+
+ -- Magnolie Organizer <maik3531@gmail.com>  Sat, 25 Jul 2026 14:00:00 +0200
+
+magnolie-organizer (1.2.0) unstable; urgency=low
+
+  * Die Einstellungen sind jetzt auf vier Seiten aufgeteilt: Uebernehmen,
+    Weitergeben, Synchronisation sowie die neue Seite Land & Feiertage.
+  * Neue Seite "Land & Feiertage": Auswahl von Land und Bundesland bzw.
+    Kanton (Deutschland, Oesterreich und die Schweiz regional genau,
+    dazu weitere Nachbarlaender). Auf Knopfdruck holt das Programm
+    einmalig alle gesetzlichen Feiertage und - auf Wunsch - die
+    Schulferien aus dem offenen Verzeichnis openholidaysapi.org fuer
+    das laufende und bis zu zwei folgende Jahre. Danach liegen die Daten
+    im Organizer; eine Internetverbindung wird nicht mehr benoetigt.
+  * Feiertage und Ferien erscheinen im Monatsblatt (farbig hinterlegt
+    mit Namen), im Wochenblatt, im Tagesblatt und im Jahresplaner.
+    Sie lassen sich jederzeit wieder entfernen.
+
+ -- Magnolie Organizer <maik3531@gmail.com>  Sat, 25 Jul 2026 12:00:00 +0200
+
+magnolie-organizer (1.1.4) unstable; urgency=low
+
+  * Neue Termine schlagen jetzt eine Uhrzeit vor (naechste Viertelstunde,
+    eine halbe Stunde Dauer), statt leere Felder zu zeigen.
+  * Die Endzeit rueckt in jedem Fall nach: beim Verschieben behaelt sie
+    ihren Abstand, beim Heranruecken der Anfangszeit wird sie um
+    mindestens fuenf Minuten weitergeschoben. Auch von Hand getippte
+    Zeiten werden geprueft; das Ende kann nie vor dem Beginn liegen.
+  * Neuer Haken "ganztaegig" hinter den Uhrzeiten fuer Termine ohne feste
+    Zeitangabe; solche Termine erscheinen in der Tagesliste als
+    "ganztaegig" und werden als Ganztagstermin (DTSTART;VALUE=DATE)
+    exportiert.
+  * Die Zeitspalte der Tagesliste ist breit genug fuer Zeitspannen.
+
+ -- Magnolie Organizer <maik3531@gmail.com>  Sat, 25 Jul 2026 10:00:00 +0200
+
+magnolie-organizer (1.1.3) unstable; urgency=low
+
+  * Beim Drehen der Anfangszeit mit dem Mausrad wandert die Endzeit im
+    gleichen Abstand mit; das Ende kann dadurch nicht mehr unbemerkt vor
+    den Beginn rutschen. Das Endzeitfeld laesst sich weiterhin einzeln
+    drehen, ein leeres Endfeld bleibt leer.
+  * Wochenansicht: die Datumsspanne steht jetzt als Unterzeile unter
+    "Woche NN", damit die Knoepfe im kleinen Fenster nicht mehr
+    abgeschnitten werden; die Kopfzeile darf zudem umbrechen.
+  * Die Beschriftung der Registerfaehnchen passt nun auch bei langen
+    Woertern wie "Jahrestage" vollstaendig ins Faehnchen.
+
+ -- Magnolie Organizer <maik3531@gmail.com>  Fri, 24 Jul 2026 22:30:00 +0200
+
+magnolie-organizer (1.1.2) unstable; urgency=low
+
+  * Abgleich-Fehler auf manchen Systemen behoben: die Quellsuche
+    verlaesst sich nicht mehr auf lookup_by_uid, sondern nutzt
+    ref_source und faellt bei Bedarf auf lookup_by_uid oder die
+    vollstaendige Quellenliste zurueck ("'SourceRegistry' object has
+    no attribute 'lookup_by_uid'").
+  * Alle Fehlermeldungen des Programms erscheinen nun auf Deutsch;
+    unerwartete technische Fehler werden in einen deutschen Satz
+    gefasst und nennen die technische Angabe in Klammern.
+
+ -- Magnolie Organizer <maik3531@gmail.com>  Fri, 24 Jul 2026 15:00:00 +0200
+
+magnolie-organizer (1.1.1) unstable; urgency=low
+
+  * Neuer Knopf "Vom Rechner (Evolution/Thunderbird)" unter
+    Einstellungen -> Uebernehmen: liest Adressen, Termine und Aufgaben
+    direkt aus den lokalen Ablagen von Evolution (einschliesslich der
+    zwischengespeicherten Online-Konten) und von Thunderbird - ganz
+    ohne die gir1.2-Anbindung. Die Datenbanken werden dafuer nur in ein
+    Temporaerverzeichnis kopiert und gelesen, nie veraendert.
+  * Der Hinweis bei fehlender Online-Konten-Anbindung nennt jetzt den
+    noetigen Programmneustart und verweist auf den Rechner-Import.
+
+ -- Magnolie Organizer <maik3531@gmail.com>  Fri, 24 Jul 2026 14:00:00 +0200
+
+magnolie-organizer (1.1.0) unstable; urgency=low
+
+  * Neuer Name "Magnolie Organizer" mit gepraegter Magnolienbluete
+    auf Deckel und Programmsymbol; Daten von Organizer Klassik 1.0
+    werden beim ersten Start automatisch uebernommen.
+  * Kalender: umschaltbares Wochenblatt neben der Monatsansicht,
+    Eselsohren blaettern dort wochenweise.
+  * Termine: Endzeit, Kategorien, Kostenstelle, Kundennummer sowie
+    Vertraulich- und Vorlaeufig-Stempel wie im Lotus Organizer;
+    Uhrzeiten lassen sich mit dem Mausrad in 5-Minuten-Schritten
+    drehen (mit Umschalttaste in ganzen Stunden).
+  * Neuer Einstellungen-Knopf: Import von .ics, .vcf und
+    Lotus-Organizer-CSV (Originalspalten VERTRAULICH, KATEGORIEN,
+    ANFANGSDATUMZEIT, ENDDATUMZEIT, BESCHREIBUNG, KOSTENSTELLENCODE,
+    KUNDENNUMMER, VORLAEUFIGZUSAGEN), Export in fuenf Formate.
+  * Synchronisation von Terminen und Adressen mit den Online-Konten
+    des Systems ueber den Evolution-Data-Server, wahlweise beim Start;
+    bei Unterschieden gewinnt die zuletzt geaenderte Fassung.
+
+ -- Magnolie Organizer <maik3531@gmail.com>  Fri, 24 Jul 2026 12:00:00 +0200
+
+organizer-klassik (1.0.0) unstable; urgency=low
+
+  * Erste Veroeffentlichung: Kalender, Aufgaben, Adressen, Notizen,
+    Jahrestage und Jahresplaner im Papier-Organizer-Look.
+
+ -- Organizer Klassik <maik3531@gmail.com>  Thu, 23 Jul 2026 12:00:00 +0200

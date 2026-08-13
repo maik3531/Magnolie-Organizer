@@ -1,0 +1,9 @@
+#!/bin/sh
+set -eu
+
+root="$(CDPATH= cd -- "$(dirname -- "$0")/../.." && pwd)"
+test -f "$root/pruefungen/test.js"
+test -f /usr/share/magnolie-organizer/web/i18n/de.js
+laufer="$(command -v node || command -v nodejs || command -v bun)"
+MAGNOLIE_WEB=/usr/share/magnolie-organizer/web \
+  TZ=Europe/Berlin "$laufer" "$root/pruefungen/test.js"

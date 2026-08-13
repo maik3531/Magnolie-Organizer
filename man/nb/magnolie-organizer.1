@@ -1,0 +1,86 @@
+.TH MAGNOLIE-ORGANIZER 1 "August 2026" "Magnolie Organizer 2.0.0" "Brukerkommandoer"
+.SH NAVN
+magnolie-organizer \- personlig organisator i klassisk papirdesign
+.SH SYNOPSIS
+.B magnolie-organizer
+.RI [ alternativ ]
+.RI [ \-\-sprache\  språk ]
+.SH BESKRIVELSE
+.B Magnolie Organizer
+samler kalender, oppgaver, kontakter, notater, merkedager og en årsplanlegger.
+Data lagres lokalt og kan valgfritt synkroniseres via Evolution Data Server
+eller deles via den krypterte Magnolienbaum-tjenesten.
+.PP
+Det åpnes bare én grafisk instans per brukerøkt. Hvis kommandoen startes på
+nytt, vises det eksisterende vinduet, også når det er skjult i systemkurven.
+.SH ALTERNATIVER
+.TP
+.B \-\-erinnerung
+Se etter forfalte påminnelser. Dette alternativet brukes vanligvis av
+økttjenesten.
+.TP
+.B \-\-wecker
+Kjør påminnelsesovervåkingen i bakgrunnen.
+.TP
+.B \-\-tray-start
+Start organisatoren via autostartoppføringen for systemkurven.
+.TP
+.B \-\-probe
+Test påminnelser og skriv ut en diagnoserapport.
+.TP
+.B \-\-debug
+Fortsett vanlig drift samtidig som private, roterende diagnoseopplysninger om
+oppstart, økt, enkeltinstans, vindu og systemkurv skrives til
+\fB~/.local/state/magnolie-organizer/debug.log\fR. Avslutt en instans som
+allerede kjører, før en diagnosekjøring; et nytt kall aktiverer bare den
+eksisterende prosessen.
+.TP
+.BR \-\-sprache " " SPRÅK , " " \-\-language " " LANGUAGE
+Bruk tysk (\fBde\fR), engelsk (\fBen\fR) eller systemspråket (\fBsystem\fR)
+for dette kallet. Dette velger kommandoutdata før hjelpe-, diagnose- og
+bakgrunnsmodusene samt WebKit-grensesnittet i en nyåpnet grafisk instans.
+Lagrede innstillinger endres ikke.
+.TP
+.BR \-\-pot " [" FIL "]", " " \-\-pot-template " [" FILE "]"
+Generer en reproduserbar gettext-mal og avslutt. Uten et filargument skrives
+\fBmagnolie-organizer.pot\fR i gjeldende mappe; ellers skrives den til den
+angitte banen. Den absolutte utdatabanen skrives ut ved vellykket kjøring.
+.TP
+.BR \-\-hilfe , " " \-\-help
+Vis en kort kommandooversikt.
+.SH MAGNOLIENBAUM-NETTVERK
+Når Magnolienbaum er aktivert, lytter tjenesten på TCP-port 8737 over IPv4 og
+IPv6. Lokale grener kunngjøres og finnes via mDNS/DNS-SD som
+\fB_magnolie._tcp.local.\fR. UDP-port 8737 er fortsatt tilgjengelig som en
+begrenset reserve for oppdagelse i eldre versjoner; UDP-port 5353 brukes av
+mDNS.
+.PP
+Et vertsnavn eller en IPv4- eller IPv6-adresse kan også angis manuelt.
+Paringsfiler godtar tilgjengelige IPv4- og IPv6-litteraler. IPv6-klammer som
+kreves i URL-er, legges til automatisk og må ikke lagres i paringsfiler.
+.SH VÆR OG PERSONVERN
+Den valgfrie værmeldingen sender forespørsler til \fBwttr.in\fR. Den bruker
+først stedet i brukerens adresse og deretter lokalt leste LibreOffice-brukerdata.
+Hvis ingen av dem inneholder et sted, kan wttr.in anslå det fra den offentlige
+IP-adressen som tjenesten kan se. Kalenderalternativet "Ikke hent vær uten et
+sted" hindrer da alle nettverksforespørsler om været.
+.SH FILER
+.TP
+.I ~/.local/share/magnolie-organizer/
+Brukerdata, innstillinger, sikkerhetskopier og påminnelsestilstand.
+.TP
+.I ~/.config/autostart/magnolie-organizer-tray.desktop
+Valgfri autostartoppføring for systemkurven.
+.TP
+.I ~/.local/state/magnolie-organizer/debug.log
+Diagnoselogg som bare eieren har tilgang til, og som opprettes når
+\fB\-\-debug\fR brukes.
+.SH MILJØ
+.TP
+.B MAGNOLIE_ORGANIZER_WEB
+Bruk en alternativ mappe som inneholder nettgrensesnittet. Beregnet på
+utvikling og testing.
+.SH SE OGSÅ
+.BR magnolie-handbuch (1)
+.SH FORFATTER
+Skrevet av Maik Walter.

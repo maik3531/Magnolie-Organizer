@@ -1,0 +1,19 @@
+Tests: installed
+Depends: @, desktop-file-utils
+Restrictions: allow-stderr
+
+Tests: web-dom
+Depends: @, nodejs, node-jsdom
+Restrictions: allow-stderr
+
+Tests: gtk-webkit
+Depends: @, xvfb, xauth, dbus-daemon
+Restrictions: allow-stderr
+
+Tests: systemd-user
+Depends: @, systemd, dbus-user-session, desktop-file-utils, passwd
+Restrictions: needs-root, isolation-machine, allow-stderr
+
+Tests: ufw
+Depends: @, ufw
+Restrictions: needs-root, isolation-machine, breaks-testbed, allow-stderr

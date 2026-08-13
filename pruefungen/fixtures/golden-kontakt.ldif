@@ -1,0 +1,27 @@
+version: 1
+
+dn: uid=magnolie-2b335542fadbe961ac573c5d
+objectClass: top
+objectClass: person
+objectClass: organizationalPerson
+objectClass: inetOrgPerson
+uid: magnolie-2b335542fadbe961ac573c5d
+cn:: w4RubmUgQmVpLHNwaWVs
+givenName:: w4RubmU=
+sn: Bei,spiel
+mail: aenne@example.org
+mail: buero@example.org
+telephoneNumber: 0203 1
+mobile: 0171 2
+homePhone: 0203 3
+workPhone: 0203 4
+facsimileTelephoneNumber: 0203 5
+pager: 0203 6
+postalAddress:: QVwyNEIgU3RyYcOfZSAxJDQ3MDUxIER1aXNidXJnJERldXRzY2hsYW5k
+postalAddress:: QsO8cm8gMiQxMDExNSBCZXJsaW4kRGV1dHNjaGxhbmQ=
+o: Muster GmbH
+description:: RXJzdGUgWmVpbGUKWndlaXRlIFplaWxlIG1pdCBVbmljb2RlIMOEIHVuZCBlaW
+ 5lciBhdXNyZWljaGVuZCBsYW5nZW4gQmVzY2hyZWlidW5nIGbDvHIgZWluZSBzaWNoZXJlIEZhb
+ HR1bmcgw7xiZXIgbWVocmVyZSBwaHlzaXNjaGUgTERJRi1aZWlsZW4u
+dateOfBirth: 1980-04-03
+jpegPhoto:: /9j/2Q==

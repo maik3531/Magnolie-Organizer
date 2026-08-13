@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'none'; font-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; base-uri 'none'; form-action 'none'">
+<title>Magnolie Organizer</title>
+<link rel="stylesheet" href="stil.css">
+</head>
+<body>
+
+<div id="schreibtisch">
+
+  <div id="buch" class="geschlossen">
+
+    <!-- Ledereinband (liegt unter den Seiten, bildet den sichtbaren Rand) -->
+    <div id="einband" aria-hidden="true"></div>
+
+    <!-- Registerzungen: links = bereits umgeblätterte Abschnitte, rechts = kommende -->
+    <div id="register-links" aria-hidden="false"></div>
+    <div id="register-rechts"></div>
+
+    <!-- Aufgeschlagene Seiten -->
+    <div id="seiten">
+      <section class="seite links" id="seite-links">
+        <div class="loecher" aria-hidden="true">
+          <i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+        </div>
+        <header class="seiten-kopf" id="kopf-links"></header>
+        <div class="seiten-inhalt" id="inhalt-links"></div>
+        <button class="ecke unten-links verborgen" id="ecke-links"
+                title="Turn back" aria-label="Turn back"
+                data-i18n-title="Turn back" data-i18n-aria-label="Turn back"></button>
+      </section>
+
+      <div class="steg" aria-hidden="true">
+        <div class="ringe">
+          <span class="ring"></span><span class="ring"></span><span class="ring"></span>
+          <span class="ring"></span><span class="ring"></span><span class="ring"></span>
+          <span class="ring"></span>
+        </div>
+      </div>
+
+      <section class="seite rechts" id="seite-rechts">
+        <div class="loecher" aria-hidden="true">
+          <i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+        </div>
+        <header class="seiten-kopf" id="kopf-rechts"></header>
+        <div class="seiten-inhalt" id="inhalt-rechts"></div>
+        <button class="ecke unten-rechts verborgen" id="ecke-rechts"
+                title="Turn forward" aria-label="Turn forward"
+                data-i18n-title="Turn forward" data-i18n-aria-label="Turn forward"></button>
+      </section>
+    </div>
+
+    <!-- Vorderdeckel – wird beim Start aufgeklappt -->
+    <div id="deckel" role="button" tabindex="0" aria-label="Open organizer"
+         data-i18n-aria-label="Open organizer">
+      <div class="deckel-vorn">
+        <div class="praegerahmen"></div>
+        <div class="praegung">
+          <div class="zierlinie oben"></div>
+          <svg class="praegeblume" viewBox="0 0 64 64" aria-hidden="true">
+            <g fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M32 34 C 26 26, 26 16, 32 9 C 38 16, 38 26, 32 34 Z"/>
+              <path d="M32 34 C 23 32, 15 26, 13 17 C 22 17, 30 24, 32 34 Z"/>
+              <path d="M32 34 C 41 32, 49 26, 51 17 C 42 17, 34 24, 32 34 Z"/>
+              <path d="M32 34 C 24 40, 21 47, 22 54 C 28 51, 32 44, 32 34 Z"/>
+              <path d="M32 34 C 40 40, 43 47, 42 54 C 36 51, 32 44, 32 34 Z"/>
+            </g>
+          </svg>
+          <h1>Magnolie</h1>
+          <p class="untertitel" data-i18n="Organizer · Calendar · Contacts · Notes">Organizer · Calendar · Contacts · Notes</p>
+          <div class="zierlinie unten"></div>
+        </div>
+        <div class="schnalle" aria-hidden="true"><span class="dorn"></span></div>
+        <p class="oeffnen-hinweis" data-i18n="Click to open">Click to open</p>
+      </div>
+      <div class="deckel-rueck" aria-hidden="true"></div>
+    </div>
+
+  </div>
+
+  <footer id="statusleiste">
+    <span id="status-datum"></span>
+    <span class="status-rechts">
+      <span id="status-speicher" aria-live="polite"></span>
+      <button id="knopf-drucken" class="leisten-knopf"
+              title="Choose entries to print, export or delete"
+              data-i18n="Selection options"
+              data-i18n-title="Choose entries to print, export or delete">Selection options</button>
+      <button id="knopf-einstellungen" class="leisten-knopf"
+              title="Import, export and synchronization" data-i18n="Settings"
+              data-i18n-title="Import, export and synchronization">Settings</button>
+      <button id="knopf-sicherung" class="leisten-knopf"
+              title="Create a backup copy of the data" data-i18n="Create backup"
+              data-i18n-title="Create a backup copy of the data">Create backup</button>
+    </span>
+  </footer>
+
+</div>
+
+<!-- Nachfrage-Dialog (z. B. vor dem Löschen) -->
+<div id="dialog-schleier" class="verborgen">
+  <div id="dialog" role="dialog" aria-modal="true" aria-labelledby="dialog-text">
+    <p id="dialog-text"></p>
+    <strong id="dialog-hinweis" class="dialog-hinweis verborgen"></strong>
+    <div class="dialog-knoepfe">
+      <button id="dialog-nein" class="knopf" data-i18n="Cancel">Cancel</button>
+      <button id="dialog-ja" class="knopf rot" data-i18n="Delete">Delete</button>
+    </div>
+  </div>
+</div>
+
+<!-- Verschlüsselte Sicherung und Wiederherstellung -->
+<div id="sicherung-schleier" class="verborgen">
+  <div id="sicherung-dialog" role="dialog" aria-modal="true"
+       aria-labelledby="sicherung-titel">
+    <h3 id="sicherung-titel" data-i18n="Restore backup">Restore backup</h3>
+    <p id="sicherung-text"></p>
+    <label id="sicherung-kennwort-zeile" class="formzeile verborgen">
+      <span id="sicherung-kennwort-name" class="feldname"
+            data-i18n="Backup password">Backup password</span>
+      <input id="sicherung-kennwort" class="feld" type="password"
+             autocomplete="off">
+    </label>
+    <p id="sicherung-fehler" class="einst-warnung" aria-live="polite"></p>
+    <div class="dialog-knoepfe">
+      <button id="sicherung-abbrechen" class="knopf" data-i18n="Cancel">Cancel</button>
+      <button id="sicherung-bestaetigen" class="knopf rot" data-i18n="Restore">Restore</button>
+    </div>
+  </div>
+</div>
+
+<!-- Einstellungen: Übernehmen, Weitergeben, Synchronisation -->
+<div id="einstellungen-schleier" class="verborgen">
+  <div id="einstellungen-blatt" role="dialog" aria-modal="true" aria-labelledby="einstellungen-titel">
+    <header>
+      <h2 id="einstellungen-titel" data-i18n="Settings">Settings</h2>
+      <button id="einstellungen-zu" class="knopf" title="Close"
+              aria-label="Close settings" data-i18n-title="Close"
+              data-i18n-aria-label="Close settings">✕</button>
+    </header>
+    <div id="einstellungen-inhalt"></div>
+  </div>
+</div>
+
+<!-- Kurze Rückmeldungen -->
+<div id="zettel" class="verborgen" aria-live="polite"></div>
+
+<script src="i18n.js"></script>
+<script src="i18n/ar.js"></script>
+<script src="i18n/be.js"></script>
+<script src="i18n/cs.js"></script>
+<script src="i18n/da.js"></script>
+<script src="i18n/de.js"></script>
+<script src="i18n/es.js"></script>
+<script src="i18n/fr.js"></script>
+<script src="i18n/hi.js"></script>
+<script src="i18n/hsb.js"></script>
+<script src="i18n/it.js"></script>
+<script src="i18n/ja.js"></script>
+<script src="i18n/nb.js"></script>
+<script src="i18n/nl.js"></script>
+<script src="i18n/pl.js"></script>
+<script src="i18n/pt.js"></script>
+<script src="i18n/ru.js"></script>
+<script src="i18n/tr.js"></script>
+<script src="i18n/uk.js"></script>
+<script src="i18n/zh_CN.js"></script>
+<script src="i18n-start.js"></script>
+<script src="anwendung.js"></script>
+</body>
+</html>

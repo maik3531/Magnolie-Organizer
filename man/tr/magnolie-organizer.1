@@ -1,0 +1,87 @@
+.TH MAGNOLIE-ORGANIZER 1 "August 2026" "Magnolie Organizer 2.0.0" "Kullanıcı Komutları"
+.SH AD
+magnolie-organizer \- klasik kağıt tasarımlı kişisel düzenleyici
+.SH ÖZET
+.B magnolie-organizer
+.RI [ seçenek ]
+.RI [ \-\-sprache\  dil ]
+.SH AÇIKLAMA
+.B Magnolie Organizer
+takvimi, görevleri, kişileri, notları, yıl dönümlerini ve yıllık planlayıcıyı
+bir araya getirir. Veriler yerel olarak depolanır ve isteğe bağlı olarak
+Evolution Data Server üzerinden eşzamanlanabilir veya şifreli Magnolienbaum
+hizmeti üzerinden paylaşılabilir.
+.PP
+Her kullanıcı oturumunda yalnızca bir grafiksel örnek açılır. Komutun yeniden
+başlatılması, tepside gizlenmiş olsa bile var olan pencereyi gösterir.
+.SH SEÇENEKLER
+.TP
+.B \-\-erinnerung
+Zamanı gelen anımsatıcıları denetle. Bu seçenek normalde oturum hizmeti
+tarafından kullanılır.
+.TP
+.B \-\-wecker
+Anımsatıcı izleyicisini arka planda çalıştır.
+.TP
+.B \-\-tray-start
+Düzenleyiciyi tepsi otomatik başlatma girdisi üzerinden başlat.
+.TP
+.B \-\-probe
+Anımsatıcıları sına ve bir tanılama raporu yazdır.
+.TP
+.B \-\-debug
+Normal çalışmayı sürdürürken başlatma, oturum, tek örnek, pencere ve tepsiyle
+ilgili özel, dönüşümlü tanılama bilgilerini
+\fB~/.local/state/magnolie-organizer/debug.log\fR dosyasına yaz. Tanılama
+çalıştırmasından önce çalışmakta olan örnekten çıkın; ikinci çağrı yalnızca var
+olan süreci etkinleştirir.
+.TP
+.BR \-\-sprache " " DİL , " " \-\-language " " LANGUAGE
+Bu çağrı için Almanca (\fBde\fR), İngilizce (\fBen\fR) veya sistem dilini
+(\fBsystem\fR) kullan. Bu, yardım, tanılama ve arka plan kiplerinden önce komut
+çıktısının yanı sıra yeni açılan grafiksel örneğin WebKit arayüzünün dilini
+seçer. Kalıcı ayarlar değiştirilmez.
+.TP
+.BR \-\-pot " [" DOSYA "]", " " \-\-pot-template " [" FILE "]"
+Yeniden üretilebilir bir gettext şablonu oluştur ve çık. Dosya argümanı
+verilmezse geçerli dizine \fBmagnolie-organizer.pot\fR yaz; aksi takdirde
+belirtilen yola yaz. Başarılı olduğunda mutlak çıktı yolu yazdırılır.
+.TP
+.BR \-\-hilfe , " " \-\-help
+Kısa bir komut özeti göster.
+.SH MAGNOLIENBAUM AĞI
+Etkinleştirildiğinde Magnolienbaum, IPv4 ve IPv6 üzerinden TCP bağlantı noktası
+8737'yi dinler. Yerel dallar mDNS/DNS-SD aracılığıyla
+\fB_magnolie._tcp.local.\fR olarak duyurulur ve bulunur. UDP bağlantı noktası
+8737 eski sürümler için sınırlı bir keşif yedeği olarak kullanılabilir kalır;
+mDNS, UDP bağlantı noktası 5353'ü kullanır.
+.PP
+Ana makine adı, IPv4 adresi veya IPv6 adresi elle de girilebilir. Eşleştirme
+dosyaları erişilebilir IPv4 ve IPv6 değişmezlerini kabul eder. URL'lerin
+gerektirdiği IPv6 köşeli ayraçları otomatik olarak eklenir ve eşleştirme
+dosyalarında saklanmamalıdır.
+.SH HAVA DURUMU GİZLİLİĞİ
+İsteğe bağlı tahmin \fBwttr.in\fR adresine istek gönderir. Önce kullanıcının
+adresindeki konumu, ardından yerel olarak okunan LibreOffice kullanıcı
+verilerini kullanır. İkisinde de konum yoksa wttr.in, hizmetin gördüğü genel IP
+adresinden konumu tahmin edebilir. "Konum olmadan hava durumunu alma" takvim
+seçeneği bu durumda hava durumuyla ilgili tüm ağ isteklerini engeller.
+.SH DOSYALAR
+.TP
+.I ~/.local/share/magnolie-organizer/
+Kullanıcı verileri, ayarlar, yedekler ve anımsatıcı durumu.
+.TP
+.I ~/.config/autostart/magnolie-organizer-tray.desktop
+İsteğe bağlı tepsi otomatik başlatma girdisi.
+.TP
+.I ~/.local/state/magnolie-organizer/debug.log
+\fB\-\-debug\fR kullanıldığında oluşturulan, yalnızca sahibinin erişebildiği
+tanılama günlüğü.
+.SH ORTAM
+.TP
+.B MAGNOLIE_ORGANIZER_WEB
+Web arayüzünü içeren başka bir dizin kullan. Geliştirme ve sınama amaçlıdır.
+.SH AYRICA BAKINIZ
+.BR magnolie-handbuch (1)
+.SH YAZAR
+Maik Walter tarafından yazılmıştır.

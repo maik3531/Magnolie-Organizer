@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>io.gitlab.maik3531.MagnolieOrganizer</id>
+  <name>Magnolie Organizer</name>
+  <summary>Personal organizer with a classic paper appearance</summary>
+  <summary xml:lang="de">Persoenlicher Organizer im Stil eines Papier-Organizers</summary>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-3.0-or-later</project_license>
+  <description>
+    <p>Manage appointments, contacts, tasks, notes, anniversaries and printable planners locally without handing personal organizer data to a cloud service.</p>
+    <p xml:lang="de">Verwaltet Termine, Adressen, Aufgaben, Notizen, Jahrestage und druckbare Planer lokal, ohne persoenliche Organizer-Daten an einen Cloud-Dienst zu geben.</p>
+  </description>
+  <launchable type="desktop-id">io.gitlab.maik3531.MagnolieOrganizer.desktop</launchable>
+  <url type="homepage">https://gitlab.com/maik3531/mint-forgs</url>
+  <developer id="io.gitlab.maik3531">
+    <name>Maik Walter</name>
+  </developer>
+  <content_rating type="oars-1.1"/>
+  <provides>
+    <binary>magnolie-organizer</binary>
+  </provides>
+  <categories>
+    <category>Office</category>
+    <category>Calendar</category>
+  </categories>
+</component>

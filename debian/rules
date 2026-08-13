@@ -1,0 +1,54 @@
+#!/usr/bin/make -f
+# Regelwerk des Magnolie Organizers – reine Skript-Installation ohne Kompilat.
+
+JS_LAUFER := $(shell command -v node 2>/dev/null || command -v nodejs 2>/dev/null || command -v bun 2>/dev/null)
+SOURCE_DATE_EPOCH ?= $(shell dpkg-parsechangelog -STimestamp)
+export SOURCE_DATE_EPOCH
+
+%:
+	dh $@
+
+# Kataloge erzeugen und die Python-Syntax prüfen.
+override_dh_auto_build:
+	python3 werkzeuge/klang.py klang/erinnerung.wav
+	mkdir -p web/i18n
+	set -e; while read sprache; do \
+		mkdir -p locale/$$sprache/LC_MESSAGES; \
+		python3 werkzeuge/katalog_pruefen.py po/magnolie-organizer.pot po/$$sprache.po; \
+		msgfmt --check --check-format -o locale/$$sprache/LC_MESSAGES/magnolie-organizer.mo po/$$sprache.po; \
+		python3 werkzeuge/po_zu_js.py $$sprache po/$$sprache.po web/i18n/$$sprache.js; \
+	done < po/LINGUAS
+	python3 -m py_compile bin/magnolie-organizer bin/magnolie_telefon.py
+
+override_dh_auto_test:
+ifeq (,$(filter nocheck,$(DEB_BUILD_OPTIONS)))
+	mkdir -p debian/test-data debian/test-config
+	DISPLAY= WAYLAND_DISPLAY= XDG_DATA_HOME=$(CURDIR)/debian/test-data XDG_CONFIG_HOME=$(CURDIR)/debian/test-config TZ=Europe/Berlin python3 pruefungen/test_parser.py
+	TZ=Europe/Berlin python3 pruefungen/test_import_export_vertrag.py
+	TZ=Europe/Berlin python3 pruefungen/test_gesamtarchiv.py
+	TZ=Europe/Berlin python3 pruefungen/test_telefon.py
+	python3 pruefungen/test_paketinhalt.py
+	test -n "$(JS_LAUFER)"
+	TZ=Europe/Berlin $(JS_LAUFER) pruefungen/test.js
+	rm -rf bin/__pycache__ debian/test-data debian/test-config
+endif
+
+# Nur offizielle Binärbauten erhalten die externe Contributor-Konfiguration.
+# Sie wird nach dem Quellpaketbau im Paketbaum erzeugt und gehört nie zur Quelle.
+override_dh_install:
+	dh_install
+	set -e; hash="$${MAGNOLIE_CONTRIBUTOR_HASH:-}"; \
+	if [ -n "$$hash" ]; then \
+		test "$${#hash}" -eq 64; \
+		case "$$hash" in *[!0-9a-fA-F]*) exit 2;; esac; \
+		ziel=debian/magnolie-organizer/usr/share/magnolie-organizer; \
+		mkdir -p "$$ziel"; \
+		printf '{"contributorHash":"%s"}\n' "$$hash" > "$$ziel/build-config.json"; \
+	fi
+
+override_dh_builddeb:
+	find debian/magnolie-organizer -exec touch -h -d "@$(SOURCE_DATE_EPOCH)" {} +
+	dh_builddeb
+
+override_dh_auto_clean:
+	rm -rf bin/__pycache__ debian/tests/__pycache__ pruefungen/__pycache__ werkzeuge/__pycache__ klang locale web/i18n/*.js debian/test-data debian/test-config bau

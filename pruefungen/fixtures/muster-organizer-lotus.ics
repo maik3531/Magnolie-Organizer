@@ -1,0 +1,19 @@
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Lotus Development Corporation//NONSGML Organizer 6.0 //EN
+BEGIN:VEVENT
+DTSTART:19940720T070000Z
+DTEND:19940720T100000Z
+DESCRIPTION:Aldi
+SUMMARY:Aldi
+UID:fixture-lotus-appointment-1
+END:VEVENT
+BEGIN:VEVENT
+DTSTART:19941225T073000Z
+DTEND:19941225T080000Z
+DESCRIPTION:Abflug nach Lanzarote und Urlaub bis 8.1.95 in Costa Tegui
+ se\nFlug mit LTI von Leipzig nach Arrecife
+SUMMARY:Abflug nach Lanzarote und Urlaub bis 8.1.95 in Costa Teguise
+UID:fixture-lotus-appointment-2
+END:VEVENT
+END:VCALENDAR

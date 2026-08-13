@@ -1,0 +1,78 @@
+.TH MAGNOLIE-ORGANIZER 1 "August 2026" "Magnolie Organizer 2.0.0" "用户命令"
+.ad l
+.SH 名称
+magnolie-organizer \- 采用经典纸质设计的个人事务管理器
+.SH 用法
+.B magnolie-organizer
+.RI [ 选项 ]
+.RI [ \-\-sprache\  语言 ]
+.SH 描述
+.B Magnolie Organizer
+集日历、任务、联系人、笔记、纪念日和年度计划于一体。数据存储在本地，
+也可以选择通过 Evolution Data Server 同步，或通过加密的 Magnolienbaum
+服务共享。
+.PP
+每个用户会话只会打开一个图形实例。再次启动该命令会显示现有窗口，包括
+隐藏在系统托盘中的窗口。
+.SH 选项
+.TP
+.B \-\-erinnerung
+检查到期的提醒。此选项通常由会话服务使用。
+.TP
+.B \-\-wecker
+在后台运行提醒监视器。
+.TP
+.B \-\-tray-start
+通过系统托盘自动启动项启动事务管理器。
+.TP
+.B \-\-probe
+测试提醒并输出诊断报告。
+.TP
+.B \-\-debug
+.na
+继续正常运行，同时将有关启动、会话、单实例、窗口和系统托盘的私有轮转
+诊断信息写入 \fB~/.local/state/magnolie-organizer/debug.log\fR。开始诊断
+运行前应退出已在运行的实例；第二次调用只会激活现有进程。
+.TP
+.BR \-\-sprache " " 语言 , " " \-\-language " " LANGUAGE
+本次调用使用德语 (\fBde\fR)、英语 (\fBen\fR) 或系统语言
+(\fBsystem\fR)。此设置会在帮助、诊断和后台模式运行前选择命令输出语言，
+并选择新打开图形实例的 WebKit 界面语言。不会更改持久保存的设置。
+.TP
+.BR \-\-pot " [" 文件 "]", " " \-\-pot-template " [" FILE "]"
+生成可重现的 gettext 模板并退出。未提供文件参数时，在当前目录写入
+\fBmagnolie-organizer.pot\fR；否则写入指定路径。成功时会输出绝对输出
+路径。
+.TP
+.BR \-\-hilfe , " " \-\-help
+显示简短的命令概览。
+.SH MAGNOLIENBAUM 网络
+启用后，Magnolienbaum 通过 IPv4 和 IPv6 侦听 TCP 端口 8737。本地分支
+通过 mDNS/DNS-SD 以 \fB_magnolie._tcp.local.\fR 名称发布和发现。UDP 端口
+8737 仍作为旧版本的有限发现后备机制；mDNS 使用 UDP 端口 5353。
+.PP
+也可以手动输入主机名、IPv4 地址或 IPv6 地址。配对文件接受可访问的 IPv4
+和 IPv6 字面地址。URL 所需的 IPv6 方括号会自动添加，不得存入配对文件。
+.SH 天气隐私
+可选的天气预报会向 \fBwttr.in\fR 发送请求。它首先使用用户地址中的地点，
+然后使用从本地读取的 LibreOffice 用户数据。如果两者都不包含地点，
+wttr.in 可以根据该服务可见的公网 IP 地址估算地点。在这种情况下，日历
+选项“不在没有地点时获取天气”可阻止任何天气网络请求。
+.SH 文件
+.TP
+.I ~/.local/share/magnolie-organizer/
+用户数据、设置、备份和提醒状态。
+.TP
+.I ~/.config/autostart/magnolie-organizer-tray.desktop
+可选的系统托盘自动启动项。
+.TP
+.I ~/.local/state/magnolie-organizer/debug.log
+使用 \fB\-\-debug\fR 时创建的仅所有者可访问的诊断日志。
+.SH 环境变量
+.TP
+.B MAGNOLIE_ORGANIZER_WEB
+使用包含网页界面的其他目录。用于开发和测试。
+.SH 另请参阅
+.BR magnolie-handbuch (1)
+.SH 作者
+由 Maik Walter 编写。

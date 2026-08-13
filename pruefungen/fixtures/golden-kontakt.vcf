@@ -1,0 +1,15 @@
+BEGIN:VCARD
+VERSION:3.0
+N:Müller;Jörg;;;
+FN:Jörg Müller
+UID:cross-platform-contact
+REV:20260811T120000Z
+EMAIL;TYPE=HOME:joerg@example.org
+EMAIL;TYPE=WORK:j.mueller@example.com
+TEL;TYPE=HOME:0301
+TEL;TYPE=CELL:01701
+ADR;TYPE=HOME:;;Weg 1;Berlin;;10115;Deutschland
+ADR;TYPE=WORK:;;Büro 2;Potsdam;;14467;Deutschland
+BDAY:--02-29
+PHOTO;ENCODING=b;TYPE=JPEG:/9j/2Q==
+END:VCARD

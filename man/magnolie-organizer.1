@@ -1,0 +1,83 @@
+.TH MAGNOLIE-ORGANIZER 1 "August 2026" "Magnolie Organizer 2.0.0" "User Commands"
+.SH NAME
+magnolie-organizer \- personal organizer in a classic paper design
+.SH SYNOPSIS
+.B magnolie-organizer
+.RI [ option ]
+.RI [ \-\-sprache\  language ]
+.SH DESCRIPTION
+.B Magnolie Organizer
+combines a calendar, tasks, contacts, notes, anniversaries and a yearly
+planner. Data is stored locally and can optionally be synchronized through
+Evolution Data Server or shared through the encrypted Magnolienbaum service.
+.PP
+Only one graphical instance is opened per user session. Starting the command
+again presents the existing window, including a window hidden in the tray.
+.SH OPTIONS
+.TP
+.B \-\-erinnerung
+Check for due reminders. This option is normally used by the session service.
+.TP
+.B \-\-wecker
+Run the reminder monitor in the background.
+.TP
+.B \-\-tray-start
+Start the organizer through its tray autostart entry.
+.TP
+.B \-\-probe
+Test reminders and print a diagnostic report.
+.TP
+.B \-\-debug
+Continue normal operation while writing private, rotating startup, session,
+singleton, window and tray diagnostics to
+\fB~/.local/state/magnolie-organizer/debug.log\fR. Quit an already running
+instance before starting a diagnostic run; a second invocation only activates
+the existing process.
+.TP
+.BR \-\-sprache " " SPRACHE , " " \-\-language " " LANGUAGE
+Use German (\fBde\fR), English (\fBen\fR), or the system language
+(\fBsystem\fR) for this invocation. This selects command output before help,
+diagnostic and background modes and the WebKit interface of a newly opened
+graphical instance. Persisted settings are not changed.
+.TP
+.BR \-\-pot " [" DATEI "]", " " \-\-pot-template " [" FILE "]"
+Generate a reproducible gettext template and exit. With no file argument,
+write \fBmagnolie-organizer.pot\fR in the current directory; otherwise write
+to the specified path. The absolute output path is printed on success.
+.TP
+.BR \-\-hilfe , " " \-\-help
+Show a short command overview.
+.SH MAGNOLIENBAUM NETWORK
+When enabled, Magnolienbaum listens on TCP port 8737 over IPv4 and IPv6.
+Local branches are advertised and found through mDNS/DNS-SD as
+\fB_magnolie._tcp.local.\fR. UDP port 8737 remains available as a
+limited discovery fallback for older versions; UDP port 5353 is used by mDNS.
+.PP
+A host name, IPv4 address or IPv6 address can also be entered manually.
+Pairing files accept reachable IPv4 and IPv6 literals. IPv6 brackets required
+by URLs are added automatically and must not be stored in pairing files.
+.SH WEATHER PRIVACY
+The optional forecast sends requests to \fBwttr.in\fR. It first uses the
+location in the user's address, then locally read LibreOffice user data. If
+neither contains a location, wttr.in can estimate it from the public IP address
+visible to the service. The calendar option “Do not retrieve weather without a
+location” prevents any weather network request in that case.
+.SH FILES
+.TP
+.I ~/.local/share/magnolie-organizer/
+User data, settings, backups and reminder state.
+.TP
+.I ~/.config/autostart/magnolie-organizer-tray.desktop
+Optional tray autostart entry.
+.TP
+.I ~/.local/state/magnolie-organizer/debug.log
+Owner-only diagnostic log created when \fB\-\-debug\fR is used.
+.SH ENVIRONMENT
+.TP
+.B MAGNOLIE_ORGANIZER_WEB
+Use an alternative directory containing the web interface. Intended for
+development and testing.
+.SH SEE ALSO
+.BR magnolie-handbuch (1)
+.SH AUTHOR
+Written by Maik Walter.

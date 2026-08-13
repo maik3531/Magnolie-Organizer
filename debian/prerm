@@ -1,0 +1,12 @@
+#!/bin/sh
+set -e
+if [ "$1" = "remove" ] && command -v ufw >/dev/null 2>&1; then
+    stand="$(ufw status 2>/dev/null || true)"
+    case "$stand" in
+        *active*|*aktiv*)
+            ufw --force delete allow "Magnolie Organizer" >/dev/null 2>&1 || true
+            ;;
+    esac
+fi
+#DEBHELPER#
+exit 0
