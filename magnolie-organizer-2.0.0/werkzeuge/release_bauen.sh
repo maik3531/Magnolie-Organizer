@@ -16,6 +16,7 @@ python3 "$LIVE_SOURCE/werkzeuge/update_signieren.py" --check-key \
     "$MAGNOLIE_UPDATE_SIGNING_KEY" "$UPDATE_SIGNATUR_SCHLUESSEL"
 FASSUNG=$(dpkg-parsechangelog -l"$LIVE_SOURCE/debian/changelog" -SVersion)
 SOURCE_NAME="magnolie-organizer-$FASSUNG"
+LIVE_SOURCE_NAME=$(basename "$LIVE_SOURCE")
 CONTRIBUTOR_HASH=${MAGNOLIE_CONTRIBUTOR_HASH:-}
 [ "${#CONTRIBUTOR_HASH}" -eq 64 ] || {
     printf '%s\n' 'MAGNOLIE_CONTRIBUTOR_HASH fehlt oder ist ungueltig.' >&2; exit 2;
@@ -299,13 +300,24 @@ magnolie-organizer_${FASSUNG}.dsc
 magnolie-organizer_${FASSUNG}.tar.xz
 Magnolie-Organizer-$FASSUNG-x86_64.AppImage"
 if [ -n "$RPM_PAKET" ]; then
+    if [ "$LIVE_SOURCE_NAME" != "$SOURCE_NAME" ]; then
+        mkdir -p "$STAGE/$LIVE_SOURCE_NAME/bau/rpm/RPMS/noarch" \
+            "$STAGE/$LIVE_SOURCE_NAME/bau/rpm/SRPMS"
+        cp "$RPM_PAKET" "$STAGE/$LIVE_SOURCE_NAME/${RPM_PAKET#"$WURZEL/"}"
+        cp "$RPM_QUELLE" "$STAGE/$LIVE_SOURCE_NAME/${RPM_QUELLE#"$WURZEL/"}"
+    fi
     PUBLISH_PATHS="$PUBLISH_PATHS
-$SOURCE_NAME/${RPM_PAKET#"$WURZEL/"}
-$SOURCE_NAME/${RPM_QUELLE#"$WURZEL/"}"
+$LIVE_SOURCE_NAME/${RPM_PAKET#"$WURZEL/"}
+$LIVE_SOURCE_NAME/${RPM_QUELLE#"$WURZEL/"}"
+fi
+if [ "$LIVE_SOURCE_NAME" != "$SOURCE_NAME" ]; then
+    mkdir -p "$STAGE/$LIVE_SOURCE_NAME"
+    cp "$WURZEL/update.xml" "$STAGE/$LIVE_SOURCE_NAME/update.xml"
+    cp "$PRUEFSUMMEN" "$STAGE/$LIVE_SOURCE_NAME/Magnolie-Organizer-PRUEFSUMMEN.sha256"
 fi
 PUBLISH_PATHS="$PUBLISH_PATHS
-$SOURCE_NAME/update.xml
-$SOURCE_NAME/Magnolie-Organizer-PRUEFSUMMEN.sha256
+$LIVE_SOURCE_NAME/update.xml
+$LIVE_SOURCE_NAME/Magnolie-Organizer-PRUEFSUMMEN.sha256
 update.xml"
 for rel in $PUBLISH_PATHS; do chmod 0644 "$STAGE/$rel"; done
 chmod 0755 "$APPIMAGE"
