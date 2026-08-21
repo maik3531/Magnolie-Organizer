@@ -1,0 +1,5535 @@
+/*
+ * Magnolie Organizer – Oberfläche
+ * Copyright (C) 2026 Maik Walter <maik3531@gmail.com>
+ *
+ * Dieses Programm ist freie Software: Sie können es unter den Bedingungen
+ * der GNU General Public License, Version 3 oder später, weitergeben
+ * und/oder verändern. Es wird ohne jede Gewährleistung veröffentlicht.
+ * Siehe <https://www.gnu.org/licenses/gpl-3.0.html>
+ */
+/* ==========================================================================
+   Magnolie Organizer – Stilblatt
+   Gestaltet wie ein aufgeschlagener Ring-Organizer aus Leder und Papier.
+   Farbwelt: Leder #47251b/#6b3a29 · Gold #d8b25c · Papier #f6efdc
+             Tinte #3a3128 · Filz #2e3a34 · Signalrot #b5443a
+   ========================================================================== */
+
+:root {
+  --leder-dunkel: #3c1f15;
+  --leder: #55291c;
+  --leder-hell: #6b3a29;
+  --gold: #d8b25c;
+  --gold-dunkel: #a8823c;
+  --papier: #f6efdc;
+  --papier-tief: #ece1c4;
+  --linie: #d8c39a;
+  --linie-stark: #ab9468;
+  --tinte: #3a3128;
+  --braun: #5a4630;
+  --braun-hell: #93805d;
+  --rot: #b5443a;
+  --filz: #2e3a34;
+  --buchbreite: min(1520px, calc(100vw - 232px), calc((100vh - 88px) * 1.52));
+  --serif: "Noto Serif", serif;
+  --sans: "DejaVu Sans", "Liberation Sans", "Segoe UI", sans-serif;
+  --mono: "DejaVu Sans Mono", monospace;
+}
+
+/* Gesundheit: Tabellenblatt und Sinnbilder im Stil des Papier-Organizers. */
+.gesundheit-kopfwahl { display: flex; align-items: center; gap: 5px; }
+.gesundheit-symbolknopf,
+.gesundheit-seitenpfeil {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border: 1px solid #789a91;
+  border-radius: 50%;
+  background: rgba(229,240,236,.75);
+  color: #315f55;
+}
+.gesundheit-symbolknopf.aktiv { background: #5f9186; color: #fff; }
+.gesundheit-seitenpfeil { width: 26px; height: 26px; font: 700 19px/1 var(--serif); }
+.gesundheit-seitenpfeil:disabled { opacity: .28; }
+.gesundheit-seitennummer { margin-left: 5px; color: var(--braun-hell); font: 10px var(--sans); }
+.gesundheit-papiertabelle {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  border: 1px solid #a77398;
+  background: rgba(255,255,255,.2);
+  font: 9px/1.15 var(--sans);
+}
+.gesundheit-papiertabelle th,
+.gesundheit-papiertabelle td {
+  height: 34px;
+  border: 1px solid rgba(167,115,152,.48);
+  padding: 1px 2px;
+  vertical-align: middle;
+  white-space: pre-line;
+}
+.gesundheit-papiertabelle thead th {
+  height: 40px;
+  background: rgba(190,140,174,.13);
+  color: #70435f;
+  font-weight: 700;
+  line-height: 1.1;
+  text-align: center;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+  word-break: normal;
+}
+.gesundheit-papiertabelle tr.gesundheit-reserve-verborgen { display: none; }
+.seiten-inhalt.gesundheit-reserve-leer,
+.gesundheit-seitenrolle.gesundheit-reserve-leer { overflow-y: hidden; }
+.gesundheit-zellenfeld {
+  width: 100%;
+  min-width: 0;
+  height: 29px;
+  border: 0;
+  border-radius: 0;
+  padding: 2px;
+  background: transparent;
+  color: var(--tinte);
+  font: 10px/1.2 var(--sans);
+  text-align: center;
+}
+.gesundheit-zellenfeld:focus { background: rgba(255,255,255,.72); box-shadow: inset 0 0 0 1px #7e506d; }
+.feld.gesundheit-zellenfeld {
+  padding-inline: 0;
+  font-size: 15px;
+}
+.gesundheit-zellenfeld.datumsfeld {
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: none;
+}
+.gesundheit-zellenfeld.datumsfeld::-webkit-calendar-picker-indicator,
+.gesundheit-zellenfeld.datumsfeld::-webkit-list-button {
+  display: none !important;
+  width: 0;
+  margin: 0;
+  padding: 0;
+}
+.gesundheit-zeit { appearance: none; -webkit-appearance: none; }
+.gesundheit-zahl { appearance: textfield; -moz-appearance: textfield; }
+.gesundheit-zahl::-webkit-inner-spin-button,
+.gesundheit-zahl::-webkit-outer-spin-button { appearance: none; margin: 0; }
+.gesundheit-ampel-gruen { background-color: rgba(190,226,194,.48); }
+.gesundheit-ampel-orange { background-color: rgba(244,207,142,.52); }
+.gesundheit-ampel-rot { background-color: rgba(239,164,158,.52); color: #6f1717; font-weight: 700; }
+.gesundheit-papiertabelle td.gesundheit-ampel-gruen { background-color: rgba(190,226,194,.34); }
+.gesundheit-papiertabelle td.gesundheit-ampel-orange { background-color: rgba(244,207,142,.38); }
+.gesundheit-papiertabelle td.gesundheit-ampel-rot { background-color: rgba(239,164,158,.38); }
+.gesundheit-zeile-ampel-gruen td { background-image: linear-gradient(rgba(190,226,194,.08),rgba(190,226,194,.08)); }
+.gesundheit-zeile-ampel-orange td { background-image: linear-gradient(rgba(244,207,142,.10),rgba(244,207,142,.10)); }
+.gesundheit-zeile-ampel-rot td { background-image: linear-gradient(rgba(239,164,158,.10),rgba(239,164,158,.10)); }
+.gesundheit-zeile-ampel-gruen td:first-child { box-shadow: inset 3px 0 #78a47e; }
+.gesundheit-zeile-ampel-orange td:first-child { box-shadow: inset 3px 0 #c68a35; }
+.gesundheit-zeile-ampel-rot td:first-child { box-shadow: inset 3px 0 #b95656; }
+.vitalwert-tabelle th:nth-child(1) { width: 16%; }
+.vitalwert-tabelle th:nth-child(2) { width: 12%; }
+.vitalwert-tabelle th:nth-child(3) { width: 11%; }
+.vitalwert-tabelle th:nth-child(4) { width: 16%; }
+.vitalwert-tabelle th:nth-child(5) { width: 13%; }
+.vitalwert-tabelle th:nth-child(6),
+.vitalwert-tabelle th:nth-child(7),
+.vitalwert-tabelle th:nth-child(8) { width: 10.6%; }
+.gesundheit-bmi-zelle { display: block; text-align: center; font: 10px/1.2 var(--sans); }
+.gesundheit-blutdruckfelder { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; }
+.gesundheit-blutdruckfelder .gesundheit-zellenfeld { padding-inline: 0; }
+.medikament-links th:nth-child(1) { width: 43%; }
+.medikament-links th:nth-child(2) { width: 23%; }
+.medikament-links th:nth-child(3) { width: 12%; }
+.medikament-links th:nth-child(4) { width: 22%; }
+.medikament-rechts { font-size: 8px; }
+.medikament-rechts th:nth-child(-n+4) { width: 8%; }
+.medikament-rechts th:nth-child(5) { width: 17%; }
+.medikament-rechts th:nth-child(6) { width: 17%; }
+.medikament-rechts th:nth-child(7) { width: 26%; }
+.medikament-rechts th:nth-child(8) { width: 8%; }
+.gesundheit-menge { display: grid; grid-template-columns: 1fr 1fr; }
+.knopf.gesundheit-suchknopf,
+.knopf.gesundheit-plusknopf {
+  display: inline-flex;
+  flex: 0 0 22px;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  min-width: 22px;
+  max-width: 22px;
+  height: 22px;
+  min-height: 22px;
+  max-height: 22px;
+  border: 1px solid #9a6d88;
+  border-radius: 50%;
+  padding: 0;
+  background: rgba(255,255,255,.55);
+  color: #70435f;
+  font: 700 11px/1 var(--sans);
+}
+.blutzucker-tabelle th:nth-child(1) { width: 21%; }
+.blutzucker-tabelle th:nth-child(2) { width: 15%; }
+.blutzucker-tabelle th:nth-child(3) { width: 19%; }
+.blutzucker-tabelle th:nth-child(4) { width: 16%; }
+.blutzucker-tabelle th:nth-child(5) { width: 10%; }
+.blutzucker-tabelle th:nth-child(6) { width: 19%; }
+.gesundheit-tabellenaktionen {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 10px;
+  flex: none;
+  padding: 7px 0 2px;
+  background: linear-gradient(to bottom, rgba(246,239,220,.88), var(--papier));
+}
+.gesundheit-tabellenaktionen .knopf { flex: 0 0 auto; }
+.gesundheit-referenzhinweis {
+  margin: 7px 0 0;
+  padding: 6px 9px;
+  border-left: 3px solid #789a91;
+  background: rgba(229,240,236,.58);
+  color: var(--braun-hell);
+  font: 600 10px/1.35 var(--sans);
+}
+.seiten-inhalt.gesundheit-seite-mit-aktionen {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  container-type: inline-size;
+}
+.gesundheit-seitenrolle { flex: 1; min-width: 0; min-height: 0; overflow-x: hidden; overflow-y: auto; }
+.gesundheit-wochenplan-editor { margin-top: 10px; }
+.gesundheit-wochenplan-editor h3 { margin-bottom: 4px; font: 600 11px var(--sans); color: #70435f; }
+.gesundheit-insulinschema { margin-top: 0; }
+.gesundheit-insulinart { margin: 9px 0; padding-top: 7px; border-top: 1px dotted var(--linie-stark); }
+.gesundheit-insulinart-kopf { display: grid; grid-template-columns: 1fr 140px; gap: 8px; }
+.gesundheit-schema-zeile {
+  display: grid;
+  grid-template-columns: auto 48px minmax(55px,1fr) auto 48px minmax(50px,.8fr) auto 24px;
+  align-items: center;
+  gap: 4px;
+  margin: 5px 0;
+  font: 10px var(--sans);
+}
+.gesundheit-schema-zeile .feld { min-width: 0; width: 100%; }
+.gesundheit-schema-treffer { margin: 9px 0; }
+.gesundheit-schema-passend {
+  margin: 4px 0;
+  padding: 5px 7px;
+  border-left: 3px solid #5f9186;
+  background: rgba(216,235,229,.55);
+  font: 600 10px/1.35 var(--sans);
+}
+.gesundheit-einstellblock {
+  margin: 8px 0;
+  padding: 8px;
+  border: 1px dashed #8aa79f;
+  border-radius: 5px;
+}
+.gesundheit-einstellkopf { display: flex; align-items: center; gap: 8px; font-weight: 700; }
+.gesundheit-planfelder { margin: 7px 0 0 28px; }
+.gesundheit-planraster { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 6px; }
+.gesundheit-marke {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 16px;
+  color: #27665a;
+  cursor: pointer;
+}
+.gesundheit-marke:focus-visible { outline: 2px solid #27665a; outline-offset: 1px; }
+.gesundheit-verlauf-diagramm { min-height: 300px; padding: 12px; }
+body[data-hilfsrahmen="an"] .gesundheit-verlauf-steuerung :focus-visible {
+  outline-offset: -3px;
+}
+.gesundheit-verlauf-diagramm svg { width: 100%; max-height: 310px; }
+.gesundheit-diagramm-gitter { stroke: rgba(90,77,61,.22); stroke-width: 1; }
+.gesundheit-diagramm-rahmen { fill: none; stroke: rgba(90,77,61,.42); stroke-width: 1; }
+.gesundheit-diagramm-legende { display: flex; gap: 14px; justify-content: center; font: 11px var(--sans); }
+.gesundheit-diagramm-legende span { display: inline-flex; align-items: center; gap: 5px; }
+.gesundheit-diagramm-legende i { width: 10px; height: 10px; border-radius: 50%; }
+.gesundheit-bmi {
+  padding: 8px 10px;
+  border-left: 4px solid #6f9f94;
+  background: rgba(224,239,234,.5);
+  font: 600 12px/1.4 var(--sans);
+}
+.gesundheit-ausgabe { display: flex; flex-wrap: wrap; gap: 6px; margin: 12px 0; }
+.gesundheit-druck-blatt { width: min(1120px, 96vw); }
+.gesundheit-druck-optionen { display: flex; flex-direction: column; gap: 7px; width: 300px; }
+.gesundheit-druck-datum { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.gesundheit-druck-vorschau { min-height: 360px; padding: 8px; overflow: hidden; }
+.gesundheit-druck-vorschau { overflow-y: auto; }
+.gesundheit-druck-seite-vorschau {
+  width: 100%;
+  aspect-ratio: 297 / 210;
+  height: auto;
+  overflow: hidden;
+  margin-bottom: 10px;
+  padding: 12px;
+  background: white;
+  box-shadow: 0 1px 5px rgba(50,40,30,.2);
+  color: #29231d;
+  font: 5px/1.15 var(--sans);
+}
+.gesundheit-druck-seite-vorschau h1 { margin: 0 0 6px; font: 700 10px var(--serif); }
+.gesundheit-druck-seite-vorschau .haelften { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.gesundheit-druck-seite-vorschau table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+.gesundheit-druck-seite-vorschau th,
+.gesundheit-druck-seite-vorschau td { height: 12px; border: 1px solid #9b6386; padding: 1px; overflow: hidden; }
+.gesundheit-druck-seite-vorschau th { background: #f0e4ec; text-align: center; }
+.gesundheit-druck-seite-vorschau .schema { border: 1px solid #9b6386; padding: 7px; }
+.gesundheit-druck-seite-vorschau .schema h2,
+.gesundheit-druck-seite-vorschau .schema h3 { margin: 3px 0; font-size: 7px; }
+.gesundheit-druck-seite-vorschau .diagramm-raster { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
+.gesundheit-druck-seite-vorschau .diagramm { text-align: center; }
+.gesundheit-druck-seite-vorschau svg { width: 100%; max-height: 95px; }
+.gesundheit-loeschblatt { width: min(680px, 94vw); }
+.gesundheit-loeschliste { display: flex; flex-direction: column; gap: 7px; max-height: 55vh; overflow-y: auto; padding: 12px 4px; }
+
+@container (max-width: 568px) {
+  .feld.gesundheit-zellenfeld { font-size: 12px; }
+}
+
+@container (max-width: 520px) {
+  .gesundheit-papiertabelle { font-size: 8px; }
+  .gesundheit-papiertabelle th,
+  .gesundheit-papiertabelle td { padding-inline: 1px; }
+  .gesundheit-zellenfeld { padding-inline: 1px; font-size: 9px; }
+  .knopf.gesundheit-suchknopf,
+  .knopf.gesundheit-plusknopf {
+    flex-basis: 20px;
+    width: 20px;
+    min-width: 20px;
+    max-width: 20px;
+    height: 20px;
+    min-height: 20px;
+    max-height: 20px;
+  }
+  .gesundheit-insulinart-kopf { grid-template-columns: minmax(0, 1fr) minmax(110px, 140px); }
+}
+
+@container (max-width: 380px) {
+  .gesundheit-papiertabelle { font-size: 7px; }
+  .gesundheit-zellenfeld { font-size: 9px; }
+  .gesundheit-planraster { grid-template-columns: 1fr; }
+  .gesundheit-insulinart-kopf { grid-template-columns: 1fr; }
+  .gesundheit-planfelder { margin-left: 0; }
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body { height: 100%; }
+
+body {
+  font: 15px/1.45 var(--sans);
+  color: var(--tinte);
+  overflow: hidden;
+  background: var(--filz);
+}
+
+.verborgen { display: none !important; }
+
+.dialog-hinweis { display: block; margin-top: 12px; }
+
+:focus-visible { outline: none; }
+
+body[data-hilfsrahmen="an"] :focus-visible {
+  outline: 2px solid #8a6d3b;
+  outline-offset: 2px;
+}
+
+/* --------------------------------------------------------------------------
+   Schreibtisch (Filz-Unterlage)
+   -------------------------------------------------------------------------- */
+
+#schreibtisch {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 14px 116px 0;
+  background:
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)' opacity='0.07'/></svg>"),
+    radial-gradient(120% 90% at 50% 32%, #3b4a41 0%, #2e3a34 55%, #1e2723 100%);
+}
+
+/* --------------------------------------------------------------------------
+   Buch
+   -------------------------------------------------------------------------- */
+
+#buch {
+  position: relative;
+  width: var(--buchbreite);
+  height: calc(var(--buchbreite) / 1.52);
+  perspective: 2600px;
+}
+
+#einband {
+  position: absolute;
+  inset: 0;
+  border-radius: 18px;
+  background:
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='260' height='260'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)' opacity='0.16'/></svg>"),
+    radial-gradient(140% 120% at 30% 20%, var(--leder-hell) 0%, var(--leder) 45%, var(--leder-dunkel) 100%);
+  box-shadow:
+    inset 0 2px 3px rgba(255, 235, 200, 0.18),
+    inset 0 -3px 6px rgba(0, 0, 0, 0.5),
+    0 22px 44px rgba(0, 0, 0, 0.55),
+    0 4px 10px rgba(0, 0, 0, 0.4);
+}
+
+/* --------------------------------------------------------------------------
+   Aufgeschlagene Seiten
+   -------------------------------------------------------------------------- */
+
+#seiten {
+  position: absolute;
+  inset: 15px;
+  display: flex;
+  border-radius: 8px;
+}
+
+.seite {
+  position: relative;
+  flex: 1 1 0;
+  min-width: 0;
+  container-type: inline-size;
+  display: flex;
+  flex-direction: column;
+  background:
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.7' numOctaves='2' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)' opacity='0.05'/></svg>"),
+    linear-gradient(105deg, #f9f3e2 0%, var(--papier) 55%, var(--papier-tief) 100%);
+}
+
+.seite.links {
+  border-radius: 8px 2px 2px 8px;
+  padding: 14px 34px 46px 26px;
+  transform-origin: right center;
+  box-shadow:
+    inset -30px 0 32px -20px rgba(75, 52, 24, 0.4),
+    inset 2px 2px 0 rgba(255, 255, 255, 0.55);
+}
+
+.seite.rechts {
+  border-radius: 2px 8px 8px 2px;
+  padding: 14px 26px 46px 34px;
+  transform-origin: left center;
+  box-shadow:
+    inset 30px 0 32px -20px rgba(75, 52, 24, 0.4),
+    inset -2px 2px 0 rgba(255, 255, 255, 0.55);
+}
+
+#contributor-wasserzeichen {
+  position: absolute;
+  z-index: 2;
+  right: 66px;
+  bottom: 15px;
+  border: 0;
+  border-bottom: 1px dotted currentColor;
+  padding: 1px 2px;
+  background: transparent;
+  color: #765f40;
+  opacity: 0.58;
+  font: italic 11px/1.2 var(--serif);
+  letter-spacing: 0.035em;
+  cursor: pointer;
+}
+
+#contributor-wasserzeichen:hover,
+#contributor-wasserzeichen:focus-visible { opacity: 0.9; }
+
+/* Steg mit Ringbindung */
+
+.steg {
+  flex: none;
+  width: 52px;
+  position: relative;
+  background:
+    linear-gradient(90deg,
+      rgba(0, 0, 0, 0.55) 0%, #241610 18%, #332016 50%, #241610 82%, rgba(0, 0, 0, 0.55) 100%);
+  box-shadow: inset 0 4px 8px rgba(0, 0, 0, 0.6), inset 0 -4px 8px rgba(0, 0, 0, 0.6);
+}
+
+.ringe {
+  position: absolute;
+  inset: 12px 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+  align-items: center;
+}
+
+.ring {
+  position: relative;
+  width: 40px;
+  height: 40px;
+  user-select: none;
+}
+
+.ring::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: conic-gradient(from 210deg,
+    #f4f6f8, #9aa2ab 22%, #e8ecef 42%, #666e77 62%, #cfd5da 82%, #f4f6f8);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.55), inset 0 0 2px rgba(255, 255, 255, 0.65);
+}
+
+.ring::after {
+  content: "";
+  position: absolute;
+  inset: 8px;
+  border-radius: 50%;
+  background: #241610;
+  box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.9), 0 1px 0 rgba(255, 255, 255, 0.18);
+}
+
+/* Gestanzte Löcher im Papier */
+
+.loecher {
+  position: absolute;
+  top: 24px;
+  bottom: 24px;
+  width: 14px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+  align-items: center;
+  pointer-events: none;
+}
+
+.seite.links .loecher { right: 6px; }
+.seite.rechts .loecher { left: 6px; }
+
+.loecher i {
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 38% 32%, #7a6a52 0%, #2a1d12 60%, #43301f 100%);
+  box-shadow: inset 0 2px 3px rgba(0, 0, 0, 0.8), 0 1px 0 rgba(255, 255, 255, 0.5);
+}
+
+/* --------------------------------------------------------------------------
+   Seitenkopf und Inhalt
+   -------------------------------------------------------------------------- */
+
+.seiten-kopf {
+  flex: none;
+  min-height: 54px;
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  padding: 12px 4px 9px;
+  border-bottom: 3px double var(--linie-stark);
+}
+
+.seiten-kopf h2 {
+  font: 600 21px/1.1 var(--serif);
+  font-variant: small-caps;
+  letter-spacing: 0.07em;
+  color: var(--braun);
+  white-space: nowrap;
+}
+
+.kopf-neben { font-size: 13px; color: #8a7250; white-space: nowrap; }
+
+.kopf-frei {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.seiten-inhalt {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 12px 8px 10px 2px;
+}
+
+.seiten-inhalt.randlos { padding: 0; overflow: hidden; }
+
+/* Eselsohren zum Blättern */
+
+.ecke {
+  position: absolute;
+  bottom: 8px;
+  width: 46px;
+  height: 46px;
+  border: none;
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
+  user-select: none;
+  transition: transform 0.15s ease;
+}
+
+.ecke::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+}
+
+.ecke.unten-rechts { right: 8px; transform-origin: bottom right; }
+.ecke.unten-links { left: 8px; transform-origin: bottom left; }
+
+.ecke.unten-rechts::before {
+  clip-path: polygon(100% 0, 100% 100%, 0 100%);
+  background: linear-gradient(315deg, #faf4e2 6%, #e6d9b6 46%, #c8b489 52%, rgba(0,0,0,0) 53%);
+  filter: drop-shadow(-2px -2px 3px rgba(90, 70, 40, 0.4));
+}
+
+.ecke.unten-links::before {
+  clip-path: polygon(0 0, 100% 100%, 0 100%);
+  background: linear-gradient(45deg, #faf4e2 6%, #e6d9b6 46%, #c8b489 52%, rgba(0,0,0,0) 53%);
+  filter: drop-shadow(2px -2px 3px rgba(90, 70, 40, 0.4));
+}
+
+.ecke:hover { transform: scale(1.14); }
+
+/* --------------------------------------------------------------------------
+   Registerzungen
+   -------------------------------------------------------------------------- */
+
+.registerknopf {
+  position: absolute;
+  top: calc(52px + var(--slot) * var(--register-schritt, 54px));
+  height: var(--register-hoehe, 44px);
+  width: 152px;
+  display: flex;
+  align-items: center;
+  font: 600 12.5px/1 var(--sans);
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: #3d3018;
+  border: 1px solid rgba(58, 38, 16, 0.5);
+  cursor: pointer;
+  user-select: none;
+  z-index: 1;
+  background-image: linear-gradient(rgba(255, 255, 255, 0.3), rgba(0, 0, 0, 0.12));
+  background-color: var(--tabfarbe, #d9c07a);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+  transition: transform 0.15s ease, opacity 0.35s ease 0.45s;
+}
+
+#buch[data-register-anzahl="6"] { --register-hoehe: 56px; --register-schritt: 68px; }
+#buch[data-register-anzahl="5"] { --register-hoehe: 70px; --register-schritt: 82px; }
+#buch[data-register-anzahl="4"] { --register-hoehe: 110px; --register-schritt: 122px; }
+#buch[data-register-anzahl="3"] { --register-hoehe: 150px; --register-schritt: 162px; }
+#buch[data-register-anzahl="2"] { --register-hoehe: 230px; --register-schritt: 242px; }
+
+#buch[data-register-anzahl="4"] .registerknopf,
+#buch[data-register-anzahl="3"] .registerknopf,
+#buch[data-register-anzahl="2"] .registerknopf {
+  width: 60px;
+}
+
+#buch[data-register-anzahl="4"] #register-rechts .registerknopf,
+#buch[data-register-anzahl="3"] #register-rechts .registerknopf,
+#buch[data-register-anzahl="2"] #register-rechts .registerknopf {
+  right: -36px;
+  padding: 1px 8px 1px 18px;
+}
+
+#buch[data-register-anzahl="4"] #register-links .registerknopf,
+#buch[data-register-anzahl="3"] #register-links .registerknopf,
+#buch[data-register-anzahl="2"] #register-links .registerknopf {
+  left: -36px;
+  padding: 1px 18px 1px 8px;
+}
+
+#buch[data-register-anzahl="4"] .registertext,
+#buch[data-register-anzahl="3"] .registertext,
+#buch[data-register-anzahl="2"] .registertext {
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+  white-space: nowrap;
+  overflow-wrap: normal;
+  word-break: normal;
+  letter-spacing: .08em;
+  line-height: 1;
+}
+
+#register-rechts .registerknopf {
+  right: -120px;
+  border-radius: 0 12px 12px 0;
+  padding: 0 24px 0 28px;
+  justify-content: center;
+}
+
+#register-links .registerknopf {
+  left: -120px;
+  border-radius: 12px 0 0 12px;
+  padding: 0 42px 0 12px;
+  justify-content: flex-end;
+}
+
+.registerknopf:hover { filter: brightness(1.07); }
+#register-rechts .registerknopf:hover { transform: translateX(4px); }
+#register-links .registerknopf:hover { transform: translateX(-4px); }
+
+.registerknopf.aktiv {
+  font-weight: 700;
+  color: #2e2410;
+  background-image: linear-gradient(rgba(255, 255, 255, 0.45), rgba(0, 0, 0, 0.06));
+  box-shadow: 0 3px 7px rgba(0, 0, 0, 0.45);
+  z-index: 3;
+}
+
+.registertext {
+  display: block;
+  min-width: 0;
+  min-height: 0;
+  max-width: 100%;
+  max-height: 100%;
+  overflow: hidden;
+  white-space: nowrap;
+  text-align: center;
+}
+
+#register-rechts .registerknopf.aktiv { transform: translateX(7px); }
+#register-links .registerknopf.aktiv { transform: translateX(-7px); }
+
+#buch.geschlossen .registerknopf { opacity: 0; pointer-events: none; transition: opacity 0.2s; }
+
+/* --------------------------------------------------------------------------
+   Vorderdeckel
+   -------------------------------------------------------------------------- */
+
+#deckel {
+  position: absolute;
+  inset: 0;
+  border-radius: 18px;
+  z-index: 50;
+  cursor: pointer;
+  transform-origin: left center;
+  transform-style: preserve-3d;
+  transition:
+    transform 1.15s cubic-bezier(0.62, 0.02, 0.3, 1),
+    opacity 0.45s ease-in 0.62s;
+}
+
+/* Der Deckel klappt ganz nach hinten und verschwindet dabei hinter dem
+   Buch – so wird er nicht mehr am Fensterrand abgeschnitten. */
+#buch.offen #deckel {
+  transform: rotateY(-180deg) translateZ(-8px);
+  opacity: 0;
+  cursor: default;
+}
+#deckel.weg { display: none; }
+
+.deckel-vorn,
+.deckel-rueck {
+  position: absolute;
+  inset: 0;
+  border-radius: 18px;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+.deckel-vorn {
+  z-index: 1;
+  backface-visibility: visible;
+  -webkit-backface-visibility: visible;
+  background:
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='260' height='260'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)' opacity='0.17'/></svg>"),
+    radial-gradient(130% 110% at 32% 22%, #7a4530 0%, var(--leder) 48%, var(--leder-dunkel) 100%);
+  box-shadow:
+    inset 0 2px 3px rgba(255, 235, 200, 0.22),
+    inset 0 -4px 9px rgba(0, 0, 0, 0.55),
+    inset 3px 0 6px rgba(255, 230, 190, 0.1);
+}
+
+.deckel-rueck {
+  display: none;
+  transform: rotateY(180deg);
+  background:
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='260' height='260'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)' opacity='0.14'/></svg>"),
+    linear-gradient(115deg, #4a2418 0%, #3a1c12 100%);
+  box-shadow: inset 0 0 0 2px rgba(216, 178, 92, 0.18);
+}
+
+.praegerahmen {
+  position: absolute;
+  inset: 20px;
+  border: 2px solid rgba(216, 178, 92, 0.5);
+  border-radius: 10px;
+  box-shadow:
+    inset 0 1px 0 rgba(0, 0, 0, 0.5),
+    0 1px 0 rgba(255, 230, 180, 0.12);
+  pointer-events: none;
+}
+
+.praegerahmen::after {
+  content: "";
+  position: absolute;
+  inset: 6px;
+  border: 1px dashed rgba(216, 178, 92, 0.35);
+  border-radius: 6px;
+}
+
+.praegung {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  text-align: center;
+  pointer-events: none;
+}
+
+.praegung h1 {
+  font: 700 clamp(38px, 6.5vw, 74px)/1 var(--serif);
+  font-variant: small-caps;
+  letter-spacing: 0.3em;
+  padding-left: 0.3em;
+  color: var(--gold);
+  text-shadow:
+    0 -1px 1px rgba(0, 0, 0, 0.75),
+    0 1px 0 rgba(255, 240, 200, 0.35);
+}
+
+.praegung .untertitel {
+  font: 400 clamp(12px, 1.4vw, 16px)/1.4 var(--serif);
+  letter-spacing: 0.24em;
+  color: rgba(216, 178, 92, 0.85);
+  text-transform: uppercase;
+  text-shadow: 0 -1px 1px rgba(0, 0, 0, 0.7);
+}
+
+.zierlinie {
+  width: min(320px, 40%);
+  height: 7px;
+  background:
+    radial-gradient(circle at center, rgba(216, 178, 92, 0.9) 0 2px, transparent 3px) center / 12px 7px no-repeat,
+    linear-gradient(rgba(216, 178, 92, 0.65), rgba(216, 178, 92, 0.65)) left center / calc(50% - 12px) 1px no-repeat,
+    linear-gradient(rgba(216, 178, 92, 0.65), rgba(216, 178, 92, 0.65)) right center / calc(50% - 12px) 1px no-repeat;
+}
+
+.schnalle {
+  position: absolute;
+  right: 30px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 36px;
+  height: 130px;
+  border-radius: 12px;
+  background: linear-gradient(90deg, #2e150d, #4a2418 45%, #2e150d);
+  box-shadow: 0 3px 7px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 220, 170, 0.16);
+}
+
+.schnalle .dorn {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 22px;
+  height: 34px;
+  border: 4px solid var(--gold-dunkel);
+  border-radius: 7px;
+  background: transparent;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.7), inset 0 1px 1px rgba(255, 240, 200, 0.5);
+}
+
+.oeffnen-hinweis {
+  position: absolute;
+  bottom: 34px;
+  width: 100%;
+  text-align: center;
+  font: 400 13px var(--serif);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: rgba(216, 178, 92, 0.75);
+  animation: puls 2.2s ease-in-out infinite alternate;
+}
+
+@keyframes puls { from { opacity: 0.45; } to { opacity: 1; } }
+
+/* --------------------------------------------------------------------------
+   Blätter-Animation beim Abschnittswechsel
+   -------------------------------------------------------------------------- */
+
+#seiten.blaettern-vor .seite.rechts { animation: blattEinRechts 0.42s ease-out; }
+#seiten.blaettern-vor .seite.links { animation: blattLeichtLinks 0.42s ease-out; }
+#seiten.blaettern-zurueck .seite.links { animation: blattEinLinks 0.42s ease-out; }
+#seiten.blaettern-zurueck .seite.rechts { animation: blattLeichtRechts 0.42s ease-out; }
+
+@keyframes blattEinRechts {
+  from { transform: perspective(1500px) rotateY(-62deg); opacity: 0.2; }
+  to { transform: none; opacity: 1; }
+}
+@keyframes blattEinLinks {
+  from { transform: perspective(1500px) rotateY(62deg); opacity: 0.2; }
+  to { transform: none; opacity: 1; }
+}
+@keyframes blattLeichtLinks {
+  from { transform: perspective(1500px) rotateY(7deg); }
+  to { transform: none; }
+}
+@keyframes blattLeichtRechts {
+  from { transform: perspective(1500px) rotateY(-7deg); }
+  to { transform: none; }
+}
+
+/* --------------------------------------------------------------------------
+   Gemeinsame Bausteine: Knöpfe, Felder, Listen
+   -------------------------------------------------------------------------- */
+
+button, input, select, textarea { font-family: inherit; }
+
+.knopf {
+  font: 600 13px var(--sans);
+  color: #46361f;
+  background: linear-gradient(#f5edd8, #e5d8b6);
+  border: 1px solid #a5916a;
+  border-radius: 7px;
+  padding: 7px 14px;
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgba(60, 40, 10, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.7);
+  user-select: none;
+}
+
+.knopf:hover { background: linear-gradient(#faf3e2, #ecdfc0); }
+.knopf:active { transform: translateY(1px); box-shadow: 0 0 1px rgba(60, 40, 10, 0.3); }
+
+.knopf.klein { padding: 4px 10px; font-size: 12px; }
+
+.knopf.rot {
+  background: linear-gradient(#e6b0a5, #cf8677);
+  border-color: #9c5343;
+  color: #47180f;
+}
+.knopf.rot:hover { background: linear-gradient(#efbfb4, #d99486); }
+
+.pfeil {
+  width: 27px;
+  height: 27px;
+  padding: 0;
+  border-radius: 50%;
+  font: 700 15px/1 var(--serif);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.loesch-x {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: #a08a5c;
+  font: 700 13px/1 var(--sans);
+  cursor: pointer;
+}
+.loesch-x:hover { background: rgba(168, 67, 58, 0.16); color: var(--rot); }
+
+.feldname {
+  display: block;
+  font-size: 10.5px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--braun-hell);
+  margin-bottom: 1px;
+}
+
+.feld {
+  width: 100%;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid #b7a273;
+  border-radius: 0;
+  font: 15px var(--sans);
+  color: var(--tinte);
+  padding: 4px 2px;
+}
+
+textarea.feld { resize: vertical; line-height: 1.5; }
+
+.feld:focus { border-bottom: 1.5px solid #7a5f38; }
+
+select.feld { cursor: pointer; }
+
+.formzeile { margin-bottom: 12px; }
+
+.formraster {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  column-gap: 22px;
+}
+
+fieldset.formular {
+  border: 1px solid #cdbb92;
+  border-radius: 8px;
+  padding: 12px 14px 14px;
+  margin-top: 14px;
+  background: rgba(255, 252, 240, 0.5);
+}
+
+fieldset.formular legend {
+  font: 600 14px var(--serif);
+  font-variant: small-caps;
+  letter-spacing: 0.06em;
+  color: #6b5433;
+  padding: 0 7px;
+}
+
+.form-knoepfe { display: flex; gap: 10px; margin-top: 4px; }
+
+.liste { list-style: none; }
+
+.zeile {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 6px;
+  border-bottom: 1px dotted #c6b48c;
+  cursor: pointer;
+}
+
+.zeile:hover { background: rgba(180, 150, 90, 0.13); }
+.zeile.aktiv { background: rgba(180, 150, 90, 0.2); }
+
+.zeile .haupt { flex: 1; min-width: 0; }
+
+.zeilen-aktion {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  padding: 0;
+  text-align: left;
+  cursor: pointer;
+}
+
+.haupt .obm {
+  font-weight: 600;
+  color: #3c3226;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.haupt .unt {
+  font-size: 12px;
+  color: #8a7756;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.leer-hinweis {
+  margin: 30px 10px;
+  color: #96835f;
+  font-style: italic;
+  text-align: center;
+  line-height: 1.6;
+}
+
+.zwischentitel {
+  font: 600 13px var(--serif);
+  font-variant: small-caps;
+  letter-spacing: 0.08em;
+  color: #6b5433;
+  border-bottom: 1px solid var(--linie);
+  margin: 18px 0 4px;
+  padding-bottom: 3px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* --------------------------------------------------------------------------
+   Kalender
+   -------------------------------------------------------------------------- */
+
+.kal-huelle { display: flex; flex-direction: column; height: 100%; }
+
+.kal-wochentage {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  flex: none;
+}
+
+.kal-wt {
+  font: 600 11px var(--serif);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #7c6742;
+  text-align: center;
+  padding: 5px 0 4px;
+  border-bottom: 1px solid #c9b78d;
+}
+
+.monatsraster {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  grid-auto-rows: 1fr;
+  flex: 1;
+  min-height: 0;
+  border-left: 1px solid #d9c9a1;
+}
+
+.kal-huelle.mit-wochen .kal-wochentage,
+.kal-huelle.mit-wochen .monatsraster {
+  grid-template-columns: 29px repeat(7, minmax(0, 1fr));
+}
+
+.kal-kw-kopf {
+  font-size: 9px;
+  letter-spacing: 0.04em;
+}
+
+.kal-kw {
+  display: grid;
+  place-items: center;
+  min-height: 0;
+  border-right: 1px solid #d1bd91;
+  border-bottom: 1px solid #d9c9a1;
+  background: rgba(216, 178, 92, 0.12);
+  color: var(--braun-hell);
+  font: 600 10px var(--serif);
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  cursor: default;
+}
+
+.kal-tag {
+  position: relative;
+  border-right: 1px solid #d9c9a1;
+  border-bottom: 1px solid #d9c9a1;
+  padding: 2px 4px;
+  overflow: hidden;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.kal-tag:hover { background: rgba(190, 160, 95, 0.12); }
+body[data-hilfsrahmen="an"] .kal-tag:focus-visible,
+body[data-hilfsrahmen="an"] .wo-tag:focus-visible,
+body[data-hilfsrahmen="an"] .stunden-feld:focus-visible,
+body[data-hilfsrahmen="an"] .mm-tag:focus-visible {
+  outline: 2px solid #8a6d3b;
+  outline-offset: -3px;
+}
+
+.kal-tag .nr {
+  flex: none;
+  width: 23px;
+  height: 23px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font: 600 13px var(--serif);
+  color: #54442c;
+  border-radius: 50%;
+}
+
+.kal-tag-kopf {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex: none;
+  min-height: 23px;
+}
+
+.kal-tag.andermonat { background: rgba(160, 135, 85, 0.06); }
+.kal-tag.andermonat .nr { color: #b3a482; font-weight: 400; }
+
+.kal-tag.heute .nr {
+  border: 2px solid var(--rot);
+  color: #8c2f27;
+  transform: rotate(-4deg);
+}
+
+.kal-tag.gewaehlt {
+  background: #f5e7c0;
+  box-shadow: inset 0 0 0 1.5px #caa85f;
+}
+
+.kal-tag .mini {
+  appearance: none;
+  width: 100%;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  text-align: left;
+  font-family: inherit;
+  font-size: 10.5px;
+  line-height: 1.35;
+  color: #4a3d2a;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.kal-tag .mini b { color: #6d4f24; font-weight: 600; }
+
+.kal-tag .mehr { font-size: 10px; color: #8a734a; }
+
+.jt-stern {
+  position: static;
+  font-size: 11px;
+  color: #b08b32;
+  pointer-events: none;
+}
+
+/* Tagesseite rechts */
+
+.jt-kasten {
+  border: 1px solid #d3b878;
+  background: #f7ecce;
+  border-radius: 7px;
+  padding: 8px 11px;
+  margin-bottom: 10px;
+  font-size: 13.5px;
+  color: #6b5426;
+}
+
+.termin-zeile .zeit {
+  flex: none;
+  width: 54px;
+  font: 700 15px var(--serif);
+  color: #6d4f24;
+}
+
+/* --------------------------------------------------------------------------
+   Aufgaben
+   -------------------------------------------------------------------------- */
+
+.check {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  border: 1.6px solid #7a6339;
+  border-radius: 3px;
+  background: #fffdf4;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  color: #33652f;
+  cursor: pointer;
+  box-shadow: inset 0 1px 2px rgba(90, 70, 30, 0.25);
+}
+
+.check.an::after { content: "✓"; font-weight: 700; }
+
+.prio {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font: 700 11px var(--sans);
+  color: #fff8ea;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.3);
+}
+
+.prio.p1 { background: #a8433a; }
+.prio.p2 { background: #bd8a2e; }
+.prio.p3 { background: #8d8d7c; }
+
+.faellig { flex: none; font-size: 12px; color: #7d6a45; }
+.faellig.ueber { color: #a8433a; font-weight: 700; }
+
+.zeile.erledigt .obm {
+  text-decoration: line-through;
+  color: #9a8b6b;
+  font-weight: 400;
+}
+
+/* --------------------------------------------------------------------------
+   Adressen
+   -------------------------------------------------------------------------- */
+
+.adr-huelle { display: flex; gap: 12px; height: 100%; }
+
+.seiten-inhalt.adressen-rechts { overflow: hidden; }
+
+.adr-spalte {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+}
+
+.adr-spalte.formular-spalte { overflow: hidden; }
+
+#abc-register {
+  flex: none;
+  width: 27px;
+  display: flex;
+  flex-direction: column;
+  padding: 2px 0;
+}
+
+.abc {
+  flex: 1;
+  min-height: 0;
+  font: 600 10px/1 var(--sans);
+  color: #8a7346;
+  background: #efe4c4;
+  border: 1px solid #cdb98c;
+  border-left-width: 4px;
+  border-radius: 0 5px 5px 0;
+  margin: 0.5px 0;
+  padding: 0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  user-select: none;
+}
+
+.abc.voll { color: #453517; background: #e6d3a2; font-weight: 700; }
+.abc.aktiv { background: #caa85f; border-color: #8a6a2e; color: #fff8e6; }
+.abc:hover { filter: brightness(1.06); }
+
+.suchfeld {
+  width: 150px;
+  font-size: 13px;
+  padding: 3px 6px;
+  background: rgba(255, 252, 240, 0.65);
+  border: 1px solid #b7a273;
+  border-radius: 6px;
+  color: var(--tinte);
+}
+.suchfeld:focus { outline: none; border-color: #7a5f38; }
+
+.kontakt-karte h3 {
+  margin: 0;
+  font: 700 25px var(--serif);
+  color: #4a3a24;
+  line-height: 1.15;
+}
+
+.kontakt-kopf {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  min-width: 0;
+}
+
+.kontakt-kopf-text { min-width: 0; }
+
+.kontakt-foto {
+  width: 92px;
+  height: 112px;
+  flex: none;
+  object-fit: cover;
+  border: 1px solid var(--linie-stark);
+  border-radius: 7px;
+  background: var(--papier-tief);
+  box-shadow: 0 2px 5px rgba(60, 40, 10, 0.18);
+}
+
+.kontakt-foto.vorschau {
+  width: 76px;
+  height: 92px;
+}
+
+.kontakt-foto-wahl {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 94px;
+}
+
+.kontakt-foto-bedienung {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 7px;
+  min-width: 0;
+}
+
+.kontakt-foto-platzhalter {
+  width: 76px;
+  height: 92px;
+  box-sizing: border-box;
+  display: grid;
+  place-items: center;
+  flex: none;
+  padding: 8px;
+  border: 1px dashed var(--linie-stark);
+  border-radius: 7px;
+  background: rgba(255, 252, 240, 0.55);
+  color: var(--braun-hell);
+  font: italic 12px/1.25 var(--serif);
+  text-align: center;
+}
+
+.kontakt-foto-status {
+  max-width: 230px;
+  color: var(--braun-hell);
+  font: italic 12.5px var(--serif);
+  overflow-wrap: anywhere;
+}
+
+.datei-versteckt {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  overflow: hidden !important;
+  clip-path: inset(50%) !important;
+  white-space: nowrap !important;
+}
+
+.k-firma { font-size: 14px; color: #8a7250; font-style: italic; margin-top: 2px; }
+
+.k-block { margin: 15px 0; line-height: 1.55; }
+
+.k-zeilen {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 5px 16px;
+  align-items: baseline;
+}
+
+.k-label {
+  font-size: 10.5px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--braun-hell);
+}
+
+.k-wert { word-break: break-word; }
+
+.k-notiz {
+  margin-top: 14px;
+  padding: 10px 12px;
+  background: rgba(255, 252, 240, 0.55);
+  border: 1px dashed #cdbb92;
+  border-radius: 7px;
+  font-size: 13.5px;
+  white-space: pre-wrap;
+}
+
+.kontakt-weitere {
+  margin-top: 4px;
+  padding: 8px 12px 12px;
+  border-left: 2px solid rgba(151, 119, 62, 0.28);
+}
+
+.kontakt-zusatz-titel {
+  margin: 16px 0 7px;
+  color: var(--braun);
+  font: 600 13px var(--serif);
+}
+
+.kontakt-ereignis-kopf,
+.kontakt-ereignis-zeile {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.kontakt-ereignis-kopf {
+  justify-content: space-between;
+}
+
+.kontakt-ereignis-kopf .kontakt-zusatz-titel {
+  margin-top: 7px;
+}
+
+.kontakt-ereignis-zeile {
+  margin-bottom: 7px;
+}
+
+.kontakt-ereignis-typ,
+.kontakt-ereignis-datum {
+  flex: 1;
+  min-width: 0;
+}
+
+.kontakt-mehrfach-kopf,
+.kontakt-telefon-zeile,
+.kontakt-email-zeile,
+.kontakt-sozial-zeile,
+.kontakt-anschrift-kopf {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.kontakt-mehrfach-kopf {
+  justify-content: space-between;
+  margin: 10px 0 6px;
+}
+
+.kontakt-telefon-zeile,
+.kontakt-email-zeile,
+.kontakt-sozial-zeile { margin-bottom: 7px; }
+.kontakt-telefon-art,
+.kontakt-email-art { width: 130px; flex: none; }
+.kontakt-email-adresse { flex: 1; min-width: 0; }
+.kontakt-telefon-nummer { flex: 1; min-width: 0; }
+.kontakt-sozial-dienst { width: 145px; flex: none; }
+.kontakt-sozial-symbol { width: 118px; flex: none; }
+.kontakt-sozial-wert { flex: 1; min-width: 0; }
+.kontakt-sozial-zahnrad { width: 34px; padding-inline: 0; }
+.kontakt-sozial-bearbeitung {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 7px;
+  max-width: calc(100% - 153px);
+  margin: -1px 0 8px 153px;
+  padding: 8px;
+  border: 1px dashed #cdbb92;
+  border-radius: 6px;
+  background: rgba(255, 253, 244, 0.7);
+}
+.kontakt-sozial-aktion-art,
+.kontakt-sozial-aktion-ziel { min-width: 0; width: 100%; }
+.kontakt-sozial-aktion-hinweis {
+  grid-column: 1;
+  color: var(--tinte-matt);
+  font-size: 0.82rem;
+}
+
+@media (max-width: 680px) {
+  .kontakt-sozial-zeile { flex-wrap: wrap; }
+  .kontakt-sozial-dienst { width: 130px; }
+  .kontakt-sozial-symbol { width: 120px; }
+  .kontakt-sozial-wert { min-width: 180px; }
+  .kontakt-sozial-bearbeitung {
+    grid-template-columns: 1fr;
+    margin: -1px 0 8px;
+  }
+  .kontakt-sozial-aktion-hinweis { grid-column: 1; }
+}
+
+.kontakt-anschrift-zeile {
+  margin-bottom: 9px;
+}
+
+.kontakt-anschrift-kopf { justify-content: space-between; margin-bottom: 6px; }
+.kontakt-anschrift-art { width: 150px; }
+.kontakt-anschrift-zeile > .feld { margin-bottom: 6px; }
+.kontakt-anschrift-raster { display: grid; grid-template-columns: 110px 1fr; gap: 7px; }
+
+.kontakt-formular {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  min-width: 0;
+  min-inline-size: 0;
+  width: 100%;
+  overflow: hidden;
+  padding-top: 4px;
+}
+
+.kontakt-form-inhalt {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  overflow-x: auto;
+  overflow-y: scroll;
+  scrollbar-gutter: stable;
+  padding: 0 5px 4px 0;
+}
+
+body[data-hilfsrahmen="an"] .kontakt-form-inhalt :focus-visible {
+  outline-offset: -2px;
+  box-shadow: inset 0 0 0 2px rgba(138, 109, 59, 0.18);
+}
+
+.kontakt-formular .formzeile { margin-bottom: 6px; }
+.kontakt-formular .kontakt-mehrfach-kopf { margin: 5px 0 4px; }
+.kontakt-formular .kontakt-telefon-zeile { margin-bottom: 4px; }
+.kontakt-formular .kontakt-anschrift-zeile { margin-bottom: 5px; }
+.kontakt-formular .kontakt-anschrift-kopf { margin-bottom: 4px; }
+.kontakt-formular .kontakt-anschrift-zeile > .feld { margin-bottom: 4px; }
+.kontakt-form-knoepfe {
+  flex: none;
+  z-index: 8;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  min-width: 0;
+  margin: 6px 0 0;
+  padding: 8px 5px 2px;
+  border-top: 1px solid rgba(154, 126, 73, 0.35);
+  background: linear-gradient(to top, var(--papier) 75%, rgba(250, 246, 229, 0.94));
+}
+
+.kontaktperson-zeile {
+  margin-bottom: 8px;
+  padding: 7px 9px;
+  border: 1px dashed #cdbb92;
+  border-radius: 6px;
+}
+
+.kontaktperson-kopf {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.kontaktperson-status { flex: 1; min-width: 0; }
+.kontaktperson-zeile .formzeile { margin-bottom: 0; }
+.kontaktperson-anzeige + .kontaktperson-anzeige { margin-top: 7px; }
+
+.kontakt-verknuepfung-zeile {
+  display: grid;
+  grid-template-columns: minmax(150px, 1fr) 150px 110px auto;
+  align-items: end;
+  gap: 7px;
+  margin-bottom: 7px;
+}
+
+.kontakt-aufgabe-zeile { grid-template-columns: minmax(180px, 1fr) 150px auto; }
+.kontakt-verknuepfung-zeile .formzeile { margin-bottom: 0; }
+
+@media (max-width: 760px) {
+  .kontakt-verknuepfung-zeile,
+  .kontakt-aufgabe-zeile { grid-template-columns: 1fr; }
+}
+
+/* --------------------------------------------------------------------------
+   Notizen
+   -------------------------------------------------------------------------- */
+
+.seiten-inhalt.notizen-rechts { overflow: hidden; }
+
+.notiz-editor {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  min-width: 0;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.notiz-gruppe { margin: 12px 0 16px; }
+
+.notiz-suche-zeile {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.notiz-suche-zeile .suchfeld {
+  flex: 1;
+  min-width: 0;
+  width: auto;
+  box-sizing: border-box;
+}
+
+.notiz-anpassen-knopf { flex: none; white-space: nowrap; }
+
+.notiz-gruppe-kopf,
+.notizbuch-eintrag {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.notiz-gruppe-name {
+  flex: 1;
+  min-width: 0;
+  margin: 0 4px 5px;
+  padding-bottom: 3px;
+  border-bottom: 1px solid var(--gold);
+  color: var(--braun);
+  font: 700 13px var(--serif);
+  font-variant: small-caps;
+  letter-spacing: 0.08em;
+}
+
+.notizbuch-zeile {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  margin: 2px 0;
+  padding: 5px 8px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--tinte);
+  font: 600 13px var(--sans);
+  text-align: left;
+  cursor: pointer;
+}
+
+.notizbuch-zeile::before { content: "▸"; margin-right: 7px; color: var(--gold-dunkel); }
+.notizbuch-zeile.aktiv::before { content: "▾"; }
+.notizbuch-zeile:hover, .notizbuch-zeile.aktiv { background: rgba(216, 178, 92, 0.17); }
+.notizbuch-name { flex: 1; }
+.notizbuch-zahl { color: var(--braun-hell); font-size: 11px; }
+.notiz-seiten { margin: 2px 0 7px 12px; }
+
+.notiz-struktur-aktionen {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 1px;
+}
+
+.notiz-gruppe-kopf .notiz-struktur-aktionen { margin: 0 3px 5px 0; }
+
+.notiz-struktur-knopf {
+  width: 25px;
+  height: 25px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--braun-hell);
+  font: 13px var(--sans);
+  cursor: pointer;
+}
+
+.notiz-struktur-knopf:hover,
+.notiz-struktur-knopf:focus-visible {
+  border-color: var(--gold);
+  background: rgba(216, 178, 92, 0.16);
+  color: var(--braun);
+  outline: none;
+}
+
+.notiz-ordnung {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 5px;
+  color: var(--braun-hell);
+  font: 10px var(--sans);
+}
+
+.notiz-ordnung .feld {
+  width: auto;
+  max-width: 180px;
+  padding: 3px 6px;
+  font-size: 12px;
+}
+
+.notiz-ordnung-pfeil { white-space: nowrap; }
+
+#notiz-titel {
+  flex: none;
+  font: 600 22px var(--serif);
+  color: #4a3a24;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid #b7a273;
+  padding: 4px 2px 6px;
+  margin-bottom: 4px;
+}
+
+#notiz-titel:focus { border-color: #7a5f38; }
+
+.notiz-einfuegen {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 5px;
+  justify-content: flex-start;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  min-height: 27px;
+  margin: 2px 0;
+}
+
+.notiz-einfuegen > .baum-freigabe { flex: 1 1 280px; min-width: 0; }
+
+.notiz-zusatz-knopf {
+  flex: 0 0 auto;
+  min-width: max-content;
+  padding: 3px 9px;
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+#notiz-text {
+  min-height: 0;
+  resize: none;
+  border: none;
+  background: transparent;
+  line-height: 28px;
+  font: 15px/28px var(--sans);
+  color: #37301f;
+  padding: 0 6px 0 44px;
+}
+
+body[data-hilfsrahmen="an"] #notiz-text:focus-visible,
+body[data-hilfsrahmen="an"] #tb-notiz:focus-visible {
+  outline: 2px solid #8a6d3b;
+  outline-offset: -2px;
+  box-shadow: inset 0 0 0 2px rgba(138, 109, 59, 0.18);
+}
+
+body[data-hilfsrahmen="an"] .notiz-editor :focus-visible {
+  outline-offset: -2px;
+  box-shadow: inset 0 0 0 2px rgba(138, 109, 59, 0.18);
+}
+
+#notiz-text a {
+  color: #684a82;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.notiz-anhaenge {
+  flex: none;
+  min-height: 68px;
+  max-height: 42%;
+  overflow-y: auto;
+  margin-top: 3px;
+  padding-top: 0;
+  border-top: 1px dotted var(--linie-stark);
+}
+
+.notiz-anhang-teiler {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  width: 100%;
+  height: 14px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-bottom: 1px dotted rgba(171, 148, 104, 0.55);
+  background: linear-gradient(to bottom, var(--papier), rgba(236, 225, 196, 0.82));
+  color: var(--braun-hell);
+  cursor: ns-resize;
+  touch-action: none;
+}
+
+.notiz-anhang-teiler span { font: 700 9px/1 var(--sans); letter-spacing: 0.35em; }
+
+.notiz-anhaenge h3 {
+  margin: 4px 0 6px;
+  color: var(--braun-hell);
+  font: 600 10px var(--sans);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.notiz-anhang {
+  display: inline-flex;
+  flex-direction: column;
+  width: min(220px, 47%);
+  margin: 0 8px 8px 0;
+  vertical-align: top;
+}
+
+.notiz-anhang-bild,
+.notiz-anhang img,
+.notiz-anhang object {
+  width: 100%;
+  height: 150px;
+  box-sizing: border-box;
+  object-fit: contain;
+  border: 1px solid var(--linie-stark);
+  border-radius: 5px;
+  background: rgba(255, 252, 240, 0.7);
+}
+
+.notiz-anhang-bild {
+  display: block;
+  padding: 0;
+  cursor: pointer;
+}
+
+.notiz-anhang-bild img { display: block; border: 0; }
+
+.notiz-anhang-symbol {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 58px;
+  min-height: 42px;
+  padding: 5px 8px;
+  border: 1px solid var(--linie-stark);
+  border-radius: 5px;
+  background: rgba(255, 252, 240, 0.72);
+  color: var(--braun);
+  font: 600 10px var(--sans);
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.notiz-anhaenge.kompakt {
+  overflow-x: auto;
+  overflow-y: auto;
+}
+
+.notiz-anhaenge.kompakt h3 { margin-bottom: 3px; }
+.notiz-anhaenge.kompakt .notiz-anhang {
+  width: auto;
+  max-width: 190px;
+  display: inline-grid;
+  grid-template-columns: auto minmax(80px, 1fr);
+  align-items: center;
+  gap: 5px;
+  margin-bottom: 4px;
+}
+.notiz-anhaenge.kompakt .notiz-anhang-symbol { display: inline-flex; }
+.notiz-anhaenge.kompakt .notiz-anhang > .notiz-anhang-bild,
+.notiz-anhaenge.kompakt .notiz-anhang > img,
+.notiz-anhaenge.kompakt .notiz-anhang > object { display: none; }
+.notiz-anhaenge.kompakt .notiz-anhang figcaption {
+  padding-top: 0;
+  font-size: 9.5px;
+}
+.notiz-anhaenge.kompakt .notiz-anhang figcaption .knopf {
+  padding: 2px 5px;
+  font-size: 9px;
+}
+
+.notiz-anhang figcaption {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  min-width: 0;
+  padding-top: 3px;
+  color: var(--braun);
+  font: 11px var(--sans);
+  overflow-wrap: anywhere;
+}
+
+.notiz-anhang figcaption .knopf { flex: none; white-space: nowrap; }
+
+.notiz-anhang figcaption .notiz-anhang-name {
+  min-width: 0;
+  padding: 0;
+  overflow-wrap: anywhere;
+  white-space: normal;
+  text-align: left;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-decoration: underline dotted;
+  cursor: pointer;
+}
+
+/* --------------------------------------------------------------------------
+   Jahrestage
+   -------------------------------------------------------------------------- */
+
+.jt-datum {
+  flex: none;
+  width: 52px;
+  font: 700 14px var(--serif);
+  color: #6d4f24;
+}
+
+.jt-typ {
+  flex: none;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #fff8ea;
+  background: #a58a4e;
+  border-radius: 4px;
+  padding: 2.5px 7px;
+}
+
+.jt-in { flex: none; width: 90px; font-size: 12px; color: #7d6a45; text-align: right; }
+.jt-in.heute-rot { color: var(--rot); font-weight: 700; }
+
+/* --------------------------------------------------------------------------
+   Jahresplaner
+   -------------------------------------------------------------------------- */
+
+.planer-raster {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-auto-rows: 1fr;
+  gap: 8px 20px;
+  height: 100%;
+}
+
+.mini-monat { display: flex; flex-direction: column; min-height: 0; cursor: default; }
+
+.mm-titel {
+  flex: none;
+  font: 600 12px var(--serif);
+  font-variant: small-caps;
+  letter-spacing: 0.1em;
+  color: var(--braun);
+  text-align: center;
+  border-bottom: 1px solid #c9b78d;
+  margin-bottom: 2px;
+}
+
+.mm-raster {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  flex: 1;
+  min-height: 0;
+  align-content: space-between;
+}
+
+.mm-raster.mit-wochen {
+  grid-template-columns: 20px repeat(7, minmax(0, 1fr));
+}
+
+.mm-kw-kopf { font-size: 7px; }
+
+.mm-kw {
+  color: var(--braun-hell);
+  font: 600 8px var(--serif);
+  line-height: 1.9;
+  text-align: center;
+}
+
+.mm-wt { font-size: 8.5px; color: #a08a5e; text-align: center; }
+
+.mm-tag {
+  font-size: 10px;
+  color: #4c3f28;
+  text-align: center;
+  line-height: 1.55;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.mm-tag:hover { background: rgba(190, 160, 95, 0.25); }
+.mm-tag.wochenende { color: #9b8155; }
+.mm-tag.hat { background: #e8d194; font-weight: 700; }
+.mm-tag.jt { box-shadow: inset 0 -2.5px 0 #b08b32; }
+.mm-tag.heute { box-shadow: inset 0 0 0 1.5px var(--rot); color: #8c2f27; font-weight: 700; }
+
+/* --------------------------------------------------------------------------
+   Statusleiste, Dialog, Zettel
+   -------------------------------------------------------------------------- */
+
+#statusleiste {
+  flex: none;
+  width: var(--buchbreite);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 12px 0 10px;
+  font-size: 13px;
+  color: #a7b4a5;
+}
+
+.status-rechts { display: flex; align-items: center; gap: 12px; }
+
+#status-speicher { font-size: 12px; color: #8fa38f; }
+#status-speicher.ok { color: #b1cf9e; }
+
+.leisten-knopf {
+  background: transparent;
+  border: 1px solid #55665a;
+  color: #c2cfc0;
+  border-radius: 6px;
+  padding: 4px 11px;
+  font: 12px var(--sans);
+  cursor: pointer;
+}
+
+.leisten-knopf:hover { border-color: #7e937f; color: #e4eee0; }
+
+#dialog-schleier,
+#sicherung-schleier,
+.eingabe-schleier,
+#notiz-anpassen-schleier {
+  position: fixed;
+  inset: 0;
+  background: rgba(18, 15, 9, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: auto;
+  padding: 16px;
+  z-index: 140;
+}
+
+#dialog,
+#sicherung-dialog,
+.eingabe-dialog {
+  background:
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.7' numOctaves='2' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)' opacity='0.05'/></svg>"),
+    var(--papier);
+  border: 1px solid #a5916a;
+  border-radius: 10px;
+  box-shadow: 0 20px 44px rgba(0, 0, 0, 0.55);
+  padding: 20px 22px 18px;
+  max-width: 400px;
+  margin: 20px;
+  font-size: 14.5px;
+  color: #3c3226;
+  line-height: 1.5;
+}
+
+#sicherung-dialog {
+  width: min(440px, 88vw);
+}
+
+#sicherung-dialog h3,
+.eingabe-dialog h3 {
+  margin: 0 0 10px;
+  font: 700 21px var(--serif);
+  color: var(--tinte);
+}
+
+#sicherung-kennwort-zeile { margin-top: 12px; }
+#sicherung-fehler:empty { display: none; }
+
+.eingabe-dialog {
+  width: min(460px, 88vw);
+}
+
+.such-dialog {
+  width: min(680px, 92vw);
+  max-width: 680px;
+  max-height: min(720px, 88vh);
+  display: flex;
+  flex-direction: column;
+}
+
+.such-kopf { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.such-kopf h3 { margin: 0; }
+.such-dialog > .suchfeld { flex: none; width: 100%; margin-top: 10px; }
+.such-stand { flex: none; min-height: 20px; margin: 7px 0; color: var(--braun-hell); }
+.such-treffer { min-height: 0; overflow-y: auto; display: grid; gap: 5px; }
+.such-treffer-knopf {
+  display: grid; gap: 2px; width: 100%; padding: 8px 10px;
+  border: 1px solid var(--linie-stark); border-radius: 6px;
+  background: rgba(255, 252, 240, .62); color: var(--tinte); text-align: left; cursor: pointer;
+}
+.such-treffer-knopf:hover, .such-treffer-knopf:focus-visible {
+  border-color: #7a5f38; background: rgba(255, 255, 255, .8); outline: none;
+}
+.such-treffer-titel { font: 700 15px var(--serif); }
+.such-treffer-meta { color: var(--braun-hell); font: 12px var(--sans); }
+
+.eingabe-hinweis { margin: 0 0 14px; }
+
+.eingabe-zeile {
+  grid-template-columns: 105px minmax(0, 1fr);
+  align-items: center;
+}
+
+.eingabe-zeile textarea { min-height: 110px; resize: vertical; }
+
+.eingabe-fehler {
+  min-height: 20px;
+  margin: 7px 0 -7px 105px;
+  color: var(--rot);
+  font-size: 12px;
+}
+
+.eingabe-dateiwahl {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.eingabe-datei-knopf { flex: none; white-space: nowrap; }
+
+.eingabe-dateiname {
+  min-width: 0;
+  color: var(--braun-hell);
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.notiz-anpassen-dialog {
+  width: min(650px, 88vw);
+  max-width: 650px;
+  max-height: min(720px, 86vh);
+  display: flex;
+  flex-direction: column;
+}
+
+.notiz-anpassen-werkzeuge { flex: none; margin: 0 0 10px; }
+
+.notiz-anpassen-liste {
+  min-height: 0;
+  overflow-y: auto;
+  display: grid;
+  gap: 10px;
+  padding-right: 4px;
+}
+
+.notiz-anpassen-gruppe {
+  border: 1px solid var(--linie-stark);
+  border-radius: 7px;
+  background: rgba(255, 252, 240, 0.42);
+  padding: 7px 9px 9px;
+}
+
+.notiz-anpassen-gruppenkopf,
+.notiz-anpassen-buch {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.notiz-anpassen-gruppenkopf {
+  padding-bottom: 5px;
+  border-bottom: 1px solid rgba(183, 162, 115, 0.7);
+}
+
+.notiz-anpassen-name,
+.notiz-anpassen-buchname {
+  flex: 1;
+  min-width: 0;
+}
+
+.notiz-anpassen-name { font: 700 15px var(--serif); color: var(--braun); }
+
+.notiz-anpassen-buch { padding: 6px 0 0 13px; }
+
+.notiz-anpassen-buchname {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.notiz-anpassen-buch .feld {
+  flex: 0 1 190px;
+  width: 190px;
+  padding: 4px 6px;
+  font-size: 12px;
+}
+
+.notiz-anpassen-leer {
+  margin: 7px 0 0 13px;
+  color: var(--braun-hell);
+  font-size: 12px;
+  font-style: italic;
+}
+
+.dialog-knoepfe {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+#zettel {
+  position: fixed;
+  bottom: 58px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #3a3021;
+  color: #f1e6c8;
+  padding: 9px 17px;
+  border-radius: 8px;
+  font-size: 13px;
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.5);
+  z-index: 90;
+  max-width: 80vw;
+  text-align: center;
+}
+
+/* --------------------------------------------------------------------------
+   Scrollbalken und Sonstiges
+   -------------------------------------------------------------------------- */
+
+.seiten-inhalt::-webkit-scrollbar,
+.gesundheit-seitenrolle::-webkit-scrollbar,
+.adr-spalte::-webkit-scrollbar,
+textarea::-webkit-scrollbar,
+.kontakt-form-inhalt::-webkit-scrollbar { width: 9px; height: 9px; }
+
+.seiten-inhalt::-webkit-scrollbar-thumb,
+.gesundheit-seitenrolle::-webkit-scrollbar-thumb,
+.adr-spalte::-webkit-scrollbar-thumb,
+textarea::-webkit-scrollbar-thumb,
+.kontakt-form-inhalt::-webkit-scrollbar-thumb {
+  background: #c0ac7d;
+  border-radius: 5px;
+  border: 2px solid rgba(0, 0, 0, 0);
+  background-clip: padding-box;
+}
+
+.seiten-inhalt::-webkit-scrollbar-track,
+.gesundheit-seitenrolle::-webkit-scrollbar-track,
+.adr-spalte::-webkit-scrollbar-track,
+textarea::-webkit-scrollbar-track,
+.kontakt-form-inhalt::-webkit-scrollbar-track { background: transparent; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ==========================================================================
+   Magnolie 1.1 – Prägeblume, Wochenblatt, Lotus-Felder, Einstellungen
+   ========================================================================== */
+
+.praegeblume {
+  width: clamp(38px, 5vw, 52px);
+  height: clamp(38px, 5vw, 52px);
+  color: var(--gold);
+  opacity: 0.92;
+  filter: drop-shadow(0 -1px 1px rgba(0, 0, 0, 0.7))
+          drop-shadow(0 1px 0 rgba(255, 240, 200, 0.25));
+}
+
+/* --------------------------- Ansichts-Umschalter -------------------------- */
+
+.umschalter {
+  display: inline-flex;
+  border: 1px solid var(--linie-stark);
+  border-radius: 4px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.25);
+}
+
+.u-knopf {
+  border: 0;
+  background: transparent;
+  font: 600 12px var(--sans);
+  letter-spacing: 0.03em;
+  padding: 3px 10px 4px;
+  cursor: pointer;
+  color: var(--braun);
+}
+
+.u-knopf + .u-knopf { border-left: 1px solid var(--linie-stark); }
+
+.u-knopf:hover { background: rgba(58, 49, 40, 0.08); }
+
+.u-knopf.aktiv {
+  background: rgba(58, 49, 40, 0.14);
+  color: var(--tinte);
+  font-weight: 700;
+}
+
+/* ------------------------------ Wochenblatt ------------------------------- */
+
+.wochen-spalte {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  min-height: 100%;
+}
+
+.wo-tag {
+  flex: 1 1 0;
+  min-height: 92px;
+  border: 1px solid var(--linie-stark);
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.28);
+  padding: 5px 9px 6px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: background 0.12s;
+}
+
+.wo-tag:hover { background: rgba(255, 255, 255, 0.55); }
+
+.wo-tag.heute {
+  position: relative;
+}
+
+.wo-tag.heute::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border: 2px solid var(--rot);
+  border-radius: 3px;
+  pointer-events: none;
+}
+
+.wo-kopf {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  border-bottom: 1px dotted var(--linie-stark);
+  padding-bottom: 2px;
+  margin-bottom: 3px;
+}
+
+.wo-nr { font: 700 20px/1 var(--serif); color: var(--tinte); }
+
+.wo-tag.heute .wo-nr { color: var(--rot); }
+
+.wo-wt {
+  font: 400 12px var(--sans);
+  letter-spacing: 0.03em;
+  color: var(--braun);
+}
+
+.wo-wetter {
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+  color: #795a27;
+  white-space: nowrap;
+}
+
+.wo-wetter-zeichen { display: inline-flex; flex: none; }
+.wo-wetter .wetter-symbol-svg { width: 19px; height: 19px; stroke-width: 1.65; }
+.wo-wetter-temperatur { font: 600 10.5px var(--sans); color: var(--tinte); }
+.wo-wetter-beschreibung {
+  min-width: 0;
+  max-width: 105px;
+  overflow: hidden;
+  color: var(--braun-hell);
+  font: 10px var(--sans);
+  text-overflow: ellipsis;
+}
+.wo-tag.schmal .wo-wetter-beschreibung { display: none; }
+
+.wo-jt {
+  font: 400 12px var(--sans);
+  color: #7c5a74;
+  margin: 1px 0 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.wo-liste {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  font: 400 12.5px/1.5 var(--sans);
+  color: var(--tinte);
+}
+
+.wo-liste li {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.wo-liste .mini-termin {
+  appearance: none;
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  padding: 0 2px;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.wo-liste b { font-weight: 700; }
+
+.wo-mehr {
+  display: block;
+  margin: 1px 0 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--tinte);
+  font: inherit;
+  cursor: pointer;
+}
+
+.wo-mehr:hover { color: var(--rot); text-decoration: underline; }
+
+.wo-halb {
+  display: flex;
+  gap: 9px;
+  flex: 1 1 0;
+  min-height: 92px;
+}
+
+.wo-halb .wo-tag { flex: 1 1 0; min-height: 0; }
+
+/* -------------------------- Uhrzeit von–bis-Zeile ------------------------- */
+
+.zeitspanne {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.zeitspanne .feld { width: auto; flex: 0 1 auto; }
+
+.termin-blatt .zeitspanne {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  width: 100%;
+}
+
+.termin-blatt .zeitspanne .feld { width: 100%; min-width: 0; }
+
+.bis-wort { font: 400 13px var(--sans); color: var(--braun); }
+.termin-blatt .bis-wort { inline-size: 18ch; text-align: center; white-space: nowrap; }
+
+/* --------------------- Aufklappbare Lotus-Felder im Formular -------------- */
+
+.lotus-felder {
+  margin: 8px 0 2px;
+  border-top: 1px dotted var(--linie-stark);
+  padding-top: 6px;
+}
+
+.lotus-felder summary {
+  cursor: pointer;
+  font: 600 11px var(--sans);
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--braun);
+  user-select: none;
+}
+
+.lotus-felder summary:hover { color: var(--tinte); }
+
+.lotus-raster {
+  margin-top: 7px;
+  display: grid;
+  gap: 6px;
+}
+
+.hakzeile {
+  display: flex;
+  gap: 20px;
+  padding: 3px 0 1px 2px;
+}
+
+.allgemein-register-auswahl {
+  flex-wrap: wrap;
+  column-gap: 22px;
+  row-gap: 8px;
+}
+
+label.hak {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font: 400 13.5px var(--sans);
+  color: var(--tinte);
+  cursor: pointer;
+}
+
+label.hak input { accent-color: var(--braun); }
+
+/* ----------------------- Gestempelte Kürzel an Terminen ------------------- */
+
+.stempel {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 0 5px 1px;
+  border: 1px solid var(--braun-hell);
+  border-radius: 3px;
+  font: 600 10px var(--sans);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--braun);
+  vertical-align: 1px;
+  opacity: 0.9;
+}
+
+.stempel.rot {
+  color: var(--rot);
+  border-color: var(--rot);
+}
+
+/* --------------------------- Einstellungen-Blatt -------------------------- */
+
+#einstellungen-schleier {
+  position: fixed;
+  inset: 0;
+  background: rgba(18, 15, 9, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 85;
+}
+
+#einstellungen-schleier.verborgen { display: none; }
+
+#einstellungen-blatt {
+  width: min(940px, 96vw);
+  max-height: 94vh;
+  overflow-y: auto;
+  background:
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.7' numOctaves='2' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)' opacity='0.05'/></svg>"),
+    var(--papier);
+  border: 1px solid #a5916a;
+  border-radius: 10px;
+  box-shadow: 0 20px 44px rgba(0, 0, 0, 0.55);
+  padding: 16px 26px 20px;
+  color: var(--tinte);
+}
+
+#einstellungen-blatt header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 2px solid var(--gold);
+  padding-bottom: 8px;
+  margin-bottom: 2px;
+}
+
+#einstellungen-blatt h2 {
+  margin: 0;
+  font: 700 24px var(--serif);
+  font-variant: small-caps;
+  letter-spacing: 0.06em;
+}
+
+#einstellungen-zu { min-width: 36px; padding: 4px 9px; }
+
+.einst-abschnitt {
+  padding: 13px 0 6px;
+  border-bottom: 1px dotted var(--linie-stark);
+}
+
+.einst-abschnitt:last-of-type { border-bottom: 0; }
+
+.einst-abschnitt h3 {
+  margin: 0 0 5px;
+  font: 700 16.5px var(--serif);
+  letter-spacing: 0.02em;
+}
+
+.einst-hinweis {
+  margin: 3px 0 9px;
+  font: 400 13px/1.5 var(--sans);
+  color: var(--braun);
+  max-width: 66ch;
+}
+
+.knopfreihe {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 5px 0 9px;
+}
+
+.sync-status {
+  margin: 2px 0 9px;
+  font: italic 400 13.5px var(--serif);
+  color: var(--braun);
+}
+
+.journal-liste { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
+.journal-eintrag { display: grid; grid-template-columns: minmax(0, 1fr) auto;
+  gap: 4px 12px; padding: 9px 11px; border: 1px solid rgba(91,70,46,.28);
+  border-radius: 5px; background: rgba(255,252,240,.55); }
+.journal-eintrag > span { grid-column: 1; }
+.journal-eintrag > .knopfreihe { grid-column: 2; grid-row: 1 / span 2; align-self: center; }
+@media (max-width: 720px) {
+  .journal-eintrag { grid-template-columns: 1fr; }
+  .journal-eintrag > .knopfreihe { grid-column: 1; grid-row: auto; }
+}
+
+.sync-wahl {
+  display: grid;
+  gap: 7px;
+  max-width: 470px;
+  margin-bottom: 9px;
+}
+
+.sync-kalender-liste {
+  max-height: 210px;
+  margin: 0 0 5px;
+  padding: 9px 12px 10px;
+  overflow-y: auto;
+  border: 1px solid var(--linie-stark);
+  border-radius: 6px;
+}
+
+.sync-kalender-liste legend {
+  padding: 0 5px;
+  color: var(--braun);
+  font: 600 12px var(--serif);
+}
+
+.sync-kalender { display: block; margin: 5px 0; }
+
+.einst-fuss {
+  margin-top: 13px;
+  font: 400 12px var(--sans);
+  color: var(--braun-hell);
+  word-break: break-all;
+}
+
+/* ==========================================================================
+   Magnolie 1.1.3 – Kopfzeile mit Unterzeile, längere Registerbeschriftungen
+   ========================================================================== */
+
+/* Die Kopfzeile darf umbrechen, damit die Knöpfe auch im kleinen Fenster
+   vollständig sichtbar bleiben. */
+.seiten-kopf {
+  flex-wrap: wrap;
+  row-gap: 4px;
+}
+
+.seiten-kopf h2 {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  min-width: 0;
+}
+
+/* Datumsspanne der Woche: eine Zeile unter der Überschrift */
+.kopf-unter {
+  font: 400 12.5px var(--sans);
+  font-variant: normal;
+  letter-spacing: 0.02em;
+  text-transform: none;
+  color: #8a7250;
+  margin-top: 3px;
+  white-space: nowrap;
+}
+
+.kopf-frei { flex: none; }
+
+/* Auch lange Beschriftungen wie „Jahrestage“ passen ins Fähnchen. */
+.registerknopf {
+  font-size: 12px;
+  letter-spacing: 0.035em;
+}
+
+#register-rechts .registerknopf { padding-left: 25px; padding-right: 21px; }
+
+#register-links .registerknopf { padding-right: 33px; padding-left: 7px; }
+
+/* ==========================================================================
+   Magnolie 1.1.4 – Ganztagstermine, breitere Zeitspalte
+   ========================================================================== */
+
+/* Platz für Zeitspannen („09:00–10:15“) und den Vermerk „ganztägig“ */
+.termin-zeile .zeit {
+  width: auto;
+  min-width: 54px;
+  max-width: 108px;
+  white-space: nowrap;
+}
+
+.termin-zeile .zeit.ganztags-zeit {
+  font: italic 400 13px var(--serif);
+  color: var(--braun-hell);
+}
+
+/* Schalter „ganztägig“ neben den Uhrzeiten */
+.zeitspanne { flex-wrap: wrap; row-gap: 4px; }
+
+label.hak.ganztags {
+  font-size: 13px;
+  color: var(--braun);
+  margin-left: 6px;
+  gap: 5px;
+}
+
+.zeitspanne.gesperrt .feld {
+  opacity: 0.45;
+  background-image: repeating-linear-gradient(
+    135deg, transparent, transparent 5px,
+    rgba(90, 70, 48, 0.07) 5px, rgba(90, 70, 48, 0.07) 10px);
+}
+
+.zeitspanne.gesperrt .bis-wort { opacity: 0.45; }
+
+/* ==========================================================================
+   Magnolie 1.2 – Reiter in den Einstellungen, Feiertage und Ferien
+   ========================================================================== */
+
+.einst-reiter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  margin: 10px 0 0;
+  border-bottom: 1px solid var(--linie-stark);
+}
+
+.einst-reiter-knopf {
+  border: 1px solid var(--linie-stark);
+  border-bottom: 0;
+  border-radius: 7px 7px 0 0;
+  background: rgba(90, 70, 48, 0.09);
+  color: var(--braun);
+  font: 600 12.5px var(--sans);
+  letter-spacing: 0.02em;
+  min-width: 0;
+  white-space: normal;
+  overflow-wrap: normal;
+  line-height: 1.15;
+  padding: 6px 11px 7px;
+  margin-bottom: -1px;
+  cursor: pointer;
+}
+
+.einst-reiter-knopf:hover { background: rgba(90, 70, 48, 0.15); }
+
+.einst-reiter-knopf.aktiv {
+  background: var(--papier);
+  color: var(--tinte);
+  border-bottom: 1px solid var(--papier);
+  font-weight: 700;
+}
+
+/* Alle Reiter sind gleich hoch – das Blatt springt beim Blättern nicht. */
+.einst-seite {
+  height: 600px;
+  overflow-y: auto;
+  padding-inline: 4px 5px;
+}
+
+.einst-seite .einst-abschnitt:first-child { padding-top: 10px; }
+
+.ort-region { margin-top: 7px; }
+
+/* --------------------------- Feiertage und Ferien ------------------------- */
+
+.kal-tag.ferien { background: rgba(120, 150, 110, 0.13); }
+
+.kal-tag.feiertag { background: rgba(181, 68, 58, 0.11); }
+
+.kal-tag.feiertag .nr { color: var(--rot); }
+
+.ft-marke {
+  font: 600 10px var(--sans);
+  color: var(--rot);
+  line-height: 1.25;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-bottom: 1px;
+}
+
+.ft-marke.ferien-marke { color: #5d7a52; font-weight: 400; }
+
+.ft-kasten {
+  margin: 2px 0 9px;
+  padding: 5px 10px 6px;
+  border-left: 3px solid var(--rot);
+  background: rgba(181, 68, 58, 0.08);
+  font: 600 13.5px var(--sans);
+  color: #8d3a32;
+}
+
+.ft-kasten.nur-ferien {
+  border-left-color: #5d7a52;
+  background: rgba(120, 150, 110, 0.12);
+  color: #4a6440;
+  font-weight: 400;
+}
+
+.wo-tag.feiertag { background: rgba(181, 68, 58, 0.09); }
+
+.wo-tag.ferien { background: rgba(120, 150, 110, 0.11); }
+
+.wo-ft {
+  font: 600 12px var(--sans);
+  color: #8d3a32;
+  margin: 1px 0 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.wo-tag.ferien .wo-ft { color: #4a6440; font-weight: 400; }
+
+.mm-tag.feiertag { color: var(--rot); font-weight: 700; }
+
+.mm-tag.ferien { background: rgba(120, 150, 110, 0.22); border-radius: 2px; }
+
+/* ==========================================================================
+   Magnolie 1.3 – Schrift der eigenen Einträge, Auszeichnungen beim Schreiben
+   ========================================================================== */
+
+/* Das Schreibblatt ist nun eine beschreibbare Fläche statt eines Textfeldes;
+   es behält das linierte Papier und darf blättern. */
+#notiz-text {
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+#notiz-text:empty::before {
+  content: attr(data-placeholder);
+  color: var(--braun-hell);
+  pointer-events: none;
+}
+
+#notiz-text b, #notiz-text strong { font-weight: 700; }
+#notiz-text i, #notiz-text em { font-style: italic; }
+#notiz-text u { text-decoration: underline; }
+#notiz-text s, #notiz-text strike, #notiz-text del { text-decoration: line-through; }
+
+/* Kleine Auswahl über dem Schreibblatt */
+.schreib-werkzeug {
+  flex: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  padding: 3px 0 6px 44px;
+}
+
+.werkzeug-knopf {
+  width: 27px;
+  height: 25px;
+  border: 1px solid var(--linie-stark);
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.4);
+  color: var(--braun);
+  font: 15px var(--serif);
+  line-height: 1;
+  cursor: pointer;
+  transition: background 0.12s;
+}
+
+.werkzeug-knopf:hover { background: rgba(90, 70, 48, 0.14); color: var(--tinte); }
+
+.werkzeug-knopf.w-b { font-weight: 800; }
+.werkzeug-knopf.w-i { font-style: italic; }
+.werkzeug-knopf.w-u { text-decoration: underline; }
+.werkzeug-knopf.w-s { text-decoration: line-through; }
+
+/* ------------------------- Schriftwahl der Einträge ----------------------- */
+
+/* Nur eigene Einträge – Beschriftungen des Organizers bleiben unberührt. */
+body[data-schrift="handwriting"] .obm,
+body[data-schrift="handwriting"] .mini,
+body[data-schrift="handwriting"] .wo-liste li,
+body[data-schrift="handwriting"] .k-name,
+body[data-schrift="handwriting"] .k-firma,
+body[data-schrift="handwriting"] .k-wert,
+body[data-schrift="handwriting"] .jt-kasten,
+body[data-schrift="handwriting"] #notiz-titel,
+body[data-schrift="handwriting"] #notiz-text,
+body[data-schrift="handwriting"] .feld,
+.schrift-probe[data-schrift="handwriting"] .obm,
+.schrift-probe[data-schrift="handwriting"] .notiz-probe {
+  font-family: "Noto Sans", var(--sans);
+  letter-spacing: 0.01em;
+}
+
+body[data-tinte="blue"] .obm,
+body[data-tinte="blue"] .mini,
+body[data-tinte="blue"] .wo-liste li,
+body[data-tinte="blue"] .k-name,
+body[data-tinte="blue"] .k-firma,
+body[data-tinte="blue"] .k-wert,
+body[data-tinte="blue"] #notiz-titel,
+body[data-tinte="blue"] #notiz-text,
+body[data-tinte="blue"] .feld,
+.schrift-probe[data-tinte="blue"] .obm,
+.schrift-probe[data-tinte="blue"] .notiz-probe {
+  color: #22458c;
+}
+
+/* Vorschau auf der Einstellungsseite */
+.schrift-probe {
+  border: 1px solid var(--linie-stark);
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.4);
+  padding: 9px 13px 11px;
+  margin: 2px 0 11px;
+  max-width: 66ch;
+}
+
+.schrift-probe .obm { font: 600 15.5px var(--sans); color: var(--tinte); }
+
+.notiz-probe { font: 15px/1.7 var(--sans); color: #37301f; margin-top: 3px; }
+
+/* ==========================================================================
+   Magnolie 1.4 – Schriftgröße der eigenen Einträge, Rechtschreibprüfung
+   ========================================================================== */
+
+/* Mittlere Größe: alles Selbstgeschriebene wird ein wenig größer. */
+body[data-groesse="medium"] .haupt .obm,
+body[data-groesse="medium"] .feld,
+body[data-groesse="medium"] .k-wert,
+body[data-groesse="medium"] .termin-zeile .zeit,
+.schrift-probe[data-groesse="medium"] .notiz-probe { font-size: 17px; }
+
+body[data-groesse="medium"] .kal-tag .mini { font-size: 12px; }
+body[data-groesse="medium"] .wo-liste li { font-size: 14px; }
+body[data-groesse="medium"] .kontakt-karte h3 { font-size: 28px; }
+body[data-groesse="medium"] .k-firma { font-size: 16px; }
+body[data-groesse="medium"] #notiz-titel { font-size: 25px; }
+.schrift-probe[data-groesse="medium"] .obm { font-size: 17.5px; }
+
+body[data-groesse="medium"] #notiz-text { font-size: 17px; }
+
+/* Große Größe: gut lesbar auch aus etwas Abstand. */
+body[data-groesse="large"] .haupt .obm,
+body[data-groesse="large"] .feld,
+body[data-groesse="large"] .k-wert,
+body[data-groesse="large"] .termin-zeile .zeit,
+.schrift-probe[data-groesse="large"] .notiz-probe { font-size: 19px; }
+
+body[data-groesse="large"] .kal-tag .mini { font-size: 13.5px; }
+body[data-groesse="large"] .wo-liste li { font-size: 16px; }
+body[data-groesse="large"] .kontakt-karte h3 { font-size: 32px; }
+body[data-groesse="large"] .k-firma { font-size: 18px; }
+body[data-groesse="large"] #notiz-titel { font-size: 28px; }
+.schrift-probe[data-groesse="large"] .obm { font-size: 19.5px; }
+
+body[data-groesse="large"] #notiz-text { font-size: 19px; }
+
+/* Zeilen dürfen mitwachsen, damit nichts abgeschnitten wird. */
+body[data-groesse="medium"] .zeile,
+body[data-groesse="large"] .zeile { padding-top: 10px; padding-bottom: 10px; }
+
+body[data-groesse="medium"] .termin-zeile .zeit,
+body[data-groesse="large"] .termin-zeile .zeit { max-width: 128px; }
+
+/* Rechtschreibprüfung: WebKit zeichnet die roten Wellenlinien selbst,
+   sobald ein Wörterbuch vorhanden ist. */
+body[data-pruefung="an"] .feld,
+body[data-pruefung="an"] #notiz-text,
+body[data-pruefung="an"] #notiz-titel {
+  text-decoration-skip-ink: auto;
+}
+
+/* Werkzeugknopf zeigt an, dass die Auszeichnung an dieser Stelle gilt. */
+.werkzeug-knopf.aktiv {
+  background: rgba(90, 70, 48, 0.26);
+  color: var(--tinte);
+  border-color: var(--braun);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.25);
+}
+
+/* ==========================================================================
+   Magnolie 1.5 – Vorschlagsmenü der Rechtschreibprüfung
+   ========================================================================== */
+
+.vorschlags-menue {
+  position: fixed;
+  z-index: 160;
+  min-width: 186px;
+  max-width: 300px;
+  padding: 5px 0 6px;
+  background:
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='120' height='120'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)' opacity='0.05'/></svg>"),
+    var(--papier);
+  border: 1px solid #a5916a;
+  border-radius: 7px;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.42);
+}
+
+.vorschlags-menue::before {
+  content: "";
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  top: 27px;
+  border-top: 1px solid var(--gold);
+  opacity: 0.75;
+}
+
+.vm-kopf {
+  padding: 3px 13px 6px;
+  font: italic 600 13px var(--serif);
+  color: var(--braun);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.vm-laden, .vm-hinweis {
+  padding: 8px 13px 4px;
+  font: 400 12.5px/1.45 var(--sans);
+  color: var(--braun-hell);
+  white-space: normal;
+}
+
+.vm-eintrag {
+  display: block;
+  width: 100%;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  padding: 5px 13px 6px;
+  font: 400 14.5px var(--sans);
+  color: var(--tinte);
+  cursor: pointer;
+}
+
+.vm-eintrag:first-of-type { margin-top: 3px; }
+
+.vm-eintrag:hover, .vm-eintrag:focus {
+  background: rgba(90, 70, 48, 0.14);
+  outline: none;
+}
+
+.vm-trenner {
+  margin: 5px 11px;
+  border-top: 1px dotted var(--linie-stark);
+}
+
+.vm-merken {
+  font-size: 13px;
+  color: var(--braun);
+  font-variant: small-caps;
+  letter-spacing: 0.04em;
+}
+
+/* Die Auszeichnungs-Auswahl blendet sich ein, sobald geschrieben oder
+   markiert wird – der Platz bleibt erhalten, damit nichts springt. */
+.schreib-werkzeug {
+  transition: opacity 0.16s ease;
+}
+
+.schreib-werkzeug.verborgene-leiste {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+/* Erinnerungs-Einstellungen: abgeblendet, solange sie aus sind. */
+.erinnerung-felder {
+  margin-top: 10px;
+  transition: opacity 0.15s ease;
+}
+
+.erinnerung-felder.gesperrt { opacity: 0.45; }
+
+.erinnerung-felder .formzeile { max-width: 420px; }
+
+/* ==========================================================================
+   Magnolie 1.8 – Erinnerungsblatt im eigenen Stil
+   ========================================================================== */
+
+.erinnerungs-stapel {
+  position: fixed;
+  top: 18px;
+  right: 18px;
+  z-index: 130;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  max-width: min(340px, 84vw);
+}
+
+.erinnerungs-blatt {
+  background:
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='120' height='120'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)' opacity='0.05'/></svg>"),
+    var(--papier);
+  border: 1px solid #a5916a;
+  border-left: 5px solid var(--rot);
+  border-radius: 7px;
+  box-shadow: 0 12px 26px rgba(0, 0, 0, 0.45);
+  padding: 11px 15px 12px;
+  animation: blatt-herein 0.28s ease-out;
+}
+
+@keyframes blatt-herein {
+  from { opacity: 0; transform: translateX(22px); }
+  to { opacity: 1; transform: none; }
+}
+
+.eb-kopf {
+  font: 700 16px var(--serif);
+  color: var(--tinte);
+  border-bottom: 2px solid var(--gold);
+  padding-bottom: 4px;
+  margin-bottom: 6px;
+}
+
+.eb-text {
+  font: 400 14px/1.5 var(--sans);
+  color: var(--braun);
+}
+
+.eb-knoepfe {
+  display: flex;
+  gap: 7px;
+  justify-content: flex-end;
+  margin-top: 9px;
+}
+
+/* Hinweis unter langen Listen, wenn nicht alles auf einmal gezeigt wird */
+.mehr-zeile {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  flex-wrap: wrap;
+  padding: 8px 6px 4px;
+  border-top: 1px dotted var(--linie-stark);
+  margin-top: 4px;
+}
+
+.mehr-hinweis {
+  font: italic 400 13px var(--serif);
+  color: var(--braun-hell);
+}
+
+/* ==========================================================================
+   Magnolie 1.13 – Anschriften weiterverwenden
+   ========================================================================== */
+
+.sinnbild { flex: none; opacity: 0.85; }
+
+.bildknopf {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.k-wege {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px dotted var(--linie-stark);
+}
+
+.sozialknopf {
+  position: relative;
+  width: 34px;
+  height: 34px;
+  padding: 4px;
+  display: inline-grid;
+  place-items: center;
+  color: var(--braun);
+  border-radius: 7px;
+}
+
+.sozialknopf .sinnbild { grid-area: 1 / 1; opacity: 0.82; }
+.sozialknopf:hover .sinnbild { color: var(--rot); opacity: 1; }
+
+/* Anklickbare E-Post-Anschrift – sieht aus wie geschrieben, nicht wie ein Knopf */
+.post-anschrift {
+  border: 0;
+  background: none;
+  padding: 0;
+  font: inherit;
+  color: #6b4a86;
+  text-decoration: underline dotted;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
+.post-anschrift:hover { color: var(--rot); text-decoration-style: solid; }
+
+/* ------------------------------- Druckvorschau ---------------------------- */
+
+.druck-schleier {
+  position: fixed;
+  inset: 0;
+  background: rgba(18, 15, 9, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 110;
+}
+
+.druck-blatt {
+  width: min(960px, 96vw);
+  height: min(720px, 92vh);
+  max-height: 92vh;
+  display: flex;
+  flex-direction: column;
+  background:
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.7' numOctaves='2' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)' opacity='0.05'/></svg>"),
+    var(--papier);
+  border: 1px solid #a5916a;
+  border-radius: 10px;
+  box-shadow: 0 20px 44px rgba(0, 0, 0, 0.55);
+  padding: 14px 22px 18px;
+  color: var(--tinte);
+  overflow: hidden;
+}
+
+.druck-blatt header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 2px solid var(--gold);
+  padding-bottom: 8px;
+  flex: none;
+}
+
+.druck-blatt h2 {
+  margin: 0;
+  font: 700 22px var(--serif);
+  font-variant: small-caps;
+  letter-spacing: 0.06em;
+}
+
+.druck-spalten {
+  display: flex;
+  gap: 16px;
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  margin-top: 12px;
+}
+
+.druck-links {
+  width: 250px;
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px dotted var(--linie-stark);
+  padding-right: 12px;
+  min-width: 0;
+  min-height: 0;
+}
+
+.druck-titel {
+  font: 600 11px var(--sans);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--braun-hell);
+  margin-bottom: 5px;
+}
+
+.druck-wahlkopf { display: flex; gap: 6px; margin-bottom: 7px; }
+
+.druck-auswahl {
+  overflow-y: auto;
+  flex: 1;
+  min-height: 120px;
+}
+
+.druck-zeile {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  font: 400 13.5px var(--sans);
+  padding: 2px 0;
+  cursor: pointer;
+}
+
+.druck-zeile > input { flex: 0 0 auto; margin-top: 0.2em; }
+.druck-zeile-text { min-width: 0; overflow-wrap: normal; }
+
+.druck-zeile:hover { color: var(--rot); }
+
+.ods-feldauswahl {
+  border: 1px dotted var(--linie-stark);
+  border-radius: 4px;
+  margin: 9px 0 0;
+  padding: 6px 8px 7px;
+  font: 400 11.5px/1.3 var(--sans);
+}
+
+.ods-feldauswahl summary {
+  color: var(--braun);
+  font-weight: 700;
+  cursor: pointer;
+  padding: 2px 3px;
+}
+
+.ods-feldliste {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 7px 3px 1px;
+}
+
+.ods-feldauswahl .hak { display: flex; margin: 0; }
+.ods-feldauswahl .einst-hinweis { margin: 5px 0 0; }
+
+.druck-vorschau {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  overflow-y: auto;
+  background: rgba(255, 255, 255, 0.5);
+  border: 1px solid var(--linie-stark);
+  border-radius: 4px;
+  padding: 12px 14px;
+  overflow-wrap: normal;
+}
+
+.druck-karte {
+  border: 1px solid var(--linie);
+  border-radius: 4px;
+  padding: 8px 11px 9px;
+  margin-bottom: 8px;
+  background: rgba(255, 252, 240, 0.7);
+  font: 400 13px/1.45 var(--serif);
+  display: flow-root;
+  overflow-wrap: anywhere;
+}
+
+.dk-foto {
+  float: right;
+  width: 54px;
+  height: 66px;
+  object-fit: cover;
+  border: 1px solid var(--linie-stark);
+  border-radius: 4px;
+  margin: 0 0 7px 10px;
+}
+
+.dk-name { font-weight: 700; font-size: 15px; }
+.dk-firma { font-style: italic; color: var(--braun); }
+.dk-wort { color: var(--braun-hell); }
+.dk-notiz {
+  margin-top: 4px;
+  padding-top: 4px;
+  border-top: 1px dotted var(--linie);
+  font-size: 12.5px;
+  white-space: pre-wrap;
+}
+
+.druck-fuss { margin-top: 13px; justify-content: flex-end; flex: none; }
+.druck-fuss .knopf { flex: 0 0 auto; white-space: nowrap; }
+.ods-knopf .sinnbild { color: #526f42; }
+
+.einst-gruppe {
+  border: 1px dotted var(--linie-stark);
+  border-radius: 5px;
+  margin: 9px 0;
+  padding: 6px 9px 8px;
+}
+
+.einst-gruppe > summary {
+  color: var(--braun);
+  font-weight: 700;
+  cursor: pointer;
+  padding: 3px;
+}
+
+.einst-gruppe[open] > summary { margin-bottom: 7px; }
+.kalender-wochenoptionen {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 9px;
+}
+.marken-definitionen { margin-top: 7px; }
+.marken-vorlagen { display: flex; flex-wrap: wrap; gap: 6px; margin: 7px 0 10px; }
+.marken-liste { display: flex; flex-direction: column; gap: 7px; margin-bottom: 8px; }
+.marken-zeile {
+  display: grid;
+  grid-template-columns: minmax(110px, 1fr) auto 88px auto 88px 42px auto;
+  align-items: center;
+  gap: 5px;
+}
+.zyklus-definition { grid-template-columns: minmax(140px, 1fr) 64px 42px auto; }
+.marken-zeile input[type="color"] { width: 38px; height: 30px; padding: 2px; }
+.urlaubs-liste { display: flex; flex-direction: column; gap: 7px; margin-bottom: 8px; }
+.urlaubs-zeile {
+  display: grid;
+  grid-template-columns: auto minmax(122px, 1fr) auto minmax(122px, 1fr) 145px 190px auto;
+  align-items: center;
+  gap: 6px;
+}
+.muell-liste { display: flex; flex-direction: column; gap: 7px; margin-bottom: 8px; }
+.muell-zeile {
+  display: grid;
+  grid-template-columns: minmax(130px, 1fr) auto minmax(122px, 1fr) auto 64px auto 42px auto;
+  align-items: center;
+  gap: 6px;
+}
+.muell-zeile input[type="number"] { min-width: 54px; }
+.muell-zeile input[type="color"] { width: 38px; height: 30px; padding: 2px; }
+
+.tb-tagmarken {
+  border: 1px dotted var(--linie-stark);
+  border-radius: 4px;
+  padding: 7px;
+  margin: 7px 0;
+}
+.tb-marken-zeile { display: flex; align-items: center; gap: 7px; margin-top: 5px; }
+.tb-marken-zeile select { flex: 1; min-width: 0; }
+.zyklus-schnellwahl { flex-wrap: wrap; }
+.zyklus-schnellknopf {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 31px;
+  height: 31px;
+  border: 2px solid var(--markenfarbe);
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--markenfarbe) 18%, var(--papier));
+  color: var(--markenfarbe);
+  font: 700 16px var(--sans);
+  line-height: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  cursor: pointer;
+}
+.zyklus-schnellknopf.aktiv {
+  background: var(--markenfarbe);
+  color: white;
+  box-shadow: inset 0 0 0 2px var(--papier);
+}
+
+.tagmarken-streifen { display: flex; flex-wrap: wrap; gap: 3px; margin: 3px 0; }
+.schicht-marke {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  border-left: 4px solid var(--markenfarbe);
+  background: color-mix(in srgb, var(--markenfarbe) 22%, var(--papier));
+  border-radius: 2px;
+  padding: 2px 5px;
+  color: var(--tinte);
+  font: 600 11px/1.2 var(--sans);
+}
+.zyklus-marke {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  border: 2px solid var(--markenfarbe);
+  border-radius: 50%;
+  color: var(--markenfarbe);
+  background: var(--papier);
+  font: 700 12px var(--sans);
+}
+.urlaub-marke {
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+  border-left: 4px solid #3f8f78;
+  border-radius: 2px;
+  background: #d9eee7;
+  padding: 2px 5px;
+  color: #285f51;
+  font: 600 11px/1.2 var(--sans);
+}
+.muell-marke {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  min-width: 0;
+  border-left: 4px solid var(--markenfarbe);
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--markenfarbe) 18%, var(--papier));
+  padding: 2px 5px;
+  color: var(--markenfarbe);
+  font: 600 11px/1.2 var(--sans);
+}
+.tagmarken-streifen.kompakt {
+  position: static;
+  width: 100%;
+  margin: 2px 0;
+  flex-wrap: nowrap;
+  overflow: hidden;
+}
+.tagmarken-streifen.kompakt .schicht-marke {
+  flex: 1;
+  padding: 1px 3px;
+  font-size: 8px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.tagmarken-streifen.kompakt .zyklus-marke {
+  min-width: 14px;
+  width: 14px;
+  height: 14px;
+  border-width: 1px;
+  font-size: 8px;
+}
+.tagmarken-streifen.kompakt .urlaub-marke {
+  flex: none;
+  padding: 1px 3px;
+  font-size: 9px;
+}
+.tagmarken-streifen.kompakt .muell-marke {
+  flex: none;
+  padding: 1px 3px;
+}
+.mm-tag.schicht::after {
+  content: "";
+  position: absolute;
+  inset: auto 1px 1px 1px;
+  height: 2px;
+  background: var(--gold);
+}
+.mm-tag.zyklus::before { content: "•"; color: #9b4f73; margin-right: 1px; }
+.mm-tag { position: relative; }
+.mm-tag.heute { outline: 1.5px solid var(--rot); outline-offset: -1.5px; }
+.mm-tag.urlaub { background: #d9eee7; box-shadow: inset 0 -2px #3f8f78; }
+.mm-urlaub-symbol { font-size: 6px; line-height: 1; margin-left: 1px; }
+
+.planer-druck-blatt { width: min(1240px, 98vw); }
+.planer-druck-optionen { width: 210px; }
+.planer-druck-option { margin: 8px 0 0; }
+.planer-druck-vorschau { padding: 8px; overflow: auto; }
+
+.planer-druck-kalender {
+  width: 100%;
+  min-width: 780px;
+  border-collapse: collapse;
+  table-layout: fixed;
+  font: 400 8px/1.05 var(--sans);
+  color: #211d17;
+  background: #fff;
+}
+
+.planer-druck-kalender th {
+  border: 1px solid #51493d;
+  background: #eee8dc;
+  padding: 4px 1px;
+  font-size: 9px;
+}
+
+.planer-druck-kalender td {
+  height: 15px;
+  border: 1px solid #807667;
+  padding: 1px 2px;
+  vertical-align: top;
+  overflow: hidden;
+}
+
+.planer-druck-kalender .pk-datum { font-weight: 650; white-space: nowrap; }
+.planer-druck-kalender .pk-anlass {
+  display: block;
+  font-size: 5.5px;
+  line-height: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.planer-druck-kalender .pk-samstag { background: #fffbc7; }
+.planer-druck-kalender .pk-sonntag { background: #f5c38f; }
+.planer-druck-kalender .pk-ferien { background: #fff200; }
+.planer-druck-kalender .pk-urlaub { background: #d9eee7; }
+.planer-druck-kalender .pk-feiertag {
+  background: #f4c6ca;
+  color: #a6151d;
+}
+.planer-druck-kalender .pk-feiertag-ferien {
+  background: #ffdd57;
+  color: #a6151d;
+}
+.planer-druck-kalender .pk-leer { background: #e5e5e5; }
+
+.planer-monatskalender {
+  width: 100%;
+  min-width: 720px;
+  height: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  font: 400 10px/1.12 var(--sans);
+  background: #fff;
+}
+.planer-monatskalender th {
+  border: 1px solid #5f4a2c;
+  background: #8b6a35;
+  color: #fff;
+  padding: 5px 2px;
+}
+.planer-monatskalender .pm-kw { width: 34px; background: #5c3f25; }
+.planer-monatskalender td {
+  position: relative;
+  height: 72px;
+  border: 1px solid #776d5e;
+  padding: 3px;
+  vertical-align: top;
+  overflow: hidden;
+}
+.pm-tagnummer { font-weight: 700; font-size: 12px; }
+.pm-zyklus { float: right; font-weight: 800; font-size: 13px; margin-left: 3px; }
+.pm-anlass {
+  display: block;
+  margin-top: 2px;
+  padding: 1px 3px;
+  border-left: 4px solid var(--eintragfarbe);
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--eintragfarbe) 20%, white);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.pm-feiertag { background: #f4c6ca; color: #a6151d; }
+.pm-ferien { background: #eef2c3; }
+.pm-urlaub { background: #d9eee7; }
+.pm-sonntag:not(.pm-feiertag):not(.pm-ferien) { background: #f8e8dc; }
+.pm-ausserhalb { background: #e5e5e5; color: #9b9284; }
+.pm-mehr { --eintragfarbe: #998f80; }
+
+@media (max-width: 680px) {
+  .marken-zeile, .zyklus-definition, .urlaubs-zeile, .muell-zeile { grid-template-columns: 1fr; }
+  .druck-spalten { flex-direction: column; }
+  .druck-links {
+    width: auto;
+    max-height: 34vh;
+    padding-right: 0;
+    padding-bottom: 10px;
+    border-right: 0;
+    border-bottom: 1px dotted var(--linie-stark);
+  }
+  .druck-vorschau { min-height: 140px; }
+  .planer-druck-optionen { width: auto; }
+  .marken-zeile, .zyklus-definition { grid-template-columns: 1fr 1fr; }
+}
+
+/* ==========================================================================
+   Magnolie 1.15 – Papierkorb, Bearbeiten-Menü, zweizeilige Reiter
+   ========================================================================== */
+
+/* Bei vielen Reitern dürfen sie in zwei Zeilen stehen */
+.einst-reiter { row-gap: 3px; }
+
+.einst-reiter-knopf { margin-bottom: 0; }
+
+.einst-reiter-knopf.aktiv { border-bottom-color: var(--papier); }
+
+/* --------------------------------- Papierkorb ----------------------------- */
+
+.papierkorb-liste {
+  margin: 10px 0 4px;
+  max-height: 210px;
+  overflow-y: auto;
+  border: 1px solid var(--linie-stark);
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.35);
+  padding: 6px 10px 8px;
+}
+
+.pk-art {
+  font: 600 11px var(--sans);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--braun-hell);
+  margin: 8px 0 3px;
+  border-bottom: 1px dotted var(--linie-stark);
+}
+
+.pk-zeile {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 3px 0;
+  font: 400 13.5px var(--sans);
+}
+
+.pk-name {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pk-wann { color: var(--braun-hell); font-size: 12px; flex: none; }
+
+.pk-mehr { font: italic 400 12.5px var(--serif); color: var(--braun-hell); }
+
+/* ------------------------------ Bearbeiten-Menü --------------------------- */
+
+.bearbeiten-menue::before { display: none; }
+
+.bearbeiten-menue .vm-eintrag {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 13.5px;
+}
+
+.bearbeiten-menue .vm-eintrag:first-of-type { margin-top: 0; }
+
+.vm-grau { opacity: 0.4; cursor: default; }
+
+.vm-grau:hover { background: transparent; }
+
+.vm-zeichen {
+  display: inline-block;
+  width: 15px;
+  text-align: center;
+  font-family: var(--serif);
+}
+
+.vm-zeichen.w-b { font-weight: 800; }
+.vm-zeichen.w-i { font-style: italic; }
+.vm-zeichen.w-u { text-decoration: underline; }
+.vm-zeichen.w-s { text-decoration: line-through; }
+
+/* ==========================================================================
+   Magnolie 1.16 – Reiter passen sich dem Bildschirm an
+   ========================================================================== */
+
+/* Auf breiten Schirmen stehen alle acht Reiter nebeneinander. */
+.einst-reiter-knopf { flex: 0 1 auto; }
+
+/* Passen nicht alle nebeneinander, werden es genau vier je Zeile – zwei
+   saubere Reihen statt sieben oben und einer allein darunter. Gemessen
+   wird das beim Öffnen und bei jeder Größenänderung. */
+.einst-reiter.zwei-reihen .einst-reiter-knopf {
+  flex: 1 1 calc(25% - 3px);
+  max-width: calc(25% - 3px);
+  justify-content: center;
+  text-align: center;
+  padding-left: 6px;
+  padding-right: 6px;
+}
+
+/* Übersetzte Bedienelemente dürfen ihre zugewiesene Fläche nie übermalen. */
+button,
+label,
+legend,
+summary,
+.feldname,
+.einst-hinweis,
+.seiten-kopf h2,
+.kopf-neben,
+.kopf-unter {
+  overflow-wrap: normal;
+}
+
+button,
+select,
+input,
+textarea,
+.seiten-kopf > *,
+.formraster > *,
+.einst-reiter > * {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.seiten-kopf h2,
+.kopf-neben,
+.kopf-unter {
+  white-space: normal;
+}
+
+.kopf-frei,
+.hakzeile,
+.form-knoepfe,
+.dialog-knoepfe,
+.eb-knoepfe,
+.status-rechts {
+  min-width: 0;
+  flex-wrap: wrap;
+}
+
+#statusleiste {
+  min-width: 0;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+}
+
+.leisten-knopf,
+.eingabe-datei-knopf,
+.notiz-anpassen-knopf,
+.druck-fuss .knopf,
+.notiz-anhang figcaption .knopf {
+  min-width: 0;
+  white-space: normal;
+}
+
+#dialog,
+#sicherung-dialog,
+.eingabe-dialog,
+.notiz-anpassen-dialog {
+  max-width: calc(100vw - 32px);
+  max-height: calc(100vh - 32px);
+  overflow: auto;
+}
+
+#dialog { width: min(400px, calc(100vw - 32px)); }
+#sicherung-dialog { width: min(440px, calc(100vw - 32px)); }
+.eingabe-dialog { width: min(460px, calc(100vw - 32px)); }
+
+.geraet-dialog { width: min(500px, calc(100vw - 28px)); }
+.geraet-dialog h3 { text-align: center; margin-bottom: 6px; }
+.geraet-telefon {
+  position: relative;
+  width: 92px;
+  height: 158px;
+  margin: 8px auto 10px;
+  border: 5px solid #41382f;
+  border-radius: 18px;
+  background: #756755;
+  box-shadow: inset 0 0 0 2px #bda978, 0 7px 14px rgba(44, 31, 20, 0.22);
+}
+.geraet-bildschirm {
+  position: absolute;
+  inset: 17px 7px 19px;
+  border-radius: 5px;
+  background: linear-gradient(145deg, #314e49, #78958a 62%, #d9cfac);
+}
+.geraet-hoerer {
+  position: absolute; top: 7px; left: 34px; width: 24px; height: 3px;
+  border-radius: 3px; background: #241f1b;
+}
+.geraet-knopf {
+  position: absolute; bottom: 6px; left: 40px; width: 12px; height: 5px;
+  border: 1px solid #2e2822; border-radius: 50%;
+}
+.geraet-online { margin: 0 0 12px; text-align: center; color: #765748; }
+.geraet-online.online { color: #356640; font-weight: 700; }
+.geraet-details {
+  display: grid; grid-template-columns: minmax(120px, 0.8fr) minmax(0, 1.2fr);
+  gap: 5px 12px; margin: 12px 0;
+}
+.geraet-dialog { width: min(610px, calc(100vw - 32px)); max-height: calc(100vh - 32px); overflow: auto; }
+.geraet-details dt { color: var(--braun); font-weight: 700; }
+.geraet-details dd { margin: 0; overflow-wrap: anywhere; }
+.geraet-akku-zeile { display: flex; align-items: center; justify-content: center; gap: 10px; }
+.geraet-akku {
+  position: relative; width: 112px; height: 22px; padding: 2px;
+  border: 2px solid #554839; border-radius: 4px;
+}
+.geraet-akku::after {
+  content: ""; position: absolute; right: -7px; top: 5px;
+  width: 5px; height: 10px; border-radius: 0 2px 2px 0; background: #554839;
+}
+.geraet-akku-fuellung {
+  display: block; width: 0; height: 100%; border-radius: 1px;
+  background: linear-gradient(90deg, #b06b3c, #6f985d);
+  transition: width 180ms ease;
+}
+@media (max-width: 430px) {
+  .geraet-telefon { width: 76px; height: 128px; }
+  .geraet-details { grid-template-columns: 1fr; gap: 1px; }
+  .geraet-details dd { margin-bottom: 5px; }
+}
+.notiz-anpassen-dialog { width: min(650px, calc(100vw - 32px)); }
+
+.einst-gruppe > summary,
+.ods-feldauswahl summary,
+.lotus-felder summary,
+#zettel,
+th,
+td {
+  overflow-wrap: normal;
+}
+
+/* Auf kleinen Schirmen (etwa 1024 × 768) darf das Blatt nicht überlaufen. */
+@media (max-height: 800px) {
+  .gesundheit-papiertabelle th,
+  .gesundheit-papiertabelle td { height: 28px; }
+  .gesundheit-papiertabelle thead th { height: 34px; }
+  .gesundheit-zellenfeld { height: 24px; }
+  .gesundheit-tabellenaktionen { margin-top: 5px; padding-top: 4px; }
+  .gesundheit-verlauf-diagramm { min-height: 220px; padding: 6px; }
+  .gesundheit-verlauf-diagramm svg { max-height: 250px; }
+  #einstellungen-blatt { padding: 12px 18px 14px; }
+  .einst-seite { height: min(468px, 46vh); }
+  .einst-abschnitt { padding-top: 9px; }
+}
+
+@media (max-height: 700px) {
+  .gesundheit-papiertabelle th,
+  .gesundheit-papiertabelle td { height: 25px; }
+  .gesundheit-papiertabelle thead th { height: 30px; }
+  .gesundheit-zellenfeld { height: 22px; }
+  .gesundheit-verlauf-diagramm { min-height: 170px; }
+  .gesundheit-verlauf-diagramm svg { max-height: 205px; }
+  .einst-seite { height: min(468px, 40vh); }
+}
+
+/* ==========================================================================
+   Magnolie 1.16 – Sperrbildschirm mit Zahlenschloss
+   ========================================================================== */
+
+.sperr-schleier {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background:
+    radial-gradient(ellipse at 50% 40%, #3f5147 0%, #263029 70%, #1b221d 100%);
+}
+
+.sperr-blatt {
+  width: min(340px, 88vw);
+  text-align: center;
+  padding: 26px 26px 22px;
+  border-radius: 12px;
+  border: 1px solid #a5916a;
+  background:
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.7' numOctaves='2' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)' opacity='0.05'/></svg>"),
+    var(--papier);
+  box-shadow: 0 26px 60px rgba(0, 0, 0, 0.6);
+  animation: blatt-auf 0.4s ease-out;
+}
+
+@keyframes blatt-auf {
+  from { opacity: 0; transform: translateY(18px) scale(0.97); }
+  to { opacity: 1; transform: none; }
+}
+
+.sperr-blatt.zittert { animation: zittern 0.4s; }
+
+@keyframes zittern {
+  10%, 90% { transform: translateX(-3px); }
+  20%, 80% { transform: translateX(5px); }
+  30%, 50%, 70% { transform: translateX(-8px); }
+  40%, 60% { transform: translateX(8px); }
+}
+
+.sperr-bluete {
+  width: 54px;
+  height: 54px;
+  color: var(--gold-dunkel);
+  opacity: 0.9;
+}
+
+.sperr-titel {
+  margin: 2px 0 0;
+  font: 700 30px var(--serif);
+  font-variant: small-caps;
+  letter-spacing: 0.1em;
+  color: var(--tinte);
+}
+
+.sperr-hinweis {
+  margin: 2px 0 14px;
+  font: italic 400 13.5px var(--serif);
+  color: var(--braun);
+  min-height: 19px;
+}
+
+.sperr-punkte {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 9px;
+  height: 22px;
+  margin-bottom: 14px;
+}
+
+.sperr-punkt {
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: var(--tinte);
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.4);
+  animation: punkt-auf 0.18s ease-out;
+}
+
+@keyframes punkt-auf { from { transform: scale(0.3); opacity: 0; } }
+
+.sperr-leer { color: var(--braun-hell); letter-spacing: 0.3em; }
+
+.sperr-feld { text-align: center; font-size: 17px; letter-spacing: 0.2em; }
+
+.zahlenschloss {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 9px;
+  margin: 4px 0 12px;
+}
+
+.zahlenschloss.gesperrt { opacity: 0.4; pointer-events: none; }
+
+.zahl-taste {
+  height: 52px;
+  border: 1px solid var(--linie-stark);
+  border-radius: 8px;
+  background:
+    linear-gradient(rgba(255, 255, 255, 0.45), rgba(0, 0, 0, 0.05));
+  background-color: var(--papier-tief);
+  color: var(--tinte);
+  font: 600 21px var(--serif);
+  cursor: pointer;
+  transition: transform 0.08s, background-color 0.12s;
+}
+
+.zahl-taste:hover { background-color: #e6d9b9; }
+
+.zahl-taste:active { transform: translateY(1px) scale(0.97); }
+
+.zt-ok { color: #3f6b3a; border-color: #7fa06f; }
+
+.zt-weg { color: var(--rot); }
+
+.sperr-umschalter {
+  border: 0;
+  background: none;
+  color: var(--braun);
+  font: 400 12.5px var(--sans);
+  text-decoration: underline dotted;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.sperr-umschalter:hover { color: var(--rot); }
+
+.sperr-fuss {
+  margin: 10px 0 0;
+  min-height: 17px;
+  font: 400 12.5px var(--sans);
+  color: var(--rot);
+}
+
+.einst-warnung {
+  margin: 8px 0 10px;
+  padding: 8px 12px;
+  border-left: 3px solid var(--rot);
+  background: rgba(181, 68, 58, 0.08);
+  font: 600 13px/1.5 var(--sans);
+  color: #8d3a32;
+  max-width: 66ch;
+}
+
+/* Aufleuchten der Taste bei Eingabe über die Tastatur */
+.zahl-taste.gedrueckt {
+  background-color: var(--gold);
+  color: var(--leder-dunkel);
+  transform: translateY(1px) scale(0.97);
+}
+
+/* ==========================================================================
+   Magnolie 1.17 – Feinschliff
+   ========================================================================== */
+
+/* Ankreuzzeilen in den Einstellungen brauchen Luft zueinander, sonst
+   klebt der nächste Haken direkt unter dem vorigen Text. */
+.einst-abschnitt > label.hak {
+  display: flex;
+  margin: 7px 0;
+  padding: 2px 0;
+}
+
+.einst-abschnitt > label.hak + label.hak { margin-top: 9px; }
+
+.erinnerung-felder > label.hak { margin: 8px 0; }
+
+/* Ein Hinweis direkt unter einer Ankreuzzeile rückt etwas ein, damit die
+   Zugehörigkeit sichtbar ist. */
+.einst-abschnitt > label.hak + .einst-hinweis,
+.erinnerung-felder > label.hak + .einst-hinweis {
+  margin-top: -2px;
+  margin-left: 24px;
+}
+
+/* Knopfreihen im Einstellungsblatt etwas luftiger */
+.einst-abschnitt > .knopfreihe { margin-top: 10px; }
+
+/* Der Vorschlagskopf soll nicht am Rand kleben */
+.vm-kopf { padding-top: 5px; }
+
+/* Der Papierkorb-Kasten darf auf kleinen Schirmen kleiner werden */
+@media (max-height: 800px) {
+  .papierkorb-liste { max-height: 150px; }
+}
+
+/* ==========================================================================
+   Magnolie 1.18 – Rollende Flächen zeichnen wie der Rest
+
+   WebKit hebt eine Fläche auf eine eigene Zeichenebene, sobald sie
+   rollbar wird – also genau dann, wenn der Rollbalken erscheint. Dort
+   wird Text mit grauer statt mit farbiger Kantenglättung gezeichnet und
+   wirkt dadurch deutlich fetter. Der Sprung fällt sofort auf.
+
+   Deshalb: keine erzwungenen Zeichenebenen (kein translateZ, kein
+   will-change) und im ganzen Buch dieselbe Kantenglättung. Dann sieht
+   Text überall gleich aus, ob gerollt wird oder nicht.
+   ========================================================================== */
+
+html, body,
+.seiten-inhalt,
+#notiz-text,
+.einst-seite,
+.druck-vorschau,
+.termin-blatt,
+#tb-notiz {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+/* Deckender Grund, damit beim Rollen nichts verschmiert. */
+.seiten-inhalt,
+.adr-spalte,
+.einst-seite,
+#notiz-text,
+.druck-auswahl,
+.druck-vorschau,
+.papierkorb-liste,
+.termin-uebersicht,
+.stunden-raster,
+.tb-links {
+  background-color: var(--papier);
+}
+
+/* Beschriebene Flächen rollen nicht selbst – das übernimmt ein Rahmen
+   um sie herum. Nur so bleibt die Schrift beim Rollen unverändert. */
+#notiz-text {
+  overflow: visible;
+  height: auto;
+  min-height: 100%;
+}
+
+.schreibrahmen {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  border-radius: 3px;
+  background-color: #f8f2e1;
+}
+
+#tb-notiz {
+  overflow: hidden;
+  resize: none;
+  min-height: 220px;
+}
+
+.tb-notizrahmen {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  border-radius: 3px;
+  padding: 0;
+  background-color: #f8f2e1;
+}
+
+.druck-vorschau,
+.papierkorb-liste { background-color: #fbf6e8; }
+
+.feld textarea,
+textarea.feld { background-color: #fbf6e8; }
+
+/* ==========================================================================
+   Magnolie 1.18 – Drei Ansichten, Terminübersicht und Terminblatt
+   ========================================================================== */
+
+/* -------------------------------- Umschalter ----------------------------- */
+
+.u-knopf {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.u-zeichen { flex: none; opacity: 0.75; }
+
+.u-knopf.aktiv .u-zeichen { opacity: 1; }
+
+/* Wird es eng, bleiben nur die Zeichen stehen. */
+@media (max-width: 1240px) {
+  .u-wort { display: none; }
+  .u-knopf { padding-left: 8px; padding-right: 8px; }
+}
+
+/* ----------------------------- Terminübersicht --------------------------- */
+
+.wetter-kasten {
+  flex: none;
+  margin: 0 0 10px;
+  padding: 7px 8px 8px;
+  border-top: 1px solid #c9b27a;
+  border-bottom: 1px solid #c9b27a;
+  background: linear-gradient(90deg, rgba(221, 205, 158, 0.2),
+    rgba(255, 253, 244, 0.55), rgba(221, 205, 158, 0.2));
+  color: var(--tinte);
+}
+
+.wetter-kopf {
+  display: flex;
+  align-items: baseline;
+  gap: 2px;
+  margin-bottom: 5px;
+  font: 12px var(--sans);
+  color: var(--braun);
+}
+
+.wetter-kopf strong {
+  font: 700 12px var(--serif);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.wetter-tage {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 5px;
+}
+
+.wetter-tag {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 25px 1fr;
+  grid-template-areas: "zeichen name" "zeichen temperatur" "beschreibung beschreibung";
+  align-items: center;
+  padding: 4px 5px;
+  border-left: 2px solid rgba(165, 131, 59, 0.45);
+  background: rgba(255, 255, 255, 0.38);
+}
+
+.wetter-tagname { grid-area: name; font: 700 10.5px var(--sans); color: var(--braun); }
+.wetter-zeichen {
+  grid-area: zeichen;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #8b692c;
+}
+.wetter-symbol-svg {
+  width: 25px;
+  height: 25px;
+  overflow: visible;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.55;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.wetter-symbol-svg .wetter-punkt { fill: currentColor; stroke: none; }
+.wetter-temperatur { grid-area: temperatur; font: 600 11.5px var(--sans); }
+.wetter-beschreibung {
+  grid-area: beschreibung;
+  overflow: hidden;
+  margin-top: 2px;
+  color: var(--braun-hell);
+  font: 10px var(--sans);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.wetter-status { padding: 5px 2px; font: italic 12px var(--serif); color: var(--braun); }
+.wetter-fehler { color: #8c392f; }
+.wetter-quelle { margin-top: 5px; font: 9.5px/1.25 var(--sans); color: var(--braun-hell); }
+.wetter-tag.wetter-modus-symbol {
+  grid-template-columns: 1fr;
+  grid-template-areas: "name" "zeichen";
+  justify-items: center;
+}
+.wetter-modus-symbol .wetter-symbol-svg { width: 29px; height: 29px; }
+.seiten-inhalt.mit-wetter .termin-uebersicht { height: auto; flex: 1; min-height: 0; }
+.seiten-inhalt.mit-wetter .tages-spalte { flex: 1; height: auto; min-height: 0; }
+
+.termin-uebersicht {
+  height: 100%;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.ue-tag {
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px dotted var(--linie-stark);
+}
+
+.ue-tag:last-child { border-bottom: 0; }
+
+.ue-datum {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  width: 100%;
+  border: 0;
+  background: none;
+  padding: 2px 0 5px;
+  cursor: pointer;
+  text-align: left;
+}
+
+.ue-datum:hover .ue-zahl { color: var(--rot); }
+
+.ue-zahl {
+  font: 700 21px var(--serif);
+  color: var(--tinte);
+  min-width: 30px;
+}
+
+.ue-wt {
+  font: 600 12px var(--sans);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--braun);
+}
+
+.ue-monat { font: 400 12.5px var(--sans); color: var(--braun-hell); }
+
+.ue-tag.heute .ue-zahl {
+  color: var(--rot);
+  border-bottom: 2px solid var(--rot);
+}
+
+.ue-tag.gewaehlt { background: rgba(216, 178, 92, 0.1); border-radius: 5px; }
+
+.ue-termin {
+  display: flex;
+  align-items: baseline;
+  gap: 9px;
+  width: 100%;
+  border: 0;
+  border-left: 3px solid var(--gold-dunkel);
+  background: rgba(255, 255, 255, 0.4);
+  border-radius: 0 4px 4px 0;
+  padding: 4px 8px 5px 9px;
+  margin: 3px 0 0 6px;
+  cursor: pointer;
+  text-align: left;
+  font: 400 14px var(--sans);
+  color: var(--tinte);
+}
+
+.ue-termin:hover { background: rgba(216, 178, 92, 0.22); }
+
+.ue-termin.aktiv { background: rgba(216, 178, 92, 0.3); }
+
+.ue-zeit {
+  flex: none;
+  min-width: 88px;
+  font: 600 13px var(--serif);
+  color: var(--braun);
+}
+
+.ue-zeit.ganztags-zeit { font-style: italic; font-weight: 400; }
+
+.ue-titel { flex: 1; }
+
+.ue-feiertag,
+.ue-jahrestag {
+  margin: 2px 0 0 6px;
+  padding: 2px 8px 3px;
+  border-radius: 4px;
+  font: 400 13px var(--sans);
+}
+
+.ue-feiertag { background: rgba(181, 68, 58, 0.12); color: #8d3a32; }
+.ue-feiertag.ferien { background: rgba(93, 122, 82, 0.14); color: #415b39; }
+.ue-jahrestag { background: rgba(160, 110, 140, 0.13); color: #6b4a5e; }
+
+/* -------------------------------- Tagesansicht --------------------------- */
+
+.tages-spalte {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+.tages-ganztags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  padding-bottom: 7px;
+  margin-bottom: 5px;
+  border-bottom: 1px dotted var(--linie-stark);
+}
+
+.stunden-raster {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 3px;
+}
+
+.stunden-reihe {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+  min-height: 34px;
+  border-top: 1px solid var(--linie);
+}
+
+.stunden-reihe:first-child { border-top: 0; }
+
+.stunden-marke {
+  flex: none;
+  width: 66px;
+  padding-top: 3px;
+  font: 600 11.5px var(--serif);
+  color: var(--braun-hell);
+  text-align: right;
+}
+
+.stunden-feld {
+  flex: 1;
+  min-width: 0;
+  padding: 2px 0 3px;
+  border-left: 1px solid var(--linie);
+  padding-left: 8px;
+  cursor: cell;
+}
+
+.stunden-feld:hover { background: rgba(216, 178, 92, 0.07); }
+
+.tages-termin {
+  display: block;
+  width: 100%;
+  border: 0;
+  border-left: 3px solid var(--gold-dunkel);
+  border-radius: 0 4px 4px 0;
+  background: rgba(255, 252, 240, 0.85);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12);
+  padding: 4px 8px 5px 8px;
+  margin-bottom: 3px;
+  text-align: left;
+  cursor: pointer;
+  font: 400 13.5px var(--sans);
+  color: var(--tinte);
+}
+
+.tages-termin:hover { background: #fbf3dd; }
+
+.tages-termin.vorlaeufig { border-left-style: dashed; }
+
+.tages-termin.ganztags {
+  display: inline-block;
+  width: auto;
+  border-left-color: #7a8f6a;
+  background: rgba(120, 150, 110, 0.16);
+  margin-bottom: 0;
+}
+
+.tt-zeit {
+  display: block;
+  font: 600 12px var(--serif);
+  color: var(--braun);
+}
+
+.tt-titel { display: block; font-weight: 600; }
+
+.tt-notiz {
+  display: block;
+  font-size: 12.5px;
+  color: var(--braun);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tages-fuss {
+  flex: none;
+  padding-top: 8px;
+  margin-top: 4px;
+  border-top: 1px dotted var(--linie-stark);
+  display: flex;
+  justify-content: center;
+}
+
+.tages-neu { min-width: 210px; }
+
+.tages-spalte.heute .stunden-marke { color: var(--braun); }
+
+/* Termine im Monats- und Wochenraster sind anklickbar */
+
+.mini-termin { cursor: pointer; border-radius: 3px; }
+
+.mini-termin:hover { background: rgba(216, 178, 92, 0.3); }
+
+/* ------------------------------- Terminblatt ----------------------------- */
+
+.termin-schleier {
+  position: fixed;
+  inset: 0;
+  background: rgba(18, 15, 9, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 120;
+}
+
+.termin-blatt {
+  width: min(1120px, 96vw);
+  height: min(760px, 92vh);
+  max-height: 92vh;
+  display: flex;
+  flex-direction: column;
+  background:
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.7' numOctaves='2' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)' opacity='0.05'/></svg>"),
+    var(--papier);
+  border: 1px solid #a5916a;
+  border-radius: 10px;
+  box-shadow: 0 20px 44px rgba(0, 0, 0, 0.55);
+  padding: 14px 22px 18px;
+  color: var(--tinte);
+}
+
+.termin-blatt header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  border-bottom: 2px solid var(--gold);
+  padding-bottom: 8px;
+}
+
+.termin-blatt h2 {
+  margin: 0;
+  font: 700 22px var(--serif);
+  font-variant: small-caps;
+  letter-spacing: 0.05em;
+}
+
+.termin-blatt input[type="time"]::-webkit-datetime-edit,
+.termin-blatt input[type="time"]::-webkit-datetime-edit-fields-wrapper,
+.termin-blatt input[type="time"]::-webkit-datetime-edit-hour-field,
+.termin-blatt input[type="time"]::-webkit-datetime-edit-minute-field {
+  font-family: inherit;
+  font-size: inherit;
+  font-weight: inherit;
+}
+
+.tb-datum {
+  margin: 1px 0 0;
+  font: italic 400 13.5px var(--serif);
+  color: var(--braun);
+}
+
+.tb-spalten {
+  display: flex;
+  gap: 18px;
+  flex: 1;
+  min-height: 0;
+  margin-top: 13px;
+}
+
+.tb-links {
+  width: 34%;
+  min-width: 250px;
+  flex: none;
+  overflow-y: auto;
+  padding-right: 10px;
+  border-right: 1px dotted var(--linie-stark);
+  background-color: var(--papier);
+}
+
+.tb-rechts {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.tb-feldname {
+  font: 600 11px var(--sans);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--braun-hell);
+  margin-bottom: 4px;
+}
+
+/* Die Linien liegen auf dem Rahmen, nicht auf dem Textfeld – so reichen
+   sie über die ganze Höhe und rollen mit dem Text mit. */
+
+
+/* Der Aufklapper steht in einer eigenen Zeile unter dem Haken – sonst
+   klebt er direkt hinter „ganztägig". */
+.tb-aufklapper {
+  display: block;
+  width: 100%;
+  text-align: left;
+  border: 0;
+  border-top: 1px dotted var(--linie-stark);
+  background: none;
+  margin-top: 12px;
+  padding: 10px 0 6px;
+  font: 600 11px var(--sans);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--braun-hell);
+  cursor: pointer;
+}
+
+.tb-aufklapper:hover { color: var(--rot); }
+
+.tb-weitere { padding-left: 2px; }
+
+.tb-erinnerungsbereich {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px dotted var(--linie-stark);
+}
+
+.tb-alarme { margin-top: 10px; }
+.tb-alarm-liste { display: grid; gap: 7px; }
+
+.tb-alarm-zeile {
+  display: grid;
+  grid-template-columns: minmax(56px, .7fr) minmax(92px, 1.3fr);
+  align-items: center;
+  gap: 5px 8px;
+  padding-bottom: 7px;
+  border-bottom: 1px dotted rgba(171, 148, 104, .55);
+}
+
+.tb-alarm-zeile .feld { width: 100%; min-width: 0; }
+.tb-alarm-zeile > span { color: var(--braun); font-size: 12.5px; }
+.tb-alarm-zeile .knopf { justify-self: start; }
+.tb-alarme > .knopf { margin-top: 8px; }
+
+.tb-weitere > label.hak {
+  display: flex;
+  width: max-content;
+  margin: 8px 0;
+}
+
+.tb-aufgaben-suche {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-top: 4px;
+  max-height: 260px;
+  overflow-y: auto;
+}
+
+.tb-aufgaben-trefferstand { margin: 4px 0; }
+
+.tb-aufgaben-treffer {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+  padding: 7px 9px;
+  border: 1px solid rgba(151, 119, 62, 0.35);
+  border-radius: 5px;
+  background: rgba(255, 252, 240, 0.72);
+  color: var(--tinte);
+  text-align: left;
+  cursor: pointer;
+}
+
+.tb-aufgaben-treffer:hover,
+.tb-aufgaben-treffer:focus-visible {
+  border-color: var(--rot);
+  background: rgba(255, 248, 225, 0.95);
+}
+
+.tb-aufgaben-treffer-titel {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 700;
+}
+
+.tb-aufgaben-treffer-meta { color: var(--braun-hell); font-size: 12px; }
+.tb-aufgaben-treffer-notiz {
+  overflow: hidden;
+  color: #5e5140;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Der Haken „ganztägig" bekommt eine eigene Zeile mit Luft darunter. */
+.termin-blatt .ganztags-schalter {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 8px 0 2px;
+}
+
+.tb-links .form-zeile { margin-bottom: 10px; }
+
+body[data-hilfsrahmen="an"] .tb-links :focus-visible,
+body[data-hilfsrahmen="an"] .tb-aufgaben-suche :focus-visible,
+body[data-hilfsrahmen="an"] .ods-feldauswahl :focus-visible {
+  outline-offset: -2px;
+  box-shadow: inset 0 0 0 2px rgba(138, 109, 59, 0.18);
+}
+
+.tb-fuss {
+  margin-top: 13px;
+  padding-top: 10px;
+  border-top: 1px dotted var(--linie-stark);
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.tb-fuss .gefahr { margin-right: auto; color: var(--rot); }
+
+.knopf.haupt {
+  border-color: var(--gold-dunkel);
+  background: rgba(216, 178, 92, 0.25);
+  font-weight: 700;
+}
+
+.knopf.haupt:hover { background: rgba(216, 178, 92, 0.4); }
+
+@media (max-width: 900px) {
+  .tb-spalten { flex-direction: column; }
+  .tb-links { width: auto; border-right: 0; padding-right: 0; }
+}
+
+/* Eine untergeordnete Ankreuzzeile rückt ein Stück ein. */
+.hak-eingerueckt { margin-left: 22px; }
+
+/* Ein Hinweis, der auf etwas Fehlendes aufmerksam macht */
+.einst-hinweis.warnt { color: #8d3a32; font-weight: 600; }
+.einst-unteroptionen {
+  margin: 7px 0 10px 22px;
+  padding: 8px 10px;
+  border-left: 3px solid rgba(132, 98, 47, 0.45);
+  background: rgba(255, 253, 244, 0.45);
+}
+.einst-unteroptionen > label.hak { display: block; margin-bottom: 7px; }
+
+/* ==========================================================================
+   Seite „Über": Angaben zum Programm und ein Wort zum Kaffee
+   ========================================================================== */
+
+.ueber-kopf {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 10px;
+}
+
+.ueber-blume {
+  width: 46px;
+  height: 46px;
+  flex: none;
+  color: var(--gold-dunkel);
+}
+
+.ueber-name {
+  font: 700 21px var(--serif);
+  font-variant: small-caps;
+  letter-spacing: 0.05em;
+  color: var(--tinte);
+}
+
+.ueber-fassung { font: 400 13px var(--sans); color: var(--braun-hell); }
+
+.ueber-beschreibung { margin: 8px 0 10px; }
+
+.ueber-zeile {
+  display: flex;
+  gap: 10px;
+  padding: 3px 0;
+  font: 400 14px var(--sans);
+}
+
+.ueber-wort {
+  flex: none;
+  width: 90px;
+  font-weight: 600;
+  color: var(--braun);
+}
+
+.ueber-wert { color: var(--tinte); }
+
+.update-kasten {
+  margin-top: 12px;
+  padding: 10px 14px;
+  border: 1px solid rgba(151, 126, 78, 0.45);
+  border-radius: 5px;
+  background: rgba(255, 255, 255, 0.18);
+  max-width: 62ch;
+}
+
+.update-titel {
+  margin-bottom: 7px;
+  font: 700 14px var(--serif);
+  color: var(--tinte);
+}
+
+.update-kasten > label.hak { display: flex; margin: 4px 0; }
+
+.update-kasten .knopfreihe { margin-top: 8px; }
+
+.update-pruefsumme {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 5px 8px;
+  align-items: center;
+  margin-top: 8px;
+  font-size: 12px;
+}
+
+.update-pruefsumme code {
+  grid-column: 1 / -1;
+  overflow-wrap: anywhere;
+  font-family: var(--mono);
+}
+
+.kaffee-kasten {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: 14px;
+  padding: 12px 16px 13px;
+  border-left: 3px solid var(--gold-dunkel);
+  border-radius: 5px;
+  background: rgba(216, 178, 92, 0.16);
+  max-width: 62ch;
+}
+
+.kaffee-zeichen { font-size: 30px; line-height: 1; flex: none; }
+
+.kaffee-text { min-width: 0; }
+
+.kaffee-qr {
+  width: 58px;
+  height: 58px;
+  flex: none;
+  margin-left: auto;
+  object-fit: contain;
+  image-rendering: pixelated;
+}
+
+.kaffee-satz {
+  margin: 0 0 3px;
+  font: 400 14.5px var(--sans);
+  color: var(--tinte);
+}
+
+/* Bewusst kein Verweis: die Anschrift ist schlichter Text zum Abschreiben. */
+.kaffee-anschrift {
+  margin: 0;
+  font: 600 15px var(--serif);
+  letter-spacing: 0.02em;
+  color: var(--braun);
+  user-select: text;
+}
+
+.contributor-kasten {
+  max-width: 62ch;
+  margin-top: 10px;
+  padding: 11px 16px 13px;
+  border: 1px solid rgba(151, 122, 67, 0.5);
+  border-radius: 5px;
+  background: rgba(255, 252, 240, 0.45);
+}
+
+.contributor-kasten .formzeile {
+  grid-template-columns: 118px minmax(0, 1fr) auto;
+  margin: 0;
+}
+
+.contributor-status {
+  margin: 7px 0 0 118px;
+  color: var(--braun);
+  font-size: 12px;
+}
+
+.contributor-status.fehler { color: var(--rot); }
+
+/* ==========================================================================
+   Magnolie 1.21 – Linien und Zeilen aus einer Quelle
+
+   Der Abstand der Linien und die Zeilenhöhe des Textes stammen von nun an
+   aus derselben Größe. Damit sitzt die Schrift in jeder Schriftart und in
+   jeder Größe genau auf den Linien – und weil die Linie eine feste Höhe
+   in Bildpunkten hat, ändert daran auch eine andere Schriftart nichts.
+   ========================================================================== */
+
+body { --zeilenhoehe: 1.87em; }
+
+/* Die Linie gehört nicht an den unteren Rand der Zeile, sondern dorthin,
+   wo die Schrift aufsitzt – also knapp unter die Schriftlinie. Bei einer
+   Zeilenhöhe von 28 Bildpunkten liegt die Schriftlinie bei etwa 19; die
+   Linie sitzt deshalb bei 76 Hundertsteln der Zeilenhöhe. Weil das ein
+   Anteil ist, stimmt es in jeder Größe und bei jeder Schriftart. */
+:root { --linien-stelle: 0.76; }
+
+#notiz-text,
+#tb-notiz {
+  line-height: 1.87;
+  padding-top: 0;
+  padding-bottom: 0;
+  background-color: transparent;
+  background-repeat: repeat;
+  background-position: 0 0;
+  background-size: 100% var(--zeilenhoehe);
+  background-image:
+    repeating-linear-gradient(
+      rgba(0, 0, 0, 0) 0 calc(var(--zeilenhoehe) * var(--linien-stelle)),
+      var(--linie) calc(var(--zeilenhoehe) * var(--linien-stelle))
+        calc(var(--zeilenhoehe) * var(--linien-stelle) + 1px),
+      rgba(0, 0, 0, 0) calc(var(--zeilenhoehe) * var(--linien-stelle) + 1px)
+        var(--zeilenhoehe));
+}
+
+@supports (height: 1lh) {
+  #notiz-text,
+  #tb-notiz { --zeilenhoehe: 1lh; }
+}
+
+/* Das Schreibblatt der Notizen hat zusätzlich den roten Rand. */
+#notiz-text {
+  background-size: 1.5px 100%, 100% var(--zeilenhoehe);
+  background-position: 30px 0, 0 0;
+  background-repeat: no-repeat, repeat;
+  background-image:
+    linear-gradient(90deg, rgba(195, 118, 106, 0.8), rgba(195, 118, 106, 0.8)),
+    repeating-linear-gradient(
+      rgba(0, 0, 0, 0) 0 calc(var(--zeilenhoehe) * var(--linien-stelle)),
+      var(--linie) calc(var(--zeilenhoehe) * var(--linien-stelle))
+        calc(var(--zeilenhoehe) * var(--linien-stelle) + 1px),
+      rgba(0, 0, 0, 0) calc(var(--zeilenhoehe) * var(--linien-stelle) + 1px)
+        var(--zeilenhoehe));
+}
+
+/* Wer lieber ohne Linien schreibt, schaltet sie in den Einstellungen ab. */
+body[data-linien="aus"] #notiz-text,
+body[data-linien="aus"] #tb-notiz {
+  background-image: none;
+}
+
+/* ==========================================================================
+   Magnolie 1.21 – Personen, Auswahl und verknüpfte Aufgaben
+   ========================================================================== */
+
+.person-zeichen {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 26px;
+  height: 22px;
+  padding: 0 5px;
+  border-radius: 11px;
+  background: var(--braun);
+  color: #f8f2e1;
+  font: 700 11px var(--sans);
+  letter-spacing: 0.04em;
+  flex: none;
+}
+
+.person-zeichen.klein { min-width: 22px; height: 18px; font-size: 10px; }
+
+.person-leiste { display: inline-flex; gap: 3px; margin-left: 6px; flex: none; }
+
+/* -------------------------- Personen verwalten ---------------------------- */
+
+.personen-blatt { width: min(620px, 94vw); }
+
+.personen-liste {
+  margin: 12px 0 10px;
+  max-height: 300px;
+  overflow-y: auto;
+  background-color: #fbf6e8;
+  border: 1px solid var(--linie-stark);
+  border-radius: 4px;
+  padding: 8px 10px;
+}
+
+.person-zeile {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 4px 0;
+  border-bottom: 1px dotted var(--linie);
+}
+
+.person-zeile:last-child { border-bottom: 0; }
+
+.person-name { flex: 1; }
+
+.person-anzahl {
+  font: 400 12.5px var(--sans);
+  color: var(--braun-hell);
+  flex: none;
+  min-width: 82px;
+  text-align: right;
+}
+
+/* ------------------------- Auswahl auf der Aufgabenseite ------------------ */
+
+.aufgaben-filter {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-bottom: 10px;
+  padding-bottom: 9px;
+  border-bottom: 1px dotted var(--linie-stark);
+  font: 400 13px var(--sans);
+}
+
+.filter-wort { color: var(--braun-hell); font-weight: 600; font-size: 11.5px; }
+
+.aufgaben-filter select,
+.aufgaben-filter input { padding: 3px 6px; font-size: 13px; }
+
+/* ------------------------ Verantwortliche im Formular --------------------- */
+
+.person-wahl { margin: 10px 0 4px; }
+
+.person-haken { display: flex; flex-wrap: wrap; gap: 10px; }
+
+.person-haken-zeile {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font: 400 13.5px var(--sans);
+  cursor: pointer;
+}
+
+/* ------------------------ Aufgaben im Terminblatt ------------------------- */
+
+.tb-aufgaben {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px dotted var(--linie-stark);
+}
+
+.tb-aufgabenliste { margin-bottom: 7px; }
+
+.tb-aufgabenzeile {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 0;
+  font: 400 13.5px var(--sans);
+}
+
+.tb-a-titel {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tb-a-beschriftung {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.tb-a-meta {
+  overflow: hidden;
+  color: var(--braun-hell);
+  font-size: 11.5px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tb-neue-aufgabe { display: flex; gap: 6px; margin: 7px 0 4px; }
+
+.tb-neue-aufgabe input { flex: 1; }
+
+/* ==========================================================================
+   Magnolienbaum
+   ========================================================================== */
+
+.baum-abdruck {
+  font: 600 12.5px var(--mono);
+  line-height: 1.5;
+  letter-spacing: 0.04em;
+  color: var(--braun);
+  min-width: 0;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.baum-kennzeile {
+  display: grid;
+  grid-template-columns: minmax(122px, max-content) minmax(0, 1fr);
+  align-items: baseline;
+  column-gap: 14px;
+}
+
+.baum-kennzeile .ueber-wort {
+  width: auto;
+}
+
+.baum-kennzeile .baum-abdruck {
+  min-width: 0;
+}
+
+.baum-nachbarn,
+.baum-partner,
+.baum-eingang,
+.baum-internet {
+  margin: 10px 0;
+  border: 1px solid var(--linie-stark);
+  border-radius: 4px;
+  background-color: #fbf6e8;
+  padding: 6px 10px;
+}
+
+.baum-internet { padding: 10px 12px; }
+
+.baum-internet .form-zeile { margin: 8px 0; }
+
+.baum-zwischenkopf { margin: 16px 0 4px; color: var(--braun); }
+
+.baum-angebot { flex: 1 1 260px; font-weight: 600; }
+
+.baum-angebot small { display: block; color: var(--braun-hell); font-weight: 400; }
+
+.baum-freigabe {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex-wrap: wrap;
+}
+
+.baum-notiz-stand {
+  position: static;
+  flex: 1 1 100%;
+  min-width: 0;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  color: #3f6b3a;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.baum-zeile {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 5px 0;
+  border-bottom: 1px dotted var(--linie);
+  font: 400 13.5px var(--sans);
+}
+
+.baum-zeile .baum-abdruck { flex: 1 1 190px; }
+
+.baum-vertrauen { flex: 1 1 100%; }
+
+.baum-dubletten {
+  display: flex;
+  align-items: center;
+  flex: 1 1 100%;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 8px 0;
+}
+
+.baum-verbindung-gefahr {
+  flex: 1 1 100%;
+  margin-top: 18px;
+  border-top: 2px solid rgba(156, 83, 67, 0.55);
+  padding: 12px;
+  border-radius: 4px;
+  background: rgba(181, 68, 58, 0.08);
+}
+
+.baum-verbindung-gefahr > strong { color: var(--rot); }
+
+.baum-verbindung-gefahr p { margin: 5px 0 10px; }
+
+.baum-fernziel {
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) 92px auto;
+  gap: 7px;
+  flex: 1 1 100%;
+}
+
+@media (max-width: 620px) {
+  .baum-fernziel { grid-template-columns: 1fr 88px; }
+  .baum-fernziel button { grid-column: 1 / -1; }
+}
+
+.baum-zeile:last-child { border-bottom: 0; }
+
+.baum-zeile.wartet { background: rgba(216, 178, 92, 0.14); border-radius: 3px; }
+
+.baum-name { font-weight: 600; min-width: 120px; }
+
+.baum-adresse { color: var(--braun-hell); font-size: 12.5px; }
+
+.baum-zustand.gut { color: #3f6b3a; font-weight: 600; }
+
+.baum-code {
+  font: 700 15px var(--mono);
+  letter-spacing: 0.12em;
+  color: var(--rot);
+  background: rgba(181, 68, 58, 0.1);
+  padding: 1px 7px;
+  border-radius: 4px;
+}
+
+.telefon-karte {
+  border: 2px solid rgba(61, 111, 105, 0.48);
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 24px;
+  background: linear-gradient(145deg, rgba(225, 241, 234, 0.72), rgba(251, 246, 232, 0.7));
+}
+
+.telefon-karte h3 { color: #315f59; }
+.telefon-kde-karte {
+  border: 1px solid rgba(63, 72, 83, 0.38);
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 24px;
+  background: rgba(232, 236, 241, 0.46);
+}
+.telefon-kde-karte h3 { color: #394654; }
+.telefon-kdeconnect { display: grid; gap: 9px; }
+.telefon-kdeconnect > p { margin: 0; }
+.telefon-freigaben { display: grid; gap: 7px; margin: 12px 0; }
+.eingabe-dialog.sms-dialog {
+  width: min(620px, calc(100vw - 32px));
+  max-width: 620px;
+  height: min(760px, calc(100vh - 32px));
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 7px solid var(--leder);
+  border-radius: 13px;
+  padding: 0;
+  box-shadow: 0 22px 52px rgba(0,0,0,.58), inset 0 0 0 1px var(--gold-dunkel);
+}
+.eingabe-dialog.anruf-dialog {
+  width: min(520px, calc(100vw - 32px));
+  border: 6px solid #315f59;
+  border-radius: 13px;
+  padding: 22px;
+  background: linear-gradient(145deg, var(--papier), rgba(225, 241, 234, .92));
+  box-shadow: 0 22px 52px rgba(0,0,0,.5);
+}
+.anruf-dialog .anruf-auswahl { display: grid; gap: 9px; margin: 16px 0; }
+.anruf-dialog .anruf-auswahl button { width: 100%; text-align: left; }
+
+.anruf-aktiv-schleier { align-items: center; pointer-events: none; }
+.anruf-aktiv-dialog {
+  pointer-events: auto; width: min(430px, calc(100vw - 28px)); max-height: calc(100vh - 28px);
+  overflow: auto; border: 2px solid #a37b29; border-radius: 18px;
+  box-shadow: 0 20px 70px #1b100dcc; background: linear-gradient(145deg, #fffaf0, #eee0bf);
+}
+.anruf-aktiv-kopf { display: flex; align-items: center; gap: 15px; margin: 4px 0 10px; }
+.anruf-avatar { width: 62px; height: 62px; flex: 0 0 62px; display: grid; place-items: center;
+  border-radius: 50%; background: #5e2630; color: #f6d98a; font-size: 1.35rem; font-weight: 700; }
+.anruf-aktiv-kopf h2, .anruf-status { margin: 0; }
+.anruf-dauer { display: block; margin: 12px 0; text-align: center; font: 700 2rem/1.1 monospace; color: #4d2028; }
+.anruf-meta { display: grid; grid-template-columns: max-content 1fr; gap: 5px 12px; margin: 12px 0; }
+.anruf-meta dt { font-weight: 700; color: #654f31; }.anruf-meta dd { margin: 0; overflow-wrap: anywhere; }
+.anruf-aktiv-dialog textarea { box-sizing: border-box; width: 100%; min-height: 105px; margin-top: 5px; resize: vertical; }
+.anruf-auflegen { width: 100%; min-height: 58px; margin-top: 14px; border: 2px solid #d6ad52 !important;
+  border-radius: 14px !important; background: #7b2028 !important; color: #fff6dd !important; font-size: 1.15rem; font-weight: 700; }
+.anruf-auflegen:disabled { opacity: .42; cursor: not-allowed; filter: grayscale(1); }
+.anruf-minimieren { float: right; }.anruf-chip { position: fixed; z-index: 10020; right: 18px; bottom: 54px;
+  border: 2px solid #c69a3d !important; border-radius: 24px !important; background: #642730 !important; color: #fff5d9 !important; }
+@media (max-width: 520px) { .anruf-aktiv-dialog { width: calc(100vw - 16px); max-height: calc(100vh - 16px); padding: 16px; } }
+.sms-kopf {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  min-height: 66px;
+  padding: 13px 20px 11px;
+  border-bottom: 1px solid var(--linie-stark);
+  background: linear-gradient(100deg, rgba(216,178,92,.2), rgba(246,239,220,.88));
+}
+.sms-kopf .kontakt-foto, .sms-initialen {
+  width: 52px;
+  height: 52px;
+  flex: none;
+  border: 2px solid #fff8e5;
+  border-radius: 50%;
+  object-fit: cover;
+  box-shadow: 0 2px 7px rgba(71,37,27,.35);
+}
+.sms-initialen {
+  display: grid;
+  place-items: center;
+  color: #fff8e5;
+  background: linear-gradient(145deg, var(--leder), var(--gold-dunkel));
+  font: 700 18px var(--sans);
+  letter-spacing: .05em;
+}
+.sms-titel { min-width: 0; }
+.sms-titel { flex: 1 1 auto; }
+.sms-titel h3 { margin: 1px 0 0; overflow-wrap: anywhere; }
+.sms-schliessen { padding: 3px 7px; opacity: .72; }
+.sms-praegung {
+  appearance: none;
+  border: 0;
+  padding: 2px 0;
+  color: var(--gold-dunkel);
+  background: transparent;
+  font: 700 10px/1 var(--sans);
+  letter-spacing: .22em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.sms-praegung:hover, .sms-praegung:focus-visible { color: var(--leder); text-decoration: underline; }
+.sms-einstellungen-dialog { width: min(460px, calc(100vw - 32px)); }
+.sms-einstellungen-dialog > button { display: block; width: 100%; margin: 8px 0; text-align: left; }
+.sms-schreibblatt {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 8px 14px;
+  padding: 10px 18px;
+  background: var(--papier-tief);
+  border-bottom: 1px solid rgba(171,148,104,.55);
+}
+.sms-schreibblatt .formzeile {
+  grid-template-columns: auto minmax(0,1fr);
+  gap: 7px;
+  margin: 0;
+}
+.sms-schreibblatt select {
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  border-bottom: 1px solid var(--linie-stark);
+  border-radius: 0;
+  background-color: transparent;
+  color: var(--tinte);
+  font: 14px var(--serif);
+}
+.sms-verlauf {
+  flex: 1 1 auto;
+  min-height: 180px;
+  overflow-y: auto;
+  padding: 14px 18px;
+  background: linear-gradient(rgba(251,246,232,.94), rgba(246,239,220,.94));
+  scrollbar-color: var(--gold-dunkel) transparent;
+}
+.sms-tag {
+  width: max-content;
+  max-width: 80%;
+  margin: 8px auto 12px;
+  border: 1px solid rgba(139,106,53,.3);
+  border-radius: 12px;
+  padding: 3px 10px;
+  color: #655441;
+  background: rgba(255,250,236,.9);
+  font: 11px var(--sans);
+}
+.sms-nachricht { display: flex; margin: 5px 0; }
+.sms-nachricht.ausgang { justify-content: flex-end; }
+.sms-blase {
+  max-width: 78%;
+  border: 1px solid rgba(91,65,44,.18);
+  border-radius: 14px 14px 14px 4px;
+  padding: 8px 10px 5px;
+  background: #fffaf0;
+  box-shadow: 0 2px 5px rgba(71,37,27,.1);
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+.sms-nachricht.ausgang .sms-blase {
+  border-radius: 14px 14px 4px 14px;
+  background: linear-gradient(145deg, #ead49d, #f3e5bd);
+}
+.sms-meta { margin-top: 3px; color: #6b6154; font: 10px var(--sans); text-align: right; }
+.sms-status.failed { color: var(--rot); font-weight: 700; }
+.sms-komponist {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 8px;
+}
+.sms-komponist-text { min-width: 0; }
+.sms-segmentzaehler { margin: 3px 4px 0; color: #6b6154; font: 11px var(--sans); }
+.sms-segmentzaehler.fehler { color: var(--rot); font-weight: 700; }
+.sms-anpassung { margin-top: 7px; padding: 8px; border: 1px solid rgba(171,148,104,.7); border-radius: 8px; background: #fff8e5; }
+.sms-anpassung-text { max-height: 100px; margin: 5px 0; overflow: auto; white-space: pre-wrap; font: 13px/1.35 var(--sans); }
+.sms-anpassung .dialog-knoepfe { display: flex; padding: 5px 0 0; border: 0; background: transparent; }
+.sms-dialog textarea.sms-eingabe {
+  min-height: 40px;
+  max-height: 126px;
+  width: 100%;
+  box-sizing: border-box;
+  margin: 0;
+  border: 1px solid rgba(91,65,44,.35);
+  border-radius: 10px;
+  padding: 8px 10px;
+  background: #fffdf7;
+  color: var(--tinte);
+  font: 15px/1.35 var(--sans);
+  resize: none;
+}
+.sms-dialog textarea:focus { outline: 2px solid rgba(216,178,92,.65); }
+.sms-dialog .einst-hinweis,
+.sms-dialog .einst-warnung { margin-left: 14px; }
+.sms-dialog .dialog-knoepfe {
+  margin: 0;
+  padding: 13px 20px 15px;
+  border-top: 1px solid rgba(171,148,104,.55);
+  background: linear-gradient(to bottom, var(--papier), var(--papier-tief));
+}
+.sms-detail-dialog { width: min(520px, calc(100vw - 32px)); }
+.sms-detail-text { white-space: pre-wrap; overflow-wrap: anywhere; margin: 12px 0 18px; }
+.sms-detail-liste { display: grid; grid-template-columns: max-content 1fr; gap: 6px 14px; }
+.sms-detail-liste dt { font-weight: 700; }
+.sms-detail-liste dd { margin: 0; overflow-wrap: anywhere; }
+.kommunikation-radios { display: grid; gap: 8px; margin: 12px 0 18px; }
+.kommunikation-radio { display: flex; align-items: center; gap: 8px; }
+.kommunikation-auswahl-dialog .anruf-auswahl { display: grid; gap: 9px; margin: 16px 0; }
+@media (max-width: 620px) {
+  .eingabe-dialog.sms-dialog { width: calc(100vw - 16px); height: calc(100vh - 16px); margin: 8px; border-width: 5px; }
+  .sms-kopf { padding-inline: 14px; }
+  .sms-schreibblatt { grid-template-columns: 1fr; padding-inline: 12px; }
+  .sms-schreibblatt .formzeile { grid-template-columns: 1fr; gap: 2px; }
+  .sms-verlauf { padding-inline: 10px; }
+  .sms-blase { max-width: 88%; }
+  .sms-komponist { grid-template-columns: minmax(0, 1fr) auto; padding: 9px; }
+}
+.telefon-hauptschalter { font-size: 16px; font-weight: 700; margin: 8px 0; }
+.telefon-liste { margin-top: 12px; }
+.telefon-bluetooth-daten {
+  flex: 1 0 100%; display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  padding-top: 6px;
+}
+.telefon-bluetooth-daten input[type="text"] { width: 190px; }
+.telefon-bluetooth-daten .einst-hinweis { margin: 0; }
+
+.telefon-pairing-dialog {
+  position: fixed;
+  z-index: 10020;
+  right: 24px;
+  bottom: 24px;
+  width: min(420px, calc(100vw - 32px));
+  border: 2px solid #315f59;
+  border-radius: 10px;
+  padding: 18px;
+  box-shadow: 0 12px 36px rgba(36, 29, 23, 0.38);
+  background: #fbf6e8;
+}
+
+.telefon-pairing-code {
+  margin: 16px 0;
+  text-align: center;
+  font: 800 34px var(--mono);
+  letter-spacing: 0.16em;
+  color: #315f59;
+}
+
+@media (max-width: 620px) {
+  .telefon-pairing-dialog { right: 16px; bottom: 16px; }
+  .telefon-pairing-code { font-size: 28px; }
+}
+.tb-monats-wochentag {
+  display: flex;
+  gap: .45rem;
+}
+
+.tb-monats-wochentag select {
+  min-width: 0;
+  flex: 1;
+}
+
+.tb-eigene-daten-steuerung,
+.aufgabe-zeitfenster {
+  display: flex;
+  align-items: center;
+  gap: .45rem;
+}
+
+.tb-eigene-daten-steuerung input,
+.aufgabe-zeitfenster input { min-width: 0; }
+.tb-eigene-daten-steuerung input { flex: 1 1 auto; width: auto; }
+.tb-eigene-daten-steuerung .knopf { flex: 0 0 auto; white-space: nowrap; }
+.aufgabe-zeitfenster input { flex: 1; }
+.tb-eigene-daten-liste {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .3rem;
+  margin-top: .4rem;
+}
+.tb-eigenes-datum {
+  display: inline-flex;
+  align-items: center;
+  gap: .2rem;
+  border: 1px solid rgba(120,90,55,.35);
+  border-radius: 999px;
+  padding: .1rem .2rem .1rem .45rem;
+  background: rgba(255,255,255,.4);
+}
+.tb-eigenes-datum.fest { padding-right: .45rem; font-weight: 700; }

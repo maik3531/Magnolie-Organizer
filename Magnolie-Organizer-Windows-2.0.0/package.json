@@ -1,0 +1,10 @@
+{
+  "name": "magnolie-organizer-windows-tests",
+  "private": true,
+  "scripts": {
+    "test": "bun tests/run.js"
+  },
+  "devDependencies": {
+    "jsdom": "^26.1.0"
+  }
+}

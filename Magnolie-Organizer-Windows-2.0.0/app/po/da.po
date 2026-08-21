@@ -1,0 +1,6111 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the Magnolie Organizer package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: Magnolie Organizer 2.0.0\n"
+"Report-Msgid-Bugs-To: maik3531@gmail.com\n"
+"POT-Creation-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"PO-Revision-Date: 2026-08-08 09:24+0200\n"
+"Last-Translator: Magnolie localization project\n"
+"Language-Team: Danish\n"
+"Language: da\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"Generated-By: Babel 2.18.0\n"
+
+msgid " (filtered)"
+msgstr " (filtreret)"
+
+msgid " (public holiday)"
+msgstr " (helligdag)"
+
+msgid " (school holidays)"
+msgstr " (skoleferie)"
+
+msgid " at %(time)s"
+msgstr " kl. %(time)s"
+
+msgid " for %(years)s"
+msgstr " i %(years)s"
+
+msgid " from %(branch)s"
+msgstr " fra %(branch)s"
+
+msgid " – notification at the appointment time."
+msgstr " – besked på aftaletidspunktet."
+
+msgid ""
+"%(appointment)s\n"
+"Click to edit"
+msgstr ""
+"%(appointment)s\n"
+"Klik for at redigere"
+
+msgid ""
+"%(cards)s merged. Copies are stored under “Duplicates” in the recycle bin."
+msgstr "%(cards)s flettet. Kopierne ligger under “Dubletter” i papirkurven."
+
+msgid "%(count)s anniversary"
+msgid_plural "%(count)s anniversaries"
+msgstr[0] "%(count)s mærkedag"
+msgstr[1] "%(count)s mærkedage"
+
+msgid "%(count)s anniversary entered"
+msgid_plural "%(count)s anniversaries entered"
+msgstr[0] "%(count)s mærkedag indtastet"
+msgstr[1] "%(count)s mærkedage indtastet"
+
+msgid "%(count)s appointment"
+msgid_plural "%(count)s appointments"
+msgstr[0] "%(count)s aftale"
+msgstr[1] "%(count)s aftaler"
+
+msgid "%(count)s attachment"
+msgid_plural "%(count)s attachments"
+msgstr[0] "%(count)s vedhæftet fil"
+msgstr[1] "%(count)s vedhæftede filer"
+
+msgid "%(count)s birthday"
+msgid_plural "%(count)s birthdays"
+msgstr[0] "%(count)s fødselsdag"
+msgstr[1] "%(count)s fødselsdage"
+
+msgid "%(count)s contact"
+msgid_plural "%(count)s contacts"
+msgstr[0] "%(count)s kontakt"
+msgstr[1] "%(count)s kontakter"
+
+msgid "%(count)s contact card"
+msgid_plural "%(count)s contact cards"
+msgstr[0] "%(count)s kontaktkort"
+msgstr[1] "%(count)s kontaktkort"
+
+msgid "%(count)s contact photo added"
+msgid_plural "%(count)s contact photos added"
+msgstr[0] "%(count)s kontaktfoto tilføjet"
+msgstr[1] "%(count)s kontaktfotos tilføjet"
+
+msgid "%(count)s day"
+msgid_plural "%(count)s days"
+msgstr[0] "%(count)s dag"
+msgstr[1] "%(count)s dage"
+
+msgid "%(count)s day before"
+msgid_plural "%(count)s days before"
+msgstr[0] "%(count)s dag før"
+msgstr[1] "%(count)s dage før"
+
+msgid "%(count)s email address added"
+msgid_plural "%(count)s email addresses added"
+msgstr[0] "%(count)s e-mailadresse tilføjet"
+msgstr[1] "%(count)s e-mailadresser tilføjet"
+
+msgid "%(count)s entry deleted."
+msgid_plural "%(count)s entries deleted."
+msgstr[0] "%(count)s post slettet."
+msgstr[1] "%(count)s poster slettet."
+
+msgid "%(count)s existing entry skipped."
+msgid_plural "%(count)s existing entries skipped."
+msgstr[0] "%(count)s eksisterende post sprunget over."
+msgstr[1] "%(count)s eksisterende poster sprunget over."
+
+msgid "%(count)s found"
+msgid_plural "%(count)s found"
+msgstr[0] "%(count)s fundet"
+msgstr[1] "%(count)s fundet"
+
+msgid "%(count)s group"
+msgid_plural "%(count)s groups"
+msgstr[0] "%(count)s gruppe"
+msgstr[1] "%(count)s grupper"
+
+msgid "%(count)s holiday period"
+msgid_plural "%(count)s holiday periods"
+msgstr[0] "%(count)s ferieperiode"
+msgstr[1] "%(count)s ferieperioder"
+
+msgid "%(count)s incoming offer"
+msgid_plural "%(count)s incoming offers"
+msgstr[0] "%(count)s indgående tilbud"
+msgstr[1] "%(count)s indgående tilbud"
+
+msgid "%(count)s match"
+msgid_plural "%(count)s matches"
+msgstr[0] "%(count)s træffer"
+msgstr[1] "%(count)s træffere"
+
+msgid "%(count)s minute"
+msgid_plural "%(count)s minutes"
+msgstr[0] "%(count)s minut"
+msgstr[1] "%(count)s minutter"
+
+msgid "%(count)s more"
+msgid_plural "%(count)s more"
+msgstr[0] "%(count)s mere"
+msgstr[1] "%(count)s mere"
+
+msgid "%(count)s more entry"
+msgid_plural "%(count)s more entries"
+msgstr[0] "%(count)s post mere"
+msgstr[1] "%(count)s poster mere"
+
+msgid "%(count)s new Magnolienbaum request awaits your decision."
+msgid_plural "%(count)s new Magnolienbaum requests await your decision."
+msgstr[0] "%(count)s ny Magnolienbaum-anmodning afventer din beslutning."
+msgstr[1] "%(count)s nye Magnolienbaum-anmodninger afventer din beslutning."
+
+msgid "%(count)s non-JPEG contact photo was omitted."
+msgid_plural "%(count)s non-JPEG contact photos were omitted."
+msgstr[0] "%(count)s kontaktbillede, der ikke er JPEG, blev udeladt."
+msgstr[1] "%(count)s kontaktbilleder, der ikke er JPEG, blev udeladt."
+
+msgid "%(count)s note"
+msgid_plural "%(count)s notes"
+msgstr[0] "%(count)s note"
+msgstr[1] "%(count)s noter"
+
+msgid "%(count)s notebook"
+msgid_plural "%(count)s notebooks"
+msgstr[0] "%(count)s notesbog"
+msgstr[1] "%(count)s notesbøger"
+
+msgid "%(count)s open"
+msgstr "%(count)s åbne"
+
+msgid "%(count)s page"
+msgid_plural "%(count)s pages"
+msgstr[0] "%(count)s side"
+msgstr[1] "%(count)s sider"
+
+msgid "%(count)s public holiday"
+msgid_plural "%(count)s public holidays"
+msgstr[0] "%(count)s helligdag"
+msgstr[1] "%(count)s helligdage"
+
+msgid "%(count)s recurring appointment imported only once."
+msgid_plural "%(count)s recurring appointments imported only once."
+msgstr[0] "%(count)s tilbagevendende aftale kun importeret én gang."
+msgstr[1] "%(count)s tilbagevendende aftaler kun importeret én gang."
+
+msgid "%(count)s second"
+msgid_plural "%(count)s seconds"
+msgstr[0] "%(count)s sekund"
+msgstr[1] "%(count)s sekunder"
+
+msgid "%(count)s task"
+msgid_plural "%(count)s tasks"
+msgstr[0] "%(count)s opgave"
+msgstr[1] "%(count)s opgaver"
+
+msgid "%(count)s unreadable row omitted."
+msgid_plural "%(count)s unreadable rows omitted."
+msgstr[0] "%(count)s ulæselig række udeladt."
+msgstr[1] "%(count)s ulæselige rækker udeladt."
+
+msgid "%(count)s unusable contact was omitted."
+msgid_plural "%(count)s unusable contacts were omitted."
+msgstr[0] "%(count)s ubrugelig kontakt blev udeladt."
+msgstr[1] "%(count)s ubrugelige kontakter blev udeladt."
+
+msgid "%(date)s, %(time)s"
+msgstr "%(date)s, %(time)s"
+
+msgid "%(date)s, all day"
+msgstr "%(date)s, hele dagen"
+
+msgid "%(first)s and %(second)s"
+msgstr "%(first)s og %(second)s"
+
+msgid "%(first)s to %(last)s"
+msgstr "%(first)s til %(last)s"
+
+msgid "%(format)s (Ctrl+%(key)s)"
+msgstr "%(format)s (Ctrl+%(key)s)"
+
+msgid "%(from)s to %(to)s"
+msgstr "%(from)s til %(to)s"
+
+msgid "%(name)s found – currently reachable"
+msgstr "%(name)s found – currently reachable"
+
+msgid "%(name)s last found – reconnecting"
+msgstr "%(name)s last found – reconnecting"
+
+msgid "%(ordinal)s death anniversary"
+msgstr "%(ordinal)s dødsdag"
+
+msgid "%(ordinal)s wedding anniversary"
+msgstr "%(ordinal)s bryllupsdag"
+
+msgid "%(parts)s SMS parts · %(units)s character units"
+msgstr "%(parts)s SMS-dele · %(units)s tegnenheder"
+
+msgid "%(shown)s of %(count)s matches; refine your search."
+msgstr "%(shown)s af %(count)s træffere; afgræns søgningen."
+
+msgid "%(start)s to %(end)s"
+msgstr "%(start)s til %(end)s"
+
+msgid "%(title)s – %(when)s"
+msgstr "%(title)s – %(when)s"
+
+msgid "(unnamed)"
+msgstr "(uden navn)"
+
+msgid "+ Address"
+msgstr "+ Adresse"
+
+msgid "+ Email address"
+msgstr "+ E-mailadresse"
+
+msgid "+ Emergency contact"
+msgstr "+ Nødkontakt"
+
+msgid "+ Event"
+msgstr "+ Begivenhed"
+
+msgid "+ More appointments"
+msgstr "+ Flere aftaler"
+
+msgid "+ More tasks"
+msgstr "+ Flere opgaver"
+
+msgid "+ Phone number"
+msgstr "+ Telefonnummer"
+
+msgid "+ Social medium"
+msgstr "+ Socialt medie"
+
+msgid "+49 … or 0…"
+msgstr "+49 … eller 0…"
+
+msgid "1 - high"
+msgstr "1 – høj"
+
+msgid "1 day before"
+msgstr "1 dag før"
+
+msgid "1 hour before"
+msgstr "1 time før"
+
+msgid "1 minute"
+msgstr "1 minut"
+
+msgid "10 minutes before"
+msgstr "10 minutter før"
+
+msgid "15 minutes before"
+msgstr "15 minutter før"
+
+msgid "15 seconds"
+msgstr "15 sekunder"
+
+msgid "2 - medium"
+msgstr "2 – middel"
+
+msgid "2 days before"
+msgstr "2 dage før"
+
+msgid "2 hours before"
+msgstr "2 timer før"
+
+msgid "2 minutes"
+msgstr "2 minutter"
+
+msgid "3 - low"
+msgstr "3 – lav"
+
+msgid "3 days before"
+msgstr "3 dage før"
+
+msgid "30 days"
+msgstr "30 dage"
+
+msgid "30 minutes before"
+msgstr "30 minutter før"
+
+msgid "30 seconds"
+msgstr "30 sekunder"
+
+msgid "4 days before"
+msgstr "4 dage før"
+
+msgid "5 days before"
+msgstr "5 dage før"
+
+msgid "5 minutes before"
+msgstr "5 minutter før"
+
+msgid "6 days before"
+msgstr "6 dage før"
+
+msgid "7 days before"
+msgstr "7 dage før"
+
+msgid "90 days"
+msgstr "90 dage"
+
+msgid "A component required by the Magnolienbaum is missing."
+msgstr "En komponent, som Magnolienbaum kræver, mangler."
+
+msgid ""
+"A fallback for branch baum-1: when the direct connection cannot be reached, "
+"messages travel through a WebDAV folder on your Nextcloud server."
+msgstr ""
+"En reservevej for grenen baum-1: Hvis den direkte forbindelse ikke kan nås, "
+"går beskeder gennem en WebDAV-mappe på din Nextcloud-server."
+
+msgid "A group with this name already exists."
+msgstr "Der findes allerede en gruppe med dette navn."
+
+msgid "A maximum of 10 SMS parts is allowed."
+msgstr "Der er højst tilladt 10 SMS-dele."
+
+msgid "A notebook with this name already exists in this group."
+msgstr "Der findes allerede en notesbog med dette navn i denne gruppe."
+
+msgid ""
+"A numeric code can be entered conveniently using the keypad when opening; "
+"letters work as well. After three failed attempts, the organizer waits five "
+"minutes."
+msgstr ""
+"En numerisk kode kan nemt indtastes med det numeriske tastatur ved åbning; "
+"bogstaver virker også. Efter tre mislykkede forsøg venter Organizer fem "
+"minutter."
+
+msgid ""
+"A pairing file works like a one-time key. Give it only to the person whose "
+"Organizer you want to connect; it expires after 15 minutes."
+msgstr ""
+"En parringsfil fungerer som en engangsnøgle. Giv den kun til den person, "
+"hvis Organizer du vil forbinde med; den udløber efter 15 minutter."
+
+msgid ""
+"A password initially locks out the background reminder service. Without the "
+"explicit permission below, notifications work only while the organizer is "
+"open and unlocked."
+msgstr ""
+"En adgangskode spærrer i første omgang for påmindelsestjenesten i "
+"baggrunden. Uden den udtrykkelige tilladelse nedenfor virker meddelelser "
+"kun, mens Organizer er åben og låst op."
+
+msgid "A personal synchronization attachment hash is invalid or duplicated."
+msgstr ""
+"En personlig synkroniseringsvedhæftet hash er ugyldig eller duplikeret."
+
+msgid "A personal synchronization attachment source is not an object."
+msgstr "En personlig synkroniseringsvedhæftningskilde er ikke et objekt."
+
+msgid "A personal synchronization batch is not an object."
+msgstr "En personlig synkroniseringsbatch er ikke et objekt."
+
+msgid ""
+"A separate encrypted connection for dial requests, device status and "
+"selected notifications."
+msgstr ""
+"En separat krypteret forbindelse til opkaldsanmodninger, enhedsstatus og "
+"udvalgte meddelelser."
+
+msgid "API level"
+msgstr "API level"
+
+msgid "Aargau"
+msgstr "Aargau"
+
+msgid "About"
+msgstr "Om"
+
+msgid "About the Magnolie Organizer"
+msgstr "Om Magnolie Organizer"
+
+msgid "Accept"
+msgstr "Accepter"
+
+msgid "Accept and remember"
+msgstr "Accepter og husk"
+
+msgid "Accept “%(entry)s” into your own collection?"
+msgstr "Accepter “%(entry)s” i din egen samling?"
+
+msgid ""
+"Accept “%(entry)s” into your own collection?\n"
+"\n"
+"This consent applies only to this note. Future changes and attachments will "
+"then be applied automatically in both directions."
+msgstr ""
+"Accepter “%(entry)s” i din egen samling?\n"
+"\n"
+"Dette samtykke gælder kun denne note. Fremtidige ændringer og vedhæftede "
+"filer anvendes derefter automatisk i begge retninger."
+
+msgid "Accessibility"
+msgstr "Tilgængelighed"
+
+msgid "Accessibility helper frame"
+msgstr "Hjælperamme til tilgængelighed"
+
+msgid "Accessibility helper frame disabled"
+msgstr "Hjælperamme til tilgængelighed deaktiveret"
+
+msgid "Accessibility helper frame enabled"
+msgstr "Hjælperamme til tilgængelighed aktiveret"
+
+msgid ""
+"Accessibility: The helper frame shows the current keyboard focus. It is "
+"disabled by default; press Ctrl+Alt+H at any time to switch it on or off."
+msgstr ""
+"Tilgængelighed: Hjælperammen viser det aktuelle tastaturfokus. Den er "
+"deaktiveret som standard; tryk når som helst Ctrl+Alt+H for at slå den til "
+"eller fra."
+
+msgid "According to language"
+msgstr "Efter sprog"
+
+msgid "Active call"
+msgstr "Active call"
+
+msgid "Add"
+msgstr "Tilføj"
+
+msgid "Add appointment"
+msgstr "Tilføj aftale"
+
+msgid "Add attachment URI"
+msgstr "Tilføj URI til vedhæftet fil"
+
+msgid "Add attendee"
+msgstr "Tilføj deltager"
+
+msgid "Add cycle marker"
+msgstr "Tilføj cyklusmarkør"
+
+msgid "Add person"
+msgstr "Tilføj person"
+
+msgid "Add reminder"
+msgstr "Tilføj påmindelse"
+
+msgid "Add scheme row"
+msgstr "Tilføj skemarække"
+
+msgid "Add shift"
+msgstr "Tilføj vagt"
+
+msgid "Add to dictionary"
+msgstr "Tilføj til ordbog"
+
+msgid "Add vacation period"
+msgstr "Tilføj ferieperiode"
+
+msgid "Add waste collection"
+msgstr "Tilføj affaldsafhentning"
+
+msgid "Address"
+msgstr "Adresse"
+
+msgid "Address book"
+msgstr "Adressebog"
+
+msgid "Address imported from LibreOffice."
+msgstr "Adresse importeret fra LibreOffice."
+
+msgid ""
+"Addressed to %(branch)s; it will be delivered when the branch is available."
+msgstr ""
+"Adresseret til %(branch)s; den bliver leveret, når grenen er tilgængelig."
+
+msgid "Addresses"
+msgstr "Adresser"
+
+msgid "After exercise"
+msgstr "Efter motion"
+
+msgid "After meal"
+msgstr "Efter måltid"
+
+msgid "All"
+msgstr "Alle"
+
+msgid "All cantons"
+msgstr "Alle kantoner"
+
+msgid "All entries"
+msgstr "Alle poster"
+
+msgid "All files"
+msgstr "Alle filer"
+
+msgid "All people"
+msgstr "Alle personer"
+
+msgid "All six charts"
+msgstr "Alle seks diagrammer"
+
+msgid "All states"
+msgstr "Alle delstater"
+
+msgid "Allow notifications despite password protection"
+msgstr "Tillad meddelelser trods adgangskodebeskyttelse"
+
+msgid "Also disclose appointments marked as confidential"
+msgstr "Vis også aftaler markeret som fortrolige"
+
+msgid "Also hide past anniversaries"
+msgstr "Skjul også tidligere mærkedage"
+
+msgid "Also hide past school holidays"
+msgstr "Skjul også tidligere skoleferier"
+
+msgid "Also remind me about anniversaries"
+msgstr "Påmind mig også om mærkedage"
+
+msgid "Also remind me about missed appointments"
+msgstr "Påmind mig også om oversete aftaler"
+
+msgid "Also use the default notification"
+msgstr "Brug også standardmeddelelsen"
+
+msgid "Amount / unit"
+msgstr "Mængde / enhed"
+
+msgid ""
+"An appointment calendar, address book, task book and notepad in the guise of "
+"a leather-bound organizer —"
+msgstr ""
+"En aftalekalender, adressebog, opgavebog og notesblok forklædt som en "
+"læderindbundet organizer —"
+
+msgid "Android version"
+msgstr "Android-version"
+
+msgid "Anniversaries"
+msgstr "Mærkedage"
+
+msgid "Anniversaries (.ics)"
+msgstr "Mærkedage (.ics)"
+
+msgid "Anniversary"
+msgstr "Mærkedag"
+
+msgid "Another phone is already paired. Remove it first."
+msgstr "En anden telefon er allerede parret. Fjern det først."
+
+msgid "Answer"
+msgstr "Besvar"
+
+msgid "Answer calls on the computer and talk"
+msgstr "Besvar opkald på computeren og tal"
+
+msgid "App password"
+msgstr "App-adgangskode"
+
+msgid "Appearance"
+msgstr "Udseende"
+
+msgid "Appearance and sound follow your system notification settings."
+msgstr "Udseende og lyd følger systemets indstillinger for meddelelser."
+
+msgid "Appenzell Ausserrhoden"
+msgstr "Appenzell Ausserrhoden"
+
+msgid "Appenzell Innerrhoden"
+msgstr "Appenzell Innerrhoden"
+
+msgid "Application command"
+msgstr "Programkommando"
+
+msgid ""
+"Applies only to content you enter yourself: appointments, tasks, contacts, "
+"notes and anniversaries. Headings, calendar pages and organizer labels "
+"remain unchanged."
+msgstr ""
+"Gælder kun indhold, du selv indtaster: aftaler, opgaver, kontakter, noter og "
+"mærkedage. Overskrifter, kalendersider og Organizer-etiketter ændres ikke."
+
+msgid ""
+"Applies when scrolling over a time field. Hold Shift to change the time in "
+"whole hours."
+msgstr ""
+"Gælder, når der rulles over et tidsfelt. Hold Shift nede for at ændre tiden "
+"i hele timer."
+
+msgid "Apply"
+msgstr "Anvend"
+
+msgid "Appointment"
+msgstr "Aftale"
+
+msgid "Appointment is due"
+msgstr "Aftalen er forfalden"
+
+msgid "Appointment overview"
+msgstr "Aftaleoversigt"
+
+msgid "Appointment reminder"
+msgstr "Aftalepåmindelse"
+
+msgid "Appointment reminders"
+msgstr "Aftalepåmindelser"
+
+msgid "Appointments"
+msgstr "Aftaler"
+
+msgid "Appointments (.ics)"
+msgstr "Aftaler (.ics)"
+
+msgid "Appointments as Lotus CSV"
+msgstr "Aftaler som Lotus CSV"
+
+msgid "Appointments for this person"
+msgstr "Aftaler for denne person"
+
+msgid "Appointments · %(period)s"
+msgstr "Aftaler · %(period)s"
+
+msgid "Archive password"
+msgstr "Arkiv adgangskode"
+
+msgid "As usual (print)"
+msgstr "Som normalt (udskrivning)"
+
+msgid "Assign SMS action"
+msgstr "Tildel SMS handling"
+
+msgid "Assign call action"
+msgstr "Tildel opkaldshandling"
+
+msgid "Assign shift"
+msgstr "Tildel vagt"
+
+msgid "At bedtime"
+msgstr "Ved sengetid"
+
+msgid "At least one health view must remain enabled."
+msgstr "Mindst én sundhedsvisning skal forblive aktiveret."
+
+msgid "At most 5,000 contacts can be exported at once."
+msgstr "Der kan højst eksporteres 5.000 kontakter ad gangen."
+
+msgid "At most 5,000 health records can be exported at once."
+msgstr "Der kan højst eksporteres 5.000 sundhedsoptegnelser ad gangen."
+
+msgid "Attachments"
+msgstr "Aftaler"
+
+msgid "Attendees"
+msgstr "Deltagere"
+
+msgid "Austria"
+msgstr "Østrig"
+
+msgid "Author"
+msgstr "Forfatter"
+
+msgid "Authority appointment"
+msgstr "Myndighedsaftale"
+
+msgid "Automatically choose a suitable application"
+msgstr "Vælg automatisk et egnet program"
+
+msgid "Automatically synchronize over Wi-Fi"
+msgstr "Synkroniser automatisk via Wi-Fi"
+
+msgid "B"
+msgstr "F"
+
+msgid "BMI"
+msgstr "BMI"
+
+msgid ""
+"BMI\n"
+"kg/m²"
+msgstr ""
+"BMI\n"
+"kg/m²"
+
+msgid "BMI from the latest stored height and weight"
+msgstr "BMI ud fra den senest gemte højde og vægt"
+
+msgid "BZ"
+msgstr "BZ"
+
+msgid "Backup failed."
+msgstr "Sikkerhedskopiering mislykkedes."
+
+msgid "Backup folder"
+msgstr "Mappe til sikkerhedskopier"
+
+msgid "Backup folder updated."
+msgstr "Mappen til sikkerhedskopier er opdateret."
+
+msgid "Backup password"
+msgstr "Adgangskode til sikkerhedskopi"
+
+msgid "Backup restored. The previous data was backed up automatically."
+msgstr ""
+"Sikkerhedskopien er gendannet. De tidligere data blev automatisk "
+"sikkerhedskopieret."
+
+msgid "Backup saved to: %(path)s"
+msgstr "Sikkerhedskopi gemt i: %(path)s"
+
+msgid "Backups"
+msgstr "Sikkerhedskopier"
+
+msgid ""
+"Backups outside the data location require a password with at least four "
+"characters."
+msgstr ""
+"Sikkerhedskopier uden for dataplaceringen kræver en adgangskode på mindst "
+"fire tegn."
+
+msgid "Baden-Württemberg"
+msgstr "Baden-Württemberg"
+
+msgid "Baptism"
+msgstr "Dåb"
+
+msgid "Basal units"
+msgstr "Basalenheder"
+
+msgid "Basel-Landschaft"
+msgstr "Basel-Landschaft"
+
+msgid "Basel-Stadt"
+msgstr "Basel-Stadt"
+
+msgid "Basic operation and appearance of the organizer."
+msgstr "Grundlæggende betjening og udseende af Organizer."
+
+msgid "Battery"
+msgstr "Batteri"
+
+msgid "Battery snapshot"
+msgstr "Battery snapshot"
+
+msgid "Bavaria"
+msgstr "Bayern"
+
+msgid "Before contact deletion"
+msgstr "Før sletning af kontakter"
+
+msgid "Before contact import"
+msgstr "Før import af kontakter"
+
+msgid "Before contact merge"
+msgstr "Før fletning af kontakter"
+
+msgid "Before exercise"
+msgstr "Før motion"
+
+msgid "Before meal"
+msgstr "Før måltid"
+
+msgid "Before restore"
+msgstr "Før gendannelse"
+
+msgid "Before synchronization"
+msgstr "Før synkronisering"
+
+msgid "Belgium"
+msgstr "Belgien"
+
+msgid "Berlin"
+msgstr "Berlin"
+
+msgid "Bern"
+msgstr "Bern"
+
+msgid "Birthday"
+msgstr "Fødselsdag"
+
+msgid "Birthday party"
+msgstr "Fødselsdagsfest"
+
+msgid "Black"
+msgstr "Sort"
+
+msgid "Blank health form"
+msgstr "Tom sundhedsformular"
+
+msgid "Blank template for handwriting"
+msgstr "Tom skabelon til håndskrift"
+
+msgid "Bleeding · heavy"
+msgstr "Blødning · kraftig"
+
+msgid "Bleeding · light"
+msgstr "Blødning · let"
+
+msgid "Bleeding · medium"
+msgstr "Blødning · middel"
+
+msgid "Blood glucose"
+msgstr "Blodsukker"
+
+msgid "Blood glucose scheme"
+msgstr "Blodsukkerskema"
+
+msgid "Blood glucose table"
+msgstr "Blodsukkertabel"
+
+msgid "Blood glucose value"
+msgstr "Blodsukkerværdi"
+
+msgid "Blood pressure"
+msgstr "Blodtryk"
+
+msgid ""
+"Blood pressure\n"
+"mm/Hg"
+msgstr ""
+"Blodtryk\n"
+"mm/Hg"
+
+msgid "Blue (fountain pen)"
+msgstr "Blå (fyldepen)"
+
+msgid "Bluetooth data fallback"
+msgstr "Bluetooth-data som reserve"
+
+msgid "Bold"
+msgstr "Fed"
+
+msgid ""
+"Both branches display the same six-digit code when connecting. Confirm it "
+"only if it matches, preventing anyone from intercepting the connection."
+msgstr ""
+"Begge grene viser den samme sekscifrede kode, når de forbindes. Bekræft den "
+"kun, hvis den er identisk; det forhindrer andre i at opsnappe forbindelsen."
+
+msgid "Brandenburg"
+msgstr "Brandenburg"
+
+msgid "Bremen"
+msgstr "Bremen"
+
+msgid "Burgenland"
+msgstr "Burgenland"
+
+msgid "By first name (Hans Müller)"
+msgstr "Efter fornavn (Hans Müller)"
+
+msgid "By last name (Müller, Hans)"
+msgstr "Efter efternavn (Müller, Hans)"
+
+msgid "CSV files (*.csv)"
+msgstr "CSV-filer (*.csv)"
+
+msgid "CW"
+msgstr "U"
+
+msgid "Calculate the route to this address"
+msgstr "Beregn ruten til denne adresse"
+
+msgid "Calendar"
+msgstr "Kalender"
+
+msgid "Calendar (*.ics)"
+msgstr "Kalender (*.ics)"
+
+msgid ""
+"Calendar and contact applications commonly export appointments as .ics files "
+"and contacts as .vcf files."
+msgstr ""
+"Kalender- og kontaktapplikationer eksporterer ofte aftaler som .ics-filer og "
+"kontakter som .vcf-filer."
+
+msgid "Calendar file (.ics/.vcs/.lcs) …"
+msgstr "Kalenderfil (.ics/.vcs/.lcs) …"
+
+msgid "Calendar layout"
+msgstr "Kalenderlayout"
+
+msgid "Calendar week %(number)s"
+msgstr "Kalenderuge %(number)s"
+
+msgid "Calendars (multiple selections allowed)"
+msgstr "Kalendere (flere valg er tilladt)"
+
+msgid "Calendars and contacts"
+msgstr "Calendars and contacts"
+
+msgid "Call"
+msgstr "Ring op"
+
+msgid "Call assignment"
+msgstr "Opkaldsopgave"
+
+msgid "Call ended"
+msgstr "Call ended"
+
+msgid "Call notes"
+msgstr "Call notes"
+
+msgid "Call reference"
+msgstr "Call reference"
+
+msgid "Call started"
+msgstr "Call started"
+
+msgid "Call this contact using Magnolie Notes or the assigned application"
+msgstr ""
+"Ring til denne kontakt ved hjælp af Magnolie Notes eller den tildelte "
+"applikation"
+
+msgid "Call with %(name)s · %(date)s"
+msgstr "Call with %(name)s · %(date)s"
+
+msgid "Cancel"
+msgstr "Annuller"
+
+msgid "Canton"
+msgstr "Kanton"
+
+msgid "Capsule"
+msgstr "Kapsel"
+
+msgid "Captured"
+msgstr "Registreret"
+
+msgid "Care service"
+msgstr "Plejetjeneste"
+
+msgid "Carinthia"
+msgstr "Kärnten"
+
+msgid "Categories"
+msgstr "Kategorier"
+
+msgid "Categories:"
+msgstr "Kategorier:"
+
+msgid "Catholic confirmation"
+msgstr "Firmelse"
+
+msgid "Centered on the screen"
+msgstr "Centreret på skærmen"
+
+msgid "Change password"
+msgstr "Skift adgangskode"
+
+msgid "Changes are applied automatically"
+msgstr "Ændringer anvendes automatisk"
+
+msgid "Charging"
+msgstr "Oplader"
+
+msgid "Charging state"
+msgstr "Opladningstilstand"
+
+msgid "Charts and BMI are documentation aids only and are not a diagnosis."
+msgstr ""
+"Diagrammer og BMI er kun hjælpemidler til dokumentation og udgør ikke en "
+"diagnose."
+
+msgid "Check for updates automatically every day"
+msgstr "Søg automatisk efter opdateringer hver dag"
+
+msgid "Check now"
+msgstr "Kontrollér nu"
+
+msgid "Check spelling (red wavy lines)"
+msgstr "Kontrollér stavning (røde bølgelinjer)"
+
+msgid "Check the value and discuss repeated deviations with a doctor."
+msgstr "Kontrollér værdien, og drøft gentagne afvigelser med en læge."
+
+msgid "Check-up appointment"
+msgstr "Kontrolaftale"
+
+msgid "Checking contributor key …"
+msgstr "Kontrollerer bidragydernøgle..."
+
+msgid "Checking online accounts …"
+msgstr "Kontrollerer onlinekonti …"
+
+msgid "Checking the current manual version …"
+msgstr "Kontrollerer den aktuelle manualversion …"
+
+msgid "Checking the current version …"
+msgstr "Kontrollerer den aktuelle version …"
+
+msgid ""
+"Choose a backup file. Before restoring it, the organizer automatically "
+"creates a copy of the current data. An encrypted backup requires its "
+"password."
+msgstr ""
+"Vælg en sikkerhedskopifil. Før den gendannes, opretter Organizer automatisk "
+"en kopi af de aktuelle data. En krypteret sikkerhedskopi kræver sin "
+"adgangskode."
+
+msgid "Choose a country first."
+msgstr "Vælg først et land."
+
+msgid "Choose a mobile number"
+msgstr "Vælg et mobilnummer"
+
+msgid ""
+"Choose a phase or bleeding intensity. Assign it to the complete date range "
+"in the new appointment sheet."
+msgstr ""
+"Vælg en fase eller blødningsstyrke. Tildel den til hele datointervallet på "
+"arket for den nye aftale."
+
+msgid "Choose a phone number to call"
+msgstr "Vælg et telefonnummer, der skal ringes til"
+
+msgid ""
+"Choose a predefined shift or enter a custom one. Assign it to one or more "
+"days in the new appointment sheet. Day markers do not send notifications."
+msgstr ""
+"Vælg en foruddefineret vagt, eller indtast din egen. Tildel den til en eller "
+"flere dage på arket for den nye aftale. Dagmarkører sender ikke meddelelser."
+
+msgid "Choose a value and period to display its development."
+msgstr "Vælg en værdi og en periode for at vise udviklingen."
+
+msgid ""
+"Choose a waste type or enter a custom collection. Set the first collection "
+"and the interval in days; 0 creates a one-time collection."
+msgstr ""
+"Vælg en affaldstype, eller indtast en brugerdefineret afhentning. Angiv den "
+"første afhentning og intervallet i dage; 0 opretter en engangsafhentning."
+
+msgid "Choose at least four characters."
+msgstr "Vælg mindst fire tegn."
+
+msgid "Choose entries to print, export or delete"
+msgstr "Vælg poster, der skal udskrives, eksporteres eller slettes"
+
+msgid "Choose file…"
+msgstr "Vælg fil…"
+
+msgid "Choose folder …"
+msgstr "Vælg mappe …"
+
+msgid "Choose or enter a phone number"
+msgstr "Vælg eller indtast et telefonnummer"
+
+msgid "Choose photo…"
+msgstr "Vælg foto…"
+
+msgid "Choose print or export content…"
+msgstr "Vælg indhold til udskrivning eller eksport…"
+
+msgid "Choose service"
+msgstr "Vælg tjeneste"
+
+msgid ""
+"Choose which sections appear as tabs on the organizer. The calendar always "
+"remains available."
+msgstr ""
+"Vælg, hvilke afsnit der vises som faneblade i planlæggeren. Kalenderen er "
+"altid tilgængelig."
+
+msgid "Choose year…"
+msgstr "Vælg år…"
+
+msgid "City"
+msgstr "By"
+
+msgid "Claws Mail (.xml/.ldif) …"
+msgstr "Claws Mail (.xml/.ldif) …"
+
+msgid "Claws Mail address book (*.xml)"
+msgstr "Claws Mail-adressebog (*.xml)"
+
+msgid "Clear"
+msgstr "Ryd"
+
+msgid "Clear filters"
+msgstr "Ryd filtre"
+
+msgid "Clearly abnormal reference value – check it and seek medical advice."
+msgstr "Tydeligt unormal referenceværdi – kontrollér den, og søg lægehjælp."
+
+msgid "Click here to add an appointment"
+msgstr "Klik her for at tilføje en aftale"
+
+msgid "Click to open"
+msgstr "Klik for at åbne"
+
+msgid "Clicking a day"
+msgstr "Klik på en dag"
+
+msgid ""
+"Clicking an existing appointment opens it for editing in both cases. This "
+"setting applies only when you click an empty area in the box."
+msgstr ""
+"Et klik på en eksisterende aftale åbner den i begge tilfælde til redigering. "
+"Indstillingen gælder kun, når du klikker på et tomt område i feltet."
+
+msgid "Close"
+msgstr "Luk"
+
+msgid "Close settings"
+msgstr "Luk indstillinger"
+
+msgid "Club anniversary"
+msgstr "Foreningsjubilæum"
+
+msgid "Code matches"
+msgstr "Koden stemmer"
+
+msgid "Codes differ"
+msgstr "Koderne er forskellige"
+
+msgid "Codes match"
+msgstr "Koderne er ens"
+
+msgid "Color"
+msgstr "Farve"
+
+msgid ""
+"Colors and matching scheme rows are orientation aids. Enter or adjust the IE "
+"in the table to the amount actually administered."
+msgstr ""
+"Farverne og de matchende skemarækker er en hjælp til orientering. Indtast "
+"eller juster IE i tabellen, så de svarer til den mængde, der faktisk er "
+"indgivet."
+
+msgid "Columns in the ODS table"
+msgstr "Kolonner i ODS-tabellen"
+
+msgid "Compact sender line (default)"
+msgstr "Kompakt afsenderlinje (standard)"
+
+msgid "Company"
+msgstr "Virksomhed"
+
+msgid "Compare pairing code"
+msgstr "Sammenlign parringskode"
+
+msgid ""
+"Compare this fingerprint with the other branch, for example by phone, to "
+"verify the connection."
+msgstr ""
+"Sammenlign dette fingeraftryk med den anden gren, f.eks. pr. telefon, for at "
+"bekræfte forbindelsen."
+
+msgid "Complete archive export is available only in the installed application."
+msgstr "Komplet arkiveksport er kun tilgængelig i det installerede program."
+
+msgid "Complete archive exported with password protection."
+msgstr "Komplet arkiv eksporteret med adgangskodebeskyttelse."
+
+msgid "Complete archive exported without encryption."
+msgstr "Komplet arkiv eksporteret uden kryptering."
+
+msgid "Complete archive import is available only in the installed application."
+msgstr "Fuldstændig arkivimport er kun tilgængelig i det installerede program."
+
+msgid ""
+"Complete archive imported. The previous data was backed up automatically."
+msgstr ""
+"Komplet arkiv importeret. De tidligere data blev automatisk "
+"sikkerhedskopieret."
+
+msgid "Complete pairing"
+msgstr "Complete pairing"
+
+msgid "Completed (%(count)s)"
+msgstr "Fuldført (%(count)s)"
+
+msgid "Completed task"
+msgstr "Fuldført"
+
+msgid "Completing secure pairing…"
+msgstr "Fuldfører sikker parring…"
+
+msgid ""
+"Confirm only if exactly the same six-digit code is shown on both devices."
+msgstr ""
+"Bekræft kun, hvis nøjagtig den samme sekscifrede kode vises på begge enheder."
+
+msgid "Confirm the pairing request on the phone."
+msgstr "Bekræft parringsanmodningen på telefonen."
+
+msgid "Confirmation"
+msgstr "Bekræftelse"
+
+msgid "Conflict"
+msgstr "Bekræftelse"
+
+msgid "Connect"
+msgstr "Forbind"
+
+msgid "Connect phone via WLAN"
+msgstr "Forbind telefon via WLAN"
+
+msgid "Connected"
+msgstr "Connected"
+
+msgid "Consider deletions during manual synchronization"
+msgstr "Kontaktsynkronisering"
+
+msgid "Contact"
+msgstr "Contact"
+
+msgid "Contact card"
+msgstr "Kontaktkort"
+
+msgid "Contact cards"
+msgstr "Kontaktkort"
+
+msgid "Contact cards (*.vcf)"
+msgstr "Kontaktkort (*.vcf)"
+
+msgid "Contact deletion proposals were blocked by the safety limit."
+msgstr "Forslag om sletning af kontakter blev blokeret af sikkerhedsgrænsen."
+
+msgid "Contact photo preview"
+msgstr "Forhåndsvisning af kontaktfoto"
+
+msgid "Contact synchronization"
+msgstr "Kontaktsynkronisering"
+
+msgid ""
+"Contact synchronization preview: %(new)s new, %(changed)s changed, "
+"%(duplicates)s possible duplicates, %(deletions)s deletion proposals."
+msgstr ""
+"Forhåndsvisning: %(new)s nye, %(changed)s ændrede, %(duplicates)s mulige "
+"dubletter, %(deletions)s sletningsforslag."
+
+msgid ""
+"Contact synchronization was blocked because the bound snapshot is empty."
+msgstr ""
+"Kontaktsynkronisering blev blokeret, fordi det tilknyttede øjebliksbillede "
+"er tomt."
+
+msgid "Contacts"
+msgstr "Kontakter"
+
+msgid "Contacts (.vcf)"
+msgstr "Kontakter (.vcf)"
+
+msgid "Contacts (.vcf) …"
+msgstr "Kontakter (.vcf) …"
+
+msgid "Contacts are merged additively. No deletions are transmitted."
+msgstr "Kontakter flettes additivt. Sletninger overføres ikke."
+
+msgid "Contacts for Claws Mail (.ldif)"
+msgstr "Kontakter til Claws Mail (.ldif)"
+
+msgid "Content"
+msgstr "Indhold"
+
+msgid "Continue"
+msgstr "Fortsat"
+
+msgid "Continued"
+msgstr "Fortsat"
+
+msgid "Contributor key"
+msgstr "Bidragyder nøgle"
+
+msgid "Copy"
+msgstr "Kopiér"
+
+msgid "Cost center"
+msgstr "Omkostningssted"
+
+msgid "Could not answer"
+msgstr "Kunne ikke besvare opkaldet"
+
+msgid "Could not hang up"
+msgstr "Kunne ikke lægge på"
+
+msgid "Country"
+msgstr "Land"
+
+msgid "Country & holidays"
+msgstr "Land og helligdage"
+
+msgid "Country (optional)"
+msgstr "Land (valgfrit)"
+
+msgid "Country and region"
+msgstr "Land og region"
+
+msgid "Country for searches"
+msgstr "Land til søgninger"
+
+msgid "Create"
+msgstr "Opret"
+
+msgid "Create a backup copy of the data"
+msgstr "Opret en sikkerhedskopi af dataene"
+
+msgid "Create a new appointment immediately"
+msgstr "Opret straks en ny aftale"
+
+msgid "Create an empty printable template"
+msgstr "Opret en tom skabelon til udskrivning"
+
+msgid "Create backup"
+msgstr "Opret sikkerhedskopi"
+
+msgid "Create contact"
+msgstr "Opret kontakt"
+
+msgid "Create encrypted backup"
+msgstr "Opret krypteret sikkerhedskopi"
+
+msgid "Create group"
+msgstr "Opret gruppe"
+
+msgid "Create notebook"
+msgstr "Opret notesbog"
+
+msgid "Create pairing file …"
+msgstr "Opret parringsfil …"
+
+msgid "Create snapshot now"
+msgstr "Opret øjebliksbillede nu"
+
+msgid "Custom"
+msgstr "Brugerdefineret"
+
+msgid "Custom application"
+msgstr "Brugerdefineret applikation"
+
+msgid "Custom notification"
+msgstr "Brugerdefineret meddelelse"
+
+msgid "Custom websites must begin with https://."
+msgstr "Brugerdefinerede websteder skal begynde med https://."
+
+msgid "Customer no."
+msgstr "Kundenr."
+
+msgid "Customize"
+msgstr "Tilpas"
+
+msgid "Customize notebooks"
+msgstr "Tilpas notesbøger"
+
+msgid "Cut"
+msgstr "Klip"
+
+msgid "Cycle calendar"
+msgstr "Cykluskalender"
+
+msgid ""
+"Cycle markers are stored only in your local Organizer data and do not send "
+"notifications."
+msgstr ""
+"Sletningsforslag kan kun fjerne individuelt bekræftede tilknyttede "
+"kontakter. Aktivér dem for denne gren?Cyklusmarkører gemmes kun i dine "
+"lokale Organizer-data og sender ikke meddelelser."
+
+msgid "Czechia"
+msgstr "Tjekkiet"
+
+msgid "DIN 5008 Form B with fold marks"
+msgstr "DIN 5008 formular B med foldemærker"
+
+msgid "Daily"
+msgstr "Dagligt"
+
+msgid "Daily view"
+msgstr "Dagsvisning"
+
+msgid "Damaged"
+msgstr "Beskadiget"
+
+msgid "Date"
+msgstr "Dato"
+
+msgid "Daughter"
+msgstr "Datter"
+
+msgid "Day"
+msgstr "Dag"
+
+msgid "Day markers"
+msgstr "Dagmarkører"
+
+msgid "Days"
+msgstr "Dage"
+
+msgid "Death anniversary"
+msgstr "Dødsdag"
+
+msgid "Default: next to the data file"
+msgstr "Standard: ved siden af datafilen"
+
+msgid "Delegate to"
+msgstr "Uddeleger til"
+
+msgid "Delete"
+msgstr "Slet"
+
+msgid "Delete %(count)s selected entry for good?"
+msgid_plural "Delete %(count)s selected entries for good?"
+msgstr[0] "Slet %(count)s valgt post permanent?"
+msgstr[1] "Slet %(count)s valgte poster permanent?"
+
+msgid "Delete %(count)s selected entry? It moves to the wastebasket."
+msgid_plural "Delete %(count)s selected entries? They move to the wastebasket."
+msgstr[0] "Slet %(count)s valgt post? Den flyttes til papirkurven."
+msgstr[1] "Slet %(count)s valgte poster? De flyttes til papirkurven."
+
+msgid "Delete all SMS histories"
+msgstr "Slet alle SMS historier"
+
+msgid "Delete all SMS histories?"
+msgstr "Vil du slette alle SMS historier?"
+
+msgid "Delete anniversary"
+msgstr "Slet mærkedag"
+
+msgid "Delete anniversary “%(name)s”?"
+msgstr "Slet mærkedagen “%(name)s”?"
+
+msgid "Delete appointment “%(title)s”?"
+msgstr "Slet aftalen “%(title)s”?"
+
+msgid ""
+"Delete appointment “%(title)s”? This removes every occurrence in the series."
+msgstr "Slet aftalen “%(title)s”? Det fjerner alle forekomster i serien."
+
+msgid "Delete contact card “%(name)s”?"
+msgstr "Slet kontaktkortet “%(name)s”?"
+
+msgid "Delete cycle marker"
+msgstr "Slet cyklusmarkør"
+
+msgid "Delete entries"
+msgstr "Slet poster"
+
+msgid "Delete entries…"
+msgstr "Slet poster…"
+
+msgid "Delete group"
+msgstr "Slet gruppe"
+
+msgid "Delete last character"
+msgstr "Slet sidste tegn"
+
+msgid "Delete notebook"
+msgstr "Slet notesbog"
+
+msgid "Delete notebook group “%(name)s”?"
+msgstr "Slet notesbogsgruppen “%(name)s”?"
+
+msgid "Delete notebook “%(name)s”?"
+msgstr "Slet notesbogen “%(name)s”?"
+
+msgid "Delete page"
+msgstr "Slet side"
+
+msgid "Delete password"
+msgstr "Slet adgangskode"
+
+msgid "Delete permanently"
+msgstr "Slet permanent"
+
+msgid "Delete selection"
+msgstr "Slet markering"
+
+msgid "Delete shift"
+msgstr "Slet vagt"
+
+msgid "Delete task"
+msgstr "Slet opgave"
+
+msgid "Delete task “%(title)s”?"
+msgstr "Slet opgaven “%(title)s”?"
+
+msgid ""
+"Delete the stored app password? The mailbox can no longer deliver until a "
+"new one is entered."
+msgstr ""
+"Slet den gemte app-adgangskode? Postkassen kan først levere igen, når en ny "
+"er indtastet."
+
+msgid "Delete this contact's SMS history?"
+msgstr "Vil du slette denne kontakts SMS-historik?"
+
+msgid "Delete this contact's history"
+msgstr "Slet denne kontakts historik"
+
+msgid "Delete this note page (“%(title)s”)?"
+msgstr "Slet denne noteside (“%(title)s”)?"
+
+msgid "Delete this recovery snapshot permanently?"
+msgstr "Slet dette gendannelsesøjebliksbillede permanent?"
+
+msgid "Delete vacation period"
+msgstr "Slet ferieperiode"
+
+msgid "Delete waste collection"
+msgstr "Slet affaldsafhentning"
+
+msgid ""
+"Deleted items first go to the recycle bin and can be restored from there. "
+"They are permanently removed only afterwards."
+msgstr ""
+"Slettede elementer flyttes først til papirkurven og kan gendannes derfra. "
+"Først derefter kan de slettes permanent."
+
+msgid "Deletion proposals are pending manual review."
+msgstr "Sletteforslag afventer manuel gennemgang."
+
+msgid ""
+"Deletion proposals can remove only individually confirmed, bound contacts. "
+"Enable deletion proposals for this branch?"
+msgstr ""
+"Sletningsforslag kan kun fjerne individuelt bekræftede tilknyttede "
+"kontakter. Aktivér dem for denne gren?"
+
+msgid "Deletions are not synchronized yet."
+msgstr "Aldrig synkroniseret."
+
+msgid "Delivered"
+msgstr "Leveret"
+
+msgid "Delivered to %(branch)s."
+msgstr "Leveret til %(branch)s."
+
+msgid "Dentist Dr. Hill — Preview of your entries"
+msgstr "Tandlæge dr. Hill — Forhåndsvisning af dine poster"
+
+msgid "Determining public IP address…"
+msgstr "Finder offentlig IP-adresse…"
+
+msgid "Device code: %(code)s"
+msgstr "Enhedskode: %(code)s"
+
+msgid "Device status is not permitted or available on the phone."
+msgstr "Enhedsstatus er ikke tilladt eller tilgængelig på telefonen."
+
+msgid "Diabetes"
+msgstr "Diabetes"
+
+msgid "Dialing…"
+msgstr "Dialing…"
+
+msgid "Diastolic"
+msgstr "Diastolisk"
+
+msgid "Digit %(digit)s"
+msgstr "Ciffer %(digit)s"
+
+msgid "Direction"
+msgstr "Retning"
+
+msgid ""
+"Disabled: no listener, discovery, reconnect or phone tray entries are active."
+msgstr ""
+"Deaktiveret: ingen lytter, registrering, genforbindelse eller telefonikoner "
+"i statusområdet er aktive."
+
+msgid "Discard"
+msgstr "Kassér"
+
+msgid "Discharging"
+msgstr "Aflader"
+
+msgid "Display"
+msgstr "Skærm"
+
+msgid "Do not retrieve weather without a location"
+msgstr "Hent ikke vejret uden en placering"
+
+msgid "Doctor appointment"
+msgstr "Lægeaftale"
+
+msgid "Document.pdf"
+msgstr "Dokument.pdf"
+
+msgid ""
+"Does this eight-character verification key match KDE Connect on %(name)s?\n"
+"\n"
+"%(code)s"
+msgstr ""
+"Matcher denne bekræftelsesnøgle på otte tegn KDE Connect på %(name)s?\n"
+"\n"
+"%(code)s"
+
+msgid "Done"
+msgstr "Færdig"
+
+msgid "Dose type"
+msgstr "Dosistype"
+
+msgid "Download manual"
+msgstr "Hent manual"
+
+msgid "Download manual version %(version)s"
+msgstr "Hent manual version %(version)s"
+
+msgid "Download version %(version)s …"
+msgstr "Hent version %(version)s …"
+
+msgid "Drag the attachment area up or down"
+msgstr "Træk vedhæftningsområdet op eller ned"
+
+msgid "Drops"
+msgstr "Dråber"
+
+msgid "Due on"
+msgstr "Forfalder"
+
+msgid "Due on %(date)s"
+msgstr "Forfalder %(date)s"
+
+msgid "Due: %(date)s"
+msgstr "Forfalder: %(date)s"
+
+msgid "Duplicates"
+msgstr "Dubletter"
+
+msgid "Duration"
+msgstr "Duration"
+
+msgid "Early shift"
+msgstr "Tidlig vagt"
+
+msgid "Edit"
+msgstr "Rediger"
+
+msgid "Edit anniversary"
+msgstr "Rediger mærkedag"
+
+msgid "Edit appointment"
+msgstr "Rediger aftale"
+
+msgid "Edit contact"
+msgstr "Rediger kontakt"
+
+msgid "Edit group"
+msgstr "Rediger gruppe"
+
+msgid "Edit notebook"
+msgstr "Rediger notesbog"
+
+msgid "Edit notebook group"
+msgstr "Rediger notesbogsgruppe"
+
+msgid "Edit task"
+msgstr "Rediger opgave"
+
+msgid "Edit the website or application used"
+msgstr "Rediger det anvendte websted eller program"
+
+msgid "Email"
+msgstr "E-mail"
+
+msgid "Email addresses"
+msgstr "E-mailadresser"
+
+msgid "Embed"
+msgstr "Indlejr"
+
+msgid "Embed PDF"
+msgstr "Indlejr PDF"
+
+msgid "Embed image"
+msgstr "Indlejr billede"
+
+msgid "Embed links and files"
+msgstr "Indlejr links og filer"
+
+msgid "Embedded files"
+msgstr "Indlejrede filer"
+
+msgid "Emergency contact"
+msgstr "Nødkontakt"
+
+msgid "Emergency contact %(number)s"
+msgstr "Nødkontakt %(number)s"
+
+msgid "Emergency contact phone"
+msgstr "Nødkontaktens telefon"
+
+msgid "Emergency contacts"
+msgstr "Nødkontakter"
+
+msgid "Empty recycle bin"
+msgstr "Tøm papirkurv"
+
+msgid "Enable"
+msgstr "Aktivér"
+
+msgid "Enable Magnolie Notes phone connection"
+msgstr "Aktiver Magnolie Notes telefonforbindelse"
+
+msgid "Enable cycle calendar"
+msgstr "Aktivér cykluskalender"
+
+msgid "Enable password protection"
+msgstr "Aktivér adgangskodebeskyttelse"
+
+msgid ""
+"Enable password protection? Your data will then be stored encrypted. Without "
+"the password, it will be irretrievably lost; keep the password in a safe "
+"place."
+msgstr ""
+"Aktivér adgangskodebeskyttelse? Dine data gemmes derefter krypteret. Uden "
+"adgangskoden går de uigenkaldeligt tabt; opbevar adgangskoden et sikkert "
+"sted."
+
+msgid "Enable reminders"
+msgstr "Aktivér påmindelser"
+
+msgid "Enable shift planner"
+msgstr "Aktivér vagtplan"
+
+msgid "Enable tray applet"
+msgstr "Aktivér panelapplet"
+
+msgid "Enable vacation planner"
+msgstr "Aktivér ferieplan"
+
+msgid "Enable waste collection calendar"
+msgstr "Aktivér kalender for affaldsafhentning"
+
+msgid "Enjoy getting organized!"
+msgstr "God fornøjelse med at organisere!"
+
+msgid "Enter"
+msgstr "Indtast"
+
+msgid ""
+"Enter a blood glucose value on the left to highlight matching scheme rows."
+msgstr ""
+"Indtast en blodsukkerværdi til venstre for at fremhæve de matchende "
+"skemarækker."
+
+msgid "Enter a medication name first."
+msgstr "Indtast først et lægemiddelnavn."
+
+msgid "Enter a password with letters"
+msgstr "Indtast en adgangskode med bogstaver"
+
+msgid "Enter a reachable IPv4 or IPv6 address of this computer first."
+msgstr ""
+"Indtast først en tilgængelig IPv4- eller IPv6-adresse for denne computer."
+
+msgid "Enter a title, date, or a word from the note."
+msgstr "Indtast en titel, dato eller et ord fra noten."
+
+msgid "Enter a web or email address."
+msgstr "Indtast en web- eller e-mailadresse."
+
+msgid "Enter an application command."
+msgstr "Indtast en programkommando."
+
+msgid "Enter at least four characters for the backup password."
+msgstr "Indtast mindst fire tegn til adgangskoden for sikkerhedskopien."
+
+msgid "Enter height and weight to calculate BMI."
+msgstr "Indtast højde og vægt for at beregne BMI."
+
+msgid "Enter the archive password."
+msgstr "Indtast arkivadgangskoden."
+
+msgid "Enter the password for this backup."
+msgstr "Indtast adgangskoden til denne sikkerhedskopi."
+
+msgid ""
+"Enter your address above. No service can calculate directions without a "
+"starting point."
+msgstr ""
+"Indtast din adresse ovenfor. Ingen tjeneste kan beregne en rute uden et "
+"udgangspunkt."
+
+msgid "Entry"
+msgstr "Post"
+
+msgid "Errands"
+msgstr "Ærinder"
+
+msgid "Error"
+msgstr "Fejl"
+
+msgid "Evening"
+msgstr "Aften"
+
+msgid "Every 12 hours"
+msgstr "Hver 12. time"
+
+msgid "Every 6 hours"
+msgstr "Hver 6. time"
+
+msgid "Every filled medication row requires a name."
+msgstr "Hver udfyldt lægemiddelrække kræver et navn."
+
+msgid "Every filled row requires a valid date."
+msgstr "Hver udfyldt række kræver en gyldig dato."
+
+msgid "Everything is done - the list is empty."
+msgstr "Alt er klaret – listen er tom."
+
+msgid "Exactly one Magnolie Notes phone must be paired."
+msgstr "Præcis én Magnolie Notes-telefon skal parres."
+
+msgid "Export"
+msgstr "Eksportér"
+
+msgid "Export Magnolie complete archive"
+msgstr "Eksporter Magnolie komplet arkiv"
+
+msgid "Export archive"
+msgstr "Eksporter arkiv"
+
+msgid "Export failed."
+msgstr "Eksport mislykkedes."
+
+msgid "Export failed: %(error)s"
+msgstr "Eksport mislykkedes: %(error)s"
+
+msgid "Export is available only in the installed application."
+msgstr "Eksport er kun tilgængelig i det installerede program."
+
+msgid "Extend sharing"
+msgstr "Udvid deling"
+
+msgid "Failed"
+msgstr "Mislykkedes"
+
+msgid "Fasting"
+msgstr "Fastende"
+
+msgid "Female caregiver"
+msgstr "Kvindelig plejer"
+
+msgid "Female friend"
+msgstr "Veninde"
+
+msgid "Female neighbor"
+msgstr "Nabo (kvinde)"
+
+msgid "Female partner"
+msgstr "Partner (kvinde)"
+
+msgid "Female relative"
+msgstr "Slægtning (kvinde)"
+
+msgid "Fertile days"
+msgstr "Frugtbare dage"
+
+msgid "Fill with stored values"
+msgstr "Udfyld med gemte værdier"
+
+msgid ""
+"Finds contact cards with the same name, email address or phone number. You "
+"are asked twice before merging, and a copy of every removed card is kept in "
+"the recycle bin."
+msgstr ""
+"Finder kontaktkort med samme navn, e-mailadresse eller telefonnummer. Du "
+"bliver spurgt to gange før sammenfletning, og en kopi af hvert fjernet kort "
+"opbevares i papirkurven."
+
+msgid "Fingerprint"
+msgstr "Fingeraftryk"
+
+msgid "Fingerprint, e.g. ABCD-1234-EF56-7890"
+msgstr "Fingeraftryk, f.eks. ABCD-1234-EF56-7890"
+
+msgid "First Communion"
+msgstr "Første kommunion"
+
+msgid "First choose a calendar or address book in Settings."
+msgstr "Vælg først en kalender eller adressebog i Indstillinger."
+
+msgid "First collection"
+msgstr "Første afhentning"
+
+msgid "First date"
+msgstr "Første dato"
+
+msgid "First name"
+msgstr "Fornavn"
+
+msgid "First name Last name"
+msgstr "Fornavn Efternavn"
+
+msgid ""
+"First name Last name\n"
+"Street and house number\n"
+"Postal code City"
+msgstr ""
+"Fornavn Efternavn\n"
+"Gade og husnummer\n"
+"Postnummer By"
+
+msgid "Fixed units"
+msgstr "Faste enheder"
+
+msgid "Folder selection is available only in the installed application."
+msgstr "Mappevalg er kun tilgængeligt i det installerede program."
+
+msgid "Follicular phase"
+msgstr "Follikulær fase"
+
+msgid "Follow up"
+msgstr "Opfølgning"
+
+msgid "Font size"
+msgstr "Skriftstørrelse"
+
+msgid ""
+"For a direct IPv4 connection, port %(port)s may need to be forwarded by the "
+"router; CGNAT can prevent this. For IPv6, allow the port in the router and "
+"computer firewalls."
+msgstr ""
+"Ved en direkte IPv4-forbindelse kan port %(port)s skulle videresendes i "
+"routeren; CGNAT kan forhindre det. Ved IPv6 skal porten tillades i både "
+"routerens og computerens firewall."
+
+msgid ""
+"For this purpose, appointments, tasks, anniversaries and the names of "
+"responsible people are kept unencrypted in a separate file readable only by "
+"you. Contacts and notes are never written to it."
+msgstr ""
+"Til dette formål opbevares aftaler, opgaver, mærkedage og navnene på "
+"ansvarlige personer ukrypteret i en separat fil, som kun du kan læse. "
+"Kontakter og noter skrives aldrig til den."
+
+msgid "For: %(people)s"
+msgstr "For: %(people)s"
+
+msgid "Form"
+msgstr "Formular"
+
+msgid "Forward Secrecy"
+msgstr "Forward Secrecy (fremadrettet hemmeligholdelse)"
+
+msgid ""
+"Found %(groups)s containing %(cards)s in total, for example:\n"
+"%(examples)s%(more)s\n"
+"\n"
+"The most complete card in each group is retained, and missing fields are "
+"filled from the others. The remaining cards are moved to the recycle bin as "
+"“Duplicates” and can be restored from there. Continue?"
+msgstr ""
+"Fandt %(groups)s grupper med i alt %(cards)s kort, for eksempel:\n"
+"%(examples)s%(more)s\n"
+"\n"
+"Det mest komplette kort i hver gruppe bevares, og manglende felter udfyldes "
+"fra de andre. De resterende kort flyttes til papirkurven som “Dubletter” og "
+"kan gendannes derfra. Fortsæt?"
+
+#, javascript-format
+msgid "Found – %s."
+msgstr "Fundet – %s."
+
+msgid "Founding day"
+msgstr "Stiftelsesdag"
+
+msgid "France"
+msgstr "Frankrig"
+
+msgid "Frequency"
+msgstr "Hyppighed"
+
+msgid "Fribourg"
+msgstr "Fribourg"
+
+msgid "Friday"
+msgstr "Fredag"
+
+msgid "From"
+msgstr "Fra"
+
+msgid "From the Windows Contacts folder"
+msgstr "Fra mappen Windows Kontaktpersoner"
+
+msgid "Full"
+msgstr "Fuld"
+
+msgid "GNOME Maps"
+msgstr "GNOME Maps"
+
+msgid "GNU General Public License, version 3 or later"
+msgstr "GNU General Public License, version 3 eller nyere"
+
+msgid "General"
+msgstr "Generelt"
+
+msgid "General network"
+msgstr "Generelt netværk"
+
+msgid "General reference range"
+msgstr "Generelt referenceområde"
+
+msgid "Geneva"
+msgstr "Genève"
+
+msgid "Germany"
+msgstr "Tyskland"
+
+msgid "Glarus"
+msgstr "Glarus"
+
+msgid "Go to calendar"
+msgstr "Gå til kalender"
+
+msgid "Google Maps in the browser"
+msgstr "Google Maps i browseren"
+
+msgid "Grisons"
+msgstr "Graubünden"
+
+msgid "Group for %(notebook)s"
+msgstr "Gruppe for %(notebook)s"
+
+msgid "HTTPS only; {wert} and {nummer} are replaced when opening."
+msgstr "Kun HTTPS; {wert} og {nummer} erstattes ved åbning."
+
+msgid "Hamburg"
+msgstr "Hamborg"
+
+msgid "Handle or profile address"
+msgstr "Brugernavn eller profiladresse"
+
+msgid "Handwriting"
+msgstr "Håndskrift"
+
+msgid "Hang up"
+msgstr "Hang up"
+
+msgid "Head office"
+msgstr "Hovedkontor"
+
+msgid "Heading"
+msgstr "Overskrift"
+
+msgid "Heading, text, images, and PDF files are shared encrypted."
+msgstr "Overskrift, tekst, billeder og PDF-filer deles krypteret."
+
+msgid "Health"
+msgstr "Sundhed"
+
+msgid "Health history chart"
+msgstr "Diagram over sundhedsforløb"
+
+msgid "Health history charts"
+msgstr "Diagrammer over sundhedsforløb"
+
+msgid "Health records"
+msgstr "Sundhedsoptegnelser"
+
+msgid ""
+"Health records stay in your encrypted organizer data. The section documents "
+"measurements and schedules but does not provide medical advice."
+msgstr ""
+"Sundhedsoptegnelser forbliver i dine krypterede Organizer-data. Afsnittet "
+"dokumenterer målinger og planer, men yder ikke medicinsk rådgivning."
+
+msgid "Health table saved."
+msgstr "Sundhedstabellen er gemt."
+
+msgid "Heart"
+msgstr "Hjerte"
+
+msgid "Height"
+msgstr "Højde"
+
+msgid "Here is how to find your way around:"
+msgstr "Sådan finder du rundt:"
+
+msgid "Hesse"
+msgstr "Hessen"
+
+msgid "Hide SMS notification after"
+msgstr "Skjul SMS-meddelelse efter"
+
+msgid "Hide in the tray when minimized"
+msgstr "Skjul i panelet ved minimering"
+
+msgid "Hide internet access"
+msgstr "Skjul internetadgang"
+
+msgid "Hide past appointments"
+msgstr "Skjul tidligere aftaler"
+
+msgid "History"
+msgstr "Forløb"
+
+msgid "Holiday retrieval is available only in the installed application."
+msgstr "Hentning af helligdage er kun tilgængelig i det installerede program."
+
+msgid "Home"
+msgstr "Hjem"
+
+msgid "Home address"
+msgstr "Hjemmeadresse"
+
+msgid "Home phone"
+msgstr "Hjemmetelefon"
+
+msgid "Home visit"
+msgstr "Hjemmebesøg"
+
+msgid "Hours"
+msgstr "Timer"
+
+msgid "How the calendar should behave when you click a day."
+msgstr "Hvordan kalenderen skal opføre sig, når du klikker på en dag."
+
+msgid "Husband"
+msgstr "Ægtemand"
+
+msgid "I"
+msgstr "Jeg"
+
+msgid "I would be very happy if you bought me a coffee."
+msgstr "Jeg ville blive meget glad, hvis du gav mig en kop kaffe."
+
+msgid "IE"
+msgstr "IE"
+
+msgid ""
+"If the year is unknown, enter only day and month.\n"
+"No age will then be shown.\n"
+"Anniversaries appear with ✱ in the calendar and planner."
+msgstr ""
+"Hvis året er ukendt, skal du kun indtaste dag og måned.\n"
+"Der vises så ingen alder.\n"
+"Mærkedage vises med ✱ i kalenderen og planlæggeren."
+
+msgid "Image"
+msgstr "Billede"
+
+msgid "Image file"
+msgstr "Billedfil"
+
+msgid "Import"
+msgstr "Importér"
+
+msgid "Import Magnolie complete archive"
+msgstr "Importer Magnolie komplet arkiv"
+
+msgid "Import failed: %(error)s"
+msgstr "Import mislykkedes: %(error)s"
+
+msgid "Import from LibreOffice"
+msgstr "Importér fra LibreOffice"
+
+msgid "Import is available only in the installed application."
+msgstr "Import er kun tilgængelig i det installerede program."
+
+msgid "Import pairing file …"
+msgstr "Importér parringsfil …"
+
+msgid "Import, export and synchronization"
+msgstr "Import, eksport og synkronisering"
+
+msgid ""
+"Import, export and synchronization are available only in the installed "
+"application."
+msgstr ""
+"Import, eksport og synkronisering er kun tilgængelig i det installerede "
+"program."
+
+msgid ""
+"Important: Without this password, nobody can access the data, including you. "
+"Keep it in a safe place."
+msgstr ""
+"Vigtigt: Uden denne adgangskode kan ingen få adgang til dataene, heller ikke "
+"du. Opbevar den et sikkert sted."
+
+msgid "Imported: %(items)s."
+msgstr "Importeret: %(items)s."
+
+msgid ""
+"In the DIN template, these lines appear as a multiline sender block and in "
+"small type in the address window. In the compact template, they form one "
+"line above the recipient address. No sender is added if this field is empty."
+msgstr ""
+"I DIN-skabelonen vises disse linjer som en afsenderblok med flere linjer og "
+"med lille skrift i adressevinduet. I den kompakte skabelon danner de én "
+"linje over modtagerens adresse. Der tilføjes ingen afsender, hvis feltet er "
+"tomt."
+
+msgid "In the organizer%(selection)s: %(items)s%(years)s."
+msgstr "I Organizer%(selection)s: %(items)s%(years)s."
+
+msgid "In the recycle bin: %(items)s"
+msgstr "I papirkurven: %(items)s"
+
+msgid "Include anniversaries"
+msgstr "Medtag mærkedage"
+
+msgid "Include appointments"
+msgstr "Medtag aftaler"
+
+msgid "Include cycle markers"
+msgstr "Medtag cyklusmarkører"
+
+msgid "Include personal vacation"
+msgstr "Medtag personlig ferie"
+
+msgid "Include public holidays in year planner"
+msgstr "Medtag helligdage i årsplanen"
+
+msgid "Include school holidays"
+msgstr "Medtag skoleferier"
+
+msgid "Include school holidays in year planner"
+msgstr "Medtag skoleferier i årsplanen"
+
+msgid "Include shifts"
+msgstr "Medtag vagter"
+
+msgid "Include waste collections"
+msgstr "Medtag affaldsafhentninger"
+
+msgid "Incoming"
+msgstr "Indkommende"
+
+msgid "Incoming call"
+msgstr "Indgående opkald"
+
+msgid "Input"
+msgstr "Indtastning"
+
+msgid "Insert link"
+msgstr "Indsæt link"
+
+msgid "Installed manual version: %(version)s."
+msgstr "Installeret manualversion: %(version)s."
+
+msgid "Insulin scheme"
+msgstr "Insulinskema"
+
+msgid "Integrity"
+msgstr "Integritet"
+
+msgid "Internet IP"
+msgstr "Internet-IP"
+
+msgid "Internet available"
+msgstr "Internet available"
+
+msgid "Interval in days"
+msgstr "Interval i dage"
+
+msgid "Italic"
+msgstr "Kursiv"
+
+msgid "Italy"
+msgstr "Italien"
+
+msgid "Juice"
+msgstr "Saft"
+
+msgid "Jura"
+msgstr "Jura"
+
+msgid "KDE Connect for SMS"
+msgstr "KDE Connect til SMS"
+
+msgid "KDE Connect for SMS is available only in the installed application."
+msgstr "KDE Connect til SMS er kun tilgængelig i det installerede program."
+
+msgid ""
+"KDE Connect is used only for SMS. It does not connect or synchronize the "
+"Magnolienbaum."
+msgstr ""
+"KDE Connect bruges kun til SMS. Den forbinder eller synkroniserer ikke "
+"Magnolienbaum."
+
+msgid "KDE Connect pairing failed."
+msgstr "KDE Connect-parring mislykkedes."
+
+msgid "KDE Connect phone paired."
+msgstr "KDE Connect telefon parret."
+
+msgid "KDE Connect port %(port)s"
+msgstr "KDE Connect port %(port)s"
+
+msgid "Keep a troubleshooting log"
+msgstr "Behold en fejlfindingslog"
+
+msgid "LDIF address book (*.ldif)"
+msgstr "LDIF-adressebog (*.ldif)"
+
+msgid "Landline"
+msgstr "Fastnettelefon"
+
+msgid "Large"
+msgstr "Stor"
+
+msgid "Last check failed: %(error)s"
+msgstr "Seneste kontrol mislykkedes: %(error)s"
+
+msgid "Last contact"
+msgstr "Seneste kontakt"
+
+msgid "Last name"
+msgstr "Efternavn"
+
+msgid "Last snapshot"
+msgstr "Seneste øjebliksbillede"
+
+msgid "Last synchronized: %(date)s, %(time)s."
+msgstr "Sidst synkroniseret: %(date)s, %(time)s."
+
+msgid "Late shift"
+msgstr "Sen vagt"
+
+msgid "Lead time"
+msgstr "Varslingstid"
+
+msgid "Letter"
+msgstr "Brev"
+
+msgid "Letter template"
+msgstr "Brevskabelon"
+
+msgid "License"
+msgstr "Licens"
+
+msgid "Liechtenstein"
+msgstr "Liechtenstein"
+
+msgid "Lined paper (lines on the writing sheet)"
+msgstr "Linjeret papir (linjer på skrivearket)"
+
+msgid "Link"
+msgstr "Link"
+
+msgid "Listener active"
+msgstr "Lytter aktiv"
+
+msgid "Listener stopped"
+msgstr "Lytter stoppet"
+
+msgid "Local calendar"
+msgstr "Lokal kalender"
+
+msgid "Location"
+msgstr "Sted"
+
+msgid "Location obtained from LibreOffice."
+msgstr "Placering hentet fra LibreOffice."
+
+msgid "Log opened: %(path)s"
+msgstr "Log åbnet: %(path)s"
+
+msgid "Long-acting insulin"
+msgstr "Langtidsvirkende insulin"
+
+msgid "Loose Notes"
+msgstr "Løse noter"
+
+msgid "Lotus Organizer CSV …"
+msgstr "Lotus Organizer CSV …"
+
+msgid "Lower Austria"
+msgstr "Niederösterreich"
+
+msgid "Lower Saxony"
+msgstr "Niedersachsen"
+
+msgid "Lower other sounds while ringing"
+msgstr "Dæmp andre lyde, mens telefonen ringer"
+
+msgid "Lucerne"
+msgstr "Luzern"
+
+msgid "Luxembourg"
+msgstr "Luxembourg"
+
+msgid "Magnolia tree"
+msgstr "Magnolia"
+
+msgid "Magnolia weather symbols only"
+msgstr "Kun Magnolie-vejrsymboler"
+
+msgid "Magnolie Notes device status"
+msgstr "Enhedsstatus for Magnolie Notes"
+
+msgid ""
+"Magnolie Notes ended the session. The app and Organizer must use the same "
+"protocol version."
+msgstr ""
+"Magnolie Notes afsluttede sessionen. Appen og Organizer skal bruge samme "
+"protokolversion."
+
+msgid "Magnolie Notes phone connection"
+msgstr "Magnolie Notes telefonforbindelse"
+
+msgid ""
+"Magnolie Notes phones and KDE Connect phones are separate: the Android model "
+"name belongs to Magnolie Notes; the KDE peer name comes from KDE Connect."
+msgstr ""
+"Magnolie Notes-telefoner og KDE Connect-telefoner er adskilte: Android-"
+"modelnavnet tilhører Magnolie Notes; KDE-modpartens navn kommer fra KDE "
+"Connect."
+
+msgid "Magnolie Organizer is not completely installed."
+msgstr "Magnolie Organizer er ikke fuldstændigt installeret."
+
+msgid ""
+"Magnolie Organizer is open-source software. There are no functional "
+"restrictions. This branding can be removed by supporting the project and "
+"then entering the activation code received by email under Settings → About."
+msgstr ""
+"Magnolie Organizer er open source-software. Der er ingen "
+"funktionsbegrænsninger. Dette mærke kan fjernes ved at støtte projektet og "
+"derefter indtaste aktiveringskoden fra e-mailen under Indstillinger → Om."
+
+msgid ""
+"Magnolie SMS is no longer part of the current Magnolie Notes phone protocol."
+msgstr ""
+"Magnolie SMS er ikke længere en del af den nuværende Magnolie Notes "
+"telefonprotokol."
+
+msgid "Magnolie backup (*.json)"
+msgstr "Magnolie-sikkerhedskopi (*.json)"
+
+msgid "Magnolie complete archive (.magnolie) …"
+msgstr "Magnolie komplet arkiv (.magnolie) …"
+
+msgid "Magnolienbaum"
+msgstr "Magnolienbaum"
+
+msgid "Magnolienbaum mailbox"
+msgstr "Magnolienbaum mailbox"
+
+msgid "Magnolienbaum pairing file (*.magnolie-paarung)"
+msgstr "Magnolienbaum-parringsfil (*.magnolie-paarung)"
+
+msgid "Magnolienbaum quarantine:"
+msgstr "Magnolienbaum karantæne:"
+
+msgid "Magnolienbaum restart:"
+msgstr "Magnolienbaum genstart:"
+
+msgid "Male caregiver"
+msgstr "Mandlig omsorgsperson"
+
+msgid "Male friend"
+msgstr "Mandlig ven"
+
+msgid "Male neighbor"
+msgstr "Mandlig nabo"
+
+msgid "Male partner"
+msgstr "Mandlig partner"
+
+msgid "Male relative"
+msgstr "Mandlig slægtning"
+
+msgid "Manage connection"
+msgstr "Administrer forbindelse"
+
+msgid "Manage people"
+msgstr "Administrér personer"
+
+msgid "Manual"
+msgstr "Manual"
+
+msgctxt "recovery snapshot reason"
+msgid "Manual"
+msgstr "Brugerdefineret"
+
+msgid "Manual version %(version)s is available."
+msgstr "Manualversion %(version)s er tilgængelig."
+
+msgid "Manufacturer"
+msgstr "Producent"
+
+msgid "Map"
+msgstr "Kort"
+
+msgid ""
+"Map services often cannot find a street without a country. If the country is "
+"already part of the address, it is not added a second time."
+msgstr ""
+"Korttjenester kan ofte ikke finde en gade uden et land. Hvis landet allerede "
+"indgår i adressen, tilføjes det ikke en gang til."
+
+msgid "Mark as completed"
+msgstr "Markér som fuldført"
+
+msgid "Mark as open"
+msgstr "Markér som åben"
+
+msgid "Maximized"
+msgstr "Maksimeret"
+
+msgid "Measurement context"
+msgstr "Målekontekst"
+
+msgid "Mecklenburg-Western Pomerania"
+msgstr "Mecklenburg-Vorpommern"
+
+msgid "Medication"
+msgstr "Lægemiddel"
+
+msgid "Medication plan"
+msgstr "Medicinplan"
+
+msgid "Medium (slightly larger)"
+msgstr "Mellem (lidt større)"
+
+msgid "Meeting"
+msgstr "Møde"
+
+msgid "Memorial day"
+msgstr "Mindedag"
+
+msgid "Memory available / total"
+msgstr "Memory available / total"
+
+msgid "Merge"
+msgstr "Flet"
+
+msgid "Merge duplicate contact cards"
+msgstr "Flet dublerede kontaktkort"
+
+msgid "Merge this pair individually"
+msgstr "Flet dette par enkeltvis"
+
+msgid "Message"
+msgstr "Besked"
+
+msgid "Message text"
+msgstr "Beskedtekst"
+
+msgid "Metered connection"
+msgstr "Metered connection"
+
+msgid "Microsoft Graph has not been configured yet."
+msgstr "Microsoft Graph er ikke blevet konfigureret endnu."
+
+msgid "Microsoft configuration could not be saved: %(error)s"
+msgstr "Microsoft-konfigurationen kunne ikke gemmes: %(error)s"
+
+msgid "Microsoft configuration saved."
+msgstr "Microsoft-konfiguration gemt."
+
+msgid "Microsoft sign-in completed."
+msgstr "Microsoft-logon gennemført."
+
+msgid "Microsoft sign-in failed: %(error)s"
+msgstr "Microsoft-logon mislykkedes: %(error)s"
+
+msgid "Microsoft sign-out failed: %(error)s"
+msgstr "Microsoft-logout mislykkedes: %(error)s"
+
+msgid "Minimize"
+msgstr "Minimize"
+
+msgid "Minimize to the tray when closed"
+msgstr "Minimér til panelet ved lukning"
+
+msgid "Minutes"
+msgstr "Minutter"
+
+msgid ""
+"Missed reminders are shown after the next startup. If the computer was off "
+"or the application was closed, the organizer reports a missed appointment "
+"shortly after login and provides a button to open it. All-day appointments "
+"are treated as starting at 8 a.m. A small reminder service starts at login "
+"to check appointments in the background and continues running when you close "
+"the organizer."
+msgstr ""
+"Oversete påmindelser vises efter næste opstart. Hvis computeren var slukket, "
+"eller programmet var lukket, melder organizeren kort efter login om en "
+"overset aftale og viser en knap til at åbne den. Heldagsaftaler regnes som "
+"begyndende kl. 8. En lille påmindelsestjeneste starter ved login, "
+"kontrollerer aftaler i baggrunden og fortsætter med at køre, når du lukker "
+"organizeren."
+
+msgid ""
+"Misspelled words are marked with a red wavy underline while you type. Right-"
+"clicking a word opens a sheet with suggestions that can be applied with one "
+"click; you can add names to your personal dictionary in the same way. If the "
+"lines or suggestions are missing, install the dictionary with:  sudo apt "
+"install %(package)s"
+msgstr ""
+"Forkert stavede ord markeres med en rød bølget understregning, mens du "
+"skriver. Højreklik på et ord for at åbne et panel med forslag, som kan "
+"anvendes med ét klik; på samme måde kan du føje navne til din personlige "
+"ordbog. Hvis stregerne eller forslagene mangler, kan du installere ordbogen "
+"med:  sudo apt install %(package)s"
+
+msgid "Mobile"
+msgstr "Mobil"
+
+msgid "Mobile network"
+msgstr "Mobile network"
+
+msgid "Model"
+msgstr "Model"
+
+msgid "Monday"
+msgstr "Mandag"
+
+msgid "Month"
+msgstr "Måned"
+
+msgid "Month calendar"
+msgstr "Månedskalender"
+
+msgid "Monthly view"
+msgstr "Månedsvisning"
+
+msgid "Monthly weekday"
+msgstr "Månedlig ugedag"
+
+msgid "More fields"
+msgstr "Flere felter"
+
+msgid ""
+"More than one Magnolie Notes phone is online. Disconnect all but one phone."
+msgstr ""
+"Mere end én Magnolie Notes-telefon er online. Afbryd alle telefoner undtagen "
+"én."
+
+msgid "Morning"
+msgstr "Morgen"
+
+msgid "Mouse wheel over times"
+msgstr "Musehjul over klokkeslæt"
+
+msgid "Move group down"
+msgstr "Flyt gruppe ned"
+
+msgid "Move group up"
+msgstr "Flyt gruppe op"
+
+msgid "Move notebook down"
+msgstr "Flyt notesbog ned"
+
+msgid "Move notebook to another group"
+msgstr "Flyt notesbog til en anden gruppe"
+
+msgid "Move notebook up"
+msgstr "Flyt notesbog op"
+
+msgid "Move the ticked entries to the wastebasket"
+msgstr "Flyt de markerede poster til papirkurven"
+
+msgid ""
+"Multiple Magnolie Notes phones are stored. Personal sync is blocked; remove "
+"all but one phone."
+msgstr ""
+"Der er gemt flere Magnolie Notes-telefoner. Personlig synkronisering er "
+"blokeret; fjern alle telefoner undtagen én."
+
+msgid "Multiple calendars"
+msgstr "Multiple calendars"
+
+msgid "Name"
+msgstr "Navn"
+
+msgid "Name / occasion"
+msgstr "Navn / anledning"
+
+msgid "Name day"
+msgstr "Navnedag"
+
+msgid "Name of this branch"
+msgstr "Navnet på denne gren"
+
+msgid "Netherlands"
+msgstr "Nederlandene"
+
+msgid "Network"
+msgstr "Network"
+
+msgid "Neuchâtel"
+msgstr "Neuchâtel"
+
+msgid "Never"
+msgstr "Aldrig"
+
+msgid "Never automatically"
+msgstr "Aldrig automatisk"
+
+msgid "Never synchronized."
+msgstr "Aldrig synkroniseret."
+
+msgid "New"
+msgstr "Ny"
+
+msgid "New Magnolienbaum request: %(entry)s."
+msgstr "Ny Magnolienbaum-anmodning: %(entry)s."
+
+msgid "New anniversary"
+msgstr "Ny mærkedag"
+
+msgid "New appointment"
+msgstr "Ny aftale"
+
+msgid "New backup password"
+msgstr "Ny adgangskode til sikkerhedskopi"
+
+msgid ""
+"New backups are stored in this folder. When the field is empty, they are "
+"stored next to the data file. For any other location, the organizer requires "
+"a backup password and encrypts the copy independently of the application's "
+"password protection."
+msgstr ""
+"Nye sikkerhedskopier gemmes i denne mappe. Hvis feltet er tomt, gemmes de "
+"ved siden af datafilen. Ved enhver anden placering kræver organizeren en "
+"adgangskode til sikkerhedskopien og krypterer kopien uafhængigt af "
+"programmets adgangskodebeskyttelse."
+
+msgid "New contact"
+msgstr "Ny kontakt"
+
+msgid "New group"
+msgstr "Ny gruppe"
+
+msgid "New notebook"
+msgstr "Ny notesbog"
+
+msgid "New notebook group"
+msgstr "Ny notesbogsgruppe"
+
+msgid "New page"
+msgstr "Ny side"
+
+msgid "New password"
+msgstr "Ny adgangskode"
+
+msgid "New task"
+msgstr "Ny opgave"
+
+msgid "New version %(version)s is available."
+msgstr "Ny version %(version)s er tilgængelig."
+
+msgid "Next appointment: %(title)s on %(date)s%(time)s%(notice)s"
+msgstr "Næste aftale: %(title)s den %(date)s%(time)s%(notice)s"
+
+msgid "Next month"
+msgstr "Næste måned"
+
+msgid "Next page"
+msgstr "Næste side"
+
+msgid "Next snapshot"
+msgstr "Næste øjebliksbillede"
+
+msgid "Next tab"
+msgstr "Næste fane"
+
+msgid "Next table page"
+msgstr "Næste tabelside"
+
+msgid "Next week"
+msgstr "Næste uge"
+
+msgid "Next year"
+msgstr "Næste år"
+
+msgid "Nextcloud account"
+msgstr "Nextcloud account"
+
+msgid "Nidwalden"
+msgstr "Nidwalden"
+
+msgid "Night"
+msgstr "Nat"
+
+msgid "Night shift"
+msgstr "Nattevagt"
+
+msgid "No"
+msgstr "No"
+
+msgid "No Bluetooth address was selected."
+msgstr "Der blev ikke valgt nogen Bluetooth-adresse."
+
+msgid "No KDE Connect pairing is awaiting confirmation."
+msgstr "Ingen KDE Connect-parring afventer bekræftelse."
+
+msgid "No additional modules permitted"
+msgstr "Ingen yderligere moduler tilladt"
+
+msgid ""
+"No anniversaries yet.\n"
+"Birthdays and celebrations will automatically appear in the calendar."
+msgstr ""
+"Ingen mærkedage endnu.\n"
+"Fødselsdage og festdage vises automatisk i kalenderen."
+
+msgid "No application is registered for the attachment."
+msgstr "Der er ikke registreret nogen ansøgning til bilaget."
+
+msgid "No appointment is scheduled."
+msgstr "Der er ikke planlagt nogen aftale."
+
+msgid "No calendars found."
+msgstr "Ingen kalendere fundet."
+
+msgid "No due date"
+msgstr "Ingen forfaldsdato"
+
+msgid "No duplicate contact cards were found."
+msgstr "Ingen dublerede kontaktkort blev fundet."
+
+msgid "No file selected"
+msgstr "Ingen fil valgt"
+
+msgid "No history charts"
+msgstr "Ingen diagrammer over sundhedsforløb"
+
+msgid "No insulin dose is calculated automatically."
+msgstr "Der beregnes ingen insulindosis automatisk."
+
+msgid "No manual update check has been performed yet."
+msgstr "Der er endnu ikke søgt efter opdateringer til manualen."
+
+msgid "No matching open task found."
+msgstr "Der blev ikke fundet nogen tilsvarende åben opgave."
+
+msgid "No measurements in this period."
+msgstr "Ingen målinger i denne periode."
+
+msgid "No notebooks"
+msgstr "Ingen notesbøger"
+
+msgid "No online Magnolie Notes phone has allowed dial requests."
+msgstr "Ingen online Magnolie Notes-telefoner har tilladt opkaldsanmodninger."
+
+msgid "No other branch was found."
+msgstr "Ingen anden gren blev fundet."
+
+msgid "No other branch yet. Search the network or enter an address."
+msgstr ""
+"Der er endnu ingen anden gren. Søg på netværket, eller indtast en adresse."
+
+msgid ""
+"No people have been added yet.\n"
+"Enter a name below."
+msgstr ""
+"Der er endnu ikke tilføjet nogen personer.\n"
+"Indtast et navn nedenfor."
+
+msgid ""
+"No people have been added yet. Use the People button above to add people "
+"responsible for tasks."
+msgstr ""
+"Der er endnu ikke tilføjet nogen personer. Brug knappen Personer ovenfor til "
+"at tilføje personer med ansvar for opgaver."
+
+msgid "No phone paired yet."
+msgstr "Ingen telefon er parret endnu."
+
+msgid "No phone pairing is awaiting confirmation."
+msgstr "Ingen telefonparring afventer bekræftelse."
+
+msgid "No photo"
+msgstr "Intet foto"
+
+msgid "No photo selected"
+msgstr "Intet foto valgt"
+
+msgid "No public IP address was found."
+msgstr "Der blev ikke fundet nogen offentlig IP-adresse."
+
+msgid ""
+"No regional data is retrieved without a selected canton. With “All”, each "
+"entry shows its canton and matching periods are combined."
+msgstr ""
+"Der hentes ingen regionale data uden en valgt kanton. Med „Alle“ viser hver "
+"post sin kanton, og sammenfaldende perioder slås sammen."
+
+msgid ""
+"No regional data is retrieved without a selected state. With “All”, each "
+"entry shows its state and matching periods are combined."
+msgstr ""
+"Der hentes ingen regionale data uden en valgt delstat. Med „Alle“ viser hver "
+"post sin delstat, og sammenfaldende perioder slås sammen."
+
+msgid "No scheme row matches this blood glucose value."
+msgstr "Ingen skemarække matcher denne blodsukkerværdi."
+
+msgid "No sheet is open."
+msgstr "Intet ark er åbent."
+
+msgid "No shift"
+msgstr "Ingen vagt"
+
+msgid "No snapshots yet."
+msgstr "Ingen øjebliksbilleder endnu."
+
+msgid "No spam check available"
+msgstr "Ingen spamkontrol tilgængelig"
+
+msgid "No suggestions found."
+msgstr "Ingen forslag fundet."
+
+msgid "No system-paired Bluetooth device found"
+msgstr "Der blev ikke fundet nogen systemparret Bluetooth-enhed"
+
+msgid "No table (history only)"
+msgstr "Ingen tabel (kun forløb)"
+
+msgid "No task linked yet."
+msgstr "Der er endnu ikke tilknyttet nogen opgave."
+
+msgid "No update check has been performed yet."
+msgstr "Der er endnu ikke udført nogen opdateringskontrol."
+
+msgid "No word was provided."
+msgstr "Der blev ikke angivet noget ord."
+
+msgid "None"
+msgstr "Ingen"
+
+msgid "Noon"
+msgstr "Middag"
+
+msgid "Normal"
+msgstr "Normal"
+
+msgid "North Rhine-Westphalia"
+msgstr "Nordrhein-Westfalen"
+
+msgid ""
+"Not all systems allow waking from suspend. If it does not work, the reminder "
+"appears as soon as the computer is running again."
+msgstr ""
+"Ikke alle systemer kan vækkes fra slumretilstand. Hvis det ikke virker, "
+"vises påmindelsen, så snart computeren kører igen."
+
+msgid "Not charging"
+msgstr "Oplader ikke"
+
+msgid "Not now"
+msgstr "Ikke nu"
+
+msgid "Not sent."
+msgstr "Ikke sendt."
+
+msgid "Not signed in to Microsoft yet."
+msgstr "Ikke logget på Microsoft endnu."
+
+msgid "Note"
+msgstr "Bemærkning"
+
+msgid "Note text"
+msgstr "Notetekst"
+
+msgid "Notebook"
+msgstr "Notesbog"
+
+msgid "Notebook group"
+msgstr "Notesbogsgruppe"
+
+msgid "Notebooks"
+msgstr "Notesbog"
+
+msgid "Notes"
+msgstr "Noter"
+
+msgid "Notes and special instructions"
+msgstr "Bemærkninger og særlige anvisninger"
+
+msgid "Nothing found."
+msgstr "Intet fundet."
+
+msgid "Nothing has been entered under “%(letter)s” yet."
+msgstr "Der er endnu ikke indtastet noget under „%(letter)s“."
+
+msgid "Nothing is opened or sent while this option is disabled."
+msgstr "Der åbnes eller sendes intet, mens denne indstilling er deaktiveret."
+
+msgid "Nothing new was found."
+msgstr "Der blev ikke fundet noget nyt."
+
+msgid "Notice: The connection to storage was not confirmed."
+msgstr "Bemærk: Forbindelsen til lageret blev ikke bekræftet."
+
+msgid "Notification and sound"
+msgstr "Meddelelse og lyd"
+
+msgid "Notifications"
+msgstr "Meddelelser"
+
+msgid "Notifications are available only in the installed application."
+msgstr "Meddelelser er kun tilgængelige i det installerede program."
+
+msgid ""
+"Notifications are display-only; replying and remote actions are not "
+"available."
+msgstr ""
+"Notifikationer kan kun vises. Det er ikke muligt at svare eller udføre "
+"fjernhandlinger."
+
+msgid "Notify me about incoming calls"
+msgstr "Giv mig besked om indgående opkald"
+
+msgid "ODS"
+msgstr "ODS"
+
+msgid "OK"
+msgstr "OK"
+
+msgid "Objects"
+msgstr "Objekter"
+
+msgid "Obwalden"
+msgstr "Obwalden"
+
+msgid "Off"
+msgstr "Fra"
+
+msgid "Offline"
+msgstr "Offline"
+
+msgid "Ointment"
+msgstr "Salve"
+
+msgid "One address book"
+msgstr "One address book"
+
+msgid "One backup could not be updated."
+msgid_plural "%(count)s backups could not be updated."
+msgstr[0] "Én sikkerhedskopi kunne ikke opdateres."
+msgstr[1] "%(count)s sikkerhedskopier kunne ikke opdateres."
+
+msgid "One completion update was received from the Magnolienbaum."
+msgid_plural ""
+"%(count)s completion updates were received from the Magnolienbaum."
+msgstr[0] "Én opdatering om fuldførelse blev modtaget fra Magnolienbaum."
+msgstr[1] ""
+"%(count)s opdateringer om fuldførelse blev modtaget fra Magnolienbaum."
+
+msgid "One duplicate contact card was"
+msgid_plural "%(count)s duplicate contact cards were"
+msgstr[0] "Der var ét dubleret kontaktkort"
+msgstr[1] "Der var %(count)s dublerede kontaktkort"
+
+msgid "One moment …"
+msgstr "Et øjeblik …"
+
+msgid "One moment…"
+msgstr "Et øjeblik…"
+
+msgid "One shared note was updated."
+msgid_plural "%(count)s shared notes were updated."
+msgstr[0] "Én delt note blev opdateret."
+msgstr[1] "%(count)s delte noter blev opdateret."
+
+msgid "One table with chart"
+msgstr "Én tabel med diagram"
+
+msgid "One year"
+msgstr "Et år"
+
+msgid "Online"
+msgstr "Online"
+
+msgid ""
+"Online account integration is not available on this system. Install it "
+"with:  sudo apt install %(packages)s, then restart the application. You can "
+"also import contacts and appointments without this integration using “From "
+"this computer” above."
+msgstr ""
+"Integration af onlinekonti er ikke tilgængelig på dette system. Installer "
+"den med:  sudo apt install %(packages)s, og genstart derefter programmet. Du "
+"kan også importere kontakter og aftaler uden denne integration ved at bruge "
+"„Fra denne computer“ ovenfor."
+
+msgid "Online via Bluetooth data"
+msgstr "Online via Bluetooth-data"
+
+msgid "Online via WLAN"
+msgstr "Online via WLAN"
+
+msgid "Only 'Replace completely' is supported."
+msgstr "Kun 'Erstat helt' er understøttet."
+
+msgid ""
+"Only HTTPS. Create an app password in Nextcloud under Settings, Security. "
+"Your account password is never used."
+msgstr ""
+"Kun HTTPS. Opret en app-adgangskode i Nextcloud under Indstillinger, "
+"Sikkerhed. Din kontoadgangskode bruges aldrig."
+
+msgid ""
+"Only one Magnolie Notes phone can be paired. Remove the existing phone "
+"before changing devices."
+msgstr ""
+"Kun én Magnolie Notes-telefon kan parres. Fjern den eksisterende telefon, "
+"før du skifter enhed."
+
+msgid ""
+"Only the reliable system notification is available under Wayland; the "
+"Magnolie paper style would often remain invisible there."
+msgstr ""
+"Under Wayland er kun den pålidelige systemmeddelelse tilgængelig; Magnolies "
+"papirstil ville ofte forblive usynlig der."
+
+msgid "Open"
+msgstr "Åbn"
+
+msgid "Open %(name)s"
+msgstr "Åbn %(name)s"
+
+msgid "Open %(service)s for this contact"
+msgstr "Åbn %(service)s for denne kontakt"
+
+msgid ""
+"Open KDE Connect on the phone and start pairing. Compare the eight-character "
+"verification key and confirm on both devices."
+msgstr ""
+"Åbn KDE Connect på telefonen, og start parringen. Sammenlign "
+"bekræftelsesnøglen på otte tegn, og bekræft på begge enheder."
+
+msgid "Open Magnolie Organizer"
+msgstr "Åbn Magnolie Organizer"
+
+msgid "Open Magnolienbaum pairing file"
+msgstr "Åbn Magnolienbaum-parringsfil"
+
+msgid "Open Microsoft sign-in page"
+msgstr "Åbn Microsofts login-side"
+
+msgid "Open day view for %(date)s"
+msgstr "Åbn dagsvisning for %(date)s"
+
+msgid "Open manual"
+msgstr "Åbn håndbog"
+
+msgid "Open maps with"
+msgstr "Åbn kort med"
+
+msgid "Open medication index"
+msgstr "Åbn lægemiddelindekset"
+
+msgid "Open organizer"
+msgstr "Åbn organizer"
+
+msgid "Open phone connection in Magnolie Notes and select this computer."
+msgstr "Åbn telefonforbindelsen i Magnolie Notes, og vælg denne computer."
+
+msgid "Open planner as an ODS spreadsheet"
+msgstr "Åbn planlægger som ODS-regneark"
+
+msgid "Open selected contacts as an ODS spreadsheet"
+msgstr "Åbn valgte kontakter som ODS-regneark"
+
+msgid "Open selected health records as an ODS spreadsheet"
+msgstr "Åbn valgte sundhedsoptegnelser som et ODS-regneark"
+
+msgid "Open task"
+msgstr "Åben"
+
+msgid "Open the day in the daily view"
+msgstr "Åbn dagen i dagsvisningen"
+
+msgid ""
+"Open the verified DEB with your software manager; the organizer never "
+"installs it automatically."
+msgstr ""
+"Åbn den verificerede DEB-pakke med din softwarehåndtering. Organisatoren "
+"installerer den aldrig automatisk."
+
+msgid "Open this address as a letter in LibreOffice"
+msgstr "Åbn denne adresse som et brev i LibreOffice"
+
+msgid "Open this day"
+msgstr "Åbn denne dag"
+
+msgid "Open year"
+msgstr "Åbn år"
+
+msgid "Open year in planner"
+msgstr "Åbn år i planlægger"
+
+msgid "OpenStreetMap in the browser"
+msgstr "OpenStreetMap i browseren"
+
+msgid "Opened in %(application)s."
+msgstr "Åbnet i %(application)s."
+
+msgid "Operating system"
+msgstr "Operativsystem"
+
+msgid "Optional archive password"
+msgstr "Valgfri arkivadgangskode"
+
+msgid "Organic waste"
+msgstr "Bioaffald"
+
+msgid "Organizer"
+msgstr "Arrangør"
+
+msgid "Organizer style (paper sheet)"
+msgstr "Organizer-stil (papirark)"
+
+msgid "Organizer · Calendar · Contacts · Notes"
+msgstr "Organizer · Kalender · Kontakter · Noter"
+
+msgid "Other"
+msgstr "Andet"
+
+msgctxt "email type"
+msgid "Other"
+msgstr "Andet"
+
+msgctxt "relationship"
+msgid "Other"
+msgstr "Andet"
+
+msgid "Other addresses"
+msgstr "Andre adresser"
+
+msgid "Other phone numbers"
+msgstr "Andre telefonnumre"
+
+msgid "Outgoing"
+msgstr "Udgående"
+
+msgid "Outlook.com / Microsoft 365"
+msgstr "Outlook.com / Microsoft 365"
+
+msgid "Ovulation"
+msgstr "Ægløsning"
+
+msgid "Own internet IP"
+msgstr "Egen internet-IP"
+
+msgid "PDF file"
+msgstr "PDF-fil"
+
+msgid "Packaging / Yellow bin"
+msgstr "Emballage / gul beholder"
+
+msgid "Page %(page)s"
+msgstr "Side %(page)s"
+
+msgid "Page %(page)s of %(count)s"
+msgstr "Side %(page)s af %(count)s"
+
+msgid "Pages"
+msgstr "Sider"
+
+msgid "Pain"
+msgstr "Smerter"
+
+msgid "Pair KDE Connect phone"
+msgstr "Par KDE Connect telefon"
+
+msgid "Pairing failed:"
+msgstr "Parring mislykkedes:"
+
+msgid "Pairing file"
+msgstr "Parringsfil"
+
+msgid "Pairing file saved to: %(path)s"
+msgstr "Parringsfil gemt i: %(path)s"
+
+msgid ""
+"Pairing was rejected cryptographically. The confirmation code, pairing code, "
+"or phone key does not match. Restart pairing on both devices."
+msgstr ""
+"Parring blev afvist kryptografisk. Bekræftelseskoden, parringskoden eller "
+"telefonnøglen stemmer ikke overens. Genstart parring på begge enheder."
+
+msgid "Palm tree"
+msgstr "Palme"
+
+msgid ""
+"Participate in the Magnolienbaum (opens port %(port)s on the local network)"
+msgstr "Deltag i Magnolienbaum (åbner port %(port)s på det lokale netværk)"
+
+msgid "Partnership anniversary"
+msgstr "Årsdag for parforhold"
+
+msgid "Password"
+msgstr "Adgangskode"
+
+msgid "Password or numeric code"
+msgstr "Adgangskode eller talkode"
+
+msgid "Password protection"
+msgstr "Adgangskodebeskyttelse"
+
+msgid "Password protection is available only in the installed application."
+msgstr "Adgangskodebeskyttelse er kun tilgængelig i det installerede program."
+
+msgid "Password protection is enabled – your data is encrypted."
+msgstr "Adgangskodebeskyttelse er aktiveret – dine data er krypteret."
+
+msgid "Password protection is enabled. Your data is now encrypted"
+msgstr "Adgangskodebeskyttelse er aktiveret. Dine data er nu krypteret"
+
+msgid "Password protection was removed."
+msgstr "Adgangskodebeskyttelsen blev fjernet."
+
+msgid "Paste"
+msgstr "Indsæt"
+
+msgid "Patch"
+msgstr "Plaster"
+
+msgid "Pay invoice"
+msgstr "Betal faktura"
+
+msgid "Pen"
+msgstr "Pen"
+
+msgid "People"
+msgstr "Personer"
+
+msgid "Period"
+msgstr "Periode"
+
+msgid "Permanent KDE listener active"
+msgstr "Permanent KDE-lytter aktiv"
+
+msgid "Permanent KDE listener stopped"
+msgstr "Permanent KDE-lytter stoppet"
+
+msgid "Permanently delete %(count)s completed task?"
+msgid_plural "Permanently delete %(count)s completed tasks?"
+msgstr[0] "Slet %(count)s fuldført opgave permanent?"
+msgstr[1] "Slet %(count)s fuldførte opgaver permanent?"
+
+msgid "Permanently delete %(count)s selected health record?"
+msgid_plural "Permanently delete %(count)s selected health records?"
+msgstr[0] "Vil du slette %(count)s valgt sundhedsoptegnelse permanent?"
+msgstr[1] "Vil du slette %(count)s valgte sundhedsoptegnelser permanent?"
+
+msgid "Permanently delete selected health records"
+msgstr "Slet valgte sundhedsoptegnelser permanent"
+
+msgid "Permanently delete the one item? This cannot be undone."
+msgid_plural "Permanently delete all %(count)s items? This cannot be undone."
+msgstr[0] "Slet det ene element permanent? Dette kan ikke fortrydes."
+msgstr[1] "Slet alle %(count)s elementer permanent? Dette kan ikke fortrydes."
+
+msgid "Person"
+msgstr "Person"
+
+msgid "Person's name"
+msgstr "Personens navn"
+
+msgid ""
+"Personal data over Magnolie Notes, not Magnolienbaum. Deletions always "
+"require confirmation."
+msgstr ""
+"Personlige data overføres via Magnolie Notes, ikke Magnolienbaum. Bilag og "
+"sletninger synkroniseres ikke."
+
+msgid "Personal synchronization"
+msgstr "Kontaktsynkronisering"
+
+msgid "Personal synchronization batches are missing."
+msgstr "Der mangler personlige synkroniseringsbatches."
+
+msgid "Personal synchronization complete. Deletions are not synchronized yet."
+msgstr ""
+"Personlig synkronisering fuldført. Sletninger synkroniseres endnu ikke."
+
+msgid "Personal synchronization failed."
+msgstr "Synkronisering mislykkedes."
+
+msgid "Personal synchronization format 2 was not negotiated."
+msgstr "Personligt synkroniseringsformat 2 blev ikke forhandlet."
+
+msgid "Personal synchronization is not permitted on both devices."
+msgstr "Personlig synkronisering er ikke tilladt på begge enheder."
+
+msgid "Phone"
+msgstr "Telefon"
+
+msgid "Phone battery"
+msgstr "Phone battery"
+
+msgid "Phone call"
+msgstr "Telefonopkald"
+
+msgid "Phone error: %(error)s"
+msgstr "Telefonfejl: %(error)s"
+
+msgid "Phone number"
+msgstr "Telefonnummer"
+
+msgid "Phone numbers"
+msgstr "Telefonnumre"
+
+msgid "Phone pairing failed."
+msgstr "Telefonparring mislykkedes."
+
+msgid "Phone “%(name)s” is securely paired."
+msgstr "Telefonen “%(name)s” er sikkert parret."
+
+msgid "Phones"
+msgstr "Telefoner"
+
+msgid "Photo"
+msgstr "Foto"
+
+msgid "Photo available"
+msgstr "Foto tilgængeligt"
+
+msgid "Photo of %(name)s"
+msgstr "Foto af %(name)s"
+
+msgid "Pick up"
+msgstr "Afhentning"
+
+msgid "Planner"
+msgstr "Planlægger"
+
+msgid "Please create a notebook in another group first."
+msgstr "Opret først en notesbog i en anden gruppe."
+
+msgid "Please enter a four-digit year from 1000 onwards."
+msgstr "Indtast et firecifret årstal fra og med 1000."
+
+msgid "Please enter a name."
+msgstr "Indtast et navn."
+
+msgid "Please enter a realistic value."
+msgstr "Indtast en realistisk værdi."
+
+msgid "Please enter a title and date for every new appointment."
+msgstr "Indtast titel og dato for hver ny aftale."
+
+msgid "Please enter a title for every new task."
+msgstr "Indtast en titel for hver ny opgave."
+
+msgid "Please enter a title."
+msgstr "Indtast en titel."
+
+msgid "Please enter a website or application for the custom action."
+msgstr "Indtast et websted eller program til den brugerdefinerede handling."
+
+msgid "Please enter an address."
+msgstr "Indtast en adresse."
+
+msgid "Please enter at least a name or company."
+msgstr "Indtast mindst et navn eller en virksomhed."
+
+msgid "Please enter the internet IP and fingerprint in full."
+msgstr "Indtast internet-IP og fingeraftryk fuldstændigt."
+
+msgid "Please select a PDF file."
+msgstr "Vælg en PDF-fil."
+
+msgid "Please select a date."
+msgstr "Vælg en dato."
+
+msgid "Please select a file first."
+msgstr "Vælg først en fil."
+
+msgid "Please select an image file."
+msgstr "Vælg en billedfil."
+
+msgid "Please select an image in JPEG, PNG, WebP, or GIF format."
+msgstr "Vælg et billede i formatet JPEG, PNG, WebP eller GIF."
+
+msgid "Please unlock"
+msgstr "Lås op først"
+
+msgid "Poland"
+msgstr "Polen"
+
+msgid "Possible duplicates among local and incoming contacts"
+msgstr "Mulige dubletter blandt lokale og indgående kontakter"
+
+msgid "Possible spam"
+msgstr "Possible spam"
+
+msgid "Postal address"
+msgstr "Postadresse"
+
+msgid "Postal code"
+msgstr "Postnummer"
+
+msgid "Postal code / city"
+msgstr "Postnummer / by"
+
+msgid "Powder"
+msgstr "Pulver"
+
+msgid "Power source"
+msgstr "Power source"
+
+msgid "Preparing Microsoft sign-in …"
+msgstr "Forbereder Microsoft-logon..."
+
+msgid "Preview"
+msgstr "Eksempel"
+
+msgid "Preview failed."
+msgstr "Eksempel mislykkedes."
+
+msgid "Preview, print or export the year planner"
+msgstr "Vis, udskriv eller eksportér årsplanen"
+
+msgid "Preview:"
+msgstr "Forhåndsvisning:"
+
+msgid "Previous month"
+msgstr "Forrige måned"
+
+msgid "Previous page"
+msgstr "Forrige side"
+
+msgid "Previous tab"
+msgstr "Forrige fane"
+
+msgid "Previous table page"
+msgstr "Forrige tabelside"
+
+msgid "Previous week"
+msgstr "Forrige uge"
+
+msgid "Previous window state"
+msgstr "Forrige vinduestilstand"
+
+msgid "Previous year"
+msgstr "Forrige år"
+
+msgid "Print"
+msgstr "Udskriv"
+
+msgid "Print dialog"
+msgstr "Udskriftsdialog"
+
+msgid "Print now"
+msgstr "Udskriv nu"
+
+msgid "Print preview"
+msgstr "Vis udskrift"
+
+msgid "Print · %(title)s"
+msgstr "Udskriv · %(title)s"
+
+msgid "Print · Health"
+msgstr "Udskriv · Sundhed"
+
+msgid "Priority"
+msgstr "Prioritet"
+
+msgid "Priority 1 is listed first. Overdue tasks are shown in red."
+msgstr "Prioritet 1 står først. Forfaldne opgaver vises med rødt."
+
+msgid "Private"
+msgstr "Privat"
+
+msgid ""
+"Private, integrity-checked snapshots are stored next to the application data."
+msgstr ""
+"Private, integritetskontrollerede øjebliksbilleder gemmes ved siden af "
+"programdataene."
+
+msgid "Public IPv4 or IPv6 address of the other branch"
+msgstr "Offentlig IPv4- eller IPv6-adresse på den anden gren"
+
+msgid ""
+"Public holidays and school holidays are governed regionally. Choose which "
+"ones apply here."
+msgstr ""
+"Helligdage og skoleferier bestemmes regionalt. Vælg dem, der gælder her."
+
+msgid "Pulse"
+msgstr "Puls"
+
+msgid ""
+"Pulse\n"
+"S/min"
+msgstr ""
+"Puls\n"
+"S/min"
+
+msgid "QR code"
+msgstr "QR-kode"
+
+msgid "Queue: %(open)s of %(count)s transmission awaits delivery."
+msgid_plural "Queue: %(open)s of %(count)s transmissions await delivery."
+msgstr[0] "Kø: %(open)s af %(count)s overførsel afventer levering."
+msgstr[1] "Kø: %(open)s af %(count)s overførsler afventer levering."
+
+msgid "Queued"
+msgstr "I kø"
+
+msgid "Quit"
+msgstr "Afslut"
+
+msgid "Reachable IPv4 or IPv6 address of this computer"
+msgstr "Tilgængelig IPv4- eller IPv6-adresse på denne computer"
+
+msgid "Ready."
+msgstr "Klar."
+
+msgid ""
+"Really merge %(cards)s? Review the result carefully afterwards. A copy of "
+"every removed card is kept in the recycle bin."
+msgstr ""
+"Flet virkelig %(cards)s? Gennemgå bagefter resultatet omhyggeligt. En kopi "
+"af hvert fjernet kort gemmes i papirkurven."
+
+msgid "Reason"
+msgstr "Årsag"
+
+msgid "Reconnect"
+msgstr "Tilslut igen"
+
+msgid "Recovery snapshot created."
+msgstr "Gendannelsesøjebliksbillede oprettet."
+
+msgid "Recovery snapshot deleted."
+msgstr "Gendannelsesøjebliksbillede slettet."
+
+msgid "Recovery snapshots"
+msgstr "Gendannelsesøjebliksbilleder"
+
+msgid "Recycle bin"
+msgstr "Papirkurv"
+
+msgid "Refresh"
+msgstr "Opdatér"
+
+msgid "Reject"
+msgstr "Afvis"
+
+msgid "Reject this offer permanently?"
+msgstr "Afvis dette tilbud permanent?"
+
+msgid "Related tasks"
+msgstr "Relaterede opgaver"
+
+msgid "Remind me again on the day itself"
+msgstr "Påmind mig igen på selve dagen"
+
+msgid "Reminder data:"
+msgstr "Påmindelsesdata:"
+
+msgid "Reminder runtime:"
+msgstr "Påmindelse køretid:"
+
+msgid "Reminders"
+msgstr "Påmindelser"
+
+msgid ""
+"Reminders outside the application are available only in the installed "
+"version."
+msgstr ""
+"Påmindelser uden for programmet er kun tilgængelige i den installerede "
+"version."
+
+msgid "Remote host name or IP address (optional)"
+msgstr "Fjernværtsnavn eller IP-adresse (valgfrit)"
+
+msgid "Remove"
+msgstr "Fjern"
+
+msgid "Remove address"
+msgstr "Fjern adresse"
+
+msgid "Remove all public holidays and school holidays from the organizer?"
+msgstr "Fjern alle helligdage og skoleferier fra organizeren?"
+
+msgid "Remove appointment"
+msgstr "Fjern aftale"
+
+msgid "Remove connection"
+msgstr "Fjern forbindelse"
+
+msgid "Remove email address"
+msgstr "Fjern e-mailadresse"
+
+msgid "Remove embedded file “%(name)s”?"
+msgstr "Fjern den indlejrede fil „%(name)s“?"
+
+msgid "Remove emergency contact"
+msgstr "Fjern nødkontakt"
+
+msgid "Remove entries"
+msgstr "Fjern poster"
+
+msgid "Remove event"
+msgstr "Fjern begivenhed"
+
+msgid "Remove password protection"
+msgstr "Fjern adgangskodebeskyttelse"
+
+msgid ""
+"Remove password protection? Your data will then be stored unencrypted in "
+"your home directory again."
+msgstr ""
+"Fjern adgangskodebeskyttelse? Dine data gemmes derefter igen ukrypteret i "
+"din hjemmemappe."
+
+msgid "Remove phone connection"
+msgstr "Fjern telefonforbindelse"
+
+msgid "Remove phone number"
+msgstr "Fjern telefonnummer"
+
+msgid "Remove photo"
+msgstr "Fjern foto"
+
+msgid "Remove social medium"
+msgstr "Fjern socialt medie"
+
+msgid "Remove task"
+msgstr "Fjern opgave"
+
+msgid "Remove the connection to “%(branch)s”?"
+msgstr "Fjern forbindelsen til „%(branch)s“?"
+
+msgid "Remove this phone connection and its queues and permissions?"
+msgstr "Fjern denne telefonforbindelse samt dens køer og tilladelser?"
+
+msgid ""
+"Remove “%(name)s”? Their tasks will be kept but will no longer be assigned "
+"to anyone."
+msgstr ""
+"Fjern „%(name)s“? Personens opgaver bevares, men vil ikke længere være "
+"tildelt nogen."
+
+msgid ""
+"Renew KDE Connect pairing? Only KDE trust for this phone will be removed and "
+"rebuilt. Magnolie Notes, notes and chat history remain unchanged."
+msgstr ""
+"Forny KDE Connect-parring? Kun KDE-tilliden for denne telefon fjernes og "
+"genopbygges. Magnolie Notes, noter og chathistorik forbliver uændrede."
+
+msgid "Renew pairing"
+msgstr "Renew pairing"
+
+msgid "Repeat for confirmation"
+msgstr "Gentag for at bekræfte"
+
+msgid "Replace completely"
+msgstr "Udskift helt"
+
+msgid ""
+"Requires existing pairing in Windows Settings under Bluetooth & devices. "
+"Data only, no HFP audio."
+msgstr ""
+"Kræver en eksisterende parring i Windows-indstillinger under Bluetooth og "
+"enheder. Kun data, ingen HFP-lyd."
+
+msgid "Reset"
+msgstr "Reset"
+
+msgid "Residual waste"
+msgstr "Restaffald"
+
+msgid "Responsible"
+msgstr "Ansvarlig"
+
+msgid "Restore"
+msgstr "Gendan"
+
+msgid "Restore backup"
+msgstr "Gendan sikkerhedskopi"
+
+msgid "Restore backup …"
+msgstr "Gendan sikkerhedskopi …"
+
+msgid "Restore completely"
+msgstr "Gendan helt"
+
+msgid "Restore failed."
+msgstr "Gendannelse mislykkedes."
+
+msgid ""
+"Restore this snapshot completely? A mandatory pre-restore snapshot is "
+"created first."
+msgstr ""
+"Gendan dette øjebliksbillede helt? Der oprettes først et obligatorisk "
+"øjebliksbillede før gendannelsen."
+
+msgid "Restoring backups is available only in the installed application."
+msgstr ""
+"Gendannelse af sikkerhedskopier er kun tilgængelig i det installerede "
+"program."
+
+msgid "Retrieval failed."
+msgstr "Hentning mislykkedes."
+
+msgid "Retrieve now"
+msgstr "Hent nu"
+
+msgid "Retrieve public holidays and school holidays"
+msgstr "Hent helligdage og skoleferier"
+
+msgid "Retrieved on %(date)s."
+msgstr "Hentet den %(date)s."
+
+msgid "Retrieving holidays …"
+msgstr "Henter helligdage …"
+
+msgid "Retrieving manual download information …"
+msgstr "Henter oplysninger om manuel download …"
+
+msgid "Retrieving weather…"
+msgstr "Henter vejr…"
+
+msgid "Rhineland-Palatinate"
+msgstr "Rheinland-Pfalz"
+
+msgid "Route"
+msgstr "Rute"
+
+msgid "Route: calculate directions immediately"
+msgstr "Rute: beregn vejbeskrivelse med det samme"
+
+msgid ""
+"Run the downloaded installer visibly and keep the Manual component selected."
+msgstr ""
+"Kør det hentede installationsprogram synligt, og behold komponenten Manual "
+"valgt."
+
+msgid "S"
+msgstr "S"
+
+msgid "SMS assignment"
+msgstr "SMS opgave"
+
+msgid "SMS details"
+msgstr "SMS detaljer"
+
+msgid "SMS from %(name)s"
+msgstr "SMS fra %(name)s"
+
+msgid "SMS history"
+msgstr "SMS historie"
+
+msgid "SMS settings"
+msgstr "SMS indstillinger"
+
+msgid "SMS text was adjusted:"
+msgstr "SMS-teksten blev tilpasset:"
+
+msgid "SMS to %(name)s"
+msgstr "SMS til %(name)s"
+
+msgid "Saarland"
+msgstr "Saarland"
+
+msgid "Salzburg"
+msgstr "Salzburg"
+
+msgid "Saturday"
+msgstr "Lørdag"
+
+msgid "Save"
+msgstr "Gem"
+
+msgid "Save Magnolienbaum pairing file"
+msgstr "Gem Magnolienbaum-parringsfil"
+
+msgid "Save as…"
+msgstr "Gem som…"
+
+msgid "Save changes"
+msgstr "Gem ændringer"
+
+msgctxt "contact action"
+msgid "Save changes"
+msgstr "Gem ændringer"
+
+msgid "Save changes?"
+msgstr "Gem ændringer?"
+
+msgid "Save endpoint"
+msgstr "Save endpoint"
+
+msgid "Save rejected: The data is encrypted and has not been unlocked yet."
+msgstr "Gemning afvist: Dataene er krypteret og er endnu ikke låst op."
+
+msgid "Save your Microsoft OAuth client ID first."
+msgstr "Gem først dit Microsoft OAuth-klient-id."
+
+msgid "Saved"
+msgstr "Gemt"
+
+msgid "Saved to: %(path)s (%(count)s entry)"
+msgid_plural "Saved to: %(path)s (%(count)s entries)"
+msgstr[0] "Gemt i: %(path)s (%(count)s post)"
+msgstr[1] "Gemt i: %(path)s (%(count)s poster)"
+
+msgid "Saved ✓ %(time)s"
+msgstr "Gemt ✓ %(time)s"
+
+msgid "Saved."
+msgstr "Gemt."
+
+msgid "Saving failed!"
+msgstr "Gemning mislykkedes!"
+
+msgid "Saving …"
+msgstr "Gemmer …"
+
+msgid "Saxony"
+msgstr "Sachsen"
+
+msgid "Saxony-Anhalt"
+msgstr "Sachsen-Anhalt"
+
+msgid "Schaffhausen"
+msgstr "Schaffhausen"
+
+msgid "Schedule an appointment"
+msgstr "Planlæg en aftale"
+
+msgid "Scheduled"
+msgstr "Planlagt"
+
+msgid "Scheme"
+msgstr "Scheme"
+
+msgid "Schleswig-Holstein"
+msgstr "Schleswig-Holstein"
+
+msgid "Schwyz"
+msgstr "Schwyz"
+
+msgid "Screen notification only"
+msgstr "Kun skærmmeddelelse"
+
+msgid "Scrolling up makes the time earlier"
+msgstr "Rulning opad gør klokkeslættet tidligere"
+
+msgid "Scrolling up makes the time later"
+msgstr "Rulning opad gør klokkeslættet senere"
+
+msgid "Search"
+msgstr "Søg"
+
+msgid "Search local network"
+msgstr "Søg på lokalnetværket"
+
+msgid "Search title, date, or note…"
+msgstr "Søg i titel, dato eller note…"
+
+msgid "Searching for suggestions…"
+msgstr "Søger efter forslag…"
+
+msgid "Searching…"
+msgstr "Søger…"
+
+msgid "Search…"
+msgstr "Søg…"
+
+msgid "Secondary office"
+msgstr "Sekundært kontor"
+
+msgid "Secure HTTPS address"
+msgstr "Sikker HTTPS-adresse"
+
+msgid "Securely connected to %(branch)s."
+msgstr "Sikkert forbundet til %(branch)s."
+
+msgid "Security"
+msgstr "Sikkerhed"
+
+msgid "Select a country first."
+msgstr "Vælg først et land."
+
+msgid "Select all"
+msgstr "Vælg alle"
+
+msgid ""
+"Select an entry on the left,\n"
+"or create a contact card with New."
+msgstr ""
+"Vælg en post til venstre,\n"
+"eller opret et kontaktkort med Ny."
+
+msgid "Select at least one column."
+msgstr "Vælg mindst én kolonne."
+
+msgid "Select at least one year."
+msgstr "Vælg mindst ét år."
+
+msgid "Select backup folder"
+msgstr "Vælg mappe til sikkerhedskopier"
+
+msgid "Select something first."
+msgstr "Vælg først noget."
+
+msgid "Select what you want to print on the left."
+msgstr "Vælg til venstre, hvad du vil udskrive."
+
+msgid "Select your canton first or enable “All cantons”."
+msgstr "Vælg først din kanton, eller aktivér „Alle kantoner“."
+
+msgid "Select your state first or enable “All states”."
+msgstr "Vælg først din delstat, eller aktivér „Alle delstater“."
+
+msgid "Select, preview, print, export or delete health records"
+msgstr "Vælg, forhåndsvis, udskriv, eksportér eller slet sundhedsoptegnelser"
+
+msgid ""
+"Selected columns that are empty for every contact are omitted automatically."
+msgstr "Valgte kolonner, der er tomme for alle kontakter, udelades automatisk."
+
+msgid "Selected notifications"
+msgstr "Valgte notifikationer"
+
+msgid "Selection options"
+msgstr "Valgmuligheder"
+
+msgid "Send SMS"
+msgstr "Send SMS"
+
+msgid "Send adjusted text"
+msgstr "Send adjusted text"
+
+msgid "Send documents"
+msgstr "Send dokumenter"
+
+msgid "Send secure request"
+msgstr "Send sikker anmodning"
+
+msgid "Sent"
+msgstr "Sendt"
+
+msgid "Server address"
+msgstr "Serveradresse"
+
+msgid "Server address and user name are required."
+msgstr "Serveradresse og brugernavn er påkrævet."
+
+msgid "Set varying doses by weekday"
+msgstr "Angiv forskellige doser efter ugedag"
+
+msgid "Setting up reminders …"
+msgstr "Konfigurerer påmindelser …"
+
+msgid "Settings"
+msgstr "Indstillinger"
+
+msgid "Several Magnolie Organizers can connect and securely share tasks."
+msgstr ""
+"Flere Magnolie Organizere kan oprette forbindelse og dele opgaver sikkert."
+
+msgid "Share"
+msgstr "Del"
+
+msgid "Share address"
+msgstr "Del adresse"
+
+msgid "Share appointment"
+msgstr "Del aftale"
+
+msgid "Share this entry explicitly with %(branch)s?"
+msgstr "Del denne post udtrykkeligt med %(branch)s?"
+
+msgid "Share this entry explicitly with the workgroup?"
+msgstr "Del denne post udtrykkeligt med arbejdsgruppen?"
+
+msgid "Share this entry explicitly with this branch?"
+msgstr "Del denne post udtrykkeligt med denne gren?"
+
+msgid "Share together"
+msgstr "Del sammen"
+
+msgid "Shared credentials"
+msgstr "Shared credentials"
+
+msgid "Shared note"
+msgstr "Delt note"
+
+msgid "Shift planner"
+msgstr "Vagtplan"
+
+msgid "Shopping"
+msgstr "Indkøb"
+
+msgid "Short-acting insulin"
+msgstr "Korttidsvirkende insulin"
+
+msgid "Show Health after Planner"
+msgstr "Vis Sundhed efter Planlægger"
+
+msgid "Show all"
+msgstr "Vis alle"
+
+msgid "Show calendar button in date fields"
+msgstr "Vis kalenderknap i datofelter"
+
+msgid "Show log"
+msgstr "Vis log"
+
+msgid "Show more"
+msgstr "Vis mere"
+
+msgid "Show preview"
+msgstr "Vis forhåndsvisning"
+
+msgid "Show selected notifications (read only)"
+msgstr "Vis valgte notifikationer (skrivebeskyttet)"
+
+msgid "Show social media and communication icons"
+msgstr "Vis ikoner for sociale medier og kommunikation"
+
+msgid "Show symbol in calendar"
+msgstr "Vis symbol i kalenderen"
+
+msgid "Show the “Letter” button (LibreOffice)"
+msgstr "Vis knappen „Brev“ (LibreOffice)"
+
+msgid "Show the “Map” button"
+msgstr "Vis knappen „Kort“"
+
+msgid "Show the “Selection options” button"
+msgstr "Vis knappen „Valgmuligheder“"
+
+msgid "Show this address on the map"
+msgstr "Vis denne adresse på kortet"
+
+msgid "Show today's notification count on the tray icon"
+msgstr "Vis antallet af dagens meddelelser på panelikonet"
+
+msgid "Show weather for the next three days"
+msgstr "Vis vejret for de næste tre dage"
+
+msgid "Show week numbers in the monthly view"
+msgstr "Vis ugenumre i månedsvisningen"
+
+msgid "Show week numbers in the planner"
+msgstr "Vis ugenumre i planlæggeren"
+
+msgid "Sign in to Microsoft"
+msgstr "Log ind på Microsoft"
+
+msgid "Sign in to Microsoft first."
+msgstr "Log først ind på Microsoft."
+
+msgid "Sign out"
+msgstr "Log ud"
+
+msgid "Sign-in URL: %(url)s"
+msgstr "Login-URL: %(url)s"
+
+msgid "Signed in to Microsoft."
+msgstr "Logget på Microsoft."
+
+msgid "Signed out from Microsoft."
+msgstr "Logget ud fra Microsoft."
+
+msgid ""
+"Small action buttons appear on each contact card. You can hide anything you "
+"do not need here."
+msgstr ""
+"Små handlingsknapper vises på hvert kontaktkort. Her kan du skjule alt, du "
+"ikke har brug for."
+
+msgid "Snapshot interval"
+msgstr "Interval for øjebliksbilleder"
+
+msgid "Snapshot restored. The first synchronization will not send deletions."
+msgstr ""
+"Øjebliksbillede gendannet. Den første synkronisering sender ingen sletninger."
+
+msgid "Snowman"
+msgstr "Snemand"
+
+msgid "Social media"
+msgstr "Sociale medier"
+
+msgid "Social medium"
+msgstr "Socialt medie"
+
+msgid "Solothurn"
+msgstr "Solothurn"
+
+msgid "Some existing backups could not be decrypted."
+msgstr "Nogle eksisterende sikkerhedskopier kunne ikke dekrypteres."
+
+msgid "Some existing backups could not be encrypted."
+msgstr "Nogle eksisterende sikkerhedskopier kunne ikke krypteres."
+
+msgid "Son"
+msgstr "Søn"
+
+msgid "Sort everything alphabetically"
+msgstr "Sortér alt alfabetisk"
+
+msgid "Sorting"
+msgstr "Sortering"
+
+msgid "Sound only"
+msgstr "Kun lyd"
+
+msgid "Space for anything you want to remember…"
+msgstr "Plads til alt det, du vil huske…"
+
+msgid "Spain"
+msgstr "Spanien"
+
+msgid "Spam check"
+msgstr "Spam check"
+
+msgid "Special cases"
+msgstr "Særlige tilfælde"
+
+msgid "Spray"
+msgstr "Spray"
+
+msgid "St. Gallen"
+msgstr "St. Gallen"
+
+msgid "Start automatically when signing in"
+msgstr "Start automatisk ved login"
+
+msgid "Start the organizer in the tray"
+msgstr "Start organizeren i panelet"
+
+msgid "State"
+msgstr "Delstat"
+
+msgid "Status"
+msgstr "Status"
+
+msgid "Storage available / total"
+msgstr "Storage available / total"
+
+msgid "Street / house number"
+msgstr "Gade / husnummer"
+
+msgid "Street and house number"
+msgstr "Gade og husnummer"
+
+msgid "Strength"
+msgstr "Styrke"
+
+msgid "Strikethrough"
+msgstr "Gennemstreget"
+
+msgid "Styria"
+msgstr "Steiermark"
+
+msgid "Submitted"
+msgstr "Indsendt"
+
+msgid "Submitted to KDE Connect"
+msgstr "Indsendt til KDE Connect"
+
+msgid "Suggestions are available only in the installed application."
+msgstr "Forslag er kun tilgængelige i det installerede program."
+
+msgid "Sun symbol"
+msgstr "Solsymbol"
+
+msgid "Sunday"
+msgstr "Søndag"
+
+msgid "Suppository"
+msgstr "Stikpille"
+
+msgid "Switched off."
+msgstr "Slået fra."
+
+msgid "Switzerland"
+msgstr "Schweiz"
+
+msgid "Symbol"
+msgstr "Symbol"
+
+msgid "Symbol and Vacation text"
+msgstr "Symbol og teksten Ferie"
+
+msgid "Symbol only"
+msgstr "Kun symbol"
+
+msgid "Symbols and temperatures"
+msgstr "Symboler og temperaturer"
+
+msgid "Symbols, temperatures and description"
+msgstr "Symboler, temperaturer og beskrivelse"
+
+msgid "Synchronization"
+msgstr "Synkronisering"
+
+msgid "Synchronization completed."
+msgstr "Synkronisering fuldført."
+
+msgid "Synchronization failed."
+msgstr "Synkronisering mislykkedes."
+
+msgid "Synchronization failed: %(error)s"
+msgstr "Synkronisering mislykkedes: %(error)s"
+
+msgid ""
+"Synchronization state, pending messages and metadata for this connection "
+"will be removed. Contacts already accepted and local data remain."
+msgstr ""
+"Synkroniseringsstatus, ventende beskeder og metadata for denne forbindelse "
+"fjernes. Allerede accepterede kontakter og lokale data bevares."
+
+msgid "Synchronize automatically at startup"
+msgstr "Synkroniser automatisk ved opstart"
+
+msgid "Synchronize contacts"
+msgstr "Synkronisér kontakter"
+
+msgid "Synchronize everything"
+msgstr "Synchronize everything"
+
+msgid "Synchronize notes and notebooks"
+msgstr "Synkronisér kontakter"
+
+msgid "Synchronize now"
+msgstr "Synkroniser nu"
+
+msgid "Synchronize tasks"
+msgstr "Synkronisér kontakter"
+
+msgid "Synchronizing …"
+msgstr "Synkroniserer …"
+
+msgid "System default"
+msgstr "System standard"
+
+msgid "System style (desktop notification)"
+msgstr "Systemstil (skrivebordsmeddelelse)"
+
+msgid "System-paired phone Bluetooth address"
+msgstr "Bluetooth-adresse på den systemparrede telefon"
+
+msgid "Systolic"
+msgstr "Systolisk"
+
+#, csharp-format
+msgid "TCP port {0} could not be opened: {1}"
+msgstr "TCP-porten {0} kunne ikke åbnes: {1}"
+
+msgid "Tab %(letter)s"
+msgstr "Fane %(letter)s"
+
+msgid "Tab %(letter)s · %(count)s"
+msgstr "Fane %(letter)s · %(count)s"
+
+msgid "Tablet"
+msgstr "Tablet"
+
+msgid "Tabs"
+msgstr "Faneblade"
+
+msgid "Task"
+msgstr "Opgave"
+
+msgid "Tasks"
+msgstr "Opgaver"
+
+msgid "Tasks (.ics)"
+msgstr "Opgaver (.ics)"
+
+msgid ""
+"Tasks can be assigned to people. When printing, you can select one person's "
+"tasks for a specific period, for example each family member's weekly tasks."
+msgstr ""
+"Opgaver kan tildeles personer. Ved udskrivning kan du vælge én persons "
+"opgaver for en bestemt periode, for eksempel hvert familiemedlems ugentlige "
+"opgaver."
+
+msgid "Tasks for this person"
+msgstr "Opgaver for denne person"
+
+msgid "Tear out page"
+msgstr "Riv siden ud"
+
+msgid "Temperature"
+msgstr "Temperatur"
+
+msgid "Test connection"
+msgstr "Test forbindelse"
+
+msgid "Testing…"
+msgstr "Tester …"
+
+msgid "Text color"
+msgstr "Tekstfarve"
+
+msgid "Text formatting"
+msgstr "Tekstformatering"
+
+msgid "That did not work."
+msgstr "Det virkede ikke."
+
+msgid "That is not correct."
+msgstr "Det er ikke korrekt."
+
+msgid "The %(count)s note page it contains will be moved to “%(notebook)s”."
+msgid_plural ""
+"The %(count)s note pages it contains will be moved to “%(notebook)s”."
+msgstr[0] "Den %(count)s noteside, den indeholder, flyttes til „%(notebook)s“."
+msgstr[1] "De %(count)s notesider, den indeholder, flyttes til „%(notebook)s“."
+
+msgid ""
+"The DIN template positions the recipient address for a window envelope, "
+"shows your address as a multiline sender block, and adds two fold marks and "
+"a punch mark."
+msgstr ""
+"DIN-skabelonen placerer modtageradressen til en rudekuvert, viser din "
+"adresse som en afsenderblok med flere linjer og tilføjer to foldemærker og "
+"et hullemærke."
+
+msgid "The KDE Connect device to renew is missing."
+msgstr "KDE Connect-enheden, der skal fornys, mangler."
+
+msgid ""
+"The KDE Connect support is built into the Organizer. Only the KDE Connect "
+"app on Android is required; no additional KDE Connect desktop program is "
+"needed."
+msgstr ""
+"KDE Connect-understøttelsen er indbygget i Organizer. Kun KDE Connect-appen "
+"på Android er påkrævet; der er ikke behov for yderligere KDE Connect desktop-"
+"program."
+
+msgid ""
+"The Lotus CSV uses the original columns VERTRAULICH, KATEGORIEN, "
+"ANFANGSDATUMZEIT, ENDDATUMZEIT, BESCHREIBUNG, KOSTENSTELLENCODE, "
+"KUNDENNUMMER and VORLAEUFIGZUSAGEN."
+msgstr ""
+"Lotus CSV bruger de oprindelige kolonner VERTRAULICH, KATEGORIEN, "
+"ANFANGSDATUMZEIT, ENDDATUMZEIT, BESCHREIBUNG, KOSTENSTELLENCODE, "
+"KUNDENNUMMER og VORLAEUFIGZUSAGEN."
+
+msgid "The Magnolie Notes phone connection is switched off."
+msgstr "Magnolie Notes-telefonforbindelsen er slået fra."
+
+msgid ""
+"The Magnolie manual is installed. It is best to read it through before you "
+"begin. Would you like to open it now?"
+msgstr ""
+"Magnolie-håndbogen er installeret. Det er bedst at læse den igennem, før du "
+"begynder. Vil du åbne den nu?"
+
+msgid "The Magnolie manual is not installed."
+msgstr "Magnolie-håndbogen er ikke installeret."
+
+msgid ""
+"The Magnolie manual is not installed. Version %(version)s can be downloaded "
+"now. Would you like to open the package download?"
+msgstr ""
+"Magnolie-håndbogen er ikke installeret. Version %(version)s kan hentes nu. "
+"Vil du åbne pakkens download?"
+
+msgid "The Magnolienbaum is available only in the installed application."
+msgstr "Magnolienbaum er kun tilgængelig i det installerede program."
+
+msgid "The ODS export is too large."
+msgstr "ODS-eksporten er for stor."
+
+msgid "The Organizer chooses a suitable installed application."
+msgstr "Organizeren vælger et egnet installeret program."
+
+msgid ""
+"The Windows Contacts folder is synchronized bidirectionally on the "
+"synchronization page. File imports do not modify their source files; "
+"existing entries are not added twice."
+msgstr ""
+"Windows Kontakter-mappen synkroniseres tovejs på synkroniseringssiden. "
+"Filimporter ændrer ikke deres kildefiler; eksisterende poster tilføjes ikke "
+"to gange."
+
+msgid "The Windows entry in the update information is invalid."
+msgstr "Windows-posten i opdateringsoplysningerne er ugyldig."
+
+msgid "The address could not be opened."
+msgstr "Adressen kunne ikke åbnes."
+
+msgid ""
+"The archive contains the complete application data. The password is "
+"optional; leaving the field empty explicitly creates an unencrypted archive."
+msgstr ""
+"Arkivet indeholder de komplette ansøgningsdata. Adgangskoden er valgfri; ved "
+"at lade feltet stå tomt opstår der eksplicit et ukrypteret arkiv."
+
+msgid ""
+"The archive is encrypted. Enter the password to verify it completely before "
+"importing."
+msgstr ""
+"Arkivet er krypteret. Indtast adgangskoden for at bekræfte den fuldstændigt "
+"før import."
+
+msgid "The attachment range is invalid."
+msgstr "Det vedhæftede område er ugyldigt."
+
+msgid ""
+"The attachments are too large together. Remove some files; the combined "
+"limit is approximately 18 MB."
+msgstr ""
+"Vedhæftningerne er tilsammen for store. Fjern nogle filer; den samlede "
+"grænse er cirka 18 MB."
+
+msgid ""
+"The attachments in this note are too large together. Remove some files; the "
+"combined limit is approximately 18 MB."
+msgstr ""
+"Vedhæftningerne i denne note er tilsammen for store. Fjern nogle filer; den "
+"samlede grænse er cirka 18 MB."
+
+msgid ""
+"The background reminder service cannot read the encrypted data and remains "
+"silent outside the open organizer."
+msgstr ""
+"Påmindelsestjenesten i baggrunden kan ikke læse de krypterede data og "
+"forbliver tavs uden for den åbne organizer."
+
+msgid ""
+"The background reminder service may read the separate reminder data and "
+"therefore works even when the organizer is closed."
+msgstr ""
+"Påmindelsestjenesten i baggrunden må læse de separate påmindelsesdata og "
+"fungerer derfor, selv når organizeren er lukket."
+
+msgid "The backup could not be created."
+msgstr "Sikkerhedskopien kunne ikke oprettes."
+
+msgid "The backup could not be restored."
+msgstr "Sikkerhedskopien kunne ikke gendannes."
+
+msgid "The backup is empty."
+msgstr "Sikkerhedskopien er tom."
+
+msgid ""
+"The backup will be stored outside the local data location and is therefore "
+"always encrypted. This password will be required to restore it later:\n"
+"%(path)s"
+msgstr ""
+"Sikkerhedskopien gemmes uden for den lokale dataplacering og er derfor altid "
+"krypteret. Denne adgangskode skal bruges, hvis den senere skal gendannes:\n"
+"%(path)s"
+
+msgid ""
+"The button in the bottom bar opens the selection for the section you have "
+"open. From there the ticked entries can be printed, exported or moved to the "
+"wastebasket."
+msgstr ""
+"Knappen i den nederste bjælke åbner markeringen for den sektion, du har "
+"åben. Derfra kan de markerede poster udskrives, eksporteres eller flyttes "
+"til papirkurven."
+
+msgid "The call is no longer active or has been updated."
+msgstr "Opkaldet er ikke længere aktivt eller er blevet opdateret."
+
+msgid "The call is no longer active."
+msgstr "Opkaldet er ikke længere aktivt."
+
+msgid "The call is no longer ringing or is outdated."
+msgstr "Opkaldet ringer ikke længere eller er forældet."
+
+msgid "The call is no longer ringing."
+msgstr "Opkaldet ringer ikke længere."
+
+msgid "The clipboard is empty."
+msgstr "Udklipsholderen er tom."
+
+msgid ""
+"The command is started safely without a shell. Use {nummer} for the selected "
+"number."
+msgstr ""
+"Kommandoen startes sikkert uden en shell. Brug {nummer} til det valgte "
+"nummer."
+
+msgid "The complete archive cannot be used."
+msgstr "Det komplette arkiv kan ikke bruges."
+
+msgid "The complete archive could not be verified."
+msgstr "Det komplette arkiv kunne ikke bekræftes."
+
+msgid "The complete archive is empty."
+msgstr "Hele arkivet er tomt."
+
+msgid "The complete file is stored in this note (up to 8 megabytes)."
+msgstr "Hele filen er gemt i denne note (op til 8 megabyte)."
+
+msgid "The connection to the phone was interrupted during pairing."
+msgstr "Forbindelsen til telefonen blev afbrudt under parring."
+
+msgid "The contact is missing."
+msgstr "Kontakten mangler."
+
+msgid "The content is missing."
+msgstr "Indholdet mangler."
+
+msgid "The contributor key is invalid."
+msgstr "Bidragydernøglen er ugyldig."
+
+msgid ""
+"The current data will be backed up first and then completely replaced with "
+"this file:\n"
+"%(path)s"
+msgstr ""
+"De aktuelle data sikkerhedskopieres først og erstattes derefter fuldstændigt "
+"med denne fil:\n"
+"%(path)s"
+
+msgid "The current organizer data is incomplete."
+msgstr "De aktuelle organizerdata er ufuldstændige."
+
+msgid "The data is invalid."
+msgstr "Dataene er ugyldige."
+
+msgid "The data is not a JSON object."
+msgstr "Dataene er ikke et JSON-objekt."
+
+msgid "The destination could not be opened."
+msgstr "Destinationen kunne ikke åbnes."
+
+msgid "The download address is not permitted for this platform."
+msgstr "Downloadadressen er ikke tilladt for denne platform."
+
+msgid "The end date cannot be before the start date."
+msgstr "Slutdatoen kan ikke ligge før startdatoen."
+
+msgid "The export data is missing."
+msgstr "Eksportdata mangler."
+
+msgid "The file could not be read."
+msgstr "Filen kunne ikke læses."
+
+msgid "The file has an unsupported format."
+msgstr "Filen har et format, der ikke understøttes."
+
+msgid "The file is larger than 8 megabytes."
+msgstr "Filen er større end 8 megabyte."
+
+msgid ""
+"The helper frame marks the control that currently has keyboard focus. This "
+"makes it easier to operate the Organizer with Tab, arrow keys, Enter and "
+"Space. Ctrl+Alt+H switches the frame on or off at any time."
+msgstr ""
+"Hjælperammen markerer det kontrolelement, der aktuelt har tastaturfokus. Det "
+"gør det lettere at betjene Organizeren med Tab, piletaster, Enter og "
+"mellemrum. Ctrl+Alt+H slår til enhver tid rammen til eller fra."
+
+msgid "The holidays were imported."
+msgstr "Helligdagene blev importeret."
+
+msgid "The holidays were removed."
+msgstr "Helligdagene blev fjernet."
+
+msgid "The import file is larger than 32 megabytes."
+msgstr "Importfilen er større end 32 megabyte."
+
+msgid ""
+"The information is retrieved once from the open directory openholidaysapi."
+"org and then kept in the organizer. The application therefore needs an "
+"internet connection only once."
+msgstr ""
+"Oplysningerne hentes én gang fra det åbne katalog openholidaysapi.org og "
+"opbevares derefter i organizeren. Programmet behøver derfor kun "
+"internetforbindelse denne ene gang."
+
+msgid "The last notebook cannot be deleted."
+msgstr "Den sidste notesbog kan ikke slettes."
+
+msgid "The last notebook group cannot be deleted."
+msgstr "Den sidste notesbogsgruppe kan ikke slettes."
+
+msgid "The letter was created but could not be opened."
+msgstr "Brevet blev oprettet, men kunne ikke åbnes."
+
+msgid "The locked data cannot be backed up."
+msgstr "De låste data kan ikke sikkerhedskopieres."
+
+msgid "The log could not be opened."
+msgstr "Loggen kunne ikke åbnes."
+
+msgid "The log folder could not be opened."
+msgstr "Logmappen kunne ikke åbnes."
+
+msgid "The log is available only in the installed application."
+msgstr "Loggen er kun tilgængelig i det installerede program."
+
+msgid ""
+"The log records when the reminder service checked and what it reported. "
+"Entries older than 30 days are removed automatically, and the log never "
+"exceeds 200 lines."
+msgstr ""
+"Loggen registrerer, hvornår påmindelsestjenesten kontrollerede, og hvad den "
+"rapporterede. Poster ældre end 30 dage fjernes automatisk, og loggen "
+"overstiger aldrig 200 linjer."
+
+msgid "The mailbox is reachable."
+msgstr "Postkassen kan nås."
+
+msgid "The manual could not be opened."
+msgstr "Håndbogen kunne ikke åbnes."
+
+msgid "The manual download is available only in the installed application."
+msgstr "Download af håndbogen er kun tilgængelig i det installerede program."
+
+msgid "The manual download request is no longer valid."
+msgstr "Anmodningen om at hente manualen er ikke længere gyldig."
+
+msgid "The manual is installed; its version is unknown."
+msgstr "Manualen er installeret, men dens version er ukendt."
+
+msgid "The manual is up to date."
+msgstr "Manualen er opdateret."
+
+msgid "The manual package checksum does not match."
+msgstr "Manualpakkens kontrolsum stemmer ikke."
+
+msgid "The manual package could not be opened."
+msgstr "Håndbogspakken kunne ikke åbnes."
+
+msgid "The manual package is unexpectedly large."
+msgstr "Manualpakken er uventet stor."
+
+msgid "The manual update check failed."
+msgstr "Søgningen efter opdateringer til manualen mislykkedes."
+
+msgid "The manual update information is invalid."
+msgstr "Manualens opdateringsoplysninger er ugyldige."
+
+msgid "The manual update information is missing."
+msgstr "De manuelle opdateringsoplysninger mangler."
+
+msgid "The offered entry is incomplete."
+msgstr "Den tilbudte post er ufuldstændig."
+
+msgid "The organizer is not currently reminding you about appointments."
+msgstr "Organizeren minder dig ikke om aftaler i øjeblikket."
+
+msgid ""
+"The organizer notifies you before an appointment begins, even when the "
+"application is not open if you wish."
+msgstr ""
+"Organizeren giver dig besked, før en aftale begynder, også når programmet "
+"ikke er åbent, hvis du ønsker det."
+
+msgid "The package could not be opened."
+msgstr "Pakken kunne ikke åbnes."
+
+msgid "The pairing file could not be processed."
+msgstr "Parringsfilen kunne ikke behandles."
+
+msgid "The pairing file is damaged."
+msgstr "Parringsfilen er beskadiget."
+
+msgid "The pairing file is empty."
+msgstr "Parringsfilen er tom."
+
+msgid "The pairing file is too large."
+msgstr "Parringsfilen er for stor."
+
+msgid "The password must contain at least four characters."
+msgstr "Adgangskoden skal indeholde mindst fire tegn."
+
+msgid ""
+"The permanent KDE listener cannot start because PyOpenSSL is unavailable."
+msgstr ""
+"Den permanente KDE-lytter kan ikke starte, fordi PyOpenSSL ikke er "
+"tilgængelig."
+
+msgid ""
+"The permanent KDE listener cannot start because UDP port 1716 is already in "
+"use."
+msgstr ""
+"Den permanente KDE-lytter kan ikke starte, fordi UDP-porten 1716 allerede er "
+"i brug."
+
+msgid ""
+"The permanent KDE listener cannot start because no TCP port from 1716 to "
+"1764 is available."
+msgstr ""
+"Den permanente KDE-lytter kan ikke starte, fordi ingen TCP-port fra 1716 til "
+"1764 er tilgængelig."
+
+msgid "The permanent KDE listener has not started yet."
+msgstr "Den permanente KDE-lytter er ikke startet endnu."
+
+msgid "The permanent KDE listener is stopped."
+msgstr "Den permanente KDE-lytter er stoppet."
+
+msgid "The permanent personal synchronization commit was rejected."
+msgstr "Den permanente personlige synkroniseringsforpligtelse blev afvist."
+
+msgid "The personal synchronization attachment identity does not match."
+msgstr ""
+"Den personlige synkroniseringsvedhæftede identitet stemmer ikke overens."
+
+msgid "The personal synchronization attachment source is incomplete."
+msgstr "Den personlige synkroniseringsvedhæftede kilde er ufuldstændig."
+
+msgid "The personal synchronization attachment sources are incomplete."
+msgstr "De personlige synkroniseringsvedhæftede kilder er ufuldstændige."
+
+msgid "The personal synchronization batch was not saved permanently."
+msgstr "Den personlige synkroniseringsbatch blev ikke gemt permanent."
+
+msgid "The personal synchronization commit could not be confirmed."
+msgstr "Den personlige synkroniseringsforpligtelse kunne ikke bekræftes."
+
+msgid "The personal synchronization commit token is missing."
+msgstr "Det personlige synkroniserings-forpligtelsestoken mangler."
+
+msgid "The personal synchronization request is missing."
+msgstr "Den personlige synkroniseringsanmodning mangler."
+
+msgid "The personal synchronization result is invalid."
+msgstr "Det personlige synkroniseringsresultat er ugyldigt."
+
+msgid "The personal synchronization run does not match."
+msgstr "Den personlige synkroniseringskørsel stemmer ikke overens."
+
+msgid "The personal synchronization run has expired."
+msgstr "Den personlige synkroniseringskørsel er udløbet."
+
+msgid "The phone connection is available only in the installed application."
+msgstr "Telefonforbindelsen er kun tilgængelig i det installerede program."
+
+msgid "The phone function is not permitted or available."
+msgstr "Telefonfunktionen er ikke tilladt eller tilgængelig."
+
+msgid "The phone is not connected via WLAN."
+msgstr "Telefonen er ikke forbundet via WLAN."
+
+msgid "The phone is not paired."
+msgstr "Telefonen er ikke parret."
+
+msgid "The phone is reachable, but its KDE Connect trust no longer matches."
+msgstr ""
+"Telefonen kan nås, men dens KDE Connect-tillid stemmer ikke længere overens."
+
+msgid "The phone operation failed."
+msgstr "Telefonhandlingen mislykkedes."
+
+msgid ""
+"The phone sent a message unknown to this phone protocol. Organizer and "
+"Magnolie Notes must use the same protocol version."
+msgstr ""
+"Telefonen sendte en besked, der ikke er kendt for denne telefonprotokol. "
+"Organizer og Magnolie Notes skal bruge samme protokolversion."
+
+msgid "The phone settings are damaged."
+msgstr "Telefonindstillingerne er beskadigede."
+
+msgid "The phone was not specified."
+msgstr "Telefonen var ikke angivet."
+
+msgid "The photo could not be read."
+msgstr "Fotoet kunne ikke læses."
+
+msgid "The photo is larger than 8 megabytes."
+msgstr "Fotoet er større end 8 megabyte."
+
+msgid "The port must be between 1 and 65535."
+msgstr "Porten skal være mellem 1 og 65535."
+
+msgid "The public address could not be determined."
+msgstr "Den offentlige adresse kunne ikke bestemmes."
+
+msgid "The recovery snapshot reason is invalid."
+msgstr "Årsagen til gendannelsessnapshot er ugyldig."
+
+msgid "The recycle bin is empty."
+msgstr "Papirkurven er tom."
+
+msgid "The recycle bin was emptied."
+msgstr "Papirkurven blev tømt."
+
+msgid "The required recovery snapshot could not be created."
+msgstr "Det nødvendige gendannelsesøjebliksbillede kunne ikke oprettes."
+
+msgid ""
+"The same code must appear on both computers:\n"
+"\n"
+"%(code)s\n"
+"\n"
+"Other branch: %(branch)s\n"
+"Fingerprint: %(fingerprint)s\n"
+"\n"
+"Does the code match?"
+msgstr ""
+"Den samme kode skal vises på begge computere:\n"
+"\n"
+"%(code)s\n"
+"\n"
+"Anden gren: %(branch)s\n"
+"Fingeraftryk: %(fingerprint)s\n"
+"\n"
+"Er koden den samme?"
+
+msgid "The save request is invalid."
+msgstr "Gemmeanmodningen er ugyldig."
+
+msgid "The selected contacts contain no values for these columns."
+msgstr "De valgte kontakter indeholder ingen værdier for disse kolonner."
+
+msgid "The selected health records contain no printable values."
+msgstr ""
+"De valgte sundhedsoptegnelser indeholder ingen værdier, der kan udskrives."
+
+msgid ""
+"The server operator can see the account, folder and file names, sizes and "
+"times of your messages."
+msgstr ""
+"Serverudbyderen kan se konto, mappe- og filnavne, størrelser og tidspunkter "
+"for dine beskeder."
+
+msgid ""
+"The sheet appears at the edge of the screen, accompanied by the Magnolie "
+"chime."
+msgstr "Arket vises ved kanten af skærmen sammen med Magnolie-lyden."
+
+msgid ""
+"The small uniform icons open an installed application when possible. "
+"Otherwise, a secure web service is used in the browser."
+msgstr ""
+"De små ensartede ikoner åbner et installeret program, når det er muligt. "
+"Ellers bruges en sikker webtjeneste i browseren."
+
+msgid "The snapshot operation failed."
+msgstr "Øjebliksbilledhandlingen mislykkedes."
+
+msgid "The spreadsheet was created but could not be opened."
+msgstr "Regnearket blev oprettet, men kunne ikke åbnes."
+
+msgid "The start date must not be after the end date."
+msgstr "Startdatoen må ikke ligge efter slutdatoen."
+
+msgid "The synchronization data is missing."
+msgstr "Synkroniseringsdata mangler."
+
+msgid "The system dialer opens on the phone. Confirm the call there."
+msgstr "Systemopkaldet åbner på telefonen. Bekræft opkaldet der."
+
+msgid ""
+"The task will be sent to the selected branch. It will also remain here so "
+"you can keep track of it."
+msgstr ""
+"Opgaven sendes til den valgte gren. Den bliver også her, så du fortsat kan "
+"følge den."
+
+msgid ""
+"The traffic-light colors are general reference ranges for adults, not a "
+"diagnosis. Check abnormal readings and discuss them with a doctor; seek "
+"immediate medical help for severe symptoms."
+msgstr ""
+"Trafiklysfarverne viser generelle referenceområder for voksne, ikke en "
+"diagnose. Kontrollér unormale målinger, og drøft dem med en læge. Søg straks "
+"lægehjælp ved alvorlige symptomer."
+
+msgid "The tray applet is not available on this system."
+msgstr "Panelappletten er ikke tilgængelig på dette system."
+
+msgid "The two entries do not match."
+msgstr "De to poster stemmer ikke overens."
+
+msgid "The two new passwords do not match."
+msgstr "De to nye adgangskoder stemmer ikke overens."
+
+msgid "The update check failed."
+msgstr "Opdateringskontrollen mislykkedes."
+
+msgid "The update information is unexpectedly large."
+msgstr "Opdateringsoplysningerne er uventet store."
+
+msgid "The user data could not be read."
+msgstr "Brugerdataene kunne ikke læses."
+
+msgid "The value is outside the general green reference range."
+msgstr "Værdien ligger uden for det generelle grønne referenceområde."
+
+msgid "The verified installer could not be opened."
+msgstr "Det bekræftede installationsprogram kunne ikke åbnes."
+
+msgid ""
+"The weather service estimated the location from your public IP address. Your "
+"own address in Contacts provides a more precise location."
+msgstr ""
+"Vejrtjenesten estimerede placeringen ud fra din offentlige IP-adresse. Din "
+"egen adresse i Kontakter giver en mere præcis placering."
+
+msgid "The weather service returned no forecast."
+msgstr "Vejrtjenesten returnerede ingen prognose."
+
+msgid ""
+"The year calendar shows all twelve months; the month calendar provides more "
+"room for entries."
+msgstr ""
+"Årskalenderen viser alle tolv måneder; månedskalenderen giver mere plads til "
+"poster."
+
+msgid "There are no entries to export yet."
+msgstr "Der er endnu ingen poster at eksportere."
+
+msgid "There are no entries."
+msgstr "Der er ingen poster."
+
+msgid "There are no holidays in the organizer for this selection yet."
+msgstr "Der er endnu ingen helligdage i organizeren for dette valg."
+
+msgid "There are no saved entries on this page."
+msgstr "Der er ingen gemte poster på denne side."
+
+msgid "There are too many personal synchronization attachments."
+msgstr "Der er for mange personlige synkroniseringsvedhæftede filer."
+
+msgid "There is no notebook in this group yet."
+msgstr "Der er endnu ingen notesbog i denne gruppe."
+
+msgid ""
+"There is nothing scheduled in this period.\n"
+"Click a day on the left to add an appointment."
+msgstr ""
+"Der er intet planlagt i denne periode.\n"
+"Klik på en dag til venstre for at tilføje en aftale."
+
+msgid "There is nothing to print."
+msgstr "Der er intet at udskrive."
+
+msgid ""
+"These options require the matching permissions in Magnolie Notes. Call audio "
+"is not sent over the Magnolie data connection."
+msgstr ""
+"Disse indstillinger kræver de tilsvarende tilladelser i Magnolie Notes. "
+"Opkaldslyd sendes ikke via Magnolies dataforbindelse."
+
+msgid "This address can be selected and copied."
+msgstr "Denne adresse kan markeres og kopieres."
+
+msgid "This answer request has already been queued."
+msgstr "Denne svaranmodning er allerede sat i kø."
+
+msgid "This appointment will appear every %(weekday)s."
+msgstr "Denne aftale vises hver %(weekday)s."
+
+msgid "This appointment will appear every day."
+msgstr "Denne aftale vises hver dag."
+
+msgid "This appointment will appear every year on %(month)s %(day)s."
+msgstr "Denne aftale vises hvert år den %(day)s. %(month)s."
+
+msgid ""
+"This appointment will appear on day %(day)s of every month. In shorter "
+"months, it moves to the last day."
+msgstr ""
+"Denne aftale vises den %(day)s. i hver måned. I kortere måneder flyttes den "
+"til den sidste dag."
+
+msgid "This backup cannot be used."
+msgstr "Denne sikkerhedskopi kan ikke bruges."
+
+msgid ""
+"This choice also determines how names appear on contact cards and under "
+"which letter they are filed in the index."
+msgstr ""
+"Dette valg bestemmer også, hvordan navne vises på kontaktkort, og under "
+"hvilket bogstav de arkiveres i indekset."
+
+msgid "This dial request has already been queued."
+msgstr "Denne opkaldsanmodning er allerede sat i kø."
+
+msgid "This end-call request has already been queued."
+msgstr "Denne anmodning om at afslutte opkaldet er allerede sat i kø."
+
+msgid "This export format is not yet available on Windows."
+msgstr "Dette eksportformat er endnu ikke tilgængeligt på Windows."
+
+msgid "This image format cannot be used."
+msgstr "Dette billedformat kan ikke bruges."
+
+msgid "This import format is not yet available on Windows."
+msgstr "Dette importformat er endnu ikke tilgængeligt på Windows."
+
+msgid "This is available only in the installed application."
+msgstr "Dette er kun tilgængeligt i det installerede program."
+
+msgid "This is how the organizer reminds you about an appointment."
+msgstr "Sådan minder organizeren dig om en aftale."
+
+msgid ""
+"This is how your notes look: <b>bold</b>, <i>italic</i>, <u>underlined</u> "
+"and <s>struck through</s>."
+msgstr ""
+"Sådan ser dine noter ud: <b>fed</b>, <i>kursiv</i>, <u>understreget</u> og "
+"<s>gennemstreget</s>."
+
+msgid ""
+"This is one occurrence of a recurring appointment. Changes apply to all "
+"occurrences in this series."
+msgstr ""
+"Dette er én forekomst af en gentagen aftale. Ændringer gælder for alle "
+"forekomster i denne serie."
+
+msgid ""
+"This is only the encrypted Magnolienbaum fallback for baum-1. It does not "
+"synchronize calendars or contacts. Both partners need access to the same "
+"Nextcloud storage."
+msgstr ""
+"Dette er kun den krypterede Magnolienbaum-reservevej for baum-1. Den "
+"synkroniserer ikke kalendere eller kontakter. Begge parter skal have adgang "
+"til det samme Nextcloud-lager."
+
+msgid ""
+"This leaves time to get something, followed by another reminder on the day "
+"itself. For example: “Max Mustermann has a birthday tomorrow” and the next "
+"day “Max Mustermann has a birthday today”. Anniversary reminders are shown "
+"in the morning."
+msgstr ""
+"Det giver tid til at nå at ordne noget, efterfulgt af endnu en påmindelse på "
+"selve dagen. For eksempel: „Max Mustermann har fødselsdag i morgen“ og næste "
+"dag „Max Mustermann har fødselsdag i dag“. Påmindelser om mærkedage vises om "
+"morgenen."
+
+msgid "This notebook is still empty."
+msgstr "Denne notesbog er stadig tom."
+
+msgid "This paired phone is my own device"
+msgstr "Denne parrede telefon er min egen enhed"
+
+msgid "This person's anniversaries"
+msgstr "Denne persons mærkedage"
+
+msgid ""
+"This program is free software: you may redistribute and modify it. It is "
+"published in the hope that it will be useful, but without any warranty."
+msgstr ""
+"Dette program er gratis software: du kan omdistribuere og ændre det. Den "
+"udgives i håb om, at den vil være nyttig, men uden nogen garanti."
+
+msgid "This setting applies when you restore the window from the tray menu."
+msgstr "Denne indstilling gælder, når du gendanner vinduet fra panelmenuen."
+
+msgid "This status comes from Magnolie Notes, not KDE Connect."
+msgstr "Denne status kommer fra Magnolie Notes, ikke KDE Connect."
+
+msgid ""
+"This system did not allow waking from suspend. The reminder will appear as "
+"soon as the computer is running again."
+msgstr ""
+"Dette system tillod ikke opvågning fra slumretilstand. Påmindelsen vises, så "
+"snart computeren kører igen."
+
+msgid "This task came from “%(branch)s”."
+msgstr "Denne opgave kom fra „%(branch)s“."
+
+msgid "Through"
+msgstr "Til og med"
+
+msgid "Thurgau"
+msgstr "Thurgau"
+
+msgid "Thuringia"
+msgstr "Thüringen"
+
+msgid "Thursday"
+msgstr "Torsdag"
+
+msgid "Thyroid"
+msgstr "Skjoldbruskkirtel"
+
+msgid "Ticino"
+msgstr "Ticino"
+
+msgid "Time"
+msgstr "Tid"
+
+msgid "Title"
+msgstr "Titel"
+
+msgid "To"
+msgstr "Til"
+
+msgid ""
+"To change it, enter only the new password; the organizer is already unlocked."
+msgstr ""
+"For at ændre den skal du kun indtaste den nye adgangskode; organizeren er "
+"allerede låst op."
+
+msgid "Today"
+msgstr "I dag"
+
+msgid "Today is %(date)s"
+msgstr "I dag er det %(date)s"
+
+msgid "Tomorrow"
+msgstr "I morgen"
+
+msgid "Too many failed attempts – wait %(duration)s."
+msgstr "For mange mislykkede forsøg – vent %(duration)s."
+
+msgid "Too many failed attempts. Wait a moment."
+msgstr "For mange mislykkede forsøg. Vent et øjeblik."
+
+msgid "Tray applet"
+msgstr "Panelapplet"
+
+msgid "Trust and accept tasks and notes automatically"
+msgstr "Hav tillid til og acceptér opgaver og noter automatisk"
+
+msgid "Tuesday"
+msgstr "Tirsdag"
+
+msgid "Turn back"
+msgstr "Tilbage"
+
+msgid "Turn forward"
+msgstr "Frem"
+
+msgid "Two days back"
+msgstr "To dage tilbage"
+
+msgid "Two days forward"
+msgstr "To dage frem"
+
+msgid "Type"
+msgstr "Type"
+
+msgid "Typeface"
+msgstr "Skrifttype"
+
+msgid "Typography"
+msgstr "Typografi"
+
+msgid "Typography for your entries"
+msgstr "Typografi for dine poster"
+
+msgid "Tyrol"
+msgstr "Tyrol"
+
+msgid "U"
+msgstr "U"
+
+msgid "URI"
+msgstr "URI"
+
+msgid "Unavailable"
+msgstr "Unavailable"
+
+msgid ""
+"Under Wayland, the compositor determines the exact window position; "
+"centering and maximizing are passed on as requests."
+msgstr ""
+"Under Wayland bestemmer compositoren den nøjagtige vinduesposition; "
+"centrering og maksimering videregives som anmodninger."
+
+msgid "Underline"
+msgstr "Understregning"
+
+msgid "Unit"
+msgstr "Enhed"
+
+msgid "Unknown"
+msgstr "Ukendt"
+
+msgid "Unknown caller"
+msgstr "Ukendt opkalder"
+
+msgid "Unknown error"
+msgstr "Ukendt fejl"
+
+msgid "Unknown phone"
+msgstr "Ukendt telefon"
+
+msgid "Unlink"
+msgstr "Fjern tilknytning"
+
+msgid "Unlock"
+msgstr "Lås op"
+
+msgid "Unlock Magnolie Organizer"
+msgstr "Lås Magnolie Organizer op"
+
+msgid "Unsupported alarm"
+msgstr "Ikke-understøttet alarm"
+
+msgid "Until (leave blank for no end)"
+msgstr "Indtil (lad stå tomt, hvis der ikke er nogen slutdato)"
+
+msgid "Untitled"
+msgstr "Uden titel"
+
+msgid "Untitled appointment"
+msgstr "Aftale uden titel"
+
+msgid "Update checking is available in the installed application."
+msgstr "Søgning efter opdateringer er tilgængelig i den installerede app."
+
+msgid "Update checking is available only in the installed application."
+msgstr "Søgning efter opdateringer er kun tilgængelig i den installerede app."
+
+msgid "Update weather"
+msgstr "Opdater vejret"
+
+msgid "Updates"
+msgstr "Opdateringer"
+
+msgid "Upper Austria"
+msgstr "Øvre Østrig"
+
+msgid "Uptime"
+msgstr "Uptime"
+
+msgid "Uri"
+msgstr "URI"
+
+msgid "Use a specific application or command"
+msgstr "Brug et bestemt program eller en bestemt kommando"
+
+msgid "Use a specific website"
+msgstr "Brug et bestemt websted"
+
+msgid "Use basal units"
+msgstr "Brug basalenheder"
+
+msgid "Use contact addresses"
+msgstr "Brug kontaktens adresser"
+
+msgid "Use default"
+msgstr "Brug standard"
+
+msgid "Use numeric keypad"
+msgstr "Brug det numeriske tastatur"
+
+msgid ""
+"Use only schedules prescribed or confirmed by a healthcare professional."
+msgstr ""
+"Brug kun planer, der er ordineret eller bekræftet af en sundhedsfaglig "
+"person."
+
+msgid ""
+"Use the arrows to arrange groups and notebooks, or use the selection to move "
+"a notebook to another group."
+msgstr ""
+"Brug pilene til at arrangere grupper og notesbøger, eller brug markeringen "
+"til at flytte en notesbog til en anden gruppe."
+
+msgid "Use the mailbox as a fallback for branch baum-1"
+msgstr "Brug postkassen som reservevej for grenen baum-1"
+
+msgid ""
+"Use the mouse wheel to change the time in 5-minute steps (hold Shift for "
+"whole hours)"
+msgstr ""
+"Brug musehjulet til at ændre tiden i trin på 5 minutter (hold Shift nede for "
+"hele timer)"
+
+msgid "Use the recycle bin"
+msgstr "Brug papirkurven"
+
+msgid "User name"
+msgstr "Brugernavn"
+
+msgid ""
+"Uses its own identity and storage and listens only on fixed port %(port)s. "
+"It never uses Magnolienbaum partners, permissions, queues or Bluetooth "
+"identity."
+msgstr ""
+"Bruger sin egen identitet og lagerplads og lytter kun på den faste port "
+"%(port)s. Den bruger aldrig Magnolienbaum-partnere, tilladelser, køer eller "
+"Bluetooth-identitet."
+
+msgid "Vacation"
+msgstr "Ferie"
+
+msgid ""
+"Vacation periods are local calendar markings. They do not send notifications "
+"and can be included separately when printing the planner."
+msgstr ""
+"Ferieperioder er lokale markeringer i kalenderen. De sender ikke meddelelser "
+"og kan medtages separat, når planlæggeren udskrives."
+
+msgid "Vacation planner"
+msgstr "Ferieplanlægger"
+
+msgid "Valais"
+msgstr "Valais"
+
+msgid "Value"
+msgstr "Værdi"
+
+msgid "Vaud"
+msgstr "Vaud"
+
+msgid ""
+"Verified archive\n"
+"Source: %(source)s\n"
+"Created: %(created)s\n"
+"Application entries: %(entries)s\n"
+"Photos: %(photos)s, attachments: %(attachments)s\n"
+"\n"
+"The current data is backed up locally and then completely replaced."
+msgstr ""
+"Verificeret arkiv\n"
+"Kilde: %(source)s\n"
+"Oprettet: %(created)s\n"
+"Ansøgningsposter: %(entries)s\n"
+"Billeder: %(photos)s, vedhæftede filer: %(attachments)s\n"
+"\n"
+"De aktuelle data sikkerhedskopieres lokalt og erstattes derefter "
+"fuldstændigt."
+
+msgid "Verify after downloading with: %(command)s"
+msgstr "Kontrollér efter hentning med: %(command)s"
+
+msgid "Verify archive"
+msgstr "Bekræft arkivet"
+
+msgid "Version %(version)s"
+msgstr "Version %(version)s"
+
+msgid "Version %(version)s is up to date. Last checked: %(date)s."
+msgstr "Version %(version)s er opdateret. Senest kontrolleret: %(date)s."
+
+msgid "Via internet"
+msgstr "Via internettet"
+
+msgid "Vienna"
+msgstr "Wien"
+
+msgid "View and edit appointment"
+msgstr "Vis og rediger aftale"
+
+msgid "Vital signs"
+msgstr "Vitale værdier"
+
+msgid "Vital signs table"
+msgstr "Tabel over vitale værdier"
+
+msgid "Vorarlberg"
+msgstr "Vorarlberg"
+
+msgid ""
+"WLAN has priority. Bluetooth data starts only after WLAN failure and carries "
+"the same encrypted phone frames."
+msgstr ""
+"WLAN har prioritet. Bluetooth-data starter først efter WLAN-fejl og "
+"overfører de samme krypterede telefonrammer."
+
+msgid "WLAN listener on port %(port)s"
+msgstr "WLAN lytter på port %(port)s"
+
+msgid "Waiting for consent on the other device."
+msgstr "Venter på samtykke på den anden enhed."
+
+msgid "Waiting for device status"
+msgstr "Venter på enhedsstatus"
+
+msgid ""
+"Waiting for the phone on port %(port)s. Pairing closes after %(seconds)s "
+"seconds."
+msgstr ""
+"Venter på telefonen på port %(port)s. Parringen lukker efter %(seconds)s "
+"sekunder."
+
+msgid "Wake the computer from suspend"
+msgstr "Væk computeren fra slumretilstand"
+
+msgid "Warning: The data could not be saved."
+msgstr "Advarsel: Dataene kunne ikke gemmes."
+
+msgid "Waste collection calendar"
+msgstr "Affaldskalender"
+
+msgid "We are glad you are here!"
+msgstr "Vi er glade for, at du er her!"
+
+msgid "Weather"
+msgstr "Vejr"
+
+msgid "Weather display"
+msgstr "Vejrvisning"
+
+msgid "Weather for the next three days"
+msgstr "Vejret de næste tre dage"
+
+msgid "Weather is available in the installed application."
+msgstr "Vejret er tilgængeligt i den installerede app."
+
+msgid ""
+"Weather requests are sent to wttr.in. Your own address in Contacts is used "
+"first, followed by local LibreOffice user data. If neither contains a "
+"location and retrieval without one is allowed, wttr.in estimates the "
+"location from your internet connection's public IP address."
+msgstr ""
+"Vejrforespørgsler sendes til wttr.in. Din egen adresse i Kontakter bruges "
+"først, efterfulgt af lokale LibreOffice-brugerdata. Hvis ingen af dem "
+"indeholder en placering, og hentning uden placering er tilladt, anslår wttr."
+"in placeringen ud fra internetforbindelsens offentlige IP-adresse."
+
+msgid "Weather was not retrieved because no location is available."
+msgstr ""
+"Vejret blev ikke hentet, fordi der ikke er nogen placering tilgængelig."
+
+msgid "Wedding anniversary"
+msgstr "Bryllupsdag"
+
+msgid "Wednesday"
+msgstr "Onsdag"
+
+msgid "Week"
+msgstr "Uge"
+
+msgid "Week %(number)s"
+msgstr "Uge %(number)s"
+
+msgid "Week numbers"
+msgstr "Ugenumre"
+
+msgid "Weekly"
+msgstr "Ugentligt"
+
+msgid "Weekly variation for %(name)s"
+msgstr "Ugentlig variation for %(name)s"
+
+msgid "Weekly view"
+msgstr "Ugevisning"
+
+msgid "Weight"
+msgstr "Vægt"
+
+msgid "Welcome ✱"
+msgstr "Velkommen ✱"
+
+msgid "What is it about?"
+msgstr "Hvad drejer det sig om?"
+
+msgid "What needs to be done?"
+msgstr "Hvad skal der gøres?"
+
+msgid ""
+"When disabled, dates can still be entered as eight digits in day, month and "
+"four-digit year order."
+msgstr ""
+"Når dette er slået fra, kan datoer stadig indtastes som otte cifre i "
+"rækkefølgen dag, måned og firecifret år."
+
+msgid ""
+"When disabled, you write on plain paper. Line spacing remains the same; only "
+"the lines disappear."
+msgstr ""
+"Når dette er slået fra, skriver du på almindeligt papir. Linjeafstanden er "
+"den samme; kun linjerne forsvinder."
+
+msgid "When opening from the tray"
+msgstr "Når der åbnes fra statusområdet"
+
+msgid ""
+"When selected, you can assign a photo to each person. Embedded photos are "
+"preserved during import, export and synchronization with an online address "
+"book. Email addresses on contact cards are always clickable and open your "
+"mail application."
+msgstr ""
+"Når dette er valgt, kan du tildele hver person et foto. Indlejrede fotos "
+"bevares ved import, eksport og synkronisering med en onlineadressebog. E-"
+"mailadresser på kontaktkort kan altid klikkes på og åbner dit mailprogram."
+
+msgid ""
+"When writing a note, a small toolbar above the sheet provides bold, italic, "
+"underline and strikethrough. The same formatting is available with Ctrl+B, "
+"Ctrl+I, Ctrl+U and Ctrl+D."
+msgstr ""
+"Når du skriver en note, indeholder en lille værktøjslinje over arket fed, "
+"kursiv, understregning og gennemstregning. Den samme formatering er "
+"tilgængelig med Ctrl+B, Ctrl+I, Ctrl+U og Ctrl+D."
+
+msgid "Whole month"
+msgstr "Hele måneden"
+
+msgid "Wife"
+msgstr "Hustru"
+
+msgid "Windows Contacts folder"
+msgstr "Windows Kontakter mappe"
+
+msgid "Wireless"
+msgstr "Wireless"
+
+msgid ""
+"With a password or numeric code, the organizer asks for it when opening and "
+"stores your data only in encrypted form in your home directory (AES-256)."
+msgstr ""
+"Med en adgangskode eller talkode beder organizeren om den ved åbning og "
+"gemmer kun dine data krypteret i din hjemmemappe (AES-256)."
+
+msgid "With photo"
+msgstr "Med foto"
+
+msgid ""
+"Without a shell; {ziel}, {wert}, and {nummer} can be used as placeholders. "
+"Flatpak and Snap can be selected as flatpak:APP-ID or snap:Name."
+msgstr ""
+"Uden en kommandoskal; {ziel}, {wert} og {nummer} kan bruges som "
+"pladsholdere. Flatpak og Snap kan vælges som flatpak:APP-ID eller snap:Name."
+
+msgid ""
+"Without this second selection, the background reminder service does not show "
+"notifications for confidential appointments."
+msgstr ""
+"Uden dette andet valg viser baggrundstjenesten for påmindelser ikke "
+"meddelelser om fortrolige aftaler."
+
+msgid "Work"
+msgstr "Arbejde"
+
+msgid "Work address"
+msgstr "Arbejdsadresse"
+
+msgid "Work anniversary"
+msgstr "Arbejdsjubilæum"
+
+msgid "Work phone"
+msgstr "Arbejdstelefon"
+
+msgid "Workgroup (all)"
+msgstr "Arbejdsgruppe (alle)"
+
+msgid "Workshop appointment"
+msgstr "Værkstedsaftale"
+
+msgid "Write a message to %(address)s"
+msgstr "Skriv en besked til %(address)s"
+
+msgid "Write an SMS using KDE Connect or the assigned application"
+msgstr "Skriv en SMS ved hjælp af KDE Connect eller den tildelte applikation"
+
+msgid "Write here …"
+msgstr "Skriv her …"
+
+msgid "Writing sheet"
+msgstr "Skriveark"
+
+msgid "X (formerly Twitter)"
+msgstr "X (tidligere Twitter)"
+
+msgid "Year"
+msgstr "År"
+
+msgid "Year calendar"
+msgstr "Årskalender"
+
+msgid "Year planner %(year)s"
+msgstr "Årsplanlægger %(year)s"
+
+msgid "Yes"
+msgstr "Yes"
+
+msgid "Yes, merge"
+msgstr "Ja, flet"
+
+msgid "Yes, the code matches"
+msgstr "Ja, koden stemmer"
+
+msgid "Your address"
+msgstr "Din adresse"
+
+msgid "Your address above is used as the starting point."
+msgstr "Din adresse ovenfor bruges som startpunkt."
+
+msgid "Your data from “Organizer Klassik” has been imported."
+msgstr "Dine data fra „Organizer Klassik“ er blevet importeret."
+
+msgid ""
+"Your data is stored at:\n"
+"%(path)s"
+msgstr ""
+"Dine data gemmes i:\n"
+"%(path)s"
+
+msgid "Your data is stored at: %(path)s"
+msgstr "Dine data gemmes i: %(path)s"
+
+msgid ""
+"Your own address is required as the starting point for a route. Enter it "
+"under Settings ▸ Contacts."
+msgstr ""
+"Din egen adresse er nødvendig som startpunkt for en rute. Indtast den under "
+"Indstillinger ▸ Kontakter."
+
+msgid "Zug"
+msgstr "Zug"
+
+msgid "Zurich"
+msgstr "Zürich"
+
+msgid "after 30 days"
+msgstr "efter 30 dage"
+
+msgid "after 7 days"
+msgstr "efter 7 dage"
+
+msgid "after 90 days"
+msgstr "efter 90 dage"
+
+msgid "after one year"
+msgstr "efter ét år"
+
+msgid "all cantons"
+msgstr "alle kantoner"
+
+msgid "all day"
+msgstr "hele dagen"
+
+msgid "all states"
+msgstr "alle delstater"
+
+msgid "also remind me about it"
+msgstr "tilføj også en påmindelse om det"
+
+msgid "and"
+msgstr "og"
+
+msgid "and %(count)s more"
+msgid_plural "and %(count)s more"
+msgstr[0] "og %(count)s mere"
+msgstr[1] "og %(count)s mere"
+
+msgid "app password from Nextcloud"
+msgstr "app-adgangskode fra Nextcloud"
+
+msgid "application {ziel}"
+msgstr "program {ziel}"
+
+msgid "at %(time)s"
+msgstr "kl. %(time)s"
+
+msgid "at least four characters"
+msgstr "mindst fire tegn"
+
+msgid "at the appointment time"
+msgstr "på tidspunktet for aftalen"
+
+msgid "before start"
+msgstr "før start"
+
+msgid "blood-glucose"
+msgstr "blood-glucose"
+
+msgid "browser storage"
+msgstr "browser storage"
+
+msgid "confidential"
+msgstr "fortrolig"
+
+msgid "confirmed"
+msgstr "bekræftet"
+
+msgid "days"
+msgstr "dage"
+
+msgid "days before"
+msgstr "dage før"
+
+msgid "due %(date)s"
+msgstr "forfalder %(date)s"
+
+msgid "due by %(date)s"
+msgstr "forfalder senest %(date)s"
+
+msgid "due from"
+msgstr "forfalder fra"
+
+msgid "e.g. 1 day before"
+msgstr "f.eks. 1 dag før"
+
+msgid "e.g. Birthday"
+msgstr "f.eks. Fødselsdag"
+
+msgid "e.g. Doctor appointment"
+msgstr "f.eks. Lægebesøg"
+
+msgid "e.g. Mobile"
+msgstr "f.eks. Mobil"
+
+msgid "e.g. Private"
+msgstr "f.eks. Privat"
+
+msgid "e.g. Send documents"
+msgstr "f.eks. Send dokumenter"
+
+msgid "e.g. Son"
+msgstr "f.eks. Søn"
+
+msgid "e.g. Work"
+msgstr "f.eks. Arbejde"
+
+msgid "e.g. glass or hazardous waste"
+msgstr "f.eks. glas eller farligt affald"
+
+msgid "e.g. kitchen or workshop"
+msgstr "f.eks. køkken eller værksted"
+
+msgid "e.g. medication day"
+msgstr "f.eks. medicindag"
+
+msgid "e.g. on-call duty"
+msgstr "f.eks. tilkaldevagt"
+
+msgid "every"
+msgstr "hver"
+
+msgid "every 12 hours"
+msgstr "hver 12. time"
+
+msgid "every 3 hours"
+msgstr "hver 3. time"
+
+msgid "every 30 minutes"
+msgstr "hvert 30. minut"
+
+msgid "every 6 hours"
+msgstr "hver 6. time"
+
+msgid "every day"
+msgstr "hver dag"
+
+msgid "every hour"
+msgstr "hver time"
+
+msgid "every month on the %(ordinal)s %(weekday)s"
+msgstr "hver måned den %(ordinal)s %(weekday)s"
+
+msgid "every month on the same day"
+msgstr "hver måned på samme dato"
+
+msgid "every week on the same weekday"
+msgstr "hver uge på samme ugedag"
+
+msgid "every year on the same date"
+msgstr "hvert år på samme dato"
+
+msgid "first"
+msgstr "første"
+
+msgid "first on"
+msgstr "første gang den"
+
+msgid "for the %(ordinal)s time"
+msgstr "for %(ordinal)s. gang"
+
+msgid "fourth"
+msgstr "fjerde"
+
+msgid "from"
+msgstr "fra"
+
+msgid "high"
+msgstr "høj"
+
+msgid "hours before"
+msgstr "timer før"
+
+msgid "https://… (optionally with {wert} or {nummer})"
+msgstr "https://… (valgfrit med {wert} eller {nummer})"
+
+msgid "in %(count)s day"
+msgid_plural "in %(count)s days"
+msgstr[0] "om %(count)s dag"
+msgstr[1] "om %(count)s dage"
+
+msgid "keep here"
+msgstr "behold her"
+
+msgid "last"
+msgstr "sidste"
+
+msgid "local / not opened"
+msgstr "lokal / åbnes ikke"
+
+msgid "low"
+msgstr "lav"
+
+msgid "medium"
+msgstr "mellem"
+
+msgid "minutes before"
+msgstr "minutter før"
+
+msgid "modified %(date)s"
+msgstr "ændret %(date)s"
+
+msgid "name@example.com"
+msgstr "name@example.com"
+
+msgid "never – empty manually"
+msgstr "aldrig – tøm manuelt"
+
+msgid "new task for this appointment…"
+msgstr "ny opgave til denne aftale…"
+
+msgid "notification %(count)s minute before"
+msgid_plural "notification %(count)s minutes before"
+msgstr[0] "meddelelse %(count)s minut før"
+msgstr[1] "meddelelse %(count)s minutter før"
+
+msgid "on the day only"
+msgstr "kun på selve dagen"
+
+msgid "once"
+msgstr "én gang"
+
+msgid "one backup was encrypted as well"
+msgid_plural "%(count)s backups were encrypted as well"
+msgstr[0] "én sikkerhedskopi blev også krypteret"
+msgstr[1] "%(count)s sikkerhedskopier blev også krypteret"
+
+msgid "one contact card"
+msgid_plural "%(count)s contact cards"
+msgstr[0] "ét kontaktkort"
+msgstr[1] "%(count)s kontaktkort"
+
+msgid "only %(year)s"
+msgstr "kun %(year)s"
+
+msgid "or enter a host name or IP address"
+msgstr "eller indtast et værtsnavn eller en IP-adresse"
+
+msgid "pulse"
+msgstr "puls"
+
+msgid "recurring appointment"
+msgstr "tilbagevendende aftale"
+
+msgid "remind me on the due date"
+msgstr "mind mig om det på forfaldsdatoen"
+
+msgid "second"
+msgstr "anden"
+
+msgid "stored – leave empty to keep"
+msgstr "gemt – lad feltet stå tomt for at beholde den"
+
+msgid "tentative"
+msgstr "foreløbig"
+
+msgid "the other branch"
+msgstr "den anden gren"
+
+msgid "third"
+msgstr "tredje"
+
+msgid "to"
+msgstr "til"
+
+msgid "today"
+msgstr "i dag"
+
+msgid "today!"
+msgstr "i dag!"
+
+msgid "tomorrow"
+msgstr "i morgen"
+
+msgid "turns %(age)s"
+msgstr "fylder %(age)s"
+
+msgid "unknown"
+msgstr "ukendt"
+
+msgid "unknown error"
+msgstr "ukendt fejl"
+
+msgid "untitled"
+msgstr "uden titel"
+
+msgid ""
+"vCard preserves more contact details. LDIF is intended for importing into "
+"Claws Mail; emergency contacts, social media, free labels and non-JPEG "
+"photos cannot be included."
+msgstr ""
+"vCard bevarer flere kontaktoplysninger. LDIF er beregnet til import i Claws "
+"Mail. Nødkontakter, sociale medier, frie etiketter og billeder, der ikke er "
+"JPEG, kan ikke medtages."
+
+msgid "vital"
+msgstr "vital"
+
+msgid "– Anniversaries automatically appear with ✱ in the calendar."
+msgstr "– Mærkedage vises automatisk med ✱ i kalenderen."
+
+msgid ""
+"– Everything is saved automatically. Use “Create backup” at the bottom right "
+"to create an additional backup copy."
+msgstr ""
+"– Alt gemmes automatisk. Brug „Opret sikkerhedskopi“ nederst til højre for "
+"at oprette en ekstra sikkerhedskopi."
+
+msgid ""
+"– In the calendar, use the controls at the top to switch between month and "
+"week view."
+msgstr ""
+"– Brug knapperne øverst i kalenderen til at skifte mellem måneds- og "
+"ugevisning."
+
+msgid ""
+"– The colored tabs along the edge lead to the sections. Tabs you have "
+"already passed move to the left side, just like in a real ring binder."
+msgstr ""
+"– De farvede faner langs kanten fører til sektionerne. Faner, du allerede "
+"har passeret, flyttes til venstre side, ligesom i et rigtigt ringbind."
+
+msgid ""
+"– The folded corners at the bottom turn pages forward and back: by month in "
+"the calendar, by year in the planner, and page by page here."
+msgstr ""
+"– De foldede hjørner nederst bladrer frem og tilbage: måned for måned i "
+"kalenderen, år for år i planlæggeren og side for side her."
+
+msgid ""
+"– Turn times in 5-minute increments with the mouse wheel (hold Shift for "
+"whole hours); the end time moves along with it. For appointments without a "
+"fixed time, select “All day”."
+msgstr ""
+"– Drej tiden i trin på 5 minutter med musehjulet (hold Shift for hele "
+"timer); sluttidspunktet følger med. Vælg „Hele dagen“ for aftaler uden et "
+"fast tidspunkt."
+
+msgid ""
+"– Under “Settings” at the bottom right, you can import appointments and "
+"addresses from other programs (.ics, .vcf, Lotus CSV), export them, and "
+"connect your system's online accounts. On the “Region & holidays” page, "
+"enter your country and state and import all public and school holidays once."
+msgstr ""
+"– Under „Indstillinger“ nederst til højre kan du importere aftaler og "
+"adresser fra andre programmer (.ics, .vcf, Lotus CSV), eksportere dem og "
+"forbinde systemets onlinekonti. På siden „Region og helligdage“ angiver du "
+"land og region og importerer alle officielle helligdage og skoleferier én "
+"gang."
+
+msgid "— do not link —"
+msgstr "— forbind ikke —"
+
+msgid "— not specified —"
+msgstr "— ikke angivet —"
+
+msgid "— please select —"
+msgstr "— vælg venligst —"
+
+msgid "“%(name)s” was restored."
+msgstr "„%(name)s“ blev gendannet."
+
+msgid "“%(word)s” is now in the dictionary."
+msgstr "„%(word)s“ er nu i ordbogen."
+
+msgid "… and %(count)s more item that will also be printed."
+msgid_plural "… and %(count)s more items that will also be printed."
+msgstr[0] "… og %(count)s element mere, som også bliver udskrevet."
+msgstr[1] "… og %(count)s elementer mere, som også bliver udskrevet."
+
+msgid "＋ Add appointment"
+msgstr "＋ Tilføj aftale"
+
+#~ msgid "No valid subscription"
+#~ msgstr "Intet gyldigt abonnement"
+
+#~ msgid "More fields (Lotus)"
+#~ msgstr "Flere felter (Lotus)"
+
+#~ msgid "Unknown import format."
+#~ msgstr "Ukendt importformat."

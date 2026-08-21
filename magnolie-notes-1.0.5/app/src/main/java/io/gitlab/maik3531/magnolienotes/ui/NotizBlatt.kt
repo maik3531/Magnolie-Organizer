@@ -1,0 +1,477 @@
+package io.gitlab.maik3531.magnolienotes.ui
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.ime
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import io.gitlab.maik3531.magnolienotes.R
+import io.gitlab.maik3531.magnolienotes.daten.Notiz
+import io.gitlab.maik3531.magnolienotes.daten.Notizbuch
+import io.gitlab.maik3531.magnolienotes.daten.Anhang
+
+data class AnhangEreignis(val notizId: String, val anhang: Anhang)
+
+internal fun notizEditorKompakt(
+    verfuegbareHoeheDp: Float,
+    fontScale: Float,
+    imeSichtbar: Boolean,
+    anhangAnzahl: Int
+): Boolean {
+    if (imeSichtbar || fontScale > 1.15f || anhangAnzahl >= 2) return true
+    val benoetigteHoehe = if (anhangAnzahl == 1) 620f else 540f
+    return verfuegbareHoeheDp < benoetigteHoehe
+}
+
+/**
+ * Das Notizblatt: alle Notizen nach Tag geordnet, jede mit ihrem Sinnbild,
+ * ihrer Uhrzeit und der Herkunft.
+ */
+@Composable
+fun NotizBlatt(
+    notizen: List<Notiz>,
+    notizbuecher: List<Notizbuch>,
+    beiOeffnen: (Notiz) -> Unit,
+    beiNeu: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    var suche by remember { mutableStateOf("") }
+    val gesucht = remember(notizen, suche) {
+        if (suche.isBlank()) notizen else notizen.filter {
+            it.titel.contains(suche, true) || it.text.contains(suche, true)
+        }
+    }
+    // Neueste zuerst, nach Tagen zusammengefasst.
+    val nachTagen = remember(gesucht) {
+        gesucht.sortedByDescending { it.geaendert }
+            .groupBy { Zeit.tagesschluessel(it.geaendert) }
+            .toList()
+    }
+    val heute = stringResource(R.string.heute)
+    val gestern = stringResource(R.string.gestern)
+
+    Column(modifier.fillMaxSize().background(Magnolie.papier)) {
+        Row(
+            Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Box(Modifier.weight(1f)) {
+                Schreibfeld(
+                    wert = suche,
+                    beschriftung = stringResource(R.string.notiz_suchen),
+                    beiAenderung = { suche = it }
+                )
+            }
+            Lederknopf(stringResource(R.string.notiz_neu), beiKlick = beiNeu)
+        }
+
+        if (notizen.isEmpty()) {
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text(
+                    stringResource(R.string.notiz_leer),
+                    fontFamily = FontFamily.Serif,
+                    fontSize = 15.sp,
+                    color = Magnolie.braunHell,
+                    modifier = Modifier.padding(36.dp)
+                )
+            }
+            return@Column
+        }
+
+        LazyColumn(
+            Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(bottom = 28.dp)
+        ) {
+            nachTagen.forEach { (_, tagesnotizen) ->
+                val wann = tagesnotizen.first().geaendert
+                item(key = "tag-" + Zeit.tagesschluessel(wann)) {
+                    Row(
+                        Modifier.fillMaxWidth()
+                            .padding(start = 14.dp, end = 14.dp, top = 14.dp, bottom = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            Zeit.tagesueberschrift(wann, heute, gestern),
+                            fontFamily = FontFamily.SansSerif,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 12.sp,
+                            color = Magnolie.braun
+                        )
+                        Box(
+                            Modifier.padding(start = 10.dp)
+                                .weight(1f).height(1.dp).background(Magnolie.linie)
+                        )
+                    }
+                }
+                items(tagesnotizen, key = { it.id }) { notiz ->
+                    Notizzeile(
+                        notiz = notiz,
+                        buchname = notizbuecher.firstOrNull { it.id == notiz.notizbuchId }?.name.orEmpty(),
+                        beiKlick = { beiOeffnen(notiz) }
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun Notizzeile(notiz: Notiz, buchname: String, beiKlick: () -> Unit) {
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .clickable(onClick = beiKlick)
+            .padding(horizontal = 14.dp, vertical = 9.dp),
+        verticalAlignment = Alignment.Top
+    ) {
+        Sinnbild(notiz.symbol)
+        Column(Modifier.padding(start = 12.dp).weight(1f)) {
+            Text(
+                notiz.anzeigeTitel.ifBlank { notiz.vorschau.take(60) },
+                fontFamily = FontFamily.Serif,
+                fontWeight = FontWeight.SemiBold,
+                fontSize = 16.sp,
+                color = Magnolie.tinte,
+                maxLines = 1
+            )
+            if (notiz.vorschau.isNotBlank()) {
+                Text(
+                    notiz.vorschau,
+                    fontFamily = FontFamily.SansSerif,
+                    fontSize = 12.sp,
+                    lineHeight = 17.sp,
+                    color = Magnolie.braunHell,
+                    maxLines = 2,
+                    modifier = Modifier.padding(top = 2.dp)
+                )
+            }
+            Row(Modifier.padding(top = 4.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(
+                    Zeit.uhrzeit(notiz.geaendert),
+                    fontFamily = FontFamily.Monospace,
+                    fontSize = 11.sp,
+                    color = Magnolie.goldDunkel
+                )
+                if (buchname.isNotBlank()) {
+                    Text(
+                        buchname,
+                        fontFamily = FontFamily.SansSerif,
+                        fontSize = 11.sp,
+                        color = Magnolie.braunHell
+                    )
+                }
+                if (notiz.baumFreigabe != null) {
+                    Text(
+                        stringResource(R.string.notiz_magnolienbaum),
+                        fontFamily = FontFamily.SansSerif,
+                        fontSize = 11.sp,
+                        color = Magnolie.filz
+                    )
+                }
+            }
+        }
+    }
+    Box(
+        Modifier.fillMaxWidth().padding(start = 60.dp, end = 14.dp)
+            .height(1.dp).background(Magnolie.linie)
+    )
+}
+
+/**
+ * Das Schreibblatt einer einzelnen Notiz. Überschrift, Wortlaut, Sinnbild –
+ * und der Weg zum Magnolienbaum.
+ */
+@Composable
+fun NotizEditor(
+    notiz: Notiz,
+    partnernamen: List<Pair<String, String>>,
+    beiSichern: (Notiz) -> Unit,
+    beiLoeschen: () -> Unit,
+    beiTeilen: (List<String>) -> Unit,
+    beiAnhangOeffnen: (Anhang) -> Unit,
+    beiAnhangSpeichern: (Anhang) -> Unit,
+    beiAnhangHinzufuegen: () -> Unit,
+    anhangEreignis: AnhangEreignis?,
+    beiAnhangEreignisVerbraucht: () -> Unit,
+    beiAnhaengeAenderung: (List<Anhang>) -> Unit,
+    beiZurueck: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    var titel by remember(notiz.id) { mutableStateOf(notiz.titel) }
+    var text by remember(notiz.id) { mutableStateOf(notiz.text) }
+    var symbol by remember(notiz.id) { mutableStateOf(notiz.symbol) }
+    var anhaenge by remember(notiz.id) { mutableStateOf(notiz.anhaenge) }
+    var fragtLoeschen by remember { mutableStateOf(false) }
+    var fragtTeilen by remember { mutableStateOf(false) }
+    var anhangAktion by remember { mutableStateOf<Anhang?>(null) }
+
+    LaunchedEffect(anhangEreignis) {
+        val ereignis = anhangEreignis ?: return@LaunchedEffect
+        if (ereignis.notizId == notiz.id && anhaenge.none { it.id == ereignis.anhang.id }) {
+            anhaenge = anhaenge + ereignis.anhang
+            beiAnhaengeAenderung(anhaenge)
+        }
+        beiAnhangEreignisVerbraucht()
+    }
+
+    // Der Organizer stellt Notizen als HTML dar; aus dem Wortlaut wird darum
+    // dasselbe schlichte HTML erzeugt, das auch sein eigener Filter erlaubt.
+    fun aktuell() = notiz.copy(
+        titel = titel,
+        text = text,
+        symbol = symbol,
+        anhaenge = anhaenge,
+        html = io.gitlab.maik3531.magnolienotes.baum.Nutzlast.textZuHtml(text)
+    )
+
+    Column(modifier.fillMaxSize().background(Magnolie.papier)) {
+        Einband(titel.ifBlank { stringResource(R.string.notiz_neu) }) {
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                Rundknopf("‹", beschreibung = stringResource(R.string.zurueck)) {
+                    beiSichern(aktuell()); beiZurueck()
+                }
+            }
+        }
+
+        BoxWithConstraints(
+            Modifier.weight(1f).navigationBarsPadding().imePadding()
+        ) {
+            val density = LocalDensity.current
+            val kompakt = notizEditorKompakt(
+                verfuegbareHoeheDp = maxHeight.value,
+                fontScale = density.fontScale,
+                imeSichtbar = WindowInsets.ime.getBottom(density) > 0,
+                anhangAnzahl = anhaenge.size
+            )
+            val scrollState = rememberScrollState()
+            val scrollModifier = if (kompakt) {
+                Modifier.verticalScroll(scrollState)
+            } else Modifier
+            val kompakteTextHoehe = (maxHeight - 28.dp).coerceAtLeast(220.dp)
+
+            Column(
+                Modifier.fillMaxSize().then(scrollModifier).padding(14.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+            Schreibfeld(
+                wert = titel,
+                beschriftung = stringResource(R.string.notiz_titel),
+                beiAenderung = { titel = it },
+                serifen = true
+            )
+
+            if (anhaenge.isNotEmpty()) {
+                Text(
+                    stringResource(R.string.notiz_anhaenge, anhaenge.size),
+                    fontFamily = FontFamily.SansSerif, fontSize = 12.sp, color = Magnolie.braunHell
+                )
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    items(anhaenge, key = { it.id }) { anhang ->
+                        Row(
+                            Modifier.background(Magnolie.papierTief, RoundedCornerShape(8.dp))
+                                .padding(4.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Papierknopf(anhang.name.ifBlank {
+                                stringResource(if (anhang.art == "pdf") R.string.notiz_pdf else R.string.notiz_bild)
+                            }) { anhangAktion = anhang }
+                            TextButton(onClick = {
+                                anhaenge = anhaenge.filterNot { it.id == anhang.id }
+                                beiAnhaengeAenderung(anhaenge)
+                            }) {
+                                Text(stringResource(R.string.notiz_anhang_entfernen), color = Magnolie.rot)
+                            }
+                        }
+                    }
+                }
+            }
+            Papierknopf(stringResource(R.string.notiz_anhang_hinzufuegen), beiKlick = beiAnhangHinzufuegen)
+                Schreibfeld(
+                    wert = text,
+                    beschriftung = stringResource(R.string.notiz_text),
+                    beiAenderung = { text = it },
+                    einzeilig = false,
+                    serifen = true,
+                    modifier = if (kompakt) {
+                        Modifier.heightIn(
+                            min = 220.dp,
+                            max = kompakteTextHoehe
+                        )
+                    } else {
+                        Modifier.weight(1f).heightIn(min = 220.dp)
+                    }
+                )
+
+            Text(
+                stringResource(R.string.notiz_symbol),
+                fontFamily = FontFamily.SansSerif,
+                fontSize = 12.sp,
+                color = Magnolie.braunHell
+            )
+            LazyRow(
+                Modifier.height(46.dp),
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                items(io.gitlab.maik3531.magnolienotes.daten.Symbol.alle) { art ->
+                    val symbolName = sinnbildName(art)
+                    val symbolBeschreibung = if (art == symbol) {
+                        stringResource(R.string.semantik_ausgewaehlt, symbolName)
+                    } else symbolName
+                    Box(
+                        Modifier
+                            .background(
+                                if (art == symbol) Magnolie.gold.copy(alpha = 0.35f)
+                                else androidx.compose.ui.graphics.Color.Transparent,
+                                RoundedCornerShape(20.dp)
+                            )
+                            .clearAndSetSemantics { contentDescription = symbolBeschreibung }
+                            .clickable { symbol = art }
+                            .padding(3.dp)
+                    ) {
+                        Sinnbild(art, groesse = 34.dp)
+                    }
+                }
+            }
+
+            val angelegtText = stringResource(R.string.notiz_angelegt, Zeit.tagUndUhrzeit(
+                if (notiz.angelegt > 0) notiz.angelegt else System.currentTimeMillis()
+            ))
+            val herkunftText = if (notiz.herkunft.isNotBlank()) {
+                "  ·  " + stringResource(R.string.notiz_herkunft, notiz.herkunft)
+            } else ""
+            Text(
+                angelegtText + herkunftText,
+                fontFamily = FontFamily.SansSerif,
+                fontSize = 11.sp,
+                color = Magnolie.braunHell
+            )
+
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Lederknopf(stringResource(R.string.sichern)) { beiSichern(aktuell()); beiZurueck() }
+                    Papierknopf(
+                        stringResource(R.string.notiz_teilen),
+                        aktiv = partnernamen.isNotEmpty()
+                    ) { beiSichern(aktuell()); fragtTeilen = true }
+                    Papierknopf(stringResource(R.string.loeschen)) { fragtLoeschen = true }
+                }
+            }
+        }
+    }
+
+    anhangAktion?.let { anhang ->
+        AlertDialog(
+            onDismissRequest = { anhangAktion = null },
+            containerColor = Magnolie.papier,
+            title = {
+                Text(
+                    anhang.name.ifBlank {
+                        stringResource(if (anhang.art == "pdf") R.string.notiz_pdf else R.string.notiz_bild)
+                    },
+                    fontFamily = FontFamily.Serif
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = { anhangAktion = null; beiAnhangOeffnen(anhang) }) {
+                    Text(stringResource(R.string.notiz_anhang_oeffnen), color = Magnolie.braun)
+                }
+            },
+            dismissButton = {
+                Row {
+                    TextButton(onClick = { anhangAktion = null; beiAnhangSpeichern(anhang) }) {
+                        Text(stringResource(R.string.notiz_anhang_speichern), color = Magnolie.braun)
+                    }
+                    TextButton(onClick = { anhangAktion = null }) {
+                        Text(stringResource(R.string.abbrechen), color = Magnolie.braun)
+                    }
+                }
+            }
+        )
+    }
+
+    if (fragtLoeschen) {
+        AlertDialog(
+            onDismissRequest = { fragtLoeschen = false },
+            containerColor = Magnolie.papier,
+            title = { Text(stringResource(R.string.notiz_loeschen), fontFamily = FontFamily.Serif) },
+            text = { Text(stringResource(R.string.wirklich_loeschen)) },
+            confirmButton = {
+                TextButton(onClick = { fragtLoeschen = false; beiLoeschen(); beiZurueck() }) {
+                    Text(stringResource(R.string.loeschen), color = Magnolie.rot)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { fragtLoeschen = false }) {
+                    Text(stringResource(R.string.abbrechen), color = Magnolie.braun)
+                }
+            }
+        )
+    }
+
+    if (fragtTeilen) {
+        AlertDialog(
+            onDismissRequest = { fragtTeilen = false },
+            containerColor = Magnolie.papier,
+            title = { Text(stringResource(R.string.notiz_teilen), fontFamily = FontFamily.Serif) },
+            text = {
+                Column {
+                    partnernamen.forEach { (kennung, name) ->
+                        Text(
+                            stringResource(R.string.baum_teilen_frage, name),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { fragtTeilen = false; beiTeilen(listOf(kennung)) }
+                                .padding(vertical = 10.dp),
+                            fontFamily = FontFamily.SansSerif,
+                            fontSize = 14.sp,
+                            color = Magnolie.tinte
+                        )
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { fragtTeilen = false }) {
+                    Text(stringResource(R.string.abbrechen), color = Magnolie.braun)
+                }
+            }
+        )
+    }
+}

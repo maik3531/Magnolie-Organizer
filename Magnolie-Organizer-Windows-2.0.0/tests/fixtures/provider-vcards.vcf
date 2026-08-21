@@ -1,0 +1,26 @@
+BEGIN:VCARD
+VERSION:2.1
+N;CHARSET=UTF-8;ENCODING=QUOTED-PRINTABLE:M=C3=BCller;Tina;;;
+FN:Tina Müller
+UID:thunderbird-original-uid
+TEL;HOME;VOICE;X-SERVICE-TYPE=signal:0203 1
+X-MOZILLA-HTML:TRUE
+END:VCARD
+BEGIN:VCARD
+VERSION:3.0
+N:Apfel;Ada;;;
+FN:Ada Apfel
+UID:apple-original-uid
+item1.EMAIL;TYPE=WORK;PREF=1:ada@example.test
+item1.X-ABLabel:Arbeit
+X-ABRELATEDNAMES;TYPE=friend:Grace Hopper
+END:VCARD
+BEGIN:VCARD
+VERSION:4.0
+FN:Nora Cloud
+N:Cloud;Nora;;;
+UID:nextcloud-original-uid
+KIND:individual
+EMAIL;TYPE=work;PREF=1:nora@example.test
+IMPP;PREF=1:xmpp:nora@example.test
+END:VCARD

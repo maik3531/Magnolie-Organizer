@@ -1,0 +1,46 @@
+#!/bin/sh
+set -eu
+
+test -x /usr/bin/magnolie-organizer
+test -f /usr/bin/magnolie_kdeconnect.py
+test -f /usr/bin/magnolie_nextcloud.py
+test -f /usr/lib/magnolie-organizer/magnolie_personal_sync.py
+PYTHONPATH=/usr/lib/magnolie-organizer:/usr/bin python3 - <<'PY'
+import magnolie_personal_sync
+import magnolie_nextcloud
+import magnolie_telefon
+
+assert magnolie_personal_sync.__file__ == \
+    "/usr/lib/magnolie-organizer/magnolie_personal_sync.py"
+assert magnolie_telefon.validate_personal_sync_body is \
+    magnolie_personal_sync.validate_body
+PY
+test -f /usr/share/magnolie-organizer/web/index.html
+test -f /usr/share/magnolie-organizer/web/anwendung.js
+grep -q 'function oeffneSuche' /usr/share/magnolie-organizer/web/anwendung.js
+grep -q 'syncMetadaten' /usr/share/magnolie-organizer/web/anwendung.js
+grep -q 'nextcloud:' /usr/share/magnolie-organizer/web/anwendung.js
+test -f /usr/share/magnolie-organizer/web/kaffee-qr.png
+python3 werkzeuge/png_pruefen.py /usr/share/magnolie-organizer/web/kaffee-qr.png
+test -f /usr/share/magnolie-organizer/web/i18n/de.js
+test -f /usr/share/magnolie-organizer/klang/erinnerung.wav
+test -f /usr/share/locale/de/LC_MESSAGES/magnolie-organizer.mo
+test -f /usr/share/doc/magnolie-organizer/INTERNATIONALISIERUNG.md
+test -f /usr/share/doc/magnolie-organizer/copyright
+test -f /etc/ufw/applications.d/magnolie-organizer
+test -f /usr/share/applications/io.gitlab.maik3531.MagnolieOrganizer.desktop
+test ! -e /usr/share/applications/magnolie-organizer.desktop
+test -f /usr/share/man/man1/magnolie-organizer.1.gz
+
+dpkg-query -W -f='${Status}\n' magnolie-organizer | grep -qx 'install ok installed'
+dpkg -V magnolie-organizer
+desktop-file-validate /usr/share/applications/io.gitlab.maik3531.MagnolieOrganizer.desktop
+grep -q '^ports=8737/tcp|8737/udp|8741/tcp|1716/udp|1716:1764/tcp|5353/udp$' \
+  /etc/ufw/applications.d/magnolie-organizer
+
+tmp="${AUTOPKGTEST_TMP:-$(mktemp -d)}"
+mkdir -p "$tmp/data" "$tmp/config" "$tmp/state"
+env -u MAGNOLIE_ORGANIZER_WEB -u MAGNOLIE_LOCALE_DIR \
+  XDG_DATA_HOME="$tmp/data" XDG_CONFIG_HOME="$tmp/config" \
+  XDG_STATE_HOME="$tmp/state" NO_AT_BRIDGE=1 \
+  /usr/bin/magnolie-organizer --language en --help | grep -q 'Usage:'

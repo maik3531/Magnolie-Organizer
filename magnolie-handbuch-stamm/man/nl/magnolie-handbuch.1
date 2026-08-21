@@ -1,0 +1,39 @@
+.TH MAGNOLIE-HANDBUCH 1 "augustus 2026" "Magnolie-handboek 2.0.0" "Gebruikersopdrachten"
+.SH NAAM
+magnolie-handbuch \- het gebruikershandboek van Magnolie Organizer openen
+.SH SAMENVATTING
+.B magnolie-handbuch
+.RI [ optie ]
+.RI [ \-\-sprache\  taal ]
+.SH BESCHRIJVING
+.B Magnolie-handboek
+opent de volledige geïllustreerde gebruikershandleiding voor Magnolie
+Organizer. Het handboek kan op het scherm worden bekeken, afgedrukt of als
+PDF-bestand worden geëxporteerd.
+.PP
+Per gebruikerssessie wordt slechts één handboekvenster geopend. Als de
+opdracht opnieuw wordt gestart, verschijnt het bestaande venster.
+.SH OPTIES
+.TP
+.BR \-\-sprache " " SPRACHE , " " \-\-language " " LANGUAGE
+Gebruik Duits (\fBde\fR), Engels (\fBen\fR) of de systeemtaal
+(\fBsystem\fR) voor deze aanroep. Hiermee worden de taal van de
+opdrachtuitvoer vóór de hulptekst en de WebKit-taal van een nieuw geopend
+venster gekozen. Opgeslagen instellingen worden niet gewijzigd.
+.TP
+.BR \-\-pot " [" DATEI "]", " " \-\-pot-template " [" FILE "]"
+Genereer een reproduceerbare gettext-sjabloon en sluit af. Schrijf zonder
+bestandsargument \fBmagnolie-handbuch.pot\fR in de huidige map; schrijf anders
+naar het opgegeven pad. Bij succes wordt het absolute uitvoerpad getoond.
+.TP
+.BR \-\-hilfe , " " \-\-help
+Toon een kort opdrachtoverzicht.
+.SH OMGEVING
+.TP
+.B MAGNOLIE_HANDBUCH_WEB
+Gebruik een andere map die de handboekinterface bevat. Bedoeld voor
+ontwikkeling en tests.
+.SH ZIE OOK
+.BR magnolie-organizer (1)
+.SH AUTEUR
+Geschreven door Maik Walter.

@@ -1,0 +1,7209 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2026 THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the Magnolie Organizer
+# package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: Magnolie Organizer 2.0.0\n"
+"Report-Msgid-Bugs-To: maik3531@gmail.com\n"
+"POT-Creation-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"PO-Revision-Date: 2026-08-08 09:24+0200\n"
+"Last-Translator: Magnolie localization project\n"
+"Language-Team: Japanese\n"
+"Language: ja\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+"Generated-By: Babel 2.18.0\n"
+
+msgid " (filtered)"
+msgstr "（フィルター済み）"
+
+msgid " (public holiday)"
+msgstr "（祝日）"
+
+msgid " (school holidays)"
+msgstr "（学校休暇）"
+
+msgid " at %(time)s"
+msgstr " %(time)s"
+
+#, python-format
+msgid " at %s"
+msgstr " %s"
+
+msgid " for %(years)s"
+msgstr " %(years)s の間"
+
+msgid " from %(branch)s"
+msgstr " %(branch)s から"
+
+msgid " – notification at the appointment time."
+msgstr " – 予定時刻に通知します。"
+
+msgid ""
+"%(appointment)s\n"
+"Click to edit"
+msgstr ""
+"%(appointment)s\n"
+"クリックして編集"
+
+#, python-format
+msgid ""
+"%(branch)s offers contact synchronization. Please accept or reject it in the "
+"Organizer."
+msgstr ""
+"%(branch)s が連絡先の同期を提案しています。オーガナイザーで承認または拒否して"
+"ください。"
+
+#, python-format
+msgid ""
+"%(branch)s wants to share a note. Please accept or reject it in the "
+"Organizer."
+msgstr ""
+"%(branch)s がメモの共有を希望しています。Organizer で承認または拒否してくださ"
+"い。"
+
+#, python-format
+msgid ""
+"%(branch)s wants to share a task. Please accept or reject it in the "
+"Organizer."
+msgstr ""
+"%(branch)s がタスクの共有を希望しています。Organizer で承認または拒否してくだ"
+"さい。"
+
+#, python-format
+msgid ""
+"%(branch)s wants to share an address. Please accept or reject it in the "
+"Organizer."
+msgstr ""
+"%(branch)s が住所の共有を希望しています。Organizer で承認または拒否してくださ"
+"い。"
+
+#, python-format
+msgid ""
+"%(branch)s wants to share an appointment. Please accept or reject it in the "
+"Organizer."
+msgstr ""
+"%(branch)s が予定の共有を希望しています。Organizer で承認または拒否してくださ"
+"い。"
+
+msgid ""
+"%(cards)s merged. Copies are stored under “Duplicates” in the recycle bin."
+msgstr ""
+"%(cards)s 件を統合しました。コピーはごみ箱の「重複」に保存されています。"
+
+msgid "%(count)s anniversary"
+msgid_plural "%(count)s anniversaries"
+msgstr[0] "記念日 %(count)s 件"
+
+msgid "%(count)s anniversary entered"
+msgid_plural "%(count)s anniversaries entered"
+msgstr[0] "記念日を %(count)s 件登録しました"
+
+msgid "%(count)s appointment"
+msgid_plural "%(count)s appointments"
+msgstr[0] "予定 %(count)s 件"
+
+msgid "%(count)s attachment"
+msgid_plural "%(count)s attachments"
+msgstr[0] "添付ファイル %(count)s 件"
+
+msgid "%(count)s birthday"
+msgid_plural "%(count)s birthdays"
+msgstr[0] "誕生日 %(count)s 件"
+
+msgid "%(count)s contact"
+msgid_plural "%(count)s contacts"
+msgstr[0] "連絡先 %(count)s 件"
+
+msgid "%(count)s contact card"
+msgid_plural "%(count)s contact cards"
+msgstr[0] "連絡先カード %(count)s 件"
+
+msgid "%(count)s contact photo added"
+msgid_plural "%(count)s contact photos added"
+msgstr[0] "連絡先写真を %(count)s 件追加しました"
+
+msgid "%(count)s day"
+msgid_plural "%(count)s days"
+msgstr[0] "%(count)s 日"
+
+msgid "%(count)s day before"
+msgid_plural "%(count)s days before"
+msgstr[0] "%(count)s 日前"
+
+msgid "%(count)s email address added"
+msgid_plural "%(count)s email addresses added"
+msgstr[0] "メールアドレスを %(count)s 件追加しました"
+
+msgid "%(count)s entry deleted."
+msgid_plural "%(count)s entries deleted."
+msgstr[0] "%(count)s 件の項目を削除しました。"
+
+msgid "%(count)s existing entry skipped."
+msgid_plural "%(count)s existing entries skipped."
+msgstr[0] "既存の項目 %(count)s 件をスキップしました。"
+
+msgid "%(count)s found"
+msgid_plural "%(count)s found"
+msgstr[0] "%(count)s 件見つかりました"
+
+msgid "%(count)s group"
+msgid_plural "%(count)s groups"
+msgstr[0] "グループ %(count)s 件"
+
+msgid "%(count)s holiday period"
+msgid_plural "%(count)s holiday periods"
+msgstr[0] "休暇期間 %(count)s 件"
+
+msgid "%(count)s incoming offer"
+msgid_plural "%(count)s incoming offers"
+msgstr[0] "受信した提案 %(count)s 件"
+
+msgid "%(count)s match"
+msgid_plural "%(count)s matches"
+msgstr[0] "一致 %(count)s 件"
+
+msgid "%(count)s minute"
+msgid_plural "%(count)s minutes"
+msgstr[0] "%(count)s 分"
+
+msgid "%(count)s more"
+msgid_plural "%(count)s more"
+msgstr[0] "ほか %(count)s 件"
+
+msgid "%(count)s more entry"
+msgid_plural "%(count)s more entries"
+msgstr[0] "ほか %(count)s 件の項目"
+
+msgid "%(count)s new Magnolienbaum request awaits your decision."
+msgid_plural "%(count)s new Magnolienbaum requests await your decision."
+msgstr[0] ""
+"%(count)s 件の新しい Magnolienbaum リクエストがあなたの判断を待っています。"
+
+msgid "%(count)s non-JPEG contact photo was omitted."
+msgid_plural "%(count)s non-JPEG contact photos were omitted."
+msgstr[0] "JPEG 以外の連絡先写真 %(count)s 枚を省略しました。"
+
+msgid "%(count)s note"
+msgid_plural "%(count)s notes"
+msgstr[0] "メモ %(count)s 件"
+
+msgid "%(count)s notebook"
+msgid_plural "%(count)s notebooks"
+msgstr[0] "ノートブック %(count)s 件"
+
+msgid "%(count)s open"
+msgstr "未処理 %(count)s 件"
+
+msgid "%(count)s page"
+msgid_plural "%(count)s pages"
+msgstr[0] "%(count)s ページ"
+
+msgid "%(count)s public holiday"
+msgid_plural "%(count)s public holidays"
+msgstr[0] "祝日 %(count)s 件"
+
+msgid "%(count)s recurring appointment imported only once."
+msgid_plural "%(count)s recurring appointments imported only once."
+msgstr[0] "繰り返し予定 %(count)s 件を一度だけインポートしました。"
+
+msgid "%(count)s second"
+msgid_plural "%(count)s seconds"
+msgstr[0] "%(count)s 秒"
+
+msgid "%(count)s task"
+msgid_plural "%(count)s tasks"
+msgstr[0] "タスク %(count)s 件"
+
+msgid "%(count)s unreadable row omitted."
+msgid_plural "%(count)s unreadable rows omitted."
+msgstr[0] "読み取れない行 %(count)s 件を省略しました。"
+
+msgid "%(count)s unusable contact was omitted."
+msgid_plural "%(count)s unusable contacts were omitted."
+msgstr[0] "使用できない連絡先 %(count)s 件を省略しました。"
+
+msgid "%(date)s, %(time)s"
+msgstr "%(date)s、%(time)s"
+
+msgid "%(date)s, all day"
+msgstr "%(date)s、終日"
+
+msgid "%(first)s and %(second)s"
+msgstr "%(first)s と %(second)s"
+
+msgid "%(first)s to %(last)s"
+msgstr "%(first)s から %(last)s"
+
+msgid "%(format)s (Ctrl+%(key)s)"
+msgstr "%(format)s (Ctrl+%(key)s)"
+
+msgid "%(from)s to %(to)s"
+msgstr "%(from)s から %(to)s"
+
+msgid "%(name)s found – currently reachable"
+msgstr "%(name)s found – currently reachable"
+
+msgid "%(name)s last found – reconnecting"
+msgstr "%(name)s last found – reconnecting"
+
+#, python-format
+msgid "%(name)s: Wedding anniversary in %(count)d day."
+msgid_plural "%(name)s: Wedding anniversary in %(count)d days."
+msgstr[0] "%(name)s：結婚記念日まで %(count)d 日。"
+
+msgid "%(ordinal)s death anniversary"
+msgstr "%(ordinal)s 回目の命日"
+
+msgid "%(ordinal)s wedding anniversary"
+msgstr "%(ordinal)s 回目の結婚記念日"
+
+msgid "%(parts)s SMS parts · %(units)s character units"
+msgstr "%(parts)s SMS パート · %(units)s 文字単位"
+
+msgid "%(shown)s of %(count)s matches; refine your search."
+msgstr ""
+"%(count)s 件の一致のうち %(shown)s 件を表示しています。検索条件を絞り込んでく"
+"ださい。"
+
+msgid "%(start)s to %(end)s"
+msgstr "%(start)s から %(end)s"
+
+#, python-format
+msgid "%(title)s – %(date)s%(time)s"
+msgstr "%(title)s – %(date)s%(time)s"
+
+msgid "%(title)s – %(when)s"
+msgstr "%(title)s – %(when)s"
+
+#, python-format
+msgid "%d appointment"
+msgid_plural "%d appointments"
+msgstr[0] "予定 %d 件"
+
+#, python-format
+msgid "%d birthday from the address book added as an anniversary."
+msgid_plural "%d birthdays from the address book added as anniversaries."
+msgstr[0] "アドレス帳の誕生日 %d 件を記念日として追加しました。"
+
+#, python-format
+msgid "%d contact"
+msgid_plural "%d contacts"
+msgstr[0] "連絡先 %d 件"
+
+#, python-format
+msgid "%d deleted"
+msgstr "%d 件削除"
+
+#, python-format
+msgid "%d error"
+msgid_plural "%d errors"
+msgstr[0] "エラー %d 件"
+
+#, python-format
+msgid "%d holiday period"
+msgid_plural "%d holiday periods"
+msgstr[0] "休暇期間 %d 件"
+
+#, python-format
+msgid "%d notification today"
+msgid_plural "%d notifications today"
+msgstr[0] "本日の通知 %d 件"
+
+#, python-format
+msgid "%d public holiday"
+msgid_plural "%d public holidays"
+msgstr[0] "祝日 %d 件"
+
+#, python-format
+msgid "%d received"
+msgstr "%d 件受信"
+
+#, python-format
+msgid "%d synchronized"
+msgstr "%d 件同期"
+
+#, python-format
+msgid "%d task"
+msgid_plural "%d tasks"
+msgstr[0] "タスク %d 件"
+
+#, python-format
+msgid "%d uploaded"
+msgstr "%d 件アップロード"
+
+#, python-format
+msgid "%s has a birthday %s."
+msgstr "%s の誕生日は %s です。"
+
+#, python-format
+msgid "%s reported an unexpected error (technical detail: %s)."
+msgstr "%s が予期しないエラーを報告しました（技術的詳細：%s）。"
+
+#, python-format
+msgid "%s – today"
+msgstr "%s – 今日"
+
+#, python-format
+msgid "%s – today at %s"
+msgstr "%s – 今日 %s"
+
+#, python-format
+msgid "%s: %s."
+msgstr "%s：%s。"
+
+#, python-format
+msgid "%s: Anniversary %s (%s)."
+msgstr "%s：記念日 %s（%s）。"
+
+#, python-format
+msgid "%s: Wedding anniversary the day after tomorrow."
+msgstr "%s：明後日は結婚記念日です。"
+
+#, python-format
+msgid "%s: Wedding anniversary today."
+msgstr "%s：今日は結婚記念日です。"
+
+#, python-format
+msgid "%s: Wedding anniversary tomorrow."
+msgstr "%s：明日は結婚記念日です。"
+
+msgid "(starts when you sign in)"
+msgstr "（サインイン時に開始）"
+
+msgid "(unnamed)"
+msgstr "（名称未設定）"
+
+msgid "(used by the session service)"
+msgstr "（セッションサービスが使用）"
+
+msgid "+ Address"
+msgstr "+ 住所"
+
+msgid "+ Email address"
+msgstr "+ メールアドレス"
+
+msgid "+ Emergency contact"
+msgstr "+ 緊急連絡先"
+
+msgid "+ Event"
+msgstr "+ イベント"
+
+msgid "+ More appointments"
+msgstr "+ その他の予定"
+
+msgid "+ More tasks"
+msgstr "+ その他のタスク"
+
+msgid "+ Phone number"
+msgstr "+ 電話番号"
+
+msgid "+ Social medium"
+msgstr "+ ソーシャルメディア"
+
+msgid "+49 … or 0…"
+msgstr "+49 … または 0…"
+
+msgid ", imported from the session"
+msgstr ", セッションからインポート"
+
+msgid "1 - high"
+msgstr "1 – 高"
+
+msgid "1 day before"
+msgstr "1 日前"
+
+msgid "1 hour before"
+msgstr "1 時間前"
+
+msgid "1 minute"
+msgstr "1分"
+
+msgid "10 minutes before"
+msgstr "10 分前"
+
+msgid "15 minutes before"
+msgstr "15 分前"
+
+msgid "15 seconds"
+msgstr "15秒"
+
+msgid "2 - medium"
+msgstr "2 – 中"
+
+msgid "2 days before"
+msgstr "2 日前"
+
+msgid "2 hours before"
+msgstr "2 時間前"
+
+msgid "2 minutes"
+msgstr "2分"
+
+msgid "3 - low"
+msgstr "3 – 低"
+
+msgid "3 days before"
+msgstr "3 日前"
+
+msgid "30 days"
+msgstr "30 日"
+
+msgid "30 minutes before"
+msgstr "30 分前"
+
+msgid "30 seconds"
+msgstr "30秒"
+
+msgid "4 days before"
+msgstr "4 日前"
+
+msgid "5 days before"
+msgstr "5 日前"
+
+msgid "5 minutes before"
+msgstr "5 分前"
+
+msgid "6 days before"
+msgstr "6 日前"
+
+msgid "7 days before"
+msgstr "7 日前"
+
+msgid "90 days"
+msgstr "90 日"
+
+#, python-format
+msgid ""
+"A component for spelling suggestions is missing. Install it with:  sudo apt "
+"install %s"
+msgstr ""
+"スペル候補に必要なコンポーネントがありません。次のコマンドでインストールして"
+"ください:  sudo apt install %s"
+
+msgid "A component required by the Magnolienbaum is missing."
+msgstr "Magnolienbaum に必要なコンポーネントがありません。"
+
+msgid ""
+"A component required by the Magnolienbaum is missing. Install it with:  sudo "
+"apt install python3-cryptography"
+msgstr ""
+"Magnolienbaum に必要なコンポーネントがありません。次のコマンドでインストール"
+"してください:  sudo apt install python3-cryptography"
+
+msgid ""
+"A fallback for branch baum-1: when the direct connection cannot be reached, "
+"messages travel through a WebDAV folder on your Nextcloud server."
+msgstr ""
+"baum-1 ブランチの予備経路です。直接接続に到達できない場合、メッセージは "
+"Nextcloud サーバー上の WebDAV フォルダーを経由します。"
+
+msgid "A group with this name already exists."
+msgstr "同じ名前のグループがすでにあります。"
+
+msgid "A known branch"
+msgstr "既知のブランチ"
+
+msgid "A maximum of 10 SMS parts is allowed."
+msgstr "SMS は最大10パートまで使用できます。"
+
+msgid "A notebook with this name already exists in this group."
+msgstr "このグループには同じ名前のノートブックがすでにあります。"
+
+msgid ""
+"A numeric code can be entered conveniently using the keypad when opening; "
+"letters work as well. After three failed attempts, the organizer waits five "
+"minutes."
+msgstr ""
+"開くときの数値コードはテンキーで簡単に入力できます。文字も使用できます。3 回"
+"失敗すると Organizer は 5 分間待機します。"
+
+msgid ""
+"A pairing file works like a one-time key. Give it only to the person whose "
+"Organizer you want to connect; it expires after 15 minutes."
+msgstr ""
+"ペアリングファイルは使い捨ての鍵として機能します。接続したい相手の Organizer "
+"の所有者だけに渡してください。有効期限は 15 分です。"
+
+msgid ""
+"A password initially locks out the background reminder service. Without the "
+"explicit permission below, notifications work only while the organizer is "
+"open and unlocked."
+msgstr ""
+"パスワードを設定すると、最初はバックグラウンドのリマインダーサービスがロック"
+"されます。下で明示的に許可しない限り、通知は Organizer が開いてロック解除され"
+"ている間だけ機能します。"
+
+msgid "A prepared password transaction file is missing or damaged."
+msgstr ""
+"準備されたパスワードトランザクションファイルが見つからないか、破損していま"
+"す。"
+
+msgid ""
+"A separate encrypted connection for dial requests, device status and "
+"selected notifications."
+msgstr ""
+"ダイヤル要求、デバイスのステータス、および選択された通知用の個別の暗号化接"
+"続。"
+
+msgid "API level"
+msgstr "API level"
+
+msgid "Aargau"
+msgstr "アールガウ州"
+
+msgid "About"
+msgstr "このアプリについて"
+
+msgid "About the Magnolie Organizer"
+msgstr "Magnolie Organizer について"
+
+msgid "Accept"
+msgstr "承認"
+
+msgid "Accept and remember"
+msgstr "承認して記憶"
+
+msgid "Accept “%(entry)s” into your own collection?"
+msgstr "「%(entry)s」を自分のコレクションに追加しますか？"
+
+msgid ""
+"Accept “%(entry)s” into your own collection?\n"
+"\n"
+"This consent applies only to this note. Future changes and attachments will "
+"then be applied automatically in both directions."
+msgstr ""
+"「%(entry)s」を自分のコレクションに追加しますか？\n"
+"\n"
+"この同意はこのメモだけに適用されます。以後の変更と添付ファイルは両方向に自動"
+"的に反映されます。"
+
+msgid "Accessibility"
+msgstr "アクセシビリティ"
+
+msgid "Accessibility helper frame"
+msgstr "アクセシビリティ補助枠"
+
+msgid "Accessibility helper frame disabled"
+msgstr "アクセシビリティ補助枠を無効化"
+
+msgid "Accessibility helper frame enabled"
+msgstr "アクセシビリティ補助枠を有効化"
+
+msgid ""
+"Accessibility: The helper frame shows the current keyboard focus. It is "
+"disabled by default; press Ctrl+Alt+H at any time to switch it on or off."
+msgstr ""
+"アクセシビリティ: 補助枠は現在のキーボードフォーカスを表示します。既定では無"
+"効です。Ctrl+Alt+H を押すといつでもオン/オフを切り替えられます。"
+
+msgid "According to language"
+msgstr "言語に応じて"
+
+msgid "Active call"
+msgstr "Active call"
+
+msgid "Add"
+msgstr "追加"
+
+msgid "Add appointment"
+msgstr "予定を追加"
+
+msgid "Add attachment URI"
+msgstr "添付ファイルの URI を追加"
+
+msgid "Add attendee"
+msgstr "出席者を追加"
+
+msgid "Add cycle marker"
+msgstr "周期マーカーを追加"
+
+msgid "Add person"
+msgstr "人物を追加"
+
+msgid "Add reminder"
+msgstr "リマインダーを追加"
+
+msgid "Add scheme row"
+msgstr "投与スキームの行を追加"
+
+msgid "Add shift"
+msgstr "シフトを追加"
+
+msgid "Add to dictionary"
+msgstr "辞書に追加"
+
+msgid "Add vacation period"
+msgstr "休暇期間を追加"
+
+msgid "Add waste collection"
+msgstr "ごみ収集を追加"
+
+msgid "Adding the alarm monitor to autostart"
+msgstr "アラーム監視を自動起動に追加しています"
+
+msgid "Adding the tray applet to autostart"
+msgstr "トレイアプレットを自動起動に追加しています"
+
+msgid "Adding the word to the dictionary"
+msgstr "単語を辞書に追加しています"
+
+msgid "Address"
+msgstr "住所"
+
+msgid "Address book"
+msgstr "アドレス帳"
+
+msgid "Address imported from LibreOffice."
+msgstr "LibreOffice から住所をインポートしました。"
+
+msgid ""
+"Addressed to %(branch)s; it will be delivered when the branch is available."
+msgstr "%(branch)s 宛てです。ブランチが利用可能になると配信されます。"
+
+msgid "Addresses"
+msgstr "住所"
+
+msgid "After exercise"
+msgstr "運動後"
+
+msgid "After meal"
+msgstr "食後"
+
+msgid "Alarm monitor in background: not running"
+msgstr "バックグラウンドのアラーム監視: 停止中"
+
+msgid "Alarm monitor in background: running"
+msgstr "バックグラウンドのアラーム監視: 実行中"
+
+#, python-format
+msgid "Alarm monitor log: still empty (%(path)s)"
+msgstr "アラーム監視ログはまだ空です（%(path)s）"
+
+msgid "Alarm monitor start canceled – one is already running."
+msgstr "アラーム監視の開始を中止しました – すでに 1 つ実行中です。"
+
+#, python-format
+msgid ""
+"Alarm monitor started (process %(pid)d, display %(display)s%(session)s)."
+msgstr ""
+"アラーム監視を開始しました（プロセス %(pid)d、ディスプレイ "
+"%(display)s%(session)s）。"
+
+msgid "Alarm monitor stopped."
+msgstr "アラーム監視を停止しました。"
+
+msgid "All"
+msgstr "すべて"
+
+msgid "All cantons"
+msgstr "すべての州"
+
+msgid "All entries"
+msgstr "すべての項目"
+
+msgid "All files"
+msgstr "すべてのファイル"
+
+msgid "All people"
+msgstr "すべての人物"
+
+msgid "All six charts"
+msgstr "6つすべてのグラフ"
+
+msgid "All states"
+msgstr "すべての州"
+
+msgid "Allow notifications despite password protection"
+msgstr "パスワード保護中でも通知を許可"
+
+msgid "Also disclose appointments marked as confidential"
+msgstr "機密としてマークされた予定も開示"
+
+msgid "Also hide past anniversaries"
+msgstr "過去の記念日も非表示"
+
+msgid "Also hide past school holidays"
+msgstr "過去の学校休暇も非表示"
+
+msgid "Also remind me about anniversaries"
+msgstr "記念日も通知する"
+
+msgid "Also remind me about missed appointments"
+msgstr "見逃した予定も通知する"
+
+msgid "Also use the default notification"
+msgstr "既定の通知も使用"
+
+msgid "Amount / unit"
+msgstr "数量 / 単位"
+
+msgid "An ODS cell is too long."
+msgstr "ODS セルが長すぎます。"
+
+msgid "An ODS row has the wrong number of columns."
+msgstr "ODS 行の列数が正しくありません。"
+
+msgid ""
+"An appointment calendar, address book, task book and notepad in the guise of "
+"a leather-bound organizer —"
+msgstr "革装の Organizer を模した予定表、アドレス帳、タスク帳、メモ帳 —"
+
+msgid "An archive entry is too large."
+msgstr "アーカイブ内のエントリーが大きすぎます。"
+
+msgid ""
+"An encryption component is missing. Install it with:  sudo apt install "
+"python3-cryptography"
+msgstr ""
+"暗号化コンポーネントがありません。次のコマンドでインストールしてください:  "
+"sudo apt install python3-cryptography"
+
+msgid ""
+"An encryption component is missing. Install it with: sudo apt install "
+"python3-cryptography"
+msgstr ""
+"暗号化コンポーネントがありません。次のコマンドでインストールしてください: "
+"sudo apt install python3-cryptography"
+
+msgid "Android version"
+msgstr "Android バージョン"
+
+msgid "Anniversaries"
+msgstr "記念日"
+
+msgid "Anniversaries (.ics)"
+msgstr "記念日 (.ics)"
+
+msgid "Anniversary"
+msgstr "記念日"
+
+msgid "Another data operation is still running."
+msgstr "別のデータ操作がまだ実行中です。"
+
+msgid "Answer"
+msgstr "応答"
+
+msgid "Answer calls on the computer and talk"
+msgstr "パソコンで着信に応答して通話"
+
+msgid "Answering the call"
+msgstr "着信に応答中"
+
+msgid "App password"
+msgstr "App password"
+
+msgid "Appearance"
+msgstr "外観"
+
+msgid "Appearance and sound follow your system notification settings."
+msgstr "外観とサウンドはシステムの通知設定に従います。"
+
+msgid "Appearance: Magnolie sheet"
+msgstr "外観: Magnolie シート"
+
+msgid "Appearance: system notification"
+msgstr "外観: システム通知"
+
+msgid "Appenzell Ausserrhoden"
+msgstr "アッペンツェル・アウサーローデン州"
+
+msgid "Appenzell Innerrhoden"
+msgstr "アッペンツェル・インナーローデン州"
+
+msgid "Application command"
+msgstr "アプリケーションコマンド"
+
+msgid ""
+"Applies only to content you enter yourself: appointments, tasks, contacts, "
+"notes and anniversaries. Headings, calendar pages and organizer labels "
+"remain unchanged."
+msgstr ""
+"自分で入力した内容（予定、タスク、連絡先、メモ、記念日）だけに適用されます。"
+"見出し、カレンダーページ、Organizer のラベルは変わりません。"
+
+msgid ""
+"Applies when scrolling over a time field. Hold Shift to change the time in "
+"whole hours."
+msgstr ""
+"時刻欄の上でスクロールしたときに適用されます。Shift を押しながら操作すると 1 "
+"時間単位で時刻を変更できます。"
+
+msgid "Apply"
+msgstr "適用"
+
+msgid "Appointment"
+msgstr "予定"
+
+msgid "Appointment could not be read"
+msgstr "予定を読み取れませんでした"
+
+msgid "Appointment is due"
+msgstr "予定の時刻です"
+
+msgid "Appointment overview"
+msgstr "予定の概要"
+
+msgid "Appointment reminder"
+msgstr "予定のリマインダー"
+
+msgid "Appointment reminders"
+msgstr "予定のリマインダー"
+
+msgid "Appointments"
+msgstr "予定"
+
+msgid "Appointments (.ics)"
+msgstr "予定 (.ics)"
+
+msgid "Appointments as Lotus CSV"
+msgstr "予定を Lotus CSV 形式で出力"
+
+msgid "Appointments for this person"
+msgstr "この人物の予定"
+
+msgid "Appointments · %(period)s"
+msgstr "予定 · %(period)s"
+
+#, python-format
+msgid "Appointments: safe first import from %(source)s: %(count)d received."
+msgstr ""
+"アポイントメント: %(source)sからの最初の安全なインポート: %(count)dを受信しま"
+"した。"
+
+msgid "As usual (print)"
+msgstr "通常どおり（印刷）"
+
+msgid "Assign SMS action"
+msgstr "SMSアクションの割り当て"
+
+msgid "Assign call action"
+msgstr "コールアクションの割り当て"
+
+msgid "Assign shift"
+msgstr "シフトを割り当て"
+
+msgid "At bedtime"
+msgstr "就寝時"
+
+msgid "At least one health view must remain enabled."
+msgstr "健康管理の表示を 1 つ以上有効にしておく必要があります。"
+
+msgid "At most 5,000 contacts can be exported at once."
+msgstr "一度にエクスポートできる連絡先は最大 5,000 件です。"
+
+msgid "At most 5,000 health records can be exported at once."
+msgstr "一度にエクスポートできる健康記録は最大 5,000 件です。"
+
+msgid "Attachments"
+msgstr "予定"
+
+msgid "Attendees"
+msgstr "出席者"
+
+msgid "Austria"
+msgstr "オーストリア"
+
+msgid "Author"
+msgstr "作成者"
+
+msgid "Authority appointment"
+msgstr "役所の予定"
+
+msgid "Automatically choose a suitable application"
+msgstr "適切なアプリケーションを自動選択"
+
+msgid "Automatically synchronize over Wi-Fi"
+msgstr "Wi-Fi で自動的に同期する"
+
+#, python-format
+msgid "Autostart entry: %(path)s"
+msgstr "自動起動エントリ: %(path)s"
+
+msgid "Autostart entry: missing"
+msgstr "自動起動エントリ: ありません"
+
+msgid "B"
+msgstr "太"
+
+msgid "BMI"
+msgstr "BMI"
+
+msgid ""
+"BMI\n"
+"kg/m²"
+msgstr ""
+"BMI\n"
+"kg/m²"
+
+msgid "BMI from the latest stored height and weight"
+msgstr "最後に保存した身長と体重から算出した BMI"
+
+msgid "BZ"
+msgstr "BZ"
+
+msgid "Backup failed."
+msgstr "バックアップに失敗しました。"
+
+#, python-format
+msgid "Backup failed: %s"
+msgstr "バックアップに失敗しました: %s"
+
+msgid "Backup folder"
+msgstr "バックアップフォルダー"
+
+msgid "Backup folder updated."
+msgstr "バックアップフォルダーを更新しました。"
+
+msgid "Backup password"
+msgstr "バックアップのパスワード"
+
+msgid "Backup restored. The previous data was backed up automatically."
+msgstr ""
+"バックアップを復元しました。以前のデータは自動的にバックアップされました。"
+
+msgid "Backup saved to: %(path)s"
+msgstr "バックアップの保存先: %(path)s"
+
+msgid "Backups"
+msgstr "バックアップ"
+
+msgid ""
+"Backups outside the data location require a password with at least four "
+"characters."
+msgstr ""
+"データ保存場所の外にバックアップする場合は、4 文字以上のパスワードが必要で"
+"す。"
+
+msgid "Baden-Württemberg"
+msgstr "バーデン＝ヴュルテンベルク州"
+
+msgid "Baptism"
+msgstr "洗礼"
+
+msgid "Basal units"
+msgstr "基礎インスリン単位"
+
+msgid "Basel-Landschaft"
+msgstr "バーゼル＝ラント準州"
+
+msgid "Basel-Stadt"
+msgstr "バーゼル＝シュタット準州"
+
+msgid "Basic operation and appearance of the organizer."
+msgstr "Organizer の基本操作と外観。"
+
+msgid "Battery"
+msgstr "手紙"
+
+msgid "Battery snapshot"
+msgstr "Battery snapshot"
+
+msgid "Bavaria"
+msgstr "バイエルン州"
+
+msgid "Before contact deletion"
+msgstr "連絡先削除前"
+
+msgid "Before contact import"
+msgstr "コンタクトインポート前"
+
+msgid "Before contact merge"
+msgstr "コンタクト統合前"
+
+msgid "Before exercise"
+msgstr "運動前"
+
+msgid "Before meal"
+msgstr "食前"
+
+msgid "Before restore"
+msgstr "復元前"
+
+msgid "Before synchronization"
+msgstr "同期の前"
+
+msgid "Belgium"
+msgstr "ベルギー"
+
+msgid "Berlin"
+msgstr "ベルリン"
+
+msgid "Bern"
+msgstr "ベルン"
+
+msgid "Birthday"
+msgstr "誕生日"
+
+msgid "Birthday party"
+msgstr "誕生日会"
+
+msgid "Birthday today"
+msgstr "今日が誕生日"
+
+msgid "Black"
+msgstr "黒"
+
+msgid "Blank health form"
+msgstr "空の健康管理用紙"
+
+msgid "Blank template for handwriting"
+msgstr "手書き用の空白テンプレート"
+
+msgid "Bleeding · heavy"
+msgstr "出血 · 多い"
+
+msgid "Bleeding · light"
+msgstr "出血 · 少ない"
+
+msgid "Bleeding · medium"
+msgstr "出血 · 普通"
+
+msgid "Blood glucose"
+msgstr "血糖値"
+
+msgid "Blood glucose scheme"
+msgstr "血糖管理表"
+
+msgid "Blood glucose table"
+msgstr "血糖値表"
+
+msgid "Blood glucose value"
+msgstr "血糖値"
+
+msgid "Blood pressure"
+msgstr "血圧"
+
+msgid ""
+"Blood pressure\n"
+"mm/Hg"
+msgstr ""
+"血圧\n"
+"mm/Hg"
+
+msgid "Blue (fountain pen)"
+msgstr "青（万年筆）"
+
+msgid "Bluetooth data fallback"
+msgstr "Bluetoothデータフォールバック"
+
+msgid "Bold"
+msgstr "太字"
+
+msgid ""
+"Both branches display the same six-digit code when connecting. Confirm it "
+"only if it matches, preventing anyone from intercepting the connection."
+msgstr ""
+"接続時、両方のブランチに同じ 6 桁のコードが表示されます。一致する場合だけ確認"
+"してください。第三者による接続の傍受を防げます。"
+
+msgid "Brandenburg"
+msgstr "ブランデンブルク州"
+
+msgid "Bremen"
+msgstr "ブレーメン"
+
+msgid "Burgenland"
+msgstr "ブルゲンラント州"
+
+msgid "By first name (Hans Müller)"
+msgstr "名で並べる（Hans Müller）"
+
+msgid "By last name (Müller, Hans)"
+msgstr "姓で並べる（Müller, Hans）"
+
+msgid "CSV files (*.csv)"
+msgstr "CSV ファイル (*.csv)"
+
+msgid "CW"
+msgstr "週"
+
+msgid "Calculate the route to this address"
+msgstr "この住所までの経路を計算"
+
+msgid "Calendar"
+msgstr "カレンダー"
+
+msgid "Calendar (*.ics)"
+msgstr "カレンダー (*.ics)"
+
+msgid "Calendar file (.ics/.vcs/.lcs) …"
+msgstr "カレンダーファイル (.ics/.vcs/.lcs) …"
+
+msgid "Calendar layout"
+msgstr "カレンダーのレイアウト"
+
+msgid ""
+"Calendar synchronization was stopped because an EDS entry was not read "
+"completely."
+msgstr ""
+"EDS エントリーを完全に読み取れなかったため、カレンダーの同期を停止しました。"
+
+msgid "Calendar week %(number)s"
+msgstr "第 %(number)s 暦週"
+
+msgid "Calendars (multiple selections allowed)"
+msgstr "カレンダー（複数選択可）"
+
+msgid "Calendars and contacts"
+msgstr "Calendars and contacts"
+
+msgid "Call"
+msgstr "電話"
+
+msgid "Call assignment"
+msgstr "コールの割り当て"
+
+msgid "Call ended"
+msgstr "Call ended"
+
+msgid "Call notes"
+msgstr "Call notes"
+
+msgid "Call reference"
+msgstr "Call reference"
+
+msgid "Call started"
+msgstr "Call started"
+
+msgid "Call this contact using Magnolie Notes or the assigned application"
+msgstr ""
+"Magnolie Notes または割り当てられたアプリケーションを使用してこの連絡先に電話"
+"します"
+
+msgid "Call with %(name)s · %(date)s"
+msgstr "Call with %(name)s · %(date)s"
+
+msgid "Cancel"
+msgstr "キャンセル"
+
+msgid "Canton"
+msgstr "州"
+
+msgid "Capsule"
+msgstr "カプセル"
+
+msgid "Captured"
+msgstr "捕らえられた"
+
+msgid "Care service"
+msgstr "介護サービス"
+
+msgid "Carinthia"
+msgstr "ケルンテン州"
+
+msgid "Categories"
+msgstr "カテゴリー"
+
+msgid "Categories:"
+msgstr "カテゴリー:"
+
+msgid "Catholic confirmation"
+msgstr "カトリックの堅信礼"
+
+msgid "Centered on the screen"
+msgstr "画面中央"
+
+msgid "Change password"
+msgstr "パスワードを変更"
+
+msgid "Changes are applied automatically"
+msgstr "変更は自動的に反映されます"
+
+msgid "Changing phone permission"
+msgstr "電話の権限を変更する"
+
+msgid "Charging"
+msgstr "充電中"
+
+msgid "Charging state"
+msgstr "充電状態"
+
+msgid "Charts and BMI are documentation aids only and are not a diagnosis."
+msgstr "グラフと BMI は記録を補助するものであり、診断ではありません。"
+
+msgid "Check for due appointments"
+msgstr "期限の来た予定を確認"
+
+msgid "Check for updates automatically every day"
+msgstr "毎日自動的に更新を確認"
+
+msgid "Check now"
+msgstr "今すぐ確認"
+
+msgid "Check spelling (red wavy lines)"
+msgstr "スペルチェック（赤い波線）"
+
+msgid "Check the value and discuss repeated deviations with a doctor."
+msgstr "値を確認し、異常が繰り返される場合は医師に相談してください。"
+
+msgid "Check-up appointment"
+msgstr "定期検診"
+
+#, python-format
+msgid ""
+"Checked: nothing due (%(appointments)d appointments, lead time %(minutes)s "
+"min)"
+msgstr ""
+"確認済み: 期限のものはありません（予定 %(appointments)d 件、事前通知 "
+"%(minutes)s 分）"
+
+msgid "Checking Contributor Key …"
+msgstr "Contributor Key を確認しています …"
+
+msgid "Checking online accounts …"
+msgstr "オンラインアカウントを確認しています …"
+
+msgid "Checking the current manual version …"
+msgstr "現在のマニュアルのバージョンを確認しています…"
+
+msgid "Checking the current version …"
+msgstr "現在のバージョンを確認しています …"
+
+msgid ""
+"Choose a backup file. Before restoring it, the organizer automatically "
+"creates a copy of the current data. An encrypted backup requires its "
+"password."
+msgstr ""
+"バックアップファイルを選択してください。復元する前に、Organizer は現在のデー"
+"タのコピーを自動的に作成します。暗号化されたバックアップにはパスワードが必要"
+"です。"
+
+msgid "Choose a country first."
+msgstr "最初に国を選択してください。"
+
+msgid "Choose a mobile number"
+msgstr "携帯電話番号を選択"
+
+msgid ""
+"Choose a phase or bleeding intensity. Assign it to the complete date range "
+"in the new appointment sheet."
+msgstr ""
+"段階または出血量を選択してください。新しい予定シートの日付範囲全体に割り当て"
+"ます。"
+
+msgid "Choose a phone number to call"
+msgstr "電話をかけるための番号を選んでください"
+
+msgid ""
+"Choose a predefined shift or enter a custom one. Assign it to one or more "
+"days in the new appointment sheet. Day markers do not send notifications."
+msgstr ""
+"定義済みのシフトを選ぶか、独自のシフトを入力してください。新しい予定シートで "
+"1 日以上に割り当てます。日付マーカーは通知を送信しません。"
+
+msgid "Choose a value and period to display its development."
+msgstr "推移を表示する項目と期間を選択してください。"
+
+msgid ""
+"Choose a waste type or enter a custom collection. Set the first collection "
+"and the interval in days; 0 creates a one-time collection."
+msgstr ""
+"ごみの種類を選ぶか、独自の収集を入力してください。最初の収集日と日数の間隔を"
+"設定します。0 にすると 1 回だけの収集になります。"
+
+msgid "Choose at least four characters."
+msgstr "4 文字以上を選択してください。"
+
+msgid "Choose entries to print, export or delete"
+msgstr "印刷、エクスポート、削除する項目を選択"
+
+msgid "Choose file…"
+msgstr "ファイルを選択…"
+
+msgid "Choose folder …"
+msgstr "フォルダーを選択 …"
+
+msgid "Choose or enter a phone number"
+msgstr "電話番号を選択または入力"
+
+msgid "Choose photo…"
+msgstr "写真を選択…"
+
+msgid "Choose print or export content…"
+msgstr "印刷またはエクスポートする内容を選択…"
+
+msgid "Choose service"
+msgstr "サービスを選択"
+
+msgid ""
+"Choose which sections appear as tabs on the organizer. The calendar always "
+"remains available."
+msgstr ""
+"オーガナイザーにタブとして表示するセクションを選択します。カレンダーは常に利"
+"用できます。"
+
+msgid "Choose year…"
+msgstr "年を選択…"
+
+msgid "City"
+msgstr "市区町村"
+
+msgid "Claws Mail (.xml/.ldif) …"
+msgstr "Claws Mail（.xml/.ldif）…"
+
+msgid "Claws Mail address book (*.xml)"
+msgstr "Claws Mail アドレス帳 (*.xml)"
+
+msgid "Clear"
+msgstr "クリア"
+
+msgid "Clear filters"
+msgstr "フィルターをクリア"
+
+msgid "Clearly abnormal reference value – check it and seek medical advice."
+msgstr "明らかに異常な基準値です。値を確認し、医師の診察を受けてください。"
+
+msgid "Click here to add an appointment"
+msgstr "ここをクリックして予定を追加"
+
+msgid "Click to open"
+msgstr "クリックして開く"
+
+msgid "Clicking a day"
+msgstr "日付をクリック"
+
+msgid ""
+"Clicking an existing appointment opens it for editing in both cases. This "
+"setting applies only when you click an empty area in the box."
+msgstr ""
+"既存の予定をクリックすると、どちらの場合も編集用に開きます。この設定は、枠内"
+"の空白部分をクリックした場合だけ適用されます。"
+
+msgid "Close"
+msgstr "閉じる"
+
+msgid "Close settings"
+msgstr "設定を閉じる"
+
+msgid "Club anniversary"
+msgstr "クラブの記念日"
+
+msgid "Code matches"
+msgstr "コードが一致"
+
+msgid "Codes differ"
+msgstr "コードは異なる"
+
+msgid "Codes match"
+msgstr "コードが一致"
+
+msgid "Color"
+msgstr "色"
+
+msgid ""
+"Colors and matching scheme rows are orientation aids. Enter or adjust the IE "
+"in the table to the amount actually administered."
+msgstr ""
+"色と対応する投与計画の行は、確認の目安です。表のインスリン単位数は、実際に投"
+"与した量に合わせて入力または調整してください。"
+
+msgid "Columns in the ODS table"
+msgstr "ODS テーブルの列"
+
+msgid "Compact sender line (default)"
+msgstr "コンパクトな送信者行（既定）"
+
+msgid "Company"
+msgstr "会社"
+
+msgid "Compare pairing code"
+msgstr "ペアリングファイルをインポートしています"
+
+msgid ""
+"Compare this fingerprint with the other branch, for example by phone, to "
+"verify the connection."
+msgstr ""
+"接続を確認するため、このフィンガープリントを電話などで相手側のブランチと比較"
+"してください。"
+
+msgid "Complete archive exported (password-protected)."
+msgstr "完全なアーカイブをエクスポートしました（パスワード保護あり）。"
+
+msgid "Complete archive exported (unencrypted)."
+msgstr "完全なアーカイブをエクスポートしました（暗号化なし）。"
+
+msgid "Complete pairing"
+msgstr "Complete pairing"
+
+msgid "Completed (%(count)s)"
+msgstr "完了 (%(count)s)"
+
+msgid "Completed task"
+msgstr "完了"
+
+msgid "Completing KDE Connect pairing"
+msgstr "KDE Connect のペアリングを完了しています"
+
+msgid "Completing secure pairing…"
+msgstr "ペアリングファイルを作成しています"
+
+msgid "Configuring Bluetooth data"
+msgstr "Bluetoothデータの設定"
+
+msgid ""
+"Confirm only if exactly the same six-digit code is shown on both devices."
+msgstr ""
+"両方のデバイスにまったく同じ6桁のコードが表示されている場合にのみ確認してくだ"
+"さい。"
+
+msgid "Confirm the pairing request on the phone."
+msgstr "電話でペアリング要求を確認してください。"
+
+msgid "Confirmation"
+msgstr "確認"
+
+msgid "Conflict"
+msgstr "確認"
+
+msgid "Connect"
+msgstr "接続"
+
+msgid "Connect phone via WLAN"
+msgstr "電話をWi-Fiで接続する"
+
+msgid "Connected"
+msgstr "Connected"
+
+msgid "Connecting to the online accounts"
+msgstr "オンラインアカウントに接続しています"
+
+msgid "Consider deletions during manual synchronization"
+msgstr "連絡先の同期"
+
+msgid "Contact"
+msgstr "Contact"
+
+#, python-format
+msgid "Contact %d contains an unreadable vCard."
+msgstr "連絡先 %d は読めない vCard を含んでいます。"
+
+#, python-format
+msgid "Contact %d contains an unreadable vCard: %s"
+msgstr "連絡先 %d には、読み取れない vCard が含まれています: %s"
+
+#, python-format
+msgid "Contact %d could not be serialized: %s"
+msgstr "連絡先 %d をシリアル化できませんでした: %s"
+
+#, python-format
+msgid "Contact %d has no UID."
+msgstr "連絡先 %d には UID がありません。"
+
+msgid "Contact card"
+msgstr "連絡先カード"
+
+msgid "Contact cards"
+msgstr "連絡先カード"
+
+msgid "Contact cards (*.vcf)"
+msgstr "連絡先カード (*.vcf)"
+
+msgid "Contact deletion proposals were blocked by the safety limit."
+msgstr "連絡先の削除提案は安全上の制限によりブロックされました。"
+
+msgid "Contact photo preview"
+msgstr "連絡先写真のプレビュー"
+
+msgid "Contact synchronization"
+msgstr "連絡先の同期"
+
+msgid ""
+"Contact synchronization preview: %(new)s new, %(changed)s changed, "
+"%(duplicates)s possible duplicates, %(deletions)s deletion proposals."
+msgstr ""
+"同期プレビュー：新規 %(new)s、変更 %(changed)s、重複候補 %(duplicates)s、削除"
+"提案 %(deletions)s。"
+
+msgid ""
+"Contact synchronization was blocked because the bound snapshot is empty."
+msgstr ""
+"関連付けられたスナップショットが空のため、連絡先の同期はブロックされました。"
+
+#, python-format
+msgid ""
+"Contact synchronization was stopped because the address book was not read "
+"completely: %s"
+msgstr ""
+"アドレス帳が完全に読み込まれなかったため、連絡先の同期は停止されました：%s"
+
+msgid "Contacts"
+msgstr "連絡先"
+
+msgid "Contacts (.vcf)"
+msgstr "連絡先 (.vcf)"
+
+msgid "Contacts (.vcf) …"
+msgstr "連絡先 (.vcf) …"
+
+msgid "Contacts are merged additively. No deletions are transmitted."
+msgstr "連絡先は追加方式で統合されます。削除は送信されません。"
+
+msgid "Contacts for Claws Mail (.ldif)"
+msgstr "Claws Mail 用連絡先 (.ldif)"
+
+msgid "Contacts: component gir1.2-ebook-1.2 is missing; skipped."
+msgstr ""
+"削除提案で削除できるのは個別に確認された関連連絡先だけです。このブランチで有"
+"効にしますか？連絡先: コンポーネント gir1.2-ebook-1.2 がありません。スキップ"
+"しました。"
+
+#, python-format
+msgid "Contacts: safe first import from %(source)s: %(count)d received."
+msgstr ""
+"連絡先: %(source)sからの最初の安全なインポート: %(count)dが受信されました。"
+
+msgid "Content"
+msgstr "内容"
+
+msgid "Content length is missing."
+msgstr "コンテンツの長さがありません。"
+
+msgid "Continue"
+msgstr "続き"
+
+msgid "Continued"
+msgstr "続き"
+
+msgid "Contributor Key"
+msgstr "Contributor Key"
+
+msgid "Copy"
+msgstr "コピー"
+
+#, python-format
+msgid "Copy stored at: %s"
+msgstr "コピーの保存先: %s"
+
+msgid "Cost center"
+msgstr "コストセンター"
+
+msgid "Could not answer"
+msgstr "電話に応答できませんでした"
+
+#, python-format
+msgid "Could not create POT template: %s"
+msgstr "POT テンプレートを作成できませんでした: %s"
+
+msgid "Could not hang up"
+msgstr "通話を終了できませんでした"
+
+msgid "Country"
+msgstr "国"
+
+msgid "Country & holidays"
+msgstr "国と祝日"
+
+msgid "Country (optional)"
+msgstr "国（任意）"
+
+msgid "Country and region"
+msgstr "国と地域"
+
+msgid "Country for searches"
+msgstr "検索に使用する国"
+
+msgid "Create"
+msgstr "作成"
+
+msgid "Create a backup copy of the data"
+msgstr "データのバックアップコピーを作成"
+
+msgid "Create a gettext POT template"
+msgstr "gettext POT テンプレートを作成"
+
+msgid "Create a new appointment immediately"
+msgstr "新しい予定をすぐに作成"
+
+msgid "Create an empty printable template"
+msgstr "印刷用の空のテンプレートを作成"
+
+msgid "Create backup"
+msgstr "バックアップを作成"
+
+msgid "Create contact"
+msgstr "連絡先を作成"
+
+msgid "Create encrypted backup"
+msgstr "暗号化バックアップを作成"
+
+msgid "Create group"
+msgstr "グループを作成"
+
+msgid "Create notebook"
+msgstr "ノートブックを作成"
+
+msgid "Create pairing file …"
+msgstr "ペアリングファイルを作成 …"
+
+msgid "Create snapshot now"
+msgstr "今すぐスナップショットを作成"
+
+msgid "Creating a recovery snapshot"
+msgstr "リカバリスナップショットの作成"
+
+msgid "Creating the backup"
+msgstr "バックアップを作成しています"
+
+msgid "Creating the letter"
+msgstr "手紙を作成しています"
+
+msgid "Creating the log"
+msgstr "ログを作成しています"
+
+msgid "Creating the pairing file"
+msgstr "ペアリングファイルを作成しています"
+
+msgid "Creating the print page"
+msgstr "印刷ページを作成しています"
+
+msgid "Creating the required recovery snapshot"
+msgstr "必要なリカバリースナップショットの作成"
+
+msgid "Custom"
+msgstr "カスタム"
+
+msgid "Custom application"
+msgstr "カスタムアプリケーション"
+
+msgid "Custom notification"
+msgstr "カスタム通知"
+
+msgid "Custom websites must begin with https://."
+msgstr "カスタム Web サイトは https:// で始める必要があります。"
+
+msgid "Customer no."
+msgstr "顧客番号"
+
+msgid "Customize"
+msgstr "カスタマイズ"
+
+msgid "Customize notebooks"
+msgstr "ノートブックをカスタマイズ"
+
+msgid "Cut"
+msgstr "切り取り"
+
+msgid "Cycle calendar"
+msgstr "周期カレンダー"
+
+msgid ""
+"Cycle markers are stored only in your local Organizer data and do not send "
+"notifications."
+msgstr ""
+"周期マーカーはローカルの Organizer データだけに保存され、通知は送信しません。"
+
+msgid "Czechia"
+msgstr "チェコ"
+
+msgid "DIN 5008 Form B with fold marks"
+msgstr "折り目付き DIN 5008 フォーム B"
+
+msgid "DOCTYPE is not allowed in a Claws Mail address book."
+msgstr "Claws Mail アドレス帳では DOCTYPE を使用できません。"
+
+msgid "Daily"
+msgstr "毎日"
+
+msgid "Daily view"
+msgstr "日表示"
+
+msgid "Damaged"
+msgstr "損傷した"
+
+#, python-format
+msgid "Data: %(path)s"
+msgstr "データ: %(path)s"
+
+msgid "Data: not found – open the organizer once."
+msgstr "データ: 見つかりません – Organizer を一度開いてください。"
+
+msgid "Date"
+msgstr "日付"
+
+msgid "Daughter"
+msgstr "娘"
+
+msgid "Day"
+msgstr "日"
+
+msgid "Day markers"
+msgstr "日付マーカー"
+
+msgid "Days"
+msgstr "日"
+
+msgid "Dear Sir or Madam,"
+msgstr "拝啓"
+
+msgid "Death anniversary"
+msgstr "命日"
+
+#, python-format
+msgid "Debug logging could not be started: %s"
+msgstr "デバッグログを開始できませんでした: %s"
+
+msgid "Decrypting the data"
+msgstr "データを復号しています"
+
+msgid "Default: next to the data file"
+msgstr "既定: データファイルの隣"
+
+msgid "Delegate to"
+msgstr "委任先"
+
+msgid "Delete"
+msgstr "削除"
+
+msgid "Delete %(count)s selected entry for good?"
+msgid_plural "Delete %(count)s selected entries for good?"
+msgstr[0] "選択した %(count)s 件の項目を完全に削除しますか？"
+
+msgid "Delete %(count)s selected entry? It moves to the wastebasket."
+msgid_plural "Delete %(count)s selected entries? They move to the wastebasket."
+msgstr[0] "選択した %(count)s 件の項目を削除しますか？ごみ箱へ移動します。"
+
+msgid "Delete all SMS histories"
+msgstr "すべてのSMS履歴を削除します"
+
+msgid "Delete all SMS histories?"
+msgstr "SMS の履歴をすべて削除しますか?"
+
+msgid "Delete anniversary"
+msgstr "記念日を削除"
+
+msgid "Delete anniversary “%(name)s”?"
+msgstr "記念日「%(name)s」を削除しますか？"
+
+msgid "Delete appointment “%(title)s”?"
+msgstr "予定「%(title)s」を削除しますか？"
+
+msgid ""
+"Delete appointment “%(title)s”? This removes every occurrence in the series."
+msgstr ""
+"予定「%(title)s」を削除しますか？これにより系列内のすべての予定が削除されま"
+"す。"
+
+msgid "Delete contact card “%(name)s”?"
+msgstr "連絡先カード「%(name)s」を削除しますか？"
+
+msgid "Delete cycle marker"
+msgstr "周期マーカーを削除"
+
+msgid "Delete entries"
+msgstr "項目を削除"
+
+msgid "Delete entries…"
+msgstr "項目を削除…"
+
+msgid "Delete group"
+msgstr "グループを削除"
+
+msgid "Delete last character"
+msgstr "最後の文字を削除"
+
+msgid "Delete notebook"
+msgstr "ノートブックを削除"
+
+msgid "Delete notebook group “%(name)s”?"
+msgstr "ノートブックグループ「%(name)s」を削除しますか？"
+
+msgid "Delete notebook “%(name)s”?"
+msgstr "ノートブック「%(name)s」を削除しますか？"
+
+msgid "Delete page"
+msgstr "ページを削除"
+
+msgid "Delete password"
+msgstr "Delete password"
+
+msgid "Delete permanently"
+msgstr "完全に削除"
+
+msgid "Delete selection"
+msgstr "選択項目を削除"
+
+msgid "Delete shift"
+msgstr "シフトを削除"
+
+msgid "Delete task"
+msgstr "タスクを削除"
+
+msgid "Delete task “%(title)s”?"
+msgstr "タスク「%(title)s」を削除しますか？"
+
+msgid ""
+"Delete the stored app password? The mailbox can no longer deliver until a "
+"new one is entered."
+msgstr ""
+"保存されたアプリパスワードを削除しますか。新しいものを入力するまで、メール"
+"ボックスは配送できません。"
+
+msgid "Delete this contact's SMS history?"
+msgstr "この連絡先の SMS 履歴を削除しますか?"
+
+msgid "Delete this contact's history"
+msgstr "この連絡先の履歴を削除します"
+
+msgid "Delete this note page (“%(title)s”)?"
+msgstr "このメモページ（「%(title)s」）を削除しますか？"
+
+msgid "Delete this recovery snapshot permanently?"
+msgstr "このリカバリースナップショットを完全に削除しますか？"
+
+msgid "Delete vacation period"
+msgstr "休暇期間を削除"
+
+msgid "Delete waste collection"
+msgstr "ごみ収集を削除"
+
+msgid ""
+"Deleted items first go to the recycle bin and can be restored from there. "
+"They are permanently removed only afterwards."
+msgstr ""
+"削除した項目はまずごみ箱に移動し、そこから復元できます。完全に削除されるのは"
+"その後です。"
+
+msgid "Deleting a recovery snapshot"
+msgstr "リカバリスナップショットを削除する"
+
+msgid "Deletion proposals are pending manual review."
+msgstr "削除候補が手動確認を待っています。"
+
+msgid ""
+"Deletion proposals can remove only individually confirmed, bound contacts. "
+"Enable deletion proposals for this branch?"
+msgstr ""
+"削除提案で削除できるのは個別に確認された関連連絡先だけです。このブランチで有"
+"効にしますか？"
+
+msgid "Deletions are not synchronized yet."
+msgstr "同期したことがありません。"
+
+msgid "Delivered"
+msgstr "未配信"
+
+msgid "Delivered to %(branch)s."
+msgstr "%(branch)s に配信しました。"
+
+msgid "Dentist Dr. Hill — Preview of your entries"
+msgstr "歯科医 Hill 先生 — 入力内容のプレビュー"
+
+msgid "Determining public IP address…"
+msgstr "公開 IP アドレスを確認しています…"
+
+msgid "Diabetes"
+msgstr "糖尿病"
+
+msgid "Dialing…"
+msgstr "Dialing…"
+
+msgid "Diastolic"
+msgstr "拡張期血圧"
+
+msgid "Digit %(digit)s"
+msgstr "数字 %(digit)s"
+
+msgid "Direction"
+msgstr "方向"
+
+msgid ""
+"Disabled: no listener, discovery, reconnect or phone tray entries are active."
+msgstr ""
+"無効: リスナー、ディスカバリー、再接続、または電話トレイのエントリはアクティ"
+"ブではありません。"
+
+msgid "Discard"
+msgstr "破棄"
+
+msgid "Discharging"
+msgstr "破棄"
+
+msgid "Display"
+msgstr "ディスプレイ"
+
+#, python-format
+msgid "Display: %(display)s"
+msgstr "ディスプレイ: %(display)s"
+
+msgid "Display: none"
+msgstr "ディスプレイ: なし"
+
+msgid "Do not retrieve weather without a location"
+msgstr "場所が未指定の場合は天気を取得しない"
+
+msgid "Doctor appointment"
+msgstr "通院予定"
+
+msgid "Document.pdf"
+msgstr "Document.pdf"
+
+msgid ""
+"Does this eight-character verification key match KDE Connect on %(name)s?\n"
+"\n"
+"%(code)s"
+msgstr ""
+"%(name)s の KDE Connect とこの8文字の確認キーが一致しますか？\n"
+"\n"
+"%(code)s"
+
+msgid "Done"
+msgstr "完了"
+
+msgid "Dose type"
+msgstr "投与量の種類"
+
+msgid "Download manual"
+msgstr "マニュアルをダウンロード"
+
+msgid "Download manual version %(version)s"
+msgstr "マニュアル バージョン %(version)s をダウンロード"
+
+msgid "Download version %(version)s …"
+msgstr "バージョン %(version)s をダウンロード …"
+
+msgid "Drag the attachment area up or down"
+msgstr "添付領域を上下にドラッグ"
+
+msgid "Drops"
+msgstr "滴剤"
+
+msgid "Due on"
+msgstr "期限"
+
+msgid "Due on %(date)s"
+msgstr "期限 %(date)s"
+
+msgid "Due: %(date)s"
+msgstr "期限: %(date)s"
+
+msgid "Duplicates"
+msgstr "重複"
+
+msgid "Duration"
+msgstr "Duration"
+
+msgid "Early shift"
+msgstr "早番"
+
+msgid "Edit"
+msgstr "編集"
+
+msgid "Edit anniversary"
+msgstr "記念日を編集"
+
+msgid "Edit appointment"
+msgstr "予定を編集"
+
+msgid "Edit contact"
+msgstr "連絡先を編集"
+
+msgid "Edit group"
+msgstr "グループを編集"
+
+msgid "Edit notebook"
+msgstr "ノートブックを編集"
+
+msgid "Edit notebook group"
+msgstr "ノートブックグループを編集"
+
+msgid "Edit task"
+msgstr "タスクを編集"
+
+msgid "Edit the website or application used"
+msgstr "使用する Web サイトまたはアプリケーションを編集"
+
+msgid "Email"
+msgstr "メール"
+
+msgid "Email addresses"
+msgstr "メールアドレス"
+
+msgid "Embed"
+msgstr "埋め込み"
+
+msgid "Embed PDF"
+msgstr "PDF を埋め込む"
+
+msgid "Embed image"
+msgstr "画像を埋め込む"
+
+msgid "Embed links and files"
+msgstr "リンクとファイルを埋め込む"
+
+msgid "Embedded files"
+msgstr "埋め込みファイル"
+
+msgid "Emergency contact"
+msgstr "緊急連絡先"
+
+msgid "Emergency contact %(number)s"
+msgstr "緊急連絡先 %(number)s"
+
+msgid "Emergency contact phone"
+msgstr "緊急連絡先の電話"
+
+msgid "Emergency contacts"
+msgstr "緊急連絡先"
+
+msgid "Empty recycle bin"
+msgstr "ごみ箱を空にする"
+
+msgid "Enable"
+msgstr "有効化"
+
+msgid "Enable Magnolie Notes phone connection"
+msgstr "Magnolie Notes 電話接続を有効にする"
+
+msgid "Enable cycle calendar"
+msgstr "周期カレンダーを有効化"
+
+msgid "Enable password protection"
+msgstr "パスワード保護を有効化"
+
+msgid ""
+"Enable password protection? Your data will then be stored encrypted. Without "
+"the password, it will be irretrievably lost; keep the password in a safe "
+"place."
+msgstr ""
+"パスワード保護を有効にしますか？データは暗号化して保存されます。パスワードを"
+"失うとデータは復元できません。安全な場所に保管してください。"
+
+msgid "Enable reminders"
+msgstr "リマインダーを有効化"
+
+msgid "Enable shift planner"
+msgstr "シフトプランナーを有効化"
+
+msgid "Enable tray applet"
+msgstr "トレイアプレットを有効化"
+
+msgid "Enable vacation planner"
+msgstr "休暇プランナーを有効化"
+
+msgid "Enable waste collection calendar"
+msgstr "ごみ収集カレンダーを有効化"
+
+msgid "Encrypted archive entries are not supported."
+msgstr "暗号化されたアーカイブ内の項目はサポートされていません。"
+
+msgid "Encrypting the data"
+msgstr "データを暗号化しています"
+
+msgid "Ending the call"
+msgstr "通話を終了中"
+
+msgid "Enjoy getting organized!"
+msgstr "整理を楽しみましょう！"
+
+msgid "Enter"
+msgstr "入力"
+
+msgid ""
+"Enter a blood glucose value on the left to highlight matching scheme rows."
+msgstr "左側に血糖値を入力すると、該当するスキーム行が強調表示されます。"
+
+msgid "Enter a complete phone number."
+msgstr "完全な電話番号を入力してください。"
+
+msgid "Enter a medication name first."
+msgstr "先に薬の名前を入力してください。"
+
+msgid "Enter a password with letters"
+msgstr "文字を含むパスワードを入力してください"
+
+msgid "Enter a reachable IPv4 or IPv6 address of this computer first."
+msgstr ""
+"最初に、このコンピューターの到達可能な IPv4 または IPv6 アドレスを入力してく"
+"ださい。"
+
+msgid "Enter a remote address before setting its port."
+msgstr "ポートを設定する前にリモートアドレスを入力してください。"
+
+msgid "Enter a secure HTTPS address for the custom medium."
+msgstr "カスタムメディア用の安全な HTTPS アドレスを入力してください。"
+
+msgid "Enter a title, date, or a word from the note."
+msgstr "タイトル、日付、またはメモ内の単語を入力してください。"
+
+msgid "Enter a valid host name or IP address."
+msgstr "有効なホスト名または IP アドレスを入力してください。"
+
+msgid "Enter a valid port between 1 and 65535."
+msgstr "1から65535までの有効なポートを入力してください。"
+
+msgid "Enter a valid reachable IPv4 or IPv6 address."
+msgstr "有効で到達可能な IPv4 または IPv6 アドレスを入力してください。"
+
+msgid "Enter a web or email address."
+msgstr "Web またはメールアドレスを入力してください。"
+
+msgid "Enter an application command."
+msgstr "アプリケーションコマンドを入力します。"
+
+msgid "Enter at least four characters for the backup password."
+msgstr "バックアップのパスワードは 4 文字以上で入力してください。"
+
+msgid "Enter height and weight to calculate BMI."
+msgstr "BMI を計算するには身長と体重を入力してください。"
+
+msgid "Enter the backup password."
+msgstr "バックアップのパスワードを入力してください。"
+
+msgid "Enter the complete Mastodon address @name@server or an HTTPS address."
+msgstr ""
+"完全な Mastodon アドレス @name@server または HTTPS アドレスを入力してくださ"
+"い。"
+
+msgid "Enter the password for this backup."
+msgstr "このバックアップのパスワードを入力してください。"
+
+msgid ""
+"Enter your address above. No service can calculate directions without a "
+"starting point."
+msgstr "上に住所を入力してください。出発地点がなければ経路を計算できません。"
+
+msgid "Entry"
+msgstr "項目"
+
+msgid "Errands"
+msgstr "用事"
+
+msgid "Error"
+msgstr "エラー"
+
+#, python-format
+msgid "Error: %s"
+msgstr "エラー: %s"
+
+msgid "Evening"
+msgstr "夕方"
+
+#, python-format
+msgid "Event loop is not available: %s"
+msgstr "イベントループを利用できません: %s"
+
+msgid "Every 12 hours"
+msgstr "12時間ごと"
+
+msgid "Every 6 hours"
+msgstr "6時間ごと"
+
+msgid "Every filled medication row requires a name."
+msgstr "入力したすべての服薬行に薬の名前が必要です。"
+
+msgid "Every filled row requires a valid date."
+msgstr "入力したすべての行に有効な日付が必要です。"
+
+msgid "Everything is done - the list is empty."
+msgstr "すべて完了しました – リストは空です。"
+
+msgid "Evolution Data Server"
+msgstr "Evolution Data Server"
+
+msgid "Exactly one online Magnolie Notes phone must allow dial requests."
+msgstr ""
+"1 つのオンライン Magnolie Notes 電話機だけがダイヤル要求を許可する必要があり"
+"ます。"
+
+msgid "Export"
+msgstr "エクスポート"
+
+msgid "Export failed."
+msgstr "エクスポートに失敗しました。"
+
+msgid "Export failed: %(error)s"
+msgstr "エクスポートに失敗しました: %(error)s"
+
+msgid "Export is available only in the installed application."
+msgstr "エクスポートはインストール版アプリケーションでのみ利用できます。"
+
+msgid "Extend sharing"
+msgstr "共有を拡張"
+
+msgid "Failed"
+msgstr "失敗しました"
+
+msgid "Fasting"
+msgstr "空腹時"
+
+msgid "Female caregiver"
+msgstr "女性の介護者"
+
+msgid "Female friend"
+msgstr "女友達"
+
+msgid "Female neighbor"
+msgstr "女性の隣人"
+
+msgid "Female partner"
+msgstr "女性のパートナー"
+
+msgid "Female relative"
+msgstr "女性の親族"
+
+msgid "Fertile days"
+msgstr "妊娠しやすい日"
+
+#, python-format
+msgid "File could not be read: %s"
+msgstr "ファイルを読み取れませんでした: %s"
+
+msgid "Fill with stored values"
+msgstr "保存済みの値を入力"
+
+msgid ""
+"Finds contact cards with the same name, email address or phone number. You "
+"are asked twice before merging, and a copy of every removed card is kept in "
+"the recycle bin."
+msgstr ""
+"同じ名前、メールアドレス、電話番号を持つ連絡先カードを探します。統合前に 2 回"
+"確認し、削除した各カードのコピーをごみ箱に保存します。"
+
+msgid "Fingerprint"
+msgstr "フィンガープリント"
+
+msgid "Fingerprint, e.g. ABCD-1234-EF56-7890"
+msgstr "フィンガープリント（例: ABCD-1234-EF56-7890）"
+
+msgid "First Communion"
+msgstr "初聖体"
+
+msgid "First choose a calendar or address book in Settings."
+msgstr "最初に設定でカレンダーまたはアドレス帳を選択してください。"
+
+msgid "First collection"
+msgstr "最初の収集"
+
+msgid "First date"
+msgstr "最初の日付"
+
+msgid "First name"
+msgstr "名"
+
+msgid "First name Last name"
+msgstr "名 姓"
+
+msgid ""
+"First name Last name\n"
+"Street and house number\n"
+"Postal code City"
+msgstr ""
+"名 姓\n"
+"番地・建物番号\n"
+"郵便番号 市区町村"
+
+msgid "First select a calendar or address book from the online accounts."
+msgstr ""
+"最初にオンラインアカウントからカレンダーまたはアドレス帳を選択してください。"
+
+msgid "Fixed units"
+msgstr "固定単位数"
+
+msgid "Folder selection is available only in the installed application."
+msgstr "フォルダー選択はインストール版アプリケーションでのみ利用できます。"
+
+msgid "Follicular phase"
+msgstr "卵胞期"
+
+msgid "Follow up"
+msgstr "フォローアップ"
+
+msgid "Font size"
+msgstr "フォントサイズ"
+
+msgid ""
+"For a direct IPv4 connection, port %(port)s may need to be forwarded by the "
+"router; CGNAT can prevent this. For IPv6, allow the port in the router and "
+"computer firewalls."
+msgstr ""
+"IPv4 で直接接続する場合、ルーターでポート %(port)s の転送が必要になることがあ"
+"ります。CGNAT では接続できない場合があります。IPv6 ではルーターとコンピュー"
+"ターのファイアウォールでこのポートを許可してください。"
+
+msgid ""
+"For this purpose, appointments, tasks, anniversaries and the names of "
+"responsible people are kept unencrypted in a separate file readable only by "
+"you. Contacts and notes are never written to it."
+msgstr ""
+"この目的のため、予定、タスク、記念日、担当者名は、あなただけが読み取れる別"
+"ファイルに暗号化せず保存されます。連絡先とメモがそこに書き込まれることはあり"
+"ません。"
+
+msgid "For: %(people)s"
+msgstr "対象: %(people)s"
+
+msgid "Form"
+msgstr "剤形"
+
+msgid "Forward Secrecy"
+msgstr "前方秘匿性 (Forward Secrecy)"
+
+msgid ""
+"Found %(groups)s containing %(cards)s in total, for example:\n"
+"%(examples)s%(more)s\n"
+"\n"
+"The most complete card in each group is retained, and missing fields are "
+"filled from the others. The remaining cards are moved to the recycle bin as "
+"“Duplicates” and can be restored from there. Continue?"
+msgstr ""
+"合計 %(cards)s 枚のカードを含む %(groups)s グループが見つかりました。例:\n"
+"%(examples)s%(more)s\n"
+"\n"
+"各グループで最も完全なカードを残し、欠けている欄を他のカードから補完します。"
+"残りのカードは「重複」としてごみ箱に移動し、そこから復元できます。続行します"
+"か？"
+
+#, python-format, javascript-format
+msgid "Found – %s."
+msgstr "見つかりました – %s。"
+
+msgid "Founding day"
+msgstr "創立記念日"
+
+msgid "France"
+msgstr "フランス"
+
+msgid "Frequency"
+msgstr "頻度"
+
+msgid "Fribourg"
+msgstr "フリブール"
+
+msgid "Friday"
+msgstr "金曜日"
+
+msgid "From"
+msgstr "開始"
+
+msgid "From this computer (Evolution/Thunderbird)"
+msgstr "このコンピューターから (Evolution/Thunderbird)"
+
+msgid "Full"
+msgstr "満杯"
+
+msgid "GNOME Maps"
+msgstr "GNOME Maps"
+
+msgid "GNOME Maps only"
+msgstr "GNOME Maps のみ"
+
+msgid "GNOME Maps, otherwise OpenStreetMap"
+msgstr "GNOME Maps、利用できない場合は OpenStreetMap"
+
+msgid "GNU General Public License, version 3 or later"
+msgstr "GNU General Public License バージョン 3 以降"
+
+msgid "GTK is not available"
+msgstr "GTK を利用できません"
+
+msgid "General"
+msgstr "全般"
+
+msgid "General network"
+msgstr "一般ネットワーク"
+
+msgid "General reference range"
+msgstr "一般的な基準範囲"
+
+msgid "Geneva"
+msgstr "ジュネーブ"
+
+msgid "Germany"
+msgstr "ドイツ"
+
+msgid "Glarus"
+msgstr "グラールス州"
+
+msgid "Go to calendar"
+msgstr "カレンダーへ移動"
+
+msgid "Google Maps in the browser"
+msgstr "ブラウザーで Google Maps"
+
+msgid "Grisons"
+msgstr "グラウビュンデン州"
+
+msgid "Group for %(notebook)s"
+msgstr "%(notebook)s のグループ"
+
+msgid "HTTPS only; {wert} and {nummer} are replaced when opening."
+msgstr "HTTPS のみ。開くときに {wert} と {nummer} が置き換えられます。"
+
+msgid "Hamburg"
+msgstr "ハンブルク"
+
+msgid "Handle or profile address"
+msgstr "ハンドル名またはプロフィールアドレス"
+
+msgid "Handwriting"
+msgstr "手書き"
+
+msgid "Hang up"
+msgstr "Hang up"
+
+msgid "Head office"
+msgstr "本社"
+
+msgid "Heading"
+msgstr "見出し"
+
+msgid "Heading, text, images, and PDF files are shared encrypted."
+msgstr "見出し、本文、画像、PDF ファイルは暗号化して共有されます。"
+
+msgid "Health"
+msgstr "健康管理"
+
+msgid "Health history chart"
+msgstr "健康記録の推移グラフ"
+
+msgid "Health history charts"
+msgstr "健康記録の推移グラフ"
+
+msgid "Health records"
+msgstr "健康記録"
+
+msgid ""
+"Health records stay in your encrypted organizer data. The section documents "
+"measurements and schedules but does not provide medical advice."
+msgstr ""
+"健康記録は暗号化された Organizer データ内に保持されます。このセクションは測定"
+"値や予定を記録するためのもので、医療上の助言を提供するものではありません。"
+
+msgid "Health table saved."
+msgstr "健康管理表を保存しました。"
+
+msgid "Heart"
+msgstr "心臓"
+
+msgid "Height"
+msgstr "身長"
+
+msgid "Here is how to find your way around:"
+msgstr "基本的な使い方はこちらです:"
+
+msgid "Hesse"
+msgstr "ヘッセン州"
+
+msgid "Hide SMS notification after"
+msgstr "後で SMS 通知を非表示にします"
+
+msgid "Hide in the tray when minimized"
+msgstr "最小化時にトレイへ隠す"
+
+msgid "Hide internet access"
+msgstr "インターネットアクセスを隠す"
+
+msgid "Hide past appointments"
+msgstr "過去の予定を隠す"
+
+msgid "History"
+msgstr "推移"
+
+msgid "Holiday retrieval is available only in the installed application."
+msgstr "祝日の取得はインストール版アプリケーションでのみ利用できます。"
+
+msgid "Home"
+msgstr "自宅"
+
+msgid "Home address"
+msgstr "自宅住所"
+
+msgid "Home phone"
+msgstr "自宅電話"
+
+msgid "Home visit"
+msgstr "訪問"
+
+msgid "Hours"
+msgstr "時間"
+
+msgid "How the calendar should behave when you click a day."
+msgstr "日付をクリックしたときのカレンダーの動作。"
+
+msgid "Husband"
+msgstr "夫"
+
+msgid "I"
+msgstr "私"
+
+msgid "I would be very happy if you bought me a coffee."
+msgstr "コーヒーを一杯ごちそうしていただけたら、とても嬉しいです。"
+
+msgid "IE"
+msgstr "IU"
+
+msgid ""
+"If the year is unknown, enter only day and month.\n"
+"No age will then be shown.\n"
+"Anniversaries appear with ✱ in the calendar and planner."
+msgstr ""
+"年が不明な場合は、日と月だけを入力してください。\n"
+"その場合、年齢は表示されません。\n"
+"記念日はカレンダーとプランナーに ✱ 付きで表示されます。"
+
+msgid "Image"
+msgstr "画像"
+
+msgid "Image file"
+msgstr "画像ファイル"
+
+msgid "Import"
+msgstr "インポート"
+
+msgid "Import Claws Mail contacts"
+msgstr "Claws Mail の連絡先をインポート"
+
+msgid "Import Lotus Organizer CSV"
+msgstr "Lotus Organizer CSV をインポート"
+
+msgid "Import calendar file"
+msgstr "カレンダーファイルをインポート"
+
+msgid "Import contacts"
+msgstr "連絡先をインポート"
+
+msgid "Import failed: %(error)s"
+msgstr "インポートに失敗しました: %(error)s"
+
+msgid "Import from LibreOffice"
+msgstr "LibreOffice からインポート"
+
+msgid "Import is available only in the installed application."
+msgstr "インポートはインストール版アプリケーションでのみ利用できます。"
+
+msgid "Import pairing file …"
+msgstr "ペアリングファイルをインポート …"
+
+msgid "Import, export and synchronization"
+msgstr "インポート、エクスポート、同期"
+
+msgid ""
+"Import, export and synchronization are available only in the installed "
+"application."
+msgstr ""
+"インポート、エクスポート、同期はインストール版アプリケーションでのみ利用でき"
+"ます。"
+
+msgid ""
+"Important: Without this password, nobody can access the data, including you. "
+"Keep it in a safe place."
+msgstr ""
+"重要: このパスワードがないと、あなた自身を含め誰もデータにアクセスできませ"
+"ん。安全な場所に保管してください。"
+
+#, python-format
+msgid "Imported from session: %(variables)s"
+msgstr "セッションからインポート: %(variables)s"
+
+msgid "Imported: %(items)s."
+msgstr "インポート済み: %(items)s。"
+
+#, python-format
+msgid "Importing the old data failed: %s"
+msgstr "古いデータのインポートに失敗しました: %s"
+
+msgid "Importing the pairing file"
+msgstr "ペアリングファイルをインポートしています"
+
+msgid ""
+"In the DIN template, these lines appear as a multiline sender block and in "
+"small type in the address window. In the compact template, they form one "
+"line above the recipient address. No sender is added if this field is empty."
+msgstr ""
+"DIN テンプレートでは、これらの行は複数行の送信者ブロックとして表示され、住所"
+"窓にも小さい文字で表示されます。コンパクトテンプレートでは宛先住所の上に 1 行"
+"で表示されます。この欄が空の場合、送信者は追加されません。"
+
+msgid "In the organizer%(selection)s: %(items)s%(years)s."
+msgstr "Organizer%(selection)s 内: %(items)s%(years)s。"
+
+msgid "In the recycle bin: %(items)s"
+msgstr "ごみ箱内: %(items)s"
+
+msgid "Include anniversaries"
+msgstr "記念日を含める"
+
+msgid "Include appointments"
+msgstr "予定を含める"
+
+msgid "Include cycle markers"
+msgstr "周期マーカーを含める"
+
+msgid "Include personal vacation"
+msgstr "個人休暇を含める"
+
+msgid "Include public holidays in year planner"
+msgstr "年間プランナーに祝日を含める"
+
+msgid "Include school holidays"
+msgstr "学校休暇を含める"
+
+msgid "Include school holidays in year planner"
+msgstr "年間プランナーに学校休暇を含める"
+
+msgid "Include shifts"
+msgstr "シフトを含める"
+
+msgid "Include waste collections"
+msgstr "ごみ収集を含める"
+
+msgid "Incoming"
+msgstr "着信"
+
+msgid "Incoming call"
+msgstr "着信"
+
+msgid "Input"
+msgstr "入力"
+
+msgid "Insert link"
+msgstr "リンクを挿入"
+
+msgid "Install the packages, for example with:"
+msgstr "必要なパッケージをインストールしてください。例:"
+
+msgid "Installed manual version: %(version)s."
+msgstr "インストールされたマニュアルバージョン：%(version)s。"
+
+msgid "Insulin scheme"
+msgstr "インスリン投与計画"
+
+msgid "Integrity"
+msgstr "誠実さ"
+
+msgid "Internet IP"
+msgstr "インターネット IP"
+
+msgid "Internet available"
+msgstr "Internet available"
+
+msgid "Interval in days"
+msgstr "日数の間隔"
+
+#, python-format
+msgid "Invalid language: %s. Use a supported language code or system."
+msgstr ""
+"無効な言語です: %s。対応する言語コードまたは system を指定してください。"
+
+msgid "Italic"
+msgstr "斜体"
+
+msgid "Italy"
+msgstr "イタリア"
+
+msgid "Juice"
+msgstr "ジュース"
+
+msgid "Jura"
+msgstr "ジュラ州"
+
+msgid "KDE Connect for SMS"
+msgstr "KDE Connect SMS用"
+
+msgid "KDE Connect for SMS is available only in the installed application."
+msgstr ""
+"KDE Connect 用 SMS は、インストールされているアプリケーションでのみ使用できま"
+"す。"
+
+msgid ""
+"KDE Connect is used only for SMS. It does not connect or synchronize the "
+"Magnolienbaum."
+msgstr ""
+"KDE ConnectはSMSのみに使用されます。 Magnolienbaum の接続や同期は行いません。"
+
+msgid "KDE Connect pairing failed."
+msgstr "KDE Connect のペアリングに失敗しました。"
+
+msgid "KDE Connect phone paired."
+msgstr "KDE Connect 電話機がペアリングされました。"
+
+msgid "KDE Connect port %(port)s"
+msgstr "KDE Connectポート %(port)s"
+
+msgid "Keep a troubleshooting log"
+msgstr "トラブルシューティングログを保存"
+
+msgid "LDIF address book (*.ldif)"
+msgstr "LDIF アドレス帳 (*.ldif)"
+
+msgid "Landline"
+msgstr "固定電話"
+
+msgid "Large"
+msgstr "大"
+
+msgid "Last check failed: %(error)s"
+msgstr "前回の確認に失敗しました: %(error)s"
+
+msgid "Last contact"
+msgstr "連絡先を作成"
+
+msgid "Last name"
+msgstr "姓"
+
+msgid "Last snapshot"
+msgstr "最後のスナップショット"
+
+msgid "Last synchronized: %(date)s, %(time)s."
+msgstr "最終同期: %(date)s、%(time)s。"
+
+msgid "Late shift"
+msgstr "遅番"
+
+msgid "Latest alarm monitor entries:"
+msgstr "アラーム監視の最新エントリ:"
+
+msgid "Lead time"
+msgstr "事前通知時間"
+
+msgid "Letter"
+msgstr "手紙"
+
+msgid "Letter template"
+msgstr "手紙テンプレート"
+
+#, python-format
+msgid "LibreOffice was not found. The letter is located at: %s"
+msgstr "LibreOffice が見つかりませんでした。手紙は次の場所にあります: %s"
+
+msgid "License"
+msgstr "ライセンス"
+
+msgid "Liechtenstein"
+msgstr "リヒテンシュタイン"
+
+msgid "Lined paper (lines on the writing sheet)"
+msgstr "罫線入り用紙（筆記シートに横線）"
+
+msgid "Link"
+msgstr "リンク"
+
+msgid "Listener active"
+msgstr "仮"
+
+msgid "Listener stopped"
+msgstr "リスナーが停止しました"
+
+msgid "Local calendar"
+msgstr "ローカルカレンダー"
+
+msgid "Location"
+msgstr "場所"
+
+msgid "Location obtained from LibreOffice."
+msgstr "場所を LibreOffice から取得しました。"
+
+msgid "Log file: ~/.local/state/magnolie-organizer/debug.log"
+msgstr "ログファイル: ~/.local/state/magnolie-organizer/debug.log"
+
+msgid "Log opened: %(path)s"
+msgstr "ログを開きました: %(path)s"
+
+msgid "Long-acting insulin"
+msgstr "持効型インスリン"
+
+msgid "Loose Notes"
+msgstr "自由メモ"
+
+msgid "Lotus Calendar (*.lcs)"
+msgstr "Lotus Calendar (*.lcs)"
+
+msgid "Lotus Organizer CSV …"
+msgstr "Lotus Organizer CSV …"
+
+msgid "Lower Austria"
+msgstr "ニーダーエスターライヒ州"
+
+msgid "Lower Saxony"
+msgstr "ニーダーザクセン州"
+
+msgid "Lower other sounds while ringing"
+msgstr "呼び出し中は他の音量を下げる"
+
+msgid "Lucerne"
+msgstr "ルツェルン州"
+
+msgid "Luxembourg"
+msgstr "ルクセンブルク"
+
+msgid "Magnolia tree"
+msgstr "モクレン"
+
+msgid "Magnolia weather symbols only"
+msgstr "Magnolie の天気記号のみ"
+
+msgid "Magnolie Notes device status"
+msgstr "Magnolie Notes のデバイス状態"
+
+msgid ""
+"Magnolie Notes ended the session. The app and Organizer must use the same "
+"protocol version."
+msgstr ""
+"Magnolie Notes がセッションを終了しました。アプリと Organizer は同じプロトコ"
+"ルバージョンを使用する必要があります。"
+
+msgid "Magnolie Notes phone connection"
+msgstr "Magnolie Notes 電話接続"
+
+msgid ""
+"Magnolie Notes phones and KDE Connect phones are separate: the Android model "
+"name belongs to Magnolie Notes; the KDE peer name comes from KDE Connect."
+msgstr ""
+"Magnolie Notes の電話と KDE Connect の電話は別です。Android のモデル名は "
+"Magnolie Notes に属し、KDE のピア名は KDE Connect から取得されます。"
+
+msgid "Magnolie Organizer is not completely installed."
+msgstr "Magnolie Organizer が完全にインストールされていません。"
+
+msgid ""
+"Magnolie Organizer is open-source software. There are no functional "
+"restrictions. This branding can be removed by supporting the project and "
+"then entering the activation code received by email under Settings → About."
+msgstr ""
+"Magnolie Organizer はオープンソースソフトウェアで、機能制限はありません。プロ"
+"ジェクトを支援し、メールで受け取った有効化コードを「設定 → このアプリについ"
+"て」で入力すると、この表示を削除できます。"
+
+msgid "Magnolie Organizer requires GTK 3 and WebKit2GTK."
+msgstr "Magnolie Organizer には GTK 3 と WebKit2GTK が必要です。"
+
+msgid "Magnolie Organizer – Tray Applet"
+msgstr "Magnolie Organizer – トレイアプレット"
+
+msgid "Magnolie Organizer – appointment reminders"
+msgstr "Magnolie Organizer – 予定のリマインダー"
+
+msgid "Magnolie Organizer – check appointments regularly"
+msgstr "Magnolie Organizer – 予定を定期的に確認"
+
+msgid "Magnolie Organizer – personal organizer in a paper design"
+msgstr "Magnolie Organizer – 紙を模した個人用 Organizer"
+
+msgid "Magnolie Organizer – reminders"
+msgstr "Magnolie Organizer – リマインダー"
+
+msgid "Magnolie backup (*.json)"
+msgstr "Magnolie バックアップ (*.json)"
+
+msgid "Magnolie sheet"
+msgstr "Magnolie シート"
+
+msgid "Magnolie-Contacts.ods"
+msgstr "Magnolie-Contacts.ods"
+
+#, python-format
+msgid "Magnolie-Month-Calendar-%04d-%02d.ods"
+msgstr "マグノリア-月-カレンダー-%04d-%02d.ods"
+
+#, python-format
+msgid "Magnolie-Year-Planner-%d.ods"
+msgstr "マグノリア-イヤープランナー-%d.ods"
+
+msgid "Magnolienbaum"
+msgstr "Magnolienbaum"
+
+msgid "Magnolienbaum mailbox"
+msgstr "Magnolienbaum mailbox"
+
+msgid "Magnolienbaum pairing file (*.magnolie-paarung)"
+msgstr "Magnolienbaum ペアリングファイル (*.magnolie-paarung)"
+
+msgid "Male caregiver"
+msgstr "男性介護者"
+
+msgid "Male friend"
+msgstr "男性の友人"
+
+msgid "Male neighbor"
+msgstr "男性の隣人"
+
+msgid "Male partner"
+msgstr "男性パートナー"
+
+msgid "Male relative"
+msgstr "男性親族"
+
+msgid "Manage connection"
+msgstr "接続を管理"
+
+msgid "Manage people"
+msgstr "担当者を管理"
+
+msgid "Manual"
+msgstr "マニュアル"
+
+msgctxt "recovery snapshot reason"
+msgid "Manual"
+msgstr "カスタム"
+
+msgid "Manual version %(version)s is available."
+msgstr "マニュアル版 %(version)s が利用可能です。"
+
+msgid "Manufacturer"
+msgstr "製造業者"
+
+msgid "Map"
+msgstr "地図"
+
+msgid ""
+"Map services often cannot find a street without a country. If the country is "
+"already part of the address, it is not added a second time."
+msgstr ""
+"地図サービスでは、国が指定されていないと通りを見つけられないことがよくありま"
+"す。国がすでに住所に含まれている場合は、重複して追加されません。"
+
+msgid "Mark as completed"
+msgstr "完了としてマーク"
+
+msgid "Mark as open"
+msgstr "未完了としてマーク"
+
+msgid "Maximized"
+msgstr "最大化"
+
+msgid "Measurement context"
+msgstr "測定時の状況"
+
+msgid "Mecklenburg-Western Pomerania"
+msgstr "メクレンブルク＝フォアポンメルン"
+
+msgid "Medication"
+msgstr "薬"
+
+msgid "Medication plan"
+msgstr "服薬計画"
+
+msgid "Medium (slightly larger)"
+msgstr "中（やや大きめ）"
+
+msgid "Meeting"
+msgstr "会合"
+
+msgid "Memorial day"
+msgstr "記念日"
+
+msgid "Memory available / total"
+msgstr "Memory available / total"
+
+msgid "Merge"
+msgstr "統合"
+
+msgid "Merge duplicate contact cards"
+msgstr "重複する連絡先カードを統合"
+
+msgid "Merge this pair individually"
+msgstr "このペアを個別に統合"
+
+msgid "Message"
+msgstr "メッセージ"
+
+msgid "Message text"
+msgstr "メッセージ"
+
+msgid "Metered connection"
+msgstr "Metered connection"
+
+msgid "Minimize"
+msgstr "Minimize"
+
+msgid "Minimize to the tray when closed"
+msgstr "閉じたときにシステムトレイへ最小化"
+
+msgid "Minimize to tray"
+msgstr "システムトレイへ最小化"
+
+msgid "Minutes"
+msgstr "分"
+
+msgid "Missed appointment"
+msgstr "見逃した予定"
+
+msgid ""
+"Missed reminders are shown after the next startup. If the computer was off "
+"or the application was closed, the organizer reports a missed appointment "
+"shortly after login and provides a button to open it. All-day appointments "
+"are treated as starting at 8 a.m. A small reminder service starts at login "
+"to check appointments in the background and continues running when you close "
+"the organizer."
+msgstr ""
+"見逃したリマインダーは次回の起動後に表示されます。コンピューターの電源が切れ"
+"ていた、またはアプリが閉じていた場合、ログイン後まもなく Organizer が見逃した"
+"予定を通知し、その予定を開くためのボタンを表示します。終日の予定は午前8時開始"
+"として扱われます。ログイン時に小さなリマインダーサービスが起動し、バックグラ"
+"ウンドで予定を確認します。このサービスは Organizer を閉じても動作し続けます。"
+
+msgid ""
+"Misspelled words are marked with a red wavy underline while you type. Right-"
+"clicking a word opens a sheet with suggestions that can be applied with one "
+"click; you can add names to your personal dictionary in the same way. If the "
+"lines or suggestions are missing, install the dictionary with:  sudo apt "
+"install %(package)s"
+msgstr ""
+"入力中、スペルミスの単語には赤い波線が表示されます。単語を右クリックすると候"
+"補のパネルが開き、1クリックで採用できます。同じ方法で名前を個人辞書に追加する"
+"こともできます。波線や候補が表示されない場合は、次のコマンドで辞書をインス"
+"トールしてください：  sudo apt install %(package)s"
+
+msgid "Mobile"
+msgstr "携帯電話"
+
+msgid "Mobile network"
+msgstr "Mobile network"
+
+msgid "Model"
+msgstr "モデル"
+
+msgid "Monday"
+msgstr "月曜日"
+
+msgid "Month"
+msgstr "月"
+
+msgid "Month calendar"
+msgstr "月間カレンダー"
+
+msgid "Monthly view"
+msgstr "月表示"
+
+msgid "Monthly weekday"
+msgstr "毎月の曜日"
+
+msgid "More fields"
+msgstr "その他の項目"
+
+msgid ""
+"More than one Magnolie Notes phone is online. Disconnect all but one phone."
+msgstr ""
+"複数の Magnolie Notes 電話機がオンラインです。 1 台を除いてすべての電話を切断"
+"します。"
+
+msgid "Morning"
+msgstr "朝"
+
+msgid "Mouse wheel over times"
+msgstr "時刻の上でマウスホイール"
+
+msgid "Move group down"
+msgstr "グループを下へ移動"
+
+msgid "Move group up"
+msgstr "グループを上へ移動"
+
+msgid "Move notebook down"
+msgstr "ノートブックを下へ移動"
+
+msgid "Move notebook to another group"
+msgstr "ノートブックを別のグループへ移動"
+
+msgid "Move notebook up"
+msgstr "ノートブックを上へ移動"
+
+msgid "Move the ticked entries to the wastebasket"
+msgstr "チェックした項目をゴミ箱へ移動"
+
+msgid ""
+"Multiple Magnolie Notes phones are stored. Personal sync is blocked; remove "
+"all but one phone."
+msgstr ""
+"複数の Magnolie Notes 電話が保存されています。個人同期はブロックされているた"
+"め、1台を残してほかの電話を削除してください。"
+
+msgid "Multiple calendars"
+msgstr "Multiple calendars"
+
+msgid "Name"
+msgstr "名前"
+
+msgid "Name / occasion"
+msgstr "名前 / 用途"
+
+msgid "Name day"
+msgstr "聖名祝日"
+
+msgid "Name of this branch"
+msgstr "このブランチの名前"
+
+msgid "Netherlands"
+msgstr "オランダ"
+
+msgid "Network"
+msgstr "Network"
+
+msgid "Neuchâtel"
+msgstr "ヌーシャテル"
+
+msgid "Never"
+msgstr "決して"
+
+msgid "Never automatically"
+msgstr "決して自動的には行わない"
+
+msgid "Never synchronized."
+msgstr "同期したことがありません。"
+
+msgid "New"
+msgstr "新規"
+
+msgid "New Magnolienbaum request"
+msgstr "新しい Magnolienbaum リクエスト"
+
+msgid "New Magnolienbaum request: %(entry)s."
+msgstr "新しい Magnolienbaum リクエスト：%(entry)s。"
+
+msgid "New anniversary"
+msgstr "新しい記念日"
+
+msgid "New appointment"
+msgstr "新しい予定"
+
+msgid "New backup password"
+msgstr "新しいバックアップ用パスワード"
+
+msgid ""
+"New backups are stored in this folder. When the field is empty, they are "
+"stored next to the data file. For any other location, the organizer requires "
+"a backup password and encrypts the copy independently of the application's "
+"password protection."
+msgstr ""
+"新しいバックアップはこのフォルダーに保存されます。欄が空の場合はデータファイ"
+"ルの隣に保存されます。それ以外の場所を指定した場合、Organizer はバックアップ"
+"用パスワードを要求し、アプリのパスワード保護とは独立してコピーを暗号化しま"
+"す。"
+
+msgid "New contact"
+msgstr "新しい連絡先"
+
+msgid "New group"
+msgstr "新しいグループ"
+
+msgid "New notebook"
+msgstr "新しいノートブック"
+
+msgid "New notebook group"
+msgstr "新しいノートブックグループ"
+
+msgid "New page"
+msgstr "新しいページ"
+
+msgid "New password"
+msgstr "新しいパスワード"
+
+msgid "New task"
+msgstr "新しいタスク"
+
+msgid "New version %(version)s is available."
+msgstr "新しいバージョン %(version)s を利用できます。"
+
+msgid "Next appointment: %(title)s on %(date)s%(time)s%(notice)s"
+msgstr "次の予定：%(title)s、%(date)s%(time)s%(notice)s"
+
+msgid "Next month"
+msgstr "次の月"
+
+msgid "Next page"
+msgstr "次のページ"
+
+msgid "Next snapshot"
+msgstr "次のスナップショット"
+
+msgid "Next tab"
+msgstr "次のタブ"
+
+msgid "Next table page"
+msgstr "表の次のページ"
+
+msgid "Next week"
+msgstr "次の週"
+
+msgid "Next year"
+msgstr "次の年"
+
+msgid "Nextcloud account"
+msgstr "Nextcloud account"
+
+msgid "Nextcloud denied access to this DAV resource."
+msgstr "Nextcloud はこの DAV リソースへのアクセスを拒否しました。"
+
+msgid "Nextcloud does not allow this DAV operation."
+msgstr "Nextcloud はこの DAV 操作を許可していません。"
+
+msgid "Nextcloud has insufficient storage for this operation."
+msgstr "Nextcloud にはこの操作を行うのに十分なストレージがありません。"
+
+msgid "Nextcloud is not configured."
+msgstr "Nextcloud は設定されていません。"
+
+msgid "Nextcloud is not enabled."
+msgstr "Nextcloud が有効になっていません。"
+
+msgid "Nextcloud rejected the credentials."
+msgstr "Nextcloudは資格情報を拒否しました。"
+
+msgid "Nextcloud returned a redirect that was not followed."
+msgstr "Nextcloud はフォローされなかったリダイレクトを返しました。"
+
+msgid "Nextcloud returned an incomplete DAV result."
+msgstr "Nextcloudは不完全なDAV結果を返しました。"
+
+msgid "Nidwalden"
+msgstr "ニトヴァルデン"
+
+msgid "Night"
+msgstr "夜"
+
+msgid "Night shift"
+msgstr "夜勤"
+
+msgid "No"
+msgstr "No"
+
+msgid "No Claws Mail address book was detected."
+msgstr "Claws Mail のアドレス帳が検出されませんでした。"
+
+msgid "No additional modules permitted"
+msgstr "追加のモジュールは許可されていません"
+
+msgid ""
+"No anniversaries yet.\n"
+"Birthdays and celebrations will automatically appear in the calendar."
+msgstr ""
+"記念日はまだありません。\n"
+"誕生日やお祝いは自動的にカレンダーに表示されます。"
+
+msgid "No application was found for the manual package."
+msgstr "手動パッケージに対応するアプリケーションは見つかりませんでした。"
+
+msgid "No appointment is scheduled."
+msgstr "予定は登録されていません。"
+
+msgid "No calendars found."
+msgstr "カレンダーが見つかりませんでした。"
+
+msgid "No data was found."
+msgstr "データが見つかりませんでした。"
+
+#, python-format
+msgid "No dictionary was found. Install one with:  sudo apt install %s"
+msgstr ""
+"辞書が見つかりませんでした。次のコマンドでインストールしてください：  sudo "
+"apt install %s"
+
+msgid "No due date"
+msgstr "期限なし"
+
+msgid "No duplicate contact cards were found."
+msgstr "重複する連絡先カードは見つかりませんでした。"
+
+msgid "No file selected"
+msgstr "ファイルが選択されていません"
+
+msgid "No history charts"
+msgstr "推移グラフなし"
+
+msgid "No insulin dose is calculated automatically."
+msgstr "インスリン投与量は自動計算されません。"
+
+msgid "No mail application was found."
+msgstr "メールアプリが見つかりませんでした。"
+
+msgid "No manual update check has been performed yet."
+msgstr "まだ手動での更新確認は実行されていません。"
+
+msgid ""
+"No map service was found. GNOME Maps can be installed with: sudo apt install "
+"gnome-maps"
+msgstr ""
+"地図サービスが見つかりませんでした。GNOME Maps は次のコマンドでインストールで"
+"きます：sudo apt install gnome-maps"
+
+msgid "No matching open task found."
+msgstr "一致する未完了タスクが見つかりませんでした。"
+
+msgid "No measurements in this period."
+msgstr "この期間の測定値はありません。"
+
+msgid "No notebooks"
+msgstr "ノートブックなし"
+
+msgid "No online Magnolie Notes phone has allowed dial requests."
+msgstr ""
+"オンラインの Magnolie Notes 電話機ではダイヤル要求が許可されていません。"
+
+msgid "No other branch was found."
+msgstr "他のブランチが見つかりませんでした。"
+
+msgid "No other branch yet. Search the network or enter an address."
+msgstr ""
+"他のブランチはまだありません。ネットワークを検索するか、アドレスを入力してく"
+"ださい。"
+
+msgid "No package has been specified for the new version yet."
+msgstr "新しいバージョン用のパッケージはまだ指定されていません。"
+
+msgid ""
+"No people have been added yet.\n"
+"Enter a name below."
+msgstr ""
+"担当者はまだ追加されていません。\n"
+"下に名前を入力してください。"
+
+msgid ""
+"No people have been added yet. Use the People button above to add people "
+"responsible for tasks."
+msgstr ""
+"担当者はまだ追加されていません。上の「担当者」ボタンを使って、タスクの担当者"
+"を追加してください。"
+
+msgid "No phone paired yet."
+msgstr "まだタスクが関連付けられていません。"
+
+msgid "No photo"
+msgstr "写真なし"
+
+msgid "No photo selected"
+msgstr "写真が選択されていません"
+
+msgid "No public IP address was found."
+msgstr "公開 IP アドレスが見つかりませんでした。"
+
+msgid ""
+"No readable Evolution or Thunderbird stores were found on this computer."
+msgstr ""
+"このコンピューターには読み取り可能な Evolution または Thunderbird のストアが"
+"見つかりませんでした。"
+
+msgid ""
+"No regional data is retrieved without a selected canton. With “All”, each "
+"entry shows its canton and matching periods are combined."
+msgstr ""
+"カントンを選択しない限り地域データは取得されません。「すべて」を選ぶと各項目"
+"にカントンが表示され、同じ期間はまとめられます。"
+
+msgid ""
+"No regional data is retrieved without a selected state. With “All”, each "
+"entry shows its state and matching periods are combined."
+msgstr ""
+"州を選択しない限り地域データは取得されません。「すべて」を選ぶと各項目に州が"
+"表示され、同じ期間はまとめられます。"
+
+msgid "No scheme row matches this blood glucose value."
+msgstr "この血糖値に該当するスキーム行はありません。"
+
+msgid "No sheet is open."
+msgstr "開いているシートはありません。"
+
+msgid "No shift"
+msgstr "勤務なし"
+
+msgid "No snapshots yet."
+msgstr "まだスナップショットはありません。"
+
+msgid "No spam check available"
+msgstr "迷惑メッセージの確認は利用できません"
+
+msgid "No suggestions found."
+msgstr "候補が見つかりませんでした。"
+
+msgid "No suitable application was found."
+msgstr "適切なアプリが見つかりませんでした。"
+
+msgid "No system-paired Bluetooth device found"
+msgstr "システムでペアリングされた Bluetooth デバイスが見つかりません"
+
+msgid "No table (history only)"
+msgstr "表なし（推移のみ）"
+
+msgid "No task linked yet."
+msgstr "まだタスクが関連付けられていません。"
+
+#, python-format
+msgid "No text viewer was found. The log is located at: %s"
+msgstr "テキストビューアーが見つかりませんでした。ログは次の場所にあります：%s"
+
+msgid "No update check has been performed yet."
+msgstr "更新確認はまだ実行されていません。"
+
+msgid ""
+"No user data has been entered in LibreOffice yet (Tools ▸ Options ▸ User "
+"Data)."
+msgstr ""
+"LibreOffice にはまだユーザーデータが入力されていません（ツール ▸ オプション "
+"▸ ユーザーデータ）。"
+
+msgid "No web browser was found."
+msgstr "Web ブラウザーが見つかりませんでした。"
+
+msgid "No word was provided."
+msgstr "単語が指定されていません。"
+
+msgid "None"
+msgstr "なし"
+
+msgid "Noon"
+msgstr "昼"
+
+msgid "Normal"
+msgstr "標準"
+
+msgid "North Rhine-Westphalia"
+msgstr "ノルトライン＝ヴェストファーレン"
+
+msgid ""
+"Not all systems allow waking from suspend. If it does not work, the reminder "
+"appears as soon as the computer is running again."
+msgstr ""
+"すべてのシステムがサスペンドからの自動復帰に対応しているわけではありません。"
+"機能しない場合は、コンピューターが再び動作した時点でリマインダーが表示されま"
+"す。"
+
+msgid "Not charging"
+msgstr "変更なし"
+
+msgid "Not enough protected disk space for a recovery snapshot."
+msgstr "リカバリスナップショット用の保護されたディスク領域が不足しています。"
+
+msgid "Not now"
+msgstr "今はしない"
+
+msgid "Not sent."
+msgstr "未送信。"
+
+msgid "Note"
+msgstr "メモ"
+
+msgid "Note text"
+msgstr "メモの本文"
+
+msgid "Notebook"
+msgstr "ノートブック"
+
+msgid "Notebook group"
+msgstr "ノートブックグループ"
+
+msgid "Notebooks"
+msgstr "ノートブック"
+
+msgid "Notes"
+msgstr "メモ"
+
+msgid "Notes and special instructions"
+msgstr "メモと特記事項"
+
+msgid "Nothing can be encrypted without a password."
+msgstr "パスワードがなければ暗号化できません。"
+
+msgid "Nothing found."
+msgstr "何も見つかりませんでした。"
+
+msgid "Nothing has been entered under “%(letter)s” yet."
+msgstr "「%(letter)s」にはまだ何も入力されていません。"
+
+msgid "Nothing is opened or sent while this option is disabled."
+msgstr "このオプションが無効な間は、何も開かれず、送信もされません。"
+
+msgid "Nothing new was found."
+msgstr "新しい項目は見つかりませんでした。"
+
+msgid "Notice: The connection to storage was not confirmed."
+msgstr "注意：ストレージへの接続は確認されていません。"
+
+msgid "Notification and sound"
+msgstr "通知とサウンド"
+
+msgid "Notification appeared: as a Magnolie sheet"
+msgstr "通知の表示：Magnolie シート"
+
+msgid "Notification appeared: as a system notification"
+msgstr "通知の表示：システム通知"
+
+msgid "Notification appeared: not at all"
+msgstr "通知は表示されなかった"
+
+msgid "Notification appeared: unclear"
+msgstr "通知の表示：不明"
+
+msgid "Notifications"
+msgstr "通知"
+
+msgid "Notifications are available only in the installed application."
+msgstr "通知はインストール済みアプリでのみ利用できます。"
+
+msgid ""
+"Notifications are display-only; replying and remote actions are not "
+"available."
+msgstr "通知はインストール済みアプリでのみ利用できます。"
+
+msgid "Notify me about incoming calls"
+msgstr "着信を通知する"
+
+msgid "ODS"
+msgstr "ODS"
+
+msgid "OK"
+msgstr "わかりました"
+
+msgid "Objects"
+msgstr "オブジェクト"
+
+msgid "Obwalden"
+msgstr "オプヴァルデン"
+
+msgid "Off"
+msgstr "オフ"
+
+msgid "Offline"
+msgstr "オンライン"
+
+msgid "Ointment"
+msgstr "軟膏"
+
+msgid "One address book"
+msgstr "One address book"
+
+msgid "One backup could not be updated."
+msgid_plural "%(count)s backups could not be updated."
+msgstr[0] "1つのバックアップを更新できませんでした。"
+
+msgid "One completion update was received from the Magnolienbaum."
+msgid_plural ""
+"%(count)s completion updates were received from the Magnolienbaum."
+msgstr[0] "Magnolienbaum から1件の完了更新を受信しました。"
+
+msgid "One duplicate contact card was"
+msgid_plural "%(count)s duplicate contact cards were"
+msgstr[0] "一つの重複した連絡先カードが"
+
+msgid "One moment …"
+msgstr "少々お待ちください …"
+
+msgid "One moment…"
+msgstr "少々お待ちください…"
+
+#, python-format
+msgid ""
+"One obsolete device-status transmission was removed from the tree queue."
+msgid_plural ""
+"%(count)s obsolete device-status transmissions were removed from the tree "
+"queue."
+msgstr[0] "古いデバイス状態の送信 %(count)s 件をツリーキューから削除しました。"
+
+msgid "One shared note was updated."
+msgid_plural "%(count)s shared notes were updated."
+msgstr[0] "1つの共有ノートが更新されました。"
+
+msgid "One table with chart"
+msgstr "グラフ付きの表1つ"
+
+msgid "One year"
+msgstr "1 年"
+
+msgid "Online"
+msgstr "オンライン"
+
+#, python-format
+msgid ""
+"Online account integration (Evolution Data Server) is not available on this "
+"system. Install it with:\n"
+"sudo apt install %s"
+msgstr ""
+"オンラインアカウント統合（Evolution Data Server）はこのシステムでは利用できま"
+"せん。次のコマンドでインストールしてください：\n"
+"sudo apt install %s"
+
+msgid ""
+"Online account integration is not available on this system. Install it "
+"with:  sudo apt install %(packages)s, then restart the application. You can "
+"also import contacts and appointments without this integration using “From "
+"this computer” above."
+msgstr ""
+"オンラインアカウント統合はこのシステムでは利用できません。次のコマンドでイン"
+"ストールしてください：  sudo apt install %(packages)s。その後、アプリを再起動"
+"してください。この統合を使わなくても、上の「このコンピューターから」で連絡先"
+"や予定をインポートできます。"
+
+msgid "Online via Bluetooth data"
+msgstr "Bluetoothデータ経由でオンライン"
+
+msgid "Online via WLAN"
+msgstr "オンラインでWi-Fi経由"
+
+msgid ""
+"Only HTTPS. Create an app password in Nextcloud under Settings, Security. "
+"Your account password is never used."
+msgstr ""
+"HTTPS のみ。Nextcloud の「設定」「セキュリティ」でアプリパスワードを作成して"
+"ください。アカウントのパスワードは使用しません。"
+
+msgid ""
+"Only one Magnolie Notes phone can be paired. Remove the existing phone "
+"before changing devices."
+msgstr ""
+"ペアリングできる Magnolie Notes 電話は1台だけです。デバイスを変更する前に既存"
+"の電話を削除してください。"
+
+msgid ""
+"Only the reliable system notification is available under Wayland; the "
+"Magnolie paper style would often remain invisible there."
+msgstr ""
+"Wayland では信頼性の高いシステム通知のみ利用できます。Magnolie の紙面スタイル"
+"はそこで表示されないことが多いためです。"
+
+msgid "Open"
+msgstr "開く"
+
+msgid "Open %(name)s"
+msgstr "%(name)s を開く"
+
+msgid "Open %(service)s for this contact"
+msgstr "この連絡先の %(service)s を開く"
+
+msgid ""
+"Open KDE Connect on the phone and start pairing. Compare the eight-character "
+"verification key and confirm on both devices."
+msgstr ""
+"電話で KDE Connect を開いてペアリングを開始します。8文字の確認キーを比較し、"
+"両方のデバイスで確認してください。"
+
+msgid "Open Magnolie Organizer"
+msgstr "Magnolie Organizer を開く"
+
+msgid "Open Magnolienbaum pairing file"
+msgstr "Magnolienbaum ペアリングファイルを開く"
+
+msgid "Open day view for %(date)s"
+msgstr "%(date)s の日表示を開く"
+
+msgid "Open manual"
+msgstr "マニュアルを開く"
+
+msgid "Open maps with"
+msgstr "地図を開くアプリ"
+
+msgid "Open medication index"
+msgstr "医薬品索引を開く"
+
+msgid "Open organizer"
+msgstr "Organizer を開く"
+
+msgid "Open phone connection in Magnolie Notes and select this computer."
+msgstr "Magnolie Notesで電話接続を開き、このコンピュータを選択します。"
+
+msgid "Open planner as an ODS spreadsheet"
+msgstr "プランナーを ODS 表計算として開く"
+
+msgid "Open selected contacts as an ODS spreadsheet"
+msgstr "選択した連絡先を ODS 表計算として開く"
+
+msgid "Open selected health records as an ODS spreadsheet"
+msgstr "選択した健康記録を ODS 表計算として開く"
+
+msgid "Open task"
+msgstr "未完了"
+
+msgid "Open the application"
+msgstr "アプリを開く"
+
+msgid "Open the day in the daily view"
+msgstr "日表示でこの日を開く"
+
+msgid ""
+"Open the verified DEB with your software manager; the organizer never "
+"installs it automatically."
+msgstr ""
+"検証済みのDEBをソフトウェアマネージャで開いてください；オーガナイザーは自動で"
+"インストールすることはありません。"
+
+msgid "Open this address as a letter in LibreOffice"
+msgstr "この住所を LibreOffice で手紙として開く"
+
+msgid "Open this day"
+msgstr "この日を開く"
+
+msgid "Open year"
+msgstr "年を開く"
+
+msgid "Open year in planner"
+msgstr "プランナーで年を開く"
+
+msgid "OpenStreetMap in the browser"
+msgstr "ブラウザーで OpenStreetMap を開く"
+
+msgid "Opened in %(application)s."
+msgstr "%(application)s で開きました。"
+
+msgid "Opening phone pairing"
+msgstr "ペアリングファイルを読み込んでいます"
+
+msgid "Opening the system dialer"
+msgstr "システムダイヤラを開く"
+
+#, python-format
+msgid "Operation ended (%s)."
+msgstr "操作が終了しました（%s）。"
+
+#, python-format
+msgid "Option %s requires a language."
+msgstr "オプション %s には言語の指定が必要です。"
+
+msgid "Organic waste"
+msgstr "生ごみ"
+
+msgid "Organizer"
+msgstr "主催者"
+
+msgid "Organizer style (paper sheet)"
+msgstr "Organizer スタイル（紙面）"
+
+msgid "Organizer · Calendar · Contacts · Notes"
+msgstr "Organizer · カレンダー · 連絡先 · メモ"
+
+msgid "Other"
+msgstr "その他"
+
+msgctxt "email type"
+msgid "Other"
+msgstr "その他"
+
+msgctxt "relationship"
+msgid "Other"
+msgstr "その他の関係"
+
+msgid "Other addresses"
+msgstr "その他の住所"
+
+msgid "Other phone numbers"
+msgstr "その他の電話番号"
+
+msgid "Outgoing"
+msgstr "発信"
+
+msgid "Ovulation"
+msgstr "排卵"
+
+msgid "Own internet IP"
+msgstr "自分のインターネット IP"
+
+msgid "Own window available: no"
+msgstr "独自ウィンドウ利用可能：いいえ"
+
+msgid "Own window available: yes"
+msgstr "独自ウィンドウ利用可能：はい"
+
+msgid "PDF file"
+msgstr "PDF ファイル"
+
+#, python-format
+msgid "POT template written to: %s"
+msgstr "POT テンプレートの出力先：%s"
+
+msgid "Packaging / Yellow bin"
+msgstr "容器包装 / 黄色いごみ箱"
+
+msgid "Page %(page)s"
+msgstr "ページ %(page)s"
+
+msgid "Page %(page)s of %(count)s"
+msgstr "%(count)s ページ中 %(page)s ページ"
+
+msgid "Pages"
+msgstr "ページ"
+
+msgid "Pain"
+msgstr "痛み"
+
+msgid "Pair KDE Connect phone"
+msgstr "KDE Connect 電話機をペアリングする"
+
+msgid "Pairing KDE Connect"
+msgstr "KDE Connectのペアリング"
+
+msgid "Pairing file"
+msgstr "ペアリングファイル"
+
+msgid "Pairing file saved to: %(path)s"
+msgstr "ペアリングファイルを保存しました：%(path)s"
+
+msgid "Palm tree"
+msgstr "ヤシの木"
+
+msgid ""
+"Participate in the Magnolienbaum (opens port %(port)s on the local network)"
+msgstr ""
+"Magnolienbaum に参加（ローカルネットワークでポート %(port)s を開きます）"
+
+msgid "Partnership anniversary"
+msgstr "パートナーシップ記念日"
+
+msgid "Password"
+msgstr "パスワード"
+
+msgid "Password or numeric code"
+msgstr "パスワードまたは数字コード"
+
+msgid "Password protection"
+msgstr "パスワード保護"
+
+msgid "Password protection is available only in the installed application."
+msgstr "パスワード保護はインストール済みアプリでのみ利用できます。"
+
+msgid "Password protection is enabled – your data is encrypted."
+msgstr "パスワード保護が有効です — データは暗号化されています。"
+
+msgid "Password protection is enabled. Your data is now encrypted"
+msgstr "パスワード保護が有効です。データは暗号化されました"
+
+msgid "Password protection was removed."
+msgstr "パスワード保護を解除しました。"
+
+msgid "Paste"
+msgstr "貼り付け"
+
+msgid "Patch"
+msgstr "貼付剤"
+
+msgid "Pay invoice"
+msgstr "請求書を支払う"
+
+msgid "Pen"
+msgstr "ペン型注入器"
+
+msgid "People"
+msgstr "担当者"
+
+msgid "Period"
+msgstr "期間"
+
+msgid "Permanent KDE listener active"
+msgstr "永続的な KDE リスナーがアクティブです"
+
+msgid "Permanent KDE listener stopped"
+msgstr "永続的な KDE リスナーが停止されました"
+
+msgid "Permanently delete %(count)s completed task?"
+msgid_plural "Permanently delete %(count)s completed tasks?"
+msgstr[0] "完了済みタスク %(count)s 件を完全に削除しますか？"
+
+msgid "Permanently delete %(count)s selected health record?"
+msgid_plural "Permanently delete %(count)s selected health records?"
+msgstr[0] "選択した健康記録 %(count)s 件を完全に削除しますか？"
+
+msgid "Permanently delete selected health records"
+msgstr "選択した健康記録を完全に削除"
+
+msgid "Permanently delete the one item? This cannot be undone."
+msgid_plural "Permanently delete all %(count)s items? This cannot be undone."
+msgstr[0] "この1つのアイテムを完全に削除しますか？元に戻すことはできません。"
+
+msgid "Person"
+msgstr "担当者"
+
+msgid "Person's name"
+msgstr "担当者名"
+
+msgid ""
+"Personal data over Magnolie Notes, not Magnolienbaum. Deletions always "
+"require confirmation."
+msgstr ""
+"個人データは Magnolienbaum ではなく Magnolie Notes 経由で転送されます。添付"
+"ファイルと削除は同期されません。"
+
+msgid "Personal synchronization"
+msgstr "連絡先の同期"
+
+msgid "Personal synchronization complete. Deletions are not synchronized yet."
+msgstr "個人同期が完了しました。削除はまだ同期されません。"
+
+msgid "Personal synchronization failed."
+msgstr "同期に失敗しました。"
+
+msgid "Phone"
+msgstr "電話"
+
+msgid "Phone battery"
+msgstr "Phone battery"
+
+msgid "Phone call"
+msgstr "電話をかける"
+
+msgid "Phone number"
+msgstr "電話番号"
+
+msgid "Phone numbers"
+msgstr "電話番号"
+
+msgid "Phone pairing failed."
+msgstr "ペアリングファイル"
+
+msgid "Phone “%(name)s” is securely paired."
+msgstr "「%(name)s」を復元しました。"
+
+msgid "Phones"
+msgstr "電話"
+
+msgid "Photo"
+msgstr "写真"
+
+msgid "Photo available"
+msgstr "写真あり"
+
+msgid "Photo of %(name)s"
+msgstr "%(name)s の写真"
+
+msgid "Pick up"
+msgstr "迎えに行く"
+
+msgid "Planner"
+msgstr "プランナー"
+
+msgid "Please create a notebook in another group first."
+msgstr "先に別のグループにノートブックを作成してください。"
+
+msgid "Please enter a four-digit year from 1000 onwards."
+msgstr "1000 年以降の4桁の年を入力してください。"
+
+msgid "Please enter a name."
+msgstr "名前を入力してください。"
+
+msgid "Please enter a realistic value."
+msgstr "現実的な値を入力してください。"
+
+msgid "Please enter a title and date for every new appointment."
+msgstr "新しい予定ごとにタイトルと日付を入力してください。"
+
+msgid "Please enter a title for every new task."
+msgstr "新しいタスクごとにタイトルを入力してください。"
+
+msgid "Please enter a title."
+msgstr "タイトルを入力してください。"
+
+msgid "Please enter a website or application for the custom action."
+msgstr "カスタム操作で使用する Web サイトまたはアプリを入力してください。"
+
+msgid "Please enter an address."
+msgstr "住所を入力してください。"
+
+msgid "Please enter at least a name or company."
+msgstr "少なくとも名前または会社名を入力してください。"
+
+msgid "Please enter the internet IP and fingerprint in full."
+msgstr "インターネット IP とフィンガープリントを完全に入力してください。"
+
+msgid "Please select a PDF file."
+msgstr "PDF ファイルを選択してください。"
+
+msgid "Please select a date."
+msgstr "日付を選択してください。"
+
+msgid "Please select a file first."
+msgstr "先にファイルを選択してください。"
+
+msgid "Please select an image file."
+msgstr "画像ファイルを選択してください。"
+
+msgid "Please select an image in JPEG, PNG, WebP, or GIF format."
+msgstr "JPEG、PNG、WebP、GIF のいずれかの形式の画像を選択してください。"
+
+msgid "Please unlock"
+msgstr "ロックを解除してください"
+
+msgid "Poland"
+msgstr "ポーランド"
+
+msgid "Port 8741 is unavailable. The phone listener could not start."
+msgstr "ポート8741は使用できません。電話リスナーを開始できませんでした。"
+
+msgid "Possible duplicates among local and incoming contacts"
+msgstr "ローカルおよび受信した連絡先内の重複候補"
+
+msgid "Possible spam"
+msgstr "Possible spam"
+
+msgid "Postal address"
+msgstr "郵便住所"
+
+msgid "Postal code"
+msgstr "郵便番号"
+
+msgid "Postal code / city"
+msgstr "郵便番号 / 市区町村"
+
+msgid "Powder"
+msgstr "散剤"
+
+msgid "Power source"
+msgstr "Power source"
+
+msgid "Preview"
+msgstr "プレビュー"
+
+msgid "Preview failed."
+msgstr "プレビューに失敗しました。"
+
+msgid "Preview, print or export the year planner"
+msgstr "年間プランナーをプレビュー、印刷、またはエクスポート"
+
+msgid "Preview:"
+msgstr "プレビュー："
+
+msgid "Previewing a recovery snapshot"
+msgstr "リカバリスナップショットをプレビューする"
+
+msgid "Previous month"
+msgstr "前の月"
+
+msgid "Previous page"
+msgstr "前のページ"
+
+msgid "Previous tab"
+msgstr "前のタブ"
+
+msgid "Previous table page"
+msgstr "表の前のページ"
+
+msgid "Previous week"
+msgstr "前の週"
+
+msgid "Previous window state"
+msgstr "以前のウィンドウ状態"
+
+msgid "Previous year"
+msgstr "前の年"
+
+msgid "Print"
+msgstr "印刷"
+
+msgid "Print dialog"
+msgstr "印刷ダイアログ"
+
+msgid "Print now"
+msgstr "今すぐ印刷"
+
+msgid "Print preview"
+msgstr "印刷プレビュー"
+
+msgid "Print · %(title)s"
+msgstr "印刷 · %(title)s"
+
+msgid "Print · Health"
+msgstr "印刷 · 健康"
+
+msgid "Priority"
+msgstr "優先度"
+
+msgid "Priority 1 is listed first. Overdue tasks are shown in red."
+msgstr "優先度 1 が最初に表示されます。期限切れのタスクは赤色で表示されます。"
+
+msgid "Private"
+msgstr "非公開"
+
+msgid ""
+"Private, integrity-checked snapshots are stored next to the application data."
+msgstr ""
+"整合性チェック済みのプライベート スナップショットは、アプリケーション データ"
+"の隣に保存されます。"
+
+msgid "Public IPv4 or IPv6 address of the other branch"
+msgstr "相手側ブランチの公開 IPv4 または IPv6 アドレス"
+
+msgid ""
+"Public holidays and school holidays are governed regionally. Choose which "
+"ones apply here."
+msgstr ""
+"祝日と学校休暇は地域ごとに異なります。ここで適用するものを選択してください。"
+
+msgid "Pulse"
+msgstr "脈拍"
+
+msgid ""
+"Pulse\n"
+"S/min"
+msgstr ""
+"脈拍\n"
+"S/min"
+
+msgid "Queue: %(open)s of %(count)s transmission awaits delivery."
+msgid_plural "Queue: %(open)s of %(count)s transmissions await delivery."
+msgstr[0] "キュー：%(count)s 件中 %(open)s 件の送信が配信待ちです。"
+
+msgid "Queued"
+msgstr "キューに入れられた"
+
+msgid "Quit"
+msgstr "終了"
+
+msgid "Reachable IPv4 or IPv6 address of this computer"
+msgstr "このコンピューターに到達可能な IPv4 または IPv6 アドレス"
+
+msgid "Reading recovery snapshots"
+msgstr "リカバリスナップショットの読み取り"
+
+msgid "Reading the Magnolienbaum identity"
+msgstr "Magnolienbaum の識別情報を読み込んでいます"
+
+msgid "Reading the backup"
+msgstr "バックアップを読み込んでいます"
+
+msgid "Reading the pairing file"
+msgstr "ペアリングファイルを読み込んでいます"
+
+msgid "Reading the user data"
+msgstr "ユーザーデータを読み込んでいます"
+
+msgid "Ready."
+msgstr "Ready."
+
+msgid ""
+"Really merge %(cards)s? Review the result carefully afterwards. A copy of "
+"every removed card is kept in the recycle bin."
+msgstr ""
+"%(cards)s を本当に統合しますか？統合後は結果をよく確認してください。削除され"
+"た各カードのコピーはゴミ箱に残ります。"
+
+msgid "Reason"
+msgstr "理由"
+
+msgid "Reconnect"
+msgstr "再接続"
+
+msgid "Recovering the password transaction"
+msgstr "パスワード処理を復旧しています"
+
+msgid "Recovery snapshot created."
+msgstr "リカバリスナップショットが作成されました。"
+
+msgid "Recovery snapshot deleted."
+msgstr "リカバリスナップショットが削除されました。"
+
+msgid "Recovery snapshots"
+msgstr "リカバリースナップショット"
+
+msgid "Recycle bin"
+msgstr "ゴミ箱"
+
+msgid "Refresh"
+msgstr "更新"
+
+msgid "Reject"
+msgstr "拒否"
+
+msgid "Reject this offer permanently?"
+msgstr "この提案を今後も拒否しますか？"
+
+msgid "Related tasks"
+msgstr "関連タスク"
+
+msgid "Remind about appointments in the background"
+msgstr "バックグラウンドで予定を通知"
+
+msgid "Remind me again on the day itself"
+msgstr "当日にももう一度通知"
+
+msgid "Reminder test"
+msgstr "リマインダーのテスト"
+
+msgid "Reminders"
+msgstr "リマインダー"
+
+msgid ""
+"Reminders are running through session autostart; systemd was not found on "
+"this system."
+msgstr ""
+"リマインダーはセッションの自動起動で動作しています。このシステムでは systemd "
+"が見つかりませんでした。"
+
+msgid ""
+"Reminders could not be set up. They will be shown only while the organizer "
+"is open."
+msgstr ""
+"リマインダーを設定できませんでした。Organizer が開いている間だけ表示されま"
+"す。"
+
+msgid ""
+"Reminders outside the application are available only in the installed "
+"version."
+msgstr "アプリ外のリマインダーはインストール版でのみ利用できます。"
+
+msgid "Reminders: disabled"
+msgstr "リマインダー：無効"
+
+msgid "Reminders: enabled"
+msgstr "リマインダー：有効"
+
+msgid "Reminds you about appointments even when the organizer is closed"
+msgstr "Organizer が閉じていても予定を通知します"
+
+msgid "Remote host name or IP address (optional)"
+msgstr "リモートホスト名または IP アドレス（任意）"
+
+msgid "Remove"
+msgstr "削除"
+
+msgid "Remove address"
+msgstr "住所を削除"
+
+msgid "Remove all public holidays and school holidays from the organizer?"
+msgstr "すべての祝日と学校休暇を Organizer から削除しますか？"
+
+msgid "Remove appointment"
+msgstr "予定を削除"
+
+msgid "Remove connection"
+msgstr "接続を削除"
+
+msgid "Remove email address"
+msgstr "メールアドレスを削除"
+
+msgid "Remove embedded file “%(name)s”?"
+msgstr "埋め込みファイル「%(name)s」を削除しますか？"
+
+msgid "Remove emergency contact"
+msgstr "緊急連絡先を削除"
+
+msgid "Remove entries"
+msgstr "項目を削除"
+
+msgid "Remove event"
+msgstr "イベントを削除"
+
+msgid "Remove password protection"
+msgstr "パスワード保護を解除"
+
+msgid ""
+"Remove password protection? Your data will then be stored unencrypted in "
+"your home directory again."
+msgstr ""
+"パスワード保護を解除しますか？データはホームディレクトリに再び暗号化せずに保"
+"存されます。"
+
+msgid "Remove phone connection"
+msgstr "接続を削除"
+
+msgid "Remove phone number"
+msgstr "電話番号を削除"
+
+msgid "Remove photo"
+msgstr "写真を削除"
+
+msgid "Remove social medium"
+msgstr "ソーシャルメディアを削除"
+
+msgid "Remove task"
+msgstr "タスクを削除"
+
+msgid "Remove the connection to “%(branch)s”?"
+msgstr "「%(branch)s」への接続を削除しますか？"
+
+msgid "Remove this phone connection and its queues and permissions?"
+msgstr "この電話接続とそのキューおよび権限を削除しますか？"
+
+msgid ""
+"Remove “%(name)s”? Their tasks will be kept but will no longer be assigned "
+"to anyone."
+msgstr ""
+"「%(name)s」を削除しますか？その人のタスクは保持されますが、誰にも割り当てら"
+"れなくなります。"
+
+msgid ""
+"Renew KDE Connect pairing? Only KDE trust for this phone will be removed and "
+"rebuilt. Magnolie Notes, notes and chat history remain unchanged."
+msgstr ""
+"KDE Connect のペアリングを更新しますか？この電話の KDE の信頼情報だけが削除さ"
+"れ、再構築されます。Magnolie Notes、メモ、チャット履歴は変更されません。"
+
+msgid "Renew pairing"
+msgstr "Renew pairing"
+
+msgid "Repeat for confirmation"
+msgstr "確認のためもう一度入力"
+
+msgid "Reply"
+msgstr "返信"
+
+#, python-format
+msgid "Reported (%(method)s): %(title)s – %(body)s"
+msgstr "報告済み（%(method)s）：%(title)s – %(body)s"
+
+msgid "Requesting the device status"
+msgstr "デバイスの状態を確認しています"
+
+msgid "Requires existing BlueZ system pairing. Data only, no HFP audio."
+msgstr ""
+"既存のBlueZシステムペアリングが必要です。データのみで、HFPオーディオはありま"
+"せん。"
+
+msgid "Reset"
+msgstr "Reset"
+
+msgid "Residual waste"
+msgstr "一般ごみ"
+
+msgid "Responsible"
+msgstr "担当"
+
+msgid "Restore"
+msgstr "復元"
+
+msgid "Restore backup"
+msgstr "バックアップを復元"
+
+msgid "Restore backup …"
+msgstr "バックアップを復元 …"
+
+msgid "Restore completely"
+msgstr "完全に復元する"
+
+msgid "Restore failed."
+msgstr "復元に失敗しました。"
+
+msgid ""
+"Restore this snapshot completely? A mandatory pre-restore snapshot is "
+"created first."
+msgstr ""
+"このスナップショットを完全に復元しますか？まず必須の復元前スナップショットが"
+"作成されます。"
+
+msgid "Restoring a recovery snapshot"
+msgstr "リカバリスナップショットを復元する"
+
+msgid "Restoring backups is available only in the installed application."
+msgstr "バックアップの復元はインストール済みアプリでのみ利用できます。"
+
+msgid "Restoring the backup"
+msgstr "バックアップを復元しています"
+
+msgid "Retrieval failed."
+msgstr "取得に失敗しました。"
+
+msgid "Retrieve now"
+msgstr "今すぐ取得"
+
+msgid "Retrieve public holidays and school holidays"
+msgstr "祝日と学校休暇を取得"
+
+msgid "Retrieved on %(date)s."
+msgstr "%(date)s に取得。"
+
+#, python-format
+msgid "Retrieved: %(items)s for %(years)s."
+msgstr "取得済み：%(years)s の %(items)s。"
+
+msgid "Retrieving holidays"
+msgstr "祝日を取得しています"
+
+#, python-format
+msgid "Retrieving holidays failed (%s)."
+msgstr "祝日の取得に失敗しました（%s）。"
+
+msgid "Retrieving holidays …"
+msgstr "祝日を取得しています …"
+
+msgid "Retrieving manual download information …"
+msgstr "手動ダウンロード情報を取得しています …"
+
+msgid "Retrieving weather"
+msgstr "天気を取得しています"
+
+#, python-format
+msgid "Retrieving weather failed (%s)."
+msgstr "天気の取得に失敗しました（%s）。"
+
+msgid "Retrieving weather…"
+msgstr "天気を取得しています…"
+
+msgid "Rhineland-Palatinate"
+msgstr "ラインラント＝プファルツ"
+
+msgid "Route"
+msgstr "経路"
+
+msgid "Route: calculate directions immediately"
+msgstr "経路：すぐに道順を計算"
+
+#, python-format
+msgid "Run failed: %s"
+msgstr "実行に失敗しました：%s"
+
+msgid ""
+"Run the downloaded installer visibly and keep the Manual component selected."
+msgstr ""
+"ダウンロードしたインストーラーを目に見えるように実行し、マニュアルコンポーネ"
+"ントを選択したままにします。"
+
+msgid "S"
+msgstr "S"
+
+msgid "SMS assignment"
+msgstr "SMSの割り当て"
+
+msgid "SMS details"
+msgstr "SMS の詳細"
+
+#, python-format
+msgid "SMS from %(name)s"
+msgstr "%(name)sからのSMS"
+
+msgid "SMS history"
+msgstr "SMSの歴史"
+
+msgid "SMS settings"
+msgstr "SMSの設定"
+
+msgid "SMS text was adjusted:"
+msgstr "SMS のテキストを調整しました："
+
+msgid "SMS to %(name)s"
+msgstr "%(name)s への SMS"
+
+msgid "Saarland"
+msgstr "ザールラント"
+
+msgid "Salzburg"
+msgstr "ザルツブルク"
+
+msgid "Saturday"
+msgstr "土曜日"
+
+msgid "Save"
+msgstr "保存"
+
+msgid "Save Lotus CSV"
+msgstr "Lotus CSV を保存"
+
+msgid "Save Magnolienbaum pairing file"
+msgstr "Magnolienbaum ペアリングファイルを保存"
+
+msgid "Save anniversaries"
+msgstr "記念日を保存"
+
+msgid "Save appointments"
+msgstr "予定を保存"
+
+msgid "Save as…"
+msgstr "名前を付けて保存…"
+
+msgid "Save changes"
+msgstr "変更を保存"
+
+msgctxt "contact action"
+msgid "Save changes"
+msgstr "変更を保存"
+
+msgid "Save changes?"
+msgstr "変更を保存しますか？"
+
+msgid "Save contacts"
+msgstr "連絡先を保存"
+
+msgid "Save contacts for Claws Mail"
+msgstr "Claws Mail 用連絡先を保存"
+
+msgid "Save endpoint"
+msgstr "Save endpoint"
+
+msgid "Save rejected: The data is encrypted and has not been unlocked yet."
+msgstr ""
+"保存できません：データは暗号化されており、まだロックが解除されていません。"
+
+msgid "Save tasks"
+msgstr "タスクを保存"
+
+msgid "Saved"
+msgstr "保存済み"
+
+msgid "Saved to: %(path)s (%(count)s entry)"
+msgid_plural "Saved to: %(path)s (%(count)s entries)"
+msgstr[0] "保存先：%(path)s（%(count)s 件）"
+
+msgid "Saved ✓ %(time)s"
+msgstr "保存済み ✓ %(time)s"
+
+msgid "Saved."
+msgstr "Saved."
+
+msgid "Saving failed!"
+msgstr "保存に失敗しました！"
+
+#, python-format
+msgid "Saving failed: %s"
+msgstr "保存に失敗しました：%s"
+
+msgid "Saving the branch settings"
+msgstr "ブランチ設定を保存しています"
+
+msgid "Saving the data"
+msgstr "データを保存しています"
+
+msgid "Saving the tray settings"
+msgstr "システムトレイ設定を保存しています"
+
+msgid "Saving …"
+msgstr "保存しています …"
+
+msgid "Saxony"
+msgstr "ザクセン"
+
+msgid "Saxony-Anhalt"
+msgstr "ザクセン＝アンハルト"
+
+msgid "Scanning this computer"
+msgstr "このコンピューターをスキャンしています"
+
+msgid "Schaffhausen"
+msgstr "シャフハウゼン"
+
+msgid "Schedule an appointment"
+msgstr "予定を登録"
+
+msgid "Scheduled"
+msgstr "予定された"
+
+msgid "Scheme"
+msgstr "Scheme"
+
+msgid "Schleswig-Holstein"
+msgstr "シュレースヴィヒ＝ホルシュタイン"
+
+msgid "Schwyz"
+msgstr "シュヴィーツ"
+
+msgid "Screen notification only"
+msgstr "画面通知のみ"
+
+msgid "Scrolling up makes the time earlier"
+msgstr "上へスクロールすると時刻が早くなる"
+
+msgid "Scrolling up makes the time later"
+msgstr "上へスクロールすると時刻が遅くなる"
+
+msgid "Search"
+msgstr "検索"
+
+msgid "Search local network"
+msgstr "ローカルネットワークを検索"
+
+msgid "Search title, date, or note…"
+msgstr "タイトル、日付、メモを検索…"
+
+msgid "Searching for suggestions…"
+msgstr "候補を検索しています…"
+
+msgid "Searching…"
+msgstr "検索しています…"
+
+msgid "Search…"
+msgstr "検索…"
+
+msgid "Secondary office"
+msgstr "第二オフィス"
+
+msgid "Secure HTTPS address"
+msgstr "安全な HTTPS アドレス"
+
+msgid "Securely connected to %(branch)s."
+msgstr "%(branch)s に安全に接続しました。"
+
+msgid "Security"
+msgstr "セキュリティ"
+
+msgid "Select"
+msgstr "選択"
+
+msgid "Select a country first."
+msgstr "先に国を選択してください。"
+
+msgid "Select all"
+msgstr "すべて選択"
+
+msgid ""
+"Select an entry on the left,\n"
+"or create a contact card with New."
+msgstr ""
+"左側で項目を選択するか、\n"
+"「新規」で連絡先カードを作成してください。"
+
+msgid "Select at least one column."
+msgstr "1 列以上選択してください。"
+
+msgid "Select at least one year."
+msgstr "1 年以上選択してください。"
+
+msgid "Select backup folder"
+msgstr "バックアップフォルダーを選択"
+
+msgid "Select no more than three years."
+msgstr "3 年以内で選択してください。"
+
+msgid "Select something first."
+msgstr "先に何か選択してください。"
+
+msgid "Select what you want to print on the left."
+msgstr "左側で印刷する内容を選択してください。"
+
+msgid "Select your canton first or enable “All cantons”."
+msgstr "先にカントンを選択するか、「すべてのカントン」を有効にしてください。"
+
+msgid "Select your state first or enable “All states”."
+msgstr "先に州を選択するか、「すべての州」を有効にしてください。"
+
+msgid "Select, preview, print, export or delete health records"
+msgstr "健康記録を選択、プレビュー、印刷、エクスポート、または削除"
+
+msgid ""
+"Selected columns that are empty for every contact are omitted automatically."
+msgstr "すべての連絡先で空になっている選択列は自動的に省略されます。"
+
+msgid "Selected notifications"
+msgstr "システム通知"
+
+msgid "Selection options"
+msgstr "選択オプション"
+
+msgid "Send SMS"
+msgstr "SMSを送る"
+
+msgid "Send adjusted text"
+msgstr "調整したテキストを送信"
+
+msgid "Send documents"
+msgstr "文書を送信"
+
+msgid "Send secure request"
+msgstr "安全なリクエストを送信"
+
+msgid "Sending SMS with KDE Connect"
+msgstr "SMS を KDE Connect で送信する"
+
+msgid "Sent"
+msgstr "送信済み"
+
+msgid "Server address"
+msgstr "Server address"
+
+msgid "Server address and user name are required."
+msgstr "サーバーアドレスとユーザー名が必要です。"
+
+msgid "Set varying doses by weekday"
+msgstr "曜日ごとに異なる用量を設定"
+
+msgid "Setting up reminders"
+msgstr "リマインダーを設定しています"
+
+msgid "Setting up reminders …"
+msgstr "リマインダーを設定しています …"
+
+msgid "Settings"
+msgstr "設定"
+
+msgid "Several Magnolie Organizers can connect and securely share tasks."
+msgstr "複数の Magnolie Organizer を接続して、タスクを安全に共有できます。"
+
+msgid "Share"
+msgstr "共有"
+
+msgid "Share address"
+msgstr "住所を共有"
+
+msgid "Share appointment"
+msgstr "予定を共有"
+
+msgid "Share this entry explicitly with %(branch)s?"
+msgstr "この項目を %(branch)s と明示的に共有しますか？"
+
+msgid "Share this entry explicitly with the workgroup?"
+msgstr "この項目をワークグループと明示的に共有しますか？"
+
+msgid "Share this entry explicitly with this branch?"
+msgstr "この項目をこのブランチと明示的に共有しますか？"
+
+msgid "Share together"
+msgstr "一緒に共有"
+
+msgid "Shared credentials"
+msgstr "Shared credentials"
+
+msgid "Shared note"
+msgstr "共有メモ"
+
+msgid "Shift planner"
+msgstr "シフトプランナー"
+
+msgid "Shopping"
+msgstr "買い物"
+
+msgid "Short-acting insulin"
+msgstr "速効型インスリン"
+
+msgid "Show Health after Planner"
+msgstr "プランナーの後に健康管理を表示"
+
+msgid "Show all"
+msgstr "すべて表示"
+
+msgid "Show calendar button in date fields"
+msgstr "日付欄にカレンダーボタンを表示"
+
+msgid "Show log"
+msgstr "ログを表示"
+
+msgid "Show more"
+msgstr "さらに表示"
+
+msgid "Show preview"
+msgstr "プレビューを表示"
+
+msgid "Show selected notifications (read only)"
+msgstr "画面通知のみ"
+
+msgid "Show social media and communication icons"
+msgstr "ソーシャルメディアと通信のアイコンを表示"
+
+msgid "Show symbol in calendar"
+msgstr "カレンダーに記号を表示"
+
+msgid "Show the “Letter” button (LibreOffice)"
+msgstr "「手紙」ボタン（LibreOffice）を表示"
+
+msgid "Show the “Map” button"
+msgstr "「地図」ボタンを表示"
+
+msgid "Show the “Selection options” button"
+msgstr "「選択オプション」ボタンを表示"
+
+msgid "Show this address on the map"
+msgstr "この住所を地図に表示"
+
+msgid "Show this overview"
+msgstr "この概要を表示"
+
+msgid "Show today's notification count on the tray icon"
+msgstr "システムトレイのアイコンに今日の通知数を表示"
+
+msgid "Show weather for the next three days"
+msgstr "今後3日間の天気を表示"
+
+msgid "Show week numbers in the monthly view"
+msgstr "月表示に週番号を表示"
+
+msgid "Show week numbers in the planner"
+msgstr "プランナーに週番号を表示"
+
+msgid ""
+"Small action buttons appear on each contact card. You can hide anything you "
+"do not need here."
+msgstr ""
+"各連絡先カードには小さな操作ボタンが表示されます。不要なものはここで非表示に"
+"できます。"
+
+msgid "Snapshot interval"
+msgstr "スナップショット間隔"
+
+msgid "Snapshot restored. The first synchronization will not send deletions."
+msgstr "スナップショットが復元されました。最初の同期では削除は送信されません。"
+
+msgid "Snowman"
+msgstr "雪だるま"
+
+msgid "Social media"
+msgstr "ソーシャルメディア"
+
+msgid "Social medium"
+msgstr "ソーシャルメディア"
+
+msgid "Solothurn"
+msgstr "ゾロトゥルン"
+
+msgid "Someone"
+msgstr "誰か"
+
+msgid "Son"
+msgstr "息子"
+
+msgid "Sort everything alphabetically"
+msgstr "すべてをアルファベット順に並べ替え"
+
+msgid "Sorting"
+msgstr "並べ替え"
+
+#, python-format
+msgid "Sound file: %(path)s"
+msgstr "サウンドファイル：%(path)s"
+
+msgid "Sound file: not found"
+msgstr "サウンドファイル：見つかりません"
+
+msgid "Sound only"
+msgstr "サウンドのみ"
+
+#, python-format
+msgid "Sound only: %(title)s – %(body)s"
+msgstr "サウンドのみ：%(title)s – %(body)s"
+
+#, python-format
+msgid "Sound through: %(method)s"
+msgstr "サウンドの出力方法：%(method)s"
+
+msgid "Sound through: no output method found"
+msgstr "サウンドの出力方法：出力方法が見つかりません"
+
+msgid "Space for anything you want to remember…"
+msgstr "覚えておきたいことを何でも書ける場所…"
+
+msgid "Spain"
+msgstr "スペイン"
+
+msgid "Spam check"
+msgstr "迷惑メッセージを確認"
+
+msgid "Special cases"
+msgstr "特別な場合"
+
+msgid "Spell checking"
+msgstr "スペルチェック"
+
+msgid "Spray"
+msgstr "スプレー剤"
+
+msgid "St. Gallen"
+msgstr "ザンクト・ガレン"
+
+msgid "Start automatically when signing in"
+msgstr "サインイン時に自動起動"
+
+msgid "Start the organizer in the tray"
+msgstr "Organizer をシステムトレイで起動"
+
+msgid "Start through the tray applet"
+msgstr "システムトレイアプレットから起動"
+
+msgid "Starting the phone connection"
+msgstr "接続を管理"
+
+msgid "Starts Magnolie Organizer when signing in"
+msgstr "サインイン時に Magnolie Organizer を起動します"
+
+msgid "State"
+msgstr "州"
+
+msgid "Status"
+msgstr "状態"
+
+msgid "Storage available / total"
+msgstr "使用可能な容量 / 合計容量"
+
+msgid "Street / house number"
+msgstr "通り / 番地"
+
+msgid "Street and house number"
+msgstr "通りと番地"
+
+msgid "Strength"
+msgstr "含量"
+
+msgid "Strikethrough"
+msgstr "取り消し線"
+
+msgid "Styria"
+msgstr "シュタイアーマルク"
+
+msgid "Submitted"
+msgstr "提出済み"
+
+msgid "Submitted to KDE Connect"
+msgstr "KDE Connect に送信されました"
+
+msgid "Suggestions are available only in the installed application."
+msgstr "候補はインストール済みアプリでのみ利用できます。"
+
+msgid "Sun symbol"
+msgstr "太陽の記号"
+
+msgid "Sunday"
+msgstr "日曜日"
+
+msgid "Suppository"
+msgstr "坐剤"
+
+msgid "Switched off."
+msgstr "Switched off."
+
+msgid "Switzerland"
+msgstr "スイス"
+
+msgid "Symbol"
+msgstr "記号"
+
+msgid "Symbol and Vacation text"
+msgstr "記号と「休暇」の文字"
+
+msgid "Symbol only"
+msgstr "記号のみ"
+
+msgid "Symbols and temperatures"
+msgstr "記号と気温"
+
+msgid "Symbols, temperatures and description"
+msgstr "記号、気温、説明"
+
+msgid "Synchronization"
+msgstr "同期"
+
+msgid "Synchronization completed."
+msgstr "同期が完了しました。"
+
+msgid "Synchronization failed."
+msgstr "同期に失敗しました。"
+
+msgid "Synchronization failed: %(error)s"
+msgstr "同期に失敗しました：%(error)s"
+
+msgid ""
+"Synchronization state, pending messages and metadata for this connection "
+"will be removed. Contacts already accepted and local data remain."
+msgstr ""
+"この接続の同期状態、保留中のメッセージ、メタデータが削除されます。すでに受け"
+"入れた連絡先とローカルデータは保持されます。"
+
+msgid "Synchronize automatically at startup"
+msgstr "起動時に自動同期"
+
+msgid "Synchronize contacts"
+msgstr "連絡先を同期"
+
+msgid "Synchronize everything"
+msgstr "すべてを同期"
+
+msgid "Synchronize notes and notebooks"
+msgstr "連絡先を同期"
+
+msgid "Synchronize now"
+msgstr "今すぐ同期"
+
+msgid "Synchronize tasks"
+msgstr "連絡先を同期"
+
+msgid "Synchronizing …"
+msgstr "同期しています …"
+
+msgid "System authentication for configuring UFW is unavailable."
+msgstr "UFW を設定するためのシステム認証を利用できません。"
+
+msgid "System default"
+msgstr "システムのデフォルト"
+
+msgid "System style (desktop notification)"
+msgstr "システムスタイル（デスクトップ通知）"
+
+msgid "System-paired phone Bluetooth address"
+msgstr "システムにペアリングされた電話のBluetoothアドレス"
+
+msgid "Systolic"
+msgstr "収縮期血圧"
+
+msgid "Tab %(letter)s"
+msgstr "タブ %(letter)s"
+
+msgid "Tab %(letter)s · %(count)s"
+msgstr "タブ %(letter)s · %(count)s"
+
+msgid "Tablet"
+msgstr "錠剤"
+
+msgid "Tabs"
+msgstr "タブ"
+
+msgid "Task"
+msgstr "タスク"
+
+msgid "Task is due"
+msgstr "タスクの期限"
+
+msgid "Task reminder"
+msgstr "タスクリマインダー"
+
+msgid "Tasks"
+msgstr "タスク"
+
+msgid "Tasks (.ics)"
+msgstr "タスク (.ics)"
+
+msgid ""
+"Tasks can be assigned to people. When printing, you can select one person's "
+"tasks for a specific period, for example each family member's weekly tasks."
+msgstr ""
+"タスクは担当者に割り当てられます。印刷時には、特定期間について1人分のタスクを"
+"選択できます。たとえば家族それぞれの1週間のタスクを印刷できます。"
+
+msgid "Tasks for this person"
+msgstr "この人のタスク"
+
+msgid "Tear out page"
+msgstr "ページを切り離す"
+
+msgid "Temperature"
+msgstr "体温"
+
+msgid "Test connection"
+msgstr "Test connection"
+
+msgid "Test reminders and report what happens"
+msgstr "リマインダーをテストして結果を報告"
+
+msgid "Testing…"
+msgstr "Testing…"
+
+msgid "Text color"
+msgstr "文字色"
+
+msgid "Text formatting"
+msgstr "文字書式"
+
+msgid "That did not work."
+msgstr "うまくいきませんでした。"
+
+msgid "That is not correct."
+msgstr "正しくありません。"
+
+msgid "The %(count)s note page it contains will be moved to “%(notebook)s”."
+msgid_plural ""
+"The %(count)s note pages it contains will be moved to “%(notebook)s”."
+msgstr[0] "含まれるメモページ %(count)s 件は「%(notebook)s」へ移動します。"
+
+msgid "The CSV columns were not recognized."
+msgstr "CSV の列を認識できませんでした。"
+
+msgid "The Claws Mail address book contains too many people."
+msgstr "Claws Mail アドレス帳の人数が多すぎます。"
+
+msgid "The Claws Mail address book is larger than 32 megabytes."
+msgstr "Claws Mail アドレス帳が 32 MB を超えています。"
+
+msgid "The Contributor Key is invalid."
+msgstr "Contributor Key が無効です。"
+
+msgid "The DAV ETag is missing."
+msgstr "DAV ETag が見つかりません。"
+
+msgid "The DAV entry was changed concurrently."
+msgstr "DAVのエントリは同時に変更されました。"
+
+msgid ""
+"The DIN template positions the recipient address for a window envelope, "
+"shows your address as a multiline sender block, and adds two fold marks and "
+"a punch mark."
+msgstr ""
+"DIN テンプレートは、窓付き封筒に合う位置へ宛先を配置し、自分の住所を複数行の"
+"差出人ブロックとして表示し、2つの折り位置マークと穴あけ位置マークを追加しま"
+"す。"
+
+msgid ""
+"The KDE Connect support is built into the Organizer. Only the KDE Connect "
+"app on Android is required; no additional KDE Connect desktop program is "
+"needed."
+msgstr ""
+"KDE Connect サポートはオーガナイザーに組み込まれています。 Android 上の KDE "
+"Connect アプリのみが必要です。追加の KDE Connect デスクトップ プログラムは必"
+"要ありません。"
+
+msgid "The LDIF address book contains too many people."
+msgstr "LDIF アドレス帳の人数が多すぎます。"
+
+msgid "The LDIF address book is larger than 32 megabytes."
+msgstr "LDIF アドレス帳が 32 MB を超えています。"
+
+msgid ""
+"The LibreOffice user data does not contain an address yet (Tools ▸ Options ▸ "
+"User Data)."
+msgstr ""
+"LibreOffice のユーザーデータにはまだ住所がありません（ツール ▸ オプション ▸ "
+"ユーザーデータ）。"
+
+msgid "The Linux Secret Service did not store the app password."
+msgstr "Linuxシークレットサービスはアプリのパスワードを保存しませんでした。"
+
+msgid ""
+"The Linux Secret Service is unavailable. The app password was not stored."
+msgstr ""
+"Linux シークレットサービスは利用できません。アプリのパスワードは保存されませ"
+"んでした。"
+
+msgid ""
+"The Lotus CSV uses the original columns VERTRAULICH, KATEGORIEN, "
+"ANFANGSDATUMZEIT, ENDDATUMZEIT, BESCHREIBUNG, KOSTENSTELLENCODE, "
+"KUNDENNUMMER and VORLAEUFIGZUSAGEN."
+msgstr ""
+"Lotus CSV は元の列 VERTRAULICH、KATEGORIEN、ANFANGSDATUMZEIT、ENDDATUMZEIT、"
+"BESCHREIBUNG、KOSTENSTELLENCODE、KUNDENNUMMER、VORLAEUFIGZUSAGEN を使用しま"
+"す。"
+
+msgid ""
+"The Magnolie manual is installed. It is best to read it through before you "
+"begin. Would you like to open it now?"
+msgstr ""
+"Magnolie マニュアルはインストールされています。使い始める前に一度通して読むこ"
+"とをおすすめします。今すぐ開きますか？"
+
+msgid "The Magnolie manual is not installed."
+msgstr "Magnolie マニュアルはインストールされていません。"
+
+msgid ""
+"The Magnolie manual is not installed. Version %(version)s can be downloaded "
+"now. Would you like to open the package download?"
+msgstr ""
+"Magnolie マニュアルはインストールされていません。バージョン %(version)s を今"
+"すぐダウンロードできます。パッケージのダウンロードを開きますか？"
+
+msgid "The Magnolienbaum encryption key is unavailable."
+msgstr "Magnolienbaum の暗号化キーを利用できません。"
+
+msgid "The Magnolienbaum identity file is damaged."
+msgstr "Magnolienbaum の識別ファイルが破損しています。"
+
+msgid "The Magnolienbaum identity is encrypted. Unlock the organizer first."
+msgstr ""
+"Magnolienbaum の識別情報は暗号化されています。先に Organizer のロックを解除し"
+"てください。"
+
+msgid "The Magnolienbaum inbox could not be saved."
+msgstr "Magnolienbaum の受信箱を保存できませんでした。"
+
+msgid "The Magnolienbaum is available only in the installed application."
+msgstr "Magnolienbaum はインストール済みアプリでのみ利用できます。"
+
+msgid "The Magnolienbaum is not available."
+msgstr "Magnolienbaum は利用できません。"
+
+msgid "The Magnolienbaum is switched off."
+msgstr "Magnolienbaum はオフになっています。"
+
+msgid "The Magnolienbaum outbox could not be saved."
+msgstr "Magnolienbaum の送信箱を保存できませんでした。"
+
+msgid "The Magnolienbaum storage is damaged."
+msgstr "Magnolienbaum のストレージが破損しています。"
+
+msgid "The Magnolienbaum storage is encrypted. Unlock the organizer first."
+msgstr ""
+"Magnolienbaum のストレージは暗号化されています。先に Organizer のロックを解除"
+"してください。"
+
+msgid "The Nextcloud address book contains missing or duplicate UIDs."
+msgstr "Nextcloud のアドレス帳には、欠落または重複した UID が含まれています。"
+
+msgid "The Nextcloud address book was not read completely."
+msgstr "Nextcloudのアドレス帳は完全に読み取られませんでした。"
+
+msgid "The Nextcloud app password is missing."
+msgstr "Nextcloudアプリのパスワードが見つかりません。"
+
+msgid "The Nextcloud calendar contains missing or duplicate UIDs."
+msgstr "Nextcloudカレンダーには欠落または重複したUIDが含まれています。"
+
+msgid "The Nextcloud calendar was not read completely."
+msgstr "Nextcloudカレンダーが完全に読み込まれませんでした。"
+
+msgid "The Nextcloud operation failed."
+msgstr "Nextcloudの操作に失敗しました。"
+
+msgid "The Nextcloud request timed out."
+msgstr "Nextcloud のリクエストがタイムアウトしました。"
+
+msgid "The Nextcloud response was incomplete."
+msgstr "Nextcloud の応答は不完全でした。"
+
+msgid "The Nextcloud settings are invalid."
+msgstr "Nextcloud の設定が無効です。"
+
+msgid "The ODS calendar content is invalid."
+msgstr "ODS カレンダーの内容が無効です。"
+
+msgid "The ODS cell styles are invalid."
+msgstr "ODS セルスタイルが無効です。"
+
+msgid "The ODS columns are invalid."
+msgstr "ODS 列が無効です。"
+
+msgid "The ODS export is too large."
+msgstr "ODS エクスポートが大きすぎます。"
+
+msgid "The ODS row count is invalid."
+msgstr "ODS の行数が無効です。"
+
+msgid "The ODS title is invalid."
+msgstr "ODS のタイトルが無効です。"
+
+msgid "The Organizer chooses a suitable installed application."
+msgstr "Organizer が適切なインストール済みアプリを選びます。"
+
+msgid "The SMS recipient or message is invalid."
+msgstr "SMS 受信者またはメッセージが無効です。"
+
+msgid "The Thunderbird calendar entry contains too many additional lines."
+msgstr "Thunderbird のカレンダー項目に含まれる追加行が多すぎます。"
+
+msgid "The address book backend could not be refreshed."
+msgstr "アドレス帳のバックエンドを更新できませんでした。"
+
+msgid "The address book backend reported an incomplete read."
+msgstr "アドレス帳のバックエンドで不完全な読み取りが報告されました。"
+
+#, python-format
+msgid "The address book contains the UID %s more than once."
+msgstr "アドレス帳にはUID %s が複数回含まれています。"
+
+#, python-format
+msgid "The address book could not be read: %s"
+msgstr "アドレス帳を読み取ることができませんでした: %s"
+
+#, python-format
+msgid "The address book could not be refreshed: %s"
+msgstr "アドレス帳を更新できませんでした: %s"
+
+msgid ""
+"The archive contains all application data. The password is optional; leaving "
+"the field empty explicitly creates an unencrypted archive."
+msgstr ""
+"アーカイブにはアプリケーションの全データが含まれます。パスワードは任意です。"
+"空欄にすると、暗号化されていないアーカイブが明示的に作成されます。"
+
+msgid "The archive contains no supported import files."
+msgstr "アーカイブにサポートされているインポートファイルが含まれていません。"
+
+msgid "The archive contains too many files."
+msgstr "アーカイブに含まれるファイルが多すぎます。"
+
+msgid "The archive content is larger than 32 megabytes."
+msgstr "アーカイブの内容が 32 メガバイトを超えています。"
+
+msgid "The archive has an unsafe compression ratio."
+msgstr "アーカイブの圧縮率が安全ではありません。"
+
+msgid ""
+"The archive is encrypted. Enter the password to check it completely before "
+"importing it."
+msgstr ""
+"アーカイブは暗号化されています。インポート前に完全に確認するため、パスワード"
+"を入力してください。"
+
+msgid ""
+"The attachments are too large together. Remove some files; the combined "
+"limit is approximately 18 MB."
+msgstr ""
+"添付ファイルの合計サイズが大きすぎます。いくつか削除してください。合計上限は"
+"約 18 MB です。"
+
+msgid ""
+"The attachments in this note are too large together. Remove some files; the "
+"combined limit is approximately 18 MB."
+msgstr ""
+"このメモの添付ファイルの合計サイズが大きすぎます。いくつか削除してください。"
+"合計上限は約 18 MB です。"
+
+msgid ""
+"The background reminder service cannot read the encrypted data and remains "
+"silent outside the open organizer."
+msgstr ""
+"バックグラウンドのリマインダーサービスは暗号化データを読めないため、"
+"Organizer が開いていないときは通知しません。"
+
+msgid ""
+"The background reminder service may read the separate reminder data and "
+"therefore works even when the organizer is closed."
+msgstr ""
+"バックグラウンドのリマインダーサービスは個別のリマインダーデータを読めるた"
+"め、Organizer を閉じていても動作します。"
+
+msgid "The backup could not be created."
+msgstr "バックアップを作成できませんでした。"
+
+msgid "The backup could not be read."
+msgstr "バックアップを読み取れませんでした。"
+
+msgid "The backup could not be restored."
+msgstr "バックアップを復元できませんでした。"
+
+msgid "The backup does not contain a complete data set."
+msgstr "バックアップに完全なデータセットが含まれていません。"
+
+msgid "The backup does not contain readable organizer data."
+msgstr "バックアップに読み取り可能な Organizer データが含まれていません。"
+
+msgid "The backup file is larger than 256 megabytes."
+msgstr "バックアップファイルが 256 MB を超えています。"
+
+msgid "The backup file was not found."
+msgstr "バックアップファイルが見つかりませんでした。"
+
+msgid ""
+"The backup will be stored outside the local data location and is therefore "
+"always encrypted. This password will be required to restore it later:\n"
+"%(path)s"
+msgstr ""
+"バックアップはローカルのデータ保存場所とは別の場所に保存されるため、常に暗号"
+"化されます。後で復元する際、このパスワードが必要です：\n"
+"%(path)s"
+
+msgid ""
+"The button in the bottom bar opens the selection for the section you have "
+"open. From there the ticked entries can be printed, exported or moved to the "
+"wastebasket."
+msgstr ""
+"下部バーのボタンを押すと、現在開いているセクションの選択画面が開きます。そこ"
+"からチェックした項目を印刷、エクスポート、またはゴミ箱へ移動できます。"
+
+msgid ""
+"The calendar resource does not contain exactly one matching appointment."
+msgstr "カレンダーリソースに含まれる一致する予定が1件ではありません。"
+
+msgid "The clipboard is empty."
+msgstr "クリップボードは空です。"
+
+msgid ""
+"The command is started safely without a shell. Use {nummer} for the selected "
+"number."
+msgstr ""
+"コマンドはシェルを使わず安全に起動されます。選択した番号には {nummer} を使用"
+"してください。"
+
+msgid "The communication method is incomplete."
+msgstr "通信方法の設定が不完全です。"
+
+msgid "The complete file is stored in this note (up to 8 megabytes)."
+msgstr "ファイル全体がこのメモに保存されます（最大 8 MB）。"
+
+msgid "The contact synchronization message is invalid."
+msgstr "連絡先同期メッセージが無効です。"
+
+msgid "The contact synchronization setting is invalid."
+msgstr "連絡先同期の設定が無効です。"
+
+msgid "The content is unreadable."
+msgstr "内容を読み取れません。"
+
+msgid ""
+"The current data will be backed up first and then completely replaced with "
+"this file:\n"
+"%(path)s"
+msgstr ""
+"現在のデータを先にバックアップし、その後このファイルで完全に置き換えます：\n"
+"%(path)s"
+
+msgid "The current organizer data is incomplete."
+msgstr "現在の Organizer データは不完全です。"
+
+msgid "The custom application command is invalid."
+msgstr "カスタムアプリのコマンドが無効です。"
+
+msgid "The custom application could not be started."
+msgstr "カスタムアプリを起動できませんでした。"
+
+msgid "The custom application was not found."
+msgstr "カスタムアプリが見つかりませんでした。"
+
+msgid "The custom website is not a secure HTTPS address."
+msgstr "カスタム Web サイトは安全な HTTPS アドレスではありません。"
+
+msgid "The data changed during password transaction recovery."
+msgstr "パスワード処理の復旧中にデータが変更されました。"
+
+msgid ""
+"The data is encrypted – background reminders have not been enabled under "
+"Settings > Security."
+msgstr ""
+"データは暗号化されています — 「設定 > セキュリティ」でバックグラウンドリマイ"
+"ンダーが有効になっていません。"
+
+msgid ""
+"The data is encrypted – the enabled, limited reminder data is being used."
+msgstr ""
+"データは暗号化されています — 有効になっている制限付きリマインダーデータを使用"
+"しています。"
+
+msgid "The data is encrypted. Unlock the organizer with the password first."
+msgstr ""
+"データは暗号化されています。先にパスワードで Organizer のロックを解除してくだ"
+"さい。"
+
+msgid "The data is not a JSON object."
+msgstr "データは JSON オブジェクトではありません。"
+
+msgid "The data is still encrypted. Try again."
+msgstr "データはまだ暗号化されています。もう一度試してください。"
+
+msgid "The data key is not available."
+msgstr "データキーを利用できません。"
+
+msgid ""
+"The directory containing the interface (/usr/share/magnolie-organizer/web) "
+"was not found."
+msgstr ""
+"インターフェースを含むディレクトリ（/usr/share/magnolie-organizer/web）が見つ"
+"かりませんでした。"
+
+msgid "The encrypted Magnolienbaum identity is damaged."
+msgstr "暗号化された Magnolienbaum の識別情報が破損しています。"
+
+msgid "The encrypted Magnolienbaum storage is damaged."
+msgstr "暗号化された Magnolienbaum ストレージが破損しています。"
+
+msgid "The encrypted backup requires python3-cryptography."
+msgstr "暗号化バックアップには python3-cryptography が必要です。"
+
+msgid "The encrypted file is damaged."
+msgstr "暗号化ファイルが破損しています。"
+
+msgid "The end date cannot be before the start date."
+msgstr "終了日は開始日より前にできません。"
+
+msgid "The entered fingerprint is incomplete."
+msgstr "入力されたフィンガープリントが不完全です。"
+
+msgid "The file could not be read."
+msgstr "ファイルを読み取れませんでした。"
+
+#, python-format
+msgid "The file could not be written (%s)."
+msgstr "ファイルを書き込めませんでした（%s）。"
+
+msgid "The file has an unsupported format."
+msgstr "ファイル形式がサポートされていません。"
+
+msgid "The file is larger than 8 megabytes."
+msgstr "ファイルが 8 MB を超えています。"
+
+#, python-format
+msgid "The fingerprint does not match (received: %(fingerprint)s)."
+msgstr "フィンガープリントが一致しません（受信：%(fingerprint)s）。"
+
+msgid ""
+"The helper frame marks the control that currently has keyboard focus. This "
+"makes it easier to operate the Organizer with Tab, arrow keys, Enter and "
+"Space. Ctrl+Alt+H switches the frame on or off at any time."
+msgstr ""
+"補助枠は、現在キーボードフォーカスがあるコントロールを示します。Tab、矢印"
+"キー、Enter、Space で Organizer を操作しやすくなります。Ctrl+Alt+H でいつでも"
+"枠の表示を切り替えられます。"
+
+#, python-format
+msgid ""
+"The holiday service is unavailable. Is there an internet connection? (%s)"
+msgstr ""
+"祝日サービスを利用できません。インターネットに接続されていますか？（%s）"
+
+#, python-format
+msgid ""
+"The holiday service rejected the request (error %s). Check the country and "
+"region."
+msgstr ""
+"祝日サービスが要求を拒否しました（エラー %s）。国と地域を確認してください。"
+
+msgid "The holiday service returned an unreadable response."
+msgstr "祝日サービスから読み取れない応答が返されました。"
+
+msgid "The holiday service returned too much data."
+msgstr "祝日サービスから返されたデータが多すぎます。"
+
+msgid "The holidays were imported."
+msgstr "祝日をインポートしました。"
+
+msgid "The holidays were removed."
+msgstr "祝日を削除しました。"
+
+msgid "The import file is larger than 32 megabytes."
+msgstr "インポートファイルが 32 MB を超えています。"
+
+msgid ""
+"The information is retrieved once from the open directory openholidaysapi."
+"org and then kept in the organizer. The application therefore needs an "
+"internet connection only once."
+msgstr ""
+"情報は公開ディレクトリ openholidaysapi.org から一度だけ取得し、その後 "
+"Organizer 内に保存されます。そのためインターネット接続が必要なのは一度だけで"
+"す。"
+
+msgid "The internet service did not return a valid IP address."
+msgstr "インターネットサービスから有効な IP アドレスが返されませんでした。"
+
+msgid ""
+"The key of this branch has changed. Remove the old connection first and "
+"compare the new fingerprint particularly carefully."
+msgstr ""
+"このブランチのキーが変更されています。先に古い接続を削除し、新しいフィンガー"
+"プリントを特に慎重に比較してください。"
+
+msgid "The last notebook cannot be deleted."
+msgstr "最後のノートブックは削除できません。"
+
+msgid "The last notebook group cannot be deleted."
+msgstr "最後のノートブックグループは削除できません。"
+
+msgid "The log could not be opened."
+msgstr "ログを開けませんでした。"
+
+msgid "The log is available only in the installed application."
+msgstr "ログはインストール済みアプリでのみ利用できます。"
+
+msgid ""
+"The log records when the reminder service checked and what it reported. "
+"Entries older than 30 days are removed automatically, and the log never "
+"exceeds 200 lines."
+msgstr ""
+"ログには、リマインダーサービスがいつ確認し、何を報告したかが記録されます。30"
+"日を超えた項目は自動的に削除され、ログは 200 行を超えません。"
+
+msgid "The mailbox backlog is too large."
+msgstr "メールボックスの未処理件数が多すぎます。"
+
+msgid "The mailbox contains too many pending messages."
+msgstr "メールボックスには保留中のメッセージが多すぎます。"
+
+msgid "The mailbox envelope is invalid."
+msgstr "メールボックスの封筒は無効です。"
+
+msgid "The mailbox is reachable."
+msgstr "メールボックスに到達できます。"
+
+msgid "The mailbox message sequence has a gap."
+msgstr "メールボックスのメッセージシーケンスに欠落があります。"
+
+msgid "The mailbox sender is unknown."
+msgstr "メールボックスの送信者は不明です。"
+
+msgid "The manual"
+msgstr "マニュアル"
+
+msgid "The manual could not be opened."
+msgstr "マニュアルを開けませんでした。"
+
+msgid "The manual download is available only in the installed application."
+msgstr "マニュアルのダウンロードはインストール済みアプリでのみ利用できます。"
+
+msgid "The manual download request is no longer valid."
+msgstr "手動ダウンロードのリクエストはもはや有効ではありません。"
+
+msgid "The manual is installed; its version is unknown."
+msgstr "マニュアルはインストールされていますが、そのバージョンは不明です。"
+
+msgid "The manual is up to date."
+msgstr "マニュアルは最新です。"
+
+msgid "The manual package URL is not allowed."
+msgstr "マニュアルパッケージの URL は許可されていません。"
+
+msgid "The manual package checksum does not match."
+msgstr "マニュアルパッケージのチェックサムが一致しません。"
+
+msgid "The manual package could not be opened."
+msgstr "マニュアルパッケージを開けませんでした。"
+
+msgid "The manual package is unexpectedly large."
+msgstr "マニュアルのパッケージは予想外に大きいです。"
+
+msgid "The manual update check failed."
+msgstr "手動での更新確認に失敗しました。"
+
+msgid "The manual update information is invalid."
+msgstr "手動更新情報が無効です。"
+
+msgid "The maximum number of branches has been reached."
+msgstr "ブランチ数の上限に達しました。"
+
+msgid "The message comes from another branch."
+msgstr "メッセージは別のブランチから届きました。"
+
+msgid "The message could not be opened."
+msgstr "メッセージを開けませんでした。"
+
+msgid "The message is damaged."
+msgstr "メッセージが破損しています。"
+
+msgid "The message is too large."
+msgstr "メッセージが大きすぎます。"
+
+msgid "The month is invalid."
+msgstr "月が無効です。"
+
+msgid "The offered entry is incomplete."
+msgstr "提示された項目が不完全です。"
+
+msgid "The organizer is not currently reminding you about appointments."
+msgstr "現在 Organizer は予定のリマインダーを行っていません。"
+
+msgid ""
+"The organizer notifies you before an appointment begins, even when the "
+"application is not open if you wish."
+msgstr ""
+"Organizer は予定の開始前に通知します。希望すれば、アプリを開いていないときに"
+"も通知できます。"
+
+msgid "The other branch did not prove the pairing file."
+msgstr "相手側ブランチがペアリングファイルを証明できませんでした。"
+
+msgid "The other branch did not send a valid key."
+msgstr "相手側ブランチが有効なキーを送信しませんでした。"
+
+#, python-format
+msgid "The other branch is not responding (%(error)s)."
+msgstr "相手側ブランチが応答しません（%(error)s）。"
+
+msgid "The package URL is not allowed."
+msgstr "パッケージ URL は許可されていません。"
+
+msgid "The package could not be opened."
+msgstr "パッケージを開けませんでした。"
+
+msgid "The pairing file could not be processed."
+msgstr "ペアリングファイルを処理できませんでした。"
+
+msgid "The pairing file has been changed."
+msgstr "ペアリングファイルが変更されています。"
+
+msgid "The pairing file is damaged."
+msgstr "ペアリングファイルが破損しています。"
+
+msgid "The pairing file is invalid or has expired."
+msgstr "ペアリングファイルが無効か、有効期限が切れています。"
+
+msgid "The pairing file is no longer valid."
+msgstr "ペアリングファイルはもう有効ではありません。"
+
+msgid "The pairing file is too large or not a regular file."
+msgstr "ペアリングファイルが大きすぎるか、通常のファイルではありません。"
+
+msgid "The pairing file is too large."
+msgstr "ペアリングファイルが大きすぎます。"
+
+msgid "The pairing request is incomplete."
+msgstr "ペアリング要求が不完全です。"
+
+msgid "The pairing request is invalid."
+msgstr "ペアリング要求が無効です。"
+
+msgid "The password is incorrect."
+msgstr "パスワードが正しくありません。"
+
+msgid "The password transaction could not be completed."
+msgstr "パスワード処理を完了できませんでした。"
+
+msgid "The password transaction journal is damaged."
+msgstr "パスワード処理のジャーナルが破損しています。"
+
+msgid ""
+"The permanent KDE listener cannot start because PyOpenSSL is unavailable."
+msgstr "PyOpenSSL が使用できないため、永続的な KDE リスナーを開始できません。"
+
+msgid ""
+"The permanent KDE listener cannot start because UDP port 1716 is already in "
+"use."
+msgstr ""
+"UDP ポート 1716 がすでに使用されているため、永続的な KDE リスナーを開始できま"
+"せん。"
+
+msgid ""
+"The permanent KDE listener cannot start because no TCP port from 1716 to "
+"1764 is available."
+msgstr ""
+"1716 から 1764 までの TCP ポートが使用できないため、永続的な KDE リスナーを開"
+"始できません。"
+
+msgid "The permanent KDE listener has not started yet."
+msgstr "永続的な KDE リスナーはまだ開始されていません。"
+
+msgid "The permanent KDE listener is stopped."
+msgstr "永続的な KDE リスナーが停止されます。"
+
+msgid "The phone connection is available only in the installed application."
+msgstr "フォルダー選択はインストール版アプリケーションでのみ利用できます。"
+
+msgid "The phone connection is not available."
+msgstr "Magnolienbaum は利用できません。"
+
+msgid "The phone is reachable, but its KDE Connect trust no longer matches."
+msgstr "電話には到達できますが、KDE Connect の信頼情報が一致しなくなりました。"
+
+msgid "The phone number is invalid."
+msgstr "電話番号が無効です。"
+
+msgid "The photo could not be read."
+msgstr "写真を読み取れませんでした。"
+
+msgid "The photo is larger than 8 megabytes."
+msgstr "写真が 8 MB を超えています。"
+
+msgid "The planner layout is invalid."
+msgstr "プランナーのレイアウトが無効です。"
+
+msgid "The port is invalid."
+msgstr "ポートが無効です。"
+
+msgid "The previous data could not be backed up."
+msgstr "以前のデータをバックアップできませんでした。"
+
+#, python-format
+msgid "The print page is located at: %s"
+msgstr "印刷ページの場所：%s"
+
+#, python-format
+msgid "The public address could not be determined (%(error)s)."
+msgstr "公開アドレスを特定できませんでした（%(error)s）。"
+
+msgid "The public address could not be determined."
+msgstr "公開アドレスを特定できませんでした。"
+
+msgid "The public key is invalid."
+msgstr "公開鍵が無効です。"
+
+msgid "The recovery snapshot folder must not be a symbolic link."
+msgstr ""
+"リカバリースナップショットフォルダはシンボリックリンクであってはいけません。"
+
+msgid "The recovery snapshot is missing or damaged."
+msgstr "リカバリースナップショットが見つからないか、破損しています。"
+
+msgid "The recovery snapshot manifest is invalid."
+msgstr "リカバリースナップショットのマニフェストが無効です。"
+
+msgid "The recovery snapshot manifest is too large."
+msgstr "リカバリスナップショットマニフェストが大きすぎます。"
+
+msgid "The recovery snapshot payload does not match its manifest."
+msgstr "リカバリスナップショットのペイロードがマニフェストと一致しません。"
+
+msgid "The recovery snapshot was not found."
+msgstr "リカバリースナップショットが見つかりませんでした。"
+
+msgid "The recycle bin is empty."
+msgstr "ゴミ箱は空です。"
+
+msgid "The recycle bin was emptied."
+msgstr "ゴミ箱を空にしました。"
+
+msgid "The request is unreadable."
+msgstr "要求を読み取れません。"
+
+msgid "The requested Nextcloud DAV resource was not found."
+msgstr "要求されたNextcloud DAVリソースが見つかりませんでした。"
+
+msgid "The required recovery snapshot could not be created."
+msgstr "必要な回復スナップショットを作成できませんでした。"
+
+msgid "The response is too large."
+msgstr "応答が大きすぎます。"
+
+msgid ""
+"The same code must appear on both computers:\n"
+"\n"
+"%(code)s\n"
+"\n"
+"Other branch: %(branch)s\n"
+"Fingerprint: %(fingerprint)s\n"
+"\n"
+"Does the code match?"
+msgstr ""
+"両方のコンピューターに同じコードが表示されている必要があります：\n"
+"\n"
+"%(code)s\n"
+"\n"
+"相手側ブランチ：%(branch)s\n"
+"フィンガープリント：%(fingerprint)s\n"
+"\n"
+"コードは一致していますか？"
+
+msgid "The save request is invalid."
+msgstr "保存要求が無効です。"
+
+msgid "The secure interface could not be registered."
+msgstr "安全なインターフェースを登録できませんでした。"
+
+msgid "The secure message could not be opened."
+msgstr "安全なメッセージを開けませんでした。"
+
+msgid "The secure message is invalid."
+msgstr "安全なメッセージが無効です。"
+
+msgid "The secure session has already been used."
+msgstr "安全なセッションはすでに使用されています。"
+
+msgid "The secure session is damaged."
+msgstr "安全なセッションが破損しています。"
+
+msgid "The secure session is unknown or expired."
+msgstr "安全なセッションが不明か、有効期限が切れています。"
+
+msgid "The secure session request is invalid."
+msgstr "安全なセッション要求が無効です。"
+
+msgid "The secure session response is invalid."
+msgstr "安全なセッション応答が無効です。"
+
+msgid "The selected Nextcloud DAV source was not found."
+msgstr "選択されたNextcloud DAVソースが見つかりませんでした。"
+
+msgid "The selected contacts contain no values for these columns."
+msgstr "選択した連絡先には、これらの列に値がありません。"
+
+msgid "The selected file is not a readable CSV file."
+msgstr "選択したファイルは読み取り可能な CSV ファイルではありません。"
+
+msgid "The selected file is not a readable iCalendar file."
+msgstr "選択したファイルは読み取り可能な iCalendar ファイルではありません。"
+
+msgid "The selected health records contain no printable values."
+msgstr "選択した健康記録には印刷可能な値がありません。"
+
+msgid "The selected iCalendar file is incomplete."
+msgstr "選択した iCalendar ファイルは不完全です。"
+
+msgid "The selected path is not a regular file."
+msgstr "選択したパスは通常のファイルではありません。"
+
+msgid "The selected source was not found. Select it again in Settings."
+msgstr "選択したソースが見つかりませんでした。「設定」で再度選択してください。"
+
+msgid ""
+"The server operator can see the account, folder and file names, sizes and "
+"times of your messages."
+msgstr ""
+"サーバー管理者は、アカウント、フォルダー名とファイル名、サイズ、メッセージの"
+"時刻を見ることができます。"
+
+msgid "The service returned no entries for this selection."
+msgstr "この選択に対してサービスから項目が返されませんでした。"
+
+msgid ""
+"The sheet appears at the edge of the screen, accompanied by the Magnolie "
+"chime."
+msgstr "シートは Magnolie のチャイムとともに画面の端に表示されます。"
+
+msgid ""
+"The small uniform icons open an installed application when possible. "
+"Otherwise, a secure web service is used in the browser."
+msgstr ""
+"小さく統一されたアイコンは、可能であればインストール済みアプリを開きます。そ"
+"れ以外の場合は、ブラウザーで安全な Web サービスを使用します。"
+
+msgid "The snapshot operation failed."
+msgstr "スナップショット操作に失敗しました。"
+
+msgid "The start date must not be after the end date."
+msgstr "開始日は終了日より後に設定できません。"
+
+msgid "The synchronization resume journal is damaged."
+msgstr "同期再開ジャーナルが破損しています。"
+
+msgid "The system dialer opens on the phone. Confirm the call there."
+msgstr "電話機でシステム ダイヤラが開きます。そこで通話を確認します。"
+
+msgid "The task is missing from the update."
+msgstr "更新にタスクがありません。"
+
+msgid ""
+"The task will be sent to the selected branch. It will also remain here so "
+"you can keep track of it."
+msgstr ""
+"タスクは選択したブランチへ送信されます。追跡できるよう、こちらにも残ります。"
+
+msgid ""
+"The traffic-light colors are general reference ranges for adults, not a "
+"diagnosis. Check abnormal readings and discuss them with a doctor; seek "
+"immediate medical help for severe symptoms."
+msgstr ""
+"信号機の色は成人向けの一般的な基準範囲を示すもので、診断ではありません。異常"
+"な測定値を確認して医師に相談し、重い症状がある場合は直ちに医療機関を受診して"
+"ください。"
+
+#, python-format
+msgid "The tray applet could not be started: %s"
+msgstr "システムトレイアプレットを起動できませんでした：%s"
+
+msgid "The tray applet is not available on this system."
+msgstr "このシステムではシステムトレイアプレットを利用できません。"
+
+msgid ""
+"The tray applet requires Ayatana AppIndicator. On plain GNOME, the "
+"AppIndicator extension is also required."
+msgstr ""
+"システムトレイアプレットには Ayatana AppIndicator が必要です。標準の GNOME で"
+"は AppIndicator 拡張機能も必要です。"
+
+msgid "The trust setting is invalid."
+msgstr "信頼設定が無効です。"
+
+msgid "The two entries do not match."
+msgstr "2つの項目が一致しません。"
+
+msgid "The two new passwords do not match."
+msgstr "2つの新しいパスワードが一致しません。"
+
+msgid "The update check failed."
+msgstr "更新確認に失敗しました。"
+
+msgid "The update information does not contain a valid package checksum."
+msgstr "更新情報に有効なパッケージのチェックサムが含まれていません。"
+
+msgid "The update information does not contain a valid version."
+msgstr "更新情報に有効なバージョンが含まれていません。"
+
+msgid "The update information does not refer to an allowed package URL."
+msgstr "更新情報が許可されたパッケージ URL を参照していません。"
+
+msgid "The update information has an invalid signature."
+msgstr "更新情報の署名が無効です。"
+
+#, python-format
+msgid "The update information is currently unavailable (%s)."
+msgstr "更新情報は現在利用できません（%s）。"
+
+msgid "The update information is unexpectedly large."
+msgstr "更新情報が予想外に大きすぎます。"
+
+msgid "The update information is unreadable."
+msgstr "更新情報を読み取れません。"
+
+msgid "The user data could not be read."
+msgstr "ユーザーデータを読み取れませんでした。"
+
+msgid "The value is outside the general green reference range."
+msgstr "値が一般的な緑色の基準範囲外です。"
+
+msgid "The wake-up reminder"
+msgstr "ウェイクアップリマインダー"
+
+msgid ""
+"The weather service estimated the location from your public IP address. Your "
+"own address in Contacts provides a more precise location."
+msgstr ""
+"天気サービスは公開 IP アドレスからおおよその場所を推定しました。「連絡先」に"
+"自分の住所を登録すると、より正確な場所になります。"
+
+#, python-format
+msgid ""
+"The weather service is unavailable. Is there an internet connection? (%s)"
+msgstr ""
+"天気サービスを利用できません。インターネットに接続されていますか？（%s）"
+
+#, python-format
+msgid "The weather service rejected the request (error %s)."
+msgstr "天気サービスが要求を拒否しました（エラー %s）。"
+
+msgid "The weather service returned no forecast."
+msgstr "天気サービスから予報が返されませんでした。"
+
+msgid "The weather service returned too much data."
+msgstr "天気サービスから返されたデータが多すぎます。"
+
+msgid "The weather service returned unreadable data."
+msgstr "天気サービスから読み取れないデータが返されました。"
+
+msgid ""
+"The year calendar shows all twelve months; the month calendar provides more "
+"room for entries."
+msgstr ""
+"年間カレンダーには12か月すべてが表示されます。月間カレンダーでは項目を記入す"
+"るスペースが広くなります。"
+
+msgid "The year is invalid."
+msgstr "年が無効です。"
+
+msgid "There are no entries to export yet."
+msgstr "まだエクスポートする項目がありません。"
+
+msgid "There are no entries."
+msgstr "項目がありません。"
+
+msgid "There are no holidays in the organizer for this selection yet."
+msgstr "この選択に該当する祝日はまだ Organizer にありません。"
+
+msgid "There are no saved entries on this page."
+msgstr "このページには保存された項目がありません。"
+
+msgid "There is no notebook in this group yet."
+msgstr "このグループにはまだノートブックがありません。"
+
+msgid ""
+"There is nothing scheduled in this period.\n"
+"Click a day on the left to add an appointment."
+msgstr ""
+"この期間には何も予定されていません。\n"
+"左側の日をクリックして予定を追加してください。"
+
+msgid "There is nothing to print."
+msgstr "印刷する内容がありません。"
+
+msgid ""
+"These options require the matching permissions in Magnolie Notes. Call audio "
+"is not sent over the Magnolie data connection."
+msgstr ""
+"これらのオプションには Magnolie Notes で対応する権限が必要です。通話音声は "
+"Magnolie のデータ接続では送信されません。"
+
+msgid "This address can be selected and copied."
+msgstr "この住所は選択してコピーできます。"
+
+msgid "This appointment will appear every %(weekday)s."
+msgstr "この予定は毎週 %(weekday)s に表示されます。"
+
+msgid "This appointment will appear every day."
+msgstr "この予定は毎日表示されます。"
+
+msgid "This appointment will appear every year on %(month)s %(day)s."
+msgstr "この予定は毎年 %(month)s %(day)s に表示されます。"
+
+msgid ""
+"This appointment will appear on day %(day)s of every month. In shorter "
+"months, it moves to the last day."
+msgstr ""
+"この予定は毎月 %(day)s 日に表示されます。日数が少ない月では最終日に移動しま"
+"す。"
+
+msgid "This backup cannot be used."
+msgstr "このバックアップは使用できません。"
+
+msgid "This branch has not been confirmed."
+msgstr "このブランチは確認されていません。"
+
+msgid "This branch has not yet been confirmed."
+msgstr "このブランチはまだ確認されていません。"
+
+msgid "This branch is not known."
+msgstr "このブランチは不明です。"
+
+msgid ""
+"This choice also determines how names appear on contact cards and under "
+"which letter they are filed in the index."
+msgstr ""
+"この選択は、連絡先カードでの名前の表示方法と、索引のどの文字に分類されるかも"
+"決定します。"
+
+msgid "This contact card has no email address."
+msgstr "この連絡先カードにはメールアドレスがありません。"
+
+msgid "This contact card has no postal address."
+msgstr "この連絡先カードには郵便住所がありません。"
+
+msgid "This image format cannot be used."
+msgstr "この画像形式は使用できません。"
+
+msgid "This is a reminder test."
+msgstr "これはリマインダーのテストです。"
+
+msgid "This is available only in the installed application."
+msgstr "これはインストール済みアプリでのみ利用できます。"
+
+msgid "This is how the organizer reminds you about an appointment."
+msgstr "Organizer はこのように予定を通知します。"
+
+msgid ""
+"This is how your notes look: <b>bold</b>, <i>italic</i>, <u>underlined</u> "
+"and <s>struck through</s>."
+msgstr ""
+"メモは次のように表示されます：<b>太字</b>、<i>斜体</i>、<u>下線</u>、<s>取り"
+"消し線</s>。"
+
+msgid "This is not a Magnolienbaum message."
+msgstr "これは Magnolienbaum のメッセージではありません。"
+
+msgid ""
+"This is one occurrence of a recurring appointment. Changes apply to all "
+"occurrences in this series."
+msgstr ""
+"これは繰り返し予定の1回分です。変更はこの系列のすべての回に適用されます。"
+
+msgid ""
+"This is only the encrypted Magnolienbaum fallback for baum-1. It does not "
+"synchronize calendars or contacts. Both partners need access to the same "
+"Nextcloud storage."
+msgstr ""
+"これは baum-1 専用の暗号化された Magnolienbaum 予備経路です。カレンダーや連絡"
+"先は同期しません。双方が同じ Nextcloud ストレージにアクセスできる必要がありま"
+"す。"
+
+msgid ""
+"This leaves time to get something, followed by another reminder on the day "
+"itself. For example: “Max Mustermann has a birthday tomorrow” and the next "
+"day “Max Mustermann has a birthday today”. Anniversary reminders are shown "
+"in the morning."
+msgstr ""
+"これにより準備する時間を確保でき、当日にももう一度通知されます。たとえば"
+"「Max Mustermann の誕生日は明日です」、翌日は「Max Mustermann の誕生日は今日"
+"です」と表示されます。記念日の通知は朝に表示されます。"
+
+msgid "This message has already been received."
+msgstr "このメッセージはすでに受信しています。"
+
+msgid "This notebook is still empty."
+msgstr "このノートブックはまだ空です。"
+
+msgid "This paired phone is my own device"
+msgstr "このペアリング済み電話は自分のデバイスです"
+
+msgid "This person's anniversaries"
+msgstr "この人の記念日"
+
+msgid ""
+"This program is free software: you may redistribute and modify it. It is "
+"published in the hope that it will be useful, but without any warranty. The "
+"full license text is available at /usr/share/common-licenses/GPL-3."
+msgstr ""
+"このプログラムは自由ソフトウェアです。再配布および変更できます。役立つことを"
+"願って公開されていますが、いかなる保証もありません。完全なライセンス文は /"
+"usr/share/common-licenses/GPL-3 にあります。"
+
+msgid "This secure session already exists."
+msgstr "この安全なセッションはすでに存在します。"
+
+msgid "This setting applies when you restore the window from the tray menu."
+msgstr ""
+"この設定は、システムトレイメニューからウィンドウを復元するときに適用されま"
+"す。"
+
+msgid "This status comes from Magnolie Notes, not KDE Connect."
+msgstr "この状態は KDE Connect ではなく Magnolie Notes から取得されています。"
+
+msgid ""
+"This system did not allow waking from suspend. The reminder will appear as "
+"soon as the computer is running again."
+msgstr ""
+"このシステムではサスペンドからの復帰が許可されませんでした。コンピューターが"
+"再び動作するとすぐにリマインダーが表示されます。"
+
+msgid "This task came from “%(branch)s”."
+msgstr "このタスクは「%(branch)s」から届きました。"
+
+msgid "This type cannot be shared."
+msgstr "この種類は共有できません。"
+
+msgid "Through"
+msgstr "終了日"
+
+msgid ""
+"Thunderbird, the Mint/GNOME calendar and most other applications export "
+"appointments as .ics files and contacts as .vcf files."
+msgstr ""
+"Thunderbird、Mint/GNOME カレンダーなど、ほとんどのアプリは予定を .ics ファイ"
+"ル、連絡先を .vcf ファイルとしてエクスポートします。"
+
+msgid "Thurgau"
+msgstr "トゥールガウ"
+
+msgid "Thuringia"
+msgstr "テューリンゲン"
+
+msgid "Thursday"
+msgstr "木曜日"
+
+msgid "Thyroid"
+msgstr "甲状腺"
+
+msgid "Ticino"
+msgstr "ティチーノ"
+
+msgid "Time"
+msgstr "時刻"
+
+msgid "Title"
+msgstr "タイトル"
+
+msgid "To"
+msgstr "終了"
+
+msgid ""
+"To change it, enter only the new password; the organizer is already unlocked."
+msgstr ""
+"変更する場合は新しいパスワードだけを入力してください。Organizer はすでにロッ"
+"ク解除されています。"
+
+msgid "Today"
+msgstr "今日"
+
+msgid "Today is %(date)s"
+msgstr "今日は %(date)s"
+
+msgid "Tomorrow"
+msgstr "明日"
+
+msgid "Too many failed attempts – wait %(duration)s."
+msgstr "失敗が多すぎます — %(duration)s 待ってください。"
+
+msgid "Too many failed attempts. Wait a moment."
+msgstr "失敗が多すぎます。しばらく待ってください。"
+
+msgid "Too many pairing files are still valid."
+msgstr "有効なペアリングファイルが多すぎます。"
+
+msgid "Too many pairing requests are awaiting confirmation."
+msgstr "確認待ちのペアリング要求が多すぎます。"
+
+msgid "Too many regions were selected."
+msgstr "選択した地域が多すぎます。"
+
+msgid "Too many requests."
+msgstr "要求が多すぎます。"
+
+msgid "Too many secure sessions are open."
+msgstr "開いている安全なセッションが多すぎます。"
+
+msgid "Tray applet"
+msgstr "システムトレイアプレット"
+
+msgid "Trust and accept tasks and notes automatically"
+msgstr "信頼してタスクとメモを自動的に受け入れる"
+
+msgid "Tuesday"
+msgstr "火曜日"
+
+msgid "Turn back"
+msgstr "戻す"
+
+msgid "Turn forward"
+msgstr "進める"
+
+msgid "Two days back"
+msgstr "2日前"
+
+msgid "Two days forward"
+msgstr "2日後"
+
+msgid "Type"
+msgstr "種類"
+
+msgid "Typeface"
+msgstr "書体"
+
+msgid "Typography"
+msgstr "タイポグラフィ"
+
+msgid "Typography for your entries"
+msgstr "項目のタイポグラフィ"
+
+msgid "Tyrol"
+msgstr "チロル"
+
+msgid "U"
+msgstr "U"
+
+msgid "UFW configuration was cancelled or failed."
+msgstr "UFW の設定がキャンセルされたか、失敗しました。"
+
+#, python-format
+msgid "UFW could not be configured (%s)."
+msgstr "UFW を設定できませんでした（%s）。"
+
+msgid "UFW is active, but its command could not be found."
+msgstr "UFW は有効ですが、コマンドが見つかりませんでした。"
+
+msgid "URI"
+msgstr "URI"
+
+msgid "Unavailable"
+msgstr "利用できません"
+
+msgid ""
+"Under Wayland, the compositor determines the exact window position; "
+"centering and maximizing are passed on as requests."
+msgstr ""
+"Wayland では正確なウィンドウ位置をコンポジターが決定します。中央配置や最大化"
+"は要求として渡されます。"
+
+msgid "Underline"
+msgstr "下線"
+
+msgid "Unexpected error."
+msgstr "予期しないエラー。"
+
+msgid "Unit"
+msgstr "単位"
+
+msgid "Unknown"
+msgstr "不明"
+
+msgid "Unknown caller"
+msgstr "不明な発信者"
+
+msgid "Unknown endpoint."
+msgstr "不明なエンドポイント。"
+
+msgid "Unknown phone"
+msgstr "不明なエンドポイント。"
+
+msgid "Unlink"
+msgstr "リンク解除"
+
+msgid "Unlock"
+msgstr "ロック解除"
+
+msgid "Unlock Magnolie Organizer"
+msgstr "Magnolie Organizer のロックを解除"
+
+msgid "Unlock the organizer before receiving Magnolienbaum messages."
+msgstr ""
+"Magnolienbaum メッセージを受信する前にオーガナイザーのロックを解除してくださ"
+"い。"
+
+msgid "Unlocking the Magnolienbaum storage"
+msgstr "Magnolienbaum ストレージのロックを解除しています"
+
+#, python-format
+msgid "Unreadable message from the interface: %s"
+msgstr "インターフェースからのメッセージを読み取れません：%s"
+
+msgid "Unsupported alarm"
+msgstr "未対応のアラーム"
+
+msgid "Until (leave blank for no end)"
+msgstr "終了日（終了なしの場合は空欄）"
+
+msgid "Untitled"
+msgstr "無題"
+
+msgid "Untitled appointment"
+msgstr "無題の予定"
+
+msgid "Update checking is available in the installed application."
+msgstr "更新の確認はインストール版アプリで利用できます。"
+
+msgid "Update checking is available only in the installed application."
+msgstr "更新の確認はインストール版アプリでのみ利用できます。"
+
+msgid "Update weather"
+msgstr "天気を更新"
+
+msgid "Updates"
+msgstr "更新"
+
+msgid "Upper Austria"
+msgstr "オーバーエスターライヒ州"
+
+msgid "Uptime"
+msgstr "稼働時間"
+
+msgid "Uri"
+msgstr "URI"
+
+msgid "Usage:"
+msgstr "使用方法："
+
+msgid "Use a specific application or command"
+msgstr "特定のアプリまたはコマンドを使用"
+
+msgid "Use a specific website"
+msgstr "特定のウェブサイトを使用"
+
+msgid "Use a supported language code or system for this invocation"
+msgstr "この起動では対応する言語コードまたは system を指定してください"
+
+msgid "Use basal units"
+msgstr "基礎インスリン単位を使用"
+
+msgid "Use contact addresses"
+msgstr "連絡先の住所を使用"
+
+msgid "Use default"
+msgstr "既定を使用"
+
+msgid "Use numeric keypad"
+msgstr "テンキーを使用"
+
+msgid ""
+"Use only schedules prescribed or confirmed by a healthcare professional."
+msgstr "医療従事者が処方または確認した服薬計画のみを使用してください。"
+
+msgid ""
+"Use the arrows to arrange groups and notebooks, or use the selection to move "
+"a notebook to another group."
+msgstr ""
+"矢印でグループとノートブックを並べ替えるか、選択欄を使ってノートブックを別の"
+"グループへ移動します。"
+
+msgid "Use the mailbox as a fallback for branch baum-1"
+msgstr "baum-1 ブランチの予備経路としてメールボックスを使う"
+
+msgid ""
+"Use the mouse wheel to change the time in 5-minute steps (hold Shift for "
+"whole hours)"
+msgstr ""
+"マウスホイールで時刻を5分刻みに変更します（Shift を押しながら操作すると1時間"
+"刻み）"
+
+msgid "Use the recycle bin"
+msgstr "ごみ箱を使用"
+
+msgid "User name"
+msgstr "User name"
+
+msgid ""
+"Uses its own identity and storage and listens only on fixed port %(port)s. "
+"It never uses Magnolienbaum partners, permissions, queues or Bluetooth "
+"identity."
+msgstr ""
+"独自の識別子とストレージを使用し、固定ポート %(port)s のみで待ち受けます。"
+"Magnolienbaum のパートナー、権限、キュー、または Bluetooth 識別子は決して使用"
+"しません。"
+
+msgid "Vacation"
+msgstr "休暇"
+
+msgid ""
+"Vacation periods are local calendar markings. They do not send notifications "
+"and can be included separately when printing the planner."
+msgstr ""
+"休暇期間はローカルのカレンダー上の印です。通知は送信せず、プランナーの印刷時"
+"に個別に含めることができます。"
+
+msgid "Vacation planner"
+msgstr "休暇プランナー"
+
+msgid "Valais"
+msgstr "ヴァレー州"
+
+msgid ""
+"Validated archive\n"
+"Source: %(source)s\n"
+"Created: %(created)s\n"
+"Application entries: %(entries)s\n"
+"Photos: %(photos)s, Attachments: %(attachments)s\n"
+"\n"
+"The current data will be backed up locally automatically and then completely "
+"replaced."
+msgstr ""
+"検証済みアーカイブ\n"
+"ソース：%(source)s\n"
+"作成日時：%(created)s\n"
+"アプリケーション項目：%(entries)s\n"
+"写真：%(photos)s、添付ファイル：%(attachments)s\n"
+"\n"
+"現在のデータは自動的にローカルへバックアップされた後、完全に置き換えられま"
+"す。"
+
+msgid "Value"
+msgstr "値"
+
+msgid "Vaud"
+msgstr "ヴォー州"
+
+msgid "Verify after downloading with: %(command)s"
+msgstr "ダウンロード後、次のコマンドで検証：%(command)s"
+
+msgid "Version %(version)s"
+msgstr "バージョン %(version)s"
+
+msgid "Version %(version)s is up to date. Last checked: %(date)s."
+msgstr "バージョン %(version)s は最新です。最終確認：%(date)s。"
+
+msgid "Via internet"
+msgstr "インターネット経由"
+
+msgid "Vienna"
+msgstr "ウィーン"
+
+msgid "View and edit appointment"
+msgstr "予定を表示・編集"
+
+msgid "Vital signs"
+msgstr "バイタルサイン"
+
+msgid "Vital signs table"
+msgstr "バイタルサイン表"
+
+msgid "Vorarlberg"
+msgstr "フォアアールベルク州"
+
+msgid ""
+"WLAN has priority. Bluetooth data starts only after WLAN failure and carries "
+"the same encrypted phone frames."
+msgstr ""
+"WLANが優先されます。BluetoothデータはWLANの障害後にのみ開始され、同じ暗号化さ"
+"れた電話フレームを運びます。"
+
+msgid "WLAN listener on port %(port)s"
+msgstr "ポート %(port)s の WLAN リスナー"
+
+msgid "Waiting for consent on the other device."
+msgstr "もう一方のデバイスでの同意を待っています。"
+
+msgid "Waiting for device status"
+msgstr "デバイスの状態を待っています"
+
+msgid ""
+"Waiting for the phone on port %(port)s. Pairing closes after %(seconds)s "
+"seconds."
+msgstr ""
+"ポート%(port)sで電話を待機中です。ペアリングは%(seconds)s秒後に終了します。"
+
+msgid "Wake the computer from suspend"
+msgstr "サスペンド状態のコンピューターを復帰"
+
+msgid "Warning: The data could not be saved."
+msgstr "警告：データを保存できませんでした。"
+
+#, python-format
+msgid "Warning: The data file could not be read (%s)."
+msgstr "警告：データファイルを読み取れませんでした（%s）。"
+
+msgid "Waste collection calendar"
+msgstr "ごみ収集カレンダー"
+
+msgid "We are glad you are here!"
+msgstr "お越しいただきありがとうございます！"
+
+msgid "Weather"
+msgstr "天気"
+
+msgid "Weather display"
+msgstr "天気表示"
+
+msgid "Weather for the next three days"
+msgstr "今後3日間の天気"
+
+msgid "Weather is available in the installed application."
+msgstr "天気機能はインストール版アプリで利用できます。"
+
+msgid ""
+"Weather requests are sent to wttr.in. Your own address in Contacts is used "
+"first, followed by local LibreOffice user data. If neither contains a "
+"location and retrieval without one is allowed, wttr.in estimates the "
+"location from your internet connection's public IP address."
+msgstr ""
+"天気のリクエストは wttr.in に送信されます。まず「連絡先」にある自分の住所を使"
+"用し、次にローカルの LibreOffice ユーザーデータを使用します。どちらにも場所が"
+"なく、場所なしでの取得が許可されている場合、wttr.in はインターネット接続のグ"
+"ローバル IP アドレスから場所を推定します。"
+
+msgid "Weather was not retrieved because no location is available."
+msgstr "利用できる場所がないため、天気を取得しませんでした。"
+
+msgid "Wedding anniversary"
+msgstr "結婚記念日"
+
+msgid "Wednesday"
+msgstr "水曜日"
+
+msgid "Week"
+msgstr "週"
+
+msgid "Week %(number)s"
+msgstr "第 %(number)s 週"
+
+msgid "Week numbers"
+msgstr "週番号"
+
+msgid "Weekly"
+msgstr "毎週"
+
+msgid "Weekly variation for %(name)s"
+msgstr "%(name)s の曜日別用量"
+
+msgid "Weekly view"
+msgstr "週間表示"
+
+msgid "Weight"
+msgstr "体重"
+
+msgid "Welcome ✱"
+msgstr "ようこそ ✱"
+
+msgid "What is it about?"
+msgstr "内容は？"
+
+msgid "What needs to be done?"
+msgstr "何をする必要がありますか？"
+
+msgid ""
+"When disabled, dates can still be entered as eight digits in day, month and "
+"four-digit year order."
+msgstr ""
+"無効にしていても、日・月・4桁の年の順に8桁の数字を入力して日付を指定できま"
+"す。"
+
+msgid ""
+"When disabled, you write on plain paper. Line spacing remains the same; only "
+"the lines disappear."
+msgstr ""
+"無効にすると無地の用紙に書き込みます。行間は変わらず、罫線だけが消えます。"
+
+msgid "When opening from the tray"
+msgstr "システムトレイから開くとき"
+
+msgid ""
+"When selected, you can assign a photo to each person. Embedded photos are "
+"preserved during import, export and synchronization with an online address "
+"book. Email addresses on contact cards are always clickable and open your "
+"mail application."
+msgstr ""
+"選択すると各人物に写真を割り当てられます。埋め込まれた写真は、インポート、エ"
+"クスポート、およびオンラインアドレス帳との同期でも保持されます。連絡先カード"
+"のメールアドレスは常にクリックでき、メールアプリを開きます。"
+
+msgid ""
+"When writing a note, a small toolbar above the sheet provides bold, italic, "
+"underline and strikethrough. The same formatting is available with Ctrl+B, "
+"Ctrl+I, Ctrl+U and Ctrl+D."
+msgstr ""
+"メモを書くときは、用紙の上にある小さなツールバーで太字、斜体、下線、取り消し"
+"線を設定できます。同じ書式は Ctrl+B、Ctrl+I、Ctrl+U、Ctrl+D でも利用できま"
+"す。"
+
+msgid "Whole month"
+msgstr "1か月全体"
+
+msgid "Wife"
+msgstr "妻"
+
+msgid "Wireless"
+msgstr "無線"
+
+msgid ""
+"With a password or numeric code, the organizer asks for it when opening and "
+"stores your data only in encrypted form in your home directory (AES-256)."
+msgstr ""
+"パスワードまたは数字コードを設定すると、オーガナイザーは起動時に入力を求め、"
+"ホームディレクトリのデータを暗号化した状態でのみ保存します（AES-256）。"
+
+msgid "With photo"
+msgstr "写真あり"
+
+msgid ""
+"Without a shell; {ziel}, {wert}, and {nummer} can be used as placeholders. "
+"Flatpak and Snap can be selected as flatpak:APP-ID or snap:Name."
+msgstr ""
+"シェルを介さず、{ziel}、{wert}、{nummer} をプレースホルダーとして使用できま"
+"す。Flatpak と Snap は flatpak:APP-ID または snap:Name として選択できます。"
+
+msgid ""
+"Without this second selection, the background reminder service does not show "
+"notifications for confidential appointments."
+msgstr ""
+"この2つ目の選択をしない場合、バックグラウンドのリマインダーサービスは機密予定"
+"の通知を表示しません。"
+
+msgid "Work"
+msgstr "仕事"
+
+msgid "Work address"
+msgstr "勤務先住所"
+
+msgid "Work anniversary"
+msgstr "仕事の記念日"
+
+msgid "Work phone"
+msgstr "勤務先電話"
+
+msgid "Workgroup (all)"
+msgstr "ワークグループ（全員）"
+
+msgid "Workshop appointment"
+msgstr "作業場の予定"
+
+msgid "Write a message to %(address)s"
+msgstr "%(address)s にメッセージを書く"
+
+msgid "Write an SMS using KDE Connect or the assigned application"
+msgstr ""
+"KDE Connect または割り当てられたアプリケーションを使用して SMS を書き込みます"
+
+msgid "Write here …"
+msgstr "ここに入力 …"
+
+msgid "Write startup and tray diagnostics to the debug log"
+msgstr "起動時とシステムトレイの診断情報をデバッグログに記録"
+
+msgid "Writing sheet"
+msgstr "記入用紙"
+
+msgid "X (formerly Twitter)"
+msgstr "X（旧 Twitter）"
+
+msgid "Year"
+msgstr "年"
+
+msgid "Year calendar"
+msgstr "年間カレンダー"
+
+msgid "Year planner %(year)s"
+msgstr "%(year)s 年間プランナー"
+
+msgid "Yes"
+msgstr "はい"
+
+msgid "Yes, merge"
+msgstr "はい、統合します"
+
+msgid "Yes, the code matches"
+msgstr "はい、コードは一致します"
+
+msgid "Your address"
+msgstr "あなたの住所"
+
+msgid "Your address above is used as the starting point."
+msgstr "上記の住所を出発地点として使用します。"
+
+msgid "Your data from “Organizer Klassik” has been imported."
+msgstr "「Organizer Klassik」からデータをインポートしました。"
+
+msgid ""
+"Your data is stored at:\n"
+"%(path)s"
+msgstr ""
+"データの保存場所：\n"
+"%(path)s"
+
+msgid "Your data is stored at: %(path)s"
+msgstr "データの保存場所：%(path)s"
+
+msgid ""
+"Your own address is required as the starting point for a route. Enter it "
+"under Settings ▸ Contacts."
+msgstr ""
+"経路の出発地点として自分の住所が必要です。「設定 ▸ 連絡先」で入力してくださ"
+"い。"
+
+msgid "Yours sincerely,"
+msgstr "敬具"
+
+msgid "ZIP archives (*.zip)"
+msgstr "ZIP アーカイブ (*.zip)"
+
+msgid "Zug"
+msgstr "ツーク州"
+
+msgid "Zurich"
+msgstr "チューリッヒ州"
+
+msgid "after 30 days"
+msgstr "30日後"
+
+msgid "after 7 days"
+msgstr "7日後"
+
+msgid "after 90 days"
+msgstr "90日後"
+
+msgid "after one year"
+msgstr "1年後"
+
+msgid "all cantons"
+msgstr "すべての州"
+
+msgid "all day"
+msgstr "終日"
+
+#, python-format
+msgid "all except %(regions)s"
+msgstr "%(regions)s を除くすべて"
+
+msgid "all states"
+msgstr "すべての州"
+
+msgid "also remind me about it"
+msgstr "これについても通知する"
+
+msgid "and"
+msgstr "と"
+
+msgid "and %(count)s more"
+msgid_plural "and %(count)s more"
+msgstr[0] "ほか %(count)s 件"
+
+msgid "app password from Nextcloud"
+msgstr "Nextcloud のアプリパスワード"
+
+msgid "application {ziel}"
+msgstr "アプリ {ziel}"
+
+msgid "approximate area"
+msgstr "おおよその地域"
+
+msgid "at %(time)s"
+msgstr "%(time)s"
+
+msgid "at least four characters"
+msgstr "4文字以上"
+
+msgid "at the appointment time"
+msgstr "予定時刻"
+
+msgid "before start"
+msgstr "開始前"
+
+msgid "blood-glucose"
+msgstr "blood-glucose"
+
+msgid "browser storage"
+msgstr "ブラウザーの保存領域"
+
+msgid "confidential"
+msgstr "機密"
+
+msgid "confirmed"
+msgstr "確認済み"
+
+msgid "days"
+msgstr "日"
+
+msgid "days before"
+msgstr "日前"
+
+msgid "due %(date)s"
+msgstr "期限 %(date)s"
+
+msgid "due by %(date)s"
+msgstr "期限：%(date)s まで"
+
+msgid "due from"
+msgstr "期限開始日"
+
+#, python-format
+msgid "due in %d day"
+msgid_plural "due in %d days"
+msgstr[0] "%d日後が期限"
+
+msgid "e.g. 1 day before"
+msgstr "例：1日前"
+
+msgid "e.g. Birthday"
+msgstr "例：誕生日"
+
+msgid "e.g. Doctor appointment"
+msgstr "例：通院"
+
+msgid "e.g. Mobile"
+msgstr "例：携帯電話"
+
+msgid "e.g. Private"
+msgstr "例：個人"
+
+msgid "e.g. Send documents"
+msgstr "例：書類を送る"
+
+msgid "e.g. Son"
+msgstr "例：息子"
+
+msgid "e.g. Work"
+msgstr "例：仕事"
+
+msgid "e.g. glass or hazardous waste"
+msgstr "例：ガラスまたは有害ごみ"
+
+msgid "e.g. kitchen or workshop"
+msgstr "例：台所または作業場"
+
+msgid "e.g. medication day"
+msgstr "例：服薬日"
+
+msgid "e.g. on-call duty"
+msgstr "例：待機当番"
+
+msgid "event loop"
+msgstr "イベントループ"
+
+msgid "every"
+msgstr "毎"
+
+msgid "every 12 hours"
+msgstr "12時間ごと"
+
+msgid "every 3 hours"
+msgstr "3時間ごと"
+
+msgid "every 30 minutes"
+msgstr "30分ごと"
+
+msgid "every 6 hours"
+msgstr "6時間ごと"
+
+msgid "every day"
+msgstr "毎日"
+
+msgid "every hour"
+msgstr "1時間ごと"
+
+msgid "every month on the %(ordinal)s %(weekday)s"
+msgstr "毎月%(ordinal)s%(weekday)s"
+
+msgid "every month on the same day"
+msgstr "毎月同じ日"
+
+msgid "every week on the same weekday"
+msgstr "毎週同じ曜日"
+
+msgid "every year on the same date"
+msgstr "毎年同じ日付"
+
+msgid "first"
+msgstr "第1"
+
+msgid "first on"
+msgstr "初回："
+
+msgid "for the %(ordinal)s time"
+msgstr "%(ordinal)s 回目"
+
+msgid "fourth"
+msgstr "第4"
+
+msgid "from"
+msgstr "から"
+
+msgid "high"
+msgstr "高"
+
+msgid "hours before"
+msgstr "時間前"
+
+msgid "https://… (optionally with {wert} or {nummer})"
+msgstr "https://…（必要に応じて {wert} または {nummer} を使用）"
+
+msgid "iCalendar (*.ics)"
+msgstr "iCalendar (*.ics)"
+
+msgid "in %(count)s day"
+msgid_plural "in %(count)s days"
+msgstr[0] "%(count)s日後"
+
+#, python-format
+msgid "in %d day"
+msgid_plural "in %d days"
+msgstr[0] "%d日後"
+
+msgid "keep here"
+msgstr "ここに残す"
+
+msgid "last"
+msgstr "最終"
+
+msgid "local / not opened"
+msgstr "ローカル / 開かない"
+
+msgid "low"
+msgstr "低"
+
+msgid "medium"
+msgstr "中"
+
+msgid "minutes before"
+msgstr "分前"
+
+msgid "modified %(date)s"
+msgstr "更新日 %(date)s"
+
+msgid "name@example.com"
+msgstr "name@example.com"
+
+msgid "never – empty manually"
+msgstr "なし – 手動で空にする"
+
+msgid "new task for this appointment…"
+msgstr "この予定の新しいタスク…"
+
+msgid "no changes"
+msgstr "変更なし"
+
+msgid "no reason given"
+msgstr "理由の記載なし"
+
+msgid "none"
+msgstr "なし"
+
+msgid "not delivered"
+msgstr "未配信"
+
+msgid "notification %(count)s minute before"
+msgid_plural "notification %(count)s minutes before"
+msgstr[0] "%(count)s分前に通知"
+
+msgid "on the day only"
+msgstr "当日のみ"
+
+msgid "once"
+msgstr "1回"
+
+msgid "one backup was encrypted as well"
+msgid_plural "%(count)s backups were encrypted as well"
+msgstr[0] "1つのバックアップも暗号化されていました"
+
+msgid "one contact card"
+msgid_plural "%(count)s contact cards"
+msgstr[0] "1つの連絡先カード"
+
+msgid "only %(year)s"
+msgstr "%(year)s のみ"
+
+msgid "or enter a host name or IP address"
+msgstr "またはホスト名か IP アドレスを入力"
+
+msgid "pulse"
+msgstr "脈拍"
+
+msgid "recurring appointment"
+msgstr "繰り返し予定"
+
+msgid "remind me on the due date"
+msgstr "期限日に通知する"
+
+msgid "second"
+msgstr "第2"
+
+msgid "stored – leave empty to keep"
+msgstr "保存済み – 保持するには空のままにします"
+
+msgid "system notification"
+msgstr "システム通知"
+
+msgid "systemd-run is required to schedule wake-up reminders on this system."
+msgstr ""
+"このシステムで復帰を伴うリマインダーを予約するには systemd-run が必要です。"
+
+msgid "tentative"
+msgstr "仮"
+
+msgid "the day after tomorrow"
+msgstr "明後日"
+
+msgid "the other branch"
+msgstr "もう一方のブランチ"
+
+msgid "third"
+msgstr "第3"
+
+msgid "to"
+msgstr "まで"
+
+msgid "today"
+msgstr "今日"
+
+msgid "today!"
+msgstr "今日！"
+
+msgid "tomorrow"
+msgstr "明日"
+
+msgid "turns %(age)s"
+msgstr "%(age)s 歳になります"
+
+msgid "unknown"
+msgstr "不明"
+
+msgid "unknown error"
+msgstr "不明なエラー"
+
+msgid "untitled"
+msgstr "無題"
+
+msgid "vCalendar (*.vcs)"
+msgstr "vCalendar (*.vcs)"
+
+msgid ""
+"vCard preserves more contact details. LDIF is intended for importing into "
+"Claws Mail; emergency contacts, social media, free labels and non-JPEG "
+"photos cannot be included."
+msgstr ""
+"vCard はより多くの連絡先情報を保持します。LDIF は Claws Mail へのインポート用"
+"です。緊急連絡先、ソーシャルメディア、自由ラベル、JPEG 以外の写真は含められま"
+"せん。vCard preserves more contact details. LDIF is intended for importing "
+"into Claws Mail; emergency contacts, social media, free labels and non-JPEG "
+"photos cannot be included."
+
+msgid "vital"
+msgstr "vital"
+
+msgid "waiting loop"
+msgstr "待機ループ"
+
+msgid "– Anniversaries automatically appear with ✱ in the calendar."
+msgstr "– 記念日は自動的に ✱ 付きでカレンダーに表示されます。"
+
+msgid ""
+"– Everything is saved automatically. Use “Create backup” at the bottom right "
+"to create an additional backup copy."
+msgstr ""
+"– すべて自動保存されます。追加のバックアップを作成するには右下の「バックアッ"
+"プを作成」を使用します。"
+
+msgid ""
+"– In the calendar, use the controls at the top to switch between month and "
+"week view."
+msgstr "– カレンダー上部の操作部で月表示と週表示を切り替えます。"
+
+msgid ""
+"– The colored tabs along the edge lead to the sections. Tabs you have "
+"already passed move to the left side, just like in a real ring binder."
+msgstr ""
+"– 縁に並ぶ色付きタブから各セクションへ移動できます。すでに通過したタブは、本"
+"物のリングバインダーのように左側へ移ります。"
+
+msgid ""
+"– The folded corners at the bottom turn pages forward and back: by month in "
+"the calendar, by year in the planner, and page by page here."
+msgstr ""
+"– 下部の折れた角でページを前後にめくります。カレンダーでは月ごと、プランナー"
+"では年ごと、ここでは1ページずつ移動します。"
+
+msgid ""
+"– Turn times in 5-minute increments with the mouse wheel (hold Shift for "
+"whole hours); the end time moves along with it. For appointments without a "
+"fixed time, select “All day”."
+msgstr ""
+"– マウスホイールで時刻を5分刻みに変更します（Shift を押しながら操作すると1時"
+"間刻み）。終了時刻も連動して移動します。時刻を固定しない予定は「終日」を選択"
+"してください。"
+
+msgid ""
+"– Under “Settings” at the bottom right, you can import appointments and "
+"addresses from other programs (.ics, .vcf, Lotus CSV), export them, and "
+"connect your system's online accounts. On the “Region & holidays” page, "
+"enter your country and state and import all public and school holidays once."
+msgstr ""
+"– 右下の「設定」では、他のプログラム（.ics、.vcf、Lotus CSV）から予定や住所を"
+"インポートしたり、エクスポートしたり、システムのオンラインアカウントを接続し"
+"たりできます。「地域と祝日」ページで国と州・地域を入力し、祝日と学校休暇を一"
+"度にインポートします。"
+
+msgid "— do not link —"
+msgstr "— リンクしない —"
+
+msgid "— not specified —"
+msgstr "— 未指定 —"
+
+msgid "— please select —"
+msgstr "— 選択してください —"
+
+msgid "“%(name)s” was restored."
+msgstr "「%(name)s」を復元しました。"
+
+msgid "“%(word)s” is now in the dictionary."
+msgstr "「%(word)s」を辞書に追加しました。"
+
+msgid ""
+"“From this computer” reads contacts, appointments and tasks directly from "
+"Evolution (including cached online accounts) and Thunderbird without further "
+"setup. It only reads these stores and does not change them. The organizer "
+"automatically detects whether a Lotus CSV contains appointments, contacts, "
+"tasks, anniversaries or notes. Calendar files provide appointments, annual "
+"recurrences as anniversaries, and tasks. Birthdays from contact files become "
+"anniversaries. Existing entries are not added twice."
+msgstr ""
+"「このコンピューターから」は、追加設定なしで Evolution（キャッシュされたオン"
+"ラインアカウントを含む）と Thunderbird から連絡先、予定、タスクを直接読み取り"
+"ます。これらの保存領域は読み取り専用で、変更しません。オーガナイザーは Lotus "
+"CSV に予定、連絡先、タスク、記念日、メモのどれが含まれるかを自動判別します。"
+"カレンダーファイルからは予定、記念日として扱う毎年の繰り返し、タスクを取り込"
+"みます。連絡先ファイルの誕生日は記念日になります。既存の項目は重複して追加さ"
+"れません。"
+
+msgid "… and %(count)s more item that will also be printed."
+msgid_plural "… and %(count)s more items that will also be printed."
+msgstr[0] "… ほか %(count)s 件も印刷されます。"
+
+msgid "＋ Add appointment"
+msgstr "＋ 予定を追加"
+
+#~ msgid "No valid subscription"
+#~ msgstr "有効なサブスクリプションがありません"
+
+#~ msgid "More fields (Lotus)"
+#~ msgstr "その他の項目（Lotus）"

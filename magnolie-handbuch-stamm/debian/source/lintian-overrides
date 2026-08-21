@@ -1,0 +1,4 @@
+# Each handbook page is one editable HTML gettext string, not minified code.
+magnolie-handbuch source: source-is-missing [web/inhalt.js]
+# Generated gettext markers intentionally contain the same complete page strings.
+magnolie-handbuch source: source-is-missing [web/i18n-markers.js]

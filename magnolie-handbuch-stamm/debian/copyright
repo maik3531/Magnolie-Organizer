@@ -1,0 +1,47 @@
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: magnolie-handbuch
+Upstream-Contact: Maik Walter <maik3531@gmail.com>
+
+Files: *
+Copyright: 2026 Maik Walter <maik3531@gmail.com>
+License: GPL-3+
+
+Files: web/maik-walter.jpg
+Copyright: 2026 Maik Walter <maik3531@gmail.com>
+License: Magnolie-photo-permission
+ The unmodified photograph may be distributed and displayed only together with
+ a Magnolie Organizer, Magnolie Notes, or Magnolie Handbook distribution, or
+ their accompanying documentation. Standalone use, redistribution,
+ publication, modification, advertising use, profile use, dataset use, or use
+ in another project requires prior written permission from Maik Walter.
+ .
+ This separate permission applies only to the photograph and does not restrict
+ the GPL-3+ rights in the program or handbook material. See
+ web/maik-walter-FOTO-NUTZUNG.txt.
+
+Files: web/schriften/DejaVuSans*.ttf
+Copyright: 2003 Bitstream, Inc.; DejaVu changes are in the public domain
+License: bitstream-vera
+ See web/schriften/DejaVu-LIZENZ.txt for the complete license text.
+
+Files: web/schriften/NotoSerif*.ttf
+Copyright: 2010, 2012-2020 Google Inc.; 2015-2020 Google LLC
+License: OFL-1.1
+ See web/schriften/Noto-LIZENZ.txt for the complete license text.
+
+License: GPL-3+
+ This program is free software: you can redistribute it and/or modify it under
+ the terms of the GNU General Public License as published by the Free Software
+ Foundation, either version 3 of the License, or (at your option) any later
+ version.
+ .
+ This program is distributed in the hope that it will be useful, but WITHOUT
+ ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+ FOR A PARTICULAR PURPOSE. See the GNU General Public License for details.
+ .
+ You should have received a copy of the GNU General Public License along with
+ this program. If not, see
+ <https://www.gnu.org/licenses/>.
+ .
+ On Debian systems, the complete text of version 3 of the GNU General Public
+ License is available at /usr/share/common-licenses/GPL-3.

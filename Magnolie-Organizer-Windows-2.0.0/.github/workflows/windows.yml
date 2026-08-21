@@ -1,0 +1,87 @@
+name: Windows x64
+
+on:
+  workflow_dispatch:
+    inputs:
+      official_release:
+        description: Build signed, branded ZIP and installer
+        required: true
+        type: boolean
+        default: false
+  push:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4
+        with:
+          dotnet-version: "8.0.408"
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
+        with:
+          bun-version: "1.2.20"
+      - name: Standalone-Quellarchiv bauen und aus dem Archiv testen
+        shell: pwsh
+        run: ./build/BuildSource.ps1
+      - name: Unsigniertes ZIP bauen und testen
+        if: ${{ github.event_name != 'workflow_dispatch' || !inputs.official_release }}
+        shell: pwsh
+        env:
+          MAGNOLIE_CONTRIBUTOR_HASH: ${{ secrets.MAGNOLIE_CONTRIBUTOR_HASH }}
+        run: ./build/Build.ps1
+      - name: NSIS einrichten
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.official_release }}
+        shell: pwsh
+        run: choco install nsis --version=3.10 -y --no-progress
+      - name: Signierzertifikat einrichten
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.official_release }}
+        shell: pwsh
+        env:
+          SIGNING_PFX_BASE64: ${{ secrets.MAGNOLIE_SIGNING_PFX_BASE64 }}
+        run: |
+          if (-not $env:SIGNING_PFX_BASE64) { throw "MAGNOLIE_SIGNING_PFX_BASE64 fehlt." }
+          [IO.File]::WriteAllBytes("$env:RUNNER_TEMP\magnolie-signing.pfx", [Convert]::FromBase64String($env:SIGNING_PFX_BASE64))
+      - name: Offizielles ZIP und Installer bauen, signieren und testen
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.official_release }}
+        shell: pwsh
+        env:
+          MAGNOLIE_OFFICIAL_RELEASE: "1"
+          MAGNOLIE_CONTRIBUTOR_HASH: ${{ secrets.MAGNOLIE_CONTRIBUTOR_HASH }}
+          MAGNOLIE_SIGNTOOL: C:\Program Files (x86)\Windows Kits\10\App Certification Kit\signtool.exe
+          MAGNOLIE_SIGN_CERTIFICATE: ${{ runner.temp }}\magnolie-signing.pfx
+          MAGNOLIE_SIGN_PASSWORD: ${{ secrets.MAGNOLIE_SIGN_PASSWORD }}
+          MAGNOLIE_SIGN_PUBLISHER: ${{ secrets.MAGNOLIE_SIGN_PUBLISHER }}
+          MAGNOLIE_TIMESTAMP_URL: ${{ secrets.MAGNOLIE_TIMESTAMP_URL }}
+        run: |
+          $env:PATH = "C:\Program Files (x86)\NSIS;$env:PATH"
+          ./build/Build.ps1 -BuildInstaller
+      - name: Artefakte dieses Laufs isolieren
+        shell: pwsh
+        env:
+          ARTIFACT_DIR: ${{ runner.temp }}\magnolie-artifacts
+          OFFICIAL_RELEASE: ${{ github.event_name == 'workflow_dispatch' && inputs.official_release }}
+        run: |
+          $version = [regex]::Match([IO.File]::ReadAllText("Directory.Build.props"), '<Version>([^<]+)</Version>').Groups[1].Value
+          if ($version -notmatch '^\d+\.\d+\.\d+$') { throw "Kanonische Version fehlt." }
+          $projectArtifacts = Join-Path $env:ARTIFACT_DIR "project"
+          New-Item -ItemType Directory -Path $projectArtifacts -Force | Out-Null
+          $source = "../Magnolie-Organizer-Windows-$version-Source.zip"
+          if (-not (Test-Path -LiteralPath $source -PathType Leaf)) { throw "Erwartetes Laufartefakt fehlt: $source" }
+          Copy-Item -LiteralPath $source -Destination $env:ARTIFACT_DIR
+          $files = @("Magnolie-Organizer-Windows-$version-x64.zip", "Magnolie-Organizer-Windows-$version-PRUEFSUMMEN.sha256")
+          if ($env:OFFICIAL_RELEASE -eq 'true') { $files += "Magnolie-Organizer-Windows-$version-Setup-x64.exe" }
+          foreach ($file in $files) {
+            if (-not (Test-Path -LiteralPath $file -PathType Leaf)) { throw "Erwartetes Laufartefakt fehlt: $file" }
+            Copy-Item -LiteralPath $file -Destination $projectArtifacts
+          }
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: Magnolie-Organizer-Windows-release-candidate
+          path: ${{ runner.temp }}\magnolie-artifacts\*
+          if-no-files-found: error

@@ -1,0 +1,8 @@
+bin/
+obj/
+Ausgabe/
+node_modules/
+*.user
+*.suo
+*.staging-*
+Magnolie-Organizer-Windows-*-PRUEFSUMMEN.sha256

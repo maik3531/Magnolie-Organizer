@@ -1,0 +1,28 @@
+/* Nur für xgettext; diese Datei wird nicht in der Anwendung geladen. */
+gettext("Turn back");
+gettext("Turn forward");
+gettext("Open organizer");
+gettext("Organizer · Calendar · Contacts · Notes");
+gettext("Click to open");
+gettext("Print");
+gettext("Selection options");
+gettext("Choose entries to print, export or delete");
+gettext("Settings");
+gettext("Import, export and synchronization");
+gettext("Create backup");
+gettext("Create a backup copy of the data");
+gettext("Cancel");
+gettext("Delete");
+gettext("Restore backup");
+gettext("Backup password");
+gettext("Restore");
+gettext("Close");
+gettext("Close settings");
+ngettext("%(count)s day", "%(count)s days", count);
+gettext("Address");
+gettext("Enter a web or email address.");
+gettext("The file has an unsupported format.");
+gettext("Contact synchronization was blocked because the bound snapshot is empty.");
+gettext("Contact deletion proposals were blocked by the safety limit.");
+gettext("Contact synchronization preview: %(new)s new, %(changed)s changed, %(duplicates)s possible duplicates, %(deletions)s deletion proposals.");
+gettext("Deletion proposals can remove only individually confirmed, bound contacts. Enable deletion proposals for this branch?");

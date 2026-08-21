@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Dieselbe Farbwelt wie das Stilblatt des Organizers. -->
+<resources>
+    <color name="leder_dunkel">#FF3C1F15</color>
+    <color name="leder">#FF55291C</color>
+    <color name="leder_hell">#FF6B3A29</color>
+    <color name="gold">#FFD8B25C</color>
+    <color name="gold_dunkel">#FFA8823C</color>
+    <color name="papier">#FFF6EFDC</color>
+    <color name="papier_tief">#FFECE1C4</color>
+    <color name="linie">#FFD8C39A</color>
+    <color name="tinte">#FF3A3128</color>
+    <color name="rot">#FFB5443A</color>
+</resources>

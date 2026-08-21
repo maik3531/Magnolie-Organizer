@@ -1,0 +1,6820 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the Magnolie Organizer package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: Magnolie Organizer 2.0.0\n"
+"Report-Msgid-Bugs-To: maik3531@gmail.com\n"
+"POT-Creation-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=INTEGER; plural=EXPRESSION;\n"
+
+msgid " (filtered)"
+msgstr ""
+
+msgid " (public holiday)"
+msgstr ""
+
+msgid " (school holidays)"
+msgstr ""
+
+msgid " at %(time)s"
+msgstr ""
+
+#, python-format
+msgid " at %s"
+msgstr ""
+
+msgid " for %(years)s"
+msgstr ""
+
+msgid " from %(branch)s"
+msgstr ""
+
+msgid " – notification at the appointment time."
+msgstr ""
+
+msgid ""
+"%(appointment)s\n"
+"Click to edit"
+msgstr ""
+
+#, python-format
+msgid ""
+"%(branch)s offers contact synchronization. Please accept or reject it in the "
+"Organizer."
+msgstr ""
+
+#, python-format
+msgid ""
+"%(branch)s wants to share a note. Please accept or reject it in the "
+"Organizer."
+msgstr ""
+
+#, python-format
+msgid ""
+"%(branch)s wants to share a task. Please accept or reject it in the "
+"Organizer."
+msgstr ""
+
+#, python-format
+msgid ""
+"%(branch)s wants to share an address. Please accept or reject it in the "
+"Organizer."
+msgstr ""
+
+#, python-format
+msgid ""
+"%(branch)s wants to share an appointment. Please accept or reject it in the "
+"Organizer."
+msgstr ""
+
+msgid ""
+"%(cards)s merged. Copies are stored under “Duplicates” in the recycle bin."
+msgstr ""
+
+msgid "%(count)s anniversary"
+msgid_plural "%(count)s anniversaries"
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "%(count)s anniversary entered"
+msgid_plural "%(count)s anniversaries entered"
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "%(count)s appointment"
+msgid_plural "%(count)s appointments"
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "%(count)s attachment"
+msgid_plural "%(count)s attachments"
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "%(count)s birthday"
+msgid_plural "%(count)s birthdays"
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "%(count)s contact"
+msgid_plural "%(count)s contacts"
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "%(count)s contact card"
+msgid_plural "%(count)s contact cards"
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "%(count)s contact photo added"
+msgid_plural "%(count)s contact photos added"
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "%(count)s day"
+msgid_plural "%(count)s days"
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "%(count)s day before"
+msgid_plural "%(count)s days before"
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "%(count)s email address added"
+msgid_plural "%(count)s email addresses added"
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "%(count)s entry deleted."
+msgid_plural "%(count)s entries deleted."
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "%(count)s existing entry skipped."
+msgid_plural "%(count)s existing entries skipped."
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "%(count)s found"
+msgid_plural "%(count)s found"
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "%(count)s group"
+msgid_plural "%(count)s groups"
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "%(count)s holiday period"
+msgid_plural "%(count)s holiday periods"
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "%(count)s incoming offer"
+msgid_plural "%(count)s incoming offers"
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "%(count)s match"
+msgid_plural "%(count)s matches"
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "%(count)s minute"
+msgid_plural "%(count)s minutes"
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "%(count)s more"
+msgid_plural "%(count)s more"
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "%(count)s more entry"
+msgid_plural "%(count)s more entries"
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "%(count)s new Magnolienbaum request awaits your decision."
+msgid_plural "%(count)s new Magnolienbaum requests await your decision."
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "%(count)s non-JPEG contact photo was omitted."
+msgid_plural "%(count)s non-JPEG contact photos were omitted."
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "%(count)s note"
+msgid_plural "%(count)s notes"
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "%(count)s notebook"
+msgid_plural "%(count)s notebooks"
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "%(count)s open"
+msgstr ""
+
+msgid "%(count)s page"
+msgid_plural "%(count)s pages"
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "%(count)s public holiday"
+msgid_plural "%(count)s public holidays"
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "%(count)s recurring appointment imported only once."
+msgid_plural "%(count)s recurring appointments imported only once."
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "%(count)s second"
+msgid_plural "%(count)s seconds"
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "%(count)s task"
+msgid_plural "%(count)s tasks"
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "%(count)s unreadable row omitted."
+msgid_plural "%(count)s unreadable rows omitted."
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "%(count)s unusable contact was omitted."
+msgid_plural "%(count)s unusable contacts were omitted."
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "%(date)s, %(time)s"
+msgstr ""
+
+msgid "%(date)s, all day"
+msgstr ""
+
+msgid "%(first)s and %(second)s"
+msgstr ""
+
+msgid "%(first)s to %(last)s"
+msgstr ""
+
+msgid "%(format)s (Ctrl+%(key)s)"
+msgstr ""
+
+msgid "%(from)s to %(to)s"
+msgstr ""
+
+msgid "%(name)s found – currently reachable"
+msgstr ""
+
+msgid "%(name)s last found – reconnecting"
+msgstr ""
+
+#, python-format
+msgid "%(name)s: Wedding anniversary in %(count)d day."
+msgid_plural "%(name)s: Wedding anniversary in %(count)d days."
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "%(ordinal)s death anniversary"
+msgstr ""
+
+msgid "%(ordinal)s wedding anniversary"
+msgstr ""
+
+msgid "%(parts)s SMS parts · %(units)s character units"
+msgstr ""
+
+msgid "%(shown)s of %(count)s matches; refine your search."
+msgstr ""
+
+msgid "%(start)s to %(end)s"
+msgstr ""
+
+#, python-format
+msgid "%(title)s – %(date)s%(time)s"
+msgstr ""
+
+msgid "%(title)s – %(when)s"
+msgstr ""
+
+#, python-format
+msgid "%d appointment"
+msgid_plural "%d appointments"
+msgstr[0] ""
+msgstr[1] ""
+
+#, python-format
+msgid "%d birthday from the address book added as an anniversary."
+msgid_plural "%d birthdays from the address book added as anniversaries."
+msgstr[0] ""
+msgstr[1] ""
+
+#, python-format
+msgid "%d contact"
+msgid_plural "%d contacts"
+msgstr[0] ""
+msgstr[1] ""
+
+#, python-format
+msgid "%d deleted"
+msgstr ""
+
+#, python-format
+msgid "%d error"
+msgid_plural "%d errors"
+msgstr[0] ""
+msgstr[1] ""
+
+#, python-format
+msgid "%d holiday period"
+msgid_plural "%d holiday periods"
+msgstr[0] ""
+msgstr[1] ""
+
+#, python-format
+msgid "%d notification today"
+msgid_plural "%d notifications today"
+msgstr[0] ""
+msgstr[1] ""
+
+#, python-format
+msgid "%d public holiday"
+msgid_plural "%d public holidays"
+msgstr[0] ""
+msgstr[1] ""
+
+#, python-format
+msgid "%d received"
+msgstr ""
+
+#, python-format
+msgid "%d synchronized"
+msgstr ""
+
+#, python-format
+msgid "%d task"
+msgid_plural "%d tasks"
+msgstr[0] ""
+msgstr[1] ""
+
+#, python-format
+msgid "%d uploaded"
+msgstr ""
+
+#, python-format
+msgid "%s has a birthday %s."
+msgstr ""
+
+#, python-format
+msgid "%s reported an unexpected error (technical detail: %s)."
+msgstr ""
+
+#, python-format
+msgid "%s – today"
+msgstr ""
+
+#, python-format
+msgid "%s – today at %s"
+msgstr ""
+
+#, python-format
+msgid "%s: %s."
+msgstr ""
+
+#, python-format
+msgid "%s: Anniversary %s (%s)."
+msgstr ""
+
+#, python-format
+msgid "%s: Wedding anniversary the day after tomorrow."
+msgstr ""
+
+#, python-format
+msgid "%s: Wedding anniversary today."
+msgstr ""
+
+#, python-format
+msgid "%s: Wedding anniversary tomorrow."
+msgstr ""
+
+msgid "(starts when you sign in)"
+msgstr ""
+
+msgid "(unnamed)"
+msgstr ""
+
+msgid "(used by the session service)"
+msgstr ""
+
+msgid "+ Address"
+msgstr ""
+
+msgid "+ Email address"
+msgstr ""
+
+msgid "+ Emergency contact"
+msgstr ""
+
+msgid "+ Event"
+msgstr ""
+
+msgid "+ More appointments"
+msgstr ""
+
+msgid "+ More tasks"
+msgstr ""
+
+msgid "+ Phone number"
+msgstr ""
+
+msgid "+ Social medium"
+msgstr ""
+
+msgid "+49 … or 0…"
+msgstr ""
+
+msgid ", imported from the session"
+msgstr ""
+
+msgid "1 - high"
+msgstr ""
+
+msgid "1 day before"
+msgstr ""
+
+msgid "1 hour before"
+msgstr ""
+
+msgid "1 minute"
+msgstr ""
+
+msgid "10 minutes before"
+msgstr ""
+
+msgid "15 minutes before"
+msgstr ""
+
+msgid "15 seconds"
+msgstr ""
+
+msgid "2 - medium"
+msgstr ""
+
+msgid "2 days before"
+msgstr ""
+
+msgid "2 hours before"
+msgstr ""
+
+msgid "2 minutes"
+msgstr ""
+
+msgid "3 - low"
+msgstr ""
+
+msgid "3 days before"
+msgstr ""
+
+msgid "30 days"
+msgstr ""
+
+msgid "30 minutes before"
+msgstr ""
+
+msgid "30 seconds"
+msgstr ""
+
+msgid "4 days before"
+msgstr ""
+
+msgid "5 days before"
+msgstr ""
+
+msgid "5 minutes before"
+msgstr ""
+
+msgid "6 days before"
+msgstr ""
+
+msgid "7 days before"
+msgstr ""
+
+msgid "90 days"
+msgstr ""
+
+#, python-format
+msgid ""
+"A component for spelling suggestions is missing. Install it with:  sudo apt "
+"install %s"
+msgstr ""
+
+msgid "A component required by the Magnolienbaum is missing."
+msgstr ""
+
+msgid ""
+"A component required by the Magnolienbaum is missing. Install it with:  sudo "
+"apt install python3-cryptography"
+msgstr ""
+
+msgid ""
+"A fallback for branch baum-1: when the direct connection cannot be reached, "
+"messages travel through a WebDAV folder on your Nextcloud server."
+msgstr ""
+
+msgid "A group with this name already exists."
+msgstr ""
+
+msgid "A known branch"
+msgstr ""
+
+msgid "A maximum of 10 SMS parts is allowed."
+msgstr ""
+
+msgid "A notebook with this name already exists in this group."
+msgstr ""
+
+msgid ""
+"A numeric code can be entered conveniently using the keypad when opening; "
+"letters work as well. After three failed attempts, the organizer waits five "
+"minutes."
+msgstr ""
+
+msgid ""
+"A pairing file works like a one-time key. Give it only to the person whose "
+"Organizer you want to connect; it expires after 15 minutes."
+msgstr ""
+
+msgid ""
+"A password initially locks out the background reminder service. Without the "
+"explicit permission below, notifications work only while the organizer is "
+"open and unlocked."
+msgstr ""
+
+msgid "A prepared password transaction file is missing or damaged."
+msgstr ""
+
+msgid ""
+"A separate encrypted connection for dial requests, device status and "
+"selected notifications."
+msgstr ""
+
+msgid "API level"
+msgstr ""
+
+msgid "Aargau"
+msgstr ""
+
+msgid "About"
+msgstr ""
+
+msgid "About the Magnolie Organizer"
+msgstr ""
+
+msgid "Accept"
+msgstr ""
+
+msgid "Accept and remember"
+msgstr ""
+
+msgid "Accept “%(entry)s” into your own collection?"
+msgstr ""
+
+msgid ""
+"Accept “%(entry)s” into your own collection?\n"
+"\n"
+"This consent applies only to this note. Future changes and attachments will "
+"then be applied automatically in both directions."
+msgstr ""
+
+msgid "Accessibility"
+msgstr ""
+
+msgid "Accessibility helper frame"
+msgstr ""
+
+msgid "Accessibility helper frame disabled"
+msgstr ""
+
+msgid "Accessibility helper frame enabled"
+msgstr ""
+
+msgid ""
+"Accessibility: The helper frame shows the current keyboard focus. It is "
+"disabled by default; press Ctrl+Alt+H at any time to switch it on or off."
+msgstr ""
+
+msgid "According to language"
+msgstr ""
+
+msgid "Active call"
+msgstr ""
+
+msgid "Add"
+msgstr ""
+
+msgid "Add appointment"
+msgstr ""
+
+msgid "Add attachment URI"
+msgstr ""
+
+msgid "Add attendee"
+msgstr ""
+
+msgid "Add cycle marker"
+msgstr ""
+
+msgid "Add person"
+msgstr ""
+
+msgid "Add reminder"
+msgstr ""
+
+msgid "Add scheme row"
+msgstr ""
+
+msgid "Add shift"
+msgstr ""
+
+msgid "Add to dictionary"
+msgstr ""
+
+msgid "Add vacation period"
+msgstr ""
+
+msgid "Add waste collection"
+msgstr ""
+
+msgid "Adding the alarm monitor to autostart"
+msgstr ""
+
+msgid "Adding the tray applet to autostart"
+msgstr ""
+
+msgid "Adding the word to the dictionary"
+msgstr ""
+
+msgid "Address"
+msgstr ""
+
+msgid "Address book"
+msgstr ""
+
+msgid "Address imported from LibreOffice."
+msgstr ""
+
+msgid ""
+"Addressed to %(branch)s; it will be delivered when the branch is available."
+msgstr ""
+
+msgid "Addresses"
+msgstr ""
+
+msgid "After exercise"
+msgstr ""
+
+msgid "After meal"
+msgstr ""
+
+msgid "Alarm monitor in background: not running"
+msgstr ""
+
+msgid "Alarm monitor in background: running"
+msgstr ""
+
+#, python-format
+msgid "Alarm monitor log: still empty (%(path)s)"
+msgstr ""
+
+msgid "Alarm monitor start canceled – one is already running."
+msgstr ""
+
+#, python-format
+msgid ""
+"Alarm monitor started (process %(pid)d, display %(display)s%(session)s)."
+msgstr ""
+
+msgid "Alarm monitor stopped."
+msgstr ""
+
+msgid "All"
+msgstr ""
+
+msgid "All cantons"
+msgstr ""
+
+msgid "All entries"
+msgstr ""
+
+msgid "All files"
+msgstr ""
+
+msgid "All people"
+msgstr ""
+
+msgid "All six charts"
+msgstr ""
+
+msgid "All states"
+msgstr ""
+
+msgid "Allow notifications despite password protection"
+msgstr ""
+
+msgid "Also disclose appointments marked as confidential"
+msgstr ""
+
+msgid "Also hide past anniversaries"
+msgstr ""
+
+msgid "Also hide past school holidays"
+msgstr ""
+
+msgid "Also remind me about anniversaries"
+msgstr ""
+
+msgid "Also remind me about missed appointments"
+msgstr ""
+
+msgid "Also use the default notification"
+msgstr ""
+
+msgid "Amount / unit"
+msgstr ""
+
+msgid "An ODS cell is too long."
+msgstr ""
+
+msgid "An ODS row has the wrong number of columns."
+msgstr ""
+
+msgid ""
+"An appointment calendar, address book, task book and notepad in the guise of "
+"a leather-bound organizer —"
+msgstr ""
+
+msgid "An archive entry is too large."
+msgstr ""
+
+msgid ""
+"An encryption component is missing. Install it with:  sudo apt install "
+"python3-cryptography"
+msgstr ""
+
+msgid ""
+"An encryption component is missing. Install it with: sudo apt install "
+"python3-cryptography"
+msgstr ""
+
+msgid "Android version"
+msgstr ""
+
+msgid "Anniversaries"
+msgstr ""
+
+msgid "Anniversaries (.ics)"
+msgstr ""
+
+msgid "Anniversary"
+msgstr ""
+
+msgid "Another data operation is still running."
+msgstr ""
+
+msgid "Answer"
+msgstr ""
+
+msgid "Answer calls on the computer and talk"
+msgstr ""
+
+msgid "Answering the call"
+msgstr ""
+
+msgid "App password"
+msgstr ""
+
+msgid "Appearance"
+msgstr ""
+
+msgid "Appearance and sound follow your system notification settings."
+msgstr ""
+
+msgid "Appearance: Magnolie sheet"
+msgstr ""
+
+msgid "Appearance: system notification"
+msgstr ""
+
+msgid "Appenzell Ausserrhoden"
+msgstr ""
+
+msgid "Appenzell Innerrhoden"
+msgstr ""
+
+msgid "Application command"
+msgstr ""
+
+msgid ""
+"Applies only to content you enter yourself: appointments, tasks, contacts, "
+"notes and anniversaries. Headings, calendar pages and organizer labels "
+"remain unchanged."
+msgstr ""
+
+msgid ""
+"Applies when scrolling over a time field. Hold Shift to change the time in "
+"whole hours."
+msgstr ""
+
+msgid "Apply"
+msgstr ""
+
+msgid "Appointment"
+msgstr ""
+
+msgid "Appointment could not be read"
+msgstr ""
+
+msgid "Appointment is due"
+msgstr ""
+
+msgid "Appointment overview"
+msgstr ""
+
+msgid "Appointment reminder"
+msgstr ""
+
+msgid "Appointment reminders"
+msgstr ""
+
+msgid "Appointments"
+msgstr ""
+
+msgid "Appointments (.ics)"
+msgstr ""
+
+msgid "Appointments as Lotus CSV"
+msgstr ""
+
+msgid "Appointments for this person"
+msgstr ""
+
+msgid "Appointments · %(period)s"
+msgstr ""
+
+#, python-format
+msgid "Appointments: safe first import from %(source)s: %(count)d received."
+msgstr ""
+
+msgid "As usual (print)"
+msgstr ""
+
+msgid "Assign SMS action"
+msgstr ""
+
+msgid "Assign call action"
+msgstr ""
+
+msgid "Assign shift"
+msgstr ""
+
+msgid "At bedtime"
+msgstr ""
+
+msgid "At least one health view must remain enabled."
+msgstr ""
+
+msgid "At most 5,000 contacts can be exported at once."
+msgstr ""
+
+msgid "At most 5,000 health records can be exported at once."
+msgstr ""
+
+msgid "Attachments"
+msgstr ""
+
+msgid "Attendees"
+msgstr ""
+
+msgid "Austria"
+msgstr ""
+
+msgid "Author"
+msgstr ""
+
+msgid "Authority appointment"
+msgstr ""
+
+msgid "Automatically choose a suitable application"
+msgstr ""
+
+msgid "Automatically synchronize over Wi-Fi"
+msgstr ""
+
+#, python-format
+msgid "Autostart entry: %(path)s"
+msgstr ""
+
+msgid "Autostart entry: missing"
+msgstr ""
+
+msgid "B"
+msgstr ""
+
+msgid "BMI"
+msgstr ""
+
+msgid ""
+"BMI\n"
+"kg/m²"
+msgstr ""
+
+msgid "BMI from the latest stored height and weight"
+msgstr ""
+
+msgid "BZ"
+msgstr ""
+
+msgid "Backup failed."
+msgstr ""
+
+#, python-format
+msgid "Backup failed: %s"
+msgstr ""
+
+msgid "Backup folder"
+msgstr ""
+
+msgid "Backup folder updated."
+msgstr ""
+
+msgid "Backup password"
+msgstr ""
+
+msgid "Backup restored. The previous data was backed up automatically."
+msgstr ""
+
+msgid "Backup saved to: %(path)s"
+msgstr ""
+
+msgid "Backups"
+msgstr ""
+
+msgid ""
+"Backups outside the data location require a password with at least four "
+"characters."
+msgstr ""
+
+msgid "Baden-Württemberg"
+msgstr ""
+
+msgid "Baptism"
+msgstr ""
+
+msgid "Basal units"
+msgstr ""
+
+msgid "Basel-Landschaft"
+msgstr ""
+
+msgid "Basel-Stadt"
+msgstr ""
+
+msgid "Basic operation and appearance of the organizer."
+msgstr ""
+
+msgid "Battery"
+msgstr ""
+
+msgid "Battery snapshot"
+msgstr ""
+
+msgid "Bavaria"
+msgstr ""
+
+msgid "Before contact deletion"
+msgstr ""
+
+msgid "Before contact import"
+msgstr ""
+
+msgid "Before contact merge"
+msgstr ""
+
+msgid "Before exercise"
+msgstr ""
+
+msgid "Before meal"
+msgstr ""
+
+msgid "Before restore"
+msgstr ""
+
+msgid "Before synchronization"
+msgstr ""
+
+msgid "Belgium"
+msgstr ""
+
+msgid "Berlin"
+msgstr ""
+
+msgid "Bern"
+msgstr ""
+
+msgid "Birthday"
+msgstr ""
+
+msgid "Birthday party"
+msgstr ""
+
+msgid "Birthday today"
+msgstr ""
+
+msgid "Black"
+msgstr ""
+
+msgid "Blank health form"
+msgstr ""
+
+msgid "Blank template for handwriting"
+msgstr ""
+
+msgid "Bleeding · heavy"
+msgstr ""
+
+msgid "Bleeding · light"
+msgstr ""
+
+msgid "Bleeding · medium"
+msgstr ""
+
+msgid "Blood glucose"
+msgstr ""
+
+msgid "Blood glucose scheme"
+msgstr ""
+
+msgid "Blood glucose table"
+msgstr ""
+
+msgid "Blood glucose value"
+msgstr ""
+
+msgid "Blood pressure"
+msgstr ""
+
+msgid ""
+"Blood pressure\n"
+"mm/Hg"
+msgstr ""
+
+msgid "Blue (fountain pen)"
+msgstr ""
+
+msgid "Bluetooth data fallback"
+msgstr ""
+
+msgid "Bold"
+msgstr ""
+
+msgid ""
+"Both branches display the same six-digit code when connecting. Confirm it "
+"only if it matches, preventing anyone from intercepting the connection."
+msgstr ""
+
+msgid "Brandenburg"
+msgstr ""
+
+msgid "Bremen"
+msgstr ""
+
+msgid "Burgenland"
+msgstr ""
+
+msgid "By first name (Hans Müller)"
+msgstr ""
+
+msgid "By last name (Müller, Hans)"
+msgstr ""
+
+msgid "CSV files (*.csv)"
+msgstr ""
+
+msgid "CW"
+msgstr ""
+
+msgid "Calculate the route to this address"
+msgstr ""
+
+msgid "Calendar"
+msgstr ""
+
+msgid "Calendar (*.ics)"
+msgstr ""
+
+msgid "Calendar file (.ics/.vcs/.lcs) …"
+msgstr ""
+
+msgid "Calendar layout"
+msgstr ""
+
+msgid ""
+"Calendar synchronization was stopped because an EDS entry was not read "
+"completely."
+msgstr ""
+
+msgid "Calendar week %(number)s"
+msgstr ""
+
+msgid "Calendars (multiple selections allowed)"
+msgstr ""
+
+msgid "Calendars and contacts"
+msgstr ""
+
+msgid "Call"
+msgstr ""
+
+msgid "Call assignment"
+msgstr ""
+
+msgid "Call ended"
+msgstr ""
+
+msgid "Call notes"
+msgstr ""
+
+msgid "Call reference"
+msgstr ""
+
+msgid "Call started"
+msgstr ""
+
+msgid "Call this contact using Magnolie Notes or the assigned application"
+msgstr ""
+
+msgid "Call with %(name)s · %(date)s"
+msgstr ""
+
+msgid "Cancel"
+msgstr ""
+
+msgid "Canton"
+msgstr ""
+
+msgid "Capsule"
+msgstr ""
+
+msgid "Captured"
+msgstr ""
+
+msgid "Care service"
+msgstr ""
+
+msgid "Carinthia"
+msgstr ""
+
+msgid "Categories"
+msgstr ""
+
+msgid "Categories:"
+msgstr ""
+
+msgid "Catholic confirmation"
+msgstr ""
+
+msgid "Centered on the screen"
+msgstr ""
+
+msgid "Change password"
+msgstr ""
+
+msgid "Changes are applied automatically"
+msgstr ""
+
+msgid "Changing phone permission"
+msgstr ""
+
+msgid "Charging"
+msgstr ""
+
+msgid "Charging state"
+msgstr ""
+
+msgid "Charts and BMI are documentation aids only and are not a diagnosis."
+msgstr ""
+
+msgid "Check for due appointments"
+msgstr ""
+
+msgid "Check for updates automatically every day"
+msgstr ""
+
+msgid "Check now"
+msgstr ""
+
+msgid "Check spelling (red wavy lines)"
+msgstr ""
+
+msgid "Check the value and discuss repeated deviations with a doctor."
+msgstr ""
+
+msgid "Check-up appointment"
+msgstr ""
+
+#, python-format
+msgid ""
+"Checked: nothing due (%(appointments)d appointments, lead time %(minutes)s "
+"min)"
+msgstr ""
+
+msgid "Checking Contributor Key …"
+msgstr ""
+
+msgid "Checking online accounts …"
+msgstr ""
+
+msgid "Checking the current manual version …"
+msgstr ""
+
+msgid "Checking the current version …"
+msgstr ""
+
+msgid ""
+"Choose a backup file. Before restoring it, the organizer automatically "
+"creates a copy of the current data. An encrypted backup requires its "
+"password."
+msgstr ""
+
+msgid "Choose a country first."
+msgstr ""
+
+msgid "Choose a mobile number"
+msgstr ""
+
+msgid ""
+"Choose a phase or bleeding intensity. Assign it to the complete date range "
+"in the new appointment sheet."
+msgstr ""
+
+msgid "Choose a phone number to call"
+msgstr ""
+
+msgid ""
+"Choose a predefined shift or enter a custom one. Assign it to one or more "
+"days in the new appointment sheet. Day markers do not send notifications."
+msgstr ""
+
+msgid "Choose a value and period to display its development."
+msgstr ""
+
+msgid ""
+"Choose a waste type or enter a custom collection. Set the first collection "
+"and the interval in days; 0 creates a one-time collection."
+msgstr ""
+
+msgid "Choose at least four characters."
+msgstr ""
+
+msgid "Choose entries to print, export or delete"
+msgstr ""
+
+msgid "Choose file…"
+msgstr ""
+
+msgid "Choose folder …"
+msgstr ""
+
+msgid "Choose or enter a phone number"
+msgstr ""
+
+msgid "Choose photo…"
+msgstr ""
+
+msgid "Choose print or export content…"
+msgstr ""
+
+msgid "Choose service"
+msgstr ""
+
+msgid ""
+"Choose which sections appear as tabs on the organizer. The calendar always "
+"remains available."
+msgstr ""
+
+msgid "Choose year…"
+msgstr ""
+
+msgid "City"
+msgstr ""
+
+msgid "Claws Mail (.xml/.ldif) …"
+msgstr ""
+
+msgid "Claws Mail address book (*.xml)"
+msgstr ""
+
+msgid "Clear"
+msgstr ""
+
+msgid "Clear filters"
+msgstr ""
+
+msgid "Clearly abnormal reference value – check it and seek medical advice."
+msgstr ""
+
+msgid "Click here to add an appointment"
+msgstr ""
+
+msgid "Click to open"
+msgstr ""
+
+msgid "Clicking a day"
+msgstr ""
+
+msgid ""
+"Clicking an existing appointment opens it for editing in both cases. This "
+"setting applies only when you click an empty area in the box."
+msgstr ""
+
+msgid "Close"
+msgstr ""
+
+msgid "Close settings"
+msgstr ""
+
+msgid "Club anniversary"
+msgstr ""
+
+msgid "Code matches"
+msgstr ""
+
+msgid "Codes differ"
+msgstr ""
+
+msgid "Codes match"
+msgstr ""
+
+msgid "Color"
+msgstr ""
+
+msgid ""
+"Colors and matching scheme rows are orientation aids. Enter or adjust the IE "
+"in the table to the amount actually administered."
+msgstr ""
+
+msgid "Columns in the ODS table"
+msgstr ""
+
+msgid "Compact sender line (default)"
+msgstr ""
+
+msgid "Company"
+msgstr ""
+
+msgid "Compare pairing code"
+msgstr ""
+
+msgid ""
+"Compare this fingerprint with the other branch, for example by phone, to "
+"verify the connection."
+msgstr ""
+
+msgid "Complete archive exported (password-protected)."
+msgstr ""
+
+msgid "Complete archive exported (unencrypted)."
+msgstr ""
+
+msgid "Complete pairing"
+msgstr ""
+
+msgid "Completed (%(count)s)"
+msgstr ""
+
+msgid "Completed task"
+msgstr ""
+
+msgid "Completing KDE Connect pairing"
+msgstr ""
+
+msgid "Completing secure pairing…"
+msgstr ""
+
+msgid "Configuring Bluetooth data"
+msgstr ""
+
+msgid ""
+"Confirm only if exactly the same six-digit code is shown on both devices."
+msgstr ""
+
+msgid "Confirm the pairing request on the phone."
+msgstr ""
+
+msgid "Confirmation"
+msgstr ""
+
+msgid "Conflict"
+msgstr ""
+
+msgid "Connect"
+msgstr ""
+
+msgid "Connect phone via WLAN"
+msgstr ""
+
+msgid "Connected"
+msgstr ""
+
+msgid "Connecting to the online accounts"
+msgstr ""
+
+msgid "Consider deletions during manual synchronization"
+msgstr ""
+
+msgid "Contact"
+msgstr ""
+
+#, python-format
+msgid "Contact %d contains an unreadable vCard."
+msgstr ""
+
+#, python-format
+msgid "Contact %d contains an unreadable vCard: %s"
+msgstr ""
+
+#, python-format
+msgid "Contact %d could not be serialized: %s"
+msgstr ""
+
+#, python-format
+msgid "Contact %d has no UID."
+msgstr ""
+
+msgid "Contact card"
+msgstr ""
+
+msgid "Contact cards"
+msgstr ""
+
+msgid "Contact cards (*.vcf)"
+msgstr ""
+
+msgid "Contact deletion proposals were blocked by the safety limit."
+msgstr ""
+
+msgid "Contact photo preview"
+msgstr ""
+
+msgid "Contact synchronization"
+msgstr ""
+
+msgid ""
+"Contact synchronization preview: %(new)s new, %(changed)s changed, "
+"%(duplicates)s possible duplicates, %(deletions)s deletion proposals."
+msgstr ""
+
+msgid ""
+"Contact synchronization was blocked because the bound snapshot is empty."
+msgstr ""
+
+#, python-format
+msgid ""
+"Contact synchronization was stopped because the address book was not read "
+"completely: %s"
+msgstr ""
+
+msgid "Contacts"
+msgstr ""
+
+msgid "Contacts (.vcf)"
+msgstr ""
+
+msgid "Contacts (.vcf) …"
+msgstr ""
+
+msgid "Contacts are merged additively. No deletions are transmitted."
+msgstr ""
+
+msgid "Contacts for Claws Mail (.ldif)"
+msgstr ""
+
+msgid "Contacts: component gir1.2-ebook-1.2 is missing; skipped."
+msgstr ""
+
+#, python-format
+msgid "Contacts: safe first import from %(source)s: %(count)d received."
+msgstr ""
+
+msgid "Content"
+msgstr ""
+
+msgid "Content length is missing."
+msgstr ""
+
+msgid "Continue"
+msgstr ""
+
+msgid "Continued"
+msgstr ""
+
+msgid "Contributor Key"
+msgstr ""
+
+msgid "Copy"
+msgstr ""
+
+#, python-format
+msgid "Copy stored at: %s"
+msgstr ""
+
+msgid "Cost center"
+msgstr ""
+
+msgid "Could not answer"
+msgstr ""
+
+#, python-format
+msgid "Could not create POT template: %s"
+msgstr ""
+
+msgid "Could not hang up"
+msgstr ""
+
+msgid "Country"
+msgstr ""
+
+msgid "Country & holidays"
+msgstr ""
+
+msgid "Country (optional)"
+msgstr ""
+
+msgid "Country and region"
+msgstr ""
+
+msgid "Country for searches"
+msgstr ""
+
+msgid "Create"
+msgstr ""
+
+msgid "Create a backup copy of the data"
+msgstr ""
+
+msgid "Create a gettext POT template"
+msgstr ""
+
+msgid "Create a new appointment immediately"
+msgstr ""
+
+msgid "Create an empty printable template"
+msgstr ""
+
+msgid "Create backup"
+msgstr ""
+
+msgid "Create contact"
+msgstr ""
+
+msgid "Create encrypted backup"
+msgstr ""
+
+msgid "Create group"
+msgstr ""
+
+msgid "Create notebook"
+msgstr ""
+
+msgid "Create pairing file …"
+msgstr ""
+
+msgid "Create snapshot now"
+msgstr ""
+
+msgid "Creating a recovery snapshot"
+msgstr ""
+
+msgid "Creating the backup"
+msgstr ""
+
+msgid "Creating the letter"
+msgstr ""
+
+msgid "Creating the log"
+msgstr ""
+
+msgid "Creating the pairing file"
+msgstr ""
+
+msgid "Creating the print page"
+msgstr ""
+
+msgid "Creating the required recovery snapshot"
+msgstr ""
+
+msgid "Custom"
+msgstr ""
+
+msgid "Custom application"
+msgstr ""
+
+msgid "Custom notification"
+msgstr ""
+
+msgid "Custom websites must begin with https://."
+msgstr ""
+
+msgid "Customer no."
+msgstr ""
+
+msgid "Customize"
+msgstr ""
+
+msgid "Customize notebooks"
+msgstr ""
+
+msgid "Cut"
+msgstr ""
+
+msgid "Cycle calendar"
+msgstr ""
+
+msgid ""
+"Cycle markers are stored only in your local Organizer data and do not send "
+"notifications."
+msgstr ""
+
+msgid "Czechia"
+msgstr ""
+
+msgid "DIN 5008 Form B with fold marks"
+msgstr ""
+
+msgid "DOCTYPE is not allowed in a Claws Mail address book."
+msgstr ""
+
+msgid "Daily"
+msgstr ""
+
+msgid "Daily view"
+msgstr ""
+
+msgid "Damaged"
+msgstr ""
+
+#, python-format
+msgid "Data: %(path)s"
+msgstr ""
+
+msgid "Data: not found – open the organizer once."
+msgstr ""
+
+msgid "Date"
+msgstr ""
+
+msgid "Daughter"
+msgstr ""
+
+msgid "Day"
+msgstr ""
+
+msgid "Day markers"
+msgstr ""
+
+msgid "Days"
+msgstr ""
+
+msgid "Dear Sir or Madam,"
+msgstr ""
+
+msgid "Death anniversary"
+msgstr ""
+
+#, python-format
+msgid "Debug logging could not be started: %s"
+msgstr ""
+
+msgid "Decrypting the data"
+msgstr ""
+
+msgid "Default: next to the data file"
+msgstr ""
+
+msgid "Delegate to"
+msgstr ""
+
+msgid "Delete"
+msgstr ""
+
+msgid "Delete %(count)s selected entry for good?"
+msgid_plural "Delete %(count)s selected entries for good?"
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "Delete %(count)s selected entry? It moves to the wastebasket."
+msgid_plural "Delete %(count)s selected entries? They move to the wastebasket."
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "Delete all SMS histories"
+msgstr ""
+
+msgid "Delete all SMS histories?"
+msgstr ""
+
+msgid "Delete anniversary"
+msgstr ""
+
+msgid "Delete anniversary “%(name)s”?"
+msgstr ""
+
+msgid "Delete appointment “%(title)s”?"
+msgstr ""
+
+msgid ""
+"Delete appointment “%(title)s”? This removes every occurrence in the series."
+msgstr ""
+
+msgid "Delete contact card “%(name)s”?"
+msgstr ""
+
+msgid "Delete cycle marker"
+msgstr ""
+
+msgid "Delete entries"
+msgstr ""
+
+msgid "Delete entries…"
+msgstr ""
+
+msgid "Delete group"
+msgstr ""
+
+msgid "Delete last character"
+msgstr ""
+
+msgid "Delete notebook"
+msgstr ""
+
+msgid "Delete notebook group “%(name)s”?"
+msgstr ""
+
+msgid "Delete notebook “%(name)s”?"
+msgstr ""
+
+msgid "Delete page"
+msgstr ""
+
+msgid "Delete password"
+msgstr ""
+
+msgid "Delete permanently"
+msgstr ""
+
+msgid "Delete selection"
+msgstr ""
+
+msgid "Delete shift"
+msgstr ""
+
+msgid "Delete task"
+msgstr ""
+
+msgid "Delete task “%(title)s”?"
+msgstr ""
+
+msgid ""
+"Delete the stored app password? The mailbox can no longer deliver until a "
+"new one is entered."
+msgstr ""
+
+msgid "Delete this contact's SMS history?"
+msgstr ""
+
+msgid "Delete this contact's history"
+msgstr ""
+
+msgid "Delete this note page (“%(title)s”)?"
+msgstr ""
+
+msgid "Delete this recovery snapshot permanently?"
+msgstr ""
+
+msgid "Delete vacation period"
+msgstr ""
+
+msgid "Delete waste collection"
+msgstr ""
+
+msgid ""
+"Deleted items first go to the recycle bin and can be restored from there. "
+"They are permanently removed only afterwards."
+msgstr ""
+
+msgid "Deleting a recovery snapshot"
+msgstr ""
+
+msgid "Deletion proposals are pending manual review."
+msgstr ""
+
+msgid ""
+"Deletion proposals can remove only individually confirmed, bound contacts. "
+"Enable deletion proposals for this branch?"
+msgstr ""
+
+msgid "Deletions are not synchronized yet."
+msgstr ""
+
+msgid "Delivered"
+msgstr ""
+
+msgid "Delivered to %(branch)s."
+msgstr ""
+
+msgid "Dentist Dr. Hill — Preview of your entries"
+msgstr ""
+
+msgid "Determining public IP address…"
+msgstr ""
+
+msgid "Diabetes"
+msgstr ""
+
+msgid "Dialing…"
+msgstr ""
+
+msgid "Diastolic"
+msgstr ""
+
+msgid "Digit %(digit)s"
+msgstr ""
+
+msgid "Direction"
+msgstr ""
+
+msgid ""
+"Disabled: no listener, discovery, reconnect or phone tray entries are active."
+msgstr ""
+
+msgid "Discard"
+msgstr ""
+
+msgid "Discharging"
+msgstr ""
+
+msgid "Display"
+msgstr ""
+
+#, python-format
+msgid "Display: %(display)s"
+msgstr ""
+
+msgid "Display: none"
+msgstr ""
+
+msgid "Do not retrieve weather without a location"
+msgstr ""
+
+msgid "Doctor appointment"
+msgstr ""
+
+msgid "Document.pdf"
+msgstr ""
+
+msgid ""
+"Does this eight-character verification key match KDE Connect on %(name)s?\n"
+"\n"
+"%(code)s"
+msgstr ""
+
+msgid "Done"
+msgstr ""
+
+msgid "Dose type"
+msgstr ""
+
+msgid "Download manual"
+msgstr ""
+
+msgid "Download manual version %(version)s"
+msgstr ""
+
+msgid "Download version %(version)s …"
+msgstr ""
+
+msgid "Drag the attachment area up or down"
+msgstr ""
+
+msgid "Drops"
+msgstr ""
+
+msgid "Due on"
+msgstr ""
+
+msgid "Due on %(date)s"
+msgstr ""
+
+msgid "Due: %(date)s"
+msgstr ""
+
+msgid "Duplicates"
+msgstr ""
+
+msgid "Duration"
+msgstr ""
+
+msgid "Early shift"
+msgstr ""
+
+msgid "Edit"
+msgstr ""
+
+msgid "Edit anniversary"
+msgstr ""
+
+msgid "Edit appointment"
+msgstr ""
+
+msgid "Edit contact"
+msgstr ""
+
+msgid "Edit group"
+msgstr ""
+
+msgid "Edit notebook"
+msgstr ""
+
+msgid "Edit notebook group"
+msgstr ""
+
+msgid "Edit task"
+msgstr ""
+
+msgid "Edit the website or application used"
+msgstr ""
+
+msgid "Email"
+msgstr ""
+
+msgid "Email addresses"
+msgstr ""
+
+msgid "Embed"
+msgstr ""
+
+msgid "Embed PDF"
+msgstr ""
+
+msgid "Embed image"
+msgstr ""
+
+msgid "Embed links and files"
+msgstr ""
+
+msgid "Embedded files"
+msgstr ""
+
+msgid "Emergency contact"
+msgstr ""
+
+msgid "Emergency contact %(number)s"
+msgstr ""
+
+msgid "Emergency contact phone"
+msgstr ""
+
+msgid "Emergency contacts"
+msgstr ""
+
+msgid "Empty recycle bin"
+msgstr ""
+
+msgid "Enable"
+msgstr ""
+
+msgid "Enable Magnolie Notes phone connection"
+msgstr ""
+
+msgid "Enable cycle calendar"
+msgstr ""
+
+msgid "Enable password protection"
+msgstr ""
+
+msgid ""
+"Enable password protection? Your data will then be stored encrypted. Without "
+"the password, it will be irretrievably lost; keep the password in a safe "
+"place."
+msgstr ""
+
+msgid "Enable reminders"
+msgstr ""
+
+msgid "Enable shift planner"
+msgstr ""
+
+msgid "Enable tray applet"
+msgstr ""
+
+msgid "Enable vacation planner"
+msgstr ""
+
+msgid "Enable waste collection calendar"
+msgstr ""
+
+msgid "Encrypted archive entries are not supported."
+msgstr ""
+
+msgid "Encrypting the data"
+msgstr ""
+
+msgid "Ending the call"
+msgstr ""
+
+msgid "Enjoy getting organized!"
+msgstr ""
+
+msgid "Enter"
+msgstr ""
+
+msgid ""
+"Enter a blood glucose value on the left to highlight matching scheme rows."
+msgstr ""
+
+msgid "Enter a complete phone number."
+msgstr ""
+
+msgid "Enter a medication name first."
+msgstr ""
+
+msgid "Enter a password with letters"
+msgstr ""
+
+msgid "Enter a reachable IPv4 or IPv6 address of this computer first."
+msgstr ""
+
+msgid "Enter a remote address before setting its port."
+msgstr ""
+
+msgid "Enter a secure HTTPS address for the custom medium."
+msgstr ""
+
+msgid "Enter a title, date, or a word from the note."
+msgstr ""
+
+msgid "Enter a valid host name or IP address."
+msgstr ""
+
+msgid "Enter a valid port between 1 and 65535."
+msgstr ""
+
+msgid "Enter a valid reachable IPv4 or IPv6 address."
+msgstr ""
+
+msgid "Enter a web or email address."
+msgstr ""
+
+msgid "Enter an application command."
+msgstr ""
+
+msgid "Enter at least four characters for the backup password."
+msgstr ""
+
+msgid "Enter height and weight to calculate BMI."
+msgstr ""
+
+msgid "Enter the backup password."
+msgstr ""
+
+msgid "Enter the complete Mastodon address @name@server or an HTTPS address."
+msgstr ""
+
+msgid "Enter the password for this backup."
+msgstr ""
+
+msgid ""
+"Enter your address above. No service can calculate directions without a "
+"starting point."
+msgstr ""
+
+msgid "Entry"
+msgstr ""
+
+msgid "Errands"
+msgstr ""
+
+msgid "Error"
+msgstr ""
+
+#, python-format
+msgid "Error: %s"
+msgstr ""
+
+msgid "Evening"
+msgstr ""
+
+#, python-format
+msgid "Event loop is not available: %s"
+msgstr ""
+
+msgid "Every 12 hours"
+msgstr ""
+
+msgid "Every 6 hours"
+msgstr ""
+
+msgid "Every filled medication row requires a name."
+msgstr ""
+
+msgid "Every filled row requires a valid date."
+msgstr ""
+
+msgid "Everything is done - the list is empty."
+msgstr ""
+
+msgid "Evolution Data Server"
+msgstr ""
+
+msgid "Exactly one online Magnolie Notes phone must allow dial requests."
+msgstr ""
+
+msgid "Export"
+msgstr ""
+
+msgid "Export failed."
+msgstr ""
+
+msgid "Export failed: %(error)s"
+msgstr ""
+
+msgid "Export is available only in the installed application."
+msgstr ""
+
+msgid "Extend sharing"
+msgstr ""
+
+msgid "Failed"
+msgstr ""
+
+msgid "Fasting"
+msgstr ""
+
+msgid "Female caregiver"
+msgstr ""
+
+msgid "Female friend"
+msgstr ""
+
+msgid "Female neighbor"
+msgstr ""
+
+msgid "Female partner"
+msgstr ""
+
+msgid "Female relative"
+msgstr ""
+
+msgid "Fertile days"
+msgstr ""
+
+#, python-format
+msgid "File could not be read: %s"
+msgstr ""
+
+msgid "Fill with stored values"
+msgstr ""
+
+msgid ""
+"Finds contact cards with the same name, email address or phone number. You "
+"are asked twice before merging, and a copy of every removed card is kept in "
+"the recycle bin."
+msgstr ""
+
+msgid "Fingerprint"
+msgstr ""
+
+msgid "Fingerprint, e.g. ABCD-1234-EF56-7890"
+msgstr ""
+
+msgid "First Communion"
+msgstr ""
+
+msgid "First choose a calendar or address book in Settings."
+msgstr ""
+
+msgid "First collection"
+msgstr ""
+
+msgid "First date"
+msgstr ""
+
+msgid "First name"
+msgstr ""
+
+msgid "First name Last name"
+msgstr ""
+
+msgid ""
+"First name Last name\n"
+"Street and house number\n"
+"Postal code City"
+msgstr ""
+
+msgid "First select a calendar or address book from the online accounts."
+msgstr ""
+
+msgid "Fixed units"
+msgstr ""
+
+msgid "Folder selection is available only in the installed application."
+msgstr ""
+
+msgid "Follicular phase"
+msgstr ""
+
+msgid "Follow up"
+msgstr ""
+
+msgid "Font size"
+msgstr ""
+
+msgid ""
+"For a direct IPv4 connection, port %(port)s may need to be forwarded by the "
+"router; CGNAT can prevent this. For IPv6, allow the port in the router and "
+"computer firewalls."
+msgstr ""
+
+msgid ""
+"For this purpose, appointments, tasks, anniversaries and the names of "
+"responsible people are kept unencrypted in a separate file readable only by "
+"you. Contacts and notes are never written to it."
+msgstr ""
+
+msgid "For: %(people)s"
+msgstr ""
+
+msgid "Form"
+msgstr ""
+
+msgid "Forward Secrecy"
+msgstr ""
+
+msgid ""
+"Found %(groups)s containing %(cards)s in total, for example:\n"
+"%(examples)s%(more)s\n"
+"\n"
+"The most complete card in each group is retained, and missing fields are "
+"filled from the others. The remaining cards are moved to the recycle bin as "
+"“Duplicates” and can be restored from there. Continue?"
+msgstr ""
+
+#, python-format, javascript-format
+msgid "Found – %s."
+msgstr ""
+
+msgid "Founding day"
+msgstr ""
+
+msgid "France"
+msgstr ""
+
+msgid "Frequency"
+msgstr ""
+
+msgid "Fribourg"
+msgstr ""
+
+msgid "Friday"
+msgstr ""
+
+msgid "From"
+msgstr ""
+
+msgid "From this computer (Evolution/Thunderbird)"
+msgstr ""
+
+msgid "Full"
+msgstr ""
+
+msgid "GNOME Maps"
+msgstr ""
+
+msgid "GNOME Maps only"
+msgstr ""
+
+msgid "GNOME Maps, otherwise OpenStreetMap"
+msgstr ""
+
+msgid "GNU General Public License, version 3 or later"
+msgstr ""
+
+msgid "GTK is not available"
+msgstr ""
+
+msgid "General"
+msgstr ""
+
+msgid "General network"
+msgstr ""
+
+msgid "General reference range"
+msgstr ""
+
+msgid "Geneva"
+msgstr ""
+
+msgid "Germany"
+msgstr ""
+
+msgid "Glarus"
+msgstr ""
+
+msgid "Go to calendar"
+msgstr ""
+
+msgid "Google Maps in the browser"
+msgstr ""
+
+msgid "Grisons"
+msgstr ""
+
+msgid "Group for %(notebook)s"
+msgstr ""
+
+msgid "HTTPS only; {wert} and {nummer} are replaced when opening."
+msgstr ""
+
+msgid "Hamburg"
+msgstr ""
+
+msgid "Handle or profile address"
+msgstr ""
+
+msgid "Handwriting"
+msgstr ""
+
+msgid "Hang up"
+msgstr ""
+
+msgid "Head office"
+msgstr ""
+
+msgid "Heading"
+msgstr ""
+
+msgid "Heading, text, images, and PDF files are shared encrypted."
+msgstr ""
+
+msgid "Health"
+msgstr ""
+
+msgid "Health history chart"
+msgstr ""
+
+msgid "Health history charts"
+msgstr ""
+
+msgid "Health records"
+msgstr ""
+
+msgid ""
+"Health records stay in your encrypted organizer data. The section documents "
+"measurements and schedules but does not provide medical advice."
+msgstr ""
+
+msgid "Health table saved."
+msgstr ""
+
+msgid "Heart"
+msgstr ""
+
+msgid "Height"
+msgstr ""
+
+msgid "Here is how to find your way around:"
+msgstr ""
+
+msgid "Hesse"
+msgstr ""
+
+msgid "Hide SMS notification after"
+msgstr ""
+
+msgid "Hide in the tray when minimized"
+msgstr ""
+
+msgid "Hide internet access"
+msgstr ""
+
+msgid "Hide past appointments"
+msgstr ""
+
+msgid "History"
+msgstr ""
+
+msgid "Holiday retrieval is available only in the installed application."
+msgstr ""
+
+msgid "Home"
+msgstr ""
+
+msgid "Home address"
+msgstr ""
+
+msgid "Home phone"
+msgstr ""
+
+msgid "Home visit"
+msgstr ""
+
+msgid "Hours"
+msgstr ""
+
+msgid "How the calendar should behave when you click a day."
+msgstr ""
+
+msgid "Husband"
+msgstr ""
+
+msgid "I"
+msgstr ""
+
+msgid "I would be very happy if you bought me a coffee."
+msgstr ""
+
+msgid "IE"
+msgstr ""
+
+msgid ""
+"If the year is unknown, enter only day and month.\n"
+"No age will then be shown.\n"
+"Anniversaries appear with ✱ in the calendar and planner."
+msgstr ""
+
+msgid "Image"
+msgstr ""
+
+msgid "Image file"
+msgstr ""
+
+msgid "Import"
+msgstr ""
+
+msgid "Import Claws Mail contacts"
+msgstr ""
+
+msgid "Import Lotus Organizer CSV"
+msgstr ""
+
+msgid "Import calendar file"
+msgstr ""
+
+msgid "Import contacts"
+msgstr ""
+
+msgid "Import failed: %(error)s"
+msgstr ""
+
+msgid "Import from LibreOffice"
+msgstr ""
+
+msgid "Import is available only in the installed application."
+msgstr ""
+
+msgid "Import pairing file …"
+msgstr ""
+
+msgid "Import, export and synchronization"
+msgstr ""
+
+msgid ""
+"Import, export and synchronization are available only in the installed "
+"application."
+msgstr ""
+
+msgid ""
+"Important: Without this password, nobody can access the data, including you. "
+"Keep it in a safe place."
+msgstr ""
+
+#, python-format
+msgid "Imported from session: %(variables)s"
+msgstr ""
+
+msgid "Imported: %(items)s."
+msgstr ""
+
+#, python-format
+msgid "Importing the old data failed: %s"
+msgstr ""
+
+msgid "Importing the pairing file"
+msgstr ""
+
+msgid ""
+"In the DIN template, these lines appear as a multiline sender block and in "
+"small type in the address window. In the compact template, they form one "
+"line above the recipient address. No sender is added if this field is empty."
+msgstr ""
+
+msgid "In the organizer%(selection)s: %(items)s%(years)s."
+msgstr ""
+
+msgid "In the recycle bin: %(items)s"
+msgstr ""
+
+msgid "Include anniversaries"
+msgstr ""
+
+msgid "Include appointments"
+msgstr ""
+
+msgid "Include cycle markers"
+msgstr ""
+
+msgid "Include personal vacation"
+msgstr ""
+
+msgid "Include public holidays in year planner"
+msgstr ""
+
+msgid "Include school holidays"
+msgstr ""
+
+msgid "Include school holidays in year planner"
+msgstr ""
+
+msgid "Include shifts"
+msgstr ""
+
+msgid "Include waste collections"
+msgstr ""
+
+msgid "Incoming"
+msgstr ""
+
+msgid "Incoming call"
+msgstr ""
+
+msgid "Input"
+msgstr ""
+
+msgid "Insert link"
+msgstr ""
+
+msgid "Install the packages, for example with:"
+msgstr ""
+
+msgid "Installed manual version: %(version)s."
+msgstr ""
+
+msgid "Insulin scheme"
+msgstr ""
+
+msgid "Integrity"
+msgstr ""
+
+msgid "Internet IP"
+msgstr ""
+
+msgid "Internet available"
+msgstr ""
+
+msgid "Interval in days"
+msgstr ""
+
+#, python-format
+msgid "Invalid language: %s. Use a supported language code or system."
+msgstr ""
+
+msgid "Italic"
+msgstr ""
+
+msgid "Italy"
+msgstr ""
+
+msgid "Juice"
+msgstr ""
+
+msgid "Jura"
+msgstr ""
+
+msgid "KDE Connect for SMS"
+msgstr ""
+
+msgid "KDE Connect for SMS is available only in the installed application."
+msgstr ""
+
+msgid ""
+"KDE Connect is used only for SMS. It does not connect or synchronize the "
+"Magnolienbaum."
+msgstr ""
+
+msgid "KDE Connect pairing failed."
+msgstr ""
+
+msgid "KDE Connect phone paired."
+msgstr ""
+
+msgid "KDE Connect port %(port)s"
+msgstr ""
+
+msgid "Keep a troubleshooting log"
+msgstr ""
+
+msgid "LDIF address book (*.ldif)"
+msgstr ""
+
+msgid "Landline"
+msgstr ""
+
+msgid "Large"
+msgstr ""
+
+msgid "Last check failed: %(error)s"
+msgstr ""
+
+msgid "Last contact"
+msgstr ""
+
+msgid "Last name"
+msgstr ""
+
+msgid "Last snapshot"
+msgstr ""
+
+msgid "Last synchronized: %(date)s, %(time)s."
+msgstr ""
+
+msgid "Late shift"
+msgstr ""
+
+msgid "Latest alarm monitor entries:"
+msgstr ""
+
+msgid "Lead time"
+msgstr ""
+
+msgid "Letter"
+msgstr ""
+
+msgid "Letter template"
+msgstr ""
+
+#, python-format
+msgid "LibreOffice was not found. The letter is located at: %s"
+msgstr ""
+
+msgid "License"
+msgstr ""
+
+msgid "Liechtenstein"
+msgstr ""
+
+msgid "Lined paper (lines on the writing sheet)"
+msgstr ""
+
+msgid "Link"
+msgstr ""
+
+msgid "Listener active"
+msgstr ""
+
+msgid "Listener stopped"
+msgstr ""
+
+msgid "Local calendar"
+msgstr ""
+
+msgid "Location"
+msgstr ""
+
+msgid "Location obtained from LibreOffice."
+msgstr ""
+
+msgid "Log file: ~/.local/state/magnolie-organizer/debug.log"
+msgstr ""
+
+msgid "Log opened: %(path)s"
+msgstr ""
+
+msgid "Long-acting insulin"
+msgstr ""
+
+msgid "Loose Notes"
+msgstr ""
+
+msgid "Lotus Calendar (*.lcs)"
+msgstr ""
+
+msgid "Lotus Organizer CSV …"
+msgstr ""
+
+msgid "Lower Austria"
+msgstr ""
+
+msgid "Lower Saxony"
+msgstr ""
+
+msgid "Lower other sounds while ringing"
+msgstr ""
+
+msgid "Lucerne"
+msgstr ""
+
+msgid "Luxembourg"
+msgstr ""
+
+msgid "Magnolia tree"
+msgstr ""
+
+msgid "Magnolia weather symbols only"
+msgstr ""
+
+msgid "Magnolie Notes device status"
+msgstr ""
+
+msgid ""
+"Magnolie Notes ended the session. The app and Organizer must use the same "
+"protocol version."
+msgstr ""
+
+msgid "Magnolie Notes phone connection"
+msgstr ""
+
+msgid ""
+"Magnolie Notes phones and KDE Connect phones are separate: the Android model "
+"name belongs to Magnolie Notes; the KDE peer name comes from KDE Connect."
+msgstr ""
+
+msgid "Magnolie Organizer is not completely installed."
+msgstr ""
+
+msgid ""
+"Magnolie Organizer is open-source software. There are no functional "
+"restrictions. This branding can be removed by supporting the project and "
+"then entering the activation code received by email under Settings → About."
+msgstr ""
+
+msgid "Magnolie Organizer requires GTK 3 and WebKit2GTK."
+msgstr ""
+
+msgid "Magnolie Organizer – Tray Applet"
+msgstr ""
+
+msgid "Magnolie Organizer – appointment reminders"
+msgstr ""
+
+msgid "Magnolie Organizer – check appointments regularly"
+msgstr ""
+
+msgid "Magnolie Organizer – personal organizer in a paper design"
+msgstr ""
+
+msgid "Magnolie Organizer – reminders"
+msgstr ""
+
+msgid "Magnolie backup (*.json)"
+msgstr ""
+
+msgid "Magnolie sheet"
+msgstr ""
+
+msgid "Magnolie-Contacts.ods"
+msgstr ""
+
+#, python-format
+msgid "Magnolie-Month-Calendar-%04d-%02d.ods"
+msgstr ""
+
+#, python-format
+msgid "Magnolie-Year-Planner-%d.ods"
+msgstr ""
+
+msgid "Magnolienbaum"
+msgstr ""
+
+msgid "Magnolienbaum mailbox"
+msgstr ""
+
+msgid "Magnolienbaum pairing file (*.magnolie-paarung)"
+msgstr ""
+
+msgid "Male caregiver"
+msgstr ""
+
+msgid "Male friend"
+msgstr ""
+
+msgid "Male neighbor"
+msgstr ""
+
+msgid "Male partner"
+msgstr ""
+
+msgid "Male relative"
+msgstr ""
+
+msgid "Manage connection"
+msgstr ""
+
+msgid "Manage people"
+msgstr ""
+
+msgid "Manual"
+msgstr ""
+
+msgctxt "recovery snapshot reason"
+msgid "Manual"
+msgstr ""
+
+msgid "Manual version %(version)s is available."
+msgstr ""
+
+msgid "Manufacturer"
+msgstr ""
+
+msgid "Map"
+msgstr ""
+
+msgid ""
+"Map services often cannot find a street without a country. If the country is "
+"already part of the address, it is not added a second time."
+msgstr ""
+
+msgid "Mark as completed"
+msgstr ""
+
+msgid "Mark as open"
+msgstr ""
+
+msgid "Maximized"
+msgstr ""
+
+msgid "Measurement context"
+msgstr ""
+
+msgid "Mecklenburg-Western Pomerania"
+msgstr ""
+
+msgid "Medication"
+msgstr ""
+
+msgid "Medication plan"
+msgstr ""
+
+msgid "Medium (slightly larger)"
+msgstr ""
+
+msgid "Meeting"
+msgstr ""
+
+msgid "Memorial day"
+msgstr ""
+
+msgid "Memory available / total"
+msgstr ""
+
+msgid "Merge"
+msgstr ""
+
+msgid "Merge duplicate contact cards"
+msgstr ""
+
+msgid "Merge this pair individually"
+msgstr ""
+
+msgid "Message"
+msgstr ""
+
+msgid "Message text"
+msgstr ""
+
+msgid "Metered connection"
+msgstr ""
+
+msgid "Minimize"
+msgstr ""
+
+msgid "Minimize to the tray when closed"
+msgstr ""
+
+msgid "Minimize to tray"
+msgstr ""
+
+msgid "Minutes"
+msgstr ""
+
+msgid "Missed appointment"
+msgstr ""
+
+msgid ""
+"Missed reminders are shown after the next startup. If the computer was off "
+"or the application was closed, the organizer reports a missed appointment "
+"shortly after login and provides a button to open it. All-day appointments "
+"are treated as starting at 8 a.m. A small reminder service starts at login "
+"to check appointments in the background and continues running when you close "
+"the organizer."
+msgstr ""
+
+msgid ""
+"Misspelled words are marked with a red wavy underline while you type. Right-"
+"clicking a word opens a sheet with suggestions that can be applied with one "
+"click; you can add names to your personal dictionary in the same way. If the "
+"lines or suggestions are missing, install the dictionary with:  sudo apt "
+"install %(package)s"
+msgstr ""
+
+msgid "Mobile"
+msgstr ""
+
+msgid "Mobile network"
+msgstr ""
+
+msgid "Model"
+msgstr ""
+
+msgid "Monday"
+msgstr ""
+
+msgid "Month"
+msgstr ""
+
+msgid "Month calendar"
+msgstr ""
+
+msgid "Monthly view"
+msgstr ""
+
+msgid "Monthly weekday"
+msgstr ""
+
+msgid "More fields"
+msgstr ""
+
+msgid ""
+"More than one Magnolie Notes phone is online. Disconnect all but one phone."
+msgstr ""
+
+msgid "Morning"
+msgstr ""
+
+msgid "Mouse wheel over times"
+msgstr ""
+
+msgid "Move group down"
+msgstr ""
+
+msgid "Move group up"
+msgstr ""
+
+msgid "Move notebook down"
+msgstr ""
+
+msgid "Move notebook to another group"
+msgstr ""
+
+msgid "Move notebook up"
+msgstr ""
+
+msgid "Move the ticked entries to the wastebasket"
+msgstr ""
+
+msgid ""
+"Multiple Magnolie Notes phones are stored. Personal sync is blocked; remove "
+"all but one phone."
+msgstr ""
+
+msgid "Multiple calendars"
+msgstr ""
+
+msgid "Name"
+msgstr ""
+
+msgid "Name / occasion"
+msgstr ""
+
+msgid "Name day"
+msgstr ""
+
+msgid "Name of this branch"
+msgstr ""
+
+msgid "Netherlands"
+msgstr ""
+
+msgid "Network"
+msgstr ""
+
+msgid "Neuchâtel"
+msgstr ""
+
+msgid "Never"
+msgstr ""
+
+msgid "Never automatically"
+msgstr ""
+
+msgid "Never synchronized."
+msgstr ""
+
+msgid "New"
+msgstr ""
+
+msgid "New Magnolienbaum request"
+msgstr ""
+
+msgid "New Magnolienbaum request: %(entry)s."
+msgstr ""
+
+msgid "New anniversary"
+msgstr ""
+
+msgid "New appointment"
+msgstr ""
+
+msgid "New backup password"
+msgstr ""
+
+msgid ""
+"New backups are stored in this folder. When the field is empty, they are "
+"stored next to the data file. For any other location, the organizer requires "
+"a backup password and encrypts the copy independently of the application's "
+"password protection."
+msgstr ""
+
+msgid "New contact"
+msgstr ""
+
+msgid "New group"
+msgstr ""
+
+msgid "New notebook"
+msgstr ""
+
+msgid "New notebook group"
+msgstr ""
+
+msgid "New page"
+msgstr ""
+
+msgid "New password"
+msgstr ""
+
+msgid "New task"
+msgstr ""
+
+msgid "New version %(version)s is available."
+msgstr ""
+
+msgid "Next appointment: %(title)s on %(date)s%(time)s%(notice)s"
+msgstr ""
+
+msgid "Next month"
+msgstr ""
+
+msgid "Next page"
+msgstr ""
+
+msgid "Next snapshot"
+msgstr ""
+
+msgid "Next tab"
+msgstr ""
+
+msgid "Next table page"
+msgstr ""
+
+msgid "Next week"
+msgstr ""
+
+msgid "Next year"
+msgstr ""
+
+msgid "Nextcloud account"
+msgstr ""
+
+msgid "Nextcloud denied access to this DAV resource."
+msgstr ""
+
+msgid "Nextcloud does not allow this DAV operation."
+msgstr ""
+
+msgid "Nextcloud has insufficient storage for this operation."
+msgstr ""
+
+msgid "Nextcloud is not configured."
+msgstr ""
+
+msgid "Nextcloud is not enabled."
+msgstr ""
+
+msgid "Nextcloud rejected the credentials."
+msgstr ""
+
+msgid "Nextcloud returned a redirect that was not followed."
+msgstr ""
+
+msgid "Nextcloud returned an incomplete DAV result."
+msgstr ""
+
+msgid "Nidwalden"
+msgstr ""
+
+msgid "Night"
+msgstr ""
+
+msgid "Night shift"
+msgstr ""
+
+msgid "No"
+msgstr ""
+
+msgid "No Claws Mail address book was detected."
+msgstr ""
+
+msgid "No additional modules permitted"
+msgstr ""
+
+msgid ""
+"No anniversaries yet.\n"
+"Birthdays and celebrations will automatically appear in the calendar."
+msgstr ""
+
+msgid "No application was found for the manual package."
+msgstr ""
+
+msgid "No appointment is scheduled."
+msgstr ""
+
+msgid "No calendars found."
+msgstr ""
+
+msgid "No data was found."
+msgstr ""
+
+#, python-format
+msgid "No dictionary was found. Install one with:  sudo apt install %s"
+msgstr ""
+
+msgid "No due date"
+msgstr ""
+
+msgid "No duplicate contact cards were found."
+msgstr ""
+
+msgid "No file selected"
+msgstr ""
+
+msgid "No history charts"
+msgstr ""
+
+msgid "No insulin dose is calculated automatically."
+msgstr ""
+
+msgid "No mail application was found."
+msgstr ""
+
+msgid "No manual update check has been performed yet."
+msgstr ""
+
+msgid ""
+"No map service was found. GNOME Maps can be installed with: sudo apt install "
+"gnome-maps"
+msgstr ""
+
+msgid "No matching open task found."
+msgstr ""
+
+msgid "No measurements in this period."
+msgstr ""
+
+msgid "No notebooks"
+msgstr ""
+
+msgid "No online Magnolie Notes phone has allowed dial requests."
+msgstr ""
+
+msgid "No other branch was found."
+msgstr ""
+
+msgid "No other branch yet. Search the network or enter an address."
+msgstr ""
+
+msgid "No package has been specified for the new version yet."
+msgstr ""
+
+msgid ""
+"No people have been added yet.\n"
+"Enter a name below."
+msgstr ""
+
+msgid ""
+"No people have been added yet. Use the People button above to add people "
+"responsible for tasks."
+msgstr ""
+
+msgid "No phone paired yet."
+msgstr ""
+
+msgid "No photo"
+msgstr ""
+
+msgid "No photo selected"
+msgstr ""
+
+msgid "No public IP address was found."
+msgstr ""
+
+msgid ""
+"No readable Evolution or Thunderbird stores were found on this computer."
+msgstr ""
+
+msgid ""
+"No regional data is retrieved without a selected canton. With “All”, each "
+"entry shows its canton and matching periods are combined."
+msgstr ""
+
+msgid ""
+"No regional data is retrieved without a selected state. With “All”, each "
+"entry shows its state and matching periods are combined."
+msgstr ""
+
+msgid "No scheme row matches this blood glucose value."
+msgstr ""
+
+msgid "No sheet is open."
+msgstr ""
+
+msgid "No shift"
+msgstr ""
+
+msgid "No snapshots yet."
+msgstr ""
+
+msgid "No spam check available"
+msgstr ""
+
+msgid "No suggestions found."
+msgstr ""
+
+msgid "No suitable application was found."
+msgstr ""
+
+msgid "No system-paired Bluetooth device found"
+msgstr ""
+
+msgid "No table (history only)"
+msgstr ""
+
+msgid "No task linked yet."
+msgstr ""
+
+#, python-format
+msgid "No text viewer was found. The log is located at: %s"
+msgstr ""
+
+msgid "No update check has been performed yet."
+msgstr ""
+
+msgid ""
+"No user data has been entered in LibreOffice yet (Tools ▸ Options ▸ User "
+"Data)."
+msgstr ""
+
+msgid "No web browser was found."
+msgstr ""
+
+msgid "No word was provided."
+msgstr ""
+
+msgid "None"
+msgstr ""
+
+msgid "Noon"
+msgstr ""
+
+msgid "Normal"
+msgstr ""
+
+msgid "North Rhine-Westphalia"
+msgstr ""
+
+msgid ""
+"Not all systems allow waking from suspend. If it does not work, the reminder "
+"appears as soon as the computer is running again."
+msgstr ""
+
+msgid "Not charging"
+msgstr ""
+
+msgid "Not enough protected disk space for a recovery snapshot."
+msgstr ""
+
+msgid "Not now"
+msgstr ""
+
+msgid "Not sent."
+msgstr ""
+
+msgid "Note"
+msgstr ""
+
+msgid "Note text"
+msgstr ""
+
+msgid "Notebook"
+msgstr ""
+
+msgid "Notebook group"
+msgstr ""
+
+msgid "Notebooks"
+msgstr ""
+
+msgid "Notes"
+msgstr ""
+
+msgid "Notes and special instructions"
+msgstr ""
+
+msgid "Nothing can be encrypted without a password."
+msgstr ""
+
+msgid "Nothing found."
+msgstr ""
+
+msgid "Nothing has been entered under “%(letter)s” yet."
+msgstr ""
+
+msgid "Nothing is opened or sent while this option is disabled."
+msgstr ""
+
+msgid "Nothing new was found."
+msgstr ""
+
+msgid "Notice: The connection to storage was not confirmed."
+msgstr ""
+
+msgid "Notification and sound"
+msgstr ""
+
+msgid "Notification appeared: as a Magnolie sheet"
+msgstr ""
+
+msgid "Notification appeared: as a system notification"
+msgstr ""
+
+msgid "Notification appeared: not at all"
+msgstr ""
+
+msgid "Notification appeared: unclear"
+msgstr ""
+
+msgid "Notifications"
+msgstr ""
+
+msgid "Notifications are available only in the installed application."
+msgstr ""
+
+msgid ""
+"Notifications are display-only; replying and remote actions are not "
+"available."
+msgstr ""
+
+msgid "Notify me about incoming calls"
+msgstr ""
+
+msgid "ODS"
+msgstr ""
+
+msgid "OK"
+msgstr ""
+
+msgid "Objects"
+msgstr ""
+
+msgid "Obwalden"
+msgstr ""
+
+msgid "Off"
+msgstr ""
+
+msgid "Offline"
+msgstr ""
+
+msgid "Ointment"
+msgstr ""
+
+msgid "One address book"
+msgstr ""
+
+msgid "One backup could not be updated."
+msgid_plural "%(count)s backups could not be updated."
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "One completion update was received from the Magnolienbaum."
+msgid_plural ""
+"%(count)s completion updates were received from the Magnolienbaum."
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "One duplicate contact card was"
+msgid_plural "%(count)s duplicate contact cards were"
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "One moment …"
+msgstr ""
+
+msgid "One moment…"
+msgstr ""
+
+#, python-format
+msgid ""
+"One obsolete device-status transmission was removed from the tree queue."
+msgid_plural ""
+"%(count)s obsolete device-status transmissions were removed from the tree "
+"queue."
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "One shared note was updated."
+msgid_plural "%(count)s shared notes were updated."
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "One table with chart"
+msgstr ""
+
+msgid "One year"
+msgstr ""
+
+msgid "Online"
+msgstr ""
+
+#, python-format
+msgid ""
+"Online account integration (Evolution Data Server) is not available on this "
+"system. Install it with:\n"
+"sudo apt install %s"
+msgstr ""
+
+msgid ""
+"Online account integration is not available on this system. Install it "
+"with:  sudo apt install %(packages)s, then restart the application. You can "
+"also import contacts and appointments without this integration using “From "
+"this computer” above."
+msgstr ""
+
+msgid "Online via Bluetooth data"
+msgstr ""
+
+msgid "Online via WLAN"
+msgstr ""
+
+msgid ""
+"Only HTTPS. Create an app password in Nextcloud under Settings, Security. "
+"Your account password is never used."
+msgstr ""
+
+msgid ""
+"Only one Magnolie Notes phone can be paired. Remove the existing phone "
+"before changing devices."
+msgstr ""
+
+msgid ""
+"Only the reliable system notification is available under Wayland; the "
+"Magnolie paper style would often remain invisible there."
+msgstr ""
+
+msgid "Open"
+msgstr ""
+
+msgid "Open %(name)s"
+msgstr ""
+
+msgid "Open %(service)s for this contact"
+msgstr ""
+
+msgid ""
+"Open KDE Connect on the phone and start pairing. Compare the eight-character "
+"verification key and confirm on both devices."
+msgstr ""
+
+msgid "Open Magnolie Organizer"
+msgstr ""
+
+msgid "Open Magnolienbaum pairing file"
+msgstr ""
+
+msgid "Open day view for %(date)s"
+msgstr ""
+
+msgid "Open manual"
+msgstr ""
+
+msgid "Open maps with"
+msgstr ""
+
+msgid "Open medication index"
+msgstr ""
+
+msgid "Open organizer"
+msgstr ""
+
+msgid "Open phone connection in Magnolie Notes and select this computer."
+msgstr ""
+
+msgid "Open planner as an ODS spreadsheet"
+msgstr ""
+
+msgid "Open selected contacts as an ODS spreadsheet"
+msgstr ""
+
+msgid "Open selected health records as an ODS spreadsheet"
+msgstr ""
+
+msgid "Open task"
+msgstr ""
+
+msgid "Open the application"
+msgstr ""
+
+msgid "Open the day in the daily view"
+msgstr ""
+
+msgid ""
+"Open the verified DEB with your software manager; the organizer never "
+"installs it automatically."
+msgstr ""
+
+msgid "Open this address as a letter in LibreOffice"
+msgstr ""
+
+msgid "Open this day"
+msgstr ""
+
+msgid "Open year"
+msgstr ""
+
+msgid "Open year in planner"
+msgstr ""
+
+msgid "OpenStreetMap in the browser"
+msgstr ""
+
+msgid "Opened in %(application)s."
+msgstr ""
+
+msgid "Opening phone pairing"
+msgstr ""
+
+msgid "Opening the system dialer"
+msgstr ""
+
+#, python-format
+msgid "Operation ended (%s)."
+msgstr ""
+
+#, python-format
+msgid "Option %s requires a language."
+msgstr ""
+
+msgid "Organic waste"
+msgstr ""
+
+msgid "Organizer"
+msgstr ""
+
+msgid "Organizer style (paper sheet)"
+msgstr ""
+
+msgid "Organizer · Calendar · Contacts · Notes"
+msgstr ""
+
+msgid "Other"
+msgstr ""
+
+msgctxt "email type"
+msgid "Other"
+msgstr ""
+
+msgctxt "relationship"
+msgid "Other"
+msgstr ""
+
+msgid "Other addresses"
+msgstr ""
+
+msgid "Other phone numbers"
+msgstr ""
+
+msgid "Outgoing"
+msgstr ""
+
+msgid "Ovulation"
+msgstr ""
+
+msgid "Own internet IP"
+msgstr ""
+
+msgid "Own window available: no"
+msgstr ""
+
+msgid "Own window available: yes"
+msgstr ""
+
+msgid "PDF file"
+msgstr ""
+
+#, python-format
+msgid "POT template written to: %s"
+msgstr ""
+
+msgid "Packaging / Yellow bin"
+msgstr ""
+
+msgid "Page %(page)s"
+msgstr ""
+
+msgid "Page %(page)s of %(count)s"
+msgstr ""
+
+msgid "Pages"
+msgstr ""
+
+msgid "Pain"
+msgstr ""
+
+msgid "Pair KDE Connect phone"
+msgstr ""
+
+msgid "Pairing KDE Connect"
+msgstr ""
+
+msgid "Pairing file"
+msgstr ""
+
+msgid "Pairing file saved to: %(path)s"
+msgstr ""
+
+msgid "Palm tree"
+msgstr ""
+
+msgid ""
+"Participate in the Magnolienbaum (opens port %(port)s on the local network)"
+msgstr ""
+
+msgid "Partnership anniversary"
+msgstr ""
+
+msgid "Password"
+msgstr ""
+
+msgid "Password or numeric code"
+msgstr ""
+
+msgid "Password protection"
+msgstr ""
+
+msgid "Password protection is available only in the installed application."
+msgstr ""
+
+msgid "Password protection is enabled – your data is encrypted."
+msgstr ""
+
+msgid "Password protection is enabled. Your data is now encrypted"
+msgstr ""
+
+msgid "Password protection was removed."
+msgstr ""
+
+msgid "Paste"
+msgstr ""
+
+msgid "Patch"
+msgstr ""
+
+msgid "Pay invoice"
+msgstr ""
+
+msgid "Pen"
+msgstr ""
+
+msgid "People"
+msgstr ""
+
+msgid "Period"
+msgstr ""
+
+msgid "Permanent KDE listener active"
+msgstr ""
+
+msgid "Permanent KDE listener stopped"
+msgstr ""
+
+msgid "Permanently delete %(count)s completed task?"
+msgid_plural "Permanently delete %(count)s completed tasks?"
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "Permanently delete %(count)s selected health record?"
+msgid_plural "Permanently delete %(count)s selected health records?"
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "Permanently delete selected health records"
+msgstr ""
+
+msgid "Permanently delete the one item? This cannot be undone."
+msgid_plural "Permanently delete all %(count)s items? This cannot be undone."
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "Person"
+msgstr ""
+
+msgid "Person's name"
+msgstr ""
+
+msgid ""
+"Personal data over Magnolie Notes, not Magnolienbaum. Deletions always "
+"require confirmation."
+msgstr ""
+
+msgid "Personal synchronization"
+msgstr ""
+
+msgid "Personal synchronization complete. Deletions are not synchronized yet."
+msgstr ""
+
+msgid "Personal synchronization failed."
+msgstr ""
+
+msgid "Phone"
+msgstr ""
+
+msgid "Phone battery"
+msgstr ""
+
+msgid "Phone call"
+msgstr ""
+
+msgid "Phone number"
+msgstr ""
+
+msgid "Phone numbers"
+msgstr ""
+
+msgid "Phone pairing failed."
+msgstr ""
+
+msgid "Phone “%(name)s” is securely paired."
+msgstr ""
+
+msgid "Phones"
+msgstr ""
+
+msgid "Photo"
+msgstr ""
+
+msgid "Photo available"
+msgstr ""
+
+msgid "Photo of %(name)s"
+msgstr ""
+
+msgid "Pick up"
+msgstr ""
+
+msgid "Planner"
+msgstr ""
+
+msgid "Please create a notebook in another group first."
+msgstr ""
+
+msgid "Please enter a four-digit year from 1000 onwards."
+msgstr ""
+
+msgid "Please enter a name."
+msgstr ""
+
+msgid "Please enter a realistic value."
+msgstr ""
+
+msgid "Please enter a title and date for every new appointment."
+msgstr ""
+
+msgid "Please enter a title for every new task."
+msgstr ""
+
+msgid "Please enter a title."
+msgstr ""
+
+msgid "Please enter a website or application for the custom action."
+msgstr ""
+
+msgid "Please enter an address."
+msgstr ""
+
+msgid "Please enter at least a name or company."
+msgstr ""
+
+msgid "Please enter the internet IP and fingerprint in full."
+msgstr ""
+
+msgid "Please select a PDF file."
+msgstr ""
+
+msgid "Please select a date."
+msgstr ""
+
+msgid "Please select a file first."
+msgstr ""
+
+msgid "Please select an image file."
+msgstr ""
+
+msgid "Please select an image in JPEG, PNG, WebP, or GIF format."
+msgstr ""
+
+msgid "Please unlock"
+msgstr ""
+
+msgid "Poland"
+msgstr ""
+
+msgid "Port 8741 is unavailable. The phone listener could not start."
+msgstr ""
+
+msgid "Possible duplicates among local and incoming contacts"
+msgstr ""
+
+msgid "Possible spam"
+msgstr ""
+
+msgid "Postal address"
+msgstr ""
+
+msgid "Postal code"
+msgstr ""
+
+msgid "Postal code / city"
+msgstr ""
+
+msgid "Powder"
+msgstr ""
+
+msgid "Power source"
+msgstr ""
+
+msgid "Preview"
+msgstr ""
+
+msgid "Preview failed."
+msgstr ""
+
+msgid "Preview, print or export the year planner"
+msgstr ""
+
+msgid "Preview:"
+msgstr ""
+
+msgid "Previewing a recovery snapshot"
+msgstr ""
+
+msgid "Previous month"
+msgstr ""
+
+msgid "Previous page"
+msgstr ""
+
+msgid "Previous tab"
+msgstr ""
+
+msgid "Previous table page"
+msgstr ""
+
+msgid "Previous week"
+msgstr ""
+
+msgid "Previous window state"
+msgstr ""
+
+msgid "Previous year"
+msgstr ""
+
+msgid "Print"
+msgstr ""
+
+msgid "Print dialog"
+msgstr ""
+
+msgid "Print now"
+msgstr ""
+
+msgid "Print preview"
+msgstr ""
+
+msgid "Print · %(title)s"
+msgstr ""
+
+msgid "Print · Health"
+msgstr ""
+
+msgid "Priority"
+msgstr ""
+
+msgid "Priority 1 is listed first. Overdue tasks are shown in red."
+msgstr ""
+
+msgid "Private"
+msgstr ""
+
+msgid ""
+"Private, integrity-checked snapshots are stored next to the application data."
+msgstr ""
+
+msgid "Public IPv4 or IPv6 address of the other branch"
+msgstr ""
+
+msgid ""
+"Public holidays and school holidays are governed regionally. Choose which "
+"ones apply here."
+msgstr ""
+
+msgid "Pulse"
+msgstr ""
+
+msgid ""
+"Pulse\n"
+"S/min"
+msgstr ""
+
+msgid "Queue: %(open)s of %(count)s transmission awaits delivery."
+msgid_plural "Queue: %(open)s of %(count)s transmissions await delivery."
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "Queued"
+msgstr ""
+
+msgid "Quit"
+msgstr ""
+
+msgid "Reachable IPv4 or IPv6 address of this computer"
+msgstr ""
+
+msgid "Reading recovery snapshots"
+msgstr ""
+
+msgid "Reading the Magnolienbaum identity"
+msgstr ""
+
+msgid "Reading the backup"
+msgstr ""
+
+msgid "Reading the pairing file"
+msgstr ""
+
+msgid "Reading the user data"
+msgstr ""
+
+msgid "Ready."
+msgstr ""
+
+msgid ""
+"Really merge %(cards)s? Review the result carefully afterwards. A copy of "
+"every removed card is kept in the recycle bin."
+msgstr ""
+
+msgid "Reason"
+msgstr ""
+
+msgid "Reconnect"
+msgstr ""
+
+msgid "Recovering the password transaction"
+msgstr ""
+
+msgid "Recovery snapshot created."
+msgstr ""
+
+msgid "Recovery snapshot deleted."
+msgstr ""
+
+msgid "Recovery snapshots"
+msgstr ""
+
+msgid "Recycle bin"
+msgstr ""
+
+msgid "Refresh"
+msgstr ""
+
+msgid "Reject"
+msgstr ""
+
+msgid "Reject this offer permanently?"
+msgstr ""
+
+msgid "Related tasks"
+msgstr ""
+
+msgid "Remind about appointments in the background"
+msgstr ""
+
+msgid "Remind me again on the day itself"
+msgstr ""
+
+msgid "Reminder test"
+msgstr ""
+
+msgid "Reminders"
+msgstr ""
+
+msgid ""
+"Reminders are running through session autostart; systemd was not found on "
+"this system."
+msgstr ""
+
+msgid ""
+"Reminders could not be set up. They will be shown only while the organizer "
+"is open."
+msgstr ""
+
+msgid ""
+"Reminders outside the application are available only in the installed "
+"version."
+msgstr ""
+
+msgid "Reminders: disabled"
+msgstr ""
+
+msgid "Reminders: enabled"
+msgstr ""
+
+msgid "Reminds you about appointments even when the organizer is closed"
+msgstr ""
+
+msgid "Remote host name or IP address (optional)"
+msgstr ""
+
+msgid "Remove"
+msgstr ""
+
+msgid "Remove address"
+msgstr ""
+
+msgid "Remove all public holidays and school holidays from the organizer?"
+msgstr ""
+
+msgid "Remove appointment"
+msgstr ""
+
+msgid "Remove connection"
+msgstr ""
+
+msgid "Remove email address"
+msgstr ""
+
+msgid "Remove embedded file “%(name)s”?"
+msgstr ""
+
+msgid "Remove emergency contact"
+msgstr ""
+
+msgid "Remove entries"
+msgstr ""
+
+msgid "Remove event"
+msgstr ""
+
+msgid "Remove password protection"
+msgstr ""
+
+msgid ""
+"Remove password protection? Your data will then be stored unencrypted in "
+"your home directory again."
+msgstr ""
+
+msgid "Remove phone connection"
+msgstr ""
+
+msgid "Remove phone number"
+msgstr ""
+
+msgid "Remove photo"
+msgstr ""
+
+msgid "Remove social medium"
+msgstr ""
+
+msgid "Remove task"
+msgstr ""
+
+msgid "Remove the connection to “%(branch)s”?"
+msgstr ""
+
+msgid "Remove this phone connection and its queues and permissions?"
+msgstr ""
+
+msgid ""
+"Remove “%(name)s”? Their tasks will be kept but will no longer be assigned "
+"to anyone."
+msgstr ""
+
+msgid ""
+"Renew KDE Connect pairing? Only KDE trust for this phone will be removed and "
+"rebuilt. Magnolie Notes, notes and chat history remain unchanged."
+msgstr ""
+
+msgid "Renew pairing"
+msgstr ""
+
+msgid "Repeat for confirmation"
+msgstr ""
+
+msgid "Reply"
+msgstr ""
+
+#, python-format
+msgid "Reported (%(method)s): %(title)s – %(body)s"
+msgstr ""
+
+msgid "Requesting the device status"
+msgstr ""
+
+msgid "Requires existing BlueZ system pairing. Data only, no HFP audio."
+msgstr ""
+
+msgid "Reset"
+msgstr ""
+
+msgid "Residual waste"
+msgstr ""
+
+msgid "Responsible"
+msgstr ""
+
+msgid "Restore"
+msgstr ""
+
+msgid "Restore backup"
+msgstr ""
+
+msgid "Restore backup …"
+msgstr ""
+
+msgid "Restore completely"
+msgstr ""
+
+msgid "Restore failed."
+msgstr ""
+
+msgid ""
+"Restore this snapshot completely? A mandatory pre-restore snapshot is "
+"created first."
+msgstr ""
+
+msgid "Restoring a recovery snapshot"
+msgstr ""
+
+msgid "Restoring backups is available only in the installed application."
+msgstr ""
+
+msgid "Restoring the backup"
+msgstr ""
+
+msgid "Retrieval failed."
+msgstr ""
+
+msgid "Retrieve now"
+msgstr ""
+
+msgid "Retrieve public holidays and school holidays"
+msgstr ""
+
+msgid "Retrieved on %(date)s."
+msgstr ""
+
+#, python-format
+msgid "Retrieved: %(items)s for %(years)s."
+msgstr ""
+
+msgid "Retrieving holidays"
+msgstr ""
+
+#, python-format
+msgid "Retrieving holidays failed (%s)."
+msgstr ""
+
+msgid "Retrieving holidays …"
+msgstr ""
+
+msgid "Retrieving manual download information …"
+msgstr ""
+
+msgid "Retrieving weather"
+msgstr ""
+
+#, python-format
+msgid "Retrieving weather failed (%s)."
+msgstr ""
+
+msgid "Retrieving weather…"
+msgstr ""
+
+msgid "Rhineland-Palatinate"
+msgstr ""
+
+msgid "Route"
+msgstr ""
+
+msgid "Route: calculate directions immediately"
+msgstr ""
+
+#, python-format
+msgid "Run failed: %s"
+msgstr ""
+
+msgid ""
+"Run the downloaded installer visibly and keep the Manual component selected."
+msgstr ""
+
+msgid "S"
+msgstr ""
+
+msgid "SMS assignment"
+msgstr ""
+
+msgid "SMS details"
+msgstr ""
+
+#, python-format
+msgid "SMS from %(name)s"
+msgstr ""
+
+msgid "SMS history"
+msgstr ""
+
+msgid "SMS settings"
+msgstr ""
+
+msgid "SMS text was adjusted:"
+msgstr ""
+
+msgid "SMS to %(name)s"
+msgstr ""
+
+msgid "Saarland"
+msgstr ""
+
+msgid "Salzburg"
+msgstr ""
+
+msgid "Saturday"
+msgstr ""
+
+msgid "Save"
+msgstr ""
+
+msgid "Save Lotus CSV"
+msgstr ""
+
+msgid "Save Magnolienbaum pairing file"
+msgstr ""
+
+msgid "Save anniversaries"
+msgstr ""
+
+msgid "Save appointments"
+msgstr ""
+
+msgid "Save as…"
+msgstr ""
+
+msgid "Save changes"
+msgstr ""
+
+msgctxt "contact action"
+msgid "Save changes"
+msgstr ""
+
+msgid "Save changes?"
+msgstr ""
+
+msgid "Save contacts"
+msgstr ""
+
+msgid "Save contacts for Claws Mail"
+msgstr ""
+
+msgid "Save endpoint"
+msgstr ""
+
+msgid "Save rejected: The data is encrypted and has not been unlocked yet."
+msgstr ""
+
+msgid "Save tasks"
+msgstr ""
+
+msgid "Saved"
+msgstr ""
+
+msgid "Saved to: %(path)s (%(count)s entry)"
+msgid_plural "Saved to: %(path)s (%(count)s entries)"
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "Saved ✓ %(time)s"
+msgstr ""
+
+msgid "Saved."
+msgstr ""
+
+msgid "Saving failed!"
+msgstr ""
+
+#, python-format
+msgid "Saving failed: %s"
+msgstr ""
+
+msgid "Saving the branch settings"
+msgstr ""
+
+msgid "Saving the data"
+msgstr ""
+
+msgid "Saving the tray settings"
+msgstr ""
+
+msgid "Saving …"
+msgstr ""
+
+msgid "Saxony"
+msgstr ""
+
+msgid "Saxony-Anhalt"
+msgstr ""
+
+msgid "Scanning this computer"
+msgstr ""
+
+msgid "Schaffhausen"
+msgstr ""
+
+msgid "Schedule an appointment"
+msgstr ""
+
+msgid "Scheduled"
+msgstr ""
+
+msgid "Scheme"
+msgstr ""
+
+msgid "Schleswig-Holstein"
+msgstr ""
+
+msgid "Schwyz"
+msgstr ""
+
+msgid "Screen notification only"
+msgstr ""
+
+msgid "Scrolling up makes the time earlier"
+msgstr ""
+
+msgid "Scrolling up makes the time later"
+msgstr ""
+
+msgid "Search"
+msgstr ""
+
+msgid "Search local network"
+msgstr ""
+
+msgid "Search title, date, or note…"
+msgstr ""
+
+msgid "Searching for suggestions…"
+msgstr ""
+
+msgid "Searching…"
+msgstr ""
+
+msgid "Search…"
+msgstr ""
+
+msgid "Secondary office"
+msgstr ""
+
+msgid "Secure HTTPS address"
+msgstr ""
+
+msgid "Securely connected to %(branch)s."
+msgstr ""
+
+msgid "Security"
+msgstr ""
+
+msgid "Select"
+msgstr ""
+
+msgid "Select a country first."
+msgstr ""
+
+msgid "Select all"
+msgstr ""
+
+msgid ""
+"Select an entry on the left,\n"
+"or create a contact card with New."
+msgstr ""
+
+msgid "Select at least one column."
+msgstr ""
+
+msgid "Select at least one year."
+msgstr ""
+
+msgid "Select backup folder"
+msgstr ""
+
+msgid "Select no more than three years."
+msgstr ""
+
+msgid "Select something first."
+msgstr ""
+
+msgid "Select what you want to print on the left."
+msgstr ""
+
+msgid "Select your canton first or enable “All cantons”."
+msgstr ""
+
+msgid "Select your state first or enable “All states”."
+msgstr ""
+
+msgid "Select, preview, print, export or delete health records"
+msgstr ""
+
+msgid ""
+"Selected columns that are empty for every contact are omitted automatically."
+msgstr ""
+
+msgid "Selected notifications"
+msgstr ""
+
+msgid "Selection options"
+msgstr ""
+
+msgid "Send SMS"
+msgstr ""
+
+msgid "Send adjusted text"
+msgstr ""
+
+msgid "Send documents"
+msgstr ""
+
+msgid "Send secure request"
+msgstr ""
+
+msgid "Sending SMS with KDE Connect"
+msgstr ""
+
+msgid "Sent"
+msgstr ""
+
+msgid "Server address"
+msgstr ""
+
+msgid "Server address and user name are required."
+msgstr ""
+
+msgid "Set varying doses by weekday"
+msgstr ""
+
+msgid "Setting up reminders"
+msgstr ""
+
+msgid "Setting up reminders …"
+msgstr ""
+
+msgid "Settings"
+msgstr ""
+
+msgid "Several Magnolie Organizers can connect and securely share tasks."
+msgstr ""
+
+msgid "Share"
+msgstr ""
+
+msgid "Share address"
+msgstr ""
+
+msgid "Share appointment"
+msgstr ""
+
+msgid "Share this entry explicitly with %(branch)s?"
+msgstr ""
+
+msgid "Share this entry explicitly with the workgroup?"
+msgstr ""
+
+msgid "Share this entry explicitly with this branch?"
+msgstr ""
+
+msgid "Share together"
+msgstr ""
+
+msgid "Shared credentials"
+msgstr ""
+
+msgid "Shared note"
+msgstr ""
+
+msgid "Shift planner"
+msgstr ""
+
+msgid "Shopping"
+msgstr ""
+
+msgid "Short-acting insulin"
+msgstr ""
+
+msgid "Show Health after Planner"
+msgstr ""
+
+msgid "Show all"
+msgstr ""
+
+msgid "Show calendar button in date fields"
+msgstr ""
+
+msgid "Show log"
+msgstr ""
+
+msgid "Show more"
+msgstr ""
+
+msgid "Show preview"
+msgstr ""
+
+msgid "Show selected notifications (read only)"
+msgstr ""
+
+msgid "Show social media and communication icons"
+msgstr ""
+
+msgid "Show symbol in calendar"
+msgstr ""
+
+msgid "Show the “Letter” button (LibreOffice)"
+msgstr ""
+
+msgid "Show the “Map” button"
+msgstr ""
+
+msgid "Show the “Selection options” button"
+msgstr ""
+
+msgid "Show this address on the map"
+msgstr ""
+
+msgid "Show this overview"
+msgstr ""
+
+msgid "Show today's notification count on the tray icon"
+msgstr ""
+
+msgid "Show weather for the next three days"
+msgstr ""
+
+msgid "Show week numbers in the monthly view"
+msgstr ""
+
+msgid "Show week numbers in the planner"
+msgstr ""
+
+msgid ""
+"Small action buttons appear on each contact card. You can hide anything you "
+"do not need here."
+msgstr ""
+
+msgid "Snapshot interval"
+msgstr ""
+
+msgid "Snapshot restored. The first synchronization will not send deletions."
+msgstr ""
+
+msgid "Snowman"
+msgstr ""
+
+msgid "Social media"
+msgstr ""
+
+msgid "Social medium"
+msgstr ""
+
+msgid "Solothurn"
+msgstr ""
+
+msgid "Someone"
+msgstr ""
+
+msgid "Son"
+msgstr ""
+
+msgid "Sort everything alphabetically"
+msgstr ""
+
+msgid "Sorting"
+msgstr ""
+
+#, python-format
+msgid "Sound file: %(path)s"
+msgstr ""
+
+msgid "Sound file: not found"
+msgstr ""
+
+msgid "Sound only"
+msgstr ""
+
+#, python-format
+msgid "Sound only: %(title)s – %(body)s"
+msgstr ""
+
+#, python-format
+msgid "Sound through: %(method)s"
+msgstr ""
+
+msgid "Sound through: no output method found"
+msgstr ""
+
+msgid "Space for anything you want to remember…"
+msgstr ""
+
+msgid "Spain"
+msgstr ""
+
+msgid "Spam check"
+msgstr ""
+
+msgid "Special cases"
+msgstr ""
+
+msgid "Spell checking"
+msgstr ""
+
+msgid "Spray"
+msgstr ""
+
+msgid "St. Gallen"
+msgstr ""
+
+msgid "Start automatically when signing in"
+msgstr ""
+
+msgid "Start the organizer in the tray"
+msgstr ""
+
+msgid "Start through the tray applet"
+msgstr ""
+
+msgid "Starting the phone connection"
+msgstr ""
+
+msgid "Starts Magnolie Organizer when signing in"
+msgstr ""
+
+msgid "State"
+msgstr ""
+
+msgid "Status"
+msgstr ""
+
+msgid "Storage available / total"
+msgstr ""
+
+msgid "Street / house number"
+msgstr ""
+
+msgid "Street and house number"
+msgstr ""
+
+msgid "Strength"
+msgstr ""
+
+msgid "Strikethrough"
+msgstr ""
+
+msgid "Styria"
+msgstr ""
+
+msgid "Submitted"
+msgstr ""
+
+msgid "Submitted to KDE Connect"
+msgstr ""
+
+msgid "Suggestions are available only in the installed application."
+msgstr ""
+
+msgid "Sun symbol"
+msgstr ""
+
+msgid "Sunday"
+msgstr ""
+
+msgid "Suppository"
+msgstr ""
+
+msgid "Switched off."
+msgstr ""
+
+msgid "Switzerland"
+msgstr ""
+
+msgid "Symbol"
+msgstr ""
+
+msgid "Symbol and Vacation text"
+msgstr ""
+
+msgid "Symbol only"
+msgstr ""
+
+msgid "Symbols and temperatures"
+msgstr ""
+
+msgid "Symbols, temperatures and description"
+msgstr ""
+
+msgid "Synchronization"
+msgstr ""
+
+msgid "Synchronization completed."
+msgstr ""
+
+msgid "Synchronization failed."
+msgstr ""
+
+msgid "Synchronization failed: %(error)s"
+msgstr ""
+
+msgid ""
+"Synchronization state, pending messages and metadata for this connection "
+"will be removed. Contacts already accepted and local data remain."
+msgstr ""
+
+msgid "Synchronize automatically at startup"
+msgstr ""
+
+msgid "Synchronize contacts"
+msgstr ""
+
+msgid "Synchronize everything"
+msgstr ""
+
+msgid "Synchronize notes and notebooks"
+msgstr ""
+
+msgid "Synchronize now"
+msgstr ""
+
+msgid "Synchronize tasks"
+msgstr ""
+
+msgid "Synchronizing …"
+msgstr ""
+
+msgid "System authentication for configuring UFW is unavailable."
+msgstr ""
+
+msgid "System default"
+msgstr ""
+
+msgid "System style (desktop notification)"
+msgstr ""
+
+msgid "System-paired phone Bluetooth address"
+msgstr ""
+
+msgid "Systolic"
+msgstr ""
+
+msgid "Tab %(letter)s"
+msgstr ""
+
+msgid "Tab %(letter)s · %(count)s"
+msgstr ""
+
+msgid "Tablet"
+msgstr ""
+
+msgid "Tabs"
+msgstr ""
+
+msgid "Task"
+msgstr ""
+
+msgid "Task is due"
+msgstr ""
+
+msgid "Task reminder"
+msgstr ""
+
+msgid "Tasks"
+msgstr ""
+
+msgid "Tasks (.ics)"
+msgstr ""
+
+msgid ""
+"Tasks can be assigned to people. When printing, you can select one person's "
+"tasks for a specific period, for example each family member's weekly tasks."
+msgstr ""
+
+msgid "Tasks for this person"
+msgstr ""
+
+msgid "Tear out page"
+msgstr ""
+
+msgid "Temperature"
+msgstr ""
+
+msgid "Test connection"
+msgstr ""
+
+msgid "Test reminders and report what happens"
+msgstr ""
+
+msgid "Testing…"
+msgstr ""
+
+msgid "Text color"
+msgstr ""
+
+msgid "Text formatting"
+msgstr ""
+
+msgid "That did not work."
+msgstr ""
+
+msgid "That is not correct."
+msgstr ""
+
+msgid "The %(count)s note page it contains will be moved to “%(notebook)s”."
+msgid_plural ""
+"The %(count)s note pages it contains will be moved to “%(notebook)s”."
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "The CSV columns were not recognized."
+msgstr ""
+
+msgid "The Claws Mail address book contains too many people."
+msgstr ""
+
+msgid "The Claws Mail address book is larger than 32 megabytes."
+msgstr ""
+
+msgid "The Contributor Key is invalid."
+msgstr ""
+
+msgid "The DAV ETag is missing."
+msgstr ""
+
+msgid "The DAV entry was changed concurrently."
+msgstr ""
+
+msgid ""
+"The DIN template positions the recipient address for a window envelope, "
+"shows your address as a multiline sender block, and adds two fold marks and "
+"a punch mark."
+msgstr ""
+
+msgid ""
+"The KDE Connect support is built into the Organizer. Only the KDE Connect "
+"app on Android is required; no additional KDE Connect desktop program is "
+"needed."
+msgstr ""
+
+msgid "The LDIF address book contains too many people."
+msgstr ""
+
+msgid "The LDIF address book is larger than 32 megabytes."
+msgstr ""
+
+msgid ""
+"The LibreOffice user data does not contain an address yet (Tools ▸ Options ▸ "
+"User Data)."
+msgstr ""
+
+msgid "The Linux Secret Service did not store the app password."
+msgstr ""
+
+msgid ""
+"The Linux Secret Service is unavailable. The app password was not stored."
+msgstr ""
+
+msgid ""
+"The Lotus CSV uses the original columns VERTRAULICH, KATEGORIEN, "
+"ANFANGSDATUMZEIT, ENDDATUMZEIT, BESCHREIBUNG, KOSTENSTELLENCODE, "
+"KUNDENNUMMER and VORLAEUFIGZUSAGEN."
+msgstr ""
+
+msgid ""
+"The Magnolie manual is installed. It is best to read it through before you "
+"begin. Would you like to open it now?"
+msgstr ""
+
+msgid "The Magnolie manual is not installed."
+msgstr ""
+
+msgid ""
+"The Magnolie manual is not installed. Version %(version)s can be downloaded "
+"now. Would you like to open the package download?"
+msgstr ""
+
+msgid "The Magnolienbaum encryption key is unavailable."
+msgstr ""
+
+msgid "The Magnolienbaum identity file is damaged."
+msgstr ""
+
+msgid "The Magnolienbaum identity is encrypted. Unlock the organizer first."
+msgstr ""
+
+msgid "The Magnolienbaum inbox could not be saved."
+msgstr ""
+
+msgid "The Magnolienbaum is available only in the installed application."
+msgstr ""
+
+msgid "The Magnolienbaum is not available."
+msgstr ""
+
+msgid "The Magnolienbaum is switched off."
+msgstr ""
+
+msgid "The Magnolienbaum outbox could not be saved."
+msgstr ""
+
+msgid "The Magnolienbaum storage is damaged."
+msgstr ""
+
+msgid "The Magnolienbaum storage is encrypted. Unlock the organizer first."
+msgstr ""
+
+msgid "The Nextcloud address book contains missing or duplicate UIDs."
+msgstr ""
+
+msgid "The Nextcloud address book was not read completely."
+msgstr ""
+
+msgid "The Nextcloud app password is missing."
+msgstr ""
+
+msgid "The Nextcloud calendar contains missing or duplicate UIDs."
+msgstr ""
+
+msgid "The Nextcloud calendar was not read completely."
+msgstr ""
+
+msgid "The Nextcloud operation failed."
+msgstr ""
+
+msgid "The Nextcloud request timed out."
+msgstr ""
+
+msgid "The Nextcloud response was incomplete."
+msgstr ""
+
+msgid "The Nextcloud settings are invalid."
+msgstr ""
+
+msgid "The ODS calendar content is invalid."
+msgstr ""
+
+msgid "The ODS cell styles are invalid."
+msgstr ""
+
+msgid "The ODS columns are invalid."
+msgstr ""
+
+msgid "The ODS export is too large."
+msgstr ""
+
+msgid "The ODS row count is invalid."
+msgstr ""
+
+msgid "The ODS title is invalid."
+msgstr ""
+
+msgid "The Organizer chooses a suitable installed application."
+msgstr ""
+
+msgid "The SMS recipient or message is invalid."
+msgstr ""
+
+msgid "The Thunderbird calendar entry contains too many additional lines."
+msgstr ""
+
+msgid "The address book backend could not be refreshed."
+msgstr ""
+
+msgid "The address book backend reported an incomplete read."
+msgstr ""
+
+#, python-format
+msgid "The address book contains the UID %s more than once."
+msgstr ""
+
+#, python-format
+msgid "The address book could not be read: %s"
+msgstr ""
+
+#, python-format
+msgid "The address book could not be refreshed: %s"
+msgstr ""
+
+msgid ""
+"The archive contains all application data. The password is optional; leaving "
+"the field empty explicitly creates an unencrypted archive."
+msgstr ""
+
+msgid "The archive contains no supported import files."
+msgstr ""
+
+msgid "The archive contains too many files."
+msgstr ""
+
+msgid "The archive content is larger than 32 megabytes."
+msgstr ""
+
+msgid "The archive has an unsafe compression ratio."
+msgstr ""
+
+msgid ""
+"The archive is encrypted. Enter the password to check it completely before "
+"importing it."
+msgstr ""
+
+msgid ""
+"The attachments are too large together. Remove some files; the combined "
+"limit is approximately 18 MB."
+msgstr ""
+
+msgid ""
+"The attachments in this note are too large together. Remove some files; the "
+"combined limit is approximately 18 MB."
+msgstr ""
+
+msgid ""
+"The background reminder service cannot read the encrypted data and remains "
+"silent outside the open organizer."
+msgstr ""
+
+msgid ""
+"The background reminder service may read the separate reminder data and "
+"therefore works even when the organizer is closed."
+msgstr ""
+
+msgid "The backup could not be created."
+msgstr ""
+
+msgid "The backup could not be read."
+msgstr ""
+
+msgid "The backup could not be restored."
+msgstr ""
+
+msgid "The backup does not contain a complete data set."
+msgstr ""
+
+msgid "The backup does not contain readable organizer data."
+msgstr ""
+
+msgid "The backup file is larger than 256 megabytes."
+msgstr ""
+
+msgid "The backup file was not found."
+msgstr ""
+
+msgid ""
+"The backup will be stored outside the local data location and is therefore "
+"always encrypted. This password will be required to restore it later:\n"
+"%(path)s"
+msgstr ""
+
+msgid ""
+"The button in the bottom bar opens the selection for the section you have "
+"open. From there the ticked entries can be printed, exported or moved to the "
+"wastebasket."
+msgstr ""
+
+msgid ""
+"The calendar resource does not contain exactly one matching appointment."
+msgstr ""
+
+msgid "The clipboard is empty."
+msgstr ""
+
+msgid ""
+"The command is started safely without a shell. Use {nummer} for the selected "
+"number."
+msgstr ""
+
+msgid "The communication method is incomplete."
+msgstr ""
+
+msgid "The complete file is stored in this note (up to 8 megabytes)."
+msgstr ""
+
+msgid "The contact synchronization message is invalid."
+msgstr ""
+
+msgid "The contact synchronization setting is invalid."
+msgstr ""
+
+msgid "The content is unreadable."
+msgstr ""
+
+msgid ""
+"The current data will be backed up first and then completely replaced with "
+"this file:\n"
+"%(path)s"
+msgstr ""
+
+msgid "The current organizer data is incomplete."
+msgstr ""
+
+msgid "The custom application command is invalid."
+msgstr ""
+
+msgid "The custom application could not be started."
+msgstr ""
+
+msgid "The custom application was not found."
+msgstr ""
+
+msgid "The custom website is not a secure HTTPS address."
+msgstr ""
+
+msgid "The data changed during password transaction recovery."
+msgstr ""
+
+msgid ""
+"The data is encrypted – background reminders have not been enabled under "
+"Settings > Security."
+msgstr ""
+
+msgid ""
+"The data is encrypted – the enabled, limited reminder data is being used."
+msgstr ""
+
+msgid "The data is encrypted. Unlock the organizer with the password first."
+msgstr ""
+
+msgid "The data is not a JSON object."
+msgstr ""
+
+msgid "The data is still encrypted. Try again."
+msgstr ""
+
+msgid "The data key is not available."
+msgstr ""
+
+msgid ""
+"The directory containing the interface (/usr/share/magnolie-organizer/web) "
+"was not found."
+msgstr ""
+
+msgid "The encrypted Magnolienbaum identity is damaged."
+msgstr ""
+
+msgid "The encrypted Magnolienbaum storage is damaged."
+msgstr ""
+
+msgid "The encrypted backup requires python3-cryptography."
+msgstr ""
+
+msgid "The encrypted file is damaged."
+msgstr ""
+
+msgid "The end date cannot be before the start date."
+msgstr ""
+
+msgid "The entered fingerprint is incomplete."
+msgstr ""
+
+msgid "The file could not be read."
+msgstr ""
+
+#, python-format
+msgid "The file could not be written (%s)."
+msgstr ""
+
+msgid "The file has an unsupported format."
+msgstr ""
+
+msgid "The file is larger than 8 megabytes."
+msgstr ""
+
+#, python-format
+msgid "The fingerprint does not match (received: %(fingerprint)s)."
+msgstr ""
+
+msgid ""
+"The helper frame marks the control that currently has keyboard focus. This "
+"makes it easier to operate the Organizer with Tab, arrow keys, Enter and "
+"Space. Ctrl+Alt+H switches the frame on or off at any time."
+msgstr ""
+
+#, python-format
+msgid ""
+"The holiday service is unavailable. Is there an internet connection? (%s)"
+msgstr ""
+
+#, python-format
+msgid ""
+"The holiday service rejected the request (error %s). Check the country and "
+"region."
+msgstr ""
+
+msgid "The holiday service returned an unreadable response."
+msgstr ""
+
+msgid "The holiday service returned too much data."
+msgstr ""
+
+msgid "The holidays were imported."
+msgstr ""
+
+msgid "The holidays were removed."
+msgstr ""
+
+msgid "The import file is larger than 32 megabytes."
+msgstr ""
+
+msgid ""
+"The information is retrieved once from the open directory openholidaysapi."
+"org and then kept in the organizer. The application therefore needs an "
+"internet connection only once."
+msgstr ""
+
+msgid "The internet service did not return a valid IP address."
+msgstr ""
+
+msgid ""
+"The key of this branch has changed. Remove the old connection first and "
+"compare the new fingerprint particularly carefully."
+msgstr ""
+
+msgid "The last notebook cannot be deleted."
+msgstr ""
+
+msgid "The last notebook group cannot be deleted."
+msgstr ""
+
+msgid "The log could not be opened."
+msgstr ""
+
+msgid "The log is available only in the installed application."
+msgstr ""
+
+msgid ""
+"The log records when the reminder service checked and what it reported. "
+"Entries older than 30 days are removed automatically, and the log never "
+"exceeds 200 lines."
+msgstr ""
+
+msgid "The mailbox backlog is too large."
+msgstr ""
+
+msgid "The mailbox contains too many pending messages."
+msgstr ""
+
+msgid "The mailbox envelope is invalid."
+msgstr ""
+
+msgid "The mailbox is reachable."
+msgstr ""
+
+msgid "The mailbox message sequence has a gap."
+msgstr ""
+
+msgid "The mailbox sender is unknown."
+msgstr ""
+
+msgid "The manual"
+msgstr ""
+
+msgid "The manual could not be opened."
+msgstr ""
+
+msgid "The manual download is available only in the installed application."
+msgstr ""
+
+msgid "The manual download request is no longer valid."
+msgstr ""
+
+msgid "The manual is installed; its version is unknown."
+msgstr ""
+
+msgid "The manual is up to date."
+msgstr ""
+
+msgid "The manual package URL is not allowed."
+msgstr ""
+
+msgid "The manual package checksum does not match."
+msgstr ""
+
+msgid "The manual package could not be opened."
+msgstr ""
+
+msgid "The manual package is unexpectedly large."
+msgstr ""
+
+msgid "The manual update check failed."
+msgstr ""
+
+msgid "The manual update information is invalid."
+msgstr ""
+
+msgid "The maximum number of branches has been reached."
+msgstr ""
+
+msgid "The message comes from another branch."
+msgstr ""
+
+msgid "The message could not be opened."
+msgstr ""
+
+msgid "The message is damaged."
+msgstr ""
+
+msgid "The message is too large."
+msgstr ""
+
+msgid "The month is invalid."
+msgstr ""
+
+msgid "The offered entry is incomplete."
+msgstr ""
+
+msgid "The organizer is not currently reminding you about appointments."
+msgstr ""
+
+msgid ""
+"The organizer notifies you before an appointment begins, even when the "
+"application is not open if you wish."
+msgstr ""
+
+msgid "The other branch did not prove the pairing file."
+msgstr ""
+
+msgid "The other branch did not send a valid key."
+msgstr ""
+
+#, python-format
+msgid "The other branch is not responding (%(error)s)."
+msgstr ""
+
+msgid "The package URL is not allowed."
+msgstr ""
+
+msgid "The package could not be opened."
+msgstr ""
+
+msgid "The pairing file could not be processed."
+msgstr ""
+
+msgid "The pairing file has been changed."
+msgstr ""
+
+msgid "The pairing file is damaged."
+msgstr ""
+
+msgid "The pairing file is invalid or has expired."
+msgstr ""
+
+msgid "The pairing file is no longer valid."
+msgstr ""
+
+msgid "The pairing file is too large or not a regular file."
+msgstr ""
+
+msgid "The pairing file is too large."
+msgstr ""
+
+msgid "The pairing request is incomplete."
+msgstr ""
+
+msgid "The pairing request is invalid."
+msgstr ""
+
+msgid "The password is incorrect."
+msgstr ""
+
+msgid "The password transaction could not be completed."
+msgstr ""
+
+msgid "The password transaction journal is damaged."
+msgstr ""
+
+msgid ""
+"The permanent KDE listener cannot start because PyOpenSSL is unavailable."
+msgstr ""
+
+msgid ""
+"The permanent KDE listener cannot start because UDP port 1716 is already in "
+"use."
+msgstr ""
+
+msgid ""
+"The permanent KDE listener cannot start because no TCP port from 1716 to "
+"1764 is available."
+msgstr ""
+
+msgid "The permanent KDE listener has not started yet."
+msgstr ""
+
+msgid "The permanent KDE listener is stopped."
+msgstr ""
+
+msgid "The phone connection is available only in the installed application."
+msgstr ""
+
+msgid "The phone connection is not available."
+msgstr ""
+
+msgid "The phone is reachable, but its KDE Connect trust no longer matches."
+msgstr ""
+
+msgid "The phone number is invalid."
+msgstr ""
+
+msgid "The photo could not be read."
+msgstr ""
+
+msgid "The photo is larger than 8 megabytes."
+msgstr ""
+
+msgid "The planner layout is invalid."
+msgstr ""
+
+msgid "The port is invalid."
+msgstr ""
+
+msgid "The previous data could not be backed up."
+msgstr ""
+
+#, python-format
+msgid "The print page is located at: %s"
+msgstr ""
+
+#, python-format
+msgid "The public address could not be determined (%(error)s)."
+msgstr ""
+
+msgid "The public address could not be determined."
+msgstr ""
+
+msgid "The public key is invalid."
+msgstr ""
+
+msgid "The recovery snapshot folder must not be a symbolic link."
+msgstr ""
+
+msgid "The recovery snapshot is missing or damaged."
+msgstr ""
+
+msgid "The recovery snapshot manifest is invalid."
+msgstr ""
+
+msgid "The recovery snapshot manifest is too large."
+msgstr ""
+
+msgid "The recovery snapshot payload does not match its manifest."
+msgstr ""
+
+msgid "The recovery snapshot was not found."
+msgstr ""
+
+msgid "The recycle bin is empty."
+msgstr ""
+
+msgid "The recycle bin was emptied."
+msgstr ""
+
+msgid "The request is unreadable."
+msgstr ""
+
+msgid "The requested Nextcloud DAV resource was not found."
+msgstr ""
+
+msgid "The required recovery snapshot could not be created."
+msgstr ""
+
+msgid "The response is too large."
+msgstr ""
+
+msgid ""
+"The same code must appear on both computers:\n"
+"\n"
+"%(code)s\n"
+"\n"
+"Other branch: %(branch)s\n"
+"Fingerprint: %(fingerprint)s\n"
+"\n"
+"Does the code match?"
+msgstr ""
+
+msgid "The save request is invalid."
+msgstr ""
+
+msgid "The secure interface could not be registered."
+msgstr ""
+
+msgid "The secure message could not be opened."
+msgstr ""
+
+msgid "The secure message is invalid."
+msgstr ""
+
+msgid "The secure session has already been used."
+msgstr ""
+
+msgid "The secure session is damaged."
+msgstr ""
+
+msgid "The secure session is unknown or expired."
+msgstr ""
+
+msgid "The secure session request is invalid."
+msgstr ""
+
+msgid "The secure session response is invalid."
+msgstr ""
+
+msgid "The selected Nextcloud DAV source was not found."
+msgstr ""
+
+msgid "The selected contacts contain no values for these columns."
+msgstr ""
+
+msgid "The selected file is not a readable CSV file."
+msgstr ""
+
+msgid "The selected file is not a readable iCalendar file."
+msgstr ""
+
+msgid "The selected health records contain no printable values."
+msgstr ""
+
+msgid "The selected iCalendar file is incomplete."
+msgstr ""
+
+msgid "The selected path is not a regular file."
+msgstr ""
+
+msgid "The selected source was not found. Select it again in Settings."
+msgstr ""
+
+msgid ""
+"The server operator can see the account, folder and file names, sizes and "
+"times of your messages."
+msgstr ""
+
+msgid "The service returned no entries for this selection."
+msgstr ""
+
+msgid ""
+"The sheet appears at the edge of the screen, accompanied by the Magnolie "
+"chime."
+msgstr ""
+
+msgid ""
+"The small uniform icons open an installed application when possible. "
+"Otherwise, a secure web service is used in the browser."
+msgstr ""
+
+msgid "The snapshot operation failed."
+msgstr ""
+
+msgid "The start date must not be after the end date."
+msgstr ""
+
+msgid "The synchronization resume journal is damaged."
+msgstr ""
+
+msgid "The system dialer opens on the phone. Confirm the call there."
+msgstr ""
+
+msgid "The task is missing from the update."
+msgstr ""
+
+msgid ""
+"The task will be sent to the selected branch. It will also remain here so "
+"you can keep track of it."
+msgstr ""
+
+msgid ""
+"The traffic-light colors are general reference ranges for adults, not a "
+"diagnosis. Check abnormal readings and discuss them with a doctor; seek "
+"immediate medical help for severe symptoms."
+msgstr ""
+
+#, python-format
+msgid "The tray applet could not be started: %s"
+msgstr ""
+
+msgid "The tray applet is not available on this system."
+msgstr ""
+
+msgid ""
+"The tray applet requires Ayatana AppIndicator. On plain GNOME, the "
+"AppIndicator extension is also required."
+msgstr ""
+
+msgid "The trust setting is invalid."
+msgstr ""
+
+msgid "The two entries do not match."
+msgstr ""
+
+msgid "The two new passwords do not match."
+msgstr ""
+
+msgid "The update check failed."
+msgstr ""
+
+msgid "The update information does not contain a valid package checksum."
+msgstr ""
+
+msgid "The update information does not contain a valid version."
+msgstr ""
+
+msgid "The update information does not refer to an allowed package URL."
+msgstr ""
+
+msgid "The update information has an invalid signature."
+msgstr ""
+
+#, python-format
+msgid "The update information is currently unavailable (%s)."
+msgstr ""
+
+msgid "The update information is unexpectedly large."
+msgstr ""
+
+msgid "The update information is unreadable."
+msgstr ""
+
+msgid "The user data could not be read."
+msgstr ""
+
+msgid "The value is outside the general green reference range."
+msgstr ""
+
+msgid "The wake-up reminder"
+msgstr ""
+
+msgid ""
+"The weather service estimated the location from your public IP address. Your "
+"own address in Contacts provides a more precise location."
+msgstr ""
+
+#, python-format
+msgid ""
+"The weather service is unavailable. Is there an internet connection? (%s)"
+msgstr ""
+
+#, python-format
+msgid "The weather service rejected the request (error %s)."
+msgstr ""
+
+msgid "The weather service returned no forecast."
+msgstr ""
+
+msgid "The weather service returned too much data."
+msgstr ""
+
+msgid "The weather service returned unreadable data."
+msgstr ""
+
+msgid ""
+"The year calendar shows all twelve months; the month calendar provides more "
+"room for entries."
+msgstr ""
+
+msgid "The year is invalid."
+msgstr ""
+
+msgid "There are no entries to export yet."
+msgstr ""
+
+msgid "There are no entries."
+msgstr ""
+
+msgid "There are no holidays in the organizer for this selection yet."
+msgstr ""
+
+msgid "There are no saved entries on this page."
+msgstr ""
+
+msgid "There is no notebook in this group yet."
+msgstr ""
+
+msgid ""
+"There is nothing scheduled in this period.\n"
+"Click a day on the left to add an appointment."
+msgstr ""
+
+msgid "There is nothing to print."
+msgstr ""
+
+msgid ""
+"These options require the matching permissions in Magnolie Notes. Call audio "
+"is not sent over the Magnolie data connection."
+msgstr ""
+
+msgid "This address can be selected and copied."
+msgstr ""
+
+msgid "This appointment will appear every %(weekday)s."
+msgstr ""
+
+msgid "This appointment will appear every day."
+msgstr ""
+
+msgid "This appointment will appear every year on %(month)s %(day)s."
+msgstr ""
+
+msgid ""
+"This appointment will appear on day %(day)s of every month. In shorter "
+"months, it moves to the last day."
+msgstr ""
+
+msgid "This backup cannot be used."
+msgstr ""
+
+msgid "This branch has not been confirmed."
+msgstr ""
+
+msgid "This branch has not yet been confirmed."
+msgstr ""
+
+msgid "This branch is not known."
+msgstr ""
+
+msgid ""
+"This choice also determines how names appear on contact cards and under "
+"which letter they are filed in the index."
+msgstr ""
+
+msgid "This contact card has no email address."
+msgstr ""
+
+msgid "This contact card has no postal address."
+msgstr ""
+
+msgid "This image format cannot be used."
+msgstr ""
+
+msgid "This is a reminder test."
+msgstr ""
+
+msgid "This is available only in the installed application."
+msgstr ""
+
+msgid "This is how the organizer reminds you about an appointment."
+msgstr ""
+
+msgid ""
+"This is how your notes look: <b>bold</b>, <i>italic</i>, <u>underlined</u> "
+"and <s>struck through</s>."
+msgstr ""
+
+msgid "This is not a Magnolienbaum message."
+msgstr ""
+
+msgid ""
+"This is one occurrence of a recurring appointment. Changes apply to all "
+"occurrences in this series."
+msgstr ""
+
+msgid ""
+"This is only the encrypted Magnolienbaum fallback for baum-1. It does not "
+"synchronize calendars or contacts. Both partners need access to the same "
+"Nextcloud storage."
+msgstr ""
+
+msgid ""
+"This leaves time to get something, followed by another reminder on the day "
+"itself. For example: “Max Mustermann has a birthday tomorrow” and the next "
+"day “Max Mustermann has a birthday today”. Anniversary reminders are shown "
+"in the morning."
+msgstr ""
+
+msgid "This message has already been received."
+msgstr ""
+
+msgid "This notebook is still empty."
+msgstr ""
+
+msgid "This paired phone is my own device"
+msgstr ""
+
+msgid "This person's anniversaries"
+msgstr ""
+
+msgid ""
+"This program is free software: you may redistribute and modify it. It is "
+"published in the hope that it will be useful, but without any warranty. The "
+"full license text is available at /usr/share/common-licenses/GPL-3."
+msgstr ""
+
+msgid "This secure session already exists."
+msgstr ""
+
+msgid "This setting applies when you restore the window from the tray menu."
+msgstr ""
+
+msgid "This status comes from Magnolie Notes, not KDE Connect."
+msgstr ""
+
+msgid ""
+"This system did not allow waking from suspend. The reminder will appear as "
+"soon as the computer is running again."
+msgstr ""
+
+msgid "This task came from “%(branch)s”."
+msgstr ""
+
+msgid "This type cannot be shared."
+msgstr ""
+
+msgid "Through"
+msgstr ""
+
+msgid ""
+"Thunderbird, the Mint/GNOME calendar and most other applications export "
+"appointments as .ics files and contacts as .vcf files."
+msgstr ""
+
+msgid "Thurgau"
+msgstr ""
+
+msgid "Thuringia"
+msgstr ""
+
+msgid "Thursday"
+msgstr ""
+
+msgid "Thyroid"
+msgstr ""
+
+msgid "Ticino"
+msgstr ""
+
+msgid "Time"
+msgstr ""
+
+msgid "Title"
+msgstr ""
+
+msgid "To"
+msgstr ""
+
+msgid ""
+"To change it, enter only the new password; the organizer is already unlocked."
+msgstr ""
+
+msgid "Today"
+msgstr ""
+
+msgid "Today is %(date)s"
+msgstr ""
+
+msgid "Tomorrow"
+msgstr ""
+
+msgid "Too many failed attempts – wait %(duration)s."
+msgstr ""
+
+msgid "Too many failed attempts. Wait a moment."
+msgstr ""
+
+msgid "Too many pairing files are still valid."
+msgstr ""
+
+msgid "Too many pairing requests are awaiting confirmation."
+msgstr ""
+
+msgid "Too many regions were selected."
+msgstr ""
+
+msgid "Too many requests."
+msgstr ""
+
+msgid "Too many secure sessions are open."
+msgstr ""
+
+msgid "Tray applet"
+msgstr ""
+
+msgid "Trust and accept tasks and notes automatically"
+msgstr ""
+
+msgid "Tuesday"
+msgstr ""
+
+msgid "Turn back"
+msgstr ""
+
+msgid "Turn forward"
+msgstr ""
+
+msgid "Two days back"
+msgstr ""
+
+msgid "Two days forward"
+msgstr ""
+
+msgid "Type"
+msgstr ""
+
+msgid "Typeface"
+msgstr ""
+
+msgid "Typography"
+msgstr ""
+
+msgid "Typography for your entries"
+msgstr ""
+
+msgid "Tyrol"
+msgstr ""
+
+msgid "U"
+msgstr ""
+
+msgid "UFW configuration was cancelled or failed."
+msgstr ""
+
+#, python-format
+msgid "UFW could not be configured (%s)."
+msgstr ""
+
+msgid "UFW is active, but its command could not be found."
+msgstr ""
+
+msgid "URI"
+msgstr ""
+
+msgid "Unavailable"
+msgstr ""
+
+msgid ""
+"Under Wayland, the compositor determines the exact window position; "
+"centering and maximizing are passed on as requests."
+msgstr ""
+
+msgid "Underline"
+msgstr ""
+
+msgid "Unexpected error."
+msgstr ""
+
+msgid "Unit"
+msgstr ""
+
+msgid "Unknown"
+msgstr ""
+
+msgid "Unknown caller"
+msgstr ""
+
+msgid "Unknown endpoint."
+msgstr ""
+
+msgid "Unknown phone"
+msgstr ""
+
+msgid "Unlink"
+msgstr ""
+
+msgid "Unlock"
+msgstr ""
+
+msgid "Unlock Magnolie Organizer"
+msgstr ""
+
+msgid "Unlock the organizer before receiving Magnolienbaum messages."
+msgstr ""
+
+msgid "Unlocking the Magnolienbaum storage"
+msgstr ""
+
+#, python-format
+msgid "Unreadable message from the interface: %s"
+msgstr ""
+
+msgid "Unsupported alarm"
+msgstr ""
+
+msgid "Until (leave blank for no end)"
+msgstr ""
+
+msgid "Untitled"
+msgstr ""
+
+msgid "Untitled appointment"
+msgstr ""
+
+msgid "Update checking is available in the installed application."
+msgstr ""
+
+msgid "Update checking is available only in the installed application."
+msgstr ""
+
+msgid "Update weather"
+msgstr ""
+
+msgid "Updates"
+msgstr ""
+
+msgid "Upper Austria"
+msgstr ""
+
+msgid "Uptime"
+msgstr ""
+
+msgid "Uri"
+msgstr ""
+
+msgid "Usage:"
+msgstr ""
+
+msgid "Use a specific application or command"
+msgstr ""
+
+msgid "Use a specific website"
+msgstr ""
+
+msgid "Use a supported language code or system for this invocation"
+msgstr ""
+
+msgid "Use basal units"
+msgstr ""
+
+msgid "Use contact addresses"
+msgstr ""
+
+msgid "Use default"
+msgstr ""
+
+msgid "Use numeric keypad"
+msgstr ""
+
+msgid ""
+"Use only schedules prescribed or confirmed by a healthcare professional."
+msgstr ""
+
+msgid ""
+"Use the arrows to arrange groups and notebooks, or use the selection to move "
+"a notebook to another group."
+msgstr ""
+
+msgid "Use the mailbox as a fallback for branch baum-1"
+msgstr ""
+
+msgid ""
+"Use the mouse wheel to change the time in 5-minute steps (hold Shift for "
+"whole hours)"
+msgstr ""
+
+msgid "Use the recycle bin"
+msgstr ""
+
+msgid "User name"
+msgstr ""
+
+msgid ""
+"Uses its own identity and storage and listens only on fixed port %(port)s. "
+"It never uses Magnolienbaum partners, permissions, queues or Bluetooth "
+"identity."
+msgstr ""
+
+msgid "Vacation"
+msgstr ""
+
+msgid ""
+"Vacation periods are local calendar markings. They do not send notifications "
+"and can be included separately when printing the planner."
+msgstr ""
+
+msgid "Vacation planner"
+msgstr ""
+
+msgid "Valais"
+msgstr ""
+
+msgid ""
+"Validated archive\n"
+"Source: %(source)s\n"
+"Created: %(created)s\n"
+"Application entries: %(entries)s\n"
+"Photos: %(photos)s, Attachments: %(attachments)s\n"
+"\n"
+"The current data will be backed up locally automatically and then completely "
+"replaced."
+msgstr ""
+
+msgid "Value"
+msgstr ""
+
+msgid "Vaud"
+msgstr ""
+
+msgid "Verify after downloading with: %(command)s"
+msgstr ""
+
+msgid "Version %(version)s"
+msgstr ""
+
+msgid "Version %(version)s is up to date. Last checked: %(date)s."
+msgstr ""
+
+msgid "Via internet"
+msgstr ""
+
+msgid "Vienna"
+msgstr ""
+
+msgid "View and edit appointment"
+msgstr ""
+
+msgid "Vital signs"
+msgstr ""
+
+msgid "Vital signs table"
+msgstr ""
+
+msgid "Vorarlberg"
+msgstr ""
+
+msgid ""
+"WLAN has priority. Bluetooth data starts only after WLAN failure and carries "
+"the same encrypted phone frames."
+msgstr ""
+
+msgid "WLAN listener on port %(port)s"
+msgstr ""
+
+msgid "Waiting for consent on the other device."
+msgstr ""
+
+msgid "Waiting for device status"
+msgstr ""
+
+msgid ""
+"Waiting for the phone on port %(port)s. Pairing closes after %(seconds)s "
+"seconds."
+msgstr ""
+
+msgid "Wake the computer from suspend"
+msgstr ""
+
+msgid "Warning: The data could not be saved."
+msgstr ""
+
+#, python-format
+msgid "Warning: The data file could not be read (%s)."
+msgstr ""
+
+msgid "Waste collection calendar"
+msgstr ""
+
+msgid "We are glad you are here!"
+msgstr ""
+
+msgid "Weather"
+msgstr ""
+
+msgid "Weather display"
+msgstr ""
+
+msgid "Weather for the next three days"
+msgstr ""
+
+msgid "Weather is available in the installed application."
+msgstr ""
+
+msgid ""
+"Weather requests are sent to wttr.in. Your own address in Contacts is used "
+"first, followed by local LibreOffice user data. If neither contains a "
+"location and retrieval without one is allowed, wttr.in estimates the "
+"location from your internet connection's public IP address."
+msgstr ""
+
+msgid "Weather was not retrieved because no location is available."
+msgstr ""
+
+msgid "Wedding anniversary"
+msgstr ""
+
+msgid "Wednesday"
+msgstr ""
+
+msgid "Week"
+msgstr ""
+
+msgid "Week %(number)s"
+msgstr ""
+
+msgid "Week numbers"
+msgstr ""
+
+msgid "Weekly"
+msgstr ""
+
+msgid "Weekly variation for %(name)s"
+msgstr ""
+
+msgid "Weekly view"
+msgstr ""
+
+msgid "Weight"
+msgstr ""
+
+msgid "Welcome ✱"
+msgstr ""
+
+msgid "What is it about?"
+msgstr ""
+
+msgid "What needs to be done?"
+msgstr ""
+
+msgid ""
+"When disabled, dates can still be entered as eight digits in day, month and "
+"four-digit year order."
+msgstr ""
+
+msgid ""
+"When disabled, you write on plain paper. Line spacing remains the same; only "
+"the lines disappear."
+msgstr ""
+
+msgid "When opening from the tray"
+msgstr ""
+
+msgid ""
+"When selected, you can assign a photo to each person. Embedded photos are "
+"preserved during import, export and synchronization with an online address "
+"book. Email addresses on contact cards are always clickable and open your "
+"mail application."
+msgstr ""
+
+msgid ""
+"When writing a note, a small toolbar above the sheet provides bold, italic, "
+"underline and strikethrough. The same formatting is available with Ctrl+B, "
+"Ctrl+I, Ctrl+U and Ctrl+D."
+msgstr ""
+
+msgid "Whole month"
+msgstr ""
+
+msgid "Wife"
+msgstr ""
+
+msgid "Wireless"
+msgstr ""
+
+msgid ""
+"With a password or numeric code, the organizer asks for it when opening and "
+"stores your data only in encrypted form in your home directory (AES-256)."
+msgstr ""
+
+msgid "With photo"
+msgstr ""
+
+msgid ""
+"Without a shell; {ziel}, {wert}, and {nummer} can be used as placeholders. "
+"Flatpak and Snap can be selected as flatpak:APP-ID or snap:Name."
+msgstr ""
+
+msgid ""
+"Without this second selection, the background reminder service does not show "
+"notifications for confidential appointments."
+msgstr ""
+
+msgid "Work"
+msgstr ""
+
+msgid "Work address"
+msgstr ""
+
+msgid "Work anniversary"
+msgstr ""
+
+msgid "Work phone"
+msgstr ""
+
+msgid "Workgroup (all)"
+msgstr ""
+
+msgid "Workshop appointment"
+msgstr ""
+
+msgid "Write a message to %(address)s"
+msgstr ""
+
+msgid "Write an SMS using KDE Connect or the assigned application"
+msgstr ""
+
+msgid "Write here …"
+msgstr ""
+
+msgid "Write startup and tray diagnostics to the debug log"
+msgstr ""
+
+msgid "Writing sheet"
+msgstr ""
+
+msgid "X (formerly Twitter)"
+msgstr ""
+
+msgid "Year"
+msgstr ""
+
+msgid "Year calendar"
+msgstr ""
+
+msgid "Year planner %(year)s"
+msgstr ""
+
+msgid "Yes"
+msgstr ""
+
+msgid "Yes, merge"
+msgstr ""
+
+msgid "Yes, the code matches"
+msgstr ""
+
+msgid "Your address"
+msgstr ""
+
+msgid "Your address above is used as the starting point."
+msgstr ""
+
+msgid "Your data from “Organizer Klassik” has been imported."
+msgstr ""
+
+msgid ""
+"Your data is stored at:\n"
+"%(path)s"
+msgstr ""
+
+msgid "Your data is stored at: %(path)s"
+msgstr ""
+
+msgid ""
+"Your own address is required as the starting point for a route. Enter it "
+"under Settings ▸ Contacts."
+msgstr ""
+
+msgid "Yours sincerely,"
+msgstr ""
+
+msgid "ZIP archives (*.zip)"
+msgstr ""
+
+msgid "Zug"
+msgstr ""
+
+msgid "Zurich"
+msgstr ""
+
+msgid "after 30 days"
+msgstr ""
+
+msgid "after 7 days"
+msgstr ""
+
+msgid "after 90 days"
+msgstr ""
+
+msgid "after one year"
+msgstr ""
+
+msgid "all cantons"
+msgstr ""
+
+msgid "all day"
+msgstr ""
+
+#, python-format
+msgid "all except %(regions)s"
+msgstr ""
+
+msgid "all states"
+msgstr ""
+
+msgid "also remind me about it"
+msgstr ""
+
+msgid "and"
+msgstr ""
+
+msgid "and %(count)s more"
+msgid_plural "and %(count)s more"
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "app password from Nextcloud"
+msgstr ""
+
+msgid "application {ziel}"
+msgstr ""
+
+msgid "approximate area"
+msgstr ""
+
+msgid "at %(time)s"
+msgstr ""
+
+msgid "at least four characters"
+msgstr ""
+
+msgid "at the appointment time"
+msgstr ""
+
+msgid "before start"
+msgstr ""
+
+msgid "blood-glucose"
+msgstr ""
+
+msgid "browser storage"
+msgstr ""
+
+msgid "confidential"
+msgstr ""
+
+msgid "confirmed"
+msgstr ""
+
+msgid "days"
+msgstr ""
+
+msgid "days before"
+msgstr ""
+
+msgid "due %(date)s"
+msgstr ""
+
+msgid "due by %(date)s"
+msgstr ""
+
+msgid "due from"
+msgstr ""
+
+#, python-format
+msgid "due in %d day"
+msgid_plural "due in %d days"
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "e.g. 1 day before"
+msgstr ""
+
+msgid "e.g. Birthday"
+msgstr ""
+
+msgid "e.g. Doctor appointment"
+msgstr ""
+
+msgid "e.g. Mobile"
+msgstr ""
+
+msgid "e.g. Private"
+msgstr ""
+
+msgid "e.g. Send documents"
+msgstr ""
+
+msgid "e.g. Son"
+msgstr ""
+
+msgid "e.g. Work"
+msgstr ""
+
+msgid "e.g. glass or hazardous waste"
+msgstr ""
+
+msgid "e.g. kitchen or workshop"
+msgstr ""
+
+msgid "e.g. medication day"
+msgstr ""
+
+msgid "e.g. on-call duty"
+msgstr ""
+
+msgid "event loop"
+msgstr ""
+
+msgid "every"
+msgstr ""
+
+msgid "every 12 hours"
+msgstr ""
+
+msgid "every 3 hours"
+msgstr ""
+
+msgid "every 30 minutes"
+msgstr ""
+
+msgid "every 6 hours"
+msgstr ""
+
+msgid "every day"
+msgstr ""
+
+msgid "every hour"
+msgstr ""
+
+msgid "every month on the %(ordinal)s %(weekday)s"
+msgstr ""
+
+msgid "every month on the same day"
+msgstr ""
+
+msgid "every week on the same weekday"
+msgstr ""
+
+msgid "every year on the same date"
+msgstr ""
+
+msgid "first"
+msgstr ""
+
+msgid "first on"
+msgstr ""
+
+msgid "for the %(ordinal)s time"
+msgstr ""
+
+msgid "fourth"
+msgstr ""
+
+msgid "from"
+msgstr ""
+
+msgid "high"
+msgstr ""
+
+msgid "hours before"
+msgstr ""
+
+msgid "https://… (optionally with {wert} or {nummer})"
+msgstr ""
+
+msgid "iCalendar (*.ics)"
+msgstr ""
+
+msgid "in %(count)s day"
+msgid_plural "in %(count)s days"
+msgstr[0] ""
+msgstr[1] ""
+
+#, python-format
+msgid "in %d day"
+msgid_plural "in %d days"
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "keep here"
+msgstr ""
+
+msgid "last"
+msgstr ""
+
+msgid "local / not opened"
+msgstr ""
+
+msgid "low"
+msgstr ""
+
+msgid "medium"
+msgstr ""
+
+msgid "minutes before"
+msgstr ""
+
+msgid "modified %(date)s"
+msgstr ""
+
+msgid "name@example.com"
+msgstr ""
+
+msgid "never – empty manually"
+msgstr ""
+
+msgid "new task for this appointment…"
+msgstr ""
+
+msgid "no changes"
+msgstr ""
+
+msgid "no reason given"
+msgstr ""
+
+msgid "none"
+msgstr ""
+
+msgid "not delivered"
+msgstr ""
+
+msgid "notification %(count)s minute before"
+msgid_plural "notification %(count)s minutes before"
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "on the day only"
+msgstr ""
+
+msgid "once"
+msgstr ""
+
+msgid "one backup was encrypted as well"
+msgid_plural "%(count)s backups were encrypted as well"
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "one contact card"
+msgid_plural "%(count)s contact cards"
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "only %(year)s"
+msgstr ""
+
+msgid "or enter a host name or IP address"
+msgstr ""
+
+msgid "pulse"
+msgstr ""
+
+msgid "recurring appointment"
+msgstr ""
+
+msgid "remind me on the due date"
+msgstr ""
+
+msgid "second"
+msgstr ""
+
+msgid "stored – leave empty to keep"
+msgstr ""
+
+msgid "system notification"
+msgstr ""
+
+msgid "systemd-run is required to schedule wake-up reminders on this system."
+msgstr ""
+
+msgid "tentative"
+msgstr ""
+
+msgid "the day after tomorrow"
+msgstr ""
+
+msgid "the other branch"
+msgstr ""
+
+msgid "third"
+msgstr ""
+
+msgid "to"
+msgstr ""
+
+msgid "today"
+msgstr ""
+
+msgid "today!"
+msgstr ""
+
+msgid "tomorrow"
+msgstr ""
+
+msgid "turns %(age)s"
+msgstr ""
+
+msgid "unknown"
+msgstr ""
+
+msgid "unknown error"
+msgstr ""
+
+msgid "untitled"
+msgstr ""
+
+msgid "vCalendar (*.vcs)"
+msgstr ""
+
+msgid ""
+"vCard preserves more contact details. LDIF is intended for importing into "
+"Claws Mail; emergency contacts, social media, free labels and non-JPEG "
+"photos cannot be included."
+msgstr ""
+
+msgid "vital"
+msgstr ""
+
+msgid "waiting loop"
+msgstr ""
+
+msgid "– Anniversaries automatically appear with ✱ in the calendar."
+msgstr ""
+
+msgid ""
+"– Everything is saved automatically. Use “Create backup” at the bottom right "
+"to create an additional backup copy."
+msgstr ""
+
+msgid ""
+"– In the calendar, use the controls at the top to switch between month and "
+"week view."
+msgstr ""
+
+msgid ""
+"– The colored tabs along the edge lead to the sections. Tabs you have "
+"already passed move to the left side, just like in a real ring binder."
+msgstr ""
+
+msgid ""
+"– The folded corners at the bottom turn pages forward and back: by month in "
+"the calendar, by year in the planner, and page by page here."
+msgstr ""
+
+msgid ""
+"– Turn times in 5-minute increments with the mouse wheel (hold Shift for "
+"whole hours); the end time moves along with it. For appointments without a "
+"fixed time, select “All day”."
+msgstr ""
+
+msgid ""
+"– Under “Settings” at the bottom right, you can import appointments and "
+"addresses from other programs (.ics, .vcf, Lotus CSV), export them, and "
+"connect your system's online accounts. On the “Region & holidays” page, "
+"enter your country and state and import all public and school holidays once."
+msgstr ""
+
+msgid "— do not link —"
+msgstr ""
+
+msgid "— not specified —"
+msgstr ""
+
+msgid "— please select —"
+msgstr ""
+
+msgid "“%(name)s” was restored."
+msgstr ""
+
+msgid "“%(word)s” is now in the dictionary."
+msgstr ""
+
+msgid ""
+"“From this computer” reads contacts, appointments and tasks directly from "
+"Evolution (including cached online accounts) and Thunderbird without further "
+"setup. It only reads these stores and does not change them. The organizer "
+"automatically detects whether a Lotus CSV contains appointments, contacts, "
+"tasks, anniversaries or notes. Calendar files provide appointments, annual "
+"recurrences as anniversaries, and tasks. Birthdays from contact files become "
+"anniversaries. Existing entries are not added twice."
+msgstr ""
+
+msgid "… and %(count)s more item that will also be printed."
+msgid_plural "… and %(count)s more items that will also be printed."
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "＋ Add appointment"
+msgstr ""

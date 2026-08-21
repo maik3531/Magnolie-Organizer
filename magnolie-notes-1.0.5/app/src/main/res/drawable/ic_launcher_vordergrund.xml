@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Notizblatt mit geprägter Magnolienblüte, im Zuschnitt des Organizer-Symbols. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Papierblatt -->
+    <group android:translateX="0" android:translateY="0">
+        <path
+            android:pathData="M31,24 L71,24 A4,4 0 0 1 75,28 L75,80 A4,4 0 0 1 71,84 L37,84 A4,4 0 0 1 33,80 L33,26 Z"
+            android:fillColor="#F6EFDC" />
+        <path
+            android:pathData="M31,24 L71,24 A4,4 0 0 1 75,28 L75,80 A4,4 0 0 1 71,84 L37,84 A4,4 0 0 1 33,80 L33,26 Z"
+            android:strokeColor="#A8823C"
+            android:strokeWidth="1.4" />
+        <!-- Linienspiegel -->
+        <path android:pathData="M40,70h28" android:strokeColor="#D8C39A" android:strokeWidth="1.2" />
+        <path android:pathData="M40,75h28" android:strokeColor="#D8C39A" android:strokeWidth="1.2" />
+        <!-- Randstreifen des Registers -->
+        <path android:pathData="M33,26 L33,84" android:strokeColor="#B5443A" android:strokeWidth="3" />
+    </group>
+
+    <!-- Magnolienblüte, dieselben Bögen wie im Organizer-Symbol -->
+    <group
+        android:translateX="54"
+        android:translateY="50"
+        android:scaleX="0.72"
+        android:scaleY="0.72">
+        <group android:translateX="-32" android:translateY="-32">
+            <path android:pathData="M32,34 C26,26 26,16 32,9 C38,16 38,26 32,34 Z"
+                android:strokeColor="#A8823C" android:strokeWidth="2.6"
+                android:strokeLineCap="round" android:strokeLineJoin="round" />
+            <path android:pathData="M32,34 C23,32 15,26 13,17 C22,17 30,24 32,34 Z"
+                android:strokeColor="#A8823C" android:strokeWidth="2.6"
+                android:strokeLineCap="round" android:strokeLineJoin="round" />
+            <path android:pathData="M32,34 C41,32 49,26 51,17 C42,17 34,24 32,34 Z"
+                android:strokeColor="#A8823C" android:strokeWidth="2.6"
+                android:strokeLineCap="round" android:strokeLineJoin="round" />
+            <path android:pathData="M32,34 C24,40 21,47 22,54 C28,51 32,44 32,34 Z"
+                android:strokeColor="#A8823C" android:strokeWidth="2.6"
+                android:strokeLineCap="round" android:strokeLineJoin="round" />
+            <path android:pathData="M32,34 C40,40 43,47 42,54 C36,51 32,44 32,34 Z"
+                android:strokeColor="#A8823C" android:strokeWidth="2.6"
+                android:strokeLineCap="round" android:strokeLineJoin="round" />
+        </group>
+    </group>
+</vector>

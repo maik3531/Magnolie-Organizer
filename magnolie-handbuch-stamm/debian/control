@@ -1,0 +1,25 @@
+Source: magnolie-handbuch
+Section: doc
+Priority: optional
+Maintainer: Maik Walter <maik3531@gmail.com>
+Build-Depends: debhelper-compat (= 13), python3:any, gettext, nodejs, node-jsdom
+Standards-Version: 4.6.2
+Rules-Requires-Root: no
+
+Package: magnolie-handbuch
+Architecture: all
+Depends: ${misc:Depends}, python3, gettext, python3-gi, gir1.2-gtk-3.0, gir1.2-webkit2-4.1 | gir1.2-webkit2-4.0
+Recommends: magnolie-organizer (>= 2.0.0)
+Description: Illustrated user handbook for Magnolie Organizer
+ The complete handbook for Magnolie Organizer, presented like the application
+ itself: an open landscape-format book with a brown leather cover, ring binding,
+ and folded page corners for turning pages.
+ .
+ It explains every feature in full sentences, including appointments, addresses,
+ tasks, notes, anniversaries, reminders, holidays, Lotus Organizer migration,
+ Magnolienbaum, updates, the recycle bin, password protection, and backups.
+ English and German editions include examples, step-by-step instructions, and
+ illustrations for readers without prior experience.
+ .
+ A clickable table of contents links to every chapter. The entire handbook can
+ be printed on A4 with safe margins or saved as a PDF file.

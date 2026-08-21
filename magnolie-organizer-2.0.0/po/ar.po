@@ -1,0 +1,7425 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2026 THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the Magnolie Organizer
+# package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: Magnolie Organizer 2.0.0\n"
+"Report-Msgid-Bugs-To: maik3531@gmail.com\n"
+"POT-Creation-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"PO-Revision-Date: 2026-08-08 09:24+0200\n"
+"Last-Translator: Magnolie localization project\n"
+"Language-Team: Arabic\n"
+"Language: ar\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=6; plural=(n==0 ? 0 : n==1 ? 1 : n==2 ? 2 : n%100>=3 "
+"&& n%100<=10 ? 3 : n%100>=11 && n%100<=99 ? 4 : 5);\n"
+"Generated-By: Babel 2.18.0\n"
+
+msgid " (filtered)"
+msgstr " (مصفّى)"
+
+msgid " (public holiday)"
+msgstr " (عطلة رسمية)"
+
+msgid " (school holidays)"
+msgstr " (عطلة مدرسية)"
+
+msgid " at %(time)s"
+msgstr " في %(time)s"
+
+#, python-format
+msgid " at %s"
+msgstr " في %s"
+
+msgid " for %(years)s"
+msgstr " لمدة %(years)s"
+
+msgid " from %(branch)s"
+msgstr " من %(branch)s"
+
+msgid " – notification at the appointment time."
+msgstr " – إشعار في موعد الحدث."
+
+msgid ""
+"%(appointment)s\n"
+"Click to edit"
+msgstr ""
+"%(appointment)s\n"
+"انقر للتحرير"
+
+#, python-format
+msgid ""
+"%(branch)s offers contact synchronization. Please accept or reject it in the "
+"Organizer."
+msgstr "يعرض %(branch)s مزامنة جهات الاتصال. اقبلها أو ارفضها في المنظم."
+
+#, python-format
+msgid ""
+"%(branch)s wants to share a note. Please accept or reject it in the "
+"Organizer."
+msgstr "يريد %(branch)s مشاركة ملاحظة. يُرجى قبولها أو رفضها في Organizer."
+
+#, python-format
+msgid ""
+"%(branch)s wants to share a task. Please accept or reject it in the "
+"Organizer."
+msgstr "يريد %(branch)s مشاركة مهمة. يُرجى قبولها أو رفضها في Organizer."
+
+#, python-format
+msgid ""
+"%(branch)s wants to share an address. Please accept or reject it in the "
+"Organizer."
+msgstr "يريد %(branch)s مشاركة عنوان. يُرجى قبوله أو رفضه في Organizer."
+
+#, python-format
+msgid ""
+"%(branch)s wants to share an appointment. Please accept or reject it in the "
+"Organizer."
+msgstr "يريد %(branch)s مشاركة موعد. يُرجى قبوله أو رفضه في Organizer."
+
+msgid ""
+"%(cards)s merged. Copies are stored under “Duplicates” in the recycle bin."
+msgstr "تم دمج %(cards)s. حُفظت النسخ ضمن «التكرارات» في سلة المحذوفات."
+
+msgid "%(count)s anniversary"
+msgid_plural "%(count)s anniversaries"
+msgstr[0] "عدد المناسبات السنوية: %(count)s"
+msgstr[1] "عدد المناسبات السنوية: %(count)s"
+msgstr[2] "عدد المناسبات السنوية: %(count)s"
+msgstr[3] "عدد المناسبات السنوية: %(count)s"
+msgstr[4] "عدد المناسبات السنوية: %(count)s"
+msgstr[5] "عدد المناسبات السنوية: %(count)s"
+
+msgid "%(count)s anniversary entered"
+msgid_plural "%(count)s anniversaries entered"
+msgstr[0] "عدد المناسبات السنوية المُدخلة: %(count)s"
+msgstr[1] "عدد المناسبات السنوية المُدخلة: %(count)s"
+msgstr[2] "عدد المناسبات السنوية المُدخلة: %(count)s"
+msgstr[3] "عدد المناسبات السنوية المُدخلة: %(count)s"
+msgstr[4] "عدد المناسبات السنوية المُدخلة: %(count)s"
+msgstr[5] "عدد المناسبات السنوية المُدخلة: %(count)s"
+
+msgid "%(count)s appointment"
+msgid_plural "%(count)s appointments"
+msgstr[0] "عدد المواعيد: %(count)s"
+msgstr[1] "عدد المواعيد: %(count)s"
+msgstr[2] "عدد المواعيد: %(count)s"
+msgstr[3] "عدد المواعيد: %(count)s"
+msgstr[4] "عدد المواعيد: %(count)s"
+msgstr[5] "عدد المواعيد: %(count)s"
+
+msgid "%(count)s attachment"
+msgid_plural "%(count)s attachments"
+msgstr[0] "عدد المرفقات: %(count)s"
+msgstr[1] "عدد المرفقات: %(count)s"
+msgstr[2] "عدد المرفقات: %(count)s"
+msgstr[3] "عدد المرفقات: %(count)s"
+msgstr[4] "عدد المرفقات: %(count)s"
+msgstr[5] "عدد المرفقات: %(count)s"
+
+msgid "%(count)s birthday"
+msgid_plural "%(count)s birthdays"
+msgstr[0] "عدد أعياد الميلاد: %(count)s"
+msgstr[1] "عدد أعياد الميلاد: %(count)s"
+msgstr[2] "عدد أعياد الميلاد: %(count)s"
+msgstr[3] "عدد أعياد الميلاد: %(count)s"
+msgstr[4] "عدد أعياد الميلاد: %(count)s"
+msgstr[5] "عدد أعياد الميلاد: %(count)s"
+
+msgid "%(count)s contact"
+msgid_plural "%(count)s contacts"
+msgstr[0] "عدد جهات الاتصال: %(count)s"
+msgstr[1] "عدد جهات الاتصال: %(count)s"
+msgstr[2] "عدد جهات الاتصال: %(count)s"
+msgstr[3] "عدد جهات الاتصال: %(count)s"
+msgstr[4] "عدد جهات الاتصال: %(count)s"
+msgstr[5] "عدد جهات الاتصال: %(count)s"
+
+msgid "%(count)s contact card"
+msgid_plural "%(count)s contact cards"
+msgstr[0] "عدد بطاقات جهات الاتصال: %(count)s"
+msgstr[1] "عدد بطاقات جهات الاتصال: %(count)s"
+msgstr[2] "عدد بطاقات جهات الاتصال: %(count)s"
+msgstr[3] "عدد بطاقات جهات الاتصال: %(count)s"
+msgstr[4] "عدد بطاقات جهات الاتصال: %(count)s"
+msgstr[5] "عدد بطاقات جهات الاتصال: %(count)s"
+
+msgid "%(count)s contact photo added"
+msgid_plural "%(count)s contact photos added"
+msgstr[0] "عدد صور جهات الاتصال المضافة: %(count)s"
+msgstr[1] "عدد صور جهات الاتصال المضافة: %(count)s"
+msgstr[2] "عدد صور جهات الاتصال المضافة: %(count)s"
+msgstr[3] "عدد صور جهات الاتصال المضافة: %(count)s"
+msgstr[4] "عدد صور جهات الاتصال المضافة: %(count)s"
+msgstr[5] "عدد صور جهات الاتصال المضافة: %(count)s"
+
+msgid "%(count)s day"
+msgid_plural "%(count)s days"
+msgstr[0] "عدد الأيام: %(count)s"
+msgstr[1] "عدد الأيام: %(count)s"
+msgstr[2] "عدد الأيام: %(count)s"
+msgstr[3] "عدد الأيام: %(count)s"
+msgstr[4] "عدد الأيام: %(count)s"
+msgstr[5] "عدد الأيام: %(count)s"
+
+msgid "%(count)s day before"
+msgid_plural "%(count)s days before"
+msgstr[0] "قبل %(count)s من الأيام"
+msgstr[1] "قبل %(count)s من الأيام"
+msgstr[2] "قبل %(count)s من الأيام"
+msgstr[3] "قبل %(count)s من الأيام"
+msgstr[4] "قبل %(count)s من الأيام"
+msgstr[5] "قبل %(count)s من الأيام"
+
+msgid "%(count)s email address added"
+msgid_plural "%(count)s email addresses added"
+msgstr[0] "عدد عناوين البريد الإلكتروني المضافة: %(count)s"
+msgstr[1] "عدد عناوين البريد الإلكتروني المضافة: %(count)s"
+msgstr[2] "عدد عناوين البريد الإلكتروني المضافة: %(count)s"
+msgstr[3] "عدد عناوين البريد الإلكتروني المضافة: %(count)s"
+msgstr[4] "عدد عناوين البريد الإلكتروني المضافة: %(count)s"
+msgstr[5] "عدد عناوين البريد الإلكتروني المضافة: %(count)s"
+
+msgid "%(count)s entry deleted."
+msgid_plural "%(count)s entries deleted."
+msgstr[0] "تم حذف %(count)s من الإدخالات."
+msgstr[1] "تم حذف %(count)s من الإدخالات."
+msgstr[2] "تم حذف %(count)s من الإدخالات."
+msgstr[3] "تم حذف %(count)s من الإدخالات."
+msgstr[4] "تم حذف %(count)s من الإدخالات."
+msgstr[5] "تم حذف %(count)s من الإدخالات."
+
+msgid "%(count)s existing entry skipped."
+msgid_plural "%(count)s existing entries skipped."
+msgstr[0] "تم تخطي %(count)s من الإدخالات الموجودة."
+msgstr[1] "تم تخطي %(count)s من الإدخالات الموجودة."
+msgstr[2] "تم تخطي %(count)s من الإدخالات الموجودة."
+msgstr[3] "تم تخطي %(count)s من الإدخالات الموجودة."
+msgstr[4] "تم تخطي %(count)s من الإدخالات الموجودة."
+msgstr[5] "تم تخطي %(count)s من الإدخالات الموجودة."
+
+msgid "%(count)s found"
+msgid_plural "%(count)s found"
+msgstr[0] "عدد النتائج: %(count)s"
+msgstr[1] "عدد النتائج: %(count)s"
+msgstr[2] "عدد النتائج: %(count)s"
+msgstr[3] "عدد النتائج: %(count)s"
+msgstr[4] "عدد النتائج: %(count)s"
+msgstr[5] "عدد النتائج: %(count)s"
+
+msgid "%(count)s group"
+msgid_plural "%(count)s groups"
+msgstr[0] "عدد المجموعات: %(count)s"
+msgstr[1] "عدد المجموعات: %(count)s"
+msgstr[2] "عدد المجموعات: %(count)s"
+msgstr[3] "عدد المجموعات: %(count)s"
+msgstr[4] "عدد المجموعات: %(count)s"
+msgstr[5] "عدد المجموعات: %(count)s"
+
+msgid "%(count)s holiday period"
+msgid_plural "%(count)s holiday periods"
+msgstr[0] "عدد فترات العطلات: %(count)s"
+msgstr[1] "عدد فترات العطلات: %(count)s"
+msgstr[2] "عدد فترات العطلات: %(count)s"
+msgstr[3] "عدد فترات العطلات: %(count)s"
+msgstr[4] "عدد فترات العطلات: %(count)s"
+msgstr[5] "عدد فترات العطلات: %(count)s"
+
+msgid "%(count)s incoming offer"
+msgid_plural "%(count)s incoming offers"
+msgstr[0] "عدد العروض الواردة: %(count)s"
+msgstr[1] "عدد العروض الواردة: %(count)s"
+msgstr[2] "عدد العروض الواردة: %(count)s"
+msgstr[3] "عدد العروض الواردة: %(count)s"
+msgstr[4] "عدد العروض الواردة: %(count)s"
+msgstr[5] "عدد العروض الواردة: %(count)s"
+
+msgid "%(count)s match"
+msgid_plural "%(count)s matches"
+msgstr[0] "عدد النتائج المطابقة: %(count)s"
+msgstr[1] "عدد النتائج المطابقة: %(count)s"
+msgstr[2] "عدد النتائج المطابقة: %(count)s"
+msgstr[3] "عدد النتائج المطابقة: %(count)s"
+msgstr[4] "عدد النتائج المطابقة: %(count)s"
+msgstr[5] "عدد النتائج المطابقة: %(count)s"
+
+msgid "%(count)s minute"
+msgid_plural "%(count)s minutes"
+msgstr[0] "عدد الدقائق: %(count)s"
+msgstr[1] "عدد الدقائق: %(count)s"
+msgstr[2] "عدد الدقائق: %(count)s"
+msgstr[3] "عدد الدقائق: %(count)s"
+msgstr[4] "عدد الدقائق: %(count)s"
+msgstr[5] "عدد الدقائق: %(count)s"
+
+msgid "%(count)s more"
+msgid_plural "%(count)s more"
+msgstr[0] "المزيد: %(count)s"
+msgstr[1] "المزيد: %(count)s"
+msgstr[2] "المزيد: %(count)s"
+msgstr[3] "المزيد: %(count)s"
+msgstr[4] "المزيد: %(count)s"
+msgstr[5] "المزيد: %(count)s"
+
+msgid "%(count)s more entry"
+msgid_plural "%(count)s more entries"
+msgstr[0] "إدخالات إضافية: %(count)s"
+msgstr[1] "إدخالات إضافية: %(count)s"
+msgstr[2] "إدخالات إضافية: %(count)s"
+msgstr[3] "إدخالات إضافية: %(count)s"
+msgstr[4] "إدخالات إضافية: %(count)s"
+msgstr[5] "إدخالات إضافية: %(count)s"
+
+msgid "%(count)s new Magnolienbaum request awaits your decision."
+msgid_plural "%(count)s new Magnolienbaum requests await your decision."
+msgstr[0] "طلبات Magnolienbaum الجديدة التي تنتظر قرارك: %(count)s."
+msgstr[1] "طلبات Magnolienbaum الجديدة التي تنتظر قرارك: %(count)s."
+msgstr[2] "طلبات Magnolienbaum الجديدة التي تنتظر قرارك: %(count)s."
+msgstr[3] "طلبات Magnolienbaum الجديدة التي تنتظر قرارك: %(count)s."
+msgstr[4] "طلبات Magnolienbaum الجديدة التي تنتظر قرارك: %(count)s."
+msgstr[5] "طلبات Magnolienbaum الجديدة التي تنتظر قرارك: %(count)s."
+
+msgid "%(count)s non-JPEG contact photo was omitted."
+msgid_plural "%(count)s non-JPEG contact photos were omitted."
+msgstr[0] "تمت إزالة %(count)s صورة جهة اتصال غير بصيغة JPEG."
+msgstr[1] "تمت إزالة %(count)s صورة جهة اتصال غير بصيغة JPEG."
+msgstr[2] "تمت إزالة %(count)s صورتي جهة اتصال غير بصيغة JPEG."
+msgstr[3] "تمت إزالة %(count)s صور جهات اتصال غير بصيغة JPEG."
+msgstr[4] "تمت إزالة %(count)s صورة جهة اتصال غير بصيغة JPEG."
+msgstr[5] "تمت إزالة %(count)s صورة جهة اتصال غير بصيغة JPEG."
+
+msgid "%(count)s note"
+msgid_plural "%(count)s notes"
+msgstr[0] "عدد الملاحظات: %(count)s"
+msgstr[1] "عدد الملاحظات: %(count)s"
+msgstr[2] "عدد الملاحظات: %(count)s"
+msgstr[3] "عدد الملاحظات: %(count)s"
+msgstr[4] "عدد الملاحظات: %(count)s"
+msgstr[5] "عدد الملاحظات: %(count)s"
+
+msgid "%(count)s notebook"
+msgid_plural "%(count)s notebooks"
+msgstr[0] "عدد دفاتر الملاحظات: %(count)s"
+msgstr[1] "عدد دفاتر الملاحظات: %(count)s"
+msgstr[2] "عدد دفاتر الملاحظات: %(count)s"
+msgstr[3] "عدد دفاتر الملاحظات: %(count)s"
+msgstr[4] "عدد دفاتر الملاحظات: %(count)s"
+msgstr[5] "عدد دفاتر الملاحظات: %(count)s"
+
+msgid "%(count)s open"
+msgstr "المفتوح: %(count)s"
+
+msgid "%(count)s page"
+msgid_plural "%(count)s pages"
+msgstr[0] "عدد الصفحات: %(count)s"
+msgstr[1] "عدد الصفحات: %(count)s"
+msgstr[2] "عدد الصفحات: %(count)s"
+msgstr[3] "عدد الصفحات: %(count)s"
+msgstr[4] "عدد الصفحات: %(count)s"
+msgstr[5] "عدد الصفحات: %(count)s"
+
+msgid "%(count)s public holiday"
+msgid_plural "%(count)s public holidays"
+msgstr[0] "عدد العطلات الرسمية: %(count)s"
+msgstr[1] "عدد العطلات الرسمية: %(count)s"
+msgstr[2] "عدد العطلات الرسمية: %(count)s"
+msgstr[3] "عدد العطلات الرسمية: %(count)s"
+msgstr[4] "عدد العطلات الرسمية: %(count)s"
+msgstr[5] "عدد العطلات الرسمية: %(count)s"
+
+msgid "%(count)s recurring appointment imported only once."
+msgid_plural "%(count)s recurring appointments imported only once."
+msgstr[0] "مواعيد متكررة تم استيرادها مرة واحدة فقط: %(count)s."
+msgstr[1] "مواعيد متكررة تم استيرادها مرة واحدة فقط: %(count)s."
+msgstr[2] "مواعيد متكررة تم استيرادها مرة واحدة فقط: %(count)s."
+msgstr[3] "مواعيد متكررة تم استيرادها مرة واحدة فقط: %(count)s."
+msgstr[4] "مواعيد متكررة تم استيرادها مرة واحدة فقط: %(count)s."
+msgstr[5] "مواعيد متكررة تم استيرادها مرة واحدة فقط: %(count)s."
+
+msgid "%(count)s second"
+msgid_plural "%(count)s seconds"
+msgstr[0] "عدد الثواني: %(count)s"
+msgstr[1] "عدد الثواني: %(count)s"
+msgstr[2] "عدد الثواني: %(count)s"
+msgstr[3] "عدد الثواني: %(count)s"
+msgstr[4] "عدد الثواني: %(count)s"
+msgstr[5] "عدد الثواني: %(count)s"
+
+msgid "%(count)s task"
+msgid_plural "%(count)s tasks"
+msgstr[0] "عدد المهام: %(count)s"
+msgstr[1] "عدد المهام: %(count)s"
+msgstr[2] "عدد المهام: %(count)s"
+msgstr[3] "عدد المهام: %(count)s"
+msgstr[4] "عدد المهام: %(count)s"
+msgstr[5] "عدد المهام: %(count)s"
+
+msgid "%(count)s unreadable row omitted."
+msgid_plural "%(count)s unreadable rows omitted."
+msgstr[0] "صفوف غير مقروءة تم تجاهلها: %(count)s."
+msgstr[1] "صفوف غير مقروءة تم تجاهلها: %(count)s."
+msgstr[2] "صفوف غير مقروءة تم تجاهلها: %(count)s."
+msgstr[3] "صفوف غير مقروءة تم تجاهلها: %(count)s."
+msgstr[4] "صفوف غير مقروءة تم تجاهلها: %(count)s."
+msgstr[5] "صفوف غير مقروءة تم تجاهلها: %(count)s."
+
+msgid "%(count)s unusable contact was omitted."
+msgid_plural "%(count)s unusable contacts were omitted."
+msgstr[0] "تم حذف %(count)s جهة اتصال غير قابلة للاستخدام."
+msgstr[1] "تم حذف %(count)s جهة اتصال غير قابلة للاستخدام."
+msgstr[2] "تم حذف %(count)s جهتي اتصال غير قابلتين للاستخدام."
+msgstr[3] "تم حذف %(count)s جهات اتصال غير قابلة للاستخدام."
+msgstr[4] "تم حذف %(count)s جهة اتصال غير قابلة للاستخدام."
+msgstr[5] "تم حذف %(count)s جهة اتصال غير قابلة للاستخدام."
+
+msgid "%(date)s, %(time)s"
+msgstr "%(date)s، %(time)s"
+
+msgid "%(date)s, all day"
+msgstr "%(date)s، طوال اليوم"
+
+msgid "%(first)s and %(second)s"
+msgstr "%(first)s و%(second)s"
+
+msgid "%(first)s to %(last)s"
+msgstr "من %(first)s إلى %(last)s"
+
+msgid "%(format)s (Ctrl+%(key)s)"
+msgstr "%(format)s (Ctrl+%(key)s)"
+
+msgid "%(from)s to %(to)s"
+msgstr "من %(from)s إلى %(to)s"
+
+msgid "%(name)s found – currently reachable"
+msgstr "ﺎًﻴﻟﺎﺣ ﻪﻴﻟﺇ ﻝﻮﺻﻮﻟﺍ ﻦﻜﻤﻳ – %(name)s ﻰﻠﻋ ﺭﻮﺜﻌﻟﺍ ﻢﺗ"
+
+msgid "%(name)s last found – reconnecting"
+msgstr "%(name)s ﻝﺎﺼﺗﻻ﻿ﺍ ﺓﺩﺎﻋﺇ – ﺓﺮﻣ ﺮﺧﺁ ﻪﻴﻠﻋ ﺭﻮﺜﻌﻟﺍ ﻢﺗ"
+
+#, python-format
+msgid "%(name)s: Wedding anniversary in %(count)d day."
+msgid_plural "%(name)s: Wedding anniversary in %(count)d days."
+msgstr[0] "%(name)s: بقي %(count)d يوم على ذكرى الزواج."
+msgstr[1] "%(name)s: بقي %(count)d يوم على ذكرى الزواج."
+msgstr[2] "%(name)s: بقي %(count)d يوم على ذكرى الزواج."
+msgstr[3] "%(name)s: بقي %(count)d يوم على ذكرى الزواج."
+msgstr[4] "%(name)s: بقي %(count)d يوم على ذكرى الزواج."
+msgstr[5] "%(name)s: بقي %(count)d يوم على ذكرى الزواج."
+
+msgid "%(ordinal)s death anniversary"
+msgstr "ذكرى الوفاة رقم %(ordinal)s"
+
+msgid "%(ordinal)s wedding anniversary"
+msgstr "ذكرى الزواج رقم %(ordinal)s"
+
+msgid "%(parts)s SMS parts · %(units)s character units"
+msgstr "%(parts)s أجزاء SMS · %(units)s وحدات أحرف"
+
+msgid "%(shown)s of %(count)s matches; refine your search."
+msgstr "يتم عرض %(shown)s من أصل %(count)s نتيجة مطابقة؛ ضيّق نطاق البحث."
+
+msgid "%(start)s to %(end)s"
+msgstr "من %(start)s إلى %(end)s"
+
+#, python-format
+msgid "%(title)s – %(date)s%(time)s"
+msgstr "%(title)s – %(date)s%(time)s"
+
+msgid "%(title)s – %(when)s"
+msgstr "%(title)s – %(when)s"
+
+#, python-format
+msgid "%d appointment"
+msgid_plural "%d appointments"
+msgstr[0] "عدد المواعيد: %d"
+msgstr[1] "عدد المواعيد: %d"
+msgstr[2] "عدد المواعيد: %d"
+msgstr[3] "عدد المواعيد: %d"
+msgstr[4] "عدد المواعيد: %d"
+msgstr[5] "عدد المواعيد: %d"
+
+#, python-format
+msgid "%d birthday from the address book added as an anniversary."
+msgid_plural "%d birthdays from the address book added as anniversaries."
+msgstr[0] "أعياد الميلاد المضافة من دفتر العناوين كمناسبات سنوية: %d."
+msgstr[1] "أعياد الميلاد المضافة من دفتر العناوين كمناسبات سنوية: %d."
+msgstr[2] "أعياد الميلاد المضافة من دفتر العناوين كمناسبات سنوية: %d."
+msgstr[3] "أعياد الميلاد المضافة من دفتر العناوين كمناسبات سنوية: %d."
+msgstr[4] "أعياد الميلاد المضافة من دفتر العناوين كمناسبات سنوية: %d."
+msgstr[5] "أعياد الميلاد المضافة من دفتر العناوين كمناسبات سنوية: %d."
+
+#, python-format
+msgid "%d contact"
+msgid_plural "%d contacts"
+msgstr[0] "عدد جهات الاتصال: %d"
+msgstr[1] "عدد جهات الاتصال: %d"
+msgstr[2] "عدد جهات الاتصال: %d"
+msgstr[3] "عدد جهات الاتصال: %d"
+msgstr[4] "عدد جهات الاتصال: %d"
+msgstr[5] "عدد جهات الاتصال: %d"
+
+#, python-format
+msgid "%d deleted"
+msgstr "تم حذف %d"
+
+#, python-format
+msgid "%d error"
+msgid_plural "%d errors"
+msgstr[0] "عدد الأخطاء: %d"
+msgstr[1] "عدد الأخطاء: %d"
+msgstr[2] "عدد الأخطاء: %d"
+msgstr[3] "عدد الأخطاء: %d"
+msgstr[4] "عدد الأخطاء: %d"
+msgstr[5] "عدد الأخطاء: %d"
+
+#, python-format
+msgid "%d holiday period"
+msgid_plural "%d holiday periods"
+msgstr[0] "عدد فترات العطلات: %d"
+msgstr[1] "عدد فترات العطلات: %d"
+msgstr[2] "عدد فترات العطلات: %d"
+msgstr[3] "عدد فترات العطلات: %d"
+msgstr[4] "عدد فترات العطلات: %d"
+msgstr[5] "عدد فترات العطلات: %d"
+
+#, python-format
+msgid "%d notification today"
+msgid_plural "%d notifications today"
+msgstr[0] "إشعارات اليوم: %d"
+msgstr[1] "إشعارات اليوم: %d"
+msgstr[2] "إشعارات اليوم: %d"
+msgstr[3] "إشعارات اليوم: %d"
+msgstr[4] "إشعارات اليوم: %d"
+msgstr[5] "إشعارات اليوم: %d"
+
+#, python-format
+msgid "%d public holiday"
+msgid_plural "%d public holidays"
+msgstr[0] "عدد العطلات الرسمية: %d"
+msgstr[1] "عدد العطلات الرسمية: %d"
+msgstr[2] "عدد العطلات الرسمية: %d"
+msgstr[3] "عدد العطلات الرسمية: %d"
+msgstr[4] "عدد العطلات الرسمية: %d"
+msgstr[5] "عدد العطلات الرسمية: %d"
+
+#, python-format
+msgid "%d received"
+msgstr "تم استلام %d"
+
+#, python-format
+msgid "%d synchronized"
+msgstr "تمت مزامنة %d"
+
+#, python-format
+msgid "%d task"
+msgid_plural "%d tasks"
+msgstr[0] "عدد المهام: %d"
+msgstr[1] "عدد المهام: %d"
+msgstr[2] "عدد المهام: %d"
+msgstr[3] "عدد المهام: %d"
+msgstr[4] "عدد المهام: %d"
+msgstr[5] "عدد المهام: %d"
+
+#, python-format
+msgid "%d uploaded"
+msgstr "تم رفع %d"
+
+#, python-format
+msgid "%s has a birthday %s."
+msgstr "عيد ميلاد %s هو %s."
+
+#, python-format
+msgid "%s reported an unexpected error (technical detail: %s)."
+msgstr "أبلغ %s عن خطأ غير متوقع (تفصيل تقني: %s)."
+
+#, python-format
+msgid "%s – today"
+msgstr "%s – اليوم"
+
+#, python-format
+msgid "%s – today at %s"
+msgstr "%s – اليوم في %s"
+
+#, python-format
+msgid "%s: %s."
+msgstr "%s: %s."
+
+#, python-format
+msgid "%s: Anniversary %s (%s)."
+msgstr "%s: مناسبة سنوية %s (%s)."
+
+#, python-format
+msgid "%s: Wedding anniversary the day after tomorrow."
+msgstr "%s: ذكرى الزواج بعد غد."
+
+#, python-format
+msgid "%s: Wedding anniversary today."
+msgstr "%s: ذكرى الزواج اليوم."
+
+#, python-format
+msgid "%s: Wedding anniversary tomorrow."
+msgstr "%s: ذكرى الزواج غدًا."
+
+msgid "(starts when you sign in)"
+msgstr "(يبدأ عند تسجيل الدخول)"
+
+msgid "(unnamed)"
+msgstr "(بلا اسم)"
+
+msgid "(used by the session service)"
+msgstr "(تستخدمه خدمة الجلسة)"
+
+msgid "+ Address"
+msgstr "+ عنوان"
+
+msgid "+ Email address"
+msgstr "+ عنوان بريد إلكتروني"
+
+msgid "+ Emergency contact"
+msgstr "+ جهة اتصال للطوارئ"
+
+msgid "+ Event"
+msgstr "+ حدث"
+
+msgid "+ More appointments"
+msgstr "+ المزيد من المواعيد"
+
+msgid "+ More tasks"
+msgstr "+ المزيد من المهام"
+
+msgid "+ Phone number"
+msgstr "+ رقم الهاتف"
+
+msgid "+ Social medium"
+msgstr "+ وسيلة تواصل اجتماعي"
+
+msgid "+49 … or 0…"
+msgstr "+49 … أو 0…"
+
+msgid ", imported from the session"
+msgstr ", تم الاستيراد من الجلسة"
+
+msgid "1 - high"
+msgstr "1 – مرتفعة"
+
+msgid "1 day before"
+msgstr "قبل يوم واحد"
+
+msgid "1 hour before"
+msgstr "قبل ساعة واحدة"
+
+msgid "1 minute"
+msgstr "1 دقيقة"
+
+msgid "10 minutes before"
+msgstr "قبل 10 دقائق"
+
+msgid "15 minutes before"
+msgstr "قبل 15 دقيقة"
+
+msgid "15 seconds"
+msgstr "15 ثانية"
+
+msgid "2 - medium"
+msgstr "2 – متوسطة"
+
+msgid "2 days before"
+msgstr "قبل يومين"
+
+msgid "2 hours before"
+msgstr "قبل ساعتين"
+
+msgid "2 minutes"
+msgstr "2 دقيقة"
+
+msgid "3 - low"
+msgstr "3 – منخفضة"
+
+msgid "3 days before"
+msgstr "قبل 3 أيام"
+
+msgid "30 days"
+msgstr "30 يومًا"
+
+msgid "30 minutes before"
+msgstr "قبل 30 دقيقة"
+
+msgid "30 seconds"
+msgstr "30 ثانية"
+
+msgid "4 days before"
+msgstr "قبل 4 أيام"
+
+msgid "5 days before"
+msgstr "قبل 5 أيام"
+
+msgid "5 minutes before"
+msgstr "قبل 5 دقائق"
+
+msgid "6 days before"
+msgstr "قبل 6 أيام"
+
+msgid "7 days before"
+msgstr "قبل 7 أيام"
+
+msgid "90 days"
+msgstr "90 يومًا"
+
+#, python-format
+msgid ""
+"A component for spelling suggestions is missing. Install it with:  sudo apt "
+"install %s"
+msgstr ""
+"هناك مكوّن مفقود لاقتراحات التدقيق الإملائي. ثبّته باستخدام:  sudo apt install "
+"%s"
+
+msgid "A component required by the Magnolienbaum is missing."
+msgstr "هناك مكوّن مطلوب لـ Magnolienbaum مفقود."
+
+msgid ""
+"A component required by the Magnolienbaum is missing. Install it with:  sudo "
+"apt install python3-cryptography"
+msgstr ""
+"هناك مكوّن مطلوب لـ Magnolienbaum مفقود. ثبّته باستخدام:  sudo apt install "
+"python3-cryptography"
+
+msgid ""
+"A fallback for branch baum-1: when the direct connection cannot be reached, "
+"messages travel through a WebDAV folder on your Nextcloud server."
+msgstr ""
+"مسار احتياطي للفرع baum-1: إذا تعذّر الوصول عبر الاتصال المباشر، تمرّ الرسائل "
+"عبر مجلد WebDAV على خادم Nextcloud الخاص بك."
+
+msgid "A group with this name already exists."
+msgstr "توجد بالفعل مجموعة بهذا الاسم."
+
+msgid "A known branch"
+msgstr "فرع معروف"
+
+msgid "A maximum of 10 SMS parts is allowed."
+msgstr "يُسمح بحد أقصى قدره 10 أجزاء SMS."
+
+msgid "A notebook with this name already exists in this group."
+msgstr "يوجد بالفعل دفتر ملاحظات بهذا الاسم في هذه المجموعة."
+
+msgid ""
+"A numeric code can be entered conveniently using the keypad when opening; "
+"letters work as well. After three failed attempts, the organizer waits five "
+"minutes."
+msgstr ""
+"يمكن إدخال الرمز الرقمي بسهولة باستخدام لوحة الأرقام عند الفتح؛ كما يمكن "
+"استخدام الحروف. بعد ثلاث محاولات فاشلة ينتظر Organizer خمس دقائق."
+
+msgid ""
+"A pairing file works like a one-time key. Give it only to the person whose "
+"Organizer you want to connect; it expires after 15 minutes."
+msgstr ""
+"يعمل ملف الاقتران كمفتاح يُستخدم مرة واحدة. لا تعطِه إلا للشخص الذي تريد ربط "
+"Organizer الخاص به؛ وتنتهي صلاحيته بعد 15 دقيقة."
+
+msgid ""
+"A password initially locks out the background reminder service. Without the "
+"explicit permission below, notifications work only while the organizer is "
+"open and unlocked."
+msgstr ""
+"تؤدي كلمة المرور في البداية إلى حجب خدمة التذكير في الخلفية. من دون الإذن "
+"الصريح أدناه، تعمل الإشعارات فقط حين يكون Organizer مفتوحًا وغير مقفل."
+
+msgid "A prepared password transaction file is missing or damaged."
+msgstr "ملف معاملة كلمة المرور المُعَد مسبقًا مفقود أو تالف."
+
+msgid ""
+"A separate encrypted connection for dial requests, device status and "
+"selected notifications."
+msgstr "اتصال مشفر منفصل لطلبات الاتصال وحالة الجهاز والإشعارات المحددة."
+
+msgid "API level"
+msgstr "API level"
+
+msgid "Aargau"
+msgstr "أرغاو"
+
+msgid "About"
+msgstr "حول"
+
+msgid "About the Magnolie Organizer"
+msgstr "حول Magnolie Organizer"
+
+msgid "Accept"
+msgstr "قبول"
+
+msgid "Accept and remember"
+msgstr "قبول وتذكّر"
+
+msgid "Accept “%(entry)s” into your own collection?"
+msgstr "هل تريد قبول «%(entry)s» في مجموعتك؟"
+
+msgid ""
+"Accept “%(entry)s” into your own collection?\n"
+"\n"
+"This consent applies only to this note. Future changes and attachments will "
+"then be applied automatically in both directions."
+msgstr ""
+"هل تريد قبول «%(entry)s» في مجموعتك؟\n"
+"\n"
+"تنطبق هذه الموافقة على هذه الملاحظة فقط. بعد ذلك ستُطبَّق التغييرات والمرفقات "
+"المستقبلية تلقائيًا في الاتجاهين."
+
+msgid "Accessibility"
+msgstr "إمكانية الوصول"
+
+msgid "Accessibility helper frame"
+msgstr "إطار مساعد لإمكانية الوصول"
+
+msgid "Accessibility helper frame disabled"
+msgstr "إطار مساعد لإمكانية الوصول معطّل"
+
+msgid "Accessibility helper frame enabled"
+msgstr "إطار مساعد لإمكانية الوصول مفعّل"
+
+msgid ""
+"Accessibility: The helper frame shows the current keyboard focus. It is "
+"disabled by default; press Ctrl+Alt+H at any time to switch it on or off."
+msgstr ""
+"إمكانية الوصول: يعرض الإطار المساعد موضع تركيز لوحة المفاتيح الحالي. وهو "
+"معطّل افتراضيًا؛ اضغط Ctrl+Alt+H في أي وقت لتشغيله أو إيقافه."
+
+msgid "According to language"
+msgstr "وفقًا للغة"
+
+msgid "Active call"
+msgstr "Active call"
+
+msgid "Add"
+msgstr "إضافة"
+
+msgid "Add appointment"
+msgstr "إضافة موعد"
+
+msgid "Add attachment URI"
+msgstr "إضافة URI للمرفق"
+
+msgid "Add attendee"
+msgstr "إضافة حاضر"
+
+msgid "Add cycle marker"
+msgstr "إضافة علامة الدورة"
+
+msgid "Add person"
+msgstr "إضافة شخص"
+
+msgid "Add reminder"
+msgstr "إضافة تذكير"
+
+msgid "Add scheme row"
+msgstr "إضافة صف إلى المخطط"
+
+msgid "Add shift"
+msgstr "إضافة وردية"
+
+msgid "Add to dictionary"
+msgstr "إضافة إلى القاموس"
+
+msgid "Add vacation period"
+msgstr "إضافة فترة إجازة"
+
+msgid "Add waste collection"
+msgstr "إضافة جمع النفايات"
+
+msgid "Adding the alarm monitor to autostart"
+msgstr "إضافة مراقب التنبيهات إلى التشغيل التلقائي"
+
+msgid "Adding the tray applet to autostart"
+msgstr "إضافة بريمج صينية النظام إلى التشغيل التلقائي"
+
+msgid "Adding the word to the dictionary"
+msgstr "إضافة الكلمة إلى القاموس"
+
+msgid "Address"
+msgstr "العنوان"
+
+msgid "Address book"
+msgstr "دفتر العناوين"
+
+msgid "Address imported from LibreOffice."
+msgstr "تم استيراد العنوان من LibreOffice."
+
+msgid ""
+"Addressed to %(branch)s; it will be delivered when the branch is available."
+msgstr "موجّه إلى %(branch)s؛ وسيتم تسليمه عند توفر الفرع."
+
+msgid "Addresses"
+msgstr "العناوين"
+
+msgid "After exercise"
+msgstr "بعد التمرين"
+
+msgid "After meal"
+msgstr "بعد الوجبة"
+
+msgid "Alarm monitor in background: not running"
+msgstr "مراقب التنبيهات في الخلفية: لا يعمل"
+
+msgid "Alarm monitor in background: running"
+msgstr "مراقب التنبيهات في الخلفية: يعمل"
+
+#, python-format
+msgid "Alarm monitor log: still empty (%(path)s)"
+msgstr "سجل مراقب التنبيهات ما زال فارغًا (%(path)s)"
+
+msgid "Alarm monitor start canceled – one is already running."
+msgstr "أُلغي بدء مراقب التنبيهات – هناك مثيل يعمل بالفعل."
+
+#, python-format
+msgid ""
+"Alarm monitor started (process %(pid)d, display %(display)s%(session)s)."
+msgstr "بدأ مراقب التنبيهات (العملية %(pid)d، الشاشة %(display)s%(session)s)."
+
+msgid "Alarm monitor stopped."
+msgstr "توقف مراقب التنبيهات."
+
+msgid "All"
+msgstr "الكل"
+
+msgid "All cantons"
+msgstr "كل الكانتونات"
+
+msgid "All entries"
+msgstr "كل السجلات"
+
+msgid "All files"
+msgstr "كل الملفات"
+
+msgid "All people"
+msgstr "كل الأشخاص"
+
+msgid "All six charts"
+msgstr "جميع المخططات الستة"
+
+msgid "All states"
+msgstr "كل الولايات"
+
+msgid "Allow notifications despite password protection"
+msgstr "السماح بالإشعارات رغم الحماية بكلمة مرور"
+
+msgid "Also disclose appointments marked as confidential"
+msgstr "إظهار المواعيد المعلّمة على أنها سرية أيضًا"
+
+msgid "Also hide past anniversaries"
+msgstr "إخفاء المناسبات السنوية الماضية أيضًا"
+
+msgid "Also hide past school holidays"
+msgstr "إخفاء العطلات المدرسية الماضية أيضًا"
+
+msgid "Also remind me about anniversaries"
+msgstr "تذكيري بالمناسبات السنوية أيضًا"
+
+msgid "Also remind me about missed appointments"
+msgstr "تذكيري بالمواعيد الفائتة أيضًا"
+
+msgid "Also use the default notification"
+msgstr "استخدام الإشعار الافتراضي أيضًا"
+
+msgid "Amount / unit"
+msgstr "الكمية / الوحدة"
+
+msgid "An ODS cell is too long."
+msgstr "خلية ODS طويلة جدًا."
+
+msgid "An ODS row has the wrong number of columns."
+msgstr "يحتوي صف ODS على عدد غير صحيح من الأعمدة."
+
+msgid ""
+"An appointment calendar, address book, task book and notepad in the guise of "
+"a leather-bound organizer —"
+msgstr ""
+"تقويم للمواعيد ودفتر عناوين ودفتر مهام ومفكرة في هيئة Organizer مجلّد بالجلد —"
+
+msgid "An archive entry is too large."
+msgstr "حجم أحد عناصر الأرشيف كبير جدًا."
+
+msgid ""
+"An encryption component is missing. Install it with:  sudo apt install "
+"python3-cryptography"
+msgstr ""
+"هناك مكوّن تشفير مفقود. ثبّته باستخدام:  sudo apt install python3-cryptography"
+
+msgid ""
+"An encryption component is missing. Install it with: sudo apt install "
+"python3-cryptography"
+msgstr ""
+"هناك مكوّن تشفير مفقود. ثبّته باستخدام: sudo apt install python3-cryptography"
+
+msgid "Android version"
+msgstr "نسخة أندرويد"
+
+msgid "Anniversaries"
+msgstr "المناسبات السنوية"
+
+msgid "Anniversaries (.ics)"
+msgstr "المناسبات السنوية (.ics)"
+
+msgid "Anniversary"
+msgstr "مناسبة سنوية"
+
+msgid "Another data operation is still running."
+msgstr "ما زالت عملية بيانات أخرى قيد التشغيل."
+
+msgid "Answer"
+msgstr "رد"
+
+msgid "Answer calls on the computer and talk"
+msgstr "الرد على المكالمات والتحدث عبر الكمبيوتر"
+
+msgid "Answering the call"
+msgstr "جارٍ الرد على المكالمة"
+
+msgid "App password"
+msgstr "App password"
+
+msgid "Appearance"
+msgstr "المظهر"
+
+msgid "Appearance and sound follow your system notification settings."
+msgstr "يتبع المظهر والصوت إعدادات إشعارات النظام."
+
+msgid "Appearance: Magnolie sheet"
+msgstr "المظهر: ورقة Magnolie"
+
+msgid "Appearance: system notification"
+msgstr "المظهر: إشعار النظام"
+
+msgid "Appenzell Ausserrhoden"
+msgstr "أبنزل أوسرهودن"
+
+msgid "Appenzell Innerrhoden"
+msgstr "أبنزل إنرهودن"
+
+msgid "Application command"
+msgstr "أمر التطبيق"
+
+msgid ""
+"Applies only to content you enter yourself: appointments, tasks, contacts, "
+"notes and anniversaries. Headings, calendar pages and organizer labels "
+"remain unchanged."
+msgstr ""
+"ينطبق فقط على المحتوى الذي تدخله بنفسك: المواعيد والمهام وجهات الاتصال "
+"والملاحظات والمناسبات السنوية. تظل العناوين وصفحات التقويم وتسميات Organizer "
+"دون تغيير."
+
+msgid ""
+"Applies when scrolling over a time field. Hold Shift to change the time in "
+"whole hours."
+msgstr ""
+"ينطبق عند التمرير فوق حقل وقت. اضغط باستمرار على Shift لتغيير الوقت بساعات "
+"كاملة."
+
+msgid "Apply"
+msgstr "تطبيق"
+
+msgid "Appointment"
+msgstr "موعد"
+
+msgid "Appointment could not be read"
+msgstr "تعذرت قراءة الموعد"
+
+msgid "Appointment is due"
+msgstr "حان موعد الحدث"
+
+msgid "Appointment overview"
+msgstr "نظرة عامة على المواعيد"
+
+msgid "Appointment reminder"
+msgstr "تذكير بموعد"
+
+msgid "Appointment reminders"
+msgstr "تذكيرات المواعيد"
+
+msgid "Appointments"
+msgstr "المواعيد"
+
+msgid "Appointments (.ics)"
+msgstr "المواعيد (.ics)"
+
+msgid "Appointments as Lotus CSV"
+msgstr "المواعيد بصيغة Lotus CSV"
+
+msgid "Appointments for this person"
+msgstr "مواعيد هذا الشخص"
+
+msgid "Appointments · %(period)s"
+msgstr "المواعيد · %(period)s"
+
+#, python-format
+msgid "Appointments: safe first import from %(source)s: %(count)d received."
+msgstr ".%(count)d ﻡﻼ﻿ﺘﺳﺍ ﻢﺗ :%(source)s ﻦﻣ ﻦﻣﻵ﻿ﺍ ﻝﻭﻷ﻿ﺍ ﺩﺍﺮﻴﺘﺳﻻ﻿ﺍ :ﺪﻴﻋﺍﻮﻤﻟﺍ"
+
+msgid "As usual (print)"
+msgstr "كالمعتاد (طباعة)"
+
+msgid "Assign SMS action"
+msgstr "تعيين الإجراء SMS"
+
+msgid "Assign call action"
+msgstr "تعيين إجراء المكالمة"
+
+msgid "Assign shift"
+msgstr "تعيين وردية"
+
+msgid "At bedtime"
+msgstr "عند وقت النوم"
+
+msgid "At least one health view must remain enabled."
+msgstr "يجب إبقاء عرض صحي واحد على الأقل مفعّلًا."
+
+msgid "At most 5,000 contacts can be exported at once."
+msgstr "يمكن تصدير 5,000 جهة اتصال كحد أقصى في المرة الواحدة."
+
+msgid "At most 5,000 health records can be exported at once."
+msgstr "يمكن تصدير 5,000 سجل صحي كحد أقصى في المرة الواحدة."
+
+msgid "Attachments"
+msgstr "المواعيد"
+
+msgid "Attendees"
+msgstr "الحضور"
+
+msgid "Austria"
+msgstr "النمسا"
+
+msgid "Author"
+msgstr "المؤلف"
+
+msgid "Authority appointment"
+msgstr "موعد لدى جهة رسمية"
+
+msgid "Automatically choose a suitable application"
+msgstr "اختيار تطبيق مناسب تلقائيًا"
+
+msgid "Automatically synchronize over Wi-Fi"
+msgstr "المزامنة تلقائيًا عبر Wi-Fi"
+
+#, python-format
+msgid "Autostart entry: %(path)s"
+msgstr "إدخال التشغيل التلقائي: %(path)s"
+
+msgid "Autostart entry: missing"
+msgstr "إدخال التشغيل التلقائي: مفقود"
+
+msgid "B"
+msgstr "ع"
+
+msgid "BMI"
+msgstr "مؤشر كتلة الجسم"
+
+msgid ""
+"BMI\n"
+"kg/m²"
+msgstr ""
+"مؤشر كتلة الجسم\n"
+"kg/m²"
+
+msgid "BMI from the latest stored height and weight"
+msgstr "مؤشر كتلة الجسم وفق آخر طول ووزن محفوظين"
+
+msgid "BZ"
+msgstr "BZ"
+
+msgid "Backup failed."
+msgstr "فشل النسخ الاحتياطي."
+
+#, python-format
+msgid "Backup failed: %s"
+msgstr "فشل النسخ الاحتياطي: %s"
+
+msgid "Backup folder"
+msgstr "مجلد النسخ الاحتياطية"
+
+msgid "Backup folder updated."
+msgstr "تم تحديث مجلد النسخ الاحتياطية."
+
+msgid "Backup password"
+msgstr "كلمة مرور النسخة الاحتياطية"
+
+msgid "Backup restored. The previous data was backed up automatically."
+msgstr ""
+"تمت استعادة النسخة الاحتياطية. تم نسخ البيانات السابقة احتياطيًا تلقائيًا."
+
+msgid "Backup saved to: %(path)s"
+msgstr "حُفظت النسخة الاحتياطية في: %(path)s"
+
+msgid "Backups"
+msgstr "النسخ الاحتياطية"
+
+msgid ""
+"Backups outside the data location require a password with at least four "
+"characters."
+msgstr ""
+"تتطلب النسخ الاحتياطية خارج موقع البيانات كلمة مرور من أربعة محارف على الأقل."
+
+msgid "Baden-Württemberg"
+msgstr "بادن-فورتمبيرغ"
+
+msgid "Baptism"
+msgstr "المعمودية"
+
+msgid "Basal units"
+msgstr "الوحدات القاعدية"
+
+msgid "Basel-Landschaft"
+msgstr "بازل-لاندشافت"
+
+msgid "Basel-Stadt"
+msgstr "بازل-شتات"
+
+msgid "Basic operation and appearance of the organizer."
+msgstr "التشغيل الأساسي ومظهر Organizer."
+
+msgid "Battery"
+msgstr "رسالة"
+
+msgid "Battery snapshot"
+msgstr "Battery snapshot"
+
+msgid "Bavaria"
+msgstr "بافاريا"
+
+msgid "Before contact deletion"
+msgstr "قبل حذف جهة الاتصال"
+
+msgid "Before contact import"
+msgstr "قبل استيراد جهات الاتصال"
+
+msgid "Before contact merge"
+msgstr "قبل دمج جهة الاتصال"
+
+msgid "Before exercise"
+msgstr "قبل التمرين"
+
+msgid "Before meal"
+msgstr "قبل الوجبة"
+
+msgid "Before restore"
+msgstr "قبل الاستعادة"
+
+msgid "Before synchronization"
+msgstr "قبل المزامنة"
+
+msgid "Belgium"
+msgstr "بلجيكا"
+
+msgid "Berlin"
+msgstr "برلين"
+
+msgid "Bern"
+msgstr "برن"
+
+msgid "Birthday"
+msgstr "عيد الميلاد"
+
+msgid "Birthday party"
+msgstr "حفلة عيد ميلاد"
+
+msgid "Birthday today"
+msgstr "عيد الميلاد اليوم"
+
+msgid "Black"
+msgstr "أسود"
+
+msgid "Blank health form"
+msgstr "نموذج صحي فارغ"
+
+msgid "Blank template for handwriting"
+msgstr "قالب فارغ للكتابة بخط اليد"
+
+msgid "Bleeding · heavy"
+msgstr "النزف · غزير"
+
+msgid "Bleeding · light"
+msgstr "النزف · خفيف"
+
+msgid "Bleeding · medium"
+msgstr "النزف · متوسط"
+
+msgid "Blood glucose"
+msgstr "سكر الدم"
+
+msgid "Blood glucose scheme"
+msgstr "مخطط سكر الدم"
+
+msgid "Blood glucose table"
+msgstr "جدول سكر الدم"
+
+msgid "Blood glucose value"
+msgstr "قيمة سكر الدم"
+
+msgid "Blood pressure"
+msgstr "ضغط الدم"
+
+msgid ""
+"Blood pressure\n"
+"mm/Hg"
+msgstr ""
+"ضغط الدم\n"
+"mm/Hg"
+
+msgid "Blue (fountain pen)"
+msgstr "أزرق (قلم حبر)"
+
+msgid "Bluetooth data fallback"
+msgstr "الرجوع إلى بيانات Bluetooth"
+
+msgid "Bold"
+msgstr "عريض"
+
+msgid ""
+"Both branches display the same six-digit code when connecting. Confirm it "
+"only if it matches, preventing anyone from intercepting the connection."
+msgstr ""
+"يعرض الفرعان الرمز نفسه المكوّن من ستة أرقام عند الاتصال. أكده فقط إذا تطابق "
+"في الجانبين، لمنع أي شخص من اعتراض الاتصال."
+
+msgid "Brandenburg"
+msgstr "براندنبورغ"
+
+msgid "Bremen"
+msgstr "بريمن"
+
+msgid "Burgenland"
+msgstr "بورغنلاند"
+
+msgid "By first name (Hans Müller)"
+msgstr "حسب الاسم الأول (Hans Müller)"
+
+msgid "By last name (Müller, Hans)"
+msgstr "حسب اسم العائلة (Müller, Hans)"
+
+msgid "CSV files (*.csv)"
+msgstr "ملفات CSV (*.csv)"
+
+msgid "CW"
+msgstr "أسبوع"
+
+msgid "Calculate the route to this address"
+msgstr "حساب الطريق إلى هذا العنوان"
+
+msgid "Calendar"
+msgstr "التقويم"
+
+msgid "Calendar (*.ics)"
+msgstr "التقويم (*.ics)"
+
+msgid "Calendar file (.ics/.vcs/.lcs) …"
+msgstr "ملف تقويم (.ics/.vcs/.lcs) …"
+
+msgid "Calendar layout"
+msgstr "تخطيط التقويم"
+
+msgid ""
+"Calendar synchronization was stopped because an EDS entry was not read "
+"completely."
+msgstr "توقفت مزامنة التقويم لأن أحد إدخالات EDS لم يُقرأ بالكامل."
+
+msgid "Calendar week %(number)s"
+msgstr "أسبوع التقويم %(number)s"
+
+msgid "Calendars (multiple selections allowed)"
+msgstr "التقاويم (يسمح بتحديد متعدد)"
+
+msgid "Calendars and contacts"
+msgstr "Calendars and contacts"
+
+msgid "Call"
+msgstr "اتصال"
+
+msgid "Call assignment"
+msgstr "مهمة المكالمة"
+
+msgid "Call ended"
+msgstr "Call ended"
+
+msgid "Call notes"
+msgstr "Call notes"
+
+msgid "Call reference"
+msgstr "Call reference"
+
+msgid "Call started"
+msgstr "Call started"
+
+msgid "Call this contact using Magnolie Notes or the assigned application"
+msgstr "اتصل بجهة الاتصال هذه باستخدام Magnolie Notes أو التطبيق المخصص"
+
+msgid "Call with %(name)s · %(date)s"
+msgstr "%(name)s · %(date)s ﻊﻣ ﺔﻤﻟﺎﻜﻣ"
+
+msgid "Cancel"
+msgstr "إلغاء"
+
+msgid "Canton"
+msgstr "كانتون"
+
+msgid "Capsule"
+msgstr "كبسولة"
+
+msgid "Captured"
+msgstr "مأسور"
+
+msgid "Care service"
+msgstr "خدمة رعاية"
+
+msgid "Carinthia"
+msgstr "كارينثيا"
+
+msgid "Categories"
+msgstr "الفئات"
+
+msgid "Categories:"
+msgstr "الفئات:"
+
+msgid "Catholic confirmation"
+msgstr "سر التثبيت الكاثوليكي"
+
+msgid "Centered on the screen"
+msgstr "في وسط الشاشة"
+
+msgid "Change password"
+msgstr "تغيير كلمة المرور"
+
+msgid "Changes are applied automatically"
+msgstr "تُطبّق التغييرات تلقائيًا"
+
+msgid "Changing phone permission"
+msgstr "تغيير إذن الهاتف"
+
+msgid "Charging"
+msgstr "شحن"
+
+msgid "Charging state"
+msgstr "حالة الشحن"
+
+msgid "Charts and BMI are documentation aids only and are not a diagnosis."
+msgstr "الرسوم البيانية ومؤشر كتلة الجسم أدوات للتوثيق فقط وليست تشخيصًا."
+
+msgid "Check for due appointments"
+msgstr "التحقق من المواعيد المستحقة"
+
+msgid "Check for updates automatically every day"
+msgstr "التحقق تلقائيًا من التحديثات كل يوم"
+
+msgid "Check now"
+msgstr "التحقق الآن"
+
+msgid "Check spelling (red wavy lines)"
+msgstr "تدقيق الإملاء (خطوط حمراء متموجة)"
+
+msgid "Check the value and discuss repeated deviations with a doctor."
+msgstr "تحقّق من القيمة وناقش الانحرافات المتكررة مع الطبيب."
+
+msgid "Check-up appointment"
+msgstr "موعد فحص"
+
+#, python-format
+msgid ""
+"Checked: nothing due (%(appointments)d appointments, lead time %(minutes)s "
+"min)"
+msgstr ""
+"تم التحقق: لا شيء مستحق (%(appointments)d من المواعيد، مهلة %(minutes)s "
+"دقيقة)"
+
+msgid "Checking Contributor Key …"
+msgstr "جارٍ التحقق من Contributor Key …"
+
+msgid "Checking online accounts …"
+msgstr "جارٍ التحقق من الحسابات عبر الإنترنت …"
+
+msgid "Checking the current manual version …"
+msgstr "جارٍ التحقق من إصدار الدليل الحالي …"
+
+msgid "Checking the current version …"
+msgstr "جارٍ التحقق من الإصدار الحالي …"
+
+msgid ""
+"Choose a backup file. Before restoring it, the organizer automatically "
+"creates a copy of the current data. An encrypted backup requires its "
+"password."
+msgstr ""
+"اختر ملف نسخة احتياطية. قبل استعادته ينشئ Organizer تلقائيًا نسخة من البيانات "
+"الحالية. تتطلب النسخة الاحتياطية المشفرة كلمة مرورها."
+
+msgid "Choose a country first."
+msgstr "اختر بلدًا أولًا."
+
+msgid "Choose a mobile number"
+msgstr "اختر رقم هاتف محمول"
+
+msgid ""
+"Choose a phase or bleeding intensity. Assign it to the complete date range "
+"in the new appointment sheet."
+msgstr ""
+"اختر مرحلة أو شدة النزف. عيّنها لنطاق التاريخ كاملًا في ورقة الموعد الجديد."
+
+msgid "Choose a phone number to call"
+msgstr "اختر رقم هاتف للاتصال"
+
+msgid ""
+"Choose a predefined shift or enter a custom one. Assign it to one or more "
+"days in the new appointment sheet. Day markers do not send notifications."
+msgstr ""
+"اختر وردية معرّفة مسبقًا أو أدخل وردية مخصصة. عيّنها ليوم واحد أو أكثر في ورقة "
+"الموعد الجديد. علامات الأيام لا ترسل إشعارات."
+
+msgid "Choose a value and period to display its development."
+msgstr "اختر قيمة وفترة لعرض تطورها."
+
+msgid ""
+"Choose a waste type or enter a custom collection. Set the first collection "
+"and the interval in days; 0 creates a one-time collection."
+msgstr ""
+"اختر نوع نفايات أو أدخل عملية جمع مخصصة. اضبط أول موعد للجمع والفاصل "
+"بالأيام؛ القيمة 0 تنشئ عملية جمع لمرة واحدة."
+
+msgid "Choose at least four characters."
+msgstr "اختر أربعة محارف على الأقل."
+
+msgid "Choose entries to print, export or delete"
+msgstr "اختر الإدخالات للطباعة أو التصدير أو الحذف"
+
+msgid "Choose file…"
+msgstr "اختيار ملف…"
+
+msgid "Choose folder …"
+msgstr "اختيار مجلد …"
+
+msgid "Choose or enter a phone number"
+msgstr "اختر رقم هاتف أو أدخله"
+
+msgid "Choose photo…"
+msgstr "اختيار صورة…"
+
+msgid "Choose print or export content…"
+msgstr "اختر محتوى الطباعة أو التصدير…"
+
+msgid "Choose service"
+msgstr "اختيار خدمة"
+
+msgid ""
+"Choose which sections appear as tabs on the organizer. The calendar always "
+"remains available."
+msgstr ""
+"اختر الأقسام التي تظهر كعلامات تبويب في المنظم. يظل التقويم متاحًا دائمًا."
+
+msgid "Choose year…"
+msgstr "اختيار سنة…"
+
+msgid "City"
+msgstr "المدينة"
+
+msgid "Claws Mail (.xml/.ldif) …"
+msgstr "من Claws Mail (.xml/.ldif) …"
+
+msgid "Claws Mail address book (*.xml)"
+msgstr "دفتر عناوين Claws Mail (*.xml)"
+
+msgid "Clear"
+msgstr "مسح"
+
+msgid "Clear filters"
+msgstr "مسح عوامل التصفية"
+
+msgid "Clearly abnormal reference value – check it and seek medical advice."
+msgstr "قيمة مرجعية غير طبيعية بوضوح – تحقّق منها واطلب المشورة الطبية."
+
+msgid "Click here to add an appointment"
+msgstr "انقر هنا لإضافة موعد"
+
+msgid "Click to open"
+msgstr "انقر للفتح"
+
+msgid "Clicking a day"
+msgstr "النقر على يوم"
+
+msgid ""
+"Clicking an existing appointment opens it for editing in both cases. This "
+"setting applies only when you click an empty area in the box."
+msgstr ""
+"يؤدي النقر على موعد موجود إلى فتحه للتحرير في الحالتين. ينطبق هذا الإعداد "
+"فقط عند النقر على مساحة فارغة في المربع."
+
+msgid "Close"
+msgstr "إغلاق"
+
+msgid "Close settings"
+msgstr "إغلاق الإعدادات"
+
+msgid "Club anniversary"
+msgstr "ذكرى تأسيس النادي"
+
+msgid "Code matches"
+msgstr "الرمز متطابق"
+
+msgid "Codes differ"
+msgstr "تختلف الأكواد"
+
+msgid "Codes match"
+msgstr "الرمز متطابق"
+
+msgid "Color"
+msgstr "اللون"
+
+msgid ""
+"Colors and matching scheme rows are orientation aids. Enter or adjust the IE "
+"in the table to the amount actually administered."
+msgstr ""
+"الألوان والصفوف المقابلة لها في المخطط وسائل مساعدة على الاسترشاد. أدخل "
+"وحدات الإنسولين في الجدول أو عدّلها لتطابق الكمية التي أُعطيت فعليًا."
+
+msgid "Columns in the ODS table"
+msgstr "الأعمدة في جدول ODS"
+
+msgid "Compact sender line (default)"
+msgstr "سطر مرسل مدمج (افتراضي)"
+
+msgid "Company"
+msgstr "الشركة"
+
+msgid "Compare pairing code"
+msgstr "جارٍ استيراد ملف الاقتران"
+
+msgid ""
+"Compare this fingerprint with the other branch, for example by phone, to "
+"verify the connection."
+msgstr ""
+"قارن بصمة الإصبع هذه مع الفرع الآخر، عبر الهاتف مثلًا، للتحقق من الاتصال."
+
+msgid "Complete archive exported (password-protected)."
+msgstr "تم تصدير الأرشيف الكامل (محمي بكلمة مرور)."
+
+msgid "Complete archive exported (unencrypted)."
+msgstr "تم تصدير الأرشيف الكامل (غير مشفر)."
+
+msgid "Complete pairing"
+msgstr "Complete pairing"
+
+msgid "Completed (%(count)s)"
+msgstr "مكتمل (%(count)s)"
+
+msgid "Completed task"
+msgstr "مكتملة"
+
+msgid "Completing KDE Connect pairing"
+msgstr "جارٍ إكمال إقران KDE Connect"
+
+msgid "Completing secure pairing…"
+msgstr "جارٍ إنشاء ملف الاقتران"
+
+msgid "Configuring Bluetooth data"
+msgstr "تكوين بيانات Bluetooth"
+
+msgid ""
+"Confirm only if exactly the same six-digit code is shown on both devices."
+msgstr ""
+"أكد فقط إذا تم عرض نفس الرمز المكون من ستة أرقام بالضبط على كلا الجهازين."
+
+msgid "Confirm the pairing request on the phone."
+msgstr "أكّد طلب الإقران على الهاتف."
+
+msgid "Confirmation"
+msgstr "تأكيد"
+
+msgid "Conflict"
+msgstr "تأكيد"
+
+msgid "Connect"
+msgstr "اتصال"
+
+msgid "Connect phone via WLAN"
+msgstr "قم بتوصيل الهاتف عبر شبكة الواي فاي"
+
+msgid "Connected"
+msgstr "Connected"
+
+msgid "Connecting to the online accounts"
+msgstr "جارٍ الاتصال بالحسابات عبر الإنترنت"
+
+msgid "Consider deletions during manual synchronization"
+msgstr "مزامنة جهات الاتصال"
+
+msgid "Contact"
+msgstr "Contact"
+
+#, python-format
+msgid "Contact %d contains an unreadable vCard."
+msgstr "جهة الاتصال %d تحتوي على بطاقة vCard غير قابلة للقراءة."
+
+#, python-format
+msgid "Contact %d contains an unreadable vCard: %s"
+msgstr "جهة الاتصال %d تحتوي على بطاقة تعريف إلكترونية غير قابلة للقراءة: %s"
+
+#, python-format
+msgid "Contact %d could not be serialized: %s"
+msgstr "تعذر تسلسل جهة الاتصال %d: %s"
+
+#, python-format
+msgid "Contact %d has no UID."
+msgstr "جهة الاتصال %d ليس لديها معرف UID."
+
+msgid "Contact card"
+msgstr "بطاقة جهة اتصال"
+
+msgid "Contact cards"
+msgstr "بطاقات جهات الاتصال"
+
+msgid "Contact cards (*.vcf)"
+msgstr "بطاقات جهات الاتصال (*.vcf)"
+
+msgid "Contact deletion proposals were blocked by the safety limit."
+msgstr "حُظرت مقترحات حذف جهات الاتصال بسبب حد الأمان."
+
+msgid "Contact photo preview"
+msgstr "معاينة صورة جهة الاتصال"
+
+msgid "Contact synchronization"
+msgstr "مزامنة جهات الاتصال"
+
+msgid ""
+"Contact synchronization preview: %(new)s new, %(changed)s changed, "
+"%(duplicates)s possible duplicates, %(deletions)s deletion proposals."
+msgstr ""
+"معاينة المزامنة: %(new)s جديدة، %(changed)s معدلة، %(duplicates)s مكررات "
+"محتملة، %(deletions)s مقترحات حذف."
+
+msgid ""
+"Contact synchronization was blocked because the bound snapshot is empty."
+msgstr "حُظرت مزامنة جهات الاتصال لأن اللقطة المرتبطة فارغة."
+
+#, python-format
+msgid ""
+"Contact synchronization was stopped because the address book was not read "
+"completely: %s"
+msgstr "تم إيقاف مزامنة جهات الاتصال لأن دفتر العناوين لم يُقرأ بالكامل: %s"
+
+msgid "Contacts"
+msgstr "جهات الاتصال"
+
+msgid "Contacts (.vcf)"
+msgstr "جهات الاتصال (.vcf)"
+
+msgid "Contacts (.vcf) …"
+msgstr "جهات الاتصال (.vcf) …"
+
+msgid "Contacts are merged additively. No deletions are transmitted."
+msgstr "تُدمج جهات الاتصال بشكل إضافي. لا تُنقل عمليات الحذف."
+
+msgid "Contacts for Claws Mail (.ldif)"
+msgstr "جهات اتصال Claws Mail (.ldif)"
+
+msgid "Contacts: component gir1.2-ebook-1.2 is missing; skipped."
+msgstr "جهات الاتصال: المكوّن gir1.2-ebook-1.2 مفقود؛ تم التخطي."
+
+#, python-format
+msgid "Contacts: safe first import from %(source)s: %(count)d received."
+msgstr "جهات الاتصال: أول استيراد آمن من %(source)s: تم استلام %(count)d."
+
+msgid "Content"
+msgstr "المحتوى"
+
+msgid "Content length is missing."
+msgstr "طول المحتوى مفقود."
+
+msgid "Continue"
+msgstr "تابع"
+
+msgid "Continued"
+msgstr "تابع"
+
+msgid "Contributor Key"
+msgstr "Contributor Key"
+
+msgid "Copy"
+msgstr "نسخ"
+
+#, python-format
+msgid "Copy stored at: %s"
+msgstr "حُفظت النسخة في: %s"
+
+msgid "Cost center"
+msgstr "مركز التكلفة"
+
+msgid "Could not answer"
+msgstr "تعذّر الرد على المكالمة"
+
+#, python-format
+msgid "Could not create POT template: %s"
+msgstr "تعذر إنشاء قالب POT: %s"
+
+msgid "Could not hang up"
+msgstr "تعذر إنهاء المكالمة"
+
+msgid "Country"
+msgstr "البلد"
+
+msgid "Country & holidays"
+msgstr "البلد والعطلات"
+
+msgid "Country (optional)"
+msgstr "البلد (اختياري)"
+
+msgid "Country and region"
+msgstr "البلد والمنطقة"
+
+msgid "Country for searches"
+msgstr "البلد المستخدم للبحث"
+
+msgid "Create"
+msgstr "إنشاء"
+
+msgid "Create a backup copy of the data"
+msgstr "إنشاء نسخة احتياطية من البيانات"
+
+msgid "Create a gettext POT template"
+msgstr "إنشاء قالب gettext POT"
+
+msgid "Create a new appointment immediately"
+msgstr "إنشاء موعد جديد فورًا"
+
+msgid "Create an empty printable template"
+msgstr "إنشاء قالب فارغ قابل للطباعة"
+
+msgid "Create backup"
+msgstr "إنشاء نسخة احتياطية"
+
+msgid "Create contact"
+msgstr "إنشاء جهة اتصال"
+
+msgid "Create encrypted backup"
+msgstr "إنشاء نسخة احتياطية مشفرة"
+
+msgid "Create group"
+msgstr "إنشاء مجموعة"
+
+msgid "Create notebook"
+msgstr "إنشاء دفتر ملاحظات"
+
+msgid "Create pairing file …"
+msgstr "إنشاء ملف اقتران …"
+
+msgid "Create snapshot now"
+msgstr "أنشئ لقطة الآن"
+
+msgid "Creating a recovery snapshot"
+msgstr "إنشاء لقطة استعادة"
+
+msgid "Creating the backup"
+msgstr "جارٍ إنشاء النسخة الاحتياطية"
+
+msgid "Creating the letter"
+msgstr "جارٍ إنشاء الرسالة"
+
+msgid "Creating the log"
+msgstr "جارٍ إنشاء السجل"
+
+msgid "Creating the pairing file"
+msgstr "جارٍ إنشاء ملف الاقتران"
+
+msgid "Creating the print page"
+msgstr "جارٍ إنشاء صفحة الطباعة"
+
+msgid "Creating the required recovery snapshot"
+msgstr "إنشاء لقطة الاسترداد المطلوبة"
+
+msgid "Custom"
+msgstr "مخصص"
+
+msgid "Custom application"
+msgstr "تطبيق مخصص"
+
+msgid "Custom notification"
+msgstr "إشعار مخصص"
+
+msgid "Custom websites must begin with https://."
+msgstr "يجب أن تبدأ المواقع المخصصة بـ https://."
+
+msgid "Customer no."
+msgstr "رقم العميل"
+
+msgid "Customize"
+msgstr "تخصيص"
+
+msgid "Customize notebooks"
+msgstr "تخصيص دفاتر الملاحظات"
+
+msgid "Cut"
+msgstr "قص"
+
+msgid "Cycle calendar"
+msgstr "تقويم الدورة"
+
+msgid ""
+"Cycle markers are stored only in your local Organizer data and do not send "
+"notifications."
+msgstr "تُحفظ علامات الدورة فقط في بيانات Organizer المحلية ولا ترسل إشعارات."
+
+msgid "Czechia"
+msgstr "التشيك"
+
+msgid "DIN 5008 Form B with fold marks"
+msgstr "نموذج DIN 5008 B مع علامات الطي"
+
+msgid "DOCTYPE is not allowed in a Claws Mail address book."
+msgstr "DOCTYPE غير مسموح به في دفتر عناوين Claws Mail."
+
+msgid "Daily"
+msgstr "يومي"
+
+msgid "Daily view"
+msgstr "عرض يومي"
+
+msgid "Damaged"
+msgstr "تالف"
+
+#, python-format
+msgid "Data: %(path)s"
+msgstr "البيانات: %(path)s"
+
+msgid "Data: not found – open the organizer once."
+msgstr "البيانات: غير موجودة – افتح Organizer مرة واحدة."
+
+msgid "Date"
+msgstr "التاريخ"
+
+msgid "Daughter"
+msgstr "ابنة"
+
+msgid "Day"
+msgstr "اليوم"
+
+msgid "Day markers"
+msgstr "علامات الأيام"
+
+msgid "Days"
+msgstr "أيام"
+
+msgid "Dear Sir or Madam,"
+msgstr "السيد/السيدة المحترم/ة،"
+
+msgid "Death anniversary"
+msgstr "ذكرى الوفاة"
+
+#, python-format
+msgid "Debug logging could not be started: %s"
+msgstr "تعذر بدء تسجيل التصحيح: %s"
+
+msgid "Decrypting the data"
+msgstr "جارٍ فك تشفير البيانات"
+
+msgid "Default: next to the data file"
+msgstr "الافتراضي: بجوار ملف البيانات"
+
+msgid "Delegate to"
+msgstr "تفويض إلى"
+
+msgid "Delete"
+msgstr "حذف"
+
+msgid "Delete %(count)s selected entry for good?"
+msgid_plural "Delete %(count)s selected entries for good?"
+msgstr[0] "حذف الإدخالات المحددة نهائيًا؟ العدد: %(count)s"
+msgstr[1] "حذف الإدخالات المحددة نهائيًا؟ العدد: %(count)s"
+msgstr[2] "حذف الإدخالات المحددة نهائيًا؟ العدد: %(count)s"
+msgstr[3] "حذف الإدخالات المحددة نهائيًا؟ العدد: %(count)s"
+msgstr[4] "حذف الإدخالات المحددة نهائيًا؟ العدد: %(count)s"
+msgstr[5] "حذف الإدخالات المحددة نهائيًا؟ العدد: %(count)s"
+
+msgid "Delete %(count)s selected entry? It moves to the wastebasket."
+msgid_plural "Delete %(count)s selected entries? They move to the wastebasket."
+msgstr[0] "حذف الإدخالات المحددة ونقلها إلى سلة المحذوفات؟ العدد: %(count)s"
+msgstr[1] "حذف الإدخالات المحددة ونقلها إلى سلة المحذوفات؟ العدد: %(count)s"
+msgstr[2] "حذف الإدخالات المحددة ونقلها إلى سلة المحذوفات؟ العدد: %(count)s"
+msgstr[3] "حذف الإدخالات المحددة ونقلها إلى سلة المحذوفات؟ العدد: %(count)s"
+msgstr[4] "حذف الإدخالات المحددة ونقلها إلى سلة المحذوفات؟ العدد: %(count)s"
+msgstr[5] "حذف الإدخالات المحددة ونقلها إلى سلة المحذوفات؟ العدد: %(count)s"
+
+msgid "Delete all SMS histories"
+msgstr "احذف كافة سجلات SMS"
+
+msgid "Delete all SMS histories?"
+msgstr "هل تريد حذف كافة سجلات SMS؟"
+
+msgid "Delete anniversary"
+msgstr "حذف المناسبة السنوية"
+
+msgid "Delete anniversary “%(name)s”?"
+msgstr "حذف المناسبة السنوية «%(name)s»؟"
+
+msgid "Delete appointment “%(title)s”?"
+msgstr "حذف الموعد «%(title)s»؟"
+
+msgid ""
+"Delete appointment “%(title)s”? This removes every occurrence in the series."
+msgstr "حذف الموعد «%(title)s»؟ سيؤدي ذلك إلى حذف كل التكرارات في السلسلة."
+
+msgid "Delete contact card “%(name)s”?"
+msgstr "حذف بطاقة جهة الاتصال «%(name)s»؟"
+
+msgid "Delete cycle marker"
+msgstr "حذف علامة الدورة"
+
+msgid "Delete entries"
+msgstr "حذف العناصر"
+
+msgid "Delete entries…"
+msgstr "حذف العناصر…"
+
+msgid "Delete group"
+msgstr "حذف المجموعة"
+
+msgid "Delete last character"
+msgstr "حذف آخر محرف"
+
+msgid "Delete notebook"
+msgstr "حذف دفتر الملاحظات"
+
+msgid "Delete notebook group “%(name)s”?"
+msgstr "حذف مجموعة دفاتر الملاحظات «%(name)s»؟"
+
+msgid "Delete notebook “%(name)s”?"
+msgstr "حذف دفتر الملاحظات «%(name)s»؟"
+
+msgid "Delete page"
+msgstr "حذف الصفحة"
+
+msgid "Delete password"
+msgstr "Delete password"
+
+msgid "Delete permanently"
+msgstr "حذف نهائي"
+
+msgid "Delete selection"
+msgstr "حذف التحديد"
+
+msgid "Delete shift"
+msgstr "حذف الوردية"
+
+msgid "Delete task"
+msgstr "حذف المهمة"
+
+msgid "Delete task “%(title)s”?"
+msgstr "حذف المهمة «%(title)s»؟"
+
+msgid ""
+"Delete the stored app password? The mailbox can no longer deliver until a "
+"new one is entered."
+msgstr ""
+"حذف كلمة مرور التطبيق المحفوظة؟ لن يتمكن صندوق البريد من التسليم حتى إدخال "
+"كلمة جديدة."
+
+msgid "Delete this contact's SMS history?"
+msgstr "هل تريد حذف سجل SMS الخاص بجهة الاتصال هذه؟"
+
+msgid "Delete this contact's history"
+msgstr "احذف سجل جهة الاتصال هذه"
+
+msgid "Delete this note page (“%(title)s”)?"
+msgstr "حذف صفحة الملاحظة هذه («%(title)s»)؟"
+
+msgid "Delete this recovery snapshot permanently?"
+msgstr "هل تريد حذف هذه اللقطة الاحتياطية بشكل دائم؟"
+
+msgid "Delete vacation period"
+msgstr "حذف فترة الإجازة"
+
+msgid "Delete waste collection"
+msgstr "حذف جمع النفايات"
+
+msgid ""
+"Deleted items first go to the recycle bin and can be restored from there. "
+"They are permanently removed only afterwards."
+msgstr ""
+"لا تحذف المقترحات إلا جهات اتصال مرتبطة ومؤكدة فرديًا. هل تريد تفعيلها لهذا "
+"الفرع؟تنتقل العناصر المحذوفة أولًا إلى سلة المحذوفات ويمكن استعادتها منها. "
+"ولا تُحذف نهائيًا إلا بعد ذلك."
+
+msgid "Deleting a recovery snapshot"
+msgstr "حذف لقطة استعادة"
+
+msgid "Deletion proposals are pending manual review."
+msgstr "اقتراحات الحذف بانتظار المراجعة اليدوية."
+
+msgid ""
+"Deletion proposals can remove only individually confirmed, bound contacts. "
+"Enable deletion proposals for this branch?"
+msgstr ""
+"لا تحذف المقترحات إلا جهات اتصال مرتبطة ومؤكدة فرديًا. هل تريد تفعيلها لهذا "
+"الفرع؟"
+
+msgid "Deletions are not synchronized yet."
+msgstr "لم تتم المزامنة من قبل."
+
+msgid "Delivered"
+msgstr "لم يُسلَّم"
+
+msgid "Delivered to %(branch)s."
+msgstr "تم التسليم إلى %(branch)s."
+
+msgid "Dentist Dr. Hill — Preview of your entries"
+msgstr "طبيب الأسنان د. Hill — معاينة إدخالاتك"
+
+msgid "Determining public IP address…"
+msgstr "جارٍ تحديد عنوان IP العام…"
+
+msgid "Diabetes"
+msgstr "السكري"
+
+msgid "Dialing…"
+msgstr "Dialing…"
+
+msgid "Diastolic"
+msgstr "الانبساطي"
+
+msgid "Digit %(digit)s"
+msgstr "الرقم %(digit)s"
+
+msgid "Direction"
+msgstr "اتجاه"
+
+msgid ""
+"Disabled: no listener, discovery, reconnect or phone tray entries are active."
+msgstr ""
+"معطل: لا توجد إدخالات مستمع أو اكتشاف أو إعادة اتصال أو علبة الهاتف نشطة."
+
+msgid "Discard"
+msgstr "تجاهل"
+
+msgid "Discharging"
+msgstr "تجاهل"
+
+msgid "Display"
+msgstr "العرض"
+
+#, python-format
+msgid "Display: %(display)s"
+msgstr "العرض: %(display)s"
+
+msgid "Display: none"
+msgstr "العرض: لا شيء"
+
+msgid "Do not retrieve weather without a location"
+msgstr "عدم جلب الطقس من دون موقع"
+
+msgid "Doctor appointment"
+msgstr "موعد طبيب"
+
+msgid "Document.pdf"
+msgstr "Document.pdf"
+
+msgid ""
+"Does this eight-character verification key match KDE Connect on %(name)s?\n"
+"\n"
+"%(code)s"
+msgstr ""
+"هل يتطابق مفتاح التحقق المكوّن من ثمانية أحرف مع KDE Connect على %(name)s؟\n"
+"\n"
+"%(code)s"
+
+msgid "Done"
+msgstr "تم"
+
+msgid "Dose type"
+msgstr "نوع الجرعة"
+
+msgid "Download manual"
+msgstr "تنزيل الدليل"
+
+msgid "Download manual version %(version)s"
+msgstr "تنزيل الدليل، الإصدار %(version)s"
+
+msgid "Download version %(version)s …"
+msgstr "تنزيل الإصدار %(version)s …"
+
+msgid "Drag the attachment area up or down"
+msgstr "اسحب منطقة المرفقات إلى أعلى أو أسفل"
+
+msgid "Drops"
+msgstr "قطرات"
+
+msgid "Due on"
+msgstr "تاريخ الاستحقاق"
+
+msgid "Due on %(date)s"
+msgstr "الاستحقاق في %(date)s"
+
+msgid "Due: %(date)s"
+msgstr "الاستحقاق: %(date)s"
+
+msgid "Duplicates"
+msgstr "التكرارات"
+
+msgid "Duration"
+msgstr "Duration"
+
+msgid "Early shift"
+msgstr "وردية مبكرة"
+
+msgid "Edit"
+msgstr "تحرير"
+
+msgid "Edit anniversary"
+msgstr "تحرير المناسبة السنوية"
+
+msgid "Edit appointment"
+msgstr "تحرير الموعد"
+
+msgid "Edit contact"
+msgstr "تحرير جهة الاتصال"
+
+msgid "Edit group"
+msgstr "تحرير المجموعة"
+
+msgid "Edit notebook"
+msgstr "تحرير دفتر الملاحظات"
+
+msgid "Edit notebook group"
+msgstr "تحرير مجموعة دفاتر الملاحظات"
+
+msgid "Edit task"
+msgstr "تحرير المهمة"
+
+msgid "Edit the website or application used"
+msgstr "تحرير موقع الويب أو التطبيق المستخدم"
+
+msgid "Email"
+msgstr "البريد الإلكتروني"
+
+msgid "Email addresses"
+msgstr "عناوين البريد الإلكتروني"
+
+msgid "Embed"
+msgstr "تضمين"
+
+msgid "Embed PDF"
+msgstr "تضمين PDF"
+
+msgid "Embed image"
+msgstr "تضمين صورة"
+
+msgid "Embed links and files"
+msgstr "تضمين الروابط والملفات"
+
+msgid "Embedded files"
+msgstr "ملفات مضمنة"
+
+msgid "Emergency contact"
+msgstr "جهة اتصال للطوارئ"
+
+msgid "Emergency contact %(number)s"
+msgstr "جهة اتصال للطوارئ %(number)s"
+
+msgid "Emergency contact phone"
+msgstr "هاتف جهة اتصال الطوارئ"
+
+msgid "Emergency contacts"
+msgstr "جهات اتصال للطوارئ"
+
+msgid "Empty recycle bin"
+msgstr "إفراغ سلة المحذوفات"
+
+msgid "Enable"
+msgstr "تمكين"
+
+msgid "Enable Magnolie Notes phone connection"
+msgstr "تمكين اتصال الهاتف Magnolie Notes"
+
+msgid "Enable cycle calendar"
+msgstr "تمكين تقويم الدورة"
+
+msgid "Enable password protection"
+msgstr "تمكين الحماية بكلمة مرور"
+
+msgid ""
+"Enable password protection? Your data will then be stored encrypted. Without "
+"the password, it will be irretrievably lost; keep the password in a safe "
+"place."
+msgstr ""
+"هل تريد تمكين الحماية بكلمة مرور؟ ستُحفظ بياناتك بعد ذلك بصورة مشفرة. ومن دون "
+"كلمة المرور ستُفقد بلا إمكانية للاسترجاع؛ احتفظ بكلمة المرور في مكان آمن."
+
+msgid "Enable reminders"
+msgstr "تمكين التذكيرات"
+
+msgid "Enable shift planner"
+msgstr "تمكين مخطط الورديات"
+
+msgid "Enable tray applet"
+msgstr "تمكين بريمج صينية النظام"
+
+msgid "Enable vacation planner"
+msgstr "تمكين مخطط الإجازات"
+
+msgid "Enable waste collection calendar"
+msgstr "تمكين تقويم جمع النفايات"
+
+msgid "Encrypted archive entries are not supported."
+msgstr "إدخالات الأرشيف المشفرة غير مدعومة."
+
+msgid "Encrypting the data"
+msgstr "جارٍ تشفير البيانات"
+
+msgid "Ending the call"
+msgstr "جارٍ إنهاء المكالمة"
+
+msgid "Enjoy getting organized!"
+msgstr "استمتع بتنظيم أمورك!"
+
+msgid "Enter"
+msgstr "إدخال"
+
+msgid ""
+"Enter a blood glucose value on the left to highlight matching scheme rows."
+msgstr "أدخل قيمة سكر الدم على اليسار لتمييز صفوف المخطط المطابقة."
+
+msgid "Enter a complete phone number."
+msgstr "أدخل رقم هاتف كاملًا."
+
+msgid "Enter a medication name first."
+msgstr "أدخل اسم الدواء أولًا."
+
+msgid "Enter a password with letters"
+msgstr "أدخل كلمة مرور تحتوي على أحرف"
+
+msgid "Enter a reachable IPv4 or IPv6 address of this computer first."
+msgstr "أدخل أولًا عنوان IPv4 أو IPv6 يمكن الوصول إليه لهذا الكمبيوتر."
+
+msgid "Enter a remote address before setting its port."
+msgstr "أدخل عنوانًا بعيدًا قبل تعيين منفذه."
+
+msgid "Enter a secure HTTPS address for the custom medium."
+msgstr "أدخل عنوان HTTPS آمنًا للوسيط المخصص."
+
+msgid "Enter a title, date, or a word from the note."
+msgstr "أدخل عنوانًا أو تاريخًا أو كلمة من الملاحظة."
+
+msgid "Enter a valid host name or IP address."
+msgstr "أدخل اسم مضيف أو عنوان IP صالحًا."
+
+msgid "Enter a valid port between 1 and 65535."
+msgstr "أدخل منفذًا صالحًا بين 1 و65535."
+
+msgid "Enter a valid reachable IPv4 or IPv6 address."
+msgstr "أدخل عنوان IPv4 أو IPv6 صالحًا ويمكن الوصول إليه."
+
+msgid "Enter a web or email address."
+msgstr "أدخل عنوان ويب أو بريد إلكتروني."
+
+msgid "Enter an application command."
+msgstr "أدخل أمر التطبيق."
+
+msgid "Enter at least four characters for the backup password."
+msgstr "أدخل أربعة محارف على الأقل لكلمة مرور النسخة الاحتياطية."
+
+msgid "Enter height and weight to calculate BMI."
+msgstr "أدخل الطول والوزن لحساب مؤشر كتلة الجسم."
+
+msgid "Enter the backup password."
+msgstr "أدخل كلمة مرور النسخة الاحتياطية."
+
+msgid "Enter the complete Mastodon address @name@server or an HTTPS address."
+msgstr "أدخل عنوان Mastodon الكامل @name@server أو عنوان HTTPS."
+
+msgid "Enter the password for this backup."
+msgstr "أدخل كلمة المرور لهذه النسخة الاحتياطية."
+
+msgid ""
+"Enter your address above. No service can calculate directions without a "
+"starting point."
+msgstr "أدخل عنوانك أعلاه. لا يمكن لأي خدمة حساب الاتجاهات من دون نقطة انطلاق."
+
+msgid "Entry"
+msgstr "إدخال"
+
+msgid "Errands"
+msgstr "مهام خارجية"
+
+msgid "Error"
+msgstr "خطأ"
+
+#, python-format
+msgid "Error: %s"
+msgstr "خطأ: %s"
+
+msgid "Evening"
+msgstr "المساء"
+
+#, python-format
+msgid "Event loop is not available: %s"
+msgstr "حلقة الأحداث غير متاحة: %s"
+
+msgid "Every 12 hours"
+msgstr "كل 12 ساعة"
+
+msgid "Every 6 hours"
+msgstr "كل 6 ساعات"
+
+msgid "Every filled medication row requires a name."
+msgstr "يتطلب كل صف دواء معبّأ اسمًا."
+
+msgid "Every filled row requires a valid date."
+msgstr "يتطلب كل صف معبّأ تاريخًا صالحًا."
+
+msgid "Everything is done - the list is empty."
+msgstr "تم كل شيء – القائمة فارغة."
+
+msgid "Evolution Data Server"
+msgstr "Evolution Data Server"
+
+msgid "Exactly one online Magnolie Notes phone must allow dial requests."
+msgstr "يجب أن يسمح هاتف Magnolie Notes واحد عبر الإنترنت بطلبات الاتصال."
+
+msgid "Export"
+msgstr "تصدير"
+
+msgid "Export failed."
+msgstr "فشل التصدير."
+
+msgid "Export failed: %(error)s"
+msgstr "فشل التصدير: %(error)s"
+
+msgid "Export is available only in the installed application."
+msgstr "التصدير متاح فقط في التطبيق المثبت."
+
+msgid "Extend sharing"
+msgstr "توسيع المشاركة"
+
+msgid "Failed"
+msgstr "فشل"
+
+msgid "Fasting"
+msgstr "على الريق"
+
+msgid "Female caregiver"
+msgstr "مقدمة رعاية"
+
+msgid "Female friend"
+msgstr "صديقة"
+
+msgid "Female neighbor"
+msgstr "جارة"
+
+msgid "Female partner"
+msgstr "شريكة"
+
+msgid "Female relative"
+msgstr "قريبة"
+
+msgid "Fertile days"
+msgstr "أيام الخصوبة"
+
+#, python-format
+msgid "File could not be read: %s"
+msgstr "تعذرت قراءة الملف: %s"
+
+msgid "Fill with stored values"
+msgstr "تعبئة بالقيم المخزنة"
+
+msgid ""
+"Finds contact cards with the same name, email address or phone number. You "
+"are asked twice before merging, and a copy of every removed card is kept in "
+"the recycle bin."
+msgstr ""
+"يعثر على بطاقات جهات الاتصال التي لها الاسم نفسه أو عنوان البريد الإلكتروني "
+"نفسه أو رقم الهاتف نفسه. يُطلب منك التأكيد مرتين قبل الدمج، وتُحفظ نسخة من كل "
+"بطاقة مُزالة في سلة المحذوفات."
+
+msgid "Fingerprint"
+msgstr "بصمة الإصبع"
+
+msgid "Fingerprint, e.g. ABCD-1234-EF56-7890"
+msgstr "بصمة الإصبع، مثل ABCD-1234-EF56-7890"
+
+msgid "First Communion"
+msgstr "المناولة الأولى"
+
+msgid "First choose a calendar or address book in Settings."
+msgstr "اختر أولًا تقويمًا أو دفتر عناوين في الإعدادات."
+
+msgid "First collection"
+msgstr "أول جمع"
+
+msgid "First date"
+msgstr "التاريخ الأول"
+
+msgid "First name"
+msgstr "الاسم الأول"
+
+msgid "First name Last name"
+msgstr "الاسم الأول اسم العائلة"
+
+msgid ""
+"First name Last name\n"
+"Street and house number\n"
+"Postal code City"
+msgstr ""
+"الاسم الأول اسم العائلة\n"
+"الشارع ورقم المنزل\n"
+"الرمز البريدي المدينة"
+
+msgid "First select a calendar or address book from the online accounts."
+msgstr "اختر أولًا تقويمًا أو دفتر عناوين من الحسابات عبر الإنترنت."
+
+msgid "Fixed units"
+msgstr "وحدات ثابتة"
+
+msgid "Folder selection is available only in the installed application."
+msgstr "اختيار المجلد متاح فقط في التطبيق المثبت."
+
+msgid "Follicular phase"
+msgstr "الطور الجُريبي"
+
+msgid "Follow up"
+msgstr "متابعة"
+
+msgid "Font size"
+msgstr "حجم الخط"
+
+msgid ""
+"For a direct IPv4 connection, port %(port)s may need to be forwarded by the "
+"router; CGNAT can prevent this. For IPv6, allow the port in the router and "
+"computer firewalls."
+msgstr ""
+"للاتصال المباشر عبر IPv4 قد يلزم تحويل المنفذ %(port)s في جهاز التوجيه؛ وقد "
+"يمنع CGNAT ذلك. في IPv6 اسمح بالمنفذ في جدران حماية جهاز التوجيه والكمبيوتر."
+
+msgid ""
+"For this purpose, appointments, tasks, anniversaries and the names of "
+"responsible people are kept unencrypted in a separate file readable only by "
+"you. Contacts and notes are never written to it."
+msgstr ""
+"لهذا الغرض تُحفظ المواعيد والمهام والمناسبات السنوية وأسماء المسؤولين من دون "
+"تشفير في ملف منفصل لا يستطيع قراءته سواك. ولا تُكتب جهات الاتصال والملاحظات "
+"فيه مطلقًا."
+
+msgid "For: %(people)s"
+msgstr "لـ: %(people)s"
+
+msgid "Form"
+msgstr "النموذج"
+
+msgid "Forward Secrecy"
+msgstr "السرية الأمامية (Forward Secrecy)"
+
+msgid ""
+"Found %(groups)s containing %(cards)s in total, for example:\n"
+"%(examples)s%(more)s\n"
+"\n"
+"The most complete card in each group is retained, and missing fields are "
+"filled from the others. The remaining cards are moved to the recycle bin as "
+"“Duplicates” and can be restored from there. Continue?"
+msgstr ""
+"تم العثور على %(groups)s من المجموعات تضم إجمالًا %(cards)s من البطاقات، "
+"مثلًا:\n"
+"%(examples)s%(more)s\n"
+"\n"
+"يُحتفظ بالبطاقة الأكثر اكتمالًا في كل مجموعة، وتُستكمل الحقول الناقصة من "
+"البطاقات الأخرى. وتُنقل البطاقات المتبقية إلى سلة المحذوفات تحت «التكرارات» "
+"ويمكن استعادتها منها. هل تريد المتابعة؟"
+
+#, python-format, javascript-format
+msgid "Found – %s."
+msgstr "تم العثور – %s."
+
+msgid "Founding day"
+msgstr "يوم التأسيس"
+
+msgid "France"
+msgstr "فرنسا"
+
+msgid "Frequency"
+msgstr "التكرار"
+
+msgid "Fribourg"
+msgstr "فريبورغ"
+
+msgid "Friday"
+msgstr "الجمعة"
+
+msgid "From"
+msgstr "من"
+
+msgid "From this computer (Evolution/Thunderbird)"
+msgstr "من هذا الكمبيوتر (Evolution/Thunderbird)"
+
+msgid "Full"
+msgstr "كامل"
+
+msgid "GNOME Maps"
+msgstr "GNOME Maps"
+
+msgid "GNOME Maps only"
+msgstr "GNOME Maps فقط"
+
+msgid "GNOME Maps, otherwise OpenStreetMap"
+msgstr "GNOME Maps، وإلا OpenStreetMap"
+
+msgid "GNU General Public License, version 3 or later"
+msgstr "GNU General Public License، الإصدار 3 أو أحدث"
+
+msgid "GTK is not available"
+msgstr "GTK غير متاح"
+
+msgid "General"
+msgstr "عام"
+
+msgid "General network"
+msgstr "الشبكة العامة"
+
+msgid "General reference range"
+msgstr "النطاق المرجعي العام"
+
+msgid "Geneva"
+msgstr "جنيف"
+
+msgid "Germany"
+msgstr "ألمانيا"
+
+msgid "Glarus"
+msgstr "غلاروس"
+
+msgid "Go to calendar"
+msgstr "الانتقال إلى التقويم"
+
+msgid "Google Maps in the browser"
+msgstr "Google Maps في المتصفح"
+
+msgid "Grisons"
+msgstr "غراوبوندن"
+
+msgid "Group for %(notebook)s"
+msgstr "مجموعة لـ %(notebook)s"
+
+msgid "HTTPS only; {wert} and {nummer} are replaced when opening."
+msgstr "HTTPS فقط؛ يتم استبدال {wert} و{nummer} عند الفتح."
+
+msgid "Hamburg"
+msgstr "هامبورغ"
+
+msgid "Handle or profile address"
+msgstr "اسم المستخدم أو عنوان الملف الشخصي"
+
+msgid "Handwriting"
+msgstr "كتابة يدوية"
+
+msgid "Hang up"
+msgstr "Hang up"
+
+msgid "Head office"
+msgstr "المقر الرئيسي"
+
+msgid "Heading"
+msgstr "العنوان"
+
+msgid "Heading, text, images, and PDF files are shared encrypted."
+msgstr "تتم مشاركة العنوان والنص والصور وملفات PDF بصورة مشفرة."
+
+msgid "Health"
+msgstr "الصحة"
+
+msgid "Health history chart"
+msgstr "مخطط السجل الصحي"
+
+msgid "Health history charts"
+msgstr "مخططات السجل الصحي"
+
+msgid "Health records"
+msgstr "السجلات الصحية"
+
+msgid ""
+"Health records stay in your encrypted organizer data. The section documents "
+"measurements and schedules but does not provide medical advice."
+msgstr ""
+"تبقى السجلات الصحية ضمن بيانات Organizer المشفّرة. يوثّق هذا القسم القياسات "
+"والجداول العلاجية، لكنه لا يقدم نصائح طبية."
+
+msgid "Health table saved."
+msgstr "حُفظ الجدول الصحي."
+
+msgid "Heart"
+msgstr "القلب"
+
+msgid "Height"
+msgstr "الطول"
+
+msgid "Here is how to find your way around:"
+msgstr "إليك كيفية التعرف على الواجهة:"
+
+msgid "Hesse"
+msgstr "هيسن"
+
+msgid "Hide SMS notification after"
+msgstr "إخفاء إشعار SMS بعد ذلك"
+
+msgid "Hide in the tray when minimized"
+msgstr "الإخفاء في صينية النظام عند التصغير"
+
+msgid "Hide internet access"
+msgstr "إخفاء الوصول إلى الإنترنت"
+
+msgid "Hide past appointments"
+msgstr "إخفاء المواعيد الماضية"
+
+msgid "History"
+msgstr "السجل"
+
+msgid "Holiday retrieval is available only in the installed application."
+msgstr "جلب العطلات متاح فقط في التطبيق المثبت."
+
+msgid "Home"
+msgstr "المنزل"
+
+msgid "Home address"
+msgstr "عنوان المنزل"
+
+msgid "Home phone"
+msgstr "هاتف المنزل"
+
+msgid "Home visit"
+msgstr "زيارة منزلية"
+
+msgid "Hours"
+msgstr "ساعات"
+
+msgid "How the calendar should behave when you click a day."
+msgstr "كيفية تصرف التقويم عند النقر على يوم."
+
+msgid "Husband"
+msgstr "زوج"
+
+msgid "I"
+msgstr "أنا"
+
+msgid "I would be very happy if you bought me a coffee."
+msgstr "سأسعد جدًا إذا اشتريت لي فنجان قهوة."
+
+msgid "IE"
+msgstr "وحدة دولية"
+
+msgid ""
+"If the year is unknown, enter only day and month.\n"
+"No age will then be shown.\n"
+"Anniversaries appear with ✱ in the calendar and planner."
+msgstr ""
+"إذا كانت السنة غير معروفة، فأدخل اليوم والشهر فقط.\n"
+"لن يظهر العمر حينها.\n"
+"تظهر المناسبات السنوية بعلامة ✱ في التقويم والمخطط."
+
+msgid "Image"
+msgstr "صورة"
+
+msgid "Image file"
+msgstr "ملف صورة"
+
+msgid "Import"
+msgstr "استيراد"
+
+msgid "Import Claws Mail contacts"
+msgstr "استيراد جهات اتصال Claws Mail"
+
+msgid "Import Lotus Organizer CSV"
+msgstr "استيراد Lotus Organizer CSV"
+
+msgid "Import calendar file"
+msgstr "استيراد ملف تقويم"
+
+msgid "Import contacts"
+msgstr "استيراد جهات الاتصال"
+
+msgid "Import failed: %(error)s"
+msgstr "فشل الاستيراد: %(error)s"
+
+msgid "Import from LibreOffice"
+msgstr "استيراد من LibreOffice"
+
+msgid "Import is available only in the installed application."
+msgstr "الاستيراد متاح فقط في التطبيق المثبت."
+
+msgid "Import pairing file …"
+msgstr "استيراد ملف اقتران …"
+
+msgid "Import, export and synchronization"
+msgstr "الاستيراد والتصدير والمزامنة"
+
+msgid ""
+"Import, export and synchronization are available only in the installed "
+"application."
+msgstr "الاستيراد والتصدير والمزامنة متاحة فقط في التطبيق المثبت."
+
+msgid ""
+"Important: Without this password, nobody can access the data, including you. "
+"Keep it in a safe place."
+msgstr ""
+"مهم: من دون كلمة المرور هذه لا يستطيع أحد الوصول إلى البيانات، بما في ذلك "
+"أنت. احتفظ بها في مكان آمن."
+
+#, python-format
+msgid "Imported from session: %(variables)s"
+msgstr "تم الاستيراد من الجلسة: %(variables)s"
+
+msgid "Imported: %(items)s."
+msgstr "تم الاستيراد: %(items)s."
+
+#, python-format
+msgid "Importing the old data failed: %s"
+msgstr "فشل استيراد البيانات القديمة: %s"
+
+msgid "Importing the pairing file"
+msgstr "جارٍ استيراد ملف الاقتران"
+
+msgid ""
+"In the DIN template, these lines appear as a multiline sender block and in "
+"small type in the address window. In the compact template, they form one "
+"line above the recipient address. No sender is added if this field is empty."
+msgstr ""
+"في قالب DIN تظهر هذه الأسطر ككتلة مرسل متعددة الأسطر، وتظهر بخط صغير في "
+"نافذة العنوان. وفي القالب المدمج تشكل سطرًا واحدًا فوق عنوان المستلم. لا يُضاف "
+"مرسل إذا كان هذا الحقل فارغًا."
+
+msgid "In the organizer%(selection)s: %(items)s%(years)s."
+msgstr "في Organizer%(selection)s: %(items)s%(years)s."
+
+msgid "In the recycle bin: %(items)s"
+msgstr "في سلة المحذوفات: %(items)s"
+
+msgid "Include anniversaries"
+msgstr "تضمين المناسبات السنوية"
+
+msgid "Include appointments"
+msgstr "تضمين المواعيد"
+
+msgid "Include cycle markers"
+msgstr "تضمين علامات الدورة"
+
+msgid "Include personal vacation"
+msgstr "تضمين الإجازة الشخصية"
+
+msgid "Include public holidays in year planner"
+msgstr "تضمين العطلات الرسمية في المخطط السنوي"
+
+msgid "Include school holidays"
+msgstr "تضمين العطلات المدرسية"
+
+msgid "Include school holidays in year planner"
+msgstr "تضمين العطلات المدرسية في المخطط السنوي"
+
+msgid "Include shifts"
+msgstr "تضمين الورديات"
+
+msgid "Include waste collections"
+msgstr "تضمين جمع النفايات"
+
+msgid "Incoming"
+msgstr "وارد"
+
+msgid "Incoming call"
+msgstr "مكالمة واردة"
+
+msgid "Input"
+msgstr "إدخال"
+
+msgid "Insert link"
+msgstr "إدراج رابط"
+
+msgid "Install the packages, for example with:"
+msgstr "ثبّت الحزم، على سبيل المثال باستخدام:"
+
+msgid "Installed manual version: %(version)s."
+msgstr "الإصدار اليدوي المثبت: %(version)s."
+
+msgid "Insulin scheme"
+msgstr "نظام جرعات الإنسولين"
+
+msgid "Integrity"
+msgstr "النزاهة"
+
+msgid "Internet IP"
+msgstr "عنوان IP للإنترنت"
+
+msgid "Internet available"
+msgstr "Internet available"
+
+msgid "Interval in days"
+msgstr "الفاصل بالأيام"
+
+#, python-format
+msgid "Invalid language: %s. Use a supported language code or system."
+msgstr "اللغة غير صالحة: %s. استخدم رمز لغة مدعومًا أو system."
+
+msgid "Italic"
+msgstr "مائل"
+
+msgid "Italy"
+msgstr "إيطاليا"
+
+msgid "Juice"
+msgstr "عصير"
+
+msgid "Jura"
+msgstr "جورا"
+
+msgid "KDE Connect for SMS"
+msgstr "KDE Connect لـ SMS"
+
+msgid "KDE Connect for SMS is available only in the installed application."
+msgstr "KDE Connect لـ SMS متاح فقط في التطبيق المثبت."
+
+msgid ""
+"KDE Connect is used only for SMS. It does not connect or synchronize the "
+"Magnolienbaum."
+msgstr ""
+"يتم استخدام KDE Connect فقط لـ SMS. لا يقوم بتوصيل أو مزامنة Magnolienbaum."
+
+msgid "KDE Connect pairing failed."
+msgstr "فشل الاقتران KDE Connect."
+
+msgid "KDE Connect phone paired."
+msgstr "تم إقران الهاتف KDE Connect."
+
+msgid "KDE Connect port %(port)s"
+msgstr "منفذ KDE Connect %(port)s"
+
+msgid "Keep a troubleshooting log"
+msgstr "الاحتفاظ بسجل لاستكشاف الأخطاء وإصلاحها"
+
+msgid "LDIF address book (*.ldif)"
+msgstr "دفتر عناوين LDIF (*.ldif)"
+
+msgid "Landline"
+msgstr "هاتف ثابت"
+
+msgid "Large"
+msgstr "كبير"
+
+msgid "Last check failed: %(error)s"
+msgstr "فشل آخر تحقق: %(error)s"
+
+msgid "Last contact"
+msgstr "إنشاء جهة اتصال"
+
+msgid "Last name"
+msgstr "اسم العائلة"
+
+msgid "Last snapshot"
+msgstr "آخر لقطة"
+
+msgid "Last synchronized: %(date)s, %(time)s."
+msgstr "آخر مزامنة: %(date)s، %(time)s."
+
+msgid "Late shift"
+msgstr "وردية متأخرة"
+
+msgid "Latest alarm monitor entries:"
+msgstr "أحدث إدخالات مراقب التنبيهات:"
+
+msgid "Lead time"
+msgstr "مهلة مسبقة"
+
+msgid "Letter"
+msgstr "رسالة"
+
+msgid "Letter template"
+msgstr "قالب الرسالة"
+
+#, python-format
+msgid "LibreOffice was not found. The letter is located at: %s"
+msgstr "لم يتم العثور على LibreOffice. الرسالة موجودة في: %s"
+
+msgid "License"
+msgstr "الترخيص"
+
+msgid "Liechtenstein"
+msgstr "ليختنشتاين"
+
+msgid "Lined paper (lines on the writing sheet)"
+msgstr "ورق مسطر (خطوط على ورقة الكتابة)"
+
+msgid "Link"
+msgstr "رابط"
+
+msgid "Listener active"
+msgstr "مبدئي"
+
+msgid "Listener stopped"
+msgstr "توقف المستمع"
+
+msgid "Local calendar"
+msgstr "التقويم المحلي"
+
+msgid "Location"
+msgstr "الموقع"
+
+msgid "Location obtained from LibreOffice."
+msgstr "تم الحصول على الموقع من LibreOffice."
+
+msgid "Log file: ~/.local/state/magnolie-organizer/debug.log"
+msgstr "ملف السجل: ~/.local/state/magnolie-organizer/debug.log"
+
+msgid "Log opened: %(path)s"
+msgstr "تم فتح السجل: %(path)s"
+
+msgid "Long-acting insulin"
+msgstr "إنسولين طويل المفعول"
+
+msgid "Loose Notes"
+msgstr "ملاحظات حرة"
+
+msgid "Lotus Calendar (*.lcs)"
+msgstr "Lotus Calendar (*.lcs)"
+
+msgid "Lotus Organizer CSV …"
+msgstr "Lotus Organizer CSV …"
+
+msgid "Lower Austria"
+msgstr "النمسا السفلى"
+
+msgid "Lower Saxony"
+msgstr "سكسونيا السفلى"
+
+msgid "Lower other sounds while ringing"
+msgstr "خفض الأصوات الأخرى أثناء الرنين"
+
+msgid "Lucerne"
+msgstr "لوسيرن"
+
+msgid "Luxembourg"
+msgstr "لوكسمبورغ"
+
+msgid "Magnolia tree"
+msgstr "ماغنوليا"
+
+msgid "Magnolia weather symbols only"
+msgstr "رموز الطقس Magnolie فقط"
+
+msgid "Magnolie Notes device status"
+msgstr "حالة جهاز Magnolie Notes"
+
+msgid ""
+"Magnolie Notes ended the session. The app and Organizer must use the same "
+"protocol version."
+msgstr ""
+"أنهى Magnolie Notes الجلسة. يجب أن يستخدم التطبيق وOrganizer إصدار "
+"البروتوكول نفسه."
+
+msgid "Magnolie Notes phone connection"
+msgstr "اتصال الهاتف Magnolie Notes"
+
+msgid ""
+"Magnolie Notes phones and KDE Connect phones are separate: the Android model "
+"name belongs to Magnolie Notes; the KDE peer name comes from KDE Connect."
+msgstr ""
+"هواتف Magnolie Notes وهواتف KDE Connect منفصلة: اسم طراز Android يخص "
+"Magnolie Notes؛ واسم نظير KDE يأتي من KDE Connect."
+
+msgid "Magnolie Organizer is not completely installed."
+msgstr "Magnolie Organizer غير مثبت بالكامل."
+
+msgid ""
+"Magnolie Organizer is open-source software. There are no functional "
+"restrictions. This branding can be removed by supporting the project and "
+"then entering the activation code received by email under Settings → About."
+msgstr ""
+"Magnolie Organizer برنامج مفتوح المصدر ولا توجد قيود وظيفية. يمكن إزالة هذه "
+"العلامة بدعم المشروع ثم إدخال رمز التفعيل المستلم بالبريد الإلكتروني ضمن "
+"الإعدادات ← حول."
+
+msgid "Magnolie Organizer requires GTK 3 and WebKit2GTK."
+msgstr "يتطلب Magnolie Organizer كلًا من GTK 3 وWebKit2GTK."
+
+msgid "Magnolie Organizer – Tray Applet"
+msgstr "Magnolie Organizer – بريمج صينية النظام"
+
+msgid "Magnolie Organizer – appointment reminders"
+msgstr "Magnolie Organizer – تذكيرات المواعيد"
+
+msgid "Magnolie Organizer – check appointments regularly"
+msgstr "Magnolie Organizer – التحقق المنتظم من المواعيد"
+
+msgid "Magnolie Organizer – personal organizer in a paper design"
+msgstr "Magnolie Organizer – منظم شخصي بتصميم ورقي"
+
+msgid "Magnolie Organizer – reminders"
+msgstr "Magnolie Organizer – التذكيرات"
+
+msgid "Magnolie backup (*.json)"
+msgstr "نسخة Magnolie الاحتياطية (*.json)"
+
+msgid "Magnolie sheet"
+msgstr "ورقة Magnolie"
+
+msgid "Magnolie-Contacts.ods"
+msgstr "Magnolie-Contacts.ods"
+
+#, python-format
+msgid "Magnolie-Month-Calendar-%04d-%02d.ods"
+msgstr "%04d-%02d.ods-ﺎﻴﻟﻮﻨﻏﺎﻤﻟﺍ-ﺮﻬﺷ-ﻢﻳﻮﻘﺗ"
+
+#, python-format
+msgid "Magnolie-Year-Planner-%d.ods"
+msgstr "%d.ods-ﺎﻴﻟﻮﻨﻐﻤﻟﺍ-ﺔﻨﺳ-ﻂﻄﺨﻣ"
+
+msgid "Magnolienbaum"
+msgstr "Magnolienbaum"
+
+msgid "Magnolienbaum mailbox"
+msgstr "Magnolienbaum mailbox"
+
+msgid "Magnolienbaum pairing file (*.magnolie-paarung)"
+msgstr "ملف إقران Magnolienbaum (*.magnolie-paarung)"
+
+msgid "Male caregiver"
+msgstr "مقدّم رعاية"
+
+msgid "Male friend"
+msgstr "صديق"
+
+msgid "Male neighbor"
+msgstr "جار"
+
+msgid "Male partner"
+msgstr "شريك"
+
+msgid "Male relative"
+msgstr "قريب"
+
+msgid "Manage connection"
+msgstr "إدارة الاتصال"
+
+msgid "Manage people"
+msgstr "إدارة الأشخاص"
+
+msgid "Manual"
+msgstr "كتيب"
+
+msgctxt "recovery snapshot reason"
+msgid "Manual"
+msgstr "مخصص"
+
+msgid "Manual version %(version)s is available."
+msgstr "الإصدار اليدوي %(version)s متاح."
+
+msgid "Manufacturer"
+msgstr "الشركة المصنعة"
+
+msgid "Map"
+msgstr "الخريطة"
+
+msgid ""
+"Map services often cannot find a street without a country. If the country is "
+"already part of the address, it is not added a second time."
+msgstr ""
+"غالبًا لا تستطيع خدمات الخرائط العثور على شارع من دون تحديد البلد. وإذا كان "
+"البلد جزءًا من العنوان أصلًا فلن يُضاف مرة أخرى."
+
+msgid "Mark as completed"
+msgstr "وضع علامة «مكتمل»"
+
+msgid "Mark as open"
+msgstr "وضع علامة «مفتوح»"
+
+msgid "Maximized"
+msgstr "مكبّرة"
+
+msgid "Measurement context"
+msgstr "سياق القياس"
+
+msgid "Mecklenburg-Western Pomerania"
+msgstr "مكلنبورغ-فوربومرن"
+
+msgid "Medication"
+msgstr "الدواء"
+
+msgid "Medication plan"
+msgstr "خطة الأدوية"
+
+msgid "Medium (slightly larger)"
+msgstr "متوسط (أكبر قليلًا)"
+
+msgid "Meeting"
+msgstr "اجتماع"
+
+msgid "Memorial day"
+msgstr "يوم تذكاري"
+
+msgid "Memory available / total"
+msgstr "Memory available / total"
+
+msgid "Merge"
+msgstr "دمج"
+
+msgid "Merge duplicate contact cards"
+msgstr "دمج بطاقات جهات الاتصال المكررة"
+
+msgid "Merge this pair individually"
+msgstr "دمج هذا الزوج بشكل فردي"
+
+msgid "Message"
+msgstr "رسالة"
+
+msgid "Message text"
+msgstr "رسالة"
+
+msgid "Metered connection"
+msgstr "Metered connection"
+
+msgid "Minimize"
+msgstr "Minimize"
+
+msgid "Minimize to the tray when closed"
+msgstr "التصغير إلى منطقة النظام عند الإغلاق"
+
+msgid "Minimize to tray"
+msgstr "التصغير إلى منطقة النظام"
+
+msgid "Minutes"
+msgstr "دقائق"
+
+msgid "Missed appointment"
+msgstr "موعد فائت"
+
+msgid ""
+"Missed reminders are shown after the next startup. If the computer was off "
+"or the application was closed, the organizer reports a missed appointment "
+"shortly after login and provides a button to open it. All-day appointments "
+"are treated as starting at 8 a.m. A small reminder service starts at login "
+"to check appointments in the background and continues running when you close "
+"the organizer."
+msgstr ""
+"تظهر التذكيرات الفائتة بعد بدء التشغيل التالي. إذا كان الحاسوب مطفأً أو كان "
+"التطبيق مغلقًا، يُبلغ المنظّم عن الموعد الفائت بعد تسجيل الدخول بقليل ويعرض زرًا "
+"لفتحه. وتُعامل مواعيد اليوم الكامل كأنها تبدأ الساعة 8 صباحًا. تبدأ عند تسجيل "
+"الدخول خدمة تذكير صغيرة تتحقق من المواعيد في الخلفية وتستمر في العمل حتى بعد "
+"إغلاق المنظّم."
+
+msgid ""
+"Misspelled words are marked with a red wavy underline while you type. Right-"
+"clicking a word opens a sheet with suggestions that can be applied with one "
+"click; you can add names to your personal dictionary in the same way. If the "
+"lines or suggestions are missing, install the dictionary with:  sudo apt "
+"install %(package)s"
+msgstr ""
+"تُعلَّم الكلمات ذات الإملاء الخاطئ أثناء الكتابة بخط أحمر متموج. يفتح النقر بزر "
+"الفأرة الأيمن على كلمة لوحةً بالاقتراحات التي يمكن تطبيقها بنقرة واحدة؛ "
+"وبالطريقة نفسها يمكنك إضافة الأسماء إلى قاموسك الشخصي. إذا لم تظهر الخطوط أو "
+"الاقتراحات، فثبّت القاموس بالأمر:  sudo apt install %(package)s"
+
+msgid "Mobile"
+msgstr "الهاتف المحمول"
+
+msgid "Mobile network"
+msgstr "Mobile network"
+
+msgid "Model"
+msgstr "نموذج"
+
+msgid "Monday"
+msgstr "الاثنين"
+
+msgid "Month"
+msgstr "الشهر"
+
+msgid "Month calendar"
+msgstr "تقويم الشهر"
+
+msgid "Monthly view"
+msgstr "عرض شهري"
+
+msgid "Monthly weekday"
+msgstr "يوم أسبوعي شهري"
+
+msgid "More fields"
+msgstr "حقول إضافية"
+
+msgid ""
+"More than one Magnolie Notes phone is online. Disconnect all but one phone."
+msgstr ""
+"أكثر من هاتف Magnolie Notes متصل بالإنترنت. افصل جميع الهواتف باستثناء هاتف "
+"واحد."
+
+msgid "Morning"
+msgstr "الصباح"
+
+msgid "Mouse wheel over times"
+msgstr "عجلة الفأرة فوق الأوقات"
+
+msgid "Move group down"
+msgstr "نقل المجموعة إلى أسفل"
+
+msgid "Move group up"
+msgstr "نقل المجموعة إلى أعلى"
+
+msgid "Move notebook down"
+msgstr "نقل دفتر الملاحظات إلى أسفل"
+
+msgid "Move notebook to another group"
+msgstr "نقل دفتر الملاحظات إلى مجموعة أخرى"
+
+msgid "Move notebook up"
+msgstr "نقل دفتر الملاحظات إلى أعلى"
+
+msgid "Move the ticked entries to the wastebasket"
+msgstr "نقل العناصر المحددة إلى سلة المحذوفات"
+
+msgid ""
+"Multiple Magnolie Notes phones are stored. Personal sync is blocked; remove "
+"all but one phone."
+msgstr ""
+"تم تخزين عدة هواتف Magnolie Notes. المزامنة الشخصية محظورة؛ أزل جميع الهواتف "
+"باستثناء هاتف واحد."
+
+msgid "Multiple calendars"
+msgstr "Multiple calendars"
+
+msgid "Name"
+msgstr "الاسم"
+
+msgid "Name / occasion"
+msgstr "الاسم / المناسبة"
+
+msgid "Name day"
+msgstr "عيد الاسم"
+
+msgid "Name of this branch"
+msgstr "اسم هذا الفرع"
+
+msgid "Netherlands"
+msgstr "هولندا"
+
+msgid "Network"
+msgstr "Network"
+
+msgid "Neuchâtel"
+msgstr "نوشاتيل"
+
+msgid "Never"
+msgstr "أبداً"
+
+msgid "Never automatically"
+msgstr "أبدا تلقائيا"
+
+msgid "Never synchronized."
+msgstr "لم تتم المزامنة من قبل."
+
+msgid "New"
+msgstr "جديد"
+
+msgid "New Magnolienbaum request"
+msgstr "طلب Magnolienbaum جديد"
+
+msgid "New Magnolienbaum request: %(entry)s."
+msgstr "طلب Magnolienbaum جديد: %(entry)s."
+
+msgid "New anniversary"
+msgstr "ذكرى سنوية جديدة"
+
+msgid "New appointment"
+msgstr "موعد جديد"
+
+msgid "New backup password"
+msgstr "كلمة مرور جديدة للنسخة الاحتياطية"
+
+msgid ""
+"New backups are stored in this folder. When the field is empty, they are "
+"stored next to the data file. For any other location, the organizer requires "
+"a backup password and encrypts the copy independently of the application's "
+"password protection."
+msgstr ""
+"تُخزَّن النسخ الاحتياطية الجديدة في هذا المجلد. إذا كان الحقل فارغًا، فتُخزَّن "
+"بجوار ملف البيانات. وأي موقع آخر يتطلب كلمة مرور للنسخ الاحتياطي، ويشفّر "
+"المنظّم النسخة بصورة مستقلة عن حماية التطبيق بكلمة المرور."
+
+msgid "New contact"
+msgstr "جهة اتصال جديدة"
+
+msgid "New group"
+msgstr "مجموعة جديدة"
+
+msgid "New notebook"
+msgstr "دفتر ملاحظات جديد"
+
+msgid "New notebook group"
+msgstr "مجموعة دفاتر ملاحظات جديدة"
+
+msgid "New page"
+msgstr "صفحة جديدة"
+
+msgid "New password"
+msgstr "كلمة مرور جديدة"
+
+msgid "New task"
+msgstr "مهمة جديدة"
+
+msgid "New version %(version)s is available."
+msgstr "يتوفر الإصدار الجديد %(version)s."
+
+msgid "Next appointment: %(title)s on %(date)s%(time)s%(notice)s"
+msgstr "الموعد التالي: %(title)s في %(date)s%(time)s%(notice)s"
+
+msgid "Next month"
+msgstr "الشهر التالي"
+
+msgid "Next page"
+msgstr "الصفحة التالية"
+
+msgid "Next snapshot"
+msgstr "اللقطة التالية"
+
+msgid "Next tab"
+msgstr "علامة التبويب التالية"
+
+msgid "Next table page"
+msgstr "صفحة الجدول التالية"
+
+msgid "Next week"
+msgstr "الأسبوع التالي"
+
+msgid "Next year"
+msgstr "السنة التالية"
+
+msgid "Nextcloud account"
+msgstr "Nextcloud account"
+
+msgid "Nextcloud denied access to this DAV resource."
+msgstr ".ﺍﺬﻫ DAV ﺩﺭﻮﻣ ﻰﻟﺇ ﻝﻮﺻﻮﻟﺍ Nextcloud ﺾﻓﺭ"
+
+msgid "Nextcloud does not allow this DAV operation."
+msgstr ".DAV ﺔﻴﻠﻤﻌﻟﺍ ﻩﺬﻬﺑ Nextcloud ﺢﻤﺴﻳ ﻻ﻿"
+
+msgid "Nextcloud has insufficient storage for this operation."
+msgstr "Nextcloud ﺔﻴﻠﻤﻌﻟﺍ ﻩﺬﻬﻟ ﺔﻴﻓﺎﻛ ﻦﻳﺰﺨﺗ ﺔﺣﺎﺴﻣ ﻪﻳﺪﻟ ﺲﻴﻟ."
+
+msgid "Nextcloud is not configured."
+msgstr ".Nextcloud ﻦﻳﻮﻜﺗ ﻢﺘﻳ ﻢﻟ"
+
+msgid "Nextcloud is not enabled."
+msgstr ".Nextcloud ﻦﻴﻜﻤﺗ ﻢﺘﻳ ﻢﻟ"
+
+msgid "Nextcloud rejected the credentials."
+msgstr ".ﺩﺎﻤﺘﻋﻻ﻿ﺍ ﺕﺎﻧﺎﻴﺑ Nextcloud ﺖﻀﻓﺭ"
+
+msgid "Nextcloud returned a redirect that was not followed."
+msgstr ".ﺎﻬﺘﻌﺑﺎﺘﻣ ﻢﺘﻳ ﻢﻟ ﻪﻴﺟﻮﺗ ﺓﺩﺎﻋﺇ Nextcloud ﻊﺟﺭﺃ"
+
+msgid "Nextcloud returned an incomplete DAV result."
+msgstr ".ﺔﻠﻤﺘﻜﻣ ﺮﻴﻏ DAV ﺔﺠﻴﺘﻧ Nextcloud ﺩﺎﻋﺃ"
+
+msgid "Nidwalden"
+msgstr "نيدفالدن"
+
+msgid "Night"
+msgstr "الليل"
+
+msgid "Night shift"
+msgstr "نوبة ليلية"
+
+msgid "No"
+msgstr "No"
+
+msgid "No Claws Mail address book was detected."
+msgstr "لم يُكتشف دفتر عناوين Claws Mail."
+
+msgid "No additional modules permitted"
+msgstr "لا يُسمح بوحدات إضافية"
+
+msgid ""
+"No anniversaries yet.\n"
+"Birthdays and celebrations will automatically appear in the calendar."
+msgstr ""
+"لا توجد مناسبات سنوية بعد.\n"
+"ستظهر أعياد الميلاد والمناسبات تلقائيًا في التقويم."
+
+msgid "No application was found for the manual package."
+msgstr "لم يتم العثور على أي تطبيق للحزمة اليدوية."
+
+msgid "No appointment is scheduled."
+msgstr "لا يوجد موعد مجدول."
+
+msgid "No calendars found."
+msgstr "لم يُعثر على تقاويم."
+
+msgid "No data was found."
+msgstr "لم يُعثر على بيانات."
+
+#, python-format
+msgid "No dictionary was found. Install one with:  sudo apt install %s"
+msgstr "لم يُعثر على قاموس. ثبّت واحدًا بالأمر:  sudo apt install %s"
+
+msgid "No due date"
+msgstr "بلا تاريخ استحقاق"
+
+msgid "No duplicate contact cards were found."
+msgstr "لم يُعثر على بطاقات جهات اتصال مكررة."
+
+msgid "No file selected"
+msgstr "لم يُحدد ملف"
+
+msgid "No history charts"
+msgstr "بدون مخططات للسجل الصحي"
+
+msgid "No insulin dose is calculated automatically."
+msgstr "لا تُحسب أي جرعة إنسولين تلقائيًا."
+
+msgid "No mail application was found."
+msgstr "لم يُعثر على تطبيق بريد."
+
+msgid "No manual update check has been performed yet."
+msgstr "لم يتم بعد إجراء فحص التحديث اليدوي."
+
+msgid ""
+"No map service was found. GNOME Maps can be installed with: sudo apt install "
+"gnome-maps"
+msgstr ""
+"لم يُعثر على خدمة خرائط. يمكن تثبيت GNOME Maps بالأمر: sudo apt install gnome-"
+"maps"
+
+msgid "No matching open task found."
+msgstr "لم يُعثر على مهمة مفتوحة مطابقة."
+
+msgid "No measurements in this period."
+msgstr "لا توجد قياسات في هذه الفترة."
+
+msgid "No notebooks"
+msgstr "لا توجد دفاتر ملاحظات"
+
+msgid "No online Magnolie Notes phone has allowed dial requests."
+msgstr "لا يوجد هاتف Magnolie Notes متصل بالإنترنت يسمح بطلبات الاتصال."
+
+msgid "No other branch was found."
+msgstr "لم يُعثر على فرع آخر."
+
+msgid "No other branch yet. Search the network or enter an address."
+msgstr "لا يوجد فرع آخر بعد. ابحث في الشبكة أو أدخل عنوانًا."
+
+msgid "No package has been specified for the new version yet."
+msgstr "لم تُحدد بعد حزمة للإصدار الجديد."
+
+msgid ""
+"No people have been added yet.\n"
+"Enter a name below."
+msgstr ""
+"لم يُضف أي شخص بعد.\n"
+"أدخل اسمًا أدناه."
+
+msgid ""
+"No people have been added yet. Use the People button above to add people "
+"responsible for tasks."
+msgstr ""
+"لم يُضف أي شخص بعد. استخدم زر «الأشخاص» أعلاه لإضافة المسؤولين عن المهام."
+
+msgid "No phone paired yet."
+msgstr "لم تُربط أي مهمة بعد."
+
+msgid "No photo"
+msgstr "بلا صورة"
+
+msgid "No photo selected"
+msgstr "لم تُحدد صورة"
+
+msgid "No public IP address was found."
+msgstr "لم يُعثر على عنوان IP عام."
+
+msgid ""
+"No readable Evolution or Thunderbird stores were found on this computer."
+msgstr ""
+"لم يُعثر على مخازن Evolution أو Thunderbird قابلة للقراءة على هذا الحاسوب."
+
+msgid ""
+"No regional data is retrieved without a selected canton. With “All”, each "
+"entry shows its canton and matching periods are combined."
+msgstr ""
+"لا تُجلب البيانات الإقليمية من دون اختيار كانتون. ومع «الكل» يُظهر كل عنصر "
+"كانتونه وتُدمج الفترات المتطابقة."
+
+msgid ""
+"No regional data is retrieved without a selected state. With “All”, each "
+"entry shows its state and matching periods are combined."
+msgstr ""
+"لا تُجلب البيانات الإقليمية من دون اختيار ولاية. ومع «الكل» يُظهر كل عنصر "
+"ولايته وتُدمج الفترات المتطابقة."
+
+msgid "No scheme row matches this blood glucose value."
+msgstr "لا يطابق أي صف في المخطط قيمة سكر الدم هذه."
+
+msgid "No sheet is open."
+msgstr "لا توجد ورقة مفتوحة."
+
+msgid "No shift"
+msgstr "بلا نوبة"
+
+msgid "No snapshots yet."
+msgstr "لا توجد لقطات حتى الآن."
+
+msgid "No spam check available"
+msgstr "لا يتوفر فحص للرسائل المزعجة"
+
+msgid "No suggestions found."
+msgstr "لم يُعثر على اقتراحات."
+
+msgid "No suitable application was found."
+msgstr "لم يُعثر على تطبيق مناسب."
+
+msgid "No system-paired Bluetooth device found"
+msgstr "لم يتم العثور على جهاز Bluetooth مقترن بالنظام"
+
+msgid "No table (history only)"
+msgstr "بلا جدول (السجل فقط)"
+
+msgid "No task linked yet."
+msgstr "لم تُربط أي مهمة بعد."
+
+#, python-format
+msgid "No text viewer was found. The log is located at: %s"
+msgstr "لم يُعثر على عارض نصوص. السجل موجود في: %s"
+
+msgid "No update check has been performed yet."
+msgstr "لم يُجرَ فحص للتحديثات بعد."
+
+msgid ""
+"No user data has been entered in LibreOffice yet (Tools ▸ Options ▸ User "
+"Data)."
+msgstr ""
+"لم تُدخل بيانات المستخدم في LibreOffice بعد (أدوات ▸ خيارات ▸ بيانات "
+"المستخدم)."
+
+msgid "No web browser was found."
+msgstr "لم يُعثر على متصفح ويب."
+
+msgid "No word was provided."
+msgstr "لم تُحدد كلمة."
+
+msgid "None"
+msgstr "لا شيء"
+
+msgid "Noon"
+msgstr "الظهر"
+
+msgid "Normal"
+msgstr "عادي"
+
+msgid "North Rhine-Westphalia"
+msgstr "شمال الراين-وستفاليا"
+
+msgid ""
+"Not all systems allow waking from suspend. If it does not work, the reminder "
+"appears as soon as the computer is running again."
+msgstr ""
+"لا تسمح كل الأنظمة بالإيقاظ من وضع التعليق. إذا لم ينجح ذلك، يظهر التذكير "
+"فور عودة الحاسوب إلى العمل."
+
+msgid "Not charging"
+msgstr "لا تغييرات"
+
+msgid "Not enough protected disk space for a recovery snapshot."
+msgstr "لا توجد مساحة قرص محمية كافية لالتقاط نسخة استرداد."
+
+msgid "Not now"
+msgstr "ليس الآن"
+
+msgid "Not sent."
+msgstr "لم يُرسل."
+
+msgid "Note"
+msgstr "ملاحظة"
+
+msgid "Note text"
+msgstr "نص الملاحظة"
+
+msgid "Notebook"
+msgstr "دفتر ملاحظات"
+
+msgid "Notebook group"
+msgstr "مجموعة دفاتر ملاحظات"
+
+msgid "Notebooks"
+msgstr "دفتر ملاحظات"
+
+msgid "Notes"
+msgstr "ملاحظات"
+
+msgid "Notes and special instructions"
+msgstr "ملاحظات وتعليمات خاصة"
+
+msgid "Nothing can be encrypted without a password."
+msgstr "لا يمكن تشفير شيء من دون كلمة مرور."
+
+msgid "Nothing found."
+msgstr "لم يُعثر على شيء."
+
+msgid "Nothing has been entered under “%(letter)s” yet."
+msgstr "لم يُدخل شيء تحت «%(letter)s» بعد."
+
+msgid "Nothing is opened or sent while this option is disabled."
+msgstr "لا يُفتح ولا يُرسل شيء ما دام هذا الخيار معطلًا."
+
+msgid "Nothing new was found."
+msgstr "لم يُعثر على شيء جديد."
+
+msgid "Notice: The connection to storage was not confirmed."
+msgstr "تنبيه: لم يتم تأكيد الاتصال بالتخزين."
+
+msgid "Notification and sound"
+msgstr "الإشعار والصوت"
+
+msgid "Notification appeared: as a Magnolie sheet"
+msgstr "ظهر الإشعار: كورقة Magnolie"
+
+msgid "Notification appeared: as a system notification"
+msgstr "ظهر الإشعار: كإشعار نظام"
+
+msgid "Notification appeared: not at all"
+msgstr "لم يظهر الإشعار إطلاقًا"
+
+msgid "Notification appeared: unclear"
+msgstr "ظهر الإشعار: غير واضح"
+
+msgid "Notifications"
+msgstr "الإشعارات"
+
+msgid "Notifications are available only in the installed application."
+msgstr "الإشعارات متاحة فقط في التطبيق المثبّت."
+
+msgid ""
+"Notifications are display-only; replying and remote actions are not "
+"available."
+msgstr "الإشعارات متاحة فقط في التطبيق المثبّت."
+
+msgid "Notify me about incoming calls"
+msgstr "إعلامي بالمكالمات الواردة"
+
+msgid "ODS"
+msgstr "ODS"
+
+msgid "OK"
+msgstr "حسناً"
+
+msgid "Objects"
+msgstr "أشياء"
+
+msgid "Obwalden"
+msgstr "أوبفالدن"
+
+msgid "Off"
+msgstr "إيقاف"
+
+msgid "Offline"
+msgstr "عبر الإنترنت"
+
+msgid "Ointment"
+msgstr "مرهم"
+
+msgid "One address book"
+msgstr "One address book"
+
+msgid "One backup could not be updated."
+msgid_plural "%(count)s backups could not be updated."
+msgstr[0] "تعذر تحديث نسخة احتياطية واحدة."
+msgstr[1] "تعذر تحديث النسخ الاحتياطية %(count)s."
+msgstr[2] "تعذر تحديث النسخ الاحتياطية %(count)s."
+msgstr[3] "تعذر تحديث النسخ الاحتياطية %(count)s."
+msgstr[4] "تعذر تحديث النسخ الاحتياطية %(count)s."
+msgstr[5] "تعذر تحديث النسخ الاحتياطية %(count)s."
+
+msgid "One completion update was received from the Magnolienbaum."
+msgid_plural ""
+"%(count)s completion updates were received from the Magnolienbaum."
+msgstr[0] "تم استلام تحديث إكمال واحد من Magnolienbaum."
+msgstr[1] "تم استلام %(count)s تحديث إكمال من Magnolienbaum."
+msgstr[2] "تم استلام %(count)s تحديثي إكمال من Magnolienbaum."
+msgstr[3] "تم استلام %(count)s تحديثات إكمال من Magnolienbaum."
+msgstr[4] "تم استلام %(count)s تحديث إكمال من Magnolienbaum."
+msgstr[5] "تم استلام %(count)s تحديث إكمال من Magnolienbaum."
+
+msgid "One duplicate contact card was"
+msgid_plural "%(count)s duplicate contact cards were"
+msgstr[0] "تم إنشاء بطاقة اتصال مكررة واحدة"
+msgstr[1] "كانت هناك بطاقتا اتصال مكررتان %(count)s"
+msgstr[2] "كانت هناك بطاقتا اتصال مكررتان %(count)s"
+msgstr[3] "كانت هناك بطاقتا اتصال مكررتان %(count)s"
+msgstr[4] "كانت هناك بطاقتا اتصال مكررتان %(count)s"
+msgstr[5] "كانت هناك بطاقتا اتصال مكررتان %(count)s"
+
+msgid "One moment …"
+msgstr "لحظة …"
+
+msgid "One moment…"
+msgstr "لحظة…"
+
+#, python-format
+msgid ""
+"One obsolete device-status transmission was removed from the tree queue."
+msgid_plural ""
+"%(count)s obsolete device-status transmissions were removed from the tree "
+"queue."
+msgstr[0] "تمت إزالة نقل حالة جهاز قديم من قائمة الانتظار الشجرية."
+msgstr[1] ""
+"تمت إزالة إشارات حالة الجهاز القديمة %(count)s من قائمة الانتظار الشجرية."
+msgstr[2] ""
+"تمت إزالة إشارات حالة الجهاز القديمة %(count)s من قائمة الانتظار الشجرية."
+msgstr[3] ""
+"تمت إزالة إشارات حالة الجهاز القديمة %(count)s من قائمة الانتظار الشجرية."
+msgstr[4] ""
+"تمت إزالة إشارات حالة الجهاز القديمة %(count)s من قائمة الانتظار الشجرية."
+msgstr[5] ""
+"تمت إزالة إشارات حالة الجهاز القديمة %(count)s من قائمة الانتظار الشجرية."
+
+msgid "One shared note was updated."
+msgid_plural "%(count)s shared notes were updated."
+msgstr[0] "تم تحديث ملاحظة مشتركة واحدة."
+msgstr[1] "تم تحديث الملاحظات المشتركة %(count)s."
+msgstr[2] "تم تحديث الملاحظات المشتركة %(count)s."
+msgstr[3] "تم تحديث الملاحظات المشتركة %(count)s."
+msgstr[4] "تم تحديث الملاحظات المشتركة %(count)s."
+msgstr[5] "تم تحديث الملاحظات المشتركة %(count)s."
+
+msgid "One table with chart"
+msgstr "جدول واحد مع مخطط"
+
+msgid "One year"
+msgstr "سنة واحدة"
+
+msgid "Online"
+msgstr "عبر الإنترنت"
+
+#, python-format
+msgid ""
+"Online account integration (Evolution Data Server) is not available on this "
+"system. Install it with:\n"
+"sudo apt install %s"
+msgstr ""
+"تكامل الحسابات عبر الإنترنت (Evolution Data Server) غير متاح على هذا النظام. "
+"ثبّته باستخدام:\n"
+"sudo apt install %s"
+
+msgid ""
+"Online account integration is not available on this system. Install it "
+"with:  sudo apt install %(packages)s, then restart the application. You can "
+"also import contacts and appointments without this integration using “From "
+"this computer” above."
+msgstr ""
+"تكامل الحسابات عبر الإنترنت غير متاح على هذا النظام. ثبّته بالأمر:  sudo apt "
+"install %(packages)s، ثم أعد تشغيل التطبيق. ويمكنك أيضًا استيراد جهات الاتصال "
+"والمواعيد من دون هذا التكامل باستخدام «من هذا الحاسوب» أعلاه."
+
+msgid "Online via Bluetooth data"
+msgstr "متصل عبر بيانات Bluetooth"
+
+msgid "Online via WLAN"
+msgstr "عبر الإنترنت عبر الواي فاي"
+
+msgid ""
+"Only HTTPS. Create an app password in Nextcloud under Settings, Security. "
+"Your account password is never used."
+msgstr ""
+"HTTPS فقط. أنشئ كلمة مرور تطبيق في Nextcloud ضمن الإعدادات، الأمان. لا "
+"تُستخدم كلمة مرور حسابك أبدًا."
+
+msgid ""
+"Only one Magnolie Notes phone can be paired. Remove the existing phone "
+"before changing devices."
+msgstr ""
+"يمكن إقران هاتف Magnolie Notes واحد فقط. أزل الهاتف الحالي قبل تغيير الأجهزة."
+
+msgid ""
+"Only the reliable system notification is available under Wayland; the "
+"Magnolie paper style would often remain invisible there."
+msgstr ""
+"لا يتوفر تحت Wayland إلا إشعار النظام الموثوق؛ إذ إن نمط ورقة Magnolie غالبًا "
+"ما يبقى غير مرئي هناك."
+
+msgid "Open"
+msgstr "فتح"
+
+msgid "Open %(name)s"
+msgstr "فتح %(name)s"
+
+msgid "Open %(service)s for this contact"
+msgstr "فتح %(service)s لجهة الاتصال هذه"
+
+msgid ""
+"Open KDE Connect on the phone and start pairing. Compare the eight-character "
+"verification key and confirm on both devices."
+msgstr ""
+"افتح KDE Connect على الهاتف وابدأ الإقران. قارن مفتاح التحقق المكوّن من "
+"ثمانية أحرف وأكّد على كلا الجهازين."
+
+msgid "Open Magnolie Organizer"
+msgstr "فتح Magnolie Organizer"
+
+msgid "Open Magnolienbaum pairing file"
+msgstr "فتح ملف إقران Magnolienbaum"
+
+msgid "Open day view for %(date)s"
+msgstr "فتح عرض اليوم لـ %(date)s"
+
+msgid "Open manual"
+msgstr "فتح الدليل"
+
+msgid "Open maps with"
+msgstr "فتح الخرائط باستخدام"
+
+msgid "Open medication index"
+msgstr "فتح فهرس الأدوية"
+
+msgid "Open organizer"
+msgstr "فتح المنظّم"
+
+msgid "Open phone connection in Magnolie Notes and select this computer."
+msgstr "افتح اتصال الهاتف في Magnolie Notes واختر هذا الكمبيوتر."
+
+msgid "Open planner as an ODS spreadsheet"
+msgstr "فتح المخطِّط كجدول بيانات ODS"
+
+msgid "Open selected contacts as an ODS spreadsheet"
+msgstr "فتح جهات الاتصال المحددة كجدول بيانات ODS"
+
+msgid "Open selected health records as an ODS spreadsheet"
+msgstr "فتح السجلات الصحية المحددة كجدول بيانات ODS"
+
+msgid "Open task"
+msgstr "مفتوحة"
+
+msgid "Open the application"
+msgstr "فتح التطبيق"
+
+msgid "Open the day in the daily view"
+msgstr "فتح اليوم في العرض اليومي"
+
+msgid ""
+"Open the verified DEB with your software manager; the organizer never "
+"installs it automatically."
+msgstr ""
+"افتح ملف DEB الذي تم التحقق منه باستخدام مدير البرامج الخاص بك؛ المنظم لا "
+"يثبته تلقائيًا أبدًا."
+
+msgid "Open this address as a letter in LibreOffice"
+msgstr "فتح هذا العنوان كرسالة في LibreOffice"
+
+msgid "Open this day"
+msgstr "فتح هذا اليوم"
+
+msgid "Open year"
+msgstr "فتح السنة"
+
+msgid "Open year in planner"
+msgstr "فتح السنة في المخطِّط"
+
+msgid "OpenStreetMap in the browser"
+msgstr "OpenStreetMap في المتصفح"
+
+msgid "Opened in %(application)s."
+msgstr "فُتح في %(application)s."
+
+msgid "Opening phone pairing"
+msgstr "قراءة ملف الإقران"
+
+msgid "Opening the system dialer"
+msgstr "فتح طالب النظام"
+
+#, python-format
+msgid "Operation ended (%s)."
+msgstr "انتهت العملية (%s)."
+
+#, python-format
+msgid "Option %s requires a language."
+msgstr "يتطلب الخيار %s تحديد لغة."
+
+msgid "Organic waste"
+msgstr "نفايات عضوية"
+
+msgid "Organizer"
+msgstr "المنظّم"
+
+msgid "Organizer style (paper sheet)"
+msgstr "نمط المنظّم (ورقة)"
+
+msgid "Organizer · Calendar · Contacts · Notes"
+msgstr "المنظّم · التقويم · جهات الاتصال · الملاحظات"
+
+msgid "Other"
+msgstr "أخرى"
+
+msgctxt "email type"
+msgid "Other"
+msgstr "آخر"
+
+msgctxt "relationship"
+msgid "Other"
+msgstr "علاقة أخرى"
+
+msgid "Other addresses"
+msgstr "عناوين أخرى"
+
+msgid "Other phone numbers"
+msgstr "أرقام هاتف أخرى"
+
+msgid "Outgoing"
+msgstr "المنتهية ولايته"
+
+msgid "Ovulation"
+msgstr "الإباضة"
+
+msgid "Own internet IP"
+msgstr "عنوان IP العام الخاص بي"
+
+msgid "Own window available: no"
+msgstr "نافذة مستقلة متاحة: لا"
+
+msgid "Own window available: yes"
+msgstr "نافذة مستقلة متاحة: نعم"
+
+msgid "PDF file"
+msgstr "ملف PDF"
+
+#, python-format
+msgid "POT template written to: %s"
+msgstr "تمت كتابة قالب POT في: %s"
+
+msgid "Packaging / Yellow bin"
+msgstr "عبوات / الحاوية الصفراء"
+
+msgid "Page %(page)s"
+msgstr "الصفحة %(page)s"
+
+msgid "Page %(page)s of %(count)s"
+msgstr "الصفحة %(page)s من %(count)s"
+
+msgid "Pages"
+msgstr "الصفحات"
+
+msgid "Pain"
+msgstr "الألم"
+
+msgid "Pair KDE Connect phone"
+msgstr "إقران الهاتف KDE Connect"
+
+msgid "Pairing KDE Connect"
+msgstr "الاقتران KDE Connect"
+
+msgid "Pairing file"
+msgstr "ملف الإقران"
+
+msgid "Pairing file saved to: %(path)s"
+msgstr "حُفظ ملف الإقران في: %(path)s"
+
+msgid "Palm tree"
+msgstr "نخلة"
+
+msgid ""
+"Participate in the Magnolienbaum (opens port %(port)s on the local network)"
+msgstr "المشاركة في Magnolienbaum (يفتح المنفذ %(port)s على الشبكة المحلية)"
+
+msgid "Partnership anniversary"
+msgstr "ذكرى الشراكة"
+
+msgid "Password"
+msgstr "كلمة المرور"
+
+msgid "Password or numeric code"
+msgstr "كلمة مرور أو رمز رقمي"
+
+msgid "Password protection"
+msgstr "الحماية بكلمة مرور"
+
+msgid "Password protection is available only in the installed application."
+msgstr "الحماية بكلمة مرور متاحة فقط في التطبيق المثبّت."
+
+msgid "Password protection is enabled – your data is encrypted."
+msgstr "الحماية بكلمة مرور مفعّلة – بياناتك مشفّرة."
+
+msgid "Password protection is enabled. Your data is now encrypted"
+msgstr "الحماية بكلمة مرور مفعّلة. بياناتك مشفّرة الآن"
+
+msgid "Password protection was removed."
+msgstr "أزيلت الحماية بكلمة مرور."
+
+msgid "Paste"
+msgstr "لصق"
+
+msgid "Patch"
+msgstr "لصقة"
+
+msgid "Pay invoice"
+msgstr "دفع الفاتورة"
+
+msgid "Pen"
+msgstr "قلم"
+
+msgid "People"
+msgstr "الأشخاص"
+
+msgid "Period"
+msgstr "الفترة"
+
+msgid "Permanent KDE listener active"
+msgstr "مستمع KDE الدائم نشط"
+
+msgid "Permanent KDE listener stopped"
+msgstr "توقف مستمع KDE الدائم"
+
+msgid "Permanently delete %(count)s completed task?"
+msgid_plural "Permanently delete %(count)s completed tasks?"
+msgstr[0] "حذف المهمة المكتملة وعددها %(count)s نهائيًا؟"
+msgstr[1] "حذف مهمتين مكتملتين نهائيًا (العدد: %(count)s)؟"
+msgstr[2] "حذف المهام المكتملة وعددها %(count)s نهائيًا؟"
+msgstr[3] "حذف المهام المكتملة وعددها %(count)s نهائيًا؟"
+msgstr[4] "حذف المهام المكتملة وعددها %(count)s نهائيًا؟"
+msgstr[5] "حذف المهام المكتملة وعددها %(count)s نهائيًا؟"
+
+msgid "Permanently delete %(count)s selected health record?"
+msgid_plural "Permanently delete %(count)s selected health records?"
+msgstr[0] "هل تريد حذف %(count)s سجل صحي محدد نهائيًا؟"
+msgstr[1] "هل تريد حذف %(count)s سجل صحي محدد نهائيًا؟"
+msgstr[2] "هل تريد حذف سجلين صحيين محددين (%(count)s) نهائيًا؟"
+msgstr[3] "هل تريد حذف %(count)s سجلات صحية محددة نهائيًا؟"
+msgstr[4] "هل تريد حذف %(count)s سجلًا صحيًا محددًا نهائيًا؟"
+msgstr[5] "هل تريد حذف %(count)s سجل صحي محدد نهائيًا؟"
+
+msgid "Permanently delete selected health records"
+msgstr "حذف السجلات الصحية المحددة نهائيًا"
+
+msgid "Permanently delete the one item? This cannot be undone."
+msgid_plural "Permanently delete all %(count)s items? This cannot be undone."
+msgstr[0] "حذف العنصر الواحد نهائيًا؟ لا يمكن التراجع عن هذا."
+msgstr[1] ""
+"هل تريد حذف جميع عناصر %(count)s نهائياً؟ لا يمكن التراجع عن هذا الإجراء."
+msgstr[2] ""
+"هل تريد حذف جميع عناصر %(count)s نهائياً؟ لا يمكن التراجع عن هذا الإجراء."
+msgstr[3] ""
+"هل تريد حذف جميع عناصر %(count)s نهائياً؟ لا يمكن التراجع عن هذا الإجراء."
+msgstr[4] ""
+"هل تريد حذف جميع عناصر %(count)s نهائياً؟ لا يمكن التراجع عن هذا الإجراء."
+msgstr[5] ""
+"هل تريد حذف جميع عناصر %(count)s نهائياً؟ لا يمكن التراجع عن هذا الإجراء."
+
+msgid "Person"
+msgstr "شخص"
+
+msgid "Person's name"
+msgstr "اسم الشخص"
+
+msgid ""
+"Personal data over Magnolie Notes, not Magnolienbaum. Deletions always "
+"require confirmation."
+msgstr ""
+"تُنقل البيانات الشخصية عبر Magnolie Notes وليس عبر Magnolienbaum. لا تتم "
+"مزامنة المرفقات وعمليات الحذف."
+
+msgid "Personal synchronization"
+msgstr "مزامنة جهات الاتصال"
+
+msgid "Personal synchronization complete. Deletions are not synchronized yet."
+msgstr "اكتملت المزامنة الشخصية. لا تتم مزامنة عمليات الحذف بعد."
+
+msgid "Personal synchronization failed."
+msgstr "فشلت المزامنة."
+
+msgid "Phone"
+msgstr "الهاتف"
+
+msgid "Phone battery"
+msgstr "Phone battery"
+
+msgid "Phone call"
+msgstr "مكالمة هاتفية"
+
+msgid "Phone number"
+msgstr "أرقام الهاتف"
+
+msgid "Phone numbers"
+msgstr "أرقام الهاتف"
+
+msgid "Phone pairing failed."
+msgstr "ملف الإقران"
+
+msgid "Phone “%(name)s” is securely paired."
+msgstr "تمت استعادة «%(name)s»."
+
+msgid "Phones"
+msgstr "الهاتف"
+
+msgid "Photo"
+msgstr "صورة"
+
+msgid "Photo available"
+msgstr "الصورة متاحة"
+
+msgid "Photo of %(name)s"
+msgstr "صورة %(name)s"
+
+msgid "Pick up"
+msgstr "اصطحاب"
+
+msgid "Planner"
+msgstr "المخطِّط"
+
+msgid "Please create a notebook in another group first."
+msgstr "يرجى إنشاء دفتر ملاحظات في مجموعة أخرى أولًا."
+
+msgid "Please enter a four-digit year from 1000 onwards."
+msgstr "يرجى إدخال سنة من أربعة أرقام بدءًا من 1000."
+
+msgid "Please enter a name."
+msgstr "يرجى إدخال اسم."
+
+msgid "Please enter a realistic value."
+msgstr "يرجى إدخال قيمة واقعية."
+
+msgid "Please enter a title and date for every new appointment."
+msgstr "يرجى إدخال عنوان وتاريخ لكل موعد جديد."
+
+msgid "Please enter a title for every new task."
+msgstr "يرجى إدخال عنوان لكل مهمة جديدة."
+
+msgid "Please enter a title."
+msgstr "يرجى إدخال عنوان."
+
+msgid "Please enter a website or application for the custom action."
+msgstr "يرجى إدخال موقع ويب أو تطبيق للإجراء المخصص."
+
+msgid "Please enter an address."
+msgstr "يرجى إدخال عنوان."
+
+msgid "Please enter at least a name or company."
+msgstr "يرجى إدخال اسم أو شركة على الأقل."
+
+msgid "Please enter the internet IP and fingerprint in full."
+msgstr "يرجى إدخال عنوان IP على الإنترنت والبصمة كاملين."
+
+msgid "Please select a PDF file."
+msgstr "يرجى تحديد ملف PDF."
+
+msgid "Please select a date."
+msgstr "يرجى تحديد تاريخ."
+
+msgid "Please select a file first."
+msgstr "يرجى تحديد ملف أولًا."
+
+msgid "Please select an image file."
+msgstr "يرجى تحديد ملف صورة."
+
+msgid "Please select an image in JPEG, PNG, WebP, or GIF format."
+msgstr "يرجى تحديد صورة بتنسيق JPEG أو PNG أو WebP أو GIF."
+
+msgid "Please unlock"
+msgstr "يرجى إلغاء القفل"
+
+msgid "Poland"
+msgstr "بولندا"
+
+msgid "Port 8741 is unavailable. The phone listener could not start."
+msgstr "المنفذ 8741 غير متاح. لم يتمكن مستمع الهاتف من البدء."
+
+msgid "Possible duplicates among local and incoming contacts"
+msgstr "التكرارات المحتملة بين جهات الاتصال المحلية والواردة"
+
+msgid "Possible spam"
+msgstr "Possible spam"
+
+msgid "Postal address"
+msgstr "العنوان البريدي"
+
+msgid "Postal code"
+msgstr "الرمز البريدي"
+
+msgid "Postal code / city"
+msgstr "الرمز البريدي / المدينة"
+
+msgid "Powder"
+msgstr "مسحوق"
+
+msgid "Power source"
+msgstr "Power source"
+
+msgid "Preview"
+msgstr "معاينة"
+
+msgid "Preview failed."
+msgstr "فشل المعاينة."
+
+msgid "Preview, print or export the year planner"
+msgstr "معاينة المخطِّط السنوي أو طباعته أو تصديره"
+
+msgid "Preview:"
+msgstr "المعاينة:"
+
+msgid "Previewing a recovery snapshot"
+msgstr "معاينة لقطة استعادة"
+
+msgid "Previous month"
+msgstr "الشهر السابق"
+
+msgid "Previous page"
+msgstr "الصفحة السابقة"
+
+msgid "Previous tab"
+msgstr "علامة التبويب السابقة"
+
+msgid "Previous table page"
+msgstr "صفحة الجدول السابقة"
+
+msgid "Previous week"
+msgstr "الأسبوع السابق"
+
+msgid "Previous window state"
+msgstr "حالة النافذة السابقة"
+
+msgid "Previous year"
+msgstr "السنة السابقة"
+
+msgid "Print"
+msgstr "طباعة"
+
+msgid "Print dialog"
+msgstr "مربع حوار الطباعة"
+
+msgid "Print now"
+msgstr "الطباعة الآن"
+
+msgid "Print preview"
+msgstr "معاينة الطباعة"
+
+msgid "Print · %(title)s"
+msgstr "طباعة · %(title)s"
+
+msgid "Print · Health"
+msgstr "طباعة · الصحة"
+
+msgid "Priority"
+msgstr "الأولوية"
+
+msgid "Priority 1 is listed first. Overdue tasks are shown in red."
+msgstr "تُعرض الأولوية 1 أولًا. وتظهر المهام المتأخرة باللون الأحمر."
+
+msgid "Private"
+msgstr "خاص"
+
+msgid ""
+"Private, integrity-checked snapshots are stored next to the application data."
+msgstr "يتم تخزين لقطات خاصة، تم التحقق من نزاهتها، بجانب بيانات التطبيق."
+
+msgid "Public IPv4 or IPv6 address of the other branch"
+msgstr "عنوان IPv4 أو IPv6 العام للفرع الآخر"
+
+msgid ""
+"Public holidays and school holidays are governed regionally. Choose which "
+"ones apply here."
+msgstr "تختلف العطل الرسمية والعطل المدرسية حسب المنطقة. اختر ما ينطبق هنا."
+
+msgid "Pulse"
+msgstr "النبض"
+
+msgid ""
+"Pulse\n"
+"S/min"
+msgstr ""
+"النبض\n"
+"S/min"
+
+msgid "Queue: %(open)s of %(count)s transmission awaits delivery."
+msgid_plural "Queue: %(open)s of %(count)s transmissions await delivery."
+msgstr[0] "الطابور: %(open)s من %(count)s في انتظار التسليم."
+msgstr[1] "الطابور: %(open)s من %(count)s في انتظار التسليم."
+msgstr[2] "الطابور: %(open)s من %(count)s في انتظار التسليم."
+msgstr[3] "الطابور: %(open)s من %(count)s في انتظار التسليم."
+msgstr[4] "الطابور: %(open)s من %(count)s في انتظار التسليم."
+msgstr[5] "الطابور: %(open)s من %(count)s في انتظار التسليم."
+
+msgid "Queued"
+msgstr "في الانتظار"
+
+msgid "Quit"
+msgstr "إنهاء"
+
+msgid "Reachable IPv4 or IPv6 address of this computer"
+msgstr "عنوان IPv4 أو IPv6 القابل للوصول لهذا الحاسوب"
+
+msgid "Reading recovery snapshots"
+msgstr "استعادة لقطات القراءة"
+
+msgid "Reading the Magnolienbaum identity"
+msgstr "قراءة هوية Magnolienbaum"
+
+msgid "Reading the backup"
+msgstr "قراءة النسخة الاحتياطية"
+
+msgid "Reading the pairing file"
+msgstr "قراءة ملف الإقران"
+
+msgid "Reading the user data"
+msgstr "قراءة بيانات المستخدم"
+
+msgid "Ready."
+msgstr "Ready."
+
+msgid ""
+"Really merge %(cards)s? Review the result carefully afterwards. A copy of "
+"every removed card is kept in the recycle bin."
+msgstr ""
+"هل تريد حقًا دمج %(cards)s؟ راجع النتيجة بعناية بعد ذلك. يُحتفظ بنسخة من كل "
+"بطاقة تمت إزالتها في سلة المحذوفات."
+
+msgid "Reason"
+msgstr "السبب"
+
+msgid "Reconnect"
+msgstr "أعد الاتصال"
+
+msgid "Recovering the password transaction"
+msgstr "استرداد معاملة كلمة المرور"
+
+msgid "Recovery snapshot created."
+msgstr "تم إنشاء لقطة استعادة."
+
+msgid "Recovery snapshot deleted."
+msgstr "تم حذف لقطة الاستعادة."
+
+msgid "Recovery snapshots"
+msgstr "لقطات الاسترداد"
+
+msgid "Recycle bin"
+msgstr "سلة المحذوفات"
+
+msgid "Refresh"
+msgstr "تحديث"
+
+msgid "Reject"
+msgstr "رفض"
+
+msgid "Reject this offer permanently?"
+msgstr "رفض هذا العرض نهائيًا؟"
+
+msgid "Related tasks"
+msgstr "المهام المرتبطة"
+
+msgid "Remind about appointments in the background"
+msgstr "التذكير بالمواعيد في الخلفية"
+
+msgid "Remind me again on the day itself"
+msgstr "ذكّرني مرة أخرى في اليوم نفسه"
+
+msgid "Reminder test"
+msgstr "اختبار التذكير"
+
+msgid "Reminders"
+msgstr "التذكيرات"
+
+msgid ""
+"Reminders are running through session autostart; systemd was not found on "
+"this system."
+msgstr ""
+"تعمل التذكيرات عبر التشغيل التلقائي للجلسة؛ لم يُعثر على systemd في هذا "
+"النظام."
+
+msgid ""
+"Reminders could not be set up. They will be shown only while the organizer "
+"is open."
+msgstr "تعذر إعداد التذكيرات. لن تظهر إلا ما دام المنظّم مفتوحًا."
+
+msgid ""
+"Reminders outside the application are available only in the installed "
+"version."
+msgstr "التذكيرات خارج التطبيق متاحة فقط في النسخة المثبّتة."
+
+msgid "Reminders: disabled"
+msgstr "التذكيرات: معطلة"
+
+msgid "Reminders: enabled"
+msgstr "التذكيرات: مفعّلة"
+
+msgid "Reminds you about appointments even when the organizer is closed"
+msgstr "يذكّرك بالمواعيد حتى عندما يكون المنظّم مغلقًا"
+
+msgid "Remote host name or IP address (optional)"
+msgstr "اسم المضيف البعيد أو عنوان IP (اختياري)"
+
+msgid "Remove"
+msgstr "إزالة"
+
+msgid "Remove address"
+msgstr "إزالة العنوان"
+
+msgid "Remove all public holidays and school holidays from the organizer?"
+msgstr "إزالة جميع العطل الرسمية والعطل المدرسية من المنظّم؟"
+
+msgid "Remove appointment"
+msgstr "إزالة الموعد"
+
+msgid "Remove connection"
+msgstr "إزالة الاتصال"
+
+msgid "Remove email address"
+msgstr "إزالة عنوان البريد الإلكتروني"
+
+msgid "Remove embedded file “%(name)s”?"
+msgstr "إزالة الملف المضمّن «%(name)s»؟"
+
+msgid "Remove emergency contact"
+msgstr "إزالة جهة اتصال الطوارئ"
+
+msgid "Remove entries"
+msgstr "إزالة العناصر"
+
+msgid "Remove event"
+msgstr "إزالة الحدث"
+
+msgid "Remove password protection"
+msgstr "إزالة الحماية بكلمة مرور"
+
+msgid ""
+"Remove password protection? Your data will then be stored unencrypted in "
+"your home directory again."
+msgstr ""
+"إزالة الحماية بكلمة مرور؟ ستُخزَّن بياناتك بعد ذلك مرة أخرى من دون تشفير في "
+"مجلد المنزل."
+
+msgid "Remove phone connection"
+msgstr "إزالة الاتصال"
+
+msgid "Remove phone number"
+msgstr "إزالة رقم الهاتف"
+
+msgid "Remove photo"
+msgstr "إزالة الصورة"
+
+msgid "Remove social medium"
+msgstr "إزالة وسيلة التواصل الاجتماعي"
+
+msgid "Remove task"
+msgstr "إزالة المهمة"
+
+msgid "Remove the connection to “%(branch)s”?"
+msgstr "إزالة الاتصال بـ «%(branch)s»؟"
+
+msgid "Remove this phone connection and its queues and permissions?"
+msgstr "هل تريد إزالة هذا الاتصال الهاتفي وطوابيره وأذوناته؟"
+
+msgid ""
+"Remove “%(name)s”? Their tasks will be kept but will no longer be assigned "
+"to anyone."
+msgstr "إزالة «%(name)s»؟ ستبقى مهامه محفوظة، لكنها لن تعود مسندة إلى أي شخص."
+
+msgid ""
+"Renew KDE Connect pairing? Only KDE trust for this phone will be removed and "
+"rebuilt. Magnolie Notes, notes and chat history remain unchanged."
+msgstr ""
+"هل تريد تجديد إقران KDE Connect؟ ستُزال ثقة KDE لهذا الهاتف وحدها ثم تُعاد. "
+"سيبقى Magnolie Notes والملاحظات وسجل الدردشة دون تغيير."
+
+msgid "Renew pairing"
+msgstr "Renew pairing"
+
+msgid "Repeat for confirmation"
+msgstr "أعد الإدخال للتأكيد"
+
+msgid "Reply"
+msgstr "رد"
+
+#, python-format
+msgid "Reported (%(method)s): %(title)s – %(body)s"
+msgstr "تم الإبلاغ (%(method)s): %(title)s – %(body)s"
+
+msgid "Requesting the device status"
+msgstr "طلب حالة الجهاز"
+
+msgid "Requires existing BlueZ system pairing. Data only, no HFP audio."
+msgstr "يتطلب الاقتران بنظام BlueZ الحالي. البيانات فقط، لا يوجد صوت HFP."
+
+msgid "Reset"
+msgstr "Reset"
+
+msgid "Residual waste"
+msgstr "نفايات متبقية"
+
+msgid "Responsible"
+msgstr "المسؤول"
+
+msgid "Restore"
+msgstr "استعادة"
+
+msgid "Restore backup"
+msgstr "استعادة نسخة احتياطية"
+
+msgid "Restore backup …"
+msgstr "استعادة نسخة احتياطية …"
+
+msgid "Restore completely"
+msgstr "استعادة بالكامل"
+
+msgid "Restore failed."
+msgstr "فشل الاستعادة."
+
+msgid ""
+"Restore this snapshot completely? A mandatory pre-restore snapshot is "
+"created first."
+msgstr ""
+"هل تريد استعادة هذه اللقطة بالكامل؟ يتم إنشاء لقطة إلزامية قبل الاستعادة "
+"أولاً."
+
+msgid "Restoring a recovery snapshot"
+msgstr "استعادة لقطة استرداد"
+
+msgid "Restoring backups is available only in the installed application."
+msgstr "استعادة النسخ الاحتياطية متاحة فقط في التطبيق المثبّت."
+
+msgid "Restoring the backup"
+msgstr "استعادة النسخة الاحتياطية"
+
+msgid "Retrieval failed."
+msgstr "فشل الاسترجاع."
+
+msgid "Retrieve now"
+msgstr "استرجاع الآن"
+
+msgid "Retrieve public holidays and school holidays"
+msgstr "استرجاع العطل الرسمية والعطل المدرسية"
+
+msgid "Retrieved on %(date)s."
+msgstr "تم الاسترجاع في %(date)s."
+
+#, python-format
+msgid "Retrieved: %(items)s for %(years)s."
+msgstr "تم الاسترجاع: %(items)s للسنوات %(years)s."
+
+msgid "Retrieving holidays"
+msgstr "استرجاع العطل"
+
+#, python-format
+msgid "Retrieving holidays failed (%s)."
+msgstr "فشل استرجاع العطل (%s)."
+
+msgid "Retrieving holidays …"
+msgstr "جارٍ استرجاع العطل …"
+
+msgid "Retrieving manual download information …"
+msgstr "جارٍ استرجاع معلومات التنزيل اليدوي …"
+
+msgid "Retrieving weather"
+msgstr "استرجاع الطقس"
+
+#, python-format
+msgid "Retrieving weather failed (%s)."
+msgstr "فشل استرجاع الطقس (%s)."
+
+msgid "Retrieving weather…"
+msgstr "جارٍ استرجاع الطقس…"
+
+msgid "Rhineland-Palatinate"
+msgstr "راينلاند-بفالتس"
+
+msgid "Route"
+msgstr "المسار"
+
+msgid "Route: calculate directions immediately"
+msgstr "المسار: حساب الاتجاهات فورًا"
+
+#, python-format
+msgid "Run failed: %s"
+msgstr "فشل التشغيل: %s"
+
+msgid ""
+"Run the downloaded installer visibly and keep the Manual component selected."
+msgstr "قم بتشغيل المثبت الذي تم تنزيله بشكل مرئي واحتفظ بمكون اليدوي محددًا."
+
+msgid "S"
+msgstr "S"
+
+msgid "SMS assignment"
+msgstr "مهمة SMS"
+
+msgid "SMS details"
+msgstr "تفاصيل SMS"
+
+#, python-format
+msgid "SMS from %(name)s"
+msgstr "SMS من %(name)s"
+
+msgid "SMS history"
+msgstr "تاريخ SMS"
+
+msgid "SMS settings"
+msgstr "إعدادات SMS"
+
+msgid "SMS text was adjusted:"
+msgstr "تم تعديل نص SMS:"
+
+msgid "SMS to %(name)s"
+msgstr "SMS إلى %(name)s"
+
+msgid "Saarland"
+msgstr "سارلاند"
+
+msgid "Salzburg"
+msgstr "سالزبورغ"
+
+msgid "Saturday"
+msgstr "السبت"
+
+msgid "Save"
+msgstr "حفظ"
+
+msgid "Save Lotus CSV"
+msgstr "حفظ Lotus CSV"
+
+msgid "Save Magnolienbaum pairing file"
+msgstr "حفظ ملف إقران Magnolienbaum"
+
+msgid "Save anniversaries"
+msgstr "حفظ المناسبات السنوية"
+
+msgid "Save appointments"
+msgstr "حفظ المواعيد"
+
+msgid "Save as…"
+msgstr "حفظ باسم…"
+
+msgid "Save changes"
+msgstr "حفظ التغييرات"
+
+msgctxt "contact action"
+msgid "Save changes"
+msgstr "حفظ التغييرات"
+
+msgid "Save changes?"
+msgstr "هل تريد حفظ التغييرات؟"
+
+msgid "Save contacts"
+msgstr "حفظ جهات الاتصال"
+
+msgid "Save contacts for Claws Mail"
+msgstr "حفظ جهات الاتصال لـ Claws Mail"
+
+msgid "Save endpoint"
+msgstr "Save endpoint"
+
+msgid "Save rejected: The data is encrypted and has not been unlocked yet."
+msgstr "رُفض الحفظ: البيانات مشفّرة ولم تُفتح بعد."
+
+msgid "Save tasks"
+msgstr "حفظ المهام"
+
+msgid "Saved"
+msgstr "تم الحفظ"
+
+msgid "Saved to: %(path)s (%(count)s entry)"
+msgid_plural "Saved to: %(path)s (%(count)s entries)"
+msgstr[0] "حُفظ في: %(path)s (عنصر واحد؛ العدد %(count)s)"
+msgstr[1] "حُفظ في: %(path)s (عنصران؛ العدد %(count)s)"
+msgstr[2] "حُفظ في: %(path)s (%(count)s عناصر)"
+msgstr[3] "حُفظ في: %(path)s (%(count)s عناصر)"
+msgstr[4] "حُفظ في: %(path)s (%(count)s عنصرًا)"
+msgstr[5] "حُفظ في: %(path)s (%(count)s عنصر)"
+
+msgid "Saved ✓ %(time)s"
+msgstr "تم الحفظ ✓ %(time)s"
+
+msgid "Saved."
+msgstr "Saved."
+
+msgid "Saving failed!"
+msgstr "فشل الحفظ!"
+
+#, python-format
+msgid "Saving failed: %s"
+msgstr "فشل الحفظ: %s"
+
+msgid "Saving the branch settings"
+msgstr "جارٍ حفظ إعدادات الفرع"
+
+msgid "Saving the data"
+msgstr "حفظ البيانات"
+
+msgid "Saving the tray settings"
+msgstr "حفظ إعدادات منطقة النظام"
+
+msgid "Saving …"
+msgstr "جارٍ الحفظ …"
+
+msgid "Saxony"
+msgstr "ساكسونيا"
+
+msgid "Saxony-Anhalt"
+msgstr "ساكسونيا-أنهالت"
+
+msgid "Scanning this computer"
+msgstr "فحص هذا الحاسوب"
+
+msgid "Schaffhausen"
+msgstr "شافهاوزن"
+
+msgid "Schedule an appointment"
+msgstr "جدولة موعد"
+
+msgid "Scheduled"
+msgstr "مجدول"
+
+msgid "Scheme"
+msgstr "Scheme"
+
+msgid "Schleswig-Holstein"
+msgstr "شليسفيغ-هولشتاين"
+
+msgid "Schwyz"
+msgstr "شفيتس"
+
+msgid "Screen notification only"
+msgstr "إشعار على الشاشة فقط"
+
+msgid "Scrolling up makes the time earlier"
+msgstr "التمرير إلى أعلى يجعل الوقت أبكر"
+
+msgid "Scrolling up makes the time later"
+msgstr "التمرير إلى أعلى يجعل الوقت متأخرًا"
+
+msgid "Search"
+msgstr "بحث"
+
+msgid "Search local network"
+msgstr "البحث في الشبكة المحلية"
+
+msgid "Search title, date, or note…"
+msgstr "البحث في العنوان أو التاريخ أو الملاحظة…"
+
+msgid "Searching for suggestions…"
+msgstr "جارٍ البحث عن اقتراحات…"
+
+msgid "Searching…"
+msgstr "جارٍ البحث…"
+
+msgid "Search…"
+msgstr "بحث…"
+
+msgid "Secondary office"
+msgstr "مكتب ثانوي"
+
+msgid "Secure HTTPS address"
+msgstr "عنوان HTTPS آمن"
+
+msgid "Securely connected to %(branch)s."
+msgstr "متصل بأمان بـ %(branch)s."
+
+msgid "Security"
+msgstr "الأمان"
+
+msgid "Select"
+msgstr "تحديد"
+
+msgid "Select a country first."
+msgstr "حدد بلدًا أولًا."
+
+msgid "Select all"
+msgstr "تحديد الكل"
+
+msgid ""
+"Select an entry on the left,\n"
+"or create a contact card with New."
+msgstr ""
+"حدد عنصرًا على اليسار،\n"
+"أو أنشئ بطاقة جهة اتصال باستخدام «جديد»."
+
+msgid "Select at least one column."
+msgstr "حدد عمودًا واحدًا على الأقل."
+
+msgid "Select at least one year."
+msgstr "حدد سنة واحدة على الأقل."
+
+msgid "Select backup folder"
+msgstr "تحديد مجلد النسخ الاحتياطية"
+
+msgid "Select no more than three years."
+msgstr "حدد ثلاث سنوات كحد أقصى."
+
+msgid "Select something first."
+msgstr "حدد شيئًا أولًا."
+
+msgid "Select what you want to print on the left."
+msgstr "حدد على اليسار ما تريد طباعته."
+
+msgid "Select your canton first or enable “All cantons”."
+msgstr "حدد الكانتون أولًا أو فعّل «كل الكانتونات»."
+
+msgid "Select your state first or enable “All states”."
+msgstr "حدد الولاية أولًا أو فعّل «كل الولايات»."
+
+msgid "Select, preview, print, export or delete health records"
+msgstr "تحديد السجلات الصحية أو معاينتها أو طباعتها أو تصديرها أو حذفها"
+
+msgid ""
+"Selected columns that are empty for every contact are omitted automatically."
+msgstr "تُحذف تلقائيًا الأعمدة المحددة الفارغة لدى جميع جهات الاتصال."
+
+msgid "Selected notifications"
+msgstr "إشعار النظام"
+
+msgid "Selection options"
+msgstr "خيارات التحديد"
+
+msgid "Send SMS"
+msgstr "إرسال SMS"
+
+msgid "Send adjusted text"
+msgstr "Send adjusted text"
+
+msgid "Send documents"
+msgstr "إرسال المستندات"
+
+msgid "Send secure request"
+msgstr "إرسال طلب آمن"
+
+msgid "Sending SMS with KDE Connect"
+msgstr "إرسال SMS مع KDE Connect"
+
+msgid "Sent"
+msgstr "تم الإرسال"
+
+msgid "Server address"
+msgstr "Server address"
+
+msgid "Server address and user name are required."
+msgstr "عنوان الخادم واسم المستخدم مطلوبان."
+
+msgid "Set varying doses by weekday"
+msgstr "تعيين جرعات متفاوتة حسب يوم الأسبوع"
+
+msgid "Setting up reminders"
+msgstr "إعداد التذكيرات"
+
+msgid "Setting up reminders …"
+msgstr "جارٍ إعداد التذكيرات …"
+
+msgid "Settings"
+msgstr "الإعدادات"
+
+msgid "Several Magnolie Organizers can connect and securely share tasks."
+msgstr ""
+"يمكن لعدة نسخ من Magnolie Organizer الاتصال ببعضها ومشاركة المهام بأمان."
+
+msgid "Share"
+msgstr "مشاركة"
+
+msgid "Share address"
+msgstr "مشاركة العنوان"
+
+msgid "Share appointment"
+msgstr "مشاركة الموعد"
+
+msgid "Share this entry explicitly with %(branch)s?"
+msgstr "مشاركة هذا العنصر صراحةً مع %(branch)s؟"
+
+msgid "Share this entry explicitly with the workgroup?"
+msgstr "مشاركة هذا العنصر صراحةً مع مجموعة العمل؟"
+
+msgid "Share this entry explicitly with this branch?"
+msgstr "مشاركة هذا العنصر صراحةً مع هذا الفرع؟"
+
+msgid "Share together"
+msgstr "مشاركة معًا"
+
+msgid "Shared credentials"
+msgstr "Shared credentials"
+
+msgid "Shared note"
+msgstr "ملاحظة مشتركة"
+
+msgid "Shift planner"
+msgstr "مخطط المناوبات"
+
+msgid "Shopping"
+msgstr "التسوق"
+
+msgid "Short-acting insulin"
+msgstr "إنسولين قصير المفعول"
+
+msgid "Show Health after Planner"
+msgstr "إظهار الصحة بعد المخطِّط"
+
+msgid "Show all"
+msgstr "إظهار الكل"
+
+msgid "Show calendar button in date fields"
+msgstr "إظهار زر التقويم في حقول التاريخ"
+
+msgid "Show log"
+msgstr "إظهار السجل"
+
+msgid "Show more"
+msgstr "إظهار المزيد"
+
+msgid "Show preview"
+msgstr "إظهار المعاينة"
+
+msgid "Show selected notifications (read only)"
+msgstr "إشعار على الشاشة فقط"
+
+msgid "Show social media and communication icons"
+msgstr "إظهار أيقونات التواصل الاجتماعي والاتصال"
+
+msgid "Show symbol in calendar"
+msgstr "إظهار الرمز في التقويم"
+
+msgid "Show the “Letter” button (LibreOffice)"
+msgstr "إظهار زر «الرسالة» (LibreOffice)"
+
+msgid "Show the “Map” button"
+msgstr "إظهار زر «الخريطة»"
+
+msgid "Show the “Selection options” button"
+msgstr "إظهار زر «خيارات التحديد»"
+
+msgid "Show this address on the map"
+msgstr "إظهار هذا العنوان على الخريطة"
+
+msgid "Show this overview"
+msgstr "إظهار هذه النظرة العامة"
+
+msgid "Show today's notification count on the tray icon"
+msgstr "إظهار عدد إشعارات اليوم على أيقونة منطقة النظام"
+
+msgid "Show weather for the next three days"
+msgstr "إظهار الطقس للأيام الثلاثة القادمة"
+
+msgid "Show week numbers in the monthly view"
+msgstr "إظهار أرقام الأسابيع في العرض الشهري"
+
+msgid "Show week numbers in the planner"
+msgstr "إظهار أرقام الأسابيع في المخطِّط"
+
+msgid ""
+"Small action buttons appear on each contact card. You can hide anything you "
+"do not need here."
+msgstr ""
+"تظهر أزرار إجراءات صغيرة على كل بطاقة جهة اتصال. يمكنك هنا إخفاء ما لا تحتاج "
+"إليه."
+
+msgid "Snapshot interval"
+msgstr "فترة اللقطة"
+
+msgid "Snapshot restored. The first synchronization will not send deletions."
+msgstr "تمت استعادة اللقطة. لن ترسل المزامنة الأولى الحذف."
+
+msgid "Snowman"
+msgstr "رجل ثلج"
+
+msgid "Social media"
+msgstr "وسائل التواصل الاجتماعي"
+
+msgid "Social medium"
+msgstr "وسيلة تواصل اجتماعي"
+
+msgid "Solothurn"
+msgstr "زولوتورن"
+
+msgid "Someone"
+msgstr "شخص ما"
+
+msgid "Son"
+msgstr "ابن"
+
+msgid "Sort everything alphabetically"
+msgstr "ترتيب كل شيء أبجديًا"
+
+msgid "Sorting"
+msgstr "الفرز"
+
+#, python-format
+msgid "Sound file: %(path)s"
+msgstr "ملف الصوت: %(path)s"
+
+msgid "Sound file: not found"
+msgstr "ملف الصوت: غير موجود"
+
+msgid "Sound only"
+msgstr "الصوت فقط"
+
+#, python-format
+msgid "Sound only: %(title)s – %(body)s"
+msgstr "الصوت فقط: %(title)s – %(body)s"
+
+#, python-format
+msgid "Sound through: %(method)s"
+msgstr "الصوت عبر: %(method)s"
+
+msgid "Sound through: no output method found"
+msgstr "الصوت عبر: لم يُعثر على طريقة إخراج"
+
+msgid "Space for anything you want to remember…"
+msgstr "مساحة لأي شيء تريد تذكّره…"
+
+msgid "Spain"
+msgstr "إسبانيا"
+
+msgid "Spam check"
+msgstr "Spam check"
+
+msgid "Special cases"
+msgstr "حالات خاصة"
+
+msgid "Spell checking"
+msgstr "التدقيق الإملائي"
+
+msgid "Spray"
+msgstr "بخاخ"
+
+msgid "St. Gallen"
+msgstr "سانت غالن"
+
+msgid "Start automatically when signing in"
+msgstr "البدء تلقائيًا عند تسجيل الدخول"
+
+msgid "Start the organizer in the tray"
+msgstr "بدء المنظّم في منطقة النظام"
+
+msgid "Start through the tray applet"
+msgstr "البدء عبر بريمج منطقة النظام"
+
+msgid "Starting the phone connection"
+msgstr "إدارة الاتصال"
+
+msgid "Starts Magnolie Organizer when signing in"
+msgstr "يبدأ Magnolie Organizer عند تسجيل الدخول"
+
+msgid "State"
+msgstr "الولاية"
+
+msgid "Status"
+msgstr "حالة"
+
+msgid "Storage available / total"
+msgstr "Storage available / total"
+
+msgid "Street / house number"
+msgstr "الشارع / رقم المنزل"
+
+msgid "Street and house number"
+msgstr "الشارع ورقم المنزل"
+
+msgid "Strength"
+msgstr "التركيز"
+
+msgid "Strikethrough"
+msgstr "يتوسطه خط"
+
+msgid "Styria"
+msgstr "شتايرمارك"
+
+msgid "Submitted"
+msgstr "تم الإرسال"
+
+msgid "Submitted to KDE Connect"
+msgstr "تم الإرسال إلى KDE Connect"
+
+msgid "Suggestions are available only in the installed application."
+msgstr "الاقتراحات متاحة فقط في التطبيق المثبّت."
+
+msgid "Sun symbol"
+msgstr "رمز الشمس"
+
+msgid "Sunday"
+msgstr "الأحد"
+
+msgid "Suppository"
+msgstr "تحميلة"
+
+msgid "Switched off."
+msgstr "Switched off."
+
+msgid "Switzerland"
+msgstr "سويسرا"
+
+msgid "Symbol"
+msgstr "الرمز"
+
+msgid "Symbol and Vacation text"
+msgstr "الرمز ونص «إجازة»"
+
+msgid "Symbol only"
+msgstr "الرمز فقط"
+
+msgid "Symbols and temperatures"
+msgstr "الرموز ودرجات الحرارة"
+
+msgid "Symbols, temperatures and description"
+msgstr "الرموز ودرجات الحرارة والوصف"
+
+msgid "Synchronization"
+msgstr "المزامنة"
+
+msgid "Synchronization completed."
+msgstr "اكتملت المزامنة."
+
+msgid "Synchronization failed."
+msgstr "فشلت المزامنة."
+
+msgid "Synchronization failed: %(error)s"
+msgstr "فشلت المزامنة: %(error)s"
+
+msgid ""
+"Synchronization state, pending messages and metadata for this connection "
+"will be removed. Contacts already accepted and local data remain."
+msgstr ""
+"ستتم إزالة حالة المزامنة والرسائل المعلقة والبيانات الوصفية لهذا الاتصال. "
+"ستظل جهات الاتصال المقبولة بالفعل والبيانات المحلية محفوظة."
+
+msgid "Synchronize automatically at startup"
+msgstr "المزامنة تلقائيًا عند بدء التشغيل"
+
+msgid "Synchronize contacts"
+msgstr "مزامنة جهات الاتصال"
+
+msgid "Synchronize everything"
+msgstr "Synchronize everything"
+
+msgid "Synchronize notes and notebooks"
+msgstr "مزامنة جهات الاتصال"
+
+msgid "Synchronize now"
+msgstr "المزامنة الآن"
+
+msgid "Synchronize tasks"
+msgstr "مزامنة جهات الاتصال"
+
+msgid "Synchronizing …"
+msgstr "جارٍ المزامنة …"
+
+msgid "System authentication for configuring UFW is unavailable."
+msgstr "مصادقة النظام اللازمة لإعداد UFW غير متاحة."
+
+msgid "System default"
+msgstr "الافتراضي للنظام"
+
+msgid "System style (desktop notification)"
+msgstr "نمط النظام (إشعار سطح المكتب)"
+
+msgid "System-paired phone Bluetooth address"
+msgstr "عنوان Bluetooth للهاتف المقترن بالنظام"
+
+msgid "Systolic"
+msgstr "الانقباضي"
+
+msgid "Tab %(letter)s"
+msgstr "علامة التبويب %(letter)s"
+
+msgid "Tab %(letter)s · %(count)s"
+msgstr "علامة التبويب %(letter)s · %(count)s"
+
+msgid "Tablet"
+msgstr "قرص"
+
+msgid "Tabs"
+msgstr "علامات التبويب"
+
+msgid "Task"
+msgstr "مهمة"
+
+msgid "Task is due"
+msgstr "استحقاق المهمة"
+
+msgid "Task reminder"
+msgstr "تذكير بالمهمة"
+
+msgid "Tasks"
+msgstr "المهام"
+
+msgid "Tasks (.ics)"
+msgstr "المهام (.ics)"
+
+msgid ""
+"Tasks can be assigned to people. When printing, you can select one person's "
+"tasks for a specific period, for example each family member's weekly tasks."
+msgstr ""
+"يمكن إسناد المهام إلى أشخاص. وعند الطباعة يمكنك اختيار مهام شخص واحد لفترة "
+"محددة، مثل المهام الأسبوعية لكل فرد من أفراد الأسرة."
+
+msgid "Tasks for this person"
+msgstr "مهام هذا الشخص"
+
+msgid "Tear out page"
+msgstr "اقتلاع الصفحة"
+
+msgid "Temperature"
+msgstr "درجة الحرارة"
+
+msgid "Test connection"
+msgstr "Test connection"
+
+msgid "Test reminders and report what happens"
+msgstr "اختبار التذكيرات والإبلاغ عما يحدث"
+
+msgid "Testing…"
+msgstr "Testing…"
+
+msgid "Text color"
+msgstr "لون النص"
+
+msgid "Text formatting"
+msgstr "تنسيق النص"
+
+msgid "That did not work."
+msgstr "لم ينجح ذلك."
+
+msgid "That is not correct."
+msgstr "هذا غير صحيح."
+
+msgid "The %(count)s note page it contains will be moved to “%(notebook)s”."
+msgid_plural ""
+"The %(count)s note pages it contains will be moved to “%(notebook)s”."
+msgstr[0] ""
+"ستُنقل صفحة الملاحظات %(count)s التي تحتوي عليها إلى \"%(notebook)s\"."
+msgstr[1] ""
+"ستُنقل صفحة الملاحظات %(count)s التي تحتوي عليها إلى \"%(notebook)s\"."
+msgstr[2] ""
+"ستُنقل صفحة الملاحظات %(count)s التي تحتوي عليها إلى \"%(notebook)s\"."
+msgstr[3] ""
+"ستُنقل صفحة الملاحظات %(count)s التي تحتوي عليها إلى \"%(notebook)s\"."
+msgstr[4] ""
+"ستُنقل صفحة الملاحظات %(count)s التي تحتوي عليها إلى \"%(notebook)s\"."
+msgstr[5] ""
+"ستُنقل صفحة الملاحظات %(count)s التي تحتوي عليها إلى \"%(notebook)s\"."
+
+msgid "The CSV columns were not recognized."
+msgstr "لم يتم التعرف على أعمدة CSV."
+
+msgid "The Claws Mail address book contains too many people."
+msgstr "يحتوي دفتر عناوين Claws Mail على عدد كبير جدًا من الأشخاص."
+
+msgid "The Claws Mail address book is larger than 32 megabytes."
+msgstr "حجم دفتر عناوين Claws Mail أكبر من 32 ميغابايت."
+
+msgid "The Contributor Key is invalid."
+msgstr "Contributor Key غير صالح."
+
+msgid "The DAV ETag is missing."
+msgstr ".ﺓﺩﻮﻘﻔﻣ DAV ـﺑ ﺔﺻﺎﺨﻟﺍ ETag ﺔﻣﻼ﻿ﻋ"
+
+msgid "The DAV entry was changed concurrently."
+msgstr ".ﻦﻣﺍﺰﺘﻣ ﻞﻜﺸﺑ DAV ﻝﺎﺧﺩﺇ ﺮﻴﻴﻐﺗ ﻢﺗ"
+
+msgid ""
+"The DIN template positions the recipient address for a window envelope, "
+"shows your address as a multiline sender block, and adds two fold marks and "
+"a punch mark."
+msgstr ""
+"يضع قالب DIN عنوان المستلم في موضع مناسب لمغلف ذي نافذة، ويعرض عنوانك ككتلة "
+"مرسل متعددة الأسطر، ويضيف علامتي طي وعلامة ثقب."
+
+msgid ""
+"The KDE Connect support is built into the Organizer. Only the KDE Connect "
+"app on Android is required; no additional KDE Connect desktop program is "
+"needed."
+msgstr ""
+"دعم KDE Connect مدمج في المنظم. مطلوب فقط تطبيق KDE Connect على Android؛ "
+"ليست هناك حاجة إلى برنامج سطح مكتب KDE Connect إضافي."
+
+msgid "The LDIF address book contains too many people."
+msgstr "يحتوي دفتر عناوين LDIF على عدد كبير جدًا من الأشخاص."
+
+msgid "The LDIF address book is larger than 32 megabytes."
+msgstr "حجم دفتر عناوين LDIF أكبر من 32 ميغابايت."
+
+msgid ""
+"The LibreOffice user data does not contain an address yet (Tools ▸ Options ▸ "
+"User Data)."
+msgstr ""
+"لا تتضمن بيانات مستخدم LibreOffice عنوانًا بعد (أدوات ▸ خيارات ▸ بيانات "
+"المستخدم)."
+
+msgid "The Linux Secret Service did not store the app password."
+msgstr ".ﻖﻴﺒﻄﺘﻟﺍ ﺭﻭﺮﻣ ﺔﻤﻠﻛ ﺲﻜﻨﻴﻟ ﻲﻓ ﺭﺍﺮﺳﻷ﻿ﺍ ﻡﺩﺎﺧ ﻥﺰﺨﻳ ﻢﻟ"
+
+msgid ""
+"The Linux Secret Service is unavailable. The app password was not stored."
+msgstr ".ﻖﻴﺒﻄﺘﻟﺍ ﺭﻭﺮﻣ ﺔﻤﻠﻛ ﻦﻳﺰﺨﺗ ﻢﺘﻳ ﻢﻟ .ﺓﺮﻓﻮﺘﻣ ﺮﻴﻏ ﺲﻜﻨﻴﻟ ﺮﺳ ﺔﻣﺪﺧ"
+
+msgid ""
+"The Lotus CSV uses the original columns VERTRAULICH, KATEGORIEN, "
+"ANFANGSDATUMZEIT, ENDDATUMZEIT, BESCHREIBUNG, KOSTENSTELLENCODE, "
+"KUNDENNUMMER and VORLAEUFIGZUSAGEN."
+msgstr ""
+"يستخدم Lotus CSV الأعمدة الأصلية VERTRAULICH وKATEGORIEN وANFANGSDATUMZEIT "
+"وENDDATUMZEIT وBESCHREIBUNG وKOSTENSTELLENCODE وKUNDENNUMMER "
+"وVORLAEUFIGZUSAGEN."
+
+msgid ""
+"The Magnolie manual is installed. It is best to read it through before you "
+"begin. Would you like to open it now?"
+msgstr ""
+"دليل Magnolie مثبّت. من الأفضل قراءته كاملًا قبل البدء. هل تريد فتحه الآن؟"
+
+msgid "The Magnolie manual is not installed."
+msgstr "دليل Magnolie غير مثبّت."
+
+msgid ""
+"The Magnolie manual is not installed. Version %(version)s can be downloaded "
+"now. Would you like to open the package download?"
+msgstr ""
+"دليل Magnolie غير مثبّت. يمكن تنزيل الإصدار %(version)s الآن. هل تريد فتح "
+"تنزيل الحزمة؟"
+
+msgid "The Magnolienbaum encryption key is unavailable."
+msgstr "مفتاح تشفير Magnolienbaum غير متاح."
+
+msgid "The Magnolienbaum identity file is damaged."
+msgstr "ملف هوية Magnolienbaum تالف."
+
+msgid "The Magnolienbaum identity is encrypted. Unlock the organizer first."
+msgstr "هوية Magnolienbaum مشفّرة. افتح قفل المنظّم أولًا."
+
+msgid "The Magnolienbaum inbox could not be saved."
+msgstr "تعذر حفظ صندوق وارد Magnolienbaum."
+
+msgid "The Magnolienbaum is available only in the installed application."
+msgstr "Magnolienbaum متاح فقط في التطبيق المثبّت."
+
+msgid "The Magnolienbaum is not available."
+msgstr "Magnolienbaum غير متاح."
+
+msgid "The Magnolienbaum is switched off."
+msgstr "Magnolienbaum متوقف."
+
+msgid "The Magnolienbaum outbox could not be saved."
+msgstr "تعذر حفظ صندوق صادر Magnolienbaum."
+
+msgid "The Magnolienbaum storage is damaged."
+msgstr "مخزن Magnolienbaum تالف."
+
+msgid "The Magnolienbaum storage is encrypted. Unlock the organizer first."
+msgstr "مخزن Magnolienbaum مشفّر. افتح قفل المنظّم أولًا."
+
+msgid "The Nextcloud address book contains missing or duplicate UIDs."
+msgstr ".ﺓﺭﺮﻜﻣ ﻭﺃ ﺓﺩﻮﻘﻔﻣ UIDs ﻰﻠﻋ ﻱﻮﺘﺤﻳ Nextcloud ﻦﻳﻭﺎﻨﻋ ﺮﺘﻓﺩ"
+
+msgid "The Nextcloud address book was not read completely."
+msgstr ".ﻞﻣﺎﻜﻟﺎﺑ Nextcloud ﻦﻳﻭﺎﻨﻋ ﺮﺘﻓﺩ ﺓءﺍﺮﻗ ﻢﺘﻳ ﻢﻟ"
+
+msgid "The Nextcloud app password is missing."
+msgstr ".ﺓﺩﻮﻘﻔﻣ Nextcloud ﻖﻴﺒﻄﺗ ﺭﻭﺮﻣ ﺔﻤﻠﻛ"
+
+msgid "The Nextcloud calendar contains missing or duplicate UIDs."
+msgstr ".ﺓﺭﺮﻜﻣ ﻭﺃ ﺓﺩﻮﻘﻔﻣ UIDs ﻰﻠﻋ ﻱﻮﺘﺤﻳ Nextcloud ﻢﻳﻮﻘﺗ"
+
+msgid "The Nextcloud calendar was not read completely."
+msgstr ".ﻞﻣﺎﻜﻟﺎﺑ Nextcloud ﻢﻳﻮﻘﺗ ﺓءﺍﺮﻗ ﻢﺘﻳ ﻢﻟ"
+
+msgid "The Nextcloud operation failed."
+msgstr ".Nextcloud ﻞﻴﻐﺸﺗ ﻞﺸﻓ"
+
+msgid "The Nextcloud request timed out."
+msgstr ".Nextcloud ﺐﻠﻃ ﺔﻠﻬﻣ ﺖﻬﺘﻧﺍ"
+
+msgid "The Nextcloud response was incomplete."
+msgstr ".ﻞﻤﺘﻜﻣ ﺮﻴﻏ Nextcloud ﺩﺭ ﻥﺎﻛ"
+
+msgid "The Nextcloud settings are invalid."
+msgstr ".ﺔﺤﻟﺎﺻ ﺮﻴﻏ Nextcloud ﺕﺍﺩﺍﺪﻋﺇ"
+
+msgid "The ODS calendar content is invalid."
+msgstr "محتوى تقويم ODS غير صالح."
+
+msgid "The ODS cell styles are invalid."
+msgstr "أنماط خلايا ODS غير صالحة."
+
+msgid "The ODS columns are invalid."
+msgstr "أعمدة ODS غير صالحة."
+
+msgid "The ODS export is too large."
+msgstr "تصدير ODS كبير جدًا."
+
+msgid "The ODS row count is invalid."
+msgstr "عدد صفوف ODS غير صالح."
+
+msgid "The ODS title is invalid."
+msgstr "عنوان ODS غير صالح."
+
+msgid "The Organizer chooses a suitable installed application."
+msgstr "يختار المنظّم تطبيقًا مثبّتًا مناسبًا."
+
+msgid "The SMS recipient or message is invalid."
+msgstr "المستلم أو الرسالة SMS غير صالحة."
+
+msgid "The Thunderbird calendar entry contains too many additional lines."
+msgstr "يحتوي إدخال تقويم Thunderbird على عدد كبير جدًا من الأسطر الإضافية."
+
+msgid "The address book backend could not be refreshed."
+msgstr "لم يتمكن الجزء الخلفي لدليل العناوين من التحديث."
+
+msgid "The address book backend reported an incomplete read."
+msgstr "أبلغ النظام الخلفي لدليل العناوين عن قراءة غير مكتملة."
+
+#, python-format
+msgid "The address book contains the UID %s more than once."
+msgstr "دفتر العناوين يحتوي على معرف UID %s أكثر من مرة."
+
+#, python-format
+msgid "The address book could not be read: %s"
+msgstr "تعذر قراءة دفتر العناوين: %s"
+
+#, python-format
+msgid "The address book could not be refreshed: %s"
+msgstr "تعذر تحديث دفتر العناوين: %s"
+
+msgid ""
+"The archive contains all application data. The password is optional; leaving "
+"the field empty explicitly creates an unencrypted archive."
+msgstr ""
+"يحتوي الأرشيف على جميع بيانات التطبيق. كلمة المرور اختيارية؛ ويؤدي ترك الحقل "
+"فارغًا صراحةً إلى إنشاء أرشيف غير مشفر."
+
+msgid "The archive contains no supported import files."
+msgstr "لا يحتوي الأرشيف على أي ملفات استيراد مدعومة."
+
+msgid "The archive contains too many files."
+msgstr "يحتوي الأرشيف على عدد كبير جدًا من الملفات."
+
+msgid "The archive content is larger than 32 megabytes."
+msgstr "يتجاوز حجم محتوى الأرشيف 32 ميغابايت."
+
+msgid "The archive has an unsafe compression ratio."
+msgstr "نسبة الضغط في الأرشيف غير آمنة."
+
+msgid ""
+"The archive is encrypted. Enter the password to check it completely before "
+"importing it."
+msgstr "الأرشيف مشفر. أدخل كلمة المرور لفحصه بالكامل قبل استيراده."
+
+msgid ""
+"The attachments are too large together. Remove some files; the combined "
+"limit is approximately 18 MB."
+msgstr "المرفقات مجتمعة كبيرة جدًا. أزل بعض الملفات؛ الحد الإجمالي نحو 18 MB."
+
+msgid ""
+"The attachments in this note are too large together. Remove some files; the "
+"combined limit is approximately 18 MB."
+msgstr ""
+"المرفقات في هذه الملاحظة مجتمعة كبيرة جدًا. أزل بعض الملفات؛ الحد الإجمالي "
+"نحو 18 MB."
+
+msgid ""
+"The background reminder service cannot read the encrypted data and remains "
+"silent outside the open organizer."
+msgstr ""
+"لا تستطيع خدمة التذكير في الخلفية قراءة البيانات المشفّرة، لذلك تظل صامتة "
+"عندما لا يكون المنظّم مفتوحًا."
+
+msgid ""
+"The background reminder service may read the separate reminder data and "
+"therefore works even when the organizer is closed."
+msgstr ""
+"يمكن لخدمة التذكير في الخلفية قراءة بيانات التذكير المنفصلة، ولذلك تعمل حتى "
+"عندما يكون المنظّم مغلقًا."
+
+msgid "The backup could not be created."
+msgstr "تعذر إنشاء النسخة الاحتياطية."
+
+msgid "The backup could not be read."
+msgstr "تعذر قراءة النسخة الاحتياطية."
+
+msgid "The backup could not be restored."
+msgstr "تعذر استعادة النسخة الاحتياطية."
+
+msgid "The backup does not contain a complete data set."
+msgstr "لا تحتوي النسخة الاحتياطية على مجموعة بيانات كاملة."
+
+msgid "The backup does not contain readable organizer data."
+msgstr "لا تحتوي النسخة الاحتياطية على بيانات منظّم قابلة للقراءة."
+
+msgid "The backup file is larger than 256 megabytes."
+msgstr "ملف النسخة الاحتياطية أكبر من 256 ميغابايت."
+
+msgid "The backup file was not found."
+msgstr "لم يُعثر على ملف النسخة الاحتياطية."
+
+msgid ""
+"The backup will be stored outside the local data location and is therefore "
+"always encrypted. This password will be required to restore it later:\n"
+"%(path)s"
+msgstr ""
+"ستُخزَّن النسخة الاحتياطية خارج موقع البيانات المحلي ولذلك ستكون مشفّرة دائمًا. "
+"ستحتاج إلى كلمة المرور هذه لاستعادتها لاحقًا:\n"
+"%(path)s"
+
+msgid ""
+"The button in the bottom bar opens the selection for the section you have "
+"open. From there the ticked entries can be printed, exported or moved to the "
+"wastebasket."
+msgstr ""
+"يفتح الزر في الشريط السفلي خيارات التحديد للقسم المفتوح حاليًا. ومن هناك يمكن "
+"طباعة العناصر المحددة أو تصديرها أو نقلها إلى سلة المحذوفات."
+
+msgid ""
+"The calendar resource does not contain exactly one matching appointment."
+msgstr "لا يحتوي مورد التقويم على موعد مطابق واحد فقط."
+
+msgid "The clipboard is empty."
+msgstr "الحافظة فارغة."
+
+msgid ""
+"The command is started safely without a shell. Use {nummer} for the selected "
+"number."
+msgstr "يتم تشغيل الأمر بأمان من دون صدفة أوامر. استخدم {nummer} للرقم المحدد."
+
+msgid "The communication method is incomplete."
+msgstr "طريقة الاتصال غير مكتملة."
+
+msgid "The complete file is stored in this note (up to 8 megabytes)."
+msgstr "يُخزَّن الملف كاملًا في هذه الملاحظة (حتى 8 ميغابايت)."
+
+msgid "The contact synchronization message is invalid."
+msgstr "رسالة مزامنة جهات الاتصال غير صالحة."
+
+msgid "The contact synchronization setting is invalid."
+msgstr "إعداد مزامنة جهات الاتصال غير صالح."
+
+msgid "The content is unreadable."
+msgstr "المحتوى غير قابل للقراءة."
+
+msgid ""
+"The current data will be backed up first and then completely replaced with "
+"this file:\n"
+"%(path)s"
+msgstr ""
+"سيتم أولًا أخذ نسخة احتياطية من البيانات الحالية، ثم استبدالها بالكامل بهذا "
+"الملف:\n"
+"%(path)s"
+
+msgid "The current organizer data is incomplete."
+msgstr "بيانات المنظّم الحالية غير مكتملة."
+
+msgid "The custom application command is invalid."
+msgstr "أمر التطبيق المخصص غير صالح."
+
+msgid "The custom application could not be started."
+msgstr "تعذر بدء التطبيق المخصص."
+
+msgid "The custom application was not found."
+msgstr "لم يُعثر على التطبيق المخصص."
+
+msgid "The custom website is not a secure HTTPS address."
+msgstr "الموقع المخصص ليس عنوان HTTPS آمنًا."
+
+msgid "The data changed during password transaction recovery."
+msgstr "تغيرت البيانات أثناء استرداد معاملة كلمة المرور."
+
+msgid ""
+"The data is encrypted – background reminders have not been enabled under "
+"Settings > Security."
+msgstr ""
+"البيانات مشفّرة – لم يتم تفعيل التذكيرات في الخلفية ضمن الإعدادات > الأمان."
+
+msgid ""
+"The data is encrypted – the enabled, limited reminder data is being used."
+msgstr "البيانات مشفّرة – تُستخدم بيانات التذكير المحدودة المفعّلة."
+
+msgid "The data is encrypted. Unlock the organizer with the password first."
+msgstr "البيانات مشفّرة. افتح قفل المنظّم بكلمة المرور أولًا."
+
+msgid "The data is not a JSON object."
+msgstr "البيانات ليست كائن JSON."
+
+msgid "The data is still encrypted. Try again."
+msgstr "ما زالت البيانات مشفّرة. حاول مرة أخرى."
+
+msgid "The data key is not available."
+msgstr "مفتاح البيانات غير متاح."
+
+msgid ""
+"The directory containing the interface (/usr/share/magnolie-organizer/web) "
+"was not found."
+msgstr ""
+"لم يُعثر على الدليل الذي يحتوي الواجهة (/usr/share/magnolie-organizer/web)."
+
+msgid "The encrypted Magnolienbaum identity is damaged."
+msgstr "هوية Magnolienbaum المشفّرة تالفة."
+
+msgid "The encrypted Magnolienbaum storage is damaged."
+msgstr "مخزن Magnolienbaum المشفّر تالف."
+
+msgid "The encrypted backup requires python3-cryptography."
+msgstr "تتطلب النسخة الاحتياطية المشفّرة python3-cryptography."
+
+msgid "The encrypted file is damaged."
+msgstr "الملف المشفّر تالف."
+
+msgid "The end date cannot be before the start date."
+msgstr "لا يمكن أن يسبق تاريخ الانتهاء تاريخ البدء."
+
+msgid "The entered fingerprint is incomplete."
+msgstr "البصمة المدخلة غير مكتملة."
+
+msgid "The file could not be read."
+msgstr "تعذر قراءة الملف."
+
+#, python-format
+msgid "The file could not be written (%s)."
+msgstr "تعذر كتابة الملف (%s)."
+
+msgid "The file has an unsupported format."
+msgstr "صيغة الملف غير مدعومة."
+
+msgid "The file is larger than 8 megabytes."
+msgstr "حجم الملف أكبر من 8 ميغابايت."
+
+#, python-format
+msgid "The fingerprint does not match (received: %(fingerprint)s)."
+msgstr "البصمة غير متطابقة (المستلمة: %(fingerprint)s)."
+
+msgid ""
+"The helper frame marks the control that currently has keyboard focus. This "
+"makes it easier to operate the Organizer with Tab, arrow keys, Enter and "
+"Space. Ctrl+Alt+H switches the frame on or off at any time."
+msgstr ""
+"يحدد الإطار المساعد عنصر التحكم الذي يملك تركيز لوحة المفاتيح حاليًا. وهذا "
+"يسهل استخدام المنظّم عبر Tab ومفاتيح الأسهم وEnter وSpace. ويشغّل Ctrl+Alt+H "
+"الإطار أو يوقفه في أي وقت."
+
+#, python-format
+msgid ""
+"The holiday service is unavailable. Is there an internet connection? (%s)"
+msgstr "خدمة العطل غير متاحة. هل يوجد اتصال بالإنترنت؟ (%s)"
+
+#, python-format
+msgid ""
+"The holiday service rejected the request (error %s). Check the country and "
+"region."
+msgstr "رفضت خدمة العطل الطلب (الخطأ %s). تحقق من البلد والمنطقة."
+
+msgid "The holiday service returned an unreadable response."
+msgstr "أعادت خدمة العطل استجابة غير قابلة للقراءة."
+
+msgid "The holiday service returned too much data."
+msgstr "أعادت خدمة العطل بيانات أكثر من اللازم."
+
+msgid "The holidays were imported."
+msgstr "تم استيراد العطل."
+
+msgid "The holidays were removed."
+msgstr "تمت إزالة العطل."
+
+msgid "The import file is larger than 32 megabytes."
+msgstr "ملف الاستيراد أكبر من 32 ميغابايت."
+
+msgid ""
+"The information is retrieved once from the open directory openholidaysapi."
+"org and then kept in the organizer. The application therefore needs an "
+"internet connection only once."
+msgstr ""
+"تُسترجع المعلومات مرة واحدة من الدليل المفتوح openholidaysapi.org ثم تُحفظ في "
+"المنظّم. لذلك يحتاج التطبيق إلى اتصال بالإنترنت مرة واحدة فقط."
+
+msgid "The internet service did not return a valid IP address."
+msgstr "لم تُعد خدمة الإنترنت عنوان IP صالحًا."
+
+msgid ""
+"The key of this branch has changed. Remove the old connection first and "
+"compare the new fingerprint particularly carefully."
+msgstr ""
+"تغير مفتاح هذا الفرع. أزل الاتصال القديم أولًا وقارن البصمة الجديدة بعناية "
+"خاصة."
+
+msgid "The last notebook cannot be deleted."
+msgstr "لا يمكن حذف دفتر الملاحظات الأخير."
+
+msgid "The last notebook group cannot be deleted."
+msgstr "لا يمكن حذف مجموعة دفاتر الملاحظات الأخيرة."
+
+msgid "The log could not be opened."
+msgstr "تعذر فتح السجل."
+
+msgid "The log is available only in the installed application."
+msgstr "السجل متاح فقط في التطبيق المثبّت."
+
+msgid ""
+"The log records when the reminder service checked and what it reported. "
+"Entries older than 30 days are removed automatically, and the log never "
+"exceeds 200 lines."
+msgstr ""
+"يسجل السجل متى تحققت خدمة التذكير وما الذي أبلغت عنه. تُزال العناصر الأقدم من "
+"30 يومًا تلقائيًا، ولا يتجاوز السجل 200 سطر."
+
+msgid "The mailbox backlog is too large."
+msgstr ".ﺍﺪًﺟ ﺮﻴﺒﻛ ﺪﻳﺮﺒﻟﺍ ﻕﻭﺪﻨﺻ ﻲﻓ ﻞﺋﺎﺳﺮﻟﺍ ﻢﻛﺍﺮﺗ"
+
+msgid "The mailbox contains too many pending messages."
+msgstr ".ﺔﻘﻠﻌﻤﻟﺍ ﻞﺋﺎﺳﺮﻟﺍ ﻦﻣ ﺍﺪًﺟ ﺮﻴﺒﻛ ﺩﺪﻋ ﻰﻠﻋ ﻱﻮﺘﺤﻳ ﺪﻳﺮﺒﻟﺍ ﻕﻭﺪﻨﺻ"
+
+msgid "The mailbox envelope is invalid."
+msgstr ".ﺢﻟﺎﺻ ﺮﻴﻏ ﺪﻳﺮﺒﻟﺍ ﻕﻭﺪﻨﺻ ﻑﺮﻇ"
+
+msgid "The mailbox is reachable."
+msgstr "يمكن الوصول إلى صندوق البريد."
+
+msgid "The mailbox message sequence has a gap."
+msgstr "توجد فجوة في تسلسل رسائل صندوق البريد."
+
+msgid "The mailbox sender is unknown."
+msgstr ".ﻑﻭﺮﻌﻣ ﺮﻴﻏ ﺪﻳﺮﺒﻟﺍ ﻕﻭﺪﻨﺻ ﻲﻓ ﻞﺳﺮﻤﻟﺍ"
+
+msgid "The manual"
+msgstr "الدليل"
+
+msgid "The manual could not be opened."
+msgstr "تعذر فتح الدليل."
+
+msgid "The manual download is available only in the installed application."
+msgstr "تنزيل الدليل متاح فقط في التطبيق المثبّت."
+
+msgid "The manual download request is no longer valid."
+msgstr "طلب التحميل اليدوي لم يعد صالحًا."
+
+msgid "The manual is installed; its version is unknown."
+msgstr "تم تثبيت الدليل؛ نسخته غير معروفة."
+
+msgid "The manual is up to date."
+msgstr "الدليل محدث."
+
+msgid "The manual package URL is not allowed."
+msgstr "عنوان URL لحزمة الدليل غير مسموح."
+
+msgid "The manual package checksum does not match."
+msgstr "مجموع تحقق الحزمة اليدوية لا يطابق."
+
+msgid "The manual package could not be opened."
+msgstr "تعذر فتح حزمة الدليل."
+
+msgid "The manual package is unexpectedly large."
+msgstr "الحزمة اليدوية كبيرة بشكل غير متوقع."
+
+msgid "The manual update check failed."
+msgstr "فشل التحقق من التحديث اليدوي."
+
+msgid "The manual update information is invalid."
+msgstr "معلومات التحديث اليدوي غير صالحة."
+
+msgid "The maximum number of branches has been reached."
+msgstr "تم بلوغ الحد الأقصى لعدد الفروع."
+
+msgid "The message comes from another branch."
+msgstr "الرسالة واردة من فرع آخر."
+
+msgid "The message could not be opened."
+msgstr "تعذر فتح الرسالة."
+
+msgid "The message is damaged."
+msgstr "الرسالة تالفة."
+
+msgid "The message is too large."
+msgstr "الرسالة كبيرة جدًا."
+
+msgid "The month is invalid."
+msgstr "الشهر غير صالح."
+
+msgid "The offered entry is incomplete."
+msgstr "العنصر المعروض غير مكتمل."
+
+msgid "The organizer is not currently reminding you about appointments."
+msgstr "المنظّم لا يذكّرك بالمواعيد حاليًا."
+
+msgid ""
+"The organizer notifies you before an appointment begins, even when the "
+"application is not open if you wish."
+msgstr ""
+"ينبهك المنظّم قبل بدء الموعد، وحتى عندما لا يكون التطبيق مفتوحًا إذا رغبت في "
+"ذلك."
+
+msgid "The other branch did not prove the pairing file."
+msgstr "لم يثبت الفرع الآخر صحة ملف الإقران."
+
+msgid "The other branch did not send a valid key."
+msgstr "لم يرسل الفرع الآخر مفتاحًا صالحًا."
+
+#, python-format
+msgid "The other branch is not responding (%(error)s)."
+msgstr "الفرع الآخر لا يستجيب (%(error)s)."
+
+msgid "The package URL is not allowed."
+msgstr "عنوان URL للحزمة غير مسموح."
+
+msgid "The package could not be opened."
+msgstr "تعذر فتح الحزمة."
+
+msgid "The pairing file could not be processed."
+msgstr "تعذر معالجة ملف الإقران."
+
+msgid "The pairing file has been changed."
+msgstr "تم تغيير ملف الإقران."
+
+msgid "The pairing file is damaged."
+msgstr "ملف الإقران تالف."
+
+msgid "The pairing file is invalid or has expired."
+msgstr "ملف الإقران غير صالح أو انتهت صلاحيته."
+
+msgid "The pairing file is no longer valid."
+msgstr "لم يعد ملف الإقران صالحًا."
+
+msgid "The pairing file is too large or not a regular file."
+msgstr "ملف الإقران كبير جدًا أو ليس ملفًا عاديًا."
+
+msgid "The pairing file is too large."
+msgstr "ملف الإقران كبير جدًا."
+
+msgid "The pairing request is incomplete."
+msgstr "طلب الإقران غير مكتمل."
+
+msgid "The pairing request is invalid."
+msgstr "طلب الإقران غير صالح."
+
+msgid "The password is incorrect."
+msgstr "كلمة المرور غير صحيحة."
+
+msgid "The password transaction could not be completed."
+msgstr "تعذر إكمال معاملة كلمة المرور."
+
+msgid "The password transaction journal is damaged."
+msgstr "سجل معاملة كلمة المرور تالف."
+
+msgid ""
+"The permanent KDE listener cannot start because PyOpenSSL is unavailable."
+msgstr "لا يمكن لمستمع KDE الدائم أن يبدأ لأن PyOpenSSL غير متاح."
+
+msgid ""
+"The permanent KDE listener cannot start because UDP port 1716 is already in "
+"use."
+msgstr ""
+"لا يمكن لمستمع KDE الدائم أن يبدأ لأن منفذ UDP 1716 قيد الاستخدام بالفعل."
+
+msgid ""
+"The permanent KDE listener cannot start because no TCP port from 1716 to "
+"1764 is available."
+msgstr ""
+"لا يمكن لمستمع KDE الدائم أن يبدأ لأنه لا يتوفر منفذ TCP من 1716 إلى 1764."
+
+msgid "The permanent KDE listener has not started yet."
+msgstr "مستمع KDE الدائم لم يبدأ بعد."
+
+msgid "The permanent KDE listener is stopped."
+msgstr "تم إيقاف مستمع KDE الدائم."
+
+msgid "The phone connection is available only in the installed application."
+msgstr "اختيار المجلد متاح فقط في التطبيق المثبت."
+
+msgid "The phone connection is not available."
+msgstr "Magnolienbaum غير متاح."
+
+msgid "The phone is reachable, but its KDE Connect trust no longer matches."
+msgstr "يمكن الوصول إلى الهاتف، لكن ثقة KDE Connect لم تعد متطابقة."
+
+msgid "The phone number is invalid."
+msgstr "رقم الهاتف غير صالح."
+
+msgid "The photo could not be read."
+msgstr "تعذر قراءة الصورة."
+
+msgid "The photo is larger than 8 megabytes."
+msgstr "حجم الصورة أكبر من 8 ميغابايت."
+
+msgid "The planner layout is invalid."
+msgstr "تخطيط المخطِّط غير صالح."
+
+msgid "The port is invalid."
+msgstr "المنفذ غير صالح."
+
+msgid "The previous data could not be backed up."
+msgstr "تعذر أخذ نسخة احتياطية من البيانات السابقة."
+
+#, python-format
+msgid "The print page is located at: %s"
+msgstr "صفحة الطباعة موجودة في: %s"
+
+#, python-format
+msgid "The public address could not be determined (%(error)s)."
+msgstr "تعذر تحديد العنوان العام (%(error)s)."
+
+msgid "The public address could not be determined."
+msgstr "تعذر تحديد العنوان العام."
+
+msgid "The public key is invalid."
+msgstr "المفتاح العام غير صالح."
+
+msgid "The recovery snapshot folder must not be a symbolic link."
+msgstr "يجب ألا يكون مجلد لقطة الاسترداد رابطًا رمزيًا."
+
+msgid "The recovery snapshot is missing or damaged."
+msgstr "لقطة الاستعادة مفقودة أو تالفة."
+
+msgid "The recovery snapshot manifest is invalid."
+msgstr "بيان لقطة الاسترداد غير صالح."
+
+msgid "The recovery snapshot manifest is too large."
+msgstr "بيان اللقطة الاحتياطية كبير جدًا."
+
+msgid "The recovery snapshot payload does not match its manifest."
+msgstr "حمولة لقطة الاستعادة لا تتطابق مع بيانها."
+
+msgid "The recovery snapshot was not found."
+msgstr "لم يتم العثور على لقطة الاسترداد."
+
+msgid "The recycle bin is empty."
+msgstr "سلة المحذوفات فارغة."
+
+msgid "The recycle bin was emptied."
+msgstr "أُفرغت سلة المحذوفات."
+
+msgid "The request is unreadable."
+msgstr "الطلب غير قابل للقراءة."
+
+msgid "The requested Nextcloud DAV resource was not found."
+msgstr ".ﺏﻮﻠﻄﻤﻟﺍ Nextcloud ـﺑ ﺹﺎﺨﻟﺍ DAV ﺩﺭﻮﻣ ﻰﻠﻋ ﺭﻮﺜﻌﻟﺍ ﻢﺘﻳ ﻢﻟ"
+
+msgid "The required recovery snapshot could not be created."
+msgstr "لم يكن من الممكن إنشاء نسخة الاسترداد المطلوبة."
+
+msgid "The response is too large."
+msgstr "الاستجابة كبيرة جدًا."
+
+msgid ""
+"The same code must appear on both computers:\n"
+"\n"
+"%(code)s\n"
+"\n"
+"Other branch: %(branch)s\n"
+"Fingerprint: %(fingerprint)s\n"
+"\n"
+"Does the code match?"
+msgstr ""
+"يجب أن يظهر الرمز نفسه على كلا الحاسوبين:\n"
+"\n"
+"%(code)s\n"
+"\n"
+"الفرع الآخر: %(branch)s\n"
+"البصمة: %(fingerprint)s\n"
+"\n"
+"هل الرمز متطابق؟"
+
+msgid "The save request is invalid."
+msgstr "طلب الحفظ غير صالح."
+
+msgid "The secure interface could not be registered."
+msgstr "تعذر تسجيل الواجهة الآمنة."
+
+msgid "The secure message could not be opened."
+msgstr "تعذر فتح الرسالة الآمنة."
+
+msgid "The secure message is invalid."
+msgstr "الرسالة الآمنة غير صالحة."
+
+msgid "The secure session has already been used."
+msgstr "تم استخدام الجلسة الآمنة من قبل."
+
+msgid "The secure session is damaged."
+msgstr "الجلسة الآمنة تالفة."
+
+msgid "The secure session is unknown or expired."
+msgstr "الجلسة الآمنة غير معروفة أو منتهية الصلاحية."
+
+msgid "The secure session request is invalid."
+msgstr "طلب الجلسة الآمنة غير صالح."
+
+msgid "The secure session response is invalid."
+msgstr "استجابة الجلسة الآمنة غير صالحة."
+
+msgid "The selected Nextcloud DAV source was not found."
+msgstr ".ﺩﺪﺤﻤﻟﺍ Nextcloud DAV ﺭﺪﺼﻣ ﻰﻠﻋ ﺭﻮﺜﻌﻟﺍ ﻢﺘﻳ ﻢﻟ"
+
+msgid "The selected contacts contain no values for these columns."
+msgstr "لا تحتوي جهات الاتصال المحددة على قيم لهذه الأعمدة."
+
+msgid "The selected file is not a readable CSV file."
+msgstr "الملف المحدد ليس ملف CSV قابلًا للقراءة."
+
+msgid "The selected file is not a readable iCalendar file."
+msgstr "الملف المحدد ليس ملف iCalendar قابلًا للقراءة."
+
+msgid "The selected health records contain no printable values."
+msgstr "لا تحتوي السجلات الصحية المحددة على أي قيم قابلة للطباعة."
+
+msgid "The selected iCalendar file is incomplete."
+msgstr "ملف iCalendar المحدد غير مكتمل."
+
+msgid "The selected path is not a regular file."
+msgstr "المسار المحدد ليس ملفًا عاديًا."
+
+msgid "The selected source was not found. Select it again in Settings."
+msgstr "لم يُعثر على المصدر المحدد. حدده مجددًا في الإعدادات."
+
+msgid ""
+"The server operator can see the account, folder and file names, sizes and "
+"times of your messages."
+msgstr ""
+"يمكن لمشغّل الخادم رؤية الحساب وأسماء المجلدات والملفات والأحجام وأوقات "
+"رسائلك."
+
+msgid "The service returned no entries for this selection."
+msgstr "لم تُعد الخدمة أي عناصر لهذا الاختيار."
+
+msgid ""
+"The sheet appears at the edge of the screen, accompanied by the Magnolie "
+"chime."
+msgstr "تظهر الورقة عند حافة الشاشة مصحوبة بنغمة Magnolie."
+
+msgid ""
+"The small uniform icons open an installed application when possible. "
+"Otherwise, a secure web service is used in the browser."
+msgstr ""
+"تفتح الأيقونات الصغيرة الموحدة تطبيقًا مثبّتًا متى أمكن. وإلا فتُستخدم خدمة ويب "
+"آمنة في المتصفح."
+
+msgid "The snapshot operation failed."
+msgstr "فشل عملية اللقطة."
+
+msgid "The start date must not be after the end date."
+msgstr "يجب ألا يكون تاريخ البدء بعد تاريخ الانتهاء."
+
+msgid "The synchronization resume journal is damaged."
+msgstr "سجل استئناف المزامنة تالف."
+
+msgid "The system dialer opens on the phone. Confirm the call there."
+msgstr "يتم فتح طالب النظام على الهاتف. قم بتأكيد المكالمة هناك."
+
+msgid "The task is missing from the update."
+msgstr "المهمة مفقودة من التحديث."
+
+msgid ""
+"The task will be sent to the selected branch. It will also remain here so "
+"you can keep track of it."
+msgstr ""
+"ستُرسل المهمة إلى الفرع المحدد. وستبقى هنا أيضًا حتى تتمكن من متابعة حالتها."
+
+msgid ""
+"The traffic-light colors are general reference ranges for adults, not a "
+"diagnosis. Check abnormal readings and discuss them with a doctor; seek "
+"immediate medical help for severe symptoms."
+msgstr ""
+"ألوان إشارة المرور هي نطاقات مرجعية عامة للبالغين وليست تشخيصًا. تحقّق من "
+"القراءات غير الطبيعية وناقشها مع الطبيب؛ واطلب مساعدة طبية فورية عند ظهور "
+"أعراض شديدة."
+
+#, python-format
+msgid "The tray applet could not be started: %s"
+msgstr "تعذر بدء بريمج منطقة النظام: %s"
+
+msgid "The tray applet is not available on this system."
+msgstr "بريمج منطقة النظام غير متاح على هذا النظام."
+
+msgid ""
+"The tray applet requires Ayatana AppIndicator. On plain GNOME, the "
+"AppIndicator extension is also required."
+msgstr ""
+"يتطلب بريمج منطقة النظام Ayatana AppIndicator. وعلى GNOME العادي يلزم أيضًا "
+"امتداد AppIndicator."
+
+msgid "The trust setting is invalid."
+msgstr "إعداد الثقة غير صالح."
+
+msgid "The two entries do not match."
+msgstr "العنصران غير متطابقين."
+
+msgid "The two new passwords do not match."
+msgstr "كلمتا المرور الجديدتان غير متطابقتين."
+
+msgid "The update check failed."
+msgstr "فشل فحص التحديثات."
+
+msgid "The update information does not contain a valid package checksum."
+msgstr "لا تتضمن معلومات التحديث قيمة تحقق صالحة للحزمة."
+
+msgid "The update information does not contain a valid version."
+msgstr "لا تتضمن معلومات التحديث إصدارًا صالحًا."
+
+msgid "The update information does not refer to an allowed package URL."
+msgstr "لا تشير معلومات التحديث إلى عنوان URL مسموح للحزمة."
+
+msgid "The update information has an invalid signature."
+msgstr "توقيع معلومات التحديث غير صالح."
+
+#, python-format
+msgid "The update information is currently unavailable (%s)."
+msgstr "معلومات التحديث غير متاحة حاليًا (%s)."
+
+msgid "The update information is unexpectedly large."
+msgstr "معلومات التحديث كبيرة على نحو غير متوقع."
+
+msgid "The update information is unreadable."
+msgstr "معلومات التحديث غير قابلة للقراءة."
+
+msgid "The user data could not be read."
+msgstr "تعذر قراءة بيانات المستخدم."
+
+msgid "The value is outside the general green reference range."
+msgstr "تقع القيمة خارج النطاق المرجعي الأخضر العام."
+
+msgid "The wake-up reminder"
+msgstr "تذكير الإيقاظ"
+
+msgid ""
+"The weather service estimated the location from your public IP address. Your "
+"own address in Contacts provides a more precise location."
+msgstr ""
+"قدّرت خدمة الطقس الموقع من عنوان IP العام. يعطي عنوانك الشخصي في جهات الاتصال "
+"موقعًا أدق."
+
+#, python-format
+msgid ""
+"The weather service is unavailable. Is there an internet connection? (%s)"
+msgstr "خدمة الطقس غير متاحة. هل يوجد اتصال بالإنترنت؟ (%s)"
+
+#, python-format
+msgid "The weather service rejected the request (error %s)."
+msgstr "رفضت خدمة الطقس الطلب (الخطأ %s)."
+
+msgid "The weather service returned no forecast."
+msgstr "لم تُعد خدمة الطقس أي توقعات."
+
+msgid "The weather service returned too much data."
+msgstr "أعادت خدمة الطقس بيانات أكثر من اللازم."
+
+msgid "The weather service returned unreadable data."
+msgstr "أعادت خدمة الطقس بيانات غير قابلة للقراءة."
+
+msgid ""
+"The year calendar shows all twelve months; the month calendar provides more "
+"room for entries."
+msgstr ""
+"يعرض تقويم السنة الأشهر الاثني عشر كلها؛ ويوفر تقويم الشهر مساحة أكبر "
+"للعناصر."
+
+msgid "The year is invalid."
+msgstr "السنة غير صالحة."
+
+msgid "There are no entries to export yet."
+msgstr "لا توجد عناصر للتصدير بعد."
+
+msgid "There are no entries."
+msgstr "لا توجد عناصر."
+
+msgid "There are no holidays in the organizer for this selection yet."
+msgstr "لا توجد بعد عطل في المنظّم لهذا الاختيار."
+
+msgid "There are no saved entries on this page."
+msgstr "لا توجد عناصر محفوظة في هذه الصفحة."
+
+msgid "There is no notebook in this group yet."
+msgstr "لا يوجد دفتر ملاحظات في هذه المجموعة بعد."
+
+msgid ""
+"There is nothing scheduled in this period.\n"
+"Click a day on the left to add an appointment."
+msgstr ""
+"لا يوجد شيء مجدول في هذه الفترة.\n"
+"انقر على يوم في اليسار لإضافة موعد."
+
+msgid "There is nothing to print."
+msgstr "لا يوجد شيء للطباعة."
+
+msgid ""
+"These options require the matching permissions in Magnolie Notes. Call audio "
+"is not sent over the Magnolie data connection."
+msgstr ""
+"تتطلب هذه الخيارات الأذونات المطابقة في Magnolie Notes. لا يُرسل صوت المكالمة "
+"عبر اتصال بيانات Magnolie."
+
+msgid "This address can be selected and copied."
+msgstr "يمكن تحديد هذا العنوان ونسخه."
+
+msgid "This appointment will appear every %(weekday)s."
+msgstr "سيظهر هذا الموعد كل %(weekday)s."
+
+msgid "This appointment will appear every day."
+msgstr "سيظهر هذا الموعد كل يوم."
+
+msgid "This appointment will appear every year on %(month)s %(day)s."
+msgstr "سيظهر هذا الموعد كل سنة في %(month)s %(day)s."
+
+msgid ""
+"This appointment will appear on day %(day)s of every month. In shorter "
+"months, it moves to the last day."
+msgstr ""
+"سيظهر هذا الموعد في اليوم %(day)s من كل شهر. وفي الأشهر الأقصر ينتقل إلى "
+"اليوم الأخير."
+
+msgid "This backup cannot be used."
+msgstr "لا يمكن استخدام هذه النسخة الاحتياطية."
+
+msgid "This branch has not been confirmed."
+msgstr "لم يتم تأكيد هذا الفرع."
+
+msgid "This branch has not yet been confirmed."
+msgstr "لم يتم تأكيد هذا الفرع بعد."
+
+msgid "This branch is not known."
+msgstr "هذا الفرع غير معروف."
+
+msgid ""
+"This choice also determines how names appear on contact cards and under "
+"which letter they are filed in the index."
+msgstr ""
+"يحدد هذا الاختيار أيضًا كيفية ظهور الأسماء على بطاقات جهات الاتصال وتحت أي "
+"حرف تُصنف في الفهرس."
+
+msgid "This contact card has no email address."
+msgstr "لا تحتوي بطاقة جهة الاتصال هذه على عنوان بريد إلكتروني."
+
+msgid "This contact card has no postal address."
+msgstr "لا تحتوي بطاقة جهة الاتصال هذه على عنوان بريدي."
+
+msgid "This image format cannot be used."
+msgstr "لا يمكن استخدام تنسيق الصورة هذا."
+
+msgid "This is a reminder test."
+msgstr "هذا اختبار للتذكير."
+
+msgid "This is available only in the installed application."
+msgstr "هذا متاح فقط في التطبيق المثبّت."
+
+msgid "This is how the organizer reminds you about an appointment."
+msgstr "هكذا يذكّرك المنظّم بموعد."
+
+msgid ""
+"This is how your notes look: <b>bold</b>, <i>italic</i>, <u>underlined</u> "
+"and <s>struck through</s>."
+msgstr ""
+"هكذا تبدو ملاحظاتك: <b>عريض</b> و<i>مائل</i> و<u>تحته خط</u> و<s>يتوسطه خط</"
+"s>."
+
+msgid "This is not a Magnolienbaum message."
+msgstr "هذه ليست رسالة Magnolienbaum."
+
+msgid ""
+"This is one occurrence of a recurring appointment. Changes apply to all "
+"occurrences in this series."
+msgstr ""
+"هذا تكرار واحد لموعد متكرر. تنطبق التغييرات على جميع التكرارات في هذه "
+"السلسلة."
+
+msgid ""
+"This is only the encrypted Magnolienbaum fallback for baum-1. It does not "
+"synchronize calendars or contacts. Both partners need access to the same "
+"Nextcloud storage."
+msgstr ""
+"هذا مسار Magnolienbaum احتياطي مشفّر لـ baum-1 فقط. وهو لا يزامن التقويمات أو "
+"جهات الاتصال. يحتاج كلا الشريكين إلى الوصول إلى مساحة تخزين Nextcloud نفسها."
+
+msgid ""
+"This leaves time to get something, followed by another reminder on the day "
+"itself. For example: “Max Mustermann has a birthday tomorrow” and the next "
+"day “Max Mustermann has a birthday today”. Anniversary reminders are shown "
+"in the morning."
+msgstr ""
+"يترك ذلك وقتًا لتجهيز ما يلزم، ثم يأتي تذكير آخر في اليوم نفسه. مثلًا: «عيد "
+"ميلاد Max Mustermann غدًا»، وفي اليوم التالي «عيد ميلاد Max Mustermann "
+"اليوم». تظهر تذكيرات المناسبات السنوية صباحًا."
+
+msgid "This message has already been received."
+msgstr "تم استلام هذه الرسالة من قبل."
+
+msgid "This notebook is still empty."
+msgstr "دفتر الملاحظات هذا ما زال فارغًا."
+
+msgid "This paired phone is my own device"
+msgstr "هذا الهاتف المقترن هو جهازي الخاص"
+
+msgid "This person's anniversaries"
+msgstr "المناسبات السنوية لهذا الشخص"
+
+msgid ""
+"This program is free software: you may redistribute and modify it. It is "
+"published in the hope that it will be useful, but without any warranty. The "
+"full license text is available at /usr/share/common-licenses/GPL-3."
+msgstr ""
+"هذا البرنامج برمجية حرة: يجوز لك إعادة توزيعه وتعديله. نُشر على أمل أن يكون "
+"مفيدًا، لكن دون أي ضمان. يتوفر نص الترخيص الكامل في /usr/share/common-"
+"licenses/GPL-3."
+
+msgid "This secure session already exists."
+msgstr "هذه الجلسة الآمنة موجودة بالفعل."
+
+msgid "This setting applies when you restore the window from the tray menu."
+msgstr "ينطبق هذا الإعداد عندما تستعيد النافذة من قائمة منطقة النظام."
+
+msgid "This status comes from Magnolie Notes, not KDE Connect."
+msgstr "تأتي هذه الحالة من Magnolie Notes، وليس من KDE Connect."
+
+msgid ""
+"This system did not allow waking from suspend. The reminder will appear as "
+"soon as the computer is running again."
+msgstr ""
+"لم يسمح هذا النظام بالإيقاظ من وضع التعليق. سيظهر التذكير فور عودة الحاسوب "
+"إلى العمل."
+
+msgid "This task came from “%(branch)s”."
+msgstr "جاءت هذه المهمة من «%(branch)s»."
+
+msgid "This type cannot be shared."
+msgstr "لا يمكن مشاركة هذا النوع."
+
+msgid "Through"
+msgstr "حتى"
+
+msgid ""
+"Thunderbird, the Mint/GNOME calendar and most other applications export "
+"appointments as .ics files and contacts as .vcf files."
+msgstr ""
+"يصدّر Thunderbird وتقويم Mint/GNOME ومعظم التطبيقات الأخرى المواعيد كملفات ."
+"ics وجهات الاتصال كملفات .vcf."
+
+msgid "Thurgau"
+msgstr "تورغاو"
+
+msgid "Thuringia"
+msgstr "تورينغن"
+
+msgid "Thursday"
+msgstr "الخميس"
+
+msgid "Thyroid"
+msgstr "الغدة الدرقية"
+
+msgid "Ticino"
+msgstr "تيتشينو"
+
+msgid "Time"
+msgstr "الوقت"
+
+msgid "Title"
+msgstr "العنوان"
+
+msgid "To"
+msgstr "إلى"
+
+msgid ""
+"To change it, enter only the new password; the organizer is already unlocked."
+msgstr "لتغييرها أدخل كلمة المرور الجديدة فقط؛ فالمنظّم مفتوح القفل بالفعل."
+
+msgid "Today"
+msgstr "اليوم"
+
+msgid "Today is %(date)s"
+msgstr "اليوم هو %(date)s"
+
+msgid "Tomorrow"
+msgstr "غدًا"
+
+msgid "Too many failed attempts – wait %(duration)s."
+msgstr "محاولات فاشلة كثيرة جدًا – انتظر %(duration)s."
+
+msgid "Too many failed attempts. Wait a moment."
+msgstr "محاولات فاشلة كثيرة جدًا. انتظر لحظة."
+
+msgid "Too many pairing files are still valid."
+msgstr "لا يزال عدد كبير جدًا من ملفات الإقران صالحًا."
+
+msgid "Too many pairing requests are awaiting confirmation."
+msgstr "طلبات إقران كثيرة جدًا بانتظار التأكيد."
+
+msgid "Too many regions were selected."
+msgstr "تم تحديد مناطق كثيرة جدًا."
+
+msgid "Too many requests."
+msgstr "طلبات كثيرة جدًا."
+
+msgid "Too many secure sessions are open."
+msgstr "هناك جلسات آمنة كثيرة جدًا مفتوحة."
+
+msgid "Tray applet"
+msgstr "بريمج منطقة النظام"
+
+msgid "Trust and accept tasks and notes automatically"
+msgstr "الثقة وقبول المهام والملاحظات تلقائيًا"
+
+msgid "Tuesday"
+msgstr "الثلاثاء"
+
+msgid "Turn back"
+msgstr "رجوع"
+
+msgid "Turn forward"
+msgstr "تقدّم"
+
+msgid "Two days back"
+msgstr "قبل يومين"
+
+msgid "Two days forward"
+msgstr "بعد يومين"
+
+msgid "Type"
+msgstr "النوع"
+
+msgid "Typeface"
+msgstr "نوع الخط"
+
+msgid "Typography"
+msgstr "الطباعة"
+
+msgid "Typography for your entries"
+msgstr "طباعة إدخالاتك"
+
+msgid "Tyrol"
+msgstr "تيرول"
+
+msgid "U"
+msgstr "U"
+
+msgid "UFW configuration was cancelled or failed."
+msgstr "أُلغي إعداد UFW أو فشل."
+
+#, python-format
+msgid "UFW could not be configured (%s)."
+msgstr "تعذر إعداد UFW (%s)."
+
+msgid "UFW is active, but its command could not be found."
+msgstr "UFW نشط، لكن تعذر العثور على أمره."
+
+msgid "URI"
+msgstr "URI"
+
+msgid "Unavailable"
+msgstr "Unavailable"
+
+msgid ""
+"Under Wayland, the compositor determines the exact window position; "
+"centering and maximizing are passed on as requests."
+msgstr ""
+"في Wayland يحدد مدير التركيب موضع النافذة الدقيق؛ وتُمرر المحاذاة إلى الوسط "
+"والتكبير كطلبات."
+
+msgid "Underline"
+msgstr "تسطير"
+
+msgid "Unexpected error."
+msgstr "خطأ غير متوقع."
+
+msgid "Unit"
+msgstr "الوحدة"
+
+msgid "Unknown"
+msgstr "مجهول"
+
+msgid "Unknown caller"
+msgstr "متصل مجهول"
+
+msgid "Unknown endpoint."
+msgstr "نقطة نهاية غير معروفة."
+
+msgid "Unknown phone"
+msgstr "نقطة نهاية غير معروفة."
+
+msgid "Unlink"
+msgstr "إلغاء الربط"
+
+msgid "Unlock"
+msgstr "إلغاء القفل"
+
+msgid "Unlock Magnolie Organizer"
+msgstr "إلغاء قفل Magnolie Organizer"
+
+msgid "Unlock the organizer before receiving Magnolienbaum messages."
+msgstr "ألغِ قفل المنظّم قبل تلقي رسائل Magnolienbaum."
+
+msgid "Unlocking the Magnolienbaum storage"
+msgstr "جارٍ إلغاء قفل مخزن Magnolienbaum"
+
+#, python-format
+msgid "Unreadable message from the interface: %s"
+msgstr "رسالة غير مقروءة من الواجهة: %s"
+
+msgid "Unsupported alarm"
+msgstr "منبّه غير مدعوم"
+
+msgid "Until (leave blank for no end)"
+msgstr "حتى (اتركه فارغًا إن لم تكن هناك نهاية)"
+
+msgid "Untitled"
+msgstr "بلا عنوان"
+
+msgid "Untitled appointment"
+msgstr "موعد بلا عنوان"
+
+msgid "Update checking is available in the installed application."
+msgstr "التحقق من التحديثات متاح في التطبيق المثبّت."
+
+msgid "Update checking is available only in the installed application."
+msgstr "التحقق من التحديثات متاح فقط في التطبيق المثبّت."
+
+msgid "Update weather"
+msgstr "تحديث الطقس"
+
+msgid "Updates"
+msgstr "التحديثات"
+
+msgid "Upper Austria"
+msgstr "النمسا العليا"
+
+msgid "Uptime"
+msgstr "Uptime"
+
+msgid "Uri"
+msgstr "URI"
+
+msgid "Usage:"
+msgstr "الاستخدام:"
+
+msgid "Use a specific application or command"
+msgstr "استخدام تطبيق أو أمر محدد"
+
+msgid "Use a specific website"
+msgstr "استخدام موقع ويب محدد"
+
+msgid "Use a supported language code or system for this invocation"
+msgstr "استخدم رمز لغة مدعومًا أو system لهذا التشغيل"
+
+msgid "Use basal units"
+msgstr "استخدام الوحدات القاعدية"
+
+msgid "Use contact addresses"
+msgstr "استخدام عناوين جهة الاتصال"
+
+msgid "Use default"
+msgstr "استخدام الافتراضي"
+
+msgid "Use numeric keypad"
+msgstr "استخدام لوحة الأرقام"
+
+msgid ""
+"Use only schedules prescribed or confirmed by a healthcare professional."
+msgstr "استخدم فقط الجداول العلاجية التي يصفها أو يؤكدها اختصاصي رعاية صحية."
+
+msgid ""
+"Use the arrows to arrange groups and notebooks, or use the selection to move "
+"a notebook to another group."
+msgstr ""
+"استخدم الأسهم لترتيب المجموعات ودفاتر الملاحظات، أو استخدم التحديد لنقل دفتر "
+"ملاحظات إلى مجموعة أخرى."
+
+msgid "Use the mailbox as a fallback for branch baum-1"
+msgstr "استخدام صندوق البريد كمسار احتياطي للفرع baum-1"
+
+msgid ""
+"Use the mouse wheel to change the time in 5-minute steps (hold Shift for "
+"whole hours)"
+msgstr ""
+"استخدم عجلة الفأرة لتغيير الوقت بخطوات قدرها 5 دقائق (اضغط Shift للساعات "
+"الكاملة)"
+
+msgid "Use the recycle bin"
+msgstr "استخدام سلة المحذوفات"
+
+msgid "User name"
+msgstr "User name"
+
+msgid ""
+"Uses its own identity and storage and listens only on fixed port %(port)s. "
+"It never uses Magnolienbaum partners, permissions, queues or Bluetooth "
+"identity."
+msgstr ""
+"يستخدم هويته وتخزينه الخاص ويستمع فقط على المنفذ الثابت %(port)s. لا يستخدم "
+"أبدًا شركاء Magnolienbaum أو الأذونات أو قوائم الانتظار أو هوية Bluetooth."
+
+msgid "Vacation"
+msgstr "إجازة"
+
+msgid ""
+"Vacation periods are local calendar markings. They do not send notifications "
+"and can be included separately when printing the planner."
+msgstr ""
+"فترات الإجازة علامات محلية في التقويم. لا ترسل إشعارات، ويمكن تضمينها بشكل "
+"مستقل عند طباعة المخطِّط."
+
+msgid "Vacation planner"
+msgstr "مخطِّط الإجازات"
+
+msgid "Valais"
+msgstr "فاليه"
+
+msgid ""
+"Validated archive\n"
+"Source: %(source)s\n"
+"Created: %(created)s\n"
+"Application entries: %(entries)s\n"
+"Photos: %(photos)s, Attachments: %(attachments)s\n"
+"\n"
+"The current data will be backed up locally automatically and then completely "
+"replaced."
+msgstr ""
+"أرشيف تم التحقق منه\n"
+"المصدر: %(source)s\n"
+"تاريخ الإنشاء: %(created)s\n"
+"إدخالات التطبيق: %(entries)s\n"
+"الصور: %(photos)s، المرفقات: %(attachments)s\n"
+"\n"
+"سيتم نسخ البيانات الحالية احتياطيًا محليًا تلقائيًا ثم استبدالها بالكامل."
+
+msgid "Value"
+msgstr "القيمة"
+
+msgid "Vaud"
+msgstr "فو"
+
+msgid "Verify after downloading with: %(command)s"
+msgstr "تحقق بعد التنزيل باستخدام: %(command)s"
+
+msgid "Version %(version)s"
+msgstr "الإصدار %(version)s"
+
+msgid "Version %(version)s is up to date. Last checked: %(date)s."
+msgstr "الإصدار %(version)s محدَّث. آخر تحقق: %(date)s."
+
+msgid "Via internet"
+msgstr "عبر الإنترنت"
+
+msgid "Vienna"
+msgstr "فيينا"
+
+msgid "View and edit appointment"
+msgstr "عرض الموعد وتحريره"
+
+msgid "Vital signs"
+msgstr "العلامات الحيوية"
+
+msgid "Vital signs table"
+msgstr "جدول العلامات الحيوية"
+
+msgid "Vorarlberg"
+msgstr "فورآرلبرغ"
+
+msgid ""
+"WLAN has priority. Bluetooth data starts only after WLAN failure and carries "
+"the same encrypted phone frames."
+msgstr ""
+"لشبكة WLAN الأولوية. تبدأ بيانات Bluetooth فقط بعد فشل WLAN وتحمل نفس إطارات "
+"الهاتف المشفرة."
+
+msgid "WLAN listener on port %(port)s"
+msgstr "مستمع WLAN على المنفذ %(port)s"
+
+msgid "Waiting for consent on the other device."
+msgstr "في انتظار الموافقة على الجهاز الآخر."
+
+msgid "Waiting for device status"
+msgstr "في انتظار حالة الجهاز"
+
+msgid ""
+"Waiting for the phone on port %(port)s. Pairing closes after %(seconds)s "
+"seconds."
+msgstr ""
+"في انتظار الهاتف على المنفذ %(port)s. تنتهي عملية الاقتران بعد %(seconds)s "
+"ثانية."
+
+msgid "Wake the computer from suspend"
+msgstr "إيقاظ الحاسوب من وضع التعليق"
+
+msgid "Warning: The data could not be saved."
+msgstr "تحذير: تعذر حفظ البيانات."
+
+#, python-format
+msgid "Warning: The data file could not be read (%s)."
+msgstr "تحذير: تعذر قراءة ملف البيانات (%s)."
+
+msgid "Waste collection calendar"
+msgstr "تقويم جمع النفايات"
+
+msgid "We are glad you are here!"
+msgstr "يسعدنا وجودك هنا!"
+
+msgid "Weather"
+msgstr "الطقس"
+
+msgid "Weather display"
+msgstr "عرض الطقس"
+
+msgid "Weather for the next three days"
+msgstr "طقس الأيام الثلاثة المقبلة"
+
+msgid "Weather is available in the installed application."
+msgstr "الطقس متاح في التطبيق المثبّت."
+
+msgid ""
+"Weather requests are sent to wttr.in. Your own address in Contacts is used "
+"first, followed by local LibreOffice user data. If neither contains a "
+"location and retrieval without one is allowed, wttr.in estimates the "
+"location from your internet connection's public IP address."
+msgstr ""
+"تُرسل طلبات الطقس إلى wttr.in. يُستخدم أولًا عنوانك الشخصي في «جهات الاتصال»، "
+"ثم بيانات مستخدم LibreOffice المحلية. إذا لم يتضمن أي منهما موقعًا وكان جلب "
+"الطقس بلا موقع مسموحًا، يقدّر wttr.in الموقع من عنوان IP العام لاتصالك "
+"بالإنترنت."
+
+msgid "Weather was not retrieved because no location is available."
+msgstr "لم يتم جلب الطقس لعدم توفر موقع."
+
+msgid "Wedding anniversary"
+msgstr "ذكرى الزواج"
+
+msgid "Wednesday"
+msgstr "الأربعاء"
+
+msgid "Week"
+msgstr "أسبوع"
+
+msgid "Week %(number)s"
+msgstr "الأسبوع %(number)s"
+
+msgid "Week numbers"
+msgstr "أرقام الأسابيع"
+
+msgid "Weekly"
+msgstr "أسبوعي"
+
+msgid "Weekly variation for %(name)s"
+msgstr "التفاوت الأسبوعي لـ %(name)s"
+
+msgid "Weekly view"
+msgstr "عرض أسبوعي"
+
+msgid "Weight"
+msgstr "الوزن"
+
+msgid "Welcome ✱"
+msgstr "مرحبًا ✱"
+
+msgid "What is it about?"
+msgstr "ما الموضوع؟"
+
+msgid "What needs to be done?"
+msgstr "ما الذي يجب فعله؟"
+
+msgid ""
+"When disabled, dates can still be entered as eight digits in day, month and "
+"four-digit year order."
+msgstr ""
+"عند تعطيل هذا الخيار، يظل من الممكن إدخال التواريخ في صورة ثمانية أرقام "
+"بترتيب اليوم ثم الشهر ثم السنة ذات الأربعة أرقام."
+
+msgid ""
+"When disabled, you write on plain paper. Line spacing remains the same; only "
+"the lines disappear."
+msgstr ""
+"عند تعطيل هذا الخيار، تكتب على ورق سادة. يبقى تباعد الأسطر كما هو؛ وتختفي "
+"الخطوط فقط."
+
+msgid "When opening from the tray"
+msgstr "عند الفتح من علبة النظام"
+
+msgid ""
+"When selected, you can assign a photo to each person. Embedded photos are "
+"preserved during import, export and synchronization with an online address "
+"book. Email addresses on contact cards are always clickable and open your "
+"mail application."
+msgstr ""
+"عند تحديد هذا الخيار، يمكنك تعيين صورة لكل شخص. تُحفظ الصور المضمّنة أثناء "
+"الاستيراد والتصدير والمزامنة مع دفتر عناوين عبر الإنترنت. عناوين البريد "
+"الإلكتروني في بطاقات جهات الاتصال قابلة للنقر دائمًا وتفتح تطبيق البريد."
+
+msgid ""
+"When writing a note, a small toolbar above the sheet provides bold, italic, "
+"underline and strikethrough. The same formatting is available with Ctrl+B, "
+"Ctrl+I, Ctrl+U and Ctrl+D."
+msgstr ""
+"عند كتابة ملاحظة، يوفر شريط أدوات صغير أعلى الورقة الخط العريض والمائل "
+"والتسطير والشطب. ويتوفر التنسيق نفسه باستخدام Ctrl+B وCtrl+I وCtrl+U وCtrl+D."
+
+msgid "Whole month"
+msgstr "الشهر كاملًا"
+
+msgid "Wife"
+msgstr "الزوجة"
+
+msgid "Wireless"
+msgstr "Wireless"
+
+msgid ""
+"With a password or numeric code, the organizer asks for it when opening and "
+"stores your data only in encrypted form in your home directory (AES-256)."
+msgstr ""
+"باستخدام كلمة مرور أو رمز رقمي، يطلبه المنظّم عند الفتح ولا يخزّن بياناتك في "
+"مجلد المنزل إلا بصورة مشفّرة (AES-256)."
+
+msgid "With photo"
+msgstr "مع صورة"
+
+msgid ""
+"Without a shell; {ziel}, {wert}, and {nummer} can be used as placeholders. "
+"Flatpak and Snap can be selected as flatpak:APP-ID or snap:Name."
+msgstr ""
+"من دون صدفة أوامر؛ يمكن استخدام {ziel} و{wert} و{nummer} كعناصر نائبة. ويمكن "
+"اختيار Flatpak وSnap بصيغة flatpak:APP-ID أو snap:Name."
+
+msgid ""
+"Without this second selection, the background reminder service does not show "
+"notifications for confidential appointments."
+msgstr ""
+"من دون هذا الاختيار الثاني، لا تعرض خدمة التذكير في الخلفية إشعارات للمواعيد "
+"السرية."
+
+msgid "Work"
+msgstr "العمل"
+
+msgid "Work address"
+msgstr "عنوان العمل"
+
+msgid "Work anniversary"
+msgstr "ذكرى متعلقة بالعمل"
+
+msgid "Work phone"
+msgstr "هاتف العمل"
+
+msgid "Workgroup (all)"
+msgstr "مجموعة العمل (الكل)"
+
+msgid "Workshop appointment"
+msgstr "موعد ورشة"
+
+msgid "Write a message to %(address)s"
+msgstr "كتابة رسالة إلى %(address)s"
+
+msgid "Write an SMS using KDE Connect or the assigned application"
+msgstr "اكتب SMS باستخدام KDE Connect أو التطبيق المخصص"
+
+msgid "Write here …"
+msgstr "اكتب هنا …"
+
+msgid "Write startup and tray diagnostics to the debug log"
+msgstr "كتابة تشخيصات بدء التشغيل وعلبة النظام في سجل تصحيح الأخطاء"
+
+msgid "Writing sheet"
+msgstr "ورقة الكتابة"
+
+msgid "X (formerly Twitter)"
+msgstr "X (تويتر سابقًا)"
+
+msgid "Year"
+msgstr "السنة"
+
+msgid "Year calendar"
+msgstr "التقويم السنوي"
+
+msgid "Year planner %(year)s"
+msgstr "مخطِّط سنة %(year)s"
+
+msgid "Yes"
+msgstr "Yes"
+
+msgid "Yes, merge"
+msgstr "نعم، دمج"
+
+msgid "Yes, the code matches"
+msgstr "نعم، الرمز متطابق"
+
+msgid "Your address"
+msgstr "عنوانك"
+
+msgid "Your address above is used as the starting point."
+msgstr "يُستخدم عنوانك أعلاه كنقطة بداية."
+
+msgid "Your data from “Organizer Klassik” has been imported."
+msgstr "تم استيراد بياناتك من «Organizer Klassik»."
+
+msgid ""
+"Your data is stored at:\n"
+"%(path)s"
+msgstr ""
+"تُخزَّن بياناتك في:\n"
+"%(path)s"
+
+msgid "Your data is stored at: %(path)s"
+msgstr "تُخزَّن بياناتك في: %(path)s"
+
+msgid ""
+"Your own address is required as the starting point for a route. Enter it "
+"under Settings ▸ Contacts."
+msgstr ""
+"يلزم عنوانك الشخصي كنقطة بداية للمسار. أدخله ضمن الإعدادات ▸ جهات الاتصال."
+
+msgid "Yours sincerely,"
+msgstr "وتفضلوا بقبول فائق الاحترام،"
+
+msgid "ZIP archives (*.zip)"
+msgstr "أرشيفات ZIP (*.zip)"
+
+msgid "Zug"
+msgstr "تسوغ"
+
+msgid "Zurich"
+msgstr "زيورخ"
+
+msgid "after 30 days"
+msgstr "بعد 30 يومًا"
+
+msgid "after 7 days"
+msgstr "بعد 7 أيام"
+
+msgid "after 90 days"
+msgstr "بعد 90 يومًا"
+
+msgid "after one year"
+msgstr "بعد سنة واحدة"
+
+msgid "all cantons"
+msgstr "كل الكانتونات"
+
+msgid "all day"
+msgstr "طوال اليوم"
+
+#, python-format
+msgid "all except %(regions)s"
+msgstr "الكل باستثناء %(regions)s"
+
+msgid "all states"
+msgstr "كل الولايات"
+
+msgid "also remind me about it"
+msgstr "ذكّرني بهذا أيضًا"
+
+msgid "and"
+msgstr "و"
+
+msgid "and %(count)s more"
+msgid_plural "and %(count)s more"
+msgstr[0] "وعناصر إضافية: %(count)s"
+msgstr[1] "وعناصر إضافية: %(count)s"
+msgstr[2] "وعناصر إضافية: %(count)s"
+msgstr[3] "وعناصر إضافية: %(count)s"
+msgstr[4] "وعناصر إضافية: %(count)s"
+msgstr[5] "وعناصر إضافية: %(count)s"
+
+msgid "app password from Nextcloud"
+msgstr "كلمة مرور التطبيق من Nextcloud"
+
+msgid "application {ziel}"
+msgstr "التطبيق {ziel}"
+
+msgid "approximate area"
+msgstr "منطقة تقريبية"
+
+msgid "at %(time)s"
+msgstr "في %(time)s"
+
+msgid "at least four characters"
+msgstr "أربعة أحرف على الأقل"
+
+msgid "at the appointment time"
+msgstr "في وقت الموعد"
+
+msgid "before start"
+msgstr "قبل البدء"
+
+msgid "blood-glucose"
+msgstr "سكر الدم"
+
+msgid "browser storage"
+msgstr "browser storage"
+
+msgid "confidential"
+msgstr "سري"
+
+msgid "confirmed"
+msgstr "مؤكَّد"
+
+msgid "days"
+msgstr "أيام"
+
+msgid "days before"
+msgstr "قبل أيام"
+
+msgid "due %(date)s"
+msgstr "الاستحقاق %(date)s"
+
+msgid "due by %(date)s"
+msgstr "مستحق بحلول %(date)s"
+
+msgid "due from"
+msgstr "يبدأ الاستحقاق من"
+
+#, python-format
+msgid "due in %d day"
+msgid_plural "due in %d days"
+msgstr[0] "موعد الاستحقاق بالأيام: %d"
+msgstr[1] "موعد الاستحقاق بالأيام: %d"
+msgstr[2] "موعد الاستحقاق بالأيام: %d"
+msgstr[3] "موعد الاستحقاق بالأيام: %d"
+msgstr[4] "موعد الاستحقاق بالأيام: %d"
+msgstr[5] "موعد الاستحقاق بالأيام: %d"
+
+msgid "e.g. 1 day before"
+msgstr "مثلًا: قبل يوم واحد"
+
+msgid "e.g. Birthday"
+msgstr "مثلًا: عيد ميلاد"
+
+msgid "e.g. Doctor appointment"
+msgstr "مثلًا: موعد طبيب"
+
+msgid "e.g. Mobile"
+msgstr "مثلًا: جوال"
+
+msgid "e.g. Private"
+msgstr "مثلًا: خاص"
+
+msgid "e.g. Send documents"
+msgstr "مثلًا: إرسال المستندات"
+
+msgid "e.g. Son"
+msgstr "مثلًا: ابن"
+
+msgid "e.g. Work"
+msgstr "مثلًا: عمل"
+
+msgid "e.g. glass or hazardous waste"
+msgstr "مثلًا: زجاج أو نفايات خطرة"
+
+msgid "e.g. kitchen or workshop"
+msgstr "مثلًا: مطبخ أو ورشة"
+
+msgid "e.g. medication day"
+msgstr "مثلًا: يوم تناول الدواء"
+
+msgid "e.g. on-call duty"
+msgstr "مثلًا: مناوبة تحت الطلب"
+
+msgid "event loop"
+msgstr "حلقة الأحداث"
+
+msgid "every"
+msgstr "كل"
+
+msgid "every 12 hours"
+msgstr "كل 12 ساعة"
+
+msgid "every 3 hours"
+msgstr "كل 3 ساعات"
+
+msgid "every 30 minutes"
+msgstr "كل 30 دقيقة"
+
+msgid "every 6 hours"
+msgstr "كل 6 ساعات"
+
+msgid "every day"
+msgstr "كل يوم"
+
+msgid "every hour"
+msgstr "كل ساعة"
+
+msgid "every month on the %(ordinal)s %(weekday)s"
+msgstr "كل شهر في %(weekday)s %(ordinal)s"
+
+msgid "every month on the same day"
+msgstr "كل شهر في اليوم نفسه"
+
+msgid "every week on the same weekday"
+msgstr "كل أسبوع في يوم الأسبوع نفسه"
+
+msgid "every year on the same date"
+msgstr "كل سنة في التاريخ نفسه"
+
+msgid "first"
+msgstr "الأول"
+
+msgid "first on"
+msgstr "لأول مرة في"
+
+msgid "for the %(ordinal)s time"
+msgstr "للمرة %(ordinal)s"
+
+msgid "fourth"
+msgstr "الرابع"
+
+msgid "from"
+msgstr "من"
+
+msgid "high"
+msgstr "مرتفعة"
+
+msgid "hours before"
+msgstr "قبل ساعات"
+
+msgid "https://… (optionally with {wert} or {nummer})"
+msgstr "https://… (اختياريًا مع {wert} أو {nummer})"
+
+msgid "iCalendar (*.ics)"
+msgstr "iCalendar (*.ics)"
+
+msgid "in %(count)s day"
+msgid_plural "in %(count)s days"
+msgstr[0] "بعد %(count)s يوم"
+msgstr[1] "بعد %(count)s يوم"
+msgstr[2] "بعد %(count)s يوم"
+msgstr[3] "بعد %(count)s يوم"
+msgstr[4] "بعد %(count)s يومًا"
+msgstr[5] "بعد %(count)s يوم"
+
+#, python-format
+msgid "in %d day"
+msgid_plural "in %d days"
+msgstr[0] "بعد %d يوم"
+msgstr[1] "بعد %d يوم"
+msgstr[2] "بعد %d يوم"
+msgstr[3] "بعد %d يوم"
+msgstr[4] "بعد %d يومًا"
+msgstr[5] "بعد %d يوم"
+
+msgid "keep here"
+msgstr "أبقِه هنا"
+
+msgid "last"
+msgstr "الأخير"
+
+msgid "local / not opened"
+msgstr "محلي / لا يُفتح"
+
+msgid "low"
+msgstr "منخفضة"
+
+msgid "medium"
+msgstr "متوسطة"
+
+msgid "minutes before"
+msgstr "قبل دقائق"
+
+msgid "modified %(date)s"
+msgstr "عُدّل في %(date)s"
+
+msgid "name@example.com"
+msgstr "name@example.com"
+
+msgid "never – empty manually"
+msgstr "أبدًا – أفرغها يدويًا"
+
+msgid "new task for this appointment…"
+msgstr "مهمة جديدة لهذا الموعد…"
+
+msgid "no changes"
+msgstr "لا تغييرات"
+
+msgid "no reason given"
+msgstr "لم يُذكر سبب"
+
+msgid "none"
+msgstr "لا شيء"
+
+msgid "not delivered"
+msgstr "لم يُسلَّم"
+
+msgid "notification %(count)s minute before"
+msgid_plural "notification %(count)s minutes before"
+msgstr[0] "الإشعار قبل الموعد بالدقائق: %(count)s"
+msgstr[1] "الإشعار قبل الموعد بالدقائق: %(count)s"
+msgstr[2] "الإشعار قبل الموعد بالدقائق: %(count)s"
+msgstr[3] "الإشعار قبل الموعد بالدقائق: %(count)s"
+msgstr[4] "الإشعار قبل الموعد بالدقائق: %(count)s"
+msgstr[5] "الإشعار قبل الموعد بالدقائق: %(count)s"
+
+msgid "on the day only"
+msgstr "في اليوم نفسه فقط"
+
+msgid "once"
+msgstr "مرة واحدة"
+
+msgid "one backup was encrypted as well"
+msgid_plural "%(count)s backups were encrypted as well"
+msgstr[0] "تم تشفير نسخة احتياطية واحدة أيضًا"
+msgstr[1] "تمت أيضًا تشفير نسخ %(count)s الاحتياطية"
+msgstr[2] "تمت أيضًا تشفير نسخ %(count)s الاحتياطية"
+msgstr[3] "تمت أيضًا تشفير نسخ %(count)s الاحتياطية"
+msgstr[4] "تمت أيضًا تشفير نسخ %(count)s الاحتياطية"
+msgstr[5] "تمت أيضًا تشفير نسخ %(count)s الاحتياطية"
+
+msgid "one contact card"
+msgid_plural "%(count)s contact cards"
+msgstr[0] "بطاقة اتصال واحدة"
+msgstr[1] "بطاقات الاتصال %(count)s"
+msgstr[2] "بطاقات الاتصال %(count)s"
+msgstr[3] "بطاقات الاتصال %(count)s"
+msgstr[4] "بطاقات الاتصال %(count)s"
+msgstr[5] "بطاقات الاتصال %(count)s"
+
+msgid "only %(year)s"
+msgstr "%(year)s فقط"
+
+msgid "or enter a host name or IP address"
+msgstr "أو أدخل اسم مضيف أو عنوان IP"
+
+msgid "pulse"
+msgstr "النبض"
+
+msgid "recurring appointment"
+msgstr "موعد متكرر"
+
+msgid "remind me on the due date"
+msgstr "ذكّرني في تاريخ الاستحقاق"
+
+msgid "second"
+msgstr "الثاني"
+
+msgid "stored – leave empty to keep"
+msgstr "محفوظة – اتركه فارغًا للإبقاء عليها"
+
+msgid "system notification"
+msgstr "إشعار النظام"
+
+msgid "systemd-run is required to schedule wake-up reminders on this system."
+msgstr "يلزم systemd-run لجدولة تذكيرات إيقاظ الحاسوب على هذا النظام."
+
+msgid "tentative"
+msgstr "مبدئي"
+
+msgid "the day after tomorrow"
+msgstr "بعد غد"
+
+msgid "the other branch"
+msgstr "الفرع الآخر"
+
+msgid "third"
+msgstr "الثالث"
+
+msgid "to"
+msgstr "إلى"
+
+msgid "today"
+msgstr "اليوم"
+
+msgid "today!"
+msgstr "اليوم!"
+
+msgid "tomorrow"
+msgstr "غدًا"
+
+msgid "turns %(age)s"
+msgstr "يبلغ/تبلغ %(age)s عامًا"
+
+msgid "unknown"
+msgstr "غير معروف"
+
+msgid "unknown error"
+msgstr "خطأ غير معروف"
+
+msgid "untitled"
+msgstr "بلا عنوان"
+
+msgid "vCalendar (*.vcs)"
+msgstr "vCalendar (*.vcs)"
+
+msgid ""
+"vCard preserves more contact details. LDIF is intended for importing into "
+"Claws Mail; emergency contacts, social media, free labels and non-JPEG "
+"photos cannot be included."
+msgstr ""
+"يحفظ vCard تفاصيل أكثر لجهات الاتصال. صُمم LDIF للاستيراد إلى Claws Mail؛ ولا "
+"يمكن تضمين جهات اتصال الطوارئ أو وسائل التواصل الاجتماعي أو التسميات الحرة "
+"أو الصور غير JPEG.vCard preserves more contact details. LDIF is intended for "
+"importing into Claws Mail; emergency contacts, social media, free labels and "
+"non-JPEG photos cannot be included."
+
+msgid "vital"
+msgstr "vital"
+
+msgid "waiting loop"
+msgstr "حلقة انتظار"
+
+msgid "– Anniversaries automatically appear with ✱ in the calendar."
+msgstr "– تظهر المناسبات السنوية تلقائيًا مع ✱ في التقويم."
+
+msgid ""
+"– Everything is saved automatically. Use “Create backup” at the bottom right "
+"to create an additional backup copy."
+msgstr ""
+"– يُحفظ كل شيء تلقائيًا. استخدم «إنشاء نسخة احتياطية» أسفل اليمين لإنشاء نسخة "
+"إضافية."
+
+msgid ""
+"– In the calendar, use the controls at the top to switch between month and "
+"week view."
+msgstr ""
+"– في التقويم، استخدم عناصر التحكم في الأعلى للتبديل بين عرض الشهر وعرض "
+"الأسبوع."
+
+msgid ""
+"– The colored tabs along the edge lead to the sections. Tabs you have "
+"already passed move to the left side, just like in a real ring binder."
+msgstr ""
+"– تقود علامات التبويب الملونة على الحافة إلى الأقسام. تنتقل علامات التبويب "
+"التي مررت بها إلى الجانب الأيسر، كما في ملف حلقي حقيقي."
+
+msgid ""
+"– The folded corners at the bottom turn pages forward and back: by month in "
+"the calendar, by year in the planner, and page by page here."
+msgstr ""
+"– تقلب الزوايا المطوية في الأسفل الصفحات إلى الأمام والخلف: بالشهر في "
+"التقويم، وبالسنة في المخطِّط، وصفحةً بصفحة هنا."
+
+msgid ""
+"– Turn times in 5-minute increments with the mouse wheel (hold Shift for "
+"whole hours); the end time moves along with it. For appointments without a "
+"fixed time, select “All day”."
+msgstr ""
+"– غيّر الوقت بخطوات قدرها 5 دقائق بعجلة الفأرة (اضغط Shift للساعات الكاملة)؛ "
+"ويتحرك وقت الانتهاء معه. للمواعيد بلا وقت ثابت اختر «طوال اليوم»."
+
+msgid ""
+"– Under “Settings” at the bottom right, you can import appointments and "
+"addresses from other programs (.ics, .vcf, Lotus CSV), export them, and "
+"connect your system's online accounts. On the “Region & holidays” page, "
+"enter your country and state and import all public and school holidays once."
+msgstr ""
+"– ضمن «الإعدادات» أسفل اليمين، يمكنك استيراد المواعيد والعناوين من برامج "
+"أخرى (.ics و .vcf وLotus CSV) وتصديرها وربط حسابات النظام عبر الإنترنت. في "
+"صفحة «المنطقة والعطلات»، أدخل بلدك والمنطقة/الولاية واستورد جميع العطلات "
+"الرسمية والمدرسية مرة واحدة."
+
+msgid "— do not link —"
+msgstr "— عدم الربط —"
+
+msgid "— not specified —"
+msgstr "— غير محدد —"
+
+msgid "— please select —"
+msgstr "— يرجى الاختيار —"
+
+msgid "“%(name)s” was restored."
+msgstr "تمت استعادة «%(name)s»."
+
+msgid "“%(word)s” is now in the dictionary."
+msgstr "أُضيفت «%(word)s» إلى القاموس."
+
+msgid ""
+"“From this computer” reads contacts, appointments and tasks directly from "
+"Evolution (including cached online accounts) and Thunderbird without further "
+"setup. It only reads these stores and does not change them. The organizer "
+"automatically detects whether a Lotus CSV contains appointments, contacts, "
+"tasks, anniversaries or notes. Calendar files provide appointments, annual "
+"recurrences as anniversaries, and tasks. Birthdays from contact files become "
+"anniversaries. Existing entries are not added twice."
+msgstr ""
+"يقرأ خيار «من هذا الحاسوب» جهات الاتصال والمواعيد والمهام مباشرة من "
+"Evolution (بما في ذلك الحسابات عبر الإنترنت المخزنة مؤقتًا) ومن Thunderbird "
+"من دون إعداد إضافي. وهو يقرأ هذه المخازن فقط ولا يغيّرها. يكتشف المنظّم "
+"تلقائيًا ما إذا كان ملف Lotus CSV يحتوي مواعيد أو جهات اتصال أو مهام أو "
+"مناسبات سنوية أو ملاحظات. توفر ملفات التقويم المواعيد والتكرارات السنوية "
+"كمناسبات سنوية والمهام. وتتحول أعياد الميلاد في ملفات جهات الاتصال إلى "
+"مناسبات سنوية. ولا تُضاف الإدخالات الموجودة مرتين."
+
+msgid "… and %(count)s more item that will also be printed."
+msgid_plural "… and %(count)s more items that will also be printed."
+msgstr[0] "… وعناصر إضافية ستُطبع أيضًا؛ العدد: %(count)s"
+msgstr[1] "… وعناصر إضافية ستُطبع أيضًا؛ العدد: %(count)s"
+msgstr[2] "… وعناصر إضافية ستُطبع أيضًا؛ العدد: %(count)s"
+msgstr[3] "… وعناصر إضافية ستُطبع أيضًا؛ العدد: %(count)s"
+msgstr[4] "… وعناصر إضافية ستُطبع أيضًا؛ العدد: %(count)s"
+msgstr[5] "… وعناصر إضافية ستُطبع أيضًا؛ العدد: %(count)s"
+
+msgid "＋ Add appointment"
+msgstr "＋ إضافة موعد"
+
+#~ msgid "No valid subscription"
+#~ msgstr "لا يوجد اشتراك صالح"
+
+#~ msgid "More fields (Lotus)"
+#~ msgstr "حقول إضافية (Lotus)"

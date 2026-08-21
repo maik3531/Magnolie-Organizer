@@ -1,0 +1,6 @@
+# Kopie als app/schluessel.properties anlegen und ausfuellen.
+# Diese Datei enthaelt Zugangsdaten und gehoert nicht ins Repository.
+storeFile=app/magnolie-notes.jks
+storePassword=
+keyAlias=magnolie-notes
+keyPassword=

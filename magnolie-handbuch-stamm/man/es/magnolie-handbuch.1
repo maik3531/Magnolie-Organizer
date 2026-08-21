@@ -1,0 +1,39 @@
+.TH MAGNOLIE-HANDBUCH 1 "agosto de 2026" "Manual de Magnolie 2.0.0" "Órdenes de usuario"
+.SH NOMBRE
+magnolie-handbuch \- abrir el manual de usuario de Magnolie Organizer
+.SH SINOPSIS
+.B magnolie-handbuch
+.RI [ opción ]
+.RI [ \-\-sprache\  idioma ]
+.SH DESCRIPCIÓN
+.B Manual de Magnolie
+abre la guía de usuario completa e ilustrada de Magnolie Organizer. El manual
+se puede consultar en pantalla, imprimir o exportar como archivo PDF.
+.PP
+Solo se abre una ventana del manual por sesión de usuario. Al ejecutar de nuevo
+la orden, se muestra la ventana existente.
+.SH OPCIONES
+.TP
+.BR \-\-sprache " " SPRACHE , " " \-\-language " " LANGUAGE
+Usar alemán (\fBde\fR), inglés (\fBen\fR) o el idioma del sistema
+(\fBsystem\fR) para esta ejecución. Esto selecciona el idioma de la salida de
+la orden anterior a la ayuda y el idioma de WebKit de una ventana recién
+abierta. Los ajustes guardados no se modifican.
+.TP
+.BR \-\-pot " [" DATEI "]", " " \-\-pot-template " [" FILE "]"
+Generar una plantilla gettext reproducible y salir. Si no se proporciona un
+archivo, escribir \fBmagnolie-handbuch.pot\fR en el directorio actual; de lo
+contrario, escribir en la ruta indicada. Si la operación se completa
+correctamente, se muestra la ruta absoluta de salida.
+.TP
+.BR \-\-hilfe , " " \-\-help
+Mostrar un breve resumen de la orden.
+.SH ENTORNO
+.TP
+.B MAGNOLIE_HANDBUCH_WEB
+Usar otro directorio que contenga la interfaz del manual. Destinado al
+desarrollo y las pruebas.
+.SH VÉASE TAMBIÉN
+.BR magnolie-organizer (1)
+.SH AUTOR
+Escrito por Maik Walter.

@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.MagnolieNotes.Base" parent="android:Theme.Material.NoActionBar">
+        <item name="android:statusBarColor">@color/leder_dunkel</item>
+        <item name="android:navigationBarColor">@color/leder_dunkel</item>
+        <item name="android:windowBackground">@color/papier</item>
+        <!-- Auf dem Ledereinband müssen Uhr und Navigationsknöpfe hell sein. -->
+        <item name="android:windowLightStatusBar">false</item>
+    </style>
+
+    <style name="Theme.MagnolieNotes" parent="Theme.MagnolieNotes.Base" />
+
+    <style name="Theme.MagnolieNotes.Durchsichtig" parent="Theme.MagnolieNotes">
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:windowIsTranslucent">true</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:backgroundDimEnabled">false</item>
+    </style>
+</resources>

@@ -1,0 +1,4 @@
+[Magnolie Organizer]
+title=Magnolie Organizer
+description=Encrypted connections and local discovery for Magnolienbaum
+ports=8737/tcp|8737/udp|8741/tcp|1716/udp|1716:1764/tcp|5353/udp

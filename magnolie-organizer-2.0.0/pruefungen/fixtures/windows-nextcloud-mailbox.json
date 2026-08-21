@@ -1,0 +1,8 @@
+{
+  "source": "magnolie-organizer-windows-1.0.0/tests/NextcloudMailboxTests.cs",
+  "transport_id_hex": "000102030405060708090a0b0c0d0e0f",
+  "message": "{\"an\":\"beta\",\"art\":\"nachricht\",\"format\":\"baum-1-webdav\",\"inhalt\":{\"text\":\"Bl\\u00fcte\"},\"mac\":\"krFqef2aMGzkFXGj3QIJsaz5jP5hQz3kr54h-BnpLgU\",\"transportId\":\"AAECAwQFBgcICQoLDA0ODw\",\"von\":\"alpha\"}",
+  "receipt": "{\"an\":\"alpha\",\"art\":\"quittung\",\"format\":\"baum-1-webdav\",\"mac\":\"Eil6bsvJDJBkaJbBzpbknnj9h2mQ2kfiCDjV_p0a_V0\",\"transportId\":\"AAECAwQFBgcICQoLDA0ODw\",\"von\":\"beta\"}",
+  "e2e_envelope": {"daten": "AQIDBAUGBwgJCgsMDQ4PEA==", "magnolie": "baum-1", "nonce": "AAECAwQFBgcICQoL", "von": "alpha", "zaehler": 7},
+  "e2e_message": "{\"an\":\"beta\",\"art\":\"nachricht\",\"format\":\"baum-1-webdav\",\"inhalt\":{\"daten\":\"AQIDBAUGBwgJCgsMDQ4PEA==\",\"magnolie\":\"baum-1\",\"nonce\":\"AAECAwQFBgcICQoL\",\"von\":\"alpha\",\"zaehler\":7},\"mac\":\"feHuekD8YqEj-Zj4ruclF4Go7eVn3TebqfGVKQtinak\",\"transportId\":\"AAECAwQFBgcICQoLDA0ODw\",\"von\":\"alpha\"}"
+}

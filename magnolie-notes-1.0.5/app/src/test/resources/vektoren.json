@@ -1,0 +1,237 @@
+{
+ "kanonisch": [
+  {
+   "wert": {
+    "b": 1,
+    "a": "zwei"
+   },
+   "erwartet": "{\"a\":\"zwei\",\"b\":1}"
+  },
+  {
+   "wert": {
+    "text": "Grüße aus München – „Zitat“ & <Zeichen>"
+   },
+   "erwartet": "{\"text\":\"Gr\\u00fc\\u00dfe aus M\\u00fcnchen \\u2013 \\u201eZitat\\u201c & <Zeichen>\"}"
+  },
+  {
+   "wert": {
+    "leer": "",
+    "null": null,
+    "wahr": true,
+    "zahl": -17
+   },
+   "erwartet": "{\"leer\":\"\",\"null\":null,\"wahr\":true,\"zahl\":-17}"
+  },
+  {
+   "wert": {
+    "tab": "a\tb\nc\rd\be\ff",
+    "hoch": "🌼 Blüte"
+   },
+   "erwartet": "{\"hoch\":\"\\ud83c\\udf3c Bl\\u00fcte\",\"tab\":\"a\\tb\\nc\\rd\\be\\ff\"}"
+  },
+  {
+   "wert": {
+    "tief": {
+     "z": [
+      1,
+      2,
+      {
+       "y": "x"
+      }
+     ],
+     "a": []
+    }
+   },
+   "erwartet": "{\"tief\":{\"a\":[],\"z\":[1,2,{\"y\":\"x\"}]}}"
+  },
+  {
+   "wert": {
+    "anhang": [
+     {
+      "id": "1",
+      "name": "Bild.png",
+      "art": "image",
+      "daten": "data:image/png;base64,AAAA"
+     }
+    ]
+   },
+   "erwartet": "{\"anhang\":[{\"art\":\"image\",\"daten\":\"data:image/png;base64,AAAA\",\"id\":\"1\",\"name\":\"Bild.png\"}]}"
+  }
+ ],
+ "fingerabdruck": {
+  "oeffentlichA": "j0DFrbaPJWJK5bIU6nZ6bslNgp09e14a0bpvPiE4KF8=",
+  "erwartetA": "F9F9-8382-77DD-892B",
+  "oeffentlichB": "u1D/noKldM+/gg6X9g+5wUPsdBXPUU+M/Zjv9Z4FlhQ=",
+  "erwartetB": "9443-0FE1-2EAE-8881"
+ },
+ "paarungscode": {
+  "a": "j0DFrbaPJWJK5bIU6nZ6bslNgp09e14a0bpvPiE4KF8=",
+  "b": "u1D/noKldM+/gg6X9g+5wUPsdBXPUU+M/Zjv9Z4FlhQ=",
+  "erwartet": "735 771"
+ },
+ "partnerschluessel": {
+  "geheim": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8=",
+  "fremd": "u1D/noKldM+/gg6X9g+5wUPsdBXPUU+M/Zjv9Z4FlhQ=",
+  "kennungA": "organizerabcdefg",
+  "kennungB": "handyxyz23456789",
+  "erwartet": "/vfExd4g1PGkCfV+bucqGU8PvfmtId5H9IO9tjpTG38="
+ },
+ "authschluessel": {
+  "geheim": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8=",
+  "fremd": "u1D/noKldM+/gg6X9g+5wUPsdBXPUU+M/Zjv9Z4FlhQ=",
+  "eigene": "organizerabcdefg",
+  "partner": "handyxyz23456789",
+  "erwartet": "dQnc/Ec+rOEcPG5SByXHUDE+7hEjPRtsdfKJFJRavV4="
+ },
+ "paarungsdatei": {
+  "dokument": {
+   "magnolie": "magnolie-paarungsdatei",
+   "fassung": 2,
+   "paarung": "qSZAcdJH9QAUVgRneBFFCVOZeA0mJ-t1NPDhLIuubvE",
+   "erstellt": 1786357315,
+   "gueltigBis": 1786358215,
+   "ziel": {
+    "adresse": "192.168.1.50",
+    "port": 8737
+   },
+   "einlader": {
+    "kennung": "organizerabcdefg",
+    "name": "Schreibtisch",
+    "oeffentlich": "j0DFrbaPJWJK5bIU6nZ6bslNgp09e14a0bpvPiE4KF8=",
+    "port": 8737
+   },
+   "geheimnis": "BRAbJjE8R1JdaHN-iZSfqrXAy9bh7PcCDRgjLjlET1o",
+   "mac": "Dfl01BbPPL92_dqptfylhNP1-TZ8xhAY3PcGG6HE5-E"
+  },
+  "jetzt": 1786357315
+ },
+ "paarungsanfrage": {
+  "nonce": "CRYjMD1KV2RxfouYpbK/zNnm8wANGic0QU5baHWCj5w=",
+  "erwartet": {
+   "magnolie": "baum-paarung-2",
+   "paarung": "qSZAcdJH9QAUVgRneBFFCVOZeA0mJ-t1NPDhLIuubvE",
+   "nonce": "CRYjMD1KV2RxfouYpbK_zNnm8wANGic0QU5baHWCj5w",
+   "zweig": {
+    "kennung": "handyxyz23456789",
+    "name": "Handy",
+    "oeffentlich": "u1D/noKldM+/gg6X9g+5wUPsdBXPUU+M/Zjv9Z4FlhQ=",
+    "port": 8737
+   },
+   "beweis": "TnO1YTv-OGFlL2R6FExML-iDYI683_ztI9hU8X-uG3k"
+  }
+ },
+ "paarungsantwort": {
+  "erwartet": {
+   "magnolie": "baum-paarung-2-antwort",
+   "paarung": "qSZAcdJH9QAUVgRneBFFCVOZeA0mJ-t1NPDhLIuubvE",
+   "nonce": "CRYjMD1KV2RxfouYpbK_zNnm8wANGic0QU5baHWCj5w",
+   "zweig": {
+    "kennung": "organizerabcdefg",
+    "name": "Schreibtisch",
+    "oeffentlich": "j0DFrbaPJWJK5bIU6nZ6bslNgp09e14a0bpvPiE4KF8=",
+    "port": 8737
+   },
+   "beweis": "hX9K2-wd9_cBFMbtRlN2U0w8Y0EWJZ0ViQXyj_L3Lyg"
+  }
+ },
+ "fs_start": {
+  "erwartet": {
+   "magnolie": "baum-fs1-start",
+   "von": "organizerabcdefg",
+   "an": "handyxyz23456789",
+   "sid": "AAECAwQFBgcICQoLDA0ODw==",
+   "epk": "w3B3+0MtGcUdaoxv352/BvhHHPEu2xytq3aurCmReh4=",
+   "mac": "VtSwA/XRHXR9vP88ifLmmnd82evVc7ZCTuk1SteK3ww="
+  },
+  "sid": "AAECAwQFBgcICQoLDA0ODw==",
+  "ephemer": "AQQHCg0QExYZHB8iJSgrLjE0Nzo9QENGSUxPUlVYW14="
+ },
+ "fs_antwort": {
+  "erwartet": {
+   "magnolie": "baum-fs1-antwort",
+   "von": "handyxyz23456789",
+   "an": "organizerabcdefg",
+   "sid": "AAECAwQFBgcICQoLDA0ODw==",
+   "epk": "taipTOx+4zrLD8FQG2GA8UdULizUH/TN8g68wVIcGws=",
+   "startHash": "OCzIDnizJReh/lBbr0WB0ngCnrLpC/52socl5BhXLJ0=",
+   "mac": "l+1X6RnIpKBTEL6owTlvOGQtuGKLxUItNPUDfWSM9Ek="
+  },
+  "ephemer": "AgcMERYbICUqLzQ5PkNITVJXXGFma3B1en+EiY6TmJ0=",
+  "kenc": "2Y4qZxe4k1jVjvwm/6bMvkAN3Cfyuq3i0b3NbtIEFLA=",
+  "kack": "kMF7LwCTEkdllPLRQ4OpN1t+zV24+EurpcYpasNDCtU=",
+  "transkript": "nTqNJU/rq/JOUjU+hg36gu8Efrlrm/vXU6dLKAnyFCs="
+ },
+ "fs_umschlag": {
+  "inhalt": {
+   "freigabeId": "f-1",
+   "titel": "Einkauf für Sonntag",
+   "text": "Milch\nBrot\nÄpfel – 2 kg",
+   "html": "<div>Milch</div>",
+   "anhaenge": [],
+   "geaendert": 1770000123456,
+   "version": 3,
+   "quelle": "organizerabcdefg",
+   "art": "notiz"
+  },
+  "mid": "ABEiM0RVZneImaq7zN3u/w==",
+  "nonce": "BBcqPVBjdomcr8LV",
+  "erwartet": {
+   "magnolie": "baum-fs1",
+   "von": "organizerabcdefg",
+   "an": "handyxyz23456789",
+   "sid": "AAECAwQFBgcICQoLDA0ODw==",
+   "mid": "ABEiM0RVZneImaq7zN3u/w==",
+   "nonce": "BBcqPVBjdomcr8LV",
+   "daten": "ja8SNBOXJJaxvB8QVfKly4Oo6Alg43dDUJpok+zU8yYbr5fUuLXIgbP8nGEvnA6SIttXoE57EaiNsR94cbIcD33N1FsaOnLbuhB+7yumD0Q2ZOQ32E296RAqv/3AopVyxTgnJe8+oR/u/yBdG3sPQF+7UrIC4i7TdK/2o+/LPixZtn1AsoiQxoC6Oi9tER3pG2OqoPHh2KwHrGQ2bvzHYdXa/pqizu98w6XO+IkjaBonvvPlNAWeT4gF+z58szaxcbqCcQS5EQ1HI300WPnoNfPaQUldA8BoCeCRN6N/qX8il7ljzll0nMtCa7Y="
+  }
+ },
+ "fs_quittung": {
+  "erwartet": {
+   "magnolie": "baum-fs1-ack",
+   "sid": "AAECAwQFBgcICQoLDA0ODw==",
+   "mid": "ABEiM0RVZneImaq7zN3u/w==",
+   "mac": "fVdxHkMJ54qDzNMjHZrRu9WLr3PAtg9guBfox0tMm/M="
+  }
+ },
+ "baum1": {
+  "umschlag": {
+   "magnolie": "baum-1",
+   "von": "organizerabcdefg",
+   "zaehler": 42,
+   "nonce": "bg6hz/9fAZKoVm6U",
+   "daten": "yCyRUbpa1i3dxTWWdq3SS21+ttRWIHsid7PUQjfEBONedzA29r9TYvvUCkGheYDfhWKgEh6ac5zIH59k03NhtDf4jCVUSGdgCmK9id/bmFhXewfpOeboe16aZ1bcbyMUyWQ915+pPX+B4bsNDKtIqFXwyIokbvbl2PlMt2otPWXiM4QrvIz+mCgBAU8XymmYFrosW4HbUuAP8YHkTL2O5JTzmkum2YhR/OLFtZhUr+YHGUigpFf7iwKC7RCFDxLGf/BJKFow0/Yo7WJkqqVY0VhpR8WzYhtZRXKBDiXBJuKPQZo8eCOhWqCHEgA4OtpRoc0="
+  },
+  "inhalt": {
+   "freigabeId": "f-1",
+   "titel": "Einkauf für Sonntag",
+   "text": "Milch\nBrot\nÄpfel – 2 kg",
+   "html": "<div>Milch</div>",
+   "anhaenge": [],
+   "geaendert": 1770000123456,
+   "version": 3,
+   "quelle": "organizerabcdefg",
+   "art": "notiz"
+  },
+  "geheimB": "AwoRGB8mLTQ7QklQV15lbHN6gYiPlp2kq7K5wMfO1dw=",
+  "oeffentlichA": "j0DFrbaPJWJK5bIU6nZ6bslNgp09e14a0bpvPiE4KF8=",
+  "kennungA": "organizerabcdefg",
+  "kennungB": "handyxyz23456789",
+  "zaehler": 42
+ },
+ "identitaeten": {
+  "organizer": {
+   "kennung": "organizerabcdefg",
+   "name": "Schreibtisch",
+   "geheim": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8=",
+   "oeffentlich": "j0DFrbaPJWJK5bIU6nZ6bslNgp09e14a0bpvPiE4KF8=",
+   "port": 8737
+  },
+  "handy": {
+   "kennung": "handyxyz23456789",
+   "name": "Handy",
+   "geheim": "AwoRGB8mLTQ7QklQV15lbHN6gYiPlp2kq7K5wMfO1dw=",
+   "oeffentlich": "u1D/noKldM+/gg6X9g+5wUPsdBXPUU+M/Zjv9Z4FlhQ=",
+   "port": 8737
+  }
+ }
+}

@@ -1,0 +1,72 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="BouncyCastle.Cryptography" Version="2.5.1" />
+    <PackageReference Include="System.Security.Cryptography.ProtectedData" Version="8.0.0" />
+    <PackageReference Include="Microsoft.Data.Sqlite" Version="8.0.19" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="..\AtomicStore.cs" Link="AtomicStore.cs" />
+    <Compile Include="..\EncryptionService.cs" Link="EncryptionService.cs" />
+    <Compile Include="..\ExchangeCodec.cs" Link="ExchangeCodec.cs" />
+    <Compile Include="..\ThunderbirdCalendarImporter.cs" Link="ThunderbirdCalendarImporter.cs" />
+    <Compile Include="..\DocumentExportService.cs" Link="DocumentExportService.cs" />
+    <Compile Include="..\GesamtarchivService.cs" Link="GesamtarchivService.cs" />
+    <Compile Include="..\ContactSyncModels.cs" Link="ContactSyncModels.cs" />
+    <Compile Include="..\WindowsContactStore.cs" Link="WindowsContactStore.cs" />
+    <Compile Include="..\GraphContactService.cs" Link="GraphContactService.cs" />
+    <Compile Include="..\ReminderScheduler.cs" Link="ReminderScheduler.cs" />
+    <Compile Include="..\WindowsPaths.cs" Link="WindowsPaths.cs" />
+    <Compile Include="..\RecoveryJournal.cs" Link="RecoveryJournal.cs" />
+    <Compile Include="..\TraySettingsService.cs" Link="TraySettingsService.cs" />
+    <Compile Include="..\LibreOfficeUserData.cs" Link="LibreOfficeUserData.cs" />
+    <Compile Include="..\WeatherLocation.cs" Link="WeatherLocation.cs" />
+    <Compile Include="..\LogPresentation.cs" Link="LogPresentation.cs" />
+    <Compile Include="..\RotatingLog.cs" Link="RotatingLog.cs" />
+    <Compile Include="..\AttachmentFile.cs" Link="AttachmentFile.cs" />
+    <Compile Include="..\PhoneUri.cs" Link="PhoneUri.cs" />
+    <Compile Include="..\MagnolienbaumCrypto.cs" Link="MagnolienbaumCrypto.cs" />
+    <Compile Include="..\NextcloudMailbox.cs" Link="NextcloudMailbox.cs" />
+    <Compile Include="..\NextcloudDav.cs" Link="NextcloudDav.cs" />
+    <Compile Include="..\NextcloudSyncJournal.cs" Link="NextcloudSyncJournal.cs" />
+    <Compile Include="..\MagnolienbaumStore.cs" Link="MagnolienbaumStore.cs" />
+    <Compile Include="..\MagnolienbaumPairing.cs" Link="MagnolienbaumPairing.cs" />
+    <Compile Include="..\MagnolienbaumCoordinator.cs" Link="MagnolienbaumCoordinator.cs" />
+    <Compile Include="..\BaumContactSyncContract.cs" Link="BaumContactSyncContract.cs" />
+    <Compile Include="..\MagnolienbaumFs1.cs" Link="MagnolienbaumFs1.cs" />
+    <Compile Include="..\TelefonCrypto.cs" Link="TelefonCrypto.cs" />
+    <Compile Include="..\TelefonDeviceStatusContract.cs" Link="TelefonDeviceStatusContract.cs" />
+    <Compile Include="..\TelefonMessagingContract.cs" Link="TelefonMessagingContract.cs" />
+    <Compile Include="..\TelefonCallContract.cs" Link="TelefonCallContract.cs" />
+    <Compile Include="..\PersonalSyncContract.cs" Link="PersonalSyncContract.cs" />
+    <Compile Include="..\PersonalSyncStore.cs" Link="PersonalSyncStore.cs" />
+    <Compile Include="..\TelefonProtocolContract.cs" Link="TelefonProtocolContract.cs" />
+    <Compile Include="..\TelefonStore.cs" Link="TelefonStore.cs" />
+    <Compile Include="..\TelefonCoordinator.cs" Link="TelefonCoordinator.cs" />
+    <Compile Include="..\TelefonMdnsPublisher.cs" Link="TelefonMdnsPublisher.cs" />
+    <Compile Include="..\BridgeDispatcherContract.cs" Link="BridgeDispatcherContract.cs" />
+    <Compile Include="..\KdeConnectProtocol.cs" Link="KdeConnectProtocol.cs" />
+    <Compile Include="..\KdeConnectIdentityStore.cs" Link="KdeConnectIdentityStore.cs" />
+    <Compile Include="..\KdeConnectDirectBackend.cs" Link="KdeConnectDirectBackend.cs" />
+    <Compile Include="..\KdeConnectSms.cs" Link="KdeConnectSms.cs" />
+    <Compile Include="..\Ipv4Broadcast.cs" Link="Ipv4Broadcast.cs" />
+    <Compile Include="..\BluetoothRadioSwitch.cs" Link="BluetoothRadioSwitch.cs" />
+    <Compile Include="..\WindowsFirewall.cs" Link="WindowsFirewall.cs" />
+    <Compile Include="..\NativeLocalization.cs" Link="NativeLocalization.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="resources\*.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="..\app\native-i18n.json" Link="native-i18n.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+</Project>

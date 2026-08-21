@@ -1,0 +1,50 @@
+#!/bin/sh
+set -eu
+
+test -x /usr/sbin/ufw
+test -f /etc/ufw/applications.d/magnolie-organizer
+ufw app info 'Magnolie Organizer' | grep -q '8737/tcp'
+ufw app info 'Magnolie Organizer' | grep -q '8737/udp'
+ufw app info 'Magnolie Organizer' | grep -q '8741/tcp'
+ufw app info 'Magnolie Organizer' | grep -q '1716/udp'
+ufw app info 'Magnolie Organizer' | grep -q '1716:1764/tcp'
+ufw app info 'Magnolie Organizer' | grep -q '5353/udp'
+
+bereinigen() {
+  ufw --force disable >/dev/null 2>&1 || true
+  ufw --force reset >/dev/null 2>&1 || true
+}
+trap bereinigen EXIT HUP INT TERM
+
+ufw --force reset
+ufw default allow incoming
+ufw default allow outgoing
+ufw --force enable
+
+python3 "$(dirname -- "$0")/ufw.py"
+ufw show added >"${AUTOPKGTEST_TMP:-/tmp}/magnolie-ufw-eins"
+grep -q 'Magnolie Organizer' "${AUTOPKGTEST_TMP:-/tmp}/magnolie-ufw-eins"
+ufw status | grep -q 'Magnolie Organizer'
+
+# UFW selbst muss den zweiten identischen Profilaufruf entdoppeln.
+python3 "$(dirname -- "$0")/ufw.py"
+ufw show added >"${AUTOPKGTEST_TMP:-/tmp}/magnolie-ufw-zwei"
+cmp "${AUTOPKGTEST_TMP:-/tmp}/magnolie-ufw-eins" \
+  "${AUTOPKGTEST_TMP:-/tmp}/magnolie-ufw-zwei"
+
+# Das tatsächlich installierte Maintainerskript entfernt nur die eigene Regel.
+test -x /var/lib/dpkg/info/magnolie-organizer.prerm
+/var/lib/dpkg/info/magnolie-organizer.prerm remove
+if ufw show added | grep -q 'Magnolie Organizer'; then
+  echo 'Das Maintainerskript ließ die Magnolie-Regel zurück' >&2
+  exit 1
+fi
+
+# Auch eine gespeicherte Regel bei inzwischen inaktivem UFW darf nicht bleiben.
+python3 "$(dirname -- "$0")/ufw.py"
+ufw --force disable
+/var/lib/dpkg/info/magnolie-organizer.prerm remove
+if ufw show added | grep -q 'Magnolie Organizer'; then
+  echo 'Die inaktive Magnolie-Regel blieb gespeichert' >&2
+  exit 1
+fi

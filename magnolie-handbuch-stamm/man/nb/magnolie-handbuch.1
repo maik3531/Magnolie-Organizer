@@ -1,0 +1,38 @@
+.TH MAGNOLIE-HANDBUCH 1 "august 2026" "Magnolie-håndbok 2.0.0" "Brukerkommandoer"
+.SH NAVN
+magnolie-handbuch \- åpne brukerhåndboken for Magnolie Organizer
+.SH OVERSIKT
+.B magnolie-handbuch
+.RI [ valg ]
+.RI [ \-\-sprache\  språk ]
+.SH BESKRIVELSE
+.B Magnolie-håndboken
+åpner den komplette illustrerte brukerveiledningen for Magnolie Organizer.
+Håndboken kan leses på skjermen, skrives ut eller eksporteres som en PDF-fil.
+.PP
+Det åpnes bare ett håndbokvindu per brukerøkt. Hvis kommandoen startes på
+nytt, vises det eksisterende vinduet.
+.SH VALG
+.TP
+.BR \-\-sprache " " SPRACHE , " " \-\-language " " LANGUAGE
+Bruk tysk (\fBde\fR), engelsk (\fBen\fR) eller systemspråket
+(\fBsystem\fR) for dette kallet. Dette velger språket for kommandoutdata før
+hjelpen og WebKit-språket i et nyåpnet vindu. Lagrede innstillinger endres
+ikke.
+.TP
+.BR \-\-pot " [" DATEI "]", " " \-\-pot-template " [" FILE "]"
+Generer en reproduserbar gettext-mal og avslutt. Uten et filargument skrives
+\fBmagnolie-handbuch.pot\fR i gjeldende mappe; ellers skrives det til den
+angitte banen. Den absolutte utdatabanen skrives ut når operasjonen lykkes.
+.TP
+.BR \-\-hilfe , " " \-\-help
+Vis en kort kommandooversikt.
+.SH MILJØ
+.TP
+.B MAGNOLIE_HANDBUCH_WEB
+Bruk en alternativ mappe som inneholder håndbokgrensesnittet. Beregnet for
+utvikling og testing.
+.SH SE OGSÅ
+.BR magnolie-organizer (1)
+.SH FORFATTER
+Skrevet av Maik Walter.

@@ -1,0 +1,38 @@
+.TH MAGNOLIE-HANDBUCH 1 "August 2026" "Magnolie Handbuch 2.0.0" "Dienstprogramme für Benutzer"
+.SH NAME
+magnolie-handbuch \- Benutzerhandbuch des Magnolie Organizers öffnen
+.SH ÜBERSICHT
+.B magnolie-handbuch
+.RI [ Option ]
+.RI [ \-\-sprache\  Sprache ]
+.SH BESCHREIBUNG
+.B Magnolie Handbuch
+öffnet die vollständige bebilderte Anleitung zum Magnolie Organizer. Das
+Handbuch lässt sich am Bildschirm lesen, drucken oder als PDF-Datei ausgeben.
+.PP
+In jeder Benutzersitzung läuft nur ein Handbuchfenster. Ein weiterer Aufruf
+holt das vorhandene Fenster nach vorn.
+.SH OPTIONEN
+.TP
+.BR \-\-sprache " " SPRACHE , " " \-\-language " " LANGUAGE
+Für diesen Aufruf Deutsch (\fBde\fR), Englisch (\fBen\fR) oder die
+Systemsprache (\fBsystem\fR) verwenden. Dies bestimmt die Befehlsausgaben vor
+der Hilfe sowie die WebKit-Sprache eines neu geöffneten Fensters. Gespeicherte
+Einstellungen bleiben unverändert.
+.TP
+.BR \-\-pot " [" DATEI "]", " " \-\-pot-template " [" FILE "]"
+Eine reproduzierbare Gettext-Vorlage erzeugen und beenden. Ohne Dateiangabe
+wird \fBmagnolie-handbuch.pot\fR im aktuellen Verzeichnis angelegt, sonst am
+angegebenen Pfad. Bei Erfolg wird der absolute Ausgabepfad gemeldet.
+.TP
+.BR \-\-hilfe , " " \-\-help
+Eine kurze Befehlsübersicht anzeigen.
+.SH UMGEBUNG
+.TP
+.B MAGNOLIE_HANDBUCH_WEB
+Ein anderes Verzeichnis mit der Handbuchoberfläche verwenden. Für Entwicklung
+und Prüfungen vorgesehen.
+.SH SIEHE AUCH
+.BR magnolie-organizer (1)
+.SH AUTOR
+Geschrieben von Maik Walter.

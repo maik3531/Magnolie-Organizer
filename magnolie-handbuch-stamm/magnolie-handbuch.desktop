@@ -1,0 +1,16 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=Magnolie Organizer - Handbook
+Name[de]=Magnolie Organizer – Handbuch
+GenericName=User Guide
+GenericName[de]=Benutzerhandbuch
+Comment=The Magnolie Organizer user guide, explained step by step
+Comment[de]=Das Benutzerhandbuch zum Magnolie Organizer, Schritt für Schritt erklärt
+Exec=magnolie-handbuch
+Icon=magnolie-handbuch
+Terminal=false
+Categories=Office;Documentation;Calendar;
+Keywords=Handbook;Guide;Help;Organizer;Magnolie;Calendar;
+Keywords[de]=Handbuch;Anleitung;Hilfe;Organizer;Magnolie;Kalender;
+StartupNotify=true

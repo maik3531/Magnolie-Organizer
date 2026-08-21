@@ -1,0 +1,37 @@
+.TH MAGNOLIE-HANDBUCH 1 "srpen 2026" "Příručka Magnolie 2.0.0" "Uživatelské příkazy"
+.SH NÁZEV
+magnolie-handbuch \- otevře uživatelskou příručku organizéru Magnolie
+.SH POUŽITÍ
+.B magnolie-handbuch
+.RI [ volba ]
+.RI [ \-\-sprache\  jazyk ]
+.SH POPIS
+.B Příručka Magnolie
+otevře úplnou ilustrovanou uživatelskou příručku organizéru Magnolie. Příručku
+lze procházet na obrazovce, vytisknout nebo exportovat do souboru PDF.
+.PP
+V rámci jednoho uživatelského sezení se otevře pouze jedno okno příručky.
+Opětovné spuštění příkazu zobrazí již otevřené okno.
+.SH VOLBY
+.TP
+.BR \-\-sprache " " SPRACHE , " " \-\-language " " LANGUAGE
+Pro toto spuštění použije němčinu (\fBde\fR), angličtinu (\fBen\fR) nebo jazyk
+systému (\fBsystem\fR). Tím se zvolí jazyk výstupu příkazu před zobrazením
+nápovědy a jazyk WebKitu v nově otevřeném okně. Uložená nastavení se nezmění.
+.TP
+.BR \-\-pot " [" SOUBOR "]", " " \-\-pot-template " [" FILE "]"
+Vytvoří reprodukovatelnou šablonu gettext a skončí. Bez argumentu souboru
+zapíše \fBmagnolie-handbuch.pot\fR do aktuálního adresáře; jinak ji zapíše do
+zadané cesty. Při úspěchu vypíše absolutní cestu k výstupu.
+.TP
+.BR \-\-hilfe , " " \-\-help
+Zobrazí stručný přehled příkazu.
+.SH PROSTŘEDÍ
+.TP
+.B MAGNOLIE_HANDBUCH_WEB
+Použije jiný adresář obsahující rozhraní příručky. Určeno pro vývoj a
+testování.
+.SH "VIZ TAKÉ"
+.BR magnolie-organizer (1)
+.SH AUTOR
+Napsal Maik Walter.

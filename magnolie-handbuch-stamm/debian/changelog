@@ -1,0 +1,499 @@
+magnolie-handbuch (2.0.0) unstable; urgency=medium
+
+  * Vereinheitlicht Handbuch- und Organizer-Fassung auf 2.0.0 und aktualisiert
+    Paketnamen für DEB, RPM und SRPM in allen Sprachkatalogen.
+  * Beschreibt die Desktop-Ausgaben für Linux und Windows einschließlich
+    Gesamtarchiv, Windows-Kontakten, Microsoft Graph und Benachrichtigungen.
+  * Trennt Telefonpaarung, KDE-Connect-SMS, Anrufsteuerung, Magnolienbaum und
+    persönlichen Eigengeräteabgleich fachlich und verwendet stabile Seiten-IDs.
+  * Dokumentiert Konflikte, Anhänge, Löschvorschläge, Papierkorb- und
+    Wiederherstellungsschutz sowie die Plattform- und Sicherungsgrenzen.
+  * Aktualisiert alle neunzehn Übersetzungskataloge und erweitert die
+    Handbuch-, Druck-, Katalog- und Release-Prüfungen.
+
+ -- Maik Walter <maik3531@gmail.com>  Wed, 12 Aug 2026 12:00:00 +0200
+
+magnolie-handbuch (1.9.22) unstable; urgency=medium
+
+  * Die fünf für Organizer 1.31.91 überarbeiteten Magnolienbaum-, Installations-
+    und Aktualisierungsseiten sind nun in allen neunzehn Sprachkatalogen
+    vollständig übersetzt und fallen nirgends mehr auf Englisch zurück.
+  * Katalogprüfungen sichern die vollständigen Übersetzungen, unveränderte
+    Befehle, Versionsangaben und HTML-Strukturen ab.
+
+ -- Maik Walter <maik3531@gmail.com>  Tue, 11 Aug 2026 09:30:00 +0200
+
+magnolie-handbuch (1.9.21) unstable; urgency=medium
+
+  * Die empfohlene schlüsselgebundene Paarungsdatei, dauerhaftes Vertrauen und
+    die vorsichtige Behandlung älterer Code-Paarungen sind beschrieben.
+  * Direkte Partnerendpunkte über Portweiterleitung, DynDNS, VPN,
+    Rückwärtstunnel oder eigenen Server werden ohne zentralen Vermittler erklärt.
+  * Manueller Vollabgleich, stabile Notizkennungen, eigene Aufgaben,
+    schleifenfreie Sync-Anfragen und die sechsstündige WLAN-Automatik der
+    Android-App sind ergänzt.
+
+ -- Maik Walter <maik3531@gmail.com>  Tue, 11 Aug 2026 08:25:24 +0200
+
+magnolie-handbuch (1.9.20) unstable; urgency=medium
+
+  * Zahlenfelder, Einheiten, Farborientierung und Sicherheitshinweise des
+    Gesundheitsbereichs für Organizer 1.31.88 sind ausführlich beschrieben.
+  * Verlauf sowie die neue Druck- und ODS-Auswahl im A4-Querformat sind
+    ergänzt; Heute-Markierung und bereinigter Startmenüeintrag sind vermerkt.
+  * Die frei wählbaren Register und der Bluetooth-Rückfall von Magnolie Notes
+    zum Organizer sind ergänzt.
+  * Bei höchstens vier Bereichen sind die schmalen senkrechten Registerzungen
+    nach Art des Lotus Organizers erläutert.
+
+ -- Maik Walter <maik3531@gmail.com>  Mon, 10 Aug 2026 14:00:00 +0200
+
+magnolie-handbuch (1.9.19) unstable; urgency=medium
+
+  * Der neue Gesundheitsbereich mit Blutdruck, Blutzucker, Medikamenten,
+    Insulinregeln, Verlauf, Druck und ODS für Organizer 1.31.87 ist beschrieben.
+  * Fedora-RPM/SRPM-Installation, DNF-Aktualisierung sowie Hinweise zur
+    Tray- und Locale-Fehlerbehebung sind ergänzt.
+
+ -- Maik Walter <maik3531@gmail.com>  Mon, 10 Aug 2026 12:00:00 +0200
+
+magnolie-handbuch (1.9.18) unstable; urgency=medium
+
+  * Das Handbuch berücksichtigt die nochmals verkleinerten Feiertags- und
+    Ferienbeschriftungen aus Organizer 1.31.80.
+  * Alle neunzehn vorhandenen Sprachkataloge werden gebaut, installiert und
+    anhand der System- oder Befehlszeilensprache geladen.
+
+ -- Maik Walter <maik3531@gmail.com>  Thu, 06 Aug 2026 14:02:00 +0200
+
+magnolie-handbuch (1.9.17) unstable; urgency=medium
+
+  * Kleinere Jahres-ODS-Schriften und die erweiterten sozialen Dienste samt
+    frei wählbaren Magnolie-Symbolen für Organizer 1.31.79 sind beschrieben.
+  * Der Müllkalender mit farbigen Vorlagen, freien Arten sowie einmaligen und
+    regelmäßigen Abholungen ist ergänzt.
+
+ -- Maik Walter <maik3531@gmail.com>  Thu, 06 Aug 2026 14:01:00 +0200
+
+magnolie-handbuch (1.9.16) unstable; urgency=medium
+
+  * Segmentierte Datumseingabe, TTMM-Kurzform, Heute-Rückfall und Jahrestage
+    ohne bekanntes Jahr für Organizer 1.31.78 sind beschrieben.
+  * Die druckgleiche A4-Querformat-Ausgabe der Jahres- und Monats-ODS ist
+    erläutert.
+
+ -- Maik Walter <maik3531@gmail.com>  Thu, 06 Aug 2026 14:00:00 +0200
+
+magnolie-handbuch (1.9.15) unstable; urgency=medium
+
+  * Die popupfreie Datumsdirekteingabe und die zugeklappte
+    Barrierefreiheitsgruppe für Organizer 1.31.77 sind berücksichtigt.
+
+ -- Maik Walter <maik3531@gmail.com>  Thu, 06 Aug 2026 12:20:00 +0200
+
+magnolie-handbuch (1.9.14) unstable; urgency=medium
+
+  * Drucknahe ODS-Kalender, geschlossene Einstellungsgruppen und der optionale
+    Tray-Zähler sind beschrieben.
+  * Mehrtägige Schicht- und Zyklusmarkierungen samt Vorlagen sowie der neue
+    Urlaubsplaner sind ergänzt.
+  * Das Handbuch zielt auf Magnolie Organizer 1.31.76.
+
+ -- Maik Walter <maik3531@gmail.com>  Wed, 05 Aug 2026 08:34:00 +0200
+
+magnolie-handbuch (1.9.13) unstable; urgency=medium
+
+  * Jahres- und Monatsdruck einschließlich Inhaltsauswahl und einseitiger
+    ODS-Ausgabe sind beschrieben.
+  * Ausklappbare Kalendereinstellungen, Schichtdienst-Planer und lokale
+    Regel-/Zyklusmarkierungen sind ergänzt.
+  * Das Handbuch zielt auf Magnolie Organizer 1.31.75.
+
+ -- Maik Walter <maik3531@gmail.com>  Wed, 05 Aug 2026 06:38:34 +0200
+
+magnolie-handbuch (1.9.12) unstable; urgency=medium
+
+  * Der eigene Planerdruck mit Jahresvorschau, optionalen Ferien und
+    Feiertagen sowie ODS-Ausgabe ist vollständig beschrieben.
+  * Ferien und Feiertage werden als Kalendermarkierungen von der
+    Terminauswahl abgegrenzt.
+  * Das Handbuch zielt auf Magnolie Organizer 1.31.74.
+
+ -- Maik Walter <maik3531@gmail.com>  Wed, 05 Aug 2026 05:03:21 +0200
+
+magnolie-handbuch (1.9.11) unstable; urgency=medium
+
+  * Die Auswahloptionen dokumentieren nun das Sammellöschen von Notizen und
+    Jahrestagen über Papierkorb oder endgültiges Löschen.
+  * Das Handbuch zielt auf Magnolie Organizer 1.31.73.
+
+ -- Maik Walter <maik3531@gmail.com>  Wed, 05 Aug 2026 04:13:08 +0200
+
+magnolie-handbuch (1.9.10) unstable; urgency=medium
+
+  * Die zunächst geschlossene, vertikale ODS-Spaltenwahl ist beschrieben.
+  * Das Handbuch erläutert label-freie Zusatzrufnummern und den Rückfall für
+    importierte, nur über den Namen zugeordnete Geburtstage.
+  * Das Handbuch zielt auf Magnolie Organizer 1.31.71.
+
+ -- Maik Walter <maik3531@gmail.com>  Wed, 05 Aug 2026 02:46:06 +0200
+
+magnolie-handbuch (1.9.9) unstable; urgency=medium
+
+  * Der Handbuchhinweis beschreibt nun auch das geprüfte Downloadangebot, wenn
+    das Handbuch bei der Organizer-Ersteinrichtung noch nicht installiert ist.
+  * Der neue ODS-Aufbau mit getrennten Hauptanschrift-, Festnetz-, Mobil- und
+    E-Mail-Spalten sowie Zusatzspalten ist vollständig dokumentiert.
+  * Das Handbuch zielt auf Magnolie Organizer 1.31.70.
+
+ -- Maik Walter <maik3531@gmail.com>  Wed, 05 Aug 2026 01:45:42 +0200
+
+magnolie-handbuch (1.9.8) unstable; urgency=medium
+
+  * Auswahloptionen, Sammellöschen und die Folgen für Papierkorb,
+    Kontaktjahrestage sowie Termin- und Aufgabenverknüpfungen sind beschrieben.
+  * Kalender-, Planer-, Reiter- und Dialogtastatur einschließlich Fokus-Rückgabe
+    und oberstem Escape sind in beiden Sprachen vollständig dokumentiert.
+  * Hilfsrahmen, Strg+Alt+H, Ersteinrichtungshinweis und die inert-Grenze von
+    WebKitGTK vor 2.38 sind ergänzt.
+  * Das Handbuch zielt auf Magnolie Organizer 1.31.69.
+
+ -- Maik Walter <maik3531@gmail.com>  Tue, 04 Aug 2026 17:40:03 +0200
+
+magnolie-handbuch (1.9.7) unstable; urgency=medium
+
+  * The per-invocation --sprache/--language switches and reproducible
+    --pot/--pot-template generation are documented in the command interfaces.
+  * The Contacts print-preview ODS export and its printable A4 landscape
+    LibreOffice Calc layout are documented in English and German.
+  * The documentation and package recommendation target Magnolie Organizer
+    1.31.37.
+
+ -- Maik Walter <maik3531@gmail.com>  Mon, 03 Aug 2026 22:30:00 +0200
+
+magnolie-handbuch (1.9.6) unstable; urgency=medium
+
+  * The complete handbook now has English source text and a complete German
+    gettext catalog for both the WebKit interface and Python launcher.
+  * The documentation is updated for Magnolie Organizer 1.31.36.
+
+ -- Maik Walter <maik3531@gmail.com>  Mon, 03 Aug 2026 02:30:00 +0200
+
+magnolie-handbuch (1.9.5) unstable; urgency=medium
+
+  * Wochennummern im Planer und die Filter für vergangene Termine,
+    Jahrestage und Ferien sind beschrieben.
+  * Die vereinfachte Ferienbeschriftung und das stabilisierte Tray sind ergänzt.
+  * Englische und deutsche Manpages sind enthalten.
+
+ -- Maik Walter <maik3531@gmail.com>  Mon, 03 Aug 2026 01:15:00 +0200
+
+magnolie-handbuch (1.9.4) unstable; urgency=medium
+
+  * Das native Cinnamon-XApp-Tray unter X11 und Wayland sowie die zuverlässige
+    Vollbildwiederherstellung sind beschrieben.
+  * Die optionalen ISO-Wochennummern im Monatsblatt sind ergänzt.
+
+ -- Maik Walter <maik3531@gmail.com>  Mon, 03 Aug 2026 01:00:00 +0200
+
+magnolie-handbuch (1.9.3) unstable; urgency=medium
+
+  * Der ziehbare Anhangsbereich und die automatische kompakte Symbolansicht
+    für Notizen auf kleinen Fenstern sind beschrieben.
+
+ -- Maik Walter <maik3531@gmail.com>  Mon, 03 Aug 2026 00:30:00 +0200
+
+magnolie-handbuch (1.9.2) unstable; urgency=medium
+
+  * Die direkte Valent-Mint-Compose-Aktion, das verkürzte Cinnamon-Traymenü
+    und Programmwege für Flatpak und Snap sind beschrieben.
+
+ -- Maik Walter <maik3531@gmail.com>  Sun, 02 Aug 2026 23:59:00 +0200
+
+magnolie-handbuch (1.9.1) unstable; urgency=medium
+
+  * Linksklick und Rechtsklick des Cinnamon-Trays, adressierte SMS-Entwürfe
+    sowie die korrigierte Formular- und Scrollleistenbedienung sind ergänzt.
+
+ -- Maik Walter <maik3531@gmail.com>  Sun, 02 Aug 2026 23:50:00 +0200
+
+magnolie-handbuch (1.9.0) unstable; urgency=medium
+
+  * Das optionale Tray-Applet und seine Unteroptionen für Minimieren,
+    Systemstart und Wiederherstellung des Fensters sind beschrieben.
+  * Die Unterschiede zwischen Cinnamon, KDE, GNOME, X11 und Wayland werden
+    einschließlich der GNOME-AppIndicator-Erweiterung erklärt.
+  * Die originalnahen Magnolie-Kommunikationssymbole und die Ein-Instanz-
+    Steuerung von Organizer und Handbuch sind ergänzt.
+
+ -- Maik Walter <maik3531@gmail.com>  Sun, 02 Aug 2026 23:30:00 +0200
+
+magnolie-handbuch (1.8.1) unstable; urgency=medium
+
+  * Die Rufnummernauswahl und die anpassbare Programm- oder Webaktion hinter
+    dem Zahnrad der Kommunikationswege sind beschrieben.
+  * Der dauerhafte Speichern-und-Abbrechen-Bereich im Kontaktformular ist
+    ergänzt.
+
+ -- Maik Walter <maik3531@gmail.com>  Sun, 02 Aug 2026 23:00:00 +0200
+
+magnolie-handbuch (1.8.0) unstable; urgency=medium
+
+  * Das Handbuch ist auf Magnolie Organizer 1.30.0 aktualisiert.
+  * Notizbezogene Anhangszustimmung, automatische Zwei-Wege-Übernahme und
+    Benachrichtigungen für neue Magnolienbaum-Angebote sind erklärt.
+  * Soziale Medien, einheitliche Kontaktsymbole, installierte Programme und
+    sichere Webrückfälle sind im Adresskapitel beschrieben.
+
+ -- Maik Walter <maik3531@gmail.com>  Sun, 02 Aug 2026 22:00:00 +0200
+
+magnolie-handbuch (1.7.0) unstable; urgency=medium
+
+  * Das Handbuch ist auf Magnolie Organizer 1.29.0 aktualisiert.
+  * Lokale Direktsuche, Internetpaarung, Router-Portweiterleitung, CGNAT und
+    die automatische UFW-Regel sind Schritt für Schritt erklärt.
+  * Bestätigbare Aufgaben-, Termin- und Adressangebote sind beschrieben.
+  * Gemeinsame Notizen, lokale Anhänge und kleine Arbeitsgruppen erhalten ein
+    eigenes Kapitel.
+
+ -- Maik Walter <maik3531@gmail.com>  Sun, 02 Aug 2026 20:00:00 +0200
+
+magnolie-handbuch (1.6.0) unstable; urgency=medium
+
+  * Das Handbuch ist auf Magnolie Organizer 1.28.0 aktualisiert.
+  * Freie Bezeichnungen für Rufnummern, Anschriften und Jahrestage sowie die
+    vollständige Übernahme umfangreicher EDS-Kontakte sind beschrieben.
+  * Das ausführlichere Adresskapitel erklärt leere Auswahlfelder, alle
+    Vorschläge und eigene Bezeichnungen Schritt für Schritt.
+  * Typisierte E-Mail-Adressen und die leere Vorgabe bei neuen Jahrestagen sind
+    ausdrücklich beschrieben.
+  * Mehrere Notfallkontakte, Beziehungsvorschläge und die neue Rahmenzuordnung
+    sind ausführlich erklärt.
+  * Titelvorschläge, mehrere Kontakttermine und -aufgaben sowie die wieder
+    sichtbare Kontakt-Notiz sind Schritt für Schritt beschrieben.
+  * Individuelle Termin- und Aufgabenmeldungen sowie der siebentägige
+    Jahrestagsvorlauf sind ausführlich erklärt.
+  * Die skalierbare Aufgabensuche im Terminblatt mit Datum und Notizausschnitt
+    ist auch für gleichnamige Aufgaben beschrieben.
+  * Die Seitenzahl ist nicht mehr fest vorgegeben; der PDF-Druck prüft auf
+    vollständige Inhalte und leere Blätter, ohne Text abzuschneiden.
+
+ -- Maik Walter <maik3531@gmail.com>  Sun, 02 Aug 2026 18:00:00 +0200
+
+magnolie-handbuch (1.4.10) unstable; urgency=medium
+
+  * Die Kontaktperson für Notfälle mit Name, Rufnummer und Status ist erklärt.
+  * Das Empfängerfeld neuer E-Post-Nachrichten mit Name und Adresse ist
+    beschrieben.
+
+ -- Maik Walter <maik3531@gmail.com>  Fri, 31 Jul 2026 21:24:43 +0200
+
+magnolie-handbuch (1.4.9) unstable; urgency=medium
+
+  * Das Handbuch ist auf Magnolie Organizer 1.26.0 aktualisiert.
+  * Beliebig viele Rufnummern und Anschriften sowie deren verlustfreier
+    Import, Ausdruck und Dublettenabgleich sind beschrieben.
+  * Vorwahl- und Straßenschreibweisen sowie Großschreibung bei
+    E-Post-Adressen werden beim Zusammenführen erklärt.
+
+ -- Maik Walter <maik3531@gmail.com>  Fri, 31 Jul 2026 14:04:50 +0200
+
+magnolie-handbuch (1.4.8) unstable; urgency=medium
+
+  * Das Handbuch ist auf Magnolie Organizer 1.25.2 aktualisiert.
+  * Der direkte Claws-Mail-Import aus XML sowie der alternative LDIF-Import
+    einschließlich der übernommenen Kontaktfelder sind beschrieben.
+
+ -- Maik Walter <maik3531@gmail.com>  Thu, 30 Jul 2026 22:57:01 +0200
+
+magnolie-handbuch (1.4.7) unstable; urgency=medium
+
+  * Das Handbuch ist auf Magnolie Organizer 1.25.1 aktualisiert.
+  * Die Bereinigung technischer Platzhalteradressen, sichere Zusammenführung
+    unvollständiger Kontaktkopien und Mehrkalender-Synchronisation sind erklärt.
+
+ -- Maik Walter <maik3531@gmail.com>  Thu, 30 Jul 2026 21:40:05 +0200
+
+magnolie-handbuch (1.4.6) unstable; urgency=medium
+
+  * Das Handbuch ist auf Magnolie Organizer 1.25.0 aktualisiert.
+  * Mehrere Jahrestage sowie die einmalige Termin- und Aufgabenanlage im
+    Adressformular und der gemeinsame Fotoknopf sind beschrieben.
+
+ -- Maik Walter <maik3531@gmail.com>  Thu, 30 Jul 2026 17:15:03 +0200
+
+magnolie-handbuch (1.4.5) unstable; urgency=medium
+
+  * Das Handbuch ist auf Magnolie Organizer 1.24.9 aktualisiert.
+  * Das Wetter im Wochenblatt ist nun als tageweise Anzeige im jeweils
+    passenden Tageskopf beschrieben.
+
+ -- Maik Walter <maik3531@gmail.com>  Thu, 30 Jul 2026 16:08:20 +0200
+
+magnolie-handbuch (1.4.4) unstable; urgency=medium
+
+  * Das Handbuch ist auf Magnolie Organizer 1.24.8 aktualisiert.
+  * Die Wetterbeschreibung erklärt die Anzeige in allen Kalenderansichten,
+    Magnolie-Linienzeichen, drei Darstellungsstufen und fünf Abrufabstände.
+
+ -- Maik Walter <maik3531@gmail.com>  Thu, 30 Jul 2026 15:50:15 +0200
+
+magnolie-handbuch (1.4.3) unstable; urgency=medium
+
+  * Das Handbuch ist auf Magnolie Organizer 1.24.7 aktualisiert.
+  * Die freie Jahrestagsart ist nun richtig unter "Allgemein" beschrieben,
+    die Wettervorhersage unter "Kalender".
+
+ -- Maik Walter <maik3531@gmail.com>  Thu, 30 Jul 2026 15:32:50 +0200
+
+magnolie-handbuch (1.4.2) unstable; urgency=medium
+
+  * Das Handbuch ist auf Magnolie Organizer 1.24.6 aktualisiert.
+  * Das Jahrestagskapitel erklärt die voreingestellte feste Auswahlliste mit
+    Todestag und die wahlweise freie Eingabe eigener Arten unter "Kalender".
+  * Die Einstellungen beschreiben die Drei-Tage-Wetteranzeige über wttr.in,
+    die Ortsrangfolge aus eigener Anschrift, LibreOffice und IP-Ermittlung
+    sowie den Genauigkeitshinweis beim letzten Rückfall.
+
+ -- Maik Walter <maik3531@gmail.com>  Thu, 30 Jul 2026 15:23:57 +0200
+
+magnolie-handbuch (1.4.1) unstable; urgency=medium
+
+  * Das Handbuch ist auf Magnolie Organizer 1.24.5 aktualisiert.
+  * Das Jahrestagskapitel erklärt freie Arten, den Todestag als Vorschlag und
+    die zusammenhängende Eingabe vierstelliger Jahre ohne Verlust von Tag und
+    Monat.
+  * Feiertage und Schulferien beschreiben die tagesweise Zusammenfassung aller
+    Bundesländer mit eindeutigen Kürzeln sowie rote synchronisierte Feiertage
+    ohne doppelte OpenHolidays-Einträge.
+
+ -- Maik Walter <maik3531@gmail.com>  Thu, 30 Jul 2026 13:09:50 +0200
+
+magnolie-handbuch (1.4.0) unstable; urgency=medium
+
+  * Das Handbuch ist auf Magnolie Organizer 1.24.4 aktualisiert und umfasst
+    nun 54 Seiten.
+  * Neue Kapitel erklären mehrtägige Termine mit einschließlich geltendem
+    Enddatum sowie die manuelle und tägliche Aktualisierungsprüfung.
+  * Rechner-Import, Kalender-Dateien, Lotus-Übernahme, Online-Abgleich und
+    Druck beschreiben den vollständigen Umgang mit Enddaten und aktuellen
+    Evolution- und Thunderbird-Ablagen.
+  * Der erste Start erläutert den einmaligen Lesehinweis des Organizers und
+    den dauerhaften Handbuchknopf unter "Über".
+  * Das Handbuchfenster verwendet sein eigenes installiertes Programmsymbol.
+  * Der Adressdruck verweist auf den allgemeinen Druckknopf in der Fußleiste;
+    die Karteikarte selbst bleibt frei von einer doppelten Schaltfläche.
+  * Das Kapitel zum Online-Abgleich erklärt die grüne Darstellung
+    synchronisierter Schulferien und die Zusammenführung mit eingelesenen
+    Ferienzeiträumen.
+
+ -- Maik Walter <maik3531@gmail.com>  Thu, 30 Jul 2026 01:33:08 +0200
+
+magnolie-handbuch (1.3.4) unstable; urgency=medium
+
+  * Das Handbuch ist vollständig an Magnolie Organizer 1.24.3 angepasst
+    und umfasst nun 52 Seiten. Neue Kapitel erklären wiederkehrende Termine,
+    Personen und Aufgabenfilter, Notizbuchgruppen samt Anhängen, Routen,
+    Erinnerungen trotz Kennwort sowie externe Sicherungskennwörter.
+  * Kalender, Aufgaben, Adressen, Planer, Import, Synchronisation,
+    Magnolienbaum, Papierkorb und Druck sind nach dem tatsächlich
+    ausgeführten Programmverhalten berichtigt; Grenzen beim Austausch und
+    der Umfang unverschlüsselter Erinnerungsdaten werden ausdrücklich genannt.
+  * Die PDF-Fassung hält die Fußzeile im normalen Seitenfluss und erzwingt
+    den Umbruch nur vor einem Folgeblatt. GTK/WebKit erzeugt dadurch genau
+    52 PDF-Seiten ohne leere Zwischenblätter.
+  * Eine echte WebKit-Druckprüfung kontrolliert Seitenzahl, Leerblätter,
+    fortlaufende Fußzeilen und abgeschnittene Kapitelenden.
+
+ -- Maik Walter <maik3531@gmail.com>  Wed, 29 Jul 2026 23:10:00 +0200
+
+magnolie-handbuch (1.3.3) unstable; urgency=medium
+
+  * Die Druckblätter trennen nun ihre feste Seitenhöhe vollständig von
+    Innenabständen und Zierbalken. Der Seitenwechsel liegt vor dem jeweils
+    nächsten Blatt, sodass GTK/WebKit keine Fußzeile mehr auf ein leeres
+    Zwischenblatt schieben kann.
+  * Die Wiederherstellung über Dateiauswahl und Kennwortabfrage sowie
+    mehrere E-Post-Anschriften und Kontaktfotos aus Gnome-Kontakte sind
+    beschrieben.
+  * Die kompakte Briefvorlage ist wieder Standard; die Bezeichnungen und
+    die Hinweise zur wählbaren DIN-5008-Form-B-Vorlage sind eindeutig.
+
+ -- Maik Walter <maik3531@gmail.com>  Wed, 29 Jul 2026 18:05:00 +0200
+
+magnolie-handbuch (1.3.2) unstable; urgency=medium
+
+  * Die Fußzeile der Druckfassung ist nun absolut innerhalb eines nur
+    267 mm hohen, besonders WebKit-sicheren A4-Bereichs verankert. Dadurch
+    kann sie nicht mehr auf ein eigenes leeres Folgeblatt rutschen.
+  * Der frei wählbare Sicherungsordner und die Übernahme lokaler
+    Kontaktbilder aus Gnome-Kontakte sind beschrieben.
+  * Das Kapitel zu Briefen erklärt die neue DIN-5008-Form-B-Vorlage mit
+    Fensteranschrift, mehrzeiligem Absenderblock, Falt- und Lochmarken
+    sowie die weiterhin wählbare kompakte Darstellung.
+
+ -- Maik Walter <maik3531@gmail.com>  Wed, 29 Jul 2026 16:12:00 +0200
+
+magnolie-handbuch (1.3.1) unstable; urgency=medium
+
+  * Die Druckfassung nutzt eine WebKit-sichere A4-Nutzflaeche statt
+    eines zusaetzlichen, vollen 210 x 297 mm grossen Inhaltskastens.
+    Dadurch entstehen beim Drucken und Sichern als PDF keine leeren
+    Zwischenblaetter mehr.
+  * Die Grundschrift sowie Kapitel- und Zwischenueberschriften sind
+    groesser. Verringerte Innenraender nutzen den freien Platz besser,
+    ohne Fusszeile oder Seitenzahl in den unbedruckbaren Rand zu ruecken.
+  * Kontaktfoto-Voreinstellung, deutscher Fotoknopf, die allgemeinen
+    Papier- und Mausradoptionen sowie das voreingestellt abgeschaltete
+    Fehlerprotokoll sind im Text nachgetragen.
+
+ -- Maik Walter <maik3531@gmail.com>  Wed, 29 Jul 2026 15:11:00 +0200
+
+magnolie-handbuch (1.3.0) unstable; urgency=medium
+
+  * Zwei neue Seiten erklaeren den Magnolienbaum: Bekanntschaft mit
+    Fingerabdruck und Vergleichscode sowie verschluesselte Delegation
+    mit Erledigt-Rueckmeldung zum Erschaffer.
+  * Feiertage und Schulferien beschreiben jetzt die verpflichtende
+    Auswahl eines Bundeslandes oder Kantons und die ausdrueckliche Wahl
+    aller Regionen samt eindeutiger Beschriftung.
+  * Kontaktfotos, ihr vCard-Abgleich und die neue allgemeine
+    Druckeinstellung sind dokumentiert.
+  * Die Sicherheitshinweise erklaeren Erinnerungen trotz Kennwortschutz,
+    den begrenzten lesbaren Erinnerungsbestand und die zweite Zustimmung
+    fuer vertrauliche Termine.
+  * Die Hinweise zu Internet und Routen sowie zu Systemmeldungen unter
+    Wayland wurden richtiggestellt. Die Produktbeschreibung nennt Linux
+    statt nur Linux Mint.
+  * Die digitale Darstellung haelt Seitenzahlen von den Eselsohren frei.
+    Die A4-Druck- und PDF-Fassung hat groessere sichere Raender, ruhigere
+    Typografie, einen festen Fuss und klarere Kapitelkoepfe.
+  * Das Handbuch umfasst nun 46 Seiten.
+
+ -- Maik Walter <maik3531@gmail.com>  Wed, 29 Jul 2026 15:00:00 +0200
+
+magnolie-handbuch (1.2.0) unstable; urgency=low
+
+  * Das Handbuch steht nun unter der GNU General Public License,
+    Version 3 oder spaeter; Autor ist Maik Walter <maik3531@gmail.com>.
+  * Neue Seite "Lizenz und Dank": erklaert in klaren Worten, was freie
+    Software bedeutet, und enthaelt die Bitte um einen Kaffee unter
+    maik3531@gmail.com. Damit umfasst das Handbuch 44 Seiten.
+
+ -- Maik Walter <maik3531@gmail.com>  Tue, 28 Jul 2026 20:30:00 +0200
+
+magnolie-handbuch (1.1.0) unstable; urgency=low
+
+  * An den Organizer 1.18 angepasst: Neue Seiten zur Terminuebersicht
+    auf der rechten Monatsseite, zur Tagesansicht mit zwei Tagen und
+    Stundenleiste sowie zum neuen Terminblatt, in dem Termine
+    eingetragen und bearbeitet werden.
+
+ -- Maik Walter <maik3531@gmail.com>  Tue, 28 Jul 2026 10:00:00 +0200
+
+magnolie-handbuch (1.0.0) unstable; urgency=low
+
+  * Erste Veroeffentlichung: das vollstaendige Benutzerhandbuch zum
+    Magnolie Organizer, im Gewand des Programms.
+
+ -- Maik Walter <maik3531@gmail.com>  Mon, 27 Jul 2026 22:00:00 +0200

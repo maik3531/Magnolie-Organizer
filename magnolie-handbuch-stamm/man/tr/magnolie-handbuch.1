@@ -1,0 +1,39 @@
+.TH MAGNOLIE-HANDBUCH 1 "Ağustos 2026" "Magnolie El Kitabı 2.0.0" "Kullanıcı Komutları"
+.SH AD
+magnolie-handbuch \- Magnolie Organizer kullanıcı el kitabını aç
+.SH ÖZET
+.B magnolie-handbuch
+.RI [ seçenek ]
+.RI [ \-\-sprache\  dil ]
+.SH AÇIKLAMA
+.B Magnolie El Kitabı
+Magnolie Organizer için eksiksiz ve resimli kullanıcı kılavuzunu açar. El
+kitabı ekranda görüntülenebilir, yazdırılabilir veya PDF dosyası olarak dışa
+aktarılabilir.
+.PP
+Her kullanıcı oturumunda yalnızca bir el kitabı penceresi açılır. Komut yeniden
+başlatıldığında mevcut pencere görüntülenir.
+.SH SEÇENEKLER
+.TP
+.BR \-\-sprache " " SPRACHE , " " \-\-language " " LANGUAGE
+Bu çalıştırma için Almanca (\fBde\fR), İngilizce (\fBen\fR) veya sistem dilini
+(\fBsystem\fR) kullanır. Bu seçim, yardım metninden önceki komut çıktısının
+dilini ve yeni açılan bir pencerenin WebKit dilini belirler. Kalıcı ayarlar
+değiştirilmez.
+.TP
+.BR \-\-pot " [" DATEI "]", " " \-\-pot-template " [" FILE "]"
+Yeniden üretilebilir bir gettext şablonu oluşturur ve çıkar. Dosya argümanı
+olmadan geçerli dizine \fBmagnolie-handbuch.pot\fR dosyasını yazar; aksi
+durumda belirtilen yola yazar. Başarılı olduğunda mutlak çıktı yolu gösterilir.
+.TP
+.BR \-\-hilfe , " " \-\-help
+Kısa bir komut özeti gösterir.
+.SH ORTAM
+.TP
+.B MAGNOLIE_HANDBUCH_WEB
+El kitabı arayüzünü içeren alternatif bir dizin kullanır. Geliştirme ve test
+için tasarlanmıştır.
+.SH AYRICA BAKINIZ
+.BR magnolie-organizer (1)
+.SH YAZAR
+Maik Walter tarafından yazılmıştır.

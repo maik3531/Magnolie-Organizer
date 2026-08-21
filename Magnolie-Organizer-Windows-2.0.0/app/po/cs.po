@@ -1,0 +1,6128 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the Magnolie Organizer package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: Magnolie Organizer 2.0.0\n"
+"Report-Msgid-Bugs-To: maik3531@gmail.com\n"
+"POT-Creation-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"PO-Revision-Date: 2026-08-08 09:24+0200\n"
+"Last-Translator: Magnolie localization project\n"
+"Language-Team: Czech\n"
+"Language: cs\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=3; plural=((n==1) ? 0 : (n>=2 && n<=4) ? 1 : 2);\n"
+"Generated-By: Babel 2.18.0\n"
+
+msgid " (filtered)"
+msgstr " (filtrováno)"
+
+msgid " (public holiday)"
+msgstr " (státní svátek)"
+
+msgid " (school holidays)"
+msgstr " (školní prázdniny)"
+
+msgid " at %(time)s"
+msgstr " v %(time)s"
+
+msgid " for %(years)s"
+msgstr " po dobu %(years)s"
+
+msgid " from %(branch)s"
+msgstr " od %(branch)s"
+
+msgid " – notification at the appointment time."
+msgstr " – upozornění v čase schůzky."
+
+msgid ""
+"%(appointment)s\n"
+"Click to edit"
+msgstr ""
+"%(appointment)s\n"
+"Kliknutím upravíte"
+
+msgid ""
+"%(cards)s merged. Copies are stored under “Duplicates” in the recycle bin."
+msgstr "Sloučeno: %(cards)s. Kopie jsou v koši ve složce „Duplikáty“."
+
+msgid "%(count)s anniversary"
+msgid_plural "%(count)s anniversaries"
+msgstr[0] "%(count)s výročí"
+msgstr[1] "%(count)s výročí"
+msgstr[2] "%(count)s výročí"
+
+msgid "%(count)s anniversary entered"
+msgid_plural "%(count)s anniversaries entered"
+msgstr[0] "Zadáno %(count)s výročí"
+msgstr[1] "Zadána %(count)s výročí"
+msgstr[2] "Zadáno %(count)s výročí"
+
+msgid "%(count)s appointment"
+msgid_plural "%(count)s appointments"
+msgstr[0] "%(count)s schůzka"
+msgstr[1] "%(count)s schůzky"
+msgstr[2] "%(count)s schůzek"
+
+msgid "%(count)s attachment"
+msgid_plural "%(count)s attachments"
+msgstr[0] "%(count)s příloha"
+msgstr[1] "%(count)s přílohy"
+msgstr[2] "%(count)s příloh"
+
+msgid "%(count)s birthday"
+msgid_plural "%(count)s birthdays"
+msgstr[0] "%(count)s narozeniny"
+msgstr[1] "%(count)s narozeniny"
+msgstr[2] "%(count)s narozenin"
+
+msgid "%(count)s contact"
+msgid_plural "%(count)s contacts"
+msgstr[0] "%(count)s kontakt"
+msgstr[1] "%(count)s kontakty"
+msgstr[2] "%(count)s kontaktů"
+
+msgid "%(count)s contact card"
+msgid_plural "%(count)s contact cards"
+msgstr[0] "%(count)s kontaktní karta"
+msgstr[1] "%(count)s kontaktní karty"
+msgstr[2] "%(count)s kontaktních karet"
+
+msgid "%(count)s contact photo added"
+msgid_plural "%(count)s contact photos added"
+msgstr[0] "Přidána %(count)s kontaktní fotografie"
+msgstr[1] "Přidány %(count)s kontaktní fotografie"
+msgstr[2] "Přidáno %(count)s kontaktních fotografií"
+
+msgid "%(count)s day"
+msgid_plural "%(count)s days"
+msgstr[0] "%(count)s den"
+msgstr[1] "%(count)s dny"
+msgstr[2] "%(count)s dní"
+
+msgid "%(count)s day before"
+msgid_plural "%(count)s days before"
+msgstr[0] "%(count)s den předem"
+msgstr[1] "%(count)s dny předem"
+msgstr[2] "%(count)s dní předem"
+
+msgid "%(count)s email address added"
+msgid_plural "%(count)s email addresses added"
+msgstr[0] "Přidána %(count)s e-mailová adresa"
+msgstr[1] "Přidány %(count)s e-mailové adresy"
+msgstr[2] "Přidáno %(count)s e-mailových adres"
+
+msgid "%(count)s entry deleted."
+msgid_plural "%(count)s entries deleted."
+msgstr[0] "Smazán %(count)s záznam."
+msgstr[1] "Smazány %(count)s záznamy."
+msgstr[2] "Smazáno %(count)s záznamů."
+
+msgid "%(count)s existing entry skipped."
+msgid_plural "%(count)s existing entries skipped."
+msgstr[0] "Přeskočen %(count)s existující záznam."
+msgstr[1] "Přeskočeny %(count)s existující záznamy."
+msgstr[2] "Přeskočeno %(count)s existujících záznamů."
+
+msgid "%(count)s found"
+msgid_plural "%(count)s found"
+msgstr[0] "Nalezen %(count)s výsledek"
+msgstr[1] "Nalezeny %(count)s výsledky"
+msgstr[2] "Nalezeno %(count)s výsledků"
+
+msgid "%(count)s group"
+msgid_plural "%(count)s groups"
+msgstr[0] "%(count)s skupina"
+msgstr[1] "%(count)s skupiny"
+msgstr[2] "%(count)s skupin"
+
+msgid "%(count)s holiday period"
+msgid_plural "%(count)s holiday periods"
+msgstr[0] "%(count)s období prázdnin"
+msgstr[1] "%(count)s období prázdnin"
+msgstr[2] "%(count)s období prázdnin"
+
+msgid "%(count)s incoming offer"
+msgid_plural "%(count)s incoming offers"
+msgstr[0] "%(count)s příchozí nabídka"
+msgstr[1] "%(count)s příchozí nabídky"
+msgstr[2] "%(count)s příchozích nabídek"
+
+msgid "%(count)s match"
+msgid_plural "%(count)s matches"
+msgstr[0] "%(count)s shoda"
+msgstr[1] "%(count)s shody"
+msgstr[2] "%(count)s shod"
+
+msgid "%(count)s minute"
+msgid_plural "%(count)s minutes"
+msgstr[0] "%(count)s minuta"
+msgstr[1] "%(count)s minuty"
+msgstr[2] "%(count)s minut"
+
+msgid "%(count)s more"
+msgid_plural "%(count)s more"
+msgstr[0] "Ještě %(count)s"
+msgstr[1] "Ještě %(count)s"
+msgstr[2] "Ještě %(count)s"
+
+msgid "%(count)s more entry"
+msgid_plural "%(count)s more entries"
+msgstr[0] "Ještě %(count)s záznam"
+msgstr[1] "Ještě %(count)s záznamy"
+msgstr[2] "Ještě %(count)s záznamů"
+
+msgid "%(count)s new Magnolienbaum request awaits your decision."
+msgid_plural "%(count)s new Magnolienbaum requests await your decision."
+msgstr[0] "Na vaše rozhodnutí čeká %(count)s nová žádost Magnolienbaum."
+msgstr[1] "Na vaše rozhodnutí čekají %(count)s nové žádosti Magnolienbaum."
+msgstr[2] "Na vaše rozhodnutí čeká %(count)s nových žádostí Magnolienbaum."
+
+msgid "%(count)s non-JPEG contact photo was omitted."
+msgid_plural "%(count)s non-JPEG contact photos were omitted."
+msgstr[0] "Byla vynechána %(count)s fotografie jiná než JPEG."
+msgstr[1] "Byly vynechány %(count)s fotografie jiné než JPEG."
+msgstr[2] "Bylo vynecháno %(count)s fotografií jiných než JPEG."
+
+msgid "%(count)s note"
+msgid_plural "%(count)s notes"
+msgstr[0] "%(count)s poznámka"
+msgstr[1] "%(count)s poznámky"
+msgstr[2] "%(count)s poznámek"
+
+msgid "%(count)s notebook"
+msgid_plural "%(count)s notebooks"
+msgstr[0] "%(count)s zápisník"
+msgstr[1] "%(count)s zápisníky"
+msgstr[2] "%(count)s zápisníků"
+
+msgid "%(count)s open"
+msgstr "Otevřeno: %(count)s"
+
+msgid "%(count)s page"
+msgid_plural "%(count)s pages"
+msgstr[0] "%(count)s stránka"
+msgstr[1] "%(count)s stránky"
+msgstr[2] "%(count)s stránek"
+
+msgid "%(count)s public holiday"
+msgid_plural "%(count)s public holidays"
+msgstr[0] "%(count)s státní svátek"
+msgstr[1] "%(count)s státní svátky"
+msgstr[2] "%(count)s státních svátků"
+
+msgid "%(count)s recurring appointment imported only once."
+msgid_plural "%(count)s recurring appointments imported only once."
+msgstr[0] "%(count)s opakovaná schůzka importována pouze jednou."
+msgstr[1] "%(count)s opakované schůzky importovány pouze jednou."
+msgstr[2] "%(count)s opakovaných schůzek importováno pouze jednou."
+
+msgid "%(count)s second"
+msgid_plural "%(count)s seconds"
+msgstr[0] "%(count)s sekunda"
+msgstr[1] "%(count)s sekundy"
+msgstr[2] "%(count)s sekund"
+
+msgid "%(count)s task"
+msgid_plural "%(count)s tasks"
+msgstr[0] "%(count)s úkol"
+msgstr[1] "%(count)s úkoly"
+msgstr[2] "%(count)s úkolů"
+
+msgid "%(count)s unreadable row omitted."
+msgid_plural "%(count)s unreadable rows omitted."
+msgstr[0] "Vynechán %(count)s nečitelný řádek."
+msgstr[1] "Vynechány %(count)s nečitelné řádky."
+msgstr[2] "Vynecháno %(count)s nečitelných řádků."
+
+msgid "%(count)s unusable contact was omitted."
+msgid_plural "%(count)s unusable contacts were omitted."
+msgstr[0] "Byl vynechán %(count)s nepoužitelný kontakt."
+msgstr[1] "Byly vynechány %(count)s nepoužitelné kontakty."
+msgstr[2] "Bylo vynecháno %(count)s nepoužitelných kontaktů."
+
+msgid "%(date)s, %(time)s"
+msgstr "%(date)s, %(time)s"
+
+msgid "%(date)s, all day"
+msgstr "%(date)s, celý den"
+
+msgid "%(first)s and %(second)s"
+msgstr "%(first)s a %(second)s"
+
+msgid "%(first)s to %(last)s"
+msgstr "%(first)s až %(last)s"
+
+msgid "%(format)s (Ctrl+%(key)s)"
+msgstr "%(format)s (Ctrl+%(key)s)"
+
+msgid "%(from)s to %(to)s"
+msgstr "%(from)s až %(to)s"
+
+msgid "%(name)s found – currently reachable"
+msgstr "%(name)s nalezen – nyní dostupný"
+
+msgid "%(name)s last found – reconnecting"
+msgstr "%(name)s naposledy nalezen – opětovné připojování"
+
+msgid "%(ordinal)s death anniversary"
+msgstr "%(ordinal)s výročí úmrtí"
+
+msgid "%(ordinal)s wedding anniversary"
+msgstr "%(ordinal)s výročí svatby"
+
+msgid "%(parts)s SMS parts · %(units)s character units"
+msgstr "%(parts)s částí SMS · %(units)s znakových jednotek"
+
+msgid "%(shown)s of %(count)s matches; refine your search."
+msgstr "Zobrazeno %(shown)s z %(count)s shod; upřesněte hledání."
+
+msgid "%(start)s to %(end)s"
+msgstr "%(start)s až %(end)s"
+
+msgid "%(title)s – %(when)s"
+msgstr "%(title)s – %(when)s"
+
+msgid "(unnamed)"
+msgstr "(bez názvu)"
+
+msgid "+ Address"
+msgstr "+ Adresa"
+
+msgid "+ Email address"
+msgstr "+ E-mailová adresa"
+
+msgid "+ Emergency contact"
+msgstr "+ Nouzový kontakt"
+
+msgid "+ Event"
+msgstr "+ Událost"
+
+msgid "+ More appointments"
+msgstr "+ Další schůzky"
+
+msgid "+ More tasks"
+msgstr "+ Další úkoly"
+
+msgid "+ Phone number"
+msgstr "+ Telefonní číslo"
+
+msgid "+ Social medium"
+msgstr "+ Sociální síť"
+
+msgid "+49 … or 0…"
+msgstr "+49 … nebo 0…"
+
+msgid "1 - high"
+msgstr "1 – vysoká"
+
+msgid "1 day before"
+msgstr "1 den předem"
+
+msgid "1 hour before"
+msgstr "1 hodinu předem"
+
+msgid "1 minute"
+msgstr "1 minuta"
+
+msgid "10 minutes before"
+msgstr "10 minut předem"
+
+msgid "15 minutes before"
+msgstr "15 minut předem"
+
+msgid "15 seconds"
+msgstr "15 sekund"
+
+msgid "2 - medium"
+msgstr "2 – střední"
+
+msgid "2 days before"
+msgstr "2 dny předem"
+
+msgid "2 hours before"
+msgstr "2 hodiny předem"
+
+msgid "2 minutes"
+msgstr "2 minuty"
+
+msgid "3 - low"
+msgstr "3 – nízká"
+
+msgid "3 days before"
+msgstr "3 dny předem"
+
+msgid "30 days"
+msgstr "30 dní"
+
+msgid "30 minutes before"
+msgstr "30 minut předem"
+
+msgid "30 seconds"
+msgstr "30 sekund"
+
+msgid "4 days before"
+msgstr "4 dny předem"
+
+msgid "5 days before"
+msgstr "5 dní předem"
+
+msgid "5 minutes before"
+msgstr "5 minut předem"
+
+msgid "6 days before"
+msgstr "6 dní předem"
+
+msgid "7 days before"
+msgstr "7 dní předem"
+
+msgid "90 days"
+msgstr "90 dní"
+
+msgid "A component required by the Magnolienbaum is missing."
+msgstr "Chybí součást potřebná pro Magnolienbaum."
+
+msgid ""
+"A fallback for branch baum-1: when the direct connection cannot be reached, "
+"messages travel through a WebDAV folder on your Nextcloud server."
+msgstr ""
+"Záložní cesta pro větev baum-1: pokud přímé spojení není dostupné, zprávy "
+"putují přes složku WebDAV na vašem serveru Nextcloud."
+
+msgid "A group with this name already exists."
+msgstr "Skupina s tímto názvem již existuje."
+
+msgid "A maximum of 10 SMS parts is allowed."
+msgstr "Je povoleno nejvýše 10 částí SMS."
+
+msgid "A notebook with this name already exists in this group."
+msgstr "Zápisník s tímto názvem v této skupině již existuje."
+
+msgid ""
+"A numeric code can be entered conveniently using the keypad when opening; "
+"letters work as well. After three failed attempts, the organizer waits five "
+"minutes."
+msgstr ""
+"Číselný kód lze při otevření pohodlně zadat pomocí numerické klávesnice; "
+"fungují i písmena. Po třech neúspěšných pokusech Organizér pět minut počká."
+
+msgid ""
+"A pairing file works like a one-time key. Give it only to the person whose "
+"Organizer you want to connect; it expires after 15 minutes."
+msgstr ""
+"Soubor pro párování funguje jako jednorázový klíč. Předejte jej pouze osobě, "
+"jejíž Organizér chcete propojit; jeho platnost skončí po 15 minutách."
+
+msgid ""
+"A password initially locks out the background reminder service. Without the "
+"explicit permission below, notifications work only while the organizer is "
+"open and unlocked."
+msgstr ""
+"Heslo zpočátku zablokuje službu připomínek na pozadí. Bez výslovného "
+"povolení níže fungují oznámení jen tehdy, když je Organizér otevřený a "
+"odemčený."
+
+msgid "A personal synchronization attachment hash is invalid or duplicated."
+msgstr "Hash osobní synchronizační přílohy je neplatný nebo duplicitní."
+
+msgid "A personal synchronization attachment source is not an object."
+msgstr "Zdroj osobní synchronizační přílohy není objekt."
+
+msgid "A personal synchronization batch is not an object."
+msgstr "Osobní synchronizační dávka není objekt."
+
+msgid ""
+"A separate encrypted connection for dial requests, device status and "
+"selected notifications."
+msgstr ""
+"Samostatné šifrované připojení pro žádosti o vytáčení, stav zařízení a "
+"vybraná upozornění."
+
+msgid "API level"
+msgstr "Úroveň API"
+
+msgid "Aargau"
+msgstr "Aargau"
+
+msgid "About"
+msgstr "O aplikaci"
+
+msgid "About the Magnolie Organizer"
+msgstr "O aplikaci Magnolie Organizer"
+
+msgid "Accept"
+msgstr "Přijmout"
+
+msgid "Accept and remember"
+msgstr "Přijmout a zapamatovat"
+
+msgid "Accept “%(entry)s” into your own collection?"
+msgstr "Přijmout „%(entry)s“ do vlastní sbírky?"
+
+msgid ""
+"Accept “%(entry)s” into your own collection?\n"
+"\n"
+"This consent applies only to this note. Future changes and attachments will "
+"then be applied automatically in both directions."
+msgstr ""
+"Přijmout „%(entry)s“ do vlastní sbírky?\n"
+"\n"
+"Tento souhlas platí pouze pro tuto poznámku. Budoucí změny a přílohy se pak "
+"budou automaticky přenášet oběma směry."
+
+msgid "Accessibility"
+msgstr "Zpřístupnění"
+
+msgid "Accessibility helper frame"
+msgstr "Pomocný rámeček zpřístupnění"
+
+msgid "Accessibility helper frame disabled"
+msgstr "Pomocný rámeček zpřístupnění vypnut"
+
+msgid "Accessibility helper frame enabled"
+msgstr "Pomocný rámeček zpřístupnění zapnut"
+
+msgid ""
+"Accessibility: The helper frame shows the current keyboard focus. It is "
+"disabled by default; press Ctrl+Alt+H at any time to switch it on or off."
+msgstr ""
+"Zpřístupnění: Pomocný rámeček ukazuje aktuální fokus klávesnice. Ve výchozím "
+"nastavení je vypnutý; kdykoli jej zapnete nebo vypnete stiskem Ctrl+Alt+H."
+
+msgid "According to language"
+msgstr "Podle jazyka"
+
+msgid "Active call"
+msgstr "Aktivní hovor"
+
+msgid "Add"
+msgstr "Přidat"
+
+msgid "Add appointment"
+msgstr "Přidat schůzku"
+
+msgid "Add attachment URI"
+msgstr "Přidat URI přílohy"
+
+msgid "Add attendee"
+msgstr "Přidat účastníka"
+
+msgid "Add cycle marker"
+msgstr "Přidat značku cyklu"
+
+msgid "Add person"
+msgstr "Přidat osobu"
+
+msgid "Add reminder"
+msgstr "Přidat připomenutí"
+
+msgid "Add scheme row"
+msgstr "Přidat řádek schématu"
+
+msgid "Add shift"
+msgstr "Přidat směnu"
+
+msgid "Add to dictionary"
+msgstr "Přidat do slovníku"
+
+msgid "Add vacation period"
+msgstr "Přidat období dovolené"
+
+msgid "Add waste collection"
+msgstr "Přidat svoz odpadu"
+
+msgid "Address"
+msgstr "Adresa"
+
+msgid "Address book"
+msgstr "Adresář"
+
+msgid "Address imported from LibreOffice."
+msgstr "Adresa importována z LibreOffice."
+
+msgid ""
+"Addressed to %(branch)s; it will be delivered when the branch is available."
+msgstr "Určeno pro %(branch)s; bude doručeno, jakmile bude větev dostupná."
+
+msgid "Addresses"
+msgstr "Adresy"
+
+msgid "After exercise"
+msgstr "Po cvičení"
+
+msgid "After meal"
+msgstr "Po jídle"
+
+msgid "All"
+msgstr "Vše"
+
+msgid "All cantons"
+msgstr "Všechny kantony"
+
+msgid "All entries"
+msgstr "Všechny záznamy"
+
+msgid "All files"
+msgstr "Všechny soubory"
+
+msgid "All people"
+msgstr "Všechny osoby"
+
+msgid "All six charts"
+msgstr "Všech šest grafů"
+
+msgid "All states"
+msgstr "Všechny spolkové země"
+
+msgid "Allow notifications despite password protection"
+msgstr "Povolit oznámení i při ochraně heslem"
+
+msgid "Also disclose appointments marked as confidential"
+msgstr "Zpřístupnit také schůzky označené jako důvěrné"
+
+msgid "Also hide past anniversaries"
+msgstr "Skrýt také minulá výročí"
+
+msgid "Also hide past school holidays"
+msgstr "Skrýt také minulé školní prázdniny"
+
+msgid "Also remind me about anniversaries"
+msgstr "Připomínat také výročí"
+
+msgid "Also remind me about missed appointments"
+msgstr "Připomínat také zmeškané schůzky"
+
+msgid "Also use the default notification"
+msgstr "Použít také výchozí oznámení"
+
+msgid "Amount / unit"
+msgstr "Množství / jednotka"
+
+msgid ""
+"An appointment calendar, address book, task book and notepad in the guise of "
+"a leather-bound organizer —"
+msgstr ""
+"Kalendář schůzek, adresář, kniha úkolů a poznámkový blok v podobě koženého "
+"diáře —"
+
+msgid "Android version"
+msgstr "Verze pro Android"
+
+msgid "Anniversaries"
+msgstr "Výročí"
+
+msgid "Anniversaries (.ics)"
+msgstr "Výročí (.ics)"
+
+msgid "Anniversary"
+msgstr "Výročí"
+
+msgid "Another phone is already paired. Remove it first."
+msgstr "Jiný telefon je již spárován. Nejprve jej odstraňte."
+
+msgid "Answer"
+msgstr "Přijmout"
+
+msgid "Answer calls on the computer and talk"
+msgstr "Přijímat hovory na počítači a mluvit"
+
+msgid "App password"
+msgstr "Heslo aplikace"
+
+msgid "Appearance"
+msgstr "Vzhled"
+
+msgid "Appearance and sound follow your system notification settings."
+msgstr "Vzhled a zvuk se řídí nastavením systémových oznámení."
+
+msgid "Appenzell Ausserrhoden"
+msgstr "Appenzell Ausserrhoden"
+
+msgid "Appenzell Innerrhoden"
+msgstr "Appenzell Innerrhoden"
+
+msgid "Application command"
+msgstr "Příkaz aplikace"
+
+msgid ""
+"Applies only to content you enter yourself: appointments, tasks, contacts, "
+"notes and anniversaries. Headings, calendar pages and organizer labels "
+"remain unchanged."
+msgstr ""
+"Platí pouze pro obsah, který zadáváte sami: schůzky, úkoly, kontakty, "
+"poznámky a výročí. Nadpisy, stránky kalendáře a popisky Organizéru zůstávají "
+"beze změny."
+
+msgid ""
+"Applies when scrolling over a time field. Hold Shift to change the time in "
+"whole hours."
+msgstr ""
+"Platí při posouvání nad polem času. Podržte Shift, chcete-li měnit čas po "
+"celých hodinách."
+
+msgid "Apply"
+msgstr "Použít"
+
+msgid "Appointment"
+msgstr "Schůzka"
+
+msgid "Appointment is due"
+msgstr "Nastal čas schůzky"
+
+msgid "Appointment overview"
+msgstr "Přehled schůzek"
+
+msgid "Appointment reminder"
+msgstr "Připomínka schůzky"
+
+msgid "Appointment reminders"
+msgstr "Připomínky schůzek"
+
+msgid "Appointments"
+msgstr "Schůzky"
+
+msgid "Appointments (.ics)"
+msgstr "Schůzky (.ics)"
+
+msgid "Appointments as Lotus CSV"
+msgstr "Schůzky jako Lotus CSV"
+
+msgid "Appointments for this person"
+msgstr "Schůzky této osoby"
+
+msgid "Appointments · %(period)s"
+msgstr "Schůzky · %(period)s"
+
+msgid "Archive password"
+msgstr "Heslo archivu"
+
+msgid "As usual (print)"
+msgstr "Jako obvykle (tisk)"
+
+msgid "Assign SMS action"
+msgstr "Přiřadit akci SMS"
+
+msgid "Assign call action"
+msgstr "Přiřadit akci volání"
+
+msgid "Assign shift"
+msgstr "Přiřadit směnu"
+
+msgid "At bedtime"
+msgstr "Před spaním"
+
+msgid "At least one health view must remain enabled."
+msgstr "Alespoň jedno zobrazení zdraví musí zůstat povolené."
+
+msgid "At most 5,000 contacts can be exported at once."
+msgstr "Najednou lze exportovat nejvýše 5 000 kontaktů."
+
+msgid "At most 5,000 health records can be exported at once."
+msgstr "Najednou lze exportovat nejvýše 5 000 zdravotních záznamů."
+
+msgid "Attachments"
+msgstr "Schůzky"
+
+msgid "Attendees"
+msgstr "Účastníci"
+
+msgid "Austria"
+msgstr "Rakousko"
+
+msgid "Author"
+msgstr "Autor"
+
+msgid "Authority appointment"
+msgstr "Úřední schůzka"
+
+msgid "Automatically choose a suitable application"
+msgstr "Automaticky vybrat vhodnou aplikaci"
+
+msgid "Automatically synchronize over Wi-Fi"
+msgstr "Automaticky synchronizovat přes Wi-Fi"
+
+msgid "B"
+msgstr "T"
+
+msgid "BMI"
+msgstr "BMI"
+
+msgid ""
+"BMI\n"
+"kg/m²"
+msgstr ""
+"BMI\n"
+"kg/m²"
+
+msgid "BMI from the latest stored height and weight"
+msgstr "BMI z poslední uložené výšky a hmotnosti"
+
+msgid "BZ"
+msgstr "BZ"
+
+msgid "Backup failed."
+msgstr "Zálohování selhalo."
+
+msgid "Backup folder"
+msgstr "Složka záloh"
+
+msgid "Backup folder updated."
+msgstr "Složka záloh aktualizována."
+
+msgid "Backup password"
+msgstr "Heslo zálohy"
+
+msgid "Backup restored. The previous data was backed up automatically."
+msgstr "Záloha obnovena. Předchozí data byla automaticky zazálohována."
+
+msgid "Backup saved to: %(path)s"
+msgstr "Záloha uložena do: %(path)s"
+
+msgid "Backups"
+msgstr "Zálohy"
+
+msgid ""
+"Backups outside the data location require a password with at least four "
+"characters."
+msgstr "Zálohy mimo umístění dat vyžadují heslo o nejméně čtyřech znacích."
+
+msgid "Baden-Württemberg"
+msgstr "Bádensko-Württembersko"
+
+msgid "Baptism"
+msgstr "Křest"
+
+msgid "Basal units"
+msgstr "Bazální jednotky"
+
+msgid "Basel-Landschaft"
+msgstr "Basilej-venkov"
+
+msgid "Basel-Stadt"
+msgstr "Basilej-město"
+
+msgid "Basic operation and appearance of the organizer."
+msgstr "Základní ovládání a vzhled Organizéru."
+
+msgid "Battery"
+msgstr "Dopis"
+
+msgid "Battery snapshot"
+msgstr "Snímek stavu baterie"
+
+msgid "Bavaria"
+msgstr "Bavorsko"
+
+msgid "Before contact deletion"
+msgstr "Před smazáním kontaktu"
+
+msgid "Before contact import"
+msgstr "Před importem kontaktu"
+
+msgid "Before contact merge"
+msgstr "Před sloučením kontaktů"
+
+msgid "Before exercise"
+msgstr "Před cvičením"
+
+msgid "Before meal"
+msgstr "Před jídlem"
+
+msgid "Before restore"
+msgstr "Před obnovením"
+
+msgid "Before synchronization"
+msgstr "Před synchronizací"
+
+msgid "Belgium"
+msgstr "Belgie"
+
+msgid "Berlin"
+msgstr "Berlín"
+
+msgid "Bern"
+msgstr "Bern"
+
+msgid "Birthday"
+msgstr "Narozeniny"
+
+msgid "Birthday party"
+msgstr "Narozeninová oslava"
+
+msgid "Black"
+msgstr "Černá"
+
+msgid "Blank health form"
+msgstr "Prázdný zdravotní formulář"
+
+msgid "Blank template for handwriting"
+msgstr "Prázdná šablona pro ruční vyplnění"
+
+msgid "Bleeding · heavy"
+msgstr "Krvácení · silné"
+
+msgid "Bleeding · light"
+msgstr "Krvácení · slabé"
+
+msgid "Bleeding · medium"
+msgstr "Krvácení · střední"
+
+msgid "Blood glucose"
+msgstr "Krevní glukóza"
+
+msgid "Blood glucose scheme"
+msgstr "Schéma měření krevní glukózy"
+
+msgid "Blood glucose table"
+msgstr "Tabulka krevní glukózy"
+
+msgid "Blood glucose value"
+msgstr "Hodnota krevní glukózy"
+
+msgid "Blood pressure"
+msgstr "Krevní tlak"
+
+msgid ""
+"Blood pressure\n"
+"mm/Hg"
+msgstr ""
+"Krevní tlak\n"
+"mm/Hg"
+
+msgid "Blue (fountain pen)"
+msgstr "Modrá (plnicí pero)"
+
+msgid "Bluetooth data fallback"
+msgstr "Záložní data Bluetooth"
+
+msgid "Bold"
+msgstr "Tučné"
+
+msgid ""
+"Both branches display the same six-digit code when connecting. Confirm it "
+"only if it matches, preventing anyone from intercepting the connection."
+msgstr ""
+"Při připojování zobrazí obě větve stejný šestimístný kód. Potvrďte jej pouze "
+"tehdy, když se shoduje; tím zabráníte zachycení spojení cizí osobou."
+
+msgid "Brandenburg"
+msgstr "Braniborsko"
+
+msgid "Bremen"
+msgstr "Brémy"
+
+msgid "Burgenland"
+msgstr "Burgenland"
+
+msgid "By first name (Hans Müller)"
+msgstr "Podle jména (Hans Müller)"
+
+msgid "By last name (Müller, Hans)"
+msgstr "Podle příjmení (Müller, Hans)"
+
+msgid "CSV files (*.csv)"
+msgstr "Soubory CSV (*.csv)"
+
+msgid "CW"
+msgstr "KT"
+
+msgid "Calculate the route to this address"
+msgstr "Vypočítat trasu na tuto adresu"
+
+msgid "Calendar"
+msgstr "Kalendář"
+
+msgid "Calendar (*.ics)"
+msgstr "Kalendář (*.ics)"
+
+msgid ""
+"Calendar and contact applications commonly export appointments as .ics files "
+"and contacts as .vcf files."
+msgstr ""
+"Kalendář a kontaktní aplikace běžně exportují schůzky jako soubory .ics a "
+"kontakty jako soubory .vcf."
+
+msgid "Calendar file (.ics/.vcs/.lcs) …"
+msgstr "Soubor kalendáře (.ics/.vcs/.lcs) …"
+
+msgid "Calendar layout"
+msgstr "Rozvržení kalendáře"
+
+msgid "Calendar week %(number)s"
+msgstr "Kalendářní týden %(number)s"
+
+msgid "Calendars (multiple selections allowed)"
+msgstr "Kalendáře (lze vybrat více položek)"
+
+msgid "Calendars and contacts"
+msgstr "Calendars and contacts"
+
+msgid "Call"
+msgstr "Volat"
+
+msgid "Call assignment"
+msgstr "Přiřazení hovoru"
+
+msgid "Call ended"
+msgstr "Hovor ukončen"
+
+msgid "Call notes"
+msgstr "Poznámky k hovoru"
+
+msgid "Call reference"
+msgstr "Reference hovoru"
+
+msgid "Call started"
+msgstr "Hovor zahájen"
+
+msgid "Call this contact using Magnolie Notes or the assigned application"
+msgstr ""
+"Zavolejte tomuto kontaktu pomocí Magnolie Notes nebo přiřazené aplikace"
+
+msgid "Call with %(name)s · %(date)s"
+msgstr "Hovor s %(name)s · %(date)s"
+
+msgid "Cancel"
+msgstr "Zrušit"
+
+msgid "Canton"
+msgstr "Kanton"
+
+msgid "Capsule"
+msgstr "Tobolka"
+
+msgid "Captured"
+msgstr "Zajato"
+
+msgid "Care service"
+msgstr "Pečovatelská služba"
+
+msgid "Carinthia"
+msgstr "Korutany"
+
+msgid "Categories"
+msgstr "Kategorie"
+
+msgid "Categories:"
+msgstr "Kategorie:"
+
+msgid "Catholic confirmation"
+msgstr "Biřmování"
+
+msgid "Centered on the screen"
+msgstr "Uprostřed obrazovky"
+
+msgid "Change password"
+msgstr "Změnit heslo"
+
+msgid "Changes are applied automatically"
+msgstr "Změny se použijí automaticky"
+
+msgid "Charging"
+msgstr "Nabíjení"
+
+msgid "Charging state"
+msgstr "Stav nabíjení"
+
+msgid "Charts and BMI are documentation aids only and are not a diagnosis."
+msgstr "Grafy a BMI slouží pouze k dokumentaci a nepředstavují diagnózu."
+
+msgid "Check for updates automatically every day"
+msgstr "Každý den automaticky kontrolovat aktualizace"
+
+msgid "Check now"
+msgstr "Zkontrolovat nyní"
+
+msgid "Check spelling (red wavy lines)"
+msgstr "Kontrolovat pravopis (červené vlnovky)"
+
+msgid "Check the value and discuss repeated deviations with a doctor."
+msgstr "Zkontrolujte hodnotu a opakované odchylky konzultujte s lékařem."
+
+msgid "Check-up appointment"
+msgstr "Kontrolní prohlídka"
+
+msgid "Checking contributor key …"
+msgstr "Kontrola klíče přispěvatele…"
+
+msgid "Checking online accounts …"
+msgstr "Kontrola online účtů …"
+
+msgid "Checking the current manual version …"
+msgstr "Kontrola aktuální verze manuálu…"
+
+msgid "Checking the current version …"
+msgstr "Kontrola aktuální verze …"
+
+msgid ""
+"Choose a backup file. Before restoring it, the organizer automatically "
+"creates a copy of the current data. An encrypted backup requires its "
+"password."
+msgstr ""
+"Vyberte soubor zálohy. Před obnovením Organizér automaticky vytvoří kopii "
+"současných dat. Zašifrovaná záloha vyžaduje své heslo."
+
+msgid "Choose a country first."
+msgstr "Nejprve vyberte zemi."
+
+msgid "Choose a mobile number"
+msgstr "Vyberte mobilní číslo"
+
+msgid ""
+"Choose a phase or bleeding intensity. Assign it to the complete date range "
+"in the new appointment sheet."
+msgstr ""
+"Vyberte fázi nebo intenzitu krvácení. Přiřaďte ji k celému rozsahu dat v "
+"listu nové schůzky."
+
+msgid "Choose a phone number to call"
+msgstr "Vyberte telefonní číslo, na které chcete zavolat"
+
+msgid ""
+"Choose a predefined shift or enter a custom one. Assign it to one or more "
+"days in the new appointment sheet. Day markers do not send notifications."
+msgstr ""
+"Vyberte přednastavenou směnu nebo zadejte vlastní. Přiřaďte ji k jednomu či "
+"více dnům v listu nové schůzky. Značky dnů neposílají oznámení."
+
+msgid "Choose a value and period to display its development."
+msgstr "Vyberte hodnotu a období, pro které chcete zobrazit její vývoj."
+
+msgid ""
+"Choose a waste type or enter a custom collection. Set the first collection "
+"and the interval in days; 0 creates a one-time collection."
+msgstr ""
+"Vyberte druh odpadu nebo zadejte vlastní svoz. Nastavte první svoz a "
+"interval ve dnech; 0 vytvoří jednorázový svoz."
+
+msgid "Choose at least four characters."
+msgstr "Zvolte alespoň čtyři znaky."
+
+msgid "Choose entries to print, export or delete"
+msgstr "Vyberte záznamy k tisku, exportu nebo odstranění"
+
+msgid "Choose file…"
+msgstr "Vybrat soubor…"
+
+msgid "Choose folder …"
+msgstr "Vybrat složku …"
+
+msgid "Choose or enter a phone number"
+msgstr "Vyberte nebo zadejte telefonní číslo"
+
+msgid "Choose photo…"
+msgstr "Vybrat fotografii…"
+
+msgid "Choose print or export content…"
+msgstr "Zvolte obsah pro tisk nebo export…"
+
+msgid "Choose service"
+msgstr "Vybrat službu"
+
+msgid ""
+"Choose which sections appear as tabs on the organizer. The calendar always "
+"remains available."
+msgstr ""
+"Zvolte, které části se zobrazí jako karty pořadače. Kalendář zůstává vždy "
+"dostupný."
+
+msgid "Choose year…"
+msgstr "Vybrat rok…"
+
+msgid "City"
+msgstr "Město"
+
+msgid "Claws Mail (.xml/.ldif) …"
+msgstr "Claws Mail (.xml/.ldif) …"
+
+msgid "Claws Mail address book (*.xml)"
+msgstr "Adresář Claws Mail (*.xml)"
+
+msgid "Clear"
+msgstr "Vymazat"
+
+msgid "Clear filters"
+msgstr "Vymazat filtry"
+
+msgid "Clearly abnormal reference value – check it and seek medical advice."
+msgstr ""
+"Výrazně abnormální hodnota vzhledem k referenčnímu rozmezí – zkontrolujte ji "
+"a vyhledejte lékařskou pomoc."
+
+msgid "Click here to add an appointment"
+msgstr "Kliknutím sem přidáte schůzku"
+
+msgid "Click to open"
+msgstr "Kliknutím otevřít"
+
+msgid "Clicking a day"
+msgstr "Kliknutí na den"
+
+msgid ""
+"Clicking an existing appointment opens it for editing in both cases. This "
+"setting applies only when you click an empty area in the box."
+msgstr ""
+"Kliknutím na existující schůzku ji v obou případech otevřete pro úpravy. "
+"Toto nastavení platí pouze při kliknutí na prázdné místo v poli."
+
+msgid "Close"
+msgstr "Zavřít"
+
+msgid "Close settings"
+msgstr "Zavřít nastavení"
+
+msgid "Club anniversary"
+msgstr "Výročí klubu"
+
+msgid "Code matches"
+msgstr "Kód se shoduje"
+
+msgid "Codes differ"
+msgstr "Kódy se liší"
+
+msgid "Codes match"
+msgstr "Kód se shoduje"
+
+msgid "Color"
+msgstr "Barva"
+
+msgid ""
+"Colors and matching scheme rows are orientation aids. Enter or adjust the IE "
+"in the table to the amount actually administered."
+msgstr ""
+"Barvy a odpovídající řádky schématu slouží pro orientaci. Zadejte nebo "
+"upravte počet IE v tabulce podle skutečně podané dávky."
+
+msgid "Columns in the ODS table"
+msgstr "Sloupce v tabulce ODS"
+
+msgid "Compact sender line (default)"
+msgstr "Kompaktní řádek odesílatele (výchozí)"
+
+msgid "Company"
+msgstr "Společnost"
+
+msgid "Compare pairing code"
+msgstr "Import párovacího souboru"
+
+msgid ""
+"Compare this fingerprint with the other branch, for example by phone, to "
+"verify the connection."
+msgstr ""
+"Porovnejte tento otisk s druhou větví, například po telefonu, a ověřte tak "
+"spojení."
+
+msgid "Complete archive export is available only in the installed application."
+msgstr "Kompletní export archivu je dostupný pouze v nainstalované aplikaci."
+
+msgid "Complete archive exported with password protection."
+msgstr "Kompletní archiv exportovaný s ochranou heslem."
+
+msgid "Complete archive exported without encryption."
+msgstr "Kompletní archiv exportován bez šifrování."
+
+msgid "Complete archive import is available only in the installed application."
+msgstr "Kompletní import archivu je dostupný pouze v nainstalované aplikaci."
+
+msgid ""
+"Complete archive imported. The previous data was backed up automatically."
+msgstr ""
+"Kompletní archiv importován. Předchozí data byla automaticky zálohována."
+
+msgid "Complete pairing"
+msgstr "Dokončit párování"
+
+msgid "Completed (%(count)s)"
+msgstr "Dokončeno (%(count)s)"
+
+msgid "Completed task"
+msgstr "Dokončeno"
+
+msgid "Completing secure pairing…"
+msgstr "Vytváření párovacího souboru"
+
+msgid ""
+"Confirm only if exactly the same six-digit code is shown on both devices."
+msgstr ""
+"Potvrďte, pouze pokud je na obou zařízeních zobrazen přesně stejný "
+"šestimístný kód."
+
+msgid "Confirm the pairing request on the phone."
+msgstr "Potvrďte žádost o párování v telefonu."
+
+msgid "Confirmation"
+msgstr "Potvrzení"
+
+msgid "Conflict"
+msgstr "Potvrzení"
+
+msgid "Connect"
+msgstr "Připojit"
+
+msgid "Connect phone via WLAN"
+msgstr "Připojte telefon přes WLAN"
+
+msgid "Connected"
+msgstr "Connected"
+
+msgid "Consider deletions during manual synchronization"
+msgstr "Synchronizace kontaktů"
+
+msgid "Contact"
+msgstr "Contact"
+
+msgid "Contact card"
+msgstr "Kontaktní karta"
+
+msgid "Contact cards"
+msgstr "Kontaktní karty"
+
+msgid "Contact cards (*.vcf)"
+msgstr "Kontaktní karty (*.vcf)"
+
+msgid "Contact deletion proposals were blocked by the safety limit."
+msgstr "Návrhy odstranění kontaktů byly zablokovány bezpečnostním limitem."
+
+msgid "Contact photo preview"
+msgstr "Náhled kontaktní fotografie"
+
+msgid "Contact synchronization"
+msgstr "Synchronizace kontaktů"
+
+msgid ""
+"Contact synchronization preview: %(new)s new, %(changed)s changed, "
+"%(duplicates)s possible duplicates, %(deletions)s deletion proposals."
+msgstr ""
+"Náhled synchronizace: %(new)s nových, %(changed)s změněných, %(duplicates)s "
+"možných duplicit, %(deletions)s návrhů odstranění."
+
+msgid ""
+"Contact synchronization was blocked because the bound snapshot is empty."
+msgstr "Synchronizace byla zablokována, protože propojený snímek je prázdný."
+
+msgid "Contacts"
+msgstr "Kontakty"
+
+msgid "Contacts (.vcf)"
+msgstr "Kontakty (.vcf)"
+
+msgid "Contacts (.vcf) …"
+msgstr "Kontakty (.vcf) …"
+
+msgid "Contacts are merged additively. No deletions are transmitted."
+msgstr "Kontakty se slučují doplněním. Odstranění se nepřenášejí."
+
+msgid "Contacts for Claws Mail (.ldif)"
+msgstr "Kontakty pro Claws Mail (.ldif)"
+
+msgid "Content"
+msgstr "Obsah"
+
+msgid "Continue"
+msgstr "Pokračování"
+
+msgid "Continued"
+msgstr "Pokračování"
+
+msgid "Contributor key"
+msgstr "Klíč přispěvatele"
+
+msgid "Copy"
+msgstr "Kopírovat"
+
+msgid "Cost center"
+msgstr "Nákladové středisko"
+
+msgid "Could not answer"
+msgstr "Hovor se nepodařilo přijmout"
+
+msgid "Could not hang up"
+msgstr "Hovor se nepodařilo ukončit"
+
+msgid "Country"
+msgstr "Země"
+
+msgid "Country & holidays"
+msgstr "Země a svátky"
+
+msgid "Country (optional)"
+msgstr "Země (volitelné)"
+
+msgid "Country and region"
+msgstr "Země a oblast"
+
+msgid "Country for searches"
+msgstr "Země pro vyhledávání"
+
+msgid "Create"
+msgstr "Vytvořit"
+
+msgid "Create a backup copy of the data"
+msgstr "Vytvořit záložní kopii dat"
+
+msgid "Create a new appointment immediately"
+msgstr "Okamžitě vytvořit novou schůzku"
+
+msgid "Create an empty printable template"
+msgstr "Vytvořit prázdnou tisknutelnou šablonu"
+
+msgid "Create backup"
+msgstr "Vytvořit zálohu"
+
+msgid "Create contact"
+msgstr "Vytvořit kontakt"
+
+msgid "Create encrypted backup"
+msgstr "Vytvořit šifrovanou zálohu"
+
+msgid "Create group"
+msgstr "Vytvořit skupinu"
+
+msgid "Create notebook"
+msgstr "Vytvořit zápisník"
+
+msgid "Create pairing file …"
+msgstr "Vytvořit párovací soubor …"
+
+msgid "Create snapshot now"
+msgstr "Vytvořte snímek nyní"
+
+msgid "Custom"
+msgstr "Vlastní"
+
+msgid "Custom application"
+msgstr "Vlastní aplikace"
+
+msgid "Custom notification"
+msgstr "Vlastní oznámení"
+
+msgid "Custom websites must begin with https://."
+msgstr "Vlastní webové stránky musí začínat https://."
+
+msgid "Customer no."
+msgstr "Číslo zákazníka"
+
+msgid "Customize"
+msgstr "Přizpůsobit"
+
+msgid "Customize notebooks"
+msgstr "Přizpůsobit zápisníky"
+
+msgid "Cut"
+msgstr "Vyjmout"
+
+msgid "Cycle calendar"
+msgstr "Kalendář cyklu"
+
+msgid ""
+"Cycle markers are stored only in your local Organizer data and do not send "
+"notifications."
+msgstr ""
+"Návrhy mohou odstranit jen jednotlivě potvrzené propojené kontakty. Povolit "
+"je pro tuto větev?Značky cyklu se ukládají pouze v místních datech "
+"Organizéru a neposílají oznámení."
+
+msgid "Czechia"
+msgstr "Česko"
+
+msgid "DIN 5008 Form B with fold marks"
+msgstr "DIN 5008 formulář B se značkami přehybu"
+
+msgid "Daily"
+msgstr "Denní"
+
+msgid "Daily view"
+msgstr "Denní zobrazení"
+
+msgid "Damaged"
+msgstr "Poškozený"
+
+msgid "Date"
+msgstr "Datum"
+
+msgid "Daughter"
+msgstr "Dcera"
+
+msgid "Day"
+msgstr "Den"
+
+msgid "Day markers"
+msgstr "Značky dnů"
+
+msgid "Days"
+msgstr "Dny"
+
+msgid "Death anniversary"
+msgstr "Výročí úmrtí"
+
+msgid "Default: next to the data file"
+msgstr "Výchozí: vedle datového souboru"
+
+msgid "Delegate to"
+msgstr "Delegovat na"
+
+msgid "Delete"
+msgstr "Odstranit"
+
+msgid "Delete %(count)s selected entry for good?"
+msgid_plural "Delete %(count)s selected entries for good?"
+msgstr[0] "Trvale odstranit %(count)s vybraný záznam?"
+msgstr[1] "Trvale odstranit %(count)s vybrané záznamy?"
+msgstr[2] "Trvale odstranit %(count)s vybraných záznamů?"
+
+msgid "Delete %(count)s selected entry? It moves to the wastebasket."
+msgid_plural "Delete %(count)s selected entries? They move to the wastebasket."
+msgstr[0] "Odstranit %(count)s vybraný záznam? Přesune se do koše."
+msgstr[1] "Odstranit %(count)s vybrané záznamy? Přesunou se do koše."
+msgstr[2] "Odstranit %(count)s vybraných záznamů? Přesunou se do koše."
+
+msgid "Delete all SMS histories"
+msgstr "Vymažte všechny historie SMS"
+
+msgid "Delete all SMS histories?"
+msgstr "Smazat všechny historie SMS?"
+
+msgid "Delete anniversary"
+msgstr "Odstranit výročí"
+
+msgid "Delete anniversary “%(name)s”?"
+msgstr "Odstranit výročí „%(name)s“?"
+
+msgid "Delete appointment “%(title)s”?"
+msgstr "Odstranit schůzku „%(title)s“?"
+
+msgid ""
+"Delete appointment “%(title)s”? This removes every occurrence in the series."
+msgstr ""
+"Odstranit schůzku „%(title)s“? Tím se odstraní všechny výskyty v sérii."
+
+msgid "Delete contact card “%(name)s”?"
+msgstr "Odstranit kontaktní kartu „%(name)s“?"
+
+msgid "Delete cycle marker"
+msgstr "Odstranit značku cyklu"
+
+msgid "Delete entries"
+msgstr "Odstranit záznamy"
+
+msgid "Delete entries…"
+msgstr "Odstranit záznamy…"
+
+msgid "Delete group"
+msgstr "Odstranit skupinu"
+
+msgid "Delete last character"
+msgstr "Odstranit poslední znak"
+
+msgid "Delete notebook"
+msgstr "Odstranit zápisník"
+
+msgid "Delete notebook group “%(name)s”?"
+msgstr "Odstranit skupinu zápisníků „%(name)s“?"
+
+msgid "Delete notebook “%(name)s”?"
+msgstr "Odstranit zápisník „%(name)s“?"
+
+msgid "Delete page"
+msgstr "Odstranit stránku"
+
+msgid "Delete password"
+msgstr "Smazat heslo"
+
+msgid "Delete permanently"
+msgstr "Trvale odstranit"
+
+msgid "Delete selection"
+msgstr "Odstranit výběr"
+
+msgid "Delete shift"
+msgstr "Odstranit směnu"
+
+msgid "Delete task"
+msgstr "Odstranit úkol"
+
+msgid "Delete task “%(title)s”?"
+msgstr "Odstranit úkol „%(title)s“?"
+
+msgid ""
+"Delete the stored app password? The mailbox can no longer deliver until a "
+"new one is entered."
+msgstr ""
+"Smazat uložené heslo aplikace? Schránka nebude moci doručovat, dokud "
+"nezadáte nové."
+
+msgid "Delete this contact's SMS history?"
+msgstr "Smazat historii SMS tohoto kontaktu?"
+
+msgid "Delete this contact's history"
+msgstr "Smazat historii tohoto kontaktu"
+
+msgid "Delete this note page (“%(title)s”)?"
+msgstr "Odstranit tuto stránku poznámek („%(title)s“)?"
+
+msgid "Delete this recovery snapshot permanently?"
+msgstr "Smazat tento snímek obnovení trvale?"
+
+msgid "Delete vacation period"
+msgstr "Odstranit období dovolené"
+
+msgid "Delete waste collection"
+msgstr "Odstranit svoz odpadu"
+
+msgid ""
+"Deleted items first go to the recycle bin and can be restored from there. "
+"They are permanently removed only afterwards."
+msgstr ""
+"Odstraněné položky nejprve putují do koše a lze je odtud obnovit. Trvale se "
+"odstraní až poté."
+
+msgid "Deletion proposals are pending manual review."
+msgstr "Návrhy odstranění čekají na ruční kontrolu."
+
+msgid ""
+"Deletion proposals can remove only individually confirmed, bound contacts. "
+"Enable deletion proposals for this branch?"
+msgstr ""
+"Návrhy mohou odstranit jen jednotlivě potvrzené propojené kontakty. Povolit "
+"je pro tuto větev?"
+
+msgid "Deletions are not synchronized yet."
+msgstr "Nikdy nesynchronizováno."
+
+msgid "Delivered"
+msgstr "nedoručeno"
+
+msgid "Delivered to %(branch)s."
+msgstr "Doručeno do %(branch)s."
+
+msgid "Dentist Dr. Hill — Preview of your entries"
+msgstr "Zubař MUDr. Hill — Náhled vašich záznamů"
+
+msgid "Determining public IP address…"
+msgstr "Zjišťování veřejné IP adresy…"
+
+msgid "Device code: %(code)s"
+msgstr "Kód zařízení: %(code)s"
+
+msgid "Device status is not permitted or available on the phone."
+msgstr "Stav zařízení není v telefonu povolen ani dostupný."
+
+msgid "Diabetes"
+msgstr "Cukrovka"
+
+msgid "Dialing…"
+msgstr "Dialing…"
+
+msgid "Diastolic"
+msgstr "Diastolický"
+
+msgid "Digit %(digit)s"
+msgstr "Číslice %(digit)s"
+
+msgid "Direction"
+msgstr "Směr"
+
+msgid ""
+"Disabled: no listener, discovery, reconnect or phone tray entries are active."
+msgstr ""
+"Zakázáno: nejsou aktivní žádné položky naslouchání, zjišťování, opětovného "
+"připojení nebo telefonní lišty."
+
+msgid "Discard"
+msgstr "Zahodit změny"
+
+msgid "Discharging"
+msgstr "Zahodit změny"
+
+msgid "Display"
+msgstr "Zobrazení"
+
+msgid "Do not retrieve weather without a location"
+msgstr "Bez umístění nenačítat počasí"
+
+msgid "Doctor appointment"
+msgstr "Návštěva lékaře"
+
+msgid "Document.pdf"
+msgstr "Dokument.pdf"
+
+msgid ""
+"Does this eight-character verification key match KDE Connect on %(name)s?\n"
+"\n"
+"%(code)s"
+msgstr ""
+"Odpovídá tento osmiznakový ověřovací klíč KDE Connect na %(name)s?\n"
+"\n"
+"%(code)s"
+
+msgid "Done"
+msgstr "Hotovo"
+
+msgid "Dose type"
+msgstr "Typ dávky"
+
+msgid "Download manual"
+msgstr "Stáhnout příručku"
+
+msgid "Download manual version %(version)s"
+msgstr "Stáhnout příručku verze %(version)s"
+
+msgid "Download version %(version)s …"
+msgstr "Stáhnout verzi %(version)s …"
+
+msgid "Drag the attachment area up or down"
+msgstr "Přetáhněte oblast příloh nahoru nebo dolů"
+
+msgid "Drops"
+msgstr "Kapky"
+
+msgid "Due on"
+msgstr "Termín"
+
+msgid "Due on %(date)s"
+msgstr "Termín %(date)s"
+
+msgid "Due: %(date)s"
+msgstr "Termín: %(date)s"
+
+msgid "Duplicates"
+msgstr "Duplikáty"
+
+msgid "Duration"
+msgstr "Duration"
+
+msgid "Early shift"
+msgstr "Ranní směna"
+
+msgid "Edit"
+msgstr "Upravit"
+
+msgid "Edit anniversary"
+msgstr "Upravit výročí"
+
+msgid "Edit appointment"
+msgstr "Upravit schůzku"
+
+msgid "Edit contact"
+msgstr "Upravit kontakt"
+
+msgid "Edit group"
+msgstr "Upravit skupinu"
+
+msgid "Edit notebook"
+msgstr "Upravit zápisník"
+
+msgid "Edit notebook group"
+msgstr "Upravit skupinu zápisníků"
+
+msgid "Edit task"
+msgstr "Upravit úkol"
+
+msgid "Edit the website or application used"
+msgstr "Upravit používaný web nebo aplikaci"
+
+msgid "Email"
+msgstr "E-mail"
+
+msgid "Email addresses"
+msgstr "E-mailové adresy"
+
+msgid "Embed"
+msgstr "Vložit"
+
+msgid "Embed PDF"
+msgstr "Vložit PDF"
+
+msgid "Embed image"
+msgstr "Vložit obrázek"
+
+msgid "Embed links and files"
+msgstr "Vložit odkazy a soubory"
+
+msgid "Embedded files"
+msgstr "Vložené soubory"
+
+msgid "Emergency contact"
+msgstr "Nouzový kontakt"
+
+msgid "Emergency contact %(number)s"
+msgstr "Nouzový kontakt %(number)s"
+
+msgid "Emergency contact phone"
+msgstr "Telefon nouzového kontaktu"
+
+msgid "Emergency contacts"
+msgstr "Nouzové kontakty"
+
+msgid "Empty recycle bin"
+msgstr "Vyprázdnit koš"
+
+msgid "Enable"
+msgstr "Povolit"
+
+msgid "Enable Magnolie Notes phone connection"
+msgstr "Povolte připojení telefonu Magnolie Notes"
+
+msgid "Enable cycle calendar"
+msgstr "Povolit kalendář cyklu"
+
+msgid "Enable password protection"
+msgstr "Povolit ochranu heslem"
+
+msgid ""
+"Enable password protection? Your data will then be stored encrypted. Without "
+"the password, it will be irretrievably lost; keep the password in a safe "
+"place."
+msgstr ""
+"Povolit ochranu heslem? Data se pak budou ukládat zašifrovaně. Bez hesla "
+"budou nenávratně ztracena; heslo si uložte na bezpečné místo."
+
+msgid "Enable reminders"
+msgstr "Povolit připomínky"
+
+msgid "Enable shift planner"
+msgstr "Povolit plánovač směn"
+
+msgid "Enable tray applet"
+msgstr "Povolit aplet oznamovací oblasti"
+
+msgid "Enable vacation planner"
+msgstr "Povolit plánovač dovolených"
+
+msgid "Enable waste collection calendar"
+msgstr "Povolit kalendář svozu odpadu"
+
+msgid "Enjoy getting organized!"
+msgstr "Ať se vám dobře organizuje!"
+
+msgid "Enter"
+msgstr "Zadat"
+
+msgid ""
+"Enter a blood glucose value on the left to highlight matching scheme rows."
+msgstr ""
+"Zadejte vlevo hodnotu krevní glukózy, aby se zvýraznily odpovídající řádky "
+"schématu."
+
+msgid "Enter a medication name first."
+msgstr "Nejprve zadejte název léku."
+
+msgid "Enter a password with letters"
+msgstr "Zadejte heslo obsahující písmena"
+
+msgid "Enter a reachable IPv4 or IPv6 address of this computer first."
+msgstr "Nejprve zadejte dostupnou IPv4 nebo IPv6 adresu tohoto počítače."
+
+msgid "Enter a title, date, or a word from the note."
+msgstr "Zadejte název, datum nebo slovo z poznámky."
+
+msgid "Enter a web or email address."
+msgstr "Zadejte webovou nebo e-mailovou adresu."
+
+msgid "Enter an application command."
+msgstr "Zadejte příkaz aplikace."
+
+msgid "Enter at least four characters for the backup password."
+msgstr "Zadejte pro heslo zálohy alespoň čtyři znaky."
+
+msgid "Enter height and weight to calculate BMI."
+msgstr "Pro výpočet BMI zadejte výšku a hmotnost."
+
+msgid "Enter the archive password."
+msgstr "Zadejte heslo archivu."
+
+msgid "Enter the password for this backup."
+msgstr "Zadejte heslo pro tuto zálohu."
+
+msgid ""
+"Enter your address above. No service can calculate directions without a "
+"starting point."
+msgstr ""
+"Zadejte výše svou adresu. Bez výchozího bodu žádná služba nedokáže vypočítat "
+"trasu."
+
+msgid "Entry"
+msgstr "Záznam"
+
+msgid "Errands"
+msgstr "Pochůzky"
+
+msgid "Error"
+msgstr "Chyba"
+
+msgid "Evening"
+msgstr "Večer"
+
+msgid "Every 12 hours"
+msgstr "Každých 12 hodin"
+
+msgid "Every 6 hours"
+msgstr "Každých 6 hodin"
+
+msgid "Every filled medication row requires a name."
+msgstr "Každý vyplněný řádek léku musí obsahovat název."
+
+msgid "Every filled row requires a valid date."
+msgstr "Každý vyplněný řádek musí obsahovat platné datum."
+
+msgid "Everything is done - the list is empty."
+msgstr "Všechno je hotové – seznam je prázdný."
+
+msgid "Exactly one Magnolie Notes phone must be paired."
+msgstr "Musí být spárován přesně jeden telefon Magnolie Notes."
+
+msgid "Export"
+msgstr "Exportovat"
+
+msgid "Export Magnolie complete archive"
+msgstr "Exportujte kompletní archiv Magnolie"
+
+msgid "Export archive"
+msgstr "Export archivu"
+
+msgid "Export failed."
+msgstr "Export selhal."
+
+msgid "Export failed: %(error)s"
+msgstr "Export selhal: %(error)s"
+
+msgid "Export is available only in the installed application."
+msgstr "Export je dostupný pouze v nainstalované aplikaci."
+
+msgid "Extend sharing"
+msgstr "Rozšířit sdílení"
+
+msgid "Failed"
+msgstr "Nepodařilo se"
+
+msgid "Fasting"
+msgstr "Nalačno"
+
+msgid "Female caregiver"
+msgstr "Pečovatelka"
+
+msgid "Female friend"
+msgstr "Kamarádka"
+
+msgid "Female neighbor"
+msgstr "Sousedka"
+
+msgid "Female partner"
+msgstr "Partnerka"
+
+msgid "Female relative"
+msgstr "Příbuzná"
+
+msgid "Fertile days"
+msgstr "Plodné dny"
+
+msgid "Fill with stored values"
+msgstr "Vyplnit uloženými hodnotami"
+
+msgid ""
+"Finds contact cards with the same name, email address or phone number. You "
+"are asked twice before merging, and a copy of every removed card is kept in "
+"the recycle bin."
+msgstr ""
+"Vyhledá kontaktní karty se stejným jménem, e-mailovou adresou nebo "
+"telefonním číslem. Před sloučením budete dvakrát dotázáni a kopie každé "
+"odstraněné karty zůstane v koši."
+
+msgid "Fingerprint"
+msgstr "Otisk"
+
+msgid "Fingerprint, e.g. ABCD-1234-EF56-7890"
+msgstr "Otisk, např. ABCD-1234-EF56-7890"
+
+msgid "First Communion"
+msgstr "První svaté přijímání"
+
+msgid "First choose a calendar or address book in Settings."
+msgstr "Nejprve v Nastavení vyberte kalendář nebo adresář."
+
+msgid "First collection"
+msgstr "První svoz"
+
+msgid "First date"
+msgstr "První datum"
+
+msgid "First name"
+msgstr "Jméno"
+
+msgid "First name Last name"
+msgstr "Jméno Příjmení"
+
+msgid ""
+"First name Last name\n"
+"Street and house number\n"
+"Postal code City"
+msgstr ""
+"Jméno Příjmení\n"
+"Ulice a číslo domu\n"
+"PSČ Město"
+
+msgid "Fixed units"
+msgstr "Pevné jednotky"
+
+msgid "Folder selection is available only in the installed application."
+msgstr "Výběr složky je dostupný pouze v nainstalované aplikaci."
+
+msgid "Follicular phase"
+msgstr "Folikulární fáze"
+
+msgid "Follow up"
+msgstr "Následná kontrola"
+
+msgid "Font size"
+msgstr "Velikost písma"
+
+msgid ""
+"For a direct IPv4 connection, port %(port)s may need to be forwarded by the "
+"router; CGNAT can prevent this. For IPv6, allow the port in the router and "
+"computer firewalls."
+msgstr ""
+"Pro přímé připojení IPv4 může být nutné přesměrovat port %(port)s na "
+"směrovači; CGNAT tomu může zabránit. U IPv6 povolte port ve firewallech "
+"směrovače i počítače."
+
+msgid ""
+"For this purpose, appointments, tasks, anniversaries and the names of "
+"responsible people are kept unencrypted in a separate file readable only by "
+"you. Contacts and notes are never written to it."
+msgstr ""
+"Za tímto účelem se schůzky, úkoly, výročí a jména odpovědných osob "
+"uchovávají nešifrovaně v samostatném souboru, který můžete číst pouze vy. "
+"Kontakty a poznámky se do něj nikdy nezapisují."
+
+msgid "For: %(people)s"
+msgstr "Pro: %(people)s"
+
+msgid "Form"
+msgstr "Formulář"
+
+msgid "Forward Secrecy"
+msgstr "Dopředné utajení (Forward Secrecy)"
+
+msgid ""
+"Found %(groups)s containing %(cards)s in total, for example:\n"
+"%(examples)s%(more)s\n"
+"\n"
+"The most complete card in each group is retained, and missing fields are "
+"filled from the others. The remaining cards are moved to the recycle bin as "
+"“Duplicates” and can be restored from there. Continue?"
+msgstr ""
+"Nalezeno %(groups)s skupin s celkem %(cards)s kartami, například:\n"
+"%(examples)s%(more)s\n"
+"\n"
+"V každé skupině se zachová nejúplnější karta a chybějící pole se doplní z "
+"ostatních. Zbývající karty se přesunou do koše jako „Duplikáty“ a lze je "
+"odtud obnovit. Pokračovat?"
+
+#, javascript-format
+msgid "Found – %s."
+msgstr "Nalezeno – %s."
+
+msgid "Founding day"
+msgstr "Den založení"
+
+msgid "France"
+msgstr "Francie"
+
+msgid "Frequency"
+msgstr "Četnost"
+
+msgid "Fribourg"
+msgstr "Fribourg"
+
+msgid "Friday"
+msgstr "Pátek"
+
+msgid "From"
+msgstr "Od"
+
+msgid "From the Windows Contacts folder"
+msgstr "Ze složky Windows Contacts"
+
+msgid "Full"
+msgstr "Plný"
+
+msgid "GNOME Maps"
+msgstr "Mapy GNOME"
+
+msgid "GNU General Public License, version 3 or later"
+msgstr "GNU General Public License, verze 3 nebo novější"
+
+msgid "General"
+msgstr "Obecné"
+
+msgid "General network"
+msgstr "Obecná síť"
+
+msgid "General reference range"
+msgstr "Obecné referenční rozmezí"
+
+msgid "Geneva"
+msgstr "Ženeva"
+
+msgid "Germany"
+msgstr "Německo"
+
+msgid "Glarus"
+msgstr "Glarus"
+
+msgid "Go to calendar"
+msgstr "Přejít do kalendáře"
+
+msgid "Google Maps in the browser"
+msgstr "Mapy Google v prohlížeči"
+
+msgid "Grisons"
+msgstr "Graubünden"
+
+msgid "Group for %(notebook)s"
+msgstr "Skupina pro %(notebook)s"
+
+msgid "HTTPS only; {wert} and {nummer} are replaced when opening."
+msgstr "Pouze HTTPS; {wert} a {nummer} se při otevření nahradí."
+
+msgid "Hamburg"
+msgstr "Hamburk"
+
+msgid "Handle or profile address"
+msgstr "Uživatelské jméno nebo adresa profilu"
+
+msgid "Handwriting"
+msgstr "Ruční psaní"
+
+msgid "Hang up"
+msgstr "Ukončit hovor"
+
+msgid "Head office"
+msgstr "Centrála"
+
+msgid "Heading"
+msgstr "Nadpis"
+
+msgid "Heading, text, images, and PDF files are shared encrypted."
+msgstr "Nadpis, text, obrázky a soubory PDF se sdílejí zašifrovaně."
+
+msgid "Health"
+msgstr "Zdraví"
+
+msgid "Health history chart"
+msgstr "Graf historie zdraví"
+
+msgid "Health history charts"
+msgstr "Grafy historie zdraví"
+
+msgid "Health records"
+msgstr "Zdravotní záznamy"
+
+msgid ""
+"Health records stay in your encrypted organizer data. The section documents "
+"measurements and schedules but does not provide medical advice."
+msgstr ""
+"Zdravotní záznamy zůstávají v zašifrovaných datech organizéru. Tato část "
+"dokumentuje měření a rozvrhy, ale neposkytuje lékařské rady."
+
+msgid "Health table saved."
+msgstr "Tabulka zdravotních údajů byla uložena."
+
+msgid "Heart"
+msgstr "Srdce"
+
+msgid "Height"
+msgstr "Výška"
+
+msgid "Here is how to find your way around:"
+msgstr "Takto se v aplikaci zorientujete:"
+
+msgid "Hesse"
+msgstr "Hesensko"
+
+msgid "Hide SMS notification after"
+msgstr "Skrýt oznámení SMS po"
+
+msgid "Hide in the tray when minimized"
+msgstr "Při minimalizaci skrýt do oznamovací oblasti"
+
+msgid "Hide internet access"
+msgstr "Skrýt přístup k internetu"
+
+msgid "Hide past appointments"
+msgstr "Skrýt minulé schůzky"
+
+msgid "History"
+msgstr "Historie"
+
+msgid "Holiday retrieval is available only in the installed application."
+msgstr "Načítání svátků je dostupné pouze v nainstalované aplikaci."
+
+msgid "Home"
+msgstr "Domů"
+
+msgid "Home address"
+msgstr "Domácí adresa"
+
+msgid "Home phone"
+msgstr "Telefon domů"
+
+msgid "Home visit"
+msgstr "Návštěva doma"
+
+msgid "Hours"
+msgstr "Hodiny"
+
+msgid "How the calendar should behave when you click a day."
+msgstr "Jak se má kalendář chovat při kliknutí na den."
+
+msgid "Husband"
+msgstr "Manžel"
+
+msgid "I"
+msgstr "K"
+
+msgid "I would be very happy if you bought me a coffee."
+msgstr "Velmi by mě potěšilo, kdybyste mi koupili kávu."
+
+msgid "IE"
+msgstr "IE"
+
+msgid ""
+"If the year is unknown, enter only day and month.\n"
+"No age will then be shown.\n"
+"Anniversaries appear with ✱ in the calendar and planner."
+msgstr ""
+"Pokud rok neznáte, zadejte pouze den a měsíc.\n"
+"Věk se pak nebude zobrazovat.\n"
+"Výročí se v kalendáři a plánovači zobrazují se symbolem ✱."
+
+msgid "Image"
+msgstr "Obrázek"
+
+msgid "Image file"
+msgstr "Soubor obrázku"
+
+msgid "Import"
+msgstr "Importovat"
+
+msgid "Import Magnolie complete archive"
+msgstr "Importujte kompletní archiv Magnolie"
+
+msgid "Import failed: %(error)s"
+msgstr "Import selhal: %(error)s"
+
+msgid "Import from LibreOffice"
+msgstr "Importovat z LibreOffice"
+
+msgid "Import is available only in the installed application."
+msgstr "Import je dostupný pouze v nainstalované aplikaci."
+
+msgid "Import pairing file …"
+msgstr "Importovat párovací soubor …"
+
+msgid "Import, export and synchronization"
+msgstr "Import, export a synchronizace"
+
+msgid ""
+"Import, export and synchronization are available only in the installed "
+"application."
+msgstr ""
+"Import, export a synchronizace jsou dostupné pouze v nainstalované aplikaci."
+
+msgid ""
+"Important: Without this password, nobody can access the data, including you. "
+"Keep it in a safe place."
+msgstr ""
+"Důležité: Bez tohoto hesla se k datům nedostane nikdo, ani vy. Uložte si je "
+"na bezpečné místo."
+
+msgid "Imported: %(items)s."
+msgstr "Importováno: %(items)s."
+
+msgid ""
+"In the DIN template, these lines appear as a multiline sender block and in "
+"small type in the address window. In the compact template, they form one "
+"line above the recipient address. No sender is added if this field is empty."
+msgstr ""
+"V šabloně DIN se tyto řádky zobrazí jako víceřádkový blok odesílatele a "
+"malým písmem v adresním okénku. V kompaktní šabloně tvoří jeden řádek nad "
+"adresou příjemce. Je-li toto pole prázdné, odesílatel se nepřidá."
+
+msgid "In the organizer%(selection)s: %(items)s%(years)s."
+msgstr "V Organizéru%(selection)s: %(items)s%(years)s."
+
+msgid "In the recycle bin: %(items)s"
+msgstr "V koši: %(items)s"
+
+msgid "Include anniversaries"
+msgstr "Zahrnout výročí"
+
+msgid "Include appointments"
+msgstr "Zahrnout schůzky"
+
+msgid "Include cycle markers"
+msgstr "Zahrnout značky cyklu"
+
+msgid "Include personal vacation"
+msgstr "Zahrnout osobní dovolenou"
+
+msgid "Include public holidays in year planner"
+msgstr "Zahrnout státní svátky do ročního plánovače"
+
+msgid "Include school holidays"
+msgstr "Zahrnout školní prázdniny"
+
+msgid "Include school holidays in year planner"
+msgstr "Zahrnout školní prázdniny do ročního plánovače"
+
+msgid "Include shifts"
+msgstr "Zahrnout směny"
+
+msgid "Include waste collections"
+msgstr "Zahrnout svoz odpadu"
+
+msgid "Incoming"
+msgstr "Přicházející"
+
+msgid "Incoming call"
+msgstr "Příchozí hovor"
+
+msgid "Input"
+msgstr "Vstup"
+
+msgid "Insert link"
+msgstr "Vložit odkaz"
+
+msgid "Installed manual version: %(version)s."
+msgstr "Instalovaná verze manuálu: %(version)s."
+
+msgid "Insulin scheme"
+msgstr "Inzulinové schéma"
+
+msgid "Integrity"
+msgstr "Integrita"
+
+msgid "Internet IP"
+msgstr "Internetová IP"
+
+msgid "Internet available"
+msgstr "Internet je dostupný"
+
+msgid "Interval in days"
+msgstr "Interval ve dnech"
+
+msgid "Italic"
+msgstr "Kurzíva"
+
+msgid "Italy"
+msgstr "Itálie"
+
+msgid "Juice"
+msgstr "Džus"
+
+msgid "Jura"
+msgstr "Jura"
+
+msgid "KDE Connect for SMS"
+msgstr "KDE Connect pro SMS"
+
+msgid "KDE Connect for SMS is available only in the installed application."
+msgstr "KDE Connect pro SMS je k dispozici pouze v nainstalované aplikaci."
+
+msgid ""
+"KDE Connect is used only for SMS. It does not connect or synchronize the "
+"Magnolienbaum."
+msgstr ""
+"KDE Connect se používá pouze pro SMS. Nepřipojuje ani nesynchronizuje "
+"Magnolienbaum."
+
+msgid "KDE Connect pairing failed."
+msgstr "Párování KDE Connect se nezdařilo."
+
+msgid "KDE Connect phone paired."
+msgstr "Telefon KDE Connect spárován."
+
+msgid "KDE Connect port %(port)s"
+msgstr "Port KDE Connect %(port)s"
+
+msgid "Keep a troubleshooting log"
+msgstr "Uchovávat protokol pro řešení potíží"
+
+msgid "LDIF address book (*.ldif)"
+msgstr "Adresář LDIF (*.ldif)"
+
+msgid "Landline"
+msgstr "Pevná linka"
+
+msgid "Large"
+msgstr "Velké"
+
+msgid "Last check failed: %(error)s"
+msgstr "Poslední kontrola selhala: %(error)s"
+
+msgid "Last contact"
+msgstr "Vytvořit kontakt"
+
+msgid "Last name"
+msgstr "Příjmení"
+
+msgid "Last snapshot"
+msgstr "Poslední snímek"
+
+msgid "Last synchronized: %(date)s, %(time)s."
+msgstr "Poslední synchronizace: %(date)s, %(time)s."
+
+msgid "Late shift"
+msgstr "Odpolední směna"
+
+msgid "Lead time"
+msgstr "Předstih"
+
+msgid "Letter"
+msgstr "Dopis"
+
+msgid "Letter template"
+msgstr "Šablona dopisu"
+
+msgid "License"
+msgstr "Licence"
+
+msgid "Liechtenstein"
+msgstr "Lichtenštejnsko"
+
+msgid "Lined paper (lines on the writing sheet)"
+msgstr "Linkovaný papír (řádky na psacím listu)"
+
+msgid "Link"
+msgstr "Odkaz"
+
+msgid "Listener active"
+msgstr "předběžné"
+
+msgid "Listener stopped"
+msgstr "Posluchač se zastavil"
+
+msgid "Local calendar"
+msgstr "Místní kalendář"
+
+msgid "Location"
+msgstr "Místo"
+
+msgid "Location obtained from LibreOffice."
+msgstr "Umístění získáno z LibreOffice."
+
+msgid "Log opened: %(path)s"
+msgstr "Protokol otevřen: %(path)s"
+
+msgid "Long-acting insulin"
+msgstr "Dlouhodobě působící inzulín"
+
+msgid "Loose Notes"
+msgstr "Volné poznámky"
+
+msgid "Lotus Organizer CSV …"
+msgstr "Lotus Organizer CSV …"
+
+msgid "Lower Austria"
+msgstr "Dolní Rakousy"
+
+msgid "Lower Saxony"
+msgstr "Dolní Sasko"
+
+msgid "Lower other sounds while ringing"
+msgstr "Ztlumit ostatní zvuky během vyzvánění"
+
+msgid "Lucerne"
+msgstr "Lucern"
+
+msgid "Luxembourg"
+msgstr "Lucembursko"
+
+msgid "Magnolia tree"
+msgstr "Magnólie"
+
+msgid "Magnolia weather symbols only"
+msgstr "Pouze symboly počasí Magnolie"
+
+msgid "Magnolie Notes device status"
+msgstr "Stav zařízení Magnolie Notes"
+
+msgid ""
+"Magnolie Notes ended the session. The app and Organizer must use the same "
+"protocol version."
+msgstr ""
+"Magnolie Notes ukončila relaci. Aplikace a Organizér musí používat stejnou "
+"verzi protokolu."
+
+msgid "Magnolie Notes phone connection"
+msgstr "Připojení telefonu Magnolie Notes"
+
+msgid ""
+"Magnolie Notes phones and KDE Connect phones are separate: the Android model "
+"name belongs to Magnolie Notes; the KDE peer name comes from KDE Connect."
+msgstr ""
+"Telefony Magnolie Notes a telefony KDE Connect jsou oddělené: název modelu "
+"Android patří Magnolie Notes, název protějšku KDE pochází z KDE Connect."
+
+msgid "Magnolie Organizer is not completely installed."
+msgstr "Magnolie Organizer není nainstalován úplně."
+
+msgid ""
+"Magnolie Organizer is open-source software. There are no functional "
+"restrictions. This branding can be removed by supporting the project and "
+"then entering the activation code received by email under Settings → About."
+msgstr ""
+"Magnolie Organizer je software s otevřeným zdrojovým kódem. Nemá žádná "
+"funkční omezení. Toto označení lze odstranit podporou projektu a následným "
+"zadáním aktivačního kódu z e-mailu v Nastavení → O aplikaci."
+
+msgid ""
+"Magnolie SMS is no longer part of the current Magnolie Notes phone protocol."
+msgstr ""
+"Magnolie SMS již není součástí aktuálního telefonního protokolu Magnolie "
+"Notes."
+
+msgid "Magnolie backup (*.json)"
+msgstr "Záloha Magnolie (*.json)"
+
+msgid "Magnolie complete archive (.magnolie) …"
+msgstr "Kompletní archiv Magnolie (.magnolie) …"
+
+msgid "Magnolienbaum"
+msgstr "Magnolienbaum"
+
+msgid "Magnolienbaum mailbox"
+msgstr "Magnolienbaum mailbox"
+
+msgid "Magnolienbaum pairing file (*.magnolie-paarung)"
+msgstr "Párovací soubor Magnolienbaum (*.magnolie-paarung)"
+
+msgid "Magnolienbaum quarantine:"
+msgstr "Karanténa Magnolienbaum:"
+
+msgid "Magnolienbaum restart:"
+msgstr "Restartování Magnolienbaum:"
+
+msgid "Male caregiver"
+msgstr "Pečovatel"
+
+msgid "Male friend"
+msgstr "Přítel"
+
+msgid "Male neighbor"
+msgstr "Soused"
+
+msgid "Male partner"
+msgstr "Partner"
+
+msgid "Male relative"
+msgstr "Příbuzný"
+
+msgid "Manage connection"
+msgstr "Spravovat připojení"
+
+msgid "Manage people"
+msgstr "Spravovat osoby"
+
+msgid "Manual"
+msgstr "Manuál"
+
+msgctxt "recovery snapshot reason"
+msgid "Manual"
+msgstr "Vlastní"
+
+msgid "Manual version %(version)s is available."
+msgstr "K dispozici je manuální verze %(version)s."
+
+msgid "Manufacturer"
+msgstr "Výrobce"
+
+msgid "Map"
+msgstr "Mapa"
+
+msgid ""
+"Map services often cannot find a street without a country. If the country is "
+"already part of the address, it is not added a second time."
+msgstr ""
+"Mapové služby často nenajdou ulici bez uvedení země. Pokud je země již "
+"součástí adresy, podruhé se nepřidá."
+
+msgid "Mark as completed"
+msgstr "Označit jako dokončené"
+
+msgid "Mark as open"
+msgstr "Označit jako otevřené"
+
+msgid "Maximized"
+msgstr "Maximalizované"
+
+msgid "Measurement context"
+msgstr "Kontext měření"
+
+msgid "Mecklenburg-Western Pomerania"
+msgstr "Meklenbursko-Přední Pomořansko"
+
+msgid "Medication"
+msgstr "Lék"
+
+msgid "Medication plan"
+msgstr "Plán užívání léků"
+
+msgid "Medium (slightly larger)"
+msgstr "Střední (o něco větší)"
+
+msgid "Meeting"
+msgstr "Schůzka"
+
+msgid "Memorial day"
+msgstr "Pamětní den"
+
+msgid "Memory available / total"
+msgstr "Dostupná paměť / celkem"
+
+msgid "Merge"
+msgstr "Sloučit"
+
+msgid "Merge duplicate contact cards"
+msgstr "Sloučit duplicitní karty kontaktů"
+
+msgid "Merge this pair individually"
+msgstr "Sloučit tuto dvojici jednotlivě"
+
+msgid "Message"
+msgstr "Zpráva"
+
+msgid "Message text"
+msgstr "Zpráva"
+
+msgid "Metered connection"
+msgstr "Připojení účtované podle objemu dat"
+
+msgid "Microsoft Graph has not been configured yet."
+msgstr "Microsoft Graph ještě nebyl nakonfigurován."
+
+msgid "Microsoft configuration could not be saved: %(error)s"
+msgstr "Konfiguraci Microsoftu nelze uložit: %(error)s"
+
+msgid "Microsoft configuration saved."
+msgstr "Konfigurace Microsoftu byla uložena."
+
+msgid "Microsoft sign-in completed."
+msgstr "Přihlášení společnosti Microsoft bylo dokončeno."
+
+msgid "Microsoft sign-in failed: %(error)s"
+msgstr "Přihlášení k Microsoftu se nezdařilo: %(error)s"
+
+msgid "Microsoft sign-out failed: %(error)s"
+msgstr "Odhlášení od společnosti Microsoft se nezdařilo: %(error)s"
+
+msgid "Minimize"
+msgstr "Minimize"
+
+msgid "Minimize to the tray when closed"
+msgstr "Při zavření minimalizovat do oznamovací oblasti"
+
+msgid "Minutes"
+msgstr "Minuty"
+
+msgid ""
+"Missed reminders are shown after the next startup. If the computer was off "
+"or the application was closed, the organizer reports a missed appointment "
+"shortly after login and provides a button to open it. All-day appointments "
+"are treated as starting at 8 a.m. A small reminder service starts at login "
+"to check appointments in the background and continues running when you close "
+"the organizer."
+msgstr ""
+"Zmeškané připomínky se zobrazí po příštím spuštění. Pokud byl počítač "
+"vypnutý nebo aplikace zavřená, organizér krátce po přihlášení oznámí "
+"zmeškanou schůzku a nabídne tlačítko k jejímu otevření. Celodenní schůzky se "
+"považují za začínající v 8:00. Při přihlášení se spustí malá služba "
+"připomínek, která kontroluje schůzky na pozadí a zůstává spuštěná i po "
+"zavření organizéru."
+
+msgid ""
+"Misspelled words are marked with a red wavy underline while you type. Right-"
+"clicking a word opens a sheet with suggestions that can be applied with one "
+"click; you can add names to your personal dictionary in the same way. If the "
+"lines or suggestions are missing, install the dictionary with:  sudo apt "
+"install %(package)s"
+msgstr ""
+"Při psaní jsou chybně napsaná slova označena červeným vlnovkovým podtržením. "
+"Kliknutím pravým tlačítkem na slovo se otevře panel s návrhy, které lze "
+"použít jedním kliknutím; stejným způsobem můžete do osobního slovníku přidat "
+"jména. Pokud podtržení nebo návrhy chybí, nainstalujte slovník pomocí:  sudo "
+"apt install %(package)s"
+
+msgid "Mobile"
+msgstr "Mobil"
+
+msgid "Mobile network"
+msgstr "Mobilní síť"
+
+msgid "Model"
+msgstr "Model"
+
+msgid "Monday"
+msgstr "Pondělí"
+
+msgid "Month"
+msgstr "Měsíc"
+
+msgid "Month calendar"
+msgstr "Měsíční kalendář"
+
+msgid "Monthly view"
+msgstr "Měsíční zobrazení"
+
+msgid "Monthly weekday"
+msgstr "Měsíční den v týdnu"
+
+msgid "More fields"
+msgstr "Další pole"
+
+msgid ""
+"More than one Magnolie Notes phone is online. Disconnect all but one phone."
+msgstr ""
+"Více než jeden telefon Magnolie Notes je online. Odpojte všechny telefony "
+"kromě jednoho."
+
+msgid "Morning"
+msgstr "Ráno"
+
+msgid "Mouse wheel over times"
+msgstr "Kolečko myši nad časy"
+
+msgid "Move group down"
+msgstr "Přesunout skupinu dolů"
+
+msgid "Move group up"
+msgstr "Přesunout skupinu nahoru"
+
+msgid "Move notebook down"
+msgstr "Přesunout zápisník dolů"
+
+msgid "Move notebook to another group"
+msgstr "Přesunout zápisník do jiné skupiny"
+
+msgid "Move notebook up"
+msgstr "Přesunout zápisník nahoru"
+
+msgid "Move the ticked entries to the wastebasket"
+msgstr "Přesunout zaškrtnuté položky do koše"
+
+msgid ""
+"Multiple Magnolie Notes phones are stored. Personal sync is blocked; remove "
+"all but one phone."
+msgstr ""
+"Je uloženo více telefonů Magnolie Notes. Osobní synchronizace je blokována; "
+"odeberte všechny telefony kromě jednoho."
+
+msgid "Multiple calendars"
+msgstr "Multiple calendars"
+
+msgid "Name"
+msgstr "Jméno"
+
+msgid "Name / occasion"
+msgstr "Jméno / příležitost"
+
+msgid "Name day"
+msgstr "Svátek jména"
+
+msgid "Name of this branch"
+msgstr "Název této větve"
+
+msgid "Netherlands"
+msgstr "Nizozemsko"
+
+msgid "Network"
+msgstr "Network"
+
+msgid "Neuchâtel"
+msgstr "Neuchâtel"
+
+msgid "Never"
+msgstr "Nikdy"
+
+msgid "Never automatically"
+msgstr "Nikdy ne automaticky"
+
+msgid "Never synchronized."
+msgstr "Nikdy nesynchronizováno."
+
+msgid "New"
+msgstr "Nový"
+
+msgid "New Magnolienbaum request: %(entry)s."
+msgstr "Nový požadavek Magnolienbaum: %(entry)s."
+
+msgid "New anniversary"
+msgstr "Nové výročí"
+
+msgid "New appointment"
+msgstr "Nová schůzka"
+
+msgid "New backup password"
+msgstr "Nové heslo zálohy"
+
+msgid ""
+"New backups are stored in this folder. When the field is empty, they are "
+"stored next to the data file. For any other location, the organizer requires "
+"a backup password and encrypts the copy independently of the application's "
+"password protection."
+msgstr ""
+"Nové zálohy se ukládají do této složky. Pokud je pole prázdné, ukládají se "
+"vedle datového souboru. Pro jakékoli jiné umístění organizér vyžaduje heslo "
+"zálohy a kopii šifruje nezávisle na ochraně aplikace heslem."
+
+msgid "New contact"
+msgstr "Nový kontakt"
+
+msgid "New group"
+msgstr "Nová skupina"
+
+msgid "New notebook"
+msgstr "Nový zápisník"
+
+msgid "New notebook group"
+msgstr "Nová skupina zápisníků"
+
+msgid "New page"
+msgstr "Nová stránka"
+
+msgid "New password"
+msgstr "Nové heslo"
+
+msgid "New task"
+msgstr "Nový úkol"
+
+msgid "New version %(version)s is available."
+msgstr "Je k dispozici nová verze %(version)s."
+
+msgid "Next appointment: %(title)s on %(date)s%(time)s%(notice)s"
+msgstr "Další schůzka: %(title)s dne %(date)s%(time)s%(notice)s"
+
+msgid "Next month"
+msgstr "Další měsíc"
+
+msgid "Next page"
+msgstr "Další stránka"
+
+msgid "Next snapshot"
+msgstr "Další snímek"
+
+msgid "Next tab"
+msgstr "Další karta"
+
+msgid "Next table page"
+msgstr "Další stránka tabulky"
+
+msgid "Next week"
+msgstr "Další týden"
+
+msgid "Next year"
+msgstr "Další rok"
+
+msgid "Nextcloud account"
+msgstr "Nextcloud account"
+
+msgid "Nidwalden"
+msgstr "Nidwalden"
+
+msgid "Night"
+msgstr "Noc"
+
+msgid "Night shift"
+msgstr "Noční směna"
+
+msgid "No"
+msgstr "No"
+
+msgid "No Bluetooth address was selected."
+msgstr "Nebyla vybrána žádná adresa Bluetooth."
+
+msgid "No KDE Connect pairing is awaiting confirmation."
+msgstr "Žádné párování KDE Connect nečeká na potvrzení."
+
+msgid "No additional modules permitted"
+msgstr "Nejsou povoleny žádné další moduly"
+
+msgid ""
+"No anniversaries yet.\n"
+"Birthdays and celebrations will automatically appear in the calendar."
+msgstr ""
+"Zatím žádná výročí.\n"
+"Narozeniny a oslavy se automaticky zobrazí v kalendáři."
+
+msgid "No application is registered for the attachment."
+msgstr "Pro přílohu není registrována žádná žádost."
+
+msgid "No appointment is scheduled."
+msgstr "Není naplánována žádná schůzka."
+
+msgid "No calendars found."
+msgstr "Nebyly nalezeny žádné kalendáře."
+
+msgid "No due date"
+msgstr "Bez termínu"
+
+msgid "No duplicate contact cards were found."
+msgstr "Nebyly nalezeny žádné duplicitní karty kontaktů."
+
+msgid "No file selected"
+msgstr "Nebyl vybrán žádný soubor"
+
+msgid "No history charts"
+msgstr "Bez grafů historie"
+
+msgid "No insulin dose is calculated automatically."
+msgstr "Dávka inzulínu se nepočítá automaticky."
+
+msgid "No manual update check has been performed yet."
+msgstr "Dosud nebyla provedena žádná ruční kontrola aktualizací."
+
+msgid "No matching open task found."
+msgstr "Nebyl nalezen žádný odpovídající otevřený úkol."
+
+msgid "No measurements in this period."
+msgstr "V tomto období nejsou žádná měření."
+
+msgid "No notebooks"
+msgstr "Žádné zápisníky"
+
+msgid "No online Magnolie Notes phone has allowed dial requests."
+msgstr "Žádný online telefon Magnolie Notes nepovoluje požadavky na vytáčení."
+
+msgid "No other branch was found."
+msgstr "Nebyla nalezena žádná jiná větev."
+
+msgid "No other branch yet. Search the network or enter an address."
+msgstr "Zatím žádná jiná větev. Prohledejte síť nebo zadejte adresu."
+
+msgid ""
+"No people have been added yet.\n"
+"Enter a name below."
+msgstr ""
+"Zatím nebyly přidány žádné osoby.\n"
+"Níže zadejte jméno."
+
+msgid ""
+"No people have been added yet. Use the People button above to add people "
+"responsible for tasks."
+msgstr ""
+"Zatím nebyly přidány žádné osoby. Pomocí tlačítka Osoby nahoře přidejte "
+"osoby odpovědné za úkoly."
+
+msgid "No phone paired yet."
+msgstr "Zatím není připojen žádný úkol."
+
+msgid "No phone pairing is awaiting confirmation."
+msgstr "Žádné spárování telefonu nečeká na potvrzení."
+
+msgid "No photo"
+msgstr "Bez fotografie"
+
+msgid "No photo selected"
+msgstr "Nebyla vybrána žádná fotografie"
+
+msgid "No public IP address was found."
+msgstr "Nebyla nalezena žádná veřejná IP adresa."
+
+msgid ""
+"No regional data is retrieved without a selected canton. With “All”, each "
+"entry shows its canton and matching periods are combined."
+msgstr ""
+"Bez vybraného kantonu se regionální data nenačítají. Při volbě „Vše“ se u "
+"každé položky zobrazí její kanton a shodná období se sloučí."
+
+msgid ""
+"No regional data is retrieved without a selected state. With “All”, each "
+"entry shows its state and matching periods are combined."
+msgstr ""
+"Bez vybrané spolkové země se regionální data nenačítají. Při volbě „Vše“ se "
+"u každé položky zobrazí její spolková země a shodná období se sloučí."
+
+msgid "No scheme row matches this blood glucose value."
+msgstr "Tomuto údaji krevní glukózy neodpovídá žádný řádek schématu."
+
+msgid "No sheet is open."
+msgstr "Není otevřen žádný list."
+
+msgid "No shift"
+msgstr "Bez směny"
+
+msgid "No snapshots yet."
+msgstr "Zatím žádné snímky."
+
+msgid "No spam check available"
+msgstr "Kontrola spamu není k dispozici"
+
+msgid "No suggestions found."
+msgstr "Nebyly nalezeny žádné návrhy."
+
+msgid "No system-paired Bluetooth device found"
+msgstr "Nebylo nalezeno žádné zařízení Bluetooth spárované se systémem"
+
+msgid "No table (history only)"
+msgstr "Bez tabulky (pouze průběh)"
+
+msgid "No task linked yet."
+msgstr "Zatím není připojen žádný úkol."
+
+msgid "No update check has been performed yet."
+msgstr "Kontrola aktualizací zatím nebyla provedena."
+
+msgid "No word was provided."
+msgstr "Nebylo zadáno žádné slovo."
+
+msgid "None"
+msgstr "Žádné"
+
+msgid "Noon"
+msgstr "Poledne"
+
+msgid "Normal"
+msgstr "Normální"
+
+msgid "North Rhine-Westphalia"
+msgstr "Severní Porýní-Vestfálsko"
+
+msgid ""
+"Not all systems allow waking from suspend. If it does not work, the reminder "
+"appears as soon as the computer is running again."
+msgstr ""
+"Ne všechny systémy umožňují probuzení z uspání. Pokud to nefunguje, "
+"připomínka se zobrazí, jakmile bude počítač znovu spuštěný."
+
+msgid "Not charging"
+msgstr "žádné změny"
+
+msgid "Not now"
+msgstr "Teď ne"
+
+msgid "Not sent."
+msgstr "Neodesláno."
+
+msgid "Not signed in to Microsoft yet."
+msgstr "Ještě nejste přihlášeni k Microsoftu."
+
+msgid "Note"
+msgstr "Poznámka"
+
+msgid "Note text"
+msgstr "Text poznámky"
+
+msgid "Notebook"
+msgstr "Zápisník"
+
+msgid "Notebook group"
+msgstr "Skupina zápisníků"
+
+msgid "Notebooks"
+msgstr "Zápisník"
+
+msgid "Notes"
+msgstr "Poznámky"
+
+msgid "Notes and special instructions"
+msgstr "Poznámky a zvláštní pokyny"
+
+msgid "Nothing found."
+msgstr "Nic nebylo nalezeno."
+
+msgid "Nothing has been entered under “%(letter)s” yet."
+msgstr "Pod „%(letter)s“ zatím nebylo nic zadáno."
+
+msgid "Nothing is opened or sent while this option is disabled."
+msgstr "Dokud je tato možnost vypnutá, nic se neotevírá ani neodesílá."
+
+msgid "Nothing new was found."
+msgstr "Nebylo nalezeno nic nového."
+
+msgid "Notice: The connection to storage was not confirmed."
+msgstr "Upozornění: Připojení k úložišti nebylo potvrzeno."
+
+msgid "Notification and sound"
+msgstr "Oznámení a zvuk"
+
+msgid "Notifications"
+msgstr "Oznámení"
+
+msgid "Notifications are available only in the installed application."
+msgstr "Oznámení jsou k dispozici pouze v nainstalované aplikaci."
+
+msgid ""
+"Notifications are display-only; replying and remote actions are not "
+"available."
+msgstr "Oznámení jsou k dispozici pouze v nainstalované aplikaci."
+
+msgid "Notify me about incoming calls"
+msgstr "Upozorňovat na příchozí hovory"
+
+msgid "ODS"
+msgstr "ODS"
+
+msgid "OK"
+msgstr "OK"
+
+msgid "Objects"
+msgstr "Objekty"
+
+msgid "Obwalden"
+msgstr "Obwalden"
+
+msgid "Off"
+msgstr "Vypnuto"
+
+msgid "Offline"
+msgstr "Online"
+
+msgid "Ointment"
+msgstr "Mast"
+
+msgid "One address book"
+msgstr "One address book"
+
+msgid "One backup could not be updated."
+msgid_plural "%(count)s backups could not be updated."
+msgstr[0] "Jedna záloha nemohla být aktualizována."
+msgstr[1] "%(count)s zálohy nemohly být aktualizovány."
+msgstr[2] "%(count)s zálohy nemohly být aktualizovány."
+
+msgid "One completion update was received from the Magnolienbaum."
+msgid_plural ""
+"%(count)s completion updates were received from the Magnolienbaum."
+msgstr[0] "Byla přijata jedna aktualizace dokončení od Magnolienbaum."
+msgstr[1] "Byly přijaty aktualizace dokončení %(count)s od Magnolienbaumu."
+msgstr[2] "Byly přijaty aktualizace dokončení %(count)s od Magnolienbaumu."
+
+msgid "One duplicate contact card was"
+msgid_plural "%(count)s duplicate contact cards were"
+msgstr[0] "Byla jedna duplicitní kontaktní karta"
+msgstr[1] "Byly duplikovány kontaktní karty %(count)s"
+msgstr[2] "Byly duplikovány kontaktní karty %(count)s"
+
+msgid "One moment …"
+msgstr "Okamžik …"
+
+msgid "One moment…"
+msgstr "Okamžik…"
+
+msgid "One shared note was updated."
+msgid_plural "%(count)s shared notes were updated."
+msgstr[0] "Jedna sdílená poznámka byla aktualizována."
+msgstr[1] "Sdílené poznámky %(count)s byly aktualizovány."
+msgstr[2] "Sdílené poznámky %(count)s byly aktualizovány."
+
+msgid "One table with chart"
+msgstr "Jedna tabulka s grafem"
+
+msgid "One year"
+msgstr "Jeden rok"
+
+msgid "Online"
+msgstr "Online"
+
+msgid ""
+"Online account integration is not available on this system. Install it "
+"with:  sudo apt install %(packages)s, then restart the application. You can "
+"also import contacts and appointments without this integration using “From "
+"this computer” above."
+msgstr ""
+"Integrace online účtů není v tomto systému k dispozici. Nainstalujte ji "
+"pomocí:  sudo apt install %(packages)s a potom aplikaci restartujte. "
+"Kontakty a schůzky můžete importovat i bez této integrace pomocí volby „Z "
+"tohoto počítače“ výše."
+
+msgid "Online via Bluetooth data"
+msgstr "Online přes data Bluetooth"
+
+msgid "Online via WLAN"
+msgstr "Online přes WiFi"
+
+msgid "Only 'Replace completely' is supported."
+msgstr "Je podporováno pouze „Nahradit zcela“."
+
+msgid ""
+"Only HTTPS. Create an app password in Nextcloud under Settings, Security. "
+"Your account password is never used."
+msgstr ""
+"Pouze HTTPS. Vytvořte heslo aplikace v Nextcloudu v Nastavení, Zabezpečení. "
+"Heslo vašeho účtu se nikdy nepoužívá."
+
+msgid ""
+"Only one Magnolie Notes phone can be paired. Remove the existing phone "
+"before changing devices."
+msgstr ""
+"Lze spárovat pouze jeden telefon Magnolie Notes. Před změnou zařízení "
+"odeberte stávající telefon."
+
+msgid ""
+"Only the reliable system notification is available under Wayland; the "
+"Magnolie paper style would often remain invisible there."
+msgstr ""
+"V prostředí Wayland je k dispozici pouze spolehlivé systémové oznámení; "
+"papírový styl Magnolie by tam často zůstal neviditelný."
+
+msgid "Open"
+msgstr "Otevřít"
+
+msgid "Open %(name)s"
+msgstr "Otevřít %(name)s"
+
+msgid "Open %(service)s for this contact"
+msgstr "Otevřít %(service)s pro tento kontakt"
+
+msgid ""
+"Open KDE Connect on the phone and start pairing. Compare the eight-character "
+"verification key and confirm on both devices."
+msgstr ""
+"Otevřete KDE Connect v telefonu a spusťte párování. Porovnejte osmiznakový "
+"ověřovací klíč a potvrďte jej na obou zařízeních."
+
+msgid "Open Magnolie Organizer"
+msgstr "Otevřít Magnolie Organizer"
+
+msgid "Open Magnolienbaum pairing file"
+msgstr "Otevřít párovací soubor Magnolienbaum"
+
+msgid "Open Microsoft sign-in page"
+msgstr "Otevřete přihlašovací stránku společnosti Microsoft"
+
+msgid "Open day view for %(date)s"
+msgstr "Otevřít denní zobrazení pro %(date)s"
+
+msgid "Open manual"
+msgstr "Otevřít příručku"
+
+msgid "Open maps with"
+msgstr "Otevírat mapy pomocí"
+
+msgid "Open medication index"
+msgstr "Otevřít seznam léků"
+
+msgid "Open organizer"
+msgstr "Otevřít organizér"
+
+msgid "Open phone connection in Magnolie Notes and select this computer."
+msgstr "Otevřete telefonní připojení v Magnolie Notes a vyberte tento počítač."
+
+msgid "Open planner as an ODS spreadsheet"
+msgstr "Otevřít plánovač jako tabulku ODS"
+
+msgid "Open selected contacts as an ODS spreadsheet"
+msgstr "Otevřít vybrané kontakty jako tabulku ODS"
+
+msgid "Open selected health records as an ODS spreadsheet"
+msgstr "Otevřít vybrané zdravotní záznamy jako tabulku ODS"
+
+msgid "Open task"
+msgstr "Otevřeno"
+
+msgid "Open the day in the daily view"
+msgstr "Otevřít den v denním zobrazení"
+
+msgid ""
+"Open the verified DEB with your software manager; the organizer never "
+"installs it automatically."
+msgstr ""
+"Otevřete ověřený DEB pomocí správce softwaru; organizátor jej nikdy "
+"nenainstaluje automaticky."
+
+msgid "Open this address as a letter in LibreOffice"
+msgstr "Otevřít tuto adresu jako dopis v LibreOffice"
+
+msgid "Open this day"
+msgstr "Otevřít tento den"
+
+msgid "Open year"
+msgstr "Otevřít rok"
+
+msgid "Open year in planner"
+msgstr "Otevřít rok v plánovači"
+
+msgid "OpenStreetMap in the browser"
+msgstr "OpenStreetMap v prohlížeči"
+
+msgid "Opened in %(application)s."
+msgstr "Otevřeno v aplikaci %(application)s."
+
+msgid "Operating system"
+msgstr "Operační systém"
+
+msgid "Optional archive password"
+msgstr "Volitelné archivní heslo"
+
+msgid "Organic waste"
+msgstr "Bioodpad"
+
+msgid "Organizer"
+msgstr "Organizátor"
+
+msgid "Organizer style (paper sheet)"
+msgstr "Styl organizéru (papírový list)"
+
+msgid "Organizer · Calendar · Contacts · Notes"
+msgstr "Organizér · Kalendář · Kontakty · Poznámky"
+
+msgid "Other"
+msgstr "Jiné"
+
+msgctxt "email type"
+msgid "Other"
+msgstr "Jiné"
+
+msgctxt "relationship"
+msgid "Other"
+msgstr "Jiné"
+
+msgid "Other addresses"
+msgstr "Další adresy"
+
+msgid "Other phone numbers"
+msgstr "Další telefonní čísla"
+
+msgid "Outgoing"
+msgstr "Odchozí"
+
+msgid "Outlook.com / Microsoft 365"
+msgstr "Outlook.com / Microsoft 365"
+
+msgid "Ovulation"
+msgstr "Ovulace"
+
+msgid "Own internet IP"
+msgstr "Vlastní internetová IP"
+
+msgid "PDF file"
+msgstr "Soubor PDF"
+
+msgid "Packaging / Yellow bin"
+msgstr "Obaly / žlutá nádoba"
+
+msgid "Page %(page)s"
+msgstr "Stránka %(page)s"
+
+msgid "Page %(page)s of %(count)s"
+msgstr "Stránka %(page)s z %(count)s"
+
+msgid "Pages"
+msgstr "Stránky"
+
+msgid "Pain"
+msgstr "Bolest"
+
+msgid "Pair KDE Connect phone"
+msgstr "Spárujte telefon KDE Connect"
+
+msgid "Pairing failed:"
+msgstr "Párování se nezdařilo:"
+
+msgid "Pairing file"
+msgstr "Párovací soubor"
+
+msgid "Pairing file saved to: %(path)s"
+msgstr "Párovací soubor uložen do: %(path)s"
+
+msgid ""
+"Pairing was rejected cryptographically. The confirmation code, pairing code, "
+"or phone key does not match. Restart pairing on both devices."
+msgstr ""
+"Párování bylo kryptograficky odmítnuto. Potvrzovací kód, párovací kód nebo "
+"klíč telefonu se neshodují. Restartujte párování na obou zařízeních."
+
+msgid "Palm tree"
+msgstr "Palma"
+
+msgid ""
+"Participate in the Magnolienbaum (opens port %(port)s on the local network)"
+msgstr "Zapojit se do Magnolienbaum (otevře port %(port)s v místní síti)"
+
+msgid "Partnership anniversary"
+msgstr "Výročí partnerství"
+
+msgid "Password"
+msgstr "Heslo"
+
+msgid "Password or numeric code"
+msgstr "Heslo nebo číselný kód"
+
+msgid "Password protection"
+msgstr "Ochrana heslem"
+
+msgid "Password protection is available only in the installed application."
+msgstr "Ochrana heslem je k dispozici pouze v nainstalované aplikaci."
+
+msgid "Password protection is enabled – your data is encrypted."
+msgstr "Ochrana heslem je zapnutá – vaše data jsou šifrována."
+
+msgid "Password protection is enabled. Your data is now encrypted"
+msgstr "Ochrana heslem je zapnutá. Vaše data jsou nyní šifrována"
+
+msgid "Password protection was removed."
+msgstr "Ochrana heslem byla odstraněna."
+
+msgid "Paste"
+msgstr "Vložit"
+
+msgid "Patch"
+msgstr "Náplast"
+
+msgid "Pay invoice"
+msgstr "Zaplatit fakturu"
+
+msgid "Pen"
+msgstr "Inzulínové pero"
+
+msgid "People"
+msgstr "Osoby"
+
+msgid "Period"
+msgstr "Období"
+
+msgid "Permanent KDE listener active"
+msgstr "Trvalý posluchač KDE je aktivní"
+
+msgid "Permanent KDE listener stopped"
+msgstr "Stálý posluchač KDE se zastavil"
+
+msgid "Permanently delete %(count)s completed task?"
+msgid_plural "Permanently delete %(count)s completed tasks?"
+msgstr[0] "Trvale odstranit %(count)s dokončený úkol?"
+msgstr[1] "Trvale odstranit %(count)s dokončené úkoly?"
+msgstr[2] "Trvale odstranit %(count)s dokončených úkolů?"
+
+msgid "Permanently delete %(count)s selected health record?"
+msgid_plural "Permanently delete %(count)s selected health records?"
+msgstr[0] "Trvale odstranit %(count)s vybraný zdravotní záznam?"
+msgstr[1] "Trvale odstranit %(count)s vybrané zdravotní záznamy?"
+msgstr[2] "Trvale odstranit %(count)s vybraných zdravotních záznamů?"
+
+msgid "Permanently delete selected health records"
+msgstr "Trvale odstranit vybrané zdravotní záznamy"
+
+msgid "Permanently delete the one item? This cannot be undone."
+msgid_plural "Permanently delete all %(count)s items? This cannot be undone."
+msgstr[0] "Trvale smazat tuto položku? Tento krok nelze vrátit zpět."
+msgstr[1] "Trvale smazat všechny položky %(count)s? Toto nelze vzít zpět."
+msgstr[2] "Trvale smazat všechny položky %(count)s? Toto nelze vzít zpět."
+
+msgid "Person"
+msgstr "Osoba"
+
+msgid "Person's name"
+msgstr "Jméno osoby"
+
+msgid ""
+"Personal data over Magnolie Notes, not Magnolienbaum. Deletions always "
+"require confirmation."
+msgstr ""
+"Osobní data se přenášejí přes Magnolie Notes, nikoli přes Magnolienbaum. "
+"Přílohy a odstranění se nesynchronizují."
+
+msgid "Personal synchronization"
+msgstr "Synchronizace kontaktů"
+
+msgid "Personal synchronization batches are missing."
+msgstr "Chybí osobní synchronizační dávky."
+
+msgid "Personal synchronization complete. Deletions are not synchronized yet."
+msgstr "Osobní synchronizace dokončena. Odstranění se zatím nesynchronizují."
+
+msgid "Personal synchronization failed."
+msgstr "Synchronizace se nezdařila."
+
+msgid "Personal synchronization format 2 was not negotiated."
+msgstr "Osobní formát synchronizace 2 nebyl vyjednán."
+
+msgid "Personal synchronization is not permitted on both devices."
+msgstr "Osobní synchronizace není povolena na obou zařízeních."
+
+msgid "Phone"
+msgstr "Telefon"
+
+msgid "Phone battery"
+msgstr "Baterie telefonu"
+
+msgid "Phone call"
+msgstr "Telefonní hovor"
+
+msgid "Phone error: %(error)s"
+msgstr "Chyba telefonu: %(error)s"
+
+msgid "Phone number"
+msgstr "Telefonní čísla"
+
+msgid "Phone numbers"
+msgstr "Telefonní čísla"
+
+msgid "Phone pairing failed."
+msgstr "Párovací soubor"
+
+msgid "Phone “%(name)s” is securely paired."
+msgstr "„%(name)s“ bylo obnoveno."
+
+msgid "Phones"
+msgstr "Telefon"
+
+msgid "Photo"
+msgstr "Fotografie"
+
+msgid "Photo available"
+msgstr "Fotografie k dispozici"
+
+msgid "Photo of %(name)s"
+msgstr "Fotografie osoby %(name)s"
+
+msgid "Pick up"
+msgstr "Vyzvednout"
+
+msgid "Planner"
+msgstr "Plánovač"
+
+msgid "Please create a notebook in another group first."
+msgstr "Nejprve vytvořte zápisník v jiné skupině."
+
+msgid "Please enter a four-digit year from 1000 onwards."
+msgstr "Zadejte čtyřmístný rok od 1000 výše."
+
+msgid "Please enter a name."
+msgstr "Zadejte jméno."
+
+msgid "Please enter a realistic value."
+msgstr "Zadejte realistickou hodnotu."
+
+msgid "Please enter a title and date for every new appointment."
+msgstr "Pro každou novou schůzku zadejte název a datum."
+
+msgid "Please enter a title for every new task."
+msgstr "Pro každý nový úkol zadejte název."
+
+msgid "Please enter a title."
+msgstr "Zadejte název."
+
+msgid "Please enter a website or application for the custom action."
+msgstr "Zadejte webovou stránku nebo aplikaci pro vlastní akci."
+
+msgid "Please enter an address."
+msgstr "Zadejte adresu."
+
+msgid "Please enter at least a name or company."
+msgstr "Zadejte alespoň jméno nebo firmu."
+
+msgid "Please enter the internet IP and fingerprint in full."
+msgstr "Zadejte úplnou internetovou IP a otisk."
+
+msgid "Please select a PDF file."
+msgstr "Vyberte soubor PDF."
+
+msgid "Please select a date."
+msgstr "Vyberte datum."
+
+msgid "Please select a file first."
+msgstr "Nejprve vyberte soubor."
+
+msgid "Please select an image file."
+msgstr "Vyberte soubor obrázku."
+
+msgid "Please select an image in JPEG, PNG, WebP, or GIF format."
+msgstr "Vyberte obrázek ve formátu JPEG, PNG, WebP nebo GIF."
+
+msgid "Please unlock"
+msgstr "Nejprve odemkněte"
+
+msgid "Poland"
+msgstr "Polsko"
+
+msgid "Possible duplicates among local and incoming contacts"
+msgstr "Možné duplicity mezi místními a příchozími kontakty"
+
+msgid "Possible spam"
+msgstr "Možný spam"
+
+msgid "Postal address"
+msgstr "Poštovní adresa"
+
+msgid "Postal code"
+msgstr "PSČ"
+
+msgid "Postal code / city"
+msgstr "PSČ / město"
+
+msgid "Powder"
+msgstr "Prášek"
+
+msgid "Power source"
+msgstr "Zdroj napájení"
+
+msgid "Preparing Microsoft sign-in …"
+msgstr "Příprava přihlášení k Microsoftu…"
+
+msgid "Preview"
+msgstr "Náhled"
+
+msgid "Preview failed."
+msgstr "Náhled se nezdařil."
+
+msgid "Preview, print or export the year planner"
+msgstr "Náhled, tisk nebo export ročního plánovače"
+
+msgid "Preview:"
+msgstr "Náhled:"
+
+msgid "Previous month"
+msgstr "Předchozí měsíc"
+
+msgid "Previous page"
+msgstr "Předchozí stránka"
+
+msgid "Previous tab"
+msgstr "Předchozí karta"
+
+msgid "Previous table page"
+msgstr "Předchozí stránka tabulky"
+
+msgid "Previous week"
+msgstr "Předchozí týden"
+
+msgid "Previous window state"
+msgstr "Předchozí stav okna"
+
+msgid "Previous year"
+msgstr "Předchozí rok"
+
+msgid "Print"
+msgstr "Tisk"
+
+msgid "Print dialog"
+msgstr "Dialog tisku"
+
+msgid "Print now"
+msgstr "Vytisknout nyní"
+
+msgid "Print preview"
+msgstr "Náhled tisku"
+
+msgid "Print · %(title)s"
+msgstr "Tisk · %(title)s"
+
+msgid "Print · Health"
+msgstr "Tisk · Zdraví"
+
+msgid "Priority"
+msgstr "Priorita"
+
+msgid "Priority 1 is listed first. Overdue tasks are shown in red."
+msgstr "Priorita 1 se řadí jako první. Úkoly po termínu se zobrazují červeně."
+
+msgid "Private"
+msgstr "Soukromé"
+
+msgid ""
+"Private, integrity-checked snapshots are stored next to the application data."
+msgstr "Soukromé snímky s kontrolou integrity jsou uloženy vedle dat aplikace."
+
+msgid "Public IPv4 or IPv6 address of the other branch"
+msgstr "Veřejná adresa IPv4 nebo IPv6 druhé větve"
+
+msgid ""
+"Public holidays and school holidays are governed regionally. Choose which "
+"ones apply here."
+msgstr ""
+"Státní a školní prázdniny se řídí podle regionu. Vyberte ty, které zde platí."
+
+msgid "Pulse"
+msgstr "Tep"
+
+msgid ""
+"Pulse\n"
+"S/min"
+msgstr ""
+"Tep\n"
+"S/min"
+
+msgid "QR code"
+msgstr "QR kód"
+
+msgid "Queue: %(open)s of %(count)s transmission awaits delivery."
+msgid_plural "Queue: %(open)s of %(count)s transmissions await delivery."
+msgstr[0] "Fronta: %(open)s z %(count)s přenosu čeká na doručení."
+msgstr[1] "Fronta: %(open)s ze %(count)s přenosů čekají na doručení."
+msgstr[2] "Fronta: %(open)s z %(count)s přenosů čeká na doručení."
+
+msgid "Queued"
+msgstr "Ve frontě"
+
+msgid "Quit"
+msgstr "Ukončit"
+
+msgid "Reachable IPv4 or IPv6 address of this computer"
+msgstr "Dostupná adresa IPv4 nebo IPv6 tohoto počítače"
+
+msgid "Ready."
+msgstr "Připraveno."
+
+msgid ""
+"Really merge %(cards)s? Review the result carefully afterwards. A copy of "
+"every removed card is kept in the recycle bin."
+msgstr ""
+"Opravdu sloučit %(cards)s? Výsledek potom pečlivě zkontrolujte. Kopie každé "
+"odstraněné karty zůstane v koši."
+
+msgid "Reason"
+msgstr "Důvod"
+
+msgid "Reconnect"
+msgstr "Znovu se připojte"
+
+msgid "Recovery snapshot created."
+msgstr "Snímek obnovy byl vytvořen."
+
+msgid "Recovery snapshot deleted."
+msgstr "Snímek obnovy byl smazán."
+
+msgid "Recovery snapshots"
+msgstr "Snímky obnovy"
+
+msgid "Recycle bin"
+msgstr "Koš"
+
+msgid "Refresh"
+msgstr "Obnovit"
+
+msgid "Reject"
+msgstr "Odmítnout"
+
+msgid "Reject this offer permanently?"
+msgstr "Odmítnout tuto nabídku natrvalo?"
+
+msgid "Related tasks"
+msgstr "Související úkoly"
+
+msgid "Remind me again on the day itself"
+msgstr "Připomenout znovu v daný den"
+
+msgid "Reminder data:"
+msgstr "Údaje připomenutí:"
+
+msgid "Reminder runtime:"
+msgstr "Doba běhu připomenutí:"
+
+msgid "Reminders"
+msgstr "Připomenutí"
+
+msgid ""
+"Reminders outside the application are available only in the installed "
+"version."
+msgstr "Připomínky mimo aplikaci jsou k dispozici pouze v nainstalované verzi."
+
+msgid "Remote host name or IP address (optional)"
+msgstr "Název vzdáleného hostitele nebo IP adresa (volitelné)"
+
+msgid "Remove"
+msgstr "Odstranit"
+
+msgid "Remove address"
+msgstr "Odstranit adresu"
+
+msgid "Remove all public holidays and school holidays from the organizer?"
+msgstr "Odstranit z organizéru všechny státní a školní prázdniny?"
+
+msgid "Remove appointment"
+msgstr "Odstranit schůzku"
+
+msgid "Remove connection"
+msgstr "Odstranit připojení"
+
+msgid "Remove email address"
+msgstr "Odstranit e-mailovou adresu"
+
+msgid "Remove embedded file “%(name)s”?"
+msgstr "Odstranit vložený soubor „%(name)s“?"
+
+msgid "Remove emergency contact"
+msgstr "Odstranit nouzový kontakt"
+
+msgid "Remove entries"
+msgstr "Odstranit položky"
+
+msgid "Remove event"
+msgstr "Odstranit událost"
+
+msgid "Remove password protection"
+msgstr "Odstranit ochranu heslem"
+
+msgid ""
+"Remove password protection? Your data will then be stored unencrypted in "
+"your home directory again."
+msgstr ""
+"Odstranit ochranu heslem? Vaše data se pak budou znovu ukládat nešifrovaně "
+"do domovské složky."
+
+msgid "Remove phone connection"
+msgstr "Odstranit připojení"
+
+msgid "Remove phone number"
+msgstr "Odstranit telefonní číslo"
+
+msgid "Remove photo"
+msgstr "Odstranit fotografii"
+
+msgid "Remove social medium"
+msgstr "Odstranit sociální síť"
+
+msgid "Remove task"
+msgstr "Odstranit úkol"
+
+msgid "Remove the connection to “%(branch)s”?"
+msgstr "Odstranit spojení s „%(branch)s“?"
+
+msgid "Remove this phone connection and its queues and permissions?"
+msgstr "Odebrat toto telefonní připojení a jeho fronty a oprávnění?"
+
+msgid ""
+"Remove “%(name)s”? Their tasks will be kept but will no longer be assigned "
+"to anyone."
+msgstr ""
+"Odstranit „%(name)s“? Jeho/její úkoly zůstanou zachovány, ale už nebudou "
+"nikomu přiřazeny."
+
+msgid ""
+"Renew KDE Connect pairing? Only KDE trust for this phone will be removed and "
+"rebuilt. Magnolie Notes, notes and chat history remain unchanged."
+msgstr ""
+"Obnovit párování KDE Connect? Odebere a znovu vytvoří se pouze důvěra KDE "
+"pro tento telefon. Magnolie Notes, poznámky a historie chatu zůstanou beze "
+"změny."
+
+msgid "Renew pairing"
+msgstr "Obnovit párování"
+
+msgid "Repeat for confirmation"
+msgstr "Zopakujte pro potvrzení"
+
+msgid "Replace completely"
+msgstr "Vyměňte úplně"
+
+msgid ""
+"Requires existing pairing in Windows Settings under Bluetooth & devices. "
+"Data only, no HFP audio."
+msgstr ""
+"Vyžaduje existující spárování v Nastavení Windows v části Bluetooth a "
+"zařízení. Pouze data, žádný zvuk HFP."
+
+msgid "Reset"
+msgstr "Reset"
+
+msgid "Residual waste"
+msgstr "Směsný odpad"
+
+msgid "Responsible"
+msgstr "Odpovědná osoba"
+
+msgid "Restore"
+msgstr "Obnovit"
+
+msgid "Restore backup"
+msgstr "Obnovit zálohu"
+
+msgid "Restore backup …"
+msgstr "Obnovit zálohu …"
+
+msgid "Restore completely"
+msgstr "Úplně obnovit"
+
+msgid "Restore failed."
+msgstr "Obnovení se nezdařilo."
+
+msgid ""
+"Restore this snapshot completely? A mandatory pre-restore snapshot is "
+"created first."
+msgstr ""
+"Obnovit tento snímek úplně? Nejprve se vytvoří povinný snímek před obnovením."
+
+msgid "Restoring backups is available only in the installed application."
+msgstr "Obnova záloh je k dispozici pouze v nainstalované aplikaci."
+
+msgid "Retrieval failed."
+msgstr "Načtení se nezdařilo."
+
+msgid "Retrieve now"
+msgstr "Načíst nyní"
+
+msgid "Retrieve public holidays and school holidays"
+msgstr "Načíst státní a školní prázdniny"
+
+msgid "Retrieved on %(date)s."
+msgstr "Načteno dne %(date)s."
+
+msgid "Retrieving holidays …"
+msgstr "Načítání svátků …"
+
+msgid "Retrieving manual download information …"
+msgstr "Načítání informací pro ruční stažení …"
+
+msgid "Retrieving weather…"
+msgstr "Načítání počasí…"
+
+msgid "Rhineland-Palatinate"
+msgstr "Porýní-Falc"
+
+msgid "Route"
+msgstr "Trasa"
+
+msgid "Route: calculate directions immediately"
+msgstr "Trasa: ihned vypočítat pokyny"
+
+msgid ""
+"Run the downloaded installer visibly and keep the Manual component selected."
+msgstr ""
+"Spusťte stažený instalační program viditelně a ponechte vybranou komponentu "
+"Manual."
+
+msgid "S"
+msgstr "S"
+
+msgid "SMS assignment"
+msgstr "Přiřazení SMS"
+
+msgid "SMS details"
+msgstr "Podrobnosti SMS"
+
+msgid "SMS from %(name)s"
+msgstr "SMS od %(name)s"
+
+msgid "SMS history"
+msgstr "Historie SMS"
+
+msgid "SMS settings"
+msgstr "Nastavení SMS"
+
+msgid "SMS text was adjusted:"
+msgstr "Text SMS byl upraven:"
+
+msgid "SMS to %(name)s"
+msgstr "SMS pro %(name)s"
+
+msgid "Saarland"
+msgstr "Sársko"
+
+msgid "Salzburg"
+msgstr "Salcbursko"
+
+msgid "Saturday"
+msgstr "Sobota"
+
+msgid "Save"
+msgstr "Uložit"
+
+msgid "Save Magnolienbaum pairing file"
+msgstr "Uložit párovací soubor Magnolienbaum"
+
+msgid "Save as…"
+msgstr "Uložit jako…"
+
+msgid "Save changes"
+msgstr "Uložit změny"
+
+msgctxt "contact action"
+msgid "Save changes"
+msgstr "Uložit změny"
+
+msgid "Save changes?"
+msgstr "Uložit změny?"
+
+msgid "Save endpoint"
+msgstr "Uložit koncový bod"
+
+msgid "Save rejected: The data is encrypted and has not been unlocked yet."
+msgstr "Uložení odmítnuto: Data jsou zašifrovaná a ještě nebyla odemčena."
+
+msgid "Save your Microsoft OAuth client ID first."
+msgstr "Nejprve uložte ID klienta Microsoft OAuth."
+
+msgid "Saved"
+msgstr "Uloženo"
+
+msgid "Saved to: %(path)s (%(count)s entry)"
+msgid_plural "Saved to: %(path)s (%(count)s entries)"
+msgstr[0] "Uloženo do: %(path)s (%(count)s položka)"
+msgstr[1] "Uloženo do: %(path)s (%(count)s položky)"
+msgstr[2] "Uloženo do: %(path)s (%(count)s položek)"
+
+msgid "Saved ✓ %(time)s"
+msgstr "Uloženo ✓ %(time)s"
+
+msgid "Saved."
+msgstr "Uloženo."
+
+msgid "Saving failed!"
+msgstr "Ukládání se nezdařilo!"
+
+msgid "Saving …"
+msgstr "Ukládání …"
+
+msgid "Saxony"
+msgstr "Sasko"
+
+msgid "Saxony-Anhalt"
+msgstr "Sasko-Anhaltsko"
+
+msgid "Schaffhausen"
+msgstr "Schaffhausen"
+
+msgid "Schedule an appointment"
+msgstr "Naplánovat schůzku"
+
+msgid "Scheduled"
+msgstr "Naplánováno"
+
+msgid "Scheme"
+msgstr "Scheme"
+
+msgid "Schleswig-Holstein"
+msgstr "Šlesvicko-Holštýnsko"
+
+msgid "Schwyz"
+msgstr "Schwyz"
+
+msgid "Screen notification only"
+msgstr "Pouze oznámení na obrazovce"
+
+msgid "Scrolling up makes the time earlier"
+msgstr "Posun nahoru nastaví dřívější čas"
+
+msgid "Scrolling up makes the time later"
+msgstr "Posun nahoru nastaví pozdější čas"
+
+msgid "Search"
+msgstr "Hledat"
+
+msgid "Search local network"
+msgstr "Hledat v místní síti"
+
+msgid "Search title, date, or note…"
+msgstr "Hledat název, datum nebo poznámku…"
+
+msgid "Searching for suggestions…"
+msgstr "Hledání návrhů…"
+
+msgid "Searching…"
+msgstr "Hledání…"
+
+msgid "Search…"
+msgstr "Hledat…"
+
+msgid "Secondary office"
+msgstr "Vedlejší kancelář"
+
+msgid "Secure HTTPS address"
+msgstr "Zabezpečená adresa HTTPS"
+
+msgid "Securely connected to %(branch)s."
+msgstr "Bezpečně připojeno k %(branch)s."
+
+msgid "Security"
+msgstr "Zabezpečení"
+
+msgid "Select a country first."
+msgstr "Nejprve vyberte zemi."
+
+msgid "Select all"
+msgstr "Vybrat vše"
+
+msgid ""
+"Select an entry on the left,\n"
+"or create a contact card with New."
+msgstr ""
+"Vyberte vlevo položku,\n"
+"nebo pomocí Nový vytvořte kartu kontaktu."
+
+msgid "Select at least one column."
+msgstr "Vyberte alespoň jeden sloupec."
+
+msgid "Select at least one year."
+msgstr "Vyberte alespoň jeden rok."
+
+msgid "Select backup folder"
+msgstr "Vybrat složku záloh"
+
+msgid "Select something first."
+msgstr "Nejprve něco vyberte."
+
+msgid "Select what you want to print on the left."
+msgstr "Vlevo vyberte, co chcete vytisknout."
+
+msgid "Select your canton first or enable “All cantons”."
+msgstr "Nejprve vyberte kanton nebo zapněte „Všechny kantony“."
+
+msgid "Select your state first or enable “All states”."
+msgstr "Nejprve vyberte spolkovou zemi nebo zapněte „Všechny země“."
+
+msgid "Select, preview, print, export or delete health records"
+msgstr ""
+"Vybrat, zobrazit náhled, vytisknout, exportovat nebo odstranit zdravotní "
+"záznamy"
+
+msgid ""
+"Selected columns that are empty for every contact are omitted automatically."
+msgstr ""
+"Vybrané sloupce, které jsou prázdné u všech kontaktů, se automaticky "
+"vynechají."
+
+msgid "Selected notifications"
+msgstr "systémové oznámení"
+
+msgid "Selection options"
+msgstr "Možnosti výběru"
+
+msgid "Send SMS"
+msgstr "Poslat SMS"
+
+msgid "Send adjusted text"
+msgstr "Odeslat upravený text"
+
+msgid "Send documents"
+msgstr "Odeslat dokumenty"
+
+msgid "Send secure request"
+msgstr "Odeslat zabezpečený požadavek"
+
+msgid "Sent"
+msgstr "Odesláno"
+
+msgid "Server address"
+msgstr "Adresa serveru"
+
+msgid "Server address and user name are required."
+msgstr "Je nutná adresa serveru a uživatelské jméno."
+
+msgid "Set varying doses by weekday"
+msgstr "Nastavit různé dávky podle dne v týdnu"
+
+msgid "Setting up reminders …"
+msgstr "Nastavování připomínek …"
+
+msgid "Settings"
+msgstr "Nastavení"
+
+msgid "Several Magnolie Organizers can connect and securely share tasks."
+msgstr ""
+"Více instancí Magnolie Organizer se může propojit a bezpečně sdílet úkoly."
+
+msgid "Share"
+msgstr "Sdílet"
+
+msgid "Share address"
+msgstr "Sdílet adresu"
+
+msgid "Share appointment"
+msgstr "Sdílet schůzku"
+
+msgid "Share this entry explicitly with %(branch)s?"
+msgstr "Sdílet tuto položku výslovně s %(branch)s?"
+
+msgid "Share this entry explicitly with the workgroup?"
+msgstr "Sdílet tuto položku výslovně s pracovní skupinou?"
+
+msgid "Share this entry explicitly with this branch?"
+msgstr "Sdílet tuto položku výslovně s touto větví?"
+
+msgid "Share together"
+msgstr "Sdílet společně"
+
+msgid "Shared credentials"
+msgstr "Shared credentials"
+
+msgid "Shared note"
+msgstr "Sdílená poznámka"
+
+msgid "Shift planner"
+msgstr "Plánovač směn"
+
+msgid "Shopping"
+msgstr "Nákupy"
+
+msgid "Short-acting insulin"
+msgstr "Krátkodobě působící inzulín"
+
+msgid "Show Health after Planner"
+msgstr "Zobrazit Zdraví za Plánovačem"
+
+msgid "Show all"
+msgstr "Zobrazit vše"
+
+msgid "Show calendar button in date fields"
+msgstr "Zobrazovat v polích data tlačítko kalendáře"
+
+msgid "Show log"
+msgstr "Zobrazit protokol"
+
+msgid "Show more"
+msgstr "Zobrazit více"
+
+msgid "Show preview"
+msgstr "Zobrazit náhled"
+
+msgid "Show selected notifications (read only)"
+msgstr "Pouze oznámení na obrazovce"
+
+msgid "Show social media and communication icons"
+msgstr "Zobrazovat ikony sociálních sítí a komunikace"
+
+msgid "Show symbol in calendar"
+msgstr "Zobrazit symbol v kalendáři"
+
+msgid "Show the “Letter” button (LibreOffice)"
+msgstr "Zobrazovat tlačítko „Dopis“ (LibreOffice)"
+
+msgid "Show the “Map” button"
+msgstr "Zobrazovat tlačítko „Mapa“"
+
+msgid "Show the “Selection options” button"
+msgstr "Zobrazovat tlačítko „Možnosti výběru“"
+
+msgid "Show this address on the map"
+msgstr "Zobrazit tuto adresu na mapě"
+
+msgid "Show today's notification count on the tray icon"
+msgstr "Zobrazovat počet dnešních oznámení na ikoně v oznamovací oblasti"
+
+msgid "Show weather for the next three days"
+msgstr "Zobrazit počasí na příští tři dny"
+
+msgid "Show week numbers in the monthly view"
+msgstr "Zobrazovat čísla týdnů v měsíčním zobrazení"
+
+msgid "Show week numbers in the planner"
+msgstr "Zobrazovat čísla týdnů v plánovači"
+
+msgid "Sign in to Microsoft"
+msgstr "Přihlaste se k Microsoftu"
+
+msgid "Sign in to Microsoft first."
+msgstr "Nejprve se přihlaste k Microsoftu."
+
+msgid "Sign out"
+msgstr "Odhlaste se"
+
+msgid "Sign-in URL: %(url)s"
+msgstr "Přihlašovací adresa URL: %(url)s"
+
+msgid "Signed in to Microsoft."
+msgstr "Přihlášeni k Microsoftu."
+
+msgid "Signed out from Microsoft."
+msgstr "Odhlášen z Microsoftu."
+
+msgid ""
+"Small action buttons appear on each contact card. You can hide anything you "
+"do not need here."
+msgstr ""
+"Na každé kartě kontaktu se zobrazují malá tlačítka akcí. Zde můžete skrýt "
+"vše, co nepotřebujete."
+
+msgid "Snapshot interval"
+msgstr "Interval snímků"
+
+msgid "Snapshot restored. The first synchronization will not send deletions."
+msgstr "Snímek obnoven. První synchronizace neodešle odstranění."
+
+msgid "Snowman"
+msgstr "Sněhulák"
+
+msgid "Social media"
+msgstr "Sociální sítě"
+
+msgid "Social medium"
+msgstr "Sociální síť"
+
+msgid "Solothurn"
+msgstr "Solothurn"
+
+msgid "Some existing backups could not be decrypted."
+msgstr "Některé existující zálohy se nepodařilo dešifrovat."
+
+msgid "Some existing backups could not be encrypted."
+msgstr "Některé existující zálohy se nepodařilo zašifrovat."
+
+msgid "Son"
+msgstr "Syn"
+
+msgid "Sort everything alphabetically"
+msgstr "Řadit vše abecedně"
+
+msgid "Sorting"
+msgstr "Řazení"
+
+msgid "Sound only"
+msgstr "Pouze zvuk"
+
+msgid "Space for anything you want to remember…"
+msgstr "Místo pro cokoli, co si chcete zapamatovat…"
+
+msgid "Spain"
+msgstr "Španělsko"
+
+msgid "Spam check"
+msgstr "Kontrola spamu"
+
+msgid "Special cases"
+msgstr "Zvláštní případy"
+
+msgid "Spray"
+msgstr "Sprej"
+
+msgid "St. Gallen"
+msgstr "St. Gallen"
+
+msgid "Start automatically when signing in"
+msgstr "Spouštět automaticky při přihlášení"
+
+msgid "Start the organizer in the tray"
+msgstr "Spouštět organizér v oznamovací oblasti"
+
+msgid "State"
+msgstr "Spolková země"
+
+msgid "Status"
+msgstr "Postavení"
+
+msgid "Storage available / total"
+msgstr "Dostupné úložiště / celkem"
+
+msgid "Street / house number"
+msgstr "Ulice / číslo domu"
+
+msgid "Street and house number"
+msgstr "Ulice a číslo domu"
+
+msgid "Strength"
+msgstr "Síla"
+
+msgid "Strikethrough"
+msgstr "Přeškrtnuté"
+
+msgid "Styria"
+msgstr "Štýrsko"
+
+msgid "Submitted"
+msgstr "Odesláno"
+
+msgid "Submitted to KDE Connect"
+msgstr "Odesláno KDE Connect"
+
+msgid "Suggestions are available only in the installed application."
+msgstr "Návrhy jsou k dispozici pouze v nainstalované aplikaci."
+
+msgid "Sun symbol"
+msgstr "Symbol slunce"
+
+msgid "Sunday"
+msgstr "Neděle"
+
+msgid "Suppository"
+msgstr "Čípek"
+
+msgid "Switched off."
+msgstr "Vypnuto."
+
+msgid "Switzerland"
+msgstr "Švýcarsko"
+
+msgid "Symbol"
+msgstr "Symbol"
+
+msgid "Symbol and Vacation text"
+msgstr "Symbol a text Dovolená"
+
+msgid "Symbol only"
+msgstr "Pouze symbol"
+
+msgid "Symbols and temperatures"
+msgstr "Symboly a teploty"
+
+msgid "Symbols, temperatures and description"
+msgstr "Symboly, teploty a popis"
+
+msgid "Synchronization"
+msgstr "Synchronizace"
+
+msgid "Synchronization completed."
+msgstr "Synchronizace dokončena."
+
+msgid "Synchronization failed."
+msgstr "Synchronizace se nezdařila."
+
+msgid "Synchronization failed: %(error)s"
+msgstr "Synchronizace se nezdařila: %(error)s"
+
+msgid ""
+"Synchronization state, pending messages and metadata for this connection "
+"will be removed. Contacts already accepted and local data remain."
+msgstr ""
+"Stav synchronizace, čekající zprávy a metadata tohoto připojení budou "
+"odstraněny. Již přijaté kontakty a místní data zůstanou zachovány."
+
+msgid "Synchronize automatically at startup"
+msgstr "Synchronizovat automaticky při spuštění"
+
+msgid "Synchronize contacts"
+msgstr "Synchronizovat kontakty"
+
+msgid "Synchronize everything"
+msgstr "Synchronizovat vše"
+
+msgid "Synchronize notes and notebooks"
+msgstr "Synchronizovat kontakty"
+
+msgid "Synchronize now"
+msgstr "Synchronizovat nyní"
+
+msgid "Synchronize tasks"
+msgstr "Synchronizovat kontakty"
+
+msgid "Synchronizing …"
+msgstr "Synchronizace …"
+
+msgid "System default"
+msgstr "Výchozí nastavení systému"
+
+msgid "System style (desktop notification)"
+msgstr "Systémový styl (oznámení plochy)"
+
+msgid "System-paired phone Bluetooth address"
+msgstr "Adresa Bluetooth spárovaného telefonu"
+
+msgid "Systolic"
+msgstr "Systolický"
+
+#, csharp-format
+msgid "TCP port {0} could not be opened: {1}"
+msgstr "Port TCP {0} nelze otevřít: {1}"
+
+msgid "Tab %(letter)s"
+msgstr "Karta %(letter)s"
+
+msgid "Tab %(letter)s · %(count)s"
+msgstr "Karta %(letter)s · %(count)s"
+
+msgid "Tablet"
+msgstr "Tableta"
+
+msgid "Tabs"
+msgstr "Karty"
+
+msgid "Task"
+msgstr "Úkol"
+
+msgid "Tasks"
+msgstr "Úkoly"
+
+msgid "Tasks (.ics)"
+msgstr "Úkoly (.ics)"
+
+msgid ""
+"Tasks can be assigned to people. When printing, you can select one person's "
+"tasks for a specific period, for example each family member's weekly tasks."
+msgstr ""
+"Úkoly lze přiřazovat osobám. Při tisku můžete vybrat úkoly jedné osoby pro "
+"určité období, například týdenní úkoly každého člena rodiny."
+
+msgid "Tasks for this person"
+msgstr "Úkoly pro tuto osobu"
+
+msgid "Tear out page"
+msgstr "Vytrhnout stránku"
+
+msgid "Temperature"
+msgstr "Teplota"
+
+msgid "Test connection"
+msgstr "Ověřit spojení"
+
+msgid "Testing…"
+msgstr "Ověřuje se …"
+
+msgid "Text color"
+msgstr "Barva textu"
+
+msgid "Text formatting"
+msgstr "Formátování textu"
+
+msgid "That did not work."
+msgstr "To se nepodařilo."
+
+msgid "That is not correct."
+msgstr "To není správně."
+
+msgid "The %(count)s note page it contains will be moved to “%(notebook)s”."
+msgid_plural ""
+"The %(count)s note pages it contains will be moved to “%(notebook)s”."
+msgstr[0] "Stránka poznámek %(count)s bude přesunuta do „%(notebook)s“."
+msgstr[1] ""
+"Stránky poznámek %(count)s, které obsahuje, budou přesunuty do "
+"„%(notebook)s“."
+msgstr[2] ""
+"Stránky poznámek %(count)s, které obsahuje, budou přesunuty do "
+"„%(notebook)s“."
+
+msgid ""
+"The DIN template positions the recipient address for a window envelope, "
+"shows your address as a multiline sender block, and adds two fold marks and "
+"a punch mark."
+msgstr ""
+"Šablona DIN umístí adresu příjemce pro obálku s okénkem, zobrazí vaši adresu "
+"jako víceřádkový blok odesílatele a přidá dvě značky přehybu a značku pro "
+"děrování."
+
+msgid "The KDE Connect device to renew is missing."
+msgstr "Chybí zařízení KDE Connect k obnovení."
+
+msgid ""
+"The KDE Connect support is built into the Organizer. Only the KDE Connect "
+"app on Android is required; no additional KDE Connect desktop program is "
+"needed."
+msgstr ""
+"Podpora KDE Connect je zabudována do organizéru. Vyžaduje se pouze aplikace "
+"KDE Connect na Android; není potřeba žádný další desktopový program KDE "
+"Connect."
+
+msgid ""
+"The Lotus CSV uses the original columns VERTRAULICH, KATEGORIEN, "
+"ANFANGSDATUMZEIT, ENDDATUMZEIT, BESCHREIBUNG, KOSTENSTELLENCODE, "
+"KUNDENNUMMER and VORLAEUFIGZUSAGEN."
+msgstr ""
+"Lotus CSV používá původní sloupce VERTRAULICH, KATEGORIEN, ANFANGSDATUMZEIT, "
+"ENDDATUMZEIT, BESCHREIBUNG, KOSTENSTELLENCODE, KUNDENNUMMER a "
+"VORLAEUFIGZUSAGEN."
+
+msgid "The Magnolie Notes phone connection is switched off."
+msgstr "Telefonní spojení Magnolie Notes je vypnuto."
+
+msgid ""
+"The Magnolie manual is installed. It is best to read it through before you "
+"begin. Would you like to open it now?"
+msgstr ""
+"Příručka Magnolie je nainstalována. Nejlepší je přečíst si ji před začátkem. "
+"Chcete ji nyní otevřít?"
+
+msgid "The Magnolie manual is not installed."
+msgstr "Příručka Magnolie není nainstalována."
+
+msgid ""
+"The Magnolie manual is not installed. Version %(version)s can be downloaded "
+"now. Would you like to open the package download?"
+msgstr ""
+"Příručka Magnolie není nainstalována. Verzi %(version)s lze nyní stáhnout. "
+"Chcete otevřít stažení balíčku?"
+
+msgid "The Magnolienbaum is available only in the installed application."
+msgstr "Magnolienbaum je k dispozici pouze v nainstalované aplikaci."
+
+msgid "The ODS export is too large."
+msgstr "Export ODS je příliš velký."
+
+msgid "The Organizer chooses a suitable installed application."
+msgstr "Organizér vybere vhodnou nainstalovanou aplikaci."
+
+msgid ""
+"The Windows Contacts folder is synchronized bidirectionally on the "
+"synchronization page. File imports do not modify their source files; "
+"existing entries are not added twice."
+msgstr ""
+"Složka Windows Contacts je synchronizována obousměrně na stránce "
+"synchronizace. Import souborů nemění jejich zdrojové soubory; existující "
+"položky se nepřidávají dvakrát."
+
+msgid "The Windows entry in the update information is invalid."
+msgstr "Položka Windows v informacích o aktualizaci je neplatná."
+
+msgid "The address could not be opened."
+msgstr "Adresu nelze otevřít."
+
+msgid ""
+"The archive contains the complete application data. The password is "
+"optional; leaving the field empty explicitly creates an unencrypted archive."
+msgstr ""
+"Archiv obsahuje kompletní data aplikace. Heslo je volitelné; ponechání pole "
+"prázdné explicitně vytvoří nezašifrovaný archiv."
+
+msgid ""
+"The archive is encrypted. Enter the password to verify it completely before "
+"importing."
+msgstr ""
+"Archiv je zašifrován. Před importem zadejte heslo pro jeho úplné ověření."
+
+msgid "The attachment range is invalid."
+msgstr "Rozsah přílohy je neplatný."
+
+msgid ""
+"The attachments are too large together. Remove some files; the combined "
+"limit is approximately 18 MB."
+msgstr ""
+"Přílohy jsou dohromady příliš velké. Některé soubory odeberte; společný "
+"limit je přibližně 18 MB."
+
+msgid ""
+"The attachments in this note are too large together. Remove some files; the "
+"combined limit is approximately 18 MB."
+msgstr ""
+"Přílohy v této poznámce jsou dohromady příliš velké. Některé soubory "
+"odeberte; společný limit je přibližně 18 MB."
+
+msgid ""
+"The background reminder service cannot read the encrypted data and remains "
+"silent outside the open organizer."
+msgstr ""
+"Služba připomínek na pozadí nedokáže číst zašifrovaná data a mimo otevřený "
+"organizér proto zůstává tichá."
+
+msgid ""
+"The background reminder service may read the separate reminder data and "
+"therefore works even when the organizer is closed."
+msgstr ""
+"Služba připomínek na pozadí smí číst oddělená data připomínek, a funguje "
+"proto i se zavřeným organizérem."
+
+msgid "The backup could not be created."
+msgstr "Zálohu se nepodařilo vytvořit."
+
+msgid "The backup could not be restored."
+msgstr "Zálohu se nepodařilo obnovit."
+
+msgid "The backup is empty."
+msgstr "Záloha je prázdná."
+
+msgid ""
+"The backup will be stored outside the local data location and is therefore "
+"always encrypted. This password will be required to restore it later:\n"
+"%(path)s"
+msgstr ""
+"Záloha bude uložena mimo místní umístění dat, a proto bude vždy zašifrována. "
+"Toto heslo bude později potřeba k jejímu obnovení:\n"
+"%(path)s"
+
+msgid ""
+"The button in the bottom bar opens the selection for the section you have "
+"open. From there the ticked entries can be printed, exported or moved to the "
+"wastebasket."
+msgstr ""
+"Tlačítko ve spodní liště otevře výběr pro právě otevřenou část. Odtud lze "
+"zaškrtnuté položky tisknout, exportovat nebo přesunout do koše."
+
+msgid "The call is no longer active or has been updated."
+msgstr "Hovor již není aktivní nebo byl aktualizován."
+
+msgid "The call is no longer active."
+msgstr "Hovor již není aktivní."
+
+msgid "The call is no longer ringing or is outdated."
+msgstr "Hovor již nezvoní nebo je zastaralý."
+
+msgid "The call is no longer ringing."
+msgstr "Hovor již nezvoní."
+
+msgid "The clipboard is empty."
+msgstr "Schránka je prázdná."
+
+msgid ""
+"The command is started safely without a shell. Use {nummer} for the selected "
+"number."
+msgstr ""
+"Příkaz se spustí bezpečně bez shellu. Pro vybrané číslo použijte {nummer}."
+
+msgid "The complete archive cannot be used."
+msgstr "Celý archiv nelze použít."
+
+msgid "The complete archive could not be verified."
+msgstr "Úplný archiv nelze ověřit."
+
+msgid "The complete archive is empty."
+msgstr "Celý archiv je prázdný."
+
+msgid "The complete file is stored in this note (up to 8 megabytes)."
+msgstr "V této poznámce je uložen celý soubor (až 8 megabajtů)."
+
+msgid "The connection to the phone was interrupted during pairing."
+msgstr "Spojení s telefonem bylo během párování přerušeno."
+
+msgid "The contact is missing."
+msgstr "Chybí kontakt."
+
+msgid "The content is missing."
+msgstr "Chybí obsah."
+
+msgid "The contributor key is invalid."
+msgstr "Klíč přispěvatele je neplatný."
+
+msgid ""
+"The current data will be backed up first and then completely replaced with "
+"this file:\n"
+"%(path)s"
+msgstr ""
+"Aktuální data budou nejprve zazálohována a poté zcela nahrazena tímto "
+"souborem:\n"
+"%(path)s"
+
+msgid "The current organizer data is incomplete."
+msgstr "Aktuální data organizéru jsou neúplná."
+
+msgid "The data is invalid."
+msgstr "Data jsou neplatná."
+
+msgid "The data is not a JSON object."
+msgstr "Data nejsou objekt JSON."
+
+msgid "The destination could not be opened."
+msgstr "Cíl nelze otevřít."
+
+msgid "The download address is not permitted for this platform."
+msgstr "Adresa ke stažení není pro tuto platformu povolena."
+
+msgid "The end date cannot be before the start date."
+msgstr "Datum konce nemůže být před datem začátku."
+
+msgid "The export data is missing."
+msgstr "Chybí exportní data."
+
+msgid "The file could not be read."
+msgstr "Soubor se nepodařilo přečíst."
+
+msgid "The file has an unsupported format."
+msgstr "Soubor má nepodporovaný formát."
+
+msgid "The file is larger than 8 megabytes."
+msgstr "Soubor je větší než 8 megabajtů."
+
+msgid ""
+"The helper frame marks the control that currently has keyboard focus. This "
+"makes it easier to operate the Organizer with Tab, arrow keys, Enter and "
+"Space. Ctrl+Alt+H switches the frame on or off at any time."
+msgstr ""
+"Pomocný rámeček označuje ovládací prvek, který má právě fokus klávesnice. "
+"Díky tomu se Organizér snáze ovládá klávesami Tab, šipkami, Enter a "
+"mezerníkem. Ctrl+Alt+H rámeček kdykoli zapne nebo vypne."
+
+msgid "The holidays were imported."
+msgstr "Svátky byly importovány."
+
+msgid "The holidays were removed."
+msgstr "Svátky byly odstraněny."
+
+msgid "The import file is larger than 32 megabytes."
+msgstr "Importovaný soubor je větší než 32 megabajtů."
+
+msgid ""
+"The information is retrieved once from the open directory openholidaysapi."
+"org and then kept in the organizer. The application therefore needs an "
+"internet connection only once."
+msgstr ""
+"Informace se jednou načtou z otevřeného adresáře openholidaysapi.org a poté "
+"zůstanou v organizéru. Aplikace proto potřebuje připojení k internetu jen "
+"jednou."
+
+msgid "The last notebook cannot be deleted."
+msgstr "Poslední zápisník nelze odstranit."
+
+msgid "The last notebook group cannot be deleted."
+msgstr "Poslední skupinu zápisníků nelze odstranit."
+
+msgid "The letter was created but could not be opened."
+msgstr "Dopis byl vytvořen, ale nešel otevřít."
+
+msgid "The locked data cannot be backed up."
+msgstr "Zamčená data nelze zálohovat."
+
+msgid "The log could not be opened."
+msgstr "Protokol se nepodařilo otevřít."
+
+msgid "The log folder could not be opened."
+msgstr "Složku protokolu nelze otevřít."
+
+msgid "The log is available only in the installed application."
+msgstr "Protokol je k dispozici pouze v nainstalované aplikaci."
+
+msgid ""
+"The log records when the reminder service checked and what it reported. "
+"Entries older than 30 days are removed automatically, and the log never "
+"exceeds 200 lines."
+msgstr ""
+"Protokol zaznamenává, kdy služba připomínek provedla kontrolu a co oznámila. "
+"Položky starší než 30 dní se automaticky odstraňují a protokol nikdy "
+"nepřesáhne 200 řádků."
+
+msgid "The mailbox is reachable."
+msgstr "Schránka je dostupná."
+
+msgid "The manual could not be opened."
+msgstr "Příručku se nepodařilo otevřít."
+
+msgid "The manual download is available only in the installed application."
+msgstr "Stažení příručky je k dispozici pouze v nainstalované aplikaci."
+
+msgid "The manual download request is no longer valid."
+msgstr "Požadavek na ruční stažení již není platný."
+
+msgid "The manual is installed; its version is unknown."
+msgstr "Manuál je nainstalován; jeho verze není známa."
+
+msgid "The manual is up to date."
+msgstr "Manuál je aktuální."
+
+msgid "The manual package checksum does not match."
+msgstr "Kontrolní součet ručního balíčku se neshoduje."
+
+msgid "The manual package could not be opened."
+msgstr "Balíček příručky se nepodařilo otevřít."
+
+msgid "The manual package is unexpectedly large."
+msgstr "Balení manuálu je nečekaně velké."
+
+msgid "The manual update check failed."
+msgstr "Ruční kontrola aktualizací se nezdařila."
+
+msgid "The manual update information is invalid."
+msgstr "Informace o ruční aktualizaci jsou neplatné."
+
+msgid "The manual update information is missing."
+msgstr "Chybí informace o ruční aktualizaci."
+
+msgid "The offered entry is incomplete."
+msgstr "Nabízená položka je neúplná."
+
+msgid "The organizer is not currently reminding you about appointments."
+msgstr "Organizér vás nyní na schůzky neupozorňuje."
+
+msgid ""
+"The organizer notifies you before an appointment begins, even when the "
+"application is not open if you wish."
+msgstr ""
+"Organizér vás před začátkem schůzky upozorní a na přání i tehdy, když "
+"aplikace není otevřená."
+
+msgid "The package could not be opened."
+msgstr "Balíček se nepodařilo otevřít."
+
+msgid "The pairing file could not be processed."
+msgstr "Párovací soubor se nepodařilo zpracovat."
+
+msgid "The pairing file is damaged."
+msgstr "Párovací soubor je poškozený."
+
+msgid "The pairing file is empty."
+msgstr "Párovací soubor je prázdný."
+
+msgid "The pairing file is too large."
+msgstr "Párovací soubor je příliš velký."
+
+msgid "The password must contain at least four characters."
+msgstr "Heslo musí obsahovat alespoň čtyři znaky."
+
+msgid ""
+"The permanent KDE listener cannot start because PyOpenSSL is unavailable."
+msgstr ""
+"Trvalý posluchač KDE nelze spustit, protože PyOpenSSL není k dispozici."
+
+msgid ""
+"The permanent KDE listener cannot start because UDP port 1716 is already in "
+"use."
+msgstr ""
+"Trvalý posluchač KDE nelze spustit, protože port UDP 1716 je již používán."
+
+msgid ""
+"The permanent KDE listener cannot start because no TCP port from 1716 to "
+"1764 is available."
+msgstr ""
+"Trvalý posluchač KDE nelze spustit, protože není k dispozici žádný port TCP "
+"z 1716 na 1764."
+
+msgid "The permanent KDE listener has not started yet."
+msgstr "Stálý posluchač KDE se ještě nespustil."
+
+msgid "The permanent KDE listener is stopped."
+msgstr "Trvalý posluchač KDE je zastaven."
+
+msgid "The permanent personal synchronization commit was rejected."
+msgstr "Trvalé potvrzení osobní synchronizace bylo odmítnuto."
+
+msgid "The personal synchronization attachment identity does not match."
+msgstr "Osobní identita přílohy synchronizace se neshoduje."
+
+msgid "The personal synchronization attachment source is incomplete."
+msgstr "Zdroj osobní synchronizační přílohy je neúplný."
+
+msgid "The personal synchronization attachment sources are incomplete."
+msgstr "Zdroje osobních příloh synchronizace jsou neúplné."
+
+msgid "The personal synchronization batch was not saved permanently."
+msgstr "Dávka osobní synchronizace nebyla uložena trvale."
+
+msgid "The personal synchronization commit could not be confirmed."
+msgstr "Osobní potvrzení synchronizace nebylo možné potvrdit."
+
+msgid "The personal synchronization commit token is missing."
+msgstr "Chybí osobní token potvrzení synchronizace."
+
+msgid "The personal synchronization request is missing."
+msgstr "Chybí požadavek na osobní synchronizaci."
+
+msgid "The personal synchronization result is invalid."
+msgstr "Výsledek osobní synchronizace je neplatný."
+
+msgid "The personal synchronization run does not match."
+msgstr "Spuštění osobní synchronizace se neshoduje."
+
+msgid "The personal synchronization run has expired."
+msgstr "Osobní synchronizace vypršela."
+
+msgid "The phone connection is available only in the installed application."
+msgstr "Výběr složky je dostupný pouze v nainstalované aplikaci."
+
+msgid "The phone function is not permitted or available."
+msgstr "Funkce telefonu není povolena ani dostupná."
+
+msgid "The phone is not connected via WLAN."
+msgstr "Telefon není připojen přes WLAN."
+
+msgid "The phone is not paired."
+msgstr "Telefon není spárovaný."
+
+msgid "The phone is reachable, but its KDE Connect trust no longer matches."
+msgstr "Telefon je dostupný, ale jeho důvěra KDE Connect již neodpovídá."
+
+msgid "The phone operation failed."
+msgstr "Operace telefonu se nezdařila."
+
+msgid ""
+"The phone sent a message unknown to this phone protocol. Organizer and "
+"Magnolie Notes must use the same protocol version."
+msgstr ""
+"Telefon odeslal zprávu neznámou tomuto protokolu telefonu. Organizátor a "
+"Magnolie Notes musí používat stejnou verzi protokolu."
+
+msgid "The phone settings are damaged."
+msgstr "Nastavení telefonu je poškozeno."
+
+msgid "The phone was not specified."
+msgstr "Telefon nebyl specifikován."
+
+msgid "The photo could not be read."
+msgstr "Fotografii se nepodařilo přečíst."
+
+msgid "The photo is larger than 8 megabytes."
+msgstr "Fotografie je větší než 8 megabajtů."
+
+msgid "The port must be between 1 and 65535."
+msgstr "Port musí být mezi 1 a 65535."
+
+msgid "The public address could not be determined."
+msgstr "Veřejnou adresu se nepodařilo zjistit."
+
+msgid "The recovery snapshot reason is invalid."
+msgstr "Důvod snímku obnovení je neplatný."
+
+msgid "The recycle bin is empty."
+msgstr "Koš je prázdný."
+
+msgid "The recycle bin was emptied."
+msgstr "Koš byl vyprázdněn."
+
+msgid "The required recovery snapshot could not be created."
+msgstr "Požadovaný snímek obnovení nelze vytvořit."
+
+msgid ""
+"The same code must appear on both computers:\n"
+"\n"
+"%(code)s\n"
+"\n"
+"Other branch: %(branch)s\n"
+"Fingerprint: %(fingerprint)s\n"
+"\n"
+"Does the code match?"
+msgstr ""
+"Na obou počítačích se musí zobrazit stejný kód:\n"
+"\n"
+"%(code)s\n"
+"\n"
+"Druhá větev: %(branch)s\n"
+"Otisk: %(fingerprint)s\n"
+"\n"
+"Souhlasí kód?"
+
+msgid "The save request is invalid."
+msgstr "Požadavek na uložení je neplatný."
+
+msgid "The selected contacts contain no values for these columns."
+msgstr "Vybrané kontakty neobsahují pro tyto sloupce žádné hodnoty."
+
+msgid "The selected health records contain no printable values."
+msgstr "Vybrané zdravotní záznamy neobsahují žádné hodnoty vhodné k tisku."
+
+msgid ""
+"The server operator can see the account, folder and file names, sizes and "
+"times of your messages."
+msgstr ""
+"Provozovatel serveru vidí účet, názvy složek a souborů, velikosti a časy "
+"vašich zpráv."
+
+msgid ""
+"The sheet appears at the edge of the screen, accompanied by the Magnolie "
+"chime."
+msgstr "List se objeví u okraje obrazovky spolu se zvukem Magnolie."
+
+msgid ""
+"The small uniform icons open an installed application when possible. "
+"Otherwise, a secure web service is used in the browser."
+msgstr ""
+"Malé jednotné ikony otevřou nainstalovanou aplikaci, pokud je to možné. "
+"Jinak se v prohlížeči použije zabezpečená webová služba."
+
+msgid "The snapshot operation failed."
+msgstr "Operace snímku se nezdařila."
+
+msgid "The spreadsheet was created but could not be opened."
+msgstr "Tabulka byla vytvořena, ale nelze ji otevřít."
+
+msgid "The start date must not be after the end date."
+msgstr "Počáteční datum nesmí být pozdější než koncové datum."
+
+msgid "The synchronization data is missing."
+msgstr "Chybí synchronizační data."
+
+msgid "The system dialer opens on the phone. Confirm the call there."
+msgstr "Na telefonu se otevře systémový číselník. Potvrďte hovor tam."
+
+msgid ""
+"The task will be sent to the selected branch. It will also remain here so "
+"you can keep track of it."
+msgstr ""
+"Úkol bude odeslán vybrané větvi. Zůstane také zde, abyste jej mohli dál "
+"sledovat."
+
+msgid ""
+"The traffic-light colors are general reference ranges for adults, not a "
+"diagnosis. Check abnormal readings and discuss them with a doctor; seek "
+"immediate medical help for severe symptoms."
+msgstr ""
+"Barvy semaforu představují obecná referenční rozmezí pro dospělé, nikoli "
+"diagnózu. Abnormální hodnoty zkontrolujte a konzultujte s lékařem; při "
+"závažných příznacích okamžitě vyhledejte lékařskou pomoc."
+
+msgid "The tray applet is not available on this system."
+msgstr "Applet oznamovací oblasti není v tomto systému k dispozici."
+
+msgid "The two entries do not match."
+msgstr "Tyto dvě položky se neshodují."
+
+msgid "The two new passwords do not match."
+msgstr "Dvě nová hesla se neshodují."
+
+msgid "The update check failed."
+msgstr "Kontrola aktualizací se nezdařila."
+
+msgid "The update information is unexpectedly large."
+msgstr "Informace o aktualizaci jsou neočekávaně velké."
+
+msgid "The user data could not be read."
+msgstr "Uživatelská data se nepodařilo přečíst."
+
+msgid "The value is outside the general green reference range."
+msgstr "Hodnota je mimo obecné zelené referenční rozmezí."
+
+msgid "The verified installer could not be opened."
+msgstr "Ověřený instalační program nelze otevřít."
+
+msgid ""
+"The weather service estimated the location from your public IP address. Your "
+"own address in Contacts provides a more precise location."
+msgstr ""
+"Služba počasí odhadla polohu z vaší veřejné IP adresy. Vlastní adresa v "
+"Kontaktech poskytne přesnější polohu."
+
+msgid "The weather service returned no forecast."
+msgstr "Služba počasí nevrátila žádnou předpověď."
+
+msgid ""
+"The year calendar shows all twelve months; the month calendar provides more "
+"room for entries."
+msgstr ""
+"Roční kalendář zobrazuje všech dvanáct měsíců; měsíční kalendář nabízí více "
+"místa pro položky."
+
+msgid "There are no entries to export yet."
+msgstr "Zatím nejsou žádné položky k exportu."
+
+msgid "There are no entries."
+msgstr "Nejsou žádné položky."
+
+msgid "There are no holidays in the organizer for this selection yet."
+msgstr "Pro tento výběr zatím v organizéru nejsou žádné svátky."
+
+msgid "There are no saved entries on this page."
+msgstr "Na této stránce nejsou žádné uložené záznamy."
+
+msgid "There are too many personal synchronization attachments."
+msgstr "Existuje příliš mnoho osobních synchronizačních příloh."
+
+msgid "There is no notebook in this group yet."
+msgstr "V této skupině zatím není žádný zápisník."
+
+msgid ""
+"There is nothing scheduled in this period.\n"
+"Click a day on the left to add an appointment."
+msgstr ""
+"V tomto období není nic naplánováno.\n"
+"Kliknutím na den vlevo přidejte schůzku."
+
+msgid "There is nothing to print."
+msgstr "Není co tisknout."
+
+msgid ""
+"These options require the matching permissions in Magnolie Notes. Call audio "
+"is not sent over the Magnolie data connection."
+msgstr ""
+"Tyto volby vyžadují odpovídající oprávnění v Magnolie Notes. Zvuk hovoru se "
+"přes datové připojení Magnolie nepřenáší."
+
+msgid "This address can be selected and copied."
+msgstr "Tuto adresu lze vybrat a zkopírovat."
+
+msgid "This answer request has already been queued."
+msgstr "Tato žádost o odpověď již byla zařazena do fronty."
+
+msgid "This appointment will appear every %(weekday)s."
+msgstr "Tato schůzka se bude opakovat každý %(weekday)s."
+
+msgid "This appointment will appear every day."
+msgstr "Tato událost se zobrazí každý den."
+
+msgid "This appointment will appear every year on %(month)s %(day)s."
+msgstr "Tato schůzka se bude každý rok opakovat %(day)s. %(month)s."
+
+msgid ""
+"This appointment will appear on day %(day)s of every month. In shorter "
+"months, it moves to the last day."
+msgstr ""
+"Tato schůzka se bude opakovat %(day)s. den každého měsíce. V kratších "
+"měsících se přesune na poslední den."
+
+msgid "This backup cannot be used."
+msgstr "Tuto zálohu nelze použít."
+
+msgid ""
+"This choice also determines how names appear on contact cards and under "
+"which letter they are filed in the index."
+msgstr ""
+"Tato volba také určuje, jak se jména zobrazují na kartách kontaktů a pod "
+"kterým písmenem se řadí v rejstříku."
+
+msgid "This dial request has already been queued."
+msgstr "Tento požadavek na vytáčení již byl zařazen do fronty."
+
+msgid "This end-call request has already been queued."
+msgstr "Tento požadavek na koncový hovor již byl zařazen do fronty."
+
+msgid "This export format is not yet available on Windows."
+msgstr "Tento formát exportu zatím není na Windows dostupný."
+
+msgid "This image format cannot be used."
+msgstr "Tento formát obrázku nelze použít."
+
+msgid "This import format is not yet available on Windows."
+msgstr "Tento formát importu zatím není na Windows dostupný."
+
+msgid "This is available only in the installed application."
+msgstr "Tato funkce je k dispozici pouze v nainstalované aplikaci."
+
+msgid "This is how the organizer reminds you about an appointment."
+msgstr "Takto vám organizér připomene schůzku."
+
+msgid ""
+"This is how your notes look: <b>bold</b>, <i>italic</i>, <u>underlined</u> "
+"and <s>struck through</s>."
+msgstr ""
+"Takto vypadají vaše poznámky: <b>tučně</b>, <i>kurzívou</i>, <u>podtrženě</"
+"u> a <s>přeškrtnutě</s>."
+
+msgid ""
+"This is one occurrence of a recurring appointment. Changes apply to all "
+"occurrences in this series."
+msgstr ""
+"Toto je jeden výskyt opakované schůzky. Změny se použijí na všechny výskyty "
+"v této řadě."
+
+msgid ""
+"This is only the encrypted Magnolienbaum fallback for baum-1. It does not "
+"synchronize calendars or contacts. Both partners need access to the same "
+"Nextcloud storage."
+msgstr ""
+"Toto je pouze šifrovaná záložní cesta Magnolienbaum pro baum-1. "
+"Nesynchronizuje kalendáře ani kontakty. Oba partneři potřebují přístup ke "
+"stejnému úložišti Nextcloud."
+
+msgid ""
+"This leaves time to get something, followed by another reminder on the day "
+"itself. For example: “Max Mustermann has a birthday tomorrow” and the next "
+"day “Max Mustermann has a birthday today”. Anniversary reminders are shown "
+"in the morning."
+msgstr ""
+"Zůstane tak čas něco obstarat a v samotný den přijde další připomínka. "
+"Například: „Max Mustermann má zítra narozeniny“ a následující den „Max "
+"Mustermann má dnes narozeniny“. Připomínky výročí se zobrazují ráno."
+
+msgid "This notebook is still empty."
+msgstr "Tento zápisník je stále prázdný."
+
+msgid "This paired phone is my own device"
+msgstr "Tento spárovaný telefon je moje vlastní zařízení"
+
+msgid "This person's anniversaries"
+msgstr "Výročí této osoby"
+
+msgid ""
+"This program is free software: you may redistribute and modify it. It is "
+"published in the hope that it will be useful, but without any warranty."
+msgstr ""
+"Tento program je svobodný software: můžete jej dále distribuovat a "
+"upravovat. Je zveřejněn v naději, že bude užitečný, ale bez jakékoli záruky."
+
+msgid "This setting applies when you restore the window from the tray menu."
+msgstr ""
+"Toto nastavení se použije při obnovení okna z nabídky oznamovací oblasti."
+
+msgid "This status comes from Magnolie Notes, not KDE Connect."
+msgstr "Tento stav pochází z Magnolie Notes, nikoli z KDE Connect."
+
+msgid ""
+"This system did not allow waking from suspend. The reminder will appear as "
+"soon as the computer is running again."
+msgstr ""
+"Tento systém neumožnil probuzení z uspání. Připomínka se zobrazí, jakmile "
+"bude počítač znovu spuštěný."
+
+msgid "This task came from “%(branch)s”."
+msgstr "Tento úkol pochází z „%(branch)s“."
+
+msgid "Through"
+msgstr "Do"
+
+msgid "Thurgau"
+msgstr "Thurgau"
+
+msgid "Thuringia"
+msgstr "Durynsko"
+
+msgid "Thursday"
+msgstr "Čtvrtek"
+
+msgid "Thyroid"
+msgstr "Štítná žláza"
+
+msgid "Ticino"
+msgstr "Ticino"
+
+msgid "Time"
+msgstr "Čas"
+
+msgid "Title"
+msgstr "Název"
+
+msgid "To"
+msgstr "Do"
+
+msgid ""
+"To change it, enter only the new password; the organizer is already unlocked."
+msgstr ""
+"Chcete-li heslo změnit, zadejte pouze nové heslo; organizér je již odemčený."
+
+msgid "Today"
+msgstr "Dnes"
+
+msgid "Today is %(date)s"
+msgstr "Dnes je %(date)s"
+
+msgid "Tomorrow"
+msgstr "Zítra"
+
+msgid "Too many failed attempts – wait %(duration)s."
+msgstr "Příliš mnoho neúspěšných pokusů – počkejte %(duration)s."
+
+msgid "Too many failed attempts. Wait a moment."
+msgstr "Příliš mnoho neúspěšných pokusů. Chvíli počkejte."
+
+msgid "Tray applet"
+msgstr "Applet oznamovací oblasti"
+
+msgid "Trust and accept tasks and notes automatically"
+msgstr "Důvěřovat a automaticky přijímat úkoly a poznámky"
+
+msgid "Tuesday"
+msgstr "Úterý"
+
+msgid "Turn back"
+msgstr "Vrátit zpět"
+
+msgid "Turn forward"
+msgstr "Posunout vpřed"
+
+msgid "Two days back"
+msgstr "O dva dny zpět"
+
+msgid "Two days forward"
+msgstr "O dva dny vpřed"
+
+msgid "Type"
+msgstr "Typ"
+
+msgid "Typeface"
+msgstr "Písmo"
+
+msgid "Typography"
+msgstr "Typografie"
+
+msgid "Typography for your entries"
+msgstr "Typografie vašich položek"
+
+msgid "Tyrol"
+msgstr "Tyrolsko"
+
+msgid "U"
+msgstr "U"
+
+msgid "URI"
+msgstr "URI"
+
+msgid "Unavailable"
+msgstr "Unavailable"
+
+msgid ""
+"Under Wayland, the compositor determines the exact window position; "
+"centering and maximizing are passed on as requests."
+msgstr ""
+"V prostředí Wayland určuje přesnou polohu okna kompozitor; vycentrování a "
+"maximalizace se předávají pouze jako požadavky."
+
+msgid "Underline"
+msgstr "Podtržení"
+
+msgid "Unit"
+msgstr "Jednotka"
+
+msgid "Unknown"
+msgstr "Neznámý"
+
+msgid "Unknown caller"
+msgstr "Neznámý volající"
+
+msgid "Unknown error"
+msgstr "Neznámá chyba"
+
+msgid "Unknown phone"
+msgstr "Neznámý koncový bod."
+
+msgid "Unlink"
+msgstr "Odpojit"
+
+msgid "Unlock"
+msgstr "Odemknout"
+
+msgid "Unlock Magnolie Organizer"
+msgstr "Odemknout Magnolie Organizer"
+
+msgid "Unsupported alarm"
+msgstr "Nepodporované upozornění"
+
+msgid "Until (leave blank for no end)"
+msgstr "Do (ponechte prázdné bez konce)"
+
+msgid "Untitled"
+msgstr "Bez názvu"
+
+msgid "Untitled appointment"
+msgstr "Schůzka bez názvu"
+
+msgid "Update checking is available in the installed application."
+msgstr "Kontrola aktualizací je dostupná v nainstalované aplikaci."
+
+msgid "Update checking is available only in the installed application."
+msgstr "Kontrola aktualizací je dostupná pouze v nainstalované aplikaci."
+
+msgid "Update weather"
+msgstr "Aktualizovat počasí"
+
+msgid "Updates"
+msgstr "Aktualizace"
+
+msgid "Upper Austria"
+msgstr "Horní Rakousy"
+
+msgid "Uptime"
+msgstr "Uptime"
+
+msgid "Uri"
+msgstr "URI"
+
+msgid "Use a specific application or command"
+msgstr "Použít konkrétní aplikaci nebo příkaz"
+
+msgid "Use a specific website"
+msgstr "Použít konkrétní webovou stránku"
+
+msgid "Use basal units"
+msgstr "Použít bazální jednotky"
+
+msgid "Use contact addresses"
+msgstr "Použít adresy kontaktu"
+
+msgid "Use default"
+msgstr "Použít výchozí"
+
+msgid "Use numeric keypad"
+msgstr "Používat numerickou klávesnici"
+
+msgid ""
+"Use only schedules prescribed or confirmed by a healthcare professional."
+msgstr ""
+"Používejte pouze rozvrhy předepsané nebo potvrzené zdravotnickým pracovníkem."
+
+msgid ""
+"Use the arrows to arrange groups and notebooks, or use the selection to move "
+"a notebook to another group."
+msgstr ""
+"Pomocí šipek uspořádejte skupiny a zápisníky nebo pomocí výběru přesuňte "
+"zápisník do jiné skupiny."
+
+msgid "Use the mailbox as a fallback for branch baum-1"
+msgstr "Použít schránku jako záložní cestu pro větev baum-1"
+
+msgid ""
+"Use the mouse wheel to change the time in 5-minute steps (hold Shift for "
+"whole hours)"
+msgstr "Kolečkem myši měníte čas po 5 minutách (se Shiftem po celých hodinách)"
+
+msgid "Use the recycle bin"
+msgstr "Používat koš"
+
+msgid "User name"
+msgstr "Uživatelské jméno"
+
+msgid ""
+"Uses its own identity and storage and listens only on fixed port %(port)s. "
+"It never uses Magnolienbaum partners, permissions, queues or Bluetooth "
+"identity."
+msgstr ""
+"Používá svou vlastní identitu a úložiště a naslouchá pouze na pevném portu "
+"%(port)s. Nikdy nepoužívá partnery Magnolienbaum, oprávnění, fronty nebo "
+"identitu Bluetooth."
+
+msgid "Vacation"
+msgstr "Dovolená"
+
+msgid ""
+"Vacation periods are local calendar markings. They do not send notifications "
+"and can be included separately when printing the planner."
+msgstr ""
+"Období dovolené jsou místní značky v kalendáři. Neodesílají oznámení a při "
+"tisku plánovače je lze zahrnout samostatně."
+
+msgid "Vacation planner"
+msgstr "Plánovač dovolené"
+
+msgid "Valais"
+msgstr "Valais"
+
+msgid "Value"
+msgstr "Hodnota"
+
+msgid "Vaud"
+msgstr "Vaud"
+
+msgid ""
+"Verified archive\n"
+"Source: %(source)s\n"
+"Created: %(created)s\n"
+"Application entries: %(entries)s\n"
+"Photos: %(photos)s, attachments: %(attachments)s\n"
+"\n"
+"The current data is backed up locally and then completely replaced."
+msgstr ""
+"Ověřený archiv\n"
+"Zdroj: %(source)s\n"
+"Vytvořeno: %(created)s\n"
+"Záznamy aplikace: %(entries)s\n"
+"Fotografie: %(photos)s, přílohy: %(attachments)s\n"
+"\n"
+"Aktuální data jsou lokálně zálohována a poté kompletně nahrazena."
+
+msgid "Verify after downloading with: %(command)s"
+msgstr "Po stažení ověřte pomocí: %(command)s"
+
+msgid "Verify archive"
+msgstr "Ověřte archiv"
+
+msgid "Version %(version)s"
+msgstr "Verze %(version)s"
+
+msgid "Version %(version)s is up to date. Last checked: %(date)s."
+msgstr "Verze %(version)s je aktuální. Poslední kontrola: %(date)s."
+
+msgid "Via internet"
+msgstr "Přes internet"
+
+msgid "Vienna"
+msgstr "Vídeň"
+
+msgid "View and edit appointment"
+msgstr "Zobrazit a upravit schůzku"
+
+msgid "Vital signs"
+msgstr "Životní funkce"
+
+msgid "Vital signs table"
+msgstr "Tabulka životních funkcí"
+
+msgid "Vorarlberg"
+msgstr "Vorarlbersko"
+
+msgid ""
+"WLAN has priority. Bluetooth data starts only after WLAN failure and carries "
+"the same encrypted phone frames."
+msgstr ""
+"WLAN má přednost. Data Bluetooth se spouští až po selhání WLAN a přenášejí "
+"stejné šifrované rámce telefonu."
+
+msgid "WLAN listener on port %(port)s"
+msgstr "Posluchač WLAN na portu %(port)s"
+
+msgid "Waiting for consent on the other device."
+msgstr "Čeká se na souhlas na druhém zařízení."
+
+msgid "Waiting for device status"
+msgstr "Čekání na stav zařízení"
+
+msgid ""
+"Waiting for the phone on port %(port)s. Pairing closes after %(seconds)s "
+"seconds."
+msgstr ""
+"Čekání na telefon na portu %(port)s. Párování skončí po %(seconds)s "
+"sekundách."
+
+msgid "Wake the computer from suspend"
+msgstr "Probudit počítač z uspání"
+
+msgid "Warning: The data could not be saved."
+msgstr "Varování: Data se nepodařilo uložit."
+
+msgid "Waste collection calendar"
+msgstr "Kalendář svozu odpadu"
+
+msgid "We are glad you are here!"
+msgstr "Jsme rádi, že jste tady!"
+
+msgid "Weather"
+msgstr "Počasí"
+
+msgid "Weather display"
+msgstr "Zobrazení počasí"
+
+msgid "Weather for the next three days"
+msgstr "Počasí na příští tři dny"
+
+msgid "Weather is available in the installed application."
+msgstr "Počasí je dostupné v nainstalované aplikaci."
+
+msgid ""
+"Weather requests are sent to wttr.in. Your own address in Contacts is used "
+"first, followed by local LibreOffice user data. If neither contains a "
+"location and retrieval without one is allowed, wttr.in estimates the "
+"location from your internet connection's public IP address."
+msgstr ""
+"Požadavky na počasí se odesílají na wttr.in. Nejprve se použije vaše vlastní "
+"adresa v Kontaktech, potom místní uživatelské údaje LibreOffice. Pokud ani "
+"jedno neobsahuje polohu a je povoleno načítání bez ní, wttr.in odhadne "
+"polohu z veřejné IP adresy vašeho internetového připojení."
+
+msgid "Weather was not retrieved because no location is available."
+msgstr "Počasí nebylo načteno, protože není k dispozici poloha."
+
+msgid "Wedding anniversary"
+msgstr "Výročí svatby"
+
+msgid "Wednesday"
+msgstr "Středa"
+
+msgid "Week"
+msgstr "Týden"
+
+msgid "Week %(number)s"
+msgstr "Týden %(number)s"
+
+msgid "Week numbers"
+msgstr "Čísla týdnů"
+
+msgid "Weekly"
+msgstr "Týdně"
+
+msgid "Weekly variation for %(name)s"
+msgstr "Týdenní odchylka pro %(name)s"
+
+msgid "Weekly view"
+msgstr "Týdenní zobrazení"
+
+msgid "Weight"
+msgstr "Hmotnost"
+
+msgid "Welcome ✱"
+msgstr "Vítejte ✱"
+
+msgid "What is it about?"
+msgstr "O co jde?"
+
+msgid "What needs to be done?"
+msgstr "Co je třeba udělat?"
+
+msgid ""
+"When disabled, dates can still be entered as eight digits in day, month and "
+"four-digit year order."
+msgstr ""
+"Je-li tato volba vypnutá, lze datum stále zadat jako osm číslic v pořadí "
+"den, měsíc a čtyřmístný rok."
+
+msgid ""
+"When disabled, you write on plain paper. Line spacing remains the same; only "
+"the lines disappear."
+msgstr ""
+"Je-li tato volba vypnutá, píšete na čistý papír. Řádkování zůstane stejné; "
+"zmizí pouze linky."
+
+msgid "When opening from the tray"
+msgstr "Při otevření z oznamovací oblasti"
+
+msgid ""
+"When selected, you can assign a photo to each person. Embedded photos are "
+"preserved during import, export and synchronization with an online address "
+"book. Email addresses on contact cards are always clickable and open your "
+"mail application."
+msgstr ""
+"Je-li tato volba vybraná, můžete každé osobě přiřadit fotografii. Vložené "
+"fotografie se zachovají při importu, exportu i synchronizaci s online "
+"adresářem. E-mailové adresy na kartách kontaktů jsou vždy klikatelné a "
+"otevřou vaši poštovní aplikaci."
+
+msgid ""
+"When writing a note, a small toolbar above the sheet provides bold, italic, "
+"underline and strikethrough. The same formatting is available with Ctrl+B, "
+"Ctrl+I, Ctrl+U and Ctrl+D."
+msgstr ""
+"Při psaní poznámky nabízí malý panel nástrojů nad listem tučné písmo, "
+"kurzívu, podtržení a přeškrtnutí. Stejné formátování je dostupné pomocí "
+"Ctrl+B, Ctrl+I, Ctrl+U a Ctrl+D."
+
+msgid "Whole month"
+msgstr "Celý měsíc"
+
+msgid "Wife"
+msgstr "Manželka"
+
+msgid "Windows Contacts folder"
+msgstr "složka Windows Contacts"
+
+msgid "Wireless"
+msgstr "Wireless"
+
+msgid ""
+"With a password or numeric code, the organizer asks for it when opening and "
+"stores your data only in encrypted form in your home directory (AES-256)."
+msgstr ""
+"S heslem nebo číselným kódem si je organizér při otevření vyžádá a vaše data "
+"ukládá v domovské složce pouze zašifrovaně (AES-256)."
+
+msgid "With photo"
+msgstr "S fotografií"
+
+msgid ""
+"Without a shell; {ziel}, {wert}, and {nummer} can be used as placeholders. "
+"Flatpak and Snap can be selected as flatpak:APP-ID or snap:Name."
+msgstr ""
+"Bez shellu; {ziel}, {wert} a {nummer} lze použít jako zástupné symboly. "
+"Flatpak a Snap lze zadat jako flatpak:APP-ID nebo snap:Name."
+
+msgid ""
+"Without this second selection, the background reminder service does not show "
+"notifications for confidential appointments."
+msgstr ""
+"Bez této druhé volby nebude služba připomínek na pozadí zobrazovat oznámení "
+"pro důvěrné schůzky."
+
+msgid "Work"
+msgstr "Práce"
+
+msgid "Work address"
+msgstr "Pracovní adresa"
+
+msgid "Work anniversary"
+msgstr "Pracovní výročí"
+
+msgid "Work phone"
+msgstr "Pracovní telefon"
+
+msgid "Workgroup (all)"
+msgstr "Pracovní skupina (všichni)"
+
+msgid "Workshop appointment"
+msgstr "Schůzka v dílně"
+
+msgid "Write a message to %(address)s"
+msgstr "Napsat zprávu na %(address)s"
+
+msgid "Write an SMS using KDE Connect or the assigned application"
+msgstr "Napište SMS pomocí KDE Connect nebo přiřazené aplikace"
+
+msgid "Write here …"
+msgstr "Pište sem …"
+
+msgid "Writing sheet"
+msgstr "Psací list"
+
+msgid "X (formerly Twitter)"
+msgstr "X (dříve Twitter)"
+
+msgid "Year"
+msgstr "Rok"
+
+msgid "Year calendar"
+msgstr "Roční kalendář"
+
+msgid "Year planner %(year)s"
+msgstr "Roční plánovač %(year)s"
+
+msgid "Yes"
+msgstr "Yes"
+
+msgid "Yes, merge"
+msgstr "Ano, sloučit"
+
+msgid "Yes, the code matches"
+msgstr "Ano, kód souhlasí"
+
+msgid "Your address"
+msgstr "Vaše adresa"
+
+msgid "Your address above is used as the starting point."
+msgstr "Vaše výše uvedená adresa se používá jako výchozí bod."
+
+msgid "Your data from “Organizer Klassik” has been imported."
+msgstr "Vaše data z „Organizer Klassik“ byla importována."
+
+msgid ""
+"Your data is stored at:\n"
+"%(path)s"
+msgstr ""
+"Vaše data jsou uložena v:\n"
+"%(path)s"
+
+msgid "Your data is stored at: %(path)s"
+msgstr "Vaše data jsou uložena v: %(path)s"
+
+msgid ""
+"Your own address is required as the starting point for a route. Enter it "
+"under Settings ▸ Contacts."
+msgstr ""
+"Vaše vlastní adresa je nutná jako výchozí bod trasy. Zadejte ji v Nastavení "
+"▸ Kontakty."
+
+msgid "Zug"
+msgstr "Zug"
+
+msgid "Zurich"
+msgstr "Curych"
+
+msgid "after 30 days"
+msgstr "po 30 dnech"
+
+msgid "after 7 days"
+msgstr "po 7 dnech"
+
+msgid "after 90 days"
+msgstr "po 90 dnech"
+
+msgid "after one year"
+msgstr "po jednom roce"
+
+msgid "all cantons"
+msgstr "všechny kantony"
+
+msgid "all day"
+msgstr "celý den"
+
+msgid "all states"
+msgstr "všechny spolkové země"
+
+msgid "also remind me about it"
+msgstr "připomenout mi to také"
+
+msgid "and"
+msgstr "a"
+
+msgid "and %(count)s more"
+msgid_plural "and %(count)s more"
+msgstr[0] "a ještě %(count)s další"
+msgstr[1] "a ještě %(count)s další"
+msgstr[2] "a ještě %(count)s dalších"
+
+msgid "app password from Nextcloud"
+msgstr "heslo aplikace z Nextcloudu"
+
+msgid "application {ziel}"
+msgstr "aplikace {ziel}"
+
+msgid "at %(time)s"
+msgstr "v %(time)s"
+
+msgid "at least four characters"
+msgstr "alespoň čtyři znaky"
+
+msgid "at the appointment time"
+msgstr "v čase schůzky"
+
+msgid "before start"
+msgstr "před začátkem"
+
+msgid "blood-glucose"
+msgstr "blood-glucose"
+
+msgid "browser storage"
+msgstr "úložiště prohlížeče"
+
+msgid "confidential"
+msgstr "důvěrné"
+
+msgid "confirmed"
+msgstr "potvrzeno"
+
+msgid "days"
+msgstr "dny"
+
+msgid "days before"
+msgstr "dní předem"
+
+msgid "due %(date)s"
+msgstr "termín %(date)s"
+
+msgid "due by %(date)s"
+msgstr "termín do %(date)s"
+
+msgid "due from"
+msgstr "termín od"
+
+msgid "e.g. 1 day before"
+msgstr "např. 1 den předem"
+
+msgid "e.g. Birthday"
+msgstr "např. Narozeniny"
+
+msgid "e.g. Doctor appointment"
+msgstr "např. Návštěva lékaře"
+
+msgid "e.g. Mobile"
+msgstr "např. Mobil"
+
+msgid "e.g. Private"
+msgstr "např. Soukromé"
+
+msgid "e.g. Send documents"
+msgstr "např. Odeslat dokumenty"
+
+msgid "e.g. Son"
+msgstr "např. Syn"
+
+msgid "e.g. Work"
+msgstr "např. Práce"
+
+msgid "e.g. glass or hazardous waste"
+msgstr "např. sklo nebo nebezpečný odpad"
+
+msgid "e.g. kitchen or workshop"
+msgstr "např. kuchyně nebo dílna"
+
+msgid "e.g. medication day"
+msgstr "např. den užívání léků"
+
+msgid "e.g. on-call duty"
+msgstr "např. pohotovostní služba"
+
+msgid "every"
+msgstr "každý"
+
+msgid "every 12 hours"
+msgstr "každých 12 hodin"
+
+msgid "every 3 hours"
+msgstr "každé 3 hodiny"
+
+msgid "every 30 minutes"
+msgstr "každých 30 minut"
+
+msgid "every 6 hours"
+msgstr "každých 6 hodin"
+
+msgid "every day"
+msgstr "každý den"
+
+msgid "every hour"
+msgstr "každou hodinu"
+
+msgid "every month on the %(ordinal)s %(weekday)s"
+msgstr "každý měsíc %(ordinal)s %(weekday)s"
+
+msgid "every month on the same day"
+msgstr "každý měsíc ve stejný den"
+
+msgid "every week on the same weekday"
+msgstr "každý týden ve stejný den týdne"
+
+msgid "every year on the same date"
+msgstr "každý rok ve stejné datum"
+
+msgid "first"
+msgstr "první"
+
+msgid "first on"
+msgstr "poprvé dne"
+
+msgid "for the %(ordinal)s time"
+msgstr "po %(ordinal)s"
+
+msgid "fourth"
+msgstr "čtvrtý"
+
+msgid "from"
+msgstr "od"
+
+msgid "high"
+msgstr "vysoká"
+
+msgid "hours before"
+msgstr "hodin předem"
+
+msgid "https://… (optionally with {wert} or {nummer})"
+msgstr "https://… (volitelně s {wert} nebo {nummer})"
+
+msgid "in %(count)s day"
+msgid_plural "in %(count)s days"
+msgstr[0] "za %(count)s den"
+msgstr[1] "za %(count)s dny"
+msgstr[2] "za %(count)s dní"
+
+msgid "keep here"
+msgstr "ponechat zde"
+
+msgid "last"
+msgstr "poslední"
+
+msgid "local / not opened"
+msgstr "místní / neotevřeno"
+
+msgid "low"
+msgstr "nízká"
+
+msgid "medium"
+msgstr "střední"
+
+msgid "minutes before"
+msgstr "minut předem"
+
+msgid "modified %(date)s"
+msgstr "změněno %(date)s"
+
+msgid "name@example.com"
+msgstr "name@example.com"
+
+msgid "never – empty manually"
+msgstr "nikdy – vyprázdnit ručně"
+
+msgid "new task for this appointment…"
+msgstr "nový úkol k této schůzce…"
+
+msgid "notification %(count)s minute before"
+msgid_plural "notification %(count)s minutes before"
+msgstr[0] "oznámení %(count)s minutu předem"
+msgstr[1] "oznámení %(count)s minuty předem"
+msgstr[2] "oznámení %(count)s minut předem"
+
+msgid "on the day only"
+msgstr "pouze v daný den"
+
+msgid "once"
+msgstr "jednou"
+
+msgid "one backup was encrypted as well"
+msgid_plural "%(count)s backups were encrypted as well"
+msgstr[0] "jeden záloh byl také zašifrován"
+msgstr[1] "Zálohy %(count)s byly také šifrovány"
+msgstr[2] "Zálohy %(count)s byly také šifrovány"
+
+msgid "one contact card"
+msgid_plural "%(count)s contact cards"
+msgstr[0] "jedna kontaktní karta"
+msgstr[1] "Kontaktní karty %(count)s"
+msgstr[2] "Kontaktní karty %(count)s"
+
+msgid "only %(year)s"
+msgstr "pouze %(year)s"
+
+msgid "or enter a host name or IP address"
+msgstr "nebo zadejte název hostitele či IP adresu"
+
+msgid "pulse"
+msgstr "tep"
+
+msgid "recurring appointment"
+msgstr "opakovaná schůzka"
+
+msgid "remind me on the due date"
+msgstr "připomenout v den splatnosti"
+
+msgid "second"
+msgstr "druhý"
+
+msgid "stored – leave empty to keep"
+msgstr "uloženo – ponechte prázdné pro zachování"
+
+msgid "tentative"
+msgstr "předběžné"
+
+msgid "the other branch"
+msgstr "druhá větev"
+
+msgid "third"
+msgstr "třetí"
+
+msgid "to"
+msgstr "do"
+
+msgid "today"
+msgstr "dnes"
+
+msgid "today!"
+msgstr "dnes!"
+
+msgid "tomorrow"
+msgstr "zítra"
+
+msgid "turns %(age)s"
+msgstr "bude mu/jí %(age)s"
+
+msgid "unknown"
+msgstr "neznámé"
+
+msgid "unknown error"
+msgstr "neznámá chyba"
+
+msgid "untitled"
+msgstr "bez názvu"
+
+msgid ""
+"vCard preserves more contact details. LDIF is intended for importing into "
+"Claws Mail; emergency contacts, social media, free labels and non-JPEG "
+"photos cannot be included."
+msgstr ""
+"vCard zachová více údajů kontaktu. LDIF je určen pro import do Claws Mail; "
+"nouzové kontakty, sociální sítě, vlastní popisky a fotografie jiné než JPEG "
+"nelze zahrnout.vCard preserves more contact details. LDIF is intended for "
+"importing into Claws Mail; emergency contacts, social media, free labels and "
+"non-JPEG photos cannot be included."
+
+msgid "vital"
+msgstr "vital"
+
+msgid "– Anniversaries automatically appear with ✱ in the calendar."
+msgstr "– Výročí se v kalendáři automaticky zobrazují se symbolem ✱."
+
+msgid ""
+"– Everything is saved automatically. Use “Create backup” at the bottom right "
+"to create an additional backup copy."
+msgstr ""
+"– Vše se ukládá automaticky. Další záložní kopii vytvoříte pomocí „Vytvořit "
+"zálohu“ vpravo dole."
+
+msgid ""
+"– In the calendar, use the controls at the top to switch between month and "
+"week view."
+msgstr ""
+"– V kalendáři přepínáte mezi měsíčním a týdenním zobrazením ovládacími prvky "
+"nahoře."
+
+msgid ""
+"– The colored tabs along the edge lead to the sections. Tabs you have "
+"already passed move to the left side, just like in a real ring binder."
+msgstr ""
+"– Barevné záložky podél okraje vedou do jednotlivých částí. Záložky, kterými "
+"jste již prošli, se přesunou na levou stranu jako ve skutečném kroužkovém "
+"pořadači."
+
+msgid ""
+"– The folded corners at the bottom turn pages forward and back: by month in "
+"the calendar, by year in the planner, and page by page here."
+msgstr ""
+"– Ohnuté rohy dole obracejí stránky dopředu a dozadu: v kalendáři po "
+"měsících, v plánovači po letech a zde stránku po stránce."
+
+msgid ""
+"– Turn times in 5-minute increments with the mouse wheel (hold Shift for "
+"whole hours); the end time moves along with it. For appointments without a "
+"fixed time, select “All day”."
+msgstr ""
+"– Kolečkem myši měňte čas po 5 minutách (se Shiftem po celých hodinách); "
+"koncový čas se posouvá spolu s ním. U schůzek bez pevného času zvolte „Celý "
+"den“."
+
+msgid ""
+"– Under “Settings” at the bottom right, you can import appointments and "
+"addresses from other programs (.ics, .vcf, Lotus CSV), export them, and "
+"connect your system's online accounts. On the “Region & holidays” page, "
+"enter your country and state and import all public and school holidays once."
+msgstr ""
+"– V „Nastavení“ vpravo dole můžete importovat schůzky a adresy z jiných "
+"programů (.ics, .vcf, Lotus CSV), exportovat je a připojit online účty "
+"systému. Na stránce „Region a svátky“ zadejte svou zemi a spolkovou zemi/"
+"oblast a jednorázově importujte všechny státní a školní prázdniny."
+
+msgid "— do not link —"
+msgstr "— nepropojovat —"
+
+msgid "— not specified —"
+msgstr "— neuvedeno —"
+
+msgid "— please select —"
+msgstr "— vyberte —"
+
+msgid "“%(name)s” was restored."
+msgstr "„%(name)s“ bylo obnoveno."
+
+msgid "“%(word)s” is now in the dictionary."
+msgstr "„%(word)s“ je nyní ve slovníku."
+
+msgid "… and %(count)s more item that will also be printed."
+msgid_plural "… and %(count)s more items that will also be printed."
+msgstr[0] "… a ještě %(count)s další položka, která se rovněž vytiskne."
+msgstr[1] "… a ještě %(count)s další položky, které se rovněž vytisknou."
+msgstr[2] "… a ještě %(count)s dalších položek, které se rovněž vytisknou."
+
+msgid "＋ Add appointment"
+msgstr "＋ Přidat schůzku"
+
+#~ msgid "No valid subscription"
+#~ msgstr "Žádné platné předplatné"
+
+#~ msgid "More fields (Lotus)"
+#~ msgstr "Další pole (Lotus)"
+
+#~ msgid "Unknown import format."
+#~ msgstr "Neznámý formát importu."

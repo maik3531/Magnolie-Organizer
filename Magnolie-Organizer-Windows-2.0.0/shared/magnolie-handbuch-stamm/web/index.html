@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Magnolie Organizer - Handbook</title>
+<link rel="stylesheet" href="stil.css">
+</head>
+<body>
+
+<div id="tisch">
+
+  <div id="buch">
+
+    <!-- Der Einband, auf dem die Seiten liegen -->
+    <div id="einband"></div>
+
+    <!-- Die beiden aufgeschlagenen Seiten -->
+    <div id="seiten">
+      <div class="seite links" id="seite-links">
+        <div class="seiten-kopf" id="kopf-links"></div>
+        <div class="seiten-inhalt" id="inhalt-links"></div>
+        <div class="seiten-fuss" id="fuss-links"></div>
+        <div class="eselsohr ecke-links" id="ecke-links" title="Back one spread" data-i18n-title="Back one spread"></div>
+      </div>
+
+      <div class="bindung" aria-hidden="true" aria-label="Ring binding" data-i18n-aria-label="Ring binding">
+        <div class="ring"></div><div class="ring"></div><div class="ring"></div>
+        <div class="ring"></div><div class="ring"></div><div class="ring"></div>
+      </div>
+
+      <div class="seite rechts" id="seite-rechts">
+        <div class="seiten-kopf" id="kopf-rechts"></div>
+        <div class="seiten-inhalt" id="inhalt-rechts"></div>
+        <div class="seiten-fuss" id="fuss-rechts"></div>
+        <div class="eselsohr ecke-rechts" id="ecke-rechts" title="Forward one spread" data-i18n-title="Forward one spread"></div>
+      </div>
+    </div>
+
+    <!-- Der Vorderdeckel, der sich beim Anklicken öffnet -->
+    <div id="deckel" title="Click to open" data-i18n-title="Click to open">
+      <div class="deckel-vorn">
+        <div class="praegung">
+          <svg class="praegeblume" viewBox="0 0 64 64" aria-hidden="true">
+            <path d="M32 34 C 26 26, 26 16, 32 9 C 38 16, 38 26, 32 34 Z"/>
+            <path d="M32 34 C 23 32, 15 26, 13 17 C 22 17, 30 24, 32 34 Z"/>
+            <path d="M32 34 C 41 32, 49 26, 51 17 C 42 17, 34 24, 32 34 Z"/>
+            <path d="M32 34 C 24 40, 21 47, 22 54 C 28 51, 32 44, 32 34 Z"/>
+            <path d="M32 34 C 40 40, 43 47, 42 54 C 36 51, 32 44, 32 34 Z"/>
+          </svg>
+          <h1>Magnolie</h1>
+          <p class="untertitel" data-i18n="Organizer · User Guide">Organizer · User Guide</p>
+          <p class="deckel-hinweis" data-i18n="Click to open the book">Click to open the book</p>
+        </div>
+      </div>
+      <div class="deckel-rueck"></div>
+    </div>
+
+  </div>
+
+  <!-- Fußleiste -->
+  <div id="leiste">
+    <span id="stand"></span>
+    <button id="knopf-suche" class="leisten-knopf" title="Search handbook" data-i18n="Search" data-i18n-title="Search handbook">Search</button>
+    <button id="knopf-inhalt" class="leisten-knopf" title="Go to the table of contents" data-i18n="Contents" data-i18n-title="Go to the table of contents">Contents</button>
+    <button id="knopf-drucken" class="leisten-knopf" title="Print the entire handbook or save it as a PDF" data-i18n="Print / PDF" data-i18n-title="Print the entire handbook or save it as a PDF">Print / PDF</button>
+  </div>
+
+  <section id="handbuch-suche" role="dialog" aria-modal="false" aria-labelledby="handbuch-suche-titel" hidden>
+    <header>
+      <label id="handbuch-suche-titel" for="handbuch-suchfeld" data-i18n="Search handbook">Search handbook</label>
+      <button id="handbuch-suche-schliessen" type="button" title="Close search" data-i18n-title="Close search" aria-label="Close search" data-i18n-aria-label="Close search">×</button>
+    </header>
+    <input id="handbuch-suchfeld" type="search" autocomplete="off" data-i18n-placeholder="Search handbook" placeholder="Search handbook">
+    <div id="handbuch-suchergebnisse" role="list" aria-live="polite"></div>
+  </section>
+
+</div>
+
+<script src="i18n.js"></script>
+<script src="i18n/ar.js"></script>
+<script src="i18n/be.js"></script>
+<script src="i18n/cs.js"></script>
+<script src="i18n/da.js"></script>
+<script src="i18n/de.js"></script>
+<script src="i18n/es.js"></script>
+<script src="i18n/fr.js"></script>
+<script src="i18n/hi.js"></script>
+<script src="i18n/hsb.js"></script>
+<script src="i18n/it.js"></script>
+<script src="i18n/ja.js"></script>
+<script src="i18n/nb.js"></script>
+<script src="i18n/nl.js"></script>
+<script src="i18n/pl.js"></script>
+<script src="i18n/pt.js"></script>
+<script src="i18n/ru.js"></script>
+<script src="i18n/tr.js"></script>
+<script src="i18n/uk.js"></script>
+<script src="i18n/zh_CN.js"></script>
+<script src="i18n-start.js"></script>
+<script src="inhalt.js"></script>
+<script src="platform.js"></script>
+<script src="handbuch.js"></script>
+</body>
+</html>

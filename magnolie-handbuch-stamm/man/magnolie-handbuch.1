@@ -1,0 +1,38 @@
+.TH MAGNOLIE-HANDBUCH 1 "August 2026" "Magnolie Handbook 2.0.0" "User Commands"
+.SH NAME
+magnolie-handbuch \- open the Magnolie Organizer user handbook
+.SH SYNOPSIS
+.B magnolie-handbuch
+.RI [ option ]
+.RI [ \-\-sprache\  language ]
+.SH DESCRIPTION
+.B Magnolie Handbook
+opens the complete illustrated user guide for Magnolie Organizer. The handbook
+can be browsed on screen, printed or exported as a PDF file.
+.PP
+Only one handbook window is opened per user session. Starting the command
+again presents the existing window.
+.SH OPTIONS
+.TP
+.BR \-\-sprache " " SPRACHE , " " \-\-language " " LANGUAGE
+Use German (\fBde\fR), English (\fBen\fR), or the system language
+(\fBsystem\fR) for this invocation. This selects command output before help
+and the WebKit language of a newly opened window. Persisted settings are not
+changed.
+.TP
+.BR \-\-pot " [" DATEI "]", " " \-\-pot-template " [" FILE "]"
+Generate a reproducible gettext template and exit. With no file argument,
+write \fBmagnolie-handbuch.pot\fR in the current directory; otherwise write
+to the specified path. The absolute output path is printed on success.
+.TP
+.BR \-\-hilfe , " " \-\-help
+Show a short command overview.
+.SH ENVIRONMENT
+.TP
+.B MAGNOLIE_HANDBUCH_WEB
+Use an alternative directory containing the handbook interface. Intended for
+development and testing.
+.SH SEE ALSO
+.BR magnolie-organizer (1)
+.SH AUTHOR
+Written by Maik Walter.

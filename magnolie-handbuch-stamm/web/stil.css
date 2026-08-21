@@ -1,0 +1,703 @@
+/*
+ * Magnolie Organizer – Handbuch
+ * Copyright (C) 2026 Maik Walter <maik3531@gmail.com>
+ * Freie Software unter der GNU General Public License, Version 3 oder
+ * später, ohne jede Gewährleistung. <https://www.gnu.org/licenses/>
+ */
+/* ==========================================================================
+   Magnolie Organizer – Handbuch
+   Ein aufgeschlagenes Buch im Querformat: Leder außen, Papier innen.
+   ========================================================================== */
+
+@font-face {
+  font-family: "DejaVu Sans";
+  src: url("schriften/DejaVuSans.ttf") format("truetype");
+  font-style: normal;
+  font-weight: 400;
+}
+
+@font-face {
+  font-family: "DejaVu Sans";
+  src: url("schriften/DejaVuSans-Bold.ttf") format("truetype");
+  font-style: normal;
+  font-weight: 700;
+}
+
+@font-face {
+  font-family: "DejaVu Sans";
+  src: url("schriften/DejaVuSans-Oblique.ttf") format("truetype");
+  font-style: italic;
+  font-weight: 400;
+}
+
+@font-face {
+  font-family: "DejaVu Sans";
+  src: url("schriften/DejaVuSans-BoldOblique.ttf") format("truetype");
+  font-style: italic;
+  font-weight: 700;
+}
+
+@font-face {
+  font-family: "Noto Serif";
+  src: url("schriften/NotoSerif-Regular.ttf") format("truetype");
+  font-style: normal;
+  font-weight: 400;
+}
+
+@font-face {
+  font-family: "Noto Serif";
+  src: url("schriften/NotoSerif-Bold.ttf") format("truetype");
+  font-style: normal;
+  font-weight: 700;
+}
+
+@font-face {
+  font-family: "Noto Serif";
+  src: url("schriften/NotoSerif-Italic.ttf") format("truetype");
+  font-style: italic;
+  font-weight: 400;
+}
+
+@font-face {
+  font-family: "Noto Serif";
+  src: url("schriften/NotoSerif-BoldItalic.ttf") format("truetype");
+  font-style: italic;
+  font-weight: 700;
+}
+
+:root {
+  --leder-dunkel: #3c1f15;
+  --leder: #55291c;
+  --leder-hell: #6b3a29;
+  --gold: #d8b25c;
+  --gold-dunkel: #a8823c;
+  --papier: #f6efdc;
+  --papier-tief: #ece1c4;
+  --linie: #d8c39a;
+  --linie-stark: #ab9468;
+  --tinte: #3a3128;
+  --braun: #5a4630;
+  --braun-hell: #93805d;
+  --rot: #b5443a;
+  --filz: #2e3a34;
+  --buchbreite: min(1520px, calc(100vw - 60px), calc((100vh - 96px) * 1.52));
+  --serif: "Noto Serif", serif;
+  --sans: "DejaVu Sans", "Liberation Sans", "Segoe UI", sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+html, body { height: 100%; margin: 0; }
+
+body {
+  font: 15px/1.5 var(--sans);
+  color: var(--tinte);
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse at 50% 30%, #3f5147 0%, var(--filz) 62%, #212a24 100%);
+}
+
+figure svg [font-family^="Georgia"] { font-family: "Noto Serif", serif; }
+figure svg [font-family="sans-serif"] { font-family: "DejaVu Sans", sans-serif; }
+
+#tisch {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 14px;
+}
+
+#buch {
+  position: relative;
+  width: var(--buchbreite);
+  height: calc(var(--buchbreite) / 1.52);
+  perspective: 2600px;
+}
+
+/* ----------------------------------------------------------------- Einband */
+
+#einband {
+  position: absolute;
+  inset: 0;
+  border-radius: 18px;
+  background:
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='260' height='260'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)' opacity='0.16'/></svg>"),
+    linear-gradient(160deg, var(--leder-hell) 0%, var(--leder) 45%, var(--leder-dunkel) 100%);
+  box-shadow:
+    0 26px 60px rgba(0, 0, 0, 0.55),
+    inset 0 0 0 1px rgba(255, 220, 160, 0.12);
+}
+
+/* ------------------------------------------------------------------ Seiten */
+
+#seiten {
+  position: absolute;
+  inset: 14px;
+  display: flex;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.35);
+}
+
+.seite {
+  position: relative;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 22px 26px 14px;
+  background:
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='2' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)' opacity='0.05'/></svg>"),
+    var(--papier);
+}
+
+.seite.links {
+  background-image:
+    linear-gradient(90deg, rgba(0, 0, 0, 0.13), rgba(0, 0, 0, 0) 8%),
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='2' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)' opacity='0.05'/></svg>");
+  background-color: var(--papier);
+}
+
+.seite.rechts {
+  background-image:
+    linear-gradient(270deg, rgba(0, 0, 0, 0.13), rgba(0, 0, 0, 0) 8%),
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='2' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)' opacity='0.05'/></svg>");
+  background-color: var(--papier);
+}
+
+/* Ringbindung in der Mitte */
+
+.bindung {
+  position: relative;
+  width: 46px;
+  flex: none;
+  background:
+    linear-gradient(90deg, #2a150e 0%, #402014 18%, #1d0f0a 50%, #402014 82%, #2a150e 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-around;
+  padding: 26px 0;
+  box-shadow: inset 0 0 14px rgba(0, 0, 0, 0.8);
+}
+
+.ring {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 3px solid #e8e2d4;
+  background: transparent;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.6), inset 0 1px 2px rgba(0, 0, 0, 0.4);
+}
+
+/* Kopf, Inhalt und Fuß einer Seite */
+
+.seiten-kopf {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  border-bottom: 2px solid var(--gold);
+  padding-bottom: 6px;
+  flex: none;
+}
+
+.seiten-kopf .kapitel {
+  font: 600 11px var(--sans);
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: var(--braun-hell);
+}
+
+.seiten-kopf h2 {
+  margin: 0;
+  font: 700 20px var(--serif);
+  font-variant: small-caps;
+  letter-spacing: 0.04em;
+  color: var(--tinte);
+}
+
+.seiten-inhalt {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  padding: 12px 6px 8px 2px;
+  font: 15px/1.62 var(--sans);
+  color: #342d22;
+}
+
+.seiten-inhalt.bildschirm-kompakt {
+  padding-top: 8px;
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.seiten-inhalt.bildschirm-kompakt p { margin-bottom: 8px; }
+.seiten-inhalt.bildschirm-kompakt figure { margin: 8px 0; }
+.seiten-inhalt.bildschirm-kompakt .merke,
+.seiten-inhalt.bildschirm-kompakt .beispiel,
+.seiten-inhalt.bildschirm-kompakt .achtung {
+  margin: 8px 0;
+  padding: 7px 10px 8px;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.seiten-fuss {
+  flex: none;
+  position: relative;
+  z-index: 2;
+  min-height: 29px;
+  border-top: 1px dotted var(--linie-stark);
+  padding-top: 6px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font: 400 12px var(--sans);
+  color: var(--braun-hell);
+}
+
+.seite.links .seiten-fuss { padding-left: 68px; }
+.seite.rechts .seiten-fuss { padding-right: 68px; }
+
+.seiten-fuss .seitenzahl {
+  font: 600 13px var(--serif);
+  color: var(--braun);
+}
+
+/* Eselsohren zum Blättern */
+
+.eselsohr {
+  position: absolute;
+  bottom: 0;
+  width: 62px;
+  height: 62px;
+  cursor: pointer;
+  transition: transform 0.16s ease, filter 0.16s ease;
+}
+
+.ecke-rechts {
+  right: 0;
+  background: linear-gradient(315deg, var(--papier-tief) 0 48%, rgba(0, 0, 0, 0.16) 50%, transparent 52%);
+  border-bottom-right-radius: 10px;
+  box-shadow: -3px -3px 7px rgba(0, 0, 0, 0.14) inset;
+}
+
+.ecke-links {
+  left: 0;
+  background: linear-gradient(45deg, var(--papier-tief) 0 48%, rgba(0, 0, 0, 0.16) 50%, transparent 52%);
+  border-bottom-left-radius: 10px;
+  box-shadow: 3px -3px 7px rgba(0, 0, 0, 0.14) inset;
+}
+
+.eselsohr:hover { transform: scale(1.1); filter: brightness(1.06); }
+
+.eselsohr.aus { opacity: 0.2; pointer-events: none; }
+
+/* ------------------------------------------------------------- Vorderdeckel */
+
+#deckel {
+  position: absolute;
+  inset: 0;
+  border-radius: 18px;
+  z-index: 50;
+  cursor: pointer;
+  transform-origin: left center;
+  transform-style: preserve-3d;
+  transition:
+    transform 1.15s cubic-bezier(0.62, 0.02, 0.3, 1),
+    opacity 0.45s ease-in 0.62s;
+}
+
+#buch.offen #deckel {
+  transform: rotateY(-180deg) translateZ(-8px);
+  opacity: 0;
+  cursor: default;
+}
+
+#deckel.weg { display: none; }
+
+.deckel-vorn,
+.deckel-rueck {
+  position: absolute;
+  inset: 0;
+  border-radius: 18px;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+.deckel-vorn {
+  background:
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='260' height='260'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)' opacity='0.17'/></svg>"),
+    radial-gradient(130% 110% at 32% 22%, #7a4530 0%, var(--leder) 48%, var(--leder-dunkel) 100%);
+  box-shadow:
+    0 26px 60px rgba(0, 0, 0, 0.55),
+    inset 0 0 0 1px rgba(255, 220, 160, 0.14);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.deckel-rueck {
+  transform: rotateY(180deg);
+  background: linear-gradient(160deg, var(--leder-dunkel), #2a150e);
+}
+
+.praegung {
+  text-align: center;
+  color: var(--gold);
+  padding: 30px 40px;
+  border: 2px solid rgba(216, 178, 92, 0.5);
+  border-radius: 10px;
+  filter: drop-shadow(0 -1px 1px rgba(0, 0, 0, 0.65));
+}
+
+.praegeblume {
+  width: clamp(44px, 6vw, 62px);
+  height: clamp(44px, 6vw, 62px);
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.4;
+  stroke-linejoin: round;
+  opacity: 0.92;
+}
+
+.praegung h1 {
+  margin: 4px 0 0;
+  font: 700 clamp(34px, 5vw, 54px) var(--serif);
+  font-variant: small-caps;
+  letter-spacing: 0.12em;
+}
+
+.untertitel {
+  margin: 2px 0 0;
+  font: 400 clamp(13px, 1.6vw, 17px) var(--sans);
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  opacity: 0.85;
+}
+
+.deckel-hinweis {
+  margin: 18px 0 0;
+  font: italic 400 13px var(--serif);
+  opacity: 0.6;
+}
+
+/* -------------------------------------------------------------- Fußleiste */
+
+#leiste {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: var(--buchbreite);
+  padding: 0 6px;
+  color: #cfd9d0;
+  font: 400 13px var(--sans);
+}
+
+#stand { flex: 1; }
+
+.leisten-knopf {
+  border: 1px solid rgba(216, 178, 92, 0.5);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.07);
+  color: #ecdfc2;
+  font: 600 12.5px var(--sans);
+  letter-spacing: 0.03em;
+  padding: 5px 12px 6px;
+  cursor: pointer;
+}
+
+.leisten-knopf:hover { background: rgba(255, 255, 255, 0.16); }
+
+#handbuch-suche {
+  position: fixed;
+  z-index: 120;
+  left: 50%;
+  bottom: 58px;
+  width: min(620px, calc(100vw - 32px));
+  max-height: min(520px, calc(100vh - 90px));
+  transform: translateX(-50%);
+  overflow: hidden;
+  padding: 12px;
+  border: 1px solid var(--gold-dunkel);
+  border-radius: 8px;
+  background: var(--papier);
+  box-shadow: 0 14px 38px rgba(0, 0, 0, .45);
+}
+
+#handbuch-suche[hidden] { display: none; }
+
+#handbuch-suche header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  font: 700 16px var(--serif);
+}
+
+#handbuch-suche-schliessen {
+  border: 0;
+  background: transparent;
+  color: var(--braun);
+  font-size: 20px;
+  cursor: pointer;
+}
+
+#handbuch-suchfeld {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--linie-stark);
+  border-radius: 5px;
+  background: rgba(255, 255, 255, .72);
+  color: var(--tinte);
+  font: 15px var(--sans);
+}
+
+#handbuch-suchergebnisse {
+  display: grid;
+  gap: 5px;
+  max-height: 390px;
+  margin-top: 9px;
+  overflow-y: auto;
+}
+
+.handbuch-suchtreffer {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 14px;
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid transparent;
+  border-radius: 5px;
+  background: rgba(216, 178, 92, .1);
+  color: var(--tinte);
+  text-align: left;
+  cursor: pointer;
+}
+
+.handbuch-suchtreffer:hover,
+.handbuch-suchtreffer:focus-visible {
+  border-color: var(--gold-dunkel);
+  background: rgba(216, 178, 92, .2);
+}
+
+.handbuch-suchtreffer span { color: var(--braun-hell); font-size: 12px; }
+.handbuch-suche-leer { margin: 8px 2px; color: var(--braun); }
+
+/* ----------------------------------------------------- Inhalt einer Seite */
+
+.seiten-inhalt p { margin: 0 0 11px; }
+
+.seiten-inhalt h3 {
+  margin: 16px 0 7px;
+  font: 700 16px var(--serif);
+  color: var(--tinte);
+  border-bottom: 1px dotted var(--linie-stark);
+  padding-bottom: 3px;
+}
+
+.seiten-inhalt h3:first-child { margin-top: 0; }
+
+.seiten-inhalt ul, .seiten-inhalt ol { margin: 0 0 11px; padding-left: 22px; }
+
+.seiten-inhalt li { margin-bottom: 5px; }
+
+.seiten-inhalt b, .seiten-inhalt strong { font-weight: 700; }
+
+/* Hervorgehobene Kästen */
+
+.merke, .beispiel, .achtung {
+  margin: 12px 0;
+  padding: 9px 13px 10px;
+  border-radius: 5px;
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.merke {
+  border-left: 3px solid var(--gold-dunkel);
+  background: rgba(216, 178, 92, 0.13);
+}
+
+.beispiel {
+  border-left: 3px solid #5d7a52;
+  background: rgba(120, 150, 110, 0.13);
+}
+
+.achtung {
+  border-left: 3px solid var(--rot);
+  background: rgba(181, 68, 58, 0.09);
+}
+
+.merke b, .beispiel b, .achtung b { display: block; margin-bottom: 3px; }
+
+/* Schritt-für-Schritt-Anleitungen */
+
+.schritte { counter-reset: schritt; list-style: none; padding-left: 0; }
+
+.schritte li {
+  counter-increment: schritt;
+  position: relative;
+  padding-left: 34px;
+  margin-bottom: 9px;
+}
+
+.schritte li::before {
+  content: counter(schritt);
+  position: absolute;
+  left: 0;
+  top: 1px;
+  width: 23px;
+  height: 23px;
+  border-radius: 50%;
+  border: 1px solid var(--linie-stark);
+  background: rgba(255, 255, 255, 0.5);
+  color: var(--braun);
+  font: 600 12.5px var(--sans);
+  text-align: center;
+  line-height: 22px;
+}
+
+/* Tasten und Schaltflächen im Text */
+
+kbd {
+  display: inline-block;
+  border: 1px solid var(--linie-stark);
+  border-bottom-width: 2px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.6);
+  padding: 0 5px;
+  font: 600 12.5px var(--sans);
+  color: var(--tinte);
+}
+
+.knopfwort {
+  display: inline-block;
+  border: 1px solid var(--linie-stark);
+  border-radius: 4px;
+  background: rgba(90, 70, 48, 0.1);
+  padding: 0 6px;
+  font: 600 12.5px var(--sans);
+}
+
+/* Bilder */
+
+figure { margin: 12px 0; text-align: center; }
+
+.abbildungsreihe {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.abbildungsreihe figure { margin: 8px 0; }
+.abbildungsreihe img { width: 100%; }
+
+figure img, figure svg {
+  max-width: 100%;
+  border: 1px solid var(--linie-stark);
+  border-radius: 5px;
+  background: rgba(255, 255, 255, 0.4);
+}
+.kaffee-qr { width: 170px; image-rendering: crisp-edges; }
+.autorenfoto { width: 145px; height: 180px; object-fit: cover; object-position: 60% center; }
+
+figcaption {
+  margin-top: 5px;
+  font: italic 400 12.5px var(--serif);
+  color: var(--braun);
+}
+
+/* Inhaltsverzeichnis */
+
+.inhalt-liste { list-style: none; padding: 0; margin: 0; }
+
+.inhalt-liste li { margin: 0; }
+
+.inhalt-eintrag {
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+  width: 100%;
+  border: 0;
+  background: none;
+  padding: 4px 2px;
+  font: 400 14.5px var(--sans);
+  color: var(--tinte);
+  cursor: pointer;
+  text-align: left;
+}
+
+.inhalt-eintrag:hover { color: var(--rot); }
+
+.inhalt-eintrag .punkte {
+  flex: 1;
+  border-bottom: 1px dotted var(--linie-stark);
+  transform: translateY(-3px);
+}
+
+.inhalt-eintrag .zahl { font: 600 13px var(--serif); color: var(--braun); }
+
+.inhalt-eintrag.haupt { font-weight: 600; margin-top: 7px; }
+
+.kaffee-qr {
+  display: block;
+  width: min(180px, 46%);
+  margin: 10px auto;
+  border: 5px solid #fff;
+  box-shadow: 0 2px 8px rgba(54, 31, 20, .22);
+}
+
+.autorenbild {
+  float: right;
+  width: min(190px, 38%);
+  margin: 0 0 12px 18px;
+  text-align: center;
+}
+
+.autorenfoto {
+  display: block;
+  width: 100%;
+  height: auto;
+  border: 5px solid #f8f1df;
+  box-shadow: 0 2px 8px rgba(54, 31, 20, .28);
+}
+
+/* Arabic uses logical reading order while the book's physical pages stay put. */
+html[dir="rtl"] .seiten-kopf,
+html[dir="rtl"] .seiten-inhalt,
+html[dir="rtl"] .seiten-fuss,
+html[dir="rtl"] #leiste { direction: rtl; text-align: right; }
+html[dir="rtl"] .seiten-inhalt ul,
+html[dir="rtl"] .seiten-inhalt ol { padding-left: 0; padding-right: 22px; }
+html[dir="rtl"] .schritte { padding-right: 0; }
+html[dir="rtl"] .schritte li { padding-left: 0; padding-right: 34px; }
+html[dir="rtl"] .schritte li::before { left: auto; right: 0; }
+html[dir="rtl"] .merke,
+html[dir="rtl"] .beispiel,
+html[dir="rtl"] .achtung { border-left: 0; border-right: 3px solid; }
+html[dir="rtl"] .merke { border-right-color: var(--gold-dunkel); }
+html[dir="rtl"] .beispiel { border-right-color: #5d7a52; }
+html[dir="rtl"] .achtung { border-right-color: var(--rot); }
+html[dir="rtl"] .inhalt-eintrag { direction: rtl; text-align: right; }
+
+@media (max-width: 1120px), (max-height: 790px) {
+  .seite { padding: 17px 20px 12px; }
+  .seiten-kopf h2 { font-size: 18px; }
+  .seiten-inhalt { padding-top: 9px; font-size: 13.5px; line-height: 1.5; }
+  .seiten-inhalt h3 { margin-top: 12px; font-size: 15px; }
+  .merke, .beispiel, .achtung { font-size: 13px; padding: 7px 10px 8px; }
+  .inhalt-eintrag { font-size: 13px; padding: 3px 2px; }
+}
+
+/* --------------------------------------------------------------- Drucken */
+
+@media print {
+  #handbuch-suche { display: none !important; }
+  body { background: #fff; overflow: visible; }
+  #tisch, #buch, #seiten, #deckel, #leiste { display: none !important; }
+}

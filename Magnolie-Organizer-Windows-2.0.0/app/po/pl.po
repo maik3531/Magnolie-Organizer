@@ -1,0 +1,6190 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the Magnolie Organizer package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: Magnolie Organizer 2.0.0\n"
+"Report-Msgid-Bugs-To: maik3531@gmail.com\n"
+"POT-Creation-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"PO-Revision-Date: 2026-08-08 09:24+0200\n"
+"Last-Translator: Magnolie localization project\n"
+"Language-Team: Polish\n"
+"Language: pl\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=3; plural=(n==1 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 "
+"|| n%100>=20) ? 1 : 2);\n"
+"Generated-By: Babel 2.18.0\n"
+
+msgid " (filtered)"
+msgstr " (przefiltrowano)"
+
+msgid " (public holiday)"
+msgstr " (święto państwowe)"
+
+msgid " (school holidays)"
+msgstr " (ferie szkolne)"
+
+msgid " at %(time)s"
+msgstr " o %(time)s"
+
+msgid " for %(years)s"
+msgstr " przez %(years)s"
+
+msgid " from %(branch)s"
+msgstr " od %(branch)s"
+
+msgid " – notification at the appointment time."
+msgstr " – powiadomienie o godzinie spotkania."
+
+msgid ""
+"%(appointment)s\n"
+"Click to edit"
+msgstr ""
+"%(appointment)s\n"
+"Kliknij, aby edytować"
+
+msgid ""
+"%(cards)s merged. Copies are stored under “Duplicates” in the recycle bin."
+msgstr ""
+"Połączono: %(cards)s. Kopie znajdują się w koszu w folderze „Duplikaty”."
+
+msgid "%(count)s anniversary"
+msgid_plural "%(count)s anniversaries"
+msgstr[0] "%(count)s rocznica"
+msgstr[1] "%(count)s rocznice"
+msgstr[2] "%(count)s rocznic"
+
+msgid "%(count)s anniversary entered"
+msgid_plural "%(count)s anniversaries entered"
+msgstr[0] "Wprowadzono %(count)s rocznicę"
+msgstr[1] "Wprowadzono %(count)s rocznice"
+msgstr[2] "Wprowadzono %(count)s rocznic"
+
+msgid "%(count)s appointment"
+msgid_plural "%(count)s appointments"
+msgstr[0] "%(count)s spotkanie"
+msgstr[1] "%(count)s spotkania"
+msgstr[2] "%(count)s spotkań"
+
+msgid "%(count)s attachment"
+msgid_plural "%(count)s attachments"
+msgstr[0] "%(count)s załącznik"
+msgstr[1] "%(count)s załączniki"
+msgstr[2] "%(count)s załączników"
+
+msgid "%(count)s birthday"
+msgid_plural "%(count)s birthdays"
+msgstr[0] "%(count)s urodziny"
+msgstr[1] "%(count)s urodziny"
+msgstr[2] "%(count)s urodzin"
+
+msgid "%(count)s contact"
+msgid_plural "%(count)s contacts"
+msgstr[0] "%(count)s kontakt"
+msgstr[1] "%(count)s kontakty"
+msgstr[2] "%(count)s kontaktów"
+
+msgid "%(count)s contact card"
+msgid_plural "%(count)s contact cards"
+msgstr[0] "%(count)s karta kontaktu"
+msgstr[1] "%(count)s karty kontaktu"
+msgstr[2] "%(count)s kart kontaktu"
+
+msgid "%(count)s contact photo added"
+msgid_plural "%(count)s contact photos added"
+msgstr[0] "Dodano %(count)s zdjęcie kontaktu"
+msgstr[1] "Dodano %(count)s zdjęcia kontaktów"
+msgstr[2] "Dodano %(count)s zdjęć kontaktów"
+
+msgid "%(count)s day"
+msgid_plural "%(count)s days"
+msgstr[0] "%(count)s dzień"
+msgstr[1] "%(count)s dni"
+msgstr[2] "%(count)s dni"
+
+msgid "%(count)s day before"
+msgid_plural "%(count)s days before"
+msgstr[0] "%(count)s dzień wcześniej"
+msgstr[1] "%(count)s dni wcześniej"
+msgstr[2] "%(count)s dni wcześniej"
+
+msgid "%(count)s email address added"
+msgid_plural "%(count)s email addresses added"
+msgstr[0] "Dodano %(count)s adres e-mail"
+msgstr[1] "Dodano %(count)s adresy e-mail"
+msgstr[2] "Dodano %(count)s adresów e-mail"
+
+msgid "%(count)s entry deleted."
+msgid_plural "%(count)s entries deleted."
+msgstr[0] "Usunięto %(count)s wpis."
+msgstr[1] "Usunięto %(count)s wpisy."
+msgstr[2] "Usunięto %(count)s wpisów."
+
+msgid "%(count)s existing entry skipped."
+msgid_plural "%(count)s existing entries skipped."
+msgstr[0] "Pominięto %(count)s istniejący wpis."
+msgstr[1] "Pominięto %(count)s istniejące wpisy."
+msgstr[2] "Pominięto %(count)s istniejących wpisów."
+
+msgid "%(count)s found"
+msgid_plural "%(count)s found"
+msgstr[0] "Znaleziono %(count)s wynik"
+msgstr[1] "Znaleziono %(count)s wyniki"
+msgstr[2] "Znaleziono %(count)s wyników"
+
+msgid "%(count)s group"
+msgid_plural "%(count)s groups"
+msgstr[0] "%(count)s grupa"
+msgstr[1] "%(count)s grupy"
+msgstr[2] "%(count)s grup"
+
+msgid "%(count)s holiday period"
+msgid_plural "%(count)s holiday periods"
+msgstr[0] "%(count)s okres ferii"
+msgstr[1] "%(count)s okresy ferii"
+msgstr[2] "%(count)s okresów ferii"
+
+msgid "%(count)s incoming offer"
+msgid_plural "%(count)s incoming offers"
+msgstr[0] "%(count)s oferta przychodząca"
+msgstr[1] "%(count)s oferty przychodzące"
+msgstr[2] "%(count)s ofert przychodzących"
+
+msgid "%(count)s match"
+msgid_plural "%(count)s matches"
+msgstr[0] "%(count)s dopasowanie"
+msgstr[1] "%(count)s dopasowania"
+msgstr[2] "%(count)s dopasowań"
+
+msgid "%(count)s minute"
+msgid_plural "%(count)s minutes"
+msgstr[0] "%(count)s minuta"
+msgstr[1] "%(count)s minuty"
+msgstr[2] "%(count)s minut"
+
+msgid "%(count)s more"
+msgid_plural "%(count)s more"
+msgstr[0] "Jeszcze %(count)s"
+msgstr[1] "Jeszcze %(count)s"
+msgstr[2] "Jeszcze %(count)s"
+
+msgid "%(count)s more entry"
+msgid_plural "%(count)s more entries"
+msgstr[0] "Jeszcze %(count)s wpis"
+msgstr[1] "Jeszcze %(count)s wpisy"
+msgstr[2] "Jeszcze %(count)s wpisów"
+
+msgid "%(count)s new Magnolienbaum request awaits your decision."
+msgid_plural "%(count)s new Magnolienbaum requests await your decision."
+msgstr[0] "Na decyzję czeka %(count)s nowa prośba Magnolienbaum."
+msgstr[1] "Na decyzję czekają %(count)s nowe prośby Magnolienbaum."
+msgstr[2] "Na decyzję czeka %(count)s nowych próśb Magnolienbaum."
+
+msgid "%(count)s non-JPEG contact photo was omitted."
+msgid_plural "%(count)s non-JPEG contact photos were omitted."
+msgstr[0] "Pominięto %(count)s zdjęcie inne niż JPEG."
+msgstr[1] "Pominięto %(count)s zdjęcia inne niż JPEG."
+msgstr[2] "Pominięto %(count)s zdjęć innych niż JPEG."
+
+msgid "%(count)s note"
+msgid_plural "%(count)s notes"
+msgstr[0] "%(count)s notatka"
+msgstr[1] "%(count)s notatki"
+msgstr[2] "%(count)s notatek"
+
+msgid "%(count)s notebook"
+msgid_plural "%(count)s notebooks"
+msgstr[0] "%(count)s notes"
+msgstr[1] "%(count)s notesy"
+msgstr[2] "%(count)s notesów"
+
+msgid "%(count)s open"
+msgstr "Otwarte: %(count)s"
+
+msgid "%(count)s page"
+msgid_plural "%(count)s pages"
+msgstr[0] "%(count)s strona"
+msgstr[1] "%(count)s strony"
+msgstr[2] "%(count)s stron"
+
+msgid "%(count)s public holiday"
+msgid_plural "%(count)s public holidays"
+msgstr[0] "%(count)s święto państwowe"
+msgstr[1] "%(count)s święta państwowe"
+msgstr[2] "%(count)s świąt państwowych"
+
+msgid "%(count)s recurring appointment imported only once."
+msgid_plural "%(count)s recurring appointments imported only once."
+msgstr[0] "%(count)s spotkanie cykliczne zaimportowano tylko raz."
+msgstr[1] "%(count)s spotkania cykliczne zaimportowano tylko raz."
+msgstr[2] "%(count)s spotkań cyklicznych zaimportowano tylko raz."
+
+msgid "%(count)s second"
+msgid_plural "%(count)s seconds"
+msgstr[0] "%(count)s sekunda"
+msgstr[1] "%(count)s sekundy"
+msgstr[2] "%(count)s sekund"
+
+msgid "%(count)s task"
+msgid_plural "%(count)s tasks"
+msgstr[0] "%(count)s zadanie"
+msgstr[1] "%(count)s zadania"
+msgstr[2] "%(count)s zadań"
+
+msgid "%(count)s unreadable row omitted."
+msgid_plural "%(count)s unreadable rows omitted."
+msgstr[0] "Pominięto %(count)s nieczytelny wiersz."
+msgstr[1] "Pominięto %(count)s nieczytelne wiersze."
+msgstr[2] "Pominięto %(count)s nieczytelnych wierszy."
+
+msgid "%(count)s unusable contact was omitted."
+msgid_plural "%(count)s unusable contacts were omitted."
+msgstr[0] "Pominięto %(count)s nieużyteczny kontakt."
+msgstr[1] "Pominięto %(count)s nieużyteczne kontakty."
+msgstr[2] "Pominięto %(count)s nieużytecznych kontaktów."
+
+msgid "%(date)s, %(time)s"
+msgstr "%(date)s, %(time)s"
+
+msgid "%(date)s, all day"
+msgstr "%(date)s, cały dzień"
+
+msgid "%(first)s and %(second)s"
+msgstr "%(first)s i %(second)s"
+
+msgid "%(first)s to %(last)s"
+msgstr "od %(first)s do %(last)s"
+
+msgid "%(format)s (Ctrl+%(key)s)"
+msgstr "%(format)s (Ctrl+%(key)s)"
+
+msgid "%(from)s to %(to)s"
+msgstr "od %(from)s do %(to)s"
+
+msgid "%(name)s found – currently reachable"
+msgstr "Znaleziono %(name)s – obecnie dostępny"
+
+msgid "%(name)s last found – reconnecting"
+msgstr "Ostatnio znaleziono %(name)s – ponowne łączenie"
+
+msgid "%(ordinal)s death anniversary"
+msgstr "%(ordinal)s rocznica śmierci"
+
+msgid "%(ordinal)s wedding anniversary"
+msgstr "%(ordinal)s rocznica ślubu"
+
+msgid "%(parts)s SMS parts · %(units)s character units"
+msgstr "%(parts)s części SMS · %(units)s jednostek znakowych"
+
+msgid "%(shown)s of %(count)s matches; refine your search."
+msgstr "Wyświetlono %(shown)s z %(count)s dopasowań; zawęź wyszukiwanie."
+
+msgid "%(start)s to %(end)s"
+msgstr "od %(start)s do %(end)s"
+
+msgid "%(title)s – %(when)s"
+msgstr "%(title)s – %(when)s"
+
+msgid "(unnamed)"
+msgstr "(bez nazwy)"
+
+msgid "+ Address"
+msgstr "+ Adres"
+
+msgid "+ Email address"
+msgstr "+ Adres e-mail"
+
+msgid "+ Emergency contact"
+msgstr "+ Kontakt alarmowy"
+
+msgid "+ Event"
+msgstr "+ Wydarzenie"
+
+msgid "+ More appointments"
+msgstr "+ Więcej spotkań"
+
+msgid "+ More tasks"
+msgstr "+ Więcej zadań"
+
+msgid "+ Phone number"
+msgstr "+ Numer telefonu"
+
+msgid "+ Social medium"
+msgstr "+ Medium społecznościowe"
+
+msgid "+49 … or 0…"
+msgstr "+49 … lub 0…"
+
+msgid "1 - high"
+msgstr "1 – wysoki"
+
+msgid "1 day before"
+msgstr "1 dzień wcześniej"
+
+msgid "1 hour before"
+msgstr "1 godzinę wcześniej"
+
+msgid "1 minute"
+msgstr "1 minuta"
+
+msgid "10 minutes before"
+msgstr "10 minut wcześniej"
+
+msgid "15 minutes before"
+msgstr "15 minut wcześniej"
+
+msgid "15 seconds"
+msgstr "15 sekund"
+
+msgid "2 - medium"
+msgstr "2 – średni"
+
+msgid "2 days before"
+msgstr "2 dni wcześniej"
+
+msgid "2 hours before"
+msgstr "2 godziny wcześniej"
+
+msgid "2 minutes"
+msgstr "2 minuty"
+
+msgid "3 - low"
+msgstr "3 – niski"
+
+msgid "3 days before"
+msgstr "3 dni wcześniej"
+
+msgid "30 days"
+msgstr "30 dni"
+
+msgid "30 minutes before"
+msgstr "30 minut wcześniej"
+
+msgid "30 seconds"
+msgstr "30 sekund"
+
+msgid "4 days before"
+msgstr "4 dni wcześniej"
+
+msgid "5 days before"
+msgstr "5 dni wcześniej"
+
+msgid "5 minutes before"
+msgstr "5 minut wcześniej"
+
+msgid "6 days before"
+msgstr "6 dni wcześniej"
+
+msgid "7 days before"
+msgstr "7 dni wcześniej"
+
+msgid "90 days"
+msgstr "90 dni"
+
+msgid "A component required by the Magnolienbaum is missing."
+msgstr "Brakuje składnika wymaganego przez Magnolienbaum."
+
+msgid ""
+"A fallback for branch baum-1: when the direct connection cannot be reached, "
+"messages travel through a WebDAV folder on your Nextcloud server."
+msgstr ""
+"Droga zapasowa dla gałęzi baum-1: gdy połączenie bezpośrednie jest "
+"nieosiągalne, wiadomości idą przez folder WebDAV na serwerze Nextcloud."
+
+msgid "A group with this name already exists."
+msgstr "Grupa o tej nazwie już istnieje."
+
+msgid "A maximum of 10 SMS parts is allowed."
+msgstr "Dozwolone jest maksymalnie 10 części SMS."
+
+msgid "A notebook with this name already exists in this group."
+msgstr "Notes o tej nazwie już istnieje w tej grupie."
+
+msgid ""
+"A numeric code can be entered conveniently using the keypad when opening; "
+"letters work as well. After three failed attempts, the organizer waits five "
+"minutes."
+msgstr ""
+"Kod liczbowy można wygodnie wprowadzić podczas otwierania za pomocą "
+"klawiatury numerycznej; działają również litery. Po trzech nieudanych "
+"próbach Organizer odczekuje pięć minut."
+
+msgid ""
+"A pairing file works like a one-time key. Give it only to the person whose "
+"Organizer you want to connect; it expires after 15 minutes."
+msgstr ""
+"Plik parowania działa jak klucz jednorazowy. Przekaż go wyłącznie osobie, "
+"której Organizer chcesz połączyć; plik wygasa po 15 minutach."
+
+msgid ""
+"A password initially locks out the background reminder service. Without the "
+"explicit permission below, notifications work only while the organizer is "
+"open and unlocked."
+msgstr ""
+"Hasło początkowo blokuje działającą w tle usługę przypomnień. Bez wyraźnego "
+"zezwolenia poniżej powiadomienia działają tylko wtedy, gdy Organizer jest "
+"otwarty i odblokowany."
+
+msgid "A personal synchronization attachment hash is invalid or duplicated."
+msgstr ""
+"Skrót załącznika do synchronizacji osobistej jest nieprawidłowy lub "
+"zduplikowany."
+
+msgid "A personal synchronization attachment source is not an object."
+msgstr "Źródło załącznika synchronizacji osobistej nie jest obiektem."
+
+msgid "A personal synchronization batch is not an object."
+msgstr "Osobista partia synchronizacji nie jest obiektem."
+
+msgid ""
+"A separate encrypted connection for dial requests, device status and "
+"selected notifications."
+msgstr ""
+"Oddzielne szyfrowane połączenie dla żądań połączenia, stanu urządzenia i "
+"wybranych powiadomień."
+
+msgid "API level"
+msgstr "Poziom API"
+
+msgid "Aargau"
+msgstr "Argowia"
+
+msgid "About"
+msgstr "O programie"
+
+msgid "About the Magnolie Organizer"
+msgstr "O programie Magnolie Organizer"
+
+msgid "Accept"
+msgstr "Akceptuj"
+
+msgid "Accept and remember"
+msgstr "Akceptuj i zapamiętaj"
+
+msgid "Accept “%(entry)s” into your own collection?"
+msgstr "Dodać „%(entry)s” do własnej kolekcji?"
+
+msgid ""
+"Accept “%(entry)s” into your own collection?\n"
+"\n"
+"This consent applies only to this note. Future changes and attachments will "
+"then be applied automatically in both directions."
+msgstr ""
+"Dodać „%(entry)s” do własnej kolekcji?\n"
+"\n"
+"Ta zgoda dotyczy tylko tej notatki. Późniejsze zmiany i załączniki będą "
+"następnie automatycznie stosowane w obu kierunkach."
+
+msgid "Accessibility"
+msgstr "Dostępność"
+
+msgid "Accessibility helper frame"
+msgstr "Pomocnicza ramka dostępności"
+
+msgid "Accessibility helper frame disabled"
+msgstr "Pomocnicza ramka dostępności wyłączona"
+
+msgid "Accessibility helper frame enabled"
+msgstr "Pomocnicza ramka dostępności włączona"
+
+msgid ""
+"Accessibility: The helper frame shows the current keyboard focus. It is "
+"disabled by default; press Ctrl+Alt+H at any time to switch it on or off."
+msgstr ""
+"Dostępność: Pomocnicza ramka pokazuje bieżący fokus klawiatury. Domyślnie "
+"jest wyłączona; w każdej chwili można ją przełączyć skrótem Ctrl+Alt+H."
+
+msgid "According to language"
+msgstr "Według języka"
+
+msgid "Active call"
+msgstr "Aktywne połączenie"
+
+msgid "Add"
+msgstr "Dodaj"
+
+msgid "Add appointment"
+msgstr "Dodaj spotkanie"
+
+msgid "Add attachment URI"
+msgstr "Dodaj URI załącznika"
+
+msgid "Add attendee"
+msgstr "Dodaj uczestnika"
+
+msgid "Add cycle marker"
+msgstr "Dodaj znacznik cyklu"
+
+msgid "Add person"
+msgstr "Dodaj osobę"
+
+msgid "Add reminder"
+msgstr "Dodaj przypomnienie"
+
+msgid "Add scheme row"
+msgstr "Dodaj wiersz schematu"
+
+msgid "Add shift"
+msgstr "Dodaj zmianę"
+
+msgid "Add to dictionary"
+msgstr "Dodaj do słownika"
+
+msgid "Add vacation period"
+msgstr "Dodaj okres urlopu"
+
+msgid "Add waste collection"
+msgstr "Dodaj odbiór odpadów"
+
+msgid "Address"
+msgstr "Adres"
+
+msgid "Address book"
+msgstr "Książka adresowa"
+
+msgid "Address imported from LibreOffice."
+msgstr "Adres zaimportowano z LibreOffice."
+
+msgid ""
+"Addressed to %(branch)s; it will be delivered when the branch is available."
+msgstr ""
+"Adresatem jest %(branch)s; element zostanie dostarczony, gdy gałąź będzie "
+"dostępna."
+
+msgid "Addresses"
+msgstr "Adresy"
+
+msgid "After exercise"
+msgstr "Po wysiłku fizycznym"
+
+msgid "After meal"
+msgstr "Po posiłku"
+
+msgid "All"
+msgstr "Wszystko"
+
+msgid "All cantons"
+msgstr "Wszystkie kantony"
+
+msgid "All entries"
+msgstr "Wszystkie wpisy"
+
+msgid "All files"
+msgstr "Wszystkie pliki"
+
+msgid "All people"
+msgstr "Wszystkie osoby"
+
+msgid "All six charts"
+msgstr "Wszystkich sześć wykresów"
+
+msgid "All states"
+msgstr "Wszystkie kraje związkowe"
+
+msgid "Allow notifications despite password protection"
+msgstr "Zezwalaj na powiadomienia mimo ochrony hasłem"
+
+msgid "Also disclose appointments marked as confidential"
+msgstr "Udostępniaj także spotkania oznaczone jako poufne"
+
+msgid "Also hide past anniversaries"
+msgstr "Ukrywaj także minione rocznice"
+
+msgid "Also hide past school holidays"
+msgstr "Ukrywaj także minione ferie szkolne"
+
+msgid "Also remind me about anniversaries"
+msgstr "Przypominaj także o rocznicach"
+
+msgid "Also remind me about missed appointments"
+msgstr "Przypominaj także o przegapionych spotkaniach"
+
+msgid "Also use the default notification"
+msgstr "Używaj również domyślnego powiadomienia"
+
+msgid "Amount / unit"
+msgstr "Ilość / jednostka"
+
+msgid ""
+"An appointment calendar, address book, task book and notepad in the guise of "
+"a leather-bound organizer —"
+msgstr ""
+"Kalendarz spotkań, książka adresowa, terminarz zadań i notatnik w formie "
+"skórzanego organizera —"
+
+msgid "Android version"
+msgstr "Wersja Android"
+
+msgid "Anniversaries"
+msgstr "Rocznice"
+
+msgid "Anniversaries (.ics)"
+msgstr "Rocznice (.ics)"
+
+msgid "Anniversary"
+msgstr "Rocznica"
+
+msgid "Another phone is already paired. Remove it first."
+msgstr "Inny telefon jest już sparowany. Najpierw go usuń."
+
+msgid "Answer"
+msgstr "Odbierz"
+
+msgid "Answer calls on the computer and talk"
+msgstr "Odbieraj połączenia na komputerze i rozmawiaj"
+
+msgid "App password"
+msgstr "Hasło aplikacji"
+
+msgid "Appearance"
+msgstr "Wygląd"
+
+msgid "Appearance and sound follow your system notification settings."
+msgstr "Wygląd i dźwięk są zgodne z ustawieniami powiadomień systemowych."
+
+msgid "Appenzell Ausserrhoden"
+msgstr "Appenzell Ausserrhoden"
+
+msgid "Appenzell Innerrhoden"
+msgstr "Appenzell Innerrhoden"
+
+msgid "Application command"
+msgstr "Polecenie aplikacji"
+
+msgid ""
+"Applies only to content you enter yourself: appointments, tasks, contacts, "
+"notes and anniversaries. Headings, calendar pages and organizer labels "
+"remain unchanged."
+msgstr ""
+"Dotyczy tylko treści wprowadzanych samodzielnie: spotkań, zadań, kontaktów, "
+"notatek i rocznic. Nagłówki, strony kalendarza i etykiety Organizera "
+"pozostają bez zmian."
+
+msgid ""
+"Applies when scrolling over a time field. Hold Shift to change the time in "
+"whole hours."
+msgstr ""
+"Obowiązuje podczas przewijania nad polem czasu. Przytrzymaj Shift, aby "
+"zmieniać czas o pełne godziny."
+
+msgid "Apply"
+msgstr "Zastosuj"
+
+msgid "Appointment"
+msgstr "Spotkanie"
+
+msgid "Appointment is due"
+msgstr "Nadszedł termin spotkania"
+
+msgid "Appointment overview"
+msgstr "Przegląd spotkań"
+
+msgid "Appointment reminder"
+msgstr "Przypomnienie o spotkaniu"
+
+msgid "Appointment reminders"
+msgstr "Przypomnienia o spotkaniach"
+
+msgid "Appointments"
+msgstr "Spotkania"
+
+msgid "Appointments (.ics)"
+msgstr "Spotkania (.ics)"
+
+msgid "Appointments as Lotus CSV"
+msgstr "Spotkania jako Lotus CSV"
+
+msgid "Appointments for this person"
+msgstr "Spotkania tej osoby"
+
+msgid "Appointments · %(period)s"
+msgstr "Spotkania · %(period)s"
+
+msgid "Archive password"
+msgstr "Archiwizuj hasło"
+
+msgid "As usual (print)"
+msgstr "Jak zwykle (druk)"
+
+msgid "Assign SMS action"
+msgstr "Przypisz akcję SMS"
+
+msgid "Assign call action"
+msgstr "Przypisz akcję połączenia"
+
+msgid "Assign shift"
+msgstr "Przypisz zmianę"
+
+msgid "At bedtime"
+msgstr "Przed snem"
+
+msgid "At least one health view must remain enabled."
+msgstr "Co najmniej jeden widok zdrowia musi pozostać włączony."
+
+msgid "At most 5,000 contacts can be exported at once."
+msgstr "Jednorazowo można wyeksportować najwyżej 5 000 kontaktów."
+
+msgid "At most 5,000 health records can be exported at once."
+msgstr ""
+"Jednorazowo można wyeksportować najwyżej 5 000 wpisów dotyczących zdrowia."
+
+msgid "Attachments"
+msgstr "Spotkania"
+
+msgid "Attendees"
+msgstr "Uczestnicy"
+
+msgid "Austria"
+msgstr "Austria"
+
+msgid "Author"
+msgstr "Autor"
+
+msgid "Authority appointment"
+msgstr "Wizyta urzędowa"
+
+msgid "Automatically choose a suitable application"
+msgstr "Automatycznie wybierz odpowiednią aplikację"
+
+msgid "Automatically synchronize over Wi-Fi"
+msgstr "Synchronizuj automatycznie przez Wi-Fi"
+
+msgid "B"
+msgstr "P"
+
+msgid "BMI"
+msgstr "BMI"
+
+msgid ""
+"BMI\n"
+"kg/m²"
+msgstr ""
+"BMI\n"
+"kg/m²"
+
+msgid "BMI from the latest stored height and weight"
+msgstr "BMI na podstawie ostatniego zapisanego wzrostu i masy ciała"
+
+msgid "BZ"
+msgstr "BZ"
+
+msgid "Backup failed."
+msgstr "Tworzenie kopii zapasowej nie powiodło się."
+
+msgid "Backup folder"
+msgstr "Folder kopii zapasowych"
+
+msgid "Backup folder updated."
+msgstr "Folder kopii zapasowych został zaktualizowany."
+
+msgid "Backup password"
+msgstr "Hasło kopii zapasowej"
+
+msgid "Backup restored. The previous data was backed up automatically."
+msgstr ""
+"Przywrócono kopię zapasową. Poprzednie dane zostały automatycznie "
+"zabezpieczone."
+
+msgid "Backup saved to: %(path)s"
+msgstr "Kopia zapasowa zapisana w: %(path)s"
+
+msgid "Backups"
+msgstr "Kopie zapasowe"
+
+msgid ""
+"Backups outside the data location require a password with at least four "
+"characters."
+msgstr ""
+"Kopie zapasowe poza lokalizacją danych wymagają hasła o długości co najmniej "
+"czterech znaków."
+
+msgid "Baden-Württemberg"
+msgstr "Badenia-Wirtembergia"
+
+msgid "Baptism"
+msgstr "Chrzest"
+
+msgid "Basal units"
+msgstr "Jednostki bazowe"
+
+msgid "Basel-Landschaft"
+msgstr "Bazylea-Okręg"
+
+msgid "Basel-Stadt"
+msgstr "Bazylea-Miasto"
+
+msgid "Basic operation and appearance of the organizer."
+msgstr "Podstawowa obsługa i wygląd Organizera."
+
+msgid "Battery"
+msgstr "List"
+
+msgid "Battery snapshot"
+msgstr "Migawka stanu baterii"
+
+msgid "Bavaria"
+msgstr "Bawaria"
+
+msgid "Before contact deletion"
+msgstr "Przed usunięciem kontaktu"
+
+msgid "Before contact import"
+msgstr "Przed importem kontaktów"
+
+msgid "Before contact merge"
+msgstr "Przed scaleniem kontaktu"
+
+msgid "Before exercise"
+msgstr "Przed wysiłkiem fizycznym"
+
+msgid "Before meal"
+msgstr "Przed posiłkiem"
+
+msgid "Before restore"
+msgstr "Przed przywróceniem"
+
+msgid "Before synchronization"
+msgstr "Przed synchronizacją"
+
+msgid "Belgium"
+msgstr "Belgia"
+
+msgid "Berlin"
+msgstr "Berlin"
+
+msgid "Bern"
+msgstr "Berno"
+
+msgid "Birthday"
+msgstr "Urodziny"
+
+msgid "Birthday party"
+msgstr "Przyjęcie urodzinowe"
+
+msgid "Black"
+msgstr "Czarny"
+
+msgid "Blank health form"
+msgstr "Pusty formularz zdrowia"
+
+msgid "Blank template for handwriting"
+msgstr "Pusty formularz do odręcznego wypełnienia"
+
+msgid "Bleeding · heavy"
+msgstr "Krwawienie · obfite"
+
+msgid "Bleeding · light"
+msgstr "Krwawienie · lekkie"
+
+msgid "Bleeding · medium"
+msgstr "Krwawienie · średnie"
+
+msgid "Blood glucose"
+msgstr "Glukoza we krwi"
+
+msgid "Blood glucose scheme"
+msgstr "Schemat pomiaru glukozy we krwi"
+
+msgid "Blood glucose table"
+msgstr "Tabela glukozy we krwi"
+
+msgid "Blood glucose value"
+msgstr "Poziom glukozy we krwi"
+
+msgid "Blood pressure"
+msgstr "Ciśnienie krwi"
+
+msgid ""
+"Blood pressure\n"
+"mm/Hg"
+msgstr ""
+"Ciśnienie krwi\n"
+"mm/Hg"
+
+msgid "Blue (fountain pen)"
+msgstr "Niebieski (pióro wieczne)"
+
+msgid "Bluetooth data fallback"
+msgstr "Awaryjne przesyłanie danych przez Bluetooth"
+
+msgid "Bold"
+msgstr "Pogrubienie"
+
+msgid ""
+"Both branches display the same six-digit code when connecting. Confirm it "
+"only if it matches, preventing anyone from intercepting the connection."
+msgstr ""
+"Podczas łączenia obie gałęzie wyświetlają ten sam sześciocyfrowy kod. "
+"Potwierdź go tylko wtedy, gdy jest identyczny; zapobiega to przechwyceniu "
+"połączenia przez inną osobę."
+
+msgid "Brandenburg"
+msgstr "Brandenburgia"
+
+msgid "Bremen"
+msgstr "Brema"
+
+msgid "Burgenland"
+msgstr "Burgenland"
+
+msgid "By first name (Hans Müller)"
+msgstr "Według imienia (Hans Müller)"
+
+msgid "By last name (Müller, Hans)"
+msgstr "Według nazwiska (Müller, Hans)"
+
+msgid "CSV files (*.csv)"
+msgstr "Pliki CSV (*.csv)"
+
+msgid "CW"
+msgstr "TK"
+
+msgid "Calculate the route to this address"
+msgstr "Wyznacz trasę do tego adresu"
+
+msgid "Calendar"
+msgstr "Kalendarz"
+
+msgid "Calendar (*.ics)"
+msgstr "Kalendarz (*.ics)"
+
+msgid ""
+"Calendar and contact applications commonly export appointments as .ics files "
+"and contacts as .vcf files."
+msgstr ""
+"Aplikacje kalendarza i kontaktów często eksportują spotkania jako pliki ."
+"ics, a kontakty jako pliki .vcf."
+
+msgid "Calendar file (.ics/.vcs/.lcs) …"
+msgstr "Plik kalendarza (.ics/.vcs/.lcs) …"
+
+msgid "Calendar layout"
+msgstr "Układ kalendarza"
+
+msgid "Calendar week %(number)s"
+msgstr "Tydzień kalendarzowy %(number)s"
+
+msgid "Calendars (multiple selections allowed)"
+msgstr "Kalendarze (można zaznaczyć wiele)"
+
+msgid "Calendars and contacts"
+msgstr "Calendars and contacts"
+
+msgid "Call"
+msgstr "Zadzwoń"
+
+msgid "Call assignment"
+msgstr "Przypisanie połączenia"
+
+msgid "Call ended"
+msgstr "Połączenie zakończone"
+
+msgid "Call notes"
+msgstr "Notatki z połączenia"
+
+msgid "Call reference"
+msgstr "Odwołanie do połączenia"
+
+msgid "Call started"
+msgstr "Połączenie rozpoczęte"
+
+msgid "Call this contact using Magnolie Notes or the assigned application"
+msgstr ""
+"Zadzwoń do tego kontaktu za pomocą Magnolie Notes lub przypisanej aplikacji"
+
+msgid "Call with %(name)s · %(date)s"
+msgstr "Połączenie z %(name)s · %(date)s"
+
+msgid "Cancel"
+msgstr "Anuluj"
+
+msgid "Canton"
+msgstr "Kanton"
+
+msgid "Capsule"
+msgstr "Kapsułka"
+
+msgid "Captured"
+msgstr "Ujęty"
+
+msgid "Care service"
+msgstr "Usługa opiekuńcza"
+
+msgid "Carinthia"
+msgstr "Karyntia"
+
+msgid "Categories"
+msgstr "Kategorie"
+
+msgid "Categories:"
+msgstr "Kategorie:"
+
+msgid "Catholic confirmation"
+msgstr "Bierzmowanie"
+
+msgid "Centered on the screen"
+msgstr "Na środku ekranu"
+
+msgid "Change password"
+msgstr "Zmień hasło"
+
+msgid "Changes are applied automatically"
+msgstr "Zmiany są stosowane automatycznie"
+
+msgid "Charging"
+msgstr "Ładowanie"
+
+msgid "Charging state"
+msgstr "Stan ładowania"
+
+msgid "Charts and BMI are documentation aids only and are not a diagnosis."
+msgstr "Wykresy i BMI służą wyłącznie do dokumentacji i nie stanowią diagnozy."
+
+msgid "Check for updates automatically every day"
+msgstr "Codziennie automatycznie sprawdzaj aktualizacje"
+
+msgid "Check now"
+msgstr "Sprawdź teraz"
+
+msgid "Check spelling (red wavy lines)"
+msgstr "Sprawdzaj pisownię (czerwone faliste podkreślenia)"
+
+msgid "Check the value and discuss repeated deviations with a doctor."
+msgstr "Sprawdź wartość i omów z lekarzem powtarzające się odchylenia."
+
+msgid "Check-up appointment"
+msgstr "Wizyta kontrolna"
+
+msgid "Checking contributor key …"
+msgstr "Sprawdzam klucz współautora…"
+
+msgid "Checking online accounts …"
+msgstr "Sprawdzanie kont internetowych …"
+
+msgid "Checking the current manual version …"
+msgstr "Sprawdzanie bieżącej wersji podręcznika …"
+
+msgid "Checking the current version …"
+msgstr "Sprawdzanie bieżącej wersji …"
+
+msgid ""
+"Choose a backup file. Before restoring it, the organizer automatically "
+"creates a copy of the current data. An encrypted backup requires its "
+"password."
+msgstr ""
+"Wybierz plik kopii zapasowej. Przed jego przywróceniem Organizer "
+"automatycznie utworzy kopię aktualnych danych. Zaszyfrowana kopia zapasowa "
+"wymaga hasła."
+
+msgid "Choose a country first."
+msgstr "Najpierw wybierz kraj."
+
+msgid "Choose a mobile number"
+msgstr "Wybierz numer telefonu komórkowego"
+
+msgid ""
+"Choose a phase or bleeding intensity. Assign it to the complete date range "
+"in the new appointment sheet."
+msgstr ""
+"Wybierz fazę lub intensywność krwawienia. Przypisz ją do całego zakresu dat "
+"w arkuszu nowego spotkania."
+
+msgid "Choose a phone number to call"
+msgstr "Wybierz numer telefonu, który chcesz wybrać"
+
+msgid ""
+"Choose a predefined shift or enter a custom one. Assign it to one or more "
+"days in the new appointment sheet. Day markers do not send notifications."
+msgstr ""
+"Wybierz zdefiniowaną zmianę lub wpisz własną. Przypisz ją do jednego lub "
+"kilku dni w arkuszu nowego spotkania. Znaczniki dni nie wysyłają powiadomień."
+
+msgid "Choose a value and period to display its development."
+msgstr "Wybierz wartość i okres, aby wyświetlić jej zmiany."
+
+msgid ""
+"Choose a waste type or enter a custom collection. Set the first collection "
+"and the interval in days; 0 creates a one-time collection."
+msgstr ""
+"Wybierz rodzaj odpadów lub wpisz własny odbiór. Ustaw pierwszy odbiór oraz "
+"odstęp w dniach; 0 tworzy odbiór jednorazowy."
+
+msgid "Choose at least four characters."
+msgstr "Wybierz co najmniej cztery znaki."
+
+msgid "Choose entries to print, export or delete"
+msgstr "Wybierz wpisy do wydrukowania, wyeksportowania lub usunięcia"
+
+msgid "Choose file…"
+msgstr "Wybierz plik…"
+
+msgid "Choose folder …"
+msgstr "Wybierz folder …"
+
+msgid "Choose or enter a phone number"
+msgstr "Wybierz lub wpisz numer telefonu"
+
+msgid "Choose photo…"
+msgstr "Wybierz zdjęcie…"
+
+msgid "Choose print or export content…"
+msgstr "Wybierz zawartość do wydruku lub eksportu…"
+
+msgid "Choose service"
+msgstr "Wybierz usługę"
+
+msgid ""
+"Choose which sections appear as tabs on the organizer. The calendar always "
+"remains available."
+msgstr ""
+"Wybierz sekcje wyświetlane jako karty organizera. Kalendarz pozostaje zawsze "
+"dostępny."
+
+msgid "Choose year…"
+msgstr "Wybierz rok…"
+
+msgid "City"
+msgstr "Miejscowość"
+
+msgid "Claws Mail (.xml/.ldif) …"
+msgstr "Claws Mail (.xml/.ldif) …"
+
+msgid "Claws Mail address book (*.xml)"
+msgstr "Książka adresowa Claws Mail (*.xml)"
+
+msgid "Clear"
+msgstr "Wyczyść"
+
+msgid "Clear filters"
+msgstr "Wyczyść filtry"
+
+msgid "Clearly abnormal reference value – check it and seek medical advice."
+msgstr ""
+"Wyraźnie nieprawidłowa wartość referencyjna – sprawdź ją i skonsultuj się z "
+"lekarzem."
+
+msgid "Click here to add an appointment"
+msgstr "Kliknij tutaj, aby dodać spotkanie"
+
+msgid "Click to open"
+msgstr "Kliknij, aby otworzyć"
+
+msgid "Clicking a day"
+msgstr "Kliknięcie dnia"
+
+msgid ""
+"Clicking an existing appointment opens it for editing in both cases. This "
+"setting applies only when you click an empty area in the box."
+msgstr ""
+"Kliknięcie istniejącego spotkania w obu przypadkach otwiera je do edycji. To "
+"ustawienie dotyczy tylko kliknięcia pustego miejsca w polu."
+
+msgid "Close"
+msgstr "Zamknij"
+
+msgid "Close settings"
+msgstr "Zamknij ustawienia"
+
+msgid "Club anniversary"
+msgstr "Rocznica klubu"
+
+msgid "Code matches"
+msgstr "Kod jest zgodny"
+
+msgid "Codes differ"
+msgstr "Kody różnią się"
+
+msgid "Codes match"
+msgstr "Kod jest zgodny"
+
+msgid "Color"
+msgstr "Kolor"
+
+msgid ""
+"Colors and matching scheme rows are orientation aids. Enter or adjust the IE "
+"in the table to the amount actually administered."
+msgstr ""
+"Kolory i pasujące wiersze schematu służą jako wskazówki. Wprowadź lub "
+"skoryguj w tabeli liczbę IE zgodnie z faktycznie podaną dawką."
+
+msgid "Columns in the ODS table"
+msgstr "Kolumny w tabeli ODS"
+
+msgid "Compact sender line (default)"
+msgstr "Zwarty wiersz nadawcy (domyślny)"
+
+msgid "Company"
+msgstr "Firma"
+
+msgid "Compare pairing code"
+msgstr "Importowanie pliku parowania"
+
+msgid ""
+"Compare this fingerprint with the other branch, for example by phone, to "
+"verify the connection."
+msgstr ""
+"Porównaj ten odcisk z drugą gałęzią, na przykład telefonicznie, aby "
+"zweryfikować połączenie."
+
+msgid "Complete archive export is available only in the installed application."
+msgstr "Pełny eksport archiwum jest dostępny tylko w zainstalowanej aplikacji."
+
+msgid "Complete archive exported with password protection."
+msgstr "Kompletne archiwum wyeksportowane z ochroną hasłem."
+
+msgid "Complete archive exported without encryption."
+msgstr "Kompletne archiwum wyeksportowane bez szyfrowania."
+
+msgid "Complete archive import is available only in the installed application."
+msgstr "Pełny import archiwum jest dostępny tylko w zainstalowanej aplikacji."
+
+msgid ""
+"Complete archive imported. The previous data was backed up automatically."
+msgstr ""
+"Zaimportowano całe archiwum. Kopia zapasowa poprzednich danych została "
+"utworzona automatycznie."
+
+msgid "Complete pairing"
+msgstr "Zakończ parowanie"
+
+msgid "Completed (%(count)s)"
+msgstr "Ukończone (%(count)s)"
+
+msgid "Completed task"
+msgstr "Ukończone"
+
+msgid "Completing secure pairing…"
+msgstr "Tworzenie pliku parowania"
+
+msgid ""
+"Confirm only if exactly the same six-digit code is shown on both devices."
+msgstr ""
+"Potwierdź tylko wtedy, gdy na obu urządzeniach wyświetlany jest dokładnie "
+"ten sam sześciocyfrowy kod."
+
+msgid "Confirm the pairing request on the phone."
+msgstr "Potwierdź żądanie parowania na telefonie."
+
+msgid "Confirmation"
+msgstr "Potwierdzenie"
+
+msgid "Conflict"
+msgstr "Potwierdzenie"
+
+msgid "Connect"
+msgstr "Połącz"
+
+msgid "Connect phone via WLAN"
+msgstr "Połącz telefon przez WLAN"
+
+msgid "Connected"
+msgstr "Connected"
+
+msgid "Consider deletions during manual synchronization"
+msgstr "Synchronizacja kontaktów"
+
+msgid "Contact"
+msgstr "Contact"
+
+msgid "Contact card"
+msgstr "Karta kontaktu"
+
+msgid "Contact cards"
+msgstr "Karty kontaktów"
+
+msgid "Contact cards (*.vcf)"
+msgstr "Karty kontaktów (*.vcf)"
+
+msgid "Contact deletion proposals were blocked by the safety limit."
+msgstr "Propozycje usunięcia kontaktów zablokowano limitem bezpieczeństwa."
+
+msgid "Contact photo preview"
+msgstr "Podgląd zdjęcia kontaktu"
+
+msgid "Contact synchronization"
+msgstr "Synchronizacja kontaktów"
+
+msgid ""
+"Contact synchronization preview: %(new)s new, %(changed)s changed, "
+"%(duplicates)s possible duplicates, %(deletions)s deletion proposals."
+msgstr ""
+"Podgląd synchronizacji: %(new)s nowych, %(changed)s zmienionych, "
+"%(duplicates)s możliwych duplikatów, %(deletions)s propozycji usunięcia."
+
+msgid ""
+"Contact synchronization was blocked because the bound snapshot is empty."
+msgstr "Synchronizację zablokowano, ponieważ powiązana migawka jest pusta."
+
+msgid "Contacts"
+msgstr "Kontakty"
+
+msgid "Contacts (.vcf)"
+msgstr "Kontakty (.vcf)"
+
+msgid "Contacts (.vcf) …"
+msgstr "Kontakty (.vcf) …"
+
+msgid "Contacts are merged additively. No deletions are transmitted."
+msgstr "Kontakty są łączone addytywnie. Usunięcia nie są przesyłane."
+
+msgid "Contacts for Claws Mail (.ldif)"
+msgstr "Kontakty dla Claws Mail (.ldif)"
+
+msgid "Content"
+msgstr "Zawartość"
+
+msgid "Continue"
+msgstr "Ciąg dalszy"
+
+msgid "Continued"
+msgstr "Ciąg dalszy"
+
+msgid "Contributor key"
+msgstr "Klucz współautora"
+
+msgid "Copy"
+msgstr "Kopiuj"
+
+msgid "Cost center"
+msgstr "Centrum kosztów"
+
+msgid "Could not answer"
+msgstr "Nie udało się odebrać połączenia"
+
+msgid "Could not hang up"
+msgstr "Nie udało się zakończyć połączenia"
+
+msgid "Country"
+msgstr "Kraj"
+
+msgid "Country & holidays"
+msgstr "Kraj i święta"
+
+msgid "Country (optional)"
+msgstr "Kraj (opcjonalnie)"
+
+msgid "Country and region"
+msgstr "Kraj i region"
+
+msgid "Country for searches"
+msgstr "Kraj dla wyszukiwań"
+
+msgid "Create"
+msgstr "Utwórz"
+
+msgid "Create a backup copy of the data"
+msgstr "Utwórz kopię zapasową danych"
+
+msgid "Create a new appointment immediately"
+msgstr "Od razu utwórz nowe spotkanie"
+
+msgid "Create an empty printable template"
+msgstr "Utwórz pusty szablon do wydruku"
+
+msgid "Create backup"
+msgstr "Utwórz kopię zapasową"
+
+msgid "Create contact"
+msgstr "Utwórz kontakt"
+
+msgid "Create encrypted backup"
+msgstr "Utwórz zaszyfrowaną kopię zapasową"
+
+msgid "Create group"
+msgstr "Utwórz grupę"
+
+msgid "Create notebook"
+msgstr "Utwórz notes"
+
+msgid "Create pairing file …"
+msgstr "Utwórz plik parowania …"
+
+msgid "Create snapshot now"
+msgstr "Utwórz migawkę teraz"
+
+msgid "Custom"
+msgstr "Niestandardowe"
+
+msgid "Custom application"
+msgstr "Niestandardowa aplikacja"
+
+msgid "Custom notification"
+msgstr "Niestandardowe powiadomienie"
+
+msgid "Custom websites must begin with https://."
+msgstr "Niestandardowe witryny muszą zaczynać się od https://."
+
+msgid "Customer no."
+msgstr "Nr klienta"
+
+msgid "Customize"
+msgstr "Dostosuj"
+
+msgid "Customize notebooks"
+msgstr "Dostosuj notesy"
+
+msgid "Cut"
+msgstr "Wytnij"
+
+msgid "Cycle calendar"
+msgstr "Kalendarz cyklu"
+
+msgid ""
+"Cycle markers are stored only in your local Organizer data and do not send "
+"notifications."
+msgstr ""
+"Propozycje mogą usuwać tylko pojedynczo potwierdzone powiązane kontakty. "
+"Włączyć je dla tej gałęzi?Znaczniki cyklu są przechowywane wyłącznie w "
+"lokalnych danych Organizera i nie wysyłają powiadomień."
+
+msgid "Czechia"
+msgstr "Czechy"
+
+msgid "DIN 5008 Form B with fold marks"
+msgstr "DIN 5008 formularz B ze znacznikami zgięcia"
+
+msgid "Daily"
+msgstr "Codziennie"
+
+msgid "Daily view"
+msgstr "Widok dzienny"
+
+msgid "Damaged"
+msgstr "Uszkodzony"
+
+msgid "Date"
+msgstr "Data"
+
+msgid "Daughter"
+msgstr "Córka"
+
+msgid "Day"
+msgstr "Dzień"
+
+msgid "Day markers"
+msgstr "Znaczniki dni"
+
+msgid "Days"
+msgstr "Dni"
+
+msgid "Death anniversary"
+msgstr "Rocznica śmierci"
+
+msgid "Default: next to the data file"
+msgstr "Domyślnie: obok pliku danych"
+
+msgid "Delegate to"
+msgstr "Deleguj do"
+
+msgid "Delete"
+msgstr "Usuń"
+
+msgid "Delete %(count)s selected entry for good?"
+msgid_plural "Delete %(count)s selected entries for good?"
+msgstr[0] "Trwale usunąć %(count)s zaznaczony wpis?"
+msgstr[1] "Trwale usunąć %(count)s zaznaczone wpisy?"
+msgstr[2] "Trwale usunąć %(count)s zaznaczonych wpisów?"
+
+msgid "Delete %(count)s selected entry? It moves to the wastebasket."
+msgid_plural "Delete %(count)s selected entries? They move to the wastebasket."
+msgstr[0] "Usunąć wybrany wpis %(count)s? Zostanie przeniesiony do kosza."
+msgstr[1] "Usunąć wybrany wpis %(count)s? Zostanie przeniesiony do kosza."
+msgstr[2] "Usunąć wybrany wpis %(count)s? Zostanie przeniesiony do kosza."
+
+msgid "Delete all SMS histories"
+msgstr "Usuń wszystkie historie SMS"
+
+msgid "Delete all SMS histories?"
+msgstr "Usunąć wszystkie historie SMS?"
+
+msgid "Delete anniversary"
+msgstr "Usuń rocznicę"
+
+msgid "Delete anniversary “%(name)s”?"
+msgstr "Usunąć rocznicę „%(name)s”?"
+
+msgid "Delete appointment “%(title)s”?"
+msgstr "Usunąć spotkanie „%(title)s”?"
+
+msgid ""
+"Delete appointment “%(title)s”? This removes every occurrence in the series."
+msgstr ""
+"Usunąć spotkanie „%(title)s”? Spowoduje to usunięcie wszystkich wystąpień w "
+"serii."
+
+msgid "Delete contact card “%(name)s”?"
+msgstr "Usunąć kartę kontaktu „%(name)s”?"
+
+msgid "Delete cycle marker"
+msgstr "Usuń znacznik cyklu"
+
+msgid "Delete entries"
+msgstr "Usuń wpisy"
+
+msgid "Delete entries…"
+msgstr "Usuń wpisy…"
+
+msgid "Delete group"
+msgstr "Usuń grupę"
+
+msgid "Delete last character"
+msgstr "Usuń ostatni znak"
+
+msgid "Delete notebook"
+msgstr "Usuń notes"
+
+msgid "Delete notebook group “%(name)s”?"
+msgstr "Usunąć grupę notesów „%(name)s”?"
+
+msgid "Delete notebook “%(name)s”?"
+msgstr "Usunąć notes „%(name)s”?"
+
+msgid "Delete page"
+msgstr "Usuń stronę"
+
+msgid "Delete password"
+msgstr "Usuń hasło"
+
+msgid "Delete permanently"
+msgstr "Usuń trwale"
+
+msgid "Delete selection"
+msgstr "Usuń zaznaczenie"
+
+msgid "Delete shift"
+msgstr "Usuń zmianę"
+
+msgid "Delete task"
+msgstr "Usuń zadanie"
+
+msgid "Delete task “%(title)s”?"
+msgstr "Usunąć zadanie „%(title)s”?"
+
+msgid ""
+"Delete the stored app password? The mailbox can no longer deliver until a "
+"new one is entered."
+msgstr ""
+"Usunąć zapisane hasło aplikacji? Skrzynka nie będzie dostarczać, dopóki nie "
+"wpiszesz nowego."
+
+msgid "Delete this contact's SMS history?"
+msgstr "Usunąć historię SMS tego kontaktu?"
+
+msgid "Delete this contact's history"
+msgstr "Usuń historię tego kontaktu"
+
+msgid "Delete this note page (“%(title)s”)?"
+msgstr "Usunąć tę stronę notatki („%(title)s”)?"
+
+msgid "Delete this recovery snapshot permanently?"
+msgstr "Usunąć ten migawkę odzyskiwania na stałe?"
+
+msgid "Delete vacation period"
+msgstr "Usuń okres urlopu"
+
+msgid "Delete waste collection"
+msgstr "Usuń odbiór odpadów"
+
+msgid ""
+"Deleted items first go to the recycle bin and can be restored from there. "
+"They are permanently removed only afterwards."
+msgstr ""
+"Usunięte elementy najpierw trafiają do kosza i można je stamtąd przywrócić. "
+"Trwale są usuwane dopiero później."
+
+msgid "Deletion proposals are pending manual review."
+msgstr "Propozycje usunięcia czekają na ręczną ocenę."
+
+msgid ""
+"Deletion proposals can remove only individually confirmed, bound contacts. "
+"Enable deletion proposals for this branch?"
+msgstr ""
+"Propozycje mogą usuwać tylko pojedynczo potwierdzone powiązane kontakty. "
+"Włączyć je dla tej gałęzi?"
+
+msgid "Deletions are not synchronized yet."
+msgstr "Nigdy nie synchronizowano."
+
+msgid "Delivered"
+msgstr "niedostarczone"
+
+msgid "Delivered to %(branch)s."
+msgstr "Dostarczono do %(branch)s."
+
+msgid "Dentist Dr. Hill — Preview of your entries"
+msgstr "Dentysta dr Hill — Podgląd Twoich wpisów"
+
+msgid "Determining public IP address…"
+msgstr "Ustalanie publicznego adresu IP…"
+
+msgid "Device code: %(code)s"
+msgstr "Kod urządzenia: %(code)s"
+
+msgid "Device status is not permitted or available on the phone."
+msgstr "Stan urządzenia nie jest dozwolony lub jest dostępny w telefonie."
+
+msgid "Diabetes"
+msgstr "Cukrzyca"
+
+msgid "Dialing…"
+msgstr "Dialing…"
+
+msgid "Diastolic"
+msgstr "Rozkurczowe"
+
+msgid "Digit %(digit)s"
+msgstr "Cyfra %(digit)s"
+
+msgid "Direction"
+msgstr "Kierunek"
+
+msgid ""
+"Disabled: no listener, discovery, reconnect or phone tray entries are active."
+msgstr ""
+"Wyłączone: brak aktywnego nasłuchu, wykrywania, ponownego łączenia ani "
+"wpisów w tacce telefonu."
+
+msgid "Discard"
+msgstr "Odrzuć zmiany"
+
+msgid "Discharging"
+msgstr "Odrzuć zmiany"
+
+msgid "Display"
+msgstr "Ekran"
+
+msgid "Do not retrieve weather without a location"
+msgstr "Nie pobieraj pogody bez lokalizacji"
+
+msgid "Doctor appointment"
+msgstr "Wizyta u lekarza"
+
+msgid "Document.pdf"
+msgstr "Dokument.pdf"
+
+msgid ""
+"Does this eight-character verification key match KDE Connect on %(name)s?\n"
+"\n"
+"%(code)s"
+msgstr ""
+"Czy ten ośmioznakowy klucz weryfikacyjny jest zgodny z KDE Connect na "
+"%(name)s?\n"
+"\n"
+"%(code)s"
+
+msgid "Done"
+msgstr "Gotowe"
+
+msgid "Dose type"
+msgstr "Rodzaj dawki"
+
+msgid "Download manual"
+msgstr "Pobierz podręcznik"
+
+msgid "Download manual version %(version)s"
+msgstr "Pobierz podręcznik w wersji %(version)s"
+
+msgid "Download version %(version)s …"
+msgstr "Pobierz wersję %(version)s …"
+
+msgid "Drag the attachment area up or down"
+msgstr "Przeciągnij obszar załączników w górę lub w dół"
+
+msgid "Drops"
+msgstr "Krople"
+
+msgid "Due on"
+msgstr "Termin do"
+
+msgid "Due on %(date)s"
+msgstr "Termin do %(date)s"
+
+msgid "Due: %(date)s"
+msgstr "Termin: %(date)s"
+
+msgid "Duplicates"
+msgstr "Duplikaty"
+
+msgid "Duration"
+msgstr "Duration"
+
+msgid "Early shift"
+msgstr "Ranna zmiana"
+
+msgid "Edit"
+msgstr "Edytuj"
+
+msgid "Edit anniversary"
+msgstr "Edytuj rocznicę"
+
+msgid "Edit appointment"
+msgstr "Edytuj spotkanie"
+
+msgid "Edit contact"
+msgstr "Edytuj kontakt"
+
+msgid "Edit group"
+msgstr "Edytuj grupę"
+
+msgid "Edit notebook"
+msgstr "Edytuj notes"
+
+msgid "Edit notebook group"
+msgstr "Edytuj grupę notesów"
+
+msgid "Edit task"
+msgstr "Edytuj zadanie"
+
+msgid "Edit the website or application used"
+msgstr "Edytuj używaną witrynę lub aplikację"
+
+msgid "Email"
+msgstr "E-mail"
+
+msgid "Email addresses"
+msgstr "Adresy e-mail"
+
+msgid "Embed"
+msgstr "Osadź"
+
+msgid "Embed PDF"
+msgstr "Osadź PDF"
+
+msgid "Embed image"
+msgstr "Osadź obraz"
+
+msgid "Embed links and files"
+msgstr "Osadź łącza i pliki"
+
+msgid "Embedded files"
+msgstr "Osadzone pliki"
+
+msgid "Emergency contact"
+msgstr "Kontakt alarmowy"
+
+msgid "Emergency contact %(number)s"
+msgstr "Kontakt alarmowy %(number)s"
+
+msgid "Emergency contact phone"
+msgstr "Telefon kontaktu alarmowego"
+
+msgid "Emergency contacts"
+msgstr "Kontakty alarmowe"
+
+msgid "Empty recycle bin"
+msgstr "Opróżnij kosz"
+
+msgid "Enable"
+msgstr "Włącz"
+
+msgid "Enable Magnolie Notes phone connection"
+msgstr "Włącz połączenie telefoniczne Magnolie Notes"
+
+msgid "Enable cycle calendar"
+msgstr "Włącz kalendarz cyklu"
+
+msgid "Enable password protection"
+msgstr "Włącz ochronę hasłem"
+
+msgid ""
+"Enable password protection? Your data will then be stored encrypted. Without "
+"the password, it will be irretrievably lost; keep the password in a safe "
+"place."
+msgstr ""
+"Włączyć ochronę hasłem? Dane będą wtedy przechowywane w postaci "
+"zaszyfrowanej. Bez hasła zostaną bezpowrotnie utracone; przechowuj hasło w "
+"bezpiecznym miejscu."
+
+msgid "Enable reminders"
+msgstr "Włącz przypomnienia"
+
+msgid "Enable shift planner"
+msgstr "Włącz planer zmian"
+
+msgid "Enable tray applet"
+msgstr "Włącz aplet zasobnika systemowego"
+
+msgid "Enable vacation planner"
+msgstr "Włącz planer urlopów"
+
+msgid "Enable waste collection calendar"
+msgstr "Włącz kalendarz odbioru odpadów"
+
+msgid "Enjoy getting organized!"
+msgstr "Przyjemnego organizowania!"
+
+msgid "Enter"
+msgstr "Wprowadź"
+
+msgid ""
+"Enter a blood glucose value on the left to highlight matching scheme rows."
+msgstr ""
+"Wprowadź po lewej stronie poziom glukozy we krwi, aby wyróżnić pasujące "
+"wiersze schematu."
+
+msgid "Enter a medication name first."
+msgstr "Najpierw wprowadź nazwę leku."
+
+msgid "Enter a password with letters"
+msgstr "Wprowadź hasło zawierające litery"
+
+msgid "Enter a reachable IPv4 or IPv6 address of this computer first."
+msgstr "Najpierw wpisz osiągalny adres IPv4 lub IPv6 tego komputera."
+
+msgid "Enter a title, date, or a word from the note."
+msgstr "Wprowadź tytuł, datę lub słowo z notatki."
+
+msgid "Enter a web or email address."
+msgstr "Wprowadź adres internetowy lub e-mail."
+
+msgid "Enter an application command."
+msgstr "Wprowadź polecenie aplikacji."
+
+msgid "Enter at least four characters for the backup password."
+msgstr "Wprowadź co najmniej cztery znaki dla hasła kopii zapasowej."
+
+msgid "Enter height and weight to calculate BMI."
+msgstr "Wprowadź wzrost i masę ciała, aby obliczyć BMI."
+
+msgid "Enter the archive password."
+msgstr "Wprowadź hasło archiwalne."
+
+msgid "Enter the password for this backup."
+msgstr "Wprowadź hasło do tej kopii zapasowej."
+
+msgid ""
+"Enter your address above. No service can calculate directions without a "
+"starting point."
+msgstr ""
+"Wprowadź powyżej swój adres. Żadna usługa nie obliczy trasy bez punktu "
+"początkowego."
+
+msgid "Entry"
+msgstr "Wpis"
+
+msgid "Errands"
+msgstr "Sprawy do załatwienia"
+
+msgid "Error"
+msgstr "Błąd"
+
+msgid "Evening"
+msgstr "Wieczór"
+
+msgid "Every 12 hours"
+msgstr "Co 12 godzin"
+
+msgid "Every 6 hours"
+msgstr "Co 6 godzin"
+
+msgid "Every filled medication row requires a name."
+msgstr "Każdy wypełniony wiersz leku musi zawierać nazwę."
+
+msgid "Every filled row requires a valid date."
+msgstr "Każdy wypełniony wiersz musi zawierać prawidłową datę."
+
+msgid "Everything is done - the list is empty."
+msgstr "Wszystko gotowe – lista jest pusta."
+
+msgid "Exactly one Magnolie Notes phone must be paired."
+msgstr "Należy sparować dokładnie jeden telefon Magnolie Notes."
+
+msgid "Export"
+msgstr "Eksportuj"
+
+msgid "Export Magnolie complete archive"
+msgstr "Eksportuj całe archiwum Magnolie"
+
+msgid "Export archive"
+msgstr "Eksportuj archiwum"
+
+msgid "Export failed."
+msgstr "Eksport nie powiódł się."
+
+msgid "Export failed: %(error)s"
+msgstr "Eksport nie powiódł się: %(error)s"
+
+msgid "Export is available only in the installed application."
+msgstr "Eksport jest dostępny tylko w zainstalowanej aplikacji."
+
+msgid "Extend sharing"
+msgstr "Rozszerz udostępnianie"
+
+msgid "Failed"
+msgstr "Niepowodzenie"
+
+msgid "Fasting"
+msgstr "Na czczo"
+
+msgid "Female caregiver"
+msgstr "Opiekunka"
+
+msgid "Female friend"
+msgstr "Przyjaciółka"
+
+msgid "Female neighbor"
+msgstr "Sąsiadka"
+
+msgid "Female partner"
+msgstr "Partnerka"
+
+msgid "Female relative"
+msgstr "Krewna"
+
+msgid "Fertile days"
+msgstr "Dni płodne"
+
+msgid "Fill with stored values"
+msgstr "Wypełnij zapisanymi wartościami"
+
+msgid ""
+"Finds contact cards with the same name, email address or phone number. You "
+"are asked twice before merging, and a copy of every removed card is kept in "
+"the recycle bin."
+msgstr ""
+"Wyszukuje karty kontaktów o tej samej nazwie, adresie e-mail lub numerze "
+"telefonu. Przed połączeniem pytanie pojawi się dwukrotnie, a kopia każdej "
+"usuniętej karty zostanie zachowana w koszu."
+
+msgid "Fingerprint"
+msgstr "Odcisk"
+
+msgid "Fingerprint, e.g. ABCD-1234-EF56-7890"
+msgstr "Odcisk, np. ABCD-1234-EF56-7890"
+
+msgid "First Communion"
+msgstr "Pierwsza Komunia"
+
+msgid "First choose a calendar or address book in Settings."
+msgstr "Najpierw wybierz kalendarz lub książkę adresową w Ustawieniach."
+
+msgid "First collection"
+msgstr "Pierwszy odbiór"
+
+msgid "First date"
+msgstr "Pierwsza data"
+
+msgid "First name"
+msgstr "Imię"
+
+msgid "First name Last name"
+msgstr "Imię Nazwisko"
+
+msgid ""
+"First name Last name\n"
+"Street and house number\n"
+"Postal code City"
+msgstr ""
+"Imię Nazwisko\n"
+"Ulica i numer domu\n"
+"Kod pocztowy Miejscowość"
+
+msgid "Fixed units"
+msgstr "Stałe jednostki"
+
+msgid "Folder selection is available only in the installed application."
+msgstr "Wybór folderu jest dostępny tylko w zainstalowanej aplikacji."
+
+msgid "Follicular phase"
+msgstr "Faza pęcherzykowa"
+
+msgid "Follow up"
+msgstr "Kontrola"
+
+msgid "Font size"
+msgstr "Rozmiar czcionki"
+
+msgid ""
+"For a direct IPv4 connection, port %(port)s may need to be forwarded by the "
+"router; CGNAT can prevent this. For IPv6, allow the port in the router and "
+"computer firewalls."
+msgstr ""
+"Przy bezpośrednim połączeniu IPv4 może być konieczne przekierowanie portu "
+"%(port)s w routerze; CGNAT może to uniemożliwić. W przypadku IPv6 zezwól na "
+"ten port w zaporach routera i komputera."
+
+msgid ""
+"For this purpose, appointments, tasks, anniversaries and the names of "
+"responsible people are kept unencrypted in a separate file readable only by "
+"you. Contacts and notes are never written to it."
+msgstr ""
+"W tym celu spotkania, zadania, rocznice oraz nazwiska osób odpowiedzialnych "
+"są przechowywane bez szyfrowania w osobnym pliku, który może odczytać tylko "
+"użytkownik. Kontakty i notatki nigdy nie są w nim zapisywane."
+
+msgid "For: %(people)s"
+msgstr "Dla: %(people)s"
+
+msgid "Form"
+msgstr "Formularz"
+
+msgid "Forward Secrecy"
+msgstr "Poufność przyszła (Forward Secrecy)"
+
+msgid ""
+"Found %(groups)s containing %(cards)s in total, for example:\n"
+"%(examples)s%(more)s\n"
+"\n"
+"The most complete card in each group is retained, and missing fields are "
+"filled from the others. The remaining cards are moved to the recycle bin as "
+"“Duplicates” and can be restored from there. Continue?"
+msgstr ""
+"Znaleziono %(groups)s grup zawierających łącznie %(cards)s kart, na "
+"przykład:\n"
+"%(examples)s%(more)s\n"
+"\n"
+"W każdej grupie zachowywana jest najbardziej kompletna karta, a brakujące "
+"pola są uzupełniane z pozostałych. Pozostałe karty trafiają do kosza jako "
+"„Duplikaty” i można je stamtąd przywrócić. Kontynuować?"
+
+#, javascript-format
+msgid "Found – %s."
+msgstr "Znaleziono – %s."
+
+msgid "Founding day"
+msgstr "Dzień założenia"
+
+msgid "France"
+msgstr "Francja"
+
+msgid "Frequency"
+msgstr "Częstotliwość"
+
+msgid "Fribourg"
+msgstr "Fryburg"
+
+msgid "Friday"
+msgstr "Piątek"
+
+msgid "From"
+msgstr "Od"
+
+msgid "From the Windows Contacts folder"
+msgstr "Z folderu Kontakty systemu Windows"
+
+msgid "Full"
+msgstr "Pełny"
+
+msgid "GNOME Maps"
+msgstr "Mapy GNOME"
+
+msgid "GNU General Public License, version 3 or later"
+msgstr "GNU General Public License, wersja 3 lub nowsza"
+
+msgid "General"
+msgstr "Ogólne"
+
+msgid "General network"
+msgstr "Sieć ogólna"
+
+msgid "General reference range"
+msgstr "Ogólny zakres referencyjny"
+
+msgid "Geneva"
+msgstr "Genewa"
+
+msgid "Germany"
+msgstr "Niemcy"
+
+msgid "Glarus"
+msgstr "Glarus"
+
+msgid "Go to calendar"
+msgstr "Przejdź do kalendarza"
+
+msgid "Google Maps in the browser"
+msgstr "Mapy Google w przeglądarce"
+
+msgid "Grisons"
+msgstr "Gryzonia"
+
+msgid "Group for %(notebook)s"
+msgstr "Grupa dla %(notebook)s"
+
+msgid "HTTPS only; {wert} and {nummer} are replaced when opening."
+msgstr "Tylko HTTPS; {wert} i {nummer} są zastępowane przy otwieraniu."
+
+msgid "Hamburg"
+msgstr "Hamburg"
+
+msgid "Handle or profile address"
+msgstr "Nazwa użytkownika lub adres profilu"
+
+msgid "Handwriting"
+msgstr "Pismo odręczne"
+
+msgid "Hang up"
+msgstr "Zakończ połączenie"
+
+msgid "Head office"
+msgstr "Centrala"
+
+msgid "Heading"
+msgstr "Nagłówek"
+
+msgid "Heading, text, images, and PDF files are shared encrypted."
+msgstr ""
+"Nagłówek, tekst, obrazy i pliki PDF są udostępniane w postaci zaszyfrowanej."
+
+msgid "Health"
+msgstr "Zdrowie"
+
+msgid "Health history chart"
+msgstr "Wykres historii zdrowia"
+
+msgid "Health history charts"
+msgstr "Wykresy historii zdrowia"
+
+msgid "Health records"
+msgstr "Dane zdrowotne"
+
+msgid ""
+"Health records stay in your encrypted organizer data. The section documents "
+"measurements and schedules but does not provide medical advice."
+msgstr ""
+"Dane zdrowotne są przechowywane w zaszyfrowanych danych organizera. Ta "
+"sekcja dokumentuje pomiary i harmonogramy, ale nie udziela porad medycznych."
+
+msgid "Health table saved."
+msgstr "Tabela zdrowia została zapisana."
+
+msgid "Heart"
+msgstr "Serce"
+
+msgid "Height"
+msgstr "Wzrost"
+
+msgid "Here is how to find your way around:"
+msgstr "Tak odnajdziesz się w programie:"
+
+msgid "Hesse"
+msgstr "Hesja"
+
+msgid "Hide SMS notification after"
+msgstr "Ukryj powiadomienie SMS po"
+
+msgid "Hide in the tray when minimized"
+msgstr "Po zminimalizowaniu ukrywaj w zasobniku"
+
+msgid "Hide internet access"
+msgstr "Ukryj dostęp do Internetu"
+
+msgid "Hide past appointments"
+msgstr "Ukryj minione spotkania"
+
+msgid "History"
+msgstr "Historia"
+
+msgid "Holiday retrieval is available only in the installed application."
+msgstr "Pobieranie świąt jest dostępne tylko w zainstalowanej aplikacji."
+
+msgid "Home"
+msgstr "Dom"
+
+msgid "Home address"
+msgstr "Adres domowy"
+
+msgid "Home phone"
+msgstr "Telefon domowy"
+
+msgid "Home visit"
+msgstr "Wizyta domowa"
+
+msgid "Hours"
+msgstr "Godziny"
+
+msgid "How the calendar should behave when you click a day."
+msgstr "Jak kalendarz ma reagować na kliknięcie dnia."
+
+msgid "Husband"
+msgstr "Mąż"
+
+msgid "I"
+msgstr "Ja"
+
+msgid "I would be very happy if you bought me a coffee."
+msgstr "Bardzo się ucieszę, jeśli postawisz mi kawę."
+
+msgid "IE"
+msgstr "IE"
+
+msgid ""
+"If the year is unknown, enter only day and month.\n"
+"No age will then be shown.\n"
+"Anniversaries appear with ✱ in the calendar and planner."
+msgstr ""
+"Jeśli rok jest nieznany, wpisz tylko dzień i miesiąc.\n"
+"Wiek nie będzie wtedy wyświetlany.\n"
+"Rocznice pojawiają się w kalendarzu i planerze ze znakiem ✱."
+
+msgid "Image"
+msgstr "Obraz"
+
+msgid "Image file"
+msgstr "Plik obrazu"
+
+msgid "Import"
+msgstr "Importuj"
+
+msgid "Import Magnolie complete archive"
+msgstr "Importuj pełne archiwum Magnolie"
+
+msgid "Import failed: %(error)s"
+msgstr "Import nie powiódł się: %(error)s"
+
+msgid "Import from LibreOffice"
+msgstr "Importuj z LibreOffice"
+
+msgid "Import is available only in the installed application."
+msgstr "Import jest dostępny tylko w zainstalowanej aplikacji."
+
+msgid "Import pairing file …"
+msgstr "Importuj plik parowania …"
+
+msgid "Import, export and synchronization"
+msgstr "Import, eksport i synchronizacja"
+
+msgid ""
+"Import, export and synchronization are available only in the installed "
+"application."
+msgstr ""
+"Import, eksport i synchronizacja są dostępne tylko w zainstalowanej "
+"aplikacji."
+
+msgid ""
+"Important: Without this password, nobody can access the data, including you. "
+"Keep it in a safe place."
+msgstr ""
+"Ważne: Bez tego hasła nikt, również Ty, nie uzyska dostępu do danych. "
+"Przechowuj je w bezpiecznym miejscu."
+
+msgid "Imported: %(items)s."
+msgstr "Zaimportowano: %(items)s."
+
+msgid ""
+"In the DIN template, these lines appear as a multiline sender block and in "
+"small type in the address window. In the compact template, they form one "
+"line above the recipient address. No sender is added if this field is empty."
+msgstr ""
+"W szablonie DIN te wiersze pojawiają się jako wielowierszowy blok nadawcy "
+"oraz małym drukiem w oknie adresowym. W szablonie kompaktowym tworzą jeden "
+"wiersz nad adresem odbiorcy. Jeśli to pole jest puste, nadawca nie jest "
+"dodawany."
+
+msgid "In the organizer%(selection)s: %(items)s%(years)s."
+msgstr "W Organizerze%(selection)s: %(items)s%(years)s."
+
+msgid "In the recycle bin: %(items)s"
+msgstr "W koszu: %(items)s"
+
+msgid "Include anniversaries"
+msgstr "Uwzględnij rocznice"
+
+msgid "Include appointments"
+msgstr "Uwzględnij spotkania"
+
+msgid "Include cycle markers"
+msgstr "Uwzględnij znaczniki cyklu"
+
+msgid "Include personal vacation"
+msgstr "Uwzględnij urlop osobisty"
+
+msgid "Include public holidays in year planner"
+msgstr "Uwzględnij święta państwowe w planerze rocznym"
+
+msgid "Include school holidays"
+msgstr "Uwzględnij ferie szkolne"
+
+msgid "Include school holidays in year planner"
+msgstr "Uwzględnij ferie szkolne w planerze rocznym"
+
+msgid "Include shifts"
+msgstr "Uwzględnij zmiany"
+
+msgid "Include waste collections"
+msgstr "Uwzględnij odbiór odpadów"
+
+msgid "Incoming"
+msgstr "Przybywający"
+
+msgid "Incoming call"
+msgstr "Połączenie przychodzące"
+
+msgid "Input"
+msgstr "Dane wejściowe"
+
+msgid "Insert link"
+msgstr "Wstaw łącze"
+
+msgid "Installed manual version: %(version)s."
+msgstr "Zainstalowana wersja ręczna: %(version)s."
+
+msgid "Insulin scheme"
+msgstr "Schemat insulinoterapii"
+
+msgid "Integrity"
+msgstr "Integralność"
+
+msgid "Internet IP"
+msgstr "Internetowy adres IP"
+
+msgid "Internet available"
+msgstr "Internet jest dostępny"
+
+msgid "Interval in days"
+msgstr "Odstęp w dniach"
+
+msgid "Italic"
+msgstr "Kursywa"
+
+msgid "Italy"
+msgstr "Włochy"
+
+msgid "Juice"
+msgstr "Sok"
+
+msgid "Jura"
+msgstr "Jura"
+
+msgid "KDE Connect for SMS"
+msgstr "KDE Connect dla SMS"
+
+msgid "KDE Connect for SMS is available only in the installed application."
+msgstr "KDE Connect dla SMS jest dostępny tylko w zainstalowanej aplikacji."
+
+msgid ""
+"KDE Connect is used only for SMS. It does not connect or synchronize the "
+"Magnolienbaum."
+msgstr ""
+"KDE Connect jest używany tylko dla SMS. Nie łączy ani nie synchronizuje "
+"Magnolienbaum."
+
+msgid "KDE Connect pairing failed."
+msgstr "Parowanie KDE Connect nie powiodło się."
+
+msgid "KDE Connect phone paired."
+msgstr "Telefon KDE Connect został sparowany."
+
+msgid "KDE Connect port %(port)s"
+msgstr "Port KDE Connect %(port)s"
+
+msgid "Keep a troubleshooting log"
+msgstr "Zachowuj dziennik rozwiązywania problemów"
+
+msgid "LDIF address book (*.ldif)"
+msgstr "Książka adresowa LDIF (*.ldif)"
+
+msgid "Landline"
+msgstr "Telefon stacjonarny"
+
+msgid "Large"
+msgstr "Duży"
+
+msgid "Last check failed: %(error)s"
+msgstr "Ostatnia kontrola nie powiodła się: %(error)s"
+
+msgid "Last contact"
+msgstr "Utwórz kontakt"
+
+msgid "Last name"
+msgstr "Nazwisko"
+
+msgid "Last snapshot"
+msgstr "Ostatnia migawka"
+
+msgid "Last synchronized: %(date)s, %(time)s."
+msgstr "Ostatnia synchronizacja: %(date)s, %(time)s."
+
+msgid "Late shift"
+msgstr "Późna zmiana"
+
+msgid "Lead time"
+msgstr "Wyprzedzenie"
+
+msgid "Letter"
+msgstr "List"
+
+msgid "Letter template"
+msgstr "Szablon listu"
+
+msgid "License"
+msgstr "Licencja"
+
+msgid "Liechtenstein"
+msgstr "Liechtenstein"
+
+msgid "Lined paper (lines on the writing sheet)"
+msgstr "Papier w linie (linie na arkuszu do pisania)"
+
+msgid "Link"
+msgstr "Łącze"
+
+msgid "Listener active"
+msgstr "wstępne"
+
+msgid "Listener stopped"
+msgstr "Słuchacz zatrzymany"
+
+msgid "Local calendar"
+msgstr "Kalendarz lokalny"
+
+msgid "Location"
+msgstr "Lokalizacja"
+
+msgid "Location obtained from LibreOffice."
+msgstr "Lokalizacja pobrana z LibreOffice."
+
+msgid "Log opened: %(path)s"
+msgstr "Otwarto dziennik: %(path)s"
+
+msgid "Long-acting insulin"
+msgstr "Insulina długodziałająca"
+
+msgid "Loose Notes"
+msgstr "Luźne notatki"
+
+msgid "Lotus Organizer CSV …"
+msgstr "Lotus Organizer CSV …"
+
+msgid "Lower Austria"
+msgstr "Dolna Austria"
+
+msgid "Lower Saxony"
+msgstr "Dolna Saksonia"
+
+msgid "Lower other sounds while ringing"
+msgstr "Wycisz inne dźwięki podczas dzwonienia"
+
+msgid "Lucerne"
+msgstr "Lucerna"
+
+msgid "Luxembourg"
+msgstr "Luksemburg"
+
+msgid "Magnolia tree"
+msgstr "Magnolia"
+
+msgid "Magnolia weather symbols only"
+msgstr "Tylko symbole pogodowe Magnolie"
+
+msgid "Magnolie Notes device status"
+msgstr "Stan urządzenia Magnolie Notes"
+
+msgid ""
+"Magnolie Notes ended the session. The app and Organizer must use the same "
+"protocol version."
+msgstr ""
+"Magnolie Notes zakończyła sesję. Aplikacja i Organizer muszą używać tej "
+"samej wersji protokołu."
+
+msgid "Magnolie Notes phone connection"
+msgstr "Złącze telefoniczne Magnolie Notes"
+
+msgid ""
+"Magnolie Notes phones and KDE Connect phones are separate: the Android model "
+"name belongs to Magnolie Notes; the KDE peer name comes from KDE Connect."
+msgstr ""
+"Telefony Magnolie Notes i telefony KDE Connect są oddzielne: nazwa modelu "
+"Android należy do Magnolie Notes, a nazwa partnera KDE pochodzi z KDE "
+"Connect."
+
+msgid "Magnolie Organizer is not completely installed."
+msgstr "Magnolie Organizer nie jest w pełni zainstalowany."
+
+msgid ""
+"Magnolie Organizer is open-source software. There are no functional "
+"restrictions. This branding can be removed by supporting the project and "
+"then entering the activation code received by email under Settings → About."
+msgstr ""
+"Magnolie Organizer jest oprogramowaniem typu open source. Nie ma ograniczeń "
+"funkcjonalnych. To oznaczenie można usunąć, wspierając projekt, a następnie "
+"wpisując otrzymany pocztą kod aktywacyjny w Ustawienia → O programie."
+
+msgid ""
+"Magnolie SMS is no longer part of the current Magnolie Notes phone protocol."
+msgstr ""
+"Magnolie SMS nie jest już częścią obecnego protokołu telefonicznego Magnolie "
+"Notes."
+
+msgid "Magnolie backup (*.json)"
+msgstr "Kopia zapasowa Magnolie (*.json)"
+
+msgid "Magnolie complete archive (.magnolie) …"
+msgstr "Kompletne archiwum Magnolie (.magnolie) …"
+
+msgid "Magnolienbaum"
+msgstr "Magnolienbaum"
+
+msgid "Magnolienbaum mailbox"
+msgstr "Magnolienbaum mailbox"
+
+msgid "Magnolienbaum pairing file (*.magnolie-paarung)"
+msgstr "Plik parowania Magnolienbaum (*.magnolie-paarung)"
+
+msgid "Magnolienbaum quarantine:"
+msgstr "Kwarantanna Magnolienbaum:"
+
+msgid "Magnolienbaum restart:"
+msgstr "Ponowne uruchomienie Magnolienbaum:"
+
+msgid "Male caregiver"
+msgstr "Opiekun"
+
+msgid "Male friend"
+msgstr "Przyjaciel"
+
+msgid "Male neighbor"
+msgstr "Sąsiad"
+
+msgid "Male partner"
+msgstr "Partner"
+
+msgid "Male relative"
+msgstr "Krewny"
+
+msgid "Manage connection"
+msgstr "Zarządzaj połączeniem"
+
+msgid "Manage people"
+msgstr "Zarządzaj osobami"
+
+msgid "Manual"
+msgstr "Podręcznik"
+
+msgctxt "recovery snapshot reason"
+msgid "Manual"
+msgstr "Niestandardowe"
+
+msgid "Manual version %(version)s is available."
+msgstr "Wersja podręcznika %(version)s jest dostępna."
+
+msgid "Manufacturer"
+msgstr "Producent"
+
+msgid "Map"
+msgstr "Mapa"
+
+msgid ""
+"Map services often cannot find a street without a country. If the country is "
+"already part of the address, it is not added a second time."
+msgstr ""
+"Usługi mapowe często nie potrafią znaleźć ulicy bez podania kraju. Jeśli "
+"kraj jest już częścią adresu, nie zostanie dodany ponownie."
+
+msgid "Mark as completed"
+msgstr "Oznacz jako ukończone"
+
+msgid "Mark as open"
+msgstr "Oznacz jako otwarte"
+
+msgid "Maximized"
+msgstr "Zmaksymalizowane"
+
+msgid "Measurement context"
+msgstr "Kontekst pomiaru"
+
+msgid "Mecklenburg-Western Pomerania"
+msgstr "Meklemburgia-Pomorze Przednie"
+
+msgid "Medication"
+msgstr "Lek"
+
+msgid "Medication plan"
+msgstr "Plan przyjmowania leków"
+
+msgid "Medium (slightly larger)"
+msgstr "Średni (nieco większy)"
+
+msgid "Meeting"
+msgstr "Spotkanie"
+
+msgid "Memorial day"
+msgstr "Dzień pamięci"
+
+msgid "Memory available / total"
+msgstr "Dostępna pamięć / łącznie"
+
+msgid "Merge"
+msgstr "Scal"
+
+msgid "Merge duplicate contact cards"
+msgstr "Scal zduplikowane karty kontaktów"
+
+msgid "Merge this pair individually"
+msgstr "Scal tę parę pojedynczo"
+
+msgid "Message"
+msgstr "Wiadomość"
+
+msgid "Message text"
+msgstr "Wiadomość"
+
+msgid "Metered connection"
+msgstr "Połączenie taryfowe"
+
+msgid "Microsoft Graph has not been configured yet."
+msgstr "Microsoft Graph nie został jeszcze skonfigurowany."
+
+msgid "Microsoft configuration could not be saved: %(error)s"
+msgstr "Nie można zapisać konfiguracji Microsoft: %(error)s"
+
+msgid "Microsoft configuration saved."
+msgstr "Konfiguracja Microsoft została zapisana."
+
+msgid "Microsoft sign-in completed."
+msgstr "Logowanie Microsoft zostało zakończone."
+
+msgid "Microsoft sign-in failed: %(error)s"
+msgstr "Logowanie do Microsoft nie powiodło się: %(error)s"
+
+msgid "Microsoft sign-out failed: %(error)s"
+msgstr "Wylogowanie się z firmy Microsoft nie powiodło się: %(error)s"
+
+msgid "Minimize"
+msgstr "Minimize"
+
+msgid "Minimize to the tray when closed"
+msgstr "Po zamknięciu minimalizuj do zasobnika"
+
+msgid "Minutes"
+msgstr "Minuty"
+
+msgid ""
+"Missed reminders are shown after the next startup. If the computer was off "
+"or the application was closed, the organizer reports a missed appointment "
+"shortly after login and provides a button to open it. All-day appointments "
+"are treated as starting at 8 a.m. A small reminder service starts at login "
+"to check appointments in the background and continues running when you close "
+"the organizer."
+msgstr ""
+"Pominięte przypomnienia są wyświetlane po następnym uruchomieniu. Jeśli "
+"komputer był wyłączony lub aplikacja była zamknięta, organizer krótko po "
+"zalogowaniu zgłasza pominięte spotkanie i udostępnia przycisk do jego "
+"otwarcia. Spotkania całodniowe są traktowane jako rozpoczynające się o 8:00. "
+"Przy logowaniu uruchamia się niewielka usługa przypomnień, która sprawdza "
+"spotkania w tle i działa dalej po zamknięciu organizera."
+
+msgid ""
+"Misspelled words are marked with a red wavy underline while you type. Right-"
+"clicking a word opens a sheet with suggestions that can be applied with one "
+"click; you can add names to your personal dictionary in the same way. If the "
+"lines or suggestions are missing, install the dictionary with:  sudo apt "
+"install %(package)s"
+msgstr ""
+"Błędnie napisane słowa są podczas pisania oznaczane czerwonym falistym "
+"podkreśleniem. Kliknięcie słowa prawym przyciskiem otwiera panel z "
+"podpowiedziami, które można zastosować jednym kliknięciem; w ten sam sposób "
+"można dodawać nazwiska do osobistego słownika. Jeśli brakuje podkreśleń lub "
+"podpowiedzi, zainstaluj słownik poleceniem:  sudo apt install %(package)s"
+
+msgid "Mobile"
+msgstr "Telefon komórkowy"
+
+msgid "Mobile network"
+msgstr "Sieć komórkowa"
+
+msgid "Model"
+msgstr "Model"
+
+msgid "Monday"
+msgstr "Poniedziałek"
+
+msgid "Month"
+msgstr "Miesiąc"
+
+msgid "Month calendar"
+msgstr "Kalendarz miesięczny"
+
+msgid "Monthly view"
+msgstr "Widok miesięczny"
+
+msgid "Monthly weekday"
+msgstr "Miesięczny dzień tygodnia"
+
+msgid "More fields"
+msgstr "Więcej pól"
+
+msgid ""
+"More than one Magnolie Notes phone is online. Disconnect all but one phone."
+msgstr ""
+"Więcej niż jeden telefon Magnolie Notes jest online. Odłącz wszystkie "
+"telefony oprócz jednego."
+
+msgid "Morning"
+msgstr "Rano"
+
+msgid "Mouse wheel over times"
+msgstr "Kółko myszy nad godzinami"
+
+msgid "Move group down"
+msgstr "Przenieś grupę w dół"
+
+msgid "Move group up"
+msgstr "Przenieś grupę w górę"
+
+msgid "Move notebook down"
+msgstr "Przenieś notatnik w dół"
+
+msgid "Move notebook to another group"
+msgstr "Przenieś notatnik do innej grupy"
+
+msgid "Move notebook up"
+msgstr "Przenieś notatnik w górę"
+
+msgid "Move the ticked entries to the wastebasket"
+msgstr "Przenieś zaznaczone wpisy do kosza"
+
+msgid ""
+"Multiple Magnolie Notes phones are stored. Personal sync is blocked; remove "
+"all but one phone."
+msgstr ""
+"Zapisano wiele telefonów Magnolie Notes. Synchronizacja osobista jest "
+"zablokowana; usuń wszystkie telefony poza jednym."
+
+msgid "Multiple calendars"
+msgstr "Multiple calendars"
+
+msgid "Name"
+msgstr "Nazwa"
+
+msgid "Name / occasion"
+msgstr "Nazwa / okazja"
+
+msgid "Name day"
+msgstr "Imieniny"
+
+msgid "Name of this branch"
+msgstr "Nazwa tej gałęzi"
+
+msgid "Netherlands"
+msgstr "Niderlandy"
+
+msgid "Network"
+msgstr "Network"
+
+msgid "Neuchâtel"
+msgstr "Neuchâtel"
+
+msgid "Never"
+msgstr "Nigdy"
+
+msgid "Never automatically"
+msgstr "Nigdy automatycznie"
+
+msgid "Never synchronized."
+msgstr "Nigdy nie synchronizowano."
+
+msgid "New"
+msgstr "Nowy"
+
+msgid "New Magnolienbaum request: %(entry)s."
+msgstr "Nowe żądanie Magnolienbaum: %(entry)s."
+
+msgid "New anniversary"
+msgstr "Nowa rocznica"
+
+msgid "New appointment"
+msgstr "Nowe spotkanie"
+
+msgid "New backup password"
+msgstr "Nowe hasło kopii zapasowej"
+
+msgid ""
+"New backups are stored in this folder. When the field is empty, they are "
+"stored next to the data file. For any other location, the organizer requires "
+"a backup password and encrypts the copy independently of the application's "
+"password protection."
+msgstr ""
+"Nowe kopie zapasowe są zapisywane w tym folderze. Jeśli pole jest puste, są "
+"zapisywane obok pliku danych. W przypadku każdej innej lokalizacji organizer "
+"wymaga hasła kopii zapasowej i szyfruje kopię niezależnie od ochrony hasłem "
+"aplikacji."
+
+msgid "New contact"
+msgstr "Nowy kontakt"
+
+msgid "New group"
+msgstr "Nowa grupa"
+
+msgid "New notebook"
+msgstr "Nowy notatnik"
+
+msgid "New notebook group"
+msgstr "Nowa grupa notatników"
+
+msgid "New page"
+msgstr "Nowa strona"
+
+msgid "New password"
+msgstr "Nowe hasło"
+
+msgid "New task"
+msgstr "Nowe zadanie"
+
+msgid "New version %(version)s is available."
+msgstr "Dostępna jest nowa wersja %(version)s."
+
+msgid "Next appointment: %(title)s on %(date)s%(time)s%(notice)s"
+msgstr "Następne spotkanie: %(title)s w dniu %(date)s%(time)s%(notice)s"
+
+msgid "Next month"
+msgstr "Następny miesiąc"
+
+msgid "Next page"
+msgstr "Następna strona"
+
+msgid "Next snapshot"
+msgstr "Następna migawka"
+
+msgid "Next tab"
+msgstr "Następna karta"
+
+msgid "Next table page"
+msgstr "Następna strona tabeli"
+
+msgid "Next week"
+msgstr "Następny tydzień"
+
+msgid "Next year"
+msgstr "Następny rok"
+
+msgid "Nextcloud account"
+msgstr "Nextcloud account"
+
+msgid "Nidwalden"
+msgstr "Nidwalden"
+
+msgid "Night"
+msgstr "Noc"
+
+msgid "Night shift"
+msgstr "Nocna zmiana"
+
+msgid "No"
+msgstr "No"
+
+msgid "No Bluetooth address was selected."
+msgstr "Nie wybrano adresu Bluetooth."
+
+msgid "No KDE Connect pairing is awaiting confirmation."
+msgstr "Żadne parowanie KDE Connect nie oczekuje na potwierdzenie."
+
+msgid "No additional modules permitted"
+msgstr "Żadne dodatkowe moduły nie są dozwolone"
+
+msgid ""
+"No anniversaries yet.\n"
+"Birthdays and celebrations will automatically appear in the calendar."
+msgstr ""
+"Brak rocznic.\n"
+"Urodziny i uroczystości pojawią się automatycznie w kalendarzu."
+
+msgid "No application is registered for the attachment."
+msgstr "Dla załącznika nie zarejestrowano żadnego wniosku."
+
+msgid "No appointment is scheduled."
+msgstr "Nie zaplanowano żadnego spotkania."
+
+msgid "No calendars found."
+msgstr "Nie znaleziono kalendarzy."
+
+msgid "No due date"
+msgstr "Bez terminu"
+
+msgid "No duplicate contact cards were found."
+msgstr "Nie znaleziono zduplikowanych kart kontaktów."
+
+msgid "No file selected"
+msgstr "Nie wybrano pliku"
+
+msgid "No history charts"
+msgstr "Bez wykresów historii"
+
+msgid "No insulin dose is calculated automatically."
+msgstr "Dawka insuliny nie jest obliczana automatycznie."
+
+msgid "No manual update check has been performed yet."
+msgstr "Ręczne sprawdzanie aktualizacji nie zostało jeszcze wykonane."
+
+msgid "No matching open task found."
+msgstr "Nie znaleziono pasującego otwartego zadania."
+
+msgid "No measurements in this period."
+msgstr "Brak pomiarów w tym okresie."
+
+msgid "No notebooks"
+msgstr "Brak notatników"
+
+msgid "No online Magnolie Notes phone has allowed dial requests."
+msgstr ""
+"Żaden telefon Magnolie Notes online nie zezwala na żądania wybierania "
+"numerów."
+
+msgid "No other branch was found."
+msgstr "Nie znaleziono innej gałęzi."
+
+msgid "No other branch yet. Search the network or enter an address."
+msgstr "Nie ma jeszcze innej gałęzi. Przeszukaj sieć lub wpisz adres."
+
+msgid ""
+"No people have been added yet.\n"
+"Enter a name below."
+msgstr ""
+"Nie dodano jeszcze żadnych osób.\n"
+"Wpisz nazwę poniżej."
+
+msgid ""
+"No people have been added yet. Use the People button above to add people "
+"responsible for tasks."
+msgstr ""
+"Nie dodano jeszcze żadnych osób. Użyj przycisku Osoby powyżej, aby dodać "
+"osoby odpowiedzialne za zadania."
+
+msgid "No phone paired yet."
+msgstr "Nie połączono jeszcze żadnego zadania."
+
+msgid "No phone pairing is awaiting confirmation."
+msgstr "Żadne parowanie telefonu nie oczekuje na potwierdzenie."
+
+msgid "No photo"
+msgstr "Bez zdjęcia"
+
+msgid "No photo selected"
+msgstr "Nie wybrano zdjęcia"
+
+msgid "No public IP address was found."
+msgstr "Nie znaleziono publicznego adresu IP."
+
+msgid ""
+"No regional data is retrieved without a selected canton. With “All”, each "
+"entry shows its canton and matching periods are combined."
+msgstr ""
+"Bez wybranego kantonu dane regionalne nie są pobierane. Przy opcji "
+"„Wszystkie” każdy wpis pokazuje swój kanton, a pokrywające się okresy są "
+"łączone."
+
+msgid ""
+"No regional data is retrieved without a selected state. With “All”, each "
+"entry shows its state and matching periods are combined."
+msgstr ""
+"Bez wybranego kraju związkowego dane regionalne nie są pobierane. Przy opcji "
+"„Wszystkie” każdy wpis pokazuje swój kraj związkowy, a pokrywające się "
+"okresy są łączone."
+
+msgid "No scheme row matches this blood glucose value."
+msgstr "Żaden wiersz schematu nie odpowiada temu poziomowi glukozy we krwi."
+
+msgid "No sheet is open."
+msgstr "Żaden arkusz nie jest otwarty."
+
+msgid "No shift"
+msgstr "Bez zmiany"
+
+msgid "No snapshots yet."
+msgstr "Jeszcze brak zrzutów."
+
+msgid "No spam check available"
+msgstr "Sprawdzanie spamu jest niedostępne"
+
+msgid "No suggestions found."
+msgstr "Nie znaleziono podpowiedzi."
+
+msgid "No system-paired Bluetooth device found"
+msgstr "Nie znaleziono sparowanego z systemem urządzenia Bluetooth"
+
+msgid "No table (history only)"
+msgstr "Bez tabeli (tylko przebieg)"
+
+msgid "No task linked yet."
+msgstr "Nie połączono jeszcze żadnego zadania."
+
+msgid "No update check has been performed yet."
+msgstr "Nie przeprowadzono jeszcze sprawdzania aktualizacji."
+
+msgid "No word was provided."
+msgstr "Nie podano żadnego słowa."
+
+msgid "None"
+msgstr "Brak"
+
+msgid "Noon"
+msgstr "Południe"
+
+msgid "Normal"
+msgstr "Normalny"
+
+msgid "North Rhine-Westphalia"
+msgstr "Nadrenia Północna-Westfalia"
+
+msgid ""
+"Not all systems allow waking from suspend. If it does not work, the reminder "
+"appears as soon as the computer is running again."
+msgstr ""
+"Nie każdy system potrafi wybudzić komputer z uśpienia. Jeśli to nie "
+"zadziała, przypomnienie pojawi się, gdy komputer będzie ponownie działał."
+
+msgid "Not charging"
+msgstr "bez zmian"
+
+msgid "Not now"
+msgstr "Nie teraz"
+
+msgid "Not sent."
+msgstr "Nie wysłano."
+
+msgid "Not signed in to Microsoft yet."
+msgstr "Jeszcze nie zalogowałeś się do Microsoft."
+
+msgid "Note"
+msgstr "Notatka"
+
+msgid "Note text"
+msgstr "Treść notatki"
+
+msgid "Notebook"
+msgstr "Notatnik"
+
+msgid "Notebook group"
+msgstr "Grupa notatników"
+
+msgid "Notebooks"
+msgstr "Notatnik"
+
+msgid "Notes"
+msgstr "Notatki"
+
+msgid "Notes and special instructions"
+msgstr "Uwagi i instrukcje specjalne"
+
+msgid "Nothing found."
+msgstr "Nic nie znaleziono."
+
+msgid "Nothing has been entered under “%(letter)s” yet."
+msgstr "Pod „%(letter)s” nic jeszcze nie wpisano."
+
+msgid "Nothing is opened or sent while this option is disabled."
+msgstr "Gdy ta opcja jest wyłączona, nic nie jest otwierane ani wysyłane."
+
+msgid "Nothing new was found."
+msgstr "Nie znaleziono niczego nowego."
+
+msgid "Notice: The connection to storage was not confirmed."
+msgstr "Uwaga: Połączenie z magazynem nie zostało potwierdzone."
+
+msgid "Notification and sound"
+msgstr "Powiadomienie i dźwięk"
+
+msgid "Notifications"
+msgstr "Powiadomienia"
+
+msgid "Notifications are available only in the installed application."
+msgstr "Powiadomienia są dostępne tylko w zainstalowanej aplikacji."
+
+msgid ""
+"Notifications are display-only; replying and remote actions are not "
+"available."
+msgstr "Powiadomienia są dostępne tylko w zainstalowanej aplikacji."
+
+msgid "Notify me about incoming calls"
+msgstr "Powiadamiaj mnie o połączeniach przychodzących"
+
+msgid "ODS"
+msgstr "ODS"
+
+msgid "OK"
+msgstr "OK"
+
+msgid "Objects"
+msgstr "Obiekty"
+
+msgid "Obwalden"
+msgstr "Obwalden"
+
+msgid "Off"
+msgstr "Wyłączony"
+
+msgid "Offline"
+msgstr "Online"
+
+msgid "Ointment"
+msgstr "Maść"
+
+msgid "One address book"
+msgstr "One address book"
+
+msgid "One backup could not be updated."
+msgid_plural "%(count)s backups could not be updated."
+msgstr[0] "Nie można było zaktualizować jednej kopii zapasowej."
+msgstr[1] "%(count)s kopii zapasowych nie można było zaktualizować."
+msgstr[2] "%(count)s kopii zapasowych nie można było zaktualizować."
+
+msgid "One completion update was received from the Magnolienbaum."
+msgid_plural ""
+"%(count)s completion updates were received from the Magnolienbaum."
+msgstr[0] "Otrzymano jedną aktualizację zakończenia od Magnolienbaum."
+msgstr[1] "Otrzymano aktualizacje zakończenia %(count)s od Magnolienbaum."
+msgstr[2] "Otrzymano aktualizacje zakończenia %(count)s od Magnolienbaum."
+
+msgid "One duplicate contact card was"
+msgid_plural "%(count)s duplicate contact cards were"
+msgstr[0] "Jedna zduplikowana karta kontaktowa została"
+msgstr[1] "Karty kontaktowe %(count)s zostały zduplikowane"
+msgstr[2] "Karty kontaktowe %(count)s zostały zduplikowane"
+
+msgid "One moment …"
+msgstr "Chwileczkę …"
+
+msgid "One moment…"
+msgstr "Chwileczkę…"
+
+msgid "One shared note was updated."
+msgid_plural "%(count)s shared notes were updated."
+msgstr[0] "Jedna udostępniona notatka została zaktualizowana."
+msgstr[1] "Udostępnione notatki %(count)s zostały zaktualizowane."
+msgstr[2] "Udostępnione notatki %(count)s zostały zaktualizowane."
+
+msgid "One table with chart"
+msgstr "Jedna tabela z wykresem"
+
+msgid "One year"
+msgstr "Jeden rok"
+
+msgid "Online"
+msgstr "Online"
+
+msgid ""
+"Online account integration is not available on this system. Install it "
+"with:  sudo apt install %(packages)s, then restart the application. You can "
+"also import contacts and appointments without this integration using “From "
+"this computer” above."
+msgstr ""
+"Integracja kont internetowych nie jest dostępna w tym systemie. Zainstaluj "
+"ją poleceniem:  sudo apt install %(packages)s, a następnie uruchom aplikację "
+"ponownie. Kontakty i spotkania można też importować bez tej integracji za "
+"pomocą opcji „Z tego komputera” powyżej."
+
+msgid "Online via Bluetooth data"
+msgstr "Online przez dane Bluetooth"
+
+msgid "Online via WLAN"
+msgstr "Online przez WLAN"
+
+msgid "Only 'Replace completely' is supported."
+msgstr "Obsługiwana jest tylko opcja „Zastąp całkowicie”."
+
+msgid ""
+"Only HTTPS. Create an app password in Nextcloud under Settings, Security. "
+"Your account password is never used."
+msgstr ""
+"Tylko HTTPS. Utwórz hasło aplikacji w Nextcloud w Ustawieniach, "
+"Bezpieczeństwo. Hasło konta nigdy nie jest używane."
+
+msgid ""
+"Only one Magnolie Notes phone can be paired. Remove the existing phone "
+"before changing devices."
+msgstr ""
+"Można sparować tylko jeden telefon Magnolie Notes. Usuń istniejący telefon "
+"przed zmianą urządzenia."
+
+msgid ""
+"Only the reliable system notification is available under Wayland; the "
+"Magnolie paper style would often remain invisible there."
+msgstr ""
+"W środowisku Wayland dostępne jest tylko niezawodne powiadomienie systemowe; "
+"papierowy styl Magnolie często pozostawałby tam niewidoczny."
+
+msgid "Open"
+msgstr "Otwórz"
+
+msgid "Open %(name)s"
+msgstr "Otwórz %(name)s"
+
+msgid "Open %(service)s for this contact"
+msgstr "Otwórz %(service)s dla tego kontaktu"
+
+msgid ""
+"Open KDE Connect on the phone and start pairing. Compare the eight-character "
+"verification key and confirm on both devices."
+msgstr ""
+"Otwórz KDE Connect na telefonie i rozpocznij parowanie. Porównaj "
+"ośmioznakowy klucz weryfikacyjny i potwierdź go na obu urządzeniach."
+
+msgid "Open Magnolie Organizer"
+msgstr "Otwórz Magnolie Organizer"
+
+msgid "Open Magnolienbaum pairing file"
+msgstr "Otwórz plik parowania Magnolienbaum"
+
+msgid "Open Microsoft sign-in page"
+msgstr "Otwórz stronę logowania Microsoft"
+
+msgid "Open day view for %(date)s"
+msgstr "Otwórz widok dnia dla %(date)s"
+
+msgid "Open manual"
+msgstr "Otwórz podręcznik"
+
+msgid "Open maps with"
+msgstr "Otwieraj mapy za pomocą"
+
+msgid "Open medication index"
+msgstr "Otwórz wykaz leków"
+
+msgid "Open organizer"
+msgstr "Otwórz organizer"
+
+msgid "Open phone connection in Magnolie Notes and select this computer."
+msgstr ""
+"Otwórz połączenie telefoniczne w Magnolie Notes i wybierz ten komputer."
+
+msgid "Open planner as an ODS spreadsheet"
+msgstr "Otwórz planer jako arkusz ODS"
+
+msgid "Open selected contacts as an ODS spreadsheet"
+msgstr "Otwórz wybrane kontakty jako arkusz ODS"
+
+msgid "Open selected health records as an ODS spreadsheet"
+msgstr "Otwórz wybrane dane zdrowotne jako arkusz ODS"
+
+msgid "Open task"
+msgstr "Otwarte"
+
+msgid "Open the day in the daily view"
+msgstr "Otwórz dzień w widoku dziennym"
+
+msgid ""
+"Open the verified DEB with your software manager; the organizer never "
+"installs it automatically."
+msgstr ""
+"Otwórz zweryfikowany plik DEB za pomocą menedżera oprogramowania; "
+"organizator nigdy nie instaluje go automatycznie."
+
+msgid "Open this address as a letter in LibreOffice"
+msgstr "Otwórz ten adres jako list w LibreOffice"
+
+msgid "Open this day"
+msgstr "Otwórz ten dzień"
+
+msgid "Open year"
+msgstr "Otwórz rok"
+
+msgid "Open year in planner"
+msgstr "Otwórz rok w planerze"
+
+msgid "OpenStreetMap in the browser"
+msgstr "OpenStreetMap w przeglądarce"
+
+msgid "Opened in %(application)s."
+msgstr "Otwarto w %(application)s."
+
+msgid "Operating system"
+msgstr "System operacyjny"
+
+msgid "Optional archive password"
+msgstr "Opcjonalne hasło archiwalne"
+
+msgid "Organic waste"
+msgstr "Bioodpady"
+
+msgid "Organizer"
+msgstr "Organizator"
+
+msgid "Organizer style (paper sheet)"
+msgstr "Styl organizera (arkusz papieru)"
+
+msgid "Organizer · Calendar · Contacts · Notes"
+msgstr "Organizer · Kalendarz · Kontakty · Notatki"
+
+msgid "Other"
+msgstr "Inne"
+
+msgctxt "email type"
+msgid "Other"
+msgstr "Inne"
+
+msgctxt "relationship"
+msgid "Other"
+msgstr "Inne"
+
+msgid "Other addresses"
+msgstr "Inne adresy"
+
+msgid "Other phone numbers"
+msgstr "Inne numery telefonów"
+
+msgid "Outgoing"
+msgstr "Towarzyski"
+
+msgid "Outlook.com / Microsoft 365"
+msgstr "Outlook.com/Microsoft 365"
+
+msgid "Ovulation"
+msgstr "Owulacja"
+
+msgid "Own internet IP"
+msgstr "Własny internetowy adres IP"
+
+msgid "PDF file"
+msgstr "Plik PDF"
+
+msgid "Packaging / Yellow bin"
+msgstr "Opakowania / żółty pojemnik"
+
+msgid "Page %(page)s"
+msgstr "Strona %(page)s"
+
+msgid "Page %(page)s of %(count)s"
+msgstr "Strona %(page)s z %(count)s"
+
+msgid "Pages"
+msgstr "Strony"
+
+msgid "Pain"
+msgstr "Ból"
+
+msgid "Pair KDE Connect phone"
+msgstr "Sparuj telefon KDE Connect"
+
+msgid "Pairing failed:"
+msgstr "Parowanie nie powiodło się:"
+
+msgid "Pairing file"
+msgstr "Plik parowania"
+
+msgid "Pairing file saved to: %(path)s"
+msgstr "Plik parowania zapisano do: %(path)s"
+
+msgid ""
+"Pairing was rejected cryptographically. The confirmation code, pairing code, "
+"or phone key does not match. Restart pairing on both devices."
+msgstr ""
+"Parowanie zostało odrzucone kryptograficznie. Kod potwierdzający, kod "
+"parowania lub klucz telefonu nie pasują. Rozpocznij ponownie parowanie na "
+"obu urządzeniach."
+
+msgid "Palm tree"
+msgstr "Palma"
+
+msgid ""
+"Participate in the Magnolienbaum (opens port %(port)s on the local network)"
+msgstr "Weź udział w Magnolienbaum (otwiera port %(port)s w sieci lokalnej)"
+
+msgid "Partnership anniversary"
+msgstr "Rocznica związku"
+
+msgid "Password"
+msgstr "Hasło"
+
+msgid "Password or numeric code"
+msgstr "Hasło lub kod numeryczny"
+
+msgid "Password protection"
+msgstr "Ochrona hasłem"
+
+msgid "Password protection is available only in the installed application."
+msgstr "Ochrona hasłem jest dostępna tylko w zainstalowanej aplikacji."
+
+msgid "Password protection is enabled – your data is encrypted."
+msgstr "Ochrona hasłem jest włączona – dane są zaszyfrowane."
+
+msgid "Password protection is enabled. Your data is now encrypted"
+msgstr "Ochrona hasłem jest włączona. Dane są teraz zaszyfrowane"
+
+msgid "Password protection was removed."
+msgstr "Ochrona hasłem została usunięta."
+
+msgid "Paste"
+msgstr "Wklej"
+
+msgid "Patch"
+msgstr "Plaster"
+
+msgid "Pay invoice"
+msgstr "Zapłać fakturę"
+
+msgid "Pen"
+msgstr "Wstrzykiwacz"
+
+msgid "People"
+msgstr "Osoby"
+
+msgid "Period"
+msgstr "Okres"
+
+msgid "Permanent KDE listener active"
+msgstr "Aktywny stały odbiornik KDE"
+
+msgid "Permanent KDE listener stopped"
+msgstr "Stały słuchacz KDE został zatrzymany"
+
+msgid "Permanently delete %(count)s completed task?"
+msgid_plural "Permanently delete %(count)s completed tasks?"
+msgstr[0] "Trwale usunąć %(count)s ukończone zadanie?"
+msgstr[1] "Trwale usunąć %(count)s ukończone zadania?"
+msgstr[2] "Trwale usunąć %(count)s ukończonych zadań?"
+
+msgid "Permanently delete %(count)s selected health record?"
+msgid_plural "Permanently delete %(count)s selected health records?"
+msgstr[0] "Trwale usunąć %(count)s wybrany wpis dotyczący zdrowia?"
+msgstr[1] "Trwale usunąć %(count)s wybrane wpisy dotyczące zdrowia?"
+msgstr[2] "Trwale usunąć %(count)s wybranych wpisów dotyczących zdrowia?"
+
+msgid "Permanently delete selected health records"
+msgstr "Trwale usunąć wybrane wpisy dotyczące zdrowia"
+
+msgid "Permanently delete the one item? This cannot be undone."
+msgid_plural "Permanently delete all %(count)s items? This cannot be undone."
+msgstr[0] "Trwale usunąć ten jeden element? Tej operacji nie można cofnąć."
+msgstr[1] ""
+"Trwale usunąć wszystkie elementy %(count)s? Tej operacji nie da się cofnąć."
+msgstr[2] ""
+"Trwale usunąć wszystkie elementy %(count)s? Tej operacji nie da się cofnąć."
+
+msgid "Person"
+msgstr "Osoba"
+
+msgid "Person's name"
+msgstr "Imię i nazwisko osoby"
+
+msgid ""
+"Personal data over Magnolie Notes, not Magnolienbaum. Deletions always "
+"require confirmation."
+msgstr ""
+"Dane osobiste są przesyłane przez Magnolie Notes, a nie przez Magnolienbaum. "
+"Załączniki i usunięcia nie są synchronizowane."
+
+msgid "Personal synchronization"
+msgstr "Synchronizacja kontaktów"
+
+msgid "Personal synchronization batches are missing."
+msgstr "Brakuje osobistych partii synchronizacji."
+
+msgid "Personal synchronization complete. Deletions are not synchronized yet."
+msgstr ""
+"Synchronizacja osobista zakończona. Usunięcia nie są jeszcze synchronizowane."
+
+msgid "Personal synchronization failed."
+msgstr "Synchronizacja nie powiodła się."
+
+msgid "Personal synchronization format 2 was not negotiated."
+msgstr "Format 2 synchronizacji osobistej nie został wynegocjowany."
+
+msgid "Personal synchronization is not permitted on both devices."
+msgstr "Synchronizacja osobista nie jest dozwolona na obu urządzeniach."
+
+msgid "Phone"
+msgstr "Telefon"
+
+msgid "Phone battery"
+msgstr "Bateria telefonu"
+
+msgid "Phone call"
+msgstr "Rozmowa telefoniczna"
+
+msgid "Phone error: %(error)s"
+msgstr "Błąd telefonu: %(error)s"
+
+msgid "Phone number"
+msgstr "Numery telefonów"
+
+msgid "Phone numbers"
+msgstr "Numery telefonów"
+
+msgid "Phone pairing failed."
+msgstr "Plik parowania"
+
+msgid "Phone “%(name)s” is securely paired."
+msgstr "Przywrócono „%(name)s”."
+
+msgid "Phones"
+msgstr "Telefon"
+
+msgid "Photo"
+msgstr "Zdjęcie"
+
+msgid "Photo available"
+msgstr "Zdjęcie dostępne"
+
+msgid "Photo of %(name)s"
+msgstr "Zdjęcie osoby %(name)s"
+
+msgid "Pick up"
+msgstr "Odbiór"
+
+msgid "Planner"
+msgstr "Planer"
+
+msgid "Please create a notebook in another group first."
+msgstr "Najpierw utwórz notatnik w innej grupie."
+
+msgid "Please enter a four-digit year from 1000 onwards."
+msgstr "Wpisz czterocyfrowy rok, nie wcześniejszy niż 1000."
+
+msgid "Please enter a name."
+msgstr "Wpisz nazwę."
+
+msgid "Please enter a realistic value."
+msgstr "Wpisz realistyczną wartość."
+
+msgid "Please enter a title and date for every new appointment."
+msgstr "Dla każdego nowego spotkania wpisz tytuł i datę."
+
+msgid "Please enter a title for every new task."
+msgstr "Dla każdego nowego zadania wpisz tytuł."
+
+msgid "Please enter a title."
+msgstr "Wpisz tytuł."
+
+msgid "Please enter a website or application for the custom action."
+msgstr "Wpisz witrynę internetową lub aplikację dla akcji niestandardowej."
+
+msgid "Please enter an address."
+msgstr "Wpisz adres."
+
+msgid "Please enter at least a name or company."
+msgstr "Wpisz co najmniej nazwę lub firmę."
+
+msgid "Please enter the internet IP and fingerprint in full."
+msgstr "Wpisz w całości internetowy adres IP i odcisk."
+
+msgid "Please select a PDF file."
+msgstr "Wybierz plik PDF."
+
+msgid "Please select a date."
+msgstr "Wybierz datę."
+
+msgid "Please select a file first."
+msgstr "Najpierw wybierz plik."
+
+msgid "Please select an image file."
+msgstr "Wybierz plik obrazu."
+
+msgid "Please select an image in JPEG, PNG, WebP, or GIF format."
+msgstr "Wybierz obraz w formacie JPEG, PNG, WebP lub GIF."
+
+msgid "Please unlock"
+msgstr "Najpierw odblokuj"
+
+msgid "Poland"
+msgstr "Polska"
+
+msgid "Possible duplicates among local and incoming contacts"
+msgstr "Możliwe duplikaty wśród kontaktów lokalnych i przychodzących"
+
+msgid "Possible spam"
+msgstr "Możliwy spam"
+
+msgid "Postal address"
+msgstr "Adres pocztowy"
+
+msgid "Postal code"
+msgstr "Kod pocztowy"
+
+msgid "Postal code / city"
+msgstr "Kod pocztowy / miejscowość"
+
+msgid "Powder"
+msgstr "Proszek"
+
+msgid "Power source"
+msgstr "Źródło zasilania"
+
+msgid "Preparing Microsoft sign-in …"
+msgstr "Przygotowywanie logowania do Microsoft…"
+
+msgid "Preview"
+msgstr "Podgląd"
+
+msgid "Preview failed."
+msgstr "Podgląd nie powiódł się."
+
+msgid "Preview, print or export the year planner"
+msgstr "Podgląd, drukowanie lub eksport planera rocznego"
+
+msgid "Preview:"
+msgstr "Podgląd:"
+
+msgid "Previous month"
+msgstr "Poprzedni miesiąc"
+
+msgid "Previous page"
+msgstr "Poprzednia strona"
+
+msgid "Previous tab"
+msgstr "Poprzednia karta"
+
+msgid "Previous table page"
+msgstr "Poprzednia strona tabeli"
+
+msgid "Previous week"
+msgstr "Poprzedni tydzień"
+
+msgid "Previous window state"
+msgstr "Poprzedni stan okna"
+
+msgid "Previous year"
+msgstr "Poprzedni rok"
+
+msgid "Print"
+msgstr "Drukuj"
+
+msgid "Print dialog"
+msgstr "Okno drukowania"
+
+msgid "Print now"
+msgstr "Drukuj teraz"
+
+msgid "Print preview"
+msgstr "Podgląd wydruku"
+
+msgid "Print · %(title)s"
+msgstr "Drukuj · %(title)s"
+
+msgid "Print · Health"
+msgstr "Drukuj · Zdrowie"
+
+msgid "Priority"
+msgstr "Priorytet"
+
+msgid "Priority 1 is listed first. Overdue tasks are shown in red."
+msgstr ""
+"Priorytet 1 jest wyświetlany jako pierwszy. Zaległe zadania są oznaczone na "
+"czerwono."
+
+msgid "Private"
+msgstr "Prywatne"
+
+msgid ""
+"Private, integrity-checked snapshots are stored next to the application data."
+msgstr ""
+"Prywatne, sprawdzane pod względem integralności migawki są przechowywane "
+"obok danych aplikacji."
+
+msgid "Public IPv4 or IPv6 address of the other branch"
+msgstr "Publiczny adres IPv4 lub IPv6 drugiej gałęzi"
+
+msgid ""
+"Public holidays and school holidays are governed regionally. Choose which "
+"ones apply here."
+msgstr ""
+"Święta państwowe i ferie szkolne zależą od regionu. Wybierz te, które "
+"obowiązują tutaj."
+
+msgid "Pulse"
+msgstr "Puls"
+
+msgid ""
+"Pulse\n"
+"S/min"
+msgstr ""
+"Puls\n"
+"S/min"
+
+msgid "QR code"
+msgstr "Kod QR"
+
+msgid "Queue: %(open)s of %(count)s transmission awaits delivery."
+msgid_plural "Queue: %(open)s of %(count)s transmissions await delivery."
+msgstr[0] "Kolejka: %(open)s z %(count)s transmisji oczekuje na dostarczenie."
+msgstr[1] "Kolejka: %(open)s z %(count)s transmisji oczekują na dostarczenie."
+msgstr[2] "Kolejka: %(open)s z %(count)s transmisji oczekuje na dostarczenie."
+
+msgid "Queued"
+msgstr "W kolejce"
+
+msgid "Quit"
+msgstr "Zakończ"
+
+msgid "Reachable IPv4 or IPv6 address of this computer"
+msgstr "Osiągalny adres IPv4 lub IPv6 tego komputera"
+
+msgid "Ready."
+msgstr "Gotowe."
+
+msgid ""
+"Really merge %(cards)s? Review the result carefully afterwards. A copy of "
+"every removed card is kept in the recycle bin."
+msgstr ""
+"Na pewno scalić %(cards)s? Potem dokładnie sprawdź wynik. Kopia każdej "
+"usuniętej karty pozostaje w koszu."
+
+msgid "Reason"
+msgstr "Powód"
+
+msgid "Reconnect"
+msgstr "Na nowo połączyć"
+
+msgid "Recovery snapshot created."
+msgstr "Utworzono migawkę odzyskiwania."
+
+msgid "Recovery snapshot deleted."
+msgstr "Migawka odzyskiwania została usunięta."
+
+msgid "Recovery snapshots"
+msgstr "Migawki odzyskiwania"
+
+msgid "Recycle bin"
+msgstr "Kosz"
+
+msgid "Refresh"
+msgstr "Odśwież"
+
+msgid "Reject"
+msgstr "Odrzuć"
+
+msgid "Reject this offer permanently?"
+msgstr "Trwale odrzucić tę ofertę?"
+
+msgid "Related tasks"
+msgstr "Powiązane zadania"
+
+msgid "Remind me again on the day itself"
+msgstr "Przypomnij ponownie w dniu spotkania"
+
+msgid "Reminder data:"
+msgstr "Dane przypomnienia:"
+
+msgid "Reminder runtime:"
+msgstr "Czas działania przypomnienia:"
+
+msgid "Reminders"
+msgstr "Przypomnienia"
+
+msgid ""
+"Reminders outside the application are available only in the installed "
+"version."
+msgstr ""
+"Przypomnienia poza aplikacją są dostępne tylko w wersji zainstalowanej."
+
+msgid "Remote host name or IP address (optional)"
+msgstr "Nazwa zdalnego hosta lub adres IP (opcjonalnie)"
+
+msgid "Remove"
+msgstr "Usuń"
+
+msgid "Remove address"
+msgstr "Usuń adres"
+
+msgid "Remove all public holidays and school holidays from the organizer?"
+msgstr "Usunąć z organizera wszystkie święta państwowe i ferie szkolne?"
+
+msgid "Remove appointment"
+msgstr "Usuń spotkanie"
+
+msgid "Remove connection"
+msgstr "Usuń połączenie"
+
+msgid "Remove email address"
+msgstr "Usuń adres e-mail"
+
+msgid "Remove embedded file “%(name)s”?"
+msgstr "Usunąć osadzony plik „%(name)s”?"
+
+msgid "Remove emergency contact"
+msgstr "Usuń kontakt alarmowy"
+
+msgid "Remove entries"
+msgstr "Usuń wpisy"
+
+msgid "Remove event"
+msgstr "Usuń wydarzenie"
+
+msgid "Remove password protection"
+msgstr "Usuń ochronę hasłem"
+
+msgid ""
+"Remove password protection? Your data will then be stored unencrypted in "
+"your home directory again."
+msgstr ""
+"Usunąć ochronę hasłem? Dane będą wtedy ponownie przechowywane bez "
+"szyfrowania w katalogu domowym."
+
+msgid "Remove phone connection"
+msgstr "Usuń połączenie"
+
+msgid "Remove phone number"
+msgstr "Usuń numer telefonu"
+
+msgid "Remove photo"
+msgstr "Usuń zdjęcie"
+
+msgid "Remove social medium"
+msgstr "Usuń medium społecznościowe"
+
+msgid "Remove task"
+msgstr "Usuń zadanie"
+
+msgid "Remove the connection to “%(branch)s”?"
+msgstr "Usunąć połączenie z „%(branch)s”?"
+
+msgid "Remove this phone connection and its queues and permissions?"
+msgstr "Usunąć to połączenie telefoniczne oraz jego kolejki i uprawnienia?"
+
+msgid ""
+"Remove “%(name)s”? Their tasks will be kept but will no longer be assigned "
+"to anyone."
+msgstr ""
+"Usunąć „%(name)s”? Zadania tej osoby zostaną zachowane, ale nie będą już "
+"nikomu przypisane."
+
+msgid ""
+"Renew KDE Connect pairing? Only KDE trust for this phone will be removed and "
+"rebuilt. Magnolie Notes, notes and chat history remain unchanged."
+msgstr ""
+"Odnowić parowanie KDE Connect? Tylko zaufanie KDE dla tego telefonu zostanie "
+"usunięte i odbudowane. Magnolie Notes, notatki i historia czatu pozostaną "
+"bez zmian."
+
+msgid "Renew pairing"
+msgstr "Odnów parowanie"
+
+msgid "Repeat for confirmation"
+msgstr "Powtórz, aby potwierdzić"
+
+msgid "Replace completely"
+msgstr "Wymień całkowicie"
+
+msgid ""
+"Requires existing pairing in Windows Settings under Bluetooth & devices. "
+"Data only, no HFP audio."
+msgstr ""
+"Wymaga istniejącego parowania w Ustawieniach systemu Windows w sekcji "
+"Bluetooth i urządzenia. Tylko dane, bez dźwięku HFP."
+
+msgid "Reset"
+msgstr "Reset"
+
+msgid "Residual waste"
+msgstr "Odpady zmieszane"
+
+msgid "Responsible"
+msgstr "Odpowiedzialny"
+
+msgid "Restore"
+msgstr "Przywróć"
+
+msgid "Restore backup"
+msgstr "Przywróć kopię zapasową"
+
+msgid "Restore backup …"
+msgstr "Przywróć kopię zapasową …"
+
+msgid "Restore completely"
+msgstr "Przywróć całkowicie"
+
+msgid "Restore failed."
+msgstr "Przywracanie nie powiodło się."
+
+msgid ""
+"Restore this snapshot completely? A mandatory pre-restore snapshot is "
+"created first."
+msgstr ""
+"Przywrócić tę migawkę całkowicie? Najpierw tworzona jest obowiązkowa migawka "
+"przed przywróceniem."
+
+msgid "Restoring backups is available only in the installed application."
+msgstr ""
+"Przywracanie kopii zapasowych jest dostępne tylko w zainstalowanej aplikacji."
+
+msgid "Retrieval failed."
+msgstr "Pobieranie nie powiodło się."
+
+msgid "Retrieve now"
+msgstr "Pobierz teraz"
+
+msgid "Retrieve public holidays and school holidays"
+msgstr "Pobierz święta państwowe i ferie szkolne"
+
+msgid "Retrieved on %(date)s."
+msgstr "Pobrano %(date)s."
+
+msgid "Retrieving holidays …"
+msgstr "Pobieranie świąt …"
+
+msgid "Retrieving manual download information …"
+msgstr "Pobieranie informacji o ręcznym pobraniu …"
+
+msgid "Retrieving weather…"
+msgstr "Pobieranie pogody…"
+
+msgid "Rhineland-Palatinate"
+msgstr "Nadrenia-Palatynat"
+
+msgid "Route"
+msgstr "Trasa"
+
+msgid "Route: calculate directions immediately"
+msgstr "Trasa: od razu wyznacz wskazówki dojazdu"
+
+msgid ""
+"Run the downloaded installer visibly and keep the Manual component selected."
+msgstr ""
+"Uruchom pobrany instalator w widoczny sposób i pozostaw zaznaczoną opcję "
+"Ręczna."
+
+msgid "S"
+msgstr "S"
+
+msgid "SMS assignment"
+msgstr "Przypisanie SMS"
+
+msgid "SMS details"
+msgstr "Szczegóły SMS"
+
+msgid "SMS from %(name)s"
+msgstr "SMS od %(name)s"
+
+msgid "SMS history"
+msgstr "Historia SMS"
+
+msgid "SMS settings"
+msgstr "Ustawienia SMS"
+
+msgid "SMS text was adjusted:"
+msgstr "Tekst SMS został dostosowany:"
+
+msgid "SMS to %(name)s"
+msgstr "SMS do %(name)s"
+
+msgid "Saarland"
+msgstr "Saara"
+
+msgid "Salzburg"
+msgstr "Salzburg"
+
+msgid "Saturday"
+msgstr "Sobota"
+
+msgid "Save"
+msgstr "Zapisz"
+
+msgid "Save Magnolienbaum pairing file"
+msgstr "Zapisz plik parowania Magnolienbaum"
+
+msgid "Save as…"
+msgstr "Zapisz jako…"
+
+msgid "Save changes"
+msgstr "Zapisz zmiany"
+
+msgctxt "contact action"
+msgid "Save changes"
+msgstr "Zapisz zmiany"
+
+msgid "Save changes?"
+msgstr "Zapisać zmiany?"
+
+msgid "Save endpoint"
+msgstr "Zapisz punkt końcowy"
+
+msgid "Save rejected: The data is encrypted and has not been unlocked yet."
+msgstr ""
+"Odrzucono zapis: Dane są zaszyfrowane i nie zostały jeszcze odblokowane."
+
+msgid "Save your Microsoft OAuth client ID first."
+msgstr "Najpierw zapisz swój identyfikator klienta Microsoft OAuth."
+
+msgid "Saved"
+msgstr "Zapisano"
+
+msgid "Saved to: %(path)s (%(count)s entry)"
+msgid_plural "Saved to: %(path)s (%(count)s entries)"
+msgstr[0] "Zapisano do: %(path)s (%(count)s wpis)"
+msgstr[1] "Zapisano do: %(path)s (%(count)s wpisy)"
+msgstr[2] "Zapisano do: %(path)s (%(count)s wpisów)"
+
+msgid "Saved ✓ %(time)s"
+msgstr "Zapisano ✓ %(time)s"
+
+msgid "Saved."
+msgstr "Zapisano."
+
+msgid "Saving failed!"
+msgstr "Zapisywanie nie powiodło się!"
+
+msgid "Saving …"
+msgstr "Zapisywanie …"
+
+msgid "Saxony"
+msgstr "Saksonia"
+
+msgid "Saxony-Anhalt"
+msgstr "Saksonia-Anhalt"
+
+msgid "Schaffhausen"
+msgstr "Szafuza"
+
+msgid "Schedule an appointment"
+msgstr "Zaplanuj spotkanie"
+
+msgid "Scheduled"
+msgstr "Zaplanowany"
+
+msgid "Scheme"
+msgstr "Scheme"
+
+msgid "Schleswig-Holstein"
+msgstr "Szlezwik-Holsztyn"
+
+msgid "Schwyz"
+msgstr "Schwyz"
+
+msgid "Screen notification only"
+msgstr "Tylko powiadomienie na ekranie"
+
+msgid "Scrolling up makes the time earlier"
+msgstr "Przewijanie w górę ustawia wcześniejszą godzinę"
+
+msgid "Scrolling up makes the time later"
+msgstr "Przewijanie w górę ustawia późniejszą godzinę"
+
+msgid "Search"
+msgstr "Szukaj"
+
+msgid "Search local network"
+msgstr "Przeszukaj sieć lokalną"
+
+msgid "Search title, date, or note…"
+msgstr "Szukaj tytułu, daty lub notatki…"
+
+msgid "Searching for suggestions…"
+msgstr "Wyszukiwanie podpowiedzi…"
+
+msgid "Searching…"
+msgstr "Wyszukiwanie…"
+
+msgid "Search…"
+msgstr "Szukaj…"
+
+msgid "Secondary office"
+msgstr "Biuro dodatkowe"
+
+msgid "Secure HTTPS address"
+msgstr "Bezpieczny adres HTTPS"
+
+msgid "Securely connected to %(branch)s."
+msgstr "Bezpiecznie połączono z %(branch)s."
+
+msgid "Security"
+msgstr "Bezpieczeństwo"
+
+msgid "Select a country first."
+msgstr "Najpierw wybierz kraj."
+
+msgid "Select all"
+msgstr "Zaznacz wszystko"
+
+msgid ""
+"Select an entry on the left,\n"
+"or create a contact card with New."
+msgstr ""
+"Wybierz wpis po lewej\n"
+"albo utwórz kartę kontaktu przyciskiem Nowy."
+
+msgid "Select at least one column."
+msgstr "Wybierz co najmniej jedną kolumnę."
+
+msgid "Select at least one year."
+msgstr "Wybierz co najmniej jeden rok."
+
+msgid "Select backup folder"
+msgstr "Wybierz folder kopii zapasowych"
+
+msgid "Select something first."
+msgstr "Najpierw coś wybierz."
+
+msgid "Select what you want to print on the left."
+msgstr "Po lewej wybierz, co chcesz wydrukować."
+
+msgid "Select your canton first or enable “All cantons”."
+msgstr "Najpierw wybierz kanton albo włącz „Wszystkie kantony”."
+
+msgid "Select your state first or enable “All states”."
+msgstr ""
+"Najpierw wybierz kraj związkowy albo włącz „Wszystkie kraje związkowe”."
+
+msgid "Select, preview, print, export or delete health records"
+msgstr ""
+"Wybierz, wyświetl podgląd, wydrukuj, wyeksportuj lub usuń dane zdrowotne"
+
+msgid ""
+"Selected columns that are empty for every contact are omitted automatically."
+msgstr ""
+"Wybrane kolumny, które są puste dla wszystkich kontaktów, są automatycznie "
+"pomijane."
+
+msgid "Selected notifications"
+msgstr "powiadomienie systemowe"
+
+msgid "Selection options"
+msgstr "Opcje wyboru"
+
+msgid "Send SMS"
+msgstr "Wyślij SMS"
+
+msgid "Send adjusted text"
+msgstr "Wyślij dostosowany tekst"
+
+msgid "Send documents"
+msgstr "Wyślij dokumenty"
+
+msgid "Send secure request"
+msgstr "Wyślij bezpieczne żądanie"
+
+msgid "Sent"
+msgstr "Wysłano"
+
+msgid "Server address"
+msgstr "Adres serwera"
+
+msgid "Server address and user name are required."
+msgstr "Wymagane są adres serwera i nazwa użytkownika."
+
+msgid "Set varying doses by weekday"
+msgstr "Ustaw różne dawki w zależności od dnia tygodnia"
+
+msgid "Setting up reminders …"
+msgstr "Konfigurowanie przypomnień …"
+
+msgid "Settings"
+msgstr "Ustawienia"
+
+msgid "Several Magnolie Organizers can connect and securely share tasks."
+msgstr ""
+"Kilka instancji Magnolie Organizer może się połączyć i bezpiecznie "
+"współdzielić zadania."
+
+msgid "Share"
+msgstr "Udostępnij"
+
+msgid "Share address"
+msgstr "Udostępnij adres"
+
+msgid "Share appointment"
+msgstr "Udostępnij spotkanie"
+
+msgid "Share this entry explicitly with %(branch)s?"
+msgstr "Udostępnić ten wpis bezpośrednio gałęzi %(branch)s?"
+
+msgid "Share this entry explicitly with the workgroup?"
+msgstr "Udostępnić ten wpis bezpośrednio grupie roboczej?"
+
+msgid "Share this entry explicitly with this branch?"
+msgstr "Udostępnić ten wpis bezpośrednio tej gałęzi?"
+
+msgid "Share together"
+msgstr "Udostępnij wspólnie"
+
+msgid "Shared credentials"
+msgstr "Shared credentials"
+
+msgid "Shared note"
+msgstr "Udostępniona notatka"
+
+msgid "Shift planner"
+msgstr "Planer zmian"
+
+msgid "Shopping"
+msgstr "Zakupy"
+
+msgid "Short-acting insulin"
+msgstr "Insulina krótkodziałająca"
+
+msgid "Show Health after Planner"
+msgstr "Pokaż Zdrowie za Terminarzem"
+
+msgid "Show all"
+msgstr "Pokaż wszystko"
+
+msgid "Show calendar button in date fields"
+msgstr "Pokazuj przycisk kalendarza w polach daty"
+
+msgid "Show log"
+msgstr "Pokaż dziennik"
+
+msgid "Show more"
+msgstr "Pokaż więcej"
+
+msgid "Show preview"
+msgstr "Pokaż podgląd"
+
+msgid "Show selected notifications (read only)"
+msgstr "Tylko powiadomienie na ekranie"
+
+msgid "Show social media and communication icons"
+msgstr "Pokazuj ikony mediów społecznościowych i komunikacji"
+
+msgid "Show symbol in calendar"
+msgstr "Pokaż symbol w kalendarzu"
+
+msgid "Show the “Letter” button (LibreOffice)"
+msgstr "Pokazuj przycisk „List” (LibreOffice)"
+
+msgid "Show the “Map” button"
+msgstr "Pokazuj przycisk „Mapa”"
+
+msgid "Show the “Selection options” button"
+msgstr "Pokazuj przycisk „Opcje wyboru”"
+
+msgid "Show this address on the map"
+msgstr "Pokaż ten adres na mapie"
+
+msgid "Show today's notification count on the tray icon"
+msgstr "Pokazuj liczbę dzisiejszych powiadomień na ikonie zasobnika"
+
+msgid "Show weather for the next three days"
+msgstr "Pokaż pogodę na następne trzy dni"
+
+msgid "Show week numbers in the monthly view"
+msgstr "Pokazuj numery tygodni w widoku miesięcznym"
+
+msgid "Show week numbers in the planner"
+msgstr "Pokazuj numery tygodni w planerze"
+
+msgid "Sign in to Microsoft"
+msgstr "Zaloguj się do Microsoftu"
+
+msgid "Sign in to Microsoft first."
+msgstr "Najpierw zaloguj się do Microsoft."
+
+msgid "Sign out"
+msgstr "Wyloguj się"
+
+msgid "Sign-in URL: %(url)s"
+msgstr "Adres URL logowania: %(url)s"
+
+msgid "Signed in to Microsoft."
+msgstr "Zalogowano się do Microsoftu."
+
+msgid "Signed out from Microsoft."
+msgstr "Wylogowałem się z Microsoft."
+
+msgid ""
+"Small action buttons appear on each contact card. You can hide anything you "
+"do not need here."
+msgstr ""
+"Na każdej karcie kontaktu pojawiają się małe przyciski działań. Tutaj możesz "
+"ukryć wszystko, czego nie potrzebujesz."
+
+msgid "Snapshot interval"
+msgstr "Interwał migawki"
+
+msgid "Snapshot restored. The first synchronization will not send deletions."
+msgstr ""
+"Migawka została przywrócona. Pierwsza synchronizacja nie wyśle usunięć."
+
+msgid "Snowman"
+msgstr "Bałwan"
+
+msgid "Social media"
+msgstr "Media społecznościowe"
+
+msgid "Social medium"
+msgstr "Medium społecznościowe"
+
+msgid "Solothurn"
+msgstr "Solura"
+
+msgid "Some existing backups could not be decrypted."
+msgstr "Niektórych istniejących kopii zapasowych nie można odszyfrować."
+
+msgid "Some existing backups could not be encrypted."
+msgstr "Niektórych istniejących kopii zapasowych nie można zaszyfrować."
+
+msgid "Son"
+msgstr "Syn"
+
+msgid "Sort everything alphabetically"
+msgstr "Sortuj wszystko alfabetycznie"
+
+msgid "Sorting"
+msgstr "Sortowanie"
+
+msgid "Sound only"
+msgstr "Tylko dźwięk"
+
+msgid "Space for anything you want to remember…"
+msgstr "Miejsce na wszystko, co chcesz zapamiętać…"
+
+msgid "Spain"
+msgstr "Hiszpania"
+
+msgid "Spam check"
+msgstr "Sprawdzanie spamu"
+
+msgid "Special cases"
+msgstr "Przypadki szczególne"
+
+msgid "Spray"
+msgstr "Aerozol"
+
+msgid "St. Gallen"
+msgstr "St. Gallen"
+
+msgid "Start automatically when signing in"
+msgstr "Uruchamiaj automatycznie przy logowaniu"
+
+msgid "Start the organizer in the tray"
+msgstr "Uruchamiaj organizer w zasobniku"
+
+msgid "State"
+msgstr "Kraj związkowy"
+
+msgid "Status"
+msgstr "Status"
+
+msgid "Storage available / total"
+msgstr "Dostępne miejsce / łącznie"
+
+msgid "Street / house number"
+msgstr "Ulica / numer domu"
+
+msgid "Street and house number"
+msgstr "Ulica i numer domu"
+
+msgid "Strength"
+msgstr "Moc"
+
+msgid "Strikethrough"
+msgstr "Przekreślenie"
+
+msgid "Styria"
+msgstr "Styria"
+
+msgid "Submitted"
+msgstr "Złożono"
+
+msgid "Submitted to KDE Connect"
+msgstr "Przesłano do KDE Connect"
+
+msgid "Suggestions are available only in the installed application."
+msgstr "Podpowiedzi są dostępne tylko w zainstalowanej aplikacji."
+
+msgid "Sun symbol"
+msgstr "Symbol słońca"
+
+msgid "Sunday"
+msgstr "Niedziela"
+
+msgid "Suppository"
+msgstr "Czopek"
+
+msgid "Switched off."
+msgstr "Wyłączone."
+
+msgid "Switzerland"
+msgstr "Szwajcaria"
+
+msgid "Symbol"
+msgstr "Symbol"
+
+msgid "Symbol and Vacation text"
+msgstr "Symbol i tekst Urlop"
+
+msgid "Symbol only"
+msgstr "Tylko symbol"
+
+msgid "Symbols and temperatures"
+msgstr "Symbole i temperatury"
+
+msgid "Symbols, temperatures and description"
+msgstr "Symbole, temperatury i opis"
+
+msgid "Synchronization"
+msgstr "Synchronizacja"
+
+msgid "Synchronization completed."
+msgstr "Synchronizacja zakończona."
+
+msgid "Synchronization failed."
+msgstr "Synchronizacja nie powiodła się."
+
+msgid "Synchronization failed: %(error)s"
+msgstr "Synchronizacja nie powiodła się: %(error)s"
+
+msgid ""
+"Synchronization state, pending messages and metadata for this connection "
+"will be removed. Contacts already accepted and local data remain."
+msgstr ""
+"Stan synchronizacji, oczekujące wiadomości i metadane tego połączenia "
+"zostaną usunięte. Już przyjęte kontakty i dane lokalne pozostaną zachowane."
+
+msgid "Synchronize automatically at startup"
+msgstr "Synchronizuj automatycznie przy uruchamianiu"
+
+msgid "Synchronize contacts"
+msgstr "Synchronizuj kontakty"
+
+msgid "Synchronize everything"
+msgstr "Synchronizuj wszystko"
+
+msgid "Synchronize notes and notebooks"
+msgstr "Synchronizuj kontakty"
+
+msgid "Synchronize now"
+msgstr "Synchronizuj teraz"
+
+msgid "Synchronize tasks"
+msgstr "Synchronizuj kontakty"
+
+msgid "Synchronizing …"
+msgstr "Synchronizowanie …"
+
+msgid "System default"
+msgstr "Domyślne systemowe"
+
+msgid "System style (desktop notification)"
+msgstr "Styl systemowy (powiadomienie pulpitu)"
+
+msgid "System-paired phone Bluetooth address"
+msgstr "Adres Bluetooth telefonu sparowanego z systemem"
+
+msgid "Systolic"
+msgstr "Skurczowe"
+
+#, csharp-format
+msgid "TCP port {0} could not be opened: {1}"
+msgstr "Nie można otworzyć portu TCP {0}: {1}"
+
+msgid "Tab %(letter)s"
+msgstr "Karta %(letter)s"
+
+msgid "Tab %(letter)s · %(count)s"
+msgstr "Karta %(letter)s · %(count)s"
+
+msgid "Tablet"
+msgstr "Tabletka"
+
+msgid "Tabs"
+msgstr "Karty"
+
+msgid "Task"
+msgstr "Zadanie"
+
+msgid "Tasks"
+msgstr "Zadania"
+
+msgid "Tasks (.ics)"
+msgstr "Zadania (.ics)"
+
+msgid ""
+"Tasks can be assigned to people. When printing, you can select one person's "
+"tasks for a specific period, for example each family member's weekly tasks."
+msgstr ""
+"Zadania można przypisywać osobom. Przy drukowaniu można wybrać zadania "
+"jednej osoby z określonego okresu, na przykład tygodniowe zadania każdego "
+"członka rodziny."
+
+msgid "Tasks for this person"
+msgstr "Zadania tej osoby"
+
+msgid "Tear out page"
+msgstr "Wyrwij stronę"
+
+msgid "Temperature"
+msgstr "Temperatura"
+
+msgid "Test connection"
+msgstr "Sprawdź połączenie"
+
+msgid "Testing…"
+msgstr "Sprawdzanie …"
+
+msgid "Text color"
+msgstr "Kolor tekstu"
+
+msgid "Text formatting"
+msgstr "Formatowanie tekstu"
+
+msgid "That did not work."
+msgstr "To nie zadziałało."
+
+msgid "That is not correct."
+msgstr "To nie jest poprawne."
+
+msgid "The %(count)s note page it contains will be moved to “%(notebook)s”."
+msgid_plural ""
+"The %(count)s note pages it contains will be moved to “%(notebook)s”."
+msgstr[0] ""
+"Strona notatki %(count)s, którą zawiera, zostanie przeniesiona do "
+"„%(notebook)s”."
+msgstr[1] ""
+"Strona notatki %(count)s, którą zawiera, zostanie przeniesiona do "
+"„%(notebook)s”."
+msgstr[2] ""
+"Strona notatki %(count)s, którą zawiera, zostanie przeniesiona do "
+"„%(notebook)s”."
+
+msgid ""
+"The DIN template positions the recipient address for a window envelope, "
+"shows your address as a multiline sender block, and adds two fold marks and "
+"a punch mark."
+msgstr ""
+"Szablon DIN ustawia adres odbiorcy pod okno koperty, pokazuje Twój adres "
+"jako wielowierszowy blok nadawcy i dodaje dwa znaczniki zgięcia oraz "
+"znacznik dziurkowania."
+
+msgid "The KDE Connect device to renew is missing."
+msgstr "Brak urządzenia KDE Connect do odnowienia."
+
+msgid ""
+"The KDE Connect support is built into the Organizer. Only the KDE Connect "
+"app on Android is required; no additional KDE Connect desktop program is "
+"needed."
+msgstr ""
+"Wspornik KDE Connect jest wbudowany w organizer. Wymagana jest tylko "
+"aplikacja KDE Connect na Android; nie jest potrzebny żaden dodatkowy program "
+"komputerowy KDE Connect."
+
+msgid ""
+"The Lotus CSV uses the original columns VERTRAULICH, KATEGORIEN, "
+"ANFANGSDATUMZEIT, ENDDATUMZEIT, BESCHREIBUNG, KOSTENSTELLENCODE, "
+"KUNDENNUMMER and VORLAEUFIGZUSAGEN."
+msgstr ""
+"Lotus CSV używa oryginalnych kolumn VERTRAULICH, KATEGORIEN, "
+"ANFANGSDATUMZEIT, ENDDATUMZEIT, BESCHREIBUNG, KOSTENSTELLENCODE, "
+"KUNDENNUMMER i VORLAEUFIGZUSAGEN."
+
+msgid "The Magnolie Notes phone connection is switched off."
+msgstr "Połączenie telefoniczne Magnolie Notes jest wyłączone."
+
+msgid ""
+"The Magnolie manual is installed. It is best to read it through before you "
+"begin. Would you like to open it now?"
+msgstr ""
+"Podręcznik Magnolie jest zainstalowany. Najlepiej przeczytać go przed "
+"rozpoczęciem pracy. Otworzyć go teraz?"
+
+msgid "The Magnolie manual is not installed."
+msgstr "Podręcznik Magnolie nie jest zainstalowany."
+
+msgid ""
+"The Magnolie manual is not installed. Version %(version)s can be downloaded "
+"now. Would you like to open the package download?"
+msgstr ""
+"Podręcznik Magnolie nie jest zainstalowany. Wersję %(version)s można teraz "
+"pobrać. Otworzyć stronę pobierania pakietu?"
+
+msgid "The Magnolienbaum is available only in the installed application."
+msgstr "Magnolienbaum jest dostępny tylko w zainstalowanej aplikacji."
+
+msgid "The ODS export is too large."
+msgstr "Eksport ODS jest zbyt duży."
+
+msgid "The Organizer chooses a suitable installed application."
+msgstr "Organizer wybiera odpowiednią zainstalowaną aplikację."
+
+msgid ""
+"The Windows Contacts folder is synchronized bidirectionally on the "
+"synchronization page. File imports do not modify their source files; "
+"existing entries are not added twice."
+msgstr ""
+"Folder Kontakty systemu Windows jest synchronizowany dwukierunkowo na "
+"stronie synchronizacji. Importy plików nie modyfikują ich plików źródłowych; "
+"istniejące wpisy nie są dodawane dwukrotnie."
+
+msgid "The Windows entry in the update information is invalid."
+msgstr "Wpis Windows w informacjach o aktualizacji jest nieprawidłowy."
+
+msgid "The address could not be opened."
+msgstr "Nie można otworzyć adresu."
+
+msgid ""
+"The archive contains the complete application data. The password is "
+"optional; leaving the field empty explicitly creates an unencrypted archive."
+msgstr ""
+"Archiwum zawiera pełne dane aplikacji. Hasło jest opcjonalne; pozostawienie "
+"pustego pola jawnie tworzy niezaszyfrowane archiwum."
+
+msgid ""
+"The archive is encrypted. Enter the password to verify it completely before "
+"importing."
+msgstr ""
+"Archiwum jest zaszyfrowane. Wprowadź hasło, aby je całkowicie zweryfikować "
+"przed importem."
+
+msgid "The attachment range is invalid."
+msgstr "Zakres załącznika jest nieprawidłowy."
+
+msgid ""
+"The attachments are too large together. Remove some files; the combined "
+"limit is approximately 18 MB."
+msgstr ""
+"Załączniki są łącznie zbyt duże. Usuń część plików; łączny limit wynosi "
+"około 18 MB."
+
+msgid ""
+"The attachments in this note are too large together. Remove some files; the "
+"combined limit is approximately 18 MB."
+msgstr ""
+"Załączniki w tej notatce są łącznie zbyt duże. Usuń część plików; łączny "
+"limit wynosi około 18 MB."
+
+msgid ""
+"The background reminder service cannot read the encrypted data and remains "
+"silent outside the open organizer."
+msgstr ""
+"Usługa przypomnień w tle nie może odczytać zaszyfrowanych danych i poza "
+"otwartym organizerem nie wyświetla żadnych komunikatów."
+
+msgid ""
+"The background reminder service may read the separate reminder data and "
+"therefore works even when the organizer is closed."
+msgstr ""
+"Usługa przypomnień w tle może odczytać oddzielne dane przypomnień, dlatego "
+"działa również po zamknięciu organizera."
+
+msgid "The backup could not be created."
+msgstr "Nie udało się utworzyć kopii zapasowej."
+
+msgid "The backup could not be restored."
+msgstr "Nie udało się przywrócić kopii zapasowej."
+
+msgid "The backup is empty."
+msgstr "Kopia zapasowa jest pusta."
+
+msgid ""
+"The backup will be stored outside the local data location and is therefore "
+"always encrypted. This password will be required to restore it later:\n"
+"%(path)s"
+msgstr ""
+"Kopia zapasowa zostanie zapisana poza lokalnym położeniem danych i dlatego "
+"zawsze będzie szyfrowana. To hasło będzie później potrzebne do jej "
+"przywrócenia:\n"
+"%(path)s"
+
+msgid ""
+"The button in the bottom bar opens the selection for the section you have "
+"open. From there the ticked entries can be printed, exported or moved to the "
+"wastebasket."
+msgstr ""
+"Przycisk na dolnym pasku otwiera wybór dla aktualnie otwartej sekcji. "
+"Stamtąd zaznaczone wpisy można drukować, eksportować lub przenosić do kosza."
+
+msgid "The call is no longer active or has been updated."
+msgstr "Połączenie nie jest już aktywne lub zostało zaktualizowane."
+
+msgid "The call is no longer active."
+msgstr "Połączenie nie jest już aktywne."
+
+msgid "The call is no longer ringing or is outdated."
+msgstr "Połączenie nie dzwoni lub jest nieaktualne."
+
+msgid "The call is no longer ringing."
+msgstr "Połączenie już nie dzwoni."
+
+msgid "The clipboard is empty."
+msgstr "Schowek jest pusty."
+
+msgid ""
+"The command is started safely without a shell. Use {nummer} for the selected "
+"number."
+msgstr ""
+"Polecenie jest uruchamiane bezpiecznie bez powłoki. Użyj {nummer} dla "
+"wybranego numeru."
+
+msgid "The complete archive cannot be used."
+msgstr "Nie można wykorzystać całego archiwum."
+
+msgid "The complete archive could not be verified."
+msgstr "Nie udało się zweryfikować całego archiwum."
+
+msgid "The complete archive is empty."
+msgstr "Całe archiwum jest puste."
+
+msgid "The complete file is stored in this note (up to 8 megabytes)."
+msgstr "W tej notatce przechowywany jest cały plik (do 8 megabajtów)."
+
+msgid "The connection to the phone was interrupted during pairing."
+msgstr "Połączenie z telefonem zostało przerwane podczas parowania."
+
+msgid "The contact is missing."
+msgstr "Brakuje kontaktu."
+
+msgid "The content is missing."
+msgstr "Brakuje treści."
+
+msgid "The contributor key is invalid."
+msgstr "Klucz współautora jest nieprawidłowy."
+
+msgid ""
+"The current data will be backed up first and then completely replaced with "
+"this file:\n"
+"%(path)s"
+msgstr ""
+"Bieżące dane zostaną najpierw zapisane w kopii zapasowej, a następnie "
+"całkowicie zastąpione tym plikiem:\n"
+"%(path)s"
+
+msgid "The current organizer data is incomplete."
+msgstr "Bieżące dane organizera są niekompletne."
+
+msgid "The data is invalid."
+msgstr "Dane są nieprawidłowe."
+
+msgid "The data is not a JSON object."
+msgstr "Dane nie są obiektem JSON."
+
+msgid "The destination could not be opened."
+msgstr "Nie można otworzyć celu."
+
+msgid "The download address is not permitted for this platform."
+msgstr "Adres pobierania nie jest dozwolony dla tej platformy."
+
+msgid "The end date cannot be before the start date."
+msgstr "Data końcowa nie może być wcześniejsza niż data początkowa."
+
+msgid "The export data is missing."
+msgstr "Brak danych eksportu."
+
+msgid "The file could not be read."
+msgstr "Nie udało się odczytać pliku."
+
+msgid "The file has an unsupported format."
+msgstr "Plik ma nieobsługiwany format."
+
+msgid "The file is larger than 8 megabytes."
+msgstr "Plik ma więcej niż 8 megabajtów."
+
+msgid ""
+"The helper frame marks the control that currently has keyboard focus. This "
+"makes it easier to operate the Organizer with Tab, arrow keys, Enter and "
+"Space. Ctrl+Alt+H switches the frame on or off at any time."
+msgstr ""
+"Ramka pomocnicza oznacza element sterujący, który ma obecnie fokus "
+"klawiatury. Ułatwia to obsługę Organizera klawiszami Tab, strzałkami, Enter "
+"i spacją. Ctrl+Alt+H w dowolnej chwili włącza lub wyłącza ramkę."
+
+msgid "The holidays were imported."
+msgstr "Święta zostały zaimportowane."
+
+msgid "The holidays were removed."
+msgstr "Święta zostały usunięte."
+
+msgid "The import file is larger than 32 megabytes."
+msgstr "Plik importu ma więcej niż 32 megabajty."
+
+msgid ""
+"The information is retrieved once from the open directory openholidaysapi."
+"org and then kept in the organizer. The application therefore needs an "
+"internet connection only once."
+msgstr ""
+"Informacje są pobierane jeden raz z otwartego katalogu openholidaysapi.org, "
+"a następnie przechowywane w organizerze. Dlatego aplikacja potrzebuje "
+"połączenia z Internetem tylko raz."
+
+msgid "The last notebook cannot be deleted."
+msgstr "Nie można usunąć ostatniego notatnika."
+
+msgid "The last notebook group cannot be deleted."
+msgstr "Nie można usunąć ostatniej grupy notatników."
+
+msgid "The letter was created but could not be opened."
+msgstr "List został utworzony, ale nie można go otworzyć."
+
+msgid "The locked data cannot be backed up."
+msgstr "Nie można wykonać kopii zapasowej zablokowanych danych."
+
+msgid "The log could not be opened."
+msgstr "Nie udało się otworzyć dziennika."
+
+msgid "The log folder could not be opened."
+msgstr "Nie można otworzyć folderu dziennika."
+
+msgid "The log is available only in the installed application."
+msgstr "Dziennik jest dostępny tylko w zainstalowanej aplikacji."
+
+msgid ""
+"The log records when the reminder service checked and what it reported. "
+"Entries older than 30 days are removed automatically, and the log never "
+"exceeds 200 lines."
+msgstr ""
+"Dziennik zapisuje, kiedy usługa przypomnień przeprowadzała kontrolę i co "
+"zgłosiła. Wpisy starsze niż 30 dni są automatycznie usuwane, a dziennik "
+"nigdy nie przekracza 200 wierszy."
+
+msgid "The mailbox is reachable."
+msgstr "Skrzynka jest osiągalna."
+
+msgid "The manual could not be opened."
+msgstr "Nie udało się otworzyć podręcznika."
+
+msgid "The manual download is available only in the installed application."
+msgstr "Pobieranie podręcznika jest dostępne tylko w zainstalowanej aplikacji."
+
+msgid "The manual download request is no longer valid."
+msgstr "Ręczne żądanie pobrania jest już nieważne."
+
+msgid "The manual is installed; its version is unknown."
+msgstr "Podręcznik jest zainstalowany; jego wersja jest nieznana."
+
+msgid "The manual is up to date."
+msgstr "Instrukcja jest aktualna."
+
+msgid "The manual package checksum does not match."
+msgstr "Ręczna suma kontrolna pakietu nie zgadza się."
+
+msgid "The manual package could not be opened."
+msgstr "Nie udało się otworzyć pakietu podręcznika."
+
+msgid "The manual package is unexpectedly large."
+msgstr "Ręczny pakiet jest niespodziewanie duży."
+
+msgid "The manual update check failed."
+msgstr "Ręczne sprawdzenie aktualizacji nie powiodło się."
+
+msgid "The manual update information is invalid."
+msgstr "Informacje o ręcznej aktualizacji są nieprawidłowe."
+
+msgid "The manual update information is missing."
+msgstr "Brak informacji o ręcznej aktualizacji."
+
+msgid "The offered entry is incomplete."
+msgstr "Oferowany wpis jest niekompletny."
+
+msgid "The organizer is not currently reminding you about appointments."
+msgstr "Organizer nie przypomina obecnie o spotkaniach."
+
+msgid ""
+"The organizer notifies you before an appointment begins, even when the "
+"application is not open if you wish."
+msgstr ""
+"Organizer powiadamia przed rozpoczęciem spotkania, a na życzenie również "
+"wtedy, gdy aplikacja nie jest otwarta."
+
+msgid "The package could not be opened."
+msgstr "Nie udało się otworzyć pakietu."
+
+msgid "The pairing file could not be processed."
+msgstr "Nie udało się przetworzyć pliku parowania."
+
+msgid "The pairing file is damaged."
+msgstr "Plik parowania jest uszkodzony."
+
+msgid "The pairing file is empty."
+msgstr "Plik parowania jest pusty."
+
+msgid "The pairing file is too large."
+msgstr "Plik parowania jest zbyt duży."
+
+msgid "The password must contain at least four characters."
+msgstr "Hasło musi zawierać co najmniej cztery znaki."
+
+msgid ""
+"The permanent KDE listener cannot start because PyOpenSSL is unavailable."
+msgstr ""
+"Nie można uruchomić stałego słuchacza KDE, ponieważ PyOpenSSL jest "
+"niedostępny."
+
+msgid ""
+"The permanent KDE listener cannot start because UDP port 1716 is already in "
+"use."
+msgstr ""
+"Nie można uruchomić stałego odbiornika KDE, ponieważ port UDP 1716 jest już "
+"używany."
+
+msgid ""
+"The permanent KDE listener cannot start because no TCP port from 1716 to "
+"1764 is available."
+msgstr ""
+"Nie można uruchomić stałego słuchacza KDE, ponieważ nie jest dostępny żaden "
+"port TCP od 1716 do 1764."
+
+msgid "The permanent KDE listener has not started yet."
+msgstr "Stały słuchacz KDE jeszcze się nie uruchomił."
+
+msgid "The permanent KDE listener is stopped."
+msgstr "Stały słuchacz KDE jest zatrzymany."
+
+msgid "The permanent personal synchronization commit was rejected."
+msgstr "Zatwierdzenie trwałej synchronizacji osobistej zostało odrzucone."
+
+msgid "The personal synchronization attachment identity does not match."
+msgstr "Tożsamość załącznika synchronizacji osobistej nie jest zgodna."
+
+msgid "The personal synchronization attachment source is incomplete."
+msgstr "Źródło załącznika synchronizacji osobistej jest niekompletne."
+
+msgid "The personal synchronization attachment sources are incomplete."
+msgstr "Źródła załączników do synchronizacji osobistej są niekompletne."
+
+msgid "The personal synchronization batch was not saved permanently."
+msgstr "Osobista partia synchronizacji nie została zapisana na stałe."
+
+msgid "The personal synchronization commit could not be confirmed."
+msgstr "Nie można potwierdzić zatwierdzenia synchronizacji osobistej."
+
+msgid "The personal synchronization commit token is missing."
+msgstr "Brak tokena zatwierdzenia synchronizacji osobistej."
+
+msgid "The personal synchronization request is missing."
+msgstr "Brak osobistego żądania synchronizacji."
+
+msgid "The personal synchronization result is invalid."
+msgstr "Wynik synchronizacji osobistej jest nieprawidłowy."
+
+msgid "The personal synchronization run does not match."
+msgstr "Przebieg synchronizacji osobistej nie jest zgodny."
+
+msgid "The personal synchronization run has expired."
+msgstr "Przebieg synchronizacji osobistej wygasł."
+
+msgid "The phone connection is available only in the installed application."
+msgstr "Wybór folderu jest dostępny tylko w zainstalowanej aplikacji."
+
+msgid "The phone function is not permitted or available."
+msgstr "Funkcja telefonu jest niedozwolona lub dostępna."
+
+msgid "The phone is not connected via WLAN."
+msgstr "Telefon nie jest podłączony poprzez WLAN."
+
+msgid "The phone is not paired."
+msgstr "Telefon nie jest sparowany."
+
+msgid "The phone is reachable, but its KDE Connect trust no longer matches."
+msgstr "Telefon jest dostępny, ale jego zaufanie KDE Connect już nie pasuje."
+
+msgid "The phone operation failed."
+msgstr "Operacja telefoniczna nie powiodła się."
+
+msgid ""
+"The phone sent a message unknown to this phone protocol. Organizer and "
+"Magnolie Notes must use the same protocol version."
+msgstr ""
+"Telefon wysłał wiadomość nieznaną dla tego protokołu telefonicznego. "
+"Organizator i Magnolie Notes muszą używać tej samej wersji protokołu."
+
+msgid "The phone settings are damaged."
+msgstr "Ustawienia telefonu są uszkodzone."
+
+msgid "The phone was not specified."
+msgstr "Nie podano telefonu."
+
+msgid "The photo could not be read."
+msgstr "Nie udało się odczytać zdjęcia."
+
+msgid "The photo is larger than 8 megabytes."
+msgstr "Zdjęcie ma więcej niż 8 megabajtów."
+
+msgid "The port must be between 1 and 65535."
+msgstr "Port musi należeć do zakresu od 1 do 65535."
+
+msgid "The public address could not be determined."
+msgstr "Nie udało się ustalić publicznego adresu."
+
+msgid "The recovery snapshot reason is invalid."
+msgstr "Powód migawki odzyskiwania jest nieprawidłowy."
+
+msgid "The recycle bin is empty."
+msgstr "Kosz jest pusty."
+
+msgid "The recycle bin was emptied."
+msgstr "Kosz został opróżniony."
+
+msgid "The required recovery snapshot could not be created."
+msgstr "Nie można było utworzyć wymaganego zrzutu odzyskiwania."
+
+msgid ""
+"The same code must appear on both computers:\n"
+"\n"
+"%(code)s\n"
+"\n"
+"Other branch: %(branch)s\n"
+"Fingerprint: %(fingerprint)s\n"
+"\n"
+"Does the code match?"
+msgstr ""
+"Na obu komputerach musi pojawić się ten sam kod:\n"
+"\n"
+"%(code)s\n"
+"\n"
+"Druga gałąź: %(branch)s\n"
+"Odcisk: %(fingerprint)s\n"
+"\n"
+"Czy kod się zgadza?"
+
+msgid "The save request is invalid."
+msgstr "Żądanie zapisu jest nieprawidłowe."
+
+msgid "The selected contacts contain no values for these columns."
+msgstr "Wybrane kontakty nie zawierają wartości dla tych kolumn."
+
+msgid "The selected health records contain no printable values."
+msgstr ""
+"Wybrane dane zdrowotne nie zawierają wartości nadających się do wydruku."
+
+msgid ""
+"The server operator can see the account, folder and file names, sizes and "
+"times of your messages."
+msgstr ""
+"Operator serwera widzi konto, nazwy folderów i plików, rozmiary oraz czasy "
+"wiadomości."
+
+msgid ""
+"The sheet appears at the edge of the screen, accompanied by the Magnolie "
+"chime."
+msgstr "Arkusz pojawia się przy krawędzi ekranu wraz z dźwiękiem Magnolie."
+
+msgid ""
+"The small uniform icons open an installed application when possible. "
+"Otherwise, a secure web service is used in the browser."
+msgstr ""
+"Małe, jednolite ikony otwierają zainstalowaną aplikację, jeśli to możliwe. W "
+"przeciwnym razie w przeglądarce używana jest bezpieczna usługa internetowa."
+
+msgid "The snapshot operation failed."
+msgstr "Operacja tworzenia migawki nie powiodła się."
+
+msgid "The spreadsheet was created but could not be opened."
+msgstr "Arkusz kalkulacyjny został utworzony, ale nie można go otworzyć."
+
+msgid "The start date must not be after the end date."
+msgstr "Data początkowa nie może być późniejsza niż data końcowa."
+
+msgid "The synchronization data is missing."
+msgstr "Brak danych synchronizacji."
+
+msgid "The system dialer opens on the phone. Confirm the call there."
+msgstr "Na telefonie otwiera się dialer systemowy. Potwierdź tam połączenie."
+
+msgid ""
+"The task will be sent to the selected branch. It will also remain here so "
+"you can keep track of it."
+msgstr ""
+"Zadanie zostanie wysłane do wybranej gałęzi. Pozostanie również tutaj, aby "
+"można było nadal je śledzić."
+
+msgid ""
+"The traffic-light colors are general reference ranges for adults, not a "
+"diagnosis. Check abnormal readings and discuss them with a doctor; seek "
+"immediate medical help for severe symptoms."
+msgstr ""
+"Kolory sygnalizacji świetlnej wskazują ogólne zakresy referencyjne dla "
+"dorosłych, a nie diagnozę. Sprawdź nieprawidłowe wyniki i omów je z "
+"lekarzem; w razie poważnych objawów natychmiast skorzystaj z pomocy "
+"medycznej."
+
+msgid "The tray applet is not available on this system."
+msgstr "Aplet zasobnika nie jest dostępny w tym systemie."
+
+msgid "The two entries do not match."
+msgstr "Te dwa wpisy nie są zgodne."
+
+msgid "The two new passwords do not match."
+msgstr "Dwa nowe hasła nie są zgodne."
+
+msgid "The update check failed."
+msgstr "Sprawdzanie aktualizacji nie powiodło się."
+
+msgid "The update information is unexpectedly large."
+msgstr "Informacje o aktualizacji są nieoczekiwanie duże."
+
+msgid "The user data could not be read."
+msgstr "Nie udało się odczytać danych użytkownika."
+
+msgid "The value is outside the general green reference range."
+msgstr "Wartość znajduje się poza ogólnym zielonym zakresem referencyjnym."
+
+msgid "The verified installer could not be opened."
+msgstr "Nie można otworzyć zweryfikowanego instalatora."
+
+msgid ""
+"The weather service estimated the location from your public IP address. Your "
+"own address in Contacts provides a more precise location."
+msgstr ""
+"Usługa pogodowa oszacowała lokalizację na podstawie publicznego adresu IP. "
+"Własny adres w Kontaktach pozwala określić lokalizację dokładniej."
+
+msgid "The weather service returned no forecast."
+msgstr "Usługa pogodowa nie zwróciła prognozy."
+
+msgid ""
+"The year calendar shows all twelve months; the month calendar provides more "
+"room for entries."
+msgstr ""
+"Kalendarz roczny pokazuje wszystkie dwanaście miesięcy; kalendarz miesięczny "
+"zapewnia więcej miejsca na wpisy."
+
+msgid "There are no entries to export yet."
+msgstr "Nie ma jeszcze wpisów do wyeksportowania."
+
+msgid "There are no entries."
+msgstr "Brak wpisów."
+
+msgid "There are no holidays in the organizer for this selection yet."
+msgstr "Dla tego wyboru nie ma jeszcze świąt w organizerze."
+
+msgid "There are no saved entries on this page."
+msgstr "Na tej stronie nie ma zapisanych wpisów."
+
+msgid "There are too many personal synchronization attachments."
+msgstr "Istnieje zbyt wiele załączników do synchronizacji osobistej."
+
+msgid "There is no notebook in this group yet."
+msgstr "W tej grupie nie ma jeszcze notatnika."
+
+msgid ""
+"There is nothing scheduled in this period.\n"
+"Click a day on the left to add an appointment."
+msgstr ""
+"W tym okresie nic nie zaplanowano.\n"
+"Kliknij dzień po lewej, aby dodać spotkanie."
+
+msgid "There is nothing to print."
+msgstr "Nie ma nic do wydrukowania."
+
+msgid ""
+"These options require the matching permissions in Magnolie Notes. Call audio "
+"is not sent over the Magnolie data connection."
+msgstr ""
+"Te opcje wymagają odpowiednich uprawnień w Magnolie Notes. Dźwięk połączenia "
+"nie jest przesyłany przez połączenie danych Magnolie."
+
+msgid "This address can be selected and copied."
+msgstr "Ten adres można zaznaczyć i skopiować."
+
+msgid "This answer request has already been queued."
+msgstr "Ta prośba o odpowiedź została już umieszczona w kolejce."
+
+msgid "This appointment will appear every %(weekday)s."
+msgstr "To spotkanie będzie pojawiać się w każdy %(weekday)s."
+
+msgid "This appointment will appear every day."
+msgstr "To spotkanie będzie wyświetlane codziennie."
+
+msgid "This appointment will appear every year on %(month)s %(day)s."
+msgstr "To spotkanie będzie pojawiać się co roku %(day)s %(month)s."
+
+msgid ""
+"This appointment will appear on day %(day)s of every month. In shorter "
+"months, it moves to the last day."
+msgstr ""
+"To spotkanie będzie pojawiać się %(day)s. dnia każdego miesiąca. W krótszych "
+"miesiącach zostanie przeniesione na ostatni dzień."
+
+msgid "This backup cannot be used."
+msgstr "Tej kopii zapasowej nie można użyć."
+
+msgid ""
+"This choice also determines how names appear on contact cards and under "
+"which letter they are filed in the index."
+msgstr ""
+"Ten wybór określa również sposób wyświetlania nazw na kartach kontaktów oraz "
+"literę, pod którą są umieszczane w indeksie."
+
+msgid "This dial request has already been queued."
+msgstr "To żądanie połączenia zostało już umieszczone w kolejce."
+
+msgid "This end-call request has already been queued."
+msgstr "To żądanie zakończenia połączenia zostało już umieszczone w kolejce."
+
+msgid "This export format is not yet available on Windows."
+msgstr "Ten format eksportu nie jest jeszcze dostępny w Windows."
+
+msgid "This image format cannot be used."
+msgstr "Tego formatu obrazu nie można użyć."
+
+msgid "This import format is not yet available on Windows."
+msgstr "Ten format importu nie jest jeszcze dostępny w Windows."
+
+msgid "This is available only in the installed application."
+msgstr "Ta funkcja jest dostępna tylko w zainstalowanej aplikacji."
+
+msgid "This is how the organizer reminds you about an appointment."
+msgstr "Tak organizer przypomina o spotkaniu."
+
+msgid ""
+"This is how your notes look: <b>bold</b>, <i>italic</i>, <u>underlined</u> "
+"and <s>struck through</s>."
+msgstr ""
+"Tak wyglądają notatki: <b>pogrubienie</b>, <i>kursywa</i>, <u>podkreślenie</"
+"u> i <s>przekreślenie</s>."
+
+msgid ""
+"This is one occurrence of a recurring appointment. Changes apply to all "
+"occurrences in this series."
+msgstr ""
+"To jest jedno wystąpienie cyklicznego spotkania. Zmiany dotyczą wszystkich "
+"wystąpień w tej serii."
+
+msgid ""
+"This is only the encrypted Magnolienbaum fallback for baum-1. It does not "
+"synchronize calendars or contacts. Both partners need access to the same "
+"Nextcloud storage."
+msgstr ""
+"Jest to wyłącznie szyfrowana ścieżka awaryjna Magnolienbaum dla baum-1. Nie "
+"synchronizuje kalendarzy ani kontaktów. Obaj partnerzy muszą mieć dostęp do "
+"tego samego magazynu Nextcloud."
+
+msgid ""
+"This leaves time to get something, followed by another reminder on the day "
+"itself. For example: “Max Mustermann has a birthday tomorrow” and the next "
+"day “Max Mustermann has a birthday today”. Anniversary reminders are shown "
+"in the morning."
+msgstr ""
+"Daje to czas na załatwienie czegoś, a w samym dniu pojawia się kolejne "
+"przypomnienie. Na przykład: „Max Mustermann ma jutro urodziny”, a następnego "
+"dnia „Max Mustermann ma dziś urodziny”. Przypomnienia o rocznicach są "
+"wyświetlane rano."
+
+msgid "This notebook is still empty."
+msgstr "Ten notatnik jest nadal pusty."
+
+msgid "This paired phone is my own device"
+msgstr "Ten sparowany telefon jest moim własnym urządzeniem"
+
+msgid "This person's anniversaries"
+msgstr "Rocznice tej osoby"
+
+msgid ""
+"This program is free software: you may redistribute and modify it. It is "
+"published in the hope that it will be useful, but without any warranty."
+msgstr ""
+"Ten program jest oprogramowaniem wolnym: możesz go rozpowszechniać i "
+"modyfikować. Publikuje się go w nadziei, że będzie przydatny, ale bez żadnej "
+"gwarancji."
+
+msgid "This setting applies when you restore the window from the tray menu."
+msgstr "To ustawienie ma zastosowanie po przywróceniu okna z menu zasobnika."
+
+msgid "This status comes from Magnolie Notes, not KDE Connect."
+msgstr "Ten stan pochodzi z Magnolie Notes, a nie z KDE Connect."
+
+msgid ""
+"This system did not allow waking from suspend. The reminder will appear as "
+"soon as the computer is running again."
+msgstr ""
+"Ten system nie pozwolił na wybudzenie z uśpienia. Przypomnienie pojawi się, "
+"gdy komputer będzie ponownie działał."
+
+msgid "This task came from “%(branch)s”."
+msgstr "To zadanie pochodzi z „%(branch)s”."
+
+msgid "Through"
+msgstr "Do"
+
+msgid "Thurgau"
+msgstr "Turgowia"
+
+msgid "Thuringia"
+msgstr "Turyngia"
+
+msgid "Thursday"
+msgstr "Czwartek"
+
+msgid "Thyroid"
+msgstr "Tarczyca"
+
+msgid "Ticino"
+msgstr "Ticino"
+
+msgid "Time"
+msgstr "Godzina"
+
+msgid "Title"
+msgstr "Tytuł"
+
+msgid "To"
+msgstr "Do"
+
+msgid ""
+"To change it, enter only the new password; the organizer is already unlocked."
+msgstr ""
+"Aby je zmienić, wpisz tylko nowe hasło; organizer jest już odblokowany."
+
+msgid "Today"
+msgstr "Dzisiaj"
+
+msgid "Today is %(date)s"
+msgstr "Dzisiaj jest %(date)s"
+
+msgid "Tomorrow"
+msgstr "Jutro"
+
+msgid "Too many failed attempts – wait %(duration)s."
+msgstr "Zbyt wiele nieudanych prób – odczekaj %(duration)s."
+
+msgid "Too many failed attempts. Wait a moment."
+msgstr "Zbyt wiele nieudanych prób. Odczekaj chwilę."
+
+msgid "Tray applet"
+msgstr "Aplet zasobnika"
+
+msgid "Trust and accept tasks and notes automatically"
+msgstr "Ufaj oraz automatycznie akceptuj zadania i notatki"
+
+msgid "Tuesday"
+msgstr "Wtorek"
+
+msgid "Turn back"
+msgstr "Cofnij"
+
+msgid "Turn forward"
+msgstr "Przesuń do przodu"
+
+msgid "Two days back"
+msgstr "Dwa dni wstecz"
+
+msgid "Two days forward"
+msgstr "Dwa dni do przodu"
+
+msgid "Type"
+msgstr "Typ"
+
+msgid "Typeface"
+msgstr "Krój pisma"
+
+msgid "Typography"
+msgstr "Typografia"
+
+msgid "Typography for your entries"
+msgstr "Typografia wpisów"
+
+msgid "Tyrol"
+msgstr "Tyrol"
+
+msgid "U"
+msgstr "U"
+
+msgid "URI"
+msgstr "URI"
+
+msgid "Unavailable"
+msgstr "Unavailable"
+
+msgid ""
+"Under Wayland, the compositor determines the exact window position; "
+"centering and maximizing are passed on as requests."
+msgstr ""
+"W środowisku Wayland dokładne położenie okna określa kompozytor; "
+"wyśrodkowanie i maksymalizacja są przekazywane jedynie jako żądania."
+
+msgid "Underline"
+msgstr "Podkreślenie"
+
+msgid "Unit"
+msgstr "Jednostka"
+
+msgid "Unknown"
+msgstr "Nieznany"
+
+msgid "Unknown caller"
+msgstr "Nieznany rozmówca"
+
+msgid "Unknown error"
+msgstr "Nieznany błąd"
+
+msgid "Unknown phone"
+msgstr "Nieznany punkt końcowy."
+
+msgid "Unlink"
+msgstr "Odłącz"
+
+msgid "Unlock"
+msgstr "Odblokuj"
+
+msgid "Unlock Magnolie Organizer"
+msgstr "Odblokuj Magnolie Organizer"
+
+msgid "Unsupported alarm"
+msgstr "Nieobsługiwane przypomnienie"
+
+msgid "Until (leave blank for no end)"
+msgstr "Do (pozostaw puste, jeśli bez końca)"
+
+msgid "Untitled"
+msgstr "Bez tytułu"
+
+msgid "Untitled appointment"
+msgstr "Spotkanie bez tytułu"
+
+msgid "Update checking is available in the installed application."
+msgstr "Sprawdzanie aktualizacji jest dostępne w zainstalowanej aplikacji."
+
+msgid "Update checking is available only in the installed application."
+msgstr ""
+"Sprawdzanie aktualizacji jest dostępne tylko w zainstalowanej aplikacji."
+
+msgid "Update weather"
+msgstr "Odśwież pogodę"
+
+msgid "Updates"
+msgstr "Aktualizacje"
+
+msgid "Upper Austria"
+msgstr "Górna Austria"
+
+msgid "Uptime"
+msgstr "Uptime"
+
+msgid "Uri"
+msgstr "URI"
+
+msgid "Use a specific application or command"
+msgstr "Użyj określonej aplikacji lub polecenia"
+
+msgid "Use a specific website"
+msgstr "Użyj określonej witryny internetowej"
+
+msgid "Use basal units"
+msgstr "Użyj jednostek bazowych"
+
+msgid "Use contact addresses"
+msgstr "Użyj adresów z kontaktu"
+
+msgid "Use default"
+msgstr "Użyj domyślnego"
+
+msgid "Use numeric keypad"
+msgstr "Używaj klawiatury numerycznej"
+
+msgid ""
+"Use only schedules prescribed or confirmed by a healthcare professional."
+msgstr ""
+"Stosuj wyłącznie schematy zalecone lub potwierdzone przez pracownika ochrony "
+"zdrowia."
+
+msgid ""
+"Use the arrows to arrange groups and notebooks, or use the selection to move "
+"a notebook to another group."
+msgstr ""
+"Użyj strzałek, aby uporządkować grupy i notatniki, albo wybierz grupę, do "
+"której chcesz przenieść notatnik."
+
+msgid "Use the mailbox as a fallback for branch baum-1"
+msgstr "Używaj skrzynki jako drogi zapasowej dla gałęzi baum-1"
+
+msgid ""
+"Use the mouse wheel to change the time in 5-minute steps (hold Shift for "
+"whole hours)"
+msgstr ""
+"Kółkiem myszy zmieniaj czas co 5 minut (przytrzymaj Shift dla pełnych godzin)"
+
+msgid "Use the recycle bin"
+msgstr "Używaj kosza"
+
+msgid "User name"
+msgstr "Nazwa użytkownika"
+
+msgid ""
+"Uses its own identity and storage and listens only on fixed port %(port)s. "
+"It never uses Magnolienbaum partners, permissions, queues or Bluetooth "
+"identity."
+msgstr ""
+"Używa własnej tożsamości i pamięci oraz nasłuchuje tylko na stałym porcie "
+"%(port)s. Nigdy nie używa partnerów Magnolienbaum, uprawnień, kolejek ani "
+"tożsamości Bluetooth."
+
+msgid "Vacation"
+msgstr "Urlop"
+
+msgid ""
+"Vacation periods are local calendar markings. They do not send notifications "
+"and can be included separately when printing the planner."
+msgstr ""
+"Okresy urlopu są lokalnymi oznaczeniami w kalendarzu. Nie wysyłają "
+"powiadomień i można je osobno uwzględnić podczas drukowania planera."
+
+msgid "Vacation planner"
+msgstr "Planer urlopu"
+
+msgid "Valais"
+msgstr "Valais"
+
+msgid "Value"
+msgstr "Wartość"
+
+msgid "Vaud"
+msgstr "Vaud"
+
+msgid ""
+"Verified archive\n"
+"Source: %(source)s\n"
+"Created: %(created)s\n"
+"Application entries: %(entries)s\n"
+"Photos: %(photos)s, attachments: %(attachments)s\n"
+"\n"
+"The current data is backed up locally and then completely replaced."
+msgstr ""
+"Sprawdzone archiwum\n"
+"Źródło: %(source)s\n"
+"Utworzono: %(created)s\n"
+"Wpisy aplikacji: %(entries)s\n"
+"Zdjęcia: %(photos)s, załączniki: %(attachments)s\n"
+"\n"
+"Kopia zapasowa bieżących danych jest tworzona lokalnie, a następnie "
+"całkowicie zastępowana."
+
+msgid "Verify after downloading with: %(command)s"
+msgstr "Po pobraniu zweryfikuj poleceniem: %(command)s"
+
+msgid "Verify archive"
+msgstr "Sprawdź archiwum"
+
+msgid "Version %(version)s"
+msgstr "Wersja %(version)s"
+
+msgid "Version %(version)s is up to date. Last checked: %(date)s."
+msgstr "Wersja %(version)s jest aktualna. Ostatnio sprawdzono: %(date)s."
+
+msgid "Via internet"
+msgstr "Przez Internet"
+
+msgid "Vienna"
+msgstr "Wiedeń"
+
+msgid "View and edit appointment"
+msgstr "Wyświetl i edytuj spotkanie"
+
+msgid "Vital signs"
+msgstr "Parametry życiowe"
+
+msgid "Vital signs table"
+msgstr "Tabela parametrów życiowych"
+
+msgid "Vorarlberg"
+msgstr "Vorarlberg"
+
+msgid ""
+"WLAN has priority. Bluetooth data starts only after WLAN failure and carries "
+"the same encrypted phone frames."
+msgstr ""
+"WLAN ma pierwszeństwo. Dane Bluetooth rozpoczynają się dopiero po awarii "
+"WLAN i przenoszą te same zaszyfrowane ramki telefonu."
+
+msgid "WLAN listener on port %(port)s"
+msgstr "Odbiornik WLAN na porcie %(port)s"
+
+msgid "Waiting for consent on the other device."
+msgstr "Oczekiwanie na zgodę na drugim urządzeniu."
+
+msgid "Waiting for device status"
+msgstr "Oczekiwanie na status urządzenia"
+
+msgid ""
+"Waiting for the phone on port %(port)s. Pairing closes after %(seconds)s "
+"seconds."
+msgstr ""
+"Oczekiwanie na telefon na porcie %(port)s. Parowanie kończy się po "
+"%(seconds)s sekundach."
+
+msgid "Wake the computer from suspend"
+msgstr "Wybudź komputer z uśpienia"
+
+msgid "Warning: The data could not be saved."
+msgstr "Ostrzeżenie: nie udało się zapisać danych."
+
+msgid "Waste collection calendar"
+msgstr "Kalendarz odbioru odpadów"
+
+msgid "We are glad you are here!"
+msgstr "Cieszymy się, że tu jesteś!"
+
+msgid "Weather"
+msgstr "Pogoda"
+
+msgid "Weather display"
+msgstr "Wyświetlanie pogody"
+
+msgid "Weather for the next three days"
+msgstr "Pogoda na najbliższe trzy dni"
+
+msgid "Weather is available in the installed application."
+msgstr "Pogoda jest dostępna w zainstalowanej aplikacji."
+
+msgid ""
+"Weather requests are sent to wttr.in. Your own address in Contacts is used "
+"first, followed by local LibreOffice user data. If neither contains a "
+"location and retrieval without one is allowed, wttr.in estimates the "
+"location from your internet connection's public IP address."
+msgstr ""
+"Zapytania o pogodę są wysyłane do wttr.in. Najpierw używany jest własny "
+"adres z Kontaktów, a następnie lokalne dane użytkownika LibreOffice. Jeśli "
+"żadne z nich nie zawiera lokalizacji, a pobieranie bez niej jest dozwolone, "
+"wttr.in szacuje lokalizację na podstawie publicznego adresu IP połączenia "
+"internetowego."
+
+msgid "Weather was not retrieved because no location is available."
+msgstr "Nie pobrano pogody, ponieważ lokalizacja jest niedostępna."
+
+msgid "Wedding anniversary"
+msgstr "Rocznica ślubu"
+
+msgid "Wednesday"
+msgstr "Środa"
+
+msgid "Week"
+msgstr "Tydzień"
+
+msgid "Week %(number)s"
+msgstr "Tydzień %(number)s"
+
+msgid "Week numbers"
+msgstr "Numery tygodni"
+
+msgid "Weekly"
+msgstr "tygodniowy"
+
+msgid "Weekly variation for %(name)s"
+msgstr "Zmiana tygodniowa dla %(name)s"
+
+msgid "Weekly view"
+msgstr "Widok tygodnia"
+
+msgid "Weight"
+msgstr "Masa ciała"
+
+msgid "Welcome ✱"
+msgstr "Witamy ✱"
+
+msgid "What is it about?"
+msgstr "Czego dotyczy?"
+
+msgid "What needs to be done?"
+msgstr "Co trzeba zrobić?"
+
+msgid ""
+"When disabled, dates can still be entered as eight digits in day, month and "
+"four-digit year order."
+msgstr ""
+"Po wyłączeniu tej opcji daty nadal można wpisywać jako osiem cyfr w "
+"kolejności: dzień, miesiąc i czterocyfrowy rok."
+
+msgid ""
+"When disabled, you write on plain paper. Line spacing remains the same; only "
+"the lines disappear."
+msgstr ""
+"Po wyłączeniu tej opcji piszesz na czystym papierze. Odstęp między wierszami "
+"pozostaje taki sam; znikają tylko linie."
+
+msgid "When opening from the tray"
+msgstr "Przy otwieraniu z zasobnika"
+
+msgid ""
+"When selected, you can assign a photo to each person. Embedded photos are "
+"preserved during import, export and synchronization with an online address "
+"book. Email addresses on contact cards are always clickable and open your "
+"mail application."
+msgstr ""
+"Po zaznaczeniu tej opcji każdej osobie można przypisać zdjęcie. Osadzone "
+"zdjęcia są zachowywane przy imporcie, eksporcie i synchronizacji z "
+"internetową książką adresową. Adresy e-mail na kartach kontaktów są zawsze "
+"klikalne i otwierają aplikację pocztową."
+
+msgid ""
+"When writing a note, a small toolbar above the sheet provides bold, italic, "
+"underline and strikethrough. The same formatting is available with Ctrl+B, "
+"Ctrl+I, Ctrl+U and Ctrl+D."
+msgstr ""
+"Podczas pisania notatki mały pasek narzędzi nad arkuszem udostępnia "
+"pogrubienie, kursywę, podkreślenie i przekreślenie. To samo formatowanie "
+"jest dostępne przez Ctrl+B, Ctrl+I, Ctrl+U i Ctrl+D."
+
+msgid "Whole month"
+msgstr "Cały miesiąc"
+
+msgid "Wife"
+msgstr "Żona"
+
+msgid "Windows Contacts folder"
+msgstr "Folder Kontakty systemu Windows"
+
+msgid "Wireless"
+msgstr "Wireless"
+
+msgid ""
+"With a password or numeric code, the organizer asks for it when opening and "
+"stores your data only in encrypted form in your home directory (AES-256)."
+msgstr ""
+"Jeśli ustawisz hasło lub kod numeryczny, organizer poprosi o niego przy "
+"otwieraniu i będzie przechowywać dane w katalogu domowym wyłącznie w postaci "
+"zaszyfrowanej (AES-256)."
+
+msgid "With photo"
+msgstr "Ze zdjęciem"
+
+msgid ""
+"Without a shell; {ziel}, {wert}, and {nummer} can be used as placeholders. "
+"Flatpak and Snap can be selected as flatpak:APP-ID or snap:Name."
+msgstr ""
+"Bez powłoki; {ziel}, {wert} i {nummer} mogą służyć jako symbole zastępcze. "
+"Flatpak i Snap można wybrać jako flatpak:APP-ID lub snap:Name."
+
+msgid ""
+"Without this second selection, the background reminder service does not show "
+"notifications for confidential appointments."
+msgstr ""
+"Bez tego drugiego wyboru działająca w tle usługa przypomnień nie wyświetla "
+"powiadomień o poufnych spotkaniach."
+
+msgid "Work"
+msgstr "Praca"
+
+msgid "Work address"
+msgstr "Adres służbowy"
+
+msgid "Work anniversary"
+msgstr "Rocznica zawodowa"
+
+msgid "Work phone"
+msgstr "Telefon służbowy"
+
+msgid "Workgroup (all)"
+msgstr "Grupa robocza (wszyscy)"
+
+msgid "Workshop appointment"
+msgstr "Spotkanie w warsztacie"
+
+msgid "Write a message to %(address)s"
+msgstr "Napisz wiadomość do %(address)s"
+
+msgid "Write an SMS using KDE Connect or the assigned application"
+msgstr "Napisz SMS używając KDE Connect lub przypisanej aplikacji"
+
+msgid "Write here …"
+msgstr "Pisz tutaj …"
+
+msgid "Writing sheet"
+msgstr "Arkusz do pisania"
+
+msgid "X (formerly Twitter)"
+msgstr "X (dawniej Twitter)"
+
+msgid "Year"
+msgstr "Rok"
+
+msgid "Year calendar"
+msgstr "Kalendarz roczny"
+
+msgid "Year planner %(year)s"
+msgstr "Planer roczny %(year)s"
+
+msgid "Yes"
+msgstr "Yes"
+
+msgid "Yes, merge"
+msgstr "Tak, połącz"
+
+msgid "Yes, the code matches"
+msgstr "Tak, kod jest zgodny"
+
+msgid "Your address"
+msgstr "Twój adres"
+
+msgid "Your address above is used as the starting point."
+msgstr "Podany wyżej adres jest używany jako punkt początkowy."
+
+msgid "Your data from “Organizer Klassik” has been imported."
+msgstr "Dane z „Organizer Klassik” zostały zaimportowane."
+
+msgid ""
+"Your data is stored at:\n"
+"%(path)s"
+msgstr ""
+"Twoje dane są przechowywane w:\n"
+"%(path)s"
+
+msgid "Your data is stored at: %(path)s"
+msgstr "Twoje dane są przechowywane w: %(path)s"
+
+msgid ""
+"Your own address is required as the starting point for a route. Enter it "
+"under Settings ▸ Contacts."
+msgstr ""
+"Twój własny adres jest wymagany jako punkt początkowy trasy. Wprowadź go w "
+"Ustawienia ▸ Kontakty."
+
+msgid "Zug"
+msgstr "Zug"
+
+msgid "Zurich"
+msgstr "Zurych"
+
+msgid "after 30 days"
+msgstr "po 30 dniach"
+
+msgid "after 7 days"
+msgstr "po 7 dniach"
+
+msgid "after 90 days"
+msgstr "po 90 dniach"
+
+msgid "after one year"
+msgstr "po roku"
+
+msgid "all cantons"
+msgstr "wszystkie kantony"
+
+msgid "all day"
+msgstr "cały dzień"
+
+msgid "all states"
+msgstr "wszystkie kraje związkowe"
+
+msgid "also remind me about it"
+msgstr "przypomnij mi również o tym"
+
+msgid "and"
+msgstr "i"
+
+msgid "and %(count)s more"
+msgid_plural "and %(count)s more"
+msgstr[0] "i jeszcze %(count)s"
+msgstr[1] "i jeszcze %(count)s"
+msgstr[2] "i jeszcze %(count)s"
+
+msgid "app password from Nextcloud"
+msgstr "hasło aplikacji z Nextcloud"
+
+msgid "application {ziel}"
+msgstr "aplikacja {ziel}"
+
+msgid "at %(time)s"
+msgstr "o %(time)s"
+
+msgid "at least four characters"
+msgstr "co najmniej cztery znaki"
+
+msgid "at the appointment time"
+msgstr "w czasie spotkania"
+
+msgid "before start"
+msgstr "przed rozpoczęciem"
+
+msgid "blood-glucose"
+msgstr "blood-glucose"
+
+msgid "browser storage"
+msgstr "pamięć przeglądarki"
+
+msgid "confidential"
+msgstr "poufne"
+
+msgid "confirmed"
+msgstr "potwierdzone"
+
+msgid "days"
+msgstr "dni"
+
+msgid "days before"
+msgstr "dni wcześniej"
+
+msgid "due %(date)s"
+msgstr "termin %(date)s"
+
+msgid "due by %(date)s"
+msgstr "termin do %(date)s"
+
+msgid "due from"
+msgstr "termin od"
+
+msgid "e.g. 1 day before"
+msgstr "np. 1 dzień wcześniej"
+
+msgid "e.g. Birthday"
+msgstr "np. Urodziny"
+
+msgid "e.g. Doctor appointment"
+msgstr "np. Wizyta u lekarza"
+
+msgid "e.g. Mobile"
+msgstr "np. Telefon komórkowy"
+
+msgid "e.g. Private"
+msgstr "np. Prywatne"
+
+msgid "e.g. Send documents"
+msgstr "np. Wyślij dokumenty"
+
+msgid "e.g. Son"
+msgstr "np. Syn"
+
+msgid "e.g. Work"
+msgstr "np. Praca"
+
+msgid "e.g. glass or hazardous waste"
+msgstr "np. szkło lub odpady niebezpieczne"
+
+msgid "e.g. kitchen or workshop"
+msgstr "np. kuchnia lub warsztat"
+
+msgid "e.g. medication day"
+msgstr "np. dzień przyjmowania leku"
+
+msgid "e.g. on-call duty"
+msgstr "np. dyżur pod telefonem"
+
+msgid "every"
+msgstr "co"
+
+msgid "every 12 hours"
+msgstr "co 12 godzin"
+
+msgid "every 3 hours"
+msgstr "co 3 godziny"
+
+msgid "every 30 minutes"
+msgstr "co 30 minut"
+
+msgid "every 6 hours"
+msgstr "co 6 godzin"
+
+msgid "every day"
+msgstr "codziennie"
+
+msgid "every hour"
+msgstr "co godzinę"
+
+msgid "every month on the %(ordinal)s %(weekday)s"
+msgstr "co miesiąc w %(ordinal)s %(weekday)s"
+
+msgid "every month on the same day"
+msgstr "co miesiąc tego samego dnia"
+
+msgid "every week on the same weekday"
+msgstr "co tydzień w ten sam dzień tygodnia"
+
+msgid "every year on the same date"
+msgstr "co roku tego samego dnia"
+
+msgid "first"
+msgstr "pierwszy"
+
+msgid "first on"
+msgstr "pierwszy raz"
+
+msgid "for the %(ordinal)s time"
+msgstr "po raz %(ordinal)s"
+
+msgid "fourth"
+msgstr "czwarty"
+
+msgid "from"
+msgstr "od"
+
+msgid "high"
+msgstr "wysoki"
+
+msgid "hours before"
+msgstr "godzin wcześniej"
+
+msgid "https://… (optionally with {wert} or {nummer})"
+msgstr "https://… (opcjonalnie z {wert} lub {nummer})"
+
+msgid "in %(count)s day"
+msgid_plural "in %(count)s days"
+msgstr[0] "za %(count)s dzień"
+msgstr[1] "za %(count)s dni"
+msgstr[2] "za %(count)s dni"
+
+msgid "keep here"
+msgstr "pozostaw tutaj"
+
+msgid "last"
+msgstr "ostatni"
+
+msgid "local / not opened"
+msgstr "lokalny / nieotwierany"
+
+msgid "low"
+msgstr "niski"
+
+msgid "medium"
+msgstr "średni"
+
+msgid "minutes before"
+msgstr "minut wcześniej"
+
+msgid "modified %(date)s"
+msgstr "zmieniono %(date)s"
+
+msgid "name@example.com"
+msgstr "name@example.com"
+
+msgid "never – empty manually"
+msgstr "nigdy – opróżniaj ręcznie"
+
+msgid "new task for this appointment…"
+msgstr "nowe zadanie dla tego spotkania…"
+
+msgid "notification %(count)s minute before"
+msgid_plural "notification %(count)s minutes before"
+msgstr[0] "powiadomienie %(count)s minutę wcześniej"
+msgstr[1] "powiadomienie %(count)s minuty wcześniej"
+msgstr[2] "powiadomienie %(count)s minut wcześniej"
+
+msgid "on the day only"
+msgstr "tylko w danym dniu"
+
+msgid "once"
+msgstr "raz"
+
+msgid "one backup was encrypted as well"
+msgid_plural "%(count)s backups were encrypted as well"
+msgstr[0] "jeden backup został również zaszyfrowany"
+msgstr[1] "Kopie zapasowe %(count)s zostały również zaszyfrowane"
+msgstr[2] "Kopie zapasowe %(count)s zostały również zaszyfrowane"
+
+msgid "one contact card"
+msgid_plural "%(count)s contact cards"
+msgstr[0] "jedna karta kontaktowa"
+msgstr[1] "karty kontaktowe %(count)s"
+msgstr[2] "karty kontaktowe %(count)s"
+
+msgid "only %(year)s"
+msgstr "tylko %(year)s"
+
+msgid "or enter a host name or IP address"
+msgstr "lub wpisz nazwę hosta albo adres IP"
+
+msgid "pulse"
+msgstr "puls"
+
+msgid "recurring appointment"
+msgstr "spotkanie cykliczne"
+
+msgid "remind me on the due date"
+msgstr "przypomnij mi w terminie"
+
+msgid "second"
+msgstr "drugi"
+
+msgid "stored – leave empty to keep"
+msgstr "zapisane – pozostaw puste, aby zachować"
+
+msgid "tentative"
+msgstr "wstępne"
+
+msgid "the other branch"
+msgstr "druga gałąź"
+
+msgid "third"
+msgstr "trzeci"
+
+msgid "to"
+msgstr "do"
+
+msgid "today"
+msgstr "dzisiaj"
+
+msgid "today!"
+msgstr "dzisiaj!"
+
+msgid "tomorrow"
+msgstr "jutro"
+
+msgid "turns %(age)s"
+msgstr "kończy %(age)s lat"
+
+msgid "unknown"
+msgstr "nieznane"
+
+msgid "unknown error"
+msgstr "nieznany błąd"
+
+msgid "untitled"
+msgstr "bez tytułu"
+
+msgid ""
+"vCard preserves more contact details. LDIF is intended for importing into "
+"Claws Mail; emergency contacts, social media, free labels and non-JPEG "
+"photos cannot be included."
+msgstr ""
+"vCard zachowuje więcej szczegółów kontaktu. LDIF służy do importu w Claws "
+"Mail; nie można dołączyć kontaktów alarmowych, mediów społecznościowych, "
+"własnych etykiet ani zdjęć innych niż JPEG.vCard preserves more contact "
+"details. LDIF is intended for importing into Claws Mail; emergency contacts, "
+"social media, free labels and non-JPEG photos cannot be included."
+
+msgid "vital"
+msgstr "vital"
+
+msgid "– Anniversaries automatically appear with ✱ in the calendar."
+msgstr "– Rocznice automatycznie pojawiają się w kalendarzu z symbolem ✱."
+
+msgid ""
+"– Everything is saved automatically. Use “Create backup” at the bottom right "
+"to create an additional backup copy."
+msgstr ""
+"– Wszystko jest zapisywane automatycznie. Użyj „Utwórz kopię zapasową” w "
+"prawym dolnym rogu, aby utworzyć dodatkową kopię."
+
+msgid ""
+"– In the calendar, use the controls at the top to switch between month and "
+"week view."
+msgstr ""
+"– W kalendarzu użyj elementów sterujących u góry, aby przełączać się między "
+"widokiem miesiąca i tygodnia."
+
+msgid ""
+"– The colored tabs along the edge lead to the sections. Tabs you have "
+"already passed move to the left side, just like in a real ring binder."
+msgstr ""
+"– Kolorowe zakładki przy krawędzi prowadzą do poszczególnych sekcji. "
+"Zakładki, które już miniesz, przechodzą na lewą stronę, tak jak w prawdziwym "
+"segregatorze ringowym."
+
+msgid ""
+"– The folded corners at the bottom turn pages forward and back: by month in "
+"the calendar, by year in the planner, and page by page here."
+msgstr ""
+"– Zagięte rogi u dołu przewracają strony do przodu i do tyłu: miesiącami w "
+"kalendarzu, latami w planerze i tutaj strona po stronie."
+
+msgid ""
+"– Turn times in 5-minute increments with the mouse wheel (hold Shift for "
+"whole hours); the end time moves along with it. For appointments without a "
+"fixed time, select “All day”."
+msgstr ""
+"– Zmieniaj czas co 5 minut kółkiem myszy (przytrzymaj Shift dla pełnych "
+"godzin); czas zakończenia przesuwa się razem z nim. W przypadku spotkań bez "
+"ustalonej godziny wybierz „Cały dzień”."
+
+msgid ""
+"– Under “Settings” at the bottom right, you can import appointments and "
+"addresses from other programs (.ics, .vcf, Lotus CSV), export them, and "
+"connect your system's online accounts. On the “Region & holidays” page, "
+"enter your country and state and import all public and school holidays once."
+msgstr ""
+"– W „Ustawieniach” w prawym dolnym rogu możesz importować spotkania i adresy "
+"z innych programów (.ics, .vcf, Lotus CSV), eksportować je i połączyć konta "
+"internetowe systemu. Na stronie „Region i święta” podaj kraj oraz "
+"województwo/region i jednorazowo zaimportuj wszystkie święta państwowe oraz "
+"ferie szkolne."
+
+msgid "— do not link —"
+msgstr "— nie łącz —"
+
+msgid "— not specified —"
+msgstr "— nie podano —"
+
+msgid "— please select —"
+msgstr "— wybierz —"
+
+msgid "“%(name)s” was restored."
+msgstr "Przywrócono „%(name)s”."
+
+msgid "“%(word)s” is now in the dictionary."
+msgstr "„%(word)s” znajduje się teraz w słowniku."
+
+msgid "… and %(count)s more item that will also be printed."
+msgid_plural "… and %(count)s more items that will also be printed."
+msgstr[0] "… i jeszcze %(count)s element, który również zostanie wydrukowany."
+msgstr[1] "… i jeszcze %(count)s elementy, które również zostaną wydrukowane."
+msgstr[2] "… i jeszcze %(count)s elementów, które również zostaną wydrukowane."
+
+msgid "＋ Add appointment"
+msgstr "＋ Dodaj spotkanie"
+
+#~ msgid "No valid subscription"
+#~ msgstr "Brak ważnej subskrypcji"
+
+#~ msgid "More fields (Lotus)"
+#~ msgstr "Więcej pól (Lotus)"
+
+#~ msgid "Unknown import format."
+#~ msgstr "Nieznany format importu."

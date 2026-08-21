@@ -1,13 +1,16 @@
-# Magnolie Organizer
+# Magnolie
 
-Magnolie Organizer is a personal organizer for Linux, written in Python with
-GTK 3 and WebKit2GTK. The project includes the application, translations,
-packaging files, documentation, and tests.
+Dieses Repository enthaelt die Quellen der Magnolie-Anwendungen und des
+Handbuchs.
 
-See [LIESMICH.md](LIESMICH.md) for setup, build, testing, data protection, and
-release instructions.
+## Komponenten
 
-## License
+- `magnolie-organizer-2.0.0`: Magnolie Organizer fuer Linux
+- `Magnolie-Organizer-Windows-2.0.0`: Magnolie Organizer fuer Windows
+- `magnolie-notes-1.0.5`: Magnolie Notes fuer Android
+- `magnolie-handbuch-stamm`: gemeinsames Magnolie-Handbuch
 
-Magnolie Organizer is free software under the GNU General Public License
-version 3 or later. See the license details in [debian/copyright](debian/copyright).
+Fertige DEB-, APK-, Windows- und AppImage-Pakete stehen unter
+[Releases](https://github.com/maik3531/Magnolie-Organizer/releases) bereit.
+
+Lizenz- und Bauhinweise stehen in den jeweiligen Komponentenverzeichnissen.

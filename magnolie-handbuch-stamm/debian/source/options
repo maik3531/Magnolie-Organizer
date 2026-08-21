@@ -1,0 +1,10 @@
+tar-ignore = Magnolie-Handbuch-PRUEFSUMMEN.sha256
+tar-ignore = "REVIEW*.md"
+tar-ignore = "ENTWURF*.md"
+tar-ignore = "OFFENE-PUNKTE*.md"
+tar-ignore = "*ANALYSE*.md"
+tar-ignore = "*PLAN*.md"
+tar-ignore = "*AUDIT*.md"
+tar-ignore = ".pytest_cache"
+tar-ignore = "__pycache__"
+tar-ignore = "*.pyc"

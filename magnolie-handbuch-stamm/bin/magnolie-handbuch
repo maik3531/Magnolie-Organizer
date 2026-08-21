@@ -1,0 +1,458 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+#
+# Magnolie Organizer – Benutzerhandbuch
+# Copyright (C) 2026 Maik Walter <maik3531@gmail.com>
+#
+# Dieses Programm ist freie Software: Sie können es unter den Bedingungen
+# der GNU General Public License, Version 3 oder später, weitergeben
+# und/oder verändern. Es wird ohne jede Gewährleistung veröffentlicht.
+# Siehe <https://www.gnu.org/licenses/gpl-3.0.html>
+"""Magnolie Organizer – Benutzerhandbuch.
+
+Zeigt das Handbuch als aufgeschlagenes Buch im selben Gewand wie der
+Organizer selbst. Der Text liegt als Web-Seite daneben; dieses Programm
+schlägt sie in einem schlichten Fenster auf und kümmert sich ums Drucken.
+"""
+
+import os
+import sys
+import gettext
+import locale
+import subprocess
+
+PROGRAMM_NAME = "magnolie-handbuch"
+PROGRAMM_FASSUNG = "2.0.0"
+TEXT_DOMAIN = "magnolie-handbuch"
+UNTERSTUETZTE_SPRACHEN = (
+    "ar", "be", "cs", "da", "de", "es", "fr", "hi", "hsb", "it",
+    "ja", "nb", "nl", "pl", "pt", "ru", "tr", "uk", "zh_CN",
+)
+
+
+def normalisiere_sprache(wert, system_erlaubt=True):
+    roh = str(wert or "").strip().replace("-", "_")
+    if system_erlaubt and roh == "system":
+        return "system"
+    klein = roh.lower()
+    if klein == "en" or klein.startswith("en_"):
+        return "en"
+    for sprache in UNTERSTUETZTE_SPRACHEN:
+        if klein == sprache.lower() or klein.split("_", 1)[0] == sprache.lower():
+            return sprache
+    return None
+
+
+def lade_uebersetzung(sprache=None):
+    """Load translations from an installation or the adjacent source tree."""
+    source_locale = os.path.realpath(os.path.join(os.path.dirname(__file__), "..", "locale"))
+    for directory in (source_locale, "/usr/share/locale"):
+        try:
+            languages = None if not sprache or sprache == "system" else [sprache.replace("-", "_")]
+            return gettext.translation(TEXT_DOMAIN, localedir=directory,
+                                       languages=languages)
+        except OSError:
+            continue
+    return gettext.NullTranslations()
+
+
+UEBERSETZUNG = lade_uebersetzung()
+_ = UEBERSETZUNG.gettext
+FENSTER_TITEL = _("Magnolie Organizer - Handbook")
+SPRACH_OVERRIDE = None
+
+
+def web_sprache():
+    if SPRACH_OVERRIDE and SPRACH_OVERRIDE != "system":
+        return SPRACH_OVERRIDE
+    value = os.environ.get("LANGUAGE") or locale.getlocale()[0] or "en"
+    return normalisiere_sprache(str(value).split(":", 1)[0], False) or "en"
+
+try:
+    import gi
+    gi.require_version("Gtk", "3.0")
+    try:
+        gi.require_version("WebKit2", "4.1")
+    except ValueError:
+        gi.require_version("WebKit2", "4.0")
+    from gi.repository import Gtk, Gdk, Gio, GLib, WebKit2
+    GTK_OK = True
+except (ImportError, ValueError):
+    Gtk = Gdk = Gio = GLib = WebKit2 = None
+    GTK_OK = False
+
+_FENSTER_BASIS = Gtk.Window if GTK_OK else object
+
+
+def finde_web_verzeichnis():
+    """Sucht das Verzeichnis mit index.html (Installation oder Quellbaum)."""
+    kandidaten = []
+    aus_umgebung = os.environ.get("MAGNOLIE_HANDBUCH_WEB")
+    if aus_umgebung:
+        kandidaten.append(aus_umgebung)
+    skript = os.path.dirname(os.path.realpath(__file__))
+    kandidaten += [
+        "/usr/share/magnolie-handbuch/web",
+        os.path.join(skript, "..", "share", "magnolie-handbuch", "web"),
+        os.path.join(skript, "web"),
+    ]
+    for pfad in kandidaten:
+        if pfad and os.path.isfile(os.path.join(pfad, "index.html")):
+            return os.path.realpath(pfad)
+    return None
+
+
+def js_zeichenkette(text):
+    """Verpackt Text sicher für die Übergabe an die Seite."""
+    import json
+    return json.dumps(json.dumps(text, ensure_ascii=False))
+
+
+class Fenster(_FENSTER_BASIS):
+    """Das Fenster mit dem aufgeschlagenen Handbuch."""
+
+    def __init__(self, web_verzeichnis):
+        super().__init__(title=FENSTER_TITEL)
+        self.set_default_size(1280, 860)
+        self.set_size_request(900, 600)
+        self.set_position(Gtk.WindowPosition.CENTER)
+        self._gezeigt = False
+        self._druckansicht = None
+        self._setze_symbol()
+
+        try:
+            self.get_style_context().add_class("magnolie-fenster")
+            stil = Gtk.CssProvider()
+            stil.load_from_data(
+                b"window.magnolie-fenster { background-color: #2e3a34; }")
+            Gtk.StyleContext.add_provider_for_screen(
+                Gdk.Screen.get_default(), stil,
+                Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
+        except Exception:
+            pass
+
+        inhalte = WebKit2.UserContentManager()
+        try:
+            import json
+            sprachskript = "window.MAGNOLIE_LOCALE = %s;" % json.dumps(web_sprache())
+            inhalte.add_script(WebKit2.UserScript.new(
+                sprachskript, WebKit2.UserContentInjectedFrames.ALL_FRAMES,
+                WebKit2.UserScriptInjectionTime.START, None, None))
+        except (AttributeError, TypeError):
+            pass
+        inhalte.register_script_message_handler("bruecke")
+        inhalte.connect("script-message-received::bruecke", self.bei_nachricht)
+
+        self.ansicht = WebKit2.WebView(user_content_manager=inhalte)
+        try:
+            self.ansicht.get_settings().set_enable_developer_extras(False)
+        except AttributeError:
+            pass
+        try:
+            farbe = Gdk.RGBA()
+            farbe.parse("#2e3a34")
+            self.ansicht.set_background_color(farbe)
+        except (AttributeError, TypeError):
+            pass
+        self.ansicht.connect("context-menu", lambda *a: True)
+        self.ansicht.connect("decide-policy", self.bei_navigation)
+        self.add(self.ansicht)
+
+        start = os.path.join(web_verzeichnis, "index.html")
+        self.ansicht.load_uri(GLib.filename_to_uri(start, None))
+        self.connect("destroy", Gtk.main_quit)
+        self.connect("key-press-event", self.bei_taste)
+
+    # ------------------------------------------------------------------ GTK
+
+    def _setze_symbol(self):
+        for pfad in (
+            "/usr/share/icons/hicolor/256x256/apps/magnolie-handbuch.png",
+            "/usr/share/icons/hicolor/128x128/apps/magnolie-handbuch.png",
+        ):
+            if os.path.isfile(pfad):
+                try:
+                    self.set_icon_from_file(pfad)
+                    return
+                except Exception:
+                    pass
+
+    def zeige_wenn_bereit(self, wartezeit=3):
+        """Zeigt das Fenster erst, wenn die Seite gezeichnet ist."""
+        def zeigen(*_egal):
+            if self._gezeigt:
+                return False
+            self._gezeigt = True
+            self.show_all()
+            return False
+
+        def bei_ladewechsel(_ansicht, ereignis):
+            if ereignis == WebKit2.LoadEvent.FINISHED:
+                zeigen()
+
+        try:
+            self.ansicht.connect("load-changed", bei_ladewechsel)
+        except Exception:
+            pass
+        GLib.timeout_add_seconds(max(1, wartezeit), zeigen)
+
+    def bei_navigation(self, _ansicht, entscheidung, art):
+        """Verweise nach außen öffnet der Browser, nicht das Handbuch."""
+        if art != WebKit2.PolicyDecisionType.NAVIGATION_ACTION:
+            return False
+        try:
+            adresse = entscheidung.get_navigation_action().get_request().get_uri()
+        except AttributeError:
+            return False
+        if adresse.startswith("file://"):
+            return False
+        entscheidung.ignore()
+        try:
+            Gtk.show_uri_on_window(self, adresse, Gdk.CURRENT_TIME)
+        except Exception:
+            pass
+        return True
+
+    def bei_taste(self, _fenster, ereignis):
+        """F11 schaltet das Vollbild, Strg+P druckt."""
+        try:
+            name = Gdk.keyval_name(ereignis.keyval)
+        except AttributeError:
+            return False
+        if name == "F11":
+            if self.get_window() and (self.get_window().get_state()
+                                      & Gdk.WindowState.FULLSCREEN):
+                self.unfullscreen()
+            else:
+                self.fullscreen()
+            return True
+        if name in ("p", "P") and (ereignis.state & Gdk.ModifierType.CONTROL_MASK):
+            self.sende_js("Handbuch.drucken();")
+            return True
+        return False
+
+    # ------------------------------------------------------------- Brücke
+
+    def sende_js(self, quelltext):
+        def im_haupt():
+            try:
+                self.ansicht.evaluate_javascript(quelltext, -1, None, None, None)
+            except AttributeError:
+                self.ansicht.run_javascript(quelltext, None, None, None)
+            return False
+        GLib.idle_add(im_haupt)
+
+    def bei_nachricht(self, _verwaltung, ergebnis):
+        import json
+        try:
+            roh = ergebnis.get_js_value().to_string()
+            nachricht = json.loads(roh)
+        except Exception:
+            return
+        befehl = nachricht.get("cmd")
+
+        if befehl == "drucken":
+            self._drucken(nachricht.get("html") or "")
+        elif befehl == "organizer":
+            self._organizer_starten()
+
+    def _drucken(self, html):
+        """Druckt das Handbuch über den Druckdialog des Systems."""
+        import subprocess
+        import tempfile
+        ordner = tempfile.mkdtemp(prefix="magnolie-handbuch-druck-")
+        pfad = os.path.join(ordner, "Magnolie-Handbuch.html")
+        try:
+            with open(pfad, "w", encoding="utf-8") as datei:
+                datei.write(html)
+        except OSError:
+            return
+        try:
+            ansicht = WebKit2.WebView()
+            fertig = {"getan": False}
+
+            def bei_fertig(_a, ereignis):
+                if ereignis != WebKit2.LoadEvent.FINISHED or fertig["getan"]:
+                    return
+                fertig["getan"] = True
+                auftrag = WebKit2.PrintOperation.new(_a)
+                auftrag.run_dialog(self)
+
+            ansicht.connect("load-changed", bei_fertig)
+            ansicht.load_uri(GLib.filename_to_uri(pfad, None))
+            self._druckansicht = ansicht
+            return
+        except Exception:
+            pass
+        werkzeug = shutil_which("xdg-open")
+        if werkzeug:
+            try:
+                subprocess.Popen([werkzeug, pfad], start_new_session=True,
+                                 stdout=subprocess.DEVNULL,
+                                 stderr=subprocess.DEVNULL)
+            except OSError:
+                pass
+
+    def _organizer_starten(self):
+        import subprocess
+        try:
+            from gi.repository import Gio
+            eintrag = Gio.DesktopAppInfo.new("magnolie-organizer.desktop")
+            if eintrag is not None:
+                eintrag.launch([], None)
+                return
+        except Exception:
+            pass
+        for name in ("gtk-launch", "/usr/bin/magnolie-organizer"):
+            werkzeug = (shutil_which(name) if not name.startswith("/")
+                        else (name if os.path.exists(name) else None))
+            if not werkzeug:
+                continue
+            argumente = ([werkzeug, "magnolie-organizer"]
+                         if name == "gtk-launch" else [werkzeug])
+            try:
+                subprocess.Popen(argumente, start_new_session=True,
+                                 stdout=subprocess.DEVNULL,
+                                 stderr=subprocess.DEVNULL)
+                return
+            except OSError:
+                continue
+
+
+def shutil_which(name):
+    import shutil
+    return shutil.which(name)
+
+
+def befehlszeile_lesen(argumente):
+    sprache = None
+    pot = None
+    index = 0
+    while index < len(argumente):
+        argument = argumente[index]
+        if argument in ("--sprache", "--language"):
+            if index + 1 >= len(argumente) or argumente[index + 1].startswith("--"):
+                return None, None, _("Option %s requires a language.") % argument
+            roh_sprache = argumente[index + 1]
+            sprache = normalisiere_sprache(roh_sprache)
+            if not sprache:
+                return None, None, _("Invalid language: %s (expected de, en, or system).") % roh_sprache
+            index += 2
+            continue
+        if argument in ("--pot", "--pot-template"):
+            pot = ""
+            if index + 1 < len(argumente) and not argumente[index + 1].startswith("--"):
+                pot = argumente[index + 1]
+                index += 1
+        index += 1
+    return sprache, pot, None
+
+
+def sprache_anwenden(sprache):
+    global UEBERSETZUNG, _, FENSTER_TITEL, SPRACH_OVERRIDE
+    if sprache is None:
+        return
+    SPRACH_OVERRIDE = sprache
+    UEBERSETZUNG = lade_uebersetzung(sprache)
+    _ = UEBERSETZUNG.gettext
+    FENSTER_TITEL = _("Magnolie Organizer - Handbook")
+
+
+def pot_erzeugen(ziel):
+    skript = os.path.dirname(os.path.realpath(__file__))
+    kandidaten = [
+        os.path.join(skript, "..", "werkzeuge", "pot_erzeugen.py"),
+        "/usr/share/magnolie-handbuch/werkzeuge/pot_erzeugen.py",
+    ]
+    werkzeug = next((os.path.abspath(pfad) for pfad in kandidaten
+                     if os.path.isfile(os.path.abspath(pfad))), None)
+    if not werkzeug:
+        raise FileNotFoundError("pot_erzeugen.py")
+    subprocess.run([sys.executable, werkzeug, "--output", ziel], check=True,
+                   stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, text=True)
+
+
+def einzelinstanz_anmelden(anwendungskennung, aktivieren):
+    """Ein zweiter Start hebt das bereits laufende Handbuch hervor."""
+    anwendung = Gio.Application.new(anwendungskennung,
+                                    Gio.ApplicationFlags.FLAGS_NONE)
+    anwendung.connect("activate", lambda app: aktivieren())
+    try:
+        anwendung.register(None)
+    except GLib.Error:
+        return anwendung, False
+    if anwendung.get_is_remote():
+        anwendung.activate()
+        return anwendung, True
+    anwendung.hold()
+    return anwendung, False
+
+
+def haupt():
+    sprache, pot_ziel, fehler = befehlszeile_lesen(sys.argv[1:])
+    if fehler:
+        sys.stderr.write(fehler + "\n")
+        sys.exit(2)
+    sprache_anwenden(sprache)
+    if pot_ziel is not None:
+        ziel = os.path.abspath(pot_ziel or "magnolie-handbuch.pot")
+        try:
+            pot_erzeugen(ziel)
+        except (OSError, subprocess.SubprocessError) as pot_fehler:
+            einzelheit = (getattr(pot_fehler, "stderr", "") or str(pot_fehler)).strip()
+            sys.stderr.write(_("Could not create POT template: %s") % einzelheit + "\n")
+            sys.exit(1)
+        sys.stdout.write(_("POT template written to: %s") % ziel + "\n")
+        sys.exit(0)
+
+    if "--version" in sys.argv[1:]:
+        sys.stdout.write(PROGRAMM_FASSUNG + "\n")
+        sys.exit(0)
+
+    if "--hilfe" in sys.argv[1:] or "--help" in sys.argv[1:]:
+        sys.stdout.write(
+            _("Magnolie Organizer - User Guide\n\n"
+              "Usage:\n"
+              "  magnolie-handbuch          Open the handbook\n"
+              "  magnolie-handbuch --help   Show this overview\n"
+              "  magnolie-handbuch --sprache SPRACHE / --language LANGUAGE\n"
+              "                             Use de, en, or system for this invocation\n"
+              "  magnolie-handbuch --pot [DATEI] / --pot-template [FILE]\n"
+              "                             Create a gettext POT template\n"))
+        sys.exit(0)
+
+    if not GTK_OK:
+        sys.stderr.write(
+            _("Components required for the user interface are missing. "
+              "Install them with:\n"
+              "  sudo apt install python3-gi gir1.2-gtk-3.0 gir1.2-webkit2-4.1\n"))
+        sys.exit(1)
+
+    fenster_halter = {"fenster": None}
+    anwendung, schon_offen = einzelinstanz_anmelden(
+        "io.gitlab.maik3531.MagnolieHandbuch",
+        lambda: (fenster_halter["fenster"].present()
+                 if fenster_halter["fenster"] else None))
+    if schon_offen:
+        return
+
+    web_verzeichnis = finde_web_verzeichnis()
+    if not web_verzeichnis:
+        dialog = Gtk.MessageDialog(
+            None, 0, Gtk.MessageType.ERROR, Gtk.ButtonsType.CLOSE,
+            _("The handbook directory could not be found."))
+        dialog.run()
+        dialog.destroy()
+        sys.exit(1)
+
+    fenster = Fenster(web_verzeichnis)
+    fenster_halter["fenster"] = fenster
+    fenster.zeige_wenn_bereit()
+    try:
+        Gtk.main()
+    finally:
+        anwendung.release()
+
+
+if __name__ == "__main__":
+    haupt()

@@ -1,0 +1,6156 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the Magnolie Organizer package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: Magnolie Organizer 2.0.0\n"
+"Report-Msgid-Bugs-To: maik3531@gmail.com\n"
+"POT-Creation-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"PO-Revision-Date: 2026-08-08 09:24+0200\n"
+"Last-Translator: Magnolie localization project\n"
+"Language-Team: Belarusian\n"
+"Language: be\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && "
+"n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
+"Generated-By: Babel 2.18.0\n"
+
+msgid " (filtered)"
+msgstr " (адфільтравана)"
+
+msgid " (public holiday)"
+msgstr " (дзяржаўнае свята)"
+
+msgid " (school holidays)"
+msgstr " (школьныя канікулы)"
+
+msgid " at %(time)s"
+msgstr " а %(time)s"
+
+msgid " for %(years)s"
+msgstr " на працягу %(years)s"
+
+msgid " from %(branch)s"
+msgstr " ад %(branch)s"
+
+msgid " – notification at the appointment time."
+msgstr " – апавяшчэнне ў час сустрэчы."
+
+msgid ""
+"%(appointment)s\n"
+"Click to edit"
+msgstr ""
+"%(appointment)s\n"
+"Націсніце, каб рэдагаваць"
+
+msgid ""
+"%(cards)s merged. Copies are stored under “Duplicates” in the recycle bin."
+msgstr ""
+"Аб’яднана: %(cards)s. Копіі захаваны ў сметніцы ў раздзеле «Дублікаты»."
+
+msgid "%(count)s anniversary"
+msgid_plural "%(count)s anniversaries"
+msgstr[0] "%(count)s гадавіна"
+msgstr[1] "%(count)s гадавіны"
+msgstr[2] "%(count)s гадавін"
+
+msgid "%(count)s anniversary entered"
+msgid_plural "%(count)s anniversaries entered"
+msgstr[0] "Уведзена %(count)s гадавіна"
+msgstr[1] "Уведзена %(count)s гадавіны"
+msgstr[2] "Уведзена %(count)s гадавін"
+
+msgid "%(count)s appointment"
+msgid_plural "%(count)s appointments"
+msgstr[0] "%(count)s сустрэча"
+msgstr[1] "%(count)s сустрэчы"
+msgstr[2] "%(count)s сустрэч"
+
+msgid "%(count)s attachment"
+msgid_plural "%(count)s attachments"
+msgstr[0] "%(count)s далучэнне"
+msgstr[1] "%(count)s далучэнні"
+msgstr[2] "%(count)s далучэнняў"
+
+msgid "%(count)s birthday"
+msgid_plural "%(count)s birthdays"
+msgstr[0] "%(count)s дзень нараджэння"
+msgstr[1] "%(count)s дні нараджэння"
+msgstr[2] "%(count)s дзён нараджэння"
+
+msgid "%(count)s contact"
+msgid_plural "%(count)s contacts"
+msgstr[0] "%(count)s кантакт"
+msgstr[1] "%(count)s кантакты"
+msgstr[2] "%(count)s кантактаў"
+
+msgid "%(count)s contact card"
+msgid_plural "%(count)s contact cards"
+msgstr[0] "%(count)s картка кантакту"
+msgstr[1] "%(count)s карткі кантакту"
+msgstr[2] "%(count)s картак кантакту"
+
+msgid "%(count)s contact photo added"
+msgid_plural "%(count)s contact photos added"
+msgstr[0] "Дададзена %(count)s фота кантакту"
+msgstr[1] "Дададзена %(count)s фота кантактаў"
+msgstr[2] "Дададзена %(count)s фота кантактаў"
+
+msgid "%(count)s day"
+msgid_plural "%(count)s days"
+msgstr[0] "%(count)s дзень"
+msgstr[1] "%(count)s дні"
+msgstr[2] "%(count)s дзён"
+
+msgid "%(count)s day before"
+msgid_plural "%(count)s days before"
+msgstr[0] "За %(count)s дзень"
+msgstr[1] "За %(count)s дні"
+msgstr[2] "За %(count)s дзён"
+
+msgid "%(count)s email address added"
+msgid_plural "%(count)s email addresses added"
+msgstr[0] "Дададзены %(count)s адрас электроннай пошты"
+msgstr[1] "Дададзены %(count)s адрасы электроннай пошты"
+msgstr[2] "Дададзена %(count)s адрасоў электроннай пошты"
+
+msgid "%(count)s entry deleted."
+msgid_plural "%(count)s entries deleted."
+msgstr[0] "Выдалены %(count)s запіс."
+msgstr[1] "Выдалены %(count)s запісы."
+msgstr[2] "Выдалена %(count)s запісаў."
+
+msgid "%(count)s existing entry skipped."
+msgid_plural "%(count)s existing entries skipped."
+msgstr[0] "Прапушчаны %(count)s існуючы запіс."
+msgstr[1] "Прапушчаны %(count)s існуючыя запісы."
+msgstr[2] "Прапушчана %(count)s існуючых запісаў."
+
+msgid "%(count)s found"
+msgid_plural "%(count)s found"
+msgstr[0] "Знойдзены %(count)s вынік"
+msgstr[1] "Знойдзены %(count)s вынікі"
+msgstr[2] "Знойдзена %(count)s вынікаў"
+
+msgid "%(count)s group"
+msgid_plural "%(count)s groups"
+msgstr[0] "%(count)s група"
+msgstr[1] "%(count)s групы"
+msgstr[2] "%(count)s груп"
+
+msgid "%(count)s holiday period"
+msgid_plural "%(count)s holiday periods"
+msgstr[0] "%(count)s перыяд канікул"
+msgstr[1] "%(count)s перыяды канікул"
+msgstr[2] "%(count)s перыядаў канікул"
+
+msgid "%(count)s incoming offer"
+msgid_plural "%(count)s incoming offers"
+msgstr[0] "%(count)s уваходная прапанова"
+msgstr[1] "%(count)s уваходныя прапановы"
+msgstr[2] "%(count)s уваходных прапаноў"
+
+msgid "%(count)s match"
+msgid_plural "%(count)s matches"
+msgstr[0] "%(count)s супадзенне"
+msgstr[1] "%(count)s супадзенні"
+msgstr[2] "%(count)s супадзенняў"
+
+msgid "%(count)s minute"
+msgid_plural "%(count)s minutes"
+msgstr[0] "%(count)s хвіліна"
+msgstr[1] "%(count)s хвіліны"
+msgstr[2] "%(count)s хвілін"
+
+msgid "%(count)s more"
+msgid_plural "%(count)s more"
+msgstr[0] "Яшчэ %(count)s"
+msgstr[1] "Яшчэ %(count)s"
+msgstr[2] "Яшчэ %(count)s"
+
+msgid "%(count)s more entry"
+msgid_plural "%(count)s more entries"
+msgstr[0] "Яшчэ %(count)s запіс"
+msgstr[1] "Яшчэ %(count)s запісы"
+msgstr[2] "Яшчэ %(count)s запісаў"
+
+msgid "%(count)s new Magnolienbaum request awaits your decision."
+msgid_plural "%(count)s new Magnolienbaum requests await your decision."
+msgstr[0] "Вашага рашэння чакае %(count)s новы запыт Magnolienbaum."
+msgstr[1] "Вашага рашэння чакаюць %(count)s новыя запыты Magnolienbaum."
+msgstr[2] "Вашага рашэння чакае %(count)s новых запытаў Magnolienbaum."
+
+msgid "%(count)s non-JPEG contact photo was omitted."
+msgid_plural "%(count)s non-JPEG contact photos were omitted."
+msgstr[0] "Прапушчана %(count)s фатаграфія не ў JPEG."
+msgstr[1] "Прапушчана %(count)s фатаграфіі не ў JPEG."
+msgstr[2] "Прапушчана %(count)s фатаграфій не ў JPEG."
+
+msgid "%(count)s note"
+msgid_plural "%(count)s notes"
+msgstr[0] "%(count)s нататка"
+msgstr[1] "%(count)s нататкі"
+msgstr[2] "%(count)s нататак"
+
+msgid "%(count)s notebook"
+msgid_plural "%(count)s notebooks"
+msgstr[0] "%(count)s нататнік"
+msgstr[1] "%(count)s нататнікі"
+msgstr[2] "%(count)s нататнікаў"
+
+msgid "%(count)s open"
+msgstr "Адкрыта: %(count)s"
+
+msgid "%(count)s page"
+msgid_plural "%(count)s pages"
+msgstr[0] "%(count)s старонка"
+msgstr[1] "%(count)s старонкі"
+msgstr[2] "%(count)s старонак"
+
+msgid "%(count)s public holiday"
+msgid_plural "%(count)s public holidays"
+msgstr[0] "%(count)s дзяржаўнае свята"
+msgstr[1] "%(count)s дзяржаўныя святы"
+msgstr[2] "%(count)s дзяржаўных свят"
+
+msgid "%(count)s recurring appointment imported only once."
+msgid_plural "%(count)s recurring appointments imported only once."
+msgstr[0] "%(count)s паўторная сустрэча імпартавана толькі адзін раз."
+msgstr[1] "%(count)s паўторныя сустрэчы імпартаваны толькі адзін раз."
+msgstr[2] "%(count)s паўторных сустрэч імпартавана толькі адзін раз."
+
+msgid "%(count)s second"
+msgid_plural "%(count)s seconds"
+msgstr[0] "%(count)s секунда"
+msgstr[1] "%(count)s секунды"
+msgstr[2] "%(count)s секунд"
+
+msgid "%(count)s task"
+msgid_plural "%(count)s tasks"
+msgstr[0] "%(count)s заданне"
+msgstr[1] "%(count)s заданні"
+msgstr[2] "%(count)s заданняў"
+
+msgid "%(count)s unreadable row omitted."
+msgid_plural "%(count)s unreadable rows omitted."
+msgstr[0] "Прапушчаны %(count)s нечытэльны радок."
+msgstr[1] "Прапушчаны %(count)s нечытэльныя радкі."
+msgstr[2] "Прапушчана %(count)s нечытэльных радкоў."
+
+msgid "%(count)s unusable contact was omitted."
+msgid_plural "%(count)s unusable contacts were omitted."
+msgstr[0] "Прапушчаны %(count)s непрыдатны кантакт."
+msgstr[1] "Прапушчана %(count)s непрыдатныя кантакты."
+msgstr[2] "Прапушчана %(count)s непрыдатных кантактаў."
+
+msgid "%(date)s, %(time)s"
+msgstr "%(date)s, %(time)s"
+
+msgid "%(date)s, all day"
+msgstr "%(date)s, увесь дзень"
+
+msgid "%(first)s and %(second)s"
+msgstr "%(first)s і %(second)s"
+
+msgid "%(first)s to %(last)s"
+msgstr "ад %(first)s да %(last)s"
+
+msgid "%(format)s (Ctrl+%(key)s)"
+msgstr "%(format)s (Ctrl+%(key)s)"
+
+msgid "%(from)s to %(to)s"
+msgstr "ад %(from)s да %(to)s"
+
+msgid "%(name)s found – currently reachable"
+msgstr "%(name)s знойдзена – зараз даступна"
+
+msgid "%(name)s last found – reconnecting"
+msgstr "%(name)s знойдзена апошні раз – паўторнае злучэнне"
+
+msgid "%(ordinal)s death anniversary"
+msgstr "%(ordinal)s гадавіна смерці"
+
+msgid "%(ordinal)s wedding anniversary"
+msgstr "%(ordinal)s гадавіна вяселля"
+
+msgid "%(parts)s SMS parts · %(units)s character units"
+msgstr "%(parts)s частак SMS · %(units)s знакавых адзінак"
+
+msgid "%(shown)s of %(count)s matches; refine your search."
+msgstr "Паказана %(shown)s з %(count)s супадзенняў; удакладніце пошук."
+
+msgid "%(start)s to %(end)s"
+msgstr "ад %(start)s да %(end)s"
+
+msgid "%(title)s – %(when)s"
+msgstr "%(title)s – %(when)s"
+
+msgid "(unnamed)"
+msgstr "(без назвы)"
+
+msgid "+ Address"
+msgstr "+ Адрас"
+
+msgid "+ Email address"
+msgstr "+ Адрас электроннай пошты"
+
+msgid "+ Emergency contact"
+msgstr "+ Кантакт для надзвычайных сітуацый"
+
+msgid "+ Event"
+msgstr "+ Падзея"
+
+msgid "+ More appointments"
+msgstr "+ Больш сустрэч"
+
+msgid "+ More tasks"
+msgstr "+ Больш заданняў"
+
+msgid "+ Phone number"
+msgstr "+ Нумар тэлефона"
+
+msgid "+ Social medium"
+msgstr "+ Сацыяльная сетка"
+
+msgid "+49 … or 0…"
+msgstr "+49 … або 0…"
+
+msgid "1 - high"
+msgstr "1 – высокі"
+
+msgid "1 day before"
+msgstr "1 дзень загадзя"
+
+msgid "1 hour before"
+msgstr "1 гадзіну загадзя"
+
+msgid "1 minute"
+msgstr "1 хвіліна"
+
+msgid "10 minutes before"
+msgstr "10 хвілін загадзя"
+
+msgid "15 minutes before"
+msgstr "15 хвілін загадзя"
+
+msgid "15 seconds"
+msgstr "15 секунд"
+
+msgid "2 - medium"
+msgstr "2 – сярэдні"
+
+msgid "2 days before"
+msgstr "2 дні загадзя"
+
+msgid "2 hours before"
+msgstr "2 гадзіны загадзя"
+
+msgid "2 minutes"
+msgstr "2 хвіліны"
+
+msgid "3 - low"
+msgstr "3 – нізкі"
+
+msgid "3 days before"
+msgstr "за 3 дні"
+
+msgid "30 days"
+msgstr "30 дзён"
+
+msgid "30 minutes before"
+msgstr "за 30 хвілін"
+
+msgid "30 seconds"
+msgstr "30 секунд"
+
+msgid "4 days before"
+msgstr "за 4 дні"
+
+msgid "5 days before"
+msgstr "за 5 дзён"
+
+msgid "5 minutes before"
+msgstr "за 5 хвілін"
+
+msgid "6 days before"
+msgstr "за 6 дзён"
+
+msgid "7 days before"
+msgstr "за 7 дзён"
+
+msgid "90 days"
+msgstr "90 дзён"
+
+msgid "A component required by the Magnolienbaum is missing."
+msgstr "Адсутнічае кампанент, патрэбны для Magnolienbaum."
+
+msgid ""
+"A fallback for branch baum-1: when the direct connection cannot be reached, "
+"messages travel through a WebDAV folder on your Nextcloud server."
+msgstr ""
+"Запасны шлях для галіны baum-1: калі простае злучэнне недаступнае, "
+"паведамленні ідуць праз тэчку WebDAV на вашым серверы Nextcloud."
+
+msgid "A group with this name already exists."
+msgstr "Група з такой назвай ужо існуе."
+
+msgid "A maximum of 10 SMS parts is allowed."
+msgstr "Дазволена не больш за 10 частак SMS."
+
+msgid "A notebook with this name already exists in this group."
+msgstr "У гэтай групе ўжо ёсць нататнік з такой назвай."
+
+msgid ""
+"A numeric code can be entered conveniently using the keypad when opening; "
+"letters work as well. After three failed attempts, the organizer waits five "
+"minutes."
+msgstr ""
+"Пры адкрыцці лічбавы код зручна ўводзіць з лічбавай клавіятуры; літары "
+"таксама працуюць. Пасля трох няўдалых спроб Organizer чакае пяць хвілін."
+
+msgid ""
+"A pairing file works like a one-time key. Give it only to the person whose "
+"Organizer you want to connect; it expires after 15 minutes."
+msgstr ""
+"Файл спалучэння працуе як аднаразовы ключ. Перадавайце яго толькі чалавеку, "
+"з чыім Organizer хочаце злучыцца; праз 15 хвілін яго тэрмін дзеяння "
+"скончыцца."
+
+msgid ""
+"A password initially locks out the background reminder service. Without the "
+"explicit permission below, notifications work only while the organizer is "
+"open and unlocked."
+msgstr ""
+"Пароль спачатку блакуе фонавую службу напамінаў. Без яўнага дазволу ніжэй "
+"апавяшчэнні працуюць толькі тады, калі Organizer адкрыты і разблакіраваны."
+
+msgid "A personal synchronization attachment hash is invalid or duplicated."
+msgstr "Хэш персанальнага ўкладання сінхранізацыі несапраўдны або дубліраваны."
+
+msgid "A personal synchronization attachment source is not an object."
+msgstr "Асабістая крыніца далучэння сінхранізацыі не з'яўляецца аб'ектам."
+
+msgid "A personal synchronization batch is not an object."
+msgstr "Персанальны пакет сінхранізацыі не з'яўляецца аб'ектам."
+
+msgid ""
+"A separate encrypted connection for dial requests, device status and "
+"selected notifications."
+msgstr ""
+"Асобнае зашыфраванае злучэнне для запытаў на дазвон, стану прылады і "
+"выбраных апавяшчэнняў."
+
+msgid "API level"
+msgstr "Узровень API"
+
+msgid "Aargau"
+msgstr "Ааргау"
+
+msgid "About"
+msgstr "Аб праграме"
+
+msgid "About the Magnolie Organizer"
+msgstr "Аб Magnolie Organizer"
+
+msgid "Accept"
+msgstr "Прыняць"
+
+msgid "Accept and remember"
+msgstr "Прыняць і запомніць"
+
+msgid "Accept “%(entry)s” into your own collection?"
+msgstr "Прыняць «%(entry)s» у сваю калекцыю?"
+
+msgid ""
+"Accept “%(entry)s” into your own collection?\n"
+"\n"
+"This consent applies only to this note. Future changes and attachments will "
+"then be applied automatically in both directions."
+msgstr ""
+"Прыняць «%(entry)s» у сваю калекцыю?\n"
+"\n"
+"Гэта згода датычыцца толькі гэтай нататкі. Наступныя змены і далучэнні пасля "
+"гэтага будуць аўтаматычна прымяняцца ў абодвух напрамках."
+
+msgid "Accessibility"
+msgstr "Даступнасць"
+
+msgid "Accessibility helper frame"
+msgstr "Дапаможная рамка даступнасці"
+
+msgid "Accessibility helper frame disabled"
+msgstr "Дапаможная рамка даступнасці выключана"
+
+msgid "Accessibility helper frame enabled"
+msgstr "Дапаможная рамка даступнасці ўключана"
+
+msgid ""
+"Accessibility: The helper frame shows the current keyboard focus. It is "
+"disabled by default; press Ctrl+Alt+H at any time to switch it on or off."
+msgstr ""
+"Даступнасць: дапаможная рамка паказвае бягучы фокус клавіятуры. "
+"Прадвызначана яна выключана; націсніце Ctrl+Alt+H у любы момант, каб "
+"уключыць або выключыць яе."
+
+msgid "According to language"
+msgstr "У адпаведнасці з мовай"
+
+msgid "Active call"
+msgstr "Актыўны выклік"
+
+msgid "Add"
+msgstr "Дадаць"
+
+msgid "Add appointment"
+msgstr "Дадаць сустрэчу"
+
+msgid "Add attachment URI"
+msgstr "Дадаць URI далучэння"
+
+msgid "Add attendee"
+msgstr "Дадаць удзельніка"
+
+msgid "Add cycle marker"
+msgstr "Дадаць пазнаку цыклу"
+
+msgid "Add person"
+msgstr "Дадаць асобу"
+
+msgid "Add reminder"
+msgstr "Дадаць напамін"
+
+msgid "Add scheme row"
+msgstr "Дадаць радок схемы"
+
+msgid "Add shift"
+msgstr "Дадаць змену"
+
+msgid "Add to dictionary"
+msgstr "Дадаць у слоўнік"
+
+msgid "Add vacation period"
+msgstr "Дадаць перыяд адпачынку"
+
+msgid "Add waste collection"
+msgstr "Дадаць вываз адходаў"
+
+msgid "Address"
+msgstr "Адрас"
+
+msgid "Address book"
+msgstr "Адрасная кніга"
+
+msgid "Address imported from LibreOffice."
+msgstr "Адрас імпартаваны з LibreOffice."
+
+msgid ""
+"Addressed to %(branch)s; it will be delivered when the branch is available."
+msgstr "Адрасавана %(branch)s; будзе дастаўлена, калі галіна стане даступнай."
+
+msgid "Addresses"
+msgstr "Адрасы"
+
+msgid "After exercise"
+msgstr "Пасля фізічнай нагрузкі"
+
+msgid "After meal"
+msgstr "Пасля ежы"
+
+msgid "All"
+msgstr "Усе"
+
+msgid "All cantons"
+msgstr "Усе кантоны"
+
+msgid "All entries"
+msgstr "Усе запісы"
+
+msgid "All files"
+msgstr "Усе файлы"
+
+msgid "All people"
+msgstr "Усе асобы"
+
+msgid "All six charts"
+msgstr "Усе шэсць графікаў"
+
+msgid "All states"
+msgstr "Усе федэральныя землі"
+
+msgid "Allow notifications despite password protection"
+msgstr "Дазволіць апавяшчэнні нягледзячы на абарону паролем"
+
+msgid "Also disclose appointments marked as confidential"
+msgstr "Таксама раскрываць сустрэчы, пазначаныя як канфідэнцыйныя"
+
+msgid "Also hide past anniversaries"
+msgstr "Таксама хаваць мінулыя гадавіны"
+
+msgid "Also hide past school holidays"
+msgstr "Таксама хаваць мінулыя школьныя канікулы"
+
+msgid "Also remind me about anniversaries"
+msgstr "Таксама нагадваць пра гадавіны"
+
+msgid "Also remind me about missed appointments"
+msgstr "Таксама нагадваць пра прапушчаныя сустрэчы"
+
+msgid "Also use the default notification"
+msgstr "Таксама выкарыстоўваць прадвызначанае апавяшчэнне"
+
+msgid "Amount / unit"
+msgstr "Колькасць / адзінка"
+
+msgid ""
+"An appointment calendar, address book, task book and notepad in the guise of "
+"a leather-bound organizer —"
+msgstr ""
+"Каляндар сустрэч, адрасная кніга, кніга заданняў і нататнік у выглядзе "
+"скуранога арганайзера —"
+
+msgid "Android version"
+msgstr "Версія Android"
+
+msgid "Anniversaries"
+msgstr "Гадавіны"
+
+msgid "Anniversaries (.ics)"
+msgstr "Гадавіны (.ics)"
+
+msgid "Anniversary"
+msgstr "Гадавіна"
+
+msgid "Another phone is already paired. Remove it first."
+msgstr "Іншы тэлефон ужо спалучаны. Спачатку выдаліце ​​​​яго."
+
+msgid "Answer"
+msgstr "Адказаць"
+
+msgid "Answer calls on the computer and talk"
+msgstr "Адказваць на званкі і размаўляць праз камп'ютар"
+
+msgid "App password"
+msgstr "Пароль праграмы"
+
+msgid "Appearance"
+msgstr "Выгляд"
+
+msgid "Appearance and sound follow your system notification settings."
+msgstr "Выгляд і гук адпавядаюць наладам сістэмных апавяшчэнняў."
+
+msgid "Appenzell Ausserrhoden"
+msgstr "Аппенцэль-Аўсерродэн"
+
+msgid "Appenzell Innerrhoden"
+msgstr "Аппенцэль-Інерродэн"
+
+msgid "Application command"
+msgstr "Каманда праграмы"
+
+msgid ""
+"Applies only to content you enter yourself: appointments, tasks, contacts, "
+"notes and anniversaries. Headings, calendar pages and organizer labels "
+"remain unchanged."
+msgstr ""
+"Датычыцца толькі змесціва, якое вы ўводзіце самі: сустрэч, заданняў, "
+"кантактаў, нататак і гадавін. Загалоўкі, старонкі календара і подпісы "
+"Organizer застаюцца без змен."
+
+msgid ""
+"Applies when scrolling over a time field. Hold Shift to change the time in "
+"whole hours."
+msgstr ""
+"Ужываецца пры пракручванні над полем часу. Утрымлівайце Shift, каб змяняць "
+"час на цэлыя гадзіны."
+
+msgid "Apply"
+msgstr "Ужыць"
+
+msgid "Appointment"
+msgstr "Сустрэча"
+
+msgid "Appointment is due"
+msgstr "Настаў час сустрэчы"
+
+msgid "Appointment overview"
+msgstr "Агляд сустрэч"
+
+msgid "Appointment reminder"
+msgstr "Напамін пра сустрэчу"
+
+msgid "Appointment reminders"
+msgstr "Напаміны пра сустрэчы"
+
+msgid "Appointments"
+msgstr "Сустрэчы"
+
+msgid "Appointments (.ics)"
+msgstr "Сустрэчы (.ics)"
+
+msgid "Appointments as Lotus CSV"
+msgstr "Сустрэчы як Lotus CSV"
+
+msgid "Appointments for this person"
+msgstr "Сустрэчы гэтай асобы"
+
+msgid "Appointments · %(period)s"
+msgstr "Сустрэчы · %(period)s"
+
+msgid "Archive password"
+msgstr "Пароль архіва"
+
+msgid "As usual (print)"
+msgstr "Як звычайна (друк)"
+
+msgid "Assign SMS action"
+msgstr "Прызначыць дзеянне SMS"
+
+msgid "Assign call action"
+msgstr "Прызначыць дзеянне выкліку"
+
+msgid "Assign shift"
+msgstr "Прызначыць змену"
+
+msgid "At bedtime"
+msgstr "Перад сном"
+
+msgid "At least one health view must remain enabled."
+msgstr "Павінен заставацца ўключаным прынамсі адзін від раздзела здароўя."
+
+msgid "At most 5,000 contacts can be exported at once."
+msgstr "За адзін раз можна экспартаваць не больш за 5 000 кантактаў."
+
+msgid "At most 5,000 health records can be exported at once."
+msgstr "За адзін раз можна экспартаваць не больш за 5 000 запісаў пра здароўе."
+
+msgid "Attachments"
+msgstr "Сустрэчы"
+
+msgid "Attendees"
+msgstr "Удзельнікі"
+
+msgid "Austria"
+msgstr "Аўстрыя"
+
+msgid "Author"
+msgstr "Аўтар"
+
+msgid "Authority appointment"
+msgstr "Візіт ва ўстанову"
+
+msgid "Automatically choose a suitable application"
+msgstr "Аўтаматычна выбраць прыдатную праграму"
+
+msgid "Automatically synchronize over Wi-Fi"
+msgstr "Аўтаматычна сінхранізаваць праз Wi-Fi"
+
+msgid "B"
+msgstr "Т"
+
+msgid "BMI"
+msgstr "ІМТ"
+
+msgid ""
+"BMI\n"
+"kg/m²"
+msgstr ""
+"ІМТ\n"
+"kg/m²"
+
+msgid "BMI from the latest stored height and weight"
+msgstr "ІМТ паводле апошніх захаваных даных пра рост і вагу"
+
+msgid "BZ"
+msgstr "BZ"
+
+msgid "Backup failed."
+msgstr "Не ўдалося стварыць рэзервовую копію."
+
+msgid "Backup folder"
+msgstr "Папка рэзервовых копій"
+
+msgid "Backup folder updated."
+msgstr "Папка рэзервовых копій абноўлена."
+
+msgid "Backup password"
+msgstr "Пароль рэзервовай копіі"
+
+msgid "Backup restored. The previous data was backed up automatically."
+msgstr ""
+"Рэзервовая копія адноўлена. Папярэднія даныя былі аўтаматычна зарэзерваваны."
+
+msgid "Backup saved to: %(path)s"
+msgstr "Рэзервовая копія захавана ў: %(path)s"
+
+msgid "Backups"
+msgstr "Рэзервовыя копіі"
+
+msgid ""
+"Backups outside the data location require a password with at least four "
+"characters."
+msgstr ""
+"Рэзервовыя копіі па-за месцам даных патрабуюць пароль не менш чым з чатырох "
+"знакаў."
+
+msgid "Baden-Württemberg"
+msgstr "Бадэн-Вюртэмберг"
+
+msgid "Baptism"
+msgstr "Хрышчэнне"
+
+msgid "Basal units"
+msgstr "Базальныя адзінкі"
+
+msgid "Basel-Landschaft"
+msgstr "Базель-Ланд"
+
+msgid "Basel-Stadt"
+msgstr "Базель-Штат"
+
+msgid "Basic operation and appearance of the organizer."
+msgstr "Асноўнае кіраванне і выгляд Organizer."
+
+msgid "Battery"
+msgstr "Ліст"
+
+msgid "Battery snapshot"
+msgstr "Здымак стану батарэі"
+
+msgid "Bavaria"
+msgstr "Баварыя"
+
+msgid "Before contact deletion"
+msgstr "Да выдалення кантакту"
+
+msgid "Before contact import"
+msgstr "Да імпарту кантактаў"
+
+msgid "Before contact merge"
+msgstr "Да зліцця кантактаў"
+
+msgid "Before exercise"
+msgstr "Перад фізічнай нагрузкай"
+
+msgid "Before meal"
+msgstr "Перад ежай"
+
+msgid "Before restore"
+msgstr "Да аднаўлення"
+
+msgid "Before synchronization"
+msgstr "Да сінхранізацыі"
+
+msgid "Belgium"
+msgstr "Бельгія"
+
+msgid "Berlin"
+msgstr "Берлін"
+
+msgid "Bern"
+msgstr "Берн"
+
+msgid "Birthday"
+msgstr "Дзень нараджэння"
+
+msgid "Birthday party"
+msgstr "Святкаванне дня нараджэння"
+
+msgid "Black"
+msgstr "Чорны"
+
+msgid "Blank health form"
+msgstr "Пусты бланк здароўя"
+
+msgid "Blank template for handwriting"
+msgstr "Пусты шаблон для запаўнення ад рукі"
+
+msgid "Bleeding · heavy"
+msgstr "Крывацёк · моцны"
+
+msgid "Bleeding · light"
+msgstr "Крывацёк · слабы"
+
+msgid "Bleeding · medium"
+msgstr "Крывацёк · сярэдні"
+
+msgid "Blood glucose"
+msgstr "Глюкоза крыві"
+
+msgid "Blood glucose scheme"
+msgstr "Схема вымярэння глюкозы крыві"
+
+msgid "Blood glucose table"
+msgstr "Табліца глюкозы крыві"
+
+msgid "Blood glucose value"
+msgstr "Узровень глюкозы крыві"
+
+msgid "Blood pressure"
+msgstr "Артэрыяльны ціск"
+
+msgid ""
+"Blood pressure\n"
+"mm/Hg"
+msgstr ""
+"Артэрыяльны ціск\n"
+"mm/Hg"
+
+msgid "Blue (fountain pen)"
+msgstr "Сіні (пёравая ручка)"
+
+msgid "Bluetooth data fallback"
+msgstr "Рэзервовы перанос дадзеных праз Bluetooth"
+
+msgid "Bold"
+msgstr "Тоўсты"
+
+msgid ""
+"Both branches display the same six-digit code when connecting. Confirm it "
+"only if it matches, preventing anyone from intercepting the connection."
+msgstr ""
+"Падчас злучэння абедзве галіны паказваюць аднолькавы шасцізначны код. "
+"Пацвярджайце яго толькі пры поўным супадзенні, каб ніхто не мог перахапіць "
+"злучэнне."
+
+msgid "Brandenburg"
+msgstr "Брандэнбург"
+
+msgid "Bremen"
+msgstr "Брэмен"
+
+msgid "Burgenland"
+msgstr "Бургенланд"
+
+msgid "By first name (Hans Müller)"
+msgstr "Паводле імя (Hans Müller)"
+
+msgid "By last name (Müller, Hans)"
+msgstr "Паводле прозвішча (Müller, Hans)"
+
+msgid "CSV files (*.csv)"
+msgstr "Файлы CSV (*.csv)"
+
+msgid "CW"
+msgstr "КТ"
+
+msgid "Calculate the route to this address"
+msgstr "Пракласці маршрут да гэтага адраса"
+
+msgid "Calendar"
+msgstr "Каляндар"
+
+msgid "Calendar (*.ics)"
+msgstr "Каляндар (*.ics)"
+
+msgid ""
+"Calendar and contact applications commonly export appointments as .ics files "
+"and contacts as .vcf files."
+msgstr ""
+"Прыкладанні календара і кантактаў звычайна экспартуюць сустрэчы як файлы ."
+"ics, а кантакты - як файлы .vcf."
+
+msgid "Calendar file (.ics/.vcs/.lcs) …"
+msgstr "Файл календара (.ics/.vcs/.lcs) …"
+
+msgid "Calendar layout"
+msgstr "Макет календара"
+
+msgid "Calendar week %(number)s"
+msgstr "Каляндарны тыдзень %(number)s"
+
+msgid "Calendars (multiple selections allowed)"
+msgstr "Календары (можна выбраць некалькі)"
+
+msgid "Calendars and contacts"
+msgstr "Calendars and contacts"
+
+msgid "Call"
+msgstr "Патэлефанаваць"
+
+msgid "Call assignment"
+msgstr "Прызначэнне выкліку"
+
+msgid "Call ended"
+msgstr "Выклік завершаны"
+
+msgid "Call notes"
+msgstr "Нататкі пра выклік"
+
+msgid "Call reference"
+msgstr "Спасылка на выклік"
+
+msgid "Call started"
+msgstr "Выклік пачаты"
+
+msgid "Call this contact using Magnolie Notes or the assigned application"
+msgstr ""
+"Патэлефануйце гэтаму кантакту з дапамогай Magnolie Notes або прызначанага "
+"прыкладання"
+
+msgid "Call with %(name)s · %(date)s"
+msgstr "Званок з %(name)s · %(date)s"
+
+msgid "Cancel"
+msgstr "Скасаваць"
+
+msgid "Canton"
+msgstr "Кантон"
+
+msgid "Capsule"
+msgstr "Капсула"
+
+msgid "Captured"
+msgstr "Захоплены"
+
+msgid "Care service"
+msgstr "Служба догляду"
+
+msgid "Carinthia"
+msgstr "Карынтыя"
+
+msgid "Categories"
+msgstr "Катэгорыі"
+
+msgid "Categories:"
+msgstr "Катэгорыі:"
+
+msgid "Catholic confirmation"
+msgstr "Каталіцкая канфірмацыя"
+
+msgid "Centered on the screen"
+msgstr "Па цэнтры экрана"
+
+msgid "Change password"
+msgstr "Змяніць пароль"
+
+msgid "Changes are applied automatically"
+msgstr "Змены прымяняюцца аўтаматычна"
+
+msgid "Charging"
+msgstr "Зарадка"
+
+msgid "Charging state"
+msgstr "Стан зарада"
+
+msgid "Charts and BMI are documentation aids only and are not a diagnosis."
+msgstr ""
+"Графікі і ІМТ прызначаны толькі для дакументавання і не з’яўляюцца дыягназам."
+
+msgid "Check for updates automatically every day"
+msgstr "Штодня аўтаматычна правяраць абнаўленні"
+
+msgid "Check now"
+msgstr "Праверыць зараз"
+
+msgid "Check spelling (red wavy lines)"
+msgstr "Правяраць правапіс (чырвоныя хвалістыя лініі)"
+
+msgid "Check the value and discuss repeated deviations with a doctor."
+msgstr "Праверце значэнне і абмяркуйце з лекарам паўторныя адхіленні."
+
+msgid "Check-up appointment"
+msgstr "Кантрольны прыём"
+
+msgid "Checking contributor key …"
+msgstr "Праверка ключа ўдзельніка..."
+
+msgid "Checking online accounts …"
+msgstr "Праверка анлайн-акаўнтаў …"
+
+msgid "Checking the current manual version …"
+msgstr "Праверка бягучай версіі рэкамендацый …"
+
+msgid "Checking the current version …"
+msgstr "Праверка бягучай версіі …"
+
+msgid ""
+"Choose a backup file. Before restoring it, the organizer automatically "
+"creates a copy of the current data. An encrypted backup requires its "
+"password."
+msgstr ""
+"Выберыце файл рэзервовай копіі. Перад аднаўленнем Organizer аўтаматычна "
+"створыць копію бягучых даных. Для зашыфраванай рэзервовай копіі патрэбны яе "
+"пароль."
+
+msgid "Choose a country first."
+msgstr "Спачатку выберыце краіну."
+
+msgid "Choose a mobile number"
+msgstr "Выберыце нумар мабільнага тэлефона"
+
+msgid ""
+"Choose a phase or bleeding intensity. Assign it to the complete date range "
+"in the new appointment sheet."
+msgstr ""
+"Выберыце фазу або інтэнсіўнасць крывацёку. Прызначце яе ўсяму дыяпазону дат "
+"на аркушы новай сустрэчы."
+
+msgid "Choose a phone number to call"
+msgstr "Выберыце нумар тэлефона для званка"
+
+msgid ""
+"Choose a predefined shift or enter a custom one. Assign it to one or more "
+"days in the new appointment sheet. Day markers do not send notifications."
+msgstr ""
+"Выберыце гатовую змену або ўвядзіце сваю. Прызначце яе аднаму ці некалькім "
+"дням на аркушы новай сустрэчы. Пазнакі дзён не дасылаюць апавяшчэнняў."
+
+msgid "Choose a value and period to display its development."
+msgstr "Выберыце паказчык і перыяд, каб прагледзець яго дынаміку."
+
+msgid ""
+"Choose a waste type or enter a custom collection. Set the first collection "
+"and the interval in days; 0 creates a one-time collection."
+msgstr ""
+"Выберыце тып адходаў або ўвядзіце свой вываз. Задайце першы вываз і інтэрвал "
+"у днях; 0 стварае аднаразовы вываз."
+
+msgid "Choose at least four characters."
+msgstr "Выберыце не менш за чатыры знакі."
+
+msgid "Choose entries to print, export or delete"
+msgstr "Выберыце запісы для друку, экспарту або выдалення"
+
+msgid "Choose file…"
+msgstr "Выбраць файл…"
+
+msgid "Choose folder …"
+msgstr "Выбраць папку …"
+
+msgid "Choose or enter a phone number"
+msgstr "Выберыце або ўвядзіце нумар тэлефона"
+
+msgid "Choose photo…"
+msgstr "Выбраць фота…"
+
+msgid "Choose print or export content…"
+msgstr "Выберыце змесціва для друку або экспарту…"
+
+msgid "Choose service"
+msgstr "Выбраць службу"
+
+msgid ""
+"Choose which sections appear as tabs on the organizer. The calendar always "
+"remains available."
+msgstr ""
+"Выберыце раздзелы, якія будуць паказвацца як укладкі арганайзера. Каляндар "
+"заўсёды застаецца даступным."
+
+msgid "Choose year…"
+msgstr "Выбраць год…"
+
+msgid "City"
+msgstr "Горад"
+
+msgid "Claws Mail (.xml/.ldif) …"
+msgstr "Claws Mail (.xml/.ldif) …"
+
+msgid "Claws Mail address book (*.xml)"
+msgstr "Адрасная кніга Claws Mail (*.xml)"
+
+msgid "Clear"
+msgstr "Ачысціць"
+
+msgid "Clear filters"
+msgstr "Ачысціць фільтры"
+
+msgid "Clearly abnormal reference value – check it and seek medical advice."
+msgstr ""
+"Яўна анамальнае значэнне – праверце яго і звярніцеся па медыцынскую "
+"кансультацыю."
+
+msgid "Click here to add an appointment"
+msgstr "Націсніце тут, каб дадаць сустрэчу"
+
+msgid "Click to open"
+msgstr "Націсніце, каб адкрыць"
+
+msgid "Clicking a day"
+msgstr "Націск на дзень"
+
+msgid ""
+"Clicking an existing appointment opens it for editing in both cases. This "
+"setting applies only when you click an empty area in the box."
+msgstr ""
+"Націск на існуючую сустрэчу ў абодвух выпадках адкрывае яе для рэдагавання. "
+"Гэта налада дзейнічае толькі пры націску на пустую вобласць поля."
+
+msgid "Close"
+msgstr "Закрыць"
+
+msgid "Close settings"
+msgstr "Закрыць налады"
+
+msgid "Club anniversary"
+msgstr "Гадавіна клуба"
+
+msgid "Code matches"
+msgstr "Код супадае"
+
+msgid "Codes differ"
+msgstr "Коды адрозніваюцца"
+
+msgid "Codes match"
+msgstr "Код супадае"
+
+msgid "Color"
+msgstr "Колер"
+
+msgid ""
+"Colors and matching scheme rows are orientation aids. Enter or adjust the IE "
+"in the table to the amount actually administered."
+msgstr ""
+"Колеры і адпаведныя радкі схемы служаць для арыентацыі. Увядзіце або "
+"скарэктуйце ў табліцы колькасць IE паводле фактычна ўведзенай дозы."
+
+msgid "Columns in the ODS table"
+msgstr "Слупкі ў табліцы ODS"
+
+msgid "Compact sender line (default)"
+msgstr "Кампактны радок адпраўніка (прадвызначана)"
+
+msgid "Company"
+msgstr "Кампанія"
+
+msgid "Compare pairing code"
+msgstr "Імпарт файла спалучэння"
+
+msgid ""
+"Compare this fingerprint with the other branch, for example by phone, to "
+"verify the connection."
+msgstr ""
+"Параўнайце гэты адбітак з другой галіной, напрыклад па тэлефоне, каб "
+"праверыць злучэнне."
+
+msgid "Complete archive export is available only in the installed application."
+msgstr "Поўны экспарт архіва даступны толькі ва ўсталяваным дадатку."
+
+msgid "Complete archive exported with password protection."
+msgstr "Поўны архіў экспартаваны з абаронай паролем."
+
+msgid "Complete archive exported without encryption."
+msgstr "Поўны архіў экспартаваны без шыфравання."
+
+msgid "Complete archive import is available only in the installed application."
+msgstr "Поўны імпарт архіва даступны толькі ва ўсталяваным дадатку."
+
+msgid ""
+"Complete archive imported. The previous data was backed up automatically."
+msgstr ""
+"Імпартаваны поўны архіў. Рэзервовае капіраванне папярэдніх даных было "
+"зроблена аўтаматычна."
+
+msgid "Complete pairing"
+msgstr "Завяршыць спалучэнне"
+
+msgid "Completed (%(count)s)"
+msgstr "Завершана (%(count)s)"
+
+msgid "Completed task"
+msgstr "Завершана"
+
+msgid "Completing secure pairing…"
+msgstr "Стварэнне файла спалучэння"
+
+msgid ""
+"Confirm only if exactly the same six-digit code is shown on both devices."
+msgstr ""
+"Пацвярджайце толькі ў тым выпадку, калі на абодвух прыладах паказаны "
+"дакладна той жа шасцізначны код."
+
+msgid "Confirm the pairing request on the phone."
+msgstr "Пацвердзіце запыт на спалучэнне на тэлефоне."
+
+msgid "Confirmation"
+msgstr "Пацвярджэнне"
+
+msgid "Conflict"
+msgstr "Пацвярджэнне"
+
+msgid "Connect"
+msgstr "Злучыць"
+
+msgid "Connect phone via WLAN"
+msgstr "Падключыце тэлефон праз Wi-Fi"
+
+msgid "Connected"
+msgstr "Connected"
+
+msgid "Consider deletions during manual synchronization"
+msgstr "Сінхранізацыя кантактаў"
+
+msgid "Contact"
+msgstr "Contact"
+
+msgid "Contact card"
+msgstr "Картка кантакту"
+
+msgid "Contact cards"
+msgstr "Карткі кантактаў"
+
+msgid "Contact cards (*.vcf)"
+msgstr "Карткі кантактаў (*.vcf)"
+
+msgid "Contact deletion proposals were blocked by the safety limit."
+msgstr "Прапановы выдалення кантактаў заблакаваны мяжой бяспекі."
+
+msgid "Contact photo preview"
+msgstr "Папярэдні прагляд фота кантакту"
+
+msgid "Contact synchronization"
+msgstr "Сінхранізацыя кантактаў"
+
+msgid ""
+"Contact synchronization preview: %(new)s new, %(changed)s changed, "
+"%(duplicates)s possible duplicates, %(deletions)s deletion proposals."
+msgstr ""
+"Папярэдні прагляд: новых — %(new)s, змененых — %(changed)s, магчымых "
+"дублікатаў — %(duplicates)s, прапаноў выдалення — %(deletions)s."
+
+msgid ""
+"Contact synchronization was blocked because the bound snapshot is empty."
+msgstr "Сінхранізацыя заблакавана, бо звязаны здымак пусты."
+
+msgid "Contacts"
+msgstr "Кантакты"
+
+msgid "Contacts (.vcf)"
+msgstr "Кантакты (.vcf)"
+
+msgid "Contacts (.vcf) …"
+msgstr "Кантакты (.vcf) …"
+
+msgid "Contacts are merged additively. No deletions are transmitted."
+msgstr "Кантакты аб’ядноўваюцца з дапаўненнем. Выдаленні не перадаюцца."
+
+msgid "Contacts for Claws Mail (.ldif)"
+msgstr "Кантакты для Claws Mail (.ldif)"
+
+msgid "Content"
+msgstr "Змесціва"
+
+msgid "Continue"
+msgstr "Працяг"
+
+msgid "Continued"
+msgstr "Працяг"
+
+msgid "Contributor key"
+msgstr "Ключ удзельніка"
+
+msgid "Copy"
+msgstr "Капіяваць"
+
+msgid "Cost center"
+msgstr "Цэнтр выдаткаў"
+
+msgid "Could not answer"
+msgstr "Не ўдалося адказаць на выклік"
+
+msgid "Could not hang up"
+msgstr "Не ўдалося завяршыць выклік"
+
+msgid "Country"
+msgstr "Краіна"
+
+msgid "Country & holidays"
+msgstr "Краіна і святы"
+
+msgid "Country (optional)"
+msgstr "Краіна (неабавязкова)"
+
+msgid "Country and region"
+msgstr "Краіна і рэгіён"
+
+msgid "Country for searches"
+msgstr "Краіна для пошуку"
+
+msgid "Create"
+msgstr "Стварыць"
+
+msgid "Create a backup copy of the data"
+msgstr "Стварыць рэзервовую копію даных"
+
+msgid "Create a new appointment immediately"
+msgstr "Адразу стварыць новую сустрэчу"
+
+msgid "Create an empty printable template"
+msgstr "Стварыць пусты шаблон для друку"
+
+msgid "Create backup"
+msgstr "Стварыць рэзервовую копію"
+
+msgid "Create contact"
+msgstr "Стварыць кантакт"
+
+msgid "Create encrypted backup"
+msgstr "Стварыць зашыфраваную рэзервовую копію"
+
+msgid "Create group"
+msgstr "Стварыць групу"
+
+msgid "Create notebook"
+msgstr "Стварыць нататнік"
+
+msgid "Create pairing file …"
+msgstr "Стварыць файл спалучэння …"
+
+msgid "Create snapshot now"
+msgstr "Стварыць здымак зараз"
+
+msgid "Custom"
+msgstr "Уласнае"
+
+msgid "Custom application"
+msgstr "Карыстальніцкае прыкладанне"
+
+msgid "Custom notification"
+msgstr "Уласнае апавяшчэнне"
+
+msgid "Custom websites must begin with https://."
+msgstr "Уласныя вэб-сайты павінны пачынацца з https://."
+
+msgid "Customer no."
+msgstr "№ кліента"
+
+msgid "Customize"
+msgstr "Наладзіць"
+
+msgid "Customize notebooks"
+msgstr "Наладзіць нататнікі"
+
+msgid "Cut"
+msgstr "Выразаць"
+
+msgid "Cycle calendar"
+msgstr "Каляндар цыклу"
+
+msgid ""
+"Cycle markers are stored only in your local Organizer data and do not send "
+"notifications."
+msgstr ""
+"Прапановы могуць выдаляць толькі асобна пацверджаныя звязаныя кантакты. "
+"Уключыць іх для гэтай галіны?Пазнакі цыклу захоўваюцца толькі ў вашых "
+"лакальных даных Organizer і не дасылаюць апавяшчэнняў."
+
+msgid "Czechia"
+msgstr "Чэхія"
+
+msgid "DIN 5008 Form B with fold marks"
+msgstr "Форма DIN 5008 B з пазнакамі згіну"
+
+msgid "Daily"
+msgstr "Штодня"
+
+msgid "Daily view"
+msgstr "Дзённы выгляд"
+
+msgid "Damaged"
+msgstr "Пашкоджаны"
+
+msgid "Date"
+msgstr "Дата"
+
+msgid "Daughter"
+msgstr "Дачка"
+
+msgid "Day"
+msgstr "Дзень"
+
+msgid "Day markers"
+msgstr "Пазнакі дзён"
+
+msgid "Days"
+msgstr "Дні"
+
+msgid "Death anniversary"
+msgstr "Гадавіна смерці"
+
+msgid "Default: next to the data file"
+msgstr "Прадвызначана: побач з файлам даных"
+
+msgid "Delegate to"
+msgstr "Дэлегаваць"
+
+msgid "Delete"
+msgstr "Выдаліць"
+
+msgid "Delete %(count)s selected entry for good?"
+msgid_plural "Delete %(count)s selected entries for good?"
+msgstr[0] "Канчаткова выдаліць %(count)s выбраны запіс?"
+msgstr[1] "Канчаткова выдаліць %(count)s выбраныя запісы?"
+msgstr[2] "Канчаткова выдаліць %(count)s выбраных запісаў?"
+
+msgid "Delete %(count)s selected entry? It moves to the wastebasket."
+msgid_plural "Delete %(count)s selected entries? They move to the wastebasket."
+msgstr[0] "Выдаліць выбраны запіс %(count)s? Ён будзе перамешчаны ў сметніцу."
+msgstr[1] "Выдаліць выбраны запіс %(count)s? Ён будзе перамешчаны ў сметніцу."
+msgstr[2] "Выдаліць выбраны запіс %(count)s? Ён будзе перамешчаны ў сметніцу."
+
+msgid "Delete all SMS histories"
+msgstr "Выдаліць усе гісторыі SMS"
+
+msgid "Delete all SMS histories?"
+msgstr "Выдаліць усе гісторыі SMS?"
+
+msgid "Delete anniversary"
+msgstr "Выдаліць гадавіну"
+
+msgid "Delete anniversary “%(name)s”?"
+msgstr "Выдаліць гадавіну «%(name)s»?"
+
+msgid "Delete appointment “%(title)s”?"
+msgstr "Выдаліць сустрэчу «%(title)s»?"
+
+msgid ""
+"Delete appointment “%(title)s”? This removes every occurrence in the series."
+msgstr "Выдаліць сустрэчу «%(title)s»? Гэта выдаліць усе паўторы ў серыі."
+
+msgid "Delete contact card “%(name)s”?"
+msgstr "Выдаліць картку кантакту «%(name)s»?"
+
+msgid "Delete cycle marker"
+msgstr "Выдаліць пазнаку цыклу"
+
+msgid "Delete entries"
+msgstr "Выдаліць запісы"
+
+msgid "Delete entries…"
+msgstr "Выдаліць запісы…"
+
+msgid "Delete group"
+msgstr "Выдаліць групу"
+
+msgid "Delete last character"
+msgstr "Выдаліць апошні знак"
+
+msgid "Delete notebook"
+msgstr "Выдаліць нататнік"
+
+msgid "Delete notebook group “%(name)s”?"
+msgstr "Выдаліць групу нататнікаў «%(name)s»?"
+
+msgid "Delete notebook “%(name)s”?"
+msgstr "Выдаліць нататнік «%(name)s»?"
+
+msgid "Delete page"
+msgstr "Выдаліць старонку"
+
+msgid "Delete password"
+msgstr "Выдаліць пароль"
+
+msgid "Delete permanently"
+msgstr "Выдаліць канчаткова"
+
+msgid "Delete selection"
+msgstr "Выдаліць выбранае"
+
+msgid "Delete shift"
+msgstr "Выдаліць змену"
+
+msgid "Delete task"
+msgstr "Выдаліць заданне"
+
+msgid "Delete task “%(title)s”?"
+msgstr "Выдаліць заданне «%(title)s»?"
+
+msgid ""
+"Delete the stored app password? The mailbox can no longer deliver until a "
+"new one is entered."
+msgstr ""
+"Выдаліць захаваны пароль праграмы? Скрыня не зможа дастаўляць, пакуль не "
+"будзе ўведзены новы."
+
+msgid "Delete this contact's SMS history?"
+msgstr "Выдаліць гісторыю SMS гэтага кантакту?"
+
+msgid "Delete this contact's history"
+msgstr "Выдаліць гісторыю гэтага кантакту"
+
+msgid "Delete this note page (“%(title)s”)?"
+msgstr "Выдаліць гэтую старонку нататкі («%(title)s»)?"
+
+msgid "Delete this recovery snapshot permanently?"
+msgstr "Выдаліць гэты рэзервовы здымак назаўжды?"
+
+msgid "Delete vacation period"
+msgstr "Выдаліць перыяд адпачынку"
+
+msgid "Delete waste collection"
+msgstr "Выдаліць вываз адходаў"
+
+msgid ""
+"Deleted items first go to the recycle bin and can be restored from there. "
+"They are permanently removed only afterwards."
+msgstr ""
+"Выдаленыя элементы спачатку трапляюць у сметніцу, адкуль іх можна аднавіць. "
+"Канчаткова яны выдаляюцца толькі пасля гэтага."
+
+msgid "Deletion proposals are pending manual review."
+msgstr "Прапановы выдалення чакаюць ручной праверкі."
+
+msgid ""
+"Deletion proposals can remove only individually confirmed, bound contacts. "
+"Enable deletion proposals for this branch?"
+msgstr ""
+"Прапановы могуць выдаляць толькі асобна пацверджаныя звязаныя кантакты. "
+"Уключыць іх для гэтай галіны?"
+
+msgid "Deletions are not synchronized yet."
+msgstr "Яшчэ не сінхранізавана."
+
+msgid "Delivered"
+msgstr "не дастаўлена"
+
+msgid "Delivered to %(branch)s."
+msgstr "Дастаўлена ў %(branch)s."
+
+msgid "Dentist Dr. Hill — Preview of your entries"
+msgstr "Стаматолаг д-р Hill — Папярэдні прагляд вашых запісаў"
+
+msgid "Determining public IP address…"
+msgstr "Вызначэнне публічнага IP-адраса…"
+
+msgid "Device code: %(code)s"
+msgstr "Код прылады: %(code)s"
+
+msgid "Device status is not permitted or available on the phone."
+msgstr "Статус прылады не дазволены або даступны на тэлефоне."
+
+msgid "Diabetes"
+msgstr "Дыябет"
+
+msgid "Dialing…"
+msgstr "Dialing…"
+
+msgid "Diastolic"
+msgstr "Дыясталічны"
+
+msgid "Digit %(digit)s"
+msgstr "Лічба %(digit)s"
+
+msgid "Direction"
+msgstr "Напрамак"
+
+msgid ""
+"Disabled: no listener, discovery, reconnect or phone tray entries are active."
+msgstr ""
+"Адключана: няма актыўных слухачоў, адкрыцця, паўторнага падключэння ці "
+"запісаў у тэлефоннай скрыні."
+
+msgid "Discard"
+msgstr "Адкінуць змены"
+
+msgid "Discharging"
+msgstr "Адкінуць змены"
+
+msgid "Display"
+msgstr "Дысплей"
+
+msgid "Do not retrieve weather without a location"
+msgstr "Не атрымліваць надвор’е без месцазнаходжання"
+
+msgid "Doctor appointment"
+msgstr "Прыём у лекара"
+
+msgid "Document.pdf"
+msgstr "Document.pdf"
+
+msgid ""
+"Does this eight-character verification key match KDE Connect on %(name)s?\n"
+"\n"
+"%(code)s"
+msgstr ""
+"Ці супадае гэты васьмізначны ключ праверкі з KDE Connect на %(name)s?\n"
+"\n"
+"%(code)s"
+
+msgid "Done"
+msgstr "Гатова"
+
+msgid "Dose type"
+msgstr "Тып дозы"
+
+msgid "Download manual"
+msgstr "Спампаваць дапаможнік"
+
+msgid "Download manual version %(version)s"
+msgstr "Спампаваць дапаможнік версіі %(version)s"
+
+msgid "Download version %(version)s …"
+msgstr "Спампаваць версію %(version)s …"
+
+msgid "Drag the attachment area up or down"
+msgstr "Перацягніце вобласць далучэнняў уверх або ўніз"
+
+msgid "Drops"
+msgstr "Кроплі"
+
+msgid "Due on"
+msgstr "Тэрмін"
+
+msgid "Due on %(date)s"
+msgstr "Тэрмін %(date)s"
+
+msgid "Due: %(date)s"
+msgstr "Тэрмін: %(date)s"
+
+msgid "Duplicates"
+msgstr "Дублікаты"
+
+msgid "Duration"
+msgstr "Duration"
+
+msgid "Early shift"
+msgstr "Ранняя змена"
+
+msgid "Edit"
+msgstr "Рэдагаваць"
+
+msgid "Edit anniversary"
+msgstr "Рэдагаваць гадавіну"
+
+msgid "Edit appointment"
+msgstr "Рэдагаваць сустрэчу"
+
+msgid "Edit contact"
+msgstr "Рэдагаваць кантакт"
+
+msgid "Edit group"
+msgstr "Рэдагаваць групу"
+
+msgid "Edit notebook"
+msgstr "Рэдагаваць нататнік"
+
+msgid "Edit notebook group"
+msgstr "Рэдагаваць групу нататнікаў"
+
+msgid "Edit task"
+msgstr "Рэдагаваць заданне"
+
+msgid "Edit the website or application used"
+msgstr "Рэдагаваць выкарыстоўваны вэб-сайт або праграму"
+
+msgid "Email"
+msgstr "Электронная пошта"
+
+msgid "Email addresses"
+msgstr "Адрасы электроннай пошты"
+
+msgid "Embed"
+msgstr "Убудаваць"
+
+msgid "Embed PDF"
+msgstr "Убудаваць PDF"
+
+msgid "Embed image"
+msgstr "Убудаваць выяву"
+
+msgid "Embed links and files"
+msgstr "Убудаваць спасылкі і файлы"
+
+msgid "Embedded files"
+msgstr "Убудаваныя файлы"
+
+msgid "Emergency contact"
+msgstr "Кантакт для надзвычайных сітуацый"
+
+msgid "Emergency contact %(number)s"
+msgstr "Кантакт для надзвычайных сітуацый %(number)s"
+
+msgid "Emergency contact phone"
+msgstr "Тэлефон кантакту для надзвычайных сітуацый"
+
+msgid "Emergency contacts"
+msgstr "Кантакты для надзвычайных сітуацый"
+
+msgid "Empty recycle bin"
+msgstr "Ачысціць сметніцу"
+
+msgid "Enable"
+msgstr "Уключыць"
+
+msgid "Enable Magnolie Notes phone connection"
+msgstr "Уключыць тэлефоннае злучэнне Magnolie Notes"
+
+msgid "Enable cycle calendar"
+msgstr "Уключыць каляндар цыклу"
+
+msgid "Enable password protection"
+msgstr "Уключыць абарону паролем"
+
+msgid ""
+"Enable password protection? Your data will then be stored encrypted. Without "
+"the password, it will be irretrievably lost; keep the password in a safe "
+"place."
+msgstr ""
+"Уключыць абарону паролем? Пасля гэтага даныя будуць захоўвацца "
+"зашыфраванымі. Без пароля яны будуць незваротна страчаны; захоўвайце пароль "
+"у бяспечным месцы."
+
+msgid "Enable reminders"
+msgstr "Уключыць напаміны"
+
+msgid "Enable shift planner"
+msgstr "Уключыць планавальнік змен"
+
+msgid "Enable tray applet"
+msgstr "Уключыць аплет сістэмнага трэя"
+
+msgid "Enable vacation planner"
+msgstr "Уключыць планавальнік адпачынкаў"
+
+msgid "Enable waste collection calendar"
+msgstr "Уключыць каляндар вывазу адходаў"
+
+msgid "Enjoy getting organized!"
+msgstr "Прыемнай арганізацыі!"
+
+msgid "Enter"
+msgstr "Увесці"
+
+msgid ""
+"Enter a blood glucose value on the left to highlight matching scheme rows."
+msgstr ""
+"Увядзіце злева значэнне глюкозы ў крыві, каб вылучыць адпаведныя радкі схемы."
+
+msgid "Enter a medication name first."
+msgstr "Спачатку ўвядзіце назву лекаў."
+
+msgid "Enter a password with letters"
+msgstr "Увядзіце пароль з літарамі"
+
+msgid "Enter a reachable IPv4 or IPv6 address of this computer first."
+msgstr "Спачатку ўвядзіце даступны IPv4- або IPv6-адрас гэтага камп’ютара."
+
+msgid "Enter a title, date, or a word from the note."
+msgstr "Увядзіце назву, дату або слова з нататкі."
+
+msgid "Enter a web or email address."
+msgstr "Увядзіце вэб-адрас або адрас электроннай пошты."
+
+msgid "Enter an application command."
+msgstr "Увядзіце каманду прыкладання."
+
+msgid "Enter at least four characters for the backup password."
+msgstr "Увядзіце для пароля рэзервовай копіі не менш за чатыры знакі."
+
+msgid "Enter height and weight to calculate BMI."
+msgstr "Увядзіце рост і вагу, каб разлічыць ІМТ."
+
+msgid "Enter the archive password."
+msgstr "Увядзіце пароль архіва."
+
+msgid "Enter the password for this backup."
+msgstr "Увядзіце пароль для гэтай рэзервовай копіі."
+
+msgid ""
+"Enter your address above. No service can calculate directions without a "
+"starting point."
+msgstr ""
+"Увядзіце вышэй свой адрас. Ніводная служба не можа разлічыць маршрут без "
+"пачатковай кропкі."
+
+msgid "Entry"
+msgstr "Запіс"
+
+msgid "Errands"
+msgstr "Справы"
+
+msgid "Error"
+msgstr "Памылка"
+
+msgid "Evening"
+msgstr "Вечар"
+
+msgid "Every 12 hours"
+msgstr "Кожныя 12 гадзін"
+
+msgid "Every 6 hours"
+msgstr "Кожныя 6 гадзін"
+
+msgid "Every filled medication row requires a name."
+msgstr "У кожным запоўненым радку лекаў павінна быць назва."
+
+msgid "Every filled row requires a valid date."
+msgstr "У кожным запоўненым радку павінна быць сапраўдная дата."
+
+msgid "Everything is done - the list is empty."
+msgstr "Усё зроблена – спіс пусты."
+
+msgid "Exactly one Magnolie Notes phone must be paired."
+msgstr "Трэба спалучыць роўна адзін тэлефон Magnolie Notes."
+
+msgid "Export"
+msgstr "Экспартаваць"
+
+msgid "Export Magnolie complete archive"
+msgstr "Экспартаваць поўны архіў Magnolie"
+
+msgid "Export archive"
+msgstr "Экспарт архіва"
+
+msgid "Export failed."
+msgstr "Не ўдалося экспартаваць."
+
+msgid "Export failed: %(error)s"
+msgstr "Не ўдалося экспартаваць: %(error)s"
+
+msgid "Export is available only in the installed application."
+msgstr "Экспарт даступны толькі ва ўсталяванай праграме."
+
+msgid "Extend sharing"
+msgstr "Пашырыць агульны доступ"
+
+msgid "Failed"
+msgstr "Не атрымалася"
+
+msgid "Fasting"
+msgstr "Нашча"
+
+msgid "Female caregiver"
+msgstr "Даглядальніца"
+
+msgid "Female friend"
+msgstr "Сяброўка"
+
+msgid "Female neighbor"
+msgstr "Суседка"
+
+msgid "Female partner"
+msgstr "Партнёрка"
+
+msgid "Female relative"
+msgstr "Сваячка"
+
+msgid "Fertile days"
+msgstr "Фертыльныя дні"
+
+msgid "Fill with stored values"
+msgstr "Запоўніць захаванымі значэннямі"
+
+msgid ""
+"Finds contact cards with the same name, email address or phone number. You "
+"are asked twice before merging, and a copy of every removed card is kept in "
+"the recycle bin."
+msgstr ""
+"Знаходзіць карткі кантактаў з аднолькавым імем, адрасам электроннай пошты "
+"або нумарам тэлефона. Перад аб’яднаннем пацвярджэнне запытваецца двойчы, а "
+"копія кожнай выдаленай карткі захоўваецца ў сметніцы."
+
+msgid "Fingerprint"
+msgstr "Адбітак"
+
+msgid "Fingerprint, e.g. ABCD-1234-EF56-7890"
+msgstr "Адбітак, напр. ABCD-1234-EF56-7890"
+
+msgid "First Communion"
+msgstr "Першая камунія"
+
+msgid "First choose a calendar or address book in Settings."
+msgstr "Спачатку выберыце каляндар або адрасную кнігу ў Наладах."
+
+msgid "First collection"
+msgstr "Першы вываз"
+
+msgid "First date"
+msgstr "Першая дата"
+
+msgid "First name"
+msgstr "Імя"
+
+msgid "First name Last name"
+msgstr "Імя Прозвішча"
+
+msgid ""
+"First name Last name\n"
+"Street and house number\n"
+"Postal code City"
+msgstr ""
+"Імя Прозвішча\n"
+"Вуліца і нумар дома\n"
+"Паштовы індэкс Горад"
+
+msgid "Fixed units"
+msgstr "Фіксаваныя адзінкі"
+
+msgid "Folder selection is available only in the installed application."
+msgstr "Выбар папкі даступны толькі ва ўсталяванай праграме."
+
+msgid "Follicular phase"
+msgstr "Фалікулярная фаза"
+
+msgid "Follow up"
+msgstr "Паўторны візіт"
+
+msgid "Font size"
+msgstr "Памер шрыфту"
+
+msgid ""
+"For a direct IPv4 connection, port %(port)s may need to be forwarded by the "
+"router; CGNAT can prevent this. For IPv6, allow the port in the router and "
+"computer firewalls."
+msgstr ""
+"Для прамога злучэння IPv4 можа спатрэбіцца перанакіраваць порт %(port)s на "
+"маршрутызатары; CGNAT можа гэтаму перашкодзіць. Для IPv6 дазвольце порт у "
+"брандмаўэрах маршрутызатара і камп’ютара."
+
+msgid ""
+"For this purpose, appointments, tasks, anniversaries and the names of "
+"responsible people are kept unencrypted in a separate file readable only by "
+"you. Contacts and notes are never written to it."
+msgstr ""
+"Для гэтага сустрэчы, заданні, гадавіны і імёны адказных асоб захоўваюцца "
+"незашыфраванымі ў асобным файле, які можаце прачытаць толькі вы. Кантакты і "
+"нататкі ніколі ў яго не запісваюцца."
+
+msgid "For: %(people)s"
+msgstr "Для: %(people)s"
+
+msgid "Form"
+msgstr "Форма"
+
+msgid "Forward Secrecy"
+msgstr "Прамая сакрэтнасць (Forward Secrecy)"
+
+msgid ""
+"Found %(groups)s containing %(cards)s in total, for example:\n"
+"%(examples)s%(more)s\n"
+"\n"
+"The most complete card in each group is retained, and missing fields are "
+"filled from the others. The remaining cards are moved to the recycle bin as "
+"“Duplicates” and can be restored from there. Continue?"
+msgstr ""
+"Знойдзена %(groups)s груп, якія разам змяшчаюць %(cards)s картак, "
+"напрыклад:\n"
+"%(examples)s%(more)s\n"
+"\n"
+"У кожнай групе захоўваецца найбольш поўная картка, а адсутныя палі "
+"дапаўняюцца з іншых. Астатнія карткі перамяшчаюцца ў сметніцу як «Дублікаты» "
+"і могуць быць адтуль адноўлены. Працягнуць?"
+
+#, javascript-format
+msgid "Found – %s."
+msgstr "Знойдзена – %s."
+
+msgid "Founding day"
+msgstr "Дзень заснавання"
+
+msgid "France"
+msgstr "Францыя"
+
+msgid "Frequency"
+msgstr "Частата"
+
+msgid "Fribourg"
+msgstr "Фрыбур"
+
+msgid "Friday"
+msgstr "Пятніца"
+
+msgid "From"
+msgstr "Ад"
+
+msgid "From the Windows Contacts folder"
+msgstr "З папкі кантактаў Windows"
+
+msgid "Full"
+msgstr "Поўны"
+
+msgid "GNOME Maps"
+msgstr "GNOME Maps"
+
+msgid "GNU General Public License, version 3 or later"
+msgstr "GNU General Public License, версія 3 або навейшая"
+
+msgid "General"
+msgstr "Агульныя"
+
+msgid "General network"
+msgstr "Агульная сетка"
+
+msgid "General reference range"
+msgstr "Агульны рэферэнтны дыяпазон"
+
+msgid "Geneva"
+msgstr "Жэнева"
+
+msgid "Germany"
+msgstr "Германія"
+
+msgid "Glarus"
+msgstr "Гларус"
+
+msgid "Go to calendar"
+msgstr "Перайсці да календара"
+
+msgid "Google Maps in the browser"
+msgstr "Google Maps у браўзеры"
+
+msgid "Grisons"
+msgstr "Граўбюндэн"
+
+msgid "Group for %(notebook)s"
+msgstr "Група для %(notebook)s"
+
+msgid "HTTPS only; {wert} and {nummer} are replaced when opening."
+msgstr "Толькі HTTPS; {wert} і {nummer} замяняюцца пры адкрыцці."
+
+msgid "Hamburg"
+msgstr "Гамбург"
+
+msgid "Handle or profile address"
+msgstr "Імя карыстальніка або адрас профілю"
+
+msgid "Handwriting"
+msgstr "Рукапісны тэкст"
+
+msgid "Hang up"
+msgstr "Завяршыць выклік"
+
+msgid "Head office"
+msgstr "Галоўны офіс"
+
+msgid "Heading"
+msgstr "Загаловак"
+
+msgid "Heading, text, images, and PDF files are shared encrypted."
+msgstr "Загаловак, тэкст, выявы і PDF-файлы перадаюцца зашыфраванымі."
+
+msgid "Health"
+msgstr "Здароўе"
+
+msgid "Health history chart"
+msgstr "Графік гісторыі паказчыкаў здароўя"
+
+msgid "Health history charts"
+msgstr "Графікі гісторыі паказчыкаў здароўя"
+
+msgid "Health records"
+msgstr "Даныя пра здароўе"
+
+msgid ""
+"Health records stay in your encrypted organizer data. The section documents "
+"measurements and schedules but does not provide medical advice."
+msgstr ""
+"Даныя пра здароўе захоўваюцца ў зашыфраваных даных арганайзера. Гэты раздзел "
+"дакументуе вымярэнні і расклады, але не дае медыцынскіх рэкамендацый."
+
+msgid "Health table saved."
+msgstr "Табліца паказчыкаў здароўя захавана."
+
+msgid "Heart"
+msgstr "Сэрца"
+
+msgid "Height"
+msgstr "Рост"
+
+msgid "Here is how to find your way around:"
+msgstr "Вось як зарыентавацца:"
+
+msgid "Hesse"
+msgstr "Гесэн"
+
+msgid "Hide SMS notification after"
+msgstr "Схаваць апавяшчэнне SMS пасля"
+
+msgid "Hide in the tray when minimized"
+msgstr "Пры згортванні хаваць у сістэмны трэй"
+
+msgid "Hide internet access"
+msgstr "Схаваць доступ да Інтэрнэту"
+
+msgid "Hide past appointments"
+msgstr "Схаваць мінулыя сустрэчы"
+
+msgid "History"
+msgstr "Гісторыя"
+
+msgid "Holiday retrieval is available only in the installed application."
+msgstr "Атрыманне свят даступна толькі ва ўсталяванай праграме."
+
+msgid "Home"
+msgstr "Дом"
+
+msgid "Home address"
+msgstr "Хатні адрас"
+
+msgid "Home phone"
+msgstr "Хатні тэлефон"
+
+msgid "Home visit"
+msgstr "Хатні візіт"
+
+msgid "Hours"
+msgstr "Гадзіны"
+
+msgid "How the calendar should behave when you click a day."
+msgstr "Як каляндар павінен паводзіць сябе пры націску на дзень."
+
+msgid "Husband"
+msgstr "Муж"
+
+msgid "I"
+msgstr "Я"
+
+msgid "I would be very happy if you bought me a coffee."
+msgstr "Я буду вельмі рады, калі вы пачастуеце мяне кавай."
+
+msgid "IE"
+msgstr "IE"
+
+msgid ""
+"If the year is unknown, enter only day and month.\n"
+"No age will then be shown.\n"
+"Anniversaries appear with ✱ in the calendar and planner."
+msgstr ""
+"Калі год невядомы, увядзіце толькі дзень і месяц.\n"
+"Узрост тады не будзе паказвацца.\n"
+"Гадавіны пазначаюцца ✱ у календары і планавальніку."
+
+msgid "Image"
+msgstr "Выява"
+
+msgid "Image file"
+msgstr "Файл выявы"
+
+msgid "Import"
+msgstr "Імпарт"
+
+msgid "Import Magnolie complete archive"
+msgstr "Імпартаваць поўны архіў Magnolie"
+
+msgid "Import failed: %(error)s"
+msgstr "Не ўдалося імпартаваць: %(error)s"
+
+msgid "Import from LibreOffice"
+msgstr "Імпартаваць з LibreOffice"
+
+msgid "Import is available only in the installed application."
+msgstr "Імпарт даступны толькі ва ўсталяванай праграме."
+
+msgid "Import pairing file …"
+msgstr "Імпартаваць файл спалучэння …"
+
+msgid "Import, export and synchronization"
+msgstr "Імпарт, экспарт і сінхранізацыя"
+
+msgid ""
+"Import, export and synchronization are available only in the installed "
+"application."
+msgstr ""
+"Імпарт, экспарт і сінхранізацыя даступныя толькі ва ўсталяванай праграме."
+
+msgid ""
+"Important: Without this password, nobody can access the data, including you. "
+"Keep it in a safe place."
+msgstr ""
+"Важна: Без гэтага пароля ніхто не атрымае доступу да даных, нават вы. "
+"Захоўвайце яго ў бяспечным месцы."
+
+msgid "Imported: %(items)s."
+msgstr "Імпартавана: %(items)s."
+
+msgid ""
+"In the DIN template, these lines appear as a multiline sender block and in "
+"small type in the address window. In the compact template, they form one "
+"line above the recipient address. No sender is added if this field is empty."
+msgstr ""
+"У шаблоне DIN гэтыя радкі паказваюцца як шматрадковы блок адпраўніка і "
+"дробным шрыфтам у акне адраса. У кампактным шаблоне яны ўтвараюць адзін "
+"радок над адрасам атрымальніка. Калі поле пустое, адпраўнік не дадаецца."
+
+msgid "In the organizer%(selection)s: %(items)s%(years)s."
+msgstr "У Organizer%(selection)s: %(items)s%(years)s."
+
+msgid "In the recycle bin: %(items)s"
+msgstr "У сметніцы: %(items)s"
+
+msgid "Include anniversaries"
+msgstr "Уключыць гадавіны"
+
+msgid "Include appointments"
+msgstr "Уключыць сустрэчы"
+
+msgid "Include cycle markers"
+msgstr "Уключыць пазнакі цыклу"
+
+msgid "Include personal vacation"
+msgstr "Уключыць асабісты адпачынак"
+
+msgid "Include public holidays in year planner"
+msgstr "Уключыць дзяржаўныя святы ў гадавы планавальнік"
+
+msgid "Include school holidays"
+msgstr "Уключыць школьныя канікулы"
+
+msgid "Include school holidays in year planner"
+msgstr "Уключыць школьныя канікулы ў гадавы планавальнік"
+
+msgid "Include shifts"
+msgstr "Уключыць змены"
+
+msgid "Include waste collections"
+msgstr "Уключыць вываз адходаў"
+
+msgid "Incoming"
+msgstr "Паступае"
+
+msgid "Incoming call"
+msgstr "Уваходны званок"
+
+msgid "Input"
+msgstr "Увод"
+
+msgid "Insert link"
+msgstr "Уставіць спасылку"
+
+msgid "Installed manual version: %(version)s."
+msgstr "Усталяваная ручная версія: %(version)s."
+
+msgid "Insulin scheme"
+msgstr "Схема інсулінатэрапіі"
+
+msgid "Integrity"
+msgstr "Сумленнасць"
+
+msgid "Internet IP"
+msgstr "Інтэрнэт-IP"
+
+msgid "Internet available"
+msgstr "Інтэрнэт даступны"
+
+msgid "Interval in days"
+msgstr "Інтэрвал у днях"
+
+msgid "Italic"
+msgstr "Курсіў"
+
+msgid "Italy"
+msgstr "Італія"
+
+msgid "Juice"
+msgstr "Сок"
+
+msgid "Jura"
+msgstr "Юра"
+
+msgid "KDE Connect for SMS"
+msgstr "KDE Connect для SMS"
+
+msgid "KDE Connect for SMS is available only in the installed application."
+msgstr "KDE Connect для SMS даступны толькі ва ўсталяваным дадатку."
+
+msgid ""
+"KDE Connect is used only for SMS. It does not connect or synchronize the "
+"Magnolienbaum."
+msgstr ""
+"KDE Connect выкарыстоўваецца толькі для SMS. Ён не падключае і не "
+"сінхранізуе Magnolienbaum."
+
+msgid "KDE Connect pairing failed."
+msgstr "Збой спалучэння KDE Connect."
+
+msgid "KDE Connect phone paired."
+msgstr "Тэлефон KDE Connect спалучаны."
+
+msgid "KDE Connect port %(port)s"
+msgstr "KDE Connect порт %(port)s"
+
+msgid "Keep a troubleshooting log"
+msgstr "Захоўваць журнал ліквідацыі непаладак"
+
+msgid "LDIF address book (*.ldif)"
+msgstr "Адрасная кніга LDIF (*.ldif)"
+
+msgid "Landline"
+msgstr "Стацыянарны тэлефон"
+
+msgid "Large"
+msgstr "Вялікі"
+
+msgid "Last check failed: %(error)s"
+msgstr "Апошняя праверка не ўдалася: %(error)s"
+
+msgid "Last contact"
+msgstr "Стварыць кантакт"
+
+msgid "Last name"
+msgstr "Прозвішча"
+
+msgid "Last snapshot"
+msgstr "Апошняе фота"
+
+msgid "Last synchronized: %(date)s, %(time)s."
+msgstr "Апошняя сінхранізацыя: %(date)s, %(time)s."
+
+msgid "Late shift"
+msgstr "Позняя змена"
+
+msgid "Lead time"
+msgstr "Папярэджанне"
+
+msgid "Letter"
+msgstr "Ліст"
+
+msgid "Letter template"
+msgstr "Шаблон ліста"
+
+msgid "License"
+msgstr "Ліцэнзія"
+
+msgid "Liechtenstein"
+msgstr "Ліхтэнштэйн"
+
+msgid "Lined paper (lines on the writing sheet)"
+msgstr "Лінаваны папер (лініі на аркушы для пісьма)"
+
+msgid "Link"
+msgstr "Спасылка"
+
+msgid "Listener active"
+msgstr "папярэдне"
+
+msgid "Listener stopped"
+msgstr "Слухач спыніўся"
+
+msgid "Local calendar"
+msgstr "Лакальны каляндар"
+
+msgid "Location"
+msgstr "Месца"
+
+msgid "Location obtained from LibreOffice."
+msgstr "Месца атрымана з LibreOffice."
+
+msgid "Log opened: %(path)s"
+msgstr "Журнал адкрыты: %(path)s"
+
+msgid "Long-acting insulin"
+msgstr "Інсулін працяглага дзеяння"
+
+msgid "Loose Notes"
+msgstr "Вольныя нататкі"
+
+msgid "Lotus Organizer CSV …"
+msgstr "Lotus Organizer CSV …"
+
+msgid "Lower Austria"
+msgstr "Ніжняя Аўстрыя"
+
+msgid "Lower Saxony"
+msgstr "Ніжняя Саксонія"
+
+msgid "Lower other sounds while ringing"
+msgstr "Прыглушаць іншыя гукі падчас званка"
+
+msgid "Lucerne"
+msgstr "Люцэрн"
+
+msgid "Luxembourg"
+msgstr "Люксембург"
+
+msgid "Magnolia tree"
+msgstr "Магнолія"
+
+msgid "Magnolia weather symbols only"
+msgstr "Толькі сімвалы надвор’я Magnolie"
+
+msgid "Magnolie Notes device status"
+msgstr "Стан прылады Magnolie Notes"
+
+msgid ""
+"Magnolie Notes ended the session. The app and Organizer must use the same "
+"protocol version."
+msgstr ""
+"Magnolie Notes завяршыла сеанс. Праграма і Арганайзер павінны выкарыстоўваць "
+"аднолькавую версію пратакола."
+
+msgid "Magnolie Notes phone connection"
+msgstr "Тэлефонная сувязь Magnolie Notes"
+
+msgid ""
+"Magnolie Notes phones and KDE Connect phones are separate: the Android model "
+"name belongs to Magnolie Notes; the KDE peer name comes from KDE Connect."
+msgstr ""
+"Тэлефоны Magnolie Notes і тэлефоны KDE Connect асобныя: назва мадэлі Android "
+"належыць Magnolie Notes, а назва вузла KDE паходзіць з KDE Connect."
+
+msgid "Magnolie Organizer is not completely installed."
+msgstr "Magnolie Organizer усталяваны не цалкам."
+
+msgid ""
+"Magnolie Organizer is open-source software. There are no functional "
+"restrictions. This branding can be removed by supporting the project and "
+"then entering the activation code received by email under Settings → About."
+msgstr ""
+"Magnolie Organizer — праграмнае забеспячэнне з адкрытым зыходным кодам. "
+"Функцыянальных абмежаванняў няма. Гэтую пазнаку можна выдаліць, падтрымаўшы "
+"праект, а потым увёўшы атрыманы па электроннай пошце код актывацыі ў Налады "
+"→ Пра праграму."
+
+msgid ""
+"Magnolie SMS is no longer part of the current Magnolie Notes phone protocol."
+msgstr ""
+"Magnolie SMS больш не з'яўляецца часткай бягучага тэлефоннага пратаколу "
+"Magnolie Notes."
+
+msgid "Magnolie backup (*.json)"
+msgstr "Рэзервовая копія Magnolie (*.json)"
+
+msgid "Magnolie complete archive (.magnolie) …"
+msgstr "Поўны архіў Magnolie (.magnolie) ..."
+
+msgid "Magnolienbaum"
+msgstr "Magnolienbaum"
+
+msgid "Magnolienbaum mailbox"
+msgstr "Magnolienbaum mailbox"
+
+msgid "Magnolienbaum pairing file (*.magnolie-paarung)"
+msgstr "Файл спалучэння Magnolienbaum (*.magnolie-paarung)"
+
+msgid "Magnolienbaum quarantine:"
+msgstr "Magnolienbaum каранцін:"
+
+msgid "Magnolienbaum restart:"
+msgstr "Magnolienbaum перазапуск:"
+
+msgid "Male caregiver"
+msgstr "Даглядчык"
+
+msgid "Male friend"
+msgstr "Сябар"
+
+msgid "Male neighbor"
+msgstr "Сусед"
+
+msgid "Male partner"
+msgstr "Партнёр"
+
+msgid "Male relative"
+msgstr "Сваяк"
+
+msgid "Manage connection"
+msgstr "Кіраванне злучэннем"
+
+msgid "Manage people"
+msgstr "Кіраванне людзьмі"
+
+msgid "Manual"
+msgstr "Кіраўніцтва"
+
+msgctxt "recovery snapshot reason"
+msgid "Manual"
+msgstr "Уласнае"
+
+msgid "Manual version %(version)s is available."
+msgstr "Даступная кіраўнічая версія %(version)s."
+
+msgid "Manufacturer"
+msgstr "Вытворца"
+
+msgid "Map"
+msgstr "Карта"
+
+msgid ""
+"Map services often cannot find a street without a country. If the country is "
+"already part of the address, it is not added a second time."
+msgstr ""
+"Картаграфічныя службы часта не могуць знайсці вуліцу без пазначэння краіны. "
+"Калі краіна ўжо з’яўляецца часткай адраса, яна не дадаецца паўторна."
+
+msgid "Mark as completed"
+msgstr "Пазначыць як выкананае"
+
+msgid "Mark as open"
+msgstr "Пазначыць як адкрытае"
+
+msgid "Maximized"
+msgstr "Разгорнутае"
+
+msgid "Measurement context"
+msgstr "Кантэкст вымярэння"
+
+msgid "Mecklenburg-Western Pomerania"
+msgstr "Мекленбург-Пярэдняя Памеранія"
+
+msgid "Medication"
+msgstr "Лекі"
+
+msgid "Medication plan"
+msgstr "План прыёму лекаў"
+
+msgid "Medium (slightly larger)"
+msgstr "Сярэдні (крыху большы)"
+
+msgid "Meeting"
+msgstr "Сустрэча"
+
+msgid "Memorial day"
+msgstr "Дзень памяці"
+
+msgid "Memory available / total"
+msgstr "Даступна памяці / усяго"
+
+msgid "Merge"
+msgstr "Аб’яднаць"
+
+msgid "Merge duplicate contact cards"
+msgstr "Аб’яднаць дублікаты картак кантактаў"
+
+msgid "Merge this pair individually"
+msgstr "Аб’яднаць гэтую пару асобна"
+
+msgid "Message"
+msgstr "Паведамленне"
+
+msgid "Message text"
+msgstr "Паведамленне"
+
+msgid "Metered connection"
+msgstr "Тарыфікаванае злучэнне"
+
+msgid "Microsoft Graph has not been configured yet."
+msgstr "Microsoft Graph яшчэ не наладжаны."
+
+msgid "Microsoft configuration could not be saved: %(error)s"
+msgstr "Не ўдалося захаваць канфігурацыю Microsoft: %(error)s"
+
+msgid "Microsoft configuration saved."
+msgstr "Канфігурацыя Microsoft захавана."
+
+msgid "Microsoft sign-in completed."
+msgstr "Уваход у Microsoft завершаны."
+
+msgid "Microsoft sign-in failed: %(error)s"
+msgstr "Памылка ўваходу ў Microsoft: %(error)s"
+
+msgid "Microsoft sign-out failed: %(error)s"
+msgstr "Збой выхаду з Microsoft: %(error)s"
+
+msgid "Minimize"
+msgstr "Minimize"
+
+msgid "Minimize to the tray when closed"
+msgstr "Пры закрыцці згортваць у сістэмны трэй"
+
+msgid "Minutes"
+msgstr "Хвіліны"
+
+msgid ""
+"Missed reminders are shown after the next startup. If the computer was off "
+"or the application was closed, the organizer reports a missed appointment "
+"shortly after login and provides a button to open it. All-day appointments "
+"are treated as starting at 8 a.m. A small reminder service starts at login "
+"to check appointments in the background and continues running when you close "
+"the organizer."
+msgstr ""
+"Прапушчаныя напаміны паказваюцца пасля наступнага запуску. Калі камп’ютар "
+"быў выключаны або праграма закрыта, неўзабаве пасля ўваходу арганайзер "
+"паведаміць пра прапушчаную сустрэчу і прапануе кнопку для яе адкрыцця. "
+"Сустрэчы на ўвесь дзень лічацца такімі, што пачынаюцца а 8:00. Пры ўваходзе "
+"запускаецца невялікая служба напамінаў, якая правярае сустрэчы ў фонавым "
+"рэжыме і працягвае працаваць пасля закрыцця арганайзера."
+
+msgid ""
+"Misspelled words are marked with a red wavy underline while you type. Right-"
+"clicking a word opens a sheet with suggestions that can be applied with one "
+"click; you can add names to your personal dictionary in the same way. If the "
+"lines or suggestions are missing, install the dictionary with:  sudo apt "
+"install %(package)s"
+msgstr ""
+"Падчас набору словы з памылкамі пазначаюцца чырвоным хвалістым "
+"падкрэсліваннем. Пстрычка правай кнопкай па слове адкрывае панэль з "
+"прапановамі, якія можна прыняць адным націскам; такім жа чынам можна "
+"дадаваць імёны ў асабісты слоўнік. Калі падкрэсліванні або прапановы не "
+"паказваюцца, усталюйце слоўнік камандай:  sudo apt install %(package)s"
+
+msgid "Mobile"
+msgstr "Мабільны"
+
+msgid "Mobile network"
+msgstr "Мабільная сетка"
+
+msgid "Model"
+msgstr "Мадэль"
+
+msgid "Monday"
+msgstr "Панядзелак"
+
+msgid "Month"
+msgstr "Месяц"
+
+msgid "Month calendar"
+msgstr "Месячны каляндар"
+
+msgid "Monthly view"
+msgstr "Месячны выгляд"
+
+msgid "Monthly weekday"
+msgstr "Дзень тыдня месяца"
+
+msgid "More fields"
+msgstr "Дадатковыя палі"
+
+msgid ""
+"More than one Magnolie Notes phone is online. Disconnect all but one phone."
+msgstr ""
+"Больш за адзін тэлефон Magnolie Notes у сетцы. Адключыце ўсе тэлефоны, "
+"акрамя аднаго."
+
+msgid "Morning"
+msgstr "Раніца"
+
+msgid "Mouse wheel over times"
+msgstr "Колца мышы над часам"
+
+msgid "Move group down"
+msgstr "Перамясціць групу ўніз"
+
+msgid "Move group up"
+msgstr "Перамясціць групу ўверх"
+
+msgid "Move notebook down"
+msgstr "Перамясціць нататнік уніз"
+
+msgid "Move notebook to another group"
+msgstr "Перамясціць нататнік у іншую групу"
+
+msgid "Move notebook up"
+msgstr "Перамясціць нататнік уверх"
+
+msgid "Move the ticked entries to the wastebasket"
+msgstr "Перамясціць адзначаныя запісы ў сметніцу"
+
+msgid ""
+"Multiple Magnolie Notes phones are stored. Personal sync is blocked; remove "
+"all but one phone."
+msgstr ""
+"Захавана некалькі тэлефонаў Magnolie Notes. Асабістая сінхранізацыя "
+"заблакавана; выдаліце ўсе тэлефоны, акрамя аднаго."
+
+msgid "Multiple calendars"
+msgstr "Multiple calendars"
+
+msgid "Name"
+msgstr "Імя"
+
+msgid "Name / occasion"
+msgstr "Імя / нагода"
+
+msgid "Name day"
+msgstr "Імяніны"
+
+msgid "Name of this branch"
+msgstr "Назва гэтай галіны"
+
+msgid "Netherlands"
+msgstr "Нідэрланды"
+
+msgid "Network"
+msgstr "Network"
+
+msgid "Neuchâtel"
+msgstr "Неўшатэль"
+
+msgid "Never"
+msgstr "Ніколі"
+
+msgid "Never automatically"
+msgstr "Ніколі аўтаматычна"
+
+msgid "Never synchronized."
+msgstr "Яшчэ не сінхранізавана."
+
+msgid "New"
+msgstr "Новы"
+
+msgid "New Magnolienbaum request: %(entry)s."
+msgstr "Новы запыт Magnolienbaum: %(entry)s."
+
+msgid "New anniversary"
+msgstr "Новая гадавіна"
+
+msgid "New appointment"
+msgstr "Новая сустрэча"
+
+msgid "New backup password"
+msgstr "Новы пароль рэзервовай копіі"
+
+msgid ""
+"New backups are stored in this folder. When the field is empty, they are "
+"stored next to the data file. For any other location, the organizer requires "
+"a backup password and encrypts the copy independently of the application's "
+"password protection."
+msgstr ""
+"Новыя рэзервовыя копіі захоўваюцца ў гэтай папцы. Калі поле пустое, яны "
+"захоўваюцца побач з файлам даных. Для любога іншага месца арганайзер "
+"патрабуе пароль рэзервовай копіі і шыфруе копію незалежна ад абароны "
+"праграмы паролем."
+
+msgid "New contact"
+msgstr "Новы кантакт"
+
+msgid "New group"
+msgstr "Новая група"
+
+msgid "New notebook"
+msgstr "Новы нататнік"
+
+msgid "New notebook group"
+msgstr "Новая група нататнікаў"
+
+msgid "New page"
+msgstr "Новая старонка"
+
+msgid "New password"
+msgstr "Новы пароль"
+
+msgid "New task"
+msgstr "Новая задача"
+
+msgid "New version %(version)s is available."
+msgstr "Даступная новая версія %(version)s."
+
+msgid "Next appointment: %(title)s on %(date)s%(time)s%(notice)s"
+msgstr "Наступная сустрэча: %(title)s — %(date)s%(time)s%(notice)s"
+
+msgid "Next month"
+msgstr "Наступны месяц"
+
+msgid "Next page"
+msgstr "Наступная старонка"
+
+msgid "Next snapshot"
+msgstr "Наступны здымак"
+
+msgid "Next tab"
+msgstr "Наступная ўкладка"
+
+msgid "Next table page"
+msgstr "Наступная старонка табліцы"
+
+msgid "Next week"
+msgstr "Наступны тыдзень"
+
+msgid "Next year"
+msgstr "Наступны год"
+
+msgid "Nextcloud account"
+msgstr "Nextcloud account"
+
+msgid "Nidwalden"
+msgstr "Нідвальдэн"
+
+msgid "Night"
+msgstr "Ноч"
+
+msgid "Night shift"
+msgstr "Начная змена"
+
+msgid "No"
+msgstr "No"
+
+msgid "No Bluetooth address was selected."
+msgstr "Адрас Bluetooth выбраны не быў."
+
+msgid "No KDE Connect pairing is awaiting confirmation."
+msgstr "Ніякае спалучэнне KDE Connect не чакае пацверджання."
+
+msgid "No additional modules permitted"
+msgstr "Дадатковыя модулі не дазваляюцца"
+
+msgid ""
+"No anniversaries yet.\n"
+"Birthdays and celebrations will automatically appear in the calendar."
+msgstr ""
+"Гадавін яшчэ няма.\n"
+"Дні нараджэння і святы аўтаматычна з’явяцца ў календары."
+
+msgid "No application is registered for the attachment."
+msgstr "Ніякая заяўка на ўкладанне не зарэгістравана."
+
+msgid "No appointment is scheduled."
+msgstr "Ніводнай сустрэчы не запланавана."
+
+msgid "No calendars found."
+msgstr "Календары не знойдзены."
+
+msgid "No due date"
+msgstr "Без тэрміну"
+
+msgid "No duplicate contact cards were found."
+msgstr "Дублікаты картак кантактаў не знойдзены."
+
+msgid "No file selected"
+msgstr "Файл не выбраны"
+
+msgid "No history charts"
+msgstr "Без графікаў гісторыі паказчыкаў"
+
+msgid "No insulin dose is calculated automatically."
+msgstr "Доза інсуліну не разлічваецца аўтаматычна."
+
+msgid "No manual update check has been performed yet."
+msgstr "Пакуль яшчэ не праводзілася ручная праверка абнаўлення."
+
+msgid "No matching open task found."
+msgstr "Адпаведная адкрытая задача не знойдзена."
+
+msgid "No measurements in this period."
+msgstr "За гэты перыяд вымярэнняў няма."
+
+msgid "No notebooks"
+msgstr "Няма нататнікаў"
+
+msgid "No online Magnolie Notes phone has allowed dial requests."
+msgstr "Ні адзін інтэрнэт-тэлефон Magnolie Notes не дазваляе запыты на набор."
+
+msgid "No other branch was found."
+msgstr "Іншая галіна не знойдзена."
+
+msgid "No other branch yet. Search the network or enter an address."
+msgstr "Іншай галіны яшчэ няма. Знайдзіце яе ў сетцы або ўвядзіце адрас."
+
+msgid ""
+"No people have been added yet.\n"
+"Enter a name below."
+msgstr ""
+"Людзі яшчэ не дададзены.\n"
+"Увядзіце імя ніжэй."
+
+msgid ""
+"No people have been added yet. Use the People button above to add people "
+"responsible for tasks."
+msgstr ""
+"Людзі яшчэ не дададзены. Выкарыстайце кнопку «Людзі» ўверсе, каб дадаць "
+"адказных за задачы."
+
+msgid "No phone paired yet."
+msgstr "Задача яшчэ не звязана."
+
+msgid "No phone pairing is awaiting confirmation."
+msgstr "Спалучэнне тэлефона не чакае пацверджання."
+
+msgid "No photo"
+msgstr "Без фота"
+
+msgid "No photo selected"
+msgstr "Фота не выбрана"
+
+msgid "No public IP address was found."
+msgstr "Публічны IP-адрас не знойдзены."
+
+msgid ""
+"No regional data is retrieved without a selected canton. With “All”, each "
+"entry shows its canton and matching periods are combined."
+msgstr ""
+"Без выбранага кантона рэгіянальныя даныя не атрымліваюцца. Пры выбары «Усе» "
+"кожны запіс паказвае свой кантон, а аднолькавыя перыяды аб’ядноўваюцца."
+
+msgid ""
+"No regional data is retrieved without a selected state. With “All”, each "
+"entry shows its state and matching periods are combined."
+msgstr ""
+"Без выбранай федэральнай зямлі рэгіянальныя даныя не атрымліваюцца. Пры "
+"выбары «Усе» кожны запіс паказвае сваю зямлю, а аднолькавыя перыяды "
+"аб’ядноўваюцца."
+
+msgid "No scheme row matches this blood glucose value."
+msgstr "Ніводзін радок схемы не адпавядае гэтаму значэнню глюкозы ў крыві."
+
+msgid "No sheet is open."
+msgstr "Ніводны аркуш не адкрыты."
+
+msgid "No shift"
+msgstr "Без змены"
+
+msgid "No snapshots yet."
+msgstr "Здымкаў пакуль няма."
+
+msgid "No spam check available"
+msgstr "Праверка на спам недаступная"
+
+msgid "No suggestions found."
+msgstr "Прапановы не знойдзены."
+
+msgid "No system-paired Bluetooth device found"
+msgstr "Прылада Bluetooth, спалучаная з сістэмай, не знойдзена"
+
+msgid "No table (history only)"
+msgstr "Без табліцы (толькі дынаміка)"
+
+msgid "No task linked yet."
+msgstr "Задача яшчэ не звязана."
+
+msgid "No update check has been performed yet."
+msgstr "Праверка абнаўленняў яшчэ не выконвалася."
+
+msgid "No word was provided."
+msgstr "Слова не пазначана."
+
+msgid "None"
+msgstr "Няма"
+
+msgid "Noon"
+msgstr "Поўдзень"
+
+msgid "Normal"
+msgstr "Звычайны"
+
+msgid "North Rhine-Westphalia"
+msgstr "Паўночны Рэйн-Вестфалія"
+
+msgid ""
+"Not all systems allow waking from suspend. If it does not work, the reminder "
+"appears as soon as the computer is running again."
+msgstr ""
+"Не ўсе сістэмы падтрымліваюць абуджэнне са сну. Калі гэта не спрацуе, "
+"напамін з’явіцца, як толькі камп’ютар зноў запрацуе."
+
+msgid "Not charging"
+msgstr "без змен"
+
+msgid "Not now"
+msgstr "Не зараз"
+
+msgid "Not sent."
+msgstr "Не адпраўлена."
+
+msgid "Not signed in to Microsoft yet."
+msgstr "Яшчэ не ўвайшлі ў Microsoft."
+
+msgid "Note"
+msgstr "Нататка"
+
+msgid "Note text"
+msgstr "Тэкст нататкі"
+
+msgid "Notebook"
+msgstr "Нататнік"
+
+msgid "Notebook group"
+msgstr "Група нататнікаў"
+
+msgid "Notebooks"
+msgstr "Нататнік"
+
+msgid "Notes"
+msgstr "Нататкі"
+
+msgid "Notes and special instructions"
+msgstr "Нататкі і асаблівыя ўказанні"
+
+msgid "Nothing found."
+msgstr "Нічога не знойдзена."
+
+msgid "Nothing has been entered under “%(letter)s” yet."
+msgstr "Пад «%(letter)s» яшчэ нічога не ўведзена."
+
+msgid "Nothing is opened or sent while this option is disabled."
+msgstr ""
+"Пакуль гэты параметр выключаны, нічога не адкрываецца і не адпраўляецца."
+
+msgid "Nothing new was found."
+msgstr "Нічога новага не знойдзена."
+
+msgid "Notice: The connection to storage was not confirmed."
+msgstr "Заўвага: Злучэнне са сховішчам не пацверджана."
+
+msgid "Notification and sound"
+msgstr "Апавяшчэнне і гук"
+
+msgid "Notifications"
+msgstr "Апавяшчэнні"
+
+msgid "Notifications are available only in the installed application."
+msgstr "Апавяшчэнні даступныя толькі ва ўсталяванай праграме."
+
+msgid ""
+"Notifications are display-only; replying and remote actions are not "
+"available."
+msgstr "Апавяшчэнні даступныя толькі ва ўсталяванай праграме."
+
+msgid "Notify me about incoming calls"
+msgstr "Паведамляць пра ўваходныя званкі"
+
+msgid "ODS"
+msgstr "ODS"
+
+msgid "OK"
+msgstr "Добра"
+
+msgid "Objects"
+msgstr "Аб'екты"
+
+msgid "Obwalden"
+msgstr "Обвальдэн"
+
+msgid "Off"
+msgstr "выключана"
+
+msgid "Offline"
+msgstr "У Інтэрнэце"
+
+msgid "Ointment"
+msgstr "Мазь"
+
+msgid "One address book"
+msgstr "One address book"
+
+msgid "One backup could not be updated."
+msgid_plural "%(count)s backups could not be updated."
+msgstr[0] "Адзін рэзервовы файл не ўдалося абнавіць."
+msgstr[1] "Рэзервовыя копіі %(count)s не ўдалося абнавіць."
+msgstr[2] "Рэзервовыя копіі %(count)s не ўдалося абнавіць."
+
+msgid "One completion update was received from the Magnolienbaum."
+msgid_plural ""
+"%(count)s completion updates were received from the Magnolienbaum."
+msgstr[0] "Адно абнаўленне завяршэння было атрымана ад Magnolienbaum."
+msgstr[1] "Атрыманы абнаўленні завяршэння %(count)s ад Magnolienbaum."
+msgstr[2] "Атрыманы абнаўленні завяршэння %(count)s ад Magnolienbaum."
+
+msgid "One duplicate contact card was"
+msgid_plural "%(count)s duplicate contact cards were"
+msgstr[0] "Была адна дублікатная кантактная картка"
+msgstr[1] "дублікаты кантактных картак %(count)s былі"
+msgstr[2] "дублікаты кантактных картак %(count)s былі"
+
+msgid "One moment …"
+msgstr "Хвілінку …"
+
+msgid "One moment…"
+msgstr "Хвілінку…"
+
+msgid "One shared note was updated."
+msgid_plural "%(count)s shared notes were updated."
+msgstr[0] "Адна сумесная нататка была абноўлена."
+msgstr[1] "Абноўлены сумесна выкарыстаныя нататкі %(count)s."
+msgstr[2] "Абноўлены сумесна выкарыстаныя нататкі %(count)s."
+
+msgid "One table with chart"
+msgstr "Адна табліца з графікам"
+
+msgid "One year"
+msgstr "Адзін год"
+
+msgid "Online"
+msgstr "У Інтэрнэце"
+
+msgid ""
+"Online account integration is not available on this system. Install it "
+"with:  sudo apt install %(packages)s, then restart the application. You can "
+"also import contacts and appointments without this integration using “From "
+"this computer” above."
+msgstr ""
+"Інтэграцыя анлайн-акаўнтаў недаступная ў гэтай сістэме. Усталюйце яе "
+"камандай:  sudo apt install %(packages)s, а затым перазапусціце праграму. "
+"Кантакты і сустрэчы можна імпартаваць і без гэтай інтэграцыі праз «З гэтага "
+"камп’ютара» вышэй."
+
+msgid "Online via Bluetooth data"
+msgstr "Анлайн праз дадзеныя Bluetooth"
+
+msgid "Online via WLAN"
+msgstr "Анлайн праз Wi-Fi"
+
+msgid "Only 'Replace completely' is supported."
+msgstr "Падтрымліваецца толькі «Замяніць цалкам»."
+
+msgid ""
+"Only HTTPS. Create an app password in Nextcloud under Settings, Security. "
+"Your account password is never used."
+msgstr ""
+"Толькі HTTPS. Стварыце пароль праграмы ў Nextcloud у раздзеле «Налады», "
+"«Бяспека». Пароль вашага ўліковага запісу не выкарыстоўваецца."
+
+msgid ""
+"Only one Magnolie Notes phone can be paired. Remove the existing phone "
+"before changing devices."
+msgstr ""
+"Можна спалучыць толькі адзін тэлефон Magnolie Notes. Выдаліце існуючы "
+"тэлефон перад зменай прылады."
+
+msgid ""
+"Only the reliable system notification is available under Wayland; the "
+"Magnolie paper style would often remain invisible there."
+msgstr ""
+"У Wayland даступнае толькі надзейнае сістэмнае апавяшчэнне; папяровы стыль "
+"Magnolie там часта заставаўся б нябачным."
+
+msgid "Open"
+msgstr "Адкрыць"
+
+msgid "Open %(name)s"
+msgstr "Адкрыць %(name)s"
+
+msgid "Open %(service)s for this contact"
+msgstr "Адкрыць %(service)s для гэтага кантакту"
+
+msgid ""
+"Open KDE Connect on the phone and start pairing. Compare the eight-character "
+"verification key and confirm on both devices."
+msgstr ""
+"Адкрыйце KDE Connect на тэлефоне і пачніце спалучэнне. Параўнайце "
+"васьмізначны ключ праверкі і пацвердзіце на абедзвюх прыладах."
+
+msgid "Open Magnolie Organizer"
+msgstr "Адкрыць Magnolie Organizer"
+
+msgid "Open Magnolienbaum pairing file"
+msgstr "Адкрыць файл спалучэння Magnolienbaum"
+
+msgid "Open Microsoft sign-in page"
+msgstr "Адкрыйце старонку ўваходу ў Microsoft"
+
+msgid "Open day view for %(date)s"
+msgstr "Адкрыць дзённы выгляд для %(date)s"
+
+msgid "Open manual"
+msgstr "Адкрыць дапаможнік"
+
+msgid "Open maps with"
+msgstr "Адкрываць карты з дапамогай"
+
+msgid "Open medication index"
+msgstr "Адкрыць даведнік лекавых сродкаў"
+
+msgid "Open organizer"
+msgstr "Адкрыць арганайзер"
+
+msgid "Open phone connection in Magnolie Notes and select this computer."
+msgstr "Адкрыйце злучэнне тэлефона ў Magnolie Notes і абярыце гэты камп’ютар."
+
+msgid "Open planner as an ODS spreadsheet"
+msgstr "Адкрыць планавальнік як табліцу ODS"
+
+msgid "Open selected contacts as an ODS spreadsheet"
+msgstr "Адкрыць выбраныя кантакты як табліцу ODS"
+
+msgid "Open selected health records as an ODS spreadsheet"
+msgstr "Адкрыць выбраныя даныя пра здароўе як табліцу ODS"
+
+msgid "Open task"
+msgstr "Адкрытая"
+
+msgid "Open the day in the daily view"
+msgstr "Адкрыць дзень у дзённым выглядзе"
+
+msgid ""
+"Open the verified DEB with your software manager; the organizer never "
+"installs it automatically."
+msgstr ""
+"Адкрыйце правераны DEB з дапамогай вашага мэнэджара праграмнага "
+"забеспячэння; арганізатар ніколі не ўсталёўвае яго аўтаматычна."
+
+msgid "Open this address as a letter in LibreOffice"
+msgstr "Адкрыць гэты адрас як ліст у LibreOffice"
+
+msgid "Open this day"
+msgstr "Адкрыць гэты дзень"
+
+msgid "Open year"
+msgstr "Адкрыць год"
+
+msgid "Open year in planner"
+msgstr "Адкрыць год у планавальніку"
+
+msgid "OpenStreetMap in the browser"
+msgstr "OpenStreetMap у браўзеры"
+
+msgid "Opened in %(application)s."
+msgstr "Адкрыта ў %(application)s."
+
+msgid "Operating system"
+msgstr "Аперацыйная сістэма"
+
+msgid "Optional archive password"
+msgstr "Неабавязковы пароль для архіва"
+
+msgid "Organic waste"
+msgstr "Арганічныя адходы"
+
+msgid "Organizer"
+msgstr "Арганізатар"
+
+msgid "Organizer style (paper sheet)"
+msgstr "Стыль арганайзера (папяровы аркуш)"
+
+msgid "Organizer · Calendar · Contacts · Notes"
+msgstr "Арганайзер · Каляндар · Кантакты · Нататкі"
+
+msgid "Other"
+msgstr "Іншае"
+
+msgctxt "email type"
+msgid "Other"
+msgstr "Іншае"
+
+msgctxt "relationship"
+msgid "Other"
+msgstr "Іншае"
+
+msgid "Other addresses"
+msgstr "Іншыя адрасы"
+
+msgid "Other phone numbers"
+msgstr "Іншыя нумары тэлефонаў"
+
+msgid "Outgoing"
+msgstr "Выходны"
+
+msgid "Outlook.com / Microsoft 365"
+msgstr "Outlook.com / Microsoft 365"
+
+msgid "Ovulation"
+msgstr "Авуляцыя"
+
+msgid "Own internet IP"
+msgstr "Уласны інтэрнэт-IP"
+
+msgid "PDF file"
+msgstr "Файл PDF"
+
+msgid "Packaging / Yellow bin"
+msgstr "Упакоўка / жоўты кантэйнер"
+
+msgid "Page %(page)s"
+msgstr "Старонка %(page)s"
+
+msgid "Page %(page)s of %(count)s"
+msgstr "Старонка %(page)s з %(count)s"
+
+msgid "Pages"
+msgstr "Старонкі"
+
+msgid "Pain"
+msgstr "Боль"
+
+msgid "Pair KDE Connect phone"
+msgstr "Спалучэнне тэлефона KDE Connect"
+
+msgid "Pairing failed:"
+msgstr "Спалучэнне не атрымалася:"
+
+msgid "Pairing file"
+msgstr "Файл спалучэння"
+
+msgid "Pairing file saved to: %(path)s"
+msgstr "Файл спалучэння захаваны ў: %(path)s"
+
+msgid ""
+"Pairing was rejected cryptographically. The confirmation code, pairing code, "
+"or phone key does not match. Restart pairing on both devices."
+msgstr ""
+"Спалучэнне было адхілена крыптаграфічна. Код пацверджання, код спалучэння "
+"або ключ тэлефона не супадаюць. Перазапусціце спалучэнне на абедзвюх "
+"прыладах."
+
+msgid "Palm tree"
+msgstr "Пальма"
+
+msgid ""
+"Participate in the Magnolienbaum (opens port %(port)s on the local network)"
+msgstr ""
+"Удзельнічаць у Magnolienbaum (адкрывае порт %(port)s у лакальнай сетцы)"
+
+msgid "Partnership anniversary"
+msgstr "Гадавіна партнёрства"
+
+msgid "Password"
+msgstr "Пароль"
+
+msgid "Password or numeric code"
+msgstr "Пароль або лічбавы код"
+
+msgid "Password protection"
+msgstr "Абарона паролем"
+
+msgid "Password protection is available only in the installed application."
+msgstr "Абарона паролем даступная толькі ва ўсталяванай праграме."
+
+msgid "Password protection is enabled – your data is encrypted."
+msgstr "Абарона паролем уключана – вашы даныя зашыфраваны."
+
+msgid "Password protection is enabled. Your data is now encrypted"
+msgstr "Абарона паролем уключана. Вашы даныя цяпер зашыфраваны"
+
+msgid "Password protection was removed."
+msgstr "Абарона паролем знята."
+
+msgid "Paste"
+msgstr "Уставіць"
+
+msgid "Patch"
+msgstr "Пластыр"
+
+msgid "Pay invoice"
+msgstr "Аплаціць рахунак"
+
+msgid "Pen"
+msgstr "Шпрыц-ручка"
+
+msgid "People"
+msgstr "Людзі"
+
+msgid "Period"
+msgstr "Перыяд"
+
+msgid "Permanent KDE listener active"
+msgstr "Актыўны пастаянны слухач KDE"
+
+msgid "Permanent KDE listener stopped"
+msgstr "Пастаянны слухач KDE спынены"
+
+msgid "Permanently delete %(count)s completed task?"
+msgid_plural "Permanently delete %(count)s completed tasks?"
+msgstr[0] "Назаўсёды выдаліць %(count)s выкананую задачу?"
+msgstr[1] "Назаўсёды выдаліць %(count)s выкананыя задачы?"
+msgstr[2] "Назаўсёды выдаліць %(count)s выкананых задач?"
+
+msgid "Permanently delete %(count)s selected health record?"
+msgid_plural "Permanently delete %(count)s selected health records?"
+msgstr[0] "Назаўсёды выдаліць %(count)s выбраны запіс пра здароўе?"
+msgstr[1] "Назаўсёды выдаліць %(count)s выбраныя запісы пра здароўе?"
+msgstr[2] "Назаўсёды выдаліць %(count)s выбраных запісаў пра здароўе?"
+
+msgid "Permanently delete selected health records"
+msgstr "Назаўсёды выдаліць выбраныя запісы пра здароўе"
+
+msgid "Permanently delete the one item? This cannot be undone."
+msgid_plural "Permanently delete all %(count)s items? This cannot be undone."
+msgstr[0] "Сцерці гэты элемент назаўсёды? Гэта нельга адмяніць."
+msgstr[1] "На заўсёды выдаліць усе элементы %(count)s? Гэта нельга адмяніць."
+msgstr[2] "На заўсёды выдаліць усе элементы %(count)s? Гэта нельга адмяніць."
+
+msgid "Person"
+msgstr "Чалавек"
+
+msgid "Person's name"
+msgstr "Імя чалавека"
+
+msgid ""
+"Personal data over Magnolie Notes, not Magnolienbaum. Deletions always "
+"require confirmation."
+msgstr ""
+"Асабістыя даныя перадаюцца праз Magnolie Notes, а не праз Magnolienbaum. "
+"Далучэнні і выдаленні не сінхранізуюцца."
+
+msgid "Personal synchronization"
+msgstr "Сінхранізацыя кантактаў"
+
+msgid "Personal synchronization batches are missing."
+msgstr "Асабістыя пакеты сінхранізацыі адсутнічаюць."
+
+msgid "Personal synchronization complete. Deletions are not synchronized yet."
+msgstr "Асабістая сінхранізацыя завершана. Выдаленні пакуль не сінхранізуюцца."
+
+msgid "Personal synchronization failed."
+msgstr "Не ўдалося сінхранізаваць."
+
+msgid "Personal synchronization format 2 was not negotiated."
+msgstr "Асабісты фармат сінхранізацыі 2 не абмяркоўваўся."
+
+msgid "Personal synchronization is not permitted on both devices."
+msgstr "Персанальная сінхранізацыя не дазволена на абодвух прыладах."
+
+msgid "Phone"
+msgstr "Тэлефон"
+
+msgid "Phone battery"
+msgstr "Батарэя тэлефона"
+
+msgid "Phone call"
+msgstr "Тэлефонны званок"
+
+msgid "Phone error: %(error)s"
+msgstr "Тэлефонная памылка: %(error)s"
+
+msgid "Phone number"
+msgstr "Нумары тэлефонаў"
+
+msgid "Phone numbers"
+msgstr "Нумары тэлефонаў"
+
+msgid "Phone pairing failed."
+msgstr "Файл спалучэння"
+
+msgid "Phone “%(name)s” is securely paired."
+msgstr "«%(name)s» адноўлена."
+
+msgid "Phones"
+msgstr "Тэлефон"
+
+msgid "Photo"
+msgstr "Фота"
+
+msgid "Photo available"
+msgstr "Фота даступнае"
+
+msgid "Photo of %(name)s"
+msgstr "Фота %(name)s"
+
+msgid "Pick up"
+msgstr "Забраць"
+
+msgid "Planner"
+msgstr "Планавальнік"
+
+msgid "Please create a notebook in another group first."
+msgstr "Спачатку стварыце нататнік у іншай групе."
+
+msgid "Please enter a four-digit year from 1000 onwards."
+msgstr "Увядзіце чатырохзначны год, пачынаючы з 1000."
+
+msgid "Please enter a name."
+msgstr "Увядзіце імя."
+
+msgid "Please enter a realistic value."
+msgstr "Увядзіце рэалістычнае значэнне."
+
+msgid "Please enter a title and date for every new appointment."
+msgstr "Увядзіце назву і дату для кожнай новай сустрэчы."
+
+msgid "Please enter a title for every new task."
+msgstr "Увядзіце назву для кожнай новай задачы."
+
+msgid "Please enter a title."
+msgstr "Увядзіце назву."
+
+msgid "Please enter a website or application for the custom action."
+msgstr "Увядзіце вэб-сайт або праграму для ўласнага дзеяння."
+
+msgid "Please enter an address."
+msgstr "Увядзіце адрас."
+
+msgid "Please enter at least a name or company."
+msgstr "Увядзіце прынамсі імя або кампанію."
+
+msgid "Please enter the internet IP and fingerprint in full."
+msgstr "Увядзіце цалкам інтэрнэт-IP і адбітак."
+
+msgid "Please select a PDF file."
+msgstr "Выберыце файл PDF."
+
+msgid "Please select a date."
+msgstr "Выберыце дату."
+
+msgid "Please select a file first."
+msgstr "Спачатку выберыце файл."
+
+msgid "Please select an image file."
+msgstr "Выберыце файл выявы."
+
+msgid "Please select an image in JPEG, PNG, WebP, or GIF format."
+msgstr "Выберыце выяву ў фармаце JPEG, PNG, WebP або GIF."
+
+msgid "Please unlock"
+msgstr "Спачатку разблакіруйце"
+
+msgid "Poland"
+msgstr "Польшча"
+
+msgid "Possible duplicates among local and incoming contacts"
+msgstr "Магчымыя дублікаты сярод лакальных і ўваходных кантактаў"
+
+msgid "Possible spam"
+msgstr "Магчымы спам"
+
+msgid "Postal address"
+msgstr "Паштовы адрас"
+
+msgid "Postal code"
+msgstr "Паштовы індэкс"
+
+msgid "Postal code / city"
+msgstr "Паштовы індэкс / горад"
+
+msgid "Powder"
+msgstr "Парашок"
+
+msgid "Power source"
+msgstr "Крыніца сілкавання"
+
+msgid "Preparing Microsoft sign-in …"
+msgstr "Падрыхтоўка да ўваходу ў Microsoft..."
+
+msgid "Preview"
+msgstr "Прагляд"
+
+msgid "Preview failed."
+msgstr "Прагляд не ўдалося."
+
+msgid "Preview, print or export the year planner"
+msgstr "Папярэдні прагляд, друк або экспарт гадавога планавальніка"
+
+msgid "Preview:"
+msgstr "Папярэдні прагляд:"
+
+msgid "Previous month"
+msgstr "Папярэдні месяц"
+
+msgid "Previous page"
+msgstr "Папярэдняя старонка"
+
+msgid "Previous tab"
+msgstr "Папярэдняя ўкладка"
+
+msgid "Previous table page"
+msgstr "Папярэдняя старонка табліцы"
+
+msgid "Previous week"
+msgstr "Папярэдні тыдзень"
+
+msgid "Previous window state"
+msgstr "Папярэдні стан акна"
+
+msgid "Previous year"
+msgstr "Папярэдні год"
+
+msgid "Print"
+msgstr "Друк"
+
+msgid "Print dialog"
+msgstr "Дыялог друку"
+
+msgid "Print now"
+msgstr "Друкаваць зараз"
+
+msgid "Print preview"
+msgstr "Папярэдні прагляд друку"
+
+msgid "Print · %(title)s"
+msgstr "Друк · %(title)s"
+
+msgid "Print · Health"
+msgstr "Друк · Здароўе"
+
+msgid "Priority"
+msgstr "Прыярытэт"
+
+msgid "Priority 1 is listed first. Overdue tasks are shown in red."
+msgstr ""
+"Прыярытэт 1 паказваецца першым. Пратэрмінаваныя задачы адлюстроўваюцца "
+"чырвоным."
+
+msgid "Private"
+msgstr "Прыватнае"
+
+msgid ""
+"Private, integrity-checked snapshots are stored next to the application data."
+msgstr ""
+"Прыватныя здымкі, правераныя на цэласнасць, захоўваюцца побач з дадзенымі "
+"прыкладання."
+
+msgid "Public IPv4 or IPv6 address of the other branch"
+msgstr "Публічны адрас IPv4 або IPv6 іншай галіны"
+
+msgid ""
+"Public holidays and school holidays are governed regionally. Choose which "
+"ones apply here."
+msgstr ""
+"Дзяржаўныя святы і школьныя канікулы вызначаюцца рэгіянальна. Выберыце тыя, "
+"што прымяняюцца тут."
+
+msgid "Pulse"
+msgstr "Пульс"
+
+msgid ""
+"Pulse\n"
+"S/min"
+msgstr ""
+"Пульс\n"
+"S/min"
+
+msgid "QR code"
+msgstr "QR-код"
+
+msgid "Queue: %(open)s of %(count)s transmission awaits delivery."
+msgid_plural "Queue: %(open)s of %(count)s transmissions await delivery."
+msgstr[0] "Чарга: %(open)s з %(count)s перадачы чакае дастаўкі."
+msgstr[1] "Чарга: %(open)s з %(count)s перадачы чакаюць дастаўкі."
+msgstr[2] "Чарга: %(open)s з %(count)s перадач чакаюць дастаўкі."
+
+msgid "Queued"
+msgstr "У чарзе"
+
+msgid "Quit"
+msgstr "Выйсці"
+
+msgid "Reachable IPv4 or IPv6 address of this computer"
+msgstr "Даступны адрас IPv4 або IPv6 гэтага камп’ютара"
+
+msgid "Ready."
+msgstr "Гатова."
+
+msgid ""
+"Really merge %(cards)s? Review the result carefully afterwards. A copy of "
+"every removed card is kept in the recycle bin."
+msgstr ""
+"Сапраўды аб’яднаць %(cards)s? Пасля гэтага ўважліва праверце вынік. Копія "
+"кожнай выдаленай карткі захоўваецца ў сметніцы."
+
+msgid "Reason"
+msgstr "Прычына"
+
+msgid "Reconnect"
+msgstr "Зноў падключыцеся"
+
+msgid "Recovery snapshot created."
+msgstr "Зроблена здымак аднаўлення."
+
+msgid "Recovery snapshot deleted."
+msgstr "Здымак аднаўлення выдалены."
+
+msgid "Recovery snapshots"
+msgstr "Здымкі аднаўлення"
+
+msgid "Recycle bin"
+msgstr "Сметніца"
+
+msgid "Refresh"
+msgstr "Абнавіць"
+
+msgid "Reject"
+msgstr "Адхіліць"
+
+msgid "Reject this offer permanently?"
+msgstr "Назаўсёды адхіліць гэтую прапанову?"
+
+msgid "Related tasks"
+msgstr "Звязаныя задачы"
+
+msgid "Remind me again on the day itself"
+msgstr "Нагадаць мне яшчэ раз у сам дзень"
+
+msgid "Reminder data:"
+msgstr "Дадзеныя напамінку:"
+
+msgid "Reminder runtime:"
+msgstr "Час працы напамінку:"
+
+msgid "Reminders"
+msgstr "Напаміны"
+
+msgid ""
+"Reminders outside the application are available only in the installed "
+"version."
+msgstr "Напаміны па-за праграмай даступныя толькі ва ўсталяванай версіі."
+
+msgid "Remote host name or IP address (optional)"
+msgstr "Імя аддаленага вузла або IP-адрас (неабавязкова)"
+
+msgid "Remove"
+msgstr "Выдаліць"
+
+msgid "Remove address"
+msgstr "Выдаліць адрас"
+
+msgid "Remove all public holidays and school holidays from the organizer?"
+msgstr "Выдаліць з арганайзера ўсе дзяржаўныя святы і школьныя канікулы?"
+
+msgid "Remove appointment"
+msgstr "Выдаліць сустрэчу"
+
+msgid "Remove connection"
+msgstr "Выдаліць злучэнне"
+
+msgid "Remove email address"
+msgstr "Выдаліць адрас электроннай пошты"
+
+msgid "Remove embedded file “%(name)s”?"
+msgstr "Выдаліць убудаваны файл «%(name)s»?"
+
+msgid "Remove emergency contact"
+msgstr "Выдаліць экстранны кантакт"
+
+msgid "Remove entries"
+msgstr "Выдаліць запісы"
+
+msgid "Remove event"
+msgstr "Выдаліць падзею"
+
+msgid "Remove password protection"
+msgstr "Зняць абарону паролем"
+
+msgid ""
+"Remove password protection? Your data will then be stored unencrypted in "
+"your home directory again."
+msgstr ""
+"Зняць абарону паролем? Пасля гэтага вашы даныя зноў будуць захоўвацца "
+"незашыфраванымі ў хатнім каталогу."
+
+msgid "Remove phone connection"
+msgstr "Выдаліць злучэнне"
+
+msgid "Remove phone number"
+msgstr "Выдаліць нумар тэлефона"
+
+msgid "Remove photo"
+msgstr "Выдаліць фота"
+
+msgid "Remove social medium"
+msgstr "Выдаліць сацыяльную сетку"
+
+msgid "Remove task"
+msgstr "Выдаліць задачу"
+
+msgid "Remove the connection to “%(branch)s”?"
+msgstr "Выдаліць злучэнне з «%(branch)s»?"
+
+msgid "Remove this phone connection and its queues and permissions?"
+msgstr "Выдаліць гэтае злучэнне тэлефона разам з чэргам і дазволамі?"
+
+msgid ""
+"Remove “%(name)s”? Their tasks will be kept but will no longer be assigned "
+"to anyone."
+msgstr ""
+"Выдаліць «%(name)s»? Задачы гэтага чалавека захаваюцца, але больш не будуць "
+"нікому прызначаны."
+
+msgid ""
+"Renew KDE Connect pairing? Only KDE trust for this phone will be removed and "
+"rebuilt. Magnolie Notes, notes and chat history remain unchanged."
+msgstr ""
+"Аднавіць спалучэнне KDE Connect? Будзе выдалены і створаны нанова толькі "
+"давер KDE для гэтага тэлефона. Magnolie Notes, нататкі і гісторыя чата "
+"застануцца без змен."
+
+msgid "Renew pairing"
+msgstr "Аднавіць спалучэнне"
+
+msgid "Repeat for confirmation"
+msgstr "Паўтарыце для пацверджання"
+
+msgid "Replace completely"
+msgstr "Замяніць цалкам"
+
+msgid ""
+"Requires existing pairing in Windows Settings under Bluetooth & devices. "
+"Data only, no HFP audio."
+msgstr ""
+"Патрабуецца існуючае спараванне ў наладах Windows у раздзеле «Bluetooth і "
+"прылады». Толькі дадзеныя, без аўдыё HFP."
+
+msgid "Reset"
+msgstr "Reset"
+
+msgid "Residual waste"
+msgstr "Рэшткавыя адходы"
+
+msgid "Responsible"
+msgstr "Адказны"
+
+msgid "Restore"
+msgstr "Аднавіць"
+
+msgid "Restore backup"
+msgstr "Аднавіць рэзервовую копію"
+
+msgid "Restore backup …"
+msgstr "Аднавіць рэзервовую копію …"
+
+msgid "Restore completely"
+msgstr "Аднавіць цалкам"
+
+msgid "Restore failed."
+msgstr "Аднаўленне не ўдалося."
+
+msgid ""
+"Restore this snapshot completely? A mandatory pre-restore snapshot is "
+"created first."
+msgstr ""
+"Цалкам аднавіць гэты здымак? Спачатку ствараецца абавязковы здымак перад "
+"аднаўленнем."
+
+msgid "Restoring backups is available only in the installed application."
+msgstr "Аднаўленне рэзервовых копій даступнае толькі ва ўсталяванай праграме."
+
+msgid "Retrieval failed."
+msgstr "Не ўдалося атрымаць."
+
+msgid "Retrieve now"
+msgstr "Атрымаць зараз"
+
+msgid "Retrieve public holidays and school holidays"
+msgstr "Атрымаць дзяржаўныя святы і школьныя канікулы"
+
+msgid "Retrieved on %(date)s."
+msgstr "Атрымана %(date)s."
+
+msgid "Retrieving holidays …"
+msgstr "Атрыманне свят …"
+
+msgid "Retrieving manual download information …"
+msgstr "Атрыманне звестак для ручнога спампоўвання …"
+
+msgid "Retrieving weather…"
+msgstr "Атрыманне надвор’я…"
+
+msgid "Rhineland-Palatinate"
+msgstr "Рэйнланд-Пфальц"
+
+msgid "Route"
+msgstr "Маршрут"
+
+msgid "Route: calculate directions immediately"
+msgstr "Маршрут: адразу разлічыць напрамкі"
+
+msgid ""
+"Run the downloaded installer visibly and keep the Manual component selected."
+msgstr ""
+"Запусціце загружаны ўсталёўшчык бачна і захавайце выбар кампанента Manual."
+
+msgid "S"
+msgstr "S"
+
+msgid "SMS assignment"
+msgstr "Заданне SMS"
+
+msgid "SMS details"
+msgstr "Падрабязнасці SMS"
+
+msgid "SMS from %(name)s"
+msgstr "SMS ад %(name)s"
+
+msgid "SMS history"
+msgstr "Гісторыя SMS"
+
+msgid "SMS settings"
+msgstr "Налады SMS"
+
+msgid "SMS text was adjusted:"
+msgstr "Тэкст SMS быў скарэкціраваны:"
+
+msgid "SMS to %(name)s"
+msgstr "SMS для %(name)s"
+
+msgid "Saarland"
+msgstr "Саар"
+
+msgid "Salzburg"
+msgstr "Зальцбург"
+
+msgid "Saturday"
+msgstr "Субота"
+
+msgid "Save"
+msgstr "Захаваць"
+
+msgid "Save Magnolienbaum pairing file"
+msgstr "Захаваць файл спалучэння Magnolienbaum"
+
+msgid "Save as…"
+msgstr "Захаваць як…"
+
+msgid "Save changes"
+msgstr "Захаваць змены"
+
+msgctxt "contact action"
+msgid "Save changes"
+msgstr "Захаваць змены"
+
+msgid "Save changes?"
+msgstr "Захаваць змены?"
+
+msgid "Save endpoint"
+msgstr "Захаваць канцавы пункт"
+
+msgid "Save rejected: The data is encrypted and has not been unlocked yet."
+msgstr "Захаванне адхілена: Даныя зашыфраваныя і яшчэ не разблакіраваныя."
+
+msgid "Save your Microsoft OAuth client ID first."
+msgstr "Спачатку захавайце свой ідэнтыфікатар кліента Microsoft OAuth."
+
+msgid "Saved"
+msgstr "Захавана"
+
+msgid "Saved to: %(path)s (%(count)s entry)"
+msgid_plural "Saved to: %(path)s (%(count)s entries)"
+msgstr[0] "Захавана ў: %(path)s (%(count)s запіс)"
+msgstr[1] "Захавана ў: %(path)s (%(count)s запісы)"
+msgstr[2] "Захавана ў: %(path)s (%(count)s запісаў)"
+
+msgid "Saved ✓ %(time)s"
+msgstr "Захавана ✓ %(time)s"
+
+msgid "Saved."
+msgstr "Захавана."
+
+msgid "Saving failed!"
+msgstr "Не ўдалося захаваць!"
+
+msgid "Saving …"
+msgstr "Захаванне …"
+
+msgid "Saxony"
+msgstr "Саксонія"
+
+msgid "Saxony-Anhalt"
+msgstr "Саксонія-Ангальт"
+
+msgid "Schaffhausen"
+msgstr "Шафгаўзен"
+
+msgid "Schedule an appointment"
+msgstr "Запланаваць сустрэчу"
+
+msgid "Scheduled"
+msgstr "Запланаваны"
+
+msgid "Scheme"
+msgstr "Scheme"
+
+msgid "Schleswig-Holstein"
+msgstr "Шлезвіг-Гольштэйн"
+
+msgid "Schwyz"
+msgstr "Швіц"
+
+msgid "Screen notification only"
+msgstr "Толькі экраннае апавяшчэнне"
+
+msgid "Scrolling up makes the time earlier"
+msgstr "Пракрутка ўверх робіць час ранейшым"
+
+msgid "Scrolling up makes the time later"
+msgstr "Пракрутка ўверх робіць час пазнейшым"
+
+msgid "Search"
+msgstr "Пошук"
+
+msgid "Search local network"
+msgstr "Пошук у лакальнай сетцы"
+
+msgid "Search title, date, or note…"
+msgstr "Шукаць назву, дату або нататку…"
+
+msgid "Searching for suggestions…"
+msgstr "Пошук прапаноў…"
+
+msgid "Searching…"
+msgstr "Пошук…"
+
+msgid "Search…"
+msgstr "Пошук…"
+
+msgid "Secondary office"
+msgstr "Дадатковы офіс"
+
+msgid "Secure HTTPS address"
+msgstr "Бяспечны адрас HTTPS"
+
+msgid "Securely connected to %(branch)s."
+msgstr "Бяспечна злучана з %(branch)s."
+
+msgid "Security"
+msgstr "Бяспека"
+
+msgid "Select a country first."
+msgstr "Спачатку выберыце краіну."
+
+msgid "Select all"
+msgstr "Выбраць усё"
+
+msgid ""
+"Select an entry on the left,\n"
+"or create a contact card with New."
+msgstr ""
+"Выберыце запіс злева,\n"
+"або стварыце картку кантакту праз «Новы»."
+
+msgid "Select at least one column."
+msgstr "Выберыце прынамсі адзін слупок."
+
+msgid "Select at least one year."
+msgstr "Выберыце прынамсі адзін год."
+
+msgid "Select backup folder"
+msgstr "Выбраць папку рэзервовых копій"
+
+msgid "Select something first."
+msgstr "Спачатку нешта выберыце."
+
+msgid "Select what you want to print on the left."
+msgstr "Злева выберыце, што хочаце надрукаваць."
+
+msgid "Select your canton first or enable “All cantons”."
+msgstr "Спачатку выберыце кантон або ўключыце «Усе кантоны»."
+
+msgid "Select your state first or enable “All states”."
+msgstr "Спачатку выберыце федэральную зямлю або ўключыце «Усе землі»."
+
+msgid "Select, preview, print, export or delete health records"
+msgstr ""
+"Выбраць, прагледзець, надрукаваць, экспартаваць або выдаліць даныя пра "
+"здароўе"
+
+msgid ""
+"Selected columns that are empty for every contact are omitted automatically."
+msgstr "Выбраныя слупкі, пустыя для ўсіх кантактаў, аўтаматычна прапускаюцца."
+
+msgid "Selected notifications"
+msgstr "сістэмнае апавяшчэнне"
+
+msgid "Selection options"
+msgstr "Параметры выбару"
+
+msgid "Send SMS"
+msgstr "Адправіць SMS"
+
+msgid "Send adjusted text"
+msgstr "Адправіць скарэкціраваны тэкст"
+
+msgid "Send documents"
+msgstr "Адправіць дакументы"
+
+msgid "Send secure request"
+msgstr "Адправіць бяспечны запыт"
+
+msgid "Sent"
+msgstr "Адпраўлена"
+
+msgid "Server address"
+msgstr "Адрас сервера"
+
+msgid "Server address and user name are required."
+msgstr "Патрэбны адрас сервера і імя карыстальніка."
+
+msgid "Set varying doses by weekday"
+msgstr "Задаць розныя дозы паводле дзён тыдня"
+
+msgid "Setting up reminders …"
+msgstr "Наладжванне напамінаў …"
+
+msgid "Settings"
+msgstr "Налады"
+
+msgid "Several Magnolie Organizers can connect and securely share tasks."
+msgstr ""
+"Некалькі Magnolie Organizer могуць злучацца і бяспечна дзяліцца задачамі."
+
+msgid "Share"
+msgstr "Падзяліцца"
+
+msgid "Share address"
+msgstr "Падзяліцца адрасам"
+
+msgid "Share appointment"
+msgstr "Падзяліцца сустрэчай"
+
+msgid "Share this entry explicitly with %(branch)s?"
+msgstr "Яўна падзяліцца гэтым запісам з %(branch)s?"
+
+msgid "Share this entry explicitly with the workgroup?"
+msgstr "Яўна падзяліцца гэтым запісам з рабочай групай?"
+
+msgid "Share this entry explicitly with this branch?"
+msgstr "Яўна падзяліцца гэтым запісам з гэтай галіной?"
+
+msgid "Share together"
+msgstr "Падзяліцца разам"
+
+msgid "Shared credentials"
+msgstr "Shared credentials"
+
+msgid "Shared note"
+msgstr "Агульная нататка"
+
+msgid "Shift planner"
+msgstr "Планавальнік змен"
+
+msgid "Shopping"
+msgstr "Пакупкі"
+
+msgid "Short-acting insulin"
+msgstr "Інсулін кароткага дзеяння"
+
+msgid "Show Health after Planner"
+msgstr "Паказваць раздзел «Здароўе» пасля планіроўшчыка"
+
+msgid "Show all"
+msgstr "Паказаць усё"
+
+msgid "Show calendar button in date fields"
+msgstr "Паказваць кнопку календара ў палях даты"
+
+msgid "Show log"
+msgstr "Паказаць журнал"
+
+msgid "Show more"
+msgstr "Паказаць больш"
+
+msgid "Show preview"
+msgstr "Паказаць папярэдні прагляд"
+
+msgid "Show selected notifications (read only)"
+msgstr "Толькі экраннае апавяшчэнне"
+
+msgid "Show social media and communication icons"
+msgstr "Паказваць значкі сацсетак і сувязі"
+
+msgid "Show symbol in calendar"
+msgstr "Паказваць сімвал у календары"
+
+msgid "Show the “Letter” button (LibreOffice)"
+msgstr "Паказваць кнопку «Ліст» (LibreOffice)"
+
+msgid "Show the “Map” button"
+msgstr "Паказваць кнопку «Карта»"
+
+msgid "Show the “Selection options” button"
+msgstr "Паказваць кнопку «Параметры выбару»"
+
+msgid "Show this address on the map"
+msgstr "Паказаць гэты адрас на карце"
+
+msgid "Show today's notification count on the tray icon"
+msgstr "Паказваць колькасць сённяшніх апавяшчэнняў на значку сістэмнага трэя"
+
+msgid "Show weather for the next three days"
+msgstr "Паказаць надвор’е на наступныя тры дні"
+
+msgid "Show week numbers in the monthly view"
+msgstr "Паказваць нумары тыдняў у месячным выглядзе"
+
+msgid "Show week numbers in the planner"
+msgstr "Паказваць нумары тыдняў у планавальніку"
+
+msgid "Sign in to Microsoft"
+msgstr "Увайдзіце ў Microsoft"
+
+msgid "Sign in to Microsoft first."
+msgstr "Спачатку ўвайдзіце ў Microsoft."
+
+msgid "Sign out"
+msgstr "Выйсці"
+
+msgid "Sign-in URL: %(url)s"
+msgstr "URL для ўваходу: %(url)s"
+
+msgid "Signed in to Microsoft."
+msgstr "Выкананы ўваход у Microsoft."
+
+msgid "Signed out from Microsoft."
+msgstr "Выкананы выхад з Microsoft."
+
+msgid ""
+"Small action buttons appear on each contact card. You can hide anything you "
+"do not need here."
+msgstr ""
+"На кожнай картцы кантакту з’яўляюцца маленькія кнопкі дзеянняў. Тут можна "
+"схаваць усё непатрэбнае."
+
+msgid "Snapshot interval"
+msgstr "Інтэрвал здымкаў"
+
+msgid "Snapshot restored. The first synchronization will not send deletions."
+msgstr "Здымак адноўлены. Першая сінхранізацыя не будзе адпраўляць выдаленні."
+
+msgid "Snowman"
+msgstr "Снегавік"
+
+msgid "Social media"
+msgstr "Сацыяльныя сеткі"
+
+msgid "Social medium"
+msgstr "Сацыяльная сетка"
+
+msgid "Solothurn"
+msgstr "Залатурн"
+
+msgid "Some existing backups could not be decrypted."
+msgstr "Не ўдалося расшыфраваць некаторыя існуючыя рэзервовыя копіі."
+
+msgid "Some existing backups could not be encrypted."
+msgstr "Некаторыя існуючыя рэзервовыя копіі не могуць быць зашыфраваны."
+
+msgid "Son"
+msgstr "Сын"
+
+msgid "Sort everything alphabetically"
+msgstr "Сартаваць усё паводле алфавіта"
+
+msgid "Sorting"
+msgstr "Сартаванне"
+
+msgid "Sound only"
+msgstr "Толькі гук"
+
+msgid "Space for anything you want to remember…"
+msgstr "Месца для ўсяго, што хочацца запомніць…"
+
+msgid "Spain"
+msgstr "Іспанія"
+
+msgid "Spam check"
+msgstr "Праверка на спам"
+
+msgid "Special cases"
+msgstr "Асаблівыя выпадкі"
+
+msgid "Spray"
+msgstr "Спрэй"
+
+msgid "St. Gallen"
+msgstr "Санкт-Гален"
+
+msgid "Start automatically when signing in"
+msgstr "Аўтаматычна запускаць пры ўваходзе"
+
+msgid "Start the organizer in the tray"
+msgstr "Запускаць арганайзер у сістэмным трэі"
+
+msgid "State"
+msgstr "Федэральная зямля"
+
+msgid "Status"
+msgstr "Статус"
+
+msgid "Storage available / total"
+msgstr "Даступна ў сховішчы / усяго"
+
+msgid "Street / house number"
+msgstr "Вуліца / нумар дома"
+
+msgid "Street and house number"
+msgstr "Вуліца і нумар дома"
+
+msgid "Strength"
+msgstr "Дазаванне"
+
+msgid "Strikethrough"
+msgstr "Закрэсліванне"
+
+msgid "Styria"
+msgstr "Штырыя"
+
+msgid "Submitted"
+msgstr "Пададзена"
+
+msgid "Submitted to KDE Connect"
+msgstr "Адпраўлена ў KDE Connect"
+
+msgid "Suggestions are available only in the installed application."
+msgstr "Прапановы даступныя толькі ва ўсталяванай праграме."
+
+msgid "Sun symbol"
+msgstr "Сімвал сонца"
+
+msgid "Sunday"
+msgstr "Нядзеля"
+
+msgid "Suppository"
+msgstr "Супазіторый"
+
+msgid "Switched off."
+msgstr "Выключана."
+
+msgid "Switzerland"
+msgstr "Швейцарыя"
+
+msgid "Symbol"
+msgstr "Сімвал"
+
+msgid "Symbol and Vacation text"
+msgstr "Сімвал і тэкст «Адпачынак»"
+
+msgid "Symbol only"
+msgstr "Толькі сімвал"
+
+msgid "Symbols and temperatures"
+msgstr "Сімвалы і тэмпературы"
+
+msgid "Symbols, temperatures and description"
+msgstr "Сімвалы, тэмпературы і апісанне"
+
+msgid "Synchronization"
+msgstr "Сінхранізацыя"
+
+msgid "Synchronization completed."
+msgstr "Сінхранізацыя завершана."
+
+msgid "Synchronization failed."
+msgstr "Не ўдалося сінхранізаваць."
+
+msgid "Synchronization failed: %(error)s"
+msgstr "Не ўдалося сінхранізаваць: %(error)s"
+
+msgid ""
+"Synchronization state, pending messages and metadata for this connection "
+"will be removed. Contacts already accepted and local data remain."
+msgstr ""
+"Стан сінхранізацыі, паведамленні ў чаканні і метаданыя гэтага злучэння "
+"будуць выдалены. Ужо прынятыя кантакты і лакальныя даныя застануцца."
+
+msgid "Synchronize automatically at startup"
+msgstr "Аўтаматычна сінхранізаваць пры запуску"
+
+msgid "Synchronize contacts"
+msgstr "Сінхранізаваць кантакты"
+
+msgid "Synchronize everything"
+msgstr "Сінхранізаваць усё"
+
+msgid "Synchronize notes and notebooks"
+msgstr "Сінхранізаваць кантакты"
+
+msgid "Synchronize now"
+msgstr "Сінхранізаваць зараз"
+
+msgid "Synchronize tasks"
+msgstr "Сінхранізаваць кантакты"
+
+msgid "Synchronizing …"
+msgstr "Сінхранізацыя …"
+
+msgid "System default"
+msgstr "Сістэма па змаўчанні"
+
+msgid "System style (desktop notification)"
+msgstr "Сістэмны стыль (апавяшчэнне працоўнага стала)"
+
+msgid "System-paired phone Bluetooth address"
+msgstr "Bluetooth-адрас тэлефона, спаркаванага з сістэмай"
+
+msgid "Systolic"
+msgstr "Сісталічны"
+
+#, csharp-format
+msgid "TCP port {0} could not be opened: {1}"
+msgstr "TCP порт {0} не можа быць адкрыты: {1}"
+
+msgid "Tab %(letter)s"
+msgstr "Укладка %(letter)s"
+
+msgid "Tab %(letter)s · %(count)s"
+msgstr "Укладка %(letter)s · %(count)s"
+
+msgid "Tablet"
+msgstr "Таблетка"
+
+msgid "Tabs"
+msgstr "Укладкі"
+
+msgid "Task"
+msgstr "Задача"
+
+msgid "Tasks"
+msgstr "Задачы"
+
+msgid "Tasks (.ics)"
+msgstr "Задачы (.ics)"
+
+msgid ""
+"Tasks can be assigned to people. When printing, you can select one person's "
+"tasks for a specific period, for example each family member's weekly tasks."
+msgstr ""
+"Задачы можна прызначаць людзям. Пры друку можна выбраць задачы аднаго "
+"чалавека за пэўны перыяд, напрыклад штотыднёвыя задачы кожнага члена сям’і."
+
+msgid "Tasks for this person"
+msgstr "Задачы гэтага чалавека"
+
+msgid "Tear out page"
+msgstr "Адарваць старонку"
+
+msgid "Temperature"
+msgstr "Тэмпература"
+
+msgid "Test connection"
+msgstr "Праверыць злучэнне"
+
+msgid "Testing…"
+msgstr "Праверка …"
+
+msgid "Text color"
+msgstr "Колер тэксту"
+
+msgid "Text formatting"
+msgstr "Фарматаванне тэксту"
+
+msgid "That did not work."
+msgstr "Гэта не спрацавала."
+
+msgid "That is not correct."
+msgstr "Гэта няправільна."
+
+msgid "The %(count)s note page it contains will be moved to “%(notebook)s”."
+msgid_plural ""
+"The %(count)s note pages it contains will be moved to “%(notebook)s”."
+msgstr[0] "Старонка з нататкай %(count)s будзе перанесена ў «%(notebook)s»."
+msgstr[1] "Старонка з нататкай %(count)s будзе перанесена ў «%(notebook)s»."
+msgstr[2] "Старонка з нататкай %(count)s будзе перанесена ў «%(notebook)s»."
+
+msgid ""
+"The DIN template positions the recipient address for a window envelope, "
+"shows your address as a multiline sender block, and adds two fold marks and "
+"a punch mark."
+msgstr ""
+"Шаблон DIN размяшчае адрас атрымальніка для канверта з акенцам, паказвае ваш "
+"адрас як шматрадковы блок адпраўніка і дадае дзве пазнакі згіну і пазнаку "
+"для адтуліны."
+
+msgid "The KDE Connect device to renew is missing."
+msgstr "Адсутнічае прылада KDE Connect для абнаўлення."
+
+msgid ""
+"The KDE Connect support is built into the Organizer. Only the KDE Connect "
+"app on Android is required; no additional KDE Connect desktop program is "
+"needed."
+msgstr ""
+"Падтрымка KDE Connect убудаваная ў Арганізатар. Патрабуецца толькі праграма "
+"KDE Connect на Android; дадатковая праграма для працоўнага стала KDE Connect "
+"не патрэбна."
+
+msgid ""
+"The Lotus CSV uses the original columns VERTRAULICH, KATEGORIEN, "
+"ANFANGSDATUMZEIT, ENDDATUMZEIT, BESCHREIBUNG, KOSTENSTELLENCODE, "
+"KUNDENNUMMER and VORLAEUFIGZUSAGEN."
+msgstr ""
+"Lotus CSV выкарыстоўвае першапачатковыя слупкі VERTRAULICH, KATEGORIEN, "
+"ANFANGSDATUMZEIT, ENDDATUMZEIT, BESCHREIBUNG, KOSTENSTELLENCODE, "
+"KUNDENNUMMER і VORLAEUFIGZUSAGEN."
+
+msgid "The Magnolie Notes phone connection is switched off."
+msgstr "Тэлефонная сувязь Magnolie Notes адключана."
+
+msgid ""
+"The Magnolie manual is installed. It is best to read it through before you "
+"begin. Would you like to open it now?"
+msgstr ""
+"Дапаможнік Magnolie ўсталяваны. Лепш прачытаць яго цалкам перад пачаткам "
+"працы. Адкрыць яго зараз?"
+
+msgid "The Magnolie manual is not installed."
+msgstr "Дапаможнік Magnolie не ўсталяваны."
+
+msgid ""
+"The Magnolie manual is not installed. Version %(version)s can be downloaded "
+"now. Would you like to open the package download?"
+msgstr ""
+"Дапаможнік Magnolie не ўсталяваны. Версію %(version)s можна спампаваць "
+"зараз. Адкрыць спампоўванне пакета?"
+
+msgid "The Magnolienbaum is available only in the installed application."
+msgstr "Magnolienbaum даступны толькі ва ўсталяванай праграме."
+
+msgid "The ODS export is too large."
+msgstr "Экспарт ODS занадта вялікі."
+
+msgid "The Organizer chooses a suitable installed application."
+msgstr "Арганайзер выбірае прыдатную ўсталяваную праграму."
+
+msgid ""
+"The Windows Contacts folder is synchronized bidirectionally on the "
+"synchronization page. File imports do not modify their source files; "
+"existing entries are not added twice."
+msgstr ""
+"Папка Windows Contacts сінхранізуецца ў двух напрамках на старонцы "
+"сінхранізацыі. Імпарт файлаў не змяняе іх зыходныя файлы; існуючыя запісы не "
+"дадаюцца двойчы."
+
+msgid "The Windows entry in the update information is invalid."
+msgstr "Запіс Windows у інфармацыі аб абнаўленні несапраўдны."
+
+msgid "The address could not be opened."
+msgstr "Не ўдалося адкрыць адрас."
+
+msgid ""
+"The archive contains the complete application data. The password is "
+"optional; leaving the field empty explicitly creates an unencrypted archive."
+msgstr ""
+"У архіве знаходзяцца поўныя дадзеныя заяўкі. Пароль неабавязковы; пакіданне "
+"поля пустым відавочна стварае незашыфраваны архіў."
+
+msgid ""
+"The archive is encrypted. Enter the password to verify it completely before "
+"importing."
+msgstr ""
+"Архіў зашыфраваны. Увядзіце пароль, каб цалкам спраўдзіць яго перад імпартам."
+
+msgid "The attachment range is invalid."
+msgstr "Дыяпазон далучэння несапраўдны."
+
+msgid ""
+"The attachments are too large together. Remove some files; the combined "
+"limit is approximately 18 MB."
+msgstr ""
+"Укладанні разам занадта вялікія. Выдаліце частку файлаў; агульны ліміт "
+"складае прыкладна 18 MB."
+
+msgid ""
+"The attachments in this note are too large together. Remove some files; the "
+"combined limit is approximately 18 MB."
+msgstr ""
+"Укладанні ў гэтай нататцы разам занадта вялікія. Выдаліце частку файлаў; "
+"агульны ліміт складае прыкладна 18 MB."
+
+msgid ""
+"The background reminder service cannot read the encrypted data and remains "
+"silent outside the open organizer."
+msgstr ""
+"Фонавая служба напамінаў не можа чытаць зашыфраваныя даныя і маўчыць, калі "
+"арганайзер не адкрыты."
+
+msgid ""
+"The background reminder service may read the separate reminder data and "
+"therefore works even when the organizer is closed."
+msgstr ""
+"Фонавая служба напамінаў можа чытаць асобныя даныя напамінаў, таму працуе "
+"нават пасля закрыцця арганайзера."
+
+msgid "The backup could not be created."
+msgstr "Не ўдалося стварыць рэзервовую копію."
+
+msgid "The backup could not be restored."
+msgstr "Не ўдалося аднавіць рэзервовую копію."
+
+msgid "The backup is empty."
+msgstr "Рэзервовая копія пустая."
+
+msgid ""
+"The backup will be stored outside the local data location and is therefore "
+"always encrypted. This password will be required to restore it later:\n"
+"%(path)s"
+msgstr ""
+"Рэзервовая копія будзе захоўвацца па-за лакальным месцам даных, таму заўсёды "
+"будзе зашыфравана. Гэты пароль спатрэбіцца для яе пазнейшага аднаўлення:\n"
+"%(path)s"
+
+msgid ""
+"The button in the bottom bar opens the selection for the section you have "
+"open. From there the ticked entries can be printed, exported or moved to the "
+"wastebasket."
+msgstr ""
+"Кнопка на ніжняй панэлі адкрывае выбар для бягучага раздзела. Адтуль "
+"адзначаныя запісы можна друкаваць, экспартаваць або перамяшчаць у сметніцу."
+
+msgid "The call is no longer active or has been updated."
+msgstr "Выклік больш не актыўны або абноўлены."
+
+msgid "The call is no longer active."
+msgstr "Выклік больш не актыўны."
+
+msgid "The call is no longer ringing or is outdated."
+msgstr "Выклік больш не гучыць або састарэў."
+
+msgid "The call is no longer ringing."
+msgstr "Званок больш не гучыць."
+
+msgid "The clipboard is empty."
+msgstr "Буфер абмену пусты."
+
+msgid ""
+"The command is started safely without a shell. Use {nummer} for the selected "
+"number."
+msgstr ""
+"Каманда бяспечна запускаецца без каманднай абалонкі. Выкарыстоўвайце "
+"{nummer} для выбранага нумара."
+
+msgid "The complete archive cannot be used."
+msgstr "Поўны архіў нельга выкарыстоўваць."
+
+msgid "The complete archive could not be verified."
+msgstr "Поўны архіў не ўдалося праверыць."
+
+msgid "The complete archive is empty."
+msgstr "Поўны архіў пусты."
+
+msgid "The complete file is stored in this note (up to 8 megabytes)."
+msgstr "У гэтай нататцы захоўваецца ўвесь файл (да 8 мегабайтаў)."
+
+msgid "The connection to the phone was interrupted during pairing."
+msgstr "Злучэнне з тэлефонам было перапынена падчас спалучэння."
+
+msgid "The contact is missing."
+msgstr "Кантакт адсутнічае."
+
+msgid "The content is missing."
+msgstr "Змест адсутнічае."
+
+msgid "The contributor key is invalid."
+msgstr "Ключ удзельніка несапраўдны."
+
+msgid ""
+"The current data will be backed up first and then completely replaced with "
+"this file:\n"
+"%(path)s"
+msgstr ""
+"Бягучыя даныя спачатку будуць зарэзерваваны, а затым цалкам заменены гэтым "
+"файлам:\n"
+"%(path)s"
+
+msgid "The current organizer data is incomplete."
+msgstr "Бягучыя даныя арганайзера няпоўныя."
+
+msgid "The data is invalid."
+msgstr "Дадзеныя несапраўдныя."
+
+msgid "The data is not a JSON object."
+msgstr "Даныя не з’яўляюцца аб’ектам JSON."
+
+msgid "The destination could not be opened."
+msgstr "Не ўдалося адкрыць пункт прызначэння."
+
+msgid "The download address is not permitted for this platform."
+msgstr "Адрас загрузкі недапушчальны для гэтай платформы."
+
+msgid "The end date cannot be before the start date."
+msgstr "Дата заканчэння не можа быць ранейшай за дату пачатку."
+
+msgid "The export data is missing."
+msgstr "Экспартныя даныя адсутнічаюць."
+
+msgid "The file could not be read."
+msgstr "Не ўдалося прачытаць файл."
+
+msgid "The file has an unsupported format."
+msgstr "Файл мае непадтрыманы фармат."
+
+msgid "The file is larger than 8 megabytes."
+msgstr "Файл большы за 8 мегабайтаў."
+
+msgid ""
+"The helper frame marks the control that currently has keyboard focus. This "
+"makes it easier to operate the Organizer with Tab, arrow keys, Enter and "
+"Space. Ctrl+Alt+H switches the frame on or off at any time."
+msgstr ""
+"Дапаможная рамка пазначае элемент кіравання, які цяпер мае фокус клавіятуры. "
+"Гэта палягчае кіраванне Organizer праз Tab, клавішы са стрэлкамі, Enter і "
+"прабел. Ctrl+Alt+H у любы момант уключае або выключае рамку."
+
+msgid "The holidays were imported."
+msgstr "Святы імпартаваны."
+
+msgid "The holidays were removed."
+msgstr "Святы выдалены."
+
+msgid "The import file is larger than 32 megabytes."
+msgstr "Файл імпарту большы за 32 мегабайты."
+
+msgid ""
+"The information is retrieved once from the open directory openholidaysapi."
+"org and then kept in the organizer. The application therefore needs an "
+"internet connection only once."
+msgstr ""
+"Інфармацыя адзін раз атрымліваецца з адкрытага каталога openholidaysapi.org "
+"і потым захоўваецца ў арганайзеры. Таму праграме патрэбнае злучэнне з "
+"Інтэрнэтам толькі адзін раз."
+
+msgid "The last notebook cannot be deleted."
+msgstr "Апошні нататнік нельга выдаліць."
+
+msgid "The last notebook group cannot be deleted."
+msgstr "Апошнюю групу нататнікаў нельга выдаліць."
+
+msgid "The letter was created but could not be opened."
+msgstr "Ліст быў створаны, але не можа быць адкрыты."
+
+msgid "The locked data cannot be backed up."
+msgstr "Немагчыма стварыць рэзервовую копію заблакіраваных даных."
+
+msgid "The log could not be opened."
+msgstr "Не ўдалося адкрыць журнал."
+
+msgid "The log folder could not be opened."
+msgstr "Не ўдалося адкрыць папку часопіса."
+
+msgid "The log is available only in the installed application."
+msgstr "Журнал даступны толькі ва ўсталяванай праграме."
+
+msgid ""
+"The log records when the reminder service checked and what it reported. "
+"Entries older than 30 days are removed automatically, and the log never "
+"exceeds 200 lines."
+msgstr ""
+"Журнал запісвае, калі служба напамінаў выконвала праверку і што паведамляла. "
+"Запісы старэйшыя за 30 дзён аўтаматычна выдаляюцца, а журнал ніколі не "
+"перавышае 200 радкоў."
+
+msgid "The mailbox is reachable."
+msgstr "Скрыня даступная."
+
+msgid "The manual could not be opened."
+msgstr "Не ўдалося адкрыць дапаможнік."
+
+msgid "The manual download is available only in the installed application."
+msgstr "Спампоўванне дапаможніка даступнае толькі ва ўсталяванай праграме."
+
+msgid "The manual download request is no longer valid."
+msgstr "Запыт на ручное спампаванне больш не дзейнічае."
+
+msgid "The manual is installed; its version is unknown."
+msgstr "Кіраўніцтва ўсталявана; яго версія невядомая."
+
+msgid "The manual is up to date."
+msgstr "Інструкцыя абноўленая."
+
+msgid "The manual package checksum does not match."
+msgstr "Праверка кантрольнай сумы рэжымнага пакета не супадае."
+
+msgid "The manual package could not be opened."
+msgstr "Не ўдалося адкрыць пакет дапаможніка."
+
+msgid "The manual package is unexpectedly large."
+msgstr "Рукапісьны пакет нечакана вялікі."
+
+msgid "The manual update check failed."
+msgstr "Ручная праверка абнаўлення не ўдалася."
+
+msgid "The manual update information is invalid."
+msgstr "Інфармацыя аб ручным абнаўленні недапушчальная."
+
+msgid "The manual update information is missing."
+msgstr "Інфармацыя аб абнаўленні ўручную адсутнічае."
+
+msgid "The offered entry is incomplete."
+msgstr "Прапанаваны запіс няпоўны."
+
+msgid "The organizer is not currently reminding you about appointments."
+msgstr "Арганайзер цяпер не нагадвае вам пра сустрэчы."
+
+msgid ""
+"The organizer notifies you before an appointment begins, even when the "
+"application is not open if you wish."
+msgstr ""
+"Арганайзер апавяшчае вас да пачатку сустрэчы, а пры жаданні — нават калі "
+"праграма не адкрыта."
+
+msgid "The package could not be opened."
+msgstr "Не ўдалося адкрыць пакет."
+
+msgid "The pairing file could not be processed."
+msgstr "Не ўдалося апрацаваць файл спалучэння."
+
+msgid "The pairing file is damaged."
+msgstr "Файл спалучэння пашкоджаны."
+
+msgid "The pairing file is empty."
+msgstr "Файл спалучэння пусты."
+
+msgid "The pairing file is too large."
+msgstr "Файл спалучэння занадта вялікі."
+
+msgid "The password must contain at least four characters."
+msgstr "Пароль павінен змяшчаць не менш за чатыры сімвалы."
+
+msgid ""
+"The permanent KDE listener cannot start because PyOpenSSL is unavailable."
+msgstr ""
+"Пастаянны праслухоўшчык KDE не можа запусціцца, таму што PyOpenSSL "
+"недаступны."
+
+msgid ""
+"The permanent KDE listener cannot start because UDP port 1716 is already in "
+"use."
+msgstr ""
+"Пастаянны праслухоўшчык KDE не можа запусціцца, таму што порт UDP 1716 ужо "
+"выкарыстоўваецца."
+
+msgid ""
+"The permanent KDE listener cannot start because no TCP port from 1716 to "
+"1764 is available."
+msgstr ""
+"Пастаянны праслухоўшчык KDE не можа запусціцца, таму што недаступны порт TCP "
+"з 1716 на 1764."
+
+msgid "The permanent KDE listener has not started yet."
+msgstr "Пастаянны праслухоўшчык KDE яшчэ не запушчаны."
+
+msgid "The permanent KDE listener is stopped."
+msgstr "Пастаянны праслухоўшчык KDE спынены."
+
+msgid "The permanent personal synchronization commit was rejected."
+msgstr "Пастаяннае асабістае фіксаванне сінхранізацыі было адхілена."
+
+msgid "The personal synchronization attachment identity does not match."
+msgstr "Ідэнтыфікатар асабістага ўкладання для сінхранізацыі не супадае."
+
+msgid "The personal synchronization attachment source is incomplete."
+msgstr "Крыніца персанальнага далучэння сінхранізацыі няпоўная."
+
+msgid "The personal synchronization attachment sources are incomplete."
+msgstr "Крыніцы асабістых далучэнняў сінхранізацыі няпоўныя."
+
+msgid "The personal synchronization batch was not saved permanently."
+msgstr "Персанальны пакет сінхранізацыі не быў захаваны канчаткова."
+
+msgid "The personal synchronization commit could not be confirmed."
+msgstr "Не ўдалося пацвердзіць персанальную фіксацыю сінхранізацыі."
+
+msgid "The personal synchronization commit token is missing."
+msgstr "Адсутнічае асабісты маркер фіксацыі сінхранізацыі."
+
+msgid "The personal synchronization request is missing."
+msgstr "Адсутнічае асабісты запыт сінхранізацыі."
+
+msgid "The personal synchronization result is invalid."
+msgstr "Персанальны вынік сінхранізацыі несапраўдны."
+
+msgid "The personal synchronization run does not match."
+msgstr "Персанальны запуск сінхранізацыі не супадае."
+
+msgid "The personal synchronization run has expired."
+msgstr "Перыяд асабістай сінхранізацыі скончыўся."
+
+msgid "The phone connection is available only in the installed application."
+msgstr "Выбар папкі даступны толькі ва ўсталяванай праграме."
+
+msgid "The phone function is not permitted or available."
+msgstr "Функцыя тэлефона не дазволена або недаступная."
+
+msgid "The phone is not connected via WLAN."
+msgstr "Тэлефон не падключаны праз WLAN."
+
+msgid "The phone is not paired."
+msgstr "Тэлефон не спалучаны."
+
+msgid "The phone is reachable, but its KDE Connect trust no longer matches."
+msgstr "Тэлефон даступны, але яго давер KDE Connect больш не супадае."
+
+msgid "The phone operation failed."
+msgstr "Тэлефонная аперацыя не атрымалася."
+
+msgid ""
+"The phone sent a message unknown to this phone protocol. Organizer and "
+"Magnolie Notes must use the same protocol version."
+msgstr ""
+"Тэлефон адправіў паведамленне, невядомае для гэтага тэлефоннага пратакола. "
+"Арганізатар і Magnolie Notes павінны выкарыстоўваць адну і тую ж версію "
+"пратаколу."
+
+msgid "The phone settings are damaged."
+msgstr "Налады тэлефона пашкоджаны."
+
+msgid "The phone was not specified."
+msgstr "Тэлефон не ўказаны."
+
+msgid "The photo could not be read."
+msgstr "Не ўдалося прачытаць фота."
+
+msgid "The photo is larger than 8 megabytes."
+msgstr "Фота большае за 8 мегабайтаў."
+
+msgid "The port must be between 1 and 65535."
+msgstr "Порт павінен быць ад 1 да 65535."
+
+msgid "The public address could not be determined."
+msgstr "Не ўдалося вызначыць публічны адрас."
+
+msgid "The recovery snapshot reason is invalid."
+msgstr "Прычына здымка аднаўлення несапраўдная."
+
+msgid "The recycle bin is empty."
+msgstr "Сметніца пустая."
+
+msgid "The recycle bin was emptied."
+msgstr "Сметніца ачышчана."
+
+msgid "The required recovery snapshot could not be created."
+msgstr "Не ўдалося стварыць неабходны здымак аднаўлення."
+
+msgid ""
+"The same code must appear on both computers:\n"
+"\n"
+"%(code)s\n"
+"\n"
+"Other branch: %(branch)s\n"
+"Fingerprint: %(fingerprint)s\n"
+"\n"
+"Does the code match?"
+msgstr ""
+"На абодвух камп’ютарах павінен з’явіцца аднолькавы код:\n"
+"\n"
+"%(code)s\n"
+"\n"
+"Іншая галіна: %(branch)s\n"
+"Адбітак: %(fingerprint)s\n"
+"\n"
+"Код супадае?"
+
+msgid "The save request is invalid."
+msgstr "Запыт на захаванне несапраўдны."
+
+msgid "The selected contacts contain no values for these columns."
+msgstr "Выбраныя кантакты не змяшчаюць значэнняў для гэтых слупкоў."
+
+msgid "The selected health records contain no printable values."
+msgstr ""
+"Выбраныя даныя пра здароўе не змяшчаюць значэнняў, прыдатных для друку."
+
+msgid ""
+"The server operator can see the account, folder and file names, sizes and "
+"times of your messages."
+msgstr ""
+"Аператар сервера бачыць уліковы запіс, назвы тэчак і файлаў, памеры і час "
+"вашых паведамленняў."
+
+msgid ""
+"The sheet appears at the edge of the screen, accompanied by the Magnolie "
+"chime."
+msgstr "Аркуш з’яўляецца каля краю экрана разам з гукам Magnolie."
+
+msgid ""
+"The small uniform icons open an installed application when possible. "
+"Otherwise, a secure web service is used in the browser."
+msgstr ""
+"Невялікія аднолькавыя значкі адкрываюць усталяваную праграму, калі гэта "
+"магчыма. Інакш у браўзеры выкарыстоўваецца бяспечная вэб-служба."
+
+msgid "The snapshot operation failed."
+msgstr "Аперацыя здымак не ўдалася."
+
+msgid "The spreadsheet was created but could not be opened."
+msgstr "Электронная табліца была створана, але не можа быць адкрыта."
+
+msgid "The start date must not be after the end date."
+msgstr "Дата пачатку не можа быць пазнейшай за дату заканчэння."
+
+msgid "The synchronization data is missing."
+msgstr "Дадзеныя сінхранізацыі адсутнічаюць."
+
+msgid "The system dialer opens on the phone. Confirm the call there."
+msgstr "На тэлефоне адкрываецца сістэмны дазвон. Пацвердзіце званок там."
+
+msgid ""
+"The task will be sent to the selected branch. It will also remain here so "
+"you can keep track of it."
+msgstr ""
+"Задача будзе адпраўлена выбранай галіне. Яна таксама застанецца тут, каб вы "
+"маглі сачыць за ёй."
+
+msgid ""
+"The traffic-light colors are general reference ranges for adults, not a "
+"diagnosis. Check abnormal readings and discuss them with a doctor; seek "
+"immediate medical help for severe symptoms."
+msgstr ""
+"Колеры святлафора абазначаюць агульныя рэферэнтныя дыяпазоны для дарослых, а "
+"не дыягназ. Праверце паказчыкі, што выходзяць за межы нормы, і абмяркуйце іх "
+"з лекарам; пры цяжкіх сімптомах неадкладна звярніцеся па медыцынскую "
+"дапамогу."
+
+msgid "The tray applet is not available on this system."
+msgstr "Аплет сістэмнага трэя недаступны ў гэтай сістэме."
+
+msgid "The two entries do not match."
+msgstr "Два запісы не супадаюць."
+
+msgid "The two new passwords do not match."
+msgstr "Два новыя паролі не супадаюць."
+
+msgid "The update check failed."
+msgstr "Не ўдалося праверыць абнаўленні."
+
+msgid "The update information is unexpectedly large."
+msgstr "Звесткі пра абнаўленне нечакана вялікія."
+
+msgid "The user data could not be read."
+msgstr "Не ўдалося прачытаць даныя карыстальніка."
+
+msgid "The value is outside the general green reference range."
+msgstr ""
+"Значэнне знаходзіцца па-за межамі агульнага зялёнага рэферэнтнага дыяпазону."
+
+msgid "The verified installer could not be opened."
+msgstr "Не ўдалося адкрыць правераную праграму ўстаноўкі."
+
+msgid ""
+"The weather service estimated the location from your public IP address. Your "
+"own address in Contacts provides a more precise location."
+msgstr ""
+"Служба надвор’я прыблізна вызначыла месца паводле вашага публічнага IP-"
+"адраса. Ваш уласны адрас у Кантактах дае больш дакладнае месца."
+
+msgid "The weather service returned no forecast."
+msgstr "Служба надвор’я не вярнула прагнозу."
+
+msgid ""
+"The year calendar shows all twelve months; the month calendar provides more "
+"room for entries."
+msgstr ""
+"Гадавы каляндар паказвае ўсе дванаццаць месяцаў; месячны каляндар дае больш "
+"месца для запісаў."
+
+msgid "There are no entries to export yet."
+msgstr "Пакуль няма запісаў для экспарту."
+
+msgid "There are no entries."
+msgstr "Запісаў няма."
+
+msgid "There are no holidays in the organizer for this selection yet."
+msgstr "Для гэтага выбару ў арганайзеры яшчэ няма свят."
+
+msgid "There are no saved entries on this page."
+msgstr "На гэтай старонцы няма захаваных запісаў."
+
+msgid "There are too many personal synchronization attachments."
+msgstr "Ёсць занадта шмат персанальных укладанняў сінхранізацыі."
+
+msgid "There is no notebook in this group yet."
+msgstr "У гэтай групе яшчэ няма нататніка."
+
+msgid ""
+"There is nothing scheduled in this period.\n"
+"Click a day on the left to add an appointment."
+msgstr ""
+"У гэтым перыядзе нічога не запланавана.\n"
+"Націсніце дзень злева, каб дадаць сустрэчу."
+
+msgid "There is nothing to print."
+msgstr "Няма чаго друкаваць."
+
+msgid ""
+"These options require the matching permissions in Magnolie Notes. Call audio "
+"is not sent over the Magnolie data connection."
+msgstr ""
+"Для гэтых параметраў патрэбныя адпаведныя дазволы ў Magnolie Notes. Гук "
+"званка не перадаецца праз злучэнне даных Magnolie."
+
+msgid "This address can be selected and copied."
+msgstr "Гэты адрас можна выбраць і скапіяваць."
+
+msgid "This answer request has already been queued."
+msgstr "Гэты запыт на адказ ужо пастаўлены ў чаргу."
+
+msgid "This appointment will appear every %(weekday)s."
+msgstr "Гэта сустрэча будзе з’яўляцца кожны %(weekday)s."
+
+msgid "This appointment will appear every day."
+msgstr "Гэтая сустрэча будзе паказвацца штодня."
+
+msgid "This appointment will appear every year on %(month)s %(day)s."
+msgstr "Гэта сустрэча будзе з’яўляцца штогод %(day)s %(month)s."
+
+msgid ""
+"This appointment will appear on day %(day)s of every month. In shorter "
+"months, it moves to the last day."
+msgstr ""
+"Гэта сустрэча будзе з’яўляцца %(day)s-га дня кожнага месяца. У карацейшых "
+"месяцах яна пераносіцца на апошні дзень."
+
+msgid "This backup cannot be used."
+msgstr "Гэтую рэзервовую копію нельга выкарыстаць."
+
+msgid ""
+"This choice also determines how names appear on contact cards and under "
+"which letter they are filed in the index."
+msgstr ""
+"Гэты выбар таксама вызначае, як імёны адлюстроўваюцца на картках кантактаў і "
+"пад якой літарай яны ўпарадкоўваюцца ў паказальніку."
+
+msgid "This dial request has already been queued."
+msgstr "Гэты запыт на дазвон ужо пастаўлены ў чаргу."
+
+msgid "This end-call request has already been queued."
+msgstr "Гэты запыт завяршэння выкліку ўжо пастаўлены ў чаргу."
+
+msgid "This export format is not yet available on Windows."
+msgstr "Гэты фармат экспарту яшчэ недаступны на Windows."
+
+msgid "This image format cannot be used."
+msgstr "Гэты фармат выявы нельга выкарыстаць."
+
+msgid "This import format is not yet available on Windows."
+msgstr "Гэты фармат імпарту яшчэ недаступны на Windows."
+
+msgid "This is available only in the installed application."
+msgstr "Гэта даступна толькі ва ўсталяванай праграме."
+
+msgid "This is how the organizer reminds you about an appointment."
+msgstr "Так арганайзер нагадвае вам пра сустрэчу."
+
+msgid ""
+"This is how your notes look: <b>bold</b>, <i>italic</i>, <u>underlined</u> "
+"and <s>struck through</s>."
+msgstr ""
+"Так выглядаюць вашы нататкі: <b>тлусты</b>, <i>курсіўны</i>, <u>падкрэслены</"
+"u> і <s>закрэслены</s> тэкст."
+
+msgid ""
+"This is one occurrence of a recurring appointment. Changes apply to all "
+"occurrences in this series."
+msgstr ""
+"Гэта адзін выпадак паўтаральнай сустрэчы. Змены прымяняюцца да ўсіх выпадкаў "
+"гэтай серыі."
+
+msgid ""
+"This is only the encrypted Magnolienbaum fallback for baum-1. It does not "
+"synchronize calendars or contacts. Both partners need access to the same "
+"Nextcloud storage."
+msgstr ""
+"Гэта толькі зашыфраваны запасны шлях Magnolienbaum для baum-1. Ён не "
+"сінхранізуе календары або кантакты. Абодва партнёры павінны мець доступ да "
+"аднаго сховішча Nextcloud."
+
+msgid ""
+"This leaves time to get something, followed by another reminder on the day "
+"itself. For example: “Max Mustermann has a birthday tomorrow” and the next "
+"day “Max Mustermann has a birthday today”. Anniversary reminders are shown "
+"in the morning."
+msgstr ""
+"Так застаецца час нешта падрыхтаваць, а ў сам дзень прыходзіць яшчэ адзін "
+"напамін. Напрыклад: «У Max Mustermann заўтра дзень нараджэння», а наступнага "
+"дня — «У Max Mustermann сёння дзень нараджэння». Напаміны пра гадавіны "
+"паказваюцца раніцай."
+
+msgid "This notebook is still empty."
+msgstr "Гэты нататнік усё яшчэ пусты."
+
+msgid "This paired phone is my own device"
+msgstr "Гэты спараны тэлефон з'яўляецца маёй уласнай прыладай"
+
+msgid "This person's anniversaries"
+msgstr "Гадавіны гэтага чалавека"
+
+msgid ""
+"This program is free software: you may redistribute and modify it. It is "
+"published in the hope that it will be useful, but without any warranty."
+msgstr ""
+"Гэта бясплатная праграма: вы можаце распаўсюджваць і змяняць яе. Ён "
+"апублікаваны ў надзеі, што будзе карысным, але без якіх-небудзь гарантый."
+
+msgid "This setting applies when you restore the window from the tray menu."
+msgstr ""
+"Гэты параметр прымяняецца, калі вы аднаўляеце акно з меню сістэмнага трэя."
+
+msgid "This status comes from Magnolie Notes, not KDE Connect."
+msgstr "Гэты стан паходзіць з Magnolie Notes, а не з KDE Connect."
+
+msgid ""
+"This system did not allow waking from suspend. The reminder will appear as "
+"soon as the computer is running again."
+msgstr ""
+"Гэта сістэма не дазволіла абуджэнне са сну. Напамін з’явіцца, як толькі "
+"камп’ютар зноў запрацуе."
+
+msgid "This task came from “%(branch)s”."
+msgstr "Гэта задача прыйшла з «%(branch)s»."
+
+msgid "Through"
+msgstr "Да"
+
+msgid "Thurgau"
+msgstr "Тургау"
+
+msgid "Thuringia"
+msgstr "Цюрынгія"
+
+msgid "Thursday"
+msgstr "Чацвер"
+
+msgid "Thyroid"
+msgstr "Шчытападобная залоза"
+
+msgid "Ticino"
+msgstr "Тычына"
+
+msgid "Time"
+msgstr "Час"
+
+msgid "Title"
+msgstr "Назва"
+
+msgid "To"
+msgstr "Да"
+
+msgid ""
+"To change it, enter only the new password; the organizer is already unlocked."
+msgstr ""
+"Каб змяніць яго, увядзіце толькі новы пароль; арганайзер ужо разблакіраваны."
+
+msgid "Today"
+msgstr "Сёння"
+
+msgid "Today is %(date)s"
+msgstr "Сёння %(date)s"
+
+msgid "Tomorrow"
+msgstr "Заўтра"
+
+msgid "Too many failed attempts – wait %(duration)s."
+msgstr "Занадта шмат няўдалых спроб – пачакайце %(duration)s."
+
+msgid "Too many failed attempts. Wait a moment."
+msgstr "Занадта шмат няўдалых спроб. Крыху пачакайце."
+
+msgid "Tray applet"
+msgstr "Аплет сістэмнага трэя"
+
+msgid "Trust and accept tasks and notes automatically"
+msgstr "Давяраць і аўтаматычна прымаць задачы і нататкі"
+
+msgid "Tuesday"
+msgstr "Аўторак"
+
+msgid "Turn back"
+msgstr "Назад"
+
+msgid "Turn forward"
+msgstr "Наперад"
+
+msgid "Two days back"
+msgstr "На два дні назад"
+
+msgid "Two days forward"
+msgstr "На два дні наперад"
+
+msgid "Type"
+msgstr "Тып"
+
+msgid "Typeface"
+msgstr "Гарнітура"
+
+msgid "Typography"
+msgstr "Тыпаграфіка"
+
+msgid "Typography for your entries"
+msgstr "Тыпаграфіка вашых запісаў"
+
+msgid "Tyrol"
+msgstr "Ціроль"
+
+msgid "U"
+msgstr "U"
+
+msgid "URI"
+msgstr "URI"
+
+msgid "Unavailable"
+msgstr "Unavailable"
+
+msgid ""
+"Under Wayland, the compositor determines the exact window position; "
+"centering and maximizing are passed on as requests."
+msgstr ""
+"У Wayland дакладнае становішча акна вызначае кампазітар; цэнтраванне і "
+"разгортванне перадаюцца толькі як запыты."
+
+msgid "Underline"
+msgstr "Падкрэсліванне"
+
+msgid "Unit"
+msgstr "Адзінка"
+
+msgid "Unknown"
+msgstr "Невядомы"
+
+msgid "Unknown caller"
+msgstr "Невядомы абанент"
+
+msgid "Unknown error"
+msgstr "Невядомая памылка"
+
+msgid "Unknown phone"
+msgstr "Невядомая канцавая кропка."
+
+msgid "Unlink"
+msgstr "Адвязаць"
+
+msgid "Unlock"
+msgstr "Разблакіраваць"
+
+msgid "Unlock Magnolie Organizer"
+msgstr "Разблакіраваць Magnolie Organizer"
+
+msgid "Unsupported alarm"
+msgstr "Напамін, які не падтрымліваецца"
+
+msgid "Until (leave blank for no end)"
+msgstr "Да (пакіньце пустым, калі без канчатковай даты)"
+
+msgid "Untitled"
+msgstr "Без назвы"
+
+msgid "Untitled appointment"
+msgstr "Сустрэча без назвы"
+
+msgid "Update checking is available in the installed application."
+msgstr "Праверка абнаўленняў даступная ва ўсталяванай праграме."
+
+msgid "Update checking is available only in the installed application."
+msgstr "Праверка абнаўленняў даступная толькі ва ўсталяванай праграме."
+
+msgid "Update weather"
+msgstr "Абнавіць надвор’е"
+
+msgid "Updates"
+msgstr "Абнаўленні"
+
+msgid "Upper Austria"
+msgstr "Верхняя Аўстрыя"
+
+msgid "Uptime"
+msgstr "Uptime"
+
+msgid "Uri"
+msgstr "URI"
+
+msgid "Use a specific application or command"
+msgstr "Выкарыстоўваць пэўную праграму або каманду"
+
+msgid "Use a specific website"
+msgstr "Выкарыстоўваць пэўны вэб-сайт"
+
+msgid "Use basal units"
+msgstr "Выкарыстоўваць базальныя адзінкі"
+
+msgid "Use contact addresses"
+msgstr "Выкарыстоўваць адрасы кантакту"
+
+msgid "Use default"
+msgstr "Выкарыстоўваць прадвызначанае"
+
+msgid "Use numeric keypad"
+msgstr "Выкарыстоўваць лічбавую клавіятуру"
+
+msgid ""
+"Use only schedules prescribed or confirmed by a healthcare professional."
+msgstr ""
+"Выкарыстоўвайце толькі схемы прыёму, прызначаныя або пацверджаныя "
+"медыцынскім спецыялістам."
+
+msgid ""
+"Use the arrows to arrange groups and notebooks, or use the selection to move "
+"a notebook to another group."
+msgstr ""
+"Стрэлкамі ўпарадкуйце групы і нататнікі або скарыстайцеся выбарам, каб "
+"перамясціць нататнік у іншую групу."
+
+msgid "Use the mailbox as a fallback for branch baum-1"
+msgstr "Выкарыстоўваць скрыню як запасны шлях для галіны baum-1"
+
+msgid ""
+"Use the mouse wheel to change the time in 5-minute steps (hold Shift for "
+"whole hours)"
+msgstr ""
+"Колцам мышы змяняйце час крокамі па 5 хвілін (утрымлівайце Shift для цэлых "
+"гадзін)"
+
+msgid "Use the recycle bin"
+msgstr "Выкарыстоўваць сметніцу"
+
+msgid "User name"
+msgstr "Імя карыстальніка"
+
+msgid ""
+"Uses its own identity and storage and listens only on fixed port %(port)s. "
+"It never uses Magnolienbaum partners, permissions, queues or Bluetooth "
+"identity."
+msgstr ""
+"Выкарыстоўвае ўласную ідэнтычнасць і сховішча і слухае толькі на фіксаваным "
+"порце %(port)s. Ён ніколі не выкарыстоўвае партнёраў Magnolienbaum, дазволы, "
+"чаргі або ідэнтычнасць Bluetooth."
+
+msgid "Vacation"
+msgstr "Адпачынак"
+
+msgid ""
+"Vacation periods are local calendar markings. They do not send notifications "
+"and can be included separately when printing the planner."
+msgstr ""
+"Перыяды адпачынку — гэта лакальныя адзнакі ў календары. Яны не дасылаюць "
+"апавяшчэнняў і могуць асобна ўключацца пры друку планавальніка."
+
+msgid "Vacation planner"
+msgstr "Планавальнік адпачынкаў"
+
+msgid "Valais"
+msgstr "Вале"
+
+msgid "Value"
+msgstr "Значэнне"
+
+msgid "Vaud"
+msgstr "Во"
+
+msgid ""
+"Verified archive\n"
+"Source: %(source)s\n"
+"Created: %(created)s\n"
+"Application entries: %(entries)s\n"
+"Photos: %(photos)s, attachments: %(attachments)s\n"
+"\n"
+"The current data is backed up locally and then completely replaced."
+msgstr ""
+"Правераны архіў\n"
+"Крыніца: %(source)s\n"
+"Створана: %(created)s\n"
+"Запісы прыкладання: %(entries)s\n"
+"Фатаграфіі: %(photos)s, далучэнні: %(attachments)s\n"
+"\n"
+"Бягучыя дадзеныя ствараюцца лакальна, а потым цалкам замяняюцца."
+
+msgid "Verify after downloading with: %(command)s"
+msgstr "Пасля спампоўвання праверце з дапамогай: %(command)s"
+
+msgid "Verify archive"
+msgstr "Праверыць архіў"
+
+msgid "Version %(version)s"
+msgstr "Версія %(version)s"
+
+msgid "Version %(version)s is up to date. Last checked: %(date)s."
+msgstr "Версія %(version)s актуальная. Апошняя праверка: %(date)s."
+
+msgid "Via internet"
+msgstr "Праз інтэрнэт"
+
+msgid "Vienna"
+msgstr "Вена"
+
+msgid "View and edit appointment"
+msgstr "Праглядзець і рэдагаваць сустрэчу"
+
+msgid "Vital signs"
+msgstr "Асноўныя паказчыкі"
+
+msgid "Vital signs table"
+msgstr "Табліца асноўных паказчыкаў"
+
+msgid "Vorarlberg"
+msgstr "Форарльберг"
+
+msgid ""
+"WLAN has priority. Bluetooth data starts only after WLAN failure and carries "
+"the same encrypted phone frames."
+msgstr ""
+"WLAN мае прыярытэт. Даныя Bluetooth пачынаюць перадавацца толькі пасля збою "
+"WLAN і нясуць тыя ж шыфраваныя кадры тэлефона."
+
+msgid "WLAN listener on port %(port)s"
+msgstr "Слухач WLAN на порце %(port)s"
+
+msgid "Waiting for consent on the other device."
+msgstr "Чаканне згоды на іншай прыладзе."
+
+msgid "Waiting for device status"
+msgstr "Чаканне стану прылады"
+
+msgid ""
+"Waiting for the phone on port %(port)s. Pairing closes after %(seconds)s "
+"seconds."
+msgstr ""
+"Чакаем тэлефон на порце %(port)s. Спалучэнне закрыецца праз %(seconds)s "
+"секунд."
+
+msgid "Wake the computer from suspend"
+msgstr "Абуджаць камп’ютар са сну"
+
+msgid "Warning: The data could not be saved."
+msgstr "Папярэджанне: не ўдалося захаваць даныя."
+
+msgid "Waste collection calendar"
+msgstr "Каляндар вывазу адходаў"
+
+msgid "We are glad you are here!"
+msgstr "Мы рады, што вы тут!"
+
+msgid "Weather"
+msgstr "Надвор’е"
+
+msgid "Weather display"
+msgstr "Паказ надвор’я"
+
+msgid "Weather for the next three days"
+msgstr "Надвор’е на наступныя тры дні"
+
+msgid "Weather is available in the installed application."
+msgstr "Надвор’е даступнае ва ўсталяванай праграме."
+
+msgid ""
+"Weather requests are sent to wttr.in. Your own address in Contacts is used "
+"first, followed by local LibreOffice user data. If neither contains a "
+"location and retrieval without one is allowed, wttr.in estimates the "
+"location from your internet connection's public IP address."
+msgstr ""
+"Запыты надвор’я дасылаюцца на wttr.in. Спачатку выкарыстоўваецца ваш уласны "
+"адрас у Кантактах, затым лакальныя даныя карыстальніка LibreOffice. Калі "
+"ніводная крыніца не змяшчае месцазнаходжання, а атрыманне без яго дазволена, "
+"wttr.in ацэньвае месцазнаходжанне паводле публічнага IP-адраса вашага "
+"інтэрнэт-злучэння."
+
+msgid "Weather was not retrieved because no location is available."
+msgstr "Надвор’е не атрымана, бо месцазнаходжанне недаступнае."
+
+msgid "Wedding anniversary"
+msgstr "Гадавіна вяселля"
+
+msgid "Wednesday"
+msgstr "Серада"
+
+msgid "Week"
+msgstr "Тыдзень"
+
+msgid "Week %(number)s"
+msgstr "Тыдзень %(number)s"
+
+msgid "Week numbers"
+msgstr "Нумары тыдняў"
+
+msgid "Weekly"
+msgstr "штотыднёвы"
+
+msgid "Weekly variation for %(name)s"
+msgstr "Змена паводле дзён тыдня для %(name)s"
+
+msgid "Weekly view"
+msgstr "Тыднёвы выгляд"
+
+msgid "Weight"
+msgstr "Вага"
+
+msgid "Welcome ✱"
+msgstr "Вітаем ✱"
+
+msgid "What is it about?"
+msgstr "Пра што гаворка?"
+
+msgid "What needs to be done?"
+msgstr "Што трэба зрабіць?"
+
+msgid ""
+"When disabled, dates can still be entered as eight digits in day, month and "
+"four-digit year order."
+msgstr ""
+"Калі выключана, дату ўсё роўна можна ўводзіць васьмю лічбамі ў парадку: "
+"дзень, месяц і чатырохзначны год."
+
+msgid ""
+"When disabled, you write on plain paper. Line spacing remains the same; only "
+"the lines disappear."
+msgstr ""
+"Калі выключана, вы пішаце на чыстай паперы. Міжрадковы інтэрвал застаецца "
+"такім жа; знікаюць толькі лініі."
+
+msgid "When opening from the tray"
+msgstr "Пры адкрыцці з сістэмнага трэя"
+
+msgid ""
+"When selected, you can assign a photo to each person. Embedded photos are "
+"preserved during import, export and synchronization with an online address "
+"book. Email addresses on contact cards are always clickable and open your "
+"mail application."
+msgstr ""
+"Калі выбрана, кожнай асобе можна прызначыць фота. Убудаваныя фота "
+"захоўваюцца пры імпарце, экспарце і сінхранізацыі з анлайн-адраснай кнігай. "
+"На адрасы электроннай пошты ў картках кантактаў заўсёды можна націснуць — "
+"яны адкрываюць паштовую праграму."
+
+msgid ""
+"When writing a note, a small toolbar above the sheet provides bold, italic, "
+"underline and strikethrough. The same formatting is available with Ctrl+B, "
+"Ctrl+I, Ctrl+U and Ctrl+D."
+msgstr ""
+"Падчас напісання нататкі невялікая панэль інструментаў над аркушам дазваляе "
+"ўжыць тлусты шрыфт, курсіў, падкрэсліванне і закрэсліванне. Тое самае "
+"фарматаванне даступнае праз Ctrl+B, Ctrl+I, Ctrl+U і Ctrl+D."
+
+msgid "Whole month"
+msgstr "Увесь месяц"
+
+msgid "Wife"
+msgstr "Жонка"
+
+msgid "Windows Contacts folder"
+msgstr "Тэчка кантактаў Windows"
+
+msgid "Wireless"
+msgstr "Wireless"
+
+msgid ""
+"With a password or numeric code, the organizer asks for it when opening and "
+"stores your data only in encrypted form in your home directory (AES-256)."
+msgstr ""
+"Калі ўсталяваны пароль або лічбавы код, арганайзер запытвае яго пры адкрыцці "
+"і захоўвае вашы даныя ў хатнім каталогу толькі ў зашыфраваным выглядзе "
+"(AES-256)."
+
+msgid "With photo"
+msgstr "З фота"
+
+msgid ""
+"Without a shell; {ziel}, {wert}, and {nummer} can be used as placeholders. "
+"Flatpak and Snap can be selected as flatpak:APP-ID or snap:Name."
+msgstr ""
+"Без каманднай абалонкі; {ziel}, {wert} і {nummer} можна выкарыстоўваць як "
+"запаўняльнікі. Flatpak і Snap можна выбраць як flatpak:APP-ID або snap:Name."
+
+msgid ""
+"Without this second selection, the background reminder service does not show "
+"notifications for confidential appointments."
+msgstr ""
+"Без гэтага другога выбару фонавая служба напамінаў не паказвае апавяшчэнні "
+"для канфідэнцыйных сустрэч."
+
+msgid "Work"
+msgstr "Праца"
+
+msgid "Work address"
+msgstr "Працоўны адрас"
+
+msgid "Work anniversary"
+msgstr "Гадавіна працы"
+
+msgid "Work phone"
+msgstr "Працоўны тэлефон"
+
+msgid "Workgroup (all)"
+msgstr "Працоўная група (усе)"
+
+msgid "Workshop appointment"
+msgstr "Сустрэча ў майстэрні"
+
+msgid "Write a message to %(address)s"
+msgstr "Напісаць паведамленне на %(address)s"
+
+msgid "Write an SMS using KDE Connect or the assigned application"
+msgstr "Напішыце SMS з дапамогай KDE Connect або прызначанага прыкладання"
+
+msgid "Write here …"
+msgstr "Пішыце тут …"
+
+msgid "Writing sheet"
+msgstr "Аркуш для пісьма"
+
+msgid "X (formerly Twitter)"
+msgstr "X (раней Twitter)"
+
+msgid "Year"
+msgstr "Год"
+
+msgid "Year calendar"
+msgstr "Гадавы каляндар"
+
+msgid "Year planner %(year)s"
+msgstr "Гадавы планавальнік %(year)s"
+
+msgid "Yes"
+msgstr "Yes"
+
+msgid "Yes, merge"
+msgstr "Так, аб’яднаць"
+
+msgid "Yes, the code matches"
+msgstr "Так, код супадае"
+
+msgid "Your address"
+msgstr "Ваш адрас"
+
+msgid "Your address above is used as the starting point."
+msgstr "Ваш адрас вышэй выкарыстоўваецца як пачатковы пункт."
+
+msgid "Your data from “Organizer Klassik” has been imported."
+msgstr "Вашы даныя з «Organizer Klassik» імпартаваныя."
+
+msgid ""
+"Your data is stored at:\n"
+"%(path)s"
+msgstr ""
+"Вашы даныя захоўваюцца тут:\n"
+"%(path)s"
+
+msgid "Your data is stored at: %(path)s"
+msgstr "Вашы даныя захоўваюцца тут: %(path)s"
+
+msgid ""
+"Your own address is required as the starting point for a route. Enter it "
+"under Settings ▸ Contacts."
+msgstr ""
+"Ваш уласны адрас патрэбны як пачатковы пункт маршруту. Увядзіце яго ў Налады "
+"▸ Кантакты."
+
+msgid "Zug"
+msgstr "Цуг"
+
+msgid "Zurich"
+msgstr "Цюрых"
+
+msgid "after 30 days"
+msgstr "праз 30 дзён"
+
+msgid "after 7 days"
+msgstr "праз 7 дзён"
+
+msgid "after 90 days"
+msgstr "праз 90 дзён"
+
+msgid "after one year"
+msgstr "праз год"
+
+msgid "all cantons"
+msgstr "усе кантоны"
+
+msgid "all day"
+msgstr "увесь дзень"
+
+msgid "all states"
+msgstr "усе федэральныя землі"
+
+msgid "also remind me about it"
+msgstr "таксама нагадаць мне пра гэта"
+
+msgid "and"
+msgstr "і"
+
+msgid "and %(count)s more"
+msgid_plural "and %(count)s more"
+msgstr[0] "і яшчэ %(count)s"
+msgstr[1] "і яшчэ %(count)s"
+msgstr[2] "і яшчэ %(count)s"
+
+msgid "app password from Nextcloud"
+msgstr "пароль праграмы з Nextcloud"
+
+msgid "application {ziel}"
+msgstr "праграма {ziel}"
+
+msgid "at %(time)s"
+msgstr "у %(time)s"
+
+msgid "at least four characters"
+msgstr "не менш за чатыры сімвалы"
+
+msgid "at the appointment time"
+msgstr "у час сустрэчы"
+
+msgid "before start"
+msgstr "да пачатку"
+
+msgid "blood-glucose"
+msgstr "Глюкоза крыві"
+
+msgid "browser storage"
+msgstr "сховішча браўзера"
+
+msgid "confidential"
+msgstr "канфідэнцыйнае"
+
+msgid "confirmed"
+msgstr "пацверджана"
+
+msgid "days"
+msgstr "дні"
+
+msgid "days before"
+msgstr "дзён да"
+
+msgid "due %(date)s"
+msgstr "тэрмін %(date)s"
+
+msgid "due by %(date)s"
+msgstr "тэрмін да %(date)s"
+
+msgid "due from"
+msgstr "тэрмін ад"
+
+msgid "e.g. 1 day before"
+msgstr "напрыклад, за 1 дзень"
+
+msgid "e.g. Birthday"
+msgstr "напрыклад, Дзень нараджэння"
+
+msgid "e.g. Doctor appointment"
+msgstr "напрыклад, Візіт да доктара"
+
+msgid "e.g. Mobile"
+msgstr "напрыклад, Мабільны"
+
+msgid "e.g. Private"
+msgstr "напрыклад, Прыватнае"
+
+msgid "e.g. Send documents"
+msgstr "напрыклад, Адправіць дакументы"
+
+msgid "e.g. Son"
+msgstr "напрыклад, Сын"
+
+msgid "e.g. Work"
+msgstr "напрыклад, Праца"
+
+msgid "e.g. glass or hazardous waste"
+msgstr "напрыклад, шкло або небяспечныя адходы"
+
+msgid "e.g. kitchen or workshop"
+msgstr "напрыклад, кухня або майстэрня"
+
+msgid "e.g. medication day"
+msgstr "напрыклад, дзень прыёму лекаў"
+
+msgid "e.g. on-call duty"
+msgstr "напрыклад, дзяжурства"
+
+msgid "every"
+msgstr "кожныя"
+
+msgid "every 12 hours"
+msgstr "кожныя 12 гадзін"
+
+msgid "every 3 hours"
+msgstr "кожныя 3 гадзіны"
+
+msgid "every 30 minutes"
+msgstr "кожныя 30 хвілін"
+
+msgid "every 6 hours"
+msgstr "кожныя 6 гадзін"
+
+msgid "every day"
+msgstr "штодня"
+
+msgid "every hour"
+msgstr "штогадзіну"
+
+msgid "every month on the %(ordinal)s %(weekday)s"
+msgstr "штомесяц у %(ordinal)s %(weekday)s"
+
+msgid "every month on the same day"
+msgstr "штомесяц у той самы дзень"
+
+msgid "every week on the same weekday"
+msgstr "штотыдзень у той самы дзень тыдня"
+
+msgid "every year on the same date"
+msgstr "штогод у тую самую дату"
+
+msgid "first"
+msgstr "першы"
+
+msgid "first on"
+msgstr "упершыню"
+
+msgid "for the %(ordinal)s time"
+msgstr "у %(ordinal)s-ы раз"
+
+msgid "fourth"
+msgstr "чацвёрты"
+
+msgid "from"
+msgstr "ад"
+
+msgid "high"
+msgstr "высокі"
+
+msgid "hours before"
+msgstr "гадзін да"
+
+msgid "https://… (optionally with {wert} or {nummer})"
+msgstr "https://… (неабавязкова з {wert} або {nummer})"
+
+msgid "in %(count)s day"
+msgid_plural "in %(count)s days"
+msgstr[0] "праз %(count)s дзень"
+msgstr[1] "праз %(count)s дні"
+msgstr[2] "праз %(count)s дзён"
+
+msgid "keep here"
+msgstr "пакінуць тут"
+
+msgid "last"
+msgstr "апошні"
+
+msgid "local / not opened"
+msgstr "лакальны / не адкрываецца"
+
+msgid "low"
+msgstr "нізкі"
+
+msgid "medium"
+msgstr "сярэдні"
+
+msgid "minutes before"
+msgstr "хвілін да"
+
+msgid "modified %(date)s"
+msgstr "зменена %(date)s"
+
+msgid "name@example.com"
+msgstr "name@example.com"
+
+msgid "never – empty manually"
+msgstr "ніколі – ачышчаць уручную"
+
+msgid "new task for this appointment…"
+msgstr "новая задача для гэтай сустрэчы…"
+
+msgid "notification %(count)s minute before"
+msgid_plural "notification %(count)s minutes before"
+msgstr[0] "апавяшчэнне за %(count)s хвіліну"
+msgstr[1] "апавяшчэнне за %(count)s хвіліны"
+msgstr[2] "апавяшчэнне за %(count)s хвілін"
+
+msgid "on the day only"
+msgstr "толькі ў сам дзень"
+
+msgid "once"
+msgstr "адзін раз"
+
+msgid "one backup was encrypted as well"
+msgid_plural "%(count)s backups were encrypted as well"
+msgstr[0] "адна рэзервовая копія таксама была шыфраваная"
+msgstr[1] "Рэзервовыя копіі %(count)s таксама былі шыфраваныя"
+msgstr[2] "Рэзервовыя копіі %(count)s таксама былі шыфраваныя"
+
+msgid "one contact card"
+msgid_plural "%(count)s contact cards"
+msgstr[0] "адна кантактная картка"
+msgstr[1] "кантактныя карткі %(count)s"
+msgstr[2] "кантактныя карткі %(count)s"
+
+msgid "only %(year)s"
+msgstr "толькі %(year)s"
+
+msgid "or enter a host name or IP address"
+msgstr "або ўвядзіце імя хоста ці IP-адрас"
+
+msgid "pulse"
+msgstr "пульс"
+
+msgid "recurring appointment"
+msgstr "паўтаральная сустрэча"
+
+msgid "remind me on the due date"
+msgstr "нагадаць у дзень тэрміну"
+
+msgid "second"
+msgstr "другі"
+
+msgid "stored – leave empty to keep"
+msgstr "захавана — пакіньце пустым, каб захаваць"
+
+msgid "tentative"
+msgstr "папярэдне"
+
+msgid "the other branch"
+msgstr "іншая галіна"
+
+msgid "third"
+msgstr "трэці"
+
+msgid "to"
+msgstr "да"
+
+msgid "today"
+msgstr "сёння"
+
+msgid "today!"
+msgstr "сёння!"
+
+msgid "tomorrow"
+msgstr "заўтра"
+
+msgid "turns %(age)s"
+msgstr "спаўняецца %(age)s"
+
+msgid "unknown"
+msgstr "невядома"
+
+msgid "unknown error"
+msgstr "невядомая памылка"
+
+msgid "untitled"
+msgstr "без назвы"
+
+msgid ""
+"vCard preserves more contact details. LDIF is intended for importing into "
+"Claws Mail; emergency contacts, social media, free labels and non-JPEG "
+"photos cannot be included."
+msgstr ""
+"vCard захоўвае больш звестак пра кантакты. LDIF прызначаны для імпарту ў "
+"Claws Mail; экстранныя кантакты, сацыяльныя сеткі, адвольныя пазнакі і "
+"фатаграфіі не ў JPEG уключыць нельга.vCard preserves more contact details. "
+"LDIF is intended for importing into Claws Mail; emergency contacts, social "
+"media, free labels and non-JPEG photos cannot be included."
+
+msgid "vital"
+msgstr "vital"
+
+msgid "– Anniversaries automatically appear with ✱ in the calendar."
+msgstr "– Гадавіны аўтаматычна з’яўляюцца ў календары з пазнакай ✱."
+
+msgid ""
+"– Everything is saved automatically. Use “Create backup” at the bottom right "
+"to create an additional backup copy."
+msgstr ""
+"– Усё захоўваецца аўтаматычна. Каб стварыць дадатковую рэзервовую копію, "
+"скарыстайцеся «Стварыць рэзервовую копію» справа ўнізе."
+
+msgid ""
+"– In the calendar, use the controls at the top to switch between month and "
+"week view."
+msgstr ""
+"– У календары выкарыстоўвайце элементы кіравання ўверсе, каб пераключацца "
+"паміж месячным і тыднёвым выглядам."
+
+msgid ""
+"– The colored tabs along the edge lead to the sections. Tabs you have "
+"already passed move to the left side, just like in a real ring binder."
+msgstr ""
+"– Каляровыя ўкладкі ўздоўж краю вядуць да раздзелаў. Укладкі, якія вы ўжо "
+"прайшлі, перамяшчаюцца налева, як у сапраўднай папцы на кольцах."
+
+msgid ""
+"– The folded corners at the bottom turn pages forward and back: by month in "
+"the calendar, by year in the planner, and page by page here."
+msgstr ""
+"– Загнутыя куты ўнізе гартаюць старонкі наперад і назад: па месяцах у "
+"календары, па гадах у планавальніку і пастаронкава тут."
+
+msgid ""
+"– Turn times in 5-minute increments with the mouse wheel (hold Shift for "
+"whole hours); the end time moves along with it. For appointments without a "
+"fixed time, select “All day”."
+msgstr ""
+"– Змяняйце час колцам мышы крокамі па 5 хвілін (утрымлівайце Shift для цэлых "
+"гадзін); час заканчэння рухаецца разам з ім. Для сустрэч без фіксаванага "
+"часу выберыце «Увесь дзень»."
+
+msgid ""
+"– Under “Settings” at the bottom right, you can import appointments and "
+"addresses from other programs (.ics, .vcf, Lotus CSV), export them, and "
+"connect your system's online accounts. On the “Region & holidays” page, "
+"enter your country and state and import all public and school holidays once."
+msgstr ""
+"– У «Наладах» справа ўнізе можна імпартаваць сустрэчы і адрасы з іншых "
+"праграм (.ics, .vcf, Lotus CSV), экспартаваць іх і падключаць анлайн-акаўнты "
+"сістэмы. На старонцы «Рэгіён і святы» пазначце краіну і вобласць/рэгіён і "
+"адзін раз імпартуйце ўсе дзяржаўныя і школьныя святы."
+
+msgid "— do not link —"
+msgstr "— не звязваць —"
+
+msgid "— not specified —"
+msgstr "— не пазначана —"
+
+msgid "— please select —"
+msgstr "— выберыце —"
+
+msgid "“%(name)s” was restored."
+msgstr "«%(name)s» адноўлена."
+
+msgid "“%(word)s” is now in the dictionary."
+msgstr "«%(word)s» цяпер у слоўніку."
+
+msgid "… and %(count)s more item that will also be printed."
+msgid_plural "… and %(count)s more items that will also be printed."
+msgstr[0] "… і яшчэ %(count)s элемент, які таксама будзе надрукаваны."
+msgstr[1] "… і яшчэ %(count)s элементы, якія таксама будуць надрукаваны."
+msgstr[2] "… і яшчэ %(count)s элементаў, якія таксама будуць надрукаваны."
+
+msgid "＋ Add appointment"
+msgstr "＋ Дадаць сустрэчу"
+
+#~ msgid "No valid subscription"
+#~ msgstr "Няма сапраўднай падпіскі"
+
+#~ msgid "More fields (Lotus)"
+#~ msgstr "Дадатковыя палі (Lotus)"
+
+#~ msgid "Unknown import format."
+#~ msgstr "Невядомы фармат імпарту."
