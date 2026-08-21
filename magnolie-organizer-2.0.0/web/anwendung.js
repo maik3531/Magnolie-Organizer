@@ -3820,13 +3820,15 @@
         typ: jahrestagTypId(typ) || typ || "other",
         icsQuelleName: S(j.icsQuelleName), icsQuelleId: S(j.icsQuelleId) });
     }
+    const kontakteMitGeburtstag = new Set(d.jahrestage.filter((j) =>
+      j.kontaktId && istGeburtstagTyp(j.typ)).map((j) => j.kontaktId));
     for (const k of d.kontakte) {
-      if (!k.geburtstag || d.jahrestage.some((j) =>
-        j.kontaktId === k.id && istGeburtstagTyp(j.typ))) continue;
+      if (!k.geburtstag || kontakteMitGeburtstag.has(k.id)) continue;
       d.jahrestage.push({ id: uid(), uid: "", kontaktId: k.id,
         name: [k.vorname, k.nachname].filter(Boolean).join(" ") || k.firma,
         datum: k.geburtstag, jahrUnbekannt: !!k.geburtstagJahrUnbekannt,
         typ: "birthday" });
+      kontakteMitGeburtstag.add(k.id);
     }
 
     for (const f of Array.isArray(roh.feiertage) ? roh.feiertage : []) {
@@ -4362,11 +4364,14 @@
   function bewahreUnbekannteFelder(ziel, quelle) {
     if (!ziel || !quelle || typeof ziel !== "object" || typeof quelle !== "object") return ziel;
     if (Array.isArray(ziel)) {
+      const urspruenge = new Map();
+      for (const wert of Array.isArray(quelle) ? quelle : []) {
+        const id = wert && (wert.id || wert.uid);
+        if (id && !urspruenge.has(id)) urspruenge.set(id, wert);
+      }
       for (let i = 0; i < ziel.length; i++) {
         const id = ziel[i] && (ziel[i].id || ziel[i].uid);
-        const ursprung = id
-          ? quelle.find((wert) => wert && (wert.id === id || (!wert.id && wert.uid === id)))
-          : quelle[i];
+        const ursprung = id ? urspruenge.get(id) : quelle[i];
         if (ursprung) bewahreUnbekannteFelder(ziel[i], ursprung);
       }
       return ziel;
