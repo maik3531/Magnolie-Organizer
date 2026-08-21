@@ -11,9 +11,10 @@ ROOT = Path(__file__).resolve().parents[1]
 WORKSPACE = ROOT.parent
 sys.path.insert(0, str(ROOT / "werkzeuge"))
 from png_pruefen import pruefen as png_pruefen
-WINDOWS = WORKSPACE / "magnolie-organizer-windows-1.0.0"
+WINDOWS = WORKSPACE / "Magnolie-Organizer-Windows-2.0.0"
 HANDBOOK = WORKSPACE / "magnolie-handbuch-stamm"
-VERSION = "2.0.0"
+VERSION = "2.0.1"
+PUBLISHED_VERSION = "2.0.0"
 INTERNAL_NOTE = re.compile(
     r"(REVIEW|ENTWURF|OFFENE[-_ ]?PUNKTE|ANALYSE|PLAN|AUDIT).*\.md$", re.I)
 PRIVATE_KEY = re.compile(
@@ -48,9 +49,11 @@ if version_lock.exists():
 assert f"magnolie-organizer ({VERSION})" in text(ROOT / "debian/changelog").splitlines()[0]
 assert f"Version:        {VERSION}" in text(ROOT / "rpm/magnolie-organizer.spec")
 if HANDBOOK.exists():
-    assert f"magnolie-handbuch ({VERSION})" in text(HANDBOOK / "debian/changelog").splitlines()[0]
+    assert f"magnolie-handbuch ({PUBLISHED_VERSION})" in text(
+        HANDBOOK / "debian/changelog").splitlines()[0]
 if WINDOWS.exists():
-    assert f"<Version>{VERSION}</Version>" in text(WINDOWS / "Directory.Build.props")
+    assert f"<Version>{PUBLISHED_VERSION}</Version>" in text(
+        WINDOWS / "Directory.Build.props")
     installer = text(WINDOWS / "installer/MagnolieOrganizer.nsi")
     assert "!ifndef PRODUCT_VERSION" in installer
     assert '-DPRODUCT_VERSION="$version"' in text(WINDOWS / "installer/BuildInstaller.sh")
@@ -171,16 +174,17 @@ for source_root in (ROOT, WINDOWS, HANDBOOK):
         assert not INTERNAL_NOTE.search(path.name), f"interne Arbeitsnotiz im Quellbaum: {path}"
 
 current_files = [
-    ROOT / "LIESMICH.md",
-    ROOT / "update.xml",
+    (ROOT / "LIESMICH.md", VERSION),
+    (ROOT / "update.xml", PUBLISHED_VERSION),
 ]
 if WINDOWS.exists():
-    current_files += [WINDOWS / "LIESMICH.md"]
+    current_files += [(WINDOWS / "LIESMICH.md", PUBLISHED_VERSION)]
 if HANDBOOK.exists():
-    current_files += [HANDBOOK / "LIESMICH.md", HANDBOOK / "web/inhalt.js"]
-for path in current_files:
+    current_files += [(HANDBOOK / "LIESMICH.md", PUBLISHED_VERSION),
+                      (HANDBOOK / "web/inhalt.js", PUBLISHED_VERSION)]
+for path, expected_version in current_files:
     value = text(path)
-    assert VERSION in value, f"2.0.0 fehlt: {path}"
+    assert expected_version in value, f"{expected_version} fehlt: {path}"
     assert not re.search(r"Magnolie-Organizer-(1\.31|Windows-1\.0)", value), path
 
 def test_statische_paketpruefung():
@@ -188,4 +192,4 @@ def test_statische_paketpruefung():
     assert True
 
 
-print("Paketinhalt und Desktop-Version 2.0.0: ok")
+print("Paketinhalt und Linux-Version 2.0.1: ok")

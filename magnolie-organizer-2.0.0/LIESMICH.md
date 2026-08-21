@@ -59,7 +59,7 @@ Organizer-Aktualisierungen enthalten zusätzlich das passende AppImage:
 
     <appimage>
       <architecture>x86_64</architecture>
-      <url>https://…/Magnolie-Organizer-2.0.0-x86_64.AppImage</url>
+      <url>https://…/Magnolie-Organizer-2.0.1-x86_64.AppImage</url>
       <sha256>64 hexadezimale Zeichen</sha256>
     </appimage>
 
@@ -94,7 +94,7 @@ erhalten.
 
 Das fertige Paket liegt danach eine Ebene höher und wird installiert mit:
 
-    sudo apt install ../magnolie-organizer_2.0.0_all.deb
+    sudo apt install ../magnolie-organizer_2.0.1_all.deb
 
 Normale Eigenbauten enthalten kein Contributor-Branding. Offizielle Binärbauten
 können über `MAGNOLIE_CONTRIBUTOR_HASH` eine 64-stellige SHA-256-Hexfolge
@@ -105,7 +105,7 @@ Quellpaket, Source0 oder SRPM.
 ### Fedora-RPM und SRPM
 
 Auf Fedora erzeugt das Bauwerkzeug ein normalisiertes
-`magnolie-organizer-2.0.0.tar.xz` mit dem gleichnamigen obersten Verzeichnis
+`magnolie-organizer-2.0.1.tar.xz` mit dem gleichnamigen obersten Verzeichnis
 und baut daraus RPM und SRPM. Bereits vorhandene Debian-Bauverzeichnisse,
 generierte Kataloge und die generierte WAV-Datei gelangen nicht in Source0:
 
@@ -125,15 +125,15 @@ beispielsweise mit (die Fedora-Version bei Bedarf anpassen):
     sudo dnf install mock rpmlint
     sudo usermod -a -G mock "$USER"
     mock -r fedora-42-x86_64 --rebuild \
-        bau/rpm/SRPMS/magnolie-organizer-2.0.0-1.fc42.src.rpm
+        bau/rpm/SRPMS/magnolie-organizer-2.0.1-1.fc42.src.rpm
     rpmlint rpm/magnolie-organizer.spec \
-        bau/rpm/SRPMS/magnolie-organizer-2.0.0-1.fc42.src.rpm \
-        bau/rpm/RPMS/noarch/magnolie-organizer-2.0.0-1.fc42.noarch.rpm
+        bau/rpm/SRPMS/magnolie-organizer-2.0.1-1.fc42.src.rpm \
+        bau/rpm/RPMS/noarch/magnolie-organizer-2.0.1-1.fc42.noarch.rpm
 
 Das lokale RPM kann mit DNF installiert und wieder entfernt werden, ohne dass
 die Paket-Scriptlets Firewallregeln öffnen oder Benutzerdaten verändern:
 
-    sudo dnf install bau/rpm/RPMS/noarch/magnolie-organizer-2.0.0-1.fc42.noarch.rpm
+    sudo dnf install bau/rpm/RPMS/noarch/magnolie-organizer-2.0.1-1.fc42.noarch.rpm
     sudo dnf remove magnolie-organizer
 
 Die mitgelieferte firewalld-Servicebeschreibung ist nur eine Vorlage. Falls
@@ -152,7 +152,7 @@ von `linuxdeploy` und `appimagetool` sind mitsamt SHA-256-Prüfsummen im Bauplan
 festgeschrieben. Gebaut und gegen den gepackten Programmkern geprüft wird mit:
 
     werkzeuge/appimage_bauen.sh
-    pruefungen/test_appimage.sh ../Magnolie-Organizer-2.0.0-x86_64.AppImage
+    pruefungen/test_appimage.sh ../Magnolie-Organizer-2.0.1-x86_64.AppImage
 
 Für eine Freigabe ist ausschließlich der vollständige Releasebau vorgesehen:
 
@@ -183,7 +183,7 @@ in das System. Die echten User-systemd- und UFW-Lebenszyklen sind mit
 `isolation-machine` gekennzeichnet und dürfen nur in einem wegwerfbaren
 Maschinen-Testbed ausgeführt werden:
 
-    autopkgtest ../magnolie-organizer_2.0.0.dsc -- qemu TESTABBILD
+    autopkgtest ../magnolie-organizer_2.0.1.dsc -- qemu TESTABBILD
 
 Für den Umstieg von Lotus Organizer gibt es zusätzlich Belastungstests
 mit je 30.000 Terminen, Adressen, Aufgaben, Jahrestagen und Notizen:

@@ -1,3 +1,12 @@
+magnolie-organizer (2.0.1) unstable; urgency=medium
+
+  * Beschleunigt den Start mit großen Datenbeständen durch lineare Indizes.
+  * Ergänzt sichtbare Such- und Treffernavigation in Kalender, Planer und
+    Auswahloptionen.
+  * Bündelt eine plattformidentische Handschrift und erweitert die Startdiagnose.
+
+ -- Maik Walter <maik3531@gmail.com>  Fri, 21 Aug 2026 12:00:00 +0200
+
 magnolie-organizer (2.0.0) unstable; urgency=medium
 
   * Vereinheitlicht Desktop-Pakete, Aktualisierungsmetadaten und Handbücher auf

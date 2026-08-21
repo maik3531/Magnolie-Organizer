@@ -1,5 +1,5 @@
 Name:           magnolie-organizer
-Version:        2.0.0
+Version:        2.0.1
 Release:        1%{?dist}
 Summary:        Personal organizer with a classic paper appearance
 
@@ -208,6 +208,11 @@ done
 %{_mandir}/*/man1/magnolie-organizer.1*
 
 %changelog
+* Fri Aug 21 2026 Maik Walter <maik3531@gmail.com> - 2.0.1-1
+- Scale startup normalization linearly for large data sets
+- Add visible search navigation and a bundled cross-platform handwriting font
+- Extend startup timing diagnostics
+
 * Wed Aug 12 2026 Maik Walter <maik3531@gmail.com> - 2.0.0-1
 - Align all desktop packages and handbooks on version 2.0.0
 - Exclude internal working notes from source packages
