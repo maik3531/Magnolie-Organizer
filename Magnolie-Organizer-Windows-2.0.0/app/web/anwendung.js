@@ -6798,6 +6798,11 @@
     };
 
     const zeilen = new Map();
+    const suchtexte = new Map(stoff.liste.map((e) =>
+      [e.id, suchText([stoff.name(e), e])]));
+    const keinSuchtreffer = el("p", "leer-hinweis druck-kein-suchtreffer",
+      _("No suggestions found."));
+    keinSuchtreffer.hidden = true;
     const leerHinweis = () => {
       if (!stoff.liste.length) {
         liste.append(el("p", "leer-hinweis", _("There is nothing to print.")));
@@ -6817,6 +6822,30 @@
       liste.append(zeile);
       zeilen.set(e.id, zeile);
     }
+    liste.append(keinSuchtreffer);
+
+    const suchHuelle = el("label", "druck-suchfeld");
+    const suchSymbol = el("span", "druck-suchsymbol");
+    suchSymbol.setAttribute("aria-hidden", "true");
+    const suchFeld = document.createElement("input");
+    suchFeld.type = "search";
+    suchFeld.className = "druck-suche";
+    suchFeld.placeholder = _("Search");
+    suchFeld.setAttribute("aria-label", _("Search"));
+    const filtere = () => {
+      const begriffe = suchBegriffe(suchFeld.value);
+      let sichtbar = 0;
+      for (const e of stoff.liste) {
+        const zeile = zeilen.get(e.id);
+        if (!zeile) continue;
+        const passt = !begriffe.length || suchPasst(suchtexte.get(e.id), begriffe);
+        zeile.hidden = !passt;
+        if (passt) sichtbar++;
+      }
+      keinSuchtreffer.hidden = !stoff.liste.length || sichtbar > 0;
+    };
+    suchFeld.addEventListener("input", filtere);
+    suchHuelle.append(suchSymbol, suchFeld);
 
     const wahlKopf = el("div", "druck-wahlkopf");
     wahlKopf.append(knopf(_("All"), "klein", () => {
@@ -6858,10 +6887,11 @@
               const zeile = zeilen.get(e.id);
               if (zeile) zeile.remove();
               zeilen.delete(e.id);
+              suchtexte.delete(e.id);
             }
             const weggefallen = new Set(treffer.map((e) => e.id));
             stoff.liste = stoff.liste.filter((e) => !weggefallen.has(e.id));
-            leerHinweis(); planeSpeichern(); zeichneAlles(); frischen();
+            leerHinweis(); filtere(); planeSpeichern(); zeichneAlles(); frischen();
             zettel(uebersetztMehrzahl(
               "%(count)s entry deleted.", "%(count)s entries deleted.", anzahl));
           };
@@ -6877,7 +6907,7 @@
 
     const spalten = el("div", "druck-spalten");
     const links = el("div", "druck-links");
-    links.append(el("div", "druck-titel", stoff.wort), wahlKopf, liste);
+    links.append(el("div", "druck-titel", stoff.wort), suchHuelle, wahlKopf, liste);
     if (stoff.leer) {
       const leerHak = document.createElement("input");
       leerHak.type = "checkbox";

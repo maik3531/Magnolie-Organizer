@@ -3311,6 +3311,56 @@ body[data-pruefung="an"] #notiz-titel {
 
 .druck-wahlkopf { display: flex; gap: 6px; margin-bottom: 7px; }
 
+.druck-suchfeld {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin: 0 0 7px;
+  padding: 4px 7px;
+  border: 1px solid var(--linie-stark);
+  border-radius: 5px;
+  background: rgba(255, 255, 255, 0.45);
+}
+
+.druck-suchsymbol {
+  position: relative;
+  flex: 0 0 14px;
+  width: 14px;
+  height: 14px;
+}
+
+.druck-suchsymbol::before {
+  content: "";
+  position: absolute;
+  inset: 1px 4px 4px 1px;
+  border: 2px solid var(--braun);
+  border-radius: 50%;
+}
+
+.druck-suchsymbol::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  bottom: 1px;
+  width: 6px;
+  border-top: 2px solid var(--braun);
+  transform: rotate(45deg);
+  transform-origin: right center;
+}
+
+.druck-suche {
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--tinte);
+  font: 13px var(--sans);
+}
+
+.druck-kein-suchtreffer[hidden],
+.druck-zeile[hidden] { display: none; }
+
 .druck-auswahl {
   overflow-y: auto;
   flex: 1;

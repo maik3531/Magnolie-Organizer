@@ -153,6 +153,12 @@ const T = window.OrganizerTest;
 assert.ok(window.document.querySelector("#buch") &&
   window.document.querySelector("#inhalt-links").children.length,
 "organizer did not render");
+window.document.querySelector("#knopf-drucken").click();
+const printSearch = window.document.querySelector(".druck-suche");
+assert.ok(printSearch && printSearch.placeholder === "Suche" &&
+  printSearch.getAttribute("aria-label") === "Suche",
+"print selection does not expose the localized search field on Windows");
+window.document.querySelector("#druck-schleier button[aria-label='Schließen']").click();
 const defaults = T.normalisiere({});
 assert.strictEqual(defaults.einstellungen.adressen.karten, "google");
 assert.strictEqual(defaults.einstellungen.kalender.gesundheitPlanung.vital.zeit, "",

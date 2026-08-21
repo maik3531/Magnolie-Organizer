@@ -4948,6 +4948,9 @@ function knopfMit(text, wurzel) {
     "die Knöpfe tragen keine Sinnbilder");
 
   /* Druckvorschau mit Mehrfachauswahl */
+  const druckSuchKontakt = T.daten().kontakte[0];
+  const alteDruckSuchNotiz = druckSuchKontakt.notiz;
+  druckSuchKontakt.notiz = "DrucksucheEinzigartig";
   $("#knopf-drucken").click();
   assert.ok($("#druck-schleier"), "Druckvorschau erscheint nicht");
   const haken = $$(".druck-zeile input");
@@ -4955,6 +4958,25 @@ function knopfMit(text, wurzel) {
     "jede Karteikarte muss wählbar sein");
   assert.strictEqual(haken.filter((h) => h.checked).length, 0,
     "der allgemeine Druckknopf soll zunächst keine Karte vorauswählen");
+  const druckSuche = $(".druck-suche");
+  assert.ok(druckSuche && druckSuche.placeholder === "Suche",
+    "Suchfeld mit übersetzter Beschriftung fehlt in den Auswahloptionen");
+  druckSuche.value = "drucksucheeinzigartig";
+  druckSuche.dispatchEvent(new w.Event("input", { bubbles: true }));
+  const sichtbareDruckzeilen = $$(".druck-zeile").filter((zeile) => !zeile.hidden);
+  assert.strictEqual(sichtbareDruckzeilen.length, 1,
+    "Druckauswahl durchsucht nicht den vollständigen Eintrag");
+  sichtbareDruckzeilen[0].querySelector("input").click();
+  druckSuche.value = "ohne-jeden-treffer";
+  druckSuche.dispatchEvent(new w.Event("input", { bubbles: true }));
+  assert.ok(!$(".druck-kein-suchtreffer").hidden,
+    "Druckauswahl zeigt bei einer erfolglosen Suche keinen Hinweis");
+  druckSuche.value = "";
+  druckSuche.dispatchEvent(new w.Event("input", { bubbles: true }));
+  assert.ok(haken[0].checked && $$(".druck-zeile").every((zeile) => !zeile.hidden),
+    "Filtern verliert gesetzte Haken oder stellt die Liste nicht wieder her");
+  knopfMit("Keine", $("#druck-schleier")).click();
+  druckSuchKontakt.notiz = alteDruckSuchNotiz;
   knopfMit("Alle", $("#druck-schleier")).click();
   assert.strictEqual($$(".druck-vorschau .druck-karte").length,
     T.daten().kontakte.length, "„Alle“ wählt nicht alles aus");
