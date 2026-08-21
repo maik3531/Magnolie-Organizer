@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security report / Sicherheitsmeldung
+    url: https://github.com/maik3531/Magnolie-Organizer/security/advisories/new
+    about: Report vulnerabilities privately / Sicherheitslücken vertraulich melden

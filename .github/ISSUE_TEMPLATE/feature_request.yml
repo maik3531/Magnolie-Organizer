@@ -1,0 +1,34 @@
+name: Feature request / Verbesserung
+description: Suggest a focused improvement / Eine klar abgegrenzte Verbesserung vorschlagen
+title: "[Idea] "
+labels:
+  - enhancement
+body:
+  - type: dropdown
+    id: component
+    attributes:
+      label: Component / Bestandteil
+      options:
+        - Organizer for Linux
+        - Organizer for Windows
+        - Magnolie Notes for Android
+        - Handbook / Handbuch
+        - Entire project / Gesamtprojekt
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or use case / Problem oder Anwendungsfall
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution / Lösungsvorschlag
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives / Alternativen

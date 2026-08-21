@@ -1,0 +1,103 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="640" viewBox="0 0 1280 640" role="img" aria-labelledby="title desc">
+  <title id="title">Magnolie Organizer</title>
+  <desc id="desc">A leather-bound personal organizer for Linux, Windows and Android</desc>
+  <defs>
+    <linearGradient id="leather" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#2a1018"/>
+      <stop offset="0.5" stop-color="#5b2333"/>
+      <stop offset="1" stop-color="#30141c"/>
+    </linearGradient>
+    <linearGradient id="paper" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fffdf5"/>
+      <stop offset="1" stop-color="#eadfc8"/>
+    </linearGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#8b642f"/>
+      <stop offset="0.5" stop-color="#e0bd72"/>
+      <stop offset="1" stop-color="#8b642f"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="160%">
+      <feDropShadow dx="0" dy="18" stdDeviation="16" flood-color="#160a0d" flood-opacity="0.65"/>
+    </filter>
+    <pattern id="grain" width="30" height="30" patternUnits="userSpaceOnUse">
+      <path d="M2 8c7-5 12 4 20-2M6 25c8-6 13 3 22-4" fill="none" stroke="#fff" stroke-opacity="0.025" stroke-width="1"/>
+    </pattern>
+  </defs>
+
+  <rect width="1280" height="640" fill="#4b1d2b"/>
+  <rect x="22" y="22" width="1236" height="596" rx="22" fill="none" stroke="#d4af62" stroke-width="2"/>
+  <rect x="31" y="31" width="1218" height="578" rx="17" fill="none" stroke="#d4af62" stroke-opacity="0.28"/>
+
+  <text x="640" y="92" text-anchor="middle" fill="#f4dfaa" font-family="Georgia, serif" font-size="52" font-weight="700" letter-spacing="4">MAGNOLIE</text>
+  <text x="640" y="130" text-anchor="middle" fill="#d2b87f" font-family="DejaVu Sans, sans-serif" font-size="17" letter-spacing="2.5">YOUR PRIVATE ORGANIZER · DEIN PRIVATER ORGANIZER</text>
+
+  <g filter="url(#shadow)">
+    <rect x="204" y="170" width="872" height="350" rx="28" fill="#1c0d12" opacity="0.55"/>
+    <path d="M222 166h405c15 0 27 12 27 27v314H241c-19 0-34-15-34-34V181c0-8 7-15 15-15z" fill="#f7f0df"/>
+    <path d="M1058 166H653c-15 0-27 12-27 27v314h413c19 0 34-15 34-34V181c0-8-7-15-15-15z" fill="#f7f0df"/>
+    <path d="M628 187c8-12 17-18 26-18v338h-28V201c0-5 1-10 2-14z" fill="#d1c1a4"/>
+    <path d="M654 169c9 1 18 7 26 18 1 4 2 9 2 14v306h-28z" fill="#f1e8d7"/>
+  </g>
+
+  <g fill="none" stroke="#9e7c3f" stroke-width="5">
+    <ellipse cx="640" cy="226" rx="22" ry="9"/>
+    <ellipse cx="640" cy="300" rx="22" ry="9"/>
+    <ellipse cx="640" cy="374" rx="22" ry="9"/>
+    <ellipse cx="640" cy="448" rx="22" ry="9"/>
+  </g>
+
+  <g font-family="Georgia, serif" fill="#4b2530">
+    <text x="273" y="221" font-size="26" font-weight="700">August</text>
+    <text x="273" y="249" font-size="13" fill="#896d5b">WEEK · WOCHE</text>
+  </g>
+  <g stroke="#c9bda5" stroke-width="1">
+    <path d="M270 274h310M270 315h310M270 356h310M270 397h310M270 438h310"/>
+    <path d="M314 259v199M358 259v199M402 259v199M446 259v199M490 259v199M534 259v199"/>
+  </g>
+  <g font-family="DejaVu Sans, sans-serif" font-size="12" fill="#76555b" text-anchor="middle">
+    <text x="292" y="290">M</text><text x="336" y="290">T</text><text x="380" y="290">W</text>
+    <text x="424" y="290">T</text><text x="468" y="290">F</text><text x="512" y="290">S</text><text x="556" y="290">S</text>
+  </g>
+  <circle cx="424" cy="335" r="15" fill="#5b2333"/>
+  <text x="424" y="340" text-anchor="middle" fill="#fff8e6" font-family="DejaVu Sans, sans-serif" font-size="13">21</text>
+
+  <text x="719" y="220" fill="#4b2530" font-family="Georgia, serif" font-size="26" font-weight="700">Today · Heute</text>
+  <g stroke="#c7b99f" stroke-width="1">
+    <path d="M719 255h292M719 297h292M719 339h292M719 381h292M719 423h292M719 465h292"/>
+  </g>
+  <g fill="none" stroke="#7e565f" stroke-width="2">
+    <rect x="726" y="269" width="17" height="17" rx="3"/>
+    <path d="M729 278l5 5 10-13" stroke="#5f7a5b" stroke-width="3"/>
+    <rect x="726" y="311" width="17" height="17" rx="3"/>
+    <rect x="726" y="353" width="17" height="17" rx="3"/>
+  </g>
+  <g font-family="DejaVu Sans, sans-serif" font-size="14" fill="#5e4b45">
+    <text x="758" y="283">Plan the week</text>
+    <text x="758" y="325">Call family</text>
+    <text x="758" y="367">Share notes securely</text>
+  </g>
+
+  <g>
+    <path d="M1072 225h48v66h-48z" fill="#9e4d5f"/>
+    <path d="M1072 300h62v66h-62z" fill="#b08d57"/>
+    <path d="M1072 375h52v66h-52z" fill="#718067"/>
+  </g>
+
+  <g transform="translate(1070 82)" fill="#f5e7de" stroke="#d9afaa" stroke-width="2">
+    <ellipse cx="0" cy="-22" rx="16" ry="31"/>
+    <ellipse cx="25" cy="-5" rx="27" ry="15"/>
+    <ellipse cx="16" cy="23" rx="17" ry="28"/>
+    <ellipse cx="-16" cy="23" rx="17" ry="28"/>
+    <ellipse cx="-25" cy="-5" rx="27" ry="15"/>
+    <circle r="13" fill="#d6ac54" stroke="none"/>
+  </g>
+
+  <g font-family="DejaVu Sans, sans-serif" font-size="15" font-weight="700" text-anchor="middle">
+    <rect x="410" y="556" width="132" height="34" rx="17" fill="#fff8e8" fill-opacity="0.1" stroke="#b99555"/>
+    <text x="476" y="578" fill="#f0dba9">LINUX</text>
+    <rect x="574" y="556" width="132" height="34" rx="17" fill="#fff8e8" fill-opacity="0.1" stroke="#b99555"/>
+    <text x="640" y="578" fill="#f0dba9">WINDOWS</text>
+    <rect x="738" y="556" width="132" height="34" rx="17" fill="#fff8e8" fill-opacity="0.1" stroke="#b99555"/>
+    <text x="804" y="578" fill="#f0dba9">ANDROID</text>
+  </g>
+</svg>
