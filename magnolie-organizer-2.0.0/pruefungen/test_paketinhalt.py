@@ -14,7 +14,7 @@ from png_pruefen import pruefen as png_pruefen
 WINDOWS = WORKSPACE / "Magnolie-Organizer-Windows-2.0.0"
 HANDBOOK = WORKSPACE / "magnolie-handbuch-stamm"
 VERSION = "2.0.1"
-PUBLISHED_VERSION = "2.0.0"
+MANIFEST_VERSION = "2.0.0"
 INTERNAL_NOTE = re.compile(
     r"(REVIEW|ENTWURF|OFFENE[-_ ]?PUNKTE|ANALYSE|PLAN|AUDIT).*\.md$", re.I)
 PRIVATE_KEY = re.compile(
@@ -49,10 +49,10 @@ if version_lock.exists():
 assert f"magnolie-organizer ({VERSION})" in text(ROOT / "debian/changelog").splitlines()[0]
 assert f"Version:        {VERSION}" in text(ROOT / "rpm/magnolie-organizer.spec")
 if HANDBOOK.exists():
-    assert f"magnolie-handbuch ({PUBLISHED_VERSION})" in text(
+    assert f"magnolie-handbuch ({VERSION})" in text(
         HANDBOOK / "debian/changelog").splitlines()[0]
 if WINDOWS.exists():
-    assert f"<Version>{PUBLISHED_VERSION}</Version>" in text(
+    assert f"<Version>{VERSION}</Version>" in text(
         WINDOWS / "Directory.Build.props")
     installer = text(WINDOWS / "installer/MagnolieOrganizer.nsi")
     assert "!ifndef PRODUCT_VERSION" in installer
@@ -175,13 +175,13 @@ for source_root in (ROOT, WINDOWS, HANDBOOK):
 
 current_files = [
     (ROOT / "LIESMICH.md", VERSION),
-    (ROOT / "update.xml", PUBLISHED_VERSION),
+    (ROOT / "update.xml", MANIFEST_VERSION),
 ]
 if WINDOWS.exists():
-    current_files += [(WINDOWS / "LIESMICH.md", PUBLISHED_VERSION)]
+    current_files += [(WINDOWS / "LIESMICH.md", VERSION)]
 if HANDBOOK.exists():
-    current_files += [(HANDBOOK / "LIESMICH.md", PUBLISHED_VERSION),
-                      (HANDBOOK / "web/inhalt.js", PUBLISHED_VERSION)]
+    current_files += [(HANDBOOK / "LIESMICH.md", VERSION),
+                      (HANDBOOK / "web/inhalt.js", VERSION)]
 for path, expected_version in current_files:
     value = text(path)
     assert expected_version in value, f"{expected_version} fehlt: {path}"

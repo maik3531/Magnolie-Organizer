@@ -1,5 +1,33 @@
 # Changelog / Änderungen
 
+## 2.0.1 / Notes 1.0.5 — 2026-08-21
+
+### English
+
+- Reduced startup work for large data sets from quadratic scans to linear indexes.
+- Added privacy-safe startup timing diagnostics for data loading and browser rendering.
+- Added search with persistent selections to print, export and bulk-delete options.
+- Exposed Calendar and Planner search with visible controls and previous/next match navigation.
+- Bundled the same handwriting font on Linux and Windows.
+- Removed two redundant full pagination passes before the handbook first opens.
+- Updated Linux, Windows and handbook sources, tests and documentation to 2.0.1.
+
+Release artifacts, final checksums and the signed update manifest are generated only
+after the remaining package and Windows VM checks have passed.
+
+### Deutsch
+
+- Start großer Datenbestände von quadratischen Suchen auf lineare Indizes umgestellt.
+- Datenschutzfreundliche Startzeitmessung für Datenladen und Browserdarstellung ergänzt.
+- Suche mit erhaltener Auswahl in Druck-, Export- und Sammellöschoptionen ergänzt.
+- Kalender- und Planersuche sichtbar gemacht und um vorherigen/nächsten Treffer erweitert.
+- Unter Linux und Windows dieselbe gebündelte Handschrift eingebaut.
+- Zwei redundante Vollpaginierungen vor dem ersten Öffnen des Handbuchs entfernt.
+- Linux-, Windows- und Handbuchquellen, Tests und Dokumentation auf 2.0.1 angehoben.
+
+Freigabeartefakte, endgültige Prüfsummen und das signierte Aktualisierungsmanifest
+entstehen erst nach den verbleibenden Paket- und Windows-VM-Prüfungen.
+
 ## 2.0.0 / Notes 1.0.5 — 2026-08-21
 
 ### English

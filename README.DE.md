@@ -33,19 +33,19 @@ Speicherung und bewusst freigegebener Datenaustausch.
 
 | Plattform | Empfohlenes Paket | Alternative |
 |---|---|---|
-| Linux | [AppImage x86_64](https://github.com/maik3531/Magnolie-Organizer/releases/latest/download/Magnolie-Organizer-2.0.0-x86_64.AppImage) | [Debian-Paket](https://github.com/maik3531/Magnolie-Organizer/releases/latest/download/magnolie-organizer_2.0.0_all.deb) |
-| Windows 10/11 x64 | [Installationsprogramm](https://github.com/maik3531/Magnolie-Organizer/releases/latest/download/Magnolie-Organizer-Windows-2.0.0-Setup-x64.exe) | [Portable ZIP](https://github.com/maik3531/Magnolie-Organizer/releases/latest/download/Magnolie-Organizer-Windows-2.0.0-x64.zip) |
+| Linux | [AppImage x86_64](https://github.com/maik3531/Magnolie-Organizer/releases/latest/download/Magnolie-Organizer-2.0.1-x86_64.AppImage) | [Debian-Paket](https://github.com/maik3531/Magnolie-Organizer/releases/latest/download/magnolie-organizer_2.0.1_all.deb) |
+| Windows 10/11 x64 | [Installationsprogramm](https://github.com/maik3531/Magnolie-Organizer/releases/latest/download/Magnolie-Organizer-Windows-2.0.1-Setup-x64.exe) | [Portable ZIP](https://github.com/maik3531/Magnolie-Organizer/releases/latest/download/Magnolie-Organizer-Windows-2.0.1-x64.zip) |
 | Android | [Magnolie Notes APK](https://github.com/maik3531/Magnolie-Organizer/releases/latest/download/Magnolie-Notes-1.0.5.apk) | Android 8.0 oder neuer |
-| Handbuch | [Debian-Paket](https://github.com/maik3531/Magnolie-Organizer/releases/latest/download/magnolie-handbuch_2.0.0_all.deb) | Optionale Komponente des Windows-Installers |
+| Handbuch | [Debian-Paket](https://github.com/maik3531/Magnolie-Organizer/releases/latest/download/magnolie-handbuch_2.0.1_all.deb) | Optionale Komponente des Windows-Installers |
 
 SHA-256-Prüfsummen und Quellarchive liegen in der
 [aktuellen Freigabe](https://github.com/maik3531/Magnolie-Organizer/releases/latest).
 
 > [!IMPORTANT]
-> Die Windows-Artefakte 2.0.0 wurden unter Linux querkompiliert und sind nicht
-> mit Authenticode signiert. Die Paket- und Inhaltsprüfungen sowie der
-> Laufzeittest unter Windows waren erfolgreich. Bitte vor der Nutzung die
-> Freigabehinweise lesen.
+> Die vorgesehenen Windows-Artefakte 2.0.1 sind unsignierte Linux-Cross-Builds.
+> Quellen-, Web- und Paketinhaltsprüfungen bestehen; der endgültige Artefakt-
+> und Windows-VM-Lauf muss vor der Veröffentlichung noch abgeschlossen werden.
+> Bitte vor der Nutzung die Freigabehinweise lesen.
 
 ## Einblick
 
@@ -75,7 +75,7 @@ SHA-256-Prüfsummen und Quellarchive liegen in der
 | Magnolie-Handbuch | Python, GTK, HTML/CSS/JavaScript | [`magnolie-handbuch-stamm`](magnolie-handbuch-stamm/) |
 
 Jeder Ordner enthält eigene Bau- und Prüfanweisungen. Das Repository enthält
-exakt die mit Organizer 2.0.0 und Notes 1.0.5 veröffentlichten Quellen. Fertige
+die für Organizer 2.0.1 und Notes 1.0.5 vorbereiteten Quellen. Fertige
 Pakete bleiben auf der Releases-Seite und belasten nicht die Git-Historie.
 
 ## Sicherheit und Datenschutz
