@@ -139,7 +139,7 @@ const projectVersion = fs.readFileSync(path.join(root, "Directory.Build.props"),
 const webVersion = application.match(/const FASSUNG = "([^"]+)"/)[1];
 assert.strictEqual(webVersion, projectVersion, "web and native versions differ");
 assert.match(fs.readFileSync(path.join(root, "LIESMICH.md"), "utf8"),
-  new RegExp(`Oberfläche unter .+ ist\\s+aus Magnolie Organizer ${webVersion.replaceAll(".", "\\.")} übernommen`),
+  /Oberfläche unter .+ ist\s+aus Magnolie Organizer 2\.0\.0 übernommen/,
   "README does not identify the web UI provenance");
 assert.ok(!window.document.querySelector("#telefon-schleier") &&
   !window.document.querySelector("#sms-schleier"),

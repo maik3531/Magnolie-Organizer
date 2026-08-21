@@ -10,7 +10,8 @@ const root = path.resolve(__dirname, "..");
 const handbook = [process.env.MAGNOLIE_HANDBOOK_WEB,
   path.resolve(root, "..", "magnolie-handbuch-stamm", "web"),
   path.join(root, "shared", "magnolie-handbuch-stamm", "web")]
-  .filter(Boolean).find((candidate) => fs.existsSync(path.join(candidate, "inhalt.js")));
+  .filter(Boolean).find((candidate) => fs.existsSync(path.join(candidate, "inhalt.js")) &&
+    fs.existsSync(path.join(candidate, "i18n", "de.js")));
 assert.ok(handbook, "Gemeinsame Handbuchquelle fehlt");
 const protectedIds = ["license-and-acknowledgments", "in-closing",
   "support-with-a-coffee", "about-maik-walter"];

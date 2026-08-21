@@ -11,11 +11,20 @@ const root = path.resolve(__dirname, "..");
 const handbook = [process.env.MAGNOLIE_HANDBUCH_WEB,
   path.resolve(root, "..", "magnolie-handbuch-stamm", "web"),
   path.join(root, "shared", "magnolie-handbuch-stamm", "web")]
-  .filter(Boolean).find((candidate) => fs.existsSync(path.join(candidate, "platform.js")));
+  .filter(Boolean).find((candidate) => fs.existsSync(path.join(candidate, "platform.js")) &&
+    fs.existsSync(path.join(candidate, "i18n", "de.js")));
 assert.ok(handbook, "Gemeinsame Handbuchquelle fehlt");
 const platformPath = path.join(handbook, "platform.js");
 const platformSource = fs.readFileSync(platformPath, "utf8");
-const installerName = "Magnolie-Organizer-Windows-2.0.0-Setup-x64.exe";
+const propsVersion = fs.readFileSync(path.join(root, "Directory.Build.props"), "utf8")
+  .match(/<Version>([^<]+)<\/Version>/)?.[1];
+const expectedVersion = process.argv[2] || propsVersion;
+const installerName = process.argv[3] ||
+  `Magnolie-Organizer-Windows-${expectedVersion}-Setup-x64.exe`;
+assert.ok(/^\d+\.\d+\.\d+$/.test(expectedVersion || ""), "Kanonische Testversion fehlt");
+assert.strictEqual(installerName,
+  `Magnolie-Organizer-Windows-${expectedVersion}-Setup-x64.exe`,
+  "Unerlaubter Test-Installername");
 const pageIds = [
   "what-your-computer-needs",
   "installing-the-organizer",
@@ -67,6 +76,12 @@ function localeObject(variants, locale, ids = pageIds) {
   return Object.fromEntries(ids.map((pageId) => [pageId, variants[pageId][locale]]));
 }
 
+function importedBaseline(variants, locale, ids = pageIds) {
+  return Object.fromEntries(Object.entries(localeObject(variants, locale, ids))
+    .map(([pageId, content]) => [pageId, content.replaceAll(installerName,
+      "Magnolie-Organizer-Windows-2.0.0-Setup-x64.exe")]));
+}
+
 const context = {
   window: {
     __MAGNOLIE_PLATFORM__: "windows",
@@ -92,7 +107,9 @@ assert.ok(!Object.values(variants).some((translations) =>
 for (const locale of locales) {
   const installing = variants["installing-the-organizer"][locale];
   assert.ok(installing.includes(installerName), `Kanonischer Installer fehlt für ${locale}`);
-  assert.ok(!/Magnolie-Organizer-Windows-(?!2\.0\.0)\d+\.\d+\.\d+-Setup-x64\.exe/.test(installing),
+  const installerNames = installing.match(
+    /Magnolie-Organizer-Windows-\d+\.\d+\.\d+-Setup-x64\.exe/g) || [];
+  assert.ok(installerNames.every((name) => name === installerName),
     `Abweichender Installer gefunden für ${locale}`);
 }
 
@@ -121,11 +138,11 @@ for (const locale of locales) {
 
 for (const [sourceLocale, [, expectedContentHash]] of Object.entries(importedLocales)) {
   const locale = sourceLocale === "zh_CN" ? "zh-cn" : sourceLocale;
-  assert.strictEqual(hash(JSON.stringify(localeObject(variants, locale))), expectedContentHash,
+  assert.strictEqual(hash(JSON.stringify(importedBaseline(variants, locale))), expectedContentHash,
     `Importinhalt weicht für ${sourceLocale} ab`);
 }
 for (const [locale, expectedHash] of Object.entries(preservedLocaleHashes)) {
-  assert.strictEqual(hash(JSON.stringify(localeObject(variants, locale))), expectedHash,
+  assert.strictEqual(hash(JSON.stringify(importedBaseline(variants, locale))), expectedHash,
     `Geschützte Ausgangsbasis weicht für ${locale} ab`);
 }
 
@@ -137,12 +154,12 @@ if (fs.existsSync(sourceDir)) {
     assert.strictEqual(hash(bytes), expectedByteHash, `JSON-Quellbytes weichen für ${sourceLocale} ab`);
     const expected = JSON.parse(bytes.toString("utf8"));
     const locale = sourceLocale === "zh_CN" ? "zh-cn" : sourceLocale;
-    assert.deepStrictEqual(localeObject(variants, locale, importedPageIds), expected,
+    assert.deepStrictEqual(importedBaseline(variants, locale, importedPageIds), expected,
       `Integrierter JSON-Inhalt weicht für ${sourceLocale} ab`);
   }
   for (const locale of approvedSourceLocales) {
     const expected = JSON.parse(fs.readFileSync(path.join(sourceDir, `${locale}-alle.json`), "utf8"));
-    assert.deepStrictEqual(localeObject(variants, locale, importedPageIds), expected,
+    assert.deepStrictEqual(importedBaseline(variants, locale, importedPageIds), expected,
       `Integrierter JSON-Inhalt weicht für ${locale} ab`);
   }
 }

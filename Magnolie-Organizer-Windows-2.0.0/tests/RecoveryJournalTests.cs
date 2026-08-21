@@ -15,7 +15,7 @@ internal static class RecoveryJournalTests
                 Path.Combine(root, "journal.json"), clock: () => now);
             var data = new JsonObject { ["termine"] = new JsonArray(new JsonObject { ["id"] = "t1" }),
                 ["kontakte"] = new JsonArray(), ["notizen"] = new JsonArray(), ["syncEpoch"] = "epoch-1" };
-            var first = journal.Create(data, SnapshotReason.Periodic, "2.0.0");
+            var first = journal.Create(data, SnapshotReason.Periodic, "2.0.1");
             var manifest = JsonNode.Parse(File.ReadAllText(Path.Combine(first.Directory, "manifest.json")))!.AsObject();
             TestAssert.That(manifest["format"]?.GetValue<string>() == "magnolie-snapshot" &&
                 manifest["version"]?.GetValue<int>() == 1 && manifest["platform"]?.GetValue<string>() == "windows" &&
@@ -24,17 +24,17 @@ internal static class RecoveryJournalTests
                 "Snapshot-Manifest verletzt Format, UUID, Plattform oder Sync-Epoche.");
             TestAssert.That(GesamtarchivService.Read(journal.ReadPayload(first.Id)).Daten["termine"]!.AsArray().Count == 1,
                 "Journal verwendet nicht den vorhandenen Gesamtarchiv-Payload.");
-            var duplicate = journal.Create(data, SnapshotReason.Periodic, "2.0.0");
+            var duplicate = journal.Create(data, SnapshotReason.Periodic, "2.0.1");
             TestAssert.That(duplicate.Id == first.Id && journal.List().Count == 1, "15-Minuten-Deduplizierung greift nicht.");
 
             File.AppendAllText(Path.Combine(first.Directory, "payload.magnolie"), "x");
             try { journal.Verify(first.Id); throw new InvalidOperationException("Manipulierter Payload wurde angenommen."); }
             catch (InvalidDataException) { }
-            var replacement = journal.Create(data, SnapshotReason.Periodic, "2.0.0");
+            var replacement = journal.Create(data, SnapshotReason.Periodic, "2.0.1");
             TestAssert.That(replacement.Id != first.Id && journal.Verify(replacement.Id).Id == replacement.Id,
                 "Ein beschädigter Snapshot wurde als gültiges Deduplizierungsziel wiederverwendet.");
 
-            var contact = journal.Create(data, SnapshotReason.PreContact, "2.0.0");
+            var contact = journal.Create(data, SnapshotReason.PreContact, "2.0.1");
             TestAssert.That(contact.Reason == "pre-contact", "Der allgemeine Kontaktgrund ist nicht plattformstabil.");
             var contactManifestPath = Path.Combine(contact.Directory, "manifest.json");
             var legacyManifest = JsonNode.Parse(File.ReadAllText(contactManifestPath))!.AsObject();
@@ -44,7 +44,7 @@ internal static class RecoveryJournalTests
                 "Ein vorhandener Windows-Grund 'periodic' wird nicht als 'weekly' normalisiert.");
 
             if (Directory.Exists(first.Directory)) Directory.Delete(first.Directory, true);
-            var manual = journal.Create(data, SnapshotReason.Manual, "2.0.0");
+            var manual = journal.Create(data, SnapshotReason.Manual, "2.0.1");
             now = now.AddDays(400);
             journal.Prune(2L * 1024 * 1024 * 1024, 20L * 1024 * 1024 * 1024);
             TestAssert.That(journal.List().Any(item => item.Id == manual.Id), "Angehefteter manueller Stand wurde entfernt.");
@@ -64,7 +64,7 @@ internal static class RecoveryJournalTests
             var encryption = new EncryptionService();
             _ = encryption.Enable("{}", "Rosenholz1896");
             var protectedPoint = journal.Create(new JsonObject { ["notizen"] = new JsonArray() }, SnapshotReason.PreRestore,
-                "2.0.0", encryption.EncryptData);
+                "2.0.1", encryption.EncryptData);
             var protectedPayload = journal.ReadPayload(protectedPoint.Id);
             TestAssert.That(EncryptionService.IsEncrypted(protectedPayload) &&
                 GesamtarchivService.Read(encryption.DecryptDataWithSession(protectedPayload)).Daten["notizen"] is JsonArray,
@@ -97,7 +97,7 @@ internal static class RecoveryJournalTests
                 "Ein Prozessabbruch während des Snapshot-Swaps stellte den alten gültigen Stand nicht wieder her.");
 
             var leasedPoint = journal.CreateRestorePoint(
-                new JsonObject { ["notizen"] = new JsonArray(new JsonObject { ["id"] = "rollback" }) }, "2.0.0");
+                new JsonObject { ["notizen"] = new JsonArray(new JsonObject { ["id"] = "rollback" }) }, "2.0.1");
             journal.Prune(1024L * 1024 * 1024 - 1, 20L * 1024 * 1024 * 1024);
             TestAssert.That(journal.List().Any(item => item.Id == leasedPoint.Id && item.Pinned),
                 "Der aktive Pre-Restore-Lease wurde bei weniger als 1 GiB freiem Speicher gelöscht.");
@@ -118,7 +118,7 @@ internal static class RecoveryJournalTests
                 "Der freigegebene Restore-Lease blieb unterhalb der Speichergrenze dauerhaft angeheftet.");
 
             var failedRestorePoint = restartedJournal.CreateRestorePoint(
-                new JsonObject { ["notizen"] = new JsonArray(new JsonObject { ["id"] = "failed-restore" }) }, "2.0.0");
+                new JsonObject { ["notizen"] = new JsonArray(new JsonObject { ["id"] = "failed-restore" }) }, "2.0.1");
             try { throw new IOException("simulierter Restore-Fehler"); }
             catch (IOException) { }
             finally { restartedJournal.ReleaseRestoreLease(failedRestorePoint.Id); }

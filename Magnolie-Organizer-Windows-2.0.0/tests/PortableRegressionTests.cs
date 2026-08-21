@@ -395,7 +395,7 @@ try
         "tombstones":[{"id":"alt","geaendert":1}],"einstellungen":{"allgemein":{"tray":{"aktiv":true,"autostart":true},"sicherungsordner":"/fremd"},"sync":{"kalenderUids":["fremd"]}},
         "zukuenftigesFeld":{"unicode":"🪻","roh":[1,null,false]}}
         """)!.AsObject();
-    var gesamtArchive = GesamtarchivService.Create(fullArchiveData, "windows", "2.0.0", "",
+    var gesamtArchive = GesamtarchivService.Create(fullArchiveData, "windows", "2.0.1", "",
         DateTimeOffset.Parse("2026-08-11T12:34:56+00:00"));
     var archiveInfo = GesamtarchivService.Read(gesamtArchive);
     Check(JsonNode.DeepEquals(archiveInfo.Daten, fullArchiveData) && archiveInfo.Fotos == 4 && archiveInfo.Anhaenge == 3,
@@ -423,7 +423,7 @@ try
     Check(JsonNode.DeepEquals(overlaid["einstellungen"], localSettings["einstellungen"]),
         "Plattformwechsel bewahrt Tray, Autostart, Sicherungsordner und Sync-Quellen");
     var tokenData = fullArchiveData.DeepClone().AsObject(); tokenData["einstellungen"]!["sync"]!["graphToken"] = "geheim";
-    try { _ = GesamtarchivService.Create(tokenData, "windows", "2.0.0"); throw new InvalidOperationException("Graph-Token exportiert"); }
+    try { _ = GesamtarchivService.Create(tokenData, "windows", "2.0.1"); throw new InvalidOperationException("Graph-Token exportiert"); }
     catch (InvalidDataException) { }
     var unchangedPath = Path.Combine(root, "keine-mutation.json"); store.Write(unchangedPath, second);
     try { _ = GesamtarchivService.Read(damagedArchive.ToJsonString().Replace("\"fassung\":99", "\"fassung\":98")); } catch { }

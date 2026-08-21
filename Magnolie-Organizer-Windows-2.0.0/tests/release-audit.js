@@ -10,7 +10,8 @@ const fail = message => { throw new Error(`Release-Audit: ${message}`); };
 const handbook = [process.env.MAGNOLIE_HANDBUCH_WEB,
   path.resolve(root, "..", "magnolie-handbuch-stamm", "web"),
   path.join(root, "shared", "magnolie-handbuch-stamm", "web")]
-  .filter(Boolean).find((candidate) => fs.existsSync(path.join(candidate, "platform.js")));
+  .filter(Boolean).find((candidate) => fs.existsSync(path.join(candidate, "platform.js")) &&
+    fs.existsSync(path.join(candidate, "i18n", "de.js")));
 if (!handbook) fail("Gemeinsame Handbuchquelle fehlt");
 function checkPowerShell(file) {
   const text = read(file);

@@ -15,7 +15,8 @@ assert.strictEqual(expectedInstaller,
 const handbook = [process.env.MAGNOLIE_HANDBUCH_WEB,
   path.resolve(root, "..", "magnolie-handbuch-stamm", "web"),
   path.join(root, "shared", "magnolie-handbuch-stamm", "web")]
-  .filter(Boolean).find((candidate) => fs.existsSync(path.join(candidate, "inhalt.js")));
+  .filter(Boolean).find((candidate) => fs.existsSync(path.join(candidate, "inhalt.js")) &&
+    fs.existsSync(path.join(candidate, "i18n", "de.js")));
 assert.ok(handbook, "Gemeinsame Handbuchquelle fehlt");
 const html = fs.readFileSync(path.join(handbook, "index.html"), "utf8");
 const content = fs.readFileSync(path.join(handbook, "inhalt.js"), "utf8");
