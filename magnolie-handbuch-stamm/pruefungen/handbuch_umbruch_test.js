@@ -54,6 +54,7 @@ function createBook() {
       "<p data-height='80'>Protected A</p><p data-height='80'>Protected B</p>" }
   ];
   const sourceMarkup = pages.map((page) => page.inhalt);
+  let measurements = 0;
   w.HANDBUCH_SEITEN = pages;
   w.MagnolieI18n = {
     gettext: (text) => text,
@@ -68,7 +69,11 @@ function createBook() {
 
   Object.defineProperty(w.HTMLElement.prototype, "clientHeight", {
     configurable: true,
-    get() { return this.classList.contains("seiten-inhalt") ? capacity : 0; }
+    get() {
+      if (!this.classList.contains("seiten-inhalt")) return 0;
+      measurements += 1;
+      return capacity;
+    }
   });
   Object.defineProperty(w.HTMLElement.prototype, "scrollHeight", {
     configurable: true,
@@ -90,7 +95,8 @@ function createBook() {
 
   w.eval(runtime);
   if (!w.Handbuch) w.document.dispatchEvent(new w.Event("DOMContentLoaded"));
-  return { dom, w, H: w.Handbuch, pages, sourceMarkup };
+  return { dom, w, H: w.Handbuch, pages, sourceMarkup,
+    measurements: () => measurements };
 }
 
 async function run() {
@@ -98,9 +104,20 @@ async function run() {
   assert.ok(!css.includes("scroll-ausnahme"), "no handbook page may enable an inner scrollbar");
   assert.ok(!/\.seiten-inhalt\s*\{[^}]*overflow-y:\s*auto/s.test(css));
 
-  const { dom, w, H, pages, sourceMarkup } = createBook();
+  const { dom, w, H, pages, sourceMarkup, measurements } = createBook();
   const shown = () => H.anzeige();
   const parts = (id) => shown().filter((page) => page.quellId === id);
+
+  const initialMeasurements = measurements();
+  H.neuUmbrechen();
+  assert.strictEqual(measurements() - initialMeasurements, initialMeasurements,
+    "initial pagination must perform exactly one full display build");
+  const beforeOpen = measurements();
+  w.document.querySelector("#deckel").click();
+  assert.strictEqual(measurements(), beforeOpen,
+    "opening an already paginated handbook must not paginate again");
+  assert.ok(w.document.querySelector("#buch").classList.contains("offen"),
+    "the optimized handbook opening must still open the book");
 
   assert.strictEqual(parts("intro").length, 2, "blocks must break at measured height");
   assert.strictEqual(parts("ordered").length, 2, "lists must break between list items");

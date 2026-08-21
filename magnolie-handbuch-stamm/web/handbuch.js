@@ -415,6 +415,7 @@
   function umbruch() {
     if (umbruchLaeuft) return;
     umbruchLaeuft = true;
+    const hatteAnzeige = ANZEIGE.length > 0;
     const rechterIndex = bogen * 2;
     const bisher = ANZEIGE[rechterIndex] ||
       ANZEIGE[Math.max(0, rechterIndex - 1)] || ANZEIGE[0];
@@ -441,7 +442,8 @@
       };
       baueAnzeige();
       /* Geänderte Zielnummern können selbst einen Zeilenumbruch auslösen. */
-      if (SEITEN.some((seite) => vorher.get(seite.id) !== seitenIndex(seite.id))) {
+      if (hatteAnzeige &&
+          SEITEN.some((seite) => vorher.get(seite.id) !== seitenIndex(seite.id))) {
         baueAnzeige();
       }
       if (zielId) {
@@ -591,7 +593,7 @@
     const buch = $("#buch");
     if (buch.classList.contains("offen")) return;
     buch.classList.add("offen");
-    umbruch();
+    if (!ANZEIGE.length) umbruch();
     setTimeout(() => $("#deckel").classList.add("weg"), 1250);
   }
 
