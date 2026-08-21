@@ -49,9 +49,9 @@ SHA-256 checksums and source archives are attached to the
 [latest release](https://github.com/maik3531/Magnolie-Organizer/releases/latest).
 
 > [!IMPORTANT]
-> The planned Windows 2.0.1 artifacts are unsigned Linux cross-builds. Source,
-> web and package-content audits pass; the final artifact and Windows VM checks
-> must complete before the release is published. Review the release notes before use.
+> The Windows 2.0.1 artifacts are unsigned Linux cross-builds. Source, web,
+> package-content and 30,000-item core tests pass, but a current Windows VM run
+> was unavailable. Review the release notes before use.
 
 ## A look inside
 
@@ -81,7 +81,7 @@ SHA-256 checksums and source archives are attached to the
 | Magnolie Handbook | Python, GTK, HTML/CSS/JavaScript | [`magnolie-handbuch-stamm`](magnolie-handbuch-stamm/) |
 
 Each directory contains its own build and test instructions. The repository
-contains the sources prepared for release 2.0.1 / Notes 1.0.5; generated
+contains the published sources for release 2.0.1 / Notes 1.0.5; generated
 packages are kept on the Releases page rather than in Git history.
 
 ## Security and privacy

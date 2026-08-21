@@ -14,7 +14,7 @@ from png_pruefen import pruefen as png_pruefen
 WINDOWS = WORKSPACE / "Magnolie-Organizer-Windows-2.0.0"
 HANDBOOK = WORKSPACE / "magnolie-handbuch-stamm"
 VERSION = "2.0.1"
-MANIFEST_VERSION = "2.0.0"
+MANIFEST_VERSION = VERSION
 INTERNAL_NOTE = re.compile(
     r"(REVIEW|ENTWURF|OFFENE[-_ ]?PUNKTE|ANALYSE|PLAN|AUDIT).*\.md$", re.I)
 PRIVATE_KEY = re.compile(
@@ -76,8 +76,8 @@ for manifest in (organizer_update,):
     manual = manifest.find("manual")
     assert manual is not None
     assert [child.tag for child in manual] == ["version", "linux", "windows"]
-    assert manual.findtext("linux/sha256") == "UNVEROEFFENTLICHT"
-    assert manual.findtext("windows/sha256") == "UNVEROEFFENTLICHT"
+    assert re.fullmatch(r"[0-9a-f]{64}", manual.findtext("linux/sha256") or "")
+    assert re.fullmatch(r"[0-9a-f]{64}", manual.findtext("windows/sha256") or "")
 install_manifest = text(ROOT / "debian/install")
 assert not INTERNAL_NOTE.search(install_manifest)
 assert "web/kaffee-qr.png" in install_manifest

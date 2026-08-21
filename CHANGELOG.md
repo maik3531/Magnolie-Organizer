@@ -12,8 +12,10 @@
 - Removed two redundant full pagination passes before the handbook first opens.
 - Updated Linux, Windows and handbook sources, tests and documentation to 2.0.1.
 
-Release artifacts, final checksums and the signed update manifest are generated only
-after the remaining package and Windows VM checks have passed.
+Local release artifacts, final checksums and a signed update manifest were generated.
+The Windows artifacts are unsigned Linux cross-builds; their source, package and
+30,000-item core tests pass, but a current Windows VM run was unavailable. External
+Linux `autopkgtest` QEMU and Fedora `mock` tests were unavailable as well.
 
 ### Deutsch
 
@@ -25,8 +27,11 @@ after the remaining package and Windows VM checks have passed.
 - Zwei redundante Vollpaginierungen vor dem ersten Öffnen des Handbuchs entfernt.
 - Linux-, Windows- und Handbuchquellen, Tests und Dokumentation auf 2.0.1 angehoben.
 
-Freigabeartefakte, endgültige Prüfsummen und das signierte Aktualisierungsmanifest
-entstehen erst nach den verbleibenden Paket- und Windows-VM-Prüfungen.
+Lokale Freigabeartefakte, endgültige Prüfsummen und ein signiertes
+Aktualisierungsmanifest wurden erzeugt. Die Windows-Artefakte sind unsignierte
+Linux-Cross-Builds; Quellen-, Paket- und 30.000er-Coretests bestehen, ein aktueller
+Windows-VM-Lauf war jedoch nicht verfügbar. Auch die externen Linux-Tests mit
+`autopkgtest` QEMU und Fedora `mock` waren nicht verfügbar.
 
 ## 2.0.0 / Notes 1.0.5 — 2026-08-21
 

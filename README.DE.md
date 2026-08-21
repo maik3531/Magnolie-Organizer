@@ -42,10 +42,9 @@ SHA-256-Prüfsummen und Quellarchive liegen in der
 [aktuellen Freigabe](https://github.com/maik3531/Magnolie-Organizer/releases/latest).
 
 > [!IMPORTANT]
-> Die vorgesehenen Windows-Artefakte 2.0.1 sind unsignierte Linux-Cross-Builds.
-> Quellen-, Web- und Paketinhaltsprüfungen bestehen; der endgültige Artefakt-
-> und Windows-VM-Lauf muss vor der Veröffentlichung noch abgeschlossen werden.
-> Bitte vor der Nutzung die Freigabehinweise lesen.
+> Die Windows-Artefakte 2.0.1 sind unsignierte Linux-Cross-Builds. Quellen-, Web-,
+> Paket- und 30.000er-Coretests bestehen, ein aktueller Windows-VM-Lauf war jedoch
+> nicht verfügbar. Bitte vor der Nutzung die Freigabehinweise lesen.
 
 ## Einblick
 
@@ -75,7 +74,7 @@ SHA-256-Prüfsummen und Quellarchive liegen in der
 | Magnolie-Handbuch | Python, GTK, HTML/CSS/JavaScript | [`magnolie-handbuch-stamm`](magnolie-handbuch-stamm/) |
 
 Jeder Ordner enthält eigene Bau- und Prüfanweisungen. Das Repository enthält
-die für Organizer 2.0.1 und Notes 1.0.5 vorbereiteten Quellen. Fertige
+die veröffentlichten Quellen für Organizer 2.0.1 und Notes 1.0.5. Fertige
 Pakete bleiben auf der Releases-Seite und belasten nicht die Git-Historie.
 
 ## Sicherheit und Datenschutz
