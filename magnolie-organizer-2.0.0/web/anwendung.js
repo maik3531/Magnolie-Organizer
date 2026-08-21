@@ -19503,6 +19503,7 @@
 
   const App = {
     init(nutzlast) {
+      const startPhase = performance.now();
       nutzlast = nutzlast || {};
       antwortErhalten = true;
       contributorAktiv = nutzlast.contributorAktiv === true;
@@ -19536,6 +19537,7 @@
       const edsZeigerBereinigt = Array.isArray(nutzlast.daten && nutzlast.daten.kontakte) &&
         nutzlast.daten.kontakte.some(kontaktHatEdsZeigerwert);
       DATEN = normalisiere(nutzlast.daten);
+      const nachNormalisierung = performance.now();
       if (nutzlast.regional && typeof nutzlast.regional === "object") {
         DATEN.einstellungen.regional = Object.assign(
           DATEN.einstellungen.regional, nutzlast.regional);
@@ -19557,6 +19559,7 @@
       DATEN_PFAD = typeof nutzlast.datenPfad === "string" ? nutzlast.datenPfad : "";
       raeumeTombstonesAuf();
       raeumePapierkorbAuf();
+      const nachAufraeumen = performance.now();
       if (nutzlast.neu && !DATEN.notizen.length) {
         DATEN.notizen.push(willkommensNotiz());
       }
@@ -19566,7 +19569,16 @@
       wendeSchriftAn();
       wendeAllgemeinAn();
       aktualisiereContributorWasserzeichen();
+      const vorZeichnen = performance.now();
       zeichneAlles();
+      const nachZeichnen = performance.now();
+      if (Bruecke.vorhanden) Bruecke.sende({ cmd: "debug_startphase", phasen: {
+        normalisieren_ms: nachNormalisierung - startPhase,
+        aufraeumen_ms: nachAufraeumen - nachNormalisierung,
+        anwenden_ms: vorZeichnen - nachAufraeumen,
+        zeichnen_ms: nachZeichnen - vorZeichnen,
+        gesamt_ms: nachZeichnen - startPhase
+      } });
       if (nutzlast.migriert) {
         zettel(_("Your data from “Organizer Klassik” has been imported."));
       }

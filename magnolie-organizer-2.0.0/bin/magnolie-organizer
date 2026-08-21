@@ -15246,6 +15246,14 @@ class Fenster(_FENSTER_BASIS):
                 threading.Thread(target=self._telefon_dienst_pflegen,
                                  daemon=True).start()
 
+        elif befehl == "debug_startphase":
+            felder = {}
+            for name, wert in (nachricht.get("phasen") or {}).items():
+                if (isinstance(name, str) and len(name) <= 40 and
+                        isinstance(wert, (int, float)) and not isinstance(wert, bool)):
+                    felder[name] = round(float(wert), 1)
+            debug_notiz("startup.web-data", **felder)
+
         elif befehl == "chromium_extern_oeffnen" and self._chromium:
             adresse = nachricht.get("adresse")
             if organizer_navigation(adresse, True) == "extern":
@@ -16182,6 +16190,7 @@ class Fenster(_FENSTER_BASIS):
     def _oeffnen_oder_sperren(self):
         """Beim Start: Sind die Daten verschlüsselt, wird zuerst nach dem
         Kennwort gefragt."""
+        start = time.monotonic()
         self._kennwort = getattr(self, "_kennwort", "")
         try:
             kennwort_transaktion_reparieren()
@@ -16208,6 +16217,9 @@ class Fenster(_FENSTER_BASIS):
                 roh = datei.read()
         except OSError:
             roh = ""
+        debug_notiz("startup.data-read",
+                    duration_ms=round((time.monotonic() - start) * 1000, 1),
+                    bytes=len(roh.encode("utf-8")))
         if ist_verschluesselt(roh):
             self._gesperrt = True
             self._tray_telefone_aktualisieren()
@@ -16227,8 +16239,20 @@ class Fenster(_FENSTER_BASIS):
                                           "WAYLAND_DISPLAY"))})
             return
         self._gesperrt = False
+        laden_start = time.monotonic()
         daten, ist_neu, migriert = lade_daten()
+        gruppen = {}
+        if isinstance(daten, dict):
+            for name in ("termine", "aufgaben", "kontakte", "notizen",
+                         "jahrestage", "feiertage", "tagmarken"):
+                wert = daten.get(name)
+                if isinstance(wert, list):
+                    gruppen[name] = len(wert)
+        debug_notiz("startup.data-loaded",
+                    duration_ms=round((time.monotonic() - laden_start) * 1000, 1),
+                    migrated=migriert, new=ist_neu, **gruppen)
         self._aktuelle_daten = daten
+        senden_start = time.monotonic()
         self.antwort("App.init", {"daten": daten, "neu": ist_neu,
                                   "datenPfad": daten_datei(),
                                   "migriert": migriert,
@@ -16242,6 +16266,9 @@ class Fenster(_FENSTER_BASIS):
                                   "regional": self._regional,
                                   "wayland": bool(os.environ.get(
                                           "WAYLAND_DISPLAY"))})
+        debug_notiz("startup.data-dispatched",
+                    duration_ms=round((time.monotonic() - senden_start) * 1000, 1),
+                    total_ms=round((time.monotonic() - start) * 1000, 1))
         journal_planen = getattr(self, "_journal_planen", None)
         if journal_planen:
             journal_planen()
