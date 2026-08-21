@@ -17,7 +17,9 @@ function Get-SharedHandbookWeb([string] $Root) {
     foreach ($candidate in $candidates) {
         $full = [IO.Path]::GetFullPath($candidate)
         if ((Test-Path -LiteralPath (Join-Path $full "index.html") -PathType Leaf) -and
-            (Test-Path -LiteralPath (Join-Path $full "platform.js") -PathType Leaf)) { return $full }
+            (Test-Path -LiteralPath (Join-Path $full "inhalt.js") -PathType Leaf) -and
+            (Test-Path -LiteralPath (Join-Path $full "platform.js") -PathType Leaf) -and
+            (Test-Path -LiteralPath (Join-Path $full "i18n/de.js") -PathType Leaf)) { return $full }
     }
     throw "Gemeinsame Handbuchquelle magnolie-handbuch-stamm/web fehlt."
 }
