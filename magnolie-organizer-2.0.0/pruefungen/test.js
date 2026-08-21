@@ -7800,6 +7800,11 @@ function knopfMit(text, wurzel) {
   };
   for (const sektion of ["kalender", "aufgaben", "jahrestage", "planer", "gesundheit"]) {
     await suchT.wechsel(sektion);
+    if (sektion === "kalender" || sektion === "planer") {
+      const einstieg = suchD.querySelector(".kalender-suchknopf");
+      assert.ok(einstieg && einstieg.querySelector("svg") && einstieg.title === "Suche",
+        "sichtbare Suchlupe fehlt in " + sektion);
+    }
     const rueckkehr = suchD.querySelector('.registerknopf[aria-current="page"]');
     rueckkehr.focus();
     ctrlF();
@@ -7815,6 +7820,18 @@ function knopfMit(text, wurzel) {
     await new Promise((resolve) => setTimeout(resolve, 180));
     assert.ok(suchD.querySelector(".such-treffer-knopf"),
       "Mehrwortsuche findet nichts in " + sektion);
+    const suchWeiter = suchD.querySelector(".such-weiter");
+    const suchZurueck = suchD.querySelector(".such-zurueck");
+    assert.ok(suchWeiter && suchZurueck && !suchWeiter.disabled && !suchZurueck.disabled,
+      "Treffernavigation fehlt in " + sektion);
+    suchWeiter.click();
+    assert.ok(suchD.activeElement.classList.contains("such-treffer-knopf") &&
+      suchD.activeElement.classList.contains("aktiv") &&
+      /^1 \/ /.test(suchD.querySelector(".such-position").textContent),
+    "Nächster Treffer wird nicht fokussiert in " + sektion);
+    suchZurueck.click();
+    assert.ok(suchD.activeElement.classList.contains("aktiv"),
+      "Vorheriger Treffer wird nicht fokussiert in " + sektion);
     ctrlF();
     assert.strictEqual(suchD.activeElement, feld, "Strg+F fokussiert offenen Suchdialog nicht");
     schliesseSuche();
@@ -7848,6 +7865,13 @@ function knopfMit(text, wurzel) {
     await suchT.wechsel("aufgaben"); await suchT.wechsel("kalender");
     const heute = Array.from(suchD.querySelectorAll("button"))
       .find((button) => button.textContent.trim() === "Heute");
+    const suchEinstieg = suchD.querySelector(".kalender-suchknopf");
+    assert.ok(suchEinstieg && suchEinstieg.querySelector("svg"),
+      "Suchlupe fehlt in Kalenderansicht " + ansicht);
+    suchEinstieg.click();
+    assert.ok(suchD.querySelector("#such-schleier"),
+      "Suchlupe öffnet die Suche nicht in " + ansicht);
+    schliesseSuche();
     const rechtsklick = new suchW.MouseEvent("contextmenu", { bubbles: true, cancelable: true });
     heute.dispatchEvent(rechtsklick);
     assert.ok(rechtsklick.defaultPrevented && suchD.querySelector("#such-schleier"),

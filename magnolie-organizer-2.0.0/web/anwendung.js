@@ -5868,6 +5868,7 @@
     tabelle: "M4 4h16v16H4z M4 9h16 M4 14h16 M10 4v16 M16 4v16",
     koffer: "M4 8h16v11H4z M8 8V5h8v3 M4 12h16 M10 11v3h4v-3",
     muelltonne: "M6 7h12l-1 14H7z M4 7h16 M9 7V4h6v3 M9 11v6 M12 11v6 M15 11v6",
+    suchen: "M10.5 4a6.5 6.5 0 1 0 0 13a6.5 6.5 0 0 0 0-13z M15.5 15.5L21 21",
     drucken: "M7 9V3h10v6 M7 19H5a2 2 0 0 1-2-2v-5h18v5a2 2 0 0 1-2 2h-2 " +
       "M7 15h10v6H7z",
     "gesundheit-vital": "M3 12h4l2-5 4 10 3-6 2 1h5 M4 4h16v16H4z",
@@ -7554,8 +7555,38 @@
     const stand = el("p", "such-stand", "");
     stand.id = "such-stand";
     stand.setAttribute("aria-live", "polite");
+    const navigation = el("div", "such-navigation");
+    const zurueck = knopf("‹", "pfeil such-zurueck", () => wechsleTreffer(-1));
+    zurueck.title = _("Previous page") + " · " + _("Search");
+    zurueck.setAttribute("aria-label", zurueck.title);
+    zurueck.setAttribute("aria-controls", "such-treffer");
+    const position = el("span", "such-position", "");
+    const weiter = knopf("›", "pfeil such-weiter", () => wechsleTreffer(1));
+    weiter.title = _("Next page") + " · " + _("Search");
+    weiter.setAttribute("aria-label", weiter.title);
+    weiter.setAttribute("aria-controls", "such-treffer");
+    navigation.append(stand, zurueck, position, weiter);
     const liste = el("div", "such-treffer");
     liste.id = "such-treffer";
+    let aktiverTreffer = -1;
+    const setzeTrefferStand = (anzahl, index) => {
+      aktiverTreffer = index === undefined ? -1 : index;
+      zurueck.disabled = !anzahl;
+      weiter.disabled = !anzahl;
+      position.textContent = anzahl ? String(aktiverTreffer + 1) + " / " + anzahl : "";
+      Array.from(liste.querySelectorAll("button")).forEach((taste, i) =>
+        taste.classList.toggle("aktiv", i === aktiverTreffer));
+    };
+    function wechsleTreffer(richtung) {
+      const knoepfe = Array.from(liste.querySelectorAll("button"));
+      if (!knoepfe.length) return;
+      const index = aktiverTreffer < 0
+        ? (richtung > 0 ? 0 : knoepfe.length - 1)
+        : (aktiverTreffer + richtung + knoepfe.length) % knoepfe.length;
+      setzeTrefferStand(knoepfe.length, index);
+      knoepfe[index].focus();
+    }
+    setzeTrefferStand(0);
     let suchTimer = null;
     let suchLauf = 0;
     let suchAbbruch = null;
@@ -7574,9 +7605,12 @@
       if (suchAbbruch) suchAbbruch.abort();
       if (!begriffe.length) {
         liste.textContent = "";
+        setzeTrefferStand(0);
         stand.textContent = _("Search…");
         return;
       }
+      liste.textContent = "";
+      setzeTrefferStand(0);
       suchAbbruch = new AbortController();
       const signal = suchAbbruch.signal;
       const ausfuehren = () => {
@@ -7585,6 +7619,7 @@
         if (signal.aborted || lauf !== suchLauf) return;
         const sichtbar = passend.slice(0, 100);
         liste.textContent = "";
+        setzeTrefferStand(sichtbar.length);
         stand.textContent = passend.length > sichtbar.length
         ? uebersetzt("%(shown)s of %(count)s matches; refine your search.",
           { shown: sichtbar.length, count: sichtbar.length + "+" })
@@ -7611,16 +7646,23 @@
       }
     };
     feld.addEventListener("input", () => zeichnen(false));
+    feld.addEventListener("keydown", (ev) => {
+      if (ev.key !== "ArrowDown" && ev.key !== "ArrowUp") return;
+      if (!liste.querySelector("button")) return;
+      ev.preventDefault();
+      wechsleTreffer(ev.key === "ArrowDown" ? 1 : -1);
+    });
+    liste.addEventListener("focusin", (ev) => {
+      const knoepfe = Array.from(liste.querySelectorAll("button"));
+      const index = knoepfe.indexOf(ev.target);
+      if (index >= 0) setzeTrefferStand(knoepfe.length, index);
+    });
     liste.addEventListener("keydown", (ev) => {
       if (ev.key !== "ArrowDown" && ev.key !== "ArrowUp") return;
-      const knoepfe = Array.from(liste.querySelectorAll("button"));
-      const index = knoepfe.indexOf(document.activeElement);
-      if (!knoepfe.length) return;
       ev.preventDefault();
-      knoepfe[(index + (ev.key === "ArrowDown" ? 1 : -1) + knoepfe.length) % knoepfe.length]
-        .focus();
+      wechsleTreffer(ev.key === "ArrowDown" ? 1 : -1);
     });
-    dialog.append(kopf, feld, stand, liste);
+    dialog.append(kopf, feld, navigation, liste);
     schleier.append(dialog);
     document.body.append(schleier);
     schleier.addEventListener("click", (ev) => { if (ev.target === schleier) schliessen(); });
@@ -7634,6 +7676,15 @@
       ev.stopPropagation();
       oeffneSuche("kalender");
     });
+  }
+
+  function kalenderSuchknopf(sektion) {
+    const button = knopf("", "pfeil kalender-suchknopf", () => oeffneSuche(sektion));
+    button.append(sinnbild("suchen", 15));
+    button.title = _("Search");
+    button.setAttribute("aria-label", button.title);
+    fokusMarke(button, sektion + ":suche");
+    return button;
   }
 
   function zeichneRegister() {
@@ -7778,7 +7829,7 @@
     bindeHeuteSuche(heuteKnopf);
     fokusMarke(heuteKnopf, "kalender:heute");
     baueKopf("links", monatsName(z.monat) + " " + z.jahr, "",
-      [vor, zurueck, heuteKnopf, macheUmschalter()]);
+      [vor, zurueck, heuteKnopf, kalenderSuchknopf("kalender"), macheUmschalter()]);
 
     const inhaltL = $("#inhalt-links");
     inhaltL.classList.add("randlos");
@@ -9337,7 +9388,7 @@
     const dl = ausISO(linkerTag);
     baueKopf("links", wochentagName(dl.getDay()),
       datumText(dl, { day: "numeric", month: "long", year: "numeric" }),
-      [zurueck, vor, heuteKnopf, macheUmschalter()]);
+      [zurueck, vor, heuteKnopf, kalenderSuchknopf("kalender"), macheUmschalter()]);
     const dr = ausISO(rechterTag);
     baueKopf("rechts", wochentagName(dr.getDay()),
       datumText(dr, { day: "numeric", month: "long", year: "numeric" }), []);
@@ -9527,7 +9578,7 @@
       fmtPunkt(isoVon(wochenende));
     baueKopf("links", uebersetzt("Week %(number)s",
       { number: isoWocheDerZeile(wochenbeginn) }), "",
-      [vor, zurueck, heuteKnopf, macheUmschalter()], bereich);
+      [vor, zurueck, heuteKnopf, kalenderSuchknopf("kalender"), macheUmschalter()], bereich);
 
     const monatsTitel = wochenbeginn.getMonth() === wochenende.getMonth()
       ? monatsName(wochenbeginn.getMonth()) + " " + wochenbeginn.getFullYear()
@@ -14428,7 +14479,7 @@
 
     baueKopf("links", uebersetzt("Year planner %(year)s", { year: z.jahr }),
       monatsName(0) + " – " + monatsName(5),
-      [vor, zurueck, jahrWahl]);
+      [vor, zurueck, jahrWahl, kalenderSuchknopf("planer")]);
     baueKopf("rechts", String(z.jahr), monatsName(6) + " – " + monatsName(11), []);
 
     const terminTage = new Set(DATEN.termine

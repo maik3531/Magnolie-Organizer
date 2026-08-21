@@ -619,6 +619,11 @@ const escape = () => window.document.dispatchEvent(new window.KeyboardEvent("key
   { key: "Escape", bubbles: true, cancelable: true }));
 for (const section of ["kalender", "aufgaben", "jahrestage", "planer", "gesundheit"]) {
   T.wechsel(section);
+  if (section === "kalender" || section === "planer") {
+    const entry = window.document.querySelector(".kalender-suchknopf");
+    assert.ok(entry && entry.querySelector("svg") && entry.title === "Suche",
+      `visible search button missing for ${section}`);
+  }
   const returnFocus = window.document.querySelector('.registerknopf[aria-current="page"]');
   returnFocus.focus(); pressFind();
   const field = window.document.querySelector("#globale-suche");
@@ -630,6 +635,18 @@ for (const section of ["kalender", "aufgaben", "jahrestage", "planer", "gesundhe
   field.dispatchEvent(new window.Event("input", { bubbles: true }));
   flushSearch();
   assert.ok(window.document.querySelector(".such-treffer-knopf"), `search has no result for ${section}`);
+  const nextMatch = window.document.querySelector(".such-weiter");
+  const previousMatch = window.document.querySelector(".such-zurueck");
+  assert.ok(nextMatch && previousMatch && !nextMatch.disabled && !previousMatch.disabled,
+    `match navigation missing for ${section}`);
+  nextMatch.click();
+  assert.ok(window.document.activeElement.classList.contains("such-treffer-knopf") &&
+    window.document.activeElement.classList.contains("aktiv") &&
+    /^1 \/ /.test(window.document.querySelector(".such-position").textContent),
+  `next match is not focused for ${section}`);
+  previousMatch.click();
+  assert.ok(window.document.activeElement.classList.contains("aktiv"),
+    `previous match is not focused for ${section}`);
   escape();
   assert.strictEqual(window.document.activeElement, returnFocus,
     `search does not restore focus for ${section}`);
@@ -649,6 +666,11 @@ for (const view of ["month", "week", "day"]) {
   T.zustand().kalender.ansicht = view; T.wechsel("aufgaben"); T.wechsel("kalender");
   const today = Array.from(window.document.querySelectorAll("button"))
     .find((button) => button.textContent.trim() === "Heute");
+  const searchEntry = window.document.querySelector(".kalender-suchknopf");
+  assert.ok(searchEntry && searchEntry.querySelector("svg"), `search button missing in ${view}`);
+  searchEntry.click();
+  assert.ok(window.document.querySelector("#such-schleier"), `search button does not open in ${view}`);
+  escape();
   const context = new window.MouseEvent("contextmenu", { bubbles: true, cancelable: true });
   today.dispatchEvent(context);
   assert.ok(context.defaultPrevented && window.document.querySelector("#such-schleier"),

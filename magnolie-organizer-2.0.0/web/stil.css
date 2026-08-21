@@ -2119,14 +2119,18 @@ body[data-hilfsrahmen="an"] .notiz-editor :focus-visible {
 .such-kopf { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .such-kopf h3 { margin: 0; }
 .such-dialog > .suchfeld { flex: none; width: 100%; margin-top: 10px; }
-.such-stand { flex: none; min-height: 20px; margin: 7px 0; color: var(--braun-hell); }
+.such-navigation { display: flex; align-items: center; gap: 7px; margin: 7px 0; }
+.such-stand { flex: 1; min-height: 20px; margin: 0; color: var(--braun-hell); }
+.such-position { min-width: 42px; color: var(--braun-hell); text-align: center; font-size: 12px; }
+.such-navigation .pfeil { width: 24px; height: 24px; }
+.such-navigation .pfeil:disabled { opacity: .38; cursor: default; }
 .such-treffer { min-height: 0; overflow-y: auto; display: grid; gap: 5px; }
 .such-treffer-knopf {
   display: grid; gap: 2px; width: 100%; padding: 8px 10px;
   border: 1px solid var(--linie-stark); border-radius: 6px;
   background: rgba(255, 252, 240, .62); color: var(--tinte); text-align: left; cursor: pointer;
 }
-.such-treffer-knopf:hover, .such-treffer-knopf:focus-visible {
+.such-treffer-knopf:hover, .such-treffer-knopf:focus-visible, .such-treffer-knopf.aktiv {
   border-color: #7a5f38; background: rgba(255, 255, 255, .8); outline: none;
 }
 .such-treffer-titel { font: 700 15px var(--serif); }
