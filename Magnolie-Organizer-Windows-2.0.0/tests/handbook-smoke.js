@@ -73,7 +73,8 @@ const platformNeutralText = pages.filter((page) => page !== platformPage &&
   !(page.inhalt.includes("Magnolie-Gesamtarchiv") && page.inhalt.includes("Linux") &&
     page.inhalt.includes("Windows")) &&
   !(page.inhalt.includes("Magnolie Notes für Android 1.0.5") &&
-    page.inhalt.includes("Linux 2.0.0") && page.inhalt.includes("Windows 2.0.0")))
+    page.inhalt.includes(`Linux ${expectedVersion}`) &&
+    page.inhalt.includes(`Windows ${expectedVersion}`)))
   .map((page) => `${page.titel} ${page.inhalt}`).join("\n");
 const blocked = /Linux|Debian|Ubuntu|Fedora|AppImage|WebKitGTK|GNOME|Wayland|X11|\bsystemd\b|\bUFW\b|BlueZ|sudo\s|\/usr\/|~\/\.local|\.deb\b|\.rpm\b/i;
 const blockedPage = pages.find((page) => page !== platformPage &&
@@ -82,7 +83,8 @@ const blockedPage = pages.find((page) => page !== platformPage &&
   !(page.inhalt.includes("Magnolie-Gesamtarchiv") && page.inhalt.includes("Linux") &&
     page.inhalt.includes("Windows")) &&
   !(page.inhalt.includes("Magnolie Notes für Android 1.0.5") &&
-    page.inhalt.includes("Linux 2.0.0") && page.inhalt.includes("Windows 2.0.0")) &&
+    page.inhalt.includes(`Linux ${expectedVersion}`) &&
+    page.inhalt.includes(`Windows ${expectedVersion}`)) &&
   blocked.test(`${page.titel} ${page.inhalt}`));
 
 assert.strictEqual(window.document.documentElement.lang, "de");

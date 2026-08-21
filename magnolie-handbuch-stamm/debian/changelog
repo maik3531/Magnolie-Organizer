@@ -1,3 +1,11 @@
+magnolie-handbuch (2.0.1) unstable; urgency=medium
+
+  * Hebt Handbuch, Plattformvarianten und Paketbeispiele auf Version 2.0.1 an.
+  * Vermeidet eine redundante Erstpaginierung beim Öffnen des bereits
+    paginierten Handbuchs.
+
+ -- Maik Walter <maik3531@gmail.com>  Fri, 21 Aug 2026 12:00:00 +0200
+
 magnolie-handbuch (2.0.0) unstable; urgency=medium
 
   * Vereinheitlicht Handbuch- und Organizer-Fassung auf 2.0.0 und aktualisiert

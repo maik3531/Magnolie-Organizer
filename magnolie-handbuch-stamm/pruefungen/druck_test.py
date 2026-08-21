@@ -170,7 +170,7 @@ def haupt():
             "Personal Sync",
             "restore_unavailable",
             "Plattform- und Sicherheitsmatrix",
-            "magnolie-organizer-2.0.0-1.noarch.rpm",
+            "magnolie-organizer-2.0.1-1.noarch.rpm",
             "Die Locale beeinflusst den Diagnosetext",
         ):
             if textstelle not in text:
