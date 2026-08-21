@@ -78,6 +78,14 @@
 }
 
 @font-face {
+  font-family: "Magnolie Handschrift";
+  src: url("schriften/Z003-MediumItalic.otf") format("opentype");
+  font-style: normal;
+  font-weight: 400;
+  font-display: block;
+}
+
+@font-face {
   font-family: "DejaVu Sans Mono";
   src: url("schriften/DejaVuSansMono.ttf") format("truetype");
   font-style: normal;
@@ -3016,7 +3024,7 @@ body[data-schrift="handwriting"] #notiz-text,
 body[data-schrift="handwriting"] .feld,
 .schrift-probe[data-schrift="handwriting"] .obm,
 .schrift-probe[data-schrift="handwriting"] .notiz-probe {
-  font-family: "Noto Sans", var(--sans);
+  font-family: "Magnolie Handschrift", "URW Chancery L", "Z003", cursive;
   letter-spacing: 0.01em;
 }
 

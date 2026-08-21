@@ -22,6 +22,10 @@ assert.doesNotMatch(css, /\.gesundheit-(?:zellenfeld|bmi-zelle)[^{]*\{[^}]*var\(
   "health fields use an undefined font variable");
 assert.match(css, /@font-face\s*\{[^}]*font-family:\s*"DejaVu Sans"/s,
   "Windows does not bundle the Linux UI font metrics");
+assert.match(css, /font-family:\s*"Magnolie Handschrift"[\s\S]*?Z003-MediumItalic\.otf/s,
+  "Windows does not load the bundled Linux handwriting font");
+assert.match(css, /data-schrift="handwriting"[\s\S]*?font-family:\s*"Magnolie Handschrift"/s,
+  "Windows handwriting selection does not use the bundled Linux font");
 assert.match(css, /--sans:\s*"DejaVu Sans",\s*"Liberation Sans",\s*"Segoe UI",\s*sans-serif;/,
   "Windows does not use the same sans-serif family order as Linux");
 const fontHash = (name) => crypto.createHash("sha256")
@@ -53,6 +57,9 @@ assert.strictEqual(fontHash("NotoSerif-BoldItalic.ttf"),
 assert.strictEqual(fontHash("NotoSans-Regular.ttf"),
   "89c3c497f618fdaa0b2d1e98fef93582f28c71debd2c4a8cdf41f190ced2909d",
   "Windows handwriting fallback is not byte-identical to Linux Noto Sans");
+assert.strictEqual(fontHash("Z003-MediumItalic.otf"),
+  "a04947e59fc9339ea3c4b34c31fd46764f22af7512afc2c074ce190e79ed7a09",
+  "Windows handwriting font is not byte-identical to Linux Z003");
 assert.strictEqual(fontHash("DejaVuSansMono.ttf"),
   "c805f9436dbc268644c1d9584f01a601a653e028e08fd74b9b949f6cf8304d88",
   "Windows monospace font is not byte-identical to Linux DejaVu Sans Mono");
@@ -69,7 +76,8 @@ assert.match(html, /font-src 'self'/,
   "Windows CSP blocks the bundled Linux UI font");
 assert.doesNotMatch(html, /font-src 'none'/,
   "Windows CSP still disables all bundled fonts");
-for (const font of ["DejaVuSans.ttf", "DejaVuSans-Bold.ttf", "DejaVu-LIZENZ.txt"]) {
+for (const font of ["DejaVuSans.ttf", "DejaVuSans-Bold.ttf", "DejaVu-LIZENZ.txt",
+  "Z003-MediumItalic.otf", "Z003-LIZENZ.txt"]) {
   assert.ok(fs.existsSync(path.join(web, "schriften", font)), `bundled font resource missing: ${font}`);
 }
 const mainForm = fs.readFileSync(path.join(root, "MainForm.cs"), "utf8");

@@ -12,6 +12,8 @@ web/i18n.js                           usr/share/magnolie-organizer/web
 web/i18n-start.js                     usr/share/magnolie-organizer/web
 web/i18n-markers.js                   usr/share/magnolie-organizer/web
 web/i18n/*.js                         usr/share/magnolie-organizer/web/i18n
+web/schriften/Z003-MediumItalic.otf   usr/share/magnolie-organizer/web/schriften
+web/schriften/Z003-LIZENZ.txt         usr/share/magnolie-organizer/web/schriften
 werkzeuge/pot_erzeugen.py             usr/share/magnolie-organizer/werkzeuge
 locale/ar/LC_MESSAGES/magnolie-organizer.mo usr/share/locale/ar/LC_MESSAGES
 locale/be/LC_MESSAGES/magnolie-organizer.mo usr/share/locale/be/LC_MESSAGES

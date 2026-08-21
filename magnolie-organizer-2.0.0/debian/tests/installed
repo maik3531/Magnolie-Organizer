@@ -21,6 +21,8 @@ grep -q 'function oeffneSuche' /usr/share/magnolie-organizer/web/anwendung.js
 grep -q 'syncMetadaten' /usr/share/magnolie-organizer/web/anwendung.js
 grep -q 'nextcloud:' /usr/share/magnolie-organizer/web/anwendung.js
 test -f /usr/share/magnolie-organizer/web/kaffee-qr.png
+test -f /usr/share/magnolie-organizer/web/schriften/Z003-MediumItalic.otf
+test -f /usr/share/magnolie-organizer/web/schriften/Z003-LIZENZ.txt
 python3 werkzeuge/png_pruefen.py /usr/share/magnolie-organizer/web/kaffee-qr.png
 test -f /usr/share/magnolie-organizer/web/i18n/de.js
 test -f /usr/share/magnolie-organizer/klang/erinnerung.wav

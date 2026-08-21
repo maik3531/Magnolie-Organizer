@@ -13846,6 +13846,8 @@ ORGANIZER_URI = "magnolie-organizer://app/index.html"
 _ORGANIZER_RESSOURCEN = {
     "/index.html": ("index.html", "text/html"),
     "/stil.css": ("stil.css", "text/css"),
+    "/schriften/Z003-MediumItalic.otf":
+        ("schriften/Z003-MediumItalic.otf", "font/otf"),
     "/kaffee-qr.png": ("kaffee-qr.png", "image/png"),
     "/i18n.js": ("i18n.js", "application/javascript"),
     "/i18n-start.js": ("i18n-start.js", "application/javascript"),

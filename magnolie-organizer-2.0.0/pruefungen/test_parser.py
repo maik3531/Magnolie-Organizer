@@ -5461,6 +5461,7 @@ web_probe_wurzel = tempfile.mkdtemp(prefix="magnolie-web-ursprung-")
 web_probe = os.path.join(web_probe_wurzel, "web")
 try:
     os.makedirs(os.path.join(web_probe, "i18n"))
+    os.makedirs(os.path.join(web_probe, "schriften"))
     feste_web_dateien = ("index.html", "stil.css", "i18n.js", "i18n-start.js",
                          "anwendung.js")
     katalog_dateien = tuple("i18n/%s.js" % sprache
@@ -5469,6 +5470,9 @@ try:
         web_pfad = os.path.join(web_probe, web_name)
         with open(web_pfad, "w", encoding="utf-8") as datei:
             datei.write(web_name)
+    schrift_pfad = os.path.join(web_probe, "schriften", "Z003-MediumItalic.otf")
+    with open(schrift_pfad, "wb") as datei:
+        datei.write(b"OTTO")
     pruefe(m.contributor_hash_lesen(web_probe) == "",
            "Quellbau aktiviert Contributor-Branding")
     config_pfad = os.path.join(os.path.dirname(web_probe), "build-config.json")
@@ -5512,6 +5516,11 @@ try:
         "magnolie-organizer://app/i18n/%s.js" % sprache, web_probe)
         for sprache in m.UNTERSTUETZTE_SPRACHEN),
         "das interne URI-Schema liefert alle Sprachkataloge")
+    schrift_ressource = m.organizer_ressource(
+        "magnolie-organizer://app/schriften/Z003-MediumItalic.otf", web_probe)
+    pruefe(schrift_ressource and schrift_ressource[0] == schrift_pfad and
+           schrift_ressource[1] == "font/otf",
+           "das interne URI-Schema liefert die gebündelte Handschrift")
     pruefe(all(m.organizer_ressource(adresse, web_probe) is None for adresse in (
         "file:///tmp/angriff.html",
         "magnolie-organizer://fremd/index.html",

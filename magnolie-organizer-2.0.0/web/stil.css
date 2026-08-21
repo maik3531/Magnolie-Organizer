@@ -14,6 +14,14 @@
              Tinte #3a3128 · Filz #2e3a34 · Signalrot #b5443a
    ========================================================================== */
 
+@font-face {
+  font-family: "Magnolie Handschrift";
+  src: url("schriften/Z003-MediumItalic.otf") format("opentype");
+  font-style: normal;
+  font-weight: 400;
+  font-display: block;
+}
+
 :root {
   --leder-dunkel: #3c1f15;
   --leder: #55291c;
@@ -2923,7 +2931,7 @@ body[data-schrift="handwriting"] #notiz-text,
 body[data-schrift="handwriting"] .feld,
 .schrift-probe[data-schrift="handwriting"] .obm,
 .schrift-probe[data-schrift="handwriting"] .notiz-probe {
-  font-family: "Noto Sans", var(--sans);
+  font-family: "Magnolie Handschrift", "URW Chancery L", "Z003", cursive;
   letter-spacing: 0.01em;
 }
 

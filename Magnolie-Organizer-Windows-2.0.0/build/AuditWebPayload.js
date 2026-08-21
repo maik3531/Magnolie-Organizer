@@ -26,6 +26,11 @@ function requiredPayload(root, publish) {
       fail(`Webkatalog fehlt oder ist veraltet: web/${relative.replaceAll(path.sep, "/")}`);
     }
   }
+  for (const relative of ["schriften/Z003-MediumItalic.otf", "schriften/Z003-LIZENZ.txt"]) {
+    if (!same(path.join(sourceWeb, relative), path.join(publishedWeb, relative))) {
+      fail(`Handschriftdatei fehlt oder ist veraltet: web/${relative}`);
+    }
+  }
   if (!same(path.join(root, "app", "native-i18n.json"), path.join(publish, "native-i18n.json"))) {
     fail("native-i18n.json fehlt oder ist veraltet");
   }
