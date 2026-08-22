@@ -170,7 +170,8 @@ Fehlende Systemwerkzeuge brechen die Freigabe ab. Nur für ausdrücklich nicht
 veröffentlichbare lokale Bauten dürfen beide Systempaketprüfungen gemeinsam mit
 `--skip-system-package-tests` übersprungen werden. Mit `--skip-autopkgtest` wird
 nur das externe QEMU-Gate ausgelassen; Fedora-Pakete und deren Installationstest
-werden weiterhin gebaut und geprüft. Auch dieser Lauf ist nicht veröffentlichbar.
+werden weiterhin gebaut und geprüft. Die ausgelassene QEMU-Prüfung muss wie bei
+Version 2.0.1 in den Release-Hinweisen genannt werden.
 
 ## Prüfungen
 

@@ -298,7 +298,7 @@ if [ "$AUTOPKGTESTS" -eq 1 ]; then
     autopkgtest "$DSC" -- qemu "$MAGNOLIE_AUTOPKGTEST_QEMU_IMAGE"
 else
     printf '%s\n' \
-        'WARNUNG: vollstaendiges autopkgtest ausdruecklich uebersprungen; dieser Bau darf nicht veroeffentlicht werden.' >&2
+        'WARNUNG: externes QEMU-autopkgtest uebersprungen; diese Einschraenkung muss in den Release-Hinweisen stehen.' >&2
 fi
 
 if [ "$FEDORA_TESTS" -eq 1 ]; then
