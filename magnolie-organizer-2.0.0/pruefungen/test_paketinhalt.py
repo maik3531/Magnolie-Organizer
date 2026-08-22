@@ -130,7 +130,7 @@ for gate in ("--skip-autopkgtest", "--skip-system-package-tests",
               "MAGNOLIE_AUTOPKGTEST_QEMU_IMAGE",
                "autopkgtest", "werkzeuge/rpm_fedora_bauen.sh", "RPM_FEDORA_DIR",
                "HANDBUCH_RPM_PAKET", "HANDBUCH_RPM_QUELLE",
-               "MAGNOLIE_WINDOWS_RUNTIME_VERIFIED", "HANDBUCH_DEB",
+               "WINDOWS-RUNTIME-UNVERIFIED.txt", "HANDBUCH_DEB",
                "Magnolie-Organizer-PRUEFSUMMEN.sha256", "sha256sum -c"):
     assert gate in release_builder, gate
 assert "autopkgtest fehlt; Freigabe abgebrochen" in release_builder

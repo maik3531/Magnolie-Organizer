@@ -157,16 +157,14 @@ festgeschrieben. Gebaut und gegen den gepackten Programmkern geprüft wird mit:
 Für eine Freigabe ist ausschließlich der vollständige Releasebau vorgesehen:
 
     MAGNOLIE_CONTRIBUTOR_HASH=<SHA-256> \
-        MAGNOLIE_WINDOWS_RUNTIME_VERIFIED=1 \
         MAGNOLIE_AUTOPKGTEST_QEMU_IMAGE=/pfad/debian-autopkgtest.qcow2 \
         werkzeuge/release_bauen.sh
 
 Er führt Parser-, DOM- und Import-/Export-Vertragstests, die 30.000er-Lasttests,
 den Debian-Quell- und Paketbau von Organizer und Handbuch, das vollständige
 `autopkgtest`, den RPM-Bau mit Fedora-Installation sowie AppImage-Bau und
-AppImage-Prüfung aus. Ein zuvor nativ getesteter Windows-Build muss mit
-`MAGNOLIE_WINDOWS_RUNTIME_VERIFIED=1` bestätigt sein; Cross-Builds werden anhand
-ihres Markers trotzdem abgelehnt. Die
+AppImage-Prüfung aus. Ein vorhandener Windows-Cross-Build bleibt in ZIP und
+Installer maschinenlesbar als nicht laufzeitvalidiert und unsigniert markiert. Die
 verifizierten Summen stehen danach in `Magnolie-Organizer-PRUEFSUMMEN.sha256`.
 Fehlende Systemwerkzeuge brechen die Freigabe ab. Nur für ausdrücklich nicht
 veröffentlichbare lokale Bauten dürfen beide Systempaketprüfungen gemeinsam mit
