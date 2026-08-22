@@ -281,7 +281,7 @@ PY
     rm -f "$liste"
 }
 pruefe_quellarchiv "$SOURCE_TAR" "$SOURCE_NAME"
-pruefe_quellarchiv "$HANDBUCH_SOURCE_TAR" "magnolie-handbuch-$FASSUNG" \
+pruefe_quellarchiv "$HANDBUCH_SOURCE_TAR" "magnolie-handbuch-stamm" \
     "bin/magnolie-handbuch web/handbuch.js debian/control"
 
 RPM_PAKET=

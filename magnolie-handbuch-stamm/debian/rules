@@ -39,4 +39,4 @@ override_dh_strip_nondeterminism:
 	dh_strip_nondeterminism -Xmagnolie-handbuch.mo
 
 override_dh_auto_clean:
-	rm -rf bin/__pycache__ werkzeuge/__pycache__ pruefungen/__pycache__ locale web/i18n/*.js debian/magnolie-handbuch debian/.debhelper debian/files debian/*.substvars
+	rm -rf bin/__pycache__ werkzeuge/__pycache__ pruefungen/__pycache__ locale web/i18n/*.js debian/magnolie-handbuch debian/.debhelper debian/files debian/*.substvars bau
