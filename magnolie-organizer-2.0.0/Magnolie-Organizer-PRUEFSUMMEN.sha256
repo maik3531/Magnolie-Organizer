@@ -1,3 +1,9 @@
-01c9f4c44da9a8d304695aa1111837ecd8f867239b6fc87843f156206f951732  ../magnolie-organizer_2.0.1_all.deb
-b2694cca2d8828f62f55107484d6cce0e2888d5770cdb9ed17f9a76dc79d292c  ../magnolie-organizer_2.0.1.tar.xz
-df4646c752ae236de83dd16f56d2410d42c49808cae7b9e9254ee2bf6486055f  ../Magnolie-Organizer-2.0.1-x86_64.AppImage
+b0d976bc16bcc2c5a0a9764dcd8c8cd4da2420bbc94b1e0aa463397a36f8363e  ../magnolie-organizer_2.0.2_all.deb
+822ba498f03c43eee24faa62e8ac51a0f8d92959e17025da8fbd5be0da818747  ../magnolie-organizer_2.0.2.tar.xz
+3b1887d986d3ce03101a1a676efc97ec61fd718158145e218b68bac3607bd5f5  ../Magnolie-Organizer-2.0.2-x86_64.AppImage
+a9322f1f203197a10dc019cf584a6f23b6553bca7f3b7c3bd44c65930f7f53a6  ../magnolie-handbuch_2.0.2_all.deb
+6a6a6df860e29977c48609f3ce5ddb0e4addbdb335409a656288c2cd8624e5ed  ../magnolie-handbuch_2.0.2.tar.xz
+577f3aa55f2553a3437c38d6ee1f09308e560c303399e2db2d684e7e9b49247c  bau/rpm/RPMS/noarch/magnolie-organizer-2.0.2-1.fc42.noarch.rpm
+36e92abe1def25800029ac5459008a035853a8e6d66ef5530f33561ea71beb4a  bau/rpm/SRPMS/magnolie-organizer-2.0.2-1.fc42.src.rpm
+1f168ffa4cfc9ff38e2a947ab31ce5c93df58fc31c674f857ea77ea3fc834f3f  ../magnolie-handbuch-stamm/bau/rpm/RPMS/noarch/magnolie-handbuch-2.0.2-1.fc42.noarch.rpm
+6ff9ad476490d71e64162990797d2a038859d10f65ba250c0b92f9850e5a9602  ../magnolie-handbuch-stamm/bau/rpm/SRPMS/magnolie-handbuch-2.0.2-1.fc42.src.rpm
