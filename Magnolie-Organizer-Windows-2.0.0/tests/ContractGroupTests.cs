@@ -37,12 +37,12 @@ internal static class ContractGroupTests
             goldenAppointments[1]!["wiederholung"]!["rruleForm"]!.GetValue<string>() == "bysetpos",
             "Das Linux-Cross-Golden verlor kanonische, zeitgebundene oder zweitägige Serienfelder.");
         var legacy = JsonNode.Parse("""{"termine":[{"wiederholung":{"art":"monthly_weekday","ordinal":2,"wochentag":"TH"}}]}""")!.AsObject();
-        var migrated = GesamtarchivService.Create(legacy, "windows", "2.0.1");
+        var migrated = GesamtarchivService.Create(legacy, "windows", "2.0.2");
         TestAssert.That(!migrated.Contains("monthly_weekday", StringComparison.Ordinal) &&
             GesamtarchivService.Read(migrated).Daten["termine"]![0]!["wiederholung"]!["art"]!.GetValue<string>() == "monthly",
             "Der Windows-Legacy-Alias wurde beim nächsten Speichern nicht kanonisiert.");
         var taskData = JsonNode.Parse("""{"aufgaben":[{"uid":"todo","titel":"Probe","icsRoundtrip":["ATTACH:https://drive.google.com/file/d/1","X-TODO-RAW:opaque"]}]}""")!.AsObject();
-        var taskArchive = GesamtarchivService.Read(GesamtarchivService.Create(taskData, "windows", "2.0.1"));
+        var taskArchive = GesamtarchivService.Read(GesamtarchivService.Create(taskData, "windows", "2.0.2"));
         TestAssert.That(JsonNode.DeepEquals(taskArchive.Daten["aufgaben"]![0]!["icsRoundtrip"], taskData["aufgaben"]![0]!["icsRoundtrip"]),
             "VTODO-ICS-Rohdaten gingen im Gesamtarchiv verloren.");
         return Task.CompletedTask;

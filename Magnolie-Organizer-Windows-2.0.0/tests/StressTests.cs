@@ -41,7 +41,7 @@ internal static class StressTests
         }
         finally { try { Directory.Delete(storeRoot, true); } catch (Exception) { } }
         watch.Restart();
-        var archive = GesamtarchivService.Create(data, "windows", "2.0.1");
+        var archive = GesamtarchivService.Create(data, "windows", "2.0.2");
         var restored = GesamtarchivService.Read(archive).Daten;
         var archiveSeconds = watch.Elapsed.TotalSeconds;
         TestAssert.That(restored["termine"]!.AsArray().Count == count, "Gesamtarchiv-Lastlauf verlor Kerndaten.");
