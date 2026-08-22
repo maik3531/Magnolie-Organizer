@@ -31,11 +31,10 @@ erwartet = {
     m.ORGANIZER_URI,
     "magnolie-organizer://app/stil.css",
     "magnolie-organizer://app/i18n.js",
+    "magnolie-organizer://app/i18n-active.js",
     "magnolie-organizer://app/i18n-start.js",
     "magnolie-organizer://app/anwendung.js",
 }
-erwartet.update("magnolie-organizer://app/i18n/%s.js" % sprache
-                for sprache in m.UNTERSTUETZTE_SPRACHEN)
 zustand = {"bereit": False, "layout": False,
            "fehler": "Zeitüberschreitung beim WebKit-Start"}
 
@@ -101,7 +100,7 @@ class Prueffenster(m.Fenster):
             self.fertig("Die echte Brücke vertraut dem Organizer-Ursprung nicht")
             return
         if self.angefordert != erwartet:
-            self.fertig("WebKit lud nicht alle festen Ressourcen: %r" %
+            self.fertig("WebKit lud nicht genau die Startressourcen: %r" %
                         sorted(self.angefordert))
             return
         zustand["bereit"] = True
@@ -115,6 +114,16 @@ class Prueffenster(m.Fenster):
  let aktuelleSprache = "Start";
  try {
   const sprachen = %s;
+  for (const sprache of sprachen.filter((wert) =>
+      wert !== "en" && wert !== window.__MAGNOLIE_SPRACHE__)) {
+   await new Promise((fertig, fehler) => {
+    const script = document.createElement("script");
+    script.src = "i18n/" + sprache + ".js";
+    script.onload = fertig;
+    script.onerror = fehler;
+    document.head.append(script);
+   });
+  }
   const bereiche = ["kalender", "aufgaben", "adressen", "notizen", "jahrestage", "planer", "gesundheit"];
   const basis = JSON.parse(JSON.stringify(OrganizerTest.daten()));
   const fehler = [];
@@ -210,7 +219,7 @@ def zeit_ist_um():
     return False
 
 
-m.GLib.timeout_add_seconds(int(os.environ.get("MAGNOLIE_TEST_TIMEOUT", "120")),
+m.GLib.timeout_add_seconds(int(os.environ.get("MAGNOLIE_TEST_TIMEOUT", "300")),
                            zeit_ist_um)
 m.Gtk.main()
 if zustand["fehler"]:

@@ -49,7 +49,9 @@ def _anfrage(server, methode, pfad, host=None):
 
 def test_statischer_server_erlaubt_nur_host_token_methode_und_allowlist(tmp_path):
     (tmp_path / "index.html").write_text("sicher", encoding="ascii")
-    server = m.OrganizerHTTPServer(str(tmp_path), token="a" * 48)
+    (tmp_path / "i18n").mkdir()
+    (tmp_path / "i18n" / "de.js").write_text("deutsch", encoding="ascii")
+    server = m.OrganizerHTTPServer(str(tmp_path), token="a" * 48, sprache="de-DE")
     server.start()
     try:
         host = "127.0.0.1:%d" % server.port
@@ -57,6 +59,9 @@ def test_statischer_server_erlaubt_nur_host_token_methode_und_allowlist(tmp_path
                                        host)
         assert (status, daten) == (200, b"sicher")
         assert kopf["Cache-Control"] == "no-store"
+        status, daten, _kopf = _anfrage(
+            server, "GET", "/%s/i18n-active.js" % server.token, host)
+        assert (status, daten) == (200, b"deutsch")
         assert "default-src 'none'" in kopf["Content-Security-Policy"]
         assert _anfrage(server, "GET", "/falsch/index.html", host)[0] == 404
         assert _anfrage(server, "GET", "/%s/../index.html" % server.token, host)[0] == 404

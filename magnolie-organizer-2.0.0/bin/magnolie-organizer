@@ -165,7 +165,7 @@ def tray_system_verfuegbar(desktop=None, aktivierte_erweiterungen=None):
 PROGRAMM_NAME = "magnolie-organizer"
 HANDBUCH_NAME = "magnolie-handbuch"
 FENSTER_TITEL = "Magnolie Organizer"
-PROGRAMM_FASSUNG = "2.0.1"
+PROGRAMM_FASSUNG = "2.0.2"
 ALTER_NAME = "organizer-klassik"
 I18N_DOMAIN = "magnolie-organizer"
 
@@ -740,7 +740,9 @@ def gesamtarchiv_lesen_text(text, kennwort=""):
     if wurzel.get("plattform") not in ("linux", "windows"):
         raise RuntimeError("Die Quellplattform des Gesamtarchivs ist ungültig.")
     try:
-        datetime.fromisoformat(str(wurzel.get("erstellt") or "").replace("Z", "+00:00"))
+        erstellt = str(wurzel.get("erstellt") or "").replace("Z", "+00:00")
+        erstellt = re.sub(r"(\.\d{6})\d+(?=[+-]\d{2}:\d{2}$)", r"\1", erstellt)
+        datetime.fromisoformat(erstellt)
     except ValueError:
         raise RuntimeError("Das Erstellungsdatum des Gesamtarchivs ist ungültig.")
     ist_hash = hashlib.sha256(_gesamtarchiv_kanonisch(daten)).hexdigest()
@@ -13859,7 +13861,7 @@ _ORGANIZER_RESSOURCEN.update({
 })
 
 
-def organizer_ressource(adresse, web_verzeichnis):
+def organizer_ressource(adresse, web_verzeichnis, sprache="de"):
     """Ordnet ausschließlich feste Dateien dem internen Organizer-Ursprung zu."""
     from urllib.parse import urlsplit
     try:
@@ -13867,9 +13869,16 @@ def organizer_ressource(adresse, web_verzeichnis):
     except ValueError:
         return None
     if (uri.scheme != "magnolie-organizer" or uri.netloc != "app" or
-            uri.query or uri.fragment or uri.path not in _ORGANIZER_RESSOURCEN):
+            uri.query or uri.fragment):
         return None
-    datei, mime = _ORGANIZER_RESSOURCEN[uri.path]
+    if uri.path == "/i18n-active.js":
+        aktiv = normalisiere_sprache(sprache, False) or "en"
+        datei = "i18n-en.js" if aktiv == "en" else "i18n/%s.js" % aktiv
+        mime = "application/javascript"
+    elif uri.path in _ORGANIZER_RESSOURCEN:
+        datei, mime = _ORGANIZER_RESSOURCEN[uri.path]
+    else:
+        return None
     wurzel = os.path.realpath(web_verzeichnis)
     pfad = os.path.realpath(os.path.join(wurzel, datei))
     try:
@@ -13927,7 +13936,7 @@ def browser_transport_waehlen(gtk_ok, webkit_ok, appimage=False,
     return "fehlt"
 
 
-def organizer_http_ressource(pfad, token, web_verzeichnis):
+def organizer_http_ressource(pfad, token, web_verzeichnis, sprache="de"):
     """Prüft Fähigkeitspfad und feste Ressourcen ohne URL-Dekodierungs-Tricks."""
     if not isinstance(pfad, str) or "?" in pfad or "#" in pfad:
         return None
@@ -13937,7 +13946,12 @@ def organizer_http_ressource(pfad, token, web_verzeichnis):
     if not hmac.compare_digest(pfad[1:1 + len(token)], token):
         return None
     intern = pfad[len(vorspann):]
-    eintrag = _ORGANIZER_RESSOURCEN.get(intern)
+    if intern == "/i18n-active.js":
+        aktiv = normalisiere_sprache(sprache, False) or "en"
+        datei = "i18n-en.js" if aktiv == "en" else "i18n/%s.js" % aktiv
+        eintrag = (datei, "application/javascript")
+    else:
+        eintrag = _ORGANIZER_RESSOURCEN.get(intern)
     if not eintrag or "%" in intern or "\\" in intern or ".." in intern:
         return None
     wurzel = os.path.realpath(web_verzeichnis)
@@ -13953,9 +13967,10 @@ def organizer_http_ressource(pfad, token, web_verzeichnis):
 class OrganizerHTTPServer:
     """Kleiner statischer Loopback-Server ohne native Befehlsoberfläche."""
 
-    def __init__(self, web_verzeichnis, token=None):
+    def __init__(self, web_verzeichnis, token=None, sprache="de"):
         self.web_verzeichnis = os.path.realpath(web_verzeichnis)
         self.token = token or os.urandom(24).hex()
+        self.sprache = sprache
         besitzer = self
 
         class Handler(BaseHTTPRequestHandler):
@@ -13966,7 +13981,8 @@ class OrganizerHTTPServer:
                 if self.headers.get_all("Host", []) != [erwartet]:
                     return self._ablehnen(403)
                 ressource = organizer_http_ressource(
-                    self.path, besitzer.token, besitzer.web_verzeichnis)
+                    self.path, besitzer.token, besitzer.web_verzeichnis,
+                    besitzer.sprache)
                 if not ressource:
                     return self._ablehnen(404)
                 try:
@@ -14196,7 +14212,7 @@ class ChromiumTransport:
     def __init__(self, programm, web_verzeichnis, bruecken_name, sprache,
                  bei_nachricht, bei_ende):
         self.programm = programm
-        self.http = OrganizerHTTPServer(web_verzeichnis)
+        self.http = OrganizerHTTPServer(web_verzeichnis, sprache=sprache)
         self.url, self.origin = self.http.url, self.http.origin
         self.bruecken_name = bruecken_name
         self.sprache = sprache
@@ -15077,7 +15093,8 @@ class Fenster(_FENSTER_BASIS):
             pass
 
     def _bei_organizer_anfrage(self, anfrage):
-        ressource = organizer_ressource(anfrage.get_uri(), self._web_verzeichnis)
+        ressource = organizer_ressource(
+            anfrage.get_uri(), self._web_verzeichnis, self._regional["language"])
         daten = b""
         mime = "text/plain"
         if ressource:

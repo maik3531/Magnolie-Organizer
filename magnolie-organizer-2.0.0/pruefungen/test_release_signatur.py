@@ -52,19 +52,37 @@ def test_externer_schluessel_stimmt_mit_eingebettetem_ueberein():
 def test_manifest_signiert_und_tamper_wird_abgelehnt(tmp_path):
     deb = tmp_path / "magnolie-organizer_9.8.7_all.deb"
     appimage = tmp_path / "Magnolie-Organizer-9.8.7-x86_64.AppImage"
+    handbuch = tmp_path / "magnolie-handbuch_9.8.7_all.deb"
+    windows = tmp_path / "Magnolie-Organizer-Windows-9.8.7-Setup-x64.exe"
     manifest = tmp_path / "update.xml"
     deb.write_bytes(b"deb-testinhalt")
     appimage.write_bytes(b"appimage-testinhalt")
+    handbuch.write_bytes(b"handbuch-testinhalt")
+    windows.write_bytes(b"windows-testinhalt")
     manifest.write_text(
         "<update><version>9.8.7</version>"
         "<deb>https://example.invalid/magnolie-organizer_9.8.7_all.deb</deb>"
         "<signature>alte-signatur</signature><appimage><architecture>x86_64</architecture>"
         "<url>https://example.invalid/Magnolie-Organizer-9.8.7-x86_64.AppImage</url>"
-        "</appimage></update>", encoding="utf-8")
+        "</appimage><manual><version>9.8.7</version><linux>"
+        "<deb>https://example.invalid/magnolie-handbuch_9.8.7_all.deb</deb>"
+        "</linux><windows><url>https://example.invalid/"
+        "Magnolie-Organizer-Windows-9.8.7-Setup-x64.exe</url></windows></manual>"
+        "<windows><version>9.8.7</version><url>https://example.invalid/"
+        "Magnolie-Organizer-Windows-9.8.7-Setup-x64.exe</url></windows></update>",
+        encoding="utf-8")
 
-    subprocess.run([sys.executable, MANIFEST_WERKZEUG, deb, appimage, manifest],
+    subprocess.run([sys.executable, MANIFEST_WERKZEUG, deb, appimage, handbuch,
+                    windows, manifest],
                    check=True, stdout=subprocess.DEVNULL)
     assert ET.parse(manifest).getroot().find("signature") is None
+    root = ET.parse(manifest).getroot()
+    assert root.findtext("./manual/linux/sha256") == __import__("hashlib").sha256(
+        handbuch.read_bytes()).hexdigest()
+    assert root.findtext("./manual/windows/sha256") == __import__("hashlib").sha256(
+        windows.read_bytes()).hexdigest()
+    assert root.findtext("./windows/sha256") == root.findtext(
+        "./manual/windows/sha256")
     key = Path(os.environ.get("MAGNOLIE_UPDATE_SIGNING_KEY", PRIVATER_STANDARDPFAD))
     subprocess.run([sys.executable, SIGNIERER, key, manifest, deb, appimage],
                    check=True, stdout=subprocess.DEVNULL)

@@ -923,8 +923,10 @@ pruefe(not m.sozial_oeffnen(
     "Benutzerdefiniert verlangt ohne eigene Aktion eine sichere HTTPS-Adresse")
 medikament_aufrufe = []
 pruefe(m.medikament_suche_oeffnen("ASS 100 & Test", medikament_aufrufe.append) and
-       medikament_aufrufe == [["/usr/bin/xdg-open",
-       "https://www.gelbe-liste.de/suche/ASS%20100%20%26%20Test"]] and
+       len(medikament_aufrufe) == 1 and
+       os.path.basename(medikament_aufrufe[0][0]) == "xdg-open" and
+       medikament_aufrufe[0][1] ==
+       "https://www.gelbe-liste.de/suche/ASS%20100%20%26%20Test" and
        not m.medikament_suche_oeffnen("", medikament_aufrufe.append),
        "Medikamentensuche öffnet nur das feste Arzneimittelportal mit kodiertem Namen")
 
@@ -1937,7 +1939,7 @@ except RuntimeError as f:
 
 print()
 print("— Aktualisierungsprüfung —")
-pruefe(m.PROGRAMM_FASSUNG == "2.0.1", "Programmkern trägt die neue Fassung")
+pruefe(m.PROGRAMM_FASSUNG == "2.0.2", "Programmkern trägt die neue Fassung")
 desktop_pfad = os.path.abspath(os.path.join(os.path.dirname(PFAD), "..",
                                              "io.gitlab.maik3531.MagnolieOrganizer.desktop"))
 with open(desktop_pfad, encoding="utf-8") as datei:
@@ -1970,13 +1972,22 @@ pruefe(all(text in release_regeln for text in (
        "pruefungen/test_telefon.py", "pruefungen/test_eds_adressbuch_sync.py",
        "pruefungen/test_wiederherstellungsjournal.py",
        "pruefungen/test.js", "pruefungen/last_test.py", "pruefungen/last_test.js",
-       "werkzeuge/appimage_bauen.sh", "pruefungen/test_appimage.sh",
+       "werkzeuge/appimage_jammy_bauen.sh", "pruefungen/test_appimage.sh",
+       "pruefungen/test_appimage_arch.sh",
        "werkzeuge/release_manifest.py")),
        "der Releasebau sperrt Freigaben ohne alle fachlichen und AppImage-Tests")
 pruefe("LINUXDEPLOY_SHA=" in appimage_regeln and
        "APPIMAGETOOL_SHA=" in appimage_regeln and
        "sha256sum -c" in appimage_regeln,
        "der AppImage-Bau prüft seine festgeschriebenen Bauwerkzeuge")
+with open(os.path.join(projektwurzel, "werkzeuge", "appimage_jammy_bauen.sh"),
+          encoding="utf-8") as datei:
+    jammy_regeln = datei.read()
+pruefe("ubuntu-base-22.04.5" in jammy_regeln and "BASIS_SHA=" in jammy_regeln and
+       "SNAPSHOT=" in jammy_regeln and "PROOT_SHA=" in jammy_regeln and
+       "TALLOC_SHA=" in jammy_regeln and '"$PROOT" -0 -r' in jammy_regeln and
+       "elf_glibc_pruefen.py" in appimage_regeln,
+       "das AppImage entsteht rootlos aus einer festgeschriebenen alten Buildbasis")
 pruefe("SOURCE_DATE_EPOCH ?= $(shell dpkg-parsechangelog -STimestamp)" in
        paketregeln and "export SOURCE_DATE_EPOCH" in paketregeln,
        "der Paketbau verwendet den Changelog-Zeitpunkt reproduzierbar")
@@ -2000,28 +2011,28 @@ update_oeffentlich = m.base64.b64encode(update_privat.public_key().public_bytes(
     update_serialisierung.Encoding.Raw,
     update_serialisierung.PublicFormat.Raw)).decode("ascii")
 update_summe = "ab" * 32
-update_paket = m.UPDATE_BASIS + "magnolie-organizer_2.0.2_all.deb"
+update_paket = m.UPDATE_BASIS + "magnolie-organizer_2.0.3_all.deb"
 update_signatur = m.base64.b64encode(update_privat.sign(
-    m.update_signatur_nachricht("2.0.2", update_paket, update_summe))).decode("ascii")
-update_xml = ("<?xml version='1.0'?><update><version>2.0.2</version>"
+    m.update_signatur_nachricht("2.0.3", update_paket, update_summe))).decode("ascii")
+update_xml = ("<?xml version='1.0'?><update><version>2.0.3</version>"
                "<deb>" + update_paket + "</deb><sha256>" + update_summe +
                "</sha256><signature>" + update_signatur + "</signature></update>")
 version, paket = m.update_info_lesen(update_xml)
-pruefe(version == "2.0.2" and paket.endswith("_2.0.2_all.deb"),
+pruefe(version == "2.0.3" and paket.endswith("_2.0.3_all.deb"),
        "update.xml liefert Fassung und Paketadresse")
 update_neu = m.update_pruefen(lambda _url: update_xml, update_oeffentlich)
 pruefe(update_neu["ok"] and not update_neu["aktuell"] and
-       update_neu["version"] == "2.0.2" and
+       update_neu["version"] == "2.0.3" and
        update_neu["sha256"] == update_summe and update_neu["url"] == update_paket,
        "eine Debian-Installation erhält das signierte Debian-Paket")
-appimage_paket = m.UPDATE_BASIS + "Magnolie-Organizer-2.0.2-x86_64.AppImage"
+appimage_paket = m.UPDATE_BASIS + "Magnolie-Organizer-2.0.3-x86_64.AppImage"
 appimage_summe = "ef" * 32
-appimage_xml = ("<update><version>2.0.2</version><deb>" + update_paket +
+appimage_xml = ("<update><version>2.0.3</version><deb>" + update_paket +
                  "</deb><sha256>" + update_summe + "</sha256><appimage>"
                  "<architecture>x86_64</architecture><url>" + appimage_paket +
                  "</url><sha256>" + appimage_summe + "</sha256></appimage>")
 appimage_signatur = m.base64.b64encode(update_privat.sign(
-    m.update_signatur_nachricht("2.0.2", update_paket, update_summe,
+    m.update_signatur_nachricht("2.0.3", update_paket, update_summe,
                                appimage_paket, appimage_summe))).decode("ascii")
 appimage_xml += "<signature>" + appimage_signatur + "</signature></update>"
 appimage_umgebung = os.environ.get("APPIMAGE")
@@ -2038,15 +2049,15 @@ pruefe(appimage_update["ok"] and not appimage_update["aktuell"] and
        appimage_update["url"] == appimage_paket and
        appimage_update["sha256"] == appimage_summe and not appimage_fehlt["ok"],
        "eine AppImage-Installation erhält nur das passende geprüfte AppImage")
-aktuell_paket = m.UPDATE_BASIS + "magnolie-organizer_2.0.1_all.deb"
+aktuell_paket = m.UPDATE_BASIS + "magnolie-organizer_2.0.2_all.deb"
 aktuell_signatur = m.base64.b64encode(update_privat.sign(
-    m.update_signatur_nachricht("2.0.1", aktuell_paket, update_summe))).decode("ascii")
-aktuell_xml = ("<update><version>2.0.1</version><deb>" + aktuell_paket +
+    m.update_signatur_nachricht("2.0.2", aktuell_paket, update_summe))).decode("ascii")
+aktuell_xml = ("<update><version>2.0.2</version><deb>" + aktuell_paket +
                "</deb><sha256>" + update_summe + "</sha256><signature>" +
                aktuell_signatur + "</signature></update>")
 update_aktuell = m.update_pruefen(lambda _url: aktuell_xml, update_oeffentlich)
 pruefe(update_aktuell["ok"] and update_aktuell["aktuell"] and
-       update_aktuell["version"] == "2.0.1" and not update_aktuell["url"],
+       update_aktuell["version"] == "2.0.2" and not update_aktuell["url"],
        "dieselbe signierte Fassung gilt als aktuell")
 alt_paket = m.UPDATE_BASIS + "magnolie-organizer_2.0.0_all.deb"
 alt_signatur = m.base64.b64encode(update_privat.sign(
@@ -2061,17 +2072,17 @@ pruefe(update_alt["ok"] and update_alt["aktuell"] and
 handbuch_paket = m.UPDATE_BASIS + "magnolie-handbuch_1.9.8_all.deb"
 handbuch_summe = "cd" * 32
 handbuch_signatur = m.base64.b64encode(update_privat.sign(
-    m.update_signatur_nachricht("2.0.1", aktuell_paket, update_summe,
+    m.update_signatur_nachricht("2.0.2", aktuell_paket, update_summe,
                                manual_version="1.9.8", manual_linux=handbuch_paket,
                                manual_linux_sha=handbuch_summe))).decode("ascii")
-handbuch_xml = ("<update><version>2.0.1</version><deb>" + aktuell_paket +
+handbuch_xml = ("<update><version>2.0.2</version><deb>" + aktuell_paket +
     "</deb><sha256>" + update_summe + "</sha256><manual><version>1.9.8</version>"
     "<linux><deb>" + handbuch_paket + "</deb><sha256>" + handbuch_summe +
     "</sha256></linux></manual><signature>" + handbuch_signatur +
     "</signature></update>")
 handbuch_update = m.update_pruefen(lambda _url: handbuch_xml, update_oeffentlich)
 pruefe(handbuch_update["ok"] and handbuch_update["aktuell"] and
-       handbuch_update["version"] == "2.0.1" and
+       handbuch_update["version"] == "2.0.2" and
        handbuch_update["handbuch"] == {"version": "1.9.8",
        "url": handbuch_paket, "sha256": handbuch_summe, "platform": "linux"},
        "verschachtelte Handbuchdaten verändern die Organizerfelder nicht")
@@ -2080,7 +2091,7 @@ pruefe(bool(handbuch_update.get("handbuch")) and
        "der Handbuchdownload wird an das zuletzt validierte Manifest gebunden")
 falsches_handbuch_paket = m.UPDATE_BASIS + "magnolie-organizer_1.9.8_all.deb"
 falsche_handbuch_signatur = m.base64.b64encode(update_privat.sign(
-    m.update_signatur_nachricht("2.0.1", aktuell_paket, update_summe,
+    m.update_signatur_nachricht("2.0.2", aktuell_paket, update_summe,
                                manual_version="1.9.8",
                                manual_linux=falsches_handbuch_paket,
                                manual_linux_sha=handbuch_summe))).decode("ascii")
@@ -2096,7 +2107,7 @@ for falsches_paket in (handbuch_paket + "?download=1",
                        "https://example.org/magnolie-handbuch_1.9.8_all.deb"):
     pruefe(not m._handbuch_update_url_erlaubt(falsches_paket, "1.9.8"),
            "Handbuchadresse, Dateiname und Version werden strikt gebunden")
-altes_update_xml = ("<update><version>2.0.2</version><deb>" +
+altes_update_xml = ("<update><version>2.0.3</version><deb>" +
                     update_paket + "</deb></update>")
 update_abrufe = []
 update_ohne_schluessel = m.update_pruefen(
@@ -2117,7 +2128,7 @@ pruefe(not update_ohne_signatur["ok"] and "signatur" in
        update_ohne_signatur["fehler"].lower(),
        "ein Manifest ohne Signatur wird mit gültigem Release-Schlüssel abgewiesen")
 update_veraendert = m.update_pruefen(
-    lambda _url: update_xml.replace("2.0.2", "2.0.1"), update_oeffentlich)
+    lambda _url: update_xml.replace("2.0.3", "2.0.2"), update_oeffentlich)
 pruefe(not update_veraendert["ok"] and any(text in
        update_veraendert["fehler"].lower() for text in
        ("invalid signature", "ungültige signatur")),
@@ -5459,6 +5470,11 @@ pruefe("ohne-mischung box.rahmen { border-radius: 0; }" in stil_text,
 
 with open(PFAD, encoding="utf-8") as datei:
     quelle = datei.read()
+with open(os.path.join(QUELLWURZEL, "web", "index.html"), encoding="utf-8") as datei:
+    organizer_html = datei.read()
+pruefe(organizer_html.count('<script src="i18n-active.js"></script>') == 1 and
+       not re.search(r'<script src="i18n/[^\"]+\.js"></script>', organizer_html),
+       "die Oberfläche lädt beim Start nur den aktiven Sprachkatalog")
 pruefe("def zeige_wenn_bereit" in quelle,
        "das Fenster wird erst nach dem Laden gezeigt")
 pruefe("LoadEvent.FINISHED" in quelle and "timeout_add_seconds" in quelle,
@@ -5473,8 +5489,8 @@ web_probe = os.path.join(web_probe_wurzel, "web")
 try:
     os.makedirs(os.path.join(web_probe, "i18n"))
     os.makedirs(os.path.join(web_probe, "schriften"))
-    feste_web_dateien = ("index.html", "stil.css", "i18n.js", "i18n-start.js",
-                         "anwendung.js")
+    feste_web_dateien = ("index.html", "stil.css", "i18n.js", "i18n-en.js",
+                         "i18n-start.js", "anwendung.js")
     katalog_dateien = tuple("i18n/%s.js" % sprache
                             for sprache in m.UNTERSTUETZTE_SPRACHEN)
     for web_name in feste_web_dateien + katalog_dateien:
@@ -5527,6 +5543,16 @@ try:
         "magnolie-organizer://app/i18n/%s.js" % sprache, web_probe)
         for sprache in m.UNTERSTUETZTE_SPRACHEN),
         "das interne URI-Schema liefert alle Sprachkataloge")
+    aktiver_katalog = m.organizer_ressource(
+        "magnolie-organizer://app/i18n-active.js", web_probe, "pt-BR")
+    pruefe(aktiver_katalog and aktiver_katalog[0] == os.path.join(
+        web_probe, "i18n", "pt.js"),
+        "das interne URI-Schema liefert nur den normalisierten aktiven Sprachkatalog")
+    englischer_katalog = m.organizer_ressource(
+        "magnolie-organizer://app/i18n-active.js", web_probe, "en-US")
+    pruefe(englischer_katalog and englischer_katalog[0] == os.path.join(
+        web_probe, "i18n-en.js"),
+        "Englisch startet ohne einen künstlichen Übersetzungskatalog")
     schrift_ressource = m.organizer_ressource(
         "magnolie-organizer://app/schriften/Z003-MediumItalic.otf", web_probe)
     pruefe(schrift_ressource and schrift_ressource[0] == schrift_pfad and

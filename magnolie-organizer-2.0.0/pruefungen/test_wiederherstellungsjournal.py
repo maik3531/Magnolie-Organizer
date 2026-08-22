@@ -44,7 +44,7 @@ with tempfile.TemporaryDirectory() as tmp:
                                          jetzt=zeit, disk_usage=disk)
     assert stand["format"] == "magnolie-snapshot"
     assert stand["formatVersion"] == 1 and stand["platform"] == "linux"
-    assert stand["appVersion"] == "2.0.1" and stand["integrity"] == "ok"
+    assert stand["appVersion"] == "2.0.2" and stand["integrity"] == "ok"
     assert stand["payload"]["schema"] == 1 and stand["summary"]["termine"] == 1
     assert os.stat(m.journal_verzeichnis(tmp)).st_mode & 0o777 == 0o700
     assert os.stat(os.path.join(stand["path"], "manifest.json")).st_mode & 0o777 == 0o600

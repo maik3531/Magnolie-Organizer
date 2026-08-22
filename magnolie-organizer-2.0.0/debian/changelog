@@ -1,3 +1,12 @@
+magnolie-organizer (2.0.2) unstable; urgency=medium
+
+  * Beschleunigt den Start durch das Laden nur eines aktiven Sprachkatalogs.
+  * Macht das AppImage mit einer gepinnten Jammy-Laufzeit portabel und prüft
+    seine GLIBC-Grenze sowie den Start unter Arch Linux.
+  * Baut und prüft Organizer und Handbuch als getrennte native Fedora-RPMs.
+
+ -- Maik Walter <maik3531@gmail.com>  Sat, 22 Aug 2026 15:00:00 +0200
+
 magnolie-organizer (2.0.1) unstable; urgency=medium
 
   * Beschleunigt den Start mit großen Datenbeständen durch lineare Indizes.

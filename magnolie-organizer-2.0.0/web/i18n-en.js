@@ -1,0 +1,1 @@
+/* English uses the message identifiers directly and needs no catalog. */

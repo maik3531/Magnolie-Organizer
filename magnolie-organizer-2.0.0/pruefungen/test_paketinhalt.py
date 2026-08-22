@@ -13,7 +13,7 @@ sys.path.insert(0, str(ROOT / "werkzeuge"))
 from png_pruefen import pruefen as png_pruefen
 WINDOWS = WORKSPACE / "Magnolie-Organizer-Windows-2.0.0"
 HANDBOOK = WORKSPACE / "magnolie-handbuch-stamm"
-VERSION = "2.0.1"
+VERSION = "2.0.2"
 MANIFEST_VERSION = VERSION
 INTERNAL_NOTE = re.compile(
     r"(REVIEW|ENTWURF|OFFENE[-_ ]?PUNKTE|ANALYSE|PLAN|AUDIT).*\.md$", re.I)
@@ -116,20 +116,31 @@ for marker in ("function oeffneSuche", "syncMetadaten", "nextcloud:"):
     assert marker in text(ROOT / "web/anwendung.js")
 assert "/usr/share/doc/magnolie-organizer/INTERNATIONALISIERUNG.md" in installed_test
 appimage_builder = text(ROOT / "werkzeuge/appimage_bauen.sh")
+jammy_builder = text(ROOT / "werkzeuge/appimage_jammy_bauen.sh")
 assert 'bin/magnolie_personal_sync.py" "$APPDIR/usr/bin/magnolie_personal_sync.py"' in appimage_builder
 assert 'bin/magnolie_nextcloud.py" "$APPDIR/usr/bin/magnolie_nextcloud.py"' in appimage_builder
 for binary_builder in (appimage_builder, rpm_builder, text(ROOT / "debian/rules")):
     assert "MAGNOLIE_CONTRIBUTOR_HASH" in binary_builder
     assert "tr A-F a-f" in binary_builder
+assert "ubuntu-base-22.04.5" in jammy_builder
+assert "BASIS_SHA=" in jammy_builder and "SNAPSHOT=" in jammy_builder
+assert "werkzeuge/appimage_jammy_bauen.sh" in text(ROOT / "werkzeuge/release_bauen.sh")
 release_builder = text(ROOT / "werkzeuge/release_bauen.sh")
-for gate in ("--skip-system-package-tests", "MAGNOLIE_AUTOPKGTEST_QEMU_IMAGE",
-              "autopkgtest", "werkzeuge/rpm_bauen.sh --source-only", "mock -r",
-              "--rebuild", "--resultdir", "rpm -V",
-              "Magnolie-Organizer-PRUEFSUMMEN.sha256", "sha256sum -c"):
+for gate in ("--skip-autopkgtest", "--skip-system-package-tests",
+              "MAGNOLIE_AUTOPKGTEST_QEMU_IMAGE",
+               "autopkgtest", "werkzeuge/rpm_fedora_bauen.sh", "RPM_FEDORA_DIR",
+               "HANDBUCH_RPM_PAKET", "HANDBUCH_RPM_QUELLE",
+               "MAGNOLIE_WINDOWS_RUNTIME_VERIFIED", "HANDBUCH_DEB",
+               "Magnolie-Organizer-PRUEFSUMMEN.sha256", "sha256sum -c"):
     assert gate in release_builder, gate
 assert "autopkgtest fehlt; Freigabe abgebrochen" in release_builder
-assert "mock fehlt; Fedora-Installationstest nicht gelaufen" in release_builder
-assert release_builder.index("--rebuild") < release_builder.rindex("VEROEFFENTLICHEN=1")
+assert release_builder.index("werkzeuge/rpm_fedora_bauen.sh") < release_builder.rindex(
+    "VEROEFFENTLICHEN=1")
+fedora_builder = text(ROOT / "werkzeuge/rpm_fedora_bauen.sh")
+for gate in ("Fedora-WSL-Base-42-1.1.x86_64.tar.xz", "BASIS_SHA=", "bwrap",
+             "--unshare-user", "gpgcheck=1", "fakeroot", "rpm -V",
+             "magnolie-organizer", "magnolie-handbuch"):
+    assert gate in fedora_builder, gate
 assert "command -v flock" in release_builder and "flock -n 9" in release_builder
 assert release_builder.index("flock -n 9") < release_builder.index("STAGE=$(mktemp")
 assert "MAGNOLIE_UPDATE_SIGNING_KEY" in release_builder
@@ -143,19 +154,19 @@ assert 'UPDATE_SIGNATUR_SCHLUESSEL = "8eJWsygSF9wsF22cuf+sChUUV5RtXEZt38Ngcugn/1
 assert 'chmod 0755 "$APPIMAGE"' in release_builder
 assert 'export MAGNOLIE_CONTRIBUTOR_HASH' in release_builder
 assert 'build-config.json' in release_builder
-assert "config_opts['environment']['MAGNOLIE_CONTRIBUTOR_HASH']" in release_builder
-assert 'MOCK_BRANDING="$STAGE/mock-branding.cfg"' in release_builder
-assert "rpm2cpio" in release_builder
-assert release_builder.count("dpkg-buildpackage -b -d -us -uc") == 2
-assert release_builder.count("DEB_BUILD_OPTIONS=nocheck") == 3
+assert 'MAGNOLIE_CONTRIBUTOR_HASH="$CONTRIBUTOR_HASH"' in fedora_builder
+assert release_builder.count("dpkg-buildpackage -b -d -us -uc") == 4
+assert release_builder.count("DEB_BUILD_OPTIONS=nocheck") == 6
 assert "dpkg-buildpackage -S -d -us -uc" in release_builder
 binary_compare = release_builder.index('cmp "$DEB_VERGLEICH" "$DEB"')
 manifest_build = release_builder.index("python3 werkzeuge/release_manifest.py")
-source_build = release_builder.index("dpkg-buildpackage -S -d -us -uc")
+source_build = release_builder.rindex("dpkg-buildpackage -S -d -us -uc")
 assert binary_compare < manifest_build < source_build
 assert 'tar -xOf "$SOURCE_TAR"' in release_builder
 assert '"$SOURCE_NAME/update.xml"' in release_builder
 assert 'cmp "$WURZEL/update.xml" "$ARCHIV_MANIFEST"' in release_builder
+assert "rm -f Magnolie-Organizer-PRUEFSUMMEN.sha256" in release_builder
+assert "Magnolie-Organizer-PRUEFSUMMEN[.]sha256" in release_builder
 assert "'(^|/)build-config[.]json$'" in release_builder
 assert release_builder.index('cmp "$WURZEL/update.xml" "$ARCHIV_MANIFEST"') < release_builder.rindex(
     "VEROEFFENTLICHEN=1")
@@ -192,4 +203,4 @@ def test_statische_paketpruefung():
     assert True
 
 
-print("Paketinhalt und Linux-Version 2.0.1: ok")
+print("Paketinhalt und Linux-Version 2.0.2: ok")

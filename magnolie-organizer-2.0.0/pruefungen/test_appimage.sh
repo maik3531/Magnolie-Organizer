@@ -51,22 +51,30 @@ test -x "$APPDIR/usr/lib/x86_64-linux-gnu/gstreamer1.0/gstreamer-1.0/gst-plugin-
 test -f "$APPDIR/usr/share/magnolie-organizer/certs/ca-certificates.crt"
 test -x "$APPDIR/usr/lib/webkit2gtk-4.1/WebKitNetworkProcess"
 test -x "$APPDIR/usr/lib/webkit2gtk-4.1/WebKitWebProcess"
-for soname in libecal-2.0.so.3 libedataserver-1.2.so.27 libical-glib.so.3 \
-    libical.so.3 libcamel-1.2.so.64 libebook-1.2.so.21 \
-    libebook-contacts-1.2.so.4 libedata-book-1.2.so.27 libebackend-1.2.so.11; do
+if test -f "$APPDIR/usr/lib/libecal-2.0.so.3"; then
+    ECAL_SONAME=libecal-2.0.so.3
+    EBOOK_SONAME=libebook-1.2.so.21
+    EDS_SONAMES="libecal-2.0.so.3 libedataserver-1.2.so.27 libical-glib.so.3 libical.so.3 libcamel-1.2.so.64 libebook-1.2.so.21 libebook-contacts-1.2.so.4 libedata-book-1.2.so.27 libebackend-1.2.so.11"
+else
+    ECAL_SONAME=libecal-2.0.so.1
+    EBOOK_SONAME=libebook-1.2.so.20
+    EDS_SONAMES="libecal-2.0.so.1 libedataserver-1.2.so.26 libical-glib.so.3 libical.so.3 libcamel-1.2.so.63 libebook-1.2.so.20 libebook-contacts-1.2.so.3 libedata-book-1.2.so.26 libebackend-1.2.so.10"
+fi
+for soname in $EDS_SONAMES; do
     test -f "$APPDIR/usr/lib/$soname"
 done
+python3 "$WURZEL/werkzeuge/elf_glibc_pruefen.py" "$APPDIR" 2.35
 TYPELIB_PFAD="$APPDIR/usr/lib/x86_64-linux-gnu/girepository-1.0"
 test "$(GI_TYPELIB_PATH="$TYPELIB_PFAD" g-ir-inspect --version=3.0 \
     --print-shlibs ICalGLib)" = "shlib: libical-glib.so.3"
 test "$(GI_TYPELIB_PATH="$TYPELIB_PFAD" g-ir-inspect --version=2.0 \
-    --print-shlibs ECal)" = "shlib: libecal-2.0.so.3"
+    --print-shlibs ECal)" = "shlib: $ECAL_SONAME"
 nm -D --defined-only "$APPDIR/usr/lib/libical-glib.so.3" | \
     grep -q ' i_cal_component_as_ical_string$'
-nm -D --undefined-only "$APPDIR/usr/lib/libecal-2.0.so.3" | \
+nm -D --undefined-only "$APPDIR/usr/lib/$ECAL_SONAME" | \
     grep -q ' i_cal_component_as_ical_string$'
-for bibliothek in "$APPDIR/usr/lib/libecal-2.0.so.3" \
-    "$APPDIR/usr/lib/libebook-1.2.so.21"; do
+for bibliothek in "$APPDIR/usr/lib/$ECAL_SONAME" \
+    "$APPDIR/usr/lib/$EBOOK_SONAME"; do
     aufloesung=$(LD_LIBRARY_PATH="$APPDIR/usr/lib/x86_64-linux-gnu:$APPDIR/usr/lib" \
         ldd "$bibliothek")
     ! printf '%s\n' "$aufloesung" | grep -q 'not found'
@@ -121,9 +129,7 @@ PY
 # EDS/libical-Bibliotheken des Buildhosts, ohne glibc oder den Loader zu sperren.
 if command -v bwrap >/dev/null; then
     set -- bwrap --ro-bind / / --dev /dev --proc /proc
-    for soname in libecal-2.0.so.3 libedataserver-1.2.so.27 libical-glib.so.3 \
-        libical.so.3 libcamel-1.2.so.64 libebook-1.2.so.21 \
-        libebook-contacts-1.2.so.4 libedata-book-1.2.so.27 libebackend-1.2.so.11; do
+    for soname in $EDS_SONAMES; do
         host=$(ldconfig -p 2>/dev/null | grep "[[:space:]]$soname " | \
             sed -n '1s/.* => //p')
         [ -z "$host" ] || set -- "$@" --dev-bind /dev/null "$host"

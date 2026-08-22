@@ -1,15 +1,18 @@
 #!/bin/sh
 set -eu
 
-SYSTEM_PAKETTESTS=1
+AUTOPKGTESTS=1
+FEDORA_TESTS=1
 case "${1:-}" in
     "") ;;
-    --skip-system-package-tests) SYSTEM_PAKETTESTS=0 ;;
-    *) printf 'Aufruf: %s [--skip-system-package-tests]\n' "$0" >&2; exit 2 ;;
+    --skip-autopkgtest) AUTOPKGTESTS=0 ;;
+    --skip-system-package-tests) AUTOPKGTESTS=0; FEDORA_TESTS=0 ;;
+    *) printf 'Aufruf: %s [--skip-autopkgtest|--skip-system-package-tests]\n' "$0" >&2; exit 2 ;;
 esac
 
 LIVE_SOURCE=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 LIVE_ROOT=$(dirname "$LIVE_SOURCE")
+LIVE_HANDBUCH="$LIVE_ROOT/magnolie-handbuch-stamm"
 UPDATE_SIGNATUR_SCHLUESSEL='8eJWsygSF9wsF22cuf+sChUUV5RtXEZt38Ngcugn/1Y='
 MAGNOLIE_UPDATE_SIGNING_KEY=${MAGNOLIE_UPDATE_SIGNING_KEY:-${HOME:-}/.local/share/magnolie-release/update-ed25519.pem}
 python3 "$LIVE_SOURCE/werkzeuge/update_signieren.py" --check-key \
@@ -17,6 +20,10 @@ python3 "$LIVE_SOURCE/werkzeuge/update_signieren.py" --check-key \
 FASSUNG=$(dpkg-parsechangelog -l"$LIVE_SOURCE/debian/changelog" -SVersion)
 SOURCE_NAME="magnolie-organizer-$FASSUNG"
 LIVE_SOURCE_NAME=$(basename "$LIVE_SOURCE")
+LIVE_WINDOWS="$LIVE_ROOT/Magnolie-Organizer-Windows-2.0.0"
+WINDOWS_INSTALLER="$LIVE_WINDOWS/Magnolie-Organizer-Windows-$FASSUNG-Setup-x64.exe"
+WINDOWS_ZIP="$LIVE_WINDOWS/Magnolie-Organizer-Windows-$FASSUNG-x64.zip"
+WINDOWS_PRUEFSUMMEN="$LIVE_WINDOWS/Magnolie-Organizer-Windows-$FASSUNG-PRUEFSUMMEN.sha256"
 CONTRIBUTOR_HASH=${MAGNOLIE_CONTRIBUTOR_HASH:-}
 [ "${#CONTRIBUTOR_HASH}" -eq 64 ] || {
     printf '%s\n' 'MAGNOLIE_CONTRIBUTOR_HASH fehlt oder ist ungueltig.' >&2; exit 2;
@@ -28,6 +35,25 @@ MAGNOLIE_CONTRIBUTOR_HASH=$(printf '%s' "$CONTRIBUTOR_HASH" | tr A-F a-f)
 export MAGNOLIE_CONTRIBUTOR_HASH
 LAEUFER=$(command -v node || command -v nodejs || command -v bun)
 LASTDATEI=${MAGNOLIE_LASTDATEI:-/tmp/lotus-gross.csv}
+command -v unzip >/dev/null 2>&1 || {
+    printf '%s\n' 'unzip fehlt; Windows-Artefaktpruefung abgebrochen.' >&2
+    exit 1
+}
+test "${MAGNOLIE_WINDOWS_RUNTIME_VERIFIED:-}" = 1 || {
+    printf '%s\n' 'Windows-Laufzeitvalidierung fehlt; Freigabe abgebrochen.' >&2
+    exit 1
+}
+for datei in "$WINDOWS_INSTALLER" "$WINDOWS_ZIP" "$WINDOWS_PRUEFSUMMEN"; do
+    test -s "$datei" || {
+        printf '%s\n' "Windows-Freigabeartefakt fehlt: $datei" >&2
+        exit 1
+    }
+done
+if unzip -Z1 "$WINDOWS_ZIP" | grep -Fxq 'WINDOWS-RUNTIME-UNVERIFIED.txt'; then
+    printf '%s\n' 'Windows-Cross-Build darf nicht veroeffentlicht werden.' >&2
+    exit 1
+fi
+(cd "$LIVE_WINDOWS" && sha256sum -c "$(basename "$WINDOWS_PRUEFSUMMEN")")
 command -v flock >/dev/null 2>&1 || {
     printf '%s\n' 'flock fehlt; Freigabe abgebrochen.' >&2; exit 1;
 }
@@ -69,10 +95,19 @@ cleanup() {
 trap cleanup EXIT
 trap 'exit 1' HUP INT TERM
 
-cp -a "$LIVE_SOURCE" "$WURZEL"
+mkdir -p "$WURZEL" "$STAGE/magnolie-handbuch-stamm"
+tar -C "$LIVE_SOURCE" --exclude='./.git' --exclude='./bau' \
+    --exclude='./.pytest_cache' --exclude='./.kotlin' --exclude='./.gradle' \
+    --exclude='./build' -cf - . | tar -C "$WURZEL" -xf -
+tar -C "$LIVE_HANDBUCH" --exclude='./.git' --exclude='./bau' \
+    --exclude='./.pytest_cache' -cf - . | \
+    tar -C "$STAGE/magnolie-handbuch-stamm" -xf -
 cp "$LIVE_ROOT/update.xml" "$STAGE/update.xml"
 rm -rf "$WURZEL/.git" "$WURZEL/bau" "$WURZEL/.pytest_cache" "$WURZEL/.kotlin" \
-    "$WURZEL/.gradle" "$WURZEL/build"
+    "$WURZEL/.gradle" "$WURZEL/build" \
+    "$STAGE/magnolie-handbuch-stamm/.git" \
+    "$STAGE/magnolie-handbuch-stamm/bau" \
+    "$STAGE/magnolie-handbuch-stamm/.pytest_cache"
 find "$WURZEL" -type d \( -name __pycache__ -o -name .pytest_cache \
     -o -name .kotlin -o -name .gradle \) -prune -exec rm -rf {} +
 
@@ -105,6 +140,9 @@ DEB="$STAGE/magnolie-organizer_${FASSUNG}_all.deb"
 DSC="$STAGE/magnolie-organizer_${FASSUNG}.dsc"
 SOURCE_TAR="$STAGE/magnolie-organizer_${FASSUNG}.tar.xz"
 APPIMAGE="$STAGE/Magnolie-Organizer-$FASSUNG-x86_64.AppImage"
+HANDBUCH_DEB="$STAGE/magnolie-handbuch_${FASSUNG}_all.deb"
+HANDBUCH_DSC="$STAGE/magnolie-handbuch_${FASSUNG}.dsc"
+HANDBUCH_SOURCE_TAR="$STAGE/magnolie-handbuch_${FASSUNG}.tar.xz"
 test -s "$DEB"
 
 DEB_VERGLEICH=$(mktemp "$STAGE/deb-compare.XXXXXX")
@@ -130,16 +168,46 @@ xvfb-run -a -s "-screen 0 1280x800x24" env \
     python3 debian/tests/gtk-webkit.py
 rm -rf "$PAKET_TEST"
 
-SOURCE_DATE_EPOCH=$epoch werkzeuge/appimage_bauen.sh "$APPIMAGE"
+cd "$STAGE/magnolie-handbuch-stamm"
+handbuch_epoch=$(dpkg-parsechangelog -STimestamp)
+debian/rules clean
+find . -exec touch -h -d "@$handbuch_epoch" {} +
+DEB_BUILD_OPTIONS=nocheck SOURCE_DATE_EPOCH=$handbuch_epoch \
+    dpkg-buildpackage -b -d -us -uc
+HANDBUCH_VERGLEICH=$(mktemp "$STAGE/handbook-deb-compare.XXXXXX")
+cp "$HANDBUCH_DEB" "$HANDBUCH_VERGLEICH"
+debian/rules clean
+find . -exec touch -h -d "@$handbuch_epoch" {} +
+DEB_BUILD_OPTIONS=nocheck SOURCE_DATE_EPOCH=$handbuch_epoch \
+    dpkg-buildpackage -b -d -us -uc
+cmp "$HANDBUCH_VERGLEICH" "$HANDBUCH_DEB" || {
+    printf '%s\n' 'Handbuch-Debian-Paket ist nicht reproduzierbar:' >&2
+    sha256sum "$HANDBUCH_VERGLEICH" "$HANDBUCH_DEB" >&2
+    exit 1
+}
+rm -f "$HANDBUCH_VERGLEICH"
+debian/rules clean
+find . -exec touch -h -d "@$handbuch_epoch" {} +
+DEB_BUILD_OPTIONS=nocheck SOURCE_DATE_EPOCH=$handbuch_epoch \
+    dpkg-buildpackage -S -d -us -uc
+for datei in "$HANDBUCH_DEB" "$HANDBUCH_DSC" "$HANDBUCH_SOURCE_TAR"; do
+    test -s "$datei"
+done
+"$LAEUFER" pruefungen/paket_inhalt_test.js "$HANDBUCH_DEB" "$HANDBUCH_SOURCE_TAR"
+cd "$WURZEL"
+
+SOURCE_DATE_EPOCH=$epoch werkzeuge/appimage_jammy_bauen.sh "$APPIMAGE"
 pruefungen/test_appimage.sh "$APPIMAGE"
+pruefungen/test_appimage_arch.sh "$APPIMAGE"
 APPIMAGE_VERGLEICH=$(mktemp "$STAGE/appimage-compare.XXXXXX")
 cp "$APPIMAGE" "$APPIMAGE_VERGLEICH"
-SOURCE_DATE_EPOCH=$epoch werkzeuge/appimage_bauen.sh "$APPIMAGE"
+SOURCE_DATE_EPOCH=$epoch werkzeuge/appimage_jammy_bauen.sh "$APPIMAGE"
 cmp -s "$APPIMAGE_VERGLEICH" "$APPIMAGE"
 rm -f "$APPIMAGE_VERGLEICH"
 
 python3 werkzeuge/release_manifest.py \
-    "$DEB" "$APPIMAGE" "$WURZEL/update.xml" "$STAGE/update.xml"
+    "$DEB" "$APPIMAGE" "$HANDBUCH_DEB" "$WINDOWS_INSTALLER" \
+    "$WURZEL/update.xml" "$STAGE/update.xml"
 python3 werkzeuge/update_signieren.py \
     "$MAGNOLIE_UPDATE_SIGNING_KEY" "$WURZEL/update.xml" "$DEB" "$APPIMAGE"
 python3 werkzeuge/update_signieren.py \
@@ -149,21 +217,26 @@ python3 werkzeuge/update_signieren.py --verify "$UPDATE_SIGNATUR_SCHLUESSEL" \
     "$WURZEL/update.xml" "$DEB" "$APPIMAGE"
 python3 werkzeuge/update_signieren.py --verify "$UPDATE_SIGNATUR_SCHLUESSEL" \
     "$STAGE/update.xml" "$DEB" "$APPIMAGE"
+rm -f Magnolie-Organizer-PRUEFSUMMEN.sha256
 debian/rules clean
 find . -exec touch -h -d "@$epoch" {} +
 DEB_BUILD_OPTIONS=nocheck SOURCE_DATE_EPOCH=$epoch \
     dpkg-buildpackage -S -d -us -uc
 for datei in "$DSC" "$SOURCE_TAR"; do test -s "$datei"; done
-python3 - "$DEB" "$APPIMAGE" "$WURZEL/update.xml" <<'PY'
+python3 - "$DEB" "$APPIMAGE" "$HANDBUCH_DEB" "$WINDOWS_INSTALLER" \
+    "$WURZEL/update.xml" <<'PY'
 import hashlib
 import pathlib
 import sys
 import xml.etree.ElementTree as ET
 
-deb, appimage, manifest = map(pathlib.Path, sys.argv[1:])
+deb, appimage, handbuch, windows, manifest = map(pathlib.Path, sys.argv[1:])
 root = ET.parse(manifest).getroot()
 for artifact, xml_path in ((deb, "./sha256"),
-                           (appimage, "./appimage/sha256")):
+                           (appimage, "./appimage/sha256"),
+                           (handbuch, "./manual/linux/sha256"),
+                           (windows, "./manual/windows/sha256"),
+                           (windows, "./windows/sha256")):
     actual = hashlib.sha256(artifact.read_bytes()).hexdigest()
     expected = (root.findtext(xml_path) or "").strip()
     if actual != expected:
@@ -178,11 +251,13 @@ rm -f "$ARCHIV_MANIFEST"
 pruefe_quellarchiv() {
     archiv=$1
     prefix=$2
+    pflicht=${3:-"update.xml pruefungen/test_paketinhalt.py werkzeuge/png_pruefen.py"}
     liste=$(mktemp "$STAGE/archive-list.XXXXXX")
     tar -tf "$archiv" > "$liste"
-    for pfad in update.xml pruefungen/test_paketinhalt.py werkzeuge/png_pruefen.py; do
+    for pfad in $pflicht; do
         grep -Fxq "$prefix/$pfad" "$liste"
     done
+    ! grep -Eq '(^|/)Magnolie-Organizer-PRUEFSUMMEN[.]sha256$' "$liste"
     ! grep -Eq '(^|/)([.]git|[.]pytest_cache|[.]kotlin|[.]gradle|__pycache__|bau|build)(/|$)|[.](tar[.](xz|gz)|zip|rpm|deb|AppImage)$' "$liste"
     ! grep -Ei '(^|/)(REVIEW|ENTWURF|OFFENE[-_ ]?PUNKTE|[^/]*(ANALYSE|PLAN|AUDIT)[^/]*)[.]md$' "$liste"
     ! grep -Eq '(^|/)build-config[.]json$' "$liste"
@@ -213,10 +288,14 @@ PY
     rm -f "$liste"
 }
 pruefe_quellarchiv "$SOURCE_TAR" "$SOURCE_NAME"
+pruefe_quellarchiv "$HANDBUCH_SOURCE_TAR" "magnolie-handbuch-$FASSUNG" \
+    "bin/magnolie-handbuch web/handbuch.js debian/control"
 
 RPM_PAKET=
 RPM_QUELLE=
-if [ "$SYSTEM_PAKETTESTS" -eq 1 ]; then
+HANDBUCH_RPM_PAKET=
+HANDBUCH_RPM_QUELLE=
+if [ "$AUTOPKGTESTS" -eq 1 ]; then
     command -v autopkgtest >/dev/null 2>&1 || {
         printf '%s\n' 'autopkgtest fehlt; Freigabe abgebrochen.' >&2; exit 1;
     }
@@ -224,73 +303,70 @@ if [ "$SYSTEM_PAKETTESTS" -eq 1 ]; then
         printf '%s\n' 'MAGNOLIE_AUTOPKGTEST_QEMU_IMAGE fehlt; Freigabe abgebrochen.' >&2; exit 1;
     }
     autopkgtest "$DSC" -- qemu "$MAGNOLIE_AUTOPKGTEST_QEMU_IMAGE"
+else
+    printf '%s\n' \
+        'WARNUNG: vollstaendiges autopkgtest ausdruecklich uebersprungen; dieser Bau darf nicht veroeffentlicht werden.' >&2
+fi
 
-    command -v rpmbuild >/dev/null 2>&1 || {
-        printf '%s\n' 'rpmbuild fehlt; SRPM konnte nicht erzeugt werden.' >&2; exit 1;
-    }
-    command -v mock >/dev/null 2>&1 || {
-        printf '%s\n' 'mock fehlt; Fedora-Installationstest nicht gelaufen.' >&2; exit 1;
-    }
-    werkzeuge/rpm_bauen.sh --source-only
-    set -- "$WURZEL"/bau/rpm/SRPMS/magnolie-organizer-"$FASSUNG"-*.src.rpm
-    [ "$#" -eq 1 ] && [ -f "$1" ] || {
-        printf '%s\n' 'Genau ein SRPM wurde erwartet.' >&2; exit 1;
-    }
-    RPM_QUELLE=$1
-    pruefe_quellarchiv "$WURZEL/bau/rpm/SOURCES/magnolie-organizer-$FASSUNG.tar.xz" \
-        "magnolie-organizer-$FASSUNG"
-    MOCK_KONFIG=${MAGNOLIE_MOCK_CONFIG:-fedora-42-x86_64}
-    MOCK_RESULT="$STAGE/mock-result"
-    if [ -f "$MOCK_KONFIG" ]; then
-        MOCK_BASIS=$(readlink -f "$MOCK_KONFIG")
-    elif [ -f "${HOME:-}/.config/mock/$MOCK_KONFIG.cfg" ]; then
-        MOCK_BASIS=$(readlink -f "${HOME}/.config/mock/$MOCK_KONFIG.cfg")
-    elif [ -f "/etc/mock/$MOCK_KONFIG.cfg" ]; then
-        MOCK_BASIS="/etc/mock/$MOCK_KONFIG.cfg"
-    else
-        printf '%s\n' "Mock-Konfiguration nicht gefunden: $MOCK_KONFIG" >&2
+if [ "$FEDORA_TESTS" -eq 1 ]; then
+    test "$(dpkg-parsechangelog -l"$STAGE/magnolie-handbuch-stamm/debian/changelog" -SVersion)" = \
+        "$FASSUNG" || {
+        printf '%s\n' 'Organizer und Handbuch haben unterschiedliche Versionen.' >&2
         exit 1
-    fi
-    MOCK_BRANDING="$STAGE/mock-branding.cfg"
-    python3 - "$MOCK_BASIS" "$MOCK_BRANDING" "$MAGNOLIE_CONTRIBUTOR_HASH" <<'PY'
-import pathlib
-import sys
+    }
+    RPM_FEDORA_DIR="$STAGE/rpm-fedora" \
+        werkzeuge/rpm_fedora_bauen.sh
 
-source, destination, contributor_hash = sys.argv[1:]
-pathlib.Path(destination).write_text(
-    "include(%r)\nconfig_opts['environment']['MAGNOLIE_CONTRIBUTOR_HASH'] = %r\n"
-    % (source, contributor_hash), encoding="ascii")
-PY
-    mkdir "$MOCK_RESULT"
-    mock -r "$MOCK_KONFIG" --clean
-    mock -r "$MOCK_BRANDING" \
-        --rebuild "$RPM_QUELLE" --resultdir "$MOCK_RESULT"
-    set -- "$MOCK_RESULT"/magnolie-organizer-"$FASSUNG"-*.noarch.rpm
+    set -- "$STAGE"/rpm-fedora/rpm/RPMS/noarch/magnolie-organizer-"$FASSUNG"-*.noarch.rpm
     [ "$#" -eq 1 ] && [ -f "$1" ] || {
-        printf '%s\n' 'Genau ein durch mock gebautes binaeres RPM wurde erwartet.' >&2; exit 1;
+        printf '%s\n' 'Genau ein binaeres Organizer-RPM wurde erwartet.' >&2; exit 1;
     }
     RPM_PAKET="$WURZEL/bau/rpm/RPMS/noarch/$(basename "$1")"
     mkdir -p "$(dirname "$RPM_PAKET")"
     cp "$1" "$RPM_PAKET"
-    test "$(rpm -qpl "$RPM_PAKET" | grep -c '/build-config[.]json$')" -eq 1
-    test "$(rpm2cpio "$RPM_PAKET" | cpio -i --to-stdout \
-        ./usr/share/magnolie-organizer/build-config.json 2>/dev/null)" = \
-        "{\"contributorHash\":\"$MAGNOLIE_CONTRIBUTOR_HASH\"}"
-    mock -r "$MOCK_KONFIG" --install "$RPM_PAKET"
-    mock -r "$MOCK_KONFIG" --chroot -- rpm -V magnolie-organizer
-    mock -r "$MOCK_KONFIG" --chroot -- \
-        env DISPLAY= WAYLAND_DISPLAY= magnolie-organizer --help
+    set -- "$STAGE"/rpm-fedora/rpm/SRPMS/magnolie-organizer-"$FASSUNG"-*.src.rpm
+    [ "$#" -eq 1 ] && [ -f "$1" ] || {
+        printf '%s\n' 'Genau ein Organizer-SRPM wurde erwartet.' >&2; exit 1;
+    }
+    RPM_QUELLE="$WURZEL/bau/rpm/SRPMS/$(basename "$1")"
+    mkdir -p "$(dirname "$RPM_QUELLE")"
+    cp "$1" "$RPM_QUELLE"
+    pruefe_quellarchiv "$STAGE/rpm-fedora/rpm/SOURCES/magnolie-organizer-$FASSUNG.tar.xz" \
+        "magnolie-organizer-$FASSUNG"
+
+    set -- "$STAGE"/rpm-fedora/handbuch-rpm/RPMS/noarch/magnolie-handbuch-"$FASSUNG"-*.noarch.rpm
+    [ "$#" -eq 1 ] && [ -f "$1" ] || {
+        printf '%s\n' 'Genau ein binaeres Handbuch-RPM wurde erwartet.' >&2; exit 1;
+    }
+    HANDBUCH_RPM_PAKET="$STAGE/magnolie-handbuch-stamm/bau/rpm/RPMS/noarch/$(basename "$1")"
+    mkdir -p "$(dirname "$HANDBUCH_RPM_PAKET")"
+    cp "$1" "$HANDBUCH_RPM_PAKET"
+    set -- "$STAGE"/rpm-fedora/handbuch-rpm/SRPMS/magnolie-handbuch-"$FASSUNG"-*.src.rpm
+    [ "$#" -eq 1 ] && [ -f "$1" ] || {
+        printf '%s\n' 'Genau ein Handbuch-SRPM wurde erwartet.' >&2; exit 1;
+    }
+    HANDBUCH_RPM_QUELLE="$STAGE/magnolie-handbuch-stamm/bau/rpm/SRPMS/$(basename "$1")"
+    mkdir -p "$(dirname "$HANDBUCH_RPM_QUELLE")"
+    cp "$1" "$HANDBUCH_RPM_QUELLE"
+    pruefe_quellarchiv \
+        "$STAGE/rpm-fedora/handbuch-rpm/SOURCES/magnolie-handbuch-$FASSUNG.tar.xz" \
+        "magnolie-handbuch-$FASSUNG" \
+        "bin/magnolie-handbuch web/handbuch.js rpm/magnolie-handbuch.spec"
 else
     printf '%s\n' \
-        'WARNUNG: vollstaendiges autopkgtest und Fedora-Installationstest ausdruecklich uebersprungen.' >&2
+        'WARNUNG: Fedora-Bau und -Installationstest ausdruecklich uebersprungen; dieser Bau darf nicht veroeffentlicht werden.' >&2
 fi
 
 PRUEFSUMMEN="$WURZEL/Magnolie-Organizer-PRUEFSUMMEN.sha256"
 set -- "../magnolie-organizer_${FASSUNG}_all.deb" \
     "../magnolie-organizer_${FASSUNG}.tar.xz" \
-    "../Magnolie-Organizer-$FASSUNG-x86_64.AppImage"
+    "../Magnolie-Organizer-$FASSUNG-x86_64.AppImage" \
+    "../magnolie-handbuch_${FASSUNG}_all.deb" \
+    "../magnolie-handbuch_${FASSUNG}.tar.xz"
 if [ -n "$RPM_PAKET" ]; then
-    set -- "$@" "${RPM_PAKET#"$WURZEL/"}" "${RPM_QUELLE#"$WURZEL/"}"
+    set -- "$@" "${RPM_PAKET#"$WURZEL/"}" "${RPM_QUELLE#"$WURZEL/"}" \
+        "../magnolie-handbuch-stamm/${HANDBUCH_RPM_PAKET#"$STAGE/magnolie-handbuch-stamm/"}" \
+        "../magnolie-handbuch-stamm/${HANDBUCH_RPM_QUELLE#"$STAGE/magnolie-handbuch-stamm/"}"
 fi
 (cd "$WURZEL" && sha256sum "$@") > "$PRUEFSUMMEN"
 (cd "$WURZEL" && sha256sum -c "$PRUEFSUMMEN")
@@ -298,6 +374,9 @@ fi
 PUBLISH_PATHS="magnolie-organizer_${FASSUNG}_all.deb
 magnolie-organizer_${FASSUNG}.dsc
 magnolie-organizer_${FASSUNG}.tar.xz
+magnolie-handbuch_${FASSUNG}_all.deb
+magnolie-handbuch_${FASSUNG}.dsc
+magnolie-handbuch_${FASSUNG}.tar.xz
 Magnolie-Organizer-$FASSUNG-x86_64.AppImage"
 if [ -n "$RPM_PAKET" ]; then
     if [ "$LIVE_SOURCE_NAME" != "$SOURCE_NAME" ]; then
@@ -308,7 +387,9 @@ if [ -n "$RPM_PAKET" ]; then
     fi
     PUBLISH_PATHS="$PUBLISH_PATHS
 $LIVE_SOURCE_NAME/${RPM_PAKET#"$WURZEL/"}
-$LIVE_SOURCE_NAME/${RPM_QUELLE#"$WURZEL/"}"
+$LIVE_SOURCE_NAME/${RPM_QUELLE#"$WURZEL/"}
+magnolie-handbuch-stamm/${HANDBUCH_RPM_PAKET#"$STAGE/magnolie-handbuch-stamm/"}
+magnolie-handbuch-stamm/${HANDBUCH_RPM_QUELLE#"$STAGE/magnolie-handbuch-stamm/"}"
 fi
 if [ "$LIVE_SOURCE_NAME" != "$SOURCE_NAME" ]; then
     mkdir -p "$STAGE/$LIVE_SOURCE_NAME"

@@ -9,6 +9,7 @@ web/stil.css                          usr/share/magnolie-organizer/web
 web/kaffee-qr.png                     usr/share/magnolie-organizer/web
 web/anwendung.js                      usr/share/magnolie-organizer/web
 web/i18n.js                           usr/share/magnolie-organizer/web
+web/i18n-en.js                        usr/share/magnolie-organizer/web
 web/i18n-start.js                     usr/share/magnolie-organizer/web
 web/i18n-markers.js                   usr/share/magnolie-organizer/web
 web/i18n/*.js                         usr/share/magnolie-organizer/web/i18n

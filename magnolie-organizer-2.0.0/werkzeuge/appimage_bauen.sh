@@ -5,6 +5,7 @@ WURZEL=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 FASSUNG=$(dpkg-parsechangelog -l"$WURZEL/debian/changelog" -SVersion)
 ARCH=$(uname -m)
 MULTIARCH=$(gcc -dumpmachine)
+PYTHON_VERSION=$(python3 -c 'import sys; print("%d.%d" % sys.version_info[:2])')
 AUSGABE=${1:-"$WURZEL/../Magnolie-Organizer-$FASSUNG-$ARCH.AppImage"}
 ARBEIT=${APPIMAGE_BUILD_DIR:-"$WURZEL/bau/appimage"}
 WERKZEUGE=${APPIMAGE_TOOL_DIR:-"$WURZEL/bau/appimage-werkzeuge"}
@@ -54,24 +55,30 @@ for befehl in curl cut dpkg-parsechangelog g-ir-inspect gcc gio-querymodules \
     }
 done
 
-EDS_BIBLIOTHEKEN="
-/usr/lib/$MULTIARCH/libecal-2.0.so.3
-/usr/lib/$MULTIARCH/libedataserver-1.2.so.27
-/usr/lib/$MULTIARCH/libical-glib.so.3
-/usr/lib/$MULTIARCH/libical.so.3
-/usr/lib/$MULTIARCH/libcamel-1.2.so.64
-/usr/lib/$MULTIARCH/libebook-1.2.so.21
-/usr/lib/$MULTIARCH/libebook-contacts-1.2.so.4
-/usr/lib/$MULTIARCH/libedata-book-1.2.so.27
-"
+if [ -f "/usr/lib/$MULTIARCH/libecal-2.0.so.3" ]; then
+    ECAL_SONAME=libecal-2.0.so.3
+    EBOOK_SONAME=libebook-1.2.so.21
+    EDS_SONAMES="libecal-2.0.so.3 libedataserver-1.2.so.27 libical-glib.so.3 libical.so.3 libcamel-1.2.so.64 libebook-1.2.so.21 libebook-contacts-1.2.so.4 libedata-book-1.2.so.27 libebackend-1.2.so.11"
+elif [ -f "/usr/lib/$MULTIARCH/libecal-2.0.so.1" ]; then
+    ECAL_SONAME=libecal-2.0.so.1
+    EBOOK_SONAME=libebook-1.2.so.20
+    EDS_SONAMES="libecal-2.0.so.1 libedataserver-1.2.so.26 libical-glib.so.3 libical.so.3 libcamel-1.2.so.63 libebook-1.2.so.20 libebook-contacts-1.2.so.3 libedata-book-1.2.so.26 libebackend-1.2.so.10"
+else
+    printf '%s\n' 'Keine unterstuetzte EDS-ABI fuer das AppImage gefunden.' >&2
+    exit 1
+fi
+EDS_BIBLIOTHEKEN=""
+for soname in $EDS_SONAMES; do
+    EDS_BIBLIOTHEKEN="$EDS_BIBLIOTHEKEN /usr/lib/$MULTIARCH/$soname"
+done
 EDS_TYPELIBS="Camel-1.2 EDataServer-1.2 ECal-2.0 ICalGLib-3.0 EBookContacts-1.2 EBook-1.2"
 APP_TYPELIBS="
 GLib-2.0 GObject-2.0 Gio-2.0 GModule-2.0
 cairo-1.0 freetype2-2.0 xlib-2.0 HarfBuzz-0.0
 Atk-1.0 GdkPixbuf-2.0 Pango-1.0 Gdk-3.0 Gtk-3.0
-JavaScriptCore-4.1 Soup-3.0 Json-1.0 libxml2-2.0 WebKit2-4.1
+    JavaScriptCore-4.1 Soup-2.4 Soup-3.0 Json-1.0 libxml2-2.0 WebKit2-4.1
 Gst-1.0 AyatanaAppIndicator3-0.1 AppIndicator3-0.1 XApp-1.0 Notify-0.7
-$EDS_TYPELIBS
+    GData-0.0 Goa-1.0 $EDS_TYPELIBS
 "
 
 for bibliothek in $EDS_BIBLIOTHEKEN; do
@@ -96,7 +103,7 @@ nm -D --defined-only /usr/lib/$MULTIARCH/libical-glib.so.3 | \
         printf '%s\n' "libical-glib.so.3 exportiert i_cal_component_as_ical_string nicht." >&2
         exit 1
     }
-nm -D --undefined-only /usr/lib/$MULTIARCH/libecal-2.0.so.3 | \
+nm -D --undefined-only "/usr/lib/$MULTIARCH/$ECAL_SONAME" | \
     grep -q ' i_cal_component_as_ical_string$' || {
         printf '%s\n' "libecal-2.0.so.3 erwartet nicht die gepruefte libical-glib-ABI." >&2
         exit 1
@@ -136,11 +143,11 @@ install -m 0644 "$WURZEL/bin/magnolie_telefon.py" "$APPDIR/usr/bin/magnolie_tele
 install -m 0644 "$WURZEL/bin/magnolie_kdeconnect.py" "$APPDIR/usr/bin/magnolie_kdeconnect.py"
 install -m 0644 "$WURZEL/bin/magnolie_personal_sync.py" "$APPDIR/usr/bin/magnolie_personal_sync.py"
 install -m 0644 "$WURZEL/bin/magnolie_nextcloud.py" "$APPDIR/usr/bin/magnolie_nextcloud.py"
-install -m 0755 "$(readlink -f "$(command -v python3)")" "$APPDIR/usr/bin/python3.12"
-ln -s python3.12 "$APPDIR/usr/bin/python3"
-cp -a /usr/lib/python3.12 "$APPDIR/usr/lib/"
-find "$APPDIR/usr/lib/python3.12" -type f \( -name '*.a' -o -name '*.o' \) -delete
-for paket in gi cryptography OpenSSL zeroconf ifaddr; do
+install -m 0755 "$(readlink -f "$(command -v python3)")" "$APPDIR/usr/bin/python$PYTHON_VERSION"
+ln -s "python$PYTHON_VERSION" "$APPDIR/usr/bin/python3"
+cp -a "/usr/lib/python$PYTHON_VERSION" "$APPDIR/usr/lib/"
+find "$APPDIR/usr/lib/python$PYTHON_VERSION" -type f \( -name '*.a' -o -name '*.o' \) -delete
+for paket in gi cryptography OpenSSL zeroconf ifaddr async_timeout; do
     quelle="/usr/lib/python3/dist-packages/$paket"
     [ ! -e "$quelle" ] || cp -a "$quelle" "$APPDIR/usr/lib/python3/dist-packages/"
 done
@@ -181,39 +188,38 @@ install -m 0644 "$WURZEL/debian/copyright" \
     "$APPDIR/usr/share/doc/magnolie-organizer/copyright"
 install -m 0644 /etc/ssl/certs/ca-certificates.crt \
     "$APPDIR/usr/share/magnolie-organizer/certs/ca-certificates.crt"
-[ ! -f /usr/share/doc/python3.12/copyright ] || install -m 0644 \
-    /usr/share/doc/python3.12/copyright "$APPDIR/usr/share/doc/magnolie-organizer/python3.12-copyright"
+[ ! -f "/usr/share/doc/python$PYTHON_VERSION/copyright" ] || install -m 0644 \
+    "/usr/share/doc/python$PYTHON_VERSION/copyright" \
+    "$APPDIR/usr/share/doc/magnolie-organizer/python-copyright"
 
-set -- --appdir "$APPDIR" --executable "$APPDIR/usr/bin/python3.12" \
-    --desktop-file "$APPDIR/usr/share/applications/io.gitlab.maik3531.MagnolieOrganizer.desktop" \
-    --icon-file "$APPDIR/usr/share/icons/hicolor/256x256/apps/magnolie-organizer.png" \
-    --library "/usr/lib/$MULTIARCH/libgtk-3.so.0" \
-    --library "/usr/lib/$MULTIARCH/libwebkit2gtk-4.1.so.0"
-for bibliothek in $EDS_BIBLIOTHEKEN; do
-    set -- "$@" --library "$bibliothek"
-done
-for bibliothek in "/usr/lib/$MULTIARCH/libxapp.so.1" \
+for bibliothek in $EDS_BIBLIOTHEKEN \
+    "/usr/lib/$MULTIARCH/libexpat.so.1" \
+    "/usr/lib/$MULTIARCH/libfontconfig.so.1" \
+    "/usr/lib/$MULTIARCH/libfreetype.so.6" \
+    "/usr/lib/$MULTIARCH/libfribidi.so.0" \
+    "/usr/lib/$MULTIARCH/libgcc_s.so.1" \
+    "/usr/lib/$MULTIARCH/libharfbuzz.so.0" \
+    "/usr/lib/$MULTIARCH/libstdc++.so.6" \
+    "/usr/lib/$MULTIARCH/libwayland-client.so.0" \
+    "/usr/lib/$MULTIARCH/libX11.so.6" \
+    "/usr/lib/$MULTIARCH/libxcb.so.1" \
+    "/usr/lib/$MULTIARCH/libz.so.1" \
+    "/usr/lib/$MULTIARCH/libxapp.so.1" \
     "/usr/lib/$MULTIARCH/libayatana-appindicator3.so.1" \
     "/usr/lib/$MULTIARCH/libappindicator3.so.1" \
     "/usr/lib/$MULTIARCH/gtk-3.0/modules/libxapp-gtk3-module.so" \
     "/usr/lib/$MULTIARCH/gio/modules/libgiognutls.so" \
     "/usr/lib/$MULTIARCH/gstreamer-1.0/libgstapp.so"; do
-    [ ! -e "$bibliothek" ] || set -- "$@" --library "$bibliothek"
+    [ ! -e "$bibliothek" ] || install -m 0755 "$(readlink -f "$bibliothek")" \
+        "$APPDIR/usr/lib/$(basename "$bibliothek")"
 done
 GST_SCANNER=/usr/lib/$MULTIARCH/gstreamer1.0/gstreamer-1.0/gst-plugin-scanner
-[ ! -x "$GST_SCANNER" ] || set -- "$@" --executable "$GST_SCANNER"
-for helfer in "$APPDIR/usr/lib/webkit2gtk-4.1/MiniBrowser" \
-    "$APPDIR/usr/lib/webkit2gtk-4.1/WebKitGPUProcess" \
-    "$APPDIR/usr/lib/webkit2gtk-4.1/WebKitNetworkProcess" \
-    "$APPDIR/usr/lib/webkit2gtk-4.1/WebKitWebProcess"; do
-    [ ! -x "$helfer" ] || set -- "$@" --executable "$helfer"
-done
-for bibliothek in $(find "$APPDIR/usr/lib/python3.12" \
-    "$APPDIR/usr/lib/python3/dist-packages" \
-    "$APPDIR/usr/lib/webkit2gtk-4.1/injected-bundle" \
-    -type f -name '*.so'); do
-    set -- "$@" --library "$bibliothek"
-done
+if [ -x "$GST_SCANNER" ]; then
+    install -m 0755 "$GST_SCANNER" "$APPDIR/usr/bin/gst-plugin-scanner"
+fi
+set -- --appdir "$APPDIR" --executable "$APPDIR/usr/bin/python$PYTHON_VERSION" \
+    --desktop-file "$APPDIR/usr/share/applications/io.gitlab.maik3531.MagnolieOrganizer.desktop" \
+    --icon-file "$APPDIR/usr/share/icons/hicolor/256x256/apps/magnolie-organizer.png"
 "$LINUXDEPLOY" --appimage-extract-and-run "$@"
 
 # Typelibs und die von linuxdeploy erzeugte ELF-Closure muessen dieselbe
@@ -225,20 +231,18 @@ typelib_pfad="$APPDIR/usr/lib/$MULTIARCH/girepository-1.0"
     exit 1
 }
 [ "$(GI_TYPELIB_PATH="$typelib_pfad" g-ir-inspect --version=2.0 \
-    --print-shlibs ECal)" = "shlib: libecal-2.0.so.3" ] || {
-    printf '%s\n' "ECal-2.0.typelib verweist nicht auf libecal-2.0.so.3." >&2
+    --print-shlibs ECal)" = "shlib: $ECAL_SONAME" ] || {
+    printf '%s\n' "ECal-2.0.typelib verweist nicht auf $ECAL_SONAME." >&2
     exit 1
 }
-for soname in libecal-2.0.so.3 libedataserver-1.2.so.27 libical-glib.so.3 \
-    libical.so.3 libcamel-1.2.so.64 libebook-1.2.so.21 \
-    libebook-contacts-1.2.so.4 libedata-book-1.2.so.27 libebackend-1.2.so.11; do
+for soname in $EDS_SONAMES; do
     [ -f "$APPDIR/usr/lib/$soname" ] || {
         printf '%s\n' "linuxdeploy-Closure ist unvollstaendig: $soname fehlt." >&2
         exit 1
     }
 done
-for bibliothek in "$APPDIR/usr/lib/libecal-2.0.so.3" \
-    "$APPDIR/usr/lib/libebook-1.2.so.21"; do
+for bibliothek in "$APPDIR/usr/lib/$ECAL_SONAME" \
+    "$APPDIR/usr/lib/$EBOOK_SONAME"; do
     if LD_LIBRARY_PATH="$APPDIR/usr/lib/$MULTIARCH:$APPDIR/usr/lib" \
         ldd "$bibliothek" | grep -q 'not found'; then
         printf '%s\n' "Nicht aufgeloeste EDS-Abhaengigkeit in $bibliothek" >&2
@@ -328,7 +332,13 @@ ln -sf usr/share/icons/hicolor/256x256/apps/magnolie-organizer.png \
 
 epoch=${SOURCE_DATE_EPOCH:-$(dpkg-parsechangelog -l"$WURZEL/debian/changelog" -STimestamp)}
 image_epoch=$((epoch - epoch % 86400))
+sitecustomize="$APPDIR/usr/lib/python$PYTHON_VERSION/sitecustomize.py"
+if [ -L "$sitecustomize" ]; then
+    rm -f "$sitecustomize"
+    install -m 0644 "/etc/python$PYTHON_VERSION/sitecustomize.py" "$sitecustomize"
+fi
 find "$APPDIR" -exec touch -h -d "@$image_epoch" {} +
+python3 "$WURZEL/werkzeuge/elf_glibc_pruefen.py" "$APPDIR" 2.35
 rm -f "$AUSGABE"
 ARCH=x86_64 SOURCE_DATE_EPOCH=$image_epoch "$APPIMAGETOOL" --appimage-extract-and-run \
     "$APPDIR" "$AUSGABE"

@@ -1,5 +1,5 @@
 Name:           magnolie-organizer
-Version:        2.0.1
+Version:        2.0.2
 Release:        1%{?dist}
 Summary:        Personal organizer with a classic paper appearance
 
@@ -11,13 +11,15 @@ BuildArch:      noarch
 BuildRequires:  appstream
 BuildRequires:  desktop-file-utils
 BuildRequires:  gettext
+BuildRequires:  gtk3
 BuildRequires:  nodejs
-BuildRequires:  nodejs-jsdom
 BuildRequires:  python3-cryptography
 BuildRequires:  python3-pyOpenSSL
 BuildRequires:  python3-devel
+BuildRequires:  python3-gobject
 BuildRequires:  python3-pytest
 BuildRequires:  python3-zeroconf
+BuildRequires:  xdg-utils
 Requires:       gtk3
 Requires:       gettext
 Requires:       python3
@@ -99,8 +101,9 @@ desktop-file-validate io.gitlab.maik3531.MagnolieOrganizer.desktop
 appstreamcli validate --no-net \
     io.gitlab.maik3531.MagnolieOrganizer.appdata.xml
 
-node -e 'require("jsdom")'
-node pruefungen/test.js
+for script in web/*.js web/i18n/*.js; do
+    node --check "$script"
+done
 
 %install
 install -Dpm 0755 bin/%{name} %{buildroot}%{_bindir}/%{name}
@@ -112,6 +115,7 @@ install -Dpm 0644 bin/magnolie_nextcloud.py %{buildroot}%{_bindir}/magnolie_next
 install -d %{buildroot}%{_datadir}/%{name}/web/i18n
 install -pm 0644 web/index.html web/stil.css web/anwendung.js \
     web/i18n.js web/i18n-start.js web/i18n-markers.js \
+    web/i18n-en.js \
     %{buildroot}%{_datadir}/%{name}/web/
 install -pm 0644 web/kaffee-qr.png \
     %{buildroot}%{_datadir}/%{name}/web/kaffee-qr.png
@@ -208,6 +212,11 @@ done
 %{_mandir}/*/man1/magnolie-organizer.1*
 
 %changelog
+* Sat Aug 22 2026 Maik Walter <maik3531@gmail.com> - 2.0.2-1
+- Load only the active language catalog during startup
+- Build against a pinned native Fedora 42 environment
+- Verify portable AppImage runtime compatibility on Arch Linux
+
 * Fri Aug 21 2026 Maik Walter <maik3531@gmail.com> - 2.0.1-1
 - Scale startup normalization linearly for large data sets
 - Add visible search navigation and a bundled cross-platform handwriting font

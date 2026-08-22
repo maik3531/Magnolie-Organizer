@@ -1,5 +1,28 @@
 # Changelog / Änderungen
 
+## 2.0.2 / Notes 1.0.5 — 2026-08-22
+
+### English
+
+- Made handbook resizing responsive by showing the scaled pages before repagination completes.
+- Reduced organizer startup work by loading only the active language catalog.
+- Built the AppImage from a pinned Ubuntu 22.04 runtime and verified its GLIBC 2.35 ceiling on Arch Linux.
+- Added separately installable native Fedora 42 RPMs for the organizer and handbook.
+
+The Fedora packages were built, installed and verified in a pinned rootless Fedora 42 environment.
+The Windows VM and external `autopkgtest` QEMU runs remain unavailable.
+
+### Deutsch
+
+- Handbuchseiten werden beim Ändern der Fenstergröße sofort skaliert angezeigt und danach neu paginiert.
+- Der Organizer lädt beim Start nur noch den aktiven Sprachkatalog.
+- Das AppImage entsteht aus einer gepinnten Ubuntu-22.04-Laufzeit und hält beim Arch-Test die GLIBC-2.35-Grenze ein.
+- Organizer und Handbuch stehen als getrennt installierbare native Fedora-42-RPMs bereit.
+
+Die Fedora-Pakete wurden in einer gepinnten rootlosen Fedora-42-Umgebung gebaut,
+installiert und geprüft. Windows-VM und externer `autopkgtest`-QEMU-Lauf bleiben
+weiterhin nicht verfügbar.
+
 ## 2.0.1 / Notes 1.0.5 — 2026-08-21
 
 ### English
