@@ -1,3 +1,11 @@
+magnolie-handbuch (2.0.2) unstable; urgency=medium
+
+  * Zeigt die Skalierung beim Ändern der Fenstergröße vor der vollständigen
+    Neupaginierung an und hält die Bedienung dadurch flüssig.
+  * Ergänzt ein eigenständig installierbares und geprüftes Fedora-RPM.
+
+ -- Maik Walter <maik3531@gmail.com>  Sat, 22 Aug 2026 15:00:00 +0200
+
 magnolie-handbuch (2.0.1) unstable; urgency=medium
 
   * Hebt Handbuch, Plattformvarianten und Paketbeispiele auf Version 2.0.1 an.

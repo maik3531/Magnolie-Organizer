@@ -463,8 +463,10 @@
     umbruchVorgemerkt = true;
     const spaeter = window.requestAnimationFrame || ((funktion) => setTimeout(funktion, 0));
     spaeter(() => {
-      umbruchVorgemerkt = false;
-      umbruch();
+      spaeter(() => {
+        umbruchVorgemerkt = false;
+        umbruch();
+      });
     });
   }
 

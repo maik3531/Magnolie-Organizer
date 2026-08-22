@@ -165,8 +165,15 @@ async function run() {
 
   const beforeResize = shown().length;
   capacity = 60;
+  const rahmen = [];
+  w.requestAnimationFrame = (funktion) => rahmen.push(funktion);
   w.dispatchEvent(new w.Event("resize"));
-  await new Promise((resolve) => w.setTimeout(resolve, 30));
+  assert.strictEqual(rahmen.length, 1, "resize must schedule the paint frame");
+  rahmen.shift()();
+  assert.strictEqual(shown().length, beforeResize,
+    "resize must let the scaled book paint before repagination");
+  assert.strictEqual(rahmen.length, 1, "repagination must follow in a separate frame");
+  rahmen.shift()();
   assert.ok(shown().length > beforeResize, "resize must schedule a fresh measurement");
 
   dom.window.close();
