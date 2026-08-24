@@ -59,7 +59,7 @@ Organizer-Aktualisierungen enthalten zusätzlich das passende AppImage:
 
     <appimage>
       <architecture>x86_64</architecture>
-      <url>https://…/Magnolie-Organizer-2.0.2-x86_64.AppImage</url>
+      <url>https://…/Magnolie-Organizer-2.0.3-x86_64.AppImage</url>
       <sha256>64 hexadezimale Zeichen</sha256>
     </appimage>
 
@@ -83,7 +83,8 @@ erhalten.
                  Lotus-CSV-Parser, Abgleich mit dem Evolution-Data-Server)
     web/         Oberfläche (index.html, stil.css, anwendung.js)
     symbole/     Programmsymbol als SVG und in vier PNG-Größen
-    werkzeuge/   Erzeuger des Erinnerungsklangs sowie Release-/AppImage-Bau
+    werkzeuge/   Erzeuger des Erinnerungsklangs sowie Release-, AppImage- und Flatpak-Bau
+    flatpak/     GNOME-49-Manifest und festgeschriebene Python-Abhängigkeiten
     pruefungen/  Selbsttests (siehe unten)
     debian/      Paketbeschreibung für den Bau des .deb
 
@@ -94,7 +95,7 @@ erhalten.
 
 Das fertige Paket liegt danach eine Ebene höher und wird installiert mit:
 
-    sudo apt install ../magnolie-organizer_2.0.2_all.deb
+    sudo apt install ../magnolie-organizer_2.0.3_all.deb
 
 Normale Eigenbauten enthalten kein Contributor-Branding. Offizielle Binärbauten
 können über `MAGNOLIE_CONTRIBUTOR_HASH` eine 64-stellige SHA-256-Hexfolge
@@ -105,7 +106,7 @@ Quellpaket, Source0 oder SRPM.
 ### Fedora-RPM und SRPM
 
 Auf Fedora erzeugt das Bauwerkzeug ein normalisiertes
-`magnolie-organizer-2.0.2.tar.xz` mit dem gleichnamigen obersten Verzeichnis
+`magnolie-organizer-2.0.3.tar.xz` mit dem gleichnamigen obersten Verzeichnis
 und baut daraus RPM und SRPM. Bereits vorhandene Debian-Bauverzeichnisse,
 generierte Kataloge und die generierte WAV-Datei gelangen nicht in Source0:
 
@@ -125,15 +126,15 @@ beispielsweise mit (die Fedora-Version bei Bedarf anpassen):
     sudo dnf install mock rpmlint
     sudo usermod -a -G mock "$USER"
     mock -r fedora-42-x86_64 --rebuild \
-        bau/rpm/SRPMS/magnolie-organizer-2.0.2-1.fc42.src.rpm
+        bau/rpm/SRPMS/magnolie-organizer-2.0.3-1.fc42.src.rpm
     rpmlint rpm/magnolie-organizer.spec \
-        bau/rpm/SRPMS/magnolie-organizer-2.0.2-1.fc42.src.rpm \
-        bau/rpm/RPMS/noarch/magnolie-organizer-2.0.2-1.fc42.noarch.rpm
+        bau/rpm/SRPMS/magnolie-organizer-2.0.3-1.fc42.src.rpm \
+        bau/rpm/RPMS/noarch/magnolie-organizer-2.0.3-1.fc42.noarch.rpm
 
 Das lokale RPM kann mit DNF installiert und wieder entfernt werden, ohne dass
 die Paket-Scriptlets Firewallregeln öffnen oder Benutzerdaten verändern:
 
-    sudo dnf install bau/rpm/RPMS/noarch/magnolie-organizer-2.0.2-1.fc42.noarch.rpm
+    sudo dnf install bau/rpm/RPMS/noarch/magnolie-organizer-2.0.3-1.fc42.noarch.rpm
     sudo dnf remove magnolie-organizer
 
 Die mitgelieferte firewalld-Servicebeschreibung ist nur eine Vorlage. Falls
@@ -152,7 +153,22 @@ von `linuxdeploy` und `appimagetool` sind mitsamt SHA-256-Prüfsummen im Bauplan
 festgeschrieben. Gebaut und gegen den gepackten Programmkern geprüft wird mit:
 
     werkzeuge/appimage_bauen.sh
-    pruefungen/test_appimage.sh ../Magnolie-Organizer-2.0.2-x86_64.AppImage
+    pruefungen/test_appimage.sh ../Magnolie-Organizer-2.0.3-x86_64.AppImage
+
+## Flatpak
+
+Das Flatpak verwendet die zusammengehörige GTK-/WebKit-Laufzeit von GNOME 49.
+Es erhält Netzwerk-, Wayland-/X11- und den PulseAudio-kompatiblen Audiosocket,
+aber keinen direkten Zugriff auf das Wirtsdateisystem oder das Grafikgerät. Der
+Audiosocket funktioniert sowohl mit PulseAudio als auch mit `pipewire-pulse`.
+
+    flatpak install --user flathub org.gnome.Sdk//49 org.flatpak.Builder
+    werkzeuge/flatpak_bauen.sh
+    flatpak install --user ../Magnolie-Organizer-2.0.3-x86_64.flatpak
+
+Das Ergebnis liegt als `Magnolie-Organizer-2.0.3-x86_64.flatpak` eine Ebene
+oberhalb des Quellordners. `pruefungen/test_flatpak.py` prüft Manifest,
+Abhängigkeitshashes, Sandboxrechte und auf Wunsch das fertige Bündel.
 
 Für eine Freigabe ist ausschließlich der vollständige Releasebau vorgesehen:
 
@@ -162,8 +178,8 @@ Für eine Freigabe ist ausschließlich der vollständige Releasebau vorgesehen:
 
 Er führt Parser-, DOM- und Import-/Export-Vertragstests, die 30.000er-Lasttests,
 den Debian-Quell- und Paketbau von Organizer und Handbuch, das vollständige
-`autopkgtest`, den RPM-Bau mit Fedora-Installation sowie AppImage-Bau und
-AppImage-Prüfung aus. Ein vorhandener Windows-Cross-Build bleibt in ZIP und
+`autopkgtest`, den RPM-Bau mit Fedora-Installation sowie AppImage- und
+Flatpak-Bau samt Prüfungen aus. Ein vorhandener Windows-Cross-Build bleibt in ZIP und
 Installer maschinenlesbar als nicht laufzeitvalidiert und unsigniert markiert. Die
 verifizierten Summen stehen danach in `Magnolie-Organizer-PRUEFSUMMEN.sha256`.
 Fehlende Systemwerkzeuge brechen die Freigabe ab. Nur für ausdrücklich nicht
@@ -189,7 +205,7 @@ in das System. Die echten User-systemd- und UFW-Lebenszyklen sind mit
 `isolation-machine` gekennzeichnet und dürfen nur in einem wegwerfbaren
 Maschinen-Testbed ausgeführt werden:
 
-    autopkgtest ../magnolie-organizer_2.0.2.dsc -- qemu TESTABBILD
+    autopkgtest ../magnolie-organizer_2.0.3.dsc -- qemu TESTABBILD
 
 Für den Umstieg von Lotus Organizer gibt es zusätzlich Belastungstests
 mit je 30.000 Terminen, Adressen, Aufgaben, Jahrestagen und Notizen:
@@ -236,12 +252,11 @@ OpenHolidays-Antworten dürfen einzeln 1 MiB und je Abruf insgesamt 8 MiB
 umfassen. Die Leser prüfen reguläre Dateien ohne symbolische Verweise und
 brechen auch bei HTTP-Antworten ohne verlässliche Längenangabe begrenzt ab.
 
-Einzeitige wöchentliche, monatliche bis zum 28. und jährliche
-ICS-Wiederholungen außer dem 29. Februar werden bei minutengenauen Zeiten und
-ausdrücklichem Terminende verlustfrei übernommen. Regeln
-mit `EXDATE`, `RDATE`, `RECURRENCE-ID`, mehreren RRULEs, mehrtägigen
-Wiederholungen, einer abweichenden Zeitzone oder nicht abbildbaren
-RRULE-Teilen werden nicht angenähert:
+Native tägliche, wöchentliche, monatliche und jährliche ICS-Wiederholungen
+werden einschließlich Monatsende, Schaltjahr, inklusivem Serienende und der
+exakten Dauer mehrtägiger Wiederholungen verlustfrei übernommen. Regeln mit
+`EXDATE`, `RDATE`, `RECURRENCE-ID`, mehreren RRULEs, einer abweichenden
+Zeitzone oder nicht abbildbaren RRULE-Teilen werden nicht angenähert:
 Ihre Komponenten erscheinen als einzelne Termine, und der Import meldet diese
 Produktgrenze ausdrücklich. Abgetrennte Instanzen erhalten dabei eine stabile
 eigene Kennung, damit sie nicht als vermeintliches Duplikat verschwinden.

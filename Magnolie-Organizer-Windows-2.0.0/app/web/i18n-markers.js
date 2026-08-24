@@ -26,3 +26,6 @@ gettext("Contact synchronization was blocked because the bound snapshot is empty
 gettext("Contact deletion proposals were blocked by the safety limit.");
 gettext("Contact synchronization preview: %(new)s new, %(changed)s changed, %(duplicates)s possible duplicates, %(deletions)s deletion proposals.");
 gettext("Deletion proposals can remove only individually confirmed, bound contacts. Enable deletion proposals for this branch?");
+gettext("Health records stay in your encrypted organizer data. The section documents measurements and schedules but does not provide medical advice.");
+gettext("For this purpose, appointments, tasks, anniversaries and the names of responsible people are kept unencrypted in a separate file readable only by you. Contacts and notes are never written to it.");
+gettext("Missed reminders are shown after the next startup. If the computer was off or the application was closed, the organizer reports a missed appointment shortly after login and provides a button to open it. All-day appointments are treated as starting at 8 a.m. A small reminder service starts at login to check appointments in the background and continues running when you close the organizer.");

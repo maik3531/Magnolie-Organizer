@@ -10,6 +10,7 @@ internal sealed class WindowsPaths
         Data = Path.Combine(Root, "daten.json");
         Settings = Path.Combine(Root, "fenster.json");
         TraySettings = Path.Combine(Root, "tray.json");
+        RegionalSettings = Path.Combine(Root, "locale.json");
         ReminderState = Path.Combine(Root, "erinnerungen.json");
         ReminderData = Path.Combine(Root, "erinnerungsdaten.json");
         Baum = Path.Combine(Root, "baum.json");
@@ -43,6 +44,7 @@ internal sealed class WindowsPaths
     internal string Data { get; }
     internal string Settings { get; }
     internal string TraySettings { get; }
+    internal string RegionalSettings { get; }
     internal string ReminderState { get; }
     internal string ReminderData { get; }
     internal string Baum { get; }

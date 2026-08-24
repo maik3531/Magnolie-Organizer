@@ -33,12 +33,6 @@ try {
   const installed = path.join(temporary, "usr", "share", "magnolie-handbuch", "web", "inhalt.js");
   assert.ok(fs.existsSync(installed), "built package does not contain web/inhalt.js");
   assert.strictEqual(digest(installed), digest(source), "built package contains stale handbook content");
-  const platformSource = path.join(root, "web", "platform.js");
-  const platformInstalled = path.join(temporary, "usr", "share", "magnolie-handbuch", "web",
-    "platform.js");
-  assert.ok(fs.existsSync(platformInstalled), "built package does not contain web/platform.js");
-  assert.strictEqual(digest(platformInstalled), digest(platformSource),
-    "built package contains stale platform adapter");
   for (const relative of ["stil.css", "01.jpg", "02.jpg", "03.jpg",
     "02-woche.png", "03-aufgaben.png", "06-jahrestage.png", "10-pin-abfrage.png",
     "11-stand.png", "14-karteikarte.png", "15-rechtsklick-anrufen.png",
@@ -57,7 +51,12 @@ try {
   }
   const sourcePages = pages(source);
   const installedPages = pages(installed);
-  assert.strictEqual(sourcePages.count, 118, "source package does not contain exactly 118 pages");
+  assert.strictEqual(sourcePages.count, 154, "source package does not contain exactly 154 pages");
+  for (const id of ["command-line-and-man-page", "reminder-command-modes",
+    "linux-diagnostic-reminder-logs", "windows-diagnostic-logs",
+    "supported-environment-variables", "glossary-a-m", "glossary-n-z"]) {
+    assert.ok(sourcePages.slugs.includes(id), `source package is missing required page: ${id}`);
+  }
   assert.deepStrictEqual(installedPages, sourcePages, "built package slug list differs from source");
 
   const languages = fs.readFileSync(path.join(root, "po", "LINGUAS"), "utf8").trim().split(/\s+/);

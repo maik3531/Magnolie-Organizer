@@ -10,7 +10,7 @@ const fail = message => { throw new Error(`Release-Audit: ${message}`); };
 const handbook = [process.env.MAGNOLIE_HANDBUCH_WEB,
   path.resolve(root, "..", "magnolie-handbuch-stamm", "web"),
   path.join(root, "shared", "magnolie-handbuch-stamm", "web")]
-  .filter(Boolean).find((candidate) => fs.existsSync(path.join(candidate, "platform.js")) &&
+  .filter(Boolean).find((candidate) => fs.existsSync(path.join(candidate, "inhalt.js")) &&
     fs.existsSync(path.join(candidate, "i18n", "de.js")));
 if (!handbook) fail("Gemeinsame Handbuchquelle fehlt");
 function checkPowerShell(file) {
@@ -216,7 +216,7 @@ for (const token of ["translate(local-name(), 'SIGNATURE', 'signature')='signatu
 if (updater.includes(".SignerCertificate.Subject.Contains(")) fail("Manifesthelfer akzeptiert Herausgeber-Teiltreffer");
 const port = read("build/PortHandbook.js");
 for (const token of ["process.argv[3]", "process.argv[4]", "installerName",
-  "JSON.stringify({ version })", "platform.js", "sourceWeb === output"]) {
+  "JSON.stringify({ version })", "inhalt.js", "sourceWeb === output"]) {
   if (!port.includes(token)) fail(`Handbuch-Metadaten-Invariante fehlt: ${token}`);
 }
 const canonicalInstaller = `Magnolie-Organizer-Windows-${version}-Setup-x64.exe`;
@@ -226,9 +226,9 @@ for (const installerName of [canonicalInstaller]) {
   const handbookTemp = path.join(handbookTempRoot, "handbuch");
   const portResult = spawnSync(process.execPath, [portScript, handbook, version, installerName, handbookTemp], { encoding: "utf8" });
   if (portResult.status !== 0) fail(`Handbuch-Port mit erlaubtem Installernamen fehlgeschlagen: ${portResult.stderr || portResult.stdout}`);
-  const portedPlatform = fs.readFileSync(path.join(handbookTemp, "platform.js"), "utf8");
+  const portedContent = fs.readFileSync(path.join(handbookTemp, "inhalt.js"), "utf8");
   if (JSON.parse(fs.readFileSync(path.join(handbookTemp, "version.json"), "utf8")).version !== version ||
-      !portedPlatform.includes(installerName)) fail(`Handbuch-Port bewahrte Installernamen nicht exakt: ${installerName}`);
+      !portedContent.includes(installerName)) fail(`Handbuch-Port bewahrte Installernamen nicht exakt: ${installerName}`);
   fs.rmSync(handbookTempRoot, { recursive: true, force: true });
 }
 for (const installerName of [

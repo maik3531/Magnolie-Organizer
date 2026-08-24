@@ -1,8 +1,8 @@
 {
   "schema": "magnolie-linux-parity-v1",
   "sources": {
-    "web/anwendung.js": "c0305507c81bd2109cfe67eb3f25237ad1300f676aca3dddd24e29aa89cfaea6",
-    "bin/magnolie-organizer": "1e27c67ec21d256de8b61d2a198e7b0762f0e360b5303add590d226865e695da"
+    "web/anwendung.js": "938dc4f86259132f18f903dd5e75b6bc9243bb05f4855c3d6549adadeb3310a4",
+    "bin/magnolie-organizer": "1d72c30a5cbba527976bab403baf57ba98c23492dff11023c064a265c93f8e5c"
   },
   "commands": [
     "ablage_holen",
@@ -73,6 +73,7 @@
     "planer_ods",
     "protokoll_zeigen",
     "rechtschreibung",
+    "regional_einstellungen",
     "sicherung",
     "sicherung_waehlen",
     "sicherung_wiederherstellen",
@@ -137,6 +138,7 @@
     "personalSync",
     "personalSyncFehler",
     "protokollStand",
+    "regionalErgebnis",
     "sicherungAusgewaehlt",
     "sicherungFertig",
     "sicherungWiederhergestellt",
@@ -334,5 +336,5 @@
       ]
     ]
   ],
-  "contractSha256": "e091aaee17e69478343f9e3a40c917f0805ba3051dd45c229ddd194dd8c41bac"
+  "contractSha256": "1c4163093f6dd152a326235e2e1670d68618006c5069111d28fda51ce972b3f0"
 }

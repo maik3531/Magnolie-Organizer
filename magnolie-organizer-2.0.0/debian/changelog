@@ -1,3 +1,13 @@
+magnolie-organizer (2.0.3) unstable; urgency=medium
+
+  * Verhindert Audio-Serverwechsel durch ausschließlich optionale Desktop- und
+    Audiointegrationen und fällt zwischen PulseAudio, PipeWire und ALSA zurück.
+  * Umgeht WebKitGTK-Abstürze und leere AppImage-Fenster auf betroffenen
+    Mesa-/Wayland-Systemen mit einem frühen, überschreibbaren Grafikfallback.
+  * Ergänzt ein sandboxiertes Flatpak auf Basis der GNOME-49-Laufzeit.
+
+ -- Maik Walter <maik3531@gmail.com>  Mon, 24 Aug 2026 12:00:00 +0200
+
 magnolie-organizer (2.0.2) unstable; urgency=medium
 
   * Beschleunigt den Start durch das Laden nur eines aktiven Sprachkatalogs.

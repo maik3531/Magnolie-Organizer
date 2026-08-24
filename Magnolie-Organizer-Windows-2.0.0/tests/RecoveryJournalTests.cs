@@ -28,6 +28,8 @@ internal static class RecoveryJournalTests
             TestAssert.That(duplicate.Id == first.Id && journal.List().Count == 1, "15-Minuten-Deduplizierung greift nicht.");
 
             File.AppendAllText(Path.Combine(first.Directory, "payload.magnolie"), "x");
+            TestAssert.That(journal.List().Single(item => item.Id == first.Id).Integrity == "damaged",
+                "Ein beschädigter Snapshot wird in der Liste fälschlich als intakt gemeldet.");
             try { journal.Verify(first.Id); throw new InvalidOperationException("Manipulierter Payload wurde angenommen."); }
             catch (InvalidDataException) { }
             var replacement = journal.Create(data, SnapshotReason.Periodic, "2.0.2");

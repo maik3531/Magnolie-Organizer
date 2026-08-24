@@ -91,11 +91,11 @@ internal sealed class ReminderScheduler : IDisposable
                 "id", "uid", "titel", "faellig", "startZeit", "faelligZeit", "erledigt", "erinnern",
                 "individuelleErinnerungTage"),
             ["jahrestage"] = SelectArray(root, "jahrestage", item => confidential || !True(item, "vertraulich"),
-                "id", "uid", "name", "datum"),
+                "id", "uid", "name", "datum", "typ"),
             ["einstellungen"] = new JsonObject
             {
                 ["erinnerung"] = SelectFields(Child(settings, "erinnerung"),
-                    "vorlauf", "verpasste", "aufgaben", "art", "stil", "jahrestage")
+                    "an", "vorlauf", "verpasste", "aufgaben", "art", "stil", "jahrestage")
             }
         };
         return JsonSerializer.Serialize(selected);

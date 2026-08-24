@@ -90,6 +90,16 @@ function knopfMit(text, wurzel) {
   assert.deepStrictEqual({ nan: NaN, negativNull: -0 },
     { nan: NaN, negativNull: -0 },
   "Realm-Umtopfen verändert NaN oder -0");
+  const terminReihenfolge = [
+    { id: "spaet", zeit: "18:00", titel: "Spaet" },
+    { id: "ganz", zeit: "", titel: "Ganztags" },
+    { id: "frueh", zeit: "08:00", titel: "Frueh" }
+  ].sort(T.sortiereTermineNachZeit).map((termin) => termin.id);
+  assert.deepStrictEqual(terminReihenfolge, ["ganz", "frueh", "spaet"],
+    "Ganztagstermine stehen nicht vor Terminen mit Uhrzeit");
+  assert.match(js,
+    /kasten\.title = DATEN\.einstellungen\.kalender\.klickLegtAn[\s\S]*?Create a new appointment immediately/,
+    "Wochenkästen erklären den voreingestellten Klick nicht wahrheitsgemäß");
   const gsmErlaubt = "äöüÄÖÜéàèùìòÇØøÅåÆæÑñ¿¡£¥€^{}\\[~]|";
   assert.strictEqual(T.smsTextAnpassen(gsmErlaubt).text, gsmErlaubt,
     "zulässige GSM-Zeichen werden verändert");
@@ -519,6 +529,16 @@ function knopfMit(text, wurzel) {
   assert.ok(guardSpeichern && gT.daten().kontakte.some(
     (kontakt) => kontakt.nachname === "Unload"),
   "natives Speichern übernimmt den Kontakt nicht vollständig");
+  const abbruecheVorSpeicherfehler = guardNachrichten.filter(
+    (nachricht) => nachricht.cmd === "beenden_abgebrochen").length;
+  gw.App.gespeichert({ id: guardSpeichern.id, ok: false });
+  await tick();
+  assert.strictEqual(guardNachrichten.filter(
+    (nachricht) => nachricht.cmd === "beenden_abgebrochen").length,
+  abbruecheVorSpeicherfehler + 1,
+  "Speicherfehler setzt den nativen Schließzustand nicht zurück");
+  gw.App.vorBeenden();
+  await tick();
   let bestaetigteGuardSpeicher = 0;
   while (!guardNachrichten.some((nachricht) => nachricht.cmd === "beenden_bereit")) {
     const saves = guardNachrichten.filter((nachricht) => nachricht.cmd === "speichern");
@@ -576,6 +596,15 @@ function knopfMit(text, wurzel) {
     briefLayout: "compact", wetter: "detailed", wetterOhneOrt: true,
     tray: "centered"
   }, "Schema 6 migriert kontrollierte Altwerte nicht vollständig");
+  const begrenzterPapierkorb = T.normalisiere({ papierkorb: Array.from(
+    { length: 3002 }, (_, i) => ({ id: "korb-" + i, art: "termin", name: "Korb " + i,
+      geloescht: i + 1, eintrag: { id: "termin-" + i, datum: "2026-08-04", titel: "Termin " + i } })) });
+  assert.strictEqual(begrenzterPapierkorb.papierkorb.length, 3000,
+    "eingelesener Papierkorb überschreitet die feste Obergrenze");
+  assert.deepStrictEqual(begrenzterPapierkorb.papierkorb.map((x) => x.id).slice(0, 2),
+    ["korb-2", "korb-3"], "Papierkorbbegrenzung verwirft nicht die ältesten Einträge");
+  assert.ok(js.includes("edsZeigerBereinigt || papierkorbBereinigt"),
+    "beim Start entfernte Papierkorbeinträge werden nicht dauerhaft gespeichert");
   const geburtstagsMigration = T.normalisiere({ kontakte: [{ id: "kontakt-mit-jt",
     vorname: "Erika", nachname: "Beispiel", geburtstag: "1980-04-05" }],
     jahrestage: [{ kontaktId: "kontakt-mit-jt", name: "Erika Beispiel",
@@ -640,6 +669,12 @@ function knopfMit(text, wurzel) {
     gesundheitNormalisiert.einstellungen.kalender.gesundheitAn
   ], [1, 72.5, 105, [1], true],
   "Gesundheitsdaten werden nicht begrenzt und rückwärtskompatibel normalisiert");
+  const gesundheitOhneAnsicht = T.normalisiere({ einstellungen: { kalender: {
+    gesundheitBereiche: { vital: false, medikamente: false, blutzucker: false, verlauf: false }
+  } } });
+  assert.deepStrictEqual(gesundheitOhneAnsicht.einstellungen.kalender.gesundheitBereiche,
+    { vital: true, medikamente: false, blutzucker: false, verlauf: false },
+  "importierte Einstellungen ohne Gesundheitsansicht erhalten keinen sicheren Rückfall");
   assert.strictEqual(T.kanonischerText(" Straße  ÄÖÜ "), "strasse aou",
     "fachliche Textschlüssel hängen weiterhin von Sprache oder Akzenten ab");
 
@@ -1182,6 +1217,19 @@ function knopfMit(text, wurzel) {
     monatsModellOhneMarken.wochen.every((woche) => woche.tage.every((tag) =>
       !tag.zyklus.length && !tag.eintraege.some((eintrag) => eintrag.art === "muell"))),
   "Monatsvorschau oder Monats-ODS besitzt nicht sechs Kalenderwochen");
+  odsT.daten().einstellungen.kalender.vergangeneTermine = true;
+  odsT.daten().einstellungen.kalender.vergangeneJahrestage = true;
+  odsT.daten().termine.push({ id: "planner-historical-appointment", datum: "2020-01-08",
+    endDatum: "", zeit: "", endZeit: "", titel: "Historical appointment" });
+  odsT.daten().jahrestage.push({ id: "planner-historical-anniversary", datum: "2010-01-09",
+    name: "Historical anniversary", typ: "" });
+  odsT.planeSpeichern();
+  const historischerMonat = odsT.planerMonatsModell(2020, 0);
+  assert.ok(historischerMonat.wochen.some((woche) => woche.tage.some((tag) =>
+    tag.eintraege.some((eintrag) => eintrag.text.includes("Historical appointment")))) &&
+    historischerMonat.wochen.some((woche) => woche.tage.some((tag) =>
+      tag.eintraege.some((eintrag) => eintrag.text.includes("Historical anniversary")))),
+  "ausdrücklich gewählte historische Termine oder Jahrestage fehlen im Planerdruck");
   odsDom.window.close();
   enButton("Edit").click();
   const enKontaktForm = enD.querySelector(".kontakt-formular");
@@ -1208,7 +1256,7 @@ function knopfMit(text, wurzel) {
   enT.oeffneEinstellungen();
   assert.deepStrictEqual(Array.from(enD.querySelectorAll(".einst-reiter-knopf"),
     (button) => button.textContent),
-  ["General", "Import", "Export", "Synchronization", "Country & holidays",
+  ["General", "Import", "Export", "Synchronization", "Language & region", "Country & holidays",
     "Typography", "Notifications", "Contacts", "Security", "Calendar",
     "Magnolia tree", "About"], "englische Einstellungsreiter fehlen");
   const enAllgemein = enD.querySelector("#einstellungen-inhalt");
@@ -1228,12 +1276,27 @@ function knopfMit(text, wurzel) {
   assert.deepStrictEqual(Array.from(enD.querySelector("#allgemein-tray-oeffnen").options,
     (option) => option.value), ["previous", "centered", "maximized"],
   "interne Tray-Fensterwerte wurden übersetzt");
+  enButton("Language & region", enD.querySelector(".einst-reiter")).click();
+  const enRegional = enD.querySelector("#einstellungen-inhalt");
+  assert.ok(enRegional.querySelector("#regional-sprache") &&
+    enRegional.querySelector("#regional-formatgebiet") &&
+    enRegional.querySelector("#regional-stunden") &&
+    enRegional.querySelector("#regional-wochenanfang") &&
+    enRegional.querySelector("#regional-wochenregel") &&
+    enRegional.querySelector("#regional-temperatur") &&
+    enRegional.querySelector("#regional-zeitzone") &&
+    enRegional.querySelector("#regional-speichern").disabled,
+  "regionale Einstellungen sind nicht vollständig oder im Browser beschreibbar");
   enButton("Security", enD.querySelector(".einst-reiter")).click();
   const enSicherungsbereiche = enD.querySelector("#einstellungen-inhalt");
   assert.ok(enSicherungsbereiche.textContent.includes("Backup folder") &&
     enSicherungsbereiche.textContent.includes("Recovery snapshots") &&
     enButton("Restore backup …", enSicherungsbereiche),
   "Sicherungen sind nicht als eigene Bereiche unter Sicherheit eingeordnet");
+  enDom.window.App.journalStand({ ok: true, status: "scheduled", interval: "weekly",
+    last: "2026-08-23T04:00:00Z", next: "2026-08-30T04:00:00Z", snapshots: [] });
+  assert.ok(!enD.querySelector("#einstellungen-inhalt .einst-warnung"),
+    "planmäßiger Journalstatus wird als Warnung dargestellt");
   enDom.window.App.sicherungAusgewaehlt({ ok: true,
     pfad: "/tmp/Meine Sicherung.json", verschluesselt: true });
   assert.strictEqual(enD.querySelector("#sicherung-titel").textContent,
@@ -1503,7 +1566,7 @@ function knopfMit(text, wurzel) {
   "englischer Papierkorb verändert Aufbewahrungswerte");
   assert.ok(enSicherheit.textContent.includes(
     "Allow notifications despite password protection") &&
-    enSicherheit.textContent.includes("Contacts and notes are never written to it"),
+    enSicherheit.textContent.includes("may read the separate reminder data"),
   "englische Freigabeerklärung fehlt");
   const enErinnernMitKennwort = enSD.querySelector("#kennwort-erinnerungen");
   const enVertraulich = enSD.querySelector("#kennwort-vertraulich");
@@ -1930,7 +1993,7 @@ function knopfMit(text, wurzel) {
   const enUeber = enSD.querySelector("#einstellungen-inhalt");
   assert.strictEqual(enUeber.querySelector("h3").textContent,
     "About the Magnolie Organizer", "englische Über-Seite fehlt");
-  assert.ok(enUeber.querySelector(".ueber-fassung").textContent.includes("Version 2.0.2") &&
+  assert.ok(enUeber.querySelector(".ueber-fassung").textContent.includes("Version 2.0.3") &&
     enUeber.textContent.includes("Author") && enUeber.textContent.includes("License") &&
     enUeber.textContent.includes("Updates") &&
     enUeber.textContent.includes("No update check has been performed yet") &&
@@ -1950,12 +2013,12 @@ function knopfMit(text, wurzel) {
     enSyncNachrichten.some((nachricht) => nachricht.cmd === "update_pruefen"),
   "englische Über-Seite verändert Handbuch- oder Update-Befehl");
   const enUpdateUrl = "https://gitlab.com/maik3531/mint-forgs/-/raw/main/" +
-    "Magnolie-Organitzer/magnolie-organizer_2.0.3_all.deb";
-  enSW.App.updateErgebnis({ ok: true, aktuell: false, version: "2.0.3",
+    "Magnolie-Organitzer/magnolie-organizer_2.0.4_all.deb";
+  enSW.App.updateErgebnis({ ok: true, aktuell: false, version: "2.0.4",
     url: enUpdateUrl, sha256: "ab".repeat(32), fehler: "" });
   assert.ok(enSD.querySelector("#update-stand").textContent.includes(
-    "New version 2.0.3 is available") &&
-    enSD.querySelector("#update-herunterladen").textContent.includes("2.0.3") &&
+    "New version 2.0.4 is available") &&
+    enSD.querySelector("#update-herunterladen").textContent.includes("2.0.4") &&
     enSD.querySelector(".update-pruefsumme").textContent.includes("ab".repeat(32)) &&
     enSD.querySelector(".update-pruefsumme").textContent.includes("sha256sum"),
   "englischer neuer Update-Stand fehlt");
@@ -2403,6 +2466,12 @@ function knopfMit(text, wurzel) {
     (vitalDruck.match(/<tbody><tr>/g) || []).length === 2 &&
     (vitalDruck.match(/<tr>/g) || []).length >= 42 && !vitalDruck.includes("Blood glucose"),
   "Vitalwertvorlage wird nicht doppelseitig auf A4 quer aufgebaut");
+  const ausgewaehltesMedikament = Object.assign({ _gesundheitArt: "medikamente" },
+    enST.daten().gesundheit.medikamente[0]);
+  const auswahlDruck = enST.gesundheitDruckSeite(false, [ausgewaehltesMedikament]);
+  assert.ok(auswahlDruck.includes("Testmedikament") && auswahlDruck.includes("Medication plan") &&
+    !auswahlDruck.includes("Vital signs") && !auswahlDruck.includes("Blood glucose table"),
+  "die allgemeine Gesundheitsdruckauswahl ignoriert den gewählten Datensatztyp");
   const zuckerDruck = enST.gesundheitDruckSeite({ leer: true, vital: false,
     blutzucker: true, schema: true, medikamente: false, verlauf: "none" });
   assert.ok(zuckerDruck.indexOf("<table") < zuckerDruck.indexOf("Insulin scheme") &&
@@ -2426,6 +2495,10 @@ function knopfMit(text, wurzel) {
     verlaufOds.tabellen[0].diagramme.find((diagramm) => diagramm.titel === "Blood glucose")
       .serien.some((serie) => serie.punkte.some((punkt) => Math.abs(punkt[1] - 6.4) < 0.01)),
   "ODS für die sechs Verläufe übernimmt nicht alle Messwertarten als Diagrammraster");
+  assert.ok(Math.abs(enST.gesundheitBlutzuckerMmol(
+    { wert: 180.182, einheit: "mg/dL" }) - 10) < 0.001 &&
+    enST.gesundheitBlutzuckerMmol({ wert: 5.5, einheit: "mmol/L" }) === 5.5,
+  "gemischte Blutzuckereinheiten werden für Verlaufsdiagramme nicht vereinheitlicht");
   const einzelVerlaufOds = enST.gesundheitOdsNutzlast({ leer: false, vital: false,
     blutzucker: false, medikamente: false, verlauf: "single", verlaufWert: "blood-pressure" },
   enST.gesundheitDruckEintraege({ leer: false, vital: false, blutzucker: false,
@@ -2537,8 +2610,17 @@ function knopfMit(text, wurzel) {
     enD.querySelector(".druck-vorschau").textContent.includes("Death anniversary"),
   "Jahrestagsdaten fehlen im englischen Druck");
   enD.querySelector("#druck-schleier").remove();
+  const enPlanerJahr = enT.zustand().planer.jahr + 1;
+  enT.zustand().planer.jahr = enPlanerJahr;
+  enT.daten().einstellungen.kalender.vergangeneTermine = true;
+  enT.daten().termine.push(
+    { id: "planner-multi-day", datum: enPlanerJahr + "-02-10",
+      endDatum: enPlanerJahr + "-02-12", zeit: "", endZeit: "", titel: "Multi-day" },
+    { id: "planner-recurring", datum: (enPlanerJahr - 2) + "-01-01", endDatum: "",
+      zeit: "", endZeit: "", titel: "Recurring", wiederholung: { art: "custom",
+        daten: [enPlanerJahr + "-06-15"] } });
+  enT.planeSpeichern();
   enT.wechsel("planer");
-  const enPlanerJahr = enT.zustand().planer.jahr;
   assert.strictEqual(enD.querySelector("#kopf-links h2").textContent,
     "Year planner " + enPlanerJahr, "englische Planerüberschrift fehlt");
   assert.strictEqual(enD.querySelector("#kopf-links .kopf-neben").textContent,
@@ -2558,6 +2640,11 @@ function knopfMit(text, wurzel) {
   assert.strictEqual(enJahrPfeile[1].title, "Next year");
   assert.strictEqual(enD.querySelector("#ecke-links").title, "Previous year");
   assert.strictEqual(enD.querySelector("#ecke-rechts").title, "Next year");
+  for (const iso of [enPlanerJahr + "-02-10", enPlanerJahr + "-02-11",
+    enPlanerJahr + "-02-12", enPlanerJahr + "-06-15"]) {
+    assert.ok(enD.querySelector('[data-fokus="planer-tag:' + iso + '"]').classList.contains("hat"),
+      "Jahresplaner markiert Mehrtagstermin oder Serienvorkommen nicht: " + iso);
+  }
   enButton("Choose year…").click();
   assert.strictEqual(enD.querySelector("#eingabe-titel").textContent,
     "Open year in planner", "englischer Jahresdialog fehlt");
@@ -4079,9 +4166,9 @@ function knopfMit(text, wurzel) {
   assert.ok(!$("#einstellungen-schleier").classList.contains("verborgen"),
     "Einstellungen öffnen nicht");
   const reiterKnoepfe = $$(".einst-reiter-knopf");
-  assert.strictEqual(reiterKnoepfe.length, 12, "zwölf Reiter erwartet");
+  assert.strictEqual(reiterKnoepfe.length, 13, "dreizehn Reiter erwartet");
   assert.deepStrictEqual(reiterKnoepfe.map((b) => b.textContent),
-    ["Allgemein", "Übernehmen", "Weitergeben", "Synchronisation", "Land & Feiertage",
+    ["Allgemein", "Übernehmen", "Weitergeben", "Synchronisation", "Sprache & Region", "Land & Feiertage",
       "Schrift", "Benachrichtigung", "Adressen", "Sicherheit", "Kalender",
       "Magnolienbaum", "Über"],
     "Reiterbeschriftungen");
@@ -4326,6 +4413,22 @@ function knopfMit(text, wurzel) {
   assert.ok($("#ort-stand").textContent.includes("1 Feiertag") &&
     $("#ort-stand").textContent.includes("1 Ferienabschnitt"),
     "Standanzeige nach Abruf: " + $("#ort-stand").textContent);
+  w.App.feiertageErgebnis({ jahre: [2027], feiertage: [
+    { von: "2027-01-01", bis: "2027-01-01", name: "Neujahr", art: "feiertag" }
+  ] });
+  assert.strictEqual(T.daten().feiertage.length, 3,
+    "ein Abruf darf Einträge anderer Jahre nicht entfernen");
+  assert.deepStrictEqual(T.daten().einstellungen.ort.jahre, [2026, 2027],
+    "die Standanzeige muss erhaltene und neu abgerufene Jahre nennen");
+  w.App.feiertageErgebnis({ jahre: [2027], feiertage: [
+    { von: "2027-01-02", bis: "2027-01-02", name: "Ersatztag", art: "feiertag" }
+  ] });
+  assert.ok(T.daten().feiertage.some((f) => f.name === "Ersatztag") &&
+    !T.daten().feiertage.some((f) => f.name === "Neujahr") &&
+    T.daten().feiertage.some((f) => f.name === "Prüftag"),
+    "ein Neuabruf muss nur das angefragte Jahr ersetzen");
+  T.daten().feiertage = T.daten().feiertage.filter((f) => f.von.startsWith("2026-"));
+  T.daten().einstellungen.ort.jahre = [2026];
   const syncFerien = { id: "sync-ferien-sn", uid: "ferien-sn-2026",
     datum: "2026-07-20", endDatum: "2026-07-26", zeit: "", endZeit: "",
     titel: "Sommerferien Sachsen 2026", sync: true };
@@ -5918,7 +6021,7 @@ function knopfMit(text, wurzel) {
   assert.ok(ueberText.includes("Version 3"), "die Lizenzfassung fehlt");
   assert.ok($(".ueber-fassung").textContent.includes("Fassung"),
     "die Programmfassung fehlt");
-  assert.ok($(".ueber-fassung").textContent.includes("2.0.2"),
+  assert.ok($(".ueber-fassung").textContent.includes("2.0.3"),
     "die neue Programmfassung fehlt");
   assert.ok($(".ueber-blume"), "die Magnolienblüte fehlt");
   const beschreibung = $(".ueber-beschreibung");
@@ -5938,18 +6041,18 @@ function knopfMit(text, wurzel) {
     "neben der gemeinsamen Aktualisierungsprüfung ist ein zweiter Prüfknopf sichtbar");
   assert.ok($("#handbuch-stand").textContent.includes("nicht installiert"),
     "der Handbuchstatus nennt die fehlende Installation nicht");
-  assert.ok(!T.istNeuereFassung("2.0.1") && !T.istNeuereFassung("2.0.2") &&
-    T.istNeuereFassung("2.0.3"),
+  assert.ok(!T.istNeuereFassung("2.0.1") && !T.istNeuereFassung("2.0.3") &&
+    T.istNeuereFassung("2.0.4"),
     "Fassungsvergleich der Oberfläche stimmt nicht");
   assert.ok(T.vergleicheText("Termin 2", "Termin 10") < 0,
     "der regionale Collator sortiert Zahlen weiterhin rein lexikografisch");
-  w.App.updateErgebnis({ ok: true, aktuell: false, version: "2.0.3",
+  w.App.updateErgebnis({ ok: true, aktuell: false, version: "2.0.4",
     url: "https://gitlab.com/maik3531/mint-forgs/-/raw/main/" +
-      "Magnolie-Organitzer/magnolie-organizer_2.0.3_all.deb" });
-  assert.ok($("#update-stand").textContent.includes("2.0.3"),
+      "Magnolie-Organitzer/magnolie-organizer_2.0.4_all.deb" });
+  assert.ok($("#update-stand").textContent.includes("2.0.4"),
     "gefundene Fassung erscheint nicht unter Über");
   assert.ok($("#update-herunterladen"), "Downloadknopf für neue Fassung fehlt");
-  assert.strictEqual(T.daten().einstellungen.update.letzteVersion, "2.0.3",
+  assert.strictEqual(T.daten().einstellungen.update.letzteVersion, "2.0.4",
     "Prüfstand wird nicht gespeichert");
   $("#update-automatisch").checked = false;
   $("#update-automatisch").dispatchEvent(new w.Event("change", { bubbles: true }));
@@ -6857,7 +6960,7 @@ function knopfMit(text, wurzel) {
     "ohne Handbuch darf der Hinweis nicht als gezeigt gespeichert werden");
   const handbuchUrl = "https://gitlab.com/maik3531/mint-forgs/-/raw/main/" +
     "Magnolie-Organitzer/magnolie-handbuch_1.9.8_all.deb";
-  hw.App.updateErgebnis({ ok: true, aktuell: true, version: "2.0.2", url: "",
+  hw.App.updateErgebnis({ ok: true, aktuell: true, version: "2.0.3", url: "",
     sha256: "ab".repeat(32), handbuch: { version: "1.9.8", url: handbuchUrl,
       sha256: "cd".repeat(32) }, fehler: "" });
   assert.ok(!hd.querySelector("#dialog-schleier").classList.contains("verborgen") &&
@@ -7608,7 +7711,8 @@ function knopfMit(text, wurzel) {
     notizbuchId: "book-1", symbol: "notiz", angelegt: 1, personalGeaendert: 2,
     anhaenge: [], baumQuelle: "zweig" }];
   daten.aufgaben = [{ id: "task-own", titel: "Own", notiz: "", faellig: "", prio: 2,
-    erledigt: false, erinnern: true, vorlaufTage: 3, erinnerungsMinute: 777, angelegt: 21,
+    erledigt: false, erinnern: true, vorlaufTage: 0, individuelleErinnerungTage: 3,
+    erinnerungsMinute: 777, angelegt: 21,
     personalGeaendert: 22, personen: ["p"], kontaktId: "k", vonTermin: "cal", herkunft: "",
     vonZweig: "", fremdId: "", delegiertAn: "" }, { id: "task-foreign", titel: "Foreign",
     herkunft: "zweig", vonZweig: "", fremdId: "", delegiertAn: "" }];
@@ -7647,6 +7751,8 @@ function knopfMit(text, wurzel) {
   assert.ok(projection.some((x) => x.id === "own") && projection.some((x) => x.id === "task-own") &&
     !projection.some((x) => x.id === "foreign" || x.id === "task-foreign"),
   "Personal-Sync-Projektion trennt fremde Baumdaten nicht fail-closed");
+  assert.strictEqual(projection.find((x) => x.id === "task-own").value.lead_days, 3,
+    "Personal Sync verwirft den im Aufgabenblatt gewählten Erinnerungsvorlauf");
   const begrenztePakete = personalT.personalSyncPakete([projection.find((x) => x.id === "own"),
     { ...projection.find((x) => x.id === "own"), id: "é".repeat(81) }],
     "11111111-1111-4111-8111-111111111111", false);
@@ -7657,7 +7763,8 @@ function knopfMit(text, wurzel) {
   assert.strictEqual(roundtrip.notizen[0].angelegt, 11);
   assert.strictEqual(roundtrip.notizen[0].symbol, "idee");
   assert.strictEqual(roundtrip.notizen[0].personalGeaendert, daten.notizen[0].personalGeaendert);
-  assert.strictEqual(roundtrip.aufgaben[0].vorlaufTage, 3);
+  assert.strictEqual(roundtrip.aufgaben[0].vorlaufTage, 0);
+  assert.strictEqual(roundtrip.aufgaben[0].individuelleErinnerungTage, 3);
   assert.strictEqual(roundtrip.aufgaben[0].erinnerungsMinute, 777);
   assert.deepStrictEqual(roundtrip.aufgaben[0].personen, ["p"]);
   const ownRecord = projection.find((x) => x.kind === "note" && x.id === "own");
@@ -7740,7 +7847,9 @@ function knopfMit(text, wurzel) {
     gesundheit: { vitalwerte: [{ id: "such-vital", datum: suchJahr + "-01-02",
       zeit: "08:00", puls: 71, temperatur: 36.5, notiz: "Iota lokal",
       seite: 987, interneKennung: "gesund-geheim" }], blutzucker: [],
-      medikamente: [], insulinschema: {} }
+      medikamente: [{ id: "such-medikament", name: "Wochenmittel", seite: 0,
+        wochenplan: [{ tag: 1, morgens: "Nadelkern", mittags: "", abends: "", nachts: "" }] }],
+      insulinschema: {} }
   }, neu: false, regional: { language: "de" } });
   const suchT = suchW.OrganizerTest;
   assert.ok(suchT.daten().termine.some((eintrag) => eintrag.id === "such-termin"),
@@ -7769,6 +7878,11 @@ function knopfMit(text, wurzel) {
   assert.ok(!gesundIndex.text.includes("gesund-geheim") && !gesundIndex.text.includes("987") &&
     !gesundIndex.text.includes("such-vital"),
   "Gesundheit indiziert interne Kennungen oder Seitennummern");
+  suchT.zustand().gesundheit.ansicht = "medikamente";
+  assert.ok(suchT.suchTrefferFuer("gesundheit").some((eintrag) =>
+    eintrag.text.includes("nadelkern")),
+  "abweichende Wochendosen eines Medikaments fehlen im Suchindex");
+  suchT.zustand().gesundheit.ansicht = "vital";
   for (const gebiet of ["de-DE", "en-US", "fr-FR", "ar-EG"]) {
     const sprache = gebiet.slice(0, 2);
     if (sprache === "fr" || sprache === "ar") suchW.eval(

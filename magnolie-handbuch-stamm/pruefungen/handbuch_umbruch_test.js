@@ -169,12 +169,16 @@ async function run() {
   w.requestAnimationFrame = (funktion) => rahmen.push(funktion);
   w.dispatchEvent(new w.Event("resize"));
   assert.strictEqual(rahmen.length, 1, "resize must schedule the paint frame");
+  assert.ok(w.document.querySelector("#buch").classList.contains("groessenwechsel"),
+    "resize must hide the stale pagination");
   rahmen.shift()();
   assert.strictEqual(shown().length, beforeResize,
     "resize must let the scaled book paint before repagination");
   assert.strictEqual(rahmen.length, 1, "repagination must follow in a separate frame");
   rahmen.shift()();
   assert.ok(shown().length > beforeResize, "resize must schedule a fresh measurement");
+  assert.ok(!w.document.querySelector("#buch").classList.contains("groessenwechsel"),
+    "resize must reveal the repaginated handbook");
 
   dom.window.close();
   console.log("HANDBOOK DYNAMIC PAGINATION PASSED");

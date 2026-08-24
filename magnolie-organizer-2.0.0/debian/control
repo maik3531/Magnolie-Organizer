@@ -11,10 +11,11 @@ Package: magnolie-organizer
 Architecture: all
 Depends: ${misc:Depends}, python3, gettext, python3-gi, gir1.2-gtk-3.0, gir1.2-webkit2-4.1 | gir1.2-webkit2-4.0,
  python3-enchant, python3-cryptography, python3-openssl, python3-zeroconf
-Recommends: bluez, gir1.2-ecal-2.0, gir1.2-ebook-1.2, gir1.2-edataserver-1.2,
- hunspell-de-de, hunspell-en-us, gir1.2-notify-0.7, libnotify-bin, libcanberra-gtk3-module,
- gir1.2-ayatanaappindicator3-0.1, gnome-shell-extension-appindicator,
- gir1.2-xapp-1.0, xdg-utils
+Recommends: gir1.2-ecal-2.0, gir1.2-ebook-1.2, gir1.2-edataserver-1.2,
+ hunspell-de-de, hunspell-en-us, gir1.2-notify-0.7, libnotify-bin,
+ gir1.2-ayatanaappindicator3-0.1, xdg-utils
+Suggests: bluez, gnome-shell-extension-appindicator, gir1.2-xapp-1.0,
+ libcanberra-gtk3-module, pulseaudio-utils | pipewire-bin | alsa-utils
 Description: Personal organizer with a classic paper appearance
  Calendar, address book, tasks, notes, anniversaries, and a year planner in
  an interface styled like an open leather ring organizer. Tabs, rings, and

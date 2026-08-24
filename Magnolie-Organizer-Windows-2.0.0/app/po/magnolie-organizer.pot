@@ -6,7 +6,7 @@
 #, fuzzy
 msgid ""
 msgstr ""
-"Project-Id-Version: Magnolie Organizer 2.0.2\n"
+"Project-Id-Version: Magnolie Organizer 2.0.3\n"
 "Report-Msgid-Bugs-To: maik3531@gmail.com\n"
 "POT-Creation-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
@@ -298,6 +298,9 @@ msgstr ""
 msgid "10 minutes before"
 msgstr ""
 
+msgid "12-hour clock"
+msgstr ""
+
 msgid "15 minutes before"
 msgstr ""
 
@@ -314,6 +317,9 @@ msgid "2 hours before"
 msgstr ""
 
 msgid "2 minutes"
+msgstr ""
+
+msgid "24-hour clock"
 msgstr ""
 
 msgid "3 - low"
@@ -440,6 +446,9 @@ msgstr ""
 msgid ""
 "Accessibility: The helper frame shows the current keyboard focus. It is "
 "disabled by default; press Ctrl+Alt+H at any time to switch it on or off."
+msgstr ""
+
+msgid "According to format region"
 msgstr ""
 
 msgid "According to language"
@@ -944,6 +953,9 @@ msgid "Categories:"
 msgstr ""
 
 msgid "Catholic confirmation"
+msgstr ""
+
+msgid "Celsius (°C)"
 msgstr ""
 
 msgid "Centered on the screen"
@@ -1783,6 +1795,9 @@ msgstr ""
 msgid "Extend sharing"
 msgstr ""
 
+msgid "Fahrenheit (°F)"
+msgstr ""
+
 msgid "Failed"
 msgstr ""
 
@@ -1834,6 +1849,9 @@ msgstr ""
 msgid "First date"
 msgstr ""
 
+msgid "First day of the week"
+msgstr ""
+
 msgid "First name"
 msgstr ""
 
@@ -1877,6 +1895,9 @@ msgid "For: %(people)s"
 msgstr ""
 
 msgid "Form"
+msgstr ""
+
+msgid "Format region"
 msgstr ""
 
 msgid "Forward Secrecy"
@@ -2059,6 +2080,9 @@ msgstr ""
 msgid "IE"
 msgstr ""
 
+msgid "ISO week (week 1 contains the first Thursday)"
+msgstr ""
+
 msgid ""
 "If the year is unknown, enter only day and month.\n"
 "No age will then be shown.\n"
@@ -2213,6 +2237,15 @@ msgid "LDIF address book (*.ldif)"
 msgstr ""
 
 msgid "Landline"
+msgstr ""
+
+msgid "Language"
+msgstr ""
+
+msgid "Language & region"
+msgstr ""
+
+msgid "Language and regional display"
 msgstr ""
 
 msgid "Large"
@@ -3479,6 +3512,10 @@ msgstr ""
 msgid "Refresh"
 msgstr ""
 
+msgid ""
+"Regional settings saved. Restart the Organizer to apply them completely."
+msgstr ""
+
 msgid "Reject"
 msgstr ""
 
@@ -3598,6 +3635,11 @@ msgid "Residual waste"
 msgstr ""
 
 msgid "Responsible"
+msgstr ""
+
+msgid ""
+"Restart the Organizer after saving so that language, time zone, and all "
+"native windows use the new choices."
 msgstr ""
 
 msgid "Restore"
@@ -4153,6 +4195,9 @@ msgstr ""
 msgid "System default"
 msgstr ""
 
+msgid "System setting"
+msgstr ""
+
 msgid "System style (desktop notification)"
 msgstr ""
 
@@ -4423,6 +4468,9 @@ msgid ""
 "Space. Ctrl+Alt+H switches the frame on or off at any time."
 msgstr ""
 
+msgid "The holiday service returned too much data."
+msgstr ""
+
 msgid "The holidays were imported."
 msgstr ""
 
@@ -4633,6 +4681,12 @@ msgstr ""
 msgid "The recycle bin was emptied."
 msgstr ""
 
+msgid "The regional settings are invalid."
+msgstr ""
+
+msgid "The regional settings could not be saved."
+msgstr ""
+
 msgid "The required recovery snapshot could not be created."
 msgstr ""
 
@@ -4761,6 +4815,11 @@ msgid "There is nothing to print."
 msgstr ""
 
 msgid ""
+"These choices change how the Organizer displays information. Your entries "
+"are not converted or moved."
+msgstr ""
+
+msgid ""
 "These options require the matching permissions in Magnolie Notes. Call audio "
 "is not sent over the Magnolie data connection."
 msgstr ""
@@ -4886,6 +4945,12 @@ msgstr ""
 msgid "Time"
 msgstr ""
 
+msgid "Time format"
+msgstr ""
+
+msgid "Time zone"
+msgstr ""
+
 msgid "Title"
 msgstr ""
 
@@ -4909,6 +4974,9 @@ msgid "Too many failed attempts – wait %(duration)s."
 msgstr ""
 
 msgid "Too many failed attempts. Wait a moment."
+msgstr ""
+
+msgid "Too many regions were selected."
 msgstr ""
 
 msgid "Tray applet"
@@ -5178,6 +5246,9 @@ msgid ""
 "location from your internet connection's public IP address."
 msgstr ""
 
+msgid "Weather temperature"
+msgstr ""
+
 msgid "Weather was not retrieved because no location is available."
 msgstr ""
 
@@ -5191,6 +5262,9 @@ msgid "Week"
 msgstr ""
 
 msgid "Week %(number)s"
+msgstr ""
+
+msgid "Week numbering"
 msgstr ""
 
 msgid "Week numbers"
@@ -5368,6 +5442,9 @@ msgid "all cantons"
 msgstr ""
 
 msgid "all day"
+msgstr ""
+
+msgid "all except %(regions)s"
 msgstr ""
 
 msgid "all states"

@@ -1939,7 +1939,7 @@ except RuntimeError as f:
 
 print()
 print("— Aktualisierungsprüfung —")
-pruefe(m.PROGRAMM_FASSUNG == "2.0.2", "Programmkern trägt die neue Fassung")
+pruefe(m.PROGRAMM_FASSUNG == "2.0.3", "Programmkern trägt die neue Fassung")
 desktop_pfad = os.path.abspath(os.path.join(os.path.dirname(PFAD), "..",
                                              "io.gitlab.maik3531.MagnolieOrganizer.desktop"))
 with open(desktop_pfad, encoding="utf-8") as datei:
@@ -2011,28 +2011,28 @@ update_oeffentlich = m.base64.b64encode(update_privat.public_key().public_bytes(
     update_serialisierung.Encoding.Raw,
     update_serialisierung.PublicFormat.Raw)).decode("ascii")
 update_summe = "ab" * 32
-update_paket = m.UPDATE_BASIS + "magnolie-organizer_2.0.3_all.deb"
+update_paket = m.UPDATE_BASIS + "magnolie-organizer_2.0.4_all.deb"
 update_signatur = m.base64.b64encode(update_privat.sign(
-    m.update_signatur_nachricht("2.0.3", update_paket, update_summe))).decode("ascii")
-update_xml = ("<?xml version='1.0'?><update><version>2.0.3</version>"
+    m.update_signatur_nachricht("2.0.4", update_paket, update_summe))).decode("ascii")
+update_xml = ("<?xml version='1.0'?><update><version>2.0.4</version>"
                "<deb>" + update_paket + "</deb><sha256>" + update_summe +
                "</sha256><signature>" + update_signatur + "</signature></update>")
 version, paket = m.update_info_lesen(update_xml)
-pruefe(version == "2.0.3" and paket.endswith("_2.0.3_all.deb"),
+pruefe(version == "2.0.4" and paket.endswith("_2.0.4_all.deb"),
        "update.xml liefert Fassung und Paketadresse")
 update_neu = m.update_pruefen(lambda _url: update_xml, update_oeffentlich)
 pruefe(update_neu["ok"] and not update_neu["aktuell"] and
-       update_neu["version"] == "2.0.3" and
+       update_neu["version"] == "2.0.4" and
        update_neu["sha256"] == update_summe and update_neu["url"] == update_paket,
        "eine Debian-Installation erhält das signierte Debian-Paket")
-appimage_paket = m.UPDATE_BASIS + "Magnolie-Organizer-2.0.3-x86_64.AppImage"
+appimage_paket = m.UPDATE_BASIS + "Magnolie-Organizer-2.0.4-x86_64.AppImage"
 appimage_summe = "ef" * 32
-appimage_xml = ("<update><version>2.0.3</version><deb>" + update_paket +
+appimage_xml = ("<update><version>2.0.4</version><deb>" + update_paket +
                  "</deb><sha256>" + update_summe + "</sha256><appimage>"
                  "<architecture>x86_64</architecture><url>" + appimage_paket +
                  "</url><sha256>" + appimage_summe + "</sha256></appimage>")
 appimage_signatur = m.base64.b64encode(update_privat.sign(
-    m.update_signatur_nachricht("2.0.3", update_paket, update_summe,
+    m.update_signatur_nachricht("2.0.4", update_paket, update_summe,
                                appimage_paket, appimage_summe))).decode("ascii")
 appimage_xml += "<signature>" + appimage_signatur + "</signature></update>"
 appimage_umgebung = os.environ.get("APPIMAGE")
@@ -2049,15 +2049,15 @@ pruefe(appimage_update["ok"] and not appimage_update["aktuell"] and
        appimage_update["url"] == appimage_paket and
        appimage_update["sha256"] == appimage_summe and not appimage_fehlt["ok"],
        "eine AppImage-Installation erhält nur das passende geprüfte AppImage")
-aktuell_paket = m.UPDATE_BASIS + "magnolie-organizer_2.0.2_all.deb"
+aktuell_paket = m.UPDATE_BASIS + "magnolie-organizer_2.0.3_all.deb"
 aktuell_signatur = m.base64.b64encode(update_privat.sign(
-    m.update_signatur_nachricht("2.0.2", aktuell_paket, update_summe))).decode("ascii")
-aktuell_xml = ("<update><version>2.0.2</version><deb>" + aktuell_paket +
+    m.update_signatur_nachricht("2.0.3", aktuell_paket, update_summe))).decode("ascii")
+aktuell_xml = ("<update><version>2.0.3</version><deb>" + aktuell_paket +
                "</deb><sha256>" + update_summe + "</sha256><signature>" +
                aktuell_signatur + "</signature></update>")
 update_aktuell = m.update_pruefen(lambda _url: aktuell_xml, update_oeffentlich)
 pruefe(update_aktuell["ok"] and update_aktuell["aktuell"] and
-       update_aktuell["version"] == "2.0.2" and not update_aktuell["url"],
+       update_aktuell["version"] == "2.0.3" and not update_aktuell["url"],
        "dieselbe signierte Fassung gilt als aktuell")
 alt_paket = m.UPDATE_BASIS + "magnolie-organizer_2.0.0_all.deb"
 alt_signatur = m.base64.b64encode(update_privat.sign(
@@ -2072,17 +2072,17 @@ pruefe(update_alt["ok"] and update_alt["aktuell"] and
 handbuch_paket = m.UPDATE_BASIS + "magnolie-handbuch_1.9.8_all.deb"
 handbuch_summe = "cd" * 32
 handbuch_signatur = m.base64.b64encode(update_privat.sign(
-    m.update_signatur_nachricht("2.0.2", aktuell_paket, update_summe,
+    m.update_signatur_nachricht("2.0.3", aktuell_paket, update_summe,
                                manual_version="1.9.8", manual_linux=handbuch_paket,
                                manual_linux_sha=handbuch_summe))).decode("ascii")
-handbuch_xml = ("<update><version>2.0.2</version><deb>" + aktuell_paket +
+handbuch_xml = ("<update><version>2.0.3</version><deb>" + aktuell_paket +
     "</deb><sha256>" + update_summe + "</sha256><manual><version>1.9.8</version>"
     "<linux><deb>" + handbuch_paket + "</deb><sha256>" + handbuch_summe +
     "</sha256></linux></manual><signature>" + handbuch_signatur +
     "</signature></update>")
 handbuch_update = m.update_pruefen(lambda _url: handbuch_xml, update_oeffentlich)
 pruefe(handbuch_update["ok"] and handbuch_update["aktuell"] and
-       handbuch_update["version"] == "2.0.2" and
+       handbuch_update["version"] == "2.0.3" and
        handbuch_update["handbuch"] == {"version": "1.9.8",
        "url": handbuch_paket, "sha256": handbuch_summe, "platform": "linux"},
        "verschachtelte Handbuchdaten verändern die Organizerfelder nicht")
@@ -2091,7 +2091,7 @@ pruefe(bool(handbuch_update.get("handbuch")) and
        "der Handbuchdownload wird an das zuletzt validierte Manifest gebunden")
 falsches_handbuch_paket = m.UPDATE_BASIS + "magnolie-organizer_1.9.8_all.deb"
 falsche_handbuch_signatur = m.base64.b64encode(update_privat.sign(
-    m.update_signatur_nachricht("2.0.2", aktuell_paket, update_summe,
+    m.update_signatur_nachricht("2.0.3", aktuell_paket, update_summe,
                                manual_version="1.9.8",
                                manual_linux=falsches_handbuch_paket,
                                manual_linux_sha=handbuch_summe))).decode("ascii")
@@ -2107,7 +2107,7 @@ for falsches_paket in (handbuch_paket + "?download=1",
                        "https://example.org/magnolie-handbuch_1.9.8_all.deb"):
     pruefe(not m._handbuch_update_url_erlaubt(falsches_paket, "1.9.8"),
            "Handbuchadresse, Dateiname und Version werden strikt gebunden")
-altes_update_xml = ("<update><version>2.0.3</version><deb>" +
+altes_update_xml = ("<update><version>2.0.4</version><deb>" +
                     update_paket + "</deb></update>")
 update_abrufe = []
 update_ohne_schluessel = m.update_pruefen(
@@ -2128,7 +2128,7 @@ pruefe(not update_ohne_signatur["ok"] and "signatur" in
        update_ohne_signatur["fehler"].lower(),
        "ein Manifest ohne Signatur wird mit gültigem Release-Schlüssel abgewiesen")
 update_veraendert = m.update_pruefen(
-    lambda _url: update_xml.replace("2.0.3", "2.0.2"), update_oeffentlich)
+    lambda _url: update_xml.replace("2.0.4", "2.0.3"), update_oeffentlich)
 pruefe(not update_veraendert["ok"] and any(text in
        update_veraendert["fehler"].lower() for text in
        ("invalid signature", "ungültige signatur")),
@@ -3214,8 +3214,16 @@ pruefe([e["titel"] for e in erg["faellig"]] == ["Zahnarzt"],
 
 erg = m.faellige_erinnerungen(daten_wecker, _dt(2026, 7, 25, 12, 0), leer,
                               vorlauf=15, verpasste=False)
-pruefe(not erg["verpasst"] and "t3" in erg["zustand"]["gemeldet"],
+pruefe(not erg["verpasst"] and any(k.startswith("t3@") for k in
+                                   erg["zustand"]["gemeldet"]),
        "ohne Haken wird Verpasstes still abgehakt")
+
+verschoben = {"termine": [{"id": "t1", "datum": "2026-07-25", "zeit": "11:00",
+                            "titel": "Zahnarzt verschoben"}]}
+neu_geplant = m.faellige_erinnerungen(
+    verschoben, _dt(2026, 7, 25, 10, 50), erg["zustand"], vorlauf=15)
+pruefe([e["titel"] for e in neu_geplant["faellig"]] == ["Zahnarzt verschoben"],
+       "ein bereits gemeldeter und danach verschobener Termin wird neu erinnert")
 
 pruefe(m._termin_zeitpunkt({"datum": "2026-07-25", "zeit": ""}) == _dt(2026, 7, 25, 8, 0),
        "ganztägige Termine gelten ab 8 Uhr")
@@ -3265,6 +3273,8 @@ strukturierter_termin = {"termine": [{
          "aktion": "display"},
         {"offsetMinuten": 90, "aktiviert": True, "related": "START",
          "aktion": "email"},
+        {"offsetMinuten": 0, "aktiviert": True, "related": "START",
+         "aktion": "display", "bearbeitbar": False},
     ]}]}
 alarm_zustand = leer
 alarm_faelle = []
@@ -3276,11 +3286,14 @@ for alarm_jetzt in (_dt(2026, 8, 9, 10, 0), _dt(2026, 8, 10, 8, 0),
     alarm_zustand = alarm_ergebnis["zustand"]
 pruefe([len(eintraege) for eintraege in alarm_faelle] == [1, 1, 1, 1],
        "strukturierte Tages-, Stunden-, Minuten- und END-Alarme werden einzeln fällig")
-pruefe(alarm_faelle[0][0]["id"] == "ta@individuell-1",
+pruefe(alarm_faelle[0][0]["id"].endswith(":individuell-1"),
        "äquivalenter strukturierter Tagesalarm verdoppelt die Legacy-Meldung nicht")
 pruefe(all("alarm-START-180" not in str(eintraege) and
            "alarm-START-90" not in str(eintraege) for eintraege in alarm_faelle),
        "deaktivierte und nicht anzeigende strukturierte Alarme bleiben still")
+pruefe((0, "START") not in m._strukturierte_alarme(
+    strukturierter_termin["termine"][0]),
+    "nicht bearbeitbare importierte Alarme lösen keine Ersatzmeldung aus")
 pruefe(m.naechster_weckzeitpunkt(
     strukturierter_termin, _dt(2026, 8, 10, 7, 0), vorlauf=15) ==
     _dt(2026, 8, 10, 8, 0),
@@ -3353,6 +3366,25 @@ pruefe(m.ton_abspielen([["gibtsnichtxyz"]], lambda a: gerufene.append(a)) == "",
        "fehlendes Tonwerkzeug wird übersprungen")
 pruefe(m.ton_abspielen([["sh", "-c", "true"]], lambda a: gerufene.append(a)) == "sh",
        "vorhandenes Tonwerkzeug wird benutzt")
+
+class _TonProzess:
+    def __init__(self, status):
+        self.status = status
+
+    def wait(self, timeout=None):
+        return self.status
+
+ton_versuche = []
+def _ton_starter(argumente):
+    ton_versuche.append(argumente[0])
+    return _TonProzess(1 if len(ton_versuche) == 1 else 0)
+
+pruefe(m.ton_abspielen([["sh", "-c", "false"], ["sh", "-c", "true"]],
+                       _ton_starter) == "sh" and len(ton_versuche) == 2,
+       "nach sofortigem Audiofehler wird der nächste vorhandene Weg versucht")
+pruefe(os.environ.get("WEBKIT_DISABLE_DMABUF_RENDERER") == "1" and
+       os.environ.get("WEBKIT_DISABLE_COMPOSITING_MODE") == "1",
+       "WebKit-Grafikschutz wird vor dem GTK-Import aktiviert")
 
 # Eigener Klang der Magnolie
 klangdatei = m.finde_klang_datei()
@@ -3663,6 +3695,14 @@ pruefe(sprache_fehlt[0] == 2 and "benötigt eine Sprache" in sprache_fehlt[1] an
        sprache_fr[0] == 0 and "Invalid language" not in sprache_fr[1] and
        sprache_falsch[0] == 2 and "Invalid language: xx" in sprache_falsch[1],
        "zusätzliche Sprachen gelten; fehlende und ungültige Werte enden mit Fehler")
+
+man_ordner = os.path.join(os.path.dirname(PFAD), "..", "man")
+man_en = open(os.path.join(man_ordner, "magnolie-organizer.1"), encoding="utf-8").read()
+man_de = open(os.path.join(man_ordner, "de", "magnolie-organizer.1"), encoding="utf-8").read()
+pruefe(all(wert in man_en and wert in man_de for wert in
+           (r"\-\-sprache", r"\-\-language", r"\fBar\fR", r"\fBzh_CN\fR",
+            r"\fBsystem\fR")),
+       "deutsche und englische Manpage nennen Aliasse und alle Sprachcodegruppen")
 
 debug_staat = tempfile.mkdtemp(prefix="magnolie-debug-state-")
 debug_umgebung = dict(os.environ)
@@ -6040,7 +6080,7 @@ erinner_daten = {
     ],
     "personen": [{"id": "p", "name": "Max"}],
     "jahrestage": [
-        {"id": "j", "uid": "jahrestag-uid", "name": "Anna",
+        {"id": "j", "uid": "jahrestag-uid", "name": "Anna", "typ": "Birthday",
          "datum": "1980-08-21", "vertraulich": False,
          "notiz": "Jahrestagsnotiz", "personId": "p",
          "link": "https://example.invalid", "lotusFeld": "lotus-jahrestag",
@@ -6084,6 +6124,8 @@ pruefe(set(auswahl["termine"][0]) == set(m.ERINNERUNG_TERMIN_FELDER) |
 pruefe(set(auswahl["aufgaben"][0]) == set(m.ERINNERUNG_AUFGABE_FELDER) and
        set(auswahl["jahrestage"][0]) == set(m.ERINNERUNG_JAHRESTAG_FELDER),
        "Aufgaben und Jahrestage enthalten ausschließlich ihre Whitelists")
+pruefe(auswahl["jahrestage"][0]["typ"] == "Birthday",
+       "der begrenzte Bestand bewahrt die Bedeutung eines Jahrestags")
 pruefe(set(auswahl["einstellungen"]["erinnerung"]) ==
        set(m.ERINNERUNG_EINSTELLUNG_FELDER) | {"jahrestage"} and
        set(auswahl["einstellungen"]["erinnerung"]["jahrestage"]) ==

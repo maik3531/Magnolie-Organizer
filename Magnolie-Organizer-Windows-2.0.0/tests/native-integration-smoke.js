@@ -92,5 +92,18 @@ assert.match(application, /if \(laufenderSpeicher\) return;/,
   "save serialization guard is missing");
 assert.match(application, /vorBeenden\(\)[\s\S]*?speichereJetzt\(true\)/,
   "close does not flush pending data");
+assert.match(application,
+  /if \(beendenGewuenscht && Bruecke\.vorhanden\)[\s\S]*?cmd: "beenden_abgebrochen"/,
+  "save failure does not release the native close state");
+assert.match(bridge, /case "drucken": form\.ShowPrintDialog\(Text\(message, "html"\)\)/,
+  "Windows printing does not pass the generated preview page to the native form");
+assert.match(mainForm, /new HtmlPrintForm\(html, paths,/,
+  "Windows printing does not load the generated preview page in a separate WebView");
+assert.match(bridge, /regionsNode\.EnumerateArray\(\)/,
+  "Windows holiday retrieval must process every selected region");
+assert.match(bridge, /HolidayDownloadMaxBytes = 8 \* 1024 \* 1024/,
+  "Windows holiday responses must have a cumulative size limit");
+assert.match(bridge, /regionErforderlich/,
+  "Windows holiday retrieval must reject a missing required region");
 
 console.log("NATIVE INTEGRATION SMOKE TEST PASSED");

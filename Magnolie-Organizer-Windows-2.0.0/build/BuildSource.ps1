@@ -26,7 +26,7 @@ try {
         if (-not (Test-Path $parent)) { New-Item -ItemType Directory -Path $parent | Out-Null }
         Copy-Item -LiteralPath $file.Source -Destination $target
     }
-    foreach ($required in "app/magnolie-organizer.ico", "app/web/kaffee-qr.png", "app/symbole/48x48/magnolie-organizer.png", "app/symbole/64x64/magnolie-organizer.png", "app/symbole/128x128/magnolie-organizer.png", "app/symbole/256x256/magnolie-organizer.png", "tests/resources/personal-sync-contract.json", "tests/resources/telefon-control-contract.json", "tests/resources/linux-parity-contract.json", "tests/linux-parity-fixture.js", "tests/generate-linux-parity-fixture.js", "shared/magnolie-handbuch-stamm/web/index.html", "shared/magnolie-handbuch-stamm/web/platform.js", "LICENSE") {
+    foreach ($required in "app/magnolie-organizer.ico", "app/web/kaffee-qr.png", "app/symbole/48x48/magnolie-organizer.png", "app/symbole/64x64/magnolie-organizer.png", "app/symbole/128x128/magnolie-organizer.png", "app/symbole/256x256/magnolie-organizer.png", "tests/resources/personal-sync-contract.json", "tests/resources/telefon-control-contract.json", "tests/resources/linux-parity-contract.json", "tests/linux-parity-fixture.js", "tests/generate-linux-parity-fixture.js", "shared/magnolie-handbuch-stamm/web/index.html", "shared/magnolie-handbuch-stamm/web/inhalt.js", "LICENSE") {
         if (-not (Test-Path (Join-Path $tree $required) -PathType Leaf)) { throw "Quellarchiv-Pflichtdatei fehlt: $required" }
     }
     New-DeterministicZip $tree $stagedArchive $name

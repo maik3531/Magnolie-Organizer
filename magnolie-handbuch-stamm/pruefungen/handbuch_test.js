@@ -72,9 +72,12 @@ contentDom.window.MagnolieI18n = { registerBook() {}, locale: () => "en" };
 contentDom.window.eval(sources.content);
 const sourcePages = JSON.parse(JSON.stringify(contentDom.window.HANDBUCH_SEITEN));
 contentDom.window.close();
-assert.strictEqual(sourcePages.length, 118, "the release handbook must contain exactly 118 pages");
+assert.strictEqual(sourcePages.length, 154, "the release handbook must contain exactly 154 pages");
 const protectedIds = new Set(["license-and-acknowledgments", "in-closing",
   "support-with-a-coffee", "about-maik-walter"]);
+assert.deepStrictEqual(sourcePages.slice(-2).map((page) => page.id),
+  ["support-with-a-coffee", "about-maik-walter"],
+  "the two protected closing pages must remain last and unchanged");
 for (const id of ["support-with-a-coffee", "about-maik-walter"]) {
   assert.ok(sourcePages.find((page) => page.id === id).imInhalt,
     `${id} must appear in the table of contents`);
@@ -93,6 +96,17 @@ assert.ok(englishLicense.includes("Contributor-Key") &&
 "English license page lacks the coffee Contributor-Key delivery requirement");
 const explicitIds = new Set(sourcePages.map((page) => page.id || page.titel.toLowerCase()
   .replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")));
+const plannerPages = sourcePages.filter((page) => page.kapitel === "Planner");
+assert.deepStrictEqual(plannerPages.map((page) => page.id || page.titel.toLowerCase()
+  .replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")), [
+  "the-year-at-a-glance", "planner-shift-planner",
+  "planner-vacation-planner", "planner-waste-calendar"
+], "the five auxiliary planners must be documented on exactly four pages");
+const dayMarkerPage = sourcePages.find((page) => page.id === "planner-shift-planner");
+assert.ok(dayMarkerPage.inhalt.includes("Shift planner") &&
+  dayMarkerPage.inhalt.includes("Cycle calendar") &&
+  !explicitIds.has("planner-cycle-calendar"),
+"shift and cycle day markers must share their canonical handbook page");
 const hardcodedPage = /\bpages?\s+(?:\d+\b|<b(?:\s[^>]*)?>\d+<\/b>)/i;
 for (const page of sourcePages) {
   assert.ok(!hardcodedPage.test(page.inhalt),
@@ -106,27 +120,149 @@ const newPageIds = new Set([
   "nextcloud-mailbox", "nextcloud-troubleshooting", "baum-eigener-zweig",
   "baum-netzsuche", "baum-code-vergleichen", "baum-paarungsdatei-erzeugen",
   "baum-paarungsdatei-einlesen", "baum-internet-verbindung", "baum-zweig-entfernen",
-  "wiederherstellungspunkte-was", "wiederherstellungspunkt-erstellen",
-  "wiederherstellungspunkt-zurueckholen", "sms-mobile-only", "sms-sheet",
+  "wiederherstellungspunkte-was", "sms-mobile-only", "sms-sheet",
   "sms-adjusted-send", "sms-spelling", "sms-message-details", "sms-settings-sheet",
   "sms-delete-histories", "phone-pair-wlan-steps", "phone-pair-code-compare",
   "phone-pair-remove", "kde-pair-steps", "kde-reconnect-renew",
   "phone-call-assignment", "phone-answer-hangup", "phone-call-window-notes",
-  "phone-dial-number-choice", "health-weight-height-bmi", "health-color-guide",
-  "health-units", "planner-shift-planner", "planner-cycle-calendar",
+  "phone-dial-number-choice", "planner-shift-planner",
   "planner-vacation-planner", "planner-waste-calendar", "calendar-monthly-weekday",
   "calendar-show-more", "android-apk-transfer",
-  "android-apk-install-update", "my-projects"
+  "android-apk-install-update", "my-projects", "the-appimage",
+  "settings-language-format-region", "settings-time-week-region",
+  "android-notes-navigation", "android-notes-notebooks", "android-notes-edit-save-delete",
+  "android-tasks-reminders", "android-note-symbols-formatting",
+  "android-import-files-folders", "android-import-formats",
+  "android-share-into-notes", "android-import-results-limits",
+  "android-tree-pairing", "android-tree-sharing-inbox", "android-phone-bluetooth",
+  "android-personal-sync-controls", "android-personal-deletion-review", "android-recovery-journal",
+  "phone-call-getting-started", "phone-call-control", "sms-getting-started", "sms-kde-connect-setup",
+  "technical-connection-map", "technical-ports-firewall", "technical-local-encryption",
+  "technical-tree-security-routing", "technical-phone-transport-security",
+  "command-line-and-man-page", "reminder-command-modes",
+  "linux-diagnostic-reminder-logs", "windows-diagnostic-logs",
+  "supported-environment-variables", "technical-file-limits",
+  "technical-recurring-series", "technical-reminder-time-limits",
+  "technical-update-trust", "technical-update-platforms", "technical-weather-privacy",
+  "glossary-a-m", "glossary-n-z"
 ]);
-const pendingMessages = () => new Set();
+/* Every shipped language is complete; English fallback is no longer allowed. */
+const pendingBodyIds = new Set();
+const pendingPageIds = new Set();
+const pendingMessages = (language) => {
+  const offen = new Set();
+  if (language === "de") return offen;
+  for (const page of sourcePages) {
+    if (pendingPageIds.has(page.id)) {
+      for (const key of ["titel", "inhalt"]) if (page[key]) offen.add(page[key]);
+    } else if (pendingBodyIds.has(page.id) && page.inhalt) {
+      offen.add(page.inhalt);
+    }
+  }
+  return offen;
+};
 const germanPending = pendingMessages("de");
 const catalogCurrent = sourcePages.every((page) => ["kapitel", "titel", "inhalt"]
   .filter((key) => page[key])
   .every((key) => germanPending.has(page[key]) ||
     Object.prototype.hasOwnProperty.call(catalogData.messages, page[key])));
-for (const id of ["android-apk-transfer", "android-apk-install-update", "my-projects"]) {
+for (const id of ["android-apk-transfer", "android-apk-install-update", "my-projects",
+  "android-notes-navigation", "android-notes-notebooks", "android-notes-edit-save-delete",
+  "android-tasks-reminders", "android-note-symbols-formatting",
+  "android-import-files-folders", "android-import-formats",
+  "android-share-into-notes", "android-import-results-limits",
+  "android-tree-pairing", "android-tree-sharing-inbox", "android-phone-bluetooth",
+  "android-personal-sync-controls", "android-personal-deletion-review", "android-recovery-journal",
+  "phone-call-getting-started", "phone-call-control", "sms-getting-started", "sms-kde-connect-setup",
+  "technical-connection-map", "technical-ports-firewall", "technical-local-encryption",
+  "technical-tree-security-routing", "technical-phone-transport-security",
+  "command-line-and-man-page", "reminder-command-modes",
+  "linux-diagnostic-reminder-logs", "windows-diagnostic-logs",
+  "supported-environment-variables", "technical-file-limits",
+  "technical-recurring-series", "technical-reminder-time-limits",
+  "technical-update-trust", "technical-update-platforms", "technical-weather-privacy",
+  "glossary-a-m", "glossary-n-z"]) {
   assert.ok(explicitIds.has(id), `new shared page is missing: ${id}`);
 }
+const route17Ids = ["phone-call-getting-started", "phone-call-control",
+  "sms-getting-started", "sms-kde-connect-setup"];
+assert.deepStrictEqual(sourcePages.slice(sourcePages.findIndex((page) =>
+  page.id === "android-recovery-journal") + 1, sourcePages.findIndex((page) =>
+  page.id === "technical-connection-map")).map((page) => page.id), route17Ids,
+"route 17 pages must be between Android recovery and the technical pages");
+const route17Text = Object.fromEntries(route17Ids.map((id) =>
+  [id, sourcePages.find((page) => page.id === id)?.inhalt || ""]));
+assert.ok(route17Text["phone-call-getting-started"].includes("TelecomManager.placeCall") &&
+  route17Text["phone-call-getting-started"].includes("Choose a phone number to call") &&
+  route17Text["phone-call-control"].includes("Share incoming call status") &&
+  route17Text["phone-call-control"].includes("Bluetooth HFP") &&
+  route17Text["sms-getting-started"].includes("supported only by the Linux backend") &&
+  route17Text["sms-getting-started"].includes("only an <b>sms:</b> address") &&
+  route17Text["sms-kde-connect-setup"].includes("<b>5,000 characters</b>") &&
+  route17Text["sms-kde-connect-setup"].includes("not proof of delivery"),
+"route 17 call and SMS contracts are incomplete");
+const glossaryIds = ["glossary-a-m", "glossary-n-z"];
+assert.deepStrictEqual(sourcePages.slice(sourcePages.findIndex((page) => page.id === "my-projects") + 1,
+  sourcePages.findIndex((page) => page.id === "technical-file-limits")).map((page) => page.id),
+glossaryIds, "route 18 glossary pages must follow My projects and precede the technical pages");
+const glossaryText = glossaryIds.map((id) => sourcePages.find((page) => page.id === id).inhalt).join("\n");
+for (const term of ["AES-256-GCM", "APK", "AppImage", "Backup", "Bluetooth", "Cache", "CalDAV",
+  "CardDAV", "Checksum", "DEB", "Desktop", "DPAPI", "Ed25519", "End-to-end encryption",
+  "Fingerprint", "Firewall", "HFP", "HKDF", "HMAC", "HTTPS", "ICS", "IPv4", "IPv6",
+  "KDE Connect", "Local IP address", "Local network", "Magnolienbaum", "mDNS", "Nextcloud",
+  "Notification", "Pairing", "PDF", "Personal Sync", "Port", "Recovery snapshot", "Recycle bin",
+  "RFCOMM", "SHA-256", "SMS", "Synchronization", "Time zone", "TLS", "Tray", "UFW", "URI",
+  "vCard", "VPN", "Wayland", "WebDAV", "Wi-Fi", "X11", "XDG", "ZIP"]) {
+  assert.ok(glossaryText.includes(`<h3>${term}</h3><p>`), `route 18 glossary term is missing: ${term}`);
+}
+assert.ok(glossaryText.includes("it is not a backup against disk or device loss") &&
+  glossaryText.includes("uses KDE Connect rather than Magnolie Notes or Personal Sync") &&
+  glossaryText.includes("it uses no IP firewall port") &&
+  glossaryText.includes("Magnolie does not create one automatically"),
+"route 18 glossary definitions lack required Magnolie context");
+assert.ok(sourcePages.find((page) => page.id === "phone-calls").inhalt
+  .includes("TelecomManager.placeCall") &&
+  sourcePages.find((page) => page.id === "phone-dial-number-choice").inhalt
+    .includes("TelecomManager.placeCall") &&
+  !sources.content.includes("the call must be confirmed there"),
+"the handbook must describe direct Android placeCall behavior consistently");
+const route15Text = Object.fromEntries([
+  "command-line-and-man-page", "reminder-command-modes",
+  "linux-diagnostic-reminder-logs", "windows-diagnostic-logs",
+  "supported-environment-variables"
+].map((id) => [id, sourcePages.find((page) => page.id === id)?.inhalt || ""]));
+assert.ok(route15Text["command-line-and-man-page"].includes("ar, be, cs, da, de, en, es, fr, hi, hsb, it, ja, nb, nl, pl, pt, ru, tr, uk, zh_CN") &&
+  route15Text["command-line-and-man-page"].includes("--pot-template") &&
+  route15Text["reminder-command-modes"].includes("--erinnerung") &&
+  route15Text["reminder-command-modes"].includes("--wecker") &&
+  route15Text["reminder-command-modes"].includes("--probe") &&
+  route15Text["linux-diagnostic-reminder-logs"].includes("debug.log.2") &&
+  route15Text["linux-diagnostic-reminder-logs"].includes("200 lines") &&
+  route15Text["windows-diagnostic-logs"].includes("kde-connect-debug.log") &&
+  route15Text["windows-diagnostic-logs"].includes("5 MiB") &&
+  route15Text["supported-environment-variables"].includes("MAGNOLIE_ORGANIZER_WEB") &&
+  route15Text["supported-environment-variables"].includes("Build and test variables are not runtime settings"),
+"route 15 command, log, and environment contracts are incomplete");
+const route16Text = Object.fromEntries([
+  "technical-file-limits", "technical-recurring-series", "technical-reminder-time-limits",
+  "technical-update-trust", "technical-update-platforms", "technical-weather-privacy"
+].map((id) => [id, sourcePages.find((page) => page.id === id)?.inhalt || ""]));
+assert.ok(route16Text["technical-file-limits"].includes("200:1") &&
+  route16Text["technical-file-limits"].includes("not a storage limit") &&
+  route16Text["technical-recurring-series"].includes("inclusive") &&
+  route16Text["technical-recurring-series"].includes("No native recurring tasks") &&
+  route16Text["technical-reminder-time-limits"].includes("525,600 minutes") &&
+  route16Text["technical-reminder-time-limits"].includes("once per minute") &&
+  route16Text["technical-update-trust"].includes("does <b>not</b> currently verify") &&
+  route16Text["technical-update-platforms"].includes("128 MiB") &&
+  route16Text["technical-update-platforms"].includes("512 MiB") &&
+  route16Text["technical-weather-privacy"].includes("format=j1") &&
+  route16Text["technical-weather-privacy"].includes("no analogous response-size limit"),
+"route 16 limits, recurrence, update, and weather contracts are incomplete");
+assert.deepStrictEqual(sourcePages.slice(-8, -2).map((page) => page.id), [
+  "technical-file-limits", "technical-recurring-series", "technical-reminder-time-limits",
+  "technical-update-trust", "technical-update-platforms", "technical-weather-privacy"
+], "route 16 pages must immediately precede the two protected closing pages");
 const transferPage = sourcePages.find((page) => page.id === "android-apk-transfer");
 const installPage = sourcePages.find((page) => page.id === "android-apk-install-update");
 const projectsPage = sourcePages.find((page) => page.id === "my-projects");
@@ -270,7 +406,7 @@ for (const language of languages) {
             assert.ok(digits.includes(value),
               `${language}: synchronization limit ${value} changed on ${page.titel}`);
           }
-          assert.ok(data.messages[page[key]].includes("2.0.2") &&
+          assert.ok(data.messages[page[key]].includes("2.0.3") &&
             data.messages[page[key]].includes("1.0.5"),
           `${language}: supported version changed on ${page.titel}`);
         }
@@ -311,10 +447,11 @@ for (const language of languages) {
   }
   if (language === "es") {
     const spanish = JSON.stringify(data.messages);
-    assert.ok(!spanish.includes("Configuración") && !spanish.includes("Verificar ahora"),
+    assert.ok(!spanish.includes("Configuración ▸ General") &&
+      !spanish.includes("Configuración ▸ Contactos") && !spanish.includes("Verificar ahora"),
       "es: stale Organizer UI terms remain");
-    assert.ok(spanish.includes("Ajustes") && spanish.includes("Comprobar ahora"),
-      "es: confirmed Organizer UI terms are missing");
+    assert.ok(spanish.includes("Ajustes"),
+      "es: confirmed Organizer UI term is missing");
   }
   dom.window.close();
 }
@@ -507,21 +644,31 @@ function checkLocale(locale, expected) {
   assert.ok(print.startsWith("<!DOCTYPE html"));
   assert.ok(print.includes(`<html lang='${locale}'>`));
   assert.ok(print.includes(`<title>${expected.printTitle}</title>`));
+  const gedruckteSeiten = H.anzeige().length;
   assert.strictEqual((print.match(/class="blatt(?: kompakt)?"/g) || []).length,
-    pages.length);
+    gedruckteSeiten);
   assert.strictEqual((print.match(/class="blatt-inhalt"/g) || []).length,
-    pages.length);
+    gedruckteSeiten);
+  /* Ein Bogen traegt zwei Seiten; eine ungerade Zahl endet mit einem Leerblatt. */
+  assert.strictEqual((print.match(/class="bogen"/g) || []).length,
+    Math.ceil(gedruckteSeiten / 2));
+  assert.strictEqual((print.match(/class="leerblatt"/g) || []).length,
+    gedruckteSeiten % 2);
+  assert.strictEqual((print.match(/class="bindung"/g) || []).length,
+    Math.ceil(gedruckteSeiten / 2));
   assert.ok(print.includes(expected.footer));
-  assert.ok(print.includes("size: A4 portrait") && print.includes("font: 11.5pt/1.45"));
+  assert.ok(print.includes("size: A4 landscape") && print.includes("font: 11.5pt/1.45"));
+  assert.ok(print.includes("width: 297mm") && print.includes("height: 210mm"),
+    `${locale}: printed sheet is not an A4 spread`);
   assert.ok(!print.includes("height: 267mm") && !print.includes("height: 297mm"));
   assert.ok(!print.includes("handbuch-suche"), `${locale}: search UI leaked into print output`);
 
   for (const text of expected.completeText) {
     assert.ok(print.includes(text), `${locale}: missing complete-book marker: ${text}`);
   }
-  for (const preserved of ["backing-up-and-restoring", "magnolie-organizer_2.0.2_all.deb",
-    "sudo apt install ./magnolie-organizer_2.0.2_all.deb", "wttr.in",
-    "maik3531@gmail.com", "2.0.2"]) {
+  for (const preserved of ["backing-up-and-restoring", "magnolie-organizer_2.0.3_all.deb",
+    "sudo apt install ./magnolie-organizer_2.0.3_all.deb", "wttr.in",
+    "maik3531@gmail.com", "2.0.3"]) {
     assert.ok(print.includes(preserved), `${locale}: technical value changed: ${preserved}`);
   }
   assert.ok(!print.includes("1.28.0") && !print.includes("1.31.37") &&
@@ -602,7 +749,7 @@ try {
   const german = createBook("de");
   const englishText = english.H.seiten().map((page) => `${page.titel}\n${page.inhalt}`).join("\n");
   const germanText = german.H.seiten().map((page) => `${page.titel}\n${page.inhalt}`).join("\n");
-  assert.ok(germanText.includes("Desktop-Anwendung für Linux und Windows") &&
+  assert.ok(germanText.includes("unter Linux und unter Windows dasselbe Programm") &&
     germanText.includes("Magnolie Notes") && germanText.includes("Android"),
   "German platform overview is missing");
   assert.ok(germanText.includes("No valid coffee allowance") &&
@@ -637,7 +784,7 @@ try {
   }
   for (const phrase of ["Selection options", "Delete selection", "Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>H",
     "accessibility helper frame", "uppermost dialog", "Focus then returns",
-    "WebKitGTK 2.38", "move one day", "move between dates"]) {
+    "WebKitGTK 2.38", "move between dates"]) {
     assert.ok(englishText.includes(phrase), `English handbook phrase missing: ${phrase}`);
   }
   for (const phrase of ["Auswahloptionen", "Auswahl löschen", "Strg</kbd>+<kbd>Alt</kbd>+<kbd>H",
@@ -664,24 +811,23 @@ try {
     assert.ok(germanText.includes(phrase), `German ODS paragraph missing: ${phrase}`);
   }
   assert.ok(englishText.includes(
-    "Under Contacts, Tasks, Calendar, Notes and Anniversaries") &&
+    "removes checked Contacts, Tasks, appointments, Notes or Anniversaries") &&
     germanText.includes(
-      "Bei Adressen, Aufgaben, Kalender, Notizen und Jahrestagen") &&
+      "entfernt markierte Adressen, Aufgaben, Termine, Notizen oder Jahrestage") &&
     !englishText.includes("do not offer bulk deletion") &&
     !germanText.includes("kein Sammellöschen"),
   "bulk deletion for Notes and Anniversaries is not documented consistently");
-  for (const phrase of ["Print and ODS", "Year or Month calendar",
-    "preview’s proportions", "Early, Late and Night shift",
-    "three bleeding intensities", "Vacation planner", "notification count",
-    "Waste collection calendar", "Residual waste", "Packaging / Yellow bin",
-    "fortnightly", "Compact date and entry type",
-    "Public holidays and school holidays are calendar markings",
+  for (const phrase of ["Print and ODS", "Year calendar", "Month calendar",
+    "five entry bars", "Early shift", "Late shift", "Night shift",
+    "three bleeding intensities", "Vacation planner", "Waste collection calendar",
+    "Residual waste", "Packaging / Yellow bin", "fortnightly", "not a bin symbol",
+    "initially switched off", "without confirmation or a recycle-bin copy",
   ]) {
     assert.ok(englishText.toLowerCase().includes(phrase.toLowerCase()),
       `English planner print paragraph missing: ${phrase}`);
   }
-  for (const phrase of ["Settings ▸ General ▸ Tabs", "Your entries are retained",
-    "hidden section disappear", "four subviews", "double-page table",
+  for (const phrase of ["Settings ▸ General ▸ Tabs", "Nothing is deleted",
+    "hidden section may disappear", "four subviews", "double-page table",
     "Systolic", "Diastolic", "Measurement situation", "mmol/L", "mg/dL",
     "Tablet", "Drops", "Powder", "Spray", "Pen", "fixed index number",
     "Long-acting", "Short-acting", "several documented rules", "matching rule is highlighted",
@@ -726,22 +872,122 @@ try {
   assert.ok(english.H.blaettereZuId("kde-sms") &&
     english.H.seiten()[english.H.seiten().findIndex((page) => page.id === "kde-sms")].titel,
   "slug navigation failed");
-  assert.ok(englishText.includes("sudo dnf install ./magnolie-organizer-2.0.2-1.noarch.rpm"));
-  assert.ok(englishText.includes("rpmbuild --rebuild magnolie-organizer-2.0.2-1.src.rpm"));
-  assert.ok(englishText.includes("sudo dnf upgrade ./magnolie-organizer-2.0.2-1.noarch.rpm"));
+  assert.ok(englishText.includes("sudo dnf install ./magnolie-organizer-2.0.3-1.noarch.rpm"));
+  assert.ok(englishText.includes("rpmbuild --rebuild magnolie-organizer-2.0.3-1.src.rpm"));
+  assert.ok(englishText.includes("sudo dnf upgrade ./magnolie-organizer-2.0.3-1.noarch.rpm"));
   assert.ok(englishText.includes("Only one <i>Magnolie Organizer</i> entry remains"));
   assert.ok(englishText.includes("Update manual …") &&
     englishText.includes("verifies SHA-256") && englishText.includes("never runs sudo or dpkg"));
   assert.ok(englishText.includes("LC_ALL=C magnolie-organizer"));
-  for (const phrase of ["Druck und ODS", "Jahres- oder Monatskalender",
-    "Maßen, Farben, Schriften", "Früh-, Spät- und Nachtdienst",
-    "drei Blutungsstärken", "Urlaubsplaner", "Benachrichtigungsanzahl",
-    "Müllkalender", "Restmüll", "Grüner Punkt / Gelbe Tonne", "vierzehntägige",
-    "Kleinere Datums- und Eintragsschriften",
-    "Feiertage und Schulferien sind Kalendermarkierungen",
+  for (const phrase of ["Druck und ODS", "Jahreskalender", "Monatskalender",
+    "fünf Eintragsbalken", "Frühdienst", "Spätdienst", "Nachtschicht",
+    "drei Blutungsstärken", "Urlaubsplaner", "Müllkalender", "Restmüll",
+    "Grüner Punkt / Gelbe Tonne", "vierzehntäglich", "kein Tonnensymbol",
+    "zunächst ausgeschaltet", "ohne Rückfrage oder Papierkorbkopie",
   ]) {
     assert.ok(germanText.includes(phrase), `German planner print paragraph missing: ${phrase}`);
   }
+  const reminderIds = ["appointment-reminders", "getting-timely-anniversary-reminders",
+    "reminders-with-password-protection"];
+  assert.strictEqual(sourcePages.filter((page) => reminderIds.includes(page.id)).length, 3,
+    "the reminder route must contain exactly three retained pages");
+  assert.ok(!sourcePages.some((page) => ["individual-notifications",
+    "appearance-sound-and-anniversaries"].includes(page.id)),
+  "superseded reminder pages remain in the handbook");
+  for (const phrase of ["All-day appointments are treated as starting at 8 a.m.",
+    "there is no snooze function", "Browser-only use", "Windows do not schedule a wake-up",
+    "up to 32 display reminders", "unsupported alarms stay visible as read-only",
+    "Personal Sync preserves the custom lead time", "scheduled for 8 a.m.",
+    "anniversary type and scheduler settings", "does not contain contacts"])
+    assert.ok(englishText.includes(phrase), `English reminder documentation missing: ${phrase}`);
+  for (const phrase of ["Ganztägige Termine gelten als Beginn um 8 Uhr",
+    "eine Schlummerfunktion gibt es nicht", "reine Browserfassung", "keinen Weckruf",
+    "bis zu 32 Bildschirmmeldungen", "Personal Sync bewahrt den individuellen Vorlauf",
+    "für 8 Uhr geplant", "einschließlich Jahrestagsart", "keine Adressen"])
+    assert.ok(germanText.includes(phrase), `German reminder documentation missing: ${phrase}`);
+  const recoveryIds = ["the-recycle-bin", "backing-up-and-restoring",
+    "wiederherstellungspunkte-was"];
+  assert.strictEqual(sourcePages.filter((page) => recoveryIds.includes(page.id)).length, 3,
+    "the recycle-bin and recovery route must contain exactly three retained pages");
+  assert.ok(!sourcePages.some((page) => ["external-backups",
+    "wiederherstellungspunkt-erstellen", "wiederherstellungspunkt-zurueckholen"].includes(page.id)),
+  "superseded backup or recovery-snapshot pages remain in the handbook");
+  for (const phrase of ["not by a continuously running countdown", "at most 3,000 entries",
+    "Settings ▸ Security ▸ Backups", "Windows writes a password-encrypted",
+    "The preview does not list individual names", "checks again every 15 minutes",
+    "re-encrypted when that password is changed", "up to eight weekly points"])
+    assert.ok(englishText.includes(phrase), `English recovery documentation missing: ${phrase}`);
+  for (const phrase of ["nicht durch einen ständig laufenden Countdown", "höchstens 3.000 Einträge",
+    "Einstellungen ▸ Sicherheit ▸ Sicherungen", "Windows schreibt bei jedem ausdrücklich",
+    "Einzelne Namen oder Einträge", "alle 15 Minuten", "neu verschlüsselt",
+    "bis zu acht Wochenpunkte"])
+    assert.ok(germanText.includes(phrase), `German recovery documentation missing: ${phrase}`);
+  const holidayIds = ["country-region-holiday-display", "fetching-public-and-school-holidays"];
+  assert.strictEqual(sourcePages.filter((page) => holidayIds.includes(page.id)).length, 2,
+    "the country, region, and holiday route must contain exactly two pages");
+  for (const phrase of ["The Organizer never guesses one", "All cantons",
+    "replaces only entries whose date range touches one of the requested years",
+    "At most three years and 26 regions", "Your appointments, contacts, notes"])
+    assert.ok(englishText.includes(phrase), `English holiday documentation missing: ${phrase}`);
+  for (const phrase of ["niemals ein Bundesland oder einen Kanton", "Alle Kantone",
+    "nur Einträge, deren Zeitraum eines der angefragten Jahre berührt",
+    "höchstens drei Jahre und 26 Regionen", "Termine, Kontakte, Notizen"])
+    assert.ok(germanText.includes(phrase), `German holiday documentation missing: ${phrase}`);
+  const regionalIds = ["settings-language-format-region", "settings-time-week-region"];
+  assert.strictEqual(sourcePages.filter((page) => regionalIds.includes(page.id)).length, 2,
+    "the language and regional display route must contain exactly two pages");
+  for (const phrase of ["Language and regional display are separate", "twenty Organizer languages",
+    "week 1 is the week containing the year's first Thursday", "does not shift stored local appointment times",
+    "separately from the main, possibly encrypted Organizer data"])
+    assert.ok(englishText.includes(phrase), `English regional documentation missing: ${phrase}`);
+  for (const phrase of ["Sprache und regionale Darstellung sind getrennt", "zwanzig Organizer-Sprachen",
+    "Woche 1 ist die Woche mit dem ersten Donnerstag", "verschiebt gespeicherte lokale Terminzeiten nicht",
+    "getrennt von den möglicherweise verschlüsselten Organizer-Hauptdaten"])
+    assert.ok(germanText.includes(phrase), `German regional documentation missing: ${phrase}`);
+  const androidNotesIds = ["android-notes-navigation", "android-notes-notebooks",
+    "android-notes-edit-save-delete", "android-tasks-reminders", "android-note-symbols-formatting"];
+  assert.strictEqual(sourcePages.filter((page) => androidNotesIds.includes(page.id)).length, 5,
+    "the Magnolie Notes route must contain exactly five pages");
+  for (const phrase of ["five tabs along the bottom", "Loose Notes", "system Back action does not save",
+    "zero through fourteen", "no bold, italic, underline, list, heading, Markdown or rich-text toolbar"])
+    assert.ok(englishText.includes(phrase), `English Magnolie Notes documentation missing: ${phrase}`);
+  for (const phrase of ["fünf Reitern am unteren Rand", "Lose Notizen", "System-Zurück-Aktion speichert nicht",
+    "null bis vierzehn", "keine Werkzeugleiste für Fett, Kursiv, Unterstreichen, Listen, Überschriften, Markdown oder Rich Text"])
+    assert.ok(germanText.includes(phrase), `German Magnolie Notes documentation missing: ${phrase}`);
+  const androidImportIds = ["android-import-files-folders", "android-import-formats",
+    "android-share-into-notes", "android-import-results-limits"];
+  assert.strictEqual(sourcePages.filter((page) => androidImportIds.includes(page.id)).length, 4,
+    "the Magnolie Notes import route must contain exactly four pages");
+  for (const phrase of ["cannot simply look inside Samsung Notes", "Markdown-directory export",
+    "single PDF", "normalized <b>title and text</b>", "5,000 entries"])
+    assert.ok(englishText.includes(phrase), `English Android import documentation missing: ${phrase}`);
+  for (const phrase of ["nicht einfach in Samsung Notes", "Markdown-Verzeichnisausgabe",
+    "einzelne PDF", "normalisierten Verbindung von <b>Überschrift und Text</b>", "5.000 Einträge"])
+    assert.ok(germanText.includes(phrase), `German Android import documentation missing: ${phrase}`);
+  const androidTransferIds = ["android-tree-pairing", "android-tree-sharing-inbox",
+    "android-phone-bluetooth", "android-personal-sync-controls",
+    "android-personal-deletion-review", "android-recovery-journal"];
+  assert.strictEqual(sourcePages.filter((page) => androidTransferIds.includes(page.id)).length, 6,
+    "the Android transfer and recovery route must contain exactly six pages");
+  for (const phrase of ["There is no QR pairing", "Outbox: … waiting", "Bluetooth data fallback",
+    "Automatic synchronization is <b>Wi-Fi only</b>", "only a proposal",
+    "This is not an external backup"])
+    assert.ok(englishText.includes(phrase), `English Android transfer documentation missing: ${phrase}`);
+  for (const phrase of ["keine QR-Paarung", "Postfach: … wartend", "Bluetooth-Datenfallback",
+    "Automatischer Abgleich erfolgt <b>nur über WLAN</b>", "nur ein Vorschlag",
+    "keine externe Sicherung"])
+    assert.ok(germanText.includes(phrase), `German Android transfer documentation missing: ${phrase}`);
+  const technicalSecurityIds = ["technical-connection-map", "technical-ports-firewall",
+    "technical-local-encryption", "technical-tree-security-routing",
+    "technical-phone-transport-security"];
+  assert.strictEqual(sourcePages.filter((page) => technicalSecurityIds.includes(page.id)).length, 5,
+    "the ports, firewall, and encryption route must contain exactly five pages");
+  for (const phrase of ["8737 TCP", "8741 TCP", "Without password protection",
+    "HTTP framing rather than HTTPS", "rejected over RFCOMM"])
+    assert.ok(englishText.includes(phrase), `English security technology documentation missing: ${phrase}`);
+  for (const phrase of ["8737 TCP", "8741 TCP", "Ohne Kennwortschutz",
+    "HTTP-Rahmung statt HTTPS", "über RFCOMM abgewiesen"])
+    assert.ok(germanText.includes(phrase), `German security technology documentation missing: ${phrase}`);
   for (const phrase of ["notify you before an appointment begins", "Importing data from other programs",
     "Exporting data to other programs", "Checking for a new Organizer version", "on your computer",
     "sudo apt install hunspell-en-us", "B</span> <span class='knopfwort'>I",
@@ -762,11 +1008,11 @@ try {
   const python = fs.readFileSync(path.join(ROOT, "bin", "magnolie-handbuch"), "utf8");
   assert.ok(python.includes("gettext.translation") && python.includes("/usr/share/locale"));
   assert.ok(python.includes("window.MAGNOLIE_LOCALE") && python.includes("get_is_remote"));
-  assert.ok(python.includes('PROGRAMM_FASSUNG = "2.0.2"') && python.includes('"--version"'));
+  assert.ok(python.includes('PROGRAMM_FASSUNG = "2.0.3"') && python.includes('"--version"'));
   const changelog = fs.readFileSync(path.join(ROOT, "debian", "changelog"), "utf8");
   const pot = fs.readFileSync(path.join(ROOT, "po", "magnolie-handbuch.pot"), "utf8");
-  assert.ok(changelog.startsWith("magnolie-handbuch (2.0.2)"));
-  assert.ok(pot.includes('"Project-Id-Version: Magnolie Handbook 2.0.2'));
+  assert.ok(changelog.startsWith("magnolie-handbuch (2.0.3)"));
+  assert.ok(pot.includes('"Project-Id-Version: Magnolie Handbook 2.0.3'));
   assert.ok(!sources.i18n.includes("pageReferenceUpdates") &&
     !sources.content.includes("data-seite="), "brittle page-number migration remains");
   const pageCount = english.H.seiten().length;

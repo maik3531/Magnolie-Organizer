@@ -15,7 +15,7 @@
 (function () {
 
   /* Die Fassung erscheint auf der Seite „Über". */
-  const FASSUNG = "2.0.2";
+  const FASSUNG = "2.0.3";
   const CONTRIBUTOR_BRANDING = "No valid coffee allowance";
 
   /* ---------------------------------------------------------------------- */
@@ -292,7 +292,7 @@
       symbol: String(objekt.symbol || "notiz"), created_ms: Number(objekt.angelegt || 0), modified_ms: modified };
     if (art === "task") return { title: String(objekt.titel || ""), note: String(objekt.notiz || ""),
       due: String(objekt.faellig || ""), priority: Number(objekt.prio || 2), completed: !!objekt.erledigt,
-      remind: !!objekt.erinnern, lead_days: Number(objekt.vorlaufTage ?? objekt.individuelleErinnerungTage ?? 0),
+      remind: !!objekt.erinnern, lead_days: Number(objekt.individuelleErinnerungTage || objekt.vorlaufTage || 0),
       reminder_minute: Number(objekt.erinnerungsMinute ?? 480), created_ms: Number(objekt.angelegt || 0), modified_ms: modified };
     return { name: String(objekt.name || ""), modified_ms: modified };
   }
@@ -600,7 +600,8 @@
       const neu = Object.assign({}, alt || { personen: [], vonTermin: "", kontaktId: "", herkunft: "",
         vonZweig: "", fremdId: "", delegiertAn: "" }, { id: id, titel: v.title, notiz: v.note,
         faellig: v.due, prio: v.priority, erledigt: v.completed, erinnern: v.remind,
-        vorlaufTage: v.lead_days, erinnerungsMinute: v.reminder_minute, angelegt: v.created_ms,
+        vorlaufTage: v.lead_days, individuelleErinnerungTage: v.lead_days,
+        erinnerungsMinute: v.reminder_minute, angelegt: v.created_ms,
         personalGeaendert: v.modified_ms });
       if (!alt) neu.geaendert = v.modified_ms;
       if (alt) DATEN.aufgaben[DATEN.aufgaben.indexOf(alt)] = neu; else DATEN.aufgaben.push(neu);
@@ -2689,7 +2690,7 @@
     const gebiet = regional && regional.formatLocale;
     if (!gebiet || gebiet === "system") return undefined;
     const oberflaeche = window.MagnolieI18n && window.MagnolieI18n.locale();
-    if (!/^(de|en)(?:-|$)/i.test(oberflaeche || "")) return gebiet;
+    if (!/^[a-z]{2,3}(?:-|$)/i.test(oberflaeche || "")) return gebiet;
     const teile = String(gebiet).split("-");
     const region = teile.find((teil, index) => index > 0 &&
       (/^[A-Z]{2}$/i.test(teil) || /^\d{3}$/.test(teil)));
@@ -4191,6 +4192,9 @@
       d.einstellungen.kalender.gesundheitBereiche[art] =
         bereiche[art] === undefined ? true : !!bereiche[art];
     }
+    if (!Object.values(d.einstellungen.kalender.gesundheitBereiche).some(Boolean)) {
+      d.einstellungen.kalender.gesundheitBereiche.vital = true;
+    }
     const einheiten = kal.gesundheitEinheiten && typeof kal.gesundheitEinheiten === "object"
       ? kal.gesundheitEinheiten : {};
     d.einstellungen.kalender.gesundheitEinheiten = {
@@ -4217,7 +4221,8 @@
     d.einstellungen.papierkorb.tage = [0, 7, 30, 90, 365].includes(Number(pk.tage))
       ? Number(pk.tage) : 30;
     d.personen = lesePersonen(roh.personen);
-    for (const s of Array.isArray(roh.papierkorb) ? roh.papierkorb : []) {
+    for (const s of (Array.isArray(roh.papierkorb) ? roh.papierkorb : [])
+      .slice(-PAPIERKORB_HOECHSTENS)) {
       if (!s || !s.eintrag || !s.art) continue;
       const art = enumWert(s.art, { termin: "appointment", appointment: "appointment",
         kontakt: "contact", contact: "contact", aufgabe: "task", task: "task",
@@ -5392,6 +5397,12 @@
     return istSynchronisierteFerien(t) || istSynchronisierterFeiertag(t);
   }
 
+  function sortiereTermineNachZeit(a, b) {
+    if (!!a.zeit !== !!b.zeit) return a.zeit ? 1 : -1;
+    return String(a.zeit || "").localeCompare(String(b.zeit || "")) ||
+      vergleicheText(a.titel, b.titel);
+  }
+
   function terminVerzeichnis() {
     if (!terminIndexVeraltet && _terminVerzeichnis) return _terminVerzeichnis;
     const verz = new Map();
@@ -5407,8 +5418,7 @@
       }
     }
     for (const liste of verz.values()) {
-      liste.sort((a, b) => (a.zeit || "99:99").localeCompare(b.zeit || "99:99") ||
-        vergleicheText(a.titel, b.titel));
+      liste.sort(sortiereTermineNachZeit);
     }
     _wiederkehrende = DATEN.termine.filter(istWiederkehrend);
     _terminVerzeichnis = verz;
@@ -5416,8 +5426,8 @@
     return verz;
   }
 
-  function termineAm(iso) {
-    if (vergangenAusgeblendet(iso, "appointment")) return [];
+  function termineAm(iso, vergangeneEinblenden) {
+    if (!vergangeneEinblenden && vergangenAusgeblendet(iso, "appointment")) return [];
     const verz = terminVerzeichnis();
     const liste = (verz.get(iso) || []).slice();
     if (_wiederkehrende.length) {
@@ -5437,15 +5447,13 @@
           break;
         }
       }
-      liste.sort((a, b) =>
-        (a.zeit || "99:99").localeCompare(b.zeit || "99:99") ||
-        vergleicheText(a.titel, b.titel));
+      liste.sort(sortiereTermineNachZeit);
     }
     return liste.filter((t) => !istSynchronisierterKalendereintrag(t));
   }
 
-  function jahrestageAm(iso) {
-    if (vergangenAusgeblendet(iso, "anniversary")) return [];
+  function jahrestageAm(iso, vergangeneEinblenden) {
+    if (!vergangeneEinblenden && vergangenAusgeblendet(iso, "anniversary")) return [];
     const [j, m, t] = iso.split("-").map(Number);
     if (jahrestagIndexVeraltet || !_jahrestagVerzeichnis) {
       _jahrestagVerzeichnis = new Map();
@@ -6364,8 +6372,8 @@
         const alleFeiertage = imMonat ? feiertageAm(iso, true) : [];
         const feiertage = alleFeiertage.filter((f) => f.art === "public-holiday");
         const ferien = alleFeiertage.filter((f) => f.art === "school-holiday");
-        const termine = imMonat ? termineAm(iso) : [];
-        const jahrestage = imMonat ? jahrestageAm(iso) : [];
+        const termine = imMonat ? termineAm(iso, true) : [];
+        const jahrestage = imMonat ? jahrestageAm(iso, true) : [];
         const marken = imMonat ? tagmarkenAm(iso) : { schicht: null, zyklus: [] };
         const muelltermine = imMonat ? muelltermineAm(iso) : [];
         const urlaube = imMonat ? urlaubeAm(iso) : [];
@@ -7434,7 +7442,8 @@
       eintrag.einheit, eintrag.grund, eintrag.besonderheiten, eintrag.von,
       eintrag.von ? fmtPunkt(eintrag.von) : "", eintrag.bis,
       eintrag.bis ? fmtPunkt(eintrag.bis) : "", eintrag.wochentage,
-      (eintrag.wochenplan || []).map((tag) => [tag.tag, tag.menge, tag.einheit])];
+      (eintrag.wochenplan || []).map((tag) => [tag.tag, tag.morgens, tag.mittags,
+        tag.abends, tag.nachts])];
   }
 
   function gesundheitSuchTreffer(_kontext, begriffe, grenze) {
@@ -9614,7 +9623,9 @@
     fokusMarke(kasten, "kalender-woche:" + iso);
     if (iso === isoHeute()) kasten.classList.add("heute");
     if (iso === isoHeute()) kasten.setAttribute("aria-current", "date");
-    kasten.title = uebersetzt("Open day view for %(date)s", { date: fmtLang(iso) });
+    kasten.title = DATEN.einstellungen.kalender.klickLegtAn
+      ? _("Create a new appointment immediately")
+      : uebersetzt("Open day view for %(date)s", { date: fmtLang(iso) });
 
     const kopf = el("div", "wo-kopf");
     kopf.append(el("span", "wo-nr", String(d.getDate())));
@@ -12786,6 +12797,12 @@
     return Math.round(zahl * 100) / 100;
   }
 
+  function gesundheitBlutzuckerMmol(wert) {
+    const zahl = Number(wert && wert.wert);
+    if (!Number.isFinite(zahl)) return 0;
+    return wert.einheit === "mg/dL" ? zahl / 18.0182 : zahl;
+  }
+
   function gesundheitSortiert(art) {
     const liste = art === "vital" ? DATEN.gesundheit.vitalwerte
       : art === "blutzucker" ? DATEN.gesundheit.blutzucker : DATEN.gesundheit.medikamente;
@@ -14027,7 +14044,7 @@
       punkte: vital.filter((e) => e.diastolisch).map((e) => [e.datum, e.diastolisch]) }];
     if (art === "blood-glucose") return [{ name: _("Blood glucose"), farbe: "#8b6a35",
       punkte: gesundheitSortiert("blutzucker").filter((e) => gesundheitImDruckZeitraum(e, optionen))
-        .map((e) => [e.datum, e.einheit === "mg/dL" ? e.wert / 18.0182 : e.wert]) }];
+        .map((e) => [e.datum, gesundheitBlutzuckerMmol(e)]) }];
     const key = { pulse: "puls", temperature: "temperatur", weight: "gewicht" }[art];
     return [{ name: _(art === "pulse" ? msgid("Pulse") : art === "temperature"
       ? msgid("Temperature") : art === "weight" ? msgid("Weight") : msgid("BMI")),
@@ -14065,10 +14082,17 @@
       "<span style='color:" + serie.farbe + "'>● " + serie.name + "</span>").join(" ") + "</div>";
   }
 
-  function gesundheitDruckSeite(optionen) {
-    if (typeof optionen === "boolean") optionen = Object.assign(gesundheitDruckOptionenStandard(),
-      { leer: optionen, vital: true });
+  function gesundheitDruckSeite(optionen, eintraege) {
+    if (typeof optionen === "boolean") {
+      const arten = new Set((Array.isArray(eintraege) ? eintraege : [])
+        .map((eintrag) => eintrag._gesundheitArt));
+      optionen = Object.assign(gesundheitDruckOptionenStandard(), { leer: optionen,
+        vital: optionen || arten.has("vital"), blutzucker: optionen || arten.has("blutzucker"),
+        medikamente: optionen || arten.has("medikamente"), verlauf: "none" });
+    }
     optionen = Object.assign(gesundheitDruckOptionenStandard(), optionen || {});
+    const auswahl = Array.isArray(eintraege) ? eintraege : gesundheitDruckEintraege(optionen);
+    const nachArt = (art) => auswahl.filter((eintrag) => eintrag._gesundheitArt === art);
     const sicher = (wert) => String(wert || "").replace(/&/g, "&amp;")
       .replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\"/g, "&quot;");
     const tabelle = (spalten, zeilen, klasse) => "<table class='" + (klasse || "") +
@@ -14102,8 +14126,7 @@
         _("Temperature") + " " + gesundheitEinheitKurz("temperatur"),
         _("Weight") + " " + gesundheitEinheitKurz("gewicht"),
         _("Height") + " " + gesundheitEinheitKurz("groesse"), _('BMI')];
-      const werte = optionen.leer ? [] : gesundheitSortiert("vital")
-        .filter((e) => gesundheitImDruckZeitraum(e, optionen)).map((e) =>
+      const werte = optionen.leer ? [] : nachArt("vital").map((e) =>
           [fmtPunkt(e.datum), e.zeit, e.puls || "",
             e.systolisch && e.diastolisch ? e.systolisch + "/" + e.diastolisch : "",
             gesundheitAnzeigeWert("temperatur", e.temperatur),
@@ -14115,8 +14138,7 @@
     if (optionen.blutzucker) {
       const spalten = [_('Date'), _('Time'), _('Blood glucose value'), _('Unit'), _('IE'),
         _('Measurement context')];
-      const werte = optionen.leer ? [] : gesundheitSortiert("blutzucker")
-        .filter((e) => gesundheitImDruckZeitraum(e, optionen))
+      const werte = optionen.leer ? [] : nachArt("blutzucker")
         .map((e) => [fmtPunkt(e.datum), e.zeit, e.wert, e.einheit, e.ie || "", e.kontext]);
       if (optionen.schema) {
         const s = DATEN.gesundheit.insulinschema;
@@ -14145,7 +14167,7 @@
       }
     }
     if (optionen.medikamente) {
-      const mittel = optionen.leer ? [] : gesundheitSortiert("medikamente");
+      const mittel = optionen.leer ? [] : nachArt("medikamente");
       const linksSpalten = [_('Medication'), _('Strength'), _('Form')];
       const rechtsSpalten = [_('Morning'), _('Noon'), _('Evening'), _('Night'),
         _('Amount / unit'), _('Reason'), gesundheitBesonderheitenKopf()];
@@ -14315,9 +14337,9 @@
       serien.push({ name: _("Diastolic"), farbe: "#456f91", punkte: vital
         .filter((wert) => wert.diastolisch).map((wert) => [wert.datum, wert.diastolisch]) });
     } else if (z.verlaufWert === "blood-glucose") {
-      serien.push({ name: _("Blood glucose"), farbe: "#8b6a35", punkte:
+      serien.push({ name: _("Blood glucose") + " (mmol/L)", farbe: "#8b6a35", punkte:
         gesundheitSortiert("blutzucker").filter((wert) => wert.datum >= grenze)
-          .map((wert) => [wert.datum, wert.wert]) });
+          .map((wert) => [wert.datum, gesundheitBlutzuckerMmol(wert)]) });
     } else {
       const key = { pulse: "puls", temperature: "temperatur", weight: "gewicht" }[z.verlaufWert];
       serien.push({ name: _(z.verlaufWert === "pulse" ? msgid("Pulse")
@@ -14451,17 +14473,23 @@
 
   function zeichnePlaner() {
     const z = zustand.planer;
+    const wechsleJahr = (schritt) => {
+      const jahr = z.jahr + schritt;
+      if (jahr < 1000 || jahr > 9999) return;
+      z.jahr = jahr;
+      zeichneAlles();
+    };
 
-    const vor = knopf("‹", "pfeil", () => { z.jahr -= 1; zeichneAlles(); });
+    const vor = knopf("‹", "pfeil", () => wechsleJahr(-1));
     vor.title = _("Previous year");
     vor.setAttribute("aria-label", vor.title);
     fokusMarke(vor, "planer:jahr-zurueck");
-    const zurueck = knopf("›", "pfeil", () => { z.jahr += 1; zeichneAlles(); });
+    const zurueck = knopf("›", "pfeil", () => wechsleJahr(1));
     zurueck.title = _("Next year");
     zurueck.setAttribute("aria-label", zurueck.title);
     fokusMarke(zurueck, "planer:jahr-vor");
-    bindeSchnelllauf(vor, () => { z.jahr -= 1; zeichneAlles(); });
-    bindeSchnelllauf(zurueck, () => { z.jahr += 1; zeichneAlles(); });
+    bindeSchnelllauf(vor, () => wechsleJahr(-1));
+    bindeSchnelllauf(zurueck, () => wechsleJahr(1));
 
     const jahrWahl = knopf(_("Choose year…"), "klein", () => {
       magnolieEingabe({
@@ -14482,9 +14510,6 @@
       [vor, zurueck, jahrWahl, kalenderSuchknopf("planer")]);
     baueKopf("rechts", String(z.jahr), monatsName(6) + " – " + monatsName(11), []);
 
-    const terminTage = new Set(DATEN.termine
-      .filter((t) => !istSynchronisierterKalendereintrag(t) &&
-        !vergangenAusgeblendet(t.datum, "appointment")).map((t) => t.datum));
     const heute = isoHeute();
 
     const jtTage = new Set();
@@ -14540,7 +14565,7 @@
           const spalte = (versatz + t - 1) % 7;
           const wochentag = new Date(z.jahr, m, t).getDay();
           if (wochentag === 0 || wochentag === 6) zelle.classList.add("wochenende");
-          if (terminTage.has(iso)) zelle.classList.add("hat");
+           if (termineAm(iso).length) zelle.classList.add("hat");
           if (jtTage.has(pad2(m + 1) + "-" + pad2(t))) zelle.classList.add("jt");
           if (iso === heute) {
             zelle.classList.add("heute");
@@ -14607,8 +14632,8 @@
     $("#inhalt-links").append(baueHalbjahr(0));
     $("#inhalt-rechts").append(baueHalbjahr(6));
 
-    setzeEcken(() => { z.jahr -= 1; zeichneAlles(); }, _("Previous year"),
-      () => { z.jahr += 1; zeichneAlles(); }, _("Next year"));
+    setzeEcken(() => wechsleJahr(-1), _("Previous year"),
+      () => wechsleJahr(1), _("Next year"));
   }
 
   /* ---------------------------------------------------------------------- */
@@ -14926,6 +14951,7 @@
     { id: "import", name: msgid("Import") },
     { id: "export", name: msgid("Export") },
     { id: "sync", name: msgid("Synchronization") },
+    { id: "regional", name: msgid("Language & region") },
     { id: "ort", name: msgid("Country & holidays") },
     { id: "schrift", name: msgid("Typography") },
     { id: "erinnerung", name: msgid("Notifications") },
@@ -14996,6 +15022,7 @@
     else if (einstSeite === "import") baueSeiteImport(blatt);
     else if (einstSeite === "export") baueSeiteExport(blatt);
     else if (einstSeite === "sync") baueSeiteSync(blatt);
+    else if (einstSeite === "regional") baueSeiteRegional(blatt);
     else if (einstSeite === "ort") baueSeiteOrt(blatt);
     else if (einstSeite === "erinnerung") baueSeiteErinnerung(blatt);
     else if (einstSeite === "adressen") baueSeiteAdressen(blatt);
@@ -15337,7 +15364,7 @@
     abs.append(formZeile(_("Snapshot interval"), intervall));
     abs.append(el("p", "einst-hinweis", _("Last snapshot") + ": " + journalDatum(journalStand.last) +
       " · " + _("Next snapshot") + ": " + journalDatum(journalStand.next)));
-    if (journalStand.status && journalStand.status !== "ok") {
+    if (journalStand.status && !["ok", "off", "due", "scheduled"].includes(journalStand.status)) {
       abs.append(el("p", "einst-warnung", journalStand.status));
     }
     const jetzt = knopf(_("Create snapshot now"), "", () => {
@@ -17202,8 +17229,7 @@
       _("Health"), !!k.gesundheitAn, _("Show Health after Planner"));
     gesundheitGruppe.hak.id = "kalender-gesundheit";
     gesundheitGruppe.inhalt.append(el("p", "einst-hinweis",
-      _("Health records stay in your encrypted organizer data. The section documents " +
-        "measurements and schedules but does not provide medical advice.")));
+      _("Charts and BMI are documentation aids only and are not a diagnosis.")));
     const einheitenWahl = k.gesundheitEinheiten;
     const auto = _("According to language");
     const temperatur = auswahlFeld([["auto", auto], ["celsius", "°C"],
@@ -17504,9 +17530,8 @@
       " " + _("Allow notifications despite password protection")));
     ks.append(erinnerZeile);
     ks.append(el("p", "einst-hinweis",
-      _("For this purpose, appointments, tasks, anniversaries and the names of " +
-        "responsible people are kept unencrypted in a separate file readable only " +
-        "by you. Contacts and notes are never written to it.")));
+      _("The background reminder service may read the separate reminder data and " +
+        "therefore works even when the organizer is closed.")));
 
     const vertraulichHak = document.createElement("input");
     vertraulichHak.type = "checkbox";
@@ -18015,13 +18040,6 @@
     verpasstZeile.append(verpasstHak,
       document.createTextNode(" " + _("Also remind me about missed appointments")));
     felder.append(verpasstZeile);
-    felder.append(el("p", "einst-hinweis",
-      _("Missed reminders are shown after the next startup. If the computer was " +
-        "off or the application was closed, the organizer reports a missed " +
-        "appointment shortly after login and provides a button to open it. " +
-        "All-day appointments are treated as starting at 8 a.m. A small reminder " +
-        "service starts at login to check appointments in the background and " +
-        "continues running when you close the organizer.")));
 
     const weckHak = document.createElement("input");
     weckHak.type = "checkbox";
@@ -18405,6 +18423,59 @@
       _("When writing a note, a small toolbar above the sheet provides bold, italic, " +
         "underline and strikethrough. The same formatting is available with Ctrl+B, " +
         "Ctrl+I, Ctrl+U and Ctrl+D.")));
+    wurzel.append(ab);
+  }
+
+  function baueSeiteRegional(wurzel) {
+    const r = DATEN.einstellungen.regional;
+    const ab = abschnitt(_("Language and regional display"),
+      _("These choices change how the Organizer displays information. Your entries are not converted or moved."));
+    const sprachen = [["system", _("System setting")], ["de", "Deutsch"], ["en", "English"],
+      ["fr", "Français"], ["es", "Español"], ["it", "Italiano"], ["nl", "Nederlands"],
+      ["pt", "Português"], ["ru", "Русский"], ["cs", "Čeština"], ["pl", "Polski"],
+      ["hsb", "Hornjoserbsce"], ["da", "Dansk"], ["nb", "Norsk bokmål"], ["hi", "हिन्दी"],
+      ["zh_CN", "简体中文"], ["ja", "日本語"], ["ar", "العربية"], ["uk", "Українська"],
+      ["be", "Беларуская"], ["tr", "Türkçe"]];
+    const sprache = auswahlFeld(sprachen, r.language);
+    sprache.id = "regional-sprache";
+    ab.append(formZeile(_("Language"), sprache));
+    const format = document.createElement("input");
+    format.id = "regional-formatgebiet";
+    format.value = r.formatLocale || "system";
+    format.placeholder = "de-DE";
+    ab.append(formZeile(_("Format region"), format));
+    const stunden = auswahlFeld([["system", _("System setting")], ["h23", _("24-hour clock")],
+      ["h12", _("12-hour clock")]], r.hourCycle);
+    stunden.id = "regional-stunden";
+    ab.append(formZeile(_("Time format"), stunden));
+    const wochenanfang = auswahlFeld([["locale", _("According to format region")],
+      ["monday", _("Monday")], ["sunday", _("Sunday")], ["saturday", _("Saturday")]], r.firstDayOfWeek);
+    wochenanfang.id = "regional-wochenanfang";
+    ab.append(formZeile(_("First day of the week"), wochenanfang));
+    const wochenregel = auswahlFeld([["iso", _("ISO week (week 1 contains the first Thursday)")]], "iso");
+    wochenregel.id = "regional-wochenregel";
+    ab.append(formZeile(_("Week numbering"), wochenregel));
+    const temperatur = auswahlFeld([["system", _("According to format region")],
+      ["celsius", _("Celsius (°C)")], ["fahrenheit", _("Fahrenheit (°F)")]], r.temperatureUnit);
+    temperatur.id = "regional-temperatur";
+    ab.append(formZeile(_("Weather temperature"), temperatur));
+    const zone = document.createElement("input");
+    zone.id = "regional-zeitzone";
+    zone.value = r.timeZone || "system";
+    zone.placeholder = "Europe/Berlin";
+    ab.append(formZeile(_("Time zone"), zone));
+    const speichern = knopf(_("Save"), "", () => {
+      if (!Bruecke.vorhanden) return;
+      speichern.disabled = true;
+      Bruecke.sende({ cmd: "regional_einstellungen", regional: {
+        language: sprache.value, formatLocale: format.value.trim(), hourCycle: stunden.value,
+        firstDayOfWeek: wochenanfang.value, weekRule: "iso", temperatureUnit: temperatur.value,
+        timeZone: zone.value.trim() } });
+    });
+    speichern.id = "regional-speichern";
+    if (!Bruecke.vorhanden) speichern.disabled = true;
+    ab.append(speichern, el("p", "einst-hinweis",
+      _("Restart the Organizer after saving so that language, time zone, and all native windows use the new choices.")));
     wurzel.append(ab);
   }
 
@@ -19644,13 +19715,13 @@
       jahrestagIndexVeraltet = true;
       DATEN_PFAD = typeof nutzlast.datenPfad === "string" ? nutzlast.datenPfad : "";
       raeumeTombstonesAuf();
-      raeumePapierkorbAuf();
+      const papierkorbBereinigt = raeumePapierkorbAuf();
       const nachAufraeumen = performance.now();
       if (nutzlast.neu && !DATEN.notizen.length) {
         DATEN.notizen.push(willkommensNotiz());
       }
       initialisiert = true;
-      if (edsZeigerBereinigt) planeSpeichern();
+      if (edsZeigerBereinigt || papierkorbBereinigt) planeSpeichern();
       zustand.kalender.ansicht = DATEN.einstellungen.ansicht;
       wendeSchriftAn();
       wendeAllgemeinAn();
@@ -20521,7 +20592,13 @@
         return;
       }
       const o = DATEN.einstellungen.ort;
-      DATEN.feiertage = [];
+      const jahre = [...new Set((nutzlast.jahre || []).map(Number).filter((jahr) =>
+        Number.isInteger(jahr) && jahr >= 1900 && jahr <= 2200))];
+      DATEN.feiertage = DATEN.feiertage.filter((f) => {
+        const vonJahr = Number(String(f.von || "").slice(0, 4));
+        const bisJahr = Number(String(f.bis || f.von || "").slice(0, 4));
+        return !jahre.some((jahr) => jahr >= vonJahr && jahr <= bisJahr);
+      });
       for (const f of nutzlast.feiertage || []) {
         if (!f || !gueltigesISO(f.von) || !f.name) continue;
         DATEN.feiertage.push({ id: uid(), von: f.von,
@@ -20534,13 +20611,23 @@
           regionName: String(f.regionName || "") });
       }
       o.abgerufen = Date.now();
-      o.jahre = (nutzlast.jahre || []).map(Number).filter(Boolean);
+      o.jahre = [...new Set((o.jahre || []).map(Number).concat(jahre))]
+        .filter(Number.isInteger).sort((a, b) => a - b);
       planeSpeichern();
       zeichneAlles();
       if (!$("#einstellungen-schleier").classList.contains("verborgen")) {
         baueEinstellungen();
       }
       zettel(nutzlast.bericht || _("The holidays were imported."));
+    },
+    regionalErgebnis(nutzlast) {
+      nutzlast = nutzlast || {};
+      if (!nutzlast.ok) { zettel(nutzlast.fehler || _("The regional settings could not be saved.")); return; }
+      Object.assign(DATEN.einstellungen.regional, nutzlast.regional || {});
+      planeSpeichern();
+      zeichneAlles();
+      if (einstSeite === "regional") baueEinstellungen();
+      zettel(_("Regional settings saved. Restart the Organizer to apply them completely."));
     },
     updateErgebnis(nutzlast) {
       nutzlast = nutzlast || {};
@@ -20768,6 +20855,9 @@
           wartenderSpeicherText = JSON.stringify(DATEN);
         }
         if (erledigt && !baselineFehler) wartenderSpeicherText = erledigt.text;
+        if (beendenGewuenscht && Bruecke.vorhanden) {
+          Bruecke.sende({ cmd: "beenden_abgebrochen" });
+        }
         beendenGewuenscht = false;
         setzeSpeicherStatus(_("Saving failed!"), false);
         zettel(ergebnis.fehler || _("Warning: The data could not be saved."));
@@ -20866,6 +20956,7 @@
     leereDaten: leereDaten,
     oeffnePersonenblatt: oeffnePersonenblatt,
     termineAm: termineAm,
+    sortiereTermineNachZeit: sortiereTermineNachZeit,
     jahrestageAm: jahrestageAm,
     feiertageAm: feiertageAm,
     urlaubeAm: urlaubeAm,
@@ -20876,6 +20967,7 @@
     gesundheitEinheit: gesundheitEinheit,
     gesundheitAnzeigeWert: gesundheitAnzeigeWert,
     gesundheitBasisWert: gesundheitBasisWert,
+    gesundheitBlutzuckerMmol: gesundheitBlutzuckerMmol,
     insulinRegelEinheiten: insulinRegelEinheiten,
     gesundheitOdsNutzlast: gesundheitOdsNutzlast,
     gesundheitDruckEintraege: gesundheitDruckEintraege,

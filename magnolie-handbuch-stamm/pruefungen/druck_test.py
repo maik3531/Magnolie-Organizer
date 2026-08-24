@@ -115,6 +115,11 @@ def cli_pruefen():
         assert datei.read() == pot_vorher
 
 
+def flach(wert):
+    """Leerraum vereinheitlichen, damit Zeilenumbrueche nicht stoeren."""
+    return re.sub("[ " + chr(9) + chr(10) + chr(13) + "]+", " ", wert).strip()
+
+
 def haupt():
     cli_pruefen()
     if "--cli-only" in sys.argv[1:]:
@@ -143,9 +148,11 @@ def haupt():
         if len(seiten) != anzahl or any(not seite.strip() for seite in seiten):
             raise AssertionError("PDF enthält leere Seiten")
 
-        fussnummern = [int(nummer) for nummer in re.findall(
-            r"Magnolie Organizer · Handbuch\s+(\d+)\s*$", text,
-            re.MULTILINE)]
+        # Ein Bogen traegt zwei Seiten. pdftotext legt beide Fusszeilen auf
+        # dieselbe Zeile: links die Zahl vor der Marke, rechts dahinter.
+        fussnummern = [int(links or rechts) for links, rechts in re.findall(
+            r"(\d+)\s+Magnolie Organizer · Handbuch"
+            r"|Magnolie Organizer · Handbuch\s+(\d+)", text)]
         if fussnummern != list(range(1, len(fussnummern) + 1)):
             raise AssertionError("Handbuchseiten fehlen oder sind falsch geordnet")
         if len(fussnummern) < 59:
@@ -154,26 +161,39 @@ def haupt():
         for textstelle in (
             "240.000 Runden",
             "alle Startarten",
-            "eine Handbuchseite entspricht genau einem PDF-Blatt",
+            "aufgeschlagene Doppelseite",
             "Mehrtägige Termine",
             "Fassung und Aktualisierungen",
             "Freie Bezeichnungen bleiben erhalten",
             "Gesundheit einschalten und sich zurechtfinden",
-            "keine ständig sichtbaren Drehpfeile",
-            "allgemeine Orientierung für Erwachsene",
-            "Dosieren Sie Insulin niemals anhand",
-            "auf allen vier Seiten geschlossenen Rahmen",
-            "drei links und drei rechts",
-            "A4 im Querformat",
+            "sichtbaren Drehpfeile",
+            "allgemeine Referenzhilfen für Erwachsene",
+            "Dosieren Sie Insulin niemals allein nach",
+            "allen vier Seiten einen geschlossenen Rahmen",
+            "alle sechs Diagramme, davon drei links und drei",
+            "A4-Querformat",
             "magnolie-phone/1",
             "KDE Connect",
             "Personal Sync",
             "restore_unavailable",
             "Plattform- und Sicherheitsmatrix",
-            "magnolie-organizer-2.0.2-1.noarch.rpm",
+            "magnolie-organizer-2.0.3-",
             "Die Locale beeinflusst den Diagnosetext",
+            "Technische Datei- und Mengengrenzen",
+            "keine Speicherobergrenze",
+            "Terminserien und ICS-Rundwege",
+            "525.600 Minuten",
+            "Schreibweise des Manifests",
+            "AppImage-Erkennung verhindert",
+            "keine entsprechende Begrenzung der Antwortgröße",
+            "Glossar: A–M",
+            "Eine authentifizierte Verschlüsselung",
+            "Glossar: N–Z",
+            "kurzfristige, integritätsgeprüfte Kopie",
         ):
-            if textstelle not in text:
+            # Der Doppelseitensatz bricht Zeilen anders um als frueher der
+            # einspaltige Druck. Verglichen wird deshalb ohne Leerraum.
+            if flach(textstelle) not in flach(text):
                 raise AssertionError("Druckinhalt abgeschnitten: " + textstelle)
 
     print("PDF-DRUCKPRÜFUNG BESTANDEN (%d PDF-Seiten, keine Leerblätter)" % anzahl)

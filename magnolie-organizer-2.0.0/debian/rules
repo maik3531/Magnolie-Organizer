@@ -56,4 +56,4 @@ override_dh_builddeb:
 	dh_builddeb
 
 override_dh_auto_clean:
-	rm -rf bin/__pycache__ debian/tests/__pycache__ pruefungen/__pycache__ werkzeuge/__pycache__ klang locale web/i18n/*.js debian/test-data debian/test-config bau
+	rm -rf .flatpak-builder bin/__pycache__ debian/tests/__pycache__ pruefungen/__pycache__ werkzeuge/__pycache__ klang locale web/i18n/*.js debian/test-data debian/test-config bau

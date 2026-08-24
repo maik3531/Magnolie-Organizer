@@ -251,7 +251,7 @@ internal sealed class TelefonCoordinator : IDisposable
         {
             kennung = peer.Id, name = peer.Name, fingerabdruck = TelefonCrypto.Fingerprint(peer.PublicKey),
             state = peer.State,
-            online = IsOnline(peer.Id), transport = IsOnline(peer.Id) ? "wifi" : "offline",
+            online = IsOnline(peer.Id), transport = OnlineTransport(peer.Id),
             dial_request = IsOnline(peer.Id) && RemoteCapability(peer, "dial_request") && peer.Grants["dial_request"]?.GetValue<bool>() == true,
             zuletzt = peer.LastSeenMs, bluetooth = new { available = TelefonBluetoothSupport.Available,
                 reason = TelefonBluetoothSupport.Reason, blocker = TelefonBluetoothSupport.Blocker }
@@ -269,6 +269,7 @@ internal sealed class TelefonCoordinator : IDisposable
     }
 
     private bool IsOnline(string id) { lock (gate) return online.ContainsKey(id); }
+    private string OnlineTransport(string id) { lock (gate) return online.TryGetValue(id, out var connection) ? connection.Transport : "offline"; }
 
     private Task StartAsync()
     {
@@ -429,7 +430,7 @@ internal sealed class TelefonCoordinator : IDisposable
                 finally { Interlocked.Exchange(ref pairingBusy, 0); }
             }
             else if (type == "pair_finish") await RetryPairFinishAsync(stream, first, cancellation);
-            else if (type == "session_start") await SessionAsync(stream, first, cancellation);
+            else if (type == "session_start") await SessionAsync(stream, first, cancellation, transport);
             else Log(transport, type, "Unbekannter Rahmentyp.");
         }
         catch (OperationCanceledException) { }
@@ -533,7 +534,7 @@ internal sealed class TelefonCoordinator : IDisposable
         await ReportStatusAsync();
     }
 
-    private async Task SessionAsync(Stream stream, JsonObject start, CancellationToken cancellation)
+    private async Task SessionAsync(Stream stream, JsonObject start, CancellationToken cancellation, string transport)
     {
         Require(start, "p", "type", "sid", "from", "to", "initiator_role", "ephemeral_public", "nonce", "versions", "mac");
         var peerId = CanonicalUuid(start, "from"); var peer = Peers.FirstOrDefault(value => value.Id == peerId) ?? throw new CryptographicException();
@@ -563,7 +564,8 @@ internal sealed class TelefonCoordinator : IDisposable
             sessionShared = TelefonCrypto.X25519(ephemeralPrivate, peerEphemeral);
             var salt = Hmac(root, "magnolie-phone-fs1/session-salt\0", transcript);
             material = TelefonCrypto.Hkdf(sessionShared, salt, Encoding.UTF8.GetBytes("magnolie-phone-fs1/session-keys\0").Concat(transcript).ToArray(), 72);
-            connection = new TelefonConnection(peer, stream, sid, material, store, HandleMessageAsync, cancellation);
+            connection = new TelefonConnection(peer, stream, sid, material, store,
+                (source, message) => HandleMessageAsync(source, message, transport), cancellation, transport);
             var capabilityRevision = store.NextOwnRevision("capabilities"); var grantRevision = store.NextOwnRevision("grants");
             await connection.InitializeAsync(capabilityRevision);
             lock (gate) { if (online.Remove(peer.Id, out var previous)) previous.Dispose(); online[peer.Id] = connection; }
@@ -589,7 +591,7 @@ internal sealed class TelefonCoordinator : IDisposable
         }
     }
 
-    private async Task<TelefonAck?> HandleMessageAsync(TelefonPeer peer, JsonObject message)
+    private async Task<TelefonAck?> HandleMessageAsync(TelefonPeer peer, JsonObject message, string transport)
     {
         if (message["type"]?.GetValue<string>() != "message") return null;
         var kind = message["kind"]?.GetValue<string>() ?? "";
@@ -628,7 +630,7 @@ internal sealed class TelefonCoordinator : IDisposable
             else if (callState == "idle") await radioSwitch.ReleaseAllAsync(peer.Id);
             await emit("App.telefonEingehenderAnruf", WithPeer(body, peer)); return null;
         }
-        if (TelefonProtocolContract.PersonalKinds.Contains(kind)) return await HandlePersonalMessageAsync(peer, message, body);
+        if (TelefonProtocolContract.PersonalKinds.Contains(kind)) return await HandlePersonalMessageAsync(peer, message, body, transport);
         if (kind != "device_status.report") return null;
         TelefonDeviceStatusContract.ValidateReport(body); var status = body.DeepClone().AsObject();
         store.CompleteStatusRequest(peer.Id, body["request_id"]!.GetValue<string>());
@@ -636,7 +638,7 @@ internal sealed class TelefonCoordinator : IDisposable
         store.SaveStatus(peer.Id, status); await emit("App.telefonStatus", status); return null;
     }
 
-    private async Task<TelefonAck?> HandlePersonalMessageAsync(TelefonPeer peer, JsonObject message, JsonObject body)
+    private async Task<TelefonAck?> HandlePersonalMessageAsync(TelefonPeer peer, JsonObject message, JsonObject body, string transport)
     {
         var kind = message["kind"]!.GetValue<string>(); var id = message["message_id"]!.GetValue<string>(); var now = Now();
         if (kind == "personal_sync.settings") { var own = body["own_device"]!.GetValue<bool>(); if (!own) personalSync.PurgeProtocol(peer.Id); store.SetPersonalSettings(peer.Id, remoteOwnDevice: own); await emit("App.telefonPersonalSyncEinstellungen", new { device_id = peer.Id, own_device = own }); return null; }
@@ -644,20 +646,20 @@ internal sealed class TelefonCoordinator : IDisposable
         var grants = PersonalGrants(kind, body, run?.Request); if (grants.Count == 0 || grants.Any(name => store.LocalGrants()[name]?.GetValue<bool>() != true || peer.Grants[name]?.GetValue<bool>() != true)) return new TelefonAck(id, "rejected", "not_granted");
         var settings = store.PersonalSettings(peer.Id); if (!settings.OwnDevice || !settings.RemoteOwnDevice) return new TelefonAck(id, "rejected", "not_granted");
         if (body["format"]?.GetValue<int>() == 2 && !SupportsPersonalFormat2(peer)) return new TelefonAck(id, "rejected", "invalid_schema");
-        if (kind == "personal_sync.request") { personalSync.RememberRun(peer.Id, body, now, message["expires_ms"]!.GetValue<long>()); await emit("App.telefonPersonalSync", new { device_id = peer.Id, transport = "wifi", kind, body }); return null; }
+        if (kind == "personal_sync.request") { personalSync.RememberRun(peer.Id, body, now, message["expires_ms"]!.GetValue<long>()); await emit("App.telefonPersonalSync", new { device_id = peer.Id, transport, kind, body }); return null; }
         if (kind == "personal_sync.batch")
         {
-            var staged = personalSync.StageBatch(peer.Id, message, "wifi", now);
-            var complete = staged is not null && await CompleteOrRequestAttachmentsAsync(staged, true);
+            var staged = personalSync.StageBatch(peer.Id, message, transport, now);
+            var complete = staged is not null && await CompleteOrRequestAttachmentsAsync(staged, true, transport);
             return new TelefonAck(id, "accepted", "none", complete);
         }
-        if (kind is "personal_sync.deletion_proposals" or "personal_sync.deletion_decision") { var intent = personalSync.StageDecisionIntent(peer.Id, message, "wifi", now); var completion = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously); lock (gate) personalCommits[intent.CommitToken] = (peer.Id, completion); await EmitPersonalIntentAsync(intent, "wifi"); string outcome; try { outcome = await completion.Task.WaitAsync(TimeSpan.FromSeconds(30)); } catch (TimeoutException) { outcome = "temporary"; } finally { lock (gate) personalCommits.Remove(intent.CommitToken); } return outcome == "applied" ? new TelefonAck(id, "accepted", "none") : new TelefonAck(id, "rejected", outcome switch { "conflict" => "conflict", "restore_unavailable" => "restore_unavailable", "invalid" => "invalid_schema", "temporary" => "temporary_failure", _ => "permanent_failure" }); }
+        if (kind is "personal_sync.deletion_proposals" or "personal_sync.deletion_decision") { var intent = personalSync.StageDecisionIntent(peer.Id, message, transport, now); var completion = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously); lock (gate) personalCommits[intent.CommitToken] = (peer.Id, completion); await EmitPersonalIntentAsync(intent, transport); string outcome; try { outcome = await completion.Task.WaitAsync(TimeSpan.FromSeconds(30)); } catch (TimeoutException) { outcome = "temporary"; } finally { lock (gate) personalCommits.Remove(intent.CommitToken); } return outcome == "applied" ? new TelefonAck(id, "accepted", "none") : new TelefonAck(id, "rejected", outcome switch { "conflict" => "conflict", "restore_unavailable" => "restore_unavailable", "invalid" => "invalid_schema", "temporary" => "temporary_failure", _ => "permanent_failure" }); }
         if (kind == "personal_sync.attachment_chunk")
         {
             var raw = Convert.FromBase64String(body["data"]!.GetValue<string>());
             try { StagePersonalAttachmentChunk(peer.Id, body, raw, Math.Min(message["expires_ms"]!.GetValue<long>(), personalSync.LoadRun(peer.Id, body["run_id"]!.GetValue<string>(), now)!.ExpiresMs)); }
             finally { CryptographicOperations.ZeroMemory(raw); }
-            foreach (var staged in personalSync.ReadyBatches(now).Where(item => item.PeerId == peer.Id && item.RunId == body["run_id"]!.GetValue<string>() && item.Reply == body["reply"]!.GetValue<bool>() && item.RecordsHash == body["records_hash"]!.GetValue<string>())) await CompleteOrRequestAttachmentsAsync(staged, false);
+            foreach (var staged in personalSync.ReadyBatches(now).Where(item => item.PeerId == peer.Id && item.RunId == body["run_id"]!.GetValue<string>() && item.Reply == body["reply"]!.GetValue<bool>() && item.RecordsHash == body["records_hash"]!.GetValue<string>())) await CompleteOrRequestAttachmentsAsync(staged, false, transport);
             return new TelefonAck(id, "accepted", "none", true);
         }
         if (kind == "personal_sync.attachment_result")
@@ -665,10 +667,11 @@ internal sealed class TelefonCoordinator : IDisposable
             personalSync.CompleteOutgoingAttachment(peer.Id, body["run_id"]!.GetValue<string>(), body["reply"]!.GetValue<bool>(), body["records_hash"]!.GetValue<string>(), body["sha256"]!.GetValue<string>(), now);
             await ReleasePersonalReportAsync(peer.Id, body["run_id"]!.GetValue<string>()); return new TelefonAck(id, "accepted", "none", true);
         }
-        await emit("App.telefonPersonalSync", new { device_id = peer.Id, transport = "wifi", kind, body }); return null;
+        await emit("App.telefonPersonalSync", new { device_id = peer.Id, transport, kind, body }); return null;
     }
 
-    private async Task<bool> CompleteOrRequestAttachmentsAsync(PersonalSyncStagedBatch staged, bool requestMissing)
+    private async Task<bool> CompleteOrRequestAttachmentsAsync(PersonalSyncStagedBatch staged, bool requestMissing,
+        string transport = "wifi")
     {
         if (staged.RecordsHash.Length == 64)
         {
@@ -687,7 +690,7 @@ internal sealed class TelefonCoordinator : IDisposable
                 return false;
             }
         }
-        await emit("App.telefonPersonalSync", new { device_id = staged.PeerId, transport = "wifi", kind = "personal_sync.batch", pending_message_id = staged.PendingMessageId, commit_token = staged.CommitToken, body = new { run_id = staged.RunId, reply = staged.Reply, records = staged.Records, records_hash = staged.RecordsHash } });
+        await emit("App.telefonPersonalSync", new { device_id = staged.PeerId, transport, kind = "personal_sync.batch", pending_message_id = staged.PendingMessageId, commit_token = staged.CommitToken, body = new { run_id = staged.RunId, reply = staged.Reply, records = staged.Records, records_hash = staged.RecordsHash } });
         if (staged.RecordsHash.Length == 64)
             foreach (var hash in staged.Records.OfType<JsonObject>().SelectMany(record => (record["value"]?["attachments"] as JsonArray ?? []).OfType<JsonObject>()).Select(value => value["sha256"]!.GetValue<string>()).Distinct(StringComparer.Ordinal))
                 await SendPersonalSyncAsync(staged.PeerId, "personal_sync.attachment_result", new JsonObject { ["format"] = 2, ["run_id"] = staged.RunId, ["reply"] = staged.Reply, ["records_hash"] = staged.RecordsHash, ["sha256"] = hash, ["state"] = "complete", ["error"] = "none" });
@@ -793,11 +796,12 @@ internal sealed class TelefonConnection : IDisposable
 {
     private readonly TelefonPeer peer; private readonly Stream stream; private readonly byte[] sid;
     private readonly byte[] receiveKey; private readonly byte[] receivePrefix; private readonly byte[] sendKey; private readonly byte[] sendPrefix;
-    private readonly TelefonStore store; private readonly Func<TelefonPeer, JsonObject, Task<TelefonAck?>> receive; private readonly CancellationToken cancellation; private readonly SemaphoreSlim writer = new(1, 1);
+    private readonly TelefonStore store; private readonly Func<TelefonPeer, JsonObject, Task<TelefonAck?>> receive; private readonly CancellationToken cancellation; private readonly string transport; private readonly SemaphoreSlim writer = new(1, 1);
     private long receiveSequence; private long sendSequence; private long lastReceivedMs; private long lastSentMs; private bool disposed;
     internal string RemoteCloseReason { get; private set; } = "";
-    internal TelefonConnection(TelefonPeer peer, Stream stream, byte[] sid, byte[] material, TelefonStore store, Func<TelefonPeer, JsonObject, Task<TelefonAck?>> receive, CancellationToken cancellation)
-    { this.peer = peer; this.stream = stream; this.sid = sid.ToArray(); receiveKey = material[..32]; receivePrefix = material[32..36]; sendKey = material[36..68]; sendPrefix = material[68..72]; this.store = store; this.receive = receive; this.cancellation = cancellation; lastReceivedMs = lastSentMs = Now(); }
+    internal string Transport => transport;
+    internal TelefonConnection(TelefonPeer peer, Stream stream, byte[] sid, byte[] material, TelefonStore store, Func<TelefonPeer, JsonObject, Task<TelefonAck?>> receive, CancellationToken cancellation, string transport)
+    { this.peer = peer; this.stream = stream; this.sid = sid.ToArray(); receiveKey = material[..32]; receivePrefix = material[32..36]; sendKey = material[36..68]; sendPrefix = material[68..72]; this.store = store; this.receive = receive; this.cancellation = cancellation; this.transport = transport; lastReceivedMs = lastSentMs = Now(); }
     internal async Task RunAsync()
     {
         Task<JsonObject>? read = null;
@@ -894,6 +898,8 @@ internal sealed class TelefonConnection : IDisposable
         if (grants.Count == 0 || grants.Any(name => store.LocalGrants()[name]?.GetValue<bool>() != true || current.Grants[name]?.GetValue<bool>() != true)) return "not_granted";
         var settings = store.PersonalSettings(peer.Id);
         if (!settings.OwnDevice || !settings.RemoteOwnDevice) return "not_granted";
+        if ((kind == "personal_sync.request" && body["trigger"]?.GetValue<string>() == "auto_wifi" || run?.Policy == "wifi_only") &&
+            transport != "wifi") return "not_granted";
         return body["format"]?.GetValue<int>() == 2 && !TelefonCoordinator.SupportsPersonalFormat2(current) ? "invalid_schema" : null;
     }
     private string? Authorize(string kind, JsonObject body)
@@ -922,7 +928,7 @@ internal sealed class TelefonConnection : IDisposable
     }
     private async Task PumpOutboxAsync()
     {
-        var now = Now(); foreach (var item in store.Due(peer.Id, now))
+        var now = Now(); foreach (var item in store.Due(peer.Id, now, transport: transport))
         { await SendPlainAsync(item.Message); store.MarkAttempt(item.Id, item.Attempts, now); }
     }
     private static void ValidateControlUuidAndTime(JsonObject value)

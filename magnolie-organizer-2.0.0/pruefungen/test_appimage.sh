@@ -18,9 +18,15 @@ case "$CONTRIBUTOR_HASH" in *[!0-9a-fA-F]*) exit 2;; esac
 CONTRIBUTOR_HASH=$(printf '%s' "$CONTRIBUTOR_HASH" | tr A-F a-f)
 
 test -x "$APPIMAGE"
+DISPLAY= WAYLAND_DISPLAY= timeout 20s "$APPIMAGE" --language en --help | \
+    grep -q 'Usage:'
+DISPLAY= WAYLAND_DISPLAY= timeout 20s "$APPIMAGE" --appimage-extract-and-run \
+    --language en --help | grep -q 'Usage:'
 (cd "$ARBEIT" && "$APPIMAGE" --appimage-extract >/dev/null)
 APPDIR="$ARBEIT/squashfs-root"
 test -x "$APPDIR/AppRun"
+grep -Fq ': "${WEBKIT_DISABLE_DMABUF_RENDERER:=1}"' "$APPDIR/AppRun"
+grep -Fq ': "${WEBKIT_DISABLE_COMPOSITING_MODE:=1}"' "$APPDIR/AppRun"
 if find "$APPDIR" -type f -exec grep -aFl \
     'WEBKIT_DISABLE_SANDBOX_THIS_IS_DANGEROUS=1' {} + | grep -q .; then
     printf '%s\n' 'Das AppImage enthaelt den WebKit-Sandbox-Disable-Schalter.' >&2
@@ -189,6 +195,29 @@ set -e
 if [ "$gui_status" -ne 124 ]; then
     printf '%s\n' "WebKit-Sandbox-Smoke-Test fehlgeschlagen (Status $gui_status):" >&2
     cat "$ARBEIT/gui.log" >&2
+    exit 1
+fi
+
+appimage_gui_direkt() {
+    if command -v dbus-run-session >/dev/null; then
+        env -u WEBKIT_DISABLE_SANDBOX_THIS_IS_DANGEROUS \
+            WEBKIT_FORCE_SANDBOX=1 dbus-run-session -- \
+            timeout 5s xvfb-run -a "$APPIMAGE"
+    else
+        env -u WEBKIT_DISABLE_SANDBOX_THIS_IS_DANGEROUS \
+            WEBKIT_FORCE_SANDBOX=1 timeout 5s xvfb-run -a "$APPIMAGE"
+    fi
+}
+set +e
+DISPLAY= WAYLAND_DISPLAY= DESKTOPINTEGRATION=1 \
+XDG_DATA_HOME="$ARBEIT/direct-data" XDG_CONFIG_HOME="$ARBEIT/direct-config" \
+XDG_STATE_HOME="$ARBEIT/direct-state" \
+    appimage_gui_direkt >"$ARBEIT/direct.log" 2>&1
+direkt_status=$?
+set -e
+if [ "$direkt_status" -ne 124 ]; then
+    printf '%s\n' "Direkter AppImage-Smoke-Test fehlgeschlagen (Status $direkt_status):" >&2
+    cat "$ARBEIT/direct.log" >&2
     exit 1
 fi
 

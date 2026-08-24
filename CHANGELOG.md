@@ -1,5 +1,23 @@
 # Changelog / Änderungen
 
+## 2.0.3 / Notes 1.0.5 — 2026-08-24
+
+### English
+
+- Prevented optional desktop integration from replacing PulseAudio with PipeWire or vice versa during DEB installation.
+- Added verified audio fallback across available PulseAudio, PipeWire and ALSA clients.
+- Disabled affected WebKitGTK DMA-BUF and compositing paths before initialization to avoid blank Wayland AppImage windows and Mesa/Gallium shutdown crashes.
+- Added a sandboxed GNOME 49 Flatpak bundle with no direct host-filesystem or GPU-device access.
+- Carried the complete 154-page handbook and all 19 translation catalogs forward to 2.0.3.
+
+### Deutsch
+
+- Optionale Desktopintegration kann bei der DEB-Installation weder PulseAudio durch PipeWire noch PipeWire durch PulseAudio ersetzen.
+- Der Audiofallback wechselt geprüft zwischen vorhandenen PulseAudio-, PipeWire- und ALSA-Werkzeugen.
+- Betroffene DMA-BUF- und Compositing-Pfade werden vor der WebKitGTK-Initialisierung abgeschaltet; dadurch werden leere Wayland-AppImage-Fenster und Mesa-/Gallium-Abstürze beim Beenden vermieden.
+- Ein sandboxiertes Flatpak auf Basis von GNOME 49 kommt ohne direkten Zugriff auf das Wirtsdateisystem oder Grafikgerät hinzu.
+- Das vollständige 154-Seiten-Handbuch und alle 19 Übersetzungskataloge wurden auf 2.0.3 übernommen.
+
 ## 2.0.2 / Notes 1.0.5 — 2026-08-22
 
 ### English

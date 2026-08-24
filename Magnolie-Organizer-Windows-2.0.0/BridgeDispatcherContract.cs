@@ -27,7 +27,7 @@ internal static class BridgeDispatcherContract
         ["mail"] = S(T("email"), T("name")), ["karte"] = S(J("kontakt"), T("land"), O("dienst", JsonValueKind.String), O("route", JsonValueKind.True, JsonValueKind.False), O("absender", JsonValueKind.String)),
         ["sozial"] = S(T("dienst"), T("wert"), O("aktionArt", JsonValueKind.String), O("aktionZiel", JsonValueKind.String), O("land", JsonValueKind.String)),
         ["update_pruefen"] = S(), ["wetter"] = S(T("ort"), B("ohneOrtAbrufen"), N("kennung")),
-        ["feiertage"] = S(T("land"), T("region"), A("regionen"), B("regionErforderlich"), A("jahre"), B("ferien")), ["import"] = S(O("art", JsonValueKind.String), O("daten", JsonValueKind.String)),
+        ["feiertage"] = S(T("land"), T("region"), A("regionen"), B("regionErforderlich"), A("jahre"), B("ferien")), ["regional_einstellungen"] = S(J("regional")), ["import"] = S(O("art", JsonValueKind.String), O("daten", JsonValueKind.String)),
         ["import_lokal"] = S(), ["export"] = S(T("art"), A("daten")), ["brief"] = S(J("kontakt"), O("absender", JsonValueKind.String), O("layout", JsonValueKind.String)),
         ["adressen_ods"] = S(T("titel"), A("spalten"), A("zeilen")),
         ["planer_ods"] = S(T("layout"), N("jahr"), O("monat", JsonValueKind.Number), T("titel"), A("spalten"), A("zeilen"), A("stile"), A("inhalte")),

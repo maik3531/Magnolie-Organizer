@@ -21,6 +21,8 @@ internal static class NativeLocalizationTests
                 $"Der native Katalog für {actual} wurde nicht angewendet.");
         }
         TestAssert.That(NativeLocalization.ResolveLanguage("de-AT") == "de", "Deutscher Regional-Fallback fehlt.");
+        TestAssert.That(NativeLocalization.ResolveLanguage("zh-Hans") == "zh_CN",
+            "Vereinfachtes Chinesisch aus der Systemauswahl geht verloren.");
         TestAssert.That(NativeLocalization.ResolveLanguage("xx-ZZ") == "en", "Englischer Fallback fehlt.");
         TestAssert.That(NativeLocalization.Gettext("Missing native key", "de") == "Missing native key",
             "Fehlende deutsche Schlüssel müssen sauber auf den englischen msgid zurückfallen.");

@@ -49,17 +49,23 @@
       ? ANZEIGE.findIndex((seite) => seite.istVerzeichnis) : -1;
   }
 
+  /* Waehrend der Druckausgabe zeigen Verweise auf die gedruckte Seite,
+     nicht auf die Nummer der ungeteilten Quellseite. */
+  let druckNummern = null;
+
   function quellSeitenIndex(id) {
     return SEITEN.findIndex((seite) => seite.id === id);
   }
 
-  function verweiseAufloesen(markup, _druck) {
+  function verweiseAufloesen(markup, druck) {
     const huelle = document.createElement("div");
     huelle.innerHTML = markup || "";
     for (const verweis of huelle.querySelectorAll("[data-page]")) {
-      const index = quellSeitenIndex(verweis.dataset.page);
-      if (index >= 0 && !verweis.textContent.trim()) {
-        verweis.textContent = String(index + 1);
+      const ziel = verweis.dataset.page;
+      const gedruckt = (druck && druckNummern) ? druckNummern.get(ziel) : undefined;
+      const nummer = gedruckt !== undefined ? gedruckt : quellSeitenIndex(ziel) + 1;
+      if (nummer > 0 && !verweis.textContent.trim()) {
+        verweis.textContent = String(nummer);
       }
     }
     return huelle.innerHTML;
@@ -335,6 +341,10 @@
   }
 
   function teileSeite(quelle, markup) {
+    return teileSeiteMit(quelle, markup, passtInAnzeigekasten);
+  }
+
+  function teileSeiteMit(quelle, markup, passt) {
     const alle = einheiten(markup);
     if (!alle.length) return [anzeigeSeite(quelle, "", 0)];
     const seiten = [];
@@ -342,15 +352,18 @@
     for (const einheit of alle) {
       const kandidat = aktuell.concat(einheit);
       const probe = anzeigeSeite(quelle, einheitenMarkup(kandidat), seiten.length);
-      if (aktuell.length && !passtInAnzeigekasten(probe)) {
-        /* Eine Überschrift bleibt nach Möglichkeit beim folgenden Block. */
+      if (aktuell.length && !passt(probe)) {
+        /* Eine Überschrift bleibt nach Möglichkeit beim folgenden Block –
+           aber nur, wenn beide zusammen auf die nächste Seite passen. */
         const letztes = aktuell[aktuell.length - 1];
-        if (letztes.knoten && /^H[1-6]$/.test(letztes.knoten.tagName)) {
+        const paar = [letztes, einheit];
+        if (letztes.knoten && /^H[1-6]$/.test(letztes.knoten.tagName) &&
+            passt(anzeigeSeite(quelle, einheitenMarkup(paar), seiten.length))) {
           aktuell.pop();
           if (aktuell.length) {
             seiten.push(anzeigeSeite(quelle, einheitenMarkup(aktuell), seiten.length));
           }
-          aktuell = [letztes, einheit];
+          aktuell = paar;
         } else {
           seiten.push(anzeigeSeite(quelle, einheitenMarkup(aktuell), seiten.length));
           aktuell = [einheit];
@@ -458,14 +471,19 @@
     zeichne();
   }
 
-  function umbruchPlanen() {
+  function umbruchPlanen(groessenwechsel = false) {
+    if (groessenwechsel) $("#buch").classList.add("groessenwechsel");
     if (umbruchVorgemerkt) return;
     umbruchVorgemerkt = true;
     const spaeter = window.requestAnimationFrame || ((funktion) => setTimeout(funktion, 0));
     spaeter(() => {
       spaeter(() => {
         umbruchVorgemerkt = false;
-        umbruch();
+        try {
+          umbruch();
+        } finally {
+          $("#buch").classList.remove("groessenwechsel");
+        }
       });
     });
   }
@@ -474,14 +492,185 @@
   /* Drucken: das ganze Handbuch auf A4                                      */
   /* ---------------------------------------------------------------------- */
 
-  function druckSeiten() {
-    const kopien = SEITEN.map((seite) => Object.assign({}, seite));
-    const stellen = kopien.map((seite, index) => seite.platzhalter === "inhalt" ? index : -1)
-      .filter((index) => index >= 0);
-    if (!stellen.length) return kopien;
+  /* ----------------------------------------------------------------
+     Druck. Gemessen wird in einem unsichtbaren Rahmen mit der echten
+     Blattgeometrie, damit der Umbruch nicht von der Fenstergroesse
+     abhaengt und kein Text ueber den Blattrand laeuft.
+     ---------------------------------------------------------------- */
+
+  function druckStil() {
+    return "@page { size: A4 landscape; margin: 0; }" +
+      "* { -webkit-print-color-adjust: exact; print-color-adjust: exact;" +
+      " box-sizing: border-box; }" +
+      "html, body { margin: 0; padding: 0; background: #2a150e; }" +
+      "body { font: 11.5pt/1.45 'Liberation Sans', 'DejaVu Sans', sans-serif;" +
+      " color: #2f2921; }" +
+      /* Ein Bogen ist ein aufgeschlagenes Doppel auf einem A4-Querblatt. */
+      ".bogen { width: 297mm; height: 210mm; padding: 5mm; overflow: hidden;" +
+      " page-break-after: always; break-after: page;" +
+      " page-break-inside: avoid; break-inside: avoid;" +
+      " background: linear-gradient(160deg, #6b3a29 0%, #55291c 45%, #3c1f15 100%); }" +
+      ".bogen:last-child { page-break-after: auto; break-after: auto; }" +
+      ".seiten { display: flex; height: 100%; border-radius: 2mm; overflow: hidden; }" +
+      ".blatt, .leerblatt { position: relative; flex: 1; min-width: 0;" +
+      " display: flex; flex-direction: column; padding: 7mm 8mm 4mm;" +
+      " background-color: #f6efdc; }" +
+      '.blatt[data-seite="links"] { background-image:' +
+      " linear-gradient(90deg, rgba(0,0,0,0.13), rgba(0,0,0,0) 8%); }" +
+      '.blatt[data-seite="rechts"], .leerblatt { background-image:' +
+      " linear-gradient(270deg, rgba(0,0,0,0.13), rgba(0,0,0,0) 8%); }" +
+      ".bindung { width: 13mm; flex: none; display: flex; flex-direction: column;" +
+      " align-items: center; justify-content: space-around; padding: 8mm 0;" +
+      " background: linear-gradient(90deg, #2a150e 0%, #402014 18%, #1d0f0a 50%," +
+      " #402014 82%, #2a150e 100%); }" +
+      ".ring { width: 6mm; height: 6mm; border-radius: 50%;" +
+      " border: 0.8mm solid #e8e2d4; }" +
+      ".blatt-inhalt { flex: 1; min-height: 0; }" +
+      ".kapitel { font-size: 8.2pt; font-weight: 600; letter-spacing: .14em;" +
+      " text-transform: uppercase; color: #7a684c; }" +
+      "h2 { font-family: 'Liberation Serif', Georgia, serif; font-size: 15pt;" +
+      " color: #3a3128; margin: 0.8mm 0 2.6mm; border-bottom: 0.9mm solid #d8b25c;" +
+      " padding-bottom: 1.4mm; }" +
+      "h3 { font-family: 'Liberation Serif', Georgia, serif; font-size: 11.6pt;" +
+      " color: #463a2c; margin: 2.6mm 0 1.1mm; border-bottom: 1px dotted #ab9468;" +
+      " padding-bottom: .6mm; }" +
+      "p { margin: 0 0 2mm; orphans: 3; widows: 3; }" +
+      "ul, ol { margin: 0 0 2mm; padding-left: 6mm; }" +
+      "li { margin-bottom: .8mm; }" +
+      ".merke, .beispiel, .achtung, .technik { margin: 2mm 0; padding: 1.8mm 3mm;" +
+      " border-radius: 1.2mm; page-break-inside: avoid; break-inside: avoid; }" +
+      ".merke { border-left: 0.8mm solid #a8823c; background: #f7f0dc; }" +
+      ".beispiel { border-left: 0.8mm solid #5d7a52; background: #eef3ea; }" +
+      ".achtung { border-left: 0.8mm solid #b5443a; background: #fbeceb; }" +
+      ".technik { border: 1px dotted #ab9468; background: #f4f4f1; font-size: 10.4pt; }" +
+      ".merke b, .beispiel b, .achtung b, .technik b:first-child { display: block; }" +
+      ".technik b:first-child { font-size: 8.6pt; letter-spacing: .09em;" +
+      " text-transform: uppercase; color: #4a4238; }" +
+      "code { font-family: 'DejaVu Sans Mono', monospace; font-size: 10pt; }" +
+      ".schritte { list-style: decimal; padding-left: 6.5mm; }" +
+      "kbd { border: 1px solid #ab9468; border-radius: 1mm; padding: 0 .8mm;" +
+      " font-size: 9.4pt; }" +
+      ".knopfwort { border: 1px solid #ab9468; border-radius: 1mm;" +
+      " padding: 0 .8mm; font-weight: 600; }" +
+      "figure { margin: 2.2mm 0; text-align: center; page-break-inside: avoid; }" +
+      "figure svg { max-width: 100%; max-height: 62mm; width: auto; height: auto;" +
+      " border: 1px solid #cbb894; border-radius: 1.2mm; }" +
+      /* Einheitliche, feste Bildhoehe. Sie haelt den Platzbedarf jeder
+         Abbildung gleich und macht den Kasten schon vor dem Laden des
+         Bildes messbar; sonst zaehlte ein leeres Bild als null hoch. */
+      "figure img { max-width: 100%; width: auto; height: 37mm;" +
+      " object-fit: contain; border: 1px solid #cbb894; border-radius: 1.2mm; }" +
+      "figcaption { font-style: italic; font-size: 9.2pt; color: #5a4630; }" +
+      ".abbildungsreihe { display: grid; gap: 2mm;" +
+      " grid-template-columns: repeat(3, minmax(0, 1fr)); }" +
+      ".abbildungsreihe figure { margin: 0; }" +
+      ".abbildungsreihe img { width: 100%; height: 26mm; object-fit: contain; }" +
+      ".inhalt-liste { list-style: none; padding: 0; margin: 0; }" +
+      ".inhalt-eintrag { display: flex; gap: 2mm; width: 100%; border: 0;" +
+      " background: none; padding: .5mm 0; font-size: 10.4pt; text-align: left; }" +
+      ".inhalt-eintrag.haupt { font-weight: 600; }" +
+      ".inhalt-eintrag .punkte { flex: 1; border-bottom: 1px dotted #ab9468; }" +
+      ".fuss { flex: none; display: flex; justify-content: space-between;" +
+      " align-items: center; margin-top: 2.5mm; padding-top: 1.4mm;" +
+      " border-top: 1px dotted #ab9468; font-size: 8.4pt; color: #6a5c44; }" +
+      ".fuss .zahl { font-family: 'Liberation Serif', Georgia, serif;" +
+      " font-size: 9.6pt; font-weight: 600; color: #5a4630; }" +
+      ".kompakt .blatt-inhalt { font-size: 10.4pt; line-height: 1.32; }" +
+      ".kompakt h2 { margin-bottom: 1.9mm; padding-bottom: 1.1mm; }" +
+      ".kompakt h3 { margin: 1.8mm 0 .8mm; padding-bottom: .4mm; }" +
+      ".kompakt p, .kompakt ul, .kompakt ol { margin-bottom: 1.3mm; }" +
+      ".kompakt li { margin-bottom: .4mm; }" +
+      ".kompakt .merke, .kompakt .beispiel, .kompakt .achtung, .kompakt .technik {" +
+      " margin: 1.3mm 0; padding: 1.4mm 2.6mm; }";
+  }
+
+  function druckHuelle(koerper) {
+    return "<!DOCTYPE html><html lang='" + document.documentElement.lang +
+      "'><head><meta charset='utf-8'><title>" +
+      _("Magnolie Organizer - Handbook") + "</title><style>" + druckStil() +
+      "</style></head><body>" + koerper + "</body></html>";
+  }
+
+  /* Ohne bekannte Maße zaehlt ein noch nicht geladenes Bild als null hoch.
+     Die vorgeladenen natuerlichen Groessen machen den Kasten berechenbar. */
+  function bildmasseSetzen(markup) {
+    const huelle = document.createElement("div");
+    huelle.innerHTML = markup || "";
+    for (const bild of huelle.querySelectorAll("img[src]")) {
+      if (bild.getAttribute("width") && bild.getAttribute("height")) continue;
+      let lader = null;
+      try {
+        lader = bildLader.get(new URL(bild.getAttribute("src"), document.baseURI).href);
+      } catch (fehler) {
+        lader = null;
+      }
+      if (lader && lader.naturalWidth && lader.naturalHeight) {
+        bild.setAttribute("width", String(lader.naturalWidth));
+        bild.setAttribute("height", String(lader.naturalHeight));
+      }
+    }
+    return huelle.innerHTML;
+  }
+
+  function druckInhaltMarkup(seite) {
+    return (seite.kapitel ? '<div class="kapitel">' + seite.kapitel + "</div>" : "") +
+      "<h2>" + (seite.titel || "") + "</h2>" +
+      '<div class="text">' +
+      bildmasseSetzen(verweiseAufloesen(seite.inhalt, true)) + "</div>";
+  }
+
+  function druckMesser() {
+    let rahmen = null;
+    try {
+      rahmen = document.createElement("iframe");
+      rahmen.setAttribute("aria-hidden", "true");
+      rahmen.setAttribute("tabindex", "-1");
+      rahmen.style.cssText = "position:fixed;left:-20000px;top:0;width:297mm;" +
+        "height:210mm;border:0;visibility:hidden;";
+      document.body.appendChild(rahmen);
+      const d = rahmen.contentDocument;
+      if (!d) throw new Error("kein Messrahmen");
+      d.open();
+      /* Der Rahmen traegt das vollstaendige Doppel. Eine einzelne Seite wuerde
+         sich ueber die ganze Bogenbreite dehnen und viel zu viel Text fassen. */
+      d.write(druckHuelle('<div class="bogen"><div class="seiten">' +
+        '<section class="blatt" data-seite="links">' +
+        '<div class="blatt-inhalt"></div>' +
+        '<div class="fuss"><span class="zahl">888</span>' +
+        '<span class="marke">M</span></div></section>' +
+        '<div class="bindung">' + '<div class="ring"></div>'.repeat(7) + '</div>' +
+        '<section class="blatt" data-seite="rechts" id="mess-blatt">' +
+        '<div class="blatt-inhalt" id="mess-inhalt"></div>' +
+        '<div class="fuss"><span class="marke">M</span>' +
+        '<span class="zahl">888</span></div></section></div></div>'));
+      d.close();
+      const blatt = d.getElementById("mess-blatt");
+      const kasten = d.getElementById("mess-inhalt");
+      if (!blatt || !kasten || !kasten.clientHeight) throw new Error("keine Messung");
+      /* Der Messkasten ist bewusst zwei Millimeter niedriger als das gedruckte
+         Blatt. Dieser Vorbehalt faengt Rundung und den letzten Zeilenabstand
+         ab, damit kein Absatz an den Blattrand stoesst. */
+      blatt.style.paddingBottom = "6mm";
+      return {
+        passt(seite) {
+          blatt.className = "blatt" + (seite.druckKompakt ? " kompakt" : "");
+          kasten.innerHTML = druckInhaltMarkup(seite);
+          return kasten.scrollHeight <= kasten.clientHeight;
+        },
+        schliessen() {
+          if (rahmen && rahmen.parentNode) rahmen.parentNode.removeChild(rahmen);
+        }
+      };
+    } catch (fehler) {
+      if (rahmen && rahmen.parentNode) rahmen.parentNode.removeChild(rahmen);
+      return null;
+    }
+  }
+
+  function druckVerzeichnisMarkup(seiten) {
     const liste = el("ul", "inhalt-liste");
-    SEITEN.forEach((seite, index) => {
-      if (!seite.imInhalt) return;
+    seiten.forEach((seite, index) => {
+      if (!seite.imInhalt || (seite.teil && seite.teil > 1)) return;
       const zeile = el("li");
       const eintrag = el("div", "inhalt-eintrag" +
         (seite.imInhalt === "haupt" ? " haupt" : ""));
@@ -490,87 +679,91 @@
       zeile.append(eintrag);
       liste.append(zeile);
     });
-    const eintraege = Array.from(liste.children);
-    const proSeite = Math.ceil(eintraege.length / stellen.length);
-    stellen.forEach((seitenIndex, nummer) => {
-      const teil = el("ul", "inhalt-liste");
-      eintraege.slice(nummer * proSeite, (nummer + 1) * proSeite)
-        .forEach((li) => teil.append(li));
-      kopien[seitenIndex].inhalt = teil.outerHTML;
-    });
-    return kopien;
+    const huelle = el("div");
+    huelle.append(liste);
+    return huelle.innerHTML;
+  }
+
+  function druckSeiten() {
+    const messer = druckMesser();
+    const passt = messer ? ((seite) => messer.passt(seite)) : null;
+    const teilen = (seite) => {
+      const kopie = Object.assign({}, seite);
+      if (!passt || passt(kopie)) return [kopie];
+      return teileSeiteMit(kopie, kopie.inhalt, passt);
+    };
+
+    const platzhalter = SEITEN.filter((seite) => seite.platzhalter === "inhalt");
+    const teile = new Map();
+    for (const seite of SEITEN) {
+      if (seite.platzhalter !== "inhalt") teile.set(seite, teilen(seite));
+    }
+
+    let verzeichnis = platzhalter.map((seite) => Object.assign({}, seite, { inhalt: "" }));
+    let ergebnis = [];
+    /* Das Verzeichnis nennt Seitenzahlen und veraendert dadurch seine eigene
+       Laenge. Zwei bis drei Runden genuegen, bis sich nichts mehr bewegt. */
+    for (let runde = 0; runde < 4; runde += 1) {
+      ergebnis = [];
+      let eingesetzt = false;
+      for (const seite of SEITEN) {
+        if (seite.platzhalter === "inhalt") {
+          if (!eingesetzt) ergebnis.push(...verzeichnis);
+          eingesetzt = true;
+        } else {
+          ergebnis.push(...teile.get(seite));
+        }
+      }
+      if (!platzhalter.length) break;
+      const markup = druckVerzeichnisMarkup(ergebnis);
+      const roh = passt
+        ? teileSeiteMit(platzhalter[0], markup, passt)
+        : [{ inhalt: markup }];
+      const neu = roh.map((seite, index) => Object.assign(
+        {}, platzhalter[Math.min(index, platzhalter.length - 1)],
+        { inhalt: seite.inhalt, platzhalter: "inhalt" }));
+      const unveraendert = neu.length === verzeichnis.length &&
+        neu.every((seite, i) => seite.inhalt === verzeichnis[i].inhalt);
+      verzeichnis = neu;
+      if (unveraendert) break;
+    }
+
+    if (messer) messer.schliessen();
+    return ergebnis;
+  }
+
+  function druckBlatt(seite, nummer) {
+    const klasse = "blatt" + (seite.druckKompakt ? " kompakt" : "");
+    const seitenlage = (nummer % 2) ? "links" : "rechts";
+    const zahl = '<span class="zahl">' + nummer + "</span>";
+    const marke = '<span class="marke">' + _("Magnolie Organizer \u00b7 Handbook") + "</span>";
+    const fuss = '<div class="fuss">' +
+      (seitenlage === "links" ? zahl + marke : marke + zahl) + "</div>";
+    return '<section class="' + klasse + '" data-seite="' + seitenlage + '">' +
+      '<div class="blatt-inhalt">' + druckInhaltMarkup(seite) + "</div>" +
+      fuss + "</section>";
   }
 
   function druckFassung() {
-    const teile = druckSeiten().map((seite, i) => {
-      const kopf = seite.kapitel
-        ? '<div class="kapitel">' + seite.kapitel + "</div>" : "";
-      const klasse = "blatt" + (seite.druckKompakt ? " kompakt" : "");
-      return '<section class="' + klasse + '"><div class="blatt-inhalt">' + kopf +
-        "<h2>" + (seite.titel || "") + "</h2>" +
-        '<div class="text">' + verweiseAufloesen(seite.inhalt, true) + "</div></div>" +
-        '<div class="fuss">' + _("Magnolie Organizer · Handbook") + '<span>' + (i + 1) +
-        "</span></div></section>";
+    const seiten = druckSeiten();
+    druckNummern = new Map();
+    seiten.forEach((seite, index) => {
+      if (seite.teil && seite.teil > 1) return;
+      const kennung = seite.quellId || seite.id;
+      if (kennung && !druckNummern.has(kennung)) druckNummern.set(kennung, index + 1);
     });
-    return "<!DOCTYPE html><html lang='" + document.documentElement.lang +
-      "'><head><meta charset='utf-8'><title>" +
-      _("Magnolie Organizer - Handbook") + "</title><style>" +
-      "@page { size: A4 portrait; margin: 10mm; }" +
-      "html, body { margin: 0; padding: 0; background: #fff; }" +
-      "body { font: 11.5pt/1.45 'Liberation Sans', 'DejaVu Sans', sans-serif;" +
-      " color: #2f2921; }" +
-       ".blatt { position: relative; width: 100%; box-sizing: border-box;" +
-       " margin: 0; padding: 14mm 9mm 4mm;" +
-       " background: linear-gradient(90deg, #fffdf7, #fff 12%, #fff 88%, #fffdf7); }" +
-       ".blatt { page-break-after: always; }" +
-       ".blatt:last-child { page-break-after: auto; }" +
-      ".blatt::after { content: ''; position: absolute; top: 0; left: 0;" +
-      " right: 0; height: 4mm; background: #55291c; }" +
-      ".blatt::before { content: ''; position: absolute; top: 8mm;" +
-      " left: 10mm; right: 10mm; height: .7mm; background: #d8b25c; }" +
-      ".kapitel { margin-top: 1.5mm; font-size: 8.8pt; font-weight: 600;" +
-      " letter-spacing: .14em; text-transform: uppercase; color: #7a684c; }" +
-      "h2 { font-family: 'Liberation Serif', Georgia, serif; font-size: 20pt;" +
-      " color: #3a3128; margin: 1.2mm 0 3.2mm; border-bottom: 1.2mm solid #d8b25c;" +
-      " padding-bottom: 2mm; }" +
-      "h3 { font-family: 'Liberation Serif', Georgia, serif; font-size: 13pt;" +
-      " color: #463a2c; margin: 3.3mm 0 1.4mm; border-bottom: 1px dotted #ab9468;" +
-      " padding-bottom: .8mm; }" +
-      "p { margin: 0 0 2.3mm; orphans: 3; widows: 3; }" +
-      "ul, ol { margin: 0 0 2.3mm; padding-left: 7mm; }" +
-      "li { margin-bottom: .9mm; }" +
-      ".merke, .beispiel, .achtung { margin: 2.3mm 0; padding: 2.2mm 3.5mm;" +
-      " border-radius: 1.5mm;" +
-      " page-break-inside: avoid; break-inside: avoid; }" +
-      ".merke { border-left: 3px solid #a8823c; background: #f7f0dc; }" +
-      ".beispiel { border-left: 3px solid #5d7a52; background: #eef3ea; }" +
-      ".achtung { border-left: 3px solid #b5443a; background: #fbeceb; }" +
-      ".merke b, .beispiel b, .achtung b { display: block; }" +
-      ".schritte { list-style: decimal; padding-left: 7.5mm; }" +
-      "kbd { border: 1px solid #ab9468; border-radius: 2px; padding: 0 1mm;" +
-      " font-size: 10pt; }" +
-      ".knopfwort { border: 1px solid #ab9468; border-radius: 2px;" +
-      " padding: 0 1mm; font-weight: 600; }" +
-      "figure { margin: 2.7mm 0; text-align: center; page-break-inside: avoid; }" +
-      "figure svg, figure img { max-width: 100%; max-height: 82mm; width: auto;" +
-      " height: auto; border: 1px solid #cbb894; border-radius: 1.5mm; }" +
-      "figcaption { font-style: italic; font-size: 10pt; color: #5a4630; }" +
-      ".inhalt-liste { list-style: none; padding: 0; }" +
-      ".inhalt-eintrag { display: flex; gap: 2mm; width: 100%; border: 0;" +
-      " background: none; padding: .8mm 0; font-size: 11.2pt; text-align: left; }" +
-      ".inhalt-eintrag .punkte { flex: 1; border-bottom: 1px dotted #ab9468; }" +
-       ".fuss { height: 5.2mm; box-sizing: border-box; margin: 4mm 0 0;" +
-       " padding-top: 1.6mm;" +
-      " border-top: 1px dotted #ab9468; font-size: 9pt; color: #6a5c44;" +
-       " display: flex; justify-content: space-between; }" +
-        ".kompakt { padding-top: 11mm; font-size: 10.6pt; line-height: 1.33; }" +
-       ".kompakt h2 { margin-bottom: 2.4mm; padding-bottom: 1.5mm; }" +
-       ".kompakt h3 { margin: 2.2mm 0 1mm; padding-bottom: .5mm; }" +
-       ".kompakt p, .kompakt ul, .kompakt ol { margin-bottom: 1.5mm; }" +
-       ".kompakt li { margin-bottom: .45mm; }" +
-       ".kompakt .merke, .kompakt .beispiel, .kompakt .achtung {" +
-       " margin: 1.5mm 0; padding: 1.6mm 3.2mm; }" +
-       "</style></head><body>" + teile.join("") + "</body></html>";
+    const blaetter = seiten.map((seite, i) => druckBlatt(seite, i + 1));
+    druckNummern = null;
+    const ringe = '<div class="bindung">' +
+      '<div class="ring"></div>'.repeat(7) + "</div>";
+    const teile = [];
+    for (let i = 0; i < blaetter.length; i += 2) {
+      const rechts = blaetter[i + 1] ||
+        '<section class="leerblatt" data-seite="rechts"></section>';
+      teile.push('<div class="bogen"><div class="seiten">' +
+        blaetter[i] + ringe + rechts + "</div></div>");
+    }
+    return druckHuelle(teile.join(""));
   }
 
   function drucken() {
@@ -621,7 +814,7 @@
       umbruch();
       sucheAktualisieren();
     });
-    window.addEventListener("resize", umbruchPlanen);
+    window.addEventListener("resize", () => umbruchPlanen(true));
     document.addEventListener("keydown", (ev) => {
       if ((ev.ctrlKey || ev.metaKey) && ev.key.toLocaleLowerCase() === "f") {
         ev.preventDefault();

@@ -14,14 +14,14 @@ if (installerName !== `Magnolie-Organizer-Windows-${version}-Setup-x64.exe`) {
   throw new Error("Installername entspricht nicht der erlaubten Windows-Ausgabe.");
 }
 if (!fs.existsSync(path.join(sourceWeb, "index.html")) ||
-    !fs.existsSync(path.join(sourceWeb, "platform.js"))) {
+    !fs.existsSync(path.join(sourceWeb, "inhalt.js"))) {
   throw new Error(`Gemeinsame Handbuchquelle fehlt: ${sourceWeb}`);
 }
 if (sourceWeb === output) throw new Error("Handbuchquelle und Buildziel müssen getrennt sein.");
 
 fs.rmSync(output, { recursive: true, force: true });
 fs.cpSync(sourceWeb, output, { recursive: true });
-for (const name of ["inhalt.js", "platform.js"]) {
+for (const name of ["inhalt.js"]) {
   const file = path.join(output, name);
   const content = fs.readFileSync(file, "utf8")
     .replace(/Magnolie-Organizer-Windows-\d+\.\d+\.\d+-Setup-x64\.exe/g, installerName)

@@ -18,7 +18,6 @@ function Get-SharedHandbookWeb([string] $Root) {
         $full = [IO.Path]::GetFullPath($candidate)
         if ((Test-Path -LiteralPath (Join-Path $full "index.html") -PathType Leaf) -and
             (Test-Path -LiteralPath (Join-Path $full "inhalt.js") -PathType Leaf) -and
-            (Test-Path -LiteralPath (Join-Path $full "platform.js") -PathType Leaf) -and
             (Test-Path -LiteralPath (Join-Path $full "i18n/de.js") -PathType Leaf)) { return $full }
     }
     throw "Gemeinsame Handbuchquelle magnolie-handbuch-stamm/web fehlt."
@@ -208,7 +207,7 @@ function Assert-SourceArchive([string] $Archive, [string] $Root, [string] $Versi
         "tests/linux-parity-fixture.js",
         "tests/generate-linux-parity-fixture.js",
         "shared/magnolie-handbuch-stamm/web/index.html",
-        "shared/magnolie-handbuch-stamm/web/platform.js"
+        "shared/magnolie-handbuch-stamm/web/inhalt.js"
     )
     $stream = [IO.File]::OpenRead($Archive)
     $zip = [IO.Compression.ZipArchive]::new($stream, [IO.Compression.ZipArchiveMode]::Read)

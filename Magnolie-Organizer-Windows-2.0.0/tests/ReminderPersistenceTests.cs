@@ -40,8 +40,9 @@ internal static class ReminderPersistenceTests
                               {"id":"privat","datum":"2026-08-12","zeit":"09:00","titel":"Privat","vertraulich":true},
                               {"id":"alarm","datum":"2026-08-13","zeit":"09:00","endDatum":"2026-08-13","endZeit":"10:00","titel":"Alarm",
                                "alarme":[{"offsetMinuten":60,"aktiviert":true,"related":"END","aktion":"display","geheim":"Nein"}]}],
-                 "aufgaben":[{"id":"a1","titel":"Aufgabe","faellig":"2026-08-12","erinnern":true,"notiz":"Geheim Aufgabe"}],
-                 "kontakte":[{"name":"Darf nicht hinaus"}],"notizen":[{"text":"Geheim"}]}
+                  "aufgaben":[{"id":"a1","titel":"Aufgabe","faellig":"2026-08-12","erinnern":true,"notiz":"Geheim Aufgabe"}],
+                  "jahrestage":[{"id":"j1","name":"Anna","datum":"1980-08-12","typ":"Birthday"}],
+                  "kontakte":[{"name":"Darf nicht hinaus"}],"notizen":[{"text":"Geheim"}]}
                 """;
             var selected = ReminderScheduler.SelectBackgroundData(protectedData)!;
             using (var selectedDocument = JsonDocument.Parse(selected))
@@ -55,7 +56,10 @@ internal static class ReminderPersistenceTests
                                   selectedRoot.GetProperty("termine")[1].GetProperty("endZeit").GetString() == "10:00" &&
                                   selectedAlarm.GetProperty("offsetMinuten").GetInt32() == 60 &&
                                   !selectedAlarm.TryGetProperty("geheim", out _) &&
-                                 !selectedRoot.GetProperty("aufgaben")[0].TryGetProperty("notiz", out _) &&
+                                  selectedRoot.GetProperty("einstellungen").GetProperty("erinnerung")
+                                      .GetProperty("an").GetBoolean() &&
+                                  selectedRoot.GetProperty("jahrestage")[0].GetProperty("typ").GetString() == "Birthday" &&
+                                  !selectedRoot.GetProperty("aufgaben")[0].TryGetProperty("notiz", out _) &&
                                  !selectedRoot.TryGetProperty("kontakte", out _) && !selectedRoot.TryGetProperty("notizen", out _) &&
                                  !selectedRoot.TryGetProperty("personen", out _),
                     "Die Kennwort-Reminderdatei enthält nicht erlaubte oder verliert erlaubte Daten.");

@@ -1,5 +1,5 @@
 Name:           magnolie-organizer
-Version:        2.0.2
+Version:        2.0.3
 Release:        1%{?dist}
 Summary:        Personal organizer with a classic paper appearance
 
@@ -212,6 +212,11 @@ done
 %{_mandir}/*/man1/magnolie-organizer.1*
 
 %changelog
+* Mon Aug 24 2026 Maik Walter <maik3531@gmail.com> - 2.0.3-1
+- Keep PulseAudio and PipeWire integrations optional and conflict-free
+- Disable affected WebKitGTK accelerated rendering paths by default
+- Add a sandboxed GNOME 49 Flatpak build
+
 * Sat Aug 22 2026 Maik Walter <maik3531@gmail.com> - 2.0.2-1
 - Load only the active language catalog during startup
 - Build against a pinned native Fedora 42 environment

@@ -12,7 +12,8 @@ internal enum SnapshotReason
 
 internal sealed record SnapshotInfo(
     string Id, DateTimeOffset CreatedUtc, string Reason, long Size, string Hash,
-    string SyncEpoch, JsonObject Summary, bool Encrypted, bool Pinned, string Directory);
+    string SyncEpoch, JsonObject Summary, bool Encrypted, bool Pinned, string Integrity,
+    string Directory);
 
 internal sealed record RecoverySchedule(string Interval, DateTimeOffset? Last, DateTimeOffset? Next,
     string Status, string Error);
@@ -128,8 +129,15 @@ internal sealed class RecoveryJournal
         foreach (var directory in Directory.EnumerateDirectories(root))
         {
             if (Path.GetFileName(directory).StartsWith(".", StringComparison.Ordinal)) continue;
-            try { result.Add(ParseManifest(directory, verifyPayload: false)); }
-            catch (Exception error) when (error is IOException or InvalidDataException or JsonException) { }
+            try
+            {
+                var item = ParseManifest(directory, verifyPayload: false);
+                try { item = ParseManifest(directory, verifyPayload: true); }
+                catch (Exception error) when (error is IOException or InvalidDataException or JsonException or UnauthorizedAccessException)
+                { item = item with { Integrity = "damaged" }; }
+                result.Add(item);
+            }
+            catch (Exception error) when (error is IOException or InvalidDataException or JsonException or UnauthorizedAccessException) { }
         }
         return result.OrderByDescending(item => item.CreatedUtc).ToArray();
     }
@@ -331,7 +339,8 @@ internal sealed class RecoveryJournal
         return new SnapshotInfo(id, created, reason, size, hash, rootNode["syncEpoch"]?.GetValue<string>() ?? "",
             (rootNode["summary"] as JsonObject)?.DeepClone().AsObject() ?? new JsonObject(),
             payload["encrypted"]?.GetValue<bool>() ?? false,
-            reason == "manual" || File.Exists(Path.Combine(directory, RestoreLeaseFile)), directory);
+            reason == "manual" || File.Exists(Path.Combine(directory, RestoreLeaseFile)),
+            verifyPayload ? "ok" : "unchecked", directory);
     }
 
     private void EnsureSafeRoot()

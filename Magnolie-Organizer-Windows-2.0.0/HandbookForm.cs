@@ -55,7 +55,6 @@ internal sealed class HandbookForm : Form
                   const handlers = { bruecke: { postMessage: value => window.chrome.webview.postMessage(String(value)) } };
                    Object.defineProperty(window, "webkit", { value: { messageHandlers: handlers }, writable: false });
                    window.__MAGNOLIE_SPRACHE__ = {{JsonSerializer.Serialize(language)}};
-                   window.__MAGNOLIE_PLATFORM__ = "windows";
                  })();
                 """);
             core.WebMessageReceived += async (_, eventArgs) =>
@@ -149,7 +148,7 @@ internal sealed class HandbookForm : Form
             var value = JsonNode.Parse(message) as JsonObject;
             if (value?["cmd"]?.GetValue<string>() != "drucken" || value["html"] is not JsonValue htmlValue ||
                 !htmlValue.TryGetValue<string>(out var html) || html.Length is < 1 or > 8_000_000) return;
-            var print = new HandbookPrintForm(html, paths) { Icon = Icon };
+            var print = new HtmlPrintForm(html, paths, T("Manual")) { Icon = Icon };
             print.Show(this);
             await print.Ready;
         }
@@ -172,18 +171,19 @@ internal sealed class HandbookForm : Form
     private static string T(string message) => NativeLocalization.Gettext(message);
 }
 
-internal sealed class HandbookPrintForm : Form
+internal sealed class HtmlPrintForm : Form
 {
     private readonly string html;
     private readonly WindowsPaths paths;
     private readonly WebView2 webView = new() { Dock = DockStyle.Fill };
     private readonly TaskCompletionSource initialized = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
-    internal HandbookPrintForm(string html, WindowsPaths paths)
+    internal HtmlPrintForm(string html, WindowsPaths paths, string documentName)
     {
         this.html = html;
         this.paths = paths;
-        Text = "Magnolie Organizer - " + NativeLocalization.Gettext("Print") + " - " + NativeLocalization.Gettext("Manual");
+        Text = "Magnolie Organizer - " + NativeLocalization.Gettext("Print") +
+            (documentName.Length > 0 ? " - " + documentName : "");
         StartPosition = FormStartPosition.CenterParent;
         ClientSize = new Size(900, 700);
         Controls.Add(webView);

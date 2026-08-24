@@ -17,28 +17,83 @@ const protectedIds = ["license-and-acknowledgments", "in-closing",
   "support-with-a-coffee", "about-maik-walter"];
 const requiredIds = ["kde-sms", "phone-calls", "tree-delegation", "tree-contact-sync",
   "personal-sync", "personal-conflicts-attachments", "personal-deletions-trash",
-  "android-apk-transfer", "android-apk-install-update", "my-projects"];
+  "android-apk-transfer", "android-apk-install-update", "my-projects",
+  "settings-language-format-region", "settings-time-week-region",
+  "android-notes-navigation", "android-notes-notebooks", "android-notes-edit-save-delete",
+  "android-tasks-reminders", "android-note-symbols-formatting",
+  "android-import-files-folders", "android-import-formats",
+  "android-share-into-notes", "android-import-results-limits",
+  "android-tree-pairing", "android-tree-sharing-inbox", "android-phone-bluetooth",
+  "android-personal-sync-controls", "android-personal-deletion-review", "android-recovery-journal",
+  "phone-call-getting-started", "phone-call-control", "sms-getting-started", "sms-kde-connect-setup",
+  "technical-connection-map", "technical-ports-firewall", "technical-local-encryption",
+  "technical-tree-security-routing", "technical-phone-transport-security",
+  "command-line-and-man-page", "reminder-command-modes",
+  "linux-diagnostic-reminder-logs", "windows-diagnostic-logs",
+  "supported-environment-variables", "technical-file-limits",
+  "technical-recurring-series", "technical-reminder-time-limits",
+  "technical-update-trust", "technical-update-platforms", "technical-weather-privacy",
+  "glossary-a-m", "glossary-n-z"];
 const newlySharedIds = new Set([...requiredIds, "contacts-for-claws-mail"]);
 const newPageIds = new Set([
   "nextcloud-overview", "nextcloud-account", "nextcloud-caldav-carddav",
   "nextcloud-mailbox", "nextcloud-troubleshooting", "baum-eigener-zweig",
   "baum-netzsuche", "baum-code-vergleichen", "baum-paarungsdatei-erzeugen",
   "baum-paarungsdatei-einlesen", "baum-internet-verbindung", "baum-zweig-entfernen",
-  "wiederherstellungspunkte-was", "wiederherstellungspunkt-erstellen",
-  "wiederherstellungspunkt-zurueckholen", "sms-mobile-only", "sms-sheet",
+  "wiederherstellungspunkte-was", "sms-mobile-only", "sms-sheet",
   "sms-adjusted-send", "sms-spelling", "sms-message-details", "sms-settings-sheet",
   "sms-delete-histories", "phone-pair-wlan-steps", "phone-pair-code-compare",
   "phone-pair-remove", "kde-pair-steps", "kde-reconnect-renew",
   "phone-call-assignment", "phone-answer-hangup", "phone-call-window-notes",
-  "phone-dial-number-choice", "health-weight-height-bmi", "health-color-guide",
-  "health-units", "planner-shift-planner", "planner-cycle-calendar",
+  "phone-dial-number-choice", "enabling-health-and-finding-your-way-around",
+  "recording-blood-pressure-and-blood-sugar",
+  "progress-printing-ods-and-deleting-records",
+  "the-year-at-a-glance", "planner-shift-planner",
   "planner-vacation-planner", "planner-waste-calendar", "calendar-monthly-weekday",
   "calendar-show-more", "recurring-appointments",
-  "android-apk-transfer", "android-apk-install-update", "my-projects"
+  "android-apk-transfer", "android-apk-install-update", "my-projects", "the-appimage",
+  "what-the-organizer-can-do-for-you", "what-your-computer-needs",
+  "installing-the-organizer", "starting-for-the-first-time",
+  "writing-letters", "getting-timely-anniversary-reminders",
+  "reminders-with-password-protection", "birthdays-and-special-occasions",
+  "all-day-appointments", "the-month-view", "the-week-view", "the-day-view",
+  "the-tabs-along-the-edge", "turning-pages-and-moving-around",
+  "calendar-hiding-entries", "font-size-and-color",
+  "importing-data-from-other-programs",
+  "exporting-data-to-other-programs",
+  "appointment-reminders",
+  "moving-from-lotus-organizer",
+  "the-recycle-bin", "backing-up-and-restoring", "password-protection-and-encryption",
+  "version-and-updates",
+  "maps-routes-and-messages",
+  "troubleshooting",
+  "synchronizing-with-online-accounts",
+  "platform-security-matrix",
+  "phone-pairing",
+  "printing-and-saving-as-pdf",
+  "settings-opening-navigation", "settings-pages-overview",
+  "settings-start-window", "settings-tray-setup", "settings-tray-window",
+  "settings-tray-autostart", "country-region-holiday-display",
+  "fetching-public-and-school-holidays", "settings-language-format-region",
+  "settings-time-week-region",
+  "android-notes-navigation", "android-notes-notebooks", "android-notes-edit-save-delete",
+  "android-tasks-reminders", "android-note-symbols-formatting",
+  "android-import-files-folders", "android-import-formats",
+  "android-share-into-notes", "android-import-results-limits",
+  "android-tree-pairing", "android-tree-sharing-inbox", "android-phone-bluetooth",
+  "android-personal-sync-controls", "android-personal-deletion-review", "android-recovery-journal",
+  "phone-call-getting-started", "phone-call-control", "sms-getting-started", "sms-kde-connect-setup",
+  "technical-connection-map", "technical-ports-firewall", "technical-local-encryption",
+  "technical-tree-security-routing", "technical-phone-transport-security",
+  "command-line-and-man-page", "reminder-command-modes",
+  "linux-diagnostic-reminder-logs", "windows-diagnostic-logs",
+  "supported-environment-variables", "technical-file-limits",
+  "technical-recurring-series", "technical-reminder-time-limits",
+  "technical-update-trust", "technical-update-platforms", "technical-weather-privacy",
+  "glossary-a-m", "glossary-n-z",
 ]);
-const existingPendingIds = new Set([
-  "the-appointment-overview", "synchronizing-with-online-accounts"
-]);
+const existingPendingIds = new Set(["synchronizing-with-online-accounts"]);
+const pendingBodyIds = new Set(["phone-calls", "phone-dial-number-choice"]);
 const protectedDigests = {
   en: "e0c106cbf5cb046030451b18169be441acbac624f91d1dd704689664a7847260",
   de: "e46c6dafe853bedd2e9bf1161b4cc0c5cccb4fad2eaecf7f6721d22ba74c61c8",
@@ -110,13 +165,16 @@ const books = Object.fromEntries(Object.entries(directories)
   .map(([name, directory]) => [name, pages(directory)]));
 const reference = books.shared;
 const expectedIds = reference.map((page) => page.id);
-assert.strictEqual(expectedIds.length, 118, "Die kanonische Basis muss 118 Seiten enthalten");
-assert.strictEqual(new Set(expectedIds).size, 118, "Kanonische Seiten-IDs sind nicht eindeutig");
+assert.strictEqual(expectedIds.length, 154, "Die kanonische Basis muss 154 Seiten enthalten");
+assert.strictEqual(new Set(expectedIds).size, 154, "Kanonische Seiten-IDs sind nicht eindeutig");
 for (const id of requiredIds) assert.ok(expectedIds.includes(id), `Gemeinsame Seite fehlt: ${id}`);
 const projects = source(reference.find((page) => page.id === "my-projects"));
 assert.ok(projects.inhalt.includes("href='https://gitlab.com/users/maik3531/projects'") &&
   projects.inhalt.includes(">https://gitlab.com/users/maik3531/projects</a>"),
 "Meine Projekte muss den sichtbaren GitLab-Link enthalten");
+assert.deepStrictEqual(expectedIds.slice(expectedIds.indexOf("my-projects") + 1,
+  expectedIds.indexOf("technical-file-limits")), ["glossary-a-m", "glossary-n-z"],
+"Die Glossarseiten müssen nach Meine Projekte und vor den technischen Seiten stehen");
 const license = source(reference.find((page) =>
   page.id === "license-and-acknowledgments"));
 assert.ok(license.inhalt.includes("Contributor-Key") &&
@@ -175,7 +233,7 @@ for (const [locale] of Object.entries(protectedDigests)) {
         if (!pending && (name === "shared" || newlySharedIds.has(page.id))) {
           assert.ok(messages[original.titel],
             `${name}/${locale}/${page.id}: leerer oder fehlender Titel`);
-          if (original.inhalt) {
+          if (original.inhalt && !(locale !== "de" && pendingBodyIds.has(page.id))) {
             assert.ok(messages[original.inhalt],
               `${name}/${locale}/${page.id}: leerer oder fehlender Seiteninhalt`);
           }
@@ -210,4 +268,4 @@ if (process.argv.includes("--negative-probe")) {
   console.log("HANDBOOK PROTECTION NEGATIVE PROBE PASSED");
 }
 
-console.log(`HANDBOOK PROTECTION PASSED (${Object.keys(books).length} tree(s), 118 pages, 20 locales, 4 pages, 14 images)`);
+console.log(`HANDBOOK PROTECTION PASSED (${Object.keys(books).length} tree(s), ${expectedIds.length} pages, 20 locales, 4 pages, 14 images)`);

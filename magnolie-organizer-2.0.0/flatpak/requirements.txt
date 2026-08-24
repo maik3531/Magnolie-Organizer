@@ -1,0 +1,5 @@
+cryptography==46.0.7
+pyOpenSSL==25.3.0
+zeroconf==0.148.0
+ifaddr==0.2.0
+pyenchant==3.3.0

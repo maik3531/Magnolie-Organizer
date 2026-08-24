@@ -315,6 +315,9 @@ export SSL_CERT_FILE
 export GTK_MODULES=
 export GTK_PATH="$APPDIR/usr/lib/$MULTIARCH/gtk-3.0"
 export GTK_THEME=Adwaita
+: "${WEBKIT_DISABLE_DMABUF_RENDERER:=1}"
+: "${WEBKIT_DISABLE_COMPOSITING_MODE:=1}"
+export WEBKIT_DISABLE_DMABUF_RENDERER WEBKIT_DISABLE_COMPOSITING_MODE
 export WEBKIT_EXEC_PATH="$APPDIR/usr/lib/webkit2gtk-4.1"
 export WEBKIT_INJECTED_BUNDLE_PATH="$APPDIR/usr/lib/webkit2gtk-4.1/injected-bundle"
 export XDG_DATA_DIRS="$APPDIR/usr/share:${XDG_DATA_DIRS:-/usr/local/share:/usr/share}"

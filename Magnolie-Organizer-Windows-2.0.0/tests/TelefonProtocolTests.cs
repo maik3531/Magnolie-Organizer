@@ -161,6 +161,24 @@ internal static class TelefonProtocolTests
             var personalId = store.Enqueue(peerId, "personal_sync.request", runBody, 3_600_000, 20_000, "wifi_only");
             TestAssert.That(store.Due(peerId, 20_000, transport: "bluetooth").All(item => item.Id != personalId) && store.Due(peerId, 20_000, transport: "wifi").Any(item => item.Id == personalId),
                 "wifi_only wurde nicht dauerhaft auf die Outbox angewandt.");
+            var connectionNow = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+            var transportRunBody = runBody.DeepClone().AsObject();
+            transportRunBody["run_id"] = "77777777-7777-4777-8777-777777777777";
+            personal.RememberRun(peerId, transportRunBody, connectionNow);
+            var unrestrictedId = store.Enqueue(peerId, "device_status.request",
+                new JsonObject { ["request_id"] = "66666666-6666-4666-8666-666666666666" }, 60_000, connectionNow);
+            var wifiOnlyId = store.Enqueue(peerId, "personal_sync.request", transportRunBody, 60_000, connectionNow, "wifi_only");
+            await using var bluetoothStream = new MemoryStream();
+            using (var bluetoothConnection = new TelefonConnection(peer, bluetoothStream, new byte[16], new byte[72], store,
+                (_, _) => Task.FromResult<TelefonAck?>(null), CancellationToken.None, "bluetooth"))
+            {
+                await bluetoothConnection.PumpOutboxNowAsync();
+                TestAssert.That(bluetoothConnection.Transport == "bluetooth" && bluetoothStream.Length > 0 &&
+                    store.Due(peerId, connectionNow + 1, transport: "wifi").Any(item => item.Id == wifiOnlyId) &&
+                    store.Due(peerId, connectionNow + 1, transport: "bluetooth").All(item => item.Id != wifiOnlyId) &&
+                    store.Due(peerId, connectionNow + 1, transport: "wifi").All(item => item.Id != unrestrictedId),
+                    "Eine RFCOMM-Sitzung behandelte wifi_only weiterhin wie WLAN.");
+            }
             store.SaveStatus(peerId, new JsonObject { ["battery_percent"] = 50 });
             store.RemovePeer(peerId);
             TestAssert.That(store.Due(peerId, 20_000).Count == 0 && personal.LoadRun(peerId, runBody["run_id"]!.GetValue<string>(), 20_000) is null && store.LoadStatus(peerId) is null,

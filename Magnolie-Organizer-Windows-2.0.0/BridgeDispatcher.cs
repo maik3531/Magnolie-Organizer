@@ -55,7 +55,7 @@ internal sealed partial class BridgeDispatcher : IDisposable
         recovery = new RecoveryJournal(paths.RecoveryJournal, paths.RecoverySettings, store);
         recoveryTimer = new System.Threading.Timer(_ => _ = RunPeriodicSnapshotAsync(), null,
             TimeSpan.FromMinutes(1), TimeSpan.FromMinutes(15));
-        http.DefaultRequestHeaders.UserAgent.ParseAdd("Magnolie-Organizer-Windows/2.0.2");
+        http.DefaultRequestHeaders.UserAgent.ParseAdd("Magnolie-Organizer-Windows/2.0.3");
     }
 
     internal async Task HandleAsync(string rawMessage)
@@ -106,7 +106,7 @@ internal sealed partial class BridgeDispatcher : IDisposable
                     case "gesamtarchiv_importieren": await ImportGesamtarchivAsync(message); break;
                     case "gesamtarchiv_exportieren": await ExportGesamtarchivAsync(Text(message, "kennwort")); break;
                     case "ordner_waehlen": await SelectFolderAsync(); break;
-                    case "drucken": form.ShowPrintDialog(); break;
+                    case "drucken": form.ShowPrintDialog(Text(message, "html")); break;
                     case "notiz_anhang_datei": await HandleAttachmentFileAsync(message); break;
                     case "update_oeffnen": await OpenValidatedResultAsync("App.updateGeoeffnet", Text(message, "url"), IsAllowedWindowsUpdateUrl); break;
                     case "handbuch_herunterladen": await DownloadManualAsync(message); break;
@@ -119,6 +119,7 @@ internal sealed partial class BridgeDispatcher : IDisposable
                     case "update_pruefen": await CheckUpdateAsync(); break;
                     case "wetter": await FetchWeatherAsync(message); break;
                     case "feiertage": await FetchHolidaysAsync(message); break;
+                    case "regional_einstellungen": await SaveRegionalSettingsAsync(message); break;
                     case "import": await ImportAsync(message); break;
                     case "import_lokal": await ImportLocalAsync(); break;
                     case "export": await ExportAsync(message); break;
@@ -366,7 +367,7 @@ internal sealed partial class BridgeDispatcher : IDisposable
                 teamsVerfuegbar = NativeMethods.HasUriScheme("msteams"),
                 trayEinstellungen = form.CurrentTraySettings,
                 contributorAktiv = contributorHash is not null,
-                regional = new { language = Thread.CurrentThread.CurrentUICulture.Name }
+                regional = RegionalSettings.Read(paths.RegionalSettings)
             });
             return;
         }
@@ -399,12 +400,26 @@ internal sealed partial class BridgeDispatcher : IDisposable
             handbuchInstalliert = ManualInstalled(),
             handbuchVersion = ManualVersion(),
             contributorAktiv = contributorHash is not null,
-            regional = new { language = Thread.CurrentThread.CurrentUICulture.Name }
+            regional = RegionalSettings.Read(paths.RegionalSettings)
         });
         _ = RunPeriodicSnapshotAsync();
     }
 
     private static string ManualPath => Path.Combine(AppContext.BaseDirectory, "handbuch", "index.html");
+
+    private async Task SaveRegionalSettingsAsync(JsonElement message)
+    {
+        try
+        {
+            if (!message.TryGetProperty("regional", out var regional)) throw new ArgumentException(T("The regional settings are invalid."));
+            var clean = RegionalSettings.Write(paths.RegionalSettings, regional);
+            await form.SendAsync("App.regionalErgebnis", new { ok = true, regional = clean });
+        }
+        catch (Exception error)
+        {
+            await form.SendAsync("App.regionalErgebnis", new { ok = false, fehler = error.Message });
+        }
+    }
 
     private static bool ManualInstalled() => File.Exists(ManualPath);
 
@@ -695,7 +710,8 @@ internal sealed partial class BridgeDispatcher : IDisposable
                 var data = JsonNode.Parse(currentPlainText) as JsonObject ?? throw new InvalidDataException(T("The data is invalid."));
                 var archive = GesamtarchivService.Create(data, "windows", AppVersion, password);
                 Directory.CreateDirectory(directory);
-                target = Path.Combine(directory, $"magnolie-sicherung-{DateTime.Now:yyyyMMdd-HHmmss}.magnolie");
+                target = Path.Combine(directory,
+                    $"magnolie-sicherung-{DateTime.Now:yyyyMMdd-HHmmss-fff}-{Guid.NewGuid():N}.magnolie");
                 store.Write(target, archive, AtomicStore.MaxArchiveBytes);
             }
             else target = store.Backup(paths.Data, directory);
@@ -922,7 +938,7 @@ internal sealed partial class BridgeDispatcher : IDisposable
         {
             var data = JsonNode.Parse(currentPlainText) as JsonObject
                 ?? throw new InvalidDataException(T("The current organizer data is incomplete."));
-            var version = typeof(BridgeDispatcher).Assembly.GetName().Version?.ToString(3) ?? "2.0.2";
+            var version = typeof(BridgeDispatcher).Assembly.GetName().Version?.ToString(3) ?? "2.0.3";
             var archive = GesamtarchivService.Create(data, "windows", version, password);
             store.Write(dialog.FileName, archive, AtomicStore.MaxArchiveBytes);
             await form.SendAsync("App.gesamtarchivExportiert", new
@@ -976,7 +992,7 @@ internal sealed partial class BridgeDispatcher : IDisposable
         }
     }
 
-    private string AppVersion => typeof(BridgeDispatcher).Assembly.GetName().Version?.ToString(3) ?? "2.0.2";
+    private string AppVersion => typeof(BridgeDispatcher).Assembly.GetName().Version?.ToString(3) ?? "2.0.3";
 
     private SnapshotInfo CreateSnapshot(SnapshotReason reason)
     {
@@ -1057,7 +1073,7 @@ internal sealed partial class BridgeDispatcher : IDisposable
     private static object NativeSnapshot(SnapshotInfo item) => new
     {
         snapshotId = item.Id, createdAt = item.CreatedUtc.ToString("O"), reason = item.Reason,
-        integrity = "ok", summary = item.Summary, payload = new { size = item.Size },
+        integrity = item.Integrity, summary = item.Summary, payload = new { size = item.Size },
         encrypted = item.Encrypted, pinned = item.Pinned
     };
 
@@ -1536,18 +1552,70 @@ internal sealed partial class BridgeDispatcher : IDisposable
                 : Array.Empty<int>();
             if (years.Length == 0) throw new ArgumentException(T("Select at least one year."));
             var includeSchool = !message.TryGetProperty("ferien", out var school) || school.ValueKind != JsonValueKind.False;
-            var entries = new List<HolidayEntry>();
-            foreach (var year in years)
+            var regions = new List<HolidayRegion>();
+            if (message.TryGetProperty("regionen", out var regionsNode) && regionsNode.ValueKind == JsonValueKind.Array)
             {
-                await AddHolidayEntriesAsync(entries, "PublicHolidays", "public-holiday", country, region, year);
-                if (includeSchool)
+                foreach (var item in regionsNode.EnumerateArray())
                 {
-                    try { await AddHolidayEntriesAsync(entries, "SchoolHolidays", "school-holiday", country, region, year); }
-                    catch (HttpRequestException) { }
+                    if (item.ValueKind != JsonValueKind.Array) continue;
+                    var parts = item.EnumerateArray().ToArray();
+                    if (parts.Length < 2) continue;
+                    var code = parts[0].ToString().Trim().ToUpperInvariant();
+                    var name = parts[1].ToString().Trim();
+                    if (code.Length > 0 && name.Length > 0 && !regions.Any(value => value.Code == code && value.Name == name))
+                        regions.Add(new HolidayRegion(code, name));
                 }
             }
+            if (regions.Count > 26) throw new ArgumentException(T("Too many regions were selected."));
+            if (region.Length > 0) regions.Clear();
+            if (Boolean(message, "regionErforderlich") && region.Length == 0 && regions.Count == 0)
+                throw new ArgumentException(country == "CH"
+                    ? T("Select your canton first or enable “All cantons”.")
+                    : T("Select your state first or enable “All states”."));
+            var targets = region.Length > 0
+                ? new[] { new HolidayRegion(region, "") }
+                : regions.Count > 0 ? regions.ToArray() : new[] { new HolidayRegion("", "") };
+            var entries = new List<HolidayEntry>();
+            var downloadedBytes = 0;
+            foreach (var year in years)
+            {
+                foreach (var target in targets)
+                {
+                    downloadedBytes += await AddHolidayEntriesAsync(entries, "PublicHolidays", "public-holiday",
+                        country, target, year, HolidayDownloadMaxBytes - downloadedBytes);
+                    if (includeSchool)
+                    {
+                        try
+                        {
+                            downloadedBytes += await AddHolidayEntriesAsync(entries, "SchoolHolidays", "school-holiday",
+                                country, target, year, HolidayDownloadMaxBytes - downloadedBytes);
+                        }
+                        catch (HttpRequestException) { }
+                    }
+                }
+            }
+            var allRegionNames = regions.Select(item => item.Name).ToHashSet(StringComparer.CurrentCultureIgnoreCase);
             var clean = entries.GroupBy(item => new { item.von, item.bis, item.name, item.art })
-                .Select(group => group.First()).OrderBy(item => item.von).ThenBy(item => item.name).ToArray();
+                .Select(group =>
+                {
+                    var first = group.First();
+                    var names = group.Select(item => item.regionName).Where(name => name.Length > 0)
+                        .Distinct(StringComparer.CurrentCultureIgnoreCase).Order(StringComparer.CurrentCultureIgnoreCase).ToArray();
+                    var codes = group.Select(item => item.region).Where(code => code.Length > 0)
+                        .Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal).ToArray();
+                    if (regions.Count == 0 || names.Length == 0) return first;
+                    string suffix;
+                    if (names.Length == allRegionNames.Count) suffix = country == "CH" ? T("all cantons") : T("all states");
+                    else if (names.Length > allRegionNames.Count / 2)
+                    {
+                        var missing = allRegionNames.Except(names, StringComparer.CurrentCultureIgnoreCase)
+                            .Order(StringComparer.CurrentCultureIgnoreCase);
+                        suffix = T("all except %(regions)s").Replace("%(regions)s", string.Join(", ", missing));
+                    }
+                    else suffix = string.Join(", ", names);
+                    return new HolidayEntry(first.von, first.bis, $"{first.name} ({suffix})", first.art,
+                        string.Join(",", codes), suffix);
+                }).OrderBy(item => item.von).ThenBy(item => item.name).ToArray();
             var publicCount = clean.Count(item => item.art == "public-holiday");
             var schoolCount = clean.Length - publicCount;
             var report = $"Abgerufen: {publicCount} Feiertage, {schoolCount} Ferienabschnitte für {string.Join(", ", years)}.";
@@ -1559,20 +1627,36 @@ internal sealed partial class BridgeDispatcher : IDisposable
         }
     }
 
-    private async Task AddHolidayEntriesAsync(List<HolidayEntry> target, string path, string kind,
-        string country, string region, int year)
+    private const int HolidayDownloadMaxBytes = 8 * 1024 * 1024;
+
+    private async Task<int> AddHolidayEntriesAsync(List<HolidayEntry> target, string path, string kind,
+        string country, HolidayRegion region, int year, int remainingBytes)
     {
+        if (remainingBytes <= 0) throw new IOException(T("The holiday service returned too much data."));
         var language = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "de" ? "DE" : "EN";
         var query = $"countryIsoCode={Uri.EscapeDataString(country)}&languageIsoCode={language}" +
                     $"&validFrom={year}-01-01&validTo={year}-12-31" +
-                    (region.Length > 0 ? $"&subdivisionCode={Uri.EscapeDataString(region)}" : "");
-        using var response = await http.GetAsync($"https://openholidaysapi.org/{path}?{query}");
+                    (region.Code.Length > 0 ? $"&subdivisionCode={Uri.EscapeDataString(region.Code)}" : "");
+        using var response = await http.GetAsync($"https://openholidaysapi.org/{path}?{query}", HttpCompletionOption.ResponseHeadersRead);
         response.EnsureSuccessStatusCode();
+        if (response.Content.Headers.ContentLength > remainingBytes)
+            throw new IOException(T("The holiday service returned too much data."));
         await using var stream = await response.Content.ReadAsStreamAsync();
-        using var document = await JsonDocument.ParseAsync(stream);
+        using var buffer = new MemoryStream();
+        var chunk = new byte[81920];
+        while (true)
+        {
+            var read = await stream.ReadAsync(chunk.AsMemory(0, Math.Min(chunk.Length, remainingBytes - (int)buffer.Length + 1)));
+            if (read == 0) break;
+            if (buffer.Length + read > remainingBytes)
+                throw new IOException(T("The holiday service returned too much data."));
+            buffer.Write(chunk, 0, read);
+        }
+        buffer.Position = 0;
+        using var document = await JsonDocument.ParseAsync(buffer);
         var data = document.RootElement;
         if (data.ValueKind == JsonValueKind.Object && data.TryGetProperty("data", out var nested)) data = nested;
-        if (data.ValueKind != JsonValueKind.Array) return;
+        if (data.ValueKind != JsonValueKind.Array) return checked((int)buffer.Length);
         foreach (var item in data.EnumerateArray())
         {
             var from = PropertyText(item, "startDate")[..Math.Min(10, PropertyText(item, "startDate").Length)];
@@ -1581,8 +1665,9 @@ internal sealed partial class BridgeDispatcher : IDisposable
             var name = LocalizedName(item, language);
             if (DateOnly.TryParseExact(from, "yyyy-MM-dd", CultureInfo.InvariantCulture,
                     DateTimeStyles.None, out _) && name.Length > 0)
-                target.Add(new HolidayEntry(from, to, name, kind, region, ""));
+                target.Add(new HolidayEntry(from, to, name, kind, region.Code, region.Name));
         }
+        return checked((int)buffer.Length);
     }
 
     private async Task ImportAsync(JsonElement message)
@@ -1950,4 +2035,5 @@ internal sealed partial class BridgeDispatcher : IDisposable
 
     private sealed record HolidayEntry(string von, string bis, string name, string art,
         string region, string regionName);
+    private sealed record HolidayRegion(string Code, string Name);
 }

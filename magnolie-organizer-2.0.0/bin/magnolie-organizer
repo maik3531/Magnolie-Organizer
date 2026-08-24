@@ -55,6 +55,11 @@ import zipfile
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from datetime import datetime, timedelta, timezone
 
+# WebKitGTK's accelerated EGL path crashes with affected Mesa/Gallium builds
+# and can leave AppImages blank when host and bundled graphics ABIs differ.
+os.environ.setdefault("WEBKIT_DISABLE_DMABUF_RENDERER", "1")
+os.environ.setdefault("WEBKIT_DISABLE_COMPOSITING_MODE", "1")
+
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from magnolie_telefon import PhoneService, PORT as TELEFON_PORT
 from magnolie_kdeconnect import KDEConnectSMSBackend, local_device_name
@@ -165,7 +170,7 @@ def tray_system_verfuegbar(desktop=None, aktivierte_erweiterungen=None):
 PROGRAMM_NAME = "magnolie-organizer"
 HANDBUCH_NAME = "magnolie-handbuch"
 FENSTER_TITEL = "Magnolie Organizer"
-PROGRAMM_FASSUNG = "2.0.2"
+PROGRAMM_FASSUNG = "2.0.3"
 ALTER_NAME = "organizer-klassik"
 I18N_DOMAIN = "magnolie-organizer"
 
@@ -849,6 +854,19 @@ def journal_bereinigen(basis=None):
         raise OSError(_("The recovery snapshot folder must not be a symbolic link."))
     os.makedirs(wurzel, mode=0o700, exist_ok=True)
     os.chmod(wurzel, 0o700)
+    for name in list(os.listdir(wurzel)):
+        if not (name.startswith(".") and name.endswith(".rewrite-old")):
+            continue
+        snapshot_id = name[1:-len(".rewrite-old")]
+        alt = os.path.join(wurzel, name)
+        neu = os.path.join(wurzel, ".%s.rewrite-new" % snapshot_id)
+        ziel = os.path.join(wurzel, snapshot_id)
+        if not os.path.exists(ziel):
+            os.replace(neu if os.path.isdir(neu) else alt, ziel)
+        if os.path.isdir(alt):
+            shutil.rmtree(alt)
+        if os.path.isdir(neu):
+            shutil.rmtree(neu)
     for name in os.listdir(wurzel):
         pfad = os.path.join(wurzel, name)
         if name.startswith(".") and name.endswith(".partial"):
@@ -1056,6 +1074,49 @@ def journal_snapshot_lesen(snapshot_id, kennwort="", basis=None):
     if not hmac.compare_digest(quellhash, stand["payload"]["sourceSha256"]):
         raise RuntimeError(_("The recovery snapshot payload does not match its manifest."))
     return stand, gelesen
+
+
+def journal_umschluesseln(kennwort_neu, kennwort_alt="", basis=None):
+    """Passt vorhandene Wiederherstellungspunkte atomar an den Kennwortschutz an."""
+    wurzel = journal_bereinigen(basis)
+    geschafft, misslungen = 0, 0
+    for stand in journal_liste(basis):
+        if stand.get("integrity") != "ok":
+            misslungen += 1
+            continue
+        snapshot_id = stand["snapshotId"]
+        ziel = os.path.join(wurzel, snapshot_id)
+        neu = os.path.join(wurzel, ".%s.rewrite-new" % snapshot_id)
+        alt = os.path.join(wurzel, ".%s.rewrite-old" % snapshot_id)
+        try:
+            _geprueft, gelesen = journal_snapshot_lesen(
+                snapshot_id, kennwort_alt, basis)
+            text = gesamtarchiv_erzeugen(
+                gelesen["daten"], "linux", stand["appVersion"],
+                kennwort=kennwort_neu, erstellt=stand["createdAt"])
+            payload = text.encode("utf-8")
+            manifest = json.loads(_text_dekodieren(datei_begrenzt_lesen(
+                os.path.join(ziel, "manifest.json"), 1024 * 1024,
+                _("The recovery snapshot manifest is too large."))))
+            manifest["payload"]["sha256"] = hashlib.sha256(payload).hexdigest()
+            manifest["payload"]["size"] = len(payload)
+            os.mkdir(neu, 0o700)
+            atomar_binaer_schreiben(os.path.join(neu, "payload.magnolie"), payload)
+            atomar_text_schreiben(os.path.join(neu, "manifest.json"), json.dumps(
+                manifest, ensure_ascii=False, sort_keys=True, indent=2) + "\n")
+            _verzeichnis_sync(neu)
+            os.replace(ziel, alt)
+            os.replace(neu, ziel)
+            _verzeichnis_sync(wurzel)
+            shutil.rmtree(alt)
+            geschafft += 1
+        except Exception:
+            misslungen += 1
+            if not os.path.exists(ziel) and os.path.isdir(alt):
+                os.replace(alt, ziel)
+            if os.path.isdir(neu):
+                shutil.rmtree(neu)
+    return {"geschafft": geschafft, "misslungen": misslungen}
 
 
 def journal_restore_daten(daten):
@@ -4868,7 +4929,7 @@ ERINNERUNG_WIEDERHOLUNG_FELDER = (
 ERINNERUNG_AUFGABE_FELDER = (
     "id", "uid", "titel", "faellig", "erledigt", "erinnern",
     "individuelleErinnerungTage", "startZeit", "faelligZeit")
-ERINNERUNG_JAHRESTAG_FELDER = ("id", "uid", "name", "datum")
+ERINNERUNG_JAHRESTAG_FELDER = ("id", "uid", "name", "datum", "typ")
 ERINNERUNG_EINSTELLUNG_FELDER = (
     "an", "vorlauf", "verpasste", "aufgaben", "art", "stil")
 ERINNERUNG_JAHRESTAG_EINSTELLUNG_FELDER = ("an", "tage", "amTag", "stunde")
@@ -4882,6 +4943,8 @@ def _erinnerungsfelder_auswaehlen(quelle, felder):
 
 def _alarm_normalisieren(alarm):
     if not isinstance(alarm, dict):
+        return None
+    if alarm.get("bearbeitbar") is False:
         return None
     wert = alarm.get("offsetMinuten")
     if isinstance(wert, bool):
@@ -5054,22 +5117,24 @@ def _termin_meldungen(termin, kennung, beginn, vorlauf):
     """Deduplizierte Meldungen aus Standard-, Legacy- und Webalarmen."""
     meldungen = {}
 
-    def aufnehmen(marke, minuten, related="START", tage=0):
+    def aufnehmen(art, minuten, related="START", tage=0):
         basis = _termin_endzeitpunkt(termin) if related == "END" else beginn
         if basis is None:
             return
+        marke = "%s@%s:%s" % (
+            kennung, basis.strftime("%Y%m%d%H%M"), art)
         meldungen.setdefault((minuten, related), (
             marke, basis - timedelta(minutes=minuten), tage, basis))
 
     tage = _erinnerung_tage(termin.get("individuelleErinnerungTage"))
     if not tage or termin.get("standardErinnerung") is not False:
-        aufnehmen(kennung, max(0, vorlauf))
+        aufnehmen("standard", max(0, vorlauf))
     if 1 <= tage <= 7:
-        aufnehmen("%s@individuell-%d" % (kennung, tage), tage * 1440,
+        aufnehmen("individuell-%d" % tage, tage * 1440,
                   tage=tage)
     for minuten, related in _strukturierte_alarme(termin):
         alarm_tage = minuten // 1440 if minuten and minuten % 1440 == 0 else 0
-        aufnehmen("%s@alarm-%s-%d" % (kennung, related, minuten),
+        aufnehmen("alarm-%s-%d" % (related, minuten),
                   minuten, related, alarm_tage)
     return list(meldungen.values())
 
@@ -5208,7 +5273,7 @@ def faellige_erinnerungen(daten, jetzt, zustand, vorlauf=15, verpasste=True,
                 termin, kennung, beginn, vorlauf):
             if basis < grenze_zurueck:
                 continue
-            if marke in gemeldet or (marke == kennung and kennung in gemeldet):
+            if marke in gemeldet:
                 continue
             if jetzt < erinnerungszeit:
                 continue
@@ -5626,9 +5691,16 @@ def ton_abspielen(befehle=None, starter=None, eigener=True):
         if not werkzeug:
             continue
         try:
-            starter([werkzeug] + argumente[1:])
-            return argumente[0]
-        except OSError:
+            prozess = starter([werkzeug] + argumente[1:])
+            if prozess is None or not hasattr(prozess, "wait"):
+                return argumente[0]
+            try:
+                status = prozess.wait(timeout=0.15)
+            except subprocess.TimeoutExpired:
+                return argumente[0]
+            if status == 0:
+                return argumente[0]
+        except (OSError, subprocess.SubprocessError):
             continue
     return ""
 
@@ -13872,7 +13944,8 @@ def organizer_ressource(adresse, web_verzeichnis, sprache="de"):
             uri.query or uri.fragment):
         return None
     if uri.path == "/i18n-active.js":
-        aktiv = normalisiere_sprache(sprache, False) or "en"
+        aktiv = system_sprache() if sprache == "system" else (
+            normalisiere_sprache(sprache, False) or "en")
         datei = "i18n-en.js" if aktiv == "en" else "i18n/%s.js" % aktiv
         mime = "application/javascript"
     elif uri.path in _ORGANIZER_RESSOURCEN:
@@ -15314,6 +15387,17 @@ class Fenster(_FENSTER_BASIS):
                 return
             self._speicher_auftraege.put((kennung, klartext))
 
+        elif befehl == "regional_einstellungen":
+            sauber = regional_einstellungen(nachricht.get("regional"))
+            if regional_einstellungen_schreiben(sauber):
+                self._regional = sauber
+                self.antwort("App.regionalErgebnis", {
+                    "ok": True, "regional": sauber})
+            else:
+                self.antwort("App.regionalErgebnis", {
+                    "ok": False,
+                    "fehler": _("The regional settings could not be saved.")})
+
         elif befehl == "contributor_pruefen":
             key = nachricht.get("key")
             if not isinstance(key, str) or len(key) > 1024:
@@ -16420,6 +16504,9 @@ class Fenster(_FENSTER_BASIS):
         if mit_sicherungen:
             bericht = sicherungen_umschluesseln(
                 neu, bisher, sicherungs_verzeichnis(sicherungsordner))
+        journalbericht = journal_umschluesseln(neu, bisher)
+        bericht["geschafft"] = bericht.get("geschafft", 0) + journalbericht["geschafft"]
+        bericht["misslungen"] = bericht.get("misslungen", 0) + journalbericht["misslungen"]
         self._kennwort = neu
         sperre_schreiben(sperre_zuruecksetzen())
         self.antwort("App.kennwortStand", {
@@ -16456,6 +16543,9 @@ class Fenster(_FENSTER_BASIS):
                 # Ein gewählter externer Ordner bleibt unabhängig davon geschützt.
                 sicherungsbericht = sicherungen_umschluesseln(
                     "", bisher, daten_verzeichnis())
+                journalbericht = journal_umschluesseln("", bisher)
+                sicherungsbericht["geschafft"] += journalbericht["geschafft"]
+                sicherungsbericht["misslungen"] += journalbericht["misslungen"]
                 self._kennwort = ""
                 self._daten_dek = None
                 self._daten_dek_kennung = None

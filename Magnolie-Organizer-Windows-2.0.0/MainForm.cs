@@ -242,10 +242,17 @@ internal sealed class MainForm : Form
         exitFromTray = false;
     }
 
-    internal void ShowPrintDialog()
+    internal async void ShowPrintDialog(string html)
     {
-        if (InvokeRequired) { BeginInvoke(ShowPrintDialog); return; }
-        webView.CoreWebView2?.ShowPrintUI(CoreWebView2PrintDialogKind.System);
+        if (InvokeRequired) { BeginInvoke(() => ShowPrintDialog(html)); return; }
+        if (string.IsNullOrWhiteSpace(html) || html.Length > 8_000_000) return;
+        var print = new HtmlPrintForm(html, paths, "") { Icon = Icon };
+        print.Show(this);
+        try { await print.Ready; }
+        catch (Exception error)
+        {
+            WriteWebViewDiagnostic($"Fehler beim Öffnen der Druckansicht: {error.Message}");
+        }
     }
 
     internal async Task<bool> OpenHandbookAsync(string manualPath)

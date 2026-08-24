@@ -6,7 +6,6 @@ web/*.jpg                             usr/share/magnolie-handbuch/web
 web/maik-walter-FOTO-NUTZUNG.txt      usr/share/magnolie-handbuch/web
 web/inhalt.js                         usr/share/magnolie-handbuch/web
 web/handbuch.js                       usr/share/magnolie-handbuch/web
-web/platform.js                       usr/share/magnolie-handbuch/web
 web/i18n.js                           usr/share/magnolie-handbuch/web
 web/i18n-start.js                     usr/share/magnolie-handbuch/web
 web/i18n-markers.js                   usr/share/magnolie-handbuch/web

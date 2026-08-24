@@ -13,7 +13,7 @@ sys.path.insert(0, str(ROOT / "werkzeuge"))
 from png_pruefen import pruefen as png_pruefen
 WINDOWS = WORKSPACE / "Magnolie-Organizer-Windows-2.0.0"
 HANDBOOK = WORKSPACE / "magnolie-handbuch-stamm"
-VERSION = "2.0.2"
+VERSION = "2.0.3"
 MANIFEST_VERSION = VERSION
 INTERNAL_NOTE = re.compile(
     r"(REVIEW|ENTWURF|OFFENE[-_ ]?PUNKTE|ANALYSE|PLAN|AUDIT).*\.md$", re.I)
@@ -79,6 +79,17 @@ for manifest in (organizer_update,):
     assert re.fullmatch(r"[0-9a-f]{64}", manual.findtext("linux/sha256") or "")
     assert re.fullmatch(r"[0-9a-f]{64}", manual.findtext("windows/sha256") or "")
 install_manifest = text(ROOT / "debian/install")
+debian_control = text(ROOT / "debian/control")
+recommends = debian_control.split("Recommends:", 1)[1].split("Suggests:", 1)[0]
+suggests = debian_control.split("Suggests:", 1)[1].split("Description:", 1)[0]
+for audio_server in ("pulseaudio,", "pipewire-pulse"):
+    assert audio_server not in debian_control
+for optional_desktop in ("bluez", "gnome-shell-extension-appindicator",
+                         "libcanberra-gtk3-module"):
+    assert optional_desktop not in recommends
+    assert optional_desktop in suggests
+for audio_client in ("pulseaudio-utils", "pipewire-bin", "alsa-utils"):
+    assert audio_client in suggests
 assert not INTERNAL_NOTE.search(install_manifest)
 assert "web/kaffee-qr.png" in install_manifest
 helper = "bin/magnolie_personal_sync.py"
@@ -119,19 +130,34 @@ appimage_builder = text(ROOT / "werkzeuge/appimage_bauen.sh")
 jammy_builder = text(ROOT / "werkzeuge/appimage_jammy_bauen.sh")
 assert 'bin/magnolie_personal_sync.py" "$APPDIR/usr/bin/magnolie_personal_sync.py"' in appimage_builder
 assert 'bin/magnolie_nextcloud.py" "$APPDIR/usr/bin/magnolie_nextcloud.py"' in appimage_builder
+assert ': "${WEBKIT_DISABLE_DMABUF_RENDERER:=1}"' in appimage_builder
+assert ': "${WEBKIT_DISABLE_COMPOSITING_MODE:=1}"' in appimage_builder
 for binary_builder in (appimage_builder, rpm_builder, text(ROOT / "debian/rules")):
     assert "MAGNOLIE_CONTRIBUTOR_HASH" in binary_builder
     assert "tr A-F a-f" in binary_builder
 assert "ubuntu-base-22.04.5" in jammy_builder
 assert "BASIS_SHA=" in jammy_builder and "SNAPSHOT=" in jammy_builder
 assert "werkzeuge/appimage_jammy_bauen.sh" in text(ROOT / "werkzeuge/release_bauen.sh")
+flatpak_manifest = text(ROOT / "flatpak/io.gitlab.maik3531.MagnolieOrganizer.json")
+flatpak_builder = text(ROOT / "werkzeuge/flatpak_bauen.sh")
+assert '"runtime-version": "49"' in flatpak_manifest
+assert '"--socket=pulseaudio"' in flatpak_manifest
+assert '"--device=dri"' not in flatpak_manifest
+assert "org.flatpak.Builder" in flatpak_builder
+assert "flatpak build-bundle" in flatpak_builder
+assert 'MAGNOLIE_CONTRIBUTOR_HASH' in flatpak_builder
+assert '--filesystem="$WURZEL"' in flatpak_builder
+assert '--default-branch="$ZWEIG"' in flatpak_builder
+assert '--override-source-date-epoch="$SOURCE_EPOCH"' in flatpak_builder
+assert '--state-dir="$ARBEIT/state"' in flatpak_builder
 release_builder = text(ROOT / "werkzeuge/release_bauen.sh")
 for gate in ("--skip-autopkgtest", "--skip-system-package-tests",
               "MAGNOLIE_AUTOPKGTEST_QEMU_IMAGE",
                "autopkgtest", "werkzeuge/rpm_fedora_bauen.sh", "RPM_FEDORA_DIR",
                "HANDBUCH_RPM_PAKET", "HANDBUCH_RPM_QUELLE",
                "WINDOWS-RUNTIME-UNVERIFIED.txt", "HANDBUCH_DEB",
-               "Magnolie-Organizer-PRUEFSUMMEN.sha256", "sha256sum -c"):
+               "Magnolie-Organizer-PRUEFSUMMEN.sha256", "sha256sum -c",
+               "werkzeuge/flatpak_bauen.sh", "test_flatpak.py", "FLATPAK_VERGLEICH"):
     assert gate in release_builder, gate
 assert "autopkgtest fehlt; Freigabe abgebrochen" in release_builder
 assert release_builder.index("werkzeuge/rpm_fedora_bauen.sh") < release_builder.rindex(
@@ -152,6 +178,8 @@ for key_kind in ("PRIVATE KEY", "[A-Z0-9]+ ", "release[-_.]?key", "p12|pfx"):
 assert 'UPDATE_SIGNATUR_SCHLUESSEL = "8eJWsygSF9wsF22cuf+sChUUV5RtXEZt38Ngcugn/1Y="' in text(
     ROOT / "bin/magnolie-organizer")
 assert 'chmod 0755 "$APPIMAGE"' in release_builder
+assert "Magnolie-Organizer-$FASSUNG-x86_64.flatpak" in release_builder
+assert "AppImage|flatpak" in release_builder
 assert 'export MAGNOLIE_CONTRIBUTOR_HASH' in release_builder
 assert 'build-config.json' in release_builder
 assert 'MAGNOLIE_CONTRIBUTOR_HASH="$CONTRIBUTOR_HASH"' in fedora_builder
@@ -203,4 +231,4 @@ def test_statische_paketpruefung():
     assert True
 
 
-print("Paketinhalt und Linux-Version 2.0.2: ok")
+print("Paketinhalt und Linux-Version 2.0.3: ok")

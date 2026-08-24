@@ -26,6 +26,7 @@ runner.Add("KDE Connect / Codec / P-256-Ablage / Pinning / Integration", KdeConn
 runner.Add("WebView2 / Handbuch-Start / Navigationssicherheit", WebViewStartupSourceTests.RunAsync);
 runner.Add("F11-Vollbild / WebView2 / Persistenz / Tray", FullscreenSourceTests.RunAsync);
 runner.Add("Native Lokalisierung / 20 Sprachen / Fallback", NativeLocalizationTests.RunAsync);
+runner.Add("Regionale Einstellungen / Grenzen / frühe Persistenz", RegionalSettingsTests.RunAsync);
 runner.Add("Vertiefte portable Cross-Platform-Regression", PortableRegressionTests.RunAsync);
 runner.Add("Größen, Grenzen und Last", StressTests.RunAsync);
 return await runner.RunAsync(args.Length == 0 ? null : string.Join(' ', args));

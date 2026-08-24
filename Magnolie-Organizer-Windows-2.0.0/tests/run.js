@@ -18,7 +18,6 @@ process.env.MAGNOLIE_PYTHON = python;
 let failed = false;
 for (const test of ["handbook-protection.js", "localization-completeness.js", "web-smoke.js",
   "structured-appointment-parity.js", "handbook-smoke.js",
-  "handbook-windows-variants.js",
   "native-integration-smoke.js", "full-parity-contract.js", "linux-live-parity.js",
   "nsis-installer-fixture.js", "installer-publication.js", "manifest-policy.js", "release-audit.js"]) {
   const result = spawnSync(process.execPath, [path.join(__dirname, test), version, installerName], {

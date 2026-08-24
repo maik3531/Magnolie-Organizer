@@ -24,7 +24,6 @@ const runtime = fs.readFileSync(path.join(handbook, "handbuch.js"), "utf8");
 const i18n = fs.readFileSync(path.join(handbook, "i18n.js"), "utf8");
 const deCatalog = fs.readFileSync(path.join(handbook, "i18n", "de.js"), "utf8");
 const localeStart = fs.readFileSync(path.join(handbook, "i18n-start.js"), "utf8");
-const platform = fs.readFileSync(path.join(handbook, "platform.js"), "utf8");
 const style = fs.readFileSync(path.join(handbook, "stil.css"), "utf8");
 const fontDigest = (name) => require("node:crypto").createHash("sha256")
   .update(fs.readFileSync(path.join(handbook, "schriften", name))).digest("hex");
@@ -49,58 +48,26 @@ const dom = new JSDOM(html, {
 const window = dom.window;
 const bridgeMessages = [];
 window.webkit = { messageHandlers: { bruecke: { postMessage(message) { bridgeMessages.push(JSON.parse(message)); } } } };
-window.__MAGNOLIE_PLATFORM__ = "windows";
 window.eval(i18n);
 window.eval(deCatalog);
 window.__MAGNOLIE_SPRACHE__ = "de";
 window.eval(localeStart);
 window.eval(content);
-window.eval(platform);
 window.eval(runtime);
 if (!window.Handbuch) window.document.dispatchEvent(new window.Event("DOMContentLoaded"));
 
 const pages = window.Handbuch.seiten();
 const completeText = pages.map((page) => `${page.titel} ${page.inhalt}`).join("\n");
-const platformPage = pages.find((page) =>
-  page.inhalt.includes("Desktop-Anwendung für Linux und Windows"));
-const protectedClosingIds = new Set(["license-and-acknowledgments", "in-closing",
-  "support-with-a-coffee", "about-maik-walter"]);
-const sharedPlatformFacts = new Set([
-  "kde-sms", "personal-sync", "external-backups", "android-apk-transfer"
-]);
-const platformNeutralText = pages.filter((page) => page !== platformPage &&
-  !protectedClosingIds.has(page.id) &&
-  !sharedPlatformFacts.has(page.id) &&
-  !(page.inhalt.includes("Magnolie-Gesamtarchiv") && page.inhalt.includes("Linux") &&
-    page.inhalt.includes("Windows")) &&
-  !(page.inhalt.includes("Magnolie Notes für Android 1.0.5") &&
-    page.inhalt.includes(`Linux ${expectedVersion}`) &&
-    page.inhalt.includes(`Windows ${expectedVersion}`)))
-  .map((page) => `${page.titel} ${page.inhalt}`).join("\n");
-const blocked = /Linux|Debian|Ubuntu|Fedora|AppImage|WebKitGTK|GNOME|Wayland|X11|\bsystemd\b|\bUFW\b|BlueZ|sudo\s|\/usr\/|~\/\.local|\.deb\b|\.rpm\b/i;
-const blockedPage = pages.find((page) => page !== platformPage &&
-  !protectedClosingIds.has(page.id) &&
-  !sharedPlatformFacts.has(page.id) &&
-  !(page.inhalt.includes("Magnolie-Gesamtarchiv") && page.inhalt.includes("Linux") &&
-    page.inhalt.includes("Windows")) &&
-  !(page.inhalt.includes("Magnolie Notes für Android 1.0.5") &&
-    page.inhalt.includes(`Linux ${expectedVersion}`) &&
-    page.inhalt.includes(`Windows ${expectedVersion}`)) &&
-  blocked.test(`${page.titel} ${page.inhalt}`));
-
 assert.strictEqual(window.document.documentElement.lang, "de");
 assert.strictEqual(window.document.title, "Magnolie Organizer – Handbuch");
-assert.strictEqual(pages.length, 118);
+assert.strictEqual(pages.length, 154);
 assert.ok(pages.every((page) => page.titel && page.inhalt !== undefined));
-assert.ok(platformPage && platformPage.inhalt.includes("Magnolie Notes") &&
-  platformPage.inhalt.includes("Android"), "Die Plattformübersicht fehlt");
-assert.ok(!blocked.test(platformNeutralText),
-  `Das Windows-Handbuch enthält Linux-spezifische Anweisungen auf ${blockedPage?.id}`);
+assert.ok(pages.some((page) => page.id === "the-appimage"), "Die AppImage-Seite fehlt");
 assert.ok(completeText.includes("%LOCALAPPDATA%\\Magnolie Organizer\\daten.json"));
 assert.ok(completeText.includes("Dokumente\\Magnolie Organizer\\Sicherungen"));
 assert.ok(completeText.includes(expectedInstaller));
-assert.ok(completeText.includes("Microsoft Edge WebView2 Runtime"));
-assert.ok(completeText.includes("Organizer und Handbuch aktualisieren") &&
+assert.ok(completeText.includes("WebView2"));
+assert.ok(completeText.includes("Einstellungen ▸ Über") &&
   completeText.includes("Jetzt prüfen") &&
   completeText.includes("SHA-256-Prüfsumme") && completeText.includes("Benutzerhandbuch"));
 assert.ok(completeText.includes("No valid coffee allowance") &&
@@ -109,26 +76,72 @@ assert.ok(completeText.includes("No valid coffee allowance") &&
   completeText.includes("kein regulärer Supportanspruch") &&
   completeText.includes("selbstverständlich geprüft und nicht ignoriert") &&
   completeText.includes("GPL einen Eigenbau ohne Branding erstellen"));
-assert.ok(completeText.includes("genau einem Telefon") &&
+assert.ok(completeText.includes("genau einem angehefteten eigenen Telefon") &&
   completeText.includes("Einstellungen ▸ Magnolienbaum") &&
   completeText.includes("Magnolie Notes-Telefonverbindung einschalten") &&
   completeText.includes("Telefon über WLAN verbinden") &&
-  completeText.includes("Windows-Sicherheitsabfrage") &&
+  completeText.includes("unter Windows die Sicherheitsabfrage") &&
   completeText.includes("sechsstelligen Code") &&
   completeText.includes("Codes stimmen nicht überein") &&
   completeText.includes("Codes stimmen überein") &&
-  completeText.includes("Bluetooth-Daten als Ausweichverbindung") &&
+  completeText.includes("Bluetooth als Ausweichweg") &&
   completeText.includes("Einstellungen ▸ Bluetooth und Geräte") &&
-  completeText.includes("keinen HFP-Ton") && completeText.includes("keine SMS") &&
+  completeText.includes("kein HFP-Ton") && completeText.includes("keine SMS") &&
   completeText.includes("os_restricted"));
 assert.ok(completeText.includes("Kontaktfotos") && completeText.includes("PDF-Anhänge") &&
   completeText.includes("Contacts.ReadWrite") && completeText.includes("Windows-DPAPI"));
 assert.ok(pages.some((page) => page.id === "support-with-a-coffee") &&
   pages.some((page) => page.id === "about-maik-walter"));
 for (const id of ["kde-sms", "phone-calls", "tree-delegation", "tree-contact-sync",
-  "personal-sync", "personal-conflicts-attachments", "personal-deletions-trash"]) {
+  "personal-sync", "personal-conflicts-attachments", "personal-deletions-trash",
+  "country-region-holiday-display", "fetching-public-and-school-holidays",
+  "settings-language-format-region", "settings-time-week-region",
+  "android-notes-navigation", "android-notes-notebooks", "android-notes-edit-save-delete",
+  "android-tasks-reminders", "android-note-symbols-formatting",
+  "android-import-files-folders", "android-import-formats",
+  "android-share-into-notes", "android-import-results-limits",
+  "android-tree-pairing", "android-tree-sharing-inbox", "android-phone-bluetooth",
+  "android-personal-sync-controls", "android-personal-deletion-review", "android-recovery-journal",
+  "phone-call-getting-started", "phone-call-control", "sms-getting-started", "sms-kde-connect-setup",
+  "technical-connection-map", "technical-ports-firewall", "technical-local-encryption",
+  "technical-tree-security-routing", "technical-phone-transport-security",
+  "command-line-and-man-page", "reminder-command-modes",
+  "linux-diagnostic-reminder-logs", "windows-diagnostic-logs",
+  "supported-environment-variables", "technical-file-limits",
+  "technical-recurring-series", "technical-reminder-time-limits",
+  "technical-update-trust", "technical-update-platforms", "technical-weather-privacy",
+  "glossary-a-m", "glossary-n-z"]) {
   assert.ok(pages.some((page) => page.id === id), `Gemeinsame Handbuchseite fehlt: ${id}`);
 }
+assert.ok(completeText.includes("--erinnerung") && completeText.includes("--wecker") &&
+  completeText.includes("--probe") && completeText.includes("debug.log.2") &&
+  completeText.includes("kde-connect-debug.log") && completeText.includes("MAGNOLIE_ORGANIZER_WEB") &&
+  completeText.includes("Build- und Testvariablen sind keine Laufzeiteinstellungen"),
+"Die Strecke-15-Fachphrasen zu CLI, Protokollen und Umgebung fehlen");
+assert.ok(completeText.includes("200:1") && completeText.includes("keine Speicherobergrenze") &&
+  completeText.includes("525.600 Minuten") && completeText.includes("einmal pro Minute") &&
+  completeText.includes("nicht die Ed25519-Signatur") && completeText.includes("128 MiB") &&
+  completeText.includes("512 MiB") && completeText.includes("format=j1") &&
+  completeText.includes("keine entsprechende Begrenzung der Antwortgröße"),
+"Die Strecke-16-Fachphrasen fehlen");
+assert.ok(completeText.includes("Rufnummer für den Anruf auswählen") &&
+  completeText.includes("TelecomManager.placeCall") &&
+  completeText.includes("Status eingehender Anrufe freigeben") &&
+  completeText.includes("Anrufernummer freigeben, wenn verfügbar") &&
+  completeText.includes("Annehmen vom Computer erlauben") &&
+  completeText.includes("nur vom Linux-Backend unterstützt") &&
+  completeText.includes("nur eine <b>sms:</b>-Adresse") &&
+  completeText.includes("kein Zustellnachweis") && completeText.includes("5.000 Zeichen"),
+"Die Strecke-17-Fachphrasen fehlen");
+assert.ok(completeText.includes("Glossar: A–M") && completeText.includes("Glossar: N–Z") &&
+  completeText.includes("kurzfristige, integritätsgeprüfte Kopie") &&
+  completeText.includes("verwendet zum Lesen und Senden von SMS KDE Connect statt Magnolie Notes oder Personal Sync"),
+"Die Strecke-18-Glossare oder ihre deutschen Fachdefinitionen fehlen");
+assert.ok(completeText.includes("Sprache und regionale Darstellung sind getrennt") &&
+  completeText.includes("Woche 1 ist die Woche mit dem ersten Donnerstag") &&
+  completeText.includes("verschiebt gespeicherte lokale Terminzeiten nicht") &&
+  completeText.includes("getrennt von den möglicherweise verschlüsselten Organizer-Hauptdaten"),
+"Die gemeinsame Regionaldokumentation ist unter Windows unvollständig");
 for (const image of ["kaffee-qr.png", "maik-walter.jpg", "01.jpg", "02.jpg", "03.jpg",
   "02-woche.png", "03-aufgaben.png", "06-jahrestage.png", "10-pin-abfrage.png",
   "11-stand.png", "14-karteikarte.png", "15-rechtsklick-anrufen.png",
@@ -156,4 +169,4 @@ assert.strictEqual(bridgeMessages[0].cmd, "drucken");
 assert.ok(bridgeMessages[0].html.includes("Magnolie Organizer · Handbuch"));
 
 dom.window.close();
-console.log(`HANDBOOK SMOKE TEST PASSED (${pages.length} Windows pages)`);
+console.log(`HANDBOOK SMOKE TEST PASSED (${pages.length} shared pages)`);

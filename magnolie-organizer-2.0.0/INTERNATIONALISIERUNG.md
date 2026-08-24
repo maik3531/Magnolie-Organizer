@@ -45,9 +45,10 @@ Sprache, Formatgebiet, Stundenformat und Zeitzone sind getrennte Werte:
 - `temperatureUnit`: `system`, `celsius` oder `fahrenheit`
 - `timeZone`: IANA-Zeitzone oder `system`
 
-Während der Fundamentphase bleiben die Vorgaben absichtlich auf Deutsch,
-24 Stunden, Montag, ISO-Woche und Celsius festgelegt. Dadurch ändert sich die
-bisherige Darstellung nicht.
+Linux übernimmt für bestehende Installationen weiterhin das deutsche
+Bestandsprofil. Windows folgt bei neuen Installationen zunächst den
+Systemeinstellungen. Beide Plattformen speichern eine ausdrückliche Auswahl
+früh und getrennt von den verschlüsselbaren Benutzerdaten in `locale.json`.
 
 ## Datenmigration
 

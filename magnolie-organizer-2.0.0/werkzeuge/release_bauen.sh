@@ -90,13 +90,13 @@ trap 'exit 1' HUP INT TERM
 
 mkdir -p "$WURZEL" "$STAGE/magnolie-handbuch-stamm"
 tar -C "$LIVE_SOURCE" --exclude='./.git' --exclude='./bau' \
-    --exclude='./.pytest_cache' --exclude='./.kotlin' --exclude='./.gradle' \
+    --exclude='./.flatpak-builder' --exclude='./.pytest_cache' --exclude='./.kotlin' --exclude='./.gradle' \
     --exclude='./build' -cf - . | tar -C "$WURZEL" -xf -
 tar -C "$LIVE_HANDBUCH" --exclude='./.git' --exclude='./bau' \
     --exclude='./.pytest_cache' -cf - . | \
     tar -C "$STAGE/magnolie-handbuch-stamm" -xf -
 cp "$LIVE_ROOT/update.xml" "$STAGE/update.xml"
-rm -rf "$WURZEL/.git" "$WURZEL/bau" "$WURZEL/.pytest_cache" "$WURZEL/.kotlin" \
+rm -rf "$WURZEL/.git" "$WURZEL/.flatpak-builder" "$WURZEL/bau" "$WURZEL/.pytest_cache" "$WURZEL/.kotlin" \
     "$WURZEL/.gradle" "$WURZEL/build" \
     "$STAGE/magnolie-handbuch-stamm/.git" \
     "$STAGE/magnolie-handbuch-stamm/bau" \
@@ -133,6 +133,7 @@ DEB="$STAGE/magnolie-organizer_${FASSUNG}_all.deb"
 DSC="$STAGE/magnolie-organizer_${FASSUNG}.dsc"
 SOURCE_TAR="$STAGE/magnolie-organizer_${FASSUNG}.tar.xz"
 APPIMAGE="$STAGE/Magnolie-Organizer-$FASSUNG-x86_64.AppImage"
+FLATPAK="$STAGE/Magnolie-Organizer-$FASSUNG-x86_64.flatpak"
 HANDBUCH_DEB="$STAGE/magnolie-handbuch_${FASSUNG}_all.deb"
 HANDBUCH_DSC="$STAGE/magnolie-handbuch_${FASSUNG}.dsc"
 HANDBUCH_SOURCE_TAR="$STAGE/magnolie-handbuch_${FASSUNG}.tar.xz"
@@ -198,6 +199,14 @@ SOURCE_DATE_EPOCH=$epoch werkzeuge/appimage_jammy_bauen.sh "$APPIMAGE"
 cmp -s "$APPIMAGE_VERGLEICH" "$APPIMAGE"
 rm -f "$APPIMAGE_VERGLEICH"
 
+SOURCE_DATE_EPOCH=$epoch werkzeuge/flatpak_bauen.sh "$FLATPAK"
+python3 pruefungen/test_flatpak.py "$FLATPAK"
+FLATPAK_VERGLEICH=$(mktemp "$STAGE/flatpak-compare.XXXXXX")
+cp "$FLATPAK" "$FLATPAK_VERGLEICH"
+SOURCE_DATE_EPOCH=$epoch werkzeuge/flatpak_bauen.sh "$FLATPAK"
+python3 pruefungen/test_flatpak.py "$FLATPAK_VERGLEICH" "$FLATPAK"
+rm -f "$FLATPAK_VERGLEICH"
+
 python3 werkzeuge/release_manifest.py \
     "$DEB" "$APPIMAGE" "$HANDBUCH_DEB" "$WINDOWS_INSTALLER" \
     "$WURZEL/update.xml" "$STAGE/update.xml"
@@ -244,14 +253,14 @@ rm -f "$ARCHIV_MANIFEST"
 pruefe_quellarchiv() {
     archiv=$1
     prefix=$2
-    pflicht=${3:-"update.xml pruefungen/test_paketinhalt.py werkzeuge/png_pruefen.py"}
+    pflicht=${3:-"update.xml pruefungen/test_paketinhalt.py pruefungen/test_flatpak.py werkzeuge/png_pruefen.py werkzeuge/flatpak_bauen.sh flatpak/io.gitlab.maik3531.MagnolieOrganizer.json flatpak/python3-dependencies.json"}
     liste=$(mktemp "$STAGE/archive-list.XXXXXX")
     tar -tf "$archiv" > "$liste"
     for pfad in $pflicht; do
         grep -Fxq "$prefix/$pfad" "$liste"
     done
     ! grep -Eq '(^|/)Magnolie-Organizer-PRUEFSUMMEN[.]sha256$' "$liste"
-    ! grep -Eq '(^|/)([.]git|[.]pytest_cache|[.]kotlin|[.]gradle|__pycache__|bau|build)(/|$)|[.](tar[.](xz|gz)|zip|rpm|deb|AppImage)$' "$liste"
+    ! grep -Eq '(^|/)([.]git|[.]pytest_cache|[.]kotlin|[.]gradle|__pycache__|bau|build)(/|$)|[.](tar[.](xz|gz)|zip|rpm|deb|AppImage|flatpak)$' "$liste"
     ! grep -Ei '(^|/)(REVIEW|ENTWURF|OFFENE[-_ ]?PUNKTE|[^/]*(ANALYSE|PLAN|AUDIT)[^/]*)[.]md$' "$liste"
     ! grep -Eq '(^|/)build-config[.]json$' "$liste"
     python3 - "$archiv" "$MAGNOLIE_CONTRIBUTOR_HASH" <<'PY'
@@ -260,7 +269,8 @@ import tarfile
 import re
 
 archive, contributor_hash = sys.argv[1:]
-needle = contributor_hash.encode("ascii")
+placeholder = "0" * 64
+needle = None if contributor_hash == placeholder else contributor_hash.encode("ascii")
 private_key = re.compile(
     rb"-----BEGIN ((?:[A-Z0-9]+ )*PRIVATE KEY)-----[\s\S]*?-----END \1-----")
 key_file = re.compile(
@@ -273,7 +283,7 @@ with tarfile.open(archive) as source:
         if not member.isfile():
             continue
         inhalt = source.extractfile(member).read()
-        if needle in inhalt:
+        if needle is not None and needle in inhalt:
             raise SystemExit("Quellarchiv enthaelt den Contributor-Hash: %s" % member.name)
         if private_key.search(inhalt):
             raise SystemExit("Quellarchiv enthaelt einen privaten Schlüssel: %s" % member.name)
@@ -354,6 +364,7 @@ PRUEFSUMMEN="$WURZEL/Magnolie-Organizer-PRUEFSUMMEN.sha256"
 set -- "../magnolie-organizer_${FASSUNG}_all.deb" \
     "../magnolie-organizer_${FASSUNG}.tar.xz" \
     "../Magnolie-Organizer-$FASSUNG-x86_64.AppImage" \
+    "../Magnolie-Organizer-$FASSUNG-x86_64.flatpak" \
     "../magnolie-handbuch_${FASSUNG}_all.deb" \
     "../magnolie-handbuch_${FASSUNG}.tar.xz"
 if [ -n "$RPM_PAKET" ]; then
@@ -370,7 +381,8 @@ magnolie-organizer_${FASSUNG}.tar.xz
 magnolie-handbuch_${FASSUNG}_all.deb
 magnolie-handbuch_${FASSUNG}.dsc
 magnolie-handbuch_${FASSUNG}.tar.xz
-Magnolie-Organizer-$FASSUNG-x86_64.AppImage"
+Magnolie-Organizer-$FASSUNG-x86_64.AppImage
+Magnolie-Organizer-$FASSUNG-x86_64.flatpak"
 if [ -n "$RPM_PAKET" ]; then
     if [ "$LIVE_SOURCE_NAME" != "$SOURCE_NAME" ]; then
         mkdir -p "$STAGE/$LIVE_SOURCE_NAME/bau/rpm/RPMS/noarch" \

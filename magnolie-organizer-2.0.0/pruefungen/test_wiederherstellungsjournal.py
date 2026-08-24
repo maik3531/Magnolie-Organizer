@@ -44,7 +44,7 @@ with tempfile.TemporaryDirectory() as tmp:
                                          jetzt=zeit, disk_usage=disk)
     assert stand["format"] == "magnolie-snapshot"
     assert stand["formatVersion"] == 1 and stand["platform"] == "linux"
-    assert stand["appVersion"] == "2.0.2" and stand["integrity"] == "ok"
+    assert stand["appVersion"] == "2.0.3" and stand["integrity"] == "ok"
     assert stand["payload"]["schema"] == 1 and stand["summary"]["termine"] == 1
     assert os.stat(m.journal_verzeichnis(tmp)).st_mode & 0o777 == 0o700
     assert os.stat(os.path.join(stand["path"], "manifest.json")).st_mode & 0o777 == 0o600
@@ -98,6 +98,28 @@ assert not m.journal_faellig("weekly", "2026-08-10T00:00:00Z",
 assert m.journal_faellig("6h", "2026-08-11T17:59:59Z", "2026-08-12T00:00:00Z")
 assert not m.journal_faellig("12h", "2026-08-11T17:59:59Z", "2026-08-12T00:00:00Z")
 assert m.journal_faellig("daily", "2026-08-10T00:00:00Z", "2026-08-12T00:00:00Z")
+
+# Kennwortwechsel und -entfernung lassen vorhandene Punkte weiterhin lesbar.
+with tempfile.TemporaryDirectory() as tmp:
+    punkt = m.journal_snapshot_erzeugen(daten(), "manual", basis=tmp, disk_usage=disk)
+    bericht = m.journal_umschluesseln("Rosenholz1896", "", tmp)
+    assert bericht == {"geschafft": 1, "misslungen": 0}
+    m.journal_snapshot_lesen(punkt["snapshotId"], "Rosenholz1896", tmp)
+    bericht = m.journal_umschluesseln("Magnolie1897", "Rosenholz1896", tmp)
+    assert bericht == {"geschafft": 1, "misslungen": 0}
+    m.journal_snapshot_lesen(punkt["snapshotId"], "Magnolie1897", tmp)
+    bericht = m.journal_umschluesseln("", "Magnolie1897", tmp)
+    assert bericht == {"geschafft": 1, "misslungen": 0}
+    m.journal_snapshot_lesen(punkt["snapshotId"], "", tmp)
+
+# Ein Prozessabbruch zwischen den beiden Verzeichniswechseln stellt den alten Stand her.
+with tempfile.TemporaryDirectory() as tmp:
+    punkt = m.journal_snapshot_erzeugen(daten(), "manual", basis=tmp, disk_usage=disk)
+    wurzel = m.journal_verzeichnis(tmp)
+    alt = os.path.join(wurzel, ".%s.rewrite-old" % punkt["snapshotId"])
+    os.replace(punkt["path"], alt)
+    m.journal_bereinigen(tmp)
+    m.journal_snapshot_lesen(punkt["snapshotId"], "", tmp)
 
 # Ein fehlgeschlagener Pflichtstand beendet den Sync vor jeder externen Mutation.
 class SyncProbe:

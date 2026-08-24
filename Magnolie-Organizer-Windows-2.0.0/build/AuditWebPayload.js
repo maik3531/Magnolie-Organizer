@@ -34,7 +34,7 @@ function requiredPayload(root, publish) {
   if (!same(path.join(root, "app", "native-i18n.json"), path.join(publish, "native-i18n.json"))) {
     fail("native-i18n.json fehlt oder ist veraltet");
   }
-  for (const relative of ["index.html", "stil.css", "inhalt.js", "handbuch.js", "platform.js",
+  for (const relative of ["index.html", "stil.css", "inhalt.js", "handbuch.js",
     "version.json", "i18n/de.js", "01.jpg", "02.jpg", "03.jpg", "02-woche.png",
     "03-aufgaben.png", "06-jahrestage.png", "10-pin-abfrage.png", "11-stand.png",
     "14-karteikarte.png", "15-rechtsklick-anrufen.png", "19-karte-mit-sms.png",

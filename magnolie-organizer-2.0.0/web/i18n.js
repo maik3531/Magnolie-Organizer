@@ -13,6 +13,7 @@
         [global.navigator.language])).find(Boolean);
       return sprachCode(system || "en");
     }
+    if (/^zh(?:-|$)/i.test(roh)) return "zh-cn";
     return /^[A-Za-z]{2,3}(?:-[A-Za-z0-9]{2,8})*$/.test(roh)
       ? roh.toLowerCase() : "en";
   }
