@@ -1256,7 +1256,7 @@ function knopfMit(text, wurzel) {
   enT.oeffneEinstellungen();
   assert.deepStrictEqual(Array.from(enD.querySelectorAll(".einst-reiter-knopf"),
     (button) => button.textContent),
-  ["General", "Import", "Export", "Synchronization", "Language & region", "Country & holidays",
+  ["General", "Import", "Export", "Synchronization", "Country & holidays",
     "Typography", "Notifications", "Contacts", "Security", "Calendar",
     "Magnolia tree", "About"], "englische Einstellungsreiter fehlen");
   const enAllgemein = enD.querySelector("#einstellungen-inhalt");
@@ -1276,17 +1276,9 @@ function knopfMit(text, wurzel) {
   assert.deepStrictEqual(Array.from(enD.querySelector("#allgemein-tray-oeffnen").options,
     (option) => option.value), ["previous", "centered", "maximized"],
   "interne Tray-Fensterwerte wurden übersetzt");
-  enButton("Language & region", enD.querySelector(".einst-reiter")).click();
-  const enRegional = enD.querySelector("#einstellungen-inhalt");
-  assert.ok(enRegional.querySelector("#regional-sprache") &&
-    enRegional.querySelector("#regional-formatgebiet") &&
-    enRegional.querySelector("#regional-stunden") &&
-    enRegional.querySelector("#regional-wochenanfang") &&
-    enRegional.querySelector("#regional-wochenregel") &&
-    enRegional.querySelector("#regional-temperatur") &&
-    enRegional.querySelector("#regional-zeitzone") &&
-    enRegional.querySelector("#regional-speichern").disabled,
-  "regionale Einstellungen sind nicht vollständig oder im Browser beschreibbar");
+  assert.ok(!enD.querySelector("#einst-tab-regional") &&
+    !enButton("Language & region", enD.querySelector(".einst-reiter")),
+  "regionale Einstellungen sind weiterhin als Reiter sichtbar");
   enButton("Security", enD.querySelector(".einst-reiter")).click();
   const enSicherungsbereiche = enD.querySelector("#einstellungen-inhalt");
   assert.ok(enSicherungsbereiche.textContent.includes("Backup folder") &&
@@ -1993,7 +1985,7 @@ function knopfMit(text, wurzel) {
   const enUeber = enSD.querySelector("#einstellungen-inhalt");
   assert.strictEqual(enUeber.querySelector("h3").textContent,
     "About the Magnolie Organizer", "englische Über-Seite fehlt");
-  assert.ok(enUeber.querySelector(".ueber-fassung").textContent.includes("Version 2.0.3") &&
+  assert.ok(enUeber.querySelector(".ueber-fassung").textContent.includes("Version 2.0.4") &&
     enUeber.textContent.includes("Author") && enUeber.textContent.includes("License") &&
     enUeber.textContent.includes("Updates") &&
     enUeber.textContent.includes("No update check has been performed yet") &&
@@ -2013,12 +2005,12 @@ function knopfMit(text, wurzel) {
     enSyncNachrichten.some((nachricht) => nachricht.cmd === "update_pruefen"),
   "englische Über-Seite verändert Handbuch- oder Update-Befehl");
   const enUpdateUrl = "https://gitlab.com/maik3531/mint-forgs/-/raw/main/" +
-    "Magnolie-Organitzer/magnolie-organizer_2.0.4_all.deb";
-  enSW.App.updateErgebnis({ ok: true, aktuell: false, version: "2.0.4",
+    "Magnolie-Organitzer/magnolie-organizer_2.0.5_all.deb";
+  enSW.App.updateErgebnis({ ok: true, aktuell: false, version: "2.0.5",
     url: enUpdateUrl, sha256: "ab".repeat(32), fehler: "" });
   assert.ok(enSD.querySelector("#update-stand").textContent.includes(
-    "New version 2.0.4 is available") &&
-    enSD.querySelector("#update-herunterladen").textContent.includes("2.0.4") &&
+    "New version 2.0.5 is available") &&
+    enSD.querySelector("#update-herunterladen").textContent.includes("2.0.5") &&
     enSD.querySelector(".update-pruefsumme").textContent.includes("ab".repeat(32)) &&
     enSD.querySelector(".update-pruefsumme").textContent.includes("sha256sum"),
   "englischer neuer Update-Stand fehlt");
@@ -4166,9 +4158,9 @@ function knopfMit(text, wurzel) {
   assert.ok(!$("#einstellungen-schleier").classList.contains("verborgen"),
     "Einstellungen öffnen nicht");
   const reiterKnoepfe = $$(".einst-reiter-knopf");
-  assert.strictEqual(reiterKnoepfe.length, 13, "dreizehn Reiter erwartet");
+  assert.strictEqual(reiterKnoepfe.length, 12, "zwölf Reiter erwartet");
   assert.deepStrictEqual(reiterKnoepfe.map((b) => b.textContent),
-    ["Allgemein", "Übernehmen", "Weitergeben", "Synchronisation", "Sprache & Region", "Land & Feiertage",
+    ["Allgemein", "Übernehmen", "Weitergeben", "Synchronisation", "Land & Feiertage",
       "Schrift", "Benachrichtigung", "Adressen", "Sicherheit", "Kalender",
       "Magnolienbaum", "Über"],
     "Reiterbeschriftungen");
@@ -6021,7 +6013,7 @@ function knopfMit(text, wurzel) {
   assert.ok(ueberText.includes("Version 3"), "die Lizenzfassung fehlt");
   assert.ok($(".ueber-fassung").textContent.includes("Fassung"),
     "die Programmfassung fehlt");
-  assert.ok($(".ueber-fassung").textContent.includes("2.0.3"),
+  assert.ok($(".ueber-fassung").textContent.includes("2.0.4"),
     "die neue Programmfassung fehlt");
   assert.ok($(".ueber-blume"), "die Magnolienblüte fehlt");
   const beschreibung = $(".ueber-beschreibung");
@@ -6041,18 +6033,18 @@ function knopfMit(text, wurzel) {
     "neben der gemeinsamen Aktualisierungsprüfung ist ein zweiter Prüfknopf sichtbar");
   assert.ok($("#handbuch-stand").textContent.includes("nicht installiert"),
     "der Handbuchstatus nennt die fehlende Installation nicht");
-  assert.ok(!T.istNeuereFassung("2.0.1") && !T.istNeuereFassung("2.0.3") &&
-    T.istNeuereFassung("2.0.4"),
+  assert.ok(!T.istNeuereFassung("2.0.1") && !T.istNeuereFassung("2.0.4") &&
+    T.istNeuereFassung("2.0.5"),
     "Fassungsvergleich der Oberfläche stimmt nicht");
   assert.ok(T.vergleicheText("Termin 2", "Termin 10") < 0,
     "der regionale Collator sortiert Zahlen weiterhin rein lexikografisch");
-  w.App.updateErgebnis({ ok: true, aktuell: false, version: "2.0.4",
+  w.App.updateErgebnis({ ok: true, aktuell: false, version: "2.0.5",
     url: "https://gitlab.com/maik3531/mint-forgs/-/raw/main/" +
-      "Magnolie-Organitzer/magnolie-organizer_2.0.4_all.deb" });
-  assert.ok($("#update-stand").textContent.includes("2.0.4"),
+      "Magnolie-Organitzer/magnolie-organizer_2.0.5_all.deb" });
+  assert.ok($("#update-stand").textContent.includes("2.0.5"),
     "gefundene Fassung erscheint nicht unter Über");
   assert.ok($("#update-herunterladen"), "Downloadknopf für neue Fassung fehlt");
-  assert.strictEqual(T.daten().einstellungen.update.letzteVersion, "2.0.4",
+  assert.strictEqual(T.daten().einstellungen.update.letzteVersion, "2.0.5",
     "Prüfstand wird nicht gespeichert");
   $("#update-automatisch").checked = false;
   $("#update-automatisch").dispatchEvent(new w.Event("change", { bubbles: true }));
@@ -6960,7 +6952,7 @@ function knopfMit(text, wurzel) {
     "ohne Handbuch darf der Hinweis nicht als gezeigt gespeichert werden");
   const handbuchUrl = "https://gitlab.com/maik3531/mint-forgs/-/raw/main/" +
     "Magnolie-Organitzer/magnolie-handbuch_1.9.8_all.deb";
-  hw.App.updateErgebnis({ ok: true, aktuell: true, version: "2.0.3", url: "",
+  hw.App.updateErgebnis({ ok: true, aktuell: true, version: "2.0.4", url: "",
     sha256: "ab".repeat(32), handbuch: { version: "1.9.8", url: handbuchUrl,
       sha256: "cd".repeat(32) }, fehler: "" });
   assert.ok(!hd.querySelector("#dialog-schleier").classList.contains("verborgen") &&

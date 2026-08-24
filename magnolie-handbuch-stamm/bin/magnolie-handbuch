@@ -22,7 +22,7 @@ import locale
 import subprocess
 
 PROGRAMM_NAME = "magnolie-handbuch"
-PROGRAMM_FASSUNG = "2.0.3"
+PROGRAMM_FASSUNG = "2.0.4"
 TEXT_DOMAIN = "magnolie-handbuch"
 UNTERSTUETZTE_SPRACHEN = (
     "ar", "be", "cs", "da", "de", "es", "fr", "hi", "hsb", "it",

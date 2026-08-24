@@ -1,5 +1,25 @@
 # Changelog / Änderungen
 
+## 2.0.4 / Notes 1.0.5 — 2026-08-24
+
+### English
+
+- Restored WebKit compositing and page-turn animations while improving startup responsiveness.
+- Made the AppImage work on Wayland through XWayland while retaining the GLIBC 2.35 compatibility ceiling.
+- Removed the visible Language & region settings tab while retaining automatic locale selection and the Linux command-line override.
+- Deduplicated matching EDS and ICS recurring all-day events and made their source labels clearer.
+- Optimized Windows startup lease cleanup by avoiding payload hashing.
+- Updated the complete handbook, packages, catalogs, tests and platform copies to 2.0.4; Magnolie Notes remains at 1.0.5.
+
+### Deutsch
+
+- WebKit-Compositing und Umblätteranimationen wurden wiederhergestellt und zugleich die Reaktionsfähigkeit beim Start verbessert.
+- Das AppImage läuft unter Wayland über XWayland und behält dabei seine GLIBC-2.35-Kompatibilitätsgrenze.
+- Die sichtbare Einstellungsseite „Sprache & Region“ wurde entfernt; automatische Gebietsschemawahl und Linux-Kommandozeilenoption bleiben erhalten.
+- Übereinstimmende wiederkehrende ganztägige EDS- und ICS-Termine werden nicht mehr doppelt angezeigt und tragen klarere Quellenbezeichnungen.
+- Die Windows-Bereinigung von Start-Leases vermeidet nun das Hashen der Nutzlast.
+- Vollständiges Handbuch, Pakete, Kataloge, Tests und Plattformkopien wurden auf 2.0.4 angehoben; Magnolie Notes bleibt bei 1.0.5.
+
 ## 2.0.3 / Notes 1.0.5 — 2026-08-24
 
 ### English

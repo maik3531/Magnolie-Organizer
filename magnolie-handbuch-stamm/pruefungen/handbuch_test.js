@@ -147,8 +147,12 @@ const newPageIds = new Set([
   "glossary-a-m", "glossary-n-z"
 ]);
 /* Every shipped language is complete; English fallback is no longer allowed. */
-const pendingBodyIds = new Set();
-const pendingPageIds = new Set();
+const pendingBodyIds = new Set([
+  "settings-pages-overview", "settings-language-format-region", "settings-time-week-region"
+]);
+const pendingPageIds = new Set([
+  "settings-pages-overview", "settings-language-format-region"
+]);
 const pendingMessages = (language) => {
   const offen = new Set();
   if (language === "de") return offen;
@@ -406,7 +410,7 @@ for (const language of languages) {
             assert.ok(digits.includes(value),
               `${language}: synchronization limit ${value} changed on ${page.titel}`);
           }
-          assert.ok(data.messages[page[key]].includes("2.0.3") &&
+          assert.ok(data.messages[page[key]].includes("2.0.4") &&
             data.messages[page[key]].includes("1.0.5"),
           `${language}: supported version changed on ${page.titel}`);
         }
@@ -666,9 +670,9 @@ function checkLocale(locale, expected) {
   for (const text of expected.completeText) {
     assert.ok(print.includes(text), `${locale}: missing complete-book marker: ${text}`);
   }
-  for (const preserved of ["backing-up-and-restoring", "magnolie-organizer_2.0.3_all.deb",
-    "sudo apt install ./magnolie-organizer_2.0.3_all.deb", "wttr.in",
-    "maik3531@gmail.com", "2.0.3"]) {
+  for (const preserved of ["backing-up-and-restoring", "magnolie-organizer_2.0.4_all.deb",
+    "sudo apt install ./magnolie-organizer_2.0.4_all.deb", "wttr.in",
+    "maik3531@gmail.com", "2.0.4"]) {
     assert.ok(print.includes(preserved), `${locale}: technical value changed: ${preserved}`);
   }
   assert.ok(!print.includes("1.28.0") && !print.includes("1.31.37") &&
@@ -872,9 +876,9 @@ try {
   assert.ok(english.H.blaettereZuId("kde-sms") &&
     english.H.seiten()[english.H.seiten().findIndex((page) => page.id === "kde-sms")].titel,
   "slug navigation failed");
-  assert.ok(englishText.includes("sudo dnf install ./magnolie-organizer-2.0.3-1.noarch.rpm"));
-  assert.ok(englishText.includes("rpmbuild --rebuild magnolie-organizer-2.0.3-1.src.rpm"));
-  assert.ok(englishText.includes("sudo dnf upgrade ./magnolie-organizer-2.0.3-1.noarch.rpm"));
+  assert.ok(englishText.includes("sudo dnf install ./magnolie-organizer-2.0.4-1.noarch.rpm"));
+  assert.ok(englishText.includes("rpmbuild --rebuild magnolie-organizer-2.0.4-1.src.rpm"));
+  assert.ok(englishText.includes("sudo dnf upgrade ./magnolie-organizer-2.0.4-1.noarch.rpm"));
   assert.ok(englishText.includes("Only one <i>Magnolie Organizer</i> entry remains"));
   assert.ok(englishText.includes("Update manual …") &&
     englishText.includes("verifies SHA-256") && englishText.includes("never runs sudo or dpkg"));
@@ -936,13 +940,13 @@ try {
   const regionalIds = ["settings-language-format-region", "settings-time-week-region"];
   assert.strictEqual(sourcePages.filter((page) => regionalIds.includes(page.id)).length, 2,
     "the language and regional display route must contain exactly two pages");
-  for (const phrase of ["Language and regional display are separate", "twenty Organizer languages",
-    "week 1 is the week containing the year's first Thursday", "does not shift stored local appointment times",
-    "separately from the main, possibly encrypted Organizer data"])
+  for (const phrase of ["automatically follows the language and format region",
+    "no Language &amp; region tab", "magnolie-organizer --language CODE",
+    "Regional display is automatic", "Other regional conventions continue to follow the system"])
     assert.ok(englishText.includes(phrase), `English regional documentation missing: ${phrase}`);
-  for (const phrase of ["Sprache und regionale Darstellung sind getrennt", "zwanzig Organizer-Sprachen",
-    "Woche 1 ist die Woche mit dem ersten Donnerstag", "verschiebt gespeicherte lokale Terminzeiten nicht",
-    "getrennt von den möglicherweise verschlüsselten Organizer-Hauptdaten"])
+  for (const phrase of ["folgt automatisch der Sprache und Formatregion", "keinen Reiter Sprache &amp; Region",
+    "magnolie-organizer --language CODE", "Regionale Darstellung erfolgt automatisch",
+    "Andere regionale Konventionen folgen weiterhin dem System"])
     assert.ok(germanText.includes(phrase), `German regional documentation missing: ${phrase}`);
   const androidNotesIds = ["android-notes-navigation", "android-notes-notebooks",
     "android-notes-edit-save-delete", "android-tasks-reminders", "android-note-symbols-formatting"];
@@ -1008,11 +1012,11 @@ try {
   const python = fs.readFileSync(path.join(ROOT, "bin", "magnolie-handbuch"), "utf8");
   assert.ok(python.includes("gettext.translation") && python.includes("/usr/share/locale"));
   assert.ok(python.includes("window.MAGNOLIE_LOCALE") && python.includes("get_is_remote"));
-  assert.ok(python.includes('PROGRAMM_FASSUNG = "2.0.3"') && python.includes('"--version"'));
+  assert.ok(python.includes('PROGRAMM_FASSUNG = "2.0.4"') && python.includes('"--version"'));
   const changelog = fs.readFileSync(path.join(ROOT, "debian", "changelog"), "utf8");
   const pot = fs.readFileSync(path.join(ROOT, "po", "magnolie-handbuch.pot"), "utf8");
-  assert.ok(changelog.startsWith("magnolie-handbuch (2.0.3)"));
-  assert.ok(pot.includes('"Project-Id-Version: Magnolie Handbook 2.0.3'));
+  assert.ok(changelog.startsWith("magnolie-handbuch (2.0.4)"));
+  assert.ok(pot.includes('"Project-Id-Version: Magnolie Handbook 2.0.4'));
   assert.ok(!sources.i18n.includes("pageReferenceUpdates") &&
     !sources.content.includes("data-seite="), "brittle page-number migration remains");
   const pageCount = english.H.seiten().length;

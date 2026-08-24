@@ -1,5 +1,5 @@
 Name:           magnolie-organizer
-Version:        2.0.3
+Version:        2.0.4
 Release:        1%{?dist}
 Summary:        Personal organizer with a classic paper appearance
 
@@ -212,6 +212,12 @@ done
 %{_mandir}/*/man1/magnolie-organizer.1*
 
 %changelog
+* Mon Aug 24 2026 Maik Walter <maik3531@gmail.com> - 2.0.4-1
+- Restore WebKit compositing, page-turn animation and responsive startup
+- Run the AppImage through XWayland while retaining the GLIBC 2.35 ceiling
+- Keep automatic locale selection without the visible Language & region tab
+- Deduplicate matching recurring all-day EDS and ICS events with clearer labels
+
 * Mon Aug 24 2026 Maik Walter <maik3531@gmail.com> - 2.0.3-1
 - Keep PulseAudio and PipeWire integrations optional and conflict-free
 - Disable affected WebKitGTK accelerated rendering paths by default

@@ -120,11 +120,13 @@ internal sealed class RecoveryJournal
         }
     }
 
-    internal IReadOnlyList<SnapshotInfo> List()
+    internal IReadOnlyList<SnapshotInfo> List() => List(verifyPayload: true);
+
+    private IReadOnlyList<SnapshotInfo> List(bool verifyPayload)
     {
         if (!Directory.Exists(root)) return Array.Empty<SnapshotInfo>();
         RejectReparseTree(root);
-        RecoverInterruptedRewrites();
+        if (verifyPayload) RecoverInterruptedRewrites();
         var result = new List<SnapshotInfo>();
         foreach (var directory in Directory.EnumerateDirectories(root))
         {
@@ -132,9 +134,12 @@ internal sealed class RecoveryJournal
             try
             {
                 var item = ParseManifest(directory, verifyPayload: false);
-                try { item = ParseManifest(directory, verifyPayload: true); }
-                catch (Exception error) when (error is IOException or InvalidDataException or JsonException or UnauthorizedAccessException)
-                { item = item with { Integrity = "damaged" }; }
+                if (verifyPayload)
+                {
+                    try { item = ParseManifest(directory, verifyPayload: true); }
+                    catch (Exception error) when (error is IOException or InvalidDataException or JsonException or UnauthorizedAccessException)
+                    { item = item with { Integrity = "damaged" }; }
+                }
                 result.Add(item);
             }
             catch (Exception error) when (error is IOException or InvalidDataException or JsonException or UnauthorizedAccessException) { }
@@ -244,7 +249,7 @@ internal sealed class RecoveryJournal
     internal int ReleaseAbandonedRestoreLeases()
     {
         var released = 0;
-        foreach (var item in List().Where(item => File.Exists(Path.Combine(item.Directory, RestoreLeaseFile))))
+        foreach (var item in List(verifyPayload: false).Where(item => File.Exists(Path.Combine(item.Directory, RestoreLeaseFile))))
         {
             ReleaseRestoreLease(item.Id);
             released++;

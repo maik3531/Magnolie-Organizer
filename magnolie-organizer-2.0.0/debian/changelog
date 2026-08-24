@@ -1,3 +1,16 @@
+magnolie-organizer (2.0.4) unstable; urgency=medium
+
+  * Stellt WebKit-Compositing und Umblätteranimationen wieder her und verbessert
+    die Reaktionsfähigkeit beim Start.
+  * Nutzt für das AppImage unter Wayland XWayland und behält die
+    GLIBC-2.35-Kompatibilitätsgrenze bei.
+  * Entfernt die sichtbare Seite „Sprache & Region“, behält aber automatische
+    Gebietsschemawahl und die Linux-Kommandozeilenoption bei.
+  * Führt gleiche wiederkehrende ganztägige EDS-/ICS-Termine zusammen und zeigt
+    verständlichere Quellenbezeichnungen.
+
+ -- Maik Walter <maik3531@gmail.com>  Mon, 24 Aug 2026 18:00:00 +0200
+
 magnolie-organizer (2.0.3) unstable; urgency=medium
 
   * Verhindert Audio-Serverwechsel durch ausschließlich optionale Desktop- und

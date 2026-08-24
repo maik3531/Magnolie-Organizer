@@ -98,9 +98,15 @@ tar -C "$LIVE_HANDBUCH" --exclude='./.git' --exclude='./bau' \
 cp "$LIVE_ROOT/update.xml" "$STAGE/update.xml"
 rm -rf "$WURZEL/.git" "$WURZEL/.flatpak-builder" "$WURZEL/bau" "$WURZEL/.pytest_cache" "$WURZEL/.kotlin" \
     "$WURZEL/.gradle" "$WURZEL/build" \
+    "$WURZEL/debian/.debhelper" "$WURZEL/debian/debhelper-build-stamp" \
+    "$WURZEL/debian/files" "$WURZEL"/debian/*.substvars \
     "$STAGE/magnolie-handbuch-stamm/.git" \
     "$STAGE/magnolie-handbuch-stamm/bau" \
-    "$STAGE/magnolie-handbuch-stamm/.pytest_cache"
+    "$STAGE/magnolie-handbuch-stamm/.pytest_cache" \
+    "$STAGE/magnolie-handbuch-stamm/debian/.debhelper" \
+    "$STAGE/magnolie-handbuch-stamm/debian/debhelper-build-stamp" \
+    "$STAGE/magnolie-handbuch-stamm/debian/files" \
+    "$STAGE/magnolie-handbuch-stamm"/debian/*.substvars
 find "$WURZEL" -type d \( -name __pycache__ -o -name .pytest_cache \
     -o -name .kotlin -o -name .gradle \) -prune -exec rm -rf {} +
 

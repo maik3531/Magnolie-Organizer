@@ -13,7 +13,7 @@ sys.path.insert(0, str(ROOT / "werkzeuge"))
 from png_pruefen import pruefen as png_pruefen
 WINDOWS = WORKSPACE / "Magnolie-Organizer-Windows-2.0.0"
 HANDBOOK = WORKSPACE / "magnolie-handbuch-stamm"
-VERSION = "2.0.3"
+VERSION = "2.0.4"
 MANIFEST_VERSION = VERSION
 INTERNAL_NOTE = re.compile(
     r"(REVIEW|ENTWURF|OFFENE[-_ ]?PUNKTE|ANALYSE|PLAN|AUDIT).*\.md$", re.I)
@@ -128,10 +128,16 @@ for marker in ("function oeffneSuche", "syncMetadaten", "nextcloud:"):
 assert "/usr/share/doc/magnolie-organizer/INTERNATIONALISIERUNG.md" in installed_test
 appimage_builder = text(ROOT / "werkzeuge/appimage_bauen.sh")
 jammy_builder = text(ROOT / "werkzeuge/appimage_jammy_bauen.sh")
+web_script = text(ROOT / "web/anwendung.js")
+web_style = text(ROOT / "web/stil.css")
+assert '"blaettern-vor", "blaettern-zurueck"' in web_script
+assert '#seiten.blaettern-vor .seite.rechts' in web_style
+assert 'rotateY(-62deg)' in web_style and 'rotateY(62deg)' in web_style
 assert 'bin/magnolie_personal_sync.py" "$APPDIR/usr/bin/magnolie_personal_sync.py"' in appimage_builder
 assert 'bin/magnolie_nextcloud.py" "$APPDIR/usr/bin/magnolie_nextcloud.py"' in appimage_builder
 assert ': "${WEBKIT_DISABLE_DMABUF_RENDERER:=1}"' in appimage_builder
-assert ': "${WEBKIT_DISABLE_COMPOSITING_MODE:=1}"' in appimage_builder
+assert "WEBKIT_DISABLE_COMPOSITING_MODE" not in appimage_builder
+assert ': "${GDK_BACKEND:=x11}"' in appimage_builder
 for binary_builder in (appimage_builder, rpm_builder, text(ROOT / "debian/rules")):
     assert "MAGNOLIE_CONTRIBUTOR_HASH" in binary_builder
     assert "tr A-F a-f" in binary_builder
@@ -231,4 +237,4 @@ def test_statische_paketpruefung():
     assert True
 
 
-print("Paketinhalt und Linux-Version 2.0.3: ok")
+print("Paketinhalt und Linux-Version 2.0.4: ok")

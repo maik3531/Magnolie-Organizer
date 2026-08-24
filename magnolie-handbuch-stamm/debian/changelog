@@ -1,3 +1,11 @@
+magnolie-handbuch (2.0.4) unstable; urgency=medium
+
+  * Übernimmt das vollständige Handbuch in allen 20 angebotenen Sprachen für
+    Magnolie Organizer 2.0.4.
+  * Aktualisiert Paketbeispiele, Versionsangaben, Kataloge und Plattformkopien.
+
+ -- Maik Walter <maik3531@gmail.com>  Mon, 24 Aug 2026 18:00:00 +0200
+
 magnolie-handbuch (2.0.3) unstable; urgency=medium
 
   * Übernimmt das vollständige 154-Seiten-Handbuch in allen 20 angebotenen

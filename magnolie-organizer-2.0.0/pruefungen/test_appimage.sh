@@ -26,7 +26,9 @@ DISPLAY= WAYLAND_DISPLAY= timeout 20s "$APPIMAGE" --appimage-extract-and-run \
 APPDIR="$ARBEIT/squashfs-root"
 test -x "$APPDIR/AppRun"
 grep -Fq ': "${WEBKIT_DISABLE_DMABUF_RENDERER:=1}"' "$APPDIR/AppRun"
-grep -Fq ': "${WEBKIT_DISABLE_COMPOSITING_MODE:=1}"' "$APPDIR/AppRun"
+! grep -Fq 'WEBKIT_DISABLE_COMPOSITING_MODE' "$APPDIR/AppRun"
+grep -Fq '[ "${XDG_SESSION_TYPE:-}" = wayland ]' "$APPDIR/AppRun"
+grep -Fq ': "${GDK_BACKEND:=x11}"' "$APPDIR/AppRun"
 if find "$APPDIR" -type f -exec grep -aFl \
     'WEBKIT_DISABLE_SANDBOX_THIS_IS_DANGEROUS=1' {} + | grep -q .; then
     printf '%s\n' 'Das AppImage enthaelt den WebKit-Sandbox-Disable-Schalter.' >&2
@@ -34,6 +36,8 @@ if find "$APPDIR" -type f -exec grep -aFl \
 fi
 test -x "$APPDIR/usr/bin/python3"
 test -x "$APPDIR/usr/bin/magnolie-organizer"
+! grep -Fq 'HardwareAccelerationPolicy.NEVER' \
+    "$APPDIR/usr/bin/magnolie-organizer"
 test -f "$APPDIR/usr/bin/magnolie_telefon.py"
 test -f "$APPDIR/usr/bin/magnolie_personal_sync.py"
 test -f "$APPDIR/usr/bin/magnolie_nextcloud.py"

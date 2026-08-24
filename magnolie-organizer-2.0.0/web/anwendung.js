@@ -15,7 +15,7 @@
 (function () {
 
   /* Die Fassung erscheint auf der Seite „Über". */
-  const FASSUNG = "2.0.3";
+  const FASSUNG = "2.0.4";
   const CONTRIBUTOR_BRANDING = "No valid coffee allowance";
 
   /* ---------------------------------------------------------------------- */
@@ -14951,7 +14951,6 @@
     { id: "import", name: msgid("Import") },
     { id: "export", name: msgid("Export") },
     { id: "sync", name: msgid("Synchronization") },
-    { id: "regional", name: msgid("Language & region") },
     { id: "ort", name: msgid("Country & holidays") },
     { id: "schrift", name: msgid("Typography") },
     { id: "erinnerung", name: msgid("Notifications") },

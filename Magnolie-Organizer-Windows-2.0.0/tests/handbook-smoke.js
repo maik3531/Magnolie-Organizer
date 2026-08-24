@@ -137,10 +137,10 @@ assert.ok(completeText.includes("Glossar: A–M") && completeText.includes("Glos
   completeText.includes("kurzfristige, integritätsgeprüfte Kopie") &&
   completeText.includes("verwendet zum Lesen und Senden von SMS KDE Connect statt Magnolie Notes oder Personal Sync"),
 "Die Strecke-18-Glossare oder ihre deutschen Fachdefinitionen fehlen");
-assert.ok(completeText.includes("Sprache und regionale Darstellung sind getrennt") &&
-  completeText.includes("Woche 1 ist die Woche mit dem ersten Donnerstag") &&
-  completeText.includes("verschiebt gespeicherte lokale Terminzeiten nicht") &&
-  completeText.includes("getrennt von den möglicherweise verschlüsselten Organizer-Hauptdaten"),
+assert.ok(completeText.includes("folgt automatisch der Sprache und Formatregion") &&
+  completeText.includes("keinen Reiter Sprache &amp; Region") &&
+  completeText.includes("magnolie-organizer --language CODE") &&
+  completeText.includes("Andere regionale Konventionen folgen weiterhin dem System"),
 "Die gemeinsame Regionaldokumentation ist unter Windows unvollständig");
 for (const image of ["kaffee-qr.png", "maik-walter.jpg", "01.jpg", "02.jpg", "03.jpg",
   "02-woche.png", "03-aufgaben.png", "06-jahrestage.png", "10-pin-abfrage.png",

@@ -86,6 +86,7 @@ def _compiled_catalog(po_path, mo_path):
 
 def test_gettext_catalogs_are_complete_and_safe():
     source = _catalog(PO_DIR / "magnolie-organizer.pot")
+    dormant = {(None, "Language & region")}
     locales = (PO_DIR / "LINGUAS").read_text(encoding="utf-8").split()
     assert set(locales) == {path.stem for path in PO_DIR.glob("*.po")}
     errors = []
@@ -95,8 +96,8 @@ def test_gettext_catalogs_are_complete_and_safe():
         extra = entries.keys() - source.keys()
         if missing:
             errors.append(f"{locale}: missing keys: {sorted(missing)[:5]}")
-        if extra:
-            errors.append(f"{locale}: keys absent from POT: {sorted(extra)[:5]}")
+        if extra != dormant:
+            errors.append(f"{locale}: unexpected dormant keys: {sorted(extra)[:5]}")
         for key, template in source.items():
             entry = entries.get(key)
             if not entry:

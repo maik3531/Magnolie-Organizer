@@ -70,13 +70,17 @@ function generatedCatalog(locale) {
 
 const template = poEntries(fs.readFileSync(path.join(poDir, "magnolie-organizer.pot"), "utf8"));
 const locales = fs.readFileSync(path.join(poDir, "LINGUAS"), "utf8").trim().split(/\s+/);
+const dormantKeys = new Set(["Language & region"]);
 assert.deepStrictEqual(fs.readdirSync(poDir).filter((file) => file.endsWith(".po"))
   .map((file) => path.basename(file, ".po")).sort(), [...locales].sort(), "LINGUAS and PO files differ");
 
 for (const locale of locales) {
   const entries = poEntries(fs.readFileSync(path.join(poDir, locale + ".po"), "utf8"));
-  assert.deepStrictEqual([...entries.keys()].sort(), [...template.keys()].sort(),
+  assert.deepStrictEqual([...entries.keys()].filter((key) => !dormantKeys.has(key)).sort(),
+    [...template.keys()].sort(),
     `${locale}: key set differs from POT`);
+  assert.deepStrictEqual([...entries.keys()].filter((key) => !template.has(key)).sort(),
+    [...dormantKeys], `${locale}: unexpected dormant translation`);
   for (const [key, source] of template) {
     const entry = entries.get(key);
     assert.ok(!entry.fuzzy, `${locale}: fuzzy translation: ${source.id}`);

@@ -109,8 +109,17 @@ internal static class RecoveryJournalTests
             restartedJournal.Prune(0, 20L * 1024 * 1024 * 1024);
             TestAssert.That(restartedJournal.List().Any(item => item.Id == leasedPoint.Id && item.Pinned),
                 "Der Pre-Restore-Lease überlebte einen Neustart oder die Nullspeichergrenze nicht.");
+
+            var leasedPayloadPath = Path.Combine(leasedPoint.Directory, "payload.magnolie");
+            var leasedPayload = File.ReadAllText(leasedPayloadPath);
+            File.AppendAllText(leasedPayloadPath, "manipuliert");
             TestAssert.That(restartedJournal.ReleaseAbandonedRestoreLeases() == 1 &&
-                restartedJournal.List().Any(item => item.Id == leasedPoint.Id && !item.Pinned),
+                !File.Exists(Path.Combine(leasedPoint.Directory, ".restore-lease")),
+                "Die Lease-Bereinigung hing von der Payload-Prüfung ab oder gab den Lease nicht frei.");
+            try { restartedJournal.ReadPayload(leasedPoint.Id); throw new InvalidOperationException("Manipulierter Restore-Payload wurde angenommen."); }
+            catch (InvalidDataException) { }
+            File.WriteAllText(leasedPayloadPath, leasedPayload);
+            TestAssert.That(restartedJournal.List().Any(item => item.Id == leasedPoint.Id && !item.Pinned),
                 "Ein nach Daten-Recovery verwaister Restore-Lease wurde nicht sauber freigegeben.");
             restartedJournal.Prune(1024L * 1024 * 1024, 20L * 1024 * 1024 * 1024);
             TestAssert.That(restartedJournal.List().Any(item => item.Id == leasedPoint.Id),

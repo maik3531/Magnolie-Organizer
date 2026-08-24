@@ -6,7 +6,7 @@
 #, fuzzy
 msgid ""
 msgstr ""
-"Project-Id-Version: Magnolie Organizer 2.0.3\n"
+"Project-Id-Version: Magnolie Organizer 2.0.4\n"
 "Report-Msgid-Bugs-To: maik3531@gmail.com\n"
 "POT-Creation-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
@@ -2240,9 +2240,6 @@ msgid "Landline"
 msgstr ""
 
 msgid "Language"
-msgstr ""
-
-msgid "Language & region"
 msgstr ""
 
 msgid "Language and regional display"

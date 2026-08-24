@@ -381,6 +381,10 @@ assert.ok(Array.from(window.document.querySelector(".kontakt-sozial-dienst").opt
 T.wechsel("kalender");
 
 T.oeffneEinstellungen();
+assert.ok(!window.document.querySelector("#einst-tab-regional") &&
+  !Array.from(window.document.querySelectorAll(".einst-reiter-knopf"))
+    .some((button) => button.textContent === "Sprache & Region"),
+"regionale Einstellungen sind unter Windows weiterhin als Reiter sichtbar");
 window.document.querySelector("#einst-tab-adressen").click();
 assert.deepStrictEqual(Array.from(window.document.querySelector("#adressen-karten").options,
   (option) => option.value), ["google", "openstreetmap"],

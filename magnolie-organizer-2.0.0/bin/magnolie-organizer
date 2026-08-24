@@ -55,10 +55,8 @@ import zipfile
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from datetime import datetime, timedelta, timezone
 
-# WebKitGTK's accelerated EGL path crashes with affected Mesa/Gallium builds
-# and can leave AppImages blank when host and bundled graphics ABIs differ.
+# Avoid WebKitGTK's DMA-BUF path on graphics stacks with incompatible ABIs.
 os.environ.setdefault("WEBKIT_DISABLE_DMABUF_RENDERER", "1")
-os.environ.setdefault("WEBKIT_DISABLE_COMPOSITING_MODE", "1")
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from magnolie_telefon import PhoneService, PORT as TELEFON_PORT
@@ -170,7 +168,7 @@ def tray_system_verfuegbar(desktop=None, aktivierte_erweiterungen=None):
 PROGRAMM_NAME = "magnolie-organizer"
 HANDBUCH_NAME = "magnolie-handbuch"
 FENSTER_TITEL = "Magnolie Organizer"
-PROGRAMM_FASSUNG = "2.0.3"
+PROGRAMM_FASSUNG = "2.0.4"
 ALTER_NAME = "organizer-klassik"
 I18N_DOMAIN = "magnolie-organizer"
 
@@ -2124,6 +2122,59 @@ def _ics_quelle_setzen(ergebnis, text, quellenname="", quellen_id=""):
         for item in ergebnis.get(art) or []:
             item["icsQuelleName"] = name
             item["icsQuelleId"] = kennung
+
+
+def _termin_externe_kennungen(termin):
+    return {str(wert).strip() for wert in (
+        termin.get("uid"), termin.get("icsSerienUid")) if str(wert or "").strip()}
+
+
+def _termin_recurrence_id(termin):
+    for zeile in termin.get("icsRoundtrip") or []:
+        prop = _prop_zerlegen(str(zeile))
+        if prop and prop[0] == "RECURRENCE-ID":
+            return json.dumps([prop[1] or {}, prop[2]], ensure_ascii=False,
+                              sort_keys=True, separators=(",", ":"))
+    return ""
+
+
+def _termin_eds_ics_identisch(lokal, entfernt):
+    """Erkennt dieselbe externe Instanz, nicht nur gleich aussehende Termine."""
+    quelle = str(lokal.get("icsQuelleId") or "")
+    if not quelle or quelle.startswith("eds:"):
+        return False
+    if not (_termin_externe_kennungen(lokal) &
+            _termin_externe_kennungen(entfernt)):
+        return False
+    if _termin_recurrence_id(lokal) != _termin_recurrence_id(entfernt):
+        return False
+    return (lokal.get("datum") or "", lokal.get("endDatum") or "",
+            lokal.get("zeit") or "", lokal.get("endZeit") or "",
+            kanonischer_text(lokal.get("titel"))) == (
+                entfernt.get("datum") or "", entfernt.get("endDatum") or "",
+                entfernt.get("zeit") or "", entfernt.get("endZeit") or "",
+                kanonischer_text(entfernt.get("titel")))
+
+
+def _termin_quelle_hinzufuegen(termin, quellen_id, name, externe_uid=""):
+    """Bewahrt Import- und Sync-Provenienz bei einem zusammengeführten Termin."""
+    alle = dict(termin.get("syncQuellen") or {})
+    alte_id = str(termin.get("icsQuelleId") or "")
+    alter_name = str(termin.get("icsQuelleName") or "").strip()
+    if alte_id and alte_id != quellen_id and alte_id not in alle:
+        alle[alte_id] = {"id": str(termin.get("uid") or ""),
+                         "name": alter_name, "eigen": False}
+    alle[quellen_id] = {"id": str(externe_uid or termin.get("uid") or ""),
+                        "name": str(name or "").strip(), "eigen": False}
+    namen = []
+    for eintrag in alle.values():
+        quellname = str(eintrag.get("name") or "").strip() \
+            if isinstance(eintrag, dict) else ""
+        if quellname and quellname not in namen:
+            namen.append(quellname)
+    termin["syncQuellen"] = alle
+    termin["icsQuelleId"] = quellen_id
+    termin["icsQuelleName"] = " + ".join(namen) or str(name or "")
 
 
 def ics_lesen(text, quellenname="", quellen_id=""):
@@ -13186,7 +13237,10 @@ def lokal_scannen(basis=None):
                         texte = _texte_aus_sqlite(pfad, ICS_ANFAENGE)
                         text = "\n".join(texte)
                     if text.strip():
-                        z = uebernehmen(ics_lesen(text))
+                        ordnername = os.path.basename(os.path.dirname(pfad))
+                        z = uebernehmen(ics_lesen(
+                            text, "Evolution: " + ordnername,
+                            "evolution:" + os.path.realpath(pfad)))
                         ev = [a + b for a, b in zip(ev, z)]
     satz = _zaehl_satz("Evolution", *ev)
     if satz:
@@ -13208,7 +13262,9 @@ def lokal_scannen(basis=None):
         kalender = os.path.join(profil, "calendar-data", "local.sqlite")
         texte = _texte_aus_sqlite(kalender, ICS_ANFAENGE)
         if texte:
-            z = uebernehmen(ics_lesen("\n".join(texte)))
+            z = uebernehmen(ics_lesen(
+                "\n".join(texte), "Thunderbird",
+                "thunderbird:" + os.path.realpath(kalender)))
             tb = [a + b for a, b in zip(tb, z)]
         else:
             z = uebernehmen(_tb_normalisierte_kalenderdaten(kalender))
@@ -18400,6 +18456,12 @@ class Fenster(_FENSTER_BASIS):
             neue_tote = list(uebrige_tote)
             sync_zeit = jetzt_ms()
             for quelle_uid in kal_uids:
+                quelle_name = _("Evolution Data Server")
+                try:
+                    quellobjekt = _quelle(registry, quelle_uid)
+                    quelle_name = quellobjekt.get_display_name() or quelle_name
+                except Exception:
+                    pass
                 client = eds_kalender_client(registry, quelle_uid)
                 fern = {}
                 fern_gelesen = []
@@ -18419,17 +18481,33 @@ class Fenster(_FENSTER_BASIS):
                 gesperrte_serien.discard(None)
                 fern_komplex = []
                 for t in fern_gelesen:
+                    _termin_quelle_hinzufuegen(
+                        t, "eds:" + quelle_uid, quelle_name, t.get("uid"))
                     if (t.get("uid") and t.get("uid") not in gesperrte_serien and
                             t.get("icsSerienUid") not in gesperrte_serien):
                         fern[t["uid"]] = t
                     elif t.get("uid"):
                         t["icsReadOnly"] = True
                         t["icsReadOnlyGrund"] = "EDS"
-                        t["icsQuelleName"] = "Evolution Data Server"
-                        t["icsQuelleId"] = "eds:" + quelle_uid
                         t["syncKalenderUid"] = quelle_uid
                         t["sync"] = True
                         fern_komplex.append(t)
+                belegte_uids = {str(t.get("uid") or "") for t in termine}
+                for entfernt in fern_gelesen:
+                    for vorhanden in termine:
+                        besitzer = vorhanden.get("syncKalenderUid") or ""
+                        if besitzer not in ("", quelle_uid) or not _termin_eds_ics_identisch(
+                                vorhanden, entfernt):
+                            continue
+                        remote_uid = str(entfernt.get("uid") or "")
+                        _termin_quelle_hinzufuegen(
+                            vorhanden, "eds:" + quelle_uid, quelle_name, remote_uid)
+                        if remote_uid and (remote_uid == vorhanden.get("uid") or
+                                           remote_uid not in belegte_uids):
+                            belegte_uids.discard(str(vorhanden.get("uid") or ""))
+                            vorhanden["uid"] = remote_uid
+                            belegte_uids.add(remote_uid)
+                        break
                 lokal = []
                 geschuetzt = 0
                 vorhandene_komplex_uids = set()
@@ -18442,8 +18520,8 @@ class Fenster(_FENSTER_BASIS):
                                 t.get("icsSerienUid") in gesperrte_serien):
                             t["icsReadOnly"] = True
                             t["icsReadOnlyGrund"] = "EDS"
-                            t["icsQuelleName"] = "Evolution Data Server"
-                            t["icsQuelleId"] = "eds:" + quelle_uid
+                            _termin_quelle_hinzufuegen(
+                                t, "eds:" + quelle_uid, quelle_name, t.get("uid"))
                             neue_termine.append(t)
                             vorhandene_komplex_uids.add(t.get("uid"))
                             geschuetzt += 1
@@ -18468,6 +18546,8 @@ class Fenster(_FENSTER_BASIS):
                     lokal, fern, tombstones, letzter_kalender_sync, TERMIN_FELDER)
                 for obj in lokal:
                     obj["syncKalenderUid"] = quelle_uid
+                    _termin_quelle_hinzufuegen(
+                        obj, "eds:" + quelle_uid, quelle_name, obj.get("uid"))
                 fehler = 0
                 for obj in anlegen:
                     try:
@@ -18495,10 +18575,11 @@ class Fenster(_FENSTER_BASIS):
                                  for uid in loeschen if uid not in geschafft)
                 neue_termine.extend(lokal)
                 kalender_syncs[quelle_uid] = sync_zeit
-                bericht.append(_sync_satz(_("Appointments"), z, fehler))
+                bericht.append(_sync_satz(
+                    "%s · %s" % (quelle_name, _("Appointments")), z, fehler))
                 if neue_komplexe:
                     anzahl = len(neue_komplexe)
-                    bericht.append("Evolution Data Server: %s (%s)." % (
+                    bericht.append("%s: %s (%s)." % (quelle_name,
                         ngettext("%d appointment", "%d appointments", anzahl) % anzahl,
                         _nur_lesen_text()))
             termine = neue_termine
