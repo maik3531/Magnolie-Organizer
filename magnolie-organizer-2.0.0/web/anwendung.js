@@ -15,7 +15,7 @@
 (function () {
 
   /* Die Fassung erscheint auf der Seite „Über". */
-  const FASSUNG = "2.0.5";
+  const FASSUNG = "2.0.6";
   const CONTRIBUTOR_BRANDING = "No valid coffee allowance";
 
   /* ---------------------------------------------------------------------- */
@@ -1258,14 +1258,14 @@
     return i;
   }
 
-  function datumAnzeige(iso, jahrUnbekannt) {
-    return gueltigesISO(iso) ? iso.slice(8, 10) + "." + iso.slice(5, 7) +
-      "." + (jahrUnbekannt ? "" : iso.slice(0, 4)) : "";
+  function datumAnzeige(iso) {
+    return gueltigesJahresdatum(iso) ? monatTag(iso).slice(3) + "." +
+      monatTag(iso).slice(0, 2) + "." + (hatBekanntesJahr(iso) ? iso.slice(0, 4) : "") : "";
   }
 
   function datumAusAnzeige(text, jahrOptional) {
     const roh = String(text || "").trim();
-    if (gueltigesISO(roh)) return roh;
+    if (gueltigesJahresdatum(roh)) return roh;
     const ziffern = roh.replace(/\D/g, "");
     const pruefen = (tag, monat, jahr) => {
       const iso = jahr + "-" + String(monat).padStart(2, "0") + "-" +
@@ -1281,22 +1281,23 @@
     if (ziffern.length === 6) return pruefen(ziffern.slice(0, 1),
       ziffern.slice(1, 2), ziffern.slice(2));
     if (ziffern.length !== 4) return "";
-    return pruefen(ziffern.slice(0, 2), ziffern.slice(2, 4),
-      jahrOptional ? "2000" : isoHeute().slice(0, 4));
+    const teildatum = "--" + ziffern.slice(2, 4) + "-" + ziffern.slice(0, 2);
+    return jahrOptional && gueltigesTeildatum(teildatum) ? teildatum :
+      pruefen(ziffern.slice(0, 2), ziffern.slice(2, 4), isoHeute().slice(0, 4));
   }
 
   function datumswert(feld) {
     if (!feld) return "";
     return feld.dataset.datumText === "ja"
-      ? (feld.dataset.datumIso || "") : (gueltigesISO(feld.value) ? feld.value : "");
+      ? (feld.dataset.datumIso || "") : (gueltigesJahresdatum(feld.value) ? feld.value : "");
   }
 
-  function setzeDatumswert(feld, iso, jahrUnbekannt) {
-    const wert = gueltigesISO(iso) ? iso : "";
+  function setzeDatumswert(feld, iso) {
+    const wert = gueltigesJahresdatum(iso) ? iso : "";
     if (feld.dataset.datumText === "ja") {
       feld.dataset.datumIso = wert;
-      feld.dataset.jahrUnbekannt = wert && jahrUnbekannt ? "ja" : "";
-      feld.value = datumAnzeige(wert, wert && jahrUnbekannt);
+      feld.dataset.jahrUnbekannt = gueltigesTeildatum(wert) ? "ja" : "";
+      feld.value = datumAnzeige(wert);
     } else {
       feld.value = wert;
     }
@@ -1309,13 +1310,12 @@
   }
 
   function datumsjahrUnbekannt(feld) {
-    return !!feld && feld.dataset.jahrUnbekannt === "ja";
+    return !!feld && gueltigesTeildatum(datumswert(feld));
   }
 
   function jahrestagDatumText(jahrestag) {
-    if (!jahrestag || !gueltigesISO(jahrestag.datum)) return "";
-    return jahrestag.jahrUnbekannt || jahrestag.datum.startsWith("1900-")
-      ? datumAnzeige(jahrestag.datum, true) : fmtPunkt(jahrestag.datum);
+    if (!jahrestag || !gueltigesJahresdatum(jahrestag.datum)) return "";
+    return datumAnzeige(jahrestag.datum);
   }
 
   function bindeDatumseingabe(feld, wert, optionen) {
@@ -1352,7 +1352,7 @@
         (werte[2] || segment > 1 ? "." + werte[2] : "");
       const iso = datumAusAnzeige(feld.value, jahrOptional);
       feld.dataset.datumIso = iso;
-      feld.dataset.jahrUnbekannt = iso && jahrOptional && !werte[2] ? "ja" : "";
+      feld.dataset.jahrUnbekannt = gueltigesTeildatum(iso) ? "ja" : "";
     };
     const melden = () => {
       letzterGemeldeterWert = datumswert(feld);
@@ -1362,12 +1362,10 @@
     const finalisieren = () => {
       const roh = feld.value.trim();
       let iso = datumAusAnzeige(roh, jahrOptional);
-      let unbekannt = jahrOptional && roh.replace(/\D/g, "").length === 4;
       if (!iso && !roh && leerHeute) {
         iso = isoHeute();
-        unbekannt = false;
       }
-      if (iso) setzeDatumswert(feld, iso, unbekannt);
+      if (iso) setzeDatumswert(feld, iso);
       else if (!roh) setzeDatumswert(feld, "");
       return iso;
     };
@@ -1376,15 +1374,14 @@
       feld.dataset.datumText = "ja";
       feld.maxLength = 10;
       feld.placeholder = jahrOptional ? "TT.MM.[JJJJ]" : "TT.MM.JJJJ";
-      setzeDatumswert(feld, wert, jahrOptional &&
-        (!!optionen.jahrUnbekannt || String(wert).startsWith("1900-")));
+      setzeDatumswert(feld, wert);
       feld.addEventListener("input", () => {
         const roh = feld.value;
         const iso = datumAusAnzeige(roh, jahrOptional);
         const ziffern = roh.replace(/\D/g, "").slice(0, 8);
         feld.dataset.datumIso = iso;
-        feld.dataset.jahrUnbekannt = iso && jahrOptional && ziffern.length === 4 ? "ja" : "";
-        feld.value = iso ? datumAnzeige(iso, datumsjahrUnbekannt(feld)) :
+        feld.dataset.jahrUnbekannt = gueltigesTeildatum(iso) ? "ja" : "";
+        feld.value = iso ? datumAnzeige(iso) :
           formatiereDatumsziffern(ziffern);
       });
       feld.addEventListener("click", () => {
@@ -1392,7 +1389,7 @@
         zuruecksetzen();
       });
     } else {
-      feld.value = gueltigesISO(wert) ? wert : "";
+      feld.value = gueltigesJahresdatum(wert) ? wert : "";
     }
     feld.addEventListener("keydown", (ev) => {
       if (textModus && ev.key === "Tab") {
@@ -1462,7 +1459,9 @@
       ev.preventDefault();
       const index = textModus ? segmentAmCursor() : 0;
       const richtung = ev.deltaY < 0 ? 1 : -1;
-      const datum = ausISO(iso);
+      const warTeil = gueltigesTeildatum(iso);
+      const datum = ausISO(warTeil ? projiziereJahresdatum(iso,
+        Number(isoHeute().slice(0, 4))) : iso);
       const tag = datum.getDate();
       if (index === 0) datum.setDate(tag + richtung);
       else if (index === 1) {
@@ -1474,8 +1473,8 @@
         datum.setFullYear(datum.getFullYear() + richtung);
         datum.setDate(Math.min(tag, new Date(datum.getFullYear(), datum.getMonth() + 1, 0).getDate()));
       }
-      const unbekannt = datumsjahrUnbekannt(feld) && index !== 2;
-      setzeDatumswert(feld, isoVon(datum), unbekannt);
+      const wertNeu = warTeil && index !== 2 ? "--" + isoVon(datum).slice(5) : isoVon(datum);
+      setzeDatumswert(feld, wertNeu);
       if (textModus) waehleSegment(index);
       melden();
     }, { passive: false });
@@ -2696,6 +2695,39 @@
     return isoVon(ausISO(s)) === s;
   }
 
+  function gueltigesTeildatum(s) {
+    const treffer = typeof s === "string" && /^--(\d{2})-(\d{2})$/.exec(s);
+    if (!treffer) return false;
+    const monat = Number(treffer[1]), tag = Number(treffer[2]);
+    return monat >= 1 && monat <= 12 && tag >= 1 &&
+      tag <= [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31][monat - 1];
+  }
+
+  function gueltigesJahresdatum(s) {
+    return gueltigesISO(s) || gueltigesTeildatum(s);
+  }
+
+  function monatTag(s) {
+    return gueltigesJahresdatum(s) ? s.slice(-5) : "";
+  }
+
+  function hatBekanntesJahr(s) {
+    return gueltigesISO(s);
+  }
+
+  function projiziereJahresdatum(s, jahr) {
+    if (!gueltigesJahresdatum(s) || !Number.isInteger(jahr) || jahr < 1000 || jahr > 9999) return "";
+    let md = monatTag(s);
+    if (md === "02-29" && !istSchaltjahr(jahr)) md = "02-28";
+    return String(jahr).padStart(4, "0") + "-" + md;
+  }
+
+  function kanonischesJahresdatum(s, legacyJahrUnbekannt) {
+    if (gueltigesTeildatum(s)) return s;
+    if (!gueltigesISO(s)) return "";
+    return legacyJahrUnbekannt === true ? "--" + s.slice(5) : s;
+  }
+
   function formatGebiet() {
     const regional = DATEN && DATEN.einstellungen && DATEN.einstellungen.regional;
     const gebiet = regional && regional.formatLocale;
@@ -2793,8 +2825,9 @@
   }
 
   function fmtTagMonat(iso) {
-    if (!gueltigesISO(iso)) return "";
-    return datumText(ausISO(iso), { day: "2-digit", month: "2-digit" });
+    if (!gueltigesJahresdatum(iso)) return "";
+    return datumText(ausISO(hatBekanntesJahr(iso) ? iso :
+      projiziereJahresdatum(iso, 2024)), { day: "2-digit", month: "2-digit" });
   }
 
   function fmtLang(iso) {
@@ -3729,6 +3762,8 @@
       const emailEintraege = emailEintragListe(k);
       const emails = emailEintraege.map((eintrag) => eintrag.wert);
       const kontaktpersonen = kontaktpersonenListe(k);
+      const geburtstag = kanonischesJahresdatum(S(k.geburtstag),
+        k.geburtstagJahrUnbekannt);
       const kontakt = { id: S(k.id) || uid(), uid: S(k.uid),
         nachname: S(k.nachname), vorname: S(k.vorname),
         firma: S(k.firma), strasse: S(k.strasse), plz: S(k.plz), ort: S(k.ort),
@@ -3740,11 +3775,8 @@
         kontaktpersonStatus: S(k.kontaktpersonStatus),
         kontaktpersonen: kontaktpersonen,
         foto: sauberesFoto(S(k.foto)),
-        geburtstag: gueltigesISO(k.geburtstag)
-          ? (k.geburtstag.startsWith("1900-") ? "2000-" + k.geburtstag.slice(5) : k.geburtstag)
-          : "",
-        geburtstagJahrUnbekannt: !!k.geburtstagJahrUnbekannt ||
-          String(k.geburtstag || "").startsWith("1900-"),
+        geburtstag: geburtstag,
+        geburtstagJahrUnbekannt: gueltigesTeildatum(geburtstag),
         vcardRoundtrip: Array.isArray(k.vcardRoundtrip)
           ? k.vcardRoundtrip.map(S).filter(Boolean).slice(0, 256) : [],
         vcardParameter: k.vcardParameter && typeof k.vcardParameter === "object"
@@ -3841,24 +3873,30 @@
         baumVersion: N(n.baumVersion), baumQuelle: S(n.baumQuelle) });
     }
     for (const j of Array.isArray(roh.jahrestage) ? roh.jahrestage : []) {
-      if (!j || !gueltigesISO(j.datum)) continue;
+      if (!j) continue;
       const typ = S(j.typ).trim().slice(0, 80);
-      const jahrUnbekannt = !!j.jahrUnbekannt || j.datum.startsWith("1900-");
-      const datum = jahrUnbekannt ? "2000-" + j.datum.slice(5) : j.datum;
+      const datum = kanonischesJahresdatum(S(j.datum), j.jahrUnbekannt);
+      if (!datum) continue;
       d.jahrestage.push({ id: S(j.id) || uid(), uid: S(j.uid), name: S(j.name), datum: datum,
-        jahrUnbekannt: jahrUnbekannt, kontaktId: S(j.kontaktId),
+        jahrUnbekannt: gueltigesTeildatum(datum), kontaktId: S(j.kontaktId),
         typ: jahrestagTypId(typ) || typ || "other",
         icsQuelleName: S(j.icsQuelleName), icsQuelleId: S(j.icsQuelleId) });
     }
-    const kontakteMitGeburtstag = new Set(d.jahrestage.filter((j) =>
-      j.kontaktId && istGeburtstagTyp(j.typ)).map((j) => j.kontaktId));
     for (const k of d.kontakte) {
-      if (!k.geburtstag || kontakteMitGeburtstag.has(k.id)) continue;
-      d.jahrestage.push({ id: uid(), uid: "", kontaktId: k.id,
-        name: [k.vorname, k.nachname].filter(Boolean).join(" ") || k.firma,
-        datum: k.geburtstag, jahrUnbekannt: !!k.geburtstagJahrUnbekannt,
-        typ: "birthday" });
-      kontakteMitGeburtstag.add(k.id);
+      const verknuepft = d.jahrestage.find((j) => j.kontaktId === k.id &&
+        istGeburtstagTyp(j.typ));
+      if (!k.geburtstag && verknuepft) {
+        k.geburtstag = verknuepft.datum;
+        k.geburtstagJahrUnbekannt = gueltigesTeildatum(verknuepft.datum);
+      } else if (k.geburtstag && verknuepft) {
+        verknuepft.datum = k.geburtstag;
+        verknuepft.jahrUnbekannt = gueltigesTeildatum(k.geburtstag);
+      } else if (k.geburtstag) {
+        d.jahrestage.push({ id: uid(), uid: "", kontaktId: k.id,
+          name: [k.vorname, k.nachname].filter(Boolean).join(" ") || k.firma,
+          datum: k.geburtstag, jahrUnbekannt: gueltigesTeildatum(k.geburtstag),
+          typ: "birthday" });
+      }
     }
 
     for (const f of Array.isArray(roh.feiertage) ? roh.feiertage : []) {
@@ -5493,8 +5531,8 @@
     if (jahrestagIndexVeraltet || !_jahrestagVerzeichnis) {
       _jahrestagVerzeichnis = new Map();
       for (const jt of DATEN.jahrestage) {
-        if (!gueltigesISO(jt.datum)) continue;
-        const schluessel = jt.datum.slice(5);
+        if (!gueltigesJahresdatum(jt.datum)) continue;
+        const schluessel = monatTag(jt.datum);
         if (!_jahrestagVerzeichnis.has(schluessel)) {
           _jahrestagVerzeichnis.set(schluessel, []);
         }
@@ -5506,7 +5544,7 @@
     if (m === 2 && t === 28 && !istSchaltjahr(j)) {
       liste = liste.concat(_jahrestagVerzeichnis.get("02-29") || []);
     }
-    return liste.filter((jt) => jt.jahrUnbekannt || jt.datum.startsWith("1900-") ||
+    return liste.filter((jt) => !hatBekanntesJahr(jt.datum) ||
       j >= Number(jt.datum.slice(0, 4)));
   }
 
@@ -5814,19 +5852,14 @@
   function naechsterJahrestag(jt) {
     const heute = isoHeute();
     const heuteJahr = Number(heute.slice(0, 4));
-    const [gj, gm, gt] = jt.datum.split("-").map(Number);
-    const kandidat = (jahr) => {
-      let t = gt;
-      if (gm === 2 && t === 29 && !istSchaltjahr(jahr)) t = 28;
-      return jahr + "-" + pad2(gm) + "-" + pad2(t);
-    };
-    let zielJahr = Math.max(heuteJahr, gj);
-    let ziel = kandidat(zielJahr);
-    if (ziel < heute) { zielJahr += 1; ziel = kandidat(zielJahr); }
+    const geburtsjahr = hatBekanntesJahr(jt.datum) ? Number(jt.datum.slice(0, 4)) : null;
+    let zielJahr = Math.max(heuteJahr, geburtsjahr || heuteJahr);
+    let ziel = projiziereJahresdatum(jt.datum, zielJahr);
+    if (ziel < heute) { zielJahr += 1; ziel = projiziereJahresdatum(jt.datum, zielJahr); }
     return {
       iso: ziel,
       inTagen: tageDiff(heute, ziel),
-      anzahl: !jt.jahrUnbekannt && gj > 1900 ? zielJahr - gj : null
+      anzahl: geburtsjahr === null ? null : zielJahr - geburtsjahr
     };
   }
 
@@ -6100,7 +6133,7 @@
 
     if (sektion === "jahrestage") {
       const liste = DATEN.jahrestage.slice().sort(
-        (a, b) => a.datum.slice(5).localeCompare(b.datum.slice(5)));
+        (a, b) => monatTag(a.datum).localeCompare(monatTag(b.datum)));
       return { titel: _("Anniversaries"), wort: _("Anniversaries"), liste: liste,
         anzahl: (wert) => uebersetztMehrzahl(
           "%(count)s anniversary", "%(count)s anniversaries", wert),
@@ -9484,9 +9517,9 @@
     if (jt.length) {
       const kasten = el("div", "jt-kasten");
       kasten.textContent = "✱ " + jt.map((x) => {
-        const [gj] = x.datum.split("-").map(Number);
-        const jahre = Number(iso.slice(0, 4)) - gj;
-        const zusatz = (!x.jahrUnbekannt && gj > 1900 && jahre > 0)
+        const gj = hatBekanntesJahr(x.datum) ? Number(x.datum.slice(0, 4)) : null;
+        const jahre = gj === null ? null : Number(iso.slice(0, 4)) - gj;
+        const zusatz = (jahre !== null && jahre > 0)
           ? " (" + altersText(x, jahre) + ")" : "";
         const typ = jahrestagsArt(x.typ) === "death" && zusatz
           ? "" : " – " + jahrestagTypText(x.typ);
@@ -10101,7 +10134,7 @@
       kontakt: { vorname: String(kontakt.vorname || ""),
         nachname: String(kontakt.nachname || ""), firma: String(kontakt.firma || ""),
         notiz: String(kontakt.notiz || ""),
-        geburtstag: gueltigesISO(kontakt.geburtstag) ? kontakt.geburtstag : "",
+        geburtstag: gueltigesJahresdatum(kontakt.geburtstag) ? kontakt.geburtstag : "",
         telefone: telefonListe(kontakt).map((e) => ({ art: art(e), wert: e.wert })),
         emailEintraege: emailEintragListe(kontakt).map((e) =>
           ({ art: art(e), wert: e.wert })),
@@ -10721,7 +10754,7 @@
       const telefonSuche = telefonSchluessel(suche);
       liste = DATEN.kontakte.filter((k) => {
         const text = [k.nachname, k.vorname, k.firma, k.notiz, k.geburtstag,
-          k.geburtstag ? fmtPunkt(k.geburtstag) : "",
+          k.geburtstag ? datumAnzeige(k.geburtstag) : "",
           kontaktpersonenListe(k).map((p) => [p.name, p.telefon, p.status].join(" ")).join(" "),
           anschriftListe(k).map((a) => [anschriftBezeichnung(a), a.strasse, a.plz,
             a.ort, a.land].join(" ")).join(" "),
@@ -11640,12 +11673,12 @@
       const ereignisName = [ziel.vorname, ziel.nachname].filter(Boolean).join(" ") || ziel.firma;
       const behalten = new Set();
       for (const ereignis of ereignisse) {
-        if (!gueltigesISO(ereignis.datum)) continue;
+        if (!gueltigesJahresdatum(ereignis.datum)) continue;
         let jt = ereignis.id
           ? DATEN.jahrestage.find((j) => j.id === ereignis.id && j.kontaktId === ziel.id)
           : null;
         const jtWerte = { kontaktId: ziel.id, datum: ereignis.datum,
-          jahrUnbekannt: !!ereignis.jahrUnbekannt,
+          jahrUnbekannt: gueltigesTeildatum(ereignis.datum),
           name: ereignisName, typ: ereignis.typ || _("Other") };
         if (jt) Object.assign(jt, jtWerte);
         else {
@@ -11659,7 +11692,7 @@
       const geburtstag = DATEN.jahrestage.find(
         (j) => j.kontaktId === ziel.id && istGeburtstagTyp(j.typ));
       ziel.geburtstag = geburtstag ? geburtstag.datum : "";
-      ziel.geburtstagJahrUnbekannt = !!(geburtstag && geburtstag.jahrUnbekannt);
+      ziel.geburtstagJahrUnbekannt = !!(geburtstag && gueltigesTeildatum(geburtstag.datum));
       for (const termin of kontaktTermine.filter((eintrag) => eintrag.titel.trim())) {
         DATEN.termine.push({ id: uid(), uid: syncUid(), sync: false,
           datum: termin.datum, endDatum: "", zeit: termin.zeit,
@@ -12742,7 +12775,7 @@
       const name = feldName.value.trim();
       if (!name) { feldName.focus(); zettel(_("Please enter a name.")); return; }
       const datum = datumswert(feldDatum);
-      if (!gueltigesISO(datum)) {
+      if (!gueltigesJahresdatum(datum)) {
         feldDatum.focus(); zettel(_("Please select a date.")); return;
       }
       const typText = feldTyp.value.trim().slice(0, 80);
@@ -12751,20 +12784,20 @@
         const warGeburtstag = istGeburtstagTyp(bearbeitet.typ);
         bearbeitet.name = name;
         bearbeitet.datum = datum;
-        bearbeitet.jahrUnbekannt = datumsjahrUnbekannt(feldDatum);
+        bearbeitet.jahrUnbekannt = gueltigesTeildatum(datum);
         bearbeitet.typ = typ;
         const kontakt = bearbeitet.kontaktId
           ? DATEN.kontakte.find((k) => k.id === bearbeitet.kontaktId) : null;
         if (kontakt && istGeburtstagTyp(typ)) {
           kontakt.geburtstag = datum;
-          kontakt.geburtstagJahrUnbekannt = bearbeitet.jahrUnbekannt;
+          kontakt.geburtstagJahrUnbekannt = gueltigesTeildatum(datum);
         } else if (kontakt && warGeburtstag) {
           kontakt.geburtstag = "";
           kontakt.geburtstagJahrUnbekannt = false;
         }
       } else {
         DATEN.jahrestage.push({ id: uid(), name: name, datum: datum,
-          jahrUnbekannt: datumsjahrUnbekannt(feldDatum), typ: typ });
+          jahrUnbekannt: gueltigesTeildatum(datum), typ: typ });
       }
       z.bearbeiteId = null;
       planeSpeichern();
@@ -15802,8 +15835,14 @@
         if (!kontakt || (!kontakt.nachname && !kontakt.vorname && !kontakt.firma)) return false;
         DATEN.kontakte.push(kontakt);
       } else {
-        for (const feld of ["vorname", "nachname", "firma", "geburtstag"]) {
+        for (const feld of ["vorname", "nachname", "firma"]) {
           if (!kontakt[feld] && fern[feld]) kontakt[feld] = String(fern[feld]);
+        }
+        const fernGeburtstag = kanonischesJahresdatum(String(fern.geburtstag || ""));
+        if (!kontakt.geburtstag && fernGeburtstag) {
+          kontakt.geburtstag = fernGeburtstag;
+          kontakt.geburtstagJahrUnbekannt = gueltigesTeildatum(fernGeburtstag);
+          verknuepfeKontaktGeburtstag(kontakt);
         }
         if (fern.notiz && !kontakt.notiz) kontakt.notiz = String(fern.notiz);
         else if (fern.notiz && !kontakt.notiz.split("\n\n").includes(String(fern.notiz))) {
@@ -19045,17 +19084,20 @@
   function mergeJahrestage(liste, erzwungenerTyp) {
     const z = { neu: 0, doppelt: 0 };
     const schluessel = new Set(DATEN.jahrestage.map(
-      (j) => kanonischerText(j.name) + "|" + j.datum.slice(5) + "|" +
+      (j) => kanonischerText(j.name) + "|" + monatTag(j.datum) + "|" +
         (jahrestagTypId(j.typ) || kanonischerText(j.typ))));
     for (const j of liste || []) {
-      if (!j || !gueltigesISO(j.datum) || !j.name) continue;
+      if (!j || !j.name) continue;
+      const datum = kanonischesJahresdatum(String(j.datum || ""), j.jahrUnbekannt);
+      if (!datum) continue;
       const typ = erzwungenerTyp || j.typ;
       const typId = jahrestagTypId(typ) || String(typ || "").trim().slice(0, 80) || "other";
-      const s = kanonischerText(j.name) + "|" + j.datum.slice(5) + "|" +
+      const s = kanonischerText(j.name) + "|" + monatTag(datum) + "|" +
         (jahrestagTypId(typId) || kanonischerText(typId));
       if (schluessel.has(s)) { z.doppelt++; continue; }
       DATEN.jahrestage.push({ id: uid(), uid: j.uid || syncUid(),
-        name: String(j.name), datum: j.datum,
+        name: String(j.name), datum: datum,
+        jahrUnbekannt: gueltigesTeildatum(datum),
         typ: typId, icsQuelleName: String(j.icsQuelleName || ""),
         icsQuelleId: String(j.icsQuelleId || "") });
       schluessel.add(s);
@@ -19143,6 +19185,8 @@
     for (const kontakt of DATEN.kontakte) indexiereKontakt(indexe, kontakt);
     for (const k of liste || []) {
       if (!k) continue;
+      const importGeburtstag = kanonischesJahresdatum(String(k.geburtstag || ""),
+        k.geburtstagJahrUnbekannt);
       const vorhanden = findeImportKontakt(k, indexe);
       if (vorhanden) {
         const foto = sauberesFoto(k.foto);
@@ -19191,9 +19235,9 @@
           geaendert = true;
         }
         if (!vorhanden.sync && k.uid) vorhanden.uid = String(k.uid);
-        if (!vorhanden.geburtstag && gueltigesISO(k.geburtstag)) {
-          vorhanden.geburtstag = k.geburtstag;
-          vorhanden.geburtstagJahrUnbekannt = !!k.geburtstagJahrUnbekannt;
+        if (!vorhanden.geburtstag && importGeburtstag) {
+          vorhanden.geburtstag = importGeburtstag;
+          vorhanden.geburtstagJahrUnbekannt = gueltigesTeildatum(importGeburtstag);
           geaendert = true;
         }
         if (geaendert) vorhanden.geaendert = Math.max(
@@ -19216,8 +19260,8 @@
         kontaktpersonTelefon: String(k.kontaktpersonTelefon || ""),
         kontaktpersonStatus: String(k.kontaktpersonStatus || ""),
         foto: sauberesFoto(k.foto),
-        geburtstag: gueltigesISO(k.geburtstag) ? k.geburtstag : "",
-        geburtstagJahrUnbekannt: !!k.geburtstagJahrUnbekannt,
+        geburtstag: importGeburtstag,
+        geburtstagJahrUnbekannt: gueltigesTeildatum(importGeburtstag),
         geaendert: Number(k.geaendert) || Date.now(), sync: false };
       setzeTelefonListe(neu, telefonListe(k));
       setzeAnschriftListe(neu, anschriftListe(k));
@@ -19232,7 +19276,7 @@
   }
 
   function verknuepfeKontaktGeburtstag(kontakt) {
-    if (!kontakt || !gueltigesISO(kontakt.geburtstag)) return;
+    if (!kontakt || !gueltigesJahresdatum(kontakt.geburtstag)) return;
     const name = [kontakt.vorname, kontakt.nachname].filter(Boolean).join(" ") || kontakt.firma;
     let eintrag = DATEN.jahrestage.find((j) => j.kontaktId === kontakt.id &&
       jahrestagTypId(j.typ) === "birthday");
@@ -19244,7 +19288,7 @@
       eintrag.name = name;
       eintrag.datum = kontakt.geburtstag;
     }
-    eintrag.jahrUnbekannt = !!kontakt.geburtstagJahrUnbekannt;
+    eintrag.jahrUnbekannt = gueltigesTeildatum(kontakt.geburtstag);
   }
 
   /* ---------------------------------------------------------------------- */
@@ -21103,6 +21147,16 @@
     istSynchronisierteFerien: istSynchronisierteFerien,
     istSynchronisierterFeiertag: istSynchronisierterFeiertag,
     wiederholungTrifft: wiederholungTrifft,
+    gueltigesTeildatum: gueltigesTeildatum,
+    gueltigesJahresdatum: gueltigesJahresdatum,
+    monatTag: monatTag,
+    hatBekanntesJahr: hatBekanntesJahr,
+    projiziereJahresdatum: projiziereJahresdatum,
+    kanonischesJahresdatum: kanonischesJahresdatum,
+    naechsterJahrestag: naechsterJahrestag,
+    kontaktBaumInhalt: kontaktBaumInhalt,
+    mergeJahrestage: mergeJahrestage,
+    mergeKontakte: mergeKontakte,
     versionsSchluessel: versionsSchluessel,
     istNeuereFassung: istNeuereFassung,
     zeigeHandbuchHinweis: zeigeHandbuchHinweis,

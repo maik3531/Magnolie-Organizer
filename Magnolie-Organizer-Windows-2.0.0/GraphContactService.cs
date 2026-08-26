@@ -221,7 +221,9 @@ internal sealed class GraphApiClient : IContactRemote
             ["telefon"] = businessPhones.Concat(homePhones).FirstOrDefault() ?? "", ["mobil"] = Text("mobilePhone"),
             ["telefone"] = new JsonArray(phoneItems.ToArray()), ["strasse"] = ContactFields.Text(firstAddress, "strasse"), ["ort"] = ContactFields.Text(firstAddress, "ort"),
             ["plz"] = ContactFields.Text(firstAddress, "plz"), ["land"] = ContactFields.Text(firstAddress, "land"), ["anschriften"] = new JsonArray(addresses.Select(address => (JsonNode)address).ToArray()),
-            ["geburtstag"] = DateTimeOffset.TryParse(Text("birthday"), out var birthday) ? birthday.ToString("yyyy-MM-dd") : "", ["notiz"] = Text("personalNotes") };
+            ["notiz"] = Text("personalNotes") };
+        if (DateTimeOffset.TryParse(Text("birthday"), CultureInfo.InvariantCulture, DateTimeStyles.None, out var birthday))
+            data["geburtstag"] = birthday.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
         var etag = item.TryGetProperty("@odata.etag", out var etagNode) ? etagNode.GetString() ?? "" : "";
         return new RemoteContact(Text("id"), etag, modified, data, false);
     }
@@ -241,7 +243,8 @@ internal sealed class GraphApiClient : IContactRemote
             ["businessPhones"] = new JsonArray(phoneValues.Select(value => JsonValue.Create(value)).ToArray()), ["mobilePhone"] = ContactFields.Text(contact, "mobil"),
             ["homeAddress"] = GraphAddress(0), ["businessAddress"] = GraphAddress(1), ["otherAddress"] = GraphAddress(2),
             ["personalNotes"] = ContactFields.Text(contact, "notiz") };
-        if (DateTime.TryParseExact(ContactFields.Text(contact, "geburtstag"), "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var birthday)) body["birthday"] = birthday.ToString("yyyy-MM-ddT00:00:00Z");
+        if (ExchangeCodec.TryParseCanonicalDate(ContactFields.Text(contact, "geburtstag"), out var birthday, out _, out _) && birthday is not null)
+            body["birthday"] = birthday.Value.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) + "T00:00:00Z";
         return body;
     }
     private static string[] Strings(JsonElement item, string name) => item.TryGetProperty(name, out var values) && values.ValueKind == JsonValueKind.Array ? values.EnumerateArray().Select(value => value.GetString() ?? "").Where(value => value.Length > 0).ToArray() : Array.Empty<string>();

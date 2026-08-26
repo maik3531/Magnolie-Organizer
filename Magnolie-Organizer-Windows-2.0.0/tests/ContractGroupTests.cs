@@ -30,6 +30,14 @@ internal static class ContractGroupTests
         var read = GesamtarchivService.Read(text, "Rosenholz1896");
         TestAssert.That(read.Fotos == 1 && read.Anhaenge == 1 && JsonNode.DeepEquals(read.Daten, data),
             "Das geschützte Linux/Windows-Gesamtarchiv verlor Foto oder Anhang.");
+        var schema2 = JsonNode.Parse(GesamtarchivService.Create(data, "windows", "2.0.6"))!.AsObject();
+        TestAssert.That(schema2["datenschema"]!.GetValue<int>() == 2,
+            "Neue Gesamtarchive verwenden nicht Datenschema 2.");
+        schema2["datenschema"] = 1;
+        _ = GesamtarchivService.Read(schema2.ToJsonString());
+        schema2["datenschema"] = 3;
+        TestAssert.Throws<InvalidDataException>(() => GesamtarchivService.Read(schema2.ToJsonString()),
+            "Ein unbekanntes Gesamtarchiv-Datenschema wurde angenommen.");
         var golden = GesamtarchivService.Read(File.ReadAllText(Path.Combine("tests", "fixtures", "linux-ordinal.magnolie")));
         var goldenAppointments = golden.Daten["termine"]!.AsArray();
         TestAssert.That(golden.Plattform == "linux" && goldenAppointments[0]!["wiederholung"]!["art"]!.GetValue<string>() == "monthly" &&
@@ -50,6 +58,56 @@ internal static class ContractGroupTests
 
     internal static Task ExchangeAsync()
     {
+        foreach (var valid in new[] { "1604-02-29", "1900-02-28", "2000-02-29", "2024-02-29", "--02-29", "--12-31" })
+            TestAssert.That(ExchangeCodec.TryParseCanonicalDate(valid, out _, out _, out _),
+                $"Das kanonische Datum {valid} wurde abgewiesen.");
+        foreach (var invalid in new[] { "2000-02-30", "2023-02-29", "--02-30", "--00-10", "--2-03", "02-03", "1604", "1900", "2000" })
+            TestAssert.That(!ExchangeCodec.TryParseCanonicalDate(invalid, out _, out _, out _),
+                $"Das ungültige oder nicht kanonische Datum {invalid} wurde angenommen.");
+
+        const string yearlessVcard = "BEGIN:VCARD\r\nVERSION:3.0\r\nN:Probe;Jahrlose;;;\r\nFN:Jahrlose Probe\r\nBDAY:--02-29\r\nEND:VCARD\r\n";
+        var yearlessContact = ExchangeCodec.ParseVCard(yearlessVcard);
+        using (var yearlessRestart = JsonDocument.Parse(yearlessContact.Kontakte.ToJsonString()))
+        {
+            var exported = ExchangeCodec.WriteVCard(yearlessRestart.RootElement).Text;
+            TestAssert.That(yearlessContact.Kontakte[0]!["geburtstag"]!.GetValue<string>() == "--02-29" &&
+                exported.Contains("BDAY:--02-29", StringComparison.Ordinal) &&
+                ExchangeCodec.ParseVCard(exported).Kontakte[0]!["geburtstag"]!.GetValue<string>() == "--02-29",
+                "Eine jahrlose vCard-BDAY überstand den Rundlauf nicht kanonisch.");
+        }
+        var genuine2000 = ExchangeCodec.ParseVCard(yearlessVcard.Replace("--02-29", "2000-02-29", StringComparison.Ordinal));
+        TestAssert.That(genuine2000.Kontakte[0]!["geburtstag"]!.GetValue<string>() == "2000-02-29" &&
+            genuine2000.Kontakte[0]!["geburtstagJahrUnbekannt"]!.GetValue<bool>() == false,
+            "Ein echter vCard-Geburtstag aus 2000 wurde als jahrlos interpretiert.");
+
+        var splitLdif = ExchangeCodec.ParseLdif("dn: cn=Jahrlose Probe\ncn: Jahrlose Probe\nbirthMonth: 2\nbirthDay: 29\n\n");
+        TestAssert.That(splitLdif.Kontakte[0]!["geburtstag"]!.GetValue<string>() == "--02-29",
+            "Getrennte LDIF-Monats-/Tagesfelder erzeugten kein jahrloses Datum.");
+        var markerYears = ExchangeCodec.ParseLdif("dn: cn=Marker Probe\ncn: Marker Probe\nbirthMonth: 2\nbirthDay: 28\nbirthYear: 1604\n\n");
+        TestAssert.That(markerYears.Kontakte[0]!["geburtstag"]!.GetValue<string>() == "1604-02-28",
+            "Ein vorhandenes LDIF-Jahr wurde als unbekannt interpretiert.");
+        using (var ldifDates = JsonDocument.Parse("""[{"nachname":"Jahrlos","geburtstag":"--02-29"},{"nachname":"Echt","geburtstag":"2000-02-29"}]"""))
+        {
+            var exported = ExchangeCodec.WriteLdif(ldifDates.RootElement).Text;
+            TestAssert.That(exported.Split("dateOfBirth:", StringSplitOptions.None).Length - 1 == 1 &&
+                exported.Contains("dateOfBirth: 2000-02-29", StringComparison.Ordinal),
+                "LDIF exportierte ein jahrloses Datum oder verwarf einen echten Geburtstag aus 2000.");
+        }
+
+        using (var anniversaryDates = JsonDocument.Parse("""[{"uid":"partial","name":"Jahrlos","datum":"--02-29","typ":"birthday"},{"uid":"full","name":"Echt","datum":"2000-02-29","typ":"birthday"}]"""))
+        {
+            var exported = ExchangeCodec.WriteIcs("ics-jahrestage", anniversaryDates.RootElement).Text;
+            var imported = ExchangeCodec.ParseIcs(exported);
+            TestAssert.That(exported.Contains("DTSTART;VALUE=DATE:20000229", StringComparison.Ordinal) &&
+                exported.Contains("X-MAGNOLIE-DATE:--02-29", StringComparison.Ordinal) &&
+                imported.Jahrestage.Any(item => item?["uid"]?.ToString() == "partial" && item?["datum"]?.ToString() == "--02-29") &&
+                imported.Jahrestage.Any(item => item?["uid"]?.ToString() == "full" && item?["datum"]?.ToString() == "2000-02-29"),
+                "ICS unterschied beim Jahrestags-Rundlauf jahrlos und echtes Jahr 2000 nicht.");
+        }
+        const string invalidExtension = "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\nUID:external-2000\r\nDTSTART;VALUE=DATE:20000229\r\nRRULE:FREQ=YEARLY\r\nCATEGORIES:Geburtstag\r\nSUMMARY:Echt\r\nX-MAGNOLIE-DATE:--02-30\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n";
+        TestAssert.That(ExchangeCodec.ParseIcs(invalidExtension).Jahrestage[0]!["datum"]!.GetValue<string>() == "2000-02-29",
+            "Eine ungültige Magnolie-ICS-Erweiterung überschrieb das externe echte Jahr 2000.");
+
         var fixture = File.ReadAllText(Path.Combine("tests", "fixtures", "golden-komplex.ics"));
         var thunderbird = ExchangeCodec.ParseIcs(fixture);
         TestAssert.That(thunderbird.Termine.Count == 1 && thunderbird.Termine[0]!["icsKomplex"]!.GetValue<bool>(),
@@ -305,6 +363,12 @@ internal static class ContractGroupTests
         var ordinalDue = ReminderScheduler.DueAppointments(ordinalData, new DateTime(2024, 2, 23, 9, 15, 0));
         TestAssert.That(ordinalDue.Count == 1 && ordinalDue[0].Key.Contains("202402230915", StringComparison.Ordinal),
             "Die zeitgebundene letzte-Freitag-Serie wurde im Hintergrund nicht fällig.");
+        using var anniversaryData = JsonDocument.Parse("""{"jahrestage":[{"id":"partial","name":"Jahrlos","datum":"--02-29"},{"id":"full","name":"Echt","datum":"2000-02-29"}]}""");
+        using var anniversarySettings = JsonDocument.Parse("""{"jahrestage":{"an":true,"tage":0,"amTag":true,"stunde":8}}""");
+        var anniversaryDue = ReminderScheduler.DueAnniversaries(anniversaryData.RootElement,
+            anniversarySettings.RootElement, new DateTime(2026, 2, 28, 8, 0, 0));
+        TestAssert.That(anniversaryDue.Count == 2 && anniversaryDue.All(item => item.Start == new DateTime(2026, 2, 28, 8, 0, 0)),
+            "Jahrlose oder volle Schaltjahr-Jahrestage wurden im Nicht-Schaltjahr nicht auf den 28. Februar gelegt.");
         return Task.CompletedTask;
     }
 
@@ -335,6 +399,8 @@ internal static class ContractGroupTests
     {
         var valid = JsonNode.Parse("""{"art":"kontakt_sync","fassung":1,"freigabeId":"alice:42","version":1,"quelle":"alice","geaendert":1770000000000,"kontakt":{"vorname":"Mia","nachname":"Muster","firma":"","notiz":"Zeile 1\nZeile 2","geburtstag":"2000-02-29","foto":"data:image/png;base64,iVBORw0KGgo=","telefone":[{"art":"mobil","wert":"+491701234567"}],"emailEintraege":[{"art":"arbeit","wert":"mia@example.test"}],"anschriften":[{"art":"privat","strasse":"Gartenweg 1","plz":"10115","ort":"Berlin","region":"Berlin","land":"DE"}]}}""")!;
         BaumContactSyncContract.Validate(valid);
+        var yearless = valid.DeepClone(); yearless["kontakt"]!["geburtstag"] = "--02-29";
+        BaumContactSyncContract.Validate(yearless);
         foreach (var invalid in new[]
         {
             """{"art":"kontakt_sync","fassung":2,"freigabeId":"a","version":1,"quelle":"a","geaendert":1,"kontakt":{"vorname":"A","nachname":"","firma":"","notiz":"","geburtstag":"","telefone":[],"emailEintraege":[],"anschriften":[]}}""",
@@ -342,7 +408,8 @@ internal static class ContractGroupTests
             """{"art":"kontakt_sync","fassung":1,"freigabeId":"a","version":1,"quelle":"a","geaendert":1,"kontakt":{"vorname":"A","nachname":"","firma":"","notiz":"","geburtstag":"","foto":"data:image/png;base64,AA ==","telefone":[],"emailEintraege":[],"anschriften":[]}}""",
             """{"art":"kontakt_sync","fassung":1,"freigabeId":"a","version":1,"quelle":"a","geaendert":1,"kontakt":{"vorname":"A","nachname":"","firma":"","notiz":"","geburtstag":"","foto":"data:text/plain;base64,QQ==","telefone":[],"emailEintraege":[],"anschriften":[]}}""",
             """{"art":"kontakt_sync","fassung":1,"freigabeId":"a","version":0,"quelle":"a","geaendert":1,"kontakt":{"vorname":"A","nachname":"","firma":"","notiz":"","geburtstag":"","telefone":[],"emailEintraege":[],"anschriften":[]}}""",
-            """{"art":"kontakt_sync","fassung":1,"freigabeId":"a","version":1,"quelle":"a","geaendert":1,"geloescht":true,"kontakt":{"vorname":"A","nachname":"","firma":"","notiz":"","geburtstag":"","telefone":[],"emailEintraege":[],"anschriften":[]}}"""
+            """{"art":"kontakt_sync","fassung":1,"freigabeId":"a","version":1,"quelle":"a","geaendert":1,"geloescht":true,"kontakt":{"vorname":"A","nachname":"","firma":"","notiz":"","geburtstag":"","telefone":[],"emailEintraege":[],"anschriften":[]}}""",
+            """{"art":"kontakt_sync","fassung":1,"freigabeId":"a","version":1,"quelle":"a","geaendert":1,"kontakt":{"vorname":"A","nachname":"","firma":"","notiz":"","geburtstag":"--02-30","telefone":[],"emailEintraege":[],"anschriften":[]}}"""
         })
         {
             try { BaumContactSyncContract.Validate(JsonNode.Parse(invalid)!);

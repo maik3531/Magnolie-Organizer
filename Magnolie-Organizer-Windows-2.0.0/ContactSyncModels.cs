@@ -33,7 +33,8 @@ internal static class ContactFields
 
     internal static JsonObject CopyRemoteFields(JsonObject target, JsonObject source)
     {
-        foreach (var name in Names) target[name] = source[name]?.DeepClone();
+        foreach (var name in Names)
+            if (name != "geburtstag" || source.ContainsKey(name)) target[name] = source[name]?.DeepClone();
         return target;
     }
 

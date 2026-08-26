@@ -1,12 +1,13 @@
 {
   "status": "UNVEROEFFENTLICHT",
-  "claimedWindowsSha256": "4d9618d3485319234c82fa6e15ad241b9e04fe04ca5799c820fc2a590b764803",
+  "version": "2.0.6",
+  "claimedWindowsSha256": null,
   "manifests": [
     "../update.xml",
-    "../magnolie-organizer-stamm/update.xml"
+    "../magnolie-organizer-2.0.0/update.xml"
   ],
-  "embeddedSignaturePresent": true,
+  "embeddedSignaturePresent": false,
   "manifestMutationPerformed": false,
-  "reason": "Kein bytegleicher offiziell veröffentlichter und signierter Installer wurde belegt. Der vorhandene Hash gilt nicht als Freigabenachweis; die signierten Manifeste bleiben unverändert.",
+  "reason": "Für 2.0.6 wurde noch kein offiziell veröffentlichter und signierter Installer belegt; Hash und Signatur werden erst durch den Releaseprozess ergänzt.",
   "verificationTool": "build/AuditUpdateManifest.ps1"
 }

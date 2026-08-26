@@ -1,4 +1,3 @@
-using System.Globalization;
 using System.Text.Json.Nodes;
 
 namespace MagnolieOrganizer.Windows;
@@ -26,8 +25,7 @@ internal static class BaumContactSyncContract
         foreach (var field in new[] { "vorname", "nachname", "firma", "notiz", "geburtstag" })
             OptionalText(contact, field, field == "notiz" ? 65536 : MaxText);
         var birthday = Text(contact, "geburtstag");
-        if (birthday.Length > 0 && (!DateOnly.TryParseExact(birthday, "yyyy-MM-dd", CultureInfo.InvariantCulture,
-                DateTimeStyles.None, out var date) || date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) != birthday))
+        if (birthday.Length > 0 && !ExchangeCodec.TryParseCanonicalDate(birthday, out _, out _, out _))
             throw Invalid();
         if (contact.TryGetPropertyValue("foto", out var photoNode))
         {

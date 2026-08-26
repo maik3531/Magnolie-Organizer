@@ -330,7 +330,7 @@ internal sealed class RecoveryJournal
         var created = DateTimeOffset.Parse(rootNode["createdUtc"]?.GetValue<string>() ?? "", null,
             System.Globalization.DateTimeStyles.RoundtripKind).ToUniversalTime();
         var payload = rootNode["payload"] as JsonObject ?? throw new InvalidDataException("Die Payload-Angaben fehlen.");
-        if (payload["file"]?.GetValue<string>() != "payload.magnolie" || payload["schema"]?.GetValue<int>() != GesamtarchivService.Datenschema)
+        if (payload["file"]?.GetValue<string>() != "payload.magnolie" || payload["schema"]?.GetValue<int>() is not (1 or GesamtarchivService.Datenschema))
             throw new InvalidDataException("Das Payload-Schema wird nicht unterstützt.");
         var size = payload["size"]?.GetValue<long>() ?? -1;
         var hash = payload["sha256"]?.GetValue<string>() ?? "";

@@ -47,6 +47,7 @@ internal sealed class WindowsContactStore : IContactRemote
         var birthday = document.Descendants().FirstOrDefault(node => node.Name.LocalName == "Date" &&
             node.Descendants().Any(child => child.Name.LocalName == "Label" && child.Value.Contains("Birthday", StringComparison.OrdinalIgnoreCase)))?
             .Descendants().FirstOrDefault(node => node.Name.LocalName == "Value")?.Value ?? First("Birthday");
+        var magnolieBirthday = document.Descendants(MagnolieNs + "Birthday").FirstOrDefault()?.Value.Trim() ?? "";
         var result = new JsonObject
         {
             ["vorname"] = First("GivenName"), ["nachname"] = First("FamilyName"), ["firma"] = First("Company").Length > 0 ? First("Company") : First("CompanyName"),
@@ -57,7 +58,8 @@ internal sealed class WindowsContactStore : IContactRemote
             ["mobil"] = phones.FirstOrDefault(phone => phone.Label.Contains("mobile", StringComparison.OrdinalIgnoreCase))?.Value ?? "",
             ["telefone"] = new JsonArray(phones.Select(phone => (JsonNode)new JsonObject { ["wert"] = phone.Value,
                 ["typen"] = new JsonArray(JsonValue.Create(phone.Label.Contains("mobile", StringComparison.OrdinalIgnoreCase) ? "CELL" : "VOICE")) }).ToArray()),
-            ["geburtstag"] = NormalizeBirthday(birthday), ["notiz"] = First("Notes")
+            ["geburtstag"] = ExchangeCodec.TryParseCanonicalDate(magnolieBirthday, out var extensionDate, out _, out _) && extensionDate is null
+                ? magnolieBirthday : NormalizeBirthday(birthday), ["notiz"] = First("Notes")
         };
         return result;
     }
@@ -74,8 +76,10 @@ internal sealed class WindowsContactStore : IContactRemote
         if (addresses.Count == 0) addresses.Add(contact);
         var fullName = (ContactFields.Text(contact, "vorname") + " " + ContactFields.Text(contact, "nachname")).Trim();
         var birthday = ContactFields.Text(contact, "geburtstag");
+        var canonicalBirthday = ExchangeCodec.TryParseCanonicalDate(birthday, out var fullBirthday, out _, out _);
         var root = new XElement(ContactNs + "Contact", new XAttribute(XNamespace.Xmlns + "c", ContactNs), new XAttribute(XNamespace.Xmlns + "m", MagnolieNs), new XAttribute(ContactNs + "Version", "1"),
-            new XElement(ContactNs + "Extended", new XElement(MagnolieNs + "MagnolieUid", uid)),
+            new XElement(ContactNs + "Extended", new XElement(MagnolieNs + "MagnolieUid", uid),
+                canonicalBirthday && fullBirthday is null ? new XElement(MagnolieNs + "Birthday", birthday) : null),
             new XElement(ContactNs + "NameCollection", new XElement(ContactNs + "Name",
                 new XElement(ContactNs + "FormattedName", fullName), new XElement(ContactNs + "GivenName", ContactFields.Text(contact, "vorname")), new XElement(ContactNs + "FamilyName", ContactFields.Text(contact, "nachname")))),
             new XElement(ContactNs + "PositionCollection", new XElement(ContactNs + "Position", new XElement(ContactNs + "Company", ContactFields.Text(contact, "firma")))),
@@ -84,7 +88,7 @@ internal sealed class WindowsContactStore : IContactRemote
             new XElement(ContactNs + "PhysicalAddressCollection", addresses.Select(address => new XElement(ContactNs + "PhysicalAddress",
                 new XElement(ContactNs + "Street", ContactFields.Text(address, "strasse")), new XElement(ContactNs + "PostalCode", ContactFields.Text(address, "plz")),
                 new XElement(ContactNs + "Locality", ContactFields.Text(address, "ort")), new XElement(ContactNs + "Country", ContactFields.Text(address, "land"))))),
-            birthday.Length > 0 ? new XElement(ContactNs + "DateCollection", new XElement(ContactNs + "Date", new XElement(ContactNs + "Value", birthday),
+            canonicalBirthday && fullBirthday is not null ? new XElement(ContactNs + "DateCollection", new XElement(ContactNs + "Date", new XElement(ContactNs + "Value", birthday),
                 new XElement(ContactNs + "LabelCollection", new XElement(ContactNs + "Label", "Birthday")))) : null,
             new XElement(ContactNs + "Notes", ContactFields.Text(contact, "notiz")));
         return new XDocument(new XDeclaration("1.0", "utf-8", null), root).ToString();

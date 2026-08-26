@@ -1,5 +1,5 @@
 Name:           magnolie-organizer
-Version:        2.0.5
+Version:        2.0.6
 Release:        1%{?dist}
 Summary:        Personal organizer with a classic paper appearance
 
@@ -216,6 +216,11 @@ done
 %{_mandir}/*/man1/magnolie-organizer.1*
 
 %changelog
+* Wed Aug 26 2026 Maik Walter <maik3531@gmail.com> - 2.0.6-1
+- Store unknown-year birthdays and anniversaries without a placeholder year.
+- Preserve genuine 1604, 1900 and 2000 dates and lossless vCard/ICS round trips.
+- Keep restored Google birthday calendar imports working.
+
 * Wed Aug 26 2026 Maik Walter <maik3531@gmail.com> - 2.0.5-1
 - Add secure QR pairing and harden cross-platform phone communication.
 - Preserve complex sync data and strengthen recovery and release checks.

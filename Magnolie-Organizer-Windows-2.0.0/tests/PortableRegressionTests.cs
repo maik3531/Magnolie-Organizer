@@ -566,7 +566,7 @@ try
         """;
     var richContact = ExchangeCodec.ParseVCard(richVcard);
     Check(richContact.Kontakte[0]?["foto"]?.ToString() == "data:image/jpeg;base64," + photoBase64 &&
-          richContact.Kontakte[0]?["geburtstag"]?.ToString() == "2000-02-29" &&
+          richContact.Kontakte[0]?["geburtstag"]?.ToString() == "--02-29" &&
           richContact.Kontakte[0]?["geburtstagJahrUnbekannt"]?.GetValue<bool>() == true &&
           richContact.Kontakte[0]?["telefone"]?.AsArray().Count == 2 && richContact.Kontakte[0]?["anschriften"]?.AsArray().Count == 2,
         "VCF liest QP/Base64-Foto, jahrlose Schaltjahr-BDAY und Mehrfachfelder");

@@ -1,7 +1,7 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: Magnolie Organizer 2.0.5\n"
+"Project-Id-Version: Magnolie Organizer 2.0.6\n"
 "Report-Msgid-Bugs-To: maik3531@gmail.com\n"
 "POT-Creation-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "PO-Revision-Date: 2026-08-04 05:55+0200\n"

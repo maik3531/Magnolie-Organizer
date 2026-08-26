@@ -37,7 +37,7 @@ def main(argv):
         text = catalog_file.read()
     header = text.split("\n\n", 1)[0]
     required = {
-        "Project-Id-Version": "Magnolie Handbook 2.0.5",
+        "Project-Id-Version": "Magnolie Handbook 2.0.6",
         "Language-Team": language,
         "Language": language,
         "MIME-Version": "1.0",

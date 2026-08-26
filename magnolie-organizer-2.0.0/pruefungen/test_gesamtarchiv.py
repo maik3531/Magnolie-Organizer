@@ -43,6 +43,7 @@ daten = vollmodell()
 text = m.gesamtarchiv_erzeugen(
     daten, "linux", "2.0.0", erstellt="2026-08-11T12:34:56+00:00")
 gelesen = m.gesamtarchiv_lesen_text(text)
+assert json.loads(text)["datenschema"] == 2
 assert gelesen["daten"] == daten
 assert gelesen["fotos"] == 4 and gelesen["anhaenge"] == 3
 assert gelesen["daten"]["kontakte"][0]["foto"] == daten["kontakte"][0]["foto"]
@@ -52,6 +53,10 @@ assert json.loads(text)["sha256"] == "e17205be343f22cf24d379d954c2bfec0fbf628071
 windows_text = m.gesamtarchiv_erzeugen(
     daten, "windows", "1.0.0", erstellt="2026-08-11T12:34:56.0000000+00:00")
 assert m.gesamtarchiv_lesen_text(windows_text)["daten"] == daten
+
+schema_1 = json.loads(text)
+schema_1["datenschema"] = 1
+assert m.gesamtarchiv_lesen_text(json.dumps(schema_1))["daten"] == daten
 
 with open(os.path.join(os.path.dirname(__file__), "fixtures", "windows-ordinal.magnolie"),
           encoding="utf-8") as datei:
@@ -74,6 +79,14 @@ manipuliert["daten"]["termine"][0]["titel"] = "manipuliert"
 try:
     m.gesamtarchiv_lesen_text(json.dumps(manipuliert))
     raise AssertionError("Hashmanipulation angenommen")
+except RuntimeError:
+    pass
+
+unbekanntes_schema = json.loads(text)
+unbekanntes_schema["datenschema"] = 3
+try:
+    m.gesamtarchiv_lesen_text(json.dumps(unbekanntes_schema))
+    raise AssertionError("Unbekanntes Datenschema angenommen")
 except RuntimeError:
     pass
 

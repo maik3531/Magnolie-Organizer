@@ -218,14 +218,13 @@ internal sealed class ReminderScheduler : IDisposable
         var result = new List<(string, DateTime, DateTime)>();
         foreach (var item in anniversaries.EnumerateArray())
         {
-            if (!DateOnly.TryParseExact(Text(item, "datum"), "yyyy-MM-dd", out var original)) continue;
+            if (!ExchangeCodec.TryParseCanonicalDate(Text(item, "datum"), out _, out var month, out var day)) continue;
             foreach (var year in new[] { now.Year - 1, now.Year, now.Year + 1 })
             {
-                DateOnly occurrence;
-                try { occurrence = new DateOnly(year, original.Month, original.Day); }
-                catch (ArgumentOutOfRangeException) { continue; }
+                var occurrenceDay = month == 2 && day == 29 && !DateTime.IsLeapYear(year) ? 28 : day;
+                var occurrence = new DateOnly(year, month, occurrenceDay);
                 var start = occurrence.ToDateTime(new TimeOnly(hour, 0));
-                var id = Text(item, "id"); if (id.Length == 0) id = Text(item, "uid"); if (id.Length == 0) id = Text(item, "name") + "|" + original.ToString("MM-dd");
+                var id = Text(item, "id"); if (id.Length == 0) id = Text(item, "uid"); if (id.Length == 0) id = Text(item, "name") + $"|{month:00}-{day:00}";
                 if (leadDays > 0) AddDue(result, "jahrestag:" + id, "vorlauf", start, start.AddDays(-leadDays), now, true);
                 if (onDay || leadDays == 0) AddDue(result, "jahrestag:" + id, "am-tag", start, start, now, true);
             }

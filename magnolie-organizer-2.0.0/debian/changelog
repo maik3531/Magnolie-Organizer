@@ -1,3 +1,14 @@
+magnolie-organizer (2.0.6) unstable; urgency=medium
+
+  * Speichert Geburtstage und Jahrestage ohne bekanntes Jahr als jahrfreies
+    Datum statt mit einem erfundenen Platzhalterjahr.
+  * Migriert nur ausdrücklich markierte Altwerte; echte Daten aus 1604, 1900
+    und 2000 bleiben erhalten und vCard-/ICS-Rundläufe bleiben verlustfrei.
+  * Behält den mit 2.0.5 wiederhergestellten Import von
+    Google-Geburtstagskalendern bei.
+
+ -- Maik Walter <maik3531@gmail.com>  Wed, 26 Aug 2026 18:00:00 +0200
+
 magnolie-organizer (2.0.5) unstable; urgency=medium
 
   * Ergänzt sichere QR-Paarung für den Magnolienbaum und härtet die

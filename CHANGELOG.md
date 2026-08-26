@@ -1,5 +1,27 @@
 # Changelog / Änderungen
 
+## 2.0.6 / Notes 1.0.6 — 2026-08-26
+
+### English
+
+- Birthdays and anniversaries with no known year are now stored without a placeholder year and displayed without an age or year.
+- Explicitly marked legacy values are migrated to the yearless form; genuine dates in 1604, 1900, or 2000 remain complete dates.
+- Yearless birthdays round-trip directly through vCard; calendar exports preserve them without treating the technical ICS start year as a birth year.
+- Google birthday calendar imports remain restored from the 2.0.5 baseline.
+- Magnolie Notes remains at version 1.0.6.
+
+The external QEMU `autopkgtest` remains unavailable; the local package, cross-platform, Fedora, and release checks are run separately.
+
+### Deutsch
+
+- Geburtstage und Jahrestage ohne bekanntes Jahr werden jetzt ohne Platzhalterjahr gespeichert und ohne Alter oder Jahr angezeigt.
+- Ausdrücklich markierte Altwerte werden in die jahrfreie Form migriert; echte Daten aus 1604, 1900 oder 2000 bleiben vollständige Daten.
+- Jahrfreie Geburtstage bleiben beim vCard-Rundlauf direkt erhalten; Kalenderexporte bewahren sie, ohne das technisch nötige ICS-Startjahr als Geburtsjahr zu behandeln.
+- Der mit 2.0.5 wiederhergestellte Import von Google-Geburtstagskalendern bleibt erhalten.
+- Magnolie Notes bleibt bei Version 1.0.6.
+
+Das externe QEMU-`autopkgtest` bleibt nicht verfügbar; die lokalen Paket-, plattformübergreifenden, Fedora- und Release-Prüfungen laufen getrennt.
+
 ## 2.0.5 / Notes 1.0.6 — 2026-08-26
 
 ### English

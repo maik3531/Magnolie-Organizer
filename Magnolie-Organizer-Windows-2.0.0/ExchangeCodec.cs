@@ -298,7 +298,7 @@ internal static partial class ExchangeCodec
                 var birthday = ParseBirthday(Value(values, "BDAY"));
                 if (birthday.Length > 0)
                 {
-                    var unknownYear = RawValue(values, "BDAY").TrimStart().StartsWith("--", StringComparison.Ordinal);
+                    var unknownYear = birthday.StartsWith("--", StringComparison.Ordinal);
                     contact["geburtstag"] = birthday;
                     contact["geburtstagJahrUnbekannt"] = unknownYear;
                     birthdays.Add(new JsonObject { ["name"] = fullName.Length > 0 ? fullName : $"{firstName} {lastName}".Trim(), ["datum"] = birthday, ["jahrUnbekannt"] = unknownYear });
@@ -336,8 +336,8 @@ internal static partial class ExchangeCodec
                 AddMagnolieJsonEntries(lines, contact, "kontaktpersonen", "X-MAGNOLIE-NOTFALLKONTAKT");
                 AddMagnolieJsonEntries(lines, contact, "sozialeMedien", "X-MAGNOLIE-SOZIALES-MEDIUM");
                 if (J(contact, "uid") is { Length: > 0 } uid) lines.Add($"UID:{V(uid)}");
-                if (J(contact, "geburtstag") is { Length: > 0 } birthday && DateOnly.TryParseExact(birthday, "yyyy-MM-dd", out _))
-                    lines.Add("BDAY:" + (JBool(contact, "geburtstagJahrUnbekannt") ? "--" + birthday[5..] : birthday));
+                if (J(contact, "geburtstag") is { Length: > 0 } birthday && TryParseCanonicalDate(birthday, out _, out _, out _))
+                    lines.Add("BDAY:" + birthday);
                 if (J(contact, "foto") is { Length: > 0 } photo && TryPhotoData(photo, out var mediaType, out var base64))
                     lines.Add($"PHOTO;ENCODING=b;TYPE={mediaType}:{base64}");
                 if (contact.TryGetProperty("vcardRoundtrip", out var roundtrip) && roundtrip.ValueKind == JsonValueKind.Array)
@@ -387,8 +387,9 @@ internal static partial class ExchangeCodec
             }
             if (company.Length > 0) lines.Add(LdifLine("o", company));
             if (J(contact, "notiz") is { Length: > 0 } note) lines.Add(LdifLine("description", note));
-            if (!JBool(contact, "geburtstagJahrUnbekannt") && J(contact, "geburtstag") is { Length: > 0 } birthday &&
-                DateOnly.TryParseExact(birthday, "yyyy-MM-dd", out _)) lines.Add(LdifLine("dateOfBirth", birthday));
+            if (J(contact, "geburtstag") is { Length: > 0 } birthday &&
+                TryParseCanonicalDate(birthday, out var fullBirthday, out _, out _) && fullBirthday is not null)
+                lines.Add(LdifLine("dateOfBirth", birthday));
             if (J(contact, "foto") is { Length: > 0 } photo)
             {
                 if (TryLdifJpeg(photo, out var jpeg)) lines.Add(LdifBinaryLine("jpegPhoto", jpeg));
@@ -433,18 +434,6 @@ internal static partial class ExchangeCodec
             var parsed = ContactFromFields(fields, photo);
             if (parsed is null) continue;
             var contact = parsed.Value.Contact; var birthday = parsed.Value.Birthday; var unknownYear = parsed.Value.UnknownYear;
-            if (birthday.Length == 0)
-            {
-                var monthMatch = Regex.Match(block, "(?im)^(?:mozilla)?birthMonth:\\s*(\\d{1,2})\\s*$");
-                var dayMatch = Regex.Match(block, "(?im)^(?:mozilla)?birthDay:\\s*(\\d{1,2})\\s*$");
-                var yearMatch = Regex.Match(block, "(?im)^(?:mozilla)?birthYear:\\s*(\\d{4})\\s*$");
-                if (monthMatch.Success && dayMatch.Success)
-                {
-                    unknownYear = !yearMatch.Success;
-                    birthday = ParseBirthday($"{(unknownYear ? 2000 : int.Parse(yearMatch.Groups[1].Value)):0000}-{int.Parse(monthMatch.Groups[1].Value):00}-{int.Parse(dayMatch.Groups[1].Value):00}");
-                    contact["geburtstag"] = birthday; contact["geburtstagJahrUnbekannt"] = unknownYear;
-                }
-            }
             var addresses = LdifPostalAddresses(fields);
             if (addresses.Count > 0)
             {
@@ -617,9 +606,15 @@ internal static partial class ExchangeCodec
         var anniversary = start.AllDay && recurrenceKind == "yearly" &&
                           (anniversaryType.Length > 0 || category.Contains("birthday", StringComparison.OrdinalIgnoreCase) || category.Contains("Geburtstag", StringComparison.OrdinalIgnoreCase));
         if (anniversary)
+        {
+            var date = start.DateTime.ToString("yyyy-MM-dd");
+            var magnolieDate = First(values, "X-MAGNOLIE-DATE")?.Value.Trim() ?? "";
+            if (TryParseCanonicalDate(magnolieDate, out var fullDate, out _, out _) && fullDate is null)
+                date = magnolieDate;
             return (new JsonObject { ["uid"] = First(values, "UID")?.Value ?? "", ["name"] = title,
-                ["datum"] = start.DateTime.ToString("yyyy-MM-dd"), ["typ"] = anniversaryType.Length > 0 ? anniversaryType : "birthday",
+                ["datum"] = date, ["typ"] = anniversaryType.Length > 0 ? anniversaryType : "birthday",
                 ["icsRoundtrip"] = IcsRoundtrip(roundtripValues, complex), ["geaendert"] = IcsModified(values) }, true, complex);
+        }
         var until = RRuleValue(recurrence, "UNTIL");
         var interval = int.TryParse(RRuleValue(recurrence, "INTERVAL"), out var parsedInterval)
             ? Math.Clamp(parsedInterval, 1, 3660) : 1;
@@ -730,10 +725,13 @@ internal static partial class ExchangeCodec
 
     private static IEnumerable<string> AnniversaryLines(JsonElement item)
     {
-        var date = RequiredDate(J(item, "datum"));
+        var value = J(item, "datum");
+        if (!TryParseCanonicalDate(value, out var fullDate, out var month, out var day)) throw new InvalidDataException();
+        var date = fullDate ?? new DateOnly(2000, month, day);
         var lines = new List<string> { "BEGIN:VEVENT", $"UID:{V(Uid(item))}", $"DTSTAMP:{DateTime.UtcNow:yyyyMMdd'T'HHmmss'Z'}", $"DTSTART;VALUE=DATE:{date:yyyyMMdd}", $"SUMMARY:{V(J(item, "name"))}",
             $"X-MAGNOLIE-TYPE-ID:{V(J(item, "typ"))}", $"X-MAGNOLIE-TYP:{V(J(item, "typ"))}",
             $"X-MAGNOLIE-JAHRESTAG-TYP:{V(J(item, "typ"))}", "RRULE:FREQ=YEARLY" };
+        if (fullDate is null) lines.Add($"X-MAGNOLIE-DATE:{value}");
         ApplyIcsRoundtrip(lines, item);
         lines.Add("END:VEVENT");
         return lines;
@@ -792,7 +790,7 @@ internal static partial class ExchangeCodec
     private static JsonArray IcsRoundtrip(IEnumerable<IcsProperty> values, bool complex)
     {
         var names = new HashSet<string>(new[] { "RRULE", "RDATE", "EXDATE", "EXRULE", "RECURRENCE-ID", "DURATION", "LOCATION", "URL", "ORGANIZER", "ATTENDEE", "ATTACH", "X-ALT-DESC", "TRANSP", "BEGIN", "END", "ACTION", "TRIGGER", "REPEAT" });
-        var generated = new HashSet<string>(new[] { "UID", "DTSTAMP", "LAST-MODIFIED", "DTSTART", "DTEND", "SUMMARY", "DESCRIPTION", "CATEGORIES", "CLASS", "STATUS", "X-MAGNOLIE-KOSTENSTELLE", "X-MAGNOLIE-KUNDE", "X-MAGNOLIE-ERINNERUNG-TAGE", "X-MAGNOLIE-STANDARDERINNERUNG", "X-MAGNOLIE-TYPE-ID", "X-MAGNOLIE-TYP", "X-MAGNOLIE-JAHRESTAG-TYP" });
+        var generated = new HashSet<string>(new[] { "UID", "DTSTAMP", "LAST-MODIFIED", "DTSTART", "DTEND", "SUMMARY", "DESCRIPTION", "CATEGORIES", "CLASS", "STATUS", "X-MAGNOLIE-KOSTENSTELLE", "X-MAGNOLIE-KUNDE", "X-MAGNOLIE-ERINNERUNG-TAGE", "X-MAGNOLIE-STANDARDERINNERUNG", "X-MAGNOLIE-TYPE-ID", "X-MAGNOLIE-TYP", "X-MAGNOLIE-JAHRESTAG-TYP", "X-MAGNOLIE-DATE" });
         if (complex) { names.Add("DTSTART"); names.Add("DTEND"); }
         var result = new JsonArray(); var depth = 0;
         foreach (var value in values)
@@ -1008,9 +1006,25 @@ internal static partial class ExchangeCodec
     private static string ParseBirthday(string value)
     {
         value = value.Trim();
-        if (Regex.IsMatch(value, "^--\\d{2}-?\\d{2}$")) value = "2000" + value[2..].Replace("-", "");
-        foreach (var format in new[] { "yyyy-MM-dd", "yyyyMMdd" }) if (DateOnly.TryParseExact(value, format, out var date)) return date.ToString("yyyy-MM-dd");
+        if (Regex.IsMatch(value, "^--\\d{4}$")) value = "--" + value[2..4] + "-" + value[4..];
+        if (TryParseCanonicalDate(value, out _, out _, out _)) return value;
+        if (Regex.IsMatch(value, "^\\d{8}$") && DateOnly.TryParseExact(value, "yyyyMMdd", CultureInfo.InvariantCulture,
+                DateTimeStyles.None, out var compact)) return compact.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
         return "";
+    }
+
+    internal static bool TryParseCanonicalDate(string value, out DateOnly? fullDate, out int month, out int day)
+    {
+        fullDate = null; month = day = 0;
+        if (value.Length == 10 && DateOnly.TryParseExact(value, "yyyy-MM-dd", CultureInfo.InvariantCulture,
+                DateTimeStyles.None, out var parsed) && parsed.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) == value)
+        {
+            fullDate = parsed; month = parsed.Month; day = parsed.Day; return true;
+        }
+        if (!Regex.IsMatch(value, "^--\\d{2}-\\d{2}$") || !int.TryParse(value.AsSpan(2, 2), out month) ||
+            !int.TryParse(value.AsSpan(5, 2), out day) || month is < 1 or > 12) return false;
+        var maximum = month switch { 2 => 29, 4 or 6 or 9 or 11 => 30, _ => 31 };
+        return day >= 1 && day <= maximum;
     }
     private static string Photo(Dictionary<string, List<VCardEntry>> values)
     {
@@ -1054,9 +1068,14 @@ internal static partial class ExchangeCodec
         Phones(new[] { "telephoneNumber", "phone" }, "VOICE"); Phones(new[] { "homePhone" }, "HOME", "VOICE"); Phones(new[] { "workPhone" }, "WORK", "VOICE"); Phones(new[] { "mobile", "cell", "cellphone" }, "CELL"); Phones(new[] { "facsimileTelephoneNumber", "fax" }, "FAX"); Phones(new[] { "pager", "pagerTelephoneNumber" }, "PAGER");
         var street = One("street", "streetAddress", "homeStreet", "mozillaHomeStreet"); var city = One("l", "locality", "city", "homeLocalityName", "mozillaHomeLocalityName");
         var postal = One("postalCode", "zip", "homePostalCode", "mozillaHomePostalCode"); var country = One("c", "countryName", "homeCountryName", "mozillaHomeCountryName");
-        var birthdayRaw = One("dateOfBirth", "birthDate", "birthday"); var unknown = false;
+        var birthdayRaw = One("dateOfBirth", "birthDate"); var unknown = false;
         if (birthdayRaw.Length == 0 && int.TryParse(One("birthMonth", "mozillaBirthMonth"), out var month) && int.TryParse(One("birthDay", "mozillaBirthDay"), out var day))
-        { unknown = !int.TryParse(One("birthYear", "mozillaBirthYear"), out var year) || year < 1000; birthdayRaw = $"{(unknown ? 2000 : year):0000}-{month:00}-{day:00}"; }
+        {
+            var yearText = One("birthYear", "mozillaBirthYear");
+            unknown = yearText.Length == 0;
+            birthdayRaw = unknown ? $"--{month:00}-{day:00}" : Regex.IsMatch(yearText, "^\\d{4}$")
+                ? $"{yearText}-{month:00}-{day:00}" : "";
+        }
         var birthday = ParseBirthday(birthdayRaw); unknown |= birthdayRaw.StartsWith("--", StringComparison.Ordinal);
         var name = (first + " " + last).Trim(); var company = One("o", "organization", "company"); if (name.Length == 0) name = display.Length > 0 ? display : company;
         if (name.Length == 0 && emails.Length == 0) return null;

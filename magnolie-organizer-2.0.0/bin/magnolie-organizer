@@ -167,7 +167,7 @@ def tray_system_verfuegbar(desktop=None, aktivierte_erweiterungen=None):
 PROGRAMM_NAME = "magnolie-organizer"
 HANDBUCH_NAME = "magnolie-handbuch"
 FENSTER_TITEL = "Magnolie Organizer"
-PROGRAMM_FASSUNG = "2.0.5"
+PROGRAMM_FASSUNG = "2.0.6"
 ALTER_NAME = "organizer-klassik"
 I18N_DOMAIN = "magnolie-organizer"
 
@@ -632,9 +632,11 @@ SICHERUNG_DATEI_MAX = 256 * 1024 * 1024
 GESAMTARCHIV_DATEI_MAX = 384 * 1024 * 1024
 GESAMTARCHIV_KENNUNG = "magnolie-gesamtarchiv"
 GESAMTARCHIV_FASSUNG = 1
-GESAMTARCHIV_DATENSCHEMA = 1
+GESAMTARCHIV_DATENSCHEMA = 2
+GESAMTARCHIV_DATENSCHEMATA_LESBAR = (1, 2)
 JOURNAL_KENNUNG = "magnolie-snapshot"
 JOURNAL_FASSUNG = 1
+JOURNAL_PAYLOAD_SCHEMA = 1
 JOURNAL_INTERVALLE = {"off": 0, "6h": 6 * 3600, "12h": 12 * 3600,
                       "daily": 86400, "weekly": 7 * 86400}
 JOURNAL_GRUENDE = {"weekly", "manual", "pre-sync", "pre-restore",
@@ -733,7 +735,7 @@ def gesamtarchiv_lesen_text(text, kennwort=""):
     if (not isinstance(wurzel, dict)
             or wurzel.get("magnolie") != GESAMTARCHIV_KENNUNG
             or wurzel.get("fassung") != GESAMTARCHIV_FASSUNG
-            or wurzel.get("datenschema") != GESAMTARCHIV_DATENSCHEMA):
+            or wurzel.get("datenschema") not in GESAMTARCHIV_DATENSCHEMATA_LESBAR):
         raise RuntimeError(
             "Format oder Datenschema des Gesamtarchivs wird nicht unterstützt.")
     daten = wurzel.get("daten")
@@ -835,7 +837,7 @@ def _journal_manifest_pruefen(manifest):
     if not str(manifest.get("createdAt", "")).endswith("Z"):
         raise RuntimeError(_("The recovery snapshot manifest is invalid."))
     payload = manifest["payload"]
-    if (payload.get("schema") != GESAMTARCHIV_DATENSCHEMA
+    if (payload.get("schema") != JOURNAL_PAYLOAD_SCHEMA
             or not re.fullmatch(r"[0-9a-f]{64}", str(payload.get("sha256", "")))
             or not re.fullmatch(r"[0-9a-f]{64}", str(payload.get("sourceSha256", "")))
             or isinstance(payload.get("size"), bool)
@@ -1051,7 +1053,7 @@ def journal_snapshot_erzeugen(daten, grund, kennwort="", basis=None, jetzt=None,
                 "reason": grund, "pinned": bool(grund == "manual" if pinned is None else pinned),
                 "payload": {"sha256": hashlib.sha256(payload).hexdigest(),
                             "sourceSha256": quellhash, "size": len(payload),
-                            "schema": GESAMTARCHIV_DATENSCHEMA},
+                            "schema": JOURNAL_PAYLOAD_SCHEMA},
                 "summary": {name: len(daten.get(name) or [])
                             if isinstance(daten.get(name), list) else 0 for name in namen},
                 "syncEpoch": epoch}
@@ -1890,6 +1892,31 @@ def _jahrestag_aus_ereignis(titel, kategorien, typ_feld=""):
     return markiert, typ_feld or _typ_aus_kategorien(text)
 
 
+def _maschinen_datum(wert):
+    """Liest strikt JJJJ-MM-TT oder die kanonische jahrlose Form --MM-TT."""
+    if not isinstance(wert, str):
+        return ""
+    text = wert
+    if re.fullmatch(r"\d{4}-\d{2}-\d{2}", text):
+        try:
+            datetime.strptime(text, "%Y-%m-%d")
+        except ValueError:
+            return ""
+    elif re.fullmatch(r"--\d{2}-\d{2}", text):
+        monat, tag = (int(teil) for teil in text[2:].split("-"))
+        monatstage = (31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31)
+        if not 1 <= monat <= 12 or not 1 <= tag <= monatstage[monat - 1]:
+            return ""
+    else:
+        return ""
+    return text
+
+
+def _maschinen_monat_tag(wert):
+    datum = _maschinen_datum(wert)
+    return datum[2:] if datum.startswith("--") else datum[5:] if datum else ""
+
+
 def _hole(props, name):
     for n, p, w in props:
         if n == name:
@@ -1911,7 +1938,8 @@ def _ics_roundtrip(props, komplex=False):
                "DESCRIPTION", "CATEGORIES", "CLASS", "STATUS", "PRIORITY",
                "PERCENT-COMPLETE", "X-MAGNOLIE-ERINNERUNG-AM-TAG",
                "X-MAGNOLIE-KOSTENSTELLE", "X-MAGNOLIE-KUNDE",
-               "X-MAGNOLIE-ERINNERUNG-TAGE", "X-MAGNOLIE-STANDARDERINNERUNG"}
+               "X-MAGNOLIE-ERINNERUNG-TAGE", "X-MAGNOLIE-STANDARDERINNERUNG",
+               "X-MAGNOLIE-DATE"}
     if komplex:
         namen.update(("DTSTART", "DTEND"))
     ergebnis, tiefe = [], 0
@@ -2093,6 +2121,11 @@ def _ics_komponente(art, props, ergebnis, komplexe_serie=False,
     ganztag_jahrestag = (not zeit or (zeit == "00:00" and end_zeit == "23:59"))
     if (not jahrestage_als_termine and jahrestag_markiert and jahrestag_regel and
             ganztag_jahrestag and not end_datum):
+        jahrlose_erweiterung = _maschinen_datum(wert("X-MAGNOLIE-DATE"))
+        if (jahrlose_erweiterung.startswith("--") and
+                _maschinen_monat_tag(jahrlose_erweiterung) ==
+                _maschinen_monat_tag(datum)):
+            datum = jahrlose_erweiterung
         ergebnis["jahrestage"].append({
             "name": titel, "datum": datum, "typ": typ_kategorie,
             "uid": uid_wert, "icsSerienUid": serien_uid,
@@ -2238,8 +2271,8 @@ def _lokale_kalender_dubletten_bereinigen(nutzlast):
         ids = kennungen(jahrestag)
         treffer = next((vorhanden for vorhanden in jahrestage
                         if ids and ids & kennungen(vorhanden) and
-                        (vorhanden.get("datum") or "")[5:] ==
-                        (jahrestag.get("datum") or "")[5:] and
+                        _maschinen_monat_tag(vorhanden.get("datum")) ==
+                        _maschinen_monat_tag(jahrestag.get("datum")) and
                         kanonischer_text(vorhanden.get("name")) ==
                         kanonischer_text(jahrestag.get("name"))), None)
         if treffer is None:
@@ -2443,16 +2476,23 @@ def _vevent_zeilen(t):
 
 
 def _jahrestag_zeilen(jt):
-    datum = jt.get("datum") or ""
-    datetime.strptime(datum, "%Y-%m-%d")
+    datum = _maschinen_datum(jt.get("datum"))
+    if not datum:
+        raise ValueError("ungueltiges Jahrestagsdatum")
+    jahrlose_zeile = []
+    if datum.startswith("--"):
+        serialisiert = "2000-" + datum[2:]
+        jahrlose_zeile = ["X-MAGNOLIE-DATE:" + datum]
+    else:
+        serialisiert = datum
     typ = jt.get("typ") or "other"
     typ_id = jahrestag_typ_id(typ)
     legacy = JT_TYPEN[typ_id][1] if typ_id else typ
     return ["BEGIN:VEVENT",
             "UID:" + (jt.get("uid") or _neue_uid()),
             "DTSTAMP:" + _utc_stempel(),
-            "DTSTART;VALUE=DATE:" + datum.replace("-", ""),
-            "RRULE:FREQ=YEARLY",
+            "DTSTART;VALUE=DATE:" + serialisiert.replace("-", ""),
+            "RRULE:FREQ=YEARLY"] + jahrlose_zeile + [
             "SUMMARY:" + _ical_escape(jt.get("name")),
             "CATEGORIES:" + _ical_escape(legacy),
             "X-MAGNOLIE-TYPE-ID:" + _ical_escape(typ_id or "custom"),
@@ -2772,19 +2812,12 @@ def _semikolon_teile(wert):
 
 def _bday_datum(wert):
     w = (wert or "").strip().split("T")[0]
-    m = re.match(r"^--(\d{2})-?(\d{2})$", w)          # ohne Jahr
+    m = re.fullmatch(r"--(\d{2})-?(\d{2})", w)
     if m:
-        # 2000 ist ein gültiges Schaltjahr und dient nur intern als Träger;
-        # das Flag sorgt beim Export wieder für die jahrlose vCard-Form.
-        monat, tag = m.groups()
-        try:
-            datetime.strptime("2000-%s-%s" % (monat, tag), "%Y-%m-%d")
-        except ValueError:
-            return ""
-        return "2000-%s-%s" % (monat, tag)
-    m = re.match(r"^(\d{4})-?(\d{2})-?(\d{2})$", w)
+        return _maschinen_datum("--%s-%s" % m.groups())
+    m = re.fullmatch(r"(\d{4})-?(\d{2})-?(\d{2})", w)
     if m:
-        return "%s-%s-%s" % m.groups()
+        return _maschinen_datum("%s-%s-%s" % m.groups())
     return ""
 
 
@@ -3312,15 +3345,13 @@ def _anschriften_vereinigen(*kontakte):
 
 def _claws_datum(wert):
     text = str(wert or "").strip()
-    for muster in (r"(\d{4})-(\d{2})-(\d{2})", r"(\d{4})(\d{2})(\d{2})"):
+    for muster in (r"(\d{4})-(\d{2})-(\d{2})", r"(\d{4})(\d{2})(\d{2})",
+                   r"--(\d{2})-(\d{2})"):
         treffer = re.fullmatch(muster, text)
         if treffer:
-            datum = "-".join(treffer.groups())
-            try:
-                datetime.strptime(datum, "%Y-%m-%d")
-                return datum
-            except ValueError:
-                return ""
+            datum = (("--" + "-".join(treffer.groups())) if
+                     muster.startswith("--") else "-".join(treffer.groups()))
+            return _maschinen_datum(datum)
     return ""
 
 
@@ -3372,13 +3403,17 @@ def _claws_kontakt(felder):
     for zusatz in (titel, abteilung):
         if zusatz and zusatz not in notizen:
             notizen.append(zusatz)
-    geburtstag = erster("dateOfBirth", "birthDate", "birthday")
+    geburtstag = _claws_datum(erster("dateOfBirth", "birthDate", "birthday"))
     if not geburtstag:
         jahr, monat, tag = (erster("birthYear", "mozillaBirthYear"),
                             erster("birthMonth", "mozillaBirthMonth"),
                             erster("birthDay", "mozillaBirthDay"))
         if monat and tag:
-            geburtstag = "%04d-%02d-%02d" % (int(jahr or 2000), int(monat), int(tag))
+            try:
+                geburtstag = (("%04d-%02d-%02d" % (int(jahr), int(monat), int(tag)))
+                              if jahr else ("--%02d-%02d" % (int(monat), int(tag))))
+            except (TypeError, ValueError):
+                geburtstag = ""
     uid_wert = erster("entryUUID", "uid")
     telefone = []
     for namen, typen in (
@@ -3397,8 +3432,7 @@ def _claws_kontakt(felder):
         "email": emails[0] if emails else "", "emails": emails,
         "notiz": "\n".join(notizen), "foto": erster("jpegPhoto"), "geaendert": 0,
         "geburtstag": _claws_datum(geburtstag),
-        "geburtstagJahrUnbekannt": bool(not erster("birthYear", "mozillaBirthYear") and
-                                         erster("birthMonth", "mozillaBirthMonth")),
+        "geburtstagJahrUnbekannt": geburtstag.startswith("--"),
     }
     _telefone_setzen(kontakt, telefone)
     post_werte = werte("postalAddress", "homePostalAddress")
@@ -3651,13 +3685,9 @@ def _ldif_export(kontakte):
             zeilen.append(_ldif_zeile("o", firma))
         if kontakt.get("notiz"):
             zeilen.append(_ldif_zeile("description", kontakt["notiz"]))
-        geburtstag = str(kontakt.get("geburtstag") or "")
-        if geburtstag and not kontakt.get("geburtstagJahrUnbekannt"):
-            try:
-                datetime.strptime(geburtstag, "%Y-%m-%d")
-                zeilen.append(_ldif_zeile("dateOfBirth", geburtstag))
-            except ValueError:
-                pass
+        geburtstag = _maschinen_datum(kontakt.get("geburtstag"))
+        if geburtstag and not geburtstag.startswith("--"):
+            zeilen.append(_ldif_zeile("dateOfBirth", geburtstag))
         if kontakt.get("foto"):
             jpeg = _ldif_jpeg(kontakt["foto"])
             if jpeg is None:
@@ -3986,10 +4016,10 @@ def vcard_text(k):
     if k.get("notiz"):
         zeilen.append("NOTE:" + _vcard_escape(k["notiz"]))
     if k.get("geburtstag"):
-        geburtstag = str(k["geburtstag"])
-        datetime.strptime(geburtstag, "%Y-%m-%d")
-        zeilen.append("BDAY:" + (("--" + geburtstag[5:]) if
-                                  k.get("geburtstagJahrUnbekannt") else geburtstag))
+        geburtstag = _maschinen_datum(k["geburtstag"])
+        if not geburtstag:
+            raise ValueError("ungueltiges Geburtsdatum")
+        zeilen.append("BDAY:" + geburtstag)
     for feld, name in (("kontaktpersonName", "X-MAGNOLIE-KONTAKTPERSON-NAME"),
                        ("kontaktpersonTelefon", "X-MAGNOLIE-KONTAKTPERSON-TELEFON"),
                        ("kontaktpersonStatus", "X-MAGNOLIE-KONTAKTPERSON-STATUS")):
@@ -5670,11 +5700,12 @@ def naechster_weckzeitpunkt(daten, jetzt, vorlauf=15):
 
 def _jahrestag_im_jahr(jahrestag, jahr):
     """Auf welches Datum fällt ein Jahrestag in diesem Jahr?"""
-    datum = (jahrestag.get("datum") or "").strip()
-    if len(datum) < 10:
+    datum = _maschinen_datum(jahrestag.get("datum"))
+    monat_tag = _maschinen_monat_tag(datum)
+    if not monat_tag:
         return None
     try:
-        monat, tag = int(datum[5:7]), int(datum[8:10])
+        monat, tag = (int(teil) for teil in monat_tag.split("-"))
         if monat == 2 and tag == 29:
             try:
                 return datetime(jahr, 2, 29)
@@ -9669,11 +9700,7 @@ def baum_kontakt_sync_pruefen(inhalt):
             or len(kontakt["notiz"]) > BAUM_KONTAKT_NOTIZ_MAX):
         raise RuntimeError(fehler)
     if kontakt["geburtstag"]:
-        try:
-            if datetime.strptime(kontakt["geburtstag"], "%Y-%m-%d").strftime(
-                    "%Y-%m-%d") != kontakt["geburtstag"]:
-                raise ValueError
-        except ValueError:
+        if not _maschinen_datum(kontakt["geburtstag"]):
             raise RuntimeError(fehler)
     if "foto" in kontakt:
         import base64
@@ -18699,9 +18726,10 @@ class Fenster(_FENSTER_BASIS):
                                            "loeschen": len(loeschen)},
                         "remoteErfolgreich": erfolgreich, "fehler": fehler}
             vorhandene = {(kanonischer_text(item.get("name")),
-                            (item.get("datum") or "")[5:]) for item in jahrestage}
+                            _maschinen_monat_tag(item.get("datum"))) for item in jahrestage}
             for geburtstag in geburtstage:
-                key = (kanonischer_text(geburtstag["name"]), geburtstag["datum"][5:])
+                key = (kanonischer_text(geburtstag["name"]),
+                       _maschinen_monat_tag(geburtstag["datum"]))
                 if key not in vorhandene:
                     jahrestage.append({"name": geburtstag["name"],
                                        "datum": geburtstag["datum"], "typ": "birthday",
@@ -19146,10 +19174,11 @@ class Fenster(_FENSTER_BASIS):
                                 buch_lesen["kontakte"])}
 
                 vorhandene = {(kanonischer_text(j.get("name")),
-                               (j.get("datum") or "")[5:]) for j in jahrestage}
+                               _maschinen_monat_tag(j.get("datum"))) for j in jahrestage}
                 neu_jt = 0
                 for g in geburtstage:
-                    schluessel = (kanonischer_text(g["name"]), g["datum"][5:])
+                    schluessel = (kanonischer_text(g["name"]),
+                                   _maschinen_monat_tag(g["datum"]))
                     if g["name"] and g["datum"] and schluessel not in vorhandene:
                         jahrestage.append({"name": g["name"], "datum": g["datum"],
                                            "typ": "birthday",

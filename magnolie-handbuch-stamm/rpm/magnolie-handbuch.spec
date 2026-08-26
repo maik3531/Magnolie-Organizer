@@ -1,5 +1,5 @@
 Name:           magnolie-handbuch
-Version:        2.0.5
+Version:        2.0.6
 Release:        1%{?dist}
 Summary:        Illustrated user handbook for Magnolie Organizer
 
@@ -95,6 +95,9 @@ done < po/LINGUAS
 %{_mandir}/*/man1/magnolie-handbuch.1*
 
 %changelog
+* Wed Aug 26 2026 Maik Walter <maik3531@gmail.com> - 2.0.6-1
+- Update the complete multilingual handbook and platform copies for Organizer 2.0.6.
+
 * Wed Aug 26 2026 Maik Walter <maik3531@gmail.com> - 2.0.5-1
 - Update the complete multilingual handbook for Magnolie Organizer 2.0.5.
 - Add standalone localized Windows handbook variants.

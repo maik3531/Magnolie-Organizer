@@ -93,7 +93,7 @@ kontakt = {
     "anschriften": [{"strasse": "Testweg 7", "plz": "47051", "ort": "Duisburg",
                       "land": "Deutschland", "typen": ["HOME"]}],
     "foto": "data:image/jpeg;base64,/9j/2Q==",
-    "geburtstag": "2000-02-29", "geburtstagJahrUnbekannt": True,
+    "geburtstag": "--02-29", "geburtstagJahrUnbekannt": True,
 }
 kontakt_zurueck = m.vcf_lesen(m.vcf_schreiben([kontakt]))["kontakte"][0]
 pruefe(all(kontakt_zurueck.get(feld) == kontakt.get(feld) for feld in (
@@ -101,11 +101,19 @@ pruefe(all(kontakt_zurueck.get(feld) == kontakt.get(feld) for feld in (
     "telefon", "mobil", "email", "notiz")),
        "vCard-Kontakte behalten Anschrift, Kommunikation und lange Notiz")
 pruefe(kontakt_zurueck["foto"] == kontakt["foto"] and
-       kontakt_zurueck["geburtstag"] == "2000-02-29" and
+       kontakt_zurueck["geburtstag"] == "--02-29" and
        kontakt_zurueck["geburtstagJahrUnbekannt"] and
        len(kontakt_zurueck["emailEintraege"]) == 2 and
        kontakt_zurueck["anschriften"][0]["land"] == "Deutschland",
-       "VCF bewahrt Foto bytegleich, BDAY-Flag, Typen und Land")
+       "VCF bewahrt Foto bytegleich, jahrlose BDAY, Typen und Land")
+
+jahrlose_ics = m.ics_schreiben_jahrestage([
+    {"uid": "vertrag-jahrlos", "name": "Jahrlos", "datum": "--02-29",
+     "typ": "birthday"}])
+pruefe("DTSTART;VALUE=DATE:20000229" in jahrlose_ics and
+       "X-MAGNOLIE-DATE:--02-29" in jahrlose_ics and
+       m.ics_lesen(jahrlose_ics)["jahrestage"][0]["datum"] == "--02-29",
+       "ICS bewahrt jahrlose Jahrestage mit gültigem Projektdatum und Erweiterung")
 
 ldif_kontakt = {
     "uid": "kontakt,sonder", "vorname": "Änne", "nachname": "Bei,spiel",
@@ -135,6 +143,9 @@ pruefe(ldif_zurueck["vorname"] == "Änne" and
        ldif_zurueck["foto"] == ldif_kontakt["foto"] and
        ldif_zurueck["geburtstag"] == "1980-04-03",
        "LDIF-Kontakte behalten Unicode, Mehrfachwerte, Dollar, JPEG und Geburtstag")
+pruefe("dateOfBirth" not in m.ldif_schreiben([
+           {"nachname": "Jahrlos", "geburtstag": "--04-03"}]),
+       "LDIF-Ausgabe erfindet für jahrlose Geburtstage kein Jahr")
 with open(os.path.join(os.path.dirname(__file__), "fixtures", "golden-kontakt.ldif"),
           encoding="utf-8", newline="") as datei:
     golden_ldif = datei.read()

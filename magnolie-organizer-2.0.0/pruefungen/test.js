@@ -613,16 +613,85 @@ function knopfMit(text, wurzel) {
     j.kontaktId === "kontakt-mit-jt" && j.typ === "birthday" &&
     j.datum === "1980-04-05"),
   "ein anderer verknüpfter Jahrestag unterdrückt die Geburtstagsmigration");
-  const unbekanntesJahr = T.normalisiere({
-    kontakte: [{ id: "kontakt-ohne-jahr", geburtstag: "1900-02-28" }],
-    jahrestage: [{ name: "Jahrestag ohne Jahr", datum: "1900-04-03" }] });
+  const datumsMigration = T.normalisiere({ kontakte: [
+    { id: "teil", geburtstag: "--02-29" },
+    { id: "wahr", geburtstag: "1980-04-05", geburtstagJahrUnbekannt: true },
+    { id: "falsch", geburtstag: "1900-02-28", geburtstagJahrUnbekannt: false },
+    { id: "fehlend-1604", geburtstag: "1604-12-30" },
+    { id: "fehlend-2000", geburtstag: "2000-01-02" }
+  ], jahrestage: [
+    { name: "Teil", datum: "--02-29" },
+    { name: "Wahr", datum: "1980-04-05", jahrUnbekannt: true },
+    { name: "Falsch", datum: "1900-04-03", jahrUnbekannt: false },
+    { name: "Geburt 1604", datum: "1604-11-19", typ: "birthday" },
+    { name: "Jahr 2000", datum: "2000-06-07" }
+  ] });
+  assert.deepStrictEqual(datumsMigration.kontakte.map((k) =>
+    [k.geburtstag, k.geburtstagJahrUnbekannt]), [
+    ["--02-29", true], ["--04-05", true], ["1900-02-28", false],
+    ["1604-12-30", false], ["2000-01-02", false]
+  ], "Kontaktmigration beachtet nicht exakt true, false und fehlende Altflags");
+  assert.deepStrictEqual(datumsMigration.jahrestage.filter((j) => !j.kontaktId).map((j) =>
+    [j.datum, j.jahrUnbekannt]), [
+    ["--02-29", true], ["--04-05", true], ["1900-04-03", false],
+    ["1604-11-19", false], ["2000-06-07", false]
+  ], "Jahrestagsmigration darf weder Jahreszahl noch Geburtstagstyp als Sentinel deuten");
+  const verknuepftesDatum = T.normalisiere({ kontakte: [
+    { id: "gleich", geburtstag: "1980-04-05", geburtstagJahrUnbekannt: true }
+  ], jahrestage: [
+    { kontaktId: "gleich", name: "Gleich", datum: "1999-06-07", typ: "birthday" }
+  ] });
+  assert.deepStrictEqual([verknuepftesDatum.kontakte[0].geburtstag,
+    verknuepftesDatum.jahrestage[0].datum], ["--04-05", "--04-05"],
+  "verknüpfter Kontakt und Geburtstag verwenden nicht denselben kanonischen Wert");
   assert.deepStrictEqual([
-    unbekanntesJahr.kontakte[0].geburtstag,
-    unbekanntesJahr.kontakte[0].geburtstagJahrUnbekannt,
-    unbekanntesJahr.jahrestage.find((j) => j.name === "Jahrestag ohne Jahr").datum,
-    unbekanntesJahr.jahrestage.find((j) => j.name === "Jahrestag ohne Jahr").jahrUnbekannt
-  ], ["2000-02-28", true, "2000-04-03", true],
-  "Jahrestage mit altem 1900-Platzhalter werden nicht verlustfrei migriert");
+    T.gueltigesTeildatum("--02-29"), T.gueltigesTeildatum("--02-30"),
+    T.gueltigesTeildatum("--13-01"), T.gueltigesJahresdatum("2000-02-29"),
+    T.gueltigesJahresdatum("1900-02-29")
+  ], [true, false, false, true, false], "strikte Teil- oder Volldatumsprüfung ist fehlerhaft");
+  assert.deepStrictEqual([
+    T.monatTag("--12-30"), T.monatTag("1604-12-30"),
+    T.projiziereJahresdatum("--02-29", 2024),
+    T.projiziereJahresdatum("--02-29", 2025),
+    T.hatBekanntesJahr("--02-29"), T.hatBekanntesJahr("1604-02-29")
+  ], ["12-30", "12-30", "2024-02-29", "2025-02-28", false, true],
+  "Monat-Tag, bekanntes Jahr oder Schaltjahrprojektion ist fehlerhaft");
+  assert.strictEqual(T.naechsterJahrestag({ datum: "--02-29", typ: "birthday" }).anzahl,
+    null, "ein Geburtstag ohne Jahr erzeugt eine Altersangabe");
+  const projiziertSortiert = ["--12-30", "--01-02", "1604-06-07"]
+    .sort((a, b) => T.projiziereJahresdatum(a, 2026)
+      .localeCompare(T.projiziereJahresdatum(b, 2026)));
+  assert.deepStrictEqual(projiziertSortiert, ["--01-02", "1604-06-07", "--12-30"],
+    "Jahresprojektion liefert keine chronologische Sortiergrundlage");
+  const baumTeil = { vorname: "Ada", geburtstag: "--02-29", telefone: [],
+    emailEintraege: [], anschriften: [], foto: "", baumKontakt: {
+      freigabeId: "teil-payload", version: 1, quelle: "test", geaendert: 1 } };
+  assert.strictEqual(T.kontaktBaumInhalt(baumTeil).kontakt.geburtstag, "--02-29",
+    "Magnolienbaum-Nutzlast verwirft oder erfindet das unbekannte Geburtsjahr");
+  baumTeil.geburtstag = "1900-02-28";
+  assert.strictEqual(T.kontaktBaumInhalt(baumTeil).kontakt.geburtstag, "1900-02-28",
+    "Magnolienbaum-Nutzlast verändert ein bekanntes altes Geburtsjahr");
+  baumTeil.geburtstag = "--02-30";
+  assert.strictEqual(T.kontaktBaumInhalt(baumTeil).kontakt.geburtstag, "",
+    "Magnolienbaum-Nutzlast sendet ein unmögliches Teildatum");
+  const jahrestageVorMerge = T.daten().jahrestage.length;
+  T.mergeJahrestage([
+    { name: "Kanonischer Merge", datum: "2000-09-08", jahrUnbekannt: true },
+    { name: "Ungültiger Merge", datum: "--02-30" }
+  ]);
+  assert.deepStrictEqual(T.daten().jahrestage.slice(jahrestageVorMerge).map((j) => j.datum),
+    ["--09-08"], "Jahrestagsimport normalisiert Teildaten nicht konservativ");
+  T.daten().jahrestage.splice(jahrestageVorMerge);
+  T.mergeKontakte([{ uid: "kanonischer-kontakt-merge", vorname: "Merge",
+    nachname: "Teil", geburtstag: "--02-29" }]);
+  const kontaktMerge = T.daten().kontakte.find((k) => k.uid === "kanonischer-kontakt-merge");
+  const kontaktMergeJt = T.daten().jahrestage.find((j) =>
+    kontaktMerge && j.kontaktId === kontaktMerge.id && j.typ === "birthday");
+  assert.deepStrictEqual([kontaktMerge && kontaktMerge.geburtstag,
+    kontaktMergeJt && kontaktMergeJt.datum], ["--02-29", "--02-29"],
+  "Kontaktmerge hält Kontakt und abgeleiteten Geburtstag nicht kanonisch gleich");
+  T.daten().kontakte = T.daten().kontakte.filter((k) => k !== kontaktMerge);
+  T.daten().jahrestage = T.daten().jahrestage.filter((j) => j !== kontaktMergeJt);
   const wetterOptout = T.normalisiere({ einstellungen: {
     allgemein: { wetterOhneOrtAbrufen: false } } });
   assert.strictEqual(wetterOptout.einstellungen.allgemein.wetterOhneOrtAbrufen, false,
@@ -1989,7 +2058,7 @@ function knopfMit(text, wurzel) {
   const enUeber = enSD.querySelector("#einstellungen-inhalt");
   assert.strictEqual(enUeber.querySelector("h3").textContent,
     "About the Magnolie Organizer", "englische Über-Seite fehlt");
-  assert.ok(enUeber.querySelector(".ueber-fassung").textContent.includes("Version 2.0.5") &&
+  assert.ok(enUeber.querySelector(".ueber-fassung").textContent.includes("Version 2.0.6") &&
     enUeber.textContent.includes("Author") && enUeber.textContent.includes("License") &&
     enUeber.textContent.includes("Updates") &&
     enUeber.textContent.includes("No update check has been performed yet") &&
@@ -2009,12 +2078,12 @@ function knopfMit(text, wurzel) {
     enSyncNachrichten.some((nachricht) => nachricht.cmd === "update_pruefen"),
   "englische Über-Seite verändert Handbuch- oder Update-Befehl");
   const enUpdateUrl = "https://gitlab.com/maik3531/mint-forgs/-/raw/main/" +
-    "Magnolie-Organitzer/magnolie-organizer_2.0.6_all.deb";
-  enSW.App.updateErgebnis({ ok: true, aktuell: false, version: "2.0.6",
+    "Magnolie-Organitzer/magnolie-organizer_2.0.7_all.deb";
+  enSW.App.updateErgebnis({ ok: true, aktuell: false, version: "2.0.7",
     url: enUpdateUrl, sha256: "ab".repeat(32), fehler: "" });
   assert.ok(enSD.querySelector("#update-stand").textContent.includes(
-    "New version 2.0.6 is available") &&
-    enSD.querySelector("#update-herunterladen").textContent.includes("2.0.6") &&
+    "New version 2.0.7 is available") &&
+    enSD.querySelector("#update-herunterladen").textContent.includes("2.0.7") &&
     enSD.querySelector(".update-pruefsumme").textContent.includes("ab".repeat(32)) &&
     enSD.querySelector(".update-pruefsumme").textContent.includes("sha256sum"),
   "englischer neuer Update-Stand fehlt");
@@ -3136,7 +3205,7 @@ function knopfMit(text, wurzel) {
   assert.strictEqual($$(".kontakt-ereignis-zeile").length, 2,
     "mit + lässt sich kein weiterer Jahrestag ergänzen");
   setze($$(".kontakt-ereignis-typ")[1], "Hochzeitstag");
-  setze($$(".kontakt-ereignis-datum")[1], "2015-08-22");
+  setze($$(".kontakt-ereignis-datum")[1], "--08-22");
   setze($("#kontakt-termin-titel"), "Jahresgespräch");
   setze($("#kontakt-termin-datum"), "2030-05-03");
   assert.deepStrictEqual(Array.from($("#kontakt-termin-vorschlaege").options,
@@ -3182,7 +3251,8 @@ function knopfMit(text, wurzel) {
   assert.strictEqual(T.daten().jahrestage[0].kontaktId, T.daten().kontakte[0].id,
     "der Geburtstag ist nicht mit dem Kontakt verknüpft");
   assert.ok(T.daten().jahrestage.some((j) => j.typ === "wedding-anniversary" &&
-    j.kontaktId === T.daten().kontakte[0].id),
+    j.kontaktId === T.daten().kontakte[0].id && j.datum === "--08-22" &&
+    j.jahrUnbekannt),
   "der zusätzliche Hochzeitstag fehlt bei den Jahrestagen");
   assert.strictEqual(T.daten().termine.find((t) => t.titel === "Jahresgespräch").kontaktId,
     T.daten().kontakte[0].id, "der Kontakttermin ist nicht verknüpft");
@@ -3787,8 +3857,8 @@ function knopfMit(text, wurzel) {
   }
   assert.strictEqual($("#jt-datum").value, "29.02.",
     "Jahrestag ohne bekanntes Jahr wird nicht ohne Jahr angezeigt");
-  assert.strictEqual(T.datumswert($("#jt-datum")), "2000-02-29",
-    "Jahrestag ohne bekanntes Jahr erhält nicht den internen Platzhalter");
+  assert.strictEqual(T.datumswert($("#jt-datum")), "--02-29",
+    "Jahrestag ohne bekanntes Jahr erhält kein kanonisches Teildatum");
   setze($("#jt-datum"), iso);
   setze($("#jt-typ"), "Geburtstag");
   knopfMit("Eintragen").click();
@@ -6056,7 +6126,7 @@ function knopfMit(text, wurzel) {
   assert.ok(ueberText.includes("Version 3"), "die Lizenzfassung fehlt");
   assert.ok($(".ueber-fassung").textContent.includes("Fassung"),
     "die Programmfassung fehlt");
-  assert.ok($(".ueber-fassung").textContent.includes("2.0.5"),
+  assert.ok($(".ueber-fassung").textContent.includes("2.0.6"),
     "die neue Programmfassung fehlt");
   assert.ok($(".ueber-blume"), "die Magnolienblüte fehlt");
   const beschreibung = $(".ueber-beschreibung");
@@ -6076,18 +6146,18 @@ function knopfMit(text, wurzel) {
     "neben der gemeinsamen Aktualisierungsprüfung ist ein zweiter Prüfknopf sichtbar");
   assert.ok($("#handbuch-stand").textContent.includes("nicht installiert"),
     "der Handbuchstatus nennt die fehlende Installation nicht");
-  assert.ok(!T.istNeuereFassung("2.0.1") && !T.istNeuereFassung("2.0.5") &&
-    T.istNeuereFassung("2.0.6"),
+  assert.ok(!T.istNeuereFassung("2.0.1") && !T.istNeuereFassung("2.0.6") &&
+    T.istNeuereFassung("2.0.7"),
     "Fassungsvergleich der Oberfläche stimmt nicht");
   assert.ok(T.vergleicheText("Termin 2", "Termin 10") < 0,
     "der regionale Collator sortiert Zahlen weiterhin rein lexikografisch");
-  w.App.updateErgebnis({ ok: true, aktuell: false, version: "2.0.6",
+  w.App.updateErgebnis({ ok: true, aktuell: false, version: "2.0.7",
     url: "https://gitlab.com/maik3531/mint-forgs/-/raw/main/" +
-      "Magnolie-Organitzer/magnolie-organizer_2.0.6_all.deb" });
-  assert.ok($("#update-stand").textContent.includes("2.0.6"),
+      "Magnolie-Organitzer/magnolie-organizer_2.0.7_all.deb" });
+  assert.ok($("#update-stand").textContent.includes("2.0.7"),
     "gefundene Fassung erscheint nicht unter Über");
   assert.ok($("#update-herunterladen"), "Downloadknopf für neue Fassung fehlt");
-  assert.strictEqual(T.daten().einstellungen.update.letzteVersion, "2.0.6",
+  assert.strictEqual(T.daten().einstellungen.update.letzteVersion, "2.0.7",
     "Prüfstand wird nicht gespeichert");
   $("#update-automatisch").checked = false;
   $("#update-automatisch").dispatchEvent(new w.Event("change", { bubbles: true }));
@@ -7005,7 +7075,7 @@ function knopfMit(text, wurzel) {
     "ohne Handbuch darf der Hinweis nicht als gezeigt gespeichert werden");
   const handbuchUrl = "https://gitlab.com/maik3531/mint-forgs/-/raw/main/" +
     "Magnolie-Organitzer/magnolie-handbuch_1.9.8_all.deb";
-  hw.App.updateErgebnis({ ok: true, aktuell: true, version: "2.0.5", url: "",
+  hw.App.updateErgebnis({ ok: true, aktuell: true, version: "2.0.6", url: "",
     sha256: "ab".repeat(32), handbuch: { version: "1.9.8", url: handbuchUrl,
       sha256: "cd".repeat(32) }, fehler: "" });
   assert.ok(!hd.querySelector("#dialog-schleier").classList.contains("verborgen") &&

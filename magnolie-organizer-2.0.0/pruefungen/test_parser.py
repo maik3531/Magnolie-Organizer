@@ -452,6 +452,24 @@ jt = {"name": "Hochzeit Müller", "datum": "1999-06-05", "typ": "wedding-anniver
 jtz = m.ics_lesen(m.ics_schreiben_jahrestage([jt]))["jahrestage"][0]
 pruefe(jtz["name"] == jt["name"] and jtz["typ"] == "wedding-anniversary"
        and jtz["datum"] == jt["datum"], "Jahrestag-Rundreise mit Typ")
+jt_jahrlos = {"name": "Jahrloser Schalttag", "datum": "--02-29",
+              "typ": "birthday", "uid": "jt-jahrlos"}
+jt_jahrlos_text = m.ics_schreiben_jahrestage([jt_jahrlos])
+jt_jahrlos_zurueck = m.ics_lesen(jt_jahrlos_text)["jahrestage"][0]
+pruefe("DTSTART;VALUE=DATE:20000229" in jt_jahrlos_text and
+       "X-MAGNOLIE-DATE:--02-29" in jt_jahrlos_text and
+       jt_jahrlos_zurueck["datum"] == "--02-29",
+       "jahrlose ICS-Jahrestage nutzen nur an der Grenze ein gültiges Projektdatum")
+echtes_2000 = m.ics_lesen(
+    "BEGIN:VEVENT\r\nSUMMARY:Echtes Jahr 2000\r\nCATEGORIES:Birthday\r\n"
+    "DTSTART;VALUE=DATE:20000229\r\nRRULE:FREQ=YEARLY\r\nEND:VEVENT\r\n")
+ungueltige_erweiterung = m.ics_lesen(
+    "BEGIN:VEVENT\r\nSUMMARY:Kaputte Erweiterung\r\nCATEGORIES:Birthday\r\n"
+    "DTSTART;VALUE=DATE:20000229\r\nRRULE:FREQ=YEARLY\r\n"
+    "X-MAGNOLIE-DATE:--02-30\r\nEND:VEVENT\r\n")
+pruefe(echtes_2000["jahrestage"][0]["datum"] == "2000-02-29" and
+       ungueltige_erweiterung["jahrestage"][0]["datum"] == "2000-02-29",
+       "ICS-Jahr 2000 bleibt ohne gültige Magnolie-Erweiterung ein echtes Jahr")
 eigener_jt = dict(jt, name="Vereinsgründung", typ="Familientag", uid="jt-2")
 eigener_jtz = m.ics_lesen(m.ics_schreiben_jahrestage([eigener_jt]))["jahrestage"][0]
 pruefe(eigener_jtz["typ"] == "Familientag",
@@ -698,9 +716,15 @@ pruefe(any(t.get("label") == "Privates Mobiltelefon" and "CELL" in t["typen"]
        "freie CardBook-Telefonlabels bleiben erhalten und semantisch zugeordnet")
 geb = {(g_["name"], g_["datum"]) for g_ in vg["geburtstage"]}
 pruefe(("Hans Müller", "1965-03-17") in geb, "Geburtstag aus BDAY")
-pruefe(("Jürgen Schönefeld", "2000-04-02") in geb and
+pruefe(("Jürgen Schönefeld", "--04-02") in geb and
        next(k for k in vg["kontakte"] if k["nachname"] == "Schönefeld")["geburtstagJahrUnbekannt"],
-       "BDAY ohne Jahr verwendet ein gültiges Schaltjahr und behält das Unbekannt-Flag")
+       "BDAY ohne Jahr bleibt direkt in kanonischer jahrloser Form erhalten")
+pruefe(all(m._maschinen_datum(wert) == wert for wert in (
+           "1815-12-10", "--02-29", "--12-31")) and
+       all(not m._maschinen_datum(wert) for wert in (
+           "2000-02-30", "--02-30", "--2-03", "2000-2-03", " 2000-02-03 ",
+           "1900-02-29", "2000-00-01", "2000-01-01T00:00")),
+       "Maschinendaten akzeptieren nur gültiges YYYY-MM-DD oder --MM-DD")
 
 print("\n[Claws Mail – LDIF und natives XML]")
 claws_name = m.base64.b64encode("Änne Beispiel".encode("utf-8")).decode("ascii")
@@ -736,6 +760,14 @@ pruefe(claws_ldif["kontakte"][0]["emails"] ==
        claws_ldif["kontakte"][0]["firma"] == "Beispiel GmbH" and
        claws_ldif["kontakte"][0]["mobil"] == "0171 9876543",
        "Claws-LDIF übernimmt mehrere gültige Adressen, Firma und Telefone")
+ldif_jahrlos = m.ldif_lesen(
+    "dn: cn=Jahrlos\ncn: Jahrlos\nsn: Jahrlos\nbirthMonth: 2\nbirthDay: 29\n\n")
+pruefe(ldif_jahrlos["kontakte"][0]["geburtstag"] == "--02-29" and
+       ldif_jahrlos["geburtstage"] == [{"name": "Jahrlos", "datum": "--02-29"}],
+       "LDIF-Monat und -Tag ohne Jahr werden kanonisch jahrlos importiert")
+pruefe("dateOfBirth" not in m.ldif_schreiben([
+           {"nachname": "Jahrlos", "geburtstag": "--02-29"}]),
+       "LDIF-Export lässt nicht darstellbare jahrlose Geburtstage aus")
 pruefe(len(claws_ldif["kontakte"][0]["telefone"]) == 5 and
        len(claws_ldif["kontakte"][0]["anschriften"]) == 2,
        "Claws-LDIF verliert keine wiederholten Rufnummern oder Anschriften")
@@ -2004,7 +2036,7 @@ except RuntimeError as f:
 
 print()
 print("— Aktualisierungsprüfung —")
-pruefe(m.PROGRAMM_FASSUNG == "2.0.5", "Programmkern trägt die neue Fassung")
+pruefe(m.PROGRAMM_FASSUNG == "2.0.6", "Programmkern trägt die neue Fassung")
 desktop_pfad = os.path.abspath(os.path.join(os.path.dirname(PFAD), "..",
                                              "io.gitlab.maik3531.MagnolieOrganizer.desktop"))
 with open(desktop_pfad, encoding="utf-8") as datei:
@@ -2079,28 +2111,28 @@ update_oeffentlich = m.base64.b64encode(update_privat.public_key().public_bytes(
     update_serialisierung.Encoding.Raw,
     update_serialisierung.PublicFormat.Raw)).decode("ascii")
 update_summe = "ab" * 32
-update_paket = m.UPDATE_BASIS + "magnolie-organizer_2.0.6_all.deb"
+update_paket = m.UPDATE_BASIS + "magnolie-organizer_2.0.7_all.deb"
 update_signatur = m.base64.b64encode(update_privat.sign(
-    m.update_signatur_nachricht("2.0.6", update_paket, update_summe))).decode("ascii")
-update_xml = ("<?xml version='1.0'?><update><version>2.0.6</version>"
+    m.update_signatur_nachricht("2.0.7", update_paket, update_summe))).decode("ascii")
+update_xml = ("<?xml version='1.0'?><update><version>2.0.7</version>"
                "<deb>" + update_paket + "</deb><sha256>" + update_summe +
                "</sha256><signature>" + update_signatur + "</signature></update>")
 version, paket = m.update_info_lesen(update_xml)
-pruefe(version == "2.0.6" and paket.endswith("_2.0.6_all.deb"),
+pruefe(version == "2.0.7" and paket.endswith("_2.0.7_all.deb"),
        "update.xml liefert Fassung und Paketadresse")
 update_neu = m.update_pruefen(lambda _url: update_xml, update_oeffentlich)
 pruefe(update_neu["ok"] and not update_neu["aktuell"] and
-       update_neu["version"] == "2.0.6" and
+       update_neu["version"] == "2.0.7" and
        update_neu["sha256"] == update_summe and update_neu["url"] == update_paket,
        "eine Debian-Installation erhält das signierte Debian-Paket")
-appimage_paket = m.UPDATE_BASIS + "Magnolie-Organizer-2.0.6-x86_64.AppImage"
+appimage_paket = m.UPDATE_BASIS + "Magnolie-Organizer-2.0.7-x86_64.AppImage"
 appimage_summe = "ef" * 32
-appimage_xml = ("<update><version>2.0.6</version><deb>" + update_paket +
+appimage_xml = ("<update><version>2.0.7</version><deb>" + update_paket +
                  "</deb><sha256>" + update_summe + "</sha256><appimage>"
                  "<architecture>x86_64</architecture><url>" + appimage_paket +
                  "</url><sha256>" + appimage_summe + "</sha256></appimage>")
 appimage_signatur = m.base64.b64encode(update_privat.sign(
-    m.update_signatur_nachricht("2.0.6", update_paket, update_summe,
+    m.update_signatur_nachricht("2.0.7", update_paket, update_summe,
                                appimage_paket, appimage_summe))).decode("ascii")
 appimage_xml += "<signature>" + appimage_signatur + "</signature></update>"
 appimage_umgebung = os.environ.get("APPIMAGE")
@@ -2117,28 +2149,28 @@ pruefe(appimage_update["ok"] and not appimage_update["aktuell"] and
        appimage_update["url"] == appimage_paket and
        appimage_update["sha256"] == appimage_summe and not appimage_fehlt["ok"],
        "eine AppImage-Installation erhält nur das passende geprüfte AppImage")
-aarch64_paket = m.UPDATE_BASIS + "Magnolie-Organizer-2.0.6-aarch64.AppImage"
-aarch64_xml = ("<update><version>2.0.6</version><deb>" + update_paket +
+aarch64_paket = m.UPDATE_BASIS + "Magnolie-Organizer-2.0.7-aarch64.AppImage"
+aarch64_xml = ("<update><version>2.0.7</version><deb>" + update_paket +
                "</deb><sha256>" + update_summe + "</sha256><appimage>"
                "<architecture>aarch64</architecture><url>" + aarch64_paket +
                "</url><sha256>" + appimage_summe + "</sha256></appimage>")
 aarch64_signatur = m.base64.b64encode(update_privat.sign(
-    m.update_signatur_nachricht("2.0.6", update_paket, update_summe,
+    m.update_signatur_nachricht("2.0.7", update_paket, update_summe,
                                aarch64_paket, appimage_summe))).decode("ascii")
 aarch64_geprueft = m.update_manifest_pruefen(
     aarch64_xml + "<signature>" + aarch64_signatur + "</signature></update>",
     update_oeffentlich)
 pruefe(aarch64_geprueft["url"] == update_paket and not aarch64_geprueft["appimage"],
        "ein signierter fremder AppImage-Abschnitt sperrt das Debian-Update nicht")
-aktuell_paket = m.UPDATE_BASIS + "magnolie-organizer_2.0.5_all.deb"
+aktuell_paket = m.UPDATE_BASIS + "magnolie-organizer_2.0.6_all.deb"
 aktuell_signatur = m.base64.b64encode(update_privat.sign(
-    m.update_signatur_nachricht("2.0.5", aktuell_paket, update_summe))).decode("ascii")
-aktuell_xml = ("<update><version>2.0.5</version><deb>" + aktuell_paket +
+    m.update_signatur_nachricht("2.0.6", aktuell_paket, update_summe))).decode("ascii")
+aktuell_xml = ("<update><version>2.0.6</version><deb>" + aktuell_paket +
                "</deb><sha256>" + update_summe + "</sha256><signature>" +
                aktuell_signatur + "</signature></update>")
 update_aktuell = m.update_pruefen(lambda _url: aktuell_xml, update_oeffentlich)
 pruefe(update_aktuell["ok"] and update_aktuell["aktuell"] and
-       update_aktuell["version"] == "2.0.5" and not update_aktuell["url"],
+       update_aktuell["version"] == "2.0.6" and not update_aktuell["url"],
        "dieselbe signierte Fassung gilt als aktuell")
 alt_paket = m.UPDATE_BASIS + "magnolie-organizer_2.0.0_all.deb"
 alt_signatur = m.base64.b64encode(update_privat.sign(
@@ -2153,17 +2185,17 @@ pruefe(update_alt["ok"] and update_alt["aktuell"] and
 handbuch_paket = m.UPDATE_BASIS + "magnolie-handbuch_1.9.8_all.deb"
 handbuch_summe = "cd" * 32
 handbuch_signatur = m.base64.b64encode(update_privat.sign(
-    m.update_signatur_nachricht("2.0.5", aktuell_paket, update_summe,
+    m.update_signatur_nachricht("2.0.6", aktuell_paket, update_summe,
                                manual_version="1.9.8", manual_linux=handbuch_paket,
                                manual_linux_sha=handbuch_summe))).decode("ascii")
-handbuch_xml = ("<update><version>2.0.5</version><deb>" + aktuell_paket +
+handbuch_xml = ("<update><version>2.0.6</version><deb>" + aktuell_paket +
     "</deb><sha256>" + update_summe + "</sha256><manual><version>1.9.8</version>"
     "<linux><deb>" + handbuch_paket + "</deb><sha256>" + handbuch_summe +
     "</sha256></linux></manual><signature>" + handbuch_signatur +
     "</signature></update>")
 handbuch_update = m.update_pruefen(lambda _url: handbuch_xml, update_oeffentlich)
 pruefe(handbuch_update["ok"] and handbuch_update["aktuell"] and
-       handbuch_update["version"] == "2.0.5" and
+       handbuch_update["version"] == "2.0.6" and
        handbuch_update["handbuch"] == {"version": "1.9.8",
        "url": handbuch_paket, "sha256": handbuch_summe, "platform": "linux"},
        "verschachtelte Handbuchdaten verändern die Organizerfelder nicht")
@@ -2172,7 +2204,7 @@ pruefe(bool(handbuch_update.get("handbuch")) and
        "der Handbuchdownload wird an das zuletzt validierte Manifest gebunden")
 falsches_handbuch_paket = m.UPDATE_BASIS + "magnolie-organizer_1.9.8_all.deb"
 falsche_handbuch_signatur = m.base64.b64encode(update_privat.sign(
-    m.update_signatur_nachricht("2.0.5", aktuell_paket, update_summe,
+    m.update_signatur_nachricht("2.0.6", aktuell_paket, update_summe,
                                manual_version="1.9.8",
                                manual_linux=falsches_handbuch_paket,
                                manual_linux_sha=handbuch_summe))).decode("ascii")
@@ -2188,7 +2220,7 @@ for falsches_paket in (handbuch_paket + "?download=1",
                        "https://example.org/magnolie-handbuch_1.9.8_all.deb"):
     pruefe(not m._handbuch_update_url_erlaubt(falsches_paket, "1.9.8"),
            "Handbuchadresse, Dateiname und Version werden strikt gebunden")
-altes_update_xml = ("<update><version>2.0.6</version><deb>" +
+altes_update_xml = ("<update><version>2.0.7</version><deb>" +
                     update_paket + "</deb></update>")
 update_abrufe = []
 update_ohne_schluessel = m.update_pruefen(
@@ -2209,7 +2241,7 @@ pruefe(not update_ohne_signatur["ok"] and "signatur" in
        update_ohne_signatur["fehler"].lower(),
        "ein Manifest ohne Signatur wird mit gültigem Release-Schlüssel abgewiesen")
 update_veraendert = m.update_pruefen(
-    lambda _url: update_xml.replace("2.0.6", "2.0.5"), update_oeffentlich)
+    lambda _url: update_xml.replace("2.0.7", "2.0.6"), update_oeffentlich)
 pruefe(not update_veraendert["ok"] and any(text in
        update_veraendert["fehler"].lower() for text in
        ("invalid signature", "ungültige signatur")),
@@ -4361,6 +4393,10 @@ kontakt_sync = {
                                   "land": "UK"}]}}
 pruefe(m.baum_kontakt_sync_pruefen(kontakt_sync) is kontakt_sync,
        "kontakt_sync akzeptiert exakt den interoperablen Vertrag")
+kontakt_sync_jahrlos = json.loads(json.dumps(kontakt_sync))
+kontakt_sync_jahrlos["kontakt"]["geburtstag"] = "--12-10"
+pruefe(m.baum_kontakt_sync_pruefen(kontakt_sync_jahrlos) is kontakt_sync_jahrlos,
+       "kontakt_sync akzeptiert ein kanonisches jahrloses Geburtsdatum")
 kontakt_sync_foto = json.loads(json.dumps(kontakt_sync))
 kontakt_sync_foto["kontakt"]["foto"] = "data:image/png;base64,iVBORw0KGgo="
 pruefe(m.baum_kontakt_sync_pruefen(kontakt_sync_foto) is kontakt_sync_foto,
@@ -4391,6 +4427,16 @@ for aenderung in (
         kontakt_fehler.append(True)
 pruefe(len(kontakt_fehler) == 11,
        "kontakt_sync lehnt Fassung, Typen, Überlängen, fremde/kaputte Fotos und Löschmarker ab")
+ungueltige_kontaktdaten = 0
+for datum in ("--02-30", "2000-2-03", " 2000-02-03 "):
+    probe = json.loads(json.dumps(kontakt_sync))
+    probe["kontakt"]["geburtstag"] = datum
+    try:
+        m.baum_kontakt_sync_pruefen(probe)
+    except RuntimeError:
+        ungueltige_kontaktdaten += 1
+pruefe(ungueltige_kontaktdaten == 3,
+       "kontakt_sync lehnt ungültige oder nicht kanonische Geburtsdaten ab")
 kontakt_post = []
 m.baum_einreihen(kontakt_post, zweig_b["kennung"], "kontakt_sync", kontakt_sync)
 pruefe(kontakt_post[0]["inhalt"] == kontakt_sync,
@@ -5515,7 +5561,7 @@ print("— Erinnerung an Jahrestage —")
 jt_daten = {"jahrestage": [
     {"id": "j1", "name": "Max Mustermann", "datum": "1980-07-27",
      "typ": "Geburtstag"},
-    {"id": "j2", "name": "Anna und Otto", "datum": "2001-07-25",
+    {"id": "j2", "name": "Anna und Otto", "datum": "--07-25",
      "typ": "Hochzeitstag"},
     {"id": "j3", "name": "Vereinsjubiläum", "datum": "1975-12-24",
      "typ": "Sonstiges"},
@@ -5555,8 +5601,10 @@ kopf, rumpf = m.jahrestagstext(
     {"name": "Max Mustermann", "typ": "Geburtstag"}, 0)
 pruefe(kopf.startswith("Geburtstag") and "hat heute Geburtstag" in rumpf,
        "Text am Tag selbst: %s – %s" % (kopf, rumpf))
-pruefe(m._jahrestag_im_jahr({"datum": "2000-02-29"}, 2027).day == 28,
-       "der 29. Februar rutscht in Nicht-Schaltjahren auf den 28.")
+pruefe(m._jahrestag_im_jahr({"datum": "2000-02-29"}, 2027).day == 28 and
+       m._jahrestag_im_jahr({"datum": "--02-29"}, 2027).day == 28 and
+       m._jahrestag_im_jahr({"datum": "--02-29"}, 2028).day == 29,
+       "der 29. Februar rutscht auch jahrlos nur in Nicht-Schaltjahren auf den 28.")
 
 print()
 print("— Nur eine Stelle meldet —")

@@ -11,7 +11,8 @@ const root = path.resolve(__dirname, "..");
 const handbook = [process.env.MAGNOLIE_HANDBUCH_WEB,
   path.resolve(root, "..", "magnolie-handbuch-stamm", "web"),
   path.join(root, "shared", "magnolie-handbuch-stamm", "web")]
-  .filter(Boolean).find((candidate) => fs.existsSync(path.join(candidate, "platform.js")));
+  .filter(Boolean).find((candidate) => fs.existsSync(path.join(candidate, "platform.js")) &&
+    fs.existsSync(path.join(candidate, "i18n", "de.js")));
 assert.ok(handbook, "Gemeinsame Handbuchquelle fehlt");
 const platformPath = path.join(handbook, "platform.js");
 const platformSource = fs.readFileSync(platformPath, "utf8");

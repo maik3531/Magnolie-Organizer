@@ -13,7 +13,7 @@ internal static class GesamtarchivService
 {
     internal const string Marker = "magnolie-gesamtarchiv";
     internal const int Fassung = 1;
-    internal const int Datenschema = 1;
+    internal const int Datenschema = 2;
 
     internal static string Create(JsonObject data, string platform, string appVersion,
         string password = "", DateTimeOffset? created = null)
@@ -48,8 +48,7 @@ internal static class GesamtarchivService
         JsonObject root;
         try { root = JsonNode.Parse(plain) as JsonObject ?? throw new InvalidDataException(); }
         catch (JsonException) { throw new InvalidDataException("Das Gesamtarchiv enthält kein gültiges JSON-Objekt."); }
-        if (Text(root, "magnolie") != Marker || Integer(root, "fassung") != Fassung ||
-            Integer(root, "datenschema") != Datenschema)
+        if (Text(root, "magnolie") != Marker || Integer(root, "fassung") != Fassung)
             throw new InvalidDataException("Format oder Datenschema des Gesamtarchivs wird nicht unterstützt.");
         var created = Text(root, "erstellt");
         if (!DateTimeOffset.TryParse(created, out _))
@@ -65,6 +64,8 @@ internal static class GesamtarchivService
                 Encoding.ASCII.GetBytes(Convert.ToHexString(SHA256.HashData(
                     MagnolienbaumCrypto.Canonical(data))).ToLowerInvariant())))
             throw new InvalidDataException("Die SHA-256-Prüfsumme des Gesamtarchivs stimmt nicht.");
+        if (Integer(root, "datenschema") is not (1 or Datenschema))
+            throw new InvalidDataException("Format oder Datenschema des Gesamtarchivs wird nicht unterstützt.");
         RejectIntegrationSecrets(data);
         data = NormalizeRecurrences(data);
         var names = new[] { "termine", "aufgaben", "kontakte", "notizen", "notizgruppen", "notizbuecher",

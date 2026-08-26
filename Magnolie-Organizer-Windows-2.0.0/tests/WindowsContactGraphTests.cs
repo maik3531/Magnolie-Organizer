@@ -19,6 +19,29 @@ internal static class WindowsContactGraphTests
                     new RemoteContact("../fremd.contact", "", 0, contact, true), "uid", contact, CancellationToken.None),
                 "Windows Contacts akzeptierte Pfadtraversal als Remote-ID.");
 
+            var yearless = contact.DeepClone().AsObject(); yearless["geburtstag"] = "--02-29";
+            var yearlessXml = WindowsContactStore.Serialize(yearless, "yearless");
+            TestAssert.That(!yearlessXml.Contains("DateCollection", StringComparison.Ordinal) &&
+                yearlessXml.Contains("Birthday>--02-29</", StringComparison.Ordinal) &&
+                WindowsContactStore.Parse(yearlessXml)["geburtstag"]!.GetValue<string>() == "--02-29",
+                "Windows Contacts projizierte ein jahrloses Datum oder verlor die Magnolie-Erweiterung.");
+            var full = contact.DeepClone().AsObject(); full["geburtstag"] = "2000-02-29";
+            var fullXml = WindowsContactStore.Serialize(full, "full");
+            TestAssert.That(fullXml.Contains("DateCollection", StringComparison.Ordinal) &&
+                !fullXml.Contains("Birthday>--", StringComparison.Ordinal) &&
+                WindowsContactStore.Parse(fullXml)["geburtstag"]!.GetValue<string>() == "2000-02-29",
+                "Windows Contacts bewahrte einen echten Geburtstag aus 2000 nicht als volles Datum.");
+            TestAssert.That(!GraphApiClient.ToGraph(yearless).ContainsKey("birthday") &&
+                GraphApiClient.ToGraph(full)["birthday"]!.GetValue<string>() == "2000-02-29T00:00:00Z",
+                "Graph erhielt ein fingiertes Jahr für ein jahrloses Datum oder verlor das echte Jahr 2000.");
+            var mergeTarget = yearless.DeepClone().AsObject();
+            ContactFields.CopyRemoteFields(mergeTarget, new JsonObject { ["vorname"] = "Remote" });
+            TestAssert.That(mergeTarget["geburtstag"]!.GetValue<string>() == "--02-29",
+                "Ein Provider ohne Geburtstagsfeld löschte das lokale jahrlose Datum.");
+            using (var graph2000 = System.Text.Json.JsonDocument.Parse("""{"id":"genuine","birthday":"2000-02-29T00:00:00Z"}"""))
+                TestAssert.That(GraphApiClient.ParseContact(graph2000.RootElement).Data["geburtstag"]!.GetValue<string>() == "2000-02-29",
+                    "Graph interpretierte ein externes Jahr 2000 als unbekannt.");
+
             var oversized = Path.Combine(root, "gross.contact");
             await using (var stream = File.Create(oversized)) stream.SetLength(2 * 1024 * 1024 + 1);
             TestAssert.That((await store.ReadAsync(CancellationToken.None)).Count == 0,
