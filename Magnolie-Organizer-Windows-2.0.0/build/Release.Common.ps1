@@ -24,7 +24,7 @@ function Get-SharedHandbookWeb([string] $Root) {
 }
 
 function Get-ReleaseSourceFiles([string] $Root) {
-    $excludedDirectories = @(".git", ".claude", ".idea", ".vscode", "__pycache__", "Ausgabe", "bin", "handbuch", "node_modules", "obj", "shared")
+    $excludedDirectories = @(".git", ".claude", ".idea", ".vscode", "__pycache__", "Ausgabe", "bin", "handbook-windows-i18n", "handbuch", "node_modules", "obj", "shared")
     $internalNotePattern = '(?i)(REVIEW|ENTWURF|OFFENE[-_ ]?PUNKTE|ANALYSE|PLAN|AUDIT).*\.md$'
     $generatedReleasePattern = '(?i)^(?:Magnolie-Organizer-Windows-.*-Setup-.*\.exe(?:\.build\.json)?|.*-x64\.zip|.*-Source\.zip|.*-PRUEFSUMMEN\.sha256)$'
     Get-ChildItem -LiteralPath $Root -Recurse -File -Force | Where-Object {
@@ -235,7 +235,7 @@ function Assert-SourceArchive([string] $Archive, [string] $Root, [string] $Versi
                 }
             }
         }
-        $forbiddenDirectories = @(".git", "__pycache__", "Ausgabe", "bin", "handbuch", "node_modules", "obj")
+        $forbiddenDirectories = @(".git", "__pycache__", "Ausgabe", "bin", "handbook-windows-i18n", "handbuch", "node_modules", "obj")
         $forbiddenExtensions = @(".exe", ".dll", ".com", ".scr", ".sys", ".msi", ".msix", ".appx", ".appxbundle", ".msixbundle", ".pdb", ".pyc", ".zip", ".7z", ".rar", ".tar", ".gz", ".nupkg", ".sha256", ".iso", ".qcow2", ".vdi", ".vhd", ".vhdx", ".img", ".raw", ".ppm")
         $internalNotePattern = '(?i)(REVIEW|ENTWURF|OFFENE[-_ ]?PUNKTE|ANALYSE|PLAN|AUDIT).*\.md$'
         $generatedReleasePattern = '(?i)^(?:Magnolie-Organizer-Windows-.*-Setup-.*\.exe(?:\.build\.json)?|.*-x64\.zip|.*-Source\.zip|.*-PRUEFSUMMEN\.sha256)$'

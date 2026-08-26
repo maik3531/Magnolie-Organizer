@@ -6,7 +6,7 @@
 #, fuzzy
 msgid ""
 msgstr ""
-"Project-Id-Version: Magnolie Organizer 2.0.4\n"
+"Project-Id-Version: Magnolie Organizer 2.0.5\n"
 "Report-Msgid-Bugs-To: maik3531@gmail.com\n"
 "POT-Creation-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
@@ -348,6 +348,10 @@ msgid "%d received"
 msgstr ""
 
 #, python-format
+msgid "%d synchronization conflict"
+msgstr ""
+
+#, python-format
 msgid "%d synchronized"
 msgstr ""
 
@@ -534,6 +538,14 @@ msgid "A known branch"
 msgstr ""
 
 msgid "A maximum of 10 SMS parts is allowed."
+msgstr ""
+
+msgid ""
+"A missing appointment could not be verified. Synchronization was stopped."
+msgstr ""
+
+#, python-format
+msgid "A missing appointment could not be verified: %s"
 msgstr ""
 
 msgid "A notebook with this name already exists in this group."
@@ -1121,6 +1133,14 @@ msgstr ""
 msgid "Calendar (*.ics)"
 msgstr ""
 
+#, python-format
+msgid "Calendar entry %(number)d could not be read completely: %(error)s"
+msgstr ""
+
+#, python-format
+msgid "Calendar entry %d was empty. Synchronization was stopped."
+msgstr ""
+
 msgid "Calendar file (.ics/.vcs/.lcs) …"
 msgstr ""
 
@@ -1128,8 +1148,18 @@ msgid "Calendar layout"
 msgstr ""
 
 msgid ""
+"Calendar synchronization was stopped because EDS returned the same "
+"appointment identifier more than once."
+msgstr ""
+
+msgid ""
 "Calendar synchronization was stopped because an EDS entry was not read "
 "completely."
+msgstr ""
+
+msgid ""
+"Calendar synchronization was stopped because the full calendar result "
+"omitted an appointment that still exists."
 msgstr ""
 
 msgid "Calendar week %(number)s"
@@ -1614,6 +1644,9 @@ msgid "Creating the letter"
 msgstr ""
 
 msgid "Creating the log"
+msgstr ""
+
+msgid "Creating the pairing QR code"
 msgstr ""
 
 msgid "Creating the pairing file"
@@ -3471,6 +3504,11 @@ msgid_plural ""
 msgstr[0] ""
 msgstr[1] ""
 
+msgid "One recovery snapshot could not be updated."
+msgid_plural "%(count)s recovery snapshots could not be updated."
+msgstr[0] ""
+msgstr[1] ""
+
 msgid "One shared note was updated."
 msgid_plural "%(count)s shared notes were updated."
 msgstr[0] ""
@@ -3480,6 +3518,9 @@ msgid "One table with chart"
 msgstr ""
 
 msgid "One year"
+msgstr ""
+
+msgid "One-time pairing QR code"
 msgstr ""
 
 msgid "Online"
@@ -3984,6 +4025,9 @@ msgid ""
 "S/min"
 msgstr ""
 
+msgid "QR codes require the python3-qrcode package."
+msgstr ""
+
 msgid "Queue: %(open)s of %(count)s transmission awaits delivery."
 msgid_plural "Queue: %(open)s of %(count)s transmissions await delivery."
 msgstr[0] ""
@@ -4400,6 +4444,11 @@ msgstr ""
 msgid "Saxony-Anhalt"
 msgstr ""
 
+msgid ""
+"Scan this one-time key with the system camera on the phone. It expires after "
+"15 minutes."
+msgstr ""
+
 msgid "Scanning this computer"
 msgstr ""
 
@@ -4599,6 +4648,9 @@ msgid "Show log"
 msgstr ""
 
 msgid "Show more"
+msgstr ""
+
+msgid "Show pairing QR code"
 msgstr ""
 
 msgid "Show preview"
@@ -5161,6 +5213,16 @@ msgid ""
 "The button in the bottom bar opens the selection for the section you have "
 "open. From there the ticked entries can be printed, exported or moved to the "
 "wastebasket."
+msgstr ""
+
+msgid "The calendar backend could not verify a missing appointment."
+msgstr ""
+
+msgid "The calendar backend reported an incomplete result."
+msgstr ""
+
+#, python-format
+msgid "The calendar could not be read: %s"
 msgstr ""
 
 msgid ""
@@ -6731,6 +6793,11 @@ msgstr[1] ""
 
 msgid "one contact card"
 msgid_plural "%(count)s contact cards"
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "one recovery snapshot was encrypted as well"
+msgid_plural "%(count)s recovery snapshots were encrypted as well"
 msgstr[0] ""
 msgstr[1] ""
 

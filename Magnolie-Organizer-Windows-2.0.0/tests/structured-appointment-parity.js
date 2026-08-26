@@ -6,7 +6,7 @@ const path = require("node:path");
 const { JSDOM } = require("jsdom");
 
 const windowsRoot = path.resolve(__dirname, "..");
-const linuxRoot = path.resolve(windowsRoot, "..", "magnolie-organizer-stamm");
+const linuxRoot = path.resolve(windowsRoot, "..", "magnolie-organizer-2.0.0");
 
 function lade(web) {
   const dom = new JSDOM(fs.readFileSync(path.join(web, "index.html"), "utf8"), {
@@ -23,9 +23,7 @@ function lade(web) {
 
 const linuxWeb = path.join(linuxRoot, "web");
 const apps = [["Windows", lade(path.join(windowsRoot, "app", "web"))]];
-if (fs.existsSync(path.join(linuxWeb, "index.html"))) {
-  apps.unshift(["Linux", lade(linuxWeb)]);
-}
+if (fs.existsSync(path.join(linuxWeb, "index.html"))) apps.unshift(["Linux", lade(linuxWeb)]);
 
 const ics = ["BEGIN:VEVENT", "X-PROVIDER-SAFE:keep", "LOCATION:Raum 7",
   "ORGANIZER;CN=Alex Example:mailto:alex@example.test",
@@ -67,6 +65,18 @@ for (const [name, app] of apps) {
     `${name}: Provider-Metadaten nicht sicher begrenzt`);
   assert.deepStrictEqual(T.normalisiere({ termine: [termin] }).termine[0], termin,
     `${name}: Normalisierung ist nicht idempotent`);
+  const syncMeta = T.normalisiere({ termine: [{ id: "sync", datum: "2026-08-20",
+    zeit: "08:00:59", endZeit: "09:15:01", icsSequence: 7,
+    icsAenderungszeitFehlt: true,
+    syncKonflikte: Array.from({ length: 20 }, (_, i) => ({ id: `k${i}` })) }] }).termine[0];
+  assert.deepStrictEqual([syncMeta.zeit, syncMeta.endZeit, syncMeta.icsSequence,
+    syncMeta.icsAenderungszeitFehlt, syncMeta.syncKonflikte.length,
+    syncMeta.syncKonflikte[0].id], ["08:00", "09:15", 7, true, 16, "k4"],
+  `${name}: Sync-Metadaten oder Sekundenzeiten gehen verloren`);
+  const taskTimes = T.normalisiere({ aufgaben: [{ id: "task-times",
+    startZeit: "07:30:45", faelligZeit: "17:05:01" }] }).aufgaben[0];
+  assert.deepStrictEqual([taskTimes.startZeit, taskTimes.faelligZeit], ["07:30", "17:05"],
+    `${name}: Aufgabenzeiten mit Sekunden gehen verloren`);
 
   const bearbeitet = JSON.parse(JSON.stringify(termin));
   bearbeitet.ort = "Raum 9";
@@ -83,6 +93,18 @@ for (const [name, app] of apps) {
   `${name}: Bearbeitung verliert unbekannte ICS-Daten`);
   assert.strictEqual(bearbeitet.icsRoundtrip.filter(line => line === "BEGIN:VALARM").length, 4,
     `${name}: Alarmblöcke dupliziert oder verloren`);
+  const serienZeilen = ["RRULE:FREQ=WEEKLY;BYDAY=MO,WE", "RDATE:20260901T100000",
+    "EXDATE:20260908T100000", "EXRULE:FREQ=MONTHLY",
+    "RECURRENCE-ID:20260915T100000"];
+  const komplexeSerie = Object.assign({}, termin, { icsKomplex: true,
+    wiederholung: { art: "none", bis: "" }, icsRoundtrip: serienZeilen });
+  assert.deepStrictEqual(T.spiegeleTerminInIcs(komplexeSerie).filter(line =>
+    serienZeilen.includes(line)), serienZeilen,
+  `${name}: Speichern zerstört die Struktur einer komplexen importierten Serie`);
+  const einfacheSerie = Object.assign({}, komplexeSerie, { icsKomplex: false });
+  assert.strictEqual(T.spiegeleTerminInIcs(einfacheSerie).filter(line =>
+    serienZeilen.includes(line)).length, 0,
+  `${name}: intern erzeugte Serien behalten veraltete rohe Serienfelder`);
 
   assert.deepStrictEqual([
     T.anbieterAusUri("https://drive.google.com/file/d/1"),
@@ -131,6 +153,21 @@ for (const [name, app] of apps) {
     !Array.from(anhangZeile.querySelectorAll("button")).some(button => button.textContent === "Open"),
   `${name}: lokale URI kann geöffnet werden`);
   window.document.querySelector("#termin-schleier").remove();
+
+  const verschoben = T.normalisiere({ termine: [{ id: "move", uid: "move@example.test",
+    datum: "2026-08-22", titel: "Verschieben", sync: true, syncKalenderUid: "remote",
+    syncQuellen: { remote: { id: "remote-object", etag: "old" } },
+    kalenderQuelle: { id: "remote", name: "Remote" } }] }).termine[0];
+  T.daten().termine.push(verschoben);
+  T.oeffneTerminBlatt(verschoben, verschoben.datum);
+  window.document.querySelector("#tb-kalenderquelle").value = "";
+  window.document.querySelector("#tb-fertig").click();
+  assert.strictEqual(verschoben.syncKalenderUid, "", `${name}: Kalenderwechsel bleibt gebunden`);
+  assert.strictEqual(verschoben.sync, false, `${name}: Kalenderwechsel bleibt synchronisiert`);
+  assert.ok(T.daten().geloescht.termine.some(eintrag => eintrag.uid === verschoben.uid &&
+    eintrag.syncKalenderUid === "remote"), `${name}: alter Kalender erhält keine Löschung`);
+  assert.ok(!("remote" in verschoben.syncQuellen),
+    `${name}: gelöschte Remote-Zuordnung bleibt am Live-Termin`);
   normalisierte.push(JSON.parse(JSON.stringify(termin)));
 }
 
@@ -142,4 +179,4 @@ if (normalisierte.length === 2) {
 for (const [, app] of apps) app.dom.window.close();
 console.log(normalisierte.length === 2
   ? "STRUCTURED APPOINTMENT PARITY PASSED"
-  : "WINDOWS STRUCTURED APPOINTMENT MODEL PASSED (Linux source absent)");
+  : "WINDOWS STRUCTURED APPOINTMENT MODEL PASSED (standalone source archive)");

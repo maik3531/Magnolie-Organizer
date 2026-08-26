@@ -21,14 +21,16 @@ for befehl in dpkg-parsechangelog flatpak python3 sha256sum; do
     }
 done
 trap 'rm -f "$BAU_MANIFEST"' EXIT HUP INT TERM
-[ "${#CONTRIBUTOR_HASH}" -eq 64 ] || {
-    printf '%s\n' 'MAGNOLIE_CONTRIBUTOR_HASH fehlt oder ist ungueltig.' >&2
-    exit 2
-}
-case "$CONTRIBUTOR_HASH" in
-    *[!0-9a-fA-F]*) printf '%s\n' 'MAGNOLIE_CONTRIBUTOR_HASH fehlt oder ist ungueltig.' >&2; exit 2 ;;
-esac
-CONTRIBUTOR_HASH=$(printf '%s' "$CONTRIBUTOR_HASH" | tr A-F a-f)
+if [ -n "$CONTRIBUTOR_HASH" ]; then
+    [ "${#CONTRIBUTOR_HASH}" -eq 64 ] || {
+        printf '%s\n' 'MAGNOLIE_CONTRIBUTOR_HASH ist ungueltig.' >&2
+        exit 2
+    }
+    case "$CONTRIBUTOR_HASH" in
+        *[!0-9a-fA-F]*) printf '%s\n' 'MAGNOLIE_CONTRIBUTOR_HASH ist ungueltig.' >&2; exit 2 ;;
+    esac
+    CONTRIBUTOR_HASH=$(printf '%s' "$CONTRIBUTOR_HASH" | tr A-F a-f)
+fi
 flatpak info --user org.gnome.Sdk//49 >/dev/null 2>&1 || {
     printf '%s\n' 'Das GNOME-SDK 49 fehlt in der Benutzerinstallation.' >&2
     printf '%s\n' 'Installation: flatpak install --user flathub org.gnome.Sdk//49' >&2
@@ -50,10 +52,10 @@ import sys
 source, target, contributor_hash = sys.argv[1:]
 manifest = json.loads(pathlib.Path(source).read_text(encoding="utf-8"))
 module = manifest["modules"][-1]
-placeholder = "0" * 64
-module["build-commands"] = [
-    command.replace(placeholder, contributor_hash) for command in module["build-commands"]
-]
+if contributor_hash:
+    module["build-commands"].append(
+        "printf '{\"contributorHash\":\"%s\"}\\n' > "
+        "/app/share/magnolie-organizer/build-config.json" % contributor_hash)
 pathlib.Path(target).write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
 PY
 flatpak run --user --filesystem="$WURZEL" org.flatpak.Builder \

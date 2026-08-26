@@ -19,8 +19,8 @@ internal static class WebViewStartupSourceTests
             "Main, Handbuch und Druckansicht verwenden nicht dieselbe WebView2-Umgebung.");
         TestAssert.That(handbook.Contains("eventArgs.IsSuccess && IsInternal(source)", StringComparison.Ordinal) &&
                         handbook.Contains("IsTransientStartupFailure", StringComparison.Ordinal) &&
-                        handbook.Contains("parsed.Scheme is \"http\" or \"https\" or \"mailto\" or \"tel\"", StringComparison.Ordinal) &&
-                        main.Contains("parsed.Scheme is \"http\" or \"https\" or \"mailto\" or \"tel\"", StringComparison.Ordinal),
+                         handbook.Contains("ShellLauncher.OpenExternalUri(eventArgs.Uri)", StringComparison.Ordinal) &&
+                         main.Contains("ShellLauncher.OpenExternalUri(eventArgs.Uri)", StringComparison.Ordinal),
             "Handbuch-Readiness, Startwiederholung oder externe Navigationssperre fehlt.");
         TestAssert.That(uiSelfTest.IndexOf("timer.Stop();", StringComparison.Ordinal) <
                         uiSelfTest.IndexOf("OpenHandbookAsync", StringComparison.Ordinal),

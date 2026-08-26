@@ -1592,11 +1592,15 @@ function knopfMit(text, wurzel) {
     sicherungen: true, sicherungsordner: ""
   }, "englische Kennwortseite verändert sensible Bridge-Daten");
   enSW.App.kennwortStand({ ok: true, an: true, sicherungen: 1,
-    sicherungenFehler: 2 });
+    sicherungenFehler: 2, journal: 1, journalFehler: 2 });
   assert.ok(enSD.querySelector("#zettel").textContent.includes(
     "one backup was encrypted as well") && enSD.querySelector("#zettel").textContent
-      .includes("2 backups could not be updated"),
-  "englischer Sicherungsbericht verwendet keine Pluralformen");
+      .includes("2 backups could not be updated") &&
+    enSD.querySelector("#zettel").textContent.includes(
+      "one recovery snapshot was encrypted as well") &&
+    enSD.querySelector("#zettel").textContent.includes(
+      "2 recovery snapshots could not be updated"),
+  "englischer Sicherungs- und Journalbericht verwendet keine Pluralformen");
   enSD.querySelector("#kennwort-weg").click();
   assert.ok(enSD.querySelector("#dialog-text").textContent.includes(
     "stored unencrypted in your home directory again") &&
@@ -1985,7 +1989,7 @@ function knopfMit(text, wurzel) {
   const enUeber = enSD.querySelector("#einstellungen-inhalt");
   assert.strictEqual(enUeber.querySelector("h3").textContent,
     "About the Magnolie Organizer", "englische Über-Seite fehlt");
-  assert.ok(enUeber.querySelector(".ueber-fassung").textContent.includes("Version 2.0.4") &&
+  assert.ok(enUeber.querySelector(".ueber-fassung").textContent.includes("Version 2.0.5") &&
     enUeber.textContent.includes("Author") && enUeber.textContent.includes("License") &&
     enUeber.textContent.includes("Updates") &&
     enUeber.textContent.includes("No update check has been performed yet") &&
@@ -2005,12 +2009,12 @@ function knopfMit(text, wurzel) {
     enSyncNachrichten.some((nachricht) => nachricht.cmd === "update_pruefen"),
   "englische Über-Seite verändert Handbuch- oder Update-Befehl");
   const enUpdateUrl = "https://gitlab.com/maik3531/mint-forgs/-/raw/main/" +
-    "Magnolie-Organitzer/magnolie-organizer_2.0.5_all.deb";
-  enSW.App.updateErgebnis({ ok: true, aktuell: false, version: "2.0.5",
+    "Magnolie-Organitzer/magnolie-organizer_2.0.6_all.deb";
+  enSW.App.updateErgebnis({ ok: true, aktuell: false, version: "2.0.6",
     url: enUpdateUrl, sha256: "ab".repeat(32), fehler: "" });
   assert.ok(enSD.querySelector("#update-stand").textContent.includes(
-    "New version 2.0.5 is available") &&
-    enSD.querySelector("#update-herunterladen").textContent.includes("2.0.5") &&
+    "New version 2.0.6 is available") &&
+    enSD.querySelector("#update-herunterladen").textContent.includes("2.0.6") &&
     enSD.querySelector(".update-pruefsumme").textContent.includes("ab".repeat(32)) &&
     enSD.querySelector(".update-pruefsumme").textContent.includes("sha256sum"),
   "englischer neuer Update-Stand fehlt");
@@ -3508,6 +3512,33 @@ function knopfMit(text, wurzel) {
     '<svg><a href="https://boese.test">weg</a></svg></fremd>');
   assert.strictEqual(verschachtelt, "<b>bleibt</b>",
     "unbekannte Hüllen oder aktive Namensräume umgehen die Reinigung: " + verschachtelt);
+  const zuGrossesHtml = "<span>x</span>".repeat(10001);
+  const grenzStand = {};
+  T.saeubereHtml(zuGrossesHtml, grenzStand);
+  assert.strictEqual(grenzStand.gekuerzt, true,
+    "die HTML-Grenze wird dem Aufrufer nicht gemeldet");
+  assert.strictEqual(T.normalisiere({ notizen: [{ id: "gross", titel: "Groß",
+    text: "x", html: zuGrossesHtml }] }).notizen[0].html, zuGrossesHtml,
+  "die Normalisierung ersetzt eine übergroße Notiz durch die gekürzte Ansicht");
+  const htmlVorGrenze = neue.html;
+  schreibflaeche.innerHTML = zuGrossesHtml;
+  schreibflaeche.dispatchEvent(new w.Event("input", { bubbles: true }));
+  assert.strictEqual(neue.html, htmlVorGrenze,
+    "eine gekürzte übergroße Notiz wurde in den Daten gespeichert");
+  schreibflaeche.innerHTML = htmlVorGrenze;
+  neue.html = zuGrossesHtml;
+  T.wechsel("kalender");
+  T.wechsel("notizen");
+  assert.strictEqual($("#notiz-text").getAttribute("contenteditable"), "false",
+    "eine übergroße gespeicherte Notiz bleibt ohne Schutz bearbeitbar");
+  assert.ok($(".notiz-editor .einst-warnung") &&
+    $(".notiz-editor .einst-warnung").textContent.trim(),
+  "bei einer übergroßen Notiz fehlt die sichtbare Warnung");
+  assert.strictEqual(neue.html, zuGrossesHtml,
+    "das Öffnen einer übergroßen Notiz verändert das gespeicherte Original");
+  neue.html = htmlVorGrenze;
+  T.wechsel("kalender");
+  T.wechsel("notizen");
 
   setze($("#notiz-suche"), "Einkauf");
   assert.ok($("#inhalt-links").textContent.includes("Einkauf"),
@@ -4918,6 +4949,18 @@ function knopfMit(text, wurzel) {
   assert.ok(edsNormalisiert.icsReadOnly && edsNormalisiert.icsQuelleName ===
     "Evolution Data Server" && edsNormalisiert.icsQuelleId === "eds:kalender-a",
   "Nur-Lese- und Quellenfelder überstehen die dauerhafte Normalisierung nicht");
+  const syncNormalisiert = T.normalisiere({ termine: [{ id: "sync-meta", datum: "2026-09-12",
+    zeit: "08:00:00", endZeit: "09:15:59", icsSequence: 7,
+    icsAenderungszeitFehlt: true,
+    syncKonflikte: Array.from({ length: 20 }, (_, i) => ({ id: "k" + i })) }] }).termine[0];
+  assert.ok(syncNormalisiert.zeit === "08:00" && syncNormalisiert.endZeit === "09:15" &&
+    syncNormalisiert.icsSequence === 7 && syncNormalisiert.icsAenderungszeitFehlt &&
+    syncNormalisiert.syncKonflikte.length === 16 && syncNormalisiert.syncKonflikte[0].id === "k4",
+  "Sync-Metadaten oder Sekundenzeiten überstehen die begrenzte Normalisierung nicht");
+  const aufgabenZeiten = T.normalisiere({ aufgaben: [{ id: "sekunden-aufgabe",
+    startZeit: "07:30:45", faelligZeit: "17:05:01" }] }).aufgaben[0];
+  assert.ok(aufgabenZeiten.startZeit === "07:30" && aufgabenZeiten.faelligZeit === "17:05",
+  "Aufgabenzeiten mit Sekunden werden nicht auf Minuten normalisiert");
   const edsBlatt = T.oeffneTerminBlatt(edsKomplex, edsKomplex.datum);
   assert.ok(/read only|nur lesen/i.test(edsBlatt.textContent) &&
     edsBlatt.querySelector("#tb-titel").disabled && !edsBlatt.querySelector("#tb-loeschen"),
@@ -6013,7 +6056,7 @@ function knopfMit(text, wurzel) {
   assert.ok(ueberText.includes("Version 3"), "die Lizenzfassung fehlt");
   assert.ok($(".ueber-fassung").textContent.includes("Fassung"),
     "die Programmfassung fehlt");
-  assert.ok($(".ueber-fassung").textContent.includes("2.0.4"),
+  assert.ok($(".ueber-fassung").textContent.includes("2.0.5"),
     "die neue Programmfassung fehlt");
   assert.ok($(".ueber-blume"), "die Magnolienblüte fehlt");
   const beschreibung = $(".ueber-beschreibung");
@@ -6033,18 +6076,18 @@ function knopfMit(text, wurzel) {
     "neben der gemeinsamen Aktualisierungsprüfung ist ein zweiter Prüfknopf sichtbar");
   assert.ok($("#handbuch-stand").textContent.includes("nicht installiert"),
     "der Handbuchstatus nennt die fehlende Installation nicht");
-  assert.ok(!T.istNeuereFassung("2.0.1") && !T.istNeuereFassung("2.0.4") &&
-    T.istNeuereFassung("2.0.5"),
+  assert.ok(!T.istNeuereFassung("2.0.1") && !T.istNeuereFassung("2.0.5") &&
+    T.istNeuereFassung("2.0.6"),
     "Fassungsvergleich der Oberfläche stimmt nicht");
   assert.ok(T.vergleicheText("Termin 2", "Termin 10") < 0,
     "der regionale Collator sortiert Zahlen weiterhin rein lexikografisch");
-  w.App.updateErgebnis({ ok: true, aktuell: false, version: "2.0.5",
+  w.App.updateErgebnis({ ok: true, aktuell: false, version: "2.0.6",
     url: "https://gitlab.com/maik3531/mint-forgs/-/raw/main/" +
-      "Magnolie-Organitzer/magnolie-organizer_2.0.5_all.deb" });
-  assert.ok($("#update-stand").textContent.includes("2.0.5"),
+      "Magnolie-Organitzer/magnolie-organizer_2.0.6_all.deb" });
+  assert.ok($("#update-stand").textContent.includes("2.0.6"),
     "gefundene Fassung erscheint nicht unter Über");
   assert.ok($("#update-herunterladen"), "Downloadknopf für neue Fassung fehlt");
-  assert.strictEqual(T.daten().einstellungen.update.letzteVersion, "2.0.5",
+  assert.strictEqual(T.daten().einstellungen.update.letzteVersion, "2.0.6",
     "Prüfstand wird nicht gespeichert");
   $("#update-automatisch").checked = false;
   $("#update-automatisch").dispatchEvent(new w.Event("change", { bubbles: true }));
@@ -6403,15 +6446,25 @@ function knopfMit(text, wurzel) {
   "Magnolienbaum nennt KDE weiterhin als Verbindungsmöglichkeit");
   assert.ok(bd.querySelector("#baum-internet"), "der Internetweg fehlt");
   assert.ok(bd.querySelector("#baum-paarungsdatei-erzeugen") &&
+    bd.querySelector("#baum-paarungsqr-erzeugen") &&
     bd.querySelector("#baum-paarungsdatei-importieren"),
-  "Erzeugen und Importieren einer einmaligen Paarungsdatei fehlen");
+  "Datei- und QR-Wege der einmaligen Paarung fehlen");
   bd.querySelector("#baum-paarungsdatei-adresse").value = "2001:db8::10";
   bd.querySelector("#baum-paarungsdatei-erzeugen").click();
+  bd.querySelector("#baum-paarungsqr-erzeugen").click();
   bd.querySelector("#baum-paarungsdatei-importieren").click();
   assert.ok(baumNachrichten.some((n) => n.cmd === "baum_paarungsdatei_erzeugen" &&
     n.adresse === "2001:db8::10") && baumNachrichten.some(
+      (n) => n.cmd === "baum_paarungsqr_erzeugen" && n.adresse === "2001:db8::10") &&
+    baumNachrichten.some(
       (n) => n.cmd === "baum_paarungsdatei_importieren"),
-  "Paarungsdateien bleiben vollständig im nativen Programmkern");
+  "Paarungsdateien und QR bleiben vollständig im nativen Programmkern");
+  bw.App.baumPaarungsdatei({ ok: true, art: "qr",
+    bild: "data:image/svg+xml;base64,PHN2Zy8+", gueltigBis: 123 });
+  assert.equal(bd.querySelector(".baum-paarungsqr img")?.getAttribute("src"),
+    "data:image/svg+xml;base64,PHN2Zy8+");
+  assert.ok(!bd.querySelector(".baum-paarungsqr").textContent.includes("magnolie-pair:"),
+    "der geheime Paarungslink wird nicht zusätzlich als Text offengelegt");
   assert.ok(Array.from(bd.querySelectorAll(".baum-angebot"))
     .some((x) => x.textContent.includes("Teamtreffen")),
   "ein angebotener Termin wartet sichtbar auf Bestätigung");
@@ -6952,7 +7005,7 @@ function knopfMit(text, wurzel) {
     "ohne Handbuch darf der Hinweis nicht als gezeigt gespeichert werden");
   const handbuchUrl = "https://gitlab.com/maik3531/mint-forgs/-/raw/main/" +
     "Magnolie-Organitzer/magnolie-handbuch_1.9.8_all.deb";
-  hw.App.updateErgebnis({ ok: true, aktuell: true, version: "2.0.4", url: "",
+  hw.App.updateErgebnis({ ok: true, aktuell: true, version: "2.0.5", url: "",
     sha256: "ab".repeat(32), handbuch: { version: "1.9.8", url: handbuchUrl,
       sha256: "cd".repeat(32) }, fehler: "" });
   assert.ok(!hd.querySelector("#dialog-schleier").classList.contains("verborgen") &&

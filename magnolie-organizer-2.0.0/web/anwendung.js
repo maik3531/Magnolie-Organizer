@@ -15,7 +15,7 @@
 (function () {
 
   /* Die Fassung erscheint auf der Seite „Über". */
-  const FASSUNG = "2.0.4";
+  const FASSUNG = "2.0.5";
   const CONTRIBUTOR_BRANDING = "No valid coffee allowance";
 
   /* ---------------------------------------------------------------------- */
@@ -574,10 +574,13 @@
   function personalSyncSetze(record, id, nurFern, attachmentData = {}) {
     const v = record.value;
     if (record.kind === "note") {
+      const htmlStand = {};
+      const sicheresHtml = saeubereHtml(v.html, htmlStand);
+      if (htmlStand.gekuerzt) throw new Error(_("The message is too large."));
       const alt = DATEN.notizen.find((x) => x.id === id);
       const neu = Object.assign({}, alt || { anhaenge: [], baumFreigabe: null, baumGeaendert: 0,
         baumVersion: 0, baumQuelle: "", geaendert: isoHeute() }, { id: id, titel: v.title,
-        text: v.text, html: v.html, notizbuchId: v.notebook_id, symbol: v.symbol,
+        text: v.text, html: sicheresHtml, notizbuchId: v.notebook_id, symbol: v.symbol,
         angelegt: v.created_ms, personalGeaendert: v.modified_ms });
       if (Array.isArray(v.attachments)) {
         const fern = v.attachments.map((x) => ({ id: x.attachment_id, name: x.name, art: x.kind,
@@ -1569,6 +1572,9 @@
       if (gesehen.has(schluessel)) {
         const ziel = aus[gesehen.get(schluessel)];
         for (const typ of typen) if (!ziel.typen.includes(typ)) ziel.typen.push(typ);
+        if (objekt && Array.isArray(roh.vcardParameter)) ziel.vcardParameter =
+          [...new Set([...(ziel.vcardParameter || []), ...roh.vcardParameter.map(S).filter(Boolean)])]
+            .slice(0, 32);
         if (label && !ziel.label) ziel.label = label;
         if (rolle && !ziel.rolle) ziel.rolle = rolle;
         continue;
@@ -1776,6 +1782,9 @@
           for (const typ of typen) if (!ziel.typen.includes(typ)) ziel.typen.push(typ);
         }
         if (rolle && !ziel.rolle) ziel.rolle = rolle;
+        if (roh && typeof roh === "object" && Array.isArray(roh.vcardParameter))
+          ziel.vcardParameter = [...new Set([...(ziel.vcardParameter || []),
+            ...roh.vcardParameter.map(S).filter(Boolean)])].slice(0, 32);
         vereinigt = true;
         break;
       }
@@ -2460,6 +2469,8 @@
         if (ziel.label && adr.label &&
           kanonischerText(ziel.label) !== kanonischerText(adr.label)) continue;
         for (const typ of adr.typen) if (!ziel.typen.includes(typ)) ziel.typen.push(typ);
+        if (adr.vcardParameter) ziel.vcardParameter =
+          [...new Set([...(ziel.vcardParameter || []), ...adr.vcardParameter])].slice(0, 32);
         if (adr.label && !ziel.label) ziel.label = adr.label;
         vereinigt = true;
         break;
@@ -3427,16 +3438,19 @@
       const bearbeitbar = roh.bearbeitbar !== false && Number.isInteger(zahl) && zahl >= 0;
       const offset = bearbeitbar ? Math.min(525600, zahl) : 0;
       const triggerRaw = terminText(roh.triggerRaw, 500).trim();
+      const triggerTzid = terminText(roh.triggerTzid, 200).trim();
       if (!bearbeitbar && !triggerRaw) continue;
       const related = String(roh.related || "START").toUpperCase() === "END" ? "END" : "START";
+      const aktion = terminText(roh.aktion || "display", 40).trim().toLowerCase();
       const quelle = roh.quelle === "ics" ? "ics" : "magnolie";
-      const key = bearbeitbar ? [offset, related, roh.aktion || "display"].join("|")
+      const key = bearbeitbar ? [offset, related, aktion].join("|")
         : "raw|" + triggerRaw + "|" + related;
       if (schluessel.has(key)) continue;
       schluessel.add(key);
       aus.push({ id: terminKennung(roh.id, "alarm-" + index + "-" + terminHash(key)),
-        offsetMinuten: offset, aktion: "display", aktiviert: roh.aktiviert !== false,
+        offsetMinuten: offset, aktion: aktion, aktiviert: roh.aktiviert !== false,
         quelle: quelle, ...(triggerRaw ? { triggerRaw: triggerRaw } : {}),
+        ...(triggerTzid ? { triggerTzid: triggerTzid } : {}),
         related: related, bearbeitbar: bearbeitbar });
     }
     return aus;
@@ -3523,14 +3537,16 @@
       }
       if (alarm) {
         alarm.zeilen.push(zeile);
-        if (eig.name === "TRIGGER") { alarm.trigger = eig.wert; alarm.related =
+        if (eig.name === "TRIGGER") { alarm.trigger = eig.wert;
+          alarm.triggerTzid = eig.params.TZID || ""; alarm.related =
           String(eig.params.RELATED || "START").toUpperCase() === "END" ? "END" : "START"; }
         if (eig.name === "ACTION") alarm.aktion = eig.wert.toLowerCase();
         if (eig.name === "END" && eig.wert.toUpperCase() === "VALARM") {
           const minuten = icsRelativeMinuten(alarm.trigger);
           projekt.alarme.push({ id: "ics-alarm-" + alarmIndex++ + "-" + terminHash(alarm.zeilen.join("\n")),
-            offsetMinuten: minuten === null ? 0 : minuten, aktion: "display", aktiviert: true,
+            offsetMinuten: minuten === null ? 0 : minuten, aktion: alarm.aktion, aktiviert: true,
             quelle: "ics", triggerRaw: alarm.trigger, related: alarm.related,
+            triggerTzid: terminText(alarm.triggerTzid, 200),
             bearbeitbar: minuten !== null && alarm.aktion === "display" });
           alarm = null;
         }
@@ -3579,8 +3595,11 @@
         }
         continue;
       }
-      if (eig && ["LOCATION", "ORGANIZER", "ATTENDEE", "ATTACH", "RRULE", "RDATE"]
-        .includes(eig.name)) continue;
+      const strukturFeld = eig && ["LOCATION", "ORGANIZER", "ATTENDEE", "ATTACH"]
+        .includes(eig.name);
+      const serienFeld = eig && ["RRULE", "RDATE", "EXDATE", "EXRULE", "RECURRENCE-ID"]
+        .includes(eig.name);
+      if (strukturFeld || (!termin.icsKomplex && serienFeld)) continue;
       aus.push(zeile);
     }
     if (inAlarm) aus.push(...alarmZeilen);
@@ -3614,7 +3633,11 @@
     const d = leereDaten();
     if (!roh || typeof roh !== "object") return d;
     const S = (x) => (x === undefined || x === null) ? "" : String(x);
-    const Z = (x) => (typeof x === "string" && /^(?:[01]\d|2[0-3]):[0-5]\d$/.test(x)) ? x : "";
+    const Z = (x) => {
+      if (typeof x !== "string") return "";
+      const kurz = x.slice(0, 5);
+      return /^(?:[01]\d|2[0-3]):[0-5]\d$/.test(kurz) ? kurz : "";
+    };
     const N = (x) => { const n = Number(x); return Number.isFinite(n) && n > 0 ? n : 0; };
     const Q = (x) => x && typeof x === "object" ? JSON.parse(JSON.stringify(x)) : {};
 
@@ -3665,6 +3688,10 @@
       wiederholung: leseWiederholung(t.wiederholung),
       icsKomplex: !!t.icsKomplex, icsSerienUid: S(t.icsSerienUid),
       icsRoundtrip: icsRoundtrip,
+      icsSequence: Math.floor(N(t.icsSequence)),
+      icsAenderungszeitFehlt: !!t.icsAenderungszeitFehlt,
+      syncKonflikte: Array.isArray(t.syncKonflikte)
+        ? kopie(t.syncKonflikte.slice(-16)) : [],
       icsReadOnly: !!t.icsReadOnly, icsReadOnlyGrund: S(t.icsReadOnlyGrund),
       icsQuelleName: S(t.icsQuelleName), icsQuelleId: S(t.icsQuelleId),
       aufgaben: Array.isArray(t.aufgaben) ? t.aufgaben.map(S).filter(Boolean) : [],
@@ -3791,6 +3818,8 @@
     const buchIds = new Set(d.notizbuecher.map((x) => x.id));
     for (const n of Array.isArray(roh.notizen) ? roh.notizen : []) {
       if (!n) continue;
+      const htmlRoh = S(n.html), htmlStand = {};
+      const sicheresHtml = saeubereHtml(htmlRoh, htmlStand);
       const notizDatum = gueltigesISO(n.geaendert) ? n.geaendert : isoHeute();
       const notizAngelegt = N(n.angelegt) || new Date(notizDatum + "T00:00:00").getTime();
       const freigabe = n.baumFreigabe && typeof n.baumFreigabe === "object"
@@ -3801,7 +3830,7 @@
             ? n.baumFreigabe.anhangPartner.map(S).filter(Boolean) : [] }
         : null;
       d.notizen.push({ id: S(n.id) || uid(), titel: S(n.titel), text: S(n.text),
-        html: saeubereHtml(S(n.html)),
+        html: htmlStand.gekuerzt ? htmlRoh : sicheresHtml,
         notizbuchId: buchIds.has(S(n.notizbuchId))
           ? S(n.notizbuchId) : d.notizbuecher[0].id,
         anhaenge: saubereNotizAnhaenge(n.anhaenge),
@@ -4413,17 +4442,23 @@
 
   /* Lässt nur schlichte Auszeichnungen stehen; alles andere wird entfernt,
      der reine Text bleibt erhalten. */
-  function saeubereHtml(roh) {
+  function saeubereHtml(roh, stand) {
     if (!roh) return "";
     const vorlage = document.createElement("template");
     vorlage.innerHTML = String(roh);
     const behaelter = document.createElement("div");
     let anzahl = 0;
     const kopieren = (quelle, ziel, tiefe) => {
-      if (tiefe > 80 || anzahl > 10000) return;
+      if (tiefe > 80 || anzahl > 10000) {
+        if (stand) stand.gekuerzt = true;
+        return;
+      }
       for (const kind of Array.from(quelle.childNodes)) {
         anzahl += 1;
-        if (anzahl > 10000) return;
+        if (anzahl > 10000) {
+          if (stand) stand.gekuerzt = true;
+          return;
+        }
         if (kind.nodeType === 3) {
           ziel.append(document.createTextNode(kind.nodeValue || ""));
           continue;
@@ -9124,6 +9159,14 @@
       }
       halteMindestabstand(feldZeit, feldEndZeit, ueberMehrereTage);
       const ohneZeit = hakGanztaegig.checked;
+      const onlineKalender = letzterEdsStatus && (letzterEdsStatus.alleKalender ||
+        letzterEdsStatus.kalender) || [];
+      const onlineKalenderIds = new Set(onlineKalender.map((quelle) => String(quelle.uid || "")));
+      const bisherigeSyncQuelle = neu ? "" : String(termin.syncKalenderUid || "");
+      const gewaehlteKalenderId = String(kalenderWahl.value || "");
+      const neueSyncQuelle = gewaehlteKalenderId &&
+        (onlineKalenderIds.has(gewaehlteKalenderId) ||
+         gewaehlteKalenderId === bisherigeSyncQuelle) ? gewaehlteKalenderId : "";
       let wiederholung = { art: "none", bis: "" };
       if (wiederHak.checked) {
         if (wiederWahl.value === "monthly-weekday") {
@@ -9157,6 +9200,7 @@
         alarme: saubereAlarme(alarmWerte),
         kalenderQuelle: kalenderQuellen.find((quelle) => quelle.id === kalenderWahl.value) ||
           saubereKalenderQuelle({ id: kalenderWahl.value }),
+        syncKalenderUid: neueSyncQuelle,
         organisator: { uri: orgUri.value, name: orgName.value, email: orgEmail.value },
         teilnehmer: saubereTeilnehmer(teilnehmerWerte),
         kalenderAnhaenge: saubereKalenderAnhaenge(anhangWerte),
@@ -9171,7 +9215,16 @@
         neuerTermin.icsRoundtrip = spiegeleTerminInIcs(neuerTermin);
         DATEN.termine.push(neuerTermin);
       } else {
+        if (bisherigeSyncQuelle && bisherigeSyncQuelle !== neueSyncQuelle && termin.sync) {
+          // Der alte Kalender muss den Eintrag ausdrücklich löschen; bloßes
+          // Umhängen darf dort keine verwaiste Kopie zurücklassen.
+          merkeGeloescht("termine", termin);
+          if (termin.syncQuellen && typeof termin.syncQuellen === "object") {
+            delete termin.syncQuellen[bisherigeSyncQuelle];
+          }
+        }
         Object.assign(termin, werte);
+        if (bisherigeSyncQuelle !== neueSyncQuelle) termin.sync = false;
         termin.icsRoundtrip = spiegeleTerminInIcs(termin);
       }
       zustand.kalender.bearbeiteId = null;
@@ -12322,11 +12375,18 @@
     flaeche.setAttribute("aria-label", _("Note text"));
     flaeche.dataset.placeholder = _("Write here …");
     pruefeSchreibung(flaeche);
-    flaeche.innerHTML = saeubereHtml(notiz.html) || textZuHtml(notiz.text);
+    const htmlStand = {};
+    flaeche.innerHTML = saeubereHtml(notiz.html, htmlStand) || textZuHtml(notiz.text);
 
     const beiEingabe = () => {
+      const neuerHtmlStand = {};
+      const neuesHtml = saeubereHtml(flaeche.innerHTML, neuerHtmlStand);
+      if (neuerHtmlStand.gekuerzt) {
+        zettel(_("The message is too large."));
+        return;
+      }
       notiz.titel = titel.value;
-      notiz.html = saeubereHtml(flaeche.innerHTML);
+      notiz.html = neuesHtml;
       notiz.text = htmlZuText(flaeche);
       notiz.geaendert = isoHeute();
       notiz.personalGeaendert = Date.now();
@@ -12448,7 +12508,15 @@
        er wirkt dann plötzlich fett. */
     const rahmen = el("div", "schreibrahmen");
     rahmen.append(flaeche);
-    editor.append(titel, einfuegen, leiste, rahmen);
+    const htmlWarnung = htmlStand.gekuerzt ? el("p", "einst-warnung",
+      _("The message is too large.")) : null;
+    if (htmlWarnung) {
+      titel.readOnly = true;
+      flaeche.setAttribute("contenteditable", "false");
+      for (const taste of [...einfuegen.querySelectorAll("button"),
+        ...leiste.querySelectorAll("button")]) taste.disabled = true;
+    }
+    editor.append(titel, ...(htmlWarnung ? [htmlWarnung] : []), einfuegen, leiste, rahmen);
     if (notiz.anhaenge.length) {
       const anhaenge = el("div", "notiz-anhaenge");
       const teiler = el("button", "notiz-anhang-teiler", "");
@@ -15562,6 +15630,7 @@
   let baumNachbarn = [];
   let baumInternetOffen = false;
   let baumInternet = null;
+  let baumPaarungsQr = null;
   const baumGemeldeteAngebote = new Set();
   const baumKontaktLaeufe = new Map();
 
@@ -15613,6 +15682,12 @@
         continue;
       }
       if (art === "notiz_sync") {
+        const htmlStand = {};
+        const sicheresHtml = saeubereHtml(String(inhalt.html || ""), htmlStand);
+        if (htmlStand.gekuerzt) {
+          zettel(_("The message is too large."));
+          continue;
+        }
         const freigabeId = String(inhalt.freigabeId || "");
         const notiz = DATEN.notizen.find((n) => n.baumFreigabe &&
           n.baumFreigabe.id === freigabeId &&
@@ -15626,7 +15701,7 @@
         if (notiz && neuer) {
           notiz.titel = String(inhalt.titel || "");
           notiz.text = String(inhalt.text || "");
-          notiz.html = saeubereHtml(String(inhalt.html || ""));
+          notiz.html = sicheresHtml;
           if ((notiz.baumFreigabe.anhangPartner || []).includes(stueck.von)) {
             notiz.anhaenge = saubereNotizAnhaenge(inhalt.anhaenge);
           }
@@ -15766,13 +15841,19 @@
       DATEN.baumKontaktLoeschStaende = Array.from(new Set(
         (DATEN.baumKontaktLoeschStaende || []).concat(stand))).slice(-500);
     } else if (art === "notiz") {
+      const htmlStand = {};
+      const sicheresHtml = saeubereHtml(String(inhalt.html || ""), htmlStand);
+      if (htmlStand.gekuerzt) {
+        zettel(_("The message is too large."));
+        return false;
+      }
       const freigabeId = String(inhalt.freigabeId || "");
       if (!freigabeId) return false;
       let notiz = DATEN.notizen.find((n) => n.baumFreigabe &&
         n.baumFreigabe.id === freigabeId);
       if (!notiz) {
         notiz = { id: uid(), titel: String(inhalt.titel || ""),
-          text: String(inhalt.text || ""), html: saeubereHtml(String(inhalt.html || "")),
+          text: String(inhalt.text || ""), html: sicheresHtml,
           anhaenge: saubereNotizAnhaenge(inhalt.anhaenge),
           notizbuchId: DATEN.notizbuecher[0].id,
           geaendert: isoHeute(), baumFreigabe: { id: freigabeId,
@@ -15789,7 +15870,7 @@
           (notiz.baumFreigabe.anhangPartner || []).concat(stueck.von)));
         notiz.titel = String(inhalt.titel || "");
         notiz.text = String(inhalt.text || "");
-        notiz.html = saeubereHtml(String(inhalt.html || ""));
+        notiz.html = sicheresHtml;
         notiz.anhaenge = saubereNotizAnhaenge(inhalt.anhaenge);
         notiz.baumVersion = Number(inhalt.version) || notiz.baumVersion || 1;
         notiz.baumQuelle = String(inhalt.quelle || stueck.von || "");
@@ -15971,8 +16052,31 @@
       Bruecke.sende({ cmd: "baum_paarungsdatei_importieren" });
     });
     dateiImportieren.id = "baum-paarungsdatei-importieren";
-    dateiReihe.append(eigenePaarAdresse, dateiErzeugen, dateiImportieren);
+    const qrErzeugen = knopf(_("Show pairing QR code"), "", () => {
+      const adresse = eigenePaarAdresse.value.trim();
+      if (!adresse) {
+        zettel(_("Enter a reachable IPv4 or IPv6 address of this computer first."));
+        return;
+      }
+      Bruecke.sende({ cmd: "baum_paarungsqr_erzeugen", adresse: adresse,
+        port: baumStand.port || 8737 });
+    });
+    qrErzeugen.id = "baum-paarungsqr-erzeugen";
+    dateiReihe.append(eigenePaarAdresse, dateiErzeugen, qrErzeugen, dateiImportieren);
     ab.append(dateiReihe);
+    if (baumPaarungsQr) {
+      const qrKasten = el("div", "baum-paarungsqr");
+      const qrBild = el("img");
+      qrBild.src = baumPaarungsQr.bild;
+      qrBild.alt = _("One-time pairing QR code");
+      qrKasten.append(qrBild, el("p", "einst-hinweis",
+        _("Scan this one-time key with the system camera on the phone. It expires after 15 minutes.")),
+      knopf(_("Close"), "klein", () => {
+        baumPaarungsQr = null;
+        baueEinstellungen();
+      }));
+      ab.append(qrKasten);
+    }
 
     /* ---- Direkte Verbindung über das Internet ---- */
     const internetKnopf = knopf(
@@ -19014,8 +19118,14 @@
       if (!titel && !text) continue;
       const s = kanonischerText(titel) + "|" + kanonischerText(text);
       if (schluessel.has(s)) { z.doppelt++; continue; }
+      const htmlStand = {};
+      const sicheresHtml = saeubereHtml(String(n.html || ""), htmlStand);
+      if (htmlStand.gekuerzt) {
+        zettel(_("The message is too large."));
+        continue;
+      }
       DATEN.notizen.push({ id: uid(), titel: titel || ersteZeile(text),
-        text: text, html: saeubereHtml(String(n.html || "")) || textZuHtml(text),
+        text: text, html: sicheresHtml || textZuHtml(text),
         anhaenge: saubereNotizAnhaenge(n.anhaenge),
         notizbuchId: DATEN.notizbuecher.some((b) => b.id === zustand.notizen.notizbuchId)
           ? zustand.notizen.notizbuchId : DATEN.notizbuecher[0].id,
@@ -20268,20 +20378,31 @@
       if (nutzlast.an) {
         const sicherungen = Number(nutzlast.sicherungen) || 0;
         const sicherungsFehler = Number(nutzlast.sicherungenFehler) || 0;
+        const journal = Number(nutzlast.journal) || 0;
+        const journalFehler = Number(nutzlast.journalFehler) || 0;
         let text = _("Password protection is enabled. Your data is now encrypted") +
           (sicherungen ? " – " + uebersetztMehrzahl(
             "one backup was encrypted as well", "%(count)s backups were encrypted as well",
-            sicherungen) : "") + ".";
+            sicherungen) : "") + (journal ? " – " + uebersetztMehrzahl(
+            "one recovery snapshot was encrypted as well",
+            "%(count)s recovery snapshots were encrypted as well", journal) : "") + ".";
         if (sicherungsFehler) text += " " + uebersetztMehrzahl(
           "One backup could not be updated.",
           "%(count)s backups could not be updated.", sicherungsFehler);
+        if (journalFehler) text += " " + uebersetztMehrzahl(
+          "One recovery snapshot could not be updated.",
+          "%(count)s recovery snapshots could not be updated.", journalFehler);
         zettel(text);
       } else {
         let text = _("Password protection was removed.");
         const sicherungsFehler = Number(nutzlast.sicherungenFehler) || 0;
+        const journalFehler = Number(nutzlast.journalFehler) || 0;
         if (sicherungsFehler) text += " " + uebersetztMehrzahl(
           "One backup could not be updated.",
           "%(count)s backups could not be updated.", sicherungsFehler);
+        if (journalFehler) text += " " + uebersetztMehrzahl(
+          "One recovery snapshot could not be updated.",
+          "%(count)s recovery snapshots could not be updated.", journalFehler);
         zettel(text);
       }
     },
@@ -20479,6 +20600,10 @@
       if (nutzlast.art === "erzeugt") {
         zettel(uebersetzt("Pairing file saved to: %(path)s", {
           path: nutzlast.pfad || "" }));
+      } else if (nutzlast.art === "qr") {
+        baumPaarungsQr = { bild: nutzlast.bild || "",
+          gueltigBis: nutzlast.gueltigBis || 0 };
+        if (einstSeite === "baum") baueEinstellungen();
       } else {
         zettel(uebersetzt("Securely connected to %(branch)s.", {
           branch: nutzlast.name || _("the other branch") }));

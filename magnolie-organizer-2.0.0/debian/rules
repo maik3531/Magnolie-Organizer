@@ -43,13 +43,17 @@ endif
 # Paketbaum erzeugt und gehört nie zur Quelle.
 override_dh_install:
 	set -e; hash="$${MAGNOLIE_CONTRIBUTOR_HASH:-}"; \
-	test "$${#hash}" -eq 64 || { echo 'MAGNOLIE_CONTRIBUTOR_HASH fehlt oder ist ungueltig.' >&2; exit 2; }; \
-	case "$$hash" in *[!0-9a-fA-F]*) echo 'MAGNOLIE_CONTRIBUTOR_HASH fehlt oder ist ungueltig.' >&2; exit 2;; esac; \
-	hash=$$(printf '%s' "$$hash" | tr A-F a-f); \
+	if [ -n "$$hash" ]; then \
+	  test "$${#hash}" -eq 64 || { echo 'MAGNOLIE_CONTRIBUTOR_HASH ist ungueltig.' >&2; exit 2; }; \
+	  case "$$hash" in *[!0-9a-fA-F]*) echo 'MAGNOLIE_CONTRIBUTOR_HASH ist ungueltig.' >&2; exit 2;; esac; \
+	  hash=$$(printf '%s' "$$hash" | tr A-F a-f); \
+	fi; \
 	dh_install; \
-	ziel=debian/magnolie-organizer/usr/share/magnolie-organizer; \
-	mkdir -p "$$ziel"; \
-	printf '{"contributorHash":"%s"}\n' "$$hash" > "$$ziel/build-config.json"
+	if [ -n "$$hash" ]; then \
+	  ziel=debian/magnolie-organizer/usr/share/magnolie-organizer; \
+	  mkdir -p "$$ziel"; \
+	  printf '{"contributorHash":"%s"}\n' "$$hash" > "$$ziel/build-config.json"; \
+	fi
 
 override_dh_builddeb:
 	find debian/magnolie-organizer -exec touch -h -d "@$(SOURCE_DATE_EPOCH)" {} +

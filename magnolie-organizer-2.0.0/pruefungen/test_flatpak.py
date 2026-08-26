@@ -23,12 +23,15 @@ for required in ("--share=network", "--socket=wayland", "--socket=fallback-x11",
     assert required in permissions
 assert not any(value.startswith("--filesystem=home") or value == "--device=dri"
                for value in permissions)
-assert "0" * 64 in json.dumps(manifest)
+assert "0" * 64 not in json.dumps(manifest)
+builder = (ROOT / "werkzeuge/flatpak_bauen.sh").read_text(encoding="utf-8")
+assert 'if contributor_hash:' in builder
+assert '/app/share/magnolie-organizer/build-config.json' in builder
 
 dependencies = json.loads(
     (ROOT / "flatpak/python3-dependencies.json").read_text(encoding="utf-8"))
 dependency_text = json.dumps(dependencies)
-for package in ("cryptography", "pyOpenSSL", "zeroconf", "ifaddr", "pyenchant"):
+for package in ("cryptography", "pyOpenSSL", "zeroconf", "ifaddr", "pyenchant", "qrcode"):
     assert package.lower() in dependency_text.lower()
 for source in dependencies["modules"]:
     for item in source.get("sources", []):

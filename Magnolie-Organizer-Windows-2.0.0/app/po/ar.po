@@ -5,7 +5,7 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: Magnolie Organizer 2.0.4\n"
+"Project-Id-Version: Magnolie Organizer 2.0.5\n"
 "Report-Msgid-Bugs-To: maik3531@gmail.com\n"
 "POT-Creation-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "PO-Revision-Date: 2026-08-08 09:24+0200\n"
@@ -4537,6 +4537,9 @@ msgstr "معلومات التحديث اليدوي غير صالحة."
 
 msgid "The manual update information is missing."
 msgstr "معلومات التحديث اليدوي مفقودة."
+
+msgid "The message is too large."
+msgstr "الرسالة كبيرة جدًا."
 
 msgid "The offered entry is incomplete."
 msgstr "العنصر المعروض غير مكتمل."

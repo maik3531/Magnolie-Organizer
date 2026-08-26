@@ -1,4 +1,5 @@
 using System.Net;
+using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -19,6 +20,26 @@ internal static class NextcloudDavTests
             "Reiner Nextcloud-Kontaktsync wird abgewiesen.");
         TestAssert.That(NextcloudDavSelection.IsSupported(addressBook, [calendar]),
             "Kombinierter Nextcloud-Kalender-/Kontaktsync wird abgewiesen.");
+        var partition = NextcloudDavSelection.SplitCalendarItems(new JsonArray
+        {
+            new JsonObject { ["id"] = "local" },
+            new JsonObject { ["id"] = "work", ["syncKalenderUid"] = calendar },
+            new JsonObject { ["id"] = "private", ["syncKalenderUid"] = "other" }
+        }, calendar, true);
+        TestAssert.That(partition.Selected.Count == 2 && partition.Remaining.Count == 1 &&
+            partition.Selected.OfType<JsonObject>().All(item =>
+                item["syncKalenderUid"]?.GetValue<string>() == calendar) &&
+            partition.Remaining[0]?["id"]?.GetValue<string>() == "private",
+            "Kalenderpartition vermischt Einträge verschiedener CalDAV-Kalender.");
+        var secondCalendar = "nextcloud-calendar:" + new string('c', 64);
+        var tombstonePartition = NextcloudDavSelection.SplitCalendarTombstones(new JsonArray(new JsonObject
+        {
+            ["syncKalenderUid"] = calendar,
+            ["syncQuellen"] = new JsonObject { [calendar] = new JsonObject(), [secondCalendar] = new JsonObject() }
+        }), secondCalendar, false);
+        TestAssert.That(tombstonePartition.Selected.Count == 1 && tombstonePartition.Remaining.Count == 0 &&
+            tombstonePartition.Selected[0]?["syncKalenderUid"]?.GetValue<string>() == secondCalendar,
+            "Kalenderpartition übersprang eine sekundäre CalDAV-Löschzuordnung.");
         var root = Path.Combine(Path.GetTempPath(), "magnolie-dav-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(root);
         try
@@ -130,6 +151,62 @@ internal static class NextcloudDavTests
             await TestAssert.ThrowsAsync<InvalidDataException>(() => new NextcloudCalendarSync(client).SyncAsync(calendar,
                 new JsonArray(), new JsonArray(), new JsonArray(), 0, true, CancellationToken.None),
                 "Unlesbare ICS-Payload wurde als leerer Kalender interpretiert.");
+        }
+
+        const string ownedCalendar = "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\nUID:owned\r\nDTSTART;VALUE=DATE:20260817\r\nSUMMARY:Owned\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n";
+        using (var http = new HttpClient(new Handler(_ => Task.FromResult(Xml(
+                   $"<d:multistatus xmlns:d=\"DAV:\" xmlns:c=\"urn:ietf:params:xml:ns:caldav\"><d:response><d:href>/nc/book/owned.ics</d:href><d:propstat><d:prop><d:getetag>&quot;o1&quot;</d:getetag><c:calendar-data>{ownedCalendar}</c:calendar-data></d:prop><d:status>HTTP/1.1 200 OK</d:status></d:propstat></d:response></d:multistatus>")))))
+        using (var client = new NextcloudDavClient(settings, http))
+        {
+            var calendar = new NextcloudDavSource("nextcloud-calendar:owned", "owned", "calendar",
+                new Uri("https://cloud.example/nc/book/"));
+            var imported = await new NextcloudCalendarSync(client).SyncAsync(calendar,
+                new JsonArray(), new JsonArray(), new JsonArray(), 1, false, CancellationToken.None);
+            TestAssert.That(imported.Termine.Single()?["syncKalenderUid"]?.GetValue<string>() == calendar.Uid,
+                "Importierter CalDAV-Termin besitzt seinen Quellkalender nicht.");
+        }
+
+        var calendarDeletes = 0;
+        const string deletedUid = "delete-from-both";
+        const string firstCalendar = "nextcloud-calendar:first";
+        const string secondDeleteCalendar = "nextcloud-calendar:second";
+        using (var http = new HttpClient(new Handler(request =>
+               {
+                   if (request.Method == HttpMethod.Delete)
+                   {
+                       calendarDeletes++;
+                       return Task.FromResult(new HttpResponseMessage(HttpStatusCode.NoContent));
+                   }
+                   var collection = request.RequestUri!.AbsolutePath.EndsWith("/first/", StringComparison.Ordinal) ? "first" : "second";
+                   var href = $"/nc/calendar/{collection}/item.ics";
+                   var body = $"BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\nUID:{deletedUid}\r\nDTSTART;VALUE=DATE:20260817\r\nSUMMARY:Delete\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n";
+                   return Task.FromResult(Xml($"<d:multistatus xmlns:d=\"DAV:\" xmlns:c=\"urn:ietf:params:xml:ns:caldav\"><d:response><d:href>{href}</d:href><d:propstat><d:prop><d:getetag>&quot;d1&quot;</d:getetag><c:calendar-data>{body}</c:calendar-data></d:prop><d:status>HTTP/1.1 200 OK</d:status></d:propstat></d:response></d:multistatus>"));
+               })))
+        using (var client = new NextcloudDavClient(settings, http))
+        {
+            var first = new NextcloudDavSource(firstCalendar, "first", "calendar", new Uri("https://cloud.example/nc/calendar/first/"));
+            var second = new NextcloudDavSource(secondDeleteCalendar, "second", "calendar", new Uri("https://cloud.example/nc/calendar/second/"));
+            var suffix = "#" + Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(deletedUid))).ToLowerInvariant();
+            var tombstones = new JsonArray(new JsonObject
+            {
+                ["uid"] = deletedUid, ["syncKalenderUid"] = first.Uid,
+                ["syncQuellen"] = new JsonObject
+                {
+                    [first.Uid] = new JsonObject { ["id"] = "https://cloud.example/nc/calendar/first/item.ics" + suffix },
+                    [second.Uid] = new JsonObject { ["id"] = "https://cloud.example/nc/calendar/second/item.ics" + suffix }
+                }
+            });
+            var afterFirst = await new NextcloudCalendarSync(client).SyncAsync(first,
+                new JsonArray(), new JsonArray(), tombstones, 1, false, CancellationToken.None);
+            TestAssert.That(afterFirst.Deleted == 1 && afterFirst.Tombstones.Count == 1 &&
+                ContactFields.Source(afterFirst.Tombstones[0]!.AsObject(), first.Uid) is null &&
+                ContactFields.Source(afterFirst.Tombstones[0]!.AsObject(), second.Uid) is not null &&
+                afterFirst.Tombstones[0]?["syncKalenderUid"]?.GetValue<string>() == second.Uid,
+                "Erste CalDAV-Löschung verwarf die noch offene zweite Kalenderzuordnung.");
+            var afterSecond = await new NextcloudCalendarSync(client).SyncAsync(second,
+                new JsonArray(), new JsonArray(), afterFirst.Tombstones, 1, false, CancellationToken.None);
+            TestAssert.That(afterSecond.Deleted == 1 && afterSecond.Tombstones.Count == 0 && calendarDeletes == 2,
+                "Mehrfach zugeordneter Termin wurde nicht aus allen CalDAV-Kalendern gelöscht.");
         }
 
         const string mixedCards = "BEGIN:VCARD\r\nVERSION:3.0\r\nUID:u1\r\nFN:Valid\r\nEND:VCARD\r\nBEGIN:VCARD\r\nVERSION:3.0\r\nUID:bad\r\nEND:VCARD\r\n";

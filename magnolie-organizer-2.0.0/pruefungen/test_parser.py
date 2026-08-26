@@ -158,6 +158,21 @@ unpassendes_setpos = m.ics_lesen(
 pruefe(unpassendes_setpos["termine"][0]["icsKomplex"] and
        unpassendes_setpos["termine"][0]["wiederholung"]["art"] == "none",
        "BYSETPOS außerhalb der exakt darstellbaren Monatsregel bleibt komplex")
+negatives_ordinal = m.ics_lesen(
+    "BEGIN:VEVENT\r\nUID:monat-minus-zwei\r\nSUMMARY:Vorletzter Freitag\r\n"
+    "DTSTART;VALUE=DATE:20240119\r\nRRULE:FREQ=MONTHLY;BYDAY=-2FR\r\nEND:VEVENT\r\n")
+negativ_termin = negatives_ordinal["termine"][0]
+pruefe(negativ_termin["icsKomplex"] and
+       negativ_termin["wiederholung"]["art"] == "none" and
+       "RRULE:FREQ=MONTHLY;BYDAY=-2FR" in m.ics_schreiben_termine([negativ_termin]),
+       "nicht darstellbare negative Monatsordinale bleiben opak erhalten")
+abweichender_start = m.ics_lesen(
+    "BEGIN:VEVENT\r\nUID:monat-start\r\nSUMMARY:Erstes Vorkommen\r\n"
+    "DTSTART;VALUE=DATE:20260105\r\nRRULE:FREQ=MONTHLY;BYDAY=1FR\r\nEND:VEVENT\r\n")["termine"][0]
+pruefe(abweichender_start["datum"] == "2026-01-05" and
+       abweichender_start["wiederholung"]["ordinal"] == 1 and
+       abweichender_start["wiederholung"]["wochentag"] == "FR",
+       "DTSTART bleibt das erste Vorkommen einer abweichenden Monatsregel")
 monatsserie = monatsregeln[0]
 richtige_monate = ["2024-02-08", "2024-03-14", "2024-04-11"]
 falsche_tage = ["2024-02-01", "2024-02-15", "2024-03-07", "2024-04-18"]
@@ -453,6 +468,40 @@ pruefe(aufz["erinnern"] and aufz["individuelleErinnerungTage"] == 4,
        "Aufgabenerinnerungen überstehen die ICS-Rundreise")
 pruefe(aufz["startZeit"] == "14:00" and aufz["faelligZeit"] == "16:30",
        "Aufgabenzeitfenster übersteht die ICS-Rundreise")
+stale_aufgabe = m.ics_lesen("""BEGIN:VCALENDAR\r
+VERSION:2.0\r
+BEGIN:VTODO\r
+UID:stale-task\r
+SUMMARY:Alte Aufgabe\r
+PRIORITY:9\r
+STATUS:COMPLETED\r
+PERCENT-COMPLETE:100\r
+X-MAGNOLIE-ERINNERUNG-AM-TAG:1\r
+END:VTODO\r
+END:VCALENDAR\r
+""")["aufgaben"][0]
+stale_aufgabe.update({"prio": 1, "erledigt": False, "erinnern": False})
+stale_export = m.ics_schreiben_aufgaben([stale_aufgabe])
+stale_zurueck = m.ics_lesen(stale_export)["aufgaben"][0]
+pruefe(stale_export.count("PRIORITY:") == 1 and "PRIORITY:9" not in stale_export and
+       "PERCENT-COMPLETE:100" not in stale_export and
+       "X-MAGNOLIE-ERINNERUNG-AM-TAG:1" not in stale_export and
+       stale_zurueck["prio"] == 1 and not stale_zurueck["erledigt"] and
+       not stale_zurueck["erinnern"],
+       "gelöschte und geänderte Aufgabenmerkmale kehren nicht aus Roundtripdaten zurück")
+alte_faelligkeit = m.ics_lesen("""BEGIN:VCALENDAR\r
+VERSION:2.0\r
+BEGIN:VTODO\r
+UID:due-task\r
+SUMMARY:Fälligkeit ändern\r
+DUE;VALUE=DATE:20260101\r
+END:VTODO\r
+END:VCALENDAR\r
+""")["aufgaben"][0]
+alte_faelligkeit["faellig"] = "2026-12-24"
+due_export = m.ics_schreiben_aufgaben([alte_faelligkeit])
+pruefe("DUE;VALUE=DATE:20261224" in due_export and "20260101" not in due_export,
+       "eine geänderte Aufgabenfälligkeit kehrt nicht aus Roundtripdaten zurück")
 falt_original = "SUMMARY:" + ("Grüße 🌸 aus Köln, " * 12)
 falt_text = m._falte(falt_original)
 pruefe(all(len(zeile.encode("utf-8")) <= 75
@@ -793,6 +842,18 @@ kontakt = {"nachname": "Schmidt-Rüttgers", "vorname": "Änne", "firma": "Werft 
 kz = m.vcf_lesen(m.vcf_schreiben([kontakt]))["kontakte"][0]
 for feld in m.KONTAKT_FELDER + ["uid"]:
     pruefe(kz[feld] == kontakt[feld], "Rundreise-Feld %s" % feld)
+parameter_karte = m.vcf_lesen(
+    "BEGIN:VCARD\r\nVERSION:3.0\r\nFN:Parameter\r\n"
+    "TEL;TYPE=WORK:+49 30 222222\r\n"
+    "TEL;TYPE=HOME:+493 0222222\r\n"
+    "TEL;TYPE=CELL;X-MEINS=eins:+49 30 111111\r\n"
+    "EMAIL;X-MAIL=eins:probe@example.test\r\n"
+    "ADR;X-ADR=eins:;;Weg 1;Ort;;12345;DE\r\nEND:VCARD\r\n")["kontakte"][0]
+parameter_export = m.vcard_text(parameter_karte)
+pruefe("TEL;TYPE=CELL;X-MEINS=eins:+49 30 111111" in parameter_export and
+       "EMAIL;TYPE=INTERNET;X-MAIL=eins:probe@example.test" in parameter_export and
+       "ADR;X-ADR=eins:;;Weg 1;Ort;;12345;DE" in parameter_export,
+       "vCard-Restparameter bleiben am zugehörigen Eintrag")
 
 sozial_aufrufe = []
 sozial = m.sozial_oeffnen(
@@ -1018,7 +1079,7 @@ lokal = [
      "wiederholung": {"art": "woche", "bis": ""},
      "geaendert": 100, "sync": True},
     {"uid": "konflikt2", "titel": "Lokal neuer", "datum": "2026-08-05",
-     "geaendert": 999, "sync": True},
+     "geaendert": 9999, "sync": True},
 ]
 fern = {
     "konflikt": {"uid": "konflikt", "titel": "Fern neuer", "datum": "2026-08-04",
@@ -1179,13 +1240,16 @@ pruefe(sum(t["uid"] == "gleich" for t in kal_termine) == 2 and
        {t["syncKalenderUid"] for t in kal_termine if t["uid"] == "gleich"} ==
        {"kal-a", "kal-b"},
        "gleiche Termin-UIDs aus zwei Kalendern bleiben getrennt")
-pruefe(len(angelegt) == 1 and angelegt[0][0] == "kal-a",
-       "ein neuer lokaler Termin wird nur in den Hauptkalender hochgeladen")
+pruefe(not angelegt,
+       "ein unzugeordneter lokaler Termin wird nicht ungefragt hochgeladen")
 pruefe(not geaendert_eds and
        any(t["uid"] == "extern-komplex" and
-           t["titel"] == "Lokale alte Kopie" and t.get("icsReadOnly") and
-           t.get("icsReadOnlyGrund") == "EDS" for t in kal_termine),
-       "komplexe EDS-Serie wird weder vereinfacht noch zurückgeschrieben")
+            t["titel"] == "Lokale alte Kopie" and not t.get("syncKalenderUid")
+            for t in kal_termine) and
+       any(t["uid"] == "extern-komplex" and t["titel"] == "Externe Serie" and
+           t.get("icsReadOnly") and t.get("icsReadOnlyGrund") == "EDS"
+           for t in kal_termine),
+       "komplexe EDS-Serie bleibt neben einer unzugeordneten lokalen Kopie erhalten")
 pruefe(any(t.get("icsReadOnly") and t.get("icsSerienUid") == "extern-komplex" and
            t["uid"] != "extern-komplex" and
            any(zeile.startswith("RECURRENCE-ID")
@@ -1940,7 +2004,7 @@ except RuntimeError as f:
 
 print()
 print("— Aktualisierungsprüfung —")
-pruefe(m.PROGRAMM_FASSUNG == "2.0.4", "Programmkern trägt die neue Fassung")
+pruefe(m.PROGRAMM_FASSUNG == "2.0.5", "Programmkern trägt die neue Fassung")
 desktop_pfad = os.path.abspath(os.path.join(os.path.dirname(PFAD), "..",
                                              "io.gitlab.maik3531.MagnolieOrganizer.desktop"))
 with open(desktop_pfad, encoding="utf-8") as datei:
@@ -1996,6 +2060,9 @@ pruefe("nodejs" in paketsteuerung and "node-jsdom" in paketsteuerung,
        "die Debian-Bauabhängigkeiten enthalten Node.js und jsdom")
 pruefe(paketsteuerung.count("python3-zeroconf") == 2,
        "Build und Laufzeit installieren den portablen mDNS-Adapter")
+pruefe(paketsteuerung.count("python3-qrcode") == 2 and
+       "python3-qrcode" in jammy_regeln,
+       "Build, Laufzeit und AppImage installieren den QR-Erzeuger")
 autopkgtest_skripte = ("installed", "web-dom", "gtk-webkit", "systemd-user", "ufw")
 pruefe(all("Tests: " + name in autopkgtest_steuerung for name in autopkgtest_skripte) and
        autopkgtest_steuerung.count("isolation-machine") == 2 and
@@ -2012,28 +2079,28 @@ update_oeffentlich = m.base64.b64encode(update_privat.public_key().public_bytes(
     update_serialisierung.Encoding.Raw,
     update_serialisierung.PublicFormat.Raw)).decode("ascii")
 update_summe = "ab" * 32
-update_paket = m.UPDATE_BASIS + "magnolie-organizer_2.0.5_all.deb"
+update_paket = m.UPDATE_BASIS + "magnolie-organizer_2.0.6_all.deb"
 update_signatur = m.base64.b64encode(update_privat.sign(
-    m.update_signatur_nachricht("2.0.5", update_paket, update_summe))).decode("ascii")
-update_xml = ("<?xml version='1.0'?><update><version>2.0.5</version>"
+    m.update_signatur_nachricht("2.0.6", update_paket, update_summe))).decode("ascii")
+update_xml = ("<?xml version='1.0'?><update><version>2.0.6</version>"
                "<deb>" + update_paket + "</deb><sha256>" + update_summe +
                "</sha256><signature>" + update_signatur + "</signature></update>")
 version, paket = m.update_info_lesen(update_xml)
-pruefe(version == "2.0.5" and paket.endswith("_2.0.5_all.deb"),
+pruefe(version == "2.0.6" and paket.endswith("_2.0.6_all.deb"),
        "update.xml liefert Fassung und Paketadresse")
 update_neu = m.update_pruefen(lambda _url: update_xml, update_oeffentlich)
 pruefe(update_neu["ok"] and not update_neu["aktuell"] and
-       update_neu["version"] == "2.0.5" and
+       update_neu["version"] == "2.0.6" and
        update_neu["sha256"] == update_summe and update_neu["url"] == update_paket,
        "eine Debian-Installation erhält das signierte Debian-Paket")
-appimage_paket = m.UPDATE_BASIS + "Magnolie-Organizer-2.0.5-x86_64.AppImage"
+appimage_paket = m.UPDATE_BASIS + "Magnolie-Organizer-2.0.6-x86_64.AppImage"
 appimage_summe = "ef" * 32
-appimage_xml = ("<update><version>2.0.5</version><deb>" + update_paket +
+appimage_xml = ("<update><version>2.0.6</version><deb>" + update_paket +
                  "</deb><sha256>" + update_summe + "</sha256><appimage>"
                  "<architecture>x86_64</architecture><url>" + appimage_paket +
                  "</url><sha256>" + appimage_summe + "</sha256></appimage>")
 appimage_signatur = m.base64.b64encode(update_privat.sign(
-    m.update_signatur_nachricht("2.0.5", update_paket, update_summe,
+    m.update_signatur_nachricht("2.0.6", update_paket, update_summe,
                                appimage_paket, appimage_summe))).decode("ascii")
 appimage_xml += "<signature>" + appimage_signatur + "</signature></update>"
 appimage_umgebung = os.environ.get("APPIMAGE")
@@ -2050,15 +2117,28 @@ pruefe(appimage_update["ok"] and not appimage_update["aktuell"] and
        appimage_update["url"] == appimage_paket and
        appimage_update["sha256"] == appimage_summe and not appimage_fehlt["ok"],
        "eine AppImage-Installation erhält nur das passende geprüfte AppImage")
-aktuell_paket = m.UPDATE_BASIS + "magnolie-organizer_2.0.4_all.deb"
+aarch64_paket = m.UPDATE_BASIS + "Magnolie-Organizer-2.0.6-aarch64.AppImage"
+aarch64_xml = ("<update><version>2.0.6</version><deb>" + update_paket +
+               "</deb><sha256>" + update_summe + "</sha256><appimage>"
+               "<architecture>aarch64</architecture><url>" + aarch64_paket +
+               "</url><sha256>" + appimage_summe + "</sha256></appimage>")
+aarch64_signatur = m.base64.b64encode(update_privat.sign(
+    m.update_signatur_nachricht("2.0.6", update_paket, update_summe,
+                               aarch64_paket, appimage_summe))).decode("ascii")
+aarch64_geprueft = m.update_manifest_pruefen(
+    aarch64_xml + "<signature>" + aarch64_signatur + "</signature></update>",
+    update_oeffentlich)
+pruefe(aarch64_geprueft["url"] == update_paket and not aarch64_geprueft["appimage"],
+       "ein signierter fremder AppImage-Abschnitt sperrt das Debian-Update nicht")
+aktuell_paket = m.UPDATE_BASIS + "magnolie-organizer_2.0.5_all.deb"
 aktuell_signatur = m.base64.b64encode(update_privat.sign(
-    m.update_signatur_nachricht("2.0.4", aktuell_paket, update_summe))).decode("ascii")
-aktuell_xml = ("<update><version>2.0.4</version><deb>" + aktuell_paket +
+    m.update_signatur_nachricht("2.0.5", aktuell_paket, update_summe))).decode("ascii")
+aktuell_xml = ("<update><version>2.0.5</version><deb>" + aktuell_paket +
                "</deb><sha256>" + update_summe + "</sha256><signature>" +
                aktuell_signatur + "</signature></update>")
 update_aktuell = m.update_pruefen(lambda _url: aktuell_xml, update_oeffentlich)
 pruefe(update_aktuell["ok"] and update_aktuell["aktuell"] and
-       update_aktuell["version"] == "2.0.4" and not update_aktuell["url"],
+       update_aktuell["version"] == "2.0.5" and not update_aktuell["url"],
        "dieselbe signierte Fassung gilt als aktuell")
 alt_paket = m.UPDATE_BASIS + "magnolie-organizer_2.0.0_all.deb"
 alt_signatur = m.base64.b64encode(update_privat.sign(
@@ -2073,17 +2153,17 @@ pruefe(update_alt["ok"] and update_alt["aktuell"] and
 handbuch_paket = m.UPDATE_BASIS + "magnolie-handbuch_1.9.8_all.deb"
 handbuch_summe = "cd" * 32
 handbuch_signatur = m.base64.b64encode(update_privat.sign(
-    m.update_signatur_nachricht("2.0.4", aktuell_paket, update_summe,
+    m.update_signatur_nachricht("2.0.5", aktuell_paket, update_summe,
                                manual_version="1.9.8", manual_linux=handbuch_paket,
                                manual_linux_sha=handbuch_summe))).decode("ascii")
-handbuch_xml = ("<update><version>2.0.4</version><deb>" + aktuell_paket +
+handbuch_xml = ("<update><version>2.0.5</version><deb>" + aktuell_paket +
     "</deb><sha256>" + update_summe + "</sha256><manual><version>1.9.8</version>"
     "<linux><deb>" + handbuch_paket + "</deb><sha256>" + handbuch_summe +
     "</sha256></linux></manual><signature>" + handbuch_signatur +
     "</signature></update>")
 handbuch_update = m.update_pruefen(lambda _url: handbuch_xml, update_oeffentlich)
 pruefe(handbuch_update["ok"] and handbuch_update["aktuell"] and
-       handbuch_update["version"] == "2.0.4" and
+       handbuch_update["version"] == "2.0.5" and
        handbuch_update["handbuch"] == {"version": "1.9.8",
        "url": handbuch_paket, "sha256": handbuch_summe, "platform": "linux"},
        "verschachtelte Handbuchdaten verändern die Organizerfelder nicht")
@@ -2092,7 +2172,7 @@ pruefe(bool(handbuch_update.get("handbuch")) and
        "der Handbuchdownload wird an das zuletzt validierte Manifest gebunden")
 falsches_handbuch_paket = m.UPDATE_BASIS + "magnolie-organizer_1.9.8_all.deb"
 falsche_handbuch_signatur = m.base64.b64encode(update_privat.sign(
-    m.update_signatur_nachricht("2.0.4", aktuell_paket, update_summe,
+    m.update_signatur_nachricht("2.0.5", aktuell_paket, update_summe,
                                manual_version="1.9.8",
                                manual_linux=falsches_handbuch_paket,
                                manual_linux_sha=handbuch_summe))).decode("ascii")
@@ -2108,7 +2188,7 @@ for falsches_paket in (handbuch_paket + "?download=1",
                        "https://example.org/magnolie-handbuch_1.9.8_all.deb"):
     pruefe(not m._handbuch_update_url_erlaubt(falsches_paket, "1.9.8"),
            "Handbuchadresse, Dateiname und Version werden strikt gebunden")
-altes_update_xml = ("<update><version>2.0.5</version><deb>" +
+altes_update_xml = ("<update><version>2.0.6</version><deb>" +
                     update_paket + "</deb></update>")
 update_abrufe = []
 update_ohne_schluessel = m.update_pruefen(
@@ -2129,7 +2209,7 @@ pruefe(not update_ohne_signatur["ok"] and "signatur" in
        update_ohne_signatur["fehler"].lower(),
        "ein Manifest ohne Signatur wird mit gültigem Release-Schlüssel abgewiesen")
 update_veraendert = m.update_pruefen(
-    lambda _url: update_xml.replace("2.0.5", "2.0.4"), update_oeffentlich)
+    lambda _url: update_xml.replace("2.0.6", "2.0.5"), update_oeffentlich)
 pruefe(not update_veraendert["ok"] and any(text in
        update_veraendert["fehler"].lower() for text in
        ("invalid signature", "ungültige signatur")),
@@ -3185,6 +3265,16 @@ print("— Erinnerungen an Termine —")
 
 from datetime import datetime as _dt
 
+marke_geheilt = m.faellige_erinnerungen(
+    {"termine": []}, _dt(2026, 8, 25, 12, 0),
+    {"gemeldet": {"kaputt": "kein-zeitstempel"}})["zustand"]
+pruefe(marke_geheilt["gemeldet"].get("kaputt") == "2026-08-25 12:00",
+       "unlesbare Meldemarke wird ohne Doppelmeldung mit alterndem Zeitpunkt geheilt")
+marke_gealtert = m.faellige_erinnerungen(
+    {"termine": []}, _dt(2026, 9, 10, 12, 0), marke_geheilt)["zustand"]
+pruefe("kaputt" not in marke_gealtert["gemeldet"],
+       "geheilte Meldemarke wird nach der Schonfrist entfernt")
+
 daten_wecker = {"termine": [
     {"id": "t1", "datum": "2026-07-25", "zeit": "10:00", "titel": "Zahnarzt"},
     {"id": "t2", "datum": "2026-07-25", "zeit": "16:00", "titel": "Sport"},
@@ -3205,6 +3295,21 @@ zweiter = m.faellige_erinnerungen(daten_wecker, _dt(2026, 7, 25, 9, 55),
                                   erg["zustand"], vorlauf=15)
 pruefe(not zweiter["faellig"] and not zweiter["verpasst"],
        "nichts wird zweimal gemeldet")
+
+vorlauf_alt = m.faellige_erinnerungen(
+    {"termine": [daten_wecker["termine"][0]]},
+    _dt(2026, 7, 25, 9, 50), leer, vorlauf=15)
+vorlauf_neu = m.faellige_erinnerungen(
+    {"termine": [daten_wecker["termine"][0]]},
+    _dt(2026, 7, 25, 9, 50), vorlauf_alt["zustand"], vorlauf=30)
+pruefe(not vorlauf_neu["faellig"] and not vorlauf_neu["verpasst"],
+       "geänderter Standardvorlauf meldet denselben Termin nicht erneut")
+legacy_marke = {"gemeldet": {"t1@202607251000": "2026-07-25 09:50"}}
+legacy_ergebnis = m.faellige_erinnerungen(
+    {"termine": [daten_wecker["termine"][0]]},
+    _dt(2026, 7, 25, 9, 50), legacy_marke, vorlauf=15)
+pruefe(not legacy_ergebnis["faellig"] and not legacy_ergebnis["verpasst"],
+       "frühere basisgebundene Meldemarken werden einmalig übernommen")
 
 erg = m.faellige_erinnerungen(daten_wecker, _dt(2026, 7, 25, 9, 30), leer, vorlauf=15)
 pruefe([e["titel"] for e in erg["faellig"]] == [],
@@ -3292,13 +3397,42 @@ pruefe(alarm_faelle[0][0]["id"].endswith(":individuell-1"),
 pruefe(all("alarm-START-180" not in str(eintraege) and
            "alarm-START-90" not in str(eintraege) for eintraege in alarm_faelle),
        "deaktivierte und nicht anzeigende strukturierte Alarme bleiben still")
-pruefe((0, "START") not in m._strukturierte_alarme(
+pruefe((0, "START", "") not in m._strukturierte_alarme(
     strukturierter_termin["termine"][0]),
     "nicht bearbeitbare importierte Alarme lösen keine Ersatzmeldung aus")
 pruefe(m.naechster_weckzeitpunkt(
     strukturierter_termin, _dt(2026, 8, 10, 7, 0), vorlauf=15) ==
     _dt(2026, 8, 10, 8, 0),
     "der nächste native Weckzeitpunkt berücksichtigt strukturierte Alarme")
+
+serien_wecker = {"termine": [{
+    "id": "serie-wecker", "datum": "2026-08-03", "zeit": "10:00",
+    "titel": "Wochenrunde", "wiederholung": {"art": "weekly", "bis": ""}}]}
+pruefe(m.naechster_weckzeitpunkt(
+    serien_wecker, _dt(2026, 8, 4, 12, 0), vorlauf=15) ==
+    _dt(2026, 8, 10, 9, 45),
+    "der native Wecker plant auch die nächste Instanz einer laufenden Serie")
+
+import_alarme = {"termine": [{
+    "id": "import-alarm", "datum": "2026-08-10", "zeit": "10:00",
+    "titel": "Importierte Alarme", "standardErinnerung": False,
+    "alarme": [
+        {"offsetMinuten": 0, "aktiviert": True, "related": "START",
+         "aktion": "display", "bearbeitbar": False, "triggerRaw": "+PT10M"},
+        {"offsetMinuten": 0, "aktiviert": True, "related": "START",
+         "aktion": "display", "bearbeitbar": False,
+         "triggerRaw": "20260810T103000"},
+    ]}]}
+nach_start = m.faellige_erinnerungen(
+    import_alarme, _dt(2026, 8, 10, 10, 10), leer, vorlauf=15)
+absolut = m.faellige_erinnerungen(
+    import_alarme, _dt(2026, 8, 10, 10, 30), nach_start["zustand"], vorlauf=15)
+pruefe(len(nach_start["faellig"]) == 1 and len(absolut["faellig"]) == 1,
+       "positive und absolute importierte Display-Alarme werden ausgelöst")
+pruefe(m.naechster_weckzeitpunkt(
+    import_alarme, _dt(2026, 8, 10, 10, 5), vorlauf=15) ==
+    _dt(2026, 8, 10, 10, 10),
+    "positive importierte Alarme werden als künftiger Weckzeitpunkt geplant")
 
 erinnerung_gettext_alt, erinnerung_ngettext_alt = m._, m.ngettext
 erinnerung_regional_alt = dict(m._REGIONAL)
@@ -3423,9 +3557,19 @@ pruefe("--timer-property=WakeSystem=true" in befehl,
        "Weckruf verlangt das Aufwachen")
 pruefe("--on-calendar=2026-07-25 15:45:00 Europe/Berlin" in befehl,
        "Weckzeit und Organizer-Zeitzone stehen im Befehl: %r" % befehl)
+sommerluecke = m.weckruf_befehl(_dt(2026, 3, 29, 2, 30))
+pruefe("--on-calendar=2026-03-29 03:30:00 Europe/Berlin" in sommerluecke,
+       "nicht existente Ortszeit wird auf den ersten gültigen Weckzeitpunkt gelegt")
+rueckstellung = m.weckruf_befehl(_dt(2026, 10, 25, 2, 30))
+pruefe("--on-calendar=2026-10-25 02:30:00 Europe/Berlin" in rueckstellung,
+       "mehrdeutige Ortszeit bleibt als einmalig markierte erste Instanz erhalten")
 m._REGIONAL.clear()
 m._REGIONAL.update(weckruf_regional_alt)
-pruefe(m.weckruf_stellen(None)["ok"] is False, "ohne Zeitpunkt kein Weckruf")
+gestoppte_weckrufe = []
+pruefe(m.weckruf_stellen(None, lambda argumente: gestoppte_weckrufe.append(argumente) or 0)["ok"]
+       is False and gestoppte_weckrufe == [["systemctl", "--user", "stop",
+                                            m.ERINNERUNG_EINHEIT + "-weckruf.timer"]],
+       "ohne Zeitpunkt wird ein alter Weckruf entfernt")
 
 pruefe("OnCalendar=*:0/1" in m.systemd_wecker_text() and
        "Persistent=true" in m.systemd_wecker_text(),
@@ -4300,6 +4444,13 @@ paar_datei, _paar_einladung = m.baum_paarungsdatei_erzeugen(
 pruefe(len(m._baum_b64url_lesen(paar_datei["geheimnis"], 32)) == 32 and
        paar_datei["gueltigBis"] == paar_jetzt + 15 * 60,
        "Paarungsdatei trägt einen 256-Bit-Einmalschlüssel und läuft zeitnah ab")
+paar_link = m.baum_paarungslink(paar_datei)
+paar_link_text = base64.urlsafe_b64decode(
+    paar_link.removeprefix("magnolie-pair:") + "==").decode("utf-8")
+pruefe(paar_link.startswith("magnolie-pair:") and
+       json.loads(paar_link_text) == paar_datei and
+       m.baum_paarungsqr(paar_datei).startswith("data:image/svg+xml;base64,"),
+       "QR transportiert unverändert die bestehende Paarungsdatei")
 paar_ipv6_zustand = m.baum_schluessel_erzeugen("IPv6-Einladung")
 paar_ipv6, _ = m.baum_paarungsdatei_erzeugen(
     paar_ipv6_zustand, "2001:0db8:0:0::9", 8737, paar_jetzt, b"6" * 32)
@@ -5248,6 +5399,16 @@ zeitaufgabe = {"aufgaben": [{"id": "az", "titel": "Abgabe", "faellig": "2026-08-
 pruefe(not m.faellige_aufgaben(zeitaufgabe, _dt(2026, 8, 4, 14, 29))["faellig"] and
        m.faellige_aufgaben(zeitaufgabe, _dt(2026, 8, 4, 14, 30))["faellig"][0]["zeit"] == "14:30",
        "Aufgabe wird zur gewählten Fälligkeitszeit statt pauschal um 08:00 gemeldet")
+alter_aufgabenstand = {"faellig": [], "verpasst": [], "zustand": {"gemeldet": {
+    "af-alt-2026-08-04": "2026-08-04 08:00",
+    "af-alt-2026-08-04-vorher-7": "2026-07-28 08:00"}, "letzter_lauf": ""}}
+alte_aufgabe = {"aufgaben": [{"id": "alt", "titel": "Migriert",
+    "faellig": "2026-08-04", "erinnern": True, "erledigt": False,
+    "individuelleErinnerungTage": 7}]}
+migriert = m.faellige_aufgaben(alte_aufgabe, _dt(2026, 8, 4, 8, 5), alter_aufgabenstand)
+pruefe(not migriert["faellig"] and
+       "af-alt-2026-08-04-0800" in migriert["zustand"]["gemeldet"],
+       "alte Aufgaben-Erinnerungsmarken werden ohne Doppelmeldung übernommen")
 
 print()
 print("— Wiederkehrende Termine —")
@@ -6012,6 +6173,7 @@ security_alt = {
     "speichere_text": m.speichere_text,
     "erinnerungsdaten_schreiben": m.erinnerungsdaten_schreiben,
     "sicherungen_umschluesseln": m.sicherungen_umschluesseln,
+    "journal_umschluesseln": m.journal_umschluesseln,
     "baum_ablagen_vorbereiten": m.baum_ablagen_vorbereiten,
     "kennwort_transaktion_ausfuehren": m.kennwort_transaktion_ausfuehren,
     "sperre_schreiben": m.sperre_schreiben,
@@ -6021,6 +6183,8 @@ m.speichere_text = lambda _text: True
 m.erinnerungsdaten_schreiben = lambda _daten: True
 m.sicherungen_umschluesseln = lambda *_args, **_kwargs: {
     "geschafft": 1, "misslungen": 2}
+m.journal_umschluesseln = lambda *_args, **_kwargs: {
+    "geschafft": 3, "misslungen": 4}
 m.baum_ablagen_vorbereiten = lambda *_args, **_kwargs: {
     "dateien": {}, "baum": None}
 m.kennwort_transaktion_ausfuehren = lambda *_args, **_kwargs: True
@@ -6031,7 +6195,9 @@ security_antwort = security_fenster.antworten[-1]
 pruefe(security_antwort[0] == "App.kennwortStand" and
        security_antwort[1]["ok"] and security_antwort[1]["an"] and
        security_antwort[1]["sicherungen"] == 1 and
-       security_antwort[1]["sicherungenFehler"] == 2,
+       security_antwort[1]["sicherungenFehler"] == 2 and
+       security_antwort[1]["journal"] == 3 and
+       security_antwort[1]["journalFehler"] == 4,
        "Umschlüsselungsbericht reicht Erfolge und Fehler an die Oberfläche")
 
 security_fenster._kennwort = ""
@@ -6099,7 +6265,8 @@ erinner_daten = {
             "aufgaben": True, "art": "both", "stil": "system",
             "jahrestage": {"an": True, "tage": 2, "amTag": True,
                             "stunde": 8, "notiz": "Einstellungsgeheimnis"},
-            "protokoll": True, "notiz": "Nicht für den Wecker"},
+            "protokoll": True, "protokollVoreinstellung": False,
+            "notiz": "Nicht für den Wecker"},
         "sicherheit": {
             "erinnernTrotzKennwort": True,
             "vertraulicheErinnerungen": False,

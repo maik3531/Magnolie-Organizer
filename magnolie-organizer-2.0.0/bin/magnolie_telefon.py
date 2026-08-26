@@ -1570,7 +1570,7 @@ class BlueZBluetoothBackend:
                 raise OSError("RFCOMM service discovery is unavailable") from error
             matches = re.findall(r"Channel:\s*([1-9]|[12][0-9]|30)\b", result.stdout)
             if result.returncode or len(matches) != 1:
-                raise OSError("Magnolie Telefon RFCOMM service not found")
+                raise OSError("Magnolie Telefon RFCOMM service not found") from None
             channels = [int(matches[0])]
             sock = socket.socket(socket.AF_BLUETOOTH, socket.SOCK_STREAM,
                                  socket.BTPROTO_RFCOMM)
@@ -1717,7 +1717,7 @@ class PhoneService:
         for channel in list(self.connections.values()):
             try:
                 channel.send({"type": "close", "reason": "shutdown"})
-            except Exception:
+            except Exception:  # noqa: S110 - Shutdown continues when a close frame cannot be sent.
                 pass
             try:
                 channel.sock.close()
@@ -1763,7 +1763,7 @@ class PhoneService:
         if channel:
             try:
                 channel.send({"type": "close", "reason": "unpaired"})
-            except Exception:
+            except Exception:  # noqa: S110 - Local removal must survive a failed close frame.
                 pass
             try:
                 channel.sock.close()
@@ -2326,20 +2326,20 @@ class PhoneService:
                 self._session(sock, first, transport, expected_peer)
             else:
                 raise ValueError("unexpected first frame")
-        except Exception:
+        except Exception:  # noqa: S110 - Invalid unauthenticated connections are dropped.
+            pass
+        finally:
             try:
                 sock.close()
             except OSError:
                 pass
-        finally:
-            if transport != "wifi":
-                return
-            with self.lock:
-                count = self.active_by_ip.get(ip, 1) - 1
-                if count:
-                    self.active_by_ip[ip] = count
-                else:
-                    self.active_by_ip.pop(ip, None)
+            if transport == "wifi":
+                with self.lock:
+                    count = self.active_by_ip.get(ip, 1) - 1
+                    if count:
+                        self.active_by_ip[ip] = count
+                    else:
+                        self.active_by_ip.pop(ip, None)
 
     @staticmethod
     def _validate_pair_init(value):
@@ -2369,11 +2369,8 @@ class PhoneService:
                 or not hmac.compare_digest(unb64(pair_init["pairing_token"], 16),
                                            self.pairing_token)):
             raise ValueError("pairing window closed")
-        known = self.store.peer(pair_init["device_id"])
         if self.store.peers:
             raise ValueError("phone binding already exists")
-        if known and known.get("static_public") != pair_init["static_public"]:
-            raise ValueError("known device changed key")
         ephemeral = X25519PrivateKey.generate()
         pair_response = {"p": PROTOCOL, "type": "pair_response",
             "device_id": self.store.identity["device_id"], "role": "desktop",
@@ -2387,48 +2384,49 @@ class PhoneService:
         attempt_id = str(uuid.uuid4())
         context = {"event": threading.Event(), "decision": None}
         self.pairings[attempt_id] = context
-        sock.settimeout(120)
-        self.callback("pairing_code", {"attempt_id": attempt_id, "code": code,
-            "device_id": pair_init["device_id"], "display_name": pair_init["display_name"],
-            "fingerprint": fingerprint(unb64(pair_init["static_public"], 32))})
-        phone_confirm = receive_frame(sock, PAIR_FRAME_MAX)
-        expected = {"p": PROTOCOL, "type": "pair_confirm", "side": "phone",
-                    "transcript": b64(transcript), "proof": b64(proof(
-                        key, b"magnolie-phone-pair-v1/confirm\0", "phone", transcript))}
-        if phone_confirm != expected:
-            raise ValueError("invalid phone confirmation")
-        if not context["event"].wait(120) or context["decision"] is not True:
-            send_frame(sock, {"p": PROTOCOL, "type": "pair_abort",
-                              "reason": "user_cancelled"})
-            return
-        sock.settimeout(10)
-        expires = now_ms() + PAIR_COMMIT_MS
-        peer = known or {}
-        peer.update({"device_id": pair_init["device_id"],
-                     "display_name": pair_init["display_name"],
-                     "static_public": pair_init["static_public"],
-                     "state": "pair_commit_pending", "grants": desktop_grants(),
-                     "local_grants": desktop_grants(),
-                     "capabilities": {}, "last_contact_ms": 0,
-                     "bluetooth": {"enabled": False, "address": ""},
-                     "personal_sync": {"own_device": False, "remote_own_device": False,
-                                       "auto_wifi": False,
-                                       "last_report": {}},
-                     "pending_transcript": b64(transcript),
-                     "pending_phone_finish_proof": b64(proof(
-                         key, b"magnolie-phone-pair-v1/finish\0", "phone", transcript)),
-                     "pending_desktop_finish_proof": b64(proof(
-                         key, b"magnolie-phone-pair-v1/finish\0", "desktop", transcript)),
-                     "pending_expires_ms": expires})
-        if not known:
+        try:
+            sock.settimeout(120)
+            self.callback("pairing_code", {"attempt_id": attempt_id, "code": code,
+                "device_id": pair_init["device_id"], "display_name": pair_init["display_name"],
+                "fingerprint": fingerprint(unb64(pair_init["static_public"], 32))})
+            phone_confirm = receive_frame(sock, PAIR_FRAME_MAX)
+            expected = {"p": PROTOCOL, "type": "pair_confirm", "side": "phone",
+                        "transcript": b64(transcript), "proof": b64(proof(
+                            key, b"magnolie-phone-pair-v1/confirm\0", "phone", transcript))}
+            if phone_confirm != expected:
+                raise ValueError("invalid phone confirmation")
+            if not context["event"].wait(120) or context["decision"] is not True:
+                send_frame(sock, {"p": PROTOCOL, "type": "pair_abort",
+                                  "reason": "user_cancelled"})
+                return
+            sock.settimeout(10)
+            expires = now_ms() + PAIR_COMMIT_MS
+            peer = {}
+            peer.update({"device_id": pair_init["device_id"],
+                         "display_name": pair_init["display_name"],
+                         "static_public": pair_init["static_public"],
+                         "state": "pair_commit_pending", "grants": desktop_grants(),
+                         "local_grants": desktop_grants(),
+                         "capabilities": {}, "last_contact_ms": 0,
+                         "bluetooth": {"enabled": False, "address": ""},
+                         "personal_sync": {"own_device": False, "remote_own_device": False,
+                                           "auto_wifi": False,
+                                           "last_report": {}},
+                         "pending_transcript": b64(transcript),
+                         "pending_phone_finish_proof": b64(proof(
+                             key, b"magnolie-phone-pair-v1/finish\0", "phone", transcript)),
+                         "pending_desktop_finish_proof": b64(proof(
+                             key, b"magnolie-phone-pair-v1/finish\0", "desktop", transcript)),
+                         "pending_expires_ms": expires})
             self.store.peers.append(peer)
-        self.store.save_peers()
-        send_frame(sock, {"p": PROTOCOL, "type": "pair_confirm", "side": "desktop",
-            "transcript": b64(transcript), "proof": b64(proof(
-                key, b"magnolie-phone-pair-v1/confirm\0", "desktop", transcript))})
-        phone_finish = receive_frame(sock, PAIR_FRAME_MAX)
-        self._commit_pending(sock, peer, phone_finish)
-        self.pairings.pop(attempt_id, None)
+            self.store.save_peers()
+            send_frame(sock, {"p": PROTOCOL, "type": "pair_confirm", "side": "desktop",
+                "transcript": b64(transcript), "proof": b64(proof(
+                    key, b"magnolie-phone-pair-v1/confirm\0", "desktop", transcript))})
+            phone_finish = receive_frame(sock, PAIR_FRAME_MAX)
+            self._commit_pending(sock, peer, phone_finish)
+        finally:
+            self.pairings.pop(attempt_id, None)
         self.pairing_token = None
         self.pairing_until = 0
         self._publish()
@@ -2585,7 +2583,7 @@ class PhoneService:
                 except socket.timeout:
                     now = time.monotonic()
                     if now - last_incoming >= 75:
-                        raise TimeoutError("phone heartbeat timeout")
+                        raise TimeoutError("phone heartbeat timeout") from None
                     if now - channel.last_send >= 25:
                         channel.send({"type": "ping", "ping_id": str(uuid.uuid4()),
                                       "sent_ms": now_ms()})
@@ -2616,7 +2614,7 @@ class PhoneService:
         if current and current is not channel:
             try:
                 current.send({"type": "close", "reason": "better_transport"})
-            except Exception:
+            except Exception:  # noqa: S110 - Transport replacement continues after send failure.
                 pass
             try:
                 current.sock.close()
@@ -2629,7 +2627,7 @@ class PhoneService:
             return
         try:
             channel.send({"type": "close", "reason": reason})
-        except Exception:
+        except Exception:  # noqa: S110 - Closing a failed transport is best effort.
             pass
         try:
             channel.sock.close()
@@ -2661,7 +2659,7 @@ class PhoneService:
             try:
                 sock = self.bluetooth_backend.connect(config["address"], BLUETOOTH_UUID)
                 sock.settimeout(10)
-            except Exception:
+            except Exception:  # noqa: S112 - Bluetooth fallback retries after its backoff.
                 continue
             threading.Thread(target=self._handle,
                 args=(sock, "bluetooth:" + peer_id, "bluetooth"), daemon=True).start()
@@ -3030,7 +3028,6 @@ class PhoneService:
                         return
                     token = aggregate.pop("commit_token")
                     pending_message_id = aggregate.pop("message_id")
-                    message_ids = [item["message_id"] for item in aggregate["messages"]]
                     aggregate.pop("messages")
                     with self.lock:
                         event = self.personal_commit_events.setdefault(token, threading.Event())
@@ -3119,11 +3116,11 @@ class PhoneService:
         self.mdns = None
         try:
             zc.unregister_service(info)
-        except Exception:
+        except Exception:  # noqa: S110 - mDNS teardown must tolerate a vanished service.
             pass
         try:
             zc.close()
-        except Exception:
+        except Exception:  # noqa: S110 - mDNS teardown must tolerate a closed daemon.
             pass
 
 

@@ -20,7 +20,7 @@ body:
     id: version
     attributes:
       label: Version and platform / Version und Plattform
-      placeholder: "2.0.4, Debian 13 / Windows 11 / Android 16"
+      placeholder: "2.0.5, Debian 13 / Windows 11 / Android 16"
     validations:
       required: true
   - type: textarea

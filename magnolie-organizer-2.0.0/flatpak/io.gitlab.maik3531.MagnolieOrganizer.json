@@ -34,7 +34,6 @@
         "cp -a web/. /app/share/magnolie-organizer/web/",
         "install -m 0644 klang/erinnerung.wav /app/share/magnolie-organizer/klang/erinnerung.wav",
         "install -m 0644 werkzeuge/pot_erzeugen.py /app/share/magnolie-organizer/werkzeuge/pot_erzeugen.py",
-        "printf '{\"contributorHash\":\"0000000000000000000000000000000000000000000000000000000000000000\"}\\n' > /app/share/magnolie-organizer/build-config.json",
         "install -m 0644 io.gitlab.maik3531.MagnolieOrganizer.desktop /app/share/applications/io.gitlab.maik3531.MagnolieOrganizer.desktop",
         "desktop-file-edit --set-key=Icon --set-value=io.gitlab.maik3531.MagnolieOrganizer /app/share/applications/io.gitlab.maik3531.MagnolieOrganizer.desktop",
         "install -m 0644 io.gitlab.maik3531.MagnolieOrganizer.appdata.xml /app/share/metainfo/io.gitlab.maik3531.MagnolieOrganizer.appdata.xml",

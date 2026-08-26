@@ -44,7 +44,7 @@ with tempfile.TemporaryDirectory() as tmp:
                                          jetzt=zeit, disk_usage=disk)
     assert stand["format"] == "magnolie-snapshot"
     assert stand["formatVersion"] == 1 and stand["platform"] == "linux"
-    assert stand["appVersion"] == "2.0.4" and stand["integrity"] == "ok"
+    assert stand["appVersion"] == "2.0.5" and stand["integrity"] == "ok"
     assert stand["payload"]["schema"] == 1 and stand["summary"]["termine"] == 1
     assert os.stat(m.journal_verzeichnis(tmp)).st_mode & 0o777 == 0o700
     assert os.stat(os.path.join(stand["path"], "manifest.json")).st_mode & 0o777 == 0o600
@@ -121,6 +121,17 @@ with tempfile.TemporaryDirectory() as tmp:
     m.journal_bereinigen(tmp)
     m.journal_snapshot_lesen(punkt["snapshotId"], "", tmp)
 
+# Eine Stufe vor dem ersten Verzeichniswechsel ist unvollständig und verschwindet.
+with tempfile.TemporaryDirectory() as tmp:
+    punkt = m.journal_snapshot_erzeugen(daten(), "manual", basis=tmp, disk_usage=disk)
+    wurzel = m.journal_verzeichnis(tmp)
+    neu = os.path.join(wurzel, ".%s.rewrite-new" % punkt["snapshotId"])
+    os.mkdir(neu)
+    open(os.path.join(neu, "rest"), "w").close()
+    m.journal_bereinigen(tmp)
+    assert not os.path.exists(neu)
+    m.journal_snapshot_lesen(punkt["snapshotId"], "", tmp)
+
 # Ein fehlgeschlagener Pflichtstand beendet den Sync vor jeder externen Mutation.
 class SyncProbe:
     def _journal_snapshot(self, _grund):
@@ -176,6 +187,37 @@ with tempfile.TemporaryDirectory() as tmp:
     finally:
         m.gesamtarchiv_erzeugen = archiv_erzeugen
     assert baumzustand() == vorher
+
+# Geplante Retention schafft rechnerisch Platz, löscht aber erst nach dem Commit.
+with tempfile.TemporaryDirectory() as tmp:
+    start = datetime(2026, 1, 1, tzinfo=timezone.utc)
+    m.journal_snapshot_erzeugen(daten(1), "pre-sync", basis=tmp,
+        jetzt=start, disk_usage=disk)
+    m.journal_snapshot_erzeugen(daten(2), "pre-sync", basis=tmp,
+        jetzt=start + timedelta(hours=1), disk_usage=disk)
+    wurzel = m.journal_verzeichnis(tmp)
+
+    def platz_nach_retention(_pfad):
+        sichtbar = [name for name in os.listdir(wurzel) if not name.startswith(".")]
+        frei = m.JOURNAL_RESERVE if sichtbar else m.JOURNAL_RESERVE + 10 * 1024 ** 2
+        return Disk(100 * 1024 ** 3, 0, frei)
+
+    alte_ids = [stand["snapshotId"] for stand in m.journal_liste(tmp, integritaet=False)]
+    try:
+        m.journal_snapshot_erzeugen(daten(3), "pre-sync", basis=tmp,
+            jetzt=start + timedelta(days=30), disk_usage=platz_nach_retention,
+            haken=lambda stelle: (_ for _ in ()).throw(RuntimeError("Abbruch"))
+            if stelle == "payload" else None)
+        raise AssertionError("Abbruch ignoriert")
+    except RuntimeError as fehler:
+        assert str(fehler) == "Abbruch"
+    assert [stand["snapshotId"] for stand in
+            m.journal_liste(tmp, integritaet=False)] == alte_ids
+
+    neu = m.journal_snapshot_erzeugen(daten(3), "pre-sync", basis=tmp,
+        jetzt=start + timedelta(days=30), disk_usage=platz_nach_retention)
+    staende = m.journal_liste(tmp, integritaet=False)
+    assert [stand["snapshotId"] for stand in staende] == [neu["snapshotId"]]
 
 # Retention: manuell angeheftet bleibt, Wochen/Monate und Kurzzeitstände sind begrenzt.
 with tempfile.TemporaryDirectory() as tmp:

@@ -366,6 +366,17 @@ def test_dav_etag_conflict_and_conditional_create_delete():
     assert records[1][2]["If-Match"] == '"old"' and records[3][2]["If-Match"] == '"old"'
 
 
+def test_dav_put_without_etag_is_rejected_before_network_access():
+    records = []
+    dav = nc.NextcloudDav(nc.DavHttpClient(
+        "https://cloud.example", "user", "secret",
+        transport=lambda *args: records.append(args)))
+    with pytest.raises(nc.NextcloudError) as raised:
+        dav.put("https://cloud.example/cal/a.ics", "BEGIN:VCALENDAR", "")
+    assert raised.value.code == "missing_etag"
+    assert records == []
+
+
 def test_caldav_put_rejects_local_attachment_before_network_access():
     records = []
 

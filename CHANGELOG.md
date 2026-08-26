@@ -1,5 +1,25 @@
 # Changelog / Änderungen
 
+## 2.0.5 / Notes 1.0.6 — 2026-08-26
+
+### English
+
+- Added secure, short-lived QR pairing for Magnolienbaum across Linux and Android.
+- Hardened phone transports, browser launching, update verification and release metadata handling.
+- Preserved complex recurring calendar fields, task due dates and per-entry contact parameters during synchronization and round trips.
+- Improved conflict bounds, deletion acknowledgements, encrypted reminder logs and recovery-journal retention.
+- Added a constrained Windows shell launcher, oversized-note safeguards and standalone localized handbook variants.
+- Added explicit peer confirmation before Android QR pairing and released Magnolie Notes 1.0.6.
+
+### Deutsch
+
+- Sichere, kurzlebige QR-Paarung für den Magnolienbaum unter Linux und Android ergänzt.
+- Telefontransporte, Browserstart, Aktualisierungsprüfung und Release-Metadaten gehärtet.
+- Komplexe Kalender-Serienfelder, Aufgabenfälligkeiten und eintragsgebundene Kontaktparameter bleiben bei Abgleich und Rundlauf erhalten.
+- Konfliktgrenzen, Löschbestätigungen, verschlüsselte Erinnerungsprotokolle und Journal-Aufbewahrung verbessert.
+- Begrenzten Windows-Shellstarter, Schutz für übergroße Notizen und eigenständige lokalisierte Handbuchvarianten ergänzt.
+- Explizite Gegenstellenbestätigung vor Android-QR-Paarung ergänzt und Magnolie Notes 1.0.6 veröffentlicht.
+
 ## 2.0.4 / Notes 1.0.5 — 2026-08-24
 
 ### English

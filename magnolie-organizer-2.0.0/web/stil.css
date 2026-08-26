@@ -5214,6 +5214,19 @@ body[data-linien="aus"] #tb-notiz {
 
 .baum-zwischenkopf { margin: 16px 0 4px; color: var(--braun); }
 
+.baum-paarungsqr {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  margin: 12px 0;
+  padding: 14px;
+  border: 1px solid rgba(71, 37, 27, 0.24);
+  border-radius: 4px;
+  background: #fff;
+}
+
+.baum-paarungsqr img { width: min(100%, 360px); }
+
 .baum-angebot { flex: 1 1 260px; font-weight: 600; }
 
 .baum-angebot small { display: block; color: var(--braun-hell); font-weight: 400; }

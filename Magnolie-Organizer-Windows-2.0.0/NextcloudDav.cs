@@ -15,6 +15,45 @@ internal static class NextcloudDavSelection
         (addressBook.Length == 0 || addressBook is "windows-contacts" or "microsoft-graph" ||
          addressBook.StartsWith("nextcloud-addressbook:", StringComparison.Ordinal)) &&
         calendarIds.All(value => value.StartsWith("nextcloud-calendar:", StringComparison.Ordinal));
+
+    internal static (JsonArray Selected, JsonArray Remaining) SplitCalendarItems(
+        JsonArray items, string calendarUid, bool isDefaultCalendar)
+    {
+        var selected = new JsonArray(); var remaining = new JsonArray();
+        foreach (var item in items.OfType<JsonObject>())
+        {
+            var owner = item["syncKalenderUid"]?.GetValue<string>() ?? "";
+            var clone = item.DeepClone().AsObject();
+            if (owner == calendarUid || (owner.Length == 0 && isDefaultCalendar))
+            {
+                if (owner.Length == 0) clone["syncKalenderUid"] = calendarUid;
+                selected.Add(clone);
+            }
+            else remaining.Add(clone);
+        }
+        return (selected, remaining);
+    }
+
+    internal static (JsonArray Selected, JsonArray Remaining) SplitCalendarTombstones(
+        JsonArray items, string calendarUid, bool isDefaultCalendar)
+    {
+        var selected = new JsonArray(); var remaining = new JsonArray();
+        foreach (var item in items.OfType<JsonObject>())
+        {
+            var owner = item["syncKalenderUid"]?.GetValue<string>() ?? "";
+            var hasCalendarMappings = item["syncQuellen"] is JsonObject sources &&
+                sources.Any(source => source.Key.StartsWith("nextcloud-calendar:", StringComparison.Ordinal));
+            var clone = item.DeepClone().AsObject();
+            if (owner == calendarUid || ContactFields.Source(item, calendarUid) is not null ||
+                (owner.Length == 0 && !hasCalendarMappings && isDefaultCalendar))
+            {
+                clone["syncKalenderUid"] = calendarUid;
+                selected.Add(clone);
+            }
+            else remaining.Add(clone);
+        }
+        return (selected, remaining);
+    }
 }
 
 internal sealed record NextcloudDavSource(string Uid, string Name, string Kind, Uri Href);
@@ -398,8 +437,17 @@ internal sealed class NextcloudCalendarSync(NextcloudDavClient client)
         foreach (var tombstone in additiveOnly ? [] : dead.OfType<JsonObject>().ToArray())
         {
             var mapping = ContactFields.Source(tombstone, source.Uid); var id = mapping?["id"]?.GetValue<string>() ?? "";
-            if (!remote.Remove(id, out var other)) continue;
-            await client.DeleteAsync(other.Object.Href, other.Object.ETag, cancellationToken).ConfigureAwait(false); dead.Remove(tombstone); deleted++;
+            if (id.Length == 0) continue;
+            if (remote.Remove(id, out var other))
+            {
+                await client.DeleteAsync(other.Object.Href, other.Object.ETag, cancellationToken).ConfigureAwait(false); deleted++;
+            }
+            var sources = tombstone["syncQuellen"] as JsonObject;
+            sources?.Remove(source.Uid);
+            if (sources is null || sources.Count == 0) dead.Remove(tombstone);
+            else if (tombstone["syncKalenderUid"]?.GetValue<string>() is not string owner || owner.Length == 0 || owner == source.Uid)
+                tombstone["syncKalenderUid"] = sources.FirstOrDefault(item =>
+                    item.Key.StartsWith("nextcloud-calendar:", StringComparison.Ordinal)).Key ?? "";
         }
         foreach (var other in remote.Values)
         {
@@ -452,7 +500,8 @@ internal sealed class NextcloudCalendarSync(NextcloudDavClient client)
     private static void SetSource(JsonObject value, string source, string id, string etag)
     {
         var all = value["syncQuellen"] as JsonObject ?? new JsonObject(); value["syncQuellen"] = all;
-        all[source] = new JsonObject { ["id"] = id, ["etag"] = etag, ["geaendert"] = value["geaendert"]?.DeepClone(), ["eigen"] = true }; value["sync"] = true;
+        all[source] = new JsonObject { ["id"] = id, ["etag"] = etag, ["geaendert"] = value["geaendert"]?.DeepClone(), ["eigen"] = true };
+        value["syncKalenderUid"] = source; value["sync"] = true;
     }
     private static void CopyCalendar(JsonObject target, JsonObject source)
     {

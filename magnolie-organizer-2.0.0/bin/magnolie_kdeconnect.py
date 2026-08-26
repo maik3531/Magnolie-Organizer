@@ -663,11 +663,11 @@ class _TLSStream:
             except SSL.WantReadError:
                 remaining = deadline - time.monotonic()
                 if remaining <= 0 or not select.select([self.connection], [], [], remaining)[0]:
-                    raise TimeoutError("KDE Connect TLS read timed out")
+                    raise TimeoutError("KDE Connect TLS read timed out") from None
             except SSL.WantWriteError:
                 remaining = deadline - time.monotonic()
                 if remaining <= 0 or not select.select([], [self.connection], [], remaining)[1]:
-                    raise TimeoutError("KDE Connect TLS write timed out")
+                    raise TimeoutError("KDE Connect TLS write timed out") from None
 
     def handshake(self):
         self._call(self.connection.do_handshake)
@@ -693,7 +693,7 @@ class _TLSStream:
         try:
             self.connection.setblocking(False)
             self.connection.shutdown()
-        except Exception:
+        except Exception:  # noqa: S110 - TLS shutdown is best effort.
             pass
         if self.raw is not None:
             try:
@@ -702,7 +702,7 @@ class _TLSStream:
                 pass
         try:
             self.connection.close()
-        except Exception:
+        except Exception:  # noqa: S110 - Closing an already failed TLS stream is best effort.
             pass
         if self.raw is not None:
             try:
@@ -790,7 +790,7 @@ class _ConnectionWorker:
                 if packet.get("type") != SMS_MESSAGES_TYPE or not self.sms_started:
                     continue
                 self._handle_sms_packet(packet)
-        except Exception:
+        except Exception:  # noqa: S110 - A failed connection worker terminates silently.
             pass
         finally:
             self.stopped.set()
@@ -938,7 +938,7 @@ class KDEConnectSMSBackend:
     def _emit(self, event, payload):
         try:
             self.callback(event, payload)
-        except Exception:
+        except Exception:  # noqa: S110 - Client callbacks cannot break the transport service.
             pass
 
     def start(self):
@@ -996,7 +996,6 @@ class KDEConnectSMSBackend:
             pending = list(self._pending)
             accepted = list(self._accepted)
             handshakes = list(self._handshakes)
-            pairing = self.pairing
             self.pairing = None
             self._pairing_pending = False
             connections = list(self._connections.values())
@@ -1088,7 +1087,7 @@ class KDEConnectSMSBackend:
             try:
                 expired_pairing["worker"].send(network_packet(
                     "kdeconnect.pair", {"pair": False}))
-            except Exception:
+            except Exception:  # noqa: S110 - The expired connection may already be closed.
                 pass
             self._emit("pairing_status", {"state": "failed", "reason": "timeout"})
             self._reschedule_discovery(immediate=False)
@@ -1262,7 +1261,7 @@ class KDEConnectSMSBackend:
             self._remember_connection(connection, identity, certificate,
                                       device.address, device.port, direction="incoming")
             connection = None
-        except Exception:
+        except Exception:  # noqa: S110 - Invalid incoming peers are deliberately dropped.
             pass
         finally:
             with self._state_lock:
@@ -1850,7 +1849,6 @@ class KDEConnectSMSBackend:
                 "address": entry["address"], "port": entry["port"],
                 "local_confirmed": False, "remote_confirmed": False,
                 "deadline": self.clock() + PAIR_WINDOW}
-            pending = self.pairing
         entry["worker"].send(network_packet("kdeconnect.pair",
                                              {"pair": True, "timestamp": timestamp}))
         return {"state": "requested", "device_id": device_id,

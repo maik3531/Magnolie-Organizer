@@ -13,7 +13,7 @@ sys.path.insert(0, str(ROOT / "werkzeuge"))
 from png_pruefen import pruefen as png_pruefen
 WINDOWS = WORKSPACE / "Magnolie-Organizer-Windows-2.0.0"
 HANDBOOK = WORKSPACE / "magnolie-handbuch-stamm"
-VERSION = "2.0.4"
+VERSION = "2.0.5"
 MANIFEST_VERSION = VERSION
 INTERNAL_NOTE = re.compile(
     r"(REVIEW|ENTWURF|OFFENE[-_ ]?PUNKTE|ANALYSE|PLAN|AUDIT).*\.md$", re.I)
@@ -141,6 +141,7 @@ assert ': "${GDK_BACKEND:=x11}"' in appimage_builder
 for binary_builder in (appimage_builder, rpm_builder, text(ROOT / "debian/rules")):
     assert "MAGNOLIE_CONTRIBUTOR_HASH" in binary_builder
     assert "tr A-F a-f" in binary_builder
+    assert 'if [ -n "$' in binary_builder or 'if test -n "$hash"' in binary_builder
 assert "ubuntu-base-22.04.5" in jammy_builder
 assert "BASIS_SHA=" in jammy_builder and "SNAPSHOT=" in jammy_builder
 assert "werkzeuge/appimage_jammy_bauen.sh" in text(ROOT / "werkzeuge/release_bauen.sh")
@@ -152,6 +153,8 @@ assert '"--device=dri"' not in flatpak_manifest
 assert "org.flatpak.Builder" in flatpak_builder
 assert "flatpak build-bundle" in flatpak_builder
 assert 'MAGNOLIE_CONTRIBUTOR_HASH' in flatpak_builder
+assert "0000000000000000000000000000000000000000000000000000000000000000" not in flatpak_manifest
+assert "if contributor_hash:" in flatpak_builder
 assert '--filesystem="$WURZEL"' in flatpak_builder
 assert '--default-branch="$ZWEIG"' in flatpak_builder
 assert '--override-source-date-epoch="$SOURCE_EPOCH"' in flatpak_builder
@@ -237,4 +240,4 @@ def test_statische_paketpruefung():
     assert True
 
 
-print("Paketinhalt und Linux-Version 2.0.4: ok")
+print("Paketinhalt und Linux-Version 2.0.5: ok")

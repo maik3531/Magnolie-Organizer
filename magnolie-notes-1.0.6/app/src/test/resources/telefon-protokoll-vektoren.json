@@ -1,0 +1,57 @@
+{
+  "format": "magnolie-phone-golden-vectors",
+  "version": 1,
+  "canonical_json": {
+    "input": {"😀":1,"":2,"ä":"Größe"},
+    "expected": "{\"ä\":\"Größe\",\"\":2,\"😀\":1}"
+  },
+  "pairing": {
+    "phone_static_private": "dwdtCnMYpX08FsFyUbJmRd9ML4frwJkqsXf7pR25LCo=",
+    "phone_static_public": "hSDwCYkwp1R0i33ctD73Wg2/Og0mOBr066SpjqqbTmo=",
+    "desktop_static_private": "XasIfmJKikt54X+Lg4AO5m87sSkmGLb9HC+LJ/+I4Os=",
+    "desktop_static_public": "3p7bfXt9wbTTW2HC7OQ1Nz+DQ8hbeGdNrfx+FG+IK08=",
+    "phone_ephemeral_private": "CQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+    "phone_ephemeral_public": "QiyOemIn17yhNQs+K7cnn3iXuHu2hUt4PGDoAxGuMHk=",
+    "desktop_ephemeral_private": "oEbja/BSfJ07FhVLgkZe3WIaxwXkPm6K6ub2psh7Vuc=",
+    "desktop_ephemeral_public": "iZrLGbN/PPFaTueOgnVvEr54Q9yqn3y2DhcOKnHoBWw=",
+    "pair_init": {"p":"magnolie-phone/1","type":"pair_init","pairing_token":"AAECAwQFBgcICQoLDA0ODw==","device_id":"11111111-1111-4111-8111-111111111111","role":"phone","display_name":"Telefon ä","static_public":"hSDwCYkwp1R0i33ctD73Wg2/Og0mOBr066SpjqqbTmo=","ephemeral_public":"QiyOemIn17yhNQs+K7cnn3iXuHu2hUt4PGDoAxGuMHk=","nonce":"AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8=","versions":[1]},
+    "pair_response": {"p":"magnolie-phone/1","type":"pair_response","device_id":"22222222-2222-4222-8222-222222222222","role":"desktop","display_name":"Arbeitsplatz","static_public":"3p7bfXt9wbTTW2HC7OQ1Nz+DQ8hbeGdNrfx+FG+IK08=","ephemeral_public":"iZrLGbN/PPFaTueOgnVvEr54Q9yqn3y2DhcOKnHoBWw=","nonce":"ICEiIyQlJicoKSorLC0uLzAxMjM0NTY3ODk6Ozw9Pj8=","version":1},
+    "canonical_pair_init": "{\"device_id\":\"11111111-1111-4111-8111-111111111111\",\"display_name\":\"Telefon ä\",\"ephemeral_public\":\"QiyOemIn17yhNQs+K7cnn3iXuHu2hUt4PGDoAxGuMHk=\",\"nonce\":\"AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8=\",\"p\":\"magnolie-phone/1\",\"pairing_token\":\"AAECAwQFBgcICQoLDA0ODw==\",\"role\":\"phone\",\"static_public\":\"hSDwCYkwp1R0i33ctD73Wg2/Og0mOBr066SpjqqbTmo=\",\"type\":\"pair_init\",\"versions\":[1]}",
+    "canonical_pair_response": "{\"device_id\":\"22222222-2222-4222-8222-222222222222\",\"display_name\":\"Arbeitsplatz\",\"ephemeral_public\":\"iZrLGbN/PPFaTueOgnVvEr54Q9yqn3y2DhcOKnHoBWw=\",\"nonce\":\"ICEiIyQlJicoKSorLC0uLzAxMjM0NTY3ODk6Ozw9Pj8=\",\"p\":\"magnolie-phone/1\",\"role\":\"desktop\",\"static_public\":\"3p7bfXt9wbTTW2HC7OQ1Nz+DQ8hbeGdNrfx+FG+IK08=\",\"type\":\"pair_response\",\"version\":1}",
+    "transcript": "ZupdqxDgcRWCLTKdWpafRLa3lbKAZQWrGc4BhMkNcsI=",
+    "ephemeral_shared": "IRYVQd+jMdlHX0NAg15m2xZUmIl+wjb4BzEYUm/dVzs=",
+    "static_shared": "Sl2dW6TOLeFyjjv0gDUPJeB+IclH0Z4zdvCbPB4WF0I=",
+    "pair_key": "OJRbPnEx7Jq3E3Mip+mVv8cH7nqzOeANuC58x2gCkUU=",
+    "code": "129 776",
+    "phone_confirm_proof": "170rKICiLwixxpGFGnIVNWuT7E/xYdazK75PaqTXgPU=",
+    "desktop_confirm_proof": "0aWgtxnF9I4NOxU3lZSiFIAw7H/v6sw0hcJuDtmLoDI=",
+    "phone_finish_proof": "XQo03F7K2/8m3r1OPjW0kbcLfGI9KJT4/ddu0RsptQA=",
+    "desktop_finish_proof": "eAhqI9aHkG+cyb9xd+gP8TdOWCSCtgwvtiKP7MYv8mY="
+  },
+  "session": {
+    "session_start_without_mac": {"p":"magnolie-phone/1","type":"session_start","sid":"EBESExQVFhcYGRobHB0eHw==","from":"11111111-1111-4111-8111-111111111111","to":"22222222-2222-4222-8222-222222222222","initiator_role":"phone","ephemeral_public":"QiyOemIn17yhNQs+K7cnn3iXuHu2hUt4PGDoAxGuMHk=","nonce":"QEFCQ0RFRkdISUpLTE1OT1BRUlNUVVZXWFlaW1xdXl8=","versions":[1]},
+    "session_start": {"p":"magnolie-phone/1","type":"session_start","sid":"EBESExQVFhcYGRobHB0eHw==","from":"11111111-1111-4111-8111-111111111111","to":"22222222-2222-4222-8222-222222222222","initiator_role":"phone","ephemeral_public":"QiyOemIn17yhNQs+K7cnn3iXuHu2hUt4PGDoAxGuMHk=","nonce":"QEFCQ0RFRkdISUpLTE1OT1BRUlNUVVZXWFlaW1xdXl8=","versions":[1],"mac":"Mtk2udLKpXU0fMiBZaMyn7xv2UrMKD0cvTWrTjRUVKA="},
+    "session_response_without_mac": {"p":"magnolie-phone/1","type":"session_response","sid":"EBESExQVFhcYGRobHB0eHw==","from":"22222222-2222-4222-8222-222222222222","to":"11111111-1111-4111-8111-111111111111","ephemeral_public":"iZrLGbN/PPFaTueOgnVvEr54Q9yqn3y2DhcOKnHoBWw=","nonce":"YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8=","version":1},
+    "session_response": {"p":"magnolie-phone/1","type":"session_response","sid":"EBESExQVFhcYGRobHB0eHw==","from":"22222222-2222-4222-8222-222222222222","to":"11111111-1111-4111-8111-111111111111","ephemeral_public":"iZrLGbN/PPFaTueOgnVvEr54Q9yqn3y2DhcOKnHoBWw=","nonce":"YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8=","version":1,"mac":"bYIDTi31dYCGil3KRobK0NEe03vyyNR/4JOmHJo7qIs="},
+    "ids": "MTExMTExMTEtMTExMS00MTExLTgxMTEtMTExMTExMTExMTExADIyMjIyMjIyLTIyMjItNDIyMi04MjIyLTIyMjIyMjIyMjIyMg==",
+    "static_root": "goFKLWn8tQ20JSeYf5FNY5hbsEZ1HbDwTTLrELHM66E=",
+    "auth_key": "scL0bV95cYjHJ6ERiXf107m7Twl7xFlVSu6+JMxHYrg=",
+    "transcript": "HC+WCMTuphjtD827Kz40LNZAAFdAGmIZtqevCN4/bNQ=",
+    "session_salt": "lr/vOFO/Dwbcb2BhU9viY0/Iyr/uxxfHwse4bnRg7vc=",
+    "session_material": "2d0GyF5GqvsH8HYGJmBy34XuTgYeNCVfg1PXfb1VhkyeZMN1JV5mUb/kV/8Zpqs7yIVMfBosVSAmZmAuSxk32Q61NgD0DTWn",
+    "phone_to_desktop_key": "2d0GyF5GqvsH8HYGJmBy34XuTgYeNCVfg1PXfb1Vhkw=",
+    "phone_to_desktop_prefix": "nmTDdQ==",
+    "desktop_to_phone_key": "JV5mUb/kV/8Zpqs7yIVMfBosVSAmZmAuSxk32Q61NgA=",
+    "desktop_to_phone_prefix": "9A01pw=="
+  },
+  "encryption": {
+    "seq": 7,
+    "direction": "phone_to_desktop",
+    "nonce": "nmTDdQAAAAAAAAAH",
+    "aad_canonical": "{\"dir\":\"phone_to_desktop\",\"p\":\"magnolie-phone/1\",\"seq\":7,\"sid\":\"EBESExQVFhcYGRobHB0eHw==\"}",
+    "plaintext": {"type":"ack","message_id":"33333333-3333-4333-8333-333333333333","status":"accepted","error":"none"},
+    "plaintext_canonical": "{\"error\":\"none\",\"message_id\":\"33333333-3333-4333-8333-333333333333\",\"status\":\"accepted\",\"type\":\"ack\"}",
+    "ciphertext": "m/De96XaVuM7dVMIGvU3pwHILz5oqjI03sgza1/L2hY7aGKlTER99tEWRUWfcvxx23wnHjOtzDIOUDKY8gWzZVv4A2UAPIB7gFCtYnXi7114/J9E6ph+gKdtHIZHIxqBimxC5HPEvxEmg0Zn93k+kOyegpUO",
+    "envelope": {"p":"magnolie-phone/1","sid":"EBESExQVFhcYGRobHB0eHw==","seq":7,"dir":"phone_to_desktop","ciphertext":"m/De96XaVuM7dVMIGvU3pwHILz5oqjI03sgza1/L2hY7aGKlTER99tEWRUWfcvxx23wnHjOtzDIOUDKY8gWzZVv4A2UAPIB7gFCtYnXi7114/J9E6ph+gKdtHIZHIxqBimxC5HPEvxEmg0Zn93k+kOyegpUO"}
+  }
+}

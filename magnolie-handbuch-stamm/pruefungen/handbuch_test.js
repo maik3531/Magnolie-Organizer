@@ -364,9 +364,8 @@ for (const language of languages) {
   for (const page of sourcePages) {
     for (const key of ["kapitel", "titel", "inhalt"]) {
       if (!page[key]) continue;
-      if (allowedPending.has(page[key])) {
-        assert.ok(!Object.prototype.hasOwnProperty.call(data.messages, page[key]),
-          `${language}: pending translation unexpectedly filled for ${page.titel}`);
+      if (allowedPending.has(page[key]) &&
+          !Object.prototype.hasOwnProperty.call(data.messages, page[key])) {
         continue;
       }
       assert.ok(Object.prototype.hasOwnProperty.call(data.messages, page[key]),
@@ -410,8 +409,8 @@ for (const language of languages) {
             assert.ok(digits.includes(value),
               `${language}: synchronization limit ${value} changed on ${page.titel}`);
           }
-          assert.ok(data.messages[page[key]].includes("2.0.4") &&
-            data.messages[page[key]].includes("1.0.5"),
+          assert.ok(data.messages[page[key]].includes("2.0.5") &&
+            data.messages[page[key]].includes("1.0.6"),
           `${language}: supported version changed on ${page.titel}`);
         }
         const protectedByPage = {
@@ -670,9 +669,9 @@ function checkLocale(locale, expected) {
   for (const text of expected.completeText) {
     assert.ok(print.includes(text), `${locale}: missing complete-book marker: ${text}`);
   }
-  for (const preserved of ["backing-up-and-restoring", "magnolie-organizer_2.0.4_all.deb",
-    "sudo apt install ./magnolie-organizer_2.0.4_all.deb", "wttr.in",
-    "maik3531@gmail.com", "2.0.4"]) {
+  for (const preserved of ["backing-up-and-restoring", "magnolie-organizer_2.0.5_all.deb",
+    "sudo apt install ./magnolie-organizer_2.0.5_all.deb", "wttr.in",
+    "maik3531@gmail.com", "2.0.5"]) {
     assert.ok(print.includes(preserved), `${locale}: technical value changed: ${preserved}`);
   }
   assert.ok(!print.includes("1.28.0") && !print.includes("1.31.37") &&
@@ -876,9 +875,9 @@ try {
   assert.ok(english.H.blaettereZuId("kde-sms") &&
     english.H.seiten()[english.H.seiten().findIndex((page) => page.id === "kde-sms")].titel,
   "slug navigation failed");
-  assert.ok(englishText.includes("sudo dnf install ./magnolie-organizer-2.0.4-1.noarch.rpm"));
-  assert.ok(englishText.includes("rpmbuild --rebuild magnolie-organizer-2.0.4-1.src.rpm"));
-  assert.ok(englishText.includes("sudo dnf upgrade ./magnolie-organizer-2.0.4-1.noarch.rpm"));
+  assert.ok(englishText.includes("sudo dnf install ./magnolie-organizer-2.0.5-1.noarch.rpm"));
+  assert.ok(englishText.includes("rpmbuild --rebuild magnolie-organizer-2.0.5-1.src.rpm"));
+  assert.ok(englishText.includes("sudo dnf upgrade ./magnolie-organizer-2.0.5-1.noarch.rpm"));
   assert.ok(englishText.includes("Only one <i>Magnolie Organizer</i> entry remains"));
   assert.ok(englishText.includes("Update manual …") &&
     englishText.includes("verifies SHA-256") && englishText.includes("never runs sudo or dpkg"));
@@ -973,11 +972,11 @@ try {
     "android-personal-deletion-review", "android-recovery-journal"];
   assert.strictEqual(sourcePages.filter((page) => androidTransferIds.includes(page.id)).length, 6,
     "the Android transfer and recovery route must contain exactly six pages");
-  for (const phrase of ["There is no QR pairing", "Outbox: … waiting", "Bluetooth data fallback",
+  for (const phrase of ["QR pairing requires confirmation", "Outbox: … waiting", "Bluetooth data fallback",
     "Automatic synchronization is <b>Wi-Fi only</b>", "only a proposal",
     "This is not an external backup"])
     assert.ok(englishText.includes(phrase), `English Android transfer documentation missing: ${phrase}`);
-  for (const phrase of ["keine QR-Paarung", "Postfach: … wartend", "Bluetooth-Datenfallback",
+  for (const phrase of ["QR-Paarung erfordert", "Postfach: … wartend", "Bluetooth-Datenfallback",
     "Automatischer Abgleich erfolgt <b>nur über WLAN</b>", "nur ein Vorschlag",
     "keine externe Sicherung"])
     assert.ok(germanText.includes(phrase), `German Android transfer documentation missing: ${phrase}`);
@@ -1012,11 +1011,11 @@ try {
   const python = fs.readFileSync(path.join(ROOT, "bin", "magnolie-handbuch"), "utf8");
   assert.ok(python.includes("gettext.translation") && python.includes("/usr/share/locale"));
   assert.ok(python.includes("window.MAGNOLIE_LOCALE") && python.includes("get_is_remote"));
-  assert.ok(python.includes('PROGRAMM_FASSUNG = "2.0.4"') && python.includes('"--version"'));
+  assert.ok(python.includes('PROGRAMM_FASSUNG = "2.0.5"') && python.includes('"--version"'));
   const changelog = fs.readFileSync(path.join(ROOT, "debian", "changelog"), "utf8");
   const pot = fs.readFileSync(path.join(ROOT, "po", "magnolie-handbuch.pot"), "utf8");
-  assert.ok(changelog.startsWith("magnolie-handbuch (2.0.4)"));
-  assert.ok(pot.includes('"Project-Id-Version: Magnolie Handbook 2.0.4'));
+  assert.ok(changelog.startsWith("magnolie-handbuch (2.0.5)"));
+  assert.ok(pot.includes('"Project-Id-Version: Magnolie Handbook 2.0.5'));
   assert.ok(!sources.i18n.includes("pageReferenceUpdates") &&
     !sources.content.includes("data-seite="), "brittle page-number migration remains");
   const pageCount = english.H.seiten().length;

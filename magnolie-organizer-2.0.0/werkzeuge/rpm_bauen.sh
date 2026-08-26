@@ -19,17 +19,19 @@ EPOCH=${SOURCE_DATE_EPOCH:-1786320000}
 
 if [ -z "$MODUS" ]; then
     CONTRIBUTOR_HASH=${MAGNOLIE_CONTRIBUTOR_HASH:-}
-    [ "${#CONTRIBUTOR_HASH}" -eq 64 ] || {
-        printf '%s\n' 'MAGNOLIE_CONTRIBUTOR_HASH fehlt oder ist ungueltig.' >&2
-        exit 2
-    }
-    case "$CONTRIBUTOR_HASH" in
-        *[!0-9a-fA-F]*)
-            printf '%s\n' 'MAGNOLIE_CONTRIBUTOR_HASH fehlt oder ist ungueltig.' >&2
-            exit 2 ;;
-    esac
-    MAGNOLIE_CONTRIBUTOR_HASH=$(printf '%s' "$CONTRIBUTOR_HASH" | tr A-F a-f)
-    export MAGNOLIE_CONTRIBUTOR_HASH
+    if [ -n "$CONTRIBUTOR_HASH" ]; then
+        [ "${#CONTRIBUTOR_HASH}" -eq 64 ] || {
+            printf '%s\n' 'MAGNOLIE_CONTRIBUTOR_HASH ist ungueltig.' >&2
+            exit 2
+        }
+        case "$CONTRIBUTOR_HASH" in
+            *[!0-9a-fA-F]*)
+                printf '%s\n' 'MAGNOLIE_CONTRIBUTOR_HASH ist ungueltig.' >&2
+                exit 2 ;;
+        esac
+        MAGNOLIE_CONTRIBUTOR_HASH=$(printf '%s' "$CONTRIBUTOR_HASH" | tr A-F a-f)
+        export MAGNOLIE_CONTRIBUTOR_HASH
+    fi
 fi
 
 mkdir -p "$TOPDIR/BUILD" "$TOPDIR/BUILDROOT" "$TOPDIR/RPMS" \

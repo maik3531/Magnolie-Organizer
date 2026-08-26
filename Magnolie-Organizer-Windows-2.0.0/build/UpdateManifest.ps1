@@ -13,7 +13,7 @@ $root = Split-Path -Parent $PSScriptRoot
 $version = Get-ReleaseVersion $root
 if ($env:OS -ne "Windows_NT") { throw "Manifestaktualisierung ist nur auf Windows erlaubt." }
 if (-not $RootManifest) { $RootManifest = Join-Path (Split-Path -Parent $root) "update.xml" }
-if (-not $LinuxSourceManifest) { $LinuxSourceManifest = Join-Path (Split-Path -Parent $root) "magnolie-organizer-stamm/update.xml" }
+if (-not $LinuxSourceManifest) { $LinuxSourceManifest = Join-Path (Split-Path -Parent $root) "magnolie-organizer-2.0.0/update.xml" }
 if ([IO.Path]::GetFullPath($RootManifest).Equals([IO.Path]::GetFullPath($LinuxSourceManifest), [StringComparison]::OrdinalIgnoreCase)) {
     throw "Wurzel- und Linux-Quellmanifest müssen verschiedene Pfade sein."
 }

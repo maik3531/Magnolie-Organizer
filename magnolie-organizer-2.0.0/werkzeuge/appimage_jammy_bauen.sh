@@ -19,7 +19,7 @@ TALLOC_SHA=0910059bb0329add8d13b502f5a10d18d5b3c5202fbbbe25ef4f6d58e7edfe6c
 PROOT_WURZEL="$ARBEIT/proot"
 PROOT="$PROOT_WURZEL/usr/bin/proot"
 SNAPSHOT=20260820T000000Z
-BASIS_STAND="$SNAPSHOT-file2"
+BASIS_STAND="$SNAPSHOT-qrcode1"
 
 for befehl in curl dpkg-deb dpkg-parsechangelog sha256sum tar; do
     command -v "$befehl" >/dev/null || {
@@ -86,7 +86,7 @@ if [ ! -f "$MARKER" ] || [ "$(cat "$MARKER")" != "$BASIS_STAND" ]; then
         libayatana-appindicator3-1 libglib2.0-bin libgtk-3-0 libwebkit2gtk-4.1-0 \
         libxapp1 xapp python3 python3-cryptography python3-gi \
         python3-ifaddr python3-openssl \
-        python3-zeroconf
+        python3-qrcode python3-zeroconf
     printf '%s\n' "$BASIS_STAND" > "$MARKER"
 fi
 

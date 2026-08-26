@@ -12,16 +12,18 @@ WERKZEUGE=${APPIMAGE_TOOL_DIR:-"$WURZEL/bau/appimage-werkzeuge"}
 APPDIR="$ARBEIT/Magnolie-Organizer.AppDir"
 
 CONTRIBUTOR_HASH=${MAGNOLIE_CONTRIBUTOR_HASH:-}
-[ "${#CONTRIBUTOR_HASH}" -eq 64 ] || {
-    printf '%s\n' 'MAGNOLIE_CONTRIBUTOR_HASH fehlt oder ist ungueltig.' >&2
-    exit 2
-}
-case "$CONTRIBUTOR_HASH" in
-    *[!0-9a-fA-F]*)
-        printf '%s\n' 'MAGNOLIE_CONTRIBUTOR_HASH fehlt oder ist ungueltig.' >&2
-        exit 2 ;;
-esac
-CONTRIBUTOR_HASH=$(printf '%s' "$CONTRIBUTOR_HASH" | tr A-F a-f)
+if [ -n "$CONTRIBUTOR_HASH" ]; then
+    [ "${#CONTRIBUTOR_HASH}" -eq 64 ] || {
+        printf '%s\n' 'MAGNOLIE_CONTRIBUTOR_HASH ist ungueltig.' >&2
+        exit 2
+    }
+    case "$CONTRIBUTOR_HASH" in
+        *[!0-9a-fA-F]*)
+            printf '%s\n' 'MAGNOLIE_CONTRIBUTOR_HASH ist ungueltig.' >&2
+            exit 2 ;;
+    esac
+    CONTRIBUTOR_HASH=$(printf '%s' "$CONTRIBUTOR_HASH" | tr A-F a-f)
+fi
 
 if [ "$ARCH" != "x86_64" ]; then
     printf '%s\n' "Der AppImage-Bau ist derzeit fuer x86_64 festgeschrieben." >&2
@@ -147,7 +149,7 @@ install -m 0755 "$(readlink -f "$(command -v python3)")" "$APPDIR/usr/bin/python
 ln -s "python$PYTHON_VERSION" "$APPDIR/usr/bin/python3"
 cp -a "/usr/lib/python$PYTHON_VERSION" "$APPDIR/usr/lib/"
 find "$APPDIR/usr/lib/python$PYTHON_VERSION" -type f \( -name '*.a' -o -name '*.o' \) -delete
-for paket in gi cryptography OpenSSL zeroconf ifaddr async_timeout; do
+for paket in gi cryptography OpenSSL zeroconf ifaddr async_timeout qrcode; do
     quelle="/usr/lib/python3/dist-packages/$paket"
     [ ! -e "$quelle" ] || cp -a "$quelle" "$APPDIR/usr/lib/python3/dist-packages/"
 done
@@ -164,8 +166,10 @@ done
     cp -a /usr/lib/$MULTIARCH/webkit2gtk-4.1 "$APPDIR/usr/lib/"
 
 cp -a "$WURZEL/web/." "$APPDIR/usr/share/magnolie-organizer/web/"
-printf '{"contributorHash":"%s"}\n' "$CONTRIBUTOR_HASH" > \
-    "$APPDIR/usr/share/magnolie-organizer/build-config.json"
+if [ -n "$CONTRIBUTOR_HASH" ]; then
+    printf '{"contributorHash":"%s"}\n' "$CONTRIBUTOR_HASH" > \
+        "$APPDIR/usr/share/magnolie-organizer/build-config.json"
+fi
 while read -r sprache; do
     install -m 0644 "$ARBEIT/$sprache.js" \
         "$APPDIR/usr/share/magnolie-organizer/web/i18n/$sprache.js"

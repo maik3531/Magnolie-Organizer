@@ -6,3 +6,9 @@ node_modules/
 *.suo
 *.staging-*
 Magnolie-Organizer-Windows-*-PRUEFSUMMEN.sha256
+/Magnolie-Organizer-Windows-*.zip
+/Magnolie-Organizer-Windows-*-Setup-*.exe
+/Magnolie-Organizer-Windows-*-Setup-*.exe.build.json
+/build/handbook-windows-i18n/
+/vm/*.qcow2
+/vm/*.iso

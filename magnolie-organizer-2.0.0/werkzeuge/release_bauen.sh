@@ -20,7 +20,7 @@ python3 "$LIVE_SOURCE/werkzeuge/update_signieren.py" --check-key \
 FASSUNG=$(dpkg-parsechangelog -l"$LIVE_SOURCE/debian/changelog" -SVersion)
 SOURCE_NAME="magnolie-organizer-$FASSUNG"
 LIVE_SOURCE_NAME=$(basename "$LIVE_SOURCE")
-LIVE_WINDOWS="$LIVE_ROOT/Magnolie-Organizer-Windows-2.0.0"
+LIVE_WINDOWS=${MAGNOLIE_WINDOWS_ROOT:-"$LIVE_ROOT/Magnolie-Organizer-Windows-2.0.0"}
 WINDOWS_INSTALLER="$LIVE_WINDOWS/Magnolie-Organizer-Windows-$FASSUNG-Setup-x64.exe"
 WINDOWS_ZIP="$LIVE_WINDOWS/Magnolie-Organizer-Windows-$FASSUNG-x64.zip"
 WINDOWS_PRUEFSUMMEN="$LIVE_WINDOWS/Magnolie-Organizer-Windows-$FASSUNG-PRUEFSUMMEN.sha256"
@@ -213,7 +213,7 @@ SOURCE_DATE_EPOCH=$epoch werkzeuge/flatpak_bauen.sh "$FLATPAK"
 python3 pruefungen/test_flatpak.py "$FLATPAK_VERGLEICH" "$FLATPAK"
 rm -f "$FLATPAK_VERGLEICH"
 
-python3 werkzeuge/release_manifest.py \
+python3 werkzeuge/release_manifest.py --allow-unsigned \
     "$DEB" "$APPIMAGE" "$HANDBUCH_DEB" "$WINDOWS_INSTALLER" \
     "$WURZEL/update.xml" "$STAGE/update.xml"
 python3 werkzeuge/update_signieren.py \

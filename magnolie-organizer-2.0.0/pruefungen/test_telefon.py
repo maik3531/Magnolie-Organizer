@@ -257,6 +257,46 @@ def test_protocol_failure_closes_socket_immediately():
         service._release_pairing_attempt()
 
 
+def test_handle_does_not_suppress_base_exception():
+    class StopHandling(BaseException):
+        pass
+
+    with tempfile.TemporaryDirectory() as root:
+        service = phone.PhoneService(os.path.join(root, "telefon"), "Test desktop")
+        sock = mock.Mock()
+        with mock.patch.object(phone, "receive_frame", side_effect=StopHandling), \
+                __import__("pytest").raises(StopHandling):
+            service._handle(sock, "bluetooth:peer", "bluetooth")
+        sock.close.assert_called_once_with()
+
+
+def test_successful_pairing_handler_closes_socket_immediately():
+    with tempfile.TemporaryDirectory() as root:
+        service = phone.PhoneService(os.path.join(root, "telefon"), "Test desktop")
+        sock = mock.Mock()
+        first = {"p": phone.PROTOCOL, "type": "pair_init"}
+        with mock.patch.object(phone, "receive_frame", return_value=first), \
+                mock.patch.object(service, "_pair") as pair:
+            service._handle(sock, "local")
+        pair.assert_called_once_with(sock, first)
+        sock.close.assert_called_once_with()
+
+
+def test_failed_pairing_removes_attempt_context():
+    vectors = json.load(open(VEKTORPFAD, encoding="utf-8"))
+    pair_init = vectors["pairing"]["pair_init"]
+    with tempfile.TemporaryDirectory() as root:
+        service = phone.PhoneService(os.path.join(root, "telefon"), "Test desktop")
+        service.pairing_token = phone.unb64(pair_init["pairing_token"], 16)
+        service.pairing_until = time.monotonic() + 60
+        sock = mock.Mock()
+        with mock.patch.object(phone, "send_frame"), \
+                mock.patch.object(phone, "receive_frame", side_effect=ValueError("aborted")), \
+                __import__("pytest").raises(ValueError, match="aborted"):
+            service._pair(sock, pair_init)
+        assert service.pairings == {}
+
+
 def test_dedupe_is_persistent_and_phone_only():
     with tempfile.TemporaryDirectory() as root:
         store = phone.PhoneStore(os.path.join(root, "telefon"), "Test desktop")

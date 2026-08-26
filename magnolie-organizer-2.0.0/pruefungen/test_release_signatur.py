@@ -72,7 +72,12 @@ def test_manifest_signiert_und_tamper_wird_abgelehnt(tmp_path):
         "Magnolie-Organizer-Windows-9.8.7-Setup-x64.exe</url></windows></update>",
         encoding="utf-8")
 
-    subprocess.run([sys.executable, MANIFEST_WERKZEUG, deb, appimage, handbuch,
+    ohne_freigabe = subprocess.run(
+        [sys.executable, MANIFEST_WERKZEUG, deb, appimage, handbuch, windows, manifest],
+        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    assert ohne_freigabe.returncode != 0
+    subprocess.run([sys.executable, MANIFEST_WERKZEUG, "--allow-unsigned",
+                    deb, appimage, handbuch,
                     windows, manifest],
                    check=True, stdout=subprocess.DEVNULL)
     assert ET.parse(manifest).getroot().find("signature") is None

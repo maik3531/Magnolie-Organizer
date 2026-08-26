@@ -113,7 +113,9 @@ SSL_CERT_FILE="$APPDIR/usr/share/magnolie-organizer/certs/ca-certificates.crt" \
 import gi
 import magnolie_personal_sync
 import magnolie_telefon
+import qrcode
 import ssl
+from qrcode.image.svg import SvgPathImage
 
 gi.require_version("Gio", "2.0")
 gi.require_version("Gst", "1.0")
@@ -128,6 +130,10 @@ assert magnolie_telefon.validate_personal_sync_body is \
 assert Gio.TlsBackend.get_default().supports_tls()
 assert Gst.ElementFactory.find("appsink") is not None
 assert ssl.get_default_verify_paths().cafile.endswith("ca-certificates.crt")
+qr = qrcode.QRCode()
+qr.add_data("magnolie-appimage-probe")
+qr.make(fit=True)
+assert qr.make_image(image_factory=SvgPathImage).to_string().startswith(b"<svg")
 component = ICalGLib.Component.new_from_string(
     "BEGIN:VEVENT\r\nUID:appimage-probe\r\nDTSTAMP:20260101T000000Z\r\nEND:VEVENT\r\n")
 assert component is not None

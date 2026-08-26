@@ -627,7 +627,6 @@ def test_inbound_pairing_event_confirm_and_reject_without_automatic_trust():
         assert result["state"] == "paired" and peer.device_id in backend.store.peers
         assert worker.outgoing.get_nowait()["body"] == {"pair": True}
 
-        rejected = FakeConnection()
         rejected_worker = mock.Mock()
         backend.pairing = {"state": "requested", "direction": "incoming",
             "worker": rejected_worker, "identity": secure, "certificate": peer.certificate,

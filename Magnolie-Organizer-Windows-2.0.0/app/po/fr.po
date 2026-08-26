@@ -5,7 +5,7 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: Magnolie Organizer 2.0.4\n"
+"Project-Id-Version: Magnolie Organizer 2.0.5\n"
 "Report-Msgid-Bugs-To: maik3531@gmail.com\n"
 "POT-Creation-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "PO-Revision-Date: 2026-08-08 06:34+0200\n"
@@ -4361,6 +4361,9 @@ msgstr "Les informations de mise à jour du manuel ne sont pas valides."
 
 msgid "The manual update information is missing."
 msgstr "Les informations de mise à jour manuelle sont manquantes."
+
+msgid "The message is too large."
+msgstr "Le message est trop volumineux."
 
 msgid "The offered entry is incomplete."
 msgstr "L’entrée proposée est incomplète."

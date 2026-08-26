@@ -61,7 +61,7 @@ internal sealed partial class BridgeDispatcher
             if (clientId.Length == 0) throw new InvalidOperationException(T("Save your Microsoft OAuth client ID first."));
             var oauth = new MicrosoftOAuthClient(http); using var timeout = new CancellationTokenSource(TimeSpan.FromMinutes(16));
             var device = await oauth.RequestDeviceCodeAsync(clientId, timeout.Token);
-            var opened = NativeMethods.OpenWithShell(device.VerificationUri);
+            var opened = ShellLauncher.OpenWebUri(device.VerificationUri);
             await form.SendAsync("App.graphAnmeldung", new { ok = true, fertig = false, code = device.UserCode, url = device.VerificationUri, nachricht = device.Message, browser = opened });
             var token = await oauth.PollTokenAsync(clientId, device, timeout.Token);
             GraphTokens.Save(token.RefreshToken);
@@ -188,10 +188,21 @@ internal sealed partial class BridgeDispatcher
                     if (resumedIndex >= phases.IndexOf(phase)) continue;
                     var calendarCursor = Cursor(calendarCursors, calendar.Uid);
                     var firstCalendarRun = nextcloudCalendars[calendar.Uid]?["initialisiert"]?.GetValue<bool>() != true || calendarCursor <= 0;
+                    var isDefaultCalendar = calendar.Uid == selected[0].Uid;
+                    var (calendarTerms, remainingTerms) = NextcloudDavSelection.SplitCalendarItems(
+                        terms as JsonArray ?? [], calendar.Uid, isDefaultCalendar);
+                    var (calendarAnniversaries, remainingAnniversaries) = NextcloudDavSelection.SplitCalendarItems(
+                        anniversaries as JsonArray ?? [], calendar.Uid, isDefaultCalendar);
+                    var (calendarTombstones, remainingTombstones) = NextcloudDavSelection.SplitCalendarTombstones(
+                        termTombstones, calendar.Uid, isDefaultCalendar);
                     using var calendarTimeout = new CancellationTokenSource(TimeSpan.FromSeconds(12));
-                    var calendarResult = await new NextcloudCalendarSync(davClient).SyncAsync(calendar, terms as JsonArray ?? [], anniversaries as JsonArray ?? [],
-                        termTombstones, calendarCursor, additiveOnly || firstCalendarRun, calendarTimeout.Token);
-                    terms = calendarResult.Termine; anniversaries = calendarResult.Jahrestage; termTombstones = calendarResult.Tombstones;
+                    var calendarResult = await new NextcloudCalendarSync(davClient).SyncAsync(calendar,
+                        calendarTerms, calendarAnniversaries, calendarTombstones, calendarCursor,
+                        additiveOnly || firstCalendarRun, calendarTimeout.Token);
+                    foreach (var item in calendarResult.Termine) remainingTerms.Add(item?.DeepClone());
+                    foreach (var item in calendarResult.Jahrestage) remainingAnniversaries.Add(item?.DeepClone());
+                    foreach (var item in calendarResult.Tombstones) remainingTombstones.Add(item?.DeepClone());
+                    terms = remainingTerms; anniversaries = remainingAnniversaries; termTombstones = remainingTombstones;
                     calendarReports.Add($"{calendar.Name}: {calendarResult.Imported} importiert, {calendarResult.Exported} exportiert, {calendarResult.Updated} aktualisiert, {calendarResult.Deleted} gelöscht, {calendarResult.Conflicts} Konflikte.");
                     SaveProgress(phase);
                 }

@@ -61,6 +61,7 @@
     <Compile Include="..\BluetoothRadioSwitch.cs" Link="BluetoothRadioSwitch.cs" />
     <Compile Include="..\WindowsFirewall.cs" Link="WindowsFirewall.cs" />
     <Compile Include="..\NativeLocalization.cs" Link="NativeLocalization.cs" />
+    <Compile Include="..\ShellLauncher.cs" Link="ShellLauncher.cs" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="resources\*.json">

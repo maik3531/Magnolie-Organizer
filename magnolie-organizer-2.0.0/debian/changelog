@@ -1,3 +1,14 @@
+magnolie-organizer (2.0.5) unstable; urgency=medium
+
+  * Ergänzt sichere QR-Paarung für den Magnolienbaum und härtet die
+    plattformübergreifende Telefonkommunikation.
+  * Bewahrt komplexe Kalender-, Aufgaben- und Kontaktdaten beim Abgleich und
+    verbessert Konflikt-, Lösch- und Wiederherstellungsverhalten.
+  * Sichert Aktualisierungs-, Browser-, Erinnerungs- und Releasepfade durch
+    strengere Verträge und zusätzliche Regressionstests ab.
+
+ -- Maik Walter <maik3531@gmail.com>  Wed, 26 Aug 2026 02:30:00 +0200
+
 magnolie-organizer (2.0.4) unstable; urgency=medium
 
   * Stellt WebKit-Compositing und Umblätteranimationen wieder her und verbessert

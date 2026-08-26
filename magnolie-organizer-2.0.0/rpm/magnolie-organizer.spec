@@ -1,5 +1,5 @@
 Name:           magnolie-organizer
-Version:        2.0.4
+Version:        2.0.5
 Release:        1%{?dist}
 Summary:        Personal organizer with a classic paper appearance
 
@@ -18,6 +18,7 @@ BuildRequires:  python3-pyOpenSSL
 BuildRequires:  python3-devel
 BuildRequires:  python3-gobject
 BuildRequires:  python3-pytest
+BuildRequires:  python3-qrcode
 BuildRequires:  python3-zeroconf
 BuildRequires:  xdg-utils
 Requires:       gtk3
@@ -25,6 +26,7 @@ Requires:       gettext
 Requires:       python3
 Requires:       python3-cryptography
 Requires:       python3-pyOpenSSL
+Requires:       python3-qrcode
 Requires:       python3-gobject
 Requires:       python3-zeroconf
 Requires:       webkit2gtk4.1
@@ -121,11 +123,13 @@ install -pm 0644 web/kaffee-qr.png \
     %{buildroot}%{_datadir}/%{name}/web/kaffee-qr.png
 install -pm 0644 web/i18n/*.js %{buildroot}%{_datadir}/%{name}/web/i18n/
 hash="${MAGNOLIE_CONTRIBUTOR_HASH:-}"
-test "${#hash}" -eq 64 || { echo 'MAGNOLIE_CONTRIBUTOR_HASH fehlt oder ist ungueltig.' >&2; exit 2; }
-case "$hash" in *[!0-9a-fA-F]*) echo 'MAGNOLIE_CONTRIBUTOR_HASH fehlt oder ist ungueltig.' >&2; exit 2;; esac
-hash=$(printf '%s' "$hash" | tr A-F a-f)
-printf '{"contributorHash":"%s"}\n' "$hash" > \
-    %{buildroot}%{_datadir}/%{name}/build-config.json
+if test -n "$hash"; then
+    test "${#hash}" -eq 64 || { echo 'MAGNOLIE_CONTRIBUTOR_HASH ist ungueltig.' >&2; exit 2; }
+    case "$hash" in *[!0-9a-fA-F]*) echo 'MAGNOLIE_CONTRIBUTOR_HASH ist ungueltig.' >&2; exit 2;; esac
+    hash=$(printf '%s' "$hash" | tr A-F a-f)
+    printf '{"contributorHash":"%s"}\n' "$hash" > \
+        %{buildroot}%{_datadir}/%{name}/build-config.json
+fi
 install -Dpm 0644 werkzeuge/pot_erzeugen.py \
     %{buildroot}%{_datadir}/%{name}/werkzeuge/pot_erzeugen.py
 install -Dpm 0644 klang/erinnerung.wav \
@@ -212,6 +216,10 @@ done
 %{_mandir}/*/man1/magnolie-organizer.1*
 
 %changelog
+* Wed Aug 26 2026 Maik Walter <maik3531@gmail.com> - 2.0.5-1
+- Add secure QR pairing and harden cross-platform phone communication.
+- Preserve complex sync data and strengthen recovery and release checks.
+
 * Mon Aug 24 2026 Maik Walter <maik3531@gmail.com> - 2.0.4-1
 - Restore WebKit compositing, page-turn animation and responsive startup
 - Run the AppImage through XWayland while retaining the GLIBC 2.35 ceiling

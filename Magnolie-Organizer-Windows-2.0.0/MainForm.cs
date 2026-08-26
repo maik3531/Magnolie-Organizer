@@ -392,12 +392,12 @@ internal sealed class MainForm : Form
         {
             if (IsInternal(eventArgs.Uri)) return;
             eventArgs.Cancel = true;
-            if (IsSafeExternal(eventArgs.Uri)) NativeMethods.OpenWithShell(eventArgs.Uri);
+                ShellLauncher.OpenExternalUri(eventArgs.Uri);
         };
         core.NewWindowRequested += (_, eventArgs) =>
         {
             eventArgs.Handled = true;
-            if (!IsInternal(eventArgs.Uri) && IsSafeExternal(eventArgs.Uri)) NativeMethods.OpenWithShell(eventArgs.Uri);
+            if (!IsInternal(eventArgs.Uri)) ShellLauncher.OpenExternalUri(eventArgs.Uri);
         };
         core.PermissionRequested += (_, eventArgs) => eventArgs.State = CoreWebView2PermissionState.Deny;
     }
@@ -406,10 +406,6 @@ internal sealed class MainForm : Form
         Uri.TryCreate(uri, UriKind.Absolute, out var parsed) &&
         parsed.Scheme.Equals("https", StringComparison.OrdinalIgnoreCase) &&
         parsed.Host.Equals(VirtualHost, StringComparison.OrdinalIgnoreCase);
-
-    private static bool IsSafeExternal(string uri) =>
-        Uri.TryCreate(uri, UriKind.Absolute, out var parsed) &&
-        parsed.Scheme is "http" or "https" or "mailto" or "tel";
 
     private async void OnFormClosing(object? sender, FormClosingEventArgs eventArgs)
     {

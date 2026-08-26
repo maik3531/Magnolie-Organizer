@@ -55,7 +55,7 @@ internal sealed partial class BridgeDispatcher : IDisposable
         recovery = new RecoveryJournal(paths.RecoveryJournal, paths.RecoverySettings, store);
         recoveryTimer = new System.Threading.Timer(_ => _ = RunPeriodicSnapshotAsync(), null,
             TimeSpan.FromMinutes(1), TimeSpan.FromMinutes(15));
-        http.DefaultRequestHeaders.UserAgent.ParseAdd("Magnolie-Organizer-Windows/2.0.4");
+        http.DefaultRequestHeaders.UserAgent.ParseAdd("Magnolie-Organizer-Windows/2.0.5");
     }
 
     internal async Task HandleAsync(string rawMessage)
@@ -484,7 +484,7 @@ internal sealed partial class BridgeDispatcher : IDisposable
                 CleanOldAttachments(directory);
                 var path = Path.Combine(directory, Guid.NewGuid().ToString("N") + attachment.Extension);
                 await File.WriteAllBytesAsync(path, attachment.Bytes);
-                if (!NativeMethods.OpenWithShell(path))
+                if (!ShellLauncher.OpenLocalFile(path, directory))
                 {
                     try { File.Delete(path); } catch (Exception) { }
                     throw new IOException(T("No application is registered for the attachment."));
@@ -938,7 +938,7 @@ internal sealed partial class BridgeDispatcher : IDisposable
         {
             var data = JsonNode.Parse(currentPlainText) as JsonObject
                 ?? throw new InvalidDataException(T("The current organizer data is incomplete."));
-            var version = typeof(BridgeDispatcher).Assembly.GetName().Version?.ToString(3) ?? "2.0.4";
+            var version = typeof(BridgeDispatcher).Assembly.GetName().Version?.ToString(3) ?? "2.0.5";
             var archive = GesamtarchivService.Create(data, "windows", version, password);
             store.Write(dialog.FileName, archive, AtomicStore.MaxArchiveBytes);
             await form.SendAsync("App.gesamtarchivExportiert", new
@@ -992,7 +992,7 @@ internal sealed partial class BridgeDispatcher : IDisposable
         }
     }
 
-    private string AppVersion => typeof(BridgeDispatcher).Assembly.GetName().Version?.ToString(3) ?? "2.0.4";
+    private string AppVersion => typeof(BridgeDispatcher).Assembly.GetName().Version?.ToString(3) ?? "2.0.5";
 
     private SnapshotInfo CreateSnapshot(SnapshotReason reason)
     {
@@ -1308,13 +1308,13 @@ internal sealed partial class BridgeDispatcher : IDisposable
 
     private async Task OpenResultAsync(string callback, string target)
     {
-        var ok = IsAllowedWebTarget(target) && NativeMethods.OpenWithShell(target);
+        var ok = IsAllowedWebTarget(target) && ShellLauncher.OpenWebUri(target);
         await form.SendAsync(callback, new { ok, fehler = ok ? "" : T("The address could not be opened.") });
     }
 
     private async Task OpenValidatedResultAsync(string callback, string target, Func<string, bool> allowed)
     {
-        var ok = allowed(target) && NativeMethods.OpenWithShell(target);
+        var ok = allowed(target) && ShellLauncher.OpenWebUri(target);
         await form.SendAsync(callback, new { ok, fehler = ok ? "" : T("The download address is not permitted for this platform.") });
     }
 
@@ -1325,7 +1325,7 @@ internal sealed partial class BridgeDispatcher : IDisposable
             var unlocked = LogPresentation.HasPersistentContributorUnlock(
                 currentPlainText, contributorHash is not null, currentPlainTextAvailable);
             var viewPath = LogPresentation.CreateView(paths.Logs, unlocked);
-            var ok = NativeMethods.OpenWithShell(viewPath);
+            var ok = ShellLauncher.OpenLocalDirectory(viewPath, paths.Logs);
             await form.SendAsync("App.protokollStand", new { ok, pfad = viewPath, womit = ok ? "explorer" : "", fehler = ok ? "" : T("The log folder could not be opened.") });
         }
         catch (Exception error) when (error is IOException or UnauthorizedAccessException)
@@ -1359,14 +1359,14 @@ internal sealed partial class BridgeDispatcher : IDisposable
 
     private async Task OpenAddressResultAsync(string target)
     {
-        var ok = NativeMethods.OpenWithShell(target);
+        var ok = ShellLauncher.OpenContactUri(target);
         await form.SendAsync("App.adressWeg", new { ok, fehler = ok ? "" : T("The destination could not be opened.") });
     }
 
     private static void OpenMedicine(string name)
     {
         if (string.IsNullOrWhiteSpace(name)) return;
-        NativeMethods.OpenWithShell("https://www.gelbe-liste.de/suche?query=" + Uri.EscapeDataString(name.Trim()));
+        ShellLauncher.OpenWebUri("https://www.gelbe-liste.de/suche?query=" + Uri.EscapeDataString(name.Trim()));
     }
 
     private async Task CheckUpdateAsync()
@@ -1455,7 +1455,7 @@ internal sealed partial class BridgeDispatcher : IDisposable
             var actual = Convert.ToHexString(hash.GetHashAndReset()).ToLowerInvariant();
             if (!CryptographicOperations.FixedTimeEquals(Encoding.ASCII.GetBytes(actual), Encoding.ASCII.GetBytes(requested.Sha256)))
                 throw new InvalidDataException(T("The manual package checksum does not match."));
-            if (!NativeMethods.OpenWithShell(path)) throw new IOException(T("The verified installer could not be opened."));
+            if (!ShellLauncher.OpenLocalFile(path, Path.GetTempPath())) throw new IOException(T("The verified installer could not be opened."));
             await form.SendAsync("App.handbuchDownloadGeoeffnet", new { ok = true, fehler = "", pfad = path });
             path = null;
         }
@@ -1797,7 +1797,7 @@ internal sealed partial class BridgeDispatcher : IDisposable
             }
             var file = DocumentExportService.LetterFileName(dialog.FileName);
             await File.WriteAllBytesAsync(file, bytes);
-            var opened = NativeMethods.OpenWithShell(file);
+            var opened = ShellLauncher.OpenLocalFile(file, Path.GetDirectoryName(Path.GetFullPath(file))!);
             await form.SendAsync("App.adressWeg", new { ok = opened, pfad = file, womit = opened ? "system" : "", fehler = opened ? "" : T("The letter was created but could not be opened.") });
         }
         catch (Exception error) { await form.SendAsync("App.adressWeg", new { ok = false, pfad = "", womit = "", fehler = error.Message }); }
@@ -1829,7 +1829,7 @@ internal sealed partial class BridgeDispatcher : IDisposable
         Directory.CreateDirectory(directory);
         var file = Path.Combine(directory, fileName);
         await File.WriteAllBytesAsync(file, bytes);
-        var opened = NativeMethods.OpenWithShell(file);
+        var opened = ShellLauncher.OpenLocalFile(file, directory);
         await form.SendAsync("App.adressWeg", new { ok = opened, pfad = file, womit = opened ? "system" : "", fehler = opened ? "" : T("The spreadsheet was created but could not be opened.") });
     }
 

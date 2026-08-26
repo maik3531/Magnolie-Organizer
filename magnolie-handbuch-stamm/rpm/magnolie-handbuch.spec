@@ -1,5 +1,5 @@
 Name:           magnolie-handbuch
-Version:        2.0.4
+Version:        2.0.5
 Release:        1%{?dist}
 Summary:        Illustrated user handbook for Magnolie Organizer
 
@@ -54,7 +54,7 @@ desktop-file-validate magnolie-handbuch.desktop
 %install
 install -Dpm 0755 bin/%{name} %{buildroot}%{_bindir}/%{name}
 install -d %{buildroot}%{_datadir}/%{name}/web/i18n
-install -pm 0644 web/index.html web/stil.css web/inhalt.js web/handbuch.js \
+install -pm 0644 web/index.html web/stil.css web/inhalt.js web/platform.js web/handbuch.js \
     web/i18n.js web/i18n-start.js web/i18n-markers.js \
     web/*.png web/*.jpg web/maik-walter-FOTO-NUTZUNG.txt \
     %{buildroot}%{_datadir}/%{name}/web/
@@ -95,6 +95,10 @@ done < po/LINGUAS
 %{_mandir}/*/man1/magnolie-handbuch.1*
 
 %changelog
+* Wed Aug 26 2026 Maik Walter <maik3531@gmail.com> - 2.0.5-1
+- Update the complete multilingual handbook for Magnolie Organizer 2.0.5.
+- Add standalone localized Windows handbook variants.
+
 * Mon Aug 24 2026 Maik Walter <maik3531@gmail.com> - 2.0.4-1
 - Ship the complete handbook for Organizer 2.0.4
 - Update all localized package examples, catalogs and platform copies

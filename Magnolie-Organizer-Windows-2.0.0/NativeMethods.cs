@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 using Microsoft.Win32;
@@ -37,20 +36,6 @@ internal static class NativeMethods
         var window = FindWindow(null, title);
         if (window == nint.Zero) return;
         PostMessage(window, ActivationMessage, nint.Zero, nint.Zero);
-    }
-
-    internal static bool OpenWithShell(string target)
-    {
-        if (string.IsNullOrWhiteSpace(target)) return false;
-        try
-        {
-            Process.Start(new ProcessStartInfo(target) { UseShellExecute = true });
-            return true;
-        }
-        catch (Exception)
-        {
-            return false;
-        }
     }
 
     internal static bool HasUriScheme(string scheme)

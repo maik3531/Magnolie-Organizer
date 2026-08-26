@@ -3,7 +3,10 @@ import importlib.machinery
 import importlib.util
 import json
 import os
+import subprocess
+import sys
 import tempfile
+import threading
 
 
 PFAD = os.path.join(os.path.dirname(os.path.dirname(__file__)),
@@ -77,6 +80,26 @@ def test_statischer_server_erlaubt_nur_host_token_methode_und_allowlist(tmp_path
         server.close()
 
 
+def test_http_server_loest_systemsprache_auf_und_laesst_sich_aktualisieren(
+        tmp_path, monkeypatch):
+    (tmp_path / "i18n").mkdir()
+    (tmp_path / "i18n" / "de.js").write_text("deutsch", encoding="ascii")
+    (tmp_path / "i18n" / "fr.js").write_text("francais", encoding="ascii")
+    monkeypatch.setattr(m, "system_sprache", lambda: "de")
+    server = m.OrganizerHTTPServer(str(tmp_path), token="b" * 48, sprache="system")
+    intern = "/%s/i18n-active.js" % server.token
+    assert m.organizer_http_ressource(
+        intern, server.token, str(tmp_path), server.sprache)[0].endswith("/de.js")
+    transport = object.__new__(m.ChromiumTransport)
+    transport.http = server
+    transport.sprache = "system"
+    transport.sprache_setzen("fr")
+    assert transport.sprache == "fr" and server.sprache == "fr"
+    assert m.organizer_http_ressource(
+        intern, server.token, str(tmp_path), server.sprache)[0].endswith("/fr.js")
+    server.server.server_close()
+
+
 def test_cdp_pipe_framing_ist_fragmentfest_und_nur_json_objekte():
     erste = json.dumps({"id": 1}).encode("ascii") + b"\0" + b'{"met'
     nachrichten, rest = m.cdp_nachrichten(b"", erste)
@@ -90,6 +113,80 @@ def test_cdp_pipe_framing_ist_fragmentfest_und_nur_json_objekte():
         pass
     else:
         raise AssertionError("Nicht-Objekt wurde als CDP-Nachricht akzeptiert")
+
+
+def test_chromium_pipe_ziele_ueberleben_close_fds():
+    befehl_lesen, befehl_schreiben = os.pipe()
+    ereignis_lesen, ereignis_schreiben = os.pipe()
+
+    try:
+        prozess = subprocess.Popen(
+            [sys.executable, "-c",
+             "import os,sys;os.dup2(int(sys.argv[1]),3);"
+             "os.dup2(int(sys.argv[2]),4);os.execv(sys.argv[3],sys.argv[3:])",
+             str(befehl_lesen), str(ereignis_schreiben), sys.executable, "-c",
+             "import os; os.write(4, os.read(3, 4))"],
+            close_fds=True,
+            pass_fds=(befehl_lesen, ereignis_schreiben))
+        os.close(befehl_lesen)
+        befehl_lesen = -1
+        os.close(ereignis_schreiben)
+        ereignis_schreiben = -1
+        os.write(befehl_schreiben, b"ping")
+        assert os.read(ereignis_lesen, 4) == b"ping"
+        assert prozess.wait(timeout=2) == 0
+    finally:
+        for fd in (befehl_lesen, befehl_schreiben,
+                   ereignis_lesen, ereignis_schreiben):
+            if fd >= 0:
+                os.close(fd)
+
+
+def test_cdp_abschluss_weckt_alle_sender_ohne_wartelisten_wettlauf():
+    freigabe = threading.Event()
+
+    class Leser:
+        def read(self, _anzahl):
+            freigabe.wait(2)
+            return b""
+        def close(self):
+            freigabe.set()
+
+    class Schreiber:
+        def __init__(self):
+            self.anzahl = 0
+            self.sperre = threading.Lock()
+        def write(self, _daten):
+            with self.sperre:
+                self.anzahl += 1
+        def flush(self):
+            pass
+        def close(self):
+            pass
+
+    schreiber = Schreiber()
+    client = m.CDPPipeClient(Leser(), schreiber)
+    fehler = []
+
+    def senden():
+        try:
+            client.sende("Page.test", timeout=2)
+        except RuntimeError as ausnahme:
+            fehler.append(str(ausnahme))
+
+    faeden = [threading.Thread(target=senden) for _ in range(20)]
+    for faden in faeden:
+        faden.start()
+    ende = m.time.monotonic() + 2
+    while schreiber.anzahl < len(faeden) and m.time.monotonic() < ende:
+        m.time.sleep(.01)
+    assert schreiber.anzahl == len(faeden)
+    freigabe.set()
+    for faden in faeden:
+        faden.join(2)
+        assert not faden.is_alive()
+    assert len(fehler) == len(faeden)
+    assert not client._wartend
 
 
 def test_cdp_bruecke_akzeptiert_nur_exakten_hauptkontext(monkeypatch):

@@ -316,7 +316,7 @@ class DavHttpClient:
         headers = dict(headers or {})
         token = base64.b64encode((self.user + ":" + self.password).encode("utf-8")).decode("ascii")
         headers["Authorization"] = "Basic " + token
-        headers.setdefault("User-Agent", "Magnolie-Organizer-Linux/2.0.4")
+        headers.setdefault("User-Agent", "Magnolie-Organizer-Linux/2.0.5")
         if body:
             headers.setdefault("Content-Length", str(len(body)))
         started = time.monotonic()
@@ -518,11 +518,15 @@ class NextcloudDav:
         return result
 
     def put(self, href, data, etag=None, create=False):
+        if not create and not str(etag or "").strip():
+            raise NextcloudError(
+                "Der DAV-Eintrag hat keinen ETag und wird nicht ungeschuetzt ueberschrieben.",
+                "missing_etag")
         headers = {"Content-Type": "text/calendar; charset=utf-8" if data.lstrip().upper().startswith("BEGIN:VCALENDAR")
                    else "text/vcard; charset=utf-8"}
         if headers["Content-Type"].startswith("text/calendar"):
             _reject_local_ics_attachments(data)
-        headers["If-None-Match" if create else "If-Match"] = "*" if create else (etag or "")
+        headers["If-None-Match" if create else "If-Match"] = "*" if create else etag
         status, response_headers, _data = self.client.request(
             "PUT", href, data.encode("utf-8"), headers, XML_LIMIT, {200, 201, 204, 412})
         if status == 412:

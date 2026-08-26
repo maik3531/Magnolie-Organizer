@@ -93,12 +93,12 @@ def manifest_schreiben(pfad, deb_pfad, appimage_pfad, handbuch_pfad,
 
 
 def haupt(argumente):
-    if len(argumente) < 6:
+    if len(argumente) < 7 or argumente[1] != "--allow-unsigned":
         raise SystemExit(
-            "Aufruf: release_manifest.py ORGANIZER.deb PAKET.AppImage "
+            "Aufruf: release_manifest.py --allow-unsigned ORGANIZER.deb PAKET.AppImage "
             "HANDBUCH.deb WINDOWS.exe update.xml [update.xml ...]")
-    deb_pfad, appimage_pfad, handbuch_pfad, windows_pfad = argumente[1:5]
-    for manifest in argumente[5:]:
+    deb_pfad, appimage_pfad, handbuch_pfad, windows_pfad = argumente[2:6]
+    for manifest in argumente[6:]:
         manifest_schreiben(manifest, deb_pfad, appimage_pfad, handbuch_pfad,
                            windows_pfad)
         print("Manifest aktualisiert: %s" % manifest)

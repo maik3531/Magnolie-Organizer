@@ -197,6 +197,10 @@ pruefe(len(caldav_import["termine"]) == 2 and
        caldav_export.count("BEGIN:VALARM") == 2 and
        caldav_export.count("DESCRIPTION:Reminder") == 1,
        "unbekannte ICS-Eigenschaften, Parameter und Alarme bleiben im Roundtrip erhalten")
+pruefe(caldav_export.count("UID:caldav-series-1") == 2 and
+       caldav_export.count("RECURRENCE-ID") == 1 and
+       "RRULE:FREQ=WEEKLY;COUNT=4" in caldav_export,
+       "Serienstamm und Ausnahme behalten beim Export dieselbe UID")
 
 lotus_zurueck = m.lotus_csv_lesen(m.lotus_csv_schreiben([termin]).encode("utf-8-sig"))
 pruefe(len(lotus_zurueck["termine"]) == 1 and
