@@ -40,16 +40,16 @@ sharing first.
 
 | Platform | Recommended package | Alternative |
 |---|---|---|
-| Linux | [Flatpak x86_64](https://github.com/maik3531/Magnolie-Organizer/releases/latest/download/Magnolie-Organizer-2.0.6-x86_64.flatpak) | [AppImage](https://github.com/maik3531/Magnolie-Organizer/releases/latest/download/Magnolie-Organizer-2.0.6-x86_64.AppImage) · [Debian package](https://github.com/maik3531/Magnolie-Organizer/releases/latest/download/magnolie-organizer_2.0.6_all.deb) |
-| Windows 10/11 x64 | [Setup](https://github.com/maik3531/Magnolie-Organizer/releases/latest/download/Magnolie-Organizer-Windows-2.0.6-Setup-x64.exe) | [Portable ZIP](https://github.com/maik3531/Magnolie-Organizer/releases/latest/download/Magnolie-Organizer-Windows-2.0.6-x64.zip) |
-| Android | [Magnolie Notes APK](https://github.com/maik3531/Magnolie-Organizer/releases/latest/download/Magnolie-Notes-1.0.6.apk) | Android 8.0 or newer |
-| Handbook | [Debian package](https://github.com/maik3531/Magnolie-Organizer/releases/latest/download/magnolie-handbuch_2.0.6_all.deb) | Included as an optional Windows component |
+| Linux | [Flatpak x86_64](https://github.com/maik3531/Magnolie-Organizer/releases/latest/download/Magnolie-Organizer-2.0.7-x86_64.flatpak) | [AppImage](https://github.com/maik3531/Magnolie-Organizer/releases/latest/download/Magnolie-Organizer-2.0.7-x86_64.AppImage) · [Debian package](https://github.com/maik3531/Magnolie-Organizer/releases/latest/download/magnolie-organizer_2.0.7_all.deb) |
+| Windows 10/11 x64 | [Setup](https://github.com/maik3531/Magnolie-Organizer/releases/latest/download/Magnolie-Organizer-Windows-2.0.7-Setup-x64.exe) | [Portable ZIP](https://github.com/maik3531/Magnolie-Organizer/releases/latest/download/Magnolie-Organizer-Windows-2.0.7-x64.zip) |
+| Android | [Magnolie Notes APK](https://github.com/maik3531/Magnolie-Organizer/releases/latest/download/Magnolie-Notes-1.0.7.apk) | Android 8.0 or newer |
+| Handbook | [Debian package](https://github.com/maik3531/Magnolie-Organizer/releases/latest/download/magnolie-handbuch_2.0.7_all.deb) | Included as an optional Windows component |
 
 SHA-256 checksums and source archives are attached to the
 [latest release](https://github.com/maik3531/Magnolie-Organizer/releases/latest).
 
 > [!IMPORTANT]
-> The Windows 2.0.6 artifacts are unsigned Linux cross-builds. Source, web,
+> The Windows 2.0.7 artifacts are unsigned Linux cross-builds. Source, web,
 > package-content and 30,000-item core tests pass, but a current Windows VM run
 > was unavailable. Review the release notes before use.
 
@@ -77,11 +77,11 @@ SHA-256 checksums and source archives are attached to the
 |---|---|---|
 | Magnolie Organizer for Linux | Python 3, GTK 3, WebKit2GTK | [`magnolie-organizer-2.0.0`](magnolie-organizer-2.0.0/) |
 | Magnolie Organizer for Windows | C#, .NET 8, WinForms, WebView2 | [`Magnolie-Organizer-Windows-2.0.0`](Magnolie-Organizer-Windows-2.0.0/) |
-| Magnolie Notes for Android | Kotlin, Jetpack Compose | [`magnolie-notes-1.0.6`](magnolie-notes-1.0.6/) |
+| Magnolie Notes for Android | Kotlin, Jetpack Compose | [`magnolie-notes-1.0.7`](magnolie-notes-1.0.7/) |
 | Magnolie Handbook | Python, GTK, HTML/CSS/JavaScript | [`magnolie-handbuch-stamm`](magnolie-handbuch-stamm/) |
 
 Each directory contains its own build and test instructions. The repository
-contains the published sources for release 2.0.6 / Notes 1.0.6; generated
+contains the published sources for release 2.0.7 / Notes 1.0.7; generated
 packages are kept on the Releases page rather than in Git history.
 
 ## Security and privacy

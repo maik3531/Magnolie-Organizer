@@ -43,7 +43,7 @@ internal static class TelefonProtocolContract
 
     internal static JsonObject DesktopCapabilities() => new() { ["revision"] = 1, ["items"] = new JsonObject
     {
-        ["answer_call"] = Capability(true, "available", 1), ["device_status"] = Capability(true, "available", 1, 2),
+        ["answer_call"] = Capability(true, "available", 1), ["device_status"] = Capability(true, "available", 1, 2, 3),
         ["dial_request"] = Capability(true, "available", 1), ["end_call"] = Capability(true, "available", 1),
         ["incoming_call_number"] = Capability(true, "available", 1), ["incoming_call_state"] = Capability(true, "available", 2),
         ["personal_deletions_sync"] = Capability(true, "available", 1), ["personal_notes_sync"] = Capability(true, "available", 1, 2),

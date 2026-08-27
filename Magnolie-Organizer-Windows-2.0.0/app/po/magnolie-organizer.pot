@@ -6,7 +6,7 @@
 #, fuzzy
 msgid ""
 msgstr ""
-"Project-Id-Version: Magnolie Organizer 2.0.6\n"
+"Project-Id-Version: Magnolie Organizer 2.0.7\n"
 "Report-Msgid-Bugs-To: maik3531@gmail.com\n"
 "POT-Creation-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
@@ -2251,9 +2251,6 @@ msgstr ""
 msgid "Last check failed: %(error)s"
 msgstr ""
 
-msgid "Last contact"
-msgstr ""
-
 msgid "Last name"
 msgstr ""
 
@@ -2349,6 +2346,9 @@ msgstr ""
 msgid ""
 "Magnolie Notes phones and KDE Connect phones are separate: the Android model "
 "name belongs to Magnolie Notes; the KDE peer name comes from KDE Connect."
+msgstr ""
+
+msgid "Magnolie Notes version"
 msgstr ""
 
 msgid "Magnolie Organizer is not completely installed."
@@ -2704,9 +2704,6 @@ msgid "No Bluetooth address was selected."
 msgstr ""
 
 msgid "No KDE Connect pairing is awaiting confirmation."
-msgstr ""
-
-msgid "No additional modules permitted"
 msgstr ""
 
 msgid ""
@@ -3877,9 +3874,6 @@ msgstr ""
 
 msgid ""
 "Selected columns that are empty for every contact are omitted automatically."
-msgstr ""
-
-msgid "Selected notifications"
 msgstr ""
 
 msgid "Selection options"

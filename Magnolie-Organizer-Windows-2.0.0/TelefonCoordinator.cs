@@ -115,10 +115,17 @@ internal sealed class TelefonCoordinator : IDisposable
         { await emit("App.telefonFehler", new { fehler = T("Device status is not permitted or available on the phone.") }); return; }
         var requestId = Guid.NewGuid().ToString("D");
         var versions = peer.Capabilities["device_status"]?["versions"] as JsonArray;
-        var body = new JsonObject { ["request_id"] = requestId };
-        if (versions?.Any(value => value?.GetValue<int>() == 2) == true) body["version"] = 2;
-        TelefonDeviceStatusContract.ValidateRequest(body);
+        var body = DeviceStatusRequest(requestId, versions);
         await connection.SendMessageAsync("device_status.request", body, 60_000);
+    }
+
+    internal static JsonObject DeviceStatusRequest(string requestId, JsonArray? versions)
+    {
+        var body = new JsonObject { ["request_id"] = requestId };
+        if (versions?.Any(value => value?.GetValue<int>() == 3) == true) body["version"] = 3;
+        else if (versions?.Any(value => value?.GetValue<int>() == 2) == true) body["version"] = 2;
+        TelefonDeviceStatusContract.ValidateRequest(body);
+        return body;
     }
 
     internal async Task SetLocalGrantsAsync(bool smsReceived, bool notifications)

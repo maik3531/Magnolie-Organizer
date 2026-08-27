@@ -10,6 +10,15 @@ import sys
 import tempfile
 
 ERGÄNZUNGEN = {
+    "Magnolie Notes version": {
+        "ar": "إصدار Magnolie Notes", "be": "Версія Magnolie Notes", "cs": "Verze Magnolie Notes",
+        "da": "Magnolie Notes-version", "de": "Magnolie Notes-Version", "es": "Versión de Magnolie Notes",
+        "fr": "Version de Magnolie Notes", "hi": "Magnolie Notes संस्करण", "hsb": "Wersija Magnolie Notes",
+        "it": "Versione di Magnolie Notes", "ja": "Magnolie Notes のバージョン", "nb": "Magnolie Notes-versjon",
+        "nl": "Magnolie Notes-versie", "pl": "Wersja Magnolie Notes", "pt": "Versão do Magnolie Notes",
+        "ru": "Версия Magnolie Notes", "tr": "Magnolie Notes sürümü", "uk": "Версія Magnolie Notes",
+        "zh_CN": "Magnolie Notes 版本",
+    },
     "Operating system": {
         "ar": "نظام التشغيل", "be": "Аперацыйная сістэма", "cs": "Operační systém",
         "da": "Operativsystem", "de": "Betriebssystem", "es": "Sistema operativo",

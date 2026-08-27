@@ -11,6 +11,7 @@ internal static class TelefonDeviceStatusContract
     private static readonly HashSet<string> ReportV2Fields = new(ReportFields, StringComparer.Ordinal)
         { "sdk_int", "battery_temperature_deci_c", "power_source", "storage_total_bytes", "storage_available_bytes",
           "memory_total_bytes", "memory_available_bytes", "uptime_ms", "network_transport", "network_validated", "network_metered" };
+    private static readonly HashSet<string> ReportV3Fields = new(ReportV2Fields, StringComparer.Ordinal) { "app_version" };
     private static readonly HashSet<string> Charging = new(StringComparer.Ordinal)
         { "charging", "full", "discharging", "not_charging", "unknown" };
 
@@ -19,15 +20,15 @@ internal static class TelefonDeviceStatusContract
         var value = node as JsonObject ?? throw new InvalidDataException("Der Gerätestatus ist kein Objekt.");
         if (!FieldsAre(value, RequestFields) && !FieldsAre(value, RequestV2Fields)) throw new InvalidDataException("Ungültige Statusanfrage.");
         Uuid(value, "request_id");
-        if (value.ContainsKey("version") && (!TelefonProtocolContract.TryInteger(value["version"], out var version) || version is < 1 or > 2))
+        if (value.ContainsKey("version") && (!TelefonProtocolContract.TryInteger(value["version"], out var version) || version is not (2 or 3)))
             throw new InvalidDataException("Die Statusversion ist ungültig.");
     }
 
     internal static void ValidateReport(JsonNode node)
     {
         var value = node as JsonObject ?? throw new InvalidDataException("Der Gerätestatus ist kein Objekt.");
-        var extended = FieldsAre(value, ReportV2Fields);
-        if (!extended && !FieldsAre(value, ReportFields)) throw new InvalidDataException("Der Gerätestatus enthält unbekannte oder fehlende Felder.");
+        var version = FieldsAre(value, ReportV3Fields) ? 3 : FieldsAre(value, ReportV2Fields) ? 2 : FieldsAre(value, ReportFields) ? 1 : 0;
+        if (version == 0) throw new InvalidDataException("Der Gerätestatus enthält unbekannte oder fehlende Felder.");
         Uuid(value, "request_id"); Text(value, "model", 0, 80); Text(value, "manufacturer", 0, 80);
         Text(value, "os_name", 1, 20); Text(value, "os_version", 0, 40);
         if (!TelefonProtocolContract.TryInteger(value["battery_percent"], out var battery) || battery is < -1 or > 100)
@@ -36,7 +37,7 @@ internal static class TelefonDeviceStatusContract
             throw new InvalidDataException("Der Ladezustand ist ungültig.");
         if (!TelefonProtocolContract.TryInteger(value["captured_ms"], out var captured) || captured is < 0 or > 253402300799999)
             throw new InvalidDataException("Der Erfassungszeitpunkt ist ungültig.");
-        if (!extended) return;
+        if (version == 1) return;
         Integer(value, "sdk_int", 1, 1000); Integer(value, "battery_temperature_deci_c", -1, 2000);
         var storageTotal = Integer(value, "storage_total_bytes", -1, 1L << 60);
         var storageAvailable = Integer(value, "storage_available_bytes", -1, 1L << 60);
@@ -48,6 +49,7 @@ internal static class TelefonDeviceStatusContract
         Enum(value, "power_source", "ac", "usb", "wireless", "dock", "none", "unknown");
         Enum(value, "network_transport", "wifi", "cellular", "ethernet", "vpn", "bluetooth", "none");
         Boolean(value, "network_validated"); Boolean(value, "network_metered");
+        if (version == 3) Text(value, "app_version", 1, 80);
     }
 
     private static JsonObject Object(JsonNode node, HashSet<string> fields)

@@ -278,7 +278,7 @@ def test_text_only_sms_v2_is_sent_once_without_retry():
              mock.patch.object(threading.Thread, "start"):
             result = backend.send_sms("+491701234567", "One\nmessage")
     assert result["backend"] == "kdeconnect-direct" and opened.call_count == 1
-    assert result["backend"] == "kdeconnect-direct"
+    assert result["state"] == "queued"
     queued = backend._connections[device_id]["worker"].outgoing
     packets = []
     while not queued.empty(): packets.append(queued.get_nowait())
@@ -1106,3 +1106,264 @@ def test_accepted_tcp_uses_tls_client_role_and_secure_identity():
             kde.hashes.SHA256())
         connection.close(); worker.join(5)
         assert not worker.is_alive() and not errors
+
+
+def clipboard_packet(text="Hallo", timestamp=None):
+    kind = kde.CLIPBOARD_CONNECT_TYPE if timestamp is not None else kde.CLIPBOARD_TYPE
+    body = {"content": text}
+    if timestamp is not None:
+        body["timestamp"] = timestamp
+    return kde.network_packet(kind, body)
+
+
+def share_packet(name="foto.jpg", size=4, port=1716, **body):
+    return {"id": 1, "type": kde.SHARE_TYPE,
+        "body": dict({"filename": name}, **body), "payloadSize": size,
+        "payloadTransferInfo": {"port": port}}
+
+
+def paired_backend(root, events=None, device_id="a" * 32):
+    backend = kde.KDEConnectSMSBackend(root,
+        callback=(lambda event, value: events.append((event, value))) if events is not None else None)
+    backend.store.peers[device_id] = {"paired": True, "name": "Phone"}
+    return backend
+
+
+def receive_worker(backend, device_id="a" * 32):
+    worker = mock.Mock()
+    worker.identity = {"deviceId": device_id}
+    return worker
+
+
+def test_receive_capabilities_are_independent_opt_in_and_settings_are_strict():
+    with tempfile.TemporaryDirectory() as root, tempfile.TemporaryDirectory() as downloads:
+        backend = paired_backend(root)
+        assert backend.identity_packet()["body"]["incomingCapabilities"] == [kde.SMS_MESSAGES_TYPE]
+        configured = backend.configure_receive(clipboard_enabled=True,
+            device_id="a" * 32, clipboard_mode="automatic")
+        assert configured["clipboard_enabled"] and not configured["file_enabled"]
+        assert backend.identity_packet()["body"]["incomingCapabilities"] == [
+            kde.SMS_MESSAGES_TYPE, kde.CLIPBOARD_TYPE, kde.CLIPBOARD_CONNECT_TYPE]
+        backend.configure_receive(file_enabled=True, device_id="a" * 32,
+            file_mode="confirm", download_directory=downloads)
+        assert backend.identity_packet()["body"]["incomingCapabilities"] == [
+            kde.SMS_MESSAGES_TYPE, kde.SHARE_TYPE]
+        with pytest.raises(ValueError):
+            backend.configure_receive(clipboard_enabled=1, device_id="a" * 32)
+        with pytest.raises(ValueError):
+            backend.configure_receive(file_enabled=True, device_id="b" * 32,
+                download_directory=downloads)
+        with pytest.raises(ValueError):
+            backend.configure_receive(file_enabled=True, device_id="a" * 32,
+                download_directory="relative")
+        backend.configure_receive()
+        assert backend.identity_packet()["body"]["incomingCapabilities"] == [kde.SMS_MESSAGES_TYPE]
+
+
+def test_clipboard_parser_utf8_limit_and_strict_connect_timestamp():
+    assert kde.parse_clipboard_packet(clipboard_packet("ä"))["text"] == "ä"
+    assert kde.parse_clipboard_packet(clipboard_packet("x", 0))["connect"]
+    assert len(kde.parse_clipboard_packet(clipboard_packet("ä" * 32768))["text"]) == 32768
+    for packet in (clipboard_packet("ä" * 32769), clipboard_packet("x", True),
+                   clipboard_packet("x", -1)):
+        with pytest.raises(kde.ProtocolError):
+            kde.parse_clipboard_packet(packet)
+    changed = clipboard_packet("x")
+    changed["body"]["extra"] = 1
+    with pytest.raises(kde.ProtocolError):
+        kde.parse_clipboard_packet(changed)
+
+
+def test_clipboard_confirm_accept_reject_auto_selected_peer_and_stale_connect():
+    events = []
+    with tempfile.TemporaryDirectory() as root:
+        backend = paired_backend(root, events)
+        backend.configure_receive(clipboard_enabled=True, device_id="a" * 32)
+        worker = receive_worker(backend)
+        backend._handle_receive_packet(worker, clipboard_packet("first", 20))
+        backend._handle_receive_packet(worker, clipboard_packet("duplicate", 20))
+        backend._handle_receive_packet(worker, clipboard_packet("stale", 19))
+        backend._handle_receive_packet(receive_worker(backend, "b" * 32), clipboard_packet("wrong"))
+        assert [event for event, _value in events] == ["clipboard_proposal"]
+        proposal = events[0][1]
+        assert set(proposal) == {"id", "device_id", "text"}
+        accepted = backend.accept_receive(proposal["id"])
+        assert accepted["text"] == "first" and events[-1][0] == "clipboard_apply"
+        backend._handle_receive_packet(worker, clipboard_packet("reject me"))
+        rejected_id = events[-1][1]["id"]
+        assert backend.reject_receive(rejected_id)["state"] == "rejected"
+
+        backend.configure_receive(clipboard_enabled=True, device_id="a" * 32,
+            clipboard_mode="automatic")
+        backend._handle_receive_packet(worker, clipboard_packet("automatic"))
+        assert events[-1][0] == "clipboard_apply" and events[-1][1]["text"] == "automatic"
+        assert backend._receive_slots == 0
+
+
+def test_receive_pending_queue_is_bounded_and_status_never_exposes_staging_paths():
+    events = []
+    with tempfile.TemporaryDirectory() as root:
+        backend = paired_backend(root, events)
+        backend.configure_receive(clipboard_enabled=True, device_id="a" * 32)
+        worker = receive_worker(backend)
+        for number in range(10):
+            backend._handle_receive_packet(worker, clipboard_packet(str(number)))
+        assert len(events) == kde.MAX_RECEIVE_PENDING == 8
+        with mock.patch.object(backend, "start"):
+            status = backend.status(0)["receive"]
+        assert status["pending_count"] == 8 and len(status["proposals"]) == 8
+        assert "staging" not in json.dumps(status).lower()
+
+
+@pytest.mark.parametrize("name", ["", ".", "..", "../secret", "a/b", "a\\b", "bad\nname"])
+def test_share_parser_rejects_unsafe_names(name):
+    with pytest.raises(kde.ProtocolError):
+        kde.parse_share_packet(share_packet(name=name))
+
+
+def test_share_parser_limits_exact_integers_ports_and_known_metadata():
+    parsed = kde.parse_share_packet(share_packet(size=kde.MAX_FILE_BYTES, port=1764,
+        open=False, numberOfFiles=2, totalPayloadSize=10))
+    assert parsed == {"name": "foto.jpg", "size": kde.MAX_FILE_BYTES, "port": 1764}
+    invalid = [share_packet(size=True), share_packet(size=-1),
+        share_packet(size=kde.MAX_FILE_BYTES + 1), share_packet(port=True),
+        share_packet(port=1715), share_packet(port=1765), share_packet(open="yes")]
+    for packet in invalid:
+        with pytest.raises(kde.ProtocolError):
+            kde.parse_share_packet(packet)
+
+
+class PayloadStream:
+    def __init__(self, parts):
+        self.parts = list(parts); self.closed = False
+    def recv(self, _size):
+        return self.parts.pop(0) if self.parts else b""
+    def close(self): self.closed = True
+
+
+def test_file_exact_payload_confirm_collision_accept_reject_and_cleanup():
+    events = []
+    with tempfile.TemporaryDirectory() as root, tempfile.TemporaryDirectory() as downloads:
+        backend = paired_backend(root, events)
+        backend.configure_receive(file_enabled=True, device_id="a" * 32,
+            download_directory=downloads)
+        worker = receive_worker(backend)
+        backend._connections["a" * 32] = {"worker": worker, "address": "127.0.0.1"}
+        streams = [PayloadStream([b"data", b""]), PayloadStream([b"more", b""])]
+        with mock.patch.object(backend, "_payload_tls_connection", side_effect=streams):
+            backend._handle_receive_packet(worker, share_packet())
+            deadline = time.monotonic() + 2
+            while len(events) < 1 and time.monotonic() < deadline: time.sleep(.01)
+            assert events[0][0] == "file_proposal" and "path" not in events[0][1]
+            first = backend.accept_receive(events[0][1]["id"])
+            assert open(first["path"], "rb").read() == b"data"
+            assert oct(os.stat(first["path"]).st_mode & 0o777) == "0o600"
+            backend._handle_receive_packet(worker, share_packet())
+            deadline = time.monotonic() + 2
+            while len(events) < 3 and time.monotonic() < deadline: time.sleep(.01)
+            proposal = [value for event, value in events if event == "file_proposal"][-1]
+            assert backend.reject_receive(proposal["id"])["state"] == "rejected"
+        assert os.listdir(os.path.join(downloads, ".magnolie-kdeconnect-staging")) == []
+        backend.stop()
+
+
+def test_file_automatic_collision_safe_ready_and_no_auto_open():
+    events = []
+    with tempfile.TemporaryDirectory() as root, tempfile.TemporaryDirectory() as downloads:
+        open(os.path.join(downloads, "foto.jpg"), "wb").write(b"old")
+        backend = paired_backend(root, events)
+        backend.configure_receive(file_enabled=True, device_id="a" * 32,
+            file_mode="automatic", download_directory=downloads)
+        worker = receive_worker(backend)
+        backend._connections["a" * 32] = {"worker": worker, "address": "127.0.0.1"}
+        with mock.patch.object(backend, "_payload_tls_connection",
+                               return_value=PayloadStream([b"new!", b""])):
+            backend._handle_receive_packet(worker, share_packet(open=True))
+            deadline = time.monotonic() + 2
+            while not events and time.monotonic() < deadline: time.sleep(.01)
+        assert events[0][0] == "file_ready"
+        assert events[0][1]["name"] == "foto (1).jpg"
+        assert open(events[0][1]["path"], "rb").read() == b"new!"
+        assert open(os.path.join(downloads, "foto.jpg"), "rb").read() == b"old"
+        backend.stop()
+
+
+@pytest.mark.parametrize("parts", [[b"ab", b""], [b"data", b"x"]])
+def test_short_and_overlong_payloads_are_deleted_without_proposal(parts):
+    events = []
+    with tempfile.TemporaryDirectory() as root, tempfile.TemporaryDirectory() as downloads:
+        backend = paired_backend(root, events)
+        backend.configure_receive(file_enabled=True, device_id="a" * 32,
+            download_directory=downloads)
+        task = {"device_id": "a" * 32, "address": "127.0.0.1", "port": 1716,
+                "size": 4, "name": "x", "id": "1" * 32, "mode": "confirm"}
+        with mock.patch.object(backend, "_payload_tls_connection",
+                               return_value=PayloadStream(parts)):
+            with pytest.raises(kde.ProtocolError):
+                backend._download_payload(task)
+        assert os.listdir(os.path.join(downloads, ".magnolie-kdeconnect-staging")) == []
+
+
+def test_configure_and_stop_remove_stale_and_pending_staged_files():
+    with tempfile.TemporaryDirectory() as root, tempfile.TemporaryDirectory() as downloads:
+        backend = paired_backend(root)
+        staging = os.path.join(downloads, ".magnolie-kdeconnect-staging")
+        os.mkdir(staging, 0o700)
+        open(os.path.join(staging, "stale"), "wb").write(b"x")
+        backend.configure_receive(file_enabled=True, device_id="a" * 32,
+            download_directory=downloads)
+        assert os.listdir(staging) == [] and oct(os.stat(staging).st_mode & 0o777) == "0o700"
+        path = os.path.join(staging, "pending")
+        open(path, "wb").write(b"x"); os.chmod(path, 0o600)
+        backend._receive_pending["1" * 32] = {"kind": "file", "device_id": "a" * 32,
+            "name": "x", "size": 1, "staged": path}
+        backend._receive_slots = 1
+        backend.stop()
+        assert not os.path.exists(path)
+
+
+@pytest.mark.skipif(kde.SSL is None, reason="PyOpenSSL is not installed")
+def test_payload_receiver_is_mutual_tls_client_and_pins_peer_certificate():
+    listener = socket.socket()
+    for port in range(kde.MIN_TCP_PORT, kde.MAX_TCP_PORT + 1):
+        try:
+            listener.bind(("127.0.0.1", port)); break
+        except OSError:
+            continue
+    else:
+        pytest.skip("no KDE Connect payload port is free")
+    listener.listen(1)
+    errors, peer_seen = [], []
+    with tempfile.TemporaryDirectory() as local_root, tempfile.TemporaryDirectory() as peer_root:
+        backend = kde.KDEConnectSMSBackend(local_root)
+        peer = kde.IdentityStore(peer_root, "Phone")
+        backend.store.save_peer(peer.device_id, "Phone", peer.certificate)
+        backend.store.peers[peer.device_id].update(paired=True, pairingConfirmedMs=1)
+
+        def sender():
+            raw = None
+            try:
+                raw, _address = listener.accept()
+                context = kde.SSL.Context(kde.SSL.TLS_SERVER_METHOD)
+                context.set_min_proto_version(kde.SSL.TLS1_2_VERSION)
+                context.use_privatekey(kde.crypto.load_privatekey(kde.crypto.FILETYPE_PEM,
+                    peer.key.private_bytes(kde.serialization.Encoding.PEM,
+                        kde.serialization.PrivateFormat.PKCS8, kde.serialization.NoEncryption())))
+                context.use_certificate(kde.crypto.load_certificate(kde.crypto.FILETYPE_PEM,
+                    peer.certificate.public_bytes(kde.serialization.Encoding.PEM)))
+                context.set_verify(kde.SSL.VERIFY_PEER | kde.SSL.VERIFY_FAIL_IF_NO_PEER_CERT,
+                                   lambda *_args: True)
+                connection = kde.SSL.Connection(context, raw); connection.set_accept_state()
+                stream = kde._TLSStream(connection); stream.handshake()
+                peer_seen.append(connection.get_peer_certificate() is not None)
+                stream.sendall(b"secure"); stream.close()
+            except Exception as error:
+                errors.append(error)
+                if raw is not None: raw.close()
+
+        thread = threading.Thread(target=sender); thread.start()
+        stream = backend._payload_tls_connection(peer.device_id, "127.0.0.1", port)
+        assert stream.recv(6) == b"secure"
+        stream.close(); thread.join(5)
+        assert peer_seen == [True] and not errors and not thread.is_alive()
+    listener.close()

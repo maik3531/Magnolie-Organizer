@@ -167,7 +167,7 @@ def tray_system_verfuegbar(desktop=None, aktivierte_erweiterungen=None):
 PROGRAMM_NAME = "magnolie-organizer"
 HANDBUCH_NAME = "magnolie-handbuch"
 FENSTER_TITEL = "Magnolie Organizer"
-PROGRAMM_FASSUNG = "2.0.6"
+PROGRAMM_FASSUNG = "2.0.7"
 ALTER_NAME = "organizer-klassik"
 I18N_DOMAIN = "magnolie-organizer"
 
@@ -5979,12 +5979,13 @@ class AnrufLautstaerke:
 
 
 class AnrufBluetooth:
-    """Switches the Bluetooth radio on for a call and restores its prior state.
+    """Connects the selected phone for a call and restores its prior state.
 
     Den Ton eines Anrufs uebertraegt nicht der Organizer, sondern das Telefon
     selbst ueber das Bluetooth-Freisprechprofil; der Organizer steuert nur.
-    Damit der Ton am Rechner ankommt, muss der Funk an sein - und damit man ihn
-    nicht dauerhaft laufen lassen muss, geschieht das nur rund um das Gespraech.
+    Damit der Ton am Rechner ankommen kann, muessen Funk und Verbindung zum
+    ausgewaehlten Telefon aktiv sein. Beides wird nur rund um das Gespraech
+    veraendert.
 
     Ausgeschaltet wird ausschliesslich, was diese Klasse selbst eingeschaltet
     hat und was seither niemand sonst abgeschaltet hat. Wer eine
@@ -6008,37 +6009,106 @@ class AnrufBluetooth:
                 return line.split(":", 1)[1].strip() == "yes"
         return None
 
-    def ensure(self, call_ref):
+    def _connected(self, tool, address):
+        result = self.runner([tool, "info", address], capture_output=True, text=True,
+            timeout=3, check=False)
+        if result.returncode:
+            return None
+        for line in (result.stdout or "").splitlines():
+            if line.strip().startswith("Connected:"):
+                return line.split(":", 1)[1].strip() == "yes"
+        return None
+
+    def ensure(self, call_ref, address=""):
         if self.saved:
-            return self.saved[0] == call_ref
+            return self.saved[0] == call_ref and self.saved[1] == address
+        if not re.fullmatch(r"(?:[0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}", str(address or "")):
+            return False
         tool = self.finder("bluetoothctl")
         if not tool:
             return False
+        powered_here = False
+        connected_here = False
         try:
-            if self._powered(tool) is not False:
+            powered = self._powered(tool)
+            if powered is None:
                 return False
-            changed = self.runner([tool, "power", "on"], stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL, timeout=5, check=False)
-            if changed.returncode:
+            powered_here = not powered
+            if powered_here:
+                changed = self.runner([tool, "power", "on"], stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL, timeout=5, check=False)
+                if changed.returncode:
+                    return False
+            connected = self._connected(tool, address)
+            if connected is None:
+                if powered_here:
+                    self.runner([tool, "power", "off"], stdout=subprocess.DEVNULL,
+                        stderr=subprocess.DEVNULL, timeout=5, check=False)
                 return False
-            self.saved = (call_ref,)
+            connected_here = not connected
+            if connected_here:
+                changed = self.runner([tool, "connect", address], stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL, timeout=12, check=False)
+                if changed.returncode:
+                    if powered_here:
+                        self.runner([tool, "power", "off"], stdout=subprocess.DEVNULL,
+                            stderr=subprocess.DEVNULL, timeout=5, check=False)
+                    return False
+                if self._connected(tool, address) is not True:
+                    getrennt = self.runner([tool, "disconnect", address], stdout=subprocess.DEVNULL,
+                        stderr=subprocess.DEVNULL, timeout=8, check=False).returncode == 0
+                    funk_an = powered_here
+                    if powered_here:
+                        funk_an = self.runner([tool, "power", "off"], stdout=subprocess.DEVNULL,
+                            stderr=subprocess.DEVNULL, timeout=5, check=False).returncode != 0
+                        if not funk_an:
+                            getrennt = True
+                    if funk_an or not getrennt:
+                        self.saved = (call_ref, address, funk_an, not getrennt)
+                    return False
+            if powered_here or connected_here:
+                self.saved = (call_ref, address, powered_here, connected_here)
             return True
         except (OSError, subprocess.SubprocessError, AttributeError):
+            if powered_here or connected_here:
+                self.saved = (call_ref, address, powered_here, connected_here)
             return False
 
     def restore(self, call_ref=None):
         saved = self.saved
         if not saved or call_ref is not None and saved[0] != call_ref:
             return False
-        self.saved = None
         tool = self.finder("bluetoothctl")
         if not tool:
             return False
         try:
-            if self._powered(tool) is not True:
+            _ruf, address, powered_here, connected_here = saved
+            changed = False
+            if powered_here and self._powered(tool) is False:
+                self.saved = None
                 return False
-            return self.runner([tool, "power", "off"], stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL, timeout=5, check=False).returncode == 0
+            if connected_here:
+                connected = self._connected(tool, address)
+                if connected is True:
+                    getrennt = self.runner([tool, "disconnect", address], stdout=subprocess.DEVNULL,
+                        stderr=subprocess.DEVNULL, timeout=8, check=False).returncode == 0
+                    connected_here = not getrennt
+                    changed = getrennt
+                elif connected is False:
+                    connected_here = False
+            if powered_here:
+                powered = self._powered(tool)
+                if powered is True and not connected_here:
+                    aus = self.runner([tool, "power", "off"], stdout=subprocess.DEVNULL,
+                        stderr=subprocess.DEVNULL, timeout=5, check=False).returncode == 0
+                    powered_here = not aus
+                    changed = aus or changed
+                elif powered is False:
+                    powered_here = False
+                    connected_here = False
+            self.saved = ((saved[0], address, powered_here, connected_here)
+                          if powered_here or connected_here else None)
+            return changed
         except (OSError, subprocess.SubprocessError, AttributeError):
             return False
 
@@ -16176,6 +16246,17 @@ class Fenster(_FENSTER_BASIS):
         elif befehl == "kde_reconnect":
             threading.Thread(target=self._kde_reconnect, daemon=True).start()
 
+        elif befehl == "kde_receive_settings":
+            threading.Thread(target=lambda: self._kde_receive_settings(
+                bool(nachricht.get("clipboard")), bool(nachricht.get("files")),
+                nachricht.get("deviceId") or "",
+                bool(nachricht.get("clipboardAutomatic")),
+                bool(nachricht.get("filesAutomatic"))), daemon=True).start()
+
+        elif befehl == "kde_receive_decide":
+            threading.Thread(target=lambda: self._kde_receive_decide(
+                nachricht.get("id") or "", bool(nachricht.get("accept"))), daemon=True).start()
+
         elif befehl == "telefon_ein":
             threading.Thread(target=lambda: self._telefon_schalten(
                 bool(nachricht.get("an"))), daemon=True).start()
@@ -16240,13 +16321,19 @@ class Fenster(_FENSTER_BASIS):
 
         elif befehl == "telefon_waehlen":
             threading.Thread(target=lambda: self._telefon_waehlen(
+                nachricht.get("kennung") or "", nachricht.get("hfpAdresse") or "",
                 nachricht.get("nummer") or "", nachricht.get("clientRef") or "",
                 nachricht.get("land") or "DE"), daemon=True).start()
 
         elif befehl == "telefon_annehmen":
             threading.Thread(target=lambda: self._telefon_annehmen(
                 nachricht.get("kennung") or "", nachricht.get("callRef") or "",
-                nachricht.get("commandRef") or ""), daemon=True).start()
+                nachricht.get("commandRef") or "", nachricht.get("hfpAdresse") or ""), daemon=True).start()
+
+        elif befehl == "telefon_anruf_bluetooth":
+            threading.Thread(target=lambda: self._telefon_anruf_bluetooth(
+                nachricht.get("callRef") or "", nachricht.get("state") or "",
+                nachricht.get("hfpAdresse") or ""), daemon=True).start()
 
         elif befehl == "telefon_auflegen":
             threading.Thread(target=lambda: self._telefon_auflegen(
@@ -17310,15 +17397,8 @@ class Fenster(_FENSTER_BASIS):
         elif art == "selected_notification":
             self.antwort("App.telefonMeldung", nutzlast)
         elif art == "incoming_call":
-            _anruf_zustand = nutzlast.get("state")
             _anruf_ruf = str(nutzlast.get("call_ref") or "")
-            # Klingelt es oder wird gesprochen, muss der Funk an sein, damit das
-            # Telefon den Ton hierher legen kann; bei "idle" zurueckstellen.
-            if _anruf_zustand in ("ringing", "offhook"):
-                _ANRUF_BLUETOOTH.ensure(_anruf_ruf)
-            else:
-                _ANRUF_BLUETOOTH.restore(_anruf_ruf)
-            if _anruf_zustand != "ringing":
+            if nutzlast.get("state") != "ringing":
                 _ANRUF_LAUTSTAERKE.restore(_anruf_ruf)
             self.antwort("App.telefonEingehenderAnruf", nutzlast)
             if nutzlast.get("state") == "offhook":
@@ -17381,9 +17461,20 @@ class Fenster(_FENSTER_BASIS):
         GLib.idle_add(lambda: (self._tray_telefone_aktualisieren(), False)[1])
 
     def _kde_ereignis(self, art, nutzlast):
+        if art == "clipboard_apply":
+            def kopieren():
+                self._ablage_setzen(str(nutzlast.get("text") or ""))
+                self.antwort("App.kdeEmpfangFertig", {"kind": "clipboard"})
+                return False
+            GLib.idle_add(kopieren)
+            return
         ziel = {"sms": "App.telefonSmsEmpfangen",
                 "pairing": "App.kdePairingCode",
-                "pairing_status": "App.kdePairingStatus"}.get(art)
+                "pairing_status": "App.kdePairingStatus",
+                "clipboard_proposal": "App.kdeEmpfangAngebot",
+                "file_proposal": "App.kdeEmpfangAngebot",
+                "file_ready": "App.kdeEmpfangFertig",
+                "receive_error": "App.kdeEmpfangFehler"}.get(art)
         if ziel:
             def melden():
                 if art == "pairing":
@@ -17398,6 +17489,38 @@ class Fenster(_FENSTER_BASIS):
         except Exception:
             pass
         self._telefon_stand_melden()
+
+    def _kde_receive_settings(self, clipboard, files, device_id,
+                              clipboard_automatic, files_automatic):
+        try:
+            download = ""
+            if files:
+                download = GLib.get_user_special_dir(
+                    GLib.UserDirectory.DIRECTORY_DOWNLOAD) or os.path.join(
+                        os.path.expanduser("~"), "Downloads")
+                os.makedirs(download, exist_ok=True)
+                download = os.path.realpath(download)
+            _kdeconnect_backend(self._kde_ereignis).configure_receive(
+                clipboard_enabled=clipboard, file_enabled=files,
+                device_id=device_id if clipboard or files else None,
+                clipboard_mode="automatic" if clipboard_automatic else "confirm",
+                file_mode="automatic" if files_automatic else "confirm",
+                download_directory=download if files else None)
+            self._telefon_stand_melden()
+        except Exception as fehler:
+            self.antwort("App.kdeEmpfangFehler", {"error": fehler_deutsch(
+                fehler, _("Configuring KDE Connect receive functions"))})
+
+    def _kde_receive_decide(self, receive_id, accept):
+        try:
+            backend = _kdeconnect_backend(self._kde_ereignis)
+            if accept:
+                backend.accept_receive(receive_id)
+            else:
+                backend.reject_receive(receive_id)
+        except Exception as fehler:
+            self.antwort("App.kdeEmpfangFehler", {"error": fehler_deutsch(
+                fehler, _("Confirming KDE Connect reception"))})
 
     def _telefon_schalten(self, an):
         self._telefon_dienst_pflegen()
@@ -17510,7 +17633,7 @@ class Fenster(_FENSTER_BASIS):
             self.antwort("App.personalSyncFehler", {"fehler": fehler_deutsch(
                 fehler, "Persönlicher Sync speichern")})
 
-    def _telefon_waehlen(self, nummer, client_ref, land):
+    def _telefon_waehlen(self, kennung, hfp_adresse, nummer, client_ref, land):
         try:
             GLib.idle_add(lambda: (self._tray_zeigen(), False)[1])
             if not self._telefon:
@@ -17519,21 +17642,24 @@ class Fenster(_FENSTER_BASIS):
             if not re.fullmatch(r"\+[0-9]{3,15}", ziel):
                 raise ValueError(_("The phone number is invalid."))
             bericht = self._telefon.report()
-            telefone = [peer for peer in bericht.get("peers", [])
-                if peer.get("state") in {"online_wifi", "online_bluetooth"}
+            telefon = next((peer for peer in bericht.get("peers", [])
+                if peer.get("device_id") == str(kennung or "")
+                and peer.get("state") in {"online_wifi", "online_bluetooth"}
                 and (peer.get("capabilities", {}).get("items", {}).get("dial_request", {})
                      .get("available"))
                 and 1 in peer.get("capabilities", {}).get("items", {}).get(
-                    "dial_request", {}).get("versions", [])
-                and peer.get("grants", {}).get("grants", {}).get("dial_request")]
-            if len(telefone) != 1:
-                raise RuntimeError(_("Exactly one online Magnolie Notes phone must allow dial requests."))
+                     "dial_request", {}).get("versions", [])
+                and peer.get("grants", {}).get("grants", {}).get("dial_request")), None)
+            if telefon is None:
+                raise RuntimeError(_("The selected Magnolie Notes phone is not available for dial requests."))
             # Schon vor dem Waehlen einschalten: Der Funk braucht ein bis drei
             # Sekunden, erst danach kann das Telefon sein Freisprechprofil
             # aufbauen. Der Anrufzustand stellt spaeter zurueck.
-            _ANRUF_BLUETOOTH.ensure(str(client_ref or ""))
-            self._telefon.request_dial(telefone[0]["device_id"], ziel, client_ref)
+            _ANRUF_BLUETOOTH.ensure(str(client_ref or ""),
+                str(hfp_adresse or ""))
+            self._telefon.request_dial(telefon["device_id"], ziel, client_ref)
         except Exception as fehler:
+            _ANRUF_BLUETOOTH.restore(str(client_ref or ""))
             self.antwort("App.telefonWaehlStatus", {"client_ref": client_ref,
                 "state": "failed", "error": fehler_deutsch(fehler, _("Opening the system dialer")),
                  "occurred_ms": 0})
@@ -17548,17 +17674,23 @@ class Fenster(_FENSTER_BASIS):
                 "call_ref": call_ref, "state": "failed",
                  "error": fehler_deutsch(fehler, _("Ending the call")), "occurred_ms": 0})
 
-    def _telefon_annehmen(self, kennung, call_ref, command_ref):
+    def _telefon_annehmen(self, kennung, call_ref, command_ref, hfp_adresse=""):
         try:
             if not self._telefon:
                 raise RuntimeError(_("The phone connection is not available."))
-            _ANRUF_BLUETOOTH.ensure(call_ref)
+            _ANRUF_BLUETOOTH.ensure(call_ref, str(hfp_adresse or ""))
             self._telefon.request_answer(kennung, call_ref, command_ref)
         except Exception as fehler:
             self.antwort("App.telefonAnnehmStatus", {"command_ref": command_ref,
                 "call_ref": call_ref, "state": "failed",
                 "error": fehler_deutsch(fehler, _("Answering the call")),
-                "occurred_ms": 0})
+                 "occurred_ms": 0})
+
+    def _telefon_anruf_bluetooth(self, call_ref, state, hfp_adresse):
+        if state in ("ringing", "offhook"):
+            _ANRUF_BLUETOOTH.ensure(str(call_ref or ""), str(hfp_adresse or ""))
+        elif state == "idle":
+            _ANRUF_BLUETOOTH.restore(str(call_ref or ""))
 
     def _kde_sms_senden(self, nummer, text, land, client_ref):
         try:

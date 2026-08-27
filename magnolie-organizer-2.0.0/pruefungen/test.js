@@ -245,13 +245,25 @@ function knopfMit(text, wurzel) {
   assert.deepStrictEqual(smsNormalisiert.einstellungen.adressen.kommunikation,
     { sms: { art: "program", programm: "app {nummer}" },
       anruf: { art: "magnolie", programm: "ignoriert", eingehendBenachrichtigen: false,
-        computerTelefonie: false, klingeltonLeiser: false } },
+        computerTelefonie: false, klingeltonLeiser: false, hfpAdresse: "" } },
   "Kommunikationsbelegung wird nicht streng nach SMS-/Anrufsemantik normalisiert");
   assert.strictEqual(smsNormalisiert.einstellungen.adressen.smsBenachrichtigungDauer, 60,
     "die SMS-Benachrichtigungsdauer fällt nicht auf 60 Sekunden zurück");
   assert.strictEqual(T.normalisiere({ einstellungen: { adressen: {
     smsBenachrichtigungDauer: 0 } } }).einstellungen.adressen.smsBenachrichtigungDauer, 0,
   "die Einstellung Nie automatisch wird nicht bewahrt");
+  assert.strictEqual(T.normalisiere({ einstellungen: { adressen: { kommunikation: { anruf: {
+    art: "magnolie", telefonId: "telefon-gebunden", computerTelefonie: true } } } } })
+    .einstellungen.adressen.kommunikation.anruf.telefonId, "telefon-gebunden",
+  "die Gerätebindung gespeicherter Anrufrechte geht bei der Normalisierung verloren");
+  assert.strictEqual(T.normalisiere({ einstellungen: { adressen: { kommunikation: { anruf: {
+    art: "magnolie", hfpAdresse: "aa:bb:cc:dd:ee:ff" } } } } })
+    .einstellungen.adressen.kommunikation.anruf.hfpAdresse, "AA:BB:CC:DD:EE:FF",
+  "eine gültige HFP-Adresse wird nicht kanonisch gespeichert");
+  assert.strictEqual(T.normalisiere({ einstellungen: { adressen: { kommunikation: { anruf: {
+    art: "magnolie", hfpAdresse: "AA:BB:CC:DD:EE:FF\n--command" } } } } })
+    .einstellungen.adressen.kommunikation.anruf.hfpAdresse, "",
+  "eine manipulierte HFP-Adresse wird nicht verworfen");
   assert.strictEqual($("#contributor-wasserzeichen"), null,
     "ein normaler Quellbau enthält das Contributor-Wasserzeichen");
 
@@ -2058,7 +2070,7 @@ function knopfMit(text, wurzel) {
   const enUeber = enSD.querySelector("#einstellungen-inhalt");
   assert.strictEqual(enUeber.querySelector("h3").textContent,
     "About the Magnolie Organizer", "englische Über-Seite fehlt");
-  assert.ok(enUeber.querySelector(".ueber-fassung").textContent.includes("Version 2.0.6") &&
+  assert.ok(enUeber.querySelector(".ueber-fassung").textContent.includes("Version 2.0.7") &&
     enUeber.textContent.includes("Author") && enUeber.textContent.includes("License") &&
     enUeber.textContent.includes("Updates") &&
     enUeber.textContent.includes("No update check has been performed yet") &&
@@ -2078,12 +2090,12 @@ function knopfMit(text, wurzel) {
     enSyncNachrichten.some((nachricht) => nachricht.cmd === "update_pruefen"),
   "englische Über-Seite verändert Handbuch- oder Update-Befehl");
   const enUpdateUrl = "https://gitlab.com/maik3531/mint-forgs/-/raw/main/" +
-    "Magnolie-Organitzer/magnolie-organizer_2.0.7_all.deb";
-  enSW.App.updateErgebnis({ ok: true, aktuell: false, version: "2.0.7",
+    "Magnolie-Organitzer/magnolie-organizer_2.0.8_all.deb";
+  enSW.App.updateErgebnis({ ok: true, aktuell: false, version: "2.0.8",
     url: enUpdateUrl, sha256: "ab".repeat(32), fehler: "" });
   assert.ok(enSD.querySelector("#update-stand").textContent.includes(
-    "New version 2.0.7 is available") &&
-    enSD.querySelector("#update-herunterladen").textContent.includes("2.0.7") &&
+    "New version 2.0.8 is available") &&
+    enSD.querySelector("#update-herunterladen").textContent.includes("2.0.8") &&
     enSD.querySelector(".update-pruefsumme").textContent.includes("ab".repeat(32)) &&
     enSD.querySelector(".update-pruefsumme").textContent.includes("sha256sum"),
   "englischer neuer Update-Stand fehlt");
@@ -6126,7 +6138,7 @@ function knopfMit(text, wurzel) {
   assert.ok(ueberText.includes("Version 3"), "die Lizenzfassung fehlt");
   assert.ok($(".ueber-fassung").textContent.includes("Fassung"),
     "die Programmfassung fehlt");
-  assert.ok($(".ueber-fassung").textContent.includes("2.0.6"),
+  assert.ok($(".ueber-fassung").textContent.includes("2.0.7"),
     "die neue Programmfassung fehlt");
   assert.ok($(".ueber-blume"), "die Magnolienblüte fehlt");
   const beschreibung = $(".ueber-beschreibung");
@@ -6146,18 +6158,18 @@ function knopfMit(text, wurzel) {
     "neben der gemeinsamen Aktualisierungsprüfung ist ein zweiter Prüfknopf sichtbar");
   assert.ok($("#handbuch-stand").textContent.includes("nicht installiert"),
     "der Handbuchstatus nennt die fehlende Installation nicht");
-  assert.ok(!T.istNeuereFassung("2.0.1") && !T.istNeuereFassung("2.0.6") &&
-    T.istNeuereFassung("2.0.7"),
+  assert.ok(!T.istNeuereFassung("2.0.1") && !T.istNeuereFassung("2.0.7") &&
+    T.istNeuereFassung("2.0.8"),
     "Fassungsvergleich der Oberfläche stimmt nicht");
   assert.ok(T.vergleicheText("Termin 2", "Termin 10") < 0,
     "der regionale Collator sortiert Zahlen weiterhin rein lexikografisch");
-  w.App.updateErgebnis({ ok: true, aktuell: false, version: "2.0.7",
+  w.App.updateErgebnis({ ok: true, aktuell: false, version: "2.0.8",
     url: "https://gitlab.com/maik3531/mint-forgs/-/raw/main/" +
-      "Magnolie-Organitzer/magnolie-organizer_2.0.7_all.deb" });
-  assert.ok($("#update-stand").textContent.includes("2.0.7"),
+      "Magnolie-Organitzer/magnolie-organizer_2.0.8_all.deb" });
+  assert.ok($("#update-stand").textContent.includes("2.0.8"),
     "gefundene Fassung erscheint nicht unter Über");
   assert.ok($("#update-herunterladen"), "Downloadknopf für neue Fassung fehlt");
-  assert.strictEqual(T.daten().einstellungen.update.letzteVersion, "2.0.7",
+  assert.strictEqual(T.daten().einstellungen.update.letzteVersion, "2.0.8",
     "Prüfstand wird nicht gespeichert");
   $("#update-automatisch").checked = false;
   $("#update-automatisch").dispatchEvent(new w.Event("change", { bubbles: true }));
@@ -6501,6 +6513,33 @@ function knopfMit(text, wurzel) {
   assert.ok(baumNachrichten.some((nachricht) => nachricht.cmd === "kde_pairing_start" &&
     nachricht.kennung === "kde-galaxy-new" && nachricht.erneuern === true),
   "KDE-Pin-Erneuerung startet nicht erst nach expliziter Sicherheitsabfrage");
+  bw.App.telefonStand({ enabled: true, listening: true, port: 8741, peers: [],
+    kdeconnect: { available: true, paired: 1, peer_id: "b".repeat(32),
+      peer_name: "Galaxy S24", device_id: "b".repeat(32), device_count: 1,
+      listening: true, listen_port: 1716, reason: "" } });
+  const empfangAbschnitt = bd.querySelector(".telefon-kde-karte");
+  const empfangGruppen = empfangAbschnitt.querySelectorAll(".kde-empfang-option");
+  assert.strictEqual(empfangGruppen.length, 2,
+    "KDE-Connect-Bereich enthält nicht getrennte Datei- und Zwischenablageoptionen");
+  const dateiEmpfang = empfangGruppen[0].querySelectorAll("input");
+  assert.ok(!dateiEmpfang[0].checked && dateiEmpfang[1].disabled,
+    "KDE-Dateiempfang startet nicht sicher mit Bestätigung und ohne Automatik");
+  dateiEmpfang[0].checked = true;
+  dateiEmpfang[0].dispatchEvent(new bw.Event("change", { bubbles: true }));
+  assert.ok(baumNachrichten.some((nachricht) => nachricht.cmd === "kde_receive_settings" &&
+    nachricht.deviceId === "b".repeat(32) && nachricht.files === true &&
+    nachricht.filesAutomatic === false),
+  "aktivierter KDE-Dateiempfang erreicht den Programmkern nicht im Bestätigungsmodus");
+  bw.App.kdeEmpfangAngebot({ id: "a".repeat(32), device_id: "b".repeat(32),
+    text: "Text vom Telefon" });
+  assert.ok(!bd.querySelector("#dialog-schleier").classList.contains("verborgen") &&
+    bd.querySelector("#dialog-hinweis").textContent === "Text vom Telefon",
+  "KDE-Zwischenablagetext wird nicht vor dem Kopieren sichtbar bestätigt");
+  bd.querySelector("#dialog-ja").click();
+  await Promise.resolve();
+  assert.ok(baumNachrichten.some((nachricht) => nachricht.cmd === "kde_receive_decide" &&
+    nachricht.id === "a".repeat(32) && nachricht.accept === true),
+  "bestätigter KDE-Empfang sendet keine gebundene Annahmeentscheidung");
   bw.App.telefonStand({ enabled: true, listening: true, port: 8741, peers: [],
     bluetooth: { available: false, devices: [] }, kdeconnect: { available: false,
       paired: 0, listening: false, listen_port: null, reason: "udp_port_unavailable" } });
@@ -7075,7 +7114,7 @@ function knopfMit(text, wurzel) {
     "ohne Handbuch darf der Hinweis nicht als gezeigt gespeichert werden");
   const handbuchUrl = "https://gitlab.com/maik3531/mint-forgs/-/raw/main/" +
     "Magnolie-Organitzer/magnolie-handbuch_1.9.8_all.deb";
-  hw.App.updateErgebnis({ ok: true, aktuell: true, version: "2.0.6", url: "",
+  hw.App.updateErgebnis({ ok: true, aktuell: true, version: "2.0.7", url: "",
     sha256: "ab".repeat(32), handbuch: { version: "1.9.8", url: handbuchUrl,
       sha256: "cd".repeat(32) }, fehler: "" });
   assert.ok(!hd.querySelector("#dialog-schleier").classList.contains("verborgen") &&
@@ -7348,7 +7387,9 @@ function knopfMit(text, wurzel) {
     state: "online_wifi",
     capabilities: { items: { sms_send: { available: true, versions: [1] },
       dial_request: { available: true, versions: [1] } } },
-    grants: { grants: { sms_send: true, dial_request: true } } }] };
+    grants: { grants: { sms_send: true, dial_request: true } } }],
+    bluetooth: { available: true, devices: [
+      { address: "AA:BB:CC:DD:EE:FF", name: "Mobiltelefon HFP" } ] } };
   const zeichneKontaktAktionen = (telefone, sozialeMedien = [], stand = smsTelefonStand) => {
     kontaktW.App.init({ daten: { kontakte: [{ id: "kontakt-aktionen", uid: "kontakt-aktionen",
       vorname: "Ada", nachname: "Lovelace", telefone: telefone,
@@ -7371,6 +7412,8 @@ function knopfMit(text, wurzel) {
     nachricht.cmd === "telefon_waehlen" && nachricht.nummer === "0203 111111");
   assert.ok(ersterWaehlauftrag && uuidV4.test(ersterWaehlauftrag.clientRef),
   "eine einzelne Rufnummer verwendet nicht den authentisierten Wählauftrag");
+  assert.strictEqual(ersterWaehlauftrag.kennung, "telefon-1",
+    "der Wählauftrag ist nicht an das ausgewählte Magnolie-Notes-Telefon gebunden");
 
   kontaktKarte = zeichneKontaktAktionen([
     { wert: "0171 222222", typen: ["CELL"] }
@@ -7464,6 +7507,100 @@ function knopfMit(text, wurzel) {
   "ohne Telefonverbindung wird unerwartet Valent oder der SMS-Systemweg geöffnet");
   eigenerSmsDialog.querySelector(".sms-schliessen").click();
 
+  const grantDom = new JSDOM(html, { runScripts: "dangerously",
+    url: "https://call-grants.test/", pretendToBeVisual: true });
+  const grantNachrichten = [];
+  grantDom.window.__MAGNOLIE_BRUECKE__ = "call_grants_bridge";
+  grantDom.window.webkit = { messageHandlers: { call_grants_bridge: {
+    postMessage: (text) => grantNachrichten.push(JSON.parse(text))
+  } } };
+  ladeAnwendung(grantDom.window, "de");
+  const grantDaten = grantDom.window.OrganizerTest.leereDaten();
+  grantDaten.einstellungen.adressen.kommunikation.anruf = { art: "magnolie", programm: "",
+    eingehendBenachrichtigen: true, computerTelefonie: true, klingeltonLeiser: false };
+  grantDom.window.App.init({ daten: grantDaten, neu: false, regional: { language: "de" } });
+  grantNachrichten.length = 0;
+  const grantPeer = { device_id: "telefon-grants", state: "online_wifi",
+    grants: { grants: {} }, local_grants: { grants: { incoming_call_state: false,
+      incoming_call_number: false, answer_call: false, end_call: false } }, capabilities: { items: {} } };
+  grantDom.window.App.telefonStand({ peers: [grantPeer] });
+  const grantBefehle = grantNachrichten.filter((nachricht) => nachricht.cmd === "telefon_freigabe");
+  assert.deepStrictEqual(grantBefehle.map((nachricht) => [nachricht.kennung, nachricht.name, nachricht.an]), [
+    ["telefon-grants", "incoming_call_state", true],
+    ["telefon-grants", "incoming_call_number", true],
+    ["telefon-grants", "answer_call", true],
+    ["telefon-grants", "end_call", true]
+  ], "gespeicherte Anrufoptionen werden beim Start nicht in Telefonfreigaben übernommen");
+  assert.strictEqual(grantDom.window.OrganizerTest.daten().einstellungen.adressen.kommunikation.anruf.telefonId,
+    "telefon-grants", "alte Anrufoptionen werden nicht sicher an das vorhandene Telefon gebunden");
+  grantDom.window.App.telefonStand({ peers: [grantPeer] });
+  assert.strictEqual(grantNachrichten.filter((nachricht) => nachricht.cmd === "telefon_freigabe").length, 4,
+    "unveränderter Telefonstand erzeugt eine Freigabeschleife");
+  grantDom.window.App.telefonStand({ peers: [Object.assign({}, grantPeer, {
+    device_id: "anderes-telefon", local_grants: { grants: {
+      incoming_call_state: true, incoming_call_number: true, answer_call: true, end_call: true } }
+  })] });
+  assert.deepStrictEqual(grantNachrichten.filter((nachricht) => nachricht.cmd === "telefon_freigabe")
+    .slice(-4).map((nachricht) => [nachricht.kennung, nachricht.name, nachricht.an]), [
+      ["anderes-telefon", "incoming_call_state", false],
+      ["anderes-telefon", "incoming_call_number", false],
+      ["anderes-telefon", "answer_call", false],
+      ["anderes-telefon", "end_call", false]
+    ], "alte Anrufrechte eines nicht gebundenen Telefons werden nicht widerrufen");
+  grantDom.window.OrganizerTest.daten().einstellungen.adressen.kommunikation.anruf.art = "system";
+  grantDom.window.App.telefonStand({ peers: [Object.assign({}, grantPeer, { local_grants: { grants: {
+    incoming_call_state: true, incoming_call_number: true, answer_call: true, end_call: true } } })] });
+  assert.deepStrictEqual(grantNachrichten.filter((nachricht) => nachricht.cmd === "telefon_freigabe")
+    .slice(-4).map((nachricht) => [nachricht.name, nachricht.an]), [
+      ["incoming_call_state", false], ["incoming_call_number", false],
+      ["answer_call", false], ["end_call", false]
+    ], "ein anderer Anrufweg widerruft die nicht mehr benötigten Telefonfreigaben nicht");
+  grantDom.window.close();
+
+  const ausgehendDom = new JSDOM(html, { runScripts: "dangerously",
+    url: "https://outgoing-call-grants.test/", pretendToBeVisual: true });
+  const ausgehendNachrichten = [];
+  ausgehendDom.window.__MAGNOLIE_BRUECKE__ = "outgoing_call_grants_bridge";
+  ausgehendDom.window.webkit = { messageHandlers: { outgoing_call_grants_bridge: {
+    postMessage: (text) => ausgehendNachrichten.push(JSON.parse(text))
+  } } };
+  ladeAnwendung(ausgehendDom.window, "de");
+  const ausgehendDaten = ausgehendDom.window.OrganizerTest.leereDaten();
+  ausgehendDaten.einstellungen.adressen.kommunikation.anruf = { art: "magnolie", programm: "",
+    telefonId: "telefon-ausgehend", eingehendBenachrichtigen: false,
+    computerTelefonie: false, klingeltonLeiser: false };
+  ausgehendDom.window.App.init({ daten: ausgehendDaten, neu: false, regional: { language: "de" } });
+  ausgehendNachrichten.length = 0;
+  const ausgehendPeer = { device_id: "telefon-ausgehend", display_name: "Telefon",
+    state: "online_wifi", grants: { grants: {} }, local_grants: { grants: {
+      incoming_call_state: true, incoming_call_number: false, answer_call: false, end_call: true } },
+    capabilities: { items: { incoming_call_state: { available: true, versions: [2] } } } };
+  const ausgehendRef = "12345678-1234-4234-9234-123456789abc";
+  ausgehendDom.window.OrganizerTest.zeigeAnrufDialog({ call_ref: ausgehendRef,
+    client_ref: ausgehendRef, revision: 0, state: "ringing", direction: "outgoing",
+    control_origin: "desktop", number: "+49170123456", number_status: "available",
+    started_ms: Date.now(), offhook_ms: 0, ended_ms: 0, occurred_ms: Date.now(),
+    spam_status: "unknown", battery_percent: -1, battery_captured_ms: 0 }, ausgehendPeer);
+  ausgehendDom.window.App.telefonStand({ peers: [ausgehendPeer] });
+  assert.ok(!ausgehendNachrichten.some((nachricht) => nachricht.cmd === "telefon_freigabe" &&
+    ["incoming_call_state", "end_call"].includes(nachricht.name) && nachricht.an === false),
+  "temporäre Status- und Auflegerechte werden während eines ausgehenden Anrufs widerrufen");
+  ausgehendDom.window.OrganizerTest.daten().einstellungen.adressen.kommunikation.anruf.art = "system";
+  ausgehendDom.window.App.telefonStand({ peers: [ausgehendPeer] });
+  assert.ok(!ausgehendNachrichten.some((nachricht) => nachricht.cmd === "telefon_freigabe" &&
+    ["incoming_call_state", "end_call"].includes(nachricht.name) && nachricht.an === false),
+  "eine geänderte Anrufzuweisung entzieht einem laufenden Anruf seine temporären Rechte");
+  ausgehendDom.window.App.telefonEingehenderAnruf(Object.assign({ device_id: "telefon-ausgehend" }, {
+    call_ref: ausgehendRef, revision: 1, state: "idle", direction: "outgoing",
+    control_origin: "desktop", number: "+49170123456", number_status: "available",
+    started_ms: Date.now() - 1000, offhook_ms: 0, ended_ms: Date.now(), occurred_ms: Date.now(),
+    spam_status: "unknown", battery_percent: -1, battery_captured_ms: 0 }));
+  assert.deepStrictEqual(ausgehendNachrichten.filter((nachricht) => nachricht.cmd === "telefon_freigabe")
+    .slice(-2).map((nachricht) => [nachricht.name, nachricht.an]), [
+      ["incoming_call_state", false], ["end_call", false]
+    ], "temporäre Anrufrechte werden nach dem ausgehenden Anruf nicht widerrufen");
+  ausgehendDom.window.close();
+
   const anrufHerkunftDom = new JSDOM(html, { runScripts: "dangerously",
     url: "https://call-origin.test/", pretendToBeVisual: true });
   const anrufHerkunftNachrichten = [];
@@ -7529,7 +7666,8 @@ function knopfMit(text, wurzel) {
     nachname: "Lovelace", foto: "data:image/png;base64,iVBORw0KGgo=",
     telefone: [{ wert: "+491701234567", typen: ["CELL"] }] }];
   direktDaten.einstellungen.adressen.kommunikation.anruf = { art: "magnolie", programm: "",
-    eingehendBenachrichtigen: false, computerTelefonie: false, klingeltonLeiser: false };
+    hfpAdresse: "AA:BB:CC:DD:EE:FF", eingehendBenachrichtigen: false,
+    computerTelefonie: false, klingeltonLeiser: false };
   direktW.App.init({ daten: direktDaten, neu: false, regional: { language: "de" } });
   const direktPeer = { device_id: "direkt-telefon", display_name: "Direkt-Telefon", state: "online_wifi",
     capabilities: { items: { dial_request: { available: true, versions: [1] },
@@ -7540,7 +7678,9 @@ function knopfMit(text, wurzel) {
   direktT.zustand().adressen.auswahlId = "direkt-kontakt"; direktT.wechsel("adressen");
   direktD.querySelector(".kontakt-anruf").click();
   const waehlen = direktNachrichten.find((nachricht) => nachricht.cmd === "telefon_waehlen");
-  assert.ok(waehlen && uuidV4.test(waehlen.clientRef), "direkter Anruf erzeugt keinen client_ref");
+  assert.ok(waehlen && uuidV4.test(waehlen.clientRef) && waehlen.kennung === "direkt-telefon" &&
+    waehlen.hfpAdresse === "AA:BB:CC:DD:EE:FF",
+  "direkter Anruf übergibt client_ref, Telefonbindung oder unabhängige HFP-Adresse nicht");
   let auflegen = direktD.querySelector("#anruf-schleier .anruf-auflegen");
   const pendingStatus = direktD.querySelector(".anruf-status").textContent;
   assert.ok(auflegen && auflegen.disabled && pendingStatus.trim(),
@@ -7633,6 +7773,14 @@ function knopfMit(text, wurzel) {
   const smsEinstellungen = kontaktD.querySelector(".sms-einstellungen-dialog");
   assert.ok(smsEinstellungen && smsEinstellungen.textContent.includes("Alle SMS-Verläufe löschen"),
     "der SMS-Kopfbutton öffnet nicht die kompakten Verlaufseinstellungen");
+  assert.ok(smsKopfknopf.textContent.includes("SMS-Einstellungen"),
+    "der SMS-Kopfknopf erklärt seine Einstellungsfunktion nicht sichtbar");
+  Array.from(smsEinstellungen.querySelectorAll("button"))
+    .find((button) => button.textContent === "Alle SMS-Verläufe löschen").click();
+  assert.ok(!kontaktD.querySelector("#dialog-schleier").classList.contains("verborgen") &&
+    /#dialog-schleier\s*\{\s*z-index:\s*180/.test(css),
+  "die Löschbestätigung bleibt unter den SMS-Einstellungen verborgen");
+  kontaktD.querySelector("#dialog-nein").click();
   smsEinstellungen.querySelector("select").value = "120";
   smsEinstellungen.querySelector("select").dispatchEvent(new kontaktW.Event("change"));
   assert.strictEqual(kontaktT.daten().einstellungen.adressen.smsBenachrichtigungDauer, 120,
@@ -7654,21 +7802,23 @@ function knopfMit(text, wurzel) {
     "ausgehende SMS wird nicht sofort queued persistiert");
   assert.ok(kdeDialog.querySelector(".sms-tag") && kdeDialog.querySelector(".sms-nachricht.ausgang"),
     "SMS-Verlauf zeigt keinen Tagestrenner oder keine ausgehende Blase");
-  kontaktW.App.kdeSmsStatus({ ok: true, state: "submitted", client_ref: kdeBefehl.clientRef });
-  assert.strictEqual(kontaktT.daten().smsVerlauf.at(-1).status, "submitted",
-    "KDE-Status wird nicht über client_ref persistiert");
+  kontaktW.App.kdeSmsStatus({ ok: true, state: "queued", client_ref: kdeBefehl.clientRef });
+  assert.strictEqual(kontaktT.daten().smsVerlauf.at(-1).status, "queued",
+    "lokale KDE-Warteschlange wird fälschlich als Versandbestätigung persistiert");
   assert.strictEqual(kdeDialog.querySelector("textarea").value, "",
-    "Text wird nach erfolgreicher Übergabe nicht geleert");
+    "Text wird nach erfolgreicher lokaler Einreihung nicht geleert");
+  assert.ok(!kdeDialog.querySelector(".sms-komponist button").disabled,
+    "Komponist bleibt nach erfolgreicher lokaler Einreihung gesperrt");
   const blase = kdeDialog.querySelector(".sms-blase");
   blase.dispatchEvent(new kontaktW.MouseEvent("contextmenu", { bubbles: true, cancelable: true }));
   const detail = kontaktD.querySelector(".sms-detail-dialog");
   assert.ok(detail && detail.querySelector(".sms-detail-text").textContent === "KDE Test" &&
     detail.textContent.includes("KDE Connect") && detail.querySelector(".sms-detail-liste"),
   "Rechtsklick auf SMS-Blase zeigt keine sicheren vollständigen Details");
-  const statusZeichen = kdeDialog.querySelector(".sms-status.submitted");
-  assert.ok(statusZeichen && statusZeichen.title &&
+  const statusZeichen = kdeDialog.querySelector(".sms-status.queued");
+  assert.ok(statusZeichen && statusZeichen.textContent === "◷" && statusZeichen.title &&
     statusZeichen.getAttribute("aria-label") === statusZeichen.title,
-  "SMS-Status besitzt keine exakte sichtbare und zugängliche Legende");
+  "lokal eingereihter SMS-Status besitzt keine ehrliche sichtbare und zugängliche Legende");
   detail.querySelector(".dialog-knoepfe button").click();
   kontaktW.App.telefonSmsEmpfangen({ device_id: "telefon-1", sms_id: "eingang-1",
     from: "+49 177 444444", text: "Antwort", timestamp_ms: Date.now(), notify: true });
@@ -7706,6 +7856,10 @@ function knopfMit(text, wurzel) {
   kontaktKarte.querySelector(".kontakt-anruf").dispatchEvent(
     new kontaktW.Event("contextmenu", { bubbles: true, cancelable: true }));
   const anrufBelegung = kontaktD.querySelector(".kommunikation-belegung-dialog");
+  const hfpAuswahl = anrufBelegung.querySelector(".kommunikation-hfp-auswahl");
+  assert.ok(hfpAuswahl && Array.from(hfpAuswahl.options).some((option) =>
+    option.value === "AA:BB:CC:DD:EE:FF" && option.textContent === "Mobiltelefon HFP"),
+  "Anrufzuweisung bietet die systemgekoppelten Bluetooth-HFP-Geräte nicht an");
   const anrufBelegungText = anrufBelegung.textContent;
   assert.ok(anrufBelegungText.includes("Programmbefehl") &&
     anrufBelegungText.includes("Der Befehl wird sicher ohne Shell gestartet.") &&
@@ -7716,15 +7870,22 @@ function knopfMit(text, wurzel) {
     !/Application command|Notify me|Answer calls|Lower other sounds|matching permissions/.test(
       anrufBelegungText),
   "deutscher Anruf-Belegungsdialog enthält englische Beschriftungen oder Hilfen");
-  anrufBelegung.querySelector('[value="program"]').click();
-  anrufBelegung.querySelector('input[type="text"]').value = "dialer --number {nummer}";
+  hfpAuswahl.value = "AA:BB:CC:DD:EE:FF";
   Array.from(anrufBelegung.querySelectorAll("button")).find((x) => x.textContent === "Speichern").click();
+  assert.strictEqual(kontaktT.daten().einstellungen.adressen.kommunikation.anruf.hfpAdresse,
+    "AA:BB:CC:DD:EE:FF", "HFP-Auswahl wird nicht unabhängig gespeichert");
+  kontaktKarte.querySelector(".kontakt-anruf").dispatchEvent(
+    new kontaktW.Event("contextmenu", { bubbles: true, cancelable: true }));
+  const programmBelegung = kontaktD.querySelector(".kommunikation-belegung-dialog");
+  programmBelegung.querySelector('[value="program"]').click();
+  programmBelegung.querySelector('input[type="text"]').value = "dialer --number {nummer}";
+  Array.from(programmBelegung.querySelectorAll("button")).find((x) => x.textContent === "Speichern").click();
   kontaktD.querySelector(".kontakt-anruf").click();
   assert.ok(kontaktAktionenNachrichten.some((nachricht) => nachricht.cmd === "sozial" &&
     nachricht.dienst === "phone" && nachricht.aktionArt === "program" &&
     nachricht.aktionZiel === "dialer --number {nummer}"),
   "eigene Anrufbelegung erreicht die sichere program-Implementierung nicht");
-  assert.ok(!anrufBelegung || !anrufBelegung.querySelector('[value="kde"]'),
+  assert.ok(!programmBelegung || !programmBelegung.querySelector('[value="kde"]'),
     "KDE erscheint unzulässig als Anrufweg");
   assert.ok(!kontaktD.body.textContent.includes("Valent"),
     "Kontaktaktion oder Hilfetext nennt weiterhin Valent");
@@ -7758,10 +7919,11 @@ function knopfMit(text, wurzel) {
   geraetW.App.geraetStatus({ kennung: "partner-intern-1", status: {
     request_id: "4ae28097-1229-4e22-b3de-a86af0491f35",
     model: "Pixel 9a", manufacturer: "Google", os_name: "Android",
-    os_version: "16", battery_percent: 73, charging: "charging", online: true,
+    os_version: "16", app_version: "1.0.7", battery_percent: 73, charging: "charging", online: true,
     last_contact_ms: 1786617000000, captured_ms: 1786617000000 } });
   assert.ok(geraetD.querySelector("#geraet-dialog").textContent.includes("Pixel 9a") &&
     geraetD.querySelector("#geraet-dialog").textContent.includes("73 %") &&
+    geraetD.querySelector("#geraet-dialog").textContent.includes("1.0.7") &&
     geraetD.querySelector(".geraet-online").classList.contains("online"),
   "eine Statusantwort aktualisiert den bereits offenen Gerätedialog");
   Array.from(geraetD.querySelectorAll("#geraet-dialog button"))
@@ -7774,6 +7936,9 @@ function knopfMit(text, wurzel) {
     /IMEI|Seriennummer|Telefonnummer|IP|MAC|SSID/i),
   "der Gerätedialog enthält keine verbotenen Identifikatoren oder Netzdaten");
   const personalHaken = Array.from(geraetD.querySelectorAll(".telefon-freigaben input"));
+  const personalBereich = geraetD.querySelector("details.telefon-personal-sync");
+  assert.ok(personalBereich && !personalBereich.open && personalBereich.querySelector("summary"),
+    "persönliche Synchronisierung ist nicht standardmäßig eingeklappt");
   personalHaken.at(-4).click();
   personalHaken.at(-3).click();
   const wartenderPersonalStand = geraetD.querySelector("[data-personal-sync-peer]").textContent;

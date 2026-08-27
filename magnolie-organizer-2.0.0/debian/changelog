@@ -1,3 +1,12 @@
+magnolie-organizer (2.0.7) unstable; urgency=medium
+
+  * Ergänzt unabhängige Bluetooth-Freisprechauswahl und sicheren, optionalen
+    KDE-Connect-Empfang für Zwischenablage und Dateien.
+  * Erweitert den Telefonstatus rückwärtskompatibel um die Notes-Version und
+    verbessert SMS-Einstellungen, Bestätigungen und Handbuchhinweise.
+
+ -- Maik Walter <maik3531@gmail.com>  Thu, 27 Aug 2026 04:19:03 +0200
+
 magnolie-organizer (2.0.6) unstable; urgency=medium
 
   * Speichert Geburtstage und Jahrestage ohne bekanntes Jahr als jahrfreies

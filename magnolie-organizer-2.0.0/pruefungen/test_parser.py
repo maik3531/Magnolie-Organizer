@@ -926,7 +926,7 @@ class KdeBackend:
                 "reason": "", "pairing_state": "idle"}
     def send_sms(self, nummer, text):
         self.sms.append((nummer, text))
-        return {"ok": True, "state": "submitted", "backend": "kdeconnect-direct"}
+        return {"ok": True, "state": "queued", "backend": "kdeconnect-direct"}
 
 kde_backend = KdeBackend()
 m._KDECONNECT_BACKEND = kde_backend
@@ -945,7 +945,7 @@ class KdeFensterProbe:
 kde_fenster = KdeFensterProbe()
 m.Fenster._kde_sms_senden(kde_fenster, "+49 170 1234567", "Client ref", "DE", "ref-4711")
 pruefe(kde_fenster.antworten == [("App.kdeSmsStatus", {
-    "ok": True, "state": "submitted", "backend": "kdeconnect-direct",
+    "ok": True, "state": "queued", "backend": "kdeconnect-direct",
     "client_ref": "ref-4711"})],
        "KDE-SMS-Antwort reicht client_ref unverändert an den Web-Chat zurück")
 with open(m.__file__, "r", encoding="utf-8") as kde_quelle:
@@ -2036,7 +2036,7 @@ except RuntimeError as f:
 
 print()
 print("— Aktualisierungsprüfung —")
-pruefe(m.PROGRAMM_FASSUNG == "2.0.6", "Programmkern trägt die neue Fassung")
+pruefe(m.PROGRAMM_FASSUNG == "2.0.7", "Programmkern trägt die neue Fassung")
 desktop_pfad = os.path.abspath(os.path.join(os.path.dirname(PFAD), "..",
                                              "io.gitlab.maik3531.MagnolieOrganizer.desktop"))
 with open(desktop_pfad, encoding="utf-8") as datei:
@@ -2111,28 +2111,28 @@ update_oeffentlich = m.base64.b64encode(update_privat.public_key().public_bytes(
     update_serialisierung.Encoding.Raw,
     update_serialisierung.PublicFormat.Raw)).decode("ascii")
 update_summe = "ab" * 32
-update_paket = m.UPDATE_BASIS + "magnolie-organizer_2.0.7_all.deb"
+update_paket = m.UPDATE_BASIS + "magnolie-organizer_2.0.8_all.deb"
 update_signatur = m.base64.b64encode(update_privat.sign(
-    m.update_signatur_nachricht("2.0.7", update_paket, update_summe))).decode("ascii")
-update_xml = ("<?xml version='1.0'?><update><version>2.0.7</version>"
+    m.update_signatur_nachricht("2.0.8", update_paket, update_summe))).decode("ascii")
+update_xml = ("<?xml version='1.0'?><update><version>2.0.8</version>"
                "<deb>" + update_paket + "</deb><sha256>" + update_summe +
                "</sha256><signature>" + update_signatur + "</signature></update>")
 version, paket = m.update_info_lesen(update_xml)
-pruefe(version == "2.0.7" and paket.endswith("_2.0.7_all.deb"),
+pruefe(version == "2.0.8" and paket.endswith("_2.0.8_all.deb"),
        "update.xml liefert Fassung und Paketadresse")
 update_neu = m.update_pruefen(lambda _url: update_xml, update_oeffentlich)
 pruefe(update_neu["ok"] and not update_neu["aktuell"] and
-       update_neu["version"] == "2.0.7" and
+       update_neu["version"] == "2.0.8" and
        update_neu["sha256"] == update_summe and update_neu["url"] == update_paket,
        "eine Debian-Installation erhält das signierte Debian-Paket")
-appimage_paket = m.UPDATE_BASIS + "Magnolie-Organizer-2.0.7-x86_64.AppImage"
+appimage_paket = m.UPDATE_BASIS + "Magnolie-Organizer-2.0.8-x86_64.AppImage"
 appimage_summe = "ef" * 32
-appimage_xml = ("<update><version>2.0.7</version><deb>" + update_paket +
+appimage_xml = ("<update><version>2.0.8</version><deb>" + update_paket +
                  "</deb><sha256>" + update_summe + "</sha256><appimage>"
                  "<architecture>x86_64</architecture><url>" + appimage_paket +
                  "</url><sha256>" + appimage_summe + "</sha256></appimage>")
 appimage_signatur = m.base64.b64encode(update_privat.sign(
-    m.update_signatur_nachricht("2.0.7", update_paket, update_summe,
+    m.update_signatur_nachricht("2.0.8", update_paket, update_summe,
                                appimage_paket, appimage_summe))).decode("ascii")
 appimage_xml += "<signature>" + appimage_signatur + "</signature></update>"
 appimage_umgebung = os.environ.get("APPIMAGE")
@@ -2149,28 +2149,28 @@ pruefe(appimage_update["ok"] and not appimage_update["aktuell"] and
        appimage_update["url"] == appimage_paket and
        appimage_update["sha256"] == appimage_summe and not appimage_fehlt["ok"],
        "eine AppImage-Installation erhält nur das passende geprüfte AppImage")
-aarch64_paket = m.UPDATE_BASIS + "Magnolie-Organizer-2.0.7-aarch64.AppImage"
-aarch64_xml = ("<update><version>2.0.7</version><deb>" + update_paket +
+aarch64_paket = m.UPDATE_BASIS + "Magnolie-Organizer-2.0.8-aarch64.AppImage"
+aarch64_xml = ("<update><version>2.0.8</version><deb>" + update_paket +
                "</deb><sha256>" + update_summe + "</sha256><appimage>"
                "<architecture>aarch64</architecture><url>" + aarch64_paket +
                "</url><sha256>" + appimage_summe + "</sha256></appimage>")
 aarch64_signatur = m.base64.b64encode(update_privat.sign(
-    m.update_signatur_nachricht("2.0.7", update_paket, update_summe,
+    m.update_signatur_nachricht("2.0.8", update_paket, update_summe,
                                aarch64_paket, appimage_summe))).decode("ascii")
 aarch64_geprueft = m.update_manifest_pruefen(
     aarch64_xml + "<signature>" + aarch64_signatur + "</signature></update>",
     update_oeffentlich)
 pruefe(aarch64_geprueft["url"] == update_paket and not aarch64_geprueft["appimage"],
        "ein signierter fremder AppImage-Abschnitt sperrt das Debian-Update nicht")
-aktuell_paket = m.UPDATE_BASIS + "magnolie-organizer_2.0.6_all.deb"
+aktuell_paket = m.UPDATE_BASIS + "magnolie-organizer_2.0.7_all.deb"
 aktuell_signatur = m.base64.b64encode(update_privat.sign(
-    m.update_signatur_nachricht("2.0.6", aktuell_paket, update_summe))).decode("ascii")
-aktuell_xml = ("<update><version>2.0.6</version><deb>" + aktuell_paket +
+    m.update_signatur_nachricht("2.0.7", aktuell_paket, update_summe))).decode("ascii")
+aktuell_xml = ("<update><version>2.0.7</version><deb>" + aktuell_paket +
                "</deb><sha256>" + update_summe + "</sha256><signature>" +
                aktuell_signatur + "</signature></update>")
 update_aktuell = m.update_pruefen(lambda _url: aktuell_xml, update_oeffentlich)
 pruefe(update_aktuell["ok"] and update_aktuell["aktuell"] and
-       update_aktuell["version"] == "2.0.6" and not update_aktuell["url"],
+       update_aktuell["version"] == "2.0.7" and not update_aktuell["url"],
        "dieselbe signierte Fassung gilt als aktuell")
 alt_paket = m.UPDATE_BASIS + "magnolie-organizer_2.0.0_all.deb"
 alt_signatur = m.base64.b64encode(update_privat.sign(
@@ -2185,17 +2185,17 @@ pruefe(update_alt["ok"] and update_alt["aktuell"] and
 handbuch_paket = m.UPDATE_BASIS + "magnolie-handbuch_1.9.8_all.deb"
 handbuch_summe = "cd" * 32
 handbuch_signatur = m.base64.b64encode(update_privat.sign(
-    m.update_signatur_nachricht("2.0.6", aktuell_paket, update_summe,
+    m.update_signatur_nachricht("2.0.7", aktuell_paket, update_summe,
                                manual_version="1.9.8", manual_linux=handbuch_paket,
                                manual_linux_sha=handbuch_summe))).decode("ascii")
-handbuch_xml = ("<update><version>2.0.6</version><deb>" + aktuell_paket +
+handbuch_xml = ("<update><version>2.0.7</version><deb>" + aktuell_paket +
     "</deb><sha256>" + update_summe + "</sha256><manual><version>1.9.8</version>"
     "<linux><deb>" + handbuch_paket + "</deb><sha256>" + handbuch_summe +
     "</sha256></linux></manual><signature>" + handbuch_signatur +
     "</signature></update>")
 handbuch_update = m.update_pruefen(lambda _url: handbuch_xml, update_oeffentlich)
 pruefe(handbuch_update["ok"] and handbuch_update["aktuell"] and
-       handbuch_update["version"] == "2.0.6" and
+       handbuch_update["version"] == "2.0.7" and
        handbuch_update["handbuch"] == {"version": "1.9.8",
        "url": handbuch_paket, "sha256": handbuch_summe, "platform": "linux"},
        "verschachtelte Handbuchdaten verändern die Organizerfelder nicht")
@@ -2204,7 +2204,7 @@ pruefe(bool(handbuch_update.get("handbuch")) and
        "der Handbuchdownload wird an das zuletzt validierte Manifest gebunden")
 falsches_handbuch_paket = m.UPDATE_BASIS + "magnolie-organizer_1.9.8_all.deb"
 falsche_handbuch_signatur = m.base64.b64encode(update_privat.sign(
-    m.update_signatur_nachricht("2.0.6", aktuell_paket, update_summe,
+    m.update_signatur_nachricht("2.0.7", aktuell_paket, update_summe,
                                manual_version="1.9.8",
                                manual_linux=falsches_handbuch_paket,
                                manual_linux_sha=handbuch_summe))).decode("ascii")
@@ -2220,7 +2220,7 @@ for falsches_paket in (handbuch_paket + "?download=1",
                        "https://example.org/magnolie-handbuch_1.9.8_all.deb"):
     pruefe(not m._handbuch_update_url_erlaubt(falsches_paket, "1.9.8"),
            "Handbuchadresse, Dateiname und Version werden strikt gebunden")
-altes_update_xml = ("<update><version>2.0.7</version><deb>" +
+altes_update_xml = ("<update><version>2.0.8</version><deb>" +
                     update_paket + "</deb></update>")
 update_abrufe = []
 update_ohne_schluessel = m.update_pruefen(
@@ -2241,7 +2241,7 @@ pruefe(not update_ohne_signatur["ok"] and "signatur" in
        update_ohne_signatur["fehler"].lower(),
        "ein Manifest ohne Signatur wird mit gültigem Release-Schlüssel abgewiesen")
 update_veraendert = m.update_pruefen(
-    lambda _url: update_xml.replace("2.0.7", "2.0.6"), update_oeffentlich)
+    lambda _url: update_xml.replace("2.0.8", "2.0.7"), update_oeffentlich)
 pruefe(not update_veraendert["ok"] and any(text in
        update_veraendert["fehler"].lower() for text in
        ("invalid signature", "ungültige signatur")),
@@ -3919,8 +3919,9 @@ def test_anruf_lautstaerke_restores_exact_default_sink_volume():
 
 def test_anruf_bluetooth_restores_previous_radio_state():
     """Nur ausschalten, was der Organizer selbst eingeschaltet hat."""
-    def bauen(powered):
-        zustand = {"an": powered}
+    adresse = "AA:BB:CC:DD:EE:FF"
+    def bauen(powered, connected=False):
+        zustand = {"an": powered, "verbunden": connected}
         calls = []
         def runner(args, **_kwargs):
             calls.append(args)
@@ -3928,8 +3929,15 @@ def test_anruf_bluetooth_restores_previous_radio_state():
             if args[1] == "show":
                 ergebnis.stdout = "Controller AA\n\tPowered: {}\n".format(
                     "yes" if zustand["an"] else "no")
+            if args[1] == "info":
+                ergebnis.stdout = "Device {}\n\tConnected: {}\n".format(
+                    adresse, "yes" if zustand["verbunden"] else "no")
             if args[1] == "power":
                 zustand["an"] = args[2] == "on"
+            if args[1] == "connect":
+                zustand["verbunden"] = True
+            if args[1] == "disconnect":
+                zustand["verbunden"] = False
             return ergebnis
         schalter = m.AnrufBluetooth(runner=runner,
             finder=lambda name: "/usr/bin/" + name)
@@ -3937,23 +3945,71 @@ def test_anruf_bluetooth_restores_previous_radio_state():
 
     # Funk war aus: einschalten, danach wieder ausschalten.
     schalter, calls, zustand = bauen(False)
-    assert schalter.ensure("call-a") and zustand["an"]
-    assert schalter.ensure("call-a") and not schalter.ensure("call-b")
+    assert schalter.ensure("call-a", adresse) and zustand["an"] and zustand["verbunden"]
+    assert schalter.ensure("call-a", adresse) and not schalter.ensure("call-b", adresse)
     assert not schalter.restore("call-b")
-    assert schalter.restore("call-a") and not zustand["an"]
+    assert schalter.restore("call-a") and not zustand["an"] and not zustand["verbunden"]
     assert ["/usr/bin/bluetoothctl", "power", "on"] in calls
+    assert ["/usr/bin/bluetoothctl", "connect", adresse] in calls
+    assert ["/usr/bin/bluetoothctl", "disconnect", adresse] in calls
     assert ["/usr/bin/bluetoothctl", "power", "off"] in calls
 
-    # Funk war an, etwa wegen einer Bluetooth-Maus: unangetastet lassen.
-    schalter, calls, zustand = bauen(True)
-    assert not schalter.ensure("call-a")
+    # Eine bereits verbundene Freisprecheinrichtung bleibt unangetastet.
+    schalter, calls, zustand = bauen(True, True)
+    assert schalter.ensure("call-a", adresse)
     assert not schalter.restore("call-a")
-    assert zustand["an"]
+    assert zustand["an"] and zustand["verbunden"]
+    assert not [call for call in calls if "power" in call or "connect" in call or "disconnect" in call]
+
+    # Bei eingeschaltetem Funk nur die selbst aufgebaute Verbindung trennen.
+    schalter, calls, zustand = bauen(True)
+    assert schalter.ensure("call-a", adresse) and zustand["verbunden"]
+    assert schalter.restore("call-a") and zustand["an"] and not zustand["verbunden"]
     assert not [call for call in calls if "power" in call]
+
+    # Ein vorübergehend fehlgeschlagenes Trennen bleibt für einen zweiten Versuch vorgemerkt.
+    schalter, calls, zustand = bauen(True)
+    assert schalter.ensure("call-a", adresse)
+    normaler_runner = schalter.runner
+    erster_versuch = {"offen": True}
+    def runner_mit_fehler(args, **kwargs):
+        if args[1] == "disconnect" and erster_versuch["offen"]:
+            erster_versuch["offen"] = False
+            return type("Result", (), {"returncode": 1, "stdout": ""})()
+        return normaler_runner(args, **kwargs)
+    schalter.runner = runner_mit_fehler
+    assert not schalter.restore("call-a") and zustand["verbunden"] and schalter.saved
+    assert schalter.restore("call-a") and not zustand["verbunden"] and schalter.saved is None
+
+    # Ein noch veralteter BlueZ-Status nach connect wird auch bei bereits aktivem Funk bereinigt.
+    schalter, calls, zustand = bauen(True)
+    normaler_runner = schalter.runner
+    def runner_mit_verzoegertem_status(args, **kwargs):
+        if args[1] == "info" and any(call[1] == "connect" for call in calls):
+            calls.append(args)
+            return type("Result", (), {"returncode": 0,
+                "stdout": "Device {}\n\tConnected: no\n".format(adresse)})()
+        return normaler_runner(args, **kwargs)
+    schalter.runner = runner_mit_verzoegertem_status
+    assert not schalter.ensure("call-a", adresse) and not zustand["verbunden"]
+    assert ["/usr/bin/bluetoothctl", "disconnect", adresse] in calls
+
+    # Nach einem Timeout während connect bleibt auch ein teilweise geänderter Zustand aufräumbar.
+    schalter, calls, zustand = bauen(False)
+    normaler_runner = schalter.runner
+    def runner_mit_timeout(args, **kwargs):
+        if args[1] == "connect":
+            zustand["verbunden"] = True
+            raise subprocess.TimeoutExpired(args, 12)
+        return normaler_runner(args, **kwargs)
+    schalter.runner = runner_mit_timeout
+    assert not schalter.ensure("call-a", adresse) and schalter.saved
+    schalter.runner = normaler_runner
+    assert schalter.restore("call-a") and not zustand["an"] and not zustand["verbunden"]
 
     # Der Benutzer schaltet waehrend des Gespraechs selbst aus: dabei bleibt es.
     schalter, calls, zustand = bauen(False)
-    assert schalter.ensure("call-a")
+    assert schalter.ensure("call-a", adresse)
     zustand["an"] = False
     calls.clear()
     assert not schalter.restore("call-a")
@@ -3961,7 +4017,27 @@ def test_anruf_bluetooth_restores_previous_radio_state():
 
     # Ohne bluetoothctl geschieht nichts und nichts fliegt.
     ohne = m.AnrufBluetooth(runner=lambda *a, **k: None, finder=lambda name: None)
-    assert not ohne.ensure("call-a") and not ohne.restore("call-a")
+    assert not ohne.ensure("call-a", adresse) and not ohne.restore("call-a")
+    schalter, calls, _zustand = bauen(False)
+    assert not schalter.ensure("call-a", "") and calls == []
+
+    # Die Anrufsteuerung verwendet nur die explizite HFP-Adresse und nie den
+    # RFCOMM-Datenfallback eines Telefon-Peers.
+    aufrufe = []
+    original_ensure, original_restore = m._ANRUF_BLUETOOTH.ensure, m._ANRUF_BLUETOOTH.restore
+    try:
+        m._ANRUF_BLUETOOTH.ensure = lambda call_ref, address: aufrufe.append(
+            ("ensure", call_ref, address)) or True
+        m._ANRUF_BLUETOOTH.restore = lambda call_ref: aufrufe.append(
+            ("restore", call_ref)) or True
+        fenster = type("FensterAttrappe", (), {})()
+        m.Fenster._telefon_anruf_bluetooth(fenster, "call-a", "ringing", adresse)
+        m.Fenster._telefon_anruf_bluetooth(fenster, "call-a", "offhook", adresse)
+        m.Fenster._telefon_anruf_bluetooth(fenster, "call-a", "idle", adresse)
+    finally:
+        m._ANRUF_BLUETOOTH.ensure, m._ANRUF_BLUETOOTH.restore = original_ensure, original_restore
+    assert aufrufe == [("ensure", "call-a", adresse), ("ensure", "call-a", adresse),
+        ("restore", "call-a")]
 
 
 kommunikation_vertrag = os.path.join(

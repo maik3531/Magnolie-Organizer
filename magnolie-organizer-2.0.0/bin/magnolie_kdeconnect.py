@@ -49,6 +49,12 @@ SMS_REQUEST_CONVERSATIONS_TYPE = "kdeconnect.sms.request_conversations"
 SMS_REQUEST_CONVERSATION_TYPE = "kdeconnect.sms.request_conversation"
 SMS_MESSAGES_TYPE = "kdeconnect.sms.messages"
 SMS_TYPE = SMS_REQUEST_TYPE
+CLIPBOARD_TYPE = "kdeconnect.clipboard"
+CLIPBOARD_CONNECT_TYPE = "kdeconnect.clipboard.connect"
+SHARE_TYPE = "kdeconnect.share.request"
+MAX_CLIPBOARD_BYTES = 64 * 1024
+MAX_FILE_BYTES = 50 * 1024 * 1024
+MAX_RECEIVE_PENDING = 8
 MAX_MESSAGES = 1000
 MAX_ADDRESSES = 32
 MAX_ATTACHMENTS = 32
@@ -190,6 +196,74 @@ def request_conversation_packet(thread_id, number_to_request=None):
     if number_to_request is not None:
         body["numberToRequest"] = number_to_request
     return network_packet(SMS_REQUEST_CONVERSATION_TYPE, body)
+
+
+def _receive_envelope(packet, kind, extra=()):
+    keys = {"id", "type", "body"} | set(extra)
+    if (not isinstance(packet, dict) or set(packet) != keys
+            or packet.get("type") != kind
+            or not isinstance(packet.get("id"), int)
+            or isinstance(packet.get("id"), bool)
+            or not isinstance(packet.get("body"), dict)):
+        raise ProtocolError("invalid %s packet" % kind)
+    return packet["body"]
+
+
+def parse_clipboard_packet(packet):
+    """Return bounded UTF-8 clipboard content and an optional connect timestamp."""
+    kind = packet.get("type") if isinstance(packet, dict) else None
+    if kind not in (CLIPBOARD_TYPE, CLIPBOARD_CONNECT_TYPE):
+        raise ProtocolError("invalid clipboard packet type")
+    body = _receive_envelope(packet, kind)
+    expected = {"content", "timestamp"} if kind == CLIPBOARD_CONNECT_TYPE else {"content"}
+    if set(body) != expected or not isinstance(body.get("content"), str):
+        raise ProtocolError("invalid clipboard body")
+    try:
+        size = len(body["content"].encode("utf-8"))
+    except UnicodeEncodeError as error:
+        raise ProtocolError("invalid clipboard UTF-8") from error
+    if size > MAX_CLIPBOARD_BYTES:
+        raise ProtocolError("clipboard exceeds size limit")
+    timestamp = body.get("timestamp")
+    if kind == CLIPBOARD_CONNECT_TYPE and (not isinstance(timestamp, int)
+            or isinstance(timestamp, bool) or not 0 <= timestamp <= 2 ** 63 - 1):
+        raise ProtocolError("invalid clipboard timestamp")
+    return {"text": body["content"], "timestamp": timestamp, "connect": timestamp is not None}
+
+
+def _safe_basename(value):
+    if (not isinstance(value, str) or not value or len(value) > 255
+            or value in (".", "..") or value != os.path.basename(value)
+            or "/" in value or "\\" in value
+            or any(unicodedata.category(character).startswith("C") for character in value)):
+        raise ProtocolError("unsafe shared filename")
+    return value
+
+
+def parse_share_packet(packet):
+    """Validate KDE Connect's separate-payload file announcement."""
+    body = _receive_envelope(packet, SHARE_TYPE, ("payloadSize", "payloadTransferInfo"))
+    integer_metadata = {"creationTime", "lastModified", "numberOfFiles", "totalPayloadSize"}
+    if set(body) - ({"filename", "open"} | integer_metadata) or "filename" not in body:
+        raise ProtocolError("invalid share body")
+    if "open" in body and not isinstance(body["open"], bool):
+        raise ProtocolError("invalid share open flag")
+    for field in integer_metadata:
+        if field in body and (not isinstance(body[field], int) or isinstance(body[field], bool)
+                or not 0 <= body[field] <= 2 ** 63 - 1):
+            raise ProtocolError("invalid share aggregate metadata")
+    size = packet["payloadSize"]
+    transfer = packet["payloadTransferInfo"]
+    if (not isinstance(size, int) or isinstance(size, bool)
+            or not 0 <= size <= MAX_FILE_BYTES):
+        raise ProtocolError("invalid share payload size")
+    if not isinstance(transfer, dict) or set(transfer) != {"port"}:
+        raise ProtocolError("invalid share transfer information")
+    port = transfer["port"]
+    if (not isinstance(port, int) or isinstance(port, bool)
+            or not MIN_TCP_PORT <= port <= MAX_TCP_PORT):
+        raise ProtocolError("invalid share payload port")
+    return {"name": _safe_basename(body["filename"]), "size": size, "port": port}
 
 
 def _canonical_integer(value, minimum, maximum):
@@ -787,6 +861,10 @@ class _ConnectionWorker:
                 if packet.get("type") == "kdeconnect.pair":
                     self.backend._pair_packet(self, packet)
                     continue
+                if packet.get("type") in (CLIPBOARD_TYPE, CLIPBOARD_CONNECT_TYPE,
+                                           SHARE_TYPE):
+                    self.backend._handle_receive_packet(self, packet)
+                    continue
                 if packet.get("type") != SMS_MESSAGES_TYPE or not self.sms_started:
                     continue
                 self._handle_sms_packet(packet)
@@ -931,6 +1009,17 @@ class KDEConnectSMSBackend:
         self._pairing_failures = {}
         self._repair_prompts = set()
         self._pair_prompt_seen = {}
+        self._receive_settings = {"clipboard_enabled": False, "file_enabled": False,
+            "device_id": "", "clipboard_mode": "confirm", "file_mode": "confirm",
+            "download_directory": ""}
+        self._receive_pending = {}
+        self._receive_slots = 0
+        self._clipboard_connect_seen = {}
+        self._transfer_queue = queue.Queue()
+        self._transfer_thread = None
+        self._transfer_stop = threading.Event()
+        self._payload_active = None
+        self._staging_directory = ""
         self.listening = False
         self.listen_port = None
         self.reason = "not_started"
@@ -940,6 +1029,316 @@ class KDEConnectSMSBackend:
             self.callback(event, payload)
         except Exception:  # noqa: S110 - Client callbacks cannot break the transport service.
             pass
+
+    def configure_receive(self, *, clipboard_enabled=False, file_enabled=False,
+                          device_id=None, clipboard_mode="confirm", file_mode="confirm",
+                          download_directory=None):
+        """Configure opt-in receive features for one explicitly paired device."""
+        if not isinstance(clipboard_enabled, bool) or not isinstance(file_enabled, bool):
+            raise ValueError("receive feature flags must be booleans")
+        if clipboard_mode not in ("confirm", "automatic") or file_mode not in (
+                "confirm", "automatic"):
+            raise ValueError("receive mode must be confirm or automatic")
+        enabled = clipboard_enabled or file_enabled
+        if enabled:
+            if (not isinstance(device_id, str) or not DEVICE_ID.fullmatch(device_id)
+                    or not self._is_confirmed(device_id)):
+                raise ValueError("receive device must be an explicitly paired device")
+        elif device_id not in (None, ""):
+            raise ValueError("disabled receive features cannot select a device")
+        download = ""
+        if file_enabled:
+            if (not isinstance(download_directory, str)
+                    or not os.path.isabs(download_directory)
+                    or not os.path.isdir(download_directory)
+                    or os.path.realpath(download_directory) != download_directory):
+                raise ValueError("download directory must be an absolute existing real directory")
+            download = download_directory
+            staging = os.path.join(download, ".magnolie-kdeconnect-staging")
+            try:
+                os.mkdir(staging, 0o700)
+            except FileExistsError:
+                details = os.lstat(staging)
+                if not stat.S_ISDIR(details.st_mode) or stat.S_ISLNK(details.st_mode):
+                    raise ValueError("receive staging path is not a directory")
+            os.chmod(staging, 0o700)
+        else:
+            if download_directory not in (None, ""):
+                raise ValueError("download directory is only valid when file receive is enabled")
+            staging = ""
+        self._stop_receive()
+        with self._state_lock:
+            self._receive_settings = {"clipboard_enabled": clipboard_enabled,
+                "file_enabled": file_enabled, "device_id": device_id or "",
+                "clipboard_mode": clipboard_mode, "file_mode": file_mode,
+                "download_directory": download}
+            self._staging_directory = staging
+            self._transfer_stop.clear()
+        self._cleanup_staging()
+        self._reschedule_discovery()
+        return dict(self._receive_settings)
+
+    def _cleanup_staging(self):
+        directory = self._staging_directory
+        if not directory or not os.path.isdir(directory):
+            return
+        try:
+            entries = list(os.scandir(directory))
+        except OSError:
+            return
+        for entry in entries:
+            try:
+                if entry.is_file(follow_symlinks=False) or entry.is_symlink():
+                    os.unlink(entry.path)
+            except OSError:
+                pass
+
+    def _new_receive_id(self):
+        return uuid.uuid4().hex
+
+    def _reserve_receive(self):
+        with self._state_lock:
+            if self._receive_slots >= MAX_RECEIVE_PENDING:
+                return False
+            self._receive_slots += 1
+            return True
+
+    def _release_receive(self):
+        with self._state_lock:
+            self._receive_slots = max(0, self._receive_slots - 1)
+
+    def _handle_receive_packet(self, worker, packet):
+        device_id = worker.identity["deviceId"]
+        with self._state_lock:
+            settings = dict(self._receive_settings)
+        if device_id != settings["device_id"] or not self._is_confirmed(device_id):
+            return
+        kind = packet.get("type")
+        if kind in (CLIPBOARD_TYPE, CLIPBOARD_CONNECT_TYPE):
+            if not settings["clipboard_enabled"]:
+                return
+            parsed = parse_clipboard_packet(packet)
+            if parsed["connect"]:
+                with self._state_lock:
+                    previous = self._clipboard_connect_seen.get(device_id, -1)
+                    if parsed["timestamp"] == 0 or parsed["timestamp"] <= previous:
+                        return
+                    self._clipboard_connect_seen[device_id] = parsed["timestamp"]
+            receive_id = self._new_receive_id()
+            value = {"id": receive_id, "device_id": device_id, "text": parsed["text"]}
+            if settings["clipboard_mode"] == "automatic":
+                self._emit("clipboard_apply", value)
+            elif self._reserve_receive():
+                with self._state_lock:
+                    self._receive_pending[receive_id] = {"kind": "clipboard",
+                        "device_id": device_id, "text": parsed["text"]}
+                self._emit("clipboard_proposal", value)
+            return
+        if kind != SHARE_TYPE or not settings["file_enabled"]:
+            return
+        parsed = parse_share_packet(packet)
+        if not self._reserve_receive():
+            return
+        with self._connection_lock:
+            entry = self._connections.get(device_id)
+            address = entry.get("address") if entry and entry.get("worker") is worker else None
+        if not address:
+            self._release_receive()
+            return
+        task = dict(parsed, device_id=device_id, address=address,
+                    mode=settings["file_mode"], id=self._new_receive_id())
+        self._transfer_queue.put(task)
+        self._ensure_transfer_worker()
+
+    def _ensure_transfer_worker(self):
+        with self._state_lock:
+            if self._transfer_thread and self._transfer_thread.is_alive():
+                return
+            self._transfer_stop.clear()
+            self._transfer_thread = threading.Thread(target=self._transfer_loop,
+                daemon=True, name="kdeconnect-payload")
+            self._transfer_thread.start()
+
+    def _transfer_loop(self):
+        while not self._transfer_stop.is_set():
+            try:
+                task = self._transfer_queue.get(timeout=0.2)
+            except queue.Empty:
+                continue
+            staged = None
+            try:
+                staged = self._download_payload(task)
+                if self._transfer_stop.is_set():
+                    raise ProtocolError("receive service stopped")
+                pending = dict(task, kind="file", staged=staged)
+                if task["mode"] == "automatic":
+                    path = self._accept_file(pending)
+                    self._release_receive()
+                    self._emit("file_ready", {"id": task["id"],
+                        "device_id": task["device_id"], "name": os.path.basename(path),
+                        "size": task["size"], "path": path})
+                else:
+                    with self._state_lock:
+                        self._receive_pending[task["id"]] = pending
+                    self._emit("file_proposal", {"id": task["id"],
+                        "device_id": task["device_id"], "name": task["name"],
+                        "size": task["size"]})
+                    staged = None
+            except Exception:
+                self._release_receive()
+                self._emit("receive_error", {"id": task["id"], "kind": "file",
+                    "device_id": task["device_id"], "name": task["name"]})
+            finally:
+                if staged:
+                    try:
+                        os.unlink(staged)
+                    except FileNotFoundError:
+                        pass
+
+    def _download_payload(self, task):
+        directory = self._staging_directory
+        if not directory:
+            raise ProtocolError("file receive is not configured")
+        fd, path = tempfile.mkstemp(prefix="incoming-", dir=directory)
+        stream = None
+        try:
+            os.fchmod(fd, 0o600)
+            stream = self._payload_tls_connection(task["device_id"], task["address"], task["port"])
+            with self._state_lock:
+                self._payload_active = stream
+            remaining = task["size"]
+            with os.fdopen(fd, "wb") as output:
+                fd = -1
+                while remaining:
+                    part = stream.recv(min(65536, remaining))
+                    if not part:
+                        raise ProtocolError("payload ended before advertised size")
+                    output.write(part)
+                    remaining -= len(part)
+                if stream.recv(1):
+                    raise ProtocolError("payload exceeds advertised size")
+                output.flush()
+                os.fsync(output.fileno())
+            return path
+        except Exception:
+            try:
+                os.unlink(path)
+            except FileNotFoundError:
+                pass
+            raise
+        finally:
+            if fd >= 0:
+                os.close(fd)
+            if stream is not None:
+                stream.close()
+            with self._state_lock:
+                if self._payload_active is stream:
+                    self._payload_active = None
+
+    def _payload_tls_connection(self, device_id, address, port):
+        if SSL is None:
+            raise RuntimeError("PyOpenSSL is required for KDE Connect payloads")
+        peer = self.store.peers.get(device_id)
+        if not peer or peer.get("paired") is not True:
+            raise ProtocolError("payload peer is not paired")
+        expected = x509.load_pem_x509_certificate(peer["certificate"].encode("ascii"))
+        context = SSL.Context(SSL.TLS_CLIENT_METHOD)
+        context.set_min_proto_version(SSL.TLS1_2_VERSION)
+        context.set_options(SSL.OP_NO_COMPRESSION)
+        context.use_privatekey(crypto.load_privatekey(crypto.FILETYPE_PEM,
+            self.store.key.private_bytes(serialization.Encoding.PEM,
+                serialization.PrivateFormat.PKCS8, serialization.NoEncryption())))
+        context.use_certificate(crypto.load_certificate(crypto.FILETYPE_PEM,
+            self.store.certificate.public_bytes(serialization.Encoding.PEM)))
+        context.check_privatekey()
+
+        def verify(_connection, certificate, _error, depth, _preverified):
+            if depth != 0:
+                return False
+            try:
+                candidate = x509.load_der_x509_certificate(crypto.dump_certificate(
+                    crypto.FILETYPE_ASN1, certificate))
+                _validate_peer_certificate(candidate, device_id)
+                return candidate.fingerprint(hashes.SHA256()) == expected.fingerprint(hashes.SHA256())
+            except (ProtocolError, ValueError):
+                return False
+
+        context.set_verify(SSL.VERIFY_PEER | SSL.VERIFY_FAIL_IF_NO_PEER_CERT, verify)
+        raw = socket.create_connection((address, port), timeout=3)
+        raw.settimeout(8)
+        connection = SSL.Connection(context, raw)
+        connection.set_connect_state()
+        stream = _TLSStream(connection, timeout=8, raw=raw)
+        try:
+            stream.handshake()
+            certificate = x509.load_der_x509_certificate(crypto.dump_certificate(
+                crypto.FILETYPE_ASN1, connection.get_peer_certificate()))
+            if certificate.fingerprint(hashes.SHA256()) != expected.fingerprint(hashes.SHA256()):
+                raise ProtocolError("payload peer certificate pin changed")
+            return stream
+        except Exception:
+            stream.close()
+            raise
+
+    def _accept_file(self, pending):
+        directory = self._receive_settings["download_directory"]
+        if not directory:
+            raise ProtocolError("file receive is no longer configured")
+        stem, suffix = os.path.splitext(pending["name"])
+        for number in range(10000):
+            name = pending["name"] if number == 0 else "%s (%d)%s" % (stem, number, suffix)
+            destination = os.path.join(directory, name)
+            try:
+                os.link(pending["staged"], destination)
+                os.unlink(pending["staged"])
+                os.chmod(destination, 0o600)
+                return destination
+            except FileExistsError:
+                continue
+        raise ProtocolError("no collision-safe download filename is available")
+
+    def accept_receive(self, receive_id):
+        if not isinstance(receive_id, str) or not re.fullmatch(r"[0-9a-f]{32}", receive_id):
+            raise ValueError("invalid receive id")
+        with self._state_lock:
+            pending = self._receive_pending.pop(receive_id, None)
+        if pending is None:
+            raise ProtocolError("receive proposal does not exist")
+        completed = False
+        try:
+            if pending["kind"] == "clipboard":
+                value = {"id": receive_id, "device_id": pending["device_id"],
+                         "text": pending["text"]}
+                self._emit("clipboard_apply", value)
+                completed = True
+                return dict(value, kind="clipboard")
+            path = self._accept_file(pending)
+            value = {"id": receive_id, "device_id": pending["device_id"],
+                "name": os.path.basename(path), "size": pending["size"], "path": path}
+            self._emit("file_ready", value)
+            completed = True
+            return dict(value, kind="file")
+        finally:
+            if completed:
+                self._release_receive()
+            else:
+                with self._state_lock:
+                    self._receive_pending[receive_id] = pending
+
+    def reject_receive(self, receive_id):
+        if not isinstance(receive_id, str) or not re.fullmatch(r"[0-9a-f]{32}", receive_id):
+            raise ValueError("invalid receive id")
+        with self._state_lock:
+            pending = self._receive_pending.pop(receive_id, None)
+        if pending is None:
+            raise ProtocolError("receive proposal does not exist")
+        if pending.get("staged"):
+            try:
+                os.unlink(pending["staged"])
+            except FileNotFoundError:
+                pass
+        self._release_receive()
+        return {"id": receive_id, "state": "rejected", "kind": pending["kind"]}
 
     def start(self):
         with self._state_lock:
@@ -982,6 +1381,7 @@ class KDEConnectSMSBackend:
             return True
 
     def stop(self):
+        self._stop_receive()
         with self._state_lock:
             thread = self._service_thread
             if thread is None:
@@ -1025,6 +1425,34 @@ class KDEConnectSMSBackend:
         for handler in handlers:
             if handler is not threading.current_thread():
                 handler.join(9)
+
+    def _stop_receive(self):
+        self._transfer_stop.set()
+        with self._state_lock:
+            active = self._payload_active
+        if active is not None:
+            active.close()
+        thread = self._transfer_thread
+        if thread is not None and thread is not threading.current_thread():
+            thread.join(10)
+        with self._state_lock:
+            staged = [item.get("staged") for item in self._receive_pending.values()]
+            self._receive_pending.clear()
+            self._receive_slots = 0
+            self._transfer_thread = None
+            self._payload_active = None
+            while True:
+                try:
+                    self._transfer_queue.get_nowait()
+                except queue.Empty:
+                    break
+        for path in staged:
+            if path:
+                try:
+                    os.unlink(path)
+                except FileNotFoundError:
+                    pass
+        self._cleanup_staging()
 
     def _wake(self):
         try:
@@ -1212,8 +1640,8 @@ class KDEConnectSMSBackend:
             connection = None
             try:
                 connection, identity, _certificate = self._tls_connection(device)
-                if SMS_REQUEST_TYPE not in identity["incomingCapabilities"]:
-                    raise ProtocolError("peer does not advertise KDE Connect SMS v2")
+                if not self._peer_useful(identity):
+                    raise ProtocolError("peer advertises no enabled KDE Connect capability")
                 self.store.update_endpoint(device_id, device.address, device.port)
                 self._pairing_failures.pop(device_id, None)
                 self._remember_connection(connection, identity, _certificate,
@@ -1250,8 +1678,8 @@ class KDEConnectSMSBackend:
             connection, identity, certificate = self._tls_connection(
                 device, allow_unpaired=device_id not in self.store.peers, accepted=raw)
             if device_id in self.store.peers:
-                if SMS_REQUEST_TYPE not in identity["incomingCapabilities"]:
-                    raise ProtocolError("peer does not advertise KDE Connect SMS v2")
+                if not self._peer_useful(identity):
+                    raise ProtocolError("peer advertises no enabled KDE Connect capability")
                 self.store.update_endpoint(device_id, device.address, device.port)
                 self._pairing_failures.pop(device_id, None)
                 self._remember_connection(connection, identity, certificate,
@@ -1360,6 +1788,18 @@ class KDEConnectSMSBackend:
     def _is_confirmed(self, device_id):
         return self.store.peers.get(device_id, {}).get("paired") is True
 
+    def _peer_useful(self, identity):
+        if SMS_REQUEST_TYPE in identity["incomingCapabilities"]:
+            return True
+        with self._state_lock:
+            settings = self._receive_settings
+            if identity["deviceId"] != settings["device_id"]:
+                return False
+            outgoing = identity["outgoingCapabilities"]
+            return ((settings["clipboard_enabled"] and (CLIPBOARD_TYPE in outgoing
+                or CLIPBOARD_CONNECT_TYPE in outgoing))
+                or (settings["file_enabled"] and SHARE_TYPE in outgoing))
+
     @staticmethod
     def _validate_pair_packet(packet):
         if (not isinstance(packet, dict) or set(packet) != {"id", "type", "body"}
@@ -1464,9 +1904,15 @@ class KDEConnectSMSBackend:
         return result
 
     def identity_packet(self, target=None, tcp_port=None):
+        incoming = [SMS_MESSAGES_TYPE]
+        with self._state_lock:
+            if self._receive_settings["clipboard_enabled"]:
+                incoming.extend((CLIPBOARD_TYPE, CLIPBOARD_CONNECT_TYPE))
+            if self._receive_settings["file_enabled"]:
+                incoming.append(SHARE_TYPE)
         body = {"deviceId": self.store.device_id, "deviceName": self.store.device_name,
                 "deviceType": "desktop", "protocolVersion": 8,
-                "incomingCapabilities": [SMS_MESSAGES_TYPE],
+                "incomingCapabilities": incoming,
                 "outgoingCapabilities": [SMS_REQUEST_TYPE,
                     SMS_REQUEST_CONVERSATIONS_TYPE, SMS_REQUEST_CONVERSATION_TYPE]}
         if tcp_port is not None:
@@ -1591,6 +2037,20 @@ class KDEConnectSMSBackend:
                 candidates = [(device, last_seen, deadline)
                     for device, last_seen, deadline in self._devices.values()
                     if deadline > now and not self._is_confirmed(device.identity["deviceId"])]
+                settings = dict(self._receive_settings)
+                pending_receive = [{"id": key, "kind": value["kind"],
+                    "device_id": value["device_id"],
+                    **({"name": value["name"], "size": value["size"]}
+                       if value["kind"] == "file" else {})}
+                    for key, value in self._receive_pending.items()]
+                receive_slots = self._receive_slots
+            result["receive"] = {"clipboard_enabled": settings["clipboard_enabled"],
+                "file_enabled": settings["file_enabled"],
+                "device_id": settings["device_id"],
+                "clipboard_mode": settings["clipboard_mode"],
+                "file_mode": settings["file_mode"],
+                "download_directory_configured": bool(settings["download_directory"]),
+                "pending_count": receive_slots, "proposals": pending_receive}
             with self._connection_lock:
                 reachable = [entry for key, entry in self._connections.items()
                     if not self._is_confirmed(key) and not entry["worker"].stopped.is_set()]
@@ -1903,5 +2363,5 @@ class KDEConnectSMSBackend:
         except Exception:
             self._forget_connection(identity["deviceId"], connection)
             raise
-        return {"ok": True, "state": "submitted", "backend": "kdeconnect-direct",
+        return {"ok": True, "state": "queued", "backend": "kdeconnect-direct",
                 "device_id": identity["deviceId"]}

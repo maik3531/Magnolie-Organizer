@@ -34,10 +34,14 @@ def test_canonical_and_status_contract():
                     network_transport="wifi", network_validated=True,
                     network_metered=False)
     assert phone.validate_device_status(extended) is extended
+    version3 = dict(extended, app_version="1.0.7")
+    assert phone.validate_device_status(version3) is version3
     for changed in (dict(value, battery_percent=101), dict(value, imei="secret"),
                     dict(value, charging="yes"),
                     dict(extended, storage_available_bytes=129_000_000_000),
-                    dict(extended, network_transport="ssid")):
+                    dict(extended, network_transport="ssid"),
+                    dict(version3, app_version=""), dict(version3, app_version="x\n"),
+                    dict(version3, app_version="x\u0085")):
         try:
             phone.validate_device_status(changed)
         except ValueError:
@@ -313,7 +317,7 @@ def test_capability_and_grant_schemas_are_strict():
     assert phone.validate_capabilities(capabilities) is capabilities
     assert phone.validate_grants(grants) is grants
     assert set(capabilities["items"]) == phone.CAPABILITY_NAMES
-    assert capabilities["items"]["device_status"]["versions"] == [1, 2]
+    assert capabilities["items"]["device_status"]["versions"] == [1, 2, 3]
     assert grants["grants"] == {"device_status": True, "dial_request": True,
             "selected_notifications_readonly": False, "incoming_call_state": False,
             "incoming_call_number": False, "answer_call": False, "end_call": False,
@@ -682,6 +686,7 @@ def test_payload_device_status_end_to_end_and_revision_rejection():
         service.store.peers.append(peer)
         service.store.save_peers()
         request_id = service.request_status(peer_id)
+        assert service.store.pending(peer_id)[0]["body"] == {"request_id": request_id, "version": 3}
         report = {"request_id": request_id, "model": "Pixel", "manufacturer": "Google",
                   "os_name": "Android", "os_version": "16", "battery_percent": 50,
                   "charging": "discharging", "captured_ms": phone.now_ms()}

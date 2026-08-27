@@ -480,6 +480,11 @@ assert.ok(window.document.querySelector(".telefon-karte") &&
 assert.ok(window.document.body.textContent.includes("Pixel") &&
   window.document.body.textContent.includes("KDE Connect"));
 assert.ok(window.document.body.textContent.includes("WLAN"));
+const phoneRow = window.document.querySelector(".telefon-liste .baum-zeile");
+assert.ok(phoneRow && !Array.from(phoneRow.children).some((element) =>
+  element.matches("span.einst-hinweis") && element.textContent.includes(
+    window.MagnolieI18n.gettext("Selected notifications"))),
+"the redundant selected-notifications peer summary remains visible");
 
 const statusButton = Array.from(window.document.querySelectorAll("button"))
   .find((button) => button.textContent.includes("Gerätestatus"));
@@ -487,11 +492,19 @@ assert.ok(statusButton, "dynamic device status action is missing");
 statusButton.click();
 assert.ok(window.document.querySelectorAll("#geraet-dialog .telefon-freigaben input").length >= 4,
   "device grants and personal synchronization settings are missing");
+const personalDetails = window.document.querySelector("#geraet-dialog details.telefon-personal-sync");
+assert.ok(personalDetails && !personalDetails.open &&
+  personalDetails.querySelector("summary").textContent.includes(
+    window.MagnolieI18n.gettext("Personal synchronization")),
+"personal synchronization is not presented as closed details");
 window.App.geraetStatus({ kennung: "phone-1", status: { online: true,
-  model: "Pixel 9", manufacturer: "Google", os_version: "16",
+  model: "Pixel 9", manufacturer: "Google", app_version: "1.0.7", os_version: "16",
   battery_percent: 73, charging: "charging", network_transport: "wifi" } });
 assert.ok(window.document.querySelector("#geraet-dialog").textContent.includes("Pixel 9") &&
-  window.document.querySelector("#geraet-dialog").textContent.includes("73 %"));
+  window.document.querySelector("#geraet-dialog").textContent.includes("73 %") &&
+  window.document.querySelector('[data-geraet="app_version"]').textContent === "1.0.7" &&
+  !window.document.querySelector('[data-geraet="last_contact_ms"]'),
+"device status does not show Magnolie Notes version in place of last contact");
 Array.from(window.document.querySelectorAll("#geraet-dialog button"))
   .find((button) => button.textContent === "Aktualisieren").click();
 assert.ok(messages.some((message) => message.cmd === "telefon_status_anfordern" &&

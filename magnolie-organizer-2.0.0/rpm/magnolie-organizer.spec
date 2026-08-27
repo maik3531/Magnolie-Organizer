@@ -1,5 +1,5 @@
 Name:           magnolie-organizer
-Version:        2.0.6
+Version:        2.0.7
 Release:        1%{?dist}
 Summary:        Personal organizer with a classic paper appearance
 
@@ -216,6 +216,10 @@ done
 %{_mandir}/*/man1/magnolie-organizer.1*
 
 %changelog
+* Thu Aug 27 2026 Maik Walter <maik3531@gmail.com> - 2.0.7-1
+- Add independent hands-free selection and secure opt-in KDE Connect reception.
+- Extend phone status with the backward-compatible Magnolie Notes version.
+
 * Wed Aug 26 2026 Maik Walter <maik3531@gmail.com> - 2.0.6-1
 - Store unknown-year birthdays and anniversaries without a placeholder year.
 - Preserve genuine 1604, 1900 and 2000 dates and lossless vCard/ICS round trips.

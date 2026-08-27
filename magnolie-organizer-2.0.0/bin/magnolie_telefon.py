@@ -15,6 +15,7 @@ import subprocess
 import tempfile
 import threading
 import time
+import unicodedata
 import uuid
 
 from magnolie_personal_sync import (CHUNK_RAW, MAX_ATTACHMENT, MAX_ATTACHMENTS, MIMES,
@@ -76,7 +77,8 @@ def desktop_capabilities(revision=1, bluetooth_available=False,
                        "reason": "available" if available else (
                            bluetooth_reason if name == "transport.bluetooth_rfcomm"
                            else "not_implemented"),
-                        "versions": [1, 2] if name in {"device_status", "personal_notes_sync"} else
+                         "versions": ([1, 2, 3] if name == "device_status" else
+                                      [1, 2]) if name in {"device_status", "personal_notes_sync"} else
                                     [2] if name == "incoming_call_state" else [1]}
     return {"revision": revision, "items": items}
 
@@ -1828,7 +1830,9 @@ class PhoneService:
             raise RuntimeError("Der Gerätestatus ist nicht freigegeben oder nicht verfügbar.")
         request_id = str(uuid.uuid4())
         body = {"request_id": request_id}
-        if 2 in versions:
+        if 3 in versions:
+            body["version"] = 3
+        elif 2 in versions:
             body["version"] = 2
         message = self.store.queue(peer_id, "device_status.request", body, 60000)
         self.store.register_status_request(peer_id, request_id, message["expires_ms"])
@@ -3131,7 +3135,9 @@ def validate_device_status(body):
                        "storage_total_bytes", "storage_available_bytes",
                        "memory_total_bytes", "memory_available_bytes", "uptime_ms",
                        "network_transport", "network_validated", "network_metered"}
-    if (not isinstance(body, dict) or set(body) not in (base_fields, base_fields | extended_fields)
+    version3_fields = base_fields | extended_fields | {"app_version"}
+    if (not isinstance(body, dict) or set(body) not in (base_fields, base_fields | extended_fields,
+                                                        version3_fields)
             or not valid_uuid(body["request_id"])):
         raise ValueError("invalid device status")
     limits = {"model": (0, 80), "manufacturer": (0, 80), "os_name": (1, 20),
@@ -3140,6 +3146,11 @@ def validate_device_status(body):
         value = body[name]
         if (not isinstance(value, str) or not minimum <= len(value) <= maximum
                 or any(ord(char) < 32 for char in value)):
+            raise ValueError("invalid device status")
+    if set(body) == version3_fields:
+        value = body["app_version"]
+        if (not isinstance(value, str) or not 1 <= len(value) <= 80
+                or any(unicodedata.category(char) == "Cc" for char in value)):
             raise ValueError("invalid device status")
     battery = body["battery_percent"]
     captured = body["captured_ms"]
@@ -3150,7 +3161,7 @@ def validate_device_status(body):
             or isinstance(captured, bool) or not isinstance(captured, int)
             or not 0 <= captured <= 253402300799999):
         raise ValueError("invalid device status")
-    if set(body) == base_fields | extended_fields:
+    if set(body) in (base_fields | extended_fields, version3_fields):
         integer_ranges = {
             "sdk_int": (1, 1000), "battery_temperature_deci_c": (-1, 2000),
             "storage_total_bytes": (-1, 1 << 60), "storage_available_bytes": (-1, 1 << 60),

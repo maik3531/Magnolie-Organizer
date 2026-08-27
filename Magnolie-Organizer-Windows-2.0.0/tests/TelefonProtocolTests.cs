@@ -13,6 +13,9 @@ internal static class TelefonProtocolTests
         var capabilities = TelefonProtocolContract.DesktopCapabilities();
         TestAssert.That(TelefonProtocolContract.ValidateCapabilities(capabilities) == 1 && capabilities["items"]!.AsObject().Count == 11,
             "Granulare Telefon-Capabilities fehlen.");
+        TestAssert.That(capabilities["items"]!["device_status"]!["versions"]!.AsArray()
+            .Select(value => value!.GetValue<int>()).SequenceEqual(new[] { 1, 2, 3 }),
+            "Gerätestatus v1 bis v3 wird nicht vollständig beworben.");
         TestAssert.That(!capabilities["items"]!["transport.bluetooth_rfcomm"]!["available"]!.GetValue<bool>() &&
             capabilities["items"]!["transport.bluetooth_rfcomm"]!["reason"]!.GetValue<string>() == "os_restricted" &&
             capabilities["items"]!["incoming_call_state"]!["versions"]!.AsArray().Single()!.GetValue<int>() == 2,
@@ -39,6 +42,40 @@ internal static class TelefonProtocolTests
         finally { TelefonBluetoothSupport.Report(false, "os_restricted", TelefonBluetoothSupport.DefaultBlocker); }
         TestAssert.That(!capabilities["items"]!.AsObject().ContainsKey("sms_send") && !capabilities["items"]!.AsObject().ContainsKey("call_control"),
             "Legacy-SMS/call_control wird noch beworben.");
+        var control = JsonNode.Parse(File.ReadAllText(copiedControl))!.AsObject();
+        TestAssert.That(control["desktop_capabilities"]!["device_status"]!["versions"]!.AsArray()
+            .Select(value => value!.GetValue<int>()).SequenceEqual(new[] { 1, 2, 3 }) &&
+            control["android_capabilities"]!["device_status"]!["versions"]!.AsArray()
+            .Select(value => value!.GetValue<int>()).SequenceEqual(new[] { 1, 2, 3 }),
+            "Der Telefon-Control-Vertrag bewirbt nicht auf beiden Seiten Gerätestatus v3.");
+        foreach (var name in new[] { "device_status_v1", "device_status_v2", "device_status_v3" })
+            TelefonDeviceStatusContract.ValidateReport(control[name]!);
+        var requestId = "123e4567-e89b-42d3-a456-426614174000";
+        var requestV3 = TelefonCoordinator.DeviceStatusRequest(requestId, new JsonArray(1, 2, 3));
+        var requestV2 = TelefonCoordinator.DeviceStatusRequest(requestId, new JsonArray(1, 2));
+        var requestV1 = TelefonCoordinator.DeviceStatusRequest(requestId, new JsonArray(1));
+        TestAssert.That(requestV3.Count == 2 && requestV3["version"]!.GetValue<int>() == 3 &&
+            requestV2.Count == 2 && requestV2["version"]!.GetValue<int>() == 2 &&
+            requestV1.Count == 1 && !requestV1.ContainsKey("version"),
+            "Die Statusanfrage wählt nicht v3, dann v2 und zuletzt exakt das unversionierte v1.");
+        TestAssert.Throws<InvalidDataException>(() => TelefonDeviceStatusContract.ValidateRequest(
+            new JsonObject { ["request_id"] = requestId, ["version"] = 1 }),
+            "Eine explizite Legacy-Statusversion 1 wurde angenommen.");
+        var v2WithUnknown = control["device_status_v2"]!.DeepClone().AsObject(); v2WithUnknown["extra"] = true;
+        TestAssert.Throws<InvalidDataException>(() => TelefonDeviceStatusContract.ValidateReport(v2WithUnknown),
+            "Gerätestatus v2 nahm ein zusätzliches Feld an.");
+        var v3MissingField = control["device_status_v3"]!.DeepClone().AsObject(); v3MissingField.Remove("network_metered");
+        TestAssert.Throws<InvalidDataException>(() => TelefonDeviceStatusContract.ValidateReport(v3MissingField),
+            "Gerätestatus v3 nahm einen unvollständigen Feldsatz an.");
+        var v3 = control["device_status_v3"]!.DeepClone().AsObject();
+        v3["app_version"] = string.Concat(Enumerable.Repeat("\U0001F600", 80));
+        TelefonDeviceStatusContract.ValidateReport(v3);
+        foreach (var invalidVersion in new[] { "", "1.0\u0001", string.Concat(Enumerable.Repeat("\U0001F600", 81)) })
+        {
+            var invalidV3 = control["device_status_v3"]!.DeepClone().AsObject(); invalidV3["app_version"] = invalidVersion;
+            TestAssert.Throws<InvalidDataException>(() => TelefonDeviceStatusContract.ValidateReport(invalidV3),
+                "Eine leere, kontrollzeichenhaltige oder überlange Magnolie-Notes-Version wurde angenommen.");
+        }
         var grants = TelefonProtocolContract.DesktopGrants();
         TestAssert.That(grants.Count == 10 && grants["device_status"]!.GetValue<bool>() && grants["dial_request"]!.GetValue<bool>() &&
             grants.Where(item => item.Key is not ("device_status" or "dial_request")).All(item => !item.Value!.GetValue<bool>()),

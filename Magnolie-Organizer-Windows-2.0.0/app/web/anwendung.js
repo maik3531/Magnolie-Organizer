@@ -15,7 +15,7 @@
 (function () {
 
   /* Die Fassung erscheint auf der Seite „Über". */
-  const FASSUNG = "2.0.6";
+const FASSUNG = "2.0.7";
   const CONTRIBUTOR_BRANDING = "No valid coffee allowance";
 
   /* ---------------------------------------------------------------------- */
@@ -1050,6 +1050,7 @@
     };
     wert("model");
     wert("manufacturer");
+    wert("app_version");
     wert("os_version");
     wert("sdk_int");
     wert("battery_temperature_deci_c", Number(status.battery_temperature_deci_c) >= 0
@@ -1068,7 +1069,6 @@
     wert("network_metered", status.network_metered === true ? _("Yes")
       : status.network_metered === false ? _("No") : "–");
     wert("captured_ms", geraeteZeit(status.captured_ms));
-    wert("last_contact_ms", geraeteZeit(status.last_contact_ms));
     const akku = Number(status.battery_percent);
     const prozent = Number.isFinite(akku) ? Math.max(0, Math.min(100, akku)) : 0;
     const fuellung = dialog.querySelector(".geraet-akku-fuellung");
@@ -1110,13 +1110,13 @@
     online.dataset.geraet = "online";
     const details = el("dl", "geraet-details geraet-online-details");
     for (const [name, beschriftung] of [["model", _("Model")],
-      ["manufacturer", _("Manufacturer")], ["os_version", _("Android version")],
+      ["manufacturer", _("Manufacturer")], ["app_version", _("Magnolie Notes version")],
+      ["os_version", _("Android version")],
       ["sdk_int", _("API level")], ["charging", _("Charging state")],
       ["battery_temperature_deci_c", _("Temperature")], ["power_source", _("Power source")],
       ["storage", _("Storage available / total")], ["memory", _("Memory available / total")],
       ["uptime_ms", _("Uptime")], ["network_transport", _("Network")],
       ["network_validated", _("Internet available")], ["network_metered", _("Metered connection")],
-      ["last_contact_ms", _("Last contact")],
       ["captured_ms", _("Captured")]]) {
       const dt = el("dt", null, beschriftung), dd = el("dd", null, "–");
       dd.dataset.geraet = name; details.append(dt, dd);
@@ -1151,8 +1151,9 @@
       label.append(hak, document.createTextNode(" " + text));
       freigaben.append(label);
     }
-    const personal = el("div", "telefon-freigaben");
-    personal.append(el("h4", null, _("Personal synchronization")),
+    const personal = el("details", "telefon-freigaben einst-gruppe telefon-personal-sync");
+    personal.open = false;
+    personal.append(el("summary", null, _("Personal synchronization")),
       el("p", "einst-hinweis", _("Personal data over Magnolie Notes, not Magnolienbaum. Deletions always require confirmation.")));
     const personalHak = (text, checked, fn) => {
       const input = document.createElement("input"); input.type = "checkbox"; input.checked = !!checked;
@@ -16598,11 +16599,6 @@
             online: ["online_wifi", "online_bluetooth"].includes(telefon.state),
             last_contact_ms: telefon.last_contact_ms || 0 }) });
       }));
-      const lokale = telefon.local_grants && telefon.local_grants.grants || {};
-      const module = el("span", "einst-hinweis",
-        lokale.selected_notifications_readonly ? _("Selected notifications")
-          : _("No additional modules permitted"));
-      zeile.append(module);
       if (telefon.connection_error === "protocol_mismatch") zeile.append(
         el("p", "einst-warnung", _("Magnolie Notes ended the session. The app and Organizer must use the same protocol version.")));
       zeile.append(knopf(_("Remove phone connection"), "klein rot", () => {

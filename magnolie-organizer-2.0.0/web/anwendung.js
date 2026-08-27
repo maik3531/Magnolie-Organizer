@@ -15,7 +15,7 @@
 (function () {
 
   /* Die Fassung erscheint auf der Seite „Über". */
-  const FASSUNG = "2.0.6";
+const FASSUNG = "2.0.7";
   const CONTRIBUTOR_BRANDING = "No valid coffee allowance";
 
   /* ---------------------------------------------------------------------- */
@@ -171,7 +171,9 @@
           langzeitRegeln: [], kurzzeitInsulin: "", kurzzeitModus: "fixed",
           kurzzeitFestEinheiten: 0, kurzzeitRegeln: [], hinweis: "" } },
       einstellungen: { sync: { kalenderUid: "", kalenderUids: [],
-          adressbuchUid: "", beimStart: false },
+          adressbuchUid: "", beimStart: false, kdeEmpfang: { dateien: false,
+            zwischenablage: false, dateienAutomatisch: false,
+            zwischenablageAutomatisch: false, geraetId: "" } },
         ort: { land: "", landName: "", region: "", regionName: "",
           alleRegionen: false, ferien: true, abgerufen: 0, jahre: [] },
         allgemein: { drucken: true, hilfsrahmen: false, kalenderAuswahl: false,
@@ -1049,6 +1051,7 @@
     };
     wert("model");
     wert("manufacturer");
+    wert("app_version");
     wert("os_version");
     wert("sdk_int");
     wert("battery_temperature_deci_c", Number(status.battery_temperature_deci_c) >= 0
@@ -1109,13 +1112,13 @@
     online.dataset.geraet = "online";
     const details = el("dl", "geraet-details geraet-online-details");
     for (const [name, beschriftung] of [["model", _("Model")],
-      ["manufacturer", _("Manufacturer")], ["os_version", _("Android version")],
+      ["manufacturer", _("Manufacturer")], ["app_version", _("Magnolie Notes version")],
+      ["os_version", _("Android version")],
       ["sdk_int", _("API level")], ["charging", _("Charging state")],
       ["battery_temperature_deci_c", _("Temperature")], ["power_source", _("Power source")],
       ["storage", _("Storage available / total")], ["memory", _("Memory available / total")],
       ["uptime_ms", _("Uptime")], ["network_transport", _("Network")],
       ["network_validated", _("Internet available")], ["network_metered", _("Metered connection")],
-      ["last_contact_ms", _("Last contact")],
       ["captured_ms", _("Captured")]]) {
       const dt = el("dt", null, beschriftung), dd = el("dd", null, "–");
       dd.dataset.geraet = name; details.append(dt, dd);
@@ -1150,8 +1153,9 @@
       label.append(hak, document.createTextNode(" " + text));
       freigaben.append(label);
     }
-    const personal = el("div", "telefon-freigaben");
-    personal.append(el("h4", null, _("Personal synchronization")),
+    const personal = el("details", "telefon-freigaben einst-gruppe telefon-personal-sync");
+    personal.open = false;
+    personal.append(el("summary", null, _("Personal synchronization")),
       el("p", "einst-hinweis", _("Personal data over Magnolie Notes, not Magnolienbaum. Deletions always require confirmation.")));
     const personalHak = (text, checked, fn) => {
       const input = document.createElement("input"); input.type = "checkbox"; input.checked = !!checked;
@@ -1878,7 +1882,7 @@
     const clientRef = String(nutzlast.client_ref || nutzlast.clientRef || "").slice(0, 160);
     const eintrag = clientRef && DATEN.smsVerlauf.find((x) => x.clientRef === clientRef);
     if (!eintrag) return false;
-    let status = kde ? (nutzlast.ok ? "submitted" : "failed") :
+    let status = kde ? (nutzlast.ok ? "queued" : "failed") :
       (["queued", "submitted", "sent", "delivered", "failed"].includes(nutzlast.state)
         ? nutzlast.state : "failed");
     const rang = { queued: 0, submitted: 1, sent: 2, delivered: 3 };
@@ -1888,7 +1892,7 @@
     planeSpeichern();
     if (offenerSmsChat) {
       zeichneSmsVerlauf(offenerSmsChat);
-      if (offenerSmsChat.clientRef === clientRef && status !== "queued") {
+      if (offenerSmsChat.clientRef === clientRef && (!kde || nutzlast.ok === true || status === "failed")) {
         offenerSmsChat.senden.disabled = false;
         if (status !== "failed") offenerSmsChat.text.value = "";
         offenerSmsChat.clientRef = "";
@@ -2004,9 +2008,11 @@
         status: "queued", clientRef: clientRef, weg: "kde", geraet: "", fehler: "" });
       DATEN.smsVerlauf = DATEN.smsVerlauf.slice(-5000); planeSpeichern();
       senden.disabled = true; offenerSmsChat.clientRef = clientRef; zeichneSmsVerlauf(offenerSmsChat);
-      Bruecke.sende({ cmd: "kde_sms_senden", nummer: nummer.value,
+      const uebergeben = Bruecke.sende({ cmd: "kde_sms_senden", nummer: nummer.value,
         text: nachricht, land: DATEN.einstellungen.adressen.landCode ||
           DATEN.einstellungen.adressen.land || "DE", clientRef: clientRef });
+      if (!uebergeben) aktualisiereSmsStatus({ ok: false, state: "failed",
+        client_ref: clientRef, error: _("Failed") }, true);
     };
     const senden = knopf(_("Send SMS"), "hauptknopf", () => {
       const angepasst = smsTextAnpassen(text.value);
@@ -2033,7 +2039,8 @@
       kopf.append(el("div", "sms-initialen", initialen));
     }
     const titel = el("div", "sms-titel");
-    const smsKnopf = knopf("SMS", "sms-praegung", () => oeffneSmsEinstellungen(offenerSmsChat));
+    const smsKnopf = knopf(_("SMS settings"), "sms-praegung", () =>
+      oeffneSmsEinstellungen(offenerSmsChat));
     smsKnopf.setAttribute("aria-label", _("SMS settings"));
     titel.append(smsKnopf, el("h3", null, uebersetzt("SMS to %(name)s", { name: kontaktName(kontakt) })));
     kopf.append(titel);
@@ -2071,10 +2078,11 @@
   }
 
   function waehlFaehigeTelefone() {
+    const telefonId = (DATEN.einstellungen.adressen.kommunikation.anruf || {}).telefonId;
     return (telefonStand && telefonStand.peers || []).filter((peer) => {
       const capability = peer.capabilities && peer.capabilities.items &&
         peer.capabilities.items.dial_request;
-      return ["online_wifi", "online_bluetooth"].includes(peer.state) &&
+      return peer.device_id === telefonId && ["online_wifi", "online_bluetooth"].includes(peer.state) &&
         capability && capability.available && capability.versions.includes(1) &&
         peer.grants && peer.grants.grants && peer.grants.grants.dial_request;
     });
@@ -2083,12 +2091,14 @@
   function rufeNummerAn(eintrag) {
     const telefone = waehlFaehigeTelefone();
     if (telefone.length === 1) {
+      const optionen = DATEN.einstellungen.adressen.kommunikation.anruf || {};
       const clientRef = anrufClientRef();
       zeigeAnrufDialog({ call_ref: clientRef, client_ref: clientRef, revision: 0, state: "ringing",
         direction: "outgoing", control_origin: "desktop", number: eintrag.wert, number_status: "available",
         started_ms: Date.now(), offhook_ms: 0, ended_ms: 0, occurred_ms: Date.now(),
         spam_status: "unknown", battery_percent: -1, battery_captured_ms: 0 }, telefone[0]);
-      Bruecke.sende({ cmd: "telefon_waehlen", nummer: eintrag.wert, clientRef: clientRef,
+      Bruecke.sende({ cmd: "telefon_waehlen", kennung: telefone[0].device_id,
+        hfpAdresse: optionen.hfpAdresse || "", nummer: eintrag.wert, clientRef: clientRef,
         land: DATEN.einstellungen.adressen.landCode || DATEN.einstellungen.adressen.land || "DE" });
       zettel(_("Queued"));
       return true;
@@ -2169,7 +2179,10 @@
     if (neu.state === "idle") {
       const feld = $("#anruf-notiz"); if (feld) aktiverAnruf.note = feld.value;
       speichereAnrufnotiz(aktiverAnruf); $("#anruf-schleier")?.remove(); $("#anruf-chip")?.remove();
-      clearInterval(anrufUhr); anrufUhr = 0; aktiverAnruf = null; return;
+      clearInterval(anrufUhr); anrufUhr = 0; aktiverAnruf = null;
+      for (const eintrag of (telefonStand && telefonStand.peers || []))
+        synchronisiereAnrufFreigaben(eintrag);
+      return;
     }
     if (aktiverAnruf.hidden) return;
     $("#anruf-schleier")?.remove(); $("#anruf-chip")?.remove();
@@ -2208,6 +2221,7 @@
       if (annehmen.disabled || !kannAnrufAnnehmen(aktiverAnruf, aktuellerPeer) || aktiverAnruf.answerPending) return;
       annehmen.disabled = true; aktiverAnruf.answerPending = true;
       Bruecke.sende({ cmd: "telefon_annehmen", kennung: aktiverAnruf.device_id,
+        hfpAdresse: (DATEN.einstellungen.adressen.kommunikation.anruf || {}).hfpAdresse || "",
         callRef: aktiverAnruf.call_ref, commandRef: anrufClientRef() });
     });
     annehmen.disabled = !kannAnrufAnnehmen(aktiverAnruf, endPeer) || !!aktiverAnruf.answerPending;
@@ -2313,6 +2327,36 @@
     return externeKontaktAktion(kontakt, typ, belegung);
   }
 
+  function synchronisiereAnrufFreigaben(peer) {
+    const optionen = DATEN.einstellungen.adressen.kommunikation.anruf || {};
+    if (!peer) return;
+    const peers = telefonStand && telefonStand.peers || [];
+    const magnolie = optionen.art === "magnolie";
+    if (!optionen.telefonId && magnolie && peers.length === 1) {
+      optionen.telefonId = peer.device_id;
+      planeSpeichern();
+    }
+    const lokal = peer.local_grants && peer.local_grants.grants || {};
+    const gebunden = magnolie && optionen.telefonId === peer.device_id;
+    const ausgehend = !!(aktiverAnruf && aktiverAnruf.device_id === peer.device_id &&
+      aktiverAnruf.direction === "outgoing" && aktiverAnruf.state !== "idle");
+    const eingehend = !!(gebunden && (optionen.eingehendBenachrichtigen || optionen.computerTelefonie));
+    const gewuenscht = { incoming_call_state: eingehend, incoming_call_number: eingehend,
+      answer_call: !!(gebunden && optionen.computerTelefonie),
+      end_call: !!(gebunden && optionen.computerTelefonie) };
+    if (ausgehend) {
+      gewuenscht.incoming_call_state = true;
+      gewuenscht.end_call = true;
+    }
+    for (const [name, an] of Object.entries(gewuenscht)) {
+      const key = peer.device_id + "\u0000" + name;
+      if (lokal[name] === an) { anrufFreigabenAusstehend.delete(key); continue; }
+      if (anrufFreigabenAusstehend.get(key) === an) continue;
+      if (Bruecke.sende({ cmd: "telefon_freigabe", kennung: peer.device_id, name: name, an: an }))
+        anrufFreigabenAusstehend.set(key, an);
+    }
+  }
+
   function oeffneKommunikationsBelegung(typ) {
     const sms = typ === "sms";
     const aktuell = DATEN.einstellungen.adressen.kommunikation[typ];
@@ -2343,6 +2387,26 @@
     const eingehend = sms ? null : option(_("Notify me about incoming calls"), "eingehendBenachrichtigen");
     const computer = sms ? null : option(_("Answer calls on the computer and talk"), "computerTelefonie");
     const leiser = sms ? null : option(_("Lower other sounds while ringing"), "klingeltonLeiser");
+    const hfpAdresse = sms ? null : document.createElement("select");
+    if (hfpAdresse) {
+      hfpAdresse.className = "kommunikation-hfp-auswahl";
+      hfpAdresse.setAttribute("aria-label", _("Bluetooth device for call audio"));
+      const aus = document.createElement("option");
+      aus.value = ""; aus.textContent = _("Do not connect Bluetooth call audio automatically");
+      hfpAdresse.append(aus);
+      const btGeraete = telefonStand && telefonStand.bluetooth && telefonStand.bluetooth.devices || [];
+      for (const geraet of btGeraete) {
+        const option = document.createElement("option");
+        option.value = geraet.address; option.textContent = geraet.name || geraet.address;
+        hfpAdresse.append(option);
+      }
+      if (aktuell.hfpAdresse && !btGeraete.some((geraet) => geraet.address === aktuell.hfpAdresse)) {
+        const option = document.createElement("option");
+        option.value = aktuell.hfpAdresse; option.textContent = aktuell.hfpAdresse;
+        hfpAdresse.append(option);
+      }
+      hfpAdresse.value = aktuell.hfpAdresse || "";
+    }
     const optionenAktualisieren = () => {
       if (computer && computer.checked) eingehend.checked = true;
       if (leiser) { leiser.disabled = !eingehend.checked || computer.checked; if (leiser.disabled) leiser.checked = false; }
@@ -2355,28 +2419,30 @@
       DATEN.einstellungen.adressen.kommunikation[typ] = { art: art, programm: ziel };
       if (!sms) Object.assign(DATEN.einstellungen.adressen.kommunikation[typ], {
         eingehendBenachrichtigen: eingehend.checked || computer.checked,
-        computerTelefonie: computer.checked, klingeltonLeiser: leiser.checked });
-      if (!sms && art === "magnolie") for (const peer of (telefonStand && telefonStand.peers || [])) {
-        Bruecke.sende({ cmd: "telefon_freigabe", kennung: peer.device_id,
-          name: "incoming_call_state", an: eingehend.checked || computer.checked });
-        Bruecke.sende({ cmd: "telefon_freigabe", kennung: peer.device_id,
-          name: "incoming_call_number", an: eingehend.checked || computer.checked });
-        Bruecke.sende({ cmd: "telefon_freigabe", kennung: peer.device_id,
-          name: "answer_call", an: computer.checked });
-        Bruecke.sende({ cmd: "telefon_freigabe", kennung: peer.device_id,
-          name: "end_call", an: computer.checked });
-      }
+        computerTelefonie: computer.checked, klingeltonLeiser: leiser.checked,
+        hfpAdresse: hfpAdresse.value });
+      const telefonPeers = telefonStand && telefonStand.peers || [];
+      if (!sms && art === "magnolie" && telefonPeers.length === 1)
+        DATEN.einstellungen.adressen.kommunikation[typ].telefonId = telefonPeers[0].device_id;
+      else if (!sms && aktuell.telefonId)
+        DATEN.einstellungen.adressen.kommunikation[typ].telefonId = aktuell.telefonId;
+      if (!sms) for (const peer of telefonPeers)
+        synchronisiereAnrufFreigaben(peer);
       planeSpeichern(); schliessen(); zeichneAlles();
     });
     const zurueck = knopf(_("Reset"), "", () => {
       auswahl.querySelector('[value="' + (sms ? "kde" : "magnolie") + '"]').checked = true;
       programm.value = "";
+      if (hfpAdresse) hfpAdresse.value = "";
     });
     const knoepfe = el("div", "dialog-knoepfe");
     knoepfe.append(speichern, zurueck, knopf(_("Cancel"), "", schliessen));
     dialog.append(el("h3", null, sms ? _("Assign SMS action") : _("Assign call action")), auswahl,
       formZeile(_("Application command"), programm), hinweis);
-    if (!sms) dialog.append(optionen, el("p", "einst-hinweis",
+    if (!sms) dialog.append(optionen,
+      formZeile(_("Bluetooth device for call audio"), hfpAdresse),
+      el("p", "einst-hinweis", _("This selection is independent of the Bluetooth data fallback.")),
+      el("p", "einst-hinweis",
       _("These options require the matching permissions in Magnolie Notes. Call audio is not sent over the Magnolie data connection.")));
     dialog.append(fehler, knoepfe);
     schleier.append(dialog); document.body.append(schleier);
@@ -4069,6 +4135,15 @@
     }
     d.einstellungen.sync.adressbuchUid = S(sy.adressbuchUid);
     d.einstellungen.sync.beimStart = !!sy.beimStart;
+    const kdeEmpfang = sy.kdeEmpfang && typeof sy.kdeEmpfang === "object"
+      ? sy.kdeEmpfang : {};
+    d.einstellungen.sync.kdeEmpfang = {
+      dateien: kdeEmpfang.dateien === true,
+      zwischenablage: kdeEmpfang.zwischenablage === true,
+      dateienAutomatisch: kdeEmpfang.dateienAutomatisch === true,
+      zwischenablageAutomatisch: kdeEmpfang.zwischenablageAutomatisch === true,
+      geraetId: S(kdeEmpfang.geraetId).replace(/[\x00-\x1f\x7f]/g, "").slice(0, 160)
+    };
     const or = (e.ort && typeof e.ort === "object") ? e.ort : {};
     const o = d.einstellungen.ort;
     o.land = S(or.land).toUpperCase();
@@ -4151,6 +4226,11 @@
         ergebnis.eingehendBenachrichtigen = wert.eingehendBenachrichtigen === true;
         ergebnis.computerTelefonie = wert.computerTelefonie === true;
         ergebnis.klingeltonLeiser = wert.klingeltonLeiser === true;
+        const hfpAdresse = S(wert.hfpAdresse).toUpperCase();
+        ergebnis.hfpAdresse = /^[0-9A-F]{2}(?::[0-9A-F]{2}){5}$/.test(hfpAdresse)
+          ? hfpAdresse : "";
+        const telefonId = S(wert.telefonId).replace(/[\x00-\x1f\x7f]/g, "").slice(0, 160);
+        if (telefonId) ergebnis.telefonId = telefonId;
       }
       return ergebnis;
     };
@@ -15660,6 +15740,9 @@
   let briefkastenMeldung = "";
   let telefonStand = null;
   let telefonStandSignatur = "";
+  const anrufFreigabenAusstehend = new Map();
+  const kdeEmpfangAngebote = [];
+  let kdeEmpfangFrageAktiv = false;
   let baumNachbarn = [];
   let baumInternetOffen = false;
   let baumInternet = null;
@@ -16595,11 +16678,6 @@
             online: ["online_wifi", "online_bluetooth"].includes(telefon.state),
             last_contact_ms: telefon.last_contact_ms || 0 }) });
       }));
-      const lokale = telefon.local_grants && telefon.local_grants.grants || {};
-      const module = el("span", "einst-hinweis",
-        lokale.selected_notifications_readonly ? _("Selected notifications")
-          : _("No additional modules permitted"));
-      zeile.append(module);
       if (telefon.connection_error === "protocol_mismatch") zeile.append(
         el("p", "einst-warnung", _("Magnolie Notes ended the session. The app and Organizer must use the same protocol version.")));
       zeile.append(knopf(_("Remove phone connection"), "klein rot", () => {
@@ -16666,6 +16744,47 @@
     if (!kde.listening && gruende[kde.reason]) {
       kdeBlock.append(el("p", "einst-warnung", gruende[kde.reason]));
     }
+    const empfang = DATEN.einstellungen.sync.kdeEmpfang;
+    const empfangMoeglich = !!kde.peer_id && kde.reason !== "udp_port_unavailable";
+    const empfangSpeichern = () => {
+      if (!empfang.dateien && !empfang.zwischenablage) empfang.geraetId = "";
+      else if (!empfang.geraetId) empfang.geraetId = kde.peer_id || "";
+      planeSpeichern();
+      Bruecke.sende({ cmd: "kde_receive_settings", deviceId: empfang.geraetId,
+        files: empfang.dateien, clipboard: empfang.zwischenablage,
+        filesAutomatic: empfang.dateienAutomatisch,
+        clipboardAutomatic: empfang.zwischenablageAutomatisch });
+    };
+    const empfangOption = (text, eigenschaft, automatikEigenschaft) => {
+      const gruppe = el("div", "kde-empfang-option");
+      const an = document.createElement("input"); an.type = "checkbox";
+      an.checked = !!empfang[eigenschaft]; an.disabled = !empfangMoeglich;
+      const label = el("label", "hak"); label.append(an, document.createTextNode(" " + text));
+      const automatisch = document.createElement("input"); automatisch.type = "checkbox";
+      automatisch.checked = !!empfang[automatikEigenschaft];
+      automatisch.disabled = !empfangMoeglich || !an.checked;
+      const autoLabel = el("label", "hak");
+      autoLabel.append(automatisch, document.createTextNode(" " + _("Accept automatically")));
+      an.addEventListener("change", () => {
+        empfang[eigenschaft] = an.checked;
+        automatisch.disabled = !an.checked;
+        if (!an.checked) { automatisch.checked = false; empfang[automatikEigenschaft] = false; }
+        empfangSpeichern();
+      });
+      automatisch.addEventListener("change", () => {
+        empfang[automatikEigenschaft] = automatisch.checked; empfangSpeichern();
+      });
+      gruppe.append(label, autoLabel); kdeBlock.append(gruppe);
+    };
+    kdeBlock.append(el("h4", null, _("Receive with KDE Connect")),
+      el("p", "einst-hinweis", _("Incoming files and clipboard text are confirmed before use unless automatic acceptance is explicitly enabled.")));
+    empfangOption(_("Receive files in Downloads"), "dateien", "dateienAutomatisch");
+    empfangOption(_("Transfer received text to the clipboard"), "zwischenablage",
+      "zwischenablageAutomatisch");
+    if (kde.reason === "udp_port_unavailable") kdeBlock.append(el("p", "einst-hinweis",
+      _("A system KDE Connect service is active. Configure file and clipboard sharing there.")));
+    else if (!kde.peer_id) kdeBlock.append(el("p", "einst-hinweis",
+      _("Pair a KDE Connect phone before enabling receive functions.")));
     kdeAb.append(kdeBlock);
     wurzel.append(kdeAb);
   }
@@ -19811,6 +19930,22 @@
   /* Schnittstelle für das Python-Programm                                  */
   /* ---------------------------------------------------------------------- */
 
+  function frageKdeEmpfang() {
+    if (kdeEmpfangFrageAktiv || !kdeEmpfangAngebote.length) return;
+    kdeEmpfangFrageAktiv = true;
+    const angebot = kdeEmpfangAngebote.shift();
+    const zwischenablage = Object.prototype.hasOwnProperty.call(angebot, "text");
+    const vorschau = zwischenablage ? String(angebot.text || "").slice(0, 500)
+      : String(angebot.name || _("Unknown file")) + " · " + geraeteGroesse(angebot.size);
+    frage(zwischenablage ? _("Copy this KDE Connect text to the clipboard?")
+      : _("Keep this KDE Connect file in Downloads?"), _("Accept"), _("Reject"), vorschau)
+      .then((ja) => {
+        Bruecke.sende({ cmd: "kde_receive_decide", id: angebot.id, accept: ja });
+        kdeEmpfangFrageAktiv = false;
+        frageKdeEmpfang();
+      });
+  }
+
   const App = {
     init(nutzlast) {
       const startPhase = performance.now();
@@ -19896,6 +20031,11 @@
         setTimeout(() => starteSync(true), 1500);
       }
       if (Bruecke.vorhanden) {
+        const kdeEmpfang = DATEN.einstellungen.sync.kdeEmpfang;
+        Bruecke.sende({ cmd: "kde_receive_settings", deviceId: kdeEmpfang.geraetId,
+          files: kdeEmpfang.dateien, clipboard: kdeEmpfang.zwischenablage,
+          filesAutomatic: kdeEmpfang.dateienAutomatisch,
+          clipboardAutomatic: kdeEmpfang.zwischenablageAutomatisch });
         setTimeout(() => starteUpdatePruefung(false), 1800);
       }
       /* Nur ohne Programmkern muss die Oberfläche selbst nachsehen –
@@ -19969,6 +20109,18 @@
     },
     telefonStand(nutzlast) {
       telefonStand = nutzlast || null;
+      const kdeEmpfang = DATEN.einstellungen.sync.kdeEmpfang;
+      const kdePeerId = telefonStand && telefonStand.kdeconnect &&
+        telefonStand.kdeconnect.peer_id || "";
+      if ((kdeEmpfang.dateien || kdeEmpfang.zwischenablage) && kdePeerId &&
+          kdeEmpfang.geraetId !== kdePeerId) {
+        kdeEmpfang.geraetId = kdePeerId;
+        planeSpeichern();
+        Bruecke.sende({ cmd: "kde_receive_settings", deviceId: kdePeerId,
+          files: kdeEmpfang.dateien, clipboard: kdeEmpfang.zwischenablage,
+          filesAutomatic: kdeEmpfang.dateienAutomatisch,
+          clipboardAutomatic: kdeEmpfang.zwischenablageAutomatisch });
+      }
       document.querySelectorAll("[data-personal-sync-peer]").forEach((anzeige) => {
         const peer = (telefonStand && telefonStand.peers || []).find((wert) =>
           wert.device_id === anzeige.dataset.personalSyncPeer);
@@ -19987,6 +20139,7 @@
       const vorhandene = new Set();
       for (const peer of (telefonStand && telefonStand.peers || [])) {
         vorhandene.add(peer.device_id);
+        synchronisiereAnrufFreigaben(peer);
         const lokal = peer.local_grants && peer.local_grants.grants || {};
         const fern = peer.grants && peer.grants.grants || {};
         const widerrufen = new Set();
@@ -20014,6 +20167,8 @@
         personalSyncSecureWifi.set(peer.device_id, secureWifi);
         if (transition) personalSyncAutoBeiSicheremWlan(peer, true).catch(() => {});
       }
+      for (const key of anrufFreigabenAusstehend.keys())
+        if (!vorhandene.has(key.split("\u0000", 1)[0])) anrufFreigabenAusstehend.delete(key);
       for (const key of personalSyncSecureWifi.keys()) if (!vorhandene.has(key)) personalSyncSecureWifi.delete(key);
       const getrennt = new Set(DATEN.personalSync.pending_proposals.filter((x) =>
         x.source_device && !vorhandene.has(x.source_device)).map((x) => x.proposal_id));
@@ -20236,7 +20391,7 @@
     kdeSmsStatus(nutzlast) {
       nutzlast = nutzlast || {};
       aktualisiereSmsStatus(nutzlast, true);
-      zettel(nutzlast.ok ? _("Submitted to KDE Connect")
+      zettel(nutzlast.ok ? _("Queued")
         : (_("Failed") + (nutzlast.error ? ": " + nutzlast.error : "")));
     },
     kdePairingCode(nutzlast) {
@@ -20247,6 +20402,22 @@
       _("Codes match"), _("Codes differ")).then((ja) => {
         Bruecke.sende({ cmd: "kde_pairing_confirm", ja: !!ja });
       });
+    },
+    kdeEmpfangAngebot(nutzlast) {
+      nutzlast = nutzlast || {};
+      if (!/^[0-9a-f]{32}$/.test(String(nutzlast.id || ""))) return;
+      kdeEmpfangAngebote.push(nutzlast);
+      frageKdeEmpfang();
+    },
+    kdeEmpfangFertig(nutzlast) {
+      nutzlast = nutzlast || {};
+      if (nutzlast.kind === "clipboard") zettel(_("Text copied to the clipboard."));
+      else if (nutzlast.path) zettel(uebersetzt("File saved in Downloads: %(name)s", {
+        name: nutzlast.name || _("Unknown file") }));
+    },
+    kdeEmpfangFehler(nutzlast) {
+      nutzlast = nutzlast || {};
+      zettel(String(nutzlast.error || _("KDE Connect reception failed.")));
     },
     kdePairingStatus(nutzlast) {
       nutzlast = nutzlast || {};
@@ -20333,12 +20504,17 @@
       const ausgehendZugeordnet = !!(aktiverAnruf && aktiverAnruf.direction === "outgoing" &&
         aktiverAnruf.client_ref && nutzlast.direction === "outgoing" &&
         nutzlast.device_id === aktiverAnruf.device_id && nutzlast.call_ref === aktiverAnruf.client_ref);
+      if (!ausgehendZugeordnet &&
+          (optionen.art !== "magnolie" || optionen.telefonId !== nutzlast.device_id)) return;
       if (!ausgehendZugeordnet && !optionen.eingehendBenachrichtigen && !optionen.computerTelefonie) return;
       const capability = peer && peer.capabilities && peer.capabilities.items &&
         peer.capabilities.items.incoming_call_state;
       const local = peer && peer.local_grants && peer.local_grants.grants;
       if (!peer || !capability || !capability.available || !capability.versions ||
           !capability.versions.includes(2) || !local || !local.incoming_call_state) return;
+      if (["ringing", "offhook", "idle"].includes(nutzlast.state)) Bruecke.sende({
+        cmd: "telefon_anruf_bluetooth", callRef: nutzlast.call_ref, state: nutzlast.state,
+        hfpAdresse: optionen.hfpAdresse || "" });
       const nummer = nutzlast.number_status === "available" ? nutzlast.number : "";
       const schluessel = telefonSchluessel(nummer);
       const treffer = DATEN.kontakte.filter((kontakt) => telefonListe(kontakt).some((eintrag) =>
@@ -21119,6 +21295,7 @@
     planeSpeichern: planeSpeichern,
     smsTextAnpassen: smsTextAnpassen,
     anrufClientRef: anrufClientRef,
+    zeigeAnrufDialog: zeigeAnrufDialog,
     oeffneDruckvorschau: oeffneDruckvorschau,
     oeffneTerminBlatt: oeffneTerminBlatt,
     leereDaten: leereDaten,

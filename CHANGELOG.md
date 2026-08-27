@@ -1,5 +1,31 @@
 # Changelog / Änderungen
 
+## 2.0.7 / Notes 1.0.7 — 2026-08-27
+
+### English
+
+- Added independently selectable Bluetooth hands-free routing without coupling it to the encrypted RFCOMM data fallback.
+- Added secure, opt-in KDE Connect clipboard and file reception with peer pinning, confirmation controls, private staging and safe downloads.
+- Extended the exact phone-status protocol with v3 reporting the Magnolie Notes version while preserving v1 and v2.
+- Added a guided five-part Magnolie Notes first run and made selected read-only notifications active from app selection plus Android notification access, without a redundant switch.
+- Clarified SMS settings and history deletion in the interface and handbook.
+
+The Windows artifacts are explicitly approved unsigned Linux cross-builds. Their
+source, native, package and installer audits pass, but Authenticode signing and a
+Windows VM runtime test were unavailable.
+
+### Deutsch
+
+- Ergänzt eine unabhängig wählbare Bluetooth-Freisprechverbindung, ohne sie an den verschlüsselten RFCOMM-Datenrückfall zu koppeln.
+- Ergänzt den sicheren, optionalen KDE-Connect-Empfang für Zwischenablage und Dateien mit Peer-Bindung, Bestätigungen, privater Zwischenablage und sicheren Downloads.
+- Erweitert das exakte Telefonstatusprotokoll um v3 mit der Magnolie-Notes-Version; v1 und v2 bleiben unverändert.
+- Ergänzt eine geführte fünfteilige Ersteinrichtung in Magnolie Notes; ausgewählte Nur-Lese-Meldungen werden ohne redundanten Schalter durch Appwahl und Android-Systemzugriff aktiv.
+- Verdeutlicht SMS-Einstellungen und das Löschen von Verläufen in Oberfläche und Handbuch.
+
+Die Windows-Artefakte sind ausdrücklich freigegebene, unsignierte
+Linux-Cross-Builds. Quellen-, native, Paket- und Installerprüfungen bestehen;
+Authenticode-Signierung und ein Laufzeittest in einer Windows-VM waren nicht verfügbar.
+
 ## 2.0.6 / Notes 1.0.6 — 2026-08-26
 
 ### English
