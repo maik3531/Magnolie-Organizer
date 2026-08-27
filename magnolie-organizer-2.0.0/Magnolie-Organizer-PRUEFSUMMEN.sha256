@@ -4,7 +4,7 @@ f6d357759e0a695a1ff88fa4709182ebf20df03839ca4d63a555c33581f55054  ../magnolie-or
 18a8da8d11d37c9b4e2cdd36f8208909cf442eedd657e552ef7f7ff0ffb9651d  ../Magnolie-Organizer-2.0.7-x86_64.flatpak
 ac84eb76d65fadd2778d9602de382da6c38f1950cf5a41a54fbb62d5ac97a80a  ../magnolie-handbuch_2.0.7_all.deb
 7b61627bfa1800838f6bccd7029a78c0fc6b03cf22f833a62513ca4224b2ec47  ../magnolie-handbuch_2.0.7.tar.xz
-fdbd77c3f695758fe156345bf481e94c2453b3ea47dfee66c4144695694a64c7  bau/rpm-fedora/rpm/RPMS/noarch/magnolie-organizer-2.0.7-1.fc42.noarch.rpm
-25e74805a6b5dff9451a05ec894292e57386c155f48e31845d369a354fa1c7f3  bau/rpm-fedora/rpm/SRPMS/magnolie-organizer-2.0.7-1.fc42.src.rpm
-b0434bad503165588ccdcd2559e04f418be3934a9144274a06b4dfc95086acfb  bau/rpm-fedora/handbuch-rpm/RPMS/noarch/magnolie-handbuch-2.0.7-1.fc42.noarch.rpm
-722d19c430f1d9941fda6ce923b1520707bc10efa0f79bd3e71a580df1572d71  bau/rpm-fedora/handbuch-rpm/SRPMS/magnolie-handbuch-2.0.7-1.fc42.src.rpm
+ab7120c943e661ec8e3cdfbcf18871a0a800af7990ed97dc779d12bbe5947c8a  bau/rpm-fedora/rpm/RPMS/noarch/magnolie-organizer-2.0.7-1.fc42.noarch.rpm
+48db9745379cd20a7658c7f94156ab9b1edb73d27429613864ebbb0f7170f575  bau/rpm-fedora/rpm/SRPMS/magnolie-organizer-2.0.7-1.fc42.src.rpm
+62593931906e2baa13df1d55bcd1f2dc9348e5261824412cb1b6d39f7e96abf4  bau/rpm-fedora/handbuch-rpm/RPMS/noarch/magnolie-handbuch-2.0.7-1.fc42.noarch.rpm
+1c547628fe0765d52acee3f76fa9e385a6749e59f3652088d8b7073d1feb0130  bau/rpm-fedora/handbuch-rpm/SRPMS/magnolie-handbuch-2.0.7-1.fc42.src.rpm
