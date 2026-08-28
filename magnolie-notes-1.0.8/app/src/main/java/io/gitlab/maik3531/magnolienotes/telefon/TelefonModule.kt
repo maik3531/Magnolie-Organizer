@@ -9,7 +9,6 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.net.Uri
 import android.os.Build
 import android.provider.Settings
 import android.provider.Telephony
@@ -59,17 +58,7 @@ object Waehlauftrag {
         if (!Regex("\\+[0-9]{3,15}").matches(number)) return "failed" to "invalid_destination"
         if (!TelefonEffekte(context).firstEvent("dial:$clientRef")) return "submitted" to "none"
         // For direct calls, call_ref is canonically the dial command's client_ref.
-        TelefonWerk.get(context).beginOutgoing(number, clientRef)
-        return runCatching {
-            if (context.checkSelfPermission(Manifest.permission.CALL_PHONE) != PackageManager.PERMISSION_GRANTED ||
-                context.checkSelfPermission(Manifest.permission.READ_PHONE_STATE) != PackageManager.PERMISSION_GRANTED)
-                return TelefonWerk.get(context).failOutgoing(clientRef, "permission_missing")
-            context.getSystemService(TelecomManager::class.java)
-                ?.placeCall(Uri.fromParts("tel", number, null), android.os.Bundle())
-                ?: return TelefonWerk.get(context).failOutgoing(clientRef, "dial_unavailable")
-            "submitted" to "none"
-        }.getOrElse { error -> TelefonWerk.get(context).failOutgoing(clientRef,
-            if (error is SecurityException) "permission_missing" else "os_restricted") }
+        return TelefonWerk.get(context).placeOutgoing(number, clientRef)
     }
 }
 

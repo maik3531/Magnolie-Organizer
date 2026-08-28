@@ -1,5 +1,33 @@
 # Changelog / Änderungen
 
+## 2.0.8 / Notes 1.0.8 — 2026-08-27
+
+### English
+
+- Fixed Thunderbird calendar takeover so one malformed SQLite row no longer hides later appointments, biweekly Monday series retain their interval, and annual anniversaries keep their master identity for duplicate removal.
+- Added registry-gated Thunderbird network-calendar caches while excluding deleted, disabled and orphaned cache entries; EXDATE, RDATE and moved occurrences now remain exact.
+- Isolated the AppImage OpenSSL providers and GTK theme from the host, restored its complete PyOpenSSL runtime, and prevented optional KDE Connect initialization from blocking startup on Arch-based systems.
+- Made a fresh Nextcloud setup enable calendar/contact synchronization by default and prevents silently saving credentials while every Nextcloud function is disabled.
+- Stabilized the settings dialog, preserved scroll position only on the same page, and added a selectable KDE Connect receive folder with safe clipboard fallback.
+- Added proximity-based screen-off handling during Android calls and hardened listener, wake-lock, outgoing-call cancellation, service shutdown and reconnect lifecycles.
+
+The Windows artifacts are explicitly approved unsigned Linux cross-builds. Their
+source, native, package and installer audits pass, but Authenticode signing and a
+Windows VM runtime test were unavailable.
+
+### Deutsch
+
+- Korrigiert die Thunderbird-Kalenderübernahme: Eine fehlerhafte SQLite-Zeile blendet nachfolgende Termine nicht mehr aus, vierzehntägige Montagsserien behalten ihr Intervall und jährliche Jahrestage ihre Serienkennung zur Dublettenbereinigung.
+- Ergänzt registrierungsgebundene Thunderbird-Netzkalender-Caches und schließt gelöschte, deaktivierte sowie verwaiste Cacheeinträge aus; EXDATE, RDATE und verschobene Instanzen bleiben exakt erhalten.
+- Isoliert OpenSSL-Provider und GTK-Theme des AppImages vom Wirt, vervollständigt dessen PyOpenSSL-Laufzeit und verhindert, dass die optionale KDE-Connect-Initialisierung den Start auf Arch-basierten Systemen blockiert.
+- Aktiviert bei einer neuen Nextcloud-Einrichtung Kalender und Kontakte voreingestellt und verhindert das stille Speichern von Zugangsdaten, wenn sämtliche Nextcloud-Funktionen ausgeschaltet sind.
+- Stabilisiert den Einstellungsdialog, bewahrt die Rollposition nur auf derselben Seite und ergänzt einen wählbaren KDE-Connect-Empfangsordner mit sicherem Zwischenablage-Rückfall.
+- Ergänzt das sensorabhängige Abschalten des Android-Bildschirms bei Gesprächen und härtet Lauscher-, Sperrbit-, Wählabbruch-, Dienstende- und Wiederverbindungsabläufe.
+
+Die Windows-Artefakte sind ausdrücklich freigegebene, unsignierte
+Linux-Cross-Builds. Quellen-, native, Paket- und Installerprüfungen bestehen;
+Authenticode-Signierung und ein Laufzeittest in einer Windows-VM waren nicht verfügbar.
+
 ## 2.0.7 / Notes 1.0.7 — 2026-08-27
 
 ### English

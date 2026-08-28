@@ -19,12 +19,18 @@ class TelefonModuleTest {
         assertTrue(TelefonModulStatus.notifications(setOf("example.app"), true))
     }
 
-    @Test fun `Telefoncode weckt das Display nicht auf`() {
+    @Test fun `Telefoncode nutzt nur die Naeherungssperre fuer aktive Anrufe`() {
         val root = File("app/src/main")
         val source = root.walkTopDown().filter { it.isFile }.joinToString("\n") { it.readText() }
         assertFalse(source.contains("KEEP_SCREEN_ON"))
         assertFalse(source.contains("setTurnScreenOn"))
-        assertFalse(source.contains("newWakeLock"))
+        assertFalse(source.contains("FULL_WAKE_LOCK"))
+        assertFalse(source.contains("SCREEN_BRIGHT_WAKE_LOCK"))
+        assertFalse(source.contains("SCREEN_DIM_WAKE_LOCK"))
+        assertFalse(source.contains("ACQUIRE_CAUSES_WAKEUP"))
+        assertFalse(source.contains("ON_AFTER_RELEASE"))
+        assertTrue(source.contains("PROXIMITY_SCREEN_OFF_WAKE_LOCK"))
+        assertTrue(source.contains("RELEASE_FLAG_WAIT_FOR_NO_PROXIMITY"))
     }
 
     @Test fun `direktes Waehlen verfolgt ausgehende Anrufe unabhaengig vom Eingangsschalter`() {
@@ -32,10 +38,34 @@ class TelefonModuleTest {
         val work = File("app/src/main/java/io/gitlab/maik3531/magnolienotes/telefon/TelefonWerk.kt").readText()
         val activity = File("app/src/main/java/io/gitlab/maik3531/magnolienotes/MainActivity.kt").readText()
         assertTrue(calls.contains("fun beginOutgoing") && calls.contains("start()"))
-        assertTrue(calls.contains("active?.direction != \"outgoing\""))
-        assertTrue(calls.contains("if (!TelefonAblage.get(context).incomingCallsEnabled()) stop()"))
+        assertTrue(calls.contains("handler.postDelayed(outgoingTimeout, OUTGOING_START_TIMEOUT_MS)"))
+        assertFalse(calls.contains("persistentListening"))
+        assertTrue(work.contains("incoming.serviceStarted(storage.incomingCallsEnabled())"))
+        assertTrue(work.contains("incoming.setIncomingListening(value)"))
+        assertTrue(work.contains("incoming.runtimePermissionsChanged()"))
+        assertTrue(work.contains("incoming.shutdown()"))
+        assertTrue(calls.contains("private fun finish(call: TrackedCall"))
+        val finish = calls.substring(calls.indexOf("private fun finish(call: TrackedCall"),
+            calls.indexOf("private fun emit(call: TrackedCall"))
+        assertTrue(finish.contains("val origin = origins.origin(call.callRef, now)"))
+        assertTrue(finish.indexOf("val origin") < finish.indexOf("origins.clear(call.callRef)"))
+        assertTrue(finish.contains("runCatching { emit(call, now, now, origin) }"))
+        assertTrue(calls.substring(calls.indexOf("@Synchronized fun shutdown()"),
+            calls.indexOf("private fun reconcileListening()"))
+            .contains("finish(call, System.currentTimeMillis())"))
+        assertTrue(work.contains("@Synchronized fun placeOutgoing"))
+        assertTrue(work.contains("if (!serviceRunning || !storage.enabled())"))
+        assertTrue(calls.contains("generation != listenerGeneration"))
+        assertTrue(calls.contains("if (manager?.callState != TelephonyManager.CALL_STATE_IDLE)"))
+        assertFalse(calls.contains("callback == null && manager?.callState"))
+        assertTrue(work.contains("if (!serviceRunning || !storage.enabled()"))
+        assertTrue(work.contains("while (serviceRunning && storage.enabled())"))
         assertTrue(work.contains("body.string(\"direction\") == \"outgoing\""))
         assertTrue(activity.contains("Manifest.permission.CALL_PHONE, Manifest.permission.READ_PHONE_STATE"))
+        assertTrue(activity.contains("runCatching { TelefonWerk.get(this).runtimePermissionsChanged() }"))
+        val service = File("app/src/main/java/io/gitlab/maik3531/magnolienotes/telefon/TelefonDienst.kt").readText()
+        assertTrue(service.substring(service.indexOf("fun stop(context: Context)"))
+            .contains("TelefonWerk.get(context).serviceStopped()"))
     }
 
     @Test fun `Dienststart ersetzt veraltete Berechtigungsstaende`() {
@@ -91,7 +121,7 @@ class TelefonModuleTest {
         }
         val module = File(main, "java/io/gitlab/maik3531/magnolienotes/telefon/TelefonModule.kt").readText()
         assertFalse(module.contains("Intent.ACTION_DIAL"))
-        assertTrue(module.contains("placeCall"))
+        assertTrue(activeFiles.any { it.readText().contains("placeCall") })
         assertFalse(module.contains("Intent.ACTION_CALL"))
         assertTrue(module.contains("NotificationCompat.MessagingStyle"))
         assertTrue(module.contains("Notification.CATEGORY_MESSAGE"))
@@ -114,7 +144,7 @@ class TelefonModuleTest {
                 "MODIFY_PHONE_STATE", "SmsEingang", "SmsStatus", "SMS_RECEIVED")
                 .forEach { assertFalse("$it in ${file.path}", manifest.contains(it)) }
             assertFalse("ACTION_DIAL in ${file.path}", manifest.contains("android.intent.action.DIAL"))
-            listOf("CALL_PHONE", "READ_PHONE_STATE", "ANSWER_PHONE_CALLS", "READ_CALL_LOG")
+            listOf("CALL_PHONE", "READ_PHONE_STATE", "ANSWER_PHONE_CALLS", "READ_CALL_LOG", "WAKE_LOCK")
                 .forEach { assertTrue("$it fehlt in ${file.path}", manifest.contains(it)) }
             assertTrue("NotificationListener fehlt in ${file.path}", manifest.contains("NotificationListenerService"))
         }

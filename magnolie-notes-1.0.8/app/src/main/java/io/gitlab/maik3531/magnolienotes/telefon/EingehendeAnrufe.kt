@@ -4,6 +4,9 @@ import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
+import android.os.Handler
+import android.os.Looper
+import android.os.PowerManager
 import android.telecom.TelecomManager
 import android.telephony.PhoneStateListener
 import android.telephony.TelephonyCallback
@@ -15,83 +18,156 @@ import java.util.UUID
 class EingehendeAnrufe(private val context: Context) {
     private val manager = context.getSystemService(TelephonyManager::class.java)
     private var callback: Any? = null
+    private var listenerGeneration = 0
     private var active: TrackedCall? = null
     private val origins = CallControlOriginTracker()
+    private val proximity = TelefonNaehe(telefonNaeheSperre(context))
+    private val handler = Handler(Looper.getMainLooper())
+    private val outgoingTimeout = Runnable { expireUnobservedOutgoing() }
+    @Volatile private var serviceRunning = false
+    @Volatile private var incomingListening = false
 
     private data class TrackedCall(val callRef: String, var revision: Int, var state: Int,
         var direction: String, var number: String, val clientRef: String, val startedMs: Long,
-        var offhookMs: Long = 0)
+        var offhookMs: Long = 0, var observedNonIdle: Boolean = false)
 
-    fun start() {
+    private fun start() {
         if (callback != null || context.checkSelfPermission(Manifest.permission.READ_PHONE_STATE) != PackageManager.PERMISSION_GRANTED) return
+        val generation = ++listenerGeneration
         if (Build.VERSION.SDK_INT >= 31) {
             val listener = object : TelephonyCallback(), TelephonyCallback.CallStateListener {
-                override fun onCallStateChanged(value: Int) = changed(value, "")
+                override fun onCallStateChanged(value: Int) = changed(value, "", generation)
             }
             callback = listener; manager?.registerTelephonyCallback(context.mainExecutor, listener)
         } else {
             @Suppress("DEPRECATION") val listener = object : PhoneStateListener() {
                 @Deprecated("Legacy API for Android 8-11")
-                override fun onCallStateChanged(value: Int, number: String?) = changed(value, number.orEmpty())
+                override fun onCallStateChanged(value: Int, number: String?) =
+                    changed(value, number.orEmpty(), generation)
             }
             callback = listener; @Suppress("DEPRECATION") manager?.listen(listener, PhoneStateListener.LISTEN_CALL_STATE)
         }
+        @Suppress("DEPRECATION")
+        changed(manager?.callState ?: TelephonyManager.CALL_STATE_IDLE, "", generation)
     }
 
-    fun stop() {
-        val listener = callback ?: return
-        if (Build.VERSION.SDK_INT >= 31) manager?.unregisterTelephonyCallback(listener as TelephonyCallback)
-        else @Suppress("DEPRECATION") manager?.listen(listener as PhoneStateListener, PhoneStateListener.LISTEN_NONE)
+    private fun unregister(waitForNoProximity: Boolean) {
+        listenerGeneration++
+        val listener = callback
+        if (listener != null && Build.VERSION.SDK_INT >= 31)
+            manager?.unregisterTelephonyCallback(listener as TelephonyCallback)
+        else if (listener != null) {
+            @Suppress("DEPRECATION")
+            manager?.listen(listener as PhoneStateListener, PhoneStateListener.LISTEN_NONE)
+        }
         callback = null
+        proximity.stop(waitForNoProximity)
     }
 
-    @Synchronized fun persistentListening(enabled: Boolean) {
-        if (enabled) start() else if (active?.direction != "outgoing") stop()
+    @Synchronized fun serviceStarted(incomingEnabled: Boolean) {
+        serviceRunning = true
+        incomingListening = incomingEnabled
+        reconcileListening()
+    }
+
+    @Synchronized fun setIncomingListening(enabled: Boolean) {
+        incomingListening = enabled
+        reconcileListening()
+    }
+
+    @Synchronized fun runtimePermissionsChanged() {
+        if (context.checkSelfPermission(Manifest.permission.READ_PHONE_STATE) != PackageManager.PERMISSION_GRANTED) {
+            val call = active
+            if (call != null) {
+                val now = System.currentTimeMillis()
+                finish(call, now)
+            }
+        }
+        reconcileListening()
+    }
+
+    @Synchronized fun shutdown() {
+        serviceRunning = false
+        incomingListening = false
+        handler.removeCallbacks(outgoingTimeout)
+        val call = active
+        if (call != null) finish(call, System.currentTimeMillis()) else unregister(true)
+    }
+
+    private fun reconcileListening() {
+        val permitted = context.checkSelfPermission(Manifest.permission.READ_PHONE_STATE) == PackageManager.PERMISSION_GRANTED
+        if (telefonLauscherNoetig(serviceRunning, permitted, incomingListening, active != null)) start()
+        else unregister(true)
     }
 
     @Synchronized fun beginOutgoing(number: String, clientRef: String) {
         if (active != null) throw TelefonProtokollFehler("Ein Anruf ist bereits aktiv.")
-        start()
+        @Suppress("DEPRECATION")
+        if (manager?.callState != TelephonyManager.CALL_STATE_IDLE)
+            throw TelefonProtokollFehler("Ein anderer Anruf ist bereits aktiv.")
         val now = System.currentTimeMillis()
         // The direct-dial contract uses the command client_ref as call_ref for every lifecycle event.
         active = TrackedCall(clientRef, 0, TelephonyManager.CALL_STATE_RINGING, "outgoing", number, clientRef, now)
         origins.begin(clientRef, "desktop")
         emit(active!!, now, 0)
+        reconcileListening()
+        handler.removeCallbacks(outgoingTimeout)
+        handler.postDelayed(outgoingTimeout, OUTGOING_START_TIMEOUT_MS)
     }
 
     @Synchronized fun failOutgoing(clientRef: String) {
         val call = active?.takeIf { it.clientRef == clientRef } ?: return
-        val now = System.currentTimeMillis(); emit(call, now, now); active = null; origins.clear(call.callRef)
-        if (!TelefonAblage.get(context).incomingCallsEnabled()) stop()
+        handler.removeCallbacks(outgoingTimeout)
+        finish(call, System.currentTimeMillis())
     }
 
-    @Synchronized private fun changed(value: Int, suppliedNumber: String) {
+    @Synchronized private fun expireUnobservedOutgoing() {
+        val call = active?.takeIf { it.direction == "outgoing" && !it.observedNonIdle } ?: return
+        finish(call, System.currentTimeMillis())
+    }
+
+    @Synchronized private fun changed(value: Int, suppliedNumber: String, generation: Int) {
+        if (!serviceRunning || generation != listenerGeneration) return
+        proximity.update(value)
         val now = System.currentTimeMillis()
         var call = active
         var created = false
         if (call == null && value != TelephonyManager.CALL_STATE_IDLE) {
             call = TrackedCall(UUID.randomUUID().toString(), 0, value,
                 if (value == TelephonyManager.CALL_STATE_RINGING) "incoming" else "unknown",
-                suppliedNumber, "", now)
+                suppliedNumber, "", now, observedNonIdle = true)
             active = call
             origins.begin(call.callRef, if (value == TelephonyManager.CALL_STATE_RINGING) "unknown" else "phone")
             created = true
         }
-        if (call == null || !created && call.state == value) return
-        call.state = value
-        if (call.number.isBlank() && Build.VERSION.SDK_INT <= 30) call.number = suppliedNumber
-        if (value == TelephonyManager.CALL_STATE_OFFHOOK && call.offhookMs == 0L) {
-            call.offhookMs = now
-            origins.offhook(call.callRef, now)
+        val tracked = call ?: return
+        if (telefonInitialesAusgehendesIdle(tracked.direction, tracked.observedNonIdle, value)) return
+        if (value != TelephonyManager.CALL_STATE_IDLE) {
+            tracked.observedNonIdle = true
+            handler.removeCallbacks(outgoingTimeout)
         }
-        emit(call, now, if (value == TelephonyManager.CALL_STATE_IDLE) now else 0)
+        if (!created && tracked.state == value) return
+        tracked.state = value
+        if (tracked.number.isBlank() && Build.VERSION.SDK_INT <= 30) tracked.number = suppliedNumber
+        if (value == TelephonyManager.CALL_STATE_OFFHOOK && tracked.offhookMs == 0L) {
+            tracked.offhookMs = now
+            origins.offhook(tracked.callRef, now)
+        }
         if (value == TelephonyManager.CALL_STATE_IDLE) {
-            active = null; origins.clear(call.callRef)
-            if (!TelefonAblage.get(context).incomingCallsEnabled()) stop()
-        }
+            finish(tracked, now)
+        } else runCatching { emit(tracked, now, 0) }
     }
 
-    private fun emit(call: TrackedCall, occurred: Long, ended: Long) {
+    private fun finish(call: TrackedCall, now: Long) {
+        val origin = origins.origin(call.callRef, now)
+        active = null
+        origins.clear(call.callRef)
+        reconcileListening()
+        runCatching { emit(call, now, now, origin) }
+    }
+
+    private fun emit(call: TrackedCall, occurred: Long, ended: Long,
+                     finalOrigin: String? = null) {
         call.revision++
         val storage = TelefonAblage.get(context)
         val peer = runCatching { storage.peers().peer }.getOrNull()
@@ -116,9 +192,13 @@ class EingehendeAnrufe(private val context: Context) {
             put("number_status", JsonPrimitive(numberStatus)); put("started_ms", JsonPrimitive(call.startedMs))
             put("offhook_ms", JsonPrimitive(call.offhookMs)); put("ended_ms", JsonPrimitive(ended))
             put("occurred_ms", JsonPrimitive(occurred)); put("spam_status", JsonPrimitive("unknown"))
-            put("control_origin", JsonPrimitive(origins.origin(call.callRef, occurred)))
+            put("control_origin", JsonPrimitive(finalOrigin ?: origins.origin(call.callRef, occurred)))
             put("battery_percent", JsonPrimitive(battery)); put("battery_captured_ms", JsonPrimitive(if (battery >= 0) occurred else 0))
         }, 60_000)
+    }
+
+    private companion object {
+        const val OUTGOING_START_TIMEOUT_MS = 30_000L
     }
 
     fun answer(commandRef: String, expectedCallRef: String): Pair<String, String> {
@@ -167,6 +247,54 @@ class EingehendeAnrufe(private val context: Context) {
             @Suppress("DEPRECATION") val ended = context.getSystemService(TelecomManager::class.java)?.endCall() ?: false
             if (ended) "submitted" to "none" else "failed" to "not_active"
         }.getOrElse { "failed" to if (it is SecurityException) "permission_missing" else "os_restricted" }
+    }
+}
+
+internal fun telefonLauscherNoetig(serviceRunning: Boolean, permitted: Boolean,
+                                    incomingListening: Boolean, activeCall: Boolean): Boolean =
+    serviceRunning && permitted && (incomingListening || activeCall)
+
+internal fun telefonInitialesAusgehendesIdle(direction: String, observedNonIdle: Boolean,
+                                             callState: Int): Boolean =
+    direction == "outgoing" && !observedNonIdle && callState == TelephonyManager.CALL_STATE_IDLE
+
+internal interface TelefonNaeheSperre {
+    val held: Boolean
+    fun acquire()
+    fun release(waitForNoProximity: Boolean)
+}
+
+internal class TelefonNaehe(private val lock: TelefonNaeheSperre?) {
+    fun update(callState: Int) {
+        val current = lock ?: return
+        when (callState) {
+            TelephonyManager.CALL_STATE_OFFHOOK ->
+                if (!current.held) runCatching { current.acquire() }
+            else ->
+                if (current.held) runCatching { current.release(true) }
+        }
+    }
+
+    fun stop(waitForNoProximity: Boolean) {
+        val current = lock ?: return
+        if (current.held) runCatching { current.release(waitForNoProximity) }
+    }
+}
+
+private fun telefonNaeheSperre(context: Context): TelefonNaeheSperre? {
+    val power = context.getSystemService(PowerManager::class.java) ?: return null
+    if (!power.isWakeLockLevelSupported(PowerManager.PROXIMITY_SCREEN_OFF_WAKE_LOCK)) return null
+    val wakeLock = runCatching { power.newWakeLock(PowerManager.PROXIMITY_SCREEN_OFF_WAKE_LOCK,
+        "${context.packageName}:phone-call-proximity") }.getOrNull() ?: return null
+    wakeLock.setReferenceCounted(false)
+    return object : TelefonNaeheSperre {
+        override val held: Boolean get() = wakeLock.isHeld
+        override fun acquire() = wakeLock.acquire()
+        override fun release(waitForNoProximity: Boolean) {
+            if (waitForNoProximity)
+                wakeLock.release(PowerManager.RELEASE_FLAG_WAIT_FOR_NO_PROXIMITY)
+            else wakeLock.release()
+        }
     }
 }
 

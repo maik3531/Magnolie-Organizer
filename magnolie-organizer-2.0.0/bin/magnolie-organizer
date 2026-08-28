@@ -167,7 +167,7 @@ def tray_system_verfuegbar(desktop=None, aktivierte_erweiterungen=None):
 PROGRAMM_NAME = "magnolie-organizer"
 HANDBUCH_NAME = "magnolie-handbuch"
 FENSTER_TITEL = "Magnolie Organizer"
-PROGRAMM_FASSUNG = "2.0.7"
+PROGRAMM_FASSUNG = "2.0.8"
 ALTER_NAME = "organizer-klassik"
 I18N_DOMAIN = "magnolie-organizer"
 
@@ -318,7 +318,8 @@ TERMIN_FELDER = ["datum", "endDatum", "zeit", "endZeit", "titel", "notiz", "kate
                  "individuelleErinnerungTage", "standardErinnerung",
                  "wiederholung"]
 ICS_BEGLEITFELDER = ("icsRoundtrip", "icsKomplex", "icsSerienUid",
-                      "icsReadOnly", "icsReadOnlyGrund", "icsQuelleName",
+                       "icsAusnahmen", "icsZusatzDaten", "icsZusatzTermine",
+                       "icsReadOnly", "icsReadOnlyGrund", "icsQuelleName",
                       "icsQuelleId", "icsSequence", "icsAenderungszeitFehlt")
 KONTAKT_FELDER = ["nachname", "vorname", "firma", "strasse", "plz", "ort",
                    "anschriften", "telefon", "mobil", "telefone",
@@ -1994,9 +1995,8 @@ def _ics_komponente(art, props, ergebnis, komplexe_serie=False,
                           if n in wiederholungsnamen]
     nicht_abbildbar = (komplexe_serie or
                        any(n in ("EXDATE", "RECURRENCE-ID", "EXRULE")
-                           for n in wiederholungsteile) or
-                       wiederholungsteile.count("RRULE") > 1 or
-                       ("RDATE" in wiederholungsteile and "RRULE" in wiederholungsteile))
+                            for n in wiederholungsteile) or
+                       wiederholungsteile.count("RRULE") > 1)
     if recurrence_id:
         instanz_hash = _text_sha256(json.dumps(
             [recurrence_params or {}, recurrence_id], ensure_ascii=False,
@@ -2093,21 +2093,28 @@ def _ics_komponente(art, props, ergebnis, komplexe_serie=False,
     jahrestag_markiert, typ_kategorie = _jahrestag_aus_ereignis(
         titel, kategorien, typ_feld)
     rdate_daten = []
-    if "RDATE" in wiederholungsteile and not rrule and not nicht_abbildbar:
+    rdate_termine = []
+    if "RDATE" in wiederholungsteile and not nicht_abbildbar:
         for name, params, rohwerte in props:
             if name != "RDATE":
                 continue
             for rohwrt in str(rohwerte).split(","):
                 rdatum, rzeit = _ics_datumzeit(rohwrt.strip(), params or {})
-                if not rdatum or rzeit != zeit or rdatum <= datum:
+                if not rdatum:
                     nicht_abbildbar = True
                     rdate_daten = []
+                    rdate_termine = []
                     break
+                if rdatum == datum and rzeit == zeit:
+                    continue
                 rdate_daten.append(rdatum)
+                rdate_termin = {"datum": rdatum, "zeit": rzeit}
+                if rdate_termin not in rdate_termine:
+                    rdate_termine.append(rdate_termin)
             if nicht_abbildbar:
                 break
     wiederholung = ({"art": "custom", "bis": "", "daten": sorted(set(rdate_daten))}
-                    if rdate_daten and not nicht_abbildbar else
+                    if rdate_daten and not rrule and not nicht_abbildbar else
                     (_ics_wiederholung(rrule, datum, zeit)
                      if rrule and not nicht_abbildbar else None))
     # Der einfache interne Serienparser lehnt den 29. Februar fuer normale
@@ -2149,6 +2156,8 @@ def _ics_komponente(art, props, ergebnis, komplexe_serie=False,
         "wiederholung": wiederholung or {"art": "none", "bis": ""},
         "icsKomplex": ics_komplex,
         "icsSerienUid": serien_uid if ics_komplex else "",
+        "icsZusatzDaten": sorted(set(rdate_daten)),
+        "icsZusatzTermine": rdate_termine,
         "icsRoundtrip": _ics_roundtrip(roundtrip_props, ics_komplex),
         "icsSequence": ics_sequence,
         "icsAenderungszeitFehlt": not bool(last_modified),
@@ -2204,7 +2213,11 @@ def _termin_recurrence_id(termin):
 def _termin_eds_ics_identisch(lokal, entfernt):
     """Erkennt dieselbe externe Instanz, nicht nur gleich aussehende Termine."""
     quelle = str(lokal.get("icsQuelleId") or "")
+    andere_quelle = str(entfernt.get("icsQuelleId") or "")
     if not quelle or quelle.startswith("eds:"):
+        return False
+    if (andere_quelle and andere_quelle != quelle and
+            not andere_quelle.startswith("eds:")):
         return False
     if not (_termin_externe_kennungen(lokal) &
             _termin_externe_kennungen(entfernt)):
@@ -2266,13 +2279,18 @@ def _lokale_kalender_dubletten_bereinigen(nutzlast):
             eintrag.get("uid"), eintrag.get("icsSerienUid"))
                 if str(wert or "").strip()}
 
+    def quelle_passt(links, rechts):
+        a = str(links.get("icsQuelleId") or "")
+        b = str(rechts.get("icsQuelleId") or "")
+        lokaler_cache = lambda wert: wert.startswith(("eds:", "evolution:"))
+        return not a or not b or a == b or lokaler_cache(a) or lokaler_cache(b)
+
     jahrestage = []
     for jahrestag in nutzlast.get("jahrestage") or []:
         ids = kennungen(jahrestag)
         treffer = next((vorhanden for vorhanden in jahrestage
                         if ids and ids & kennungen(vorhanden) and
-                        _maschinen_monat_tag(vorhanden.get("datum")) ==
-                        _maschinen_monat_tag(jahrestag.get("datum")) and
+                        quelle_passt(vorhanden, jahrestag) and
                         kanonischer_text(vorhanden.get("name")) ==
                         kanonischer_text(jahrestag.get("name"))), None)
         if treffer is None:
@@ -2287,9 +2305,17 @@ def _lokale_kalender_dubletten_bereinigen(nutzlast):
         if not treffer.get("icsSerienUid"):
             treffer["icsSerienUid"] = jahrestag.get("icsSerienUid") or ""
 
-    termin_kennungen = set().union(*(kennungen(t) for t in termine)) if termine else set()
-    nutzlast["jahrestage"] = [j for j in jahrestage
-                               if not (kennungen(j) & termin_kennungen)]
+    def gleicher_jahresmaster(jahrestag):
+        ids = kennungen(jahrestag)
+        monat_tag = str(jahrestag.get("datum") or "")[-5:]
+        return any(ids and ids & kennungen(termin) and
+                   quelle_passt(jahrestag, termin) and
+                   not termin.get("icsOriginalDatum") and
+                   (termin.get("wiederholung") or {}).get("art") == "yearly" and
+                   str(termin.get("datum") or "")[-5:] == monat_tag
+                   for termin in termine)
+
+    nutzlast["jahrestage"] = [j for j in jahrestage if not gleicher_jahresmaster(j)]
     return nutzlast
 
 
@@ -13272,6 +13298,9 @@ def _tb_native_datumzeit(wert, tzid="", ganztag=False):
 def _tb_wiederholung_lesen(werte, datum, zeit="", hat_ausnahmen=False):
     """Liest Thunderbirds gespeicherte RRULE-Zeilen in das einfache Modell."""
     regeln = []
+    ausnahmen = []
+    zusatzdaten = []
+    zusatztermine = []
     komplex = bool(hat_ausnahmen)
     for roh in werte or []:
         for zeile in _entfalte_zeilen(str(roh or "")):
@@ -13279,15 +13308,30 @@ def _tb_wiederholung_lesen(werte, datum, zeit="", hat_ausnahmen=False):
             if not prop:
                 komplex = True
                 continue
-            name, _params, wert = prop
+            name, params, wert = prop
             if name == "RRULE":
                 regeln.append(wert)
-            elif name in ("RDATE", "EXDATE", "EXRULE"):
+            elif name in ("RDATE", "EXDATE"):
+                komplex = True
+                for einzelwert in wert.split(","):
+                    datum_wert, zeit_wert = _ics_datumzeit(einzelwert, params)
+                    if name == "EXDATE":
+                        if datum_wert and datum_wert not in ausnahmen:
+                            ausnahmen.append(datum_wert)
+                    elif datum_wert and not (datum_wert == datum and zeit_wert == zeit):
+                        if datum_wert not in zusatzdaten:
+                            zusatzdaten.append(datum_wert)
+                        zusatz = {"datum": datum_wert, "zeit": zeit_wert}
+                        if zusatz not in zusatztermine:
+                            zusatztermine.append(zusatz)
+            elif name == "EXRULE":
                 komplex = True
     if len(regeln) != 1:
-        return None, bool(komplex or regeln or werte)
-    wiederholung = None if komplex else _ics_wiederholung(regeln[0], datum, zeit)
-    return wiederholung, bool(komplex or not wiederholung)
+        return (None, bool(komplex or regeln or werte), ausnahmen,
+                zusatzdaten, zusatztermine)
+    wiederholung = _ics_wiederholung(regeln[0], datum, zeit)
+    return (wiederholung, bool(komplex or not wiederholung), ausnahmen,
+            zusatzdaten, zusatztermine)
 
 
 def _tb_speicherschluessel(zeile, spalten):
@@ -13358,7 +13402,152 @@ def _tb_recurrence_ical(wert, tzid, ganztag=False):
     return "RECURRENCE-ID%s:%s" % (parameter, kompakt)
 
 
-def _tb_normalisierte_kalenderdaten(pfad):
+def _tb_quelle(cal_id, kalender=None):
+    meta = (kalender or {}).get(cal_id, {})
+    name = str(meta.get("name") or cal_id)
+    return "Thunderbird: " + name, "thunderbird:" + cal_id
+
+
+def _tb_normalisiertes_ereignis(zeile, spalten, eigenschaften, parameter,
+                                zusatzdaten, kalender=None):
+    """Wandelt genau eine cal_events-Zeile um."""
+    flags = int(zeile["flags"] or 0) if "flags" in spalten else 0
+    ganztag = bool(flags & 8)
+    start_tz = zeile["event_start_tz"] if "event_start_tz" in spalten else ""
+    ende_tz = zeile["event_end_tz"] if "event_end_tz" in spalten else start_tz
+    datum, zeit = _tb_native_datumzeit(zeile["event_start"], start_tz, ganztag)
+    e_datum, e_zeit = _tb_native_datumzeit(zeile["event_end"], ende_tz, ganztag)
+    if not datum:
+        return None
+    end_datum = ""
+    if ganztag and e_datum > datum:
+        letzter = (datetime.strptime(e_datum, "%Y-%m-%d") -
+                   timedelta(days=1)).strftime("%Y-%m-%d")
+        end_datum = letzter if letzter > datum else ""
+    elif not ganztag and e_datum > datum:
+        end_datum = e_datum
+    cal_id = str(zeile["cal_id"] or "") if "cal_id" in spalten else ""
+    schluessel = _tb_speicherschluessel(zeile, spalten)
+    props = eigenschaften.get(schluessel, {})
+    zusatz = list(zusatzdaten.get(schluessel, []))
+    prop_parameter = parameter.get(schluessel, {})
+    prop = lambda name, standard="", props=props: (
+        props.get(name) or [standard])[0]
+    recurrence_id = zeile["recurrence_id"] if "recurrence_id" in spalten else None
+    recurrence_tz = (zeile["recurrence_id_tz"]
+                     if "recurrence_id_tz" in spalten else "")
+    recurrence_zeile = (_tb_recurrence_ical(
+        recurrence_id, recurrence_tz, bool(flags & 512))
+                        if recurrence_id is not None else "")
+    if recurrence_zeile:
+        zusatz.append(recurrence_zeile)
+    zusatz_zeilen = _tb_zusatzzeilen(zusatz, props, prop_parameter)
+    wiederholung = None
+    ics_komplex = recurrence_id is not None
+    ics_ausnahmen = []
+    ics_zusatzdaten = []
+    ics_zusatztermine = []
+    wiederholend = 0
+    if flags & 16:
+        (wiederholung, serie_komplex, ics_ausnahmen, ics_zusatzdaten,
+         ics_zusatztermine) = _tb_wiederholung_lesen(
+             zusatzdaten.get(schluessel, []), datum, zeit,
+             bool(flags & 32) or recurrence_id is not None)
+        ics_komplex = ics_komplex or serie_komplex
+        if ics_komplex:
+            wiederholend = 1
+    status = str(zeile["ical_status"] or "").upper() \
+        if "ical_status" in spalten else ""
+    privat = str(zeile["privacy"] or "").upper() \
+        if "privacy" in spalten else ""
+    geaendert = int(zeile["last_modified"] or 0) // 1000 \
+        if "last_modified" in spalten else 0
+    titel = str(zeile["title"] or _("Untitled appointment"))
+    master_schluessel = (cal_id, str(zeile["id"] or ""), None, "")
+    master_props = eigenschaften.get(master_schluessel, {}) if recurrence_id is not None else {}
+    master_prop = lambda name, standard="", props=master_props: (
+        props.get(name) or [standard])[0]
+    kategorien = _ical_unescape(prop("CATEGORIES") or master_prop("CATEGORIES"))
+    typ_feld = jahrestag_typ_id(prop("X-MAGNOLIE-TYPE-ID") or
+                                master_prop("X-MAGNOLIE-TYPE-ID"))
+    jahrestag_markiert, jahrestag_typ = _jahrestag_aus_ereignis(
+        titel, kategorien, typ_feld)
+    serien_uid = str(zeile["id"] or "")
+    quellen_name, quellen_id = _tb_quelle(cal_id, kalender)
+    if (recurrence_id is None and not ics_komplex and ganztag and not end_datum and jahrestag_markiert and
+            (not (flags & 16) or (wiederholung and
+             wiederholung["art"] == "yearly" and not wiederholung["bis"]))):
+        return "jahrestage", {
+            "name": titel, "datum": datum, "typ": jahrestag_typ,
+            "uid": serien_uid, "icsSerienUid": serien_uid,
+            "icsQuelleName": quellen_name, "icsQuelleId": quellen_id,
+            "geaendert": geaendert}, wiederholend
+    uid = serien_uid
+    if recurrence_id is not None:
+        uid += "-magnolie-instanz-" + _text_sha256(
+            "%s|%s" % (recurrence_id, recurrence_tz))[:16]
+    return "termine", {
+        "datum": datum, "endDatum": end_datum,
+        "zeit": zeit, "endZeit": e_zeit if not ganztag else "",
+        "titel": titel,
+        "notiz": _ical_unescape(prop("DESCRIPTION")),
+        "kategorien": kategorien,
+        "vertraulich": privat in ("PRIVATE", "CONFIDENTIAL"),
+        "vorlaeufig": status == "TENTATIVE",
+        "kostenstelle": prop("X-MAGNOLIE-KOSTENSTELLE"),
+        "kunde": prop("X-MAGNOLIE-KUNDE"),
+        "wiederholung": wiederholung or {"art": "none", "bis": ""},
+        "icsKomplex": ics_komplex,
+        "icsSerienUid": serien_uid if ics_komplex else "",
+        "icsAusnahmen": ics_ausnahmen,
+        "icsZusatzDaten": ics_zusatzdaten,
+        "icsZusatzTermine": ics_zusatztermine,
+        "icsOriginalDatum": (_tb_native_datumzeit(
+            recurrence_id, recurrence_tz, bool(flags & 512))[0]
+                              if recurrence_id is not None else ""),
+        "icsRoundtrip": zusatz_zeilen,
+        "icsQuelleName": quellen_name, "icsQuelleId": quellen_id,
+        "uid": uid, "geaendert": geaendert}, wiederholend
+
+
+def _tb_normalisierte_aufgabe(zeile, spalten, eigenschaften, parameter,
+                              zusatzdaten, kalender=None):
+    """Wandelt genau eine cal_todos-Zeile um."""
+    faellig = ""
+    if "todo_due" in spalten and zeile["todo_due"] is not None:
+        tzid = zeile["todo_due_tz"] if "todo_due_tz" in spalten else ""
+        faellig, _zeit = _tb_native_datumzeit(zeile["todo_due"], tzid, False)
+    cal_id = str(zeile["cal_id"] or "") if "cal_id" in spalten else ""
+    schluessel = _tb_speicherschluessel(zeile, spalten)
+    props = eigenschaften.get(schluessel, {})
+    prop = lambda name, standard="", props=props: (
+        props.get(name) or [standard])[0]
+    zusatz_zeilen = _tb_zusatzzeilen(
+        zusatzdaten.get(schluessel, []), props, parameter.get(schluessel, {}))
+    try:
+        roh_prio = int(zeile["priority"] or 0) if "priority" in spalten else 0
+    except (TypeError, ValueError):
+        roh_prio = 0
+    prio = 1 if 1 <= roh_prio <= 3 else (3 if roh_prio >= 7 else 2)
+    status = str(zeile["ical_status"] or "").upper() \
+        if "ical_status" in spalten else ""
+    prozent_feld = ("percent_complete" if "percent_complete" in spalten
+                    else "todo_complete" if "todo_complete" in spalten else "")
+    prozent = int(zeile[prozent_feld] or 0) if prozent_feld else 0
+    quellen_name, quellen_id = _tb_quelle(cal_id, kalender)
+    return {
+        "titel": str(zeile["title"] or _("Untitled")),
+        "faellig": faellig, "prio": prio,
+        "erledigt": status == "COMPLETED" or prozent >= 100,
+        "notiz": _ical_unescape(prop("DESCRIPTION")),
+        "uid": str(zeile["id"] or ""),
+        "icsRoundtrip": zusatz_zeilen,
+        "icsQuelleName": quellen_name, "icsQuelleId": quellen_id,
+        "geaendert": (int(zeile["last_modified"] or 0) // 1000
+                       if "last_modified" in spalten else 0)}
+
+
+def _tb_normalisierte_kalenderdaten(pfad, kalender=None, cache=False):
     """Liest aktuelle Thunderbird-Tabellen cal_events und cal_todos.
 
     Thunderbird speichert die Kernfelder dort einzeln; nur ältere oder
@@ -13379,6 +13568,17 @@ def _tb_normalisierte_kalenderdaten(pfad):
             return ergebnis
 
         eigenschaften = {}
+        def erlaubt(zeile, spalten, tombstones=False):
+            cal_id = str(zeile["cal_id"] or "") if "cal_id" in spalten else ""
+            if kalender is not None and cal_id not in kalender:
+                return False
+            if tombstones and "offline_journal" in spalten:
+                try:
+                    return int(zeile["offline_journal"] or 0) != 4
+                except (TypeError, ValueError):
+                    return False
+            return True
+
         if "cal_properties" in tabellen:
             try:
                 spalten = {z[1] for z in zeiger.execute(
@@ -13386,6 +13586,8 @@ def _tb_normalisierte_kalenderdaten(pfad):
                 if {"item_id", "key", "value"}.issubset(spalten):
                     for zeile in zeiger.execute(
                             "SELECT * FROM cal_properties"):
+                        if not erlaubt(zeile, spalten):
+                            continue
                         wert = zeile["value"]
                         if isinstance(wert, bytes):
                             wert = _text_dekodieren(wert)
@@ -13403,6 +13605,8 @@ def _tb_normalisierte_kalenderdaten(pfad):
                     'PRAGMA table_info("cal_parameters")')}
                 if {"item_id", "key1", "key2", "value"}.issubset(spalten):
                     for zeile in zeiger.execute("SELECT * FROM cal_parameters"):
+                        if not erlaubt(zeile, spalten):
+                            continue
                         wert = zeile["value"]
                         if isinstance(wert, bytes):
                             wert = _text_dekodieren(wert)
@@ -13424,6 +13628,8 @@ def _tb_normalisierte_kalenderdaten(pfad):
                     'PRAGMA table_info("%s")' % tabelle)}
                 if {"item_id", "icalString"}.issubset(spalten):
                     for zeile in zeiger.execute('SELECT * FROM "%s"' % tabelle):
+                        if not erlaubt(zeile, spalten):
+                            continue
                         wert = zeile["icalString"]
                         if isinstance(wert, bytes):
                             wert = _text_dekodieren(wert)
@@ -13440,141 +13646,75 @@ def _tb_normalisierte_kalenderdaten(pfad):
                     'PRAGMA table_info("cal_events")')}
                 benoetigt = {"id", "title", "event_start", "event_end"}
                 if benoetigt.issubset(spalten) and "icalString" not in spalten:
-                    for zeile in zeiger.execute("SELECT * FROM cal_events"):
-                        flags = int(zeile["flags"] or 0) if "flags" in spalten else 0
-                        ganztag = bool(flags & 8)
-                        start_tz = zeile["event_start_tz"] if "event_start_tz" in spalten else ""
-                        ende_tz = zeile["event_end_tz"] if "event_end_tz" in spalten else start_tz
-                        datum, zeit = _tb_native_datumzeit(
-                            zeile["event_start"], start_tz, ganztag)
-                        e_datum, e_zeit = _tb_native_datumzeit(
-                            zeile["event_end"], ende_tz, ganztag)
-                        if not datum:
+                    zeilen = [zeile for zeile in zeiger.execute(
+                        "SELECT * FROM cal_events") if erlaubt(zeile, spalten, cache)]
+                    master = {(str(z["cal_id"] or "") if "cal_id" in spalten else "",
+                               str(z["id"] or "")) for z in zeilen
+                              if "recurrence_id" not in spalten or z["recurrence_id"] is None}
+                    for zeile in zeilen:
+                        if cache and "recurrence_id" in spalten and \
+                                zeile["recurrence_id"] is not None and \
+                                ((str(zeile["cal_id"] or "") if "cal_id" in spalten else ""),
+                                 str(zeile["id"] or "")) not in master:
                             ergebnis["uebersprungen"] += 1
                             continue
-                        end_datum = ""
-                        if ganztag and e_datum > datum:
-                            letzter = (datetime.strptime(e_datum, "%Y-%m-%d") -
-                                       timedelta(days=1)).strftime("%Y-%m-%d")
-                            end_datum = letzter if letzter > datum else ""
-                        elif not ganztag and e_datum > datum:
-                            end_datum = e_datum
-                        cal_id = str(zeile["cal_id"] or "") \
-                            if "cal_id" in spalten else ""
-                        schluessel = _tb_speicherschluessel(zeile, spalten)
-                        props = eigenschaften.get(schluessel, {})
-                        zusatz = list(zusatzdaten.get(schluessel, []))
-                        prop_parameter = parameter.get(schluessel, {})
-                        prop = lambda name, standard="", props=props: (
-                            props.get(name) or [standard])[0]
-                        recurrence_id = (zeile["recurrence_id"]
-                                         if "recurrence_id" in spalten else None)
-                        recurrence_tz = (zeile["recurrence_id_tz"]
-                                         if "recurrence_id_tz" in spalten else "")
-                        recurrence_zeile = (_tb_recurrence_ical(
-                            recurrence_id, recurrence_tz, bool(flags & 512))
-                                            if recurrence_id is not None else "")
-                        if recurrence_zeile:
-                            zusatz.append(recurrence_zeile)
-                        zusatz_zeilen = _tb_zusatzzeilen(
-                            zusatz, props, prop_parameter)
-                        wiederholung = None
-                        ics_komplex = recurrence_id is not None
-                        if flags & 16:
-                            wiederholung, serie_komplex = _tb_wiederholung_lesen(
-                                zusatzdaten.get(schluessel, []), datum, zeit,
-                                bool(flags & 32) or recurrence_id is not None)
-                            ics_komplex = ics_komplex or serie_komplex
-                            if ics_komplex:
-                                ergebnis["wiederholend"] += 1
-                        status = str(zeile["ical_status"] or "").upper() \
-                            if "ical_status" in spalten else ""
-                        privat = str(zeile["privacy"] or "").upper() \
-                            if "privacy" in spalten else ""
-                        geaendert = int(zeile["last_modified"] or 0) // 1000 \
-                            if "last_modified" in spalten else 0
-                        titel = str(zeile["title"] or _("Untitled appointment"))
-                        kategorien = _ical_unescape(prop("CATEGORIES"))
-                        typ_feld = jahrestag_typ_id(prop("X-MAGNOLIE-TYPE-ID"))
-                        jahrestag_markiert, jahrestag_typ = _jahrestag_aus_ereignis(
-                            titel, kategorien, typ_feld)
-                        if (ganztag and not end_datum and jahrestag_markiert and
-                                (not (flags & 16) or (wiederholung and
-                                 wiederholung["art"] == "yearly" and
-                                 not wiederholung["bis"]))):
-                            ergebnis["jahrestage"].append({
-                                "name": titel, "datum": datum, "typ": jahrestag_typ,
-                                "uid": str(zeile["id"] or ""),
-                                "geaendert": geaendert})
+                        try:
+                            umgewandelt = _tb_normalisiertes_ereignis(
+                                zeile, spalten, eigenschaften, parameter,
+                                zusatzdaten, kalender)
+                        except (TypeError, ValueError):
+                            ergebnis["uebersprungen"] += 1
                             continue
-                        uid = str(zeile["id"] or "")
-                        if recurrence_id is not None:
-                            uid += "-magnolie-instanz-" + _text_sha256(
-                                "%s|%s" % (recurrence_id, recurrence_tz))[:16]
-                        ergebnis["termine"].append({
-                            "datum": datum, "endDatum": end_datum,
-                            "zeit": zeit, "endZeit": e_zeit if not ganztag else "",
-                             "titel": titel,
-                            "notiz": _ical_unescape(prop("DESCRIPTION")),
-                            "kategorien": kategorien,
-                            "vertraulich": privat in ("PRIVATE", "CONFIDENTIAL"),
-                            "vorlaeufig": status == "TENTATIVE",
-                            "kostenstelle": prop("X-MAGNOLIE-KOSTENSTELLE"),
-                            "kunde": prop("X-MAGNOLIE-KUNDE"),
-                            "wiederholung": wiederholung or {"art": "none", "bis": ""},
-                            "icsKomplex": ics_komplex,
-                            "icsSerienUid": str(zeile["id"] or "") if ics_komplex else "",
-                            "icsRoundtrip": zusatz_zeilen,
-                            "icsQuelleName": "Thunderbird: " + cal_id,
-                            "icsQuelleId": "thunderbird:" + cal_id,
-                            "uid": uid, "geaendert": geaendert})
-            except (sqlite3.Error, TypeError, ValueError):
+                        if umgewandelt is None:
+                            ergebnis["uebersprungen"] += 1
+                            continue
+                        art, eintrag, wiederholend = umgewandelt
+                        ergebnis[art].append(eintrag)
+                        ergebnis["wiederholend"] += wiederholend
+            except sqlite3.Error:
                 pass
+
+            serien_ausnahmen = {}
+            for termin in ergebnis["termine"]:
+                serien_uid = str(termin.get("icsSerienUid") or "")
+                original = str(termin.get("icsOriginalDatum") or "")
+                if serien_uid and original:
+                    schluessel = (str(termin.get("icsQuelleId") or ""), serien_uid)
+                    serien_ausnahmen.setdefault(schluessel, []).append(original)
+            for termin in ergebnis["termine"]:
+                serien_uid = str(termin.get("icsSerienUid") or "")
+                if serien_uid and termin.get("uid") == serien_uid:
+                    vorhanden = list(termin.get("icsAusnahmen") or [])
+                    schluessel = (str(termin.get("icsQuelleId") or ""), serien_uid)
+                    termin["icsAusnahmen"] = list(dict.fromkeys(
+                        vorhanden + serien_ausnahmen.get(schluessel, [])))
 
         if "cal_todos" in tabellen:
             try:
                 spalten = {z[1] for z in zeiger.execute(
                     'PRAGMA table_info("cal_todos")')}
                 if {"id", "title"}.issubset(spalten) and "icalString" not in spalten:
-                    for zeile in zeiger.execute("SELECT * FROM cal_todos"):
-                        faellig = ""
-                        if "todo_due" in spalten and zeile["todo_due"] is not None:
-                            tzid = zeile["todo_due_tz"] if "todo_due_tz" in spalten else ""
-                            faellig, _zeit = _tb_native_datumzeit(
-                                zeile["todo_due"], tzid, False)
-                        cal_id = str(zeile["cal_id"] or "") \
-                            if "cal_id" in spalten else ""
-                        schluessel = _tb_speicherschluessel(zeile, spalten)
-                        props = eigenschaften.get(schluessel, {})
-                        prop = lambda name, standard="", props=props: (
-                            props.get(name) or [standard])[0]
-                        zusatz_zeilen = _tb_zusatzzeilen(
-                            zusatzdaten.get(schluessel, []), props,
-                            parameter.get(schluessel, {}))
+                    zeilen = [zeile for zeile in zeiger.execute(
+                        "SELECT * FROM cal_todos") if erlaubt(zeile, spalten, cache)]
+                    master = {(str(z["cal_id"] or "") if "cal_id" in spalten else "",
+                               str(z["id"] or "")) for z in zeilen
+                              if "recurrence_id" not in spalten or z["recurrence_id"] is None}
+                    for zeile in zeilen:
+                        if cache and "recurrence_id" in spalten and \
+                                zeile["recurrence_id"] is not None and \
+                                ((str(zeile["cal_id"] or "") if "cal_id" in spalten else ""),
+                                 str(zeile["id"] or "")) not in master:
+                            ergebnis["uebersprungen"] += 1
+                            continue
                         try:
-                            roh_prio = int(zeile["priority"] or 0) \
-                                if "priority" in spalten else 0
+                            aufgabe = _tb_normalisierte_aufgabe(
+                                zeile, spalten, eigenschaften, parameter,
+                                zusatzdaten, kalender)
                         except (TypeError, ValueError):
-                            roh_prio = 0
-                        prio = 1 if 1 <= roh_prio <= 3 else (3 if roh_prio >= 7 else 2)
-                        status = str(zeile["ical_status"] or "").upper() \
-                            if "ical_status" in spalten else ""
-                        prozent_feld = ("percent_complete" if "percent_complete" in spalten
-                                        else "todo_complete" if "todo_complete" in spalten
-                                        else "")
-                        prozent = int(zeile[prozent_feld] or 0) if prozent_feld else 0
-                        ergebnis["aufgaben"].append({
-                            "titel": str(zeile["title"] or _("Untitled")),
-                            "faellig": faellig, "prio": prio,
-                            "erledigt": status == "COMPLETED" or prozent >= 100,
-                            "notiz": _ical_unescape(prop("DESCRIPTION")),
-                            "uid": str(zeile["id"] or ""),
-                            "icsRoundtrip": zusatz_zeilen,
-                            "icsQuelleName": "Thunderbird: " + cal_id,
-                            "icsQuelleId": "thunderbird:" + cal_id,
-                            "geaendert": (int(zeile["last_modified"] or 0) // 1000
-                                          if "last_modified" in spalten else 0)})
-            except (sqlite3.Error, TypeError, ValueError):
+                            ergebnis["uebersprungen"] += 1
+                            continue
+                        ergebnis["aufgaben"].append(aufgabe)
+            except sqlite3.Error:
                 pass
     finally:
         try:
@@ -13626,6 +13766,48 @@ def _thunderbird_profile(basis):
             if os.path.isdir(pfad):
                 profile.append(pfad)
     return profile
+
+
+def _tb_cache_kalender(profil):
+    """Liest aktive Netzkalender aus Thunderbirds Registry, ohne prefs.js auszuführen."""
+    pfad = os.path.join(profil, "prefs.js")
+    try:
+        with open(pfad, "rb") as datei:
+            roh = datei.read(2 * 1024 * 1024 + 1)
+        if len(roh) > 2 * 1024 * 1024:
+            return {}
+        text = roh.decode("utf-8")
+    except (OSError, UnicodeError):
+        return {}
+    muster = re.compile(
+        r'^\s*user_pref\("((?:\\.|[^"\\])*)",\s*'
+        r'(true|false|null|-?\d+(?:\.\d+)?|"(?:\\.|[^"\\])*")\s*\);\s*$')
+    registry = {}
+    for zeile in text.splitlines():
+        treffer = muster.match(zeile)
+        if not treffer:
+            continue
+        try:
+            schluessel = json.loads('"' + treffer.group(1) + '"')
+            wert = json.loads(treffer.group(2))
+        except (TypeError, ValueError):
+            continue
+        feld = re.match(r"^calendar\.registry\.([^.]+)\.(.+)$", schluessel)
+        if feld and feld.group(2) in ("type", "uri", "name", "disabled", "cache.enabled"):
+            registry.setdefault(feld.group(1), {})[feld.group(2)] = wert
+    ergebnis = {}
+    for cal_id, werte in registry.items():
+        art, uri = str(werte.get("type") or ""), str(werte.get("uri") or "")
+        if not art or not uri or werte.get("disabled") is True or \
+                werte.get("cache.enabled") is False:
+            continue
+        schema = urlsplit(uri).scheme.lower()
+        netz = schema in ("http", "https", "webcal", "webcals") or art == "gdata"
+        cache_aktiv = werte.get("cache.enabled") is True or art == "gdata"
+        if not netz or not cache_aktiv:
+            continue
+        ergebnis[cal_id] = {"name": str(werte.get("name") or cal_id), "type": art}
+    return ergebnis
 
 
 def _zaehl_satz(name, adressen, termine, aufgaben):
@@ -13727,6 +13909,12 @@ def lokal_scannen(basis=None):
             tb = [a + b for a, b in zip(tb, z)]
         else:
             z = uebernehmen(_tb_normalisierte_kalenderdaten(kalender))
+            tb = [a + b for a, b in zip(tb, z)]
+        cache_kalender = _tb_cache_kalender(profil)
+        cache = os.path.join(profil, "calendar-data", "cache.sqlite")
+        if cache_kalender and os.path.isfile(cache):
+            z = uebernehmen(_tb_normalisierte_kalenderdaten(
+                cache, cache_kalender, cache=True))
             tb = [a + b for a, b in zip(tb, z)]
     satz = _zaehl_satz("Thunderbird", *tb)
     if satz:
@@ -15113,7 +15301,6 @@ class Fenster(_FENSTER_BASIS):
                     tray_enabled=bool(self._tray_einstellungen.get("aktiv")),
                     tray_start="--tray-start" in sys.argv[1:])
         self._setze_symbol()
-        _kdeconnect_backend(self._kde_ereignis)
 
         # Zuletzt benutzte Fensterform wiederherstellen
         if self._fenster["maximiert"]:
@@ -15827,13 +16014,14 @@ class Fenster(_FENSTER_BASIS):
         dialog.destroy()
         return pfad
 
-    def _ordner_waehlen(self, titel, vorwahl=""):
+    def _ordner_waehlen(self, titel, vorwahl="", standard=""):
         dialog = Gtk.FileChooserDialog(
             title=titel, parent=self,
             action=Gtk.FileChooserAction.SELECT_FOLDER)
         dialog.add_buttons(_("Cancel"), Gtk.ResponseType.CANCEL,
                            _("Select"), Gtk.ResponseType.ACCEPT)
-        vorwahl = sicherungs_verzeichnis(vorwahl)
+        vorwahl = (sicherungs_verzeichnis(vorwahl) if vorwahl else
+                   standard or sicherungs_verzeichnis(""))
         if os.path.isdir(vorwahl):
             try:
                 dialog.set_current_folder(vorwahl)
@@ -16203,6 +16391,16 @@ class Fenster(_FENSTER_BASIS):
             if pfad:
                 self.antwort("App.sicherungsordnerGewaehlt", {"pfad": pfad})
 
+        elif befehl == "kde_empfangsordner_waehlen":
+            standard = GLib.get_user_special_dir(
+                GLib.UserDirectory.DIRECTORY_DOWNLOAD) or os.path.join(
+                    os.path.expanduser("~"), "Downloads")
+            pfad = self._ordner_waehlen(
+                _("Receive with KDE Connect"), nachricht.get("pfad") or "",
+                standard)
+            if pfad:
+                self.antwort("App.kdeEmpfangsordnerGewaehlt", {"pfad": pfad})
+
         elif befehl == "karte":
             threading.Thread(target=lambda: self.antwort(
                 "App.adressWeg", karte_oeffnen(
@@ -16251,7 +16449,8 @@ class Fenster(_FENSTER_BASIS):
                 bool(nachricht.get("clipboard")), bool(nachricht.get("files")),
                 nachricht.get("deviceId") or "",
                 bool(nachricht.get("clipboardAutomatic")),
-                bool(nachricht.get("filesAutomatic"))), daemon=True).start()
+                bool(nachricht.get("filesAutomatic")),
+                nachricht.get("directory") or ""), daemon=True).start()
 
         elif befehl == "kde_receive_decide":
             threading.Thread(target=lambda: self._kde_receive_decide(
@@ -17491,25 +17690,50 @@ class Fenster(_FENSTER_BASIS):
         self._telefon_stand_melden()
 
     def _kde_receive_settings(self, clipboard, files, device_id,
-                              clipboard_automatic, files_automatic):
+                              clipboard_automatic, files_automatic,
+                              directory=""):
+        datei_fehler = None
+        download = ""
+        dateien_aktiv = files
         try:
-            download = ""
             if files:
-                download = GLib.get_user_special_dir(
-                    GLib.UserDirectory.DIRECTORY_DOWNLOAD) or os.path.join(
-                        os.path.expanduser("~"), "Downloads")
-                os.makedirs(download, exist_ok=True)
-                download = os.path.realpath(download)
-            _kdeconnect_backend(self._kde_ereignis).configure_receive(
-                clipboard_enabled=clipboard, file_enabled=files,
-                device_id=device_id if clipboard or files else None,
-                clipboard_mode="automatic" if clipboard_automatic else "confirm",
-                file_mode="automatic" if files_automatic else "confirm",
-                download_directory=download if files else None)
+                try:
+                    download = os.path.expanduser(directory.strip()) if directory else (
+                        GLib.get_user_special_dir(
+                            GLib.UserDirectory.DIRECTORY_DOWNLOAD) or os.path.join(
+                                os.path.expanduser("~"), "Downloads"))
+                    if not os.path.isabs(download):
+                        raise ValueError("invalid KDE Connect receive directory")
+                    os.makedirs(download, exist_ok=True)
+                    download = os.path.realpath(download)
+                except Exception as fehler:
+                    datei_fehler = fehler
+                    dateien_aktiv = False
+            backend = _kdeconnect_backend(self._kde_ereignis)
+            try:
+                backend.configure_receive(
+                    clipboard_enabled=clipboard, file_enabled=dateien_aktiv,
+                    device_id=device_id if clipboard or dateien_aktiv else None,
+                    clipboard_mode="automatic" if clipboard_automatic else "confirm",
+                    file_mode="automatic" if files_automatic else "confirm",
+                    download_directory=download if dateien_aktiv else None)
+            except Exception as fehler:
+                if not dateien_aktiv:
+                    raise
+                datei_fehler = fehler
+                dateien_aktiv = False
+                backend.configure_receive(
+                    clipboard_enabled=clipboard, file_enabled=False,
+                    device_id=device_id if clipboard else None,
+                    clipboard_mode="automatic" if clipboard_automatic else "confirm",
+                    file_mode="confirm", download_directory=None)
             self._telefon_stand_melden()
+            if datei_fehler:
+                raise datei_fehler
         except Exception as fehler:
             self.antwort("App.kdeEmpfangFehler", {"error": fehler_deutsch(
-                fehler, _("Configuring KDE Connect receive functions"))})
+                fehler, _("Configuring KDE Connect receive functions")),
+                "filesDisabled": bool(files and not dateien_aktiv)})
 
     def _kde_receive_decide(self, receive_id, accept):
         try:

@@ -177,7 +177,7 @@ def haupt():
             "Personal Sync",
             "restore_unavailable",
             "Plattform- und Sicherheitsmatrix",
-            "magnolie-organizer-2.0.7-",
+            "magnolie-organizer-2.0.8-",
             "Die Locale beeinflusst den Diagnosetext",
             "Technische Datei- und Mengengrenzen",
             "keine Speicherobergrenze",

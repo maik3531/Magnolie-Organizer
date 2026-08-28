@@ -15,7 +15,7 @@
 (function () {
 
   /* Die Fassung erscheint auf der Seite „Über". */
-const FASSUNG = "2.0.7";
+const FASSUNG = "2.0.8";
   const CONTRIBUTOR_BRANDING = "No valid coffee allowance";
 
   /* ---------------------------------------------------------------------- */
@@ -3706,6 +3706,17 @@ const FASSUNG = "2.0.7";
       const providerMetadaten = saubereProviderMetadaten(t.providerMetadaten &&
         typeof t.providerMetadaten === "object"
         ? JSON.parse(JSON.stringify(t.providerMetadaten)) : {});
+      const icsZusatzTermine = [];
+      const icsZusatzKennungen = new Set();
+      for (const z of Array.isArray(t.icsZusatzTermine) ? t.icsZusatzTermine : []) {
+        const zDatum = z && S(z.datum);
+        const zZeit = z && /^(?:[01]\d|2[0-3]):[0-5]\d$/.test(S(z.zeit)) ? S(z.zeit) : "";
+        const kennung = zDatum + "\u0000" + zZeit;
+        if (!gueltigesISO(zDatum) || icsZusatzKennungen.has(kennung)) continue;
+        icsZusatzKennungen.add(kennung);
+        icsZusatzTermine.push({ datum: zDatum, zeit: zZeit });
+        if (icsZusatzTermine.length >= 256) break;
+      }
       d.termine.push({ id: S(t.id) || uid(), uid: S(t.uid), datum: t.datum,
         endDatum: endDatum,
         zeit: Z(t.zeit), endZeit: Z(t.endZeit),
@@ -3727,6 +3738,11 @@ const FASSUNG = "2.0.7";
           t.standardErinnerung === undefined ? true : !!t.standardErinnerung,
       wiederholung: leseWiederholung(t.wiederholung),
       icsKomplex: !!t.icsKomplex, icsSerienUid: S(t.icsSerienUid),
+      icsAusnahmen: Array.isArray(t.icsAusnahmen)
+        ? Array.from(new Set(t.icsAusnahmen.map(S).filter(gueltigesISO))).slice(0, 256) : [],
+      icsZusatzDaten: Array.isArray(t.icsZusatzDaten)
+        ? Array.from(new Set(t.icsZusatzDaten.map(S).filter(gueltigesISO))).slice(0, 256) : [],
+      icsZusatzTermine: icsZusatzTermine,
       icsRoundtrip: icsRoundtrip,
       icsSequence: Math.floor(N(t.icsSequence)),
       icsAenderungszeitFehlt: !!t.icsAenderungszeitFehlt,
@@ -3885,6 +3901,8 @@ const FASSUNG = "2.0.7";
       d.jahrestage.push({ id: S(j.id) || uid(), uid: S(j.uid), name: S(j.name), datum: datum,
         jahrUnbekannt: gueltigesTeildatum(datum), kontaktId: S(j.kontaktId),
         typ: jahrestagTypId(typ) || typ || "other", syncKalenderUid: S(j.syncKalenderUid),
+        icsSerienUid: S(j.icsSerienUid),
+        icsQuelleName: S(j.icsQuelleName), icsQuelleId: S(j.icsQuelleId),
         icsRoundtrip: Array.isArray(j.icsRoundtrip) ? j.icsRoundtrip.map(S) : [],
         geaendert: N(j.geaendert) });
     }
@@ -5251,9 +5269,12 @@ const FASSUNG = "2.0.7";
   }
 
   /* Fällt ein bestimmter Tag auf eine Wiederholung dieses Termins? */
-  function wiederholungTrifft(t, iso) {
+  function wiederholungTrifft(t, iso, ohneZusatz) {
     const w = t.wiederholung;
     if (!w || !w.art || w.art === "none") return false;
+    if (Array.isArray(t.icsAusnahmen) && t.icsAusnahmen.includes(iso)) return false;
+    if (!ohneZusatz && Array.isArray(t.icsZusatzDaten) &&
+      t.icsZusatzDaten.includes(iso)) return true;
     if (iso <= t.datum) return false;      /* der erste steht schon im Buch */
     if (w.bis && iso > w.bis) return false;
 
@@ -5293,6 +5314,28 @@ const FASSUNG = "2.0.7";
       return false;
     }
     return false;
+  }
+
+  function rdateZeitverschiebungen(t, iso) {
+    const zusaetze = Array.isArray(t.icsZusatzTermine)
+      ? t.icsZusatzTermine.filter((z) => z && z.datum === iso) : [];
+    if (!zusaetze.length && Array.isArray(t.icsZusatzDaten) &&
+      t.icsZusatzDaten.includes(iso)) return [{}];
+    return zusaetze.map((zusatz) => {
+      if (!/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(zusatz.zeit) ||
+        !/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(t.zeit) || zusatz.zeit === t.zeit) return {};
+    const startAlt = new Date(`${t.datum}T${t.zeit}:00`);
+    const endeZeit = /^(?:[01]\d|2[0-3]):[0-5]\d$/.test(t.endZeit) ? t.endZeit : t.zeit;
+    let endeAlt = new Date(`${gueltigesISO(t.endDatum) ? t.endDatum : t.datum}T${endeZeit}:00`);
+    if (endeAlt < startAlt) endeAlt = new Date(endeAlt.getTime() + 86400000);
+    const neu = new Date(`${iso}T${zusatz.zeit}:00`);
+    const ende = new Date(neu.getTime() + Math.max(0, endeAlt - startAlt));
+    const endIso = isoVon(ende);
+      return { zeit: zusatz.zeit,
+        endZeit: /^(?:[01]\d|2[0-3]):[0-5]\d$/.test(t.endZeit)
+          ? `${pad2(ende.getHours())}:${pad2(ende.getMinutes())}` : "",
+        endDatum: endIso > iso ? endIso : "" };
+    });
   }
 
   function istWiederkehrend(t) {
@@ -5502,12 +5545,21 @@ const FASSUNG = "2.0.7";
           const tag = ausISO(iso);
           const startIso = isoVon(new Date(tag.getFullYear(), tag.getMonth(),
             tag.getDate() - versatz));
-          if (!wiederholungTrifft(t, startIso)) continue;
+          if (Array.isArray(t.icsAusnahmen) && t.icsAusnahmen.includes(startIso)) continue;
+          const zusaetze = rdateZeitverschiebungen(t, startIso);
+          let regulaer = wiederholungTrifft(t, startIso, true);
+          if (t.wiederholung.art === "custom" && zusaetze.length) regulaer = false;
+          if (!regulaer && !zusaetze.length) continue;
           const ende = ausISO(startIso);
           const endDatum = dauer ? isoVon(new Date(ende.getFullYear(), ende.getMonth(),
             ende.getDate() + dauer)) : "";
-          liste.push(Object.assign({}, t, { datum: startIso, endDatum: endDatum,
-            folge: true }));
+          if (regulaer) liste.push(Object.assign({}, t, { datum: startIso,
+            endDatum: endDatum, folge: true }));
+          for (const verschiebung of zusaetze) {
+            if (regulaer && !Object.keys(verschiebung).length) continue;
+            liste.push(Object.assign({}, t, { datum: startIso, endDatum: endDatum,
+              folge: true }, verschiebung));
+          }
           break;
         }
       }
@@ -15050,18 +15102,13 @@ const FASSUNG = "2.0.7";
 
   function baueEinstellungen() {
     const wurzel = $("#einstellungen-inhalt");
-    /* Rollposition ueber den Neuaufbau retten. Das Leeren des Inhalts laesst
-       den umgebenden Behaelter zusammenfallen, wodurch er auf null springt.
-       Ohne dieses Merken sprang die Seite bei jeder Zustandsmeldung nach oben
-       und liess sich nicht mehr herunterrollen. */
-    const rollBehaelter = $("#einstellungen-blatt");
-    const rollposition = rollBehaelter ? rollBehaelter.scrollTop : 0;
-    if (rollBehaelter && rollposition > 0)
-      requestAnimationFrame(() => { rollBehaelter.scrollTop = rollposition; });
-    wurzel.textContent = "";
-
     const einstSeiten = sichtbareEinstSeiten();
     if (!einstSeiten.some((seite) => seite.id === einstSeite)) einstSeite = "allgemein";
+    const alteSeite = wurzel.querySelector(".einst-seite");
+    const gleicheSeite = alteSeite && alteSeite.id === "einst-seite-" + einstSeite;
+    const rollposition = gleicheSeite ? alteSeite.scrollTop : 0;
+    wurzel.textContent = "";
+
     const reiter = el("div", "einst-reiter");
     reiter.setAttribute("role", "tablist");
     for (const s of einstSeiten) {
@@ -15115,6 +15162,8 @@ const FASSUNG = "2.0.7";
     else if (einstSeite === "baum") baueSeiteBaum(blatt);
     else if (einstSeite === "ueber") baueSeiteUeber(blatt);
     else baueSeiteSchrift(blatt);
+
+    if (rollposition > 0) requestAnimationFrame(() => { blatt.scrollTop = rollposition; });
 
     if (DATEN_PFAD) {
       wurzel.append(el("p", "einst-fuss",
@@ -16397,7 +16446,8 @@ const FASSUNG = "2.0.7";
     const anHak = document.createElement("input");
     anHak.type = "checkbox";
     anHak.id = "nextcloud-dav-an";
-    anHak.checked = !!briefkastenStand.davAktiv;
+    anHak.checked = !!briefkastenStand.davAktiv || (!briefkastenStand.briefkastenAktiv &&
+      !briefkastenStand.url && !briefkastenStand.benutzer && !briefkastenStand.kennwortVorhanden);
     const anZeile = el("label", "hak");
     anZeile.append(anHak, document.createTextNode(" " +
       _("Synchronization") + ": Nextcloud"));
@@ -16426,11 +16476,11 @@ const FASSUNG = "2.0.7";
 
     const reihe = el("div", "knopfreihe");
     const senden = (kennwortLoeschen) => {
+      const briefkastenAktiv = !!($("#briefkasten-an") && $("#briefkasten-an").checked);
       Bruecke.sende({
         cmd: "baum_briefkasten_speichern",
         davAktiv: kennwortLoeschen ? false : anHak.checked,
-        briefkastenAktiv: kennwortLoeschen ? false :
-          !!($("#briefkasten-an") && $("#briefkasten-an").checked),
+        briefkastenAktiv: kennwortLoeschen ? false : briefkastenAktiv,
         url: urlFeld.value.trim(),
         benutzer: benutzerFeld.value.trim(),
         anwendungskennwort: kennwortLoeschen ? "" : kennwortFeld.value,
@@ -19039,7 +19089,12 @@ const FASSUNG = "2.0.7";
 
   function mergeTermine(liste) {
     const z = { neu: 0, doppelt: 0 };
-    const uids = new Map(DATEN.termine.filter((t) => t.uid).map((t) => [t.uid, t]));
+    const importKennung = (eintrag, wert) => {
+      const quelle = String(eintrag.icsQuelleId || "");
+      return quelle ? quelle + "\u0000" + wert : wert;
+    };
+    const uids = new Map(DATEN.termine.filter((t) => t.uid)
+      .map((t) => [importKennung(t, t.uid), t]));
     const schluessel = new Set(DATEN.termine.map(
       (t) => t.datum + "|" + (t.endDatum || "") + "|" + t.zeit + "|" +
         kanonischerText(t.titel)));
@@ -19051,13 +19106,16 @@ const FASSUNG = "2.0.7";
         ? t.endDatum : "";
       const s = t.datum + "|" + endDatum + "|" + (t.zeit || "") + "|" +
         kanonischerText(t.titel);
-      const uidTreffer = t.uid ? uids.get(t.uid) : null;
+      const uidTreffer = t.uid ? uids.get(importKennung(t, t.uid)) : null;
       if (uidTreffer) {
         if ((Number(t.geaendert) || 0) > (Number(uidTreffer.geaendert) || 0)) {
           const id = uidTreffer.id;
           Object.assign(uidTreffer, t, { id: id, uid: t.uid,
             endDatum: endDatum, wiederholung: leseWiederholung(t.wiederholung),
             icsKomplex: !!t.icsKomplex, icsSerienUid: String(t.icsSerienUid || ""),
+            icsAusnahmen: Array.isArray(t.icsAusnahmen) ? t.icsAusnahmen.slice(0, 256) : [],
+            icsZusatzDaten: Array.isArray(t.icsZusatzDaten) ? t.icsZusatzDaten.slice(0, 256) : [],
+            icsZusatzTermine: Array.isArray(t.icsZusatzTermine) ? t.icsZusatzTermine.slice(0, 256) : [],
             icsRoundtrip: Array.isArray(t.icsRoundtrip) ? t.icsRoundtrip.slice() : [],
             sync: false });
           z.neu++;
@@ -19086,10 +19144,13 @@ const FASSUNG = "2.0.7";
         wiederholung: leseWiederholung(t.wiederholung),
         icsKomplex: !!t.icsKomplex,
         icsSerienUid: String(t.icsSerienUid || ""),
+        icsAusnahmen: Array.isArray(t.icsAusnahmen) ? t.icsAusnahmen.slice(0, 256) : [],
+        icsZusatzDaten: Array.isArray(t.icsZusatzDaten) ? t.icsZusatzDaten.slice(0, 256) : [],
+        icsZusatzTermine: Array.isArray(t.icsZusatzTermine) ? t.icsZusatzTermine.slice(0, 256) : [],
         icsRoundtrip: Array.isArray(t.icsRoundtrip) ? t.icsRoundtrip.slice() : [],
         syncKalenderUid: String(t.syncKalenderUid || ""),
         geaendert: Number(t.geaendert) || Date.now(), sync: false });
-      if (t.uid) uids.set(t.uid, DATEN.termine[DATEN.termine.length - 1]);
+      if (t.uid) uids.set(importKennung(t, t.uid), DATEN.termine[DATEN.termine.length - 1]);
       schluessel.add(s);
       z.neu++;
     }
@@ -19098,10 +19159,16 @@ const FASSUNG = "2.0.7";
 
   function mergeJahrestage(liste, erzwungenerTyp) {
     const z = { neu: 0, doppelt: 0 };
-    const uids = new Map(DATEN.jahrestage.filter((j) => j.uid).map((j) => [j.uid, j]));
-    const schluessel = new Set(DATEN.jahrestage.map(
-      (j) => kanonischerText(j.name) + "|" + monatTag(j.datum) + "|" +
-        (jahrestagTypId(j.typ) || kanonischerText(j.typ))));
+    const importKennung = (eintrag, wert) => {
+      const quelle = String(eintrag.icsQuelleId || "");
+      return quelle ? quelle + "\u0000" + wert : wert;
+    };
+    const uids = new Map(DATEN.jahrestage.flatMap((j) =>
+      [j.uid, j.icsSerienUid].map((wert) => String(wert || "")).filter(Boolean)
+        .map((wert) => [importKennung(j, wert), j])));
+    const schluessel = new Set(DATEN.jahrestage.map((j) => importKennung(j,
+      kanonischerText(j.name) + "|" + monatTag(j.datum) + "|" +
+        (jahrestagTypId(j.typ) || kanonischerText(j.typ)))));
     for (const j of liste || []) {
       if (!j || !j.name) continue;
       const datum = kanonischesJahresdatum(String(j.datum || ""), j.jahrUnbekannt);
@@ -19110,7 +19177,9 @@ const FASSUNG = "2.0.7";
       const typId = jahrestagTypId(typ) || String(typ || "").trim().slice(0, 80) || "other";
       const s = kanonischerText(j.name) + "|" + monatTag(datum) + "|" +
         (jahrestagTypId(typId) || kanonischerText(typId));
-      const uidTreffer = j.uid ? uids.get(j.uid) : null;
+      const serienUid = String(j.icsSerienUid || "");
+      const uidTreffer = (j.uid && uids.get(importKennung(j, j.uid))) ||
+        (serienUid && uids.get(importKennung(j, serienUid)));
       if (uidTreffer) {
         const neueRohdaten = Array.isArray(j.icsRoundtrip) ? j.icsRoundtrip.slice() : [];
         if ((Number(j.geaendert) || 0) > (Number(uidTreffer.geaendert) || 0) ||
@@ -19118,20 +19187,28 @@ const FASSUNG = "2.0.7";
           Object.assign(uidTreffer, j, { id: uidTreffer.id, uid: j.uid,
             datum: datum, jahrUnbekannt: gueltigesTeildatum(datum),
             typ: typId, icsRoundtrip: neueRohdaten,
+            icsSerienUid: serienUid,
+            icsQuelleName: String(j.icsQuelleName || ""),
+            icsQuelleId: String(j.icsQuelleId || ""),
             syncKalenderUid: String(j.syncKalenderUid || "") });
           z.neu++;
         } else z.doppelt++;
         continue;
       }
-      if (!j.uid && schluessel.has(s)) { z.doppelt++; continue; }
+      if (!j.uid && schluessel.has(importKennung(j, s))) { z.doppelt++; continue; }
       DATEN.jahrestage.push({ id: uid(), uid: j.uid || syncUid(),
         name: String(j.name), datum: datum,
         typ: typId, jahrUnbekannt: gueltigesTeildatum(datum),
         syncKalenderUid: String(j.syncKalenderUid || ""),
+        icsSerienUid: serienUid,
+        icsQuelleName: String(j.icsQuelleName || ""),
+        icsQuelleId: String(j.icsQuelleId || ""),
         icsRoundtrip: Array.isArray(j.icsRoundtrip) ? j.icsRoundtrip.slice() : [],
         geaendert: Number(j.geaendert) || Date.now() });
-      if (j.uid) uids.set(j.uid, DATEN.jahrestage[DATEN.jahrestage.length - 1]);
-      schluessel.add(s);
+      if (j.uid) uids.set(importKennung(j, j.uid), DATEN.jahrestage[DATEN.jahrestage.length - 1]);
+      if (serienUid) uids.set(importKennung(j, serienUid),
+        DATEN.jahrestage[DATEN.jahrestage.length - 1]);
+      schluessel.add(importKennung(j, s));
       z.neu++;
     }
     return z;
@@ -19994,9 +20071,8 @@ const FASSUNG = "2.0.7";
       }
     },
     trayEinstellungen() {
-      oeffneEinstellungen();
       einstSeite = "allgemein";
-      zeichneEinstellungen();
+      oeffneEinstellungen();
     },
     geraetOeffnen(nutzlast) {
       oeffneGeraeteDialog(nutzlast);
@@ -20656,7 +20732,10 @@ const FASSUNG = "2.0.7";
     },
     baumBriefkastenStatus(nutzlast) {
       briefkastenStand = nutzlast || {};
-      briefkastenMeldung = "";
+      briefkastenMeldung = !briefkastenStand.fehler && !briefkastenStand.davAktiv &&
+        !briefkastenStand.briefkastenAktiv &&
+        (briefkastenStand.url || briefkastenStand.kennwortVorhanden)
+        ? _("Nextcloud is not enabled.") : "";
       const signatur = JSON.stringify(briefkastenStand);
       const geaendert = signatur !== briefkastenSignatur;
       briefkastenSignatur = signatur;
@@ -21201,6 +21280,7 @@ const FASSUNG = "2.0.7";
     wechsel: wechsel,
     speichereJetzt: speichereJetzt,
     planeSpeichern: planeSpeichern,
+    baueEinstellungen: baueEinstellungen,
     smsTextAnpassen: smsTextAnpassen,
     anrufClientRef: anrufClientRef,
     oeffneDruckvorschau: oeffneDruckvorschau,
@@ -21240,6 +21320,7 @@ const FASSUNG = "2.0.7";
     naechsterJahrestag: naechsterJahrestag,
     kontaktBaumInhalt: kontaktBaumInhalt,
     mergeJahrestage: mergeJahrestage,
+    mergeTermine: mergeTermine,
     mergeKontakte: mergeKontakte,
     versionsSchluessel: versionsSchluessel,
     istNeuereFassung: istNeuereFassung,

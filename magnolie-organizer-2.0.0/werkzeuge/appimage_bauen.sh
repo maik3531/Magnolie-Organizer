@@ -130,7 +130,9 @@ mkdir -p "$APPDIR/usr/bin" "$APPDIR/usr/lib" \
     "$APPDIR/usr/share/icons/hicolor/256x256/apps" \
     "$APPDIR/usr/share/applications" \
     "$APPDIR/usr/share/doc/magnolie-organizer" \
-    "$APPDIR/usr/share/metainfo"
+    "$APPDIR/usr/share/metainfo" \
+    "$APPDIR/usr/share/magnolie-organizer/openssl" \
+    "$APPDIR/usr/lib/$MULTIARCH/ossl-modules"
 
 python3 "$WURZEL/werkzeuge/klang.py" "$ARBEIT/erinnerung.wav"
 while read -r sprache; do
@@ -156,12 +158,32 @@ done
 for modul in /usr/lib/python3/dist-packages/_cffi_backend*.so; do
     [ ! -e "$modul" ] || cp -a "$modul" "$APPDIR/usr/lib/python3/dist-packages/"
 done
+[ ! -f /usr/lib/python3/dist-packages/six.py ] || \
+    cp -a /usr/lib/python3/dist-packages/six.py "$APPDIR/usr/lib/python3/dist-packages/"
 for typelib in $APP_TYPELIBS; do
     quelle="/usr/lib/$MULTIARCH/girepository-1.0/$typelib.typelib"
     [ ! -f "$quelle" ] || install -m 0644 "$quelle" \
         "$APPDIR/usr/lib/$MULTIARCH/girepository-1.0/$typelib.typelib"
 done
 [ ! -d /usr/share/glib-2.0/schemas ] || cp -a /usr/share/glib-2.0 "$APPDIR/usr/share/"
+[ ! -d /usr/share/themes/Adwaita ] || {
+    mkdir -p "$APPDIR/usr/share/themes"
+    cp -a /usr/share/themes/Adwaita "$APPDIR/usr/share/themes/"
+}
+[ ! -d "/usr/lib/$MULTIARCH/ossl-modules" ] || \
+    cp -a "/usr/lib/$MULTIARCH/ossl-modules/." "$APPDIR/usr/lib/$MULTIARCH/ossl-modules/"
+cat > "$APPDIR/usr/share/magnolie-organizer/openssl/openssl.cnf" <<'EOF'
+openssl_conf = openssl_init
+
+[openssl_init]
+providers = providers
+
+[providers]
+default = default_provider
+
+[default_provider]
+activate = 1
+EOF
 [ ! -d /usr/lib/$MULTIARCH/webkit2gtk-4.1 ] || \
     cp -a /usr/lib/$MULTIARCH/webkit2gtk-4.1 "$APPDIR/usr/lib/"
 
@@ -313,6 +335,8 @@ export GIO_MODULE_DIR="$APPDIR/usr/lib/$MULTIARCH/gio/modules"
 export GST_PLUGIN_PATH_1_0="$APPDIR/usr/lib/$MULTIARCH/gstreamer-1.0"
 export GST_PLUGIN_SYSTEM_PATH_1_0=
 export GST_PLUGIN_SCANNER="$APPDIR/usr/lib/$MULTIARCH/gstreamer1.0/gstreamer-1.0/gst-plugin-scanner"
+export OPENSSL_CONF="$APPDIR/usr/share/magnolie-organizer/openssl/openssl.cnf"
+export OPENSSL_MODULES="$APPDIR/usr/lib/$MULTIARCH/ossl-modules"
 : "${SSL_CERT_FILE:=$APPDIR/usr/share/magnolie-organizer/certs/ca-certificates.crt}"
 export SSL_CERT_FILE
 # Desktop modules from the host must not load against the bundled GTK/GLib.

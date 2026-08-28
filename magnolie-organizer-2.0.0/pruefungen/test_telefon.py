@@ -34,7 +34,7 @@ def test_canonical_and_status_contract():
                     network_transport="wifi", network_validated=True,
                     network_metered=False)
     assert phone.validate_device_status(extended) is extended
-    version3 = dict(extended, app_version="1.0.7")
+    version3 = dict(extended, app_version="1.0.8")
     assert phone.validate_device_status(version3) is version3
     for changed in (dict(value, battery_percent=101), dict(value, imei="secret"),
                     dict(value, charging="yes"),

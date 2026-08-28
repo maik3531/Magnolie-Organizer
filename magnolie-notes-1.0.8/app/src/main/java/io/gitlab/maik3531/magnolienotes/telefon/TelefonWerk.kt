@@ -1,9 +1,13 @@
 package io.gitlab.maik3531.magnolienotes.telefon
 
+import android.Manifest
 import android.content.Context
 import android.content.ComponentName
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Build
+import android.telecom.TelecomManager
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.serialization.json.JsonArray
@@ -116,8 +120,10 @@ class TelefonWerk private constructor(private val context: Context, private val 
     @Volatile private var activeTransport: Pair<TelefonTransportArt, TelefonRoehre>? = null
     @Volatile private var orderlyClose: ((String) -> Unit)? = null
     @Volatile private var wifiAvailable = false
+    @Volatile private var serviceRunning = false
 
     fun serviceStarted() {
+        serviceRunning = true
         TelefonDatenbank(context).writableDatabase.close()
         runCatching { queue.cleanup() }
         replayPendingDeletionDecisions()
@@ -130,7 +136,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
             }
         }
         refreshModules()
-        if (storage.incomingCallsEnabled()) incoming.start()
+        incoming.serviceStarted(storage.incomingCallsEnabled())
         _state.value = _state.value.copy(enabled = true, connection = TelefonVerbindungsstatus.OFFLINE, error = "")
         if (safePeer() == null) thread(name = "magnolie-phone-discovery", isDaemon = true) {
             runCatching { discover() }
@@ -159,6 +165,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
         val previous = TelefonModulStatus.notifications(
             _state.value.selectedPackages, _state.value.notificationAccess)
         refreshModules()
+        incoming.runtimePermissionsChanged()
         val current = TelefonModulStatus.notifications(
             _state.value.selectedPackages, _state.value.notificationAccess)
         if (previous != current) controlStateChanged()
@@ -170,7 +177,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
         storage.setDialRequestEnabled(value); modulesChanged()
     }
     fun setIncomingCallsEnabled(value: Boolean) {
-        storage.setIncomingCallsEnabled(value); incoming.persistentListening(value); modulesChanged()
+        storage.setIncomingCallsEnabled(value); incoming.setIncomingListening(value); modulesChanged()
     }
     fun setIncomingNumberEnabled(value: Boolean) { storage.setIncomingNumberEnabled(value); modulesChanged() }
     fun setAnswerCallsEnabled(value: Boolean) { storage.setAnswerCallsEnabled(value); modulesChanged() }
@@ -270,7 +277,21 @@ class TelefonWerk private constructor(private val context: Context, private val 
         activeTransport?.second?.let { runCatching { it.close() } } ?: reconnect()
     }
 
-    fun beginOutgoing(number: String, clientRef: String) = incoming.beginOutgoing(number, clientRef)
+    @Synchronized fun placeOutgoing(number: String, clientRef: String): Pair<String, String> {
+        if (!serviceRunning || !storage.enabled()) return "failed" to "os_restricted"
+        return runCatching {
+            incoming.beginOutgoing(number, clientRef)
+            if (!serviceRunning ||
+                context.checkSelfPermission(Manifest.permission.CALL_PHONE) != PackageManager.PERMISSION_GRANTED ||
+                context.checkSelfPermission(Manifest.permission.READ_PHONE_STATE) != PackageManager.PERMISSION_GRANTED)
+                return failOutgoing(clientRef, if (serviceRunning) "permission_missing" else "os_restricted")
+            context.getSystemService(TelecomManager::class.java)
+                ?.placeCall(Uri.fromParts("tel", number, null), android.os.Bundle())
+                ?: return failOutgoing(clientRef, "dial_unavailable")
+            "submitted" to "none"
+        }.getOrElse { error -> failOutgoing(clientRef,
+            if (error is SecurityException) "permission_missing" else "os_restricted") }
+    }
     fun failOutgoing(clientRef: String, error: String): Pair<String, String> {
         incoming.failOutgoing(clientRef)
         return "failed" to error
@@ -290,9 +311,10 @@ class TelefonWerk private constructor(private val context: Context, private val 
         }
     }
 
-    fun serviceStopped() {
+    @Synchronized fun serviceStopped() {
+        serviceRunning = false
         pending.getAndSet(null)?.close()
-        incoming.stop()
+        incoming.shutdown()
         pairing.set(false)
         orderlyClose?.invoke("normal"); activeTransport?.second?.let { runCatching { it.close() } }; activeTransport = null
         _state.value = _state.value.copy(enabled = false, connection = TelefonVerbindungsstatus.STOPPED,
@@ -314,7 +336,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
             orderlyClose?.invoke("normal")
             activeTransport?.second?.let { runCatching { it.close() } }
         }
-        if (!storage.enabled() || _state.value.connection == TelefonVerbindungsstatus.CODE_PENDING) return
+        if (!serviceRunning || !storage.enabled() || _state.value.connection == TelefonVerbindungsstatus.CODE_PENDING) return
         _state.value = _state.value.copy(connection = when {
             !available -> TelefonVerbindungsstatus.OFFLINE
             _state.value.peer?.state == "paired" -> TelefonVerbindungsstatus.PAIRED
@@ -353,7 +375,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
                 val pipe = bluetooth.verbinden(address)
                 session(peer, TelefonTransportArt.BLUETOOTH, pipe, bluetoothAddress = address)
             } catch (error: Exception) {
-                if (storage.enabled()) _state.value = _state.value.copy(connection = TelefonVerbindungsstatus.OFFLINE,
+                if (serviceRunning && storage.enabled()) _state.value = _state.value.copy(connection = TelefonVerbindungsstatus.OFFLINE,
                     error = error.message.orEmpty())
             } finally { connecting.set(false); reconnect() }
         }
@@ -472,7 +494,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
     }
 
     private fun reconnect() {
-        if (!storage.enabled() || !connecting.compareAndSet(false, true)) return
+        if (!serviceRunning || !storage.enabled() || !connecting.compareAndSet(false, true)) return
         thread(name = "magnolie-phone-reconnect", isDaemon = true) {
             try {
                 var peer = safePeer() ?: return@thread
@@ -495,10 +517,10 @@ class TelefonWerk private constructor(private val context: Context, private val 
                 session(peer, selected.first, selected.second,
                     wifiHost = if (selected.first == TelefonTransportArt.WIFI) host else "")
             } catch (error: Exception) {
-                if (storage.enabled()) _state.value = _state.value.copy(connection = TelefonVerbindungsstatus.OFFLINE, error = error.message.orEmpty())
+                if (serviceRunning && storage.enabled()) _state.value = _state.value.copy(connection = TelefonVerbindungsstatus.OFFLINE, error = error.message.orEmpty())
             } finally {
                 orderlyClose = null; activeTransport = null; connecting.set(false)
-                if (storage.enabled() && safePeer() != null) {
+                if (serviceRunning && storage.enabled() && safePeer() != null) {
                     Thread.sleep(1_000)
                     reconnect()
                 }
@@ -597,7 +619,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
                         if (queued) sendDue(peer, channel)
                     }
                 }
-                while (storage.enabled()) {
+                while (serviceRunning && storage.enabled()) {
                     val payload = channel.receive()
                     when (payload.string("type")) {
                         "ping" -> {
@@ -623,7 +645,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
         } finally {
             orderlyClose = null
             staticPrivate.fill(0); runCatching { pipe.close() }
-            if (storage.enabled()) _state.value = _state.value.copy(connection = TelefonVerbindungsstatus.OFFLINE)
+            if (serviceRunning && storage.enabled()) _state.value = _state.value.copy(connection = TelefonVerbindungsstatus.OFFLINE)
         }
     }
 

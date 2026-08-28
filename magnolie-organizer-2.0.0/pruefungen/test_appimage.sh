@@ -29,6 +29,8 @@ grep -Fq ': "${WEBKIT_DISABLE_DMABUF_RENDERER:=1}"' "$APPDIR/AppRun"
 ! grep -Fq 'WEBKIT_DISABLE_COMPOSITING_MODE' "$APPDIR/AppRun"
 grep -Fq '[ "${XDG_SESSION_TYPE:-}" = wayland ]' "$APPDIR/AppRun"
 grep -Fq ': "${GDK_BACKEND:=x11}"' "$APPDIR/AppRun"
+grep -Fq 'export OPENSSL_CONF="$APPDIR/usr/share/magnolie-organizer/openssl/openssl.cnf"' "$APPDIR/AppRun"
+grep -Fq 'export OPENSSL_MODULES="$APPDIR/usr/lib/$MULTIARCH/ossl-modules"' "$APPDIR/AppRun"
 if find "$APPDIR" -type f -exec grep -aFl \
     'WEBKIT_DISABLE_SANDBOX_THIS_IS_DANGEROUS=1' {} + | grep -q .; then
     printf '%s\n' 'Das AppImage enthaelt den WebKit-Sandbox-Disable-Schalter.' >&2
@@ -59,6 +61,9 @@ test -f "$APPDIR/usr/lib/x86_64-linux-gnu/gio/modules/giomodule.cache"
 test -f "$APPDIR/usr/lib/x86_64-linux-gnu/gstreamer-1.0/libgstapp.so"
 test -x "$APPDIR/usr/lib/x86_64-linux-gnu/gstreamer1.0/gstreamer-1.0/gst-plugin-scanner"
 test -f "$APPDIR/usr/share/magnolie-organizer/certs/ca-certificates.crt"
+test -f "$APPDIR/usr/share/magnolie-organizer/openssl/openssl.cnf"
+test -d "$APPDIR/usr/lib/x86_64-linux-gnu/ossl-modules"
+test -f "$APPDIR/usr/share/themes/Adwaita/gtk-3.0/gtk.css"
 test -x "$APPDIR/usr/lib/webkit2gtk-4.1/WebKitNetworkProcess"
 test -x "$APPDIR/usr/lib/webkit2gtk-4.1/WebKitWebProcess"
 if test -f "$APPDIR/usr/lib/libecal-2.0.so.3"; then
@@ -108,13 +113,18 @@ GIO_MODULE_DIR="$APPDIR/usr/lib/x86_64-linux-gnu/gio/modules" \
 GST_PLUGIN_PATH_1_0="$APPDIR/usr/lib/x86_64-linux-gnu/gstreamer-1.0" \
 GST_PLUGIN_SYSTEM_PATH_1_0= \
 GST_PLUGIN_SCANNER="$APPDIR/usr/lib/x86_64-linux-gnu/gstreamer1.0/gstreamer-1.0/gst-plugin-scanner" \
+OPENSSL_CONF="$APPDIR/usr/share/magnolie-organizer/openssl/openssl.cnf" \
+OPENSSL_MODULES="$APPDIR/usr/lib/x86_64-linux-gnu/ossl-modules" \
 SSL_CERT_FILE="$APPDIR/usr/share/magnolie-organizer/certs/ca-certificates.crt" \
     "$APPDIR/usr/bin/python3" - <<'PY'
 import gi
 import magnolie_personal_sync
 import magnolie_telefon
 import qrcode
+import six
 import ssl
+from OpenSSL import SSL
+from cryptography.hazmat.primitives.asymmetric import ec
 from qrcode.image.svg import SvgPathImage
 
 gi.require_version("Gio", "2.0")
@@ -130,6 +140,8 @@ assert magnolie_telefon.validate_personal_sync_body is \
 assert Gio.TlsBackend.get_default().supports_tls()
 assert Gst.ElementFactory.find("appsink") is not None
 assert ssl.get_default_verify_paths().cafile.endswith("ca-certificates.crt")
+assert SSL.Context(SSL.TLS_METHOD) is not None
+assert ec.generate_private_key(ec.SECP256R1()) is not None
 qr = qrcode.QRCode()
 qr.add_data("magnolie-appimage-probe")
 qr.make(fit=True)
@@ -168,6 +180,7 @@ fi
 DISPLAY= WAYLAND_DISPLAY= XDG_DATA_HOME="$ARBEIT/data" \
 XDG_CONFIG_HOME="$ARBEIT/config" XDG_STATE_HOME="$ARBEIT/state" \
 GTK_MODULES=xapp-gtk3-module GTK_THEME=Defektes-Wirtsthema \
+OPENSSL_CONF=/nicht/vorhanden/openssl.cnf OPENSSL_MODULES=/nicht/vorhanden \
     "$APPDIR/AppRun" --language en --help | grep -q 'Usage:'
 DISPLAY= WAYLAND_DISPLAY= XDG_DATA_HOME="$ARBEIT/data" \
 XDG_CONFIG_HOME="$ARBEIT/config" XDG_STATE_HOME="$ARBEIT/state" \
@@ -197,6 +210,7 @@ appimage_gui_start() {
 set +e
 DISPLAY= WAYLAND_DISPLAY= DESKTOPINTEGRATION=1 \
 GTK_MODULES=xapp-gtk3-module GTK_THEME=Defektes-Wirtsthema \
+OPENSSL_CONF=/nicht/vorhanden/openssl.cnf OPENSSL_MODULES=/nicht/vorhanden \
 XDG_DATA_HOME="$ARBEIT/gui-data" XDG_CONFIG_HOME="$ARBEIT/gui-config" \
 XDG_STATE_HOME="$ARBEIT/gui-state" \
     appimage_gui_start >"$ARBEIT/gui.log" 2>&1
@@ -204,6 +218,12 @@ gui_status=$?
 set -e
 if [ "$gui_status" -ne 124 ]; then
     printf '%s\n' "WebKit-Sandbox-Smoke-Test fehlgeschlagen (Status $gui_status):" >&2
+    cat "$ARBEIT/gui.log" >&2
+    exit 1
+fi
+if grep -Eqi 'Gtk-WARNING.*Theme parsing error|Unknown OpenSSL error|could not load the shared library' \
+    "$ARBEIT/gui.log"; then
+    printf '%s\n' "AppImage verwendet GTK-/OpenSSL-Bestandteile des Wirts:" >&2
     cat "$ARBEIT/gui.log" >&2
     exit 1
 fi

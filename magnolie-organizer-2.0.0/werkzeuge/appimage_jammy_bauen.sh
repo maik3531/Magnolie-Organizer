@@ -19,7 +19,7 @@ TALLOC_SHA=0910059bb0329add8d13b502f5a10d18d5b3c5202fbbbe25ef4f6d58e7edfe6c
 PROOT_WURZEL="$ARBEIT/proot"
 PROOT="$PROOT_WURZEL/usr/bin/proot"
 SNAPSHOT=20260820T000000Z
-BASIS_STAND="$SNAPSHOT-qrcode1"
+BASIS_STAND="$SNAPSHOT-openssl-theme1"
 
 for befehl in curl dpkg-deb dpkg-parsechangelog sha256sum tar; do
     command -v "$befehl" >/dev/null || {
@@ -83,7 +83,7 @@ if [ ! -f "$MARKER" ] || [ "$(cat "$MARKER")" != "$BASIS_STAND" ]; then
         binutils ca-certificates curl dpkg-dev file gcc gettext gir1.2-ayatanaappindicator3-0.1 \
         gir1.2-ecal-2.0 gir1.2-ebook-1.2 gir1.2-gstreamer-1.0 gir1.2-gtk-3.0 gir1.2-ical-3.0 \
         gir1.2-notify-0.7 gir1.2-webkit2-4.1 gir1.2-xapp-1.0 gobject-introspection \
-        libayatana-appindicator3-1 libglib2.0-bin libgtk-3-0 libwebkit2gtk-4.1-0 \
+        gnome-themes-extra-data libayatana-appindicator3-1 libglib2.0-bin libgtk-3-0 libwebkit2gtk-4.1-0 \
         libxapp1 xapp python3 python3-cryptography python3-gi \
         python3-ifaddr python3-openssl \
         python3-qrcode python3-zeroconf

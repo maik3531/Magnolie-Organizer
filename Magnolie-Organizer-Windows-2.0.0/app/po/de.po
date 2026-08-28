@@ -5,7 +5,7 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: Magnolie Organizer 2.0.7\n"
+"Project-Id-Version: Magnolie Organizer 2.0.8\n"
 "Report-Msgid-Bugs-To: maik3531@gmail.com\n"
 "PO-Revision-Date: 2026-08-04 05:55+0200\n"
 "Last-Translator: Maik Walter <maik3531@gmail.com>\n"
@@ -8243,3 +8243,7 @@ msgstr "Die Telefonfunktion ist nicht erlaubt oder verfügbar."
 
 msgid "Language & region"
 msgstr "Sprache & Region"
+
+#: app/web/anwendung.js:16420
+msgid "Nextcloud is not enabled."
+msgstr "Nextcloud ist nicht aktiviert."

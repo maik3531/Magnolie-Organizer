@@ -149,7 +149,7 @@ for (const image of ["kaffee-qr.png", "maik-walter.jpg", "01.jpg", "02.jpg", "03
   assert.ok(fs.existsSync(path.join(handbook, image)), `Handbuchbild fehlt: ${image}`);
 }
 assert.ok(fs.existsSync(path.join(handbook, "maik-walter-FOTO-NUTZUNG.txt")));
-for (const marker of [`Windows ${expectedVersion}`, "Magnolie Notes für Android 1.0.7",
+for (const marker of [`Windows ${expectedVersion}`, "Magnolie Notes für Android 1.0.8",
   "Kontakte synchronisieren", "2.800.000", "stabile technische Bindung",
   "12.000.000", "24.000.000", "FileProvider", "256 MiB", "512 MiB",
   "Freiwilliger Löschabgleich", "höchstens 10 Löschungen", "höchstens 10 %",

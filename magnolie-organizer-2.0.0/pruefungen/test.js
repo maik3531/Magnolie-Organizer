@@ -133,6 +133,10 @@ function knopfMit(text, wurzel) {
   assert.ok(/#dialog-schleier,[\s\S]{0,100}\.eingabe-schleier,[\s\S]{0,180}position:\s*fixed;[\s\S]{0,80}inset:\s*0;[\s\S]{0,160}align-items:\s*center;[\s\S]{0,80}justify-content:\s*center/.test(css) &&
     !/#eingabe-schleier/.test(css) && js.includes("focus({ preventScroll: true })"),
   "dynamische Dialoge sind nicht als scrollfestes, zentriertes Overlay definiert");
+  const einstellungenCss = css.match(/#einstellungen-blatt\s*\{([^}]*)\}/)?.[1] || "";
+  assert.ok(/height:\s*min\(720px,\s*94vh\)/.test(einstellungenCss) &&
+    /overflow:\s*hidden/.test(einstellungenCss) && !/max-height:/.test(einstellungenCss),
+  "das Einstellungsblatt besitzt keine eindeutige feste Viewporthöhe");
   assert.ok(/\.gesundheit-papiertabelle\s*\{[\s\S]{0,120}width:\s*100%;[\s\S]{0,80}min-width:\s*0;[\s\S]{0,80}max-width:\s*100%;[\s\S]{0,100}table-layout:\s*fixed/.test(css) &&
     !/\.gesundheit-papiertabelle\s*\{[^}]*min-width:\s*680px/.test(css) &&
     /@container \(max-width:\s*520px\)/.test(css) &&
@@ -2070,7 +2074,7 @@ function knopfMit(text, wurzel) {
   const enUeber = enSD.querySelector("#einstellungen-inhalt");
   assert.strictEqual(enUeber.querySelector("h3").textContent,
     "About the Magnolie Organizer", "englische Über-Seite fehlt");
-  assert.ok(enUeber.querySelector(".ueber-fassung").textContent.includes("Version 2.0.7") &&
+  assert.ok(enUeber.querySelector(".ueber-fassung").textContent.includes("Version 2.0.8") &&
     enUeber.textContent.includes("Author") && enUeber.textContent.includes("License") &&
     enUeber.textContent.includes("Updates") &&
     enUeber.textContent.includes("No update check has been performed yet") &&
@@ -2090,12 +2094,12 @@ function knopfMit(text, wurzel) {
     enSyncNachrichten.some((nachricht) => nachricht.cmd === "update_pruefen"),
   "englische Über-Seite verändert Handbuch- oder Update-Befehl");
   const enUpdateUrl = "https://gitlab.com/maik3531/mint-forgs/-/raw/main/" +
-    "Magnolie-Organitzer/magnolie-organizer_2.0.8_all.deb";
-  enSW.App.updateErgebnis({ ok: true, aktuell: false, version: "2.0.8",
+    "Magnolie-Organitzer/magnolie-organizer_2.0.9_all.deb";
+  enSW.App.updateErgebnis({ ok: true, aktuell: false, version: "2.0.9",
     url: enUpdateUrl, sha256: "ab".repeat(32), fehler: "" });
   assert.ok(enSD.querySelector("#update-stand").textContent.includes(
-    "New version 2.0.8 is available") &&
-    enSD.querySelector("#update-herunterladen").textContent.includes("2.0.8") &&
+    "New version 2.0.9 is available") &&
+    enSD.querySelector("#update-herunterladen").textContent.includes("2.0.9") &&
     enSD.querySelector(".update-pruefsumme").textContent.includes("ab".repeat(32)) &&
     enSD.querySelector(".update-pruefsumme").textContent.includes("sha256sum"),
   "englischer neuer Update-Stand fehlt");
@@ -4311,7 +4315,25 @@ function knopfMit(text, wurzel) {
     /\.allgemein-register-auswahl\s*\{[\s\S]{0,120}flex-wrap:\s*wrap/.test(css),
   "die Registerkartenauswahl besitzt keine getrennte umbrechende Anordnung");
 
-  for (const id of ["aufgaben", "adressen", "notizen", "jahrestage", "planer", "gesundheit"]) {
+  $("#einst-tab-adressen").click();
+  $(".einst-seite").scrollTop = 400;
+  T.daten().einstellungen.allgemein.registerkarten.adressen = false;
+  T.baueEinstellungen();
+  await new Promise((resolve) => w.requestAnimationFrame(resolve));
+  assert.strictEqual($(".einst-seite").id, "einst-seite-allgemein",
+    "eine ausgeblendete Einstellungsseite wechselt nicht zu Allgemein");
+  assert.strictEqual($(".einst-seite").scrollTop, 0,
+    "die Rollposition einer ausgeblendeten Seite landet auf Allgemein");
+  T.daten().einstellungen.allgemein.registerkarten.adressen = true;
+  T.baueEinstellungen();
+
+  const allgemeinSeite = $(".einst-seite");
+  allgemeinSeite.scrollTop = 180;
+  $("#allgemein-register-aufgaben").click();
+  await new Promise((resolve) => w.requestAnimationFrame(resolve));
+  assert.strictEqual($(".einst-seite").scrollTop, 180,
+    "eine Einstellung auf derselben Seite setzt die Rollposition zurück");
+  for (const id of ["adressen", "notizen", "jahrestage", "planer", "gesundheit"]) {
     $("#allgemein-register-" + id).click();
     assert.ok($("#allgemein-gruppe-registerkarten").open,
       "die Registerkartenauswahl klappt nach einer Änderung wieder zu");
@@ -6138,7 +6160,7 @@ function knopfMit(text, wurzel) {
   assert.ok(ueberText.includes("Version 3"), "die Lizenzfassung fehlt");
   assert.ok($(".ueber-fassung").textContent.includes("Fassung"),
     "die Programmfassung fehlt");
-  assert.ok($(".ueber-fassung").textContent.includes("2.0.7"),
+  assert.ok($(".ueber-fassung").textContent.includes("2.0.8"),
     "die neue Programmfassung fehlt");
   assert.ok($(".ueber-blume"), "die Magnolienblüte fehlt");
   const beschreibung = $(".ueber-beschreibung");
@@ -6158,18 +6180,18 @@ function knopfMit(text, wurzel) {
     "neben der gemeinsamen Aktualisierungsprüfung ist ein zweiter Prüfknopf sichtbar");
   assert.ok($("#handbuch-stand").textContent.includes("nicht installiert"),
     "der Handbuchstatus nennt die fehlende Installation nicht");
-  assert.ok(!T.istNeuereFassung("2.0.1") && !T.istNeuereFassung("2.0.7") &&
-    T.istNeuereFassung("2.0.8"),
+  assert.ok(!T.istNeuereFassung("2.0.1") && !T.istNeuereFassung("2.0.8") &&
+    T.istNeuereFassung("2.0.9"),
     "Fassungsvergleich der Oberfläche stimmt nicht");
   assert.ok(T.vergleicheText("Termin 2", "Termin 10") < 0,
     "der regionale Collator sortiert Zahlen weiterhin rein lexikografisch");
-  w.App.updateErgebnis({ ok: true, aktuell: false, version: "2.0.8",
+  w.App.updateErgebnis({ ok: true, aktuell: false, version: "2.0.9",
     url: "https://gitlab.com/maik3531/mint-forgs/-/raw/main/" +
-      "Magnolie-Organitzer/magnolie-organizer_2.0.8_all.deb" });
-  assert.ok($("#update-stand").textContent.includes("2.0.8"),
+      "Magnolie-Organitzer/magnolie-organizer_2.0.9_all.deb" });
+  assert.ok($("#update-stand").textContent.includes("2.0.9"),
     "gefundene Fassung erscheint nicht unter Über");
   assert.ok($("#update-herunterladen"), "Downloadknopf für neue Fassung fehlt");
-  assert.strictEqual(T.daten().einstellungen.update.letzteVersion, "2.0.8",
+  assert.strictEqual(T.daten().einstellungen.update.letzteVersion, "2.0.9",
     "Prüfstand wird nicht gespeichert");
   $("#update-automatisch").checked = false;
   $("#update-automatisch").dispatchEvent(new w.Event("change", { bubbles: true }));
@@ -6524,12 +6546,43 @@ function knopfMit(text, wurzel) {
   const dateiEmpfang = empfangGruppen[0].querySelectorAll("input");
   assert.ok(!dateiEmpfang[0].checked && dateiEmpfang[1].disabled,
     "KDE-Dateiempfang startet nicht sicher mit Bestätigung und ohne Automatik");
+  assert.ok(dateiEmpfang[1].closest("label").classList.contains("hak-eingerueckt") &&
+    /\.kde-empfang-option\s*\{[\s\S]{0,120}flex-direction:\s*column/.test(css),
+  "die automatische KDE-Annahme ist nicht abgesetzt untergeordnet");
   dateiEmpfang[0].checked = true;
   dateiEmpfang[0].dispatchEvent(new bw.Event("change", { bubbles: true }));
   assert.ok(baumNachrichten.some((nachricht) => nachricht.cmd === "kde_receive_settings" &&
     nachricht.deviceId === "b".repeat(32) && nachricht.files === true &&
     nachricht.filesAutomatic === false),
   "aktivierter KDE-Dateiempfang erreicht den Programmkern nicht im Bestätigungsmodus");
+  const ordnerAuswahl = empfangAbschnitt.querySelector(".kde-empfangsordner");
+  assert.ok(ordnerAuswahl && !ordnerAuswahl.querySelector("button").disabled,
+    "die KDE-Empfangsordnerwahl wird für aktivierten Dateiempfang nicht angeboten");
+  ordnerAuswahl.querySelector("button").click();
+  assert.ok(baumNachrichten.some((nachricht) =>
+    nachricht.cmd === "kde_empfangsordner_waehlen"),
+  "die KDE-Empfangsordnerwahl erreicht den Programmkern nicht");
+  const kdeSeite = bd.querySelector(".einst-seite");
+  const kdeFeld = bd.querySelector("#kde-empfangsordner");
+  kdeSeite.scrollTop = 210;
+  bw.App.kdeEmpfangsordnerGewaehlt({ pfad: "/home/test/KDE-Dateien" });
+  assert.strictEqual(bd.querySelector(".einst-seite"), kdeSeite,
+    "die KDE-Ordnerwahl baut die Einstellungsseite unnötig neu");
+  assert.strictEqual(bd.querySelector("#kde-empfangsordner"), kdeFeld,
+    "die KDE-Ordnerwahl ersetzt das schreibgeschützte Pfadfeld");
+  assert.strictEqual(bd.querySelector("#kde-empfangsordner").value,
+    "/home/test/KDE-Dateien", "der gewählte KDE-Empfangsordner wird nicht angezeigt");
+  assert.strictEqual(bd.querySelector(".einst-seite").scrollTop, 210,
+    "die KDE-Ordnerwahl setzt die Rollposition zurück");
+  assert.ok(baumNachrichten.some((nachricht) => nachricht.cmd === "kde_receive_settings" &&
+    nachricht.directory === "/home/test/KDE-Dateien"),
+  "der gewählte KDE-Empfangsordner wird nicht angewendet");
+  bw.OrganizerTest.daten().einstellungen.sync.kdeEmpfang.dateien = false;
+  bw.OrganizerTest.daten().einstellungen.sync.kdeEmpfang.zwischenablage = false;
+  bw.App.kdeEmpfangsordnerGewaehlt({ pfad: "/home/test/KDE-Aus" });
+  assert.strictEqual(baumNachrichten.filter((nachricht) =>
+    nachricht.cmd === "kde_receive_settings").at(-1).deviceId, "",
+  "deaktivierter KDE-Empfang behält eine veraltete Gerätebindung");
   bw.App.kdeEmpfangAngebot({ id: "a".repeat(32), device_id: "b".repeat(32),
     text: "Text vom Telefon" });
   assert.ok(!bd.querySelector("#dialog-schleier").classList.contains("verborgen") &&
@@ -6540,6 +6593,8 @@ function knopfMit(text, wurzel) {
   assert.ok(baumNachrichten.some((nachricht) => nachricht.cmd === "kde_receive_decide" &&
     nachricht.id === "a".repeat(32) && nachricht.accept === true),
   "bestätigter KDE-Empfang sendet keine gebundene Annahmeentscheidung");
+  bw.OrganizerTest.daten().einstellungen.sync.kdeEmpfang.dateien = true;
+  bw.OrganizerTest.daten().einstellungen.sync.kdeEmpfang.ordner = "/home/test/KDE-Aus";
   bw.App.telefonStand({ enabled: true, listening: true, port: 8741, peers: [],
     bluetooth: { available: false, devices: [] }, kdeconnect: { available: false,
       paired: 0, listening: false, listen_port: null, reason: "udp_port_unavailable" } });
@@ -6548,6 +6603,14 @@ function knopfMit(text, wurzel) {
     .some((button) => button.textContent === "KDE Connect-Telefon koppeln") &&
     neuerKdeAbschnitt.textContent.includes("UDP-Port 1716"),
   "ungekoppeltes KDE-Telefon oder lokalisierter Dauerlistenerfehler fehlt");
+  const gesperrteOrdnerKnoepfe = neuerKdeAbschnitt.querySelectorAll(".kde-empfangsordner button");
+  assert.ok(gesperrteOrdnerKnoepfe.length === 2 &&
+    Array.from(gesperrteOrdnerKnoepfe).every((button) => button.disabled),
+  "KDE-Ordnerknöpfe bleiben ohne empfangsbereites Gegengerät aktiv");
+  const nachrichtenVorOrdnerKlick = baumNachrichten.length;
+  gesperrteOrdnerKnoepfe.forEach((button) => button.click());
+  assert.strictEqual(baumNachrichten.length, nachrichtenVorOrdnerKlick,
+    "gesperrte KDE-Ordnerknöpfe senden weiterhin Befehle");
   const baumAbschnitt = Array.from(bd.querySelectorAll(".einst-abschnitt"))
     .find((abschnitt) => abschnitt.querySelector("h3")?.textContent === "Magnolienbaum");
   assert.ok(baumAbschnitt && !baumAbschnitt.textContent.includes("KDE") &&
@@ -7114,7 +7177,7 @@ function knopfMit(text, wurzel) {
     "ohne Handbuch darf der Hinweis nicht als gezeigt gespeichert werden");
   const handbuchUrl = "https://gitlab.com/maik3531/mint-forgs/-/raw/main/" +
     "Magnolie-Organitzer/magnolie-handbuch_1.9.8_all.deb";
-  hw.App.updateErgebnis({ ok: true, aktuell: true, version: "2.0.7", url: "",
+  hw.App.updateErgebnis({ ok: true, aktuell: true, version: "2.0.8", url: "",
     sha256: "ab".repeat(32), handbuch: { version: "1.9.8", url: handbuchUrl,
       sha256: "cd".repeat(32) }, fehler: "" });
   assert.ok(!hd.querySelector("#dialog-schleier").classList.contains("verborgen") &&
@@ -7320,11 +7383,14 @@ function knopfMit(text, wurzel) {
   assert.ok(/\.notiz-editor\s+:focus-visible\s*\{[\s\S]{0,100}outline-offset:\s*-2px/.test(css),
   "Hilfsrahmen im Notizeditor liegen nicht vollständig innerhalb ihrer Felder");
 
-  assert.ok(/#einstellungen-blatt\s*\{[\s\S]{0,100}max-height:\s*94vh/.test(css),
-    "das Einstellungsblatt nutzt die zusätzliche Bildschirmhöhe nicht");
-  assert.ok(/\.einst-seite\s*\{[\s\S]{0,80}height:\s*600px/.test(css),
-    "die Einstellungsseiten sind nicht lang genug für die vollständige Über-Seite");
-  assert.ok(/\.einst-seite\s*\{[\s\S]{0,120}padding-inline:\s*4px 5px/.test(css),
+  assert.ok(/#einstellungen-blatt\s*\{[\s\S]{0,140}height:\s*min\(720px,\s*94vh\)/.test(css) &&
+    /#einstellungen-blatt\s*\{[\s\S]{0,220}overflow:\s*hidden/.test(css),
+    "das Einstellungsblatt besitzt keine feste, bildschirmbegrenzte Höhe");
+  assert.ok(/#einstellungen-inhalt\s*\{[\s\S]{0,100}min-height:\s*0/.test(css) &&
+    /\.einst-seite\s*\{[\s\S]{0,100}flex:\s*1/.test(css) &&
+    /\.einst-seite\s*\{[\s\S]{0,140}overflow-y:\s*auto/.test(css),
+    "die Einstellungsseite ist nicht der einzige flexible Rollbereich");
+  assert.ok(/\.einst-seite\s*\{[\s\S]{0,180}padding-inline:\s*4px 5px/.test(css),
     "der linke Rahmen der Einstellungsseiten hat keinen geschützten Innenabstand");
   assert.ok(/\.seiten-inhalt\.notizen-rechts\s*\{\s*overflow:\s*hidden/.test(css) &&
     /\.notiz-einfuegen\s*\{[\s\S]{0,260}justify-content:\s*flex-start/.test(css) &&

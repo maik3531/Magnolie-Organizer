@@ -2676,8 +2676,10 @@ label.hak input { accent-color: var(--braun); }
 
 #einstellungen-blatt {
   width: min(940px, 96vw);
-  max-height: 94vh;
-  overflow-y: auto;
+  height: min(720px, 94vh);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
   background:
     url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.7' numOctaves='2' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)' opacity='0.05'/></svg>"),
     var(--papier);
@@ -2705,6 +2707,13 @@ label.hak input { accent-color: var(--braun); }
 }
 
 #einstellungen-zu { min-width: 36px; padding: 4px 9px; }
+
+#einstellungen-inhalt {
+  min-height: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
 
 .einst-abschnitt {
   padding: 13px 0 6px;
@@ -2896,12 +2905,16 @@ label.hak.ganztags {
   font-weight: 700;
 }
 
-/* Alle Reiter sind gleich hoch – das Blatt springt beim Blättern nicht. */
+/* Ein fester Inhaltsbereich verhindert Größensprünge zwischen den Reitern. */
 .einst-seite {
-  height: 600px;
+  min-height: 0;
+  flex: 1;
   overflow-y: auto;
   padding-inline: 4px 5px;
 }
+
+.einst-reiter,
+.einst-fuss { flex: none; }
 
 .einst-seite .einst-abschnitt:first-child { padding-top: 10px; }
 
@@ -4099,7 +4112,6 @@ td {
   .gesundheit-verlauf-diagramm { min-height: 220px; padding: 6px; }
   .gesundheit-verlauf-diagramm svg { max-height: 250px; }
   #einstellungen-blatt { padding: 12px 18px 14px; }
-  .einst-seite { height: min(468px, 46vh); }
   .einst-abschnitt { padding-top: 9px; }
 }
 
@@ -4110,7 +4122,6 @@ td {
   .gesundheit-zellenfeld { height: 22px; }
   .gesundheit-verlauf-diagramm { min-height: 170px; }
   .gesundheit-verlauf-diagramm svg { max-height: 205px; }
-  .einst-seite { height: min(468px, 40vh); }
 }
 
 /* ==========================================================================

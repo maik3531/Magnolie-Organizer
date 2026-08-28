@@ -16,7 +16,6 @@ import android.net.NetworkCapabilities
 import android.net.NetworkRequest
 import io.gitlab.maik3531.magnolienotes.MainActivity
 import io.gitlab.maik3531.magnolienotes.MagnolieApp
-import io.gitlab.maik3531.magnolienotes.StartZustand
 import io.gitlab.maik3531.magnolienotes.R
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -28,6 +27,7 @@ import kotlinx.coroutines.launch
 class TelefonDienst : Service() {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private var connectivity: ConnectivityManager? = null
+    private var werk: TelefonWerk? = null
     private val wifiListener = object : ConnectivityManager.NetworkCallback() {
         override fun onAvailable(network: Network) { TelefonWerk.get(this@TelefonDienst).wifiChanged(true) }
         override fun onLost(network: Network) { TelefonWerk.get(this@TelefonDienst).wifiChanged(hasWifi()) }
@@ -46,19 +46,19 @@ class TelefonDienst : Service() {
                 return@launch
             }
             TelefonAblage.get(this@TelefonDienst).setEnabled(true)
-            val werk = TelefonWerk.get(this@TelefonDienst)
-            werk.serviceStarted()
+            val current = TelefonWerk.get(this@TelefonDienst)
+            werk = current
+            current.serviceStarted()
             listenForWifi()
-            werk.state.collectLatest { foreground(it) }
+            current.state.collectLatest { foreground(it) }
         }
         return START_STICKY
     }
     override fun onDestroy() {
         connectivity?.let { runCatching { it.unregisterNetworkCallback(wifiListener) } }
         connectivity = null
-        if ((application as MagnolieApp).startZustand.value == StartZustand.Bereit) {
-            TelefonWerk.get(this).serviceStopped()
-        }
+        werk?.serviceStopped()
+        werk = null
         scope.cancel()
         super.onDestroy()
     }
@@ -106,6 +106,10 @@ class TelefonDienst : Service() {
         private const val CHANNEL = "magnolie_phone"
         private const val ID = 8741
         fun start(context: Context) { TelefonAblage.get(context).setEnabled(true); context.startForegroundService(Intent(context, TelefonDienst::class.java)) }
-        fun stop(context: Context) { TelefonAblage.get(context).setEnabled(false); context.stopService(Intent(context, TelefonDienst::class.java)); TelefonWerk.get(context).serviceStopped() }
+        fun stop(context: Context) {
+            TelefonAblage.get(context).setEnabled(false)
+            TelefonWerk.get(context).serviceStopped()
+            context.stopService(Intent(context, TelefonDienst::class.java))
+        }
     }
 }

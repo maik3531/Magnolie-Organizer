@@ -101,7 +101,7 @@ class MainActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
         if ((application as MagnolieApp).startZustand.value == StartZustand.Bereit) {
-            TelefonWerk.get(this).runtimePermissionsChanged()
+            runCatching { TelefonWerk.get(this).runtimePermissionsChanged() }
         }
     }
 

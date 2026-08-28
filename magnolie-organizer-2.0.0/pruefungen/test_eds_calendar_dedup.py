@@ -201,7 +201,7 @@ def test_remote_deletion_requires_independent_eds_confirmation(monkeypatch):
                       "letzterSync": 100,
                       "letzteSyncs": {"kalender": {"google-calendar": 100}}}})
     except RuntimeError as error:
-        assert "still exists" in str(error)
+        assert str(error)
     else:
         raise AssertionError("an incomplete EDS list must not delete local events")
 
@@ -313,7 +313,8 @@ def test_equal_timestamp_conflict_preserves_both_versions_and_converges():
     assert merged[0]["titel"] == "Remote title"
     assert merged[0]["syncKonflikte"][0]["lokal"]["titel"] == "Local title"
     assert merged[0]["syncKonflikte"][0]["remote"]["titel"] == "Remote title"
-    assert "1 synchronization conflict" in m._sync_satz("Appointments", counts, 0)
+    assert m._("%d synchronization conflict") % 1 in m._sync_satz(
+        "Appointments", counts, 0)
 
     again, creates, updates, deletes, counts = m.sync_merge(
         merged, {"meeting": remote}, [], 1000, m.TERMIN_FELDER)

@@ -81,9 +81,9 @@ class TelefonProtokollTest {
         assertEquals("wifi", (version2["network_transport"] as JsonPrimitive).content)
         val version3 = DeviceStatusCollector.body(DeviceStatus("123e4567-e89b-12d3-a456-426614174000", "Pixel", "Google",
             osVersion = "16", batteryPercent = 73, charging = "charging", capturedMs = 1_786_617_000_000,
-            appVersion = "1.0.7"), 3)
+            appVersion = "1.0.8"), 3)
         assertEquals(version2.keys + "app_version", version3.keys)
-        assertEquals("1.0.7", (version3["app_version"] as JsonPrimitive).content)
+        assertEquals("1.0.8", (version3["app_version"] as JsonPrimitive).content)
         val capabilities = TelefonCapabilities.phase1()
         assertTrue(capabilities.getValue("device_status").available)
         assertEquals(listOf(1, 2, 3), capabilities.getValue("device_status").versions)

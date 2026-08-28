@@ -365,6 +365,46 @@ const timedOccurrence = T.termineAm("2026-02-11").find((item) => item.id === "ti
 assert.ok(timedOccurrence && timedOccurrence.datum === "2026-02-10" &&
   timedOccurrence.endDatum === "2026-02-11" && timedOccurrence.zeit === "09:15" &&
   timedOccurrence.endZeit === "10:45", "timed two-day recurrence loses its duration");
+const timedRdate = T.normalisiere({ termine: [{ id: "timed-rdate", datum: "2026-08-17",
+  zeit: "09:00", endZeit: "10:30", titel: "Zusatztermin",
+  wiederholung: { art: "weekly", bis: "" },
+  icsZusatzDaten: ["2026-08-19", "2026-08-24"],
+  icsZusatzTermine: [{ datum: "2026-08-19", zeit: "15:00" },
+    { datum: "2026-08-19", zeit: "18:00" },
+    { datum: "2026-08-24", zeit: "15:00" }] }] }).termine[0];
+T.daten().termine.push(timedRdate);
+T.planeSpeichern();
+const rdateOccurrences = T.termineAm("2026-08-19").filter((item) => item.id === "timed-rdate");
+assert.deepStrictEqual(rdateOccurrences.map((item) => [item.zeit, item.endZeit]),
+  [["15:00", "16:30"], ["18:00", "19:30"]],
+"timed RDATE loses its individual time or inherited duration");
+const regularAndRdate = T.termineAm("2026-08-24").filter((item) => item.id === "timed-rdate");
+assert.deepStrictEqual(regularAndRdate.map((item) => item.zeit), ["09:00", "15:00"],
+  "RDATE replaced the regular RRULE occurrence on the same day");
+const sourceAppointmentsBefore = T.daten().termine.length;
+assert.deepStrictEqual(T.mergeTermine([
+  { uid: "source-collision", datum: "2026-09-01", zeit: "09:00", titel: "Quelle A",
+    icsQuelleId: "thunderbird:a", geaendert: 10 },
+  { uid: "source-collision", datum: "2026-09-02", zeit: "09:00", titel: "Quelle B",
+    icsQuelleId: "thunderbird:b", geaendert: 10 }
+]), { neu: 2, doppelt: 0 }, "same UID from separate calendars was merged");
+assert.strictEqual(T.daten().termine.length, sourceAppointmentsBefore + 2,
+  "source-isolated appointments were not both retained");
+const sourceAnniversariesBefore = T.daten().jahrestage.length;
+assert.deepStrictEqual(T.mergeJahrestage([
+  { uid: "anniversary-collision", icsSerienUid: "anniversary-collision", name: "Mia A",
+    datum: "1990-09-01", typ: "birthday", icsQuelleId: "thunderbird:a", geaendert: 10 },
+  { uid: "anniversary-collision", icsSerienUid: "anniversary-collision", name: "Mia B",
+    datum: "1990-09-02", typ: "birthday", icsQuelleId: "thunderbird:b", geaendert: 10 }
+]), { neu: 2, doppelt: 0 }, "same anniversary UID from separate calendars was merged");
+assert.strictEqual(T.daten().jahrestage.length, sourceAnniversariesBefore + 2,
+  "source-isolated anniversaries were not both retained");
+assert.deepStrictEqual(T.mergeJahrestage([
+  { uid: "anniversary-collision", icsSerienUid: "anniversary-collision", name: "Mia A neu",
+    datum: "1990-09-03", typ: "birthday", icsQuelleId: "thunderbird:a", geaendert: 20 }
+]), { neu: 1, doppelt: 0 }, "newer anniversary series was not updated");
+assert.strictEqual(T.daten().jahrestage.find((item) =>
+  item.uid === "anniversary-collision" && item.icsQuelleId === "thunderbird:a").name, "Mia A neu");
 
 const teamsContact = T.normalisiere({ kontakte: [{ id: "teams-contact",
   vorname: "Mia", nachname: "Muster", telefone: [{ wert: "+49 170 1234567",
@@ -423,6 +463,19 @@ assert.ok(nextcloudText.includes("baum-1") && /encrypted|verschlüsselt/i.test(n
 "Nextcloud page does not clearly delimit the encrypted fallback");
 assert.strictEqual(window.document.querySelectorAll("#briefkasten-url").length, 1,
   "Nextcloud mailbox field IDs are duplicated");
+assert.strictEqual(window.document.querySelector("#nextcloud-dav-an").checked, true,
+  "fresh Nextcloud setup does not enable calendar and contact synchronization");
+window.App.baumBriefkastenStatus({ davAktiv: false, briefkastenAktiv: false,
+  aktiv: false, url: "https://cloud.example", benutzer: "user",
+  kennwortVorhanden: true, zustand: "aus", fehler: "" });
+const saveCount = messages.filter((message) => message.cmd === "baum_briefkasten_speichern").length;
+Array.from(window.document.querySelectorAll("#einst-seite-sync button"))
+  .find((button) => button.textContent === "Speichern").click();
+assert.strictEqual(messages.filter((message) => message.cmd === "baum_briefkasten_speichern").length,
+  saveCount + 1, "intentional Nextcloud deactivation was blocked");
+assert.ok(messages.some((message) => message.cmd === "baum_briefkasten_speichern" &&
+  message.davAktiv === false && message.briefkastenAktiv === false),
+"disabled Nextcloud configuration changed during save");
 window.document.querySelector("#briefkasten-url").value = "https://cloud.example";
 window.document.querySelector("#briefkasten-benutzer").value = "user";
 window.document.querySelector("#briefkasten-kennwort").value = "app-password";
