@@ -1,4 +1,5 @@
 bin/magnolie-handbuch                 usr/bin
+bin/magnolie_crash.py                 usr/bin
 web/index.html                        usr/share/magnolie-handbuch/web
 web/stil.css                          usr/share/magnolie-handbuch/web
 web/*.png                             usr/share/magnolie-handbuch/web

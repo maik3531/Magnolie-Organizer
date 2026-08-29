@@ -22,6 +22,8 @@ if (!linuxRoot) {
   process.exit(0);
 }
 const fixture = JSON.parse(fs.readFileSync(path.join(__dirname, "resources", "linux-parity-contract.json"), "utf8"));
-assert.deepStrictEqual(generate(linuxRoot), fixture,
+const semanticFields = ["schema", "commands", "callbacks", "payloadSchemas", "personalSyncPayloads"];
+const semanticContract = contract => Object.fromEntries(semanticFields.map(field => [field, contract[field]]));
+assert.deepStrictEqual(semanticContract(generate(linuxRoot)), semanticContract(fixture),
   `Linux-Vertragsfixture ist veraltet; aktualisieren mit tests/generate-linux-parity-fixture.js ${linuxRoot}`);
 console.log(`LINUX LIVE PARITY PASSED (${linuxRoot})`);

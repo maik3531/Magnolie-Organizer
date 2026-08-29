@@ -226,6 +226,46 @@ def test_local_cache_copies_of_same_birthday_are_merged_by_series_uid():
     assert "Thunderbird: Familie" in event["icsQuelleName"]
 
 
+def test_birthday_dedup_never_changes_month_and_day():
+    payload = {"termine": [], "jahrestage": [
+        {"uid": "mia", "name": "Mia", "datum": "1990-08-12"},
+        {"uid": "mia", "name": "Mia", "datum": "1985-03-04"},
+    ]}
+
+    m._lokale_kalender_dubletten_bereinigen(payload)
+
+    assert [item["datum"] for item in payload["jahrestage"]] == [
+        "1990-08-12", "1985-03-04"]
+
+
+def test_complex_yearly_master_deduplicates_anniversary_from_preserved_rrule():
+    master = m.ics_lesen(
+        "BEGIN:VEVENT\r\nUID:geb1\r\nDTSTART;VALUE=DATE:19900812\r\n"
+        "RRULE:FREQ=YEARLY\r\nEXDATE;VALUE=DATE:20260812\r\n"
+        "SUMMARY:Mia\r\nEND:VEVENT\r\n")["termine"][0]
+    payload = {"termine": [master], "jahrestage": [
+        {"uid": "geb1", "icsSerienUid": "geb1", "name": "Mia",
+         "datum": "1990-08-12"}]}
+
+    m._lokale_kalender_dubletten_bereinigen(payload)
+
+    assert payload["jahrestage"] == []
+
+
+def test_sync_ignores_non_semantic_rrule_form():
+    base = {"uid": "monat", "datum": "2026-08-11", "titel": "Monatsserie",
+            "geaendert": 10, "wiederholung": {"art": "monthly", "bis": "",
+            "ordinal": 2, "wochentag": "TU"}}
+    remote = dict(base, wiederholung=dict(base["wiederholung"], rruleForm="byday"))
+
+    assert m._sync_inhalt_hash(base, m.TERMIN_FELDER) == \
+        m._sync_inhalt_hash(remote, m.TERMIN_FELDER)
+    merged, creates, updates, deletes, counts = m.sync_merge(
+        [dict(base, sync=True)], {"monat": remote}, [], 10, m.TERMIN_FELDER)
+    assert len(merged) == 1 and not creates and not updates and not deletes
+    assert counts["konflikte"] == 0
+
+
 def test_local_appointment_and_anniversary_with_same_uid_appear_only_once():
     appointment = m.ics_lesen(
         "BEGIN:VEVENT\r\nUID:same-google-event\r\n"

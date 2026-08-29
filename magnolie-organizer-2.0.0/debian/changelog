@@ -1,3 +1,14 @@
+magnolie-organizer (2.0.9) unstable; urgency=medium
+
+  * Ergänzt einen optionalen sicheren Hintergrunddienst mit nativen
+    Bestätigungen und lokale Absturzberichte auf allen Plattformen.
+  * Korrigiert Kalender, Kontakte, Termine ohne Dauer, strukturierte EXDATE-
+    und RDATE-Werte sowie den Android-connectedDevice-Dienst.
+  * Verbessert AppImage-Schriften, -Themes und CPU-Kompatibilität und
+    vervollständigt Übersetzungen und Handbuch.
+
+ -- Maik Walter <maik3531@gmail.com>  Sat, 29 Aug 2026 05:35:13 +0200
+
 magnolie-organizer (2.0.8) unstable; urgency=medium
 
   * Korrigiert Thunderbird-Serienkennung, Dubletten und die robuste zeilenweise

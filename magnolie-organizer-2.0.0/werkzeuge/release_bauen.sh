@@ -118,6 +118,8 @@ XDG_CONFIG_HOME="$STAGE/test-config" TZ=Europe/Berlin \
     python3 pruefungen/test_parser.py
 python3 -m pytest -q pruefungen/test_kdeconnect.py
 python3 -m pytest -q pruefungen/test_personal_sync.py
+python3 -m pytest -q pruefungen/test_crash_reports.py
+python3 -m pytest -q pruefungen/test_hintergrunddienst.py
 TZ=Europe/Berlin python3 pruefungen/test_import_export_vertrag.py
 TZ=Europe/Berlin python3 pruefungen/test_gesamtarchiv.py
 TZ=Europe/Berlin python3 pruefungen/test_telefon.py

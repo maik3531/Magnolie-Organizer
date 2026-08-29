@@ -55,6 +55,7 @@ SHARE_TYPE = "kdeconnect.share.request"
 MAX_CLIPBOARD_BYTES = 64 * 1024
 MAX_FILE_BYTES = 50 * 1024 * 1024
 MAX_RECEIVE_PENDING = 8
+RECEIVE_PROPOSAL_SECONDS = 10 * 60
 MAX_MESSAGES = 1000
 MAX_ADDRESSES = 32
 MAX_ATTACHMENTS = 32
@@ -1131,7 +1132,8 @@ class KDEConnectSMSBackend:
             elif self._reserve_receive():
                 with self._state_lock:
                     self._receive_pending[receive_id] = {"kind": "clipboard",
-                        "device_id": device_id, "text": parsed["text"]}
+                        "device_id": device_id, "text": parsed["text"],
+                        "deadline": self.clock() + RECEIVE_PROPOSAL_SECONDS}
                 self._emit("clipboard_proposal", value)
             return
         if kind != SHARE_TYPE or not settings["file_enabled"]:
@@ -1170,7 +1172,8 @@ class KDEConnectSMSBackend:
                 staged = self._download_payload(task)
                 if self._transfer_stop.is_set():
                     raise ProtocolError("receive service stopped")
-                pending = dict(task, kind="file", staged=staged)
+                pending = dict(task, kind="file", staged=staged,
+                               deadline=self.clock() + RECEIVE_PROPOSAL_SECONDS)
                 if task["mode"] == "automatic":
                     path = self._accept_file(pending)
                     self._release_receive()
@@ -1494,6 +1497,7 @@ class KDEConnectSMSBackend:
 
     def _expire_state(self, now):
         expired_pairing = None
+        expired_receive = []
         with self._state_lock:
             for raw, value in list(self._pending.items()):
                 if value[2] <= now:
@@ -1511,6 +1515,19 @@ class KDEConnectSMSBackend:
                     self._pair_prompt_seen.pop(key, None)
             if self.pairing and self.pairing["deadline"] <= now:
                 expired_pairing, self.pairing = self.pairing, None
+            for receive_id, pending in list(self._receive_pending.items()):
+                if pending.get("deadline", now + 1) <= now:
+                    expired_receive.append((receive_id, pending))
+                    self._receive_pending.pop(receive_id, None)
+                    self._receive_slots = max(0, self._receive_slots - 1)
+        for receive_id, pending in expired_receive:
+            if pending.get("staged"):
+                try:
+                    os.unlink(pending["staged"])
+                except FileNotFoundError:
+                    pass
+            self._emit("receive_expired", {"id": receive_id,
+                "kind": pending["kind"], "device_id": pending["device_id"]})
         if expired_pairing:
             try:
                 expired_pairing["worker"].send(network_packet(

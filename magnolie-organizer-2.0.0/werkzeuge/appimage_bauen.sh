@@ -125,6 +125,7 @@ mkdir -p "$APPDIR/usr/bin" "$APPDIR/usr/lib" \
     "$APPDIR/usr/share/magnolie-organizer/web/i18n" \
     "$APPDIR/usr/share/magnolie-organizer/klang" \
     "$APPDIR/usr/share/magnolie-organizer/certs" \
+    "$APPDIR/usr/share/magnolie-organizer/fontconfig" \
     "$APPDIR/usr/share/magnolie-organizer/werkzeuge" \
     "$APPDIR/usr/share/icons/hicolor/scalable/apps" \
     "$APPDIR/usr/share/icons/hicolor/256x256/apps" \
@@ -145,8 +146,10 @@ done < "$WURZEL/po/LINGUAS"
 install -m 0755 "$WURZEL/bin/magnolie-organizer" "$APPDIR/usr/bin/magnolie-organizer"
 install -m 0644 "$WURZEL/bin/magnolie_telefon.py" "$APPDIR/usr/bin/magnolie_telefon.py"
 install -m 0644 "$WURZEL/bin/magnolie_kdeconnect.py" "$APPDIR/usr/bin/magnolie_kdeconnect.py"
+install -m 0644 "$WURZEL/bin/magnolie_hintergrund.py" "$APPDIR/usr/bin/magnolie_hintergrund.py"
 install -m 0644 "$WURZEL/bin/magnolie_personal_sync.py" "$APPDIR/usr/bin/magnolie_personal_sync.py"
 install -m 0644 "$WURZEL/bin/magnolie_nextcloud.py" "$APPDIR/usr/bin/magnolie_nextcloud.py"
+install -m 0644 "$WURZEL/bin/magnolie_crash.py" "$APPDIR/usr/bin/magnolie_crash.py"
 install -m 0755 "$(readlink -f "$(command -v python3)")" "$APPDIR/usr/bin/python$PYTHON_VERSION"
 ln -s "python$PYTHON_VERSION" "$APPDIR/usr/bin/python3"
 cp -a "/usr/lib/python$PYTHON_VERSION" "$APPDIR/usr/lib/"
@@ -214,6 +217,8 @@ install -m 0644 "$WURZEL/debian/copyright" \
     "$APPDIR/usr/share/doc/magnolie-organizer/copyright"
 install -m 0644 /etc/ssl/certs/ca-certificates.crt \
     "$APPDIR/usr/share/magnolie-organizer/certs/ca-certificates.crt"
+install -m 0644 "$WURZEL/werkzeuge/appimage-fonts.conf" \
+    "$APPDIR/usr/share/magnolie-organizer/fontconfig/fonts.conf"
 [ ! -f "/usr/share/doc/python$PYTHON_VERSION/copyright" ] || install -m 0644 \
     "/usr/share/doc/python$PYTHON_VERSION/copyright" \
     "$APPDIR/usr/share/doc/magnolie-organizer/python-copyright"
@@ -341,8 +346,13 @@ export OPENSSL_MODULES="$APPDIR/usr/lib/$MULTIARCH/ossl-modules"
 export SSL_CERT_FILE
 # Desktop modules from the host must not load against the bundled GTK/GLib.
 export GTK_MODULES=
+export GTK3_MODULES=
 export GTK_PATH="$APPDIR/usr/lib/$MULTIARCH/gtk-3.0"
+export GTK_DATA_PREFIX="$APPDIR/usr"
 export GTK_THEME=Adwaita
+# Keep host font files, but never parse configuration for a newer fontconfig.
+export FONTCONFIG_PATH="$APPDIR/usr/share/magnolie-organizer/fontconfig"
+export FONTCONFIG_FILE="$FONTCONFIG_PATH/fonts.conf"
 : "${WEBKIT_DISABLE_DMABUF_RENDERER:=1}"
 export WEBKIT_DISABLE_DMABUF_RENDERER
 # The bundled WebKit runtime is more reliable through XWayland than through a

@@ -11,6 +11,7 @@ internal static class Program
     [STAThread]
     private static void Main(string[] args)
     {
+        CrashReporter.RegisterHandlers();
         var trayStart = args.Contains("--tray-start", StringComparer.OrdinalIgnoreCase);
         var reminderStart = args.Contains("--reminder-start", StringComparer.OrdinalIgnoreCase);
         var handbookStart = args.Contains("--handbook", StringComparer.OrdinalIgnoreCase);

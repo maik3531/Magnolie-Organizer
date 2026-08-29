@@ -4,6 +4,7 @@ var runner = new TestRunner();
 runner.Add("AtomicStore / Dateisicherheit", AtomicStoreTests.RunAsync);
 runner.Add("Wiederherstellungsjournal / Manifest / Tamper / Retention / Scheduler", RecoveryJournalTests.RunAsync);
 runner.Add("Loganzeige / Contributor-Marker", LogPresentationTests.RunAsync);
+runner.Add("Lokale Absturzberichte / Format / Rotation / Parallelität", CrashReportTests.RunAsync);
 runner.Add("Encryption / Python-Goldens / Manipulation", ContractGroupTests.EncryptionAsync);
 runner.Add(".magnolie Gesamtarchiv / Cross-Platform / Anhänge / Fehler", ContractGroupTests.ArchiveAsync);
 runner.Add("Notizanhänge / Data-URL / Dateinamen", AttachmentFileTests.RunAsync);

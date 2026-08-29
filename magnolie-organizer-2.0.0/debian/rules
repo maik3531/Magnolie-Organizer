@@ -17,7 +17,7 @@ override_dh_auto_build:
 		msgfmt --check --check-format -o locale/$$sprache/LC_MESSAGES/magnolie-organizer.mo po/$$sprache.po; \
 		python3 werkzeuge/po_zu_js.py $$sprache po/$$sprache.po web/i18n/$$sprache.js; \
 	done < po/LINGUAS
-	python3 -m py_compile bin/magnolie-organizer bin/magnolie_kdeconnect.py bin/magnolie_telefon.py bin/magnolie_personal_sync.py bin/magnolie_nextcloud.py
+	python3 -m py_compile bin/magnolie-organizer bin/magnolie_crash.py bin/magnolie_hintergrund.py bin/magnolie_kdeconnect.py bin/magnolie_telefon.py bin/magnolie_personal_sync.py bin/magnolie_nextcloud.py
 
 override_dh_auto_test:
 ifeq (,$(filter nocheck,$(DEB_BUILD_OPTIONS)))
@@ -33,6 +33,8 @@ ifeq (,$(filter nocheck,$(DEB_BUILD_OPTIONS)))
 	python3 -m pytest -q pruefungen/test_kdeconnect.py
 	python3 -m pytest -q pruefungen/test_personal_sync.py
 	python3 -m pytest -q pruefungen/test_nextcloud.py
+	python3 -m pytest -q pruefungen/test_crash_reports.py
+	python3 -m pytest -q pruefungen/test_hintergrunddienst.py
 	python3 pruefungen/test_paketinhalt.py
 	test -n "$(JS_LAUFER)"
 	TZ=Europe/Berlin $(JS_LAUFER) pruefungen/test.js

@@ -6,7 +6,7 @@
 #, fuzzy
 msgid ""
 msgstr ""
-"Project-Id-Version: Magnolie Organizer 2.0.8\n"
+"Project-Id-Version: Magnolie Organizer 2.0.9\n"
 "Report-Msgid-Bugs-To: maik3531@gmail.com\n"
 "POT-Creation-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
@@ -3625,9 +3625,6 @@ msgid ""
 "Data only, no HFP audio."
 msgstr ""
 
-msgid "Reset"
-msgstr ""
-
 msgid "Residual waste"
 msgstr ""
 
@@ -3649,6 +3646,9 @@ msgid "Restore backup …"
 msgstr ""
 
 msgid "Restore completely"
+msgstr ""
+
+msgid "Restore defaults"
 msgstr ""
 
 msgid "Restore failed."

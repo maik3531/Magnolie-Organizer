@@ -212,6 +212,86 @@ internal static class ContractGroupTests
         TestAssert.That(timedIcs.Contains("RRULE:FREQ=MONTHLY;BYDAY=FR;BYSETPOS=-1", StringComparison.Ordinal) &&
             timedIcs.Contains("DTEND:20260131T104500", StringComparison.Ordinal),
             "Zeit, Mehrtagesdauer oder BYSETPOS gingen beim Neustart/ICS-Export verloren.");
+        using (var structuredDates = JsonDocument.Parse("""
+            [{"uid":"structured","datum":"2026-09-01","zeit":"09:15","titel":"Strukturserie",
+              "wiederholung":{"art":"custom","daten":["2026-09-10"]},
+              "icsAusnahmen":["2026-09-08","2026-09-08","ungueltig"],
+              "icsZusatzDaten":["2026-09-10","2026-09-10","2026-09-08","ungueltig"]}]
+            """))
+        {
+            var written = ExchangeCodec.WriteIcs("ics-termine", structuredDates.RootElement).Text;
+            TestAssert.That(written.Contains("EXDATE:20260908T091500", StringComparison.Ordinal) &&
+                written.Split("RDATE:20260910T091500", StringSplitOptions.None).Length - 1 == 1 &&
+                !written.Contains("RDATE:20260908T091500", StringComparison.Ordinal),
+                "Strukturierte zeitgebundene EXDATE/RDATE wurden nicht kanonisch oder konfliktfrei geschrieben.");
+            var parsed = ExchangeCodec.ParseIcs(written).Termine[0]!.AsObject();
+            using var restart = JsonDocument.Parse(new JsonArray(parsed.DeepClone()).ToJsonString());
+            var reparsed = ExchangeCodec.ParseIcs(ExchangeCodec.WriteIcs("ics-termine", restart.RootElement).Text).Termine[0]!;
+            TestAssert.That(parsed["icsAusnahmen"]!.AsArray().Any(value => value?.ToString() == "2026-09-08") &&
+                parsed["icsZusatzDaten"]!.AsArray().Any(value => value?.ToString() == "2026-09-10") &&
+                JsonNode.DeepEquals(parsed["icsAusnahmen"], reparsed["icsAusnahmen"]) &&
+                JsonNode.DeepEquals(parsed["icsZusatzDaten"], reparsed["icsZusatzDaten"]),
+                "Strukturierte Serienvorkommen überstanden Parse-/Schreib-/Reparse-Rundlauf nicht.");
+        }
+        using (var allDayDates = JsonDocument.Parse("""
+            [{"uid":"all-day-structured","datum":"2026-10-01","titel":"Ganztag",
+              "wiederholung":{"art":"monthly"},"icsAusnahmen":["2026-11-01"],"icsZusatzDaten":["2026-10-15"]}]
+            """))
+        {
+            var written = ExchangeCodec.WriteIcs("ics-termine", allDayDates.RootElement).Text;
+            TestAssert.That(written.Contains("EXDATE;VALUE=DATE:20261101", StringComparison.Ordinal) &&
+                written.Contains("RDATE;VALUE=DATE:20261015", StringComparison.Ordinal),
+                "Strukturierte ganztägige EXDATE/RDATE verloren VALUE=DATE.");
+        }
+        using (var rawDedupe = JsonDocument.Parse("""
+            [{"uid":"raw-dedupe","datum":"2026-09-01","zeit":"09:15","titel":"Rohdaten",
+              "wiederholung":{"art":"custom","daten":["2026-09-10"]},
+              "icsAusnahmen":["2026-09-08"],"icsZusatzDaten":["2026-09-10"],
+              "icsRoundtrip":["RDATE:20260910T091500","EXDATE:20260908T091500"]}]
+            """))
+        {
+            var written = ExchangeCodec.WriteIcs("ics-termine", rawDedupe.RootElement).Text;
+            TestAssert.That(written.Split("RDATE:20260910T091500", StringSplitOptions.None).Length - 1 == 1 &&
+                written.Split("EXDATE:20260908T091500", StringSplitOptions.None).Length - 1 == 1,
+                "Strukturierte, benutzerdefinierte und rohe RDATE/EXDATE wurden dupliziert.");
+        }
+        using (var mixedRdates = JsonDocument.Parse("""
+            [{"uid":"mixed-rdates","datum":"2026-09-01","zeit":"09:15","titel":"Gemischte Zusatztermine",
+              "wiederholung":{"art":"weekly"},"icsZusatzDaten":["2026-09-10","2026-09-12"],
+              "icsRoundtrip":["RDATE;TZID=Europe/Berlin:20260910T091500"]}]
+            """))
+        {
+            var written = ExchangeCodec.WriteIcs("ics-termine", mixedRdates.RootElement).Text;
+            TestAssert.That(written.Contains("RDATE;TZID=Europe/Berlin:20260910T091500", StringComparison.Ordinal) &&
+                written.Contains("RDATE:20260912T091500", StringComparison.Ordinal) &&
+                written.Split("20260910T091500", StringSplitOptions.None).Length - 1 == 1,
+                "Rohe und strukturierte RDATE-Werte überstanden den gemischten Export nicht verlust- und duplikatfrei.");
+        }
+        using (var mixedExdates = JsonDocument.Parse("""
+            [{"uid":"mixed-exdates","datum":"2026-09-01","zeit":"09:15","titel":"Gemischte Ausnahmen",
+              "wiederholung":{"art":"weekly"},"icsAusnahmen":["2026-09-08","2026-09-15"],
+              "icsRoundtrip":["EXDATE;TZID=Europe/Berlin:20260908T091500"]}]
+            """))
+        {
+            var written = ExchangeCodec.WriteIcs("ics-termine", mixedExdates.RootElement).Text;
+            TestAssert.That(written.Contains("EXDATE;TZID=Europe/Berlin:20260908T091500", StringComparison.Ordinal) &&
+                written.Contains("EXDATE:20260915T091500", StringComparison.Ordinal) &&
+                written.Split("20260908T091500", StringSplitOptions.None).Length - 1 == 1,
+                "Rohe und strukturierte EXDATE-Werte überstanden den gemischten Export nicht verlust- und duplikatfrei.");
+        }
+        using (var crossConflict = JsonDocument.Parse("""
+            [{"uid":"cross-conflict","datum":"2026-09-01","zeit":"09:15","titel":"Ausnahmevorrang",
+              "wiederholung":{"art":"weekly"},"icsAusnahmen":["2026-09-08"],"icsZusatzDaten":["2026-09-15"],
+              "icsRoundtrip":["RDATE:20260908T091500","EXDATE:20260915T091500"]}]
+            """))
+        {
+            var written = ExchangeCodec.WriteIcs("ics-termine", crossConflict.RootElement).Text;
+            TestAssert.That(written.Contains("RDATE:20260908T091500", StringComparison.Ordinal) &&
+                written.Contains("EXDATE:20260908T091500", StringComparison.Ordinal) &&
+                written.Contains("EXDATE:20260915T091500", StringComparison.Ordinal) &&
+                !written.Contains("RDATE:20260915T091500", StringComparison.Ordinal),
+                "Eine rohe oder strukturierte Ausnahme verlor bei einem RDATE-Konflikt ihren Vorrang.");
+        }
         foreach (var property in new[] { "EXDATE;VALUE=DATE:20240208", "RECURRENCE-ID;VALUE=DATE:20240208" })
         {
             var guarded = ExchangeCodec.ParseIcs($$"""
@@ -397,6 +477,90 @@ internal static class ContractGroupTests
 
     internal static Task TreeContactsAsync()
     {
+        var contractPath = Path.Combine(AppContext.BaseDirectory, "resources", "kontakt-sync-contract.json");
+        TestAssert.That(File.Exists(contractPath), "Gemeinsamer Kontaktvertrag fehlt im Testlauf.");
+        var vectors = JsonNode.Parse(File.ReadAllText(contractPath))!.AsObject();
+        var limits = vectors["limits"]!.AsObject();
+        var contractBase = vectors["base"]!.AsObject();
+        JsonObject WithContact(string name, JsonNode? value)
+        {
+            var result = contractBase.DeepClone().AsObject();
+            result["kontakt"]![name] = value;
+            return result;
+        }
+        JsonObject WithRoot(string name, JsonNode? value)
+        {
+            var result = contractBase.DeepClone().AsObject();
+            result[name] = value;
+            return result;
+        }
+        JsonObject WithVector(JsonObject vector)
+        {
+            var result = contractBase.DeepClone().AsObject();
+            var path = vector["path"]!.AsArray().Select(item => item!.GetValue<string>()).ToArray();
+            if (path.Length == 1) result[path[0]] = vector["value"]!.DeepClone();
+            else if (path.Length == 2 && path[0] == "kontakt")
+                result["kontakt"]![path[1]] = vector["value"]!.DeepClone();
+            else throw new InvalidDataException("Unbekannter Kontaktvertragspfad.");
+            return result;
+        }
+        BaumContactSyncContract.Validate(contractBase);
+        foreach (var birthday in vectors["accepted_birthdays"]!.AsArray())
+            BaumContactSyncContract.Validate(WithContact("geburtstag", birthday!.DeepClone()));
+        foreach (var birthday in vectors["rejected_birthdays"]!.AsArray())
+            TestAssert.Throws<InvalidDataException>(() => BaumContactSyncContract.Validate(
+                WithContact("geburtstag", birthday!.DeepClone())), "Ungültiges Golden-Geburtsdatum wurde angenommen.");
+        BaumContactSyncContract.Validate(WithContact("foto", vectors["opaque_photo"]!.DeepClone()));
+        foreach (var vector in vectors["accepted_vectors"]!.AsArray().Select(item => item!.AsObject()))
+            BaumContactSyncContract.Validate(WithVector(vector));
+        foreach (var vector in vectors["rejected_vectors"]!.AsArray().Select(item => item!.AsObject()))
+            TestAssert.Throws<InvalidDataException>(() => BaumContactSyncContract.Validate(WithVector(vector)),
+                $"Ungültiger gemeinsamer Vektor wurde angenommen: {vector["name"]!.GetValue<string>()}");
+
+        var maxRoot = limits["root_id_code_points"]!.GetValue<int>();
+        var maxText = limits["text_code_points"]!.GetValue<int>();
+        var maxNote = limits["note_code_points"]!.GetValue<int>();
+        var maxList = limits["list_items"]!.GetValue<int>();
+        var maxPhoto = limits["photo_text_code_points"]!.GetValue<int>();
+        var emojiBoundary = string.Concat(Enumerable.Repeat("\U0001F600", maxText));
+        BaumContactSyncContract.Validate(WithRoot("freigabeId",
+            string.Concat(Enumerable.Repeat("\U0001F600", maxRoot))));
+        TestAssert.Throws<InvalidDataException>(() => BaumContactSyncContract.Validate(
+            WithRoot("freigabeId", string.Concat(Enumerable.Repeat("\U0001F600", maxRoot)) + "a")),
+            "Root-ID wurde nicht nach Unicode-Codepoints begrenzt.");
+        BaumContactSyncContract.Validate(WithContact("vorname", emojiBoundary));
+        TestAssert.Throws<InvalidDataException>(() => BaumContactSyncContract.Validate(
+            WithContact("vorname", emojiBoundary + "a")), "UTF-16-Einheiten statt Unicode-Codepoints begrenzen Kontakttext.");
+        BaumContactSyncContract.Validate(WithContact("notiz", new string('n', maxNote)));
+        TestAssert.Throws<InvalidDataException>(() => BaumContactSyncContract.Validate(
+            WithContact("notiz", new string('n', maxNote + 1))), "Überlange Kontaktnotiz wurde angenommen.");
+
+        JsonObject EmptyValue() => new() { ["art"] = "", ["wert"] = "" };
+        BaumContactSyncContract.Validate(WithContact("telefone", new JsonArray(
+            Enumerable.Range(0, maxList).Select(_ => (JsonNode?)EmptyValue()).ToArray())));
+        TestAssert.Throws<InvalidDataException>(() => BaumContactSyncContract.Validate(WithContact("telefone", new JsonArray(
+            Enumerable.Range(0, maxList + 1).Select(_ => (JsonNode?)EmptyValue()).ToArray()))),
+            "Überlange Kontaktliste wurde angenommen.");
+        JsonObject BoundaryValue(string type, string value) => new() { ["art"] = type, ["wert"] = value };
+        BaumContactSyncContract.Validate(WithContact("telefone", new JsonArray(BoundaryValue(
+            emojiBoundary, new string('w', maxText)))));
+        TestAssert.Throws<InvalidDataException>(() => BaumContactSyncContract.Validate(WithContact("telefone",
+            new JsonArray(BoundaryValue(emojiBoundary + "a", "w")))), "Überlange Kontaktart wurde angenommen.");
+        TestAssert.Throws<InvalidDataException>(() => BaumContactSyncContract.Validate(WithContact("telefone",
+            new JsonArray(BoundaryValue("", new string('w', maxText + 1))))), "Überlanger Kontaktwert wurde angenommen.");
+        JsonObject EmptyAddress() => new()
+        {
+            ["art"] = "", ["strasse"] = "", ["plz"] = "", ["ort"] = "", ["region"] = "", ["land"] = ""
+        };
+        BaumContactSyncContract.Validate(WithContact("anschriften", new JsonArray(
+            Enumerable.Range(0, maxList).Select(_ => (JsonNode?)EmptyAddress()).ToArray())));
+
+        const string photoPrefix = "data:image/png;base64,";
+        var encodedPhotoLength = (maxPhoto - photoPrefix.Length) / 4 * 4;
+        BaumContactSyncContract.Validate(WithContact("foto", photoPrefix + new string('A', encodedPhotoLength)));
+        TestAssert.Throws<InvalidDataException>(() => BaumContactSyncContract.Validate(
+            WithContact("foto", photoPrefix + new string('A', encodedPhotoLength + 4))), "Überlanger Fototext wurde angenommen.");
+
         var valid = JsonNode.Parse("""{"art":"kontakt_sync","fassung":1,"freigabeId":"alice:42","version":1,"quelle":"alice","geaendert":1770000000000,"kontakt":{"vorname":"Mia","nachname":"Muster","firma":"","notiz":"Zeile 1\nZeile 2","geburtstag":"2000-02-29","foto":"data:image/png;base64,iVBORw0KGgo=","telefone":[{"art":"mobil","wert":"+491701234567"}],"emailEintraege":[{"art":"arbeit","wert":"mia@example.test"}],"anschriften":[{"art":"privat","strasse":"Gartenweg 1","plz":"10115","ort":"Berlin","region":"Berlin","land":"DE"}]}}""")!;
         BaumContactSyncContract.Validate(valid);
         var yearless = valid.DeepClone(); yearless["kontakt"]!["geburtstag"] = "--02-29";
@@ -425,6 +589,8 @@ internal static class ContractGroupTests
                         valid["kontakt"]!["id"] is null,
             "Der interoperable Kontaktvertrag verliert das Foto oder enthält eine technische ID.");
         var deletion = JsonNode.Parse("""{"art":"kontakt_loeschen","fassung":1,"freigabeId":"alice:42","version":2,"quelle":"alice","geaendert":1770000000001}""")!;
+        BaumContactSyncContract.ValidateDelete(deletion);
+        deletion["geaendert"] = 0L;
         BaumContactSyncContract.ValidateDelete(deletion);
         foreach (var invalidDelete in new[]
         {

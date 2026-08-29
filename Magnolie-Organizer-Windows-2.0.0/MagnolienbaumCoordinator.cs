@@ -57,7 +57,8 @@ internal sealed class MagnolienbaumCoordinator : IDisposable
         RecoverBaum1Counters();
         client = new HttpClient(new SocketsHttpHandler { UseProxy = false, ConnectTimeout = TimeSpan.FromSeconds(6) })
             { Timeout = TimeSpan.FromSeconds(8) };
-        client.DefaultRequestHeaders.UserAgent.ParseAdd("Magnolie-Organizer-Windows/2.0.6");
+        var version = typeof(MagnolienbaumCoordinator).Assembly.GetName().Version?.ToString(3) ?? "0.0.0";
+        client.DefaultRequestHeaders.UserAgent.ParseAdd($"Magnolie-Organizer-Windows/{version}");
         mailboxSettings = new NextcloudMailboxSettingsStore(paths.BaumMailboxSettings, paths.BaumMailboxPassword);
         mailbox = new NextcloudMailbox(mailboxSettings);
     }

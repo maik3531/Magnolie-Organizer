@@ -28,8 +28,11 @@ def quellen_finden(wurzel=WURZEL,
     start = os.path.join(wurzel, "bin", "magnolie-organizer")
     if not os.path.isfile(start):
         start = installierter_start
+    hintergrund = os.path.join(wurzel, "bin", "magnolie_hintergrund.py")
+    if not os.path.isfile(hintergrund):
+        hintergrund = os.path.join(os.path.dirname(start), "magnolie_hintergrund.py")
     quellen = [os.path.join(web, "i18n-markers.js"),
-               os.path.join(web, "anwendung.js"), start]
+               os.path.join(web, "anwendung.js"), start, hintergrund]
     fehlend = [pfad for pfad in quellen if not os.path.isfile(pfad)]
     if fehlend:
         raise FileNotFoundError(", ".join(fehlend))
@@ -44,7 +47,7 @@ def haupt(argv=None):
     ziel = os.path.abspath(argumente.output)
     if not shutil.which("xgettext"):
         raise FileNotFoundError("xgettext")
-    marken, javascript, start = quellen_finden()
+    marken, javascript, start, hintergrund = quellen_finden()
     version = paket_version()
     os.makedirs(os.path.dirname(ziel), exist_ok=True)
 
@@ -64,7 +67,7 @@ def haupt(argv=None):
         "--keyword=_", "--no-location", "--sort-output",
         "--package-name=Magnolie Organizer", "--package-version=" + version,
         "--msgid-bugs-address=maik3531@gmail.com",
-        "--output=" + ziel, start
+        "--output=" + ziel, start, hintergrund
     ], check=True)
     with open(ziel, "r", encoding="utf-8") as datei:
         inhalt = datei.read()

@@ -1322,6 +1322,27 @@ def test_configure_and_stop_remove_stale_and_pending_staged_files():
         assert not os.path.exists(path)
 
 
+def test_receive_proposal_expiry_deletes_staging_and_releases_slot_once():
+    events = []
+    with tempfile.TemporaryDirectory() as root, tempfile.TemporaryDirectory() as downloads:
+        backend = paired_backend(root, events)
+        staging = os.path.join(downloads, ".magnolie-kdeconnect-staging")
+        os.mkdir(staging, 0o700)
+        path = os.path.join(staging, "pending")
+        open(path, "wb").write(b"private")
+        backend._receive_pending["1" * 32] = {"kind": "file",
+            "device_id": "a" * 32, "name": "x", "size": 7, "staged": path,
+            "deadline": 10}
+        backend._receive_slots = 1
+        backend._expire_state(10)
+        backend._expire_state(20)
+        assert not os.path.exists(path) and backend._receive_slots == 0
+        assert events == [("receive_expired", {"id": "1" * 32,
+            "kind": "file", "device_id": "a" * 32})]
+        with pytest.raises(kde.ProtocolError):
+            backend.accept_receive("1" * 32)
+
+
 @pytest.mark.skipif(kde.SSL is None, reason="PyOpenSSL is not installed")
 def test_payload_receiver_is_mutual_tls_client_and_pins_peer_certificate():
     listener = socket.socket()

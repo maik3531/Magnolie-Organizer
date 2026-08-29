@@ -1,0 +1,56 @@
+{
+  "format": "magnolie-contact-sync-contract",
+  "version": 1,
+  "limits": {
+    "root_id_code_points": 128,
+    "text_code_points": 2048,
+    "note_code_points": 20000,
+    "list_items": 100,
+    "photo_text_code_points": 2800000,
+    "changed_minimum": 0
+  },
+  "rules": {
+    "root_ids": "freigabeId and quelle are non-empty, at most root_id_code_points Unicode codepoints, and contain no C0 codepoints U+0000 through U+001F",
+    "contact_text": "ordinary contact text is restricted only by its field-specific Unicode-codepoint limit",
+    "list_text": "every list value is at most text_code_points Unicode codepoints and must not start with data: using case-insensitive comparison; empty values are accepted",
+    "list_art": "art additionally must not equal a delete marker after trimming and case folding",
+    "delete_markers": ["delete", "deleted", "deletion", "tombstone", "loeschen", "löschen", "geloescht", "gelöscht"],
+    "photo": "an optional empty value or an exact lowercase data:image/(jpeg|png|webp);base64, prefix followed by non-empty canonical RFC 4648 base64; MIME content is not inspected"
+  },
+  "base": {
+    "art": "kontakt_sync",
+    "fassung": 1,
+    "freigabeId": "golden-contact",
+    "version": 1,
+    "quelle": "golden-source",
+    "geaendert": 0,
+    "kontakt": {
+      "vorname": "",
+      "nachname": "",
+      "firma": "",
+      "notiz": "",
+      "geburtstag": "",
+      "telefone": [],
+      "emailEintraege": [],
+      "anschriften": []
+    }
+  },
+  "accepted_birthdays": ["2000-02-29", "--02-29", ""],
+  "rejected_birthdays": ["0000-01-01", "1900-02-29", "2025-02-29", "--02-30", "2024-04-31", "2024-2-01"],
+  "opaque_photo": "data:image/png;base64,QQ==",
+  "accepted_vectors": [
+    {"name": "ordinary text may contain C0 and data", "path": ["kontakt", "vorname"], "value": "data:\u0001"},
+    {"name": "list values may be empty", "path": ["kontakt", "telefone"], "value": [{"art": "", "wert": ""}]},
+    {"name": "data must be an exact prefix", "path": ["kontakt", "telefone"], "value": [{"art": "mobil", "wert": " data:image/png"}]},
+    {"name": "list values may contain C0", "path": ["kontakt", "emailEintraege"], "value": [{"art": "arbeit", "wert": "a\u0001b"}]},
+    {"name": "canonical opaque photo", "path": ["kontakt", "foto"], "value": "data:image/png;base64,QQ=="}
+  ],
+  "rejected_vectors": [
+    {"name": "empty share id", "path": ["freigabeId"], "value": ""},
+    {"name": "C0 in source", "path": ["quelle"], "value": "quelle\n"},
+    {"name": "case insensitive data prefix", "path": ["kontakt", "telefone"], "value": [{"art": "mobil", "wert": "DaTa:image/png"}]},
+    {"name": "delete marker in art", "path": ["kontakt", "anschriften"], "value": [{"art": " Gelöscht ", "strasse": "", "plz": "", "ort": "", "region": "", "land": ""}]},
+    {"name": "noncanonical photo base64", "path": ["kontakt", "foto"], "value": "data:image/png;base64,QR=="},
+    {"name": "empty photo payload", "path": ["kontakt", "foto"], "value": "data:image/png;base64,"}
+  ]
+}

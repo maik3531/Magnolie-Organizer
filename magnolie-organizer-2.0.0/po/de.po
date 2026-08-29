@@ -1,7 +1,7 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: Magnolie Organizer 2.0.8\n"
+"Project-Id-Version: Magnolie Organizer 2.0.9\n"
 "Report-Msgid-Bugs-To: maik3531@gmail.com\n"
 "POT-Creation-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "PO-Revision-Date: 2026-08-04 05:55+0200\n"
@@ -228,6 +228,7 @@ msgid_plural "%(count)s public holidays"
 msgstr[0] "%(count)s Feiertag"
 msgstr[1] "%(count)s Feiertage"
 
+#, python-format
 msgid "%(count)s recurring appointment imported only once."
 msgid_plural "%(count)s recurring appointments imported only once."
 msgstr[0] "%(count)s wiederkehrender Termin nur einmalig übernommen."
@@ -411,6 +412,9 @@ msgstr "%s: Morgen Hochzeitstag."
 
 msgid "(starts when you sign in)"
 msgstr "(startet beim Anmelden)"
+
+msgid "(unavailable)"
+msgstr "(nicht verfügbar)"
 
 msgid "(unnamed)"
 msgstr "(ohne Namen)"
@@ -608,7 +612,9 @@ msgstr ""
 msgid ""
 "A system KDE Connect service is active. Configure file and clipboard sharing "
 "there."
-msgstr "Ein systemweiter Dienst von KDE Connect ist aktiv. Richten Sie dort die Datei- und Zwischenablagefreigabe ein."
+msgstr ""
+"Ein systemweiter Dienst von KDE Connect ist aktiv. Richten Sie dort die "
+"Datei- und Zwischenablagefreigabe ein."
 
 msgid "API level"
 msgstr "API level"
@@ -786,6 +792,9 @@ msgstr "Alle Bundesländer"
 
 msgid "Allow notifications despite password protection"
 msgstr "Benachrichtigungen trotz Kennwortschutz zulassen"
+
+msgid "Allowed background functions"
+msgstr "Zulässige Hintergrundfunktionen"
 
 msgid "Also disclose appointments marked as confidential"
 msgstr "Auch als „vertraulich“ markierte Termine freigeben"
@@ -1015,6 +1024,9 @@ msgstr "BMI aus zuletzt gespeicherter Größe und Gewicht"
 
 msgid "BZ"
 msgstr "BZ"
+
+msgid "Background service"
+msgstr "Hintergrunddienst"
 
 msgid "Backup failed."
 msgstr "Sicherung fehlgeschlagen."
@@ -1357,6 +1369,9 @@ msgstr ""
 
 msgid "Checking Contributor Key …"
 msgstr "Contributor Key wird geprüft …"
+
+msgid "Checking background service …"
+msgstr "Hintergrunddienst wird überprüft …"
 
 msgid "Checking online accounts …"
 msgstr "Frage die Online-Konten ab …"
@@ -2185,6 +2200,9 @@ msgstr "Einschalten"
 msgid "Enable Magnolie Notes phone connection"
 msgstr "Magnolie Notes-Telefonverbindung einschalten"
 
+msgid "Enable background service"
+msgstr "Hintergrunddienst aktivieren"
+
 msgid "Enable cycle calendar"
 msgstr "Regel-/Zykluskalender einschalten"
 
@@ -2217,6 +2235,9 @@ msgstr "Müllkalender einschalten"
 
 msgid "Encrypted archive entries are not supported."
 msgstr "Verschlüsselte Archiveinträge werden nicht unterstützt."
+
+msgid "Encrypted data behavior"
+msgstr "Verhalten bei verschlüsselten Daten"
 
 msgid "Encrypting the data"
 msgstr "Das Verschlüsseln"
@@ -2378,6 +2399,9 @@ msgstr "Angehörige"
 
 msgid "Fertile days"
 msgstr "Fruchtbare Tage"
+
+msgid "File"
+msgstr "Datei"
 
 #, python-format
 msgid "File could not be read: %s"
@@ -2801,13 +2825,21 @@ msgstr "Müllentleerungen mitdrucken"
 msgid "Incoming"
 msgstr "Eingehend"
 
+msgid "Incoming KDE Connect file"
+msgstr "Eingehende KDE Connect-Datei"
+
+msgid "Incoming KDE Connect files (always confirm)"
+msgstr "Eingehende KDE Connect-Dateien (immer bestätigen)"
+
 msgid "Incoming call"
 msgstr "Eingehender Anruf"
 
 msgid ""
-"Incoming files and clipboard text are confirmed before use unless automatic "
-"acceptance is explicitly enabled."
-msgstr "Eingehende Dateien und Zwischenablagetexte werden vor der Verwendung bestätigt, sofern die automatische Annahme nicht ausdrücklich aktiviert ist."
+"Incoming files are always confirmed. Clipboard text is confirmed unless "
+"automatic acceptance is explicitly enabled."
+msgstr ""
+"Eingehende Dateien werden immer bestätigt. Text aus der Zwischenablage wird "
+"bestätigt, sofern die automatische Annahme nicht ausdrücklich aktiviert ist."
 
 msgid "Input"
 msgstr "Eingabe"
@@ -2853,6 +2885,9 @@ msgstr "Saft"
 msgid "Jura"
 msgstr "Jura"
 
+msgid "KDE Connect device"
+msgstr "KDE Connect-Gerät"
+
 msgid "KDE Connect for SMS"
 msgstr "KDE Connect für SMS"
 
@@ -2866,6 +2901,12 @@ msgstr ""
 "KDE Connect wird nur für SMS verwendet. Es verbindet oder synchronisiert den "
 "Magnolienbaum nicht."
 
+msgid "KDE Connect pairing"
+msgstr "KDE Connect-Kopplung"
+
+msgid "KDE Connect pairing decisions"
+msgstr "Entscheidungen zur KDE Connect-Kopplung"
+
 msgid "KDE Connect pairing failed."
 msgstr "KDE Connect-Kopplung fehlgeschlagen."
 
@@ -2874,6 +2915,12 @@ msgstr "KDE Connect-Telefon gekoppelt."
 
 msgid "KDE Connect port %(port)s"
 msgstr "KDE Connect-Port %(port)s"
+
+msgid ""
+"KDE Connect receive settings could not be applied by the background service."
+msgstr ""
+"Die KDE Connect-Empfangseinstellungen konnten vom Hintergrunddienst nicht "
+"übernommen werden."
 
 msgid "KDE Connect reception failed."
 msgstr "Empfang über KDE Connect fehlgeschlagen."
@@ -2948,6 +2995,9 @@ msgstr "Listener aktiv"
 msgid "Listener stopped"
 msgstr "Listener angehalten"
 
+msgid "Loading background settings"
+msgstr "Hintergrundeinstellungen werden geladen"
+
 msgid "Local calendar"
 msgstr "Lokaler Kalender"
 
@@ -3006,8 +3056,14 @@ msgstr ""
 "Magnolie Notes hat die Sitzung beendet. App und Organizer müssen denselben "
 "Protokollstand verwenden."
 
+msgid "Magnolie Notes pairing"
+msgstr "Magnolie Notes-Kopplung"
+
 msgid "Magnolie Notes phone connection"
 msgstr "Magnolie Notes-Telefonverbindung"
+
+msgid "Magnolie Notes phone pairing decisions"
+msgstr "Entscheidungen zur Kopplung mit Magnolie Notes auf dem Telefon"
 
 msgid ""
 "Magnolie Notes phones and KDE Connect phones are separate: the Android model "
@@ -3018,6 +3074,12 @@ msgstr ""
 
 msgid "Magnolie Notes version"
 msgstr "Version von Magnolie Notes"
+
+msgid "Magnolie Organizer"
+msgstr "Magnolie Organizer"
+
+msgid "Magnolie Organizer Background Service"
+msgstr "Magnolie-Organizer-Hintergrunddienst"
 
 msgid "Magnolie Organizer is not completely installed."
 msgstr "Magnolie Organizer ist unvollständig installiert."
@@ -3050,6 +3112,14 @@ msgstr "Magnolie Organizer – persönlicher Organizer im Papier-Look"
 msgid "Magnolie Organizer – reminders"
 msgstr "Magnolie Organizer – Erinnerungen"
 
+#, python-format
+msgid "Magnolie background service could not start: %s"
+msgstr "Magnolie-Hintergrunddienst konnte nicht gestartet werden: %s"
+
+#, python-format
+msgid "Magnolie background service requires GLib: %s"
+msgstr "Magnolie-Hintergrunddienst benötigt GLib: %s"
+
 msgid "Magnolie backup (*.json)"
 msgstr "Magnolie-Sicherung (*.json)"
 
@@ -3069,6 +3139,9 @@ msgstr "Magnolie-Jahresplaner-%d.ods"
 
 msgid "Magnolienbaum"
 msgstr "Magnolienbaum"
+
+msgid "Magnolienbaum change offers"
+msgstr "Änderungsangebote des Magnolienbaums"
 
 msgid "Magnolienbaum mailbox"
 msgstr "Magnolienbaum-Briefkasten"
@@ -3226,6 +3299,12 @@ msgstr "Modell"
 msgid "Monday"
 msgstr "Montag"
 
+msgid "Monitor KDE Connect SMS and show notifications"
+msgstr "KDE Connect SMS überwachen und Benachrichtigungen anzeigen"
+
+msgid "Monitor the Magnolie Notes phone connection"
+msgstr "Telefonverbindung von Magnolie Notes überwachen"
+
 msgid "Month"
 msgstr "Monat"
 
@@ -3293,6 +3372,12 @@ msgstr "Namenstag"
 msgid "Name of this branch"
 msgstr "Name dieses Zweigs"
 
+msgid "Native notifications available"
+msgstr "Native Benachrichtigungen verfügbar"
+
+msgid "Native notifications unavailable"
+msgstr "Native Benachrichtigungen nicht verfügbar"
+
 msgid "Netherlands"
 msgstr "Niederlande"
 
@@ -3357,6 +3442,9 @@ msgstr "Neue Seite"
 
 msgid "New password"
 msgstr "Neues Kennwort"
+
+msgid "New phone changes are available"
+msgstr "Neue Änderungen vom Telefon sind verfügbar"
 
 msgid "New task"
 msgstr "Neue Aufgabe"
@@ -3675,6 +3763,12 @@ msgstr "Nichts Neues gefunden."
 msgid "Notice: The connection to storage was not confirmed."
 msgstr "Hinweis: Verbindung zum Speicher nicht bestätigt."
 
+msgid "Notification actions available"
+msgstr "Benachrichtigungsaktionen verfügbar"
+
+msgid "Notification actions unavailable"
+msgstr "Benachrichtigungsaktionen nicht verfügbar"
+
 msgid "Notification and sound"
 msgstr "Meldung und Ton"
 
@@ -3706,6 +3800,9 @@ msgstr ""
 msgid "Notify me about incoming calls"
 msgstr "Über eingehende Anrufe benachrichtigen"
 
+msgid "Notify, then unlock (recommended)"
+msgstr "Benachrichtigen, dann entsperren (empfohlen)"
+
 msgid "ODS"
 msgstr "ODS"
 
@@ -3720,6 +3817,9 @@ msgstr "Obwalden"
 
 msgid "Off"
 msgstr "Aus"
+
+msgid "Offer Personal Sync phone changes"
+msgstr "Telefonänderungen von Personal Sync anbieten"
 
 msgid "Offline"
 msgstr "Offline"
@@ -3822,6 +3922,11 @@ msgid ""
 msgstr ""
 "Nur HTTPS. Legen Sie in Nextcloud unter Einstellungen, Sicherheit ein "
 "Anwendungskennwort an. Ihr Kontokennwort wird nie verwendet."
+
+msgid ""
+"Only Notify, then unlock is currently available. Keyring access and pausing "
+"while locked are not yet enforced by the background service."
+msgstr "Derzeit ist nur „Benachrichtigen, dann entsperren“ verfügbar. Der Hintergrunddienst setzt den Zugriff auf den Schlüsselbund und das Pausieren im gesperrten Zustand noch nicht durch."
 
 msgid ""
 "Only one Magnolie Notes phone can be paired. Remove the existing phone "
@@ -3937,6 +4042,13 @@ msgstr "Betrieb beendet (%s)."
 msgid "Option %s requires a language."
 msgstr "Option %s benötigt eine Sprache."
 
+msgid ""
+"Optional approved functions can continue while the Organizer window is "
+"closed."
+msgstr ""
+"Optional zugelassene Funktionen können weiterlaufen, wenn das Organizer-"
+"Fenster geschlossen ist."
+
 msgid "Organic waste"
 msgstr "Biomüll"
 
@@ -4007,7 +4119,9 @@ msgid "Pair KDE Connect phone"
 msgstr "KDE Connect-Telefon koppeln"
 
 msgid "Pair a KDE Connect phone before enabling receive functions."
-msgstr "Koppeln Sie ein Telefon mit KDE Connect, bevor Sie die Empfangsfunktionen aktivieren."
+msgstr ""
+"Koppeln Sie ein Telefon mit KDE Connect, bevor Sie die Empfangsfunktionen "
+"aktivieren."
 
 msgid "Pairing KDE Connect"
 msgstr "KDE Connect koppeln"
@@ -4055,6 +4169,9 @@ msgstr "Einfügen"
 
 msgid "Patch"
 msgstr "Pflaster"
+
+msgid "Pause while data is locked"
+msgstr "Bei gesperrten Daten pausieren"
 
 msgid "Pay invoice"
 msgstr "Rechnung bezahlen"
@@ -4127,6 +4244,9 @@ msgstr "Telefonakku"
 
 msgid "Phone call"
 msgstr "Telefonat"
+
+msgid "Phone notification"
+msgstr "Telefonbenachrichtigung"
 
 msgid "Phone number"
 msgstr "Rufnummer"
@@ -4559,9 +4679,6 @@ msgid "Requires existing BlueZ system pairing. Data only, no HFP audio."
 msgstr ""
 "Erfordert eine bestehende Systemkopplung über BlueZ. Nur Daten, kein HFP-Ton."
 
-msgid "Reset"
-msgstr "Reset"
-
 msgid "Residual waste"
 msgstr "Restmüll"
 
@@ -4586,6 +4703,9 @@ msgstr "Sicherung wiederherstellen …"
 
 msgid "Restore completely"
 msgstr "Vollständig wiederherstellen"
+
+msgid "Restore defaults"
+msgstr "Voreinstellungen wiederherstellen"
 
 msgid "Restore failed."
 msgstr "Wiederherstellung fehlgeschlagen."
@@ -4654,6 +4774,9 @@ msgstr "Route"
 msgid "Route: calculate directions immediately"
 msgstr "Als Route: gleich den Weg dorthin berechnen"
 
+msgid "Run approved Magnolie background functions"
+msgstr "Zugelassene Magnolie-Hintergrundfunktionen ausführen"
+
 #, python-format
 msgid "Run failed: %s"
 msgstr "Durchgang fehlgeschlagen: %s"
@@ -4676,6 +4799,10 @@ msgstr "SMS-Details"
 #, python-format
 msgid "SMS from %(name)s"
 msgstr "SMS von %(name)s"
+
+#, python-format
+msgid "SMS from %s"
+msgstr "SMS von %s"
 
 msgid "SMS history"
 msgstr "SMS-Verlauf"
@@ -4755,6 +4882,9 @@ msgstr "Gespeichert ✓ %(time)s"
 
 msgid "Saved."
 msgstr "Saved."
+
+msgid "Saving background settings"
+msgstr "Hintergrundeinstellungen werden gespeichert"
 
 msgid "Saving failed!"
 msgstr "Speichern fehlgeschlagen!"
@@ -4926,6 +5056,12 @@ msgstr "Server address"
 msgid "Server address and user name are required."
 msgstr "Serveradresse und Benutzername werden benötigt."
 
+msgid "Service running"
+msgstr "Dienst läuft"
+
+msgid "Service stopped"
+msgstr "Dienst angehalten"
+
 msgid "Set varying doses by weekday"
 msgstr "Abweichende Einnahmen nach Wochentag festlegen"
 
@@ -4982,11 +5118,17 @@ msgstr "Kurzzeitinsulin"
 msgid "Show Health after Planner"
 msgstr "Gesundheit nach dem Planer anzeigen"
 
+msgid "Show Magnolie Notes SMS notifications"
+msgstr "Magnolie Notes SMS-Benachrichtigungen anzeigen"
+
 msgid "Show all"
 msgstr "Alle anzeigen"
 
 msgid "Show calendar button in date fields"
 msgstr "Kalenderschaltfläche in Datumsfeldern anzeigen"
+
+msgid "Show incoming call notifications"
+msgstr "Benachrichtigungen über eingehende Anrufe anzeigen"
 
 msgid "Show log"
 msgstr "Protokoll anzeigen"
@@ -4999,6 +5141,9 @@ msgstr "Pairing-QR-Code anzeigen"
 
 msgid "Show preview"
 msgstr "Probe zeigen"
+
+msgid "Show selected app notifications"
+msgstr "Benachrichtigungen ausgewählter Apps anzeigen"
 
 msgid "Show selected notifications (read only)"
 msgstr "Ausgewählte Meldungen anzeigen (nur lesen)"
@@ -5116,6 +5261,15 @@ msgstr "Spray"
 
 msgid "St. Gallen"
 msgstr "St. Gallen"
+
+msgid "Start Organizer"
+msgstr "Organizer starten"
+
+msgid "Start Organizer and synchronize."
+msgstr "Organizer starten und synchronisieren."
+
+msgid "Start at login"
+msgstr "Beim Anmelden starten"
 
 msgid "Start automatically when signing in"
 msgstr "Beim Anmelden automatisch starten"
@@ -5239,6 +5393,15 @@ msgstr ""
 
 msgid "System default"
 msgstr "Systemvorgabe"
+
+msgid "System keyring and pause modes cannot be enabled yet."
+msgstr "Der Systemschlüsselbund und die Pausenmodi können noch nicht aktiviert werden."
+
+msgid "System keyring available"
+msgstr "Systemschlüsselbund verfügbar"
+
+msgid "System keyring unavailable"
+msgstr "Systemschlüsselbund nicht verfügbar"
 
 msgid "System setting"
 msgstr "Systemeinstellung"
@@ -5572,6 +5735,16 @@ msgid ""
 msgstr ""
 "Der Hintergrund-Wecker darf den getrennten Erinnerungsbestand lesen und "
 "funktioniert daher auch bei geschlossenem Organizer."
+
+msgid "The background service could not be started."
+msgstr "Der Hintergrunddienst konnte nicht gestartet werden."
+
+msgid "The background service is available only in the installed application."
+msgstr ""
+"Der Hintergrunddienst ist nur in der installierten Anwendung verfügbar."
+
+msgid "The background settings could not be saved."
+msgstr "Die Hintergrundeinstellungen konnten nicht gespeichert werden."
 
 msgid "The backup could not be created."
 msgstr "Sicherung konnte nicht angelegt werden."
@@ -6129,7 +6302,9 @@ msgid "The secure session response is invalid."
 msgstr "Die Antwort der sicheren Sitzung ist ungültig."
 
 msgid "The selected Magnolie Notes phone is not available for dial requests."
-msgstr "Das ausgewählte Telefon mit Magnolie Notes ist für Wählaufträge nicht verfügbar."
+msgstr ""
+"Das ausgewählte Telefon mit Magnolie Notes ist für Wählaufträge nicht "
+"verfügbar."
 
 msgid "The selected Nextcloud DAV source was not found."
 msgstr "Die ausgewählte Nextcloud DAV-Quelle wurde nicht gefunden."
@@ -6467,7 +6642,8 @@ msgid "This secure session already exists."
 msgstr "Diese sichere Sitzung besteht bereits."
 
 msgid "This selection is independent of the Bluetooth data fallback."
-msgstr "Diese Auswahl ist unabhängig von der Bluetooth-Daten-Ausweichverbindung."
+msgstr ""
+"Diese Auswahl ist unabhängig von der Bluetooth-Daten-Ausweichverbindung."
 
 msgid "This setting applies when you restore the window from the tray menu."
 msgstr ""
@@ -6733,6 +6909,9 @@ msgstr "Zahlenschloss verwenden"
 msgid ""
 "Use only schedules prescribed or confirmed by a healthcare professional."
 msgstr "Nur ärztlich verordnete oder bestätigte Pläne verwenden."
+
+msgid "Use system keyring"
+msgstr "Systemschlüsselbund verwenden"
 
 msgid ""
 "Use the arrows to arrange groups and notebooks, or use the selection to move "
@@ -7545,6 +7724,33 @@ msgstr[1] "… und %(count)s weitere, die ebenfalls gedruckt werden."
 msgid "＋ Add appointment"
 msgstr "＋ Termin hinzufügen"
 
+#~ msgid ""
+#~ "Notify, then unlock asks you to open and unlock the Organizer. System "
+#~ "keyring uses an available desktop keyring without storing the password in "
+#~ "Organizer data. Pause while locked waits without accessing encrypted data."
+#~ msgstr ""
+#~ "Bei „Benachrichtigen, dann entsperren“ werden Sie aufgefordert, den "
+#~ "Organizer zu öffnen und zu entsperren. Der Systemschlüsselbund verwendet "
+#~ "einen verfügbaren Desktop-Schlüsselbund, ohne das Kennwort in den "
+#~ "Organizer-Daten zu speichern. „Bei gesperrten Daten pausieren“ wartet, "
+#~ "ohne auf verschlüsselte Daten zuzugreifen."
+
+#~ msgid "System keyring is unavailable; this choice cannot be enabled."
+#~ msgstr ""
+#~ "Systemschlüsselbund ist nicht verfügbar; diese Option kann nicht "
+#~ "aktiviert werden."
+
+#~ msgid ""
+#~ "Incoming files and clipboard text are confirmed before use unless "
+#~ "automatic acceptance is explicitly enabled."
+#~ msgstr ""
+#~ "Eingehende Dateien und Zwischenablagetexte werden vor der Verwendung "
+#~ "bestätigt, sofern die automatische Annahme nicht ausdrücklich aktiviert "
+#~ "ist."
+
+#~ msgid "Reset"
+#~ msgstr "Reset"
+
 #~ msgid "Exactly one online Magnolie Notes phone must allow dial requests."
 #~ msgstr ""
 #~ "Genau ein verbundenes Telefon von Magnolie Notes muss Wählaufträge "
@@ -7559,8 +7765,8 @@ msgstr "＋ Termin hinzufügen"
 #~ msgid "Selected notifications"
 #~ msgstr "Ausgewählte Meldungen"
 
-msgid "Language & region"
-msgstr "Sprache & Region"
+#~ msgid "Language & region"
+#~ msgstr "Sprache & Region"
 
 #~ msgid "No valid subscription"
 #~ msgstr "Kein gültiges Abonnement"

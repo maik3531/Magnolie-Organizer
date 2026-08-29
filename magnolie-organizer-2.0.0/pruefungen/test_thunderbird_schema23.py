@@ -2,6 +2,7 @@ import importlib.machinery
 import importlib.util
 import io
 import os
+import re
 import sqlite3
 import zipfile
 from datetime import datetime, timezone
@@ -165,6 +166,45 @@ def test_schema23_serienausnahme_und_zusatztabellen(tmp_path):
     assert ausnahme_import["icsQuelleId"] == "thunderbird:c"
     assert ausnahme_import["icsQuelleName"] == "Thunderbird: c"
 
+    export = m.ics_schreiben_termine([master_import, ausnahme_import])
+    assert "EXDATE:20260817T090000Z" in export
+    assert "EXDATE;TZID=" in export and ":20260810T090000" in export
+
+
+def test_backend_reminders_observe_series_exceptions_and_additions():
+    serie = {"uid": "wecker-serie", "datum": "2026-08-03", "zeit": "09:00",
+             "titel": "Wochenserie", "wiederholung": {"art": "weekly"},
+             "icsAusnahmen": ["2026-08-03", "2026-08-10"],
+             "icsZusatzDaten": ["2026-09-01"]}
+
+    first = m.termine_mit_wiederholungen(
+        {"termine": [serie]}, datetime(2026, 8, 3, 9), 0, 0)
+    deleted = m.termine_mit_wiederholungen(
+        {"termine": [serie]}, datetime(2026, 8, 10, 9), 0, 0)
+    added = m.termine_mit_wiederholungen(
+        {"termine": [serie]}, datetime(2026, 9, 1, 9), 0, 0)
+
+    assert first == [] and deleted == []
+    assert [item["datum"] for item in added] == ["2026-09-01"]
+    zustand = {"gemeldet": {}, "letzter_lauf": ""}
+    geloeschter_alarm = m.faellige_erinnerungen(
+        {"termine": [serie]}, datetime(2026, 8, 10, 8, 45), zustand)
+    zusatz_alarm = m.faellige_erinnerungen(
+        {"termine": [serie]}, datetime(2026, 9, 1, 8, 45), zustand)
+    assert geloeschter_alarm["faellig"] == []
+    assert [item["datum"] for item in zusatz_alarm["faellig"]] == ["2026-09-01"]
+    assert m.naechster_weckzeitpunkt(
+        {"termine": [serie]}, datetime(2026, 8, 9, 12)) == \
+        datetime(2026, 8, 17, 8, 45)
+
+
+def test_unsupported_monthly_and_yearly_intervals_fail_closed():
+    for art, start, candidate in (
+            ("monthly", "2026-01-15", datetime(2026, 3, 15)),
+            ("yearly", "2026-06-01", datetime(2028, 6, 1))):
+        termin = {"datum": start, "wiederholung": {"art": art, "intervall": 2}}
+        assert not m.wiederholung_trifft(termin, candidate)
+
 
 def test_takeout_zip_und_google_csv_werden_begrenzt_gelesen():
     kalender = (b"BEGIN:VCALENDAR\r\nVERSION:2.0\r\nX-WR-CALNAME:Arbeit\r\nBEGIN:VEVENT\r\n"
@@ -248,6 +288,15 @@ def test_thunderbird_registry_erlaubt_nur_aktive_netz_caches(tmp_path):
     assert kalender["google"]["name"] == "Familie & Freunde"
 
 
+def test_thunderbird_registry_ersetzt_ungueltiges_utf8(tmp_path):
+    (tmp_path / "prefs.js").write_bytes(
+        b'user_pref("calendar.registry.c.type", "caldav");\n'
+        b'user_pref("calendar.registry.c.uri", "https://example.org/\xff");\n'
+        b'user_pref("calendar.registry.c.cache.enabled", true);\n')
+
+    assert m._tb_cache_kalender(str(tmp_path))["c"]["type"] == "caldav"
+
+
 def test_cache_import_filtert_tombstones_fremde_kalender_und_waisen(tmp_path):
     pfad = tmp_path / "cache.sqlite"
     db = sqlite3.connect(pfad)
@@ -304,7 +353,8 @@ def test_thunderbird_zusatzgrenze_bricht_geschlossen_ab(tmp_path):
     db.commit()
     db.close()
 
-    with pytest.raises(RuntimeError):
+    meldung = m._("The Thunderbird calendar entry contains too many additional lines.")
+    with pytest.raises(RuntimeError, match=re.escape(meldung)):
         m._tb_normalisierte_kalenderdaten(str(pfad))
 
 

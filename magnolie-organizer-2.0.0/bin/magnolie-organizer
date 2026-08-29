@@ -58,8 +58,26 @@ from datetime import datetime, timedelta, timezone
 os.environ.setdefault("WEBKIT_DISABLE_DMABUF_RENDERER", "1")
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+if __name__ == "__main__":
+    from magnolie_crash import install as _crash_reporting_install
+    _crash_component = ("background-service" if any(argument in (
+        "--hintergrunddienst", "--background-service") for argument in sys.argv[1:])
+        else "organizer")
+    _crash_reporting_install("magnolie-organizer", "2.0.9", _crash_component)
+if any(argument in ("--hintergrunddienst", "--background-service")
+       for argument in sys.argv[1:]):
+    from magnolie_hintergrund import daemon_main
+    sys.exit(daemon_main(sys.argv[1:]))
+
 from magnolie_telefon import PhoneService, PORT as TELEFON_PORT
 from magnolie_kdeconnect import KDEConnectSMSBackend, local_device_name
+from magnolie_hintergrund import (KDEConnectProxy, PhoneServiceProxy, daemon_available,
+    daemon_status as background_daemon_status,
+    ipc_request as background_ipc_request, read_settings as background_settings_read,
+    settings_status as background_settings_status,
+    start_service as background_service_start,
+    wait_for_daemon_release as background_wait_for_release,
+    write_settings as background_settings_write)
 from magnolie_nextcloud import (
     DavHttpClient, NextcloudDav, NextcloudError, NextcloudMailbox,
     NextcloudSettingsStore, configured_client,
@@ -167,7 +185,7 @@ def tray_system_verfuegbar(desktop=None, aktivierte_erweiterungen=None):
 PROGRAMM_NAME = "magnolie-organizer"
 HANDBUCH_NAME = "magnolie-handbuch"
 FENSTER_TITEL = "Magnolie Organizer"
-PROGRAMM_FASSUNG = "2.0.8"
+PROGRAMM_FASSUNG = "2.0.9"
 ALTER_NAME = "organizer-klassik"
 I18N_DOMAIN = "magnolie-organizer"
 
@@ -320,7 +338,8 @@ TERMIN_FELDER = ["datum", "endDatum", "zeit", "endZeit", "titel", "notiz", "kate
 ICS_BEGLEITFELDER = ("icsRoundtrip", "icsKomplex", "icsSerienUid",
                        "icsAusnahmen", "icsZusatzDaten", "icsZusatzTermine",
                        "icsReadOnly", "icsReadOnlyGrund", "icsQuelleName",
-                      "icsQuelleId", "icsSequence", "icsAenderungszeitFehlt")
+                       "icsQuelleId", "icsSequence", "icsAenderungszeitFehlt",
+                       "icsEndeFehlt", "icsNullDauer")
 KONTAKT_FELDER = ["nachname", "vorname", "firma", "strasse", "plz", "ort",
                    "anschriften", "telefon", "mobil", "telefone",
                    "email", "emails", "emailEintraege", "notiz", "foto", "kontaktpersonName",
@@ -2064,8 +2083,11 @@ def _ics_komponente(art, props, ergebnis, komplexe_serie=False,
 
     end_datum, end_zeit = "", ""
     p_ende, w_ende = _hole(props, "DTEND")
+    ics_ende_fehlt = w_ende is None
+    ics_null_dauer = False
     if w_ende:
         e_datum, e_zeit = _ics_datumzeit(w_ende, p_ende or {})
+        ics_null_dauer = bool(e_datum == datum and e_zeit == zeit)
         if not zeit and e_datum and e_datum > datum:
             # Bei ganztägigen Ereignissen ist DTEND nach RFC 5545 exklusiv.
             letzter = (datetime.strptime(e_datum, "%Y-%m-%d") -
@@ -2105,7 +2127,12 @@ def _ics_komponente(art, props, ergebnis, komplexe_serie=False,
                     rdate_daten = []
                     rdate_termine = []
                     break
-                if rdatum == datum and rzeit == zeit:
+                if (rdatum, rzeit or "") < (datum, zeit or ""):
+                    nicht_abbildbar = True
+                    rdate_daten = []
+                    rdate_termine = []
+                    break
+                if (rdatum, rzeit or "") == (datum, zeit or ""):
                     continue
                 rdate_daten.append(rdatum)
                 rdate_termin = {"datum": rdatum, "zeit": rzeit}
@@ -2158,6 +2185,8 @@ def _ics_komponente(art, props, ergebnis, komplexe_serie=False,
         "icsSerienUid": serien_uid if ics_komplex else "",
         "icsZusatzDaten": sorted(set(rdate_daten)),
         "icsZusatzTermine": rdate_termine,
+        "icsEndeFehlt": ics_ende_fehlt,
+        "icsNullDauer": ics_null_dauer,
         "icsRoundtrip": _ics_roundtrip(roundtrip_props, ics_komplex),
         "icsSequence": ics_sequence,
         "icsAenderungszeitFehlt": not bool(last_modified),
@@ -2290,6 +2319,8 @@ def _lokale_kalender_dubletten_bereinigen(nutzlast):
         ids = kennungen(jahrestag)
         treffer = next((vorhanden for vorhanden in jahrestage
                         if ids and ids & kennungen(vorhanden) and
+                        _maschinen_monat_tag(vorhanden.get("datum")) ==
+                        _maschinen_monat_tag(jahrestag.get("datum")) and
                         quelle_passt(vorhanden, jahrestag) and
                         kanonischer_text(vorhanden.get("name")) ==
                         kanonischer_text(jahrestag.get("name"))), None)
@@ -2301,18 +2332,28 @@ def _lokale_kalender_dubletten_bereinigen(nutzlast):
         treffer["icsQuelleName"] = " + ".join(dict.fromkeys(n for n in namen if n))
         if (jahrestag.get("datum") or "9999-99-99") < (
                 treffer.get("datum") or "9999-99-99"):
-            treffer["datum"] = jahrestag["datum"]
+            jahr = str(jahrestag.get("datum") or "")[:4]
+            if jahr.isdigit():
+                treffer["datum"] = jahr + "-" + _maschinen_monat_tag(
+                    treffer.get("datum"))
         if not treffer.get("icsSerienUid"):
             treffer["icsSerienUid"] = jahrestag.get("icsSerienUid") or ""
 
+    def ist_jahresserie(termin):
+        if (termin.get("wiederholung") or {}).get("art") == "yearly":
+            return True
+        return bool(termin.get("icsKomplex")) and any(
+            "FREQ=YEARLY" in str(zeile).upper()
+            for zeile in (termin.get("icsRoundtrip") or []))
+
     def gleicher_jahresmaster(jahrestag):
         ids = kennungen(jahrestag)
-        monat_tag = str(jahrestag.get("datum") or "")[-5:]
+        monat_tag = _maschinen_monat_tag(jahrestag.get("datum"))
         return any(ids and ids & kennungen(termin) and
                    quelle_passt(jahrestag, termin) and
                    not termin.get("icsOriginalDatum") and
-                   (termin.get("wiederholung") or {}).get("art") == "yearly" and
-                   str(termin.get("datum") or "")[-5:] == monat_tag
+                   ist_jahresserie(termin) and
+                   _maschinen_monat_tag(termin.get("datum")) == monat_tag
                    for termin in termine)
 
     nutzlast["jahrestage"] = [j for j in jahrestage if not gleicher_jahresmaster(j)]
@@ -2415,7 +2456,12 @@ def _vevent_zeilen(t):
         parameter = ";TZID=" + tzid if tzid else ""
         z.append("DTSTART%s:%sT%s00" % (
             parameter, kompakt, zeit.replace(":", "")))
-        if t.get("endZeit"):
+        if t.get("icsEndeFehlt"):
+            pass
+        elif t.get("icsNullDauer"):
+            z.append("DTEND%s:%sT%s00" % (
+                parameter, kompakt, zeit.replace(":", "")))
+        elif t.get("endZeit"):
             datetime.strptime(t["endZeit"], "%H:%M")
             z.append("DTEND%s:%sT%s00" % (
                 parameter, end_datum.replace("-", ""),
@@ -2478,6 +2524,34 @@ def _vevent_zeilen(t):
             else:
                 z.append("RDATE;VALUE=DATE:" + ",".join(
                     wert.replace("-", "") for wert in daten))
+    if frequenz or wiederholung_art(wiederholung.get("art")) == "custom":
+        ausnahmen = []
+        for wert in t.get("icsAusnahmen") or []:
+            try:
+                datetime.strptime(wert, "%Y-%m-%d")
+            except (TypeError, ValueError):
+                continue
+            ausnahmen.append(wert.replace("-", ""))
+        rohe_ausnahmen = set()
+        for zeile in t.get("icsRoundtrip") or []:
+            zerlegt = _prop_zerlegen(str(zeile))
+            if not zerlegt or zerlegt[0] != "EXDATE":
+                continue
+            for wert in zerlegt[2].split(","):
+                try:
+                    roh_datum, _roh_zeit = _ics_datumzeit(wert, zerlegt[1])
+                except (TypeError, ValueError):
+                    continue
+                if roh_datum:
+                    rohe_ausnahmen.add(roh_datum.replace("-", ""))
+        ausnahmen = [wert for wert in ausnahmen if wert not in rohe_ausnahmen]
+        if ausnahmen:
+            if zeit:
+                z.append("EXDATE%s:%s" % (parameter, ",".join(
+                    wert + "T" + zeit.replace(":", "") + "00"
+                    for wert in sorted(set(ausnahmen)))))
+            else:
+                z.append("EXDATE;VALUE=DATE:" + ",".join(sorted(set(ausnahmen))))
     z.append("SUMMARY:" + _ical_escape(t.get("titel")))
     if t.get("notiz"):
         z.append("DESCRIPTION:" + _ical_escape(t["notiz"]))
@@ -2570,6 +2644,9 @@ def _ics_roundtrip_anwenden(zeilen, roundtrip):
                 for zeile in rohzeilen} & {
                     "DTSTART", "DTEND", "DUE", "DURATION", "RRULE", "RDATE",
                     "EXDATE", "EXRULE", "RECURRENCE-ID"}
+    if any(zeile.split(":", 1)[0].split(";", 1)[0].upper() == "EXDATE"
+           for zeile in zeilen):
+        ersetzen.discard("EXDATE")
     zeilen[:] = [zeile for zeile in zeilen
                  if zeile.split(":", 1)[0].split(";", 1)[0].upper() not in ersetzen]
     zeilen.extend(rohzeilen)
@@ -3982,9 +4059,17 @@ def vcf_lesen(text, lokale_dateien=False):
 
 
 def _vcard_escape(wert):
-    return (str(wert or "")
+    text = str(wert or "").replace("\r\n", "\n")
+    try:
+        text.encode("utf-8")
+    except UnicodeEncodeError as fehler:
+        raise ValueError("ungueltiger Unicode-Text") from fehler
+    if any(ord(zeichen) < 32 and zeichen not in "\t\n" or ord(zeichen) == 127
+           for zeichen in text):
+        raise ValueError("ungueltiges Steuerzeichen")
+    return (text
             .replace("\\", "\\\\").replace(";", "\\;").replace(",", "\\,")
-            .replace("\r\n", "\n").replace("\n", "\\n"))
+            .replace("\n", "\\n"))
 
 
 def vcard_text(k):
@@ -4089,7 +4174,22 @@ def vcard_text(k):
 
 
 def vcf_schreiben(kontakte):
-    return "".join(vcard_text(k) for k in kontakte)
+    if not kontakte:
+        return ""
+    bloecke, _uebersprungen = _vcf_bloecke(kontakte)
+    if not bloecke:
+        raise ValueError("kein gueltiger Kontakt")
+    return "".join(bloecke)
+
+
+def _vcf_bloecke(kontakte):
+    bloecke, uebersprungen = [], 0
+    for kontakt in kontakte:
+        try:
+            bloecke.append(vcard_text(kontakt))
+        except (AttributeError, TypeError, ValueError):
+            uebersprungen += 1
+    return bloecke, uebersprungen
 
 
 # ---------------------------------------------------------------------------
@@ -4729,7 +4829,14 @@ def _sync_inhalt(obj, felder):
     namen = list(felder)
     if felder is TERMIN_FELDER or felder == TERMIN_FELDER:
         namen.extend(("icsRoundtrip", "icsKomplex", "icsSerienUid", "icsSequence"))
-    return {name: obj.get(name) for name in namen}
+    inhalt = {name: obj.get(name) for name in namen}
+    if "wiederholung" in inhalt:
+        wiederholung = inhalt["wiederholung"] or {}
+        inhalt["wiederholung"] = {
+            name: wiederholung[name]
+            for name in ("art", "bis", "intervall", "ordinal", "wochentag", "daten")
+            if name in wiederholung}
+    return inhalt
 
 
 def _sync_inhalt_hash(obj, felder):
@@ -5518,7 +5625,7 @@ def _letzter_tag(jahr, monat):
     return monthrange(jahr, monat)[1]
 
 
-def wiederholung_trifft(termin, tag):
+def wiederholung_trifft(termin, tag, ohne_zusatz=False):
     """Fällt dieser Tag auf eine Wiederholung des Termins?"""
     w = (termin or {}).get("wiederholung") or {}
     art = wiederholung_art(w.get("art"))
@@ -5528,6 +5635,12 @@ def wiederholung_trifft(termin, tag):
     if len(datum) < 10:
         return False
     iso = tag.strftime("%Y-%m-%d")
+    ausnahmen = termin.get("icsAusnahmen")
+    if isinstance(ausnahmen, list) and iso in ausnahmen:
+        return False
+    zusatz = termin.get("icsZusatzDaten")
+    if not ohne_zusatz and isinstance(zusatz, list) and iso in zusatz:
+        return True
     if iso <= datum:
         return False
     bis = (w.get("bis") or "").strip()
@@ -5542,6 +5655,8 @@ def wiederholung_trifft(termin, tag):
         intervall = max(1, min(3660, int(w.get("intervall") or 1)))
     except (TypeError, ValueError):
         intervall = 1
+    if art in ("monthly", "yearly") and intervall != 1:
+        return False
     tage_seit_start = (tag.date() - start.date()).days
     if art == "custom":
         return iso in [wert for wert in (w.get("daten") or [])
@@ -5582,8 +5697,12 @@ def termine_mit_wiederholungen(daten, jetzt, tage_zurueck=4, tage_vor=2):
     Jedes Mal bekommt eine eigene Kennung aus Termin und Datum, damit der
     Wecker sich merken kann, was er schon gemeldet hat."""
     from datetime import timedelta
-    alle = list((daten or {}).get("termine") or [])
-    wiederkehrend = [t for t in alle if isinstance(t, dict)
+    quelle = list((daten or {}).get("termine") or [])
+    alle = [t for t in quelle
+            if not (isinstance(t, dict) and
+                    isinstance(t.get("icsAusnahmen"), list) and
+                    t.get("datum") in t["icsAusnahmen"])]
+    wiederkehrend = [t for t in quelle if isinstance(t, dict)
                      and wiederholung_art((t.get("wiederholung") or {}).get("art"))
                      != "none"]
     if not wiederkehrend:
@@ -5865,17 +5984,20 @@ def faellige_aufgaben(daten, jetzt, ergebnis=None, stunde=8):
                 gemeldet[marke] = gemeldet[alte_marke]
             if marke in gemeldet or jetzt < zeitpunkt:
                 continue
-            if jetzt > zeitpunkt + timedelta(hours=14):
+            if jetzt > zeitpunkt + timedelta(hours=72):
                 gemeldet[marke] = jetzt.strftime("%Y-%m-%d %H:%M")
                 continue
             wer = ", ".join(n for n in (aufgabe.get("personenNamen") or []) if n)
-            ergebnis["faellig"].append({
+            verpasst = jetzt > zeitpunkt + timedelta(hours=14)
+            eintrag = {
                 "id": marke, "aufgabe": True,
                 "kopf": _("Task reminder") if tage_vorher else _("Task is due"),
                 "titel": aufgabe.get("titel") or _("Task"),
                 "wer": wer, "individuelleTage": tage_vorher,
-                "datum": datum, "zeit": faelligkeit.strftime("%H:%M"), "verpasst": False,
-                "beginn": zeitpunkt.strftime("%Y-%m-%d %H:%M")})
+                "datum": datum, "zeit": faelligkeit.strftime("%H:%M"),
+                "verpasst": verpasst,
+                "beginn": zeitpunkt.strftime("%Y-%m-%d %H:%M")}
+            ergebnis["verpasst" if verpasst else "faellig"].append(eintrag)
             gemeldet[marke] = jetzt.strftime("%Y-%m-%d %H:%M")
     return ergebnis
 
@@ -8019,15 +8141,102 @@ def mail_oeffnen(email, betreff="", starter=None, name=""):
 
 _KDECONNECT_BACKEND = None
 _KDECONNECT_SPERRE = threading.Lock()
+_HINTERGRUND_EINSTELLUNGEN_SPERRE = threading.RLock()
+
+
+def hintergrund_einstellungen_lesen():
+    try:
+        daemon_state = background_daemon_status()
+        if daemon_state != "stopped":
+            stand = background_ipc_request("get_settings")
+        else:
+            stand = background_settings_status(background_settings_read())
+        return dict(stand, running=daemon_state == "ready", lifecycle=daemon_state)
+    except Exception as fehler:
+        return {"enabled": False, "autostart": False, "running": False,
+                "error": fehler_deutsch(fehler, _("Loading background settings"))}
+
+
+def hintergrund_einstellungen_schreiben(werte):
+    """Persist settings and hand KDE ownership to or from the daemon."""
+    global _KDECONNECT_BACKEND
+    with _HINTERGRUND_EINSTELLUNGEN_SPERRE:
+        return _hintergrund_einstellungen_schreiben(werte)
+
+
+def _hintergrund_einstellungen_schreiben(werte):
+    global _KDECONNECT_BACKEND
+    vorhanden = None
+    lokal_gestoppt = False
+    try:
+        if daemon_available():
+            stand = background_ipc_request("set_settings", {"settings": werte})
+        else:
+            stand = background_settings_write(werte)
+        if stand["enabled"]:
+            with _KDECONNECT_SPERRE:
+                vorhanden = _KDECONNECT_BACKEND
+                if vorhanden is not None and not isinstance(vorhanden, KDEConnectProxy):
+                    _KDECONNECT_BACKEND = None
+            if vorhanden is not None and not isinstance(vorhanden, KDEConnectProxy):
+                vorhanden.stop()
+                lokal_gestoppt = True
+            if not daemon_available() and not background_service_start(
+                    eigener_pfad(), _REGIONAL.get("language") or None):
+                raise RuntimeError(_("The background service could not be started."))
+        else:
+            with _KDECONNECT_SPERRE:
+                vorhanden = _KDECONNECT_BACKEND
+                if isinstance(vorhanden, KDEConnectProxy):
+                    _KDECONNECT_BACKEND = None
+            if isinstance(vorhanden, KDEConnectProxy):
+                vorhanden.stop()
+            background_wait_for_release()
+        return dict(stand, running=daemon_available(), ok=True)
+    except Exception as fehler:
+        if lokal_gestoppt and background_daemon_status() == "stopped":
+            try:
+                with _KDECONNECT_SPERRE:
+                    if _KDECONNECT_BACKEND is None:
+                        _KDECONNECT_BACKEND = KDEConnectSMSBackend(
+                            os.path.join(daten_verzeichnis(), "kdeconnect"))
+                        _KDECONNECT_BACKEND.start()
+            except Exception:
+                pass
+        return {"ok": False, "running": daemon_available(),
+                "error": fehler_deutsch(fehler, _("Saving background settings"))}
+
+
+def kde_einstellungen_migrieren(clipboard, files, device_id,
+                                clipboard_automatic, directory):
+    stand = background_settings_read()
+    erstmalig = not stand.get("kde_legacy_migrated")
+    permissions = dict(stand["permissions"])
+    permissions["kde_incoming_files"] = bool(files)
+    # Existing KDE receive opt-ins imply that the service must survive GUI exit.
+    if erstmalig and (clipboard or files):
+        stand["enabled"] = True
+        stand["autostart"] = True
+        stand["kde_receive_managed"] = True
+    stand.update(permissions=permissions, kde_device_id=device_id,
+        kde_download_directory=directory, kde_clipboard_enabled=bool(clipboard),
+        kde_clipboard_mode="automatic" if clipboard_automatic else "confirm",
+        kde_file_enabled=bool(files), kde_legacy_migrated=True)
+    return hintergrund_einstellungen_schreiben(stand)
 
 
 def _kdeconnect_backend(callback=None):
     global _KDECONNECT_BACKEND
     with _KDECONNECT_SPERRE:
         if _KDECONNECT_BACKEND is None:
-            _KDECONNECT_BACKEND = KDEConnectSMSBackend(
-                os.path.join(daten_verzeichnis(), "kdeconnect"),
-                callback=callback)
+            if daemon_available():
+                _KDECONNECT_BACKEND = KDEConnectProxy(callback=callback)
+            elif background_daemon_status() in ("starting", "stopping"):
+                raise RuntimeError("background service ownership is changing")
+            else:
+                _KDECONNECT_BACKEND = KDEConnectSMSBackend(
+                    os.path.join(daten_verzeichnis(), "kdeconnect"),
+                    callback=callback)
         elif callback is not None:
             _KDECONNECT_BACKEND.callback = callback
         backend = _KDECONNECT_BACKEND
@@ -9810,7 +10019,9 @@ def baum_kontakt_sync_pruefen(inhalt):
             if not treffer:
                 raise RuntimeError(fehler)
             try:
-                if not base64.b64decode(treffer.group(1), validate=True):
+                roh = base64.b64decode(treffer.group(1), validate=True)
+                if (not roh or base64.b64encode(roh).decode("ascii") !=
+                        treffer.group(1)):
                     raise ValueError
             except (ValueError, binascii.Error):
                 raise RuntimeError(fehler)
@@ -9831,15 +10042,6 @@ def baum_kontakt_sync_pruefen(inhalt):
                     "delete", "deleted", "deletion", "tombstone", "loeschen",
                     "löschen", "geloescht", "gelöscht"}:
                 raise RuntimeError(fehler)
-    text = json.dumps(inhalt, ensure_ascii=False).lower()
-    text_ohne_foto = json.dumps(
-        dict(inhalt, kontakt={name: wert for name, wert in kontakt.items()
-                              if name != "foto"}), ensure_ascii=False).lower()
-    verboten = ("photo", "dataurl", "geloescht", "gelöscht", "deleted",
-                "delete", "tombstone", "loeschen", "löschen", "uid", "sync")
-    if (any(('"%s"' % marker) in text for marker in verboten)
-            or "data:" in text_ohne_foto):
-        raise RuntimeError(fehler)
     return inhalt
 
 
@@ -10711,11 +10913,7 @@ def umschlag_bauen_fs(sitzung, eigene_kennung, partner_kennung, inhalt,
     return dict(kopf, daten=_fs_b64(daten))
 
 
-def umschlag_oeffnen_fs(sitzung, eigene_kennung, partner_kennung, umschlag):
-    from cryptography.hazmat.primitives.ciphers.aead import AESGCM
-    if sitzung.get("verbraucht"):
-        raise RuntimeError(_("The secure session has already been used."))
-    sitzung["verbraucht"] = True
+def _umschlag_fs_felder_pruefen(sitzung, eigene_kennung, partner_kennung, umschlag):
     if (not isinstance(umschlag, dict)
             or set(umschlag) != {"magnolie", "von", "an", "sid", "mid",
                                   "nonce", "daten"}
@@ -10737,6 +10935,16 @@ def umschlag_oeffnen_fs(sitzung, eigene_kennung, partner_kennung, umschlag):
     if len(daten) < 16:
         raise RuntimeError(_("The secure message is invalid."))
     nonce = _fs_b64_lesen(kopf["nonce"], 12)
+    return kopf, nonce, daten
+
+
+def umschlag_oeffnen_fs(sitzung, eigene_kennung, partner_kennung, umschlag):
+    from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+    if sitzung.get("verbraucht"):
+        raise RuntimeError(_("The secure session has already been used."))
+    kopf, nonce, daten = _umschlag_fs_felder_pruefen(
+        sitzung, eigene_kennung, partner_kennung, umschlag)
+    sitzung["verbraucht"] = True
     try:
         klar = AESGCM(bytes(sitzung["kenc"])).decrypt(
             nonce, daten, b"magnolienbaum\0baum-fs1\0data\0" +
@@ -11620,17 +11828,30 @@ class BaumDienst(object):
                 elif pfad == "/magnolie/v2/nachricht":
                     import time as _zeit
                     sitzungs_id = str(nachricht.get("sid") or "")
-                    offen = self._fs_sitzungen.pop(sitzungs_id, None)
-                    if (not offen or offen["ablauf"] <= _zeit.monotonic()
-                            or offen["adresse"] != baum_quelladresse_normieren(quelle)):
+                    offen = self._fs_sitzungen.get(sitzungs_id)
+                    if not offen:
+                        raise RuntimeError(_(
+                            "The secure session is unknown or expired."))
+                    if offen["ablauf"] <= _zeit.monotonic():
+                        self._fs_sitzungen.pop(sitzungs_id, None)
+                        fs_sitzung_loeschen(offen["sitzung"])
+                        raise RuntimeError(_(
+                            "The secure session is unknown or expired."))
+                    if offen["adresse"] != baum_quelladresse_normieren(quelle):
                         raise RuntimeError(_(
                             "The secure session is unknown or expired."))
                     sitzung = offen["sitzung"]
+                    partner = baum_partner(zustand, offen["partner"])
+                    if not partner or not partner.get("bestaetigt"):
+                        raise RuntimeError(_(
+                            "This branch has not been confirmed."))
+                    _umschlag_fs_felder_pruefen(
+                        sitzung, zustand["kennung"], partner["kennung"], nachricht)
+                    offen = self._fs_sitzungen.pop(sitzungs_id, None)
+                    if offen is None:
+                        raise RuntimeError(_(
+                            "The secure session is unknown or expired."))
                     try:
-                        partner = baum_partner(zustand, offen["partner"])
-                        if not partner or not partner.get("bestaetigt"):
-                            raise RuntimeError(_(
-                                "This branch has not been confirmed."))
                         inhalt, transport_id = umschlag_oeffnen_fs(
                             sitzung, zustand["kennung"], partner["kennung"],
                             nachricht)
@@ -13776,8 +13997,8 @@ def _tb_cache_kalender(profil):
             roh = datei.read(2 * 1024 * 1024 + 1)
         if len(roh) > 2 * 1024 * 1024:
             return {}
-        text = roh.decode("utf-8")
-    except (OSError, UnicodeError):
+        text = roh.decode("utf-8", errors="replace")
+    except OSError:
         return {}
     muster = re.compile(
         r'^\s*user_pref\("((?:\\.|[^"\\])*)",\s*'
@@ -15686,12 +15907,14 @@ class Fenster(_FENSTER_BASIS):
     def _tray_telefon_zeigen(self, _eintrag, kennung):
         if self._gesperrt or not self._telefon:
             return
-        partner = self._telefon.store.peer(kennung)
+        bericht = self._telefon.report()
+        partner = next((item for item in bericht.get("peers", [])
+                        if item.get("device_id") == kennung), None)
         if not partner:
             return
         name = str(partner.get("display_name") or _("Unknown phone"))[:60]
-        status = dict(self._telefon.store.status(kennung) or {})
-        status["online"] = kennung in self._telefon.connections
+        status = dict(partner.get("status") or {})
+        status["online"] = str(partner.get("state") or "").startswith("online_")
         status["last_contact_ms"] = partner.get("last_contact_ms", 0)
         self._tray_zeigen()
         self.antwort("App.geraetOeffnen", {
@@ -15710,7 +15933,7 @@ class Fenster(_FENSTER_BASIS):
         if not eintrag:
             return
         aktiv = bool(not self._gesperrt and self._telefon and self._telefon.enabled)
-        partner_liste = list(self._telefon.store.peers) if aktiv else []
+        partner_liste = self._telefon.report().get("peers", []) if aktiv else []
         untermenue = Gtk.Menu()
         for partner in sorted(partner_liste,
                               key=lambda p: str(p.get("display_name") or "").casefold()):
@@ -16020,7 +16243,7 @@ class Fenster(_FENSTER_BASIS):
             action=Gtk.FileChooserAction.SELECT_FOLDER)
         dialog.add_buttons(_("Cancel"), Gtk.ResponseType.CANCEL,
                            _("Select"), Gtk.ResponseType.ACCEPT)
-        vorwahl = (sicherungs_verzeichnis(vorwahl) if vorwahl else
+        vorwahl = (sicherungs_verzeichnis(vorwahl) if str(vorwahl).strip() else
                    standard or sicherungs_verzeichnis(""))
         if os.path.isdir(vorwahl):
             try:
@@ -16092,6 +16315,9 @@ class Fenster(_FENSTER_BASIS):
 
         if befehl == "bereit":
             self._oeffnen_oder_sperren()
+            threading.Thread(target=lambda: self.antwort(
+                "App.backgroundSettings", hintergrund_einstellungen_lesen()),
+                daemon=True).start()
             if not self._gesperrt:
                 threading.Thread(target=self._baum_dienst_pflegen,
                                  daemon=True).start()
@@ -16159,6 +16385,16 @@ class Fenster(_FENSTER_BASIS):
                 self.antwort("App.regionalErgebnis", {
                     "ok": False,
                     "fehler": _("The regional settings could not be saved.")})
+
+        elif befehl == "background_settings_get":
+            threading.Thread(target=lambda: self.antwort(
+                "App.backgroundSettings", hintergrund_einstellungen_lesen()),
+                daemon=True).start()
+
+        elif befehl == "background_settings_set":
+            threading.Thread(target=lambda: self.antwort(
+                "App.backgroundSettings", self._hintergrund_einstellungen_schreiben(
+                    nachricht.get("settings") or {})), daemon=True).start()
 
         elif befehl == "contributor_pruefen":
             key = nachricht.get("key")
@@ -16449,7 +16685,6 @@ class Fenster(_FENSTER_BASIS):
                 bool(nachricht.get("clipboard")), bool(nachricht.get("files")),
                 nachricht.get("deviceId") or "",
                 bool(nachricht.get("clipboardAutomatic")),
-                bool(nachricht.get("filesAutomatic")),
                 nachricht.get("directory") or ""), daemon=True).start()
 
         elif befehl == "kde_receive_decide":
@@ -16842,10 +17077,14 @@ class Fenster(_FENSTER_BASIS):
                 "ics-termine": _ics_termine_bloecke,
                 "ics-jahrestage": _ics_jahrestage_bloecke,
                 "ics-aufgaben": _ics_aufgaben_bloecke,
+                "vcf-adressen": _vcf_bloecke,
             }.get(art)
             if block_wandler:
                 bloecke, uebersprungen = block_wandler(liste)
-                inhalt = _vcalendar(bloecke)
+                if not bloecke:
+                    raise ValueError("keine gueltigen Eintraege")
+                inhalt = ("".join(bloecke) if art == "vcf-adressen" else
+                          _vcalendar(bloecke))
                 anzahl = len(bloecke)
             elif art == "ldif-adressen":
                 inhalt, uebersprungen, foto_verloren = _ldif_export(liste)
@@ -16863,7 +17102,7 @@ class Fenster(_FENSTER_BASIS):
                 if verluste:
                     bericht = ("%d Termine enthalten Serien-, Erinnerungs- oder ICS-Zusatzdaten, "
                                "die Lotus CSV standardbedingt nicht darstellen kann." % verluste)
-            if art == "ldif-adressen":
+            if art in ("ldif-adressen", "vcf-adressen"):
                 atomar_text_schreiben(pfad, inhalt, modus=0o600)
             else:
                 with open(pfad, "w", encoding=zeichensatz, newline="") as datei:
@@ -17577,6 +17816,20 @@ class Fenster(_FENSTER_BASIS):
 
     # ------------------------------------------------ Telefonverbindung
 
+    def _hintergrund_einstellungen_schreiben(self, werte):
+        permissions = werte.get("permissions") if isinstance(werte, dict) else {}
+        daemon_phone = bool(werte.get("enabled") and isinstance(permissions, dict)
+                            and permissions.get("phone_monitor"))
+        if daemon_phone and self._telefon is not None and not isinstance(
+                self._telefon, PhoneServiceProxy):
+            self._telefon.stop()
+            self._telefon = None
+        result = hintergrund_einstellungen_schreiben(werte)
+        if not result.get("ok") and background_daemon_status() != "stopped":
+            background_wait_for_release()
+        self._telefon_dienst_pflegen()
+        return result
+
     def _telefon_ereignis(self, art, nutzlast):
         if art == "pairing_open":
             self.antwort("App.telefonPairingOffen", nutzlast)
@@ -17622,11 +17875,25 @@ class Fenster(_FENSTER_BASIS):
 
     def _telefon_dienst_pflegen(self):
         with self._telefon_sperre:
+            stand = background_settings_read()
+            daemon_state = background_daemon_status()
+            if daemon_state in ("starting", "stopping"):
+                return bool(self._telefon and self._telefon.enabled)
+            daemon_owner = bool(daemon_state == "ready" and stand["enabled"] and
+                stand["permissions"].get("phone_monitor"))
+            if daemon_owner and self._telefon is not None and not isinstance(
+                    self._telefon, PhoneServiceProxy):
+                self._telefon.stop()
+                self._telefon = None
+            elif not daemon_owner and isinstance(self._telefon, PhoneServiceProxy):
+                self._telefon.stop()
+                self._telefon = None
             if self._telefon is None:
                 try:
-                    self._telefon = PhoneService(
-                        os.path.join(daten_verzeichnis(), "telefon"),
-                        local_device_name(), self._telefon_ereignis)
+                    self._telefon = (PhoneServiceProxy(callback=self._telefon_ereignis)
+                        if daemon_owner else PhoneService(
+                            os.path.join(daten_verzeichnis(), "telefon"),
+                            local_device_name(), self._telefon_ereignis))
                 except Exception as fehler:
                     self._telefon_fehler = fehler_deutsch(
                         fehler, _("Starting the phone connection"))
@@ -17653,11 +17920,38 @@ class Fenster(_FENSTER_BASIS):
         return bericht
 
     def _telefon_stand_melden(self):
+        self._kde_legacy_einstellungen_migrieren()
         _kdeconnect_backend(self._kde_ereignis)
         if self._telefon:
             self._telefon.replay_personal_sync()
         self.antwort("App.telefonStand", self._telefon_bericht())
         GLib.idle_add(lambda: (self._tray_telefone_aktualisieren(), False)[1])
+
+    def _kde_legacy_einstellungen_migrieren(self):
+        stand = background_settings_read()
+        if stand.get("kde_legacy_migrated") or not isinstance(
+                self._aktuelle_daten, dict):
+            return
+        einstellungen = self._aktuelle_daten.get("einstellungen")
+        sync = einstellungen.get("sync") if isinstance(einstellungen, dict) else None
+        empfang = sync.get("kdeEmpfang") if isinstance(sync, dict) else None
+        if not isinstance(empfang, dict):
+            stand["kde_legacy_migrated"] = True
+            background_settings_write(stand)
+            return
+        clipboard = empfang.get("zwischenablage") is True
+        files = empfang.get("dateien") is True
+        directory = str(empfang.get("ordner") or "").strip()
+        if files and not directory:
+            directory = GLib.get_user_special_dir(
+                GLib.UserDirectory.DIRECTORY_DOWNLOAD) or os.path.join(
+                    os.path.expanduser("~"), "Downloads")
+        if files:
+            os.makedirs(directory, exist_ok=True)
+            directory = os.path.realpath(directory)
+        kde_einstellungen_migrieren(clipboard, files,
+            str(empfang.get("geraetId") or ""),
+            empfang.get("zwischenablageAutomatisch") is True, directory)
 
     def _kde_ereignis(self, art, nutzlast):
         if art == "clipboard_apply":
@@ -17676,7 +17970,7 @@ class Fenster(_FENSTER_BASIS):
                 "receive_error": "App.kdeEmpfangFehler"}.get(art)
         if ziel:
             def melden():
-                if art == "pairing":
+                if art == "pairing" and not daemon_available():
                     self._tray_zeigen()
                 self.antwort(ziel, nutzlast)
                 return False
@@ -17690,8 +17984,7 @@ class Fenster(_FENSTER_BASIS):
         self._telefon_stand_melden()
 
     def _kde_receive_settings(self, clipboard, files, device_id,
-                              clipboard_automatic, files_automatic,
-                              directory=""):
+                              clipboard_automatic, directory=""):
         datei_fehler = None
         download = ""
         dateien_aktiv = files
@@ -17709,13 +18002,20 @@ class Fenster(_FENSTER_BASIS):
                 except Exception as fehler:
                     datei_fehler = fehler
                     dateien_aktiv = False
+            if isinstance(self, Fenster):
+                migration = kde_einstellungen_migrieren(
+                    clipboard, dateien_aktiv, device_id, clipboard_automatic,
+                    download if dateien_aktiv else "")
+                if not migration.get("ok"):
+                    raise RuntimeError(migration.get("error") or
+                                       _("The background settings could not be saved."))
             backend = _kdeconnect_backend(self._kde_ereignis)
             try:
                 backend.configure_receive(
                     clipboard_enabled=clipboard, file_enabled=dateien_aktiv,
                     device_id=device_id if clipboard or dateien_aktiv else None,
                     clipboard_mode="automatic" if clipboard_automatic else "confirm",
-                    file_mode="automatic" if files_automatic else "confirm",
+                    file_mode="confirm",
                     download_directory=download if dateien_aktiv else None)
             except Exception as fehler:
                 if not dateien_aktiv:
@@ -17928,8 +18228,10 @@ class Fenster(_FENSTER_BASIS):
 
     def _kde_pairing_start(self, kennung, erneuern=False):
         try:
-            self.antwort("App.kdePairingCode", _kdeconnect_backend().begin_pairing(
-                kennung or None, replace_stored=erneuern))
+            backend = _kdeconnect_backend()
+            ergebnis = backend.begin_pairing(kennung or None, replace_stored=erneuern)
+            if not isinstance(backend, KDEConnectProxy):
+                self.antwort("App.kdePairingCode", ergebnis)
         except Exception as fehler:
             self.antwort("App.kdePairingCode", {"state": "failed",
                 "error": fehler_deutsch(fehler, _("Pairing KDE Connect"))})
@@ -17937,8 +18239,10 @@ class Fenster(_FENSTER_BASIS):
 
     def _kde_pairing_complete(self, kennung):
         try:
-            self.antwort("App.kdePairingCode",
-                         _kdeconnect_backend().complete_pairing(kennung))
+            backend = _kdeconnect_backend()
+            ergebnis = backend.complete_pairing(kennung)
+            if not isinstance(backend, KDEConnectProxy):
+                self.antwort("App.kdePairingCode", ergebnis)
         except Exception as fehler:
             self.antwort("App.kdePairingCode", {"state": "failed",
                 "error": fehler_deutsch(fehler, _("Completing KDE Connect pairing"))})
@@ -18810,6 +19114,7 @@ class Fenster(_FENSTER_BASIS):
                 adress_syncs[uid] = int(stand.get("letzterSync") or 0)
         bericht = []
         vorschau = None
+        nextcloud_komplexe_serien = 0
 
         if kal_uids:
             ausgewaehlt = set(kal_uids)
@@ -18822,12 +19127,17 @@ class Fenster(_FENSTER_BASIS):
                 quelle = _nextcloud_quelle(dav, "calendar", uid)
                 resources = dav.report(quelle["href"], "calendar")
                 fern, remote_meta, remote_data = {}, {}, {}
+                komplexe_serien = set()
                 for resource in resources:
                     remote_data[resource["href"]] = resource["data"]
                     gelesen = ics_lesen(resource["data"])
                     if gelesen.get("uebersprungen"):
                         raise RuntimeError(_("The Nextcloud calendar was not read completely."))
+                    komplexe_serien.update(gelesen.get("komplexeSerien") or [])
                     for item in gelesen["termine"]:
+                        if item.get("icsKomplex"):
+                            item["icsReadOnly"] = True
+                            item["icsReadOnlyGrund"] = "Nextcloud"
                         item_uid = item.get("uid")
                         if not item_uid or item_uid in fern:
                             raise RuntimeError(_("The Nextcloud calendar contains missing or duplicate UIDs."))
@@ -18835,6 +19145,12 @@ class Fenster(_FENSTER_BASIS):
                         remote_meta[item_uid] = {"href": resource["href"],
                                                  "etag": resource["etag"]}
                 basis = kalender_meta.get(uid) if isinstance(kalender_meta.get(uid), dict) else {}
+                nextcloud_komplexe_serien += len(komplexe_serien)
+                komplex_bericht = ("%s: %s" % (quelle["name"], ngettext(
+                    "%(count)s recurring appointment imported only once.",
+                    "%(count)s recurring appointments imported only once.",
+                    len(komplexe_serien)) % {"count": len(komplexe_serien)})) \
+                    if komplexe_serien else ""
                 erster = not basis.get("initialisiert")
                 lokal = []
                 for item in termine:
@@ -18879,6 +19195,8 @@ class Fenster(_FENSTER_BASIS):
                     kalender_syncs[uid] = sync_zeit
                     bericht.append(_("Appointments: safe first import from %(source)s: %(count)d received.") %
                                    {"source": quelle["name"], "count": empfangen})
+                    if komplex_bericht:
+                        bericht.append(komplex_bericht)
                     continue
                 for item in lokal:
                     if item.get("uid") in remote_meta:
@@ -18955,6 +19273,8 @@ class Fenster(_FENSTER_BASIS):
                                           "etags": remote_meta}
                     kalender_syncs[uid] = sync_zeit
                 bericht.append(_sync_satz(_("Appointments"), zaehler, fehler))
+                if komplex_bericht:
+                    bericht.append(komplex_bericht)
             termine, tote_termine = rest, rest_tote
 
         if buch_uid:
@@ -19108,6 +19428,7 @@ class Fenster(_FENSTER_BASIS):
             "letzterSync": jetzt_ms(),
             "letzteSyncs": {"kalender": kalender_syncs, "adressbuecher": adress_syncs},
             "adressbuchBaselineKandidat": None, "kontaktVorschau": vorschau,
+            "nextcloudKomplexeSerien": nextcloud_komplexe_serien,
             "syncMetadaten": neue_sync_meta,
             "bericht": " ".join(bericht) or _("Synchronization completed.")}
         if antworten:
@@ -19815,6 +20136,8 @@ def haupt():
             "  magnolie-organizer --wecker     " + _("Remind about appointments in the background"),
             "                                  " + _("(starts when you sign in)"),
             "  magnolie-organizer --tray-start " + _("Start through the tray applet"),
+            "  magnolie-organizer --hintergrunddienst / --background-service",
+            "                                  Run the optional background service",
             "  magnolie-organizer --probe      " + _("Test reminders and report what happens"),
             "  magnolie-organizer --debug      " + _("Write startup and tray diagnostics to the debug log"),
             "                                  " + _("Log file: ~/.local/state/magnolie-organizer/debug.log"),

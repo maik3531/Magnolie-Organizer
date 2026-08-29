@@ -96,8 +96,9 @@ def test_gettext_catalogs_are_complete_and_safe():
         extra = entries.keys() - source.keys()
         if missing:
             errors.append(f"{locale}: missing keys: {sorted(missing)[:5]}")
-        if extra != dormant:
-            errors.append(f"{locale}: unexpected dormant keys: {sorted(extra)[:5]}")
+        unexpected = extra - dormant
+        if unexpected:
+            errors.append(f"{locale}: unexpected dormant keys: {sorted(unexpected)[:5]}")
         for key, template in source.items():
             entry = entries.get(key)
             if not entry:

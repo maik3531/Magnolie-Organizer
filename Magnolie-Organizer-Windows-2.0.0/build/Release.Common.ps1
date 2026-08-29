@@ -60,6 +60,14 @@ function Get-ReleaseArchiveSources([string] $Root) {
             Relative = "shared/magnolie-handbuch-stamm/web/$([IO.Path]::GetRelativePath($handbookWeb, $file.FullName).Replace('\', '/'))"
         }
     }
+    $contactContract = Join-Path (Split-Path -Parent $Root) "contracts/kontakt-sync-contract.json"
+    if (-not (Test-Path -LiteralPath $contactContract -PathType Leaf)) {
+        throw "Gemeinsamer Kontakt-Sync-Vertrag fehlt: $contactContract"
+    }
+    [pscustomobject]@{
+        Source = $contactContract
+        Relative = "contracts/kontakt-sync-contract.json"
+    }
 }
 
 function Invoke-NativeCommand([string] $FilePath, [object[]] $ArgumentList = @()) {
@@ -201,6 +209,7 @@ function Assert-SourceArchive([string] $Archive, [string] $Root, [string] $Versi
         "app/symbole/64x64/magnolie-organizer.png",
         "app/symbole/128x128/magnolie-organizer.png",
         "app/symbole/256x256/magnolie-organizer.png",
+        "contracts/kontakt-sync-contract.json",
         "tests/resources/personal-sync-contract.json",
         "tests/resources/telefon-control-contract.json",
         "tests/resources/linux-parity-contract.json",

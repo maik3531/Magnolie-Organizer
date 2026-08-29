@@ -15,7 +15,7 @@
 (function () {
 
   /* Die Fassung erscheint auf der Seite „Über". */
-const FASSUNG = "2.0.8";
+const FASSUNG = "2.0.9";
   const CONTRIBUTOR_BRANDING = "No valid coffee allowance";
 
   /* ---------------------------------------------------------------------- */
@@ -172,7 +172,7 @@ const FASSUNG = "2.0.8";
           kurzzeitFestEinheiten: 0, kurzzeitRegeln: [], hinweis: "" } },
       einstellungen: { sync: { kalenderUid: "", kalenderUids: [],
           adressbuchUid: "", beimStart: false, kdeEmpfang: { dateien: false,
-            zwischenablage: false, dateienAutomatisch: false,
+            zwischenablage: false,
             zwischenablageAutomatisch: false, geraetId: "", ordner: "" } },
         ort: { land: "", landName: "", region: "", regionName: "",
           alleRegionen: false, ferien: true, abgerufen: 0, jahre: [] },
@@ -208,7 +208,8 @@ const FASSUNG = "2.0.8";
           kommunikation: { sms: { art: "kde", programm: "" },
             anruf: { art: "magnolie", programm: "" } } },
         sicherheit: { erinnernTrotzKennwort: false,
-          vertraulicheErinnerungen: false },
+          vertraulicheErinnerungen: false, hintergrund: { enabled: false,
+            autostart: false, encryptionPolicy: "notify_then_unlock", permissions: {} } },
         papierkorb: { an: true, tage: 30 },
         kalender: { klickLegtAn: true, jahrestagsartenFrei: false,
           wochenNummern: false, planerWochenNummern: false,
@@ -2430,10 +2431,14 @@ const FASSUNG = "2.0.8";
         synchronisiereAnrufFreigaben(peer);
       planeSpeichern(); schliessen(); zeichneAlles();
     });
-    const zurueck = knopf(_("Reset"), "", () => {
+    const zurueck = knopf(_("Restore defaults"), "", () => {
       auswahl.querySelector('[value="' + (sms ? "kde" : "magnolie") + '"]').checked = true;
       programm.value = "";
+      if (eingehend) eingehend.checked = false;
+      if (computer) computer.checked = false;
+      if (leiser) leiser.checked = false;
       if (hfpAdresse) hfpAdresse.value = "";
+      optionenAktualisieren();
     });
     const knoepfe = el("div", "dialog-knoepfe");
     knoepfe.append(speichern, zurueck, knopf(_("Cancel"), "", schliessen));
@@ -3805,6 +3810,7 @@ const FASSUNG = "2.0.8";
       icsRoundtrip: icsRoundtrip,
       icsSequence: Math.floor(N(t.icsSequence)),
       icsAenderungszeitFehlt: !!t.icsAenderungszeitFehlt,
+      icsEndeFehlt: !!t.icsEndeFehlt, icsNullDauer: !!t.icsNullDauer,
       syncKonflikte: Array.isArray(t.syncKonflikte)
         ? kopie(t.syncKonflikte.slice(-16)) : [],
       icsReadOnly: !!t.icsReadOnly, icsReadOnlyGrund: S(t.icsReadOnlyGrund),
@@ -4158,7 +4164,6 @@ const FASSUNG = "2.0.8";
     d.einstellungen.sync.kdeEmpfang = {
       dateien: kdeEmpfang.dateien === true,
       zwischenablage: kdeEmpfang.zwischenablage === true,
-      dateienAutomatisch: kdeEmpfang.dateienAutomatisch === true,
       zwischenablageAutomatisch: kdeEmpfang.zwischenablageAutomatisch === true,
       geraetId: S(kdeEmpfang.geraetId).replace(/[\x00-\x1f\x7f]/g, "").slice(0, 160),
       ordner: S(kdeEmpfang.ordner).replace(/[\x00-\x1f\x7f]/g, "").slice(0, 4096)
@@ -4332,6 +4337,21 @@ const FASSUNG = "2.0.8";
     d.einstellungen.sicherheit.vertraulicheErinnerungen =
       !!si.vertraulicheErinnerungen &&
       d.einstellungen.sicherheit.erinnernTrotzKennwort;
+    const hintergrund = si.hintergrund && typeof si.hintergrund === "object"
+      ? si.hintergrund : {};
+    const hintergrundRechte = hintergrund.permissions &&
+      typeof hintergrund.permissions === "object" ? hintergrund.permissions : {};
+    const hintergrundNamen = ["kde_pairing", "kde_incoming_files",
+      "sms_phone_notifications", "magnolienbaum_change_offers", "phone_monitor",
+      "phone_sms_notifications", "phone_selected_notifications",
+      "phone_call_notifications", "phone_personal_sync_offers", "phone_pairing_decisions"];
+    d.einstellungen.sicherheit.hintergrund = {
+      enabled: hintergrund.enabled === true,
+      autostart: hintergrund.autostart === true,
+      encryptionPolicy: "notify_then_unlock",
+      permissions: Object.fromEntries(hintergrundNamen.map(
+        (name) => [name, hintergrundRechte[name] === true]))
+    };
     const pk = (e.papierkorb && typeof e.papierkorb === "object") ? e.papierkorb : {};
     const kal = (e.kalender && typeof e.kalender === "object") ? e.kalender : {};
     d.einstellungen.kalender.klickLegtAn =
@@ -4523,6 +4543,17 @@ const FASSUNG = "2.0.8";
         ["delete", "restore"].includes(x.decision) && Array.isArray(x.expected_clock))
         .slice(-500).map(kopie) : [] };
     bewahreUnbekannteFelder(d, roh);
+    delete d.einstellungen.sync.kdeEmpfang["dateien" + "Automatisch"];
+    for (const name of Object.keys(d.einstellungen.sicherheit.hintergrund)) {
+      if (!["enabled", "autostart", "encryptionPolicy", "permissions"].includes(name)) {
+        delete d.einstellungen.sicherheit.hintergrund[name];
+      }
+    }
+    for (const name of Object.keys(d.einstellungen.sicherheit.hintergrund.permissions)) {
+      if (!hintergrundNamen.includes(name)) {
+        delete d.einstellungen.sicherheit.hintergrund.permissions[name];
+      }
+    }
     for (const termin of d.termine) {
       termin.providerMetadaten = saubereProviderMetadaten(termin.providerMetadaten);
     }
@@ -5371,6 +5402,7 @@ const FASSUNG = "2.0.8";
     const start = ausISO(t.datum);
     const tag = ausISO(iso);
     const intervall = Math.min(3660, Math.max(1, Math.floor(Number(w.intervall) || 1)));
+    if ((w.art === "monthly" || w.art === "yearly") && intervall !== 1) return false;
     const tageSeitStart = Math.round((Date.UTC(tag.getFullYear(), tag.getMonth(), tag.getDate()) -
       Date.UTC(start.getFullYear(), start.getMonth(), start.getDate())) / 86400000);
 
@@ -5609,6 +5641,7 @@ const FASSUNG = "2.0.8";
       const tag = ausISO(t.datum);
       for (let iso = t.datum, anzahl = 0; iso <= bis && anzahl < 36600;
         iso = isoVon(new Date(tag.getFullYear(), tag.getMonth(), tag.getDate() + ++anzahl))) {
+        if (Array.isArray(t.icsAusnahmen) && t.icsAusnahmen.includes(t.datum)) continue;
         let liste = verz.get(iso);
         if (!liste) { liste = []; verz.set(iso, liste); }
         liste.push(t);
@@ -15794,6 +15827,29 @@ const FASSUNG = "2.0.8";
   let briefkastenMeldung = "";
   let telefonStand = null;
   let telefonStandSignatur = "";
+  let backgroundStand = null;
+
+  function backgroundSettingsSpeichern(aenderungen) {
+    const quelle = Object.assign({}, backgroundStand || {}, aenderungen || {});
+    const namen = ["kde_pairing", "kde_incoming_files", "sms_phone_notifications",
+      "magnolienbaum_change_offers", "phone_monitor", "phone_sms_notifications",
+      "phone_selected_notifications", "phone_call_notifications",
+      "phone_personal_sync_offers", "phone_pairing_decisions"];
+    const rechte = Object.assign({}, backgroundStand && backgroundStand.permissions || {},
+      aenderungen && aenderungen.permissions || {});
+    const settings = { enabled: quelle.enabled === true, autostart: quelle.autostart === true,
+      encryption_policy: "notify_then_unlock",
+      permissions: Object.fromEntries(namen.map((name) => [name, rechte[name] === true])),
+      kde_device_id: String(quelle.kde_device_id || ""),
+      kde_download_directory: String(quelle.kde_download_directory || ""),
+      kde_clipboard_enabled: quelle.kde_clipboard_enabled === true,
+      kde_clipboard_mode: quelle.kde_clipboard_mode === "automatic" ? "automatic" : "confirm",
+      kde_file_enabled: quelle.kde_file_enabled === true,
+      kde_legacy_migrated: quelle.kde_legacy_migrated === true,
+      kde_receive_managed: quelle.kde_receive_managed === true };
+    backgroundStand = Object.assign({}, backgroundStand || {}, settings);
+    Bruecke.sende({ cmd: "background_settings_set", settings: settings });
+  }
 
   function kdeEmpfangSpeichern() {
     const empfang = DATEN.einstellungen.sync.kdeEmpfang;
@@ -15803,7 +15859,6 @@ const FASSUNG = "2.0.8";
     planeSpeichern();
     Bruecke.sende({ cmd: "kde_receive_settings", deviceId: empfang.geraetId,
       files: empfang.dateien, clipboard: empfang.zwischenablage,
-      filesAutomatic: empfang.dateienAutomatisch,
       clipboardAutomatic: empfang.zwischenablageAutomatisch,
       directory: empfang.ordner });
   }
@@ -16814,30 +16869,38 @@ const FASSUNG = "2.0.8";
     }
     const empfang = DATEN.einstellungen.sync.kdeEmpfang;
     const empfangMoeglich = !!kde.peer_id && kde.reason !== "udp_port_unavailable";
-    const empfangOption = (text, eigenschaft, automatikEigenschaft) => {
+    const empfangOption = (text, eigenschaft, automatikEigenschaft = "") => {
       const gruppe = el("div", "kde-empfang-option");
       const an = document.createElement("input"); an.type = "checkbox";
       an.checked = !!empfang[eigenschaft]; an.disabled = !empfangMoeglich;
       const label = el("label", "hak"); label.append(an, document.createTextNode(" " + text));
-      const automatisch = document.createElement("input"); automatisch.type = "checkbox";
-      automatisch.checked = !!empfang[automatikEigenschaft];
-      automatisch.disabled = !empfangMoeglich || !an.checked;
-      const autoLabel = el("label", "hak hak-eingerueckt");
-      autoLabel.append(automatisch, document.createTextNode(" " + _("Accept automatically")));
+      let automatisch = null;
+      let autoLabel = null;
+      if (automatikEigenschaft) {
+        automatisch = document.createElement("input"); automatisch.type = "checkbox";
+        automatisch.checked = !!empfang[automatikEigenschaft];
+        automatisch.disabled = !empfangMoeglich || !an.checked;
+        autoLabel = el("label", "hak hak-eingerueckt");
+        autoLabel.append(automatisch, document.createTextNode(" " + _("Accept automatically")));
+      }
       an.addEventListener("change", () => {
         empfang[eigenschaft] = an.checked;
-        automatisch.disabled = !empfangMoeglich || !an.checked;
-        if (!an.checked) { automatisch.checked = false; empfang[automatikEigenschaft] = false; }
+        if (automatisch) {
+          automatisch.disabled = !empfangMoeglich || !an.checked;
+          if (!an.checked) { automatisch.checked = false; empfang[automatikEigenschaft] = false; }
+        }
         kdeEmpfangSpeichern();
       });
-      automatisch.addEventListener("change", () => {
-        empfang[automatikEigenschaft] = automatisch.checked; kdeEmpfangSpeichern();
-      });
-      gruppe.append(label, autoLabel); kdeBlock.append(gruppe);
+      if (automatisch) automatisch.addEventListener("change", () => {
+          empfang[automatikEigenschaft] = automatisch.checked; kdeEmpfangSpeichern();
+        });
+      gruppe.append(label);
+      if (autoLabel) gruppe.append(autoLabel);
+      kdeBlock.append(gruppe);
     };
     kdeBlock.append(el("h4", null, _("Receive with KDE Connect")),
-      el("p", "einst-hinweis", _("Incoming files and clipboard text are confirmed before use unless automatic acceptance is explicitly enabled.")));
-    empfangOption(_("Receive files in Downloads"), "dateien", "dateienAutomatisch");
+      el("p", "einst-hinweis", _("Incoming files are always confirmed. Clipboard text is confirmed unless automatic acceptance is explicitly enabled.")));
+    empfangOption(_("Receive files in Downloads"), "dateien");
     const ordnerPfad = eingabe("text", empfang.ordner || "");
     ordnerPfad.id = "kde-empfangsordner";
     ordnerPfad.readOnly = true;
@@ -17743,9 +17806,125 @@ const FASSUNG = "2.0.8";
     wurzel.append(ab);
   }
 
+  function baueHintergrunddienst(wurzel) {
+    const spiegel = DATEN.einstellungen.sicherheit.hintergrund;
+    const stand = backgroundStand || { enabled: spiegel.enabled, autostart: spiegel.autostart,
+      encryption_policy: spiegel.encryptionPolicy, permissions: spiegel.permissions };
+    const rechte = Object.assign({}, stand.permissions || {});
+    const ab = abschnitt(_("Background service"),
+      _("Optional approved functions can continue while the Organizer window is closed."));
+    ab.classList.add("hintergrunddienst-abschnitt");
+
+    if (!Bruecke.vorhanden) ab.append(el("p", "einst-hinweis",
+      _("The background service is available only in the installed application.")));
+    else if (!backgroundStand) ab.append(el("p", "sync-status", _("Checking background service …")));
+
+    const aktiv = document.createElement("input");
+    aktiv.type = "checkbox"; aktiv.id = "hintergrunddienst-an";
+    aktiv.checked = stand.enabled === true; aktiv.disabled = !Bruecke.vorhanden;
+    const aktivLabel = el("label", "hak");
+    aktivLabel.append(aktiv, document.createTextNode(" " + _("Enable background service")));
+    ab.append(aktivLabel);
+
+    const anmeldung = document.createElement("input");
+    anmeldung.type = "checkbox"; anmeldung.id = "hintergrunddienst-autostart";
+    anmeldung.checked = stand.autostart === true;
+    const anmeldungLabel = el("label", "hak hak-eingerueckt");
+    anmeldungLabel.append(anmeldung, document.createTextNode(" " + _("Start at login")));
+    ab.append(anmeldungLabel);
+
+    const statusTeile = [];
+    if (backgroundStand) {
+      statusTeile.push(stand.running ? _("Service running") : _("Service stopped"));
+      if (typeof stand.native_notifications_supported === "boolean") statusTeile.push(
+        stand.native_notifications_supported
+          ? _("Native notifications available") : _("Native notifications unavailable"));
+      if (typeof stand.native_actions_supported === "boolean") statusTeile.push(
+        stand.native_actions_supported
+          ? _("Notification actions available") : _("Notification actions unavailable"));
+      statusTeile.push(stand.keyring_available
+        ? _("System keyring available") : _("System keyring unavailable"));
+    }
+    if (statusTeile.length) ab.append(el("p", stand.running ? "baum-zustand gut" : "einst-hinweis",
+      statusTeile.join(" · ")));
+    if (stand.error) ab.append(el("p", "einst-warnung", String(stand.error)));
+    if (stand.receive_configuration_error) ab.append(el("p", "einst-warnung",
+      _("KDE Connect receive settings could not be applied by the background service.")));
+
+    const policy = document.createElement("select");
+    policy.id = "hintergrunddienst-verschluesselung";
+    const policyWerte = [
+      ["notify_then_unlock", _("Notify, then unlock (recommended)")],
+      ["keyring", _("Use system keyring")],
+      ["pause_when_locked", _("Pause while data is locked")]
+    ];
+    for (const [wert, text] of policyWerte) {
+      const option = document.createElement("option");
+      option.value = wert; option.textContent = text;
+      if (wert !== "notify_then_unlock") option.disabled = true;
+      policy.append(option);
+    }
+    policy.value = stand.encryption_policy || "notify_then_unlock";
+    ab.append(formZeile(_("Encrypted data behavior"), policy),
+      el("p", "einst-hinweis hintergrund-policy-hinweis",
+        _("Only Notify, then unlock is currently available. Keyring access and pausing while locked are not yet enforced by the background service.")));
+    ab.append(el("p", "einst-hinweis",
+      _("System keyring and pause modes cannot be enabled yet.")));
+
+    ab.append(el("h4", null, _("Allowed background functions")));
+    const felder = [];
+    const rechteZeile = (name, text, unavailable = false) => {
+      const feld = document.createElement("input"); feld.type = "checkbox";
+      feld.dataset.permission = name; feld.checked = rechte[name] === true;
+      const label = el("label", "hak hak-eingerueckt");
+      label.append(feld, document.createTextNode(" " + text));
+      if (unavailable) label.append(document.createTextNode(" " + _("(unavailable)")));
+      ab.append(label); felder.push([feld, unavailable]);
+      if (!unavailable) feld.addEventListener("change", () => {
+        rechte[name] = feld.checked;
+        backgroundSettingsSpeichern({ permissions: rechte });
+      });
+    };
+    rechteZeile("kde_pairing", _("KDE Connect pairing decisions"));
+    rechteZeile("kde_incoming_files", _("Incoming KDE Connect files (always confirm)"));
+    rechteZeile("sms_phone_notifications", _("Monitor KDE Connect SMS and show notifications"));
+    rechteZeile("phone_monitor", _("Monitor the Magnolie Notes phone connection"));
+    rechteZeile("phone_sms_notifications", _("Show Magnolie Notes SMS notifications"));
+    rechteZeile("phone_selected_notifications", _("Show selected app notifications"));
+    rechteZeile("phone_call_notifications", _("Show incoming call notifications"));
+    rechteZeile("phone_pairing_decisions", _("Magnolie Notes phone pairing decisions"));
+    rechteZeile("phone_personal_sync_offers", _("Offer Personal Sync phone changes"));
+    rechteZeile("magnolienbaum_change_offers", _("Magnolienbaum change offers"), true);
+
+    const setzeAktiv = () => {
+      anmeldung.disabled = !Bruecke.vorhanden || !aktiv.checked;
+      policy.disabled = !Bruecke.vorhanden || !aktiv.checked;
+      for (const [feld, unavailable] of felder) {
+        feld.disabled = unavailable || !Bruecke.vorhanden || !aktiv.checked;
+      }
+    };
+    aktiv.addEventListener("change", () => {
+      setzeAktiv();
+      backgroundSettingsSpeichern({ enabled: aktiv.checked });
+    });
+    anmeldung.addEventListener("change", () =>
+      backgroundSettingsSpeichern({ autostart: anmeldung.checked }));
+    policy.addEventListener("change", () => {
+      if (policy.value !== "notify_then_unlock") {
+        policy.value = stand.encryption_policy || "notify_then_unlock";
+        zettel(_("System keyring and pause modes cannot be enabled yet."));
+        return;
+      }
+      backgroundSettingsSpeichern({ encryption_policy: policy.value });
+    });
+    setzeAktiv();
+    wurzel.append(ab);
+  }
+
   function baueSeiteSicherheit(wurzel) {
     baueSicherungsdateien(wurzel);
     baueSeiteSicherungen(wurzel);
+    baueHintergrunddienst(wurzel);
     const p = DATEN.einstellungen.papierkorb;
     const s = DATEN.einstellungen.sicherheit;
     const ab = abschnitt(_("Recycle bin"),
@@ -19250,6 +19429,7 @@ const FASSUNG = "2.0.8";
             icsRoundtrip: Array.isArray(t.icsRoundtrip) ? t.icsRoundtrip.slice() : [],
             icsReadOnly: !!t.icsReadOnly,
             icsReadOnlyGrund: String(t.icsReadOnlyGrund || ""),
+            icsEndeFehlt: !!t.icsEndeFehlt, icsNullDauer: !!t.icsNullDauer,
             icsQuelleName: String(t.icsQuelleName || ""),
             icsQuelleId: String(t.icsQuelleId || ""),
             sync: false });
@@ -19285,6 +19465,7 @@ const FASSUNG = "2.0.8";
         icsRoundtrip: Array.isArray(t.icsRoundtrip) ? t.icsRoundtrip.slice() : [],
         icsReadOnly: !!t.icsReadOnly,
         icsReadOnlyGrund: String(t.icsReadOnlyGrund || ""),
+        icsEndeFehlt: !!t.icsEndeFehlt, icsNullDauer: !!t.icsNullDauer,
         icsQuelleName: String(t.icsQuelleName || ""),
         icsQuelleId: String(t.icsQuelleId || ""),
         geaendert: Number(t.geaendert) || Date.now(), sync: false });
@@ -20069,6 +20250,34 @@ const FASSUNG = "2.0.8";
   }
 
   const App = {
+    backgroundSettings(nutzlast) {
+      const antwort = nutzlast && typeof nutzlast === "object" ? nutzlast : null;
+      if (antwort && antwort.ok === false && backgroundStand) {
+        backgroundStand = Object.assign({}, backgroundStand, {
+          running: antwort.running === true, error: String(antwort.error || "") });
+      } else {
+        backgroundStand = antwort;
+      }
+      if (backgroundStand && antwort && antwort.ok !== false && !gesperrt && initialisiert) {
+        DATEN.einstellungen.sicherheit.hintergrund = {
+          enabled: backgroundStand.enabled === true,
+          autostart: backgroundStand.autostart === true,
+          encryptionPolicy: ["notify_then_unlock", "keyring", "pause_when_locked"]
+            .includes(backgroundStand.encryption_policy)
+            ? backgroundStand.encryption_policy : "notify_then_unlock",
+          permissions: Object.fromEntries(Object.keys(
+            DATEN.einstellungen.sicherheit.hintergrund.permissions).map(
+              (name) => [name, backgroundStand.permissions &&
+                backgroundStand.permissions[name] === true]))
+        };
+        planeSpeichern();
+      }
+      if (backgroundStand && backgroundStand.error) zettel(String(backgroundStand.error));
+      if (["baum", "sicherheit"].includes(einstSeite) &&
+          !$("#einstellungen-schleier").classList.contains("verborgen")) {
+        baueEinstellungen();
+      }
+    },
     init(nutzlast) {
       const startPhase = performance.now();
       nutzlast = nutzlast || {};
@@ -20104,6 +20313,7 @@ const FASSUNG = "2.0.8";
       const edsZeigerBereinigt = Array.isArray(nutzlast.daten && nutzlast.daten.kontakte) &&
         nutzlast.daten.kontakte.some(kontaktHatEdsZeigerwert);
       DATEN = normalisiere(nutzlast.daten);
+      if (Bruecke.vorhanden) Bruecke.sende({ cmd: "background_settings_get" });
       const nachNormalisierung = performance.now();
       if (nutzlast.regional && typeof nutzlast.regional === "object") {
         DATEN.einstellungen.regional = Object.assign(
@@ -20156,7 +20366,6 @@ const FASSUNG = "2.0.8";
         const kdeEmpfang = DATEN.einstellungen.sync.kdeEmpfang;
         Bruecke.sende({ cmd: "kde_receive_settings", deviceId: kdeEmpfang.geraetId,
           files: kdeEmpfang.dateien, clipboard: kdeEmpfang.zwischenablage,
-          filesAutomatic: kdeEmpfang.dateienAutomatisch,
           clipboardAutomatic: kdeEmpfang.zwischenablageAutomatisch,
           directory: kdeEmpfang.ordner });
         setTimeout(() => starteUpdatePruefung(false), 1800);
@@ -20243,7 +20452,6 @@ const FASSUNG = "2.0.8";
         planeSpeichern();
         Bruecke.sende({ cmd: "kde_receive_settings", deviceId: kdePeerId,
           files: kdeEmpfang.dateien, clipboard: kdeEmpfang.zwischenablage,
-          filesAutomatic: kdeEmpfang.dateienAutomatisch,
           clipboardAutomatic: kdeEmpfang.zwischenablageAutomatisch,
           directory: kdeEmpfang.ordner });
       }
@@ -20546,7 +20754,6 @@ const FASSUNG = "2.0.8";
       if (nutzlast.filesDisabled) {
         const empfang = DATEN.einstellungen.sync.kdeEmpfang;
         empfang.dateien = false;
-        empfang.dateienAutomatisch = false;
         planeSpeichern();
       }
       zettel(String(nutzlast.error || _("KDE Connect reception failed.")));

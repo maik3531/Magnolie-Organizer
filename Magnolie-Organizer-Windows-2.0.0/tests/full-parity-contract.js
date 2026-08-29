@@ -17,6 +17,9 @@ assert.match(fixture.sources["web/anwendung.js"], /^[0-9a-f]{64}$/);
 assert.match(fixture.sources["bin/magnolie-organizer"], /^[0-9a-f]{64}$/);
 assert.strictEqual(sha256(canonicalContract(fixture)), fixture.contractSha256,
   "Linux-Vertragsfixture wurde nicht kanonisch erzeugt");
+assert.strictEqual(canonicalContract({ ...fixture, sources: {
+  "web/anwendung.js": "0".repeat(64), "bin/magnolie-organizer": "f".repeat(64)
+} }), canonicalContract(fixture), "Provenienz-Hashes dürfen den semantischen Vertrag nicht verändern");
 assert.ok(fixture.commands.length > 40, "Befehlsfixture ist unplausibel klein");
 assert.ok(fixture.callbacks.length > 25, "Callbackfixture ist unplausibel klein");
 

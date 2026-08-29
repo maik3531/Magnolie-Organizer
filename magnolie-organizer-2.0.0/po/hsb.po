@@ -6,7 +6,7 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: Magnolie Organizer 2.0.8\n"
+"Project-Id-Version: Magnolie Organizer 2.0.9\n"
 "Report-Msgid-Bugs-To: maik3531@gmail.com\n"
 "POT-Creation-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "PO-Revision-Date: 2026-08-08 09:24+0200\n"
@@ -284,6 +284,7 @@ msgstr[1] "Ličba swjatych dnjow: %(count)s"
 msgstr[2] "Ličba swjatych dnjow: %(count)s"
 msgstr[3] "Ličba swjatych dnjow: %(count)s"
 
+#, python-format
 msgid "%(count)s recurring appointment imported only once."
 msgid_plural "%(count)s recurring appointments imported only once."
 msgstr[0] "Jenož jónkróć importowane wospjetowace so terminy: %(count)s."
@@ -496,6 +497,9 @@ msgstr "%s: jutře róčnica wěrowanja."
 msgid "(starts when you sign in)"
 msgstr "(startuje při přizjewjenju)"
 
+msgid "(unavailable)"
+msgstr "(njedocpějomne)"
+
 msgid "(unnamed)"
 msgstr "(bjez mjena)"
 
@@ -688,7 +692,9 @@ msgstr ""
 msgid ""
 "A system KDE Connect service is active. Configure file and clipboard sharing "
 "there."
-msgstr "Systemowa słužba KDE Connect je aktiwna. Konfigurujće tam dźělenje datajow a mjezyskłada."
+msgstr ""
+"Systemowa słužba KDE Connect je aktiwna. Konfigurujće tam dźělenje datajow a "
+"mjezyskłada."
 
 msgid "API level"
 msgstr "API-runina"
@@ -866,6 +872,9 @@ msgstr "Wšě zwjazkowe kraje"
 
 msgid "Allow notifications despite password protection"
 msgstr "Zdźělenki tež při škitje z hesłom dowolić"
+
+msgid "Allowed background functions"
+msgstr "Dowolene pozadkowe funkcije"
 
 msgid "Also disclose appointments marked as confidential"
 msgstr "Tež terminy pokazać, kotrež su jako dowěrliwe markěrowane"
@@ -1092,6 +1101,9 @@ msgstr "BMI z poslednje składowaneje wysokosće a waha"
 
 msgid "BZ"
 msgstr "BZ"
+
+msgid "Background service"
+msgstr "Pozadkowa słužba"
 
 msgid "Backup failed."
 msgstr "Zawěsćenje njeje so poradźiło."
@@ -1428,6 +1440,9 @@ msgstr ""
 
 msgid "Checking Contributor Key …"
 msgstr "Contributor Key so přepruwuje …"
+
+msgid "Checking background service …"
+msgstr "Pozadkowa słužba so přepruwuje …"
 
 msgid "Checking online accounts …"
 msgstr "Online-konta so přepruwuja …"
@@ -2264,6 +2279,9 @@ msgstr "Zmóžnić"
 msgid "Enable Magnolie Notes phone connection"
 msgstr "Telefonowy zwisk Magnolie Notes zmóžnić"
 
+msgid "Enable background service"
+msgstr "Pozadkowu słužbu zmóžnić"
+
 msgid "Enable cycle calendar"
 msgstr "Cykusowu protyku zmóžnić"
 
@@ -2295,6 +2313,9 @@ msgstr "Protyku wotwoza wotpadkow zmóžnić"
 
 msgid "Encrypted archive entries are not supported."
 msgstr "Zaklučowane zapiski archiwa so njepodpěruja."
+
+msgid "Encrypted data behavior"
+msgstr "Zadźerženje při zaklučowanych datach"
 
 msgid "Encrypting the data"
 msgstr "Daty so zaklučuja"
@@ -2451,6 +2472,9 @@ msgstr "Přiwuzna"
 
 msgid "Fertile days"
 msgstr "Płodne dny"
+
+msgid "File"
+msgstr "Dataja"
 
 #, python-format
 msgid "File could not be read: %s"
@@ -2872,13 +2896,21 @@ msgstr "Wotwozy wotpadkow zapřijeć"
 msgid "Incoming"
 msgstr "Eingehend"
 
+msgid "Incoming KDE Connect file"
+msgstr "Dochadźaca dataja KDE Connect"
+
+msgid "Incoming KDE Connect files (always confirm)"
+msgstr "Dochadźace dataje KDE Connect (přeco wobkrućić)"
+
 msgid "Incoming call"
 msgstr "Dochadźace zawołanje"
 
 msgid ""
-"Incoming files and clipboard text are confirmed before use unless automatic "
-"acceptance is explicitly enabled."
-msgstr "Dochadźace dataje a tekst mjezyskłada dyrbja so před wužiwanjom wobkrućić, chibazo awtomatiske přijimanje je so wuraznje zmóžniło."
+"Incoming files are always confirmed. Clipboard text is confirmed unless "
+"automatic acceptance is explicitly enabled."
+msgstr ""
+"Dochadźace dataje so přeco wobkrućeja. Tekst z mjezyskłada so wobkrući, "
+"chibazo je awtomatiske přiwzaće wuraznje zmóžnjene."
 
 msgid "Input"
 msgstr "Zapodaće"
@@ -2924,6 +2956,9 @@ msgstr "Sok"
 msgid "Jura"
 msgstr "Jura"
 
+msgid "KDE Connect device"
+msgstr "Grat KDE Connect"
+
 msgid "KDE Connect for SMS"
 msgstr "KDE Connect za SMS"
 
@@ -2937,6 +2972,12 @@ msgstr ""
 "KDE Connect so jenož za SMS wužiwa. Magnolienbaum so njezwjazuje ani "
 "njesynchronizuje."
 
+msgid "KDE Connect pairing"
+msgstr "Porowanje KDE Connect"
+
+msgid "KDE Connect pairing decisions"
+msgstr "Rozsudy wo porowanju KDE Connect"
+
 msgid "KDE Connect pairing failed."
 msgstr "Koplowanje KDE Connect je so njeporadźiło."
 
@@ -2945,6 +2986,10 @@ msgstr "Telefon KDE Connect je skoplowany."
 
 msgid "KDE Connect port %(port)s"
 msgstr "Port KDE Connect %(port)s"
+
+msgid ""
+"KDE Connect receive settings could not be applied by the background service."
+msgstr "Pozadkowa słužba njemóžeše přijimanske nastajenja KDE Connect nałožić."
 
 msgid "KDE Connect reception failed."
 msgstr "Přijimanje KDE Connect je so njeporadźiło."
@@ -3019,6 +3064,9 @@ msgstr "nachwilne"
 msgid "Listener stopped"
 msgstr "Słuchar wosta stejo"
 
+msgid "Loading background settings"
+msgstr "Pozadkowe nastajenja so začituja"
+
 msgid "Local calendar"
 msgstr "Lokalny protyk"
 
@@ -3077,8 +3125,14 @@ msgstr ""
 "Magnolie Notes je posedźenje skónčiło. Nałoženje a Organizer dyrbitej samsnu "
 "wersiju protokola wužiwać."
 
+msgid "Magnolie Notes pairing"
+msgstr "Porowanje Magnolie Notes"
+
 msgid "Magnolie Notes phone connection"
 msgstr "Telefonowy zwisk Magnolie Notes"
+
+msgid "Magnolie Notes phone pairing decisions"
+msgstr "Rozsudy wo porowanju telefona z Magnolie Notes"
 
 msgid ""
 "Magnolie Notes phones and KDE Connect phones are separate: the Android model "
@@ -3089,6 +3143,12 @@ msgstr ""
 
 msgid "Magnolie Notes version"
 msgstr "Wersija Magnolie Notes"
+
+msgid "Magnolie Organizer"
+msgstr "Magnolie Organizer"
+
+msgid "Magnolie Organizer Background Service"
+msgstr "Pozadkowa słužba Magnolie Organizer"
 
 msgid "Magnolie Organizer is not completely installed."
 msgstr "Magnolie Organizer njeje dospołnje instalowany."
@@ -3121,6 +3181,14 @@ msgstr "Magnolie Organizer – wosobinski organizator w papjerowym napohladźe"
 msgid "Magnolie Organizer – reminders"
 msgstr "Magnolie Organizer – dopominanja"
 
+#, python-format
+msgid "Magnolie background service could not start: %s"
+msgstr "Pozadkowa słužba Magnolie njemóžeše so startować: %s"
+
+#, python-format
+msgid "Magnolie background service requires GLib: %s"
+msgstr "Pozadkowa słužba Magnolie trjeba GLib: %s"
+
 msgid "Magnolie backup (*.json)"
 msgstr "Zawěsćenje Magnolie (*.json)"
 
@@ -3140,6 +3208,9 @@ msgstr "Magnolia-Year-Planner-%d.ods"
 
 msgid "Magnolienbaum"
 msgstr "Magnolienbaum"
+
+msgid "Magnolienbaum change offers"
+msgstr "Poskitki změnow Magnolienbaum"
 
 msgid "Magnolienbaum mailbox"
 msgstr "Magnolienbaum mailbox"
@@ -3297,6 +3368,12 @@ msgstr "Model"
 msgid "Monday"
 msgstr "Póndźela"
 
+msgid "Monitor KDE Connect SMS and show notifications"
+msgstr "SMS KDE Connect dohladować a zdźělenki pokazać"
+
+msgid "Monitor the Magnolie Notes phone connection"
+msgstr "Telefonowy zwisk Magnolie Notes dohladować"
+
 msgid "Month"
 msgstr "Měsac"
 
@@ -3364,6 +3441,12 @@ msgstr "Mjeninski dźeń"
 msgid "Name of this branch"
 msgstr "Mjeno tutoho hałuza"
 
+msgid "Native notifications available"
+msgstr "Systemowe zdźělenki su k dispoziciji"
+
+msgid "Native notifications unavailable"
+msgstr "Systemowe zdźělenki njejsu k dispoziciji"
+
 msgid "Netherlands"
 msgstr "Nižozemska"
 
@@ -3427,6 +3510,9 @@ msgstr "Nowa strona"
 
 msgid "New password"
 msgstr "Nowe hesło"
+
+msgid "New phone changes are available"
+msgstr "Nowe změny z telefona su k dispoziciji"
 
 msgid "New task"
 msgstr "Nowy nadawk"
@@ -3738,6 +3824,12 @@ msgstr "Ničo nowe namakane."
 msgid "Notice: The connection to storage was not confirmed."
 msgstr "Kedźbu: Zwisk ze składowakom njeje so wobkrućił."
 
+msgid "Notification actions available"
+msgstr "Akcije zdźělenkow su k dispoziciji"
+
+msgid "Notification actions unavailable"
+msgstr "Akcije zdźělenkow njejsu k dispoziciji"
+
 msgid "Notification and sound"
 msgstr "Zdźělenka a zynk"
 
@@ -3767,6 +3859,9 @@ msgstr "Zdźělenki su jenož w instalowanym nałoženju k dispoziciji."
 msgid "Notify me about incoming calls"
 msgstr "Wo dochadźacych zawołanjach informować"
 
+msgid "Notify, then unlock (recommended)"
+msgstr "Zdźělić, potom wotključeć (doporučene)"
+
 msgid "ODS"
 msgstr "ODS"
 
@@ -3781,6 +3876,9 @@ msgstr "Obwalden"
 
 msgid "Off"
 msgstr "preč"
+
+msgid "Offer Personal Sync phone changes"
+msgstr "Telefonowe změny Personal Sync poskićić"
 
 msgid "Offline"
 msgstr "Online"
@@ -3899,6 +3997,11 @@ msgstr ""
 "Hesło wašeho konta so ženje njewužiwa."
 
 msgid ""
+"Only Notify, then unlock is currently available. Keyring access and pausing "
+"while locked are not yet enforced by the background service."
+msgstr "Nětko je jenož „Zdźělić, potom wotamknyć“ k dispoziciji. Pozadkowa słužba hišće přistup ke klučowemu rjećazkej a zastajenje při zamknjenju njepřesadźuje."
+
+msgid ""
 "Only one Magnolie Notes phone can be paired. Remove the existing phone "
 "before changing devices."
 msgstr ""
@@ -4009,6 +4112,13 @@ msgstr "Operacija skónčena (%s)."
 msgid "Option %s requires a language."
 msgstr "Opcija %s sej rěč žada."
 
+msgid ""
+"Optional approved functions can continue while the Organizer window is "
+"closed."
+msgstr ""
+"Opcionalne dowolene funkcije móža dale běžeć, mjeztym zo je wokno Organizera "
+"začinjene."
+
 msgid "Organic waste"
 msgstr "Bio-wotpad"
 
@@ -4079,7 +4189,8 @@ msgid "Pair KDE Connect phone"
 msgstr "Telefon KDE Connect skoplować"
 
 msgid "Pair a KDE Connect phone before enabling receive functions."
-msgstr "Sparujće telefon KDE Connect, prjedy hač přijimanske funkcije zmóžniće."
+msgstr ""
+"Sparujće telefon KDE Connect, prjedy hač přijimanske funkcije zmóžniće."
 
 msgid "Pairing KDE Connect"
 msgstr "Paarung KDE Connect"
@@ -4126,6 +4237,9 @@ msgstr "Zasadźić"
 
 msgid "Patch"
 msgstr "Pflaster"
+
+msgid "Pause while data is locked"
+msgstr "Zastajić, dokelž su daty zaklučowane"
 
 msgid "Pay invoice"
 msgstr "Ličbu zapłaćić"
@@ -4203,6 +4317,9 @@ msgstr "Telefonowa baterija"
 
 msgid "Phone call"
 msgstr "Telefonować"
+
+msgid "Phone notification"
+msgstr "Telefonowe zdźělenje"
 
 msgid "Phone number"
 msgstr "Telefonowe čisła"
@@ -4633,9 +4750,6 @@ msgid "Requires existing BlueZ system pairing. Data only, no HFP audio."
 msgstr ""
 "Trjeba hižo wobstejace BlueZ-systemowe porowanje. Jenož daty, žane HFP awdio."
 
-msgid "Reset"
-msgstr "Reset"
-
 msgid "Residual waste"
 msgstr "Zbytne wotpadki"
 
@@ -4660,6 +4774,9 @@ msgstr "Zawěsćenje wobnowić …"
 
 msgid "Restore completely"
 msgstr "Dospołnje restawrować"
+
+msgid "Restore defaults"
+msgstr "Standardne nastajenja wobnowić"
 
 msgid "Restore failed."
 msgstr "Restorěrowanje je so zwrěšćiło."
@@ -4729,6 +4846,9 @@ msgstr "Rota"
 msgid "Route: calculate directions immediately"
 msgstr "Rota: pućnik hnydom wobličić"
 
+msgid "Run approved Magnolie background functions"
+msgstr "Dowolene pozadkowe funkcije Magnolie wuwjesć"
+
 #, python-format
 msgid "Run failed: %s"
 msgstr "Wuwjedźenje njeje so poradźiło: %s"
@@ -4751,6 +4871,10 @@ msgstr "SMS-podrobnosće"
 #, python-format
 msgid "SMS from %(name)s"
 msgstr "SMS wot %(name)s"
+
+#, python-format
+msgid "SMS from %s"
+msgstr "SMS wot %s"
 
 msgid "SMS history"
 msgstr "SMS-historija"
@@ -4832,6 +4956,9 @@ msgstr "Składowane ✓ %(time)s"
 
 msgid "Saved."
 msgstr "Saved."
+
+msgid "Saving background settings"
+msgstr "Pozadkowe nastajenja so składuja"
 
 msgid "Saving failed!"
 msgstr "Składowanje njeje so poradźiło!"
@@ -5001,6 +5128,12 @@ msgstr "Server address"
 msgid "Server address and user name are required."
 msgstr "Serwerowa adresa a wužiwarske mjeno stej trěbnej."
 
+msgid "Service running"
+msgstr "Słužba běži"
+
+msgid "Service stopped"
+msgstr "Słužba je zastajena"
+
 msgid "Set varying doses by weekday"
 msgstr "Rozdźělne dozy po dźenju tydźenja nastajić"
 
@@ -5055,11 +5188,17 @@ msgstr "Krótko skutkowacy insulin"
 msgid "Show Health after Planner"
 msgstr "Strowotu za planowakom pokazać"
 
+msgid "Show Magnolie Notes SMS notifications"
+msgstr "SMS-zdźělenki Magnolie Notes pokazać"
+
 msgid "Show all"
 msgstr "Wšě pokazać"
 
 msgid "Show calendar button in date fields"
 msgstr "Protykowe tłóčatko w datumowych polach pokazać"
+
+msgid "Show incoming call notifications"
+msgstr "Zdźělenki wo dochadźacych zawołanjach pokazać"
 
 msgid "Show log"
 msgstr "Protokol pokazać"
@@ -5072,6 +5211,9 @@ msgstr "Pokaz porowanje QR-koda"
 
 msgid "Show preview"
 msgstr "Přehlad pokazać"
+
+msgid "Show selected app notifications"
+msgstr "Zdźělenki wubranych nałoženjow pokazać"
 
 msgid "Show selected notifications (read only)"
 msgstr "Jenož zdźělenka na wobrazowce"
@@ -5188,6 +5330,15 @@ msgstr "Sprej"
 
 msgid "St. Gallen"
 msgstr "St. Gallen"
+
+msgid "Start Organizer"
+msgstr "Organizer startować"
+
+msgid "Start Organizer and synchronize."
+msgstr "Organizer startować a synchronizować."
+
+msgid "Start at login"
+msgstr "Při přizjewjenju startować"
 
 msgid "Start automatically when signing in"
 msgstr "Při přizjewjenju awtomatisce startować"
@@ -5309,6 +5460,15 @@ msgstr "Systemowa awtentifikacija za konfiguraciju UFW k dispoziciji njeje."
 
 msgid "System default"
 msgstr "Systemstandard"
+
+msgid "System keyring and pause modes cannot be enabled yet."
+msgstr "Systemowy klučowy rjećazk a pauzowanske modusy hišće njehodźa so zmóžnić."
+
+msgid "System keyring available"
+msgstr "Systemowy klučowy składowak je k dispoziciji"
+
+msgid "System keyring unavailable"
+msgstr "Systemowy klučowy składowak njeje k dispoziciji"
 
 msgid "System setting"
 msgstr "Systemowe nastajenje"
@@ -5643,6 +5803,15 @@ msgid ""
 msgstr ""
 "Słužba dopominanjow w pozadku smě wotdźělene daty dopominanjow čitać a "
 "funguje tuž tež při začinjenym organizatorje."
+
+msgid "The background service could not be started."
+msgstr "Pozadkowa słužba njeda so startować."
+
+msgid "The background service is available only in the installed application."
+msgstr "Pozadkowa słužba je jenož w instalowanym nałoženju k dispoziciji."
+
+msgid "The background settings could not be saved."
+msgstr "Pozadkowe nastajenja njedadźa so składować."
 
 msgid "The backup could not be created."
 msgstr "Zawěsćenje njehodźeše so załožić."
@@ -6179,7 +6348,8 @@ msgid "The secure session response is invalid."
 msgstr "Wotmołwa wěsteho posedźenja je njepłaćiwa."
 
 msgid "The selected Magnolie Notes phone is not available for dial requests."
-msgstr "Wubrany telefon Magnolie Notes za wólanske nadawki k dispoziciji njeje."
+msgstr ""
+"Wubrany telefon Magnolie Notes za wólanske nadawki k dispoziciji njeje."
 
 msgid "The selected Nextcloud DAV source was not found."
 msgstr "Wuzwolene Nextcloud DAV žórło njebu namakane."
@@ -6777,6 +6947,9 @@ msgid ""
 "Use only schedules prescribed or confirmed by a healthcare professional."
 msgstr ""
 "Wužiwajće jenož plany, kotrež je medicinski fachowc předpisał abo wobkrućił."
+
+msgid "Use system keyring"
+msgstr "Systemowy klučowy składowak wužiwać"
 
 msgid ""
 "Use the arrows to arrange groups and notebooks, or use the selection to move "
@@ -7608,6 +7781,31 @@ msgstr[3] "… a dale %(count)s zapiskaj, kotrejž so tež ćišćitej."
 msgid "＋ Add appointment"
 msgstr "＋ Termin přidać"
 
+#~ msgid ""
+#~ "Notify, then unlock asks you to open and unlock the Organizer. System "
+#~ "keyring uses an available desktop keyring without storing the password in "
+#~ "Organizer data. Pause while locked waits without accessing encrypted data."
+#~ msgstr ""
+#~ "Zdźělić, potom wotključeć was namołwja, Organizer wočinić a wotključeć. "
+#~ "Systemowy klučowy składowak wužiwa docpějomny klučowy składowak dźěłoweho "
+#~ "powjercha, bjeztoho zo by hesło w datach Organizera składował. Zastajić, "
+#~ "dokelž su daty zaklučowane, čaka bjez přistupa k zaklučowanym datam."
+
+#~ msgid "System keyring is unavailable; this choice cannot be enabled."
+#~ msgstr ""
+#~ "Systemowy klučowy składowak njeje k dispoziciji; tutón wuběr njeda so "
+#~ "zmóžnić."
+
+#~ msgid ""
+#~ "Incoming files and clipboard text are confirmed before use unless "
+#~ "automatic acceptance is explicitly enabled."
+#~ msgstr ""
+#~ "Dochadźace dataje a tekst mjezyskłada dyrbja so před wužiwanjom "
+#~ "wobkrućić, chibazo awtomatiske přijimanje je so wuraznje zmóžniło."
+
+#~ msgid "Reset"
+#~ msgstr "Reset"
+
 #~ msgid "Exactly one online Magnolie Notes phone must allow dial requests."
 #~ msgstr "Genau ein Online-Magnolie Notes-Telefon muss Wählanfragen zulassen."
 
@@ -7620,8 +7818,8 @@ msgstr "＋ Termin přidać"
 #~ msgid "Selected notifications"
 #~ msgstr "systemowa powěsć"
 
-msgid "Language & region"
-msgstr "Rěč a region"
+#~ msgid "Language & region"
+#~ msgstr "Rěč a region"
 
 #~ msgid "No valid subscription"
 #~ msgstr "Žadyn płaćiwy abonement"

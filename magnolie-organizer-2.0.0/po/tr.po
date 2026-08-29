@@ -6,7 +6,7 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: Magnolie Organizer 2.0.8\n"
+"Project-Id-Version: Magnolie Organizer 2.0.9\n"
 "Report-Msgid-Bugs-To: maik3531@gmail.com\n"
 "POT-Creation-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "PO-Revision-Date: 2026-08-08 09:24+0200\n"
@@ -234,6 +234,7 @@ msgid_plural "%(count)s public holidays"
 msgstr[0] "%(count)s resmî tatil"
 msgstr[1] "%(count)s resmî tatil"
 
+#, python-format
 msgid "%(count)s recurring appointment imported only once."
 msgid_plural "%(count)s recurring appointments imported only once."
 msgstr[0] "%(count)s yinelenen randevu yalnızca bir kez içe aktarıldı."
@@ -418,6 +419,9 @@ msgstr "%s: Evlilik yıldönümü yarın."
 
 msgid "(starts when you sign in)"
 msgstr "(oturum açınca başlar)"
+
+msgid "(unavailable)"
+msgstr "(kullanılamıyor)"
 
 msgid "(unnamed)"
 msgstr "(adsız)"
@@ -610,7 +614,9 @@ msgstr ""
 msgid ""
 "A system KDE Connect service is active. Configure file and clipboard sharing "
 "there."
-msgstr "Bir KDE Connect sistem hizmeti etkin. Dosya ve pano paylaşımını oradan yapılandırın."
+msgstr ""
+"Bir KDE Connect sistem hizmeti etkin. Dosya ve pano paylaşımını oradan "
+"yapılandırın."
 
 msgid "API level"
 msgstr "API level"
@@ -789,6 +795,9 @@ msgstr "Tüm eyaletler"
 
 msgid "Allow notifications despite password protection"
 msgstr "Parola korumasına rağmen bildirimlere izin ver"
+
+msgid "Allowed background functions"
+msgstr "İzin verilen arka plan işlevleri"
 
 msgid "Also disclose appointments marked as confidential"
 msgstr "Gizli olarak işaretlenmiş randevuları da paylaş"
@@ -1015,6 +1024,9 @@ msgstr "Son kaydedilen boy ve kiloya göre BKİ"
 
 msgid "BZ"
 msgstr "BZ"
+
+msgid "Background service"
+msgstr "Arka plan hizmeti"
 
 msgid "Backup failed."
 msgstr "Yedekleme başarısız oldu."
@@ -1351,6 +1363,9 @@ msgstr ""
 
 msgid "Checking Contributor Key …"
 msgstr "Contributor Key denetleniyor …"
+
+msgid "Checking background service …"
+msgstr "Arka plan hizmeti kontrol ediliyor …"
 
 msgid "Checking online accounts …"
 msgstr "Çevrimiçi hesaplar denetleniyor …"
@@ -2174,6 +2189,9 @@ msgstr "Etkinleştir"
 msgid "Enable Magnolie Notes phone connection"
 msgstr "Magnolie Notes telefon bağlantısını etkinleştirin"
 
+msgid "Enable background service"
+msgstr "Arka plan hizmetini etkinleştir"
+
 msgid "Enable cycle calendar"
 msgstr "Döngü takvimini etkinleştir"
 
@@ -2206,6 +2224,9 @@ msgstr "Atık toplama takvimini etkinleştir"
 
 msgid "Encrypted archive entries are not supported."
 msgstr "Şifrelenmiş arşiv girdileri desteklenmiyor."
+
+msgid "Encrypted data behavior"
+msgstr "Şifrelenmiş veri davranışı"
 
 msgid "Encrypting the data"
 msgstr "Veriler şifreleniyor"
@@ -2362,6 +2383,9 @@ msgstr "Kadın akraba"
 
 msgid "Fertile days"
 msgstr "Doğurgan günler"
+
+msgid "File"
+msgstr "Dosya"
 
 #, python-format
 msgid "File could not be read: %s"
@@ -2782,13 +2806,21 @@ msgstr "Atık toplamalarını dahil et"
 msgid "Incoming"
 msgstr "Gelen"
 
+msgid "Incoming KDE Connect file"
+msgstr "Gelen KDE Connect dosyası"
+
+msgid "Incoming KDE Connect files (always confirm)"
+msgstr "Gelen KDE Connect dosyaları (her zaman onay iste)"
+
 msgid "Incoming call"
 msgstr "Gelen arama"
 
 msgid ""
-"Incoming files and clipboard text are confirmed before use unless automatic "
-"acceptance is explicitly enabled."
-msgstr "Otomatik kabul açıkça etkinleştirilmedikçe gelen dosyalar ve pano metni kullanılmadan önce onaylanır."
+"Incoming files are always confirmed. Clipboard text is confirmed unless "
+"automatic acceptance is explicitly enabled."
+msgstr ""
+"Gelen dosyalar için her zaman onay istenir. Otomatik kabul açıkça "
+"etkinleştirilmedikçe pano metni için de onay istenir."
 
 msgid "Input"
 msgstr "Girdi"
@@ -2833,6 +2865,9 @@ msgstr "Meyve suyu"
 msgid "Jura"
 msgstr "Jura"
 
+msgid "KDE Connect device"
+msgstr "KDE Connect cihazı"
+
 msgid "KDE Connect for SMS"
 msgstr "SMS için KDE Connect"
 
@@ -2846,6 +2881,12 @@ msgstr ""
 "KDE Connect yalnızca SMS için kullanılır. Magnolienbaum'ye bağlanmıyor veya "
 "senkronize edilmiyor."
 
+msgid "KDE Connect pairing"
+msgstr "KDE Connect eşleştirmesi"
+
+msgid "KDE Connect pairing decisions"
+msgstr "KDE Connect eşleştirme kararları"
+
 msgid "KDE Connect pairing failed."
 msgstr "KDE Connect eşleştirmesi başarısız oldu."
 
@@ -2854,6 +2895,10 @@ msgstr "KDE Connect telefon eşleştirildi."
 
 msgid "KDE Connect port %(port)s"
 msgstr "KDE Connect bağlantı noktası %(port)s"
+
+msgid ""
+"KDE Connect receive settings could not be applied by the background service."
+msgstr "KDE Connect alma ayarları arka plan hizmeti tarafından uygulanamadı."
 
 msgid "KDE Connect reception failed."
 msgstr "KDE Connect ile alım başarısız oldu."
@@ -2928,6 +2973,9 @@ msgstr "Dinleyici etkin"
 msgid "Listener stopped"
 msgstr "Dinleyici durduruldu"
 
+msgid "Loading background settings"
+msgstr "Arka plan ayarları yükleniyor"
+
 msgid "Local calendar"
 msgstr "Yerel takvim"
 
@@ -2986,8 +3034,14 @@ msgstr ""
 "Magnolie Notes oturumu sonlandırdı. Uygulama ile Organizer aynı protokol "
 "sürümünü kullanmalıdır."
 
+msgid "Magnolie Notes pairing"
+msgstr "Magnolie Notes eşleştirmesi"
+
 msgid "Magnolie Notes phone connection"
 msgstr "Magnolie Notes telefon bağlantısı"
+
+msgid "Magnolie Notes phone pairing decisions"
+msgstr "Magnolie Notes telefon eşleştirme kararları"
 
 msgid ""
 "Magnolie Notes phones and KDE Connect phones are separate: the Android model "
@@ -2998,6 +3052,12 @@ msgstr ""
 
 msgid "Magnolie Notes version"
 msgstr "Magnolie Notes sürümü"
+
+msgid "Magnolie Organizer"
+msgstr "Magnolie Organizer"
+
+msgid "Magnolie Organizer Background Service"
+msgstr "Magnolie Organizer Arka Plan Hizmeti"
 
 msgid "Magnolie Organizer is not completely installed."
 msgstr "Magnolie Organizer tam olarak kurulmamış."
@@ -3029,6 +3089,14 @@ msgstr "Magnolie Organizer – kâğıt tasarımlı kişisel Organizer"
 msgid "Magnolie Organizer – reminders"
 msgstr "Magnolie Organizer – anımsatıcılar"
 
+#, python-format
+msgid "Magnolie background service could not start: %s"
+msgstr "Magnolie arka plan hizmeti başlatılamadı: %s"
+
+#, python-format
+msgid "Magnolie background service requires GLib: %s"
+msgstr "Magnolie arka plan hizmeti için GLib gereklidir: %s"
+
 msgid "Magnolie backup (*.json)"
 msgstr "Magnolie yedeği (*.json)"
 
@@ -3048,6 +3116,9 @@ msgstr "Manolya-Yıllık-Planlayıcı-%d.ods"
 
 msgid "Magnolienbaum"
 msgstr "Magnolienbaum"
+
+msgid "Magnolienbaum change offers"
+msgstr "Magnolienbaum değişiklik teklifleri"
 
 msgid "Magnolienbaum mailbox"
 msgstr "Magnolienbaum mailbox"
@@ -3205,6 +3276,12 @@ msgstr "Model"
 msgid "Monday"
 msgstr "Pazartesi"
 
+msgid "Monitor KDE Connect SMS and show notifications"
+msgstr "KDE Connect SMS'lerini izle ve bildirimleri göster"
+
+msgid "Monitor the Magnolie Notes phone connection"
+msgstr "Magnolie Notes telefon bağlantısını izle"
+
 msgid "Month"
 msgstr "Ay"
 
@@ -3272,6 +3349,12 @@ msgstr "İsim günü"
 msgid "Name of this branch"
 msgstr "Bu dalın adı"
 
+msgid "Native notifications available"
+msgstr "Yerel bildirimler kullanılabilir"
+
+msgid "Native notifications unavailable"
+msgstr "Yerel bildirimler kullanılamıyor"
+
 msgid "Netherlands"
 msgstr "Hollanda"
 
@@ -3335,6 +3418,9 @@ msgstr "Yeni sayfa"
 
 msgid "New password"
 msgstr "Yeni parola"
+
+msgid "New phone changes are available"
+msgstr "Telefondan yeni değişiklikler var"
 
 msgid "New task"
 msgstr "Yeni görev"
@@ -3646,6 +3732,12 @@ msgstr "Yeni bir şey bulunamadı."
 msgid "Notice: The connection to storage was not confirmed."
 msgstr "Uyarı: Depolama bağlantısı doğrulanmadı."
 
+msgid "Notification actions available"
+msgstr "Bildirim eylemleri kullanılabilir"
+
+msgid "Notification actions unavailable"
+msgstr "Bildirim eylemleri kullanılamıyor"
+
 msgid "Notification and sound"
 msgstr "Bildirim ve ses"
 
@@ -3677,6 +3769,9 @@ msgstr ""
 msgid "Notify me about incoming calls"
 msgstr "Gelen aramalarda beni bilgilendir"
 
+msgid "Notify, then unlock (recommended)"
+msgstr "Bildir, ardından kilidi aç (önerilir)"
+
 msgid "ODS"
 msgstr "ODS"
 
@@ -3691,6 +3786,9 @@ msgstr "Obwalden"
 
 msgid "Off"
 msgstr "Kapalı"
+
+msgid "Offer Personal Sync phone changes"
+msgstr "Telefondaki Personal Sync değişikliklerini sun"
 
 msgid "Offline"
 msgstr "Çevrimdışı"
@@ -3787,6 +3885,11 @@ msgid ""
 msgstr ""
 "Yalnızca HTTPS. Nextcloud’da Ayarlar, Güvenlik altından bir uygulama "
 "parolası oluşturun. Hesap parolanız hiçbir zaman kullanılmaz."
+
+msgid ""
+"Only Notify, then unlock is currently available. Keyring access and pausing "
+"while locked are not yet enforced by the background service."
+msgstr "Şu anda yalnızca “Bildir, ardından kilidi aç” kullanılabilir. Arka plan hizmeti anahtarlık erişimini ve kilitliyken duraklatmayı henüz uygulamamaktadır."
 
 msgid ""
 "Only one Magnolie Notes phone can be paired. Remove the existing phone "
@@ -3899,6 +4002,13 @@ msgstr "İşlem sona erdi (%s)."
 msgid "Option %s requires a language."
 msgstr "%s seçeneği bir dil gerektirir."
 
+msgid ""
+"Optional approved functions can continue while the Organizer window is "
+"closed."
+msgstr ""
+"İsteğe bağlı ve izin verilmiş işlevler Organizer penceresi kapalıyken "
+"çalışmaya devam edebilir."
+
 msgid "Organic waste"
 msgstr "Organik atık"
 
@@ -3969,7 +4079,9 @@ msgid "Pair KDE Connect phone"
 msgstr "KDE Connect telefonu eşleştirin"
 
 msgid "Pair a KDE Connect phone before enabling receive functions."
-msgstr "Alma işlevlerini etkinleştirmeden önce bir telefonu KDE Connect ile eşleştirin."
+msgstr ""
+"Alma işlevlerini etkinleştirmeden önce bir telefonu KDE Connect ile "
+"eşleştirin."
 
 msgid "Pairing KDE Connect"
 msgstr "KDE Connect'yi eşleştirme"
@@ -4016,6 +4128,9 @@ msgstr "Yapıştır"
 
 msgid "Patch"
 msgstr "Flaster"
+
+msgid "Pause while data is locked"
+msgstr "Veriler kilitliyken duraklat"
 
 msgid "Pay invoice"
 msgstr "Faturayı öde"
@@ -4084,6 +4199,9 @@ msgstr "Phone battery"
 
 msgid "Phone call"
 msgstr "Telefon görüşmesi"
+
+msgid "Phone notification"
+msgstr "Telefon bildirimi"
 
 msgid "Phone number"
 msgstr "Telefon numarası"
@@ -4514,9 +4632,6 @@ msgstr ""
 "Mevcut bir BlueZ sistem eşleştirmesi gerektirir. Yalnızca veri, HFP sesi "
 "yoktur."
 
-msgid "Reset"
-msgstr "Reset"
-
 msgid "Residual waste"
 msgstr "Artık atık"
 
@@ -4541,6 +4656,9 @@ msgstr "Yedeği geri yükle …"
 
 msgid "Restore completely"
 msgstr "Tamamen geri yükle"
+
+msgid "Restore defaults"
+msgstr "Varsayılan ayarları geri yükle"
 
 msgid "Restore failed."
 msgstr "Geri yükleme başarısız oldu."
@@ -4609,6 +4727,9 @@ msgstr "Rota"
 msgid "Route: calculate directions immediately"
 msgstr "Rota: yol tarifini hemen hesapla"
 
+msgid "Run approved Magnolie background functions"
+msgstr "İzin verilen Magnolie arka plan işlevlerini çalıştır"
+
 #, python-format
 msgid "Run failed: %s"
 msgstr "Çalıştırma başarısız oldu: %s"
@@ -4631,6 +4752,10 @@ msgstr "SMS ayrıntıları"
 #, python-format
 msgid "SMS from %(name)s"
 msgstr "%(name)s kişisinden SMS"
+
+#, python-format
+msgid "SMS from %s"
+msgstr "%s kişisinden SMS"
 
 msgid "SMS history"
 msgstr "SMS geçmişi"
@@ -4709,6 +4834,9 @@ msgstr "Kaydedildi ✓ %(time)s"
 
 msgid "Saved."
 msgstr "Saved."
+
+msgid "Saving background settings"
+msgstr "Arka plan ayarları kaydediliyor"
 
 msgid "Saving failed!"
 msgstr "Kaydetme başarısız!"
@@ -4876,6 +5004,12 @@ msgstr "Server address"
 msgid "Server address and user name are required."
 msgstr "Sunucu adresi ve kullanıcı adı gereklidir."
 
+msgid "Service running"
+msgstr "Hizmet çalışıyor"
+
+msgid "Service stopped"
+msgstr "Hizmet durduruldu"
+
 msgid "Set varying doses by weekday"
 msgstr "Haftanın gününe göre değişen dozlar ayarla"
 
@@ -4932,11 +5066,17 @@ msgstr "Kısa etkili insülin"
 msgid "Show Health after Planner"
 msgstr "Sağlık bölümünü Planlayıcı'dan sonra göster"
 
+msgid "Show Magnolie Notes SMS notifications"
+msgstr "Magnolie Notes SMS bildirimlerini göster"
+
 msgid "Show all"
 msgstr "Tümünü göster"
 
 msgid "Show calendar button in date fields"
 msgstr "Tarih alanlarında takvim düğmesini göster"
+
+msgid "Show incoming call notifications"
+msgstr "Gelen arama bildirimlerini göster"
 
 msgid "Show log"
 msgstr "Günlüğü göster"
@@ -4949,6 +5089,9 @@ msgstr "Eşleştirme QR kodunu göster"
 
 msgid "Show preview"
 msgstr "Önizlemeyi göster"
+
+msgid "Show selected app notifications"
+msgstr "Seçili uygulama bildirimlerini göster"
 
 msgid "Show selected notifications (read only)"
 msgstr "Seçili bildirimleri göster (salt okunur)"
@@ -5066,6 +5209,15 @@ msgstr "Sprey"
 
 msgid "St. Gallen"
 msgstr "St. Gallen"
+
+msgid "Start Organizer"
+msgstr "Organizer'ı başlat"
+
+msgid "Start Organizer and synchronize."
+msgstr "Organizer'ı başlat ve eşitle."
+
+msgid "Start at login"
+msgstr "Oturum açıldığında başlat"
 
 msgid "Start automatically when signing in"
 msgstr "Oturum açarken otomatik başlat"
@@ -5187,6 +5339,15 @@ msgstr "UFW yapılandırması için sistem kimlik doğrulaması kullanılamıyor
 
 msgid "System default"
 msgstr "Sistem varsayılanı"
+
+msgid "System keyring and pause modes cannot be enabled yet."
+msgstr "Sistem anahtarlığı ve duraklatma kipleri henüz etkinleştirilemez."
+
+msgid "System keyring available"
+msgstr "Sistem anahtar zinciri kullanılabilir"
+
+msgid "System keyring unavailable"
+msgstr "Sistem anahtar zinciri kullanılamıyor"
 
 msgid "System setting"
 msgstr "Sistem ayarı"
@@ -5511,6 +5672,15 @@ msgid ""
 msgstr ""
 "Arka plan anımsatıcı hizmeti ayrı anımsatıcı verilerini okuyabildiği için "
 "Organizer kapalıyken de çalışır."
+
+msgid "The background service could not be started."
+msgstr "Arka plan hizmeti başlatılamadı."
+
+msgid "The background service is available only in the installed application."
+msgstr "Arka plan hizmeti yalnızca yüklü uygulamada kullanılabilir."
+
+msgid "The background settings could not be saved."
+msgstr "Arka plan ayarları kaydedilemedi."
 
 msgid "The backup could not be created."
 msgstr "Yedek oluşturulamadı."
@@ -6639,6 +6809,9 @@ msgstr ""
 "Yalnızca bir sağlık uzmanı tarafından reçete edilen veya onaylanan "
 "programları kullanın."
 
+msgid "Use system keyring"
+msgstr "Sistem anahtar zincirini kullan"
+
 msgid ""
 "Use the arrows to arrange groups and notebooks, or use the selection to move "
 "a notebook to another group."
@@ -7451,6 +7624,31 @@ msgstr[1] "… ayrıca yazdırılacak %(count)s öğe daha."
 msgid "＋ Add appointment"
 msgstr "＋ Randevu ekle"
 
+#~ msgid ""
+#~ "Notify, then unlock asks you to open and unlock the Organizer. System "
+#~ "keyring uses an available desktop keyring without storing the password in "
+#~ "Organizer data. Pause while locked waits without accessing encrypted data."
+#~ msgstr ""
+#~ "“Bildir, ardından kilidi aç” seçeneği Organizer'ı açıp kilidini "
+#~ "kaldırmanızı ister. Sistem anahtar zinciri, parolayı Organizer "
+#~ "verilerinde saklamadan kullanılabilir bir masaüstü anahtar zincirini "
+#~ "kullanır. “Veriler kilitliyken duraklat” seçeneği, şifrelenmiş verilere "
+#~ "erişmeden bekler."
+
+#~ msgid "System keyring is unavailable; this choice cannot be enabled."
+#~ msgstr ""
+#~ "Sistem anahtar zinciri kullanılamıyor; bu seçenek etkinleştirilemez."
+
+#~ msgid ""
+#~ "Incoming files and clipboard text are confirmed before use unless "
+#~ "automatic acceptance is explicitly enabled."
+#~ msgstr ""
+#~ "Otomatik kabul açıkça etkinleştirilmedikçe gelen dosyalar ve pano metni "
+#~ "kullanılmadan önce onaylanır."
+
+#~ msgid "Reset"
+#~ msgstr "Reset"
+
 #~ msgid "Exactly one online Magnolie Notes phone must allow dial requests."
 #~ msgstr ""
 #~ "Tam olarak bir çevrimiçi Magnolie Notes telefonun arama isteklerine izin "
@@ -7465,8 +7663,8 @@ msgstr "＋ Randevu ekle"
 #~ msgid "Selected notifications"
 #~ msgstr "Seçili bildirimler"
 
-msgid "Language & region"
-msgstr "Dil ve bölge"
+#~ msgid "Language & region"
+#~ msgstr "Dil ve bölge"
 
 #~ msgid "No valid subscription"
 #~ msgstr "Geçerli abonelik yok"

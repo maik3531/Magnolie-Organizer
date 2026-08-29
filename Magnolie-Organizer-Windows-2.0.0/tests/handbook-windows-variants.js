@@ -6,14 +6,20 @@ const fs = require("node:fs");
 const path = require("node:path");
 const vm = require("node:vm");
 const { JSDOM, ResourceLoader, VirtualConsole } = require("jsdom");
+const { canonicalPageIds, selectHandbookWeb } = require("./handbook-source");
 
 const root = path.resolve(__dirname, "..");
+const handbookSource = selectHandbookWeb(root, ["platform.js", "inhalt.js", "i18n/de.js"]);
+const selectedHandbook = handbookSource.directory;
+const expectedPageIds = canonicalPageIds(selectedHandbook);
 const handbook = [process.env.MAGNOLIE_HANDBUCH_WEB,
   path.resolve(root, "..", "magnolie-handbuch-stamm", "web"),
   path.join(root, "shared", "magnolie-handbuch-stamm", "web")]
   .filter(Boolean).find((candidate) => fs.existsSync(path.join(candidate, "platform.js")) &&
     fs.existsSync(path.join(candidate, "i18n", "de.js")));
 assert.ok(handbook, "Gemeinsame Handbuchquelle fehlt");
+assert.strictEqual(path.resolve(handbook), selectedHandbook,
+  "Veraltete Handbuch-Ausweichquelle wurde ausgewählt");
 const platformPath = path.join(handbook, "platform.js");
 const platformSource = fs.readFileSync(platformPath, "utf8");
 const version = fs.readFileSync(path.join(root, "Directory.Build.props"), "utf8")
@@ -206,7 +212,8 @@ async function loadHandbook(locale, source) {
     assert.strictEqual(window.document.documentElement.lang, locale, `HTML-Locale fehlt für ${locale}`);
     assert.ok(window.Handbuch, `Handbuch-UI wurde für ${locale} nicht initialisiert`);
     const pages = window.Handbuch.seiten();
-    assert.strictEqual(pages.length, 154, `Gemeinsame Seitenmenge fehlt für ${locale}`);
+    assert.deepStrictEqual(pages.map((page) => page.id), expectedPageIds,
+      `Gemeinsame Seitenmenge aus ${handbookSource.label} fehlt für ${locale}`);
     assert.strictEqual(pages.find((page) => page.id === "welcome").titel,
       window.MagnolieI18n.gettext("Welcome"), `Allgemeiner Katalog wurde für ${locale} nicht angewendet`);
     for (const pageId of pageIds.filter((id) => id !== "appearance-sound-and-anniversaries")) {
@@ -249,7 +256,7 @@ async function loadHandbook(locale, source) {
     dom.window.close();
   }
 
-  console.log(`HANDBOOK WINDOWS DOM VARIANTS PASSED (${pageIds.length} pages, ${locales.length} locales)`);
+  console.log(`HANDBOOK WINDOWS DOM VARIANTS PASSED (${pageIds.length} pages, ${locales.length} locales; source: ${handbookSource.label})`);
 })().catch((error) => {
   console.error(error);
   process.exitCode = 1;

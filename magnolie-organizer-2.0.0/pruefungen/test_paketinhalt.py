@@ -13,7 +13,7 @@ sys.path.insert(0, str(ROOT / "werkzeuge"))
 from png_pruefen import pruefen as png_pruefen
 WINDOWS = WORKSPACE / "Magnolie-Organizer-Windows-2.0.0"
 HANDBOOK = WORKSPACE / "magnolie-handbuch-stamm"
-VERSION = "2.0.8"
+VERSION = "2.0.9"
 MANIFEST_VERSION = VERSION
 INTERNAL_NOTE = re.compile(
     r"(REVIEW|ENTWURF|OFFENE[-_ ]?PUNKTE|ANALYSE|PLAN|AUDIT).*\.md$", re.I)
@@ -133,11 +133,20 @@ web_style = text(ROOT / "web/stil.css")
 assert '"blaettern-vor", "blaettern-zurueck"' in web_script
 assert '#seiten.blaettern-vor .seite.rechts' in web_style
 assert 'rotateY(-62deg)' in web_style and 'rotateY(62deg)' in web_style
+assert 'animation: puls' not in web_style
+assert '@keyframes puls' not in web_style
 assert 'bin/magnolie_personal_sync.py" "$APPDIR/usr/bin/magnolie_personal_sync.py"' in appimage_builder
 assert 'bin/magnolie_nextcloud.py" "$APPDIR/usr/bin/magnolie_nextcloud.py"' in appimage_builder
 assert ': "${WEBKIT_DISABLE_DMABUF_RENDERER:=1}"' in appimage_builder
 assert "WEBKIT_DISABLE_COMPOSITING_MODE" not in appimage_builder
 assert ': "${GDK_BACKEND:=x11}"' in appimage_builder
+assert 'export GTK_DATA_PREFIX="$APPDIR/usr"' in appimage_builder
+assert 'export FONTCONFIG_FILE="$FONTCONFIG_PATH/fonts.conf"' in appimage_builder
+fontconfig = text(ROOT / "werkzeuge/appimage-fonts.conf")
+assert '<include' not in fontconfig
+for font_dir in ('<dir>/usr/share/fonts</dir>', '<dir>/usr/local/share/fonts</dir>',
+                 '<dir prefix="xdg">fonts</dir>', '<dir>~/.fonts</dir>'):
+    assert font_dir in fontconfig
 for binary_builder in (appimage_builder, rpm_builder, text(ROOT / "debian/rules")):
     assert "MAGNOLIE_CONTRIBUTOR_HASH" in binary_builder
     assert "tr A-F a-f" in binary_builder
@@ -240,4 +249,4 @@ def test_statische_paketpruefung():
     assert True
 
 
-print("Paketinhalt und Linux-Version 2.0.8: ok")
+print("Paketinhalt und Linux-Version 2.0.9: ok")

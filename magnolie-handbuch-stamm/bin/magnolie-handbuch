@@ -22,12 +22,16 @@ import locale
 import subprocess
 
 PROGRAMM_NAME = "magnolie-handbuch"
-PROGRAMM_FASSUNG = "2.0.8"
+PROGRAMM_FASSUNG = "2.0.9"
 TEXT_DOMAIN = "magnolie-handbuch"
 UNTERSTUETZTE_SPRACHEN = (
     "ar", "be", "cs", "da", "de", "es", "fr", "hi", "hsb", "it",
     "ja", "nb", "nl", "pl", "pt", "ru", "tr", "uk", "zh_CN",
 )
+
+if __name__ == "__main__":
+    from magnolie_crash import install as _crash_reporting_install
+    _crash_reporting_install(PROGRAMM_NAME, PROGRAMM_FASSUNG, "handbook")
 
 
 def normalisiere_sprache(wert, system_erlaubt=True):

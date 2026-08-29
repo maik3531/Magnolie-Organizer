@@ -6,7 +6,7 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: Magnolie Organizer 2.0.8\n"
+"Project-Id-Version: Magnolie Organizer 2.0.9\n"
 "Report-Msgid-Bugs-To: maik3531@gmail.com\n"
 "POT-Creation-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "PO-Revision-Date: 2026-08-08 09:24+0200\n"
@@ -332,6 +332,7 @@ msgstr[3] "عدد العطلات الرسمية: %(count)s"
 msgstr[4] "عدد العطلات الرسمية: %(count)s"
 msgstr[5] "عدد العطلات الرسمية: %(count)s"
 
+#, python-format
 msgid "%(count)s recurring appointment imported only once."
 msgid_plural "%(count)s recurring appointments imported only once."
 msgstr[0] "مواعيد متكررة تم استيرادها مرة واحدة فقط: %(count)s."
@@ -571,6 +572,9 @@ msgstr "%s: ذكرى الزواج غدًا."
 
 msgid "(starts when you sign in)"
 msgstr "(يبدأ عند تسجيل الدخول)"
+
+msgid "(unavailable)"
+msgstr "(غير متاح)"
 
 msgid "(unnamed)"
 msgstr "(بلا اسم)"
@@ -936,6 +940,9 @@ msgstr "كل الولايات"
 msgid "Allow notifications despite password protection"
 msgstr "السماح بالإشعارات رغم الحماية بكلمة مرور"
 
+msgid "Allowed background functions"
+msgstr "وظائف الخلفية المسموح بها"
+
 msgid "Also disclose appointments marked as confidential"
 msgstr "إظهار المواعيد المعلّمة على أنها سرية أيضًا"
 
@@ -1158,6 +1165,9 @@ msgstr "مؤشر كتلة الجسم وفق آخر طول ووزن محفوظي�
 
 msgid "BZ"
 msgstr "BZ"
+
+msgid "Background service"
+msgstr "خدمة الخلفية"
 
 msgid "Backup failed."
 msgstr "فشل النسخ الاحتياطي."
@@ -1489,6 +1499,9 @@ msgstr ""
 
 msgid "Checking Contributor Key …"
 msgstr "جارٍ التحقق من Contributor Key …"
+
+msgid "Checking background service …"
+msgstr "جارٍ التحقق من خدمة الخلفية…"
 
 msgid "Checking online accounts …"
 msgstr "جارٍ التحقق من الحسابات عبر الإنترنت …"
@@ -2305,6 +2318,9 @@ msgstr "تمكين"
 msgid "Enable Magnolie Notes phone connection"
 msgstr "تمكين اتصال الهاتف Magnolie Notes"
 
+msgid "Enable background service"
+msgstr "تمكين خدمة الخلفية"
+
 msgid "Enable cycle calendar"
 msgstr "تمكين تقويم الدورة"
 
@@ -2336,6 +2352,9 @@ msgstr "تمكين تقويم جمع النفايات"
 
 msgid "Encrypted archive entries are not supported."
 msgstr "إدخالات الأرشيف المشفرة غير مدعومة."
+
+msgid "Encrypted data behavior"
+msgstr "كيفية التعامل مع البيانات المشفرة"
 
 msgid "Encrypting the data"
 msgstr "جارٍ تشفير البيانات"
@@ -2488,6 +2507,9 @@ msgstr "قريبة"
 
 msgid "Fertile days"
 msgstr "أيام الخصوبة"
+
+msgid "File"
+msgstr "ملف"
 
 #, python-format
 msgid "File could not be read: %s"
@@ -2905,13 +2927,21 @@ msgstr "تضمين جمع النفايات"
 msgid "Incoming"
 msgstr "وارد"
 
+msgid "Incoming KDE Connect file"
+msgstr "ملف وارد عبر KDE Connect"
+
+msgid "Incoming KDE Connect files (always confirm)"
+msgstr "الملفات الواردة عبر KDE Connect (التأكيد دائمًا)"
+
 msgid "Incoming call"
 msgstr "مكالمة واردة"
 
 msgid ""
-"Incoming files and clipboard text are confirmed before use unless automatic "
-"acceptance is explicitly enabled."
-msgstr "تُطلب الموافقة على الملفات الواردة ونص الحافظة قبل استخدامها، ما لم يُفعّل القبول التلقائي صراحةً."
+"Incoming files are always confirmed. Clipboard text is confirmed unless "
+"automatic acceptance is explicitly enabled."
+msgstr ""
+"يُطلب دائمًا تأكيد الملفات الواردة. ويُطلب تأكيد نص الحافظة ما لم يُمكَّن القبول "
+"التلقائي صراحةً."
 
 msgid "Input"
 msgstr "إدخال"
@@ -2956,6 +2986,9 @@ msgstr "عصير"
 msgid "Jura"
 msgstr "جورا"
 
+msgid "KDE Connect device"
+msgstr "جهاز KDE Connect"
+
 msgid "KDE Connect for SMS"
 msgstr "KDE Connect لـ SMS"
 
@@ -2968,6 +3001,12 @@ msgid ""
 msgstr ""
 "يتم استخدام KDE Connect فقط لـ SMS. لا يقوم بتوصيل أو مزامنة Magnolienbaum."
 
+msgid "KDE Connect pairing"
+msgstr "اقتران KDE Connect"
+
+msgid "KDE Connect pairing decisions"
+msgstr "قرارات اقتران KDE Connect"
+
 msgid "KDE Connect pairing failed."
 msgstr "فشل الاقتران KDE Connect."
 
@@ -2976,6 +3015,10 @@ msgstr "تم إقران الهاتف KDE Connect."
 
 msgid "KDE Connect port %(port)s"
 msgstr "منفذ KDE Connect %(port)s"
+
+msgid ""
+"KDE Connect receive settings could not be applied by the background service."
+msgstr "تعذر على خدمة الخلفية تطبيق إعدادات الاستلام في KDE Connect."
 
 msgid "KDE Connect reception failed."
 msgstr "فشل الاستقبال عبر KDE Connect."
@@ -3050,6 +3093,9 @@ msgstr "مبدئي"
 msgid "Listener stopped"
 msgstr "توقف المستمع"
 
+msgid "Loading background settings"
+msgstr "جارٍ تحميل إعدادات الخلفية"
+
 msgid "Local calendar"
 msgstr "التقويم المحلي"
 
@@ -3108,8 +3154,14 @@ msgstr ""
 "أنهى Magnolie Notes الجلسة. يجب أن يستخدم التطبيق وOrganizer إصدار "
 "البروتوكول نفسه."
 
+msgid "Magnolie Notes pairing"
+msgstr "اقتران Magnolie Notes"
+
 msgid "Magnolie Notes phone connection"
 msgstr "اتصال الهاتف Magnolie Notes"
+
+msgid "Magnolie Notes phone pairing decisions"
+msgstr "قرارات اقتران هاتف Magnolie Notes"
 
 msgid ""
 "Magnolie Notes phones and KDE Connect phones are separate: the Android model "
@@ -3120,6 +3172,12 @@ msgstr ""
 
 msgid "Magnolie Notes version"
 msgstr "إصدار Magnolie Notes"
+
+msgid "Magnolie Organizer"
+msgstr "Magnolie Organizer"
+
+msgid "Magnolie Organizer Background Service"
+msgstr "خدمة الخلفية لـ Magnolie Organizer"
 
 msgid "Magnolie Organizer is not completely installed."
 msgstr "Magnolie Organizer غير مثبت بالكامل."
@@ -3151,6 +3209,14 @@ msgstr "Magnolie Organizer – منظم شخصي بتصميم ورقي"
 msgid "Magnolie Organizer – reminders"
 msgstr "Magnolie Organizer – التذكيرات"
 
+#, python-format
+msgid "Magnolie background service could not start: %s"
+msgstr "تعذر بدء خدمة خلفية Magnolie: %s"
+
+#, python-format
+msgid "Magnolie background service requires GLib: %s"
+msgstr "تتطلب خدمة خلفية Magnolie مكتبة GLib: %s"
+
 msgid "Magnolie backup (*.json)"
 msgstr "نسخة Magnolie الاحتياطية (*.json)"
 
@@ -3170,6 +3236,9 @@ msgstr "%d.ods-ﺎﻴﻟﻮﻨﻐﻤﻟﺍ-ﺔﻨﺳ-ﻂﻄﺨﻣ"
 
 msgid "Magnolienbaum"
 msgstr "Magnolienbaum"
+
+msgid "Magnolienbaum change offers"
+msgstr "عروض تغييرات Magnolienbaum"
 
 msgid "Magnolienbaum mailbox"
 msgstr "Magnolienbaum mailbox"
@@ -3325,6 +3394,12 @@ msgstr "نموذج"
 msgid "Monday"
 msgstr "الاثنين"
 
+msgid "Monitor KDE Connect SMS and show notifications"
+msgstr "مراقبة رسائل SMS في KDE Connect وإظهار الإشعارات"
+
+msgid "Monitor the Magnolie Notes phone connection"
+msgstr "مراقبة اتصال هاتف Magnolie Notes"
+
 msgid "Month"
 msgstr "الشهر"
 
@@ -3392,6 +3467,12 @@ msgstr "عيد الاسم"
 msgid "Name of this branch"
 msgstr "اسم هذا الفرع"
 
+msgid "Native notifications available"
+msgstr "الإشعارات الأصلية متاحة"
+
+msgid "Native notifications unavailable"
+msgstr "الإشعارات الأصلية غير متاحة"
+
 msgid "Netherlands"
 msgstr "هولندا"
 
@@ -3455,6 +3536,9 @@ msgstr "صفحة جديدة"
 
 msgid "New password"
 msgstr "كلمة مرور جديدة"
+
+msgid "New phone changes are available"
+msgstr "تتوفر تغييرات جديدة من الهاتف"
 
 msgid "New task"
 msgstr "مهمة جديدة"
@@ -3764,6 +3848,12 @@ msgstr "لم يُعثر على شيء جديد."
 msgid "Notice: The connection to storage was not confirmed."
 msgstr "تنبيه: لم يتم تأكيد الاتصال بالتخزين."
 
+msgid "Notification actions available"
+msgstr "إجراءات الإشعارات متاحة"
+
+msgid "Notification actions unavailable"
+msgstr "إجراءات الإشعارات غير متاحة"
+
 msgid "Notification and sound"
 msgstr "الإشعار والصوت"
 
@@ -3793,6 +3883,9 @@ msgstr "الإشعارات متاحة فقط في التطبيق المثبّت.
 msgid "Notify me about incoming calls"
 msgstr "إعلامي بالمكالمات الواردة"
 
+msgid "Notify, then unlock (recommended)"
+msgstr "إرسال إشعار، ثم فتح القفل (موصى به)"
+
 msgid "ODS"
 msgstr "ODS"
 
@@ -3807,6 +3900,9 @@ msgstr "أوبفالدن"
 
 msgid "Off"
 msgstr "إيقاف"
+
+msgid "Offer Personal Sync phone changes"
+msgstr "عرض تغييرات الهاتف في Personal Sync"
 
 msgid "Offline"
 msgstr "عبر الإنترنت"
@@ -3933,6 +4029,11 @@ msgstr ""
 "تُستخدم كلمة مرور حسابك أبدًا."
 
 msgid ""
+"Only Notify, then unlock is currently available. Keyring access and pausing "
+"while locked are not yet enforced by the background service."
+msgstr "لا يتوفر حاليًا سوى خيار «الإشعار، ثم إلغاء القفل». لم تنفّذ خدمة الخلفية بعد إمكانية الوصول إلى حلقة المفاتيح والإيقاف المؤقت أثناء القفل."
+
+msgid ""
 "Only one Magnolie Notes phone can be paired. Remove the existing phone "
 "before changing devices."
 msgstr ""
@@ -4041,6 +4142,11 @@ msgstr "انتهت العملية (%s)."
 #, python-format
 msgid "Option %s requires a language."
 msgstr "يتطلب الخيار %s تحديد لغة."
+
+msgid ""
+"Optional approved functions can continue while the Organizer window is "
+"closed."
+msgstr "يمكن أن تستمر الوظائف الاختيارية المعتمدة أثناء إغلاق نافذة Organizer."
 
 msgid "Organic waste"
 msgstr "نفايات عضوية"
@@ -4160,6 +4266,9 @@ msgstr "لصق"
 msgid "Patch"
 msgstr "لصقة"
 
+msgid "Pause while data is locked"
+msgstr "الإيقاف المؤقت أثناء قفل البيانات"
+
 msgid "Pay invoice"
 msgstr "دفع الفاتورة"
 
@@ -4243,6 +4352,9 @@ msgstr "Phone battery"
 
 msgid "Phone call"
 msgstr "مكالمة هاتفية"
+
+msgid "Phone notification"
+msgstr "إشعار الهاتف"
 
 msgid "Phone number"
 msgstr "أرقام الهاتف"
@@ -4659,9 +4771,6 @@ msgstr "طلب حالة الجهاز"
 msgid "Requires existing BlueZ system pairing. Data only, no HFP audio."
 msgstr "يتطلب الاقتران بنظام BlueZ الحالي. البيانات فقط، لا يوجد صوت HFP."
 
-msgid "Reset"
-msgstr "Reset"
-
 msgid "Residual waste"
 msgstr "نفايات متبقية"
 
@@ -4686,6 +4795,9 @@ msgstr "استعادة نسخة احتياطية …"
 
 msgid "Restore completely"
 msgstr "استعادة بالكامل"
+
+msgid "Restore defaults"
+msgstr "استعادة الإعدادات الافتراضية"
 
 msgid "Restore failed."
 msgstr "فشل الاستعادة."
@@ -4754,6 +4866,9 @@ msgstr "المسار"
 msgid "Route: calculate directions immediately"
 msgstr "المسار: حساب الاتجاهات فورًا"
 
+msgid "Run approved Magnolie background functions"
+msgstr "تشغيل وظائف Magnolie المعتمدة في الخلفية"
+
 #, python-format
 msgid "Run failed: %s"
 msgstr "فشل التشغيل: %s"
@@ -4774,6 +4889,10 @@ msgstr "تفاصيل SMS"
 #, python-format
 msgid "SMS from %(name)s"
 msgstr "SMS من %(name)s"
+
+#, python-format
+msgid "SMS from %s"
+msgstr "رسالة SMS من %s"
 
 msgid "SMS history"
 msgstr "تاريخ SMS"
@@ -4856,6 +4975,9 @@ msgstr "تم الحفظ ✓ %(time)s"
 
 msgid "Saved."
 msgstr "Saved."
+
+msgid "Saving background settings"
+msgstr "جارٍ حفظ إعدادات الخلفية"
 
 msgid "Saving failed!"
 msgstr "فشل الحفظ!"
@@ -5023,6 +5145,12 @@ msgstr "Server address"
 msgid "Server address and user name are required."
 msgstr "عنوان الخادم واسم المستخدم مطلوبان."
 
+msgid "Service running"
+msgstr "الخدمة قيد التشغيل"
+
+msgid "Service stopped"
+msgstr "الخدمة متوقفة"
+
 msgid "Set varying doses by weekday"
 msgstr "تعيين جرعات متفاوتة حسب يوم الأسبوع"
 
@@ -5078,11 +5206,17 @@ msgstr "إنسولين قصير المفعول"
 msgid "Show Health after Planner"
 msgstr "إظهار الصحة بعد المخطِّط"
 
+msgid "Show Magnolie Notes SMS notifications"
+msgstr "إظهار إشعارات رسائل SMS في Magnolie Notes"
+
 msgid "Show all"
 msgstr "إظهار الكل"
 
 msgid "Show calendar button in date fields"
 msgstr "إظهار زر التقويم في حقول التاريخ"
+
+msgid "Show incoming call notifications"
+msgstr "إظهار إشعارات المكالمات الواردة"
 
 msgid "Show log"
 msgstr "إظهار السجل"
@@ -5095,6 +5229,9 @@ msgstr "ﻥﺍﺮﺘﻗﻻ﻿ﺎﺑ ﺹﺎﺨﻟﺍ QR ﺰﻣﺭ ﺭﺎﻬﻇﺇ
 
 msgid "Show preview"
 msgstr "إظهار المعاينة"
+
+msgid "Show selected app notifications"
+msgstr "إظهار إشعارات التطبيقات المحددة"
 
 msgid "Show selected notifications (read only)"
 msgstr "إشعار على الشاشة فقط"
@@ -5210,6 +5347,15 @@ msgstr "بخاخ"
 
 msgid "St. Gallen"
 msgstr "سانت غالن"
+
+msgid "Start Organizer"
+msgstr "تشغيل Organizer"
+
+msgid "Start Organizer and synchronize."
+msgstr "تشغيل Organizer والمزامنة."
+
+msgid "Start at login"
+msgstr "التشغيل عند تسجيل الدخول"
 
 msgid "Start automatically when signing in"
 msgstr "البدء تلقائيًا عند تسجيل الدخول"
@@ -5331,6 +5477,15 @@ msgstr "مصادقة النظام اللازمة لإعداد UFW غير متا�
 
 msgid "System default"
 msgstr "الافتراضي للنظام"
+
+msgid "System keyring and pause modes cannot be enabled yet."
+msgstr "لا يمكن تمكين حلقة مفاتيح النظام وأوضاع الإيقاف المؤقت بعد."
+
+msgid "System keyring available"
+msgstr "حلقة مفاتيح النظام متاحة"
+
+msgid "System keyring unavailable"
+msgstr "حلقة مفاتيح النظام غير متاحة"
 
 msgid "System setting"
 msgstr "إعداد النظام"
@@ -5657,6 +5812,15 @@ msgid ""
 msgstr ""
 "يمكن لخدمة التذكير في الخلفية قراءة بيانات التذكير المنفصلة، ولذلك تعمل حتى "
 "عندما يكون المنظّم مغلقًا."
+
+msgid "The background service could not be started."
+msgstr "تعذر بدء خدمة الخلفية."
+
+msgid "The background service is available only in the installed application."
+msgstr "لا تتوفر خدمة الخلفية إلا في التطبيق المثبّت."
+
+msgid "The background settings could not be saved."
+msgstr "تعذر حفظ إعدادات الخلفية."
 
 msgid "The backup could not be created."
 msgstr "تعذر إنشاء النسخة الاحتياطية."
@@ -6771,6 +6935,9 @@ msgid ""
 "Use only schedules prescribed or confirmed by a healthcare professional."
 msgstr "استخدم فقط الجداول العلاجية التي يصفها أو يؤكدها اختصاصي رعاية صحية."
 
+msgid "Use system keyring"
+msgstr "استخدام حلقة مفاتيح النظام"
+
 msgid ""
 "Use the arrows to arrange groups and notebooks, or use the selection to move "
 "a notebook to another group."
@@ -7612,6 +7779,29 @@ msgstr[5] "… وعناصر إضافية ستُطبع أيضًا؛ العدد: %
 msgid "＋ Add appointment"
 msgstr "＋ إضافة موعد"
 
+#~ msgid ""
+#~ "Notify, then unlock asks you to open and unlock the Organizer. System "
+#~ "keyring uses an available desktop keyring without storing the password in "
+#~ "Organizer data. Pause while locked waits without accessing encrypted data."
+#~ msgstr ""
+#~ "يطلب خيار «إرسال إشعار، ثم فتح القفل» منك فتح Organizer وإلغاء قفله. "
+#~ "يستخدم خيار حلقة مفاتيح النظام حلقة مفاتيح متاحة على سطح المكتب من دون "
+#~ "تخزين كلمة المرور في بيانات Organizer. وينتظر خيار الإيقاف المؤقت أثناء "
+#~ "القفل من دون الوصول إلى البيانات المشفرة."
+
+#~ msgid "System keyring is unavailable; this choice cannot be enabled."
+#~ msgstr "حلقة مفاتيح النظام غير متاحة؛ لا يمكن تمكين هذا الخيار."
+
+#~ msgid ""
+#~ "Incoming files and clipboard text are confirmed before use unless "
+#~ "automatic acceptance is explicitly enabled."
+#~ msgstr ""
+#~ "تُطلب الموافقة على الملفات الواردة ونص الحافظة قبل استخدامها، ما لم يُفعّل "
+#~ "القبول التلقائي صراحةً."
+
+#~ msgid "Reset"
+#~ msgstr "Reset"
+
 #~ msgid "Exactly one online Magnolie Notes phone must allow dial requests."
 #~ msgstr "يجب أن يسمح هاتف Magnolie Notes واحد عبر الإنترنت بطلبات الاتصال."
 
@@ -7624,8 +7814,8 @@ msgstr "＋ إضافة موعد"
 #~ msgid "Selected notifications"
 #~ msgstr "إشعار النظام"
 
-msgid "Language & region"
-msgstr "اللغة والمنطقة"
+#~ msgid "Language & region"
+#~ msgstr "اللغة والمنطقة"
 
 #~ msgid "No valid subscription"
 #~ msgstr "لا يوجد اشتراك صالح"

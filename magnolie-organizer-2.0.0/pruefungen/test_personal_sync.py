@@ -313,6 +313,38 @@ def test_failed_or_timed_out_save_stays_pending_and_is_redelivered(tmp_path):
     assert not service.store.ready_personal_batches()
 
 
+def test_no_gui_rejects_request_before_run_and_cannot_accept_following_batch(tmp_path):
+    delivered = []
+    service, peer_id = _personal_service(tmp_path,
+        lambda event, payload: delivered.append((event, payload)))
+    service.personal_sync_available = lambda: False
+
+    class Channel:
+        def __init__(self): self.sent = []
+        def send(self, value): self.sent.append(value)
+
+    channel = Channel()
+    run = str(uuid.uuid4())
+    now = phone.now_ms()
+    request = {"type": "message", "v": 1, "message_id": str(uuid.uuid4()),
+        "kind": "personal_sync.request", "created_ms": now, "expires_ms": now + 60000,
+        "body": {"format": 1, "run_id": run, "trigger": "manual", "modules": ["notes"]}}
+    service._payload(service.store.peer(peer_id), channel, request)
+    assert channel.sent[-1] == {"type": "ack", "message_id": request["message_id"],
+        "status": "rejected", "error": "restore_unavailable"}
+    assert service.store.personal_run(peer_id, run) == {}
+    assert [event for event, _payload in delivered] == ["personal_sync_offer"]
+
+    batch = _empty_batch(run)
+    batch["body"]["reply"] = False
+    service._payload(service.store.peer(peer_id), channel, batch)
+    assert channel.sent[-1]["status"] == "rejected"
+    assert channel.sent[-1]["error"] == "restore_unavailable"
+    assert not service.store.ready_personal_batches()
+    assert service.store.dedupe_result(peer_id, batch["message_id"]) == (
+        "rejected", "restore_unavailable")
+
+
 def test_explicit_failed_save_has_no_ack_or_dedupe(tmp_path):
     service, peer_id = _personal_service(tmp_path, lambda _event, _payload: None)
     message = _empty_batch()

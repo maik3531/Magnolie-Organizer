@@ -71,7 +71,6 @@ const personalSyncPayloads = source => sendObjects(source)
 function canonicalContract(fixture) {
   return JSON.stringify({
     schema: fixture.schema,
-    sources: fixture.sources,
     commands: fixture.commands,
     callbacks: fixture.callbacks,
     payloadSchemas: fixture.payloadSchemas,

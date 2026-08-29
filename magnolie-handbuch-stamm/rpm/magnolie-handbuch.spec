@@ -1,5 +1,5 @@
 Name:           magnolie-handbuch
-Version:        2.0.8
+Version:        2.0.9
 Release:        1%{?dist}
 Summary:        Illustrated user handbook for Magnolie Organizer
 
@@ -42,7 +42,7 @@ done < po/LINGUAS
 
 %check
 set -eu
-%{python3} -m py_compile bin/%{name} werkzeuge/*.py pruefungen/*.py
+%{python3} -m py_compile bin/%{name} bin/magnolie_crash.py werkzeuge/*.py pruefungen/*.py
 test "$(find locale -name '%{name}.mo' -type f | wc -l)" -eq 19
 test "$(find web/i18n -name '*.js' -type f | wc -l)" -eq 19
 for script in web/*.js web/i18n/*.js; do
@@ -53,6 +53,7 @@ desktop-file-validate magnolie-handbuch.desktop
 
 %install
 install -Dpm 0755 bin/%{name} %{buildroot}%{_bindir}/%{name}
+install -Dpm 0644 bin/magnolie_crash.py %{buildroot}%{_bindir}/magnolie_crash.py
 install -d %{buildroot}%{_datadir}/%{name}/web/i18n
 install -pm 0644 web/index.html web/stil.css web/inhalt.js web/platform.js web/handbuch.js \
     web/i18n.js web/i18n-start.js web/i18n-markers.js \
@@ -88,6 +89,7 @@ done < po/LINGUAS
 %license debian/copyright web/maik-walter-FOTO-NUTZUNG.txt
 %doc LIESMICH.md
 %{_bindir}/%{name}
+%{_bindir}/magnolie_crash.py
 %{_datadir}/%{name}/
 %{_datadir}/applications/magnolie-handbuch.desktop
 %{_datadir}/icons/hicolor/*/apps/magnolie-handbuch.*
@@ -95,6 +97,10 @@ done < po/LINGUAS
 %{_mandir}/*/man1/magnolie-handbuch.1*
 
 %changelog
+* Sat Aug 29 2026 Maik Walter <maik3531@gmail.com> - 2.0.9-1
+- Update the complete manually maintained multilingual handbook for Organizer
+  2.0.9 and Notes 1.0.9, including all new features.
+
 * Thu Aug 27 2026 Maik Walter <maik3531@gmail.com> - 2.0.8-1
 - Update the multilingual handbook for Organizer 2.0.8 and Notes 1.0.8.
 

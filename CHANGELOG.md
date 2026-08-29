@@ -1,5 +1,33 @@
 # Changelog / Änderungen
 
+## 2.0.9 / Notes 1.0.9 — 2026-08-29
+
+### English
+
+- Added an optional secure Linux background service with native confirmations.
+- Added local crash reporting for Linux, the handbook, Windows and Android.
+- Corrected calendar and contact handling, including zero-duration appointments and structured EXDATE/RDATE values.
+- Improved AppImage font, theme and CPU compatibility.
+- Corrected the Android `connectedDevice` foreground-service declaration.
+- Completed all manually maintained translations and the handbook.
+
+The Windows artifacts are explicitly approved unsigned Linux cross-builds. Their
+source, native, package and installer audits pass, but Authenticode signing and a
+Windows VM runtime test were unavailable.
+
+### Deutsch
+
+- Ergänzt einen optionalen sicheren Linux-Hintergrunddienst mit nativen Bestätigungen.
+- Ergänzt lokale Absturzberichte für Linux, Handbuch, Windows und Android.
+- Korrigiert Kalender- und Kontaktverarbeitung einschließlich Termine ohne Dauer und strukturierter EXDATE-/RDATE-Werte.
+- Verbessert Schrift-, Theme- und CPU-Kompatibilität des AppImages.
+- Korrigiert die Android-Foreground-Service-Deklaration `connectedDevice`.
+- Vervollständigt alle manuell gepflegten Übersetzungen und das Handbuch.
+
+Die Windows-Artefakte sind ausdrücklich freigegebene, unsignierte
+Linux-Cross-Builds. Quellen-, native, Paket- und Installerprüfungen bestehen;
+Authenticode-Signierung und ein Laufzeittest in einer Windows-VM waren nicht verfügbar.
+
 ## 2.0.8 / Notes 1.0.8 — 2026-08-27
 
 ### English

@@ -9,6 +9,7 @@ import importlib.util
 import json
 import os
 import pathlib
+import re
 import socket
 import ssl
 import sys
@@ -840,9 +841,31 @@ def test_nextcloud_unsupported_calendar_component_aborts_without_write(monkeypat
                                   "etag": '"mixed"', "data": resource}],
                    "addressbook": []})
 
-    with pytest.raises(RuntimeError):
+    meldung = m._("The Nextcloud calendar was not read completely.")
+    with pytest.raises(RuntimeError, match=re.escape(meldung)):
         run_sync(monkeypatch, dav, empty_data())
     assert not dav.puts and not dav.deletes
+
+
+def test_nextcloud_reports_complex_series_with_existing_read_only_text(monkeypatch):
+    complex_event = event_ics(rrule=(
+        "RRULE:FREQ=WEEKLY\r\nEXDATE;VALUE=DATE:20260820\r\n"))
+    dav = SyncDav({"calendar": [{"href": "https://cloud.example/calendar/complex.ics",
+                                  "etag": '"complex"', "data": complex_event}],
+                   "addressbook": []})
+
+    probe = run_sync(monkeypatch, dav, empty_data())
+
+    assert probe.payload["nextcloudKomplexeSerien"] == 1
+    termin = probe.payload["termine"][0]
+    assert termin["icsKomplex"] and termin["icsReadOnly"]
+    assert termin["icsReadOnlyGrund"] == "Nextcloud"
+    assert not dav.puts and not dav.deletes
+    erwartet = m.ngettext(
+        "%(count)s recurring appointment imported only once.",
+        "%(count)s recurring appointments imported only once.", 1) % {"count": 1}
+    assert dav.collections("calendar")[0]["name"] + ": " + erwartet in \
+        probe.payload["bericht"]
 
 
 def test_nextcloud_contact_first_roundtrip_preserves_photo_and_values(monkeypatch):

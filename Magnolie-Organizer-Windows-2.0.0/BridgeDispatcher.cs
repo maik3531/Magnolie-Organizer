@@ -55,7 +55,7 @@ internal sealed partial class BridgeDispatcher : IDisposable
         recovery = new RecoveryJournal(paths.RecoveryJournal, paths.RecoverySettings, store);
         recoveryTimer = new System.Threading.Timer(_ => _ = RunPeriodicSnapshotAsync(), null,
             TimeSpan.FromMinutes(1), TimeSpan.FromMinutes(15));
-        http.DefaultRequestHeaders.UserAgent.ParseAdd("Magnolie-Organizer-Windows/2.0.6");
+        http.DefaultRequestHeaders.UserAgent.ParseAdd($"Magnolie-Organizer-Windows/{AppVersion}");
     }
 
     internal async Task HandleAsync(string rawMessage)
@@ -938,7 +938,7 @@ internal sealed partial class BridgeDispatcher : IDisposable
         {
             var data = JsonNode.Parse(currentPlainText) as JsonObject
                 ?? throw new InvalidDataException(T("The current organizer data is incomplete."));
-            var version = typeof(BridgeDispatcher).Assembly.GetName().Version?.ToString(3) ?? "2.0.6";
+            var version = AppVersion;
             var archive = GesamtarchivService.Create(data, "windows", version, password);
             store.Write(dialog.FileName, archive, AtomicStore.MaxArchiveBytes);
             await form.SendAsync("App.gesamtarchivExportiert", new
@@ -992,7 +992,7 @@ internal sealed partial class BridgeDispatcher : IDisposable
         }
     }
 
-    private string AppVersion => typeof(BridgeDispatcher).Assembly.GetName().Version?.ToString(3) ?? "2.0.6";
+    private string AppVersion => typeof(BridgeDispatcher).Assembly.GetName().Version?.ToString(3) ?? "0.0.0";
 
     private SnapshotInfo CreateSnapshot(SnapshotReason reason)
     {

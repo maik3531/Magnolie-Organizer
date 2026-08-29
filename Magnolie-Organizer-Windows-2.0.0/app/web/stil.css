@@ -936,10 +936,7 @@ body[data-hilfsrahmen="an"] :focus-visible {
   letter-spacing: 0.2em;
   text-transform: uppercase;
   color: rgba(216, 178, 92, 0.75);
-  animation: puls 2.2s ease-in-out infinite alternate;
 }
-
-@keyframes puls { from { opacity: 0.45; } to { opacity: 1; } }
 
 /* --------------------------------------------------------------------------
    Blätter-Animation beim Abschnittswechsel

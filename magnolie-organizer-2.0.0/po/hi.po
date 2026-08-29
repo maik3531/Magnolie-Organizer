@@ -6,7 +6,7 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: Magnolie Organizer 2.0.8\n"
+"Project-Id-Version: Magnolie Organizer 2.0.9\n"
 "Report-Msgid-Bugs-To: maik3531@gmail.com\n"
 "POT-Creation-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "PO-Revision-Date: 2026-08-08 09:24+0200\n"
@@ -229,6 +229,7 @@ msgid_plural "%(count)s public holidays"
 msgstr[0] "%(count)s सार्वजनिक अवकाश"
 msgstr[1] "%(count)s सार्वजनिक अवकाश"
 
+#, python-format
 msgid "%(count)s recurring appointment imported only once."
 msgid_plural "%(count)s recurring appointments imported only once."
 msgstr[0] "%(count)s आवर्ती अपॉइंटमेंट केवल एक बार आयात किया गया।"
@@ -412,6 +413,9 @@ msgstr "%s: कल शादी की सालगिरह।"
 
 msgid "(starts when you sign in)"
 msgstr "(साइन इन करने पर शुरू होता है)"
+
+msgid "(unavailable)"
+msgstr "(अनुपलब्ध)"
 
 msgid "(unnamed)"
 msgstr "(बेनाम)"
@@ -601,7 +605,8 @@ msgstr "डायल अनुरोधों, डिवाइस स्थि�
 msgid ""
 "A system KDE Connect service is active. Configure file and clipboard sharing "
 "there."
-msgstr "सिस्टम की KDE Connect सेवा सक्रिय है। फ़ाइल और क्लिपबोर्ड साझाकरण को वहीं कॉन्फ़िगर करें।"
+msgstr ""
+"सिस्टम की KDE Connect सेवा सक्रिय है। फ़ाइल और क्लिपबोर्ड साझाकरण को वहीं कॉन्फ़िगर करें।"
 
 msgid "API level"
 msgstr "API level"
@@ -777,6 +782,9 @@ msgstr "सभी राज्य"
 
 msgid "Allow notifications despite password protection"
 msgstr "पासवर्ड सुरक्षा के बावजूद सूचनाएँ अनुमति दें"
+
+msgid "Allowed background functions"
+msgstr "अनुमत बैकग्राउंड फ़ंक्शन"
 
 msgid "Also disclose appointments marked as confidential"
 msgstr "गोपनीय चिह्नित अपॉइंटमेंट भी साझा करें"
@@ -1000,6 +1008,9 @@ msgstr "अंतिम सहेजी गई लंबाई और वज़�
 
 msgid "BZ"
 msgstr "BZ"
+
+msgid "Background service"
+msgstr "बैकग्राउंड सेवा"
 
 msgid "Backup failed."
 msgstr "बैकअप विफल रहा।"
@@ -1330,6 +1341,9 @@ msgstr ""
 
 msgid "Checking Contributor Key …"
 msgstr "Contributor Key की जाँच हो रही है …"
+
+msgid "Checking background service …"
+msgstr "बैकग्राउंड सेवा की जाँच की जा रही है…"
 
 msgid "Checking online accounts …"
 msgstr "ऑनलाइन खातों की जाँच हो रही है …"
@@ -2135,6 +2149,9 @@ msgstr "सक्षम करें"
 msgid "Enable Magnolie Notes phone connection"
 msgstr "Magnolie Notes फ़ोन कनेक्शन सक्षम करें"
 
+msgid "Enable background service"
+msgstr "बैकग्राउंड सेवा सक्षम करें"
+
 msgid "Enable cycle calendar"
 msgstr "चक्र कैलेंडर सक्षम करें"
 
@@ -2166,6 +2183,9 @@ msgstr "कचरा संग्रह कैलेंडर सक्षम �
 
 msgid "Encrypted archive entries are not supported."
 msgstr "एन्क्रिप्ट की गई आर्काइव प्रविष्टियाँ समर्थित नहीं हैं।"
+
+msgid "Encrypted data behavior"
+msgstr "एन्क्रिप्टेड डेटा का व्यवहार"
 
 msgid "Encrypting the data"
 msgstr "डेटा एन्क्रिप्ट किया जा रहा है"
@@ -2319,6 +2339,9 @@ msgstr "महिला रिश्तेदार"
 
 msgid "Fertile days"
 msgstr "उपजाऊ दिन"
+
+msgid "File"
+msgstr "फ़ाइल"
 
 #, python-format
 msgid "File could not be read: %s"
@@ -2734,13 +2757,21 @@ msgstr "कचरा संग्रह शामिल करें"
 msgid "Incoming"
 msgstr "आने वाली"
 
+msgid "Incoming KDE Connect file"
+msgstr "KDE Connect से आने वाली फ़ाइल"
+
+msgid "Incoming KDE Connect files (always confirm)"
+msgstr "KDE Connect से आने वाली फ़ाइलें (हमेशा पुष्टि करें)"
+
 msgid "Incoming call"
 msgstr "इनकमिंग कॉल"
 
 msgid ""
-"Incoming files and clipboard text are confirmed before use unless automatic "
-"acceptance is explicitly enabled."
-msgstr "आने वाली फ़ाइलों और क्लिपबोर्ड टेक्स्ट के उपयोग से पहले पुष्टि की जाती है, जब तक कि स्वचालित स्वीकृति स्पष्ट रूप से सक्षम न हो।"
+"Incoming files are always confirmed. Clipboard text is confirmed unless "
+"automatic acceptance is explicitly enabled."
+msgstr ""
+"आने वाली फ़ाइलों की हमेशा पुष्टि की जाती है। क्लिपबोर्ड टेक्स्ट की भी पुष्टि की जाती है, जब "
+"तक स्वचालित स्वीकृति को स्पष्ट रूप से सक्षम न किया गया हो।"
 
 msgid "Input"
 msgstr "इनपुट"
@@ -2785,6 +2816,9 @@ msgstr "जूस"
 msgid "Jura"
 msgstr "जुरा"
 
+msgid "KDE Connect device"
+msgstr "KDE Connect डिवाइस"
+
 msgid "KDE Connect for SMS"
 msgstr "SMS के लिए KDE Connect"
 
@@ -2798,6 +2832,12 @@ msgstr ""
 "KDE Connect का उपयोग केवल SMS के लिए किया जाता है। यह Magnolienbaum को कनेक्ट या "
 "सिंक्रोनाइज़ नहीं करता है।"
 
+msgid "KDE Connect pairing"
+msgstr "KDE Connect पेयरिंग"
+
+msgid "KDE Connect pairing decisions"
+msgstr "KDE Connect पेयरिंग के निर्णय"
+
 msgid "KDE Connect pairing failed."
 msgstr "KDE Connect युग्मन विफल रहा।"
 
@@ -2806,6 +2846,10 @@ msgstr "KDE Connect फ़ोन युग्मित हुआ।"
 
 msgid "KDE Connect port %(port)s"
 msgstr "KDE Connect पोर्ट %(port)s"
+
+msgid ""
+"KDE Connect receive settings could not be applied by the background service."
+msgstr "बैकग्राउंड सेवा KDE Connect की प्राप्ति सेटिंग लागू नहीं कर सकी।"
 
 msgid "KDE Connect reception failed."
 msgstr "KDE Connect से प्राप्ति विफल रही।"
@@ -2880,6 +2924,9 @@ msgstr "अनिश्चित"
 msgid "Listener stopped"
 msgstr "सुनने वाला रुक गया"
 
+msgid "Loading background settings"
+msgstr "बैकग्राउंड सेटिंग लोड की जा रही हैं"
+
 msgid "Local calendar"
 msgstr "स्थानीय कैलेंडर"
 
@@ -2938,8 +2985,14 @@ msgstr ""
 "Magnolie Notes ने सत्र समाप्त कर दिया। ऐप और Organizer को समान प्रोटोकॉल संस्करण "
 "का उपयोग करना होगा।"
 
+msgid "Magnolie Notes pairing"
+msgstr "Magnolie Notes पेयरिंग"
+
 msgid "Magnolie Notes phone connection"
 msgstr "Magnolie Notes फ़ोन कनेक्शन"
+
+msgid "Magnolie Notes phone pairing decisions"
+msgstr "Magnolie Notes फ़ोन पेयरिंग के निर्णय"
 
 msgid ""
 "Magnolie Notes phones and KDE Connect phones are separate: the Android model "
@@ -2950,6 +3003,12 @@ msgstr ""
 
 msgid "Magnolie Notes version"
 msgstr "Magnolie Notes संस्करण"
+
+msgid "Magnolie Organizer"
+msgstr "Magnolie Organizer"
+
+msgid "Magnolie Organizer Background Service"
+msgstr "Magnolie Organizer बैकग्राउंड सेवा"
 
 msgid "Magnolie Organizer is not completely installed."
 msgstr "Magnolie Organizer पूरी तरह स्थापित नहीं है।"
@@ -2981,6 +3040,14 @@ msgstr "Magnolie Organizer – काग़ज़ी डिज़ाइन व�
 msgid "Magnolie Organizer – reminders"
 msgstr "Magnolie Organizer – रिमाइंडर"
 
+#, python-format
+msgid "Magnolie background service could not start: %s"
+msgstr "Magnolie बैकग्राउंड सेवा शुरू नहीं हो सकी: %s"
+
+#, python-format
+msgid "Magnolie background service requires GLib: %s"
+msgstr "Magnolie बैकग्राउंड सेवा को GLib चाहिए: %s"
+
 msgid "Magnolie backup (*.json)"
 msgstr "Magnolie बैकअप (*.json)"
 
@@ -3000,6 +3067,9 @@ msgstr "मैग्नोलिया-वर्ष-योजनाकार-%d.
 
 msgid "Magnolienbaum"
 msgstr "Magnolienbaum"
+
+msgid "Magnolienbaum change offers"
+msgstr "Magnolienbaum बदलाव के प्रस्ताव"
 
 msgid "Magnolienbaum mailbox"
 msgstr "Magnolienbaum mailbox"
@@ -3155,6 +3225,12 @@ msgstr "मॉडल"
 msgid "Monday"
 msgstr "सोमवार"
 
+msgid "Monitor KDE Connect SMS and show notifications"
+msgstr "KDE Connect SMS की निगरानी करें और सूचनाएँ दिखाएँ"
+
+msgid "Monitor the Magnolie Notes phone connection"
+msgstr "Magnolie Notes फ़ोन कनेक्शन की निगरानी करें"
+
 msgid "Month"
 msgstr "महीना"
 
@@ -3220,6 +3296,12 @@ msgstr "नाम दिवस"
 msgid "Name of this branch"
 msgstr "इस शाखा का नाम"
 
+msgid "Native notifications available"
+msgstr "मूल सिस्टम सूचनाएँ उपलब्ध हैं"
+
+msgid "Native notifications unavailable"
+msgstr "मूल सिस्टम सूचनाएँ अनुपलब्ध हैं"
+
 msgid "Netherlands"
 msgstr "नीदरलैंड"
 
@@ -3283,6 +3365,9 @@ msgstr "नया पृष्ठ"
 
 msgid "New password"
 msgstr "नया पासवर्ड"
+
+msgid "New phone changes are available"
+msgstr "फ़ोन से नए बदलाव उपलब्ध हैं"
 
 msgid "New task"
 msgstr "नया कार्य"
@@ -3592,6 +3677,12 @@ msgstr "कुछ नया नहीं मिला।"
 msgid "Notice: The connection to storage was not confirmed."
 msgstr "सूचना: संग्रहण से कनेक्शन की पुष्टि नहीं हुई।"
 
+msgid "Notification actions available"
+msgstr "सूचना क्रियाएँ उपलब्ध हैं"
+
+msgid "Notification actions unavailable"
+msgstr "सूचना क्रियाएँ अनुपलब्ध हैं"
+
 msgid "Notification and sound"
 msgstr "सूचना और ध्वनि"
 
@@ -3621,6 +3712,9 @@ msgstr "सूचनाएँ केवल स्थापित अनुप्
 msgid "Notify me about incoming calls"
 msgstr "इनकमिंग कॉल की सूचना दें"
 
+msgid "Notify, then unlock (recommended)"
+msgstr "सूचना दें, फिर अनलॉक करें (अनुशंसित)"
+
 msgid "ODS"
 msgstr "ODS"
 
@@ -3635,6 +3729,9 @@ msgstr "ओबवाल्डेन"
 
 msgid "Off"
 msgstr "बंद"
+
+msgid "Offer Personal Sync phone changes"
+msgstr "Personal Sync के फ़ोन बदलाव प्रस्तुत करें"
 
 msgid "Offline"
 msgstr "ऑनलाइन"
@@ -3730,6 +3827,11 @@ msgid ""
 msgstr ""
 "केवल HTTPS। Nextcloud में सेटिंग्स, सुरक्षा के अंतर्गत ऐप पासवर्ड बनाएँ। आपके खाते का "
 "पासवर्ड कभी उपयोग नहीं होता।"
+
+msgid ""
+"Only Notify, then unlock is currently available. Keyring access and pausing "
+"while locked are not yet enforced by the background service."
+msgstr "वर्तमान में केवल “सूचित करें, फिर अनलॉक करें” उपलब्ध है। बैकग्राउंड सेवा अभी कीरिंग एक्सेस और लॉक रहने के दौरान रोकने की नीति लागू नहीं करती है।"
 
 msgid ""
 "Only one Magnolie Notes phone can be paired. Remove the existing phone "
@@ -3840,6 +3942,11 @@ msgstr "क्रिया समाप्त हुई (%s)।"
 #, python-format
 msgid "Option %s requires a language."
 msgstr "विकल्प %s के लिए भाषा आवश्यक है।"
+
+msgid ""
+"Optional approved functions can continue while the Organizer window is "
+"closed."
+msgstr "Organizer विंडो बंद होने पर भी वैकल्पिक अनुमोदित फ़ंक्शन चलते रह सकते हैं।"
 
 msgid "Organic waste"
 msgstr "जैविक कचरा"
@@ -3959,6 +4066,9 @@ msgstr "चिपकाएँ"
 msgid "Patch"
 msgstr "पैच"
 
+msgid "Pause while data is locked"
+msgstr "डेटा लॉक होने पर रोकें"
+
 msgid "Pay invoice"
 msgstr "चालान का भुगतान करें"
 
@@ -4028,6 +4138,9 @@ msgstr "Phone battery"
 
 msgid "Phone call"
 msgstr "फ़ोन कॉल"
+
+msgid "Phone notification"
+msgstr "फ़ोन सूचना"
 
 msgid "Phone number"
 msgstr "फ़ोन नंबर"
@@ -4443,9 +4556,6 @@ msgstr "डिवाइस की स्थिति का अनुरोध �
 msgid "Requires existing BlueZ system pairing. Data only, no HFP audio."
 msgstr "मौजूदा BlueZ सिस्टम पेयरिंग की आवश्यकता है। केवल डेटा, कोई HFP ऑडियो नहीं।"
 
-msgid "Reset"
-msgstr "Reset"
-
 msgid "Residual waste"
 msgstr "शेष कचरा"
 
@@ -4470,6 +4580,9 @@ msgstr "बैकअप पुनर्स्थापित करें …"
 
 msgid "Restore completely"
 msgstr "पूरी तरह से पुनर्स्थापित करें"
+
+msgid "Restore defaults"
+msgstr "डिफ़ॉल्ट सेटिंग बहाल करें"
 
 msgid "Restore failed."
 msgstr "पुनर्स्थापना विफल रही।"
@@ -4538,6 +4651,9 @@ msgstr "मार्ग"
 msgid "Route: calculate directions immediately"
 msgstr "मार्ग: दिशा-निर्देश तुरंत निकालें"
 
+msgid "Run approved Magnolie background functions"
+msgstr "अनुमोदित Magnolie बैकग्राउंड फ़ंक्शन चलाएँ"
+
 #, python-format
 msgid "Run failed: %s"
 msgstr "चलाना विफल रहा: %s"
@@ -4560,6 +4676,10 @@ msgstr "SMS विवरण"
 #, python-format
 msgid "SMS from %(name)s"
 msgstr "%(name)s से SMS"
+
+#, python-format
+msgid "SMS from %s"
+msgstr "%s से SMS"
 
 msgid "SMS history"
 msgstr "SMS इतिहास"
@@ -4638,6 +4758,9 @@ msgstr "सहेजा गया ✓ %(time)s"
 
 msgid "Saved."
 msgstr "Saved."
+
+msgid "Saving background settings"
+msgstr "बैकग्राउंड सेटिंग सहेजी जा रही हैं"
 
 msgid "Saving failed!"
 msgstr "सहेजना विफल रहा!"
@@ -4804,6 +4927,12 @@ msgstr "Server address"
 msgid "Server address and user name are required."
 msgstr "सर्वर पता और उपयोगकर्ता नाम आवश्यक हैं।"
 
+msgid "Service running"
+msgstr "सेवा चल रही है"
+
+msgid "Service stopped"
+msgstr "सेवा रुकी हुई है"
+
 msgid "Set varying doses by weekday"
 msgstr "सप्ताह के दिन के अनुसार अलग-अलग खुराक तय करें"
 
@@ -4858,11 +4987,17 @@ msgstr "कम समय तक असर करने वाला इंसु
 msgid "Show Health after Planner"
 msgstr "प्लानर के बाद स्वास्थ्य दिखाएँ"
 
+msgid "Show Magnolie Notes SMS notifications"
+msgstr "Magnolie Notes SMS सूचनाएँ दिखाएँ"
+
 msgid "Show all"
 msgstr "सभी दिखाएँ"
 
 msgid "Show calendar button in date fields"
 msgstr "तारीख फ़ील्ड में कैलेंडर बटन दिखाएँ"
+
+msgid "Show incoming call notifications"
+msgstr "आने वाली कॉल की सूचनाएँ दिखाएँ"
 
 msgid "Show log"
 msgstr "लॉग दिखाएँ"
@@ -4875,6 +5010,9 @@ msgstr "क्यूआर कोड जोड़ना दिखाएँ"
 
 msgid "Show preview"
 msgstr "पूर्वावलोकन दिखाएँ"
+
+msgid "Show selected app notifications"
+msgstr "चुने हुए ऐप की सूचनाएँ दिखाएँ"
 
 msgid "Show selected notifications (read only)"
 msgstr "केवल स्क्रीन सूचना"
@@ -4990,6 +5128,15 @@ msgstr "स्प्रे"
 
 msgid "St. Gallen"
 msgstr "सेंट गैलेन"
+
+msgid "Start Organizer"
+msgstr "Organizer शुरू करें"
+
+msgid "Start Organizer and synchronize."
+msgstr "Organizer शुरू करें और सिंक्रनाइज़ करें।"
+
+msgid "Start at login"
+msgstr "लॉगिन पर शुरू करें"
 
 msgid "Start automatically when signing in"
 msgstr "साइन इन करते समय अपने-आप शुरू करें"
@@ -5111,6 +5258,15 @@ msgstr "UFW कॉन्फ़िगर करने के लिए सिस�
 
 msgid "System default"
 msgstr "प्रणालीगत चूक"
+
+msgid "System keyring and pause modes cannot be enabled yet."
+msgstr "सिस्टम कीरिंग और रोकने के मोड अभी सक्षम नहीं किए जा सकते।"
+
+msgid "System keyring available"
+msgstr "सिस्टम कीरिंग उपलब्ध है"
+
+msgid "System keyring unavailable"
+msgstr "सिस्टम कीरिंग अनुपलब्ध है"
 
 msgid "System setting"
 msgstr "सिस्टम सेटिंग"
@@ -5426,6 +5582,15 @@ msgid ""
 msgstr ""
 "पृष्ठभूमि रिमाइंडर सेवा अलग रिमाइंडर डेटा पढ़ सकती है, इसलिए ऑर्गनाइज़र बंद होने पर भी "
 "काम करती है।"
+
+msgid "The background service could not be started."
+msgstr "बैकग्राउंड सेवा शुरू नहीं की जा सकी।"
+
+msgid "The background service is available only in the installed application."
+msgstr "बैकग्राउंड सेवा केवल इंस्टॉल किए गए एप्लिकेशन में उपलब्ध है।"
+
+msgid "The background settings could not be saved."
+msgstr "बैकग्राउंड सेटिंग सहेजी नहीं जा सकीं।"
 
 msgid "The backup could not be created."
 msgstr "बैकअप बनाया नहीं जा सका।"
@@ -6536,6 +6701,9 @@ msgid ""
 "Use only schedules prescribed or confirmed by a healthcare professional."
 msgstr "केवल स्वास्थ्य पेशेवर द्वारा निर्धारित या पुष्टि की गई समय-सारिणियों का उपयोग करें।"
 
+msgid "Use system keyring"
+msgstr "सिस्टम कीरिंग का उपयोग करें"
+
 msgid ""
 "Use the arrows to arrange groups and notebooks, or use the selection to move "
 "a notebook to another group."
@@ -7337,6 +7505,28 @@ msgstr[1] "… और %(count)s अतिरिक्त आइटम, जो �
 msgid "＋ Add appointment"
 msgstr "＋ अपॉइंटमेंट जोड़ें"
 
+#~ msgid ""
+#~ "Notify, then unlock asks you to open and unlock the Organizer. System "
+#~ "keyring uses an available desktop keyring without storing the password in "
+#~ "Organizer data. Pause while locked waits without accessing encrypted data."
+#~ msgstr ""
+#~ "‘सूचना दें, फिर अनलॉक करें’ आपसे Organizer खोलकर उसे अनलॉक करने को कहता है। ‘सिस्टम "
+#~ "कीरिंग’ Organizer डेटा में पासवर्ड संग्रहीत किए बिना उपलब्ध डेस्कटॉप कीरिंग का उपयोग "
+#~ "करती है। ‘लॉक होने पर रोकें’ एन्क्रिप्टेड डेटा को एक्सेस किए बिना प्रतीक्षा करता है।"
+
+#~ msgid "System keyring is unavailable; this choice cannot be enabled."
+#~ msgstr "सिस्टम कीरिंग अनुपलब्ध है; यह विकल्प सक्षम नहीं किया जा सकता।"
+
+#~ msgid ""
+#~ "Incoming files and clipboard text are confirmed before use unless "
+#~ "automatic acceptance is explicitly enabled."
+#~ msgstr ""
+#~ "आने वाली फ़ाइलों और क्लिपबोर्ड टेक्स्ट के उपयोग से पहले पुष्टि की जाती है, जब तक कि "
+#~ "स्वचालित स्वीकृति स्पष्ट रूप से सक्षम न हो।"
+
+#~ msgid "Reset"
+#~ msgstr "Reset"
+
 #~ msgid "Exactly one online Magnolie Notes phone must allow dial requests."
 #~ msgstr ""
 #~ "बिल्कुल एक ऑनलाइन Magnolie Notes फ़ोन को डायल अनुरोधों की अनुमति देनी होगी।"
@@ -7350,8 +7540,8 @@ msgstr "＋ अपॉइंटमेंट जोड़ें"
 #~ msgid "Selected notifications"
 #~ msgstr "सिस्टम सूचना"
 
-msgid "Language & region"
-msgstr "भाषा और क्षेत्र"
+#~ msgid "Language & region"
+#~ msgstr "भाषा और क्षेत्र"
 
 #~ msgid "No valid subscription"
 #~ msgstr "कोई मान्य सदस्यता नहीं"

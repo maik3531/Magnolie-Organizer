@@ -29,6 +29,10 @@ internal static class WebViewStartupSourceTests
                         uiSelfTest.Contains("WINDOWS-BUNDLED-FONT-OK", StringComparison.Ordinal) &&
                         uiSelfTest.Contains("ClientSize.Width >= 1200", StringComparison.Ordinal),
             "Der echte Windows-UI-Selbsttest prüft Schriftladung oder Startgröße nicht.");
+        TestAssert.That(main.Contains("WriteWebViewDiagnostic($\"Fehler beim Beenden: {error}\")", StringComparison.Ordinal) &&
+                        main.Contains("shutdownStarted = false;", StringComparison.Ordinal) &&
+                        main.CountText("ShowSaveWarning();") == 2,
+            "Ein Shutdown-Fehler schließt das Fenster oder zeigt nicht dieselbe Speicherwarnung.");
         return Task.CompletedTask;
     }
 

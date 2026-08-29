@@ -1,5 +1,5 @@
 Name:           magnolie-organizer
-Version:        2.0.8
+Version:        2.0.9
 Release:        1%{?dist}
 Summary:        Personal organizer with a classic paper appearance
 
@@ -66,7 +66,7 @@ done < po/LINGUAS
 
 %check
 set -eu
-%{python3} -m py_compile bin/%{name} bin/magnolie_telefon.py bin/magnolie_kdeconnect.py bin/magnolie_personal_sync.py bin/magnolie_nextcloud.py werkzeuge/*.py pruefungen/*.py
+%{python3} -m py_compile bin/%{name} bin/magnolie_telefon.py bin/magnolie_kdeconnect.py bin/magnolie_hintergrund.py bin/magnolie_personal_sync.py bin/magnolie_nextcloud.py bin/magnolie_crash.py werkzeuge/*.py pruefungen/*.py
 while read -r language; do
     test -n "$language" || continue
     %{python3} werkzeuge/katalog_pruefen.py \
@@ -97,6 +97,8 @@ export XDG_CACHE_HOME="$test_root/cache"
 %{python3} pruefungen/test_paketinhalt.py
 %{python3} -m pytest -q pruefungen/test_personal_sync.py
 %{python3} -m pytest -q pruefungen/test_nextcloud.py
+%{python3} -m pytest -q pruefungen/test_crash_reports.py
+%{python3} -m pytest -q pruefungen/test_hintergrunddienst.py
 %{python3} werkzeuge/png_pruefen.py web/kaffee-qr.png
 
 desktop-file-validate io.gitlab.maik3531.MagnolieOrganizer.desktop
@@ -111,8 +113,10 @@ done
 install -Dpm 0755 bin/%{name} %{buildroot}%{_bindir}/%{name}
 install -Dpm 0644 bin/magnolie_telefon.py %{buildroot}%{_bindir}/magnolie_telefon.py
 install -Dpm 0644 bin/magnolie_kdeconnect.py %{buildroot}%{_bindir}/magnolie_kdeconnect.py
+install -Dpm 0644 bin/magnolie_hintergrund.py %{buildroot}%{_bindir}/magnolie_hintergrund.py
 install -Dpm 0644 bin/magnolie_personal_sync.py %{buildroot}%{_bindir}/magnolie_personal_sync.py
 install -Dpm 0644 bin/magnolie_nextcloud.py %{buildroot}%{_bindir}/magnolie_nextcloud.py
+install -Dpm 0644 bin/magnolie_crash.py %{buildroot}%{_bindir}/magnolie_crash.py
 
 install -d %{buildroot}%{_datadir}/%{name}/web/i18n
 install -pm 0644 web/index.html web/stil.css web/anwendung.js \
@@ -175,7 +179,7 @@ import sys
 root = pathlib.Path(r"%{buildroot}")
 bindir = root / "usr/bin"
 for name in ("magnolie-organizer", "magnolie_telefon.py",
-              "magnolie_kdeconnect.py", "magnolie_personal_sync.py",
+              "magnolie_kdeconnect.py", "magnolie_hintergrund.py", "magnolie_personal_sync.py",
               "magnolie_nextcloud.py"):
     ast.parse((bindir / name).read_text(encoding="utf-8"), filename=name)
 sys.path.insert(0, str(bindir))
@@ -205,8 +209,10 @@ done
 %{_bindir}/%{name}
 %{_bindir}/magnolie_telefon.py
 %{_bindir}/magnolie_kdeconnect.py
+%{_bindir}/magnolie_hintergrund.py
 %{_bindir}/magnolie_personal_sync.py
 %{_bindir}/magnolie_nextcloud.py
+%{_bindir}/magnolie_crash.py
 %{_datadir}/%{name}/
 %{_datadir}/applications/io.gitlab.maik3531.MagnolieOrganizer.desktop
 %{_datadir}/metainfo/io.gitlab.maik3531.MagnolieOrganizer.metainfo.xml
@@ -216,6 +222,11 @@ done
 %{_mandir}/*/man1/magnolie-organizer.1*
 
 %changelog
+* Sat Aug 29 2026 Maik Walter <maik3531@gmail.com> - 2.0.9-1
+- Add the optional secure background service and local crash reporting.
+- Correct calendar, contact and Android connected-device service handling.
+- Improve AppImage compatibility and complete translations and handbook.
+
 * Thu Aug 27 2026 Maik Walter <maik3531@gmail.com> - 2.0.8-1
 - Harden Thunderbird imports, settings and KDE Connect receive folders.
 - Add safe Android call proximity and service lifecycle handling.

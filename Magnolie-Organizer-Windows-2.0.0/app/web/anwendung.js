@@ -15,7 +15,7 @@
 (function () {
 
   /* Die Fassung erscheint auf der Seite „Über". */
-const FASSUNG = "2.0.8";
+const FASSUNG = "2.0.9";
   const CONTRIBUTOR_BRANDING = "No valid coffee allowance";
 
   /* ---------------------------------------------------------------------- */
@@ -2379,9 +2379,13 @@ const FASSUNG = "2.0.8";
       }
       planeSpeichern(); schliessen(); zeichneAlles();
     });
-    const zurueck = knopf(_("Reset"), "", () => {
+    const zurueck = knopf(_("Restore defaults"), "", () => {
       auswahl.querySelector('[value="' + (sms ? "kde" : "magnolie") + '"]').checked = true;
       programm.value = "";
+      if (eingehend) eingehend.checked = false;
+      if (computer) computer.checked = false;
+      if (leiser) leiser.checked = false;
+      optionenAktualisieren();
     });
     const knoepfe = el("div", "dialog-knoepfe");
     knoepfe.append(speichern, zurueck, knopf(_("Cancel"), "", schliessen));
@@ -3295,7 +3299,9 @@ const FASSUNG = "2.0.8";
       ["MO", "TU", "WE", "TH", "FR", "SA", "SU"].includes(wochentag)) {
       ergebnis.ordinal = ordinal;
       ergebnis.wochentag = wochentag;
-      ergebnis.rruleForm = roh.rruleForm === "bysetpos" ? "bysetpos" : "byday";
+      if (roh.rruleForm === "byday" || roh.rruleForm === "bysetpos") {
+        ergebnis.rruleForm = roh.rruleForm;
+      }
     }
     return ergebnis;
   }
@@ -3746,6 +3752,7 @@ const FASSUNG = "2.0.8";
       icsRoundtrip: icsRoundtrip,
       icsSequence: Math.floor(N(t.icsSequence)),
       icsAenderungszeitFehlt: !!t.icsAenderungszeitFehlt,
+      icsEndeFehlt: !!t.icsEndeFehlt, icsNullDauer: !!t.icsNullDauer,
       syncKonflikte: Array.isArray(t.syncKonflikte)
         ? kopie(t.syncKonflikte.slice(-16)) : [],
       icsReadOnly: !!t.icsReadOnly, icsReadOnlyGrund: S(t.icsReadOnlyGrund),
@@ -5281,6 +5288,7 @@ const FASSUNG = "2.0.8";
     const start = ausISO(t.datum);
     const tag = ausISO(iso);
     const intervall = Math.min(3660, Math.max(1, Math.floor(Number(w.intervall) || 1)));
+    if ((w.art === "monthly" || w.art === "yearly") && intervall !== 1) return false;
     const tageSeitStart = Math.round((Date.UTC(tag.getFullYear(), tag.getMonth(), tag.getDate()) -
       Date.UTC(start.getFullYear(), start.getMonth(), start.getDate())) / 86400000);
 
@@ -5519,6 +5527,7 @@ const FASSUNG = "2.0.8";
       const tag = ausISO(t.datum);
       for (let iso = t.datum, anzahl = 0; iso <= bis && anzahl < 36600;
         iso = isoVon(new Date(tag.getFullYear(), tag.getMonth(), tag.getDate() + ++anzahl))) {
+        if (Array.isArray(t.icsAusnahmen) && t.icsAusnahmen.includes(t.datum)) continue;
         let liste = verz.get(iso);
         if (!liste) { liste = []; verz.set(iso, liste); }
         liste.push(t);
@@ -19117,6 +19126,7 @@ const FASSUNG = "2.0.8";
             icsZusatzDaten: Array.isArray(t.icsZusatzDaten) ? t.icsZusatzDaten.slice(0, 256) : [],
             icsZusatzTermine: Array.isArray(t.icsZusatzTermine) ? t.icsZusatzTermine.slice(0, 256) : [],
             icsRoundtrip: Array.isArray(t.icsRoundtrip) ? t.icsRoundtrip.slice() : [],
+            icsEndeFehlt: !!t.icsEndeFehlt, icsNullDauer: !!t.icsNullDauer,
             sync: false });
           z.neu++;
         } else z.doppelt++;
@@ -19148,6 +19158,7 @@ const FASSUNG = "2.0.8";
         icsZusatzDaten: Array.isArray(t.icsZusatzDaten) ? t.icsZusatzDaten.slice(0, 256) : [],
         icsZusatzTermine: Array.isArray(t.icsZusatzTermine) ? t.icsZusatzTermine.slice(0, 256) : [],
         icsRoundtrip: Array.isArray(t.icsRoundtrip) ? t.icsRoundtrip.slice() : [],
+        icsEndeFehlt: !!t.icsEndeFehlt, icsNullDauer: !!t.icsNullDauer,
         syncKalenderUid: String(t.syncKalenderUid || ""),
         geaendert: Number(t.geaendert) || Date.now(), sync: false });
       if (t.uid) uids.set(importKennung(t, t.uid), DATEN.termine[DATEN.termine.length - 1]);

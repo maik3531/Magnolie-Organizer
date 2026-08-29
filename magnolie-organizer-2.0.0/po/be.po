@@ -6,7 +6,7 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: Magnolie Organizer 2.0.8\n"
+"Project-Id-Version: Magnolie Organizer 2.0.9\n"
 "Report-Msgid-Bugs-To: maik3531@gmail.com\n"
 "POT-Creation-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "PO-Revision-Date: 2026-08-08 09:24+0200\n"
@@ -258,6 +258,7 @@ msgstr[0] "%(count)s дзяржаўнае свята"
 msgstr[1] "%(count)s дзяржаўныя святы"
 msgstr[2] "%(count)s дзяржаўныя святы"
 
+#, python-format
 msgid "%(count)s recurring appointment imported only once."
 msgid_plural "%(count)s recurring appointments imported only once."
 msgstr[0] "%(count)s паўторная сустрэча імпартавана толькі адзін раз."
@@ -456,6 +457,9 @@ msgstr "%s: заўтра гадавіна вяселля."
 msgid "(starts when you sign in)"
 msgstr "(запускаецца пры ўваходзе)"
 
+msgid "(unavailable)"
+msgstr "(недаступна)"
+
 msgid "(unnamed)"
 msgstr "(без назвы)"
 
@@ -646,7 +650,9 @@ msgstr ""
 msgid ""
 "A system KDE Connect service is active. Configure file and clipboard sharing "
 "there."
-msgstr "Сістэмная служба KDE Connect актыўная. Наладзьце ў ёй абагульванне файлаў і буфера абмену."
+msgstr ""
+"Сістэмная служба KDE Connect актыўная. Наладзьце ў ёй абагульванне файлаў і "
+"буфера абмену."
 
 msgid "API level"
 msgstr "Узровень API"
@@ -824,6 +830,9 @@ msgstr "Усе федэральныя землі"
 
 msgid "Allow notifications despite password protection"
 msgstr "Дазволіць апавяшчэнні нягледзячы на абарону паролем"
+
+msgid "Allowed background functions"
+msgstr "Дазволеныя фонавыя функцыі"
 
 msgid "Also disclose appointments marked as confidential"
 msgstr "Таксама раскрываць сустрэчы, пазначаныя як канфідэнцыйныя"
@@ -1050,6 +1059,9 @@ msgstr "ІМТ паводле апошніх захаваных даных пр�
 
 msgid "BZ"
 msgstr "BZ"
+
+msgid "Background service"
+msgstr "Фонавая служба"
 
 msgid "Backup failed."
 msgstr "Не ўдалося стварыць рэзервовую копію."
@@ -1389,6 +1401,9 @@ msgstr ""
 
 msgid "Checking Contributor Key …"
 msgstr "Праверка ключа Contributor …"
+
+msgid "Checking background service …"
+msgstr "Правяраецца фонавая служба …"
 
 msgid "Checking online accounts …"
 msgstr "Праверка анлайн-акаўнтаў …"
@@ -2211,6 +2226,9 @@ msgstr "Уключыць"
 msgid "Enable Magnolie Notes phone connection"
 msgstr "Уключыць тэлефоннае злучэнне Magnolie Notes"
 
+msgid "Enable background service"
+msgstr "Уключыць фонавую службу"
+
 msgid "Enable cycle calendar"
 msgstr "Уключыць каляндар цыклу"
 
@@ -2243,6 +2261,9 @@ msgstr "Уключыць каляндар вывазу адходаў"
 
 msgid "Encrypted archive entries are not supported."
 msgstr "Зашыфраваныя запісы архіва не падтрымліваюцца."
+
+msgid "Encrypted data behavior"
+msgstr "Праца з зашыфраванымі данымі"
 
 msgid "Encrypting the data"
 msgstr "Шыфраванне даных"
@@ -2398,6 +2419,9 @@ msgstr "Сваячка"
 
 msgid "Fertile days"
 msgstr "Фертыльныя дні"
+
+msgid "File"
+msgstr "Файл"
 
 #, python-format
 msgid "File could not be read: %s"
@@ -2817,13 +2841,22 @@ msgstr "Уключыць вываз адходаў"
 msgid "Incoming"
 msgstr "Паступае"
 
+msgid "Incoming KDE Connect file"
+msgstr "Уваходны файл KDE Connect"
+
+msgid "Incoming KDE Connect files (always confirm)"
+msgstr "Уваходныя файлы KDE Connect (заўсёды пацвярджаць)"
+
 msgid "Incoming call"
 msgstr "Уваходны званок"
 
 msgid ""
-"Incoming files and clipboard text are confirmed before use unless automatic "
-"acceptance is explicitly enabled."
-msgstr "Атрыманыя файлы і тэкст з буфера абмену патрабуюць пацвярджэння перад выкарыстаннем, калі аўтаматычнае прыняцце не ўключана яўна."
+"Incoming files are always confirmed. Clipboard text is confirmed unless "
+"automatic acceptance is explicitly enabled."
+msgstr ""
+"Атрыманне ўваходных файлаў заўсёды патрабуе пацвярджэння. Тэкст з буфера "
+"абмену таксама патрабуе пацвярджэння, калі аўтаматычнае прыняцце не ўключана "
+"яўна."
 
 msgid "Input"
 msgstr "Увод"
@@ -2870,6 +2903,9 @@ msgstr "Сок"
 msgid "Jura"
 msgstr "Юра"
 
+msgid "KDE Connect device"
+msgstr "Прылада KDE Connect"
+
 msgid "KDE Connect for SMS"
 msgstr "KDE Connect для SMS"
 
@@ -2883,6 +2919,12 @@ msgstr ""
 "KDE Connect выкарыстоўваецца толькі для SMS. Ён не падключае і не "
 "сінхранізуе Magnolienbaum."
 
+msgid "KDE Connect pairing"
+msgstr "Спалучэнне KDE Connect"
+
+msgid "KDE Connect pairing decisions"
+msgstr "Рашэнні аб спалучэнні KDE Connect"
+
 msgid "KDE Connect pairing failed."
 msgstr "Збой спалучэння KDE Connect."
 
@@ -2891,6 +2933,10 @@ msgstr "Тэлефон KDE Connect спалучаны."
 
 msgid "KDE Connect port %(port)s"
 msgstr "KDE Connect порт %(port)s"
+
+msgid ""
+"KDE Connect receive settings could not be applied by the background service."
+msgstr "Фонавай службе не ўдалося прымяніць налады атрымання KDE Connect."
 
 msgid "KDE Connect reception failed."
 msgstr "Не ўдалося атрымаць даныя праз KDE Connect."
@@ -2965,6 +3011,9 @@ msgstr "папярэдне"
 msgid "Listener stopped"
 msgstr "Слухач спыніўся"
 
+msgid "Loading background settings"
+msgstr "Загрузка фонавых налад"
+
 msgid "Local calendar"
 msgstr "Лакальны каляндар"
 
@@ -3023,8 +3072,14 @@ msgstr ""
 "Magnolie Notes завяршыла сеанс. Праграма і Арганайзер павінны выкарыстоўваць "
 "аднолькавую версію пратакола."
 
+msgid "Magnolie Notes pairing"
+msgstr "Спалучэнне Magnolie Notes"
+
 msgid "Magnolie Notes phone connection"
 msgstr "Тэлефонная сувязь Magnolie Notes"
+
+msgid "Magnolie Notes phone pairing decisions"
+msgstr "Рашэнні аб спалучэнні тэлефона з Magnolie Notes"
 
 msgid ""
 "Magnolie Notes phones and KDE Connect phones are separate: the Android model "
@@ -3035,6 +3090,12 @@ msgstr ""
 
 msgid "Magnolie Notes version"
 msgstr "Версія Magnolie Notes"
+
+msgid "Magnolie Organizer"
+msgstr "Magnolie Organizer"
+
+msgid "Magnolie Organizer Background Service"
+msgstr "Фонавая служба Magnolie Organizer"
 
 msgid "Magnolie Organizer is not completely installed."
 msgstr "Magnolie Organizer усталяваны не цалкам."
@@ -3067,6 +3128,14 @@ msgstr "Magnolie Organizer – асабісты арганайзер у папя
 msgid "Magnolie Organizer – reminders"
 msgstr "Magnolie Organizer – напаміны"
 
+#, python-format
+msgid "Magnolie background service could not start: %s"
+msgstr "Не ўдалося запусціць фонавую службу Magnolie: %s"
+
+#, python-format
+msgid "Magnolie background service requires GLib: %s"
+msgstr "Для фонавай службы Magnolie патрабуецца GLib: %s"
+
 msgid "Magnolie backup (*.json)"
 msgstr "Рэзервовая копія Magnolie (*.json)"
 
@@ -3086,6 +3155,9 @@ msgstr "Магнолія-Гадовы-Планавальнік-%d.ods"
 
 msgid "Magnolienbaum"
 msgstr "Magnolienbaum"
+
+msgid "Magnolienbaum change offers"
+msgstr "Прапановы змен Magnolienbaum"
 
 msgid "Magnolienbaum mailbox"
 msgstr "Magnolienbaum mailbox"
@@ -3243,6 +3315,12 @@ msgstr "Мадэль"
 msgid "Monday"
 msgstr "Панядзелак"
 
+msgid "Monitor KDE Connect SMS and show notifications"
+msgstr "Адсочваць SMS KDE Connect і паказваць апавяшчэнні"
+
+msgid "Monitor the Magnolie Notes phone connection"
+msgstr "Адсочваць злучэнне тэлефона з Magnolie Notes"
+
 msgid "Month"
 msgstr "Месяц"
 
@@ -3310,6 +3388,12 @@ msgstr "Імяніны"
 msgid "Name of this branch"
 msgstr "Назва гэтай галіны"
 
+msgid "Native notifications available"
+msgstr "Сістэмныя апавяшчэнні даступныя"
+
+msgid "Native notifications unavailable"
+msgstr "Сістэмныя апавяшчэнні недаступныя"
+
 msgid "Netherlands"
 msgstr "Нідэрланды"
 
@@ -3374,6 +3458,9 @@ msgstr "Новая старонка"
 
 msgid "New password"
 msgstr "Новы пароль"
+
+msgid "New phone changes are available"
+msgstr "Даступныя новыя змены з тэлефона"
 
 msgid "New task"
 msgstr "Новая задача"
@@ -3687,6 +3774,12 @@ msgstr "Нічога новага не знойдзена."
 msgid "Notice: The connection to storage was not confirmed."
 msgstr "Заўвага: Злучэнне са сховішчам не пацверджана."
 
+msgid "Notification actions available"
+msgstr "Дзеянні ў апавяшчэннях даступныя"
+
+msgid "Notification actions unavailable"
+msgstr "Дзеянні ў апавяшчэннях недаступныя"
+
 msgid "Notification and sound"
 msgstr "Апавяшчэнне і гук"
 
@@ -3716,6 +3809,9 @@ msgstr "Апавяшчэнні даступныя толькі ва ўсталя
 msgid "Notify me about incoming calls"
 msgstr "Паведамляць пра ўваходныя званкі"
 
+msgid "Notify, then unlock (recommended)"
+msgstr "Апавясціць, затым разблакіраваць (рэкамендуецца)"
+
 msgid "ODS"
 msgstr "ODS"
 
@@ -3730,6 +3826,9 @@ msgstr "Обвальдэн"
 
 msgid "Off"
 msgstr "выключана"
+
+msgid "Offer Personal Sync phone changes"
+msgstr "Прапаноўваць змены з тэлефона для Personal Sync"
 
 msgid "Offline"
 msgstr "У Інтэрнэце"
@@ -3834,6 +3933,11 @@ msgid ""
 msgstr ""
 "Толькі HTTPS. Стварыце пароль праграмы ў Nextcloud у раздзеле «Налады», "
 "«Бяспека». Пароль вашага ўліковага запісу не выкарыстоўваецца."
+
+msgid ""
+"Only Notify, then unlock is currently available. Keyring access and pausing "
+"while locked are not yet enforced by the background service."
+msgstr "Зараз даступны толькі рэжым «Апавясціць, затым разблакіраваць». Фонавая служба пакуль не забяспечвае доступ да сховішча ключоў і прыпыненне працы пры блакіроўцы."
 
 msgid ""
 "Only one Magnolie Notes phone can be paired. Remove the existing phone "
@@ -3945,6 +4049,13 @@ msgstr "Аперацыя завершана (%s)."
 #, python-format
 msgid "Option %s requires a language."
 msgstr "Параметр %s патрабуе мовы."
+
+msgid ""
+"Optional approved functions can continue while the Organizer window is "
+"closed."
+msgstr ""
+"Неабавязковыя дазволеныя функцыі могуць працягваць працаваць, калі акно "
+"Арганайзера закрыта."
 
 msgid "Organic waste"
 msgstr "Арганічныя адходы"
@@ -4065,6 +4176,9 @@ msgstr "Уставіць"
 msgid "Patch"
 msgstr "Пластыр"
 
+msgid "Pause while data is locked"
+msgstr "Прыпыняць, пакуль даныя заблакіраваны"
+
 msgid "Pay invoice"
 msgstr "Аплаціць рахунак"
 
@@ -4134,6 +4248,9 @@ msgstr "Батарэя тэлефона"
 
 msgid "Phone call"
 msgstr "Тэлефонны званок"
+
+msgid "Phone notification"
+msgstr "Апавяшчэнне з тэлефона"
 
 msgid "Phone number"
 msgstr "Нумары тэлефонаў"
@@ -4562,9 +4679,6 @@ msgstr ""
 "Патрабуецца існуючае спараванне з сістэмай BlueZ. Толькі дадзеныя, без аўдыё "
 "HFP."
 
-msgid "Reset"
-msgstr "Reset"
-
 msgid "Residual waste"
 msgstr "Рэшткавыя адходы"
 
@@ -4589,6 +4703,9 @@ msgstr "Аднавіць рэзервовую копію …"
 
 msgid "Restore completely"
 msgstr "Аднавіць цалкам"
+
+msgid "Restore defaults"
+msgstr "Аднавіць прадвызначаныя налады"
 
 msgid "Restore failed."
 msgstr "Аднаўленне не ўдалося."
@@ -4657,6 +4774,9 @@ msgstr "Маршрут"
 msgid "Route: calculate directions immediately"
 msgstr "Маршрут: адразу разлічыць напрамкі"
 
+msgid "Run approved Magnolie background functions"
+msgstr "Выконваць дазволеныя фонавыя функцыі Magnolie"
+
 #, python-format
 msgid "Run failed: %s"
 msgstr "Не ўдалося запусціць: %s"
@@ -4678,6 +4798,10 @@ msgstr "Падрабязнасці SMS"
 #, python-format
 msgid "SMS from %(name)s"
 msgstr "SMS ад %(name)s"
+
+#, python-format
+msgid "SMS from %s"
+msgstr "SMS ад %s"
 
 msgid "SMS history"
 msgstr "Гісторыя SMS"
@@ -4757,6 +4881,9 @@ msgstr "Захавана ✓ %(time)s"
 
 msgid "Saved."
 msgstr "Saved."
+
+msgid "Saving background settings"
+msgstr "Захаванне фонавых налад"
 
 msgid "Saving failed!"
 msgstr "Не ўдалося захаваць!"
@@ -4926,6 +5053,12 @@ msgstr "Server address"
 msgid "Server address and user name are required."
 msgstr "Патрэбны адрас сервера і імя карыстальніка."
 
+msgid "Service running"
+msgstr "Служба працуе"
+
+msgid "Service stopped"
+msgstr "Служба спынена"
+
 msgid "Set varying doses by weekday"
 msgstr "Задаць розныя дозы паводле дзён тыдня"
 
@@ -4981,11 +5114,17 @@ msgstr "Інсулін кароткага дзеяння"
 msgid "Show Health after Planner"
 msgstr "Паказваць раздзел «Здароўе» пасля планіроўшчыка"
 
+msgid "Show Magnolie Notes SMS notifications"
+msgstr "Паказваць апавяшчэнні пра SMS з Magnolie Notes"
+
 msgid "Show all"
 msgstr "Паказаць усё"
 
 msgid "Show calendar button in date fields"
 msgstr "Паказваць кнопку календара ў палях даты"
+
+msgid "Show incoming call notifications"
+msgstr "Паказваць апавяшчэнні пра ўваходныя выклікі"
 
 msgid "Show log"
 msgstr "Паказаць журнал"
@@ -4998,6 +5137,9 @@ msgstr "Паказаць QR-код спалучэння"
 
 msgid "Show preview"
 msgstr "Паказаць папярэдні прагляд"
+
+msgid "Show selected app notifications"
+msgstr "Паказваць апавяшчэнні выбраных праграм"
 
 msgid "Show selected notifications (read only)"
 msgstr "Толькі экраннае апавяшчэнне"
@@ -5113,6 +5255,15 @@ msgstr "Спрэй"
 
 msgid "St. Gallen"
 msgstr "Санкт-Гален"
+
+msgid "Start Organizer"
+msgstr "Запусціць Арганайзер"
+
+msgid "Start Organizer and synchronize."
+msgstr "Запусціць Арганайзер і сінхранізаваць."
+
+msgid "Start at login"
+msgstr "Запускаць пры ўваходзе"
 
 msgid "Start automatically when signing in"
 msgstr "Аўтаматычна запускаць пры ўваходзе"
@@ -5234,6 +5385,15 @@ msgstr "Сістэмная аўтэнтыфікацыя для наладжва�
 
 msgid "System default"
 msgstr "Сістэма па змаўчанні"
+
+msgid "System keyring and pause modes cannot be enabled yet."
+msgstr "Сістэмнае сховішча ключоў і рэжымы прыпынення пакуль нельга ўключыць."
+
+msgid "System keyring available"
+msgstr "Сістэмнае сховішча ключоў даступнае"
+
+msgid "System keyring unavailable"
+msgstr "Сістэмнае сховішча ключоў недаступнае"
 
 msgid "System setting"
 msgstr "Сістэмная налада"
@@ -5560,6 +5720,15 @@ msgid ""
 msgstr ""
 "Фонавая служба напамінаў можа чытаць асобныя даныя напамінаў, таму працуе "
 "нават пасля закрыцця арганайзера."
+
+msgid "The background service could not be started."
+msgstr "Не ўдалося запусціць фонавую службу."
+
+msgid "The background service is available only in the installed application."
+msgstr "Фонавая служба даступная толькі ва ўсталяванай праграме."
+
+msgid "The background settings could not be saved."
+msgstr "Не ўдалося захаваць фонавыя налады."
 
 msgid "The backup could not be created."
 msgstr "Не ўдалося стварыць рэзервовую копію."
@@ -6426,7 +6595,9 @@ msgid "This secure session already exists."
 msgstr "Гэты бяспечны сеанс ужо існуе."
 
 msgid "This selection is independent of the Bluetooth data fallback."
-msgstr "Гэты выбар не залежыць ад рэзервовага злучэння для перадачы даных праз Bluetooth."
+msgstr ""
+"Гэты выбар не залежыць ад рэзервовага злучэння для перадачы даных праз "
+"Bluetooth."
 
 msgid "This setting applies when you restore the window from the tray menu."
 msgstr ""
@@ -6694,6 +6865,9 @@ msgid ""
 msgstr ""
 "Выкарыстоўвайце толькі схемы прыёму, прызначаныя або пацверджаныя "
 "медыцынскім спецыялістам."
+
+msgid "Use system keyring"
+msgstr "Выкарыстоўваць сістэмнае сховішча ключоў"
 
 msgid ""
 "Use the arrows to arrange groups and notebooks, or use the selection to move "
@@ -7517,6 +7691,31 @@ msgstr[2] "… і яшчэ %(count)s элементы, якія таксама �
 msgid "＋ Add appointment"
 msgstr "＋ Дадаць сустрэчу"
 
+#~ msgid ""
+#~ "Notify, then unlock asks you to open and unlock the Organizer. System "
+#~ "keyring uses an available desktop keyring without storing the password in "
+#~ "Organizer data. Pause while locked waits without accessing encrypted data."
+#~ msgstr ""
+#~ "Варыянт «Апавясціць, затым разблакіраваць» прапануе адкрыць і "
+#~ "разблакіраваць Арганайзер. Сістэмнае сховішча ключоў выкарыстоўвае "
+#~ "даступнае сховішча ключоў працоўнага асяроддзя, не захоўваючы пароль у "
+#~ "даных Арганайзера. Варыянт «Прыпыняць, пакуль даныя заблакіраваны» чакае, "
+#~ "не звяртаючыся да зашыфраваных даных."
+
+#~ msgid "System keyring is unavailable; this choice cannot be enabled."
+#~ msgstr ""
+#~ "Сістэмнае сховішча ключоў недаступнае; гэты варыянт нельга ўключыць."
+
+#~ msgid ""
+#~ "Incoming files and clipboard text are confirmed before use unless "
+#~ "automatic acceptance is explicitly enabled."
+#~ msgstr ""
+#~ "Атрыманыя файлы і тэкст з буфера абмену патрабуюць пацвярджэння перад "
+#~ "выкарыстаннем, калі аўтаматычнае прыняцце не ўключана яўна."
+
+#~ msgid "Reset"
+#~ msgstr "Reset"
+
 #~ msgid "Exactly one online Magnolie Notes phone must allow dial requests."
 #~ msgstr ""
 #~ "Роўна адзін інтэрнэт-тэлефон Magnolie Notes павінен дазваляць запыты на "
@@ -7531,8 +7730,8 @@ msgstr "＋ Дадаць сустрэчу"
 #~ msgid "Selected notifications"
 #~ msgstr "сістэмнае апавяшчэнне"
 
-msgid "Language & region"
-msgstr "Мова і рэгіён"
+#~ msgid "Language & region"
+#~ msgstr "Мова і рэгіён"
 
 #~ msgid "No valid subscription"
 #~ msgstr "Няма сапраўднай падпіскі"

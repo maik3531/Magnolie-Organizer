@@ -573,6 +573,7 @@ internal static partial class ExchangeCodec
         var recurrence = First(values, "RRULE")?.Value ?? "";
         var rdateProperties = values.Where(value => value.Name == "RDATE").ToArray();
         var customDates = new SortedSet<DateOnly>();
+        var exceptionDates = new SortedSet<DateOnly>();
         var invalidRdate = false;
         foreach (var property in rdateProperties)
             foreach (var rawDate in property.Value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
@@ -585,6 +586,16 @@ internal static partial class ExchangeCodec
                     else customDates.Add(date);
                 }
                 catch (Exception) when (rawDate.Length > 0) { invalidRdate = true; }
+        foreach (var property in values.Where(value => value.Name == "EXDATE"))
+            foreach (var rawDate in property.Value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+                try
+                {
+                    var parsed = ParseIcsDate(property with { Value = rawDate });
+                    if (parsed.AllDay == start.AllDay && (parsed.AllDay ||
+                        TimeOnly.FromDateTime(parsed.DateTime) == TimeOnly.FromDateTime(start.DateTime)))
+                        exceptionDates.Add(DateOnly.FromDateTime(parsed.DateTime));
+                }
+                catch (Exception) when (rawDate.Length > 0) { }
         var monthlyWeekday = MonthlyWeekday(recurrence);
         var simpleRdate = recurrence.Length == 0 && rdateProperties.Length > 0 && !invalidRdate && customDates.Count > 0;
         var recurrenceKind = simpleRdate ? "custom" : monthlyWeekday.Form.Length > 0 ? "monthly" : RecurrenceKind(recurrence);
@@ -638,6 +649,8 @@ internal static partial class ExchangeCodec
             ["kostenstelle"] = IcsText(First(values, "X-MAGNOLIE-KOSTENSTELLE")?.Value ?? ""), ["kunde"] = IcsText(First(values, "X-MAGNOLIE-KUNDE")?.Value ?? ""),
             ["standardErinnerung"] = (First(values, "X-MAGNOLIE-STANDARDERINNERUNG")?.Value ?? "1") != "0",
             ["individuelleErinnerungTage"] = int.TryParse(First(values, "X-MAGNOLIE-ERINNERUNG-TAGE")?.Value, out var days) ? Math.Clamp(days, 0, 7) : 0,
+            ["icsAusnahmen"] = new JsonArray(exceptionDates.Select(value => (JsonNode?)value.ToString("yyyy-MM-dd")).ToArray()),
+            ["icsZusatzDaten"] = new JsonArray(customDates.Select(value => (JsonNode?)value.ToString("yyyy-MM-dd")).ToArray()),
             ["wiederholung"] = recurrenceObject,
             ["icsKomplex"] = complex, ["icsSerienUid"] = complex ? First(values, "UID")?.Value ?? "" : "",
             ["icsRoundtrip"] = IcsRoundtrip(roundtripValues, complex), ["geaendert"] = IcsModified(values)
@@ -671,6 +684,18 @@ internal static partial class ExchangeCodec
         var date = RequiredDate(J(item, "datum"));
         var time = J(item, "zeit");
         var sourceUid = J(item, "icsSerienUid");
+        var raw = item.TryGetProperty("icsRoundtrip", out var roundtrip) && roundtrip.ValueKind == JsonValueKind.Array
+            ? roundtrip.EnumerateArray().Where(value => value.ValueKind == JsonValueKind.String)
+                .Select(value => value.GetString() ?? "").Where(ValidIcsRoundtripLine).ToArray()
+            : Array.Empty<string>();
+        var rawRdates = IcsDates(raw, "RDATE");
+        var rawExdates = IcsDates(raw, "EXDATE");
+        var exceptions = StructuredDates(item, "icsAusnahmen");
+        var additions = StructuredDates(item, "icsZusatzDaten");
+        additions.ExceptWith(exceptions);
+        additions.ExceptWith(rawExdates);
+        additions.ExceptWith(rawRdates);
+        additions.Remove(date);
         var lines = new List<string> { "BEGIN:VEVENT", $"UID:{V(sourceUid.Length > 0 ? sourceUid : Uid(item))}", $"DTSTAMP:{DateTime.UtcNow:yyyyMMdd'T'HHmmss'Z'}" };
         if (time.Length == 0)
         {
@@ -710,15 +735,17 @@ internal static partial class ExchangeCodec
             else if (kind == "CUSTOM" && recurrence.TryGetProperty("daten", out var dates) &&
                 dates.ValueKind == JsonValueKind.Array)
             {
-                var dateValues = dates.EnumerateArray().Where(value => value.ValueKind == JsonValueKind.String &&
-                    DateOnly.TryParseExact(value.GetString(), "yyyy-MM-dd", out _))
-                    .Select(value => value.GetString()!.Replace("-", "") +
-                        (time.Length > 0 ? "T" + time.Replace(":", "") + "00" : ""))
-                    .Distinct().Order().ToArray();
-                if (dateValues.Length > 0) lines.Add((time.Length > 0 ? "RDATE:" : "RDATE;VALUE=DATE:") +
-                    string.Join(',', dateValues));
+                additions.UnionWith(dates.EnumerateArray().Where(value => value.ValueKind == JsonValueKind.String &&
+                    DateOnly.TryParseExact(value.GetString(), "yyyy-MM-dd", out _)).Select(value => DateOnly.ParseExact(value.GetString()!, "yyyy-MM-dd")));
             }
         }
+        additions.ExceptWith(exceptions);
+        additions.ExceptWith(rawExdates);
+        additions.ExceptWith(rawRdates);
+        additions.Remove(date);
+        if (additions.Count > 0) lines.Add(RecurrenceDateLine("RDATE", additions, time));
+        exceptions.ExceptWith(rawExdates);
+        if (exceptions.Count > 0) lines.Add(RecurrenceDateLine("EXDATE", exceptions, time));
         ApplyIcsRoundtrip(lines, item);
         lines.Add("END:VEVENT"); return lines;
     }
@@ -839,10 +866,35 @@ internal static partial class ExchangeCodec
         if (!item.TryGetProperty("icsRoundtrip", out var metadata) || metadata.ValueKind != JsonValueKind.Array) return;
         var raw = metadata.EnumerateArray().Where(value => value.ValueKind == JsonValueKind.String).Select(value => value.GetString() ?? "")
             .Where(ValidIcsRoundtripLine).ToArray();
-        var replace = raw.Select(PropertyName).Where(name => name is "DTSTART" or "DTEND" or "DUE" or "DURATION" or "RRULE" or "RDATE" or "EXDATE" or "EXRULE" or "RECURRENCE-ID").ToHashSet();
+        var replace = raw.Select(PropertyName).Where(name => name is "DTSTART" or "DTEND" or "DUE" or "DURATION" or "RRULE" or "EXRULE" or "RECURRENCE-ID").ToHashSet();
         lines.RemoveAll(line => replace.Contains(PropertyName(line)));
         lines.AddRange(raw);
     }
+
+    private static SortedSet<DateOnly> StructuredDates(JsonElement item, string name)
+    {
+        if (!item.TryGetProperty(name, out var values) || values.ValueKind != JsonValueKind.Array) return new();
+        return new SortedSet<DateOnly>(values.EnumerateArray().Where(value => value.ValueKind == JsonValueKind.String &&
+            DateOnly.TryParseExact(value.GetString(), "yyyy-MM-dd", out _)).Select(value => DateOnly.ParseExact(value.GetString()!, "yyyy-MM-dd")));
+    }
+
+    private static HashSet<DateOnly> IcsDates(IEnumerable<string> lines, string name)
+    {
+        var result = new HashSet<DateOnly>();
+        foreach (var line in lines)
+        {
+            var property = ParseIcsProperty(line);
+            if (property?.Name != name) continue;
+            foreach (var rawDate in property.Value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+                try { result.Add(DateOnly.FromDateTime(ParseIcsDate(property with { Value = rawDate }).DateTime)); }
+                catch (Exception) when (rawDate.Length > 0) { }
+        }
+        return result;
+    }
+
+    private static string RecurrenceDateLine(string name, IEnumerable<DateOnly> dates, string time) =>
+        (time.Length > 0 ? name + ":" : name + ";VALUE=DATE:") + string.Join(',', dates.Select(value =>
+            value.ToString("yyyyMMdd") + (time.Length > 0 ? "T" + time.Replace(":", "") + "00" : "")));
 
     private static int CountRejectedIcsRoundtrip(JsonElement item)
     {

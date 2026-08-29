@@ -4,6 +4,7 @@ const fs = require("fs");
 const path = require("path");
 const assert = require("assert");
 const { JSDOM } = require("jsdom");
+const { canonicalPageIds, selectHandbookWeb } = require("./handbook-source");
 
 const root = path.resolve(__dirname, "..");
 const expectedVersion = process.argv[2];
@@ -12,13 +13,18 @@ assert.ok(/^\d+\.\d+\.\d+$/.test(expectedVersion || ""), "Kanonische Testversion
 assert.strictEqual(expectedInstaller,
   `Magnolie-Organizer-Windows-${expectedVersion}-Setup-x64.exe`,
   "Unerlaubter Test-Installername");
+const handbookSource = selectHandbookWeb(root, ["index.html", "inhalt.js", "i18n/de.js"]);
+const selectedHandbook = handbookSource.directory;
 const handbook = [process.env.MAGNOLIE_HANDBUCH_WEB,
   path.resolve(root, "..", "magnolie-handbuch-stamm", "web"),
   path.join(root, "shared", "magnolie-handbuch-stamm", "web")]
   .filter(Boolean).find((candidate) => fs.existsSync(path.join(candidate, "inhalt.js")) &&
     fs.existsSync(path.join(candidate, "i18n", "de.js")));
 assert.ok(handbook, "Gemeinsame Handbuchquelle fehlt");
-const html = fs.readFileSync(path.join(handbook, "index.html"), "utf8");
+assert.strictEqual(path.resolve(handbook), selectedHandbook,
+  "Veraltete Handbuch-Ausweichquelle wurde ausgewählt");
+const expectedPageIds = canonicalPageIds(selectedHandbook);
+const html = fs.readFileSync(path.join(selectedHandbook, "index.html"), "utf8");
 const content = fs.readFileSync(path.join(handbook, "inhalt.js"), "utf8");
 const runtime = fs.readFileSync(path.join(handbook, "handbuch.js"), "utf8");
 const i18n = fs.readFileSync(path.join(handbook, "i18n.js"), "utf8");
@@ -60,7 +66,8 @@ const pages = window.Handbuch.seiten();
 const completeText = pages.map((page) => `${page.titel} ${page.inhalt}`).join("\n");
 assert.strictEqual(window.document.documentElement.lang, "de");
 assert.strictEqual(window.document.title, "Magnolie Organizer – Handbuch");
-assert.strictEqual(pages.length, 154);
+assert.deepStrictEqual(pages.map((page) => page.id), expectedPageIds,
+  "Windows-Handbuchseiten entsprechen nicht der ausgewählten kanonischen Quelle");
 assert.ok(pages.every((page) => page.titel && page.inhalt !== undefined));
 assert.ok(pages.some((page) => page.id === "the-appimage"), "Die AppImage-Seite fehlt");
 assert.ok(completeText.includes("%LOCALAPPDATA%\\Magnolie Organizer\\daten.json"));
@@ -149,7 +156,7 @@ for (const image of ["kaffee-qr.png", "maik-walter.jpg", "01.jpg", "02.jpg", "03
   assert.ok(fs.existsSync(path.join(handbook, image)), `Handbuchbild fehlt: ${image}`);
 }
 assert.ok(fs.existsSync(path.join(handbook, "maik-walter-FOTO-NUTZUNG.txt")));
-for (const marker of [`Windows ${expectedVersion}`, "Magnolie Notes für Android 1.0.8",
+for (const marker of [`Windows ${expectedVersion}`, "Magnolie Notes für Android 1.0.9",
   "Kontakte synchronisieren", "2.800.000", "stabile technische Bindung",
   "12.000.000", "24.000.000", "FileProvider", "256 MiB", "512 MiB",
   "Freiwilliger Löschabgleich", "höchstens 10 Löschungen", "höchstens 10 %",
@@ -169,4 +176,4 @@ assert.strictEqual(bridgeMessages[0].cmd, "drucken");
 assert.ok(bridgeMessages[0].html.includes("Magnolie Organizer · Handbuch"));
 
 dom.window.close();
-console.log(`HANDBOOK SMOKE TEST PASSED (${pages.length} shared pages)`);
+console.log(`HANDBOOK SMOKE TEST PASSED (${pages.length} shared pages; source: ${handbookSource.label})`);

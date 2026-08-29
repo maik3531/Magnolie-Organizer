@@ -74,6 +74,8 @@ internal sealed class HandbookForm : Form
                 if (!IsInternal(eventArgs.Uri)) ShellLauncher.OpenExternalUri(eventArgs.Uri);
             };
             core.PermissionRequested += (_, eventArgs) => eventArgs.State = CoreWebView2PermissionState.Deny;
+            core.ProcessFailed += (_, eventArgs) =>
+                WriteDiagnostic($"Handbuch-WebView2-Prozessfehler: {eventArgs.ProcessFailedKind}");
             core.NavigationCompleted += async (_, eventArgs) => await NavigationCompletedAsync(eventArgs);
             NavigateToHandbook();
             try
@@ -197,6 +199,8 @@ internal sealed class HtmlPrintForm : Form
             webView.CoreWebView2.Settings.AreDevToolsEnabled = false;
             webView.CoreWebView2.Settings.AreDefaultContextMenusEnabled = false;
             webView.CoreWebView2.PermissionRequested += (_, eventArgs) => eventArgs.State = CoreWebView2PermissionState.Deny;
+            webView.CoreWebView2.ProcessFailed += (_, eventArgs) => WriteDiagnostic(
+                $"Handbuch-Druck-WebView2-Prozessfehler: {eventArgs.ProcessFailedKind}");
             webView.CoreWebView2.NavigationCompleted += (_, eventArgs) =>
             {
                 if (eventArgs.IsSuccess) webView.CoreWebView2.ShowPrintUI(CoreWebView2PrintDialogKind.System);
@@ -206,8 +210,12 @@ internal sealed class HtmlPrintForm : Form
         }
         catch (Exception error)
         {
+            WriteDiagnostic($"Handbuch-Druck-WebView2-Start fehlgeschlagen: {error}");
             initialized.TrySetException(error);
             Close();
         }
     }
+
+    private void WriteDiagnostic(string message) => RotatingLog.Append(
+        Path.Combine(paths.Logs, "webview.log"), $"{DateTimeOffset.Now:O} {message}");
 }

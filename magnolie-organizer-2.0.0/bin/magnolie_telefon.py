@@ -17,6 +17,7 @@ import threading
 import time
 import unicodedata
 import uuid
+from collections import deque
 
 from magnolie_personal_sync import (CHUNK_RAW, MAX_ATTACHMENT, MAX_ATTACHMENTS, MIMES,
                                     decode_attachment_data_url, mime_from_magic, records_hash,
@@ -1629,6 +1630,9 @@ class PhoneService:
         self.incoming_calls = {}
         self.personal_commit_events = {}
         self.personal_dispatched = set()
+        self.personal_sync_available = lambda: True
+        self.personal_offers = deque(maxlen=256)
+        self.personal_offer_keys = set()
 
     def report(self):
         bluetooth_available, bluetooth_reason = self.bluetooth_backend.availability()
@@ -2098,6 +2102,10 @@ class PhoneService:
     def _send_message(self, channel, peer_id, message):
         policy = self.store.outbox_policy(peer_id, message.get("message_id", ""))
         if policy == "invalid" or policy == "wifi_only" and self.connection_transports.get(peer_id) != "wifi":
+            return False
+        if (message.get("kind", "").startswith("personal_sync.")
+                and message.get("kind") != "personal_sync.settings"
+                and not self.personal_sync_available()):
             return False
         if message.get("kind", "").startswith("personal_sync.") and message["kind"] != "personal_sync.settings":
             peer = self.store.peer(peer_id) or {}
@@ -2736,6 +2744,12 @@ class PhoneService:
                                   "status": "rejected", "error": "expired"})
                     return
                 if policy is None:
+                    if not self.personal_sync_available():
+                        self.store.remember_message(peer["device_id"], payload,
+                                                    "rejected", "restore_unavailable")
+                        channel.send({"type": "ack", "message_id": payload["message_id"],
+                            "status": "rejected", "error": "restore_unavailable"})
+                        return
                     raise ValueError("personal sync request missing")
             if policy == "wifi_only" and self.connection_transports.get(peer["device_id"]) != "wifi":
                 raise ValueError("wifi-only run received on bluetooth")
@@ -2992,6 +3006,9 @@ class PhoneService:
                             self.send_personal_sync(peer["device_id"], "personal_sync.report", pending_report,
                                 run.get("trigger", "manual"))
                 if kind in PERSONAL_DELETION_KINDS:
+                    if not self.personal_sync_available():
+                        status, error = "rejected", "restore_unavailable"
+                        raise PermissionError
                     staged = self.store.stage_personal_domain(peer["device_id"], payload)
                     token = staged["commit_token"]
                     staged["transport"] = self.connection_transports.get(peer["device_id"], "")
@@ -3017,6 +3034,9 @@ class PhoneService:
                                       "status": "rejected", "error": "restore_unavailable"})
                     return
                 if kind == "personal_sync.batch":
+                    if not self.personal_sync_available():
+                        status, error = "rejected", "restore_unavailable"
+                        raise PermissionError
                     run = self.store.personal_run(peer["device_id"], value["run_id"])
                     if run.get("trigger") not in {"manual", "auto_wifi"} or not run.get("modules"):
                         raise ValueError("personal sync request missing")
@@ -3058,6 +3078,26 @@ class PhoneService:
                 if kind == "personal_sync.request":
                     if value["trigger"] == "auto_wifi" and self.connection_transports.get(peer["device_id"]) != "wifi":
                         raise ValueError("auto sync received outside wifi")
+                    if not self.personal_sync_available():
+                        offer_key = (peer["device_id"], value["run_id"])
+                        with self.lock:
+                            if offer_key not in self.personal_offer_keys:
+                                if len(self.personal_offers) == self.personal_offers.maxlen:
+                                    self.personal_offer_keys.discard(self.personal_offers[0])
+                                self.personal_offers.append(offer_key)
+                                self.personal_offer_keys.add(offer_key)
+                                offer = True
+                            else:
+                                offer = False
+                        if offer:
+                            self.callback("personal_sync_offer", {
+                                "device_id": peer["device_id"],
+                                "display_name": peer["display_name"],
+                                "run_id": value["run_id"],
+                                "requested_modules": list(value["modules"]),
+                                "trigger": value["trigger"]})
+                        status, error = "rejected", "restore_unavailable"
+                        raise PermissionError
                     self.store.remember_personal_run(peer["device_id"], value, payload["expires_ms"])
                     if value["trigger"] == "auto_wifi":
                         self.store.set_active_auto_run(peer["device_id"], value["run_id"])

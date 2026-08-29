@@ -203,6 +203,21 @@ function knopfMit(text, wurzel) {
     gesundheit: ausdruecklicheStandards.einstellungen.allgemein.registerkarten.gesundheit
   }, { rechtschreibung: false, ansicht: "month", gesundheit: false },
   "explizite Nutzerentscheidungen werden durch neue Standards überschrieben");
+  const hintergrundNormalisiert = T.normalisiere({ einstellungen: { sicherheit: {
+    hintergrund: { enabled: true, autostart: "yes", encryptionPolicy: "invalid",
+      password: "must-not-survive", permissions: { kde_pairing: true, unknown: true } } } } })
+    .einstellungen.sicherheit.hintergrund;
+  assert.strictEqual(hintergrundNormalisiert.enabled, true);
+  assert.strictEqual(hintergrundNormalisiert.autostart, false);
+  assert.strictEqual(hintergrundNormalisiert.encryptionPolicy, "notify_then_unlock");
+  assert.strictEqual(hintergrundNormalisiert.permissions.kde_pairing, true);
+  assert.ok(!Object.prototype.hasOwnProperty.call(hintergrundNormalisiert, "password") &&
+    !Object.prototype.hasOwnProperty.call(hintergrundNormalisiert.permissions, "unknown"),
+  "Hintergrunddienst-Spiegel wird nicht streng und geheimnisfrei normalisiert: " +
+    JSON.stringify(hintergrundNormalisiert));
+  assert.ok(!Object.prototype.hasOwnProperty.call(T.normalisiere({ einstellungen: { sync: {
+    kdeEmpfang: { dateienAutomatisch: true } } } }).einstellungen.sync.kdeEmpfang,
+  "dateienAutomatisch"), "alte automatische KDE-Dateiannnahme wird nicht entfernt");
   const edsAltbestand = T.normalisiere({ letzteSyncs: { adressbuecher: {
     "eds-alt": { initialisiert: true, letzterSync: 1234, remoteAnzahl: 2,
       snapshotHash: "a".repeat(64) } } } });
@@ -1443,6 +1458,8 @@ function knopfMit(text, wurzel) {
   enSW.App.init({ daten: enSyncDaten, neu: false, datenPfad: "",
     trayVerfuegbar: false, handbuchInstalliert: true });
   await tick();
+  assert.ok(enSyncNachrichten.some((nachricht) => nachricht.cmd === "background_settings_get"),
+    "Initialisierung fragt den Hintergrunddienststand nicht an");
   enSyncNachrichten.length = 0;
   enST.daten().einstellungen.allgemein.startseite = "jahr";
   enSD.querySelector("#knopf-sicherung").click();
@@ -1625,6 +1642,14 @@ function knopfMit(text, wurzel) {
 
   enST.inDenPapierkorb("notiz", { id: "en-pk", titel: "Nicht übersetzen" },
     "Nicht übersetzen");
+  enSW.App.backgroundSettings({ enabled: true, autostart: false, running: true,
+    encryption_policy: "notify_then_unlock", keyring_available: false,
+    native_notifications_supported: true, native_actions_supported: false,
+    permissions: { kde_pairing: true, kde_incoming_files: false,
+      sms_phone_notifications: true, phone_monitor: true,
+      phone_sms_notifications: true, phone_selected_notifications: false,
+      phone_call_notifications: true, phone_pairing_decisions: false,
+      phone_personal_sync_offers: true, magnolienbaum_change_offers: false } });
   Array.from(enSD.querySelectorAll(".einst-reiter-knopf"))
     .find((button) => button.textContent === "Security").click();
   const enSicherheit = enSD.querySelector("#einstellungen-inhalt");
@@ -1633,6 +1658,30 @@ function knopfMit(text, wurzel) {
     Array.from(enSicherheit.querySelectorAll("h3"),
       (heading) => heading.textContent).includes("Password protection"),
   "englische Sicherheitsabschnitte fehlen");
+  const hintergrundAbschnitt = enSicherheit.querySelector(".hintergrunddienst-abschnitt");
+  assert.ok(hintergrundAbschnitt && hintergrundAbschnitt.querySelector("#hintergrunddienst-an") &&
+    hintergrundAbschnitt.querySelector("#hintergrunddienst-autostart") &&
+    hintergrundAbschnitt.querySelectorAll("[data-permission]").length === 10 &&
+    hintergrundAbschnitt.textContent.includes("Service running") &&
+    hintergrundAbschnitt.textContent.includes("Notification actions unavailable") &&
+    hintergrundAbschnitt.textContent.includes("Magnolienbaum change offers") &&
+    hintergrundAbschnitt.textContent.includes("(unavailable)"),
+  "Hintergrunddienst-Steuerung oder Laufzeitstatus fehlt unter Sicherheit");
+  const keyringOption = hintergrundAbschnitt.querySelector(
+    '#hintergrunddienst-verschluesselung option[value="keyring"]');
+  assert.ok(keyringOption && keyringOption.disabled &&
+    hintergrundAbschnitt.textContent.includes("cannot be enabled"),
+  "nicht unterstützter Schlüsselbund bleibt auswählbar oder unerklärt");
+  const pairingPermission = hintergrundAbschnitt.querySelector('[data-permission="kde_pairing"]');
+  pairingPermission.checked = false;
+  pairingPermission.dispatchEvent(new enSW.Event("change", { bubbles: true }));
+  const hintergrundSave = enSyncNachrichten.filter((nachricht) =>
+    nachricht.cmd === "background_settings_set").at(-1);
+  assert.ok(hintergrundSave && hintergrundSave.settings.permissions.kde_pairing === false &&
+    hintergrundSave.settings.encryption_policy === "notify_then_unlock" &&
+    !Object.prototype.hasOwnProperty.call(hintergrundSave.settings, "running") &&
+    !Object.prototype.hasOwnProperty.call(hintergrundSave.settings, "password"),
+  "Hintergrunddienst-Änderung sendet keinen sauberen unmittelbaren Bridge-Nutzlast");
   assert.ok(enSD.querySelector("#papierkorb-stand").textContent.includes("1 note") &&
     enSicherheit.textContent.includes("Nicht übersetzen") &&
     enSicherheit.textContent.includes("Use the recycle bin") &&
@@ -2074,7 +2123,7 @@ function knopfMit(text, wurzel) {
   const enUeber = enSD.querySelector("#einstellungen-inhalt");
   assert.strictEqual(enUeber.querySelector("h3").textContent,
     "About the Magnolie Organizer", "englische Über-Seite fehlt");
-  assert.ok(enUeber.querySelector(".ueber-fassung").textContent.includes("Version 2.0.8") &&
+  assert.ok(enUeber.querySelector(".ueber-fassung").textContent.includes("Version 2.0.9") &&
     enUeber.textContent.includes("Author") && enUeber.textContent.includes("License") &&
     enUeber.textContent.includes("Updates") &&
     enUeber.textContent.includes("No update check has been performed yet") &&
@@ -2094,12 +2143,12 @@ function knopfMit(text, wurzel) {
     enSyncNachrichten.some((nachricht) => nachricht.cmd === "update_pruefen"),
   "englische Über-Seite verändert Handbuch- oder Update-Befehl");
   const enUpdateUrl = "https://gitlab.com/maik3531/mint-forgs/-/raw/main/" +
-    "Magnolie-Organitzer/magnolie-organizer_2.0.9_all.deb";
-  enSW.App.updateErgebnis({ ok: true, aktuell: false, version: "2.0.9",
+    "Magnolie-Organitzer/magnolie-organizer_2.0.10_all.deb";
+  enSW.App.updateErgebnis({ ok: true, aktuell: false, version: "2.0.10",
     url: enUpdateUrl, sha256: "ab".repeat(32), fehler: "" });
   assert.ok(enSD.querySelector("#update-stand").textContent.includes(
-    "New version 2.0.9 is available") &&
-    enSD.querySelector("#update-herunterladen").textContent.includes("2.0.9") &&
+    "New version 2.0.10 is available") &&
+    enSD.querySelector("#update-herunterladen").textContent.includes("2.0.10") &&
     enSD.querySelector(".update-pruefsumme").textContent.includes("ab".repeat(32)) &&
     enSD.querySelector(".update-pruefsumme").textContent.includes("sha256sum"),
   "englischer neuer Update-Stand fehlt");
@@ -6160,7 +6209,7 @@ function knopfMit(text, wurzel) {
   assert.ok(ueberText.includes("Version 3"), "die Lizenzfassung fehlt");
   assert.ok($(".ueber-fassung").textContent.includes("Fassung"),
     "die Programmfassung fehlt");
-  assert.ok($(".ueber-fassung").textContent.includes("2.0.8"),
+  assert.ok($(".ueber-fassung").textContent.includes("2.0.9"),
     "die neue Programmfassung fehlt");
   assert.ok($(".ueber-blume"), "die Magnolienblüte fehlt");
   const beschreibung = $(".ueber-beschreibung");
@@ -6180,18 +6229,18 @@ function knopfMit(text, wurzel) {
     "neben der gemeinsamen Aktualisierungsprüfung ist ein zweiter Prüfknopf sichtbar");
   assert.ok($("#handbuch-stand").textContent.includes("nicht installiert"),
     "der Handbuchstatus nennt die fehlende Installation nicht");
-  assert.ok(!T.istNeuereFassung("2.0.1") && !T.istNeuereFassung("2.0.8") &&
-    T.istNeuereFassung("2.0.9"),
+  assert.ok(!T.istNeuereFassung("2.0.1") && !T.istNeuereFassung("2.0.9") &&
+    T.istNeuereFassung("2.0.10"),
     "Fassungsvergleich der Oberfläche stimmt nicht");
   assert.ok(T.vergleicheText("Termin 2", "Termin 10") < 0,
     "der regionale Collator sortiert Zahlen weiterhin rein lexikografisch");
-  w.App.updateErgebnis({ ok: true, aktuell: false, version: "2.0.9",
+  w.App.updateErgebnis({ ok: true, aktuell: false, version: "2.0.10",
     url: "https://gitlab.com/maik3531/mint-forgs/-/raw/main/" +
-      "Magnolie-Organitzer/magnolie-organizer_2.0.9_all.deb" });
-  assert.ok($("#update-stand").textContent.includes("2.0.9"),
+      "Magnolie-Organitzer/magnolie-organizer_2.0.10_all.deb" });
+  assert.ok($("#update-stand").textContent.includes("2.0.10"),
     "gefundene Fassung erscheint nicht unter Über");
   assert.ok($("#update-herunterladen"), "Downloadknopf für neue Fassung fehlt");
-  assert.strictEqual(T.daten().einstellungen.update.letzteVersion, "2.0.9",
+  assert.strictEqual(T.daten().einstellungen.update.letzteVersion, "2.0.10",
     "Prüfstand wird nicht gespeichert");
   $("#update-automatisch").checked = false;
   $("#update-automatisch").dispatchEvent(new w.Event("change", { bubbles: true }));
@@ -6544,16 +6593,14 @@ function knopfMit(text, wurzel) {
   assert.strictEqual(empfangGruppen.length, 2,
     "KDE-Connect-Bereich enthält nicht getrennte Datei- und Zwischenablageoptionen");
   const dateiEmpfang = empfangGruppen[0].querySelectorAll("input");
-  assert.ok(!dateiEmpfang[0].checked && dateiEmpfang[1].disabled,
-    "KDE-Dateiempfang startet nicht sicher mit Bestätigung und ohne Automatik");
-  assert.ok(dateiEmpfang[1].closest("label").classList.contains("hak-eingerueckt") &&
-    /\.kde-empfang-option\s*\{[\s\S]{0,120}flex-direction:\s*column/.test(css),
-  "die automatische KDE-Annahme ist nicht abgesetzt untergeordnet");
+  assert.ok(dateiEmpfang.length === 1 && !dateiEmpfang[0].checked &&
+    !empfangGruppen[0].textContent.includes("automatisch"),
+    "KDE-Dateiempfang bietet weiterhin automatische Annahme an");
   dateiEmpfang[0].checked = true;
   dateiEmpfang[0].dispatchEvent(new bw.Event("change", { bubbles: true }));
   assert.ok(baumNachrichten.some((nachricht) => nachricht.cmd === "kde_receive_settings" &&
     nachricht.deviceId === "b".repeat(32) && nachricht.files === true &&
-    nachricht.filesAutomatic === false),
+    !Object.prototype.hasOwnProperty.call(nachricht, "filesAutomatic")),
   "aktivierter KDE-Dateiempfang erreicht den Programmkern nicht im Bestätigungsmodus");
   const ordnerAuswahl = empfangAbschnitt.querySelector(".kde-empfangsordner");
   assert.ok(ordnerAuswahl && !ordnerAuswahl.querySelector("button").disabled,
@@ -7177,7 +7224,7 @@ function knopfMit(text, wurzel) {
     "ohne Handbuch darf der Hinweis nicht als gezeigt gespeichert werden");
   const handbuchUrl = "https://gitlab.com/maik3531/mint-forgs/-/raw/main/" +
     "Magnolie-Organitzer/magnolie-handbuch_1.9.8_all.deb";
-  hw.App.updateErgebnis({ ok: true, aktuell: true, version: "2.0.8", url: "",
+  hw.App.updateErgebnis({ ok: true, aktuell: true, version: "2.0.9", url: "",
     sha256: "ab".repeat(32), handbuch: { version: "1.9.8", url: handbuchUrl,
       sha256: "cd".repeat(32) }, fehler: "" });
   assert.ok(!hd.querySelector("#dialog-schleier").classList.contains("verborgen") &&
@@ -7936,6 +7983,19 @@ function knopfMit(text, wurzel) {
     !/Application command|Notify me|Answer calls|Lower other sounds|matching permissions/.test(
       anrufBelegungText),
   "deutscher Anruf-Belegungsdialog enthält englische Beschriftungen oder Hilfen");
+  const standardKnopf = Array.from(anrufBelegung.querySelectorAll("button")).find(
+    (x) => x.textContent === "Voreinstellungen wiederherstellen");
+  const anrufOptionen = Array.from(anrufBelegung.querySelectorAll(
+    ".kommunikation-anruf-optionen input[type=checkbox]"));
+  anrufBelegung.querySelector('[value="program"]').click();
+  anrufBelegung.querySelector('input[type="text"]').value = "dialer {nummer}";
+  for (const feld of anrufOptionen) feld.checked = true;
+  hfpAuswahl.value = "AA:BB:CC:DD:EE:FF";
+  standardKnopf.click();
+  assert.ok(standardKnopf && anrufBelegung.querySelector('[value="magnolie"]').checked &&
+    !anrufBelegung.querySelector('input[type="text"]').value &&
+    anrufOptionen.every((feld) => !feld.checked) && !hfpAuswahl.value,
+  "Voreinstellungen stellen nicht die vollständige Anrufbelegung wieder her");
   hfpAuswahl.value = "AA:BB:CC:DD:EE:FF";
   Array.from(anrufBelegung.querySelectorAll("button")).find((x) => x.textContent === "Speichern").click();
   assert.strictEqual(kontaktT.daten().einstellungen.adressen.kommunikation.anruf.hfpAdresse,

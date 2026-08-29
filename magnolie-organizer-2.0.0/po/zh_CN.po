@@ -6,7 +6,7 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: Magnolie Organizer 2.0.8\n"
+"Project-Id-Version: Magnolie Organizer 2.0.9\n"
 "Report-Msgid-Bugs-To: maik3531@gmail.com\n"
 "POT-Creation-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "PO-Revision-Date: 2026-08-08 09:24+0200\n"
@@ -196,6 +196,7 @@ msgid "%(count)s public holiday"
 msgid_plural "%(count)s public holidays"
 msgstr[0] "%(count)s 个公共假日"
 
+#, python-format
 msgid "%(count)s recurring appointment imported only once."
 msgid_plural "%(count)s recurring appointments imported only once."
 msgstr[0] "%(count)s 个重复约会仅导入一次。"
@@ -365,6 +366,9 @@ msgstr "%s：明天是结婚纪念日。"
 
 msgid "(starts when you sign in)"
 msgstr "（登录时启动）"
+
+msgid "(unavailable)"
+msgstr "（不可用）"
 
 msgid "(unnamed)"
 msgstr "（未命名）"
@@ -727,6 +731,9 @@ msgstr "所有州/邦"
 msgid "Allow notifications despite password protection"
 msgstr "即使有密码保护也允许通知"
 
+msgid "Allowed background functions"
+msgstr "允许的后台功能"
+
 msgid "Also disclose appointments marked as confidential"
 msgstr "也共享标记为机密的约会"
 
@@ -945,6 +952,9 @@ msgstr "根据最近保存的身高和体重计算的 BMI"
 
 msgid "BZ"
 msgstr "BZ"
+
+msgid "Background service"
+msgstr "后台服务"
 
 msgid "Backup failed."
 msgstr "备份失败。"
@@ -1271,6 +1281,9 @@ msgstr ""
 
 msgid "Checking Contributor Key …"
 msgstr "正在检查 Contributor Key …"
+
+msgid "Checking background service …"
+msgstr "正在检查后台服务……"
 
 msgid "Checking online accounts …"
 msgstr "正在检查在线账户 …"
@@ -2065,6 +2078,9 @@ msgstr "启用"
 msgid "Enable Magnolie Notes phone connection"
 msgstr "启用 Magnolie Notes 电话连接"
 
+msgid "Enable background service"
+msgstr "启用后台服务"
+
 msgid "Enable cycle calendar"
 msgstr "启用周期日历"
 
@@ -2096,6 +2112,9 @@ msgstr "启用垃圾收集日历"
 
 msgid "Encrypted archive entries are not supported."
 msgstr "不支持加密的归档条目。"
+
+msgid "Encrypted data behavior"
+msgstr "加密数据处理方式"
 
 msgid "Encrypting the data"
 msgstr "正在加密数据"
@@ -2248,6 +2267,9 @@ msgstr "女性亲属"
 
 msgid "Fertile days"
 msgstr "易孕期"
+
+msgid "File"
+msgstr "文件"
 
 #, python-format
 msgid "File could not be read: %s"
@@ -2659,13 +2681,19 @@ msgstr "包含垃圾收集"
 msgid "Incoming"
 msgstr "传入"
 
+msgid "Incoming KDE Connect file"
+msgstr "传入的 KDE Connect 文件"
+
+msgid "Incoming KDE Connect files (always confirm)"
+msgstr "传入的 KDE Connect 文件（始终确认）"
+
 msgid "Incoming call"
 msgstr "来电"
 
 msgid ""
-"Incoming files and clipboard text are confirmed before use unless automatic "
-"acceptance is explicitly enabled."
-msgstr "收到的文件和剪贴板文本需经确认后方可使用，除非已明确启用自动接受。"
+"Incoming files are always confirmed. Clipboard text is confirmed unless "
+"automatic acceptance is explicitly enabled."
+msgstr "始终需要确认传入文件。除非明确启用自动接受，否则也需要确认剪贴板文本。"
 
 msgid "Input"
 msgstr "输入"
@@ -2710,6 +2738,9 @@ msgstr "果汁"
 msgid "Jura"
 msgstr "汝拉州"
 
+msgid "KDE Connect device"
+msgstr "KDE Connect 设备"
+
 msgid "KDE Connect for SMS"
 msgstr "KDE Connect 为 SMS"
 
@@ -2721,6 +2752,12 @@ msgid ""
 "Magnolienbaum."
 msgstr "KDE Connect 仅用于 SMS。它不连接或同步Magnolienbaum。"
 
+msgid "KDE Connect pairing"
+msgstr "KDE Connect 配对"
+
+msgid "KDE Connect pairing decisions"
+msgstr "KDE Connect 配对决定"
+
 msgid "KDE Connect pairing failed."
 msgstr "KDE Connect 配对失败。"
 
@@ -2729,6 +2766,10 @@ msgstr "KDE Connect 手机已配对。"
 
 msgid "KDE Connect port %(port)s"
 msgstr "KDE Connect 端口 %(port)s"
+
+msgid ""
+"KDE Connect receive settings could not be applied by the background service."
+msgstr "后台服务无法应用 KDE Connect 接收设置。"
 
 msgid "KDE Connect reception failed."
 msgstr "KDE Connect 接收失败。"
@@ -2803,6 +2844,9 @@ msgstr "暂定"
 msgid "Listener stopped"
 msgstr "监听器已停止"
 
+msgid "Loading background settings"
+msgstr "正在加载后台设置"
+
 msgid "Local calendar"
 msgstr "本地日历"
 
@@ -2859,8 +2903,14 @@ msgid ""
 "protocol version."
 msgstr "Magnolie Notes 已结束会话。应用和 Organizer 必须使用相同的协议版本。"
 
+msgid "Magnolie Notes pairing"
+msgstr "Magnolie Notes 配对"
+
 msgid "Magnolie Notes phone connection"
 msgstr "Magnolie Notes 电话连接"
+
+msgid "Magnolie Notes phone pairing decisions"
+msgstr "Magnolie Notes 手机配对决定"
 
 msgid ""
 "Magnolie Notes phones and KDE Connect phones are separate: the Android model "
@@ -2871,6 +2921,12 @@ msgstr ""
 
 msgid "Magnolie Notes version"
 msgstr "Magnolie Notes 版本"
+
+msgid "Magnolie Organizer"
+msgstr "Magnolie Organizer"
+
+msgid "Magnolie Organizer Background Service"
+msgstr "Magnolie Organizer 后台服务"
 
 msgid "Magnolie Organizer is not completely installed."
 msgstr "Magnolie Organizer 未完整安装。"
@@ -2901,6 +2957,14 @@ msgstr "Magnolie Organizer – 纸质风格的个人 Organizer"
 msgid "Magnolie Organizer – reminders"
 msgstr "Magnolie Organizer – 提醒"
 
+#, python-format
+msgid "Magnolie background service could not start: %s"
+msgstr "Magnolie 后台服务无法启动：%s"
+
+#, python-format
+msgid "Magnolie background service requires GLib: %s"
+msgstr "Magnolie 后台服务需要 GLib：%s"
+
 msgid "Magnolie backup (*.json)"
 msgstr "Magnolie 备份 (*.json)"
 
@@ -2920,6 +2984,9 @@ msgstr "木兰年计划-%d.ods"
 
 msgid "Magnolienbaum"
 msgstr "Magnolienbaum"
+
+msgid "Magnolienbaum change offers"
+msgstr "Magnolienbaum 更改提议"
 
 msgid "Magnolienbaum mailbox"
 msgstr "Magnolienbaum mailbox"
@@ -3073,6 +3140,12 @@ msgstr "模型"
 msgid "Monday"
 msgstr "星期一"
 
+msgid "Monitor KDE Connect SMS and show notifications"
+msgstr "监控 KDE Connect SMS 并显示通知"
+
+msgid "Monitor the Magnolie Notes phone connection"
+msgstr "监控 Magnolie Notes 手机连接"
+
 msgid "Month"
 msgstr "月"
 
@@ -3136,6 +3209,12 @@ msgstr "命名日"
 msgid "Name of this branch"
 msgstr "此分支的名称"
 
+msgid "Native notifications available"
+msgstr "原生通知可用"
+
+msgid "Native notifications unavailable"
+msgstr "原生通知不可用"
+
 msgid "Netherlands"
 msgstr "荷兰"
 
@@ -3198,6 +3277,9 @@ msgstr "新建页面"
 
 msgid "New password"
 msgstr "新密码"
+
+msgid "New phone changes are available"
+msgstr "有新的手机更改可用"
 
 msgid "New task"
 msgstr "新建任务"
@@ -3502,6 +3584,12 @@ msgstr "未找到新内容。"
 msgid "Notice: The connection to storage was not confirmed."
 msgstr "注意：与存储的连接未得到确认。"
 
+msgid "Notification actions available"
+msgstr "通知操作可用"
+
+msgid "Notification actions unavailable"
+msgstr "通知操作不可用"
+
 msgid "Notification and sound"
 msgstr "通知和声音"
 
@@ -3531,6 +3619,9 @@ msgstr "通知仅在已安装的应用中可用。"
 msgid "Notify me about incoming calls"
 msgstr "有来电时通知我"
 
+msgid "Notify, then unlock (recommended)"
+msgstr "先通知，再解锁（推荐）"
+
 msgid "ODS"
 msgstr "ODS"
 
@@ -3545,6 +3636,9 @@ msgstr "上瓦尔登"
 
 msgid "Off"
 msgstr "离开"
+
+msgid "Offer Personal Sync phone changes"
+msgstr "提供 Personal Sync 手机更改"
 
 msgid "Offline"
 msgstr "在线"
@@ -3633,6 +3727,11 @@ msgid ""
 msgstr ""
 "仅限 HTTPS。请在 Nextcloud 的“设置”“安全”中创建应用密码。绝不会使用您的账户密"
 "码。"
+
+msgid ""
+"Only Notify, then unlock is currently available. Keyring access and pausing "
+"while locked are not yet enforced by the background service."
+msgstr "目前只有“通知，然后解锁”可用。后台服务尚未实施密钥环访问和锁定时暂停功能。"
 
 msgid ""
 "Only one Magnolie Notes phone can be paired. Remove the existing phone "
@@ -3738,6 +3837,11 @@ msgstr "操作结束（%s）。"
 #, python-format
 msgid "Option %s requires a language."
 msgstr "选项 %s 需要指定语言。"
+
+msgid ""
+"Optional approved functions can continue while the Organizer window is "
+"closed."
+msgstr "Organizer 窗口关闭后，获准的可选功能仍可继续运行。"
 
 msgid "Organic waste"
 msgstr "有机垃圾"
@@ -3857,6 +3961,9 @@ msgstr "粘贴"
 msgid "Patch"
 msgstr "贴剂"
 
+msgid "Pause while data is locked"
+msgstr "数据锁定时暂停"
+
 msgid "Pay invoice"
 msgstr "支付账单"
 
@@ -3919,6 +4026,9 @@ msgstr "Phone battery"
 
 msgid "Phone call"
 msgstr "电话通话"
+
+msgid "Phone notification"
+msgstr "手机通知"
 
 msgid "Phone number"
 msgstr "电话号码"
@@ -4326,9 +4436,6 @@ msgstr "请求设备状态"
 msgid "Requires existing BlueZ system pairing. Data only, no HFP audio."
 msgstr "需要现有的 BlueZ 系统配对。仅限数据，不支持 HFP 音频。"
 
-msgid "Reset"
-msgstr "Reset"
-
 msgid "Residual waste"
 msgstr "其他垃圾"
 
@@ -4351,6 +4458,9 @@ msgstr "恢复备份 …"
 
 msgid "Restore completely"
 msgstr "完全恢复"
+
+msgid "Restore defaults"
+msgstr "恢复默认设置"
 
 msgid "Restore failed."
 msgstr "恢复失败。"
@@ -4417,6 +4527,9 @@ msgstr "路线"
 msgid "Route: calculate directions immediately"
 msgstr "路线：立即计算导航"
 
+msgid "Run approved Magnolie background functions"
+msgstr "运行获准的 Magnolie 后台功能"
+
 #, python-format
 msgid "Run failed: %s"
 msgstr "运行失败：%s"
@@ -4437,6 +4550,10 @@ msgstr "SMS详细信息"
 #, python-format
 msgid "SMS from %(name)s"
 msgstr "来自 %(name)s 的 SMS"
+
+#, python-format
+msgid "SMS from %s"
+msgstr "来自 %s 的 SMS"
 
 msgid "SMS history"
 msgstr "SMS历史"
@@ -4514,6 +4631,9 @@ msgstr "已保存 ✓ %(time)s"
 
 msgid "Saved."
 msgstr "Saved."
+
+msgid "Saving background settings"
+msgstr "正在保存后台设置"
 
 msgid "Saving failed!"
 msgstr "保存失败！"
@@ -4679,6 +4799,12 @@ msgstr "Server address"
 msgid "Server address and user name are required."
 msgstr "需要服务器地址和用户名。"
 
+msgid "Service running"
+msgstr "服务正在运行"
+
+msgid "Service stopped"
+msgstr "服务已停止"
+
 msgid "Set varying doses by weekday"
 msgstr "按星期设置不同剂量"
 
@@ -4733,11 +4859,17 @@ msgstr "短效胰岛素"
 msgid "Show Health after Planner"
 msgstr "在计划器之后显示“健康”"
 
+msgid "Show Magnolie Notes SMS notifications"
+msgstr "显示 Magnolie Notes SMS 通知"
+
 msgid "Show all"
 msgstr "显示全部"
 
 msgid "Show calendar button in date fields"
 msgstr "在日期字段中显示日历按钮"
+
+msgid "Show incoming call notifications"
+msgstr "显示来电通知"
 
 msgid "Show log"
 msgstr "显示日志"
@@ -4750,6 +4882,9 @@ msgstr "显示配对二维码"
 
 msgid "Show preview"
 msgstr "显示预览"
+
+msgid "Show selected app notifications"
+msgstr "显示所选应用通知"
 
 msgid "Show selected notifications (read only)"
 msgstr "仅屏幕通知"
@@ -4863,6 +4998,15 @@ msgstr "喷雾剂"
 
 msgid "St. Gallen"
 msgstr "圣加仑"
+
+msgid "Start Organizer"
+msgstr "启动 Organizer"
+
+msgid "Start Organizer and synchronize."
+msgstr "启动 Organizer 并同步。"
+
+msgid "Start at login"
+msgstr "登录时启动"
 
 msgid "Start automatically when signing in"
 msgstr "登录时自动启动"
@@ -4984,6 +5128,15 @@ msgstr "用于配置 UFW 的系统身份验证不可用。"
 
 msgid "System default"
 msgstr "系统默认"
+
+msgid "System keyring and pause modes cannot be enabled yet."
+msgstr "系统密钥环和暂停模式目前还无法启用。"
+
+msgid "System keyring available"
+msgstr "系统密钥环可用"
+
+msgid "System keyring unavailable"
+msgstr "系统密钥环不可用"
 
 msgid "System setting"
 msgstr "系统设置"
@@ -5289,6 +5442,15 @@ msgid ""
 "therefore works even when the organizer is closed."
 msgstr ""
 "后台提醒服务可以读取单独的提醒数据，因此即使 Organizer 已关闭也能工作。"
+
+msgid "The background service could not be started."
+msgstr "无法启动后台服务。"
+
+msgid "The background service is available only in the installed application."
+msgstr "后台服务仅在已安装的应用程序中可用。"
+
+msgid "The background settings could not be saved."
+msgstr "无法保存后台设置。"
 
 msgid "The backup could not be created."
 msgstr "无法创建备份。"
@@ -6373,6 +6535,9 @@ msgid ""
 "Use only schedules prescribed or confirmed by a healthcare professional."
 msgstr "请仅使用由医疗专业人员开具或确认的用药计划。"
 
+msgid "Use system keyring"
+msgstr "使用系统密钥环"
+
 msgid ""
 "Use the arrows to arrange groups and notebooks, or use the selection to move "
 "a notebook to another group."
@@ -7141,6 +7306,26 @@ msgstr[0] "… 以及另外 %(count)s 项也将打印。"
 msgid "＋ Add appointment"
 msgstr "＋ 添加约会"
 
+#~ msgid ""
+#~ "Notify, then unlock asks you to open and unlock the Organizer. System "
+#~ "keyring uses an available desktop keyring without storing the password in "
+#~ "Organizer data. Pause while locked waits without accessing encrypted data."
+#~ msgstr ""
+#~ "“先通知，再解锁”会要求您打开 Organizer 并将其解锁。“使用系统密钥环”会使用"
+#~ "可用的桌面密钥环，而不会将密码存储在 Organizer 数据中。“数据锁定时暂停”会"
+#~ "在不访问加密数据的情况下等待。"
+
+#~ msgid "System keyring is unavailable; this choice cannot be enabled."
+#~ msgstr "系统密钥环不可用；无法启用此选项。"
+
+#~ msgid ""
+#~ "Incoming files and clipboard text are confirmed before use unless "
+#~ "automatic acceptance is explicitly enabled."
+#~ msgstr "收到的文件和剪贴板文本需经确认后方可使用，除非已明确启用自动接受。"
+
+#~ msgid "Reset"
+#~ msgstr "Reset"
+
 #~ msgid "Exactly one online Magnolie Notes phone must allow dial requests."
 #~ msgstr "必须只有一部在线 Magnolie Notes 电话允许拨号请求。"
 
@@ -7153,8 +7338,8 @@ msgstr "＋ 添加约会"
 #~ msgid "Selected notifications"
 #~ msgstr "系统通知"
 
-msgid "Language & region"
-msgstr "语言和区域"
+#~ msgid "Language & region"
+#~ msgstr "语言和区域"
 
 #~ msgid "No valid subscription"
 #~ msgstr "没有有效订阅"

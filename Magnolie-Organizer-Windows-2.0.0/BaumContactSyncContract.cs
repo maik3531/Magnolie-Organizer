@@ -1,21 +1,26 @@
+using System.Text;
 using System.Text.Json.Nodes;
 
 namespace MagnolieOrganizer.Windows;
 
 internal static class BaumContactSyncContract
 {
-    private const int MaxText = 4096;
+    private const int MaxText = 2048;
+    private const int MaxNote = 20000;
+    private const int MaxList = 100;
     private static readonly HashSet<string> RootFields =
         ["art", "fassung", "freigabeId", "version", "quelle", "geaendert", "kontakt"];
     private static readonly HashSet<string> ContactFields =
         ["vorname", "nachname", "firma", "notiz", "geburtstag", "telefone", "emailEintraege", "anschriften"];
     private static readonly HashSet<string> DeleteFields =
         ["art", "fassung", "freigabeId", "version", "quelle", "geaendert"];
+    private static readonly HashSet<string> DeleteMarkers = new(StringComparer.OrdinalIgnoreCase)
+        { "delete", "deleted", "deletion", "tombstone", "loeschen", "löschen", "geloescht", "gelöscht" };
 
     internal static void Validate(JsonNode content)
     {
         if (content is not JsonObject root || !Only(root, RootFields) || Text(root, "art") != "kontakt_sync" ||
-            Integer(root, "fassung") != 1 || Long(root, "version") <= 0 || Long(root, "geaendert") <= 0)
+            Integer(root, "fassung") != 1 || Long(root, "version") <= 0 || Long(root, "geaendert") < 0)
             throw Invalid();
         RequiredText(root, "freigabeId", 128);
         RequiredText(root, "quelle", 128);
@@ -23,7 +28,7 @@ internal static class BaumContactSyncContract
             contact.Any(item => !ContactFields.Contains(item.Key) && item.Key != "foto") ||
             ContactFields.Any(field => !contact.ContainsKey(field))) throw Invalid();
         foreach (var field in new[] { "vorname", "nachname", "firma", "notiz", "geburtstag" })
-            OptionalText(contact, field, field == "notiz" ? 65536 : MaxText);
+            OptionalText(contact, field, field == "notiz" ? MaxNote : MaxText);
         var birthday = Text(contact, "geburtstag");
         if (birthday.Length > 0 && !ExchangeCodec.TryParseCanonicalDate(birthday, out _, out _, out _))
             throw Invalid();
@@ -32,32 +37,27 @@ internal static class BaumContactSyncContract
             if (photoNode is not JsonValue photoValue || !photoValue.TryGetValue<string>(out var photo)) throw Invalid();
             ValidatePhoto(photo);
         }
-        ValidateList(contact, "telefone", 100, ["art", "wert"], item =>
+        ValidateList(contact, "telefone", MaxList, ["art", "wert"], item =>
         {
-            OptionalText(item, "art", 80); RequiredText(item, "wert", MaxText);
+            ListText(item, "art", true); ListText(item, "wert");
         });
-        ValidateList(contact, "emailEintraege", 100, ["art", "wert"], item =>
+        ValidateList(contact, "emailEintraege", MaxList, ["art", "wert"], item =>
         {
-            OptionalText(item, "art", 80); RequiredText(item, "wert", MaxText);
+            ListText(item, "art", true); ListText(item, "wert");
         });
-        ValidateList(contact, "anschriften", 50,
+        ValidateList(contact, "anschriften", MaxList,
             ["art", "strasse", "plz", "ort", "region", "land"], item =>
         {
             foreach (var field in new[] { "art", "strasse", "plz", "ort", "region", "land" })
-                OptionalText(item, field, field == "art" ? 80 : MaxText);
-            if (new[] { "strasse", "plz", "ort", "region", "land" }.All(field => Text(item, field).Length == 0))
-                throw Invalid();
+                ListText(item, field, field == "art");
         });
-        if (contact.All(item => item.Key is "telefone" or "emailEintraege" or "anschriften" || Text(contact, item.Key).Length == 0) &&
-            contact["telefone"]!.AsArray().Count == 0 && contact["emailEintraege"]!.AsArray().Count == 0 &&
-            contact["anschriften"]!.AsArray().Count == 0) throw Invalid();
     }
 
     internal static void ValidateDelete(JsonNode content)
     {
         if (content is not JsonObject root || !Only(root, DeleteFields) ||
             Text(root, "art") != "kontakt_loeschen" || Integer(root, "fassung") != 1 ||
-            Long(root, "version") <= 0 || Long(root, "geaendert") <= 0) throw InvalidDelete();
+            Long(root, "version") <= 0 || Long(root, "geaendert") < 0) throw InvalidDelete();
         RequiredText(root, "freigabeId", 128);
         RequiredText(root, "quelle", 128);
     }
@@ -79,15 +79,23 @@ internal static class BaumContactSyncContract
     private static void RequiredText(JsonObject value, string name, int maximum)
     {
         OptionalText(value, name, maximum);
-        if (Text(value, name).Length == 0) throw Invalid();
+        var text = Text(value, name);
+        if (text.Length == 0 || text.EnumerateRunes().Any(rune => rune.Value < 32)) throw Invalid();
     }
 
     private static void OptionalText(JsonObject value, string name, int maximum)
     {
-        if (value[name] is not JsonValue node || !node.TryGetValue<string>(out var text) || text.Length > maximum ||
-            text.Any(character => char.IsControl(character) && character is not '\r' and not '\n' and not '\t') ||
-            text.Contains("data:", StringComparison.OrdinalIgnoreCase))
+        if (value[name] is not JsonValue node || !node.TryGetValue<string>(out var text) ||
+            text.EnumerateRunes().Count() > maximum)
             throw Invalid();
+    }
+
+    private static void ListText(JsonObject value, string name, bool type = false)
+    {
+        OptionalText(value, name, MaxText);
+        var text = Text(value, name);
+        if (text.StartsWith("data:", StringComparison.OrdinalIgnoreCase) ||
+            type && DeleteMarkers.Contains(text.Trim())) throw Invalid();
     }
 
     private static void ValidatePhoto(string value)

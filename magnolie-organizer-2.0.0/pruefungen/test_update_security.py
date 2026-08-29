@@ -3,6 +3,7 @@ import importlib.machinery
 import importlib.util
 import io
 from pathlib import Path
+import re
 import urllib.error
 import urllib.request
 
@@ -35,7 +36,8 @@ def test_manifest_weist_entitaeten_vor_xml_parser_ab(monkeypatch):
 
     monkeypatch.setattr(m.ET, "fromstring", parser)
     xml = "<!DOCTYPE update [<!ENTITY x 'Wert'>]><update><version>&x;</version></update>"
-    with pytest.raises(RuntimeError):
+    meldung = m._("The update information is unreadable.")
+    with pytest.raises(RuntimeError, match=re.escape(meldung)):
         m.update_manifest_pruefen(xml, oeffentlicher_testschluessel())
     assert not aufgerufen
 

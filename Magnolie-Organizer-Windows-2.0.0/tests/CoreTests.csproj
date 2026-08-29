@@ -31,6 +31,7 @@
     <Compile Include="..\WeatherLocation.cs" Link="WeatherLocation.cs" />
     <Compile Include="..\LogPresentation.cs" Link="LogPresentation.cs" />
     <Compile Include="..\RotatingLog.cs" Link="RotatingLog.cs" />
+    <Compile Include="..\CrashReportWriter.cs" Link="CrashReportWriter.cs" />
     <Compile Include="..\AttachmentFile.cs" Link="AttachmentFile.cs" />
     <Compile Include="..\PhoneUri.cs" Link="PhoneUri.cs" />
     <Compile Include="..\MagnolienbaumCrypto.cs" Link="MagnolienbaumCrypto.cs" />
@@ -65,6 +66,12 @@
   </ItemGroup>
   <ItemGroup>
     <Content Include="resources\*.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="..\..\contracts\kontakt-sync-contract.json" Link="resources\kontakt-sync-contract.json" Condition="Exists('..\..\contracts\kontakt-sync-contract.json')">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="..\contracts\kontakt-sync-contract.json" Link="resources\kontakt-sync-contract.json" Condition="!Exists('..\..\contracts\kontakt-sync-contract.json')">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="..\app\native-i18n.json" Link="native-i18n.json">

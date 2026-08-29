@@ -40,6 +40,7 @@ for (const [name, app] of apps) {
   const { T, window } = app;
   const termin = T.normalisiere(window.JSON.parse(JSON.stringify({ termine: [{ id: "event", uid: "event@example.test",
     datum: "2026-08-20", zeit: "10:00", endZeit: "11:00", titel: "Planung",
+    wiederholung: { art: "monthly", bis: "", ordinal: 2, wochentag: "TU" },
     individuelleErinnerungTage: 3, icsRoundtrip: ics,
     kalenderQuelle: { id: "work", name: "Arbeit", gruppe: "Team", farbe: "#336699",
       anbieter: "Nextcloud" }, providerMetadaten: { google: { eventId: "42", accessToken: "weg" },
@@ -67,16 +68,26 @@ for (const [name, app] of apps) {
     `${name}: Normalisierung ist nicht idempotent`);
   const syncMeta = T.normalisiere({ termine: [{ id: "sync", datum: "2026-08-20",
     zeit: "08:00:59", endZeit: "09:15:01", icsSequence: 7,
-    icsAenderungszeitFehlt: true,
+    icsAenderungszeitFehlt: true, icsEndeFehlt: true, icsNullDauer: true,
     syncKonflikte: Array.from({ length: 20 }, (_, i) => ({ id: `k${i}` })) }] }).termine[0];
   assert.deepStrictEqual([syncMeta.zeit, syncMeta.endZeit, syncMeta.icsSequence,
-    syncMeta.icsAenderungszeitFehlt, syncMeta.syncKonflikte.length,
-    syncMeta.syncKonflikte[0].id], ["08:00", "09:15", 7, true, 16, "k4"],
+    syncMeta.icsAenderungszeitFehlt, syncMeta.icsEndeFehlt, syncMeta.icsNullDauer,
+    syncMeta.syncKonflikte.length, syncMeta.syncKonflikte[0].id],
+  ["08:00", "09:15", 7, true, true, true, 16, "k4"],
   `${name}: Sync-Metadaten oder Sekundenzeiten gehen verloren`);
   const taskTimes = T.normalisiere({ aufgaben: [{ id: "task-times",
     startZeit: "07:30:45", faelligZeit: "17:05:01" }] }).aufgaben[0];
   assert.deepStrictEqual([taskTimes.startZeit, taskTimes.faelligZeit], ["07:30", "17:05"],
     `${name}: Aufgabenzeiten mit Sekunden gehen verloren`);
+  const ersteAusnahme = T.normalisiere({ termine: [{ id: "first-exception",
+    datum: "2026-08-03", titel: "Gelöschter Serienstart",
+    wiederholung: { art: "weekly" }, icsAusnahmen: ["2026-08-03"] }] }).termine[0];
+  T.daten().termine.push(ersteAusnahme);
+  T.planeSpeichern();
+  assert.ok(!T.termineAm("2026-08-03").some(eintrag => eintrag.id === ersteAusnahme.id),
+    `${name}: erste gelöschte Serieninstanz bleibt sichtbar`);
+  T.daten().termine = T.daten().termine.filter(eintrag => eintrag.id !== ersteAusnahme.id);
+  T.planeSpeichern();
 
   const bearbeitet = JSON.parse(JSON.stringify(termin));
   bearbeitet.ort = "Raum 9";

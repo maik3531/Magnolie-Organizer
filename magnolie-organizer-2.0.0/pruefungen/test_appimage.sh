@@ -1,7 +1,7 @@
 #!/bin/sh
 set -eu
 
-for befehl in bwrap g-ir-inspect ldd nm timeout xdg-dbus-proxy xvfb-run; do
+for befehl in bwrap fc-match g-ir-inspect ldd nm timeout xdg-dbus-proxy xvfb-run; do
     command -v "$befehl" >/dev/null || {
         printf '%s\n' "Fehlendes AppImage-Pruefwerkzeug: $befehl" >&2
         exit 1
@@ -31,6 +31,10 @@ grep -Fq '[ "${XDG_SESSION_TYPE:-}" = wayland ]' "$APPDIR/AppRun"
 grep -Fq ': "${GDK_BACKEND:=x11}"' "$APPDIR/AppRun"
 grep -Fq 'export OPENSSL_CONF="$APPDIR/usr/share/magnolie-organizer/openssl/openssl.cnf"' "$APPDIR/AppRun"
 grep -Fq 'export OPENSSL_MODULES="$APPDIR/usr/lib/$MULTIARCH/ossl-modules"' "$APPDIR/AppRun"
+grep -Fq 'export GTK3_MODULES=' "$APPDIR/AppRun"
+grep -Fq 'export GTK_DATA_PREFIX="$APPDIR/usr"' "$APPDIR/AppRun"
+grep -Fq 'export FONTCONFIG_PATH="$APPDIR/usr/share/magnolie-organizer/fontconfig"' "$APPDIR/AppRun"
+grep -Fq 'export FONTCONFIG_FILE="$FONTCONFIG_PATH/fonts.conf"' "$APPDIR/AppRun"
 if find "$APPDIR" -type f -exec grep -aFl \
     'WEBKIT_DISABLE_SANDBOX_THIS_IS_DANGEROUS=1' {} + | grep -q .; then
     printf '%s\n' 'Das AppImage enthaelt den WebKit-Sandbox-Disable-Schalter.' >&2
@@ -62,7 +66,11 @@ test -f "$APPDIR/usr/lib/x86_64-linux-gnu/gstreamer-1.0/libgstapp.so"
 test -x "$APPDIR/usr/lib/x86_64-linux-gnu/gstreamer1.0/gstreamer-1.0/gst-plugin-scanner"
 test -f "$APPDIR/usr/share/magnolie-organizer/certs/ca-certificates.crt"
 test -f "$APPDIR/usr/share/magnolie-organizer/openssl/openssl.cnf"
+FONTCONFIG_DATEI="$APPDIR/usr/share/magnolie-organizer/fontconfig/fonts.conf"
+test -f "$FONTCONFIG_DATEI"
+! grep -q '<include' "$FONTCONFIG_DATEI"
 test -d "$APPDIR/usr/lib/x86_64-linux-gnu/ossl-modules"
+test -n "$(find "$APPDIR/usr/lib/x86_64-linux-gnu/ossl-modules" -type f -print -quit)"
 test -f "$APPDIR/usr/share/themes/Adwaita/gtk-3.0/gtk.css"
 test -x "$APPDIR/usr/lib/webkit2gtk-4.1/WebKitNetworkProcess"
 test -x "$APPDIR/usr/lib/webkit2gtk-4.1/WebKitWebProcess"
@@ -104,6 +112,17 @@ daten = pathlib.Path(sys.argv[1]).read_bytes()
 assert b"/usr/lib/x86_64-linux-gnu/webkit2gtk-4.1" not in daten
 assert b"/proc/self/cwd//./usr/lib/webkit2gtk-4.1" in daten
 PY
+
+# Validate the isolated configuration with the exact bundled fontconfig/expat.
+# fc-match is only the CLI front-end; LD_LIBRARY_PATH selects the AppImage ABI.
+for familie in sans-serif serif monospace; do
+    treffer=$(FONTCONFIG_PATH="$(dirname "$FONTCONFIG_DATEI")" \
+        FONTCONFIG_FILE="$FONTCONFIG_DATEI" \
+        LD_LIBRARY_PATH="$APPDIR/usr/lib/x86_64-linux-gnu:$APPDIR/usr/lib" \
+        fc-match -f '%{file}\n' "$familie")
+    test -n "$treffer"
+    test -f "$treffer"
+done
 
 PYTHONHOME="$APPDIR/usr" \
 PYTHONPATH="$APPDIR/usr/bin:$APPDIR/usr/lib/python3/dist-packages" \
@@ -177,9 +196,19 @@ assert ECal.ClientSourceType.EVENTS is not None
 PY
 fi
 
+mkdir -p "$ARBEIT/host-share/themes/Defektes-Wirtsthema/gtk-3.0"
+printf '%s\n' '/* nicht geschlossen' > \
+    "$ARBEIT/host-share/themes/Defektes-Wirtsthema/gtk-3.0/gtk.css"
+printf '%s\n' '<?xml version="1.0"?>' '<fontconfig>' \
+    '  <match><edit name="family"><const>system-ui</const></edit></match>' \
+    '</fontconfig>' > "$ARBEIT/host-fonts.conf"
+
 DISPLAY= WAYLAND_DISPLAY= XDG_DATA_HOME="$ARBEIT/data" \
 XDG_CONFIG_HOME="$ARBEIT/config" XDG_STATE_HOME="$ARBEIT/state" \
+XDG_DATA_DIRS="$ARBEIT/host-share" \
 GTK_MODULES=xapp-gtk3-module GTK_THEME=Defektes-Wirtsthema \
+GTK3_MODULES=xapp-gtk3-module FONTCONFIG_FILE="$ARBEIT/host-fonts.conf" \
+FONTCONFIG_PATH="$ARBEIT" \
 OPENSSL_CONF=/nicht/vorhanden/openssl.cnf OPENSSL_MODULES=/nicht/vorhanden \
     "$APPDIR/AppRun" --language en --help | grep -q 'Usage:'
 DISPLAY= WAYLAND_DISPLAY= XDG_DATA_HOME="$ARBEIT/data" \
@@ -209,7 +238,10 @@ appimage_gui_start() {
 }
 set +e
 DISPLAY= WAYLAND_DISPLAY= DESKTOPINTEGRATION=1 \
+XDG_DATA_DIRS="$ARBEIT/host-share" \
 GTK_MODULES=xapp-gtk3-module GTK_THEME=Defektes-Wirtsthema \
+GTK3_MODULES=xapp-gtk3-module FONTCONFIG_FILE="$ARBEIT/host-fonts.conf" \
+FONTCONFIG_PATH="$ARBEIT" \
 OPENSSL_CONF=/nicht/vorhanden/openssl.cnf OPENSSL_MODULES=/nicht/vorhanden \
 XDG_DATA_HOME="$ARBEIT/gui-data" XDG_CONFIG_HOME="$ARBEIT/gui-config" \
 XDG_STATE_HOME="$ARBEIT/gui-state" \
@@ -221,7 +253,7 @@ if [ "$gui_status" -ne 124 ]; then
     cat "$ARBEIT/gui.log" >&2
     exit 1
 fi
-if grep -Eqi 'Gtk-WARNING.*Theme parsing error|Unknown OpenSSL error|could not load the shared library' \
+if grep -Eqi 'Theme parsing error|Fontconfig (error|warning)|Unknown OpenSSL error|could not load the shared library' \
     "$ARBEIT/gui.log"; then
     printf '%s\n' "AppImage verwendet GTK-/OpenSSL-Bestandteile des Wirts:" >&2
     cat "$ARBEIT/gui.log" >&2

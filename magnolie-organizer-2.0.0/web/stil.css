@@ -858,10 +858,7 @@ body[data-hilfsrahmen="an"] :focus-visible {
   letter-spacing: 0.2em;
   text-transform: uppercase;
   color: rgba(216, 178, 92, 0.75);
-  animation: puls 2.2s ease-in-out infinite alternate;
 }
-
-@keyframes puls { from { opacity: 0.45; } to { opacity: 1; } }
 
 /* --------------------------------------------------------------------------
    Blätter-Animation beim Abschnittswechsel
@@ -4195,6 +4192,17 @@ td {
 
 /* Knopfreihen im Einstellungsblatt etwas luftiger */
 .einst-abschnitt > .knopfreihe { margin-top: 10px; }
+
+.hintergrunddienst-abschnitt {
+  margin: 18px 0;
+  padding: 16px;
+  border: 1px solid rgba(76, 91, 84, 0.38);
+  border-radius: 8px;
+  background: linear-gradient(145deg, rgba(226, 239, 233, 0.62), rgba(249, 244, 229, 0.58));
+}
+.hintergrunddienst-abschnitt h4 { margin: 16px 0 7px; }
+.hintergrunddienst-abschnitt > label.hak { display: flex; margin: 7px 0; }
+.hintergrund-policy-hinweis { margin-left: 0; }
 
 /* Der Vorschlagskopf soll nicht am Rand kleben */
 .vm-kopf { padding-top: 5px; }

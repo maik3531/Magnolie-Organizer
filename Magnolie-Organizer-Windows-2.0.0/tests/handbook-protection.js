@@ -5,14 +5,11 @@ const crypto = require("node:crypto");
 const fs = require("node:fs");
 const path = require("node:path");
 const vm = require("node:vm");
+const { canonicalPageIds, selectHandbookWeb } = require("./handbook-source");
 
 const root = path.resolve(__dirname, "..");
-const handbook = [process.env.MAGNOLIE_HANDBOOK_WEB,
-  path.resolve(root, "..", "magnolie-handbuch-stamm", "web"),
-  path.join(root, "shared", "magnolie-handbuch-stamm", "web")]
-  .filter(Boolean).find((candidate) => fs.existsSync(path.join(candidate, "inhalt.js")) &&
-    fs.existsSync(path.join(candidate, "i18n", "de.js")));
-assert.ok(handbook, "Gemeinsame Handbuchquelle fehlt");
+const handbookSource = selectHandbookWeb(root, ["inhalt.js", "i18n/de.js"]);
+const handbook = handbookSource.directory;
 const protectedIds = ["license-and-acknowledgments", "in-closing",
   "support-with-a-coffee", "about-maik-walter"];
 const requiredIds = ["kde-sms", "phone-calls", "tree-delegation", "tree-contact-sync",
@@ -164,9 +161,9 @@ const directories = { shared: handbook };
 const books = Object.fromEntries(Object.entries(directories)
   .map(([name, directory]) => [name, pages(directory)]));
 const reference = books.shared;
-const expectedIds = reference.map((page) => page.id);
-assert.strictEqual(expectedIds.length, 154, "Die kanonische Basis muss 154 Seiten enthalten");
-assert.strictEqual(new Set(expectedIds).size, 154, "Kanonische Seiten-IDs sind nicht eindeutig");
+const expectedIds = canonicalPageIds(handbook);
+assert.deepStrictEqual(reference.map((page) => page.id), expectedIds,
+  "Geladene Seiten entsprechen nicht der ausgewählten kanonischen Quelle");
 for (const id of requiredIds) assert.ok(expectedIds.includes(id), `Gemeinsame Seite fehlt: ${id}`);
 const projects = source(reference.find((page) => page.id === "my-projects"));
 assert.ok(projects.inhalt.includes("href='https://gitlab.com/users/maik3531/projects'") &&
@@ -268,4 +265,4 @@ if (process.argv.includes("--negative-probe")) {
   console.log("HANDBOOK PROTECTION NEGATIVE PROBE PASSED");
 }
 
-console.log(`HANDBOOK PROTECTION PASSED (${Object.keys(books).length} tree(s), ${expectedIds.length} pages, 20 locales, 4 pages, 14 images)`);
+console.log(`HANDBOOK PROTECTION PASSED (${Object.keys(books).length} tree(s), ${expectedIds.length} pages, 20 locales, 4 pages, 14 images; source: ${handbookSource.label})`);

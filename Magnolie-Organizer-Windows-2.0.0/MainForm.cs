@@ -230,7 +230,15 @@ internal sealed class MainForm : Form
         {
             if (dispatcher is not null) await dispatcher.ShutdownAsync();
         }
-        catch (Exception error) { WriteWebViewDiagnostic($"Fehler beim Beenden: {error.Message}"); }
+        catch (Exception error)
+        {
+            WriteWebViewDiagnostic($"Fehler beim Beenden: {error}");
+            shutdownStarted = false;
+            closeRequested = false;
+            exitFromTray = false;
+            ShowSaveWarning();
+            return;
+        }
         allowClose = true;
         Close();
     }
@@ -323,8 +331,9 @@ internal sealed class MainForm : Form
                 WriteWebViewDiagnostic($"WebView2-Prozessfehler: {eventArgs.ProcessFailedKind}");
             webView.Source = new Uri($"https://{VirtualHost}/index.html");
         }
-        catch (WebView2RuntimeNotFoundException)
+        catch (WebView2RuntimeNotFoundException error)
         {
+            WriteWebViewDiagnostic($"WebView2-Start fehlgeschlagen: {error}");
             MessageBox.Show(this,
                 T("Magnolie Organizer is not completely installed.") + " Microsoft Edge WebView2.",
                 Text, MessageBoxButtons.OK, MessageBoxIcon.Error);
@@ -333,6 +342,7 @@ internal sealed class MainForm : Form
         }
         catch (Exception error)
         {
+            WriteWebViewDiagnostic($"WebView2-Start fehlgeschlagen: {error}");
             MessageBox.Show(this, error.Message, Text, MessageBoxButtons.OK, MessageBoxIcon.Error);
             allowClose = true;
             Close();
@@ -427,11 +437,13 @@ internal sealed class MainForm : Form
         {
             WriteWebViewDiagnostic($"Beenden konnte nicht angefordert werden: {error}");
             closeRequested = false;
-            MessageBox.Show(this,
-                T("Warning: The data could not be saved."),
-                Text, MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            ShowSaveWarning();
         }
     }
+
+    private void ShowSaveWarning() => MessageBox.Show(this,
+        T("Warning: The data could not be saved."),
+        Text, MessageBoxButtons.OK, MessageBoxIcon.Warning);
 
     private NotifyIcon CreateTrayIcon(Icon icon)
     {
