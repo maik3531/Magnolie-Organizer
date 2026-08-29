@@ -400,7 +400,7 @@
   }
 };
 
-  const installerName = "Magnolie-Organizer-Windows-2.0.9-Setup-x64.exe";
+  const installerName = "Magnolie-Organizer-Windows-2.0.10-Setup-x64.exe";
   for (const locale of Object.keys(variants["installing-the-organizer"])) {
     variants["installing-the-organizer"][locale] =
       variants["installing-the-organizer"][locale].replace(

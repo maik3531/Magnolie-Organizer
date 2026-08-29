@@ -11,6 +11,7 @@ Package: magnolie-organizer
 Architecture: all
 Depends: ${misc:Depends}, python3, gettext, python3-gi, gir1.2-gtk-3.0, gir1.2-webkit2-4.1 | gir1.2-webkit2-4.0,
  python3-enchant, python3-cryptography, python3-openssl, python3-qrcode, python3-zeroconf
+Replaces: magnolie-handbuch (<< 2.0.11)
 Recommends: gir1.2-ecal-2.0, gir1.2-ebook-1.2, gir1.2-edataserver-1.2,
  hunspell-de-de, hunspell-en-us, gir1.2-notify-0.7, libnotify-bin,
  gir1.2-ayatanaappindicator3-0.1, xdg-utils

@@ -33,6 +33,12 @@ try {
   const installed = path.join(temporary, "usr", "share", "magnolie-handbuch", "web", "inhalt.js");
   assert.ok(fs.existsSync(installed), "built package does not contain web/inhalt.js");
   assert.strictEqual(digest(installed), digest(source), "built package contains stale handbook content");
+  const reporter = path.join(temporary, "usr", "lib", "magnolie-handbuch", "magnolie_crash.py");
+  assert.ok(fs.existsSync(reporter), "built package does not contain its private crash reporter");
+  assert.ok(!fs.existsSync(path.join(temporary, "usr", "bin", "magnolie_crash.py")),
+    "built handbook package must not own the organizer crash reporter path");
+  childProcess.execFileSync(path.join(temporary, "usr", "bin", "magnolie-handbuch"), ["--help"],
+    { env: { ...process.env, PYTHONDONTWRITEBYTECODE: "1" }, stdio: "pipe" });
   for (const relative of ["stil.css", "01.jpg", "02.jpg", "03.jpg",
     "02-woche.png", "03-aufgaben.png", "06-jahrestage.png", "10-pin-abfrage.png",
     "11-stand.png", "14-karteikarte.png", "15-rechtsklick-anrufen.png",

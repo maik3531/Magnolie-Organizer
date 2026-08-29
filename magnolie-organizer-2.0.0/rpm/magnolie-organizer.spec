@@ -1,5 +1,5 @@
 Name:           magnolie-organizer
-Version:        2.0.9
+Version:        2.0.10
 Release:        1%{?dist}
 Summary:        Personal organizer with a classic paper appearance
 
@@ -222,6 +222,9 @@ done
 %{_mandir}/*/man1/magnolie-organizer.1*
 
 %changelog
+* Sat Aug 29 2026 Maik Walter <maik3531@gmail.com> - 2.0.10-1
+- Behebt den Paketdateikonflikt mit dem Handbuch-Absturzmelder.
+
 * Sat Aug 29 2026 Maik Walter <maik3531@gmail.com> - 2.0.9-1
 - Add the optional secure background service and local crash reporting.
 - Correct calendar, contact and Android connected-device service handling.

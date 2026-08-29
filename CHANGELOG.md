@@ -1,5 +1,21 @@
 # Changelog / Änderungen
 
+## 2.0.10 / Notes 1.0.9 — 2026-08-29
+
+### English
+
+- Fixes a file conflict between the Organizer and handbook Debian packages.
+- Installs the handbook crash reporter in a private package path.
+- Safely takes over the old path when upgrading from handbook 2.0.9.
+- Prevents future releases containing overlapping Debian package files.
+
+### Deutsch
+
+- Behebt einen Dateikonflikt zwischen den Debian-Paketen von Organizer und Handbuch.
+- Installiert den Absturzmelder des Handbuchs in einem privaten Paketpfad.
+- Ergänzt eine sichere Übernahme des alten Pfads bei Aktualisierungen von Handbuch 2.0.9.
+- Verhindert künftige Veröffentlichungen mit überlappenden Debian-Paketdateien.
+
 ## 2.0.9 / Notes 1.0.9 — 2026-08-29
 
 ### English

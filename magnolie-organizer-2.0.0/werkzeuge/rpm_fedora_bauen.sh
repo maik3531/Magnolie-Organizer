@@ -98,6 +98,30 @@ set -- "$HANDBUCH_TOPDIR"/RPMS/noarch/magnolie-handbuch-*.noarch.rpm
     exit 1
 }
 HANDBUCH_RPM=$1
+ORGANIZER_DATEILISTE="$ARBEIT/organizer-rpm-files.txt"
+HANDBUCH_DATEILISTE="$ARBEIT/handbook-rpm-files.txt"
+fedora /usr/bin/rpm -qp --qf '[%{FILENAMES}\t%{FILEMODES}\n]' \
+    "$ORGANIZER_RPM" > "$ORGANIZER_DATEILISTE"
+fedora /usr/bin/rpm -qp --qf '[%{FILENAMES}\t%{FILEMODES}\n]' \
+    "$HANDBUCH_RPM" > "$HANDBUCH_DATEILISTE"
+python3 - "$ORGANIZER_DATEILISTE" "$HANDBUCH_DATEILISTE" <<'PY'
+import pathlib
+import stat
+import sys
+
+def files(path):
+    result = set()
+    for line in pathlib.Path(path).read_text(encoding="utf-8").splitlines():
+        name, mode = line.rsplit("\t", 1)
+        if not stat.S_ISDIR(int(mode)):
+            result.add(name)
+    return result
+
+overlap = files(sys.argv[1]) & files(sys.argv[2])
+if overlap:
+    raise SystemExit("RPM-Pakete enthalten gemeinsame Dateien: " +
+                     ", ".join(sorted(overlap)))
+PY
 fedora /usr/bin/fakeroot /usr/bin/dnf -y --setopt=install_weak_deps=False install \
     "$ORGANIZER_RPM" "$HANDBUCH_RPM"
 fedora /usr/bin/rpm -V magnolie-organizer magnolie-handbuch

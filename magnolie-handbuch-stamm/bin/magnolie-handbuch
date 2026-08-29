@@ -22,7 +22,7 @@ import locale
 import subprocess
 
 PROGRAMM_NAME = "magnolie-handbuch"
-PROGRAMM_FASSUNG = "2.0.9"
+PROGRAMM_FASSUNG = "2.0.10"
 TEXT_DOMAIN = "magnolie-handbuch"
 UNTERSTUETZTE_SPRACHEN = (
     "ar", "be", "cs", "da", "de", "es", "fr", "hi", "hsb", "it",
@@ -30,6 +30,10 @@ UNTERSTUETZTE_SPRACHEN = (
 )
 
 if __name__ == "__main__":
+    private_modules = os.path.realpath(os.path.join(
+        os.path.dirname(__file__), "..", "lib", PROGRAMM_NAME))
+    if os.path.isfile(os.path.join(private_modules, "magnolie_crash.py")):
+        sys.path.insert(0, private_modules)
     from magnolie_crash import install as _crash_reporting_install
     _crash_reporting_install(PROGRAMM_NAME, PROGRAMM_FASSUNG, "handbook")
 

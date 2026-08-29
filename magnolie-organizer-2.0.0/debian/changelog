@@ -1,3 +1,10 @@
+magnolie-organizer (2.0.10) unstable; urgency=high
+
+  * Behebt den Dateikonflikt mit magnolie-handbuch 2.0.9 beim Aktualisieren.
+  * Ergänzt einen Freigabetest gegen überlappende Debian-Paketdateien.
+
+ -- Maik Walter <maik3531@gmail.com>  Sat, 29 Aug 2026 12:32:20 +0200
+
 magnolie-organizer (2.0.9) unstable; urgency=medium
 
   * Ergänzt einen optionalen sicheren Hintergrunddienst mit nativen

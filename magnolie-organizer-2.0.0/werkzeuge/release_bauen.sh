@@ -196,6 +196,31 @@ for datei in "$HANDBUCH_DEB" "$HANDBUCH_DSC" "$HANDBUCH_SOURCE_TAR"; do
     test -s "$datei"
 done
 "$LAEUFER" pruefungen/paket_inhalt_test.js "$HANDBUCH_DEB" "$HANDBUCH_SOURCE_TAR"
+python3 - "$DEB" "$HANDBUCH_DEB" <<'PY'
+import pathlib
+import subprocess
+import sys
+import tempfile
+
+def package_files(package, destination):
+    subprocess.run(["dpkg-deb", "-x", package, destination], check=True)
+    root = pathlib.Path(destination)
+    return {str(path.relative_to(root)) for path in root.rglob("*")
+            if not path.is_dir()}
+
+with tempfile.TemporaryDirectory() as temporary:
+    root = pathlib.Path(temporary)
+    organizer = package_files(sys.argv[1], root / "organizer")
+    handbook = package_files(sys.argv[2], root / "handbook")
+    overlap = organizer & handbook
+    if overlap:
+        raise SystemExit("Debian-Pakete enthalten gemeinsame Pfade: " +
+                         ", ".join(sorted(overlap)))
+    if "usr/bin/magnolie_crash.py" not in organizer:
+        raise SystemExit("Organizer-Crash-Reporter fehlt im Debian-Paket")
+    if "usr/lib/magnolie-handbuch/magnolie_crash.py" not in handbook:
+        raise SystemExit("Privater Handbuch-Crash-Reporter fehlt im Debian-Paket")
+PY
 cd "$WURZEL"
 
 SOURCE_DATE_EPOCH=$epoch werkzeuge/appimage_jammy_bauen.sh "$APPIMAGE"

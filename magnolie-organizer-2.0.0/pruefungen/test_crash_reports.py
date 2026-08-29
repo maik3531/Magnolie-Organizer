@@ -33,13 +33,13 @@ def test_report_is_private_sanitized_and_has_required_shape(tmp_path):
         clipboard = secret_values[2]
         settings = {"password": secret_values[4]}
         assert clipboard and settings
-        crash.write_exception("magnolie-organizer", "2.0.9", "organizer", *exception)
+        crash.write_exception("magnolie-organizer", "2.0.10", "organizer", *exception)
 
     path = state / "magnolie-organizer" / "crash.log"
     report = path.read_text(encoding="utf-8")
     assert stat.S_IMODE(path.parent.stat().st_mode) == 0o700
     assert stat.S_IMODE(path.stat().st_mode) == 0o600
-    for heading in ("Timestamp:", "Version: 2.0.9", "Platform:",
+    for heading in ("Timestamp:", "Version: 2.0.10", "Platform:",
                     "Component: organizer", "Traceback (most recent call last):",
                     "Exception: builtins.RuntimeError"):
         assert heading in report
@@ -54,7 +54,7 @@ def test_report_rotates_once_and_refuses_symlink_targets(tmp_path, monkeypatch):
     monkeypatch.setattr(crash, "MAX_BYTES", 650)
     exception = captured_exception()
     for _unused in range(4):
-        crash.write_exception("magnolie-organizer", "2.0.9", "organizer", *exception)
+        crash.write_exception("magnolie-organizer", "2.0.10", "organizer", *exception)
     path = state / "magnolie-organizer" / "crash.log"
     old = state / "magnolie-organizer" / "crash.log.old"
     assert path.is_file() and old.is_file()
@@ -65,7 +65,7 @@ def test_report_rotates_once_and_refuses_symlink_targets(tmp_path, monkeypatch):
     other.write_text("", encoding="utf-8")
     path.unlink()
     path.symlink_to(other)
-    crash.write_exception("magnolie-organizer", "2.0.9", "organizer", *exception)
+    crash.write_exception("magnolie-organizer", "2.0.10", "organizer", *exception)
     assert other.read_text(encoding="utf-8") == ""
 
 
@@ -76,7 +76,7 @@ def test_normal_rotation_does_not_rename_open_fatal_descriptor(tmp_path, monkeyp
     saved_sys_hook = sys.excepthook
     saved_thread_hook = threading.excepthook
     try:
-        crash.install("magnolie-organizer", "2.0.9", "organizer")
+        crash.install("magnolie-organizer", "2.0.10", "organizer")
         stream = crash._fatal_stream
         fatal_details = os.fstat(stream.fileno())
         directory = state / "magnolie-organizer"
@@ -147,7 +147,7 @@ def test_hooks_chain_for_main_and_real_thread_without_masking(tmp_path, monkeypa
     threading.excepthook = lambda arguments: delegated.append(
         ("thread", arguments.exc_type))
     try:
-        crash.install("magnolie-organizer", "2.0.9", "organizer")
+        crash.install("magnolie-organizer", "2.0.10", "organizer")
         exception = captured_exception()
         sys.excepthook(*exception)
 
@@ -172,7 +172,10 @@ def test_hooks_chain_for_main_and_real_thread_without_masking(tmp_path, monkeypa
 
 
 def test_reporter_copy_and_package_manifests_cover_both_launchers():
-    assert "bin/magnolie_crash.py" in (ROOT / "debian" / "install").read_text()
+    organizer_debian = (ROOT / "debian" / "install").read_text()
+    assert "bin/magnolie_crash.py                  usr/bin" in organizer_debian
+    assert "Replaces: magnolie-handbuch (<< 2.0.11)" in \
+        (ROOT / "debian" / "control").read_text()
     assert "magnolie_crash.py" in (ROOT / "rpm" / "magnolie-organizer.spec").read_text()
     assert "magnolie_crash.py" in (ROOT / "werkzeuge" / "appimage_bauen.sh").read_text()
     assert "magnolie_crash.py" in (ROOT / "flatpak" /
@@ -180,8 +183,12 @@ def test_reporter_copy_and_package_manifests_cover_both_launchers():
     if HANDBOOK.exists():
         handbook_reporter = HANDBOOK / "bin" / "magnolie_crash.py"
         assert handbook_reporter.read_bytes() == (BIN / "magnolie_crash.py").read_bytes()
-        assert "bin/magnolie_crash.py" in (HANDBOOK / "debian" / "install").read_text()
-        assert "magnolie_crash.py" in (HANDBOOK / "rpm" / "magnolie-handbuch.spec").read_text()
+        handbook_debian = (HANDBOOK / "debian" / "install").read_text()
+        assert "bin/magnolie_crash.py                 usr/lib/magnolie-handbuch" in \
+            handbook_debian
+        handbook_rpm = (HANDBOOK / "rpm" / "magnolie-handbuch.spec").read_text()
+        assert "%{_prefix}/lib/%{name}/magnolie_crash.py" in handbook_rpm
+        assert "%{_bindir}/magnolie_crash.py" not in handbook_rpm
     with mock.patch.dict(os.environ, {"XDG_STATE_HOME": "/tmp/magnolie-state"}):
         assert crash.report_path("magnolie-organizer") == \
             "/tmp/magnolie-state/magnolie-organizer/crash.log"
