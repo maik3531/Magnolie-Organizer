@@ -3487,6 +3487,12 @@ body[data-pruefung="an"] #notiz-titel {
 }
 
 .einst-gruppe[open] > summary { margin-bottom: 7px; }
+.hintergrund-rechte-schnellwahl {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 2px 0 8px;
+}
 .kalender-wochenoptionen {
   display: flex;
   flex-direction: column;

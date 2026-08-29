@@ -15,7 +15,7 @@
 (function () {
 
   /* Die Fassung erscheint auf der Seite „Über". */
-const FASSUNG = "2.0.10";
+const FASSUNG = "2.0.11";
   const CONTRIBUTOR_BRANDING = "No valid coffee allowance";
 
   /* ---------------------------------------------------------------------- */
@@ -17871,15 +17871,34 @@ const FASSUNG = "2.0.10";
     ab.append(el("p", "einst-hinweis",
       _("System keyring and pause modes cannot be enabled yet.")));
 
-    ab.append(el("h4", null, _("Allowed background functions")));
+    const rechteGruppe = el("details", "einst-gruppe hintergrund-rechte-gruppe");
+    rechteGruppe.id = "hintergrunddienst-rechte";
+    rechteGruppe.open = false;
+    rechteGruppe.append(el("summary", null, _("Allowed background functions")));
+    const schnellwahl = el("div", "hintergrund-rechte-schnellwahl");
     const felder = [];
+    const waehleAlle = (wert) => {
+      for (const [feld, unavailable] of felder) {
+        feld.checked = !unavailable && wert;
+        rechte[feld.dataset.permission] = feld.checked;
+      }
+      backgroundSettingsSpeichern({ permissions: rechte });
+    };
+    const alleKnopf = knopf(_("All"), "klein", () => waehleAlle(true));
+    alleKnopf.id = "hintergrunddienst-rechte-alle";
+    const keineKnopf = knopf(_("None"), "klein", () => waehleAlle(false));
+    keineKnopf.id = "hintergrunddienst-rechte-keine";
+    schnellwahl.append(alleKnopf, keineKnopf);
+    rechteGruppe.append(schnellwahl);
     const rechteZeile = (name, text, unavailable = false) => {
       const feld = document.createElement("input"); feld.type = "checkbox";
-      feld.dataset.permission = name; feld.checked = rechte[name] === true;
+      feld.dataset.permission = name;
+      feld.checked = !unavailable && rechte[name] === true;
+      if (unavailable) rechte[name] = false;
       const label = el("label", "hak hak-eingerueckt");
       label.append(feld, document.createTextNode(" " + text));
       if (unavailable) label.append(document.createTextNode(" " + _("(unavailable)")));
-      ab.append(label); felder.push([feld, unavailable]);
+      rechteGruppe.append(label); felder.push([feld, unavailable]);
       if (!unavailable) feld.addEventListener("change", () => {
         rechte[name] = feld.checked;
         backgroundSettingsSpeichern({ permissions: rechte });
@@ -17895,6 +17914,7 @@ const FASSUNG = "2.0.10";
     rechteZeile("phone_pairing_decisions", _("Magnolie Notes phone pairing decisions"));
     rechteZeile("phone_personal_sync_offers", _("Offer Personal Sync phone changes"));
     rechteZeile("magnolienbaum_change_offers", _("Magnolienbaum change offers"), true);
+    ab.append(rechteGruppe);
 
     const setzeAktiv = () => {
       anmeldung.disabled = !Bruecke.vorhanden || !aktiv.checked;
@@ -17902,6 +17922,8 @@ const FASSUNG = "2.0.10";
       for (const [feld, unavailable] of felder) {
         feld.disabled = unavailable || !Bruecke.vorhanden || !aktiv.checked;
       }
+      alleKnopf.disabled = !Bruecke.vorhanden || !aktiv.checked;
+      keineKnopf.disabled = !Bruecke.vorhanden || !aktiv.checked;
     };
     aktiv.addEventListener("change", () => {
       setzeAktiv();
@@ -17922,9 +17944,9 @@ const FASSUNG = "2.0.10";
   }
 
   function baueSeiteSicherheit(wurzel) {
+    baueHintergrunddienst(wurzel);
     baueSicherungsdateien(wurzel);
     baueSeiteSicherungen(wurzel);
-    baueHintergrunddienst(wurzel);
     const p = DATEN.einstellungen.papierkorb;
     const s = DATEN.einstellungen.sicherheit;
     const ab = abschnitt(_("Recycle bin"),

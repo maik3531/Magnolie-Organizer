@@ -1,5 +1,5 @@
 Name:           magnolie-handbuch
-Version:        2.0.10
+Version:        2.0.11
 Release:        1%{?dist}
 Summary:        Illustrated user handbook for Magnolie Organizer
 
@@ -89,6 +89,7 @@ done < po/LINGUAS
 %license debian/copyright web/maik-walter-FOTO-NUTZUNG.txt
 %doc LIESMICH.md
 %{_bindir}/%{name}
+%dir %{_prefix}/lib/%{name}
 %{_prefix}/lib/%{name}/magnolie_crash.py
 %{_datadir}/%{name}/
 %{_datadir}/applications/magnolie-handbuch.desktop
@@ -97,6 +98,10 @@ done < po/LINGUAS
 %{_mandir}/*/man1/magnolie-handbuch.1*
 
 %changelog
+* Sat Aug 29 2026 Maik Walter <maik3531@gmail.com> - 2.0.11-1
+- Update the complete multilingual handbook for Organizer 2.0.11 and Notes 1.0.9.
+- Cover the complete package and 2.0.10 upgrade validation.
+
 * Sat Aug 29 2026 Maik Walter <maik3531@gmail.com> - 2.0.10-1
 - Installiert den Absturzmelder in einem privaten Handbuchpfad.
 

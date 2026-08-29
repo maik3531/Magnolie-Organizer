@@ -2,6 +2,7 @@
 """Static release-version and source-package policy checks."""
 
 from pathlib import Path
+import base64
 import re
 import sys
 import xml.etree.ElementTree as ET
@@ -13,7 +14,7 @@ sys.path.insert(0, str(ROOT / "werkzeuge"))
 from png_pruefen import pruefen as png_pruefen
 WINDOWS = WORKSPACE / "Magnolie-Organizer-Windows-2.0.0"
 HANDBOOK = WORKSPACE / "magnolie-handbuch-stamm"
-VERSION = "2.0.10"
+VERSION = "2.0.11"
 MANIFEST_VERSION = VERSION
 INTERNAL_NOTE = re.compile(
     r"(REVIEW|ENTWURF|OFFENE[-_ ]?PUNKTE|ANALYSE|PLAN|AUDIT).*\.md$", re.I)
@@ -73,11 +74,21 @@ if HANDBOOK.exists():
 
 organizer_update = ET.parse(ROOT / "update.xml").getroot()
 for manifest in (organizer_update,):
+    assert manifest.findtext("version") == VERSION
+    signatur = manifest.findtext("signature")
+    pruefsummen = [manifest.findtext(pfad) for pfad in (
+        "sha256", "appimage/sha256", "manual/linux/sha256",
+        "manual/windows/sha256", "windows/sha256")]
+    if signatur is None:
+        assert all(wert is None for wert in pruefsummen)
+    else:
+        assert len(base64.b64decode(signatur, validate=True)) == 64
+        assert all(re.fullmatch(r"[0-9a-f]{64}", wert or "")
+                   for wert in pruefsummen)
     manual = manifest.find("manual")
     assert manual is not None
     assert [child.tag for child in manual] == ["version", "linux", "windows"]
-    assert re.fullmatch(r"[0-9a-f]{64}", manual.findtext("linux/sha256") or "")
-    assert re.fullmatch(r"[0-9a-f]{64}", manual.findtext("windows/sha256") or "")
+    assert manual.findtext("version") == VERSION
 install_manifest = text(ROOT / "debian/install")
 debian_control = text(ROOT / "debian/control")
 recommends = debian_control.split("Recommends:", 1)[1].split("Suggests:", 1)[0]
@@ -175,15 +186,18 @@ for gate in ("--skip-autopkgtest", "--skip-system-package-tests",
                "HANDBUCH_RPM_PAKET", "HANDBUCH_RPM_QUELLE",
                "WINDOWS-RUNTIME-UNVERIFIED.txt", "HANDBUCH_DEB",
                "Magnolie-Organizer-PRUEFSUMMEN.sha256", "sha256sum -c",
-               "werkzeuge/flatpak_bauen.sh", "test_flatpak.py", "FLATPAK_VERGLEICH"):
+               "werkzeuge/flatpak_bauen.sh", "test_flatpak.py", "FLATPAK_VERGLEICH",
+               "MAGNOLIE_VOLLPRUEFUNG=1", "test_debian_koinstallation.sh",
+               "test_naechster_weckzeitpunkt.py"):
     assert gate in release_builder, gate
 assert "autopkgtest fehlt; Freigabe abgebrochen" in release_builder
 assert release_builder.index("werkzeuge/rpm_fedora_bauen.sh") < release_builder.rindex(
     "VEROEFFENTLICHEN=1")
 fedora_builder = text(ROOT / "werkzeuge/rpm_fedora_bauen.sh")
 for gate in ("Fedora-WSL-Base-42-1.1.x86_64.tar.xz", "BASIS_SHA=", "bwrap",
-             "--unshare-user", "gpgcheck=1", "fakeroot", "rpm -V",
-             "magnolie-organizer", "magnolie-handbuch"):
+              "--unshare-user", "gpgcheck=1", "fakeroot", "rpm -V",
+              "magnolie-organizer", "magnolie-handbuch", "rpm -qf",
+              "dnf -y remove magnolie-handbuch"):
     assert gate in fedora_builder, gate
 assert "command -v flock" in release_builder and "flock -n 9" in release_builder
 assert release_builder.index("flock -n 9") < release_builder.index("STAGE=$(mktemp")
@@ -249,4 +263,4 @@ def test_statische_paketpruefung():
     assert True
 
 
-print("Paketinhalt und Linux-Version 2.0.10: ok")
+print("Paketinhalt und Linux-Version 2.0.11: ok")

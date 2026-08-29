@@ -5,7 +5,7 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: Magnolie Organizer 2.0.10\n"
+"Project-Id-Version: Magnolie Organizer 2.0.11\n"
 "Report-Msgid-Bugs-To: maik3531@gmail.com\n"
 "POT-Creation-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "PO-Revision-Date: 2026-08-04 05:55+0200\n"
@@ -4516,10 +4516,10 @@ msgid "Temperature"
 msgstr "Temperatur"
 
 msgid "Test connection"
-msgstr "Verbindung prüfen"
+msgstr "Verbindung testen"
 
 msgid "Testing…"
-msgstr "Wird geprüft …"
+msgstr "Verbindung wird getestet…"
 
 msgid "Text color"
 msgstr "Schriftfarbe"

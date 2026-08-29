@@ -486,7 +486,7 @@ Array.from(window.document.querySelectorAll("#einst-seite-sync button"))
 assert.strictEqual(window.document.querySelector("#briefkasten-kennwort").value, "",
   "app password was not cleared immediately");
 Array.from(window.document.querySelectorAll("#einst-seite-sync button"))
-  .find((button) => button.textContent === "Verbindung prüfen").click();
+  .find((button) => button.textContent === "Verbindung testen").click();
 assert.ok(messages.some((message) => message.cmd === "baum_briefkasten_speichern" &&
   message.davAktiv === true && message.briefkastenAktiv === false &&
   message.url === "https://cloud.example" && message.benutzer === "user" &&

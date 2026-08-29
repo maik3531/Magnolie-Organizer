@@ -1,5 +1,29 @@
 # Changelog / Änderungen
 
+## 2.0.11 / Notes 1.0.9 — 2026-08-29
+
+### English
+
+- Made the background-service permissions collapsible, added All/None controls, and moved them to the start of the Security page.
+- Completed the German translation of the Nextcloud connection test.
+- Fixed startup through the N4 symlink path.
+- Added the required Debian `Breaks`/`Replaces` relationship while preserving upgrades from 2.0.10.
+- Assigned RPM ownership of the installed directories explicitly.
+- Added the N7 full validation and a real 2.0.10-to-2.0.11 upgrade gate in both package orders.
+- Made the next reminder calculation efficient without scanning every day of long recurring series.
+- Synchronized the current web UI, catalogs, handbook, and Windows version metadata.
+
+### Deutsch
+
+- Macht die Hintergrunddienstrechte einklappbar, ergänzt Alle-/Keine-Schalter und setzt sie an den Anfang der Sicherheitsseite.
+- Vervollständigt die deutsche Übersetzung des Nextcloud-Verbindungstests.
+- Korrigiert den Start über den N4-Symlinkpfad.
+- Ergänzt die notwendigen Debian-Beziehungen `Breaks`/`Replaces` und bewahrt Aktualisierungen von 2.0.10.
+- Weist die installierten Verzeichnisse in RPM-Paketen ausdrücklich zu.
+- Ergänzt die N7-Vollprüfung und ein reales Upgradegate von 2.0.10 auf 2.0.11 in beiden Paketreihenfolgen.
+- Berechnet die nächste Weckzeit effizient, ohne lange Terminserien Tag für Tag zu durchlaufen.
+- Synchronisiert aktuelle Weboberfläche, Kataloge, Handbuch und Windows-Versionsmetadaten.
+
 ## 2.0.10 / Notes 1.0.9 — 2026-08-29
 
 ### English

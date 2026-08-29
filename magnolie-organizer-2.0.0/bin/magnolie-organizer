@@ -63,7 +63,7 @@ if __name__ == "__main__":
     _crash_component = ("background-service" if any(argument in (
         "--hintergrunddienst", "--background-service") for argument in sys.argv[1:])
         else "organizer")
-    _crash_reporting_install("magnolie-organizer", "2.0.10", _crash_component)
+    _crash_reporting_install("magnolie-organizer", "2.0.11", _crash_component)
 if any(argument in ("--hintergrunddienst", "--background-service")
        for argument in sys.argv[1:]):
     from magnolie_hintergrund import daemon_main
@@ -185,7 +185,7 @@ def tray_system_verfuegbar(desktop=None, aktivierte_erweiterungen=None):
 PROGRAMM_NAME = "magnolie-organizer"
 HANDBUCH_NAME = "magnolie-handbuch"
 FENSTER_TITEL = "Magnolie Organizer"
-PROGRAMM_FASSUNG = "2.0.10"
+PROGRAMM_FASSUNG = "2.0.11"
 ALTER_NAME = "organizer-klassik"
 I18N_DOMAIN = "magnolie-organizer"
 
@@ -5690,6 +5690,129 @@ def wiederholung_trifft(termin, tag, ohne_zusatz=False):
     return False
 
 
+def _serieninstanz(termin, tag):
+    """Erzeugt ein einzelnes Mal einer Serie für den gegebenen Tag."""
+    iso = tag.strftime("%Y-%m-%d")
+    mal = dict(termin)
+    mal["datum"] = iso
+    end_datum = termin.get("endDatum") or ""
+    if end_datum:
+        try:
+            dauer = (datetime.strptime(end_datum, "%Y-%m-%d") -
+                     datetime.strptime(termin["datum"], "%Y-%m-%d")).days
+            mal["endDatum"] = (tag + timedelta(days=dauer)).strftime("%Y-%m-%d")
+        except (KeyError, TypeError, ValueError):
+            mal["endDatum"] = ""
+    mal["id"] = "%s@%s" % (termin.get("id") or termin.get("uid") or "?", iso)
+    mal["folge"] = True
+    return mal
+
+
+def _naechster_serientag(termin, ab, ende):
+    """Erster Serientag im geschlossenen Bereich, ohne Tage durchzulaufen."""
+    if ab > ende:
+        return None
+    w = (termin or {}).get("wiederholung") or {}
+    art = wiederholung_art(w.get("art"))
+
+    explizit = list(termin.get("icsZusatzDaten") or [])
+    if art == "custom":
+        explizit.extend(w.get("daten") or [])
+    naechster_explizit = None
+    for wert in explizit:
+        if not isinstance(wert, str):
+            continue
+        try:
+            tag = datetime.strptime(wert, "%Y-%m-%d")
+        except ValueError:
+            continue
+        if ab <= tag <= ende and wiederholung_trifft(termin, tag):
+            if naechster_explizit is None or tag < naechster_explizit:
+                naechster_explizit = tag
+
+    try:
+        start = datetime.strptime((termin.get("datum") or "").strip(), "%Y-%m-%d")
+        intervall = max(1, min(3660, int(w.get("intervall") or 1)))
+    except (TypeError, ValueError):
+        return naechster_explizit
+    if art in ("none", "custom") or (art in ("monthly", "yearly") and
+                                      intervall != 1):
+        return naechster_explizit
+
+    untergrenze = max(ab, start + timedelta(days=1))
+    regulaeres_ende = ende
+    bis = (w.get("bis") or "").strip()
+    if bis:
+        try:
+            regulaeres_ende = min(regulaeres_ende,
+                                  datetime.strptime(bis, "%Y-%m-%d"))
+        except ValueError:
+            pass
+    if untergrenze > regulaeres_ende:
+        return naechster_explizit
+
+    def regulaer_von(grenze):
+        if art == "daily":
+            schritt = intervall
+            seit_start = (grenze.date() - start.date()).days
+            return start + timedelta(days=((seit_start + schritt - 1) // schritt) * schritt)
+        if art == "weekly":
+            schritt = 7 * intervall
+            seit_start = (grenze.date() - start.date()).days
+            return start + timedelta(days=((seit_start + schritt - 1) // schritt) * schritt)
+        if art == "monthly":
+            monat = grenze.year * 12 + grenze.month - 1
+            while monat <= regulaeres_ende.year * 12 + regulaeres_ende.month - 1:
+                jahr, monat_null = divmod(monat, 12)
+                monat_nummer = monat_null + 1
+                try:
+                    ordinal = int(w.get("ordinal"))
+                except (TypeError, ValueError):
+                    ordinal = 0
+                wochentag = str(w.get("wochentag") or "").upper()
+                tage = ("MO", "TU", "WE", "TH", "FR", "SA", "SU")
+                if ordinal in (-1, 1, 2, 3, 4) and wochentag in tage:
+                    if ordinal == -1:
+                        letzter = _letzter_tag(jahr, monat_nummer)
+                        kandidat = datetime(jahr, monat_nummer, letzter)
+                        kandidat -= timedelta(days=(kandidat.weekday() -
+                                                     tage.index(wochentag)) % 7)
+                    else:
+                        kandidat = datetime(jahr, monat_nummer, 1)
+                        kandidat += timedelta(days=(tage.index(wochentag) -
+                                                     kandidat.weekday()) % 7 +
+                                               7 * (ordinal - 1))
+                else:
+                    kandidat = datetime(jahr, monat_nummer,
+                                         min(start.day, _letzter_tag(jahr, monat_nummer)))
+                if kandidat >= grenze:
+                    return kandidat
+                monat += 1
+            return None
+        if art == "yearly":
+            for jahr in range(grenze.year, regulaeres_ende.year + 1):
+                tag = start.day
+                if (start.month, start.day) == (2, 29):
+                    tag = min(29, _letzter_tag(jahr, 2))
+                kandidat = datetime(jahr, start.month, tag)
+                if kandidat >= grenze:
+                    return kandidat
+        return None
+
+    naechster_regulaer = regulaer_von(untergrenze)
+    while (naechster_regulaer is not None and
+           naechster_regulaer <= regulaeres_ende):
+        if wiederholung_trifft(termin, naechster_regulaer, ohne_zusatz=True):
+            break
+        naechster_regulaer = regulaer_von(naechster_regulaer + timedelta(days=1))
+    if (naechster_regulaer is not None and
+            naechster_regulaer > regulaeres_ende):
+        naechster_regulaer = None
+    return min(tag for tag in (naechster_explizit, naechster_regulaer)
+               if tag is not None) if (naechster_explizit is not None or
+                                       naechster_regulaer is not None) else None
+
+
 def termine_mit_wiederholungen(daten, jetzt, tage_zurueck=4, tage_vor=2):
     """Ergänzt die gespeicherten Termine um die errechneten Male der
     Wiederholungen im betrachteten Zeitfenster.
@@ -5712,24 +5835,10 @@ def termine_mit_wiederholungen(daten, jetzt, tage_zurueck=4, tage_vor=2):
     for versatz in range(-max(0, tage_zurueck), max(1, tage_vor) + 1):
         tag = (jetzt + timedelta(days=versatz)).replace(
             hour=0, minute=0, second=0, microsecond=0)
-        iso = tag.strftime("%Y-%m-%d")
         for termin in wiederkehrend:
             if not wiederholung_trifft(termin, tag):
                 continue
-            mal = dict(termin)
-            mal["datum"] = iso
-            end_datum = termin.get("endDatum") or ""
-            if end_datum:
-                try:
-                    dauer = (datetime.strptime(end_datum, "%Y-%m-%d") -
-                             datetime.strptime(termin["datum"], "%Y-%m-%d")).days
-                    mal["endDatum"] = (tag + timedelta(days=dauer)).strftime("%Y-%m-%d")
-                except (KeyError, TypeError, ValueError):
-                    mal["endDatum"] = ""
-            mal["id"] = "%s@%s" % (termin.get("id") or termin.get("uid") or "?",
-                                   iso)
-            mal["folge"] = True
-            ergaenzt.append(mal)
+            ergaenzt.append(_serieninstanz(termin, tag))
     return ergaenzt
 
 
@@ -5825,14 +5934,14 @@ def naechster_weckzeitpunkt(daten, jetzt, vorlauf=15):
     vorlauf_tage = max([1, (max(0, vorlauf) + 1439) // 1440] +
                        [(minuten + 1439) // 1440 for minuten in alarm_minuten] +
                        [tage for tage in individuelle if 1 <= tage <= 7])
-    termine = termine_mit_wiederholungen(
-        daten, jetzt, tage_zurueck=0, tage_vor=370 + vorlauf_tage)
-    for termin in termine:
+
+    def pruefen(termin):
+        nonlocal bester
         if not isinstance(termin, dict):
-            continue
+            return
         beginn = _termin_zeitpunkt(termin)
         if beginn is None:
-            continue
+            return
         kennung = str(termin.get("id") or termin.get("uid") or "?")
         for _marke, weckzeit, _tage, _basis, _alte_marken in _termin_meldungen(
                 termin, kennung, beginn, vorlauf):
@@ -5840,6 +5949,39 @@ def naechster_weckzeitpunkt(daten, jetzt, vorlauf=15):
                 continue
             if bester is None or weckzeit < bester:
                 bester = weckzeit
+
+    quelle = list((daten or {}).get("termine") or [])
+    for termin in quelle:
+        if (isinstance(termin, dict) and
+                isinstance(termin.get("icsAusnahmen"), list) and
+                termin.get("datum") in termin["icsAusnahmen"]):
+            continue
+        pruefen(termin)
+
+    heute = jetzt.replace(hour=0, minute=0, second=0, microsecond=0)
+    suchende = heute + timedelta(days=370 + vorlauf_tage)
+    for termin in quelle:
+        if not isinstance(termin, dict) or wiederholung_art(
+                (termin.get("wiederholung") or {}).get("art")) == "none":
+            continue
+        probe = _serieninstanz(termin, heute)
+        beginn = _termin_zeitpunkt(probe)
+        if beginn is None:
+            continue
+        kennung = str(probe.get("id") or probe.get("uid") or "?")
+        versatzwerte = {weckzeit - heute for
+                        _marke, weckzeit, _tage, _basis, _alte_marken in
+                        _termin_meldungen(probe, kennung, beginn, vorlauf)}
+        tage = set()
+        for versatz in versatzwerte:
+            grenze = jetzt - versatz
+            ab = max(heute, (grenze + timedelta(days=1)).replace(
+                hour=0, minute=0, second=0, microsecond=0))
+            tag = _naechster_serientag(termin, ab, suchende)
+            if tag is not None:
+                tage.add(tag)
+        for tag in tage:
+            pruefen(_serieninstanz(termin, tag))
     return bester
 
 

@@ -1659,6 +1659,8 @@ function knopfMit(text, wurzel) {
       (heading) => heading.textContent).includes("Password protection"),
   "englische Sicherheitsabschnitte fehlen");
   const hintergrundAbschnitt = enSicherheit.querySelector(".hintergrunddienst-abschnitt");
+  const sicherheitsUeberschriften = Array.from(enSicherheit.querySelectorAll("h3"),
+    (heading) => heading.textContent);
   assert.ok(hintergrundAbschnitt && hintergrundAbschnitt.querySelector("#hintergrunddienst-an") &&
     hintergrundAbschnitt.querySelector("#hintergrunddienst-autostart") &&
     hintergrundAbschnitt.querySelectorAll("[data-permission]").length === 10 &&
@@ -1667,6 +1669,15 @@ function knopfMit(text, wurzel) {
     hintergrundAbschnitt.textContent.includes("Magnolienbaum change offers") &&
     hintergrundAbschnitt.textContent.includes("(unavailable)"),
   "Hintergrunddienst-Steuerung oder Laufzeitstatus fehlt unter Sicherheit");
+  assert.ok(sicherheitsUeberschriften.indexOf("Background service") <
+    sicherheitsUeberschriften.indexOf("Backups"),
+  "Hintergrunddienst steht nicht vor den Sicherungsabschnitten");
+  const rechteGruppe = hintergrundAbschnitt.querySelector("#hintergrunddienst-rechte");
+  assert.ok(rechteGruppe && !rechteGruppe.open &&
+    rechteGruppe.querySelector("summary").textContent === "Allowed background functions" &&
+    rechteGruppe.querySelector("#hintergrunddienst-rechte-alle") &&
+    rechteGruppe.querySelector("#hintergrunddienst-rechte-keine"),
+  "Hintergrundrechte sind nicht geschlossen oder besitzen keine Schnellwahl");
   const keyringOption = hintergrundAbschnitt.querySelector(
     '#hintergrunddienst-verschluesselung option[value="keyring"]');
   assert.ok(keyringOption && keyringOption.disabled &&
@@ -1682,6 +1693,20 @@ function knopfMit(text, wurzel) {
     !Object.prototype.hasOwnProperty.call(hintergrundSave.settings, "running") &&
     !Object.prototype.hasOwnProperty.call(hintergrundSave.settings, "password"),
   "Hintergrunddienst-Änderung sendet keinen sauberen unmittelbaren Bridge-Nutzlast");
+  rechteGruppe.querySelector("#hintergrunddienst-rechte-keine").click();
+  let schnellwahlSave = enSyncNachrichten.filter((nachricht) =>
+    nachricht.cmd === "background_settings_set").at(-1);
+  assert.ok(Array.from(rechteGruppe.querySelectorAll("[data-permission]"),
+    (feld) => !feld.checked).every(Boolean) &&
+    Object.values(schnellwahlSave.settings.permissions).every((wert) => wert === false),
+  "Schnellwahl Keine lässt ein Hintergrundrecht aktiv");
+  rechteGruppe.querySelector("#hintergrunddienst-rechte-alle").click();
+  schnellwahlSave = enSyncNachrichten.filter((nachricht) =>
+    nachricht.cmd === "background_settings_set").at(-1);
+  assert.ok(Array.from(rechteGruppe.querySelectorAll("[data-permission]:not(:disabled)"),
+    (feld) => feld.checked).every(Boolean) &&
+    schnellwahlSave.settings.permissions.magnolienbaum_change_offers === false,
+  "Schnellwahl Alle aktiviert verfügbare Rechte nicht oder ein gesperrtes Recht doch");
   assert.ok(enSD.querySelector("#papierkorb-stand").textContent.includes("1 note") &&
     enSicherheit.textContent.includes("Nicht übersetzen") &&
     enSicherheit.textContent.includes("Use the recycle bin") &&
@@ -2123,7 +2148,7 @@ function knopfMit(text, wurzel) {
   const enUeber = enSD.querySelector("#einstellungen-inhalt");
   assert.strictEqual(enUeber.querySelector("h3").textContent,
     "About the Magnolie Organizer", "englische Über-Seite fehlt");
-  assert.ok(enUeber.querySelector(".ueber-fassung").textContent.includes("Version 2.0.10") &&
+  assert.ok(enUeber.querySelector(".ueber-fassung").textContent.includes("Version 2.0.11") &&
     enUeber.textContent.includes("Author") && enUeber.textContent.includes("License") &&
     enUeber.textContent.includes("Updates") &&
     enUeber.textContent.includes("No update check has been performed yet") &&
@@ -2143,12 +2168,12 @@ function knopfMit(text, wurzel) {
     enSyncNachrichten.some((nachricht) => nachricht.cmd === "update_pruefen"),
   "englische Über-Seite verändert Handbuch- oder Update-Befehl");
   const enUpdateUrl = "https://gitlab.com/maik3531/mint-forgs/-/raw/main/" +
-    "Magnolie-Organitzer/magnolie-organizer_2.0.11_all.deb";
-  enSW.App.updateErgebnis({ ok: true, aktuell: false, version: "2.0.11",
+    "Magnolie-Organitzer/magnolie-organizer_2.0.12_all.deb";
+  enSW.App.updateErgebnis({ ok: true, aktuell: false, version: "2.0.12",
     url: enUpdateUrl, sha256: "ab".repeat(32), fehler: "" });
   assert.ok(enSD.querySelector("#update-stand").textContent.includes(
-    "New version 2.0.11 is available") &&
-    enSD.querySelector("#update-herunterladen").textContent.includes("2.0.11") &&
+    "New version 2.0.12 is available") &&
+    enSD.querySelector("#update-herunterladen").textContent.includes("2.0.12") &&
     enSD.querySelector(".update-pruefsumme").textContent.includes("ab".repeat(32)) &&
     enSD.querySelector(".update-pruefsumme").textContent.includes("sha256sum"),
   "englischer neuer Update-Stand fehlt");
@@ -4546,6 +4571,10 @@ function knopfMit(text, wurzel) {
   assert.ok($("#sync-status").textContent.includes("sudo apt install EDS-PAKETE") &&
     $("#nextcloud-konto") && $("#nextcloud-briefkasten"),
   "bei fehlendem EDS fehlt der Installationshinweis oder die direkte Nextcloud-Einrichtung");
+  assert.strictEqual(w.MagnolieI18n.gettext("Test connection"), "Verbindung testen",
+    "deutscher Nextcloud-Verbindungstest ist nicht übersetzt");
+  assert.strictEqual(w.MagnolieI18n.gettext("Testing…"), "Verbindung wird getestet…",
+    "deutscher Nextcloud-Prüfstatus ist nicht übersetzt");
 
   /* Seite „Land & Feiertage“ */
   $$(".einst-reiter-knopf").find((b) => b.textContent === "Land & Feiertage").click();
@@ -6209,7 +6238,7 @@ function knopfMit(text, wurzel) {
   assert.ok(ueberText.includes("Version 3"), "die Lizenzfassung fehlt");
   assert.ok($(".ueber-fassung").textContent.includes("Fassung"),
     "die Programmfassung fehlt");
-  assert.ok($(".ueber-fassung").textContent.includes("2.0.10"),
+  assert.ok($(".ueber-fassung").textContent.includes("2.0.11"),
     "die neue Programmfassung fehlt");
   assert.ok($(".ueber-blume"), "die Magnolienblüte fehlt");
   const beschreibung = $(".ueber-beschreibung");
@@ -6229,18 +6258,18 @@ function knopfMit(text, wurzel) {
     "neben der gemeinsamen Aktualisierungsprüfung ist ein zweiter Prüfknopf sichtbar");
   assert.ok($("#handbuch-stand").textContent.includes("nicht installiert"),
     "der Handbuchstatus nennt die fehlende Installation nicht");
-  assert.ok(!T.istNeuereFassung("2.0.1") && !T.istNeuereFassung("2.0.10") &&
-    T.istNeuereFassung("2.0.11"),
+  assert.ok(!T.istNeuereFassung("2.0.1") && !T.istNeuereFassung("2.0.11") &&
+    T.istNeuereFassung("2.0.12"),
     "Fassungsvergleich der Oberfläche stimmt nicht");
   assert.ok(T.vergleicheText("Termin 2", "Termin 10") < 0,
     "der regionale Collator sortiert Zahlen weiterhin rein lexikografisch");
-  w.App.updateErgebnis({ ok: true, aktuell: false, version: "2.0.11",
+  w.App.updateErgebnis({ ok: true, aktuell: false, version: "2.0.12",
     url: "https://gitlab.com/maik3531/mint-forgs/-/raw/main/" +
-      "Magnolie-Organitzer/magnolie-organizer_2.0.11_all.deb" });
-  assert.ok($("#update-stand").textContent.includes("2.0.11"),
+      "Magnolie-Organitzer/magnolie-organizer_2.0.12_all.deb" });
+  assert.ok($("#update-stand").textContent.includes("2.0.12"),
     "gefundene Fassung erscheint nicht unter Über");
   assert.ok($("#update-herunterladen"), "Downloadknopf für neue Fassung fehlt");
-  assert.strictEqual(T.daten().einstellungen.update.letzteVersion, "2.0.11",
+  assert.strictEqual(T.daten().einstellungen.update.letzteVersion, "2.0.12",
     "Prüfstand wird nicht gespeichert");
   $("#update-automatisch").checked = false;
   $("#update-automatisch").dispatchEvent(new w.Event("change", { bubbles: true }));
@@ -7224,7 +7253,7 @@ function knopfMit(text, wurzel) {
     "ohne Handbuch darf der Hinweis nicht als gezeigt gespeichert werden");
   const handbuchUrl = "https://gitlab.com/maik3531/mint-forgs/-/raw/main/" +
     "Magnolie-Organitzer/magnolie-handbuch_1.9.8_all.deb";
-  hw.App.updateErgebnis({ ok: true, aktuell: true, version: "2.0.10", url: "",
+  hw.App.updateErgebnis({ ok: true, aktuell: true, version: "2.0.11", url: "",
     sha256: "ab".repeat(32), handbuch: { version: "1.9.8", url: handbuchUrl,
       sha256: "cd".repeat(32) }, fehler: "" });
   assert.ok(!hd.querySelector("#dialog-schleier").classList.contains("verborgen") &&

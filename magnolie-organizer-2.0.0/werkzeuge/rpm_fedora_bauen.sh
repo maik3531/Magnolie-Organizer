@@ -133,8 +133,15 @@ else
 fi
 fedora /usr/bin/env DISPLAY= WAYLAND_DISPLAY= \
     /usr/bin/magnolie-organizer --language en --help >/dev/null
-fedora /usr/bin/env DISPLAY= WAYLAND_DISPLAY= \
+fedora /usr/bin/env DISPLAY= WAYLAND_DISPLAY= PYTHONDONTWRITEBYTECODE=1 \
     /usr/bin/magnolie-handbuch --language en --help >/dev/null
+fedora /usr/bin/rpm -qf /usr/lib/magnolie-handbuch \
+    /usr/lib/magnolie-handbuch/magnolie_crash.py >/dev/null
+fedora /usr/bin/fakeroot /usr/bin/dnf -y remove magnolie-handbuch
+fedora /usr/bin/test ! -e /usr/lib/magnolie-handbuch
+fedora /usr/bin/rpm -V magnolie-organizer
+fedora /usr/bin/env DISPLAY= WAYLAND_DISPLAY= \
+    /usr/bin/magnolie-organizer --language en --help >/dev/null
 
 printf '%s\n' \
     "Fedora-RPM gebaut, installiert und geprueft: $ORGANIZER_RPM" \

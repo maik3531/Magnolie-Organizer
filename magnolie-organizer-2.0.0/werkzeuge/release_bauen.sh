@@ -118,8 +118,9 @@ XDG_CONFIG_HOME="$STAGE/test-config" TZ=Europe/Berlin \
     python3 pruefungen/test_parser.py
 python3 -m pytest -q pruefungen/test_kdeconnect.py
 python3 -m pytest -q pruefungen/test_personal_sync.py
-python3 -m pytest -q pruefungen/test_crash_reports.py
+MAGNOLIE_VOLLPRUEFUNG=1 python3 -m pytest -q pruefungen/test_crash_reports.py
 python3 -m pytest -q pruefungen/test_hintergrunddienst.py
+python3 -m pytest -q pruefungen/test_naechster_weckzeitpunkt.py
 TZ=Europe/Berlin python3 pruefungen/test_import_export_vertrag.py
 TZ=Europe/Berlin python3 pruefungen/test_gesamtarchiv.py
 TZ=Europe/Berlin python3 pruefungen/test_telefon.py
@@ -221,6 +222,10 @@ with tempfile.TemporaryDirectory() as temporary:
     if "usr/lib/magnolie-handbuch/magnolie_crash.py" not in handbook:
         raise SystemExit("Privater Handbuch-Crash-Reporter fehlt im Debian-Paket")
 PY
+sh "$WURZEL/pruefungen/test_debian_koinstallation.sh" \
+    "$DEB" "$HANDBUCH_DEB" \
+    "$LIVE_ROOT/magnolie-organizer_2.0.10_all.deb" \
+    "$LIVE_ROOT/magnolie-handbuch_2.0.10_all.deb"
 cd "$WURZEL"
 
 SOURCE_DATE_EPOCH=$epoch werkzeuge/appimage_jammy_bauen.sh "$APPIMAGE"
