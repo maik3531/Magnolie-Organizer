@@ -126,20 +126,73 @@ class Prueffenster(m.Fenster):
   }
   const bereiche = ["kalender", "aufgaben", "adressen", "notizen", "jahrestage", "planer", "gesundheit"];
   const basis = JSON.parse(JSON.stringify(OrganizerTest.daten()));
-  const fehler = [];
-  const warten = () => new Promise((fertig) => requestAnimationFrame(() => requestAnimationFrame(fertig)));
+   const fehler = [];
+   const warten = () => new Promise((fertig) => requestAnimationFrame(() => requestAnimationFrame(fertig)));
+   const linienPruefen = async () => {
+    OrganizerTest.wechsel("notizen");
+    await warten();
+    const feld = document.querySelector("#notiz-text");
+    if (!feld) {
+     fehler.push({sprache: aktuelleSprache, zustand: "notizlinien", element: "#notiz-text",
+       text: "note editor missing"});
+     return;
+    }
+    const text = "Magnolie schreibt einen langen Satz, der im schmalen Prüffeld automatisch umbrechen muss. ";
+    for (const art of ["print", "handwriting"]) {
+     document.body.dataset.schrift = art;
+     for (const groesse of ["small", "medium", "large"]) {
+      document.body.dataset.groesse = groesse;
+      feld.style.fontSize = "";
+      const basisGroesse = parseFloat(getComputedStyle(feld).fontSize);
+      for (const skalierung of [1, 1.25, 1.5]) {
+       feld.style.fontSize = (basisGroesse * skalierung) + "px";
+       feld.style.width = "280px";
+       feld.innerHTML = "";
+       const marken = [];
+       for (const inhalt of [text, "Expliziter Umbruch", text]) {
+        const zeile = document.createElement("span");
+        zeile.textContent = inhalt;
+        const marke = document.createElement("span");
+        Object.assign(marke.style, {display: "inline-block", width: "0", height: "0",
+          verticalAlign: "baseline"});
+        zeile.append(marke);
+        feld.append(zeile, document.createElement("br"));
+        marken.push(marke);
+       }
+       OrganizerTest.aktualisiereNotizlinien();
+       await warten();
+       const stil = getComputedStyle(feld);
+       const periode = parseFloat(stil.getPropertyValue("--zeilenhoehe"));
+       const linie = parseFloat(stil.getPropertyValue("--linien-stelle"));
+       const oben = feld.getBoundingClientRect().top;
+       for (const marke of marken) {
+        const grundlinie = marke.getBoundingClientRect().top - oben;
+        const abstand = Math.abs(((grundlinie - linie) %% periode + periode) %% periode);
+        if (Math.min(abstand, periode - abstand) > 1.6) {
+         fehler.push({sprache: aktuelleSprache, zustand: "notizlinien/" + art + "/" + groesse,
+           element: "#notiz-text", text: "baseline misses notebook line at scale " + skalierung,
+           box: grundlinie.toFixed(2) + "/" + linie.toFixed(2) + "/" + periode.toFixed(2)});
+        }
+       }
+      }
+     }
+    }
+    feld.style.fontSize = "";
+    feld.style.width = "";
+   };
   for (const sprache of sprachen) {
     aktuelleSprache = sprache;
     App.init({daten: JSON.parse(JSON.stringify(basis)), datenPfad: "/tmp/magnolie-layout",
       regional: {language: sprache, formatLocale: sprache.replace("_", "-")}, neu: false});
     OrganizerTest.oeffneBuch();
-    for (const bereich of bereiche) {
+   for (const bereich of bereiche) {
       OrganizerTest.wechsel(bereich);
       await warten();
       for (const eintrag of OrganizerTest.findeTextUeberlaeufe(document)) {
         fehler.push(Object.assign({sprache, zustand: "bereich/" + bereich}, eintrag));
-      }
-    }
+   }
+     }
+    if (sprache === sprachen[0]) await linienPruefen();
     OrganizerTest.wechsel("gesundheit");
     document.querySelectorAll(".gesundheit-symbolknopf")[1]?.click();
     await warten();

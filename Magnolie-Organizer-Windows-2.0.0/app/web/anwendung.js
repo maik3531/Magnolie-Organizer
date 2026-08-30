@@ -15,7 +15,7 @@
 (function () {
 
   /* Die Fassung erscheint auf der Seite „Über". */
-const FASSUNG = "2.0.12";
+const FASSUNG = "2.0.13";
   const CONTRIBUTOR_BRANDING = "No valid coffee allowance";
 
   /* ---------------------------------------------------------------------- */
@@ -5212,6 +5212,62 @@ const FASSUNG = "2.0.12";
   /* Schriftbild der eigenen Einträge                                       */
   /* ---------------------------------------------------------------------- */
 
+  let notizlinienAufgabe = 0;
+
+  function notizlinienGrundlinie(feld) {
+    if (!feld || !document.body) return 0;
+    const stil = getComputedStyle(feld);
+    const zeilenhoehe = Number.parseFloat(stil.lineHeight);
+    if (!Number.isFinite(zeilenhoehe) || zeilenhoehe <= 0) return 0;
+    const probe = document.createElement("span");
+    probe.setAttribute("aria-hidden", "true");
+    Object.assign(probe.style, {
+      position: "fixed", left: "-10000px", top: "0", visibility: "hidden",
+      display: "block", width: "max-content",
+      margin: "0", border: "0", padding: "0", whiteSpace: "nowrap",
+      fontFamily: stil.fontFamily, fontSize: stil.fontSize,
+      fontStyle: stil.fontStyle, fontWeight: stil.fontWeight,
+      fontStretch: stil.fontStretch, letterSpacing: stil.letterSpacing,
+      lineHeight: stil.lineHeight
+    });
+    const marken = [];
+    for (let i = 0; i < 2; i += 1) {
+      probe.append(document.createTextNode("Magnolie"));
+      const marke = document.createElement("span");
+      Object.assign(marke.style, {
+        display: "inline-block", width: "1px", height: "1px",
+        margin: "0", border: "0", padding: "0", verticalAlign: "baseline"
+      });
+      probe.append(marke);
+      marken.push(marke);
+      if (!i) probe.append(document.createElement("br"));
+    }
+    document.body.append(probe);
+    const oben = probe.getBoundingClientRect().top;
+    const erste = marken[0].getBoundingClientRect().bottom - oben;
+    const zweite = marken[1].getBoundingClientRect().bottom - oben;
+    probe.remove();
+    const periode = zweite - erste;
+    if (!Number.isFinite(erste) || erste <= 0 || !Number.isFinite(periode) || periode <= 0) return 0;
+    return { grundlinie: Math.min(periode - 1, erste + 1), zeilenhoehe: periode };
+  }
+
+  function aktualisiereNotizlinien() {
+    notizlinienAufgabe = 0;
+    for (const feld of [$("#notiz-text"), $("#tb-notiz")]) {
+      const metrik = notizlinienGrundlinie(feld);
+      if (metrik) {
+        feld.style.setProperty("--linien-stelle", metrik.grundlinie + "px");
+        feld.style.setProperty("--zeilenhoehe", metrik.zeilenhoehe + "px");
+      }
+    }
+  }
+
+  function planeNotizlinien() {
+    if (notizlinienAufgabe) cancelAnimationFrame(notizlinienAufgabe);
+    notizlinienAufgabe = requestAnimationFrame(aktualisiereNotizlinien);
+  }
+
   function wendeSchriftAn() {
     const s = DATEN.einstellungen.schrift;
     document.body.setAttribute("data-schrift", s.art);
@@ -5223,6 +5279,13 @@ const FASSUNG = "2.0.12";
       Bruecke.sende({ cmd: "rechtschreibung", an: !!s.rechtschreibung,
         sprache: rechtschreibSprache() });
     }
+    planeNotizlinien();
+  }
+
+  window.addEventListener("resize", planeNotizlinien);
+  if (document.fonts) {
+    document.fonts.ready.then(planeNotizlinien);
+    document.fonts.addEventListener?.("loadingdone", planeNotizlinien);
   }
 
   /* Setzt die Rechtschreibprüfung an einem Eingabefeld. */
@@ -21344,6 +21407,8 @@ const FASSUNG = "2.0.12";
     wechsel: wechsel,
     speichereJetzt: speichereJetzt,
     planeSpeichern: planeSpeichern,
+    notizlinienGrundlinie: notizlinienGrundlinie,
+    aktualisiereNotizlinien: aktualisiereNotizlinien,
     baueEinstellungen: baueEinstellungen,
     smsTextAnpassen: smsTextAnpassen,
     anrufClientRef: anrufClientRef,

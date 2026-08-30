@@ -1032,15 +1032,33 @@ class NativeNotifications:
                          stderr=subprocess.DEVNULL)
 
 
+def native_clipboard_set(text):
+    """Set the session clipboard without opening an Organizer window."""
+    try:
+        import gi
+        gi.require_version("Gtk", "3.0")
+        from gi.repository import Gdk, Gtk
+        initialized = Gtk.init_check([])
+        if not (initialized[0] if isinstance(initialized, tuple) else initialized):
+            return False
+        clipboard = Gtk.Clipboard.get(Gdk.SELECTION_CLIPBOARD)
+        clipboard.set_text(str(text), -1)
+        clipboard.store()
+        return True
+    except Exception:
+        return False
+
+
 class DaemonEvents:
     def __init__(self, backend_getter, settings, notifications, glib,
-                 event_publisher=None, gui_present=None):
+                  event_publisher=None, gui_present=None, clipboard_setter=None):
         self.backend_getter = backend_getter
         self.settings = normalize_settings(settings)
         self.notifications = notifications
         self.glib = glib
         self.event_publisher = event_publisher or (lambda _event, _payload: None)
         self.gui_present = gui_present or (lambda: False)
+        self.clipboard_setter = clipboard_setter or native_clipboard_set
 
     def __call__(self, event, payload):
         self.glib.idle_add(self._handle, event, dict(payload or {}))
@@ -1065,10 +1083,6 @@ class DaemonEvents:
     def _handle(self, event, payload):
         permissions = self.settings["permissions"]
         backend = self.backend_getter()
-        gui_present = self.gui_present()
-        if gui_present and event in ("pairing", "file_proposal"):
-            self.event_publisher(event, payload)
-            return False
         if event == "receive_expired":
             withdraw = getattr(self.notifications, "withdraw", None)
             if withdraw is not None:
@@ -1108,14 +1122,43 @@ class DaemonEvents:
                 self.notifications.show(title, "%s - %s" % (body, _("Reject")),
                     key=receive_id)
                 decide(False)
-        elif event == "sms" and not gui_present and payload.get("notify") and permissions[
+        elif event == "clipboard_proposal":
+            receive_id = str(payload.get("id") or "")
+            text = str(payload.get("text") or "")
+            decide = self._decision(lambda accepted: (
+                backend.accept_receive(receive_id) if accepted else
+                backend.reject_receive(receive_id)))
+            title = _("Copy this KDE Connect text to the clipboard?")
+            shown = self.notifications.show(title, _safe_text(text, 300), (
+                     ("accept", _("Accept"), lambda: decide(True)),
+                     ("reject", _("Reject"), lambda: decide(False))),
+                on_close=lambda: decide(False), key=receive_id)
+            if not shown:
+                self.notifications.show(title, "%s - %s" % (
+                    _safe_text(text, 300), _("Reject")), key=receive_id)
+                decide(False)
+        elif event == "clipboard_apply":
+            if self.clipboard_setter(str(payload.get("text") or "")):
+                self.notifications.show(_("Magnolie Organizer"),
+                                        _("Text copied to the clipboard."))
+            else:
+                self.notifications.show(_("Magnolie Organizer"),
+                                        _("KDE Connect reception failed."))
+        elif event == "file_ready":
+            name = _safe_text(payload.get("name"), 180) or _("Unknown file")
+            self.notifications.show(_("Magnolie Organizer"),
+                _("File saved in Downloads: %(name)s") % {"name": name})
+        elif event == "receive_error":
+            self.notifications.show(_("Magnolie Organizer"),
+                                    _("KDE Connect reception failed."))
+        elif event == "sms" and payload.get("notify") and permissions[
                 "sms_phone_notifications"]:
             sender = _safe_text(payload.get("from"), 80) or _("Phone")
             text = _safe_text(payload.get("text"), 300)
             if not self.notifications.show(_("SMS from %s") % sender, text, (
                     ("reply", _("Reply"), self.notifications.open_organizer),)):
                 self.notifications.show(_("SMS from %s") % sender, text)
-        if event not in ("pairing", "file_proposal"):
+        if event not in ("pairing", "file_proposal", "clipboard_proposal"):
             forwarded = dict(payload)
             if event == "sms":
                 forwarded["notify"] = False
@@ -1124,7 +1167,7 @@ class DaemonEvents:
 
 
 class PhoneDaemonEvents:
-    """Keep phone transport data opaque and notify only when no GUI is attached."""
+    """Keep phone data opaque, notify natively, and mirror it to an attached GUI."""
     def __init__(self, backend_getter, settings, notifications, glib,
                  event_publisher, gui_present):
         self.backend_getter = backend_getter
@@ -1177,14 +1220,15 @@ class PhoneDaemonEvents:
     def _handle(self, event, payload):
         backend = self.backend_getter()
         permissions = self.settings["permissions"]
-        if self.gui_present():
-            self._forward(event, payload)
-            return False
+        gui_present = self.gui_present()
         if event in ("personal_sync", "personal_sync_offer"):
             token = payload.get("commit_token")
             if backend is not None and isinstance(token, str):
                 with backend.lock:
                     backend.personal_dispatched.discard(token)
+            if gui_present:
+                self._forward(event, payload)
+                return False
             if permissions["phone_personal_sync_offers"]:
                 self.notifications.show(_("New phone changes are available"),
                     _("Start Organizer and synchronize."), self._open_action())
@@ -1216,6 +1260,8 @@ class PhoneDaemonEvents:
             if not self.notifications.show(title, body, (
                     ("reply", _("Reply"), self.notifications.open_organizer),)):
                 self.notifications.show(title, body)
+        if gui_present and event != "pairing_code":
+            self._forward(event, payload)
         return False
 
 

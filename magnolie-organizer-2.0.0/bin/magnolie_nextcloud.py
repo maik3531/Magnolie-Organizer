@@ -316,7 +316,7 @@ class DavHttpClient:
         headers = dict(headers or {})
         token = base64.b64encode((self.user + ":" + self.password).encode("utf-8")).decode("ascii")
         headers["Authorization"] = "Basic " + token
-        headers.setdefault("User-Agent", "Magnolie-Organizer-Linux/2.0.12")
+        headers.setdefault("User-Agent", "Magnolie-Organizer-Linux/2.0.13")
         if body:
             headers.setdefault("Content-Length", str(len(body)))
         started = time.monotonic()

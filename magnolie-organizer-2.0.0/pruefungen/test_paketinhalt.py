@@ -14,7 +14,7 @@ sys.path.insert(0, str(ROOT / "werkzeuge"))
 from png_pruefen import pruefen as png_pruefen
 WINDOWS = WORKSPACE / "Magnolie-Organizer-Windows-2.0.0"
 HANDBOOK = WORKSPACE / "magnolie-handbuch-stamm"
-VERSION = "2.0.12"
+VERSION = "2.0.13"
 MANIFEST_VERSION = VERSION
 INTERNAL_NOTE = re.compile(
     r"(REVIEW|ENTWURF|OFFENE[-_ ]?PUNKTE|ANALYSE|PLAN|AUDIT).*\.md$", re.I)
@@ -263,4 +263,4 @@ def test_statische_paketpruefung():
     assert True
 
 
-print("Paketinhalt und Linux-Version 2.0.12: ok")
+print("Paketinhalt und Linux-Version 2.0.13: ok")

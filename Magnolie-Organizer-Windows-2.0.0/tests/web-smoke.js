@@ -74,8 +74,14 @@ assert.match(css, /--mono:\s*"DejaVu Sans Mono",\s*monospace;/,
   "Windows does not use Linux DejaVu Sans Mono globally");
 assert.doesNotMatch(css, /font-weight:\s*\d+\s+\d+;/,
   "static Windows fonts are declared with unsupported variable-font weight ranges");
-assert.match(css, /#notiz-text,\s*#tb-notiz\s*\{[^}]*--zeilenhoehe:\s*1\.87em;[^}]*--linien-stelle:\s*calc\(\(var\(--zeilenhoehe\)\s*-\s*1em\)\s*\/\s*2\s*\+\s*0\.82em\)/s,
+assert.match(css, /#notiz-text,\s*#tb-notiz\s*\{[^}]*--zeilenhoehe:\s*1\.87em;[^}]*--linien-stelle:\s*1\.4212em/s,
   "notebook lines do not scale with the effective editor font");
+assert.match(css, /@supports\s*\(height:\s*1lh\)[\s\S]*?--linien-stelle:\s*0\.76lh/,
+  "notebook line fallback is not tied to the actual line box");
+assert.match(application, /function notizlinienGrundlinie\(feld\)[\s\S]*?const periode = zweite - erste[\s\S]*?setProperty\("--zeilenhoehe",\s*metrik\.zeilenhoehe \+ "px"\)/,
+  "Windows does not measure the effective editor baseline");
+assert.match(application, /\[\$\("#notiz-text"\),\s*\$\("#tb-notiz"\)\]/,
+  "Windows baseline update does not select the note editors");
 assert.doesNotMatch(css, /body\s*\{\s*--zeilenhoehe/,
   "notebook line height is inherited from the unrelated body font");
 assert.match(html, /font-src 'self'/,

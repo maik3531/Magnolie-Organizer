@@ -5149,8 +5149,8 @@ body[data-hilfsrahmen="an"] .ods-feldauswahl :focus-visible {
 #notiz-text,
 #tb-notiz {
   --zeilenhoehe: 1.87em;
-  /* Halber Durchschuss plus Schriftgrundlinie: skaliert ohne Pixelannahme. */
-  --linien-stelle: calc((var(--zeilenhoehe) - 1em) / 2 + 0.82em);
+  /* Bewährter Rückfall; JavaScript misst anschließend die echte Grundlinie. */
+  --linien-stelle: 1.4212em;
   line-height: 1.87;
   padding-top: 0;
   padding-bottom: 0;
@@ -5169,7 +5169,10 @@ body[data-hilfsrahmen="an"] .ods-feldauswahl :focus-visible {
 
 @supports (height: 1lh) {
   #notiz-text,
-  #tb-notiz { --zeilenhoehe: 1lh; }
+  #tb-notiz {
+    --zeilenhoehe: 1lh;
+    --linien-stelle: 0.76lh;
+  }
 }
 
 /* Das Schreibblatt der Notizen hat zusätzlich den roten Rand. */

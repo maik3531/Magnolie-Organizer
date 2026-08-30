@@ -1,5 +1,5 @@
 Name:           magnolie-organizer
-Version:        2.0.12
+Version:        2.0.13
 Release:        1%{?dist}
 Summary:        Personal organizer with a classic paper appearance
 
@@ -222,7 +222,7 @@ done
 %{_mandir}/*/man1/magnolie-organizer.1*
 
 %changelog
-* Sun Aug 30 2026 Maik Walter <maik3531@gmail.com> - 2.0.12-1
+* Sun Aug 30 2026 Maik Walter <maik3531@gmail.com> - 2.0.13-1
 - Correct notebook line alignment under system font scaling.
 - Improve background-service notifications and harden synchronization.
 

@@ -113,7 +113,7 @@ def test_headless_cli_dispatches_before_any_gui_import():
         runpy.run_path(PROGRAM, run_name="__main__")
     assert stopped.value.code == 23
     fake_crash.install.assert_called_once_with(
-        "magnolie-organizer", "2.0.12", "background-service")
+        "magnolie-organizer", "2.0.13", "background-service")
     assert calls == ["crash", "daemon"]
     assert fake.daemon_main.called
     assert "gi" not in imported
@@ -367,6 +367,10 @@ def test_native_decision_actions_call_backend_without_opening_organizer():
     assert notifications.withdrawn == ["b" * 32]
     assert notifications.opened == 0
 
+    events("clipboard_proposal", {"id": "c" * 32, "text": "Desktop text"})
+    notifications.items[-1][2][0][2]()
+    assert backend.calls[-1] == ("accept_receive", "c" * 32)
+
     events("sms", {"notify": True, "from": "+49170\nBad", "text": "Hello\x00there"})
     assert notifications.opened == 0
     notifications.items[-1][2][0][2]()
@@ -390,6 +394,33 @@ def test_actionable_daemon_events_are_native_only_and_localized():
     assert [event for event, _payload in published] == ["sms"]
     assert published[0][1]["notify"] is False
     assert notifications.opened == 0
+
+
+def test_native_desktop_events_do_not_depend_on_gui_visibility():
+    backend = FakeBackend()
+    notifications = RecordedNotifications()
+    published = []
+    copied = []
+    settings = {"permissions": {"kde_pairing": True,
+        "kde_incoming_files": True, "sms_phone_notifications": True}}
+    events = background.DaemonEvents(lambda: backend, settings, notifications,
+        ImmediateGLib, lambda event, payload: published.append((event, payload)),
+        lambda: True, copied.append)
+    events("pairing", {"device_name": "Phone", "code": "12345678"})
+    events("file_proposal", {"id": "a" * 32, "name": "text.txt", "size": 4})
+    events("clipboard_proposal", {"id": "b" * 32, "text": "Desktop text"})
+    events("sms", {"notify": True, "from": "+49170", "text": "Hello"})
+    events("clipboard_apply", {"text": "Desktop text"})
+    events("file_ready", {"name": "text.txt", "path": "/tmp/text.txt"})
+    events("receive_error", {"kind": "file", "reason": "transport"})
+    assert [item[0] for item in notifications.items] == [
+        "KDE Connect pairing", "Incoming KDE Connect file",
+        "Copy this KDE Connect text to the clipboard?", "SMS from +49170",
+        "Magnolie Organizer", "Magnolie Organizer", "Magnolie Organizer"]
+    assert [event for event, _payload in published] == [
+        "sms", "clipboard_apply", "file_ready", "receive_error"]
+    assert published[0][1]["notify"] is False
+    assert copied == ["Desktop text"]
 
 
 def test_actionless_notification_server_still_shows_events_and_rejects_files():
@@ -572,7 +603,7 @@ def test_daemon_gettext_uses_persisted_or_cli_language_without_gui_imports():
             assert load.call_args.kwargs["languages"] == ["de"]
 
 
-def test_gui_bridge_migrates_legacy_receive_settings_and_suppresses_native_decisions():
+def test_gui_bridge_migrates_legacy_receive_settings_and_keeps_native_decisions():
     loader = importlib.machinery.SourceFileLoader("magnolie_background_bridge_test", PROGRAM)
     module = loader.load_module()
     existing = background.normalize_settings({})
@@ -605,8 +636,10 @@ def test_gui_bridge_migrates_legacy_receive_settings_and_suppresses_native_decis
     web = open(os.path.join(ROOT, "web", "anwendung.js"), encoding="utf-8").read()
     assert 'befehl == "background_settings_get"' in source
     assert 'befehl == "background_settings_set"' in source
-    assert 'gui_present and event in ("pairing", "file_proposal")' in open(
-        os.path.join(BIN, "magnolie_hintergrund.py"), encoding="utf-8").read()
+    background_source = open(os.path.join(BIN, "magnolie_hintergrund.py"),
+                             encoding="utf-8").read()
+    assert 'gui_present and event in ("pairing", "file_proposal")' not in background_source
+    assert 'event not in ("pairing", "file_proposal", "clipboard_proposal")' in background_source
     assert 'App.backgroundSettings' in source and "backgroundSettings(nutzlast)" in web
     assert 'cmd: "background_settings_set"' in web
     assert "dateienAutomatisch" not in web and "filesAutomatic" not in web
@@ -633,6 +666,7 @@ class FakePhoneService:
         self.listening = True
         self.stop_calls = 0
         self.replays = 0
+        self.pairing_calls = []
         self.lock = threading.RLock()
         self.personal_dispatched = set()
 
@@ -645,6 +679,9 @@ class FakePhoneService:
 
     def replay_personal_sync(self):
         self.replays += 1
+
+    def confirm_pairing(self, attempt, accepted):
+        self.pairing_calls.append((attempt, accepted))
 
     def stop(self):
         self.stop_calls += 1
@@ -690,6 +727,27 @@ def test_closed_gui_phone_notifications_start_only_from_clicked_actions():
     assert len(notifications.items) == 3
     notifications.items[-1][2][0][2]()
     assert notifications.opened == 1
+
+
+def test_phone_notifications_remain_native_with_visible_gui_and_are_forwarded():
+    phone = FakePhoneService()
+    notifications = RecordedNotifications()
+    published = []
+    settings = {"permissions": {"phone_selected_notifications": True,
+        "phone_call_notifications": True, "phone_sms_notifications": True,
+        "phone_pairing_decisions": True}}
+    events = background.PhoneDaemonEvents(lambda: phone, settings, notifications,
+        ImmediateGLib, lambda *args: published.append(args) or True, lambda: True)
+    events("selected_notification", {"app": "Mail", "text": "Message"})
+    events("incoming_call", {"state": "ringing", "number": "+49170"})
+    events("sms", {"from": "+49170", "text": "Hello"})
+    events("pairing_code", {"attempt_id": "a" * 32, "code": "123 456"})
+    assert len(notifications.items) == 4
+    notifications.items[-1][2][0][2]()
+    assert phone.pairing_calls == [("a" * 32, True)]
+    assert len(published) == 3
+    assert all(event == "phone_event" and "ticket" in payload
+               for event, payload in published)
 
 
 def test_closed_gui_personal_sync_offer_defers_payload_until_action_click():

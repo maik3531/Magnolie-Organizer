@@ -1,5 +1,19 @@
 # Changelog / Änderungen
 
+## 2.0.13 / Notes 1.0.9 — 2026-08-30
+
+### English
+
+- Aligns notebook lines with the measured font baseline and actual WebKit line spacing for both fonts, all three sizes, text scaling and long wrapped notes.
+- Keeps pairing, file, clipboard, SMS and call notifications native whenever the background service is enabled, independently of the Organizer window state.
+- Allows pairing, file and clipboard decisions directly from native notification actions and applies received clipboard text without opening Organizer.
+
+### Deutsch
+
+- Richtet Notizlinien an der gemessenen Schriftgrundlinie und dem tatsächlichen WebKit-Zeilenabstand aus, für beide Schriften, alle drei Größen, Textskalierung und lange umgebrochene Notizen.
+- Zeigt Paarungs-, Datei-, Zwischenablage-, SMS- und Anrufereignisse bei aktivem Hintergrunddienst unabhängig vom Fensterzustand immer nativ an.
+- Ermöglicht Paarungs-, Datei- und Zwischenablageentscheidungen direkt über native Meldungsaktionen und übernimmt empfangenen Text ohne Organizerfenster.
+
 ## 2.0.12 / Notes 1.0.9 — 2026-08-30
 
 ### English

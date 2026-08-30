@@ -1,3 +1,13 @@
+magnolie-organizer (2.0.13) unstable; urgency=high
+
+  * Richtet Notizlinien an der gemessenen Grundlinie und dem tatsächlichen
+    WebKit-Zeilenabstand aus, auch bei langen Texten und Textskalierung.
+  * Zeigt Paarung, Dateien, Zwischenablage, SMS und Anrufe bei aktivem
+    Hintergrunddienst unabhängig vom Fensterzustand immer nativ an.
+  * Ermöglicht Entscheidungen und Zwischenablageempfang ohne Organizerfenster.
+
+ -- Maik Walter <maik3531@gmail.com>  Sun, 30 Aug 2026 05:58:26 +0200
+
 magnolie-organizer (2.0.12) unstable; urgency=high
 
   * Behebt den Versatz der Notizlinien bei Systemschriftvergrößerung.
