@@ -5866,6 +5866,18 @@ function knopfMit(text, wurzel) {
   assert.ok(marken.includes("06:00"), "6 Uhr fehlt: " + marken.slice(0, 3));
   assert.ok(marken.includes("09:00") && marken.includes("12:00"),
     "9 und 12 Uhr fehlen");
+  const stundenReihen = $$("#inhalt-links .stunden-reihe");
+  assert.strictEqual(stundenReihen.length, 17, "das Tagesraster hat nicht 17 Stunden");
+  assert.deepStrictEqual(stundenReihen.map((r) => Number(r.dataset.stunde)),
+    Array.from({ length: 17 }, (_, i) => i + 6),
+    "die Stunden des Tagesrasters sind nicht lückenlos");
+  assert.ok(css.includes("flex: 1 0 var(--tages-stundenhoehe);"),
+    "die Stundenreihen teilen den verfügbaren Platz nicht gleichmäßig");
+  assert.ok(css.includes("scrollbar-gutter: stable;"),
+    "das Tagesraster reserviert keinen stabilen Platz für den Rollbalken");
+  const linkeSpalte = $("#inhalt-links .tages-spalte");
+  assert.strictEqual(linkeSpalte.lastElementChild.className, "tages-fuss",
+    "der Fußbereich schließt die Tagesansicht nicht ab");
 
   /* Der Termin steht in seiner Stunde */
   const stunde7 = $$("#inhalt-links .stunden-reihe").find(

@@ -4653,6 +4653,7 @@ textarea.feld { background-color: #fbf6e8; }
 /* -------------------------------- Tagesansicht --------------------------- */
 
 .tages-spalte {
+  --tages-stundenhoehe: 34px;
   display: flex;
   flex-direction: column;
   height: 100%;
@@ -4671,24 +4672,28 @@ textarea.feld { background-color: #fbf6e8; }
 .stunden-raster {
   flex: 1;
   min-height: 0;
+  display: flex;
+  flex-direction: column;
   overflow-y: auto;
   padding-right: 3px;
+  border-bottom: 1px solid var(--linie);
+  scrollbar-gutter: stable;
 }
 
 .stunden-reihe {
+  flex: 1 0 var(--tages-stundenhoehe);
   display: flex;
   align-items: stretch;
-  gap: 8px;
-  min-height: 34px;
+  min-height: var(--tages-stundenhoehe);
+  box-sizing: border-box;
   border-top: 1px solid var(--linie);
 }
 
-.stunden-reihe:first-child { border-top: 0; }
-
 .stunden-marke {
   flex: none;
-  width: 66px;
-  padding-top: 3px;
+  width: 74px;
+  box-sizing: border-box;
+  padding: 6px 9px 0 0;
   font: 600 11.5px var(--serif);
   color: var(--braun-hell);
   text-align: right;
@@ -4697,9 +4702,8 @@ textarea.feld { background-color: #fbf6e8; }
 .stunden-feld {
   flex: 1;
   min-width: 0;
-  padding: 2px 0 3px;
+  padding: 4px 8px 5px;
   border-left: 1px solid var(--linie);
-  padding-left: 8px;
   cursor: cell;
 }
 
@@ -4752,11 +4756,9 @@ textarea.feld { background-color: #fbf6e8; }
 
 .tages-fuss {
   flex: none;
-  padding-top: 8px;
-  margin-top: 4px;
-  border-top: 1px dotted var(--linie-stark);
   display: flex;
   justify-content: center;
+  padding: 8px 0 0;
 }
 
 .tages-neu { min-width: 210px; }
