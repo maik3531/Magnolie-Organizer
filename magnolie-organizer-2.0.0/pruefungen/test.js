@@ -5871,10 +5871,8 @@ function knopfMit(text, wurzel) {
   assert.deepStrictEqual(stundenReihen.map((r) => Number(r.dataset.stunde)),
     Array.from({ length: 17 }, (_, i) => i + 6),
     "die Stunden des Tagesrasters sind nicht lückenlos");
-  assert.ok(css.includes("flex: 1 0 var(--tages-stundenhoehe);"),
+  assert.ok(css.includes("flex: 1 0 auto;"),
     "die Stundenreihen teilen den verfügbaren Platz nicht gleichmäßig");
-  assert.ok(css.includes("scrollbar-gutter: stable;"),
-    "das Tagesraster reserviert keinen stabilen Platz für den Rollbalken");
   const linkeSpalte = $("#inhalt-links .tages-spalte");
   assert.strictEqual(linkeSpalte.lastElementChild.className, "tages-fuss",
     "der Fußbereich schließt die Tagesansicht nicht ab");

@@ -4585,11 +4585,10 @@ textarea.feld { background-color: #fbf6e8; }
   overflow-y: auto;
   padding-right: 3px;
   border-bottom: 1px solid var(--linie);
-  scrollbar-gutter: stable;
 }
 
 .stunden-reihe {
-  flex: 1 0 var(--tages-stundenhoehe);
+  flex: 1 0 auto;
   display: flex;
   align-items: stretch;
   min-height: var(--tages-stundenhoehe);
