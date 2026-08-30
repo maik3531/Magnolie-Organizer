@@ -15954,7 +15954,6 @@ const FASSUNG = "2.0.13";
 
   function baueSeiteSync(wurzel) {
     /* Synchronisation */
-    baueNextcloudKonto(wurzel);
     const sy = abschnitt(_("Calendars and contacts"),
       _("Multiple calendars") + ". " + _("One address book") + ".");
     sy.id = "nextcloud-kalender-kontakte";
@@ -15994,6 +15993,7 @@ const FASSUNG = "2.0.13";
     } else {
       status.textContent = _("Checking online accounts …");
     }
+    baueNextcloudKonto(wurzel);
     baueBriefkasten(wurzel);
   }
 

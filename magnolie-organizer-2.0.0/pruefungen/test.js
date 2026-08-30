@@ -1518,7 +1518,7 @@ function knopfMit(text, wurzel) {
     url: "https://cloud.example", benutzer: "user", kennwortVorhanden: true,
     zustand: "bereit", fehler: "" });
   assert.strictEqual(enSD.querySelector("#einstellungen-inhalt h3").textContent,
-    "Nextcloud account", "englische Synchronisationsseite fehlt");
+    "Calendars and contacts", "englische Synchronisationsseite fehlt");
   assert.ok(enSD.querySelector("#sync-status").textContent.includes("Last synchronized:") &&
     enSD.querySelector("#sync-status").textContent.includes("08/03/2026"),
   "englischer Abgleichzeitpunkt folgt nicht dem Formatgebiet");
@@ -1527,6 +1527,12 @@ function knopfMit(text, wurzel) {
     enSD.querySelector("#nextcloud-briefkasten") &&
     !enSD.querySelector("#einst-tab-nextcloud"),
   "Nextcloud ist nicht vollständig in die Synchronisationsseite integriert");
+  const enSyncReihenfolge = Array.from(enSD.querySelectorAll(
+    "#nextcloud-kalender-kontakte, #nextcloud-konto, #nextcloud-briefkasten"))
+    .map((element) => element.id);
+  assert.deepStrictEqual(enSyncReihenfolge,
+    ["nextcloud-kalender-kontakte", "nextcloud-konto", "nextcloud-briefkasten"],
+    "Nextcloud-Konto steht nicht direkt vor dem Magnolienbaum-Briefkasten");
   const enDav = enSD.querySelector("#nextcloud-dav-an");
   enDav.checked = false;
   enDav.dispatchEvent(new enSW.Event("change", { bubbles: true }));
