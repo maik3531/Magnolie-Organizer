@@ -78,7 +78,7 @@
     <Content Include="..\app\native-i18n.json" Link="native-i18n.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <Content Include="..\..\update.xml" Link="release-update.xml">
+    <Content Include="resources\release-update.xml" Link="release-update.xml">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
   </ItemGroup>
