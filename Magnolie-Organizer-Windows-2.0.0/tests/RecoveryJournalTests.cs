@@ -98,7 +98,8 @@ internal static class RecoveryJournalTests
                         throw new IOException("simulierter Fehler zwischen Payload und Manifest");
                 }), () => now);
             var beforeFailedRewrite = failingJournal.ReadPayload(protectedPoint.Id);
-            var failedRewrite = failingJournal.RewritePayloads((text, _) => text + "veraendert");
+            var failedRewrite = failingJournal.RewritePayloads((text, _) =>
+                text == beforeFailedRewrite ? text + "veraendert" : text);
             TestAssert.That(failedRewrite.Failed == 1 && failingJournal.ReadPayload(protectedPoint.Id) == beforeFailedRewrite,
                 "Ein Fehler zwischen Payload- und Manifest-Schreibvorgang verlor den gültigen Snapshot-Stand.");
 
