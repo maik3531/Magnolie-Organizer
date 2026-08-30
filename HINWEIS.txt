@@ -1,0 +1,42 @@
+Magnolie Organizer 2.0.13 / Notes 1.0.9
+
+Bitte pruefen Sie heruntergeladene Dateien mit PRUEFSUMMEN.sha256.
+Die anwendungsspezifischen Pruefsummen stehen zusaetzlich in
+Magnolie-Organizer-PRUEFSUMMEN.sha256,
+Magnolie-Organizer-Windows-2.0.13-PRUEFSUMMEN.sha256 und
+Magnolie-Notes-PRUEFSUMMEN.sha256.
+
+Die Windows-Artefakte sind bewusst unsignierte Linux-Cross-Builds. Sie sind
+mit artifactTrust=UNSIGNED, windowsRuntimeVerified=false und
+windowsVmValidationRequired=true gekennzeichnet. Authenticode-Signierung und
+ein nativer Windows-VM-Lauf waren nicht Bestandteil dieser Community-Freigabe.
+
+Die Linux-DEBs, das AppImage, Flatpak und die Fedora-42-RPMs wurden gebaut und
+geprueft; DEBs, AppImage und Flatpak wurden zusaetzlich reproduzierbar
+verglichen. Der externe QEMU-autopkgtest-Lauf wurde mangels Abbild ausgelassen.
+Magnolie Notes wurde mit dem bestehenden
+Produktionsschluessel gebaut; Unit-, Lint-, Signatur-, Installations-,
+Aktualisierungs- und Wiederherstellungspruefungen liefen erfolgreich auf einem
+dedizierten Android-35-AVD.
+
+Version 2.0.13 richtet Notizlinien an den gemessenen Textwerten aus, verbessert
+native Hintergrundmeldungen und fuehrt Kontakte mit Vorschau zusammen. Sichere
+Linux- und Windows-Aktualisierungen, atomare Wiederherstellung und erweiterte
+Freigabepruefungen haerten Desktop- und Android-Ausgaben.
+
+The Windows artifacts intentionally are unsigned Linux cross-builds marked
+artifactTrust=UNSIGNED, windowsRuntimeVerified=false and
+windowsVmValidationRequired=true. Authenticode signing and a native Windows VM
+run were not part of this community release.
+
+The Linux DEBs, AppImage, Flatpak and Fedora 42 RPMs were built and tested;
+the DEBs, AppImage and Flatpak were also compared for reproducibility. The
+external QEMU autopkgtest run was skipped because no image was available.
+Magnolie Notes was built with the existing
+production key; unit, lint, signature, installation, upgrade and recovery
+checks passed on a dedicated Android 35 AVD.
+
+Version 2.0.13 aligns notebook lines to measured text metrics, improves native
+background notifications and guides contact transfers with previews. Secure
+Linux and Windows updates, atomic recovery and broader release checks harden
+the desktop and Android builds.
