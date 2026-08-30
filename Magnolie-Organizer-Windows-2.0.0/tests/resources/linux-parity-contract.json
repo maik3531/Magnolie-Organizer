@@ -1,8 +1,8 @@
 {
   "schema": "magnolie-linux-parity-v1",
   "sources": {
-    "web/anwendung.js": "8b514e5aae2f397a8607bd7665dba2e7b8aef16d4a640274f241213967e435ad",
-    "bin/magnolie-organizer": "e869a3afddeb26ae859dae62bf1766468a20832aad857166f7e4e4aa5b660bba"
+    "web/anwendung.js": "b4a2a1412f9e2e59bd2ed2f8c39bfb00b2aefcabf022f89d2156f96165c755e7",
+    "bin/magnolie-organizer": "f268ea2d708054021a4aba5ce8e6f03dfd9922d64668c175e4534638fc48fd94"
   },
   "commands": [
     "ablage_holen",
@@ -25,6 +25,7 @@
     "baum_stand",
     "baum_suchen",
     "baum_teilen",
+    "beenden",
     "beenden_abgebrochen",
     "beenden_bereit",
     "bereit",
@@ -46,6 +47,7 @@
     "handbuch_oeffnen",
     "import",
     "import_lokal",
+    "journal_anzahl",
     "journal_erzeugen",
     "journal_intervall",
     "journal_liste",
@@ -99,7 +101,8 @@
     "telefon_waehlen",
     "tray_einstellungen",
     "tray_zaehler",
-    "update_oeffnen",
+    "update_herunterladen",
+    "update_installieren",
     "update_pruefen",
     "vorschlaege",
     "wetter",
@@ -336,5 +339,5 @@
       ]
     ]
   ],
-  "contractSha256": "1723f606caef492c78f18de2ec80ba528631fe47eb8128b305f3dccdf5c63ce3"
+  "contractSha256": "86cc9da7821d68b689a0fc42f2ecc3f88be722cf4c6a981531f9d6fb86aae708"
 }

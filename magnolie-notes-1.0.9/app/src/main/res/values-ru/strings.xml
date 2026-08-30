@@ -341,4 +341,6 @@
     <string name="technischer_wert_zusammenfassung_unbekannt">Неизвестные сведения снимка: %1$s</string>
     <string name="start_laden">Открытие защищённых данных…</string><string name="start_fehler_titel">Не удалось открыть защищённые данные</string><string name="start_daten_unveraendert">Ваши данные не удалены и не перезаписаны. Можно безопасно повторить попытку.</string><string name="start_erneut">Повторить</string><string name="start_schliessen">Закрыть приложение</string>
     <string name="absturzbericht_teilen">Поделиться отчётом о сбое</string>
+    <string name="journal_maximum">Максимальное количество точек восстановления</string>
+    <string name="journal_maximum_hinweis">При уменьшении лимита самые старые точки восстановления удаляются автоматически.</string>
 </resources>

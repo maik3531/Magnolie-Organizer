@@ -672,6 +672,9 @@ msgstr "Přijmout a zapamatovat"
 msgid "Accept automatically"
 msgstr "Přijímat automaticky"
 
+msgid "Accept this KDE Connect file?"
+msgstr "Přijmout tento soubor KDE Connect?"
+
 msgid "Accept “%(entry)s” into your own collection?"
 msgstr "Přijmout „%(entry)s“ do vlastní sbírky?"
 
@@ -1470,6 +1473,9 @@ msgstr "Zvolte obsah pro tisk nebo export…"
 msgid "Choose service"
 msgstr "Vybrat službu"
 
+msgid "Choose the save location for each accepted file"
+msgstr "Pro každý přijatý soubor vybrat umístění"
+
 msgid ""
 "Choose which sections appear as tabs on the organizer. The calendar always "
 "remains available."
@@ -2121,9 +2127,6 @@ msgstr "Stáhnout příručku"
 msgid "Download manual version %(version)s"
 msgstr "Stáhnout příručku verze %(version)s"
 
-msgid "Download version %(version)s …"
-msgstr "Stáhnout verzi %(version)s …"
-
 msgid "Drag the attachment area up or down"
 msgstr "Přetáhněte oblast příloh nahoru nebo dolů"
 
@@ -2418,6 +2421,7 @@ msgstr "Soubor"
 msgid "File could not be read: %s"
 msgstr "Soubor nelze přečíst: %s"
 
+#, python-format
 msgid "File saved in Downloads: %(name)s"
 msgstr "Soubor uložen do složky Stažené: %(name)s"
 
@@ -2553,6 +2557,9 @@ msgstr "Pátek"
 
 msgid "From"
 msgstr "Od"
+
+msgid "From the Windows Contacts folder"
+msgstr "Ze složky Kontakty Windows"
 
 msgid "From this computer (Evolution/Thunderbird)"
 msgstr "Z tohoto počítače (Evolution/Thunderbird)"
@@ -2855,6 +2862,16 @@ msgstr "Vložit odkaz"
 
 msgid "Install the packages, for example with:"
 msgstr "Nainstalujte balíčky, například příkazem:"
+
+msgid ""
+"Install version %(version)s now? All changes will be saved. The Organizer "
+"will close and restart after the installation."
+msgstr ""
+"Nainstalovat verzi %(version)s nyní? Všechny změny budou uloženy. Organizér "
+"se po instalaci zavře a znovu spustí."
+
+msgid "Install version %(version)s …"
+msgstr "Nainstalovat verzi %(version)s …"
 
 msgid "Installed manual version: %(version)s."
 msgstr "Instalovaná verze manuálu: %(version)s."
@@ -3205,6 +3222,9 @@ msgstr "Označit jako otevřené"
 msgid "Maximized"
 msgstr "Maximalizované"
 
+msgid "Maximum recovery snapshots"
+msgstr "Maximální počet bodů obnovení"
+
 msgid "Measurement context"
 msgstr "Kontext měření"
 
@@ -3520,6 +3540,9 @@ msgstr "No"
 msgid "No Claws Mail address book was detected."
 msgstr "Nebyl nalezen adresář Claws Mail."
 
+msgid "No address books found."
+msgstr "Nebyly nalezeny žádné adresáře."
+
 msgid ""
 "No anniversaries yet.\n"
 "Birthdays and celebrations will automatically appear in the calendar."
@@ -3762,9 +3785,6 @@ msgstr "Upozornění: Připojení k úložišti nebylo potvrzeno."
 msgid "Notification actions available"
 msgstr "Akce oznámení jsou dostupné"
 
-msgid "Notification actions unavailable"
-msgstr "Akce oznámení nejsou dostupné"
-
 msgid "Notification and sound"
 msgstr "Oznámení a zvuk"
 
@@ -3907,6 +3927,9 @@ msgstr ""
 "Kontakty a schůzky můžete importovat i bez této integrace pomocí volby „Z "
 "tohoto počítače“ výše."
 
+msgid "Online address book"
+msgstr "Online adresář"
+
 msgid "Online via Bluetooth data"
 msgstr "Online přes data Bluetooth"
 
@@ -3923,7 +3946,10 @@ msgstr ""
 msgid ""
 "Only Notify, then unlock is currently available. Keyring access and pausing "
 "while locked are not yet enforced by the background service."
-msgstr "V současnosti je k dispozici pouze možnost „Upozornit a poté odemknout“. Služba na pozadí zatím nevynucuje přístup ke klíčence ani pozastavení při uzamčení."
+msgstr ""
+"V současnosti je k dispozici pouze možnost „Upozornit a poté odemknout“. "
+"Služba na pozadí zatím nevynucuje přístup ke klíčence ani pozastavení při "
+"uzamčení."
 
 msgid ""
 "Only one Magnolie Notes phone can be paired. Remove the existing phone "
@@ -4123,6 +4149,9 @@ msgstr "Párovací soubor"
 
 msgid "Pairing file saved to: %(path)s"
 msgstr "Párovací soubor uložen do: %(path)s"
+
+msgid "Pairing, file and clipboard requests are confirmed in this window."
+msgstr "Žádosti o párování, soubory a schránku se potvrzují v tomto okně."
 
 msgid "Palm tree"
 msgstr "Palma"
@@ -5038,6 +5067,9 @@ msgstr "Služba běží"
 
 msgid "Service stopped"
 msgstr "Služba je zastavena"
+
+msgid "Set up contacts"
+msgstr "Nastavit kontakty"
 
 msgid "Set varying doses by weekday"
 msgstr "Nastavit různé dávky podle dne v týdnu"
@@ -7076,6 +7108,11 @@ msgstr ""
 "otevřou vaši poštovní aplikaci."
 
 msgid ""
+"When the limit is lowered, the oldest recovery snapshots are removed "
+"automatically."
+msgstr "Při snížení limitu se nejstarší body obnovení automaticky odstraní."
+
+msgid ""
 "When writing a note, a small toolbar above the sheet provides bold, italic, "
 "underline and strikethrough. The same formatting is available with Ctrl+B, "
 "Ctrl+I, Ctrl+U and Ctrl+D."
@@ -7083,6 +7120,9 @@ msgstr ""
 "Při psaní poznámky nabízí malý panel nástrojů nad listem tučné písmo, "
 "kurzívu, podtržení a přeškrtnutí. Stejné formátování je dostupné pomocí "
 "Ctrl+B, Ctrl+I, Ctrl+U a Ctrl+D."
+
+msgid "Where are your contacts now?"
+msgstr "Kde se nyní nacházejí vaše kontakty?"
 
 msgid "Whole month"
 msgstr "Celý měsíc"
@@ -7171,6 +7211,9 @@ msgstr "Ano, sloučit"
 
 msgid "Yes, the code matches"
 msgstr "Ano, kód souhlasí"
+
+msgid "You can also do this later in Settings."
+msgstr "Můžete to provést také později v nastavení."
 
 msgid "Your address"
 msgstr "Vaše adresa"
@@ -7663,6 +7706,12 @@ msgstr[2] "… a ještě %(count)s další položky, které se rovněž vytiskno
 
 msgid "＋ Add appointment"
 msgstr "＋ Přidat schůzku"
+
+#~ msgid "Notification actions unavailable"
+#~ msgstr "Akce oznámení nejsou dostupné"
+
+#~ msgid "Download version %(version)s …"
+#~ msgstr "Stáhnout verzi %(version)s …"
 
 #~ msgid ""
 #~ "Notify, then unlock asks you to open and unlock the Organizer. System "

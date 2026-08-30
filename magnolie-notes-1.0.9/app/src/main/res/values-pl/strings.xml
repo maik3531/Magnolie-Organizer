@@ -341,4 +341,6 @@
     <string name="technischer_wert_zusammenfassung_unbekannt">Nierozpoznane szczegóły migawki: %1$s</string>
     <string name="start_laden">Otwieranie chronionych danych…</string><string name="start_fehler_titel">Nie udało się otworzyć chronionych danych</string><string name="start_daten_unveraendert">Dane nie zostały usunięte ani zastąpione. Możesz bezpiecznie spróbować ponownie.</string><string name="start_erneut">Spróbuj ponownie</string><string name="start_schliessen">Zamknij aplikację</string>
     <string name="absturzbericht_teilen">Udostępnij raport o awarii</string>
+    <string name="journal_maximum">Maksymalna liczba punktów przywracania</string>
+    <string name="journal_maximum_hinweis">Po zmniejszeniu limitu najstarsze punkty przywracania są automatycznie usuwane.</string>
 </resources>

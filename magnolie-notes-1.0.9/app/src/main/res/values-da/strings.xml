@@ -319,4 +319,6 @@
     <string name="technischer_wert_zusammenfassung_unbekannt">Ukendte oplysninger om øjebliksbillede: %1$s</string>
     <string name="start_laden">Åbner beskyttede data…</string><string name="start_fehler_titel">Beskyttede data kunne ikke åbnes</string><string name="start_daten_unveraendert">Dine data blev ikke slettet eller overskrevet. Du kan trygt prøve igen.</string><string name="start_erneut">Prøv igen</string><string name="start_schliessen">Luk appen</string>
     <string name="absturzbericht_teilen">Del nedbrudsrapport</string>
+    <string name="journal_maximum">Maksimalt antal gendannelsespunkter</string>
+    <string name="journal_maximum_hinweis">Når grænsen sænkes, fjernes de ældste gendannelsespunkter automatisk.</string>
 </resources>

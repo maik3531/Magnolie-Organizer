@@ -130,7 +130,21 @@ Function CloseRunningApplication
   check:
   FindWindow $0 "" "Magnolie Organizer"
   ${If} $0 != 0
-    MessageBox MB_ICONEXCLAMATION|MB_RETRYCANCEL "Magnolie Organizer läuft noch. Speichern und schließen Sie die Anwendung, bevor Sie fortfahren." IDRETRY check IDCANCEL cancel
+    ; Der normale WM_CLOSE-Pfad lässt WebView zuerst dauerhaft speichern. Danach
+    ; wartet der Installer, statt Programmdateien unter der laufenden App zu ersetzen.
+    SendMessage $0 ${WM_CLOSE} 0 0
+    StrCpy $1 0
+    wait_for_close:
+      Sleep 250
+      FindWindow $0 "" "Magnolie Organizer"
+      ${If} $0 == 0
+        Goto done
+      ${EndIf}
+      IntOp $1 $1 + 1
+      ${If} $1 < 240
+        Goto wait_for_close
+      ${EndIf}
+    MessageBox MB_ICONEXCLAMATION|MB_RETRYCANCEL "Magnolie Organizer konnte noch nicht beendet werden. Schließen Sie die Anwendung, bevor Sie fortfahren." IDRETRY check IDCANCEL cancel
   ${EndIf}
   Goto done
   cancel:

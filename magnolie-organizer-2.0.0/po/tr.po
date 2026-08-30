@@ -639,6 +639,9 @@ msgstr "Kabul et ve hatırla"
 msgid "Accept automatically"
 msgstr "Otomatik kabul et"
 
+msgid "Accept this KDE Connect file?"
+msgstr "Bu KDE Connect dosyası kabul edilsin mi?"
+
 msgid "Accept “%(entry)s” into your own collection?"
 msgstr "“%(entry)s” öğesini kendi koleksiyonunuza kabul edilsin mi?"
 
@@ -1443,6 +1446,9 @@ msgstr "Yazdırılacak veya dışa aktarılacak içeriği seçin…"
 msgid "Choose service"
 msgstr "Hizmet seç"
 
+msgid "Choose the save location for each accepted file"
+msgstr "Kabul edilen her dosya için kaydetme konumunu seç"
+
 msgid ""
 "Choose which sections appear as tabs on the organizer. The calendar always "
 "remains available."
@@ -2093,9 +2099,6 @@ msgstr "Kılavuzu indir"
 msgid "Download manual version %(version)s"
 msgstr "Kılavuzun %(version)s sürümünü indir"
 
-msgid "Download version %(version)s …"
-msgstr "%(version)s sürümünü indir …"
-
 msgid "Drag the attachment area up or down"
 msgstr "Ek alanını yukarı veya aşağı sürükleyin"
 
@@ -2391,6 +2394,7 @@ msgstr "Dosya"
 msgid "File could not be read: %s"
 msgstr "Dosya okunamadı: %s"
 
+#, python-format
 msgid "File saved in Downloads: %(name)s"
 msgstr "Dosya İndirilenler'e kaydedildi: %(name)s"
 
@@ -2526,6 +2530,9 @@ msgstr "Cuma"
 
 msgid "From"
 msgstr "Başlangıç"
+
+msgid "From the Windows Contacts folder"
+msgstr "Windows Kişiler klasöründen"
 
 msgid "From this computer (Evolution/Thunderbird)"
 msgstr "Bu bilgisayardan (Evolution/Thunderbird)"
@@ -2830,6 +2837,16 @@ msgstr "Bağlantı ekle"
 
 msgid "Install the packages, for example with:"
 msgstr "Paketleri, örneğin şu komutla kurun:"
+
+msgid ""
+"Install version %(version)s now? All changes will be saved. The Organizer "
+"will close and restart after the installation."
+msgstr ""
+"%(version)s sürümü şimdi yüklensin mi? Tüm değişiklikler kaydedilecek. "
+"Organizer kapatılacak ve yüklemeden sonra yeniden başlatılacak."
+
+msgid "Install version %(version)s …"
+msgstr "%(version)s sürümünü yükle …"
 
 msgid "Installed manual version: %(version)s."
 msgstr "Yüklü kılavuz sürümü: %(version)s."
@@ -3179,6 +3196,9 @@ msgstr "Açık olarak işaretle"
 msgid "Maximized"
 msgstr "Ekranı kapla"
 
+msgid "Maximum recovery snapshots"
+msgstr "En fazla kurtarma noktası"
+
 msgid "Measurement context"
 msgstr "Ölçüm bağlamı"
 
@@ -3494,6 +3514,9 @@ msgstr "No"
 msgid "No Claws Mail address book was detected."
 msgstr "Claws Mail adres defteri algılanmadı."
 
+msgid "No address books found."
+msgstr "Adres defteri bulunamadı."
+
 msgid ""
 "No anniversaries yet.\n"
 "Birthdays and celebrations will automatically appear in the calendar."
@@ -3735,9 +3758,6 @@ msgstr "Uyarı: Depolama bağlantısı doğrulanmadı."
 msgid "Notification actions available"
 msgstr "Bildirim eylemleri kullanılabilir"
 
-msgid "Notification actions unavailable"
-msgstr "Bildirim eylemleri kullanılamıyor"
-
 msgid "Notification and sound"
 msgstr "Bildirim ve ses"
 
@@ -3873,6 +3893,9 @@ msgstr ""
 "Bu bütünleştirme olmadan da yukarıdaki “Bu bilgisayardan” seçeneğiyle "
 "kişileri ve randevuları içe aktarabilirsiniz."
 
+msgid "Online address book"
+msgstr "Çevrimiçi adres defteri"
+
 msgid "Online via Bluetooth data"
 msgstr "Bluetooth verileri üzerinden çevrimiçi"
 
@@ -3889,7 +3912,10 @@ msgstr ""
 msgid ""
 "Only Notify, then unlock is currently available. Keyring access and pausing "
 "while locked are not yet enforced by the background service."
-msgstr "Şu anda yalnızca “Bildir, ardından kilidi aç” kullanılabilir. Arka plan hizmeti anahtarlık erişimini ve kilitliyken duraklatmayı henüz uygulamamaktadır."
+msgstr ""
+"Şu anda yalnızca “Bildir, ardından kilidi aç” kullanılabilir. Arka plan "
+"hizmeti anahtarlık erişimini ve kilitliyken duraklatmayı henüz "
+"uygulamamaktadır."
 
 msgid ""
 "Only one Magnolie Notes phone can be paired. Remove the existing phone "
@@ -4091,6 +4117,9 @@ msgstr "Eşleştirme dosyası"
 
 msgid "Pairing file saved to: %(path)s"
 msgstr "Eşleştirme dosyası şuraya kaydedildi: %(path)s"
+
+msgid "Pairing, file and clipboard requests are confirmed in this window."
+msgstr "Eşleştirme, dosya ve pano istekleri bu pencerede onaylanır."
 
 msgid "Palm tree"
 msgstr "Palmiye"
@@ -5009,6 +5038,9 @@ msgstr "Hizmet çalışıyor"
 
 msgid "Service stopped"
 msgstr "Hizmet durduruldu"
+
+msgid "Set up contacts"
+msgstr "Kişileri ayarla"
 
 msgid "Set varying doses by weekday"
 msgstr "Haftanın gününe göre değişen dozlar ayarla"
@@ -7048,6 +7080,12 @@ msgstr ""
 "posta uygulamanızı açar."
 
 msgid ""
+"When the limit is lowered, the oldest recovery snapshots are removed "
+"automatically."
+msgstr ""
+"Sınır düşürüldüğünde en eski kurtarma noktaları otomatik olarak kaldırılır."
+
+msgid ""
 "When writing a note, a small toolbar above the sheet provides bold, italic, "
 "underline and strikethrough. The same formatting is available with Ctrl+B, "
 "Ctrl+I, Ctrl+U and Ctrl+D."
@@ -7055,6 +7093,9 @@ msgstr ""
 "Not yazarken sayfanın üzerindeki küçük araç çubuğu kalın, italik, altı "
 "çizili ve üstü çizili biçimlendirme sunar. Aynı biçimlendirme Ctrl+B, "
 "Ctrl+I, Ctrl+U ve Ctrl+D ile de kullanılabilir."
+
+msgid "Where are your contacts now?"
+msgstr "Kişileriniz şu anda nerede?"
 
 msgid "Whole month"
 msgstr "Tüm ay"
@@ -7142,6 +7183,9 @@ msgstr "Evet, birleştir"
 
 msgid "Yes, the code matches"
 msgstr "Evet, kod eşleşiyor"
+
+msgid "You can also do this later in Settings."
+msgstr "Bunu daha sonra Ayarlar'dan da yapabilirsiniz."
 
 msgid "Your address"
 msgstr "Adresiniz"
@@ -7623,6 +7667,12 @@ msgstr[1] "… ayrıca yazdırılacak %(count)s öğe daha."
 
 msgid "＋ Add appointment"
 msgstr "＋ Randevu ekle"
+
+#~ msgid "Notification actions unavailable"
+#~ msgstr "Bildirim eylemleri kullanılamıyor"
+
+#~ msgid "Download version %(version)s …"
+#~ msgstr "%(version)s sürümünü indir …"
 
 #~ msgid ""
 #~ "Notify, then unlock asks you to open and unlock the Organizer. System "

@@ -786,6 +786,9 @@ msgstr "قبول وتذكّر"
 msgid "Accept automatically"
 msgstr "القبول تلقائيًا"
 
+msgid "Accept this KDE Connect file?"
+msgstr "هل تريد قبول ملف KDE Connect هذا؟"
+
 msgid "Accept “%(entry)s” into your own collection?"
 msgstr "هل تريد قبول «%(entry)s» في مجموعتك؟"
 
@@ -1576,6 +1579,9 @@ msgstr "اختر محتوى الطباعة أو التصدير…"
 msgid "Choose service"
 msgstr "اختيار خدمة"
 
+msgid "Choose the save location for each accepted file"
+msgstr "اختيار موقع الحفظ لكل ملف مقبول"
+
 msgid ""
 "Choose which sections appear as tabs on the organizer. The calendar always "
 "remains available."
@@ -2222,9 +2228,6 @@ msgstr "تنزيل الدليل"
 msgid "Download manual version %(version)s"
 msgstr "تنزيل الدليل، الإصدار %(version)s"
 
-msgid "Download version %(version)s …"
-msgstr "تنزيل الإصدار %(version)s …"
-
 msgid "Drag the attachment area up or down"
 msgstr "اسحب منطقة المرفقات إلى أعلى أو أسفل"
 
@@ -2515,6 +2518,7 @@ msgstr "ملف"
 msgid "File could not be read: %s"
 msgstr "تعذرت قراءة الملف: %s"
 
+#, python-format
 msgid "File saved in Downloads: %(name)s"
 msgstr "حُفظ الملف في التنزيلات: %(name)s"
 
@@ -2650,6 +2654,9 @@ msgstr "الجمعة"
 
 msgid "From"
 msgstr "من"
+
+msgid "From the Windows Contacts folder"
+msgstr "من مجلد جهات اتصال Windows"
 
 msgid "From this computer (Evolution/Thunderbird)"
 msgstr "من هذا الكمبيوتر (Evolution/Thunderbird)"
@@ -2951,6 +2958,16 @@ msgstr "إدراج رابط"
 
 msgid "Install the packages, for example with:"
 msgstr "ثبّت الحزم، على سبيل المثال باستخدام:"
+
+msgid ""
+"Install version %(version)s now? All changes will be saved. The Organizer "
+"will close and restart after the installation."
+msgstr ""
+"هل تريد تثبيت الإصدار %(version)s الآن؟ سيتم حفظ جميع التغييرات. سيُغلق "
+"Organizer ويُعاد تشغيله بعد التثبيت."
+
+msgid "Install version %(version)s …"
+msgstr "تثبيت الإصدار %(version)s …"
 
 msgid "Installed manual version: %(version)s."
 msgstr "الإصدار اليدوي المثبت: %(version)s."
@@ -3299,6 +3316,9 @@ msgstr "وضع علامة «مفتوح»"
 msgid "Maximized"
 msgstr "مكبّرة"
 
+msgid "Maximum recovery snapshots"
+msgstr "الحد الأقصى لنقاط الاستعادة"
+
 msgid "Measurement context"
 msgstr "سياق القياس"
 
@@ -3612,6 +3632,9 @@ msgstr "No"
 msgid "No Claws Mail address book was detected."
 msgstr "لم يُكتشف دفتر عناوين Claws Mail."
 
+msgid "No address books found."
+msgstr "لم يتم العثور على دفاتر عناوين."
+
 msgid ""
 "No anniversaries yet.\n"
 "Birthdays and celebrations will automatically appear in the calendar."
@@ -3851,9 +3874,6 @@ msgstr "تنبيه: لم يتم تأكيد الاتصال بالتخزين."
 msgid "Notification actions available"
 msgstr "إجراءات الإشعارات متاحة"
 
-msgid "Notification actions unavailable"
-msgstr "إجراءات الإشعارات غير متاحة"
-
 msgid "Notification and sound"
 msgstr "الإشعار والصوت"
 
@@ -4015,6 +4035,9 @@ msgstr ""
 "install %(packages)s، ثم أعد تشغيل التطبيق. ويمكنك أيضًا استيراد جهات الاتصال "
 "والمواعيد من دون هذا التكامل باستخدام «من هذا الحاسوب» أعلاه."
 
+msgid "Online address book"
+msgstr "دفتر عناوين عبر الإنترنت"
+
 msgid "Online via Bluetooth data"
 msgstr "متصل عبر بيانات Bluetooth"
 
@@ -4031,7 +4054,9 @@ msgstr ""
 msgid ""
 "Only Notify, then unlock is currently available. Keyring access and pausing "
 "while locked are not yet enforced by the background service."
-msgstr "لا يتوفر حاليًا سوى خيار «الإشعار، ثم إلغاء القفل». لم تنفّذ خدمة الخلفية بعد إمكانية الوصول إلى حلقة المفاتيح والإيقاف المؤقت أثناء القفل."
+msgstr ""
+"لا يتوفر حاليًا سوى خيار «الإشعار، ثم إلغاء القفل». لم تنفّذ خدمة الخلفية بعد "
+"إمكانية الوصول إلى حلقة المفاتيح والإيقاف المؤقت أثناء القفل."
 
 msgid ""
 "Only one Magnolie Notes phone can be paired. Remove the existing phone "
@@ -4228,6 +4253,9 @@ msgstr "ملف الإقران"
 
 msgid "Pairing file saved to: %(path)s"
 msgstr "حُفظ ملف الإقران في: %(path)s"
+
+msgid "Pairing, file and clipboard requests are confirmed in this window."
+msgstr "يتم تأكيد طلبات الإقران والملفات والحافظة في هذه النافذة."
 
 msgid "Palm tree"
 msgstr "نخلة"
@@ -5150,6 +5178,9 @@ msgstr "الخدمة قيد التشغيل"
 
 msgid "Service stopped"
 msgstr "الخدمة متوقفة"
+
+msgid "Set up contacts"
+msgstr "إعداد جهات الاتصال"
 
 msgid "Set varying doses by weekday"
 msgstr "تعيين جرعات متفاوتة حسب يوم الأسبوع"
@@ -7171,12 +7202,20 @@ msgstr ""
 "الإلكتروني في بطاقات جهات الاتصال قابلة للنقر دائمًا وتفتح تطبيق البريد."
 
 msgid ""
+"When the limit is lowered, the oldest recovery snapshots are removed "
+"automatically."
+msgstr "عند خفض الحد، تُحذف أقدم نقاط الاستعادة تلقائيًا."
+
+msgid ""
 "When writing a note, a small toolbar above the sheet provides bold, italic, "
 "underline and strikethrough. The same formatting is available with Ctrl+B, "
 "Ctrl+I, Ctrl+U and Ctrl+D."
 msgstr ""
 "عند كتابة ملاحظة، يوفر شريط أدوات صغير أعلى الورقة الخط العريض والمائل "
 "والتسطير والشطب. ويتوفر التنسيق نفسه باستخدام Ctrl+B وCtrl+I وCtrl+U وCtrl+D."
+
+msgid "Where are your contacts now?"
+msgstr "أين توجد جهات اتصالك الآن؟"
 
 msgid "Whole month"
 msgstr "الشهر كاملًا"
@@ -7264,6 +7303,9 @@ msgstr "نعم، دمج"
 
 msgid "Yes, the code matches"
 msgstr "نعم، الرمز متطابق"
+
+msgid "You can also do this later in Settings."
+msgstr "يمكنك أيضًا القيام بذلك لاحقًا من الإعدادات."
 
 msgid "Your address"
 msgstr "عنوانك"
@@ -7778,6 +7820,12 @@ msgstr[5] "… وعناصر إضافية ستُطبع أيضًا؛ العدد: %
 
 msgid "＋ Add appointment"
 msgstr "＋ إضافة موعد"
+
+#~ msgid "Notification actions unavailable"
+#~ msgstr "إجراءات الإشعارات غير متاحة"
+
+#~ msgid "Download version %(version)s …"
+#~ msgstr "تنزيل الإصدار %(version)s …"
 
 #~ msgid ""
 #~ "Notify, then unlock asks you to open and unlock the Organizer. System "

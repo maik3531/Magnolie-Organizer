@@ -243,6 +243,13 @@ internal sealed class MainForm : Form
         Close();
     }
 
+    internal void RequestClose()
+    {
+        if (InvokeRequired) { BeginInvoke(RequestClose); return; }
+        exitFromTray = true;
+        Close();
+    }
+
     internal void CancelClose()
     {
         if (InvokeRequired) { BeginInvoke(CancelClose); return; }

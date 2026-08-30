@@ -1,7 +1,8 @@
 # SOME DESCRIPTIVE TITLE.
-# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
-# This file is distributed under the same license as the Magnolie Organizer package.
-# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+# Copyright (C) 2026 THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the Magnolie Organizer
+# package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
 #
 msgid ""
 msgstr ""
@@ -616,7 +617,7 @@ msgid "Answer calls on the computer and talk"
 msgstr "Oproepen op de computer beantwoorden en praten"
 
 msgid "App password"
-msgstr "App-wachtwoord"
+msgstr "App password"
 
 msgid "Appearance"
 msgstr "Uiterlijk"
@@ -1348,7 +1349,7 @@ msgid "Cost center"
 msgstr "Kostenplaats"
 
 msgid "Could not answer"
-msgstr "Kan de oproep niet beantwoorden"
+msgstr "Kon de oproep niet beantwoorden"
 
 msgid "Could not hang up"
 msgstr "Ophangen is mislukt"
@@ -1543,7 +1544,7 @@ msgid "Delete page"
 msgstr "Pagina verwijderen"
 
 msgid "Delete password"
-msgstr "Wachtwoord verwijderen"
+msgstr "Delete password"
 
 msgid "Delete permanently"
 msgstr "Definitief verwijderen"
@@ -1683,9 +1684,6 @@ msgstr "Handboek downloaden"
 
 msgid "Download manual version %(version)s"
 msgstr "Handboekversie %(version)s downloaden"
-
-msgid "Download version %(version)s …"
-msgstr "Versie %(version)s downloaden …"
 
 msgid "Drag the attachment area up or down"
 msgstr "Sleep het bijlagengebied omhoog of omlaag"
@@ -2071,7 +2069,7 @@ msgid "From"
 msgstr "Van"
 
 msgid "From the Windows Contacts folder"
-msgstr "Vanuit de map Windows Contactpersonen"
+msgstr "Uit de map Windows-contactpersonen"
 
 msgid "Full"
 msgstr "Vol"
@@ -2329,6 +2327,16 @@ msgstr "Invoer"
 
 msgid "Insert link"
 msgstr "Koppeling invoegen"
+
+msgid ""
+"Install version %(version)s now? All changes will be saved. The Organizer "
+"will close and restart after the installation."
+msgstr ""
+"Versie %(version)s nu installeren? Alle wijzigingen worden opgeslagen. De "
+"Organizer wordt gesloten en na de installatie opnieuw gestart."
+
+msgid "Install version %(version)s …"
+msgstr "Versie %(version)s installeren …"
 
 msgid "Installed manual version: %(version)s."
 msgstr "Geïnstalleerde versie van de handleiding: %(version)s."
@@ -2601,6 +2609,9 @@ msgstr "Als open markeren"
 
 msgid "Maximized"
 msgstr "Gemaximaliseerd"
+
+msgid "Maximum recovery snapshots"
+msgstr "Maximaal aantal herstelpunten"
 
 msgid "Measurement context"
 msgstr "Meetcontext"
@@ -2895,6 +2906,9 @@ msgstr "Er is geen Bluetooth-adres geselecteerd."
 msgid "No KDE Connect pairing is awaiting confirmation."
 msgstr "Er wacht geen KDE Connect-koppeling op bevestiging."
 
+msgid "No address books found."
+msgstr "Geen adresboeken gevonden."
+
 msgid ""
 "No anniversaries yet.\n"
 "Birthdays and celebrations will automatically appear in the calendar."
@@ -3182,6 +3196,9 @@ msgstr ""
 "Installeer deze met:  sudo apt install %(packages)s en start daarna de "
 "toepassing opnieuw. U kunt contacten en afspraken ook zonder deze integratie "
 "importeren via ‘Van deze computer’ hierboven."
+
+msgid "Online address book"
+msgstr "Onlineadresboek"
 
 msgid "Online via Bluetooth data"
 msgstr "Online via Bluetooth-gegevens"
@@ -3718,7 +3735,7 @@ msgid "Reachable IPv4 or IPv6 address of this computer"
 msgstr "Bereikbaar IPv4- of IPv6-adres van deze computer"
 
 msgid "Ready."
-msgstr "Gereed."
+msgstr "Ready."
 
 msgid ""
 "Really merge %(cards)s? Review the result carefully afterwards. A copy of "
@@ -4029,7 +4046,7 @@ msgid "Saved ✓ %(time)s"
 msgstr "Opgeslagen ✓ %(time)s"
 
 msgid "Saved."
-msgstr "Opgeslagen."
+msgstr "Saved."
 
 msgid "Saving failed!"
 msgstr "Opslaan mislukt!"
@@ -4164,10 +4181,13 @@ msgid "Sent"
 msgstr "Verzonden"
 
 msgid "Server address"
-msgstr "Serveradres"
+msgstr "Server address"
 
 msgid "Server address and user name are required."
 msgstr "Serveradres en gebruikersnaam zijn vereist."
+
+msgid "Set up contacts"
+msgstr "Contacten instellen"
 
 msgid "Set varying doses by weekday"
 msgstr "Wisselende doses per weekdag instellen"
@@ -4399,7 +4419,7 @@ msgid "Suppository"
 msgstr "Zetpil"
 
 msgid "Switched off."
-msgstr "Uitgeschakeld."
+msgstr "Switched off."
 
 msgid "Switzerland"
 msgstr "Zwitserland"
@@ -4518,10 +4538,10 @@ msgid "Temperature"
 msgstr "Temperatuur"
 
 msgid "Test connection"
-msgstr "Verbinding testen"
+msgstr "Test connection"
 
 msgid "Testing…"
-msgstr "Bezig met testen …"
+msgstr "Testing…"
 
 msgid "Text color"
 msgstr "Tekstkleur"
@@ -4613,9 +4633,6 @@ msgstr ""
 "synchronisatiepagina. Bij het importeren van bestanden worden de "
 "bronbestanden niet gewijzigd; bestaande vermeldingen worden niet tweemaal "
 "toegevoegd."
-
-msgid "The Windows entry in the update information is invalid."
-msgstr "De vermelding Windows in de update-informatie is ongeldig."
 
 msgid "The address could not be opened."
 msgstr "Het adres kon niet worden geopend."
@@ -4862,23 +4879,14 @@ msgstr "De handleiding is geïnstalleerd; de versie is onbekend."
 msgid "The manual is up to date."
 msgstr "De handleiding is bijgewerkt."
 
-msgid "The manual package checksum does not match."
-msgstr "De controlesom van het handleidingpakket komt niet overeen."
-
 msgid "The manual package could not be opened."
 msgstr "Het handboekpakket kon niet worden geopend."
-
-msgid "The manual package is unexpectedly large."
-msgstr "Het handleidingpakket is onverwacht groot."
 
 msgid "The manual update check failed."
 msgstr "Controleren op updates voor de handleiding is mislukt."
 
 msgid "The manual update information is invalid."
 msgstr "De updategegevens voor de handleiding zijn ongeldig."
-
-msgid "The manual update information is missing."
-msgstr "De handmatige update-informatie ontbreekt."
 
 msgid "The message is too large."
 msgstr "Het bericht is te groot."
@@ -5132,17 +5140,11 @@ msgstr "De twee nieuwe wachtwoorden komen niet overeen."
 msgid "The update check failed."
 msgstr "De controle op updates is mislukt."
 
-msgid "The update information is unexpectedly large."
-msgstr "De update-informatie is onverwacht groot."
-
 msgid "The user data could not be read."
 msgstr "De gebruikersgegevens konden niet worden gelezen."
 
 msgid "The value is outside the general green reference range."
 msgstr "De waarde ligt buiten het algemene groene referentiebereik."
-
-msgid "The verified installer could not be opened."
-msgstr "Het geverifieerde installatieprogramma kan niet worden geopend."
 
 msgid ""
 "The weather service estimated the location from your public IP address. Your "
@@ -5540,7 +5542,7 @@ msgid "Use the recycle bin"
 msgstr "Prullenbak gebruiken"
 
 msgid "User name"
-msgstr "Gebruikersnaam"
+msgstr "User name"
 
 msgid ""
 "Uses its own identity and storage and listens only on fixed port %(port)s. "
@@ -5754,6 +5756,13 @@ msgstr ""
 "zijn altijd aanklikbaar en openen uw e-mailtoepassing."
 
 msgid ""
+"When the limit is lowered, the oldest recovery snapshots are removed "
+"automatically."
+msgstr ""
+"Wanneer de limiet wordt verlaagd, worden de oudste herstelpunten automatisch "
+"verwijderd."
+
+msgid ""
 "When writing a note, a small toolbar above the sheet provides bold, italic, "
 "underline and strikethrough. The same formatting is available with Ctrl+B, "
 "Ctrl+I, Ctrl+U and Ctrl+D."
@@ -5761,6 +5770,9 @@ msgstr ""
 "Bij het schrijven van een notitie staat boven het blad een kleine werkbalk "
 "voor vet, cursief, onderstrepen en doorhalen. Dezelfde opmaak is beschikbaar "
 "met Ctrl+B, Ctrl+I, Ctrl+U en Ctrl+D."
+
+msgid "Where are your contacts now?"
+msgstr "Waar staan uw contacten nu?"
 
 msgid "Whole month"
 msgstr "Hele maand"
@@ -5850,6 +5862,9 @@ msgstr "Ja, samenvoegen"
 
 msgid "Yes, the code matches"
 msgstr "Ja, de code komt overeen"
+
+msgid "You can also do this later in Settings."
+msgstr "U kunt dit ook later doen in Instellingen."
 
 msgid "Your address"
 msgstr "Uw adres"
@@ -6253,9 +6268,6 @@ msgstr[1] "… en %(count)s extra items die ook worden afgedrukt."
 
 msgid "＋ Add appointment"
 msgstr "＋ Afspraak toevoegen"
-
-#~ msgid "Reset"
-#~ msgstr "Reset"
 
 msgid "Language & region"
 msgstr "Taal en regio"

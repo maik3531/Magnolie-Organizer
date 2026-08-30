@@ -313,4 +313,6 @@
     <string name="technischer_wert_zusammenfassung_unbekannt">Niet-herkende details van momentopname: %1$s</string>
     <string name="start_laden">Beveiligde gegevens openen…</string><string name="start_fehler_titel">Beveiligde gegevens konden niet worden geopend</string><string name="start_daten_unveraendert">Je gegevens zijn niet verwijderd of overschreven. Je kunt het veilig opnieuw proberen.</string><string name="start_erneut">Opnieuw proberen</string><string name="start_schliessen">App sluiten</string>
     <string name="absturzbericht_teilen">Crashrapport delen</string>
+    <string name="journal_maximum">Maximaal aantal herstelpunten</string>
+    <string name="journal_maximum_hinweis">Wanneer de limiet wordt verlaagd, worden de oudste herstelpunten automatisch verwijderd.</string>
 </resources>

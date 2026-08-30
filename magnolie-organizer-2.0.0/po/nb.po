@@ -630,6 +630,9 @@ msgstr "Godta og husk"
 msgid "Accept automatically"
 msgstr "Godta automatisk"
 
+msgid "Accept this KDE Connect file?"
+msgstr "Godta denne KDE Connect-filen?"
+
 msgid "Accept “%(entry)s” into your own collection?"
 msgstr "Godta «%(entry)s» i din egen samling?"
 
@@ -1437,6 +1440,9 @@ msgstr "Velg innhold som skal skrives ut eller eksporteres…"
 msgid "Choose service"
 msgstr "Velg tjeneste"
 
+msgid "Choose the save location for each accepted file"
+msgstr "Velg lagringssted for hver fil som godtas"
+
 msgid ""
 "Choose which sections appear as tabs on the organizer. The calendar always "
 "remains available."
@@ -2087,9 +2093,6 @@ msgstr "Last ned håndbok"
 msgid "Download manual version %(version)s"
 msgstr "Last ned håndbokversjon %(version)s"
 
-msgid "Download version %(version)s …"
-msgstr "Last ned versjon %(version)s …"
-
 msgid "Drag the attachment area up or down"
 msgstr "Dra vedleggsområdet opp eller ned"
 
@@ -2386,6 +2389,7 @@ msgstr "Fil"
 msgid "File could not be read: %s"
 msgstr "Filen kunne ikke leses: %s"
 
+#, python-format
 msgid "File saved in Downloads: %(name)s"
 msgstr "Filen er lagret i Nedlastinger: %(name)s"
 
@@ -2521,6 +2525,9 @@ msgstr "Fredag"
 
 msgid "From"
 msgstr "Fra"
+
+msgid "From the Windows Contacts folder"
+msgstr "Fra Windows Kontakter-mappen"
 
 msgid "From this computer (Evolution/Thunderbird)"
 msgstr "Fra denne datamaskinen (Evolution/Thunderbird)"
@@ -2825,6 +2832,16 @@ msgstr "Sett inn lenke"
 
 msgid "Install the packages, for example with:"
 msgstr "Installer pakkene, for eksempel med:"
+
+msgid ""
+"Install version %(version)s now? All changes will be saved. The Organizer "
+"will close and restart after the installation."
+msgstr ""
+"Installere versjon %(version)s nå? Alle endringer lagres. Organizeren lukkes "
+"og startes på nytt etter installasjonen."
+
+msgid "Install version %(version)s …"
+msgstr "Installer versjon %(version)s …"
 
 msgid "Installed manual version: %(version)s."
 msgstr "Installert håndbokversjon: %(version)s."
@@ -3177,6 +3194,9 @@ msgstr "Merk som åpen"
 msgid "Maximized"
 msgstr "Maksimert"
 
+msgid "Maximum recovery snapshots"
+msgstr "Maksimalt antall gjenopprettingspunkter"
+
 msgid "Measurement context"
 msgstr "Målekontekst"
 
@@ -3493,6 +3513,9 @@ msgstr "No"
 msgid "No Claws Mail address book was detected."
 msgstr "Fant ingen Claws Mail-adressebok."
 
+msgid "No address books found."
+msgstr "Ingen adressebøker funnet."
+
 msgid ""
 "No anniversaries yet.\n"
 "Birthdays and celebrations will automatically appear in the calendar."
@@ -3734,9 +3757,6 @@ msgstr "Merknad: Tilkoblingen til lagringen ble ikke bekreftet."
 msgid "Notification actions available"
 msgstr "Varslingshandlinger er tilgjengelige"
 
-msgid "Notification actions unavailable"
-msgstr "Varslingshandlinger er utilgjengelige"
-
 msgid "Notification and sound"
 msgstr "Varsel og lyd"
 
@@ -3873,6 +3893,9 @@ msgstr ""
 "nytt. Du kan også importere kontakter og avtaler uten denne integrasjonen "
 "ved å bruke «Fra denne datamaskinen» ovenfor."
 
+msgid "Online address book"
+msgstr "Nettbasert adressebok"
+
 msgid "Online via Bluetooth data"
 msgstr "Tilkoblet via Bluetooth-data"
 
@@ -3889,7 +3912,10 @@ msgstr ""
 msgid ""
 "Only Notify, then unlock is currently available. Keyring access and pausing "
 "while locked are not yet enforced by the background service."
-msgstr "For øyeblikket er bare «Varsle, lås deretter opp» tilgjengelig. Bakgrunnstjenesten håndhever ennå ikke tilgang til nøkkelringen eller pause mens enheten er låst."
+msgstr ""
+"For øyeblikket er bare «Varsle, lås deretter opp» tilgjengelig. "
+"Bakgrunnstjenesten håndhever ennå ikke tilgang til nøkkelringen eller pause "
+"mens enheten er låst."
 
 msgid ""
 "Only one Magnolie Notes phone can be paired. Remove the existing phone "
@@ -4088,6 +4114,9 @@ msgstr "Paringsfil"
 
 msgid "Pairing file saved to: %(path)s"
 msgstr "Paringsfil lagret i: %(path)s"
+
+msgid "Pairing, file and clipboard requests are confirmed in this window."
+msgstr "Forespørsler om paring, filer og utklippstavle bekreftes i dette vinduet."
 
 msgid "Palm tree"
 msgstr "Palme"
@@ -5001,6 +5030,9 @@ msgstr "Tjenesten kjører"
 
 msgid "Service stopped"
 msgstr "Tjenesten er stanset"
+
+msgid "Set up contacts"
+msgstr "Konfigurer kontakter"
 
 msgid "Set varying doses by weekday"
 msgstr "Angi varierende doser etter ukedag"
@@ -7051,6 +7083,12 @@ msgstr ""
 "postprogrammet ditt."
 
 msgid ""
+"When the limit is lowered, the oldest recovery snapshots are removed "
+"automatically."
+msgstr ""
+"Når grensen reduseres, fjernes de eldste gjenopprettingspunktene automatisk."
+
+msgid ""
 "When writing a note, a small toolbar above the sheet provides bold, italic, "
 "underline and strikethrough. The same formatting is available with Ctrl+B, "
 "Ctrl+I, Ctrl+U and Ctrl+D."
@@ -7058,6 +7096,9 @@ msgstr ""
 "Når du skriver et notat, gir en liten verktøylinje over arket tilgang til "
 "fet skrift, kursiv, understreking og gjennomstreking. Den samme "
 "formateringen er tilgjengelig med Ctrl+B, Ctrl+I, Ctrl+U og Ctrl+D."
+
+msgid "Where are your contacts now?"
+msgstr "Hvor er kontaktene dine nå?"
 
 msgid "Whole month"
 msgstr "Hele måneden"
@@ -7146,6 +7187,9 @@ msgstr "Ja, slå sammen"
 
 msgid "Yes, the code matches"
 msgstr "Ja, koden stemmer"
+
+msgid "You can also do this later in Settings."
+msgstr "Du kan også gjøre dette senere i Innstillinger."
 
 msgid "Your address"
 msgstr "Adressen din"
@@ -7627,6 +7671,12 @@ msgstr[1] "… og %(count)s elementer til som også blir skrevet ut."
 
 msgid "＋ Add appointment"
 msgstr "＋ Legg til avtale"
+
+#~ msgid "Notification actions unavailable"
+#~ msgstr "Varslingshandlinger er utilgjengelige"
+
+#~ msgid "Download version %(version)s …"
+#~ msgstr "Last ned versjon %(version)s …"
 
 #~ msgid ""
 #~ "Notify, then unlock asks you to open and unlock the Organizer. System "

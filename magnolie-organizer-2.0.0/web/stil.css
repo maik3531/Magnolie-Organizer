@@ -2095,6 +2095,31 @@ body[data-hilfsrahmen="an"] .notiz-editor :focus-visible {
   width: min(440px, 88vw);
 }
 
+.kontakt-assistent {
+  width: min(500px, 92vw);
+  max-width: 500px;
+}
+
+.kontakt-assistent h2 {
+  margin: 0 0 8px;
+  font: 700 25px var(--serif);
+  color: var(--tinte);
+}
+
+.kontakt-assistent-frage { margin: 0 0 4px; font-size: 17px; }
+.kontakt-assistent-auswahl { display: grid; gap: 10px; margin: 20px 0; }
+.kontakt-assistent-knopf {
+  min-height: 58px;
+  padding: 12px 16px;
+  text-align: start;
+  font-size: 16px;
+}
+.kontakt-assistent-fuss {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
 #sicherung-dialog h3,
 .eingabe-dialog h3 {
   margin: 0 0 10px;
@@ -3138,6 +3163,15 @@ body[data-pruefung="an"] #notiz-titel {
 .erinnerung-felder.gesperrt { opacity: 0.45; }
 
 .erinnerung-felder .formzeile { max-width: 420px; }
+
+.erinnerung-weckoption {
+  margin: 2px 0 14px 22px;
+  padding: 7px 0 2px 12px;
+  border-left: 2px solid rgba(132, 98, 47, 0.42);
+}
+
+.erinnerung-weckoption > label.hak { display: flex; }
+.erinnerung-weckoption > .einst-hinweis { margin: 4px 0 0 23px; }
 
 /* ==========================================================================
    Magnolie 1.8 – Erinnerungsblatt im eigenen Stil
@@ -4902,11 +4936,33 @@ body[data-hilfsrahmen="an"] .ods-feldauswahl :focus-visible {
 
 .ueber-raster {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: 14px 22px;
+  grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
+  gap: 18px;
+  flex: 1;
+  min-height: 0;
+  margin-top: 7px;
 }
 
-.ueber-spalte { min-width: 0; }
+.ueber-seite .einst-abschnitt {
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  padding-bottom: 12px;
+}
+
+.ueber-spalte {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 17px 18px;
+  border: 1px solid rgba(151, 126, 78, 0.38);
+  border-radius: 7px;
+  background: rgba(255, 253, 245, 0.3);
+}
+
+.ueber-programmspalte .kaffee-kasten { margin-top: auto; }
+.ueber-werkzeugspalte { justify-content: space-between; gap: 20px; }
+.ueber-spalte > .update-kasten { margin-top: 0; }
 
 .ueber-blume {
   width: 46px;
@@ -5040,6 +5096,9 @@ body[data-hilfsrahmen="an"] .ods-feldauswahl :focus-visible {
 
 @media (max-width: 760px) {
   .ueber-raster { grid-template-columns: 1fr; }
+  .ueber-seite .einst-abschnitt { min-height: 0; }
+  .ueber-spalte { padding: 14px; }
+  .ueber-programmspalte .kaffee-kasten { margin-top: 14px; }
   .einst-reiter.zwei-reihen .einst-reiter-knopf {
     flex-basis: calc(25% - 3px);
     max-width: calc(25% - 3px);

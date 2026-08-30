@@ -960,7 +960,23 @@ def journal_faellig(intervall, letzter_stand=None, jetzt=None):
         return True
 
 
-def _journal_behalten(staende, jetzt):
+def _journal_anzahl(wert, standard=20):
+    try:
+        return max(1, min(100, int(wert)))
+    except (TypeError, ValueError):
+        return standard
+
+
+def _journal_behalten(staende, jetzt, maximum=None):
+    if maximum is not None:
+        sortiert = []
+        for stand in staende:
+            try:
+                sortiert.append((_journal_zeit(stand["createdAt"]), stand))
+            except (KeyError, ValueError, TypeError):
+                continue
+        return {stand["snapshotId"] for _zeit, stand in
+                sorted(sortiert, reverse=True)[:max(0, int(maximum))]}
     behalten = set()
     wochen, monate, kurz, restore = [], [], [], []
     for stand in staende:
@@ -995,10 +1011,11 @@ def _journal_behalten(staende, jetzt):
     return behalten
 
 
-def _journal_retention_plan(basis=None, jetzt=None, budget=None, disk_usage=None):
+def _journal_retention_plan(basis=None, jetzt=None, budget=None, disk_usage=None,
+                            maximum=None):
     wurzel = journal_bereinigen(basis)
     staende = journal_liste(basis, integritaet=False)
-    behalten = _journal_behalten(staende, _journal_zeit(jetzt))
+    behalten = _journal_behalten(staende, _journal_zeit(jetzt), maximum)
     loeschen = [stand for stand in staende
                 if stand.get("snapshotId") not in behalten]
     staende = [stand for stand in staende
@@ -1020,15 +1037,17 @@ def _journal_retention_plan(basis=None, jetzt=None, budget=None, disk_usage=None
             "reserve": JOURNAL_RESERVE, "delete": loeschen}
 
 
-def journal_retention(basis=None, jetzt=None, budget=None, disk_usage=None):
-    plan = _journal_retention_plan(basis, jetzt, budget, disk_usage)
+def journal_retention(basis=None, jetzt=None, budget=None, disk_usage=None,
+                      maximum=None):
+    plan = _journal_retention_plan(basis, jetzt, budget, disk_usage, maximum)
     for stand in plan.pop("delete"):
         shutil.rmtree(stand["path"])
     return plan
 
 
 def journal_snapshot_erzeugen(daten, grund, kennwort="", basis=None, jetzt=None,
-                               pinned=None, disk_usage=None, haken=None):
+                               pinned=None, disk_usage=None, haken=None,
+                               maximum=None):
     if grund not in JOURNAL_GRUENDE or not isinstance(daten, dict):
         raise ValueError("snapshot")
     zeit = _journal_zeit(jetzt)
@@ -1046,7 +1065,9 @@ def journal_snapshot_erzeugen(daten, grund, kennwort="", basis=None, jetzt=None,
     text = gesamtarchiv_erzeugen(daten, "linux", PROGRAMM_FASSUNG,
                                  kennwort=kennwort, erstellt=erstellt)
     payload = text.encode("utf-8")
-    stand = _journal_retention_plan(basis, zeit, disk_usage=disk_usage)
+    plan_maximum = None if maximum is None else max(0, _journal_anzahl(maximum) - 1)
+    stand = _journal_retention_plan(basis, zeit, disk_usage=disk_usage,
+                                    maximum=plan_maximum)
     if stand["size"] + len(payload) > stand["budget"]:
         raise OSError(_("Not enough protected disk space for a recovery snapshot."))
     wurzel = journal_bereinigen(basis)
@@ -1097,7 +1118,8 @@ def journal_snapshot_erzeugen(daten, grund, kennwort="", basis=None, jetzt=None,
             shutil.rmtree(stufe)
     for alt in stand["delete"]:
         shutil.rmtree(alt["path"])
-    journal_retention(basis, zeit, disk_usage=disk_usage)
+    journal_retention(basis, zeit, disk_usage=disk_usage,
+                      maximum=None if maximum is None else _journal_anzahl(maximum))
     aus = dict(manifest)
     aus.update(path=ziel, integrity="ok", deduplicated=False)
     return aus
@@ -8405,7 +8427,8 @@ def _hintergrund_einstellungen_schreiben(werte):
 
 
 def kde_einstellungen_migrieren(clipboard, files, device_id,
-                                clipboard_automatic, directory):
+                                clipboard_automatic, directory,
+                                choose_directory=False):
     stand = background_settings_read()
     erstmalig = not stand.get("kde_legacy_migrated")
     permissions = dict(stand["permissions"])
@@ -8418,7 +8441,8 @@ def kde_einstellungen_migrieren(clipboard, files, device_id,
     stand.update(permissions=permissions, kde_device_id=device_id,
         kde_download_directory=directory, kde_clipboard_enabled=bool(clipboard),
         kde_clipboard_mode="automatic" if clipboard_automatic else "confirm",
-        kde_file_enabled=bool(files), kde_legacy_migrated=True)
+        kde_file_enabled=bool(files), kde_choose_directory=bool(
+            files and choose_directory), kde_legacy_migrated=True)
     return hintergrund_einstellungen_schreiben(stand)
 
 
@@ -12832,6 +12856,9 @@ UPDATE_XML = UPDATE_BASIS + "update.xml"
 UPDATE_SIGNATUR_SCHLUESSEL = "8eJWsygSF9wsF22cuf+sChUUV5RtXEZt38Ngcugn/1Y="
 _LETZTES_HANDBUCH_MANIFEST = {}
 _LETZTES_UPDATE_PAKET = ""
+_LETZTES_UPDATE_MANIFEST = {}
+_VORBEREITETES_UPDATE = {}
+UPDATE_PAKET_MAXIMUM = 512 * 1024 * 1024
 
 _ISO_DATUM = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 
@@ -12993,6 +13020,19 @@ def _update_url_erlaubt(url):
              not teile.fragment)
 
 
+def _organizer_deb_update_url_erlaubt(url, version=""):
+    if not _update_url_erlaubt(url):
+        return False
+    try:
+        dateiname = os.path.basename(urlsplit(str(url).strip()).path)
+    except (TypeError, ValueError):
+        return False
+    if version:
+        return dateiname == "magnolie-organizer_%s_all.deb" % str(version).strip()
+    return bool(re.fullmatch(
+        r"magnolie-organizer_\d+(?:\.\d+)*(?:-\d+)?_all\.deb", dateiname))
+
+
 def _appimage_update_url_erlaubt(url, version=""):
     try:
         from urllib.parse import urlsplit
@@ -13064,7 +13104,7 @@ def update_info_lesen(text):
     paket = (wurzel.findtext("./deb") or "").strip()
     if not versions_schluessel(version):
         raise RuntimeError(_("The update information does not contain a valid version."))
-    if paket and not _update_url_erlaubt(paket):
+    if paket and not _organizer_deb_update_url_erlaubt(paket, version):
         raise RuntimeError(_("The update information does not refer to an allowed package URL."))
     return version, paket
 
@@ -13165,6 +13205,8 @@ def update_manifest_pruefen(text, oeffentlicher_schluessel=None):
             (windows_knoten.findtext("./sha256") or "") if windows_knoten is not None else ""))
     except Exception:
         raise RuntimeError(_("The update information has an invalid signature."))
+    if not _organizer_deb_update_url_erlaubt(paket, version):
+        raise RuntimeError(_("The update information does not refer to an allowed package URL."))
     return {"version": version, "url": paket, "sha256": pruefsumme,
             "appimage": appimage, "handbuch": handbuch,
             "handbuchFehler": handbuch_fehler}
@@ -13191,7 +13233,10 @@ def _update_text_holen(url=UPDATE_XML, zeitlimit=8):
 def update_pruefen(holer=None, oeffentlicher_schluessel=None):
     """Liefert den Aktualisierungsstand ohne eine Installation auszulösen."""
     global _LETZTES_HANDBUCH_MANIFEST, _LETZTES_UPDATE_PAKET
+    global _LETZTES_UPDATE_MANIFEST, _VORBEREITETES_UPDATE
     _LETZTES_UPDATE_PAKET = ""
+    _LETZTES_UPDATE_MANIFEST = {}
+    _VORBEREITETES_UPDATE = {}
     try:
         _update_signaturschluessel_pruefen(oeffentlicher_schluessel)
         text = (holer or _update_text_holen)(UPDATE_XML)
@@ -13215,6 +13260,10 @@ def update_pruefen(holer=None, oeffentlicher_schluessel=None):
                 "fehler": _("No package has been specified for the new version yet.")}
     _LETZTES_HANDBUCH_MANIFEST = dict(manifest.get("handbuch") or {})
     _LETZTES_UPDATE_PAKET = paket if neuer else ""
+    if neuer:
+        _LETZTES_UPDATE_MANIFEST = {
+            "version": version, "url": paket, "sha256": pruefsumme,
+            "artifact": "appimage" if als_appimage else "deb"}
     return {"ok": True, "aktuell": not neuer, "version": version,
             "url": paket if neuer else "", "sha256": pruefsumme,
             "handbuch": manifest.get("handbuch") or {},
@@ -13249,6 +13298,283 @@ def update_paket_oeffnen(url, starter=None):
     if str(url or "") != _LETZTES_UPDATE_PAKET:
         return {"ok": False, "fehler": _("The package URL is not allowed.")}
     return _update_paket_url_oeffnen(url, starter)
+
+
+def _update_sicheres_verzeichnis(basis=None):
+    """Erzeugt eine ausschließlich dem Benutzer gehörende Updateablage."""
+    basis = (basis or os.environ.get("XDG_DATA_HOME") or
+             os.path.expanduser("~/.local/share"))
+    basis = os.path.abspath(os.path.expanduser(str(basis)))
+    ziel = os.path.join(basis, PROGRAMM_NAME, "updates")
+    os.makedirs(ziel, mode=0o700, exist_ok=True)
+    echt = os.path.realpath(ziel)
+    zustand = os.stat(echt)
+    if (echt != ziel or not stat.S_ISDIR(zustand.st_mode) or
+            zustand.st_uid != os.getuid()):
+        raise RuntimeError("The private update directory is not safe.")
+    os.chmod(echt, 0o700)
+    return echt
+
+
+def _update_appimage_ziel(pfad=None):
+    """Prüft den unveränderlichen Ort des laufenden AppImages."""
+    roh = str(pfad if pfad is not None else os.environ.get("APPIMAGE") or "")
+    if not roh or not os.path.isabs(roh) or os.path.realpath(roh) != roh:
+        raise RuntimeError("The running AppImage does not have a safe local path.")
+    zustand = os.stat(roh, follow_symlinks=False)
+    ordner = os.path.dirname(roh)
+    ordner_zustand = os.stat(ordner, follow_symlinks=False)
+    if (not stat.S_ISREG(zustand.st_mode) or zustand.st_uid != os.getuid() or
+            not stat.S_ISDIR(ordner_zustand.st_mode) or
+            ordner_zustand.st_uid != os.getuid() or
+            ordner_zustand.st_mode & 0o022 or
+            not os.access(roh, os.W_OK) or not os.access(ordner, os.W_OK)):
+        raise RuntimeError("The running AppImage cannot be safely replaced in its current location.")
+    return roh
+
+
+def _update_stream_speichern(manifest, ordner, suffix, holer=None):
+    """Lädt ein exakt gebundenes Release begrenzt in eine sichere Tempdatei."""
+    import urllib.request
+    fd, pfad = tempfile.mkstemp(prefix=".magnolie-update-", suffix=suffix,
+                                dir=ordner)
+    try:
+        os.fchmod(fd, 0o600)
+        antrag = urllib.request.Request(manifest["url"], headers={
+            "User-Agent": "Magnolie-Organizer/%s" % PROGRAMM_FASSUNG,
+            "Accept": "application/octet-stream"})
+        erlaubt = lambda ziel: (str(ziel or "") == manifest["url"] and
+            (_appimage_update_url_erlaubt(ziel, manifest["version"])
+             if manifest["artifact"] == "appimage" else
+             _organizer_deb_update_url_erlaubt(ziel, manifest["version"])))
+        antwort = (holer(antrag, timeout=30) if holer else
+                   _update_antwort_oeffnen(antrag, 30, erlaubt))
+        with antwort, os.fdopen(fd, "wb") as datei:
+            fd = -1
+            laenge = antwort.headers.get("Content-Length") if hasattr(
+                antwort, "headers") else None
+            if laenge is not None:
+                try:
+                    if int(laenge) < 0 or int(laenge) > UPDATE_PAKET_MAXIMUM:
+                        raise RuntimeError("The update package is unexpectedly large.")
+                except ValueError:
+                    raise RuntimeError("The update package has an invalid size.")
+            hasher = hashlib.sha256()
+            gesamt = 0
+            while True:
+                block = antwort.read(1024 * 1024)
+                if not block:
+                    break
+                gesamt += len(block)
+                if gesamt > UPDATE_PAKET_MAXIMUM:
+                    raise RuntimeError("The update package is unexpectedly large.")
+                hasher.update(block)
+                datei.write(block)
+            datei.flush()
+            os.fsync(datei.fileno())
+        if not hmac.compare_digest(hasher.hexdigest(), manifest["sha256"]):
+            raise RuntimeError("The update package checksum does not match.")
+        return pfad
+    except Exception:
+        if fd >= 0:
+            os.close(fd)
+        try:
+            os.unlink(pfad)
+        except OSError:
+            pass
+        raise
+
+
+def update_herunterladen(holer=None, appimage_pfad=None, datenbasis=None):
+    """Lädt ausschließlich das zuletzt signiert validierte Organizerrelease."""
+    global _VORBEREITETES_UPDATE
+    manifest = dict(_LETZTES_UPDATE_MANIFEST)
+    _VORBEREITETES_UPDATE = {}
+    if not manifest or manifest.get("artifact") not in ("deb", "appimage"):
+        return {"ok": False, "fehler": "There is no validated update to download."}
+    try:
+        if manifest["artifact"] == "appimage":
+            ziel = _update_appimage_ziel(appimage_pfad)
+            temp = _update_stream_speichern(
+                manifest, os.path.dirname(ziel), ".AppImage", holer)
+            if manifest != _LETZTES_UPDATE_MANIFEST:
+                os.unlink(temp)
+                raise RuntimeError("The validated update changed during the download.")
+            vorbereitet = dict(manifest, pfad=temp, ziel=ziel)
+        else:
+            ordner = _update_sicheres_verzeichnis(datenbasis)
+            temp = _update_stream_speichern(manifest, ordner, ".deb", holer)
+            if manifest != _LETZTES_UPDATE_MANIFEST:
+                os.unlink(temp)
+                raise RuntimeError("The validated update changed during the download.")
+            ziel = os.path.join(ordner, "magnolie-organizer-%s.deb" %
+                                manifest["version"])
+            os.replace(temp, ziel)
+            _verzeichnis_sync(ordner)
+            vorbereitet = dict(manifest, pfad=ziel, ziel=ziel)
+        _VORBEREITETES_UPDATE = vorbereitet
+        return {"ok": True, "fehler": "", "version": manifest["version"],
+                "artifact": manifest["artifact"], "bereit": True}
+    except Exception as fehler:
+        return {"ok": False, "fehler": str(fehler) or
+                "The update package could not be downloaded."}
+
+
+def _update_neustart_befehl(artifact, appimage_ziel=""):
+    pfad = appimage_ziel if artifact == "appimage" else "/usr/bin/magnolie-organizer"
+    pfad = os.path.realpath(pfad)
+    try:
+        zustand = os.stat(pfad)
+    except OSError:
+        return []
+    if (not os.path.isabs(pfad) or not stat.S_ISREG(zustand.st_mode) or
+            zustand.st_uid not in (0, os.getuid()) or not os.access(pfad, os.X_OK)):
+        return []
+    return [pfad]
+
+
+def _update_helper_lauf(artifact, version, eltern_pid, neustart,
+                        zeitlimit=15 * 60, abfrager=None, starter=None,
+                        schlafer=time.sleep, appimage_sicherung=""):
+    """Wartet außerhalb der GUI auf Paketinstallation und startet genau einmal."""
+    if (artifact not in ("deb", "appimage") or not versions_schluessel(version) or
+            not isinstance(eltern_pid, int) or eltern_pid < 2 or
+            not isinstance(neustart, list) or len(neustart) != 1 or
+            neustart != _update_neustart_befehl(artifact, neustart[0]
+                                                if artifact == "appimage" else "")):
+        return 2
+
+    def appimage_zuruecksetzen():
+        if artifact != "appimage" or not appimage_sicherung:
+            return False
+        ziel = neustart[0]
+        try:
+            sicherung = os.stat(appimage_sicherung, follow_symlinks=False)
+            if (appimage_sicherung != ziel + ".magnolie-update-backup" or
+                    not stat.S_ISREG(sicherung.st_mode) or
+                    sicherung.st_uid != os.getuid()):
+                return False
+            os.replace(appimage_sicherung, ziel)
+            _verzeichnis_sync(os.path.dirname(ziel))
+            return True
+        except OSError:
+            return False
+
+    ende = time.monotonic() + zeitlimit
+    while time.monotonic() < ende:
+        try:
+            os.kill(eltern_pid, 0)
+        except ProcessLookupError:
+            break
+        except PermissionError:
+            appimage_zuruecksetzen()
+            return 2
+        schlafer(0.2)
+    else:
+        appimage_zuruecksetzen()
+        return 1
+    installiert = artifact == "appimage"
+    abfrager = abfrager or subprocess.check_output
+    while not installiert and time.monotonic() < ende:
+        try:
+            ausgabe = abfrager(
+                ["/usr/bin/dpkg-query", "-W", "-f=${Version}", PROGRAMM_NAME],
+                stderr=subprocess.DEVNULL, timeout=3, text=True).strip()
+            installiert = (ausgabe == version or ausgabe.startswith(version + "-"))
+        except (OSError, subprocess.SubprocessError):
+            pass
+        if not installiert:
+            schlafer(1)
+    starten = starter or (lambda argumente: subprocess.Popen(
+        argumente, start_new_session=True, stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL))
+    try:
+        starten(neustart)
+    except OSError:
+        if appimage_zuruecksetzen():
+            try:
+                starten(neustart)
+            except OSError:
+                return 2
+            return 1
+        return 2
+    if artifact == "appimage" and appimage_sicherung:
+        try:
+            os.unlink(appimage_sicherung)
+            _verzeichnis_sync(os.path.dirname(neustart[0]))
+        except OSError:
+            pass
+    return 0 if installiert else 1
+
+
+def _update_helper_starten(artifact, version, neustart, starter=None,
+                           appimage_sicherung=""):
+    skript = os.path.realpath(__file__)
+    python = os.path.realpath(sys.executable)
+    if not _update_neustart_befehl(artifact,
+            neustart[0] if artifact == "appimage" and neustart else ""):
+        raise RuntimeError("A safe restart path was not found.")
+    nutzlast = base64.urlsafe_b64encode(json.dumps({
+        "artifact": artifact, "version": version, "parent": os.getpid(),
+        "restart": neustart, "appimageBackup": appimage_sicherung
+    }, separators=(",", ":")).encode("utf-8")).decode("ascii")
+    argumente = [python, skript, "--update-helper", nutzlast]
+    return (starter or (lambda args: subprocess.Popen(
+        args, start_new_session=True, stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL, close_fds=True)))(argumente)
+
+
+def update_installieren(starter=None, helper_starter=None):
+    """Bereitet nach expliziter Bestätigung Installation und Neustart vor."""
+    global _VORBEREITETES_UPDATE
+    vorbereitet = dict(_VORBEREITETES_UPDATE)
+    if not vorbereitet or any(vorbereitet.get(k) != _LETZTES_UPDATE_MANIFEST.get(k)
+                              for k in ("version", "url", "sha256", "artifact")):
+        return {"ok": False, "fehler": "The prepared update is no longer valid."}
+    pfad = vorbereitet.get("pfad") or ""
+    try:
+        zustand = os.stat(pfad, follow_symlinks=False)
+        if (not stat.S_ISREG(zustand.st_mode) or zustand.st_uid != os.getuid() or
+                not hmac.compare_digest(_datei_sha256(pfad), vorbereitet["sha256"])):
+            raise RuntimeError("The prepared update file is not safe.")
+        if vorbereitet["artifact"] == "appimage":
+            ziel = _update_appimage_ziel(vorbereitet.get("ziel"))
+            sicherung = ziel + ".magnolie-update-backup"
+            if os.path.lexists(sicherung):
+                raise RuntimeError("An AppImage update backup already exists.")
+            os.link(ziel, sicherung, follow_symlinks=False)
+            os.chmod(pfad, 0o700)
+            try:
+                os.replace(pfad, ziel)
+                _verzeichnis_sync(os.path.dirname(ziel))
+                neustart = _update_neustart_befehl("appimage", ziel)
+                _update_helper_starten(vorbereitet["artifact"], vorbereitet["version"],
+                                       neustart, helper_starter, sicherung)
+            except Exception:
+                os.replace(sicherung, ziel)
+                _verzeichnis_sync(os.path.dirname(ziel))
+                raise
+        else:
+            neustart = _update_neustart_befehl("deb")
+            if not neustart:
+                raise RuntimeError("A safe Organizer restart path was not found.")
+            werkzeug = shutil.which("xdg-open") or shutil.which("gio")
+            if not werkzeug:
+                raise RuntimeError("No application was found for the update package.")
+            argumente = ([werkzeug, "open", pfad] if os.path.basename(werkzeug) == "gio"
+                         else [werkzeug, pfad])
+            (starter or (lambda args: subprocess.Popen(
+                args, start_new_session=True, stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL)))(argumente)
+            _update_helper_starten(vorbereitet["artifact"], vorbereitet["version"],
+                                   neustart, helper_starter)
+        _VORBEREITETES_UPDATE = {}
+        return {"ok": True, "fehler": "", "bereitZumBeenden": True,
+                "artifact": vorbereitet["artifact"],
+                "version": vorbereitet["version"]}
+    except Exception as fehler:
+        return {"ok": False, "fehler": str(fehler) or
+                "The update could not be prepared for installation."}
 
 
 def medikament_suche_oeffnen(name, starter=None):
@@ -14255,7 +14581,7 @@ def _nur_lesen_text():
     return treffer.group(1) if treffer else "read only"
 
 
-def lokal_scannen(basis=None):
+def lokal_scannen(basis=None, nur_kontakte=False):
     """Durchsucht die lokalen Ablagen von Evolution und Thunderbird nach
     Adressen, Terminen und Aufgaben und liefert eine Import-Nutzlast."""
     basis = basis or os.path.expanduser("~")
@@ -14289,27 +14615,28 @@ def lokal_scannen(basis=None):
                     ev = [a + b for a, b in zip(ev, z)]
 
     # ---- Evolution: Kalender und Aufgaben
-    for was, dateien in (("calendar", ("calendar.ics", "cache.db")),
-                         ("tasks", ("tasks.ics", "cache.db"))):
-        for wurzel in _evolution_wurzeln(basis, was):
-            for dateiname in dateien:
-                for pfad in _unterdateien(wurzel, dateiname):
-                    if dateiname.endswith(".ics"):
-                        try:
-                            text = _text_dekodieren(datei_begrenzt_lesen(
-                                pfad, IMPORT_DATEI_MAX,
-                                _("The import file is larger than 32 megabytes.")))
-                        except (OSError, GroessenFehler):
-                            continue
-                    else:
-                        texte = _texte_aus_sqlite(pfad, ICS_ANFAENGE)
-                        text = "\n".join(texte)
-                    if text.strip():
-                        ordnername = os.path.basename(os.path.dirname(pfad))
-                        z = uebernehmen(ics_lesen(
-                            text, "Evolution: " + ordnername,
-                            "evolution:" + os.path.realpath(pfad)))
-                        ev = [a + b for a, b in zip(ev, z)]
+    if not nur_kontakte:
+        for was, dateien in (("calendar", ("calendar.ics", "cache.db")),
+                             ("tasks", ("tasks.ics", "cache.db"))):
+            for wurzel in _evolution_wurzeln(basis, was):
+                for dateiname in dateien:
+                    for pfad in _unterdateien(wurzel, dateiname):
+                        if dateiname.endswith(".ics"):
+                            try:
+                                text = _text_dekodieren(datei_begrenzt_lesen(
+                                    pfad, IMPORT_DATEI_MAX,
+                                    _("The import file is larger than 32 megabytes.")))
+                            except (OSError, GroessenFehler):
+                                continue
+                        else:
+                            texte = _texte_aus_sqlite(pfad, ICS_ANFAENGE)
+                            text = "\n".join(texte)
+                        if text.strip():
+                            ordnername = os.path.basename(os.path.dirname(pfad))
+                            z = uebernehmen(ics_lesen(
+                                text, "Evolution: " + ordnername,
+                                "evolution:" + os.path.realpath(pfad)))
+                            ev = [a + b for a, b in zip(ev, z)]
     satz = _zaehl_satz("Evolution", *ev)
     if satz:
         bericht.append(satz)
@@ -14327,27 +14654,31 @@ def lokal_scannen(basis=None):
                 if vcards:
                     z = uebernehmen(vcf_lesen("".join(vcards), lokale_dateien=True))
                     tb = [a + b for a, b in zip(tb, z)]
-        kalender = os.path.join(profil, "calendar-data", "local.sqlite")
-        texte = _texte_aus_sqlite(kalender, ICS_ANFAENGE)
-        if texte:
-            z = uebernehmen(ics_lesen(
-                "\n".join(texte), "Thunderbird",
-                "thunderbird:" + os.path.realpath(kalender)))
-            tb = [a + b for a, b in zip(tb, z)]
-        else:
-            z = uebernehmen(_tb_normalisierte_kalenderdaten(kalender))
-            tb = [a + b for a, b in zip(tb, z)]
-        cache_kalender = _tb_cache_kalender(profil)
-        cache = os.path.join(profil, "calendar-data", "cache.sqlite")
-        if cache_kalender and os.path.isfile(cache):
-            z = uebernehmen(_tb_normalisierte_kalenderdaten(
-                cache, cache_kalender, cache=True))
-            tb = [a + b for a, b in zip(tb, z)]
+        if not nur_kontakte:
+            kalender = os.path.join(profil, "calendar-data", "local.sqlite")
+            texte = _texte_aus_sqlite(kalender, ICS_ANFAENGE)
+            if texte:
+                z = uebernehmen(ics_lesen(
+                    "\n".join(texte), "Thunderbird",
+                    "thunderbird:" + os.path.realpath(kalender)))
+                tb = [a + b for a, b in zip(tb, z)]
+            else:
+                z = uebernehmen(_tb_normalisierte_kalenderdaten(kalender))
+                tb = [a + b for a, b in zip(tb, z)]
+            cache_kalender = _tb_cache_kalender(profil)
+            cache = os.path.join(profil, "calendar-data", "cache.sqlite")
+            if cache_kalender and os.path.isfile(cache):
+                z = uebernehmen(_tb_normalisierte_kalenderdaten(
+                    cache, cache_kalender, cache=True))
+                tb = [a + b for a, b in zip(tb, z)]
     satz = _zaehl_satz("Thunderbird", *tb)
     if satz:
         bericht.append(satz)
 
     _lokale_kalender_dubletten_bereinigen(nutzlast)
+    if nur_kontakte:
+        # Die Oberfläche erzeugt den verknüpften Jahrestag aus dem Kontakt selbst.
+        nutzlast["geburtstage"] = []
     nutzlast["bericht"] = (_("Found – %s.") % "; ".join(bericht)) if bericht \
         else _("No readable Evolution or Thunderbird stores were found on this computer.")
     return nutzlast
@@ -16641,6 +16972,9 @@ class Fenster(_FENSTER_BASIS):
             self._beenden_angefragt = False
             self._beenden_speicherfehler = False
 
+        elif befehl == "beenden":
+            self._beenden_anfragen()
+
         elif befehl == "tray_einstellungen":
             self._tray_einstellungen_setzen(nachricht.get("einstellungen") or {})
 
@@ -16677,6 +17011,16 @@ class Fenster(_FENSTER_BASIS):
                     allgemein = self._aktuelle_daten.setdefault(
                         "einstellungen", {}).setdefault("allgemein", {})
                     allgemein["wiederherstellungsintervall"] = intervall
+            self._journal_stand_melden()
+
+        elif befehl == "journal_anzahl":
+            maximum = _journal_anzahl(nachricht.get("maximum"))
+            with self._daten_sperre:
+                if isinstance(self._aktuelle_daten, dict):
+                    allgemein = self._aktuelle_daten.setdefault(
+                        "einstellungen", {}).setdefault("allgemein", {})
+                    allgemein["wiederherstellungsanzahl"] = maximum
+            journal_retention(maximum=maximum)
             self._journal_stand_melden()
 
         elif befehl == "journal_erzeugen":
@@ -16799,7 +17143,9 @@ class Fenster(_FENSTER_BASIS):
                 "App.baumBriefkastenGespeichert"), daemon=True).start()
 
         elif befehl == "import_lokal":
-            threading.Thread(target=self._import_lokal_arbeit, daemon=True).start()
+            threading.Thread(target=self._import_lokal_arbeit,
+                             args=(nachricht.get("bereich") == "kontakte",),
+                             daemon=True).start()
 
         elif befehl == "feiertage":
             threading.Thread(target=self._feiertage_arbeit, args=(nachricht,),
@@ -16812,6 +17158,16 @@ class Fenster(_FENSTER_BASIS):
         elif befehl == "update_pruefen":
             threading.Thread(target=self._update_pruefen_arbeit,
                              daemon=True).start()
+
+        elif befehl == "update_herunterladen":
+            threading.Thread(target=lambda: self.antwort(
+                "App.updateHeruntergeladen", update_herunterladen()),
+                daemon=True).start()
+
+        elif befehl == "update_installieren":
+            threading.Thread(target=lambda: self.antwort(
+                "App.updateInstallationVorbereitet", update_installieren()),
+                daemon=True).start()
 
         elif befehl == "update_oeffnen":
             threading.Thread(target=lambda: self.antwort(
@@ -16910,7 +17266,17 @@ class Fenster(_FENSTER_BASIS):
                 bool(nachricht.get("clipboard")), bool(nachricht.get("files")),
                 nachricht.get("deviceId") or "",
                 bool(nachricht.get("clipboardAutomatic")),
-                nachricht.get("directory") or ""), daemon=True).start()
+                nachricht.get("directory") or "",
+                bool(nachricht.get("chooseDirectory"))), daemon=True).start()
+
+        elif befehl == "kde_receive_ziel_waehlen":
+            standard = GLib.get_user_special_dir(
+                GLib.UserDirectory.DIRECTORY_DOWNLOAD) or os.path.join(
+                    os.path.expanduser("~"), "Downloads")
+            pfad = self._ordner_waehlen(
+                _("Receive with KDE Connect"), nachricht.get("pfad") or "", standard)
+            threading.Thread(target=lambda: self._kde_receive_decide(
+                nachricht.get("id") or "", bool(pfad), pfad or ""), daemon=True).start()
 
         elif befehl == "kde_receive_decide":
             threading.Thread(target=lambda: self._kde_receive_decide(
@@ -17475,7 +17841,10 @@ class Fenster(_FENSTER_BASIS):
             daten = getattr(self, "_aktuelle_daten", None)
             if not isinstance(daten, dict):
                 raise RuntimeError(_("The current organizer data is incomplete."))
-            return journal_snapshot_erzeugen(daten, grund, self._kennwort)
+            allgemein = (daten.get("einstellungen") or {}).get("allgemein") or {}
+            maximum = _journal_anzahl(allgemein.get("wiederherstellungsanzahl"))
+            return journal_snapshot_erzeugen(daten, grund, self._kennwort,
+                                              maximum=maximum)
 
     def _journal_stand_melden(self):
         try:
@@ -17483,6 +17852,7 @@ class Fenster(_FENSTER_BASIS):
             allgemein = ((self._aktuelle_daten or {}).get("einstellungen") or {}).get(
                 "allgemein") or {}
             intervall = allgemein.get("wiederherstellungsintervall", "weekly")
+            maximum = _journal_anzahl(allgemein.get("wiederherstellungsanzahl"))
             if intervall not in JOURNAL_INTERVALLE:
                 intervall = "weekly"
             periodisch = next((s for s in staende if s.get("reason") == "weekly"), None)
@@ -17493,6 +17863,7 @@ class Fenster(_FENSTER_BASIS):
                     seconds=JOURNAL_INTERVALLE[intervall])).isoformat().replace("+00:00", "Z")
             self.antwort("App.journalStand", {"ok": True, "snapshots": staende,
                 "interval": intervall, "last": letzter, "next": naechster,
+                "maximum": maximum,
                 "status": allgemein.get("wiederherstellungsstatus", "")})
         except Exception as fehler:
             self.antwort("App.journalStand", {"ok": False, "snapshots": [],
@@ -17602,7 +17973,9 @@ class Fenster(_FENSTER_BASIS):
             return
         self._gesperrt = False
         laden_start = time.monotonic()
+        daten_vorher_vorhanden = os.path.isfile(daten_datei())
         daten, ist_neu, migriert = lade_daten()
+        echter_erststart = ist_neu and not daten_vorher_vorhanden
         gruppen = {}
         if isinstance(daten, dict):
             for name in ("termine", "aufgaben", "kontakte", "notizen",
@@ -17616,6 +17989,7 @@ class Fenster(_FENSTER_BASIS):
         self._aktuelle_daten = daten
         senden_start = time.monotonic()
         self.antwort("App.init", {"daten": daten, "neu": ist_neu,
+                                  "echterErststart": echter_erststart,
                                   "datenPfad": daten_datei(),
                                   "migriert": migriert,
                                   "kennwort": bool(self._kennwort),
@@ -18213,7 +18587,7 @@ class Fenster(_FENSTER_BASIS):
         self._telefon_stand_melden()
 
     def _kde_receive_settings(self, clipboard, files, device_id,
-                              clipboard_automatic, directory=""):
+                              clipboard_automatic, directory="", choose_directory=False):
         datei_fehler = None
         download = ""
         dateien_aktiv = files
@@ -18234,7 +18608,7 @@ class Fenster(_FENSTER_BASIS):
             if isinstance(self, Fenster):
                 migration = kde_einstellungen_migrieren(
                     clipboard, dateien_aktiv, device_id, clipboard_automatic,
-                    download if dateien_aktiv else "")
+                    download if dateien_aktiv else "", choose_directory)
                 if not migration.get("ok"):
                     raise RuntimeError(migration.get("error") or
                                        _("The background settings could not be saved."))
@@ -18264,11 +18638,11 @@ class Fenster(_FENSTER_BASIS):
                 fehler, _("Configuring KDE Connect receive functions")),
                 "filesDisabled": bool(files and not dateien_aktiv)})
 
-    def _kde_receive_decide(self, receive_id, accept):
+    def _kde_receive_decide(self, receive_id, accept, directory=""):
         try:
             backend = _kdeconnect_backend(self._kde_ereignis)
             if accept:
-                backend.accept_receive(receive_id)
+                backend.accept_receive(receive_id, directory=directory)
             else:
                 backend.reject_receive(receive_id)
         except Exception as fehler:
@@ -19207,9 +19581,9 @@ class Fenster(_FENSTER_BASIS):
     def _update_pruefen_arbeit(self):
         self.antwort("App.updateErgebnis", update_pruefen())
 
-    def _import_lokal_arbeit(self):
+    def _import_lokal_arbeit(self, nur_kontakte=False):
         try:
-            nutzlast = lokal_scannen()
+            nutzlast = lokal_scannen(nur_kontakte=nur_kontakte)
         except Exception as fehler:
             nutzlast = {"fehler": fehler_deutsch(
                 fehler, _("Scanning this computer"))}
@@ -20281,6 +20655,21 @@ def einzelinstanz_anmelden(anwendungskennung, aktivieren):
     return anwendung, False
 
 def haupt():
+    if len(sys.argv) == 3 and sys.argv[1] == "--update-helper":
+        try:
+            roh = base64.urlsafe_b64decode(sys.argv[2].encode("ascii"))
+            if len(roh) > 4096:
+                raise ValueError("helper payload")
+            nutzlast = json.loads(roh.decode("utf-8"))
+            status = _update_helper_lauf(
+                nutzlast.get("artifact"), nutzlast.get("version"),
+                nutzlast.get("parent"), nutzlast.get("restart"),
+                appimage_sicherung=nutzlast.get("appimageBackup") or "")
+        except (ValueError, TypeError, KeyError, UnicodeError, binascii.Error,
+                json.JSONDecodeError):
+            status = 2
+        sys.exit(status)
+
     if _DEBUG_ANGEFORDERT or "--debug" in sys.argv[1:]:
         ziel = debug_einrichten()
         if ziel:

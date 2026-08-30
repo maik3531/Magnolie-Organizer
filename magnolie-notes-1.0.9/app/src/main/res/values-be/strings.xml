@@ -348,4 +348,6 @@
     <string name="technischer_wert_zusammenfassung_unbekannt">Невядомыя звесткі здымка: %1$s</string>
     <string name="start_laden">Адкрыццё абароненых даных…</string><string name="start_fehler_titel">Не ўдалося адкрыць абароненыя даныя</string><string name="start_daten_unveraendert">Вашы даныя не выдалены і не перазапісаны. Можна бяспечна паўтарыць спробу.</string><string name="start_erneut">Паўтарыць</string><string name="start_schliessen">Закрыць праграму</string>
     <string name="absturzbericht_teilen">Абагуліць справаздачу аб збоі</string>
+    <string name="journal_maximum">Максімальная колькасць пунктаў аднаўлення</string>
+    <string name="journal_maximum_hinweis">Пры памяншэнні ліміту найстарэйшыя пункты аднаўлення аўтаматычна выдаляюцца.</string>
 </resources>

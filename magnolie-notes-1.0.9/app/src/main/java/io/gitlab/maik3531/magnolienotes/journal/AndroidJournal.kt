@@ -198,8 +198,8 @@ private fun androidKey(): SecretKey {
 }
 
 data class JournalZustand(val entries: List<SnapshotManifest> = emptyList(),
-                          val interval: JournalIntervall = JournalIntervall.WOECHENTLICH,
-                          val status: String = "", val last: Long? = null)
+                           val interval: JournalIntervall = JournalIntervall.WOECHENTLICH,
+                           val maximum: Int = 20, val status: String = "", val last: Long? = null)
 
 class AndroidJournal private constructor(private val context: Context) {
     private val json = Ablage.json
@@ -221,6 +221,12 @@ class AndroidJournal private constructor(private val context: Context) {
 
     fun intervalSetzen(interval: JournalIntervall) {
         prefs.edit().putString("interval", interval.name).apply(); refresh(); planen(context)
+    }
+
+    fun maximumSetzen(maximum: Int) {
+        prefs.edit().putInt("maximum", maximum.coerceIn(1, 100)).apply()
+        bereinigen()
+        refresh()
     }
 
     fun appSnapshot(reason: String, pinned: Boolean = false): SnapshotManifest = synchronized(Ablage.SCHREIBSPERRE) {
@@ -288,8 +294,10 @@ class AndroidJournal private constructor(private val context: Context) {
     }
     private fun interval() = runCatching { JournalIntervall.valueOf(prefs.getString("interval", null)
         ?: JournalIntervall.WOECHENTLICH.name) }.getOrDefault(JournalIntervall.WOECHENTLICH)
+    private fun maximum() = prefs.getInt("maximum", 20).coerceIn(1, 100)
     private fun bereinigen() {
-        val entries = store.list(); val keep = JournalRegeln.behalten(entries, System.currentTimeMillis())
+        val entries = store.list()
+        val keep = JournalRegeln.behalten(entries, System.currentTimeMillis(), maximum())
         entries.filterNot { it.uuid in keep }.forEach { store.delete(it.uuid) }
         val budget = JournalRegeln.budget(context.filesDir.totalSpace)
         store.list().sortedBy { it.createdUtc }.filterNot { it.pinned }.forEach {
@@ -298,7 +306,7 @@ class AndroidJournal private constructor(private val context: Context) {
     }
     private fun refresh(status: String = "") {
         val last = prefs.getLong("last", -1).takeIf { it >= 0 }
-        _state.value = JournalZustand(store.list(), interval(), status, last)
+        _state.value = JournalZustand(store.list(), interval(), maximum(), status, last)
     }
 
     companion object {

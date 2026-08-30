@@ -1,7 +1,8 @@
 # SOME DESCRIPTIVE TITLE.
-# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
-# This file is distributed under the same license as the Magnolie Organizer package.
-# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+# Copyright (C) 2026 THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the Magnolie Organizer
+# package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
 #
 msgid ""
 msgstr ""
@@ -56,43 +57,43 @@ msgid "%(count)s anniversary"
 msgid_plural "%(count)s anniversaries"
 msgstr[0] "%(count)s гадавіна"
 msgstr[1] "%(count)s гадавіны"
-msgstr[2] "%(count)s гадавін"
+msgstr[2] "%(count)s гадавіны"
 
 msgid "%(count)s anniversary entered"
 msgid_plural "%(count)s anniversaries entered"
 msgstr[0] "Уведзена %(count)s гадавіна"
 msgstr[1] "Уведзена %(count)s гадавіны"
-msgstr[2] "Уведзена %(count)s гадавін"
+msgstr[2] "Уведзена %(count)s гадавіны"
 
 msgid "%(count)s appointment"
 msgid_plural "%(count)s appointments"
 msgstr[0] "%(count)s сустрэча"
 msgstr[1] "%(count)s сустрэчы"
-msgstr[2] "%(count)s сустрэч"
+msgstr[2] "%(count)s сустрэчы"
 
 msgid "%(count)s attachment"
 msgid_plural "%(count)s attachments"
 msgstr[0] "%(count)s далучэнне"
 msgstr[1] "%(count)s далучэнні"
-msgstr[2] "%(count)s далучэнняў"
+msgstr[2] "%(count)s далучэнні"
 
 msgid "%(count)s birthday"
 msgid_plural "%(count)s birthdays"
 msgstr[0] "%(count)s дзень нараджэння"
 msgstr[1] "%(count)s дні нараджэння"
-msgstr[2] "%(count)s дзён нараджэння"
+msgstr[2] "%(count)s дні нараджэння"
 
 msgid "%(count)s contact"
 msgid_plural "%(count)s contacts"
 msgstr[0] "%(count)s кантакт"
 msgstr[1] "%(count)s кантакты"
-msgstr[2] "%(count)s кантактаў"
+msgstr[2] "%(count)s кантакты"
 
 msgid "%(count)s contact card"
 msgid_plural "%(count)s contact cards"
 msgstr[0] "%(count)s картка кантакту"
 msgstr[1] "%(count)s карткі кантакту"
-msgstr[2] "%(count)s картак кантакту"
+msgstr[2] "%(count)s карткі кантакту"
 
 msgid "%(count)s contact photo added"
 msgid_plural "%(count)s contact photos added"
@@ -104,67 +105,67 @@ msgid "%(count)s day"
 msgid_plural "%(count)s days"
 msgstr[0] "%(count)s дзень"
 msgstr[1] "%(count)s дні"
-msgstr[2] "%(count)s дзён"
+msgstr[2] "%(count)s дні"
 
 msgid "%(count)s day before"
 msgid_plural "%(count)s days before"
 msgstr[0] "За %(count)s дзень"
 msgstr[1] "За %(count)s дні"
-msgstr[2] "За %(count)s дзён"
+msgstr[2] "За %(count)s дні"
 
 msgid "%(count)s email address added"
 msgid_plural "%(count)s email addresses added"
 msgstr[0] "Дададзены %(count)s адрас электроннай пошты"
 msgstr[1] "Дададзены %(count)s адрасы электроннай пошты"
-msgstr[2] "Дададзена %(count)s адрасоў электроннай пошты"
+msgstr[2] "Дададзены %(count)s адрасы электроннай пошты"
 
 msgid "%(count)s entry deleted."
 msgid_plural "%(count)s entries deleted."
 msgstr[0] "Выдалены %(count)s запіс."
 msgstr[1] "Выдалены %(count)s запісы."
-msgstr[2] "Выдалена %(count)s запісаў."
+msgstr[2] "Выдалены %(count)s запісы."
 
 msgid "%(count)s existing entry skipped."
 msgid_plural "%(count)s existing entries skipped."
 msgstr[0] "Прапушчаны %(count)s існуючы запіс."
 msgstr[1] "Прапушчаны %(count)s існуючыя запісы."
-msgstr[2] "Прапушчана %(count)s існуючых запісаў."
+msgstr[2] "Прапушчаны %(count)s існуючыя запісы."
 
 msgid "%(count)s found"
 msgid_plural "%(count)s found"
 msgstr[0] "Знойдзены %(count)s вынік"
 msgstr[1] "Знойдзены %(count)s вынікі"
-msgstr[2] "Знойдзена %(count)s вынікаў"
+msgstr[2] "Знойдзены %(count)s вынікі"
 
 msgid "%(count)s group"
 msgid_plural "%(count)s groups"
 msgstr[0] "%(count)s група"
 msgstr[1] "%(count)s групы"
-msgstr[2] "%(count)s груп"
+msgstr[2] "%(count)s групы"
 
 msgid "%(count)s holiday period"
 msgid_plural "%(count)s holiday periods"
 msgstr[0] "%(count)s перыяд канікул"
 msgstr[1] "%(count)s перыяды канікул"
-msgstr[2] "%(count)s перыядаў канікул"
+msgstr[2] "%(count)s перыяды канікул"
 
 msgid "%(count)s incoming offer"
 msgid_plural "%(count)s incoming offers"
 msgstr[0] "%(count)s уваходная прапанова"
 msgstr[1] "%(count)s уваходныя прапановы"
-msgstr[2] "%(count)s уваходных прапаноў"
+msgstr[2] "%(count)s уваходныя прапановы"
 
 msgid "%(count)s match"
 msgid_plural "%(count)s matches"
 msgstr[0] "%(count)s супадзенне"
 msgstr[1] "%(count)s супадзенні"
-msgstr[2] "%(count)s супадзенняў"
+msgstr[2] "%(count)s супадзенні"
 
 msgid "%(count)s minute"
 msgid_plural "%(count)s minutes"
 msgstr[0] "%(count)s хвіліна"
 msgstr[1] "%(count)s хвіліны"
-msgstr[2] "%(count)s хвілін"
+msgstr[2] "%(count)s хвіліны"
 
 msgid "%(count)s more"
 msgid_plural "%(count)s more"
@@ -176,31 +177,31 @@ msgid "%(count)s more entry"
 msgid_plural "%(count)s more entries"
 msgstr[0] "Яшчэ %(count)s запіс"
 msgstr[1] "Яшчэ %(count)s запісы"
-msgstr[2] "Яшчэ %(count)s запісаў"
+msgstr[2] "Яшчэ %(count)s запісы"
 
 msgid "%(count)s new Magnolienbaum request awaits your decision."
 msgid_plural "%(count)s new Magnolienbaum requests await your decision."
 msgstr[0] "Вашага рашэння чакае %(count)s новы запыт Magnolienbaum."
 msgstr[1] "Вашага рашэння чакаюць %(count)s новыя запыты Magnolienbaum."
-msgstr[2] "Вашага рашэння чакае %(count)s новых запытаў Magnolienbaum."
+msgstr[2] "Вашага рашэння чакаюць %(count)s новыя запыты Magnolienbaum."
 
 msgid "%(count)s non-JPEG contact photo was omitted."
 msgid_plural "%(count)s non-JPEG contact photos were omitted."
 msgstr[0] "Прапушчана %(count)s фатаграфія не ў JPEG."
 msgstr[1] "Прапушчана %(count)s фатаграфіі не ў JPEG."
-msgstr[2] "Прапушчана %(count)s фатаграфій не ў JPEG."
+msgstr[2] "Прапушчана %(count)s фатаграфіі не ў JPEG."
 
 msgid "%(count)s note"
 msgid_plural "%(count)s notes"
 msgstr[0] "%(count)s нататка"
 msgstr[1] "%(count)s нататкі"
-msgstr[2] "%(count)s нататак"
+msgstr[2] "%(count)s нататкі"
 
 msgid "%(count)s notebook"
 msgid_plural "%(count)s notebooks"
 msgstr[0] "%(count)s нататнік"
 msgstr[1] "%(count)s нататнікі"
-msgstr[2] "%(count)s нататнікаў"
+msgstr[2] "%(count)s нататнікі"
 
 msgid "%(count)s open"
 msgstr "Адкрыта: %(count)s"
@@ -209,43 +210,43 @@ msgid "%(count)s page"
 msgid_plural "%(count)s pages"
 msgstr[0] "%(count)s старонка"
 msgstr[1] "%(count)s старонкі"
-msgstr[2] "%(count)s старонак"
+msgstr[2] "%(count)s старонкі"
 
 msgid "%(count)s public holiday"
 msgid_plural "%(count)s public holidays"
 msgstr[0] "%(count)s дзяржаўнае свята"
 msgstr[1] "%(count)s дзяржаўныя святы"
-msgstr[2] "%(count)s дзяржаўных свят"
+msgstr[2] "%(count)s дзяржаўныя святы"
 
 msgid "%(count)s recurring appointment imported only once."
 msgid_plural "%(count)s recurring appointments imported only once."
 msgstr[0] "%(count)s паўторная сустрэча імпартавана толькі адзін раз."
 msgstr[1] "%(count)s паўторныя сустрэчы імпартаваны толькі адзін раз."
-msgstr[2] "%(count)s паўторных сустрэч імпартавана толькі адзін раз."
+msgstr[2] "%(count)s паўторныя сустрэчы імпартаваны толькі адзін раз."
 
 msgid "%(count)s second"
 msgid_plural "%(count)s seconds"
 msgstr[0] "%(count)s секунда"
 msgstr[1] "%(count)s секунды"
-msgstr[2] "%(count)s секунд"
+msgstr[2] "%(count)s секунды"
 
 msgid "%(count)s task"
 msgid_plural "%(count)s tasks"
 msgstr[0] "%(count)s заданне"
 msgstr[1] "%(count)s заданні"
-msgstr[2] "%(count)s заданняў"
+msgstr[2] "%(count)s заданні"
 
 msgid "%(count)s unreadable row omitted."
 msgid_plural "%(count)s unreadable rows omitted."
 msgstr[0] "Прапушчаны %(count)s нечытэльны радок."
 msgstr[1] "Прапушчаны %(count)s нечытэльныя радкі."
-msgstr[2] "Прапушчана %(count)s нечытэльных радкоў."
+msgstr[2] "Прапушчаны %(count)s нечытэльныя радкі."
 
 msgid "%(count)s unusable contact was omitted."
 msgid_plural "%(count)s unusable contacts were omitted."
 msgstr[0] "Прапушчаны %(count)s непрыдатны кантакт."
 msgstr[1] "Прапушчана %(count)s непрыдатныя кантакты."
-msgstr[2] "Прапушчана %(count)s непрыдатных кантактаў."
+msgstr[2] "Прапушчана %(count)s непрыдатныя кантакты."
 
 msgid "%(date)s, %(time)s"
 msgstr "%(date)s, %(time)s"
@@ -643,7 +644,7 @@ msgid "Answer calls on the computer and talk"
 msgstr "Адказваць на званкі і размаўляць праз камп'ютар"
 
 msgid "App password"
-msgstr "Пароль праграмы"
+msgstr "App password"
 
 msgid "Appearance"
 msgstr "Выгляд"
@@ -1495,7 +1496,7 @@ msgid "Delete %(count)s selected entry for good?"
 msgid_plural "Delete %(count)s selected entries for good?"
 msgstr[0] "Канчаткова выдаліць %(count)s выбраны запіс?"
 msgstr[1] "Канчаткова выдаліць %(count)s выбраныя запісы?"
-msgstr[2] "Канчаткова выдаліць %(count)s выбраных запісаў?"
+msgstr[2] "Канчаткова выдаліць %(count)s выбраныя запісы?"
 
 msgid "Delete %(count)s selected entry? It moves to the wastebasket."
 msgid_plural "Delete %(count)s selected entries? They move to the wastebasket."
@@ -1553,7 +1554,7 @@ msgid "Delete page"
 msgstr "Выдаліць старонку"
 
 msgid "Delete password"
-msgstr "Выдаліць пароль"
+msgstr "Delete password"
 
 msgid "Delete permanently"
 msgstr "Выдаліць канчаткова"
@@ -1692,9 +1693,6 @@ msgstr "Спампаваць дапаможнік"
 
 msgid "Download manual version %(version)s"
 msgstr "Спампаваць дапаможнік версіі %(version)s"
-
-msgid "Download version %(version)s …"
-msgstr "Спампаваць версію %(version)s …"
 
 msgid "Drag the attachment area up or down"
 msgstr "Перацягніце вобласць далучэнняў уверх або ўніз"
@@ -2077,7 +2075,7 @@ msgid "From"
 msgstr "Ад"
 
 msgid "From the Windows Contacts folder"
-msgstr "З папкі кантактаў Windows"
+msgstr "З папкі «Кантакты Windows»"
 
 msgid "Full"
 msgstr "Поўны"
@@ -2332,6 +2330,16 @@ msgstr "Увод"
 
 msgid "Insert link"
 msgstr "Уставіць спасылку"
+
+msgid ""
+"Install version %(version)s now? All changes will be saved. The Organizer "
+"will close and restart after the installation."
+msgstr ""
+"Усталяваць версію %(version)s зараз? Усе змены будуць захаваны. Арганайзер "
+"закрыецца і перазапусціцца пасля ўсталявання."
+
+msgid "Install version %(version)s …"
+msgstr "Усталяваць версію %(version)s …"
 
 msgid "Installed manual version: %(version)s."
 msgstr "Усталяваная ручная версія: %(version)s."
@@ -2602,6 +2610,9 @@ msgstr "Пазначыць як адкрытае"
 
 msgid "Maximized"
 msgstr "Разгорнутае"
+
+msgid "Maximum recovery snapshots"
+msgstr "Максімальная колькасць пунктаў аднаўлення"
 
 msgid "Measurement context"
 msgstr "Кантэкст вымярэння"
@@ -2895,6 +2906,9 @@ msgstr "Адрас Bluetooth выбраны не быў."
 msgid "No KDE Connect pairing is awaiting confirmation."
 msgstr "Ніякае спалучэнне KDE Connect не чакае пацверджання."
 
+msgid "No address books found."
+msgstr "Адрасныя кнігі не знойдзены."
+
 msgid ""
 "No anniversaries yet.\n"
 "Birthdays and celebrations will automatically appear in the calendar."
@@ -3184,6 +3198,9 @@ msgstr ""
 "Кантакты і сустрэчы можна імпартаваць і без гэтай інтэграцыі праз «З гэтага "
 "камп’ютара» вышэй."
 
+msgid "Online address book"
+msgstr "Анлайн-адрасная кніга"
+
 msgid "Online via Bluetooth data"
 msgstr "Анлайн праз дадзеныя Bluetooth"
 
@@ -3320,11 +3337,11 @@ msgstr "Іншае"
 
 msgctxt "email type"
 msgid "Other"
-msgstr "Іншае"
+msgstr "Іншы"
 
 msgctxt "relationship"
 msgid "Other"
-msgstr "Іншае"
+msgstr "Іншыя адносіны"
 
 msgid "Other addresses"
 msgstr "Іншыя адрасы"
@@ -3442,13 +3459,13 @@ msgid "Permanently delete %(count)s completed task?"
 msgid_plural "Permanently delete %(count)s completed tasks?"
 msgstr[0] "Назаўсёды выдаліць %(count)s выкананую задачу?"
 msgstr[1] "Назаўсёды выдаліць %(count)s выкананыя задачы?"
-msgstr[2] "Назаўсёды выдаліць %(count)s выкананых задач?"
+msgstr[2] "Назаўсёды выдаліць %(count)s выкананыя задачы?"
 
 msgid "Permanently delete %(count)s selected health record?"
 msgid_plural "Permanently delete %(count)s selected health records?"
 msgstr[0] "Назаўсёды выдаліць %(count)s выбраны запіс пра здароўе?"
 msgstr[1] "Назаўсёды выдаліць %(count)s выбраныя запісы пра здароўе?"
-msgstr[2] "Назаўсёды выдаліць %(count)s выбраных запісаў пра здароўе?"
+msgstr[2] "Назаўсёды выдаліць %(count)s выбраныя запісы пра здароўе?"
 
 msgid "Permanently delete selected health records"
 msgstr "Назаўсёды выдаліць выбраныя запісы пра здароўе"
@@ -3705,7 +3722,7 @@ msgid "Queue: %(open)s of %(count)s transmission awaits delivery."
 msgid_plural "Queue: %(open)s of %(count)s transmissions await delivery."
 msgstr[0] "Чарга: %(open)s з %(count)s перадачы чакае дастаўкі."
 msgstr[1] "Чарга: %(open)s з %(count)s перадачы чакаюць дастаўкі."
-msgstr[2] "Чарга: %(open)s з %(count)s перадач чакаюць дастаўкі."
+msgstr[2] "Чарга: %(open)s з %(count)s перадачы чакаюць дастаўкі."
 
 msgid "Queued"
 msgstr "У чарзе"
@@ -3717,7 +3734,7 @@ msgid "Reachable IPv4 or IPv6 address of this computer"
 msgstr "Даступны адрас IPv4 або IPv6 гэтага камп’ютара"
 
 msgid "Ready."
-msgstr "Гатова."
+msgstr "Ready."
 
 msgid ""
 "Really merge %(cards)s? Review the result carefully afterwards. A copy of "
@@ -4018,13 +4035,13 @@ msgid "Saved to: %(path)s (%(count)s entry)"
 msgid_plural "Saved to: %(path)s (%(count)s entries)"
 msgstr[0] "Захавана ў: %(path)s (%(count)s запіс)"
 msgstr[1] "Захавана ў: %(path)s (%(count)s запісы)"
-msgstr[2] "Захавана ў: %(path)s (%(count)s запісаў)"
+msgstr[2] "Захавана ў: %(path)s (%(count)s запісы)"
 
 msgid "Saved ✓ %(time)s"
 msgstr "Захавана ✓ %(time)s"
 
 msgid "Saved."
-msgstr "Захавана."
+msgstr "Saved."
 
 msgid "Saving failed!"
 msgstr "Не ўдалося захаваць!"
@@ -4157,10 +4174,13 @@ msgid "Sent"
 msgstr "Адпраўлена"
 
 msgid "Server address"
-msgstr "Адрас сервера"
+msgstr "Server address"
 
 msgid "Server address and user name are required."
 msgstr "Патрэбны адрас сервера і імя карыстальніка."
+
+msgid "Set up contacts"
+msgstr "Наладзіць кантакты"
 
 msgid "Set varying doses by weekday"
 msgstr "Задаць розныя дозы паводле дзён тыдня"
@@ -4390,7 +4410,7 @@ msgid "Suppository"
 msgstr "Супазіторый"
 
 msgid "Switched off."
-msgstr "Выключана."
+msgstr "Switched off."
 
 msgid "Switzerland"
 msgstr "Швейцарыя"
@@ -4507,10 +4527,10 @@ msgid "Temperature"
 msgstr "Тэмпература"
 
 msgid "Test connection"
-msgstr "Праверыць злучэнне"
+msgstr "Test connection"
 
 msgid "Testing…"
-msgstr "Праверка …"
+msgstr "Testing…"
 
 msgid "Text color"
 msgstr "Колер тэксту"
@@ -4598,9 +4618,6 @@ msgstr ""
 "Папка Windows Contacts сінхранізуецца ў двух напрамках на старонцы "
 "сінхранізацыі. Імпарт файлаў не змяняе іх зыходныя файлы; існуючыя запісы не "
 "дадаюцца двойчы."
-
-msgid "The Windows entry in the update information is invalid."
-msgstr "Запіс Windows у інфармацыі аб абнаўленні несапраўдны."
 
 msgid "The address could not be opened."
 msgstr "Не ўдалося адкрыць адрас."
@@ -4838,23 +4855,14 @@ msgstr "Кіраўніцтва ўсталявана; яго версія нев�
 msgid "The manual is up to date."
 msgstr "Інструкцыя абноўленая."
 
-msgid "The manual package checksum does not match."
-msgstr "Праверка кантрольнай сумы рэжымнага пакета не супадае."
-
 msgid "The manual package could not be opened."
 msgstr "Не ўдалося адкрыць пакет дапаможніка."
-
-msgid "The manual package is unexpectedly large."
-msgstr "Рукапісьны пакет нечакана вялікі."
 
 msgid "The manual update check failed."
 msgstr "Ручная праверка абнаўлення не ўдалася."
 
 msgid "The manual update information is invalid."
 msgstr "Інфармацыя аб ручным абнаўленні недапушчальная."
-
-msgid "The manual update information is missing."
-msgstr "Інфармацыя аб абнаўленні ўручную адсутнічае."
 
 msgid "The message is too large."
 msgstr "Паведамленне занадта вялікае."
@@ -5103,18 +5111,12 @@ msgstr "Два новыя паролі не супадаюць."
 msgid "The update check failed."
 msgstr "Не ўдалося праверыць абнаўленні."
 
-msgid "The update information is unexpectedly large."
-msgstr "Звесткі пра абнаўленне нечакана вялікія."
-
 msgid "The user data could not be read."
 msgstr "Не ўдалося прачытаць даныя карыстальніка."
 
 msgid "The value is outside the general green reference range."
 msgstr ""
 "Значэнне знаходзіцца па-за межамі агульнага зялёнага рэферэнтнага дыяпазону."
-
-msgid "The verified installer could not be opened."
-msgstr "Не ўдалося адкрыць правераную праграму ўстаноўкі."
 
 msgid ""
 "The weather service estimated the location from your public IP address. Your "
@@ -5508,7 +5510,7 @@ msgid "Use the recycle bin"
 msgstr "Выкарыстоўваць сметніцу"
 
 msgid "User name"
-msgstr "Імя карыстальніка"
+msgstr "User name"
 
 msgid ""
 "Uses its own identity and storage and listens only on fixed port %(port)s. "
@@ -5721,6 +5723,12 @@ msgstr ""
 "яны адкрываюць паштовую праграму."
 
 msgid ""
+"When the limit is lowered, the oldest recovery snapshots are removed "
+"automatically."
+msgstr ""
+"Пры памяншэнні ліміту найстарэйшыя пункты аднаўлення аўтаматычна выдаляюцца."
+
+msgid ""
 "When writing a note, a small toolbar above the sheet provides bold, italic, "
 "underline and strikethrough. The same formatting is available with Ctrl+B, "
 "Ctrl+I, Ctrl+U and Ctrl+D."
@@ -5728,6 +5736,9 @@ msgstr ""
 "Падчас напісання нататкі невялікая панэль інструментаў над аркушам дазваляе "
 "ўжыць тлусты шрыфт, курсіў, падкрэсліванне і закрэсліванне. Тое самае "
 "фарматаванне даступнае праз Ctrl+B, Ctrl+I, Ctrl+U і Ctrl+D."
+
+msgid "Where are your contacts now?"
+msgstr "Дзе зараз знаходзяцца вашы кантакты?"
 
 msgid "Whole month"
 msgstr "Увесь месяц"
@@ -5816,6 +5827,9 @@ msgstr "Так, аб’яднаць"
 
 msgid "Yes, the code matches"
 msgstr "Так, код супадае"
+
+msgid "You can also do this later in Settings."
+msgstr "Гэта таксама можна зрабіць пазней у наладах."
 
 msgid "Your address"
 msgstr "Ваш адрас"
@@ -6027,7 +6041,7 @@ msgid "in %(count)s day"
 msgid_plural "in %(count)s days"
 msgstr[0] "праз %(count)s дзень"
 msgstr[1] "праз %(count)s дні"
-msgstr[2] "праз %(count)s дзён"
+msgstr[2] "праз %(count)s дні"
 
 msgid "keep here"
 msgstr "пакінуць тут"
@@ -6063,7 +6077,7 @@ msgid "notification %(count)s minute before"
 msgid_plural "notification %(count)s minutes before"
 msgstr[0] "апавяшчэнне за %(count)s хвіліну"
 msgstr[1] "апавяшчэнне за %(count)s хвіліны"
-msgstr[2] "апавяшчэнне за %(count)s хвілін"
+msgstr[2] "апавяшчэнне за %(count)s хвіліны"
 
 msgid "on the day only"
 msgstr "толькі ў сам дзень"
@@ -6221,13 +6235,10 @@ msgid "… and %(count)s more item that will also be printed."
 msgid_plural "… and %(count)s more items that will also be printed."
 msgstr[0] "… і яшчэ %(count)s элемент, які таксама будзе надрукаваны."
 msgstr[1] "… і яшчэ %(count)s элементы, якія таксама будуць надрукаваны."
-msgstr[2] "… і яшчэ %(count)s элементаў, якія таксама будуць надрукаваны."
+msgstr[2] "… і яшчэ %(count)s элементы, якія таксама будуць надрукаваны."
 
 msgid "＋ Add appointment"
 msgstr "＋ Дадаць сустрэчу"
-
-#~ msgid "Reset"
-#~ msgstr "Reset"
 
 msgid "Language & region"
 msgstr "Мова і рэгіён"

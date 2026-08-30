@@ -1,7 +1,8 @@
 # SOME DESCRIPTIVE TITLE.
-# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
-# This file is distributed under the same license as the Magnolie Organizer package.
-# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+# Copyright (C) 2026 THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the Magnolie Organizer
+# package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
 #
 msgid ""
 msgstr ""
@@ -617,7 +618,7 @@ msgid "Answer calls on the computer and talk"
 msgstr "Rispondi alle chiamate sul computer e parla"
 
 msgid "App password"
-msgstr "Password per applicazioni"
+msgstr "App password"
 
 msgid "Appearance"
 msgstr "Aspetto"
@@ -1541,7 +1542,7 @@ msgid "Delete page"
 msgstr "Elimina pagina"
 
 msgid "Delete password"
-msgstr "Elimina password"
+msgstr "Delete password"
 
 msgid "Delete permanently"
 msgstr "Elimina definitivamente"
@@ -1681,9 +1682,6 @@ msgstr "Scarica manuale"
 
 msgid "Download manual version %(version)s"
 msgstr "Scarica la versione %(version)s del manuale"
-
-msgid "Download version %(version)s …"
-msgstr "Scarica versione %(version)s …"
 
 msgid "Drag the attachment area up or down"
 msgstr "Trascina l’area degli allegati verso l’alto o il basso"
@@ -2329,6 +2327,16 @@ msgstr "Input"
 msgid "Insert link"
 msgstr "Inserisci collegamento"
 
+msgid ""
+"Install version %(version)s now? All changes will be saved. The Organizer "
+"will close and restart after the installation."
+msgstr ""
+"Installare ora la versione %(version)s? Tutte le modifiche verranno salvate. "
+"Organizer verrà chiuso e riavviato dopo l'installazione."
+
+msgid "Install version %(version)s …"
+msgstr "Installa la versione %(version)s …"
+
 msgid "Installed manual version: %(version)s."
 msgstr "Versione installata del manuale: %(version)s."
 
@@ -2599,6 +2607,9 @@ msgstr "Segna come aperta"
 
 msgid "Maximized"
 msgstr "Massimizzata"
+
+msgid "Maximum recovery snapshots"
+msgstr "Numero massimo di punti di ripristino"
 
 msgid "Measurement context"
 msgstr "Contesto della misurazione"
@@ -2893,6 +2904,9 @@ msgstr "Non è stato selezionato alcun indirizzo Bluetooth."
 msgid "No KDE Connect pairing is awaiting confirmation."
 msgstr "Nessun abbinamento KDE Connect in attesa di conferma."
 
+msgid "No address books found."
+msgstr "Nessuna rubrica trovata."
+
 msgid ""
 "No anniversaries yet.\n"
 "Birthdays and celebrations will automatically appear in the calendar."
@@ -3185,6 +3199,9 @@ msgstr ""
 "Installala con:  sudo apt install %(packages)s, quindi riavvia "
 "l’applicazione. Puoi anche importare contatti e appuntamenti senza questa "
 "integrazione usando «Da questo computer» qui sopra."
+
+msgid "Online address book"
+msgstr "Rubrica online"
 
 msgid "Online via Bluetooth data"
 msgstr "Online tramite dati Bluetooth"
@@ -3723,7 +3740,7 @@ msgid "Reachable IPv4 or IPv6 address of this computer"
 msgstr "Indirizzo IPv4 o IPv6 raggiungibile di questo computer"
 
 msgid "Ready."
-msgstr "Pronto."
+msgstr "Ready."
 
 msgid ""
 "Really merge %(cards)s? Review the result carefully afterwards. A copy of "
@@ -4036,7 +4053,7 @@ msgid "Saved ✓ %(time)s"
 msgstr "Salvato ✓ %(time)s"
 
 msgid "Saved."
-msgstr "Salvato."
+msgstr "Saved."
 
 msgid "Saving failed!"
 msgstr "Salvataggio non riuscito!"
@@ -4171,10 +4188,13 @@ msgid "Sent"
 msgstr "Inviato"
 
 msgid "Server address"
-msgstr "Indirizzo del server"
+msgstr "Server address"
 
 msgid "Server address and user name are required."
 msgstr "Sono necessari l’indirizzo del server e il nome utente."
+
+msgid "Set up contacts"
+msgstr "Configura i contatti"
 
 msgid "Set varying doses by weekday"
 msgstr "Imposta dosi diverse in base al giorno della settimana"
@@ -4406,7 +4426,7 @@ msgid "Suppository"
 msgstr "Supposta"
 
 msgid "Switched off."
-msgstr "Disattivato."
+msgstr "Switched off."
 
 msgid "Switzerland"
 msgstr "Svizzera"
@@ -4525,10 +4545,10 @@ msgid "Temperature"
 msgstr "Temperatura"
 
 msgid "Test connection"
-msgstr "Prova connessione"
+msgstr "Test connection"
 
 msgid "Testing…"
-msgstr "Verifica in corso …"
+msgstr "Testing…"
 
 msgid "Text color"
 msgstr "Colore del testo"
@@ -4617,9 +4637,6 @@ msgstr ""
 "La cartella Contatti di Windows viene sincronizzata in modo bidirezionale "
 "nella pagina di sincronizzazione. Le importazioni di file non modificano i "
 "file di origine; le voci esistenti non vengono aggiunte due volte."
-
-msgid "The Windows entry in the update information is invalid."
-msgstr "La voce Windows nelle informazioni sull'aggiornamento non è valida."
 
 msgid "The address could not be opened."
 msgstr "Impossibile aprire l'indirizzo."
@@ -4863,23 +4880,14 @@ msgstr "Il manuale è installato; la versione è sconosciuta."
 msgid "The manual is up to date."
 msgstr "Il manuale è aggiornato."
 
-msgid "The manual package checksum does not match."
-msgstr "Il checksum del pacchetto del manuale non corrisponde."
-
 msgid "The manual package could not be opened."
 msgstr "Impossibile aprire il pacchetto del manuale."
-
-msgid "The manual package is unexpectedly large."
-msgstr "Il pacchetto del manuale è inaspettatamente grande."
 
 msgid "The manual update check failed."
 msgstr "Controllo degli aggiornamenti del manuale non riuscito."
 
 msgid "The manual update information is invalid."
 msgstr "Le informazioni di aggiornamento del manuale non sono valide."
-
-msgid "The manual update information is missing."
-msgstr "Mancano le informazioni sull'aggiornamento manuale."
 
 msgid "The message is too large."
 msgstr "Il messaggio è troppo grande."
@@ -5136,17 +5144,11 @@ msgstr "Le due nuove password non coincidono."
 msgid "The update check failed."
 msgstr "Controllo degli aggiornamenti non riuscito."
 
-msgid "The update information is unexpectedly large."
-msgstr "Le informazioni sull’aggiornamento sono insolitamente grandi."
-
 msgid "The user data could not be read."
 msgstr "Impossibile leggere i dati utente."
 
 msgid "The value is outside the general green reference range."
 msgstr "Il valore non rientra nell’intervallo di riferimento generale verde."
-
-msgid "The verified installer could not be opened."
-msgstr "Impossibile aprire il programma di installazione verificato."
 
 msgid ""
 "The weather service estimated the location from your public IP address. Your "
@@ -5546,7 +5548,7 @@ msgid "Use the recycle bin"
 msgstr "Usa il cestino"
 
 msgid "User name"
-msgstr "Nome utente"
+msgstr "User name"
 
 msgid ""
 "Uses its own identity and storage and listens only on fixed port %(port)s. "
@@ -5761,6 +5763,13 @@ msgstr ""
 "contatto sono sempre selezionabili e aprono l’applicazione di posta."
 
 msgid ""
+"When the limit is lowered, the oldest recovery snapshots are removed "
+"automatically."
+msgstr ""
+"Quando il limite viene ridotto, i punti di ripristino più vecchi vengono "
+"rimossi automaticamente."
+
+msgid ""
 "When writing a note, a small toolbar above the sheet provides bold, italic, "
 "underline and strikethrough. The same formatting is available with Ctrl+B, "
 "Ctrl+I, Ctrl+U and Ctrl+D."
@@ -5768,6 +5777,9 @@ msgstr ""
 "Quando scrivi una nota, una piccola barra degli strumenti sopra il foglio "
 "offre grassetto, corsivo, sottolineato e barrato. La stessa formattazione è "
 "disponibile con Ctrl+B, Ctrl+I, Ctrl+U e Ctrl+D."
+
+msgid "Where are your contacts now?"
+msgstr "Dove si trovano ora i suoi contatti?"
 
 msgid "Whole month"
 msgstr "Mese intero"
@@ -5855,6 +5867,9 @@ msgstr "Sì, unisci"
 
 msgid "Yes, the code matches"
 msgstr "Sì, il codice coincide"
+
+msgid "You can also do this later in Settings."
+msgstr "Può farlo anche in seguito nelle Impostazioni."
 
 msgid "Your address"
 msgstr "Il tuo indirizzo"
@@ -5945,7 +5960,7 @@ msgid "blood-glucose"
 msgstr "blood-glucose"
 
 msgid "browser storage"
-msgstr "browser storage"
+msgstr "archiviazione del browser"
 
 msgid "confidential"
 msgstr "riservato"
@@ -6259,9 +6274,6 @@ msgstr[1] "… e %(count)s altri elementi che verranno anch’essi stampati."
 
 msgid "＋ Add appointment"
 msgstr "＋ Aggiungi appuntamento"
-
-#~ msgid "Reset"
-#~ msgstr "Reset"
 
 msgid "Language & region"
 msgstr "Lingua e area geografica"

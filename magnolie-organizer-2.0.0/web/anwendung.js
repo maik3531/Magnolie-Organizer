@@ -101,7 +101,7 @@ const FASSUNG = "2.0.13";
   let unterWayland = false;
   let trayVerfuegbar = false;
   let sicherungWahl = null;
-  let journalStand = { snapshots: [], interval: "weekly", last: "", next: "" };
+  let journalStand = { snapshots: [], interval: "weekly", maximum: 20, last: "", next: "" };
   /* Der Journalstand wird genau einmal je geoeffnetem Einstellungsfenster
      angefordert. Ohne diese Sperre fordert jeder Aufbau der Sicherheitsseite
      erneut an, die Antwort baut die Seite erneut auf und der Reiter flackert
@@ -173,7 +173,8 @@ const FASSUNG = "2.0.13";
       einstellungen: { sync: { kalenderUid: "", kalenderUids: [],
           adressbuchUid: "", beimStart: false, kdeEmpfang: { dateien: false,
             zwischenablage: false,
-            zwischenablageAutomatisch: false, geraetId: "", ordner: "" } },
+            zwischenablageAutomatisch: false, ordnerBeiAnnahme: false,
+            geraetId: "", ordner: "" } },
         ort: { land: "", landName: "", region: "", regionName: "",
           alleRegionen: false, ferien: true, abgerufen: 0, jahre: [] },
         allgemein: { drucken: true, hilfsrahmen: false, kalenderAuswahl: false,
@@ -181,7 +182,9 @@ const FASSUNG = "2.0.13";
           wetterDarstellung: "temperature", wetterIntervall: 180,
           wetterOhneOrtAbrufen: true,
           sicherungsordner: "", wiederherstellungsintervall: "weekly",
+          wiederherstellungsanzahl: 20,
           wiederherstellungsstatus: "", handbuchHinweisGezeigt: false,
+          kontaktErsteinrichtungVersion: 1,
           notizAnhangHoehe: 200, contributorFreigeschaltet: false,
           registerkarten: { aufgaben: true, adressen: true, notizen: true,
             jahrestage: true, planer: true, gesundheit: true },
@@ -4168,6 +4171,7 @@ const FASSUNG = "2.0.13";
       dateien: kdeEmpfang.dateien === true,
       zwischenablage: kdeEmpfang.zwischenablage === true,
       zwischenablageAutomatisch: kdeEmpfang.zwischenablageAutomatisch === true,
+      ordnerBeiAnnahme: kdeEmpfang.ordnerBeiAnnahme === true,
       geraetId: S(kdeEmpfang.geraetId).replace(/[\x00-\x1f\x7f]/g, "").slice(0, 160),
       ordner: S(kdeEmpfang.ordner).replace(/[\x00-\x1f\x7f]/g, "").slice(0, 4096)
     };
@@ -4284,9 +4288,13 @@ const FASSUNG = "2.0.13";
     d.einstellungen.allgemein.wiederherstellungsintervall =
       ["off", "6h", "12h", "daily", "weekly"].includes(al.wiederherstellungsintervall)
         ? al.wiederherstellungsintervall : "weekly";
+    d.einstellungen.allgemein.wiederherstellungsanzahl =
+      Math.max(1, Math.min(100, Math.round(Number(al.wiederherstellungsanzahl) || 20)));
     d.einstellungen.allgemein.wiederherstellungsstatus = S(al.wiederherstellungsstatus);
     d.einstellungen.allgemein.handbuchHinweisGezeigt =
       !!al.handbuchHinweisGezeigt;
+    d.einstellungen.allgemein.kontaktErsteinrichtungVersion =
+      al.kontaktErsteinrichtungVersion === 0 ? 0 : 1;
     d.einstellungen.allgemein.contributorFreigeschaltet =
       !!al.contributorFreigeschaltet;
     d.einstellungen.allgemein.notizAnhangHoehe =
@@ -11091,7 +11099,8 @@ const FASSUNG = "2.0.13";
     kopf.append(kopfText);
     karte.append(kopf);
 
-    anschriftListe(k).forEach((anschrift, index) => {
+    const anschriften = anschriftListe(k);
+    anschriften.forEach((anschrift, index) => {
       const block = el("div", "k-block");
       block.append(el("div", "k-label", anschriftBezeichnung(anschrift, index)));
       if (anschrift.strasse) block.append(el("div", "k-wert", anschrift.strasse));
@@ -11145,11 +11154,11 @@ const FASSUNG = "2.0.13";
 
     const wege = el("div", "k-wege");
     const ea = DATEN.einstellungen.adressen;
-    if (ea.brief) {
+    if (ea.brief && anschriften.length) {
       wege.append(bildknopf("brief", _("Letter"), () => schreibeBrief(k),
         _("Open this address as a letter in LibreOffice")));
     }
-    if (ea.karte) {
+    if (ea.karte && anschriften.length) {
       wege.append(bildknopf("karte", ea.route ? _("Route") : _("Map"),
         () => zeigeKarte(k),
         ea.route ? _("Calculate the route to this address")
@@ -15154,7 +15163,121 @@ const FASSUNG = "2.0.13";
   let handbuchStatus = "ungeprueft";
   let handbuchFehler = "";
   let handbuchHinweisAusstehend = false;
+  let kontaktAssistentAusstehend = false;
+  let kontaktAssistentSchleier = null;
+  let kontaktAssistentQuellenSeite = null;
   let handbuchDownload = { version: "", url: "", sha256: "" };
+
+  function kontaktAssistentAbschliessen(aktion) {
+    if (!kontaktAssistentSchleier) return;
+    kontaktAssistentSchleier.querySelectorAll("button").forEach((button) => {
+      button.disabled = true;
+    });
+    const status = kontaktAssistentSchleier.querySelector(".einst-hinweis");
+    if (status) status.textContent = _("Saving …");
+    kontaktAssistentQuellenSeite = null;
+    DATEN.einstellungen.allgemein.kontaktErsteinrichtungVersion = 1;
+    nachDauerhaftemSpeichern(() => {
+      if (!kontaktAssistentSchleier) return;
+      beendeModal(kontaktAssistentSchleier);
+      kontaktAssistentSchleier.remove();
+      kontaktAssistentSchleier = null;
+      kontaktAssistentAusstehend = false;
+      if (aktion) aktion();
+    });
+  }
+
+  function kontaktAssistentSpeicherFehler(fehler) {
+    if (!kontaktAssistentSchleier) return;
+    DATEN.einstellungen.allgemein.kontaktErsteinrichtungVersion = 0;
+    kontaktAssistentAusstehend = true;
+    kontaktAssistentSchleier.querySelectorAll("button").forEach((button) => {
+      button.disabled = false;
+    });
+    const status = kontaktAssistentSchleier.querySelector(".einst-hinweis");
+    if (status) status.textContent = fehler || _("Warning: The data could not be saved.");
+  }
+
+  function zeigeKontaktAssistent() {
+    if (!kontaktAssistentAusstehend || kontaktAssistentSchleier ||
+        handbuchHinweisAusstehend) return false;
+    const schleier = el("div", "eingabe-schleier kontakt-assistent-schleier");
+    const dialog = el("section", "eingabe-dialog kontakt-assistent");
+    dialog.setAttribute("role", "dialog");
+    dialog.setAttribute("aria-modal", "true");
+    dialog.setAttribute("aria-labelledby", "kontakt-assistent-titel");
+    dialog.setAttribute("aria-describedby", "kontakt-assistent-frage kontakt-assistent-hinweis");
+    const titel = el("h2", null, _("Set up contacts"));
+    titel.id = "kontakt-assistent-titel";
+    const frageText = el("p", "kontakt-assistent-frage", _("Where are your contacts now?"));
+    frageText.id = "kontakt-assistent-frage";
+    const hinweis = el("p", "einst-hinweis", _("You can also do this later in Settings."));
+    hinweis.id = "kontakt-assistent-hinweis";
+    const auswahl = el("div", "kontakt-assistent-auswahl");
+    const fuss = el("div", "kontakt-assistent-fuss");
+    dialog.append(titel, frageText, hinweis, auswahl, fuss);
+    schleier.append(dialog);
+    document.body.append(schleier);
+    kontaktAssistentSchleier = schleier;
+
+    const beenden = (aktion) => kontaktAssistentAbschliessen(aktion);
+    const zeigeAdressbuecher = (fokusSetzen = true) => {
+      kontaktAssistentQuellenSeite = () => zeigeAdressbuecher(false);
+      frageText.textContent = _("Address book");
+      auswahl.textContent = "";
+      fuss.textContent = "";
+      const status = letzterEdsStatus || {};
+      const buecher = (status.alleAdressbuecher || status.adressbuecher || [])
+        .filter((buch) => buch.art !== "lokal");
+      for (const buch of buecher) {
+        const anbieter = buch.art === "graph" ? "Microsoft 365" :
+          (buch.art === "nextcloud-carddav" || String(buch.uid || "").startsWith("nextcloud-"))
+            ? "Nextcloud" : "Evolution Data Server";
+        auswahl.append(knopf((buch.name || _("Address book")) + " — " + anbieter,
+          "kontakt-assistent-knopf", () => {
+          DATEN.einstellungen.sync.adressbuchUid = buch.uid;
+          DATEN.einstellungen.sync.beimStart = true;
+          beenden(() => starteSync(false));
+          }));
+      }
+      if (!buecher.length) {
+        const quellenStatus = el("p", "einst-hinweis",
+          letzterEdsStatus ? _("No address books found.") : _("Checking online accounts …"));
+        quellenStatus.setAttribute("role", "status");
+        quellenStatus.setAttribute("aria-live", "polite");
+        auswahl.append(quellenStatus);
+      }
+      auswahl.append(knopf(_("Synchronization"), "kontakt-assistent-knopf", () =>
+        beenden(() => { einstSeite = "sync"; oeffneEinstellungen(); })));
+      fuss.append(knopf(_("Cancel"), "", zeigeStart),
+        knopf(_("Not now"), "", () => beenden(null)));
+      if (fokusSetzen) auswahl.querySelector("button")?.focus();
+    };
+    const zeigeStart = () => {
+      kontaktAssistentQuellenSeite = null;
+      frageText.textContent = _("Where are your contacts now?");
+      auswahl.textContent = "";
+      fuss.textContent = "";
+      const lokalText = DATEN.einstellungen.sync.adressbuchUid === "windows-contacts"
+        ? _("From the Windows Contacts folder")
+        : _("From this computer (Evolution/Thunderbird)");
+      auswahl.append(
+        knopf(lokalText, "kontakt-assistent-knopf", () =>
+          beenden(() => starteImport("lokal", true))),
+        knopf(_("Contacts (.vcf) …"), "kontakt-assistent-knopf", () =>
+          beenden(() => starteImport("vcf"))),
+        knopf(_("Online address book"), "kontakt-assistent-knopf", zeigeAdressbuecher));
+      fuss.append(knopf(_("Not now"), "", () => beenden(null)));
+      auswahl.querySelector("button")?.focus();
+    };
+    zeigeStart();
+    registriereModal(schleier, dialog, {
+      anfang: auswahl.querySelector("button"),
+      schliessen: () => beenden(null)
+    });
+    if (Bruecke.vorhanden) Bruecke.sende({ cmd: "eds_status" });
+    return true;
+  }
 
   function oeffneHandbuch() {
     if (!Bruecke.vorhanden || !handbuchInstalliert) {
@@ -15197,6 +15320,7 @@ const FASSUNG = "2.0.13";
       "It is disabled by default; press Ctrl+Alt+H at any time to switch it on " +
       "or off.")).then((oeffnen) => {
       if (oeffnen) (installiert ? oeffneHandbuch() : oeffneHandbuchDownload());
+      setTimeout(zeigeKontaktAssistent, 0);
     });
     return true;
   }
@@ -15710,6 +15834,22 @@ const FASSUNG = "2.0.13";
       Bruecke.sende({ cmd: "journal_intervall", intervall: intervall.value });
     });
     abs.append(formZeile(_("Snapshot interval"), intervall));
+    const anzahl = eingabe("number", String(
+      journalStand.maximum || DATEN.einstellungen.allgemein.wiederherstellungsanzahl));
+    anzahl.id = "journal-anzahl";
+    anzahl.min = "1";
+    anzahl.max = "100";
+    anzahl.step = "1";
+    anzahl.addEventListener("change", () => {
+      const maximum = Math.max(1, Math.min(100, Math.round(Number(anzahl.value) || 20)));
+      anzahl.value = String(maximum);
+      DATEN.einstellungen.allgemein.wiederherstellungsanzahl = maximum;
+      planeSpeichern();
+      Bruecke.sende({ cmd: "journal_anzahl", maximum: maximum });
+    });
+    abs.append(formZeile(_("Maximum recovery snapshots"), anzahl));
+    abs.append(el("p", "einst-hinweis",
+      _("When the limit is lowered, the oldest recovery snapshots are removed automatically.")));
     abs.append(el("p", "einst-hinweis", _("Last snapshot") + ": " + journalDatum(journalStand.last) +
       " · " + _("Next snapshot") + ": " + journalDatum(journalStand.next)));
     if (journalStand.status && !["ok", "off", "due", "scheduled"].includes(journalStand.status)) {
@@ -15928,6 +16068,7 @@ const FASSUNG = "2.0.13";
       kde_clipboard_enabled: quelle.kde_clipboard_enabled === true,
       kde_clipboard_mode: quelle.kde_clipboard_mode === "automatic" ? "automatic" : "confirm",
       kde_file_enabled: quelle.kde_file_enabled === true,
+      kde_choose_directory: quelle.kde_choose_directory === true,
       kde_legacy_migrated: quelle.kde_legacy_migrated === true,
       kde_receive_managed: quelle.kde_receive_managed === true };
     backgroundStand = Object.assign({}, backgroundStand || {}, settings);
@@ -15943,6 +16084,7 @@ const FASSUNG = "2.0.13";
     Bruecke.sende({ cmd: "kde_receive_settings", deviceId: empfang.geraetId,
       files: empfang.dateien, clipboard: empfang.zwischenablage,
       clipboardAutomatic: empfang.zwischenablageAutomatisch,
+      chooseDirectory: empfang.ordnerBeiAnnahme,
       directory: empfang.ordner });
   }
   const anrufFreigabenAusstehend = new Map();
@@ -17015,6 +17157,15 @@ const FASSUNG = "2.0.13";
     kdeBlock.append(el("h4", null, _("Receive with KDE Connect")),
       el("p", "einst-hinweis", _("Incoming files are always confirmed. Clipboard text is confirmed unless automatic acceptance is explicitly enabled.")));
     empfangOption(_("Receive files in Downloads"), "dateien");
+    const ordnerBeiAnnahme = document.createElement("input");
+    ordnerBeiAnnahme.type = "checkbox";
+    ordnerBeiAnnahme.id = "kde-empfang-ordner-bei-annahme";
+    ordnerBeiAnnahme.checked = !!empfang.ordnerBeiAnnahme;
+    ordnerBeiAnnahme.disabled = !empfangMoeglich || !empfang.dateien;
+    const ordnerBeiAnnahmeZeile = el("label", "hak hak-eingerueckt");
+    ordnerBeiAnnahmeZeile.append(ordnerBeiAnnahme,
+      document.createTextNode(" " + _("Choose the save location for each accepted file")));
+    kdeBlock.append(ordnerBeiAnnahmeZeile);
     const ordnerPfad = eingabe("text", empfang.ordner || "");
     ordnerPfad.id = "kde-empfangsordner";
     ordnerPfad.readOnly = true;
@@ -17025,20 +17176,30 @@ const FASSUNG = "2.0.13";
       if (!Bruecke.vorhanden) return zettel(_("Folder selection is available only in the installed application."));
       Bruecke.sende({ cmd: "kde_empfangsordner_waehlen", pfad: empfang.ordner || "" });
     });
-    ordnerWaehlen.disabled = !empfangMoeglich || !empfang.dateien;
+    ordnerWaehlen.disabled = !empfangMoeglich || !empfang.dateien || empfang.ordnerBeiAnnahme;
     const ordnerStandard = knopf(_("Use default"), "klein", () => {
       empfang.ordner = "";
       ordnerPfad.value = "";
       ordnerStandard.disabled = true;
       kdeEmpfangSpeichern();
     });
-    ordnerStandard.disabled = !empfangMoeglich || !empfang.dateien || !empfang.ordner;
+    ordnerStandard.disabled = !empfangMoeglich || !empfang.dateien ||
+      empfang.ordnerBeiAnnahme || !empfang.ordner;
     ordnerReihe.append(ordnerPfad, ordnerWaehlen, ordnerStandard);
     kdeBlock.append(ordnerReihe);
     const dateiSchalter = kdeBlock.querySelector(".kde-empfang-option input");
     dateiSchalter.addEventListener("change", () => {
-      ordnerWaehlen.disabled = !empfangMoeglich || !dateiSchalter.checked;
-      ordnerStandard.disabled = !empfangMoeglich || !dateiSchalter.checked || !empfang.ordner;
+      ordnerBeiAnnahme.disabled = !empfangMoeglich || !dateiSchalter.checked;
+      ordnerWaehlen.disabled = !empfangMoeglich || !dateiSchalter.checked ||
+        ordnerBeiAnnahme.checked;
+      ordnerStandard.disabled = !empfangMoeglich || !dateiSchalter.checked ||
+        ordnerBeiAnnahme.checked || !empfang.ordner;
+    });
+    ordnerBeiAnnahme.addEventListener("change", () => {
+      empfang.ordnerBeiAnnahme = ordnerBeiAnnahme.checked;
+      ordnerWaehlen.disabled = ordnerBeiAnnahme.checked;
+      ordnerStandard.disabled = ordnerBeiAnnahme.checked || !empfang.ordner;
+      kdeEmpfangSpeichern();
     });
     empfangOption(_("Transfer received text to the clipboard"), "zwischenablage",
       "zwischenablageAutomatisch");
@@ -17095,10 +17256,13 @@ const FASSUNG = "2.0.13";
   }
 
   function baueSeiteUeber(wurzel) {
+    wurzel.classList.add("ueber-seite");
     const ab = abschnitt(_("About the Magnolie Organizer"), "");
     const raster = el("div", "ueber-raster");
     const links = el("div", "ueber-spalte");
     const rechts = el("div", "ueber-spalte");
+    links.classList.add("ueber-programmspalte");
+    rechts.classList.add("ueber-werkzeugspalte");
 
     const kopf = el("div", "ueber-kopf");
     const blume = document.createElementNS("http://www.w3.org/2000/svg", "svg");
@@ -17238,9 +17402,20 @@ const FASSUNG = "2.0.13";
     pruefen.disabled = !Bruecke.vorhanden || updateLaeuft;
     updateReihe.append(pruefen);
     if (istNeuereFassung(update.letzteVersion) && update.letzteUrl) {
-      const holen = knopf(uebersetzt("Download version %(version)s …",
+      const holen = knopf(uebersetzt("Install version %(version)s …",
         { version: update.letzteVersion }), "haupt", () => {
-        Bruecke.sende({ cmd: "update_oeffnen", url: update.letzteUrl });
+        frage(uebersetzt("Install version %(version)s now? All changes will be saved. " +
+          "The Organizer will close and restart after the installation.",
+          { version: update.letzteVersion }), _("Apply"), _("Cancel")).then((ja) => {
+          if (!ja) return;
+          navigiereMitGuard(() => {}).then((freigegeben) => {
+            if (!freigegeben) return;
+            nachDauerhaftemSpeichern(() => {
+              holen.disabled = true;
+              Bruecke.sende({ cmd: "update_herunterladen" });
+            });
+          });
+        });
       });
       holen.id = "update-herunterladen";
       holen.disabled = !Bruecke.vorhanden;
@@ -17965,7 +18140,7 @@ const FASSUNG = "2.0.13";
         (stand.native_actions_supported ? statusTeile : warnungsTeile).push(
           stand.native_actions_supported
             ? _("Notification actions available")
-            : _("Notification actions unavailable") + ". " + _("Start Organizer") + ".");
+            : _("Pairing, file and clipboard requests are confirmed in this window."));
       }
       statusTeile.push(stand.keyring_available
         ? _("System keyring available") : _("System keyring unavailable"));
@@ -18718,10 +18893,11 @@ const FASSUNG = "2.0.13";
     const weckZeile = el("label", "hak");
     weckZeile.append(weckHak,
       document.createTextNode(" " + _("Wake the computer from suspend")));
-    felder.append(weckZeile);
-    felder.append(el("p", "einst-hinweis",
+    const weckOption = el("div", "erinnerung-weckoption");
+    weckOption.append(weckZeile, el("p", "einst-hinweis",
       _("Not all systems allow waking from suspend. If it does not work, the " +
         "reminder appears as soon as the computer is running again.")));
+    felder.append(weckOption);
 
     /* Jahrestage */
     const jtHak = document.createElement("input");
@@ -19421,13 +19597,14 @@ const FASSUNG = "2.0.13";
     }
   }
 
-  function starteImport(art) {
+  function starteImport(art, nurKontakte = false) {
     if (!Bruecke.vorhanden) {
       zettel(_("Import is available only in the installed application."));
       return;
     }
     const senden = () => Bruecke.sende(art === "lokal"
-      ? { cmd: "import_lokal" } : { cmd: "import", art: art });
+      ? { cmd: "import_lokal", ...(nurKontakte ? { bereich: "kontakte" } : {}) }
+      : { cmd: "import", art: art });
     if (["lokal", "vcf", "claws"].includes(art)) {
       mitMutationsSnapshot("pre-contact-import", senden);
     } else senden();
@@ -20154,6 +20331,7 @@ const FASSUNG = "2.0.13";
         starteUpdatePruefung(true);
       }
     }, 450);
+    else if (kontaktAssistentAusstehend) setTimeout(zeigeKontaktAssistent, 450);
   }
 
   /* ---------------------------------------------------------------------- */
@@ -20387,9 +20565,16 @@ const FASSUNG = "2.0.13";
     const vorschau = zwischenablage ? String(angebot.text || "").slice(0, 500)
       : String(angebot.name || _("Unknown file")) + " · " + geraeteGroesse(angebot.size);
     frage(zwischenablage ? _("Copy this KDE Connect text to the clipboard?")
-      : _("Keep this KDE Connect file in Downloads?"), _("Accept"), _("Reject"), vorschau)
+      : (DATEN.einstellungen.sync.kdeEmpfang.ordnerBeiAnnahme
+        ? _("Accept this KDE Connect file?") : _("Keep this KDE Connect file in Downloads?")),
+      _("Accept"), _("Reject"), vorschau)
       .then((ja) => {
-        Bruecke.sende({ cmd: "kde_receive_decide", id: angebot.id, accept: ja });
+        if (ja && !zwischenablage && DATEN.einstellungen.sync.kdeEmpfang.ordnerBeiAnnahme) {
+          Bruecke.sende({ cmd: "kde_receive_ziel_waehlen", id: angebot.id,
+            pfad: DATEN.einstellungen.sync.kdeEmpfang.ordner || "" });
+        } else {
+          Bruecke.sende({ cmd: "kde_receive_decide", id: angebot.id, accept: ja });
+        }
         kdeEmpfangFrageAktiv = false;
         frageKdeEmpfang();
       });
@@ -20476,6 +20661,11 @@ const FASSUNG = "2.0.13";
       }
       handbuchHinweisAusstehend =
         !DATEN.einstellungen.allgemein.handbuchHinweisGezeigt;
+      if (nutzlast.echterErststart) {
+        DATEN.einstellungen.allgemein.kontaktErsteinrichtungVersion = 0;
+      }
+      kontaktAssistentAusstehend =
+        DATEN.einstellungen.allgemein.kontaktErsteinrichtungVersion === 0;
       if (unterWayland) DATEN.einstellungen.erinnerung.stil = "system";
       terminIndexVeraltet = true;
       jahrestagIndexVeraltet = true;
@@ -20505,7 +20695,8 @@ const FASSUNG = "2.0.13";
       if (nutzlast.migriert) {
         zettel(_("Your data from “Organizer Klassik” has been imported."));
       }
-      if (Bruecke.vorhanden && DATEN.einstellungen.sync.beimStart) {
+      if (Bruecke.vorhanden && DATEN.einstellungen.sync.beimStart &&
+          !kontaktAssistentAusstehend) {
         setTimeout(() => starteSync(true), 1500);
       }
       if (Bruecke.vorhanden) {
@@ -20513,6 +20704,7 @@ const FASSUNG = "2.0.13";
         Bruecke.sende({ cmd: "kde_receive_settings", deviceId: kdeEmpfang.geraetId,
           files: kdeEmpfang.dateien, clipboard: kdeEmpfang.zwischenablage,
           clipboardAutomatic: kdeEmpfang.zwischenablageAutomatisch,
+          chooseDirectory: kdeEmpfang.ordnerBeiAnnahme,
           directory: kdeEmpfang.ordner });
         setTimeout(() => starteUpdatePruefung(false), 1800);
       }
@@ -20536,6 +20728,7 @@ const FASSUNG = "2.0.13";
     edsStatus(nutzlast) {
       letzterEdsStatus = nutzlast || { verfuegbar: false };
       fuelleEdsAuswahl(letzterEdsStatus);
+      if (kontaktAssistentQuellenSeite) kontaktAssistentQuellenSeite();
     },
     baumBriefkastenStatus(nutzlast) {
       briefkastenStand = nutzlast || {};
@@ -20602,6 +20795,7 @@ const FASSUNG = "2.0.13";
         Bruecke.sende({ cmd: "kde_receive_settings", deviceId: kdePeerId,
           files: kdeEmpfang.dateien, clipboard: kdeEmpfang.zwischenablage,
           clipboardAutomatic: kdeEmpfang.zwischenablageAutomatisch,
+          chooseDirectory: kdeEmpfang.ordnerBeiAnnahme,
           directory: kdeEmpfang.ordner });
       }
       document.querySelectorAll("[data-personal-sync-peer]").forEach((anzeige) => {
@@ -21158,7 +21352,8 @@ const FASSUNG = "2.0.13";
       kdeEmpfangSpeichern();
     },
     journalStand(nutzlast) {
-      journalStand = Object.assign({ snapshots: [], interval: "weekly", last: "", next: "" },
+      journalStand = Object.assign({ snapshots: [], interval: "weekly", maximum: 20,
+        last: "", next: "" },
         nutzlast || {});
       journalListeAngefragt = true;
       /* Nur bei echter Aenderung neu zeichnen. */
@@ -21517,12 +21712,36 @@ const FASSUNG = "2.0.13";
       } else if (!nutzlast.ok) {
         zettel(u.letzterFehler);
       }
-      if (handbuchHinweisAusstehend &&
-        $("#buch").classList.contains("offen")) zeigeHandbuchHinweis();
+      if (handbuchHinweisAusstehend && $("#buch").classList.contains("offen")) {
+        if (!zeigeHandbuchHinweis()) {
+          handbuchHinweisAusstehend = false;
+          DATEN.einstellungen.allgemein.handbuchHinweisGezeigt = true;
+          planeSpeichern();
+          zeigeKontaktAssistent();
+        }
+      }
     },
     updateGeoeffnet(nutzlast) {
       nutzlast = nutzlast || {};
       if (!nutzlast.ok) zettel(nutzlast.fehler || _("The package could not be opened."));
+    },
+    updateHeruntergeladen(nutzlast) {
+      nutzlast = nutzlast || {};
+      if (!nutzlast.ok || !nutzlast.bereit) {
+        zettel(nutzlast.fehler || _("The package could not be opened."));
+        if (einstSeite === "ueber") baueEinstellungen();
+        return;
+      }
+      Bruecke.sende({ cmd: "update_installieren" });
+    },
+    updateInstallationVorbereitet(nutzlast) {
+      nutzlast = nutzlast || {};
+      if (!nutzlast.ok || !nutzlast.bereitZumBeenden) {
+        zettel(nutzlast.fehler || _("The package could not be opened."));
+        if (einstSeite === "ueber") baueEinstellungen();
+        return;
+      }
+      Bruecke.sende({ cmd: "beenden" });
     },
     handbuchGeoeffnet(nutzlast) {
       nutzlast = nutzlast || {};
@@ -21695,6 +21914,7 @@ const FASSUNG = "2.0.13";
         }), true);
         pumpeSpeichern();
       } else {
+        wartendeSpeicherAktionen = [];
         const baselineFehler = !!ausstehendeAdressbuchBaseline;
         if (ausstehendeAdressbuchBaseline) {
           delete DATEN.syncMetadaten.eds.adressbuecher[ausstehendeAdressbuchBaseline];
@@ -21708,6 +21928,7 @@ const FASSUNG = "2.0.13";
         beendenGewuenscht = false;
         setzeSpeicherStatus(_("Saving failed!"), false);
         zettel(ergebnis.fehler || _("Warning: The data could not be saved."));
+        kontaktAssistentSpeicherFehler(ergebnis.fehler);
       }
     },
     contributorGeprueft(nutzlast) {
@@ -21886,6 +22107,9 @@ const FASSUNG = "2.0.13";
     oeffneEinstellungen: oeffneEinstellungen,
     oeffneGeraeteDialog: oeffneGeraeteDialog,
     schliesseEinstellungen: schliesseEinstellungen,
+    zeigeKontaktAssistent: zeigeKontaktAssistent,
+    kontaktAssistentStand: () => ({ ausstehend: kontaktAssistentAusstehend,
+      handbuch: handbuchHinweisAusstehend }),
     saeubereHtml: saeubereHtml,
     zeigeWerkzeugleiste: zeigeWerkzeugleiste,
     pruefeErinnerungen: () => pruefeErinnerungen(false),

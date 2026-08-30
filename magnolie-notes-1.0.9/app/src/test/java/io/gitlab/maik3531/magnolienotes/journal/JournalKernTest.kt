@@ -44,6 +44,8 @@ class JournalKernTest {
         assertTrue("29" in keep)
         assertTrue(entries.filter { it.uuid in keep && it.reason == "pre-restore" }.size <= 5)
         assertTrue(entries.filter { it.uuid in keep && it.reason.startsWith("pre-sync") }.size <= 20)
+        val limited = JournalRegeln.behalten(entries, now, 3)
+        assertEquals(setOf("0", "1", "2"), limited)
     }
 
     @Test fun `Manifest besitzt gemeinsamen Vertrag`() {

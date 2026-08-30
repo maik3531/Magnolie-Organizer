@@ -1,7 +1,8 @@
 # SOME DESCRIPTIVE TITLE.
-# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
-# This file is distributed under the same license as the Magnolie Organizer package.
-# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+# Copyright (C) 2026 THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the Magnolie Organizer
+# package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
 #
 msgid ""
 msgstr ""
@@ -570,7 +571,7 @@ msgid "Answer calls on the computer and talk"
 msgstr "在电脑上接听并通话"
 
 msgid "App password"
-msgstr "应用密码"
+msgstr "App password"
 
 msgid "Appearance"
 msgstr "外观"
@@ -1070,7 +1071,7 @@ msgid "City"
 msgstr "城市"
 
 msgid "Claws Mail (.xml/.ldif) …"
-msgstr "Claws Mail (.xml/.ldif) …"
+msgstr "Claws Mail（.xml/.ldif）…"
 
 msgid "Claws Mail address book (*.xml)"
 msgstr "Claws Mail 通讯录 (*.xml)"
@@ -1264,7 +1265,7 @@ msgid "Cost center"
 msgstr "成本中心"
 
 msgid "Could not answer"
-msgstr "无法接听电话"
+msgstr "无法接听来电"
 
 msgid "Could not hang up"
 msgstr "无法挂断"
@@ -1449,7 +1450,7 @@ msgid "Delete page"
 msgstr "删除页面"
 
 msgid "Delete password"
-msgstr "删除密码"
+msgstr "Delete password"
 
 msgid "Delete permanently"
 msgstr "永久删除"
@@ -1580,9 +1581,6 @@ msgstr "下载手册"
 
 msgid "Download manual version %(version)s"
 msgstr "下载手册版本 %(version)s"
-
-msgid "Download version %(version)s …"
-msgstr "下载版本 %(version)s …"
 
 msgid "Drag the attachment area up or down"
 msgstr "向上或向下拖动附件区域"
@@ -2209,6 +2207,16 @@ msgstr "输入"
 msgid "Insert link"
 msgstr "插入链接"
 
+msgid ""
+"Install version %(version)s now? All changes will be saved. The Organizer "
+"will close and restart after the installation."
+msgstr ""
+"现在安装版本 %(version)s 吗？所有更改都将保存。Organizer 将关闭并在安装后重新"
+"启动。"
+
+msgid "Install version %(version)s …"
+msgstr "安装版本 %(version)s …"
+
 msgid "Installed manual version: %(version)s."
 msgstr "已安装的手动版本：%(version)s。"
 
@@ -2470,6 +2478,9 @@ msgstr "标记为未完成"
 
 msgid "Maximized"
 msgstr "最大化"
+
+msgid "Maximum recovery snapshots"
+msgstr "恢复点的最大数量"
 
 msgid "Measurement context"
 msgstr "测量情境"
@@ -2753,6 +2764,9 @@ msgstr "未选择 Bluetooth 地址。"
 msgid "No KDE Connect pairing is awaiting confirmation."
 msgstr "没有 KDE Connect 配对正在等待确认。"
 
+msgid "No address books found."
+msgstr "未找到通讯录。"
+
 msgid ""
 "No anniversaries yet.\n"
 "Birthdays and celebrations will automatically appear in the calendar."
@@ -3029,6 +3043,9 @@ msgstr ""
 "%(packages)s，然后重新启动应用。即使不使用此集成，也可以通过上方的“从此电"
 "脑”导入联系人和约会。"
 
+msgid "Online address book"
+msgstr "在线通讯录"
+
 msgid "Online via Bluetooth data"
 msgstr "通过 Bluetooth 数据在线"
 
@@ -3163,7 +3180,7 @@ msgstr "其他"
 
 msgctxt "relationship"
 msgid "Other"
-msgstr "其他"
+msgstr "其他关系"
 
 msgid "Other addresses"
 msgstr "其他地址"
@@ -3538,7 +3555,7 @@ msgid "Reachable IPv4 or IPv6 address of this computer"
 msgstr "此电脑可访问的 IPv4 或 IPv6 地址"
 
 msgid "Ready."
-msgstr "就绪。"
+msgstr "Ready."
 
 msgid ""
 "Really merge %(cards)s? Review the result carefully afterwards. A copy of "
@@ -3769,7 +3786,7 @@ msgid "SMS details"
 msgstr "SMS详细信息"
 
 msgid "SMS from %(name)s"
-msgstr "来自%(name)s的 SMS"
+msgstr "来自 %(name)s 的 SMS"
 
 msgid "SMS history"
 msgstr "SMS历史"
@@ -3831,7 +3848,7 @@ msgid "Saved ✓ %(time)s"
 msgstr "已保存 ✓ %(time)s"
 
 msgid "Saved."
-msgstr "已保存。"
+msgstr "Saved."
 
 msgid "Saving failed!"
 msgstr "保存失败！"
@@ -3962,10 +3979,13 @@ msgid "Sent"
 msgstr "已发送"
 
 msgid "Server address"
-msgstr "服务器地址"
+msgstr "Server address"
 
 msgid "Server address and user name are required."
 msgstr "需要服务器地址和用户名。"
+
+msgid "Set up contacts"
+msgstr "设置联系人"
 
 msgid "Set varying doses by weekday"
 msgstr "按星期设置不同剂量"
@@ -4192,7 +4212,7 @@ msgid "Suppository"
 msgstr "栓剂"
 
 msgid "Switched off."
-msgstr "已关闭。"
+msgstr "Switched off."
 
 msgid "Switzerland"
 msgstr "瑞士"
@@ -4309,10 +4329,10 @@ msgid "Temperature"
 msgstr "体温"
 
 msgid "Test connection"
-msgstr "测试连接"
+msgstr "Test connection"
 
 msgid "Testing…"
-msgstr "正在检查 …"
+msgstr "Testing…"
 
 msgid "Text color"
 msgstr "文本颜色"
@@ -4392,9 +4412,6 @@ msgid ""
 msgstr ""
 "Windows 联系人文件夹在同步页面上进行双向同步。文件导入不会修改其源文件；现有"
 "条目不会添加两次。"
-
-msgid "The Windows entry in the update information is invalid."
-msgstr "更新信息中的Windows条目无效。"
 
 msgid "The address could not be opened."
 msgstr "该地址无法打开。"
@@ -4617,23 +4634,14 @@ msgstr "手册已安装；其版本未知。"
 msgid "The manual is up to date."
 msgstr "手册是最新的。"
 
-msgid "The manual package checksum does not match."
-msgstr "手动包的校验和不匹配。"
-
 msgid "The manual package could not be opened."
 msgstr "无法打开手册软件包。"
-
-msgid "The manual package is unexpectedly large."
-msgstr "手册包意外地很大。"
 
 msgid "The manual update check failed."
 msgstr "手动更新检查失败。"
 
 msgid "The manual update information is invalid."
 msgstr "手动更新信息无效。"
-
-msgid "The manual update information is missing."
-msgstr "缺少手动更新信息。"
 
 msgid "The message is too large."
 msgstr "消息过大。"
@@ -4866,17 +4874,11 @@ msgstr "两次输入的新密码不一致。"
 msgid "The update check failed."
 msgstr "更新检查失败。"
 
-msgid "The update information is unexpectedly large."
-msgstr "更新信息异常大。"
-
 msgid "The user data could not be read."
 msgstr "无法读取用户数据。"
 
 msgid "The value is outside the general green reference range."
 msgstr "该数值超出一般绿色参考范围。"
-
-msgid "The verified installer could not be opened."
-msgstr "无法打开已验证的安装程序。"
 
 msgid ""
 "The weather service estimated the location from your public IP address. Your "
@@ -5246,7 +5248,7 @@ msgid "Use the recycle bin"
 msgstr "使用回收站"
 
 msgid "User name"
-msgstr "用户名"
+msgstr "User name"
 
 msgid ""
 "Uses its own identity and storage and listens only on fixed port %(port)s. "
@@ -5445,12 +5447,20 @@ msgstr ""
 "时都会保留。联系人卡片上的电子邮件地址始终可点击，并会打开您的邮件应用。"
 
 msgid ""
+"When the limit is lowered, the oldest recovery snapshots are removed "
+"automatically."
+msgstr "降低数量限制时，最旧的恢复点会自动删除。"
+
+msgid ""
 "When writing a note, a small toolbar above the sheet provides bold, italic, "
 "underline and strikethrough. The same formatting is available with Ctrl+B, "
 "Ctrl+I, Ctrl+U and Ctrl+D."
 msgstr ""
 "撰写笔记时，纸张上方的小工具栏提供粗体、斜体、下划线和删除线。也可使用 "
 "Ctrl+B、Ctrl+I、Ctrl+U 和 Ctrl+D 进行相同的格式设置。"
+
+msgid "Where are your contacts now?"
+msgstr "您的联系人目前在哪里？"
 
 msgid "Whole month"
 msgstr "整月"
@@ -5536,6 +5546,9 @@ msgstr "是，合并"
 
 msgid "Yes, the code matches"
 msgstr "是，代码一致"
+
+msgid "You can also do this later in Settings."
+msgstr "您也可以稍后在设置中进行此操作。"
 
 msgid "Your address"
 msgstr "您的地址"
@@ -5922,9 +5935,6 @@ msgstr[0] "… 以及另外 %(count)s 项也将打印。"
 
 msgid "＋ Add appointment"
 msgstr "＋ 添加约会"
-
-#~ msgid "Reset"
-#~ msgstr "Reset"
 
 msgid "Language & region"
 msgstr "语言和区域"

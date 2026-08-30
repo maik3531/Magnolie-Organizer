@@ -1,7 +1,8 @@
 # SOME DESCRIPTIVE TITLE.
-# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
-# This file is distributed under the same license as the Magnolie Organizer package.
-# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+# Copyright (C) 2026 THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the Magnolie Organizer
+# package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
 #
 msgid ""
 msgstr ""
@@ -60,85 +61,85 @@ msgid "%(count)s anniversary entered"
 msgid_plural "%(count)s anniversaries entered"
 msgstr[0] "Zadáno %(count)s výročí"
 msgstr[1] "Zadána %(count)s výročí"
-msgstr[2] "Zadáno %(count)s výročí"
+msgstr[2] "Zadána %(count)s výročí"
 
 msgid "%(count)s appointment"
 msgid_plural "%(count)s appointments"
 msgstr[0] "%(count)s schůzka"
 msgstr[1] "%(count)s schůzky"
-msgstr[2] "%(count)s schůzek"
+msgstr[2] "%(count)s schůzky"
 
 msgid "%(count)s attachment"
 msgid_plural "%(count)s attachments"
 msgstr[0] "%(count)s příloha"
 msgstr[1] "%(count)s přílohy"
-msgstr[2] "%(count)s příloh"
+msgstr[2] "%(count)s přílohy"
 
 msgid "%(count)s birthday"
 msgid_plural "%(count)s birthdays"
 msgstr[0] "%(count)s narozeniny"
 msgstr[1] "%(count)s narozeniny"
-msgstr[2] "%(count)s narozenin"
+msgstr[2] "%(count)s narozeniny"
 
 msgid "%(count)s contact"
 msgid_plural "%(count)s contacts"
 msgstr[0] "%(count)s kontakt"
 msgstr[1] "%(count)s kontakty"
-msgstr[2] "%(count)s kontaktů"
+msgstr[2] "%(count)s kontakty"
 
 msgid "%(count)s contact card"
 msgid_plural "%(count)s contact cards"
 msgstr[0] "%(count)s kontaktní karta"
 msgstr[1] "%(count)s kontaktní karty"
-msgstr[2] "%(count)s kontaktních karet"
+msgstr[2] "%(count)s kontaktní karty"
 
 msgid "%(count)s contact photo added"
 msgid_plural "%(count)s contact photos added"
 msgstr[0] "Přidána %(count)s kontaktní fotografie"
 msgstr[1] "Přidány %(count)s kontaktní fotografie"
-msgstr[2] "Přidáno %(count)s kontaktních fotografií"
+msgstr[2] "Přidány %(count)s kontaktní fotografie"
 
 msgid "%(count)s day"
 msgid_plural "%(count)s days"
 msgstr[0] "%(count)s den"
 msgstr[1] "%(count)s dny"
-msgstr[2] "%(count)s dní"
+msgstr[2] "%(count)s dny"
 
 msgid "%(count)s day before"
 msgid_plural "%(count)s days before"
 msgstr[0] "%(count)s den předem"
 msgstr[1] "%(count)s dny předem"
-msgstr[2] "%(count)s dní předem"
+msgstr[2] "%(count)s dny předem"
 
 msgid "%(count)s email address added"
 msgid_plural "%(count)s email addresses added"
 msgstr[0] "Přidána %(count)s e-mailová adresa"
 msgstr[1] "Přidány %(count)s e-mailové adresy"
-msgstr[2] "Přidáno %(count)s e-mailových adres"
+msgstr[2] "Přidány %(count)s e-mailové adresy"
 
 msgid "%(count)s entry deleted."
 msgid_plural "%(count)s entries deleted."
 msgstr[0] "Smazán %(count)s záznam."
 msgstr[1] "Smazány %(count)s záznamy."
-msgstr[2] "Smazáno %(count)s záznamů."
+msgstr[2] "Smazány %(count)s záznamy."
 
 msgid "%(count)s existing entry skipped."
 msgid_plural "%(count)s existing entries skipped."
 msgstr[0] "Přeskočen %(count)s existující záznam."
 msgstr[1] "Přeskočeny %(count)s existující záznamy."
-msgstr[2] "Přeskočeno %(count)s existujících záznamů."
+msgstr[2] "Přeskočeny %(count)s existující záznamy."
 
 msgid "%(count)s found"
 msgid_plural "%(count)s found"
 msgstr[0] "Nalezen %(count)s výsledek"
 msgstr[1] "Nalezeny %(count)s výsledky"
-msgstr[2] "Nalezeno %(count)s výsledků"
+msgstr[2] "Nalezeny %(count)s výsledky"
 
 msgid "%(count)s group"
 msgid_plural "%(count)s groups"
 msgstr[0] "%(count)s skupina"
 msgstr[1] "%(count)s skupiny"
-msgstr[2] "%(count)s skupin"
+msgstr[2] "%(count)s skupiny"
 
 msgid "%(count)s holiday period"
 msgid_plural "%(count)s holiday periods"
@@ -150,19 +151,19 @@ msgid "%(count)s incoming offer"
 msgid_plural "%(count)s incoming offers"
 msgstr[0] "%(count)s příchozí nabídka"
 msgstr[1] "%(count)s příchozí nabídky"
-msgstr[2] "%(count)s příchozích nabídek"
+msgstr[2] "%(count)s příchozí nabídky"
 
 msgid "%(count)s match"
 msgid_plural "%(count)s matches"
 msgstr[0] "%(count)s shoda"
 msgstr[1] "%(count)s shody"
-msgstr[2] "%(count)s shod"
+msgstr[2] "%(count)s shody"
 
 msgid "%(count)s minute"
 msgid_plural "%(count)s minutes"
 msgstr[0] "%(count)s minuta"
 msgstr[1] "%(count)s minuty"
-msgstr[2] "%(count)s minut"
+msgstr[2] "%(count)s minuty"
 
 msgid "%(count)s more"
 msgid_plural "%(count)s more"
@@ -174,31 +175,31 @@ msgid "%(count)s more entry"
 msgid_plural "%(count)s more entries"
 msgstr[0] "Ještě %(count)s záznam"
 msgstr[1] "Ještě %(count)s záznamy"
-msgstr[2] "Ještě %(count)s záznamů"
+msgstr[2] "Ještě %(count)s záznamy"
 
 msgid "%(count)s new Magnolienbaum request awaits your decision."
 msgid_plural "%(count)s new Magnolienbaum requests await your decision."
 msgstr[0] "Na vaše rozhodnutí čeká %(count)s nová žádost Magnolienbaum."
 msgstr[1] "Na vaše rozhodnutí čekají %(count)s nové žádosti Magnolienbaum."
-msgstr[2] "Na vaše rozhodnutí čeká %(count)s nových žádostí Magnolienbaum."
+msgstr[2] "Na vaše rozhodnutí čekají %(count)s nové žádosti Magnolienbaum."
 
 msgid "%(count)s non-JPEG contact photo was omitted."
 msgid_plural "%(count)s non-JPEG contact photos were omitted."
 msgstr[0] "Byla vynechána %(count)s fotografie jiná než JPEG."
 msgstr[1] "Byly vynechány %(count)s fotografie jiné než JPEG."
-msgstr[2] "Bylo vynecháno %(count)s fotografií jiných než JPEG."
+msgstr[2] "Byly vynechány %(count)s fotografie jiné než JPEG."
 
 msgid "%(count)s note"
 msgid_plural "%(count)s notes"
 msgstr[0] "%(count)s poznámka"
 msgstr[1] "%(count)s poznámky"
-msgstr[2] "%(count)s poznámek"
+msgstr[2] "%(count)s poznámky"
 
 msgid "%(count)s notebook"
 msgid_plural "%(count)s notebooks"
 msgstr[0] "%(count)s zápisník"
 msgstr[1] "%(count)s zápisníky"
-msgstr[2] "%(count)s zápisníků"
+msgstr[2] "%(count)s zápisníky"
 
 msgid "%(count)s open"
 msgstr "Otevřeno: %(count)s"
@@ -207,43 +208,43 @@ msgid "%(count)s page"
 msgid_plural "%(count)s pages"
 msgstr[0] "%(count)s stránka"
 msgstr[1] "%(count)s stránky"
-msgstr[2] "%(count)s stránek"
+msgstr[2] "%(count)s stránky"
 
 msgid "%(count)s public holiday"
 msgid_plural "%(count)s public holidays"
 msgstr[0] "%(count)s státní svátek"
 msgstr[1] "%(count)s státní svátky"
-msgstr[2] "%(count)s státních svátků"
+msgstr[2] "%(count)s státní svátky"
 
 msgid "%(count)s recurring appointment imported only once."
 msgid_plural "%(count)s recurring appointments imported only once."
 msgstr[0] "%(count)s opakovaná schůzka importována pouze jednou."
 msgstr[1] "%(count)s opakované schůzky importovány pouze jednou."
-msgstr[2] "%(count)s opakovaných schůzek importováno pouze jednou."
+msgstr[2] "%(count)s opakované schůzky importovány pouze jednou."
 
 msgid "%(count)s second"
 msgid_plural "%(count)s seconds"
 msgstr[0] "%(count)s sekunda"
 msgstr[1] "%(count)s sekundy"
-msgstr[2] "%(count)s sekund"
+msgstr[2] "%(count)s sekundy"
 
 msgid "%(count)s task"
 msgid_plural "%(count)s tasks"
 msgstr[0] "%(count)s úkol"
 msgstr[1] "%(count)s úkoly"
-msgstr[2] "%(count)s úkolů"
+msgstr[2] "%(count)s úkoly"
 
 msgid "%(count)s unreadable row omitted."
 msgid_plural "%(count)s unreadable rows omitted."
 msgstr[0] "Vynechán %(count)s nečitelný řádek."
 msgstr[1] "Vynechány %(count)s nečitelné řádky."
-msgstr[2] "Vynecháno %(count)s nečitelných řádků."
+msgstr[2] "Vynechány %(count)s nečitelné řádky."
 
 msgid "%(count)s unusable contact was omitted."
 msgid_plural "%(count)s unusable contacts were omitted."
 msgstr[0] "Byl vynechán %(count)s nepoužitelný kontakt."
 msgstr[1] "Byly vynechány %(count)s nepoužitelné kontakty."
-msgstr[2] "Bylo vynecháno %(count)s nepoužitelných kontaktů."
+msgstr[2] "Byly vynechány %(count)s nepoužitelné kontakty."
 
 msgid "%(date)s, %(time)s"
 msgstr "%(date)s, %(time)s"
@@ -640,7 +641,7 @@ msgid "Answer calls on the computer and talk"
 msgstr "Přijímat hovory na počítači a mluvit"
 
 msgid "App password"
-msgstr "Heslo aplikace"
+msgstr "App password"
 
 msgid "Appearance"
 msgstr "Vzhled"
@@ -1484,13 +1485,13 @@ msgid "Delete %(count)s selected entry for good?"
 msgid_plural "Delete %(count)s selected entries for good?"
 msgstr[0] "Trvale odstranit %(count)s vybraný záznam?"
 msgstr[1] "Trvale odstranit %(count)s vybrané záznamy?"
-msgstr[2] "Trvale odstranit %(count)s vybraných záznamů?"
+msgstr[2] "Trvale odstranit %(count)s vybrané záznamy?"
 
 msgid "Delete %(count)s selected entry? It moves to the wastebasket."
 msgid_plural "Delete %(count)s selected entries? They move to the wastebasket."
 msgstr[0] "Odstranit %(count)s vybraný záznam? Přesune se do koše."
 msgstr[1] "Odstranit %(count)s vybrané záznamy? Přesunou se do koše."
-msgstr[2] "Odstranit %(count)s vybraných záznamů? Přesunou se do koše."
+msgstr[2] "Odstranit %(count)s vybrané záznamy? Přesunou se do koše."
 
 msgid "Delete all SMS histories"
 msgstr "Vymažte všechny historie SMS"
@@ -1543,7 +1544,7 @@ msgid "Delete page"
 msgstr "Odstranit stránku"
 
 msgid "Delete password"
-msgstr "Smazat heslo"
+msgstr "Delete password"
 
 msgid "Delete permanently"
 msgstr "Trvale odstranit"
@@ -1682,9 +1683,6 @@ msgstr "Stáhnout příručku"
 
 msgid "Download manual version %(version)s"
 msgstr "Stáhnout příručku verze %(version)s"
-
-msgid "Download version %(version)s …"
-msgstr "Stáhnout verzi %(version)s …"
 
 msgid "Drag the attachment area up or down"
 msgstr "Přetáhněte oblast příloh nahoru nebo dolů"
@@ -2066,7 +2064,7 @@ msgid "From"
 msgstr "Od"
 
 msgid "From the Windows Contacts folder"
-msgstr "Ze složky Windows Contacts"
+msgstr "Ze složky Kontakty Windows"
 
 msgid "Full"
 msgstr "Plný"
@@ -2321,6 +2319,16 @@ msgstr "Vstup"
 
 msgid "Insert link"
 msgstr "Vložit odkaz"
+
+msgid ""
+"Install version %(version)s now? All changes will be saved. The Organizer "
+"will close and restart after the installation."
+msgstr ""
+"Nainstalovat verzi %(version)s nyní? Všechny změny budou uloženy. Organizér "
+"se po instalaci zavře a znovu spustí."
+
+msgid "Install version %(version)s …"
+msgstr "Nainstalovat verzi %(version)s …"
 
 msgid "Installed manual version: %(version)s."
 msgstr "Instalovaná verze manuálu: %(version)s."
@@ -2590,6 +2598,9 @@ msgstr "Označit jako otevřené"
 
 msgid "Maximized"
 msgstr "Maximalizované"
+
+msgid "Maximum recovery snapshots"
+msgstr "Maximální počet bodů obnovení"
 
 msgid "Measurement context"
 msgstr "Kontext měření"
@@ -2882,6 +2893,9 @@ msgstr "Nebyla vybrána žádná adresa Bluetooth."
 msgid "No KDE Connect pairing is awaiting confirmation."
 msgstr "Žádné párování KDE Connect nečeká na potvrzení."
 
+msgid "No address books found."
+msgstr "Nebyly nalezeny žádné adresáře."
+
 msgid ""
 "No anniversaries yet.\n"
 "Birthdays and celebrations will automatically appear in the calendar."
@@ -3169,6 +3183,9 @@ msgstr ""
 "Kontakty a schůzky můžete importovat i bez této integrace pomocí volby „Z "
 "tohoto počítače“ výše."
 
+msgid "Online address book"
+msgstr "Online adresář"
+
 msgid "Online via Bluetooth data"
 msgstr "Online přes data Bluetooth"
 
@@ -3305,11 +3322,11 @@ msgstr "Jiné"
 
 msgctxt "email type"
 msgid "Other"
-msgstr "Jiné"
+msgstr "Jiná"
 
 msgctxt "relationship"
 msgid "Other"
-msgstr "Jiné"
+msgstr "Jiný vztah"
 
 msgid "Other addresses"
 msgstr "Další adresy"
@@ -3425,13 +3442,13 @@ msgid "Permanently delete %(count)s completed task?"
 msgid_plural "Permanently delete %(count)s completed tasks?"
 msgstr[0] "Trvale odstranit %(count)s dokončený úkol?"
 msgstr[1] "Trvale odstranit %(count)s dokončené úkoly?"
-msgstr[2] "Trvale odstranit %(count)s dokončených úkolů?"
+msgstr[2] "Trvale odstranit %(count)s dokončené úkoly?"
 
 msgid "Permanently delete %(count)s selected health record?"
 msgid_plural "Permanently delete %(count)s selected health records?"
 msgstr[0] "Trvale odstranit %(count)s vybraný zdravotní záznam?"
 msgstr[1] "Trvale odstranit %(count)s vybrané zdravotní záznamy?"
-msgstr[2] "Trvale odstranit %(count)s vybraných zdravotních záznamů?"
+msgstr[2] "Trvale odstranit %(count)s vybrané zdravotní záznamy?"
 
 msgid "Permanently delete selected health records"
 msgstr "Trvale odstranit vybrané zdravotní záznamy"
@@ -3683,7 +3700,7 @@ msgid "Queue: %(open)s of %(count)s transmission awaits delivery."
 msgid_plural "Queue: %(open)s of %(count)s transmissions await delivery."
 msgstr[0] "Fronta: %(open)s z %(count)s přenosu čeká na doručení."
 msgstr[1] "Fronta: %(open)s ze %(count)s přenosů čekají na doručení."
-msgstr[2] "Fronta: %(open)s z %(count)s přenosů čeká na doručení."
+msgstr[2] "Fronta: %(open)s ze %(count)s přenosů čekají na doručení."
 
 msgid "Queued"
 msgstr "Ve frontě"
@@ -3695,7 +3712,7 @@ msgid "Reachable IPv4 or IPv6 address of this computer"
 msgstr "Dostupná adresa IPv4 nebo IPv6 tohoto počítače"
 
 msgid "Ready."
-msgstr "Připraveno."
+msgstr "Ready."
 
 msgid ""
 "Really merge %(cards)s? Review the result carefully afterwards. A copy of "
@@ -3996,13 +4013,13 @@ msgid "Saved to: %(path)s (%(count)s entry)"
 msgid_plural "Saved to: %(path)s (%(count)s entries)"
 msgstr[0] "Uloženo do: %(path)s (%(count)s položka)"
 msgstr[1] "Uloženo do: %(path)s (%(count)s položky)"
-msgstr[2] "Uloženo do: %(path)s (%(count)s položek)"
+msgstr[2] "Uloženo do: %(path)s (%(count)s položky)"
 
 msgid "Saved ✓ %(time)s"
 msgstr "Uloženo ✓ %(time)s"
 
 msgid "Saved."
-msgstr "Uloženo."
+msgstr "Saved."
 
 msgid "Saving failed!"
 msgstr "Ukládání se nezdařilo!"
@@ -4137,10 +4154,13 @@ msgid "Sent"
 msgstr "Odesláno"
 
 msgid "Server address"
-msgstr "Adresa serveru"
+msgstr "Server address"
 
 msgid "Server address and user name are required."
 msgstr "Je nutná adresa serveru a uživatelské jméno."
+
+msgid "Set up contacts"
+msgstr "Nastavit kontakty"
 
 msgid "Set varying doses by weekday"
 msgstr "Nastavit různé dávky podle dne v týdnu"
@@ -4370,7 +4390,7 @@ msgid "Suppository"
 msgstr "Čípek"
 
 msgid "Switched off."
-msgstr "Vypnuto."
+msgstr "Switched off."
 
 msgid "Switzerland"
 msgstr "Švýcarsko"
@@ -4487,10 +4507,10 @@ msgid "Temperature"
 msgstr "Teplota"
 
 msgid "Test connection"
-msgstr "Ověřit spojení"
+msgstr "Test connection"
 
 msgid "Testing…"
-msgstr "Ověřuje se …"
+msgstr "Testing…"
 
 msgid "Text color"
 msgstr "Barva textu"
@@ -4582,9 +4602,6 @@ msgstr ""
 "Složka Windows Contacts je synchronizována obousměrně na stránce "
 "synchronizace. Import souborů nemění jejich zdrojové soubory; existující "
 "položky se nepřidávají dvakrát."
-
-msgid "The Windows entry in the update information is invalid."
-msgstr "Položka Windows v informacích o aktualizaci je neplatná."
 
 msgid "The address could not be opened."
 msgstr "Adresu nelze otevřít."
@@ -4821,23 +4838,14 @@ msgstr "Manuál je nainstalován; jeho verze není známa."
 msgid "The manual is up to date."
 msgstr "Manuál je aktuální."
 
-msgid "The manual package checksum does not match."
-msgstr "Kontrolní součet ručního balíčku se neshoduje."
-
 msgid "The manual package could not be opened."
 msgstr "Balíček příručky se nepodařilo otevřít."
-
-msgid "The manual package is unexpectedly large."
-msgstr "Balení manuálu je nečekaně velké."
 
 msgid "The manual update check failed."
 msgstr "Ruční kontrola aktualizací se nezdařila."
 
 msgid "The manual update information is invalid."
 msgstr "Informace o ruční aktualizaci jsou neplatné."
-
-msgid "The manual update information is missing."
-msgstr "Chybí informace o ruční aktualizaci."
 
 msgid "The message is too large."
 msgstr "Zpráva je příliš velká."
@@ -5081,17 +5089,11 @@ msgstr "Dvě nová hesla se neshodují."
 msgid "The update check failed."
 msgstr "Kontrola aktualizací se nezdařila."
 
-msgid "The update information is unexpectedly large."
-msgstr "Informace o aktualizaci jsou neočekávaně velké."
-
 msgid "The user data could not be read."
 msgstr "Uživatelská data se nepodařilo přečíst."
 
 msgid "The value is outside the general green reference range."
 msgstr "Hodnota je mimo obecné zelené referenční rozmezí."
-
-msgid "The verified installer could not be opened."
-msgstr "Ověřený instalační program nelze otevřít."
 
 msgid ""
 "The weather service estimated the location from your public IP address. Your "
@@ -5481,7 +5483,7 @@ msgid "Use the recycle bin"
 msgstr "Používat koš"
 
 msgid "User name"
-msgstr "Uživatelské jméno"
+msgstr "User name"
 
 msgid ""
 "Uses its own identity and storage and listens only on fixed port %(port)s. "
@@ -5693,6 +5695,11 @@ msgstr ""
 "otevřou vaši poštovní aplikaci."
 
 msgid ""
+"When the limit is lowered, the oldest recovery snapshots are removed "
+"automatically."
+msgstr "Při snížení limitu se nejstarší body obnovení automaticky odstraní."
+
+msgid ""
 "When writing a note, a small toolbar above the sheet provides bold, italic, "
 "underline and strikethrough. The same formatting is available with Ctrl+B, "
 "Ctrl+I, Ctrl+U and Ctrl+D."
@@ -5700,6 +5707,9 @@ msgstr ""
 "Při psaní poznámky nabízí malý panel nástrojů nad listem tučné písmo, "
 "kurzívu, podtržení a přeškrtnutí. Stejné formátování je dostupné pomocí "
 "Ctrl+B, Ctrl+I, Ctrl+U a Ctrl+D."
+
+msgid "Where are your contacts now?"
+msgstr "Kde se nyní nacházejí vaše kontakty?"
 
 msgid "Whole month"
 msgstr "Celý měsíc"
@@ -5788,6 +5798,9 @@ msgstr "Ano, sloučit"
 msgid "Yes, the code matches"
 msgstr "Ano, kód souhlasí"
 
+msgid "You can also do this later in Settings."
+msgstr "Můžete to provést také později v nastavení."
+
 msgid "Your address"
 msgstr "Vaše adresa"
 
@@ -5854,7 +5867,7 @@ msgid "and %(count)s more"
 msgid_plural "and %(count)s more"
 msgstr[0] "a ještě %(count)s další"
 msgstr[1] "a ještě %(count)s další"
-msgstr[2] "a ještě %(count)s dalších"
+msgstr[2] "a ještě %(count)s další"
 
 msgid "app password from Nextcloud"
 msgstr "heslo aplikace z Nextcloudu"
@@ -5998,7 +6011,7 @@ msgid "in %(count)s day"
 msgid_plural "in %(count)s days"
 msgstr[0] "za %(count)s den"
 msgstr[1] "za %(count)s dny"
-msgstr[2] "za %(count)s dní"
+msgstr[2] "za %(count)s dny"
 
 msgid "keep here"
 msgstr "ponechat zde"
@@ -6034,7 +6047,7 @@ msgid "notification %(count)s minute before"
 msgid_plural "notification %(count)s minutes before"
 msgstr[0] "oznámení %(count)s minutu předem"
 msgstr[1] "oznámení %(count)s minuty předem"
-msgstr[2] "oznámení %(count)s minut předem"
+msgstr[2] "oznámení %(count)s minuty předem"
 
 msgid "on the day only"
 msgstr "pouze v daný den"
@@ -6193,13 +6206,10 @@ msgid "… and %(count)s more item that will also be printed."
 msgid_plural "… and %(count)s more items that will also be printed."
 msgstr[0] "… a ještě %(count)s další položka, která se rovněž vytiskne."
 msgstr[1] "… a ještě %(count)s další položky, které se rovněž vytisknou."
-msgstr[2] "… a ještě %(count)s dalších položek, které se rovněž vytisknou."
+msgstr[2] "… a ještě %(count)s další položky, které se rovněž vytisknou."
 
 msgid "＋ Add appointment"
 msgstr "＋ Přidat schůzku"
-
-#~ msgid "Reset"
-#~ msgstr "Reset"
 
 msgid "Language & region"
 msgstr "Jazyk a oblast"

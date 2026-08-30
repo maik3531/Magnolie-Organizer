@@ -111,8 +111,9 @@ object JournalRegeln {
     fun due(last: Long?, now: Long, interval: JournalIntervall) =
         interval.millis?.let { last == null || now - last >= it } ?: false
 
-    fun behalten(entries: List<SnapshotManifest>, now: Long): Set<String> {
+    fun behalten(entries: List<SnapshotManifest>, now: Long, maximum: Int? = null): Set<String> {
         val sorted = entries.sortedByDescending { Instant.parse(it.createdUtc).toEpochMilli() }
+        if (maximum != null) return sorted.take(maximum.coerceIn(1, 100)).mapTo(mutableSetOf()) { it.uuid }
         val keep = sorted.filter { it.pinned }.mapTo(mutableSetOf()) { it.uuid }
         val preRestore = sorted.filter { it.reason == "pre-restore" }
         keep += preRestore.filter { now - Instant.parse(it.createdUtc).toEpochMilli() <= 30L * 86400_000 }

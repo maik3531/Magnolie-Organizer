@@ -382,4 +382,6 @@
     <string name="start_erneut">Erneut versuchen</string>
     <string name="start_schliessen">Anwendung schließen</string>
     <string name="absturzbericht_teilen">Absturzbericht teilen</string>
+    <string name="journal_maximum">Maximale Anzahl der Wiederherstellungspunkte</string>
+    <string name="journal_maximum_hinweis">Wenn das Limit verringert wird, werden die ältesten Wiederherstellungspunkte automatisch entfernt.</string>
 </resources>

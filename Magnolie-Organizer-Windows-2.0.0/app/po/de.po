@@ -1,7 +1,3 @@
-# SOME DESCRIPTIVE TITLE.
-# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
-# This file is distributed under the same license as the Magnolie Organizer package.
-# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
 #
 msgid ""
 msgstr ""
@@ -615,7 +611,7 @@ msgid "Answer calls on the computer and talk"
 msgstr "Anrufe am Computer annehmen und sprechen"
 
 msgid "App password"
-msgstr "Anwendungskennwort"
+msgstr "App password"
 
 msgid "Appearance"
 msgstr "Aussehen"
@@ -1347,7 +1343,7 @@ msgid "Cost center"
 msgstr "Kostenstelle"
 
 msgid "Could not answer"
-msgstr "Anruf konnte nicht angenommen werden"
+msgstr "Der Anruf konnte nicht angenommen werden"
 
 msgid "Could not hang up"
 msgstr "Auflegen nicht möglich"
@@ -1538,7 +1534,7 @@ msgid "Delete page"
 msgstr "Seite löschen"
 
 msgid "Delete password"
-msgstr "Kennwort löschen"
+msgstr "Delete password"
 
 msgid "Delete permanently"
 msgstr "Endgültig löschen"
@@ -1678,9 +1674,6 @@ msgstr "Handbuch herunterladen"
 
 msgid "Download manual version %(version)s"
 msgstr "Handbuchfassung %(version)s herunterladen"
-
-msgid "Download version %(version)s …"
-msgstr "Fassung %(version)s herunterladen …"
 
 msgid "Drag the attachment area up or down"
 msgstr "Anhangsbereich nach oben oder unten ziehen"
@@ -2066,7 +2059,7 @@ msgid "From"
 msgstr "Von"
 
 msgid "From the Windows Contacts folder"
-msgstr "Aus dem Windows-Kontaktordner"
+msgstr "Aus dem Windows-Kontakteordner"
 
 msgid "Full"
 msgstr "Voll"
@@ -2325,6 +2318,16 @@ msgstr "Eingabe"
 msgid "Insert link"
 msgstr "Link einfügen"
 
+msgid ""
+"Install version %(version)s now? All changes will be saved. The Organizer "
+"will close and restart after the installation."
+msgstr ""
+"Version %(version)s jetzt installieren? Alle Änderungen werden gespeichert. "
+"Der Organizer wird geschlossen und nach der Installation neu gestartet."
+
+msgid "Install version %(version)s …"
+msgstr "Version %(version)s installieren …"
+
 msgid "Installed manual version: %(version)s."
 msgstr "Installierte Handbuchfassung: %(version)s."
 
@@ -2500,7 +2503,7 @@ msgstr ""
 "Modellname gehört zu Magnolie Notes; der KDE-Peername stammt aus KDE Connect."
 
 msgid "Magnolie Notes version"
-msgstr "Magnolie Notes-Version"
+msgstr "Version von Magnolie Notes"
 
 msgid "Magnolie Organizer is not completely installed."
 msgstr "Magnolie Organizer ist unvollständig installiert."
@@ -2594,6 +2597,9 @@ msgstr "Als offen markieren"
 
 msgid "Maximized"
 msgstr "Maximiert"
+
+msgid "Maximum recovery snapshots"
+msgstr "Maximale Anzahl der Wiederherstellungspunkte"
 
 msgid "Measurement context"
 msgstr "Messsituation"
@@ -2887,6 +2893,9 @@ msgstr "Es wurde keine Bluetooth-Adresse ausgewählt."
 msgid "No KDE Connect pairing is awaiting confirmation."
 msgstr "Es wartet keine KDE Connect-Kopplung auf Bestätigung."
 
+msgid "No address books found."
+msgstr "Keine Adressbücher gefunden."
+
 msgid ""
 "No anniversaries yet.\n"
 "Birthdays and celebrations will automatically appear in the calendar."
@@ -3176,6 +3185,9 @@ msgstr ""
 "starten. Ihre Adressen und Termine können Sie auch ohne diese Anbindung oben "
 "über „Vom Rechner“ einlesen."
 
+msgid "Online address book"
+msgstr "Online-Adressbuch"
+
 msgid "Online via Bluetooth data"
 msgstr "Online über Bluetooth-Daten"
 
@@ -3315,11 +3327,11 @@ msgstr "Sonstiges"
 
 msgctxt "email type"
 msgid "Other"
-msgstr "Sonstiges"
+msgstr "Sonstige"
 
 msgctxt "relationship"
 msgid "Other"
-msgstr "Sonstiges"
+msgstr "Sonstige"
 
 msgid "Other addresses"
 msgstr "Weitere Anschriften"
@@ -3715,7 +3727,7 @@ msgid "Reachable IPv4 or IPv6 address of this computer"
 msgstr "Erreichbare IPv4- oder IPv6-Adresse dieses Rechners"
 
 msgid "Ready."
-msgstr "Bereit."
+msgstr "Ready."
 
 msgid ""
 "Really merge %(cards)s? Review the result carefully afterwards. A copy of "
@@ -3999,7 +4011,7 @@ msgstr "Änderung speichern"
 
 msgctxt "contact action"
 msgid "Save changes"
-msgstr "Änderung speichern"
+msgstr "Änderungen speichern"
 
 msgid "Save changes?"
 msgstr "Änderungen speichern?"
@@ -4026,7 +4038,7 @@ msgid "Saved ✓ %(time)s"
 msgstr "Gespeichert ✓ %(time)s"
 
 msgid "Saved."
-msgstr "Gespeichert."
+msgstr "Saved."
 
 msgid "Saving failed!"
 msgstr "Speichern fehlgeschlagen!"
@@ -4161,10 +4173,13 @@ msgid "Sent"
 msgstr "Gesendet"
 
 msgid "Server address"
-msgstr "Serveradresse"
+msgstr "Server address"
 
 msgid "Server address and user name are required."
 msgstr "Serveradresse und Benutzername werden benötigt."
+
+msgid "Set up contacts"
+msgstr "Kontakte einrichten"
 
 msgid "Set varying doses by weekday"
 msgstr "Abweichende Einnahmen nach Wochentag festlegen"
@@ -4397,7 +4412,7 @@ msgid "Suppository"
 msgstr "Zäpfchen"
 
 msgid "Switched off."
-msgstr "Ausgeschaltet."
+msgstr "Switched off."
 
 msgid "Switzerland"
 msgstr "Schweiz"
@@ -4608,9 +4623,6 @@ msgstr ""
 "Der Windows-Kontaktordner wird auf der Synchronisierungsseite bidirektional "
 "synchronisiert. Dateiimporte verändern ihre Quelldateien nicht; bestehende "
 "Einträge werden nicht doppelt hinzugefügt."
-
-msgid "The Windows entry in the update information is invalid."
-msgstr "Der Eintrag Windows in den Update-Informationen ist ungültig."
 
 msgid "The address could not be opened."
 msgstr "Die Adresse konnte nicht geöffnet werden."
@@ -4855,23 +4867,14 @@ msgstr "Das Handbuch ist installiert; seine Version ist unbekannt."
 msgid "The manual is up to date."
 msgstr "Das Handbuch ist aktuell."
 
-msgid "The manual package checksum does not match."
-msgstr "Die Prüfsumme des Handbuchpakets stimmt nicht überein."
-
 msgid "The manual package could not be opened."
 msgstr "Das Handbuchpaket ließ sich nicht öffnen."
-
-msgid "The manual package is unexpectedly large."
-msgstr "Das Handbuchpaket ist unerwartet groß."
 
 msgid "The manual update check failed."
 msgstr "Die Prüfung auf eine neue Handbuchfassung ist fehlgeschlagen."
 
 msgid "The manual update information is invalid."
 msgstr "Die Aktualisierungsinformationen für das Handbuch sind ungültig."
-
-msgid "The manual update information is missing."
-msgstr "Die Informationen zum manuellen Update fehlen."
 
 msgid "The message is too large."
 msgstr "Die Nachricht ist zu groß."
@@ -5129,17 +5132,11 @@ msgstr "Die beiden neuen Kennwörter stimmen nicht überein."
 msgid "The update check failed."
 msgstr "Die Aktualisierungsprüfung ist fehlgeschlagen."
 
-msgid "The update information is unexpectedly large."
-msgstr "Die Aktualisierungsinformation ist unerwartet groß."
-
 msgid "The user data could not be read."
 msgstr "Die Benutzerdaten ließen sich nicht lesen."
 
 msgid "The value is outside the general green reference range."
 msgstr "Der Wert liegt außerhalb des allgemeinen grünen Referenzbereichs."
-
-msgid "The verified installer could not be opened."
-msgstr "Das verifizierte Installationsprogramm konnte nicht geöffnet werden."
 
 msgid ""
 "The weather service estimated the location from your public IP address. Your "
@@ -5535,7 +5532,7 @@ msgid "Use the recycle bin"
 msgstr "Papierkorb benutzen"
 
 msgid "User name"
-msgstr "Benutzername"
+msgstr "User name"
 
 msgid ""
 "Uses its own identity and storage and listens only on fixed port %(port)s. "
@@ -5748,6 +5745,13 @@ msgstr ""
 "anklickbar und öffnen Ihr Postprogramm."
 
 msgid ""
+"When the limit is lowered, the oldest recovery snapshots are removed "
+"automatically."
+msgstr ""
+"Wenn das Limit verringert wird, werden die ältesten Wiederherstellungspunkte "
+"automatisch entfernt."
+
+msgid ""
 "When writing a note, a small toolbar above the sheet provides bold, italic, "
 "underline and strikethrough. The same formatting is available with Ctrl+B, "
 "Ctrl+I, Ctrl+U and Ctrl+D."
@@ -5755,6 +5759,9 @@ msgstr ""
 "Beim Schreiben einer Notiz erscheint über dem Blatt eine kleine Auswahl für "
 "fett, kursiv, unterstrichen und durchgestrichen; dieselben Auszeichnungen "
 "erreichen Sie mit Strg+B, Strg+I, Strg+U und Strg+D."
+
+msgid "Where are your contacts now?"
+msgstr "Wo befinden sich Ihre Kontakte?"
 
 msgid "Whole month"
 msgstr "Ganzer Monat"
@@ -5843,6 +5850,9 @@ msgstr "Ja, zusammenführen"
 
 msgid "Yes, the code matches"
 msgstr "Ja, Code stimmt"
+
+msgid "You can also do this later in Settings."
+msgstr "Sie können dies auch später in den Einstellungen erledigen."
 
 msgid "Your address"
 msgstr "Eigene Anschrift"
@@ -6243,9 +6253,6 @@ msgstr[1] "… und %(count)s weitere, die ebenfalls gedruckt werden."
 
 msgid "＋ Add appointment"
 msgstr "＋ Termin hinzufügen"
-
-#~ msgid "Reset"
-#~ msgstr "Reset"
 
 msgid "Language & region"
 msgstr "Sprache & Region"

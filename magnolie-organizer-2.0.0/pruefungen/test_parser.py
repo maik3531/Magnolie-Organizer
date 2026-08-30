@@ -1533,6 +1533,12 @@ pruefe(tb_aufgabe["faellig"] == "2026-09-01" and tb_aufgabe["prio"] == 1 and
        "aktuelle Thunderbird-Aufgabe vollständig gelesen")
 pruefe("Evolution" in erg["bericht"] and "Thunderbird" in erg["bericht"],
        "Fundbericht nennt beide Quellen: " + erg["bericht"])
+nur_kontakte = m.lokal_scannen(basis, nur_kontakte=True)
+pruefe(len(nur_kontakte["kontakte"]) == 5 and
+       not nur_kontakte["geburtstage"] and
+       not nur_kontakte["termine"] and not nur_kontakte["jahrestage"] and
+       not nur_kontakte["aufgaben"],
+       "Kontaktassistent liest ausschließlich lokale Kontakte")
 
 tb_regional_alt = dict(m._REGIONAL)
 m._REGIONAL["timeZone"] = "Europe/Berlin"

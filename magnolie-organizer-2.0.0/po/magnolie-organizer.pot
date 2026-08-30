@@ -606,6 +606,9 @@ msgstr ""
 msgid "Accept automatically"
 msgstr ""
 
+msgid "Accept this KDE Connect file?"
+msgstr ""
+
 msgid "Accept “%(entry)s” into your own collection?"
 msgstr ""
 
@@ -1363,6 +1366,9 @@ msgstr ""
 msgid "Choose service"
 msgstr ""
 
+msgid "Choose the save location for each accepted file"
+msgstr ""
+
 msgid ""
 "Choose which sections appear as tabs on the organizer. The calendar always "
 "remains available."
@@ -1981,9 +1987,6 @@ msgstr ""
 msgid "Download manual version %(version)s"
 msgstr ""
 
-msgid "Download version %(version)s …"
-msgstr ""
-
 msgid "Drag the attachment area up or down"
 msgstr ""
 
@@ -2272,6 +2275,7 @@ msgstr ""
 msgid "File could not be read: %s"
 msgstr ""
 
+#, python-format
 msgid "File saved in Downloads: %(name)s"
 msgstr ""
 
@@ -2388,6 +2392,9 @@ msgid "Friday"
 msgstr ""
 
 msgid "From"
+msgstr ""
+
+msgid "From the Windows Contacts folder"
 msgstr ""
 
 msgid "From this computer (Evolution/Thunderbird)"
@@ -2677,6 +2684,14 @@ msgid "Insert link"
 msgstr ""
 
 msgid "Install the packages, for example with:"
+msgstr ""
+
+msgid ""
+"Install version %(version)s now? All changes will be saved. The Organizer "
+"will close and restart after the installation."
+msgstr ""
+
+msgid "Install version %(version)s …"
 msgstr ""
 
 msgid "Installed manual version: %(version)s."
@@ -3016,6 +3031,9 @@ msgstr ""
 msgid "Maximized"
 msgstr ""
 
+msgid "Maximum recovery snapshots"
+msgstr ""
+
 msgid "Measurement context"
 msgstr ""
 
@@ -3313,6 +3331,9 @@ msgstr ""
 msgid "No Claws Mail address book was detected."
 msgstr ""
 
+msgid "No address books found."
+msgstr ""
+
 msgid ""
 "No anniversaries yet.\n"
 "Birthdays and celebrations will automatically appear in the calendar."
@@ -3536,9 +3557,6 @@ msgstr ""
 msgid "Notification actions available"
 msgstr ""
 
-msgid "Notification actions unavailable"
-msgstr ""
-
 msgid "Notification and sound"
 msgstr ""
 
@@ -3663,6 +3681,9 @@ msgid ""
 "with:  sudo apt install %(packages)s, then restart the application. You can "
 "also import contacts and appointments without this integration using “From "
 "this computer” above."
+msgstr ""
+
+msgid "Online address book"
 msgstr ""
 
 msgid "Online via Bluetooth data"
@@ -3868,6 +3889,9 @@ msgid "Pairing file"
 msgstr ""
 
 msgid "Pairing file saved to: %(path)s"
+msgstr ""
+
+msgid "Pairing, file and clipboard requests are confirmed in this window."
 msgstr ""
 
 msgid "Palm tree"
@@ -4745,6 +4769,9 @@ msgid "Service running"
 msgstr ""
 
 msgid "Service stopped"
+msgstr ""
+
+msgid "Set up contacts"
 msgstr ""
 
 msgid "Set varying doses by weekday"
@@ -6627,9 +6654,17 @@ msgid ""
 msgstr ""
 
 msgid ""
+"When the limit is lowered, the oldest recovery snapshots are removed "
+"automatically."
+msgstr ""
+
+msgid ""
 "When writing a note, a small toolbar above the sheet provides bold, italic, "
 "underline and strikethrough. The same formatting is available with Ctrl+B, "
 "Ctrl+I, Ctrl+U and Ctrl+D."
+msgstr ""
+
+msgid "Where are your contacts now?"
 msgstr ""
 
 msgid "Whole month"
@@ -6711,6 +6746,9 @@ msgid "Yes, merge"
 msgstr ""
 
 msgid "Yes, the code matches"
+msgstr ""
+
+msgid "You can also do this later in Settings."
 msgstr ""
 
 msgid "Your address"

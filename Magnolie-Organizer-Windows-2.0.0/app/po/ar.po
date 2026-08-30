@@ -1,7 +1,8 @@
 # SOME DESCRIPTIVE TITLE.
-# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
-# This file is distributed under the same license as the Magnolie Organizer package.
-# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+# Copyright (C) 2026 THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the Magnolie Organizer
+# package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
 #
 msgid ""
 msgstr ""
@@ -253,8 +254,8 @@ msgid "%(count)s non-JPEG contact photo was omitted."
 msgid_plural "%(count)s non-JPEG contact photos were omitted."
 msgstr[0] "تمت إزالة %(count)s صورة جهة اتصال غير بصيغة JPEG."
 msgstr[1] "تمت إزالة %(count)s صورة جهة اتصال غير بصيغة JPEG."
-msgstr[2] "تمت إزالة %(count)s صورتي جهة اتصال غير بصيغة JPEG."
-msgstr[3] "تمت إزالة %(count)s صور جهات اتصال غير بصيغة JPEG."
+msgstr[2] "تمت إزالة %(count)s صورة جهة اتصال غير بصيغة JPEG."
+msgstr[3] "تمت إزالة %(count)s صورة جهة اتصال غير بصيغة JPEG."
 msgstr[4] "تمت إزالة %(count)s صورة جهة اتصال غير بصيغة JPEG."
 msgstr[5] "تمت إزالة %(count)s صورة جهة اتصال غير بصيغة JPEG."
 
@@ -337,8 +338,8 @@ msgid "%(count)s unusable contact was omitted."
 msgid_plural "%(count)s unusable contacts were omitted."
 msgstr[0] "تم حذف %(count)s جهة اتصال غير قابلة للاستخدام."
 msgstr[1] "تم حذف %(count)s جهة اتصال غير قابلة للاستخدام."
-msgstr[2] "تم حذف %(count)s جهتي اتصال غير قابلتين للاستخدام."
-msgstr[3] "تم حذف %(count)s جهات اتصال غير قابلة للاستخدام."
+msgstr[2] "تم حذف %(count)s جهة اتصال غير قابلة للاستخدام."
+msgstr[3] "تم حذف %(count)s جهة اتصال غير قابلة للاستخدام."
 msgstr[4] "تم حذف %(count)s جهة اتصال غير قابلة للاستخدام."
 msgstr[5] "تم حذف %(count)s جهة اتصال غير قابلة للاستخدام."
 
@@ -361,10 +362,10 @@ msgid "%(from)s to %(to)s"
 msgstr "من %(from)s إلى %(to)s"
 
 msgid "%(name)s found – currently reachable"
-msgstr "%(name)s found – currently reachable"
+msgstr "ﺎًﻴﻟﺎﺣ ﻪﻴﻟﺇ ﻝﻮﺻﻮﻟﺍ ﻦﻜﻤﻳ – %(name)s ﻰﻠﻋ ﺭﻮﺜﻌﻟﺍ ﻢﺗ"
 
 msgid "%(name)s last found – reconnecting"
-msgstr "%(name)s last found – reconnecting"
+msgstr "%(name)s ﻝﺎﺼﺗﻻ﻿ﺍ ﺓﺩﺎﻋﺇ – ﺓﺮﻣ ﺮﺧﺁ ﻪﻴﻠﻋ ﺭﻮﺜﻌﻟﺍ ﻢﺗ"
 
 msgid "%(ordinal)s death anniversary"
 msgstr "ذكرى الوفاة رقم %(ordinal)s"
@@ -733,7 +734,7 @@ msgid "Answer calls on the computer and talk"
 msgstr "الرد على المكالمات والتحدث عبر الكمبيوتر"
 
 msgid "App password"
-msgstr "كلمة مرور التطبيق"
+msgstr "App password"
 
 msgid "Appearance"
 msgstr "المظهر"
@@ -1087,7 +1088,7 @@ msgid "Call this contact using Magnolie Notes or the assigned application"
 msgstr "اتصل بجهة الاتصال هذه باستخدام Magnolie Notes أو التطبيق المخصص"
 
 msgid "Call with %(name)s · %(date)s"
-msgstr "Call with %(name)s · %(date)s"
+msgstr "%(name)s · %(date)s ﻊﻣ ﺔﻤﻟﺎﻜﻣ"
 
 msgid "Cancel"
 msgstr "إلغاء"
@@ -1241,7 +1242,7 @@ msgid "City"
 msgstr "المدينة"
 
 msgid "Claws Mail (.xml/.ldif) …"
-msgstr "Claws Mail (.xml/.ldif) …"
+msgstr "من Claws Mail (.xml/.ldif) …"
 
 msgid "Claws Mail address book (*.xml)"
 msgstr "دفتر عناوين Claws Mail (*.xml)"
@@ -1437,7 +1438,7 @@ msgid "Cost center"
 msgstr "مركز التكلفة"
 
 msgid "Could not answer"
-msgstr "تعذر الرد على المكالمة"
+msgstr "تعذّر الرد على المكالمة"
 
 msgid "Could not hang up"
 msgstr "تعذر إنهاء المكالمة"
@@ -1632,7 +1633,7 @@ msgid "Delete page"
 msgstr "حذف الصفحة"
 
 msgid "Delete password"
-msgstr "حذف كلمة المرور"
+msgstr "Delete password"
 
 msgid "Delete permanently"
 msgstr "حذف نهائي"
@@ -1771,9 +1772,6 @@ msgstr "تنزيل الدليل"
 
 msgid "Download manual version %(version)s"
 msgstr "تنزيل الدليل، الإصدار %(version)s"
-
-msgid "Download version %(version)s …"
-msgstr "تنزيل الإصدار %(version)s …"
 
 msgid "Drag the attachment area up or down"
 msgstr "اسحب منطقة المرفقات إلى أعلى أو أسفل"
@@ -2406,6 +2404,16 @@ msgstr "إدخال"
 msgid "Insert link"
 msgstr "إدراج رابط"
 
+msgid ""
+"Install version %(version)s now? All changes will be saved. The Organizer "
+"will close and restart after the installation."
+msgstr ""
+"هل تريد تثبيت الإصدار %(version)s الآن؟ سيتم حفظ جميع التغييرات. سيُغلق "
+"Organizer ويُعاد تشغيله بعد التثبيت."
+
+msgid "Install version %(version)s …"
+msgstr "تثبيت الإصدار %(version)s …"
+
 msgid "Installed manual version: %(version)s."
 msgstr "الإصدار اليدوي المثبت: %(version)s."
 
@@ -2671,6 +2679,9 @@ msgstr "وضع علامة «مفتوح»"
 
 msgid "Maximized"
 msgstr "مكبّرة"
+
+msgid "Maximum recovery snapshots"
+msgstr "الحد الأقصى لنقاط الاستعادة"
 
 msgid "Measurement context"
 msgstr "سياق القياس"
@@ -2961,6 +2972,9 @@ msgstr "لم يتم تحديد عنوان Bluetooth."
 msgid "No KDE Connect pairing is awaiting confirmation."
 msgstr "لا يوجد إقران KDE Connect في انتظار التأكيد."
 
+msgid "No address books found."
+msgstr "لم يتم العثور على دفاتر عناوين."
+
 msgid ""
 "No anniversaries yet.\n"
 "Birthdays and celebrations will automatically appear in the calendar."
@@ -3210,8 +3224,8 @@ msgid_plural ""
 "%(count)s completion updates were received from the Magnolienbaum."
 msgstr[0] "تم استلام تحديث إكمال واحد من Magnolienbaum."
 msgstr[1] "تم استلام %(count)s تحديث إكمال من Magnolienbaum."
-msgstr[2] "تم استلام %(count)s تحديثي إكمال من Magnolienbaum."
-msgstr[3] "تم استلام %(count)s تحديثات إكمال من Magnolienbaum."
+msgstr[2] "تم استلام %(count)s تحديث إكمال من Magnolienbaum."
+msgstr[3] "تم استلام %(count)s تحديث إكمال من Magnolienbaum."
 msgstr[4] "تم استلام %(count)s تحديث إكمال من Magnolienbaum."
 msgstr[5] "تم استلام %(count)s تحديث إكمال من Magnolienbaum."
 
@@ -3257,6 +3271,9 @@ msgstr ""
 "تكامل الحسابات عبر الإنترنت غير متاح على هذا النظام. ثبّته بالأمر:  sudo apt "
 "install %(packages)s، ثم أعد تشغيل التطبيق. ويمكنك أيضًا استيراد جهات الاتصال "
 "والمواعيد من دون هذا التكامل باستخدام «من هذا الحاسوب» أعلاه."
+
+msgid "Online address book"
+msgstr "دفتر عناوين عبر الإنترنت"
 
 msgid "Online via Bluetooth data"
 msgstr "متصل عبر بيانات Bluetooth"
@@ -3393,11 +3410,11 @@ msgstr "أخرى"
 
 msgctxt "email type"
 msgid "Other"
-msgstr "أخرى"
+msgstr "آخر"
 
 msgctxt "relationship"
 msgid "Other"
-msgstr "أخرى"
+msgstr "علاقة أخرى"
 
 msgid "Other addresses"
 msgstr "عناوين أخرى"
@@ -3513,18 +3530,18 @@ msgid "Permanently delete %(count)s completed task?"
 msgid_plural "Permanently delete %(count)s completed tasks?"
 msgstr[0] "حذف المهمة المكتملة وعددها %(count)s نهائيًا؟"
 msgstr[1] "حذف مهمتين مكتملتين نهائيًا (العدد: %(count)s)؟"
-msgstr[2] "حذف المهام المكتملة وعددها %(count)s نهائيًا؟"
-msgstr[3] "حذف المهام المكتملة وعددها %(count)s نهائيًا؟"
-msgstr[4] "حذف المهام المكتملة وعددها %(count)s نهائيًا؟"
-msgstr[5] "حذف المهام المكتملة وعددها %(count)s نهائيًا؟"
+msgstr[2] "حذف مهمتين مكتملتين نهائيًا (العدد: %(count)s)؟"
+msgstr[3] "حذف مهمتين مكتملتين نهائيًا (العدد: %(count)s)؟"
+msgstr[4] "حذف مهمتين مكتملتين نهائيًا (العدد: %(count)s)؟"
+msgstr[5] "حذف مهمتين مكتملتين نهائيًا (العدد: %(count)s)؟"
 
 msgid "Permanently delete %(count)s selected health record?"
 msgid_plural "Permanently delete %(count)s selected health records?"
 msgstr[0] "هل تريد حذف %(count)s سجل صحي محدد نهائيًا؟"
 msgstr[1] "هل تريد حذف %(count)s سجل صحي محدد نهائيًا؟"
-msgstr[2] "هل تريد حذف سجلين صحيين محددين (%(count)s) نهائيًا؟"
-msgstr[3] "هل تريد حذف %(count)s سجلات صحية محددة نهائيًا؟"
-msgstr[4] "هل تريد حذف %(count)s سجلًا صحيًا محددًا نهائيًا؟"
+msgstr[2] "هل تريد حذف %(count)s سجل صحي محدد نهائيًا؟"
+msgstr[3] "هل تريد حذف %(count)s سجل صحي محدد نهائيًا؟"
+msgstr[4] "هل تريد حذف %(count)s سجل صحي محدد نهائيًا؟"
 msgstr[5] "هل تريد حذف %(count)s سجل صحي محدد نهائيًا؟"
 
 msgid "Permanently delete selected health records"
@@ -3799,7 +3816,7 @@ msgid "Reachable IPv4 or IPv6 address of this computer"
 msgstr "عنوان IPv4 أو IPv6 القابل للوصول لهذا الحاسوب"
 
 msgid "Ready."
-msgstr "جاهز."
+msgstr "Ready."
 
 msgid ""
 "Really merge %(cards)s? Review the result carefully afterwards. A copy of "
@@ -4036,7 +4053,7 @@ msgid "SMS details"
 msgstr "تفاصيل SMS"
 
 msgid "SMS from %(name)s"
-msgstr "رسالة SMS من %(name)s"
+msgstr "SMS من %(name)s"
 
 msgid "SMS history"
 msgstr "تاريخ SMS"
@@ -4094,16 +4111,16 @@ msgid "Saved to: %(path)s (%(count)s entry)"
 msgid_plural "Saved to: %(path)s (%(count)s entries)"
 msgstr[0] "حُفظ في: %(path)s (عنصر واحد؛ العدد %(count)s)"
 msgstr[1] "حُفظ في: %(path)s (عنصران؛ العدد %(count)s)"
-msgstr[2] "حُفظ في: %(path)s (%(count)s عناصر)"
-msgstr[3] "حُفظ في: %(path)s (%(count)s عناصر)"
-msgstr[4] "حُفظ في: %(path)s (%(count)s عنصرًا)"
-msgstr[5] "حُفظ في: %(path)s (%(count)s عنصر)"
+msgstr[2] "حُفظ في: %(path)s (عنصران؛ العدد %(count)s)"
+msgstr[3] "حُفظ في: %(path)s (عنصران؛ العدد %(count)s)"
+msgstr[4] "حُفظ في: %(path)s (عنصران؛ العدد %(count)s)"
+msgstr[5] "حُفظ في: %(path)s (عنصران؛ العدد %(count)s)"
 
 msgid "Saved ✓ %(time)s"
 msgstr "تم الحفظ ✓ %(time)s"
 
 msgid "Saved."
-msgstr "تم الحفظ."
+msgstr "Saved."
 
 msgid "Saving failed!"
 msgstr "فشل الحفظ!"
@@ -4234,10 +4251,13 @@ msgid "Sent"
 msgstr "تم الإرسال"
 
 msgid "Server address"
-msgstr "عنوان الخادم"
+msgstr "Server address"
 
 msgid "Server address and user name are required."
 msgstr "عنوان الخادم واسم المستخدم مطلوبان."
+
+msgid "Set up contacts"
+msgstr "إعداد جهات الاتصال"
 
 msgid "Set varying doses by weekday"
 msgstr "تعيين جرعات متفاوتة حسب يوم الأسبوع"
@@ -4467,7 +4487,7 @@ msgid "Suppository"
 msgstr "تحميلة"
 
 msgid "Switched off."
-msgstr "مُعطَّل."
+msgstr "Switched off."
 
 msgid "Switzerland"
 msgstr "سويسرا"
@@ -4584,10 +4604,10 @@ msgid "Temperature"
 msgstr "درجة الحرارة"
 
 msgid "Test connection"
-msgstr "اختبار الاتصال"
+msgstr "Test connection"
 
 msgid "Testing…"
-msgstr "جارٍ الفحص …"
+msgstr "Testing…"
 
 msgid "Text color"
 msgstr "لون النص"
@@ -4681,9 +4701,6 @@ msgstr ""
 "تتم مزامنة مجلد جهات اتصال Windows ثنائي الاتجاه على صفحة المزامنة. لا تؤدي "
 "عمليات استيراد الملفات إلى تعديل الملفات المصدر الخاصة بها؛ لا تتم إضافة "
 "الإدخالات الموجودة مرتين."
-
-msgid "The Windows entry in the update information is invalid."
-msgstr "إدخال Windows في معلومات التحديث غير صالح."
 
 msgid "The address could not be opened."
 msgstr "لا يمكن فتح العنوان."
@@ -4914,23 +4931,14 @@ msgstr "تم تثبيت الدليل؛ نسخته غير معروفة."
 msgid "The manual is up to date."
 msgstr "الدليل محدث."
 
-msgid "The manual package checksum does not match."
-msgstr "مجموع تحقق الحزمة اليدوية لا يطابق."
-
 msgid "The manual package could not be opened."
 msgstr "تعذر فتح حزمة الدليل."
-
-msgid "The manual package is unexpectedly large."
-msgstr "الحزمة اليدوية كبيرة بشكل غير متوقع."
 
 msgid "The manual update check failed."
 msgstr "فشل التحقق من التحديث اليدوي."
 
 msgid "The manual update information is invalid."
 msgstr "معلومات التحديث اليدوي غير صالحة."
-
-msgid "The manual update information is missing."
-msgstr "معلومات التحديث اليدوي مفقودة."
 
 msgid "The message is too large."
 msgstr "الرسالة كبيرة جدًا."
@@ -5171,17 +5179,11 @@ msgstr "كلمتا المرور الجديدتان غير متطابقتين."
 msgid "The update check failed."
 msgstr "فشل فحص التحديثات."
 
-msgid "The update information is unexpectedly large."
-msgstr "معلومات التحديث كبيرة على نحو غير متوقع."
-
 msgid "The user data could not be read."
 msgstr "تعذر قراءة بيانات المستخدم."
 
 msgid "The value is outside the general green reference range."
 msgstr "تقع القيمة خارج النطاق المرجعي الأخضر العام."
-
-msgid "The verified installer could not be opened."
-msgstr "لا يمكن فتح المثبت الذي تم التحقق منه."
 
 msgid ""
 "The weather service estimated the location from your public IP address. Your "
@@ -5569,7 +5571,7 @@ msgid "Use the recycle bin"
 msgstr "استخدام سلة المحذوفات"
 
 msgid "User name"
-msgstr "اسم المستخدم"
+msgstr "User name"
 
 msgid ""
 "Uses its own identity and storage and listens only on fixed port %(port)s. "
@@ -5779,12 +5781,20 @@ msgstr ""
 "الإلكتروني في بطاقات جهات الاتصال قابلة للنقر دائمًا وتفتح تطبيق البريد."
 
 msgid ""
+"When the limit is lowered, the oldest recovery snapshots are removed "
+"automatically."
+msgstr "عند خفض الحد، تُحذف أقدم نقاط الاستعادة تلقائيًا."
+
+msgid ""
 "When writing a note, a small toolbar above the sheet provides bold, italic, "
 "underline and strikethrough. The same formatting is available with Ctrl+B, "
 "Ctrl+I, Ctrl+U and Ctrl+D."
 msgstr ""
 "عند كتابة ملاحظة، يوفر شريط أدوات صغير أعلى الورقة الخط العريض والمائل "
 "والتسطير والشطب. ويتوفر التنسيق نفسه باستخدام Ctrl+B وCtrl+I وCtrl+U وCtrl+D."
+
+msgid "Where are your contacts now?"
+msgstr "أين توجد جهات اتصالك الآن؟"
 
 msgid "Whole month"
 msgstr "الشهر كاملًا"
@@ -5872,6 +5882,9 @@ msgstr "نعم، دمج"
 
 msgid "Yes, the code matches"
 msgstr "نعم، الرمز متطابق"
+
+msgid "You can also do this later in Settings."
+msgstr "يمكنك أيضًا القيام بذلك لاحقًا من الإعدادات."
 
 msgid "Your address"
 msgstr "عنوانك"
@@ -6087,7 +6100,7 @@ msgstr[0] "بعد %(count)s يوم"
 msgstr[1] "بعد %(count)s يوم"
 msgstr[2] "بعد %(count)s يوم"
 msgstr[3] "بعد %(count)s يوم"
-msgstr[4] "بعد %(count)s يومًا"
+msgstr[4] "بعد %(count)s يوم"
 msgstr[5] "بعد %(count)s يوم"
 
 msgid "keep here"
@@ -6297,9 +6310,6 @@ msgstr[5] "… وعناصر إضافية ستُطبع أيضًا؛ العدد: %
 
 msgid "＋ Add appointment"
 msgstr "＋ إضافة موعد"
-
-#~ msgid "Reset"
-#~ msgstr "Reset"
 
 msgid "Language & region"
 msgstr "اللغة والمنطقة"

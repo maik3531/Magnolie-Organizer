@@ -52,10 +52,11 @@ def test_kde_receive_settings_require_canonical_peer_and_directory():
         valid = background.normalize_settings({"enabled": True,
             "kde_device_id": "a" * 32, "kde_download_directory": root,
             "kde_clipboard_enabled": True, "kde_clipboard_mode": "automatic",
-            "kde_file_enabled": True,
+            "kde_file_enabled": True, "kde_choose_directory": True,
             "permissions": {"kde_incoming_files": True}})
         assert valid["kde_device_id"] == "a" * 32
         assert valid["kde_download_directory"] == os.path.realpath(root)
+        assert valid["kde_choose_directory"] is True
         assert background.receive_configuration(valid) == {
             "clipboard_enabled": True, "file_enabled": True,
             "device_id": "a" * 32, "clipboard_mode": "automatic",
@@ -140,8 +141,9 @@ class FakeBackend:
         self.calls.append(("confirm_pairing", accepted))
         return {"state": "accepted" if accepted else "rejected"}
 
-    def accept_receive(self, receive_id):
-        self.calls.append(("accept_receive", receive_id))
+    def accept_receive(self, receive_id, directory=""):
+        self.calls.append(("accept_receive", receive_id, directory) if directory else
+                          ("accept_receive", receive_id))
 
     def reject_receive(self, receive_id):
         self.calls.append(("reject_receive", receive_id))
@@ -457,6 +459,24 @@ def test_actionless_decisions_fall_back_to_visible_gui_without_rejecting():
         "pairing", "file_proposal", "clipboard_proposal"]
     assert len(notifications.items) == 6
     assert all(not actions for _title, _body, actions, _close in notifications.items[1::2])
+
+
+def test_file_destination_choice_opens_gui_instead_of_accepting_natively():
+    backend = FakeBackend()
+    notifications = RecordedNotifications()
+    published = []
+    events = background.DaemonEvents(lambda: backend, {
+        "permissions": {"kde_incoming_files": True},
+        "kde_device_id": "a" * 32, "kde_download_directory": "/tmp",
+        "kde_file_enabled": True, "kde_choose_directory": True},
+        notifications, ImmediateGLib,
+        lambda event, payload: published.append((event, payload)), lambda: False)
+    events("file_proposal", {"id": "f" * 32, "name": "document.pdf", "size": 7})
+    assert backend.calls == []
+    assert len(notifications.items[-1][2]) == 1
+    assert notifications.items[-1][2][0][0] == "open"
+    assert published == [("file_proposal", {
+        "id": "f" * 32, "name": "document.pdf", "size": 7})]
 
 
 def test_missing_native_action_capability_rejects_decisions_fail_closed():

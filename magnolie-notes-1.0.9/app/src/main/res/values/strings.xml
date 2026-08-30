@@ -414,4 +414,6 @@
     <string name="start_erneut">Try again</string>
     <string name="start_schliessen">Close app</string>
     <string name="absturzbericht_teilen">Share crash report</string>
+    <string name="journal_maximum">Maximum recovery snapshots</string>
+    <string name="journal_maximum_hinweis">When the limit is lowered, the oldest recovery snapshots are removed automatically.</string>
 </resources>

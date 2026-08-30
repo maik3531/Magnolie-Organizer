@@ -675,6 +675,9 @@ msgstr "Прийняти й запам’ятати"
 msgid "Accept automatically"
 msgstr "Приймати автоматично"
 
+msgid "Accept this KDE Connect file?"
+msgstr "Прийняти цей файл KDE Connect?"
+
 msgid "Accept “%(entry)s” into your own collection?"
 msgstr "Прийняти «%(entry)s» до власної колекції?"
 
@@ -1479,6 +1482,9 @@ msgstr "Виберіть вміст для друку або експорту…
 msgid "Choose service"
 msgstr "Вибрати службу"
 
+msgid "Choose the save location for each accepted file"
+msgstr "Вибирати місце збереження для кожного прийнятого файла"
+
 msgid ""
 "Choose which sections appear as tabs on the organizer. The calendar always "
 "remains available."
@@ -2127,9 +2133,6 @@ msgstr "Завантажити посібник"
 msgid "Download manual version %(version)s"
 msgstr "Завантажити посібник версії %(version)s"
 
-msgid "Download version %(version)s …"
-msgstr "Завантажити версію %(version)s …"
-
 msgid "Drag the attachment area up or down"
 msgstr "Перетягніть область вкладень угору або вниз"
 
@@ -2425,6 +2428,7 @@ msgstr "Файл"
 msgid "File could not be read: %s"
 msgstr "Не вдалося прочитати файл: %s"
 
+#, python-format
 msgid "File saved in Downloads: %(name)s"
 msgstr "Файл збережено в «Завантаженнях»: %(name)s"
 
@@ -2561,6 +2565,9 @@ msgstr "П’ятниця"
 
 msgid "From"
 msgstr "Від"
+
+msgid "From the Windows Contacts folder"
+msgstr "З папки «Контакти Windows»"
 
 msgid "From this computer (Evolution/Thunderbird)"
 msgstr "З цього комп’ютера (Evolution/Thunderbird)"
@@ -2863,6 +2870,16 @@ msgstr "Вставити посилання"
 
 msgid "Install the packages, for example with:"
 msgstr "Установіть пакунки, наприклад командою:"
+
+msgid ""
+"Install version %(version)s now? All changes will be saved. The Organizer "
+"will close and restart after the installation."
+msgstr ""
+"Інсталювати версію %(version)s зараз? Усі зміни буде збережено. Органайзер "
+"закриється та перезапуститься після інсталяції."
+
+msgid "Install version %(version)s …"
+msgstr "Інсталювати версію %(version)s …"
 
 msgid "Installed manual version: %(version)s."
 msgstr "Встановлена ручна версія: %(version)s."
@@ -3216,6 +3233,9 @@ msgstr "Позначити як відкрите"
 msgid "Maximized"
 msgstr "Розгорнуте"
 
+msgid "Maximum recovery snapshots"
+msgstr "Максимальна кількість точок відновлення"
+
 msgid "Measurement context"
 msgstr "Контекст вимірювання"
 
@@ -3532,6 +3552,9 @@ msgstr "No"
 msgid "No Claws Mail address book was detected."
 msgstr "Адресну книгу Claws Mail не виявлено."
 
+msgid "No address books found."
+msgstr "Адресних книг не знайдено."
+
 msgid ""
 "No anniversaries yet.\n"
 "Birthdays and celebrations will automatically appear in the calendar."
@@ -3774,9 +3797,6 @@ msgstr "Увага: З’єднання зі сховищем не підтве�
 msgid "Notification actions available"
 msgstr "Дії у сповіщеннях доступні"
 
-msgid "Notification actions unavailable"
-msgstr "Дії у сповіщеннях недоступні"
-
 msgid "Notification and sound"
 msgstr "Сповіщення і звук"
 
@@ -3921,6 +3941,9 @@ msgstr ""
 "Контакти та зустрічі можна імпортувати й без цієї інтеграції за допомогою «З "
 "цього комп’ютера» вище."
 
+msgid "Online address book"
+msgstr "Онлайн-адресна книга"
+
 msgid "Online via Bluetooth data"
 msgstr "Онлайн через Bluetooth дані"
 
@@ -3937,7 +3960,10 @@ msgstr ""
 msgid ""
 "Only Notify, then unlock is currently available. Keyring access and pausing "
 "while locked are not yet enforced by the background service."
-msgstr "Наразі доступний лише режим «Сповістити, потім розблокувати». Фонова служба ще не забезпечує доступ до сховища ключів і призупинення роботи під час блокування."
+msgstr ""
+"Наразі доступний лише режим «Сповістити, потім розблокувати». Фонова служба "
+"ще не забезпечує доступ до сховища ключів і призупинення роботи під час "
+"блокування."
 
 msgid ""
 "Only one Magnolie Notes phone can be paired. Remove the existing phone "
@@ -4138,6 +4164,9 @@ msgstr "Файл сполучення"
 
 msgid "Pairing file saved to: %(path)s"
 msgstr "Файл сполучення збережено до: %(path)s"
+
+msgid "Pairing, file and clipboard requests are confirmed in this window."
+msgstr "Запити на сполучення, файли та буфер обміну підтверджуються в цьому вікні."
 
 msgid "Palm tree"
 msgstr "Пальма"
@@ -5057,6 +5086,9 @@ msgstr "Служба працює"
 msgid "Service stopped"
 msgstr "Службу зупинено"
 
+msgid "Set up contacts"
+msgstr "Налаштувати контакти"
+
 msgid "Set varying doses by weekday"
 msgstr "Установити різні дози за днями тижня"
 
@@ -5387,7 +5419,8 @@ msgid "System default"
 msgstr "Система за умовчанням"
 
 msgid "System keyring and pause modes cannot be enabled yet."
-msgstr "Системне сховище ключів і режими призупинення поки що не можна ввімкнути."
+msgstr ""
+"Системне сховище ключів і режими призупинення поки що не можна ввімкнути."
 
 msgid "System keyring available"
 msgstr "Системне сховище ключів доступне"
@@ -7105,6 +7138,12 @@ msgstr ""
 "— вони відкривають поштову програму."
 
 msgid ""
+"When the limit is lowered, the oldest recovery snapshots are removed "
+"automatically."
+msgstr ""
+"Коли ліміт зменшується, найстаріші точки відновлення автоматично видаляються."
+
+msgid ""
 "When writing a note, a small toolbar above the sheet provides bold, italic, "
 "underline and strikethrough. The same formatting is available with Ctrl+B, "
 "Ctrl+I, Ctrl+U and Ctrl+D."
@@ -7112,6 +7151,9 @@ msgstr ""
 "Під час написання нотатки невелика панель інструментів над аркушем дає змогу "
 "застосувати напівжирний шрифт, курсив, підкреслення й закреслення. Те саме "
 "форматування доступне через Ctrl+B, Ctrl+I, Ctrl+U та Ctrl+D."
+
+msgid "Where are your contacts now?"
+msgstr "Де зараз розташовані ваші контакти?"
 
 msgid "Whole month"
 msgstr "Весь місяць"
@@ -7201,6 +7243,9 @@ msgstr "Так, об’єднати"
 
 msgid "Yes, the code matches"
 msgstr "Так, код збігається"
+
+msgid "You can also do this later in Settings."
+msgstr "Це також можна зробити пізніше в налаштуваннях."
 
 msgid "Your address"
 msgstr "Ваша адреса"
@@ -7692,6 +7737,12 @@ msgstr[2] "… і ще %(count)s елементи, які також буде н
 
 msgid "＋ Add appointment"
 msgstr "＋ Додати зустріч"
+
+#~ msgid "Notification actions unavailable"
+#~ msgstr "Дії у сповіщеннях недоступні"
+
+#~ msgid "Download version %(version)s …"
+#~ msgstr "Завантажити версію %(version)s …"
 
 #~ msgid ""
 #~ "Notify, then unlock asks you to open and unlock the Organizer. System "

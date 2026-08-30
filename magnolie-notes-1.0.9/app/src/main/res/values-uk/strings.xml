@@ -348,4 +348,6 @@
     <string name="technischer_wert_zusammenfassung_unbekannt">Нерозпізнані відомості знімка: %1$s</string>
     <string name="start_laden">Відкриття захищених даних…</string><string name="start_fehler_titel">Не вдалося відкрити захищені дані</string><string name="start_daten_unveraendert">Ваші дані не видалено й не перезаписано. Можна безпечно повторити спробу.</string><string name="start_erneut">Повторити</string><string name="start_schliessen">Закрити застосунок</string>
     <string name="absturzbericht_teilen">Поділитися звітом про збій</string>
+    <string name="journal_maximum">Максимальна кількість точок відновлення</string>
+    <string name="journal_maximum_hinweis">Коли ліміт зменшується, найстаріші точки відновлення автоматично видаляються.</string>
 </resources>

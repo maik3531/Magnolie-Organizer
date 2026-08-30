@@ -1576,9 +1576,6 @@ msgstr ""
 msgid "Download manual version %(version)s"
 msgstr ""
 
-msgid "Download version %(version)s …"
-msgstr ""
-
 msgid "Drag the attachment area up or down"
 msgstr ""
 
@@ -2180,6 +2177,14 @@ msgstr ""
 msgid "Insert link"
 msgstr ""
 
+msgid ""
+"Install version %(version)s now? All changes will be saved. The Organizer "
+"will close and restart after the installation."
+msgstr ""
+
+msgid "Install version %(version)s …"
+msgstr ""
+
 msgid "Installed manual version: %(version)s."
 msgstr ""
 
@@ -2434,6 +2439,9 @@ msgid "Mark as open"
 msgstr ""
 
 msgid "Maximized"
+msgstr ""
+
+msgid "Maximum recovery snapshots"
 msgstr ""
 
 msgid "Measurement context"
@@ -2709,6 +2717,9 @@ msgstr ""
 msgid "No KDE Connect pairing is awaiting confirmation."
 msgstr ""
 
+msgid "No address books found."
+msgstr ""
+
 msgid ""
 "No anniversaries yet.\n"
 "Birthdays and celebrations will automatically appear in the calendar."
@@ -2974,6 +2985,9 @@ msgid ""
 "with:  sudo apt install %(packages)s, then restart the application. You can "
 "also import contacts and appointments without this integration using “From "
 "this computer” above."
+msgstr ""
+
+msgid "Online address book"
 msgstr ""
 
 msgid "Online via Bluetooth data"
@@ -3903,6 +3917,9 @@ msgstr ""
 msgid "Server address and user name are required."
 msgstr ""
 
+msgid "Set up contacts"
+msgstr ""
+
 msgid "Set varying doses by weekday"
 msgstr ""
 
@@ -4316,9 +4333,6 @@ msgid ""
 "existing entries are not added twice."
 msgstr ""
 
-msgid "The Windows entry in the update information is invalid."
-msgstr ""
-
 msgid "The address could not be opened."
 msgstr ""
 
@@ -4525,22 +4539,13 @@ msgstr ""
 msgid "The manual is up to date."
 msgstr ""
 
-msgid "The manual package checksum does not match."
-msgstr ""
-
 msgid "The manual package could not be opened."
-msgstr ""
-
-msgid "The manual package is unexpectedly large."
 msgstr ""
 
 msgid "The manual update check failed."
 msgstr ""
 
 msgid "The manual update information is invalid."
-msgstr ""
-
-msgid "The manual update information is missing."
 msgstr ""
 
 msgid "The message is too large."
@@ -4760,16 +4765,10 @@ msgstr ""
 msgid "The update check failed."
 msgstr ""
 
-msgid "The update information is unexpectedly large."
-msgstr ""
-
 msgid "The user data could not be read."
 msgstr ""
 
 msgid "The value is outside the general green reference range."
-msgstr ""
-
-msgid "The verified installer could not be opened."
 msgstr ""
 
 msgid ""
@@ -5309,9 +5308,17 @@ msgid ""
 msgstr ""
 
 msgid ""
+"When the limit is lowered, the oldest recovery snapshots are removed "
+"automatically."
+msgstr ""
+
+msgid ""
 "When writing a note, a small toolbar above the sheet provides bold, italic, "
 "underline and strikethrough. The same formatting is available with Ctrl+B, "
 "Ctrl+I, Ctrl+U and Ctrl+D."
+msgstr ""
+
+msgid "Where are your contacts now?"
 msgstr ""
 
 msgid "Whole month"
@@ -5393,6 +5400,9 @@ msgid "Yes, merge"
 msgstr ""
 
 msgid "Yes, the code matches"
+msgstr ""
+
+msgid "You can also do this later in Settings."
 msgstr ""
 
 msgid "Your address"

@@ -1,7 +1,8 @@
 # SOME DESCRIPTIVE TITLE.
-# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
-# This file is distributed under the same license as the Magnolie Organizer package.
-# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+# Copyright (C) 2026 THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the Magnolie Organizer
+# package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
 #
 msgid ""
 msgstr ""
@@ -202,15 +203,15 @@ msgid "%(count)s new Magnolienbaum request awaits your decision."
 msgid_plural "%(count)s new Magnolienbaum requests await your decision."
 msgstr[0] "%(count)s nowe naprašowanje Magnolienbaum čaka na Waš rozsud."
 msgstr[1] "%(count)s nowej naprašowani Magnolienbaum čakataj na Waš rozsud."
-msgstr[2] "%(count)s nowe naprašowanja Magnolienbaum čakaja na Waš rozsud."
-msgstr[3] "%(count)s nowych naprašowanjow Magnolienbaum čaka na Waš rozsud."
+msgstr[2] "%(count)s nowej naprašowani Magnolienbaum čakataj na Waš rozsud."
+msgstr[3] "%(count)s nowej naprašowani Magnolienbaum čakataj na Waš rozsud."
 
 msgid "%(count)s non-JPEG contact photo was omitted."
 msgid_plural "%(count)s non-JPEG contact photos were omitted."
 msgstr[0] "%(count)s nje-JPEG-kontaktowe foto je so wuwostajiło."
 msgstr[1] "%(count)s nje-JPEG-kontaktowej foće stej so wuwostajiłoj."
-msgstr[2] "%(count)s nje-JPEG-kontaktowe fota su so wuwostajili."
-msgstr[3] "%(count)s nje-JPEG-kontaktowe fota su so wuwostajili."
+msgstr[2] "%(count)s nje-JPEG-kontaktowej foće stej so wuwostajiłoj."
+msgstr[3] "%(count)s nje-JPEG-kontaktowej foće stej so wuwostajiłoj."
 
 msgid "%(count)s note"
 msgid_plural "%(count)s notes"
@@ -275,8 +276,8 @@ msgid "%(count)s unusable contact was omitted."
 msgid_plural "%(count)s unusable contacts were omitted."
 msgstr[0] "%(count)s njewužiwajomny kontakt je so wuwostajił."
 msgstr[1] "%(count)s njewužiwajomnej kontaktaj stej so wuwostajiłoj."
-msgstr[2] "%(count)s njewužiwajomne kontakty su so wuwostajili."
-msgstr[3] "%(count)s njewužiwajomne kontakty su so wuwostajili."
+msgstr[2] "%(count)s njewužiwajomnej kontaktaj stej so wuwostajiłoj."
+msgstr[3] "%(count)s njewužiwajomnej kontaktaj stej so wuwostajiłoj."
 
 msgid "%(date)s, %(time)s"
 msgstr "%(date)s, %(time)s"
@@ -676,7 +677,7 @@ msgid "Answer calls on the computer and talk"
 msgstr "Zawołanja na ličaku přiwzać a rěčeć"
 
 msgid "App password"
-msgstr "Aplikaciske hesło"
+msgstr "App password"
 
 msgid "Appearance"
 msgstr "Napohlad"
@@ -1189,7 +1190,7 @@ msgid "City"
 msgstr "Město"
 
 msgid "Claws Mail (.xml/.ldif) …"
-msgstr "Claws Mail (.xml/.ldif) …"
+msgstr "Claws Mail (.xml/.ldif) ..."
 
 msgid "Claws Mail address book (*.xml)"
 msgstr "Adresnik Claws Mail (*.xml)"
@@ -1596,7 +1597,7 @@ msgid "Delete page"
 msgstr "Stronu zhašeć"
 
 msgid "Delete password"
-msgstr "Hesło zhašeć"
+msgstr "Delete password"
 
 msgid "Delete permanently"
 msgstr "Na přeco zhašeć"
@@ -1736,9 +1737,6 @@ msgstr "Přiručku sćahnyć"
 
 msgid "Download manual version %(version)s"
 msgstr "Přiručku wersije %(version)s sćahnyć"
-
-msgid "Download version %(version)s …"
-msgstr "Wersiju %(version)s sćahnyć …"
 
 msgid "Drag the attachment area up or down"
 msgstr "Wobłuk přiwěškow horje abo dele ćahnyć"
@@ -2120,7 +2118,7 @@ msgid "From"
 msgstr "Wot"
 
 msgid "From the Windows Contacts folder"
-msgstr "Z rjadowaka Windows Contacts"
+msgstr "Z Windowsoweho kontaktoweho rjadowaka"
 
 msgid "Full"
 msgstr "Połny"
@@ -2378,6 +2376,16 @@ msgstr "Zapodaće"
 
 msgid "Insert link"
 msgstr "Wotkaz zasadźić"
+
+msgid ""
+"Install version %(version)s now? All changes will be saved. The Organizer "
+"will close and restart after the installation."
+msgstr ""
+"Wersiju %(version)s nětko instalować? Wšě změny so składuja. Organizer so "
+"začini a po instalaciji znowa startuje."
+
+msgid "Install version %(version)s …"
+msgstr "Wersiju %(version)s instalować …"
 
 msgid "Installed manual version: %(version)s."
 msgstr "Instalowana manualna wersija: %(version)s."
@@ -2648,6 +2656,9 @@ msgstr "Jako wočinjene markěrować"
 
 msgid "Maximized"
 msgstr "Maksimizowane"
+
+msgid "Maximum recovery snapshots"
+msgstr "Maksimalna ličba wobnowjenskich dypkow"
 
 msgid "Measurement context"
 msgstr "Kontekst měrjenja"
@@ -2939,6 +2950,9 @@ msgstr "Es wurde keine Bluetooth-Adresse ausgewählt."
 
 msgid "No KDE Connect pairing is awaiting confirmation."
 msgstr "Es wartet keine KDE Connect-Kopplung auf Bestätigung."
+
+msgid "No address books found."
+msgstr "Žane adresniki namakane."
 
 msgid ""
 "No anniversaries yet.\n"
@@ -3232,6 +3246,9 @@ msgstr ""
 "Kontakty a terminy móžeće tež bjez tuteje integracije z „Z tutoho ličaka“ "
 "horjeka importować."
 
+msgid "Online address book"
+msgstr "Online-adresnik"
+
 msgid "Online via Bluetooth data"
 msgstr "Online přez daty Bluetooth"
 
@@ -3368,11 +3385,11 @@ msgstr "Druhe"
 
 msgctxt "email type"
 msgid "Other"
-msgstr "Druhe"
+msgstr "Druha"
 
 msgctxt "relationship"
 msgid "Other"
-msgstr "Druhe"
+msgstr "Druhi poćah"
 
 msgid "Other addresses"
 msgstr "Druhe adresy"
@@ -3489,15 +3506,15 @@ msgid "Permanently delete %(count)s completed task?"
 msgid_plural "Permanently delete %(count)s completed tasks?"
 msgstr[0] "%(count)s dokónčeny nadawk na přeco zhašeć?"
 msgstr[1] "%(count)s dokónčenej nadawkaj na přeco zhašeć?"
-msgstr[2] "%(count)s dokónčene nadawki na přeco zhašeć?"
-msgstr[3] "Ličbu %(count)s dokónčenych nadawkow na přeco zhašeć?"
+msgstr[2] "%(count)s dokónčenej nadawkaj na přeco zhašeć?"
+msgstr[3] "%(count)s dokónčenej nadawkaj na přeco zhašeć?"
 
 msgid "Permanently delete %(count)s selected health record?"
 msgid_plural "Permanently delete %(count)s selected health records?"
 msgstr[0] "%(count)s wubrany strowotny zapisk na přeco zhašeć?"
 msgstr[1] "%(count)s wubranej strowotnej zapiskaj na přeco zhašeć?"
-msgstr[2] "%(count)s wubrane strowotne zapiski na přeco zhašeć?"
-msgstr[3] "Ličbu %(count)s wubranych strowotnych zapiskow na přeco zhašeć?"
+msgstr[2] "%(count)s wubranej strowotnej zapiskaj na přeco zhašeć?"
+msgstr[3] "%(count)s wubranej strowotnej zapiskaj na přeco zhašeć?"
 
 msgid "Permanently delete selected health records"
 msgstr "Wubrane strowotne zapiski na přeco zhašeć"
@@ -3773,7 +3790,7 @@ msgid "Reachable IPv4 or IPv6 address of this computer"
 msgstr "Docpějomna IPv4- abo IPv6-adresa tutoho ličaka"
 
 msgid "Ready."
-msgstr "Hotowe."
+msgstr "Ready."
 
 msgid ""
 "Really merge %(cards)s? Review the result carefully afterwards. A copy of "
@@ -4078,14 +4095,14 @@ msgid "Saved to: %(path)s (%(count)s entry)"
 msgid_plural "Saved to: %(path)s (%(count)s entries)"
 msgstr[0] "Składowane do: %(path)s (%(count)s zapisk)"
 msgstr[1] "Składowane do: %(path)s (%(count)s zapiskaj)"
-msgstr[2] "Składowane do: %(path)s (%(count)s zapiski"
-msgstr[3] "Składowane do: %(path)s (%(count)s zapiskow)"
+msgstr[2] "Składowane do: %(path)s (%(count)s zapiskaj)"
+msgstr[3] "Składowane do: %(path)s (%(count)s zapiskaj)"
 
 msgid "Saved ✓ %(time)s"
 msgstr "Składowane ✓ %(time)s"
 
 msgid "Saved."
-msgstr "Składowane."
+msgstr "Saved."
 
 msgid "Saving failed!"
 msgstr "Składowanje njeje so poradźiło!"
@@ -4218,10 +4235,13 @@ msgid "Sent"
 msgstr "Wotpósłane"
 
 msgid "Server address"
-msgstr "Serwerowa adresa"
+msgstr "Server address"
 
 msgid "Server address and user name are required."
 msgstr "Serwerowa adresa a wužiwarske mjeno stej trěbnej."
+
+msgid "Set up contacts"
+msgstr "Kontakty přirjadować"
 
 msgid "Set varying doses by weekday"
 msgstr "Rozdźělne dozy po dźenju tydźenja nastajić"
@@ -4451,7 +4471,7 @@ msgid "Suppository"
 msgstr "Čopik"
 
 msgid "Switched off."
-msgstr "Wupinjene."
+msgstr "Switched off."
 
 msgid "Switzerland"
 msgstr "Šwicarska"
@@ -4569,10 +4589,10 @@ msgid "Temperature"
 msgstr "Temperatura"
 
 msgid "Test connection"
-msgstr "Zwiskowanje pruwować"
+msgstr "Test connection"
 
 msgid "Testing…"
-msgstr "Přepruwuje so …"
+msgstr "Testing…"
 
 msgid "Text color"
 msgstr "Tekstowa barba"
@@ -4665,9 +4685,6 @@ msgstr ""
 "Rjadowak Windows Contacts so na synchronizaciskej stronje dwusměrnje "
 "synchronizuje. Importy datajow jich žórłowe dataje njezměnja; eksistowace "
 "zapiski so njepřidawaja dwójce."
-
-msgid "The Windows entry in the update information is invalid."
-msgstr "Der Eintrag Windows in den Update-Informationen ist ungültig."
 
 msgid "The address could not be opened."
 msgstr "Die Adresse konnte nicht geöffnet werden."
@@ -4905,23 +4922,14 @@ msgstr "Přiručka je instalowana; Jeho wersija njeje znata."
 msgid "The manual is up to date."
 msgstr "Přiručka je na najnowšim stawje."
 
-msgid "The manual package checksum does not match."
-msgstr "Ručna kontrolna suma pakćika so njekryje."
-
 msgid "The manual package could not be opened."
 msgstr "Paket přiručki njehodźeše so wočinić."
-
-msgid "The manual package is unexpectedly large."
-msgstr "Ručny pakćik je njewočakowano wulki."
 
 msgid "The manual update check failed."
 msgstr "Manuelna kontrola aktualizacije njeje so radźiła."
 
 msgid "The manual update information is invalid."
 msgstr "Manuelne aktualizowanske informacije su njepłaćiwe."
-
-msgid "The manual update information is missing."
-msgstr "Die Informationen zum manuellen Update fehlen."
 
 msgid "The message is too large."
 msgstr "Powěsć je přewulka."
@@ -5173,17 +5181,11 @@ msgstr "Wobě nowe hesle so njekryjetej."
 msgid "The update check failed."
 msgstr "Kontrola aktualizacijow njeje so poradźiła."
 
-msgid "The update information is unexpectedly large."
-msgstr "Informacija wo aktualizaciji je njewočakowanje wulka."
-
 msgid "The user data could not be read."
 msgstr "Wužiwarske daty njehodźachu so čitać."
 
 msgid "The value is outside the general green reference range."
 msgstr "Hódnota je zwonka powšitkowneho zeleneho referencneho wobłuka."
-
-msgid "The verified installer could not be opened."
-msgstr "Das verifizierte Installationsprogramm konnte nicht geöffnet werden."
 
 msgid ""
 "The weather service estimated the location from your public IP address. Your "
@@ -5579,7 +5581,7 @@ msgid "Use the recycle bin"
 msgstr "Papjernik wužiwać"
 
 msgid "User name"
-msgstr "Wužiwarske mjeno"
+msgstr "User name"
 
 msgid ""
 "Uses its own identity and storage and listens only on fixed port %(port)s. "
@@ -5791,6 +5793,13 @@ msgstr ""
 "klikajomne a wočinja waše mejlowe nałoženje."
 
 msgid ""
+"When the limit is lowered, the oldest recovery snapshots are removed "
+"automatically."
+msgstr ""
+"Hdyž so limit pomjeńši, so najstarše wobnowjenske dypki awtomatisce "
+"wotstronja."
+
+msgid ""
 "When writing a note, a small toolbar above the sheet provides bold, italic, "
 "underline and strikethrough. The same formatting is available with Ctrl+B, "
 "Ctrl+I, Ctrl+U and Ctrl+D."
@@ -5798,6 +5807,9 @@ msgstr ""
 "Při pisanju noticy skići mała lajsta nastrojow nad łopjenom tučne pismo, "
 "kursiwu, podšmórnjenje a přešmórnjenje. Samsne formatowanje je z Ctrl+B, "
 "Ctrl+I, Ctrl+U a Ctrl+D k dispoziciji."
+
+msgid "Where are your contacts now?"
+msgstr "Hdźe su Waše kontakty nětko?"
 
 msgid "Whole month"
 msgstr "Cyły měsac"
@@ -5885,6 +5897,9 @@ msgstr "Haj, zjednoćić"
 
 msgid "Yes, the code matches"
 msgstr "Haj, kod so kryje"
+
+msgid "You can also do this later in Settings."
+msgstr "Móžeće to tež pozdźišo w nastajenjach činić."
 
 msgid "Your address"
 msgstr "Waša adresa"
@@ -6097,8 +6112,8 @@ msgid "in %(count)s day"
 msgid_plural "in %(count)s days"
 msgstr[0] "za %(count)s dźeń"
 msgstr[1] "za %(count)s dnaj"
-msgstr[2] "za %(count)s dny"
-msgstr[3] "za %(count)s dnjow"
+msgstr[2] "za %(count)s dnaj"
+msgstr[3] "za %(count)s dnaj"
 
 msgid "keep here"
 msgstr "tu wostajić"
@@ -6134,8 +6149,8 @@ msgid "notification %(count)s minute before"
 msgid_plural "notification %(count)s minutes before"
 msgstr[0] "powěsć %(count)s mjeńšinu do toho"
 msgstr[1] "powěsć %(count)s mjeńšinje do toho"
-msgstr[2] "powěsć %(count)s mjeńšiny do toho"
-msgstr[3] "powěsć %(count)s mjeńšin do toho"
+msgstr[2] "powěsć %(count)s mjeńšinje do toho"
+msgstr[3] "powěsć %(count)s mjeńšinje do toho"
 
 msgid "on the day only"
 msgstr "jenož na tym dnju"
@@ -6295,14 +6310,11 @@ msgid "… and %(count)s more item that will also be printed."
 msgid_plural "… and %(count)s more items that will also be printed."
 msgstr[0] "… a dale %(count)s zapisk, kotryž so tež ćišći."
 msgstr[1] "… a dale %(count)s zapiskaj, kotrejž so tež ćišćitej."
-msgstr[2] "… a dale %(count)s zapiski, kotrež so tež ćišća."
-msgstr[3] "… a dale %(count)s zapiskow, kotrež so tež ćišća."
+msgstr[2] "… a dale %(count)s zapiskaj, kotrejž so tež ćišćitej."
+msgstr[3] "… a dale %(count)s zapiskaj, kotrejž so tež ćišćitej."
 
 msgid "＋ Add appointment"
 msgstr "＋ Termin přidać"
-
-#~ msgid "Reset"
-#~ msgstr "Reset"
 
 msgid "Language & region"
 msgstr "Rěč a region"

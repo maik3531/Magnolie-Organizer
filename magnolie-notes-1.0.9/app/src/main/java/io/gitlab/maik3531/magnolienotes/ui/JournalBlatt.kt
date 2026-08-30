@@ -35,6 +35,7 @@ import java.util.UUID
 
 class JournalHandlungen(
     val beiIntervall: (JournalIntervall) -> Unit,
+    val beiMaximum: (Int) -> Unit,
     val beiJetzt: () -> Unit,
     val beiWiederherstellen: (String, String, Boolean) -> Boolean,
     val beiLoeschen: (String) -> Unit,
@@ -55,6 +56,7 @@ fun JournalBlatt(zustand: JournalZustand, bestand: Bestand, handlungen: JournalH
     var papierkorbLoeschen by remember { mutableStateOf<String?>(null) }
     var papierkorbLeeren by remember { mutableStateOf(false) }
     var kontaktKonflikt by remember { mutableStateOf<Pair<SnapshotManifest, String>?>(null) }
+    var maximumText by remember(zustand.maximum) { mutableStateOf(zustand.maximum.toString()) }
     val intervalle = listOf(JournalIntervall.AUS, JournalIntervall.SECHS_STUNDEN,
         JournalIntervall.ZWOELF_STUNDEN, JournalIntervall.TAEGLICH, JournalIntervall.WOECHENTLICH)
     val intervalNamen = listOf(R.string.journal_aus, R.string.journal_6h, R.string.journal_12h,
@@ -107,6 +109,18 @@ fun JournalBlatt(zustand: JournalZustand, bestand: Bestand, handlungen: JournalH
                     } }
                 }
             }
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                Schreibfeld(maximumText, stringResource(R.string.journal_maximum),
+                    beiAenderung = { maximumText = it.filter(Char::isDigit).take(3) },
+                    modifier = Modifier.weight(1f))
+                Papierknopf(stringResource(R.string.ok), modifier = Modifier.padding(top = 7.dp)) {
+                    val maximum = (maximumText.toIntOrNull() ?: zustand.maximum).coerceIn(1, 100)
+                    maximumText = maximum.toString()
+                    handlungen.beiMaximum(maximum)
+                }
+            }
+            Text(stringResource(R.string.journal_maximum_hinweis), fontFamily = FontFamily.SansSerif,
+                fontSize = 11.sp, color = Magnolie.braunHell)
             Lederknopf(stringResource(R.string.journal_jetzt), modifier = Modifier.fillMaxWidth(),
                 beiKlick = handlungen.beiJetzt)
             Papierknopf(stringResource(R.string.absturzbericht_teilen),

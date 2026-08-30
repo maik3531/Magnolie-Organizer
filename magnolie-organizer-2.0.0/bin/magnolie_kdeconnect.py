@@ -1283,10 +1283,14 @@ class KDEConnectSMSBackend:
             stream.close()
             raise
 
-    def _accept_file(self, pending):
-        directory = self._receive_settings["download_directory"]
+    def _accept_file(self, pending, directory=None):
+        directory = directory or self._receive_settings["download_directory"]
         if not directory:
             raise ProtocolError("file receive is no longer configured")
+        if (not isinstance(directory, str) or not os.path.isabs(directory)
+                or not os.path.isdir(directory)
+                or os.path.realpath(directory) != directory):
+            raise ProtocolError("file receive destination is invalid")
         stem, suffix = os.path.splitext(pending["name"])
         for number in range(10000):
             name = pending["name"] if number == 0 else "%s (%d)%s" % (stem, number, suffix)
@@ -1300,7 +1304,7 @@ class KDEConnectSMSBackend:
                 continue
         raise ProtocolError("no collision-safe download filename is available")
 
-    def accept_receive(self, receive_id):
+    def accept_receive(self, receive_id, directory=None):
         if not isinstance(receive_id, str) or not re.fullmatch(r"[0-9a-f]{32}", receive_id):
             raise ValueError("invalid receive id")
         with self._state_lock:
@@ -1315,7 +1319,7 @@ class KDEConnectSMSBackend:
                 self._emit("clipboard_apply", value)
                 completed = True
                 return dict(value, kind="clipboard")
-            path = self._accept_file(pending)
+            path = self._accept_file(pending, directory)
             value = {"id": receive_id, "device_id": pending["device_id"],
                 "name": os.path.basename(path), "size": pending["size"], "path": path}
             self._emit("file_ready", value)

@@ -679,6 +679,9 @@ msgstr "Принять и запомнить"
 msgid "Accept automatically"
 msgstr "Принимать автоматически"
 
+msgid "Accept this KDE Connect file?"
+msgstr "Принять этот файл KDE Connect?"
+
 msgid "Accept “%(entry)s” into your own collection?"
 msgstr "Принять «%(entry)s» в свою коллекцию?"
 
@@ -1489,6 +1492,9 @@ msgstr "Выбрать содержимое для печати или эксп�
 msgid "Choose service"
 msgstr "Выбрать службу"
 
+msgid "Choose the save location for each accepted file"
+msgstr "Выбирать место сохранения для каждого принятого файла"
+
 msgid ""
 "Choose which sections appear as tabs on the organizer. The calendar always "
 "remains available."
@@ -2141,9 +2147,6 @@ msgstr "Скачать руководство"
 msgid "Download manual version %(version)s"
 msgstr "Скачать руководство версии %(version)s"
 
-msgid "Download version %(version)s …"
-msgstr "Скачать версию %(version)s …"
-
 msgid "Drag the attachment area up or down"
 msgstr "Перетащите область вложений вверх или вниз"
 
@@ -2439,6 +2442,7 @@ msgstr "Файл"
 msgid "File could not be read: %s"
 msgstr "Не удалось прочитать файл: %s"
 
+#, python-format
 msgid "File saved in Downloads: %(name)s"
 msgstr "Файл сохранён в папке «Загрузки»: %(name)s"
 
@@ -2575,6 +2579,9 @@ msgstr "Пятница"
 
 msgid "From"
 msgstr "От"
+
+msgid "From the Windows Contacts folder"
+msgstr "Из папки «Контакты Windows»"
 
 msgid "From this computer (Evolution/Thunderbird)"
 msgstr "С этого компьютера (Evolution/Thunderbird)"
@@ -2880,6 +2887,16 @@ msgstr "Вставить ссылку"
 
 msgid "Install the packages, for example with:"
 msgstr "Установите пакеты, например командой:"
+
+msgid ""
+"Install version %(version)s now? All changes will be saved. The Organizer "
+"will close and restart after the installation."
+msgstr ""
+"Установить версию %(version)s сейчас? Все изменения будут сохранены. "
+"Органайзер закроется и перезапустится после установки."
+
+msgid "Install version %(version)s …"
+msgstr "Установить версию %(version)s …"
 
 msgid "Installed manual version: %(version)s."
 msgstr "Установленная версия вручную: %(version)s."
@@ -3233,6 +3250,9 @@ msgstr "Отметить как открытое"
 msgid "Maximized"
 msgstr "Развёрнуто"
 
+msgid "Maximum recovery snapshots"
+msgstr "Максимальное количество точек восстановления"
+
 msgid "Measurement context"
 msgstr "Контекст измерения"
 
@@ -3549,6 +3569,9 @@ msgstr "No"
 msgid "No Claws Mail address book was detected."
 msgstr "Адресная книга Claws Mail не обнаружена."
 
+msgid "No address books found."
+msgstr "Адресные книги не найдены."
+
 msgid ""
 "No anniversaries yet.\n"
 "Birthdays and celebrations will automatically appear in the calendar."
@@ -3792,9 +3815,6 @@ msgstr "Примечание: соединение с хранилищем не 
 msgid "Notification actions available"
 msgstr "Действия в уведомлениях доступны"
 
-msgid "Notification actions unavailable"
-msgstr "Действия в уведомлениях недоступны"
-
 msgid "Notification and sound"
 msgstr "Уведомление и звук"
 
@@ -3939,6 +3959,9 @@ msgstr ""
 "Контакты и встречи также можно импортировать без этой интеграции с помощью "
 "пункта «С этого компьютера» выше."
 
+msgid "Online address book"
+msgstr "Онлайн-адресная книга"
+
 msgid "Online via Bluetooth data"
 msgstr "Онлайн через данные Bluetooth"
 
@@ -3955,7 +3978,10 @@ msgstr ""
 msgid ""
 "Only Notify, then unlock is currently available. Keyring access and pausing "
 "while locked are not yet enforced by the background service."
-msgstr "Сейчас доступен только режим «Уведомить, затем разблокировать». Фоновая служба ещё не обеспечивает доступ к хранилищу ключей и приостановку работы при блокировке."
+msgstr ""
+"Сейчас доступен только режим «Уведомить, затем разблокировать». Фоновая "
+"служба ещё не обеспечивает доступ к хранилищу ключей и приостановку работы "
+"при блокировке."
 
 msgid ""
 "Only one Magnolie Notes phone can be paired. Remove the existing phone "
@@ -4156,6 +4182,9 @@ msgstr "Файл сопряжения"
 
 msgid "Pairing file saved to: %(path)s"
 msgstr "Файл сопряжения сохранён в: %(path)s"
+
+msgid "Pairing, file and clipboard requests are confirmed in this window."
+msgstr "Запросы на сопряжение, файлы и буфер обмена подтверждаются в этом окне."
 
 msgid "Palm tree"
 msgstr "Пальма"
@@ -5078,6 +5107,9 @@ msgstr "Служба работает"
 
 msgid "Service stopped"
 msgstr "Служба остановлена"
+
+msgid "Set up contacts"
+msgstr "Настроить контакты"
 
 msgid "Set varying doses by weekday"
 msgstr "Задать разные дозы по дням недели"
@@ -7139,6 +7171,13 @@ msgstr ""
 "всегда доступны по щелчку и открывают почтовое приложение."
 
 msgid ""
+"When the limit is lowered, the oldest recovery snapshots are removed "
+"automatically."
+msgstr ""
+"При уменьшении лимита самые старые точки восстановления удаляются "
+"автоматически."
+
+msgid ""
 "When writing a note, a small toolbar above the sheet provides bold, italic, "
 "underline and strikethrough. The same formatting is available with Ctrl+B, "
 "Ctrl+I, Ctrl+U and Ctrl+D."
@@ -7146,6 +7185,9 @@ msgstr ""
 "При написании заметки небольшая панель над листом позволяет сделать текст "
 "жирным, курсивным, подчёркнутым или зачёркнутым. Те же виды форматирования "
 "доступны по Ctrl+B, Ctrl+I, Ctrl+U и Ctrl+D."
+
+msgid "Where are your contacts now?"
+msgstr "Где сейчас находятся ваши контакты?"
 
 msgid "Whole month"
 msgstr "Весь месяц"
@@ -7234,6 +7276,9 @@ msgstr "Да, объединить"
 
 msgid "Yes, the code matches"
 msgstr "Да, код совпадает"
+
+msgid "You can also do this later in Settings."
+msgstr "Это также можно сделать позже в настройках."
 
 msgid "Your address"
 msgstr "Ваш адрес"
@@ -7727,6 +7772,12 @@ msgstr[2] "… и ещё %(count)s записи, которые также бу�
 
 msgid "＋ Add appointment"
 msgstr "＋ Добавить встречу"
+
+#~ msgid "Notification actions unavailable"
+#~ msgstr "Действия в уведомлениях недоступны"
+
+#~ msgid "Download version %(version)s …"
+#~ msgstr "Скачать версию %(version)s …"
 
 #~ msgid ""
 #~ "Notify, then unlock asks you to open and unlock the Organizer. System "

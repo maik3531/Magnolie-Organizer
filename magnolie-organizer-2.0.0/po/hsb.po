@@ -717,6 +717,9 @@ msgstr "Přiwzać a sej spomjatkować"
 msgid "Accept automatically"
 msgstr "Awtomatisce přiwzać"
 
+msgid "Accept this KDE Connect file?"
+msgstr "Tutu KDE Connect-dataju přiwzać?"
+
 msgid "Accept “%(entry)s” into your own collection?"
 msgstr "„%(entry)s“ do swójskeje zběrki přiwzać?"
 
@@ -1520,6 +1523,9 @@ msgstr "Wobsah za ćišć abo eksport wubrać…"
 msgid "Choose service"
 msgstr "Słužbu wubrać"
 
+msgid "Choose the save location for each accepted file"
+msgstr "Składowanske městno za kóždu přiwzatu dataju wubrać"
+
 msgid ""
 "Choose which sections appear as tabs on the organizer. The calendar always "
 "remains available."
@@ -2183,9 +2189,6 @@ msgstr "Přiručku sćahnyć"
 msgid "Download manual version %(version)s"
 msgstr "Přiručku wersije %(version)s sćahnyć"
 
-msgid "Download version %(version)s …"
-msgstr "Wersiju %(version)s sćahnyć …"
-
 msgid "Drag the attachment area up or down"
 msgstr "Wobłuk přiwěškow horje abo dele ćahnyć"
 
@@ -2480,6 +2483,7 @@ msgstr "Dataja"
 msgid "File could not be read: %s"
 msgstr "Dataj njeda so čitać: %s"
 
+#, python-format
 msgid "File saved in Downloads: %(name)s"
 msgstr "Dataja je so w Zećehnjenjach składowała: %(name)s"
 
@@ -2615,6 +2619,9 @@ msgstr "Pjatk"
 
 msgid "From"
 msgstr "Wot"
+
+msgid "From the Windows Contacts folder"
+msgstr "Z Windowsoweho kontaktoweho rjadowaka"
 
 msgid "From this computer (Evolution/Thunderbird)"
 msgstr "Z tutoho ličaka (Evolution/Thunderbird)"
@@ -2920,6 +2927,16 @@ msgstr "Wotkaz zasadźić"
 
 msgid "Install the packages, for example with:"
 msgstr "Instalujće pakety, na přikład z:"
+
+msgid ""
+"Install version %(version)s now? All changes will be saved. The Organizer "
+"will close and restart after the installation."
+msgstr ""
+"Wersiju %(version)s nětko instalować? Wšě změny so składuja. Organizer so "
+"začini a po instalaciji znowa startuje."
+
+msgid "Install version %(version)s …"
+msgstr "Wersiju %(version)s instalować …"
 
 msgid "Installed manual version: %(version)s."
 msgstr "Instalowana manualna wersija: %(version)s."
@@ -3271,6 +3288,9 @@ msgstr "Jako wočinjene markěrować"
 msgid "Maximized"
 msgstr "Maksimizowane"
 
+msgid "Maximum recovery snapshots"
+msgstr "Maksimalna ličba wobnowjenskich dypkow"
+
 msgid "Measurement context"
 msgstr "Kontekst měrjenja"
 
@@ -3586,6 +3606,9 @@ msgstr "No"
 msgid "No Claws Mail address book was detected."
 msgstr "Žadyn adresnik Claws Mail njeje so namakał."
 
+msgid "No address books found."
+msgstr "Žane adresniki namakane."
+
 msgid ""
 "No anniversaries yet.\n"
 "Birthdays and celebrations will automatically appear in the calendar."
@@ -3827,9 +3850,6 @@ msgstr "Kedźbu: Zwisk ze składowakom njeje so wobkrućił."
 msgid "Notification actions available"
 msgstr "Akcije zdźělenkow su k dispoziciji"
 
-msgid "Notification actions unavailable"
-msgstr "Akcije zdźělenkow njejsu k dispoziciji"
-
 msgid "Notification and sound"
 msgstr "Zdźělenka a zynk"
 
@@ -3983,6 +4003,9 @@ msgstr ""
 "Kontakty a terminy móžeće tež bjez tuteje integracije z „Z tutoho ličaka“ "
 "horjeka importować."
 
+msgid "Online address book"
+msgstr "Online-adresnik"
+
 msgid "Online via Bluetooth data"
 msgstr "Online přez daty Bluetooth"
 
@@ -3999,7 +4022,10 @@ msgstr ""
 msgid ""
 "Only Notify, then unlock is currently available. Keyring access and pausing "
 "while locked are not yet enforced by the background service."
-msgstr "Nětko je jenož „Zdźělić, potom wotamknyć“ k dispoziciji. Pozadkowa słužba hišće přistup ke klučowemu rjećazkej a zastajenje při zamknjenju njepřesadźuje."
+msgstr ""
+"Nětko je jenož „Zdźělić, potom wotamknyć“ k dispoziciji. Pozadkowa słužba "
+"hišće přistup ke klučowemu rjećazkej a zastajenje při zamknjenju "
+"njepřesadźuje."
 
 msgid ""
 "Only one Magnolie Notes phone can be paired. Remove the existing phone "
@@ -4200,6 +4226,9 @@ msgstr "Porowanski dataj"
 
 msgid "Pairing file saved to: %(path)s"
 msgstr "Porowanski dataj składowany do: %(path)s"
+
+msgid "Pairing, file and clipboard requests are confirmed in this window."
+msgstr "Naprašowanja wo zwjazanje, dataje a mjezyskład so w tutym woknje wobkrućeja."
 
 msgid "Palm tree"
 msgstr "Palma"
@@ -5134,6 +5163,9 @@ msgstr "Słužba běži"
 msgid "Service stopped"
 msgstr "Słužba je zastajena"
 
+msgid "Set up contacts"
+msgstr "Kontakty přirjadować"
+
 msgid "Set varying doses by weekday"
 msgstr "Rozdźělne dozy po dźenju tydźenja nastajić"
 
@@ -5462,7 +5494,8 @@ msgid "System default"
 msgstr "Systemstandard"
 
 msgid "System keyring and pause modes cannot be enabled yet."
-msgstr "Systemowy klučowy rjećazk a pauzowanske modusy hišće njehodźa so zmóžnić."
+msgstr ""
+"Systemowy klučowy rjećazk a pauzowanske modusy hišće njehodźa so zmóžnić."
 
 msgid "System keyring available"
 msgstr "Systemowy klučowy składowak je k dispoziciji"
@@ -7185,6 +7218,13 @@ msgstr ""
 "klikajomne a wočinja waše mejlowe nałoženje."
 
 msgid ""
+"When the limit is lowered, the oldest recovery snapshots are removed "
+"automatically."
+msgstr ""
+"Hdyž so limit pomjeńši, so najstarše wobnowjenske dypki awtomatisce "
+"wotstronja."
+
+msgid ""
 "When writing a note, a small toolbar above the sheet provides bold, italic, "
 "underline and strikethrough. The same formatting is available with Ctrl+B, "
 "Ctrl+I, Ctrl+U and Ctrl+D."
@@ -7192,6 +7232,9 @@ msgstr ""
 "Při pisanju noticy skići mała lajsta nastrojow nad łopjenom tučne pismo, "
 "kursiwu, podšmórnjenje a přešmórnjenje. Samsne formatowanje je z Ctrl+B, "
 "Ctrl+I, Ctrl+U a Ctrl+D k dispoziciji."
+
+msgid "Where are your contacts now?"
+msgstr "Hdźe su Waše kontakty nětko?"
 
 msgid "Whole month"
 msgstr "Cyły měsac"
@@ -7280,6 +7323,9 @@ msgstr "Haj, zjednoćić"
 
 msgid "Yes, the code matches"
 msgstr "Haj, kod so kryje"
+
+msgid "You can also do this later in Settings."
+msgstr "Móžeće to tež pozdźišo w nastajenjach činić."
 
 msgid "Your address"
 msgstr "Waša adresa"
@@ -7780,6 +7826,12 @@ msgstr[3] "… a dale %(count)s zapiskaj, kotrejž so tež ćišćitej."
 
 msgid "＋ Add appointment"
 msgstr "＋ Termin přidać"
+
+#~ msgid "Notification actions unavailable"
+#~ msgstr "Akcije zdźělenkow njejsu k dispoziciji"
+
+#~ msgid "Download version %(version)s …"
+#~ msgstr "Wersiju %(version)s sćahnyć …"
 
 #~ msgid ""
 #~ "Notify, then unlock asks you to open and unlock the Organizer. System "

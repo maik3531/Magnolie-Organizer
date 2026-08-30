@@ -909,6 +909,7 @@ private fun Hauptblatt(gewuenschteAufgabe: androidx.compose.runtime.MutableState
                 )
                 else -> JournalBlatt(journalZustand, bestand, JournalHandlungen(
                     beiIntervall = journal::intervalSetzen,
+                    beiMaximum = journal::maximumSetzen,
                     beiJetzt = { faden.launch(Dispatchers.IO) { runCatching { journal.appSnapshot("manual", true) } } },
                     beiWiederherstellen = { id, op, force ->
                         val entry = journalZustand.entries.firstOrNull { it.uuid == id }

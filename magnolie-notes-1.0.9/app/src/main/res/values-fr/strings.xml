@@ -340,4 +340,6 @@
     <string name="technischer_wert_zusammenfassung_unbekannt">Détails d’instantané non reconnus : %1$s</string>
     <string name="start_laden">Ouverture des données protégées…</string><string name="start_fehler_titel">Impossible d’ouvrir les données protégées</string><string name="start_daten_unveraendert">Vos données n’ont été ni supprimées ni remplacées. Vous pouvez réessayer sans risque.</string><string name="start_erneut">Réessayer</string><string name="start_schliessen">Fermer l’application</string>
     <string name="absturzbericht_teilen">Partager le rapport de plantage</string>
+    <string name="journal_maximum">Nombre maximal de points de restauration</string>
+    <string name="journal_maximum_hinweis">Lorsque la limite est réduite, les points de restauration les plus anciens sont supprimés automatiquement.</string>
 </resources>

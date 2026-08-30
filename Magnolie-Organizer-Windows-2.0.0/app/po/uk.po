@@ -1,7 +1,8 @@
 # SOME DESCRIPTIVE TITLE.
-# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
-# This file is distributed under the same license as the Magnolie Organizer package.
-# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+# Copyright (C) 2026 THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the Magnolie Organizer
+# package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
 #
 msgid ""
 msgstr ""
@@ -55,43 +56,43 @@ msgid "%(count)s anniversary"
 msgid_plural "%(count)s anniversaries"
 msgstr[0] "%(count)s річниця"
 msgstr[1] "%(count)s річниці"
-msgstr[2] "%(count)s річниць"
+msgstr[2] "%(count)s річниці"
 
 msgid "%(count)s anniversary entered"
 msgid_plural "%(count)s anniversaries entered"
 msgstr[0] "Введено %(count)s річницю"
 msgstr[1] "Введено %(count)s річниці"
-msgstr[2] "Введено %(count)s річниць"
+msgstr[2] "Введено %(count)s річниці"
 
 msgid "%(count)s appointment"
 msgid_plural "%(count)s appointments"
 msgstr[0] "%(count)s зустріч"
 msgstr[1] "%(count)s зустрічі"
-msgstr[2] "%(count)s зустрічей"
+msgstr[2] "%(count)s зустрічі"
 
 msgid "%(count)s attachment"
 msgid_plural "%(count)s attachments"
 msgstr[0] "%(count)s вкладення"
 msgstr[1] "%(count)s вкладення"
-msgstr[2] "%(count)s вкладень"
+msgstr[2] "%(count)s вкладення"
 
 msgid "%(count)s birthday"
 msgid_plural "%(count)s birthdays"
 msgstr[0] "%(count)s день народження"
 msgstr[1] "%(count)s дні народження"
-msgstr[2] "%(count)s днів народження"
+msgstr[2] "%(count)s дні народження"
 
 msgid "%(count)s contact"
 msgid_plural "%(count)s contacts"
 msgstr[0] "%(count)s контакт"
 msgstr[1] "%(count)s контакти"
-msgstr[2] "%(count)s контактів"
+msgstr[2] "%(count)s контакти"
 
 msgid "%(count)s contact card"
 msgid_plural "%(count)s contact cards"
 msgstr[0] "%(count)s картка контакту"
 msgstr[1] "%(count)s картки контакту"
-msgstr[2] "%(count)s карток контакту"
+msgstr[2] "%(count)s картки контакту"
 
 msgid "%(count)s contact photo added"
 msgid_plural "%(count)s contact photos added"
@@ -103,67 +104,67 @@ msgid "%(count)s day"
 msgid_plural "%(count)s days"
 msgstr[0] "%(count)s день"
 msgstr[1] "%(count)s дні"
-msgstr[2] "%(count)s днів"
+msgstr[2] "%(count)s дні"
 
 msgid "%(count)s day before"
 msgid_plural "%(count)s days before"
 msgstr[0] "За %(count)s день"
 msgstr[1] "За %(count)s дні"
-msgstr[2] "За %(count)s днів"
+msgstr[2] "За %(count)s дні"
 
 msgid "%(count)s email address added"
 msgid_plural "%(count)s email addresses added"
 msgstr[0] "Додано %(count)s адресу електронної пошти"
 msgstr[1] "Додано %(count)s адреси електронної пошти"
-msgstr[2] "Додано %(count)s адрес електронної пошти"
+msgstr[2] "Додано %(count)s адреси електронної пошти"
 
 msgid "%(count)s entry deleted."
 msgid_plural "%(count)s entries deleted."
 msgstr[0] "Видалено %(count)s запис."
 msgstr[1] "Видалено %(count)s записи."
-msgstr[2] "Видалено %(count)s записів."
+msgstr[2] "Видалено %(count)s записи."
 
 msgid "%(count)s existing entry skipped."
 msgid_plural "%(count)s existing entries skipped."
 msgstr[0] "Пропущено %(count)s наявний запис."
 msgstr[1] "Пропущено %(count)s наявні записи."
-msgstr[2] "Пропущено %(count)s наявних записів."
+msgstr[2] "Пропущено %(count)s наявні записи."
 
 msgid "%(count)s found"
 msgid_plural "%(count)s found"
 msgstr[0] "Знайдено %(count)s результат"
 msgstr[1] "Знайдено %(count)s результати"
-msgstr[2] "Знайдено %(count)s результатів"
+msgstr[2] "Знайдено %(count)s результати"
 
 msgid "%(count)s group"
 msgid_plural "%(count)s groups"
 msgstr[0] "%(count)s група"
 msgstr[1] "%(count)s групи"
-msgstr[2] "%(count)s груп"
+msgstr[2] "%(count)s групи"
 
 msgid "%(count)s holiday period"
 msgid_plural "%(count)s holiday periods"
 msgstr[0] "%(count)s період канікул"
 msgstr[1] "%(count)s періоди канікул"
-msgstr[2] "%(count)s періодів канікул"
+msgstr[2] "%(count)s періоди канікул"
 
 msgid "%(count)s incoming offer"
 msgid_plural "%(count)s incoming offers"
 msgstr[0] "%(count)s вхідна пропозиція"
 msgstr[1] "%(count)s вхідні пропозиції"
-msgstr[2] "%(count)s вхідних пропозицій"
+msgstr[2] "%(count)s вхідні пропозиції"
 
 msgid "%(count)s match"
 msgid_plural "%(count)s matches"
 msgstr[0] "%(count)s збіг"
 msgstr[1] "%(count)s збіги"
-msgstr[2] "%(count)s збігів"
+msgstr[2] "%(count)s збіги"
 
 msgid "%(count)s minute"
 msgid_plural "%(count)s minutes"
 msgstr[0] "%(count)s хвилина"
 msgstr[1] "%(count)s хвилини"
-msgstr[2] "%(count)s хвилин"
+msgstr[2] "%(count)s хвилини"
 
 msgid "%(count)s more"
 msgid_plural "%(count)s more"
@@ -175,31 +176,31 @@ msgid "%(count)s more entry"
 msgid_plural "%(count)s more entries"
 msgstr[0] "Ще %(count)s запис"
 msgstr[1] "Ще %(count)s записи"
-msgstr[2] "Ще %(count)s записів"
+msgstr[2] "Ще %(count)s записи"
 
 msgid "%(count)s new Magnolienbaum request awaits your decision."
 msgid_plural "%(count)s new Magnolienbaum requests await your decision."
 msgstr[0] "На ваше рішення чекає %(count)s новий запит Magnolienbaum."
 msgstr[1] "На ваше рішення чекають %(count)s нові запити Magnolienbaum."
-msgstr[2] "На ваше рішення чекає %(count)s нових запитів Magnolienbaum."
+msgstr[2] "На ваше рішення чекають %(count)s нові запити Magnolienbaum."
 
 msgid "%(count)s non-JPEG contact photo was omitted."
 msgid_plural "%(count)s non-JPEG contact photos were omitted."
 msgstr[0] "Пропущено %(count)s фотографію не у JPEG."
 msgstr[1] "Пропущено %(count)s фотографії не у JPEG."
-msgstr[2] "Пропущено %(count)s фотографій не у JPEG."
+msgstr[2] "Пропущено %(count)s фотографії не у JPEG."
 
 msgid "%(count)s note"
 msgid_plural "%(count)s notes"
 msgstr[0] "%(count)s нотатка"
 msgstr[1] "%(count)s нотатки"
-msgstr[2] "%(count)s нотаток"
+msgstr[2] "%(count)s нотатки"
 
 msgid "%(count)s notebook"
 msgid_plural "%(count)s notebooks"
 msgstr[0] "%(count)s блокнот"
 msgstr[1] "%(count)s блокноти"
-msgstr[2] "%(count)s блокнотів"
+msgstr[2] "%(count)s блокноти"
 
 msgid "%(count)s open"
 msgstr "Відкрито: %(count)s"
@@ -208,43 +209,43 @@ msgid "%(count)s page"
 msgid_plural "%(count)s pages"
 msgstr[0] "%(count)s сторінка"
 msgstr[1] "%(count)s сторінки"
-msgstr[2] "%(count)s сторінок"
+msgstr[2] "%(count)s сторінки"
 
 msgid "%(count)s public holiday"
 msgid_plural "%(count)s public holidays"
 msgstr[0] "%(count)s державне свято"
 msgstr[1] "%(count)s державні свята"
-msgstr[2] "%(count)s державних свят"
+msgstr[2] "%(count)s державні свята"
 
 msgid "%(count)s recurring appointment imported only once."
 msgid_plural "%(count)s recurring appointments imported only once."
 msgstr[0] "%(count)s повторювану зустріч імпортовано лише один раз."
 msgstr[1] "%(count)s повторювані зустрічі імпортовано лише один раз."
-msgstr[2] "%(count)s повторюваних зустрічей імпортовано лише один раз."
+msgstr[2] "%(count)s повторювані зустрічі імпортовано лише один раз."
 
 msgid "%(count)s second"
 msgid_plural "%(count)s seconds"
 msgstr[0] "%(count)s секунда"
 msgstr[1] "%(count)s секунди"
-msgstr[2] "%(count)s секунд"
+msgstr[2] "%(count)s секунди"
 
 msgid "%(count)s task"
 msgid_plural "%(count)s tasks"
 msgstr[0] "%(count)s завдання"
 msgstr[1] "%(count)s завдання"
-msgstr[2] "%(count)s завдань"
+msgstr[2] "%(count)s завдання"
 
 msgid "%(count)s unreadable row omitted."
 msgid_plural "%(count)s unreadable rows omitted."
 msgstr[0] "Пропущено %(count)s нечитабельний рядок."
 msgstr[1] "Пропущено %(count)s нечитабельні рядки."
-msgstr[2] "Пропущено %(count)s нечитабельних рядків."
+msgstr[2] "Пропущено %(count)s нечитабельні рядки."
 
 msgid "%(count)s unusable contact was omitted."
 msgid_plural "%(count)s unusable contacts were omitted."
 msgstr[0] "Пропущено %(count)s непридатний контакт."
 msgstr[1] "Пропущено %(count)s непридатні контакти."
-msgstr[2] "Пропущено %(count)s непридатних контактів."
+msgstr[2] "Пропущено %(count)s непридатні контакти."
 
 msgid "%(date)s, %(time)s"
 msgstr "%(date)s, %(time)s"
@@ -641,7 +642,7 @@ msgid "Answer calls on the computer and talk"
 msgstr "Приймати дзвінки й розмовляти на комп’ютері"
 
 msgid "App password"
-msgstr "Пароль застосунку"
+msgstr "App password"
 
 msgid "Appearance"
 msgstr "Вигляд"
@@ -1490,13 +1491,13 @@ msgid "Delete %(count)s selected entry for good?"
 msgid_plural "Delete %(count)s selected entries for good?"
 msgstr[0] "Остаточно видалити %(count)s вибраний запис?"
 msgstr[1] "Остаточно видалити %(count)s вибрані записи?"
-msgstr[2] "Остаточно видалити %(count)s вибраних записів?"
+msgstr[2] "Остаточно видалити %(count)s вибрані записи?"
 
 msgid "Delete %(count)s selected entry? It moves to the wastebasket."
 msgid_plural "Delete %(count)s selected entries? They move to the wastebasket."
 msgstr[0] "Видалити %(count)s вибраний запис? Його буде переміщено до кошика."
 msgstr[1] "Видалити %(count)s вибрані записи? Їх буде переміщено до кошика."
-msgstr[2] "Видалити %(count)s вибраних записів? Їх буде переміщено до кошика."
+msgstr[2] "Видалити %(count)s вибрані записи? Їх буде переміщено до кошика."
 
 msgid "Delete all SMS histories"
 msgstr "Видалити всі історії SMS"
@@ -1548,7 +1549,7 @@ msgid "Delete page"
 msgstr "Видалити сторінку"
 
 msgid "Delete password"
-msgstr "Видалити пароль"
+msgstr "Delete password"
 
 msgid "Delete permanently"
 msgstr "Видалити остаточно"
@@ -1687,9 +1688,6 @@ msgstr "Завантажити посібник"
 
 msgid "Download manual version %(version)s"
 msgstr "Завантажити посібник версії %(version)s"
-
-msgid "Download version %(version)s …"
-msgstr "Завантажити версію %(version)s …"
 
 msgid "Drag the attachment area up or down"
 msgstr "Перетягніть область вкладень угору або вниз"
@@ -2072,7 +2070,7 @@ msgid "From"
 msgstr "Від"
 
 msgid "From the Windows Contacts folder"
-msgstr "З папки «Контакти» Windows"
+msgstr "З папки «Контакти Windows»"
 
 msgid "Full"
 msgstr "Повний"
@@ -2326,6 +2324,16 @@ msgstr "Введення"
 
 msgid "Insert link"
 msgstr "Вставити посилання"
+
+msgid ""
+"Install version %(version)s now? All changes will be saved. The Organizer "
+"will close and restart after the installation."
+msgstr ""
+"Інсталювати версію %(version)s зараз? Усі зміни буде збережено. Органайзер "
+"закриється та перезапуститься після інсталяції."
+
+msgid "Install version %(version)s …"
+msgstr "Інсталювати версію %(version)s …"
 
 msgid "Installed manual version: %(version)s."
 msgstr "Встановлена ручна версія: %(version)s."
@@ -2596,6 +2604,9 @@ msgstr "Позначити як відкрите"
 
 msgid "Maximized"
 msgstr "Розгорнуте"
+
+msgid "Maximum recovery snapshots"
+msgstr "Максимальна кількість точок відновлення"
 
 msgid "Measurement context"
 msgstr "Контекст вимірювання"
@@ -2889,6 +2900,9 @@ msgstr "Не було вибрано жодної адреси Bluetooth."
 msgid "No KDE Connect pairing is awaiting confirmation."
 msgstr "Жодне сполучення KDE Connect не очікує підтвердження."
 
+msgid "No address books found."
+msgstr "Адресних книг не знайдено."
+
 msgid ""
 "No anniversaries yet.\n"
 "Birthdays and celebrations will automatically appear in the calendar."
@@ -3177,6 +3191,9 @@ msgstr ""
 "Контакти та зустрічі можна імпортувати й без цієї інтеграції за допомогою «З "
 "цього комп’ютера» вище."
 
+msgid "Online address book"
+msgstr "Онлайн-адресна книга"
+
 msgid "Online via Bluetooth data"
 msgstr "Онлайн через Bluetooth дані"
 
@@ -3314,11 +3331,11 @@ msgstr "Інше"
 
 msgctxt "email type"
 msgid "Other"
-msgstr "Інше"
+msgstr "Інший"
 
 msgctxt "relationship"
 msgid "Other"
-msgstr "Інше"
+msgstr "Інші стосунки"
 
 msgid "Other addresses"
 msgstr "Інші адреси"
@@ -3435,13 +3452,13 @@ msgid "Permanently delete %(count)s completed task?"
 msgid_plural "Permanently delete %(count)s completed tasks?"
 msgstr[0] "Назавжди видалити %(count)s виконане завдання?"
 msgstr[1] "Назавжди видалити %(count)s виконані завдання?"
-msgstr[2] "Назавжди видалити %(count)s виконаних завдань?"
+msgstr[2] "Назавжди видалити %(count)s виконані завдання?"
 
 msgid "Permanently delete %(count)s selected health record?"
 msgid_plural "Permanently delete %(count)s selected health records?"
 msgstr[0] "Назавжди видалити %(count)s вибраний запис про здоров’я?"
 msgstr[1] "Назавжди видалити %(count)s вибрані записи про здоров’я?"
-msgstr[2] "Назавжди видалити %(count)s вибраних записів про здоров’я?"
+msgstr[2] "Назавжди видалити %(count)s вибрані записи про здоров’я?"
 
 msgid "Permanently delete selected health records"
 msgstr "Назавжди видалити вибрані записи про здоров’я"
@@ -3697,7 +3714,7 @@ msgid "Queue: %(open)s of %(count)s transmission awaits delivery."
 msgid_plural "Queue: %(open)s of %(count)s transmissions await delivery."
 msgstr[0] "Черга: %(open)s з %(count)s передавання очікує доставлення."
 msgstr[1] "Черга: %(open)s з %(count)s передавання очікують доставлення."
-msgstr[2] "Черга: %(open)s з %(count)s передавань очікують доставлення."
+msgstr[2] "Черга: %(open)s з %(count)s передавання очікують доставлення."
 
 msgid "Queued"
 msgstr "У черзі"
@@ -3709,7 +3726,7 @@ msgid "Reachable IPv4 or IPv6 address of this computer"
 msgstr "Доступна адреса IPv4 або IPv6 цього комп’ютера"
 
 msgid "Ready."
-msgstr "Готово."
+msgstr "Ready."
 
 msgid ""
 "Really merge %(cards)s? Review the result carefully afterwards. A copy of "
@@ -4009,13 +4026,13 @@ msgid "Saved to: %(path)s (%(count)s entry)"
 msgid_plural "Saved to: %(path)s (%(count)s entries)"
 msgstr[0] "Збережено до: %(path)s (%(count)s запис)"
 msgstr[1] "Збережено до: %(path)s (%(count)s записи)"
-msgstr[2] "Збережено до: %(path)s (%(count)s записів)"
+msgstr[2] "Збережено до: %(path)s (%(count)s записи)"
 
 msgid "Saved ✓ %(time)s"
 msgstr "Збережено ✓ %(time)s"
 
 msgid "Saved."
-msgstr "Збережено."
+msgstr "Saved."
 
 msgid "Saving failed!"
 msgstr "Не вдалося зберегти!"
@@ -4149,10 +4166,13 @@ msgid "Sent"
 msgstr "Відправлено"
 
 msgid "Server address"
-msgstr "Адреса сервера"
+msgstr "Server address"
 
 msgid "Server address and user name are required."
 msgstr "Потрібні адреса сервера та ім’я користувача."
+
+msgid "Set up contacts"
+msgstr "Налаштувати контакти"
 
 msgid "Set varying doses by weekday"
 msgstr "Установити різні дози за днями тижня"
@@ -4384,7 +4404,7 @@ msgid "Suppository"
 msgstr "Супозиторій"
 
 msgid "Switched off."
-msgstr "Вимкнено."
+msgstr "Switched off."
 
 msgid "Switzerland"
 msgstr "Швейцарія"
@@ -4501,10 +4521,10 @@ msgid "Temperature"
 msgstr "Температура"
 
 msgid "Test connection"
-msgstr "Перевірити з’єднання"
+msgstr "Test connection"
 
 msgid "Testing…"
-msgstr "Перевірка …"
+msgstr "Testing…"
 
 msgid "Text color"
 msgstr "Колір тексту"
@@ -4597,9 +4617,6 @@ msgstr ""
 "Папка Windows Contacts синхронізується двонаправлено на сторінці "
 "синхронізації. Імпорт файлів не змінює вихідні файли; існуючі записи не "
 "додаються двічі."
-
-msgid "The Windows entry in the update information is invalid."
-msgstr "Запис Windows в інформації про оновлення недійсний."
 
 msgid "The address could not be opened."
 msgstr "Не вдалося відкрити адресу."
@@ -4839,23 +4856,14 @@ msgstr "Посібник встановлено; його версія неві�
 msgid "The manual is up to date."
 msgstr "Посібник оновлено."
 
-msgid "The manual package checksum does not match."
-msgstr "Контрольна сума ручного пакета не збігається."
-
 msgid "The manual package could not be opened."
 msgstr "Не вдалося відкрити пакунок посібника."
-
-msgid "The manual package is unexpectedly large."
-msgstr "Ручний пакет несподівано великий."
 
 msgid "The manual update check failed."
 msgstr "Перевірка оновлення вручну не вдалася."
 
 msgid "The manual update information is invalid."
 msgstr "Інформація про ручне оновлення недійсна."
-
-msgid "The manual update information is missing."
-msgstr "Інформація про оновлення вручну відсутня."
 
 msgid "The message is too large."
 msgstr "Повідомлення завелике."
@@ -5102,17 +5110,11 @@ msgstr "Два нові паролі не збігаються."
 msgid "The update check failed."
 msgstr "Не вдалося перевірити оновлення."
 
-msgid "The update information is unexpectedly large."
-msgstr "Відомості про оновлення неочікувано великі."
-
 msgid "The user data could not be read."
 msgstr "Не вдалося прочитати дані користувача."
 
 msgid "The value is outside the general green reference range."
 msgstr "Значення виходить за межі загального зеленого референтного діапазону."
-
-msgid "The verified installer could not be opened."
-msgstr "Не вдалося відкрити перевірений інсталятор."
 
 msgid ""
 "The weather service estimated the location from your public IP address. Your "
@@ -5508,7 +5510,7 @@ msgid "Use the recycle bin"
 msgstr "Використовувати кошик"
 
 msgid "User name"
-msgstr "Ім’я користувача"
+msgstr "User name"
 
 msgid ""
 "Uses its own identity and storage and listens only on fixed port %(port)s. "
@@ -5720,6 +5722,12 @@ msgstr ""
 "— вони відкривають поштову програму."
 
 msgid ""
+"When the limit is lowered, the oldest recovery snapshots are removed "
+"automatically."
+msgstr ""
+"Коли ліміт зменшується, найстаріші точки відновлення автоматично видаляються."
+
+msgid ""
 "When writing a note, a small toolbar above the sheet provides bold, italic, "
 "underline and strikethrough. The same formatting is available with Ctrl+B, "
 "Ctrl+I, Ctrl+U and Ctrl+D."
@@ -5727,6 +5735,9 @@ msgstr ""
 "Під час написання нотатки невелика панель інструментів над аркушем дає змогу "
 "застосувати напівжирний шрифт, курсив, підкреслення й закреслення. Те саме "
 "форматування доступне через Ctrl+B, Ctrl+I, Ctrl+U та Ctrl+D."
+
+msgid "Where are your contacts now?"
+msgstr "Де зараз розташовані ваші контакти?"
 
 msgid "Whole month"
 msgstr "Весь місяць"
@@ -5815,6 +5826,9 @@ msgstr "Так, об’єднати"
 
 msgid "Yes, the code matches"
 msgstr "Так, код збігається"
+
+msgid "You can also do this later in Settings."
+msgstr "Це також можна зробити пізніше в налаштуваннях."
 
 msgid "Your address"
 msgstr "Ваша адреса"
@@ -6026,7 +6040,7 @@ msgid "in %(count)s day"
 msgid_plural "in %(count)s days"
 msgstr[0] "через %(count)s день"
 msgstr[1] "через %(count)s дні"
-msgstr[2] "через %(count)s днів"
+msgstr[2] "через %(count)s дні"
 
 msgid "keep here"
 msgstr "залишити тут"
@@ -6062,7 +6076,7 @@ msgid "notification %(count)s minute before"
 msgid_plural "notification %(count)s minutes before"
 msgstr[0] "сповіщення за %(count)s хвилину"
 msgstr[1] "сповіщення за %(count)s хвилини"
-msgstr[2] "сповіщення за %(count)s хвилин"
+msgstr[2] "сповіщення за %(count)s хвилини"
 
 msgid "on the day only"
 msgstr "лише в сам день"
@@ -6220,13 +6234,10 @@ msgid "… and %(count)s more item that will also be printed."
 msgid_plural "… and %(count)s more items that will also be printed."
 msgstr[0] "… і ще %(count)s елемент, який також буде надруковано."
 msgstr[1] "… і ще %(count)s елементи, які також буде надруковано."
-msgstr[2] "… і ще %(count)s елементів, які також буде надруковано."
+msgstr[2] "… і ще %(count)s елементи, які також буде надруковано."
 
 msgid "＋ Add appointment"
 msgstr "＋ Додати зустріч"
-
-#~ msgid "Reset"
-#~ msgstr "Reset"
 
 msgid "Language & region"
 msgstr "Мова й регіон"

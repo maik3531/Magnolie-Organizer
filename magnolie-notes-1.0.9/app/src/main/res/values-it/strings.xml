@@ -336,4 +336,6 @@
     <string name="technischer_wert_zusammenfassung_unbekannt">Dettagli dell’istantanea non riconosciuti: %1$s</string>
     <string name="start_laden">Apertura dei dati protetti…</string><string name="start_fehler_titel">Impossibile aprire i dati protetti</string><string name="start_daten_unveraendert">I tuoi dati non sono stati eliminati né sovrascritti. Puoi riprovare in sicurezza.</string><string name="start_erneut">Riprova</string><string name="start_schliessen">Chiudi applicazione</string>
     <string name="absturzbericht_teilen">Condividi rapporto di arresto anomalo</string>
+    <string name="journal_maximum">Numero massimo di punti di ripristino</string>
+    <string name="journal_maximum_hinweis">Quando il limite viene ridotto, i punti di ripristino più vecchi vengono rimossi automaticamente.</string>
 </resources>

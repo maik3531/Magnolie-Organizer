@@ -1,7 +1,8 @@
 # SOME DESCRIPTIVE TITLE.
-# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
-# This file is distributed under the same license as the Magnolie Organizer package.
-# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+# Copyright (C) 2026 THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the Magnolie Organizer
+# package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
 #
 msgid ""
 msgstr ""
@@ -604,7 +605,7 @@ msgid "Answer calls on the computer and talk"
 msgstr "कंप्यूटर पर कॉल का उत्तर दें और बात करें"
 
 msgid "App password"
-msgstr "ऐप पासवर्ड"
+msgstr "App password"
 
 msgid "Appearance"
 msgstr "दिखावट"
@@ -1109,7 +1110,7 @@ msgid "City"
 msgstr "शहर"
 
 msgid "Claws Mail (.xml/.ldif) …"
-msgstr "Claws Mail (.xml/.ldif) …"
+msgstr "Claws Mail (.xml/.ldif) से …"
 
 msgid "Claws Mail address book (*.xml)"
 msgstr "Claws Mail पता पुस्तिका (*.xml)"
@@ -1492,7 +1493,7 @@ msgid "Delete page"
 msgstr "पृष्ठ हटाएँ"
 
 msgid "Delete password"
-msgstr "पासवर्ड हटाएँ"
+msgstr "Delete password"
 
 msgid "Delete permanently"
 msgstr "हमेशा के लिए हटाएँ"
@@ -1628,9 +1629,6 @@ msgstr "हैंडबुक डाउनलोड करें"
 
 msgid "Download manual version %(version)s"
 msgstr "हैंडबुक संस्करण %(version)s डाउनलोड करें"
-
-msgid "Download version %(version)s …"
-msgstr "संस्करण %(version)s डाउनलोड करें …"
 
 msgid "Drag the attachment area up or down"
 msgstr "संलग्नक क्षेत्र को ऊपर या नीचे खींचें"
@@ -2262,6 +2260,16 @@ msgstr "इनपुट"
 msgid "Insert link"
 msgstr "लिंक डालें"
 
+msgid ""
+"Install version %(version)s now? All changes will be saved. The Organizer "
+"will close and restart after the installation."
+msgstr ""
+"संस्करण %(version)s अभी इंस्टॉल करें? सभी बदलाव सहेजे जाएंगे। इंस्टॉलेशन के बाद Organizer "
+"बंद होकर फिर से शुरू होगा।"
+
+msgid "Install version %(version)s …"
+msgstr "संस्करण %(version)s इंस्टॉल करें …"
+
 msgid "Installed manual version: %(version)s."
 msgstr "स्थापित मैनुअल संस्करण: %(version)s."
 
@@ -2528,6 +2536,9 @@ msgstr "खुला के रूप में चिह्नित करे�
 
 msgid "Maximized"
 msgstr "अधिकतम आकार"
+
+msgid "Maximum recovery snapshots"
+msgstr "पुनर्प्राप्ति बिंदुओं की अधिकतम संख्या"
 
 msgid "Measurement context"
 msgstr "माप का संदर्भ"
@@ -2816,6 +2827,9 @@ msgstr "कोई Bluetooth पता नहीं चुना गया."
 msgid "No KDE Connect pairing is awaiting confirmation."
 msgstr "कोई भी KDE Connect युग्मन पुष्टि की प्रतीक्षा में नहीं है।"
 
+msgid "No address books found."
+msgstr "कोई पता पुस्तिका नहीं मिली।"
+
 msgid ""
 "No anniversaries yet.\n"
 "Birthdays and celebrations will automatically appear in the calendar."
@@ -3098,6 +3112,9 @@ msgstr ""
 "apt install %(packages)s, फिर अनुप्रयोग को पुनः आरंभ करें। आप इस एकीकरण के बिना भी "
 "ऊपर दिए “इस कंप्यूटर से” विकल्प से संपर्क और अपॉइंटमेंट आयात कर सकते हैं।"
 
+msgid "Online address book"
+msgstr "ऑनलाइन पता पुस्तिका"
+
 msgid "Online via Bluetooth data"
 msgstr "Bluetooth डेटा के माध्यम से ऑनलाइन"
 
@@ -3237,7 +3254,7 @@ msgstr "अन्य"
 
 msgctxt "relationship"
 msgid "Other"
-msgstr "अन्य"
+msgstr "अन्य संबंध"
 
 msgid "Other addresses"
 msgstr "अन्य पते"
@@ -3367,7 +3384,8 @@ msgid_plural "Permanently delete all %(count)s items? This cannot be undone."
 msgstr[0] ""
 "क्या आप इस एक आइटम को स्थायी रूप से हटाना चाहते हैं? इसे पूर्ववत नहीं किया जा सकता।"
 msgstr[1] ""
-"क्या आप सभी %(count)s आइटम स्थायी रूप से हटाना चाहते हैं? इसे पूर्ववत किया नहीं जा सकता।"
+"क्या आप सभी %(count)s आइटम स्थायी रूप से حذف करना चाहते हैं? इसे पूर्ववत किया नहीं जा "
+"सकता।"
 
 msgid "Person"
 msgstr "व्यक्ति"
@@ -3623,7 +3641,7 @@ msgid "Reachable IPv4 or IPv6 address of this computer"
 msgstr "इस कंप्यूटर का पहुँच योग्य IPv4 या IPv6 पता"
 
 msgid "Ready."
-msgstr "तैयार।"
+msgstr "Ready."
 
 msgid ""
 "Really merge %(cards)s? Review the result carefully afterwards. A copy of "
@@ -3758,7 +3776,7 @@ msgid ""
 "Renew KDE Connect pairing? Only KDE trust for this phone will be removed and "
 "rebuilt. Magnolie Notes, notes and chat history remain unchanged."
 msgstr ""
-"KDE Connect पेयरिंग फिर से बनाएँ? केवल इस फ़ोन का KDE भरोसा हटाकर फिर बनाया जाएगा। "
+"KDE Connect पेयरिंग फिर से बनाएँ? केवल इस फ़ोन का KDE भरोसा हटाकर फिर बनाया जाएगा।"
 "Magnolie Notes, नोट और चैट इतिहास अपरिवर्तित रहेंगे।"
 
 msgid "Renew pairing"
@@ -3927,7 +3945,7 @@ msgid "Saved ✓ %(time)s"
 msgstr "सहेजा गया ✓ %(time)s"
 
 msgid "Saved."
-msgstr "सहेजा गया।"
+msgstr "Saved."
 
 msgid "Saving failed!"
 msgstr "सहेजना विफल रहा!"
@@ -4058,10 +4076,13 @@ msgid "Sent"
 msgstr "भेजा गया"
 
 msgid "Server address"
-msgstr "सर्वर पता"
+msgstr "Server address"
 
 msgid "Server address and user name are required."
 msgstr "सर्वर पता और उपयोगकर्ता नाम आवश्यक हैं।"
+
+msgid "Set up contacts"
+msgstr "संपर्क सेट अप करें"
 
 msgid "Set varying doses by weekday"
 msgstr "सप्ताह के दिन के अनुसार अलग-अलग खुराक तय करें"
@@ -4290,7 +4311,7 @@ msgid "Suppository"
 msgstr "सपोसिटरी"
 
 msgid "Switched off."
-msgstr "बंद है।"
+msgstr "Switched off."
 
 msgid "Switzerland"
 msgstr "स्विट्ज़रलैंड"
@@ -4407,10 +4428,10 @@ msgid "Temperature"
 msgstr "तापमान"
 
 msgid "Test connection"
-msgstr "संपर्क जाँचें"
+msgstr "Test connection"
 
 msgid "Testing…"
-msgstr "जाँच हो रही है …"
+msgstr "Testing…"
 
 msgid "Text color"
 msgstr "टेक्स्ट रंग"
@@ -4495,9 +4516,6 @@ msgstr ""
 "विंडोज़ संपर्क फ़ोल्डर को सिंक्रोनाइज़ेशन पृष्ठ पर द्विदिश रूप से सिंक्रोनाइज़ किया जाता है। "
 "फ़ाइल आयात उनकी स्रोत फ़ाइलों को संशोधित नहीं करते हैं; मौजूदा प्रविष्टियाँ दो बार नहीं "
 "जोड़ी जातीं।"
-
-msgid "The Windows entry in the update information is invalid."
-msgstr "अद्यतन जानकारी में Windows प्रविष्टि अमान्य है।"
 
 msgid "The address could not be opened."
 msgstr "पता नहीं खुल सका."
@@ -4731,23 +4749,14 @@ msgstr "मैनुअल स्थापित किया गया है; 
 msgid "The manual is up to date."
 msgstr "मैन्युअल अद्यतनित है।"
 
-msgid "The manual package checksum does not match."
-msgstr "मैनुअल पैकेज चेकसम मेल नहीं खाता।"
-
 msgid "The manual package could not be opened."
 msgstr "हैंडबुक पैकेज खोला नहीं जा सका।"
-
-msgid "The manual package is unexpectedly large."
-msgstr "मैन्युअल पैकेज अप्रत्याशित रूप से बड़ा है।"
 
 msgid "The manual update check failed."
 msgstr "मैनुअल अपडेट जांच विफल हो गई।"
 
 msgid "The manual update information is invalid."
 msgstr "मैन्युअल अपडेट जानकारी अमान्य है।"
-
-msgid "The manual update information is missing."
-msgstr "मैन्युअल अद्यतन जानकारी अनुपलब्ध है."
 
 msgid "The message is too large."
 msgstr "संदेश बहुत बड़ा है।"
@@ -4985,17 +4994,11 @@ msgstr "दोनों नए पासवर्ड मेल नहीं ख�
 msgid "The update check failed."
 msgstr "अपडेट जाँच विफल रही।"
 
-msgid "The update information is unexpectedly large."
-msgstr "अपडेट जानकारी अप्रत्याशित रूप से बड़ी है।"
-
 msgid "The user data could not be read."
 msgstr "उपयोगकर्ता डेटा पढ़ा नहीं जा सका।"
 
 msgid "The value is outside the general green reference range."
 msgstr "मान सामान्य हरी संदर्भ सीमा से बाहर है।"
-
-msgid "The verified installer could not be opened."
-msgstr "सत्यापित इंस्टॉलर खोला नहीं जा सका."
 
 msgid ""
 "The weather service estimated the location from your public IP address. Your "
@@ -5382,7 +5385,7 @@ msgid "Use the recycle bin"
 msgstr "रीसायकल बिन का उपयोग करें"
 
 msgid "User name"
-msgstr "उपयोगकर्ता नाम"
+msgstr "User name"
 
 msgid ""
 "Uses its own identity and storage and listens only on fixed port %(port)s. "
@@ -5594,12 +5597,20 @@ msgstr ""
 "ईमेल पते हमेशा क्लिक किए जा सकते हैं और आपका मेल ऐप खोलते हैं।"
 
 msgid ""
+"When the limit is lowered, the oldest recovery snapshots are removed "
+"automatically."
+msgstr "सीमा घटाने पर सबसे पुराने पुनर्प्राप्ति बिंदु अपने आप हटा दिए जाते हैं।"
+
+msgid ""
 "When writing a note, a small toolbar above the sheet provides bold, italic, "
 "underline and strikethrough. The same formatting is available with Ctrl+B, "
 "Ctrl+I, Ctrl+U and Ctrl+D."
 msgstr ""
 "नोट लिखते समय शीट के ऊपर एक छोटा टूलबार बोल्ड, इटैलिक, अंडरलाइन और स्ट्राइकथ्रू देता है। "
 "वही फ़ॉर्मेटिंग Ctrl+B, Ctrl+I, Ctrl+U और Ctrl+D से भी उपलब्ध है।"
+
+msgid "Where are your contacts now?"
+msgstr "आपके संपर्क अभी कहाँ हैं?"
 
 msgid "Whole month"
 msgstr "पूरा महीना"
@@ -5686,6 +5697,9 @@ msgstr "हाँ, मर्ज करें"
 
 msgid "Yes, the code matches"
 msgstr "हाँ, कोड मेल खाता है"
+
+msgid "You can also do this later in Settings."
+msgstr "आप इसे बाद में सेटिंग में भी कर सकते हैं।"
 
 msgid "Your address"
 msgstr "आपका पता"
@@ -6084,9 +6098,6 @@ msgstr[1] "… और %(count)s अतिरिक्त आइटम, जो �
 
 msgid "＋ Add appointment"
 msgstr "＋ अपॉइंटमेंट जोड़ें"
-
-#~ msgid "Reset"
-#~ msgstr "Reset"
 
 msgid "Language & region"
 msgstr "भाषा और क्षेत्र"

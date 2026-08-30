@@ -1,7 +1,8 @@
 # SOME DESCRIPTIVE TITLE.
-# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
-# This file is distributed under the same license as the Magnolie Organizer package.
-# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+# Copyright (C) 2026 THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the Magnolie Organizer
+# package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
 #
 msgid ""
 msgstr ""
@@ -612,7 +613,7 @@ msgid "Answer calls on the computer and talk"
 msgstr "Besvar anrop på datamaskinen og snakk"
 
 msgid "App password"
-msgstr "App-passord"
+msgstr "App password"
 
 msgid "Appearance"
 msgstr "Utseende"
@@ -1524,7 +1525,7 @@ msgid "Delete page"
 msgstr "Slett side"
 
 msgid "Delete password"
-msgstr "Slett passord"
+msgstr "Delete password"
 
 msgid "Delete permanently"
 msgstr "Slett permanent"
@@ -1664,9 +1665,6 @@ msgstr "Last ned håndbok"
 
 msgid "Download manual version %(version)s"
 msgstr "Last ned håndbokversjon %(version)s"
-
-msgid "Download version %(version)s …"
-msgstr "Last ned versjon %(version)s …"
 
 msgid "Drag the attachment area up or down"
 msgstr "Dra vedleggsområdet opp eller ned"
@@ -2308,6 +2306,16 @@ msgstr "Inndata"
 msgid "Insert link"
 msgstr "Sett inn lenke"
 
+msgid ""
+"Install version %(version)s now? All changes will be saved. The Organizer "
+"will close and restart after the installation."
+msgstr ""
+"Installere versjon %(version)s nå? Alle endringer lagres. Organizeren lukkes "
+"og startes på nytt etter installasjonen."
+
+msgid "Install version %(version)s …"
+msgstr "Installer versjon %(version)s …"
+
 msgid "Installed manual version: %(version)s."
 msgstr "Installert håndbokversjon: %(version)s."
 
@@ -2577,6 +2585,9 @@ msgstr "Merk som åpen"
 
 msgid "Maximized"
 msgstr "Maksimert"
+
+msgid "Maximum recovery snapshots"
+msgstr "Maksimalt antall gjenopprettingspunkter"
 
 msgid "Measurement context"
 msgstr "Målekontekst"
@@ -2870,6 +2881,9 @@ msgstr "Ingen Bluetooth-adresse ble valgt."
 msgid "No KDE Connect pairing is awaiting confirmation."
 msgstr "Ingen KDE Connect-paring venter på bekreftelse."
 
+msgid "No address books found."
+msgstr "Ingen adressebøker funnet."
+
 msgid ""
 "No anniversaries yet.\n"
 "Birthdays and celebrations will automatically appear in the calendar."
@@ -3156,6 +3170,9 @@ msgstr ""
 "nytt. Du kan også importere kontakter og avtaler uten denne integrasjonen "
 "ved å bruke «Fra denne datamaskinen» ovenfor."
 
+msgid "Online address book"
+msgstr "Nettbasert adressebok"
+
 msgid "Online via Bluetooth data"
 msgstr "Tilkoblet via Bluetooth-data"
 
@@ -3292,11 +3309,11 @@ msgstr "Annet"
 
 msgctxt "email type"
 msgid "Other"
-msgstr "Annet"
+msgstr "Annen"
 
 msgctxt "relationship"
 msgid "Other"
-msgstr "Annet"
+msgstr "Annen relasjon"
 
 msgid "Other addresses"
 msgstr "Andre adresser"
@@ -3682,7 +3699,7 @@ msgid "Reachable IPv4 or IPv6 address of this computer"
 msgstr "Tilgjengelig IPv4- eller IPv6-adresse til denne datamaskinen"
 
 msgid "Ready."
-msgstr "Klar."
+msgstr "Ready."
 
 msgid ""
 "Really merge %(cards)s? Review the result carefully afterwards. A copy of "
@@ -3993,7 +4010,7 @@ msgid "Saved ✓ %(time)s"
 msgstr "Lagret ✓ %(time)s"
 
 msgid "Saved."
-msgstr "Lagret."
+msgstr "Saved."
 
 msgid "Saving failed!"
 msgstr "Lagring mislyktes!"
@@ -4124,10 +4141,13 @@ msgid "Sent"
 msgstr "Sendt"
 
 msgid "Server address"
-msgstr "Serveradresse"
+msgstr "Server address"
 
 msgid "Server address and user name are required."
 msgstr "Serveradresse og brukernavn kreves."
+
+msgid "Set up contacts"
+msgstr "Konfigurer kontakter"
 
 msgid "Set varying doses by weekday"
 msgstr "Angi varierende doser etter ukedag"
@@ -4359,7 +4379,7 @@ msgid "Suppository"
 msgstr "Stikkpille"
 
 msgid "Switched off."
-msgstr "Slått av."
+msgstr "Switched off."
 
 msgid "Switzerland"
 msgstr "Sveits"
@@ -4477,10 +4497,10 @@ msgid "Temperature"
 msgstr "Temperatur"
 
 msgid "Test connection"
-msgstr "Test forbindelsen"
+msgstr "Test connection"
 
 msgid "Testing…"
-msgstr "Tester …"
+msgstr "Testing…"
 
 msgid "Text color"
 msgstr "Tekstfarge"
@@ -4569,9 +4589,6 @@ msgstr ""
 "Windows Kontakter-mappen synkroniseres toveis på synkroniseringssiden. "
 "Filimport endrer ikke kildefilene deres; eksisterende oppføringer legges "
 "ikke til to ganger."
-
-msgid "The Windows entry in the update information is invalid."
-msgstr "Windows-oppføringen i oppdateringsinformasjonen er ugyldig."
 
 msgid "The address could not be opened."
 msgstr "Adressen kunne ikke åpnes."
@@ -4812,23 +4829,14 @@ msgstr "Håndboken er installert, men versjonen er ukjent."
 msgid "The manual is up to date."
 msgstr "Håndboken er oppdatert."
 
-msgid "The manual package checksum does not match."
-msgstr "Kontrollsummen for håndbokpakken stemmer ikke."
-
 msgid "The manual package could not be opened."
 msgstr "Håndbokpakken kunne ikke åpnes."
-
-msgid "The manual package is unexpectedly large."
-msgstr "Håndbokpakken er uventet stor."
 
 msgid "The manual update check failed."
 msgstr "Søket etter oppdateringer til håndboken mislyktes."
 
 msgid "The manual update information is invalid."
 msgstr "Oppdateringsinformasjonen for håndboken er ugyldig."
-
-msgid "The manual update information is missing."
-msgstr "Informasjon om manuell oppdatering mangler."
 
 msgid "The message is too large."
 msgstr "Meldingen er for stor."
@@ -5074,17 +5082,11 @@ msgstr "De to nye passordene samsvarer ikke."
 msgid "The update check failed."
 msgstr "Oppdateringskontrollen mislyktes."
 
-msgid "The update information is unexpectedly large."
-msgstr "Oppdateringsinformasjonen er uventet stor."
-
 msgid "The user data could not be read."
 msgstr "Brukerdataene kunne ikke leses."
 
 msgid "The value is outside the general green reference range."
 msgstr "Verdien ligger utenfor det generelle grønne referanseområdet."
-
-msgid "The verified installer could not be opened."
-msgstr "Det bekreftede installasjonsprogrammet kunne ikke åpnes."
 
 msgid ""
 "The weather service estimated the location from your public IP address. Your "
@@ -5477,7 +5479,7 @@ msgid "Use the recycle bin"
 msgstr "Bruk papirkurven"
 
 msgid "User name"
-msgstr "Brukernavn"
+msgstr "User name"
 
 msgid ""
 "Uses its own identity and storage and listens only on fixed port %(port)s. "
@@ -5689,6 +5691,12 @@ msgstr ""
 "postprogrammet ditt."
 
 msgid ""
+"When the limit is lowered, the oldest recovery snapshots are removed "
+"automatically."
+msgstr ""
+"Når grensen reduseres, fjernes de eldste gjenopprettingspunktene automatisk."
+
+msgid ""
 "When writing a note, a small toolbar above the sheet provides bold, italic, "
 "underline and strikethrough. The same formatting is available with Ctrl+B, "
 "Ctrl+I, Ctrl+U and Ctrl+D."
@@ -5696,6 +5704,9 @@ msgstr ""
 "Når du skriver et notat, gir en liten verktøylinje over arket tilgang til "
 "fet skrift, kursiv, understreking og gjennomstreking. Den samme "
 "formateringen er tilgjengelig med Ctrl+B, Ctrl+I, Ctrl+U og Ctrl+D."
+
+msgid "Where are your contacts now?"
+msgstr "Hvor er kontaktene dine nå?"
 
 msgid "Whole month"
 msgstr "Hele måneden"
@@ -5783,6 +5794,9 @@ msgstr "Ja, slå sammen"
 
 msgid "Yes, the code matches"
 msgstr "Ja, koden stemmer"
+
+msgid "You can also do this later in Settings."
+msgstr "Du kan også gjøre dette senere i Innstillinger."
 
 msgid "Your address"
 msgstr "Adressen din"
@@ -6185,9 +6199,6 @@ msgstr[1] "… og %(count)s elementer til som også blir skrevet ut."
 
 msgid "＋ Add appointment"
 msgstr "＋ Legg til avtale"
-
-#~ msgid "Reset"
-#~ msgstr "Reset"
 
 msgid "Language & region"
 msgstr "Språk og region"

@@ -1,7 +1,8 @@
 # SOME DESCRIPTIVE TITLE.
-# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
-# This file is distributed under the same license as the Magnolie Organizer package.
-# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+# Copyright (C) 2026 THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the Magnolie Organizer
+# package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
 #
 msgid ""
 msgstr ""
@@ -232,10 +233,10 @@ msgid "%(from)s to %(to)s"
 msgstr "%(from)s til %(to)s"
 
 msgid "%(name)s found – currently reachable"
-msgstr "%(name)s found – currently reachable"
+msgstr "%(name)s fundet – i øjeblikket tilgængelig"
 
 msgid "%(name)s last found – reconnecting"
-msgstr "%(name)s last found – reconnecting"
+msgstr "%(name)s sidst fundet – forbinder igen"
 
 msgid "%(ordinal)s death anniversary"
 msgstr "%(ordinal)s dødsdag"
@@ -612,7 +613,7 @@ msgid "Answer calls on the computer and talk"
 msgstr "Besvar opkald på computeren og tal"
 
 msgid "App password"
-msgstr "App-adgangskode"
+msgstr "App password"
 
 msgid "Appearance"
 msgstr "Udseende"
@@ -969,7 +970,7 @@ msgstr ""
 "applikation"
 
 msgid "Call with %(name)s · %(date)s"
-msgstr "Call with %(name)s · %(date)s"
+msgstr "Opkald med %(name)s · %(date)s"
 
 msgid "Cancel"
 msgstr "Annuller"
@@ -1520,7 +1521,7 @@ msgid "Delete page"
 msgstr "Slet side"
 
 msgid "Delete password"
-msgstr "Slet adgangskode"
+msgstr "Delete password"
 
 msgid "Delete permanently"
 msgstr "Slet permanent"
@@ -1659,9 +1660,6 @@ msgstr "Hent manual"
 
 msgid "Download manual version %(version)s"
 msgstr "Hent manual version %(version)s"
-
-msgid "Download version %(version)s …"
-msgstr "Hent version %(version)s …"
 
 msgid "Drag the attachment area up or down"
 msgstr "Træk vedhæftningsområdet op eller ned"
@@ -2045,7 +2043,7 @@ msgid "From"
 msgstr "Fra"
 
 msgid "From the Windows Contacts folder"
-msgstr "Fra mappen Windows Kontaktpersoner"
+msgstr "Fra mappen Windows-kontakter"
 
 msgid "Full"
 msgstr "Fuld"
@@ -2302,6 +2300,16 @@ msgstr "Indtastning"
 
 msgid "Insert link"
 msgstr "Indsæt link"
+
+msgid ""
+"Install version %(version)s now? All changes will be saved. The Organizer "
+"will close and restart after the installation."
+msgstr ""
+"Installér version %(version)s nu? Alle ændringer gemmes. Organizeren lukkes "
+"og genstartes efter installationen."
+
+msgid "Install version %(version)s …"
+msgstr "Installér version %(version)s …"
 
 msgid "Installed manual version: %(version)s."
 msgstr "Installeret manualversion: %(version)s."
@@ -2572,6 +2580,9 @@ msgstr "Markér som åben"
 
 msgid "Maximized"
 msgstr "Maksimeret"
+
+msgid "Maximum recovery snapshots"
+msgstr "Maksimalt antal gendannelsespunkter"
 
 msgid "Measurement context"
 msgstr "Målekontekst"
@@ -2865,6 +2876,9 @@ msgstr "Der blev ikke valgt nogen Bluetooth-adresse."
 msgid "No KDE Connect pairing is awaiting confirmation."
 msgstr "Ingen KDE Connect-parring afventer bekræftelse."
 
+msgid "No address books found."
+msgstr "Ingen adressebøger fundet."
+
 msgid ""
 "No anniversaries yet.\n"
 "Birthdays and celebrations will automatically appear in the calendar."
@@ -3152,6 +3166,9 @@ msgstr ""
 "kan også importere kontakter og aftaler uden denne integration ved at bruge "
 "„Fra denne computer“ ovenfor."
 
+msgid "Online address book"
+msgstr "Onlineadressebog"
+
 msgid "Online via Bluetooth data"
 msgstr "Online via Bluetooth-data"
 
@@ -3288,11 +3305,11 @@ msgstr "Andet"
 
 msgctxt "email type"
 msgid "Other"
-msgstr "Andet"
+msgstr "Anden"
 
 msgctxt "relationship"
 msgid "Other"
-msgstr "Andet"
+msgstr "Anden relation"
 
 msgid "Other addresses"
 msgstr "Andre adresser"
@@ -3677,7 +3694,7 @@ msgid "Reachable IPv4 or IPv6 address of this computer"
 msgstr "Tilgængelig IPv4- eller IPv6-adresse på denne computer"
 
 msgid "Ready."
-msgstr "Klar."
+msgstr "Ready."
 
 msgid ""
 "Really merge %(cards)s? Review the result carefully afterwards. A copy of "
@@ -3987,7 +4004,7 @@ msgid "Saved ✓ %(time)s"
 msgstr "Gemt ✓ %(time)s"
 
 msgid "Saved."
-msgstr "Gemt."
+msgstr "Saved."
 
 msgid "Saving failed!"
 msgstr "Gemning mislykkedes!"
@@ -4118,10 +4135,13 @@ msgid "Sent"
 msgstr "Sendt"
 
 msgid "Server address"
-msgstr "Serveradresse"
+msgstr "Server address"
 
 msgid "Server address and user name are required."
 msgstr "Serveradresse og brugernavn er påkrævet."
+
+msgid "Set up contacts"
+msgstr "Konfigurer kontakter"
 
 msgid "Set varying doses by weekday"
 msgstr "Angiv forskellige doser efter ugedag"
@@ -4352,7 +4372,7 @@ msgid "Suppository"
 msgstr "Stikpille"
 
 msgid "Switched off."
-msgstr "Slået fra."
+msgstr "Switched off."
 
 msgid "Switzerland"
 msgstr "Schweiz"
@@ -4470,10 +4490,10 @@ msgid "Temperature"
 msgstr "Temperatur"
 
 msgid "Test connection"
-msgstr "Test forbindelse"
+msgstr "Test connection"
 
 msgid "Testing…"
-msgstr "Tester …"
+msgstr "Testing…"
 
 msgid "Text color"
 msgstr "Tekstfarve"
@@ -4560,9 +4580,6 @@ msgstr ""
 "Windows Kontakter-mappen synkroniseres tovejs på synkroniseringssiden. "
 "Filimporter ændrer ikke deres kildefiler; eksisterende poster tilføjes ikke "
 "to gange."
-
-msgid "The Windows entry in the update information is invalid."
-msgstr "Windows-posten i opdateringsoplysningerne er ugyldig."
 
 msgid "The address could not be opened."
 msgstr "Adressen kunne ikke åbnes."
@@ -4802,23 +4819,14 @@ msgstr "Manualen er installeret, men dens version er ukendt."
 msgid "The manual is up to date."
 msgstr "Manualen er opdateret."
 
-msgid "The manual package checksum does not match."
-msgstr "Manualpakkens kontrolsum stemmer ikke."
-
 msgid "The manual package could not be opened."
 msgstr "Håndbogspakken kunne ikke åbnes."
-
-msgid "The manual package is unexpectedly large."
-msgstr "Manualpakken er uventet stor."
 
 msgid "The manual update check failed."
 msgstr "Søgningen efter opdateringer til manualen mislykkedes."
 
 msgid "The manual update information is invalid."
 msgstr "Manualens opdateringsoplysninger er ugyldige."
-
-msgid "The manual update information is missing."
-msgstr "De manuelle opdateringsoplysninger mangler."
 
 msgid "The message is too large."
 msgstr "Beskeden er for stor."
@@ -5067,17 +5075,11 @@ msgstr "De to nye adgangskoder stemmer ikke overens."
 msgid "The update check failed."
 msgstr "Opdateringskontrollen mislykkedes."
 
-msgid "The update information is unexpectedly large."
-msgstr "Opdateringsoplysningerne er uventet store."
-
 msgid "The user data could not be read."
 msgstr "Brugerdataene kunne ikke læses."
 
 msgid "The value is outside the general green reference range."
 msgstr "Værdien ligger uden for det generelle grønne referenceområde."
-
-msgid "The verified installer could not be opened."
-msgstr "Det bekræftede installationsprogram kunne ikke åbnes."
 
 msgid ""
 "The weather service estimated the location from your public IP address. Your "
@@ -5471,7 +5473,7 @@ msgid "Use the recycle bin"
 msgstr "Brug papirkurven"
 
 msgid "User name"
-msgstr "Brugernavn"
+msgstr "User name"
 
 msgid ""
 "Uses its own identity and storage and listens only on fixed port %(port)s. "
@@ -5684,6 +5686,11 @@ msgstr ""
 "mailadresser på kontaktkort kan altid klikkes på og åbner dit mailprogram."
 
 msgid ""
+"When the limit is lowered, the oldest recovery snapshots are removed "
+"automatically."
+msgstr "Når grænsen sænkes, fjernes de ældste gendannelsespunkter automatisk."
+
+msgid ""
 "When writing a note, a small toolbar above the sheet provides bold, italic, "
 "underline and strikethrough. The same formatting is available with Ctrl+B, "
 "Ctrl+I, Ctrl+U and Ctrl+D."
@@ -5691,6 +5698,9 @@ msgstr ""
 "Når du skriver en note, indeholder en lille værktøjslinje over arket fed, "
 "kursiv, understregning og gennemstregning. Den samme formatering er "
 "tilgængelig med Ctrl+B, Ctrl+I, Ctrl+U og Ctrl+D."
+
+msgid "Where are your contacts now?"
+msgstr "Hvor er dine kontakter nu?"
 
 msgid "Whole month"
 msgstr "Hele måneden"
@@ -5778,6 +5788,9 @@ msgstr "Ja, flet"
 
 msgid "Yes, the code matches"
 msgstr "Ja, koden stemmer"
+
+msgid "You can also do this later in Settings."
+msgstr "Du kan også gøre dette senere i Indstillinger."
 
 msgid "Your address"
 msgstr "Din adresse"
@@ -6180,9 +6193,6 @@ msgstr[1] "… og %(count)s elementer mere, som også bliver udskrevet."
 
 msgid "＋ Add appointment"
 msgstr "＋ Tilføj aftale"
-
-#~ msgid "Reset"
-#~ msgstr "Reset"
 
 msgid "Language & region"
 msgstr "Sprog og område"

@@ -29,8 +29,8 @@ internal sealed partial class BridgeDispatcher
             }
         }
         catch (Exception error) { nextcloudError = error.Message; }
-        var addressBooks = new List<object> { new { uid = "windows-contacts", name = "Windows-Kontakteordner", art = "lokal", eingerichtet = true } };
-        if (clientId.Length > 0) addressBooks.Add(new { uid = "microsoft-graph", name = "Outlook.com / Microsoft 365", art = "graph", eingerichtet = true });
+        var addressBooks = new List<object> { new { uid = "windows-contacts", name = T("Windows Contacts folder"), art = "lokal", eingerichtet = true } };
+        if (clientId.Length > 0 && signedIn) addressBooks.Add(new { uid = "microsoft-graph", name = "Outlook.com / Microsoft 365", art = "graph", eingerichtet = true });
         addressBooks.AddRange(dav.AddressBooks.Select(source => (object)new { uid = source.Uid, name = source.Name, art = "nextcloud-carddav", eingerichtet = true }));
         await form.SendAsync("App.edsStatus", new
         {

@@ -629,6 +629,9 @@ msgstr "स्वीकार करें और याद रखें"
 msgid "Accept automatically"
 msgstr "अपने आप स्वीकार करें"
 
+msgid "Accept this KDE Connect file?"
+msgstr "क्या यह KDE Connect फ़ाइल स्वीकार करनी है?"
+
 msgid "Accept “%(entry)s” into your own collection?"
 msgstr "“%(entry)s” को अपने संग्रह में स्वीकार करें?"
 
@@ -1418,6 +1421,9 @@ msgstr "प्रिंट या निर्यात करने की स�
 msgid "Choose service"
 msgstr "सेवा चुनें"
 
+msgid "Choose the save location for each accepted file"
+msgstr "स्वीकार की गई हर फ़ाइल के लिए सहेजने का स्थान चुनें"
+
 msgid ""
 "Choose which sections appear as tabs on the organizer. The calendar always "
 "remains available."
@@ -2053,9 +2059,6 @@ msgstr "हैंडबुक डाउनलोड करें"
 msgid "Download manual version %(version)s"
 msgstr "हैंडबुक संस्करण %(version)s डाउनलोड करें"
 
-msgid "Download version %(version)s …"
-msgstr "संस्करण %(version)s डाउनलोड करें …"
-
 msgid "Drag the attachment area up or down"
 msgstr "संलग्नक क्षेत्र को ऊपर या नीचे खींचें"
 
@@ -2347,6 +2350,7 @@ msgstr "फ़ाइल"
 msgid "File could not be read: %s"
 msgstr "फ़ाइल पढ़ी नहीं जा सकी: %s"
 
+#, python-format
 msgid "File saved in Downloads: %(name)s"
 msgstr "फ़ाइल डाउनलोड में सहेजी गई: %(name)s"
 
@@ -2480,6 +2484,9 @@ msgstr "शुक्रवार"
 
 msgid "From"
 msgstr "से"
+
+msgid "From the Windows Contacts folder"
+msgstr "Windows संपर्क फ़ोल्डर से"
 
 msgid "From this computer (Evolution/Thunderbird)"
 msgstr "इस कंप्यूटर से (Evolution/Thunderbird)"
@@ -2781,6 +2788,16 @@ msgstr "लिंक डालें"
 
 msgid "Install the packages, for example with:"
 msgstr "पैकेज स्थापित करें, उदाहरण के लिए:"
+
+msgid ""
+"Install version %(version)s now? All changes will be saved. The Organizer "
+"will close and restart after the installation."
+msgstr ""
+"संस्करण %(version)s अभी इंस्टॉल करें? सभी बदलाव सहेजे जाएंगे। इंस्टॉलेशन के बाद Organizer "
+"बंद होकर फिर से शुरू होगा।"
+
+msgid "Install version %(version)s …"
+msgstr "संस्करण %(version)s इंस्टॉल करें …"
 
 msgid "Installed manual version: %(version)s."
 msgstr "स्थापित मैनुअल संस्करण: %(version)s."
@@ -3130,6 +3147,9 @@ msgstr "खुला के रूप में चिह्नित करे�
 msgid "Maximized"
 msgstr "अधिकतम आकार"
 
+msgid "Maximum recovery snapshots"
+msgstr "पुनर्प्राप्ति बिंदुओं की अधिकतम संख्या"
+
 msgid "Measurement context"
 msgstr "माप का संदर्भ"
 
@@ -3441,6 +3461,9 @@ msgstr "No"
 msgid "No Claws Mail address book was detected."
 msgstr "Claws Mail की कोई पता-पुस्तिका नहीं मिली।"
 
+msgid "No address books found."
+msgstr "कोई पता पुस्तिका नहीं मिली।"
+
 msgid ""
 "No anniversaries yet.\n"
 "Birthdays and celebrations will automatically appear in the calendar."
@@ -3680,9 +3703,6 @@ msgstr "सूचना: संग्रहण से कनेक्शन क�
 msgid "Notification actions available"
 msgstr "सूचना क्रियाएँ उपलब्ध हैं"
 
-msgid "Notification actions unavailable"
-msgstr "सूचना क्रियाएँ अनुपलब्ध हैं"
-
 msgid "Notification and sound"
 msgstr "सूचना और ध्वनि"
 
@@ -3815,6 +3835,9 @@ msgstr ""
 "apt install %(packages)s, फिर अनुप्रयोग को पुनः आरंभ करें। आप इस एकीकरण के बिना भी "
 "ऊपर दिए “इस कंप्यूटर से” विकल्प से संपर्क और अपॉइंटमेंट आयात कर सकते हैं।"
 
+msgid "Online address book"
+msgstr "ऑनलाइन पता पुस्तिका"
+
 msgid "Online via Bluetooth data"
 msgstr "Bluetooth डेटा के माध्यम से ऑनलाइन"
 
@@ -3831,7 +3854,9 @@ msgstr ""
 msgid ""
 "Only Notify, then unlock is currently available. Keyring access and pausing "
 "while locked are not yet enforced by the background service."
-msgstr "वर्तमान में केवल “सूचित करें, फिर अनलॉक करें” उपलब्ध है। बैकग्राउंड सेवा अभी कीरिंग एक्सेस और लॉक रहने के दौरान रोकने की नीति लागू नहीं करती है।"
+msgstr ""
+"वर्तमान में केवल “सूचित करें, फिर अनलॉक करें” उपलब्ध है। बैकग्राउंड सेवा अभी कीरिंग एक्सेस और "
+"लॉक रहने के दौरान रोकने की नीति लागू नहीं करती है।"
 
 msgid ""
 "Only one Magnolie Notes phone can be paired. Remove the existing phone "
@@ -4028,6 +4053,9 @@ msgstr "पेयरिंग फ़ाइल"
 
 msgid "Pairing file saved to: %(path)s"
 msgstr "पेयरिंग फ़ाइल यहाँ सहेजी गई: %(path)s"
+
+msgid "Pairing, file and clipboard requests are confirmed in this window."
+msgstr "पेयरिंग, फ़ाइल और क्लिपबोर्ड अनुरोधों की पुष्टि इस विंडो में की जाती है।"
 
 msgid "Palm tree"
 msgstr "ताड़ का पेड़"
@@ -4932,6 +4960,9 @@ msgstr "सेवा चल रही है"
 
 msgid "Service stopped"
 msgstr "सेवा रुकी हुई है"
+
+msgid "Set up contacts"
+msgstr "संपर्क सेट अप करें"
 
 msgid "Set varying doses by weekday"
 msgstr "सप्ताह के दिन के अनुसार अलग-अलग खुराक तय करें"
@@ -6938,12 +6969,20 @@ msgstr ""
 "ईमेल पते हमेशा क्लिक किए जा सकते हैं और आपका मेल ऐप खोलते हैं।"
 
 msgid ""
+"When the limit is lowered, the oldest recovery snapshots are removed "
+"automatically."
+msgstr "सीमा घटाने पर सबसे पुराने पुनर्प्राप्ति बिंदु अपने आप हटा दिए जाते हैं।"
+
+msgid ""
 "When writing a note, a small toolbar above the sheet provides bold, italic, "
 "underline and strikethrough. The same formatting is available with Ctrl+B, "
 "Ctrl+I, Ctrl+U and Ctrl+D."
 msgstr ""
 "नोट लिखते समय शीट के ऊपर एक छोटा टूलबार बोल्ड, इटैलिक, अंडरलाइन और स्ट्राइकथ्रू देता है। "
 "वही फ़ॉर्मेटिंग Ctrl+B, Ctrl+I, Ctrl+U और Ctrl+D से भी उपलब्ध है।"
+
+msgid "Where are your contacts now?"
+msgstr "आपके संपर्क अभी कहाँ हैं?"
 
 msgid "Whole month"
 msgstr "पूरा महीना"
@@ -7030,6 +7069,9 @@ msgstr "हाँ, मर्ज करें"
 
 msgid "Yes, the code matches"
 msgstr "हाँ, कोड मेल खाता है"
+
+msgid "You can also do this later in Settings."
+msgstr "आप इसे बाद में सेटिंग में भी कर सकते हैं।"
 
 msgid "Your address"
 msgstr "आपका पता"
@@ -7504,6 +7546,12 @@ msgstr[1] "… और %(count)s अतिरिक्त आइटम, जो �
 
 msgid "＋ Add appointment"
 msgstr "＋ अपॉइंटमेंट जोड़ें"
+
+#~ msgid "Notification actions unavailable"
+#~ msgstr "सूचना क्रियाएँ अनुपलब्ध हैं"
+
+#~ msgid "Download version %(version)s …"
+#~ msgstr "संस्करण %(version)s डाउनलोड करें …"
 
 #~ msgid ""
 #~ "Notify, then unlock asks you to open and unlock the Organizer. System "

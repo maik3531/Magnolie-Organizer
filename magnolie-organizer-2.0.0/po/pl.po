@@ -678,6 +678,9 @@ msgstr "Akceptuj i zapamiętaj"
 msgid "Accept automatically"
 msgstr "Akceptuj automatycznie"
 
+msgid "Accept this KDE Connect file?"
+msgstr "Zaakceptować ten plik KDE Connect?"
+
 msgid "Accept “%(entry)s” into your own collection?"
 msgstr "Dodać „%(entry)s” do własnej kolekcji?"
 
@@ -1485,6 +1488,9 @@ msgstr "Wybierz zawartość do wydruku lub eksportu…"
 msgid "Choose service"
 msgstr "Wybierz usługę"
 
+msgid "Choose the save location for each accepted file"
+msgstr "Wybieraj miejsce zapisu dla każdego zaakceptowanego pliku"
+
 msgid ""
 "Choose which sections appear as tabs on the organizer. The calendar always "
 "remains available."
@@ -2138,9 +2144,6 @@ msgstr "Pobierz podręcznik"
 msgid "Download manual version %(version)s"
 msgstr "Pobierz podręcznik w wersji %(version)s"
 
-msgid "Download version %(version)s …"
-msgstr "Pobierz wersję %(version)s …"
-
 msgid "Drag the attachment area up or down"
 msgstr "Przeciągnij obszar załączników w górę lub w dół"
 
@@ -2436,6 +2439,7 @@ msgstr "Plik"
 msgid "File could not be read: %s"
 msgstr "Nie można odczytać pliku: %s"
 
+#, python-format
 msgid "File saved in Downloads: %(name)s"
 msgstr "Plik zapisano w Pobranych: %(name)s"
 
@@ -2572,6 +2576,9 @@ msgstr "Piątek"
 
 msgid "From"
 msgstr "Od"
+
+msgid "From the Windows Contacts folder"
+msgstr "Z folderu Kontakty systemu Windows"
 
 msgid "From this computer (Evolution/Thunderbird)"
 msgstr "Z tego komputera (Evolution/Thunderbird)"
@@ -2877,6 +2884,16 @@ msgstr "Wstaw łącze"
 
 msgid "Install the packages, for example with:"
 msgstr "Zainstaluj pakiety, na przykład poleceniem:"
+
+msgid ""
+"Install version %(version)s now? All changes will be saved. The Organizer "
+"will close and restart after the installation."
+msgstr ""
+"Zainstalować wersję %(version)s teraz? Wszystkie zmiany zostaną zapisane. "
+"Organizer zostanie zamknięty i uruchomiony ponownie po instalacji."
+
+msgid "Install version %(version)s …"
+msgstr "Zainstaluj wersję %(version)s …"
 
 msgid "Installed manual version: %(version)s."
 msgstr "Zainstalowana wersja ręczna: %(version)s."
@@ -3229,6 +3246,9 @@ msgstr "Oznacz jako otwarte"
 msgid "Maximized"
 msgstr "Zmaksymalizowane"
 
+msgid "Maximum recovery snapshots"
+msgstr "Maksymalna liczba punktów przywracania"
+
 msgid "Measurement context"
 msgstr "Kontekst pomiaru"
 
@@ -3545,6 +3565,9 @@ msgstr "No"
 msgid "No Claws Mail address book was detected."
 msgstr "Nie wykryto książki adresowej Claws Mail."
 
+msgid "No address books found."
+msgstr "Nie znaleziono żadnych książek adresowych."
+
 msgid ""
 "No anniversaries yet.\n"
 "Birthdays and celebrations will automatically appear in the calendar."
@@ -3791,9 +3814,6 @@ msgstr "Uwaga: Połączenie z magazynem nie zostało potwierdzone."
 msgid "Notification actions available"
 msgstr "Działania w powiadomieniach są dostępne"
 
-msgid "Notification actions unavailable"
-msgstr "Działania w powiadomieniach są niedostępne"
-
 msgid "Notification and sound"
 msgstr "Powiadomienie i dźwięk"
 
@@ -3937,6 +3957,9 @@ msgstr ""
 "ponownie. Kontakty i spotkania można też importować bez tej integracji za "
 "pomocą opcji „Z tego komputera” powyżej."
 
+msgid "Online address book"
+msgstr "Internetowa książka adresowa"
+
 msgid "Online via Bluetooth data"
 msgstr "Online przez dane Bluetooth"
 
@@ -3953,7 +3976,10 @@ msgstr ""
 msgid ""
 "Only Notify, then unlock is currently available. Keyring access and pausing "
 "while locked are not yet enforced by the background service."
-msgstr "Obecnie dostępna jest tylko opcja „Powiadom, a następnie odblokuj”. Usługa działająca w tle nie wymusza jeszcze dostępu do bazy kluczy ani wstrzymywania działania po zablokowaniu."
+msgstr ""
+"Obecnie dostępna jest tylko opcja „Powiadom, a następnie odblokuj”. Usługa "
+"działająca w tle nie wymusza jeszcze dostępu do bazy kluczy ani "
+"wstrzymywania działania po zablokowaniu."
 
 msgid ""
 "Only one Magnolie Notes phone can be paired. Remove the existing phone "
@@ -4154,6 +4180,9 @@ msgstr "Plik parowania"
 
 msgid "Pairing file saved to: %(path)s"
 msgstr "Plik parowania zapisano do: %(path)s"
+
+msgid "Pairing, file and clipboard requests are confirmed in this window."
+msgstr "Prośby o parowanie, pliki i schowek są potwierdzane w tym oknie."
 
 msgid "Palm tree"
 msgstr "Palma"
@@ -5083,6 +5112,9 @@ msgstr "Usługa jest uruchomiona"
 msgid "Service stopped"
 msgstr "Usługa jest zatrzymana"
 
+msgid "Set up contacts"
+msgstr "Skonfiguruj kontakty"
+
 msgid "Set varying doses by weekday"
 msgstr "Ustaw różne dawki w zależności od dnia tygodnia"
 
@@ -5414,7 +5446,8 @@ msgid "System default"
 msgstr "Domyślne systemowe"
 
 msgid "System keyring and pause modes cannot be enabled yet."
-msgstr "Nie można jeszcze włączyć systemowej bazy kluczy ani trybów wstrzymywania."
+msgstr ""
+"Nie można jeszcze włączyć systemowej bazy kluczy ani trybów wstrzymywania."
 
 msgid "System keyring available"
 msgstr "Systemowy pęk kluczy jest dostępny"
@@ -7145,6 +7178,13 @@ msgstr ""
 "klikalne i otwierają aplikację pocztową."
 
 msgid ""
+"When the limit is lowered, the oldest recovery snapshots are removed "
+"automatically."
+msgstr ""
+"Po zmniejszeniu limitu najstarsze punkty przywracania są automatycznie "
+"usuwane."
+
+msgid ""
 "When writing a note, a small toolbar above the sheet provides bold, italic, "
 "underline and strikethrough. The same formatting is available with Ctrl+B, "
 "Ctrl+I, Ctrl+U and Ctrl+D."
@@ -7152,6 +7192,9 @@ msgstr ""
 "Podczas pisania notatki mały pasek narzędzi nad arkuszem udostępnia "
 "pogrubienie, kursywę, podkreślenie i przekreślenie. To samo formatowanie "
 "jest dostępne przez Ctrl+B, Ctrl+I, Ctrl+U i Ctrl+D."
+
+msgid "Where are your contacts now?"
+msgstr "Gdzie znajdują się teraz Twoje kontakty?"
 
 msgid "Whole month"
 msgstr "Cały miesiąc"
@@ -7240,6 +7283,9 @@ msgstr "Tak, połącz"
 
 msgid "Yes, the code matches"
 msgstr "Tak, kod jest zgodny"
+
+msgid "You can also do this later in Settings."
+msgstr "Możesz to również zrobić później w Ustawieniach."
 
 msgid "Your address"
 msgstr "Twój adres"
@@ -7734,6 +7780,12 @@ msgstr[2] "… i jeszcze %(count)s elementy, które również zostaną wydrukowa
 
 msgid "＋ Add appointment"
 msgstr "＋ Dodaj spotkanie"
+
+#~ msgid "Notification actions unavailable"
+#~ msgstr "Działania w powiadomieniach są niedostępne"
+
+#~ msgid "Download version %(version)s …"
+#~ msgstr "Pobierz wersję %(version)s …"
 
 #~ msgid ""
 #~ "Notify, then unlock asks you to open and unlock the Organizer. System "

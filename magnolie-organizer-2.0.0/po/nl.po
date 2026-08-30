@@ -638,6 +638,9 @@ msgstr "Accepteren en onthouden"
 msgid "Accept automatically"
 msgstr "Automatisch accepteren"
 
+msgid "Accept this KDE Connect file?"
+msgstr "Dit KDE Connect-bestand accepteren?"
+
 msgid "Accept “%(entry)s” into your own collection?"
 msgstr "‘%(entry)s’ opnemen in uw eigen verzameling?"
 
@@ -1447,6 +1450,9 @@ msgstr "Inhoud voor afdrukken of exporteren kiezen…"
 msgid "Choose service"
 msgstr "Service kiezen"
 
+msgid "Choose the save location for each accepted file"
+msgstr "Kies de opslaglocatie voor elk geaccepteerd bestand"
+
 msgid ""
 "Choose which sections appear as tabs on the organizer. The calendar always "
 "remains available."
@@ -2109,9 +2115,6 @@ msgstr "Handboek downloaden"
 msgid "Download manual version %(version)s"
 msgstr "Handboekversie %(version)s downloaden"
 
-msgid "Download version %(version)s …"
-msgstr "Versie %(version)s downloaden …"
-
 msgid "Drag the attachment area up or down"
 msgstr "Sleep het bijlagengebied omhoog of omlaag"
 
@@ -2407,6 +2410,7 @@ msgstr "Bestand"
 msgid "File could not be read: %s"
 msgstr "Bestand kon niet worden gelezen: %s"
 
+#, python-format
 msgid "File saved in Downloads: %(name)s"
 msgstr "Bestand opgeslagen in Downloads: %(name)s"
 
@@ -2545,6 +2549,9 @@ msgstr "Vrijdag"
 
 msgid "From"
 msgstr "Van"
+
+msgid "From the Windows Contacts folder"
+msgstr "Uit de map Windows-contactpersonen"
 
 msgid "From this computer (Evolution/Thunderbird)"
 msgstr "Van deze computer (Evolution/Thunderbird)"
@@ -2850,6 +2857,16 @@ msgstr "Koppeling invoegen"
 
 msgid "Install the packages, for example with:"
 msgstr "Installeer de pakketten, bijvoorbeeld met:"
+
+msgid ""
+"Install version %(version)s now? All changes will be saved. The Organizer "
+"will close and restart after the installation."
+msgstr ""
+"Versie %(version)s nu installeren? Alle wijzigingen worden opgeslagen. De "
+"Organizer wordt gesloten en na de installatie opnieuw gestart."
+
+msgid "Install version %(version)s …"
+msgstr "Versie %(version)s installeren …"
 
 msgid "Installed manual version: %(version)s."
 msgstr "Geïnstalleerde versie van de handleiding: %(version)s."
@@ -3204,6 +3221,9 @@ msgstr "Als open markeren"
 msgid "Maximized"
 msgstr "Gemaximaliseerd"
 
+msgid "Maximum recovery snapshots"
+msgstr "Maximaal aantal herstelpunten"
+
 msgid "Measurement context"
 msgstr "Meetcontext"
 
@@ -3521,6 +3541,9 @@ msgstr "No"
 msgid "No Claws Mail address book was detected."
 msgstr "Er is geen Claws Mail-adresboek gevonden."
 
+msgid "No address books found."
+msgstr "Geen adresboeken gevonden."
+
 msgid ""
 "No anniversaries yet.\n"
 "Birthdays and celebrations will automatically appear in the calendar."
@@ -3766,9 +3789,6 @@ msgstr "Opmerking: de verbinding met de opslag is niet bevestigd."
 msgid "Notification actions available"
 msgstr "Meldingsacties beschikbaar"
 
-msgid "Notification actions unavailable"
-msgstr "Meldingsacties niet beschikbaar"
-
 msgid "Notification and sound"
 msgstr "Melding en geluid"
 
@@ -3908,6 +3928,9 @@ msgstr ""
 "toepassing opnieuw. U kunt contacten en afspraken ook zonder deze integratie "
 "importeren via ‘Van deze computer’ hierboven."
 
+msgid "Online address book"
+msgstr "Onlineadresboek"
+
 msgid "Online via Bluetooth data"
 msgstr "Online via Bluetooth-gegevens"
 
@@ -3924,7 +3947,10 @@ msgstr ""
 msgid ""
 "Only Notify, then unlock is currently available. Keyring access and pausing "
 "while locked are not yet enforced by the background service."
-msgstr "Momenteel is alleen ‘Melden, dan ontgrendelen’ beschikbaar. Toegang tot de sleutelbos en pauzeren wanneer vergrendeld worden nog niet afgedwongen door de achtergronddienst."
+msgstr ""
+"Momenteel is alleen ‘Melden, dan ontgrendelen’ beschikbaar. Toegang tot de "
+"sleutelbos en pauzeren wanneer vergrendeld worden nog niet afgedwongen door "
+"de achtergronddienst."
 
 msgid ""
 "Only one Magnolie Notes phone can be paired. Remove the existing phone "
@@ -4126,6 +4152,9 @@ msgstr "Koppelingsbestand"
 
 msgid "Pairing file saved to: %(path)s"
 msgstr "Koppelingsbestand opgeslagen in: %(path)s"
+
+msgid "Pairing, file and clipboard requests are confirmed in this window."
+msgstr "Verzoeken voor koppeling, bestanden en het klembord worden in dit venster bevestigd."
 
 msgid "Palm tree"
 msgstr "Palmboom"
@@ -5056,6 +5085,9 @@ msgstr "Service actief"
 
 msgid "Service stopped"
 msgstr "Service gestopt"
+
+msgid "Set up contacts"
+msgstr "Contacten instellen"
 
 msgid "Set varying doses by weekday"
 msgstr "Wisselende doses per weekdag instellen"
@@ -7142,6 +7174,13 @@ msgstr ""
 "zijn altijd aanklikbaar en openen uw e-mailtoepassing."
 
 msgid ""
+"When the limit is lowered, the oldest recovery snapshots are removed "
+"automatically."
+msgstr ""
+"Wanneer de limiet wordt verlaagd, worden de oudste herstelpunten automatisch "
+"verwijderd."
+
+msgid ""
 "When writing a note, a small toolbar above the sheet provides bold, italic, "
 "underline and strikethrough. The same formatting is available with Ctrl+B, "
 "Ctrl+I, Ctrl+U and Ctrl+D."
@@ -7149,6 +7188,9 @@ msgstr ""
 "Bij het schrijven van een notitie staat boven het blad een kleine werkbalk "
 "voor vet, cursief, onderstrepen en doorhalen. Dezelfde opmaak is beschikbaar "
 "met Ctrl+B, Ctrl+I, Ctrl+U en Ctrl+D."
+
+msgid "Where are your contacts now?"
+msgstr "Waar staan uw contacten nu?"
 
 msgid "Whole month"
 msgstr "Hele maand"
@@ -7239,6 +7281,9 @@ msgstr "Ja, samenvoegen"
 
 msgid "Yes, the code matches"
 msgstr "Ja, de code komt overeen"
+
+msgid "You can also do this later in Settings."
+msgstr "U kunt dit ook later doen in Instellingen."
 
 msgid "Your address"
 msgstr "Uw adres"
@@ -7721,6 +7766,12 @@ msgstr[1] "… en %(count)s extra items die ook worden afgedrukt."
 
 msgid "＋ Add appointment"
 msgstr "＋ Afspraak toevoegen"
+
+#~ msgid "Notification actions unavailable"
+#~ msgstr "Meldingsacties niet beschikbaar"
+
+#~ msgid "Download version %(version)s …"
+#~ msgstr "Versie %(version)s downloaden …"
 
 #~ msgid ""
 #~ "Notify, then unlock asks you to open and unlock the Organizer. System "

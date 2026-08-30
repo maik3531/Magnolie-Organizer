@@ -1388,9 +1388,19 @@ function knopfMit(text, wurzel) {
     enButton("Restore backup …", enSicherungsbereiche),
   "Sicherungen sind nicht als eigene Bereiche unter Sicherheit eingeordnet");
   enDom.window.App.journalStand({ ok: true, status: "scheduled", interval: "weekly",
-    last: "2026-08-23T04:00:00Z", next: "2026-08-30T04:00:00Z", snapshots: [] });
+    maximum: 20, last: "2026-08-23T04:00:00Z", next: "2026-08-30T04:00:00Z",
+    snapshots: [] });
   assert.ok(!enD.querySelector("#einstellungen-inhalt .einst-warnung"),
     "planmäßiger Journalstatus wird als Warnung dargestellt");
+  const enJournalAnzahl = enD.querySelector("#journal-anzahl");
+  assert.ok(enJournalAnzahl && enJournalAnzahl.min === "1" &&
+    enJournalAnzahl.max === "100" && enSicherungsbereiche.textContent.includes(
+      "Maximum recovery snapshots"),
+  "Anzahl der Wiederherstellungspunkte ist nicht wählbar");
+  enJournalAnzahl.value = "7";
+  enJournalAnzahl.dispatchEvent(new enDom.window.Event("change", { bubbles: true }));
+  assert.strictEqual(enT.daten().einstellungen.allgemein.wiederherstellungsanzahl, 7,
+    "gewählte Anzahl der Wiederherstellungspunkte erreicht die Daten nicht");
   enDom.window.App.sicherungAusgewaehlt({ ok: true,
     pfad: "/tmp/Meine Sicherung.json", verschluesselt: true });
   assert.strictEqual(enD.querySelector("#sicherung-titel").textContent,
@@ -1684,14 +1694,16 @@ function knopfMit(text, wurzel) {
     hintergrundAbschnitt.querySelector("#hintergrunddienst-autostart") &&
     hintergrundAbschnitt.querySelectorAll("[data-permission]").length === 10 &&
     hintergrundAbschnitt.textContent.includes("Service running") &&
-    hintergrundAbschnitt.textContent.includes("Notification actions unavailable") &&
+    hintergrundAbschnitt.textContent.includes(
+      "Pairing, file and clipboard requests are confirmed in this window.") &&
     hintergrundAbschnitt.textContent.includes("Magnolienbaum change offers") &&
     hintergrundAbschnitt.textContent.includes("(unavailable)"),
   "Hintergrunddienst-Steuerung oder Laufzeitstatus fehlt unter Sicherheit");
   assert.ok(hintergrundAbschnitt.querySelector(".einst-warnung").textContent.includes(
-    "Notification actions unavailable") &&
+    "Pairing, file and clipboard requests are confirmed in this window.") &&
     !hintergrundAbschnitt.querySelector(".baum-zustand.gut").textContent.includes(
-      "Notification actions unavailable"),
+      "Pairing, file and clipboard requests are confirmed in this window.") &&
+    !hintergrundAbschnitt.querySelector(".einst-warnung").textContent.includes("Start Organizer"),
   "fehlende Benachrichtigungsaktionen erscheinen nicht als Warnung");
   assert.ok(sicherheitsUeberschriften.indexOf("Background service") <
     sicherheitsUeberschriften.indexOf("Backups"),
@@ -2128,6 +2140,10 @@ function knopfMit(text, wurzel) {
     enErinnerung.textContent.includes("Show preview") &&
     enErinnerung.textContent.includes("Show log"),
   "englische Erinnerungsbeschriftungen fehlen");
+  const enWeckOption = enErinnerung.querySelector(".erinnerung-weckoption");
+  assert.ok(enWeckOption && enWeckOption.querySelector("#erinnerung-wecken") &&
+    enWeckOption.previousElementSibling?.querySelector("#erinnerung-verpasst"),
+  "Weckoption steht nicht unter der Erinnerung an verpasste Termine");
   const enErinnerungAn = enSD.querySelector("#erinnerung-an");
   enErinnerungAn.click();
   const enVorlauf = enSD.querySelector("#erinnerung-vorlauf");
@@ -2172,6 +2188,11 @@ function knopfMit(text, wurzel) {
   const enUeber = enSD.querySelector("#einstellungen-inhalt");
   assert.strictEqual(enUeber.querySelector("h3").textContent,
     "About the Magnolie Organizer", "englische Über-Seite fehlt");
+  assert.ok(enUeber.querySelector(".ueber-seite .ueber-raster") &&
+    enUeber.querySelectorAll(".ueber-spalte").length === 2 &&
+    enUeber.querySelector(".ueber-programmspalte") &&
+    enUeber.querySelector(".ueber-werkzeugspalte"),
+  "Über-Seite ist nicht in zwei ausgewogene Informationsflächen gegliedert");
   assert.ok(enUeber.querySelector(".ueber-fassung").textContent.includes("Version 2.0.13") &&
     enUeber.textContent.includes("Author") && enUeber.textContent.includes("License") &&
     enUeber.textContent.includes("Updates") &&
@@ -2206,12 +2227,41 @@ function knopfMit(text, wurzel) {
   assert.ok(enSyncNachrichten.some((nachricht) =>
     nachricht.cmd === "ablage_kopieren" && nachricht.text === "ab".repeat(32)),
   "Update-Prüfsumme lässt sich nicht unverändert kopieren");
+  const enUpdateSpeicherstand = enSyncNachrichten.filter(
+    (nachricht) => nachricht.cmd === "speichern").length;
   enSD.querySelector("#update-herunterladen").click();
-  const enOeffnenBefehl = enSyncNachrichten.find(
-    (nachricht) => nachricht.cmd === "update_oeffnen");
-  assert.deepStrictEqual(enOeffnenBefehl,
-    { cmd: "update_oeffnen", url: enUpdateUrl },
-  "englische Downloadbeschriftung verändert die Paket-URL");
+  assert.ok(enSD.querySelector("#dialog-text").textContent.includes(
+    "All changes will be saved") && enSD.querySelector("#dialog-text").textContent.includes(
+      "close and restart"),
+  "vor dem Update fehlt die verständliche Speicher- und Neustartabfrage");
+  enSD.querySelector("#dialog-ja").click();
+  for (let i = 0; i < 10 && enSyncNachrichten.filter(
+    (nachricht) => nachricht.cmd === "speichern").length === enUpdateSpeicherstand; i++) {
+    await tick();
+  }
+  const enUpdateBestaetigt = new Set();
+  for (let i = 0; i < 20 && !enSyncNachrichten.some(
+    (nachricht) => nachricht.cmd === "update_herunterladen"); i++) {
+    const speichern = enSyncNachrichten.filter((nachricht) =>
+      nachricht.cmd === "speichern" && !enUpdateBestaetigt.has(nachricht.id)).at(-1);
+    if (speichern) {
+      enUpdateBestaetigt.add(speichern.id);
+      enSW.App.gespeichert({ ok: true, id: speichern.id });
+    }
+    await tick();
+  }
+  assert.ok(enSyncNachrichten.some((nachricht) =>
+    nachricht.cmd === "update_herunterladen" && Object.keys(nachricht).length === 1),
+  "bestätigtes Update startet keinen parameterlosen geprüften Download: " +
+    JSON.stringify(enSyncNachrichten.slice(-8)));
+  enSW.App.updateHeruntergeladen({ ok: true, bereit: true,
+    version: "2.0.14", artifact: "deb" });
+  assert.ok(enSyncNachrichten.some((nachricht) => nachricht.cmd === "update_installieren"),
+    "verifiziertes Update wird nicht zur Installation vorbereitet");
+  enSW.App.updateInstallationVorbereitet({ ok: true, bereitZumBeenden: true,
+    version: "2.0.14", artifact: "deb" });
+  assert.ok(enSyncNachrichten.some((nachricht) => nachricht.cmd === "beenden"),
+    "nach vorbereiteter Installation startet der sichere Beenden- und Neustartablauf nicht");
   enSW.App.updateGeoeffnet({ ok: false, fehler: "" });
   assert.strictEqual(enSD.querySelector("#zettel").textContent,
     "The package could not be opened.", "englischer Paketfehler fehlt");
@@ -6310,8 +6360,9 @@ function knopfMit(text, wurzel) {
   $("#update-automatisch").dispatchEvent(new w.Event("change", { bubbles: true }));
   assert.strictEqual(T.daten().einstellungen.update.automatisch, false,
     "tägliche Prüfung lässt sich nicht abschalten");
-  assert.ok(/cmd: "update_pruefen"/.test(js) && /cmd: "update_oeffnen"/.test(js),
-    "Brückenbefehle der Aktualisierungsprüfung fehlen");
+  assert.ok(/cmd: "update_pruefen"/.test(js) && /cmd: "update_herunterladen"/.test(js) &&
+    /cmd: "update_installieren"/.test(js),
+    "Brückenbefehle für Prüfung, sicheren Download oder Installation fehlen");
   assert.ok(/cmd: "handbuch_oeffnen"/.test(js),
     "Brückenbefehl zum Öffnen des Handbuchs fehlt");
 
@@ -6695,6 +6746,19 @@ function knopfMit(text, wurzel) {
   assert.ok(baumNachrichten.some((nachricht) => nachricht.cmd === "kde_receive_settings" &&
     nachricht.directory === "/home/test/KDE-Dateien"),
   "der gewählte KDE-Empfangsordner wird nicht angewendet");
+  const zielBeiAnnahme = bd.querySelector("#kde-empfang-ordner-bei-annahme");
+  zielBeiAnnahme.click();
+  assert.ok(baumNachrichten.filter((nachricht) =>
+    nachricht.cmd === "kde_receive_settings").at(-1).chooseDirectory === true &&
+    Array.from(ordnerAuswahl.querySelectorAll("button")).every((button) => button.disabled),
+  "Speicherortwahl je angenommener KDE-Datei wird nicht gespeichert oder sperrt den Festordner nicht");
+  bw.App.kdeEmpfangAngebot({ id: "f".repeat(32), device_id: "b".repeat(32),
+    name: "Dokument.pdf", size: 2048 });
+  bd.querySelector("#dialog-ja").click();
+  await Promise.resolve();
+  assert.ok(baumNachrichten.some((nachricht) =>
+    nachricht.cmd === "kde_receive_ziel_waehlen" && nachricht.id === "f".repeat(32)),
+  "angenommene KDE-Datei öffnet nicht die einmalige Speicherortwahl");
   bw.OrganizerTest.daten().einstellungen.sync.kdeEmpfang.dateien = false;
   bw.OrganizerTest.daten().einstellungen.sync.kdeEmpfang.zwischenablage = false;
   bw.App.kdeEmpfangsordnerGewaehlt({ pfad: "/home/test/KDE-Aus" });
@@ -7310,6 +7374,60 @@ function knopfMit(text, wurzel) {
     n.cmd === "handbuch_herunterladen" && n.url === handbuchUrl),
   "der Handbuchdownload erreicht den Programmkern nicht mit der geprüften URL");
   handbuchDom.window.close();
+
+  /* ---- Einfacher Kontaktassistent nach dem Handbuchhinweis ---- */
+  const assistentNachrichten = [];
+  const assistentDom = new JSDOM(html, {
+    runScripts: "dangerously", url: "https://kontakt-assistent.test/",
+    pretendToBeVisual: true
+  });
+  assistentDom.window.webkit = { messageHandlers: { bridge: {
+    postMessage: (text) => assistentNachrichten.push(JSON.parse(text))
+  } } };
+  ladeAnwendung(assistentDom.window);
+  await tick();
+  const aw = assistentDom.window;
+  const ad = aw.document;
+  aw.App.init({ daten: null, neu: true, echterErststart: true, datenPfad: "",
+    handbuchInstalliert: true });
+  aw.OrganizerTest.oeffneBuch();
+  await new Promise((r) => setTimeout(r, 500));
+  assert.ok(!ad.querySelector(".kontakt-assistent") &&
+    !ad.querySelector("#dialog-schleier").classList.contains("verborgen"),
+  "der Kontaktassistent erscheint vor dem Handbuchhinweis");
+  ad.querySelector("#dialog-nein").click();
+  await tick();
+  await tick();
+  const assistent = ad.querySelector(".kontakt-assistent");
+  assert.ok(assistent && assistent.querySelectorAll(".kontakt-assistent-knopf").length === 3 &&
+    assistent.textContent.includes("Evolution/Thunderbird") &&
+    assistent.textContent.includes("Kontakt") && assistent.textContent.includes("Nicht jetzt"),
+  "der einfache Kontaktassistent erscheint nicht mit großen Quellen und Überspringen: " +
+    (assistent?.textContent || "fehlt") + " " +
+    JSON.stringify(aw.OrganizerTest.kontaktAssistentStand()));
+  Array.from(assistent.querySelectorAll("button"))
+    .find((button) => button.textContent === "Nicht jetzt").click();
+  const assistentSpeichern = assistentNachrichten.filter(
+    (nachricht) => nachricht.cmd === "speichern").at(-1);
+  assert.ok(ad.querySelector(".kontakt-assistent") && assistentSpeichern &&
+    Array.from(assistent.querySelectorAll("button")).every((button) => button.disabled),
+  "der Assistent wartet nicht sichtbar auf die dauerhafte Speicherung");
+  const assistentBestaetigt = new Set();
+  for (let i = 0; i < 20 && ad.querySelector(".kontakt-assistent"); i++) {
+    const speichern = assistentNachrichten.filter((nachricht) =>
+      nachricht.cmd === "speichern" && !assistentBestaetigt.has(nachricht.id)).at(-1);
+    if (speichern) {
+      assistentBestaetigt.add(speichern.id);
+      aw.App.gespeichert({ ok: true, id: speichern.id });
+    }
+    await tick();
+  }
+  assert.ok(!ad.querySelector(".kontakt-assistent") &&
+    aw.OrganizerTest.daten().einstellungen.allgemein.kontaktErsteinrichtungVersion === 1,
+  "Überspringen schließt oder merkt den Kontaktassistenten nach dem Speichern nicht");
+  assert.ok(assistentNachrichten.some((nachricht) => nachricht.cmd === "speichern"),
+    "der Abschluss des Kontaktassistenten wird nicht dauerhaft gespeichert");
+  assistentDom.window.close();
 
   /* ---- Tastatur, Fokusfallen und logische Fokus-Rückgabe ---- */
   const fokusDom = new JSDOM(html, {

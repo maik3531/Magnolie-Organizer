@@ -319,4 +319,6 @@
     <string name="technischer_wert_zusammenfassung_unbekannt">अपरिचित स्नैपशॉट विवरण: %1$s</string>
     <string name="start_laden">सुरक्षित डेटा खोला जा रहा है…</string><string name="start_fehler_titel">सुरक्षित डेटा नहीं खुल सका</string><string name="start_daten_unveraendert">आपका डेटा न मिटाया गया न बदला गया। आप सुरक्षित रूप से फिर प्रयास कर सकते हैं।</string><string name="start_erneut">फिर प्रयास करें</string><string name="start_schliessen">ऐप बंद करें</string>
     <string name="absturzbericht_teilen">क्रैश रिपोर्ट साझा करें</string>
+    <string name="journal_maximum">पुनर्प्राप्ति बिंदुओं की अधिकतम संख्या</string>
+    <string name="journal_maximum_hinweis">सीमा घटाने पर सबसे पुराने पुनर्प्राप्ति बिंदु अपने आप हटा दिए जाते हैं।</string>
 </resources>

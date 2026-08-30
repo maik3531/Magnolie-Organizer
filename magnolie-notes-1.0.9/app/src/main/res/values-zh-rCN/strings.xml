@@ -299,4 +299,6 @@
     <string name="technischer_wert_zusammenfassung_unbekannt">无法识别的快照详情：%1$s</string>
     <string name="start_laden">正在打开受保护的数据…</string><string name="start_fehler_titel">无法打开受保护的数据</string><string name="start_daten_unveraendert">您的数据未被删除或覆盖。您可以安全地重试。</string><string name="start_erneut">重试</string><string name="start_schliessen">关闭应用</string>
     <string name="absturzbericht_teilen">分享崩溃报告</string>
+    <string name="journal_maximum">恢复点的最大数量</string>
+    <string name="journal_maximum_hinweis">降低数量限制时，最旧的恢复点会自动删除。</string>
 </resources>

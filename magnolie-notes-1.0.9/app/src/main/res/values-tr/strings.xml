@@ -320,4 +320,6 @@
     <string name="technischer_wert_zusammenfassung_unbekannt">Tanınmayan anlık görüntü ayrıntıları: %1$s</string>
     <string name="start_laden">Korumalı veriler açılıyor…</string><string name="start_fehler_titel">Korumalı veriler açılamadı</string><string name="start_daten_unveraendert">Verileriniz silinmedi veya üzerine yazılmadı. Güvenle yeniden deneyebilirsiniz.</string><string name="start_erneut">Yeniden dene</string><string name="start_schliessen">Uygulamayı kapat</string>
     <string name="absturzbericht_teilen">Çökme raporunu paylaş</string>
+    <string name="journal_maximum">En fazla kurtarma noktası</string>
+    <string name="journal_maximum_hinweis">Sınır düşürüldüğünde en eski kurtarma noktaları otomatik olarak kaldırılır.</string>
 </resources>

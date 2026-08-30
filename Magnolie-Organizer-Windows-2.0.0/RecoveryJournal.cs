@@ -16,7 +16,7 @@ internal sealed record SnapshotInfo(
     string Directory);
 
 internal sealed record RecoverySchedule(string Interval, DateTimeOffset? Last, DateTimeOffset? Next,
-    string Status, string Error);
+    int Maximum, string Status, string Error);
 
 internal sealed class RecoveryJournal
 {
@@ -261,9 +261,10 @@ internal sealed class RecoveryJournal
     {
         var settings = ReadSettings();
         var interval = Interval(settings["interval"]?.GetValue<string>() ?? "weekly");
+        var maximum = Maximum(settings);
         var last = ParseDate(settings["last"]?.GetValue<string>());
         DateTimeOffset? next = interval == "off" ? null : (last ?? DateTimeOffset.MinValue) + Duration(interval);
-        return new RecoverySchedule(interval, last, next, interval == "off" ? "off" :
+        return new RecoverySchedule(interval, last, next, maximum, interval == "off" ? "off" :
             next <= clock() ? "due" : "scheduled", settings["error"]?.GetValue<string>() ?? "");
     }
 
@@ -273,6 +274,15 @@ internal sealed class RecoveryJournal
         var settings = ReadSettings();
         settings["interval"] = interval;
         WriteSettings(settings);
+        return Schedule();
+    }
+
+    internal RecoverySchedule SetMaximum(int maximum)
+    {
+        var settings = ReadSettings();
+        settings["maximum"] = Math.Clamp(maximum, 1, 100);
+        WriteSettings(settings);
+        Prune();
         return Schedule();
     }
 
@@ -289,18 +299,9 @@ internal sealed class RecoveryJournal
     internal void Prune(long? availableBytes = null, long? volumeBytes = null)
     {
         var all = List().OrderByDescending(item => item.CreatedUtc).ToList();
-        var now = clock();
-        var keep = new HashSet<string>(all.Where(item => item.Pinned).Select(item => item.Id));
-        foreach (var item in all.Where(item => item.Reason == "pre-sync" || item.Reason.StartsWith("pre-contact", StringComparison.Ordinal))
-                     .Where(item => now - item.CreatedUtc <= TimeSpan.FromDays(14)).Take(20)) keep.Add(item.Id);
-        foreach (var item in all.Where(item => item.Reason == "pre-restore").Take(5))
-            if (now - item.CreatedUtc <= TimeSpan.FromDays(30) || !keep.Any(id => all.Any(x => x.Id == id && x.Reason == "pre-restore"))) keep.Add(item.Id);
-
-        var periodic = all.Where(item => item.Reason == "weekly").ToList();
-        foreach (var item in periodic.GroupBy(item => $"{item.CreatedUtc:yyyy}-W{System.Globalization.ISOWeek.GetWeekOfYear(item.CreatedUtc.UtcDateTime):00}")
-                     .Select(group => group.First()).Take(8)) keep.Add(item.Id);
-        foreach (var item in periodic.GroupBy(item => item.CreatedUtc.ToString("yyyy-MM"))
-                     .Select(group => group.First()).Take(6)) keep.Add(item.Id);
+        var keep = new HashSet<string>(all.Take(Maximum(ReadSettings())).Select(item => item.Id));
+        foreach (var item in all.Where(item => File.Exists(Path.Combine(item.Directory, RestoreLeaseFile))))
+            keep.Add(item.Id);
 
         foreach (var item in all.Where(item => !keep.Contains(item.Id))) Delete(item.Id);
         all = List().OrderBy(item => item.CreatedUtc).ToList();
@@ -309,7 +310,7 @@ internal sealed class RecoveryJournal
         var volume = volumeBytes ?? drive.TotalSize;
         var budget = Math.Min(OneGiB, volume / 20);
         var used = all.Sum(item => item.Size);
-        foreach (var item in all.Where(item => !item.Pinned))
+        foreach (var item in all.Where(item => !File.Exists(Path.Combine(item.Directory, RestoreLeaseFile))))
         {
             if (used <= budget && available >= OneGiB) break;
             Delete(item.Id); used -= item.Size; available += item.Size;
@@ -397,6 +398,8 @@ internal sealed class RecoveryJournal
     }
 
     private void WriteSettings(JsonObject settings) => store.WriteRecoverableJson(settingsPath, settings.ToJsonString(Indented), 64 * 1024);
+    private static int Maximum(JsonObject settings) => settings["maximum"] is JsonValue value &&
+        value.TryGetValue<int>(out var maximum) ? Math.Clamp(maximum, 1, 100) : 20;
     private static DateTimeOffset? ParseDate(string? value) => DateTimeOffset.TryParse(value, out var result) ? result.ToUniversalTime() : null;
     private static string Interval(string value) => value is "off" or "6h" or "12h" or "daily" or "weekly" ? value : "weekly";
     private static TimeSpan Duration(string value) => value switch { "6h" => TimeSpan.FromHours(6), "12h" => TimeSpan.FromHours(12), "daily" => TimeSpan.FromDays(1), _ => TimeSpan.FromDays(7) };

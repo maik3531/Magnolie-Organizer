@@ -337,4 +337,6 @@
     <string name="technischer_wert_zusammenfassung_unbekannt">Detalles de instantánea no reconocidos: %1$s</string>
     <string name="start_laden">Abriendo datos protegidos…</string><string name="start_fehler_titel">No se pudieron abrir los datos protegidos</string><string name="start_daten_unveraendert">Tus datos no se borraron ni sobrescribieron. Puedes volver a intentarlo con seguridad.</string><string name="start_erneut">Intentar de nuevo</string><string name="start_schliessen">Cerrar aplicación</string>
     <string name="absturzbericht_teilen">Compartir informe de fallo</string>
+    <string name="journal_maximum">Número máximo de puntos de recuperación</string>
+    <string name="journal_maximum_hinweis">Al reducir el límite, los puntos de recuperación más antiguos se eliminan automáticamente.</string>
 </resources>

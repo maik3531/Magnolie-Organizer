@@ -1243,7 +1243,8 @@ class PayloadStream:
 
 def test_file_exact_payload_confirm_collision_accept_reject_and_cleanup():
     events = []
-    with tempfile.TemporaryDirectory() as root, tempfile.TemporaryDirectory() as downloads:
+    with tempfile.TemporaryDirectory() as root, tempfile.TemporaryDirectory() as downloads, \
+            tempfile.TemporaryDirectory() as selected:
         backend = paired_backend(root, events)
         backend.configure_receive(file_enabled=True, device_id="a" * 32,
             download_directory=downloads)
@@ -1255,8 +1256,9 @@ def test_file_exact_payload_confirm_collision_accept_reject_and_cleanup():
             deadline = time.monotonic() + 2
             while len(events) < 1 and time.monotonic() < deadline: time.sleep(.01)
             assert events[0][0] == "file_proposal" and "path" not in events[0][1]
-            first = backend.accept_receive(events[0][1]["id"])
+            first = backend.accept_receive(events[0][1]["id"], selected)
             assert open(first["path"], "rb").read() == b"data"
+            assert os.path.dirname(first["path"]) == os.path.realpath(selected)
             assert oct(os.stat(first["path"]).st_mode & 0o777) == "0o600"
             backend._handle_receive_packet(worker, share_packet())
             deadline = time.monotonic() + 2

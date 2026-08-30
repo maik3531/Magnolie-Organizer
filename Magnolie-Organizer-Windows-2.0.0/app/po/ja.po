@@ -1,7 +1,8 @@
 # SOME DESCRIPTIVE TITLE.
-# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
-# This file is distributed under the same license as the Magnolie Organizer package.
-# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+# Copyright (C) 2026 THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the Magnolie Organizer
+# package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
 #
 msgid ""
 msgstr ""
@@ -578,7 +579,7 @@ msgid "Answer calls on the computer and talk"
 msgstr "パソコンで着信に応答して通話"
 
 msgid "App password"
-msgstr "アプリパスワード"
+msgstr "App password"
 
 msgid "Appearance"
 msgstr "外観"
@@ -1091,7 +1092,7 @@ msgid "City"
 msgstr "市区町村"
 
 msgid "Claws Mail (.xml/.ldif) …"
-msgstr "Claws Mail (.xml/.ldif) …"
+msgstr "Claws Mail（.xml/.ldif）…"
 
 msgid "Claws Mail address book (*.xml)"
 msgstr "Claws Mail アドレス帳 (*.xml)"
@@ -1296,7 +1297,7 @@ msgid "Cost center"
 msgstr "コストセンター"
 
 msgid "Could not answer"
-msgstr "通話に応答できませんでした"
+msgstr "電話に応答できませんでした"
 
 msgid "Could not hang up"
 msgstr "通話を終了できませんでした"
@@ -1484,7 +1485,7 @@ msgid "Delete page"
 msgstr "ページを削除"
 
 msgid "Delete password"
-msgstr "パスワードを削除"
+msgstr "Delete password"
 
 msgid "Delete permanently"
 msgstr "完全に削除"
@@ -1624,9 +1625,6 @@ msgstr "マニュアルをダウンロード"
 
 msgid "Download manual version %(version)s"
 msgstr "マニュアル バージョン %(version)s をダウンロード"
-
-msgid "Download version %(version)s …"
-msgstr "バージョン %(version)s をダウンロード …"
 
 msgid "Drag the attachment area up or down"
 msgstr "添付領域を上下にドラッグ"
@@ -2262,6 +2260,16 @@ msgstr "入力"
 msgid "Insert link"
 msgstr "リンクを挿入"
 
+msgid ""
+"Install version %(version)s now? All changes will be saved. The Organizer "
+"will close and restart after the installation."
+msgstr ""
+"バージョン %(version)s を今すぐインストールしますか？すべての変更が保存されま"
+"す。インストール後に Organizer を終了して再起動します。"
+
+msgid "Install version %(version)s …"
+msgstr "バージョン %(version)s をインストール …"
+
 msgid "Installed manual version: %(version)s."
 msgstr "インストールされたマニュアルバージョン：%(version)s。"
 
@@ -2531,6 +2539,9 @@ msgstr "未完了としてマーク"
 
 msgid "Maximized"
 msgstr "最大化"
+
+msgid "Maximum recovery snapshots"
+msgstr "復元ポイントの最大数"
 
 msgid "Measurement context"
 msgstr "測定時の状況"
@@ -2822,6 +2833,9 @@ msgstr "Bluetooth アドレスが選択されていません。"
 msgid "No KDE Connect pairing is awaiting confirmation."
 msgstr "確認を待っている KDE Connect ペアリングはありません。"
 
+msgid "No address books found."
+msgstr "アドレス帳が見つかりませんでした。"
+
 msgid ""
 "No anniversaries yet.\n"
 "Birthdays and celebrations will automatically appear in the calendar."
@@ -3105,6 +3119,9 @@ msgstr ""
 "してください。この統合を使わなくても、上の「このコンピューターから」で連絡先"
 "や予定をインポートできます。"
 
+msgid "Online address book"
+msgstr "オンラインアドレス帳"
+
 msgid "Online via Bluetooth data"
 msgstr "Bluetoothデータ経由でオンライン"
 
@@ -3245,7 +3262,7 @@ msgstr "その他"
 
 msgctxt "relationship"
 msgid "Other"
-msgstr "その他"
+msgstr "その他の関係"
 
 msgid "Other addresses"
 msgstr "その他の住所"
@@ -3626,7 +3643,7 @@ msgid "Reachable IPv4 or IPv6 address of this computer"
 msgstr "このコンピューターに到達可能な IPv4 または IPv6 アドレス"
 
 msgid "Ready."
-msgstr "準備完了。"
+msgstr "Ready."
 
 msgid ""
 "Really merge %(cards)s? Review the result carefully afterwards. A copy of "
@@ -3931,7 +3948,7 @@ msgid "Saved ✓ %(time)s"
 msgstr "保存済み ✓ %(time)s"
 
 msgid "Saved."
-msgstr "保存しました。"
+msgstr "Saved."
 
 msgid "Saving failed!"
 msgstr "保存に失敗しました！"
@@ -4050,7 +4067,7 @@ msgid "Send SMS"
 msgstr "SMSを送る"
 
 msgid "Send adjusted text"
-msgstr "Send adjusted text"
+msgstr "調整したテキストを送信"
 
 msgid "Send documents"
 msgstr "文書を送信"
@@ -4062,10 +4079,13 @@ msgid "Sent"
 msgstr "送信済み"
 
 msgid "Server address"
-msgstr "サーバーアドレス"
+msgstr "Server address"
 
 msgid "Server address and user name are required."
 msgstr "サーバーアドレスとユーザー名が必要です。"
+
+msgid "Set up contacts"
+msgstr "連絡先を設定"
 
 msgid "Set varying doses by weekday"
 msgstr "曜日ごとに異なる用量を設定"
@@ -4234,7 +4254,7 @@ msgid "Spain"
 msgstr "スペイン"
 
 msgid "Spam check"
-msgstr "Spam check"
+msgstr "迷惑メッセージを確認"
 
 msgid "Special cases"
 msgstr "特別な場合"
@@ -4258,7 +4278,7 @@ msgid "Status"
 msgstr "状態"
 
 msgid "Storage available / total"
-msgstr "Storage available / total"
+msgstr "使用可能な容量 / 合計容量"
 
 msgid "Street / house number"
 msgstr "通り / 番地"
@@ -4294,7 +4314,7 @@ msgid "Suppository"
 msgstr "坐剤"
 
 msgid "Switched off."
-msgstr "オフになっています。"
+msgstr "Switched off."
 
 msgid "Switzerland"
 msgstr "スイス"
@@ -4340,7 +4360,7 @@ msgid "Synchronize contacts"
 msgstr "連絡先を同期"
 
 msgid "Synchronize everything"
-msgstr "Synchronize everything"
+msgstr "すべてを同期"
 
 msgid "Synchronize notes and notebooks"
 msgstr "連絡先を同期"
@@ -4411,10 +4431,10 @@ msgid "Temperature"
 msgstr "体温"
 
 msgid "Test connection"
-msgstr "接続を確認"
+msgstr "Test connection"
 
 msgid "Testing…"
-msgstr "確認中 …"
+msgstr "Testing…"
 
 msgid "Text color"
 msgstr "文字色"
@@ -4500,9 +4520,6 @@ msgstr ""
 "Windows の連絡先フォルダーは、同期ページで双方向に同期されます。ファイルのイ"
 "ンポートでは、ソース ファイルは変更されません。既存のエントリが 2 回追加され"
 "ることはありません。"
-
-msgid "The Windows entry in the update information is invalid."
-msgstr "アップデート情報のWindowsエントリが無効です。"
 
 msgid "The address could not be opened."
 msgstr "アドレスを開けませんでした。"
@@ -4740,23 +4757,14 @@ msgstr "マニュアルはインストールされていますが、そのバー
 msgid "The manual is up to date."
 msgstr "マニュアルは最新です。"
 
-msgid "The manual package checksum does not match."
-msgstr "マニュアルパッケージのチェックサムが一致しません。"
-
 msgid "The manual package could not be opened."
 msgstr "マニュアルパッケージを開けませんでした。"
-
-msgid "The manual package is unexpectedly large."
-msgstr "マニュアルのパッケージは予想外に大きいです。"
 
 msgid "The manual update check failed."
 msgstr "手動での更新確認に失敗しました。"
 
 msgid "The manual update information is invalid."
 msgstr "手動更新情報が無効です。"
-
-msgid "The manual update information is missing."
-msgstr "手動アップデート情報がありません。"
 
 msgid "The message is too large."
 msgstr "メッセージが大きすぎます。"
@@ -4999,17 +5007,11 @@ msgstr "2つの新しいパスワードが一致しません。"
 msgid "The update check failed."
 msgstr "更新確認に失敗しました。"
 
-msgid "The update information is unexpectedly large."
-msgstr "更新情報が予想外に大きすぎます。"
-
 msgid "The user data could not be read."
 msgstr "ユーザーデータを読み取れませんでした。"
 
 msgid "The value is outside the general green reference range."
 msgstr "値が一般的な緑色の基準範囲外です。"
-
-msgid "The verified installer could not be opened."
-msgstr "検証済みのインストーラーを開けませんでした。"
 
 msgid ""
 "The weather service estimated the location from your public IP address. Your "
@@ -5289,7 +5291,7 @@ msgid "URI"
 msgstr "URI"
 
 msgid "Unavailable"
-msgstr "Unavailable"
+msgstr "利用できません"
 
 msgid ""
 "Under Wayland, the compositor determines the exact window position; "
@@ -5353,7 +5355,7 @@ msgid "Upper Austria"
 msgstr "オーバーエスターライヒ州"
 
 msgid "Uptime"
-msgstr "Uptime"
+msgstr "稼働時間"
 
 msgid "Uri"
 msgstr "URI"
@@ -5401,7 +5403,7 @@ msgid "Use the recycle bin"
 msgstr "ごみ箱を使用"
 
 msgid "User name"
-msgstr "ユーザー名"
+msgstr "User name"
 
 msgid ""
 "Uses its own identity and storage and listens only on fixed port %(port)s. "
@@ -5610,6 +5612,11 @@ msgstr ""
 "のメールアドレスは常にクリックでき、メールアプリを開きます。"
 
 msgid ""
+"When the limit is lowered, the oldest recovery snapshots are removed "
+"automatically."
+msgstr "上限を減らすと、最も古い復元ポイントが自動的に削除されます。"
+
+msgid ""
 "When writing a note, a small toolbar above the sheet provides bold, italic, "
 "underline and strikethrough. The same formatting is available with Ctrl+B, "
 "Ctrl+I, Ctrl+U and Ctrl+D."
@@ -5617,6 +5624,9 @@ msgstr ""
 "メモを書くときは、用紙の上にある小さなツールバーで太字、斜体、下線、取り消し"
 "線を設定できます。同じ書式は Ctrl+B、Ctrl+I、Ctrl+U、Ctrl+D でも利用できま"
 "す。"
+
+msgid "Where are your contacts now?"
+msgstr "連絡先は現在どこにありますか？"
 
 msgid "Whole month"
 msgstr "1か月全体"
@@ -5628,7 +5638,7 @@ msgid "Windows Contacts folder"
 msgstr "Windows の連絡先フォルダー"
 
 msgid "Wireless"
-msgstr "Wireless"
+msgstr "無線"
 
 msgid ""
 "With a password or numeric code, the organizer asks for it when opening and "
@@ -5698,13 +5708,16 @@ msgid "Year planner %(year)s"
 msgstr "%(year)s 年間プランナー"
 
 msgid "Yes"
-msgstr "Yes"
+msgstr "はい"
 
 msgid "Yes, merge"
 msgstr "はい、統合します"
 
 msgid "Yes, the code matches"
 msgstr "はい、コードは一致します"
+
+msgid "You can also do this later in Settings."
+msgstr "この設定は後から「設定」でも行えます。"
 
 msgid "Your address"
 msgstr "あなたの住所"
@@ -5794,7 +5807,7 @@ msgid "blood-glucose"
 msgstr "blood-glucose"
 
 msgid "browser storage"
-msgstr "browser storage"
+msgstr "ブラウザーの保存領域"
 
 msgid "confidential"
 msgstr "機密"
@@ -6100,9 +6113,6 @@ msgstr[0] "… ほか %(count)s 件も印刷されます。"
 
 msgid "＋ Add appointment"
 msgstr "＋ 予定を追加"
-
-#~ msgid "Reset"
-#~ msgstr "Reset"
 
 msgid "Language & region"
 msgstr "言語と地域"

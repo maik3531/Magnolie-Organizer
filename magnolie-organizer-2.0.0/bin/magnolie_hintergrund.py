@@ -58,6 +58,7 @@ DEFAULT_SETTINGS = {
     "kde_clipboard_enabled": False,
     "kde_clipboard_mode": "confirm",
     "kde_file_enabled": False,
+    "kde_choose_directory": False,
     "kde_legacy_migrated": False,
     "kde_receive_managed": False,
 }
@@ -115,6 +116,7 @@ def normalize_settings(value):
         "kde_clipboard_mode": ("automatic" if clipboard and
             value.get("kde_clipboard_mode") == "automatic" else "confirm"),
         "kde_file_enabled": files,
+        "kde_choose_directory": files and value.get("kde_choose_directory") is True,
         "kde_legacy_migrated": value.get("kde_legacy_migrated") is True,
         "kde_receive_managed": value.get("kde_receive_managed") is True,
     }
@@ -388,7 +390,7 @@ def _request_shape(operation, arguments):
         "complete_pairing": {"device_id"}, "confirm_pairing": {"code_matches"},
         "configure_receive": {"clipboard_enabled", "file_enabled", "device_id",
             "clipboard_mode", "file_mode", "download_directory"},
-        "accept_receive": {"receive_id"}, "reject_receive": {"receive_id"},
+        "accept_receive": {"receive_id", "directory"}, "reject_receive": {"receive_id"},
         "phone_report": set(), "phone_set_enabled": {"enabled"},
         "phone_open_pairing": set(), "phone_cancel_pairing": set(),
         "phone_confirm_pairing": {"attempt_id", "accepted"},
@@ -435,6 +437,9 @@ def _request_shape(operation, arguments):
             raise IPCError("invalid GUI subscriber")
     if operation == "gui_visibility" and not isinstance(arguments.get("visible"), bool):
         raise IPCError("invalid GUI visibility")
+    if operation == "accept_receive" and (not isinstance(arguments.get("directory", ""), str)
+            or len(arguments.get("directory", "").encode("utf-8")) > 4096):
+        raise IPCError("invalid receive destination")
     if operation == "confirm_pairing" and not isinstance(
             arguments.get("code_matches"), bool):
         raise IPCError("pairing decision must be boolean")
@@ -849,8 +854,8 @@ class KDEConnectProxy:
     def configure_receive(self, **arguments):
         return self._call("configure_receive", **arguments)
 
-    def accept_receive(self, receive_id):
-        return self._call("accept_receive", receive_id=receive_id)
+    def accept_receive(self, receive_id, directory=""):
+        return self._call("accept_receive", receive_id=receive_id, directory=directory)
 
     def reject_receive(self, receive_id):
         return self._call("reject_receive", receive_id=receive_id)
@@ -1137,12 +1142,19 @@ class DaemonEvents:
                 backend.accept_receive(receive_id) if accepted else
                 backend.reject_receive(receive_id)))
             title, body = _("Incoming KDE Connect file"), "%s (%d bytes)" % (name, size)
-            shown = self.notifications.show(title, body, (
-                     ("accept", _("Accept"), lambda: decide(True)),
-                     ("reject", _("Reject"), lambda: decide(False))),
-                on_close=lambda: decide(False), key=receive_id)
+            choose_directory = self.settings.get("kde_choose_directory") is True
+            if choose_directory:
+                shown = self.notifications.show(title, body,
+                    (("open", _("Start Organizer"), self.notifications.open_organizer),),
+                    key=receive_id)
+                forward_decision = True
+            else:
+                shown = self.notifications.show(title, body, (
+                         ("accept", _("Accept"), lambda: decide(True)),
+                         ("reject", _("Reject"), lambda: decide(False))),
+                    on_close=lambda: decide(False), key=receive_id)
             if not shown:
-                if self.gui_present():
+                if choose_directory or self.gui_present():
                     self.notifications.show(title, body, key=receive_id)
                     forward_decision = True
                 else:

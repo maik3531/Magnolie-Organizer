@@ -5,7 +5,6 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
-using System.Xml.Linq;
 using System.Diagnostics;
 using Microsoft.Data.Sqlite;
 
@@ -33,7 +32,7 @@ internal sealed partial class BridgeDispatcher : IDisposable
     private readonly RecoveryJournal recovery;
     private readonly System.Threading.Timer recoveryTimer;
     private readonly byte[]? contributorHash = ReadContributorHash();
-    private ManualRelease? lastManualRelease;
+    private readonly WindowsUpdateService updates;
     private string firewallHint = "";
     private bool disposed;
 
@@ -56,6 +55,7 @@ internal sealed partial class BridgeDispatcher : IDisposable
         recoveryTimer = new System.Threading.Timer(_ => _ = RunPeriodicSnapshotAsync(), null,
             TimeSpan.FromMinutes(1), TimeSpan.FromMinutes(15));
         http.DefaultRequestHeaders.UserAgent.ParseAdd($"Magnolie-Organizer-Windows/{AppVersion}");
+        updates = new WindowsUpdateService(paths.Root);
     }
 
     internal async Task HandleAsync(string rawMessage)
@@ -86,6 +86,7 @@ internal sealed partial class BridgeDispatcher : IDisposable
                     case "kennwort_entfernen": await RemovePasswordAsync(message); break;
                     case "speichern": await SaveAsync(message); break;
                     case "contributor_pruefen": await CheckContributorAsync(Text(message, "key")); break;
+                    case "beenden": form.RequestClose(); break;
                     case "beenden_bereit": form.CloseAfterSave(); break;
                     case "beenden_abgebrochen": form.CancelClose(); break;
                     case "ablage_kopieren": SetClipboard(Text(message, "text")); break;
@@ -98,6 +99,7 @@ internal sealed partial class BridgeDispatcher : IDisposable
                     case "journal_manuell": await CreateManualSnapshotAsync(); break;
                     case "journal_vorschau": await PreviewSnapshotAsync(SnapshotId(message)); break;
                     case "journal_intervall": recovery.SetInterval(Text(message, "intervall")); await SendRecoveryStatusAsync(); break;
+                    case "journal_anzahl": recovery.SetMaximum(Integer(message, "maximum")); await SendRecoveryStatusAsync(); break;
                     case "journal_loeschen": recovery.Delete(SnapshotId(message)); await form.SendAsync("App.journalErgebnis", new { ok = true, deleted = true, fehler = "" }); await SendRecoveryStatusAsync(); break;
                     case "journal_wiederherstellen": await RestoreSnapshotAsync(SnapshotId(message)); break;
                     case "mutations_snapshot": await CreateMutationSnapshotAsync(message); break;
@@ -117,11 +119,14 @@ internal sealed partial class BridgeDispatcher : IDisposable
                     case "karte": await OpenAddressResultAsync(MapUri(message)); break;
                     case "sozial": await OpenAddressResultAsync(SocialUri(message)); break;
                     case "update_pruefen": await CheckUpdateAsync(); break;
+                    case "update_herunterladen": await DownloadUpdateAsync(); break;
+                    case "update_installieren": await PrepareUpdateInstallationAsync(); break;
                     case "wetter": await FetchWeatherAsync(message); break;
                     case "feiertage": await FetchHolidaysAsync(message); break;
                     case "regional_einstellungen": await SaveRegionalSettingsAsync(message); break;
                     case "import": await ImportAsync(message); break;
-                    case "import_lokal": await ImportLocalAsync(); break;
+                    case "import_lokal": await ImportLocalAsync(message.TryGetProperty("bereich", out var bereich) &&
+                        bereich.ValueKind == JsonValueKind.String && bereich.GetString() == "kontakte"); break;
                     case "export": await ExportAsync(message); break;
                     case "brief": await CreateLetterAsync(message); break;
                     case "adressen_ods": await CreateSpreadsheetAsync(message, "Adressen", "Magnolie-Adressen.ods"); break;
@@ -391,6 +396,7 @@ internal sealed partial class BridgeDispatcher : IDisposable
             kennwort = encryption.Session is not null,
             daten = data,
             neu = isNew,
+            echterErststart = isNew,
             migriert = false,
             datenPfad = paths.Data,
             wayland = false,
@@ -1066,6 +1072,7 @@ internal sealed partial class BridgeDispatcher : IDisposable
         {
             intervall = schedule.Interval, letzte = schedule.Last?.ToString("O"),
             naechste = schedule.Next?.ToString("O"), status = schedule.Status, fehler = schedule.Error,
+            maximum = schedule.Maximum,
             snapshots = recovery.List().Select(NativeSnapshot)
         });
     }
@@ -1224,14 +1231,14 @@ internal sealed partial class BridgeDispatcher : IDisposable
         ClearPersonalSyncRuntime();
         await baum.ShutdownAsync().ConfigureAwait(false);
         telefon.Dispose();
-        recoveryTimer.Dispose(); reminders.Dispose(); http.Dispose(); kdeConnectSms.Dispose(); disposed = true;
+        recoveryTimer.Dispose(); reminders.Dispose(); http.Dispose(); updates.Dispose(); kdeConnectSms.Dispose(); disposed = true;
     }
 
     public void Dispose()
     {
         if (disposed) return;
         disposed = true; kdeConnectSms.StatusChanged -= HandleKdeStatusChanged; kdeConnectSms.SmsReceived -= HandleKdeSmsReceived;
-        kdeConnectSms.PairingChanged -= HandleKdePairingChanged; ClearPersonalSyncRuntime(); recoveryTimer.Dispose(); baum.Dispose(); telefon.Dispose(); reminders.Dispose(); http.Dispose(); kdeConnectSms.Dispose();
+        kdeConnectSms.PairingChanged -= HandleKdePairingChanged; ClearPersonalSyncRuntime(); recoveryTimer.Dispose(); baum.Dispose(); telefon.Dispose(); reminders.Dispose(); http.Dispose(); updates.Dispose(); kdeConnectSms.Dispose();
     }
 
     private async Task BaumSendAsync(JsonElement message, string kind, string property)
@@ -1371,97 +1378,56 @@ internal sealed partial class BridgeDispatcher : IDisposable
 
     private async Task CheckUpdateAsync()
     {
-        const string manifest = "https://gitlab.com/maik3531/mint-forgs/-/raw/main/Magnolie-Organitzer/update.xml";
-        try
+        var result = await updates.CheckAsync(AppVersion);
+        if (!result.Ok)
         {
-            var xml = await http.GetStringAsync(manifest);
-            if (xml.Length > 256 * 1024) throw new IOException(T("The update information is unexpectedly large."));
-            var document = XDocument.Parse(xml, LoadOptions.None);
-            var windows = document.Root?.Element("windows");
-            var manual = document.Root?.Element("manual");
-            lastManualRelease = null;
-            var manualError = "";
-            if (manual is not null)
-            {
-                var manualVersion = manual.Element("version")?.Value.Trim() ?? "";
-                var manualWindows = manual.Element("windows");
-                var manualUrl = manualWindows?.Element("url")?.Value.Trim() ?? "";
-                var manualSha = manualWindows?.Element("sha256")?.Value.Trim().ToLowerInvariant() ?? "";
-                if (VersionPattern().IsMatch(manualVersion) && IsAllowedManualUrl(manualUrl, manualVersion) && ShaPattern().IsMatch(manualSha))
-                    lastManualRelease = new ManualRelease(manualVersion, manualUrl, manualSha, "windows");
-                else manualError = T("The manual update information is invalid.");
-            }
-            else manualError = T("The manual update information is missing.");
-            var manualPayload = lastManualRelease is null ? new { } : (object)new
-            {
-                version = lastManualRelease.Version, url = lastManualRelease.Url,
-                sha256 = lastManualRelease.Sha256, platform = lastManualRelease.Platform
-            };
-            if (windows is null)
-            {
-                await form.SendAsync("App.updateErgebnis", new { ok = true, aktuell = true, version = AppVersion, url = "", sha256 = "", handbuch = manualPayload, handbuchFehler = manualError, windows = true, fehler = "" });
-                return;
-            }
-            var version = windows.Element("version")?.Value.Trim() ?? "";
-            var url = windows.Element("url")?.Value.Trim() ?? "";
-            var sha = windows.Element("sha256")?.Value.Trim().ToLowerInvariant() ?? "";
-            if (!VersionPattern().IsMatch(version) || !IsAllowedWindowsUpdateUrl(url) || !ShaPattern().IsMatch(sha))
-                throw new InvalidDataException(T("The Windows entry in the update information is invalid."));
-            await form.SendAsync("App.updateErgebnis", new
-            {
-                ok = true, aktuell = CompareVersions(version, AppVersion) <= 0, version, url, sha256 = sha,
-                handbuch = manualPayload, handbuchFehler = manualError, windows = true, fehler = ""
-            });
+            await form.SendAsync("App.updateErgebnis", new { ok = false, fehler = result.Error });
+            return;
         }
-        catch (Exception error)
+        var release = result.Release!;
+        var manualPayload = result.Manual is null ? new { } : (object)new
         {
-            lastManualRelease = null;
-            await form.SendAsync("App.updateErgebnis", new { ok = false, fehler = error.Message });
-        }
+            version = result.Manual.Version, url = result.Manual.Url,
+            sha256 = result.Manual.Sha256, platform = result.Manual.Platform
+        };
+        await form.SendAsync("App.updateErgebnis", new
+        {
+            ok = true, aktuell = result.Current, version = release.Version,
+            url = result.Current ? "" : release.Url, sha256 = release.Sha256,
+            handbuch = manualPayload, handbuchFehler = "", windows = true, fehler = ""
+        });
+    }
+
+    private async Task DownloadUpdateAsync()
+    {
+        var result = await updates.DownloadAsync();
+        await form.SendAsync("App.updateHeruntergeladen", new { ok = result.Ok, fehler = result.Error,
+            version = result.Version, artifact = result.Artifact, bereit = result.Ready });
+    }
+
+    private async Task PrepareUpdateInstallationAsync()
+    {
+        var result = updates.PrepareInstallation();
+        await form.SendAsync("App.updateInstallationVorbereitet", new { ok = result.Ok, fehler = result.Error,
+            version = result.Version, artifact = result.Artifact, bereitZumBeenden = result.ReadyToExit });
     }
 
     private async Task DownloadManualAsync(JsonElement message)
     {
-        var requested = new ManualRelease(Text(message, "version"), Text(message, "url"),
+        var requested = new ValidatedManualRelease(Text(message, "version"), Text(message, "url"),
             Text(message, "sha256").ToLowerInvariant(), Text(message, "platform"));
-        if (lastManualRelease is null || requested != lastManualRelease)
+        if (updates.LastManualRelease is null || requested != updates.LastManualRelease)
         {
             await form.SendAsync("App.handbuchDownloadGeoeffnet", new { ok = false, fehler = T("The manual download request is no longer valid.") });
             return;
         }
-        string? path = null;
         try
         {
-            path = Path.Combine(Path.GetTempPath(), $"Magnolie-Organizer-Windows-{requested.Version}-Setup-x64-{Guid.NewGuid():N}.exe");
-            using var response = await http.GetAsync(requested.Url, HttpCompletionOption.ResponseHeadersRead);
-            response.EnsureSuccessStatusCode();
-            if (response.Content.Headers.ContentLength > 512L * 1024 * 1024)
-                throw new InvalidDataException(T("The manual package is unexpectedly large."));
-            using var hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
-            await using (var input = await response.Content.ReadAsStreamAsync())
-            await using (var output = new FileStream(path, FileMode.CreateNew, FileAccess.Write, FileShare.None))
-            {
-                var buffer = new byte[1024 * 1024];
-                long total = 0;
-                int read;
-                while ((read = await input.ReadAsync(buffer)) > 0)
-                {
-                    total += read;
-                    if (total > 512L * 1024 * 1024) throw new InvalidDataException(T("The manual package is unexpectedly large."));
-                    hash.AppendData(buffer, 0, read);
-                    await output.WriteAsync(buffer.AsMemory(0, read));
-                }
-            }
-            var actual = Convert.ToHexString(hash.GetHashAndReset()).ToLowerInvariant();
-            if (!CryptographicOperations.FixedTimeEquals(Encoding.ASCII.GetBytes(actual), Encoding.ASCII.GetBytes(requested.Sha256)))
-                throw new InvalidDataException(T("The manual package checksum does not match."));
-            if (!ShellLauncher.OpenLocalFile(path, Path.GetTempPath())) throw new IOException(T("The verified installer could not be opened."));
-            await form.SendAsync("App.handbuchDownloadGeoeffnet", new { ok = true, fehler = "", pfad = path });
-            path = null;
+            var ok = await updates.DownloadAndOpenManualAsync(requested);
+            await form.SendAsync("App.handbuchDownloadGeoeffnet", new { ok, fehler = ok ? "" : T("The manual download request is no longer valid.") });
         }
         catch (Exception error)
         {
-            if (path is not null) try { File.Delete(path); } catch (Exception) { }
             await form.SendAsync("App.handbuchDownloadGeoeffnet", new { ok = false, fehler = error.Message });
         }
     }
@@ -1706,7 +1672,7 @@ internal sealed partial class BridgeDispatcher : IDisposable
         }
     }
 
-    private async Task ImportLocalAsync()
+    private async Task ImportLocalAsync(bool contactsOnly = false)
     {
         try
         {
@@ -1720,7 +1686,7 @@ internal sealed partial class BridgeDispatcher : IDisposable
             var termine = new JsonArray(); var jahrestage = new JsonArray(); var aufgaben = new JsonArray();
             var skipped = 0; var recurring = 0; var thunderbirdFiles = 0;
             var profiles = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Thunderbird", "Profiles");
-            if (Directory.Exists(profiles))
+            if (!contactsOnly && Directory.Exists(profiles))
             {
                 var calendars = Directory.EnumerateDirectories(profiles).Take(32)
                     .Select(profile => Path.Combine(profile, "calendar-data", "local.sqlite"));
@@ -1730,9 +1696,11 @@ internal sealed partial class BridgeDispatcher : IDisposable
                 foreach (var node in parsed.Aufgaben) aufgaben.Add(node?.DeepClone());
                 skipped += parsed.Uebersprungen; recurring += parsed.Wiederholend;
             }
+            var report = contactsOnly ? $"{T("Windows Contacts folder")}: {payload.Length}" :
+                $"{payload.Length} Kontaktdateien und {thunderbirdFiles} Thunderbird-Kalenderablagen gelesen.";
             await form.SendAsync("App.importErgebnis", new { art = "lokal", abgebrochen = false, kontakte = payload,
                 geburtstage = Array.Empty<object>(), termine, jahrestage, aufgaben, uebersprungen = skipped, wiederholend = recurring,
-                bericht = $"{payload.Length} Kontaktdateien und {thunderbirdFiles} Thunderbird-Kalenderablagen gelesen." });
+                bericht = report });
         }
         catch (Exception error) { await form.SendAsync("App.importErgebnis", new { art = "lokal", abgebrochen = false, fehler = error.Message }); }
     }
@@ -2012,8 +1980,6 @@ internal sealed partial class BridgeDispatcher : IDisposable
     [GeneratedRegex(@"^[^\s<>,;:@]+@[^\s<>,;:@]+\.[^\s<>,;:@]+$", RegexOptions.CultureInvariant)] private static partial Regex EmailPattern();
     [GeneratedRegex(@"^[vV]?\d+(?:\.\d+)*(?:-\d+)?$", RegexOptions.CultureInvariant)] private static partial Regex VersionPattern();
     [GeneratedRegex(@"^[0-9a-f]{64}$", RegexOptions.CultureInvariant)] private static partial Regex ShaPattern();
-
-    private sealed record ManualRelease(string Version, string Url, string Sha256, string Platform);
 
     private static string Text(JsonElement element, string name) =>
         element.TryGetProperty(name, out var value) && value.ValueKind == JsonValueKind.String

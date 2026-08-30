@@ -55,6 +55,16 @@ internal static class RecoveryJournalTests
             TestAssert.That(!journal.IsDue(), "Scheduler bleibt direkt nach erfolgreichem Lauf fällig.");
             foreach (var interval in new[] { "off", "6h", "12h", "daily", "weekly" })
                 TestAssert.That(journal.SetInterval(interval).Interval == interval, $"Intervall {interval} wird nicht angenommen.");
+            TestAssert.That(journal.SetMaximum(3).Maximum == 3,
+                "Die gewählte Anzahl der Wiederherstellungspunkte wird nicht gespeichert.");
+            for (var index = 0; index < 5; index++)
+            {
+                now = now.AddHours(1);
+                journal.Create(new JsonObject { ["termine"] = new JsonArray(
+                    new JsonObject { ["id"] = $"retention-{index}" }) }, SnapshotReason.PreSync, "2.0.2");
+            }
+            TestAssert.That(journal.List().Count == 3,
+                "Die gewählte Anzahl der Wiederherstellungspunkte wird nicht durchgesetzt.");
             File.WriteAllText(Path.Combine(root, "journal.json"), "{kaputt");
             File.WriteAllText(AtomicStore.BackupPath(Path.Combine(root, "journal.json")), "{auch-kaputt");
             var damagedSchedule = journal.Schedule();

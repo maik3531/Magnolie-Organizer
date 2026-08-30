@@ -601,6 +601,9 @@ msgstr "承認して記憶"
 msgid "Accept automatically"
 msgstr "自動的に承認"
 
+msgid "Accept this KDE Connect file?"
+msgstr "この KDE Connect ファイルを受け入れますか？"
+
 msgid "Accept “%(entry)s” into your own collection?"
 msgstr "「%(entry)s」を自分のコレクションに追加しますか？"
 
@@ -1404,6 +1407,9 @@ msgstr "印刷またはエクスポートする内容を選択…"
 msgid "Choose service"
 msgstr "サービスを選択"
 
+msgid "Choose the save location for each accepted file"
+msgstr "受け入れるファイルごとに保存先を選択"
+
 msgid ""
 "Choose which sections appear as tabs on the organizer. The calendar always "
 "remains available."
@@ -2052,9 +2058,6 @@ msgstr "マニュアルをダウンロード"
 msgid "Download manual version %(version)s"
 msgstr "マニュアル バージョン %(version)s をダウンロード"
 
-msgid "Download version %(version)s …"
-msgstr "バージョン %(version)s をダウンロード …"
-
 msgid "Drag the attachment area up or down"
 msgstr "添付領域を上下にドラッグ"
 
@@ -2349,6 +2352,7 @@ msgstr "ファイル"
 msgid "File could not be read: %s"
 msgstr "ファイルを読み取れませんでした: %s"
 
+#, python-format
 msgid "File saved in Downloads: %(name)s"
 msgstr "ダウンロードにファイルを保存しました: %(name)s"
 
@@ -2484,6 +2488,9 @@ msgstr "金曜日"
 
 msgid "From"
 msgstr "開始"
+
+msgid "From the Windows Contacts folder"
+msgstr "Windows の連絡先フォルダーから"
 
 msgid "From this computer (Evolution/Thunderbird)"
 msgstr "このコンピューターから (Evolution/Thunderbird)"
@@ -2787,6 +2794,16 @@ msgstr "リンクを挿入"
 
 msgid "Install the packages, for example with:"
 msgstr "必要なパッケージをインストールしてください。例:"
+
+msgid ""
+"Install version %(version)s now? All changes will be saved. The Organizer "
+"will close and restart after the installation."
+msgstr ""
+"バージョン %(version)s を今すぐインストールしますか？すべての変更が保存されま"
+"す。インストール後に Organizer を終了して再起動します。"
+
+msgid "Install version %(version)s …"
+msgstr "バージョン %(version)s をインストール …"
 
 msgid "Installed manual version: %(version)s."
 msgstr "インストールされたマニュアルバージョン：%(version)s。"
@@ -3139,6 +3156,9 @@ msgstr "未完了としてマーク"
 msgid "Maximized"
 msgstr "最大化"
 
+msgid "Maximum recovery snapshots"
+msgstr "復元ポイントの最大数"
+
 msgid "Measurement context"
 msgstr "測定時の状況"
 
@@ -3453,6 +3473,9 @@ msgstr "No"
 msgid "No Claws Mail address book was detected."
 msgstr "Claws Mail のアドレス帳が検出されませんでした。"
 
+msgid "No address books found."
+msgstr "アドレス帳が見つかりませんでした。"
+
 msgid ""
 "No anniversaries yet.\n"
 "Birthdays and celebrations will automatically appear in the calendar."
@@ -3700,9 +3723,6 @@ msgstr "注意：ストレージへの接続は確認されていません。"
 msgid "Notification actions available"
 msgstr "通知アクションを利用できます"
 
-msgid "Notification actions unavailable"
-msgstr "通知アクションを利用できません"
-
 msgid "Notification and sound"
 msgstr "通知とサウンド"
 
@@ -3830,6 +3850,9 @@ msgstr ""
 "してください。この統合を使わなくても、上の「このコンピューターから」で連絡先"
 "や予定をインポートできます。"
 
+msgid "Online address book"
+msgstr "オンラインアドレス帳"
+
 msgid "Online via Bluetooth data"
 msgstr "Bluetoothデータ経由でオンライン"
 
@@ -3846,7 +3869,9 @@ msgstr ""
 msgid ""
 "Only Notify, then unlock is currently available. Keyring access and pausing "
 "while locked are not yet enforced by the background service."
-msgstr "現在利用できるのは「通知してからロック解除」のみです。バックグラウンドサービスでは、キーリングへのアクセスとロック中の一時停止はまだ適用されていません。"
+msgstr ""
+"現在利用できるのは「通知してからロック解除」のみです。バックグラウンドサービ"
+"スでは、キーリングへのアクセスとロック中の一時停止はまだ適用されていません。"
 
 msgid ""
 "Only one Magnolie Notes phone can be paired. Remove the existing phone "
@@ -4046,6 +4071,9 @@ msgstr "ペアリングファイル"
 
 msgid "Pairing file saved to: %(path)s"
 msgstr "ペアリングファイルを保存しました：%(path)s"
+
+msgid "Pairing, file and clipboard requests are confirmed in this window."
+msgstr "ペアリング、ファイル、クリップボードの要求はこのウィンドウで確認します。"
 
 msgid "Palm tree"
 msgstr "ヤシの木"
@@ -4952,6 +4980,9 @@ msgstr "サービスは実行中です"
 
 msgid "Service stopped"
 msgstr "サービスは停止しています"
+
+msgid "Set up contacts"
+msgstr "連絡先を設定"
 
 msgid "Set varying doses by weekday"
 msgstr "曜日ごとに異なる用量を設定"
@@ -6995,6 +7026,11 @@ msgstr ""
 "のメールアドレスは常にクリックでき、メールアプリを開きます。"
 
 msgid ""
+"When the limit is lowered, the oldest recovery snapshots are removed "
+"automatically."
+msgstr "上限を減らすと、最も古い復元ポイントが自動的に削除されます。"
+
+msgid ""
 "When writing a note, a small toolbar above the sheet provides bold, italic, "
 "underline and strikethrough. The same formatting is available with Ctrl+B, "
 "Ctrl+I, Ctrl+U and Ctrl+D."
@@ -7002,6 +7038,9 @@ msgstr ""
 "メモを書くときは、用紙の上にある小さなツールバーで太字、斜体、下線、取り消し"
 "線を設定できます。同じ書式は Ctrl+B、Ctrl+I、Ctrl+U、Ctrl+D でも利用できま"
 "す。"
+
+msgid "Where are your contacts now?"
+msgstr "連絡先は現在どこにありますか？"
 
 msgid "Whole month"
 msgstr "1か月全体"
@@ -7090,6 +7129,9 @@ msgstr "はい、統合します"
 
 msgid "Yes, the code matches"
 msgstr "はい、コードは一致します"
+
+msgid "You can also do this later in Settings."
+msgstr "この設定は後から「設定」でも行えます。"
 
 msgid "Your address"
 msgstr "あなたの住所"
@@ -7560,6 +7602,12 @@ msgstr[0] "… ほか %(count)s 件も印刷されます。"
 
 msgid "＋ Add appointment"
 msgstr "＋ 予定を追加"
+
+#~ msgid "Notification actions unavailable"
+#~ msgstr "通知アクションを利用できません"
+
+#~ msgid "Download version %(version)s …"
+#~ msgstr "バージョン %(version)s をダウンロード …"
 
 #~ msgid ""
 #~ "Notify, then unlock asks you to open and unlock the Organizer. System "

@@ -341,4 +341,6 @@
     <string name="technischer_wert_zusammenfassung_unbekannt">Nerozpoznané údaje snímku: %1$s</string>
     <string name="start_laden">Otevírání chráněných dat…</string><string name="start_fehler_titel">Chráněná data se nepodařilo otevřít</string><string name="start_daten_unveraendert">Vaše data nebyla odstraněna ani přepsána. Můžete to bezpečně zkusit znovu.</string><string name="start_erneut">Zkusit znovu</string><string name="start_schliessen">Zavřít aplikaci</string>
     <string name="absturzbericht_teilen">Sdílet zprávu o pádu</string>
+    <string name="journal_maximum">Maximální počet bodů obnovení</string>
+    <string name="journal_maximum_hinweis">Při snížení limitu se nejstarší body obnovení automaticky odstraní.</string>
 </resources>

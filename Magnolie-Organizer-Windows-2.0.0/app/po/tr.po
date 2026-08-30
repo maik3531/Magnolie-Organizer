@@ -1,7 +1,8 @@
 # SOME DESCRIPTIVE TITLE.
-# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
-# This file is distributed under the same license as the Magnolie Organizer package.
-# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+# Copyright (C) 2026 THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the Magnolie Organizer
+# package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
 #
 msgid ""
 msgstr ""
@@ -614,7 +615,7 @@ msgid "Answer calls on the computer and talk"
 msgstr "Aramaları bilgisayarda yanıtla ve konuş"
 
 msgid "App password"
-msgstr "Uygulama parolası"
+msgstr "App password"
 
 msgid "Appearance"
 msgstr "Görünüm"
@@ -1128,7 +1129,7 @@ msgid "City"
 msgstr "Şehir"
 
 msgid "Claws Mail (.xml/.ldif) …"
-msgstr "Claws Mail (.xml/.ldif) …"
+msgstr "Claws Mail'den (.xml/.ldif) …"
 
 msgid "Claws Mail address book (*.xml)"
 msgstr "Claws Mail adres defteri (*.xml)"
@@ -1520,7 +1521,7 @@ msgid "Delete page"
 msgstr "Sayfayı sil"
 
 msgid "Delete password"
-msgstr "Parolayı sil"
+msgstr "Delete password"
 
 msgid "Delete permanently"
 msgstr "Kalıcı olarak sil"
@@ -1660,9 +1661,6 @@ msgstr "Kılavuzu indir"
 
 msgid "Download manual version %(version)s"
 msgstr "Kılavuzun %(version)s sürümünü indir"
-
-msgid "Download version %(version)s …"
-msgstr "%(version)s sürümünü indir …"
 
 msgid "Drag the attachment area up or down"
 msgstr "Ek alanını yukarı veya aşağı sürükleyin"
@@ -2303,6 +2301,16 @@ msgstr "Girdi"
 msgid "Insert link"
 msgstr "Bağlantı ekle"
 
+msgid ""
+"Install version %(version)s now? All changes will be saved. The Organizer "
+"will close and restart after the installation."
+msgstr ""
+"%(version)s sürümü şimdi yüklensin mi? Tüm değişiklikler kaydedilecek. "
+"Organizer kapatılacak ve yüklemeden sonra yeniden başlatılacak."
+
+msgid "Install version %(version)s …"
+msgstr "%(version)s sürümünü yükle …"
+
 msgid "Installed manual version: %(version)s."
 msgstr "Yüklü kılavuz sürümü: %(version)s."
 
@@ -2571,6 +2579,9 @@ msgstr "Açık olarak işaretle"
 
 msgid "Maximized"
 msgstr "Ekranı kapla"
+
+msgid "Maximum recovery snapshots"
+msgstr "En fazla kurtarma noktası"
 
 msgid "Measurement context"
 msgstr "Ölçüm bağlamı"
@@ -2863,6 +2874,9 @@ msgstr "Hiçbir Bluetooth adresi seçilmedi."
 msgid "No KDE Connect pairing is awaiting confirmation."
 msgstr "Onay bekleyen KDE Connect eşleştirmesi yok."
 
+msgid "No address books found."
+msgstr "Adres defteri bulunamadı."
+
 msgid ""
 "No anniversaries yet.\n"
 "Birthdays and celebrations will automatically appear in the calendar."
@@ -3149,6 +3163,9 @@ msgstr ""
 "Bu bütünleştirme olmadan da yukarıdaki “Bu bilgisayardan” seçeneğiyle "
 "kişileri ve randevuları içe aktarabilirsiniz."
 
+msgid "Online address book"
+msgstr "Çevrimiçi adres defteri"
+
 msgid "Online via Bluetooth data"
 msgstr "Bluetooth verileri üzerinden çevrimiçi"
 
@@ -3289,7 +3306,7 @@ msgstr "Diğer"
 
 msgctxt "relationship"
 msgid "Other"
-msgstr "Diğer"
+msgstr "Diğer ilişki"
 
 msgid "Other addresses"
 msgstr "Diğer adresler"
@@ -3679,7 +3696,7 @@ msgid "Reachable IPv4 or IPv6 address of this computer"
 msgstr "Bu bilgisayarın erişilebilir IPv4 veya IPv6 adresi"
 
 msgid "Ready."
-msgstr "Hazır."
+msgstr "Ready."
 
 msgid ""
 "Really merge %(cards)s? Review the result carefully afterwards. A copy of "
@@ -3987,7 +4004,7 @@ msgid "Saved ✓ %(time)s"
 msgstr "Kaydedildi ✓ %(time)s"
 
 msgid "Saved."
-msgstr "Kaydedildi."
+msgstr "Saved."
 
 msgid "Saving failed!"
 msgstr "Kaydetme başarısız!"
@@ -4118,10 +4135,13 @@ msgid "Sent"
 msgstr "Gönderildi"
 
 msgid "Server address"
-msgstr "Sunucu adresi"
+msgstr "Server address"
 
 msgid "Server address and user name are required."
 msgstr "Sunucu adresi ve kullanıcı adı gereklidir."
+
+msgid "Set up contacts"
+msgstr "Kişileri ayarla"
 
 msgid "Set varying doses by weekday"
 msgstr "Haftanın gününe göre değişen dozlar ayarla"
@@ -4354,7 +4374,7 @@ msgid "Suppository"
 msgstr "Fitil"
 
 msgid "Switched off."
-msgstr "Kapalı."
+msgstr "Switched off."
 
 msgid "Switzerland"
 msgstr "İsviçre"
@@ -4472,10 +4492,10 @@ msgid "Temperature"
 msgstr "Sıcaklık"
 
 msgid "Test connection"
-msgstr "Bağlantıyı sına"
+msgstr "Test connection"
 
 msgid "Testing…"
-msgstr "Sınanıyor …"
+msgstr "Testing…"
 
 msgid "Text color"
 msgstr "Metin rengi"
@@ -4562,9 +4582,6 @@ msgstr ""
 "Windows Kişiler klasörü, senkronizasyon sayfasında çift yönlü olarak "
 "senkronize edilir. Dosya içe aktarmaları kaynak dosyalarını değiştirmez; "
 "mevcut girişler iki kez eklenmez."
-
-msgid "The Windows entry in the update information is invalid."
-msgstr "Güncelleme bilgilerindeki Windows girişi geçersiz."
 
 msgid "The address could not be opened."
 msgstr "Adres açılamadı."
@@ -4804,23 +4821,14 @@ msgstr "Kılavuz yüklü; sürümü bilinmiyor."
 msgid "The manual is up to date."
 msgstr "Kılavuz güncel."
 
-msgid "The manual package checksum does not match."
-msgstr "Kılavuz paketinin sağlama toplamı eşleşmiyor."
-
 msgid "The manual package could not be opened."
 msgstr "Kılavuz paketi açılamadı."
-
-msgid "The manual package is unexpectedly large."
-msgstr "Kılavuz paketi beklenmedik ölçüde büyük."
 
 msgid "The manual update check failed."
 msgstr "Kılavuz güncellemesi denetlenemedi."
 
 msgid "The manual update information is invalid."
 msgstr "Kılavuz güncelleme bilgileri geçersiz."
-
-msgid "The manual update information is missing."
-msgstr "Manuel güncelleme bilgisi eksik."
 
 msgid "The message is too large."
 msgstr "İleti çok büyük."
@@ -5063,17 +5071,11 @@ msgstr "İki yeni parola eşleşmiyor."
 msgid "The update check failed."
 msgstr "Güncelleme denetimi başarısız oldu."
 
-msgid "The update information is unexpectedly large."
-msgstr "Güncelleme bilgileri beklenmedik ölçüde büyük."
-
 msgid "The user data could not be read."
 msgstr "Kullanıcı verileri okunamadı."
 
 msgid "The value is outside the general green reference range."
 msgstr "Değer, genel yeşil referans aralığının dışındadır."
-
-msgid "The verified installer could not be opened."
-msgstr "Doğrulanmış yükleyici açılamadı."
 
 msgid ""
 "The weather service estimated the location from your public IP address. Your "
@@ -5468,7 +5470,7 @@ msgid "Use the recycle bin"
 msgstr "Çöp kutusunu kullan"
 
 msgid "User name"
-msgstr "Kullanıcı adı"
+msgstr "User name"
 
 msgid ""
 "Uses its own identity and storage and listens only on fixed port %(port)s. "
@@ -5680,6 +5682,12 @@ msgstr ""
 "posta uygulamanızı açar."
 
 msgid ""
+"When the limit is lowered, the oldest recovery snapshots are removed "
+"automatically."
+msgstr ""
+"Sınır düşürüldüğünde en eski kurtarma noktaları otomatik olarak kaldırılır."
+
+msgid ""
 "When writing a note, a small toolbar above the sheet provides bold, italic, "
 "underline and strikethrough. The same formatting is available with Ctrl+B, "
 "Ctrl+I, Ctrl+U and Ctrl+D."
@@ -5687,6 +5695,9 @@ msgstr ""
 "Not yazarken sayfanın üzerindeki küçük araç çubuğu kalın, italik, altı "
 "çizili ve üstü çizili biçimlendirme sunar. Aynı biçimlendirme Ctrl+B, "
 "Ctrl+I, Ctrl+U ve Ctrl+D ile de kullanılabilir."
+
+msgid "Where are your contacts now?"
+msgstr "Kişileriniz şu anda nerede?"
 
 msgid "Whole month"
 msgstr "Tüm ay"
@@ -5774,6 +5785,9 @@ msgstr "Evet, birleştir"
 
 msgid "Yes, the code matches"
 msgstr "Evet, kod eşleşiyor"
+
+msgid "You can also do this later in Settings."
+msgstr "Bunu daha sonra Ayarlar'dan da yapabilirsiniz."
 
 msgid "Your address"
 msgstr "Adresiniz"
@@ -6176,9 +6190,6 @@ msgstr[1] "… ayrıca yazdırılacak %(count)s öğe daha."
 
 msgid "＋ Add appointment"
 msgstr "＋ Randevu ekle"
-
-#~ msgid "Reset"
-#~ msgstr "Reset"
 
 msgid "Language & region"
 msgstr "Dil ve bölge"

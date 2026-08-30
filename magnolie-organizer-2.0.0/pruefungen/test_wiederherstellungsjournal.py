@@ -236,6 +236,17 @@ with tempfile.TemporaryDirectory() as tmp:
     assert len([x for x in behalten if x["reason"] == "weekly"]) <= 8
     assert len([x for x in behalten if x["reason"] == "pre-sync"]) <= 20
 
+# Eine gewählte Obergrenze behält genau die neuesten Stände.
+with tempfile.TemporaryDirectory() as tmp:
+    start = datetime(2026, 1, 1, tzinfo=timezone.utc)
+    erstellt = []
+    for i in range(6):
+        erstellt.append(m.journal_snapshot_erzeugen(daten(i + 1), "pre-sync",
+            basis=tmp, jetzt=start + timedelta(hours=i), disk_usage=disk, maximum=3))
+    behalten = m.journal_liste(tmp, integritaet=False)
+    assert len(behalten) == 3
+    assert [x["snapshotId"] for x in behalten] == [x["snapshotId"] for x in erstellt[-3:][::-1]]
+
 # Atomarer Fehler hinterlässt keinen sichtbaren Stand.
 with tempfile.TemporaryDirectory() as tmp:
     def abbrechen(stelle):

@@ -299,4 +299,6 @@
     <string name="technischer_wert_zusammenfassung_unbekannt">認識できないスナップショット詳細: %1$s</string>
     <string name="start_laden">保護されたデータを開いています…</string><string name="start_fehler_titel">保護されたデータを開けませんでした</string><string name="start_daten_unveraendert">データは削除も上書きもされていません。安全に再試行できます。</string><string name="start_erneut">再試行</string><string name="start_schliessen">アプリを閉じる</string>
     <string name="absturzbericht_teilen">クラッシュレポートを共有</string>
+    <string name="journal_maximum">復元ポイントの最大数</string>
+    <string name="journal_maximum_hinweis">上限を減らすと、最も古い復元ポイントが自動的に削除されます。</string>
 </resources>
