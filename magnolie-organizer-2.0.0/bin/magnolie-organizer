@@ -54,8 +54,19 @@ import zipfile
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from datetime import datetime, timedelta, timezone
 
-# Avoid WebKitGTK's DMA-BUF path on graphics stacks with incompatible ABIs.
-os.environ.setdefault("WEBKIT_DISABLE_DMABUF_RENDERER", "1")
+def _grafik_kompatibilitaet_einrichten():
+    """Aktiviert den langsameren Grafikfallback nur auf ausdruecklichen Wunsch."""
+    if os.environ.get("MAGNOLIE_GRAPHICS_COMPAT", "").lower() not in (
+            "1", "true", "yes"):
+        return
+    os.environ.setdefault("WEBKIT_DISABLE_DMABUF_RENDERER", "1")
+    ist_wayland = (os.environ.get("XDG_SESSION_TYPE") == "wayland" or
+                   bool(os.environ.get("WAYLAND_DISPLAY")))
+    if ist_wayland and os.environ.get("DISPLAY"):
+        os.environ.setdefault("GDK_BACKEND", "x11")
+
+
+_grafik_kompatibilitaet_einrichten()
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 if __name__ == "__main__":

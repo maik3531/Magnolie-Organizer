@@ -139,6 +139,8 @@ for marker in ("function oeffneSuche", "syncMetadaten", "nextcloud:"):
 assert "/usr/share/doc/magnolie-organizer/INTERNATIONALISIERUNG.md" in installed_test
 appimage_builder = text(ROOT / "werkzeuge/appimage_bauen.sh")
 jammy_builder = text(ROOT / "werkzeuge/appimage_jammy_bauen.sh")
+launcher = text(ROOT / "bin/magnolie-organizer")
+assert launcher.index("_grafik_kompatibilitaet_einrichten()") < launcher.index("import gi")
 web_script = text(ROOT / "web/anwendung.js")
 web_style = text(ROOT / "web/stil.css")
 assert '"blaettern-vor", "blaettern-zurueck"' in web_script
@@ -148,9 +150,10 @@ assert 'animation: puls' not in web_style
 assert '@keyframes puls' not in web_style
 assert 'bin/magnolie_personal_sync.py" "$APPDIR/usr/bin/magnolie_personal_sync.py"' in appimage_builder
 assert 'bin/magnolie_nextcloud.py" "$APPDIR/usr/bin/magnolie_nextcloud.py"' in appimage_builder
-assert ': "${WEBKIT_DISABLE_DMABUF_RENDERER:=1}"' in appimage_builder
+assert ': "${MAGNOLIE_GRAPHICS_COMPAT:=0}"' in appimage_builder
+assert ': "${WEBKIT_DISABLE_DMABUF_RENDERER:=1}"' not in appimage_builder
 assert "WEBKIT_DISABLE_COMPOSITING_MODE" not in appimage_builder
-assert ': "${GDK_BACKEND:=x11}"' in appimage_builder
+assert ': "${GDK_BACKEND:=x11}"' not in appimage_builder
 assert 'export GTK_DATA_PREFIX="$APPDIR/usr"' in appimage_builder
 assert 'export FONTCONFIG_FILE="$FONTCONFIG_PATH/fonts.conf"' in appimage_builder
 fontconfig = text(ROOT / "werkzeuge/appimage-fonts.conf")

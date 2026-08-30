@@ -3616,9 +3616,20 @@ def _ton_starter(argumente):
 pruefe(m.ton_abspielen([["sh", "-c", "false"], ["sh", "-c", "true"]],
                        _ton_starter) == "sh" and len(ton_versuche) == 2,
        "nach sofortigem Audiofehler wird der nächste vorhandene Weg versucht")
-pruefe(os.environ.get("WEBKIT_DISABLE_DMABUF_RENDERER") == "1" and
-       "WEBKIT_DISABLE_COMPOSITING_MODE" not in os.environ,
-       "WebKit-DMA-BUF-Schutz bleibt ohne Compositing-Bremse aktiv")
+native_grafik = {"XDG_SESSION_TYPE": "wayland", "DISPLAY": ":1"}
+with mock.patch.object(m.os, "environ", native_grafik):
+    m._grafik_kompatibilitaet_einrichten()
+pruefe("WEBKIT_DISABLE_DMABUF_RENDERER" not in native_grafik and
+       "GDK_BACKEND" not in native_grafik,
+       "Wayland und DMA-BUF bleiben im Normalbetrieb nativ")
+kompatible_grafik = {"MAGNOLIE_GRAPHICS_COMPAT": "1",
+                     "WAYLAND_DISPLAY": "wayland-1", "DISPLAY": ":1"}
+with mock.patch.object(m.os, "environ", kompatible_grafik):
+    m._grafik_kompatibilitaet_einrichten()
+pruefe(kompatible_grafik.get("WEBKIT_DISABLE_DMABUF_RENDERER") == "1" and
+       kompatible_grafik.get("GDK_BACKEND") == "x11" and
+       "WEBKIT_DISABLE_COMPOSITING_MODE" not in kompatible_grafik,
+       "der explizite Grafikfallback nutzt XWayland ohne Compositing-Bremse")
 
 # Eigener Klang der Magnolie
 klangdatei = m.finde_klang_datei()

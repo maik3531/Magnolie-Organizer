@@ -353,14 +353,10 @@ export GTK_THEME=Adwaita
 # Keep host font files, but never parse configuration for a newer fontconfig.
 export FONTCONFIG_PATH="$APPDIR/usr/share/magnolie-organizer/fontconfig"
 export FONTCONFIG_FILE="$FONTCONFIG_PATH/fonts.conf"
-: "${WEBKIT_DISABLE_DMABUF_RENDERER:=1}"
-export WEBKIT_DISABLE_DMABUF_RENDERER
-# The bundled WebKit runtime is more reliable through XWayland than through a
-# host Wayland EGL stack with a different graphics ABI. Compositing stays on.
-if [ "${XDG_SESSION_TYPE:-}" = wayland ] && [ -n "${DISPLAY:-}" ]; then
-    : "${GDK_BACKEND:=x11}"
-    export GDK_BACKEND
-fi
+# Native Wayland and DMA-BUF keep interaction fluid. Affected graphics stacks
+# can opt into the conservative XWayland/software-transfer fallback.
+: "${MAGNOLIE_GRAPHICS_COMPAT:=0}"
+export MAGNOLIE_GRAPHICS_COMPAT
 export WEBKIT_EXEC_PATH="$APPDIR/usr/lib/webkit2gtk-4.1"
 export WEBKIT_INJECTED_BUNDLE_PATH="$APPDIR/usr/lib/webkit2gtk-4.1/injected-bundle"
 export XDG_DATA_DIRS="$APPDIR/usr/share:${XDG_DATA_DIRS:-/usr/local/share:/usr/share}"

@@ -155,6 +155,15 @@ festgeschrieben. Gebaut und gegen den gepackten Programmkern geprüft wird mit:
     werkzeuge/appimage_bauen.sh
     pruefungen/test_appimage.sh ../Magnolie-Organizer-2.0.13-x86_64.AppImage
 
+Unter Wayland verwendet das AppImage standardmäßig den nativen Grafikpfad mit
+DMA-BUF. Falls ein bestimmter Grafiktreiber damit ein leeres Fenster oder einen
+WebKit-Absturz verursacht, startet `MAGNOLIE_GRAPHICS_COMPAT=1` den konservativen
+XWayland-Fallback. Das gilt für AppImage, DEB und RPM; beim AppImage lautet der
+Aufruf beispielsweise
+`MAGNOLIE_GRAPHICS_COMPAT=1 ./Magnolie-Organizer-2.0.13-x86_64.AppImage`. Der
+Fallback ist wegen zusätzlicher Bildkopien nicht für den normalen Betrieb
+vorgesehen.
+
 ## Flatpak
 
 Das Flatpak verwendet die zusammengehörige GTK-/WebKit-Laufzeit von GNOME 49.

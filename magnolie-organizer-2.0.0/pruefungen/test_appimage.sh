@@ -25,10 +25,10 @@ DISPLAY= WAYLAND_DISPLAY= timeout 20s "$APPIMAGE" --appimage-extract-and-run \
 (cd "$ARBEIT" && "$APPIMAGE" --appimage-extract >/dev/null)
 APPDIR="$ARBEIT/squashfs-root"
 test -x "$APPDIR/AppRun"
-grep -Fq ': "${WEBKIT_DISABLE_DMABUF_RENDERER:=1}"' "$APPDIR/AppRun"
+grep -Fq ': "${MAGNOLIE_GRAPHICS_COMPAT:=0}"' "$APPDIR/AppRun"
+! grep -Fq ': "${WEBKIT_DISABLE_DMABUF_RENDERER:=1}"' "$APPDIR/AppRun"
 ! grep -Fq 'WEBKIT_DISABLE_COMPOSITING_MODE' "$APPDIR/AppRun"
-grep -Fq '[ "${XDG_SESSION_TYPE:-}" = wayland ]' "$APPDIR/AppRun"
-grep -Fq ': "${GDK_BACKEND:=x11}"' "$APPDIR/AppRun"
+! grep -Fq ': "${GDK_BACKEND:=x11}"' "$APPDIR/AppRun"
 grep -Fq 'export OPENSSL_CONF="$APPDIR/usr/share/magnolie-organizer/openssl/openssl.cnf"' "$APPDIR/AppRun"
 grep -Fq 'export OPENSSL_MODULES="$APPDIR/usr/lib/$MULTIARCH/ossl-modules"' "$APPDIR/AppRun"
 grep -Fq 'export GTK3_MODULES=' "$APPDIR/AppRun"

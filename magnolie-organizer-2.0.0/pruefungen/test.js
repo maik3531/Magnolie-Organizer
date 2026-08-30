@@ -39,7 +39,7 @@ const js = fs.readFileSync(WEB + "/anwendung.js", "utf8");
 const i18nJs = fs.readFileSync(WEB + "/i18n.js", "utf8");
 const deJs = fs.readFileSync(WEB + "/i18n/de.js", "utf8");
 const css = fs.readFileSync(WEB + "/stil.css", "utf8");
-const liesmich = fs.readFileSync(path.resolve(WEB, "..", "LIESMICH.md"), "utf8");
+const liesmich = fs.readFileSync(path.resolve(__dirname, "..", "LIESMICH.md"), "utf8");
 
 const dom = new JSDOM(html, {
   runScripts: "dangerously",
