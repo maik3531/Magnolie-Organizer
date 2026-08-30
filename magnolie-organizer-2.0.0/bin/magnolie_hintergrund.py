@@ -759,6 +759,7 @@ class KDEConnectProxy:
         self._event_thread = None
         self._subscriber = os.urandom(16).hex()
         self._cursor = 0
+        self._visible = None
 
     def start(self):
         available = daemon_available(self.path)
@@ -767,6 +768,7 @@ class KDEConnectProxy:
             subscription = ipc_request("gui_subscribe",
                 {"subscriber": self._subscriber}, self.path)
             self._cursor = max(0, int(subscription.get("cursor", 0)))
+            self._visible = None
             self._event_stop.clear()
             self._event_thread = threading.Thread(target=self._event_loop, daemon=True,
                                                   name="magnolie-background-events")
@@ -784,9 +786,16 @@ class KDEConnectProxy:
         return None
 
     def set_visible(self, visible):
+        visible = bool(visible)
+        if self._visible is visible:
+            return visible
         try:
-            return bool(ipc_request("gui_visibility", {"subscriber": self._subscriber,
-                "visible": bool(visible)}, self.path, timeout=1).get("visible"))
+            result = ipc_request("gui_visibility", {"subscriber": self._subscriber,
+                "visible": visible}, self.path, timeout=1)
+            if result.get("visible") is visible:
+                self._visible = visible
+                return visible
+            return False
         except Exception:
             return False
 
@@ -856,6 +865,7 @@ class PhoneServiceProxy:
         self._event_thread = None
         self._subscriber = os.urandom(16).hex()
         self._cursor = 0
+        self._visible = None
 
     def _call(self, operation, **arguments):
         return ipc_request("phone_" + operation, arguments, self.path, timeout=30)
@@ -867,6 +877,7 @@ class PhoneServiceProxy:
             subscription = ipc_request("gui_subscribe",
                 {"subscriber": self._subscriber}, self.path)
             self._cursor = max(0, int(subscription.get("cursor", 0)))
+            self._visible = None
             self._event_stop.clear()
             self._event_thread = threading.Thread(target=self._event_loop, daemon=True,
                                                   name="magnolie-phone-events")
@@ -883,9 +894,16 @@ class PhoneServiceProxy:
             pass
 
     def set_visible(self, visible):
+        visible = bool(visible)
+        if self._visible is visible:
+            return visible
         try:
-            return bool(ipc_request("gui_visibility", {"subscriber": self._subscriber,
-                "visible": bool(visible)}, self.path, timeout=1).get("visible"))
+            result = ipc_request("gui_visibility", {"subscriber": self._subscriber,
+                "visible": visible}, self.path, timeout=1)
+            if result.get("visible") is visible:
+                self._visible = visible
+                return visible
+            return False
         except Exception:
             return False
 
@@ -1083,6 +1101,7 @@ class DaemonEvents:
     def _handle(self, event, payload):
         permissions = self.settings["permissions"]
         backend = self.backend_getter()
+        forward_decision = False
         if event == "receive_expired":
             withdraw = getattr(self.notifications, "withdraw", None)
             if withdraw is not None:
@@ -1101,8 +1120,12 @@ class DaemonEvents:
                      ("reject", _("Reject"), lambda: decide(False))),
                 on_close=lambda: decide(False))
             if not shown:
-                self.notifications.show(title, "%s - %s" % (body, _("Reject")))
-                decide(False)
+                if self.gui_present():
+                    self.notifications.show(title, body)
+                    forward_decision = True
+                else:
+                    self.notifications.show(title, "%s - %s" % (body, _("Reject")))
+                    decide(False)
         elif event == "file_proposal":
             receive_id = str(payload.get("id") or "")
             if not permissions["kde_incoming_files"]:
@@ -1119,9 +1142,13 @@ class DaemonEvents:
                      ("reject", _("Reject"), lambda: decide(False))),
                 on_close=lambda: decide(False), key=receive_id)
             if not shown:
-                self.notifications.show(title, "%s - %s" % (body, _("Reject")),
-                    key=receive_id)
-                decide(False)
+                if self.gui_present():
+                    self.notifications.show(title, body, key=receive_id)
+                    forward_decision = True
+                else:
+                    self.notifications.show(title, "%s - %s" % (body, _("Reject")),
+                        key=receive_id)
+                    decide(False)
         elif event == "clipboard_proposal":
             receive_id = str(payload.get("id") or "")
             text = str(payload.get("text") or "")
@@ -1134,9 +1161,13 @@ class DaemonEvents:
                      ("reject", _("Reject"), lambda: decide(False))),
                 on_close=lambda: decide(False), key=receive_id)
             if not shown:
-                self.notifications.show(title, "%s - %s" % (
-                    _safe_text(text, 300), _("Reject")), key=receive_id)
-                decide(False)
+                if self.gui_present():
+                    self.notifications.show(title, _safe_text(text, 300), key=receive_id)
+                    forward_decision = True
+                else:
+                    self.notifications.show(title, "%s - %s" % (
+                        _safe_text(text, 300), _("Reject")), key=receive_id)
+                    decide(False)
         elif event == "clipboard_apply":
             if self.clipboard_setter(str(payload.get("text") or "")):
                 self.notifications.show(_("Magnolie Organizer"),
@@ -1158,7 +1189,7 @@ class DaemonEvents:
             if not self.notifications.show(_("SMS from %s") % sender, text, (
                     ("reply", _("Reply"), self.notifications.open_organizer),)):
                 self.notifications.show(_("SMS from %s") % sender, text)
-        if event not in ("pairing", "file_proposal", "clipboard_proposal"):
+        if forward_decision or event not in ("pairing", "file_proposal", "clipboard_proposal"):
             forwarded = dict(payload)
             if event == "sms":
                 forwarded["notify"] = False
@@ -1241,7 +1272,11 @@ class PhoneDaemonEvents:
             elif not self.notifications.show(_("Magnolie Notes pairing"), code, (
                     ("accept", _("Accept"), lambda: backend.confirm_pairing(attempt, True)),
                     ("reject", _("Reject"), lambda: backend.confirm_pairing(attempt, False)))):
-                backend.confirm_pairing(attempt, False)
+                self.notifications.show(_("Magnolie Notes pairing"), code)
+                if gui_present:
+                    self._forward(event, payload)
+                else:
+                    backend.confirm_pairing(attempt, False)
         elif event == "selected_notification" and permissions[
                 "phone_selected_notifications"]:
             title = _safe_text(payload.get("app_label") or payload.get("title"), 100) or _("Phone notification")

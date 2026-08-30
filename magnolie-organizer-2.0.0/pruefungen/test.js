@@ -1524,6 +1524,16 @@ function knopfMit(text, wurzel) {
   enSD.querySelector("#einst-tab-sync").click();
   assert.strictEqual(enSD.querySelector("#nextcloud-dav-an").checked, false,
     "deaktivierter Nextcloud-Entwurf geht beim Reiterwechsel verloren");
+  enST.schliesseEinstellungen();
+  enSW.App.baumBriefkastenStatus({ davAktiv: true, briefkastenAktiv: false,
+    url: "https://cloud.echt.example", benutzer: "user", kennwortVorhanden: true,
+    zustand: "bereit", fehler: "" });
+  enST.oeffneEinstellungen();
+  assert.strictEqual(enSD.querySelector("#nextcloud-dav-an").checked, true,
+    "ein verworfener Nextcloud-Entwurf maskiert nach erneutem Öffnen den echten Stand");
+  assert.strictEqual(enSD.querySelector("#briefkasten-url").value,
+    "https://cloud.echt.example",
+    "die verworfene Nextcloud-Adresse bleibt nach erneutem Öffnen sichtbar");
   const enKalender = Array.from(enSD.querySelectorAll(".sync-kalender input"));
   assert.deepStrictEqual(enKalender.map((feld) => feld.value),
     ["google-privat", "arbeit-uid"], "Kalender-UIDs wurden übersetzt");
@@ -1678,6 +1688,11 @@ function knopfMit(text, wurzel) {
     hintergrundAbschnitt.textContent.includes("Magnolienbaum change offers") &&
     hintergrundAbschnitt.textContent.includes("(unavailable)"),
   "Hintergrunddienst-Steuerung oder Laufzeitstatus fehlt unter Sicherheit");
+  assert.ok(hintergrundAbschnitt.querySelector(".einst-warnung").textContent.includes(
+    "Notification actions unavailable") &&
+    !hintergrundAbschnitt.querySelector(".baum-zustand.gut").textContent.includes(
+      "Notification actions unavailable"),
+  "fehlende Benachrichtigungsaktionen erscheinen nicht als Warnung");
   assert.ok(sicherheitsUeberschriften.indexOf("Background service") <
     sicherheitsUeberschriften.indexOf("Backups"),
   "Hintergrunddienst steht nicht vor den Sicherungsabschnitten");
@@ -2993,6 +3008,12 @@ function knopfMit(text, wurzel) {
     "die Umschalter tragen keine Sinnbilder");
 
   /* ---- Termin über das Terminblatt anlegen ---- */
+  let notizlinienPlanungen = 0;
+  const urspruenglicheAnimationsplanung = w.requestAnimationFrame.bind(w);
+  w.requestAnimationFrame = (callback) => {
+    notizlinienPlanungen += 1;
+    return urspruenglicheAnimationsplanung(callback);
+  };
   const heuteIso2 = T.zustand().kalender.tag;
   T.oeffneTerminBlatt(null, heuteIso2);
   assert.ok($("#termin-schleier"), "Terminblatt erscheint nicht");
@@ -3000,6 +3021,8 @@ function knopfMit(text, wurzel) {
   assert.strictEqual($$(".tb-spalten > div").length, 2,
     "linke Angaben und rechte Notiz erwartet");
   assert.ok($("#tb-notiz"), "Notizfeld fehlt");
+  assert.ok(notizlinienPlanungen > 0,
+    "das dynamisch erzeugte Terminfeld plant keine Notizlinienmessung");
   assert.strictEqual($("#tb-titel").value, "",
     "ein neuer Termin darf keinen Titel vorgeben");
   assert.deepStrictEqual(Array.from($("#termin-titel-vorschlaege").options,
@@ -3460,7 +3483,10 @@ function knopfMit(text, wurzel) {
   setze(suchfeld, "");
 
   /* ---- Notizen ---- */
+  const planungenVorNotiz = notizlinienPlanungen;
   klickeTab("Notizen");
+  assert.ok(notizlinienPlanungen > planungenVorNotiz,
+    "die dynamisch erzeugte Notiz plant keine Notizlinienmessung");
   assert.ok($(".notiz-gruppe-name") && $(".notizbuch-zeile"),
     "Notizbuchgruppe und Notizbuch fehlen");
   assert.ok(knopfMit("Neue Gruppe") && knopfMit("Neues Notizbuch"),

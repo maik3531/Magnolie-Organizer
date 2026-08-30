@@ -9559,6 +9559,7 @@ const FASSUNG = "2.0.13";
 
     schleier.append(blatt);
     document.body.append(schleier);
+    planeNotizlinien();
     registriereModal(schleier, blatt, {
       anfang: feldTitel,
       vorherFokus: vorherFokus,
@@ -12877,6 +12878,7 @@ const FASSUNG = "2.0.13";
       setTimeout(passeAnhangHoeheAn, 0);
     }
     inhaltR.append(editor);
+    planeNotizlinien();
     zeigeWerkzeugleiste();
 
     setzeEcken(
@@ -15270,6 +15272,8 @@ const FASSUNG = "2.0.13";
     const schleier = $("#einstellungen-schleier");
     beendeModal(schleier);
     schleier.classList.add("verborgen");
+    nextcloudEntwurf = null;
+    nextcloudEntwurfGeaendert = false;
   }
 
   function abschnitt(titel, hinweis) {
@@ -17949,19 +17953,26 @@ const FASSUNG = "2.0.13";
     ab.append(anmeldungLabel);
 
     const statusTeile = [];
+    const warnungsTeile = [];
     if (backgroundStand) {
       statusTeile.push(stand.running ? _("Service running") : _("Service stopped"));
-      if (typeof stand.native_notifications_supported === "boolean") statusTeile.push(
-        stand.native_notifications_supported
-          ? _("Native notifications available") : _("Native notifications unavailable"));
-      if (typeof stand.native_actions_supported === "boolean") statusTeile.push(
-        stand.native_actions_supported
-          ? _("Notification actions available") : _("Notification actions unavailable"));
+      if (typeof stand.native_notifications_supported === "boolean") {
+        (stand.native_notifications_supported ? statusTeile : warnungsTeile).push(
+          stand.native_notifications_supported
+            ? _("Native notifications available") : _("Native notifications unavailable"));
+      }
+      if (typeof stand.native_actions_supported === "boolean") {
+        (stand.native_actions_supported ? statusTeile : warnungsTeile).push(
+          stand.native_actions_supported
+            ? _("Notification actions available")
+            : _("Notification actions unavailable") + ". " + _("Start Organizer") + ".");
+      }
       statusTeile.push(stand.keyring_available
         ? _("System keyring available") : _("System keyring unavailable"));
     }
     if (statusTeile.length) ab.append(el("p", stand.running ? "baum-zustand gut" : "einst-hinweis",
       statusTeile.join(" · ")));
+    if (warnungsTeile.length) ab.append(el("p", "einst-warnung", warnungsTeile.join(" · ")));
     if (stand.error) ab.append(el("p", "einst-warnung", String(stand.error)));
     if (stand.receive_configuration_error) ab.append(el("p", "einst-warnung",
       _("KDE Connect receive settings could not be applied by the background service.")));

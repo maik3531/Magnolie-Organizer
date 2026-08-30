@@ -34,6 +34,10 @@ schluessel.properties
 **/node_modules/
 **/obj/
 **/Ausgabe/
+**/klang/
+**/locale/
+**/web/i18n/
+**/debian/debhelper-build-stamp
 **/.release-staging-*/
 /.magnolie-desktop-release.*/
 *.py[cod]

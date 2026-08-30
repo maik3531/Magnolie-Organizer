@@ -9439,6 +9439,7 @@ const FASSUNG = "2.0.13";
 
     schleier.append(blatt);
     document.body.append(schleier);
+    planeNotizlinien();
     registriereModal(schleier, blatt, {
       anfang: feldTitel,
       vorherFokus: vorherFokus,
@@ -12752,6 +12753,7 @@ const FASSUNG = "2.0.13";
       setTimeout(passeAnhangHoeheAn, 0);
     }
     inhaltR.append(editor);
+    planeNotizlinien();
     zeigeWerkzeugleiste();
 
     setzeEcken(
@@ -15145,6 +15147,8 @@ const FASSUNG = "2.0.13";
     const schleier = $("#einstellungen-schleier");
     beendeModal(schleier);
     schleier.classList.add("verborgen");
+    nextcloudEntwurf = null;
+    nextcloudEntwurfGeaendert = false;
   }
 
   function abschnitt(titel, hinweis) {

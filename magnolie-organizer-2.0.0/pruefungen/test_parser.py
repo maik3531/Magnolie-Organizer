@@ -4101,6 +4101,11 @@ def test_anruf_bluetooth_restores_previous_radio_state():
         ("restore", "call-a")]
 
 
+if __name__ == "__main__":
+    test_anruf_lautstaerke_restores_exact_default_sink_volume()
+    test_anruf_bluetooth_restores_previous_radio_state()
+
+
 kommunikation_vertrag = os.path.join(
     QUELLWURZEL, "pruefungen", "kommunikation-msgids.txt")
 kommunikation_msgids = {json.loads(zeile) for zeile in open(

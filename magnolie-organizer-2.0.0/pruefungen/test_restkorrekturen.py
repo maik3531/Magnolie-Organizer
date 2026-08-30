@@ -72,8 +72,13 @@ def test_lokaler_termin_erhaelt_standardmaessig_30_minuten_ende():
 
 
 def test_gemeinsamer_kontakt_sync_vertrag():
-    pfad = os.path.join(os.path.dirname(__file__), "..", "..", "contracts",
+    pfad = os.path.join(os.path.dirname(__file__), "..", "contracts",
                         "kontakt-sync-contract.json")
+    gemeinsam = os.path.join(os.path.dirname(__file__), "..", "..", "contracts",
+                             "kontakt-sync-contract.json")
+    if os.path.isfile(gemeinsam):
+        with open(pfad, "rb") as lokal, open(gemeinsam, "rb") as geteilt:
+            assert lokal.read() == geteilt.read()
     with open(pfad, encoding="utf-8") as datei:
         vertrag = json.load(datei)
     basis = vertrag["base"]

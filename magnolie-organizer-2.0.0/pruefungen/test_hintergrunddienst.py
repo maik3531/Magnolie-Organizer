@@ -441,6 +441,24 @@ def test_actionless_notification_server_still_shows_events_and_rejects_files():
     assert notifications.items[-1][2] == ()
 
 
+def test_actionless_decisions_fall_back_to_visible_gui_without_rejecting():
+    backend = FakeBackend()
+    notifications = ActionlessNotifications()
+    published = []
+    events = background.DaemonEvents(lambda: backend, {
+        "permissions": {"kde_pairing": True, "kde_incoming_files": True}},
+        notifications, ImmediateGLib,
+        lambda event, payload: published.append((event, payload)), lambda: True)
+    events("pairing", {"device_name": "Phone", "code": "12345678"})
+    events("file_proposal", {"id": "f" * 32, "name": "document.pdf", "size": 7})
+    events("clipboard_proposal", {"id": "c" * 32, "text": "Desktop text"})
+    assert backend.calls == []
+    assert [event for event, _payload in published] == [
+        "pairing", "file_proposal", "clipboard_proposal"]
+    assert len(notifications.items) == 6
+    assert all(not actions for _title, _body, actions, _close in notifications.items[1::2])
+
+
 def test_missing_native_action_capability_rejects_decisions_fail_closed():
     backend = FakeBackend()
 
@@ -660,6 +678,28 @@ def test_gui_backend_factory_selects_proxy_while_daemon_is_running():
     local_backend.assert_not_called()
 
 
+def test_gui_visibility_helper_skips_thread_for_current_proxy_state():
+    loader = importlib.machinery.SourceFileLoader("magnolie_visibility_test", PROGRAM)
+    module = loader.load_module()
+    backend = types.SimpleNamespace(_visible=True)
+    with mock.patch.object(module.threading, "Thread") as thread:
+        module._hintergrund_sichtbarkeit_senden(backend, True, "visibility-test")
+    thread.assert_not_called()
+
+
+def test_visibility_is_not_sent_again_after_success():
+    for proxy_class in (background.KDEConnectProxy, background.PhoneServiceProxy):
+        proxy = proxy_class("/unused")
+        with mock.patch.object(background, "ipc_request",
+                side_effect=lambda _operation, arguments, *_args, **_kwargs: {
+                    "visible": arguments["visible"]}) as request:
+            assert proxy.set_visible(True) is True
+            assert proxy.set_visible(True) is True
+            assert proxy.set_visible(False) is False
+            assert proxy.set_visible(False) is False
+        assert request.call_count == 2
+
+
 class FakePhoneService:
     def __init__(self):
         self.enabled = True
@@ -748,6 +788,19 @@ def test_phone_notifications_remain_native_with_visible_gui_and_are_forwarded():
     assert len(published) == 3
     assert all(event == "phone_event" and "ticket" in payload
                for event, payload in published)
+
+
+def test_actionless_phone_pairing_falls_back_to_visible_gui():
+    phone = FakePhoneService()
+    notifications = ActionlessNotifications()
+    published = []
+    events = background.PhoneDaemonEvents(lambda: phone, {
+        "permissions": {"phone_pairing_decisions": True}}, notifications,
+        ImmediateGLib, lambda *args: published.append(args) or True, lambda: True)
+    events("pairing_code", {"attempt_id": "a" * 32, "code": "123 456"})
+    assert phone.pairing_calls == []
+    assert len(notifications.items) == 2
+    assert len(published) == 1 and published[0][0] == "phone_event"
 
 
 def test_closed_gui_personal_sync_offer_defers_payload_until_action_click():

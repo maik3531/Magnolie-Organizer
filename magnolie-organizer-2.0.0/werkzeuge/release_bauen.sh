@@ -116,15 +116,17 @@ python3 -m pytest -q pruefungen/test_locale_completeness.py
 DISPLAY= WAYLAND_DISPLAY= XDG_DATA_HOME="$STAGE/test-data" \
 XDG_CONFIG_HOME="$STAGE/test-config" TZ=Europe/Berlin \
     python3 pruefungen/test_parser.py
-python3 -m pytest -q pruefungen/test_kdeconnect.py
-python3 -m pytest -q pruefungen/test_personal_sync.py
+python3 -m pytest -q pruefungen/test_kdeconnect.py pruefungen/test_personal_sync.py \
+    pruefungen/test_nextcloud.py pruefungen/test_hintergrunddienst.py \
+    pruefungen/test_naechster_weckzeitpunkt.py pruefungen/test_eds_adressbuch_sync.py \
+    pruefungen/test_chromium_fallback.py pruefungen/test_eds_calendar_dedup.py \
+    pruefungen/test_elf_glibc.py pruefungen/test_release_signatur.py \
+    pruefungen/test_restkorrekturen.py pruefungen/test_thunderbird_schema23.py \
+    pruefungen/test_update_security.py
 MAGNOLIE_VOLLPRUEFUNG=1 python3 -m pytest -q pruefungen/test_crash_reports.py
-python3 -m pytest -q pruefungen/test_hintergrunddienst.py
-python3 -m pytest -q pruefungen/test_naechster_weckzeitpunkt.py
 TZ=Europe/Berlin python3 pruefungen/test_import_export_vertrag.py
 TZ=Europe/Berlin python3 pruefungen/test_gesamtarchiv.py
 TZ=Europe/Berlin python3 pruefungen/test_telefon.py
-TZ=Europe/Berlin python3 pruefungen/test_eds_adressbuch_sync.py
 TZ=Europe/Berlin python3 pruefungen/test_wiederherstellungsjournal.py
 python3 pruefungen/test_paketinhalt.py
 TZ=Europe/Berlin "$LAEUFER" pruefungen/test.js

@@ -8290,13 +8290,16 @@ _HINTERGRUND_SICHTBARKEITS_ARBEITER = {}
 
 
 def _hintergrund_sichtbarkeit_senden(backend, sichtbar, name):
+    sichtbar = bool(sichtbar)
+    if getattr(backend, "_visible", None) is sichtbar:
+        return
     schluessel = id(backend)
     with _HINTERGRUND_SICHTBARKEITS_SPERRE:
         stand = _HINTERGRUND_SICHTBARKEITS_ARBEITER.get(schluessel)
         if stand is not None:
-            stand["sichtbar"] = bool(sichtbar)
+            stand["sichtbar"] = sichtbar
             return
-        stand = {"backend": backend, "sichtbar": bool(sichtbar)}
+        stand = {"backend": backend, "sichtbar": sichtbar}
         _HINTERGRUND_SICHTBARKEITS_ARBEITER[schluessel] = stand
 
     def senden():

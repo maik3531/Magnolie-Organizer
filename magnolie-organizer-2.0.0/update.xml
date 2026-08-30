@@ -12,19 +12,19 @@
     </linux>
     <windows>
       <url>https://gitlab.com/maik3531/mint-forgs/-/raw/main/Magnolie-Organitzer/Magnolie-Organizer-Windows-2.0.13-Setup-x64.exe</url>
-      <sha256>e4793aa2f181fac5fee4cdf2ad07249a213d271621d1713194b8d87705ae560c</sha256>
+      <sha256>257669a85b56fd00bde72e46c777bcfecf01cbf328802f02d5b0102df3d1d1a9</sha256>
     </windows>
   </manual>
   <appimage>
     <architecture>x86_64</architecture>
     <url>https://gitlab.com/maik3531/mint-forgs/-/raw/main/Magnolie-Organitzer/Magnolie-Organizer-2.0.13-x86_64.AppImage</url>
-    <sha256>b29d1abed21f8fc80eeeeaa3b9187d2a4ec97fa71eb0bc4b159e65501c961e52</sha256>
+    <sha256>ca1aaa6cdb84f8e21675e17e196ba67e3da39ab795c2181528b3d519c6eacd82</sha256>
   </appimage>
   <windows>
     <version>2.0.13</version>
     <url>https://gitlab.com/maik3531/mint-forgs/-/raw/main/Magnolie-Organitzer/Magnolie-Organizer-Windows-2.0.13-Setup-x64.exe</url>
-    <sha256>e4793aa2f181fac5fee4cdf2ad07249a213d271621d1713194b8d87705ae560c</sha256>
+    <sha256>257669a85b56fd00bde72e46c777bcfecf01cbf328802f02d5b0102df3d1d1a9</sha256>
   </windows>
-  <sha256>66d49b8bb649976058be02b9de87a14ae46579586a4a5461caceee40a029f538</sha256>
-  <signature>jipeu+OTs4VVyuq1BBoiAnOmlQ/vx4vX2GJJehxuzs7a2/kaCwV0tmtO0Kwnm35QpNWazN5YtK8VwmPaVGooDA==</signature>
+  <sha256>68aa69b381cae90b73c70e2578b3a4ae3f313d249458588059b7fa9b8adc14ce</sha256>
+  <signature>McSO93fFVcwwyVav5E8M1cqzjtx3aRjw5XP/QptMj0Hp5fUpb14VKJe0/CMz/z2JOeUNYG97IR7pUwpHbuj1Cw==</signature>
 </update>
