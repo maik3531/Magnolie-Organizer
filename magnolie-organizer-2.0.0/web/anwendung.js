@@ -15,7 +15,7 @@
 (function () {
 
   /* Die Fassung erscheint auf der Seite „Über". */
-const FASSUNG = "2.0.11";
+const FASSUNG = "2.0.12";
   const CONTRIBUTOR_BRANDING = "No valid coffee allowance";
 
   /* ---------------------------------------------------------------------- */
@@ -1045,18 +1045,17 @@ const FASSUNG = "2.0.11";
     for (const element of dialog.querySelectorAll(".geraet-online-details")) {
       element.classList.toggle("verborgen", offline);
     }
-    const wert = (name, rueckfall) => {
+    const wert = (name, anzeige) => {
       const element = dialog.querySelector('[data-geraet="' + name + '"]');
-      if (element) element.textContent = status[name] === undefined || status[name] === ""
-        ? (rueckfall || "–") : String(status[name]);
+      if (!element) return;
+      element.textContent = anzeige !== undefined ? (anzeige || "–")
+        : status[name] === undefined || status[name] === "" ? "–" : String(status[name]);
     };
     wert("model");
     wert("manufacturer");
     wert("app_version");
     wert("os_version");
     wert("sdk_int");
-    wert("battery_temperature_deci_c", Number(status.battery_temperature_deci_c) >= 0
-      ? (Number(status.battery_temperature_deci_c) / 10).toLocaleString() + " °C" : "–");
     const strom = { ac: "AC", usb: "USB", wireless: _("Wireless"), dock: "Dock",
       none: _("None"), unknown: _("Unknown") }[status.power_source] || "–";
     wert("power_source", strom);
@@ -1116,7 +1115,7 @@ const FASSUNG = "2.0.11";
       ["manufacturer", _("Manufacturer")], ["app_version", _("Magnolie Notes version")],
       ["os_version", _("Android version")],
       ["sdk_int", _("API level")], ["charging", _("Charging state")],
-      ["battery_temperature_deci_c", _("Temperature")], ["power_source", _("Power source")],
+      ["power_source", _("Power source")],
       ["storage", _("Storage available / total")], ["memory", _("Memory available / total")],
       ["uptime_ms", _("Uptime")], ["network_transport", _("Network")],
       ["network_validated", _("Internet available")], ["network_metered", _("Metered connection")],
@@ -1138,8 +1137,7 @@ const FASSUNG = "2.0.11";
       Bruecke.sende({ cmd: "telefon_status_anfordern", kennung: kennung });
     });
     const zu = knopf(_("Close"), "", schliessen);
-    const knoepfe = el("div", "dialog-knoepfe");
-    knoepfe.append(aktualisieren, zu);
+    const knoepfe = el("div", "dialog-knoepfe geraet-dialog-knoepfe");
     const peer = (telefonStand && telefonStand.peers || []).find((p) => p.device_id === kennung);
     const freigaben = el("div", "telefon-freigaben geraet-online-details");
     if (peer) for (const [name, text] of [
@@ -1163,6 +1161,7 @@ const FASSUNG = "2.0.11";
       input.addEventListener("change", () => fn(input.checked)); const label = el("label", "hak");
       label.append(input, document.createTextNode(" " + text)); personal.append(label); return input;
     };
+    let personalSyncKnopf = null;
     if (peer) {
       let eigen = !!peer.own_device, auto = !!peer.auto_wifi;
       const personalStand = el("p", "einst-hinweis");
@@ -1196,17 +1195,21 @@ const FASSUNG = "2.0.11";
         auto = an; peer.auto_wifi = an;
         Bruecke.sende({ cmd: "personal_sync_einstellungen", kennung: kennung, eigen: eigen, autoWlan: an });
       });
-      personal.append(knopf(_("Synchronize now"), "hauptknopf", () => {
+      personalSyncKnopf = knopf(_("Synchronize now"), "hauptknopf", () => {
         const aktuell = (telefonStand && telefonStand.peers || []).find((p) => p.device_id === kennung);
         personalSyncSenden(aktuell || peer, "manual").catch((fehler) => zettel(String(fehler.message || fehler)));
-      }), personalStand);
+      });
+      personal.append(personalStand);
     }
-    dialog.append(titel,
+    if (personalSyncKnopf) knoepfe.append(personalSyncKnopf);
+    knoepfe.append(aktualisieren, zu);
+    const inhalt = el("div", "geraet-dialog-inhalt");
+    inhalt.append(
       el("p", "einst-hinweis", _("This status comes from Magnolie Notes, not KDE Connect.")),
       el("p", "einst-hinweis", String(nutzlast.name || _("Unknown phone"))),
       telefon, online, akkuZeile, details, freigaben, personal,
-      el("p", "einst-hinweis", _("Notifications are display-only; replying and remote actions are not available.")),
-      knoepfe);
+      el("p", "einst-hinweis", _("Notifications are display-only; replying and remote actions are not available.")));
+    dialog.append(titel, inhalt, knoepfe);
     schleier.append(dialog); document.body.append(schleier);
     schleier.addEventListener("click", (ev) => { if (ev.target === schleier) schliessen(); });
     registriereModal(schleier, dialog, { anfang: aktualisieren, schliessen: schliessen });
@@ -15274,8 +15277,9 @@ const FASSUNG = "2.0.11";
       reiter.append(b);
     }
     wurzel.append(reiter);
-    /* Passen alle Reiter nebeneinander? Sonst genau vier je Zeile. */
-    setTimeout(ordneReiter, 0);
+    /* Passen alle Reiter nebeneinander? Die Messung wird mit dem nächsten
+       Bildaufbau gebündelt, damit schnelle Neuaufbauten nicht ruckeln. */
+    planeReiterOrdnung();
 
     const blatt = el("div", "einst-seite");
     blatt.setAttribute("role", "tabpanel");
@@ -15312,6 +15316,16 @@ const FASSUNG = "2.0.11";
   function reiterOrdnung(gebraucht, vorhanden) {
     if (!vorhanden) return "eine-reihe";      /* noch nicht gemessen */
     return gebraucht <= vorhanden + 1 ? "eine-reihe" : "zwei-reihen";
+  }
+
+  let reiterMessung = 0;
+
+  function planeReiterOrdnung() {
+    if (reiterMessung) return;
+    reiterMessung = requestAnimationFrame(() => {
+      reiterMessung = 0;
+      ordneReiter();
+    });
   }
 
   function ordneReiter() {
@@ -15825,6 +15839,8 @@ const FASSUNG = "2.0.11";
   let briefkastenStand = null;
   let briefkastenSignatur = "";
   let briefkastenMeldung = "";
+  let nextcloudEntwurf = null;
+  let nextcloudEntwurfGeaendert = false;
   let telefonStand = null;
   let telefonStandSignatur = "";
   let backgroundStand = null;
@@ -16621,19 +16637,36 @@ const FASSUNG = "2.0.11";
       Bruecke.sende({ cmd: "baum_briefkasten_status" });
       wurzel.append(ab); return;
     }
+    if (!nextcloudEntwurf) nextcloudEntwurf = {
+      davAktiv: briefkastenStand.davAktiv === true,
+      briefkastenAktiv: briefkastenStand.briefkastenAktiv === true,
+      url: String(briefkastenStand.url || ""),
+      benutzer: String(briefkastenStand.benutzer || "")
+    };
     const anHak = document.createElement("input");
     anHak.type = "checkbox"; anHak.id = "nextcloud-dav-an";
-    anHak.checked = !!briefkastenStand.davAktiv || (!briefkastenStand.briefkastenAktiv &&
-      !briefkastenStand.url && !briefkastenStand.benutzer && !briefkastenStand.kennwortVorhanden);
+    anHak.checked = nextcloudEntwurf.davAktiv;
+    anHak.addEventListener("change", () => {
+      nextcloudEntwurf.davAktiv = anHak.checked;
+      nextcloudEntwurfGeaendert = true;
+    });
     const anZeile = el("label", "hak");
     anZeile.append(anHak, document.createTextNode(" " +
       _("Synchronization") + ": Nextcloud"));
     ab.append(anZeile);
-    const urlFeld = eingabe("text", briefkastenStand.url || "");
+    const urlFeld = eingabe("text", nextcloudEntwurf.url);
     urlFeld.id = "briefkasten-url"; urlFeld.placeholder = "https://cloud.example.org";
+    urlFeld.addEventListener("input", () => {
+      nextcloudEntwurf.url = urlFeld.value;
+      nextcloudEntwurfGeaendert = true;
+    });
     ab.append(formZeile(_("Server address"), urlFeld));
-    const benutzerFeld = eingabe("text", briefkastenStand.benutzer || "");
+    const benutzerFeld = eingabe("text", nextcloudEntwurf.benutzer);
     benutzerFeld.id = "briefkasten-benutzer";
+    benutzerFeld.addEventListener("input", () => {
+      nextcloudEntwurf.benutzer = benutzerFeld.value;
+      nextcloudEntwurfGeaendert = true;
+    });
     ab.append(formZeile(_("User name"), benutzerFeld));
     const kennwortFeld = eingabe("password", "");
     kennwortFeld.id = "briefkasten-kennwort"; kennwortFeld.autocomplete = "new-password";
@@ -16646,10 +16679,16 @@ const FASSUNG = "2.0.11";
     const reihe = el("div", "knopfreihe");
     const senden = (kennwortLoeschen) => {
       const briefkastenAktiv = !!($("#briefkasten-an") && $("#briefkasten-an").checked);
+      nextcloudEntwurf.davAktiv = anHak.checked;
+      nextcloudEntwurf.briefkastenAktiv = briefkastenAktiv;
+      nextcloudEntwurf.url = urlFeld.value;
+      nextcloudEntwurf.benutzer = benutzerFeld.value;
+      nextcloudEntwurfGeaendert = true;
+      for (const feld of ab.querySelectorAll("input, button")) feld.disabled = true;
       Bruecke.sende({ cmd: "baum_briefkasten_speichern",
         davAktiv: kennwortLoeschen ? false : anHak.checked,
         briefkastenAktiv: kennwortLoeschen ? false : briefkastenAktiv,
-        url: urlFeld.value.trim(), benutzer: benutzerFeld.value.trim(),
+        url: nextcloudEntwurf.url.trim(), benutzer: nextcloudEntwurf.benutzer.trim(),
         anwendungskennwort: kennwortLoeschen ? "" : kennwortFeld.value,
         kennwortLoeschen: !!kennwortLoeschen });
       kennwortFeld.value = "";
@@ -16681,18 +16720,26 @@ const FASSUNG = "2.0.11";
       _("A fallback for branch baum-1: when the direct connection cannot be reached, " +
         "messages travel through a WebDAV folder on your Nextcloud server."));
     ab.id = "nextcloud-briefkasten";
-    ab.append(el("p", "einst-warnung",
-      _("This is only the encrypted Magnolienbaum fallback for baum-1. It does not " +
-        "synchronize calendars or contacts. Both partners need access to the same " +
-        "Nextcloud storage.")));
+    const warnung = el("p", "einst-warnung");
+    warnung.textContent = _("This is only the encrypted Magnolienbaum fallback for baum-1. It does not " +
+      "synchronize calendars or contacts. Both partners need access to the same " +
+      "Nextcloud storage.") + " " + _("The server operator can see the account, folder and file names, " +
+      "sizes and times of your messages.");
+    ab.append(warnung);
     const an = document.createElement("input");
     an.type = "checkbox"; an.id = "briefkasten-an";
-    an.checked = !!briefkastenStand.briefkastenAktiv;
+    an.checked = nextcloudEntwurf ? nextcloudEntwurf.briefkastenAktiv
+      : briefkastenStand.briefkastenAktiv === true;
+    an.addEventListener("change", () => {
+      if (nextcloudEntwurf) {
+        nextcloudEntwurf.briefkastenAktiv = an.checked;
+        nextcloudEntwurfGeaendert = true;
+      }
+    });
     const zeile = el("label", "hak");
     zeile.append(an, document.createTextNode(" " +
       _("Use the mailbox as a fallback for branch baum-1")));
-    ab.append(zeile, el("p", "einst-warnung",
-      _("The server operator can see the account, folder and file names, sizes and times of your messages.")));
+    ab.append(zeile);
     wurzel.append(ab);
   }
 
@@ -16982,6 +17029,9 @@ const FASSUNG = "2.0.11";
 
   function baueSeiteUeber(wurzel) {
     const ab = abschnitt(_("About the Magnolie Organizer"), "");
+    const raster = el("div", "ueber-raster");
+    const links = el("div", "ueber-spalte");
+    const rechts = el("div", "ueber-spalte");
 
     const kopf = el("div", "ueber-kopf");
     const blume = document.createElementNS("http://www.w3.org/2000/svg", "svg");
@@ -17007,13 +17057,13 @@ const FASSUNG = "2.0.11";
     kopfText.append(el("div", "ueber-fassung",
       uebersetzt("Version %(version)s", { version: FASSUNG })));
     kopf.append(blume, kopfText);
-    ab.append(kopf);
+    links.append(kopf);
 
     const beschreibung = el("p", "ueber-beschreibung");
     beschreibung.append(document.createTextNode(
       _("An appointment calendar, address book, task book and notepad in the " +
         "guise of a leather-bound organizer —").replace(/[—–-]\s*$/, ".")));
-    ab.append(beschreibung);
+    links.append(beschreibung);
 
     const handbuchKasten = el("div", "update-kasten");
     handbuchKasten.append(el("div", "update-titel", _("Manual")));
@@ -17051,7 +17101,7 @@ const FASSUNG = "2.0.11";
       handbuchKasten.append(summe);
     }
     handbuchKasten.append(handbuchReihe);
-    ab.append(handbuchKasten);
+    rechts.append(handbuchKasten);
 
     const zeile = (wort, wert) => {
       const z = el("div", "ueber-zeile");
@@ -17059,11 +17109,11 @@ const FASSUNG = "2.0.11";
       z.append(el("span", "ueber-wert", wert));
       return z;
     };
-    ab.append(zeile(_("Author"), "Maik Walter"));
-    ab.append(zeile(_("License"),
+    links.append(zeile(_("Author"), "Maik Walter"));
+    links.append(zeile(_("License"),
       _("GNU General Public License, version 3 or later")));
 
-    ab.append(el("p", "einst-hinweis",
+    links.append(el("p", "einst-hinweis",
       _("This program is free software: you may redistribute and modify it. It is " +
         "published in the hope that it will be useful, but without any warranty. " +
         "The full license text is available at /usr/share/common-licenses/GPL-3.")));
@@ -17136,7 +17186,7 @@ const FASSUNG = "2.0.11";
       planeSpeichern();
       if (update.automatisch) starteUpdatePruefung(false);
     });
-    ab.append(updateKasten);
+    rechts.append(updateKasten);
 
     /* Der Hinweis auf einen Kaffee – die Anschrift bleibt schlichter Text
        und ist bewusst nicht anklickbar. */
@@ -17155,7 +17205,7 @@ const FASSUNG = "2.0.11";
     kaffeeQr.src = "kaffee-qr.png";
     kaffeeQr.alt = "QR-Code";
     kaffee.append(kaffeeQr);
-    ab.append(kaffee);
+    links.append(kaffee);
 
     if (contributorAktiv &&
         !DATEN.einstellungen.allgemein.contributorFreigeschaltet) {
@@ -17192,9 +17242,11 @@ const FASSUNG = "2.0.11";
       });
       contributorZeile.append(contributorLabel, contributorFeld, contributorKnopf);
       contributor.append(contributorZeile, contributorStatus);
-      ab.append(contributor);
+      links.append(contributor);
     }
 
+    raster.append(links, rechts);
+    ab.append(raster);
     wurzel.append(ab);
   }
 
@@ -18063,10 +18115,12 @@ const FASSUNG = "2.0.11";
       ks.append(warn);
     }
 
-    ks.append(el("p", "einst-warnung",
-      _("A password initially locks out the background reminder service. Without " +
-        "the explicit permission below, notifications work only while the organizer " +
-        "is open and unlocked.")));
+    const kennwortWarnung = el("p", "einst-warnung");
+    kennwortWarnung.textContent = _("A password initially locks out the background reminder service. Without " +
+      "the explicit permission below, notifications work only while the organizer " +
+      "is open and unlocked.") + " " + _("Important: Without this password, nobody can access the data, including " +
+      "you. Keep it in a safe place.");
+    ks.append(kennwortWarnung);
     const erinnerHak = document.createElement("input");
     erinnerHak.type = "checkbox";
     erinnerHak.id = "kennwort-erinnerungen";
@@ -18174,10 +18228,6 @@ const FASSUNG = "2.0.11";
         _("A numeric code can be entered conveniently using the keypad when opening; " +
           "letters work as well. After three failed attempts, the organizer waits " +
           "five minutes.")));
-      const warnung = el("p", "einst-warnung",
-        _("Important: Without this password, nobody can access the data, including " +
-          "you. Keep it in a safe place."));
-      ks.append(warnung);
       const reihe = el("div", "knopfreihe");
       const anKnopf = knopf(_("Enable password protection"), "", () => {
         if (neuFeld.value.length < 4) {
@@ -20415,6 +20465,7 @@ const FASSUNG = "2.0.11";
     },
     baumBriefkastenStatus(nutzlast) {
       briefkastenStand = nutzlast || {};
+      if (!nextcloudEntwurfGeaendert) nextcloudEntwurf = null;
       briefkastenMeldung = !briefkastenStand.fehler && !briefkastenStand.davAktiv &&
         !briefkastenStand.briefkastenAktiv &&
         (briefkastenStand.url || briefkastenStand.kennwortVorhanden)
@@ -20427,6 +20478,8 @@ const FASSUNG = "2.0.11";
     },
     baumBriefkastenGespeichert(nutzlast) {
       briefkastenStand = nutzlast || {};
+      nextcloudEntwurf = null;
+      nextcloudEntwurfGeaendert = false;
       briefkastenSignatur = JSON.stringify(briefkastenStand);
       briefkastenMeldung = briefkastenStand.fehler ? "" : _("Saved.");
       Bruecke.sende({ cmd: "eds_status" });
@@ -21642,6 +21695,7 @@ const FASSUNG = "2.0.11";
     ].join(",");
     const fehler = [];
     for (const element of (wurzel || document).querySelectorAll(auswahl)) {
+      if (element.matches(".mini-termin")) continue;
       const stil = getComputedStyle(element);
       const rechteck = element.getBoundingClientRect();
       if (stil.display === "none" || stil.visibility === "hidden" ||
@@ -21877,7 +21931,7 @@ const FASSUNG = "2.0.11";
        so ist zu sehen, dass ein zweiter Druck die Auszeichnung aufhebt. */
     window.addEventListener("resize", () => {
       if (!$("#einstellungen-schleier").classList.contains("verborgen")) {
-        ordneReiter();
+        planeReiterOrdnung();
       }
     });
 

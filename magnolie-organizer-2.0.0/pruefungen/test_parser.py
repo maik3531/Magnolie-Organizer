@@ -890,6 +890,14 @@ pruefe("TEL;TYPE=CELL;X-MEINS=eins:+49 30 111111" in parameter_export and
 sozial_aufrufe = []
 sozial = m.sozial_oeffnen(
     "whatsapp", "+49 170 1234567", sozial_aufrufe.append,
+    lambda name: "/usr/bin/whatsie" if name == "whatsie" else None)
+pruefe(sozial["ok"] and sozial["womit"] == "whatsie" and
+       sozial_aufrufe[0] == ["/usr/bin/whatsie",
+                             "whatsapp://send?phone=491701234567"],
+       "Whatsie öffnet unmittelbar den Kontakt über das WhatsApp-Schema")
+sozial_aufrufe = []
+sozial = m.sozial_oeffnen(
+    "whatsapp", "+49 170 1234567", sozial_aufrufe.append,
     lambda name: "/usr/bin/zapzap" if name == "zapzap" else None)
 pruefe(sozial["ok"] and sozial["womit"] == "zapzap" and
        sozial_aufrufe[0][1] == "https://wa.me/491701234567",
@@ -2036,7 +2044,7 @@ except RuntimeError as f:
 
 print()
 print("— Aktualisierungsprüfung —")
-pruefe(m.PROGRAMM_FASSUNG == "2.0.11", "Programmkern trägt die neue Fassung")
+pruefe(m.PROGRAMM_FASSUNG == "2.0.12", "Programmkern trägt die neue Fassung")
 desktop_pfad = os.path.abspath(os.path.join(os.path.dirname(PFAD), "..",
                                              "io.gitlab.maik3531.MagnolieOrganizer.desktop"))
 with open(desktop_pfad, encoding="utf-8") as datei:
@@ -2111,28 +2119,28 @@ update_oeffentlich = m.base64.b64encode(update_privat.public_key().public_bytes(
     update_serialisierung.Encoding.Raw,
     update_serialisierung.PublicFormat.Raw)).decode("ascii")
 update_summe = "ab" * 32
-update_paket = m.UPDATE_BASIS + "magnolie-organizer_2.0.12_all.deb"
+update_paket = m.UPDATE_BASIS + "magnolie-organizer_2.0.13_all.deb"
 update_signatur = m.base64.b64encode(update_privat.sign(
-    m.update_signatur_nachricht("2.0.12", update_paket, update_summe))).decode("ascii")
-update_xml = ("<?xml version='1.0'?><update><version>2.0.12</version>"
+    m.update_signatur_nachricht("2.0.13", update_paket, update_summe))).decode("ascii")
+update_xml = ("<?xml version='1.0'?><update><version>2.0.13</version>"
                "<deb>" + update_paket + "</deb><sha256>" + update_summe +
                "</sha256><signature>" + update_signatur + "</signature></update>")
 version, paket = m.update_info_lesen(update_xml)
-pruefe(version == "2.0.12" and paket.endswith("_2.0.12_all.deb"),
+pruefe(version == "2.0.13" and paket.endswith("_2.0.13_all.deb"),
        "update.xml liefert Fassung und Paketadresse")
 update_neu = m.update_pruefen(lambda _url: update_xml, update_oeffentlich)
 pruefe(update_neu["ok"] and not update_neu["aktuell"] and
-       update_neu["version"] == "2.0.12" and
+       update_neu["version"] == "2.0.13" and
        update_neu["sha256"] == update_summe and update_neu["url"] == update_paket,
        "eine Debian-Installation erhält das signierte Debian-Paket")
-appimage_paket = m.UPDATE_BASIS + "Magnolie-Organizer-2.0.12-x86_64.AppImage"
+appimage_paket = m.UPDATE_BASIS + "Magnolie-Organizer-2.0.13-x86_64.AppImage"
 appimage_summe = "ef" * 32
-appimage_xml = ("<update><version>2.0.12</version><deb>" + update_paket +
+appimage_xml = ("<update><version>2.0.13</version><deb>" + update_paket +
                  "</deb><sha256>" + update_summe + "</sha256><appimage>"
                  "<architecture>x86_64</architecture><url>" + appimage_paket +
                  "</url><sha256>" + appimage_summe + "</sha256></appimage>")
 appimage_signatur = m.base64.b64encode(update_privat.sign(
-    m.update_signatur_nachricht("2.0.12", update_paket, update_summe,
+    m.update_signatur_nachricht("2.0.13", update_paket, update_summe,
                                appimage_paket, appimage_summe))).decode("ascii")
 appimage_xml += "<signature>" + appimage_signatur + "</signature></update>"
 appimage_umgebung = os.environ.get("APPIMAGE")
@@ -2149,28 +2157,28 @@ pruefe(appimage_update["ok"] and not appimage_update["aktuell"] and
        appimage_update["url"] == appimage_paket and
        appimage_update["sha256"] == appimage_summe and not appimage_fehlt["ok"],
        "eine AppImage-Installation erhält nur das passende geprüfte AppImage")
-aarch64_paket = m.UPDATE_BASIS + "Magnolie-Organizer-2.0.12-aarch64.AppImage"
-aarch64_xml = ("<update><version>2.0.12</version><deb>" + update_paket +
+aarch64_paket = m.UPDATE_BASIS + "Magnolie-Organizer-2.0.13-aarch64.AppImage"
+aarch64_xml = ("<update><version>2.0.13</version><deb>" + update_paket +
                "</deb><sha256>" + update_summe + "</sha256><appimage>"
                "<architecture>aarch64</architecture><url>" + aarch64_paket +
                "</url><sha256>" + appimage_summe + "</sha256></appimage>")
 aarch64_signatur = m.base64.b64encode(update_privat.sign(
-    m.update_signatur_nachricht("2.0.12", update_paket, update_summe,
+    m.update_signatur_nachricht("2.0.13", update_paket, update_summe,
                                aarch64_paket, appimage_summe))).decode("ascii")
 aarch64_geprueft = m.update_manifest_pruefen(
     aarch64_xml + "<signature>" + aarch64_signatur + "</signature></update>",
     update_oeffentlich)
 pruefe(aarch64_geprueft["url"] == update_paket and not aarch64_geprueft["appimage"],
        "ein signierter fremder AppImage-Abschnitt sperrt das Debian-Update nicht")
-aktuell_paket = m.UPDATE_BASIS + "magnolie-organizer_2.0.11_all.deb"
+aktuell_paket = m.UPDATE_BASIS + "magnolie-organizer_2.0.12_all.deb"
 aktuell_signatur = m.base64.b64encode(update_privat.sign(
-    m.update_signatur_nachricht("2.0.11", aktuell_paket, update_summe))).decode("ascii")
-aktuell_xml = ("<update><version>2.0.11</version><deb>" + aktuell_paket +
+    m.update_signatur_nachricht("2.0.12", aktuell_paket, update_summe))).decode("ascii")
+aktuell_xml = ("<update><version>2.0.12</version><deb>" + aktuell_paket +
                "</deb><sha256>" + update_summe + "</sha256><signature>" +
                aktuell_signatur + "</signature></update>")
 update_aktuell = m.update_pruefen(lambda _url: aktuell_xml, update_oeffentlich)
 pruefe(update_aktuell["ok"] and update_aktuell["aktuell"] and
-       update_aktuell["version"] == "2.0.11" and not update_aktuell["url"],
+       update_aktuell["version"] == "2.0.12" and not update_aktuell["url"],
        "dieselbe signierte Fassung gilt als aktuell")
 alt_paket = m.UPDATE_BASIS + "magnolie-organizer_2.0.0_all.deb"
 alt_signatur = m.base64.b64encode(update_privat.sign(
@@ -2185,17 +2193,17 @@ pruefe(update_alt["ok"] and update_alt["aktuell"] and
 handbuch_paket = m.UPDATE_BASIS + "magnolie-handbuch_1.9.8_all.deb"
 handbuch_summe = "cd" * 32
 handbuch_signatur = m.base64.b64encode(update_privat.sign(
-    m.update_signatur_nachricht("2.0.11", aktuell_paket, update_summe,
+    m.update_signatur_nachricht("2.0.12", aktuell_paket, update_summe,
                                manual_version="1.9.8", manual_linux=handbuch_paket,
                                manual_linux_sha=handbuch_summe))).decode("ascii")
-handbuch_xml = ("<update><version>2.0.11</version><deb>" + aktuell_paket +
+handbuch_xml = ("<update><version>2.0.12</version><deb>" + aktuell_paket +
     "</deb><sha256>" + update_summe + "</sha256><manual><version>1.9.8</version>"
     "<linux><deb>" + handbuch_paket + "</deb><sha256>" + handbuch_summe +
     "</sha256></linux></manual><signature>" + handbuch_signatur +
     "</signature></update>")
 handbuch_update = m.update_pruefen(lambda _url: handbuch_xml, update_oeffentlich)
 pruefe(handbuch_update["ok"] and handbuch_update["aktuell"] and
-       handbuch_update["version"] == "2.0.11" and
+       handbuch_update["version"] == "2.0.12" and
        handbuch_update["handbuch"] == {"version": "1.9.8",
        "url": handbuch_paket, "sha256": handbuch_summe, "platform": "linux"},
        "verschachtelte Handbuchdaten verändern die Organizerfelder nicht")
@@ -2204,7 +2212,7 @@ pruefe(bool(handbuch_update.get("handbuch")) and
        "der Handbuchdownload wird an das zuletzt validierte Manifest gebunden")
 falsches_handbuch_paket = m.UPDATE_BASIS + "magnolie-organizer_1.9.8_all.deb"
 falsche_handbuch_signatur = m.base64.b64encode(update_privat.sign(
-    m.update_signatur_nachricht("2.0.11", aktuell_paket, update_summe,
+    m.update_signatur_nachricht("2.0.12", aktuell_paket, update_summe,
                                manual_version="1.9.8",
                                manual_linux=falsches_handbuch_paket,
                                manual_linux_sha=handbuch_summe))).decode("ascii")
@@ -2241,7 +2249,9 @@ pruefe(not update_ohne_signatur["ok"] and "signatur" in
        update_ohne_signatur["fehler"].lower(),
        "ein Manifest ohne Signatur wird mit gültigem Release-Schlüssel abgewiesen")
 update_veraendert = m.update_pruefen(
-    lambda _url: update_xml.replace("2.0.12", "2.0.11"), update_oeffentlich)
+    lambda _url: update_xml.replace("<version>2.0.13</version>",
+                                    "<version>2.0.14</version>"),
+    update_oeffentlich)
 pruefe(not update_veraendert["ok"] and any(text in
        update_veraendert["fehler"].lower() for text in
        ("invalid signature", "ungültige signatur")),
@@ -3043,6 +3053,56 @@ try:
            "altes WebKit behält den kompatiblen JavaScript-Rückfall")
 finally:
     m.GLib = js_glib_alt
+
+class _SichtbarkeitsProbe:
+    def __init__(self):
+        self.aufrufe = []
+        self.erster_aufruf = m.threading.Event()
+        self.fortsetzen = m.threading.Event()
+    def set_visible(self, sichtbar):
+        self.aufrufe.append(sichtbar)
+        if len(self.aufrufe) == 1:
+            self.erster_aufruf.set()
+            self.fortsetzen.wait(2)
+
+sichtbarkeits_probe = _SichtbarkeitsProbe()
+m._hintergrund_sichtbarkeit_senden(
+    sichtbarkeits_probe, False, "magnolie-visibility-test-old")
+pruefe(sichtbarkeits_probe.erster_aufruf.wait(2),
+       "die erste Hintergrundsichtbarkeit wird ohne GUI-Blockade gesendet")
+sichtbarkeits_start = time.monotonic()
+m._hintergrund_sichtbarkeit_senden(
+    sichtbarkeits_probe, True, "magnolie-visibility-test-new")
+pruefe(time.monotonic() - sichtbarkeits_start < 0.2,
+       "das Einreihen neuer Hintergrundsichtbarkeit blockiert die GUI nicht")
+sichtbarkeits_probe.fortsetzen.set()
+for _versuch in range(200):
+    if len(sichtbarkeits_probe.aufrufe) == 2:
+        break
+    time.sleep(0.01)
+pruefe(sichtbarkeits_probe.aufrufe == [False, True],
+       "schnelle Sichtbarkeitswechsel enden mit dem neuesten GUI-Zustand")
+
+class _FehlerhafteSichtbarkeitsProbe:
+    def set_visible(self, _sichtbar):
+        raise RuntimeError("visibility probe")
+
+fehlerhafte_sichtbarkeits_probe = _FehlerhafteSichtbarkeitsProbe()
+m._hintergrund_sichtbarkeit_senden(
+    fehlerhafte_sichtbarkeits_probe, True, "magnolie-visibility-test-error")
+for _versuch in range(200):
+    with m._HINTERGRUND_SICHTBARKEITS_SPERRE:
+        if id(fehlerhafte_sichtbarkeits_probe) not in m._HINTERGRUND_SICHTBARKEITS_ARBEITER:
+            break
+    time.sleep(0.01)
+with m._HINTERGRUND_SICHTBARKEITS_SPERRE:
+    sichtbarkeits_fehler_aufgeraeumt = (id(fehlerhafte_sichtbarkeits_probe) not in
+                                       m._HINTERGRUND_SICHTBARKEITS_ARBEITER)
+pruefe(sichtbarkeits_fehler_aufgeraeumt,
+       "ein fehlgeschlagener Sichtbarkeitsaufruf blockiert spätere Meldungen nicht")
+pruefe("_hintergrund_sichtbarkeit_senden" in
+       m.Fenster._telefon_dienst_pflegen.__code__.co_names,
+       "auch der Telefonstatus bündelt Sichtbarkeitsmeldungen seriell")
 
 class _TrayZaehlerProbe:
     def __init__(self, art):

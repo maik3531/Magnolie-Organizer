@@ -40,16 +40,16 @@ sharing first.
 
 | Platform | Recommended package | Alternative |
 |---|---|---|
-| Linux | [Flatpak x86_64](https://github.com/maik3531/Magnolie-Organizer/releases/latest/download/Magnolie-Organizer-2.0.11-x86_64.flatpak) | [AppImage](https://github.com/maik3531/Magnolie-Organizer/releases/latest/download/Magnolie-Organizer-2.0.11-x86_64.AppImage) · [Debian package](https://github.com/maik3531/Magnolie-Organizer/releases/latest/download/magnolie-organizer_2.0.11_all.deb) |
-| Windows 10/11 x64 | [Setup](https://github.com/maik3531/Magnolie-Organizer/releases/latest/download/Magnolie-Organizer-Windows-2.0.11-Setup-x64.exe) | [Portable ZIP](https://github.com/maik3531/Magnolie-Organizer/releases/latest/download/Magnolie-Organizer-Windows-2.0.11-x64.zip) |
+| Linux | [Flatpak x86_64](https://github.com/maik3531/Magnolie-Organizer/releases/latest/download/Magnolie-Organizer-2.0.12-x86_64.flatpak) | [AppImage](https://github.com/maik3531/Magnolie-Organizer/releases/latest/download/Magnolie-Organizer-2.0.12-x86_64.AppImage) · [Debian package](https://github.com/maik3531/Magnolie-Organizer/releases/latest/download/magnolie-organizer_2.0.12_all.deb) |
+| Windows 10/11 x64 | [Setup](https://github.com/maik3531/Magnolie-Organizer/releases/latest/download/Magnolie-Organizer-Windows-2.0.12-Setup-x64.exe) | [Portable ZIP](https://github.com/maik3531/Magnolie-Organizer/releases/latest/download/Magnolie-Organizer-Windows-2.0.12-x64.zip) |
 | Android | [Magnolie Notes APK](https://github.com/maik3531/Magnolie-Organizer/releases/latest/download/Magnolie-Notes-1.0.9.apk) | Android 8.0 or newer |
-| Handbook | [Debian package](https://github.com/maik3531/Magnolie-Organizer/releases/latest/download/magnolie-handbuch_2.0.11_all.deb) | Included as an optional Windows component |
+| Handbook | [Debian package](https://github.com/maik3531/Magnolie-Organizer/releases/latest/download/magnolie-handbuch_2.0.12_all.deb) | Included as an optional Windows component |
 
 SHA-256 checksums and source archives are attached to the
 [latest release](https://github.com/maik3531/Magnolie-Organizer/releases/latest).
 
 > [!IMPORTANT]
-> The Windows 2.0.11 artifacts are unsigned Linux cross-builds. Source, web,
+> The Windows 2.0.12 artifacts are unsigned Linux cross-builds. Source, web,
 > package-content and 30,000-item core tests pass, but a current Windows VM run
 > was unavailable. Review the release notes before use.
 
@@ -81,7 +81,7 @@ SHA-256 checksums and source archives are attached to the
 | Magnolie Handbook | Python, GTK, HTML/CSS/JavaScript | [`magnolie-handbuch-stamm`](magnolie-handbuch-stamm/) |
 
 Each directory contains its own build and test instructions. The repository
-contains the published sources for release 2.0.11 / Notes 1.0.9; generated
+contains the published sources for release 2.0.12 / Notes 1.0.9; generated
 packages are kept on the Releases page rather than in Git history.
 
 ## Security and privacy

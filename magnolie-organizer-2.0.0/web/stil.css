@@ -2584,7 +2584,7 @@ label.hak input { accent-color: var(--braun); }
 
 #einstellungen-blatt {
   width: min(940px, 96vw);
-  height: min(720px, 94vh);
+  height: min(820px, 96vh);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -2818,6 +2818,8 @@ label.hak.ganztags {
   min-height: 0;
   flex: 1;
   overflow-y: auto;
+  overscroll-behavior-y: contain;
+  scrollbar-gutter: stable;
   padding-inline: 4px 5px;
 }
 
@@ -3848,15 +3850,14 @@ body[data-pruefung="an"] #notiz-titel {
    Magnolie 1.16 – Reiter passen sich dem Bildschirm an
    ========================================================================== */
 
-/* Auf breiten Schirmen stehen alle acht Reiter nebeneinander. */
+/* Auf breiten Schirmen stehen alle Reiter nebeneinander. */
 .einst-reiter-knopf { flex: 0 1 auto; }
 
-/* Passen nicht alle nebeneinander, werden es genau vier je Zeile – zwei
-   saubere Reihen statt sieben oben und einer allein darunter. Gemessen
-   wird das beim Öffnen und bei jeder Größenänderung. */
+/* Passen nicht alle nebeneinander, verteilen zwölf Reiter sich auf zwei
+   kompakte Zeilen. Gemessen wird das beim Öffnen und bei Größenänderungen. */
 .einst-reiter.zwei-reihen .einst-reiter-knopf {
-  flex: 1 1 calc(25% - 3px);
-  max-width: calc(25% - 3px);
+  flex: 1 1 calc(16.666% - 3px);
+  max-width: calc(16.666% - 3px);
   justify-content: center;
   text-align: center;
   padding-left: 6px;
@@ -3963,7 +3964,33 @@ textarea,
   display: grid; grid-template-columns: minmax(120px, 0.8fr) minmax(0, 1.2fr);
   gap: 5px 12px; margin: 12px 0;
 }
-.geraet-dialog { width: min(610px, calc(100vw - 32px)); max-height: calc(100vh - 32px); overflow: auto; }
+.geraet-dialog {
+  width: min(610px, calc(100vw - 32px));
+  max-height: calc(100vh - 32px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.geraet-dialog > h3 { flex: none; }
+.geraet-dialog-inhalt {
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  scrollbar-gutter: stable;
+  padding: 0 8px 4px 2px;
+}
+.geraet-dialog-knoepfe {
+  flex: none;
+  margin: 8px -4px -2px;
+  padding: 12px 4px 2px;
+  border-top: 1px solid var(--linie-stark);
+  background: var(--papier);
+}
+.telefon-personal-sync > label.hak {
+  display: flex;
+  align-items: flex-start;
+  margin: 6px 0;
+}
 .geraet-details dt { color: var(--braun); font-weight: 700; }
 .geraet-details dd { margin: 0; overflow-wrap: anywhere; }
 .geraet-akku-zeile { display: flex; align-items: center; justify-content: center; gap: 10px; }
@@ -4873,6 +4900,14 @@ body[data-hilfsrahmen="an"] .ods-feldauswahl :focus-visible {
   margin-bottom: 10px;
 }
 
+.ueber-raster {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 14px 22px;
+}
+
+.ueber-spalte { min-width: 0; }
+
 .ueber-blume {
   width: 46px;
   height: 46px;
@@ -4913,7 +4948,7 @@ body[data-hilfsrahmen="an"] .ods-feldauswahl :focus-visible {
   border: 1px solid rgba(151, 126, 78, 0.45);
   border-radius: 5px;
   background: rgba(255, 255, 255, 0.18);
-  max-width: 62ch;
+  max-width: none;
 }
 
 .update-titel {
@@ -4950,7 +4985,7 @@ body[data-hilfsrahmen="an"] .ods-feldauswahl :focus-visible {
   border-left: 3px solid var(--gold-dunkel);
   border-radius: 5px;
   background: rgba(216, 178, 92, 0.16);
-  max-width: 62ch;
+  max-width: none;
 }
 
 .kaffee-zeichen { font-size: 30px; line-height: 1; flex: none; }
@@ -4982,7 +5017,7 @@ body[data-hilfsrahmen="an"] .ods-feldauswahl :focus-visible {
 }
 
 .contributor-kasten {
-  max-width: 62ch;
+  max-width: none;
   margin-top: 10px;
   padding: 11px 16px 13px;
   border: 1px solid rgba(151, 122, 67, 0.5);
@@ -5003,26 +5038,27 @@ body[data-hilfsrahmen="an"] .ods-feldauswahl :focus-visible {
 
 .contributor-status.fehler { color: var(--rot); }
 
+@media (max-width: 760px) {
+  .ueber-raster { grid-template-columns: 1fr; }
+  .einst-reiter.zwei-reihen .einst-reiter-knopf {
+    flex-basis: calc(25% - 3px);
+    max-width: calc(25% - 3px);
+  }
+}
+
 /* ==========================================================================
    Magnolie 1.21 – Linien und Zeilen aus einer Quelle
 
    Der Abstand der Linien und die Zeilenhöhe des Textes stammen von nun an
-   aus derselben Größe. Damit sitzt die Schrift in jeder Schriftart und in
-   jeder Größe genau auf den Linien – und weil die Linie eine feste Höhe
-   in Bildpunkten hat, ändert daran auch eine andere Schriftart nichts.
+   aus derselben Größe. Die Variable liegt am Textfeld, damit auch die
+   Systemschriftvergrößerung und Magnolies Schriftwahl in sie eingehen.
    ========================================================================== */
-
-body { --zeilenhoehe: 1.87em; }
-
-/* Die Linie gehört nicht an den unteren Rand der Zeile, sondern dorthin,
-   wo die Schrift aufsitzt – also knapp unter die Schriftlinie. Bei einer
-   Zeilenhöhe von 28 Bildpunkten liegt die Schriftlinie bei etwa 19; die
-   Linie sitzt deshalb bei 76 Hundertsteln der Zeilenhöhe. Weil das ein
-   Anteil ist, stimmt es in jeder Größe und bei jeder Schriftart. */
-:root { --linien-stelle: 0.76; }
 
 #notiz-text,
 #tb-notiz {
+  --zeilenhoehe: 1.87em;
+  /* Halber Durchschuss plus Schriftgrundlinie: skaliert ohne Pixelannahme. */
+  --linien-stelle: calc((var(--zeilenhoehe) - 1em) / 2 + 0.82em);
   line-height: 1.87;
   padding-top: 0;
   padding-bottom: 0;
@@ -5032,10 +5068,10 @@ body { --zeilenhoehe: 1.87em; }
   background-size: 100% var(--zeilenhoehe);
   background-image:
     repeating-linear-gradient(
-      rgba(0, 0, 0, 0) 0 calc(var(--zeilenhoehe) * var(--linien-stelle)),
-      var(--linie) calc(var(--zeilenhoehe) * var(--linien-stelle))
-        calc(var(--zeilenhoehe) * var(--linien-stelle) + 1px),
-      rgba(0, 0, 0, 0) calc(var(--zeilenhoehe) * var(--linien-stelle) + 1px)
+      rgba(0, 0, 0, 0) 0 var(--linien-stelle),
+      var(--linie) var(--linien-stelle)
+        calc(var(--linien-stelle) + 1px),
+      rgba(0, 0, 0, 0) calc(var(--linien-stelle) + 1px)
         var(--zeilenhoehe));
 }
 
@@ -5052,10 +5088,10 @@ body { --zeilenhoehe: 1.87em; }
   background-image:
     linear-gradient(90deg, rgba(195, 118, 106, 0.8), rgba(195, 118, 106, 0.8)),
     repeating-linear-gradient(
-      rgba(0, 0, 0, 0) 0 calc(var(--zeilenhoehe) * var(--linien-stelle)),
-      var(--linie) calc(var(--zeilenhoehe) * var(--linien-stelle))
-        calc(var(--zeilenhoehe) * var(--linien-stelle) + 1px),
-      rgba(0, 0, 0, 0) calc(var(--zeilenhoehe) * var(--linien-stelle) + 1px)
+      rgba(0, 0, 0, 0) 0 var(--linien-stelle),
+      var(--linie) var(--linien-stelle)
+        calc(var(--linien-stelle) + 1px),
+      rgba(0, 0, 0, 0) calc(var(--linien-stelle) + 1px)
         var(--zeilenhoehe));
 }
 

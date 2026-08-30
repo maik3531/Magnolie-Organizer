@@ -113,7 +113,7 @@ def test_headless_cli_dispatches_before_any_gui_import():
         runpy.run_path(PROGRAM, run_name="__main__")
     assert stopped.value.code == 23
     fake_crash.install.assert_called_once_with(
-        "magnolie-organizer", "2.0.11", "background-service")
+        "magnolie-organizer", "2.0.12", "background-service")
     assert calls == ["crash", "daemon"]
     assert fake.daemon_main.called
     assert "gi" not in imported
@@ -294,6 +294,24 @@ def test_settings_ipc_and_proxy_callback_deliver_bounded_non_actionable_events()
             server.close()
 
 
+def test_gui_subscription_tracks_window_visibility_instead_of_process_presence():
+    with tempfile.TemporaryDirectory() as root:
+        path = os.path.join(root, "runtime", "background.sock")
+        server = background.IPCServer(FakeBackend(), path).start()
+        proxy = background.KDEConnectProxy(path, callback=lambda *_args: None)
+        try:
+            assert proxy.start()
+            assert server.gui_present() is False
+            assert proxy.set_visible(True) is True
+            assert server.gui_present() is True
+            assert proxy.set_visible(False) is False
+            assert server.gui_present() is False
+            proxy.stop()
+            assert server.gui_present() is False
+        finally:
+            server.close()
+
+
 class ImmediateGLib:
     @staticmethod
     def idle_add(callback, *arguments):
@@ -317,6 +335,12 @@ class RecordedNotifications:
 
     def open_organizer(self):
         self.opened += 1
+
+
+class ActionlessNotifications(RecordedNotifications):
+    def show(self, title, body, actions=(), on_close=None, key=None):
+        self.items.append((title, body, actions, on_close))
+        return not actions
 
 
 def test_native_decision_actions_call_backend_without_opening_organizer():
@@ -366,6 +390,24 @@ def test_actionable_daemon_events_are_native_only_and_localized():
     assert [event for event, _payload in published] == ["sms"]
     assert published[0][1]["notify"] is False
     assert notifications.opened == 0
+
+
+def test_actionless_notification_server_still_shows_events_and_rejects_files():
+    backend = FakeBackend()
+    notifications = ActionlessNotifications()
+    events = background.DaemonEvents(lambda: backend, {
+        "permissions": {"kde_incoming_files": True}}, notifications, ImmediateGLib)
+    events("file_proposal", {"id": "f" * 32, "name": "document.pdf", "size": 7})
+    assert len(notifications.items) == 2
+    assert notifications.items[-1][2] == ()
+    assert backend.calls[-1] == ("reject_receive", "f" * 32)
+
+    phone_events = background.PhoneDaemonEvents(lambda: FakePhoneService(), {
+        "permissions": {"phone_call_notifications": True}}, notifications,
+        ImmediateGLib, lambda *_args: True, lambda: False)
+    phone_events("incoming_call", {"state": "ringing", "number": "+49170"})
+    assert notifications.items[-1][0] == "Incoming call"
+    assert notifications.items[-1][2] == ()
 
 
 def test_missing_native_action_capability_rejects_decisions_fail_closed():

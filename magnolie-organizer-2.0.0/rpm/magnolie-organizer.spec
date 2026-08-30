@@ -1,5 +1,5 @@
 Name:           magnolie-organizer
-Version:        2.0.11
+Version:        2.0.12
 Release:        1%{?dist}
 Summary:        Personal organizer with a classic paper appearance
 
@@ -30,11 +30,11 @@ Requires:       python3-qrcode
 Requires:       python3-gobject
 Requires:       python3-zeroconf
 Requires:       webkit2gtk4.1
+Requires:       libnotify
 Recommends:     evolution-data-server
 Recommends:     bluez
 Recommends:     firewalld
 Recommends:     libcanberra-gtk3
-Recommends:     libnotify
 Recommends:     python3-enchant
 Recommends:     xdg-utils
 Suggests:       gnome-shell-extension-appindicator
@@ -222,6 +222,10 @@ done
 %{_mandir}/*/man1/magnolie-organizer.1*
 
 %changelog
+* Sun Aug 30 2026 Maik Walter <maik3531@gmail.com> - 2.0.12-1
+- Correct notebook line alignment under system font scaling.
+- Improve background-service notifications and harden synchronization.
+
 * Sat Aug 29 2026 Maik Walter <maik3531@gmail.com> - 2.0.11-1
 - Improve background-service controls, symlink startup and reminder scheduling.
 - Harden Debian/RPM packaging and the real 2.0.10 upgrade gate.

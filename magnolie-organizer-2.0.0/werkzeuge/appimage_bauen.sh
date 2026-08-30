@@ -94,7 +94,7 @@ for typelib in $APP_TYPELIBS; do
     [ -f "/usr/lib/$MULTIARCH/girepository-1.0/$typelib.typelib" ] || {
         # Desktop-Zusatzmodule bleiben optional; die Kern- und EDS-Typelibs nicht.
         case "$typelib" in
-            AyatanaAppIndicator3-0.1|AppIndicator3-0.1|XApp-1.0|Notify-0.7) continue ;;
+            AyatanaAppIndicator3-0.1|AppIndicator3-0.1|XApp-1.0) continue ;;
         esac
         printf '%s\n' "Fehlende AppImage-Bauvoraussetzung: $typelib.typelib" >&2
         exit 1

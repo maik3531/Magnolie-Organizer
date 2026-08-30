@@ -382,6 +382,7 @@ def _request_shape(operation, arguments):
         "get_settings": set(), "set_settings": {"settings"},
         "event_cursor": set(), "poll_events": {"after", "timeout", "subscriber"},
         "gui_subscribe": {"subscriber"}, "gui_unsubscribe": {"subscriber"},
+        "gui_visibility": {"subscriber", "visible"},
         "send_sms": {"destination", "message", "device_id"},
         "begin_pairing": {"device_id", "replace_stored"},
         "complete_pairing": {"device_id"}, "confirm_pairing": {"code_matches"},
@@ -427,11 +428,13 @@ def _request_shape(operation, arguments):
                 or isinstance(timeout, bool) or not isinstance(timeout, (int, float))
                 or not 0 <= timeout <= 25):
             raise IPCError("invalid event poll")
-    if operation in ("gui_subscribe", "gui_unsubscribe") or operation == "poll_events" \
+    if operation in ("gui_subscribe", "gui_unsubscribe", "gui_visibility") or operation == "poll_events" \
             and "subscriber" in arguments:
         subscriber = arguments.get("subscriber")
         if not isinstance(subscriber, str) or not re.fullmatch(r"[a-f0-9]{32}", subscriber):
             raise IPCError("invalid GUI subscriber")
+    if operation == "gui_visibility" and not isinstance(arguments.get("visible"), bool):
+        raise IPCError("invalid GUI visibility")
     if operation == "confirm_pairing" and not isinstance(
             arguments.get("code_matches"), bool):
         raise IPCError("pairing decision must be boolean")
@@ -470,9 +473,9 @@ class IPCServer:
     def gui_present(self):
         now = time.monotonic()
         with self._event_condition:
-            self._gui_subscribers = {key: expiry for key, expiry in
-                self._gui_subscribers.items() if expiry > now}
-            return bool(self._gui_subscribers)
+            self._gui_subscribers = {key: value for key, value in
+                self._gui_subscribers.items() if value[0] > now}
+            return any(value[1] for value in self._gui_subscribers.values())
 
     def publish_event(self, event, payload):
         if not isinstance(event, str) or not event or len(event) > 80:
@@ -606,13 +609,23 @@ class IPCServer:
                     subscriber = arguments.get("subscriber")
                     if subscriber:
                         with self._event_condition:
-                            self._gui_subscribers[subscriber] = time.monotonic() + 35
+                            visible = self._gui_subscribers.get(subscriber, (0, False))[1]
+                            self._gui_subscribers[subscriber] = (time.monotonic() + 35, visible)
                     result = self._poll_events(arguments["after"],
                                                float(arguments.get("timeout", 20)))
                 elif operation == "gui_subscribe":
                     with self._event_condition:
-                        self._gui_subscribers[arguments["subscriber"]] = time.monotonic() + 35
+                        self._gui_subscribers[arguments["subscriber"]] = (
+                            time.monotonic() + 35, False)
                         result = {"subscribed": True, "cursor": self._event_sequence}
+                elif operation == "gui_visibility":
+                    subscriber = arguments["subscriber"]
+                    with self._event_condition:
+                        if subscriber not in self._gui_subscribers:
+                            raise IPCError("GUI subscriber is not registered")
+                        self._gui_subscribers[subscriber] = (
+                            time.monotonic() + 35, arguments["visible"])
+                    result = {"visible": arguments["visible"]}
                 elif operation == "gui_unsubscribe":
                     with self._event_condition:
                         self._gui_subscribers.pop(arguments["subscriber"], None)
@@ -770,6 +783,13 @@ class KDEConnectProxy:
             pass
         return None
 
+    def set_visible(self, visible):
+        try:
+            return bool(ipc_request("gui_visibility", {"subscriber": self._subscriber,
+                "visible": bool(visible)}, self.path, timeout=1).get("visible"))
+        except Exception:
+            return False
+
     def _event_loop(self):
         cursor = self._cursor
         while not self._event_stop.is_set():
@@ -861,6 +881,13 @@ class PhoneServiceProxy:
                         timeout=1)
         except Exception:
             pass
+
+    def set_visible(self, visible):
+        try:
+            return bool(ipc_request("gui_visibility", {"subscriber": self._subscriber,
+                "visible": bool(visible)}, self.path, timeout=1).get("visible"))
+        except Exception:
+            return False
 
     def _event_loop(self):
         cursor = self._cursor
@@ -1054,11 +1081,14 @@ class DaemonEvents:
             name = _safe_text(payload.get("device_name"), 80) or _("KDE Connect device")
             code = _safe_text(payload.get("code"), 16)
             decide = self._decision(backend.confirm_pairing)
-            self.notifications.show(_("KDE Connect pairing"),
-                "%s: %s" % (name, code), (
-                    ("accept", _("Accept"), lambda: decide(True)),
-                    ("reject", _("Reject"), lambda: decide(False))),
-                on_close=lambda: decide(False)) or decide(False)
+            title, body = _("KDE Connect pairing"), "%s: %s" % (name, code)
+            shown = self.notifications.show(title, body, (
+                     ("accept", _("Accept"), lambda: decide(True)),
+                     ("reject", _("Reject"), lambda: decide(False))),
+                on_close=lambda: decide(False))
+            if not shown:
+                self.notifications.show(title, "%s - %s" % (body, _("Reject")))
+                decide(False)
         elif event == "file_proposal":
             receive_id = str(payload.get("id") or "")
             if not permissions["kde_incoming_files"]:
@@ -1069,11 +1099,15 @@ class DaemonEvents:
             decide = self._decision(lambda accepted: (
                 backend.accept_receive(receive_id) if accepted else
                 backend.reject_receive(receive_id)))
-            self.notifications.show(_("Incoming KDE Connect file"),
-                "%s (%d bytes)" % (name, size), (
-                    ("accept", _("Accept"), lambda: decide(True)),
-                    ("reject", _("Reject"), lambda: decide(False))),
-                on_close=lambda: decide(False), key=receive_id) or decide(False)
+            title, body = _("Incoming KDE Connect file"), "%s (%d bytes)" % (name, size)
+            shown = self.notifications.show(title, body, (
+                     ("accept", _("Accept"), lambda: decide(True)),
+                     ("reject", _("Reject"), lambda: decide(False))),
+                on_close=lambda: decide(False), key=receive_id)
+            if not shown:
+                self.notifications.show(title, "%s - %s" % (body, _("Reject")),
+                    key=receive_id)
+                decide(False)
         elif event == "sms" and not gui_present and payload.get("notify") and permissions[
                 "sms_phone_notifications"]:
             sender = _safe_text(payload.get("from"), 80) or _("Phone")
@@ -1168,16 +1202,20 @@ class PhoneDaemonEvents:
                 "phone_selected_notifications"]:
             title = _safe_text(payload.get("app_label") or payload.get("title"), 100) or _("Phone notification")
             body = _safe_text(payload.get("text") or payload.get("body"), 400)
-            self.notifications.show(title, body, self._open_action())
+            if not self.notifications.show(title, body, self._open_action()):
+                self.notifications.show(title, body)
         elif event == "incoming_call" and payload.get("state") == "ringing" and permissions[
                 "phone_call_notifications"]:
             caller = _safe_text(payload.get("number"), 120) or _("Unknown caller")
-            self.notifications.show(_("Incoming call"), caller, self._open_action())
+            if not self.notifications.show(_("Incoming call"), caller, self._open_action()):
+                self.notifications.show(_("Incoming call"), caller)
         elif event == "sms" and permissions["phone_sms_notifications"]:
             sender = _safe_text(payload.get("from"), 80) or _("Phone")
-            self.notifications.show(_("SMS from %s") % sender,
-                _safe_text(payload.get("text"), 300), (
-                    ("reply", _("Reply"), self.notifications.open_organizer),))
+            title = _("SMS from %s") % sender
+            body = _safe_text(payload.get("text"), 300)
+            if not self.notifications.show(title, body, (
+                    ("reply", _("Reply"), self.notifications.open_organizer),)):
+                self.notifications.show(title, body)
         return False
 
 

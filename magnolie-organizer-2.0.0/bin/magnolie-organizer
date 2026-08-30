@@ -63,7 +63,7 @@ if __name__ == "__main__":
     _crash_component = ("background-service" if any(argument in (
         "--hintergrunddienst", "--background-service") for argument in sys.argv[1:])
         else "organizer")
-    _crash_reporting_install("magnolie-organizer", "2.0.11", _crash_component)
+    _crash_reporting_install("magnolie-organizer", "2.0.12", _crash_component)
 if any(argument in ("--hintergrunddienst", "--background-service")
        for argument in sys.argv[1:]):
     from magnolie_hintergrund import daemon_main
@@ -185,7 +185,7 @@ def tray_system_verfuegbar(desktop=None, aktivierte_erweiterungen=None):
 PROGRAMM_NAME = "magnolie-organizer"
 HANDBUCH_NAME = "magnolie-handbuch"
 FENSTER_TITEL = "Magnolie Organizer"
-PROGRAMM_FASSUNG = "2.0.11"
+PROGRAMM_FASSUNG = "2.0.12"
 ALTER_NAME = "organizer-klassik"
 I18N_DOMAIN = "magnolie-organizer"
 
@@ -8284,6 +8284,58 @@ def mail_oeffnen(email, betreff="", starter=None, name=""):
 _KDECONNECT_BACKEND = None
 _KDECONNECT_SPERRE = threading.Lock()
 _HINTERGRUND_EINSTELLUNGEN_SPERRE = threading.RLock()
+_HINTERGRUND_GUI_SICHTBAR = False
+_HINTERGRUND_SICHTBARKEITS_SPERRE = threading.Lock()
+_HINTERGRUND_SICHTBARKEITS_ARBEITER = {}
+
+
+def _hintergrund_sichtbarkeit_senden(backend, sichtbar, name):
+    schluessel = id(backend)
+    with _HINTERGRUND_SICHTBARKEITS_SPERRE:
+        stand = _HINTERGRUND_SICHTBARKEITS_ARBEITER.get(schluessel)
+        if stand is not None:
+            stand["sichtbar"] = bool(sichtbar)
+            return
+        stand = {"backend": backend, "sichtbar": bool(sichtbar)}
+        _HINTERGRUND_SICHTBARKEITS_ARBEITER[schluessel] = stand
+
+    def senden():
+        while True:
+            with _HINTERGRUND_SICHTBARKEITS_SPERRE:
+                aktuell = _HINTERGRUND_SICHTBARKEITS_ARBEITER.get(schluessel)
+                if aktuell is not stand:
+                    return
+                ziel = aktuell["sichtbar"]
+            try:
+                backend.set_visible(ziel)
+            except Exception as fehler:
+                debug_notiz("background.visibility-failed", error=fehler)
+            with _HINTERGRUND_SICHTBARKEITS_SPERRE:
+                aktuell = _HINTERGRUND_SICHTBARKEITS_ARBEITER.get(schluessel)
+                if aktuell is not stand:
+                    return
+                if aktuell["sichtbar"] == ziel:
+                    _HINTERGRUND_SICHTBARKEITS_ARBEITER.pop(schluessel, None)
+                    return
+
+    try:
+        threading.Thread(target=senden, daemon=True, name=name).start()
+    except Exception as fehler:
+        with _HINTERGRUND_SICHTBARKEITS_SPERRE:
+            if _HINTERGRUND_SICHTBARKEITS_ARBEITER.get(schluessel) is stand:
+                _HINTERGRUND_SICHTBARKEITS_ARBEITER.pop(schluessel, None)
+        debug_notiz("background.visibility-thread-failed", error=fehler)
+
+
+def _kde_gui_sichtbarkeit(sichtbar):
+    global _HINTERGRUND_GUI_SICHTBAR
+    _HINTERGRUND_GUI_SICHTBAR = bool(sichtbar)
+    with _KDECONNECT_SPERRE:
+        backend = _KDECONNECT_BACKEND
+    if hasattr(backend, "set_visible"):
+        _hintergrund_sichtbarkeit_senden(
+            backend, _HINTERGRUND_GUI_SICHTBAR,
+            "magnolie-background-visibility")
 
 
 def hintergrund_einstellungen_lesen():
@@ -8383,6 +8435,9 @@ def _kdeconnect_backend(callback=None):
             _KDECONNECT_BACKEND.callback = callback
         backend = _KDECONNECT_BACKEND
     backend.start()
+    if hasattr(backend, "set_visible"):
+        _hintergrund_sichtbarkeit_senden(
+            backend, _HINTERGRUND_GUI_SICHTBAR, "magnolie-kde-visibility")
     return backend
 
 
@@ -8587,8 +8642,12 @@ def sozial_oeffnen(dienst, wert, starter=None, welcher=None, land="Deutschland",
         pfad = welcher(programm)
         if not pfad:
             continue
-        argument = ("skype:%s?call" % nummer if programm.startswith("skype")
-                    else webziel)
+        if programm == "whatsie":
+            argument = "whatsapp://send?phone=" + nummer.lstrip("+")
+        elif programm.startswith("skype"):
+            argument = "skype:%s?call" % nummer
+        else:
+            argument = webziel
         try:
             starter([pfad, argument])
             return {"ok": True, "womit": programm, "name": namen[dienst],
@@ -8602,7 +8661,9 @@ def sozial_oeffnen(dienst, wert, starter=None, welcher=None, land="Deutschland",
                 if not _flatpak_installiert(app_id):
                     continue
                 try:
-                    starter([flatpak, "run", app_id, webziel])
+                    argument = ("whatsapp://send?phone=" + nummer.lstrip("+")
+                                if programm == "whatsie" else webziel)
+                    starter([flatpak, "run", app_id, argument])
                     return {"ok": True, "womit": "flatpak:" + app_id,
                             "name": namen[dienst], "fehler": ""}
                 except OSError:
@@ -15786,8 +15847,10 @@ class Fenster(_FENSTER_BASIS):
                     (self._tray_einstellungen.get("startMinimiert") or
                      "--tray-start" in sys.argv[1:]) and self._tray_indikator):
                 self._tray_window_hidden = True
+                Fenster._hintergrund_gui_sichtbarkeit(self, False)
                 self._chromium.minimize()
             else:
+                Fenster._hintergrund_gui_sichtbarkeit(self, True)
                 self._chromium.bring_to_front()
             return
 
@@ -15841,6 +15904,10 @@ class Fenster(_FENSTER_BASIS):
             if not self._tray_window_hidden and not ins_tray:
                 self._fenster["maximiert"] = bool(zustand & Gdk.WindowState.MAXIMIZED)
                 self._fenster["vollbild"] = bool(zustand & Gdk.WindowState.FULLSCREEN)
+            if minimiert_geaendert:
+                Fenster._hintergrund_gui_sichtbarkeit(self,
+                    not bool(zustand & Gdk.WindowState.ICONIFIED) and
+                    not self._tray_window_hidden)
             if ins_tray:
                 self._tray_hide_planen()
         except AttributeError:
@@ -15924,6 +15991,7 @@ class Fenster(_FENSTER_BASIS):
         if self._wirklich_beenden:
             return False
         self._wirklich_beenden = True
+        Fenster._hintergrund_gui_sichtbarkeit(self, False)
         if getattr(self, "_chromium", None):
             self._chromium.close()
         self.destroy()
@@ -15932,6 +16000,7 @@ class Fenster(_FENSTER_BASIS):
     def _tray_zeigen(self, *_egal):
         if getattr(self, "_chromium", None):
             self._tray_window_hidden = False
+            Fenster._hintergrund_gui_sichtbarkeit(self, True)
             try:
                 self._chromium.bring_to_front()
             except Exception as fehler:
@@ -15942,6 +16011,7 @@ class Fenster(_FENSTER_BASIS):
         self._tray_hide_abbrechen()
         self._tray_oeffnet = True
         self._tray_window_hidden = False
+        Fenster._hintergrund_gui_sichtbarkeit(self, True)
         self.show_all()
         try:
             self.deiconify()
@@ -15994,6 +16064,7 @@ class Fenster(_FENSTER_BASIS):
     def _tray_verbergen(self, *_egal):
         if getattr(self, "_chromium", None):
             self._tray_window_hidden = True
+            Fenster._hintergrund_gui_sichtbarkeit(self, False)
             try:
                 self._chromium.minimize()
             except Exception as fehler:
@@ -16005,11 +16076,20 @@ class Fenster(_FENSTER_BASIS):
         self._tray_oeffnet = False
         self._merke_fenster()
         self._tray_window_hidden = True
+        Fenster._hintergrund_gui_sichtbarkeit(self, False)
         self.hide()
         debug_notiz("tray.hide.end", **tray_fenster_zustand(self))
 
     def _tray_debug_zustand(self):
         return tray_fenster_zustand(self)
+
+    def _hintergrund_gui_sichtbarkeit(self, sichtbar):
+        _kde_gui_sichtbarkeit(sichtbar)
+        telefon = getattr(self, "_telefon", None)
+        if isinstance(telefon, PhoneServiceProxy):
+            _hintergrund_sichtbarkeit_senden(
+                telefon, _HINTERGRUND_GUI_SICHTBAR,
+                "magnolie-phone-visibility")
 
     def _tray_umschalten(self, *_egal):
         if getattr(self, "_chromium", None):
@@ -18042,6 +18122,10 @@ class Fenster(_FENSTER_BASIS):
                     return False
             if self._telefon.enabled:
                 gestartet = self._telefon.start()
+                if isinstance(self._telefon, PhoneServiceProxy):
+                    _hintergrund_sichtbarkeit_senden(
+                        self._telefon, _HINTERGRUND_GUI_SICHTBAR,
+                        "magnolie-phone-visibility")
                 if not gestartet:
                     self._telefon_fehler = _(
                         "Port 8741 is unavailable. The phone listener could not start.")

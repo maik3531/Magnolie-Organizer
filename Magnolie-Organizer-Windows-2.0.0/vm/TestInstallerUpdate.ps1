@@ -1,6 +1,6 @@
 $ErrorActionPreference = "Stop"
 
-$installer = Join-Path $PSScriptRoot "Magnolie-Organizer-Windows-2.0.11-Setup-x64.exe"
+$installer = Join-Path $PSScriptRoot "Magnolie-Organizer-Windows-2.0.12-Setup-x64.exe"
 $install = Join-Path $env:LOCALAPPDATA "Programs\Magnolie Organizer"
 $resultPath = Join-Path $env:TEMP "Magnolie-Installer-Test.json"
 $checks = [ordered]@{}

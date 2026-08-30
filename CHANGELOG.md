@@ -1,5 +1,21 @@
 # Changelog / Änderungen
 
+## 2.0.12 / Notes 1.0.9 — 2026-08-30
+
+### English
+
+- Fixed notebook paper lines drifting away from text when system font scaling is enabled.
+- Improved background-service visibility, reminder handling and native notifications for received files, SMS messages and calls.
+- Hardened Nextcloud synchronization, settings handling and connected-phone status updates.
+- Corrected Whatsie links and strengthened native notification dependencies in Debian, RPM and AppImage packages.
+
+### Deutsch
+
+- Behebt den Versatz zwischen Notiztext und Papierlinien bei aktivierter Systemschriftvergrößerung.
+- Verbessert Sichtbarkeit und Erinnerungsverarbeitung des Hintergrunddienstes sowie native Hinweise auf empfangene Dateien, SMS und Anrufe.
+- Härtet Nextcloud-Synchronisierung, Einstellungsverarbeitung und Statusmeldungen verbundener Telefone.
+- Korrigiert Whatsie-Verknüpfungen und vervollständigt native Benachrichtigungsabhängigkeiten in Debian-, RPM- und AppImage-Paketen.
+
 ## 2.0.11 / Notes 1.0.9 — 2026-08-29
 
 ### English

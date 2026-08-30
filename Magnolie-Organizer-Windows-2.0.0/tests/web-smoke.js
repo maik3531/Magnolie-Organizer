@@ -18,6 +18,8 @@ const i18n = fs.readFileSync(path.join(web, "i18n.js"), "utf8");
 const catalogs = fs.readdirSync(path.join(web, "i18n"))
   .filter((name) => name.endsWith(".js")).sort();
 const forbiddenLinuxBluetoothUi = /\b(?:BlueZ|bluetoothctl|D-Bus|DBus)\b/i;
+assert.match(application, /querySelectorAll\(auswahl\)[\s\S]*?element\.matches\("\.mini-termin"\)/,
+  "intentionally ellipsized appointment text is not excluded from overflow checks");
 assert.doesNotMatch(css, /\.gesundheit-(?:zellenfeld|bmi-zelle)[^{]*\{[^}]*var\(--hand\)/s,
   "health fields use an undefined font variable");
 assert.match(css, /@font-face\s*\{[^}]*font-family:\s*"DejaVu Sans"/s,
@@ -72,6 +74,10 @@ assert.match(css, /--mono:\s*"DejaVu Sans Mono",\s*monospace;/,
   "Windows does not use Linux DejaVu Sans Mono globally");
 assert.doesNotMatch(css, /font-weight:\s*\d+\s+\d+;/,
   "static Windows fonts are declared with unsupported variable-font weight ranges");
+assert.match(css, /#notiz-text,\s*#tb-notiz\s*\{[^}]*--zeilenhoehe:\s*1\.87em;[^}]*--linien-stelle:\s*calc\(\(var\(--zeilenhoehe\)\s*-\s*1em\)\s*\/\s*2\s*\+\s*0\.82em\)/s,
+  "notebook lines do not scale with the effective editor font");
+assert.doesNotMatch(css, /body\s*\{\s*--zeilenhoehe/,
+  "notebook line height is inherited from the unrelated body font");
 assert.match(html, /font-src 'self'/,
   "Windows CSP blocks the bundled Linux UI font");
 assert.doesNotMatch(html, /font-src 'none'/,
@@ -463,8 +469,20 @@ assert.ok(nextcloudText.includes("baum-1") && /encrypted|verschlüsselt/i.test(n
 "Nextcloud page does not clearly delimit the encrypted fallback");
 assert.strictEqual(window.document.querySelectorAll("#briefkasten-url").length, 1,
   "Nextcloud mailbox field IDs are duplicated");
+assert.strictEqual(window.document.querySelector("#nextcloud-dav-an").checked, false,
+  "fresh Nextcloud setup unexpectedly enables calendar and contact synchronization");
+window.document.querySelector("#nextcloud-dav-an").checked = true;
+window.document.querySelector("#nextcloud-dav-an").dispatchEvent(new window.Event("change"));
+window.document.querySelector("#einst-tab-allgemein").click();
+window.document.querySelector("#einst-tab-sync").click();
 assert.strictEqual(window.document.querySelector("#nextcloud-dav-an").checked, true,
-  "fresh Nextcloud setup does not enable calendar and contact synchronization");
+  "Nextcloud draft was lost while switching settings tabs");
+window.document.querySelector("#nextcloud-dav-an").checked = false;
+window.document.querySelector("#nextcloud-dav-an").dispatchEvent(new window.Event("change"));
+window.document.querySelector("#einst-tab-allgemein").click();
+window.document.querySelector("#einst-tab-sync").click();
+assert.strictEqual(window.document.querySelector("#nextcloud-dav-an").checked, false,
+  "disabled Nextcloud draft was re-enabled while switching settings tabs");
 window.App.baumBriefkastenStatus({ davAktiv: false, briefkastenAktiv: false,
   aktiv: false, url: "https://cloud.example", benutzer: "user",
   kennwortVorhanden: true, zustand: "aus", fehler: "" });
@@ -476,6 +494,9 @@ assert.strictEqual(messages.filter((message) => message.cmd === "baum_briefkaste
 assert.ok(messages.some((message) => message.cmd === "baum_briefkasten_speichern" &&
   message.davAktiv === false && message.briefkastenAktiv === false),
 "disabled Nextcloud configuration changed during save");
+window.App.baumBriefkastenGespeichert({ davAktiv: false, briefkastenAktiv: false,
+  aktiv: false, url: "https://cloud.example", benutzer: "user",
+  kennwortVorhanden: true, zustand: "aus", fehler: "" });
 window.document.querySelector("#briefkasten-url").value = "https://cloud.example";
 window.document.querySelector("#briefkasten-benutzer").value = "user";
 window.document.querySelector("#briefkasten-kennwort").value = "app-password";
@@ -485,14 +506,18 @@ Array.from(window.document.querySelectorAll("#einst-seite-sync button"))
   .find((button) => button.textContent === "Speichern").click();
 assert.strictEqual(window.document.querySelector("#briefkasten-kennwort").value, "",
   "app password was not cleared immediately");
-Array.from(window.document.querySelectorAll("#einst-seite-sync button"))
-  .find((button) => button.textContent === "Verbindung testen").click();
 assert.ok(messages.some((message) => message.cmd === "baum_briefkasten_speichern" &&
   message.davAktiv === true && message.briefkastenAktiv === false &&
   message.url === "https://cloud.example" && message.benutzer === "user" &&
-  message.anwendungskennwort === "app-password") &&
-  messages.some((message) => message.cmd === "baum_briefkasten_pruefen"),
-"Nextcloud page changed the mailbox save or test bridge commands");
+  message.anwendungskennwort === "app-password"),
+"Nextcloud page changed the mailbox save bridge command");
+window.App.baumBriefkastenGespeichert({ davAktiv: true, briefkastenAktiv: false,
+  aktiv: true, url: "https://cloud.example", benutzer: "user",
+  kennwortVorhanden: true, zustand: "bereit", fehler: "" });
+Array.from(window.document.querySelectorAll("#einst-seite-sync button"))
+  .find((button) => button.textContent === "Verbindung testen").click();
+assert.ok(messages.some((message) => message.cmd === "baum_briefkasten_pruefen"),
+  "Nextcloud page changed the connection-test bridge command");
 window.document.querySelector("#einst-tab-sync").click();
 window.App.graphAnmeldung({ ok: true, fertig: false, code: "AB<12>",
   url: "javascript:alert(1)", nachricht: "<img src=x onerror=alert(1)>" });

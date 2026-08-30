@@ -90,6 +90,8 @@ function knopfMit(text, wurzel) {
   assert.deepStrictEqual({ nan: NaN, negativNull: -0 },
     { nan: NaN, negativNull: -0 },
   "Realm-Umtopfen verändert NaN oder -0");
+  assert.match(js, /querySelectorAll\(auswahl\)[\s\S]*?element\.matches\("\.mini-termin"\)/,
+    "beabsichtigt gekürzte Termintexte gelten nicht als übersetzte Bedienelemente");
   const terminReihenfolge = [
     { id: "spaet", zeit: "18:00", titel: "Spaet" },
     { id: "ganz", zeit: "", titel: "Ganztags" },
@@ -134,7 +136,7 @@ function knopfMit(text, wurzel) {
     !/#eingabe-schleier/.test(css) && js.includes("focus({ preventScroll: true })"),
   "dynamische Dialoge sind nicht als scrollfestes, zentriertes Overlay definiert");
   const einstellungenCss = css.match(/#einstellungen-blatt\s*\{([^}]*)\}/)?.[1] || "";
-  assert.ok(/height:\s*min\(720px,\s*94vh\)/.test(einstellungenCss) &&
+  assert.ok(/height:\s*min\(820px,\s*96vh\)/.test(einstellungenCss) &&
     /overflow:\s*hidden/.test(einstellungenCss) && !/max-height:/.test(einstellungenCss),
   "das Einstellungsblatt besitzt keine eindeutige feste Viewporthöhe");
   assert.ok(/\.gesundheit-papiertabelle\s*\{[\s\S]{0,120}width:\s*100%;[\s\S]{0,80}min-width:\s*0;[\s\S]{0,80}max-width:\s*100%;[\s\S]{0,100}table-layout:\s*fixed/.test(css) &&
@@ -1515,6 +1517,13 @@ function knopfMit(text, wurzel) {
     enSD.querySelector("#nextcloud-briefkasten") &&
     !enSD.querySelector("#einst-tab-nextcloud"),
   "Nextcloud ist nicht vollständig in die Synchronisationsseite integriert");
+  const enDav = enSD.querySelector("#nextcloud-dav-an");
+  enDav.checked = false;
+  enDav.dispatchEvent(new enSW.Event("change", { bubbles: true }));
+  enSD.querySelector("#einst-tab-allgemein").click();
+  enSD.querySelector("#einst-tab-sync").click();
+  assert.strictEqual(enSD.querySelector("#nextcloud-dav-an").checked, false,
+    "deaktivierter Nextcloud-Entwurf geht beim Reiterwechsel verloren");
   const enKalender = Array.from(enSD.querySelectorAll(".sync-kalender input"));
   assert.deepStrictEqual(enKalender.map((feld) => feld.value),
     ["google-privat", "arbeit-uid"], "Kalender-UIDs wurden übersetzt");
@@ -2148,7 +2157,7 @@ function knopfMit(text, wurzel) {
   const enUeber = enSD.querySelector("#einstellungen-inhalt");
   assert.strictEqual(enUeber.querySelector("h3").textContent,
     "About the Magnolie Organizer", "englische Über-Seite fehlt");
-  assert.ok(enUeber.querySelector(".ueber-fassung").textContent.includes("Version 2.0.11") &&
+  assert.ok(enUeber.querySelector(".ueber-fassung").textContent.includes("Version 2.0.12") &&
     enUeber.textContent.includes("Author") && enUeber.textContent.includes("License") &&
     enUeber.textContent.includes("Updates") &&
     enUeber.textContent.includes("No update check has been performed yet") &&
@@ -2168,12 +2177,12 @@ function knopfMit(text, wurzel) {
     enSyncNachrichten.some((nachricht) => nachricht.cmd === "update_pruefen"),
   "englische Über-Seite verändert Handbuch- oder Update-Befehl");
   const enUpdateUrl = "https://gitlab.com/maik3531/mint-forgs/-/raw/main/" +
-    "Magnolie-Organitzer/magnolie-organizer_2.0.12_all.deb";
-  enSW.App.updateErgebnis({ ok: true, aktuell: false, version: "2.0.12",
+    "Magnolie-Organitzer/magnolie-organizer_2.0.13_all.deb";
+  enSW.App.updateErgebnis({ ok: true, aktuell: false, version: "2.0.13",
     url: enUpdateUrl, sha256: "ab".repeat(32), fehler: "" });
   assert.ok(enSD.querySelector("#update-stand").textContent.includes(
-    "New version 2.0.12 is available") &&
-    enSD.querySelector("#update-herunterladen").textContent.includes("2.0.12") &&
+    "New version 2.0.13 is available") &&
+    enSD.querySelector("#update-herunterladen").textContent.includes("2.0.13") &&
     enSD.querySelector(".update-pruefsumme").textContent.includes("ab".repeat(32)) &&
     enSD.querySelector(".update-pruefsumme").textContent.includes("sha256sum"),
   "englischer neuer Update-Stand fehlt");
@@ -5699,14 +5708,14 @@ function knopfMit(text, wurzel) {
     "das Zahlenschloss müsste gesperrt sein");
   assert.ok($("#sperr-feld").disabled, "das Kennwortfeld müsste gesperrt sein");
 
-  /* Reiter: alle nebeneinander oder genau vier je Zeile */
+  /* Reiter: alle nebeneinander oder kompakt auf zwei Zeilen */
   const bestandVorReitern = JSON.parse(JSON.stringify(T.daten()));
   w.App.init({ daten: bestandVorReitern, neu: false, datenPfad: "/heim" });
   T.oeffneEinstellungen();
   const reiterZeile = $(".einst-reiter");
   assert.ok(reiterZeile, "Reiterzeile fehlt");
   assert.strictEqual(T.reiterOrdnung(852, 888), "eine-reihe",
-    "auf breitem Blatt gehören alle acht in eine Zeile");
+    "auf breitem Blatt gehören alle Reiter in eine Zeile");
   assert.strictEqual(T.reiterOrdnung(852, 700), "zwei-reihen",
     "auf schmalem Blatt sind es zwei Reihen");
   assert.strictEqual(T.reiterOrdnung(700, 700), "eine-reihe",
@@ -6238,7 +6247,7 @@ function knopfMit(text, wurzel) {
   assert.ok(ueberText.includes("Version 3"), "die Lizenzfassung fehlt");
   assert.ok($(".ueber-fassung").textContent.includes("Fassung"),
     "die Programmfassung fehlt");
-  assert.ok($(".ueber-fassung").textContent.includes("2.0.11"),
+  assert.ok($(".ueber-fassung").textContent.includes("2.0.12"),
     "die neue Programmfassung fehlt");
   assert.ok($(".ueber-blume"), "die Magnolienblüte fehlt");
   const beschreibung = $(".ueber-beschreibung");
@@ -6258,18 +6267,18 @@ function knopfMit(text, wurzel) {
     "neben der gemeinsamen Aktualisierungsprüfung ist ein zweiter Prüfknopf sichtbar");
   assert.ok($("#handbuch-stand").textContent.includes("nicht installiert"),
     "der Handbuchstatus nennt die fehlende Installation nicht");
-  assert.ok(!T.istNeuereFassung("2.0.1") && !T.istNeuereFassung("2.0.11") &&
-    T.istNeuereFassung("2.0.12"),
+  assert.ok(!T.istNeuereFassung("2.0.1") && !T.istNeuereFassung("2.0.12") &&
+    T.istNeuereFassung("2.0.13"),
     "Fassungsvergleich der Oberfläche stimmt nicht");
   assert.ok(T.vergleicheText("Termin 2", "Termin 10") < 0,
     "der regionale Collator sortiert Zahlen weiterhin rein lexikografisch");
-  w.App.updateErgebnis({ ok: true, aktuell: false, version: "2.0.12",
+  w.App.updateErgebnis({ ok: true, aktuell: false, version: "2.0.13",
     url: "https://gitlab.com/maik3531/mint-forgs/-/raw/main/" +
-      "Magnolie-Organitzer/magnolie-organizer_2.0.12_all.deb" });
-  assert.ok($("#update-stand").textContent.includes("2.0.12"),
+      "Magnolie-Organitzer/magnolie-organizer_2.0.13_all.deb" });
+  assert.ok($("#update-stand").textContent.includes("2.0.13"),
     "gefundene Fassung erscheint nicht unter Über");
   assert.ok($("#update-herunterladen"), "Downloadknopf für neue Fassung fehlt");
-  assert.strictEqual(T.daten().einstellungen.update.letzteVersion, "2.0.12",
+  assert.strictEqual(T.daten().einstellungen.update.letzteVersion, "2.0.13",
     "Prüfstand wird nicht gespeichert");
   $("#update-automatisch").checked = false;
   $("#update-automatisch").dispatchEvent(new w.Event("change", { bubbles: true }));
@@ -6417,13 +6426,15 @@ function knopfMit(text, wurzel) {
   const stilText = fs.readFileSync(path.join(WEB, "stil.css"), "utf8");
   const blattRegel = stilText.slice(stilText.indexOf("#notiz-text,"));
   assert.ok(/line-height:\s*1\.87/.test(blattRegel) &&
+    /--zeilenhoehe:\s*1\.87em/.test(blattRegel) &&
     /@supports\s*\(height:\s*1lh\)/.test(stilText) &&
     /--zeilenhoehe:\s*1lh/.test(stilText),
     "die Linien folgen nicht der tatsächlich skalierten Zeilenhöhe");
   assert.ok(/background-size:\s*100%\s*var\(--zeilenhoehe\)/.test(blattRegel),
     "der Linienabstand kommt nicht aus derselben Größe");
-  assert.ok(/--linien-stelle/.test(stilText),
-    "die Lage der Linie in der Zeile ist nicht festgelegt");
+  assert.ok(/--linien-stelle:\s*calc\(\(var\(--zeilenhoehe\)\s*-\s*1em\)\s*\/\s*2\s*\+\s*0\.82em\)/
+    .test(blattRegel) && !/body\s*\{\s*--zeilenhoehe/.test(stilText),
+  "Linienperiode und Grundlinie folgen nicht der effektiven Textfeldschrift");
   assert.ok(/\.planer-druck-kalender \.pk-anlass\s*\{[\s\S]{0,100}font-size:\s*5\.5px/
     .test(stilText) && T.planerDruckSeite(T.planerKalenderModell(2026))
       .includes(".anlass{display:block;font-size:4.8pt"),
@@ -7253,7 +7264,7 @@ function knopfMit(text, wurzel) {
     "ohne Handbuch darf der Hinweis nicht als gezeigt gespeichert werden");
   const handbuchUrl = "https://gitlab.com/maik3531/mint-forgs/-/raw/main/" +
     "Magnolie-Organitzer/magnolie-handbuch_1.9.8_all.deb";
-  hw.App.updateErgebnis({ ok: true, aktuell: true, version: "2.0.11", url: "",
+  hw.App.updateErgebnis({ ok: true, aktuell: true, version: "2.0.12", url: "",
     sha256: "ab".repeat(32), handbuch: { version: "1.9.8", url: handbuchUrl,
       sha256: "cd".repeat(32) }, fehler: "" });
   assert.ok(!hd.querySelector("#dialog-schleier").classList.contains("verborgen") &&
@@ -7459,7 +7470,7 @@ function knopfMit(text, wurzel) {
   assert.ok(/\.notiz-editor\s+:focus-visible\s*\{[\s\S]{0,100}outline-offset:\s*-2px/.test(css),
   "Hilfsrahmen im Notizeditor liegen nicht vollständig innerhalb ihrer Felder");
 
-  assert.ok(/#einstellungen-blatt\s*\{[\s\S]{0,140}height:\s*min\(720px,\s*94vh\)/.test(css) &&
+  assert.ok(/#einstellungen-blatt\s*\{[\s\S]{0,140}height:\s*min\(820px,\s*96vh\)/.test(css) &&
     /#einstellungen-blatt\s*\{[\s\S]{0,220}overflow:\s*hidden/.test(css),
     "das Einstellungsblatt besitzt keine feste, bildschirmbegrenzte Höhe");
   assert.ok(/#einstellungen-inhalt\s*\{[\s\S]{0,100}min-height:\s*0/.test(css) &&
@@ -8075,12 +8086,16 @@ function knopfMit(text, wurzel) {
     request_id: "4ae28097-1229-4e22-b3de-a86af0491f35",
     model: "Pixel 9a", manufacturer: "Google", os_name: "Android",
     os_version: "16", app_version: "1.0.7", battery_percent: 73, charging: "charging", online: true,
+    battery_temperature_deci_c: 339, power_source: "none", network_transport: "wifi",
+    uptime_ms: 1311966668,
     last_contact_ms: 1786617000000, captured_ms: 1786617000000 } });
   assert.ok(geraetD.querySelector("#geraet-dialog").textContent.includes("Pixel 9a") &&
     geraetD.querySelector("#geraet-dialog").textContent.includes("73 %") &&
     geraetD.querySelector("#geraet-dialog").textContent.includes("1.0.7") &&
+    geraetD.querySelector("#geraet-dialog").textContent.includes("WLAN") &&
+    !geraetD.querySelector("#geraet-dialog").textContent.includes("339") &&
     geraetD.querySelector(".geraet-online").classList.contains("online"),
-  "eine Statusantwort aktualisiert den bereits offenen Gerätedialog");
+  "eine Statusantwort aktualisiert oder formatiert den Gerätedialog nicht korrekt");
   Array.from(geraetD.querySelectorAll("#geraet-dialog button"))
     .find((button) => button.textContent === "Aktualisieren").click();
   assert.ok(geraetNachrichten.some((nachricht) =>
@@ -8106,7 +8121,11 @@ function knopfMit(text, wurzel) {
   assert.notStrictEqual(geraetD.querySelector("[data-personal-sync-peer]").textContent,
     wartenderPersonalStand,
     "aktueller Peer-Stand aktualisiert den offenen Personal-Sync-Dialog nicht");
-  geraetD.querySelector("[data-personal-sync-peer]").parentElement.querySelector("button").click();
+  const geraetFuss = geraetD.querySelector(".geraet-dialog-knoepfe");
+  assert.ok(geraetFuss && geraetD.querySelector(".geraet-dialog-inhalt"),
+    "Geräteinhalt und dauerhaft sichtbare Aktionsleiste sind nicht getrennt");
+  Array.from(geraetFuss.querySelectorAll("button"))
+    .find((button) => button.textContent === "Jetzt synchronisieren").click();
   await Promise.resolve();
   assert.ok(geraetNachrichten.some((nachricht) =>
     (nachricht.cmd === "personal_sync_senden" && nachricht.art === "personal_sync.request") ||
