@@ -7,12 +7,20 @@
 - Aligns notebook lines with the measured font baseline and actual WebKit line spacing for both fonts, all three sizes, text scaling and long wrapped notes.
 - Keeps pairing, file, clipboard, SMS and call notifications native whenever the background service is enabled, independently of the Organizer window state.
 - Allows pairing, file and clipboard decisions directly from native notification actions and applies received clipboard text without opening Organizer.
+- Adds a guided contact-transfer workflow with previews, source-aware choices and a selectable KDE Connect receive target.
+- Hardens retention and recovery handling across Linux, Windows and Android, including deterministic journal recovery after interrupted writes.
+- Adds signed, checksum-bound Linux and Windows updates with atomic replacement and rollback on failed AppImage restarts.
+- Expands release validation for translations, notification fallbacks, update security, package reproducibility and installed Android upgrades.
 
 ### Deutsch
 
 - Richtet Notizlinien an der gemessenen Schriftgrundlinie und dem tatsächlichen WebKit-Zeilenabstand aus, für beide Schriften, alle drei Größen, Textskalierung und lange umgebrochene Notizen.
 - Zeigt Paarungs-, Datei-, Zwischenablage-, SMS- und Anrufereignisse bei aktivem Hintergrunddienst unabhängig vom Fensterzustand immer nativ an.
 - Ermöglicht Paarungs-, Datei- und Zwischenablageentscheidungen direkt über native Meldungsaktionen und übernimmt empfangenen Text ohne Organizerfenster.
+- Ergänzt eine geführte Kontaktübernahme mit Vorschau, quellenabhängigen Auswahlmöglichkeiten und wählbarem KDE-Connect-Empfangsziel.
+- Härtet Aufbewahrung und Wiederherstellung unter Linux, Windows und Android, einschließlich deterministischer Journalwiederherstellung nach unterbrochenen Schreibvorgängen.
+- Ergänzt signierte, prüfsummengebundene Linux- und Windows-Aktualisierungen mit atomarem Ersetzen und Rücknahme nach fehlgeschlagenem AppImage-Neustart.
+- Erweitert das Freigabegate für Übersetzungen, Meldungsrückfälle, Updatesicherheit, reproduzierbare Pakete und installierte Android-Aktualisierungen.
 
 ## 2.0.12 / Notes 1.0.9 — 2026-08-30
 
