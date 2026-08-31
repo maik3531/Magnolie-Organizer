@@ -42,7 +42,7 @@ try {
   for (const relative of ["stil.css", "01.jpg", "02.jpg", "03.jpg",
     "02-woche.png", "03-aufgaben.png", "06-jahrestage.png", "10-pin-abfrage.png",
     "11-stand.png", "14-karteikarte.png", "15-rechtsklick-anrufen.png",
-    "19-karte-mit-sms.png", "21-sms-getippt.png", "kaffee-qr.png", "maik-walter.jpg",
+    "19-karte-mit-sms.png", "21-sms-getippt.png", "kaffee-qr.mga", "maik-walter.mga",
     "maik-walter-FOTO-NUTZUNG.txt", "schriften/DejaVuSans.ttf",
     "schriften/DejaVuSans-Bold.ttf", "schriften/DejaVuSans-Oblique.ttf",
     "schriften/DejaVuSans-BoldOblique.ttf", "schriften/NotoSerif-Regular.ttf",
@@ -54,6 +54,10 @@ try {
     assert.ok(fs.existsSync(installedFile), `built package does not contain web/${relative}`);
     assert.strictEqual(digest(installedFile), digest(sourceFile),
       `built package contains stale web/${relative}`);
+  }
+  for (const forbidden of ["kaffee-qr.png", "maik-walter.jpg"]) {
+    assert.ok(!fs.existsSync(path.join(temporary, "usr", "share", "magnolie-handbuch", "web", forbidden)),
+      `built package contains plaintext personal asset ${forbidden}`);
   }
   const sourcePages = pages(source);
   const installedPages = pages(installed);
@@ -79,6 +83,11 @@ try {
 
   const sourceEntries = childProcess.execFileSync("tar", ["-tf", sourceArchive],
     { encoding: "utf8" }).trim().split("\n");
+  assert.ok(sourceEntries.some((entry) => entry.endsWith("/web/kaffee-qr.mga")) &&
+    sourceEntries.some((entry) => entry.endsWith("/web/maik-walter.mga")),
+  "source archive is missing protected asset containers");
+  assert.ok(!sourceEntries.some((entry) => /\/web\/(?:kaffee-qr\.png|maik-walter\.jpg)$/.test(entry)),
+  "source archive contains plaintext personal assets");
   assert.ok(!sourceEntries.some((entry) => path.basename(entry) ===
     "Magnolie-Handbuch-PRUEFSUMMEN.sha256"),
   "source archive contains the external release checksum file");

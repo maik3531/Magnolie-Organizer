@@ -204,7 +204,7 @@ function Assert-SourceArchive([string] $Archive, [string] $Root, [string] $Versi
         "Directory.Build.props",
         "LICENSE",
         "app/magnolie-organizer.ico",
-        "app/web/kaffee-qr.png",
+        "app/web/kaffee-qr.mga",
         "app/symbole/48x48/magnolie-organizer.png",
         "app/symbole/64x64/magnolie-organizer.png",
         "app/symbole/128x128/magnolie-organizer.png",
@@ -216,7 +216,9 @@ function Assert-SourceArchive([string] $Archive, [string] $Root, [string] $Versi
         "tests/linux-parity-fixture.js",
         "tests/generate-linux-parity-fixture.js",
         "shared/magnolie-handbuch-stamm/web/index.html",
-        "shared/magnolie-handbuch-stamm/web/inhalt.js"
+        "shared/magnolie-handbuch-stamm/web/inhalt.js",
+        "shared/magnolie-handbuch-stamm/web/kaffee-qr.mga",
+        "shared/magnolie-handbuch-stamm/web/maik-walter.mga"
     )
     $stream = [IO.File]::OpenRead($Archive)
     $zip = [IO.Compression.ZipArchive]::new($stream, [IO.Compression.ZipArchiveMode]::Read)
@@ -271,6 +273,9 @@ function Assert-SourceArchive([string] $Archive, [string] $Root, [string] $Versi
         }
         foreach ($relative in $required) {
             if (-not $zip.GetEntry("$expectedTop/$relative")) { throw "Quellarchiv-Pflichtdatei fehlt: $relative" }
+        }
+        foreach ($forbidden in "app/web/kaffee-qr.png", "shared/magnolie-handbuch-stamm/web/kaffee-qr.png", "shared/magnolie-handbuch-stamm/web/maik-walter.jpg") {
+            if ($zip.GetEntry("$expectedTop/$forbidden")) { throw "Quellarchiv enthält Klartext-Personenasset: $forbidden" }
         }
         $currentFiles = @(Get-ReleaseArchiveSources $Root)
         $currentNames = @($currentFiles | ForEach-Object { "$expectedTop/$($_.Relative)" })

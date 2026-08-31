@@ -24,6 +24,7 @@
     <Compile Include="..\GraphContactService.cs" Link="GraphContactService.cs" />
     <Compile Include="..\ReminderScheduler.cs" Link="ReminderScheduler.cs" />
     <Compile Include="..\WindowsPaths.cs" Link="WindowsPaths.cs" />
+    <Compile Include="..\CloudBackupService.cs" Link="CloudBackupService.cs" />
     <Compile Include="..\RegionalSettings.cs" Link="RegionalSettings.cs" />
     <Compile Include="..\RecoveryJournal.cs" Link="RecoveryJournal.cs" />
     <Compile Include="..\TraySettingsService.cs" Link="TraySettingsService.cs" />

@@ -1,47 +1,57 @@
+%global magnolie_distro @MAGNOLIE_DISTRO@
+
+%if "%{magnolie_distro}" == "fedora"
+%global magnolie_deps gtk3 python3-gobject python3-cryptography python3-pyOpenSSL python3-qrcode python3-zeroconf webkit2gtk4.1 libnotify
+%global magnolie_build_deps python3-pytest
+%else
+%if "%{magnolie_distro}" == "opensuse"
+%global magnolie_deps gtk3 python3-gobject python3-gobject-Gdk python3-cryptography python3-pyOpenSSL python3-qrcode python3-zeroconf typelib-1_0-WebKit2-4_1 typelib-1_0-Notify-0_7
+%global magnolie_build_deps python3-pytest
+%else
+%if "%{magnolie_distro}" == "mageia"
+%global magnolie_deps gtk+3.0 python3-gobject python3-cryptography python3-openssl python3-qrcode python3-zeroconf webkit2gtk4.1 %{_lib}notify-gir0.7
+%global magnolie_build_deps python3-pytest
+%else
+%if "%{magnolie_distro}" == "openmandriva"
+%global magnolie_deps gtk+3.0 python-gobject3 python-cryptography python-pyopenssl python-qrcode python-zeroconf %{_lib}webkit2gtk4.1_0 %{_lib}webkit2gtk-gir4.1 %{_lib}notify-gir0.7
+%global magnolie_build_deps python-pytest
+%else
+%if "%{magnolie_distro}" == "pclinuxos"
+%global magnolie_deps gtk+3.0 python3-gobject python3-cryptography python3-openssl python3-qrcode python3-zeroconf webkit2gtk4.1 %{_lib}notify-gir0.7
+%global magnolie_build_deps python3-pytest
+%else
+%if "%{magnolie_distro}" == "rosa"
+%global magnolie_deps gtk+3.0 python3-gobject python3-cryptography python3-OpenSSL python3-qrcode python3-zeroconf webkit2gtk4.1 %{_lib}webkit2-gir4.1 %{_lib}notify-gir0.7
+%global magnolie_build_deps python3-pytest
+%else
+%{error:Unpinned or unsupported Magnolie RPM distro profile}
+%endif
+%endif
+%endif
+%endif
+%endif
+%endif
+
 Name:           magnolie-organizer
-Version:        2.0.13
+Version:        2.0.14
 Release:        1%{?dist}
 Summary:        Personal organizer with a classic paper appearance
 
-License:        GPL-3.0-or-later AND CC0-1.0
+License:        GPL-3.0-or-later AND CC0-1.0 AND LicenseRef-Magnolie-protected-assets
 URL:            https://gitlab.com/maik3531/mint-forgs
 Source0:        %{name}-%{version}.tar.xz
 BuildArch:      noarch
+Provides:       magnolie-rpm-profile(%{magnolie_distro}) = %{version}-%{release}
 
-BuildRequires:  appstream
-BuildRequires:  desktop-file-utils
-BuildRequires:  gettext
-BuildRequires:  gtk3
-BuildRequires:  nodejs
-BuildRequires:  python3-cryptography
-BuildRequires:  python3-pyOpenSSL
-BuildRequires:  python3-devel
-BuildRequires:  python3-gobject
-BuildRequires:  python3-pytest
-BuildRequires:  python3-qrcode
-BuildRequires:  python3-zeroconf
-BuildRequires:  xdg-utils
-Requires:       gtk3
-Requires:       gettext
-Requires:       python3
-Requires:       python3-cryptography
-Requires:       python3-pyOpenSSL
-Requires:       python3-qrcode
-Requires:       python3-gobject
-Requires:       python3-zeroconf
-Requires:       webkit2gtk4.1
-Requires:       libnotify
-Recommends:     evolution-data-server
-Recommends:     bluez
-Recommends:     firewalld
-Recommends:     libcanberra-gtk3
-Recommends:     python3-enchant
-Recommends:     xdg-utils
-Suggests:       gnome-shell-extension-appindicator
-Suggests:       hunspell-de
-Suggests:       hunspell-en-US
-Suggests:       libappindicator-gtk3
-Suggests:       xapps
+BuildRequires:  /usr/bin/appstreamcli
+BuildRequires:  /usr/bin/desktop-file-validate
+BuildRequires:  /usr/bin/msgfmt
+BuildRequires:  /usr/bin/node
+BuildRequires:  /usr/bin/python3
+BuildRequires:  %{magnolie_build_deps}
+BuildRequires:  %{magnolie_deps}
+Requires:       /usr/bin/python3
+Requires:       %{magnolie_deps}
 
 %description
 Magnolie Organizer combines a calendar, contacts, tasks, notes,
@@ -59,22 +69,22 @@ while read -r language; do
     mkdir -p "locale/$language/LC_MESSAGES" web/i18n
     msgfmt --check --check-format \
         -o "locale/$language/LC_MESSAGES/%{name}.mo" "po/$language.po"
-    %{python3} werkzeuge/po_zu_js.py \
+    /usr/bin/python3 werkzeuge/po_zu_js.py \
         "$language" "po/$language.po" "web/i18n/$language.js"
 done < po/LINGUAS
-%{python3} werkzeuge/klang.py klang/erinnerung.wav
+/usr/bin/python3 werkzeuge/klang.py klang/erinnerung.wav
 
 %check
 set -eu
-%{python3} -m py_compile bin/%{name} bin/magnolie_telefon.py bin/magnolie_kdeconnect.py bin/magnolie_hintergrund.py bin/magnolie_personal_sync.py bin/magnolie_nextcloud.py bin/magnolie_crash.py werkzeuge/*.py pruefungen/*.py
+/usr/bin/python3 -m py_compile bin/%{name} bin/magnolie_telefon.py bin/magnolie_kdeconnect.py bin/magnolie_hintergrund.py bin/magnolie_personal_sync.py bin/magnolie_nextcloud.py bin/magnolie_cloud_backup.py bin/magnolie_crash.py bin/magnolie_asset.py werkzeuge/*.py pruefungen/*.py
 while read -r language; do
     test -n "$language" || continue
-    %{python3} werkzeuge/katalog_pruefen.py \
+    /usr/bin/python3 werkzeuge/katalog_pruefen.py \
         po/magnolie-organizer.pot "po/$language.po"
     test -s "locale/$language/LC_MESSAGES/%{name}.mo"
     test -s "web/i18n/$language.js"
 done < po/LINGUAS
-%{python3} -m pytest -q pruefungen/test_locale_completeness.py
+/usr/bin/python3 -m pytest -q pruefungen/test_locale_completeness.py
 test "$(wc -l < po/LINGUAS)" -eq 19
 test "$(find locale -name '%{name}.mo' -type f | wc -l)" -eq 19
 test "$(find web/i18n -name '*.js' -type f | wc -l)" -eq 19
@@ -87,19 +97,19 @@ trap 'rm -rf "$test_root"' EXIT
 export DISPLAY= WAYLAND_DISPLAY= TZ=Europe/Berlin
 export XDG_DATA_HOME="$test_root/data" XDG_CONFIG_HOME="$test_root/config"
 export XDG_CACHE_HOME="$test_root/cache"
-%{python3} pruefungen/test_parser.py
-%{python3} pruefungen/test_import_export_vertrag.py
-%{python3} pruefungen/test_gesamtarchiv.py
-%{python3} pruefungen/test_telefon.py
-%{python3} -m pytest -q pruefungen/test_kdeconnect.py
-%{python3} -m pytest -q pruefungen/test_eds_adressbuch_sync.py
-%{python3} pruefungen/test_wiederherstellungsjournal.py
-%{python3} pruefungen/test_paketinhalt.py
-%{python3} -m pytest -q pruefungen/test_personal_sync.py
-%{python3} -m pytest -q pruefungen/test_nextcloud.py
-%{python3} -m pytest -q pruefungen/test_crash_reports.py
-%{python3} -m pytest -q pruefungen/test_hintergrunddienst.py
-%{python3} werkzeuge/png_pruefen.py web/kaffee-qr.png
+/usr/bin/python3 pruefungen/test_parser.py
+/usr/bin/python3 pruefungen/test_import_export_vertrag.py
+/usr/bin/python3 pruefungen/test_gesamtarchiv.py
+/usr/bin/python3 pruefungen/test_telefon.py
+/usr/bin/python3 -m pytest -q pruefungen/test_kdeconnect.py
+/usr/bin/python3 -m pytest -q pruefungen/test_eds_adressbuch_sync.py
+/usr/bin/python3 pruefungen/test_wiederherstellungsjournal.py
+/usr/bin/python3 pruefungen/test_paketinhalt.py
+/usr/bin/python3 -m pytest -q pruefungen/test_personal_sync.py
+/usr/bin/python3 -m pytest -q pruefungen/test_nextcloud.py
+/usr/bin/python3 -m pytest -q pruefungen/test_crash_reports.py
+/usr/bin/python3 -m pytest -q pruefungen/test_hintergrunddienst.py
+/usr/bin/python3 pruefungen/test_asset_container.py
 
 desktop-file-validate io.gitlab.maik3531.MagnolieOrganizer.desktop
 appstreamcli validate --no-net \
@@ -116,15 +126,17 @@ install -Dpm 0644 bin/magnolie_kdeconnect.py %{buildroot}%{_bindir}/magnolie_kde
 install -Dpm 0644 bin/magnolie_hintergrund.py %{buildroot}%{_bindir}/magnolie_hintergrund.py
 install -Dpm 0644 bin/magnolie_personal_sync.py %{buildroot}%{_bindir}/magnolie_personal_sync.py
 install -Dpm 0644 bin/magnolie_nextcloud.py %{buildroot}%{_bindir}/magnolie_nextcloud.py
+install -Dpm 0644 bin/magnolie_cloud_backup.py %{buildroot}%{_bindir}/magnolie_cloud_backup.py
 install -Dpm 0644 bin/magnolie_crash.py %{buildroot}%{_bindir}/magnolie_crash.py
+install -Dpm 0644 bin/magnolie_asset.py %{buildroot}%{_bindir}/magnolie_asset.py
 
 install -d %{buildroot}%{_datadir}/%{name}/web/i18n
 install -pm 0644 web/index.html web/stil.css web/anwendung.js \
     web/i18n.js web/i18n-start.js web/i18n-markers.js \
     web/i18n-en.js \
     %{buildroot}%{_datadir}/%{name}/web/
-install -pm 0644 web/kaffee-qr.png \
-    %{buildroot}%{_datadir}/%{name}/web/kaffee-qr.png
+install -pm 0644 web/kaffee-qr.mga \
+    %{buildroot}%{_datadir}/%{name}/web/kaffee-qr.mga
 install -pm 0644 web/i18n/*.js %{buildroot}%{_datadir}/%{name}/web/i18n/
 hash="${MAGNOLIE_CONTRIBUTOR_HASH:-}"
 if test -n "$hash"; then
@@ -171,7 +183,7 @@ done < po/LINGUAS
 # %check runs before %install. Validate the installed product here while the
 # buildroot exists, without starting the graphical application.
 test -x %{buildroot}%{_bindir}/%{name}
-PYTHONDONTWRITEBYTECODE=1 %{python3} - <<'PY'
+PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 - <<'PY'
 import ast
 import pathlib
 import sys
@@ -180,17 +192,17 @@ root = pathlib.Path(r"%{buildroot}")
 bindir = root / "usr/bin"
 for name in ("magnolie-organizer", "magnolie_telefon.py",
               "magnolie_kdeconnect.py", "magnolie_hintergrund.py", "magnolie_personal_sync.py",
-              "magnolie_nextcloud.py"):
+              "magnolie_nextcloud.py", "magnolie_cloud_backup.py"):
     ast.parse((bindir / name).read_text(encoding="utf-8"), filename=name)
 sys.path.insert(0, str(bindir))
 import magnolie_personal_sync
 import magnolie_nextcloud
+import magnolie_cloud_backup
 import magnolie_telefon
 assert pathlib.Path(magnolie_personal_sync.__file__) == bindir / "magnolie_personal_sync.py"
 assert magnolie_telefon.validate_personal_sync_body is magnolie_personal_sync.validate_body
 PY
-%{python3} werkzeuge/png_pruefen.py \
-    %{buildroot}%{_datadir}/%{name}/web/kaffee-qr.png
+test -s %{buildroot}%{_datadir}/%{name}/web/kaffee-qr.mga
 for path in \
     %{buildroot}%{_datadir}/%{name}/web/index.html \
     %{buildroot}%{_datadir}/%{name}/web/anwendung.js \
@@ -204,7 +216,7 @@ for path in \
 done
 
 %files -f %{name}.lang
-%license debian/copyright
+%license debian/copyright PROTECTED-ASSETS-LICENSE.txt
 %doc LIESMICH.md INTERNATIONALISIERUNG.md
 %{_bindir}/%{name}
 %{_bindir}/magnolie_telefon.py
@@ -212,7 +224,9 @@ done
 %{_bindir}/magnolie_hintergrund.py
 %{_bindir}/magnolie_personal_sync.py
 %{_bindir}/magnolie_nextcloud.py
+%{_bindir}/magnolie_cloud_backup.py
 %{_bindir}/magnolie_crash.py
+%{_bindir}/magnolie_asset.py
 %{_datadir}/%{name}/
 %{_datadir}/applications/io.gitlab.maik3531.MagnolieOrganizer.desktop
 %{_datadir}/metainfo/io.gitlab.maik3531.MagnolieOrganizer.metainfo.xml
@@ -222,6 +236,10 @@ done
 %{_mandir}/*/man1/magnolie-organizer.1*
 
 %changelog
+* Mon Aug 31 2026 Maik Walter <maik3531@gmail.com> - 2.0.14-1
+- Protect personal assets and harden package and VM release validation.
+- Add localized CLI aliases and isolated distribution profiles.
+
 * Sun Aug 30 2026 Maik Walter <maik3531@gmail.com> - 2.0.13-1
 - Correct notebook line alignment under system font scaling.
 - Improve background-service notifications and harden synchronization.

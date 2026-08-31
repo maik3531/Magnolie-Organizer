@@ -1,10 +1,10 @@
-.TH MAGNOLIE-HANDBUCH 1 "srpen 2026" "Příručka Magnolie 2.0.6" "Uživatelské příkazy"
+.TH MAGNOLIE-HANDBUCH 1 "srpen 2026" "Příručka Magnolie 2.0.14" "Uživatelské příkazy"
 .SH NÁZEV
 magnolie-handbuch \- otevře uživatelskou příručku organizéru Magnolie
 .SH POUŽITÍ
 .B magnolie-handbuch
 .RI [ volba ]
-.RI [ \-\-sprache\  jazyk ]
+.RI [ \-\-language\  jazyk ]
 .SH POPIS
 .B Příručka Magnolie
 otevře úplnou ilustrovanou uživatelskou příručku organizéru Magnolie. Příručku
@@ -12,19 +12,25 @@ lze procházet na obrazovce, vytisknout nebo exportovat do souboru PDF.
 .PP
 V rámci jednoho uživatelského sezení se otevře pouze jedno okno příručky.
 Opětovné spuštění příkazu zobrazí již otevřené okno.
+.SH TVARY PŘÍKAZOVÉHO ŘÁDKU
+Neutrální krátké aliasy a anglické dlouhé tvary jsou:
+.nf
+\-h \-\-help; \-V \-\-version; \-l \-\-language; \-P \-\-pot-template.
+.fi
+Přijímají se německé i anglické dlouhé tvary.
 .SH VOLBY
 .TP
-.BR \-\-sprache " " SPRACHE , " " \-\-language " " LANGUAGE
+.BR \-\-language " " LANGUAGE , " " \-\-sprache " " SPRACHE
 Pro toto spuštění použije němčinu (\fBde\fR), angličtinu (\fBen\fR) nebo jazyk
 systému (\fBsystem\fR). Tím se zvolí jazyk výstupu příkazu před zobrazením
 nápovědy a jazyk WebKitu v nově otevřeném okně. Uložená nastavení se nezmění.
 .TP
-.BR \-\-pot " [" SOUBOR "]", " " \-\-pot-template " [" FILE "]"
+.BR \-\-pot-template " [" FILE "]", " " \-\-pot " [" SOUBOR "]"
 Vytvoří reprodukovatelnou šablonu gettext a skončí. Bez argumentu souboru
 zapíše \fBmagnolie-handbuch.pot\fR do aktuálního adresáře; jinak ji zapíše do
 zadané cesty. Při úspěchu vypíše absolutní cestu k výstupu.
 .TP
-.BR \-\-hilfe , " " \-\-help
+.BR \-\-help , " " \-\-hilfe
 Zobrazí stručný přehled příkazu.
 .SH PROSTŘEDÍ
 .TP

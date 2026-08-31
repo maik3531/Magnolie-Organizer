@@ -370,6 +370,11 @@ internal sealed class MainForm : Form
 
         core.SetVirtualHostNameToFolderMapping(VirtualHost, webRoot,
             CoreWebView2HostResourceAccessKind.DenyCors);
+        ProtectedAssetReader.Register(core, VirtualHost, webRoot,
+            new Dictionary<string, (string, byte, byte, string)>
+            {
+                ["/kaffee-qr.png"] = ("kaffee-qr.mga", 1, 1, "image/png")
+            });
         core.Settings.AreDevToolsEnabled = false;
         core.Settings.AreDefaultContextMenusEnabled = false;
         core.Settings.AreBrowserAcceleratorKeysEnabled = false;

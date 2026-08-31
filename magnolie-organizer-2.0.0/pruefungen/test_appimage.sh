@@ -25,6 +25,10 @@ DISPLAY= WAYLAND_DISPLAY= timeout 20s "$APPIMAGE" --appimage-extract-and-run \
 (cd "$ARBEIT" && "$APPIMAGE" --appimage-extract >/dev/null)
 APPDIR="$ARBEIT/squashfs-root"
 test -x "$APPDIR/AppRun"
+cmp "$APPDIR/usr/share/doc/magnolie-organizer/PROTECTED-ASSETS-LICENSE.txt" \
+    "$(dirname -- "$0")/../PROTECTED-ASSETS-LICENSE.txt"
+test -s "$APPDIR/usr/share/magnolie-organizer/web/kaffee-qr.mga"
+test ! -e "$APPDIR/usr/share/magnolie-organizer/web/kaffee-qr.png"
 grep -Fq ': "${MAGNOLIE_GRAPHICS_COMPAT:=0}"' "$APPDIR/AppRun"
 ! grep -Fq ': "${WEBKIT_DISABLE_DMABUF_RENDERER:=1}"' "$APPDIR/AppRun"
 ! grep -Fq 'WEBKIT_DISABLE_COMPOSITING_MODE' "$APPDIR/AppRun"
@@ -47,6 +51,7 @@ test -x "$APPDIR/usr/bin/magnolie-organizer"
 test -f "$APPDIR/usr/bin/magnolie_telefon.py"
 test -f "$APPDIR/usr/bin/magnolie_personal_sync.py"
 test -f "$APPDIR/usr/bin/magnolie_nextcloud.py"
+test -f "$APPDIR/usr/bin/magnolie_cloud_backup.py"
 test -f "$APPDIR/usr/share/magnolie-organizer/web/index.html"
 test "$(cat "$APPDIR/usr/share/magnolie-organizer/build-config.json")" = \
     "{\"contributorHash\":\"$CONTRIBUTOR_HASH\"}"
@@ -139,6 +144,7 @@ SSL_CERT_FILE="$APPDIR/usr/share/magnolie-organizer/certs/ca-certificates.crt" \
 import gi
 import magnolie_personal_sync
 import magnolie_telefon
+import magnolie_cloud_backup
 import qrcode
 import six
 import ssl

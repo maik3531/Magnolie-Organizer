@@ -43,6 +43,7 @@ internal sealed class HandbookForm : Form
             await webView.EnsureCoreWebView2Async(environment);
             var core = webView.CoreWebView2;
             core.SetVirtualHostNameToFolderMapping(VirtualHost, handbookRoot, CoreWebView2HostResourceAccessKind.DenyCors);
+            ProtectedAssetReader.Register(core, VirtualHost, handbookRoot, HandbookAssets());
             core.Settings.AreDevToolsEnabled = false;
             core.Settings.AreDefaultContextMenusEnabled = false;
             core.Settings.AreBrowserAcceleratorKeysEnabled = false;
@@ -150,12 +151,13 @@ internal sealed class HandbookForm : Form
             var value = JsonNode.Parse(message) as JsonObject;
             if (value?["cmd"]?.GetValue<string>() != "drucken" || value["html"] is not JsonValue htmlValue ||
                 !htmlValue.TryGetValue<string>(out var html) || html.Length is < 1 or > 8_000_000) return;
-            var print = new HtmlPrintForm(html, paths, T("Manual")) { Icon = Icon };
+            var print = new HtmlPrintForm(html, paths, T("Manual"), handbookRoot) { Icon = Icon };
             print.Show(this);
             await print.Ready;
         }
-        catch (Exception error) when (error is JsonException or InvalidOperationException)
+        catch (Exception error)
         {
+            WriteDiagnostic($"Handbuch-Druckbefehl fehlgeschlagen: {error}");
             MessageBox.Show(this, T("The manual could not be opened.") + " " + error.Message,
                 WindowTitle, MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
@@ -166,20 +168,30 @@ internal sealed class HandbookForm : Form
         parsed.Scheme.Equals("https", StringComparison.OrdinalIgnoreCase) &&
         parsed.Host.Equals(VirtualHost, StringComparison.OrdinalIgnoreCase);
 
+    private static IReadOnlyDictionary<string, (string, byte, byte, string)> HandbookAssets() =>
+        new Dictionary<string, (string, byte, byte, string)>
+        {
+            ["/kaffee-qr.png"] = ("kaffee-qr.mga", 1, 1, "image/png"),
+            ["/maik-walter.jpg"] = ("maik-walter.mga", 2, 2, "image/jpeg")
+        };
+
     private static string T(string message) => NativeLocalization.Gettext(message);
 }
 
 internal sealed class HtmlPrintForm : Form
 {
+    private const string VirtualHost = "handbuch.magnolie.invalid";
     private readonly string html;
     private readonly WindowsPaths paths;
     private readonly WebView2 webView = new() { Dock = DockStyle.Fill };
+    private readonly string? handbookRoot;
     private readonly TaskCompletionSource initialized = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
-    internal HtmlPrintForm(string html, WindowsPaths paths, string documentName)
+    internal HtmlPrintForm(string html, WindowsPaths paths, string documentName, string? handbookRoot = null)
     {
         this.html = html;
         this.paths = paths;
+        this.handbookRoot = handbookRoot;
         Text = "Magnolie Organizer - " + NativeLocalization.Gettext("Print") +
             (documentName.Length > 0 ? " - " + documentName : "");
         StartPosition = FormStartPosition.CenterParent;
@@ -196,17 +208,58 @@ internal sealed class HtmlPrintForm : Form
         {
             var environment = await WebViewEnvironmentProvider.GetAsync(paths);
             await webView.EnsureCoreWebView2Async(environment);
+            if (handbookRoot is not null)
+            {
+                webView.CoreWebView2.SetVirtualHostNameToFolderMapping(VirtualHost,
+                    handbookRoot, CoreWebView2HostResourceAccessKind.DenyCors);
+                ProtectedAssetReader.Register(webView.CoreWebView2, VirtualHost, handbookRoot,
+                    new Dictionary<string, (string, byte, byte, string)>
+                    {
+                        ["/kaffee-qr.png"] = ("kaffee-qr.mga", 1, 1, "image/png"),
+                        ["/maik-walter.jpg"] = ("maik-walter.mga", 2, 2, "image/jpeg")
+                    });
+            }
             webView.CoreWebView2.Settings.AreDevToolsEnabled = false;
             webView.CoreWebView2.Settings.AreDefaultContextMenusEnabled = false;
             webView.CoreWebView2.PermissionRequested += (_, eventArgs) => eventArgs.State = CoreWebView2PermissionState.Deny;
             webView.CoreWebView2.ProcessFailed += (_, eventArgs) => WriteDiagnostic(
                 $"Handbuch-Druck-WebView2-Prozessfehler: {eventArgs.ProcessFailedKind}");
-            webView.CoreWebView2.NavigationCompleted += (_, eventArgs) =>
+            webView.CoreWebView2.NavigationCompleted += async (_, eventArgs) =>
             {
-                if (eventArgs.IsSuccess) webView.CoreWebView2.ShowPrintUI(CoreWebView2PrintDialogKind.System);
-                initialized.TrySetResult();
+                try
+                {
+                    if (!eventArgs.IsSuccess)
+                        throw new InvalidDataException("Handbook print navigation failed.");
+                    await webView.CoreWebView2.ExecuteScriptAsync(
+                        "window.__magnoliePrintReady = 'pending'; " +
+                        "Promise.all([document.fonts.ready, ...Array.from(document.images, " +
+                        "image => image.complete && image.naturalWidth > 0 ? Promise.resolve() : " +
+                        "new Promise((resolve, reject) => { image.addEventListener('load', resolve, " +
+                        "{ once: true }); image.addEventListener('error', reject, { once: true }); }))])" +
+                        ".then(() => { window.__magnoliePrintReady = 'ready'; }, " +
+                        "() => { window.__magnoliePrintReady = 'error'; });");
+                    var resourcesReady = false;
+                    for (var attempt = 0; attempt < 200; attempt++)
+                    {
+                        var state = await webView.CoreWebView2.ExecuteScriptAsync(
+                            "window.__magnoliePrintReady");
+                        if (state == "\"ready\"") { resourcesReady = true; break; }
+                        if (state == "\"error\"") break;
+                        await Task.Delay(100);
+                    }
+                    if (!resourcesReady)
+                        throw new InvalidDataException("Handbook print resources did not load.");
+                    webView.CoreWebView2.ShowPrintUI(CoreWebView2PrintDialogKind.System);
+                    initialized.TrySetResult();
+                }
+                catch (Exception error)
+                {
+                    WriteDiagnostic($"Handbuch-Druckressourcen fehlgeschlagen: {error}");
+                    initialized.TrySetException(error);
+                    Close();
+                }
             };
-            webView.NavigateToString(html);
+            webView.NavigateToString(handbookRoot is null ? html : AddHandbookBase(html));
         }
         catch (Exception error)
         {
@@ -214,6 +267,15 @@ internal sealed class HtmlPrintForm : Form
             initialized.TrySetException(error);
             Close();
         }
+    }
+
+    private static string AddHandbookBase(string value)
+    {
+        const string marker = "<head>";
+        var index = value.IndexOf(marker, StringComparison.OrdinalIgnoreCase);
+        if (index < 0) throw new InvalidDataException("Handbook print HTML has no head element.");
+        return value.Insert(index + marker.Length,
+            $"<base href='https://{VirtualHost}/'>");
     }
 
     private void WriteDiagnostic(string message) => RotatingLog.Append(

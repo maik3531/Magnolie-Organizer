@@ -18,6 +18,7 @@ childProcess.execFileSync("python3", [path.join(ROOT, "werkzeuge", "po_zu_js.py"
 const sources = {
   html: fs.readFileSync(path.join(WEB, "index.html"), "utf8"),
   i18n: fs.readFileSync(path.join(WEB, "i18n.js"), "utf8"),
+  i18nStart: fs.readFileSync(path.join(WEB, "i18n-start.js"), "utf8"),
   catalog: fs.readFileSync(catalogJs, "utf8"),
   content: fs.readFileSync(path.join(WEB, "inhalt.js"), "utf8"),
   handbook: fs.readFileSync(path.join(WEB, "handbuch.js"), "utf8"),
@@ -70,7 +71,89 @@ const contentDom = new JSDOM("<!doctype html><html><body></body></html>",
   { runScripts: "outside-only" });
 contentDom.window.MagnolieI18n = { registerBook() {}, locale: () => "en" };
 contentDom.window.eval(sources.content);
+const rawSourcePages = contentDom.window.HANDBUCH_SEITEN;
 const sourcePages = JSON.parse(JSON.stringify(contentDom.window.HANDBUCH_SEITEN));
+const replacementIds = ["sms-getting-started", "sms-mobile-only", "sms-sheet"];
+const replacementAttachments = replacementIds.map((id) =>
+  rawSourcePages.find((page) => page.id === id).inhaltAnhang);
+assert.ok(replacementAttachments.every((attachment) => attachment === replacementAttachments[0]),
+  "current SMS behavior translations must be shared by all replacement pages");
+const supportedMatch = sources.i18nStart.match(/const supported = (\[[\s\S]*?\]);/);
+assert.ok(supportedMatch, "supported handbook locale list is missing");
+const supportedLocales = JSON.parse(supportedMatch[1]);
+assert.deepStrictEqual(Object.keys(replacementAttachments[0]).sort(), supportedLocales.slice().sort(),
+  "current SMS behavior must have every supported runtime locale");
+for (const locale of supportedLocales) {
+  assert.ok(isBalancedHtml(replacementAttachments[0][locale]),
+    `${locale}: current SMS behavior has unbalanced HTML`);
+}
+for (const locale of supportedLocales.filter((code) => code !== "en")) {
+  assert.ok(replacementAttachments[0][locale] &&
+    replacementAttachments[0][locale] !== replacementAttachments[0].en,
+  `${locale}: current SMS behavior uses an English fallback`);
+}
+const portableBackupIds = ["android-recovery-journal", "platform-security-matrix"];
+const portableBackupAttachments = portableBackupIds.map((id) =>
+  rawSourcePages.find((page) => page.id === id).inhaltAnhang);
+assert.ok(portableBackupAttachments.every((attachment) =>
+  attachment === portableBackupAttachments[0]),
+"portable-backup translations must be one shared appendix object");
+assert.deepStrictEqual(Object.keys(portableBackupAttachments[0]).sort(),
+  supportedLocales.slice().sort(),
+"portable-backup appendix must have every supported runtime locale");
+for (const locale of supportedLocales) {
+  assert.ok(isBalancedHtml(portableBackupAttachments[0][locale]),
+    `${locale}: portable-backup appendix has unbalanced HTML`);
+}
+for (const locale of supportedLocales.filter((code) => code !== "en")) {
+  assert.ok(portableBackupAttachments[0][locale] &&
+    portableBackupAttachments[0][locale] !== portableBackupAttachments[0].en,
+  `${locale}: portable-backup appendix uses an English fallback`);
+}
+const portableBackupEnglish = portableBackupAttachments[0].en;
+for (const claim of ["means only Android OS app backup", "Create portable backup",
+  "Open portable backup",
+  "no provider password", "no embedded provider OAuth client ID", "notes, notebooks, tasks, trash",
+  "Magnolienbaum identity, keys, partners, and queue", "PBKDF2-HMAC-SHA256",
+  "240,000", "AES-256-GCM", "read back and authenticated", "verified preview",
+  "explicit confirmation", "local pre-restore snapshot",
+  "locally synchronized Nextcloud, Google Drive, Dropbox, or OneDrive folder",
+  "uniquely named <b>.magnolie</b> files", "normal validated backup or complete-archive flow",
+  "does not claim a direct provider login or OAuth integration",
+  "persistent folder from Android's system document provider", "daily or weekly schedule",
+  "protected locally by Android Keystore", "must remember it", "<b>2 to 30</b>",
+  "Test now", "last successful backup", "Android WorkManager", "network is available",
+  "battery is not low", "storage is not low", "closed, reopened, and authenticated",
+  "Revoked document-provider permission", "fail closed", "No provider credentials or OAuth client IDs",
+  "custom, locally synchronized cloud folder", "after a successful data save",
+  "Organizer is open and unlocked", "Secret Service on Linux",
+  "current user by DPAPI on Windows", "read back and verified before retention",
+  "performs no direct provider login", "create and restore archives manually",
+  "restoring preserves the current device identity"]) {
+  assert.ok(portableBackupEnglish.includes(claim),
+    `English portable-backup documentation missing: ${claim}`);
+}
+assert.ok(!portableBackupEnglish.includes("currently a manual operation") &&
+  !portableBackupEnglish.includes("not a scheduled or background backup"),
+"portable-backup documentation must not retain the obsolete manual-only claim");
+for (const locale of supportedLocales) {
+  const appendix = portableBackupAttachments[0][locale];
+  assert.ok(appendix.includes("data-backup-automation='true'") &&
+    appendix.includes("WorkManager") && appendix.includes("Keystore") &&
+    appendix.includes("Secret Service") && appendix.includes("DPAPI") &&
+    appendix.includes("<b>.magnolie</b>"),
+  `${locale}: portable-backup automation details are incomplete`);
+}
+for (const locale of supportedLocales.filter((code) => code !== "en")) {
+  const automation = portableBackupAttachments[0][locale]
+    .split("<section data-backup-automation='true'>")[1];
+  const englishAutomation = portableBackupEnglish
+    .split("<section data-backup-automation='true'>")[1];
+  assert.ok(automation && automation !== englishAutomation,
+    `${locale}: portable-backup automation uses an English fallback`);
+}
+assert.ok(replacementIds.every((id) => rawSourcePages.find((page) => page.id === id)
+  .inhaltAnhangErsetzt === true), "current SMS pages must explicitly replace their old content");
 contentDom.window.close();
 assert.strictEqual(sourcePages.length, 156, "the release handbook must contain exactly 156 pages");
 const protectedIds = new Set(["license-and-acknowledgments", "in-closing",
@@ -286,7 +369,6 @@ const screenshotPages = {
   "11-stand.png": "phone-pair-remove",
   "14-karteikarte.png": "creating-a-contact",
   "15-rechtsklick-anrufen.png": "phone-call-assignment",
-  "19-karte-mit-sms.png": "sms-mobile-only",
   "21-sms-getippt.png": "sms-spelling",
 };
 for (const [image, pageId] of Object.entries(screenshotPages)) {
@@ -423,7 +505,7 @@ for (const language of languages) {
             assert.ok(digits.includes(value),
               `${language}: synchronization limit ${value} changed on ${page.titel}`);
           }
-          assert.ok(data.messages[page[key]].includes("2.0.13") &&
+          assert.ok(data.messages[page[key]].includes("2.0.14") &&
             data.messages[page[key]].includes("1.0.9"),
           `${language}: supported version changed on ${page.titel}`);
         }
@@ -683,9 +765,9 @@ function checkLocale(locale, expected) {
   for (const text of expected.completeText) {
     assert.ok(print.includes(text), `${locale}: missing complete-book marker: ${text}`);
   }
-  for (const preserved of ["backing-up-and-restoring", "magnolie-organizer_2.0.13_all.deb",
-    "sudo apt install ./magnolie-organizer_2.0.13_all.deb", "wttr.in",
-    "maik3531@gmail.com", "2.0.13"]) {
+  for (const preserved of ["backing-up-and-restoring", "magnolie-organizer_2.0.14_all.deb",
+    "sudo apt install ./magnolie-organizer_2.0.14_all.deb", "wttr.in",
+    "maik3531@gmail.com", "2.0.14"]) {
     assert.ok(print.includes(preserved), `${locale}: technical value changed: ${preserved}`);
   }
   assert.ok(!print.includes("1.28.0") && !print.includes("1.31.37") &&
@@ -764,6 +846,37 @@ try {
 
   const english = createBook("en");
   const german = createBook("de");
+  const englishSms = replacementIds.map((id) => english.H.seiten().find((page) => page.id === id));
+  const germanSms = replacementIds.map((id) => german.H.seiten().find((page) => page.id === id));
+  assert.ok(englishSms.every((page) => page.inhalt === englishSms[0].inhalt) &&
+    englishSms[0].inhalt.includes("Current SMS behavior") &&
+    englishSms[0].inhalt.includes("Right-click the contact card's") &&
+    englishSms[0].inhalt.includes("only an <b>sms:</b> address") &&
+    englishSms[0].inhalt.includes("available only on Linux") &&
+    englishSms[0].inhalt.includes("Left-click <span class='knopfwort'>SMS</span>") &&
+    englishSms[0].inhalt.includes("Each number has its own local history") &&
+    englishSms[0].inhalt.includes("without replaying an old native notification") &&
+    !englishSms[0].inhalt.includes("supported only by the Linux backend"),
+  "English SMS replacement did not suppress outdated source content");
+  assert.ok(germanSms.every((page) => page.inhalt === germanSms[0].inhalt) &&
+    germanSms[0].inhalt.includes("Aktuelles SMS-Verhalten") &&
+    !germanSms[0].inhalt.includes("nur vom Linux-Backend"),
+  "German SMS replacement did not suppress outdated translated content");
+  const ordinaryAppendix = english.H.seiten().find((page) => page.id === "sms-delete-histories");
+  assert.ok(ordinaryAppendix.inhalt.includes(ordinaryAppendix._source.inhalt) &&
+    ordinaryAppendix.inhalt.includes("The visible way to these actions"),
+  "ordinary handbook appendices must still append to translated source content");
+  {
+    const dom = new JSDOM("<!doctype html><html><body></body></html>",
+      { runScripts: "outside-only" });
+    dom.window.eval(sources.i18n);
+    dom.window.MagnolieI18n.registerCatalog("zh_CN", { messages: {} });
+    assert.strictEqual(dom.window.MagnolieI18n.setLocale("zh_CN"), "zh-cn");
+    dom.window.eval(sources.content);
+    assert.ok(dom.window.HANDBUCH_SEITEN.find((page) => page.id === "sms-sheet").inhalt
+      .includes("当前短信行为"), "zh_CN must render the zh-cn SMS replacement");
+    dom.window.close();
+  }
   const englishText = english.H.seiten().map((page) => `${page.titel}\n${page.inhalt}`).join("\n");
   const germanText = german.H.seiten().map((page) => `${page.titel}\n${page.inhalt}`).join("\n");
   assert.ok(germanText.includes("unter Linux und unter Windows dasselbe Programm") &&
@@ -889,9 +1002,9 @@ try {
   assert.ok(english.H.blaettereZuId("kde-sms") &&
     english.H.seiten()[english.H.seiten().findIndex((page) => page.id === "kde-sms")].titel,
   "slug navigation failed");
-  assert.ok(englishText.includes("sudo dnf install ./magnolie-organizer-2.0.13-1.noarch.rpm"));
-  assert.ok(englishText.includes("rpmbuild --rebuild magnolie-organizer-2.0.13-1.src.rpm"));
-  assert.ok(englishText.includes("sudo dnf upgrade ./magnolie-organizer-2.0.13-1.noarch.rpm"));
+  assert.ok(englishText.includes("sudo dnf install ./magnolie-organizer-2.0.14-1.noarch.rpm"));
+  assert.ok(englishText.includes("rpmbuild --rebuild magnolie-organizer-2.0.14-1.src.rpm"));
+  assert.ok(englishText.includes("sudo dnf upgrade ./magnolie-organizer-2.0.14-1.noarch.rpm"));
   assert.ok(englishText.includes("Only one <i>Magnolie Organizer</i> entry remains"));
   assert.ok(englishText.includes("Update manual …") &&
     englishText.includes("verifies SHA-256") && englishText.includes("never runs sudo or dpkg"));
@@ -1025,11 +1138,16 @@ try {
   const python = fs.readFileSync(path.join(ROOT, "bin", "magnolie-handbuch"), "utf8");
   assert.ok(python.includes("gettext.translation") && python.includes("/usr/share/locale"));
   assert.ok(python.includes("window.MAGNOLIE_LOCALE") && python.includes("get_is_remote"));
-  assert.ok(python.includes('PROGRAMM_FASSUNG = "2.0.13"') && python.includes('"--version"'));
+  assert.ok(python.includes('PROGRAMM_FASSUNG = "2.0.14"') && python.includes('"--version"'));
   const changelog = fs.readFileSync(path.join(ROOT, "debian", "changelog"), "utf8");
   const pot = fs.readFileSync(path.join(ROOT, "po", "magnolie-handbuch.pot"), "utf8");
-  assert.ok(changelog.startsWith("magnolie-handbuch (2.0.13)"));
-  assert.ok(pot.includes('"Project-Id-Version: Magnolie Handbook 2.0.13'));
+  assert.ok(changelog.startsWith("magnolie-handbuch (2.0.14)"));
+  assert.ok(pot.includes('"Project-Id-Version: Magnolie Handbook 2.0.14'));
+  for (const relative of ["man/magnolie-handbuch.1",
+    ...languages.map(language => `man/${language}/magnolie-handbuch.1`)]) {
+    assert.ok(fs.readFileSync(path.join(ROOT, relative), "utf8").split("\n", 1)[0]
+      .includes("2.0.14"), `${relative}: stale manual version`);
+  }
   assert.ok(!sources.i18n.includes("pageReferenceUpdates") &&
     !sources.content.includes("data-seite="), "brittle page-number migration remains");
   const pageCount = english.H.seiten().length;

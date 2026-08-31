@@ -22,12 +22,31 @@ import locale
 import subprocess
 
 PROGRAMM_NAME = "magnolie-handbuch"
-PROGRAMM_FASSUNG = "2.0.13"
+PROGRAMM_FASSUNG = "2.0.14"
 TEXT_DOMAIN = "magnolie-handbuch"
 UNTERSTUETZTE_SPRACHEN = (
     "ar", "be", "cs", "da", "de", "es", "fr", "hi", "hsb", "it",
     "ja", "nb", "nl", "pl", "pt", "ru", "tr", "uk", "zh_CN",
 )
+
+_KURZOPTIONEN = {"-h": "--help", "-V": "--version", "-l": "--language",
+                  "-P": "--pot-template"}
+
+
+def kurzoptionen_normalisieren(argumente):
+    return [_KURZOPTIONEN.get(argument, argument) for argument in argumente]
+
+
+if __name__ == "__main__":
+    sys.argv[1:] = kurzoptionen_normalisieren(sys.argv[1:])
+
+_SKRIPT_VERZEICHNIS = os.path.dirname(os.path.realpath(__file__))
+_PRIVATE_MODULE = os.path.realpath(os.path.join(
+    _SKRIPT_VERZEICHNIS, "..", "lib", PROGRAMM_NAME))
+for _modul_pfad in (_PRIVATE_MODULE, _SKRIPT_VERZEICHNIS):
+    if os.path.isfile(os.path.join(_modul_pfad, "magnolie_asset.py")):
+        sys.path.insert(0, _modul_pfad)
+        break
 
 if __name__ == "__main__":
     private_modules = os.path.realpath(os.path.join(
@@ -41,6 +60,8 @@ if __name__ == "__main__":
             raise
     else:
         _crash_reporting_install(PROGRAMM_NAME, PROGRAMM_FASSUNG, "handbook")
+
+from magnolie_asset import read_handbook_request
 
 
 def normalisiere_sprache(wert, system_erlaubt=True):
@@ -73,6 +94,7 @@ UEBERSETZUNG = lade_uebersetzung()
 _ = UEBERSETZUNG.gettext
 FENSTER_TITEL = _("Magnolie Organizer - Handbook")
 SPRACH_OVERRIDE = None
+HANDBUCH_URI = "magnolie-handbuch://app/index.html"
 
 
 def web_sprache():
@@ -144,13 +166,27 @@ class Fenster(_FENSTER_BASIS):
         except Exception:
             pass
 
+        self._web_verzeichnis = os.path.realpath(web_verzeichnis)
+        kontext = WebKit2.WebContext.get_default()
+        try:
+            kontext.register_uri_scheme("magnolie-handbuch", self._bei_ressource)
+        except GLib.Error:
+            pass
+        sicherheit = kontext.get_security_manager()
+        for methode in ("register_uri_scheme_as_local", "register_uri_scheme_as_secure",
+                        "register_uri_scheme_as_display_isolated"):
+            try:
+                getattr(sicherheit, methode)("magnolie-handbuch")
+            except AttributeError:
+                pass
         inhalte = WebKit2.UserContentManager()
         try:
             import json
             sprachskript = "window.MAGNOLIE_LOCALE = %s;" % json.dumps(web_sprache())
             inhalte.add_script(WebKit2.UserScript.new(
-                sprachskript, WebKit2.UserContentInjectedFrames.ALL_FRAMES,
-                WebKit2.UserScriptInjectionTime.START, None, None))
+                sprachskript, WebKit2.UserContentInjectedFrames.TOP_FRAME,
+                WebKit2.UserScriptInjectionTime.START,
+                ["magnolie-handbuch://app/*"], None))
         except (AttributeError, TypeError):
             pass
         inhalte.register_script_message_handler("bruecke")
@@ -171,8 +207,7 @@ class Fenster(_FENSTER_BASIS):
         self.ansicht.connect("decide-policy", self.bei_navigation)
         self.add(self.ansicht)
 
-        start = os.path.join(web_verzeichnis, "index.html")
-        self.ansicht.load_uri(GLib.filename_to_uri(start, None))
+        self.ansicht.load_uri(HANDBUCH_URI)
         self.connect("destroy", Gtk.main_quit)
         self.connect("key-press-event", self.bei_taste)
 
@@ -217,7 +252,7 @@ class Fenster(_FENSTER_BASIS):
             adresse = entscheidung.get_navigation_action().get_request().get_uri()
         except AttributeError:
             return False
-        if adresse.startswith("file://"):
+        if adresse == HANDBUCH_URI:
             return False
         entscheidung.ignore()
         try:
@@ -246,6 +281,18 @@ class Fenster(_FENSTER_BASIS):
 
     # ------------------------------------------------------------- Brücke
 
+    def _bei_ressource(self, anfrage):
+        daten = b""
+        mime = "text/plain"
+        try:
+            ressource = read_handbook_request(anfrage.get_uri(), self._web_verzeichnis)
+            if ressource:
+                daten, mime = ressource
+        except (OSError, ValueError):
+            pass
+        strom = Gio.MemoryInputStream.new_from_bytes(GLib.Bytes.new(daten))
+        anfrage.finish(strom, len(daten), mime)
+
     def sende_js(self, quelltext):
         def im_haupt():
             try:
@@ -257,6 +304,11 @@ class Fenster(_FENSTER_BASIS):
 
     def bei_nachricht(self, _verwaltung, ergebnis):
         import json
+        try:
+            if self.ansicht.get_uri() != HANDBUCH_URI:
+                return
+        except AttributeError:
+            return
         try:
             roh = ergebnis.get_js_value().to_string()
             nachricht = json.loads(roh)
@@ -271,14 +323,7 @@ class Fenster(_FENSTER_BASIS):
 
     def _drucken(self, html):
         """Druckt das Handbuch über den Druckdialog des Systems."""
-        import subprocess
-        import tempfile
-        ordner = tempfile.mkdtemp(prefix="magnolie-handbuch-druck-")
-        pfad = os.path.join(ordner, "Magnolie-Handbuch.html")
-        try:
-            with open(pfad, "w", encoding="utf-8") as datei:
-                datei.write(html)
-        except OSError:
+        if not isinstance(html, str) or not 1 <= len(html) <= 8_000_000:
             return
         try:
             ansicht = WebKit2.WebView()
@@ -292,19 +337,10 @@ class Fenster(_FENSTER_BASIS):
                 auftrag.run_dialog(self)
 
             ansicht.connect("load-changed", bei_fertig)
-            ansicht.load_uri(GLib.filename_to_uri(pfad, None))
+            ansicht.load_html(html, "magnolie-handbuch://app/")
             self._druckansicht = ansicht
-            return
         except Exception:
-            pass
-        werkzeug = shutil_which("xdg-open")
-        if werkzeug:
-            try:
-                subprocess.Popen([werkzeug, pfad], start_new_session=True,
-                                 stdout=subprocess.DEVNULL,
-                                 stderr=subprocess.DEVNULL)
-            except OSError:
-                pass
+            self._druckansicht = None
 
     def _organizer_starten(self):
         import subprocess
@@ -344,7 +380,7 @@ def befehlszeile_lesen(argumente):
     while index < len(argumente):
         argument = argumente[index]
         if argument in ("--sprache", "--language"):
-            if index + 1 >= len(argumente) or argumente[index + 1].startswith("--"):
+            if index + 1 >= len(argumente) or argumente[index + 1].startswith("-"):
                 return None, None, _("Option %s requires a language.") % argument
             roh_sprache = argumente[index + 1]
             sprache = normalisiere_sprache(roh_sprache)
@@ -354,9 +390,11 @@ def befehlszeile_lesen(argumente):
             continue
         if argument in ("--pot", "--pot-template"):
             pot = ""
-            if index + 1 < len(argumente) and not argumente[index + 1].startswith("--"):
+            if index + 1 < len(argumente) and not argumente[index + 1].startswith("-"):
                 pot = argumente[index + 1]
                 index += 1
+        elif argument not in ("--hilfe", "--help", "--version"):
+            return None, None, _("Unknown option: %s") % argument
         index += 1
     return sprache, pot, None
 
@@ -369,6 +407,16 @@ def sprache_anwenden(sprache):
     UEBERSETZUNG = lade_uebersetzung(sprache)
     _ = UEBERSETZUNG.gettext
     FENSTER_TITEL = _("Magnolie Organizer - Handbook")
+
+
+def befehlszeilen_sprache_anwenden(argumente):
+    sprache = None
+    for index, argument in enumerate(argumente[:-1]):
+        if argument in ("--sprache", "--language") and not argumente[index + 1].startswith("-"):
+            kandidat = normalisiere_sprache(argumente[index + 1])
+            if kandidat:
+                sprache = kandidat
+    sprache_anwenden(sprache)
 
 
 def pot_erzeugen(ziel):
@@ -402,6 +450,8 @@ def einzelinstanz_anmelden(anwendungskennung, aktivieren):
 
 
 def haupt():
+    sys.argv[1:] = kurzoptionen_normalisieren(sys.argv[1:])
+    befehlszeilen_sprache_anwenden(sys.argv[1:])
     sprache, pot_ziel, fehler = befehlszeile_lesen(sys.argv[1:])
     if fehler:
         sys.stderr.write(fehler + "\n")
@@ -423,15 +473,28 @@ def haupt():
         sys.exit(0)
 
     if "--hilfe" in sys.argv[1:] or "--help" in sys.argv[1:]:
-        sys.stdout.write(
-            _("Magnolie Organizer - User Guide\n\n"
-              "Usage:\n"
-              "  magnolie-handbuch          Open the handbook\n"
-              "  magnolie-handbuch --help   Show this overview\n"
-              "  magnolie-handbuch --sprache SPRACHE / --language LANGUAGE\n"
-              "                             Use de, en, or system for this invocation\n"
-              "  magnolie-handbuch --pot [DATEI] / --pot-template [FILE]\n"
-              "                             Create a gettext POT template\n"))
+        hilfe = _("Magnolie Organizer - User Guide\n\n"
+                  "Usage:\n"
+                  "  magnolie-handbuch          Open the handbook\n"
+                  "  magnolie-handbuch --help   Show this overview\n"
+                  "  magnolie-handbuch --sprache SPRACHE / --language LANGUAGE\n"
+                  "                             Use de, en, or system for this invocation\n"
+                  "  magnolie-handbuch --pot [DATEI] / --pot-template [FILE]\n"
+                  "                             Create a gettext POT template\n")
+        deutsch = (SPRACH_OVERRIDE or web_sprache()).lower().startswith("de")
+        hilfe = hilfe.replace("magnolie-handbuch --help",
+                              "magnolie-handbuch -h / " + ("--hilfe" if deutsch else "--help"))
+        sprachform = ("-l SPRACHE / --sprache SPRACHE" if deutsch
+                      else "-l LANGUAGE / --language LANGUAGE")
+        hilfe = hilfe.replace("magnolie-handbuch --sprache SPRACHE / --language LANGUAGE",
+                              "magnolie-handbuch " + sprachform)
+        potform = ("-P [DATEI] / --pot [DATEI]" if deutsch
+                   else "-P [FILE] / --pot-template [FILE]")
+        hilfe = hilfe.replace("magnolie-handbuch --pot [DATEI] / --pot-template [FILE]",
+                              "magnolie-handbuch " + potform)
+        versionszeile = "  magnolie-handbuch -V / --version\n"
+        hilfe = hilfe.replace("  magnolie-handbuch -l", versionszeile + "  magnolie-handbuch -l")
+        sys.stdout.write(hilfe)
         sys.exit(0)
 
     if not GTK_OK:

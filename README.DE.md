@@ -33,17 +33,18 @@ Speicherung und bewusst freigegebener Datenaustausch.
 
 | Plattform | Empfohlenes Paket | Alternative |
 |---|---|---|
-| Linux | [Flatpak x86_64](https://github.com/maik3531/Magnolie-Organizer/releases/latest/download/Magnolie-Organizer-2.0.13-x86_64.flatpak) | [AppImage](https://github.com/maik3531/Magnolie-Organizer/releases/latest/download/Magnolie-Organizer-2.0.13-x86_64.AppImage) · [Debian-Paket](https://github.com/maik3531/Magnolie-Organizer/releases/latest/download/magnolie-organizer_2.0.13_all.deb) |
-| Windows 10/11 x64 | [Installationsprogramm](https://github.com/maik3531/Magnolie-Organizer/releases/latest/download/Magnolie-Organizer-Windows-2.0.13-Setup-x64.exe) | [Portable ZIP](https://github.com/maik3531/Magnolie-Organizer/releases/latest/download/Magnolie-Organizer-Windows-2.0.13-x64.zip) |
-| Android | [Magnolie Notes APK](https://github.com/maik3531/Magnolie-Organizer/releases/latest/download/Magnolie-Notes-1.0.9.apk) | Android 8.0 oder neuer |
-| Handbuch | [Debian-Paket](https://github.com/maik3531/Magnolie-Organizer/releases/latest/download/magnolie-handbuch_2.0.13_all.deb) | Optionale Komponente des Windows-Installers |
+| Linux | [Flatpak x86_64](https://github.com/maik3531/Magnolie-Organizer/releases/latest/download/Magnolie-Organizer-2.0.14-x86_64.flatpak) | [AppImage](https://github.com/maik3531/Magnolie-Organizer/releases/latest/download/Magnolie-Organizer-2.0.14-x86_64.AppImage) · [Debian-Paket](https://github.com/maik3531/Magnolie-Organizer/releases/latest/download/magnolie-organizer_2.0.14_all.deb) |
+| Windows 10/11 x64 | [Installationsprogramm](https://github.com/maik3531/Magnolie-Organizer/releases/latest/download/Magnolie-Organizer-Windows-2.0.14-Setup-x64.exe) | [Portable ZIP](https://github.com/maik3531/Magnolie-Organizer/releases/latest/download/Magnolie-Organizer-Windows-2.0.14-x64.zip) |
+| Android | [Magnolie Notes APK](https://github.com/maik3531/Magnolie-Organizer/releases/latest/download/Magnolie-Notes-1.0.10.apk) | Android 8.0 oder neuer |
+| Handbuch | [Debian-Paket](https://github.com/maik3531/Magnolie-Organizer/releases/latest/download/magnolie-handbuch_2.0.14_all.deb) | Optionale Komponente des Windows-Installers |
 
 SHA-256-Prüfsummen und Quellarchive liegen in der
 [aktuellen Freigabe](https://github.com/maik3531/Magnolie-Organizer/releases/latest).
 
 > [!IMPORTANT]
-> Die Windows-Artefakte 2.0.13 sind unsignierte Linux-Cross-Builds. Quellen-, Web-,
-> Paket- und 30.000er-Coretests bestehen, ein aktueller Windows-VM-Lauf war jedoch
+> Die Windows-Artefakte 2.0.14 sind unsignierte Linux-Cross-Builds. Quellen-, Web-,
+> Paket- und 30.000er-Coretests sowie ein Installer- und Aktualisierungstest unter
+> Windows 11 25H2 bestehen. Native Kompilierung und Authenticode-Signierung bleiben
 > nicht verfügbar. Bitte vor der Nutzung die Freigabehinweise lesen.
 
 ## Einblick
@@ -70,11 +71,11 @@ SHA-256-Prüfsummen und Quellarchive liegen in der
 |---|---|---|
 | Magnolie Organizer für Linux | Python 3, GTK 3, WebKit2GTK | [`magnolie-organizer-2.0.0`](magnolie-organizer-2.0.0/) |
 | Magnolie Organizer für Windows | C#, .NET 8, WinForms, WebView2 | [`Magnolie-Organizer-Windows-2.0.0`](Magnolie-Organizer-Windows-2.0.0/) |
-| Magnolie Notes für Android | Kotlin, Jetpack Compose | [`magnolie-notes-1.0.9`](magnolie-notes-1.0.9/) |
+| Magnolie Notes für Android | Kotlin, Jetpack Compose | [`magnolie-notes-1.0.10`](magnolie-notes-1.0.10/) |
 | Magnolie-Handbuch | Python, GTK, HTML/CSS/JavaScript | [`magnolie-handbuch-stamm`](magnolie-handbuch-stamm/) |
 
 Jeder Ordner enthält eigene Bau- und Prüfanweisungen. Das Repository enthält
-die veröffentlichten Quellen für Organizer 2.0.13 und Notes 1.0.9. Fertige
+die veröffentlichten Quellen für Organizer 2.0.14 und Notes 1.0.10. Fertige
 Pakete bleiben auf der Releases-Seite und belasten nicht die Git-Historie.
 
 ## Sicherheit und Datenschutz
@@ -94,6 +95,6 @@ Issue-Vorlagen verwenden und Änderungen möglichst auf einen Bestandteil begren
 
 Programm- und Handbuchquellen stehen unter **GPL-3.0-or-later**, soweit eine
 Datei nichts anderes nennt. Mitgelieferte Schriften behalten ihre eigenen
-Lizenzen. Für das Porträt im Handbuch gilt der gesonderte Nutzungshinweis
-[`maik-walter-FOTO-NUTZUNG.txt`](magnolie-handbuch-stamm/web/maik-walter-FOTO-NUTZUNG.txt).
+Lizenzen. Für den geschützten Kaffee-QR und das Porträt gilt der gesonderte
+[Nutzungshinweis](PROTECTED-ASSETS-LICENSE.txt).
 Eine Übersicht steht in [LICENSE.md](LICENSE.md).

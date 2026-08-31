@@ -8,8 +8,8 @@ otherwise. The complete GPL-3.0 text is included with the Windows source in
 [`Magnolie-Organizer-Windows-2.0.0/LICENSE`](Magnolie-Organizer-Windows-2.0.0/LICENSE).
 
 Bundled fonts and metadata retain the licenses documented next to them. The
-portrait `maik-walter.jpg` is not GPL-licensed and is governed by its separate
-[usage permission](magnolie-handbuch-stamm/web/maik-walter-FOTO-NUTZUNG.txt).
+coffee QR and portrait contained in `.mga` files are not GPL-licensed and are
+governed by their [separate usage permission](PROTECTED-ASSETS-LICENSE.txt).
 
 ## Deutsch
 
@@ -21,6 +21,6 @@ Windows-Quellen unter
 bei.
 
 Mitgelieferte Schriften und Metadaten behalten die jeweils daneben
-dokumentierten Lizenzen. Das Porträt `maik-walter.jpg` steht nicht unter der GPL;
-für dieses gilt der gesonderte
-[Nutzungshinweis](magnolie-handbuch-stamm/web/maik-walter-FOTO-NUTZUNG.txt).
+dokumentierten Lizenzen. Der in `.mga`-Dateien enthaltene Kaffee-QR und das
+Porträt stehen nicht unter der GPL; für sie gilt der gesonderte
+[Nutzungshinweis](PROTECTED-ASSETS-LICENSE.txt).

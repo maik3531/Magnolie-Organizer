@@ -33,6 +33,7 @@ internal sealed partial class BridgeDispatcher : IDisposable
     private readonly System.Threading.Timer recoveryTimer;
     private readonly byte[]? contributorHash = ReadContributorHash();
     private readonly WindowsUpdateService updates;
+    private readonly CloudBackupService cloudBackups;
     private string firewallHint = "";
     private bool disposed;
 
@@ -56,6 +57,7 @@ internal sealed partial class BridgeDispatcher : IDisposable
             TimeSpan.FromMinutes(1), TimeSpan.FromMinutes(15));
         http.DefaultRequestHeaders.UserAgent.ParseAdd($"Magnolie-Organizer-Windows/{AppVersion}");
         updates = new WindowsUpdateService(paths.Root);
+        cloudBackups = new CloudBackupService(paths.CloudBackupPassword);
     }
 
     internal async Task HandleAsync(string rawMessage)
@@ -92,6 +94,9 @@ internal sealed partial class BridgeDispatcher : IDisposable
                     case "ablage_kopieren": SetClipboard(Text(message, "text")); break;
                     case "ablage_holen": await GetClipboardAsync(); break;
                     case "sicherung": await BackupAsync(message); break;
+                    case "cloud_sicherung_status": await SendCloudBackupStatusAsync(); break;
+                    case "cloud_sicherung_kennwort": await StoreCloudBackupPasswordAsync(Text(message, "kennwort")); break;
+                    case "cloud_sicherung_test": await RunCloudBackupTestAsync(); break;
                     case "sicherung_waehlen": await SelectBackupAsync(); break;
                     case "sicherung_wiederherstellen": await RestoreBackupAsync(message); break;
                     case "journal_liste": await SendRecoveryStatusAsync(); break;
@@ -591,6 +596,7 @@ internal sealed partial class BridgeDispatcher : IDisposable
             RefreshReminderData(currentPlainText, encryption.Session is not null);
             UpdateReminderRuntime(currentPlainText);
             await form.SendAsync("App.gespeichert", new { id, ok = true, fehler = "" });
+            await RunCloudBackupAfterSaveAsync(document.RootElement.GetRawText(), force: false);
         }
         catch (Exception error)
         {
@@ -719,6 +725,8 @@ internal sealed partial class BridgeDispatcher : IDisposable
                 target = Path.Combine(directory,
                     $"magnolie-sicherung-{DateTime.Now:yyyyMMdd-HHmmss-fff}-{Guid.NewGuid():N}.magnolie");
                 store.Write(target, archive, AtomicStore.MaxArchiveBytes);
+                _ = GesamtarchivService.Read(store.Read(target, AtomicStore.MaxArchiveBytes)
+                    ?? throw new IOException(T("The backup is empty.")), password);
             }
             else target = store.Backup(paths.Data, directory);
             await form.SendAsync("App.sicherungFertig", new { ok = true, pfad = target, fehler = "" });
@@ -728,6 +736,50 @@ internal sealed partial class BridgeDispatcher : IDisposable
             await form.SendAsync("App.sicherungFertig", new { ok = false, pfad = "", fehler = error.Message });
         }
         finally { if (locked) MutationGate.Global.Release(); }
+    }
+
+    private async Task SendCloudBackupStatusAsync(string status = "") =>
+        await form.SendAsync("App.cloudSicherungStand", new
+        {
+            kennwortVorhanden = cloudBackups.PasswordAvailable, status
+        });
+
+    private async Task StoreCloudBackupPasswordAsync(string password)
+    {
+        try { cloudBackups.StorePassword(password); await SendCloudBackupStatusAsync("ready"); }
+        catch { await SendCloudBackupStatusAsync("secret_unavailable"); }
+    }
+
+    private async Task RunCloudBackupTestAsync()
+    {
+        var locked = false;
+        try
+        {
+            await MutationGate.Global.WaitAsync(); locked = true;
+            if (!currentPlainTextAvailable) { await SendCloudBackupStatusAsync("locked"); return; }
+            await RunCloudBackupAfterSaveAsync(currentPlainText, force: true);
+        }
+        finally { if (locked) MutationGate.Global.Release(); }
+    }
+
+    private async Task RunCloudBackupAfterSaveAsync(string plainText, bool force)
+    {
+        try
+        {
+            var data = JsonNode.Parse(plainText) as JsonObject ?? throw new InvalidDataException();
+            var settings = CloudBackupService.Settings(data);
+            if (!force && !CloudBackupService.IsDue(settings.Enabled, settings.Interval,
+                    settings.LastSuccess, DateTimeOffset.UtcNow)) return;
+            if (string.IsNullOrWhiteSpace(settings.Folder)) { await SendCloudBackupStatusAsync("folder_missing"); return; }
+            if (!cloudBackups.PasswordAvailable) { await SendCloudBackupStatusAsync("secret_unavailable"); return; }
+            cloudBackups.CreateVerified(data, settings, AppVersion);
+            await form.SendAsync("App.cloudSicherungStand", new
+            {
+                kennwortVorhanden = true, status = "success",
+                letzterErfolg = DateTimeOffset.UtcNow.ToString("O")
+            });
+        }
+        catch { await SendCloudBackupStatusAsync("failed"); }
     }
 
     private (int Changed, int Failed) RewriteProtectedCopies(JsonElement message, EncryptionService session,
@@ -779,7 +831,9 @@ internal sealed partial class BridgeDispatcher : IDisposable
         using var dialog = new OpenFileDialog
         {
             Title = T("Restore backup"),
-            Filter = T("Magnolie backup (*.json)") + "|*.json|" + T("All files") + " (*.*)|*.*",
+            Filter = T("Magnolie backup (*.json)") + "|*.json|" +
+                T("Magnolie complete archive (.magnolie) …") + "|*.magnolie|" +
+                T("All files") + " (*.*)|*.*",
             CheckFileExists = true,
             Multiselect = false
         };
@@ -790,6 +844,11 @@ internal sealed partial class BridgeDispatcher : IDisposable
         }
         try
         {
+            if (GesamtarchivService.IsArchivePath(dialog.FileName))
+            {
+                await PreviewGesamtarchivAsync(dialog.FileName, "");
+                return;
+            }
             var text = store.Read(dialog.FileName) ?? throw new IOException(T("The backup is empty."));
             var encrypted = EncryptionService.IsEncrypted(text);
             if (!encrypted) RequireJsonObject(text);
@@ -814,9 +873,14 @@ internal sealed partial class BridgeDispatcher : IDisposable
         SnapshotInfo? restorePoint = null;
         try
         {
+            var source = Text(message, "pfad");
+            if (GesamtarchivService.IsArchivePath(source))
+            {
+                await PreviewGesamtarchivAsync(source, Text(message, "kennwort"));
+                return;
+            }
             await MutationGate.Global.WaitAsync(); locked = true;
             restorePoint = CreateRestorePoint();
-            var source = Text(message, "pfad");
             var storedText = store.Read(source) ?? throw new IOException(T("The backup is empty."));
             var encrypted = EncryptionService.IsEncrypted(storedText);
             var plainText = storedText;

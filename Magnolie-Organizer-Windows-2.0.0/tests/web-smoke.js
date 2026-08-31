@@ -433,6 +433,19 @@ assert.ok(Array.from(window.document.querySelector(".kontakt-sozial-dienst").opt
 T.wechsel("kalender");
 
 T.oeffneEinstellungen();
+window.document.querySelector("#einst-tab-ueber").click();
+const newInVersion = window.document.querySelector(
+  "#einstellungen-inhalt .ueber-werkzeugspalte .ueber-neu");
+assert.ok(newInVersion && newInVersion.tagName === "SECTION" &&
+  newInVersion.querySelector("h4")?.textContent === "Neu in dieser Version" &&
+  newInVersion.querySelector(".ueber-neu-fassung")?.textContent === webVersion &&
+  newInVersion.querySelectorAll("ul > li").length === 6 &&
+  newInVersion.textContent.includes("Wayland-/AppImage-Grafik") &&
+  newInVersion.textContent.includes("Befehlszeilen-Aliase"),
+"Windows-Versionshinweise fehlen oder sind nicht semantisch gegliedert");
+assert.ok(window.document.querySelector(
+  "#einstellungen-inhalt .ueber-programmspalte > .ueber-rechtliches"),
+"rechtlicher Block wurde aus der linken Windows-Spalte verschoben");
 assert.ok(!window.document.querySelector("#einst-tab-regional") &&
   !Array.from(window.document.querySelectorAll(".einst-reiter-knopf"))
     .some((button) => button.textContent === "Sprache & Region"),
@@ -581,6 +594,9 @@ assert.ok(personalDetails && !personalDetails.open &&
   personalDetails.querySelector("summary").textContent.includes(
     window.MagnolieI18n.gettext("Personal synchronization")),
 "personal synchronization is not presented as closed details");
+assert.deepStrictEqual(Array.from(personalDetails.querySelectorAll(".personal-sync-wahl button"))
+  .map((button) => button.textContent), ["Alle", "Keine"],
+"personal synchronization does not offer all/none controls");
 window.App.geraetStatus({ kennung: "phone-1", status: { online: true,
   model: "Pixel 9", manufacturer: "Google", app_version: "1.0.7", os_version: "16",
   battery_percent: 73, charging: "charging", network_transport: "wifi" } });
@@ -589,6 +605,9 @@ assert.ok(window.document.querySelector("#geraet-dialog").textContent.includes("
   window.document.querySelector('[data-geraet="app_version"]').textContent === "1.0.7" &&
   !window.document.querySelector('[data-geraet="last_contact_ms"]'),
 "device status does not show Magnolie Notes version in place of last contact");
+assert.ok(Array.from(window.document.querySelectorAll(".geraet-details dt"))
+  .some((node) => node.textContent === "Magnolie Notes:"),
+"device status does not use the concise Magnolie Notes label");
 Array.from(window.document.querySelectorAll("#geraet-dialog button"))
   .find((button) => button.textContent === "Aktualisieren").click();
 assert.ok(messages.some((message) => message.cmd === "telefon_status_anfordern" &&

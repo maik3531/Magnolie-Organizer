@@ -27,22 +27,28 @@ class Probe:
 
 
 def sync(monkeypatch, lokale_termine, remote_ics, mutations=None,
-         client="google-calendar", tombstones=None):
+         client="google-calendar", tombstones=None, fail_operation="", last_sync=0):
     mutations = mutations if mutations is not None else []
+    def mutate(operation, value):
+        if operation == fail_operation:
+            raise RuntimeError("GOA permission denied")
+        mutations.append((operation, value))
     monkeypatch.setattr(m, "eds_laden", lambda: True)
     monkeypatch.setattr(m, "eds_registry", Registry)
     monkeypatch.setattr(m, "eds_kalender_client", lambda registry, uid: client)
     monkeypatch.setattr(m, "eds_events_lesen", lambda _client: [remote_ics] if remote_ics else [])
-    monkeypatch.setattr(m, "eds_event_anlegen", lambda _client, text: mutations.append(("create", text)))
-    monkeypatch.setattr(m, "eds_event_aendern", lambda _client, text: mutations.append(("modify", text)))
-    monkeypatch.setattr(m, "eds_event_loeschen", lambda _client, uid: mutations.append(("delete", uid)))
+    monkeypatch.setattr(m, "eds_event_anlegen", lambda _client, text: mutate("create", text))
+    monkeypatch.setattr(m, "eds_event_aendern", lambda _client, text: mutate("modify", text))
+    monkeypatch.setattr(m, "eds_event_loeschen", lambda _client, uid: mutate("delete", uid))
     probe = Probe()
     m.Fenster._sync_ausfuehren(probe, {
         "wahl": {"kalenderUid": "google-calendar",
                  "kalenderUids": ["google-calendar"]},
         "daten": {"termine": lokale_termine, "kontakte": [], "jahrestage": [],
                   "geloescht": {"termine": tombstones or [], "kontakte": []},
-                  "letzterSync": 0, "letzteSyncs": {"kalender": {}}}})
+                  "letzterSync": last_sync,
+                  "letzteSyncs": {"kalender": {"google-calendar": last_sync}
+                                    if last_sync else {}}}})
     return probe.nutzlast
 
 
@@ -312,6 +318,25 @@ def test_successful_remote_deletion_keeps_recent_tombstone(monkeypatch):
 
     assert mutations == [("delete", "deleted-event")]
     assert result["geloescht"]["termine"] == [tombstone]
+
+
+def test_eds_modify_failure_keeps_cursor_and_exposes_diagnostic(monkeypatch):
+    remote = {"uid": "meeting", "datum": "2026-09-01", "zeit": "10:00",
+              "titel": "Remote", "geaendert": 100}
+    remote_ics = m.vevent_text(remote)
+    remote_time = m.ics_lesen(remote_ics)["termine"][0]["geaendert"]
+    local = dict(remote, titel="Local", geaendert=remote_time + 100_000, sync=True,
+                 syncKalenderUid="google-calendar")
+
+    result = sync(monkeypatch, [local], remote_ics,
+                  fail_operation="modify", last_sync=100)
+
+    assert result["ok"] is False
+    assert "Google birthdays" in result["fehler"]
+    assert "GOA permission denied" in result["fehler"]
+    assert result["letzterSync"] == 100
+    assert result["letzteSyncs"]["kalender"]["google-calendar"] == 100
+    assert result["termine"][0]["sync"] is False
 
 
 def test_tombstone_grace_period_deduplicates_and_expires_only_old_valid_marks():

@@ -64,7 +64,8 @@
           `<div[^>]*data-image-manifest=['"]${escaped}['"][^>]*>[\\s\\S]*?<\\/div>`), "");
       }
       if (page.inhaltAnhang) {
-        page.inhalt += page.inhaltAnhang[locale] || page.inhaltAnhang.en || "";
+        const localized = page.inhaltAnhang[locale] || page.inhaltAnhang.en || "";
+        page.inhalt = page.inhaltAnhangErsetzt ? localized : page.inhalt + localized;
       }
     }
   }

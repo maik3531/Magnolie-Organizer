@@ -1,24 +1,9 @@
-# SOME DESCRIPTIVE TITLE.
-# Copyright (C) 2026 THE PACKAGE'S COPYRIGHT HOLDER
-# This file is distributed under the same license as the Magnolie Organizer
-# package.
-# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
-#
 msgid ""
 msgstr ""
-"Project-Id-Version: Magnolie Organizer 2.0.13\n"
 "Report-Msgid-Bugs-To: maik3531@gmail.com\n"
 "POT-Creation-Date: YEAR-MO-DA HO:MI+ZONE\n"
-"PO-Revision-Date: 2026-08-08 09:24+0200\n"
-"Last-Translator: Magnolie localization project\n"
-"Language-Team: Ukrainian\n"
-"Language: uk\n"
-"MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
-"Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && "
-"n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
-"Generated-By: Babel 2.18.0\n"
+"Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
 
 msgid " (filtered)"
 msgstr " (відфільтровано)"
@@ -642,7 +627,7 @@ msgid "Answer calls on the computer and talk"
 msgstr "Приймати дзвінки й розмовляти на комп’ютері"
 
 msgid "App password"
-msgstr "App password"
+msgstr "Пароль програми"
 
 msgid "Appearance"
 msgstr "Вигляд"
@@ -750,6 +735,12 @@ msgstr "Автор"
 msgid "Authority appointment"
 msgstr "Візит до установи"
 
+msgid "Automatic backup failed."
+msgstr "Автоматичне резервне копіювання не вдалося."
+
+msgid "Automatic cloud-folder backups"
+msgstr "Автоматичні копії у хмарній папці"
+
 msgid "Automatically choose a suitable application"
 msgstr "Автоматично вибрати відповідну програму"
 
@@ -793,6 +784,9 @@ msgstr ""
 
 msgid "Backup saved to: %(path)s"
 msgstr "Резервну копію збережено в: %(path)s"
+
+msgid "Backup verified successfully."
+msgstr "Резервну копію успішно перевірено."
 
 msgid "Backups"
 msgstr "Резервні копії"
@@ -974,7 +968,7 @@ msgid "Calendars (multiple selections allowed)"
 msgstr "Календарі (можна вибрати кілька)"
 
 msgid "Calendars and contacts"
-msgstr "Calendars and contacts"
+msgstr "Календарі та контакти"
 
 msgid "Call"
 msgstr "Зателефонувати"
@@ -1286,13 +1280,13 @@ msgid "Connect phone via WLAN"
 msgstr "Підключіть телефон через WLAN"
 
 msgid "Connected"
-msgstr "Connected"
+msgstr "Підключено"
 
 msgid "Consider deletions during manual synchronization"
 msgstr "Синхронізація контактів"
 
 msgid "Contact"
-msgstr "Contact"
+msgstr "Контакт"
 
 msgid "Contact card"
 msgstr "Картка контакту"
@@ -1549,7 +1543,7 @@ msgid "Delete page"
 msgstr "Видалити сторінку"
 
 msgid "Delete password"
-msgstr "Delete password"
+msgstr "Видалити пароль"
 
 msgid "Delete permanently"
 msgstr "Видалити остаточно"
@@ -1612,7 +1606,7 @@ msgid "Deletions are not synchronized yet."
 msgstr "Ще не синхронізовано."
 
 msgid "Delivered"
-msgstr "не доставлено"
+msgstr "Доставлено"
 
 msgid "Delivered to %(branch)s."
 msgstr "Доставлено до %(branch)s."
@@ -1633,7 +1627,7 @@ msgid "Diabetes"
 msgstr "Діабет"
 
 msgid "Dialing…"
-msgstr "Dialing…"
+msgstr "Набір номера…"
 
 msgid "Diastolic"
 msgstr "Діастолічний"
@@ -1708,7 +1702,7 @@ msgid "Duplicates"
 msgstr "Дублікати"
 
 msgid "Duration"
-msgstr "Duration"
+msgstr "Тривалість"
 
 msgid "Early shift"
 msgstr "Рання зміна"
@@ -2414,6 +2408,9 @@ msgstr "Прізвище"
 msgid "Last snapshot"
 msgstr "Останній знімок"
 
+msgid "Last successful backup"
+msgstr "Остання успішна копія"
+
 msgid "Last synchronized: %(date)s, %(time)s."
 msgstr "Остання синхронізація: %(date)s, %(time)s."
 
@@ -2509,9 +2506,6 @@ msgstr ""
 "Телефони Magnolie Notes і телефони KDE Connect відокремлені: назва моделі "
 "Android належить Magnolie Notes, а назва вузла KDE надходить із KDE Connect."
 
-msgid "Magnolie Notes version"
-msgstr "Версія Magnolie Notes"
-
 msgid "Magnolie Organizer is not completely installed."
 msgstr "Magnolie Organizer встановлено не повністю."
 
@@ -2541,7 +2535,7 @@ msgid "Magnolienbaum"
 msgstr "Magnolienbaum"
 
 msgid "Magnolienbaum mailbox"
-msgstr "Magnolienbaum mailbox"
+msgstr "Поштова скринька Magnolienbaum"
 
 msgid "Magnolienbaum pairing file (*.magnolie-paarung)"
 msgstr "Файл сполучення Magnolienbaum (*.magnolie-paarung)"
@@ -2669,7 +2663,7 @@ msgid "Microsoft sign-out failed: %(error)s"
 msgstr "Помилка виходу з системи Microsoft: %(error)s"
 
 msgid "Minimize"
-msgstr "Minimize"
+msgstr "Згорнути"
 
 msgid "Minimize to the tray when closed"
 msgstr "Під час закриття згортати в системний лоток"
@@ -2770,7 +2764,7 @@ msgstr ""
 "заблоковано; видаліть усі телефони, крім одного."
 
 msgid "Multiple calendars"
-msgstr "Multiple calendars"
+msgstr "Кілька календарів"
 
 msgid "Name"
 msgstr "Ім’я"
@@ -2788,7 +2782,7 @@ msgid "Netherlands"
 msgstr "Нідерланди"
 
 msgid "Network"
-msgstr "Network"
+msgstr "Мережа"
 
 msgid "Neuchâtel"
 msgstr "Невшатель"
@@ -2877,7 +2871,7 @@ msgid "Next year"
 msgstr "Наступний рік"
 
 msgid "Nextcloud account"
-msgstr "Nextcloud account"
+msgstr "Обліковий запис Nextcloud"
 
 msgid "Nextcloud is not enabled."
 msgstr "Nextcloud не увімкнено."
@@ -2892,7 +2886,7 @@ msgid "Night shift"
 msgstr "Нічна зміна"
 
 msgid "No"
-msgstr "No"
+msgstr "Ні"
 
 msgid "No Bluetooth address was selected."
 msgstr "Не було вибрано жодної адреси Bluetooth."
@@ -3132,13 +3126,13 @@ msgid "Off"
 msgstr "вимкнено"
 
 msgid "Offline"
-msgstr "В Інтернеті"
+msgstr "Не в мережі"
 
 msgid "Ointment"
 msgstr "Мазь"
 
 msgid "One address book"
-msgstr "One address book"
+msgstr "Одна адресна книга"
 
 msgid "One backup could not be updated."
 msgid_plural "%(count)s backups could not be updated."
@@ -3319,6 +3313,9 @@ msgstr "Органічні відходи"
 
 msgid "Organizer"
 msgstr "Організатор"
+
+msgid "Organizer data is locked."
+msgstr "Дані Organizer заблоковано."
 
 msgid "Organizer style (paper sheet)"
 msgstr "Стиль органайзера (паперовий аркуш)"
@@ -3687,6 +3684,9 @@ msgstr ""
 "Приватні знімки з перевіркою цілісності зберігаються поруч із даними "
 "програми."
 
+msgid "Protected archive password unavailable."
+msgstr "Захищений пароль архіву недоступний."
+
 msgid "Public IPv4 or IPv6 address of the other branch"
 msgstr "Публічна адреса IPv4 або IPv6 іншої гілки"
 
@@ -3726,7 +3726,7 @@ msgid "Reachable IPv4 or IPv6 address of this computer"
 msgstr "Доступна адреса IPv4 або IPv6 цього комп’ютера"
 
 msgid "Ready."
-msgstr "Ready."
+msgstr "Готово."
 
 msgid ""
 "Really merge %(cards)s? Review the result carefully afterwards. A copy of "
@@ -3923,6 +3923,9 @@ msgstr ""
 msgid "Restoring backups is available only in the installed application."
 msgstr "Відновлення резервних копій доступне лише у встановленій програмі."
 
+msgid "Retention"
+msgstr "Зберігання"
+
 msgid "Retrieval failed."
 msgstr "Не вдалося отримати."
 
@@ -4032,7 +4035,7 @@ msgid "Saved ✓ %(time)s"
 msgstr "Збережено ✓ %(time)s"
 
 msgid "Saved."
-msgstr "Saved."
+msgstr "Збережено."
 
 msgid "Saving failed!"
 msgstr "Не вдалося зберегти!"
@@ -4056,7 +4059,7 @@ msgid "Scheduled"
 msgstr "Запланований"
 
 msgid "Scheme"
-msgstr "Scheme"
+msgstr "Схема"
 
 msgid "Schleswig-Holstein"
 msgstr "Шлезвіг-Гольштейн"
@@ -4105,6 +4108,16 @@ msgstr "Безпека"
 
 msgid "Select a country first."
 msgstr "Спочатку виберіть країну."
+
+msgid ""
+"Select a custom backup folder and store an archive password to enable "
+"automatic backups."
+msgstr ""
+"Виберіть власну папку резервних копій і збережіть пароль архіву, щоб "
+"увімкнути автоматичне копіювання."
+
+msgid "Select a custom backup folder."
+msgstr "Виберіть власну папку резервних копій."
 
 msgid "Select all"
 msgstr "Вибрати все"
@@ -4166,10 +4179,13 @@ msgid "Sent"
 msgstr "Відправлено"
 
 msgid "Server address"
-msgstr "Server address"
+msgstr "Адреса сервера"
 
 msgid "Server address and user name are required."
 msgstr "Потрібні адреса сервера та ім’я користувача."
+
+msgid "Set or change password"
+msgstr "Установити або змінити пароль"
 
 msgid "Set up contacts"
 msgstr "Налаштувати контакти"
@@ -4210,7 +4226,7 @@ msgid "Share together"
 msgstr "Поділитися разом"
 
 msgid "Shared credentials"
-msgstr "Shared credentials"
+msgstr "Спільні облікові дані"
 
 msgid "Shared note"
 msgstr "Спільна нотатка"
@@ -4404,7 +4420,7 @@ msgid "Suppository"
 msgstr "Супозиторій"
 
 msgid "Switched off."
-msgstr "Switched off."
+msgstr "Вимкнено."
 
 msgid "Switzerland"
 msgstr "Швейцарія"
@@ -4521,10 +4537,13 @@ msgid "Temperature"
 msgstr "Температура"
 
 msgid "Test connection"
-msgstr "Test connection"
+msgstr "Перевірити з’єднання"
+
+msgid "Test now"
+msgstr "Перевірити зараз"
 
 msgid "Testing…"
-msgstr "Testing…"
+msgstr "Перевірка…"
 
 msgid "Text color"
 msgstr "Колір тексту"
@@ -4777,6 +4796,17 @@ msgstr "Файл має непідтримуваний формат."
 
 msgid "The file is larger than 8 megabytes."
 msgstr "Файл більший за 8 мегабайтів."
+
+msgid ""
+"The folder may be locally synchronized by Nextcloud, Google Drive, Dropbox, "
+"or OneDrive. Magnolie does not sign in to a provider. Automatic backups run "
+"only while Organizer is open and unlocked, immediately after data was saved "
+"successfully."
+msgstr ""
+"Папку можна локально синхронізувати через Nextcloud, Google Drive, Dropbox "
+"або OneDrive. Magnolie не виконує вхід до постачальника. Автоматичні копії "
+"створюються лише коли Organizer відкрито й розблоковано, одразу після "
+"успішного збереження даних."
 
 msgid ""
 "The helper frame marks the control that currently has keyboard focus. This "
@@ -5396,7 +5426,7 @@ msgid "URI"
 msgstr "URI"
 
 msgid "Unavailable"
-msgstr "Unavailable"
+msgstr "Недоступно"
 
 msgid ""
 "Under Wayland, the compositor determines the exact window position; "
@@ -5460,7 +5490,7 @@ msgid "Upper Austria"
 msgstr "Верхня Австрія"
 
 msgid "Uptime"
-msgstr "Uptime"
+msgstr "Час роботи"
 
 msgid "Uri"
 msgstr "URI"
@@ -5470,6 +5500,9 @@ msgstr "Використовувати певну програму або ком
 
 msgid "Use a specific website"
 msgstr "Використовувати певний вебсайт"
+
+msgid "Use automatic backups"
+msgstr "Використовувати автоматичні копії"
 
 msgid "Use basal units"
 msgstr "Використовувати базальні одиниці"
@@ -5510,7 +5543,7 @@ msgid "Use the recycle bin"
 msgstr "Використовувати кошик"
 
 msgid "User name"
-msgstr "User name"
+msgstr "Ім’я користувача"
 
 msgid ""
 "Uses its own identity and storage and listens only on fixed port %(port)s. "
@@ -5749,7 +5782,7 @@ msgid "Windows Contacts folder"
 msgstr "Папка Windows Contacts"
 
 msgid "Wireless"
-msgstr "Wireless"
+msgstr "Бездротова мережа"
 
 msgid ""
 "With a password or numeric code, the organizer asks for it when opening and "
@@ -5819,7 +5852,7 @@ msgid "Year planner %(year)s"
 msgstr "Річний планувальник %(year)s"
 
 msgid "Yes"
-msgstr "Yes"
+msgstr "Так"
 
 msgid "Yes, merge"
 msgstr "Так, об’єднати"

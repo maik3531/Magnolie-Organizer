@@ -1,23 +1,9 @@
-# SOME DESCRIPTIVE TITLE.
-# Copyright (C) 2026 THE PACKAGE'S COPYRIGHT HOLDER
-# This file is distributed under the same license as the Magnolie Organizer
-# package.
-# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
-#
 msgid ""
 msgstr ""
-"Project-Id-Version: Magnolie Organizer 2.0.13\n"
 "Report-Msgid-Bugs-To: maik3531@gmail.com\n"
 "POT-Creation-Date: YEAR-MO-DA HO:MI+ZONE\n"
-"PO-Revision-Date: 2026-08-08 09:24+0200\n"
-"Last-Translator: Magnolie localization project\n"
-"Language-Team: Czech\n"
-"Language: cs\n"
-"MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
-"Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=3; plural=((n==1) ? 0 : (n>=2 && n<=4) ? 1 : 2);\n"
-"Generated-By: Babel 2.18.0\n"
 
 msgid " (filtered)"
 msgstr " (filtrováno)"
@@ -909,7 +895,7 @@ msgid "Answering the call"
 msgstr "Přijímání hovoru"
 
 msgid "App password"
-msgstr "App password"
+msgstr "Heslo aplikace"
 
 msgid "Appearance"
 msgstr "Vzhled"
@@ -1027,6 +1013,12 @@ msgstr "Autor"
 msgid "Authority appointment"
 msgstr "Úřední schůzka"
 
+msgid "Automatic backup failed."
+msgstr "Automatická záloha selhala."
+
+msgid "Automatic cloud-folder backups"
+msgstr "Automatické zálohy ve cloudové složce"
+
 msgid "Automatically choose a suitable application"
 msgstr "Automaticky vybrat vhodnou aplikaci"
 
@@ -1083,6 +1075,9 @@ msgstr "Záloha obnovena. Předchozí data byla automaticky zazálohována."
 
 msgid "Backup saved to: %(path)s"
 msgstr "Záloha uložena do: %(path)s"
+
+msgid "Backup verified successfully."
+msgstr "Záloha byla úspěšně ověřena."
 
 msgid "Backups"
 msgstr "Zálohy"
@@ -1289,7 +1284,7 @@ msgid "Calendars (multiple selections allowed)"
 msgstr "Kalendáře (lze vybrat více položek)"
 
 msgid "Calendars and contacts"
-msgstr "Calendars and contacts"
+msgstr "Kalendáře a kontakty"
 
 msgid "Call"
 msgstr "Volat"
@@ -1621,7 +1616,7 @@ msgid "Connect phone via WLAN"
 msgstr "Připojte telefon přes WLAN"
 
 msgid "Connected"
-msgstr "Connected"
+msgstr "Připojeno"
 
 msgid "Connecting to the online accounts"
 msgstr "Připojování k online účtům"
@@ -1630,7 +1625,7 @@ msgid "Consider deletions during manual synchronization"
 msgstr "Synchronizace kontaktů"
 
 msgid "Contact"
-msgstr "Contact"
+msgstr "Kontakt"
 
 #, python-format
 msgid "Contact %d contains an unreadable vCard."
@@ -1980,7 +1975,7 @@ msgid "Delete page"
 msgstr "Odstranit stránku"
 
 msgid "Delete password"
-msgstr "Delete password"
+msgstr "Smazat heslo"
 
 msgid "Delete permanently"
 msgstr "Trvale odstranit"
@@ -2046,7 +2041,7 @@ msgid "Deletions are not synchronized yet."
 msgstr "Nikdy nesynchronizováno."
 
 msgid "Delivered"
-msgstr "nedoručeno"
+msgstr "Doručeno"
 
 msgid "Delivered to %(branch)s."
 msgstr "Doručeno do %(branch)s."
@@ -2061,7 +2056,7 @@ msgid "Diabetes"
 msgstr "Cukrovka"
 
 msgid "Dialing…"
-msgstr "Dialing…"
+msgstr "Vytáčení…"
 
 msgid "Diastolic"
 msgstr "Diastolický"
@@ -2146,7 +2141,7 @@ msgid "Duplicates"
 msgstr "Duplikáty"
 
 msgid "Duration"
-msgstr "Duration"
+msgstr "Doba trvání"
 
 msgid "Early shift"
 msgstr "Ranní směna"
@@ -2976,6 +2971,9 @@ msgstr "Příjmení"
 msgid "Last snapshot"
 msgstr "Poslední snímek"
 
+msgid "Last successful backup"
+msgstr "Poslední úspěšná záloha"
+
 msgid "Last synchronized: %(date)s, %(time)s."
 msgstr "Poslední synchronizace: %(date)s, %(time)s."
 
@@ -3093,9 +3091,6 @@ msgstr ""
 "Telefony Magnolie Notes a telefony KDE Connect jsou oddělené: název modelu "
 "Android patří Magnolie Notes, název protějšku KDE pochází z KDE Connect."
 
-msgid "Magnolie Notes version"
-msgstr "Verze Magnolie Notes"
-
 msgid "Magnolie Organizer"
 msgstr "Magnolie Organizer"
 
@@ -3164,7 +3159,7 @@ msgid "Magnolienbaum change offers"
 msgstr "Nabídky změn Magnolienbaum"
 
 msgid "Magnolienbaum mailbox"
-msgstr "Magnolienbaum mailbox"
+msgstr "Poštovní schránka Magnolienbaum"
 
 msgid "Magnolienbaum pairing file (*.magnolie-paarung)"
 msgstr "Párovací soubor Magnolienbaum (*.magnolie-paarung)"
@@ -3268,7 +3263,7 @@ msgid "Metered connection"
 msgstr "Připojení účtované podle objemu dat"
 
 msgid "Minimize"
-msgstr "Minimize"
+msgstr "Minimalizovat"
 
 msgid "Minimize to the tray when closed"
 msgstr "Při zavření minimalizovat do oznamovací oblasti"
@@ -3381,7 +3376,7 @@ msgstr ""
 "odeberte všechny telefony kromě jednoho."
 
 msgid "Multiple calendars"
-msgstr "Multiple calendars"
+msgstr "Více kalendářů"
 
 msgid "Name"
 msgstr "Jméno"
@@ -3405,7 +3400,7 @@ msgid "Netherlands"
 msgstr "Nizozemsko"
 
 msgid "Network"
-msgstr "Network"
+msgstr "Síť"
 
 msgid "Neuchâtel"
 msgstr "Neuchâtel"
@@ -3499,7 +3494,7 @@ msgid "Next year"
 msgstr "Další rok"
 
 msgid "Nextcloud account"
-msgstr "Nextcloud account"
+msgstr "Účet Nextcloud"
 
 msgid "Nextcloud denied access to this DAV resource."
 msgstr "Nextcloud odepřel přístup k tomuto DAV zdroji."
@@ -3535,7 +3530,7 @@ msgid "Night shift"
 msgstr "Noční směna"
 
 msgid "No"
-msgstr "No"
+msgstr "Ne"
 
 msgid "No Claws Mail address book was detected."
 msgstr "Nebyl nalezen adresář Claws Mail."
@@ -3836,13 +3831,13 @@ msgid "Offer Personal Sync phone changes"
 msgstr "Nabízet změny z telefonu pro Personal Sync"
 
 msgid "Offline"
-msgstr "Online"
+msgstr "Bez připojení"
 
 msgid "Ointment"
 msgstr "Mast"
 
 msgid "One address book"
-msgstr "One address book"
+msgstr "Jeden adresář"
 
 msgid "One backup could not be updated."
 msgid_plural "%(count)s backups could not be updated."
@@ -4074,6 +4069,9 @@ msgstr "Bioodpad"
 
 msgid "Organizer"
 msgstr "Organizátor"
+
+msgid "Organizer data is locked."
+msgstr "Data Organizeru jsou uzamčena."
 
 msgid "Organizer style (paper sheet)"
 msgstr "Styl organizéru (papírový list)"
@@ -4441,6 +4439,9 @@ msgid ""
 "Private, integrity-checked snapshots are stored next to the application data."
 msgstr "Soukromé snímky s kontrolou integrity jsou uloženy vedle dat aplikace."
 
+msgid "Protected archive password unavailable."
+msgstr "Chráněné heslo archivu není dostupné."
+
 msgid "Public IPv4 or IPv6 address of the other branch"
 msgstr "Veřejná adresa IPv4 nebo IPv6 druhé větve"
 
@@ -4478,6 +4479,12 @@ msgstr "Ukončit"
 msgid "Reachable IPv4 or IPv6 address of this computer"
 msgstr "Dostupná adresa IPv4 nebo IPv6 tohoto počítače"
 
+msgid "Read on phone"
+msgstr "Přečteno v telefonu"
+
+msgid "Read status"
+msgstr "Stav přečtení"
+
 msgid "Reading recovery snapshots"
 msgstr "Čtení snímků obnovy"
 
@@ -4494,7 +4501,7 @@ msgid "Reading the user data"
 msgstr "Načítání uživatelských dat"
 
 msgid "Ready."
-msgstr "Ready."
+msgstr "Připraveno."
 
 msgid ""
 "Really merge %(cards)s? Review the result carefully afterwards. A copy of "
@@ -4732,6 +4739,9 @@ msgstr "Obnova záloh je k dispozici pouze v nainstalované aplikaci."
 msgid "Restoring the backup"
 msgstr "Obnovování zálohy"
 
+msgid "Retention"
+msgstr "Uchovávání"
+
 msgid "Retrieval failed."
 msgstr "Načtení se nezdařilo."
 
@@ -4792,6 +4802,9 @@ msgid ""
 msgstr ""
 "Spusťte stažený instalační program viditelně a ponechte vybranou komponentu "
 "Manual."
+
+msgid "Run the optional background service"
+msgstr "Spustit volitelnou službu na pozadí"
 
 msgid "S"
 msgstr "S"
@@ -4887,7 +4900,7 @@ msgid "Saved ✓ %(time)s"
 msgstr "Uloženo ✓ %(time)s"
 
 msgid "Saved."
-msgstr "Saved."
+msgstr "Uloženo."
 
 msgid "Saving background settings"
 msgstr "Ukládá se nastavení služby na pozadí"
@@ -4937,7 +4950,7 @@ msgid "Scheduled"
 msgstr "Naplánováno"
 
 msgid "Scheme"
-msgstr "Scheme"
+msgstr "Schéma"
 
 msgid "Schleswig-Holstein"
 msgstr "Šlesvicko-Holštýnsko"
@@ -4989,6 +5002,16 @@ msgstr "Vybrat"
 
 msgid "Select a country first."
 msgstr "Nejprve vyberte zemi."
+
+msgid ""
+"Select a custom backup folder and store an archive password to enable "
+"automatic backups."
+msgstr ""
+"Vyberte vlastní složku záloh a uložte heslo archivu, abyste mohli zapnout "
+"automatické zálohy."
+
+msgid "Select a custom backup folder."
+msgstr "Vyberte vlastní složku záloh."
 
 msgid "Select all"
 msgstr "Vybrat vše"
@@ -5057,7 +5080,7 @@ msgid "Sent"
 msgstr "Odesláno"
 
 msgid "Server address"
-msgstr "Server address"
+msgstr "Adresa serveru"
 
 msgid "Server address and user name are required."
 msgstr "Je nutná adresa serveru a uživatelské jméno."
@@ -5067,6 +5090,9 @@ msgstr "Služba běží"
 
 msgid "Service stopped"
 msgstr "Služba je zastavena"
+
+msgid "Set or change password"
+msgstr "Nastavit nebo změnit heslo"
 
 msgid "Set up contacts"
 msgstr "Nastavit kontakty"
@@ -5109,7 +5135,7 @@ msgid "Share together"
 msgstr "Sdílet společně"
 
 msgid "Shared credentials"
-msgstr "Shared credentials"
+msgstr "Sdílené přihlašovací údaje"
 
 msgid "Shared note"
 msgstr "Sdílená poznámka"
@@ -5332,7 +5358,7 @@ msgid "Suppository"
 msgstr "Čípek"
 
 msgid "Switched off."
-msgstr "Switched off."
+msgstr "Vypnuto."
 
 msgid "Switzerland"
 msgstr "Švýcarsko"
@@ -5463,13 +5489,16 @@ msgid "Temperature"
 msgstr "Teplota"
 
 msgid "Test connection"
-msgstr "Test connection"
+msgstr "Otestovat připojení"
+
+msgid "Test now"
+msgstr "Vyzkoušet nyní"
 
 msgid "Test reminders and report what happens"
 msgstr "Otestovat připomínky a oznámit, co se stane"
 
 msgid "Testing…"
-msgstr "Testing…"
+msgstr "Testování…"
 
 msgid "Text color"
 msgstr "Barva textu"
@@ -5911,6 +5940,17 @@ msgstr "Soubor je větší než 8 megabajtů."
 #, python-format
 msgid "The fingerprint does not match (received: %(fingerprint)s)."
 msgstr "Otisk nesouhlasí (přijato: %(fingerprint)s)."
+
+msgid ""
+"The folder may be locally synchronized by Nextcloud, Google Drive, Dropbox, "
+"or OneDrive. Magnolie does not sign in to a provider. Automatic backups run "
+"only while Organizer is open and unlocked, immediately after data was saved "
+"successfully."
+msgstr ""
+"Složku lze místně synchronizovat pomocí Nextcloud, Google Drive, Dropbox "
+"nebo OneDrive. Magnolie se k poskytovateli nepřihlašuje. Automatické zálohy "
+"běží jen tehdy, když je Organizer otevřený a odemčený, bezprostředně po "
+"úspěšném uložení dat."
 
 msgid ""
 "The helper frame marks the control that currently has keyboard focus. This "
@@ -6757,7 +6797,7 @@ msgid "URI"
 msgstr "URI"
 
 msgid "Unavailable"
-msgstr "Unavailable"
+msgstr "Nedostupné"
 
 msgid ""
 "Under Wayland, the compositor determines the exact window position; "
@@ -6787,6 +6827,10 @@ msgstr "Neznámý koncový bod."
 msgid "Unknown file"
 msgstr "Neznámý soubor"
 
+#, python-format
+msgid "Unknown option: %s"
+msgstr "Neznámá volba: %s"
+
 msgid "Unknown phone"
 msgstr "Neznámý koncový bod."
 
@@ -6804,6 +6848,9 @@ msgstr "Před přijímáním zpráv Magnolienbaum organizér odemkněte."
 
 msgid "Unlocking the Magnolienbaum storage"
 msgstr "Odemykání úložiště Magnolienbaum"
+
+msgid "Unread on phone"
+msgstr "Nepřečteno v telefonu"
 
 #, python-format
 msgid "Unreadable message from the interface: %s"
@@ -6837,7 +6884,7 @@ msgid "Upper Austria"
 msgstr "Horní Rakousy"
 
 msgid "Uptime"
-msgstr "Uptime"
+msgstr "Doba provozu"
 
 msgid "Uri"
 msgstr "URI"
@@ -6854,6 +6901,9 @@ msgstr "Použít konkrétní webovou stránku"
 msgid "Use a supported language code or system for this invocation"
 msgstr ""
 "Pro toto spuštění použijte kód podporovaného jazyka nebo hodnotu system"
+
+msgid "Use automatic backups"
+msgstr "Používat automatické zálohy"
 
 msgid "Use basal units"
 msgstr "Použít bazální jednotky"
@@ -6894,7 +6944,7 @@ msgid "Use the recycle bin"
 msgstr "Používat koš"
 
 msgid "User name"
-msgstr "User name"
+msgstr "Uživatelské jméno"
 
 msgid ""
 "Uses its own identity and storage and listens only on fixed port %(port)s. "
@@ -7131,7 +7181,7 @@ msgid "Wife"
 msgstr "Manželka"
 
 msgid "Wireless"
-msgstr "Wireless"
+msgstr "Bezdrátová síť"
 
 msgid ""
 "With a password or numeric code, the organizer asks for it when opening and "
@@ -7204,7 +7254,7 @@ msgid "Year planner %(year)s"
 msgstr "Roční plánovač %(year)s"
 
 msgid "Yes"
-msgstr "Yes"
+msgstr "Ano"
 
 msgid "Yes, merge"
 msgstr "Ano, sloučit"
@@ -7706,55 +7756,3 @@ msgstr[2] "… a ještě %(count)s další položky, které se rovněž vytiskno
 
 msgid "＋ Add appointment"
 msgstr "＋ Přidat schůzku"
-
-#~ msgid "Notification actions unavailable"
-#~ msgstr "Akce oznámení nejsou dostupné"
-
-#~ msgid "Download version %(version)s …"
-#~ msgstr "Stáhnout verzi %(version)s …"
-
-#~ msgid ""
-#~ "Notify, then unlock asks you to open and unlock the Organizer. System "
-#~ "keyring uses an available desktop keyring without storing the password in "
-#~ "Organizer data. Pause while locked waits without accessing encrypted data."
-#~ msgstr ""
-#~ "Volba Oznámit, potom odemknout vás vyzve k otevření a odemknutí "
-#~ "Organizéru. Systémová klíčenka použije dostupnou klíčenku pracovního "
-#~ "prostředí, aniž by heslo ukládala do dat Organizéru. Volba Pozastavit, "
-#~ "dokud jsou data zamknutá čeká bez přístupu k šifrovaným datům."
-
-#~ msgid "System keyring is unavailable; this choice cannot be enabled."
-#~ msgstr "Systémová klíčenka není dostupná; tuto volbu nelze povolit."
-
-#~ msgid ""
-#~ "Incoming files and clipboard text are confirmed before use unless "
-#~ "automatic acceptance is explicitly enabled."
-#~ msgstr ""
-#~ "Příchozí soubory a text ze schránky se před použitím potvrzují, pokud "
-#~ "není výslovně povoleno automatické přijímání."
-
-#~ msgid "Reset"
-#~ msgstr "Reset"
-
-#~ msgid "Exactly one online Magnolie Notes phone must allow dial requests."
-#~ msgstr ""
-#~ "Přesně jeden online telefon Magnolie Notes musí umožňovat požadavky na "
-#~ "vytáčení."
-
-#~ msgid "Last contact"
-#~ msgstr "Vytvořit kontakt"
-
-#~ msgid "No additional modules permitted"
-#~ msgstr "Nejsou povoleny žádné další moduly"
-
-#~ msgid "Selected notifications"
-#~ msgstr "systémové oznámení"
-
-#~ msgid "Language & region"
-#~ msgstr "Jazyk a oblast"
-
-#~ msgid "No valid subscription"
-#~ msgstr "Žádné platné předplatné"
-
-#~ msgid "More fields (Lotus)"
-#~ msgstr "Další pole (Lotus)"

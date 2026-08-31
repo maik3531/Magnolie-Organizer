@@ -1,10 +1,10 @@
-.TH MAGNOLIE-HANDBUCH 1 "august 2026" "Magnolie-håndbog 2.0.6" "Brugerkommandoer"
+.TH MAGNOLIE-HANDBUCH 1 "august 2026" "Magnolie-håndbog 2.0.14" "Brugerkommandoer"
 .SH NAVN
 magnolie-handbuch \- åbn brugerhåndbogen til Magnolie Organizer
 .SH SYNOPSIS
 .B magnolie-handbuch
 .RI [ tilvalg ]
-.RI [ \-\-sprache\  sprog ]
+.RI [ \-\-language\  sprog ]
 .SH BESKRIVELSE
 .B Magnolie-håndbogen
 åbner den komplette illustrerede brugervejledning til Magnolie Organizer.
@@ -12,20 +12,26 @@ Håndbogen kan læses på skærmen, udskrives eller eksporteres som en PDF-fil.
 .PP
 Der åbnes kun ét håndbogsvindue pr. brugersession. Hvis kommandoen startes
 igen, vises det eksisterende vindue.
+.SH KOMMANDOLINJEFORMER
+De neutrale korte aliaser og engelske lange former er:
+.nf
+\-h \-\-help; \-V \-\-version; \-l \-\-language; \-P \-\-pot-template.
+.fi
+Både tyske og engelske lange former accepteres.
 .SH TILVALG
 .TP
-.BR \-\-sprache " " SPRACHE , " " \-\-language " " LANGUAGE
+.BR \-\-language " " LANGUAGE , " " \-\-sprache " " SPRACHE
 Brug tysk (\fBde\fR), engelsk (\fBen\fR) eller systemsproget
 (\fBsystem\fR) til dette kald. Dette vælger sproget for kommandoens output
 før hjælpen og WebKit-sproget i et nyåbnet vindue. Gemte indstillinger ændres
 ikke.
 .TP
-.BR \-\-pot " [" DATEI "]", " " \-\-pot-template " [" FILE "]"
+.BR \-\-pot-template " [" FILE "]", " " \-\-pot " [" DATEI "]"
 Generér en reproducerbar gettext-skabelon, og afslut. Uden et filargument
 skrives \fBmagnolie-handbuch.pot\fR i den aktuelle mappe; ellers skrives der
 til den angivne sti. Den absolutte outputsti udskrives, når det lykkes.
 .TP
-.BR \-\-hilfe , " " \-\-help
+.BR \-\-help , " " \-\-hilfe
 Vis en kort kommandooversigt.
 .SH MILJØ
 .TP

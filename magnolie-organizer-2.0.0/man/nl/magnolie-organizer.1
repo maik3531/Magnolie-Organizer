@@ -1,10 +1,10 @@
-.TH MAGNOLIE-ORGANIZER 1 "Augustus 2026" "Magnolie Organizer 2.0.13" "Gebruikersopdrachten"
+.TH MAGNOLIE-ORGANIZER 1 "Augustus 2026" "Magnolie Organizer 2.0.14" "Gebruikersopdrachten"
 .SH NAAM
 magnolie-organizer \- persoonlijke organizer in klassiek papieren ontwerp
 .SH SYNOPSIS
 .B magnolie-organizer
 .RI [ optie ]
-.RI [ \-\-sprache\  taal ]
+.RI [ \-\-language\  taal ]
 .SH BESCHRIJVING
 .B Magnolie Organizer
 combineert een agenda, taken, contactpersonen, notities, gedenkdagen en een
@@ -15,19 +15,27 @@ Magnolienbaum worden gedeeld.
 Per gebruikerssessie wordt slechts één grafische instantie geopend. Als de
 opdracht opnieuw wordt gestart, verschijnt het bestaande venster, ook wanneer
 dit in het systeemvak verborgen is.
+.SH OPDRACHTREGELVORMEN
+De neutrale korte aliassen en Engelse lange vormen zijn:
+.nf
+\-h \-\-help; \-V \-\-version; \-l \-\-language; \-P \-\-pot-template;
+\-r \-\-reminder-check; \-w \-\-alarm-monitor; \-p \-\-reminder-test;
+\-t \-\-tray-start; \-d \-\-debug; \-b \-\-background-service.
+.fi
+Zowel Duitse als Engelse lange vormen worden geaccepteerd.
 .SH OPTIES
 .TP
-.B \-\-erinnerung
+.B \-\-reminder-check
 Controleer op vervallen herinneringen. Deze optie wordt gewoonlijk door de
 sessiedienst gebruikt.
 .TP
-.B \-\-wecker
+.B \-\-alarm-monitor
 Voer de herinneringsmonitor op de achtergrond uit.
 .TP
 .B \-\-tray-start
 Start de organizer via het item voor automatisch starten in het systeemvak.
 .TP
-.B \-\-probe
+.B \-\-reminder-test
 Test herinneringen en druk een diagnoserapport af.
 .TP
 .B \-\-debug
@@ -37,18 +45,18 @@ systeemvak naar \fB~/.local/state/magnolie-organizer/debug.log\fR. Sluit een
 reeds actieve instantie af voordat een diagnostische uitvoering wordt gestart;
 een tweede aanroep activeert alleen het bestaande proces.
 .TP
-.BR \-\-sprache " " SPRACHE , " " \-\-language " " LANGUAGE
+.BR \-\-language " " LANGUAGE , " " \-\-sprache " " SPRACHE
 Gebruik Duits (\fBde\fR), Engels (\fBen\fR) of de systeemtaal (\fBsystem\fR)
 voor deze aanroep. Hiermee wordt de taal gekozen voor opdrachtuitvoer vóór de
 hulp-, diagnose- en achtergrondmodi en voor de WebKit-interface van een nieuw
 geopende grafische instantie. Opgeslagen instellingen worden niet gewijzigd.
 .TP
-.BR \-\-pot " [" DATEI "]", " " \-\-pot-template " [" FILE "]"
+.BR \-\-pot-template " [" FILE "]", " " \-\-pot " [" DATEI "]"
 Genereer een reproduceerbare gettext-sjabloon en sluit af. Schrijf zonder
 bestandsargument \fBmagnolie-organizer.pot\fR in de huidige map; schrijf anders
 naar het opgegeven pad. Bij succes wordt het absolute uitvoerpad weergegeven.
 .TP
-.BR \-\-hilfe , " " \-\-help
+.BR \-\-help , " " \-\-hilfe
 Toon een kort opdrachtoverzicht.
 .SH MAGNOLIENBAUM-NETWERK
 Wanneer Magnolienbaum is ingeschakeld, luistert het via IPv4 en IPv6 op

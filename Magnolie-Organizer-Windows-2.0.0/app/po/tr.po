@@ -1,23 +1,9 @@
-# SOME DESCRIPTIVE TITLE.
-# Copyright (C) 2026 THE PACKAGE'S COPYRIGHT HOLDER
-# This file is distributed under the same license as the Magnolie Organizer
-# package.
-# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
-#
 msgid ""
 msgstr ""
-"Project-Id-Version: Magnolie Organizer 2.0.13\n"
 "Report-Msgid-Bugs-To: maik3531@gmail.com\n"
 "POT-Creation-Date: YEAR-MO-DA HO:MI+ZONE\n"
-"PO-Revision-Date: 2026-08-08 09:24+0200\n"
-"Last-Translator: Magnolie localization project\n"
-"Language-Team: Turkish\n"
-"Language: tr\n"
-"MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
-"Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n > 1);\n"
-"Generated-By: Babel 2.18.0\n"
 
 msgid " (filtered)"
 msgstr " (filtrelendi)"
@@ -235,10 +221,10 @@ msgid "%(from)s to %(to)s"
 msgstr "%(from)s – %(to)s"
 
 msgid "%(name)s found – currently reachable"
-msgstr "%(name)s found – currently reachable"
+msgstr "%(name)s bulundu – şu anda erişilebilir"
 
 msgid "%(name)s last found – reconnecting"
-msgstr "%(name)s last found – reconnecting"
+msgstr "%(name)s en son bulundu – yeniden bağlanılıyor"
 
 msgid "%(ordinal)s death anniversary"
 msgstr "%(ordinal)s ölüm yıldönümü"
@@ -422,7 +408,7 @@ msgstr ""
 "bağlantı."
 
 msgid "API level"
-msgstr "API level"
+msgstr "API düzeyi"
 
 msgid "Aargau"
 msgstr "Aargau"
@@ -480,7 +466,7 @@ msgid "According to language"
 msgstr "Dile göre"
 
 msgid "Active call"
-msgstr "Active call"
+msgstr "Etkin arama"
 
 msgid "Add"
 msgstr "Ekle"
@@ -615,7 +601,7 @@ msgid "Answer calls on the computer and talk"
 msgstr "Aramaları bilgisayarda yanıtla ve konuş"
 
 msgid "App password"
-msgstr "App password"
+msgstr "Uygulama parolası"
 
 msgid "Appearance"
 msgstr "Görünüm"
@@ -723,6 +709,12 @@ msgstr "Yazar"
 msgid "Authority appointment"
 msgstr "Resmî kurum randevusu"
 
+msgid "Automatic backup failed."
+msgstr "Otomatik yedekleme başarısız oldu."
+
+msgid "Automatic cloud-folder backups"
+msgstr "Bulut klasörüne otomatik yedekler"
+
 msgid "Automatically choose a suitable application"
 msgstr "Uygun bir uygulamayı otomatik seç"
 
@@ -766,6 +758,9 @@ msgstr "Yedek geri yüklendi. Önceki veriler otomatik olarak yedeklendi."
 msgid "Backup saved to: %(path)s"
 msgstr "Yedek şuraya kaydedildi: %(path)s"
 
+msgid "Backup verified successfully."
+msgstr "Yedek başarıyla doğrulandı."
+
 msgid "Backups"
 msgstr "Yedekler"
 
@@ -798,7 +793,7 @@ msgid "Battery"
 msgstr "Pil"
 
 msgid "Battery snapshot"
-msgstr "Battery snapshot"
+msgstr "Pil durumu anlık görüntüsü"
 
 msgid "Bavaria"
 msgstr "Bavyera"
@@ -946,7 +941,7 @@ msgid "Calendars (multiple selections allowed)"
 msgstr "Takvimler (çoklu seçim yapılabilir)"
 
 msgid "Calendars and contacts"
-msgstr "Calendars and contacts"
+msgstr "Takvimler ve kişiler"
 
 msgid "Call"
 msgstr "Ara"
@@ -955,22 +950,22 @@ msgid "Call assignment"
 msgstr "Çağrı ataması"
 
 msgid "Call ended"
-msgstr "Call ended"
+msgstr "Arama sona erdi"
 
 msgid "Call notes"
-msgstr "Call notes"
+msgstr "Arama notları"
 
 msgid "Call reference"
-msgstr "Call reference"
+msgstr "Arama referansı"
 
 msgid "Call started"
-msgstr "Call started"
+msgstr "Arama başladı"
 
 msgid "Call this contact using Magnolie Notes or the assigned application"
 msgstr "Bu kişiyi Magnolie Notes veya atanmış uygulamayı kullanarak arayın"
 
 msgid "Call with %(name)s · %(date)s"
-msgstr "Call with %(name)s · %(date)s"
+msgstr "%(name)s ile arama · %(date)s"
 
 msgid "Cancel"
 msgstr "İptal"
@@ -1226,7 +1221,7 @@ msgstr ""
 "Arşivin tamamı içe aktarıldı. Önceki veriler otomatik olarak yedeklendi."
 
 msgid "Complete pairing"
-msgstr "Complete pairing"
+msgstr "Eşleştirmeyi tamamla"
 
 msgid "Completed (%(count)s)"
 msgstr "Tamamlandı (%(count)s)"
@@ -1259,13 +1254,13 @@ msgid "Connect phone via WLAN"
 msgstr "Telefonu WLAN üzerinden bağla"
 
 msgid "Connected"
-msgstr "Connected"
+msgstr "Bağlı"
 
 msgid "Consider deletions during manual synchronization"
 msgstr "Kişi eşzamanlama"
 
 msgid "Contact"
-msgstr "Contact"
+msgstr "Kişi"
 
 msgid "Contact card"
 msgstr "Kişi kartı"
@@ -1521,7 +1516,7 @@ msgid "Delete page"
 msgstr "Sayfayı sil"
 
 msgid "Delete password"
-msgstr "Delete password"
+msgstr "Parolayı sil"
 
 msgid "Delete permanently"
 msgstr "Kalıcı olarak sil"
@@ -1605,7 +1600,7 @@ msgid "Diabetes"
 msgstr "Diyabet"
 
 msgid "Dialing…"
-msgstr "Dialing…"
+msgstr "Aranıyor…"
 
 msgid "Diastolic"
 msgstr "Diyastolik"
@@ -1681,7 +1676,7 @@ msgid "Duplicates"
 msgstr "Yinelenenler"
 
 msgid "Duration"
-msgstr "Duration"
+msgstr "Süre"
 
 msgid "Early shift"
 msgstr "Erken vardiya"
@@ -2097,7 +2092,7 @@ msgid "Handwriting"
 msgstr "El yazısı"
 
 msgid "Hang up"
-msgstr "Hang up"
+msgstr "Aramayı sonlandır"
 
 msgid "Head office"
 msgstr "Merkez ofis"
@@ -2324,7 +2319,7 @@ msgid "Internet IP"
 msgstr "İnternet IP’si"
 
 msgid "Internet available"
-msgstr "Internet available"
+msgstr "İnternet kullanılabilir"
 
 msgid "Interval in days"
 msgstr "Gün cinsinden aralık"
@@ -2389,6 +2384,9 @@ msgstr "Soyad"
 
 msgid "Last snapshot"
 msgstr "Son anlık görüntü"
+
+msgid "Last successful backup"
+msgstr "Son başarılı yedek"
 
 msgid "Last synchronized: %(date)s, %(time)s."
 msgstr "Son eşitleme: %(date)s, %(time)s."
@@ -2484,9 +2482,6 @@ msgid ""
 msgstr ""
 "Magnolie Notes telefonları ile KDE Connect telefonları ayrıdır: Android "
 "model adı Magnolie Notes'a, KDE eş adı KDE Connect'e aittir."
-
-msgid "Magnolie Notes version"
-msgstr "Magnolie Notes sürümü"
 
 msgid "Magnolie Organizer is not completely installed."
 msgstr "Magnolie Organizer tam olarak kurulmamış."
@@ -2605,7 +2600,7 @@ msgid "Memorial day"
 msgstr "Anma günü"
 
 msgid "Memory available / total"
-msgstr "Memory available / total"
+msgstr "Kullanılabilir / toplam bellek"
 
 msgid "Merge"
 msgstr "Birleştir"
@@ -2623,7 +2618,7 @@ msgid "Message text"
 msgstr "Mesaj metni"
 
 msgid "Metered connection"
-msgstr "Metered connection"
+msgstr "Tarifeli bağlantı"
 
 msgid "Microsoft Graph has not been configured yet."
 msgstr "Microsoft Graph henüz yapılandırılmadı."
@@ -2644,7 +2639,7 @@ msgid "Microsoft sign-out failed: %(error)s"
 msgstr "Microsoft oturumu kapatma başarısız oldu: %(error)s"
 
 msgid "Minimize"
-msgstr "Minimize"
+msgstr "Simge durumuna küçült"
 
 msgid "Minimize to the tray when closed"
 msgstr "Kapatıldığında sistem tepsisine küçült"
@@ -2684,7 +2679,7 @@ msgid "Mobile"
 msgstr "Cep telefonu"
 
 msgid "Mobile network"
-msgstr "Mobile network"
+msgstr "Mobil ağ"
 
 msgid "Model"
 msgstr "Model"
@@ -2745,7 +2740,7 @@ msgstr ""
 "biri dışındakileri kaldırın."
 
 msgid "Multiple calendars"
-msgstr "Multiple calendars"
+msgstr "Birden çok takvim"
 
 msgid "Name"
 msgstr "Ad"
@@ -2763,7 +2758,7 @@ msgid "Netherlands"
 msgstr "Hollanda"
 
 msgid "Network"
-msgstr "Network"
+msgstr "Ağ"
 
 msgid "Neuchâtel"
 msgstr "Neuchâtel"
@@ -2851,7 +2846,7 @@ msgid "Next year"
 msgstr "Sonraki yıl"
 
 msgid "Nextcloud account"
-msgstr "Nextcloud account"
+msgstr "Nextcloud hesabı"
 
 msgid "Nextcloud is not enabled."
 msgstr "Nextcloud etkin değil."
@@ -2866,7 +2861,7 @@ msgid "Night shift"
 msgstr "Gece vardiyası"
 
 msgid "No"
-msgstr "No"
+msgstr "Hayır"
 
 msgid "No Bluetooth address was selected."
 msgstr "Hiçbir Bluetooth adresi seçilmedi."
@@ -3114,7 +3109,7 @@ msgid "Ointment"
 msgstr "Merhem"
 
 msgid "One address book"
-msgstr "One address book"
+msgstr "Bir adres defteri"
 
 msgid "One backup could not be updated."
 msgid_plural "%(count)s backups could not be updated."
@@ -3290,6 +3285,9 @@ msgstr "Organik atık"
 
 msgid "Organizer"
 msgstr "Düzenleyen"
+
+msgid "Organizer data is locked."
+msgstr "Organizer verileri kilitli."
 
 msgid "Organizer style (paper sheet)"
 msgstr "Organizer stili (kâğıt sayfası)"
@@ -3473,7 +3471,7 @@ msgid "Phone"
 msgstr "Telefon"
 
 msgid "Phone battery"
-msgstr "Phone battery"
+msgstr "Telefon pili"
 
 msgid "Phone call"
 msgstr "Telefon görüşmesi"
@@ -3569,7 +3567,7 @@ msgid "Possible duplicates among local and incoming contacts"
 msgstr "Yerel ve gelen kişiler arasındaki olası yinelenenler"
 
 msgid "Possible spam"
-msgstr "Possible spam"
+msgstr "Olası spam"
 
 msgid "Postal address"
 msgstr "Posta adresi"
@@ -3584,7 +3582,7 @@ msgid "Powder"
 msgstr "Toz"
 
 msgid "Power source"
-msgstr "Power source"
+msgstr "Güç kaynağı"
 
 msgid "Preparing Microsoft sign-in …"
 msgstr "Microsoft oturum açma işlemi hazırlanıyor…"
@@ -3656,6 +3654,9 @@ msgstr ""
 "Özel, bütünlüğü denetlenmiş anlık görüntüler uygulama verilerinin yanında "
 "saklanır."
 
+msgid "Protected archive password unavailable."
+msgstr "Korunan arşiv parolası kullanılamıyor."
+
 msgid "Public IPv4 or IPv6 address of the other branch"
 msgstr "Diğer dalın genel IPv4 veya IPv6 adresi"
 
@@ -3696,7 +3697,7 @@ msgid "Reachable IPv4 or IPv6 address of this computer"
 msgstr "Bu bilgisayarın erişilebilir IPv4 veya IPv6 adresi"
 
 msgid "Ready."
-msgstr "Ready."
+msgstr "Hazır."
 
 msgid ""
 "Really merge %(cards)s? Review the result carefully afterwards. A copy of "
@@ -3839,7 +3840,7 @@ msgstr ""
 "değişmeyecek."
 
 msgid "Renew pairing"
-msgstr "Renew pairing"
+msgstr "Eşleştirmeyi yenile"
 
 msgid "Repeat for confirmation"
 msgstr "Onaylamak için yineleyin"
@@ -3894,6 +3895,9 @@ msgstr ""
 
 msgid "Restoring backups is available only in the installed application."
 msgstr "Yedekleri geri yükleme yalnızca kurulu uygulamada kullanılabilir."
+
+msgid "Retention"
+msgstr "Saklama"
 
 msgid "Retrieval failed."
 msgstr "Alma başarısız oldu."
@@ -3984,7 +3988,7 @@ msgid "Save changes?"
 msgstr "Değişiklikler kaydedilsin mi?"
 
 msgid "Save endpoint"
-msgstr "Save endpoint"
+msgstr "Uç noktayı kaydet"
 
 msgid "Save rejected: The data is encrypted and has not been unlocked yet."
 msgstr "Kaydetme reddedildi: Veriler şifreli ve henüz kilidi açılmadı."
@@ -4004,7 +4008,7 @@ msgid "Saved ✓ %(time)s"
 msgstr "Kaydedildi ✓ %(time)s"
 
 msgid "Saved."
-msgstr "Saved."
+msgstr "Kaydedildi."
 
 msgid "Saving failed!"
 msgstr "Kaydetme başarısız!"
@@ -4028,7 +4032,7 @@ msgid "Scheduled"
 msgstr "Planlandı"
 
 msgid "Scheme"
-msgstr "Scheme"
+msgstr "Şema"
 
 msgid "Schleswig-Holstein"
 msgstr "Schleswig-Holstein"
@@ -4078,6 +4082,16 @@ msgstr "Güvenlik"
 msgid "Select a country first."
 msgstr "Önce bir ülke seçin."
 
+msgid ""
+"Select a custom backup folder and store an archive password to enable "
+"automatic backups."
+msgstr ""
+"Otomatik yedekleri etkinleştirmek için özel bir yedek klasörü seçin ve bir "
+"arşiv parolası saklayın."
+
+msgid "Select a custom backup folder."
+msgstr "Özel bir yedek klasörü seçin."
+
 msgid "Select all"
 msgstr "Tümünü seç"
 
@@ -4123,7 +4137,7 @@ msgid "Send SMS"
 msgstr "SMS gönder"
 
 msgid "Send adjusted text"
-msgstr "Send adjusted text"
+msgstr "Düzeltilmiş metni gönder"
 
 msgid "Send documents"
 msgstr "Belgeleri gönder"
@@ -4135,10 +4149,13 @@ msgid "Sent"
 msgstr "Gönderildi"
 
 msgid "Server address"
-msgstr "Server address"
+msgstr "Sunucu adresi"
 
 msgid "Server address and user name are required."
 msgstr "Sunucu adresi ve kullanıcı adı gereklidir."
+
+msgid "Set or change password"
+msgstr "Parola belirle veya değiştir"
 
 msgid "Set up contacts"
 msgstr "Kişileri ayarla"
@@ -4179,7 +4196,7 @@ msgid "Share together"
 msgstr "Birlikte paylaş"
 
 msgid "Shared credentials"
-msgstr "Shared credentials"
+msgstr "Paylaşılan kimlik bilgileri"
 
 msgid "Shared note"
 msgstr "Paylaşılan not"
@@ -4314,7 +4331,7 @@ msgid "Spain"
 msgstr "İspanya"
 
 msgid "Spam check"
-msgstr "Spam check"
+msgstr "Spam denetimi"
 
 msgid "Special cases"
 msgstr "Özel durumlar"
@@ -4338,7 +4355,7 @@ msgid "Status"
 msgstr "Durum"
 
 msgid "Storage available / total"
-msgstr "Storage available / total"
+msgstr "Kullanılabilir / toplam depolama"
 
 msgid "Street / house number"
 msgstr "Sokak / kapı numarası"
@@ -4374,7 +4391,7 @@ msgid "Suppository"
 msgstr "Fitil"
 
 msgid "Switched off."
-msgstr "Switched off."
+msgstr "Kapatıldı."
 
 msgid "Switzerland"
 msgstr "İsviçre"
@@ -4420,7 +4437,7 @@ msgid "Synchronize contacts"
 msgstr "Kişileri eşzamanla"
 
 msgid "Synchronize everything"
-msgstr "Synchronize everything"
+msgstr "Her şeyi senkronize et"
 
 msgid "Synchronize notes and notebooks"
 msgstr "Kişileri eşzamanla"
@@ -4492,10 +4509,13 @@ msgid "Temperature"
 msgstr "Sıcaklık"
 
 msgid "Test connection"
-msgstr "Test connection"
+msgstr "Bağlantıyı test et"
+
+msgid "Test now"
+msgstr "Şimdi test et"
 
 msgid "Testing…"
-msgstr "Testing…"
+msgstr "Test ediliyor…"
 
 msgid "Text color"
 msgstr "Metin rengi"
@@ -4742,6 +4762,17 @@ msgstr "Dosya desteklenmeyen bir biçimde."
 
 msgid "The file is larger than 8 megabytes."
 msgstr "Dosya 8 megabayttan büyük."
+
+msgid ""
+"The folder may be locally synchronized by Nextcloud, Google Drive, Dropbox, "
+"or OneDrive. Magnolie does not sign in to a provider. Automatic backups run "
+"only while Organizer is open and unlocked, immediately after data was saved "
+"successfully."
+msgstr ""
+"Klasör Nextcloud, Google Drive, Dropbox veya OneDrive tarafından yerel "
+"olarak eşitlenebilir. Magnolie bir sağlayıcıda oturum açmaz. Otomatik "
+"yedekler yalnızca Organizer açık ve kilidi kaldırılmışken, veriler başarıyla "
+"kaydedildikten hemen sonra çalışır."
 
 msgid ""
 "The helper frame marks the control that currently has keyboard focus. This "
@@ -5356,7 +5387,7 @@ msgid "URI"
 msgstr "URI"
 
 msgid "Unavailable"
-msgstr "Unavailable"
+msgstr "Kullanılamıyor"
 
 msgid ""
 "Under Wayland, the compositor determines the exact window position; "
@@ -5420,7 +5451,7 @@ msgid "Upper Austria"
 msgstr "Yukarı Avusturya"
 
 msgid "Uptime"
-msgstr "Uptime"
+msgstr "Çalışma süresi"
 
 msgid "Uri"
 msgstr "URI"
@@ -5430,6 +5461,9 @@ msgstr "Belirli bir uygulama veya komut kullan"
 
 msgid "Use a specific website"
 msgstr "Belirli bir web sitesi kullan"
+
+msgid "Use automatic backups"
+msgstr "Otomatik yedekleri kullan"
 
 msgid "Use basal units"
 msgstr "Bazal birimleri kullan"
@@ -5470,7 +5504,7 @@ msgid "Use the recycle bin"
 msgstr "Çöp kutusunu kullan"
 
 msgid "User name"
-msgstr "User name"
+msgstr "Kullanıcı adı"
 
 msgid ""
 "Uses its own identity and storage and listens only on fixed port %(port)s. "
@@ -5709,7 +5743,7 @@ msgid "Windows Contacts folder"
 msgstr "Windows Kişiler klasörü"
 
 msgid "Wireless"
-msgstr "Wireless"
+msgstr "Kablosuz"
 
 msgid ""
 "With a password or numeric code, the organizer asks for it when opening and "
@@ -5778,7 +5812,7 @@ msgid "Year planner %(year)s"
 msgstr "%(year)s yıl planlayıcısı"
 
 msgid "Yes"
-msgstr "Yes"
+msgstr "Evet"
 
 msgid "Yes, merge"
 msgstr "Evet, birleştir"
@@ -5878,7 +5912,7 @@ msgid "blood-glucose"
 msgstr "kan şekeri"
 
 msgid "browser storage"
-msgstr "browser storage"
+msgstr "tarayıcı depolama alanı"
 
 msgid "confidential"
 msgstr "gizli"
@@ -6114,7 +6148,7 @@ msgstr ""
 "olmayan fotoğraflar eklenemez."
 
 msgid "vital"
-msgstr "vital"
+msgstr "hayati"
 
 msgid "– Anniversaries automatically appear with ✱ in the calendar."
 msgstr "– Yıldönümleri takvimde otomatik olarak ✱ ile görünür."

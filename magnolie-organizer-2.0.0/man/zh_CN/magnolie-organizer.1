@@ -1,11 +1,11 @@
-.TH MAGNOLIE-ORGANIZER 1 "August 2026" "Magnolie Organizer 2.0.13" "用户命令"
+.TH MAGNOLIE-ORGANIZER 1 "August 2026" "Magnolie Organizer 2.0.14" "用户命令"
 .ad l
 .SH 名称
 magnolie-organizer \- 采用经典纸质设计的个人事务管理器
 .SH 用法
 .B magnolie-organizer
 .RI [ 选项 ]
-.RI [ \-\-sprache\  语言 ]
+.RI [ \-\-language\  语言 ]
 .SH 描述
 .B Magnolie Organizer
 集日历、任务、联系人、笔记、纪念日和年度计划于一体。数据存储在本地，
@@ -14,18 +14,26 @@ magnolie-organizer \- 采用经典纸质设计的个人事务管理器
 .PP
 每个用户会话只会打开一个图形实例。再次启动该命令会显示现有窗口，包括
 隐藏在系统托盘中的窗口。
+.SH 命令行形式
+中立短别名和英文长形式如下：
+.nf
+\-h \-\-help; \-V \-\-version; \-l \-\-language; \-P \-\-pot-template;
+\-r \-\-reminder-check; \-w \-\-alarm-monitor; \-p \-\-reminder-test;
+\-t \-\-tray-start; \-d \-\-debug; \-b \-\-background-service.
+.fi
+德文和英文长形式均可使用。
 .SH 选项
 .TP
-.B \-\-erinnerung
+.B \-\-reminder-check
 检查到期的提醒。此选项通常由会话服务使用。
 .TP
-.B \-\-wecker
+.B \-\-alarm-monitor
 在后台运行提醒监视器。
 .TP
 .B \-\-tray-start
 通过系统托盘自动启动项启动事务管理器。
 .TP
-.B \-\-probe
+.B \-\-reminder-test
 测试提醒并输出诊断报告。
 .TP
 .B \-\-debug
@@ -34,17 +42,17 @@ magnolie-organizer \- 采用经典纸质设计的个人事务管理器
 诊断信息写入 \fB~/.local/state/magnolie-organizer/debug.log\fR。开始诊断
 运行前应退出已在运行的实例；第二次调用只会激活现有进程。
 .TP
-.BR \-\-sprache " " 语言 , " " \-\-language " " LANGUAGE
+.BR \-\-language " " LANGUAGE , " " \-\-sprache " " 语言
 本次调用使用德语 (\fBde\fR)、英语 (\fBen\fR) 或系统语言
 (\fBsystem\fR)。此设置会在帮助、诊断和后台模式运行前选择命令输出语言，
 并选择新打开图形实例的 WebKit 界面语言。不会更改持久保存的设置。
 .TP
-.BR \-\-pot " [" 文件 "]", " " \-\-pot-template " [" FILE "]"
+.BR \-\-pot-template " [" FILE "]", " " \-\-pot " [" 文件 "]"
 生成可重现的 gettext 模板并退出。未提供文件参数时，在当前目录写入
 \fBmagnolie-organizer.pot\fR；否则写入指定路径。成功时会输出绝对输出
 路径。
 .TP
-.BR \-\-hilfe , " " \-\-help
+.BR \-\-help , " " \-\-hilfe
 显示简短的命令概览。
 .SH MAGNOLIENBAUM 网络
 启用后，Magnolienbaum 通过 IPv4 和 IPv6 侦听 TCP 端口 8737。本地分支

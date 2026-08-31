@@ -1,10 +1,10 @@
-.TH MAGNOLIE-HANDBUCH 1 "sierpień 2026" "Podręcznik Magnolie 2.0.6" "Polecenia użytkownika"
+.TH MAGNOLIE-HANDBUCH 1 "sierpień 2026" "Podręcznik Magnolie 2.0.14" "Polecenia użytkownika"
 .SH NAZWA
 magnolie-handbuch \- otwiera podręcznik użytkownika organizera Magnolie
 .SH SKŁADNIA
 .B magnolie-handbuch
 .RI [ opcja ]
-.RI [ \-\-sprache\  język ]
+.RI [ \-\-language\  język ]
 .SH OPIS
 .B Podręcznik Magnolie
 otwiera kompletny, ilustrowany podręcznik użytkownika organizera Magnolie.
@@ -12,21 +12,27 @@ Podręcznik można przeglądać na ekranie, drukować lub eksportować do pliku 
 .PP
 W ramach jednej sesji użytkownika otwierane jest tylko jedno okno podręcznika.
 Ponowne uruchomienie polecenia wyświetla istniejące okno.
+.SH FORMY WIERSZA POLECEŃ
+Neutralne krótkie aliasy i angielskie długie formy to:
+.nf
+\-h \-\-help; \-V \-\-version; \-l \-\-language; \-P \-\-pot-template.
+.fi
+Akceptowane są zarówno niemieckie, jak i angielskie długie formy.
 .SH OPCJE
 .TP
-.BR \-\-sprache " " SPRACHE , " " \-\-language " " LANGUAGE
+.BR \-\-language " " LANGUAGE , " " \-\-sprache " " SPRACHE
 Używa dla tego wywołania języka niemieckiego (\fBde\fR), angielskiego
 (\fBen\fR) albo języka systemowego (\fBsystem\fR). Określa to język komunikatów
 polecenia przed wyświetleniem pomocy oraz język WebKit nowo otwartego okna.
 Zapisane ustawienia nie są zmieniane.
 .TP
-.BR \-\-pot " [" PLIK "]", " " \-\-pot-template " [" FILE "]"
+.BR \-\-pot-template " [" FILE "]", " " \-\-pot " [" PLIK "]"
 Tworzy powtarzalny szablon gettext i kończy działanie. Bez argumentu pliku
 zapisuje \fBmagnolie-handbuch.pot\fR w bieżącym katalogu; w przeciwnym razie
 zapisuje go pod wskazaną ścieżką. Po powodzeniu wypisywana jest bezwzględna
 ścieżka pliku wyjściowego.
 .TP
-.BR \-\-hilfe , " " \-\-help
+.BR \-\-help , " " \-\-hilfe
 Wyświetla krótki przegląd polecenia.
 .SH ŚRODOWISKO
 .TP

@@ -1,10 +1,10 @@
-.TH MAGNOLIE-HANDBUCH 1 "augustus 2026" "Magnolie-handboek 2.0.6" "Gebruikersopdrachten"
+.TH MAGNOLIE-HANDBUCH 1 "augustus 2026" "Magnolie-handboek 2.0.14" "Gebruikersopdrachten"
 .SH NAAM
 magnolie-handbuch \- het gebruikershandboek van Magnolie Organizer openen
 .SH SAMENVATTING
 .B magnolie-handbuch
 .RI [ optie ]
-.RI [ \-\-sprache\  taal ]
+.RI [ \-\-language\  taal ]
 .SH BESCHRIJVING
 .B Magnolie-handboek
 opent de volledige geïllustreerde gebruikershandleiding voor Magnolie
@@ -13,20 +13,26 @@ PDF-bestand worden geëxporteerd.
 .PP
 Per gebruikerssessie wordt slechts één handboekvenster geopend. Als de
 opdracht opnieuw wordt gestart, verschijnt het bestaande venster.
+.SH OPDRACHTREGELVORMEN
+De neutrale korte aliassen en Engelse lange vormen zijn:
+.nf
+\-h \-\-help; \-V \-\-version; \-l \-\-language; \-P \-\-pot-template.
+.fi
+Zowel Duitse als Engelse lange vormen worden geaccepteerd.
 .SH OPTIES
 .TP
-.BR \-\-sprache " " SPRACHE , " " \-\-language " " LANGUAGE
+.BR \-\-language " " LANGUAGE , " " \-\-sprache " " SPRACHE
 Gebruik Duits (\fBde\fR), Engels (\fBen\fR) of de systeemtaal
 (\fBsystem\fR) voor deze aanroep. Hiermee worden de taal van de
 opdrachtuitvoer vóór de hulptekst en de WebKit-taal van een nieuw geopend
 venster gekozen. Opgeslagen instellingen worden niet gewijzigd.
 .TP
-.BR \-\-pot " [" DATEI "]", " " \-\-pot-template " [" FILE "]"
+.BR \-\-pot-template " [" FILE "]", " " \-\-pot " [" DATEI "]"
 Genereer een reproduceerbare gettext-sjabloon en sluit af. Schrijf zonder
 bestandsargument \fBmagnolie-handbuch.pot\fR in de huidige map; schrijf anders
 naar het opgegeven pad. Bij succes wordt het absolute uitvoerpad getoond.
 .TP
-.BR \-\-hilfe , " " \-\-help
+.BR \-\-help , " " \-\-hilfe
 Toon een kort opdrachtoverzicht.
 .SH OMGEVING
 .TP

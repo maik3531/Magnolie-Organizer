@@ -15,6 +15,9 @@ internal static class GesamtarchivService
     internal const int Fassung = 1;
     internal const int Datenschema = 2;
 
+    internal static bool IsArchivePath(string path) =>
+        string.Equals(Path.GetExtension(path), ".magnolie", StringComparison.OrdinalIgnoreCase);
+
     internal static string Create(JsonObject data, string platform, string appVersion,
         string password = "", DateTimeOffset? created = null)
     {

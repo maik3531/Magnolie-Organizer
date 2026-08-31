@@ -15,6 +15,13 @@ const assert = require("assert");
 const ROOT = path.resolve(__dirname, "..");
 const WEB = process.env.MAGNOLIE_HANDBUCH_WEB || path.join(ROOT, "web");
 
+for (const required of ["kaffee-qr.mga", "maik-walter.mga"]) {
+  assert.ok(fs.existsSync(path.join(WEB, required)), `protected asset missing: ${required}`);
+}
+for (const forbidden of ["kaffee-qr.png", "maik-walter.jpg"]) {
+  assert.ok(!fs.existsSync(path.join(WEB, forbidden)), `plaintext personal asset present: ${forbidden}`);
+}
+
 /* ---------------------------------------------------------------- helpers */
 
 const TEXT_SUFFIXES = new Set([".js", ".css", ".html", ".py", ".po", ".pot",

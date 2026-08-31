@@ -2,7 +2,9 @@
 """Private background-service foundation for Magnolie Organizer."""
 
 import gettext
+import hashlib
 import json
+import logging
 import os
 import re
 import shutil
@@ -17,6 +19,7 @@ import threading
 import time
 import unicodedata
 from collections import deque
+from logging.handlers import RotatingFileHandler
 
 from magnolie_kdeconnect import (DEVICE_ID, KDEConnectSMSBackend, ProtocolError,
                                  local_device_name)
@@ -25,6 +28,8 @@ from magnolie_kdeconnect import (DEVICE_ID, KDEConnectSMSBackend, ProtocolError,
 PROGRAM_NAME = "magnolie-organizer"
 SETTINGS_NAME = "background-settings.json"
 SOCKET_NAME = "background.sock"
+DIAGNOSTICS_NAME = "background-events.log"
+FRESHNESS_NAME = "background-freshness.json"
 AUTOSTART_NAME = "io.gitlab.maik3531.MagnolieOrganizer.Background.desktop"
 MAX_IPC_MESSAGE = 64 * 1024
 MAX_PHONE_ARGUMENTS = 2 * 1024 * 1024
@@ -76,6 +81,14 @@ class AlreadyRunning(IPCError):
 
 def data_directory():
     base = os.environ.get("XDG_DATA_HOME") or os.path.expanduser("~/.local/share")
+    path = os.path.join(base, PROGRAM_NAME)
+    os.makedirs(path, mode=0o700, exist_ok=True)
+    os.chmod(path, 0o700)
+    return path
+
+
+def state_directory():
+    base = os.environ.get("XDG_STATE_HOME") or os.path.expanduser("~/.local/state")
     path = os.path.join(base, PROGRAM_NAME)
     os.makedirs(path, mode=0o700, exist_ok=True)
     os.chmod(path, 0o700)
@@ -313,6 +326,160 @@ def _safe_text(value, limit):
     text = "".join(" " if unicodedata.category(char).startswith("C") else char
                    for char in str(value or ""))
     return " ".join(text.split())[:limit]
+
+
+def _event_is_fresh(payload, since_ms, *timestamp_fields):
+    """Treat undated live events normally, but never notify dated history."""
+    for field in timestamp_fields:
+        value = payload.get(field)
+        if isinstance(value, int) and not isinstance(value, bool) and value > 0:
+            return value >= since_ms
+    return True
+
+
+class BackgroundFreshness:
+    """Persist bounded, content-free event identities across daemon restarts."""
+    MAX_SEEN = 10000
+    MAX_AGE_MS = 90 * 24 * 60 * 60 * 1000
+    ID_FIELDS = ("id", "message_id", "messageId", "notification_id",
+                 "notification_key", "call_ref", "client_ref")
+
+    def __init__(self, path=None, now_ms=None):
+        self.path = path or os.path.join(state_directory(), FRESHNESS_NAME)
+        now = now_ms if isinstance(now_ms, int) else int(time.time() * 1000)
+        self._lock = threading.Lock()
+        previous_cutoff = 0
+        seen = []
+        try:
+            with open(self.path, "r", encoding="ascii") as source:
+                value = json.load(source)
+            if isinstance(value, dict) and value.get("version") == 1:
+                previous_cutoff = value.get("notification_cutoff_ms", 0)
+                seen = value.get("seen", [])
+        except (OSError, TypeError, ValueError):
+            pass
+        if not isinstance(previous_cutoff, int) or isinstance(previous_cutoff, bool):
+            previous_cutoff = 0
+        self.notification_cutoff_ms = max(now, previous_cutoff)
+        minimum = self.notification_cutoff_ms - self.MAX_AGE_MS
+        self._seen = {}
+        for item in seen if isinstance(seen, list) else ():
+            if not isinstance(item, list) or len(item) != 2:
+                continue
+            digest, occurred = item
+            if (isinstance(digest, str) and re.fullmatch(r"[0-9a-f]{64}", digest)
+                    and isinstance(occurred, int) and not isinstance(occurred, bool)
+                    and occurred >= minimum):
+                self._seen[digest] = occurred
+        self._trim()
+        self._save()
+
+    @classmethod
+    def _identity(cls, source, event, payload):
+        identifier = next((payload.get(field) for field in cls.ID_FIELDS
+                           if isinstance(payload.get(field), (str, int))
+                           and not isinstance(payload.get(field), bool)), None)
+        if identifier is None:
+            return None
+        subtype = payload.get("event") if event == "selected_notification" else ""
+        device = payload.get("device_id") or payload.get("kennung") or ""
+        raw = json.dumps([source, event, subtype, device, identifier], ensure_ascii=True,
+                         separators=(",", ":"))
+        return hashlib.sha256(raw.encode("utf-8")).hexdigest()
+
+    def _trim(self):
+        if len(self._seen) > self.MAX_SEEN:
+            newest = sorted(self._seen.items(), key=lambda item: item[1], reverse=True)
+            self._seen = dict(newest[:self.MAX_SEEN])
+
+    def _save(self):
+        _atomic_text(self.path, json.dumps({
+            "version": 1,
+            "notification_cutoff_ms": self.notification_cutoff_ms,
+            "seen": sorted(self._seen.items(), key=lambda item: item[1]),
+        }, ensure_ascii=True, sort_keys=True, separators=(",", ":")) + "\n")
+
+    def is_fresh(self, source, event, payload, *timestamp_fields):
+        dated_fresh = _event_is_fresh(payload, self.notification_cutoff_ms,
+                                      *timestamp_fields)
+        digest = self._identity(source, event, payload)
+        if digest is None:
+            return dated_fresh
+        occurred = next((payload.get(field) for field in timestamp_fields
+                         if isinstance(payload.get(field), int)
+                         and not isinstance(payload.get(field), bool)
+                         and payload.get(field) > 0), int(time.time() * 1000))
+        with self._lock:
+            unseen = digest not in self._seen
+            self._seen[digest] = occurred
+            self._trim()
+            self._save()
+        return dated_fresh and unseen
+
+
+class BackgroundDiagnostics:
+    """Bounded event metadata log that never records payload content."""
+    def __init__(self, path=None):
+        self.path = path or os.path.join(state_directory(), DIAGNOSTICS_NAME)
+        os.makedirs(os.path.dirname(self.path), mode=0o700, exist_ok=True)
+        handler = RotatingFileHandler(self.path, maxBytes=1024 * 1024,
+                                      backupCount=2, encoding="utf-8")
+        os.chmod(self.path, 0o600)
+        handler.setFormatter(logging.Formatter("%(message)s"))
+        self.logger = logging.getLogger("magnolie-organizer.background-events.%s" % id(self))
+        self.logger.handlers.clear()
+        self.logger.setLevel(logging.INFO)
+        self.logger.propagate = False
+        self.logger.addHandler(handler)
+
+    @staticmethod
+    def _device(payload):
+        value = payload.get("device_id") or payload.get("kennung") or ""
+        if not isinstance(value, str) or not value:
+            return "none"
+        return hashlib.sha256(value.encode("utf-8", "replace")).hexdigest()[:12]
+
+    def record(self, source, event, payload, freshness, outcome):
+        direction = payload.get("direction")
+        if direction not in ("received", "sent"):
+            direction = "sent" if payload.get("incoming") is False else "received"
+        text_bytes = sum(len(str(payload.get(field) or "").encode("utf-8", "replace"))
+                         for field in ("text", "body", "title"))
+        value = {
+            "at_ms": int(time.time() * 1000),
+            "source": source,
+            "event": event,
+            "direction": direction,
+            "freshness": freshness,
+            "outcome": outcome,
+            "device": self._device(payload),
+            "items": 1,
+            "payload_text_bytes": text_bytes,
+        }
+        self.logger.info(json.dumps(value, ensure_ascii=True, sort_keys=True,
+                                    separators=(",", ":")))
+
+    def storage_snapshot(self, directory):
+        def regular_size(path):
+            try:
+                value = os.lstat(path)
+                return value.st_size if stat.S_ISREG(value.st_mode) else 0
+            except OSError:
+                return 0
+        return {
+            "event_log_bytes": sum(regular_size(self.path + suffix)
+                                   for suffix in ("", ".1", ".2")),
+            "phone_store_bytes": regular_size(os.path.join(directory, "telefon", "phone.db")),
+            "kde_state_bytes": sum(regular_size(os.path.join(directory, "kdeconnect", name))
+                                   for name in ("identity.json", "peers.json")),
+            "freshness_state_bytes": regular_size(os.path.join(
+                os.path.dirname(self.path), FRESHNESS_NAME)),
+        }
+
+    def close(self):
+        for handler in list(self.logger.handlers):
+            handler.close()
+            self.logger.removeHandler(handler)
 
 
 def _json_safe(value):
@@ -1074,7 +1241,8 @@ def native_clipboard_set(text):
 
 class DaemonEvents:
     def __init__(self, backend_getter, settings, notifications, glib,
-                  event_publisher=None, gui_present=None, clipboard_setter=None):
+                  event_publisher=None, gui_present=None, clipboard_setter=None,
+                  notification_since_ms=0, diagnostics=None, freshness=None):
         self.backend_getter = backend_getter
         self.settings = normalize_settings(settings)
         self.notifications = notifications
@@ -1082,6 +1250,15 @@ class DaemonEvents:
         self.event_publisher = event_publisher or (lambda _event, _payload: None)
         self.gui_present = gui_present or (lambda: False)
         self.clipboard_setter = clipboard_setter or native_clipboard_set
+        self.notification_since_ms = notification_since_ms
+        self.diagnostics = diagnostics
+        self.freshness = freshness
+
+    def _fresh(self, event, payload, *timestamp_fields):
+        if self.freshness is not None:
+            return self.freshness.is_fresh("kde_connect", event, payload,
+                                           *timestamp_fields)
+        return _event_is_fresh(payload, self.notification_since_ms, *timestamp_fields)
 
     def __call__(self, event, payload):
         self.glib.idle_add(self._handle, event, dict(payload or {}))
@@ -1163,6 +1340,13 @@ class DaemonEvents:
                     decide(False)
         elif event == "clipboard_proposal":
             receive_id = str(payload.get("id") or "")
+            fresh = self._fresh(event, payload, "timestamp_ms")
+            if not fresh:
+                backend.reject_receive(receive_id)
+                if self.diagnostics is not None:
+                    self.diagnostics.record("kde_connect", event, payload,
+                                            "historical", "suppressed")
+                return False
             text = str(payload.get("text") or "")
             decide = self._decision(lambda accepted: (
                 backend.accept_receive(receive_id) if accepted else
@@ -1181,6 +1365,12 @@ class DaemonEvents:
                         _safe_text(text, 300), _("Reject")), key=receive_id)
                     decide(False)
         elif event == "clipboard_apply":
+            fresh = self._fresh(event, payload, "timestamp_ms")
+            if not fresh:
+                if self.diagnostics is not None:
+                    self.diagnostics.record("kde_connect", event, payload,
+                                            "historical", "suppressed")
+                return False
             if self.clipboard_setter(str(payload.get("text") or "")):
                 self.notifications.show(_("Magnolie Organizer"),
                                         _("Text copied to the clipboard."))
@@ -1194,13 +1384,20 @@ class DaemonEvents:
         elif event == "receive_error":
             self.notifications.show(_("Magnolie Organizer"),
                                     _("KDE Connect reception failed."))
-        elif event == "sms" and payload.get("notify") and permissions[
-                "sms_phone_notifications"]:
-            sender = _safe_text(payload.get("from"), 80) or _("Phone")
-            text = _safe_text(payload.get("text"), 300)
-            if not self.notifications.show(_("SMS from %s") % sender, text, (
-                    ("reply", _("Reply"), self.notifications.open_organizer),)):
-                self.notifications.show(_("SMS from %s") % sender, text)
+        elif event == "sms":
+            fresh = self._fresh(event, payload, "timestamp_ms", "occurred_ms")
+            notify = bool(payload.get("notify") and fresh and
+                          permissions["sms_phone_notifications"])
+            if notify:
+                sender = _safe_text(payload.get("from"), 80) or _("Phone")
+                text = _safe_text(payload.get("text"), 300)
+                if not self.notifications.show(_("SMS from %s") % sender, text, (
+                        ("reply", _("Reply"), self.notifications.open_organizer),)):
+                    self.notifications.show(_("SMS from %s") % sender, text)
+            if self.diagnostics is not None:
+                self.diagnostics.record("kde_connect", "sms", payload,
+                    "fresh" if fresh else "historical",
+                    "notified" if notify else "suppressed")
         if forward_decision or event not in ("pairing", "file_proposal", "clipboard_proposal"):
             forwarded = dict(payload)
             if event == "sms":
@@ -1212,16 +1409,26 @@ class DaemonEvents:
 class PhoneDaemonEvents:
     """Keep phone data opaque, notify natively, and mirror it to an attached GUI."""
     def __init__(self, backend_getter, settings, notifications, glib,
-                 event_publisher, gui_present):
+                  event_publisher, gui_present, notification_since_ms=0,
+                  diagnostics=None, freshness=None):
         self.backend_getter = backend_getter
         self.settings = normalize_settings(settings)
         self.notifications = notifications
         self.glib = glib
         self.event_publisher = event_publisher
         self.gui_present = gui_present
+        self.notification_since_ms = notification_since_ms
+        self.diagnostics = diagnostics
+        self.freshness = freshness
         self._pending = {}
         self._pending_size = 0
         self._lock = threading.Lock()
+
+    def _fresh(self, event, payload, *timestamp_fields):
+        if self.freshness is not None:
+            return self.freshness.is_fresh("magnolie_notes", event, payload,
+                                           *timestamp_fields)
+        return _event_is_fresh(payload, self.notification_since_ms, *timestamp_fields)
 
     def __call__(self, event, payload):
         self.glib.idle_add(self._handle, event, dict(payload or {}))
@@ -1264,6 +1471,23 @@ class PhoneDaemonEvents:
         backend = self.backend_getter()
         permissions = self.settings["permissions"]
         gui_present = self.gui_present()
+        diagnostic = None
+        if event == "selected_notification":
+            fresh = self._fresh(event, payload, "posted_ms", "created_ms")
+            notify = bool(payload.get("event") == "posted" and fresh and
+                          permissions["phone_selected_notifications"])
+            diagnostic = (fresh, notify)
+        elif event == "incoming_call":
+            fresh = self._fresh(event, payload, "occurred_ms", "started_ms")
+            notify = bool(payload.get("state") == "ringing" and fresh and
+                          permissions["phone_call_notifications"])
+            diagnostic = (fresh, notify)
+        elif event == "sms":
+            fresh = self._fresh(event, payload, "timestamp_ms", "occurred_ms",
+                                "created_ms")
+            notify = bool(not payload.get("read") and fresh and
+                          permissions["phone_sms_notifications"])
+            diagnostic = (fresh, notify)
         if event in ("personal_sync", "personal_sync_offer"):
             token = payload.get("commit_token")
             if backend is not None and isinstance(token, str):
@@ -1289,18 +1513,21 @@ class PhoneDaemonEvents:
                     self._forward(event, payload)
                 else:
                     backend.confirm_pairing(attempt, False)
-        elif event == "selected_notification" and permissions[
-                "phone_selected_notifications"]:
+        elif (event == "selected_notification" and payload.get("event") == "posted" and
+              fresh and
+              permissions["phone_selected_notifications"]):
             title = _safe_text(payload.get("app_label") or payload.get("title"), 100) or _("Phone notification")
             body = _safe_text(payload.get("text") or payload.get("body"), 400)
             if not self.notifications.show(title, body, self._open_action()):
                 self.notifications.show(title, body)
-        elif event == "incoming_call" and payload.get("state") == "ringing" and permissions[
-                "phone_call_notifications"]:
+        elif (event == "incoming_call" and payload.get("state") == "ringing" and
+              fresh and
+              permissions["phone_call_notifications"]):
             caller = _safe_text(payload.get("number"), 120) or _("Unknown caller")
             if not self.notifications.show(_("Incoming call"), caller, self._open_action()):
                 self.notifications.show(_("Incoming call"), caller)
-        elif event == "sms" and permissions["phone_sms_notifications"]:
+        elif (event == "sms" and not payload.get("read") and fresh and
+              permissions["phone_sms_notifications"]):
             sender = _safe_text(payload.get("from"), 80) or _("Phone")
             title = _("SMS from %s") % sender
             body = _safe_text(payload.get("text"), 300)
@@ -1309,6 +1536,11 @@ class PhoneDaemonEvents:
                 self.notifications.show(title, body)
         if gui_present and event != "pairing_code":
             self._forward(event, payload)
+        if diagnostic is not None and self.diagnostics is not None:
+            fresh, notify = diagnostic
+            self.diagnostics.record("magnolie_notes", event, payload,
+                "fresh" if fresh else "historical",
+                "notified" if notify else "forwarded" if gui_present else "suppressed")
         return False
 
 
@@ -1329,6 +1561,16 @@ def daemon_main(_arguments=None, backend_factory=KDEConnectSMSBackend,
             sys.stderr.write(_("Magnolie background service requires GLib: %s") % error + "\n")
             return 1
     holder = {"backend": None, "phone": None, "loop": None}
+    notification_since_ms = int(time.time() * 1000)
+    try:
+        freshness = BackgroundFreshness(now_ms=notification_since_ms)
+        notification_since_ms = freshness.notification_cutoff_ms
+    except OSError:
+        freshness = None
+    try:
+        diagnostics = BackgroundDiagnostics()
+    except OSError:
+        diagnostics = None
     notifications = notifications_factory(glib)
     server = None
     loop = glib.MainLoop()
@@ -1369,7 +1611,9 @@ def daemon_main(_arguments=None, backend_factory=KDEConnectSMSBackend,
             native_actions_supported=bool(
                 getattr(notifications, "actions_supported",
                         getattr(notifications, "supported", False))),
-            receive_configuration_error=receive_error)
+            receive_configuration_error=receive_error,
+            background_storage=(diagnostics.storage_snapshot(data_directory())
+                                if diagnostics is not None else {}))
         if server is not None:
             server.status_extra = extra
         if not clean["enabled"] and holder["loop"] is not None:
@@ -1382,9 +1626,13 @@ def daemon_main(_arguments=None, backend_factory=KDEConnectSMSBackend,
                        shutdown_callback=lambda: None)
     server.lifecycle = "starting"
     events = DaemonEvents(lambda: holder["backend"], settings, notifications, glib,
-                           server.publish_event, server.gui_present)
+                           server.publish_event, server.gui_present,
+                           notification_since_ms=notification_since_ms,
+                           diagnostics=diagnostics, freshness=freshness)
     phone_events = PhoneDaemonEvents(lambda: holder["phone"], settings, notifications,
-                                     glib, server.publish_event, server.gui_present)
+                                     glib, server.publish_event, server.gui_present,
+                                     notification_since_ms=notification_since_ms,
+                                     diagnostics=diagnostics, freshness=freshness)
     server.phone_event_getter = phone_events.take
     server.operation_callback = lambda operation, result: (
         events("pairing", result) if operation in ("begin_pairing", "complete_pairing")
@@ -1394,7 +1642,9 @@ def daemon_main(_arguments=None, backend_factory=KDEConnectSMSBackend,
         getattr(notifications, "available", False)),
         native_actions_supported=bool(getattr(
             notifications, "actions_supported", getattr(notifications, "supported", False))),
-        receive_configuration_error="")
+        receive_configuration_error="",
+        background_storage=(diagnostics.storage_snapshot(data_directory())
+                            if diagnostics is not None else {}))
     try:
         # Claim ownership before constructing the transport backend.
         server.start()
@@ -1439,3 +1689,5 @@ def daemon_main(_arguments=None, backend_factory=KDEConnectSMSBackend,
         if holder["phone"] is not None:
             holder["phone"].stop()
         server.close()
+        if diagnostics is not None:
+            diagnostics.close()

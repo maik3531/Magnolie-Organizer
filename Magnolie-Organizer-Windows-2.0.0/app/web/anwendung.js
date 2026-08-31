@@ -15,7 +15,30 @@
 (function () {
 
   /* Die Fassung erscheint auf der Seite „Über". */
-const FASSUNG = "2.0.13";
+const FASSUNG = "2.0.14";
+
+const NEU_IN_DIESER_FASSUNG = {
+  ar: ["ما الجديد في هذا الإصدار", "رسوميات Wayland وAppImage أصلية أسرع، مع وضع توافق اختياري", "عرض يومي أوضح وقابل للتوسيع", "حاويات محمية للصور الشخصية", "ملفات تعريف موسعة لتوزيعات RPM", "قناة موثوقة لنتائج الآلة الافتراضية", "أسماء مختصرة بديلة لسطر الأوامر"],
+  be: ["Што новага ў гэтай версіі", "Хутчэйшая ўласная графіка Wayland/AppImage з неабавязковым рэжымам сумяшчальнасці", "Больш зразумелы разгорнуты выгляд дня", "Абароненыя кантэйнеры асабістых выяў", "Пашыраныя профілі дыстрыбутываў RPM", "Надзейны канал вынікаў віртуальнай машыны", "Кароткія псеўданімы каманднага радка"],
+  cs: ["Co je nového v této verzi", "Rychlejší nativní grafika Wayland/AppImage s volitelným kompatibilním režimem", "Přehlednější rozbalovací denní pohled", "Chráněné kontejnery osobních obrázků", "Rozšířené profily distribucí RPM", "Spolehlivý kanál výsledků virtuálního stroje", "Krátké aliasy příkazového řádku"],
+  da: ["Nyt i denne version", "Hurtigere integreret Wayland/AppImage-grafik med valgfri kompatibilitetstilstand", "Tydeligere dagvisning, der kan foldes ud", "Beskyttede beholdere til personlige billeder", "Udvidede RPM-distributionsprofiler", "Pålidelig resultatkanal fra virtuelle maskiner", "Korte kommandolinjealiaser"],
+  de: ["Neu in dieser Version", "Schnellere native Wayland-/AppImage-Grafik mit optionalem Kompatibilitätsmodus", "Übersichtlichere, ausklappbare Tagesansicht", "Geschützte Container für persönliche Bilder", "Erweiterte RPM-Distributionsprofile", "Zuverlässiger Ergebniskanal der virtuellen Maschine", "Kurze Befehlszeilen-Aliase"],
+  en: ["What's new in this version", "Faster native Wayland/AppImage graphics with optional compatibility fallback", "Clearer expanding day view", "Protected personal image containers", "Expanded RPM distro profiles", "Reliable VM result channel", "CLI aliases"],
+  es: ["Novedades de esta versión", "Gráficos nativos Wayland/AppImage más rápidos con modo de compatibilidad opcional", "Vista diaria ampliable más clara", "Contenedores protegidos para imágenes personales", "Perfiles ampliados para distribuciones RPM", "Canal fiable de resultados de la máquina virtual", "Alias de línea de comandos"],
+  fr: ["Nouveautés de cette version", "Graphismes Wayland/AppImage natifs plus rapides avec repli de compatibilité facultatif", "Vue quotidienne extensible plus claire", "Conteneurs protégés pour les images personnelles", "Profils de distributions RPM étendus", "Canal fiable pour les résultats de la machine virtuelle", "Alias de ligne de commande"],
+  hi: ["इस संस्करण में नया", "वैकल्पिक संगतता फ़ॉलबैक के साथ तेज़ मूल Wayland/AppImage ग्राफ़िक्स", "अधिक स्पष्ट विस्तृत दैनिक दृश्य", "निजी चित्रों के लिए सुरक्षित कंटेनर", "विस्तारित RPM वितरण प्रोफ़ाइल", "विश्वसनीय वर्चुअल मशीन परिणाम चैनल", "कमांड-लाइन उपनाम"],
+  hsb: ["Nowe w tutej wersiji", "Spěšniša natiwna grafika Wayland/AppImage z opcionalnym kompatibelnym modusom", "Přehladniši rozšěrjowacy dnjowy napohlad", "Škitane kontejnerje za wosobinske wobrazy", "Rozšěrjene profile RPM-distribucijow", "Spušćomny wuslědkowy kanal wirtuelneje mašiny", "Krótke aliasy přikazoweje linki"],
+  it: ["Novità di questa versione", "Grafica nativa Wayland/AppImage più veloce con ripiego di compatibilità facoltativo", "Vista giornaliera espandibile più chiara", "Contenitori protetti per le immagini personali", "Profili ampliati per distribuzioni RPM", "Canale affidabile per i risultati della macchina virtuale", "Alias della riga di comando"],
+  ja: ["このバージョンの新機能", "オプションの互換モードを備えた高速なネイティブ Wayland/AppImage 描画", "より見やすい展開式の日表示", "個人画像用の保護コンテナー", "RPM ディストリビューションプロファイルの拡充", "信頼性の高い仮想マシン結果チャネル", "コマンドラインの短縮別名"],
+  nb: ["Nytt i denne versjonen", "Raskere integrert Wayland/AppImage-grafikk med valgfri kompatibilitetsmodus", "Tydeligere dagvisning som kan utvides", "Beskyttede beholdere for personlige bilder", "Utvidede RPM-distribusjonsprofiler", "Pålitelig resultatkanal fra virtuelle maskiner", "Korte kommandolinjealiaser"],
+  nl: ["Nieuw in deze versie", "Snellere native Wayland/AppImage-weergave met optionele compatibiliteitsmodus", "Duidelijker uitvouwbaar dagoverzicht", "Beveiligde containers voor persoonlijke afbeeldingen", "Uitgebreide RPM-distributieprofielen", "Betrouwbaar resultaatkanaal van de virtuele machine", "Korte opdrachtregelaliassen"],
+  pl: ["Nowości w tej wersji", "Szybsza natywna grafika Wayland/AppImage z opcjonalnym trybem zgodności", "Czytelniejszy rozwijany widok dnia", "Chronione kontenery obrazów osobistych", "Rozszerzone profile dystrybucji RPM", "Niezawodny kanał wyników maszyny wirtualnej", "Krótkie aliasy wiersza poleceń"],
+  pt: ["Novidades desta versão", "Gráficos nativos Wayland/AppImage mais rápidos com modo de compatibilidade opcional", "Vista diária expansível mais clara", "Contentores protegidos para imagens pessoais", "Perfis alargados de distribuições RPM", "Canal fiável de resultados da máquina virtual", "Aliases da linha de comandos"],
+  ru: ["Новое в этой версии", "Более быстрая нативная графика Wayland/AppImage с дополнительным режимом совместимости", "Более наглядный раскрывающийся вид дня", "Защищённые контейнеры личных изображений", "Расширенные профили дистрибутивов RPM", "Надёжный канал результатов виртуальной машины", "Короткие псевдонимы командной строки"],
+  tr: ["Bu sürümdeki yenilikler", "İsteğe bağlı uyumluluk modu ile daha hızlı yerel Wayland/AppImage grafikleri", "Daha anlaşılır genişletilebilir gün görünümü", "Kişisel görseller için korumalı kapsayıcılar", "Genişletilmiş RPM dağıtım profilleri", "Güvenilir sanal makine sonuç kanalı", "Komut satırı kısa adları"],
+  uk: ["Нове в цій версії", "Швидша нативна графіка Wayland/AppImage з додатковим режимом сумісності", "Зрозуміліший розгортаний перегляд дня", "Захищені контейнери особистих зображень", "Розширені профілі дистрибутивів RPM", "Надійний канал результатів віртуальної машини", "Короткі псевдоніми командного рядка"],
+  "zh-cn": ["此版本的新功能", "更快的原生 Wayland/AppImage 图形，并提供可选兼容模式", "更清晰的可展开日视图", "受保护的个人图像容器", "扩展的 RPM 发行版配置", "可靠的虚拟机结果通道", "命令行短别名"]
+};
   const CONTRIBUTOR_BRANDING = "No valid coffee allowance";
 
   /* ---------------------------------------------------------------------- */
@@ -103,6 +126,7 @@ const FASSUNG = "2.0.13";
   let teamsVerfuegbar = false;
   let sicherungWahl = null;
   let journalStand = { snapshots: [], interval: "weekly", maximum: 20, last: "", next: "" };
+  let cloudSicherungStand = { kennwortVorhanden: false, status: "" };
   /* Der Journalstand wird genau einmal je geöffnetem Einstellungsfenster
      angefordert. Ohne diese Sperre fordert jeder Aufbau der Sicherheitsseite
      erneut an, die Antwort baut die Seite erneut auf und der Reiter flackert
@@ -180,6 +204,8 @@ const FASSUNG = "2.0.13";
           wetterDarstellung: "temperature", wetterIntervall: 180,
           wetterOhneOrtAbrufen: true,
           sicherungsordner: "", wiederherstellungsintervall: "weekly",
+          cloudSicherung: { aktiv: false, intervall: "daily", aufbewahrung: 7,
+            letzterErfolg: "", status: "" },
           wiederherstellungsanzahl: 20,
           wiederherstellungsstatus: "", handbuchHinweisGezeigt: false,
           kontaktErsteinrichtungVersion: 1,
@@ -227,6 +253,7 @@ const FASSUNG = "2.0.13";
             blutzucker: { an: false, von: "", zeit: "", intervallTage: 1 }
           } } },
       letzterSync: 0, letzteSyncs: { kalender: {}, adressbuecher: {} },
+      syncStatus: { letzterVersuch: 0, letzterFehler: "" },
       baumKontaktGeloescht: [], baumKontaktBestand: {},
       baumKontaktLoeschStaende: [], baumKontaktErfolgreich: {},
       personalSync: { format: 1, actor_id: "", counter: 0, entities: {},
@@ -1111,7 +1138,7 @@ const FASSUNG = "2.0.13";
     online.dataset.geraet = "online";
     const details = el("dl", "geraet-details geraet-online-details");
     for (const [name, beschriftung] of [["model", _("Model")],
-      ["manufacturer", _("Manufacturer")], ["app_version", _("Magnolie Notes version")],
+      ["manufacturer", _("Manufacturer")], ["app_version", "Magnolie Notes:"],
       ["os_version", _("Android version")],
       ["sdk_int", _("API level")], ["charging", _("Charging state")],
       ["power_source", _("Power source")],
@@ -1182,14 +1209,22 @@ const FASSUNG = "2.0.13";
         Bruecke.sende({ cmd: "personal_sync_einstellungen", kennung: kennung, eigen: an, autoWlan: an && auto });
         Bruecke.sende({ cmd: "telefon_stand" });
       });
+      const inhaltHaken = [];
       for (const [name, text] of [["personal_notes_sync", _("Synchronize notes and notebooks")],
         ["personal_tasks_sync", _("Synchronize tasks")],
-        ["personal_deletions_sync", _("Consider deletions during manual synchronization")]]) personalHak(text,
+        ["personal_deletions_sync", _("Consider deletions during manual synchronization")]]) inhaltHaken.push(personalHak(text,
         !!(peer.local_grants && peer.local_grants.grants && peer.local_grants.grants[name]),
         (an) => { peer.local_grants.grants[name] = an;
           zeigePersonalStand(peer);
           Bruecke.sende({ cmd: "telefon_freigabe", kennung: kennung, name: name, an: an });
-          Bruecke.sende({ cmd: "telefon_stand" }); });
+          Bruecke.sende({ cmd: "telefon_stand" }); }));
+      const inhaltWahl = el("div", "druck-wahlkopf personal-sync-wahl");
+      const waehleInhalte = (an) => {
+        for (const haken of inhaltHaken) if (haken.checked !== an) haken.click();
+      };
+      inhaltWahl.append(knopf(_("All"), "klein", () => waehleInhalte(true)),
+        knopf(_("None"), "klein", () => waehleInhalte(false)));
+      personal.append(inhaltWahl);
       personalHak(_("Automatically synchronize over Wi-Fi"), auto, (an) => {
         auto = an; peer.auto_wifi = an;
         Bruecke.sende({ cmd: "personal_sync_einstellungen", kennung: kennung, eigen: eigen, autoWlan: an });
@@ -4211,6 +4246,15 @@ const FASSUNG = "2.0.13";
       al.wetterOhneOrtAbrufen === undefined ? true : !!al.wetterOhneOrtAbrufen;
     d.einstellungen.allgemein.sicherungsordner =
       S(al.sicherungsordner).trim();
+    const cloud = al.cloudSicherung && typeof al.cloudSicherung === "object"
+      ? al.cloudSicherung : {};
+    d.einstellungen.allgemein.cloudSicherung = {
+      aktiv: !!cloud.aktiv,
+      intervall: ["daily", "weekly"].includes(cloud.intervall) ? cloud.intervall : "daily",
+      aufbewahrung: Math.max(2, Math.min(30, Math.round(Number(cloud.aufbewahrung) || 7))),
+      letzterErfolg: S(cloud.letzterErfolg).slice(0, 64),
+      status: S(cloud.status).slice(0, 64)
+    };
     d.einstellungen.allgemein.wiederherstellungsintervall =
       ["off", "6h", "12h", "daily", "weekly"].includes(al.wiederherstellungsintervall)
         ? al.wiederherstellungsintervall : "weekly";
@@ -4363,6 +4407,10 @@ const FASSUNG = "2.0.13";
     za.sozialeSymbole = ad.sozialeSymbole === undefined
       ? true : !!ad.sozialeSymbole;
     d.letzterSync = N(roh.letzterSync);
+    const syncStatus = roh.syncStatus && typeof roh.syncStatus === "object"
+      ? roh.syncStatus : {};
+    d.syncStatus = { letzterVersuch: N(syncStatus.letzterVersuch),
+      letzterFehler: S(syncStatus.letzterFehler).replace(/\s+/g, " ").trim().slice(0, 2000) };
     const letzteSyncs = (roh.letzteSyncs && typeof roh.letzteSyncs === "object")
       ? roh.letzteSyncs : {};
     const kalenderSyncs = (letzteSyncs.kalender && typeof letzteSyncs.kalender === "object")
@@ -15258,7 +15306,7 @@ const FASSUNG = "2.0.13";
     });
     if (Bruecke.vorhanden && !edsAngefragt) {
       edsAngefragt = true;
-      Bruecke.sende({ cmd: "eds_status" });
+      if (!Bruecke.sende({ cmd: "eds_status" })) edsAngefragt = false;
     }
   }
 
@@ -15652,13 +15700,52 @@ const FASSUNG = "2.0.13";
     });
     ordnerKnopf.id = "allgemein-sicherungsordner-waehlen";
     const standardKnopf = knopf(_("Use default"), "klein", () => {
-      sicherPfad.value = ""; a.sicherungsordner = ""; planeSpeichern();
+      sicherPfad.value = ""; a.sicherungsordner = ""; planeSpeichern(); baueEinstellungen();
     });
     standardKnopf.id = "allgemein-sicherungsordner-standard";
     sicherReihe.append(ordnerKnopf, standardKnopf); ab.append(sicherReihe);
     ab.append(el("p", "einst-hinweis", _("New backups are stored in this folder. When the field is empty, they " +
       "are stored next to the data file. For any other location, the organizer requires a backup password and " +
       "encrypts the copy independently of the application's password protection.")));
+    const cloud = a.cloudSicherung;
+    const cloudTitel = el("h3", "", _("Automatic cloud-folder backups"));
+    ab.append(cloudTitel);
+    ab.append(el("p", "einst-hinweis", _("The folder may be locally synchronized by Nextcloud, Google Drive, Dropbox, or OneDrive. Magnolie does not sign in to a provider. Automatic backups run only while Organizer is open and unlocked, immediately after data was saved successfully.")));
+    const aktiv = eingabe("checkbox", ""); aktiv.checked = cloud.aktiv;
+    const intervall = auswahlFeld([["daily", _("Daily")], ["weekly", _("Weekly")]], cloud.intervall);
+    const anzahl = eingabe("number", String(cloud.aufbewahrung));
+    anzahl.min = "2"; anzahl.max = "30"; anzahl.step = "1";
+    const geheim = eingabe("password", ""); geheim.maxLength = 4096;
+    geheim.placeholder = cloudSicherungStand.kennwortVorhanden ? _("Ready.") : _("Backup password");
+    const geheimKnopf = knopf(_("Set or change password"), "klein", () => {
+      if (geheim.value.length < 4) return zettel(_("Enter at least four characters for the backup password."));
+      Bruecke.sende({ cmd: "cloud_sicherung_kennwort", kennwort: geheim.value });
+      geheim.value = "";
+    });
+    const testKnopf = knopf(_("Test now"), "", () => {
+      nachDauerhaftemSpeichern(() => Bruecke.sende({ cmd: "cloud_sicherung_test" }));
+    });
+    const cloudVerfuegbar = !!a.sicherungsordner && cloudSicherungStand.kennwortVorhanden;
+    aktiv.disabled = !cloudVerfuegbar;
+    if (!cloudVerfuegbar && cloud.aktiv) { cloud.aktiv = false; planeSpeichern(); }
+    testKnopf.disabled = !cloudVerfuegbar;
+    aktiv.addEventListener("change", () => { cloud.aktiv = aktiv.checked; planeSpeichern(); });
+    intervall.addEventListener("change", () => { cloud.intervall = intervall.value; planeSpeichern(); });
+    anzahl.addEventListener("change", () => {
+      cloud.aufbewahrung = Math.max(2, Math.min(30, Math.round(Number(anzahl.value) || 7)));
+      anzahl.value = String(cloud.aufbewahrung); planeSpeichern();
+    });
+    ab.append(formZeile(_("Use automatic backups"), aktiv),
+      formZeile(_("Snapshot interval"), intervall), formZeile(_("Retention"), anzahl),
+      formZeile(_("Backup password"), geheim));
+    const cloudReihe = el("div", "knopfreihe"); cloudReihe.append(geheimKnopf, testKnopf); ab.append(cloudReihe);
+    if (!cloudVerfuegbar) ab.append(el("p", "einst-hinweis", _("Select a custom backup folder and store an archive password to enable automatic backups.")));
+    const statusTexte = { ready: _("Ready."), success: _("Backup verified successfully."),
+      failed: _("Automatic backup failed."), folder_missing: _("Select a custom backup folder."),
+      secret_unavailable: _("Protected archive password unavailable."), locked: _("Organizer data is locked.") };
+    ab.append(el("p", "einst-hinweis", _("Last successful backup") + ": " +
+      journalDatum(cloud.letzterErfolg) + " · " + (statusTexte[cloud.status] || statusTexte[cloudSicherungStand.status] || _("Off"))));
+    if (Bruecke.vorhanden) Bruecke.sende({ cmd: "cloud_sicherung_status" });
     const wiederherstellen = knopf(_("Restore backup …"), "", () => {
       if (!Bruecke.vorhanden) return zettel(_("Restoring backups is available only in the installed application."));
       Bruecke.sende({ cmd: "sicherung_waehlen" });
@@ -15667,7 +15754,13 @@ const FASSUNG = "2.0.13";
     const wiederReihe = el("div", "knopfreihe"); wiederReihe.append(wiederherstellen); ab.append(wiederReihe);
     ab.append(el("p", "einst-hinweis", _("Choose a backup file. Before restoring it, the organizer automatically " +
       "creates a copy of the current data. An encrypted backup requires its password.")));
-    sicherPfad.addEventListener("input", () => { a.sicherungsordner = sicherPfad.value.trim(); planeSpeichern(); });
+    sicherPfad.addEventListener("input", () => {
+      a.sicherungsordner = sicherPfad.value.trim();
+      const verfuegbar = !!a.sicherungsordner && cloudSicherungStand.kennwortVorhanden;
+      aktiv.disabled = !verfuegbar; testKnopf.disabled = !verfuegbar;
+      if (!verfuegbar && cloud.aktiv) { cloud.aktiv = false; aktiv.checked = false; }
+      planeSpeichern();
+    });
     wurzel.append(ab);
   }
 
@@ -17099,19 +17192,30 @@ const FASSUNG = "2.0.13";
     handbuchKasten.append(handbuchReihe);
     rechts.append(handbuchKasten);
 
+    const gebiet = window.MagnolieI18n ? window.MagnolieI18n.locale() : "en";
+    const neuText = NEU_IN_DIESER_FASSUNG[gebiet] ||
+      NEU_IN_DIESER_FASSUNG[gebiet.replace(/-.*/, "")] || NEU_IN_DIESER_FASSUNG.en;
+    const neuKasten = el("section", "ueber-neu");
+    neuKasten.append(el("h4", null, neuText[0]), el("div", "ueber-neu-fassung", FASSUNG));
+    const neuListe = el("ul");
+    for (const punkt of neuText.slice(1)) neuListe.append(el("li", null, punkt));
+    neuKasten.append(neuListe);
+    rechts.append(neuKasten);
+
     const zeile = (wort, wert) => {
       const z = el("div", "ueber-zeile");
       z.append(el("span", "ueber-wort", wort));
       z.append(el("span", "ueber-wert", wert));
       return z;
     };
-    links.append(zeile(_("Author"), "Maik Walter"));
-    links.append(zeile(_("License"),
+    const rechtliches = el("div", "ueber-rechtliches");
+    rechtliches.append(zeile(_("Author"), "Maik Walter"));
+    rechtliches.append(zeile(_("License"),
       _("GNU General Public License, version 3 or later")));
-
-    links.append(el("p", "einst-hinweis",
+    rechtliches.append(el("p", "einst-hinweis",
       _("This program is free software: you may redistribute and modify it. It is " +
         "published in the hope that it will be useful, but without any warranty.")));
+    links.append(rechtliches);
 
     const update = DATEN.einstellungen.update;
     const updateKasten = el("div", "update-kasten");
@@ -19141,6 +19245,8 @@ const FASSUNG = "2.0.13";
   }
 
   function zeitZeileLetzterSync() {
+    const fehler = String(DATEN.syncStatus && DATEN.syncStatus.letzterFehler || "").trim();
+    if (fehler) return uebersetzt("Synchronization failed: %(error)s", { error: fehler });
     if (!DATEN.letzterSync) return _("Never synchronized.");
     const d = new Date(DATEN.letzterSync);
     const zeitOptionen = { hour: "2-digit", minute: "2-digit" };
@@ -19169,7 +19275,9 @@ const FASSUNG = "2.0.13";
       return;
     }
     if (syncKnopf && !syncLaeuft) syncKnopf.disabled = false;
-    status.textContent = zeitZeileLetzterSync();
+    status.textContent = nutzlast.fehler
+      ? uebersetzt("Synchronization failed: %(error)s", { error: nutzlast.fehler })
+      : zeitZeileLetzterSync();
     const sw = DATEN.einstellungen.sync;
 
     const kalListe = el("fieldset", "sync-kalender-liste");
@@ -19302,6 +19410,20 @@ const FASSUNG = "2.0.13";
     syncLaeuft = false;
     const syncKnopf = $("#sync-jetzt");
     if (syncKnopf) { syncKnopf.disabled = false; syncKnopf.textContent = _("Synchronize now"); }
+  }
+
+  function merkeSyncFehler(text, speichern = true) {
+    const fehler = String(text || _("unknown error")).replace(/\s+/g, " ").trim().slice(0, 2000);
+    DATEN.syncStatus = { letzterVersuch: Date.now(), letzterFehler: fehler };
+    syncEnde();
+    const meldung = uebersetzt("Synchronization failed: %(error)s", { error: fehler });
+    const status = $("#sync-status");
+    if (status) {
+      status.textContent = meldung;
+      status.title = _("Synchronization failed.");
+    }
+    if (speichern) planeSpeichern();
+    return meldung;
   }
 
   /* ------------------------ Import-Zusammenführung ------------------------ */
@@ -20328,6 +20450,7 @@ const FASSUNG = "2.0.13";
       if (Bruecke.vorhanden) Bruecke.sende({ cmd: "telefon_stand" });
     },
     edsStatus(nutzlast) {
+      edsAngefragt = false;
       letzterEdsStatus = nutzlast || { verfuegbar: false };
       fuelleEdsAuswahl(letzterEdsStatus);
       if (kontaktAssistentQuellenSeite) kontaktAssistentQuellenSeite();
@@ -20874,7 +20997,29 @@ const FASSUNG = "2.0.13";
       const feld = $("#allgemein-sicherungsordner");
       if (feld) feld.value = pfad;
       planeSpeichern();
+      baueEinstellungen();
       zettel(_("Backup folder updated."));
+    },
+    cloudSicherungStand(nutzlast) {
+      nutzlast = nutzlast || {};
+      const vorher = JSON.stringify(cloudSicherungStand);
+      cloudSicherungStand = {
+        kennwortVorhanden: !!nutzlast.kennwortVorhanden,
+        status: S(nutzlast.status).slice(0, 64)
+      };
+      const cloud = DATEN.einstellungen.allgemein.cloudSicherung;
+      let geaendert = false;
+      if (nutzlast.letzterErfolg && cloud.letzterErfolg !== nutzlast.letzterErfolg) {
+        cloud.letzterErfolg = S(nutzlast.letzterErfolg).slice(0, 64); geaendert = true;
+      }
+      if (nutzlast.status && cloud.status !== nutzlast.status) {
+        cloud.status = S(nutzlast.status).slice(0, 64); geaendert = true;
+      }
+      if (!cloudSicherungStand.kennwortVorhanden && cloud.aktiv) {
+        cloud.aktiv = false; geaendert = true;
+      }
+      if (geaendert) planeSpeichern();
+      if (vorher !== JSON.stringify(cloudSicherungStand)) baueEinstellungen();
     },
     journalStand(nutzlast) {
       nutzlast = nutzlast || {};
@@ -21420,6 +21565,9 @@ const FASSUNG = "2.0.13";
     },
     syncFertig(nutzlast) {
       nutzlast = nutzlast || {};
+      const erfolgreich = nutzlast.ok !== false;
+      const syncFehlertext = String(nutzlast.fehler || nutzlast.bericht || _("unknown error"))
+        .replace(/\s+/g, " ").trim().slice(0, 2000);
       const ausstehend = String((((DATEN.syncMetadaten || {}).nextcloud || {})
         .ausstehendeTransaktion) || "");
       if (nutzlast.transactionId && ausstehend && nutzlast.transactionId !== ausstehend) {
@@ -21434,10 +21582,12 @@ const FASSUNG = "2.0.13";
         kontakte: nutzlast.kontakte || DATEN.kontakte,
         jahrestage: nutzlast.jahrestage || DATEN.jahrestage,
         geloescht: nutzlast.geloescht || { termine: [], kontakte: [] },
-        letzterSync: nutzlast.letzterSync || Date.now(),
+        letzterSync: erfolgreich ? (Number(nutzlast.letzterSync) || Date.now()) : DATEN.letzterSync,
         letzteSyncs: nutzlast.letzteSyncs || DATEN.letzteSyncs,
         syncMetadaten: nutzlast.syncMetadaten || DATEN.syncMetadaten,
-        syncEpoch: (nutzlast.syncMetadaten || DATEN.syncMetadaten).syncEpoch || DATEN.syncEpoch
+        syncEpoch: (nutzlast.syncMetadaten || DATEN.syncMetadaten).syncEpoch || DATEN.syncEpoch,
+        syncStatus: { letzterVersuch: Date.now(),
+          letzterFehler: erfolgreich ? "" : syncFehlertext }
       }));
       if (nutzlast.transactionId && DATEN.syncMetadaten.nextcloud) {
         delete DATEN.syncMetadaten.nextcloud.ausstehendeTransaktion;
@@ -21445,7 +21595,8 @@ const FASSUNG = "2.0.13";
       zeichneAlles();
       const status = $("#sync-status");
       if (status) status.textContent = zeitZeileLetzterSync();
-      zettel(nutzlast.bericht || _("Synchronization completed."));
+      zettel(erfolgreich ? (nutzlast.bericht || _("Synchronization completed.")) :
+        uebersetzt("Synchronization failed: %(error)s", { error: syncFehlertext }));
       const kandidat = nutzlast.adressbuchBaselineKandidat;
       if (kandidat && kandidat.sourceUid) {
         nachDauerhaftemSpeichern(() => {
@@ -21460,18 +21611,13 @@ const FASSUNG = "2.0.13";
           };
           speichereJetzt();
         });
-      } else if (nutzlast.transactionId) {
+      } else if (erfolgreich && nutzlast.transactionId) {
         nachDauerhaftemSpeichern(() => Bruecke.sende({ cmd: "sync_commit",
           transactionId: nutzlast.transactionId }));
       } else planeSpeichern();
     },
     syncFehler(text) {
-      syncEnde();
-      const status = $("#sync-status");
-      if (status) status.textContent = _("Synchronization failed.");
-      zettel(uebersetzt("Synchronization failed: %(error)s", {
-        error: text || _("unknown error")
-      }));
+      zettel(merkeSyncFehler(text));
     },
     gespeichert(ergebnis) {
       if (typeof ergebnis === "boolean") ergebnis = { ok: ergebnis };
@@ -21492,6 +21638,7 @@ const FASSUNG = "2.0.13";
         }), true);
         pumpeSpeichern();
       } else {
+        const syncAbgebrochen = syncLaeuft;
         wartendeSpeicherAktionen = [];
         const baselineFehler = !!ausstehendeAdressbuchBaseline;
         if (ausstehendeAdressbuchBaseline) {
@@ -21506,7 +21653,10 @@ const FASSUNG = "2.0.13";
         }
         beendenGewuenscht = false;
         setzeSpeicherStatus(_("Saving failed!"), false);
-        zettel(ergebnis.fehler || _("Warning: The data could not be saved."));
+        if (syncAbgebrochen) {
+          zettel(merkeSyncFehler(
+            ergebnis.fehler || _("Warning: The data could not be saved."), false));
+        } else zettel(ergebnis.fehler || _("Warning: The data could not be saved."));
         kontaktAssistentSpeicherFehler(ergebnis.fehler);
       }
     },

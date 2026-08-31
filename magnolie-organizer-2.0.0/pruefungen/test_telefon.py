@@ -691,9 +691,10 @@ def test_payload_device_status_end_to_end_and_revision_rejection():
                   "os_name": "Android", "os_version": "16", "battery_percent": 50,
                   "charging": "discharging", "captured_ms": phone.now_ms()}
         channel = Channel()
+        created_ms = phone.now_ms()
         message = {"type": "message", "v": 1, "message_id": str(uuid.uuid4()),
-                   "kind": "device_status.report", "created_ms": phone.now_ms(),
-                   "expires_ms": phone.now_ms() + 300000, "body": report}
+                   "kind": "device_status.report", "created_ms": created_ms,
+                   "expires_ms": created_ms + 300000, "body": report}
         service._payload(peer, channel, message)
         assert channel.sent[-1]["status"] == "accepted"
         assert service.store.status(peer_id)["request_id"] == request_id
@@ -717,9 +718,10 @@ def test_device_status_report_requires_confirmed_grant():
         peer = {"device_id": peer_id, "display_name": "Telefon",
                 "static_public": phone.b64(os.urandom(32)), "state": "paired",
                 "grants": grants, "capabilities": {}, "last_contact_ms": 0}
+        created_ms = phone.now_ms()
         message = {"type": "message", "v": 1, "message_id": str(uuid.uuid4()),
-                   "kind": "device_status.report", "created_ms": phone.now_ms(),
-                   "expires_ms": phone.now_ms() + 300000, "body": {
+                   "kind": "device_status.report", "created_ms": created_ms,
+                   "expires_ms": created_ms + 300000, "body": {
                        "request_id": request_id, "model": "Pixel", "manufacturer": "Google",
                        "os_name": "Android", "os_version": "16", "battery_percent": 50,
                        "charging": "discharging", "captured_ms": phone.now_ms()}}

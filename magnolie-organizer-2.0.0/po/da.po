@@ -1,23 +1,9 @@
-# SOME DESCRIPTIVE TITLE.
-# Copyright (C) 2026 THE PACKAGE'S COPYRIGHT HOLDER
-# This file is distributed under the same license as the Magnolie Organizer
-# package.
-# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
-#
 msgid ""
 msgstr ""
-"Project-Id-Version: Magnolie Organizer 2.0.13\n"
 "Report-Msgid-Bugs-To: maik3531@gmail.com\n"
 "POT-Creation-Date: YEAR-MO-DA HO:MI+ZONE\n"
-"PO-Revision-Date: 2026-08-08 09:24+0200\n"
-"Last-Translator: Magnolie localization project\n"
-"Language-Team: Danish\n"
-"Language: da\n"
-"MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
-"Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
-"Generated-By: Babel 2.18.0\n"
 
 msgid " (filtered)"
 msgstr " (filtreret)"
@@ -610,7 +596,7 @@ msgstr ""
 "udklipsholder der."
 
 msgid "API level"
-msgstr "API level"
+msgstr "API-niveau"
 
 msgid "Aargau"
 msgstr "Aargau"
@@ -674,7 +660,7 @@ msgid "According to language"
 msgstr "Efter sprog"
 
 msgid "Active call"
-msgstr "Active call"
+msgstr "Aktivt opkald"
 
 msgid "Add"
 msgstr "Tilføj"
@@ -869,7 +855,7 @@ msgid "Answering the call"
 msgstr "Besvarer opkaldet"
 
 msgid "App password"
-msgstr "App password"
+msgstr "Appadgangskode"
 
 msgid "Appearance"
 msgstr "Udseende"
@@ -986,6 +972,12 @@ msgstr "Forfatter"
 msgid "Authority appointment"
 msgstr "Myndighedsaftale"
 
+msgid "Automatic backup failed."
+msgstr "Automatisk sikkerhedskopiering mislykkedes."
+
+msgid "Automatic cloud-folder backups"
+msgstr "Automatiske sikkerhedskopier i en cloudmappe"
+
 msgid "Automatically choose a suitable application"
 msgstr "Vælg automatisk et egnet program"
 
@@ -1045,6 +1037,9 @@ msgstr ""
 msgid "Backup saved to: %(path)s"
 msgstr "Sikkerhedskopi gemt i: %(path)s"
 
+msgid "Backup verified successfully."
+msgstr "Sikkerhedskopien blev bekræftet."
+
 msgid "Backups"
 msgstr "Sikkerhedskopier"
 
@@ -1077,7 +1072,7 @@ msgid "Battery"
 msgstr "Batteri"
 
 msgid "Battery snapshot"
-msgstr "Battery snapshot"
+msgstr "Batteristatus"
 
 msgid "Bavaria"
 msgstr "Bayern"
@@ -1252,7 +1247,7 @@ msgid "Calendars (multiple selections allowed)"
 msgstr "Kalendere (flere valg er tilladt)"
 
 msgid "Calendars and contacts"
-msgstr "Calendars and contacts"
+msgstr "Kalendere og kontakter"
 
 msgid "Call"
 msgstr "Ring op"
@@ -1261,16 +1256,16 @@ msgid "Call assignment"
 msgstr "Opkaldsopgave"
 
 msgid "Call ended"
-msgstr "Call ended"
+msgstr "Opkald afsluttet"
 
 msgid "Call notes"
-msgstr "Call notes"
+msgstr "Opkaldsnoter"
 
 msgid "Call reference"
-msgstr "Call reference"
+msgstr "Opkaldsreference"
 
 msgid "Call started"
-msgstr "Call started"
+msgstr "Opkald startet"
 
 msgid "Call this contact using Magnolie Notes or the assigned application"
 msgstr ""
@@ -1542,7 +1537,7 @@ msgid "Complete archive exported (unencrypted)."
 msgstr "Komplet arkiv eksporteret (ukrypteret)."
 
 msgid "Complete pairing"
-msgstr "Complete pairing"
+msgstr "Fuldfør parring"
 
 msgid "Completed (%(count)s)"
 msgstr "Fuldført (%(count)s)"
@@ -1586,7 +1581,7 @@ msgid "Connect phone via WLAN"
 msgstr "Forbind telefon via WLAN"
 
 msgid "Connected"
-msgstr "Connected"
+msgstr "Forbundet"
 
 msgid "Connecting to the online accounts"
 msgstr "Opretter forbindelse til onlinekontiene"
@@ -1595,7 +1590,7 @@ msgid "Consider deletions during manual synchronization"
 msgstr "Kontaktsynkronisering"
 
 msgid "Contact"
-msgstr "Contact"
+msgstr "Kontakt"
 
 #, python-format
 msgid "Contact %d contains an unreadable vCard."
@@ -1944,7 +1939,7 @@ msgid "Delete page"
 msgstr "Slet side"
 
 msgid "Delete password"
-msgstr "Delete password"
+msgstr "Slet adgangskode"
 
 msgid "Delete permanently"
 msgstr "Slet permanent"
@@ -2025,7 +2020,7 @@ msgid "Diabetes"
 msgstr "Diabetes"
 
 msgid "Dialing…"
-msgstr "Dialing…"
+msgstr "Ringer…"
 
 msgid "Diastolic"
 msgstr "Diastolisk"
@@ -2110,7 +2105,7 @@ msgid "Duplicates"
 msgstr "Dubletter"
 
 msgid "Duration"
-msgstr "Duration"
+msgstr "Varighed"
 
 msgid "Early shift"
 msgstr "Tidlig vagt"
@@ -2477,7 +2472,7 @@ msgstr ""
 "Kontakter og noter skrives aldrig til den."
 
 msgid "For: %(people)s"
-msgstr "For: %(people)s"
+msgstr "Til: %(people)s"
 
 msgid "Form"
 msgstr "Formular"
@@ -2592,7 +2587,7 @@ msgid "Handwriting"
 msgstr "Håndskrift"
 
 msgid "Hang up"
-msgstr "Hang up"
+msgstr "Læg på"
 
 msgid "Head office"
 msgstr "Hovedkontor"
@@ -2855,7 +2850,7 @@ msgid "Internet IP"
 msgstr "Internet-IP"
 
 msgid "Internet available"
-msgstr "Internet available"
+msgstr "Internet tilgængeligt"
 
 msgid "Interval in days"
 msgstr "Interval i dage"
@@ -2945,6 +2940,9 @@ msgstr "Efternavn"
 
 msgid "Last snapshot"
 msgstr "Seneste øjebliksbillede"
+
+msgid "Last successful backup"
+msgstr "Seneste vellykkede sikkerhedskopi"
 
 msgid "Last synchronized: %(date)s, %(time)s."
 msgstr "Sidst synkroniseret: %(date)s, %(time)s."
@@ -3063,9 +3061,6 @@ msgstr ""
 "Magnolie Notes-telefoner og KDE Connect-telefoner er adskilte: Android-"
 "modelnavnet tilhører Magnolie Notes; KDE-modpartens navn kommer fra KDE "
 "Connect."
-
-msgid "Magnolie Notes version"
-msgstr "Magnolie Notes-version"
 
 msgid "Magnolie Organizer"
 msgstr "Magnolie Organizer"
@@ -3218,7 +3213,7 @@ msgid "Memorial day"
 msgstr "Mindedag"
 
 msgid "Memory available / total"
-msgstr "Memory available / total"
+msgstr "Tilgængelig hukommelse / hukommelse i alt"
 
 msgid "Merge"
 msgstr "Flet"
@@ -3236,10 +3231,10 @@ msgid "Message text"
 msgstr "Beskedtekst"
 
 msgid "Metered connection"
-msgstr "Metered connection"
+msgstr "Forbrugsafregnet forbindelse"
 
 msgid "Minimize"
-msgstr "Minimize"
+msgstr "Minimer"
 
 msgid "Minimize to the tray when closed"
 msgstr "Minimér til panelet ved lukning"
@@ -3285,7 +3280,7 @@ msgid "Mobile"
 msgstr "Mobil"
 
 msgid "Mobile network"
-msgstr "Mobile network"
+msgstr "Mobilnetværk"
 
 msgid "Model"
 msgstr "Model"
@@ -3352,7 +3347,7 @@ msgstr ""
 "blokeret; fjern alle telefoner undtagen én."
 
 msgid "Multiple calendars"
-msgstr "Multiple calendars"
+msgstr "Flere kalendere"
 
 msgid "Name"
 msgstr "Navn"
@@ -3376,7 +3371,7 @@ msgid "Netherlands"
 msgstr "Nederlandene"
 
 msgid "Network"
-msgstr "Network"
+msgstr "Netværk"
 
 msgid "Neuchâtel"
 msgstr "Neuchâtel"
@@ -3471,7 +3466,7 @@ msgid "Next year"
 msgstr "Næste år"
 
 msgid "Nextcloud account"
-msgstr "Nextcloud account"
+msgstr "Nextcloud-konto"
 
 msgid "Nextcloud denied access to this DAV resource."
 msgstr "Nextcloud nægtede adgang til denne DAV-ressource."
@@ -3507,7 +3502,7 @@ msgid "Night shift"
 msgstr "Nattevagt"
 
 msgid "No"
-msgstr "No"
+msgstr "Nej"
 
 msgid "No Claws Mail address book was detected."
 msgstr "Der blev ikke fundet nogen Claws Mail-adressebog."
@@ -3817,7 +3812,7 @@ msgid "Ointment"
 msgstr "Salve"
 
 msgid "One address book"
-msgstr "One address book"
+msgstr "Én adressebog"
 
 msgid "One backup could not be updated."
 msgid_plural "%(count)s backups could not be updated."
@@ -4043,6 +4038,9 @@ msgstr "Bioaffald"
 msgid "Organizer"
 msgstr "Arrangør"
 
+msgid "Organizer data is locked."
+msgstr "Organizer-dataene er låst."
+
 msgid "Organizer style (paper sheet)"
 msgstr "Organizer-stil (papirark)"
 
@@ -4119,7 +4117,8 @@ msgid "Pairing file saved to: %(path)s"
 msgstr "Parringsfil gemt i: %(path)s"
 
 msgid "Pairing, file and clipboard requests are confirmed in this window."
-msgstr "Anmodninger om parring, filer og udklipsholder bekræftes i dette vindue."
+msgstr ""
+"Anmodninger om parring, filer og udklipsholder bekræftes i dette vindue."
 
 msgid "Palm tree"
 msgstr "Palme"
@@ -4224,7 +4223,7 @@ msgid "Phone"
 msgstr "Telefon"
 
 msgid "Phone battery"
-msgstr "Phone battery"
+msgstr "Telefonbatteri"
 
 msgid "Phone call"
 msgstr "Telefonopkald"
@@ -4323,7 +4322,7 @@ msgid "Possible duplicates among local and incoming contacts"
 msgstr "Mulige dubletter blandt lokale og indgående kontakter"
 
 msgid "Possible spam"
-msgstr "Possible spam"
+msgstr "Mulig spam"
 
 msgid "Postal address"
 msgstr "Postadresse"
@@ -4338,7 +4337,7 @@ msgid "Powder"
 msgstr "Pulver"
 
 msgid "Power source"
-msgstr "Power source"
+msgstr "Strømkilde"
 
 msgid "Preview"
 msgstr "Eksempel"
@@ -4409,6 +4408,9 @@ msgstr ""
 "Private, integritetskontrollerede øjebliksbilleder gemmes ved siden af "
 "programdataene."
 
+msgid "Protected archive password unavailable."
+msgstr "Den beskyttede arkivadgangskode er ikke tilgængelig."
+
 msgid "Public IPv4 or IPv6 address of the other branch"
 msgstr "Offentlig IPv4- eller IPv6-adresse på den anden gren"
 
@@ -4445,6 +4447,12 @@ msgstr "Afslut"
 msgid "Reachable IPv4 or IPv6 address of this computer"
 msgstr "Tilgængelig IPv4- eller IPv6-adresse på denne computer"
 
+msgid "Read on phone"
+msgstr "Læst på telefonen"
+
+msgid "Read status"
+msgstr "Læsestatus"
+
 msgid "Reading recovery snapshots"
 msgstr "Læser gendannelsesøjebliksbilleder"
 
@@ -4461,7 +4469,7 @@ msgid "Reading the user data"
 msgstr "Læser brugerdata"
 
 msgid "Ready."
-msgstr "Ready."
+msgstr "Klar."
 
 msgid ""
 "Really merge %(cards)s? Review the result carefully afterwards. A copy of "
@@ -4635,7 +4643,7 @@ msgstr ""
 "genopbygges. Magnolie Notes, noter og chathistorik forbliver uændrede."
 
 msgid "Renew pairing"
-msgstr "Renew pairing"
+msgstr "Forny parring"
 
 msgid "Repeat for confirmation"
 msgstr "Gentag for at bekræfte"
@@ -4702,6 +4710,9 @@ msgstr ""
 msgid "Restoring the backup"
 msgstr "Gendanner sikkerhedskopien"
 
+msgid "Retention"
+msgstr "Opbevaring"
+
 msgid "Retrieval failed."
 msgstr "Hentning mislykkedes."
 
@@ -4762,6 +4773,9 @@ msgid ""
 msgstr ""
 "Kør det hentede installationsprogram synligt, og behold komponenten Manual "
 "valgt."
+
+msgid "Run the optional background service"
+msgstr "Kør den valgfrie baggrundstjeneste"
 
 msgid "S"
 msgstr "S"
@@ -4836,7 +4850,7 @@ msgid "Save contacts for Claws Mail"
 msgstr "Gem kontakter til Claws Mail"
 
 msgid "Save endpoint"
-msgstr "Save endpoint"
+msgstr "Gem slutpunkt"
 
 msgid "Save rejected: The data is encrypted and has not been unlocked yet."
 msgstr "Gemning afvist: Dataene er krypteret og er endnu ikke låst op."
@@ -4856,7 +4870,7 @@ msgid "Saved ✓ %(time)s"
 msgstr "Gemt ✓ %(time)s"
 
 msgid "Saved."
-msgstr "Saved."
+msgstr "Gemt."
 
 msgid "Saving background settings"
 msgstr "Gemmer baggrundsindstillinger"
@@ -4906,7 +4920,7 @@ msgid "Scheduled"
 msgstr "Planlagt"
 
 msgid "Scheme"
-msgstr "Scheme"
+msgstr "Skema"
 
 msgid "Schleswig-Holstein"
 msgstr "Schleswig-Holstein"
@@ -4959,6 +4973,16 @@ msgstr "Vælg"
 msgid "Select a country first."
 msgstr "Vælg først et land."
 
+msgid ""
+"Select a custom backup folder and store an archive password to enable "
+"automatic backups."
+msgstr ""
+"Vælg en brugerdefineret sikkerhedskopimappe, og gem en arkivadgangskode for "
+"at aktivere automatiske sikkerhedskopier."
+
+msgid "Select a custom backup folder."
+msgstr "Vælg en brugerdefineret sikkerhedskopimappe."
+
 msgid "Select all"
 msgstr "Vælg alle"
 
@@ -5007,7 +5031,7 @@ msgid "Send SMS"
 msgstr "Send SMS"
 
 msgid "Send adjusted text"
-msgstr "Send adjusted text"
+msgstr "Send tilpasset tekst"
 
 msgid "Send documents"
 msgstr "Send dokumenter"
@@ -5022,7 +5046,7 @@ msgid "Sent"
 msgstr "Sendt"
 
 msgid "Server address"
-msgstr "Server address"
+msgstr "Serveradresse"
 
 msgid "Server address and user name are required."
 msgstr "Serveradresse og brugernavn er påkrævet."
@@ -5032,6 +5056,9 @@ msgstr "Tjenesten kører"
 
 msgid "Service stopped"
 msgstr "Tjenesten er stoppet"
+
+msgid "Set or change password"
+msgstr "Angiv eller skift adgangskode"
 
 msgid "Set up contacts"
 msgstr "Konfigurer kontakter"
@@ -5074,7 +5101,7 @@ msgid "Share together"
 msgstr "Del sammen"
 
 msgid "Shared credentials"
-msgstr "Shared credentials"
+msgstr "Delte loginoplysninger"
 
 msgid "Shared note"
 msgstr "Delt note"
@@ -5220,7 +5247,7 @@ msgid "Spain"
 msgstr "Spanien"
 
 msgid "Spam check"
-msgstr "Spam check"
+msgstr "Spamkontrol"
 
 msgid "Special cases"
 msgstr "Særlige tilfælde"
@@ -5265,7 +5292,7 @@ msgid "Status"
 msgstr "Status"
 
 msgid "Storage available / total"
-msgstr "Storage available / total"
+msgstr "Tilgængelig lagerplads / lagerplads i alt"
 
 msgid "Street / house number"
 msgstr "Gade / husnummer"
@@ -5298,7 +5325,7 @@ msgid "Suppository"
 msgstr "Stikpille"
 
 msgid "Switched off."
-msgstr "Switched off."
+msgstr "Slået fra."
 
 msgid "Switzerland"
 msgstr "Schweiz"
@@ -5344,7 +5371,7 @@ msgid "Synchronize contacts"
 msgstr "Synkronisér kontakter"
 
 msgid "Synchronize everything"
-msgstr "Synchronize everything"
+msgstr "Synkroniser alt"
 
 msgid "Synchronize notes and notebooks"
 msgstr "Synkronisér kontakter"
@@ -5430,13 +5457,16 @@ msgid "Temperature"
 msgstr "Temperatur"
 
 msgid "Test connection"
-msgstr "Test connection"
+msgstr "Test forbindelse"
+
+msgid "Test now"
+msgstr "Test nu"
 
 msgid "Test reminders and report what happens"
 msgstr "Test påmindelser og rapportér, hvad der sker"
 
 msgid "Testing…"
-msgstr "Testing…"
+msgstr "Tester…"
 
 msgid "Text color"
 msgstr "Tekstfarve"
@@ -5875,6 +5905,17 @@ msgstr "Filen er større end 8 megabyte."
 #, python-format
 msgid "The fingerprint does not match (received: %(fingerprint)s)."
 msgstr "Fingeraftrykket passer ikke (modtaget: %(fingerprint)s)."
+
+msgid ""
+"The folder may be locally synchronized by Nextcloud, Google Drive, Dropbox, "
+"or OneDrive. Magnolie does not sign in to a provider. Automatic backups run "
+"only while Organizer is open and unlocked, immediately after data was saved "
+"successfully."
+msgstr ""
+"Mappen kan synkroniseres lokalt af Nextcloud, Google Drive, Dropbox eller "
+"OneDrive. Magnolie logger ikke på en udbyder. Automatiske sikkerhedskopier "
+"kører kun, mens Organizer er åben og låst op, umiddelbart efter at data er "
+"gemt korrekt."
 
 msgid ""
 "The helper frame marks the control that currently has keyboard focus. This "
@@ -6727,7 +6768,7 @@ msgid "URI"
 msgstr "URI"
 
 msgid "Unavailable"
-msgstr "Unavailable"
+msgstr "Ikke tilgængelig"
 
 msgid ""
 "Under Wayland, the compositor determines the exact window position; "
@@ -6757,6 +6798,10 @@ msgstr "Ukendt slutpunkt."
 msgid "Unknown file"
 msgstr "Ukendt fil"
 
+#, python-format
+msgid "Unknown option: %s"
+msgstr "Ukendt indstilling: %s"
+
 msgid "Unknown phone"
 msgstr "Ukendt telefon"
 
@@ -6774,6 +6819,9 @@ msgstr "Lås organizeren op, før du modtager Magnolienbaum-beskeder."
 
 msgid "Unlocking the Magnolienbaum storage"
 msgstr "Låser Magnolienbaum-lageret op"
+
+msgid "Unread on phone"
+msgstr "Ulæst på telefonen"
 
 #, python-format
 msgid "Unreadable message from the interface: %s"
@@ -6807,7 +6855,7 @@ msgid "Upper Austria"
 msgstr "Øvre Østrig"
 
 msgid "Uptime"
-msgstr "Uptime"
+msgstr "Oppetid"
 
 msgid "Uri"
 msgstr "URI"
@@ -6823,6 +6871,9 @@ msgstr "Brug et bestemt websted"
 
 msgid "Use a supported language code or system for this invocation"
 msgstr "Brug en understøttet sprogkode eller system til denne kørsel"
+
+msgid "Use automatic backups"
+msgstr "Brug automatiske sikkerhedskopier"
 
 msgid "Use basal units"
 msgstr "Brug basalenheder"
@@ -6866,7 +6917,7 @@ msgid "Use the recycle bin"
 msgstr "Brug papirkurven"
 
 msgid "User name"
-msgstr "User name"
+msgstr "Brugernavn"
 
 msgid ""
 "Uses its own identity and storage and listens only on fixed port %(port)s. "
@@ -7104,7 +7155,7 @@ msgid "Wife"
 msgstr "Hustru"
 
 msgid "Wireless"
-msgstr "Wireless"
+msgstr "Trådløst"
 
 msgid ""
 "With a password or numeric code, the organizer asks for it when opening and "
@@ -7176,7 +7227,7 @@ msgid "Year planner %(year)s"
 msgstr "Årsplanlægger %(year)s"
 
 msgid "Yes"
-msgstr "Yes"
+msgstr "Ja"
 
 msgid "Yes, merge"
 msgstr "Ja, flet"
@@ -7667,55 +7718,3 @@ msgstr[1] "… og %(count)s elementer mere, som også bliver udskrevet."
 
 msgid "＋ Add appointment"
 msgstr "＋ Tilføj aftale"
-
-#~ msgid "Notification actions unavailable"
-#~ msgstr "Meddelelseshandlinger ikke tilgængelige"
-
-#~ msgid "Download version %(version)s …"
-#~ msgstr "Hent version %(version)s …"
-
-#~ msgid ""
-#~ "Notify, then unlock asks you to open and unlock the Organizer. System "
-#~ "keyring uses an available desktop keyring without storing the password in "
-#~ "Organizer data. Pause while locked waits without accessing encrypted data."
-#~ msgstr ""
-#~ "Ved »Giv besked, og lås derefter op« bliver du bedt om at åbne og låse "
-#~ "Organizer op. Systemets nøglering bruger en tilgængelig nøglering på "
-#~ "skrivebordet uden at gemme adgangskoden i Organizer-data. »Sæt på pause, "
-#~ "mens data er låst« venter uden at tilgå krypterede data."
-
-#~ msgid "System keyring is unavailable; this choice cannot be enabled."
-#~ msgstr ""
-#~ "Systemets nøglering er ikke tilgængelig; dette valg kan ikke aktiveres."
-
-#~ msgid ""
-#~ "Incoming files and clipboard text are confirmed before use unless "
-#~ "automatic acceptance is explicitly enabled."
-#~ msgstr ""
-#~ "Indgående filer og tekst fra udklipsholderen skal bekræftes før brug, "
-#~ "medmindre automatisk accept udtrykkeligt er aktiveret."
-
-#~ msgid "Reset"
-#~ msgstr "Reset"
-
-#~ msgid "Exactly one online Magnolie Notes phone must allow dial requests."
-#~ msgstr ""
-#~ "Præcis én online Magnolie Notes-telefon skal tillade opkaldsanmodninger."
-
-#~ msgid "Last contact"
-#~ msgstr "Seneste kontakt"
-
-#~ msgid "No additional modules permitted"
-#~ msgstr "Ingen yderligere moduler tilladt"
-
-#~ msgid "Selected notifications"
-#~ msgstr "Valgte notifikationer"
-
-#~ msgid "Language & region"
-#~ msgstr "Sprog og område"
-
-#~ msgid "No valid subscription"
-#~ msgstr "Intet gyldigt abonnement"
-
-#~ msgid "More fields (Lotus)"
-#~ msgstr "Flere felter (Lotus)"

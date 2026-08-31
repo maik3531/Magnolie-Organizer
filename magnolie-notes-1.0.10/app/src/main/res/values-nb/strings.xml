@@ -1,0 +1,347 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="freigabe_ziel">Lagre i Magnolie Notes</string>
+    <string name="blatt_notizen">Notater</string>
+    <string name="blatt_einfuhr">Importer</string>
+    <string name="blatt_baum">Tre</string>
+    <string name="notiz_neu">Nytt notat</string>
+    <string name="notiz_titel">Tittel</string>
+    <string name="notiz_text">Skriv her …</string>
+    <string name="notiz_leer">Ingen notater ennå. Importer noen, eller skriv det første.</string>
+    <string name="notiz_loeschen">Slett notat</string>
+    <string name="notiz_teilen">Del</string>
+    <string name="notiz_suchen">Søk</string>
+    <string name="notiz_gespeichert">Lagret %1$s</string>
+    <string name="notiz_angelegt">Opprettet %1$s</string>
+    <string name="notiz_symbol">Symbol</string>
+    <string name="notiz_buch">Notatbok</string>
+    <plurals name="notiz_anzahl">
+        <item quantity="one">%1$d notat</item>
+        <item quantity="other">%1$d notater</item>
+    </plurals>
+    <string name="heute">I dag</string>
+    <string name="gestern">I går</string>
+    <string name="einfuhr_ueberschrift">Overfør notater</string>
+    <string name="einfuhr_erklaerung">Samsung Notes, Google Keep og andre apper lagrer notatene i sitt eget beskyttede lagringsområde. Android lar ikke andre apper lese dette direkte. To metoder fungerer alltid: Del et notat direkte med Magnolie Notes, eller importer eksportfilen som appen oppretter.</string>
+    <string name="einfuhr_teilen_titel">Del (fungerer overalt)</string>
+    <string name="einfuhr_teilen_text">Åpne et notat i Samsung Notes, Keep, ColorNote eller en annen app, trykk på Del og velg «Magnolie Notes». Du kan dele flere notater samtidig.</string>
+    <string name="einfuhr_datei_titel">Importer en eksportfil</string>
+    <string name="einfuhr_datei_knopf">Velg fil …</string>
+    <string name="einfuhr_ordner_knopf">Velg mappe …</string>
+    <string name="einfuhr_formate">Gjenkjennes automatisk: Google Takeout (.zip / .json / .html), Samsung Notes (.sdocx / .txt / .html), Evernote (.enex), ColorNote-sikkerhetskopi, Standard Notes (.txt / .json), Simplenote, Joplin samt vanlige Markdown- eller tekstmapper.</string>
+    <string name="einfuhr_laeuft">Leser …</string>
+    <plurals name="einfuhr_ergebnis">
+        <item quantity="one">%1$d notat overført, allerede til stede: %2$d.</item>
+        <item quantity="other">%1$d notater overført, %2$d fantes allerede.</item>
+    </plurals>
+    <string name="einfuhr_nichts">Fant ingen lesbare notater i denne filen.</string>
+    <string name="einfuhr_fehler">Kunne ikke lese filen: %1$s</string>
+    <string name="einfuhr_anleitung_titel">Slik får du eksportfilen</string>
+    <string name="einfuhr_anleitung_keep">Google Keep: Åpne takeout.google.com på telefonen, velg bare «Keep», be om eksporten og lagre .zip-filen her.</string>
+    <string name="einfuhr_anleitung_samsung">Samsung Notes: Åpne listen, trykk og hold på et notat, velg Mer → Lagre som fil → PDF eller tekst, og importer deretter mappen her. Du kan velge en hel notatbok samtidig.</string>
+    <string name="einfuhr_anleitung_evernote">Evernote: Notatbok → Eksporter notater → .enex.</string>
+    <string name="baum_ueberschrift">Magnolienbaum</string>
+    <string name="baum_erklaerung">Magnolienbaum kobler denne telefonen direkte til Magnolie Organizer — uten nettsky og uten mellomledd. Notater sendes kryptert og først etter at begge sider har bekreftet hverandre.</string>
+    <string name="baum_eigener_name">Navnet på denne grenen</string>
+    <string name="baum_fingerabdruck">Fingeravtrykk</string>
+    <string name="baum_kennung">Identifikator</string>
+    <string name="baum_dienst_an">Motta notater (i bakgrunnen)</string>
+    <string name="baum_dienst_aus">Av</string>
+    <string name="baum_paaren_titel">Parkoble med Organizeren</string>
+    <string name="baum_paaren_text">Åpne Innstillinger → Magnolienbaum → «Opprett parkoblingsfil» i Organizeren, overfør filen til telefonen og åpne den her. Den er gyldig i 15 minutter.</string>
+    <string name="baum_paarungsdatei">Åpne parkoblingsfil …</string>
+    <string name="baum_paarung_einfuegen">Lim inn parkoblingstekst</string>
+    <string name="baum_paarung_laeuft">Parkobler …</string>
+    <string name="baum_paarung_gut">Parkoblet med %1$s.</string>
+    <string name="baum_paarung_fehler">Parkoblingen mislyktes: %1$s</string>
+    <string name="baum_partner">Grener</string>
+    <string name="baum_keine_partner">Ingen gren er parkoblet ennå.</string>
+    <string name="baum_partner_entfernen">Fjern</string>
+    <string name="baum_suchen">Søk i lokalnettet</string>
+    <string name="baum_gefunden">%1$s på %2$s</string>
+    <string name="baum_nichts_gefunden">Ingen gren svarte. Er Magnolienbaum slått på i Organizeren, og er begge enhetene på samme Wi-Fi?</string>
+    <string name="baum_senden">Send nå</string>
+    <plurals name="baum_postfach">
+        <item quantity="one">Utboks: %1$d venter</item>
+        <item quantity="other">Utboks: %1$d venter</item>
+    </plurals>
+    <string name="baum_zuletzt">Siste kontakt: %1$s</string>
+    <string name="baum_nie">aldri</string>
+    <string name="baum_weg_wlan">Wi-Fi</string>
+    <string name="baum_weg_bluetooth">Bluetooth</string>
+    <string name="baum_bluetooth_hinweis">Bluetooth overfører de samme krypterte meldingene som Wi-Fi. Parkoble telefonen og datamaskinen i Android, og velg datamaskinen for Organizer-grenen nedenfor.</string>
+    <string name="baum_bluetooth_an">Motta via Bluetooth</string>
+    <string name="baum_bluetooth_geraete">Parkoblede enheter</string>
+    <string name="baum_bluetooth_zuordnen">Bruk %1$s via Bluetooth</string>
+    <string name="baum_bluetooth_trennen">Ikke bruk Bluetooth</string>
+    <string name="baum_bluetooth_berechtigung">Denne tilkoblingen krever Bluetooth-tillatelse.</string>
+    <string name="baum_auto_wlan">Synkroniser automatisk på lokalt Wi-Fi</string>
+    <string name="baum_fernziel_hinweis">Valgfritt direkte endepunkt via internett, VPN, omvendt tunnel eller egen server. Magnolie tilbyr ikke noe sentralt mellomledd.</string>
+    <string name="baum_fernziel_host">Ekstern vert (valgfritt)</string>
+    <string name="baum_fernziel_port">Ekstern port</string>
+    <string name="baum_alles_sync">Synkroniser alt</string>
+    <string name="baum_sync_eingereiht">Full synkronisering er lagt i utboksen.</string>
+    <string name="baum_dienst_laeuft">Magnolie Notes lytter etter Organizeren</string>
+    <string name="baum_dienst_kanal">Magnolienbaum</string>
+    <string name="baum_teilen_frage">Del dette notatet med %1$s?</string>
+    <string name="baum_geteilt">Notatet er overlevert til Magnolienbaum.</string>
+    <string name="baum_nicht_erreicht">Kan ikke nås — notatet blir i utboksen, og det prøves igjen.</string>
+    <string name="ok">OK</string>
+    <string name="abbrechen">Avbryt</string>
+    <string name="loeschen">Slett</string>
+    <string name="sichern">Lagre</string>
+    <string name="zurueck">Tilbake</string>
+    <string name="wirklich_loeschen">Slette dette notatet permanent?</string>
+    <string name="blatt_aufgaben">Oppgaver</string>
+    <string name="aufgabe_neu">Ny oppgave</string>
+    <string name="aufgabe_titel">Hva må gjøres?</string>
+    <string name="aufgabe_notiz">Hvorfor og andre opplysninger</string>
+    <string name="aufgabe_faellig">Forfallsdato</string>
+    <string name="aufgabe_kein_datum">ingen dato</string>
+    <string name="aufgabe_ohne_kopf">uten</string>
+    <string name="aufgabe_prio">Prioritet</string>
+    <string name="aufgabe_prio1">haster</string>
+    <string name="aufgabe_prio2">normal</string>
+    <string name="aufgabe_prio3">kan vente</string>
+    <string name="aufgabe_erinnern">Minn meg på</string>
+    <string name="aufgabe_vorlauf">Dager før</string>
+    <string name="aufgabe_uhrzeit">Kl.</string>
+    <string name="aufgabe_erledigt">Fullført</string>
+    <string name="aufgabe_leer">Ingenting å gjøre. Skriv en oppgave, eller la Organizeren gi deg en.</string>
+    <string name="aufgabe_loeschen">Slett oppgave</string>
+    <string name="aufgabe_weitergeben">Deleger til en gren</string>
+    <string name="aufgabe_von">fra %1$s</string>
+    <string name="aufgabe_ueberfaellig_kopf">Forfalt</string>
+    <string name="aufgabe_heute_kopf">I dag</string>
+    <string name="aufgabe_morgen_kopf">I morgen</string>
+    <string name="aufgabe_woche_kopf">Denne uken</string>
+    <string name="aufgabe_spaeter_kopf">Senere</string>
+    <string name="aufgabe_erledigt_kopf">Fullført</string>
+    <string name="aufgabe_heute_faellig">forfaller i dag</string>
+    <string name="aufgabe_morgen_faellig">forfaller i morgen</string>
+    <plurals name="aufgabe_ueberfaellig">
+        <item quantity="one">%1$d dag på overtid</item>
+        <item quantity="other">%1$d dager på overtid</item>
+    </plurals>
+    <plurals name="aufgabe_in_tagen">
+        <item quantity="one">forfaller om %1$d dag</item>
+        <item quantity="other">forfaller om %1$d dager</item>
+    </plurals>
+    <string name="aufgabe_faellig_am">forfaller %1$s</string>
+    <string name="aufgabe_kanal">Oppgavepåminnelser</string>
+    <string name="aufgabe_kanal_hinweis">Minner deg på det når en oppgave forfaller.</string>
+    <string name="aufgabe_angekommen">%1$s har gitt deg en oppgave.</string>
+    <string name="aufgabe_wecker_hinweis">Android tillater ikke nøyaktige alarmer. Påminnelser kan komme for sent; du kan tillate dem i systeminnstillingene.</string>
+    <string name="aufgabe_wecker_erlauben">Tillat nøyaktige påminnelser</string>
+    <string name="baum_vertrauen">Motta innhold uten å spørre</string>
+    <string name="baum_vertrauen_hinweis">En parkoblet gren forblir klarert: nøkkelen er festet, og ny bekreftelse er ikke nødvendig. Slå av dette for en gren hvis notater og oppgaver først skal havne i innboksen.</string>
+    <string name="baum_eingang">Innboks</string>
+    <string name="baum_eingang_leer">Ingenting venter.</string>
+    <string name="baum_annehmen">Godta</string>
+    <string name="baum_ablehnen">Avvis</string>
+    <string name="baum_eingang_stueck">%1$s fra %2$s</string>
+    <string name="art_notiz">Notat</string>
+    <string name="art_aufgabe">Oppgave</string>
+
+    <string name="notiz_herkunft">Kilde: %1$s</string>
+    <string name="notiz_magnolienbaum">· Magnolienbaum</string>
+    <string name="notizbuch_standard">Løse notater</string>
+
+    <string name="einfuhr_datei_oeffnen_fehler">Filen kunne ikke åpnes.</string>
+    <string name="einfuhr_ordner_oeffnen_fehler">Mappen kunne ikke åpnes.</string>
+    <string name="einfuhr_unbekannter_fehler">Importen mislyktes.</string>
+    <string name="einfuhr_gesamtarchiv_nicht_unterstuetzt">Dette er et komplett Magnolie-arkiv fra datamaskinen. Import av komplette arkiver støttes ennå ikke på denne enheten.</string>
+    <string name="art_termin">Avtale</string>
+    <string name="baum_termin_nicht_unterstuetzt">Avtaler fra Magnolienbaum støttes ennå ikke på denne enheten.</string>
+    <string name="herkunft_uebernommen">Importert</string>
+    <string name="herkunft_geteilt">Delt</string>
+
+    <string name="baum_eigene_paarungsdatei">Opprett egen parkoblingsfil …</string>
+    <string name="baum_paarungsdatei_teilen">Del parkoblingsfil</string>
+    <string name="baum_verbinden">Koble til</string>
+    <string name="baum_code_vergleichen">Sammenlign koden i Organizeren: %1$s</string>
+    <string name="baum_bestaetigt">bekreftet</string>
+    <string name="baum_wartet">venter</string>
+    <string name="baum_code_stimmt">Koden stemmer</string>
+    <string name="baum_ereignisse">Nylige hendelser</string>
+    <string name="baum_meldung_dienst_fehler">Mottakstjenesten kunne ikke åpne en port.</string>
+    <string name="baum_meldung_bluetooth_fehler">Bluetooth kunne ikke åpnes.</string>
+    <string name="baum_meldung_gepaart">Parkoblet med %1$s.</string>
+    <string name="baum_meldung_datei_verbunden">En gren koblet til ved hjelp av parkoblingsfilen.</string>
+    <string name="baum_meldung_code_anfrage">En gren vil koble til. Sammenlign koden på Magnolienbaum-skjermen.</string>
+    <string name="baum_meldung_angebot">Et tilbud fra %1$s venter i innboksen.</string>
+    <string name="baum_meldung_aufgabe">Det kom en oppgave fra %1$s.</string>
+    <string name="baum_meldung_aufgabe_erledigt">En delegert oppgave ble meldt fullført.</string>
+    <string name="baum_meldung_aufgabe_geoeffnet">En delegert oppgave ble åpnet igjen.</string>
+    <string name="baum_meldung_notiz">Det kom et notat via Magnolienbaum.</string>
+    <string name="baum_meldung_notiz_aktualisiert">Et delt notat ble oppdatert.</string>
+    <string name="herkunft_magnolienbaum">Magnolienbaum</string>
+
+    <string name="fehler_allgemein">Noe gikk galt.</string>
+    <string name="fehler_datei_oeffnen">Filen kunne ikke åpnes.</string>
+    <string name="fehler_identitaet">Denne enhetens Magnolienbaum-identitet er ikke klar ennå.</string>
+    <string name="fehler_keine_netzadresse">Denne enheten har ingen nettverksadresse akkurat nå.</string>
+    <string name="fehler_nicht_erreichbar">Den andre grenen kan ikke nås.</string>
+    <string name="fehler_nicht_bestaetigt">Grenen er ikke bekreftet og klarert.</string>
+    <string name="fehler_schluessel_geaendert">Nøkkelen til denne grenen er endret. Fjern først den gamle tilkoblingen, og sammenlign det nye fingeravtrykket nøye.</string>
+    <string name="fehler_paarungsdatei_beschaedigt">Parkoblingsfilen er ugyldig eller skadet.</string>
+    <string name="fehler_paarungsdatei_gross">Parkoblingsfilen er for stor.</string>
+    <string name="fehler_paarungsdatei_abgelaufen">Parkoblingsfilen er utløpt. Opprett en ny i Organizeren.</string>
+    <string name="fehler_paarung_nachweis">Den andre grenen kunne ikke bevise at den har parkoblingsfilen.</string>
+    <string name="fehler_paarungsanfrage">Parkoblingsforespørselen er ugyldig.</string>
+    <string name="fehler_schluessel">En kryptografisk nøkkel er ugyldig eller skadet.</string>
+    <string name="fehler_nachricht">Den krypterte meldingen er ugyldig eller skadet.</string>
+    <string name="fehler_sitzung">Den sikre økten er ugyldig eller utløpt.</string>
+    <string name="fehler_antwort">Den andre grenen returnerte et ugyldig svar.</string>
+    <string name="fehler_bluetooth_nicht_verfuegbar">Bluetooth er ikke tilgjengelig på denne enheten.</string>
+    <string name="fehler_bluetooth_aus">Bluetooth er slått av.</string>
+    <string name="fehler_bluetooth_adresse">Bluetooth-adressen er ugyldig.</string>
+    <string name="fehler_bluetooth_berechtigung">Bluetooth-tillatelsen mangler.</string>
+    <string name="fehler_bluetooth_verbindung">Bluetooth-tilkoblingen kunne ikke opprettes.</string>
+    <string name="fehler_bluetooth_nachricht">Bluetooth-meldingen er ugyldig eller for stor.</string>
+
+    <string name="semantik_ausgewaehlt">%1$s, valgt</string>
+    <string name="aufgabe_als_erledigt_markieren">Merk oppgaven som fullført</string>
+    <string name="aufgabe_als_offen_markieren">Merk oppgaven som ikke fullført</string>
+    <string name="aufgabe_erinnerung_aktiv">Påminnelse slått på</string>
+    <string name="aufgabe_vorlauf_verringern">Reduser tiden før påminnelsen</string>
+    <string name="aufgabe_vorlauf_erhoehen">Øk tiden før påminnelsen</string>
+    <string name="aufgabe_stunde_verringern">Still påminnelsen én time tidligere</string>
+    <string name="aufgabe_stunde_erhoehen">Still påminnelsen én time senere</string>
+    <string name="aufgabe_plus_sieben_tage">Om syv dager</string>
+
+    <string name="symbol_einkauf">Handling</string>
+    <string name="symbol_aufgabe">Oppgave</string>
+    <string name="symbol_termin">Avtale</string>
+    <string name="symbol_idee">Idé</string>
+    <string name="symbol_reise">Reise</string>
+    <string name="symbol_rezept">Oppskrift</string>
+    <string name="symbol_geld">Penger</string>
+    <string name="symbol_arbeit">Arbeid</string>
+    <string name="symbol_person">Person</string>
+    <string name="symbol_gesundheit">Helse</string>
+    <string name="symbol_zitat">Sitat</string>
+    <string name="symbol_notiz">Notat</string>
+    <string name="baum_kontakt_sync">Synkroniser kontakter med denne grenen</string>
+    <string name="baum_kontakt_sync_hinweis">Valgfritt. Kontakter slås sammen ved tillegg; slettinger overføres aldri.</string>
+    <string name="baum_kontakte_sync">Synkroniser kontakter</string>
+    <string name="baum_kontakte_eingereiht">Kontaktsynkronisering ble lagt til i utboksen.</string>
+    <string name="baum_kontakte_berechtigung">Tilgang til kontakter ble ikke gitt. Ingenting ble endret.</string>
+    <string name="baum_kontakte_empfangen">Kontakt mottatt fra Magnolienbaum.</string>
+    <string name="art_kontakt">Kontakt</string>
+    <string name="notiz_anhaenge">Vedlegg: %1$d</string><string name="notiz_bild">Bilde</string>
+    <string name="notiz_pdf">PDF-dokument</string><string name="notiz_anhang_entfernen">Fjern</string>
+    <string name="notiz_anhang_oeffnen_fehler">Ingen egnet app kunne åpne dette vedlegget.</string>
+    <string name="baum_anhaenge_speicher">Nye vedlegg ble utelatt fordi den sikre lagringsgrensen er nådd. Eksisterende vedlegg er uendret.</string>
+    <string name="baum_kontakt_loesch_sync">Forbered sletting av kontakter</string><string name="baum_kontakt_loesch_hinweis">Separat valg. Hver sletting foreslås bare og må bekreftes enkeltvis.</string><string name="baum_kontakt_loesch_warnung_titel">Tillate forslag om sletting?</string><string name="baum_kontakt_loesch_warnung">Manglende tilknyttede kontakter kan foreslås slettet. Ingenting skjer automatisk; bekreft hvert forslag separat.</string><string name="baum_kontakt_vorschau">Forhåndsvisning av kontaktsynkronisering</string><string name="baum_kontakt_neu">Ny</string><string name="baum_kontakt_geaendert">Endret</string><string name="baum_kontakt_dublette">Mulig duplikat</string><string name="baum_kontakt_loeschvorschlag">Forslag om sletting</string><string name="baum_einzeln_bestaetigen">Bekreft enkeltvis</string><string name="baum_systemkontakt_oeffnen">Åpne kontakt</string><string name="art_kontakt_loeschen">Forslag om kontaktsletting</string><string name="baum_kontakt_geloescht">Den enkeltvis bekreftede kontakten ble slettet.</string>
+    <string name="notiz_anhang_hinzufuegen">Legg til vedlegg</string>
+    <string name="notiz_anhang_ungueltig">Den valgte filen er ikke en gyldig JPEG-, PNG-, WebP-, GIF- eller PDF-fil.</string>
+    <string name="notiz_anhang_gross">Vedlegget er større enn 8 MiB. Eksisterende vedlegg forblir uendret.</string>
+    <string name="notiz_anhang_oeffnen">Åpne</string>
+    <string name="notiz_anhang_speichern">Lagre som…</string>
+    <string name="notiz_anhang_gespeichert">Vedlegget ble lagret.</string>
+    <string name="notiz_anhang_speichern_fehler">Vedlegget kunne ikke lagres.</string>
+    <string name="baum_kontakt_eingang_titel">Kontakter fra %1$s</string><plurals name="baum_kontakt_eingang_bilanz">
+        <item quantity="one">%1$d mottatt kort → personer: %2$d</item>
+        <item quantity="other">%1$d mottatte kort → %2$d personer</item>
+    </plurals><plurals name="baum_kontakt_eingang_status">
+        <item quantity="one">%1$d sikre · %2$d til kontroll · %3$d konflikter</item>
+        <item quantity="other">%1$d sikre · %2$d til kontroll · %3$d konflikter</item>
+    </plurals><string name="baum_kontakt_noch_nicht_geschrieben">Ingenting er skrevet til telefonen ennå.</string><string name="baum_kontakt_alle_sicheren">Importer alle sikre</string><string name="baum_kontakt_alle_ablehnen">Avvis alle</string><string name="baum_kontakt_sicher">Sikker</string><string name="baum_kontakt_pruefen">Kontroller</string><string name="baum_kontakt_konflikt">Konflikt</string><plurals name="baum_kontakt_rohkarten">
+        <item quantity="one">Fra %1$d kort</item>
+        <item quantity="other">Fra %1$d kort</item>
+    </plurals><string name="baum_kontakt_firma">Firma</string><string name="baum_kontakt_telefon">Telefon</string><string name="baum_kontakt_email">E-post</string><string name="baum_kontakt_anschrift">Adresse</string><string name="baum_kontakt_geburtstag">Fødselsdag</string><string name="baum_kontakt_bild">Bilde</string><string name="baum_kontakt_vorhanden">finnes</string><string name="baum_kontakt_notiz">Notat</string><string name="baum_kontakt_konflikt_zeile">Konflikt i %1$s: %2$s</string><string name="baum_kontakt_quellen">Kilder: %1$s</string><string name="baum_kontakt_importieren">Importer</string><string name="baum_kontakt_getrennt_importieren">Importer separat</string><string name="baum_kontakt_karten_zusammenfuehren">Slå sammen disse kortene</string><string name="baum_kontakt_lokal_titel">Forslag til telefonkontakter</string><string name="baum_kontakt_lokal_hinweis">Separat andre trinn etter import. Slettinger bekreftes fortsatt enkeltvis.</string><string name="baum_kontakt_verknuepfen">Koble til telefonkontakt</string><string name="baum_verbindung_gefahr_titel">Tilkobling</string><string name="baum_verbindung_gefahr_hinweis">Fjerning sletter synkronisering, ventende meldinger og metadata. Importerte kontakter beholdes.</string><string name="baum_verbindung_entfernen">Fjern tilkobling</string><string name="baum_verbindung_entfernen_frage">Fjerne tilkoblingen til «%1$s»? Synkronisering, ventende meldinger og metadata slettes. Importerte kontakter beholdes.</string>
+    <string name="blatt_journal">Gjenoppretting</string><string name="journal_titel">Gjenopprettingsjournal</string><string name="journal_hinweis">Krypterte lokale øyeblikksbilder. De lagres aldri i Androids sikkerhetskopi i skyen.</string><string name="journal_zuletzt">Siste øyeblikksbilde</string><string name="journal_naechste">Neste øyeblikksbilde</string><string name="journal_status">Status</string><string name="journal_bereit">Klar</string><string name="journal_intervall">Intervall</string><string name="journal_aus">Av</string><string name="journal_6h">6 timer</string><string name="journal_12h">12 timer</string><string name="journal_taeglich">Daglig</string><string name="journal_woechentlich">Ukentlig</string><string name="journal_jetzt">Ta øyeblikksbilde nå</string><string name="journal_liste">Øyeblikksbilder</string><string name="journal_leer">Ingen øyeblikksbilder ennå.</string><string name="journal_integritaet">integritet bekreftet ved åpning</string><string name="journal_vorschau">Forhåndsvisning</string><string name="journal_restore">Gjenopprett</string><string name="journal_restore_frage">Gjenopprette «%1$s»? Et øyeblikksbilde fra før gjenopprettingen opprettes først.</string><string name="journal_loeschen_frage">Slette dette øyeblikksbildet permanent?</string>
+    <string name="journal_kontakt_konflikt">Kontakt endret</string><string name="journal_kontakt_konflikt_frage">«%1$s» er endret siden øyeblikksbildet. Overskrive bare den valgte tilknyttede kontakten?</string><string name="journal_konflikt_ueberschreiben">Overskriv valgt kontakt</string>
+    <string name="telefon_titel">Magnolie-telefontilkobling</string><string name="telefon_hinweis">Uavhengig kryptert tilkobling for enhetsstatus, oppringingsforespørsler og skrivebeskyttede varsler fra nøyaktig valgte apper. Den bruker aldri Magnolienbaum-paringer eller -tillatelser.</string><string name="telefon_hauptschalter">Aktiver telefontilkobling</string><string name="telefon_status">Tilkoblingsstatus</string><string name="telefon_status_aus">Av</string><string name="telefon_status_getrennt">Frakoblet</string><string name="telefon_status_gepaart">Paret</string><string name="telefon_status_code">Bekreft kode</string><string name="telefon_status_fehler">Feil</string><string name="telefon_bluetooth_status">Bluetooth-reserveløsning for data er tilgjengelig</string><string name="telefon_suchen">Søk etter datamaskin</string><string name="telefon_verbinden">Koble til %1$s</string><string name="telefon_code_stimmt">Kodene samsvarer</string><string name="telefon_code_falsch">Kodene er forskjellige</string><string name="telefon_kopplung">Paret datamaskin</string><string name="telefon_geraetestatus">Tillatelse til enhetsstatus</string><string name="telefon_freigegeben">Tillatt</string><string name="telefon_nicht_freigegeben">Ikke tillatt</string><string name="telefon_entkoppeln">Fjern telefontilkobling</string><string name="telefon_dienst_laeuft">Telefontilkobling aktivert; venter på datamaskin</string><string name="telefon_dienst_kanal">Magnolie-telefontilkobling</string><string name="telefon_trennen">Koble fra</string>
+    <string name="telefon_bluetooth_fallback">Bluetooth-reserveløsning for data</string><string name="telefon_bluetooth_hinweis">Valgfritt og av som standard. Wi-Fi foretrekkes fortsatt. Par først datamaskinen i Androids systeminnstillinger, og velg deretter den allerede parede enheten her. Den uavhengige telefontilkoblingen bruker sin egen krypterte håndtrykksprotokoll og aldri Bluetooth-tjenesten til Magnolienbaum.</string><string name="telefon_bluetooth_systempaarung">Åpne Bluetooth-systemparing</string><string name="telefon_bluetooth_geraete">Velg paret enhet</string><string name="telefon_bluetooth_verwenden">Bruk %1$s etter sikker bekreftelse</string><string name="telefon_bluetooth_zugeordnet">Bluetooth-enhet</string><string name="telefon_bluetooth_berechtigung">Bluetooth-tillatelsen ble ikke gitt. Ingen tilkobling ble forsøkt.</string><string name="telefon_bluetooth_voraussetzung">Aktiver og par først telefontilkoblingen sikkert via Wi-Fi.</string>
+    <string name="telefon_benachrichtigungen_titel">Valgte varsler</string><string name="telefon_benachrichtigungen_schalter">Videresend valgte meldingsvarsler</string><string name="telefon_benachrichtigungen_hinweis">Skrivebeskyttet. Bare meldingsvarsler fra nøyaktig valgte apper videresendes. Handlinger, svar, RemoteInput og PendingIntent overføres aldri.</string><string name="telefon_systemzugriff_oeffnen">Åpne varslingstilgang</string><string name="telefon_systemzugriff_erteilt">Varslingstilgang gitt</string><string name="telefon_apps_titel">Tillatte apper</string>
+    <string name="telefon_dienst_sucht">Søker etter datamaskin…</string><string name="telefon_dienst_verbindet">Kobler sikkert til %1$s…</string><string name="telefon_dienst_wlan">Koblet til %1$s via Wi-Fi</string><string name="telefon_dienst_bluetooth">Koblet til %1$s via Bluetooth</string><string name="telefon_dienst_fehler">Tilkoblingen mislyktes; prøver på nytt</string>
+    <string name="telefon_waehlen_schalter">Tillat oppringingsforespørsler</string><string name="telefon_waehlen_hinweis">Av som standard og uavhengig av anropskontroll og HFP. En forespørsel åpner bare systemets oppringingsapp; du bekrefter anropet der.</string><string name="telefon_waehlen_nicht_verfuegbar">Ingen systemoppringingsapp er tilgjengelig. Oppringingsforespørsler kan ikke aktiveres.</string><string name="telefon_waehlen_kanal">Oppringingsforespørsler</string><string name="telefon_waehlen_titel">Bekreft anrop i systemets oppringingsapp</string>
+    <string name="telefon_eingehend_titel">Innkommende anrop</string><string name="telefon_eingehend_schalter">Del status for innkommende anrop</string><string name="telefon_nummer_schalter">Del innringerens nummer når det er tilgjengelig</string><string name="telefon_annehmen_schalter">Tillat svar på anrop fra datamaskinen</string><string name="telefon_eingehend_hinweis">Hvert alternativ er av som standard og ber bare om den nødvendige telefontillatelsen. Anropslyd sendes aldri via Magnolie.</string><string name="telefon_berechtigung_fehlt">Telefontillatelsen ble ikke gitt. Alternativet forblir av.</string>
+    <string name="personal_sync_titel">Personlig synkronisering</string>
+    <string name="personal_sync_hinweis">Synkroniser egne notater, notatbøker og oppgaver trygt med din egen parede Organizer.</string>
+    <string name="personal_sync_nicht_baum">Ikke Magnolienbaum</string>
+    <string name="personal_sync_eigen">Denne parede datamaskinen er min egen enhet</string>
+    <string name="personal_sync_notizen">Synkroniser notater og notatbøker</string>
+    <string name="personal_sync_aufgaben">Synkroniser oppgaver</string>
+    <string name="personal_sync_auto_wlan">Synkroniser automatisk via Wi-Fi</string>
+    <string name="personal_sync_jetzt">Synkroniser nå</string>
+    <string name="personal_sync_keine_loeschung">Slettinger synkroniseres ikke ennå.</string>
+    <string name="personal_sync_anhaenge_fortschritt">Vedlegg: %1$d av %2$d</string>
+    <string name="personal_sync_wlan_pause">Overføring av vedlegg er satt på pause til Wi-Fi er tilgjengelig.</string>
+    <string name="personal_sync_vollstaendig">Personlig synkronisering er fullført.</string>
+    <string name="personal_sync_teilweise">Personlig synkronisering er ufullstendig: %1$s</string>
+    <string name="telefon_eins_zu_eins">Bare én Organizer kan være paret. Fjern den eksisterende Organizeren før du bytter enhet.</string><string name="telefon_entkoppeln_frage">Fjerne forbindelsen til «%1$s»? Paringsnøkler, tillatelser, ventende meldinger og klargjorte personlige synkroniseringskjøringer slettes. Synkroniserte notater, notatbøker og oppgaver beholdes.</string>
+    <string name="personal_sync_loeschungen">Ta hensyn til slettinger under manuell synkronisering</string>
+    <string name="papierkorb_titel">Papirkurv</string>
+<plurals name="personal_sync_auto_offen">
+        <item quantity="one">Automatisk synkronisering er fullført. %1$d sletteforslag venter på manuell gjennomgang.</item>
+        <item quantity="other">Automatisk synkronisering er fullført. %1$d sletteforslag venter på manuell gjennomgang.</item>
+    </plurals><string name="personal_sync_alle_loeschen">Slett alle</string><string name="personal_sync_alle_wiederherstellen">Gjenopprett alle</string><string name="personal_sync_entscheiden">Vurder sletting</string><string name="personal_sync_geaendert_titel">Endret versjon</string><string name="personal_sync_geaendert_hinweis">Elementet ble endret etter synkronisering. Velg uttrykkelig å gjenopprette den endrede versjonen eller slette til tross for endringen.</string><string name="personal_sync_lauf_merken">For gjenværende uendrede forslag i denne kjøringen</string><string name="personal_sync_trotz_aenderung_loeschen">Slett til tross for endring</string><string name="personal_sync_geaenderte_version_wiederherstellen">Gjenopprett endret versjon</string><string name="personal_sync_wiederherstellen">Behold / gjenopprett</string><string name="personal_sync_notizbuch_blockiert">En notatbok med innhold kan ikke slettes.</string><string name="personal_sync_endgueltig_titel">Bekreft endret sletting</string><string name="personal_sync_endgueltig_hinweis">Slette «%1$s» permanent til tross for endringene?</string><string name="personal_sync_massen_titel">Bekreft flere avgjørelser</string><plurals name="personal_sync_massen_hinweis">
+        <item quantity="one">Nøyaktig %1$d element: notater: %2$d · notatbøker: %3$d · oppgaver: %4$d · vedlegg: %5$d.</item>
+        <item quantity="other">Nøyaktig %1$d elementer: %2$d notater, %3$d notatbøker, %4$d oppgaver, %5$d vedlegg.</item>
+    </plurals><string name="papierkorb_leeren">Tøm papirkurven</string><string name="papierkorb_endgueltig_titel">Slett permanent</string><string name="papierkorb_endgueltig_hinweis">Slette dette papirkurvelementet permanent? Det kan ikke angres.</string><plurals name="papierkorb_leeren_hinweis">
+        <item quantity="one">Slette det %1$d papirkurvelementet permanent? Det kan ikke angres.</item>
+        <item quantity="other">Slette alle %1$d papirkurvelementene permanent? Det kan ikke angres.</item>
+    </plurals>
+    <string name="papierkorb_hinweis">Slettede notater og oppgaver oppbevares her til de slettes permanent.</string>
+    <string name="technischer_wert_art_notiz">Notat</string>
+    <string name="technischer_wert_art_notizbuch">Notatbok</string>
+    <string name="technischer_wert_art_aufgabe">Oppgave</string>
+    <string name="technischer_wert_art_anhang">Vedlegg</string>
+    <string name="technischer_wert_art_unbekannt">Ukjent elementtype: %1$s</string>
+    <string name="technischer_wert_grund_manuell">Manuelt øyeblikksbilde</string>
+    <string name="technischer_wert_grund_geplant">Planlagt øyeblikksbilde</string>
+    <string name="technischer_wert_grund_vor_wiederherstellung">Før gjenoppretting</string>
+    <string name="technischer_wert_grund_vor_vollabgleich">Før full synkronisering</string>
+    <string name="technischer_wert_grund_vor_aufgabenabgleich">Før oppgavesynkronisering</string>
+    <string name="technischer_wert_grund_vor_notizabgleich">Før notatsynkronisering</string>
+    <string name="technischer_wert_grund_kontaktimport">Før kontaktimport</string>
+    <string name="technischer_wert_grund_kontakt_zusammenfuehren">Før sammenslåing av kontakter</string>
+    <string name="technischer_wert_grund_kontaktloeschung">Før sletting av kontakter</string>
+    <string name="technischer_wert_grund_unbekannt">Ukjent grunn for øyeblikksbilde: %1$s</string>
+    <string name="technischer_wert_domaene_appdaten">Appdata</string>
+    <string name="technischer_wert_domaene_systemkontakte">Systemkontakter</string>
+    <string name="technischer_wert_domaene_unbekannt">Ukjent område for øyeblikksbilde: %1$s</string>
+    <plurals name="technischer_wert_zusammenfassung_app">
+        <item quantity="one">Notater: %1$d · oppgaver: %2$d</item>
+        <item quantity="other">Notater: %1$d · oppgaver: %2$d</item>
+    </plurals>
+    <plurals name="technischer_wert_zusammenfassung_kontakte">
+        <item quantity="one">Kontakter: %1$d</item>
+        <item quantity="other">Kontakter: %1$d</item>
+    </plurals>
+    <plurals name="technischer_wert_zusammenfassung_kontakte_mit_namen">
+        <item quantity="one">Kontakter: %1$d · %2$s</item>
+        <item quantity="other">Kontakter: %1$d · %2$s</item>
+    </plurals>
+    <string name="technischer_wert_zusammenfassung_unbekannt">Ukjente detaljer om øyeblikksbildet: %1$s</string>
+    <string name="start_laden">Åpner beskyttede data…</string><string name="start_fehler_titel">Beskyttede data kunne ikke åpnes</string><string name="start_daten_unveraendert">Dataene dine ble ikke slettet eller overskrevet. Du kan trygt prøve igjen.</string><string name="start_erneut">Prøv igjen</string><string name="start_schliessen">Lukk appen</string>
+    <string name="absturzbericht_teilen">Del krasjrapport</string>
+    <string name="journal_maximum">Maksimalt antall gjenopprettingspunkter</string>
+    <string name="journal_maximum_hinweis">Når grensen reduseres, fjernes de eldste gjenopprettingspunktene automatisk.</string>
+    <string name="portable_titel">Flyttbar sikkerhetskopi</string><string name="portable_hinweis">Opprett eller gjenopprett et separat, passordbeskyttet arkiv med notater, notatbøker, oppgaver, papirkurv og vedlegg.</string><string name="portable_export">Opprett flyttbar sikkerhetskopi</string><string name="portable_datei_oeffnen">Åpne flyttbar sikkerhetskopi</string><string name="portable_restore">Gjenopprett sikkerhetskopi</string><string name="portable_passwort">Passord</string><string name="portable_passwort_hinweis">Skriv inn arkivpassordet. Ingenting endres mens sikkerhetskopien kontrolleres.</string><string name="portable_pruefen">Kontroller og forhåndsvis</string><string name="portable_vorschau">Forhåndsvisning av sikkerhetskopi</string><string name="portable_vorschau_text">%1$d notater · %2$d notatbøker · %3$d oppgaver · %4$d elementer i papirkurven</string><string name="portable_restore_warnung">Dette erstatter alt gjeldende personlig innhold. Et lokalt sikkerhetsøyeblikksbilde opprettes først; enhetens Magnolienbaum-identitet bevares.</string><string name="portable_fehler">Sikkerhetskopien kunne ikke åpnes. Kontroller filen og passordet.</string><string name="portable_exportiert">Flyttbar sikkerhetskopi opprettet.</string><string name="portable_wiederhergestellt">Flyttbar sikkerhetskopi gjenopprettet.</string>
+    <string name="auto_backup_titel">Automatisk sikkerhetskopi i skymappe</string>
+    <string name="auto_backup_hinweis">Lagrer valgfritt godkjente portable sikkerhetskopier i en mappe valgt via Android. Leverandøren kan synkronisere mappen.</string>
+    <string name="auto_backup_aktiv">Slå på automatisk sikkerhetskopi</string>
+    <string name="auto_backup_ordner_waehlen">Velg mappe for sikkerhetskopier</string>
+    <string name="auto_backup_ordner_aendern">Bytt mappe for sikkerhetskopier</string>
+    <string name="auto_backup_passwort_setzen">Angi arkivpassord</string>
+    <string name="auto_backup_passwort_aendern">Endre arkivpassord</string>
+    <string name="auto_backup_passwort_warnung">Husk dette passordet. Det kreves for gjenoppretting på en annen enhet og kan ikke hentes tilbake.</string>
+    <string name="auto_backup_intervall">Intervall for sikkerhetskopi</string>
+    <string name="auto_backup_aufbewahrung">Sikkerhetskopier som beholdes (2–30)</string>
+    <string name="auto_backup_letzter_erfolg">Siste vellykkede sikkerhetskopi</string>
+    <string name="auto_backup_jetzt">Test sikkerhetskopi nå</string>
+    <string name="auto_backup_status_bereit">Klar</string>
+    <string name="auto_backup_status_laeuft">Sikkerhetskopiering pågår</string>
+    <string name="auto_backup_status_erfolg">Siste sikkerhetskopi ble godkjent</string>
+    <string name="auto_backup_status_aufbewahrung">Sikkerhetskopi godkjent; gamle filer kunne ikke ryddes</string>
+    <string name="auto_backup_status_ordner">Velg en mappe for sikkerhetskopier</string>
+    <string name="auto_backup_status_freigabe">Tilgangen til mappen ble tilbakekalt. Velg mappen på nytt.</string>
+    <string name="auto_backup_status_passwort">Angi et arkivpassord</string>
+    <string name="auto_backup_status_schluessel">Det beskyttede passordet er utilgjengelig. Automatisk sikkerhetskopi forblir avslått.</string>
+    <string name="auto_backup_status_auth">Godkjenning av sikkerhetskopi mislyktes</string>
+    <string name="auto_backup_status_provider">Lagringsleverandøren er midlertidig utilgjengelig; nytt forsøk er planlagt</string>
+</resources>

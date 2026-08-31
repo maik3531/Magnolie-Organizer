@@ -1,10 +1,10 @@
-.TH MAGNOLIE-ORGANIZER 1 "August 2026" "Magnolie Organizer 2.0.13" "Brukerkommandoer"
+.TH MAGNOLIE-ORGANIZER 1 "August 2026" "Magnolie Organizer 2.0.14" "Brukerkommandoer"
 .SH NAVN
 magnolie-organizer \- personlig organisator i klassisk papirdesign
 .SH SYNOPSIS
 .B magnolie-organizer
 .RI [ alternativ ]
-.RI [ \-\-sprache\  språk ]
+.RI [ \-\-language\  språk ]
 .SH BESKRIVELSE
 .B Magnolie Organizer
 samler kalender, oppgaver, kontakter, notater, merkedager og en årsplanlegger.
@@ -13,19 +13,27 @@ eller deles via den krypterte Magnolienbaum-tjenesten.
 .PP
 Det åpnes bare én grafisk instans per brukerøkt. Hvis kommandoen startes på
 nytt, vises det eksisterende vinduet, også når det er skjult i systemkurven.
+.SH KOMMANDOLINJEFORMER
+De nøytrale korte aliasene og engelske lange formene er:
+.nf
+\-h \-\-help; \-V \-\-version; \-l \-\-language; \-P \-\-pot-template;
+\-r \-\-reminder-check; \-w \-\-alarm-monitor; \-p \-\-reminder-test;
+\-t \-\-tray-start; \-d \-\-debug; \-b \-\-background-service.
+.fi
+Både tyske og engelske lange former godtas.
 .SH ALTERNATIVER
 .TP
-.B \-\-erinnerung
+.B \-\-reminder-check
 Se etter forfalte påminnelser. Dette alternativet brukes vanligvis av
 økttjenesten.
 .TP
-.B \-\-wecker
+.B \-\-alarm-monitor
 Kjør påminnelsesovervåkingen i bakgrunnen.
 .TP
 .B \-\-tray-start
 Start organisatoren via autostartoppføringen for systemkurven.
 .TP
-.B \-\-probe
+.B \-\-reminder-test
 Test påminnelser og skriv ut en diagnoserapport.
 .TP
 .B \-\-debug
@@ -35,18 +43,18 @@ oppstart, økt, enkeltinstans, vindu og systemkurv skrives til
 allerede kjører, før en diagnosekjøring; et nytt kall aktiverer bare den
 eksisterende prosessen.
 .TP
-.BR \-\-sprache " " SPRÅK , " " \-\-language " " LANGUAGE
+.BR \-\-language " " LANGUAGE , " " \-\-sprache " " SPRÅK
 Bruk tysk (\fBde\fR), engelsk (\fBen\fR) eller systemspråket (\fBsystem\fR)
 for dette kallet. Dette velger kommandoutdata før hjelpe-, diagnose- og
 bakgrunnsmodusene samt WebKit-grensesnittet i en nyåpnet grafisk instans.
 Lagrede innstillinger endres ikke.
 .TP
-.BR \-\-pot " [" FIL "]", " " \-\-pot-template " [" FILE "]"
+.BR \-\-pot-template " [" FILE "]", " " \-\-pot " [" FIL "]"
 Generer en reproduserbar gettext-mal og avslutt. Uten et filargument skrives
 \fBmagnolie-organizer.pot\fR i gjeldende mappe; ellers skrives den til den
 angitte banen. Den absolutte utdatabanen skrives ut ved vellykket kjøring.
 .TP
-.BR \-\-hilfe , " " \-\-help
+.BR \-\-help , " " \-\-hilfe
 Vis en kort kommandooversikt.
 .SH MAGNOLIENBAUM-NETTVERK
 Når Magnolienbaum er aktivert, lytter tjenesten på TCP-port 8737 over IPv4 og

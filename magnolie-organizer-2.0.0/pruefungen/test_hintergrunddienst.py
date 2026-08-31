@@ -114,7 +114,7 @@ def test_headless_cli_dispatches_before_any_gui_import():
         runpy.run_path(PROGRAM, run_name="__main__")
     assert stopped.value.code == 23
     fake_crash.install.assert_called_once_with(
-        "magnolie-organizer", "2.0.13", "background-service")
+        "magnolie-organizer", "2.0.14", "background-service")
     assert calls == ["crash", "daemon"]
     assert fake.daemon_main.called
     assert "gi" not in imported
@@ -780,7 +780,7 @@ def test_closed_gui_phone_notifications_start_only_from_clicked_actions():
         "phone_call_notifications": True, "phone_sms_notifications": True}}
     events = background.PhoneDaemonEvents(lambda: phone, settings, notifications,
         ImmediateGLib, lambda *_args: True, lambda: False)
-    events("selected_notification", {"app": "Mail", "text": "Message"})
+    events("selected_notification", {"event": "posted", "app": "Mail", "text": "Message"})
     events("incoming_call", {"state": "ringing", "name": "Alice"})
     events("sms", {"from": "+49170", "text": "Hello"})
     assert notifications.opened == 0
@@ -798,7 +798,7 @@ def test_phone_notifications_remain_native_with_visible_gui_and_are_forwarded():
         "phone_pairing_decisions": True}}
     events = background.PhoneDaemonEvents(lambda: phone, settings, notifications,
         ImmediateGLib, lambda *args: published.append(args) or True, lambda: True)
-    events("selected_notification", {"app": "Mail", "text": "Message"})
+    events("selected_notification", {"event": "posted", "app": "Mail", "text": "Message"})
     events("incoming_call", {"state": "ringing", "number": "+49170"})
     events("sms", {"from": "+49170", "text": "Hello"})
     events("pairing_code", {"attempt_id": "a" * 32, "code": "123 456"})
@@ -808,6 +808,115 @@ def test_phone_notifications_remain_native_with_visible_gui_and_are_forwarded():
     assert len(published) == 3
     assert all(event == "phone_event" and "ticket" in payload
                for event, payload in published)
+
+
+def test_dated_kde_sms_history_is_forwarded_without_native_replay():
+    notifications = RecordedNotifications()
+    published = []
+    events = background.DaemonEvents(lambda: FakeBackend(), {
+        "permissions": {"sms_phone_notifications": True}}, notifications,
+        ImmediateGLib, lambda *args: published.append(args) or True, lambda: True,
+        notification_since_ms=2000)
+    events("sms", {"id": "old", "timestamp_ms": 1999, "read": False,
+                   "from": "+49170", "text": "old", "notify": True})
+    events("sms", {"id": "new", "timestamp_ms": 2000, "read": False,
+                   "from": "+49170", "text": "new", "notify": True})
+    assert len(notifications.items) == 1 and notifications.items[0][1] == "new"
+    assert len(published) == 2
+    assert all(payload["notify"] is False for _event, payload in published)
+
+
+def test_old_clipboard_connect_replay_is_not_applied_or_offered():
+    backend = FakeBackend()
+    notifications = RecordedNotifications()
+    copied = []
+    events = background.DaemonEvents(lambda: backend, {}, notifications,
+        ImmediateGLib, clipboard_setter=lambda text: copied.append(text) or True,
+        notification_since_ms=2000)
+    events("clipboard_apply", {"id": "a" * 32, "device_id": "d" * 32,
+                               "timestamp_ms": 1999, "text": "old"})
+    events("clipboard_proposal", {"id": "b" * 32, "device_id": "d" * 32,
+                                  "timestamp_ms": 1999, "text": "old"})
+    assert copied == [] and notifications.items == []
+    assert backend.calls[-1] == ("reject_receive", "b" * 32)
+
+
+def test_phone_replays_removed_read_and_old_events_without_native_notifications():
+    notifications = RecordedNotifications()
+    published = []
+    settings = {"permissions": {"phone_selected_notifications": True,
+        "phone_call_notifications": True, "phone_sms_notifications": True}}
+    events = background.PhoneDaemonEvents(lambda: FakePhoneService(), settings, notifications,
+        ImmediateGLib, lambda *args: published.append(args) or True, lambda: True,
+        notification_since_ms=2000)
+    events("selected_notification", {"event": "removed", "posted_ms": 3000})
+    events("selected_notification", {"event": "posted", "posted_ms": 1999,
+                                      "app_label": "Mail", "text": "old"})
+    events("incoming_call", {"state": "ringing", "occurred_ms": 1999})
+    events("sms", {"timestamp_ms": 3000, "read": True, "text": "read"})
+    events("selected_notification", {"event": "posted", "posted_ms": 2000,
+                                      "app_label": "Mail", "text": "new"})
+    events("incoming_call", {"state": "ringing", "occurred_ms": 2000})
+    events("sms", {"timestamp_ms": 2000, "read": False, "text": "new"})
+    assert len(notifications.items) == 3
+    assert len(published) == 7
+
+
+def test_background_freshness_survives_restart_without_storing_raw_event_ids():
+    with tempfile.TemporaryDirectory() as root:
+        path = os.path.join(root, "background-freshness.json")
+        event_id = "private-event-identity"
+        first = background.BackgroundFreshness(path, now_ms=2000)
+        assert first.is_fresh("kde_connect", "sms", {
+            "id": event_id, "timestamp_ms": 2000}, "timestamp_ms")
+        assert not first.is_fresh("kde_connect", "sms", {
+            "id": event_id, "timestamp_ms": 2001}, "timestamp_ms")
+
+        restarted = background.BackgroundFreshness(path, now_ms=3000)
+        assert restarted.notification_cutoff_ms == 3000
+        assert not restarted.is_fresh("kde_connect", "sms", {
+            "id": event_id, "timestamp_ms": 4000}, "timestamp_ms")
+        assert restarted.is_fresh("kde_connect", "sms", {
+            "id": "another-event", "timestamp_ms": 4000}, "timestamp_ms")
+        assert event_id not in open(path, encoding="ascii").read()
+
+
+def test_persistent_identity_suppresses_undated_native_replay_after_restart():
+    with tempfile.TemporaryDirectory() as root:
+        path = os.path.join(root, "background-freshness.json")
+        settings = {"permissions": {"phone_sms_notifications": True}}
+        payload = {"message_id": "stable-phone-message", "read": False,
+                   "from": "+49170", "text": "Hello"}
+        notifications = RecordedNotifications()
+        first = background.PhoneDaemonEvents(lambda: FakePhoneService(), settings,
+            notifications, ImmediateGLib, lambda *_args: True, lambda: False,
+            freshness=background.BackgroundFreshness(path, now_ms=2000))
+        first("sms", payload)
+        restarted = background.PhoneDaemonEvents(lambda: FakePhoneService(), settings,
+            notifications, ImmediateGLib, lambda *_args: True, lambda: False,
+            freshness=background.BackgroundFreshness(path, now_ms=3000))
+        restarted("sms", payload)
+        assert len(notifications.items) == 1
+
+
+def test_background_diagnostics_are_bounded_and_contain_no_payload_content():
+    with tempfile.TemporaryDirectory() as root:
+        path = os.path.join(root, "state", "background-events.log")
+        diagnostics = background.BackgroundDiagnostics(path)
+        diagnostics.record("kde_connect", "sms", {
+            "device_id": "private-device-id", "from": "+491701234567",
+            "title": "Private title", "text": "Private message",
+            "incoming": True}, "historical", "suppressed")
+        snapshot = diagnostics.storage_snapshot(root)
+        diagnostics.close()
+        text = open(path, encoding="utf-8").read()
+        entry = json.loads(text)
+        assert entry["source"] == "kde_connect"
+        assert entry["freshness"] == "historical" and entry["outcome"] == "suppressed"
+        assert entry["device"] != "private-device-id" and len(entry["device"]) == 12
+        assert entry["payload_text_bytes"] > 0 and snapshot["event_log_bytes"] > 0
+        assert not any(value in text for value in (
+            "private-device-id", "+491701234567", "Private title", "Private message"))
 
 
 def test_actionless_phone_pairing_falls_back_to_visible_gui():

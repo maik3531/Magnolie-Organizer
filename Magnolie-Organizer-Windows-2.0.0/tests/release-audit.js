@@ -34,7 +34,7 @@ function checkPowerShell(file) {
   }
   if (quote || stack.length) fail(`${file} hat unausgeglichene Zeichenketten oder Klammern`);
 }
-for (const file of ["build/Build.ps1", "build/BuildSource.ps1", "build/Release.Common.ps1", "build/UpdateManifest.ps1", "vm/StartTest.ps1"]) checkPowerShell(file);
+for (const file of ["build/Build.ps1", "build/BuildSource.ps1", "build/Release.Common.ps1", "build/UpdateManifest.ps1", "vm/StartTest.ps1", "vm/TestInstallerUpdate.ps1"]) checkPowerShell(file);
 const version = /<Version>([^<]+)<\/Version>/.exec(read("Directory.Build.props"))?.[1];
 if (!/^\d+\.\d+\.\d+$/.test(version || "")) fail("kanonische Version fehlt");
 if (process.argv[2] !== version || process.argv[3] !== `Magnolie-Organizer-Windows-${version}-Setup-x64.exe`) fail("Release-Tests erhielten nicht die kanonischen Namen");
@@ -125,8 +125,18 @@ if (fs.existsSync(bundledMakensis)) {
 }
 const source = read("build/BuildSource.ps1");
 if (source.includes('".png"')) fail("Quellbau schließt PNG aus");
-for (const file of ["app/magnolie-organizer.ico", "app/web/kaffee-qr.png", "app/symbole/48x48/magnolie-organizer.png", "app/symbole/64x64/magnolie-organizer.png", "app/symbole/128x128/magnolie-organizer.png", "app/symbole/256x256/magnolie-organizer.png", "tests/resources/personal-sync-contract.json", "tests/resources/telefon-control-contract.json", "tests/resources/linux-parity-contract.json", "tests/linux-parity-fixture.js", "tests/generate-linux-parity-fixture.js", "LICENSE"]) if (!fs.existsSync(path.join(root, file))) fail(`Pflichtdatei fehlt: ${file}`);
+for (const file of ["app/magnolie-organizer.ico", "app/web/kaffee-qr.mga", "app/symbole/48x48/magnolie-organizer.png", "app/symbole/64x64/magnolie-organizer.png", "app/symbole/128x128/magnolie-organizer.png", "app/symbole/256x256/magnolie-organizer.png", "shared/magnolie-handbuch-stamm/web/kaffee-qr.mga", "shared/magnolie-handbuch-stamm/web/maik-walter.mga", "tests/resources/personal-sync-contract.json", "tests/resources/telefon-control-contract.json", "tests/resources/linux-parity-contract.json", "tests/linux-parity-fixture.js", "tests/generate-linux-parity-fixture.js", "LICENSE"]) if (!fs.existsSync(path.join(root, file))) fail(`Pflichtdatei fehlt: ${file}`);
+for (const file of ["app/web/kaffee-qr.png", "shared/magnolie-handbuch-stamm/web/kaffee-qr.png", "shared/magnolie-handbuch-stamm/web/maik-walter.jpg"]) if (fs.existsSync(path.join(root, file))) fail(`Klartext-Personenasset vorhanden: ${file}`);
 for (const file of ["tests/PersonalSyncTests.cs", "tests/TelefonProtocolTests.cs"]) if (/magnolie-organizer-1\.31\.7|\.\.\\.*pruefungen/.test(read(file))) fail(`${file} benötigt Geschwisterquelle`);
+const vmResultTest = read("vm/TestInstallerUpdate.ps1");
+for (const token of ["$transcriptStarted", "$resultWritten", "$resultPersisted", "$logPersisted", "Remove-Item -LiteralPath $path -Force", "if (-not $results)", "VM bleibt zur Diagnose aktiv", "function Sync-ResultFile", "foreach ($attempt in 1..10)", "FileShare]::ReadWrite", "FileShare]::Delete", "function Write-InfrastructureFailure", "INFRASTRUCTURE FAILURE", "Ergebnisdateien konnten nicht dauerhaft geschrieben werden", "$stream.Flush($true)", "$mountExitCode", "$shutdownExitCode", "mountvol.exe", "shutdown.exe", "if (-not $report.Passed) { exit 1 }", "exit 0"]) if (!vmResultTest.includes(token)) fail(`VM-Ergebniskanal fehlt: ${token}`);
+const flush = vmResultTest.indexOf("$stream.Flush($true)");
+const persistenceCheck = vmResultTest.indexOf("if (-not $resultWritten)");
+const dismount = vmResultTest.indexOf("$mountOutput = @(&");
+const dismountCheck = vmResultTest.indexOf("if ($mountExitCode -ne 0)", dismount);
+const shutdown = vmResultTest.indexOf("$shutdownOutput = @(&");
+const shutdownCheck = vmResultTest.indexOf("if ($shutdownExitCode -ne 0)", shutdown);
+if (flush < 0 || persistenceCheck < flush || dismount < persistenceCheck || dismountCheck < dismount || shutdown < dismountCheck || shutdownCheck < shutdown) fail("VM prüft Flush, Persistenz, Aushängen und Herunterfahren nicht in dieser Reihenfolge");
 const build = read("build/Build.ps1");
 for (const token of [".release-staging-", "New-DeterministicZip", "Enter-ReleaseLock", "Sign-Official", "MAGNOLIE_SIGNTOOL", "--packaging-self-test", "Write-ReleaseChecksums", "Assert-SourceArchive", "Assert-BinaryArchiveBuildConfig", "AuditWebPayload.js", '"--publish", $root, $publish', '"--artifact", $publish, $zipAudit', "BuildSource.ps1", "sourceForRelease", "installerName", "TimeStamperCertificate", 'Move-Item -LiteralPath $unsignedSetupStage', "CreateInstallerBuildRecord.js", "installerRecordName", "CrossCompile", "WINDOWS-RUNTIME-UNVERIFIED.txt", "windowsRuntimeVerified=false", "windowsVmValidationRequired=true", "artifactTrust=UNSIGNED", "AuditInstaller.js", "NSISDIR", "/tmp/opencode/nsis-root/usr/bin/makensis", "Binärausgabe benötigt MAGNOLIE_CONTRIBUTOR_HASH"]) if (!build.includes(token)) fail(`Build-Invariante fehlt: ${token}`);
 if (build.includes(".SignerCertificate.Subject.Contains(")) fail("Build akzeptiert Herausgeber-Teiltreffer");
@@ -188,8 +198,13 @@ for (const token of ["DisplayPath", "IsPathRooted", "GetFullPath((Join-Path (Spl
 if (!build.includes('DisplayPath = "../$sourceName"') || !build.includes('$publicationStage = Join-Path $stage "project"')) fail("Quellarchiv-Prüfsumme bildet die spätere Parent/Projekt-Publikation nicht ab");
 const vmMedia = read("vm/Create-TestMedia.sh");
 const vmTest = read("vm/StartTest.ps1");
+const vmCreate = read("vm/Create-VM.sh");
+const vmInstallerTest = read("vm/TestInstallerUpdate.ps1");
 if (!vmMedia.includes('printf \'%s\\n\' "$MAGNOLIE_VM_BRANDING" > "$staging/Magnolie.Branding"')) fail("VM-Medium schreibt Magnolie.Branding nicht explizit");
 for (const token of ["Magnolie.Branding", 'cnotin @(\"official\", \"unbranded\")', '$branding -ceq "official"', '"NotRun"', "PackagingSelfTestPassed", "CrossCompileRuntimeMarkerPresent", "WINDOWS-RUNTIME-UNVERIFIED.txt", "Offizieller Packaging-Selbsttest fehlgeschlagen"]) if (!vmTest.includes(token)) fail(`VM-Branding-/Laufzeittest-Invariante fehlt: ${token}`);
+for (const token of ["Magnolie-Windows-Results.img", "MAGNOLIE_RESULTS", "MAGNOLIE_VM_DISK", "MAGNOLIE_VM_RESULTS_IMAGE", '[[ "$disk" != "$results" ]]', '[[ "$path" != *,* ]]', "parted --script", "mklabel msdos", "mkpart primary fat32 1MiB 100%", "mkfs.vfat -F 32 -h", "--offset=", "@@$results_partition_offset", "format=raw,bus=sata"]) if (!vmCreate.includes(token)) fail(`VM-Ergebnisdatenträger-Invariante fehlt: ${token}`);
+if (!read("vm/Autounattend.xml").includes("<PreventDeviceEncryption>true</PreventDeviceEncryption>")) fail("Windows-VM verhindert automatische Verschlüsselung des Ergebniskanals nicht");
+for (const token of ["MAGNOLIE_RESULTS", "RESULT.txt", "windows-vm-test.log", "Start-Transcript", '"SUCCESS"', '"FAIL"']) if (!vmInstallerTest.includes(token)) fail(`VM-Installer-Ergebnis-Invariante fehlt: ${token}`);
 if (!/if \(\$branding -ceq "official"\) \{[\s\S]*?--packaging-self-test[\s\S]*?\}/.test(vmTest)) fail("Packaging-Selbsttest ist nicht ausschließlich an offizielles Branding gebunden");
 if (/Start-Process[^\r\n]*--packaging-self-test/.test(vmTest.replace(/if \(\$branding -ceq "official"\) \{[\s\S]*?\n\}/, ""))) fail("Packaging-Selbsttest kann außerhalb des offiziellen Zweigs starten");
 if (!common.includes("$backedUp.Count - 1") || !common.includes("$installed.Count - 1")) fail("Statischer Rückwärts-Rollbacknachweis fehlt");

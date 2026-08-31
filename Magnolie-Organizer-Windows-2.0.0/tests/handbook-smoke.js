@@ -131,14 +131,16 @@ assert.ok(completeText.includes("200:1") && completeText.includes("keine Speiche
   completeText.includes("512 MiB") && completeText.includes("format=j1") &&
   completeText.includes("keine entsprechende Begrenzung der Antwortgröße"),
 "Die Strecke-16-Fachphrasen fehlen");
-assert.ok(completeText.includes("Rufnummer für den Anruf auswählen") &&
+assert.ok(completeText.includes("Aktuelles SMS-Verhalten") &&
+  completeText.includes("SMS-Aktion zuweisen") &&
   completeText.includes("TelecomManager.placeCall") &&
   completeText.includes("Status eingehender Anrufe freigeben") &&
   completeText.includes("Anrufernummer freigeben, wenn verfügbar") &&
   completeText.includes("Annehmen vom Computer erlauben") &&
-  completeText.includes("nur vom Linux-Backend unterstützt") &&
+  completeText.includes("nur unter Linux verfügbar") &&
   completeText.includes("nur eine <b>sms:</b>-Adresse") &&
-  completeText.includes("kein Zustellnachweis") && completeText.includes("5.000 Zeichen"),
+  completeText.includes("auf dem gekoppelten Telefon ungelesen") &&
+  completeText.includes("RCS ist separat") && completeText.includes("5.000 Zeichen"),
 "Die Strecke-17-Fachphrasen fehlen");
 assert.ok(completeText.includes("Glossar: A–M") && completeText.includes("Glossar: N–Z") &&
   completeText.includes("kurzfristige, integritätsgeprüfte Kopie") &&
@@ -149,12 +151,15 @@ assert.ok(completeText.includes("folgt automatisch der Sprache und Formatregion"
   completeText.includes("magnolie-organizer --language CODE") &&
   completeText.includes("Andere regionale Konventionen folgen weiterhin dem System"),
 "Die gemeinsame Regionaldokumentation ist unter Windows unvollständig");
-for (const image of ["kaffee-qr.png", "maik-walter.jpg", "01.jpg", "02.jpg", "03.jpg",
+for (const image of ["kaffee-qr.mga", "maik-walter.mga", "01.jpg", "02.jpg", "03.jpg",
   "02-woche.png", "03-aufgaben.png", "06-jahrestage.png", "10-pin-abfrage.png",
   "11-stand.png", "14-karteikarte.png", "15-rechtsklick-anrufen.png",
   "19-karte-mit-sms.png", "21-sms-getippt.png"]) {
   assert.ok(fs.existsSync(path.join(handbook, image)), `Handbuchbild fehlt: ${image}`);
 }
+assert.ok(!fs.existsSync(path.join(handbook, "kaffee-qr.png")) &&
+  !fs.existsSync(path.join(handbook, "maik-walter.jpg")),
+"Handbuch darf keine Klartext-Personenassets enthalten");
 assert.ok(fs.existsSync(path.join(handbook, "maik-walter-FOTO-NUTZUNG.txt")));
 for (const marker of [`Windows ${expectedVersion}`, "Magnolie Notes für Android 1.0.9",
   "Kontakte synchronisieren", "2.800.000", "stabile technische Bindung",

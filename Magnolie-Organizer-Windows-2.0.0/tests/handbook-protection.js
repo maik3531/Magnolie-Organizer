@@ -126,8 +126,8 @@ const imageDigests = {
   "15-rechtsklick-anrufen.png": "6929566b97f55217580349ca5aa75eab2fe9ebba8b6e9ead80bbb8e8a31303e5",
   "19-karte-mit-sms.png": "2760e3e5089ac7d937e3a7c025f1cc4087ed7482ba6ac753d9598beced1d5538",
   "21-sms-getippt.png": "0429b755aabe489d831e098997640de84f7eff9cf32bca03f2498cf28fc55ea7",
-  "kaffee-qr.png": "223be6adfc2aa5e6332e9802f395d66e03f01c6b0c850d46e38dfbfc1c714925",
-  "maik-walter.jpg": "835a69e450c7ba1d5ae6aa59bc61b6fd5613563cfff19449b2839b53dda77fe6"
+  "kaffee-qr.mga": "64cd1c64d5b9e981b802c72ec06acc3e6148161029b8e34f201ec457cc736c83",
+  "maik-walter.mga": "e53a06005b02b81fa15cc99e22fe5f6804fd851b91eeddff16880d8bfc7ce0ae"
 };
 
 function digest(value) {
@@ -218,6 +218,10 @@ for (const [file, expectedDigest] of Object.entries(imageDigests)) {
       `${name}: geschütztes Bild wurde verändert: ${file}`);
   }
 }
+for (const forbidden of ["kaffee-qr.png", "maik-walter.jpg"]) {
+  assert.ok(!fs.existsSync(path.join(handbook, forbidden)),
+    `Klartext-Personenasset vorhanden: ${forbidden}`);
+}
 
 for (const [locale] of Object.entries(protectedDigests)) {
   for (const [name, directory] of Object.entries(directories)) {
@@ -258,9 +262,9 @@ if (process.argv.includes("--negative-probe")) {
   protectedSource[0] += " veraendert";
   assert.notStrictEqual(digest(JSON.stringify(protectedSource)), protectedDigests.en,
     "Negativprobe muss eine geschützte Textänderung erkennen");
-  const changedImage = Buffer.from(fs.readFileSync(path.join(directories[referenceName], "kaffee-qr.png")));
+  const changedImage = Buffer.from(fs.readFileSync(path.join(handbook, "kaffee-qr.mga")));
   changedImage[0] ^= 1;
-  assert.notStrictEqual(digest(changedImage), imageDigests["kaffee-qr.png"],
+  assert.notStrictEqual(digest(changedImage), imageDigests["kaffee-qr.mga"],
     "Negativprobe muss eine geschützte Bildänderung erkennen");
   console.log("HANDBOOK PROTECTION NEGATIVE PROBE PASSED");
 }

@@ -15,7 +15,7 @@ override_dh_auto_build:
 		msgfmt --check --check-format -o locale/$$sprache/LC_MESSAGES/magnolie-handbuch.mo po/$$sprache.po; \
 		python3 werkzeuge/po_zu_js.py $$sprache po/$$sprache.po web/i18n/$$sprache.js; \
 	done < po/LINGUAS
-	python3 -m py_compile bin/magnolie-handbuch bin/magnolie_crash.py
+	python3 -m py_compile bin/magnolie-handbuch bin/magnolie_crash.py bin/magnolie_asset.py
 	rm -rf bin/__pycache__
 
 override_dh_auto_test:
@@ -26,6 +26,7 @@ ifeq (,$(filter nocheck,$(DEB_BUILD_OPTIONS)))
 	test -n "$(JS_LAUFER)"
 	TZ=Europe/Berlin $(JS_LAUFER) pruefungen/handbuch_test.js
 	python3 pruefungen/druck_test.py --cli-only
+	python3 -m pytest -q pruefungen/test_asset_container.py
 	@if { [ -n "$${DISPLAY:-}" ] || [ -n "$${WAYLAND_DISPLAY:-}" ]; } && \
 		command -v pdfinfo >/dev/null && command -v pdftotext >/dev/null && \
 		python3 -c 'import gi; gi.require_version("Gtk", "3.0"); gi.require_version("WebKit2", "4.1")' 2>/dev/null; then \

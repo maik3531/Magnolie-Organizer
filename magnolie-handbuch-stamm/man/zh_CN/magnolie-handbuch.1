@@ -1,28 +1,34 @@
-.TH MAGNOLIE-HANDBUCH 1 "2026 年 8 月" "Magnolie 手册 2.0.6" "用户命令"
+.TH MAGNOLIE-HANDBUCH 1 "2026 年 8 月" "Magnolie 手册 2.0.14" "用户命令"
 .SH 名称
 magnolie-handbuch \- 打开 Magnolie Organizer 用户手册
 .SH 概要
 .B magnolie-handbuch
 .RI [ 选项 ]
-.RI [ \-\-sprache\  语言 ]
+.RI [ \-\-language\  语言 ]
 .SH 描述
 .B Magnolie 手册
 用于打开 Magnolie Organizer 完整的图文用户指南。手册可在屏幕上浏览、
 打印或导出为 PDF 文件。
 .PP
 每个用户会话只会打开一个手册窗口。再次启动此命令时，将显示已有窗口。
+.SH 命令行形式
+中立短别名和英文长形式如下：
+.nf
+\-h \-\-help; \-V \-\-version; \-l \-\-language; \-P \-\-pot-template.
+.fi
+德文和英文长形式均可使用。
 .SH 选项
 .TP
-.BR \-\-sprache " " SPRACHE , " " \-\-language " " LANGUAGE
+.BR \-\-language " " LANGUAGE , " " \-\-sprache " " SPRACHE
 本次调用使用德语 (\fBde\fR)、英语 (\fBen\fR) 或系统语言
 (\fBsystem\fR)。此选项会选择显示帮助前的命令输出语言，以及新打开窗口
 的 WebKit 语言。不会更改已保存的设置。
 .TP
-.BR \-\-pot " [" DATEI "]", " " \-\-pot-template " [" FILE "]"
+.BR \-\-pot-template " [" FILE "]", " " \-\-pot " [" DATEI "]"
 生成可重现的 gettext 模板并退出。如果未提供文件参数，则在当前目录写入
 \fBmagnolie-handbuch.pot\fR；否则写入指定路径。成功后会输出绝对输出路径。
 .TP
-.BR \-\-hilfe , " " \-\-help
+.BR \-\-help , " " \-\-hilfe
 显示简短的命令概览。
 .SH 环境
 .TP

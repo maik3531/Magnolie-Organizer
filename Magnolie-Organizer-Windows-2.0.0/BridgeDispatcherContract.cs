@@ -16,6 +16,7 @@ internal static class BridgeDispatcherContract
         ["speichern"] = S(N("id"), T("text")), ["contributor_pruefen"] = S(T("key")), ["beenden"] = S(), ["beenden_bereit"] = S(), ["beenden_abgebrochen"] = S(),
         ["ablage_kopieren"] = S(T("text")), ["ablage_holen"] = S(), ["sicherung"] = S(T("pfad"), T("kennwort")), ["sicherung_waehlen"] = S(),
         ["sicherung_wiederherstellen"] = S(T("pfad"), T("kennwort"), O("sicherungsordner", JsonValueKind.String)), ["journal_liste"] = S(), ["journal_erzeugen"] = S(), ["journal_manuell"] = S(),
+        ["cloud_sicherung_status"] = S(), ["cloud_sicherung_kennwort"] = S(T("kennwort")), ["cloud_sicherung_test"] = S(),
         ["journal_vorschau"] = S(O("snapshotId", JsonValueKind.String), O("id", JsonValueKind.String)), ["journal_intervall"] = S(T("intervall")), ["journal_anzahl"] = S(N("maximum")),
         ["journal_loeschen"] = S(O("snapshotId", JsonValueKind.String), O("id", JsonValueKind.String)), ["journal_wiederherstellen"] = S(O("snapshotId", JsonValueKind.String), O("id", JsonValueKind.String)),
         ["mutations_snapshot"] = S(T("token"), T("reason")), ["gesamtarchiv_waehlen"] = S(), ["gesamtarchiv_pruefen"] = S(T("pfad"), T("kennwort")),

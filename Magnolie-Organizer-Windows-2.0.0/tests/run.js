@@ -16,7 +16,7 @@ if (!python) throw new Error("Python 3 for localization tests is missing");
 process.env.MAGNOLIE_PYTHON = python;
 
 let failed = false;
-for (const test of ["handbook-protection.js", "localization-completeness.js", "web-smoke.js",
+for (const test of ["personal-asset-protection.js", "handbook-protection.js", "localization-completeness.js", "web-smoke.js",
   "oversized-note-safety.js",
   "structured-appointment-parity.js", "handbook-smoke.js", "handbook-windows-variants.js",
   "native-integration-smoke.js", "full-parity-contract.js", "linux-live-parity.js",

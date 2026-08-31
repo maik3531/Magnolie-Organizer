@@ -58,8 +58,10 @@ def cli_pruefen():
     deutsch = cli_aufruf(handbuch, ["--language", "de", "--help"])
     assert englisch[0] == 0 and "Usage:" in englisch[1]
     assert "Use de, en, or system" in englisch[1]
+    assert "-h / --help" in englisch[1] and "-l LANGUAGE / --language LANGUAGE" in englisch[1]
     assert deutsch[0] == 0 and "Aufruf:" in deutsch[1]
     assert "Für diesen Aufruf de, en oder system verwenden" in deutsch[1]
+    assert "-h / --hilfe" in deutsch[1] and "-l SPRACHE / --sprache SPRACHE" in deutsch[1]
 
     fehlt = cli_aufruf(handbuch, ["--sprache"], fehler=True)
     franzoesisch = cli_aufruf(handbuch, ["--language", "fr", "--help"])
@@ -67,6 +69,42 @@ def cli_pruefen():
     assert fehlt[0] == 2 and "benötigt eine Sprache" in fehlt[1]
     assert franzoesisch[0] == 0
     assert falsch[0] == 2 and "Ungültige Sprache: xx" in falsch[1]
+    kurz = cli_aufruf(handbuch, ["-l", "de", "-h"])
+    version = cli_aufruf(handbuch, ["-V"])
+    unbekannt = cli_aufruf(
+        handbuch, ["--language", "de", "--does-not-exist"], fehler=True)
+    assert kurz[0] == 0 and "Aufruf:" in kurz[1]
+    assert version == (0, handbuch.PROGRAMM_FASSUNG + "\n")
+    assert unbekannt == (2, "Unbekannte Option: --does-not-exist\n")
+
+    unbekannt_uebersetzt = {
+        "ar": "خيار غير معروف: --unknown",
+        "be": "Невядомы параметр: --unknown",
+        "cs": "Neznámá volba: --unknown",
+        "da": "Ukendt indstilling: --unknown",
+        "de": "Unbekannte Option: --unknown",
+        "es": "Opción desconocida: --unknown",
+        "fr": "Option inconnue : --unknown",
+        "hi": "अज्ञात विकल्प: --unknown",
+        "hsb": "Njeznata opcija: --unknown",
+        "it": "Opzione sconosciuta: --unknown",
+        "ja": "不明なオプション: --unknown",
+        "nb": "Ukjent alternativ: --unknown",
+        "nl": "Onbekende optie: --unknown",
+        "pl": "Nieznana opcja: --unknown",
+        "pt": "Opção desconhecida: --unknown",
+        "ru": "Неизвестный параметр: --unknown",
+        "tr": "Bilinmeyen seçenek: --unknown",
+        "uk": "Невідомий параметр: --unknown",
+        "zh_CN": "未知选项：--unknown",
+    }
+    for sprache, meldung in unbekannt_uebersetzt.items():
+        ausgabe = cli_aufruf(
+            handbuch, ["--language", sprache, "--unknown"], fehler=True)
+        assert ausgabe == (2, meldung + "\n"), sprache
+    assert cli_aufruf(
+        handbuch, ["--language", "en", "--unknown"], fehler=True
+    ) == (2, "Unknown option: --unknown\n")
 
     quell_pot = os.path.join(WURZEL, "po", "magnolie-handbuch.pot")
     with open(quell_pot, "rb") as datei:
@@ -177,7 +215,7 @@ def haupt():
             "Personal Sync",
             "restore_unavailable",
             "Plattform- und Sicherheitsmatrix",
-            "magnolie-organizer-2.0.13-",
+            "magnolie-organizer-2.0.14-",
             "Die Locale beeinflusst den Diagnosetext",
             "Technische Datei- und Mengengrenzen",
             "keine Speicherobergrenze",

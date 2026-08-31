@@ -25,6 +25,9 @@ internal static class ContractGroupTests
 
     internal static Task ArchiveAsync()
     {
+        TestAssert.That(GesamtarchivService.IsArchivePath(@"C:\Cloud\backup.MAGNOLIE") &&
+            !GesamtarchivService.IsArchivePath(@"C:\Cloud\backup.json"),
+            "Die Wiederherstellungsroute erkennt .magnolie nicht eindeutig.");
         var data = JsonNode.Parse("""{"version":6,"termine":[],"kontakte":[{"foto":"data:image/jpeg;base64,/9j/2Q=="}],"notizen":[{"anhaenge":[{"daten":"data:application/pdf;base64,JVBERi0="}]}],"papierkorb":[],"einstellungen":{}}""")!.AsObject();
         var text = GesamtarchivService.Create(data, "linux", "1.31.7", "Rosenholz1896");
         var read = GesamtarchivService.Read(text, "Rosenholz1896");

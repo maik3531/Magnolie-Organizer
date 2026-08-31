@@ -44,7 +44,7 @@ with tempfile.TemporaryDirectory() as tmp:
                                          jetzt=zeit, disk_usage=disk)
     assert stand["format"] == "magnolie-snapshot"
     assert stand["formatVersion"] == 1 and stand["platform"] == "linux"
-    assert stand["appVersion"] == "2.0.13" and stand["integrity"] == "ok"
+    assert stand["appVersion"] == "2.0.14" and stand["integrity"] == "ok"
     assert stand["payload"]["schema"] == 1 and stand["summary"]["termine"] == 1
     assert os.stat(m.journal_verzeichnis(tmp)).st_mode & 0o777 == 0o700
     assert os.stat(os.path.join(stand["path"], "manifest.json")).st_mode & 0o777 == 0o600
@@ -246,6 +246,21 @@ with tempfile.TemporaryDirectory() as tmp:
     behalten = m.journal_liste(tmp, integritaet=False)
     assert len(behalten) == 3
     assert [x["snapshotId"] for x in behalten] == [x["snapshotId"] for x in erstellt[-3:][::-1]]
+
+# Die Obergrenze darf angeheftete und junge Vor-Wiederherstellungsstände nicht löschen.
+with tempfile.TemporaryDirectory() as tmp:
+    start = datetime(2026, 1, 1, tzinfo=timezone.utc)
+    manuell = m.journal_snapshot_erzeugen(daten(), "manual", basis=tmp,
+        jetzt=start, disk_usage=disk, maximum=3)
+    restore = m.journal_snapshot_erzeugen(daten(2), "pre-restore", basis=tmp,
+        jetzt=start + timedelta(hours=1), disk_usage=disk, maximum=3)
+    for i in range(5):
+        m.journal_snapshot_erzeugen(daten(i + 3), "pre-sync", basis=tmp,
+            jetzt=start + timedelta(hours=i + 2), disk_usage=disk, maximum=3)
+    behalten = m.journal_liste(tmp, integritaet=False)
+    ids = {x["snapshotId"] for x in behalten}
+    assert manuell["snapshotId"] in ids and restore["snapshotId"] in ids
+    assert len(behalten) == 3
 
 # Atomarer Fehler hinterlässt keinen sichtbaren Stand.
 with tempfile.TemporaryDirectory() as tmp:

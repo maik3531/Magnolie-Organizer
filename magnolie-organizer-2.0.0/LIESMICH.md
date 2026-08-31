@@ -59,7 +59,7 @@ Organizer-Aktualisierungen enthalten zusätzlich das passende AppImage:
 
     <appimage>
       <architecture>x86_64</architecture>
-      <url>https://…/Magnolie-Organizer-2.0.13-x86_64.AppImage</url>
+      <url>https://…/Magnolie-Organizer-2.0.14-x86_64.AppImage</url>
       <sha256>64 hexadezimale Zeichen</sha256>
     </appimage>
 
@@ -95,7 +95,7 @@ erhalten.
 
 Das fertige Paket liegt danach eine Ebene höher und wird installiert mit:
 
-    sudo apt install ../magnolie-organizer_2.0.13_all.deb
+    sudo apt install ../magnolie-organizer_2.0.14_all.deb
 
 Normale Eigenbauten enthalten kein Contributor-Branding. Offizielle Binärbauten
 können über `MAGNOLIE_CONTRIBUTOR_HASH` eine 64-stellige SHA-256-Hexfolge
@@ -103,22 +103,32 @@ erhalten. Nur dann wird eine `build-config.json` in DEB, RPM oder AppImage
 erzeugt. Die Konfiguration und der Klartextschlüssel gelangen nicht in Debian-
 Quellpaket, Source0 oder SRPM.
 
-### Fedora-RPM und SRPM
+### RPM und SRPM
 
-Auf Fedora erzeugt das Bauwerkzeug ein normalisiertes
-`magnolie-organizer-2.0.13.tar.xz` mit dem gleichnamigen obersten Verzeichnis
+Das Bauwerkzeug verlangt ein ausdrückliches Distributionsprofil, erzeugt ein normalisiertes
+`magnolie-organizer-2.0.14.tar.xz` mit dem gleichnamigen obersten Verzeichnis
 und baut daraus RPM und SRPM. Bereits vorhandene Debian-Bauverzeichnisse,
 generierte Kataloge und die generierte WAV-Datei gelangen nicht in Source0:
 
     sudo dnf install rpm-build rpmdevtools gettext python3-devel \
         python3-cryptography python3-zeroconf desktop-file-utils appstream
-    werkzeuge/rpm_bauen.sh
+    werkzeuge/rpm_bauen.sh --distro fedora
 
-Die Ergebnisse liegen unter `bau/rpm/RPMS/noarch/` und `bau/rpm/SRPMS/`. Ein
+Zulässige Profile sind `fedora`, `opensuse`, `mageia`, `openmandriva`,
+`pclinuxos` und `rosa`. Jedes Profil erzeugt getrennte, im Spec und SRPM
+festgeschriebene Zielmetadaten. Die Nicht-Fedora-Profile sind noch keine
+Freigabegates; insbesondere das rollende PCLinuxOS-Profil muss vor einer
+Veröffentlichung gegen einen festgeschriebenen Repository-Stand gebaut und
+installiert werden. Nur der festgeschriebene Fedora-42-Wrapper wird derzeit für
+eine Veröffentlichung gebaut, installiert und geprüft.
+
+Die Ergebnisse liegen getrennt unter `bau/rpm/PROFIL/RPMS/noarch/` und
+`bau/rpm/PROFIL/SRPMS/`. Das erzeugte Spec enthält das Profil fest und das RPM
+stellt `magnolie-rpm-profile(PROFIL)` bereit. Ein
 bereits erzeugtes Source0 lässt sich auch unmittelbar mit dem Spec bauen:
 
-    rpmbuild -ba --define "_topdir $PWD/bau/rpm" \
-        bau/rpm/SPECS/magnolie-organizer.spec
+    rpmbuild -ba --define "_topdir $PWD/bau/rpm/fedora" \
+        bau/rpm/fedora/SPECS/magnolie-organizer.spec
 
 Ein sauberer Fedora-Chroot-Bau des SRPM und die anschließende Prüfung erfolgen
 beispielsweise mit (die Fedora-Version bei Bedarf anpassen):
@@ -126,15 +136,15 @@ beispielsweise mit (die Fedora-Version bei Bedarf anpassen):
     sudo dnf install mock rpmlint
     sudo usermod -a -G mock "$USER"
     mock -r fedora-42-x86_64 --rebuild \
-        bau/rpm/SRPMS/magnolie-organizer-2.0.13-1.fc42.src.rpm
-    rpmlint rpm/magnolie-organizer.spec \
-        bau/rpm/SRPMS/magnolie-organizer-2.0.13-1.fc42.src.rpm \
-        bau/rpm/RPMS/noarch/magnolie-organizer-2.0.13-1.fc42.noarch.rpm
+        bau/rpm/fedora/SRPMS/magnolie-organizer-2.0.14-1.fc42.src.rpm
+    rpmlint bau/rpm/fedora/SPECS/magnolie-organizer.spec \
+        bau/rpm/fedora/SRPMS/magnolie-organizer-2.0.14-1.fc42.src.rpm \
+        bau/rpm/fedora/RPMS/noarch/magnolie-organizer-2.0.14-1.fc42.noarch.rpm
 
 Das lokale RPM kann mit DNF installiert und wieder entfernt werden, ohne dass
 die Paket-Scriptlets Firewallregeln öffnen oder Benutzerdaten verändern:
 
-    sudo dnf install bau/rpm/RPMS/noarch/magnolie-organizer-2.0.13-1.fc42.noarch.rpm
+    sudo dnf install bau/rpm/fedora/RPMS/noarch/magnolie-organizer-2.0.14-1.fc42.noarch.rpm
     sudo dnf remove magnolie-organizer
 
 Die mitgelieferte firewalld-Servicebeschreibung ist nur eine Vorlage. Falls
@@ -153,14 +163,14 @@ von `linuxdeploy` und `appimagetool` sind mitsamt SHA-256-Prüfsummen im Bauplan
 festgeschrieben. Gebaut und gegen den gepackten Programmkern geprüft wird mit:
 
     werkzeuge/appimage_bauen.sh
-    pruefungen/test_appimage.sh ../Magnolie-Organizer-2.0.13-x86_64.AppImage
+    pruefungen/test_appimage.sh ../Magnolie-Organizer-2.0.14-x86_64.AppImage
 
 Unter Wayland verwendet das AppImage standardmäßig den nativen Grafikpfad mit
 DMA-BUF. Falls ein bestimmter Grafiktreiber damit ein leeres Fenster oder einen
 WebKit-Absturz verursacht, startet `MAGNOLIE_GRAPHICS_COMPAT=1` den konservativen
 XWayland-Fallback. Das gilt für AppImage, DEB und RPM; beim AppImage lautet der
 Aufruf beispielsweise
-`MAGNOLIE_GRAPHICS_COMPAT=1 ./Magnolie-Organizer-2.0.13-x86_64.AppImage`. Der
+`MAGNOLIE_GRAPHICS_COMPAT=1 ./Magnolie-Organizer-2.0.14-x86_64.AppImage`. Der
 Fallback ist wegen zusätzlicher Bildkopien nicht für den normalen Betrieb
 vorgesehen.
 
@@ -173,9 +183,9 @@ Audiosocket funktioniert sowohl mit PulseAudio als auch mit `pipewire-pulse`.
 
     flatpak install --user flathub org.gnome.Sdk//49 org.flatpak.Builder
     werkzeuge/flatpak_bauen.sh
-    flatpak install --user ../Magnolie-Organizer-2.0.13-x86_64.flatpak
+    flatpak install --user ../Magnolie-Organizer-2.0.14-x86_64.flatpak
 
-Das Ergebnis liegt als `Magnolie-Organizer-2.0.13-x86_64.flatpak` eine Ebene
+Das Ergebnis liegt als `Magnolie-Organizer-2.0.14-x86_64.flatpak` eine Ebene
 oberhalb des Quellordners. `pruefungen/test_flatpak.py` prüft Manifest,
 Abhängigkeitshashes, Sandboxrechte und auf Wunsch das fertige Bündel.
 
@@ -214,7 +224,7 @@ in das System. Die echten User-systemd- und UFW-Lebenszyklen sind mit
 `isolation-machine` gekennzeichnet und dürfen nur in einem wegwerfbaren
 Maschinen-Testbed ausgeführt werden:
 
-    autopkgtest ../magnolie-organizer_2.0.13.dsc -- qemu TESTABBILD
+    autopkgtest ../magnolie-organizer_2.0.14.dsc -- qemu TESTABBILD
 
 Für den Umstieg von Lotus Organizer gibt es zusätzlich Belastungstests
 mit je 30.000 Terminen, Adressen, Aufgaben, Jahrestagen und Notizen:

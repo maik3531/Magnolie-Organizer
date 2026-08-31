@@ -1,10 +1,10 @@
-.TH MAGNOLIE-HANDBUCH 1 "agosto de 2026" "Manual do Magnolie 2.0.6" "Comandos de utilizador"
+.TH MAGNOLIE-HANDBUCH 1 "agosto de 2026" "Manual do Magnolie 2.0.14" "Comandos de utilizador"
 .SH NOME
 magnolie-handbuch \- abrir o manual do utilizador do Magnolie Organizer
 .SH SINOPSE
 .B magnolie-handbuch
 .RI [ opção ]
-.RI [ \-\-sprache\  idioma ]
+.RI [ \-\-language\  idioma ]
 .SH DESCRIÇÃO
 .B Manual do Magnolie
 abre o guia completo e ilustrado do utilizador do Magnolie Organizer. O manual
@@ -12,21 +12,27 @@ pode ser consultado no ecrã, impresso ou exportado como ficheiro PDF.
 .PP
 É aberta apenas uma janela do manual por sessão de utilizador. Executar o
 comando novamente apresenta a janela existente.
+.SH FORMAS DA LINHA DE COMANDOS
+Os aliases curtos neutros e as formas longas inglesas são:
+.nf
+\-h \-\-help; \-V \-\-version; \-l \-\-language; \-P \-\-pot-template.
+.fi
+São aceites as formas longas alemãs e inglesas.
 .SH OPÇÕES
 .TP
-.BR \-\-sprache " " SPRACHE , " " \-\-language " " LANGUAGE
+.BR \-\-language " " LANGUAGE , " " \-\-sprache " " SPRACHE
 Utilizar alemão (\fBde\fR), inglês (\fBen\fR) ou o idioma do sistema
 (\fBsystem\fR) nesta execução. Isto seleciona o idioma da saída do comando
 antes da ajuda e o idioma do WebKit de uma janela recém-aberta. As definições
 guardadas não são alteradas.
 .TP
-.BR \-\-pot " [" DATEI "]", " " \-\-pot-template " [" FILE "]"
+.BR \-\-pot-template " [" FILE "]", " " \-\-pot " [" DATEI "]"
 Gerar um modelo gettext reprodutível e sair. Sem um argumento de ficheiro,
 escrever \fBmagnolie-handbuch.pot\fR no diretório atual; caso contrário,
 escrever no caminho indicado. O caminho absoluto de saída é apresentado em
 caso de êxito.
 .TP
-.BR \-\-hilfe , " " \-\-help
+.BR \-\-help , " " \-\-hilfe
 Mostrar um breve resumo do comando.
 .SH AMBIENTE
 .TP

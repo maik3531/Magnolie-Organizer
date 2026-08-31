@@ -1,0 +1,410 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="freigabe_ziel">In Magnolie Notes sichern</string>
+
+    <string name="blatt_notizen">Notizen</string>
+    <string name="blatt_einfuhr">Übernehmen</string>
+    <string name="blatt_baum">Baum</string>
+
+    <string name="notiz_neu">Neue Notiz</string>
+    <string name="notiz_titel">Überschrift</string>
+    <string name="notiz_text">Hier schreiben …</string>
+    <string name="notiz_leer">Noch keine Notiz. Übernimm welche oder schreib die erste.</string>
+    <string name="notiz_loeschen">Notiz löschen</string>
+    <string name="notiz_teilen">Weitergeben</string>
+    <string name="notiz_suchen">Suchen</string>
+    <string name="notiz_gespeichert">Gespeichert %1$s</string>
+    <string name="notiz_angelegt">Angelegt %1$s</string>
+    <string name="notiz_symbol">Sinnbild</string>
+    <string name="notiz_buch">Notizbuch</string>
+    <plurals name="notiz_anzahl">
+        <item quantity="one">%1$d Notiz</item>
+        <item quantity="other">%1$d Notizen</item>
+    </plurals>
+    <string name="notiz_herkunft">Herkunft: %1$s</string>
+    <string name="notiz_magnolienbaum">· Magnolienbaum</string>
+    <string name="notizbuch_standard">Lose Notizen</string>
+    <string name="heute">Heute</string>
+    <string name="gestern">Gestern</string>
+
+    <string name="einfuhr_ueberschrift">Notizen übernehmen</string>
+    <string name="einfuhr_erklaerung">Samsung Notes, Google Keep und die anderen bewahren ihre Notizen in ihrem eigenen geschützten Speicher auf. Android lässt keine fremde App direkt hineinsehen. Zwei Wege gehen immer: eine Notiz direkt mit Magnolie Notes teilen — oder die Exportdatei einlesen, die diese Programme schreiben.</string>
+    <string name="einfuhr_teilen_titel">Teilen (geht überall)</string>
+    <string name="einfuhr_teilen_text">Notiz in Samsung Notes, Keep, ColorNote oder sonstwo öffnen, auf Teilen tippen und „Magnolie Notes“ wählen. Mehrere Notizen dürfen auch zusammen kommen.</string>
+    <string name="einfuhr_datei_titel">Exportdatei einlesen</string>
+    <string name="einfuhr_datei_knopf">Datei wählen …</string>
+    <string name="einfuhr_ordner_knopf">Ordner wählen …</string>
+    <string name="einfuhr_formate">Wird von selbst erkannt: Google Takeout (.zip / .json / .html), Samsung Notes (.sdocx / .txt / .html), Evernote (.enex), ColorNote-Sicherung, Standard Notes (.txt / .json), Simplenote, Joplin sowie schlichte Markdown- oder Textordner.</string>
+    <string name="einfuhr_laeuft">Wird gelesen …</string>
+    <plurals name="einfuhr_ergebnis">
+        <item quantity="one">%1$d Notiz übernommen, bereits vorhanden: %2$d.</item>
+        <item quantity="other">%1$d Notizen übernommen, %2$d waren schon da.</item>
+    </plurals>
+    <string name="einfuhr_nichts">In dieser Datei stand keine lesbare Notiz.</string>
+    <string name="einfuhr_fehler">Die Datei ließ sich nicht lesen: %1$s</string>
+    <string name="einfuhr_datei_oeffnen_fehler">Die Datei ließ sich nicht öffnen.</string>
+    <string name="einfuhr_ordner_oeffnen_fehler">Der Ordner ließ sich nicht öffnen.</string>
+    <string name="einfuhr_unbekannter_fehler">Die Übernahme ist fehlgeschlagen.</string>
+    <string name="einfuhr_gesamtarchiv_nicht_unterstuetzt">Dies ist ein Magnolie-Gesamtarchiv vom Desktop. Der Gesamtarchivimport wird auf diesem Gerät noch nicht unterstützt.</string>
+    <string name="art_termin">Termin</string>
+    <string name="baum_termin_nicht_unterstuetzt">Termine aus dem Magnolienbaum werden auf diesem Gerät noch nicht unterstützt.</string>
+    <string name="herkunft_uebernommen">Übernommen</string>
+    <string name="herkunft_geteilt">Geteilt</string>
+    <string name="einfuhr_anleitung_titel">So kommst du an die Exportdatei</string>
+    <string name="einfuhr_anleitung_keep">Google Keep: takeout.google.com am Handy öffnen, nur „Keep“ auswählen, Export anfordern und die .zip hier einlesen.</string>
+    <string name="einfuhr_anleitung_samsung">Samsung Notes: Liste öffnen, Notiz lange antippen, Mehr → Als Datei speichern → PDF oder Text, danach den Ordner hier einlesen. Ein ganzes Notizbuch lässt sich auf einmal auswählen.</string>
+    <string name="einfuhr_anleitung_evernote">Evernote: Notizbuch → Notizen exportieren → .enex.</string>
+
+    <string name="baum_ueberschrift">Magnolienbaum</string>
+    <string name="telefon_titel">Magnolie-Telefonverbindung</string>
+    <string name="telefon_hinweis">Unabhängige verschlüsselte Verbindung für Gerätestatus, Wählaufträge und nur lesbare Benachrichtigungen aus exakt ausgewählten Apps. Sie verwendet niemals Kopplungen oder Freigaben des Magnolienbaums.</string>
+    <string name="telefon_hauptschalter">Telefonverbindung einschalten</string>
+    <string name="telefon_status">Verbindungsstatus</string>
+    <string name="telefon_status_aus">Aus</string>
+    <string name="telefon_status_getrennt">Getrennt</string>
+    <string name="telefon_status_gepaart">Gekoppelt</string>
+    <string name="telefon_status_code">Code bestätigen</string>
+    <string name="telefon_status_fehler">Fehler</string>
+    <string name="telefon_bluetooth_status">Bluetooth-Datenfallback verfügbar</string>
+    <string name="telefon_waehlen_schalter">Wählaufträge erlauben</string>
+    <string name="telefon_waehlen_hinweis">Standardmäßig aus und unabhängig von Anrufsteuerung und HFP. Ein Auftrag öffnet nur den Systemwähler; dort bestätigen Sie den Anruf.</string>
+    <string name="telefon_waehlen_nicht_verfuegbar">Kein Systemwähler verfügbar. Wählaufträge können nicht freigegeben werden.</string>
+    <string name="telefon_waehlen_kanal">Wählaufträge</string>
+    <string name="telefon_waehlen_titel">Anruf im Systemwähler bestätigen</string>
+    <string name="telefon_bluetooth_fallback">Bluetooth-Datenfallback</string>
+    <string name="telefon_bluetooth_hinweis">Optional und standardmäßig aus. WLAN bleibt bevorzugt. Kopple den Desktop zuerst ausdrücklich in den Android-Systemeinstellungen und wähle das bereits gekoppelte Gerät danach hier aus. Die unabhängige Telefonverbindung verwendet ihren eigenen verschlüsselten Handshake, niemals den Bluetooth-Dienst des Magnolienbaums.</string>
+    <string name="telefon_bluetooth_systempaarung">Bluetooth-Systemkopplung öffnen</string>
+    <string name="telefon_bluetooth_geraete">Gekoppeltes Gerät auswählen</string>
+    <string name="telefon_bluetooth_verwenden">%1$s sicher prüfen und verwenden</string>
+    <string name="telefon_bluetooth_zugeordnet">Bluetooth-Gerät</string>
+    <string name="telefon_bluetooth_berechtigung">Bluetooth wurde nicht erlaubt. Es wurde keine Verbindung versucht.</string>
+    <string name="telefon_bluetooth_voraussetzung">Telefonverbindung zuerst einschalten und sicher über WLAN koppeln.</string>
+    <string name="telefon_suchen">Desktop suchen</string>
+    <string name="telefon_verbinden">Mit %1$s verbinden</string>
+    <string name="telefon_code_stimmt">Codes stimmen überein</string>
+    <string name="telefon_code_falsch">Codes stimmen nicht überein</string>
+    <string name="telefon_kopplung">Gekoppelter Desktop</string>
+    <string name="telefon_geraetestatus">Gerätestatus-Freigabe</string>
+    <string name="telefon_freigegeben">Freigegeben</string>
+    <string name="telefon_nicht_freigegeben">Nicht freigegeben</string>
+    <string name="telefon_entkoppeln">Telefonverbindung entfernen</string>
+    <string name="telefon_eins_zu_eins">Es kann nur ein Organizer gekoppelt sein. Entfernen Sie den vorhandenen Organizer, bevor Sie das Gerät wechseln.</string>
+    <string name="telefon_entkoppeln_frage">Verbindung zu „%1$s“ entfernen? Kopplungsschlüssel, Freigaben, wartende Nachrichten und vorbereitete persönliche Sync-Läufe werden entfernt. Synchronisierte Notizen, Notizbücher und Aufgaben bleiben erhalten.</string>
+    <string name="telefon_dienst_laeuft">Telefonverbindung aktiv; wartet auf Desktop</string>
+    <string name="telefon_dienst_sucht">Desktop wird gesucht…</string>
+    <string name="telefon_dienst_verbindet">Sichere Verbindung mit %1$s wird aufgebaut…</string>
+    <string name="telefon_dienst_wlan">Mit %1$s über WLAN verbunden</string>
+    <string name="telefon_dienst_bluetooth">Mit %1$s über Bluetooth verbunden</string>
+    <string name="telefon_dienst_fehler">Verbindung fehlgeschlagen; neuer Versuch läuft</string>
+    <string name="telefon_dienst_kanal">Magnolie-Telefonverbindung</string>
+    <string name="telefon_trennen">Trennen</string>
+    <string name="baum_erklaerung">Der Magnolienbaum verbindet dieses Handy unmittelbar mit deinem Magnolie Organizer — ohne Cloud, ohne Vermittler. Notizen gehen verschlüsselt und erst, wenn beide Seiten einander bestätigt haben.</string>
+    <string name="baum_eigener_name">Name dieses Zweigs</string>
+    <string name="baum_fingerabdruck">Fingerabdruck</string>
+    <string name="baum_kennung">Kennung</string>
+    <string name="baum_dienst_an">Notizen empfangen (im Hintergrund)</string>
+    <string name="baum_dienst_aus">Aus</string>
+    <string name="baum_paaren_titel">Mit dem Organizer paaren</string>
+    <string name="baum_paaren_text">Im Organizer unter Einstellungen → Magnolienbaum → „Paarungsdatei erzeugen“, die Datei aufs Handy bringen und hier öffnen. Sie gilt 15 Minuten.</string>
+    <string name="baum_paarungsdatei">Paarungsdatei öffnen …</string>
+    <string name="baum_paarung_einfuegen">Paarungstext einfügen</string>
+    <string name="baum_paarung_laeuft">Paarung läuft …</string>
+    <string name="baum_paarung_gut">Mit %1$s gepaart.</string>
+    <string name="baum_paarung_fehler">Paarung misslungen: %1$s</string>
+    <string name="baum_partner">Zweige</string>
+    <string name="baum_keine_partner">Noch kein Zweig gepaart.</string>
+    <string name="baum_partner_entfernen">Entfernen</string>
+    <string name="baum_suchen">Im lokalen Netz suchen</string>
+    <string name="baum_gefunden">%1$s unter %2$s</string>
+    <string name="baum_nichts_gefunden">Kein Zweig hat geantwortet. Ist der Magnolienbaum im Organizer eingeschaltet und hängen beide Geräte im selben WLAN?</string>
+    <string name="baum_senden">Jetzt senden</string>
+    <plurals name="baum_postfach">
+        <item quantity="one">Postfach: %1$d wartend</item>
+        <item quantity="other">Postfach: %1$d wartend</item>
+    </plurals>
+    <string name="baum_zuletzt">Zuletzt erreicht: %1$s</string>
+    <string name="baum_nie">nie</string>
+    <string name="baum_weg_wlan">WLAN</string>
+    <string name="baum_weg_bluetooth">Bluetooth</string>
+    <string name="baum_bluetooth_hinweis">Bluetooth trägt dieselben verschlüsselten Nachrichten wie WLAN. Handy und Rechner in Android koppeln und unten beim Organizer-Zweig den Rechner wählen.</string>
+    <string name="baum_bluetooth_an">Bluetooth annehmen</string>
+    <string name="baum_bluetooth_geraete">Gekoppelte Geräte</string>
+    <string name="baum_bluetooth_zuordnen">%1$s über Bluetooth verwenden</string>
+    <string name="baum_bluetooth_trennen">Bluetooth nicht verwenden</string>
+    <string name="baum_bluetooth_berechtigung">Für diese Verbindung wird die Bluetooth-Berechtigung benötigt.</string>
+    <string name="baum_auto_wlan">Automatisch im lokalen WLAN synchronisieren</string>
+    <string name="baum_fernziel_hinweis">Optionaler direkter Endpunkt über Internet, VPN, Rückwärtstunnel oder eigenen Server. Magnolie stellt keinen zentralen Vermittler bereit.</string>
+    <string name="baum_fernziel_host">Entfernter Host (optional)</string>
+    <string name="baum_fernziel_port">Entfernter Port</string>
+    <string name="baum_alles_sync">Alles synchronisieren</string>
+    <string name="baum_sync_eingereiht">Die vollständige Synchronisation wurde ins Postfach gelegt.</string>
+    <string name="baum_dienst_laeuft">Magnolie Notes hört auf den Organizer</string>
+    <string name="baum_dienst_kanal">Magnolienbaum</string>
+    <string name="baum_teilen_frage">Diese Notiz an %1$s weitergeben?</string>
+    <string name="baum_geteilt">Notiz dem Magnolienbaum übergeben.</string>
+    <string name="baum_nicht_erreicht">Nicht erreichbar — die Notiz bleibt im Postfach und wird erneut versucht.</string>
+    <string name="baum_eigene_paarungsdatei">Eigene Paarungsdatei erzeugen …</string>
+    <string name="baum_paarungsdatei_teilen">Paarungsdatei weitergeben</string>
+    <string name="baum_verbinden">Verbinden</string>
+    <string name="baum_code_vergleichen">Vergleiche den Code am Organizer: %1$s</string>
+    <string name="baum_bestaetigt">bestätigt</string>
+    <string name="baum_wartet">wartet</string>
+    <string name="baum_code_stimmt">Code stimmt</string>
+    <string name="baum_ereignisse">Zuletzt geschehen</string>
+    <string name="baum_meldung_dienst_fehler">Der Empfangsdienst konnte keinen Port öffnen.</string>
+    <string name="baum_meldung_bluetooth_fehler">Bluetooth konnte nicht geöffnet werden.</string>
+    <string name="baum_meldung_gepaart">Mit %1$s gepaart.</string>
+    <string name="baum_meldung_datei_verbunden">Ein Zweig hat sich mit der Paarungsdatei angeschlossen.</string>
+    <string name="baum_meldung_code_anfrage">Ein Zweig möchte sich verbinden. Vergleiche den Code im Magnolienbaum-Blatt.</string>
+    <string name="baum_meldung_angebot">Ein Angebot von %1$s wartet im Eingang.</string>
+    <string name="baum_meldung_aufgabe">Eine Aufgabe kam von %1$s an.</string>
+    <string name="baum_meldung_aufgabe_erledigt">Eine vergebene Aufgabe wurde erledigt gemeldet.</string>
+    <string name="baum_meldung_aufgabe_geoeffnet">Eine vergebene Aufgabe wurde wieder geöffnet.</string>
+    <string name="baum_meldung_notiz">Eine Notiz kam über den Magnolienbaum an.</string>
+    <string name="baum_meldung_notiz_aktualisiert">Eine gemeinsame Notiz wurde aktualisiert.</string>
+    <string name="herkunft_magnolienbaum">Magnolienbaum</string>
+    <string name="fehler_allgemein">Etwas ist fehlgeschlagen.</string>
+    <string name="fehler_datei_oeffnen">Die Datei ließ sich nicht öffnen.</string>
+    <string name="fehler_identitaet">Die Magnolienbaum-Identität dieses Geräts ist noch nicht bereit.</string>
+    <string name="fehler_keine_netzadresse">Dieses Gerät hat gerade keine Netzadresse.</string>
+    <string name="fehler_nicht_erreichbar">Der andere Zweig ist nicht erreichbar.</string>
+    <string name="fehler_nicht_bestaetigt">Der Zweig ist nicht bestätigt und vertraut.</string>
+    <string name="fehler_schluessel_geaendert">Der Schlüssel dieses Zweigs hat sich geändert. Entferne zuerst die alte Verbindung und vergleiche den neuen Fingerabdruck sorgfältig.</string>
+    <string name="fehler_paarungsdatei_beschaedigt">Die Paarungsdatei ist ungültig oder beschädigt.</string>
+    <string name="fehler_paarungsdatei_gross">Die Paarungsdatei ist zu groß.</string>
+    <string name="fehler_paarungsdatei_abgelaufen">Die Paarungsdatei ist abgelaufen. Erzeuge im Organizer eine neue.</string>
+    <string name="fehler_paarung_nachweis">Der andere Zweig konnte die Paarungsdatei nicht nachweisen.</string>
+    <string name="fehler_paarungsanfrage">Die Paarungsanfrage ist ungültig.</string>
+    <string name="fehler_schluessel">Ein kryptografischer Schlüssel ist ungültig oder beschädigt.</string>
+    <string name="fehler_nachricht">Die verschlüsselte Nachricht ist ungültig oder beschädigt.</string>
+    <string name="fehler_sitzung">Die sichere Sitzung ist ungültig oder abgelaufen.</string>
+    <string name="fehler_antwort">Der andere Zweig hat eine ungültige Antwort geschickt.</string>
+    <string name="fehler_bluetooth_nicht_verfuegbar">Bluetooth ist auf diesem Gerät nicht verfügbar.</string>
+    <string name="fehler_bluetooth_aus">Bluetooth ist ausgeschaltet.</string>
+    <string name="fehler_bluetooth_adresse">Die Bluetooth-Adresse ist ungültig.</string>
+    <string name="fehler_bluetooth_berechtigung">Die Bluetooth-Berechtigung fehlt.</string>
+    <string name="fehler_bluetooth_verbindung">Die Bluetooth-Verbindung kam nicht zustande.</string>
+    <string name="fehler_bluetooth_nachricht">Die Bluetooth-Nachricht ist ungültig oder zu groß.</string>
+
+    <string name="ok">In Ordnung</string>
+    <string name="abbrechen">Abbrechen</string>
+    <string name="loeschen">Löschen</string>
+    <string name="sichern">Sichern</string>
+    <string name="zurueck">Zurück</string>
+    <string name="semantik_ausgewaehlt">%1$s, ausgewählt</string>
+    <string name="wirklich_loeschen">Diese Notiz endgültig löschen?</string>
+
+    <string name="blatt_aufgaben">Aufgaben</string>
+    <string name="aufgabe_neu">Neue Aufgabe</string>
+    <string name="aufgabe_titel">Was zu tun ist</string>
+    <string name="aufgabe_notiz">Warum, und was sonst dazugehört</string>
+    <string name="aufgabe_faellig">Fällig am</string>
+    <string name="aufgabe_kein_datum">ohne Datum</string>
+    <string name="aufgabe_ohne_kopf">ohne</string>
+    <string name="aufgabe_prio">Dringlichkeit</string>
+    <string name="aufgabe_prio1">dringend</string>
+    <string name="aufgabe_prio2">normal</string>
+    <string name="aufgabe_prio3">kann warten</string>
+    <string name="aufgabe_erinnern">Erinnere mich</string>
+    <string name="aufgabe_vorlauf">Tage vorher</string>
+    <string name="aufgabe_uhrzeit">Um</string>
+    <string name="aufgabe_erledigt">Erledigt</string>
+    <string name="aufgabe_leer">Nichts zu tun. Schreib eine Aufgabe – oder lass dir vom Organizer eine geben.</string>
+    <string name="aufgabe_loeschen">Aufgabe löschen</string>
+    <string name="aufgabe_weitergeben">An einen Zweig geben</string>
+    <string name="aufgabe_von">von %1$s</string>
+    <string name="aufgabe_ueberfaellig_kopf">Überfällig</string>
+    <string name="aufgabe_heute_kopf">Heute</string>
+    <string name="aufgabe_morgen_kopf">Morgen</string>
+    <string name="aufgabe_woche_kopf">Diese Woche</string>
+    <string name="aufgabe_spaeter_kopf">Später</string>
+    <string name="aufgabe_erledigt_kopf">Erledigt</string>
+    <string name="aufgabe_heute_faellig">heute fällig</string>
+    <string name="aufgabe_morgen_faellig">morgen fällig</string>
+    <plurals name="aufgabe_ueberfaellig">
+        <item quantity="one">seit %1$d Tag fällig</item>
+        <item quantity="other">seit %1$d Tagen fällig</item>
+    </plurals>
+    <plurals name="aufgabe_in_tagen">
+        <item quantity="one">in %1$d Tag fällig</item>
+        <item quantity="other">in %1$d Tagen fällig</item>
+    </plurals>
+    <string name="aufgabe_faellig_am">fällig am %1$s</string>
+    <string name="aufgabe_kanal">Aufgabenerinnerungen</string>
+    <string name="aufgabe_kanal_hinweis">Meldet sich, wenn eine Aufgabe fällig wird.</string>
+    <string name="aufgabe_angekommen">%1$s hat dir eine Aufgabe gegeben.</string>
+    <string name="aufgabe_wecker_hinweis">Android lässt derzeit keine genauen Wecker zu. Erinnerungen können verspätet kommen; in den Systemeinstellungen lässt sich das erlauben.</string>
+    <string name="aufgabe_wecker_erlauben">Genaue Erinnerungen erlauben</string>
+    <string name="aufgabe_als_erledigt_markieren">Aufgabe als erledigt markieren</string>
+    <string name="aufgabe_als_offen_markieren">Aufgabe als offen markieren</string>
+    <string name="aufgabe_erinnerung_aktiv">Erinnerung eingeschaltet</string>
+    <string name="aufgabe_vorlauf_verringern">Erinnerungsvorlauf verringern</string>
+    <string name="aufgabe_vorlauf_erhoehen">Erinnerungsvorlauf erhöhen</string>
+    <string name="aufgabe_stunde_verringern">Erinnerung eine Stunde früher stellen</string>
+    <string name="aufgabe_stunde_erhoehen">Erinnerung eine Stunde später stellen</string>
+    <string name="aufgabe_plus_sieben_tage">In sieben Tagen</string>
+    <string name="symbol_einkauf">Einkauf</string>
+    <string name="symbol_aufgabe">Aufgabe</string>
+    <string name="symbol_termin">Termin</string>
+    <string name="symbol_idee">Einfall</string>
+    <string name="symbol_reise">Reise</string>
+    <string name="symbol_rezept">Rezept</string>
+    <string name="symbol_geld">Geld</string>
+    <string name="symbol_arbeit">Arbeit</string>
+    <string name="symbol_person">Person</string>
+    <string name="symbol_gesundheit">Gesundheit</string>
+    <string name="symbol_zitat">Zitat</string>
+    <string name="symbol_notiz">Notiz</string>
+
+    <string name="baum_vertrauen">Inhalte ohne Rückfrage übernehmen</string>
+    <string name="baum_vertrauen_hinweis">Ein einmal gepaarter Zweig bleibt vertraut: sein Schlüssel ist angeheftet, eine erneute Bestätigung braucht es nicht. Wer möchte, schaltet das für einen Zweig ab – dann landen dessen Notizen und Aufgaben erst im Eingang.</string>
+    <string name="baum_eingang">Eingang</string>
+    <string name="baum_eingang_leer">Nichts wartet.</string>
+    <string name="baum_annehmen">Annehmen</string>
+    <string name="baum_ablehnen">Ablehnen</string>
+    <string name="baum_eingang_stueck">%1$s von %2$s</string>
+    <string name="art_notiz">Notiz</string>
+    <string name="art_aufgabe">Aufgabe</string>
+    <string name="baum_kontakt_sync">Kontakte mit diesem Zweig synchronisieren</string>
+    <string name="baum_kontakt_sync_hinweis">Optional. Kontakte werden ergänzend zusammengeführt; Löschungen werden nie übertragen.</string>
+    <string name="baum_kontakte_sync">Kontakte synchronisieren</string>
+    <string name="baum_kontakte_eingereiht">Die Kontaktsynchronisation wurde ins Postfach eingereiht.</string>
+    <string name="baum_kontakte_berechtigung">Der Kontaktzugriff wurde nicht erlaubt. Es wurde nichts geändert.</string>
+    <string name="baum_kontakte_empfangen">Kontakt aus dem Magnolienbaum übernommen.</string>
+    <string name="art_kontakt">Kontakt</string>
+    <string name="notiz_anhaenge">Anhänge: %1$d</string>
+    <string name="notiz_bild">Bild</string>
+    <string name="notiz_pdf">PDF-Dokument</string>
+    <string name="notiz_anhang_entfernen">Entfernen</string>
+    <string name="notiz_anhang_oeffnen_fehler">Keine geeignete App konnte diesen Anhang öffnen.</string>
+    <string name="baum_anhaenge_speicher">Neue Anhänge wurden ausgelassen, weil die sichere Speichergrenze erreicht ist. Bestehende Anhänge bleiben unverändert.</string>
+    <string name="baum_kontakt_loesch_sync">Kontaktlöschungen vorbereiten</string><string name="baum_kontakt_loesch_hinweis">Optional und getrennt. Jede Löschung wird nur vorgeschlagen und muss einzeln bestätigt werden.</string>
+    <string name="baum_kontakt_loesch_warnung_titel">Löschvorschläge erlauben?</string><string name="baum_kontakt_loesch_warnung">Fehlende gebundene Kontakte können dem anderen Zweig zum Löschen vorgeschlagen werden. Nichts geschieht automatisch; bestätige jeden Vorschlag einzeln.</string>
+    <string name="baum_kontakt_vorschau">Vorschau der Kontaktsynchronisation</string><string name="baum_kontakt_neu">Neu</string><string name="baum_kontakt_geaendert">Geändert</string><string name="baum_kontakt_dublette">Mögliche Dublette</string><string name="baum_kontakt_loeschvorschlag">Löschvorschlag</string>
+    <string name="baum_einzeln_bestaetigen">Einzeln bestätigen</string><string name="baum_systemkontakt_oeffnen">Kontakt öffnen</string><string name="art_kontakt_loeschen">Kontaktlöschvorschlag</string><string name="baum_kontakt_geloescht">Der einzeln bestätigte Kontakt wurde gelöscht.</string>
+    <string name="notiz_anhang_hinzufuegen">Anhang hinzufügen</string>
+    <string name="notiz_anhang_ungueltig">Die gewählte Datei ist kein gültiges JPEG-, PNG-, WebP-, GIF- oder PDF-Dokument.</string>
+    <string name="notiz_anhang_gross">Der Anhang ist größer als 8 MiB. Bestehende Anhänge bleiben unverändert.</string>
+    <string name="notiz_anhang_oeffnen">Öffnen</string>
+    <string name="notiz_anhang_speichern">Speichern unter…</string>
+    <string name="notiz_anhang_gespeichert">Anhang gespeichert.</string>
+    <string name="notiz_anhang_speichern_fehler">Der Anhang konnte nicht gespeichert werden.</string>
+    <string name="baum_kontakt_eingang_titel">Kontakte von %1$s</string><plurals name="baum_kontakt_eingang_bilanz">
+        <item quantity="one">%1$d empfangene Kontaktkarte → Personen: %2$d</item>
+        <item quantity="other">%1$d empfangene Kontaktkarten → %2$d Personen</item>
+    </plurals><plurals name="baum_kontakt_eingang_status">
+        <item quantity="one">%1$d sicher · prüfen: %2$d · Konflikte: %3$d</item>
+        <item quantity="other">%1$d sicher · %2$d prüfen · %3$d Konflikte</item>
+    </plurals><string name="baum_kontakt_noch_nicht_geschrieben">Noch nichts wurde auf das Telefon geschrieben.</string>
+    <string name="baum_kontakt_alle_sicheren">Alle sicheren importieren</string><string name="baum_kontakt_alle_ablehnen">Alle ablehnen</string><string name="baum_kontakt_sicher">Sicher</string><string name="baum_kontakt_pruefen">Prüfen</string><string name="baum_kontakt_konflikt">Konflikt</string><plurals name="baum_kontakt_rohkarten">
+        <item quantity="one">Aus %1$d Kontaktkarte</item>
+        <item quantity="other">Aus %1$d Kontaktkarten</item>
+    </plurals>
+    <string name="baum_kontakt_firma">Firma</string><string name="baum_kontakt_telefon">Telefon</string><string name="baum_kontakt_email">E-Mail</string><string name="baum_kontakt_anschrift">Anschrift</string><string name="baum_kontakt_geburtstag">Geburtstag</string><string name="baum_kontakt_bild">Bild</string><string name="baum_kontakt_vorhanden">vorhanden</string><string name="baum_kontakt_notiz">Notiz</string>
+    <string name="baum_kontakt_konflikt_zeile">Konflikt bei %1$s: %2$s</string><string name="baum_kontakt_quellen">Quellen: %1$s</string><string name="baum_kontakt_importieren">Importieren</string><string name="baum_kontakt_getrennt_importieren">Getrennt importieren</string><string name="baum_kontakt_karten_zusammenfuehren">Diese Karten zusammenführen</string>
+    <string name="baum_kontakt_lokal_titel">Vorschläge zu Telefonkontakten</string><string name="baum_kontakt_lokal_hinweis">Getrennte zweite Stufe nach dem Import. Löschvorschläge bleiben streng einzeln.</string><string name="baum_kontakt_verknuepfen">Mit Telefonkontakt verknüpfen</string>
+    <string name="baum_verbindung_gefahr_titel">Verbindung</string><string name="baum_verbindung_gefahr_hinweis">Beim Entfernen verschwinden Synchronisation, wartende Nachrichten und Metadaten. Importierte Telefonkontakte bleiben.</string><string name="baum_verbindung_entfernen">Verbindung entfernen</string><string name="baum_verbindung_entfernen_frage">Verbindung zu „%1$s“ entfernen? Synchronisation, wartende Nachrichten und Metadaten werden entfernt. Importierte Telefonkontakte bleiben.</string>
+    <string name="blatt_journal">Sicherung</string><string name="journal_titel">Wiederherstellungsjournal</string><string name="journal_hinweis">Verschlüsselte lokale Stände. Sie gelangen nie in Android-Cloudbackups.</string><string name="journal_zuletzt">Letzter Stand</string><string name="journal_naechste">Nächster Stand</string><string name="journal_status">Status</string><string name="journal_bereit">Bereit</string><string name="journal_intervall">Intervall</string><string name="journal_aus">Aus</string><string name="journal_6h">6 Stunden</string><string name="journal_12h">12 Stunden</string><string name="journal_taeglich">Täglich</string><string name="journal_woechentlich">Wöchentlich</string><string name="journal_jetzt">Jetzt sichern</string><string name="journal_liste">Wiederherstellungsstände</string><string name="journal_leer">Noch keine Stände.</string><string name="journal_integritaet">Integrität wird beim Öffnen geprüft</string><string name="journal_vorschau">Vorschau</string><string name="journal_restore">Wiederherstellen</string><string name="journal_restore_frage">„%1$s“ wiederherstellen? Zuvor wird ein Sicherungsstand angelegt.</string><string name="journal_loeschen_frage">Diesen Stand endgültig löschen?</string>
+    <string name="journal_kontakt_konflikt">Kontakt wurde geändert</string><string name="journal_kontakt_konflikt_frage">„%1$s“ wurde seit dem Stand geändert. Nur den ausgewählten gebundenen Kontakt überschreiben?</string><string name="journal_konflikt_ueberschreiben">Ausgewählten Kontakt überschreiben</string>
+    <string name="telefon_benachrichtigungen_titel">Benachrichtigungen</string><string name="telefon_benachrichtigungen_schalter">Ausgewählte Nachrichtenbenachrichtigungen weiterleiten</string><string name="telefon_benachrichtigungen_hinweis">Nur lesend. Nur Nachrichtenbenachrichtigungen aus exakt ausgewählten Apps werden weitergeleitet. Aktionen, Antworten, RemoteInput und PendingIntent werden nie übertragen.</string><string name="telefon_systemzugriff_oeffnen">Benachrichtigungszugriff öffnen</string><string name="telefon_systemzugriff_erteilt">Benachrichtigungszugriff erteilt</string><string name="telefon_apps_titel">Freigegebene Apps</string>
+    <string name="telefon_eingehend_titel">Anrufe</string>
+    <string name="telefon_eingehend_schalter">Status eingehender Anrufe freigeben</string>
+    <string name="telefon_nummer_schalter">Anrufernummer freigeben, wenn verfügbar</string>
+    <string name="telefon_annehmen_schalter">Annehmen vom Computer erlauben</string>
+    <string name="telefon_eingehend_hinweis">Jede Option ist zunächst aus und fragt nur ihre benötigte Telefonberechtigung an. Gesprächston wird nie über Magnolie übertragen.</string>
+    <string name="telefon_berechtigung_fehlt">Die Telefonberechtigung wurde nicht erteilt. Die Option bleibt aus.</string>
+    <string name="personal_sync_titel">Persönliche Synchronisierung</string>
+    <string name="personal_sync_hinweis">Eigene Notizen, Notizbücher und Aufgaben sicher mit dem eigenen gekoppelten Organizer abgleichen.</string>
+    <string name="personal_sync_nicht_baum">Nicht Magnolienbaum</string>
+    <string name="personal_sync_eigen">Dieser gekoppelte Rechner ist mein eigenes Gerät</string>
+    <string name="personal_sync_notizen">Notizen und Notizbücher synchronisieren</string>
+    <string name="personal_sync_aufgaben">Aufgaben synchronisieren</string>
+    <string name="personal_sync_auto_wlan">Automatisch im WLAN synchronisieren</string>
+    <string name="personal_sync_loeschungen">Löschungen beim manuellen Abgleich berücksichtigen</string>
+    <string name="personal_sync_jetzt">Jetzt synchronisieren</string>
+    <string name="personal_sync_keine_loeschung">Löschungen werden noch nicht synchronisiert.</string>
+    <string name="personal_sync_anhaenge_fortschritt">Anhänge: %1$d von %2$d</string>
+    <string name="personal_sync_wlan_pause">Die Übertragung der Anhänge pausiert, bis WLAN verfügbar ist.</string>
+    <string name="personal_sync_vollstaendig">Persönliche Synchronisierung abgeschlossen.</string>
+    <plurals name="personal_sync_auto_offen">
+        <item quantity="one">Automatische Synchronisierung abgeschlossen. %1$d Löschvorschlag wartet auf manuelle Prüfung.</item>
+        <item quantity="other">Automatische Synchronisierung abgeschlossen. %1$d Löschvorschläge warten auf manuelle Prüfung.</item>
+    </plurals>
+    <string name="personal_sync_teilweise">Persönliche Synchronisierung unvollständig: %1$s</string>
+    <string name="papierkorb_titel">Papierkorb</string>
+    <string name="personal_sync_alle_loeschen">Alle löschen</string><string name="personal_sync_alle_wiederherstellen">Alle wiederherstellen</string><string name="personal_sync_entscheiden">Löschung prüfen</string>
+    <string name="personal_sync_geaendert_titel">Geänderte Version</string><string name="personal_sync_geaendert_hinweis">Dieser Eintrag wurde nach der Synchronisierung geändert. Wählen Sie ausdrücklich, ob die geänderte Version wiederhergestellt oder trotz Änderung gelöscht werden soll.</string>
+    <string name="personal_sync_lauf_merken">Für verbleibende unveränderte Vorschläge dieses Laufs</string><string name="personal_sync_trotz_aenderung_loeschen">Trotz Änderung löschen</string><string name="personal_sync_geaenderte_version_wiederherstellen">Geänderte Version wiederherstellen</string><string name="personal_sync_wiederherstellen">Behalten / wiederherstellen</string>
+    <string name="personal_sync_notizbuch_blockiert">Ein nicht leeres Notizbuch kann nicht gelöscht werden.</string><string name="personal_sync_endgueltig_titel">Geänderte Löschung bestätigen</string><string name="personal_sync_endgueltig_hinweis">„%1$s“ trotz Änderungen endgültig löschen?</string>
+    <string name="personal_sync_massen_titel">Mehrere Entscheidungen bestätigen</string><plurals name="personal_sync_massen_hinweis">
+        <item quantity="one">Genau %1$d Eintrag: Notizen: %2$d · Notizbücher: %3$d · Aufgaben: %4$d · Anhänge: %5$d.</item>
+        <item quantity="other">Genau %1$d Einträge: %2$d Notizen, %3$d Notizbücher, %4$d Aufgaben, %5$d Anhänge.</item>
+    </plurals>
+    <string name="papierkorb_leeren">Papierkorb leeren</string><string name="papierkorb_endgueltig_titel">Endgültig löschen</string><string name="papierkorb_endgueltig_hinweis">Diesen Papierkorbeintrag endgültig löschen? Dies kann nicht rückgängig gemacht werden.</string><plurals name="papierkorb_leeren_hinweis">
+        <item quantity="one">Den %1$d Papierkorbeintrag endgültig löschen? Dies kann nicht rückgängig gemacht werden.</item>
+        <item quantity="other">Alle %1$d Papierkorbeinträge endgültig löschen? Dies kann nicht rückgängig gemacht werden.</item>
+    </plurals>
+    <string name="papierkorb_hinweis">Gelöschte Notizen und Aufgaben werden hier bis zur endgültigen Löschung aufbewahrt.</string>
+    <string name="technischer_wert_art_notiz">Notiz</string>
+    <string name="technischer_wert_art_notizbuch">Notizbuch</string>
+    <string name="technischer_wert_art_aufgabe">Aufgabe</string>
+    <string name="technischer_wert_art_anhang">Anhang</string>
+    <string name="technischer_wert_art_unbekannt">Unbekannte Eintragsart: %1$s</string>
+    <string name="technischer_wert_grund_manuell">Manueller Stand</string>
+    <string name="technischer_wert_grund_geplant">Geplanter Stand</string>
+    <string name="technischer_wert_grund_vor_wiederherstellung">Vor Wiederherstellung</string>
+    <string name="technischer_wert_grund_vor_vollabgleich">Vor vollständigem Abgleich</string>
+    <string name="technischer_wert_grund_vor_aufgabenabgleich">Vor Aufgabenabgleich</string>
+    <string name="technischer_wert_grund_vor_notizabgleich">Vor Notizabgleich</string>
+    <string name="technischer_wert_grund_kontaktimport">Vor Kontaktimport</string>
+    <string name="technischer_wert_grund_kontakt_zusammenfuehren">Vor Zusammenführung von Kontakten</string>
+    <string name="technischer_wert_grund_kontaktloeschung">Vor Kontaktlöschung</string>
+    <string name="technischer_wert_grund_unbekannt">Unbekannter Sicherungsgrund: %1$s</string>
+    <string name="technischer_wert_domaene_appdaten">App-Daten</string>
+    <string name="technischer_wert_domaene_systemkontakte">Systemkontakte</string>
+    <string name="technischer_wert_domaene_unbekannt">Unbekannter Sicherungsbereich: %1$s</string>
+    <plurals name="technischer_wert_zusammenfassung_app">
+        <item quantity="one">Notizen: %1$d · Aufgaben: %2$d</item>
+        <item quantity="other">Notizen: %1$d · Aufgaben: %2$d</item>
+    </plurals>
+    <plurals name="technischer_wert_zusammenfassung_kontakte">
+        <item quantity="one">Kontakte: %1$d</item>
+        <item quantity="other">Kontakte: %1$d</item>
+    </plurals>
+    <plurals name="technischer_wert_zusammenfassung_kontakte_mit_namen">
+        <item quantity="one">Kontakte: %1$d · %2$s</item>
+        <item quantity="other">Kontakte: %1$d · %2$s</item>
+    </plurals>
+    <string name="technischer_wert_zusammenfassung_unbekannt">Nicht erkannte Sicherungsdetails: %1$s</string>
+    <string name="start_laden">Geschützte Daten werden geöffnet…</string>
+    <string name="start_fehler_titel">Geschützte Daten konnten nicht geöffnet werden</string>
+    <string name="start_daten_unveraendert">Deine Daten wurden weder gelöscht noch überschrieben. Du kannst es sicher erneut versuchen.</string>
+    <string name="start_erneut">Erneut versuchen</string>
+    <string name="start_schliessen">Anwendung schließen</string>
+    <string name="absturzbericht_teilen">Absturzbericht teilen</string>
+    <string name="journal_maximum">Maximale Anzahl der Wiederherstellungspunkte</string>
+    <string name="journal_maximum_hinweis">Wenn das Limit verringert wird, werden die ältesten Wiederherstellungspunkte automatisch entfernt.</string>
+    <string name="portable_titel">Tragbare Sicherung</string><string name="portable_hinweis">Einen getrennten, passwortverschlüsselten Bestand aus Notizen, Notizbüchern, Aufgaben, Papierkorb und Anhängen anlegen oder wiederherstellen.</string><string name="portable_export">Tragbare Sicherung anlegen</string><string name="portable_datei_oeffnen">Tragbare Sicherung öffnen</string><string name="portable_restore">Sicherung wiederherstellen</string><string name="portable_passwort">Passwort</string><string name="portable_passwort_hinweis">Geben Sie das Archivpasswort ein. Während der Prüfung wird nichts verändert.</string><string name="portable_pruefen">Prüfen und Vorschau zeigen</string><string name="portable_vorschau">Sicherungsvorschau</string><string name="portable_vorschau_text">%1$d Notizen · %2$d Notizbücher · %3$d Aufgaben · %4$d Papierkorbeinträge</string><string name="portable_restore_warnung">Dies ersetzt den gesamten persönlichen Bestand. Zuvor wird ein lokaler Sicherungsstand angelegt; die Magnolienbaum-Identität dieses Geräts bleibt erhalten.</string><string name="portable_fehler">Die Sicherung konnte nicht geöffnet werden. Prüfen Sie Datei und Passwort.</string><string name="portable_exportiert">Tragbare Sicherung angelegt.</string><string name="portable_wiederhergestellt">Tragbare Sicherung wiederhergestellt.</string>
+    <string name="auto_backup_titel">Automatische Cloud-Ordnersicherung</string>
+    <string name="auto_backup_hinweis">Speichert auf Wunsch authentifizierte portable Sicherungen in einem über Android gewählten Ordner. Der Anbieter kann diesen Ordner synchronisieren.</string>
+    <string name="auto_backup_aktiv">Automatische Sicherung einschalten</string>
+    <string name="auto_backup_ordner_waehlen">Sicherungsordner wählen</string>
+    <string name="auto_backup_ordner_aendern">Sicherungsordner ändern</string>
+    <string name="auto_backup_passwort_setzen">Archivpasswort festlegen</string>
+    <string name="auto_backup_passwort_aendern">Archivpasswort ändern</string>
+    <string name="auto_backup_passwort_warnung">Merken Sie sich dieses Passwort. Es wird zur Wiederherstellung auf einem anderen Gerät benötigt und kann nicht zurückgewonnen werden.</string>
+    <string name="auto_backup_intervall">Sicherungsintervall</string>
+    <string name="auto_backup_aufbewahrung">Aufzubewahrende Sicherungen (2–30)</string>
+    <string name="auto_backup_letzter_erfolg">Letzte erfolgreiche Sicherung</string>
+    <string name="auto_backup_jetzt">Sicherung jetzt testen</string>
+    <string name="auto_backup_status_bereit">Bereit</string>
+    <string name="auto_backup_status_laeuft">Sicherung läuft</string>
+    <string name="auto_backup_status_erfolg">Letzte Sicherung erfolgreich authentifiziert</string>
+    <string name="auto_backup_status_aufbewahrung">Sicherung authentifiziert; alte Dateien konnten nicht bereinigt werden</string>
+    <string name="auto_backup_status_ordner">Wählen Sie einen Sicherungsordner</string>
+    <string name="auto_backup_status_freigabe">Der Ordnerzugriff wurde entzogen. Wählen Sie den Ordner erneut.</string>
+    <string name="auto_backup_status_passwort">Legen Sie ein Archivpasswort fest</string>
+    <string name="auto_backup_status_schluessel">Das geschützte Passwort ist nicht verfügbar. Die automatische Sicherung bleibt aus.</string>
+    <string name="auto_backup_status_auth">Authentifizierung der Sicherung fehlgeschlagen</string>
+    <string name="auto_backup_status_provider">Speicheranbieter vorübergehend nicht verfügbar; neuer Versuch geplant</string>
+</resources>

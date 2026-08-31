@@ -1,10 +1,10 @@
-.TH MAGNOLIE-ORGANIZER 1 "August 2026" "Magnolie Organizer 2.0.13" "أوامر المستخدم"
+.TH MAGNOLIE-ORGANIZER 1 "August 2026" "Magnolie Organizer 2.0.14" "أوامر المستخدم"
 .SH الاسم
 magnolie-organizer \- منظّم شخصي بتصميم ورقي كلاسيكي
 .SH الموجز
 .B magnolie-organizer
 .RI [ خيار ]
-.RI [ \-\-sprache\  اللغة ]
+.RI [ \-\-language\  اللغة ]
 .SH الوصف
 .B Magnolie Organizer
 يجمع بين التقويم والمهام وجهات الاتصال والملاحظات والمناسبات السنوية ومخطط
@@ -13,18 +13,26 @@ Server أو مشاركتها عبر خدمة Magnolienbaum المشفّرة.
 .PP
 لا تُفتح إلا نسخة رسومية واحدة لكل جلسة مستخدم. يؤدي تشغيل الأمر مجددًا إلى
 إظهار النافذة الموجودة، بما فيها النافذة المخفية في صينية النظام.
+.SH صيغ سطر الأوامر
+الأسماء المختصرة المحايدة والصيغ الإنجليزية الطويلة هي:
+.nf
+\-h \-\-help; \-V \-\-version; \-l \-\-language; \-P \-\-pot-template;
+\-r \-\-reminder-check; \-w \-\-alarm-monitor; \-p \-\-reminder-test;
+\-t \-\-tray-start; \-d \-\-debug; \-b \-\-background-service.
+.fi
+تُقبل الصيغ الطويلة الألمانية والإنجليزية معًا.
 .SH الخيارات
 .TP
-.B \-\-erinnerung
+.B \-\-reminder-check
 التحقق من التذكيرات المستحقة. تستخدم خدمة الجلسة هذا الخيار عادةً.
 .TP
-.B \-\-wecker
+.B \-\-alarm-monitor
 تشغيل مراقب التذكيرات في الخلفية.
 .TP
 .B \-\-tray-start
 تشغيل المنظّم من خلال مُدخل التشغيل التلقائي الخاص بصينية النظام.
 .TP
-.B \-\-probe
+.B \-\-reminder-test
 اختبار التذكيرات وطباعة تقرير تشخيصي.
 .TP
 .B \-\-debug
@@ -33,18 +41,18 @@ Server أو مشاركتها عبر خدمة Magnolienbaum المشفّرة.
 \fB~/.local/state/magnolie-organizer/debug.log\fR. أنهِ أي نسخة قيد التشغيل قبل
 بدء تشغيل تشخيصي؛ فالاستدعاء الثاني لا يفعل سوى تنشيط العملية الموجودة.
 .TP
-.BR \-\-sprache " " اللغة , " " \-\-language " " LANGUAGE
+.BR \-\-language " " LANGUAGE , " " \-\-sprache " " اللغة
 استخدام الألمانية (\fBde\fR) أو الإنجليزية (\fBen\fR) أو لغة النظام
 (\fBsystem\fR) لهذا الاستدعاء. يحدد ذلك لغة مخرجات الأمر قبل أوضاع المساعدة
 والتشخيص والخلفية، ولغة واجهة WebKit في نسخة رسومية تُفتح حديثًا. لا تتغير
 الإعدادات المحفوظة.
 .TP
-.BR \-\-pot " [" ملف "]", " " \-\-pot-template " [" FILE "]"
+.BR \-\-pot-template " [" FILE "]", " " \-\-pot " [" ملف "]"
 إنشاء قالب gettext قابل لإعادة الإنتاج ثم الخروج. عند عدم إعطاء وسيطة ملف،
 يُكتب \fBmagnolie-organizer.pot\fR في الدليل الحالي؛ وإلا فيُكتب إلى المسار
 المحدد. يُطبع مسار الخرج المطلق عند النجاح.
 .TP
-.BR \-\-hilfe , " " \-\-help
+.BR \-\-help , " " \-\-hilfe
 عرض ملخص قصير للأوامر.
 .SH شبكة MAGNOLIENBAUM
 عند تمكين Magnolienbaum، تستمع الخدمة على منفذ TCP رقم 8737 عبر IPv4 وIPv6.

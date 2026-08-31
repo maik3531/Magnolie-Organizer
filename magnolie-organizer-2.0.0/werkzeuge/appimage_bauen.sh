@@ -144,11 +144,13 @@ while read -r sprache; do
 done < "$WURZEL/po/LINGUAS"
 
 install -m 0755 "$WURZEL/bin/magnolie-organizer" "$APPDIR/usr/bin/magnolie-organizer"
+install -m 0644 "$WURZEL/bin/magnolie_asset.py" "$APPDIR/usr/bin/magnolie_asset.py"
 install -m 0644 "$WURZEL/bin/magnolie_telefon.py" "$APPDIR/usr/bin/magnolie_telefon.py"
 install -m 0644 "$WURZEL/bin/magnolie_kdeconnect.py" "$APPDIR/usr/bin/magnolie_kdeconnect.py"
 install -m 0644 "$WURZEL/bin/magnolie_hintergrund.py" "$APPDIR/usr/bin/magnolie_hintergrund.py"
 install -m 0644 "$WURZEL/bin/magnolie_personal_sync.py" "$APPDIR/usr/bin/magnolie_personal_sync.py"
 install -m 0644 "$WURZEL/bin/magnolie_nextcloud.py" "$APPDIR/usr/bin/magnolie_nextcloud.py"
+install -m 0644 "$WURZEL/bin/magnolie_cloud_backup.py" "$APPDIR/usr/bin/magnolie_cloud_backup.py"
 install -m 0644 "$WURZEL/bin/magnolie_crash.py" "$APPDIR/usr/bin/magnolie_crash.py"
 install -m 0755 "$(readlink -f "$(command -v python3)")" "$APPDIR/usr/bin/python$PYTHON_VERSION"
 ln -s "python$PYTHON_VERSION" "$APPDIR/usr/bin/python3"
@@ -215,6 +217,8 @@ install -m 0644 "$WURZEL/io.gitlab.maik3531.MagnolieOrganizer.appdata.xml" \
     "$APPDIR/usr/share/metainfo/io.gitlab.maik3531.MagnolieOrganizer.appdata.xml"
 install -m 0644 "$WURZEL/debian/copyright" \
     "$APPDIR/usr/share/doc/magnolie-organizer/copyright"
+install -m 0644 "$WURZEL/PROTECTED-ASSETS-LICENSE.txt" \
+    "$APPDIR/usr/share/doc/magnolie-organizer/PROTECTED-ASSETS-LICENSE.txt"
 install -m 0644 /etc/ssl/certs/ca-certificates.crt \
     "$APPDIR/usr/share/magnolie-organizer/certs/ca-certificates.crt"
 install -m 0644 "$WURZEL/werkzeuge/appimage-fonts.conf" \

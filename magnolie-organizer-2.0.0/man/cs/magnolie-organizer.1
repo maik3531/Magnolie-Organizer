@@ -1,10 +1,10 @@
-.TH MAGNOLIE-ORGANIZER 1 "srpen 2026" "Magnolie Organizer 2.0.13" "Uživatelské příkazy"
+.TH MAGNOLIE-ORGANIZER 1 "srpen 2026" "Magnolie Organizer 2.0.14" "Uživatelské příkazy"
 .SH NÁZEV
 magnolie-organizer \- osobní organizér v klasickém papírovém vzhledu
 .SH POUŽITÍ
 .B magnolie-organizer
 .RI [ volba ]
-.RI [ \-\-sprache\  jazyk ]
+.RI [ \-\-language\  jazyk ]
 .SH POPIS
 .B Magnolie Organizer
 spojuje kalendář, úkoly, kontakty, poznámky, výročí a roční plánovač. Data se
@@ -14,19 +14,27 @@ Data Serveru nebo sdílet pomocí šifrované služby Magnolienbaum.
 V rámci jednoho uživatelského sezení se otevře pouze jedna grafická instance.
 Opětovné spuštění příkazu zobrazí existující okno, i když je skryté v
 oznamovací oblasti.
+.SH TVARY PŘÍKAZOVÉHO ŘÁDKU
+Neutrální krátké aliasy a anglické dlouhé tvary jsou:
+.nf
+\-h \-\-help; \-V \-\-version; \-l \-\-language; \-P \-\-pot-template;
+\-r \-\-reminder-check; \-w \-\-alarm-monitor; \-p \-\-reminder-test;
+\-t \-\-tray-start; \-d \-\-debug; \-b \-\-background-service.
+.fi
+Přijímají se německé i anglické dlouhé tvary.
 .SH VOLBY
 .TP
-.B \-\-erinnerung
+.B \-\-reminder-check
 Zkontrolovat aktuální připomenutí. Tuto volbu obvykle používá služba sezení.
 .TP
-.B \-\-wecker
+.B \-\-alarm-monitor
 Spustit sledování připomenutí na pozadí.
 .TP
 .B \-\-tray-start
 Spustit organizér pomocí jeho položky automatického spuštění v oznamovací
 oblasti.
 .TP
-.B \-\-probe
+.B \-\-reminder-test
 Otestovat připomenutí a vypsat diagnostickou zprávu.
 .TP
 .B \-\-debug
@@ -35,18 +43,18 @@ spuštění, sezení, jediné instance, okna a oznamovací oblasti do souboru
 \fB~/.local/state/magnolie-organizer/debug.log\fR. Před diagnostickým spuštěním
 ukončete již běžící instanci; druhé spuštění pouze aktivuje existující proces.
 .TP
-.BR \-\-sprache " " SPRACHE , " " \-\-language " " LANGUAGE
+.BR \-\-language " " LANGUAGE , " " \-\-sprache " " SPRACHE
 Pro toto spuštění použít němčinu (\fBde\fR), angličtinu (\fBen\fR), nebo jazyk
 systému (\fBsystem\fR). Tím se zvolí jazyk výstupu příkazu před režimem
 nápovědy, diagnostiky či běhu na pozadí a také rozhraní WebKit nově otevřené
 grafické instance. Uložená nastavení se nezmění.
 .TP
-.BR \-\-pot " [" DATEI "]", " " \-\-pot-template " [" FILE "]"
+.BR \-\-pot-template " [" FILE "]", " " \-\-pot " [" DATEI "]"
 Vytvořit reprodukovatelnou šablonu gettext a skončit. Bez argumentu souboru se
 soubor \fBmagnolie-organizer.pot\fR zapíše do aktuálního adresáře; jinak se
 zapíše do zadané cesty. Při úspěchu se vypíše absolutní cesta výstupu.
 .TP
-.BR \-\-hilfe , " " \-\-help
+.BR \-\-help , " " \-\-hilfe
 Zobrazit stručný přehled příkazů.
 .SH SÍŤ MAGNOLIENBAUM
 Je-li služba Magnolienbaum zapnutá, naslouchá na TCP portu 8737 přes IPv4 a

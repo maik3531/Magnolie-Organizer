@@ -1,10 +1,10 @@
-.TH MAGNOLIE-HANDBUCH 1 "2026年8月" "Magnolie ハンドブック 2.0.6" "ユーザーコマンド"
+.TH MAGNOLIE-HANDBUCH 1 "2026年8月" "Magnolie ハンドブック 2.0.14" "ユーザーコマンド"
 .SH 名前
 magnolie-handbuch \- Magnolie Organizer ユーザーハンドブックを開く
 .SH 書式
 .B magnolie-handbuch
 .RI [ オプション ]
-.RI [ \-\-sprache\  言語 ]
+.RI [ \-\-language\  言語 ]
 .SH 説明
 .B Magnolie ハンドブック
 Magnolie Organizer の完全な図解入りユーザーガイドを開きます。ハンドブックは
@@ -12,19 +12,25 @@ Magnolie Organizer の完全な図解入りユーザーガイドを開きます�
 .PP
 ユーザーセッションごとに開かれるハンドブックウィンドウは 1 つだけです。コマンドを
 再度起動すると、既存のウィンドウが表示されます。
+.SH コマンドライン形式
+中立的な短縮別名と英語の長い形式は次のとおりです。
+.nf
+\-h \-\-help; \-V \-\-version; \-l \-\-language; \-P \-\-pot-template.
+.fi
+ドイツ語と英語のどちらの長い形式も使用できます。
 .SH オプション
 .TP
-.BR \-\-sprache " " SPRACHE , " " \-\-language " " LANGUAGE
+.BR \-\-language " " LANGUAGE , " " \-\-sprache " " SPRACHE
 この起動ではドイツ語 (\fBde\fR)、英語 (\fBen\fR)、またはシステム言語
 (\fBsystem\fR) を使用します。これはヘルプより前のコマンド出力と、新しく開く
 ウィンドウの WebKit 言語を選択します。保存済みの設定は変更されません。
 .TP
-.BR \-\-pot " [" DATEI "]", " " \-\-pot-template " [" FILE "]"
+.BR \-\-pot-template " [" FILE "]", " " \-\-pot " [" DATEI "]"
 再現可能な gettext テンプレートを生成して終了します。ファイル引数を指定しない場合は、
 現在のディレクトリに \fBmagnolie-handbuch.pot\fR を書き込みます。それ以外の場合は
 指定されたパスに書き込みます。成功すると、出力先の絶対パスが表示されます。
 .TP
-.BR \-\-hilfe , " " \-\-help
+.BR \-\-help , " " \-\-hilfe
 コマンドの短い概要を表示します。
 .SH 環境変数
 .TP

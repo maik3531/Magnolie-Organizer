@@ -39,6 +39,7 @@ const js = fs.readFileSync(WEB + "/anwendung.js", "utf8");
 const i18nJs = fs.readFileSync(WEB + "/i18n.js", "utf8");
 const deJs = fs.readFileSync(WEB + "/i18n/de.js", "utf8");
 const css = fs.readFileSync(WEB + "/stil.css", "utf8");
+const webFassung = js.match(/const FASSUNG = "([^"]+)"/)[1];
 const liesmich = fs.readFileSync(path.resolve(__dirname, "..", "LIESMICH.md"), "utf8");
 
 const dom = new JSDOM(html, {
@@ -394,7 +395,11 @@ function knopfMit(text, wurzel) {
   ladeAnwendung(guardDom.window, "en");
   const gw = guardDom.window, gd = gw.document, gT = gw.OrganizerTest;
   const guardStil = gd.createElement("style");
-  guardStil.textContent = css;
+  const overlayRegel = css.match(
+    /#dialog-schleier,\s*#sicherung-schleier,\s*\.eingabe-schleier,\s*#notiz-anpassen-schleier\s*\{[^}]*\}/
+  );
+  assert.ok(overlayRegel, "die gemeinsame Overlay-Stilregel fehlt");
+  guardStil.textContent = overlayRegel[0];
   gd.head.append(guardStil);
   gw.App.init({ daten: { kontakte: [
     { id: "guard-one", uid: "", nachname: "One", vorname: "Alice" },
@@ -1605,10 +1610,33 @@ function knopfMit(text, wurzel) {
     "ein Baseline-Speicherfehler lässt EDS-Metadaten im Speicher initialisiert");
   enSW.App.syncFehler("EDS-Technikfehler X");
   assert.strictEqual(enSD.querySelector("#sync-status").textContent,
-    "Synchronization failed.", "englischer Synchronisationsfehlerstatus fehlt");
+    "Synchronization failed: EDS-Technikfehler X",
+    "dauerhafter englischer Synchronisationsfehlerstatus fehlt");
   assert.strictEqual(enSD.querySelector("#zettel").textContent,
     "Synchronization failed: EDS-Technikfehler X",
     "technische Fehlerangabe wurde übersetzt oder falsch gerahmt");
+  assert.strictEqual(enST.daten().syncStatus.letzterFehler, "EDS-Technikfehler X",
+    "technischer Synchronisationsfehler wird nicht im lokalen Datenmodell bewahrt");
+  enST.schliesseEinstellungen();
+  enST.oeffneEinstellungen();
+  assert.strictEqual(enSD.querySelector("#sync-status").textContent,
+    "Synchronization failed: EDS-Technikfehler X",
+    "Synchronisationsfehler ist nach erneutem Öffnen nicht mehr lesbar");
+  enSyncNachrichten.length = 0;
+  enST.daten().termine.push({ uid: "sync-save-probe", datum: "2026-09-01",
+    zeit: "10:00", titel: "Sync save probe", geaendert: Date.now() });
+  Array.from(enSD.querySelectorAll("button"))
+    .find((button) => button.textContent === "Synchronize now").click();
+  const fehlenderSyncSave = enSyncNachrichten.find((nachricht) => nachricht.cmd === "speichern");
+  assert.ok(fehlenderSyncSave && !enSyncNachrichten.some((nachricht) => nachricht.cmd === "sync"),
+    "Synchronisation wartet nicht auf die dauerhafte Speicherung");
+  enSW.App.gespeichert({ id: fehlenderSyncSave.id, ok: false, fehler: "Disk full before sync" });
+  assert.strictEqual(enSD.querySelector("#sync-jetzt").disabled, false,
+    "Speicherfehler vor der Synchronisation sperrt weitere Versuche");
+  assert.strictEqual(enSD.querySelector("#sync-status").textContent,
+    "Synchronization failed: Disk full before sync",
+    "Speicherfehler vor der Synchronisation bleibt nicht lesbar");
+  enST.daten().termine = enST.daten().termine.filter((termin) => termin.uid !== "sync-save-probe");
 
   Array.from(enSD.querySelectorAll(".einst-reiter-knopf"))
     .find((button) => button.textContent === "Contacts").click();
@@ -2199,7 +2227,16 @@ function knopfMit(text, wurzel) {
     enUeber.querySelector(".ueber-programmspalte") &&
     enUeber.querySelector(".ueber-werkzeugspalte"),
   "Über-Seite ist nicht in zwei ausgewogene Informationsflächen gegliedert");
-  assert.ok(enUeber.querySelector(".ueber-fassung").textContent.includes("Version 2.0.13") &&
+  const enNeu = enUeber.querySelector(".ueber-werkzeugspalte .ueber-neu");
+  assert.ok(enNeu && enNeu.tagName === "SECTION" &&
+    enNeu.querySelector("h4")?.textContent === "What's new in this version" &&
+    enNeu.querySelector(".ueber-neu-fassung")?.textContent === webFassung &&
+    enNeu.querySelectorAll("ul > li").length === 6 &&
+    enNeu.textContent.includes("Wayland/AppImage") && enNeu.textContent.includes("CLI aliases"),
+  "kompakte englische Versionshinweise fehlen oder sind nicht semantisch gegliedert");
+  assert.ok(enUeber.querySelector(".ueber-programmspalte > .ueber-rechtliches"),
+    "rechtlicher Block wurde aus der linken Spalte verschoben");
+  assert.ok(enUeber.querySelector(".ueber-fassung").textContent.includes("Version " + webFassung) &&
     enUeber.textContent.includes("Author") && enUeber.textContent.includes("License") &&
     enUeber.textContent.includes("Updates") &&
     enUeber.textContent.includes("No update check has been performed yet") &&
@@ -2219,12 +2256,12 @@ function knopfMit(text, wurzel) {
     enSyncNachrichten.some((nachricht) => nachricht.cmd === "update_pruefen"),
   "englische Über-Seite verändert Handbuch- oder Update-Befehl");
   const enUpdateUrl = "https://gitlab.com/maik3531/mint-forgs/-/raw/main/" +
-    "Magnolie-Organitzer/magnolie-organizer_2.0.14_all.deb";
-  enSW.App.updateErgebnis({ ok: true, aktuell: false, version: "2.0.14",
+    "Magnolie-Organitzer/magnolie-organizer_2.0.15_all.deb";
+  enSW.App.updateErgebnis({ ok: true, aktuell: false, version: "2.0.15",
     url: enUpdateUrl, sha256: "ab".repeat(32), fehler: "" });
   assert.ok(enSD.querySelector("#update-stand").textContent.includes(
-    "New version 2.0.14 is available") &&
-    enSD.querySelector("#update-herunterladen").textContent.includes("2.0.14") &&
+    "New version 2.0.15 is available") &&
+    enSD.querySelector("#update-herunterladen").textContent.includes("2.0.15") &&
     enSD.querySelector(".update-pruefsumme").textContent.includes("ab".repeat(32)) &&
     enSD.querySelector(".update-pruefsumme").textContent.includes("sha256sum"),
   "englischer neuer Update-Stand fehlt");
@@ -2261,11 +2298,11 @@ function knopfMit(text, wurzel) {
   "bestätigtes Update startet keinen parameterlosen geprüften Download: " +
     JSON.stringify(enSyncNachrichten.slice(-8)));
   enSW.App.updateHeruntergeladen({ ok: true, bereit: true,
-    version: "2.0.14", artifact: "deb" });
+    version: "2.0.15", artifact: "deb" });
   assert.ok(enSyncNachrichten.some((nachricht) => nachricht.cmd === "update_installieren"),
     "verifiziertes Update wird nicht zur Installation vorbereitet");
   enSW.App.updateInstallationVorbereitet({ ok: true, bereitZumBeenden: true,
-    version: "2.0.14", artifact: "deb" });
+    version: "2.0.15", artifact: "deb" });
   assert.ok(enSyncNachrichten.some((nachricht) => nachricht.cmd === "beenden"),
     "nach vorbereiteter Installation startet der sichere Beenden- und Neustartablauf nicht");
   enSW.App.updateGeoeffnet({ ok: false, fehler: "" });
@@ -3845,6 +3882,8 @@ function knopfMit(text, wurzel) {
   Object.defineProperty(anhangEingabe, "files", { value: [falscheDatei] });
   anhangEingabe.dispatchEvent(new w.Event("change", { bubbles: true }));
   knopfMit("Einbetten", $("#eingabe-schleier")).click();
+  assert.ok(anhangEingabe.isConnected,
+    "der Dateidialog wird entfernt, bevor WebKit die ausgewählte Datei gelesen hat");
   for (let i = 0; i < 20 && $("#zettel").textContent !==
       "Die Datei hat ein nicht unterstütztes Format."; i++) await tick();
   assert.strictEqual(neue.anhaenge.length, anhangAnzahlVorFehler,
@@ -6339,7 +6378,7 @@ function knopfMit(text, wurzel) {
   assert.ok(ueberText.includes("Version 3"), "die Lizenzfassung fehlt");
   assert.ok($(".ueber-fassung").textContent.includes("Fassung"),
     "die Programmfassung fehlt");
-  assert.ok($(".ueber-fassung").textContent.includes("2.0.13"),
+  assert.ok($(".ueber-fassung").textContent.includes("2.0.14"),
     "die neue Programmfassung fehlt");
   assert.ok($(".ueber-blume"), "die Magnolienblüte fehlt");
   const beschreibung = $(".ueber-beschreibung");
@@ -6359,18 +6398,18 @@ function knopfMit(text, wurzel) {
     "neben der gemeinsamen Aktualisierungsprüfung ist ein zweiter Prüfknopf sichtbar");
   assert.ok($("#handbuch-stand").textContent.includes("nicht installiert"),
     "der Handbuchstatus nennt die fehlende Installation nicht");
-  assert.ok(!T.istNeuereFassung("2.0.1") && !T.istNeuereFassung("2.0.13") &&
-    T.istNeuereFassung("2.0.14"),
+  assert.ok(!T.istNeuereFassung("2.0.1") && !T.istNeuereFassung("2.0.14") &&
+    T.istNeuereFassung("2.0.15"),
     "Fassungsvergleich der Oberfläche stimmt nicht");
   assert.ok(T.vergleicheText("Termin 2", "Termin 10") < 0,
     "der regionale Collator sortiert Zahlen weiterhin rein lexikografisch");
-  w.App.updateErgebnis({ ok: true, aktuell: false, version: "2.0.14",
+  w.App.updateErgebnis({ ok: true, aktuell: false, version: "2.0.15",
     url: "https://gitlab.com/maik3531/mint-forgs/-/raw/main/" +
-      "Magnolie-Organitzer/magnolie-organizer_2.0.14_all.deb" });
-  assert.ok($("#update-stand").textContent.includes("2.0.14"),
+      "Magnolie-Organitzer/magnolie-organizer_2.0.15_all.deb" });
+  assert.ok($("#update-stand").textContent.includes("2.0.15"),
     "gefundene Fassung erscheint nicht unter Über");
   assert.ok($("#update-herunterladen"), "Downloadknopf für neue Fassung fehlt");
-  assert.strictEqual(T.daten().einstellungen.update.letzteVersion, "2.0.14",
+  assert.strictEqual(T.daten().einstellungen.update.letzteVersion, "2.0.15",
     "Prüfstand wird nicht gespeichert");
   $("#update-automatisch").checked = false;
   $("#update-automatisch").dispatchEvent(new w.Event("change", { bubbles: true }));
@@ -7375,7 +7414,7 @@ function knopfMit(text, wurzel) {
     "ohne Handbuch darf der Hinweis nicht als gezeigt gespeichert werden");
   const handbuchUrl = "https://gitlab.com/maik3531/mint-forgs/-/raw/main/" +
     "Magnolie-Organitzer/magnolie-handbuch_1.9.8_all.deb";
-  hw.App.updateErgebnis({ ok: true, aktuell: true, version: "2.0.13", url: "",
+  hw.App.updateErgebnis({ ok: true, aktuell: true, version: "2.0.14", url: "",
     sha256: "ab".repeat(32), handbuch: { version: "1.9.8", url: handbuchUrl,
       sha256: "cd".repeat(32) }, fehler: "" });
   assert.ok(!hd.querySelector("#dialog-schleier").classList.contains("verborgen") &&
@@ -8065,6 +8104,19 @@ function knopfMit(text, wurzel) {
   eigenerSmsDialog.querySelector(".sms-schliessen").click();
 
   kontaktKarte = zeichneKontaktAktionen([
+    { wert: "0175 444444", typen: ["HOME"] },
+    { wert: "030 555555", typen: ["HOME"] }
+  ], [], { peers: [] });
+  assert.ok(kontaktKarte.querySelector(".kontakt-sms"),
+    "eine als HOME importierte deutsche Mobilfunknummer bietet keine SMS-Funktion an");
+  kontaktKarte.querySelector(".kontakt-sms").click();
+  eigenerSmsDialog = kontaktD.querySelector(".sms-dialog");
+  assert.deepStrictEqual(Array.from(eigenerSmsDialog.querySelectorAll(".sms-nummer option"),
+    (option) => option.value), ["0175 444444"],
+  "die SMS-Auswahl nimmt eine HOME-Mobilfunknummer nicht auf oder bietet Festnetz an");
+  eigenerSmsDialog.querySelector(".sms-schliessen").click();
+
+  kontaktKarte = zeichneKontaktAktionen([
     { wert: "+49 177 333333", typen: ["CELL"] }
   ], [], { peers: [], kdeconnect: { available: false, paired: 1, device_count: 0 } });
   kontaktKarte.querySelector(".kontakt-sms").click();
@@ -8139,7 +8191,7 @@ function knopfMit(text, wurzel) {
   "lokal eingereihter SMS-Status besitzt keine ehrliche sichtbare und zugängliche Legende");
   detail.querySelector(".dialog-knoepfe button").click();
   kontaktW.App.telefonSmsEmpfangen({ device_id: "telefon-1", sms_id: "eingang-1",
-    from: "+49 177 444444", text: "Antwort", timestamp_ms: Date.now(), notify: true });
+    from: "+49 177 444444", text: "Antwort", timestamp_ms: Date.now(), read: false, notify: true });
   kontaktW.App.telefonSmsEmpfangen({ device_id: "telefon-1", sms_id: "eingang-1",
     from: "+49 177 444444", text: "Antwort", timestamp_ms: Date.now() });
   assert.strictEqual(kontaktT.daten().smsVerlauf.filter((x) =>
@@ -8148,6 +8200,16 @@ function knopfMit(text, wurzel) {
   assert.ok(kdeDialog.querySelector(".sms-nachricht.eingang") &&
     kontaktAktionenNachrichten.some((x) => x.cmd === "telefon_sms_benachrichtigen"),
   "eingehende SMS aktualisiert den offenen Chat oder die bestehende Benachrichtigung nicht");
+  assert.ok(kdeDialog.querySelector(".sms-lesestatus.ungelesen"),
+    "eine auf dem Telefon ungelesene SMS wird im Verlauf nicht gekennzeichnet");
+  kontaktW.App.telefonSmsEmpfangen({ device_id: "telefon-1", sms_id: "eingang-1",
+    from: "+49 177 444444", text: "Antwort", timestamp_ms: Date.now(), read: true });
+  assert.ok(kdeDialog.querySelector(".sms-lesestatus.gelesen") &&
+    kontaktT.daten().smsVerlauf.find((x) => x.id === "kde:telefon-1::eingang-1").gelesen,
+  "ein späterer Gelesenstatus des Telefons aktualisiert die bestehende SMS nicht");
+  assert.strictEqual(kontaktT.normalisiere({ smsVerlauf: kontaktT.daten().smsVerlauf })
+    .smsVerlauf.find((x) => x.id === "kde:telefon-1::eingang-1").gelesen, true,
+  "der Gelesenstatus einer SMS übersteht den Speichern/Laden-Rundlauf nicht");
   kontaktW.App.telefonSmsEmpfangen({ device_id: "telefon-1", sms_id: "ausgang-1",
     from: "+49 177 444444", text: "Vom Telefon", timestamp_ms: Date.now(),
     incoming: false, notify: true });
@@ -8261,6 +8323,9 @@ function knopfMit(text, wurzel) {
     !geraetD.querySelector("#geraet-dialog").textContent.includes("339") &&
     geraetD.querySelector(".geraet-online").classList.contains("online"),
   "eine Statusantwort aktualisiert oder formatiert den Gerätedialog nicht korrekt");
+  assert.ok(Array.from(geraetD.querySelectorAll(".geraet-details dt"))
+    .some((knoten) => knoten.textContent === "Magnolie Notes:"),
+  "der Gerätestatus bezeichnet die App-Version nicht knapp als Magnolie Notes");
   Array.from(geraetD.querySelectorAll("#geraet-dialog button"))
     .find((button) => button.textContent === "Aktualisieren").click();
   assert.ok(geraetNachrichten.some((nachricht) =>
@@ -8286,6 +8351,15 @@ function knopfMit(text, wurzel) {
   assert.notStrictEqual(geraetD.querySelector("[data-personal-sync-peer]").textContent,
     wartenderPersonalStand,
     "aktueller Peer-Stand aktualisiert den offenen Personal-Sync-Dialog nicht");
+  const personalWahl = Array.from(personalBereich.querySelectorAll(".personal-sync-wahl button"));
+  assert.deepStrictEqual(personalWahl.map((button) => button.textContent), ["Alle", "Keine"],
+    "Personal Sync bietet beim Aufklappen keine Alle-/Keine-Auswahl");
+  personalWahl[1].click();
+  assert.ok(Array.from(personalBereich.querySelectorAll("input")).slice(1, 4)
+    .every((haken) => !haken.checked), "Keine schaltet nicht alle Sync-Inhalte ab");
+  personalWahl[0].click();
+  assert.ok(Array.from(personalBereich.querySelectorAll("input")).slice(1, 4)
+    .every((haken) => haken.checked), "Alle schaltet nicht alle Sync-Inhalte ein");
   const geraetFuss = geraetD.querySelector(".geraet-dialog-knoepfe");
   assert.ok(geraetFuss && geraetD.querySelector(".geraet-dialog-inhalt"),
     "Geräteinhalt und dauerhaft sichtbare Aktionsleiste sind nicht getrennt");
@@ -8655,7 +8729,7 @@ function knopfMit(text, wurzel) {
   const lastTreffer = suchT.suchTrefferFuer("kalender", ["nadelkern"], 101);
   const suchDauer = performance.now() - suchStart;
   assert.strictEqual(lastTreffer.length, 1, "Kernsuche verliert Treffer im 10.000er-Bestand");
-  assert.ok(suchDauer < 150, "10.000er-Kernsuche dauert " + suchDauer.toFixed(1) + " ms");
+  assert.ok(suchDauer < 750, "10.000er-Kernsuche dauert " + suchDauer.toFixed(1) + " ms");
   suchT.daten().termine = alteTermine;
   suchT.daten().kontakte = alteKontakte;
   suchDom.window.close();

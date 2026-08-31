@@ -1,23 +1,9 @@
-# SOME DESCRIPTIVE TITLE.
-# Copyright (C) 2026 THE PACKAGE'S COPYRIGHT HOLDER
-# This file is distributed under the same license as the Magnolie Organizer
-# package.
-# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
-#
 msgid ""
 msgstr ""
-"Project-Id-Version: Magnolie Organizer 2.0.13\n"
 "Report-Msgid-Bugs-To: maik3531@gmail.com\n"
 "POT-Creation-Date: YEAR-MO-DA HO:MI+ZONE\n"
-"PO-Revision-Date: 2026-08-08 06:34+0200\n"
-"Last-Translator: OpenAI-assisted editorial translation <maik3531@gmail.com>\n"
-"Language-Team: Spanish\n"
-"Language: es\n"
-"MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
-"Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
-"Generated-By: Babel 2.18.0\n"
 
 msgid " (filtered)"
 msgstr " (filtrado)"
@@ -425,7 +411,7 @@ msgstr ""
 "dispositivo y notificaciones seleccionadas."
 
 msgid "API level"
-msgstr "API level"
+msgstr "Nivel de API"
 
 msgid "Aargau"
 msgstr "Argovia"
@@ -484,7 +470,7 @@ msgid "According to language"
 msgstr "Según el idioma"
 
 msgid "Active call"
-msgstr "Active call"
+msgstr "Llamada activa"
 
 msgid "Add"
 msgstr "Añadir"
@@ -618,7 +604,7 @@ msgid "Answer calls on the computer and talk"
 msgstr "Responder llamadas en el ordenador y hablar"
 
 msgid "App password"
-msgstr "App password"
+msgstr "Contraseña de aplicación"
 
 msgid "Appearance"
 msgstr "Apariencia"
@@ -714,7 +700,7 @@ msgid "At most 5,000 health records can be exported at once."
 msgstr "Se pueden exportar como máximo 5.000 registros de salud a la vez."
 
 msgid "Attachments"
-msgstr "Citas"
+msgstr "Archivos adjuntos"
 
 msgid "Attendees"
 msgstr "Asistentes"
@@ -727,6 +713,12 @@ msgstr "Autor"
 
 msgid "Authority appointment"
 msgstr "Cita administrativa"
+
+msgid "Automatic backup failed."
+msgstr "La copia de seguridad automática ha fallado."
+
+msgid "Automatic cloud-folder backups"
+msgstr "Copias automáticas en una carpeta de nube"
 
 msgid "Automatically choose a suitable application"
 msgstr "Elegir automáticamente una aplicación adecuada"
@@ -773,6 +765,9 @@ msgstr ""
 msgid "Backup saved to: %(path)s"
 msgstr "Copia de seguridad guardada en: %(path)s"
 
+msgid "Backup verified successfully."
+msgstr "Copia de seguridad verificada correctamente."
+
 msgid "Backups"
 msgstr "Copias de seguridad"
 
@@ -805,7 +800,7 @@ msgid "Battery"
 msgstr "Batería"
 
 msgid "Battery snapshot"
-msgstr "Battery snapshot"
+msgstr "Estado de la batería"
 
 msgid "Bavaria"
 msgstr "Baviera"
@@ -952,7 +947,7 @@ msgid "Calendars (multiple selections allowed)"
 msgstr "Calendarios (se permiten varias selecciones)"
 
 msgid "Calendars and contacts"
-msgstr "Calendars and contacts"
+msgstr "Calendarios y contactos"
 
 msgid "Call"
 msgstr "Llamar"
@@ -961,16 +956,16 @@ msgid "Call assignment"
 msgstr "asignación de llamada"
 
 msgid "Call ended"
-msgstr "Call ended"
+msgstr "Llamada finalizada"
 
 msgid "Call notes"
-msgstr "Call notes"
+msgstr "Notas de la llamada"
 
 msgid "Call reference"
-msgstr "Call reference"
+msgstr "Referencia de la llamada"
 
 msgid "Call started"
-msgstr "Call started"
+msgstr "Llamada iniciada"
 
 msgid "Call this contact using Magnolie Notes or the assigned application"
 msgstr "Llame a este contacto mediante Magnolie Notes o la aplicación asignada"
@@ -1240,7 +1235,7 @@ msgstr ""
 "automáticamente."
 
 msgid "Complete pairing"
-msgstr "Complete pairing"
+msgstr "Completar emparejamiento"
 
 msgid "Completed (%(count)s)"
 msgstr "Completadas (%(count)s)"
@@ -1273,7 +1268,7 @@ msgid "Connect phone via WLAN"
 msgstr "Conectar el teléfono mediante WLAN"
 
 msgid "Connected"
-msgstr "Connected"
+msgstr "Conectado"
 
 msgid "Consider deletions during manual synchronization"
 msgstr "Sincronización de contactos"
@@ -1541,7 +1536,7 @@ msgid "Delete page"
 msgstr "Eliminar página"
 
 msgid "Delete password"
-msgstr "Delete password"
+msgstr "Eliminar contraseña"
 
 msgid "Delete permanently"
 msgstr "Eliminar definitivamente"
@@ -1601,7 +1596,7 @@ msgstr ""
 "individualmente. ¿Activarlas para esta rama?"
 
 msgid "Deletions are not synchronized yet."
-msgstr "Nunca se ha sincronizado."
+msgstr "Las eliminaciones aún no están sincronizadas."
 
 msgid "Delivered"
 msgstr "Entregado"
@@ -1626,7 +1621,7 @@ msgid "Diabetes"
 msgstr "Diabetes"
 
 msgid "Dialing…"
-msgstr "Dialing…"
+msgstr "Marcando…"
 
 msgid "Diastolic"
 msgstr "Diastólica"
@@ -1702,7 +1697,7 @@ msgid "Duplicates"
 msgstr "Duplicados"
 
 msgid "Duration"
-msgstr "Duration"
+msgstr "Duración"
 
 msgid "Early shift"
 msgstr "Turno de mañana"
@@ -2123,7 +2118,7 @@ msgid "Handwriting"
 msgstr "Escritura a mano"
 
 msgid "Hang up"
-msgstr "Hang up"
+msgstr "Colgar"
 
 msgid "Head office"
 msgstr "Sede principal"
@@ -2354,7 +2349,7 @@ msgid "Internet IP"
 msgstr "IP de Internet"
 
 msgid "Internet available"
-msgstr "Internet available"
+msgstr "Internet disponible"
 
 msgid "Interval in days"
 msgstr "Intervalo en días"
@@ -2419,6 +2414,9 @@ msgstr "Apellidos"
 
 msgid "Last snapshot"
 msgstr "Última instantánea"
+
+msgid "Last successful backup"
+msgstr "Última copia correcta"
 
 msgid "Last synchronized: %(date)s, %(time)s."
 msgstr "Última sincronización: %(date)s, %(time)s."
@@ -2516,9 +2514,6 @@ msgstr ""
 "nombre del modelo Android pertenece a Magnolie Notes; el nombre del par KDE "
 "procede de KDE Connect."
 
-msgid "Magnolie Notes version"
-msgstr "Versión de Magnolie Notes"
-
 msgid "Magnolie Organizer is not completely installed."
 msgstr "Magnolie Organizer no está instalado por completo."
 
@@ -2548,7 +2543,7 @@ msgid "Magnolienbaum"
 msgstr "Magnolienbaum"
 
 msgid "Magnolienbaum mailbox"
-msgstr "Magnolienbaum mailbox"
+msgstr "Buzón de Magnolienbaum"
 
 msgid "Magnolienbaum pairing file (*.magnolie-paarung)"
 msgstr "Archivo de emparejamiento de Magnolienbaum (*.magnolie-paarung)"
@@ -2637,7 +2632,7 @@ msgid "Memorial day"
 msgstr "Día conmemorativo"
 
 msgid "Memory available / total"
-msgstr "Memory available / total"
+msgstr "Memoria disponible / total"
 
 msgid "Merge"
 msgstr "Combinar"
@@ -2655,7 +2650,7 @@ msgid "Message text"
 msgstr "Texto del mensaje"
 
 msgid "Metered connection"
-msgstr "Metered connection"
+msgstr "Conexión de uso medido"
 
 msgid "Microsoft Graph has not been configured yet."
 msgstr "Microsoft Graph aún no se ha configurado."
@@ -2676,7 +2671,7 @@ msgid "Microsoft sign-out failed: %(error)s"
 msgstr "Error al cerrar sesión en Microsoft: %(error)s"
 
 msgid "Minimize"
-msgstr "Minimize"
+msgstr "Minimizar"
 
 msgid "Minimize to the tray when closed"
 msgstr "Minimizar a la bandeja al cerrar"
@@ -2716,7 +2711,7 @@ msgid "Mobile"
 msgstr "Móvil"
 
 msgid "Mobile network"
-msgstr "Mobile network"
+msgstr "Red móvil"
 
 msgid "Model"
 msgstr "Modelo"
@@ -2777,7 +2772,7 @@ msgstr ""
 "está bloqueada; elimine todos menos uno."
 
 msgid "Multiple calendars"
-msgstr "Multiple calendars"
+msgstr "Varios calendarios"
 
 msgid "Name"
 msgstr "Nombre"
@@ -2795,7 +2790,7 @@ msgid "Netherlands"
 msgstr "Países Bajos"
 
 msgid "Network"
-msgstr "Network"
+msgstr "Red"
 
 msgid "Neuchâtel"
 msgstr "Neuchâtel"
@@ -2884,7 +2879,7 @@ msgid "Next year"
 msgstr "Año siguiente"
 
 msgid "Nextcloud account"
-msgstr "Nextcloud account"
+msgstr "Cuenta de Nextcloud"
 
 msgid "Nextcloud is not enabled."
 msgstr "Nextcloud no está habilitado."
@@ -3149,7 +3144,7 @@ msgid "Ointment"
 msgstr "Pomada"
 
 msgid "One address book"
-msgstr "One address book"
+msgstr "Una libreta de direcciones"
 
 msgid "One backup could not be updated."
 msgid_plural "%(count)s backups could not be updated."
@@ -3327,6 +3322,9 @@ msgstr "Residuos orgánicos"
 
 msgid "Organizer"
 msgstr "Organizador"
+
+msgid "Organizer data is locked."
+msgstr "Los datos de Organizer están bloqueados."
 
 msgid "Organizer style (paper sheet)"
 msgstr "Estilo de organizador (hoja de papel)"
@@ -3514,7 +3512,7 @@ msgid "Phone"
 msgstr "Teléfono"
 
 msgid "Phone battery"
-msgstr "Phone battery"
+msgstr "Batería del teléfono"
 
 msgid "Phone call"
 msgstr "Llamada telefónica"
@@ -3610,7 +3608,7 @@ msgid "Possible duplicates among local and incoming contacts"
 msgstr "Posibles duplicados entre contactos locales y entrantes"
 
 msgid "Possible spam"
-msgstr "Possible spam"
+msgstr "Posible correo no deseado"
 
 msgid "Postal address"
 msgstr "Dirección postal"
@@ -3625,7 +3623,7 @@ msgid "Powder"
 msgstr "Polvo"
 
 msgid "Power source"
-msgstr "Power source"
+msgstr "Fuente de alimentación"
 
 msgid "Preparing Microsoft sign-in …"
 msgstr "Preparando el inicio de sesión de Microsoft..."
@@ -3697,6 +3695,9 @@ msgstr ""
 "Las instantáneas privadas con comprobación de integridad se guardan junto a "
 "los datos de la aplicación."
 
+msgid "Protected archive password unavailable."
+msgstr "La contraseña protegida del archivo no está disponible."
+
 msgid "Public IPv4 or IPv6 address of the other branch"
 msgstr "Dirección IPv4 o IPv6 pública de la otra rama"
 
@@ -3735,7 +3736,7 @@ msgid "Reachable IPv4 or IPv6 address of this computer"
 msgstr "Dirección IPv4 o IPv6 accesible de este ordenador"
 
 msgid "Ready."
-msgstr "Ready."
+msgstr "Listo."
 
 msgid ""
 "Really merge %(cards)s? Review the result carefully afterwards. A copy of "
@@ -3879,7 +3880,7 @@ msgstr ""
 "historial de chat no cambiarán."
 
 msgid "Renew pairing"
-msgstr "Renew pairing"
+msgstr "Renovar emparejamiento"
 
 msgid "Repeat for confirmation"
 msgstr "Repetir para confirmar"
@@ -3936,6 +3937,9 @@ msgid "Restoring backups is available only in the installed application."
 msgstr ""
 "La restauración de copias de seguridad solo está disponible en la aplicación "
 "instalada."
+
+msgid "Retention"
+msgstr "Conservación"
 
 msgid "Retrieval failed."
 msgstr "Ha fallado la obtención."
@@ -4026,7 +4030,7 @@ msgid "Save changes?"
 msgstr "¿Guardar los cambios?"
 
 msgid "Save endpoint"
-msgstr "Save endpoint"
+msgstr "Guardar punto de conexión"
 
 msgid "Save rejected: The data is encrypted and has not been unlocked yet."
 msgstr ""
@@ -4048,7 +4052,7 @@ msgid "Saved ✓ %(time)s"
 msgstr "Guardado ✓ %(time)s"
 
 msgid "Saved."
-msgstr "Saved."
+msgstr "Guardado."
 
 msgid "Saving failed!"
 msgstr "¡Ha fallado el guardado!"
@@ -4072,7 +4076,7 @@ msgid "Scheduled"
 msgstr "Programado"
 
 msgid "Scheme"
-msgstr "Scheme"
+msgstr "Pauta"
 
 msgid "Schleswig-Holstein"
 msgstr "Schleswig-Holstein"
@@ -4121,6 +4125,16 @@ msgstr "Seguridad"
 
 msgid "Select a country first."
 msgstr "Selecciona primero un país."
+
+msgid ""
+"Select a custom backup folder and store an archive password to enable "
+"automatic backups."
+msgstr ""
+"Seleccione una carpeta de copia personalizada y guarde una contraseña de "
+"archivo para activar las copias automáticas."
+
+msgid "Select a custom backup folder."
+msgstr "Seleccione una carpeta de copia personalizada."
 
 msgid "Select all"
 msgstr "Seleccionar todo"
@@ -4171,7 +4185,7 @@ msgid "Send SMS"
 msgstr "Enviar SMS"
 
 msgid "Send adjusted text"
-msgstr "Send adjusted text"
+msgstr "Enviar el texto ajustado"
 
 msgid "Send documents"
 msgstr "Enviar documentos"
@@ -4183,10 +4197,13 @@ msgid "Sent"
 msgstr "Enviado"
 
 msgid "Server address"
-msgstr "Server address"
+msgstr "Dirección del servidor"
 
 msgid "Server address and user name are required."
 msgstr "Se necesitan la dirección del servidor y el nombre de usuario."
+
+msgid "Set or change password"
+msgstr "Establecer o cambiar la contraseña"
 
 msgid "Set up contacts"
 msgstr "Configurar contactos"
@@ -4227,7 +4244,7 @@ msgid "Share together"
 msgstr "Compartir juntos"
 
 msgid "Shared credentials"
-msgstr "Shared credentials"
+msgstr "Credenciales compartidas"
 
 msgid "Shared note"
 msgstr "Nota compartida"
@@ -4361,7 +4378,7 @@ msgid "Spain"
 msgstr "España"
 
 msgid "Spam check"
-msgstr "Spam check"
+msgstr "Comprobación de correo no deseado"
 
 msgid "Special cases"
 msgstr "Casos especiales"
@@ -4385,7 +4402,7 @@ msgid "Status"
 msgstr "Estado"
 
 msgid "Storage available / total"
-msgstr "Storage available / total"
+msgstr "Almacenamiento disponible / total"
 
 msgid "Street / house number"
 msgstr "Calle / número"
@@ -4421,7 +4438,7 @@ msgid "Suppository"
 msgstr "Supositorio"
 
 msgid "Switched off."
-msgstr "Switched off."
+msgstr "Desactivado."
 
 msgid "Switzerland"
 msgstr "Suiza"
@@ -4468,7 +4485,7 @@ msgid "Synchronize contacts"
 msgstr "Sincronizar contactos"
 
 msgid "Synchronize everything"
-msgstr "Synchronize everything"
+msgstr "Sincronizar todo"
 
 msgid "Synchronize notes and notebooks"
 msgstr "Sincronizar contactos"
@@ -4540,10 +4557,13 @@ msgid "Temperature"
 msgstr "Temperatura"
 
 msgid "Test connection"
-msgstr "Test connection"
+msgstr "Probar conexión"
+
+msgid "Test now"
+msgstr "Probar ahora"
 
 msgid "Testing…"
-msgstr "Testing…"
+msgstr "Probando…"
 
 msgid "Text color"
 msgstr "Color del texto"
@@ -4794,6 +4814,17 @@ msgstr "El archivo tiene un formato no compatible."
 
 msgid "The file is larger than 8 megabytes."
 msgstr "El archivo supera los 8 megabytes."
+
+msgid ""
+"The folder may be locally synchronized by Nextcloud, Google Drive, Dropbox, "
+"or OneDrive. Magnolie does not sign in to a provider. Automatic backups run "
+"only while Organizer is open and unlocked, immediately after data was saved "
+"successfully."
+msgstr ""
+"La carpeta puede sincronizarse localmente mediante Nextcloud, Google Drive, "
+"Dropbox u OneDrive. Magnolie no inicia sesión en ningún proveedor. Las "
+"copias automáticas solo se ejecutan mientras Organizer está abierto y "
+"desbloqueado, justo después de guardar los datos correctamente."
 
 msgid ""
 "The helper frame marks the control that currently has keyboard focus. This "
@@ -5422,7 +5453,7 @@ msgid "URI"
 msgstr "URI"
 
 msgid "Unavailable"
-msgstr "Unavailable"
+msgstr "No disponible"
 
 msgid ""
 "Under Wayland, the compositor determines the exact window position; "
@@ -5490,7 +5521,7 @@ msgid "Upper Austria"
 msgstr "Alta Austria"
 
 msgid "Uptime"
-msgstr "Uptime"
+msgstr "Tiempo de actividad"
 
 msgid "Uri"
 msgstr "URI"
@@ -5500,6 +5531,9 @@ msgstr "Usar una aplicación o comando concretos"
 
 msgid "Use a specific website"
 msgstr "Usar un sitio web concreto"
+
+msgid "Use automatic backups"
+msgstr "Usar copias de seguridad automáticas"
 
 msgid "Use basal units"
 msgstr "Usar unidades basales"
@@ -5539,7 +5573,7 @@ msgid "Use the recycle bin"
 msgstr "Usar la papelera"
 
 msgid "User name"
-msgstr "User name"
+msgstr "Nombre de usuario"
 
 msgid ""
 "Uses its own identity and storage and listens only on fixed port %(port)s. "
@@ -5782,7 +5816,7 @@ msgid "Windows Contacts folder"
 msgstr "Carpeta de contactos de Windows"
 
 msgid "Wireless"
-msgstr "Wireless"
+msgstr "Inalámbrico"
 
 msgid ""
 "With a password or numeric code, the organizer asks for it when opening and "
@@ -5851,7 +5885,7 @@ msgid "Year planner %(year)s"
 msgstr "Planificador anual %(year)s"
 
 msgid "Yes"
-msgstr "Yes"
+msgstr "Sí"
 
 msgid "Yes, merge"
 msgstr "Sí, combinar"

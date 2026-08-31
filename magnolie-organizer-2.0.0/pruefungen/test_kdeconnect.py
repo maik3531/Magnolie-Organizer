@@ -351,6 +351,7 @@ def test_sms_v2_parser_is_bounded_marks_groups_and_stable_ids():
          "type": 2, "read": "0", "event": 3}]})
     parsed = kde.parse_sms_messages(packet, "a" * 32)
     assert parsed[0]["id"] == "a" * 32 + ":3:7" and parsed[0]["incoming"]
+    assert parsed[0]["read"] and not parsed[1]["read"]
     assert not parsed[0]["group"] and parsed[1]["group"] and not parsed[1]["incoming"]
 
 
@@ -373,7 +374,7 @@ def test_sms_parser_skips_bad_rows_and_hashes_missing_official_id():
         {"version": 2, "messages": [dict(valid, read=True)]}), "a" * 32)) == 1
 
 
-def sms_packet(thread, message_id, text, message_type=1, read=1):
+def sms_packet(thread, message_id, text, message_type=1, read=0):
     return kde.network_packet(kde.SMS_MESSAGES_TYPE, {"version": 2, "messages": [{
         "_id": message_id, "thread_id": thread,
         "addresses": [{"address": "+491701234567"}], "body": text,
@@ -424,6 +425,15 @@ def test_worker_collects_multiple_summaries_full_threads_then_notifies_live():
     assert worker.diagnostics["bootstrap_state"] == "live"
 
 
+def test_worker_delivers_read_live_sms_without_native_notification():
+    backend, worker = sms_worker()
+    worker.bootstrap = False
+    worker._handle_sms_packet(sms_packet(2, 6, "already read", read=1))
+    assert backend._deliver_sms.call_count == 1
+    assert backend._deliver_sms.call_args.args[0]["read"] is True
+    assert backend._deliver_sms.call_args.kwargs["notify"] is False
+
+
 def test_summary_full_overlap_is_delivered_once_and_not_early():
     backend, worker = sms_worker()
     worker._handle_sms_packet(sms_packet(7, 41, "same message"))
@@ -462,7 +472,7 @@ def test_bootstrap_timeout_flushes_unanswered_summaries_once():
     assert backend._deliver_sms.call_args.kwargs["notify"] is False
     worker._handle_sms_packet(sms_messages_packet([
         (9, 9, "fallback", 1), (9, 10, "older", 1)]))
-    assert backend._deliver_sms.call_count == 2
+    assert backend._deliver_sms.call_count == 3
     assert backend._deliver_sms.call_args.args[0]["sms_id"] == "10"
     assert backend._deliver_sms.call_args.kwargs["notify"] is False
 
@@ -474,6 +484,17 @@ def test_same_official_id_read_variation_is_delivered_once():
     worker._handle_sms_packet(sms_messages_packet([
         (3, "41", "message", 1), (3, 41, "message", 0)]))
     assert backend._deliver_sms.call_count == 1
+
+
+def test_later_read_state_change_is_forwarded_once_without_notification():
+    backend, worker = sms_worker()
+    worker.bootstrap = False
+    worker._handle_sms_packet(sms_packet(3, 43, "message", read=0))
+    worker._handle_sms_packet(sms_packet(3, 43, "message", read=1))
+    worker._handle_sms_packet(sms_packet(3, 43, "message", read=1))
+    assert backend._deliver_sms.call_count == 2
+    assert backend._deliver_sms.call_args.args[0]["read"] is True
+    assert backend._deliver_sms.call_args.kwargs["notify"] is False
 
 
 def test_conversation_summaries_deliver_without_full_history_capability():
@@ -1186,7 +1207,8 @@ def test_clipboard_confirm_accept_reject_auto_selected_peer_and_stale_connect():
         backend._handle_receive_packet(receive_worker(backend, "b" * 32), clipboard_packet("wrong"))
         assert [event for event, _value in events] == ["clipboard_proposal"]
         proposal = events[0][1]
-        assert set(proposal) == {"id", "device_id", "text"}
+        assert set(proposal) == {"id", "device_id", "text", "timestamp_ms"}
+        assert proposal["timestamp_ms"] == 20
         accepted = backend.accept_receive(proposal["id"])
         assert accepted["text"] == "first" and events[-1][0] == "clipboard_apply"
         backend._handle_receive_packet(worker, clipboard_packet("reject me"))

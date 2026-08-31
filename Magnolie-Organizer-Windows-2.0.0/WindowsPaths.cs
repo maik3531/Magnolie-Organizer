@@ -19,6 +19,7 @@ internal sealed class WindowsPaths
         BaumMailboxSettings = Path.Combine(Root, "baum-briefkasten.json");
         BaumMailboxPassword = Path.Combine(Root, "baum-briefkasten-kennwort.dpapi");
         NextcloudSyncJournal = Path.Combine(Root, "nextcloud-sync-journal.dpapi");
+        CloudBackupPassword = Path.Combine(Root, "cloud-backup-password.dpapi");
         Telefon = Path.Combine(Root, "Telefon");
         TelefonIdentity = Path.Combine(Telefon, "identity.json");
         TelefonIdentityKey = Path.Combine(Telefon, "identity.key");
@@ -53,6 +54,7 @@ internal sealed class WindowsPaths
     internal string BaumMailboxSettings { get; }
     internal string BaumMailboxPassword { get; }
     internal string NextcloudSyncJournal { get; }
+    internal string CloudBackupPassword { get; }
     internal string Telefon { get; }
     internal string TelefonIdentity { get; }
     internal string TelefonIdentityKey { get; }

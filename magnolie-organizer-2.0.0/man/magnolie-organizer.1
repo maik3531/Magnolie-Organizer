@@ -1,10 +1,10 @@
-.TH MAGNOLIE-ORGANIZER 1 "August 2026" "Magnolie Organizer 2.0.13" "User Commands"
+.TH MAGNOLIE-ORGANIZER 1 "August 2026" "Magnolie Organizer 2.0.14" "User Commands"
 .SH NAME
 magnolie-organizer \- personal organizer in a classic paper design
 .SH SYNOPSIS
 .B magnolie-organizer
 .RI [ option ]
-.RI [ \-\-sprache\  language ]
+.RI [ \-\-language\  language ]
 .SH DESCRIPTION
 .B Magnolie Organizer
 combines a calendar, tasks, contacts, notes, anniversaries and a yearly
@@ -13,18 +13,26 @@ Evolution Data Server or shared through the encrypted Magnolienbaum service.
 .PP
 Only one graphical instance is opened per user session. Starting the command
 again presents the existing window, including a window hidden in the tray.
+.SH COMMAND-LINE FORMS
+The neutral short aliases and English long forms are:
+.nf
+\-h \-\-help; \-V \-\-version; \-l \-\-language; \-P \-\-pot-template;
+\-r \-\-reminder-check; \-w \-\-alarm-monitor; \-p \-\-reminder-test;
+\-t \-\-tray-start; \-d \-\-debug; \-b \-\-background-service.
+.fi
+Both German and English long forms are accepted.
 .SH OPTIONS
 .TP
-.B \-\-erinnerung
+.B \-\-reminder-check
 Check for due reminders. This option is normally used by the session service.
 .TP
-.B \-\-wecker
+.B \-\-alarm-monitor
 Run the reminder monitor in the background.
 .TP
 .B \-\-tray-start
 Start the organizer through its tray autostart entry.
 .TP
-.B \-\-probe
+.B \-\-reminder-test
 Test reminders and print a diagnostic report.
 .TP
 .B \-\-debug
@@ -34,7 +42,7 @@ singleton, window and tray diagnostics to
 instance before starting a diagnostic run; a second invocation only activates
 the existing process.
 .TP
-.BR \-\-sprache " " CODE , " " \-\-language " " CODE
+.BR \-\-language " " CODE , " " \-\-sprache " " CODE
 Use a supported language code (\fBar\fR, \fBbe\fR, \fBcs\fR, \fBda\fR,
 \fBde\fR, \fBen\fR, \fBes\fR, \fBfr\fR, \fBhi\fR, \fBhsb\fR, \fBit\fR,
 \fBja\fR, \fBnb\fR, \fBnl\fR, \fBpl\fR, \fBpt\fR, \fBru\fR, \fBtr\fR,
@@ -43,12 +51,12 @@ invocation. This selects command output before help,
 diagnostic and background modes and the WebKit interface of a newly opened
 graphical instance. Persisted settings are not changed.
 .TP
-.BR \-\-pot " [" DATEI "]", " " \-\-pot-template " [" FILE "]"
+.BR \-\-pot-template " [" FILE "]", " " \-\-pot " [" DATEI "]"
 Generate a reproducible gettext template and exit. With no file argument,
 write \fBmagnolie-organizer.pot\fR in the current directory; otherwise write
 to the specified path. The absolute output path is printed on success.
 .TP
-.BR \-\-hilfe , " " \-\-help
+.BR \-\-help , " " \-\-hilfe
 Show a short command overview.
 .SH MAGNOLIENBAUM NETWORK
 When enabled, Magnolienbaum listens on TCP port 8737 over IPv4 and IPv6.

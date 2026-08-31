@@ -1,10 +1,10 @@
-.TH MAGNOLIE-ORGANIZER 1 "Agosto 2026" "Magnolie Organizer 2.0.13" "Comandi utente"
+.TH MAGNOLIE-ORGANIZER 1 "Agosto 2026" "Magnolie Organizer 2.0.14" "Comandi utente"
 .SH NOME
 magnolie-organizer \- agenda personale dal classico aspetto cartaceo
 .SH SINTASSI
 .B magnolie-organizer
 .RI [ opzione ]
-.RI [ \-\-sprache\  lingua ]
+.RI [ \-\-language\  lingua ]
 .SH DESCRIZIONE
 .B Magnolie Organizer
 riunisce calendario, attività, contatti, note, ricorrenze e pianificatore
@@ -15,20 +15,28 @@ cifrato Magnolienbaum.
 Per ogni sessione utente viene aperta una sola istanza grafica. Avviando di
 nuovo il comando viene visualizzata la finestra esistente, anche se nascosta
 nell'area di notifica.
+.SH FORME DELLA RIGA DI COMANDO
+Gli alias brevi neutrali e le forme lunghe inglesi sono:
+.nf
+\-h \-\-help; \-V \-\-version; \-l \-\-language; \-P \-\-pot-template;
+\-r \-\-reminder-check; \-w \-\-alarm-monitor; \-p \-\-reminder-test;
+\-t \-\-tray-start; \-d \-\-debug; \-b \-\-background-service.
+.fi
+Sono accettate sia le forme lunghe tedesche sia quelle inglesi.
 .SH OPZIONI
 .TP
-.B \-\-erinnerung
+.B \-\-reminder-check
 Controlla i promemoria scaduti. Questa opzione è normalmente utilizzata dal
 servizio di sessione.
 .TP
-.B \-\-wecker
+.B \-\-alarm-monitor
 Esegue in sottofondo il monitor dei promemoria.
 .TP
 .B \-\-tray-start
 Avvia l'agenda mediante la relativa voce di avvio automatico nell'area di
 notifica.
 .TP
-.B \-\-probe
+.B \-\-reminder-test
 Verifica i promemoria e stampa un rapporto diagnostico.
 .TP
 .B \-\-debug
@@ -38,20 +46,20 @@ relativa ad avvio, sessione, istanza singola, finestra e area di notifica in
 esecuzione prima di avviare una sessione diagnostica; una seconda invocazione
 attiva solamente il processo esistente.
 .TP
-.BR \-\-sprache " " SPRACHE , " " \-\-language " " LANGUAGE
+.BR \-\-language " " LANGUAGE , " " \-\-sprache " " SPRACHE
 Usa il tedesco (\fBde\fR), l'inglese (\fBen\fR) o la lingua di sistema
 (\fBsystem\fR) per questa invocazione. La scelta si applica all'output del
 comando prima delle modalità di guida, diagnostica e sottofondo, nonché
 all'interfaccia WebKit di una nuova istanza grafica. Le impostazioni salvate non
 vengono modificate.
 .TP
-.BR \-\-pot " [" DATEI "]", " " \-\-pot-template " [" FILE "]"
+.BR \-\-pot-template " [" FILE "]", " " \-\-pot " [" DATEI "]"
 Genera un modello gettext riproducibile ed esce. Senza un argomento file, scrive
 \fBmagnolie-organizer.pot\fR nella directory corrente; altrimenti scrive nel
 percorso specificato. In caso di successo viene visualizzato il percorso
 assoluto del file di output.
 .TP
-.BR \-\-hilfe , " " \-\-help
+.BR \-\-help , " " \-\-hilfe
 Mostra un breve riepilogo dei comandi.
 .SH RETE MAGNOLIENBAUM
 Quando è abilitato, Magnolienbaum resta in ascolto sulla porta TCP 8737 tramite

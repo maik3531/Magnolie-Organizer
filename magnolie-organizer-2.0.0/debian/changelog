@@ -1,3 +1,13 @@
+magnolie-organizer (2.0.14) unstable; urgency=high
+
+  * Schützt persönliche Bildressourcen in authentifiziert verschlüsselten
+    Containern und entfernt Klartextkopien aus den Paketen.
+  * Ergänzt lokalisierte CLI-Aliasse, RPM-Profile und vollständige Sprachtests.
+  * Verbessert Kalender, Gerätestatus, Personal Sync, Über-Seite und
+    AppImage-Grafikpfad; härtet Windows- und Handbuchintegration.
+
+ -- Maik Walter <maik3531@gmail.com>  Mon, 31 Aug 2026 03:10:33 +0200
+
 magnolie-organizer (2.0.13) unstable; urgency=high
 
   * Richtet Notizlinien an der gemessenen Grundlinie und dem tatsächlichen

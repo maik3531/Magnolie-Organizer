@@ -2,7 +2,7 @@
 
 Das Benutzerhandbuch zum Magnolie Organizer, gestaltet wie das Programm
 selbst: ein aufgeschlagenes Buch im Querformat. Diese Fassung ist das
-Handbuch 2.0.13 für Magnolie Organizer 2.0.13.
+Handbuch 2.0.14 für Magnolie Organizer 2.0.14.
 
 ## Aufbau
 
@@ -38,7 +38,18 @@ Text abgeschnitten wird und keine leeren PDF-Seiten entstehen.
     sudo apt install build-essential debhelper gettext nodejs node-jsdom \
       python3-gi gir1.2-gtk-3.0 gir1.2-webkit2-4.1 poppler-utils
     dpkg-buildpackage -us -uc -b
-    sudo apt install ../magnolie-handbuch_2.0.13_all.deb
+    sudo apt install ../magnolie-handbuch_2.0.14_all.deb
+
+Für RPM-Systeme muss das Ziel ausdrücklich gewählt werden:
+
+    werkzeuge/rpm_bauen.sh --distro fedora
+
+Die Profile `fedora`, `opensuse`, `mageia`, `openmandriva`, `pclinuxos` und
+`rosa` erzeugen getrennte Ergebnisse unter `bau/rpm/PROFIL/`; das ausgewählte
+Profil wird in Spec und SRPM festgeschrieben. Nur Fedora 42 ist derzeit ein
+gebautes, installiertes und geprüftes Freigabegate. Die übrigen Profile sind
+noch nicht release-validiert; insbesondere PCLinuxOS muss gegen einen
+festgeschriebenen Stand seines rollenden Repositorys geprüft werden.
 
 ## Prüfen
 
@@ -47,7 +58,7 @@ Text abgeschnitten wird und keine leeren PDF-Seiten entstehen.
       po/magnolie-handbuch.pot po/$sprache.po; done < po/LINGUAS
     NODE_PATH=/pfad/zum/vorhandenen/node_modules bun pruefungen/handbuch_test.js
     python3 pruefungen/druck_test.py
-    node pruefungen/paket_inhalt_test.js ../magnolie-handbuch_2.0.13_all.deb
+    node pruefungen/paket_inhalt_test.js ../magnolie-handbuch_2.0.14_all.deb
 
 `npm install` ist weder ein Quell- noch ein Prüfschritt. Unter Debian liefert
 `node-jsdom` die Testabhängigkeit. Ist sie bereits in einem anderen Projekt

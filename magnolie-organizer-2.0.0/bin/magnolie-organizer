@@ -54,6 +54,25 @@ import zipfile
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from datetime import datetime, timedelta, timezone
 
+
+_KURZOPTIONEN = {
+    "-h": "--help", "-V": "--version", "-l": "--language",
+    "-P": "--pot-template", "-r": "--erinnerung", "-w": "--wecker",
+    "-p": "--probe", "-t": "--tray-start", "-d": "--debug",
+    "-b": "--background-service",
+    "--reminder-check": "--erinnerung", "--alarm-monitor": "--wecker",
+    "--reminder-test": "--probe",
+}
+
+
+def kurzoptionen_normalisieren(argumente):
+    return [_KURZOPTIONEN.get(argument, argument) for argument in argumente]
+
+
+if __name__ == "__main__":
+    sys.argv[1:] = kurzoptionen_normalisieren(sys.argv[1:])
+
+
 def _grafik_kompatibilitaet_einrichten():
     """Aktiviert den langsameren Grafikfallback nur auf ausdruecklichen Wunsch."""
     if os.environ.get("MAGNOLIE_GRAPHICS_COMPAT", "").lower() not in (
@@ -74,13 +93,14 @@ if __name__ == "__main__":
     _crash_component = ("background-service" if any(argument in (
         "--hintergrunddienst", "--background-service") for argument in sys.argv[1:])
         else "organizer")
-    _crash_reporting_install("magnolie-organizer", "2.0.13", _crash_component)
+    _crash_reporting_install("magnolie-organizer", "2.0.14", _crash_component)
 if any(argument in ("--hintergrunddienst", "--background-service")
        for argument in sys.argv[1:]):
     from magnolie_hintergrund import daemon_main
     sys.exit(daemon_main(sys.argv[1:]))
 
 from magnolie_telefon import PhoneService, PORT as TELEFON_PORT
+from magnolie_asset import read_asset
 from magnolie_kdeconnect import KDEConnectSMSBackend, local_device_name
 from magnolie_hintergrund import (KDEConnectProxy, PhoneServiceProxy, daemon_available,
     daemon_status as background_daemon_status,
@@ -94,6 +114,10 @@ from magnolie_nextcloud import (
     NextcloudSettingsStore, configured_client,
     error_code as nextcloud_fehlercode, mailbox_sender,
     read_mailbox_document, source_id)
+from magnolie_cloud_backup import (
+    ArchiveSecretStore, PREFIX as CLOUD_BACKUP_PREFIX,
+    apply_retention as cloud_backup_retention, due as cloud_backup_due,
+    retention_count as cloud_backup_retention_count)
 
 _DEBUG_ANGEFORDERT = "--debug" in sys.argv[1:]
 _GTK_IMPORT_FEHLER = ""
@@ -196,7 +220,7 @@ def tray_system_verfuegbar(desktop=None, aktivierte_erweiterungen=None):
 PROGRAMM_NAME = "magnolie-organizer"
 HANDBUCH_NAME = "magnolie-handbuch"
 FENSTER_TITEL = "Magnolie Organizer"
-PROGRAMM_FASSUNG = "2.0.13"
+PROGRAMM_FASSUNG = "2.0.14"
 ALTER_NAME = "organizer-klassik"
 I18N_DOMAIN = "magnolie-organizer"
 
@@ -499,7 +523,7 @@ def befehlszeile_lesen(argumente):
     while index < len(argumente):
         argument = argumente[index]
         if argument in ("--sprache", "--language"):
-            if index + 1 >= len(argumente) or argumente[index + 1].startswith("--"):
+            if index + 1 >= len(argumente) or argumente[index + 1].startswith("-"):
                 return None, None, _("Option %s requires a language.") % argument
             roh_sprache = argumente[index + 1]
             sprache = normalisiere_sprache(roh_sprache)
@@ -509,9 +533,12 @@ def befehlszeile_lesen(argumente):
             continue
         if argument in ("--pot", "--pot-template"):
             pot = ""
-            if index + 1 < len(argumente) and not argumente[index + 1].startswith("--"):
+            if index + 1 < len(argumente) and not argumente[index + 1].startswith("-"):
                 pot = argumente[index + 1]
                 index += 1
+        elif argument not in ("--erinnerung", "--wecker", "--probe", "--tray-start",
+                               "--debug", "--hilfe", "--help", "--version"):
+            return None, None, _("Unknown option: %s") % argument
         index += 1
     return sprache, pot, None
 
@@ -527,6 +554,16 @@ def sprache_anwenden(sprache):
         _REGIONAL["language"] = system_sprache()
     else:
         _REGIONAL["language"] = sprache
+
+
+def befehlszeilen_sprache_anwenden(argumente):
+    sprache = None
+    for index, argument in enumerate(argumente[:-1]):
+        if argument in ("--sprache", "--language") and not argumente[index + 1].startswith("-"):
+            kandidat = normalisiere_sprache(argumente[index + 1])
+            if kandidat:
+                sprache = kandidat
+    sprache_anwenden(sprache)
 
 
 def pot_erzeugen(ziel):
@@ -980,14 +1017,21 @@ def _journal_anzahl(wert, standard=20):
 
 def _journal_behalten(staende, jetzt, maximum=None):
     if maximum is not None:
-        sortiert = []
+        geschuetzt, sortiert = set(), []
         for stand in staende:
             try:
-                sortiert.append((_journal_zeit(stand["createdAt"]), stand))
+                zeit = _journal_zeit(stand["createdAt"])
             except (KeyError, ValueError, TypeError):
                 continue
-        return {stand["snapshotId"] for _zeit, stand in
-                sorted(sortiert, reverse=True)[:max(0, int(maximum))]}
+            if (stand.get("reason") == "manual" and stand.get("pinned", True)) or (
+                    stand.get("reason") == "pre-restore" and
+                    (jetzt - zeit).total_seconds() <= 30 * 86400):
+                geschuetzt.add(stand["snapshotId"])
+            else:
+                sortiert.append((zeit, stand))
+        freie_plaetze = max(0, int(maximum) - len(geschuetzt))
+        return geschuetzt | {stand["snapshotId"] for _zeit, stand in
+                             sorted(sortiert, reverse=True)[:freie_plaetze]}
     behalten = set()
     wochen, monate, kurz, restore = [], [], [], []
     for stand in staende:
@@ -1517,8 +1561,8 @@ def lege_sicherung_an(ordner="", vorsilbe="sicherung", kennwort="",
     vorsilbe = ("sicherung-vor-wiederherstellung"
                  if vorsilbe == "sicherung-vor-wiederherstellung"
                  else "sicherung")
-    ziel = os.path.join(ordner, "%s-%s.json" % (vorsilbe, stempel))
     if not extern:
+        ziel = os.path.join(ordner, "%s-%s.json" % (vorsilbe, stempel))
         atomar_text_schreiben(ziel, quelltext)
         return ziel
 
@@ -1532,11 +1576,52 @@ def lege_sicherung_an(ordner="", vorsilbe="sicherung", kennwort="",
     daten = json.loads(roh)
     if not isinstance(daten, dict):
         raise RuntimeError(_("The current organizer data is incomplete."))
-    sicherungstext = verschluesseln(roh, kennwort)
+    sicherungstext = gesamtarchiv_erzeugen(
+        daten, "linux", PROGRAMM_FASSUNG, kennwort)
     if len(sicherungstext.encode("utf-8")) > SICHERUNG_DATEI_MAX:
         raise GroessenFehler(
             _("The backup file is larger than 256 megabytes."))
+    ziel = os.path.join(
+        ordner, "%s-%s-%s.magnolie" % (vorsilbe, stempel, uuid.uuid4().hex))
     atomar_text_schreiben(ziel, sicherungstext)
+    try:
+        geprueft = gesamtarchiv_lesen(ziel, kennwort)
+        if not isinstance(geprueft.get("daten"), dict):
+            raise RuntimeError(_("This backup cannot be used."))
+    except Exception:
+        try:
+            os.unlink(ziel)
+        except OSError:
+            pass
+        raise
+    return ziel
+
+
+def automatische_sicherung_anlegen(daten, ordner, kennwort, aufbewahrung,
+                                    jetzt=None):
+    """Write, authenticate, then safely prune an automatic cloud-folder backup."""
+    if not str(ordner or "").strip() or len(str(kennwort or "")) < 4:
+        raise RuntimeError("automatic_backup_not_configured")
+    zielordner = sicherungs_verzeichnis(ordner)
+    os.makedirs(zielordner, exist_ok=True)
+    zeit = (jetzt or datetime.now(timezone.utc)).astimezone(timezone.utc)
+    name = "%s%s-%s%s" % (
+        CLOUD_BACKUP_PREFIX, zeit.strftime("%Y%m%d-%H%M%S-%f"),
+        uuid.uuid4().hex, ".magnolie")
+    ziel = os.path.join(zielordner, name)
+    text = gesamtarchiv_erzeugen(daten, "linux", PROGRAMM_FASSUNG, kennwort)
+    try:
+        atomar_text_schreiben(ziel, text)
+        gelesen = gesamtarchiv_lesen(ziel, kennwort)
+        if not isinstance(gelesen.get("daten"), dict):
+            raise RuntimeError("automatic_backup_verification_failed")
+    except Exception:
+        try:
+            os.unlink(ziel)
+        except OSError:
+            pass
+        raise
+    cloud_backup_retention(zielordner, aufbewahrung, ziel)
     return ziel
 
 
@@ -1562,6 +1647,11 @@ def sicherung_lesen(pfad, kennwort=""):
         return {"ok": False, "fehler": "", "brauchtKennwort": True,
                 "verschluesselt": True}
     try:
+        if os.path.splitext(pfad)[1].lower() == ".magnolie":
+            archiv = gesamtarchiv_lesen_text(roh, kennwort)
+            return {"ok": True, "daten": archiv["daten"], "fehler": "",
+                    "brauchtKennwort": False,
+                    "verschluesselt": archiv["verschluesselt"]}
         klar = entschluesseln(roh, kennwort) if verschluesselt else roh
         daten = json.loads(klar)
     except RuntimeError as fehler:
@@ -15440,7 +15530,7 @@ _ORGANIZER_RESSOURCEN = {
     "/stil.css": ("stil.css", "text/css"),
     "/schriften/Z003-MediumItalic.otf":
         ("schriften/Z003-MediumItalic.otf", "font/otf"),
-    "/kaffee-qr.png": ("kaffee-qr.png", "image/png"),
+    "/kaffee-qr.png": ("kaffee-qr.mga", "image/png"),
     "/i18n.js": ("i18n.js", "application/javascript"),
     "/i18n-start.js": ("i18n-start.js", "application/javascript"),
     "/anwendung.js": ("anwendung.js", "application/javascript"),
@@ -15578,9 +15668,12 @@ class OrganizerHTTPServer:
                 if not ressource:
                     return self._ablehnen(404)
                 try:
-                    with open(ressource[0], "rb") as datei:
-                        daten = datei.read()
-                except OSError:
+                    if ressource[1] == "image/png":
+                        daten = read_asset(ressource[0], 1, 1)
+                    else:
+                        with open(ressource[0], "rb") as datei:
+                            daten = datei.read()
+                except (OSError, ValueError):
                     return self._ablehnen(404)
                 self.send_response(200)
                 self.send_header("Content-Type", ressource[1])
@@ -15726,7 +15819,7 @@ class CDPPipeClient:
         for strom in (self.schreiben, self.lesen):
             try:
                 strom.close()
-            except OSError:
+            except (OSError, ValueError):
                 pass
 
 
@@ -16034,6 +16127,8 @@ class Fenster(_FENSTER_BASIS):
         self._daten_dek_kennung = None
         self._daten_umschlag = None
         self._aktuelle_daten = None
+        self._cloud_sicherung_secrets = ArchiveSecretStore()
+        self._cloud_sicherung_sperre = threading.Lock()
         self._daten_sperre = threading.RLock()
         self._speicher_auftraege = queue.Queue()
         self._speicher_laeuft = False
@@ -16721,10 +16816,13 @@ class Fenster(_FENSTER_BASIS):
         mime = "text/plain"
         if ressource:
             try:
-                with open(ressource[0], "rb") as datei:
-                    daten = datei.read()
+                if ressource[1] == "image/png":
+                    daten = read_asset(ressource[0], 1, 1)
+                else:
+                    with open(ressource[0], "rb") as datei:
+                        daten = datei.read()
                 mime = ressource[1]
-            except OSError:
+            except (OSError, ValueError):
                 daten = b""
         strom = Gio.MemoryInputStream.new_from_bytes(GLib.Bytes.new(daten))
         anfrage.finish(strom, len(daten), mime)
@@ -16939,6 +17037,17 @@ class Fenster(_FENSTER_BASIS):
                     "fehler": _("The save request is invalid.")})
                 return
             self._speicher_auftraege.put((kennung, klartext))
+
+        elif befehl == "cloud_sicherung_status":
+            self._cloud_sicherung_status()
+
+        elif befehl == "cloud_sicherung_kennwort":
+            self._cloud_sicherung_kennwort_speichern(
+                nachricht.get("kennwort") or "")
+
+        elif befehl == "cloud_sicherung_test":
+            threading.Thread(target=self._cloud_sicherung_test,
+                             daemon=True).start()
 
         elif befehl == "regional_einstellungen":
             sauber = regional_einstellungen(nachricht.get("regional"))
@@ -17831,6 +17940,73 @@ class Fenster(_FENSTER_BASIS):
                 self._speicher_laeuft = False
                 self._speicher_auftraege.task_done()
             self.antwort("App.gespeichert", ergebnis)
+            if ergebnis["ok"]:
+                cloud_ergebnis = None
+                if hasattr(self, "_cloud_sicherung_nach_speichern"):
+                    cloud_ergebnis = self._cloud_sicherung_nach_speichern(daten)
+                if cloud_ergebnis:
+                    self.antwort("App.cloudSicherungStand", cloud_ergebnis)
+
+    @staticmethod
+    def _cloud_sicherung_einstellungen(daten):
+        allgemein = (((daten or {}).get("einstellungen") or {}).get(
+            "allgemein") or {})
+        wert = allgemein.get("cloudSicherung") or {}
+        return {
+            "aktiv": bool(wert.get("aktiv")),
+            "intervall": (wert.get("intervall")
+                           if wert.get("intervall") in ("daily", "weekly")
+                           else "daily"),
+            "aufbewahrung": cloud_backup_retention_count(
+                wert.get("aufbewahrung", 7)),
+            "letzterErfolg": str(wert.get("letzterErfolg") or "")[:64],
+            "status": str(wert.get("status") or "")[:64],
+            "ordner": str(allgemein.get("sicherungsordner") or "").strip(),
+        }
+
+    def _cloud_sicherung_status(self, status=""):
+        vorhanden = self._cloud_sicherung_secrets.available()
+        self.antwort("App.cloudSicherungStand", {
+            "kennwortVorhanden": vorhanden, "status": status})
+
+    def _cloud_sicherung_kennwort_speichern(self, kennwort):
+        try:
+            self._cloud_sicherung_secrets.store(kennwort)
+            self._cloud_sicherung_status("ready")
+        except Exception:
+            self._cloud_sicherung_status("secret_unavailable")
+
+    def _cloud_sicherung_nach_speichern(self, daten, erzwingen=False):
+        with self._cloud_sicherung_sperre:
+            einstellungen = self._cloud_sicherung_einstellungen(daten)
+            if not erzwingen and not cloud_backup_due(
+                    einstellungen["aktiv"], einstellungen["intervall"],
+                    einstellungen["letzterErfolg"]):
+                return None
+            if not einstellungen["ordner"]:
+                return {"kennwortVorhanden": self._cloud_sicherung_secrets.available(),
+                        "status": "folder_missing"}
+            try:
+                kennwort = self._cloud_sicherung_secrets.lookup()
+                if not kennwort:
+                    return {"kennwortVorhanden": False,
+                            "status": "secret_unavailable"}
+                automatische_sicherung_anlegen(
+                    daten, einstellungen["ordner"], kennwort,
+                    einstellungen["aufbewahrung"])
+                return {"kennwortVorhanden": True, "status": "success",
+                        "letzterErfolg": datetime.now(timezone.utc).isoformat()}
+            except Exception:
+                return {"kennwortVorhanden": self._cloud_sicherung_secrets.available(),
+                        "status": "failed"}
+
+    def _cloud_sicherung_test(self):
+        with self._daten_sperre:
+            daten = getattr(self, "_aktuelle_daten", None)
+            ergebnis = ({"kennwortVorhanden": self._cloud_sicherung_secrets.available(),
+                         "status": "locked"} if not isinstance(daten, dict)
+                        else self._cloud_sicherung_nach_speichern(daten, True))
+        self.antwort("App.cloudSicherungStand", ergebnis)
 
     def _darf_schreiben(self):
         """Letzte Sicherung: Über eine verschlüsselte Datei wird niemals
@@ -19689,6 +19865,7 @@ class Fenster(_FENSTER_BASIS):
         try:
             self._sync_ausfuehren(nachricht)
         except Exception as fehler:
+            debug_ausnahme("sync.failed")
             text = (nextcloud_fehlertext(fehler) if isinstance(fehler, NextcloudError)
                     else fehler_deutsch(fehler))
             self.sende_js("App.syncFehler(JSON.parse(%s));"
@@ -19727,6 +19904,7 @@ class Fenster(_FENSTER_BASIS):
                 adress_meta.setdefault(uid, stand)
                 adress_syncs[uid] = int(stand.get("letzterSync") or 0)
         bericht = []
+        sync_fehler = []
         vorschau = None
         nextcloud_komplexe_serien = 0
 
@@ -19830,9 +20008,12 @@ class Fenster(_FENSTER_BASIS):
                         _dav_syncquelle_setzen(item, uid, href, item["davEtag"])
                         remote_meta[item["uid"]] = {"href": href,
                                                      "etag": item["davEtag"]}
-                    except Exception:
+                    except Exception as fehler_ursache:
                         item["sync"] = False
                         fehler += 1
+                        sync_fehler.append(_sync_fehlertext(
+                            "%s · %s" % (quelle["name"], _("Appointments")),
+                            fehler_ursache))
                 for item in aendern:
                     meta = remote_meta.get(item["uid"])
                     try:
@@ -19850,8 +20031,12 @@ class Fenster(_FENSTER_BASIS):
                         _dav_syncquelle_setzen(item, uid, meta["href"], item["davEtag"])
                         remote_meta[item["uid"]] = {"href": meta["href"],
                                                      "etag": item["davEtag"]}
-                    except Exception:
+                    except Exception as fehler_ursache:
+                        item["sync"] = False
                         fehler += 1
+                        sync_fehler.append(_sync_fehlertext(
+                            "%s · %s" % (quelle["name"], _("Appointments")),
+                            fehler_ursache))
                 geschafft = set()
                 for item_uid in loeschen:
                     meta = remote_meta.get(item_uid)
@@ -19861,8 +20046,11 @@ class Fenster(_FENSTER_BASIS):
                         dav.delete(meta["href"], meta["etag"])
                         geschafft.add(item_uid)
                         remote_meta.pop(item_uid, None)
-                    except Exception:
+                    except Exception as fehler_ursache:
                         fehler += 1
+                        sync_fehler.append(_sync_fehlertext(
+                            "%s · %s" % (quelle["name"], _("Appointments")),
+                            fehler_ursache))
                 tote_nach_uid = {item.get("uid"): item for item in tombstones}
                 for item_uid in loeschen:
                     if item_uid in geschafft:
@@ -19959,9 +20147,12 @@ class Fenster(_FENSTER_BASIS):
                     remote_meta[item["uid"]] = {"href": href,
                                                  "etag": item["davEtag"]}
                     erfolgreich["anlegen"] += 1
-                except Exception:
+                except Exception as fehler_ursache:
                     item["sync"] = False
                     fehler += 1
+                    sync_fehler.append(_sync_fehlertext(
+                        "%s · %s" % (quelle["name"], _("Contacts")),
+                        fehler_ursache))
             for item in aendern:
                 meta = remote_meta.get(item["uid"])
                 try:
@@ -19973,8 +20164,12 @@ class Fenster(_FENSTER_BASIS):
                     remote_meta[item["uid"]] = {"href": meta["href"],
                                                  "etag": item["davEtag"]}
                     erfolgreich["aendern"] += 1
-                except Exception:
+                except Exception as fehler_ursache:
+                    item["sync"] = False
                     fehler += 1
+                    sync_fehler.append(_sync_fehlertext(
+                        "%s · %s" % (quelle["name"], _("Contacts")),
+                        fehler_ursache))
             geschafft = set()
             for item_uid in loeschen:
                 meta = remote_meta.get(item_uid)
@@ -19985,8 +20180,11 @@ class Fenster(_FENSTER_BASIS):
                     geschafft.add(item_uid)
                     remote_meta.pop(item_uid, None)
                     erfolgreich["loeschen"] += 1
-                except Exception:
+                except Exception as fehler_ursache:
                     fehler += 1
+                    sync_fehler.append(_sync_fehlertext(
+                        "%s · %s" % (quelle["name"], _("Contacts")),
+                        fehler_ursache))
             tote_kontakte = kontakt_grabsteine_nach_loeschung(
                 tote_kontakte, loeschen, geschafft, jetzt_ms())
             for item in kontakte:
@@ -20039,11 +20237,12 @@ class Fenster(_FENSTER_BASIS):
         ergebnis = {
             "termine": termine, "kontakte": kontakte, "jahrestage": jahrestage,
             "geloescht": {"termine": tote_termine, "kontakte": tote_kontakte},
-            "letzterSync": jetzt_ms(),
+            "letzterSync": (daten.get("letzterSync") or 0) if sync_fehler else jetzt_ms(),
             "letzteSyncs": {"kalender": kalender_syncs, "adressbuecher": adress_syncs},
             "adressbuchBaselineKandidat": None, "kontaktVorschau": vorschau,
             "nextcloudKomplexeSerien": nextcloud_komplexe_serien,
-            "syncMetadaten": neue_sync_meta,
+            "syncMetadaten": neue_sync_meta, "ok": not sync_fehler,
+            "fehler": " ".join(sync_fehler[:3]),
             "bericht": " ".join(bericht) or _("Synchronization completed.")}
         if antworten:
             self.antwort("App.syncFertig", ergebnis)
@@ -20081,9 +20280,12 @@ class Fenster(_FENSTER_BASIS):
                 nachricht, nextcloud_kalender, nextcloud_buch,
                 antworten=antworten, snapshot=False)
         if nextcloud_gewaehlt:
+            daten_hash = hashlib.sha256(json.dumps(
+                daten, ensure_ascii=False, sort_keys=True,
+                separators=(",", ":")).encode("utf-8")).hexdigest()
             transaktions_id = hashlib.sha256(json.dumps({
                 "kalender": sorted(kal_uids), "adressbuch": buch_uid,
-                "epoch": daten.get("syncEpoch") or ""}, sort_keys=True,
+                "epoch": daten.get("syncEpoch") or "", "daten": daten_hash}, sort_keys=True,
                 separators=(",", ":")).encode("utf-8")).hexdigest()
             voriger_stand = sync_transaktion_lesen()
             transaktion = {"id": transaktions_id, "status": "prepared",
@@ -20133,6 +20335,12 @@ class Fenster(_FENSTER_BASIS):
             berichte = [text for text in (cloud.get("bericht"), ergebnis.get("bericht"))
                          if text and text != _("Synchronization completed.")]
             ergebnis["bericht"] = " ".join(berichte) or _("Synchronization completed.")
+            fehlertexte = [text for text in (cloud.get("fehler"), ergebnis.get("fehler"))
+                            if text]
+            if cloud.get("ok") is False or ergebnis.get("ok") is False:
+                ergebnis["ok"] = False
+                ergebnis["fehler"] = " ".join(fehlertexte[:3])
+                ergebnis["letzterSync"] = daten.get("letzterSync") or 0
             if antworten:
                 self.antwort("App.syncFertig", ergebnis)
             sync_transaktion_abschliessen()
@@ -20179,6 +20387,7 @@ class Fenster(_FENSTER_BASIS):
         if buch_uid:
             adressbuch_syncs.pop(buch_uid, None)
         bericht = []
+        sync_fehler = []
         registry = eds_registry()
 
         buch_client = buch_lesen = buch_fern = buch_basis = None
@@ -20360,21 +20569,31 @@ class Fenster(_FENSTER_BASIS):
                         neu = eds_event_anlegen(client, vevent_text(obj))
                         if neu and neu != obj["uid"]:
                             obj["uid"] = neu
-                    except Exception:
+                    except Exception as fehler_ursache:
                         fehler += 1
                         obj["sync"] = False
+                        sync_fehler.append(_sync_fehlertext(
+                            "%s · %s" % (quelle_name, _("Appointments")),
+                            fehler_ursache))
                 for obj in aendern:
                     try:
                         eds_event_aendern(client, vevent_text(obj))
-                    except Exception:
+                    except Exception as fehler_ursache:
                         fehler += 1
+                        obj["sync"] = False
+                        sync_fehler.append(_sync_fehlertext(
+                            "%s · %s" % (quelle_name, _("Appointments")),
+                            fehler_ursache))
                 geschafft = set()
                 for uid in loeschen:
                     try:
                         eds_event_loeschen(client, uid)
                         geschafft.add(uid)
-                    except Exception:
+                    except Exception as fehler_ursache:
                         fehler += 1
+                        sync_fehler.append(_sync_fehlertext(
+                            "%s · %s" % (quelle_name, _("Appointments")),
+                            fehler_ursache))
                 zeiten = {t.get("uid"): t.get("zeit", 0) for t in tombstones}
                 neue_tote.extend(grabsteine_behalten(tombstones, sync_zeit))
                 vorhandene_tote = {str(t.get("uid") or "") for t in neue_tote
@@ -20384,7 +20603,8 @@ class Fenster(_FENSTER_BASIS):
                                  for uid in loeschen
                                  if uid not in geschafft and uid not in vorhandene_tote)
                 neue_termine.extend(lokal)
-                kalender_syncs[quelle_uid] = sync_zeit
+                if not fehler:
+                    kalender_syncs[quelle_uid] = sync_zeit
                 bericht.append(_sync_satz(
                     "%s · %s" % (quelle_name, _("Appointments")), z, fehler))
                 if neue_komplexe:
@@ -20427,23 +20647,33 @@ class Fenster(_FENSTER_BASIS):
                         if neu and neu != obj["uid"]:
                             obj["uid"] = neu
                         erfolgreich["anlegen"] += 1
-                    except Exception:
+                    except Exception as fehler_ursache:
                         fehler += 1
                         obj["sync"] = False
+                        sync_fehler.append(_sync_fehlertext(
+                            "%s · %s" % (buch_name, _("Contacts")),
+                            fehler_ursache))
                 for obj in aendern:
                     try:
                         eds_kontakt_aendern(client, vcard_text(obj))
                         erfolgreich["aendern"] += 1
-                    except Exception:
+                    except Exception as fehler_ursache:
                         fehler += 1
+                        obj["sync"] = False
+                        sync_fehler.append(_sync_fehlertext(
+                            "%s · %s" % (buch_name, _("Contacts")),
+                            fehler_ursache))
                 geschafft = set()
                 for u in loeschen:
                     try:
                         eds_kontakt_loeschen(client, u)
                         geschafft.add(u)
                         erfolgreich["loeschen"] += 1
-                    except Exception:
+                    except Exception as fehler_ursache:
                         fehler += 1
+                        sync_fehler.append(_sync_fehlertext(
+                            "%s · %s" % (buch_name, _("Contacts")),
+                            fehler_ursache))
                 tote_kontakte = kontakt_grabsteine_nach_loeschung(
                     tote_kontakte, loeschen, geschafft, jetzt_ms())
                 if erster_buch_sync:
@@ -20499,7 +20729,7 @@ class Fenster(_FENSTER_BASIS):
         ergebnis = {
             "termine": termine, "kontakte": kontakte, "jahrestage": jahrestage,
             "geloescht": {"termine": tote_termine, "kontakte": tote_kontakte},
-            "letzterSync": jetzt_ms(),
+            "letzterSync": letzter if sync_fehler else jetzt_ms(),
             "letzteSyncs": {"kalender": kalender_syncs,
                              "adressbuecher": adressbuch_syncs},
             "adressbuchBaselineKandidat": adressbuch_kandidat,
@@ -20513,7 +20743,8 @@ class Fenster(_FENSTER_BASIS):
                 "remoteGeplant": geplant,
                 "remoteErfolgreich": erfolgreich,
                 "fehler": fehler} if buch_uid and _EDS["buch_ok"] else None),
-            "syncMetadaten": neue_sync_meta,
+            "syncMetadaten": neue_sync_meta, "ok": not sync_fehler,
+            "fehler": " ".join(sync_fehler[:3]),
             "bericht": " ".join(bericht) or _("Synchronization completed.")}
         if antworten:
             self.antwort("App.syncFertig", ergebnis)
@@ -20618,6 +20849,13 @@ def sync_transaktion_abschliessen():
         pass
 
 
+def _sync_fehlertext(bereich, fehler):
+    text = (nextcloud_fehlertext(fehler) if isinstance(fehler, NextcloudError)
+            else fehler_deutsch(fehler))
+    text = " ".join(str(text or _("unknown error")).split())[:1000]
+    return "%s: %s" % (bereich, text)
+
+
 def _sync_satz(was, z, fehler):
     stuecke = []
     if z["lokal_neu"]:
@@ -20666,6 +20904,8 @@ def einzelinstanz_anmelden(anwendungskennung, aktivieren):
     return anwendung, False
 
 def haupt():
+    sys.argv[1:] = kurzoptionen_normalisieren(sys.argv[1:])
+    befehlszeilen_sprache_anwenden(sys.argv[1:])
     if len(sys.argv) == 3 and sys.argv[1] == "--update-helper":
         try:
             roh = base64.urlsafe_b64decode(sys.argv[2].encode("ascii"))
@@ -20709,8 +20949,12 @@ def haupt():
         sys.exit(0)
 
     if not any(a in sys.argv[1:] for a in
-               ("--erinnerung", "--wecker", "--probe", "--hilfe", "--help")):
+               ("--erinnerung", "--wecker", "--probe", "--hilfe", "--help", "--version")):
         systemkalender_bereinigen()
+
+    if "--version" in sys.argv[1:]:
+        sys.stdout.write(PROGRAMM_FASSUNG + "\n")
+        sys.exit(0)
 
     if "--erinnerung" in sys.argv[1:]:
         debug_notiz("startup.branch", branch="reminder")
@@ -20756,25 +21000,36 @@ def haupt():
 
     if "--hilfe" in sys.argv[1:] or "--help" in sys.argv[1:]:
         debug_notiz("startup.branch", branch="help")
+        deutsch = _("Usage:") == "Aufruf:"
+        erinnerung_option = "--erinnerung" if deutsch else "--reminder-check"
+        wecker_option = "--wecker" if deutsch else "--alarm-monitor"
+        probe_option = "--probe" if deutsch else "--reminder-test"
+        dienst_option = "--hintergrunddienst" if deutsch else "--background-service"
+        sprache_option = "--sprache SPRACHE" if deutsch else "--language LANGUAGE"
+        pot_option = "--pot [DATEI]" if deutsch else "--pot-template [FILE]"
+        hilfe_option = "--hilfe" if deutsch else "--help"
+        sprache_argument = "SPRACHE" if deutsch else "LANGUAGE"
+        datei_argument = "DATEI" if deutsch else "FILE"
         zeilen = [
             _("Magnolie Organizer – personal organizer in a paper design"), "",
             _("Usage:"),
             "  magnolie-organizer              " + _("Open the application"),
-            "  magnolie-organizer --erinnerung " + _("Check for due appointments"),
+            "  magnolie-organizer -r, " + erinnerung_option + " " + _("Check for due appointments"),
             "                                  " + _("(used by the session service)"),
-            "  magnolie-organizer --wecker     " + _("Remind about appointments in the background"),
+            "  magnolie-organizer -w, " + wecker_option + " " + _("Remind about appointments in the background"),
             "                                  " + _("(starts when you sign in)"),
-            "  magnolie-organizer --tray-start " + _("Start through the tray applet"),
-            "  magnolie-organizer --hintergrunddienst / --background-service",
-            "                                  Run the optional background service",
-            "  magnolie-organizer --probe      " + _("Test reminders and report what happens"),
-            "  magnolie-organizer --debug      " + _("Write startup and tray diagnostics to the debug log"),
+            "  magnolie-organizer -t, --tray-start " + _("Start through the tray applet"),
+            "  magnolie-organizer -b, " + dienst_option,
+            "                                  " + _("Run the optional background service"),
+            "  magnolie-organizer -p, " + probe_option + " " + _("Test reminders and report what happens"),
+            "  magnolie-organizer -d, --debug  " + _("Write startup and tray diagnostics to the debug log"),
             "                                  " + _("Log file: ~/.local/state/magnolie-organizer/debug.log"),
-            "  magnolie-organizer --sprache SPRACHE / --language LANGUAGE",
+            "  magnolie-organizer -l " + sprache_argument + " / " + sprache_option,
             "                                  " + _("Use a supported language code or system for this invocation"),
-            "  magnolie-organizer --pot [DATEI] / --pot-template [FILE]",
+            "  magnolie-organizer -P [" + datei_argument + "] / " + pot_option,
             "                                  " + _("Create a gettext POT template"),
-            "  magnolie-organizer --hilfe      " + _("Show this overview"),
+            "  magnolie-organizer -V, --version",
+            "  magnolie-organizer -h, " + hilfe_option + " " + _("Show this overview"),
         ]
         sys.stdout.write("\n".join(zeilen) + "\n")
         sys.exit(0)

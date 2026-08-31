@@ -1,8 +1,8 @@
 {
   "schema": "magnolie-linux-parity-v1",
   "sources": {
-    "web/anwendung.js": "b4a2a1412f9e2e59bd2ed2f8c39bfb00b2aefcabf022f89d2156f96165c755e7",
-    "bin/magnolie-organizer": "f268ea2d708054021a4aba5ce8e6f03dfd9922d64668c175e4534638fc48fd94"
+    "web/anwendung.js": "2689de7256407c612fb7c40a2504cdfd3fdc69da22a37d465eb78ef7739ccfa7",
+    "bin/magnolie-organizer": "a243fb72d4831317417d0946e2053ee2e335e7083ac49b93c38c5c5cda7ddb60"
   },
   "commands": [
     "ablage_holen",
@@ -30,6 +30,9 @@
     "beenden_bereit",
     "bereit",
     "brief",
+    "cloud_sicherung_kennwort",
+    "cloud_sicherung_status",
+    "cloud_sicherung_test",
     "contributor_pruefen",
     "drucken",
     "eds_status",
@@ -114,6 +117,7 @@
     "baumGesendet",
     "baumInternet",
     "baumPaarungsdatei",
+    "cloudSicherungStand",
     "contributorGeprueft",
     "edsStatus",
     "entsperrtFehler",
@@ -339,5 +343,5 @@
       ]
     ]
   ],
-  "contractSha256": "86cc9da7821d68b689a0fc42f2ecc3f88be722cf4c6a981531f9d6fb86aae708"
+  "contractSha256": "63c1856b97041cf527d6c1a8c12d7b6d7a5aeb127e0d860d3a3df9f842976abc"
 }

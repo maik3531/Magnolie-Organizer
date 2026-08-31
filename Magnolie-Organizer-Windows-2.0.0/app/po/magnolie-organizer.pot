@@ -6,7 +6,7 @@
 #, fuzzy
 msgid ""
 msgstr ""
-"Project-Id-Version: Magnolie Organizer 2.0.13\n"
+"Project-Id-Version: Magnolie Organizer 2.0.14\n"
 "Report-Msgid-Bugs-To: maik3531@gmail.com\n"
 "POT-Creation-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
@@ -690,6 +690,12 @@ msgstr ""
 msgid "Authority appointment"
 msgstr ""
 
+msgid "Automatic backup failed."
+msgstr ""
+
+msgid "Automatic cloud-folder backups"
+msgstr ""
+
 msgid "Automatically choose a suitable application"
 msgstr ""
 
@@ -729,6 +735,9 @@ msgid "Backup restored. The previous data was backed up automatically."
 msgstr ""
 
 msgid "Backup saved to: %(path)s"
+msgstr ""
+
+msgid "Backup verified successfully."
 msgstr ""
 
 msgid "Backups"
@@ -2262,6 +2271,9 @@ msgstr ""
 msgid "Last snapshot"
 msgstr ""
 
+msgid "Last successful backup"
+msgstr ""
+
 msgid "Last synchronized: %(date)s, %(time)s."
 msgstr ""
 
@@ -2351,9 +2363,6 @@ msgstr ""
 msgid ""
 "Magnolie Notes phones and KDE Connect phones are separate: the Android model "
 "name belongs to Magnolie Notes; the KDE peer name comes from KDE Connect."
-msgstr ""
-
-msgid "Magnolie Notes version"
 msgstr ""
 
 msgid "Magnolie Organizer is not completely installed."
@@ -3105,6 +3114,9 @@ msgstr ""
 msgid "Organizer"
 msgstr ""
 
+msgid "Organizer data is locked."
+msgstr ""
+
 msgid "Organizer style (paper sheet)"
 msgstr ""
 
@@ -3461,6 +3473,9 @@ msgid ""
 "Private, integrity-checked snapshots are stored next to the application data."
 msgstr ""
 
+msgid "Protected archive password unavailable."
+msgstr ""
+
 msgid "Public IPv4 or IPv6 address of the other branch"
 msgstr ""
 
@@ -3676,6 +3691,9 @@ msgstr ""
 msgid "Restoring backups is available only in the installed application."
 msgstr ""
 
+msgid "Retention"
+msgstr ""
+
 msgid "Retrieval failed."
 msgstr ""
 
@@ -3857,6 +3875,14 @@ msgstr ""
 msgid "Select a country first."
 msgstr ""
 
+msgid ""
+"Select a custom backup folder and store an archive password to enable "
+"automatic backups."
+msgstr ""
+
+msgid "Select a custom backup folder."
+msgstr ""
+
 msgid "Select all"
 msgstr ""
 
@@ -3915,6 +3941,9 @@ msgid "Server address"
 msgstr ""
 
 msgid "Server address and user name are required."
+msgstr ""
+
+msgid "Set or change password"
 msgstr ""
 
 msgid "Set up contacts"
@@ -4260,6 +4289,9 @@ msgstr ""
 msgid "Test connection"
 msgstr ""
 
+msgid "Test now"
+msgstr ""
+
 msgid "Testing…"
 msgstr ""
 
@@ -4468,6 +4500,13 @@ msgid "The file has an unsupported format."
 msgstr ""
 
 msgid "The file is larger than 8 megabytes."
+msgstr ""
+
+msgid ""
+"The folder may be locally synchronized by Nextcloud, Google Drive, Dropbox, "
+"or OneDrive. Magnolie does not sign in to a provider. Automatic backups run "
+"only while Organizer is open and unlocked, immediately after data was saved "
+"successfully."
 msgstr ""
 
 msgid ""
@@ -5089,6 +5128,9 @@ msgid "Use a specific application or command"
 msgstr ""
 
 msgid "Use a specific website"
+msgstr ""
+
+msgid "Use automatic backups"
 msgstr ""
 
 msgid "Use basal units"

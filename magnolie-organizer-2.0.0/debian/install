@@ -5,10 +5,12 @@ bin/magnolie_personal_sync.py          usr/lib/magnolie-organizer
 bin/magnolie_kdeconnect.py             usr/bin
 bin/magnolie_hintergrund.py            usr/bin
 bin/magnolie_nextcloud.py              usr/bin
+bin/magnolie_cloud_backup.py           usr/bin
 bin/magnolie_crash.py                  usr/bin
+bin/magnolie_asset.py                  usr/bin
 web/index.html                        usr/share/magnolie-organizer/web
 web/stil.css                          usr/share/magnolie-organizer/web
-web/kaffee-qr.png                     usr/share/magnolie-organizer/web
+web/kaffee-qr.mga                     usr/share/magnolie-organizer/web
 web/anwendung.js                      usr/share/magnolie-organizer/web
 web/i18n.js                           usr/share/magnolie-organizer/web
 web/i18n-en.js                        usr/share/magnolie-organizer/web
@@ -67,3 +69,4 @@ man/tr/magnolie-organizer.1           usr/share/man/tr/man1
 man/uk/magnolie-organizer.1           usr/share/man/uk/man1
 man/zh_CN/magnolie-organizer.1        usr/share/man/zh_CN/man1
 INTERNATIONALISIERUNG.md              usr/share/doc/magnolie-organizer
+PROTECTED-ASSETS-LICENSE.txt          usr/share/doc/magnolie-organizer

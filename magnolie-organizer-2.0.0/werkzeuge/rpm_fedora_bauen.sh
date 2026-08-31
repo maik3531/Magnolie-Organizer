@@ -39,7 +39,7 @@ if [ -n "$CONTRIBUTOR_HASH" ]; then
     CONTRIBUTOR_HASH=$(printf '%s' "$CONTRIBUTOR_HASH" | tr A-F a-f)
 fi
 
-mkdir -p "$ARBEIT"
+mkdir -p "$ARBEIT" "$TOPDIR" "$HANDBUCH_TOPDIR"
 if [ ! -f "$BASIS" ] || [ "$(sha256sum "$BASIS" | cut -d' ' -f1)" != "$BASIS_SHA" ]; then
     rm -f "$BASIS"
     curl -L --fail --retry 3 -o "$BASIS" "$BASIS_URL"
@@ -49,7 +49,9 @@ printf '%s  %s\n' "$BASIS_SHA" "$BASIS" | sha256sum -c -
 fedora() {
     bwrap --unshare-user --uid 0 --gid 0 --bind "$ROOTFS" / \
         --dev /dev --proc /proc --ro-bind /sys /sys --tmpfs /run \
-        --bind "$ARBEITSBAUM" "$ARBEITSBAUM" --chdir "$WURZEL" "$@"
+        --bind "$ARBEITSBAUM" "$ARBEITSBAUM" \
+        --bind "$TOPDIR" "$TOPDIR" --bind "$HANDBUCH_TOPDIR" "$HANDBUCH_TOPDIR" \
+        --chdir "$WURZEL" "$@"
 }
 
 if [ ! -f "$MARKER" ] || [ "$(command cat "$MARKER")" != "$BASIS_STAND" ]; then
@@ -75,24 +77,25 @@ fi
 
 fedora /usr/bin/dnf -y --setopt=install_weak_deps=False install fakeroot
 fedora /usr/bin/fakeroot /usr/bin/dnf -y --setopt=install_weak_deps=False install \
-    appstream desktop-file-utils dpkg-dev gettext gtk3 nodejs \
+    appstream desktop-file-utils dpkg-dev gettext gtk3 libnotify nodejs \
     python3-cryptography python3-devel python3-gobject python3-pyOpenSSL \
-    python3-pytest python3-qrcode python3-zeroconf rpm-build xdg-utils
+    python3-pytest python3-qrcode python3-zeroconf rpm-build webkit2gtk4.1 xdg-utils
 
 rm -rf "$TOPDIR" "$HANDBUCH_TOPDIR"
+mkdir -p "$TOPDIR" "$HANDBUCH_TOPDIR"
 fedora /usr/bin/env MAGNOLIE_CONTRIBUTOR_HASH="$CONTRIBUTOR_HASH" \
     SOURCE_DATE_EPOCH="$EPOCH" \
-    /bin/sh werkzeuge/rpm_bauen.sh "$TOPDIR"
+    /bin/sh werkzeuge/rpm_bauen.sh --distro fedora "$TOPDIR"
 fedora /usr/bin/env SOURCE_DATE_EPOCH="$EPOCH" \
-    /bin/sh "$HANDBUCH/werkzeuge/rpm_bauen.sh" "$HANDBUCH_TOPDIR"
+    /bin/sh "$HANDBUCH/werkzeuge/rpm_bauen.sh" --distro fedora "$HANDBUCH_TOPDIR"
 
-set -- "$TOPDIR"/RPMS/noarch/magnolie-organizer-*.noarch.rpm
+set -- "$TOPDIR"/fedora/RPMS/noarch/magnolie-organizer-*.noarch.rpm
 [ "$#" -eq 1 ] && [ -f "$1" ] || {
     printf '%s\n' 'Genau ein binaeres Organizer-RPM wurde erwartet.' >&2
     exit 1
 }
 ORGANIZER_RPM=$1
-set -- "$HANDBUCH_TOPDIR"/RPMS/noarch/magnolie-handbuch-*.noarch.rpm
+set -- "$HANDBUCH_TOPDIR"/fedora/RPMS/noarch/magnolie-handbuch-*.noarch.rpm
 [ "$#" -eq 1 ] && [ -f "$1" ] || {
     printf '%s\n' 'Genau ein binaeres Handbuch-RPM wurde erwartet.' >&2
     exit 1

@@ -1,10 +1,10 @@
-.TH MAGNOLIE-ORGANIZER 1 "August 2026" "Magnolie Organizer 2.0.13" "ユーザーコマンド"
+.TH MAGNOLIE-ORGANIZER 1 "August 2026" "Magnolie Organizer 2.0.14" "ユーザーコマンド"
 .SH 名前
 magnolie-organizer \- クラシックな紙面デザインの個人向けオーガナイザー
 .SH 書式
 .B magnolie-organizer
 .RI [ オプション ]
-.RI [ \-\-sprache\  言語 ]
+.RI [ \-\-language\  言語 ]
 .SH 説明
 .B Magnolie Organizer
 は、カレンダー、タスク、連絡先、メモ、記念日、年間プランナーを統合
@@ -15,19 +15,27 @@ magnolie-organizer \- クラシックな紙面デザインの個人向けオー�
 ユーザーセッションごとに開かれるグラフィカルインスタンスは 1 つだけ
 です。コマンドを再度起動すると、トレイに隠れている場合も含め、既存の
 ウィンドウが表示されます。
+.SH コマンドライン形式
+中立的な短縮別名と英語の長い形式は次のとおりです。
+.nf
+\-h \-\-help; \-V \-\-version; \-l \-\-language; \-P \-\-pot-template;
+\-r \-\-reminder-check; \-w \-\-alarm-monitor; \-p \-\-reminder-test;
+\-t \-\-tray-start; \-d \-\-debug; \-b \-\-background-service.
+.fi
+ドイツ語と英語のどちらの長い形式も使用できます。
 .SH オプション
 .TP
-.B \-\-erinnerung
+.B \-\-reminder-check
 期限を迎えたリマインダーを確認します。このオプションは通常、セッション
 サービスによって使用されます。
 .TP
-.B \-\-wecker
+.B \-\-alarm-monitor
 リマインダーモニターをバックグラウンドで実行します。
 .TP
 .B \-\-tray-start
 トレイの自動起動エントリーからオーガナイザーを起動します。
 .TP
-.B \-\-probe
+.B \-\-reminder-test
 リマインダーをテストし、診断レポートを出力します。
 .TP
 .B \-\-debug
@@ -37,18 +45,18 @@ magnolie-organizer \- クラシックな紙面デザインの個人向けオー�
 を開始する前に、すでに実行中のインスタンスを終了してください。2 回目の
 起動では既存のプロセスがアクティブになるだけです。
 .TP
-.BR \-\-sprache " " 言語 , " " \-\-language " " LANGUAGE
+.BR \-\-language " " LANGUAGE , " " \-\-sprache " " 言語
 この起動にドイツ語 (\fBde\fR)、英語 (\fBen\fR)、またはシステム言語
 (\fBsystem\fR) を使用します。ヘルプ、診断、バックグラウンドの各モード
 より前にコマンド出力の言語を選択し、新しく開くグラフィカルインスタンス
 の WebKit インターフェースにも適用します。保存済みの設定は変更されません。
 .TP
-.BR \-\-pot " [" ファイル "]", " " \-\-pot-template " [" FILE "]"
+.BR \-\-pot-template " [" FILE "]", " " \-\-pot " [" ファイル "]"
 再現可能な gettext テンプレートを生成して終了します。ファイル引数を省略
 すると現在のディレクトリに \fBmagnolie-organizer.pot\fR を書き込み、指定
 した場合はそのパスに書き込みます。成功時には絶対出力パスが表示されます。
 .TP
-.BR \-\-hilfe , " " \-\-help
+.BR \-\-help , " " \-\-hilfe
 コマンドの概要を表示します。
 .SH MAGNOLIENBAUM ネットワーク
 有効にすると、Magnolienbaum は IPv4 および IPv6 の TCP ポート 8737 で

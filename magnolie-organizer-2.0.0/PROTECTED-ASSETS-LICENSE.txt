@@ -1,0 +1,12 @@
+Magnolie protected personal assets - separate non-GPL permission
+
+Copyright (C) 2026 Maik Walter <maik3531@gmail.com>
+
+The coffee QR image contained in `web/kaffee-qr.mga` is not GPL-licensed. Its
+unmodified encrypted container and runtime image may be distributed and
+displayed only with Magnolie Organizer, Magnolie Notes, Magnolie Handbook, or
+accompanying documentation. Standalone use, redistribution, modification,
+advertising, profile, dataset, machine-learning, or other-project use requires
+prior written permission from Maik Walter.
+
+This permission affects only the image, not GPL rights in code or documentation.

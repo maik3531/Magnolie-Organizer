@@ -1,10 +1,10 @@
-.TH MAGNOLIE-ORGANIZER 1 "awgust 2026" "Magnolie Organizer 2.0.13" "Wužiwarske přikazy"
+.TH MAGNOLIE-ORGANIZER 1 "awgust 2026" "Magnolie Organizer 2.0.14" "Wužiwarske přikazy"
 .SH MJENO
 magnolie-organizer \- wosobinski organizator w klasiskej papjerowej podobje
 .SH SYNOPSA
 .B magnolie-organizer
 .RI [ opcija ]
-.RI [ \-\-sprache\  rěč ]
+.RI [ \-\-language\  rěč ]
 .SH WOPISANJE
 .B Magnolie Organizer
 zjednoća protyku, nadawki, kontakty, noticy, róčnicy a lětny planer. Daty so
@@ -13,18 +13,26 @@ abo přez zaklučowanu słužbu Magnolienbaum dźělić.
 .PP
 Na wužiwarske posedźenje so jenož jedna grafiska instanca wočini. Znowawolanje
 přikaza pokaže hižo eksistowace wokno, tež hdyž je w systemowej łopje schowane.
+.SH FORMY PŘIKAZOWEJE LINKI
+Neutralne krótke aliasy a jendźelske dołhe formy su:
+.nf
+\-h \-\-help; \-V \-\-version; \-l \-\-language; \-P \-\-pot-template;
+\-r \-\-reminder-check; \-w \-\-alarm-monitor; \-p \-\-reminder-test;
+\-t \-\-tray-start; \-d \-\-debug; \-b \-\-background-service.
+.fi
+Němske kaž tež jendźelske dołhe formy so akceptuja.
 .SH OPCIJE
 .TP
-.B \-\-erinnerung
+.B \-\-reminder-check
 Terminowe dopomnjeća přepruwować. Tutu opciju zwjetša posedźenska słužba wužiwa.
 .TP
-.B \-\-wecker
+.B \-\-alarm-monitor
 Dohladowanje dopomnjećow w pozadku wuwjesć.
 .TP
 .B \-\-tray-start
 Organizator přez jeho awtostartowy zapisk systemoweje łopy startować.
 .TP
-.B \-\-probe
+.B \-\-reminder-test
 Dopomnjeća testować a diagnostisku rozprawu wudać.
 .TP
 .B \-\-debug
@@ -34,18 +42,18 @@ starće, posedźenju, jednotliwej instancy, woknje a systemowej łopje do
 instancu před diagnostiskim startom; druhe wołanje jenož eksistowacy proces
 aktiwizuje.
 .TP
-.BR \-\-sprache " " SPRACHE , " " \-\-language " " LANGUAGE
+.BR \-\-language " " LANGUAGE , " " \-\-sprache " " SPRACHE
 Za tute wołanje němčinu (\fBde\fR), jendźelšćinu (\fBen\fR) abo systemowu rěč
 (\fBsystem\fR) wužiwać. To wuběra rěč přikazoweho wudaća před pomocnym,
 diagnostiskim a pozadkowym modusom kaž tež rěč WebKit-powjercha nowo wočinjeneje
 grafiskeje instancy. Składowane nastajenja so njezměnja.
 .TP
-.BR \-\-pot " [" DATEI "]", " " \-\-pot-template " [" FILE "]"
+.BR \-\-pot-template " [" FILE "]", " " \-\-pot " [" DATEI "]"
 Reprodukowajomnu předłohu gettext wutworić a program skónčić. Bjez datajoweho
 argumenta so \fBmagnolie-organizer.pot\fR do aktualneho zapisa składuje, hewak
 do podateje šćežki. Po wuspěchu so absolutna wudawanska šćežka wuda.
 .TP
-.BR \-\-hilfe , " " \-\-help
+.BR \-\-help , " " \-\-hilfe
 Krótki přehlad přikazow pokazać.
 .SH SYĆ MAGNOLIENBAUM
 Hdyž je Magnolienbaum zapinjeny, słucha přez IPv4 a IPv6 na TCP-porće 8737.

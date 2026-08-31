@@ -17,7 +17,7 @@ override_dh_auto_build:
 		msgfmt --check --check-format -o locale/$$sprache/LC_MESSAGES/magnolie-organizer.mo po/$$sprache.po; \
 		python3 werkzeuge/po_zu_js.py $$sprache po/$$sprache.po web/i18n/$$sprache.js; \
 	done < po/LINGUAS
-	python3 -m py_compile bin/magnolie-organizer bin/magnolie_crash.py bin/magnolie_hintergrund.py bin/magnolie_kdeconnect.py bin/magnolie_telefon.py bin/magnolie_personal_sync.py bin/magnolie_nextcloud.py
+	python3 -m py_compile bin/magnolie-organizer bin/magnolie_crash.py bin/magnolie_asset.py bin/magnolie_hintergrund.py bin/magnolie_kdeconnect.py bin/magnolie_telefon.py bin/magnolie_personal_sync.py bin/magnolie_nextcloud.py bin/magnolie_cloud_backup.py
 
 override_dh_auto_test:
 ifeq (,$(filter nocheck,$(DEB_BUILD_OPTIONS)))
@@ -30,7 +30,7 @@ ifeq (,$(filter nocheck,$(DEB_BUILD_OPTIONS)))
 	TZ=Europe/Berlin python3 pruefungen/test_import_export_vertrag.py
 	TZ=Europe/Berlin python3 pruefungen/test_gesamtarchiv.py
 	TZ=Europe/Berlin python3 pruefungen/test_telefon.py
-	TZ=Europe/Berlin python3 -m pytest -q pruefungen/test_kdeconnect.py pruefungen/test_personal_sync.py pruefungen/test_nextcloud.py pruefungen/test_hintergrunddienst.py pruefungen/test_naechster_weckzeitpunkt.py pruefungen/test_eds_adressbuch_sync.py pruefungen/test_chromium_fallback.py pruefungen/test_eds_calendar_dedup.py pruefungen/test_elf_glibc.py pruefungen/test_release_signatur.py pruefungen/test_restkorrekturen.py pruefungen/test_thunderbird_schema23.py pruefungen/test_update_security.py
+	TZ=Europe/Berlin python3 -m pytest -q pruefungen/test_asset_container.py pruefungen/test_kdeconnect.py pruefungen/test_personal_sync.py pruefungen/test_nextcloud.py pruefungen/test_hintergrunddienst.py pruefungen/test_naechster_weckzeitpunkt.py pruefungen/test_eds_adressbuch_sync.py pruefungen/test_chromium_fallback.py pruefungen/test_eds_calendar_dedup.py pruefungen/test_elf_glibc.py pruefungen/test_release_signatur.py pruefungen/test_restkorrekturen.py pruefungen/test_thunderbird_schema23.py pruefungen/test_update_security.py
 	python3 -m pytest -q pruefungen/test_crash_reports.py
 	python3 pruefungen/test_paketinhalt.py
 	test -n "$(JS_LAUFER)"

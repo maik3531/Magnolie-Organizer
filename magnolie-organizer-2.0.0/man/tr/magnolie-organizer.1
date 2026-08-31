@@ -1,10 +1,10 @@
-.TH MAGNOLIE-ORGANIZER 1 "August 2026" "Magnolie Organizer 2.0.13" "Kullanıcı Komutları"
+.TH MAGNOLIE-ORGANIZER 1 "August 2026" "Magnolie Organizer 2.0.14" "Kullanıcı Komutları"
 .SH AD
 magnolie-organizer \- klasik kağıt tasarımlı kişisel düzenleyici
 .SH ÖZET
 .B magnolie-organizer
 .RI [ seçenek ]
-.RI [ \-\-sprache\  dil ]
+.RI [ \-\-language\  dil ]
 .SH AÇIKLAMA
 .B Magnolie Organizer
 takvimi, görevleri, kişileri, notları, yıl dönümlerini ve yıllık planlayıcıyı
@@ -14,19 +14,27 @@ hizmeti üzerinden paylaşılabilir.
 .PP
 Her kullanıcı oturumunda yalnızca bir grafiksel örnek açılır. Komutun yeniden
 başlatılması, tepside gizlenmiş olsa bile var olan pencereyi gösterir.
+.SH KOMUT SATIRI BİÇİMLERİ
+Tarafsız kısa adlar ve İngilizce uzun biçimler şunlardır:
+.nf
+\-h \-\-help; \-V \-\-version; \-l \-\-language; \-P \-\-pot-template;
+\-r \-\-reminder-check; \-w \-\-alarm-monitor; \-p \-\-reminder-test;
+\-t \-\-tray-start; \-d \-\-debug; \-b \-\-background-service.
+.fi
+Hem Almanca hem İngilizce uzun biçimler kabul edilir.
 .SH SEÇENEKLER
 .TP
-.B \-\-erinnerung
+.B \-\-reminder-check
 Zamanı gelen anımsatıcıları denetle. Bu seçenek normalde oturum hizmeti
 tarafından kullanılır.
 .TP
-.B \-\-wecker
+.B \-\-alarm-monitor
 Anımsatıcı izleyicisini arka planda çalıştır.
 .TP
 .B \-\-tray-start
 Düzenleyiciyi tepsi otomatik başlatma girdisi üzerinden başlat.
 .TP
-.B \-\-probe
+.B \-\-reminder-test
 Anımsatıcıları sına ve bir tanılama raporu yazdır.
 .TP
 .B \-\-debug
@@ -36,18 +44,18 @@ ilgili özel, dönüşümlü tanılama bilgilerini
 çalıştırmasından önce çalışmakta olan örnekten çıkın; ikinci çağrı yalnızca var
 olan süreci etkinleştirir.
 .TP
-.BR \-\-sprache " " DİL , " " \-\-language " " LANGUAGE
+.BR \-\-language " " LANGUAGE , " " \-\-sprache " " DİL
 Bu çağrı için Almanca (\fBde\fR), İngilizce (\fBen\fR) veya sistem dilini
 (\fBsystem\fR) kullan. Bu, yardım, tanılama ve arka plan kiplerinden önce komut
 çıktısının yanı sıra yeni açılan grafiksel örneğin WebKit arayüzünün dilini
 seçer. Kalıcı ayarlar değiştirilmez.
 .TP
-.BR \-\-pot " [" DOSYA "]", " " \-\-pot-template " [" FILE "]"
+.BR \-\-pot-template " [" FILE "]", " " \-\-pot " [" DOSYA "]"
 Yeniden üretilebilir bir gettext şablonu oluştur ve çık. Dosya argümanı
 verilmezse geçerli dizine \fBmagnolie-organizer.pot\fR yaz; aksi takdirde
 belirtilen yola yaz. Başarılı olduğunda mutlak çıktı yolu yazdırılır.
 .TP
-.BR \-\-hilfe , " " \-\-help
+.BR \-\-help , " " \-\-hilfe
 Kısa bir komut özeti göster.
 .SH MAGNOLIENBAUM AĞI
 Etkinleştirildiğinde Magnolienbaum, IPv4 ve IPv6 üzerinden TCP bağlantı noktası

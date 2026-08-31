@@ -312,7 +312,7 @@ def parse_sms_messages(packet, device_id, diagnostics=None):
             event = _canonical_integer(raw.get("event"), 0, 2 ** 31 - 1)
             read = raw.get("read")
             if not isinstance(read, bool):
-                _canonical_integer(read, 0, 1)
+                read = bool(_canonical_integer(read, 0, 1))
             if "sub_id" in raw:
                 _canonical_integer(raw["sub_id"], 0, 2 ** 31 - 1)
             message_id = (_canonical_integer(raw["_id"], 0, 2 ** 63 - 1)
@@ -365,9 +365,9 @@ def parse_sms_messages(packet, device_id, diagnostics=None):
             result.append({"id": "%s:%s:%s" % (device_id, thread_id, sms_id),
                            "device_id": device_id, "thread_id": str(thread_id),
                            "sms_id": sms_id, "from": numbers[0],
-                           "addresses": numbers, "group": bool(event & 0x2),
-                           "text": text, "timestamp_ms": occurred,
-                           "incoming": message_type == 1})
+                            "addresses": numbers, "group": bool(event & 0x2),
+                            "text": text, "timestamp_ms": occurred,
+                            "incoming": message_type == 1, "read": read})
         except ProtocolError:
             raise
         except (KeyError, TypeError, ValueError):
@@ -804,6 +804,7 @@ class _ConnectionWorker:
         self.sms_started = False
         self.seen = set()
         self.seen_order = deque()
+        self.sms_read_states = {}
         self.diagnostics = {"last_packet_type": "", "parse_valid": 0,
             "parse_skipped": 0, "last_receive_ms": 0, "bootstrap_state": "idle"}
         self.thread = threading.Thread(target=self._run, daemon=True,
@@ -890,13 +891,31 @@ class _ConnectionWorker:
         self.seen.add(message_id)
         self.seen_order.append(message_id)
         while len(self.seen_order) > 10000:
-            self.seen.discard(self.seen_order.popleft())
+            oldest = self.seen_order.popleft()
+            self.seen.discard(oldest)
+            self.sms_read_states.pop(oldest, None)
         return True
 
+    def _deliver_message(self, message, notify=False):
+        message_id = message["id"]
+        current_read = message["read"]
+        previous_read = self.sms_read_states.get(message_id)
+        fresh = self._remember_seen(message_id)
+        self.sms_read_states[message_id] = current_read
+        if fresh:
+            self.backend._deliver_sms(message, notify=notify)
+            return True
+        if previous_read is not None and previous_read != current_read:
+            self.backend._deliver_sms(message, notify=False)
+            return True
+        return False
+
     def _deliver_messages(self, messages):
+        handled = set()
         for message in messages:
-            if self._remember_seen(message["id"]):
-                self.backend._deliver_sms(message, notify=False)
+            if message["id"] not in handled:
+                self._deliver_message(message, notify=False)
+                handled.add(message["id"])
 
     def _finish_bootstrap(self):
         for messages in self.bootstrap_buffered.values():
@@ -919,6 +938,7 @@ class _ConnectionWorker:
         self.bootstrap_deadline = previous.bootstrap_deadline
         self.seen = set(previous.seen)
         self.seen_order = deque(previous.seen_order)
+        self.sms_read_states = dict(previous.sms_read_states)
         self.diagnostics.update(previous.diagnostics)
         if not self.sms_started:
             return
@@ -945,10 +965,12 @@ class _ConnectionWorker:
                 history_response = thread_id in pending
                 if history_response:
                     self.bootstrap_responded.add(thread_id)
+                handled = set()
                 for message in thread_messages:
-                    if self._remember_seen(message["id"]):
-                        self.backend._deliver_sms(
-                            message, notify=not history_response)
+                    if message["id"] not in handled:
+                        self._deliver_message(message,
+                            notify=not history_response and not message["read"])
+                        handled.add(message["id"])
             return
 
         full_history = SMS_REQUEST_CONVERSATION_TYPE in self.identity[
@@ -1126,13 +1148,15 @@ class KDEConnectSMSBackend:
                         return
                     self._clipboard_connect_seen[device_id] = parsed["timestamp"]
             receive_id = self._new_receive_id()
-            value = {"id": receive_id, "device_id": device_id, "text": parsed["text"]}
+            value = {"id": receive_id, "device_id": device_id, "text": parsed["text"],
+                     "timestamp_ms": parsed["timestamp"]}
             if settings["clipboard_mode"] == "automatic":
                 self._emit("clipboard_apply", value)
             elif self._reserve_receive():
                 with self._state_lock:
                     self._receive_pending[receive_id] = {"kind": "clipboard",
                         "device_id": device_id, "text": parsed["text"],
+                        "timestamp_ms": parsed["timestamp"],
                         "deadline": self.clock() + RECEIVE_PROPOSAL_SECONDS}
                 self._emit("clipboard_proposal", value)
             return

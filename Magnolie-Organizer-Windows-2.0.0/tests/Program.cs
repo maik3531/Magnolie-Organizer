@@ -3,6 +3,7 @@ using MagnolieOrganizer.Windows.Tests;
 var runner = new TestRunner();
 runner.Add("AtomicStore / Dateisicherheit", AtomicStoreTests.RunAsync);
 runner.Add("Wiederherstellungsjournal / Manifest / Tamper / Retention / Scheduler", RecoveryJournalTests.RunAsync);
+runner.Add("Cloud-Ordner-Sicherung / Policy / Retention / DPAPI", CloudBackupTests.RunAsync);
 runner.Add("Loganzeige / Contributor-Marker", LogPresentationTests.RunAsync);
 runner.Add("Lokale Absturzberichte / Format / Rotation / Parallelität", CrashReportTests.RunAsync);
 runner.Add("Encryption / Python-Goldens / Manipulation", ContractGroupTests.EncryptionAsync);

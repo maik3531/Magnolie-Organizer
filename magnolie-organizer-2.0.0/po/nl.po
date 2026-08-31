@@ -1,23 +1,9 @@
-# SOME DESCRIPTIVE TITLE.
-# Copyright (C) 2026 THE PACKAGE'S COPYRIGHT HOLDER
-# This file is distributed under the same license as the Magnolie Organizer
-# package.
-# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
-#
 msgid ""
 msgstr ""
-"Project-Id-Version: Magnolie Organizer 2.0.13\n"
 "Report-Msgid-Bugs-To: maik3531@gmail.com\n"
 "POT-Creation-Date: YEAR-MO-DA HO:MI+ZONE\n"
-"PO-Revision-Date: 2026-08-08 06:34+0200\n"
-"Last-Translator: OpenAI-assisted editorial translation <maik3531@gmail.com>\n"
-"Language-Team: Dutch\n"
-"Language: nl\n"
-"MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
-"Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
-"Generated-By: Babel 2.18.0\n"
 
 msgid " (filtered)"
 msgstr " (gefilterd)"
@@ -219,7 +205,7 @@ msgstr[0] "%(count)s notitieboek"
 msgstr[1] "%(count)s notitieboeken"
 
 msgid "%(count)s open"
-msgstr "%(count)s open"
+msgstr "%(count)s openstaand"
 
 msgid "%(count)s page"
 msgid_plural "%(count)s pages"
@@ -276,10 +262,10 @@ msgid "%(from)s to %(to)s"
 msgstr "%(from)s tot %(to)s"
 
 msgid "%(name)s found – currently reachable"
-msgstr "%(name)s found – currently reachable"
+msgstr "%(name)s gevonden – momenteel bereikbaar"
 
 msgid "%(name)s last found – reconnecting"
-msgstr "%(name)s last found – reconnecting"
+msgstr "%(name)s het laatst gevonden – opnieuw verbinden"
 
 #, python-format
 msgid "%(name)s: Wedding anniversary in %(count)d day."
@@ -618,7 +604,7 @@ msgstr ""
 "bestanden en het klembord in."
 
 msgid "API level"
-msgstr "API level"
+msgstr "API-niveau"
 
 msgid "Aargau"
 msgstr "Aargau"
@@ -682,7 +668,7 @@ msgid "According to language"
 msgstr "Volgens taal"
 
 msgid "Active call"
-msgstr "Active call"
+msgstr "Actief gesprek"
 
 msgid "Add"
 msgstr "Toevoegen"
@@ -877,7 +863,7 @@ msgid "Answering the call"
 msgstr "Oproep wordt beantwoord"
 
 msgid "App password"
-msgstr "App password"
+msgstr "Appwachtwoord"
 
 msgid "Appearance"
 msgstr "Uiterlijk"
@@ -996,6 +982,12 @@ msgstr "Auteur"
 msgid "Authority appointment"
 msgstr "Afspraak bij instantie"
 
+msgid "Automatic backup failed."
+msgstr "Automatische back-up mislukt."
+
+msgid "Automatic cloud-folder backups"
+msgstr "Automatische back-ups in een cloudmap"
+
 msgid "Automatically choose a suitable application"
 msgstr "Automatisch een geschikte toepassing kiezen"
 
@@ -1056,6 +1048,9 @@ msgstr ""
 msgid "Backup saved to: %(path)s"
 msgstr "Back-up opgeslagen in: %(path)s"
 
+msgid "Backup verified successfully."
+msgstr "Back-up met succes gecontroleerd."
+
 msgid "Backups"
 msgstr "Back-ups"
 
@@ -1088,7 +1083,7 @@ msgid "Battery"
 msgstr "Accu"
 
 msgid "Battery snapshot"
-msgstr "Battery snapshot"
+msgstr "Batterijstatus"
 
 msgid "Bavaria"
 msgstr "Beieren"
@@ -1264,7 +1259,7 @@ msgid "Calendars (multiple selections allowed)"
 msgstr "Kalenders (meerdere selecties toegestaan)"
 
 msgid "Calendars and contacts"
-msgstr "Calendars and contacts"
+msgstr "Agenda's en contacten"
 
 msgid "Call"
 msgstr "Bellen"
@@ -1273,22 +1268,22 @@ msgid "Call assignment"
 msgstr "Bel opdracht"
 
 msgid "Call ended"
-msgstr "Call ended"
+msgstr "Gesprek beëindigd"
 
 msgid "Call notes"
-msgstr "Call notes"
+msgstr "Gespreksnotities"
 
 msgid "Call reference"
-msgstr "Call reference"
+msgstr "Gespreksreferentie"
 
 msgid "Call started"
-msgstr "Call started"
+msgstr "Gesprek gestart"
 
 msgid "Call this contact using Magnolie Notes or the assigned application"
 msgstr "Bel dit contact met Magnolie Notes of de toegewezen applicatie"
 
 msgid "Call with %(name)s · %(date)s"
-msgstr "Call with %(name)s · %(date)s"
+msgstr "Gesprek met %(name)s · %(date)s"
 
 msgid "Cancel"
 msgstr "Annuleren"
@@ -1554,7 +1549,7 @@ msgid "Complete archive exported (unencrypted)."
 msgstr "Volledig archief geëxporteerd (niet versleuteld)."
 
 msgid "Complete pairing"
-msgstr "Complete pairing"
+msgstr "Koppeling voltooien"
 
 msgid "Completed (%(count)s)"
 msgstr "Voltooid (%(count)s)"
@@ -1599,7 +1594,7 @@ msgid "Connect phone via WLAN"
 msgstr "Telefoon via WLAN verbinden"
 
 msgid "Connected"
-msgstr "Connected"
+msgstr "Verbonden"
 
 msgid "Connecting to the online accounts"
 msgstr "Verbinding maken met de online-accounts"
@@ -1967,7 +1962,7 @@ msgid "Delete page"
 msgstr "Pagina verwijderen"
 
 msgid "Delete password"
-msgstr "Delete password"
+msgstr "Wachtwoord verwijderen"
 
 msgid "Delete permanently"
 msgstr "Definitief verwijderen"
@@ -2048,7 +2043,7 @@ msgid "Diabetes"
 msgstr "Diabetes"
 
 msgid "Dialing…"
-msgstr "Dialing…"
+msgstr "Bellen…"
 
 msgid "Diastolic"
 msgstr "Diastolisch"
@@ -2134,7 +2129,7 @@ msgid "Duplicates"
 msgstr "Duplicaten"
 
 msgid "Duration"
-msgstr "Duration"
+msgstr "Duur"
 
 msgid "Early shift"
 msgstr "Vroege dienst"
@@ -2617,7 +2612,7 @@ msgid "Handwriting"
 msgstr "Handschrift"
 
 msgid "Hang up"
-msgstr "Hang up"
+msgstr "Ophangen"
 
 msgid "Head office"
 msgstr "Hoofdkantoor"
@@ -2881,7 +2876,7 @@ msgid "Internet IP"
 msgstr "Internet-IP"
 
 msgid "Internet available"
-msgstr "Internet available"
+msgstr "Internet beschikbaar"
 
 msgid "Interval in days"
 msgstr "Interval in dagen"
@@ -2972,6 +2967,9 @@ msgstr "Achternaam"
 
 msgid "Last snapshot"
 msgstr "Laatste momentopname"
+
+msgid "Last successful backup"
+msgstr "Laatste geslaagde back-up"
 
 msgid "Last synchronized: %(date)s, %(time)s."
 msgstr "Laatst gesynchroniseerd: %(date)s, %(time)s."
@@ -3090,9 +3088,6 @@ msgstr ""
 "Telefoons van Magnolie Notes en KDE Connect-telefoons zijn afzonderlijk: de "
 "Android-modelnaam hoort bij Magnolie Notes; de KDE-peernaam komt van KDE "
 "Connect."
-
-msgid "Magnolie Notes version"
-msgstr "Magnolie Notes-versie"
 
 msgid "Magnolie Organizer"
 msgstr "Magnolie Organizer"
@@ -3246,7 +3241,7 @@ msgid "Memorial day"
 msgstr "Herdenkingsdag"
 
 msgid "Memory available / total"
-msgstr "Memory available / total"
+msgstr "Geheugen beschikbaar / totaal"
 
 msgid "Merge"
 msgstr "Samenvoegen"
@@ -3264,10 +3259,10 @@ msgid "Message text"
 msgstr "Berichttekst"
 
 msgid "Metered connection"
-msgstr "Metered connection"
+msgstr "Verbinding met datalimiet"
 
 msgid "Minimize"
-msgstr "Minimize"
+msgstr "Minimaliseren"
 
 msgid "Minimize to the tray when closed"
 msgstr "Bij sluiten minimaliseren naar systeemvak"
@@ -3314,7 +3309,7 @@ msgid "Mobile"
 msgstr "Mobiel"
 
 msgid "Mobile network"
-msgstr "Mobile network"
+msgstr "Mobiel netwerk"
 
 msgid "Model"
 msgstr "Model"
@@ -3381,7 +3376,7 @@ msgstr ""
 "synchronisatie is geblokkeerd; verwijder alle telefoons op één na."
 
 msgid "Multiple calendars"
-msgstr "Multiple calendars"
+msgstr "Meerdere agenda's"
 
 msgid "Name"
 msgstr "Naam"
@@ -3405,7 +3400,7 @@ msgid "Netherlands"
 msgstr "Nederland"
 
 msgid "Network"
-msgstr "Network"
+msgstr "Netwerk"
 
 msgid "Neuchâtel"
 msgstr "Neuchâtel"
@@ -3500,7 +3495,7 @@ msgid "Next year"
 msgstr "Volgend jaar"
 
 msgid "Nextcloud account"
-msgstr "Nextcloud account"
+msgstr "Nextcloud-account"
 
 msgid "Nextcloud denied access to this DAV resource."
 msgstr "Nextcloud heeft de toegang tot deze DAV-bron geweigerd."
@@ -3536,7 +3531,7 @@ msgid "Night shift"
 msgstr "Nachtdienst"
 
 msgid "No"
-msgstr "No"
+msgstr "Nee"
 
 msgid "No Claws Mail address book was detected."
 msgstr "Er is geen Claws Mail-adresboek gevonden."
@@ -3848,7 +3843,7 @@ msgid "Ointment"
 msgstr "Zalf"
 
 msgid "One address book"
-msgstr "One address book"
+msgstr "Eén adresboek"
 
 msgid "One backup could not be updated."
 msgid_plural "%(count)s backups could not be updated."
@@ -4077,6 +4072,9 @@ msgstr "GFT-afval"
 msgid "Organizer"
 msgstr "Organisator"
 
+msgid "Organizer data is locked."
+msgstr "De Organizer-gegevens zijn vergrendeld."
+
 msgid "Organizer style (paper sheet)"
 msgstr "Organizerstijl (papieren blad)"
 
@@ -4154,7 +4152,9 @@ msgid "Pairing file saved to: %(path)s"
 msgstr "Koppelingsbestand opgeslagen in: %(path)s"
 
 msgid "Pairing, file and clipboard requests are confirmed in this window."
-msgstr "Verzoeken voor koppeling, bestanden en het klembord worden in dit venster bevestigd."
+msgstr ""
+"Verzoeken voor koppeling, bestanden en het klembord worden in dit venster "
+"bevestigd."
 
 msgid "Palm tree"
 msgstr "Palmboom"
@@ -4265,7 +4265,7 @@ msgid "Phone"
 msgstr "Telefoon"
 
 msgid "Phone battery"
-msgstr "Phone battery"
+msgstr "Telefoonaccu"
 
 msgid "Phone call"
 msgstr "Telefoongesprek"
@@ -4366,7 +4366,7 @@ msgid "Possible duplicates among local and incoming contacts"
 msgstr "Mogelijke duplicaten bij lokale en inkomende contacten"
 
 msgid "Possible spam"
-msgstr "Possible spam"
+msgstr "Mogelijke spam"
 
 msgid "Postal address"
 msgstr "Postadres"
@@ -4381,7 +4381,7 @@ msgid "Powder"
 msgstr "Poeder"
 
 msgid "Power source"
-msgstr "Power source"
+msgstr "Voedingsbron"
 
 msgid "Preview"
 msgstr "Voorbeeld"
@@ -4453,6 +4453,9 @@ msgstr ""
 "Persoonlijke, op integriteit gecontroleerde momentopnamen worden naast de "
 "toepassingsgegevens opgeslagen."
 
+msgid "Protected archive password unavailable."
+msgstr "Het beveiligde archiefwachtwoord is niet beschikbaar."
+
 msgid "Public IPv4 or IPv6 address of the other branch"
 msgstr "Openbaar IPv4- of IPv6-adres van de andere tak"
 
@@ -4490,6 +4493,12 @@ msgstr "Afsluiten"
 msgid "Reachable IPv4 or IPv6 address of this computer"
 msgstr "Bereikbaar IPv4- of IPv6-adres van deze computer"
 
+msgid "Read on phone"
+msgstr "Gelezen op de telefoon"
+
+msgid "Read status"
+msgstr "Leesstatus"
+
 msgid "Reading recovery snapshots"
 msgstr "Herstelmomentopnamen worden gelezen"
 
@@ -4506,7 +4515,7 @@ msgid "Reading the user data"
 msgstr "Gebruikersgegevens lezen"
 
 msgid "Ready."
-msgstr "Ready."
+msgstr "Gereed."
 
 msgid ""
 "Really merge %(cards)s? Review the result carefully afterwards. A copy of "
@@ -4682,7 +4691,7 @@ msgstr ""
 "chatgeschiedenis blijven ongewijzigd."
 
 msgid "Renew pairing"
-msgstr "Renew pairing"
+msgstr "Koppeling vernieuwen"
 
 msgid "Repeat for confirmation"
 msgstr "Herhalen ter bevestiging"
@@ -4750,6 +4759,9 @@ msgstr ""
 msgid "Restoring the backup"
 msgstr "Back-up herstellen"
 
+msgid "Retention"
+msgstr "Bewaartermijn"
+
 msgid "Retrieval failed."
 msgstr "Ophalen mislukt."
 
@@ -4810,6 +4822,9 @@ msgid ""
 msgstr ""
 "Voer het gedownloade installatieprogramma zichtbaar uit en laat het "
 "onderdeel Handleiding geselecteerd."
+
+msgid "Run the optional background service"
+msgstr "De optionele achtergronddienst uitvoeren"
 
 msgid "S"
 msgstr "D"
@@ -4884,7 +4899,7 @@ msgid "Save contacts for Claws Mail"
 msgstr "Contacten voor Claws Mail opslaan"
 
 msgid "Save endpoint"
-msgstr "Save endpoint"
+msgstr "Eindpunt opslaan"
 
 msgid "Save rejected: The data is encrypted and has not been unlocked yet."
 msgstr ""
@@ -4905,7 +4920,7 @@ msgid "Saved ✓ %(time)s"
 msgstr "Opgeslagen ✓ %(time)s"
 
 msgid "Saved."
-msgstr "Saved."
+msgstr "Opgeslagen."
 
 msgid "Saving background settings"
 msgstr "Achtergrondinstellingen opslaan"
@@ -4955,7 +4970,7 @@ msgid "Scheduled"
 msgstr "Gepland"
 
 msgid "Scheme"
-msgstr "Scheme"
+msgstr "Schema"
 
 msgid "Schleswig-Holstein"
 msgstr "Sleeswijk-Holstein"
@@ -5007,6 +5022,16 @@ msgstr "Selecteren"
 
 msgid "Select a country first."
 msgstr "Selecteer eerst een land."
+
+msgid ""
+"Select a custom backup folder and store an archive password to enable "
+"automatic backups."
+msgstr ""
+"Kies een aangepaste back-upmap en sla een archiefwachtwoord op om "
+"automatische back-ups in te schakelen."
+
+msgid "Select a custom backup folder."
+msgstr "Kies een aangepaste back-upmap."
 
 msgid "Select all"
 msgstr "Alles selecteren"
@@ -5060,7 +5085,7 @@ msgid "Send SMS"
 msgstr "SMS verzenden"
 
 msgid "Send adjusted text"
-msgstr "Send adjusted text"
+msgstr "Aangepaste tekst verzenden"
 
 msgid "Send documents"
 msgstr "Documenten verzenden"
@@ -5075,7 +5100,7 @@ msgid "Sent"
 msgstr "Verzonden"
 
 msgid "Server address"
-msgstr "Server address"
+msgstr "Serveradres"
 
 msgid "Server address and user name are required."
 msgstr "Serveradres en gebruikersnaam zijn vereist."
@@ -5085,6 +5110,9 @@ msgstr "Service actief"
 
 msgid "Service stopped"
 msgstr "Service gestopt"
+
+msgid "Set or change password"
+msgstr "Wachtwoord instellen of wijzigen"
 
 msgid "Set up contacts"
 msgstr "Contacten instellen"
@@ -5127,7 +5155,7 @@ msgid "Share together"
 msgstr "Samen delen"
 
 msgid "Shared credentials"
-msgstr "Shared credentials"
+msgstr "Gedeelde aanmeldgegevens"
 
 msgid "Shared note"
 msgstr "Gedeelde notitie"
@@ -5274,7 +5302,7 @@ msgid "Spain"
 msgstr "Spanje"
 
 msgid "Spam check"
-msgstr "Spam check"
+msgstr "Spamcontrole"
 
 msgid "Special cases"
 msgstr "Bijzondere gevallen"
@@ -5319,7 +5347,7 @@ msgid "Status"
 msgstr "Status"
 
 msgid "Storage available / total"
-msgstr "Storage available / total"
+msgstr "Opslagruimte beschikbaar / totaal"
 
 msgid "Street / house number"
 msgstr "Straat / huisnummer"
@@ -5352,7 +5380,7 @@ msgid "Suppository"
 msgstr "Zetpil"
 
 msgid "Switched off."
-msgstr "Switched off."
+msgstr "Uitgeschakeld."
 
 msgid "Switzerland"
 msgstr "Zwitserland"
@@ -5399,7 +5427,7 @@ msgid "Synchronize contacts"
 msgstr "Contacten synchroniseren"
 
 msgid "Synchronize everything"
-msgstr "Synchronize everything"
+msgstr "Alles synchroniseren"
 
 msgid "Synchronize notes and notebooks"
 msgstr "Contacten synchroniseren"
@@ -5485,13 +5513,16 @@ msgid "Temperature"
 msgstr "Temperatuur"
 
 msgid "Test connection"
-msgstr "Test connection"
+msgstr "Verbinding testen"
+
+msgid "Test now"
+msgstr "Nu testen"
 
 msgid "Test reminders and report what happens"
 msgstr "Herinneringen testen en melden wat er gebeurt"
 
 msgid "Testing…"
-msgstr "Testing…"
+msgstr "Testen…"
 
 msgid "Text color"
 msgstr "Tekstkleur"
@@ -5949,6 +5980,17 @@ msgstr "Het bestand is groter dan 8 megabyte."
 #, python-format
 msgid "The fingerprint does not match (received: %(fingerprint)s)."
 msgstr "De vingerafdruk komt niet overeen (ontvangen: %(fingerprint)s)."
+
+msgid ""
+"The folder may be locally synchronized by Nextcloud, Google Drive, Dropbox, "
+"or OneDrive. Magnolie does not sign in to a provider. Automatic backups run "
+"only while Organizer is open and unlocked, immediately after data was saved "
+"successfully."
+msgstr ""
+"De map kan lokaal worden gesynchroniseerd door Nextcloud, Google Drive, "
+"Dropbox of OneDrive. Magnolie meldt zich niet aan bij een aanbieder. "
+"Automatische back-ups worden alleen uitgevoerd terwijl Organizer geopend en "
+"ontgrendeld is, direct nadat de gegevens met succes zijn opgeslagen."
 
 msgid ""
 "The helper frame marks the control that currently has keyboard focus. This "
@@ -6818,7 +6860,7 @@ msgid "URI"
 msgstr "URI"
 
 msgid "Unavailable"
-msgstr "Unavailable"
+msgstr "Niet beschikbaar"
 
 msgid ""
 "Under Wayland, the compositor determines the exact window position; "
@@ -6848,6 +6890,10 @@ msgstr "Onbekend eindpunt."
 msgid "Unknown file"
 msgstr "Onbekend bestand"
 
+#, python-format
+msgid "Unknown option: %s"
+msgstr "Onbekende optie: %s"
+
 msgid "Unknown phone"
 msgstr "Onbekende telefoon"
 
@@ -6865,6 +6911,9 @@ msgstr "Ontgrendel de organizer voordat u Magnolienbaum-berichten ontvangt."
 
 msgid "Unlocking the Magnolienbaum storage"
 msgstr "Magnolienbaum-opslag ontgrendelen"
+
+msgid "Unread on phone"
+msgstr "Ongelezen op de telefoon"
 
 #, python-format
 msgid "Unreadable message from the interface: %s"
@@ -6899,7 +6948,7 @@ msgid "Upper Austria"
 msgstr "Opper-Oostenrijk"
 
 msgid "Uptime"
-msgstr "Uptime"
+msgstr "Bedrijfstijd"
 
 msgid "Uri"
 msgstr "URI"
@@ -6915,6 +6964,9 @@ msgstr "Een specifieke website gebruiken"
 
 msgid "Use a supported language code or system for this invocation"
 msgstr "Voor deze aanroep een ondersteunde taalcode of system gebruiken"
+
+msgid "Use automatic backups"
+msgstr "Automatische back-ups gebruiken"
 
 msgid "Use basal units"
 msgstr "Basale eenheden gebruiken"
@@ -6958,7 +7010,7 @@ msgid "Use the recycle bin"
 msgstr "Prullenbak gebruiken"
 
 msgid "User name"
-msgstr "User name"
+msgstr "Gebruikersnaam"
 
 msgid ""
 "Uses its own identity and storage and listens only on fixed port %(port)s. "
@@ -7199,7 +7251,7 @@ msgid "Wife"
 msgstr "Echtgenote"
 
 msgid "Wireless"
-msgstr "Wireless"
+msgstr "Draadloos"
 
 msgid ""
 "With a password or numeric code, the organizer asks for it when opening and "
@@ -7274,7 +7326,7 @@ msgid "Year planner %(year)s"
 msgstr "Jaarplanner %(year)s"
 
 msgid "Yes"
-msgstr "Yes"
+msgstr "Ja"
 
 msgid "Yes, merge"
 msgstr "Ja, samenvoegen"
@@ -7766,57 +7818,3 @@ msgstr[1] "… en %(count)s extra items die ook worden afgedrukt."
 
 msgid "＋ Add appointment"
 msgstr "＋ Afspraak toevoegen"
-
-#~ msgid "Notification actions unavailable"
-#~ msgstr "Meldingsacties niet beschikbaar"
-
-#~ msgid "Download version %(version)s …"
-#~ msgstr "Versie %(version)s downloaden …"
-
-#~ msgid ""
-#~ "Notify, then unlock asks you to open and unlock the Organizer. System "
-#~ "keyring uses an available desktop keyring without storing the password in "
-#~ "Organizer data. Pause while locked waits without accessing encrypted data."
-#~ msgstr ""
-#~ "Bij ‘Melding tonen en daarna ontgrendelen’ wordt u gevraagd de Organizer "
-#~ "te openen en te ontgrendelen. ‘Systeemsleutelbos’ gebruikt een "
-#~ "beschikbare sleutelbos van de desktop zonder het wachtwoord in de "
-#~ "Organizer-gegevens op te slaan. ‘Pauzeren zolang gegevens vergrendeld "
-#~ "zijn’ wacht zonder toegang tot versleutelde gegevens."
-
-#~ msgid "System keyring is unavailable; this choice cannot be enabled."
-#~ msgstr ""
-#~ "Systeemsleutelbos is niet beschikbaar; deze keuze kan niet worden "
-#~ "ingeschakeld."
-
-#~ msgid ""
-#~ "Incoming files and clipboard text are confirmed before use unless "
-#~ "automatic acceptance is explicitly enabled."
-#~ msgstr ""
-#~ "Binnenkomende bestanden en klembordtekst worden vóór gebruik bevestigd, "
-#~ "tenzij automatisch accepteren uitdrukkelijk is ingeschakeld."
-
-#~ msgid "Reset"
-#~ msgstr "Reset"
-
-#~ msgid "Exactly one online Magnolie Notes phone must allow dial requests."
-#~ msgstr ""
-#~ "Precies één online Magnolie Notes-telefoon moet kiesverzoeken toestaan."
-
-#~ msgid "Last contact"
-#~ msgstr "Laatste contact"
-
-#~ msgid "No additional modules permitted"
-#~ msgstr "Geen aanvullende modules toegestaan"
-
-#~ msgid "Selected notifications"
-#~ msgstr "Geselecteerde meldingen"
-
-#~ msgid "Language & region"
-#~ msgstr "Taal en regio"
-
-#~ msgid "No valid subscription"
-#~ msgstr "Geen geldig abonnement"
-
-#~ msgid "More fields (Lotus)"
-#~ msgstr "Meer velden (Lotus)"

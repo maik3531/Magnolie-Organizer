@@ -19,6 +19,9 @@ function requiredPayload(root, publish) {
   for (const marker of ["oeffneSuche", "nextcloud"]) {
     if (!application.includes(marker)) fail(`Pflichtmarker fehlt in web/anwendung.js: ${marker}`);
   }
+  if (!same(path.join(sourceWeb, "kaffee-qr.mga"), path.join(publishedWeb, "kaffee-qr.mga"))) {
+    fail("geschützter Organizer-QR fehlt oder ist veraltet");
+  }
   const languages = fs.readFileSync(path.join(root, "app", "po", "LINGUAS"), "utf8").trim().split(/\s+/);
   for (const language of languages) {
     const relative = path.join("i18n", `${language}.js`);
@@ -38,13 +41,18 @@ function requiredPayload(root, publish) {
     "version.json", "i18n/de.js", "01.jpg", "02.jpg", "03.jpg", "02-woche.png",
     "03-aufgaben.png", "06-jahrestage.png", "10-pin-abfrage.png", "11-stand.png",
     "14-karteikarte.png", "15-rechtsklick-anrufen.png", "19-karte-mit-sms.png",
-    "21-sms-getippt.png", "maik-walter-FOTO-NUTZUNG.txt",
+    "21-sms-getippt.png", "kaffee-qr.mga", "maik-walter.mga", "maik-walter-FOTO-NUTZUNG.txt",
     "schriften/DejaVuSans.ttf", "schriften/DejaVuSans-Bold.ttf",
     "schriften/DejaVuSans-Oblique.ttf", "schriften/DejaVuSans-BoldOblique.ttf",
     "schriften/NotoSerif-Regular.ttf", "schriften/NotoSerif-Bold.ttf",
     "schriften/NotoSerif-Italic.ttf", "schriften/NotoSerif-BoldItalic.ttf",
     "schriften/DejaVu-LIZENZ.txt", "schriften/Noto-LIZENZ.txt"]) {
     if (!file(path.join(publish, "handbuch", relative))) fail(`Handbuchdatei fehlt: handbuch/${relative}`);
+  }
+  for (const forbidden of [path.join(publishedWeb, "kaffee-qr.png"),
+    path.join(publish, "handbuch", "kaffee-qr.png"),
+    path.join(publish, "handbuch", "maik-walter.jpg")]) {
+    if (file(forbidden)) fail(`Klartext-Personenasset enthalten: ${forbidden}`);
   }
 }
 

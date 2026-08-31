@@ -6,18 +6,19 @@ Files: *
 Copyright: 2026 Maik Walter <maik3531@gmail.com>
 License: GPL-3+
 
-Files: web/maik-walter.jpg
+Files: web/kaffee-qr.mga web/maik-walter.mga
 Copyright: 2026 Maik Walter <maik3531@gmail.com>
-License: Magnolie-photo-permission
- The unmodified photograph may be distributed and displayed only together with
+License: Magnolie-protected-assets
+ The contained coffee QR image and portrait are not GPL-licensed. Their
+ unmodified encrypted containers may be distributed and displayed only together with
  a Magnolie Organizer, Magnolie Notes, or Magnolie Handbook distribution, or
  their accompanying documentation. Standalone use, redistribution,
  publication, modification, advertising use, profile use, dataset use, or use
  in another project requires prior written permission from Maik Walter.
  .
- This separate permission applies only to the photograph and does not restrict
+ This separate permission applies only to the contained images and does not restrict
  the GPL-3+ rights in the program or handbook material. See
- web/maik-walter-FOTO-NUTZUNG.txt.
+ the upstream PROTECTED-ASSETS-LICENSE.txt.
 
 Files: web/schriften/DejaVuSans*.ttf
 Copyright: 2003 Bitstream, Inc.; DejaVu changes are in the public domain

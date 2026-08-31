@@ -1,10 +1,10 @@
-.TH MAGNOLIE-HANDBUCH 1 "August 2026" "Magnolie Handbook 2.0.6" "User Commands"
+.TH MAGNOLIE-HANDBUCH 1 "August 2026" "Magnolie Handbook 2.0.14" "User Commands"
 .SH NAME
 magnolie-handbuch \- open the Magnolie Organizer user handbook
 .SH SYNOPSIS
 .B magnolie-handbuch
 .RI [ option ]
-.RI [ \-\-sprache\  language ]
+.RI [ \-\-language\  language ]
 .SH DESCRIPTION
 .B Magnolie Handbook
 opens the complete illustrated user guide for Magnolie Organizer. The handbook
@@ -12,20 +12,26 @@ can be browsed on screen, printed or exported as a PDF file.
 .PP
 Only one handbook window is opened per user session. Starting the command
 again presents the existing window.
+.SH COMMAND-LINE FORMS
+The neutral short aliases and English long forms are:
+.nf
+\-h \-\-help; \-V \-\-version; \-l \-\-language; \-P \-\-pot-template.
+.fi
+Both German and English long forms are accepted.
 .SH OPTIONS
 .TP
-.BR \-\-sprache " " SPRACHE , " " \-\-language " " LANGUAGE
+.BR \-\-language " " LANGUAGE , " " \-\-sprache " " SPRACHE
 Use German (\fBde\fR), English (\fBen\fR), or the system language
 (\fBsystem\fR) for this invocation. This selects command output before help
 and the WebKit language of a newly opened window. Persisted settings are not
 changed.
 .TP
-.BR \-\-pot " [" DATEI "]", " " \-\-pot-template " [" FILE "]"
+.BR \-\-pot-template " [" FILE "]", " " \-\-pot " [" DATEI "]"
 Generate a reproducible gettext template and exit. With no file argument,
 write \fBmagnolie-handbuch.pot\fR in the current directory; otherwise write
 to the specified path. The absolute output path is printed on success.
 .TP
-.BR \-\-hilfe , " " \-\-help
+.BR \-\-help , " " \-\-hilfe
 Show a short command overview.
 .SH ENVIRONMENT
 .TP

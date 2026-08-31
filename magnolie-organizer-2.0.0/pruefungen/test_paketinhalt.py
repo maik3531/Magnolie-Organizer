@@ -14,7 +14,7 @@ sys.path.insert(0, str(ROOT / "werkzeuge"))
 from png_pruefen import pruefen as png_pruefen
 WINDOWS = WORKSPACE / "Magnolie-Organizer-Windows-2.0.0"
 HANDBOOK = WORKSPACE / "magnolie-handbuch-stamm"
-VERSION = "2.0.13"
+VERSION = "2.0.14"
 MANIFEST_VERSION = VERSION
 INTERNAL_NOTE = re.compile(
     r"(REVIEW|ENTWURF|OFFENE[-_ ]?PUNKTE|ANALYSE|PLAN|AUDIT).*\.md$", re.I)
@@ -102,14 +102,16 @@ for optional_desktop in ("bluez", "gnome-shell-extension-appindicator",
 for audio_client in ("pulseaudio-utils", "pipewire-bin", "alsa-utils"):
     assert audio_client in suggests
 assert not INTERNAL_NOTE.search(install_manifest)
-assert "web/kaffee-qr.png" in install_manifest
+assert "web/kaffee-qr.mga" in install_manifest
+assert "web/kaffee-qr.png" not in install_manifest
 helper = "bin/magnolie_personal_sync.py"
 assert (ROOT / helper).is_file()
 assert f"{helper}          usr/bin" in install_manifest
 assert f"{helper}          usr/lib/magnolie-organizer" in install_manifest
 assert "bin/magnolie_nextcloud.py              usr/bin" in install_manifest
-assert png_pruefen(ROOT / "web/kaffee-qr.png") == (266, 266)
-assert '"/kaffee-qr.png": ("kaffee-qr.png", "image/png")' in text(
+assert "bin/magnolie_cloud_backup.py           usr/bin" in install_manifest
+assert (ROOT / "web/kaffee-qr.mga").read_bytes().startswith(b"MGA1")
+assert '"/kaffee-qr.png": ("kaffee-qr.mga", "image/png")' in text(
     ROOT / "bin/magnolie-organizer")
 rpm_builder = text(ROOT / "werkzeuge/rpm_bauen.sh")
 for marker in ("REVIEW", "ENTWURF", "OFFENE-PUNKTE", "ANALYSE", "PLAN", "AUDIT"):
@@ -121,18 +123,20 @@ assert "bin/magnolie_personal_sync.py %{buildroot}%{_bindir}/magnolie_personal_s
 assert "%{_bindir}/magnolie_personal_sync.py" in rpm_spec
 assert "bin/magnolie_nextcloud.py %{buildroot}%{_bindir}/magnolie_nextcloud.py" in rpm_spec
 assert "%{_bindir}/magnolie_nextcloud.py" in rpm_spec
-assert "web/kaffee-qr.png" in rpm_spec
-assert '%{buildroot}%{_datadir}/%{name}/web/kaffee-qr.png' in rpm_spec
+assert "bin/magnolie_cloud_backup.py %{buildroot}%{_bindir}/magnolie_cloud_backup.py" in rpm_spec
+assert "%{_bindir}/magnolie_cloud_backup.py" in rpm_spec
+assert "web/kaffee-qr.mga" in rpm_spec
+assert '%{buildroot}%{_datadir}/%{name}/web/kaffee-qr.mga' in rpm_spec
 assert 'root = pathlib.Path(r"%{buildroot}")' in rpm_spec
 assert "import magnolie_personal_sync" in rpm_spec
 assert "magnolie_telefon.validate_personal_sync_body" in rpm_spec
-assert "werkzeuge/png_pruefen.py" in rpm_spec
+assert "pruefungen/test_asset_container.py" in rpm_spec
 assert '%{buildroot}%{_datadir}/%{name}/web/index.html' in rpm_spec
 assert '${MAGNOLIE_CONTRIBUTOR_HASH:-}' in rpm_spec
 assert 'build-config.json' in rpm_spec
 installed_test = text(ROOT / "debian/tests/installed")
 assert "ENTWURF-MAGNOLIENBAUM" not in installed_test
-assert "/usr/share/magnolie-organizer/web/kaffee-qr.png" in installed_test
+assert "/usr/share/magnolie-organizer/web/kaffee-qr.mga" in installed_test
 for marker in ("function oeffneSuche", "syncMetadaten", "nextcloud:"):
     assert marker in installed_test
     assert marker in text(ROOT / "web/anwendung.js")
@@ -150,6 +154,7 @@ assert 'animation: puls' not in web_style
 assert '@keyframes puls' not in web_style
 assert 'bin/magnolie_personal_sync.py" "$APPDIR/usr/bin/magnolie_personal_sync.py"' in appimage_builder
 assert 'bin/magnolie_nextcloud.py" "$APPDIR/usr/bin/magnolie_nextcloud.py"' in appimage_builder
+assert 'bin/magnolie_cloud_backup.py" "$APPDIR/usr/bin/magnolie_cloud_backup.py"' in appimage_builder
 assert ': "${MAGNOLIE_GRAPHICS_COMPAT:=0}"' in appimage_builder
 assert ': "${WEBKIT_DISABLE_DMABUF_RENDERER:=1}"' not in appimage_builder
 assert "WEBKIT_DISABLE_COMPOSITING_MODE" not in appimage_builder
@@ -266,4 +271,4 @@ def test_statische_paketpruefung():
     assert True
 
 
-print("Paketinhalt und Linux-Version 2.0.13: ok")
+print("Paketinhalt und Linux-Version 2.0.14: ok")

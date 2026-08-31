@@ -1,23 +1,9 @@
-# SOME DESCRIPTIVE TITLE.
-# Copyright (C) 2026 THE PACKAGE'S COPYRIGHT HOLDER
-# This file is distributed under the same license as the Magnolie Organizer
-# package.
-# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
-#
 msgid ""
 msgstr ""
-"Project-Id-Version: Magnolie Organizer 2.0.13\n"
 "Report-Msgid-Bugs-To: maik3531@gmail.com\n"
 "POT-Creation-Date: YEAR-MO-DA HO:MI+ZONE\n"
-"PO-Revision-Date: 2026-08-08 09:24+0200\n"
-"Last-Translator: Magnolie localization project\n"
-"Language-Team: Japanese\n"
-"Language: ja\n"
-"MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
-"Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
-"Generated-By: Babel 2.18.0\n"
 
 msgid " (filtered)"
 msgstr "（フィルター済み）"
@@ -248,10 +234,10 @@ msgid "%(from)s to %(to)s"
 msgstr "%(from)s から %(to)s"
 
 msgid "%(name)s found – currently reachable"
-msgstr "%(name)s found – currently reachable"
+msgstr "%(name)s が見つかりました – 現在接続可能です"
 
 msgid "%(name)s last found – reconnecting"
-msgstr "%(name)s last found – reconnecting"
+msgstr "前回 %(name)s が見つかりました – 再接続中です"
 
 #, python-format
 msgid "%(name)s: Wedding anniversary in %(count)d day."
@@ -581,7 +567,7 @@ msgstr ""
 "ちらで設定してください。"
 
 msgid "API level"
-msgstr "API level"
+msgstr "API レベル"
 
 msgid "Aargau"
 msgstr "アールガウ州"
@@ -644,7 +630,7 @@ msgid "According to language"
 msgstr "言語に応じて"
 
 msgid "Active call"
-msgstr "Active call"
+msgstr "通話中"
 
 msgid "Add"
 msgstr "追加"
@@ -837,7 +823,7 @@ msgid "Answering the call"
 msgstr "着信に応答中"
 
 msgid "App password"
-msgstr "App password"
+msgstr "アプリパスワード"
 
 msgid "Appearance"
 msgstr "外観"
@@ -956,6 +942,12 @@ msgstr "作成者"
 msgid "Authority appointment"
 msgstr "役所の予定"
 
+msgid "Automatic backup failed."
+msgstr "自動バックアップに失敗しました。"
+
+msgid "Automatic cloud-folder backups"
+msgstr "クラウドフォルダーへの自動バックアップ"
+
 msgid "Automatically choose a suitable application"
 msgstr "適切なアプリケーションを自動選択"
 
@@ -986,7 +978,7 @@ msgid "BMI from the latest stored height and weight"
 msgstr "最後に保存した身長と体重から算出した BMI"
 
 msgid "BZ"
-msgstr "BZ"
+msgstr "血糖値"
 
 msgid "Background service"
 msgstr "バックグラウンドサービス"
@@ -1013,6 +1005,9 @@ msgstr ""
 
 msgid "Backup saved to: %(path)s"
 msgstr "バックアップの保存先: %(path)s"
+
+msgid "Backup verified successfully."
+msgstr "バックアップを正常に検証しました。"
 
 msgid "Backups"
 msgstr "バックアップ"
@@ -1046,7 +1041,7 @@ msgid "Battery"
 msgstr "手紙"
 
 msgid "Battery snapshot"
-msgstr "Battery snapshot"
+msgstr "バッテリー状態のスナップショット"
 
 msgid "Bavaria"
 msgstr "バイエルン州"
@@ -1221,7 +1216,7 @@ msgid "Calendars (multiple selections allowed)"
 msgstr "カレンダー（複数選択可）"
 
 msgid "Calendars and contacts"
-msgstr "Calendars and contacts"
+msgstr "カレンダーと連絡先"
 
 msgid "Call"
 msgstr "電話"
@@ -1230,16 +1225,16 @@ msgid "Call assignment"
 msgstr "コールの割り当て"
 
 msgid "Call ended"
-msgstr "Call ended"
+msgstr "通話終了"
 
 msgid "Call notes"
-msgstr "Call notes"
+msgstr "通話メモ"
 
 msgid "Call reference"
-msgstr "Call reference"
+msgstr "通話参照"
 
 msgid "Call started"
-msgstr "Call started"
+msgstr "通話開始"
 
 msgid "Call this contact using Magnolie Notes or the assigned application"
 msgstr ""
@@ -1247,7 +1242,7 @@ msgstr ""
 "します"
 
 msgid "Call with %(name)s · %(date)s"
-msgstr "Call with %(name)s · %(date)s"
+msgstr "%(name)s との通話 · %(date)s"
 
 msgid "Cancel"
 msgstr "キャンセル"
@@ -1508,7 +1503,7 @@ msgid "Complete archive exported (unencrypted)."
 msgstr "完全なアーカイブをエクスポートしました（暗号化なし）。"
 
 msgid "Complete pairing"
-msgstr "Complete pairing"
+msgstr "ペアリングを完了"
 
 msgid "Completed (%(count)s)"
 msgstr "完了 (%(count)s)"
@@ -1553,7 +1548,7 @@ msgid "Connect phone via WLAN"
 msgstr "電話をWi-Fiで接続する"
 
 msgid "Connected"
-msgstr "Connected"
+msgstr "接続済み"
 
 msgid "Connecting to the online accounts"
 msgstr "オンラインアカウントに接続しています"
@@ -1562,7 +1557,7 @@ msgid "Consider deletions during manual synchronization"
 msgstr "連絡先の同期"
 
 msgid "Contact"
-msgstr "Contact"
+msgstr "連絡先"
 
 #, python-format
 msgid "Contact %d contains an unreadable vCard."
@@ -1656,7 +1651,7 @@ msgid "Continued"
 msgstr "続き"
 
 msgid "Contributor Key"
-msgstr "Contributor Key"
+msgstr "貢献者キー"
 
 msgid "Copy"
 msgstr "コピー"
@@ -1911,7 +1906,7 @@ msgid "Delete page"
 msgstr "ページを削除"
 
 msgid "Delete password"
-msgstr "Delete password"
+msgstr "パスワードを削除"
 
 msgid "Delete permanently"
 msgstr "完全に削除"
@@ -1977,7 +1972,7 @@ msgid "Deletions are not synchronized yet."
 msgstr "同期したことがありません。"
 
 msgid "Delivered"
-msgstr "未配信"
+msgstr "配信済み"
 
 msgid "Delivered to %(branch)s."
 msgstr "%(branch)s に配信しました。"
@@ -1992,7 +1987,7 @@ msgid "Diabetes"
 msgstr "糖尿病"
 
 msgid "Dialing…"
-msgstr "Dialing…"
+msgstr "発信中…"
 
 msgid "Diastolic"
 msgstr "拡張期血圧"
@@ -2077,7 +2072,7 @@ msgid "Duplicates"
 msgstr "重複"
 
 msgid "Duration"
-msgstr "Duration"
+msgstr "通話時間"
 
 msgid "Early shift"
 msgstr "早番"
@@ -2556,7 +2551,7 @@ msgid "Handwriting"
 msgstr "手書き"
 
 msgid "Hang up"
-msgstr "Hang up"
+msgstr "通話を終了"
 
 msgid "Head office"
 msgstr "本社"
@@ -2818,7 +2813,7 @@ msgid "Internet IP"
 msgstr "インターネット IP"
 
 msgid "Internet available"
-msgstr "Internet available"
+msgstr "インターネット利用可能"
 
 msgid "Interval in days"
 msgstr "日数の間隔"
@@ -2909,6 +2904,9 @@ msgstr "姓"
 
 msgid "Last snapshot"
 msgstr "最後のスナップショット"
+
+msgid "Last successful backup"
+msgstr "前回成功したバックアップ"
 
 msgid "Last synchronized: %(date)s, %(time)s."
 msgstr "最終同期: %(date)s、%(time)s。"
@@ -3027,9 +3025,6 @@ msgstr ""
 "Magnolie Notes の電話と KDE Connect の電話は別です。Android のモデル名は "
 "Magnolie Notes に属し、KDE のピア名は KDE Connect から取得されます。"
 
-msgid "Magnolie Notes version"
-msgstr "Magnolie Notes のバージョン"
-
 msgid "Magnolie Organizer"
 msgstr "Magnolie Organizer"
 
@@ -3098,7 +3093,7 @@ msgid "Magnolienbaum change offers"
 msgstr "Magnolienbaum の変更提案"
 
 msgid "Magnolienbaum mailbox"
-msgstr "Magnolienbaum mailbox"
+msgstr "Magnolienbaum メールボックス"
 
 msgid "Magnolienbaum pairing file (*.magnolie-paarung)"
 msgstr "Magnolienbaum ペアリングファイル (*.magnolie-paarung)"
@@ -3181,7 +3176,7 @@ msgid "Memorial day"
 msgstr "記念日"
 
 msgid "Memory available / total"
-msgstr "Memory available / total"
+msgstr "利用可能メモリ / 総メモリ"
 
 msgid "Merge"
 msgstr "統合"
@@ -3199,10 +3194,10 @@ msgid "Message text"
 msgstr "メッセージ"
 
 msgid "Metered connection"
-msgstr "Metered connection"
+msgstr "従量制課金接続"
 
 msgid "Minimize"
-msgstr "Minimize"
+msgstr "最小化"
 
 msgid "Minimize to the tray when closed"
 msgstr "閉じたときにシステムトレイへ最小化"
@@ -3246,7 +3241,7 @@ msgid "Mobile"
 msgstr "携帯電話"
 
 msgid "Mobile network"
-msgstr "Mobile network"
+msgstr "モバイルネットワーク"
 
 msgid "Model"
 msgstr "モデル"
@@ -3313,7 +3308,7 @@ msgstr ""
 "め、1台を残してほかの電話を削除してください。"
 
 msgid "Multiple calendars"
-msgstr "Multiple calendars"
+msgstr "複数のカレンダー"
 
 msgid "Name"
 msgstr "名前"
@@ -3337,7 +3332,7 @@ msgid "Netherlands"
 msgstr "オランダ"
 
 msgid "Network"
-msgstr "Network"
+msgstr "ネットワーク"
 
 msgid "Neuchâtel"
 msgstr "ヌーシャテル"
@@ -3432,7 +3427,7 @@ msgid "Next year"
 msgstr "次の年"
 
 msgid "Nextcloud account"
-msgstr "Nextcloud account"
+msgstr "Nextcloud アカウント"
 
 msgid "Nextcloud denied access to this DAV resource."
 msgstr "Nextcloud はこの DAV リソースへのアクセスを拒否しました。"
@@ -3468,7 +3463,7 @@ msgid "Night shift"
 msgstr "夜勤"
 
 msgid "No"
-msgstr "No"
+msgstr "いいえ"
 
 msgid "No Claws Mail address book was detected."
 msgstr "Claws Mail のアドレス帳が検出されませんでした。"
@@ -3774,13 +3769,13 @@ msgid "Offer Personal Sync phone changes"
 msgstr "Personal Sync の電話側の変更を提示する"
 
 msgid "Offline"
-msgstr "オンライン"
+msgstr "オフライン"
 
 msgid "Ointment"
 msgstr "軟膏"
 
 msgid "One address book"
-msgstr "One address book"
+msgstr "1 つのアドレス帳"
 
 msgid "One backup could not be updated."
 msgid_plural "%(count)s backups could not be updated."
@@ -3995,6 +3990,9 @@ msgstr "生ごみ"
 msgid "Organizer"
 msgstr "主催者"
 
+msgid "Organizer data is locked."
+msgstr "Organizer のデータはロックされています。"
+
 msgid "Organizer style (paper sheet)"
 msgstr "Organizer スタイル（紙面）"
 
@@ -4073,7 +4071,8 @@ msgid "Pairing file saved to: %(path)s"
 msgstr "ペアリングファイルを保存しました：%(path)s"
 
 msgid "Pairing, file and clipboard requests are confirmed in this window."
-msgstr "ペアリング、ファイル、クリップボードの要求はこのウィンドウで確認します。"
+msgstr ""
+"ペアリング、ファイル、クリップボードの要求はこのウィンドウで確認します。"
 
 msgid "Palm tree"
 msgstr "ヤシの木"
@@ -4175,7 +4174,7 @@ msgid "Phone"
 msgstr "電話"
 
 msgid "Phone battery"
-msgstr "Phone battery"
+msgstr "スマートフォンのバッテリー"
 
 msgid "Phone call"
 msgstr "電話をかける"
@@ -4274,7 +4273,7 @@ msgid "Possible duplicates among local and incoming contacts"
 msgstr "ローカルおよび受信した連絡先内の重複候補"
 
 msgid "Possible spam"
-msgstr "Possible spam"
+msgstr "迷惑電話の可能性"
 
 msgid "Postal address"
 msgstr "郵便住所"
@@ -4289,7 +4288,7 @@ msgid "Powder"
 msgstr "散剤"
 
 msgid "Power source"
-msgstr "Power source"
+msgstr "電源"
 
 msgid "Preview"
 msgstr "プレビュー"
@@ -4360,6 +4359,9 @@ msgstr ""
 "整合性チェック済みのプライベート スナップショットは、アプリケーション データ"
 "の隣に保存されます。"
 
+msgid "Protected archive password unavailable."
+msgstr "保護されたアーカイブパスワードを利用できません。"
+
 msgid "Public IPv4 or IPv6 address of the other branch"
 msgstr "相手側ブランチの公開 IPv4 または IPv6 アドレス"
 
@@ -4395,6 +4397,12 @@ msgstr "終了"
 msgid "Reachable IPv4 or IPv6 address of this computer"
 msgstr "このコンピューターに到達可能な IPv4 または IPv6 アドレス"
 
+msgid "Read on phone"
+msgstr "スマートフォンで既読"
+
+msgid "Read status"
+msgstr "既読状態"
+
 msgid "Reading recovery snapshots"
 msgstr "リカバリスナップショットの読み取り"
 
@@ -4411,7 +4419,7 @@ msgid "Reading the user data"
 msgstr "ユーザーデータを読み込んでいます"
 
 msgid "Ready."
-msgstr "Ready."
+msgstr "準備完了。"
 
 msgid ""
 "Really merge %(cards)s? Review the result carefully afterwards. A copy of "
@@ -4583,7 +4591,7 @@ msgstr ""
 "れ、再構築されます。Magnolie Notes、メモ、チャット履歴は変更されません。"
 
 msgid "Renew pairing"
-msgstr "Renew pairing"
+msgstr "ペアリングを更新"
 
 msgid "Repeat for confirmation"
 msgstr "確認のためもう一度入力"
@@ -4650,6 +4658,9 @@ msgstr "バックアップの復元はインストール済みアプリでのみ
 msgid "Restoring the backup"
 msgstr "バックアップを復元しています"
 
+msgid "Retention"
+msgstr "保持数"
+
 msgid "Retrieval failed."
 msgstr "取得に失敗しました。"
 
@@ -4710,6 +4721,9 @@ msgid ""
 msgstr ""
 "ダウンロードしたインストーラーを目に見えるように実行し、マニュアルコンポーネ"
 "ントを選択したままにします。"
+
+msgid "Run the optional background service"
+msgstr "オプションのバックグラウンドサービスを実行"
 
 msgid "S"
 msgstr "S"
@@ -4784,7 +4798,7 @@ msgid "Save contacts for Claws Mail"
 msgstr "Claws Mail 用連絡先を保存"
 
 msgid "Save endpoint"
-msgstr "Save endpoint"
+msgstr "エンドポイントを保存"
 
 msgid "Save rejected: The data is encrypted and has not been unlocked yet."
 msgstr ""
@@ -4804,7 +4818,7 @@ msgid "Saved ✓ %(time)s"
 msgstr "保存済み ✓ %(time)s"
 
 msgid "Saved."
-msgstr "Saved."
+msgstr "保存しました。"
 
 msgid "Saving background settings"
 msgstr "バックグラウンド設定を保存しています"
@@ -4854,7 +4868,7 @@ msgid "Scheduled"
 msgstr "予定された"
 
 msgid "Scheme"
-msgstr "Scheme"
+msgstr "スキーム"
 
 msgid "Schleswig-Holstein"
 msgstr "シュレースヴィヒ＝ホルシュタイン"
@@ -4863,7 +4877,7 @@ msgid "Schwyz"
 msgstr "シュヴィーツ"
 
 msgid "Screen notification only"
-msgstr "画面通知のみ"
+msgstr "選択した通知を表示（読み取り専用）"
 
 msgid "Scrolling up makes the time earlier"
 msgstr "上へスクロールすると時刻が早くなる"
@@ -4906,6 +4920,16 @@ msgstr "選択"
 
 msgid "Select a country first."
 msgstr "先に国を選択してください。"
+
+msgid ""
+"Select a custom backup folder and store an archive password to enable "
+"automatic backups."
+msgstr ""
+"自動バックアップを有効にするには、カスタムバックアップフォルダーを選択して"
+"アーカイブパスワードを保存してください。"
+
+msgid "Select a custom backup folder."
+msgstr "カスタムバックアップフォルダーを選択してください。"
 
 msgid "Select all"
 msgstr "すべて選択"
@@ -4970,7 +4994,7 @@ msgid "Sent"
 msgstr "送信済み"
 
 msgid "Server address"
-msgstr "Server address"
+msgstr "サーバーアドレス"
 
 msgid "Server address and user name are required."
 msgstr "サーバーアドレスとユーザー名が必要です。"
@@ -4980,6 +5004,9 @@ msgstr "サービスは実行中です"
 
 msgid "Service stopped"
 msgstr "サービスは停止しています"
+
+msgid "Set or change password"
+msgstr "パスワードを設定または変更"
 
 msgid "Set up contacts"
 msgstr "連絡先を設定"
@@ -5021,7 +5048,7 @@ msgid "Share together"
 msgstr "一緒に共有"
 
 msgid "Shared credentials"
-msgstr "Shared credentials"
+msgstr "共有認証情報"
 
 msgid "Shared note"
 msgstr "共有メモ"
@@ -5199,7 +5226,7 @@ msgid "Start through the tray applet"
 msgstr "システムトレイアプレットから起動"
 
 msgid "Starting the phone connection"
-msgstr "接続を管理"
+msgstr "スマートフォン接続を開始中"
 
 msgid "Starts Magnolie Organizer when signing in"
 msgstr "サインイン時に Magnolie Organizer を起動します"
@@ -5244,7 +5271,7 @@ msgid "Suppository"
 msgstr "坐剤"
 
 msgid "Switched off."
-msgstr "Switched off."
+msgstr "オフです。"
 
 msgid "Switzerland"
 msgstr "スイス"
@@ -5375,13 +5402,16 @@ msgid "Temperature"
 msgstr "体温"
 
 msgid "Test connection"
-msgstr "Test connection"
+msgstr "接続をテスト"
+
+msgid "Test now"
+msgstr "今すぐテスト"
 
 msgid "Test reminders and report what happens"
 msgstr "リマインダーをテストして結果を報告"
 
 msgid "Testing…"
-msgstr "Testing…"
+msgstr "テスト中…"
 
 msgid "Text color"
 msgstr "文字色"
@@ -5827,6 +5857,17 @@ msgstr "ファイルが 8 MB を超えています。"
 #, python-format
 msgid "The fingerprint does not match (received: %(fingerprint)s)."
 msgstr "フィンガープリントが一致しません（受信：%(fingerprint)s）。"
+
+msgid ""
+"The folder may be locally synchronized by Nextcloud, Google Drive, Dropbox, "
+"or OneDrive. Magnolie does not sign in to a provider. Automatic backups run "
+"only while Organizer is open and unlocked, immediately after data was saved "
+"successfully."
+msgstr ""
+"このフォルダーは Nextcloud、Google Drive、Dropbox、OneDrive でローカル同期で"
+"きます。Magnolie がプロバイダーにサインインすることはありません。自動バック"
+"アップは Organizer が開いてロック解除されている間だけ、データが正常に保存され"
+"た直後に実行されます。"
 
 msgid ""
 "The helper frame marks the control that currently has keyboard focus. This "
@@ -6705,6 +6746,10 @@ msgstr "不明なエンドポイント。"
 msgid "Unknown file"
 msgstr "不明なファイル"
 
+#, python-format
+msgid "Unknown option: %s"
+msgstr "不明なオプション: %s"
+
 msgid "Unknown phone"
 msgstr "不明なエンドポイント。"
 
@@ -6724,6 +6769,9 @@ msgstr ""
 
 msgid "Unlocking the Magnolienbaum storage"
 msgstr "Magnolienbaum ストレージのロックを解除しています"
+
+msgid "Unread on phone"
+msgstr "スマートフォンで未読"
 
 #, python-format
 msgid "Unreadable message from the interface: %s"
@@ -6774,6 +6822,9 @@ msgstr "特定のウェブサイトを使用"
 msgid "Use a supported language code or system for this invocation"
 msgstr "この起動では対応する言語コードまたは system を指定してください"
 
+msgid "Use automatic backups"
+msgstr "自動バックアップを使用する"
+
 msgid "Use basal units"
 msgstr "基礎インスリン単位を使用"
 
@@ -6814,7 +6865,7 @@ msgid "Use the recycle bin"
 msgstr "ごみ箱を使用"
 
 msgid "User name"
-msgstr "User name"
+msgstr "ユーザー名"
 
 msgid ""
 "Uses its own identity and storage and listens only on fixed port %(port)s. "
@@ -7602,56 +7653,3 @@ msgstr[0] "… ほか %(count)s 件も印刷されます。"
 
 msgid "＋ Add appointment"
 msgstr "＋ 予定を追加"
-
-#~ msgid "Notification actions unavailable"
-#~ msgstr "通知アクションを利用できません"
-
-#~ msgid "Download version %(version)s …"
-#~ msgstr "バージョン %(version)s をダウンロード …"
-
-#~ msgid ""
-#~ "Notify, then unlock asks you to open and unlock the Organizer. System "
-#~ "keyring uses an available desktop keyring without storing the password in "
-#~ "Organizer data. Pause while locked waits without accessing encrypted data."
-#~ msgstr ""
-#~ "「通知後にロックを解除」では、Organizer を開いてロックを解除するよう求めら"
-#~ "れます。「システムキーリングを使用」では、Organizer のデータにパスワードを"
-#~ "保存せず、利用可能なデスクトップのキーリングを使用します。「データのロック"
-#~ "中は一時停止」では、暗号化データにアクセスせず待機します。"
-
-#~ msgid "System keyring is unavailable; this choice cannot be enabled."
-#~ msgstr ""
-#~ "システムキーリングを利用できないため、この選択肢は有効にできません。"
-
-#~ msgid ""
-#~ "Incoming files and clipboard text are confirmed before use unless "
-#~ "automatic acceptance is explicitly enabled."
-#~ msgstr ""
-#~ "自動承認を明示的に有効にしていない限り、受信したファイルとクリップボードの"
-#~ "テキストは使用前に確認されます。"
-
-#~ msgid "Reset"
-#~ msgstr "Reset"
-
-#~ msgid "Exactly one online Magnolie Notes phone must allow dial requests."
-#~ msgstr ""
-#~ "1 つのオンライン Magnolie Notes 電話機だけがダイヤル要求を許可する必要があ"
-#~ "ります。"
-
-#~ msgid "Last contact"
-#~ msgstr "連絡先を作成"
-
-#~ msgid "No additional modules permitted"
-#~ msgstr "追加のモジュールは許可されていません"
-
-#~ msgid "Selected notifications"
-#~ msgstr "システム通知"
-
-#~ msgid "Language & region"
-#~ msgstr "言語と地域"
-
-#~ msgid "No valid subscription"
-#~ msgstr "有効なサブスクリプションがありません"
-
-#~ msgid "More fields (Lotus)"
-#~ msgstr "その他の項目（Lotus）"

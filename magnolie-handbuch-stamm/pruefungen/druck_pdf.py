@@ -12,7 +12,10 @@ try:
     gi.require_version("WebKit2", "4.1")
 except ValueError:
     gi.require_version("WebKit2", "4.0")
-from gi.repository import GLib, Gtk, WebKit2
+from gi.repository import Gio, GLib, Gtk, WebKit2
+
+sys.path.insert(0, os.path.realpath(os.path.join(os.path.dirname(__file__), "..", "bin")))
+from magnolie_asset import read_handbook_request
 
 
 def haupt():
@@ -32,8 +35,26 @@ def haupt():
 
     schleife = GLib.MainLoop()
     status = {"code": 1}
-    ansicht = WebKit2.WebView()
-    druckansicht = WebKit2.WebView()
+    # The process-local context owns the Python URI callback and can be torn
+    # down with the two views instead of surviving into interpreter shutdown.
+    kontext = WebKit2.WebContext.new()
+    def ressource(anfrage):
+        try:
+            antwort = read_handbook_request(anfrage.get_uri(), web)
+        except (OSError, ValueError):
+            antwort = None
+        daten, mime = antwort or (b"", "text/plain")
+        anfrage.finish(Gio.MemoryInputStream.new_from_bytes(GLib.Bytes.new(daten)), len(daten), mime)
+    kontext.register_uri_scheme("magnolie-handbuch", ressource)
+    sicherheit = kontext.get_security_manager()
+    for methode in ("register_uri_scheme_as_local", "register_uri_scheme_as_secure",
+                    "register_uri_scheme_as_display_isolated"):
+        try:
+            getattr(sicherheit, methode)("magnolie-handbuch")
+        except AttributeError:
+            pass
+    ansicht = WebKit2.WebView.new_with_context(kontext)
+    druckansicht = WebKit2.WebView.new_with_context(kontext)
 
     def beenden(code, meldung=None):
         status["code"] = code
@@ -69,7 +90,7 @@ def haupt():
             beenden(1, "Druckfassung konnte nicht gelesen werden: %s" % fehler)
             return
         druckansicht.connect("load-changed", drucken)
-        druckansicht.load_html(html, GLib.filename_to_uri(web + os.sep, None))
+        druckansicht.load_html(html, "magnolie-handbuch://app/")
 
     def bei_ladewechsel(_ansicht, ereignis):
         if ereignis != WebKit2.LoadEvent.FINISHED:
@@ -79,9 +100,13 @@ def haupt():
             bei_druckfassung, None)
 
     ansicht.connect("load-changed", bei_ladewechsel)
-    ansicht.load_uri(GLib.filename_to_uri(start, None))
+    ansicht.load_uri("magnolie-handbuch://app/index.html")
     GLib.timeout_add_seconds(60, lambda: beenden(1, "Zeitüberschreitung") or False)
     schleife.run()
+    ansicht.stop_loading()
+    druckansicht.stop_loading()
+    ansicht.destroy()
+    druckansicht.destroy()
     return status["code"]
 
 

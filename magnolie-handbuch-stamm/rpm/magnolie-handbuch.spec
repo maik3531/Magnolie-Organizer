@@ -1,22 +1,56 @@
+%global magnolie_distro @MAGNOLIE_DISTRO@
+
+%if "%{magnolie_distro}" == "fedora"
+%global magnolie_deps gtk3 python3-gobject python3-cryptography webkit2gtk4.1
+%global magnolie_build_deps python3-pytest
+%else
+%if "%{magnolie_distro}" == "opensuse"
+%global magnolie_deps gtk3 python3-gobject python3-gobject-Gdk python3-cryptography typelib-1_0-WebKit2-4_1
+%global magnolie_build_deps python3-pytest
+%else
+%if "%{magnolie_distro}" == "mageia"
+%global magnolie_deps gtk+3.0 python3-gobject python3-cryptography webkit2gtk4.1
+%global magnolie_build_deps python3-pytest
+%else
+%if "%{magnolie_distro}" == "openmandriva"
+%global magnolie_deps gtk+3.0 python-gobject3 python-cryptography %{_lib}webkit2gtk4.1_0 %{_lib}webkit2gtk-gir4.1
+%global magnolie_build_deps python-pytest
+%else
+%if "%{magnolie_distro}" == "pclinuxos"
+%global magnolie_deps gtk+3.0 python3-gobject python3-cryptography webkit2gtk4.1
+%global magnolie_build_deps python3-pytest
+%else
+%if "%{magnolie_distro}" == "rosa"
+%global magnolie_deps gtk+3.0 python3-gobject python3-cryptography webkit2gtk4.1 %{_lib}webkit2-gir4.1
+%global magnolie_build_deps python3-pytest
+%else
+%{error:Unpinned or unsupported Magnolie RPM distro profile}
+%endif
+%endif
+%endif
+%endif
+%endif
+%endif
+
 Name:           magnolie-handbuch
-Version:        2.0.13
+Version:        2.0.14
 Release:        1%{?dist}
 Summary:        Illustrated user handbook for Magnolie Organizer
 
-License:        GPL-3.0-or-later AND OFL-1.1 AND LicenseRef-Bitstream-Vera AND LicenseRef-Magnolie-photo-permission
+License:        GPL-3.0-or-later AND OFL-1.1 AND LicenseRef-Bitstream-Vera AND LicenseRef-Magnolie-protected-assets
 URL:            https://github.com/maik3531/Magnolie-Organizer
 Source0:        %{name}-%{version}.tar.xz
 BuildArch:      noarch
+Provides:       magnolie-rpm-profile(%{magnolie_distro}) = %{version}-%{release}
 
-BuildRequires:  desktop-file-utils
-BuildRequires:  gettext
-BuildRequires:  nodejs
-BuildRequires:  python3-devel
-Requires:       gettext
-Requires:       gtk3
-Requires:       python3
-Requires:       python3-gobject
-Requires:       webkit2gtk4.1
+BuildRequires:  /usr/bin/desktop-file-validate
+BuildRequires:  /usr/bin/msgfmt
+BuildRequires:  /usr/bin/node
+BuildRequires:  /usr/bin/python3
+BuildRequires:  %{magnolie_build_deps}
+BuildRequires:  %{magnolie_deps}
+Requires:       /usr/bin/python3
+Requires:       %{magnolie_deps}
 Recommends:     magnolie-organizer >= 2.0.0
 
 %description
@@ -32,32 +66,34 @@ set -eu
 while read -r language; do
     test -n "$language" || continue
     mkdir -p "locale/$language/LC_MESSAGES" web/i18n
-    %{python3} werkzeuge/katalog_pruefen.py \
+    /usr/bin/python3 werkzeuge/katalog_pruefen.py \
         po/magnolie-handbuch.pot "po/$language.po"
     msgfmt --check --check-format \
         -o "locale/$language/LC_MESSAGES/%{name}.mo" "po/$language.po"
-    %{python3} werkzeuge/po_zu_js.py \
+    /usr/bin/python3 werkzeuge/po_zu_js.py \
         "$language" "po/$language.po" "web/i18n/$language.js"
 done < po/LINGUAS
 
 %check
 set -eu
-%{python3} -m py_compile bin/%{name} bin/magnolie_crash.py werkzeuge/*.py pruefungen/*.py
+/usr/bin/python3 -m py_compile bin/%{name} bin/magnolie_crash.py bin/magnolie_asset.py werkzeuge/*.py pruefungen/*.py
 test "$(find locale -name '%{name}.mo' -type f | wc -l)" -eq 19
 test "$(find web/i18n -name '*.js' -type f | wc -l)" -eq 19
 for script in web/*.js web/i18n/*.js; do
     node --check "$script"
 done
-%{python3} pruefungen/druck_test.py --cli-only
+/usr/bin/python3 pruefungen/druck_test.py --cli-only
+/usr/bin/python3 -m pytest -q pruefungen/test_asset_container.py
 desktop-file-validate magnolie-handbuch.desktop
 
 %install
 install -Dpm 0755 bin/%{name} %{buildroot}%{_bindir}/%{name}
 install -Dpm 0644 bin/magnolie_crash.py %{buildroot}%{_prefix}/lib/%{name}/magnolie_crash.py
+install -Dpm 0644 bin/magnolie_asset.py %{buildroot}%{_prefix}/lib/%{name}/magnolie_asset.py
 install -d %{buildroot}%{_datadir}/%{name}/web/i18n
 install -pm 0644 web/index.html web/stil.css web/inhalt.js web/platform.js web/handbuch.js \
     web/i18n.js web/i18n-start.js web/i18n-markers.js \
-    web/*.png web/*.jpg web/maik-walter-FOTO-NUTZUNG.txt \
+    web/*.png web/*.jpg web/*.mga web/maik-walter-FOTO-NUTZUNG.txt \
     %{buildroot}%{_datadir}/%{name}/web/
 cp -a web/schriften %{buildroot}%{_datadir}/%{name}/web/
 install -pm 0644 web/i18n/*.js %{buildroot}%{_datadir}/%{name}/web/i18n/
@@ -86,11 +122,12 @@ done < po/LINGUAS
 %find_lang %{name}
 
 %files -f %{name}.lang
-%license debian/copyright web/maik-walter-FOTO-NUTZUNG.txt
+%license debian/copyright web/maik-walter-FOTO-NUTZUNG.txt PROTECTED-ASSETS-LICENSE.txt
 %doc LIESMICH.md
 %{_bindir}/%{name}
 %dir %{_prefix}/lib/%{name}
 %{_prefix}/lib/%{name}/magnolie_crash.py
+%{_prefix}/lib/%{name}/magnolie_asset.py
 %{_datadir}/%{name}/
 %{_datadir}/applications/magnolie-handbuch.desktop
 %{_datadir}/icons/hicolor/*/apps/magnolie-handbuch.*
@@ -98,6 +135,9 @@ done < po/LINGUAS
 %{_mandir}/*/man1/magnolie-handbuch.1*
 
 %changelog
+* Mon Aug 31 2026 Maik Walter <maik3531@gmail.com> - 2.0.14-1
+- Update and protect the complete multilingual handbook for Organizer 2.0.14.
+
 * Sun Aug 30 2026 Maik Walter <maik3531@gmail.com> - 2.0.13-1
 - Update release metadata for Magnolie Organizer 2.0.13.
 

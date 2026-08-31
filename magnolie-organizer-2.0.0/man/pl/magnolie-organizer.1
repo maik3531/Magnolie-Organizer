@@ -1,10 +1,10 @@
-.TH MAGNOLIE-ORGANIZER 1 "sierpień 2026" "Magnolie Organizer 2.0.13" "Polecenia użytkownika"
+.TH MAGNOLIE-ORGANIZER 1 "sierpień 2026" "Magnolie Organizer 2.0.14" "Polecenia użytkownika"
 .SH NAZWA
 magnolie-organizer \- osobisty organizer o klasycznym, papierowym wyglądzie
 .SH SKŁADNIA
 .B magnolie-organizer
 .RI [ opcja ]
-.RI [ \-\-sprache\  język ]
+.RI [ \-\-language\  język ]
 .SH OPIS
 .B Magnolie Organizer
 łączy kalendarz, zadania, kontakty, notatki, rocznice i terminarz roczny. Dane
@@ -15,19 +15,27 @@ Magnolienbaum.
 W jednej sesji użytkownika otwierana jest tylko jedna instancja graficzna.
 Ponowne uruchomienie polecenia wyświetla istniejące okno, również wtedy, gdy
 jest ono ukryte w obszarze powiadomień.
+.SH FORMY WIERSZA POLECEŃ
+Neutralne krótkie aliasy i angielskie długie formy to:
+.nf
+\-h \-\-help; \-V \-\-version; \-l \-\-language; \-P \-\-pot-template;
+\-r \-\-reminder-check; \-w \-\-alarm-monitor; \-p \-\-reminder-test;
+\-t \-\-tray-start; \-d \-\-debug; \-b \-\-background-service.
+.fi
+Akceptowane są zarówno niemieckie, jak i angielskie długie formy.
 .SH OPCJE
 .TP
-.B \-\-erinnerung
+.B \-\-reminder-check
 Sprawdza oczekujące przypomnienia. Ta opcja jest zwykle używana przez usługę
 sesji.
 .TP
-.B \-\-wecker
+.B \-\-alarm-monitor
 Uruchamia monitor przypomnień w tle.
 .TP
 .B \-\-tray-start
 Uruchamia organizer za pomocą wpisu autostartu w obszarze powiadomień.
 .TP
-.B \-\-probe
+.B \-\-reminder-test
 Testuje przypomnienia i wyświetla raport diagnostyczny.
 .TP
 .B \-\-debug
@@ -38,20 +46,20 @@ obszaru powiadomień do pliku
 diagnostycznym należy zakończyć już działającą instancję; drugie wywołanie
 jedynie aktywuje istniejący proces.
 .TP
-.BR \-\-sprache " " SPRACHE , " " \-\-language " " LANGUAGE
+.BR \-\-language " " LANGUAGE , " " \-\-sprache " " SPRACHE
 Używa dla tego wywołania języka niemieckiego (\fBde\fR), angielskiego
 (\fBen\fR) lub języka systemu (\fBsystem\fR). Wybór dotyczy komunikatów
 polecenia przed przejściem do trybu pomocy, diagnostycznego lub działania w tle
 oraz interfejsu WebKit nowo otwartej instancji graficznej. Zapisane ustawienia
 nie są zmieniane.
 .TP
-.BR \-\-pot " [" DATEI "]", " " \-\-pot-template " [" FILE "]"
+.BR \-\-pot-template " [" FILE "]", " " \-\-pot " [" DATEI "]"
 Tworzy powtarzalny szablon gettext i kończy działanie. Bez argumentu pliku
 zapisuje \fBmagnolie-organizer.pot\fR w bieżącym katalogu; w przeciwnym razie
 zapisuje go pod podaną ścieżką. Po pomyślnym wykonaniu wyświetlana jest
 bezwzględna ścieżka pliku wyjściowego.
 .TP
-.BR \-\-hilfe , " " \-\-help
+.BR \-\-help , " " \-\-hilfe
 Wyświetla krótki przegląd poleceń.
 .SH SIEĆ MAGNOLIENBAUM
 Po włączeniu usługa Magnolienbaum nasłuchuje na porcie TCP 8737 przez IPv4 i

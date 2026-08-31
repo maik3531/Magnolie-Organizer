@@ -1,5 +1,27 @@
 # Changelog / Änderungen
 
+## 2.0.14 / Notes 1.0.10 — 2026-08-31
+
+### English
+
+- Keeps plaintext personal QR and portrait files out of Linux and Windows packages by routing their versioned obfuscation containers through native readers.
+- Restores the native AppImage graphics path, retains an explicit compatibility fallback, and expands release audits for every package format.
+- Adds neutral CLI short options, permanently accepted German and English long options, localized help, and consistent localized manual pages.
+- Improves the calendar day layout, connected Magnolie Notes status, Personal Sync selection, and the version-specific About page on Linux and Windows.
+- Adds isolated RPM profiles for Fedora, openSUSE, Mageia, OpenMandriva, PCLinuxOS, and ROSA while retaining Fedora 42 as the release gate.
+- Hardens Windows VM result reporting, handbook navigation and printing, and corrects incomplete or inverted translations across all 19 catalogs.
+- Adds encrypted manual and automatic cloud-folder backups across Linux, Windows and Magnolie Notes, including portable Android archives and guarded retention.
+
+### Deutsch
+
+- Hält persönliche QR- und Porträtdateien im Klartext aus Linux- und Windows-Paketen heraus, indem versionierte Obfuskationscontainer über native Leser ausgeliefert werden.
+- Stellt den nativen AppImage-Grafikpfad wieder her, behält einen ausdrücklichen Kompatibilitätsrückfall bei und erweitert die Freigabeprüfungen für alle Paketformate.
+- Ergänzt sprachneutrale CLI-Kurzoptionen, dauerhaft akzeptierte deutsche und englische Langoptionen, lokalisierte Hilfe und konsistente lokalisierte Manpages.
+- Verbessert Kalender-Tagesansicht, verbundenen Magnolie-Notes-Status, Personal-Sync-Auswahl und die versionsbezogene Über-Seite unter Linux und Windows.
+- Ergänzt getrennte RPM-Profile für Fedora, openSUSE, Mageia, OpenMandriva, PCLinuxOS und ROSA; Fedora 42 bleibt das Freigabegate.
+- Härtet Windows-VM-Ergebnisübermittlung, Handbuchnavigation und -druck und korrigiert unvollständige oder vertauschte Übersetzungen in allen 19 Katalogen.
+- Ergänzt verschlüsselte manuelle und automatische Cloudordnersicherungen unter Linux, Windows und Magnolie Notes, einschließlich portabler Android-Archive und geschützter Aufbewahrung.
+
 ## 2.0.13 / Notes 1.0.9 — 2026-08-30
 
 ### English

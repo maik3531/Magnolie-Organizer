@@ -1,10 +1,13 @@
 bin/magnolie-handbuch                 usr/bin
 bin/magnolie_crash.py                 usr/lib/magnolie-handbuch
+bin/magnolie_asset.py                 usr/lib/magnolie-handbuch
 web/index.html                        usr/share/magnolie-handbuch/web
 web/stil.css                          usr/share/magnolie-handbuch/web
 web/*.png                             usr/share/magnolie-handbuch/web
 web/*.jpg                             usr/share/magnolie-handbuch/web
+web/*.mga                             usr/share/magnolie-handbuch/web
 web/maik-walter-FOTO-NUTZUNG.txt      usr/share/magnolie-handbuch/web
+PROTECTED-ASSETS-LICENSE.txt           usr/share/doc/magnolie-handbuch
 web/inhalt.js                         usr/share/magnolie-handbuch/web
 web/platform.js                       usr/share/magnolie-handbuch/web
 web/handbuch.js                       usr/share/magnolie-handbuch/web

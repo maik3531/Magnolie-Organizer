@@ -1,24 +1,9 @@
-# SOME DESCRIPTIVE TITLE.
-# Copyright (C) 2026 THE PACKAGE'S COPYRIGHT HOLDER
-# This file is distributed under the same license as the Magnolie Organizer
-# package.
-# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
-#
 msgid ""
 msgstr ""
-"Project-Id-Version: Magnolie Organizer 2.0.13\n"
 "Report-Msgid-Bugs-To: maik3531@gmail.com\n"
 "POT-Creation-Date: YEAR-MO-DA HO:MI+ZONE\n"
-"PO-Revision-Date: 2026-08-08 09:24+0200\n"
-"Last-Translator: Magnolie localization project\n"
-"Language-Team: Upper Sorbian\n"
-"Language: hsb\n"
-"MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
-"Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=4; plural=(n%100==1 ? 0 : n%100==2 ? 1 : (n%100==3 || "
-"n%100==4) ? 2 : 3);\n"
-"Generated-By: Babel 2.18.0\n"
+"Plural-Forms: nplurals=4; plural=(n%100==1 ? 0 : n%100==2 ? 1 : (n%100==3 || n%100==4) ? 2 : 3);\n"
 
 msgid " (filtered)"
 msgstr " (filtrowane)"
@@ -677,7 +662,7 @@ msgid "Answer calls on the computer and talk"
 msgstr "Zawołanja na ličaku přiwzać a rěčeć"
 
 msgid "App password"
-msgstr "App password"
+msgstr "Aplikaciske hesło"
 
 msgid "Appearance"
 msgstr "Napohlad"
@@ -785,6 +770,12 @@ msgstr "Awtor"
 msgid "Authority appointment"
 msgstr "Termin pola zarjada"
 
+msgid "Automatic backup failed."
+msgstr "Awtomatiske zawěsćenje je so njeporadźiło."
+
+msgid "Automatic cloud-folder backups"
+msgstr "Awtomatiske zawěsćenja w cloudowym rjadowaku"
+
 msgid "Automatically choose a suitable application"
 msgstr "Awtomatisce přihódne nałoženje wubrać"
 
@@ -827,6 +818,9 @@ msgstr "Zawěsćenje wobnowjene. Předchadne daty buchu awtomatisce zawěsćene.
 
 msgid "Backup saved to: %(path)s"
 msgstr "Zawěsćenje składowane w: %(path)s"
+
+msgid "Backup verified successfully."
+msgstr "Zawěsćenje je so wuspěšnje přepruwowało."
 
 msgid "Backups"
 msgstr "Backupy"
@@ -1008,7 +1002,7 @@ msgid "Calendars (multiple selections allowed)"
 msgstr "Protyki (wjacore wuběry móžne)"
 
 msgid "Calendars and contacts"
-msgstr "Calendars and contacts"
+msgstr "Protyki a kontakty"
 
 msgid "Call"
 msgstr "Zawołać"
@@ -1323,13 +1317,13 @@ msgid "Connect phone via WLAN"
 msgstr "Telefon přez WLAN zwjazać"
 
 msgid "Connected"
-msgstr "Connected"
+msgstr "Zwjazany"
 
 msgid "Consider deletions during manual synchronization"
 msgstr "Synchronizacija kontaktow"
 
 msgid "Contact"
-msgstr "Contact"
+msgstr "Kontakt"
 
 msgid "Contact card"
 msgstr "Kontaktna karta"
@@ -1597,7 +1591,7 @@ msgid "Delete page"
 msgstr "Stronu zhašeć"
 
 msgid "Delete password"
-msgstr "Delete password"
+msgstr "Hesło zhašeć"
 
 msgid "Delete permanently"
 msgstr "Na přeco zhašeć"
@@ -1660,7 +1654,7 @@ msgid "Deletions are not synchronized yet."
 msgstr "Hišće ženje synchronizowane."
 
 msgid "Delivered"
-msgstr "njedoručene"
+msgstr "Doručene"
 
 msgid "Delivered to %(branch)s."
 msgstr "Do %(branch)s dodate."
@@ -1681,7 +1675,7 @@ msgid "Diabetes"
 msgstr "Diabetes"
 
 msgid "Dialing…"
-msgstr "Dialing…"
+msgstr "Woła so…"
 
 msgid "Diastolic"
 msgstr "Diastoliski"
@@ -1757,7 +1751,7 @@ msgid "Duplicates"
 msgstr "Duplikaty"
 
 msgid "Duration"
-msgstr "Duration"
+msgstr "Traće"
 
 msgid "Early shift"
 msgstr "Zažna směna"
@@ -2466,6 +2460,9 @@ msgstr "Swójbne mjeno"
 msgid "Last snapshot"
 msgstr "Posledni wobraz"
 
+msgid "Last successful backup"
+msgstr "Poslednje wuspěšne zawěsćenje"
+
 msgid "Last synchronized: %(date)s, %(time)s."
 msgstr "Posledni raz synchronizowane: %(date)s, %(time)s."
 
@@ -2560,9 +2557,6 @@ msgid ""
 msgstr ""
 "Telefony Magnolie Notes a telefony KDE Connect su separatne: mjeno modela "
 "Android słuša k Magnolie Notes; mjeno partnera KDE pochadźa z KDE Connect."
-
-msgid "Magnolie Notes version"
-msgstr "Wersija Magnolie Notes"
 
 msgid "Magnolie Organizer is not completely installed."
 msgstr "Magnolie Organizer njeje dospołnje instalowany."
@@ -2721,7 +2715,7 @@ msgid "Microsoft sign-out failed: %(error)s"
 msgstr "Wotzjewjenje pola Microsoft je so njeporadźiło: %(error)s"
 
 msgid "Minimize"
-msgstr "Minimize"
+msgstr "Minimalizować"
 
 msgid "Minimize to the tray when closed"
 msgstr "Při začinjenju do systemoweho pola minimizować"
@@ -2822,7 +2816,7 @@ msgstr ""
 "blokowana; wotstrońće wšitke telefony nimo jednoho."
 
 msgid "Multiple calendars"
-msgstr "Multiple calendars"
+msgstr "Wjacore protyki"
 
 msgid "Name"
 msgstr "Mjeno"
@@ -2840,7 +2834,7 @@ msgid "Netherlands"
 msgstr "Nižozemska"
 
 msgid "Network"
-msgstr "Network"
+msgstr "Syć"
 
 msgid "Neuchâtel"
 msgstr "Neuchâtel"
@@ -2928,7 +2922,7 @@ msgid "Next year"
 msgstr "Přichodne lěto"
 
 msgid "Nextcloud account"
-msgstr "Nextcloud account"
+msgstr "Konto Nextcloud"
 
 msgid "Nextcloud is not enabled."
 msgstr "Nextcloud njeje zmóžnjeny."
@@ -2943,7 +2937,7 @@ msgid "Night shift"
 msgstr "Nócna směna"
 
 msgid "No"
-msgstr "No"
+msgstr "Ně"
 
 msgid "No Bluetooth address was selected."
 msgstr "Es wurde keine Bluetooth-Adresse ausgewählt."
@@ -3183,13 +3177,13 @@ msgid "Off"
 msgstr "preč"
 
 msgid "Offline"
-msgstr "Online"
+msgstr "Offline"
 
 msgid "Ointment"
 msgstr "Masć"
 
 msgid "One address book"
-msgstr "One address book"
+msgstr "Jedyn adresnik"
 
 msgid "One backup could not be updated."
 msgid_plural "%(count)s backups could not be updated."
@@ -3373,6 +3367,9 @@ msgstr "Bio-wotpad"
 
 msgid "Organizer"
 msgstr "Organizator"
+
+msgid "Organizer data is locked."
+msgstr "Daty Organizer su zawrjene."
 
 msgid "Organizer style (paper sheet)"
 msgstr "Stil organizatora (papjerowe łopjeno)"
@@ -3683,7 +3680,7 @@ msgid "Preparing Microsoft sign-in …"
 msgstr "Přizjewjenje pola Microsoft so přihotuje…"
 
 msgid "Preview"
-msgstr "Preview"
+msgstr "Přehlad"
 
 msgid "Preview failed."
 msgstr "Preview njeje so poradźił."
@@ -3750,6 +3747,9 @@ msgstr ""
 "Priwatne, přez integritu pruwowane momenty składuja so pódla aplikacijskich "
 "datow."
 
+msgid "Protected archive password unavailable."
+msgstr "Škitane archiwowe hesło njeje k dispoziciji."
+
 msgid "Public IPv4 or IPv6 address of the other branch"
 msgstr "Zjawna IPv4- abo IPv6-adresa druheho hałuza"
 
@@ -3790,7 +3790,7 @@ msgid "Reachable IPv4 or IPv6 address of this computer"
 msgstr "Docpějomna IPv4- abo IPv6-adresa tutoho ličaka"
 
 msgid "Ready."
-msgstr "Ready."
+msgstr "Hotowo."
 
 msgid ""
 "Really merge %(cards)s? Review the result carefully afterwards. A copy of "
@@ -3990,6 +3990,9 @@ msgid "Restoring backups is available only in the installed application."
 msgstr ""
 "Wobnowjenje zawěsćenjow je jenož w instalowanym nałoženju k dispoziciji."
 
+msgid "Retention"
+msgstr "Składowanje"
+
 msgid "Retrieval failed."
 msgstr "Wotwołanje njeje so poradźiło."
 
@@ -4102,7 +4105,7 @@ msgid "Saved ✓ %(time)s"
 msgstr "Składowane ✓ %(time)s"
 
 msgid "Saved."
-msgstr "Saved."
+msgstr "Składowane."
 
 msgid "Saving failed!"
 msgstr "Składowanje njeje so poradźiło!"
@@ -4126,7 +4129,7 @@ msgid "Scheduled"
 msgstr "Planowane"
 
 msgid "Scheme"
-msgstr "Scheme"
+msgstr "Šema"
 
 msgid "Schleswig-Holstein"
 msgstr "Schleswig-Holstein"
@@ -4175,6 +4178,16 @@ msgstr "Wěstota"
 
 msgid "Select a country first."
 msgstr "Wubjerće najprjedy kraj."
+
+msgid ""
+"Select a custom backup folder and store an archive password to enable "
+"automatic backups."
+msgstr ""
+"Wubjerće swójski zawěsćenski rjadowak a składujće archiwowe hesło, zo byšće "
+"awtomatiske zawěsćenja zmóžnili."
+
+msgid "Select a custom backup folder."
+msgstr "Wubjerće swójski zawěsćenski rjadowak."
 
 msgid "Select all"
 msgstr "Wšě wubrać"
@@ -4235,10 +4248,13 @@ msgid "Sent"
 msgstr "Wotpósłane"
 
 msgid "Server address"
-msgstr "Server address"
+msgstr "Serwerowa adresa"
 
 msgid "Server address and user name are required."
 msgstr "Serwerowa adresa a wužiwarske mjeno stej trěbnej."
+
+msgid "Set or change password"
+msgstr "Hesło nastajić abo změnić"
 
 msgid "Set up contacts"
 msgstr "Kontakty přirjadować"
@@ -4277,7 +4293,7 @@ msgid "Share together"
 msgstr "Hromadźe dźělić"
 
 msgid "Shared credentials"
-msgstr "Shared credentials"
+msgstr "Zhromadne přizjewjenske daty"
 
 msgid "Shared note"
 msgstr "Dźělena notica"
@@ -4471,7 +4487,7 @@ msgid "Suppository"
 msgstr "Čopik"
 
 msgid "Switched off."
-msgstr "Switched off."
+msgstr "Wupinjene."
 
 msgid "Switzerland"
 msgstr "Šwicarska"
@@ -4589,10 +4605,13 @@ msgid "Temperature"
 msgstr "Temperatura"
 
 msgid "Test connection"
-msgstr "Test connection"
+msgstr "Zwisk testować"
+
+msgid "Test now"
+msgstr "Nětko testować"
 
 msgid "Testing…"
-msgstr "Testing…"
+msgstr "Testuje so…"
 
 msgid "Text color"
 msgstr "Tekstowa barba"
@@ -4843,6 +4862,17 @@ msgstr "Dataj ma njepodpěrany format."
 
 msgid "The file is larger than 8 megabytes."
 msgstr "Dataj je wjetši hač 8 megabajtow."
+
+msgid ""
+"The folder may be locally synchronized by Nextcloud, Google Drive, Dropbox, "
+"or OneDrive. Magnolie does not sign in to a provider. Automatic backups run "
+"only while Organizer is open and unlocked, immediately after data was saved "
+"successfully."
+msgstr ""
+"Rjadowak hodźi so lokalnje přez Nextcloud, Google Drive, Dropbox abo "
+"OneDrive synchronizować. Magnolie so pola poskićowarja njepřizjewja. "
+"Awtomatiske zawěsćenja běža jenož, dokelž je Organizer wočinjeny a "
+"wotamknjeny, hnydom po wuspěšnym składowanju datow."
 
 msgid ""
 "The helper frame marks the control that currently has keyboard focus. This "
@@ -5466,7 +5496,7 @@ msgid "URI"
 msgstr "URI"
 
 msgid "Unavailable"
-msgstr "Unavailable"
+msgstr "Njesteji k dispoziciji"
 
 msgid ""
 "Under Wayland, the compositor determines the exact window position; "
@@ -5533,7 +5563,7 @@ msgid "Upper Austria"
 msgstr "Hornja Awstriska"
 
 msgid "Uptime"
-msgstr "Uptime"
+msgstr "Čas běženja"
 
 msgid "Uri"
 msgstr "URI"
@@ -5543,6 +5573,9 @@ msgstr "Wěste nałoženje abo přikaz wužiwać"
 
 msgid "Use a specific website"
 msgstr "Wěstu webstronu wužiwać"
+
+msgid "Use automatic backups"
+msgstr "Awtomatiske zawěsćenja wužiwać"
 
 msgid "Use basal units"
 msgstr "Bazalne jednotki wužiwać"
@@ -5581,7 +5614,7 @@ msgid "Use the recycle bin"
 msgstr "Papjernik wužiwać"
 
 msgid "User name"
-msgstr "User name"
+msgstr "Wužiwarske mjeno"
 
 msgid ""
 "Uses its own identity and storage and listens only on fixed port %(port)s. "
@@ -5821,7 +5854,7 @@ msgid "Windows Contacts folder"
 msgstr "Rjadowak Windows Contacts"
 
 msgid "Wireless"
-msgstr "Wireless"
+msgstr "Bjezdrótowy"
 
 msgid ""
 "With a password or numeric code, the organizer asks for it when opening and "
@@ -5890,7 +5923,7 @@ msgid "Year planner %(year)s"
 msgstr "Lětny planowak %(year)s"
 
 msgid "Yes"
-msgstr "Yes"
+msgstr "Haj"
 
 msgid "Yes, merge"
 msgstr "Haj, zjednoćić"

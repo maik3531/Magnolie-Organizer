@@ -1,23 +1,9 @@
-# SOME DESCRIPTIVE TITLE.
-# Copyright (C) 2026 THE PACKAGE'S COPYRIGHT HOLDER
-# This file is distributed under the same license as the Magnolie Organizer
-# package.
-# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
-#
 msgid ""
 msgstr ""
-"Project-Id-Version: Magnolie Organizer 2.0.13\n"
 "Report-Msgid-Bugs-To: maik3531@gmail.com\n"
 "POT-Creation-Date: YEAR-MO-DA HO:MI+ZONE\n"
-"PO-Revision-Date: 2026-08-08 09:24+0200\n"
-"Last-Translator: Magnolie localization project\n"
-"Language-Team: Simplified Chinese\n"
-"Language: zh_CN\n"
-"MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
-"Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
-"Generated-By: Babel 2.18.0\n"
 
 msgid " (filtered)"
 msgstr "（已筛选）"
@@ -236,10 +222,10 @@ msgid "%(from)s to %(to)s"
 msgstr "%(from)s 至 %(to)s"
 
 msgid "%(name)s found – currently reachable"
-msgstr "%(name)s found – currently reachable"
+msgstr "已找到 %(name)s – 当前可连接"
 
 msgid "%(name)s last found – reconnecting"
-msgstr "%(name)s last found – reconnecting"
+msgstr "上次找到 %(name)s – 正在重新连接"
 
 #, python-format
 msgid "%(name)s: Wedding anniversary in %(count)d day."
@@ -558,7 +544,7 @@ msgid ""
 msgstr "系统 KDE Connect 服务已启用。请在该服务中配置文件和剪贴板共享。"
 
 msgid "API level"
-msgstr "API level"
+msgstr "API 级别"
 
 msgid "Aargau"
 msgstr "阿尔高州"
@@ -620,7 +606,7 @@ msgid "According to language"
 msgstr "根据语言"
 
 msgid "Active call"
-msgstr "Active call"
+msgstr "当前通话"
 
 msgid "Add"
 msgstr "添加"
@@ -809,7 +795,7 @@ msgid "Answering the call"
 msgstr "正在接听电话"
 
 msgid "App password"
-msgstr "App password"
+msgstr "应用密码"
 
 msgid "Appearance"
 msgstr "外观"
@@ -924,6 +910,12 @@ msgstr "作者"
 msgid "Authority appointment"
 msgstr "办事预约"
 
+msgid "Automatic backup failed."
+msgstr "自动备份失败。"
+
+msgid "Automatic cloud-folder backups"
+msgstr "云文件夹自动备份"
+
 msgid "Automatically choose a suitable application"
 msgstr "自动选择合适的应用程序"
 
@@ -954,7 +946,7 @@ msgid "BMI from the latest stored height and weight"
 msgstr "根据最近保存的身高和体重计算的 BMI"
 
 msgid "BZ"
-msgstr "BZ"
+msgstr "血糖"
 
 msgid "Background service"
 msgstr "后台服务"
@@ -980,6 +972,9 @@ msgstr "备份已恢复。之前的数据已自动备份。"
 
 msgid "Backup saved to: %(path)s"
 msgstr "备份已保存到：%(path)s"
+
+msgid "Backup verified successfully."
+msgstr "备份验证成功。"
 
 msgid "Backups"
 msgstr "备份"
@@ -1011,7 +1006,7 @@ msgid "Battery"
 msgstr "信件"
 
 msgid "Battery snapshot"
-msgstr "Battery snapshot"
+msgstr "电池状态快照"
 
 msgid "Bavaria"
 msgstr "巴伐利亚州"
@@ -1180,7 +1175,7 @@ msgid "Calendars (multiple selections allowed)"
 msgstr "日历（可多选）"
 
 msgid "Calendars and contacts"
-msgstr "Calendars and contacts"
+msgstr "日历和联系人"
 
 msgid "Call"
 msgstr "呼叫"
@@ -1189,22 +1184,22 @@ msgid "Call assignment"
 msgstr "呼叫分配"
 
 msgid "Call ended"
-msgstr "Call ended"
+msgstr "通话已结束"
 
 msgid "Call notes"
-msgstr "Call notes"
+msgstr "通话备注"
 
 msgid "Call reference"
-msgstr "Call reference"
+msgstr "通话参考"
 
 msgid "Call started"
-msgstr "Call started"
+msgstr "通话已开始"
 
 msgid "Call this contact using Magnolie Notes or the assigned application"
 msgstr "使用 Magnolie Notes 或分配的应用程序呼叫此联系人"
 
 msgid "Call with %(name)s · %(date)s"
-msgstr "Call with %(name)s · %(date)s"
+msgstr "与 %(name)s 的通话 · %(date)s"
 
 msgid "Cancel"
 msgstr "取消"
@@ -1457,7 +1452,7 @@ msgid "Complete archive exported (unencrypted)."
 msgstr "完整归档已导出（未加密）。"
 
 msgid "Complete pairing"
-msgstr "Complete pairing"
+msgstr "完成配对"
 
 msgid "Completed (%(count)s)"
 msgstr "已完成 (%(count)s)"
@@ -1500,7 +1495,7 @@ msgid "Connect phone via WLAN"
 msgstr "通过无线局域网连接手机"
 
 msgid "Connected"
-msgstr "Connected"
+msgstr "已连接"
 
 msgid "Connecting to the online accounts"
 msgstr "正在连接在线账户"
@@ -1509,7 +1504,7 @@ msgid "Consider deletions during manual synchronization"
 msgstr "联系人同步"
 
 msgid "Contact"
-msgstr "Contact"
+msgstr "联系人"
 
 #, python-format
 msgid "Contact %d contains an unreadable vCard."
@@ -1597,7 +1592,7 @@ msgid "Continued"
 msgstr "续页"
 
 msgid "Contributor Key"
-msgstr "Contributor Key"
+msgstr "贡献者密钥"
 
 msgid "Copy"
 msgstr "复制"
@@ -1849,7 +1844,7 @@ msgid "Delete page"
 msgstr "删除页面"
 
 msgid "Delete password"
-msgstr "Delete password"
+msgstr "删除密码"
 
 msgid "Delete permanently"
 msgstr "永久删除"
@@ -1909,7 +1904,7 @@ msgid "Deletions are not synchronized yet."
 msgstr "从未同步。"
 
 msgid "Delivered"
-msgstr "未送达"
+msgstr "已送达"
 
 msgid "Delivered to %(branch)s."
 msgstr "已送达 %(branch)s。"
@@ -1924,7 +1919,7 @@ msgid "Diabetes"
 msgstr "糖尿病"
 
 msgid "Dialing…"
-msgstr "Dialing…"
+msgstr "正在拨号…"
 
 msgid "Diastolic"
 msgstr "舒张压"
@@ -2007,7 +2002,7 @@ msgid "Duplicates"
 msgstr "重复项"
 
 msgid "Duration"
-msgstr "Duration"
+msgstr "时长"
 
 msgid "Early shift"
 msgstr "早班"
@@ -2478,7 +2473,7 @@ msgid "Handwriting"
 msgstr "手写体"
 
 msgid "Hang up"
-msgstr "Hang up"
+msgstr "挂断"
 
 msgid "Head office"
 msgstr "总部"
@@ -2734,7 +2729,7 @@ msgid "Internet IP"
 msgstr "互联网 IP"
 
 msgid "Internet available"
-msgstr "Internet available"
+msgstr "互联网可用"
 
 msgid "Interval in days"
 msgstr "间隔天数"
@@ -2820,6 +2815,9 @@ msgstr "姓氏"
 
 msgid "Last snapshot"
 msgstr "最后快照"
+
+msgid "Last successful backup"
+msgstr "上次成功备份"
 
 msgid "Last synchronized: %(date)s, %(time)s."
 msgstr "上次同步：%(date)s，%(time)s。"
@@ -2936,9 +2934,6 @@ msgstr ""
 "Magnolie Notes 手机与 KDE Connect 手机相互独立：Android 型号名称属于 "
 "Magnolie Notes；KDE 对等设备名称来自 KDE Connect。"
 
-msgid "Magnolie Notes version"
-msgstr "Magnolie Notes 版本"
-
 msgid "Magnolie Organizer"
 msgstr "Magnolie Organizer"
 
@@ -3006,7 +3001,7 @@ msgid "Magnolienbaum change offers"
 msgstr "Magnolienbaum 更改提议"
 
 msgid "Magnolienbaum mailbox"
-msgstr "Magnolienbaum mailbox"
+msgstr "Magnolienbaum 邮箱"
 
 msgid "Magnolienbaum pairing file (*.magnolie-paarung)"
 msgstr "Magnolienbaum 配对文件 (*.magnolie-paarung)"
@@ -3089,7 +3084,7 @@ msgid "Memorial day"
 msgstr "纪念日"
 
 msgid "Memory available / total"
-msgstr "Memory available / total"
+msgstr "可用内存 / 总内存"
 
 msgid "Merge"
 msgstr "合并"
@@ -3107,10 +3102,10 @@ msgid "Message text"
 msgstr "消息"
 
 msgid "Metered connection"
-msgstr "Metered connection"
+msgstr "按流量计费的连接"
 
 msgid "Minimize"
-msgstr "Minimize"
+msgstr "最小化"
 
 msgid "Minimize to the tray when closed"
 msgstr "关闭时最小化到系统托盘"
@@ -3152,7 +3147,7 @@ msgid "Mobile"
 msgstr "手机"
 
 msgid "Mobile network"
-msgstr "Mobile network"
+msgstr "移动网络"
 
 msgid "Model"
 msgstr "模型"
@@ -3215,7 +3210,7 @@ msgid ""
 msgstr "已存储多部 Magnolie Notes 手机。个人同步已被阻止；请只保留一部手机。"
 
 msgid "Multiple calendars"
-msgstr "Multiple calendars"
+msgstr "多个日历"
 
 msgid "Name"
 msgstr "名称"
@@ -3239,7 +3234,7 @@ msgid "Netherlands"
 msgstr "荷兰"
 
 msgid "Network"
-msgstr "Network"
+msgstr "网络"
 
 msgid "Neuchâtel"
 msgstr "纳沙泰尔"
@@ -3332,7 +3327,7 @@ msgid "Next year"
 msgstr "明年"
 
 msgid "Nextcloud account"
-msgstr "Nextcloud account"
+msgstr "Nextcloud 帐户"
 
 msgid "Nextcloud denied access to this DAV resource."
 msgstr "Nextcloud 拒绝访问此 DAV 资源。"
@@ -3368,7 +3363,7 @@ msgid "Night shift"
 msgstr "夜班"
 
 msgid "No"
-msgstr "No"
+msgstr "否"
 
 msgid "No Claws Mail address book was detected."
 msgstr "未检测到 Claws Mail 地址簿。"
@@ -3661,13 +3656,13 @@ msgid "Offer Personal Sync phone changes"
 msgstr "提供 Personal Sync 手机更改"
 
 msgid "Offline"
-msgstr "在线"
+msgstr "离线"
 
 msgid "Ointment"
 msgstr "软膏"
 
 msgid "One address book"
-msgstr "One address book"
+msgstr "一个通讯录"
 
 msgid "One backup could not be updated."
 msgid_plural "%(count)s backups could not be updated."
@@ -3873,6 +3868,9 @@ msgstr "有机垃圾"
 msgid "Organizer"
 msgstr "组织者"
 
+msgid "Organizer data is locked."
+msgstr "Organizer 数据已锁定。"
+
 msgid "Organizer style (paper sheet)"
 msgstr "Organizer 样式（纸张）"
 
@@ -4049,7 +4047,7 @@ msgid "Phone"
 msgstr "电话"
 
 msgid "Phone battery"
-msgstr "Phone battery"
+msgstr "手机电池"
 
 msgid "Phone call"
 msgstr "电话通话"
@@ -4148,7 +4146,7 @@ msgid "Possible duplicates among local and incoming contacts"
 msgstr "本地和传入联系人中可能存在的重复项"
 
 msgid "Possible spam"
-msgstr "Possible spam"
+msgstr "疑似骚扰电话"
 
 msgid "Postal address"
 msgstr "邮寄地址"
@@ -4163,7 +4161,7 @@ msgid "Powder"
 msgstr "粉剂"
 
 msgid "Power source"
-msgstr "Power source"
+msgstr "电源"
 
 msgid "Preview"
 msgstr "预览"
@@ -4232,6 +4230,9 @@ msgid ""
 "Private, integrity-checked snapshots are stored next to the application data."
 msgstr "经过完整性检查的私有快照存储在应用程序数据旁边。"
 
+msgid "Protected archive password unavailable."
+msgstr "受保护的存档密码不可用。"
+
 msgid "Public IPv4 or IPv6 address of the other branch"
 msgstr "另一分支的公网 IPv4 或 IPv6 地址"
 
@@ -4266,6 +4267,12 @@ msgstr "退出"
 msgid "Reachable IPv4 or IPv6 address of this computer"
 msgstr "此电脑可访问的 IPv4 或 IPv6 地址"
 
+msgid "Read on phone"
+msgstr "手机上已读"
+
+msgid "Read status"
+msgstr "阅读状态"
+
 msgid "Reading recovery snapshots"
 msgstr "阅读恢复快照"
 
@@ -4282,7 +4289,7 @@ msgid "Reading the user data"
 msgstr "正在读取用户数据"
 
 msgid "Ready."
-msgstr "Ready."
+msgstr "就绪。"
 
 msgid ""
 "Really merge %(cards)s? Review the result carefully afterwards. A copy of "
@@ -4445,7 +4452,7 @@ msgstr ""
 "Notes、笔记和聊天历史记录不会改变。"
 
 msgid "Renew pairing"
-msgstr "Renew pairing"
+msgstr "重新配对"
 
 msgid "Repeat for confirmation"
 msgstr "再次输入以确认"
@@ -4506,6 +4513,9 @@ msgstr "恢复备份仅在已安装的应用中可用。"
 msgid "Restoring the backup"
 msgstr "正在恢复备份"
 
+msgid "Retention"
+msgstr "保留数量"
+
 msgid "Retrieval failed."
 msgstr "获取失败。"
 
@@ -4564,6 +4574,9 @@ msgstr "运行失败：%s"
 msgid ""
 "Run the downloaded installer visibly and keep the Manual component selected."
 msgstr "以可见方式运行下载的安装程序，并保持手动组件处于选中状态。"
+
+msgid "Run the optional background service"
+msgstr "运行可选的后台服务"
 
 msgid "S"
 msgstr "S"
@@ -4638,7 +4651,7 @@ msgid "Save contacts for Claws Mail"
 msgstr "保存 Claws Mail 联系人"
 
 msgid "Save endpoint"
-msgstr "Save endpoint"
+msgstr "保存端点"
 
 msgid "Save rejected: The data is encrypted and has not been unlocked yet."
 msgstr "拒绝保存：数据已加密，但尚未解锁。"
@@ -4657,7 +4670,7 @@ msgid "Saved ✓ %(time)s"
 msgstr "已保存 ✓ %(time)s"
 
 msgid "Saved."
-msgstr "Saved."
+msgstr "已保存。"
 
 msgid "Saving background settings"
 msgstr "正在保存后台设置"
@@ -4705,7 +4718,7 @@ msgid "Scheduled"
 msgstr "已安排"
 
 msgid "Scheme"
-msgstr "Scheme"
+msgstr "方案"
 
 msgid "Schleswig-Holstein"
 msgstr "石勒苏益格-荷尔斯泰因"
@@ -4714,7 +4727,7 @@ msgid "Schwyz"
 msgstr "施维茨"
 
 msgid "Screen notification only"
-msgstr "仅屏幕通知"
+msgstr "显示选定的通知（只读）"
 
 msgid "Scrolling up makes the time earlier"
 msgstr "向上滚动会让时间提前"
@@ -4757,6 +4770,14 @@ msgstr "选择"
 
 msgid "Select a country first."
 msgstr "请先选择国家。"
+
+msgid ""
+"Select a custom backup folder and store an archive password to enable "
+"automatic backups."
+msgstr "请选择自定义备份文件夹并存储存档密码，以启用自动备份。"
+
+msgid "Select a custom backup folder."
+msgstr "请选择自定义备份文件夹。"
 
 msgid "Select all"
 msgstr "全选"
@@ -4806,7 +4827,7 @@ msgid "Send SMS"
 msgstr "发送 SMS"
 
 msgid "Send adjusted text"
-msgstr "Send adjusted text"
+msgstr "发送调整后的文本"
 
 msgid "Send documents"
 msgstr "发送文档"
@@ -4821,7 +4842,7 @@ msgid "Sent"
 msgstr "已发送"
 
 msgid "Server address"
-msgstr "Server address"
+msgstr "服务器地址"
 
 msgid "Server address and user name are required."
 msgstr "需要服务器地址和用户名。"
@@ -4831,6 +4852,9 @@ msgstr "服务正在运行"
 
 msgid "Service stopped"
 msgstr "服务已停止"
+
+msgid "Set or change password"
+msgstr "设置或更改密码"
 
 msgid "Set up contacts"
 msgstr "设置联系人"
@@ -4872,7 +4896,7 @@ msgid "Share together"
 msgstr "共同共享"
 
 msgid "Shared credentials"
-msgstr "Shared credentials"
+msgstr "共享凭据"
 
 msgid "Shared note"
 msgstr "共享便笺"
@@ -5015,7 +5039,7 @@ msgid "Spain"
 msgstr "西班牙"
 
 msgid "Spam check"
-msgstr "Spam check"
+msgstr "骚扰电话检查"
 
 msgid "Special cases"
 msgstr "特殊情况"
@@ -5048,7 +5072,7 @@ msgid "Start through the tray applet"
 msgstr "通过系统托盘小程序启动"
 
 msgid "Starting the phone connection"
-msgstr "管理连接"
+msgstr "正在启动手机连接"
 
 msgid "Starts Magnolie Organizer when signing in"
 msgstr "登录时启动 Magnolie Organizer"
@@ -5060,7 +5084,7 @@ msgid "Status"
 msgstr "地位"
 
 msgid "Storage available / total"
-msgstr "Storage available / total"
+msgstr "可用存储空间 / 总存储空间"
 
 msgid "Street / house number"
 msgstr "街道 / 门牌号"
@@ -5093,7 +5117,7 @@ msgid "Suppository"
 msgstr "栓剂"
 
 msgid "Switched off."
-msgstr "Switched off."
+msgstr "已关闭。"
 
 msgid "Switzerland"
 msgstr "瑞士"
@@ -5139,7 +5163,7 @@ msgid "Synchronize contacts"
 msgstr "同步联系人"
 
 msgid "Synchronize everything"
-msgstr "Synchronize everything"
+msgstr "同步全部内容"
 
 msgid "Synchronize notes and notebooks"
 msgstr "同步联系人"
@@ -5224,13 +5248,16 @@ msgid "Temperature"
 msgstr "体温"
 
 msgid "Test connection"
-msgstr "Test connection"
+msgstr "测试连接"
+
+msgid "Test now"
+msgstr "立即测试"
 
 msgid "Test reminders and report what happens"
 msgstr "测试提醒并报告实际情况"
 
 msgid "Testing…"
-msgstr "Testing…"
+msgstr "正在测试…"
 
 msgid "Text color"
 msgstr "文本颜色"
@@ -5642,6 +5669,16 @@ msgstr "文件大于 8 MB。"
 #, python-format
 msgid "The fingerprint does not match (received: %(fingerprint)s)."
 msgstr "指纹不匹配（收到：%(fingerprint)s）。"
+
+msgid ""
+"The folder may be locally synchronized by Nextcloud, Google Drive, Dropbox, "
+"or OneDrive. Magnolie does not sign in to a provider. Automatic backups run "
+"only while Organizer is open and unlocked, immediately after data was saved "
+"successfully."
+msgstr ""
+"该文件夹可由 Nextcloud、Google Drive、Dropbox 或 OneDrive 在本地同步。"
+"Magnolie 不会登录任何提供商。自动备份仅在 Organizer 已打开且解锁时运行，并在"
+"数据成功保存后立即执行。"
 
 msgid ""
 "The helper frame marks the control that currently has keyboard focus. This "
@@ -6453,7 +6490,7 @@ msgid "URI"
 msgstr "URI"
 
 msgid "Unavailable"
-msgstr "Unavailable"
+msgstr "不可用"
 
 msgid ""
 "Under Wayland, the compositor determines the exact window position; "
@@ -6482,6 +6519,10 @@ msgstr "未知端点。"
 msgid "Unknown file"
 msgstr "未知文件"
 
+#, python-format
+msgid "Unknown option: %s"
+msgstr "未知选项：%s"
+
 msgid "Unknown phone"
 msgstr "未知端点。"
 
@@ -6499,6 +6540,9 @@ msgstr "接收 Magnolienbaum 消息前请先解锁管理器。"
 
 msgid "Unlocking the Magnolienbaum storage"
 msgstr "正在解锁 Magnolienbaum 存储"
+
+msgid "Unread on phone"
+msgstr "手机上未读"
 
 #, python-format
 msgid "Unreadable message from the interface: %s"
@@ -6532,7 +6576,7 @@ msgid "Upper Austria"
 msgstr "上奥地利州"
 
 msgid "Uptime"
-msgstr "Uptime"
+msgstr "运行时间"
 
 msgid "Uri"
 msgstr "URI"
@@ -6548,6 +6592,9 @@ msgstr "使用指定网站"
 
 msgid "Use a supported language code or system for this invocation"
 msgstr "此次启动请使用受支持的语言代码或 system"
+
+msgid "Use automatic backups"
+msgstr "使用自动备份"
 
 msgid "Use basal units"
 msgstr "使用基础胰岛素单位数"
@@ -6585,7 +6632,7 @@ msgid "Use the recycle bin"
 msgstr "使用回收站"
 
 msgid "User name"
-msgstr "User name"
+msgstr "用户名"
 
 msgid ""
 "Uses its own identity and storage and listens only on fixed port %(port)s. "
@@ -6808,7 +6855,7 @@ msgid "Wife"
 msgstr "妻子"
 
 msgid "Wireless"
-msgstr "Wireless"
+msgstr "无线网络"
 
 msgid ""
 "With a password or numeric code, the organizer asks for it when opening and "
@@ -6878,7 +6925,7 @@ msgid "Year planner %(year)s"
 msgstr "%(year)s 年度计划表"
 
 msgid "Yes"
-msgstr "Yes"
+msgstr "是"
 
 msgid "Yes, merge"
 msgstr "是，合并"
@@ -7346,50 +7393,3 @@ msgstr[0] "… 以及另外 %(count)s 项也将打印。"
 
 msgid "＋ Add appointment"
 msgstr "＋ 添加约会"
-
-#~ msgid "Notification actions unavailable"
-#~ msgstr "通知操作不可用"
-
-#~ msgid "Download version %(version)s …"
-#~ msgstr "下载版本 %(version)s …"
-
-#~ msgid ""
-#~ "Notify, then unlock asks you to open and unlock the Organizer. System "
-#~ "keyring uses an available desktop keyring without storing the password in "
-#~ "Organizer data. Pause while locked waits without accessing encrypted data."
-#~ msgstr ""
-#~ "“先通知，再解锁”会要求您打开 Organizer 并将其解锁。“使用系统密钥环”会使用"
-#~ "可用的桌面密钥环，而不会将密码存储在 Organizer 数据中。“数据锁定时暂停”会"
-#~ "在不访问加密数据的情况下等待。"
-
-#~ msgid "System keyring is unavailable; this choice cannot be enabled."
-#~ msgstr "系统密钥环不可用；无法启用此选项。"
-
-#~ msgid ""
-#~ "Incoming files and clipboard text are confirmed before use unless "
-#~ "automatic acceptance is explicitly enabled."
-#~ msgstr "收到的文件和剪贴板文本需经确认后方可使用，除非已明确启用自动接受。"
-
-#~ msgid "Reset"
-#~ msgstr "Reset"
-
-#~ msgid "Exactly one online Magnolie Notes phone must allow dial requests."
-#~ msgstr "必须只有一部在线 Magnolie Notes 电话允许拨号请求。"
-
-#~ msgid "Last contact"
-#~ msgstr "创建联系人"
-
-#~ msgid "No additional modules permitted"
-#~ msgstr "不允许使用额外的模块"
-
-#~ msgid "Selected notifications"
-#~ msgstr "系统通知"
-
-#~ msgid "Language & region"
-#~ msgstr "语言和区域"
-
-#~ msgid "No valid subscription"
-#~ msgstr "没有有效订阅"
-
-#~ msgid "More fields (Lotus)"
-#~ msgstr "更多字段（Lotus）"

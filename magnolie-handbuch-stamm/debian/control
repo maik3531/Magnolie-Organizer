@@ -2,13 +2,13 @@ Source: magnolie-handbuch
 Section: doc
 Priority: optional
 Maintainer: Maik Walter <maik3531@gmail.com>
-Build-Depends: debhelper-compat (= 13), python3:any, gettext, nodejs, node-jsdom
+Build-Depends: debhelper-compat (= 13), python3:any, python3-cryptography, python3-pytest, gettext, nodejs, node-jsdom
 Standards-Version: 4.6.2
 Rules-Requires-Root: no
 
 Package: magnolie-handbuch
 Architecture: all
-Depends: ${misc:Depends}, python3, gettext, python3-gi, gir1.2-gtk-3.0, gir1.2-webkit2-4.1 | gir1.2-webkit2-4.0
+Depends: ${misc:Depends}, python3, python3-cryptography, gettext, python3-gi, gir1.2-gtk-3.0, gir1.2-webkit2-4.1 | gir1.2-webkit2-4.0
 Recommends: magnolie-organizer (>= 2.0.0)
 Description: Illustrated user handbook for Magnolie Organizer
  The complete handbook for Magnolie Organizer, presented like the application

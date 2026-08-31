@@ -360,39 +360,39 @@ if [ "$FEDORA_TESTS" -eq 1 ]; then
     RPM_FEDORA_DIR="$STAGE/rpm-fedora" \
         werkzeuge/rpm_fedora_bauen.sh
 
-    set -- "$STAGE"/rpm-fedora/rpm/RPMS/noarch/magnolie-organizer-"$FASSUNG"-*.noarch.rpm
+    set -- "$STAGE"/rpm-fedora/rpm/fedora/RPMS/noarch/magnolie-organizer-"$FASSUNG"-*.noarch.rpm
     [ "$#" -eq 1 ] && [ -f "$1" ] || {
         printf '%s\n' 'Genau ein binaeres Organizer-RPM wurde erwartet.' >&2; exit 1;
     }
-    RPM_PAKET="$WURZEL/bau/rpm/RPMS/noarch/$(basename "$1")"
+    RPM_PAKET="$WURZEL/bau/rpm/fedora/RPMS/noarch/$(basename "$1")"
     mkdir -p "$(dirname "$RPM_PAKET")"
     cp "$1" "$RPM_PAKET"
-    set -- "$STAGE"/rpm-fedora/rpm/SRPMS/magnolie-organizer-"$FASSUNG"-*.src.rpm
+    set -- "$STAGE"/rpm-fedora/rpm/fedora/SRPMS/magnolie-organizer-"$FASSUNG"-*.src.rpm
     [ "$#" -eq 1 ] && [ -f "$1" ] || {
         printf '%s\n' 'Genau ein Organizer-SRPM wurde erwartet.' >&2; exit 1;
     }
-    RPM_QUELLE="$WURZEL/bau/rpm/SRPMS/$(basename "$1")"
+    RPM_QUELLE="$WURZEL/bau/rpm/fedora/SRPMS/$(basename "$1")"
     mkdir -p "$(dirname "$RPM_QUELLE")"
     cp "$1" "$RPM_QUELLE"
-    pruefe_quellarchiv "$STAGE/rpm-fedora/rpm/SOURCES/magnolie-organizer-$FASSUNG.tar.xz" \
+    pruefe_quellarchiv "$STAGE/rpm-fedora/rpm/fedora/SOURCES/magnolie-organizer-$FASSUNG.tar.xz" \
         "magnolie-organizer-$FASSUNG"
 
-    set -- "$STAGE"/rpm-fedora/handbuch-rpm/RPMS/noarch/magnolie-handbuch-"$FASSUNG"-*.noarch.rpm
+    set -- "$STAGE"/rpm-fedora/handbuch-rpm/fedora/RPMS/noarch/magnolie-handbuch-"$FASSUNG"-*.noarch.rpm
     [ "$#" -eq 1 ] && [ -f "$1" ] || {
         printf '%s\n' 'Genau ein binaeres Handbuch-RPM wurde erwartet.' >&2; exit 1;
     }
-    HANDBUCH_RPM_PAKET="$STAGE/magnolie-handbuch-stamm/bau/rpm/RPMS/noarch/$(basename "$1")"
+    HANDBUCH_RPM_PAKET="$STAGE/magnolie-handbuch-stamm/bau/rpm/fedora/RPMS/noarch/$(basename "$1")"
     mkdir -p "$(dirname "$HANDBUCH_RPM_PAKET")"
     cp "$1" "$HANDBUCH_RPM_PAKET"
-    set -- "$STAGE"/rpm-fedora/handbuch-rpm/SRPMS/magnolie-handbuch-"$FASSUNG"-*.src.rpm
+    set -- "$STAGE"/rpm-fedora/handbuch-rpm/fedora/SRPMS/magnolie-handbuch-"$FASSUNG"-*.src.rpm
     [ "$#" -eq 1 ] && [ -f "$1" ] || {
         printf '%s\n' 'Genau ein Handbuch-SRPM wurde erwartet.' >&2; exit 1;
     }
-    HANDBUCH_RPM_QUELLE="$STAGE/magnolie-handbuch-stamm/bau/rpm/SRPMS/$(basename "$1")"
+    HANDBUCH_RPM_QUELLE="$STAGE/magnolie-handbuch-stamm/bau/rpm/fedora/SRPMS/$(basename "$1")"
     mkdir -p "$(dirname "$HANDBUCH_RPM_QUELLE")"
     cp "$1" "$HANDBUCH_RPM_QUELLE"
     pruefe_quellarchiv \
-        "$STAGE/rpm-fedora/handbuch-rpm/SOURCES/magnolie-handbuch-$FASSUNG.tar.xz" \
+        "$STAGE/rpm-fedora/handbuch-rpm/fedora/SOURCES/magnolie-handbuch-$FASSUNG.tar.xz" \
         "magnolie-handbuch-$FASSUNG" \
         "bin/magnolie-handbuch web/handbuch.js rpm/magnolie-handbuch.spec"
 else
@@ -425,8 +425,8 @@ Magnolie-Organizer-$FASSUNG-x86_64.AppImage
 Magnolie-Organizer-$FASSUNG-x86_64.flatpak"
 if [ -n "$RPM_PAKET" ]; then
     if [ "$LIVE_SOURCE_NAME" != "$SOURCE_NAME" ]; then
-        mkdir -p "$STAGE/$LIVE_SOURCE_NAME/bau/rpm/RPMS/noarch" \
-            "$STAGE/$LIVE_SOURCE_NAME/bau/rpm/SRPMS"
+        mkdir -p "$STAGE/$LIVE_SOURCE_NAME/bau/rpm/fedora/RPMS/noarch" \
+            "$STAGE/$LIVE_SOURCE_NAME/bau/rpm/fedora/SRPMS"
         cp "$RPM_PAKET" "$STAGE/$LIVE_SOURCE_NAME/${RPM_PAKET#"$WURZEL/"}"
         cp "$RPM_QUELLE" "$STAGE/$LIVE_SOURCE_NAME/${RPM_QUELLE#"$WURZEL/"}"
     fi

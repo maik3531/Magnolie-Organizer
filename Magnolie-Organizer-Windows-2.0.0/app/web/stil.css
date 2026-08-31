@@ -5074,6 +5074,20 @@ body[data-hilfsrahmen="an"] .ods-feldauswahl :focus-visible {
 .ueber-fassung { font: 400 13px var(--sans); color: var(--braun-hell); }
 
 .ueber-beschreibung { margin: 8px 0 10px; }
+.ueber-rechtliches { margin-top: 2cm; }
+
+.ueber-neu {
+  padding: 9px 12px;
+  border-left: 3px solid var(--gold-dunkel);
+  border-radius: 4px;
+  background: rgba(216, 178, 92, 0.13);
+  font-size: 12px;
+}
+
+.ueber-neu h4 { display: inline; margin: 0; font: 700 14px var(--serif); }
+.ueber-neu-fassung { float: right; color: var(--braun-hell); font: 600 12px var(--sans); }
+.ueber-neu ul { clear: both; margin: 6px 0 0; padding-inline-start: 18px; }
+.ueber-neu li { margin: 2px 0; line-height: 1.25; }
 
 .ueber-zeile {
   display: flex;

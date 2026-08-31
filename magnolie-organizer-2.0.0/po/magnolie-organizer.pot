@@ -6,7 +6,7 @@
 #, fuzzy
 msgid ""
 msgstr ""
-"Project-Id-Version: Magnolie Organizer 2.0.13\n"
+"Project-Id-Version: Magnolie Organizer 2.0.14\n"
 "Report-Msgid-Bugs-To: maik3531@gmail.com\n"
 "POT-Creation-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
@@ -943,6 +943,12 @@ msgstr ""
 msgid "Authority appointment"
 msgstr ""
 
+msgid "Automatic backup failed."
+msgstr ""
+
+msgid "Automatic cloud-folder backups"
+msgstr ""
+
 msgid "Automatically choose a suitable application"
 msgstr ""
 
@@ -996,6 +1002,9 @@ msgid "Backup restored. The previous data was backed up automatically."
 msgstr ""
 
 msgid "Backup saved to: %(path)s"
+msgstr ""
+
+msgid "Backup verified successfully."
 msgstr ""
 
 msgid "Backups"
@@ -2794,6 +2803,9 @@ msgstr ""
 msgid "Last snapshot"
 msgstr ""
 
+msgid "Last successful backup"
+msgstr ""
+
 msgid "Last synchronized: %(date)s, %(time)s."
 msgstr ""
 
@@ -2905,9 +2917,6 @@ msgstr ""
 msgid ""
 "Magnolie Notes phones and KDE Connect phones are separate: the Android model "
 "name belongs to Magnolie Notes; the KDE peer name comes from KDE Connect."
-msgstr ""
-
-msgid "Magnolie Notes version"
 msgstr ""
 
 msgid "Magnolie Organizer"
@@ -3816,6 +3825,9 @@ msgstr ""
 msgid "Organizer"
 msgstr ""
 
+msgid "Organizer data is locked."
+msgstr ""
+
 msgid "Organizer style (paper sheet)"
 msgstr ""
 
@@ -4177,6 +4189,9 @@ msgid ""
 "Private, integrity-checked snapshots are stored next to the application data."
 msgstr ""
 
+msgid "Protected archive password unavailable."
+msgstr ""
+
 msgid "Public IPv4 or IPv6 address of the other branch"
 msgstr ""
 
@@ -4208,6 +4223,12 @@ msgid "Quit"
 msgstr ""
 
 msgid "Reachable IPv4 or IPv6 address of this computer"
+msgstr ""
+
+msgid "Read on phone"
+msgstr ""
+
+msgid "Read status"
 msgstr ""
 
 msgid "Reading recovery snapshots"
@@ -4446,6 +4467,9 @@ msgstr ""
 msgid "Restoring the backup"
 msgstr ""
 
+msgid "Retention"
+msgstr ""
+
 msgid "Retrieval failed."
 msgstr ""
 
@@ -4503,6 +4527,9 @@ msgstr ""
 
 msgid ""
 "Run the downloaded installer visibly and keep the Manual component selected."
+msgstr ""
+
+msgid "Run the optional background service"
 msgstr ""
 
 msgid "S"
@@ -4699,6 +4726,14 @@ msgstr ""
 msgid "Select a country first."
 msgstr ""
 
+msgid ""
+"Select a custom backup folder and store an archive password to enable "
+"automatic backups."
+msgstr ""
+
+msgid "Select a custom backup folder."
+msgstr ""
+
 msgid "Select all"
 msgstr ""
 
@@ -4769,6 +4804,9 @@ msgid "Service running"
 msgstr ""
 
 msgid "Service stopped"
+msgstr ""
+
+msgid "Set or change password"
 msgstr ""
 
 msgid "Set up contacts"
@@ -5159,6 +5197,9 @@ msgid "Temperature"
 msgstr ""
 
 msgid "Test connection"
+msgstr ""
+
+msgid "Test now"
 msgstr ""
 
 msgid "Test reminders and report what happens"
@@ -5561,6 +5602,13 @@ msgstr ""
 
 #, python-format
 msgid "The fingerprint does not match (received: %(fingerprint)s)."
+msgstr ""
+
+msgid ""
+"The folder may be locally synchronized by Nextcloud, Google Drive, Dropbox, "
+"or OneDrive. Magnolie does not sign in to a provider. Automatic backups run "
+"only while Organizer is open and unlocked, immediately after data was saved "
+"successfully."
 msgstr ""
 
 msgid ""
@@ -6365,6 +6413,10 @@ msgstr ""
 msgid "Unknown file"
 msgstr ""
 
+#, python-format
+msgid "Unknown option: %s"
+msgstr ""
+
 msgid "Unknown phone"
 msgstr ""
 
@@ -6381,6 +6433,9 @@ msgid "Unlock the organizer before receiving Magnolienbaum messages."
 msgstr ""
 
 msgid "Unlocking the Magnolienbaum storage"
+msgstr ""
+
+msgid "Unread on phone"
 msgstr ""
 
 #, python-format
@@ -6430,6 +6485,9 @@ msgid "Use a specific website"
 msgstr ""
 
 msgid "Use a supported language code or system for this invocation"
+msgstr ""
+
+msgid "Use automatic backups"
 msgstr ""
 
 msgid "Use basal units"

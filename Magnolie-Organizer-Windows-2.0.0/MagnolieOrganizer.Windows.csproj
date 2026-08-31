@@ -57,6 +57,9 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <Link>native-i18n.json</Link>
     </Content>
+    <Content Include="PROTECTED-ASSETS-LICENSE.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
     <Content Include="$(MagnolieHandbookWeb)\**\*" Condition="'$(MagnolieHandbookWeb)' != ''">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <Link>handbuch\%(RecursiveDir)%(Filename)%(Extension)</Link>

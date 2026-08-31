@@ -27,6 +27,13 @@ assert "0" * 64 not in json.dumps(manifest)
 builder = (ROOT / "werkzeuge/flatpak_bauen.sh").read_text(encoding="utf-8")
 assert 'if contributor_hash:' in builder
 assert '/app/share/magnolie-organizer/build-config.json' in builder
+commands = "\n".join(manifest["modules"][-1]["build-commands"])
+assert "web/kaffee-qr.mga" not in commands  # the complete reviewed web tree is copied
+assert "cp -a web/. /app/share/magnolie-organizer/web/" in commands
+assert "bin/magnolie_asset.py" in commands
+assert "PROTECTED-ASSETS-LICENSE.txt /app/share/doc/magnolie-organizer/" in commands
+assert not (ROOT / "web" / "kaffee-qr.png").exists()
+assert (ROOT / "web" / "kaffee-qr.mga").read_bytes().startswith(b"MGA1")
 
 dependencies = json.loads(
     (ROOT / "flatpak/python3-dependencies.json").read_text(encoding="utf-8"))

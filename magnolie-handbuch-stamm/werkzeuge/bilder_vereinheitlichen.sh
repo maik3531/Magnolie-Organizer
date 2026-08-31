@@ -4,8 +4,7 @@
 #   Bildschirmfotos (PNG)  -> WebP verlustfrei   (Text bleibt scharf, ~20 % kleiner)
 #   Fotos (JPG)            -> WebP verlustbehaftet q=85 (deutlich kleiner)
 #
-# Nicht angetastet werden kaffee-qr.png und maik-walter.jpg: sie gehoeren zu den
-# beiden geschuetzten Seiten, deren Text und Bilder unveraendert bleiben.
+# Persönliche Bilder liegen nur als MGA-Container vor und werden nicht erfasst.
 #
 # Aufruf aus dem Wurzelverzeichnis des Handbuch-Quellpakets:
 #
@@ -25,8 +24,7 @@ command -v cwebp >/dev/null 2>&1 || {
   exit 1
 }
 
-# Diese beiden bleiben, wie sie sind.
-GESCHUETZT="kaffee-qr.png maik-walter.jpg"
+GESCHUETZT=""
 
 geschuetzt() {
   for g in $GESCHUETZT; do [ "$1" = "$g" ] && return 0; done
@@ -70,7 +68,7 @@ if [ "$SCHREIBEN" = "1" ]; then
   echo
   echo "  Geschrieben. Jetzt die Pruefsummen in beiden Pruefstaenden erneuern:"
   echo
-  for pfad in "$WEB"/*.webp "$WEB"/kaffee-qr.png "$WEB"/maik-walter.jpg; do
+  for pfad in "$WEB"/*.webp "$WEB"/*.mga; do
     [ -e "$pfad" ] || continue
     printf '    "%s": "%s",\n' "$(basename "$pfad")" \
       "$(sha256sum "$pfad" | cut -d' ' -f1)"

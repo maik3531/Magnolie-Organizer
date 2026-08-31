@@ -20,10 +20,11 @@ test -f /usr/share/magnolie-organizer/web/anwendung.js
 grep -q 'function oeffneSuche' /usr/share/magnolie-organizer/web/anwendung.js
 grep -q 'syncMetadaten' /usr/share/magnolie-organizer/web/anwendung.js
 grep -q 'nextcloud:' /usr/share/magnolie-organizer/web/anwendung.js
-test -f /usr/share/magnolie-organizer/web/kaffee-qr.png
+test -f /usr/share/magnolie-organizer/web/kaffee-qr.mga
+test ! -e /usr/share/magnolie-organizer/web/kaffee-qr.png
 test -f /usr/share/magnolie-organizer/web/schriften/Z003-MediumItalic.otf
 test -f /usr/share/magnolie-organizer/web/schriften/Z003-LIZENZ.txt
-python3 werkzeuge/png_pruefen.py /usr/share/magnolie-organizer/web/kaffee-qr.png
+PYTHONPATH=/usr/bin python3 -c 'from magnolie_asset import read_asset; assert read_asset("/usr/share/magnolie-organizer/web/kaffee-qr.mga", 1, 1).startswith(b"\x89PNG")'
 test -f /usr/share/magnolie-organizer/web/i18n/de.js
 test -f /usr/share/magnolie-organizer/klang/erinnerung.wav
 test -f /usr/share/locale/de/LC_MESSAGES/magnolie-organizer.mo

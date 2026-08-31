@@ -1,0 +1,18 @@
+Magnolie protected personal assets - separate non-GPL permission
+
+Copyright (C) 2026 Maik Walter <maik3531@gmail.com>
+
+The coffee QR image and the Maik Walter portrait contained in the MGA files are
+not licensed under the GNU General Public License. Their unmodified encrypted
+containers, and the images produced from them at runtime, may be distributed
+and displayed only together with Magnolie Organizer, Magnolie Notes, Magnolie
+Handbook, or their accompanying documentation.
+
+Standalone use, extraction for redistribution, publication outside those
+works, modification, advertising use, profile use, dataset or machine-learning
+use, and use in another project require prior written permission from Maik
+Walter.
+
+This permission applies only to the two contained images. It does not restrict
+the GPL-3.0-or-later rights in the program, native readers, packer,
+documentation, or handbook text.
