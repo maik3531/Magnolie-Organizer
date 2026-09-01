@@ -1,0 +1,327 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="freigabe_ziel">Magnolie Notes に保存</string>
+    <string name="blatt_notizen">ノート</string>
+    <string name="blatt_einfuhr">インポート</string>
+    <string name="blatt_baum">ツリー</string>
+    <string name="notiz_neu">新しいノート</string>
+    <string name="notiz_titel">タイトル</string>
+    <string name="notiz_text">ここに入力…</string>
+    <string name="notiz_leer">ノートはまだありません。インポートするか、最初のノートを書いてください。</string>
+    <string name="notiz_loeschen">ノートを削除</string>
+    <string name="notiz_teilen">共有</string>
+    <string name="notiz_suchen">検索</string>
+    <string name="notiz_gespeichert">保存日時：%1$s</string>
+    <string name="notiz_angelegt">作成日時：%1$s</string>
+    <string name="notiz_symbol">アイコン</string>
+    <string name="notiz_buch">ノートブック</string>
+    <plurals name="notiz_anzahl">
+        <item quantity="other">%1$d 件のノート</item>
+    </plurals>
+    <string name="heute">今日</string>
+    <string name="gestern">昨日</string>
+    <string name="einfuhr_ueberschrift">ノートを取り込む</string>
+    <string name="einfuhr_erklaerung">Samsung Notes、Google Keep などは、各アプリ専用の保護された領域にノートを保存しています。Android では他のアプリから直接読み取れません。確実に使える方法は 2 つあります。ノートを Magnolie Notes に直接共有するか、各アプリが作成したエクスポートファイルをインポートしてください。</string>
+    <string name="einfuhr_teilen_titel">共有（どのアプリでも利用可能）</string>
+    <string name="einfuhr_teilen_text">Samsung Notes、Keep、ColorNote などでノートを開き、「共有」をタップして「Magnolie Notes」を選びます。複数のノートをまとめて共有することもできます。</string>
+    <string name="einfuhr_datei_titel">エクスポートファイルを取り込む</string>
+    <string name="einfuhr_datei_knopf">ファイルを選択…</string>
+    <string name="einfuhr_ordner_knopf">フォルダーを選択…</string>
+    <string name="einfuhr_formate">自動認識：Google Takeout（.zip / .json / .html）、Samsung Notes（.sdocx / .txt / .html）、Evernote（.enex）、ColorNote バックアップ、Standard Notes（.txt / .json）、Simplenote、Joplin、通常の Markdown またはテキストフォルダー。</string>
+    <string name="einfuhr_laeuft">読み込み中…</string>
+    <plurals name="einfuhr_ergebnis">
+        <item quantity="other">%1$d 件のノートを取り込みました。%2$d 件はすでに存在します。</item>
+    </plurals>
+    <string name="einfuhr_nichts">このファイルに読み取り可能なノートはありませんでした。</string>
+    <string name="einfuhr_fehler">ファイルを読み取れませんでした：%1$s</string>
+    <string name="einfuhr_anleitung_titel">エクスポートファイルの入手方法</string>
+    <string name="einfuhr_anleitung_keep">Google Keep：スマートフォンで takeout.google.com を開き、「Keep」だけを選択してエクスポートをリクエストし、.zip ファイルをここで取り込みます。</string>
+    <string name="einfuhr_anleitung_samsung">Samsung Notes：一覧を開いてノートを長押しし、その他 → ファイルとして保存 → PDF またはテキストを選択して、そのフォルダーをここで取り込みます。ノートブック全体を一度に選択することもできます。</string>
+    <string name="einfuhr_anleitung_evernote">Evernote：ノートブック → ノートをエクスポート → .enex。</string>
+    <string name="baum_ueberschrift">Magnolienbaum</string>
+    <string name="baum_erklaerung">Magnolienbaum は、このスマートフォンを Magnolie Organizer に直接接続します。クラウドも中継サービスも使いません。ノートは暗号化され、双方が互いを確認した後にのみ送信されます。</string>
+    <string name="baum_eigener_name">この枝の名前</string>
+    <string name="baum_fingerabdruck">フィンガープリント</string>
+    <string name="baum_kennung">識別子</string>
+    <string name="baum_dienst_an">ノートを受信（バックグラウンド）</string>
+    <string name="baum_dienst_aus">オフ</string>
+    <string name="baum_paaren_titel">Organizer とペアリング</string>
+    <string name="baum_paaren_text">Organizer で 設定 → Magnolienbaum →「ペアリングファイルを作成」を開き、そのファイルをスマートフォンに移してここで開きます。有効期間は 15 分です。</string>
+    <string name="baum_paarungsdatei">ペアリングファイルを開く…</string>
+    <string name="baum_paarung_einfuegen">ペアリングテキストを貼り付け</string>
+    <string name="baum_paarung_laeuft">ペアリング中…</string>
+    <string name="baum_paarung_gut">%1$s とペアリングしました。</string>
+    <string name="baum_paarung_fehler">ペアリングに失敗しました：%1$s</string>
+    <string name="baum_partner">枝</string>
+    <string name="baum_keine_partner">ペアリング済みの枝はまだありません。</string>
+    <string name="baum_partner_entfernen">削除</string>
+    <string name="baum_suchen">ローカルネットワークを検索</string>
+    <string name="baum_gefunden">%2$s の %1$s</string>
+    <string name="baum_nichts_gefunden">応答した枝がありません。Organizer で Magnolienbaum が有効になっており、両方の端末が同じ Wi-Fi に接続されていますか？</string>
+    <string name="baum_senden">今すぐ送信</string>
+    <plurals name="baum_postfach">
+        <item quantity="other">送信トレイ：%1$d 件が待機中</item>
+    </plurals>
+    <string name="baum_zuletzt">最終接続：%1$s</string>
+    <string name="baum_nie">なし</string>
+    <string name="baum_weg_wlan">Wi-Fi</string>
+    <string name="baum_weg_bluetooth">Bluetooth</string>
+    <string name="baum_bluetooth_hinweis">Bluetooth でも Wi-Fi と同じ暗号化メッセージを送ります。Android でスマートフォンとパソコンをペアリングし、下の Organizer の枝に使うパソコンを選択してください。</string>
+    <string name="baum_bluetooth_an">Bluetooth 接続を受け付ける</string>
+    <string name="baum_bluetooth_geraete">ペアリング済み端末</string>
+    <string name="baum_bluetooth_zuordnen">%1$s を Bluetooth で使用</string>
+    <string name="baum_bluetooth_trennen">Bluetooth を使用しない</string>
+    <string name="baum_bluetooth_berechtigung">この接続には Bluetooth の権限が必要です。</string>
+    <string name="baum_auto_wlan">ローカル Wi-Fi で自動同期</string>
+    <string name="baum_fernziel_hinweis">インターネット直結、VPN、リバーストンネル、または独自サーバーの接続先を任意で指定できます。Magnolie は中央中継サービスを提供しません。</string>
+    <string name="baum_fernziel_host">リモートホスト（任意）</string>
+    <string name="baum_fernziel_port">リモートポート</string>
+    <string name="baum_alles_sync">すべて同期</string>
+    <string name="baum_sync_eingereiht">完全同期を送信トレイに追加しました。</string>
+    <string name="baum_dienst_laeuft">Magnolie Notes は Organizer からの接続を待機中です</string>
+    <string name="baum_dienst_kanal">Magnolienbaum</string>
+    <string name="baum_teilen_frage">このノートを %1$s と共有しますか？</string>
+    <string name="baum_geteilt">ノートを Magnolienbaum に渡しました。</string>
+    <string name="baum_nicht_erreicht">接続できません。ノートは送信トレイに残り、再試行されます。</string>
+    <string name="ok">OK</string>
+    <string name="abbrechen">キャンセル</string>
+    <string name="loeschen">削除</string>
+    <string name="sichern">保存</string>
+    <string name="zurueck">戻る</string>
+    <string name="wirklich_loeschen">このノートを完全に削除しますか？</string>
+    <string name="blatt_aufgaben">タスク</string>
+    <string name="aufgabe_neu">新しいタスク</string>
+    <string name="aufgabe_titel">やること</string>
+    <string name="aufgabe_notiz">理由や補足</string>
+    <string name="aufgabe_faellig">期限</string>
+    <string name="aufgabe_kein_datum">日付なし</string>
+    <string name="aufgabe_ohne_kopf">なし</string>
+    <string name="aufgabe_prio">優先度</string>
+    <string name="aufgabe_prio1">緊急</string>
+    <string name="aufgabe_prio2">通常</string>
+    <string name="aufgabe_prio3">後回し可</string>
+    <string name="aufgabe_erinnern">リマインダー</string>
+    <string name="aufgabe_vorlauf">何日前</string>
+    <string name="aufgabe_uhrzeit">時刻</string>
+    <string name="aufgabe_erledigt">完了</string>
+    <string name="aufgabe_leer">やることはありません。タスクを書くか、Organizer から受け取ってください。</string>
+    <string name="aufgabe_loeschen">タスクを削除</string>
+    <string name="aufgabe_weitergeben">枝に渡す</string>
+    <string name="aufgabe_von">%1$s から</string>
+    <string name="aufgabe_ueberfaellig_kopf">期限切れ</string>
+    <string name="aufgabe_heute_kopf">今日</string>
+    <string name="aufgabe_morgen_kopf">明日</string>
+    <string name="aufgabe_woche_kopf">今週</string>
+    <string name="aufgabe_spaeter_kopf">それ以降</string>
+    <string name="aufgabe_erledigt_kopf">完了</string>
+    <string name="aufgabe_heute_faellig">今日が期限</string>
+    <string name="aufgabe_morgen_faellig">明日が期限</string>
+    <plurals name="aufgabe_ueberfaellig">
+        <item quantity="other">%1$d 日期限超過</item>
+    </plurals>
+    <plurals name="aufgabe_in_tagen">
+        <item quantity="other">あと %1$d 日</item>
+    </plurals>
+    <string name="aufgabe_faellig_am">期限：%1$s</string>
+    <string name="aufgabe_kanal">タスクのリマインダー</string>
+    <string name="aufgabe_kanal_hinweis">タスクの期限が来たときに通知します。</string>
+    <string name="aufgabe_angekommen">%1$s からタスクが届きました。</string>
+    <string name="aufgabe_wecker_hinweis">Android が正確なアラームを許可していません。リマインダーが遅れる場合があります。システム設定で許可できます。</string>
+    <string name="aufgabe_wecker_erlauben">正確なリマインダーを許可</string>
+    <string name="baum_vertrauen">確認せずに内容を受け取る</string>
+    <string name="baum_vertrauen_hinweis">一度ペアリングした枝は信頼済みのままです。鍵が固定されるため、再確認は不要です。その枝のノートやタスクをいったん受信トレイに入れたい場合は、この設定をオフにしてください。</string>
+    <string name="baum_eingang">受信トレイ</string>
+    <string name="baum_eingang_leer">待機中の項目はありません。</string>
+    <string name="baum_annehmen">承認</string>
+    <string name="baum_ablehnen">拒否</string>
+    <string name="baum_eingang_stueck">%2$s からの%1$s</string>
+    <string name="art_notiz">ノート</string>
+    <string name="art_aufgabe">タスク</string>
+    <string name="notiz_herkunft">出典：%1$s</string>
+    <string name="notiz_magnolienbaum">· Magnolienbaum</string>
+    <string name="notizbuch_standard">未分類のノート</string>
+    <string name="einfuhr_datei_oeffnen_fehler">ファイルを開けませんでした。</string>
+    <string name="einfuhr_ordner_oeffnen_fehler">フォルダーを開けませんでした。</string>
+    <string name="einfuhr_unbekannter_fehler">インポートに失敗しました。</string>
+    <string name="einfuhr_gesamtarchiv_nicht_unterstuetzt">これはデスクトップ版 Magnolie の完全アーカイブです。この端末では完全アーカイブのインポートはまだサポートされていません。</string>
+    <string name="art_termin">予定</string>
+    <string name="baum_termin_nicht_unterstuetzt">Magnolienbaum の予定はこの端末ではまだサポートされていません。</string>
+    <string name="herkunft_uebernommen">インポート済み</string>
+    <string name="herkunft_geteilt">共有済み</string>
+    <string name="baum_eigene_paarungsdatei">この端末のペアリングファイルを作成…</string>
+    <string name="baum_paarungsdatei_teilen">ペアリングファイルを共有</string>
+    <string name="baum_verbinden">接続</string>
+    <string name="baum_code_vergleichen">Organizer に表示されたコードと比較してください：%1$s</string>
+    <string name="baum_bestaetigt">確認済み</string>
+    <string name="baum_wartet">待機中</string>
+    <string name="baum_code_stimmt">コードが一致</string>
+    <string name="baum_ereignisse">最近のイベント</string>
+    <string name="baum_meldung_dienst_fehler">受信サービスがポートを開けませんでした。</string>
+    <string name="baum_meldung_bluetooth_fehler">Bluetooth を開始できませんでした。</string>
+    <string name="baum_meldung_gepaart">%1$s とペアリングしました。</string>
+    <string name="baum_meldung_datei_verbunden">枝がペアリングファイルを使って接続しました。</string>
+    <string name="baum_meldung_code_anfrage">枝が接続を求めています。Magnolienbaum 画面のコードを比較してください。</string>
+    <string name="baum_meldung_angebot">%1$s から届いた項目が受信トレイで待機しています。</string>
+    <string name="baum_meldung_aufgabe">%1$s からタスクが届きました。</string>
+    <string name="baum_meldung_aufgabe_erledigt">委任したタスクが完了したと報告されました。</string>
+    <string name="baum_meldung_aufgabe_geoeffnet">委任したタスクが再度開かれました。</string>
+    <string name="baum_meldung_notiz">Magnolienbaum 経由でノートが届きました。</string>
+    <string name="baum_meldung_notiz_aktualisiert">共有ノートが更新されました。</string>
+    <string name="herkunft_magnolienbaum">Magnolienbaum</string>
+    <string name="fehler_allgemein">問題が発生しました。</string>
+    <string name="fehler_datei_oeffnen">ファイルを開けませんでした。</string>
+    <string name="fehler_identitaet">この端末の Magnolienbaum ID はまだ準備できていません。</string>
+    <string name="fehler_keine_netzadresse">この端末には現在ネットワークアドレスがありません。</string>
+    <string name="fehler_nicht_erreichbar">相手の枝に接続できません。</string>
+    <string name="fehler_nicht_bestaetigt">この枝は確認されておらず、信頼されていません。</string>
+    <string name="fehler_schluessel_geaendert">この枝の鍵が変更されました。先に古い接続を削除し、新しいフィンガープリントを慎重に比較してください。</string>
+    <string name="fehler_paarungsdatei_beschaedigt">ペアリングファイルが無効か破損しています。</string>
+    <string name="fehler_paarungsdatei_gross">ペアリングファイルが大きすぎます。</string>
+    <string name="fehler_paarungsdatei_abgelaufen">ペアリングファイルの有効期限が切れています。Organizer で新しいファイルを作成してください。</string>
+    <string name="fehler_paarung_nachweis">相手の枝がペアリングファイルを所持していることを証明できませんでした。</string>
+    <string name="fehler_paarungsanfrage">ペアリング要求が無効です。</string>
+    <string name="fehler_schluessel">暗号鍵が無効か破損しています。</string>
+    <string name="fehler_nachricht">暗号化メッセージが無効か破損しています。</string>
+    <string name="fehler_sitzung">安全なセッションが無効か、有効期限が切れています。</string>
+    <string name="fehler_antwort">相手の枝から無効な応答が返されました。</string>
+    <string name="fehler_bluetooth_nicht_verfuegbar">この端末では Bluetooth を利用できません。</string>
+    <string name="fehler_bluetooth_aus">Bluetooth がオフになっています。</string>
+    <string name="fehler_bluetooth_adresse">Bluetooth アドレスが無効です。</string>
+    <string name="fehler_bluetooth_berechtigung">Bluetooth の権限がありません。</string>
+    <string name="fehler_bluetooth_verbindung">Bluetooth 接続を確立できませんでした。</string>
+    <string name="fehler_bluetooth_nachricht">Bluetooth メッセージが無効か大きすぎます。</string>
+    <string name="semantik_ausgewaehlt">%1$s、選択済み</string>
+    <string name="aufgabe_als_erledigt_markieren">タスクを完了にする</string>
+    <string name="aufgabe_als_offen_markieren">タスクを未完了に戻す</string>
+    <string name="aufgabe_erinnerung_aktiv">リマインダー有効</string>
+    <string name="aufgabe_vorlauf_verringern">リマインダーの先行日数を減らす</string>
+    <string name="aufgabe_vorlauf_erhoehen">リマインダーの先行日数を増やす</string>
+    <string name="aufgabe_stunde_verringern">リマインダーを 1 時間早める</string>
+    <string name="aufgabe_stunde_erhoehen">リマインダーを 1 時間遅らせる</string>
+    <string name="aufgabe_plus_sieben_tage">7 日後</string>
+    <string name="symbol_einkauf">買い物</string>
+    <string name="symbol_aufgabe">タスク</string>
+    <string name="symbol_termin">予定</string>
+    <string name="symbol_idee">アイデア</string>
+    <string name="symbol_reise">旅行</string>
+    <string name="symbol_rezept">レシピ</string>
+    <string name="symbol_geld">お金</string>
+    <string name="symbol_arbeit">仕事</string>
+    <string name="symbol_person">人物</string>
+    <string name="symbol_gesundheit">健康</string>
+    <string name="symbol_zitat">引用</string>
+    <string name="symbol_notiz">ノート</string>
+    <string name="baum_kontakt_sync">この枝と連絡先を同期する</string>
+    <string name="baum_kontakt_sync_hinweis">任意です。連絡先は追加方式で統合され、削除は送信されません。</string>
+    <string name="baum_kontakte_sync">連絡先を同期</string>
+    <string name="baum_kontakte_eingereiht">連絡先の同期を送信箱に追加しました。</string>
+    <string name="baum_kontakte_berechtigung">連絡先へのアクセスが許可されませんでした。変更はありません。</string>
+    <string name="baum_kontakte_empfangen">Magnolienbaum から連絡先を受信しました。</string>
+    <string name="art_kontakt">連絡先</string>
+    <string name="notiz_anhaenge">添付ファイル: %1$d</string><string name="notiz_bild">画像</string>
+    <string name="notiz_pdf">PDF 文書</string><string name="notiz_anhang_entfernen">削除</string>
+    <string name="notiz_anhang_oeffnen_fehler">この添付ファイルを開けるアプリがありません。</string>
+    <string name="baum_anhaenge_speicher">安全な保存上限に達したため、新しい添付ファイルを省略しました。既存の添付ファイルは変更されません。</string>
+    <string name="baum_kontakt_loesch_sync">連絡先の削除候補を準備</string><string name="baum_kontakt_loesch_hinweis">独立した設定です。削除は候補として表示され、個別の確認が必要です。</string><string name="baum_kontakt_loesch_warnung_titel">削除候補を許可しますか？</string><string name="baum_kontakt_loesch_warnung">見つからない関連連絡先を削除候補にできます。自動削除はなく、各候補を個別に確認します。</string><string name="baum_kontakt_vorschau">連絡先同期のプレビュー</string><string name="baum_kontakt_neu">新規</string><string name="baum_kontakt_geaendert">変更済み</string><string name="baum_kontakt_dublette">重複の可能性</string><string name="baum_kontakt_loeschvorschlag">削除候補</string><string name="baum_einzeln_bestaetigen">個別に確認</string><string name="baum_systemkontakt_oeffnen">連絡先を開く</string><string name="art_kontakt_loeschen">連絡先の削除候補</string><string name="baum_kontakt_geloescht">個別に確認した連絡先を削除しました。</string>
+    <string name="notiz_anhang_hinzufuegen">添付ファイルを追加</string>
+    <string name="notiz_anhang_ungueltig">選択したファイルは有効な JPEG、PNG、WebP、GIF、PDF ではありません。</string>
+    <string name="notiz_anhang_gross">添付ファイルは 8 MiB を超えています。既存の添付ファイルは変更されません。</string>
+    <string name="notiz_anhang_oeffnen">開く</string>
+    <string name="notiz_anhang_speichern">名前を付けて保存…</string>
+    <string name="notiz_anhang_gespeichert">添付ファイルを保存しました。</string>
+    <string name="notiz_anhang_speichern_fehler">添付ファイルを保存できませんでした。</string>
+    <string name="baum_kontakt_eingang_titel">%1$s からの連絡先</string><plurals name="baum_kontakt_eingang_bilanz">
+        <item quantity="other">受信カード %1$d 件 → %2$d 人</item>
+    </plurals><plurals name="baum_kontakt_eingang_status">
+        <item quantity="other">安全 %1$d · 要確認 %2$d · 競合 %3$d</item>
+    </plurals><string name="baum_kontakt_noch_nicht_geschrieben">まだ端末には何も書き込まれていません。</string><string name="baum_kontakt_alle_sicheren">安全なものをすべて取り込む</string><string name="baum_kontakt_alle_ablehnen">すべて拒否</string><string name="baum_kontakt_sicher">安全</string><string name="baum_kontakt_pruefen">確認</string><string name="baum_kontakt_konflikt">競合</string><plurals name="baum_kontakt_rohkarten">
+        <item quantity="other">%1$d 枚のカードから</item>
+    </plurals><string name="baum_kontakt_firma">会社</string><string name="baum_kontakt_telefon">電話</string><string name="baum_kontakt_email">メール</string><string name="baum_kontakt_anschrift">住所</string><string name="baum_kontakt_geburtstag">誕生日</string><string name="baum_kontakt_bild">写真</string><string name="baum_kontakt_vorhanden">あり</string><string name="baum_kontakt_notiz">メモ</string><string name="baum_kontakt_konflikt_zeile">%1$s の競合: %2$s</string><string name="baum_kontakt_quellen">出典: %1$s</string><string name="baum_kontakt_importieren">取り込む</string><string name="baum_kontakt_getrennt_importieren">別々に取り込む</string><string name="baum_kontakt_karten_zusammenfuehren">このカードを統合</string><string name="baum_kontakt_lokal_titel">端末連絡先の候補</string><string name="baum_kontakt_lokal_hinweis">取り込み後の独立した第2段階です。削除は引き続き個別確認です。</string><string name="baum_kontakt_verknuepfen">端末連絡先とリンク</string><string name="baum_verbindung_gefahr_titel">接続</string><string name="baum_verbindung_gefahr_hinweis">削除すると同期、待機中のメッセージ、メタデータが消去されます。取り込んだ連絡先は残ります。</string><string name="baum_verbindung_entfernen">接続を削除</string><string name="baum_verbindung_entfernen_frage">「%1$s」への接続を削除しますか？同期、待機中のメッセージ、メタデータが消去されます。取り込んだ連絡先は残ります。</string>
+    <string name="blatt_journal">復元</string><string name="journal_titel">復元ジャーナル</string><string name="journal_hinweis">暗号化されたローカルスナップショットです。Android のクラウドバックアップには一切保存されません。</string><string name="journal_zuletzt">前回のスナップショット</string><string name="journal_naechste">次回のスナップショット</string><string name="journal_status">状態</string><string name="journal_bereit">準備完了</string><string name="journal_intervall">間隔</string><string name="journal_aus">オフ</string><string name="journal_6h">6 時間</string><string name="journal_12h">12 時間</string><string name="journal_taeglich">毎日</string><string name="journal_woechentlich">毎週</string><string name="journal_jetzt">今すぐスナップショットを作成</string><string name="journal_liste">スナップショット</string><string name="journal_leer">スナップショットはまだありません。</string><string name="journal_integritaet">開く際に整合性を検証済み</string><string name="journal_vorschau">プレビュー</string><string name="journal_restore">復元</string><string name="journal_restore_frage">「%1$s」を復元しますか？最初に復元前のスナップショットが作成されます。</string><string name="journal_loeschen_frage">このスナップショットを完全に削除しますか？</string>
+    <string name="journal_kontakt_konflikt">連絡先が変更されました</string><string name="journal_kontakt_konflikt_frage">「%1$s」はスナップショット作成後に変更されています。選択した関連付け済み連絡先だけを上書きしますか？</string><string name="journal_konflikt_ueberschreiben">選択した連絡先を上書き</string>
+    <string name="telefon_titel">Magnolie 電話接続</string><string name="telefon_hinweis">端末の状態、発信要求、厳密に選択したアプリからの読み取り専用通知に使用する独立した暗号化接続です。Magnolienbaum のペアリングや権限は一切使用しません。</string><string name="telefon_hauptschalter">電話接続を有効にする</string><string name="telefon_status">接続状態</string><string name="telefon_status_aus">オフ</string><string name="telefon_status_getrennt">未接続</string><string name="telefon_status_gepaart">ペアリング済み</string><string name="telefon_status_code">コードを確認</string><string name="telefon_status_fehler">エラー</string><string name="telefon_bluetooth_status">Bluetooth データ代替接続を利用可能</string><string name="telefon_suchen">デスクトップを検索</string><string name="telefon_verbinden">%1$s に接続</string><string name="telefon_code_stimmt">コードが一致</string><string name="telefon_code_falsch">コードが不一致</string><string name="telefon_kopplung">ペアリング済みデスクトップ</string><string name="telefon_geraetestatus">端末状態の許可</string><string name="telefon_freigegeben">許可済み</string><string name="telefon_nicht_freigegeben">未許可</string><string name="telefon_entkoppeln">電話接続を削除</string><string name="telefon_dienst_laeuft">電話接続は有効です。デスクトップを待機中</string><string name="telefon_dienst_kanal">Magnolie 電話接続</string><string name="telefon_trennen">切断</string>
+    <string name="telefon_bluetooth_fallback">Bluetooth データ代替接続</string><string name="telefon_bluetooth_hinweis">任意で、既定ではオフです。Wi-Fi が優先されます。まず Android のシステム設定でデスクトップをペアリングし、ここでペアリング済み端末を選択してください。独立した電話接続は独自の暗号化ハンドシェイクを使用し、Magnolienbaum の Bluetooth サービスは一切使用しません。</string><string name="telefon_bluetooth_systempaarung">Bluetooth のシステムペアリングを開く</string><string name="telefon_bluetooth_geraete">ペアリング済み端末を選択</string><string name="telefon_bluetooth_verwenden">安全な検証後に %1$s を使用</string><string name="telefon_bluetooth_zugeordnet">Bluetooth 端末</string><string name="telefon_bluetooth_berechtigung">Bluetooth 権限が付与されていません。接続は試行されませんでした。</string><string name="telefon_bluetooth_voraussetzung">まず Wi-Fi 経由で電話接続を有効にし、安全にペアリングしてください。</string>
+    <string name="telefon_benachrichtigungen_titel">選択した通知</string><string name="telefon_benachrichtigungen_schalter">選択したメッセージ通知を転送</string><string name="telefon_benachrichtigungen_hinweis">読み取り専用です。厳密に選択したアプリのメッセージ通知だけが転送されます。操作、返信、RemoteInput、PendingIntent は一切転送されません。</string><string name="telefon_systemzugriff_oeffnen">通知へのアクセスを開く</string><string name="telefon_systemzugriff_erteilt">通知へのアクセスを許可済み</string><string name="telefon_apps_titel">許可するアプリ</string>
+    <string name="telefon_dienst_sucht">デスクトップを検索中…</string><string name="telefon_dienst_verbindet">%1$s に安全に接続中…</string><string name="telefon_dienst_wlan">Wi-Fi 経由で %1$s に接続済み</string><string name="telefon_dienst_bluetooth">Bluetooth 経由で %1$s に接続済み</string><string name="telefon_dienst_fehler">接続に失敗しました。再試行します</string>
+    <string name="telefon_waehlen_schalter">発信要求を許可</string><string name="telefon_waehlen_hinweis">既定ではオフで、通話制御や HFP とは独立しています。要求はシステムのダイヤラーを開くだけで、通話はそこで確認します。</string><string name="telefon_waehlen_nicht_verfuegbar">システムのダイヤラーを利用できません。発信要求を有効にできません。</string><string name="telefon_waehlen_kanal">発信要求</string><string name="telefon_waehlen_titel">システムのダイヤラーで通話を確認</string>
+    <string name="telefon_eingehend_titel">着信</string><string name="telefon_eingehend_schalter">着信状態を共有</string><string name="telefon_nummer_schalter">利用可能な場合に発信者番号を共有</string><string name="telefon_annehmen_schalter">コンピューターからの応答を許可</string><string name="telefon_eingehend_hinweis">各オプションは既定でオフで、必要な電話権限だけを要求します。通話音声が Magnolie 経由で送信されることはありません。</string><string name="telefon_berechtigung_fehlt">電話権限が付与されていません。オプションはオフのままです。</string>
+    <string name="personal_sync_titel">個人同期</string>
+    <string name="personal_sync_hinweis">自分のメモ、ノートブック、タスクを、ペアリングした自分の Organizer と安全に同期します。</string>
+    <string name="personal_sync_nicht_baum">Magnolienbaum ではありません</string>
+    <string name="personal_sync_eigen">このペアリング済みコンピューターは自分のデバイスです</string>
+    <string name="personal_sync_notizen">メモとノートブックを同期</string>
+    <string name="personal_sync_aufgaben">タスクを同期</string>
+    <string name="personal_sync_auto_wlan">Wi-Fi 接続時に自動同期</string>
+    <string name="personal_sync_jetzt">今すぐ同期</string>
+    <string name="personal_sync_keine_loeschung">削除はまだ同期されません。</string>
+    <string name="personal_sync_anhaenge_fortschritt">添付ファイル: %2$d 件中 %1$d 件</string>
+    <string name="personal_sync_wlan_pause">Wi-Fi が利用可能になるまで添付ファイルの転送を一時停止しています。</string>
+    <string name="personal_sync_vollstaendig">個人同期が完了しました。</string>
+    <string name="personal_sync_teilweise">個人同期が完了していません: %1$s</string>
+    <string name="telefon_eins_zu_eins">ペアリングできる Organizer は 1 台だけです。端末を変更する前に既存の Organizer を削除してください。</string><string name="telefon_entkoppeln_frage">「%1$s」への接続を削除しますか？ペアリングキー、権限、保留中のメッセージ、準備済みの個人同期実行が消去されます。同期済みのメモ、ノートブック、タスクは残ります。</string>
+    <string name="personal_sync_loeschungen">手動同期時に削除を考慮する</string>
+    <string name="papierkorb_titel">ゴミ箱</string>
+<plurals name="personal_sync_auto_offen">
+        <item quantity="other">自動同期が完了しました。%1$d 件の削除候補が手動確認を待っています。</item>
+    </plurals><string name="personal_sync_alle_loeschen">すべて削除</string><string name="personal_sync_alle_wiederherstellen">すべて復元</string><string name="personal_sync_entscheiden">削除を確認</string><string name="personal_sync_geaendert_titel">変更された版</string><string name="personal_sync_geaendert_hinweis">この項目は同期後に変更されました。変更版を復元するか、変更があっても削除するかを明示的に選んでください。</string><string name="personal_sync_lauf_merken">この実行で残っている未変更の候補に適用</string><string name="personal_sync_trotz_aenderung_loeschen">変更があっても削除</string><string name="personal_sync_geaenderte_version_wiederherstellen">変更版を復元</string><string name="personal_sync_wiederherstellen">保持 / 復元</string><string name="personal_sync_notizbuch_blockiert">空でないノートブックは削除できません。</string><string name="personal_sync_endgueltig_titel">変更項目の削除を確認</string><string name="personal_sync_endgueltig_hinweis">変更があっても「%1$s」を完全に削除しますか？</string><string name="personal_sync_massen_titel">複数の決定を確認</string><plurals name="personal_sync_massen_hinweis">
+        <item quantity="other">正確に %1$d 件：ノート %2$d、ノートブック %3$d、タスク %4$d、添付 %5$d。</item>
+    </plurals><string name="papierkorb_leeren">ごみ箱を空にする</string><string name="papierkorb_endgueltig_titel">完全に削除</string><string name="papierkorb_endgueltig_hinweis">このごみ箱項目を完全に削除しますか？元に戻せません。</string><plurals name="papierkorb_leeren_hinweis">
+        <item quantity="other">ごみ箱の %1$d 件をすべて完全に削除しますか？元に戻せません。</item>
+    </plurals>
+    <string name="papierkorb_hinweis">削除したメモとタスクは、完全に削除されるまでここに保管されます。</string>
+    <string name="technischer_wert_art_notiz">メモ</string>
+    <string name="technischer_wert_art_notizbuch">ノートブック</string>
+    <string name="technischer_wert_art_aufgabe">タスク</string>
+    <string name="technischer_wert_art_anhang">添付ファイル</string>
+    <string name="technischer_wert_art_unbekannt">不明な項目の種類: %1$s</string>
+    <string name="technischer_wert_grund_manuell">手動スナップショット</string>
+    <string name="technischer_wert_grund_geplant">予定スナップショット</string>
+    <string name="technischer_wert_grund_vor_wiederherstellung">復元前</string>
+    <string name="technischer_wert_grund_vor_vollabgleich">完全同期前</string>
+    <string name="technischer_wert_grund_vor_aufgabenabgleich">タスク同期前</string>
+    <string name="technischer_wert_grund_vor_notizabgleich">メモ同期前</string>
+    <string name="technischer_wert_grund_kontaktimport">連絡先のインポート前</string>
+    <string name="technischer_wert_grund_kontakt_zusammenfuehren">連絡先の統合前</string>
+    <string name="technischer_wert_grund_kontaktloeschung">連絡先の削除前</string>
+    <string name="technischer_wert_grund_unbekannt">不明なスナップショット理由: %1$s</string>
+    <string name="technischer_wert_domaene_appdaten">アプリデータ</string>
+    <string name="technischer_wert_domaene_systemkontakte">システムの連絡先</string>
+    <string name="technischer_wert_domaene_unbekannt">不明なスナップショット領域: %1$s</string>
+    <plurals name="technischer_wert_zusammenfassung_app">
+        <item quantity="other">メモ: %1$d · タスク: %2$d</item>
+    </plurals>
+    <plurals name="technischer_wert_zusammenfassung_kontakte">
+        <item quantity="other">連絡先: %1$d</item>
+    </plurals>
+    <plurals name="technischer_wert_zusammenfassung_kontakte_mit_namen">
+        <item quantity="other">連絡先: %1$d · %2$s</item>
+    </plurals>
+    <string name="technischer_wert_zusammenfassung_unbekannt">認識できないスナップショット詳細: %1$s</string>
+    <string name="start_laden">保護されたデータを開いています…</string><string name="start_fehler_titel">保護されたデータを開けませんでした</string><string name="start_daten_unveraendert">データは削除も上書きもされていません。安全に再試行できます。</string><string name="start_erneut">再試行</string><string name="start_schliessen">アプリを閉じる</string>
+    <string name="absturzbericht_teilen">クラッシュレポートを共有</string>
+    <string name="journal_maximum">復元ポイント</string>
+    <string name="journal_maximum_hinweis">上限を減らすと、最も古い復元ポイントが自動的に削除されます。</string>
+    <string name="portable_titel">ポータブルバックアップ</string><string name="portable_hinweis">メモ、ノートブック、タスク、ゴミ箱、添付ファイルを含む、独立したパスワード保護アーカイブを作成または復元します。</string><string name="portable_export">ポータブルバックアップを作成</string><string name="portable_datei_oeffnen">ポータブルバックアップを開く</string><string name="portable_restore">バックアップを復元</string><string name="portable_passwort">パスワード</string><string name="portable_passwort_hinweis">アーカイブのパスワードを入力してください。バックアップの検証中は何も変更されません。</string><string name="portable_pruefen">検証してプレビュー</string><string name="portable_vorschau">バックアップのプレビュー</string><string name="portable_vorschau_text">メモ %1$d 件 · ノートブック %2$d 件 · タスク %3$d 件 · ゴミ箱 %4$d 件</string><string name="portable_restore_warnung">現在の個人コンテンツがすべて置き換えられます。最初にローカルの安全用スナップショットが作成され、この端末の Magnolienbaum ID は保持されます。</string><string name="portable_fehler">バックアップを開けませんでした。ファイルとパスワードを確認してください。</string><string name="portable_exportiert">ポータブルバックアップを作成しました。</string><string name="portable_wiederhergestellt">ポータブルバックアップを復元しました。</string>
+    <string name="auto_backup_titel">クラウドフォルダーへの自動バックアップ</string>
+    <string name="auto_backup_hinweis">Android で選択したフォルダーに、認証済みのポータブルバックアップを任意で保存します。プロバイダーはそのフォルダーを同期できます。</string>
+    <string name="auto_backup_aktiv">自動バックアップを有効にする</string>
+    <string name="auto_backup_ordner_waehlen">バックアップフォルダーを選択</string>
+    <string name="auto_backup_ordner_aendern">バックアップフォルダーを変更</string>
+    <string name="auto_backup_passwort_setzen">アーカイブのパスワードを設定</string>
+    <string name="auto_backup_passwort_aendern">アーカイブのパスワードを変更</string>
+    <string name="auto_backup_passwort_warnung">このパスワードを覚えておいてください。別の端末での復元に必要で、復旧することはできません。</string>
+    <string name="auto_backup_intervall">バックアップ間隔</string>
+    <string name="auto_backup_aufbewahrung">バックアップ（2～30）</string>
+    <string name="auto_backup_letzter_erfolg">最後に成功したバックアップ</string>
+    <string name="auto_backup_jetzt">今すぐバックアップをテスト</string>
+    <string name="auto_backup_status_bereit">準備完了</string>
+    <string name="auto_backup_status_laeuft">バックアップ実行中</string>
+    <string name="auto_backup_status_erfolg">最後のバックアップの認証に成功しました</string>
+    <string name="auto_backup_status_aufbewahrung">バックアップは認証済みですが、古いファイルを整理できませんでした</string>
+    <string name="auto_backup_status_ordner">バックアップフォルダーを選択してください</string>
+    <string name="auto_backup_status_freigabe">フォルダーへのアクセスが取り消されました。もう一度選択してください。</string>
+    <string name="auto_backup_status_passwort">アーカイブのパスワードを設定してください</string>
+    <string name="auto_backup_status_schluessel">保護されたパスワードを利用できません。自動バックアップは無効のままです。</string>
+    <string name="auto_backup_status_auth">バックアップの認証に失敗しました</string>
+    <string name="auto_backup_status_provider">ストレージプロバイダーは一時的に利用できません。再試行を予定しました</string>
+</resources>

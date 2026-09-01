@@ -1,4 +1,4 @@
-Magnolie Organizer 2.0.15 / Notes 1.0.11
+Magnolie Organizer 2.0.15 / Notes 1.0.12
 
 Bitte pruefen Sie heruntergeladene Dateien mit PRUEFSUMMEN.sha256.
 Die anwendungsspezifischen Pruefsummen stehen zusaetzlich in
@@ -23,8 +23,9 @@ dedizierten Android-35-AVD.
 Version 2.0.15 richtet die beiden Seiten der Tagesansicht mit und ohne Wetter
 auch nach Registerwechseln aus, koppelt die Stundenraster und korrigiert den
 Monatswechsel. Die Jahrestagsliste verwendet eine schmale ruhende Scrollleiste.
-Notes 1.0.11 zeigt die automatische Cloud-Sicherung als eigenen einheitlichen
-Magnolie-Papierabschnitt.
+Notes 1.0.12 entfernt überflüssige Bestätigungsknöpfe aus den Zahlenfeldern der
+Sicherungsansicht, verhindert überlagerte Beschriftungen und verbessert den
+Kontrast deaktivierter Knöpfe.
 
 The Windows artifacts intentionally are unsigned Linux cross-builds marked
 artifactTrust=UNSIGNED, windowsRuntimeVerified=false and
@@ -41,5 +42,6 @@ checks passed on a dedicated Android 35 AVD.
 
 Version 2.0.15 aligns both day-view pages with and without weather after tab
 changes, couples their hour grids, and corrects month changes. The anniversary
-list uses a narrow, unobtrusive scrollbar. Notes 1.0.11 presents automatic
-cloud backup as its own consistent Magnolie paper section.
+list uses a narrow, unobtrusive scrollbar. Notes 1.0.12 removes redundant
+confirmation buttons from numeric backup fields, prevents overlapping labels,
+and improves disabled-button contrast.

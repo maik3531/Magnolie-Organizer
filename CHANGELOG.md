@@ -1,5 +1,17 @@
 # Changelog / Änderungen
 
+## 2.0.15 / Notes 1.0.12 — 2026-09-01
+
+### English
+
+- Gives recovery-point and automatic-backup retention fields the full available width, shortens their labels, and saves valid values immediately without redundant confirmation buttons.
+- Makes disabled leather buttons clearly readable with a paper background and dark text while preserving their disabled state.
+
+### Deutsch
+
+- Gibt den Feldern für Wiederherstellungspunkte und aufzubewahrende Sicherungen die volle Breite, kürzt ihre Beschriftungen und speichert gültige Werte sofort ohne überflüssige Bestätigungsschaltflächen.
+- Stellt deaktivierte Lederknöpfe mit Papierhintergrund und dunkler Schrift klar lesbar dar, ohne ihren deaktivierten Zustand aufzuheben.
+
 ## 2.0.15 / Notes 1.0.11 — 2026-09-01
 
 ### English

@@ -35,7 +35,7 @@ Speicherung und bewusst freigegebener Datenaustausch.
 |---|---|---|
 | Linux | [Flatpak x86_64](https://github.com/maik3531/Magnolie-Organizer/releases/latest/download/Magnolie-Organizer-2.0.15-x86_64.flatpak) | [AppImage](https://github.com/maik3531/Magnolie-Organizer/releases/latest/download/Magnolie-Organizer-2.0.15-x86_64.AppImage) · [Debian-Paket](https://github.com/maik3531/Magnolie-Organizer/releases/latest/download/magnolie-organizer_2.0.15_all.deb) |
 | Windows 10/11 x64 | [Installationsprogramm](https://github.com/maik3531/Magnolie-Organizer/releases/latest/download/Magnolie-Organizer-Windows-2.0.15-Setup-x64.exe) | [Portable ZIP](https://github.com/maik3531/Magnolie-Organizer/releases/latest/download/Magnolie-Organizer-Windows-2.0.15-x64.zip) |
-| Android | [Magnolie Notes APK](https://github.com/maik3531/Magnolie-Organizer/releases/latest/download/Magnolie-Notes-1.0.11.apk) | Android 8.0 oder neuer |
+| Android | [Magnolie Notes APK](https://github.com/maik3531/Magnolie-Organizer/releases/latest/download/Magnolie-Notes-1.0.12.apk) | Android 8.0 oder neuer |
 | Handbuch | [Debian-Paket](https://github.com/maik3531/Magnolie-Organizer/releases/latest/download/magnolie-handbuch_2.0.15_all.deb) | Optionale Komponente des Windows-Installers |
 
 SHA-256-Prüfsummen und Quellarchive liegen in der
@@ -71,11 +71,11 @@ SHA-256-Prüfsummen und Quellarchive liegen in der
 |---|---|---|
 | Magnolie Organizer für Linux | Python 3, GTK 3, WebKit2GTK | [`magnolie-organizer-2.0.0`](magnolie-organizer-2.0.0/) |
 | Magnolie Organizer für Windows | C#, .NET 8, WinForms, WebView2 | [`Magnolie-Organizer-Windows-2.0.0`](Magnolie-Organizer-Windows-2.0.0/) |
-| Magnolie Notes für Android | Kotlin, Jetpack Compose | [`magnolie-notes-1.0.11`](magnolie-notes-1.0.11/) |
+| Magnolie Notes für Android | Kotlin, Jetpack Compose | [`magnolie-notes-1.0.12`](magnolie-notes-1.0.12/) |
 | Magnolie-Handbuch | Python, GTK, HTML/CSS/JavaScript | [`magnolie-handbuch-stamm`](magnolie-handbuch-stamm/) |
 
 Jeder Ordner enthält eigene Bau- und Prüfanweisungen. Das Repository enthält
-die veröffentlichten Quellen für Organizer 2.0.15 und Notes 1.0.11. Fertige
+die veröffentlichten Quellen für Organizer 2.0.15 und Notes 1.0.12. Fertige
 Pakete bleiben auf der Releases-Seite und belasten nicht die Git-Historie.
 
 ## Sicherheit und Datenschutz
