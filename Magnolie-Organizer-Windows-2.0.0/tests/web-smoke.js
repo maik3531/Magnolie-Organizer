@@ -115,6 +115,12 @@ assert.match(css, /\*::\-webkit-scrollbar-thumb\s*\{[^}]*border:\s*2px solid tra
   "idle Windows scrollbar thumb is not reduced to a two-pixel line");
 assert.match(css, /\*::\-webkit-scrollbar-thumb:hover,[^}]*border-width:\s*0;/s,
   "Windows scrollbar thumb does not widen inside its fixed hit area");
+assert.match(css, /\.seiten-inhalt\.tagesansicht\s*\{[^}]*display:\s*flex;[^}]*flex-direction:\s*column;[^}]*overflow:\s*hidden;/s,
+  "day pages do not use the shared fixed layout");
+assert.match(css, /\.seiten-inhalt\.tagesansicht \.stunden-raster::\-webkit-scrollbar\s*\{[^}]*display:\s*none;[^}]*width:\s*0;[^}]*height:\s*0;/s,
+  "day-view scrollbars remain visible");
+assert.match(css, /\.stunden-reihe\s*\{[^}]*flex:\s*1 0 var\(--tages-stundenhoehe\);/s,
+  "day rows do not use a deterministic common flex basis");
 for (const file of [path.join(web, "anwendung.js"),
   path.join(poDir, "magnolie-organizer.pot"),
   ...catalogs.map((name) => path.join(web, "i18n", name)),
@@ -796,7 +802,24 @@ for (const view of ["month", "week", "day"]) {
   assert.ok(context.defaultPrevented && window.document.querySelector("#such-schleier"),
     `Today context search missing in ${view}`);
   escape();
+  if (view === "day") {
+    const left = window.document.querySelector("#inhalt-links");
+    const right = window.document.querySelector("#inhalt-rechts");
+    assert.ok(left.classList.contains("tagesansicht") &&
+      right.classList.contains("tagesansicht"),
+    "day pages are not marked for aligned layout");
+    assert.strictEqual(Boolean(left.querySelector(".wetter-platzhalter")),
+      Boolean(right.querySelector(".wetter-kasten")),
+    "day view does not reserve weather height symmetrically");
+    assert.strictEqual(left.querySelectorAll(".stunden-reihe").length, 17,
+      "left day grid does not contain 17 rows");
+    assert.strictEqual(right.querySelectorAll(".stunden-reihe").length, 17,
+      "right day grid does not contain 17 rows");
+  }
 }
+assert.ok(application.includes("kopfLinks.offsetHeight") &&
+  application.includes("rasterRechts.offsetTop - rasterLinks.offsetTop"),
+"day alignment uses transformed measurements after changing tabs");
 assert.ok(!/console\.(?:log|debug)\([^\n]*such/i.test(application),
   "search code may log sensitive values");
 pressFind();

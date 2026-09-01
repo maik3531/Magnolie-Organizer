@@ -2256,12 +2256,12 @@ function knopfMit(text, wurzel) {
     enSyncNachrichten.some((nachricht) => nachricht.cmd === "update_pruefen"),
   "englische Über-Seite verändert Handbuch- oder Update-Befehl");
   const enUpdateUrl = "https://gitlab.com/maik3531/mint-forgs/-/raw/main/" +
-    "Magnolie-Organitzer/magnolie-organizer_2.0.15_all.deb";
-  enSW.App.updateErgebnis({ ok: true, aktuell: false, version: "2.0.15",
+    "Magnolie-Organitzer/magnolie-organizer_2.0.16_all.deb";
+  enSW.App.updateErgebnis({ ok: true, aktuell: false, version: "2.0.16",
     url: enUpdateUrl, sha256: "ab".repeat(32), fehler: "" });
   assert.ok(enSD.querySelector("#update-stand").textContent.includes(
-    "New version 2.0.15 is available") &&
-    enSD.querySelector("#update-herunterladen").textContent.includes("2.0.15") &&
+    "New version 2.0.16 is available") &&
+    enSD.querySelector("#update-herunterladen").textContent.includes("2.0.16") &&
     enSD.querySelector(".update-pruefsumme").textContent.includes("ab".repeat(32)) &&
     enSD.querySelector(".update-pruefsumme").textContent.includes("sha256sum"),
   "englischer neuer Update-Stand fehlt");
@@ -3169,7 +3169,8 @@ function knopfMit(text, wurzel) {
   $$('#ansicht-umschalter [data-ansicht="month"]')[0].click();
   assert.ok($(".termin-uebersicht"), "Terminübersicht fehlt");
   assert.ok($("#inhalt-rechts").textContent.includes("Zahnarzt"),
-    "Termin fehlt in der Übersicht");
+    `Termin fehlt in der Übersicht (Monat ${T.zustand().kalender.monat + 1}, ` +
+      `Tag ${T.zustand().kalender.tag})`);
   assert.ok($(".kal-tag.gewaehlt .mini"), "Termin erscheint nicht im Monatsraster");
 
   /* Ein Klick auf den Termin in der Übersicht öffnet das Blatt */
@@ -4031,6 +4032,10 @@ function knopfMit(text, wurzel) {
     "deutsche Jahrestagsüberschrift fehlt");
   assert.strictEqual($("#kopf-rechts h2").textContent, "Neuer Jahrestag",
     "deutscher Jahrestagskopf fehlt");
+  assert.ok($("#inhalt-links").classList.contains("jahrestage-liste") &&
+    css.includes(".seiten-inhalt.jahrestage-liste::-webkit-scrollbar { width: 6px; }") &&
+    css.includes(".seiten-inhalt.jahrestage-liste::-webkit-scrollbar-thumb { background: transparent; }"),
+  "die Jahrestagsliste verwendet keine schmale, ruhende Scrollleiste");
   assert.deepStrictEqual($$("#inhalt-rechts .feldname").map((label) => label.textContent),
     ["Name / Anlass", "Datum", "Art"],
   "deutsche Jahrestagsbeschriftungen fehlen");
@@ -5892,6 +5897,12 @@ function knopfMit(text, wurzel) {
   $$("#ansicht-umschalter .u-knopf").find((b) => b.dataset.ansicht === "day").click();
   assert.strictEqual(T.zustand().kalender.ansicht, "day", "Tagesansicht nicht aktiv");
   assert.strictEqual($$(".tages-spalte").length, 2, "zwei Tage erwartet");
+  assert.ok($("#inhalt-links").classList.contains("tagesansicht") &&
+    $("#inhalt-rechts").classList.contains("tagesansicht"),
+  "die Tagesansicht verwendet nicht auf beiden Seiten die gekoppelte Anordnung");
+  assert.strictEqual(Boolean($("#inhalt-links .wetter-platzhalter")),
+    Boolean($("#inhalt-rechts .wetter-kasten")),
+  "der Platzhalter folgt nicht dem tatsächlichen Wetterkasten");
 
   /* Links der gewählte Tag, rechts der folgende */
   const dLinks = new Date(T.zustand().kalender.tag);
@@ -5910,8 +5921,28 @@ function knopfMit(text, wurzel) {
   assert.deepStrictEqual(stundenReihen.map((r) => Number(r.dataset.stunde)),
     Array.from({ length: 17 }, (_, i) => i + 6),
     "die Stunden des Tagesrasters sind nicht lückenlos");
-  assert.ok(css.includes("flex: 1 0 auto;"),
-    "die Stundenreihen teilen den verfügbaren Platz nicht gleichmäßig");
+  assert.ok(css.includes("flex: 1 0 var(--tages-stundenhoehe);"),
+    "die Stundenreihen haben keine feste gemeinsame Ausgangshöhe");
+  assert.ok(css.includes("scrollbar-width: none;") &&
+    css.includes(".seiten-inhalt.tagesansicht .stunden-raster::-webkit-scrollbar"),
+  "die Tagesansicht blendet ihre Scrollbalken nicht aus");
+  assert.ok(js.includes("koppleTagesRaster") &&
+    js.includes("ziel.scrollTop = quelle.scrollTop"),
+  "die beiden Stundenraster scrollen nicht gekoppelt");
+  assert.ok(js.includes("kopfLinks.offsetHeight") &&
+    js.includes("rasterRechts.offsetTop - rasterLinks.offsetTop"),
+  "die Tagesausrichtung darf durch Registeranimationen nicht skaliert werden");
+  const wetterVorRegisterwechsel = T.daten().einstellungen.allgemein.wetter;
+  T.daten().einstellungen.allgemein.wetter = false;
+  T.wechsel("aufgaben");
+  T.wechsel("kalender");
+  assert.ok($("#inhalt-links").classList.contains("tagesansicht") &&
+    $("#inhalt-rechts").classList.contains("tagesansicht") &&
+    !$(".wetter-kasten") && !$(".wetter-platzhalter"),
+  "die Tagesseiten werden nach Registerwechsel ohne Wetter nicht symmetrisch aufgebaut");
+  T.daten().einstellungen.allgemein.wetter = wetterVorRegisterwechsel;
+  T.wechsel("aufgaben");
+  T.wechsel("kalender");
   const linkeSpalte = $("#inhalt-links .tages-spalte");
   assert.strictEqual(linkeSpalte.lastElementChild.className, "tages-fuss",
     "der Fußbereich schließt die Tagesansicht nicht ab");
@@ -6378,7 +6409,7 @@ function knopfMit(text, wurzel) {
   assert.ok(ueberText.includes("Version 3"), "die Lizenzfassung fehlt");
   assert.ok($(".ueber-fassung").textContent.includes("Fassung"),
     "die Programmfassung fehlt");
-  assert.ok($(".ueber-fassung").textContent.includes("2.0.14"),
+  assert.ok($(".ueber-fassung").textContent.includes("2.0.15"),
     "die neue Programmfassung fehlt");
   assert.ok($(".ueber-blume"), "die Magnolienblüte fehlt");
   const beschreibung = $(".ueber-beschreibung");
@@ -6398,18 +6429,18 @@ function knopfMit(text, wurzel) {
     "neben der gemeinsamen Aktualisierungsprüfung ist ein zweiter Prüfknopf sichtbar");
   assert.ok($("#handbuch-stand").textContent.includes("nicht installiert"),
     "der Handbuchstatus nennt die fehlende Installation nicht");
-  assert.ok(!T.istNeuereFassung("2.0.1") && !T.istNeuereFassung("2.0.14") &&
-    T.istNeuereFassung("2.0.15"),
+  assert.ok(!T.istNeuereFassung("2.0.1") && !T.istNeuereFassung("2.0.15") &&
+    T.istNeuereFassung("2.0.16"),
     "Fassungsvergleich der Oberfläche stimmt nicht");
   assert.ok(T.vergleicheText("Termin 2", "Termin 10") < 0,
     "der regionale Collator sortiert Zahlen weiterhin rein lexikografisch");
-  w.App.updateErgebnis({ ok: true, aktuell: false, version: "2.0.15",
+  w.App.updateErgebnis({ ok: true, aktuell: false, version: "2.0.16",
     url: "https://gitlab.com/maik3531/mint-forgs/-/raw/main/" +
-      "Magnolie-Organitzer/magnolie-organizer_2.0.15_all.deb" });
-  assert.ok($("#update-stand").textContent.includes("2.0.15"),
+      "Magnolie-Organitzer/magnolie-organizer_2.0.16_all.deb" });
+  assert.ok($("#update-stand").textContent.includes("2.0.16"),
     "gefundene Fassung erscheint nicht unter Über");
   assert.ok($("#update-herunterladen"), "Downloadknopf für neue Fassung fehlt");
-  assert.strictEqual(T.daten().einstellungen.update.letzteVersion, "2.0.15",
+  assert.strictEqual(T.daten().einstellungen.update.letzteVersion, "2.0.16",
     "Prüfstand wird nicht gespeichert");
   $("#update-automatisch").checked = false;
   $("#update-automatisch").dispatchEvent(new w.Event("change", { bubbles: true }));
@@ -7414,7 +7445,7 @@ function knopfMit(text, wurzel) {
     "ohne Handbuch darf der Hinweis nicht als gezeigt gespeichert werden");
   const handbuchUrl = "https://gitlab.com/maik3531/mint-forgs/-/raw/main/" +
     "Magnolie-Organitzer/magnolie-handbuch_1.9.8_all.deb";
-  hw.App.updateErgebnis({ ok: true, aktuell: true, version: "2.0.14", url: "",
+  hw.App.updateErgebnis({ ok: true, aktuell: true, version: "2.0.15", url: "",
     sha256: "ab".repeat(32), handbuch: { version: "1.9.8", url: handbuchUrl,
       sha256: "cd".repeat(32) }, fehler: "" });
   assert.ok(!hd.querySelector("#dialog-schleier").classList.contains("verborgen") &&

@@ -226,8 +226,8 @@ with tempfile.TemporaryDirectory() as temporary:
 PY
 sh "$WURZEL/pruefungen/test_debian_koinstallation.sh" \
     "$DEB" "$HANDBUCH_DEB" \
-    "$LIVE_ROOT/magnolie-organizer_2.0.11_all.deb" \
-    "$LIVE_ROOT/magnolie-handbuch_2.0.11_all.deb"
+    "$LIVE_ROOT/magnolie-organizer_2.0.14_all.deb" \
+    "$LIVE_ROOT/magnolie-handbuch_2.0.14_all.deb"
 cd "$WURZEL"
 
 SOURCE_DATE_EPOCH=$epoch werkzeuge/appimage_jammy_bauen.sh "$APPIMAGE"

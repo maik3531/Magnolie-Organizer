@@ -23,6 +23,7 @@ internal sealed class CloudBackupSecretStore
 
     internal void Store(string password)
     {
+        if (!OperatingSystem.IsWindows()) throw new PlatformNotSupportedException();
         if (password.Length is < 4 or > 4096) throw new InvalidDataException("invalid_password");
         var plain = Encoding.UTF8.GetBytes(password);
         try
@@ -37,6 +38,7 @@ internal sealed class CloudBackupSecretStore
 
     internal string? Lookup()
     {
+        if (!OperatingSystem.IsWindows()) return null;
         try
         {
             var stored = files.Read(path, 32 * 1024);

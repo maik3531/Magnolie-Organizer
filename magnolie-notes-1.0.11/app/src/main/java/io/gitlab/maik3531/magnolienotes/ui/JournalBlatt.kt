@@ -164,11 +164,9 @@ fun JournalBlatt(zustand: JournalZustand, bestand: Bestand, handlungen: JournalH
                 beiKlick = handlungen.beiPortableDatei)
             if (handlungen.portableFehler) Text(stringResource(R.string.portable_fehler),
                 color = Magnolie.rot, fontSize = 12.sp)
-            Text(stringResource(R.string.auto_backup_titel), fontFamily = FontFamily.Serif,
-                fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Magnolie.tinte,
-                modifier = Modifier.padding(top = 12.dp))
-            Text(stringResource(R.string.auto_backup_hinweis), fontFamily = FontFamily.SansSerif,
-                fontSize = 11.sp, color = Magnolie.braunHell)
+        }
+        Abschnitt(ueberschrift = stringResource(R.string.auto_backup_titel),
+            hinweis = stringResource(R.string.auto_backup_hinweis)) {
             Schalterzeile(stringResource(R.string.auto_backup_aktiv), handlungen.autoSicherung.aktiviert) { an ->
                 if (an && !handlungen.autoSicherung.passwortGesichert) {
                     autoDanachAktivieren = true; autoPasswort = ""

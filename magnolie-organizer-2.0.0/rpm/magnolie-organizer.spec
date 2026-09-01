@@ -33,7 +33,7 @@
 %endif
 
 Name:           magnolie-organizer
-Version:        2.0.14
+Version:        2.0.15
 Release:        1%{?dist}
 Summary:        Personal organizer with a classic paper appearance
 
@@ -236,6 +236,10 @@ done
 %{_mandir}/*/man1/magnolie-organizer.1*
 
 %changelog
+* Tue Sep 01 2026 Maik Walter <maik3531@gmail.com> - 2.0.15-1
+- Align day pages across tab changes and optional weather.
+- Refine anniversary scrolling and month-boundary navigation.
+
 * Mon Aug 31 2026 Maik Walter <maik3531@gmail.com> - 2.0.14-1
 - Protect personal assets and harden package and VM release validation.
 - Add localized CLI aliases and isolated distribution profiles.

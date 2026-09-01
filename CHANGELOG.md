@@ -1,5 +1,19 @@
 # Changelog / Änderungen
 
+## 2.0.15 / Notes 1.0.11 — 2026-09-01
+
+### English
+
+- Keeps both calendar day pages aligned with or without weather, after changing tabs, at smaller window sizes, and while scrolling the hour grids.
+- Synchronizes the monthly view with the selected day at month boundaries and gives the anniversary list a narrow, unobtrusive scrollbar.
+- Gives automatic cloud backup in Magnolie Notes its own consistent paper section with the established Magnolie typography and controls.
+
+### Deutsch
+
+- Hält beide Seiten der Kalender-Tagesansicht mit und ohne Wetter, nach Registerwechseln, bei kleineren Fenstern und beim Rollen der Stundenraster ausgerichtet.
+- Synchronisiert die Monatsansicht an Monatsgrenzen mit dem gewählten Tag und gibt der Jahrestagsliste eine schmale, unaufdringliche Scrollleiste.
+- Gestaltet die automatische Cloud-Sicherung in Magnolie Notes als eigenen einheitlichen Papierabschnitt mit der bestehenden Magnolie-Typografie und Bedienung.
+
 ## 2.0.14 / Notes 1.0.10 — 2026-08-31
 
 ### English

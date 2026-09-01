@@ -1,9 +1,9 @@
-Magnolie Organizer 2.0.14 / Notes 1.0.10
+Magnolie Organizer 2.0.15 / Notes 1.0.11
 
 Bitte pruefen Sie heruntergeladene Dateien mit PRUEFSUMMEN.sha256.
 Die anwendungsspezifischen Pruefsummen stehen zusaetzlich in
 Magnolie-Organizer-PRUEFSUMMEN.sha256,
-Magnolie-Organizer-Windows-2.0.14-PRUEFSUMMEN.sha256 und
+Magnolie-Organizer-Windows-2.0.15-PRUEFSUMMEN.sha256 und
 Magnolie-Notes-PRUEFSUMMEN.sha256.
 
 Die Windows-Artefakte sind bewusst unsignierte Linux-Cross-Builds. Sie sind
@@ -20,10 +20,11 @@ Produktionsschluessel gebaut; Unit-, Lint-, Signatur-, Installations-,
 Aktualisierungs- und Wiederherstellungspruefungen liefen erfolgreich auf einem
 dedizierten Android-35-AVD.
 
-Version 2.0.14 haelt persoenliche Bilddateien durch versionierte
-Obfuskationscontainer aus Paketlisten heraus, ergaenzt lokalisierte CLI-Aliasse und verbessert
-Kalender, Geraetestatus, Personal Sync und die Ueber-Seite. Getrennte
-RPM-Profile und erweiterte VM-, Paket- und Sprachpruefungen haerten die Ausgabe.
+Version 2.0.15 richtet die beiden Seiten der Tagesansicht mit und ohne Wetter
+auch nach Registerwechseln aus, koppelt die Stundenraster und korrigiert den
+Monatswechsel. Die Jahrestagsliste verwendet eine schmale ruhende Scrollleiste.
+Notes 1.0.11 zeigt die automatische Cloud-Sicherung als eigenen einheitlichen
+Magnolie-Papierabschnitt.
 
 The Windows artifacts intentionally are unsigned Linux cross-builds marked
 artifactTrust=UNSIGNED, windowsRuntimeVerified=false and
@@ -38,7 +39,7 @@ Magnolie Notes was built with the existing
 production key; unit, lint, signature, installation, upgrade and recovery
 checks passed on a dedicated Android 35 AVD.
 
-Version 2.0.14 keeps plaintext personal image files out of package listings
-through versioned obfuscation containers, adds localized CLI aliases, and improves the calendar, device
-status, Personal Sync, and About page. Isolated RPM profiles and broader VM,
-package, and language checks harden the release.
+Version 2.0.15 aligns both day-view pages with and without weather after tab
+changes, couples their hour grids, and corrects month changes. The anniversary
+list uses a narrow, unobtrusive scrollbar. Notes 1.0.11 presents automatic
+cloud backup as its own consistent Magnolie paper section.

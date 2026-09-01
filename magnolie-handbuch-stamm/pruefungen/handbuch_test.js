@@ -505,8 +505,8 @@ for (const language of languages) {
             assert.ok(digits.includes(value),
               `${language}: synchronization limit ${value} changed on ${page.titel}`);
           }
-          assert.ok(data.messages[page[key]].includes("2.0.14") &&
-            data.messages[page[key]].includes("1.0.9"),
+          assert.ok(data.messages[page[key]].includes("2.0.15") &&
+            data.messages[page[key]].includes("1.0.11"),
           `${language}: supported version changed on ${page.titel}`);
         }
         const protectedByPage = {
@@ -765,9 +765,9 @@ function checkLocale(locale, expected) {
   for (const text of expected.completeText) {
     assert.ok(print.includes(text), `${locale}: missing complete-book marker: ${text}`);
   }
-  for (const preserved of ["backing-up-and-restoring", "magnolie-organizer_2.0.14_all.deb",
-    "sudo apt install ./magnolie-organizer_2.0.14_all.deb", "wttr.in",
-    "maik3531@gmail.com", "2.0.14"]) {
+  for (const preserved of ["backing-up-and-restoring", "magnolie-organizer_2.0.15_all.deb",
+    "sudo apt install ./magnolie-organizer_2.0.15_all.deb", "wttr.in",
+    "maik3531@gmail.com", "2.0.15"]) {
     assert.ok(print.includes(preserved), `${locale}: technical value changed: ${preserved}`);
   }
   assert.ok(!print.includes("1.28.0") && !print.includes("1.31.37") &&
@@ -1002,9 +1002,9 @@ try {
   assert.ok(english.H.blaettereZuId("kde-sms") &&
     english.H.seiten()[english.H.seiten().findIndex((page) => page.id === "kde-sms")].titel,
   "slug navigation failed");
-  assert.ok(englishText.includes("sudo dnf install ./magnolie-organizer-2.0.14-1.noarch.rpm"));
-  assert.ok(englishText.includes("rpmbuild --rebuild magnolie-organizer-2.0.14-1.src.rpm"));
-  assert.ok(englishText.includes("sudo dnf upgrade ./magnolie-organizer-2.0.14-1.noarch.rpm"));
+  assert.ok(englishText.includes("sudo dnf install ./magnolie-organizer-2.0.15-1.noarch.rpm"));
+  assert.ok(englishText.includes("rpmbuild --rebuild magnolie-organizer-2.0.15-1.src.rpm"));
+  assert.ok(englishText.includes("sudo dnf upgrade ./magnolie-organizer-2.0.15-1.noarch.rpm"));
   assert.ok(englishText.includes("Only one <i>Magnolie Organizer</i> entry remains"));
   assert.ok(englishText.includes("Update manual …") &&
     englishText.includes("verifies SHA-256") && englishText.includes("never runs sudo or dpkg"));
@@ -1138,15 +1138,15 @@ try {
   const python = fs.readFileSync(path.join(ROOT, "bin", "magnolie-handbuch"), "utf8");
   assert.ok(python.includes("gettext.translation") && python.includes("/usr/share/locale"));
   assert.ok(python.includes("window.MAGNOLIE_LOCALE") && python.includes("get_is_remote"));
-  assert.ok(python.includes('PROGRAMM_FASSUNG = "2.0.14"') && python.includes('"--version"'));
+  assert.ok(python.includes('PROGRAMM_FASSUNG = "2.0.15"') && python.includes('"--version"'));
   const changelog = fs.readFileSync(path.join(ROOT, "debian", "changelog"), "utf8");
   const pot = fs.readFileSync(path.join(ROOT, "po", "magnolie-handbuch.pot"), "utf8");
-  assert.ok(changelog.startsWith("magnolie-handbuch (2.0.14)"));
-  assert.ok(pot.includes('"Project-Id-Version: Magnolie Handbook 2.0.14'));
+  assert.ok(changelog.startsWith("magnolie-handbuch (2.0.15)"));
+  assert.ok(pot.includes('"Project-Id-Version: Magnolie Handbook 2.0.15'));
   for (const relative of ["man/magnolie-handbuch.1",
     ...languages.map(language => `man/${language}/magnolie-handbuch.1`)]) {
     assert.ok(fs.readFileSync(path.join(ROOT, relative), "utf8").split("\n", 1)[0]
-      .includes("2.0.14"), `${relative}: stale manual version`);
+      .includes("2.0.15"), `${relative}: stale manual version`);
   }
   assert.ok(!sources.i18n.includes("pageReferenceUpdates") &&
     !sources.content.includes("data-seite="), "brittle page-number migration remains");

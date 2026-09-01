@@ -161,7 +161,7 @@ assert.ok(!fs.existsSync(path.join(handbook, "kaffee-qr.png")) &&
   !fs.existsSync(path.join(handbook, "maik-walter.jpg")),
 "Handbuch darf keine Klartext-Personenassets enthalten");
 assert.ok(fs.existsSync(path.join(handbook, "maik-walter-FOTO-NUTZUNG.txt")));
-for (const marker of [`Windows ${expectedVersion}`, "Magnolie Notes für Android 1.0.9",
+for (const marker of [`Windows ${expectedVersion}`, "Magnolie Notes für Android 1.0.11",
   "Kontakte synchronisieren", "2.800.000", "stabile technische Bindung",
   "12.000.000", "24.000.000", "FileProvider", "256 MiB", "512 MiB",
   "Freiwilliger Löschabgleich", "höchstens 10 Löschungen", "höchstens 10 %",

@@ -15,7 +15,7 @@
 (function () {
 
   /* Die Fassung erscheint auf der Seite „Über". */
-const FASSUNG = "2.0.14";
+const FASSUNG = "2.0.15";
 
 const NEU_IN_DIESER_FASSUNG = {
   ar: ["ما الجديد في هذا الإصدار", "رسوميات Wayland وAppImage أصلية أسرع، مع وضع توافق اختياري", "عرض يومي أوضح وقابل للتوسيع", "حاويات محمية للصور الشخصية", "ملفات تعريف موسعة لتوزيعات RPM", "قناة موثوقة لنتائج الآلة الافتراضية", "أسماء مختصرة بديلة لسطر الأوامر"],
@@ -139,7 +139,7 @@ const NEU_IN_DIESER_FASSUNG = {
   const jetztTeile = organizerDatumzeitTeile(jetzt);
   const zustand = {
     sektion: "kalender",
-    kalender: { jahr: jetztTeile.jahr, monat: jetztTeile.monat - 1, tag: isoHeute(),
+    kalender: { jahr: jetztTeile.jahr, monat: jetztTeile.monat - 1, tag: isoHeute(jetzt),
       bearbeiteId: null, ansicht: "week" },
     aufgaben: { bearbeiteId: null,
       filter: { person: "", von: "", bis: "" } },
@@ -7460,9 +7460,18 @@ const NEU_IN_DIESER_FASSUNG = {
   }
 
   function leereSeiten() {
+    if (tagesResizeBeobachter) {
+      tagesResizeBeobachter.disconnect();
+      tagesResizeBeobachter = null;
+    }
+    if (tagesAusrichtungRaf) {
+      cancelAnimationFrame(tagesAusrichtungRaf);
+      tagesAusrichtungRaf = 0;
+    }
     for (const id of ["kopf-links", "kopf-rechts", "inhalt-links", "inhalt-rechts"]) {
       const e = $("#" + id);
       e.textContent = "";
+      if (id.startsWith("kopf")) e.style.height = "";
       if (id.startsWith("inhalt")) e.className = "seiten-inhalt";
     }
     setzeEcken(null, "", null, "");
@@ -9571,6 +9580,11 @@ const NEU_IN_DIESER_FASSUNG = {
       b.addEventListener("click", () => {
         if (z.ansicht === wert) return;
         z.ansicht = wert;
+        if (wert === "month") {
+          const tag = ausISO(z.tag);
+          z.jahr = tag.getFullYear();
+          z.monat = tag.getMonth();
+        }
         if (wert !== "month") z.uebersichtAb = null;
         z.bearbeiteId = null;
         DATEN.einstellungen.ansicht = wert;
@@ -9610,6 +9624,61 @@ const NEU_IN_DIESER_FASSUNG = {
 
   const TAG_VON = 6;          /* erste angezeigte Stunde */
   const TAG_BIS = 22;         /* letzte angezeigte Stunde */
+  let tagesResizeBeobachter = null;
+  let tagesAusrichtungRaf = 0;
+  let tagesScrollKopplung = false;
+
+  function planeTagesAusrichtung() {
+    if (tagesAusrichtungRaf) cancelAnimationFrame(tagesAusrichtungRaf);
+    tagesAusrichtungRaf = requestAnimationFrame(() => {
+      tagesAusrichtungRaf = 0;
+      richteTagesansichtAus();
+    });
+  }
+
+  function richteTagesansichtAus() {
+    const linksWurzel = $("#inhalt-links");
+    const rechtsWurzel = $("#inhalt-rechts");
+    if (!linksWurzel.classList.contains("tagesansicht") ||
+        !rechtsWurzel.classList.contains("tagesansicht")) return;
+
+    const kopfLinks = $("#kopf-links");
+    const kopfRechts = $("#kopf-rechts");
+    kopfLinks.style.height = "";
+    kopfRechts.style.height = "";
+    const kopfHoehe = Math.max(kopfLinks.offsetHeight, kopfRechts.offsetHeight);
+    kopfLinks.style.height = kopfHoehe + "px";
+    kopfRechts.style.height = kopfHoehe + "px";
+
+    const wetter = rechtsWurzel.querySelector(".wetter-kasten");
+    const platzhalter = linksWurzel.querySelector(".wetter-platzhalter");
+    if (wetter && platzhalter) {
+      platzhalter.style.height = wetter.offsetHeight + "px";
+    }
+
+    const rasterLinks = linksWurzel.querySelector(".stunden-raster");
+    const rasterRechts = rechtsWurzel.querySelector(".stunden-raster");
+    if (rasterLinks && rasterRechts) {
+      rasterLinks.style.marginTop = "0px";
+      rasterRechts.style.marginTop = "0px";
+      const unterschied = rasterRechts.offsetTop - rasterLinks.offsetTop;
+      if (unterschied > 0) rasterLinks.style.marginTop = unterschied + "px";
+      else if (unterschied < 0) rasterRechts.style.marginTop = -unterschied + "px";
+    }
+  }
+
+  function koppleTagesRaster(rasterLinks, rasterRechts) {
+    const uebertrage = (quelle, ziel) => {
+      if (tagesScrollKopplung) return;
+      tagesScrollKopplung = true;
+      ziel.scrollTop = quelle.scrollTop;
+      tagesScrollKopplung = false;
+    };
+    rasterLinks.addEventListener("scroll", () => uebertrage(rasterLinks, rasterRechts));
+    rasterRechts.addEventListener("scroll", () => uebertrage(rasterRechts, rasterLinks));
+  }
+
+  window.addEventListener("resize", planeTagesAusrichtung);
 
   function schiebeTage(um) {
     const z = zustand.kalender;
@@ -9655,10 +9724,28 @@ const NEU_IN_DIESER_FASSUNG = {
     baueKopf("rechts", wochentagName(dr.getDay()),
       datumText(dr, { day: "numeric", month: "long", year: "numeric" }), []);
 
-    baueTagesSpalte($("#inhalt-links"), linkerTag);
+    const linksWurzel = $("#inhalt-links");
     const rechtsWurzel = $("#inhalt-rechts");
+    linksWurzel.classList.add("tagesansicht");
+    rechtsWurzel.classList.add("tagesansicht");
     zeichneWetter(rechtsWurzel);
+    if (rechtsWurzel.querySelector(".wetter-kasten")) {
+      const wetterPlatzhalter = el("div", "wetter-platzhalter");
+      wetterPlatzhalter.setAttribute("aria-hidden", "true");
+      linksWurzel.append(wetterPlatzhalter);
+    }
+    baueTagesSpalte(linksWurzel, linkerTag);
     baueTagesSpalte(rechtsWurzel, rechterTag);
+
+    const rasterLinks = linksWurzel.querySelector(".stunden-raster");
+    const rasterRechts = rechtsWurzel.querySelector(".stunden-raster");
+    if (rasterLinks && rasterRechts) koppleTagesRaster(rasterLinks, rasterRechts);
+    if (typeof ResizeObserver === "function") {
+      tagesResizeBeobachter = new ResizeObserver(planeTagesAusrichtung);
+      const wetter = rechtsWurzel.querySelector(".wetter-kasten");
+      if (wetter) tagesResizeBeobachter.observe(wetter);
+    }
+    planeTagesAusrichtung();
 
     setzeEcken(() => schiebeTage(-1), _("Two days back"),
       () => schiebeTage(1), _("Two days forward"));
@@ -12834,6 +12921,7 @@ const NEU_IN_DIESER_FASSUNG = {
       DATEN.jahrestage.length), [neuKnopf]);
 
     const inhaltL = $("#inhalt-links");
+    inhaltL.classList.add("jahrestage-liste");
     const sortiert = DATEN.jahrestage
       .map((jt) => ({ jt: jt, n: naechsterJahrestag(jt) }))
       .sort((a, b) => a.n.inTagen - b.n.inTagen ||
@@ -20390,10 +20478,11 @@ const NEU_IN_DIESER_FASSUNG = {
         DATEN.einstellungen.regional = Object.assign(
           DATEN.einstellungen.regional, nutzlast.regional);
       }
-      const heute = organizerDatumzeitTeile(new Date());
+      const jetzt = new Date();
+      const heute = organizerDatumzeitTeile(jetzt);
       zustand.kalender.jahr = heute.jahr;
       zustand.kalender.monat = heute.monat - 1;
-      zustand.kalender.tag = isoHeute();
+      zustand.kalender.tag = isoHeute(jetzt);
       zustand.planer.jahr = heute.jahr;
       if (nutzlast.trayEinstellungen && typeof nutzlast.trayEinstellungen === "object") {
         DATEN.einstellungen.allgemein.tray = leseTrayEinstellungen(

@@ -1960,6 +1960,24 @@ body[data-hilfsrahmen="an"] .notiz-editor :focus-visible {
 .jt-in { flex: none; width: 90px; font-size: 12px; color: #7d6a45; text-align: right; }
 .jt-in.heute-rot { color: var(--rot); font-weight: 700; }
 
+.seiten-inhalt.jahrestage-liste {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+}
+
+.seiten-inhalt.jahrestage-liste:hover,
+.seiten-inhalt.jahrestage-liste:focus-within {
+  scrollbar-color: #c0ac7d transparent;
+}
+
+.seiten-inhalt.jahrestage-liste::-webkit-scrollbar { width: 6px; }
+.seiten-inhalt.jahrestage-liste::-webkit-scrollbar-thumb { background: transparent; }
+.seiten-inhalt.jahrestage-liste:hover::-webkit-scrollbar-thumb,
+.seiten-inhalt.jahrestage-liste:focus-within::-webkit-scrollbar-thumb {
+  background: #c0ac7d;
+  background-clip: padding-box;
+}
+
 /* --------------------------------------------------------------------------
    Jahresplaner
    -------------------------------------------------------------------------- */
@@ -4390,6 +4408,17 @@ textarea.feld { background-color: #fbf6e8; }
   color: var(--tinte);
 }
 
+.wetter-platzhalter {
+  flex: none;
+  box-sizing: border-box;
+  margin: 0 0 10px;
+  padding: 7px 8px 8px;
+  border-top: 1px solid #c9b27a;
+  border-bottom: 1px solid #c9b27a;
+  background: linear-gradient(90deg, rgba(221, 205, 158, 0.2),
+    rgba(255, 253, 244, 0.55), rgba(221, 205, 158, 0.2));
+}
+
 .wetter-kopf {
   display: flex;
   align-items: baseline;
@@ -4560,6 +4589,18 @@ textarea.feld { background-color: #fbf6e8; }
 
 /* -------------------------------- Tagesansicht --------------------------- */
 
+.seiten-inhalt.tagesansicht {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.seiten-inhalt.tagesansicht > .tages-spalte {
+  flex: 1;
+  height: auto;
+  min-height: 0;
+}
+
 .tages-spalte {
   --tages-stundenhoehe: 34px;
   display: flex;
@@ -4583,12 +4624,21 @@ textarea.feld { background-color: #fbf6e8; }
   display: flex;
   flex-direction: column;
   overflow-y: auto;
-  padding-right: 3px;
+  padding-right: 0;
   border-bottom: 1px solid var(--linie);
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.seiten-inhalt.tagesansicht::-webkit-scrollbar,
+.seiten-inhalt.tagesansicht .stunden-raster::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
 }
 
 .stunden-reihe {
-  flex: 1 0 auto;
+  flex: 1 0 var(--tages-stundenhoehe);
   display: flex;
   align-items: stretch;
   min-height: var(--tages-stundenhoehe);

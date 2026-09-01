@@ -45,6 +45,18 @@ class TelefonLayoutTest {
         assertTrue(journal.contains("R.string.papierkorb_hinweis"))
     }
 
+    @Test fun `Cloudsicherung ist ein eigener Magnolie Abschnitt`() {
+        val journal = File(root,
+            "app/src/main/java/io/gitlab/maik3531/magnolienotes/ui/JournalBlatt.kt").readText()
+        val portable = journal.indexOf("Abschnitt(ueberschrift = stringResource(R.string.portable_titel)")
+        val cloud = journal.indexOf("Abschnitt(ueberschrift = stringResource(R.string.auto_backup_titel)")
+        val liste = journal.indexOf("Abschnitt(stringResource(R.string.journal_liste))")
+        assertTrue("Sicherungsabschnitte fehlen oder sind falsch angeordnet",
+            portable >= 0 && cloud > portable && liste > cloud)
+        assertTrue(journal.contains("hinweis = stringResource(R.string.auto_backup_hinweis)"))
+        assertFalse(journal.contains("Text(stringResource(R.string.auto_backup_titel)"))
+    }
+
     @Test fun `Dienst startet die Geraetesuche ohne manuelle Aktion`() {
         val source = File(root,
             "app/src/main/java/io/gitlab/maik3531/magnolienotes/telefon/TelefonWerk.kt").readText()
