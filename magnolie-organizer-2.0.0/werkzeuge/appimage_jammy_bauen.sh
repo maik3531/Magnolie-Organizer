@@ -21,7 +21,7 @@ PROOT="$PROOT_WURZEL/usr/bin/proot"
 SNAPSHOT=20260820T000000Z
 BASIS_STAND="$SNAPSHOT-openssl-theme1"
 
-for befehl in curl dpkg-deb dpkg-parsechangelog sha256sum tar; do
+for befehl in curl dpkg-deb dpkg-parsechangelog sha256sum tar timeout; do
     command -v "$befehl" >/dev/null || {
         printf '%s\n' "Fehlendes Werkzeug fuer den rootlosen AppImage-Bau: $befehl" >&2
         exit 1
@@ -59,6 +59,23 @@ fi
 export LD_LIBRARY_PATH="$PROOT_WURZEL/usr/lib/x86_64-linux-gnu${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
 
 MARKER="$ROOTFS/.magnolie-snapshot"
+apt_ausfuehren() {
+    zeitlimit=600
+    [ "$1" != update ] || zeitlimit=180
+    for pause in 0 15 45; do
+        [ "$pause" -eq 0 ] || sleep "$pause"
+        if timeout --foreground "$zeitlimit" "$PROOT" \
+                -0 -r "$ROOTFS" -b /dev -b /proc -w / \
+                /usr/bin/env DEBIAN_FRONTEND=noninteractive \
+                /usr/bin/apt-get -o APT::Sandbox::User=root \
+                -o Acquire::Retries=2 -o Acquire::http::Timeout=30 \
+                -o Acquire::https::Timeout=30 "$@"; then
+            return 0
+        fi
+        printf '%s\n' 'APT-Aufruf fehlgeschlagen; erneuter Versuch folgt.' >&2
+    done
+    return 1
+}
 if [ ! -f "$MARKER" ] || [ "$(cat "$MARKER")" != "$BASIS_STAND" ]; then
     if [ ! -x "$ROOTFS/bin/sh" ]; then
         rm -rf "$ROOTFS"
@@ -74,12 +91,8 @@ if [ ! -f "$MARKER" ] || [ "$(cat "$MARKER")" != "$BASIS_STAND" ]; then
     cp /etc/resolv.conf "$ROOTFS/etc/resolv.conf"
     mkdir -p "$ROOTFS/etc/ssl/certs"
     cp /etc/ssl/certs/ca-certificates.crt "$ROOTFS/etc/ssl/certs/ca-certificates.crt"
-    "$PROOT" -0 -r "$ROOTFS" -b /dev -b /proc -w / \
-        /usr/bin/env DEBIAN_FRONTEND=noninteractive \
-        /usr/bin/apt-get -o APT::Sandbox::User=root update
-    "$PROOT" -0 -r "$ROOTFS" -b /dev -b /proc -w / \
-        /usr/bin/env DEBIAN_FRONTEND=noninteractive \
-        /usr/bin/apt-get -o APT::Sandbox::User=root install -y --no-install-recommends \
+    apt_ausfuehren update
+    apt_ausfuehren install -y --no-install-recommends \
         binutils ca-certificates curl dpkg-dev file gcc gettext gir1.2-ayatanaappindicator3-0.1 \
         gir1.2-ecal-2.0 gir1.2-ebook-1.2 gir1.2-gstreamer-1.0 gir1.2-gtk-3.0 gir1.2-ical-3.0 \
         gir1.2-notify-0.7 gir1.2-webkit2-4.1 gir1.2-xapp-1.0 gobject-introspection \

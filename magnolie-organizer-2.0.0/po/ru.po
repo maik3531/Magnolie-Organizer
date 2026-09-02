@@ -3,7 +3,8 @@ msgstr ""
 "Report-Msgid-Bugs-To: maik3531@gmail.com\n"
 "POT-Creation-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Content-Type: text/plain; charset=UTF-8\n"
-"Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
+"Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && "
+"n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
 
 msgid " (filtered)"
 msgstr " (отфильтровано)"
@@ -2967,6 +2968,9 @@ msgstr ""
 msgid "KDE Connect reception failed."
 msgstr "Не удалось принять данные через KDE Connect."
 
+msgid "KDE/Akonadi integration is not available."
+msgstr "Интеграция KDE/Akonadi недоступна."
+
 msgid "Keep a troubleshooting log"
 msgstr "Вести журнал устранения неполадок"
 
@@ -5602,6 +5606,10 @@ msgstr ""
 "Connect для Android; дополнительная настольная программа KDE Connect не "
 "требуется."
 
+msgid ""
+"The KDE/Akonadi database was replaced. Select the source again in Settings."
+msgstr "База данных KDE/Akonadi была заменена. Снова выберите источник в настройках."
+
 msgid "The LDIF address book contains too many people."
 msgstr "В адресной книге LDIF слишком много людей."
 
@@ -6387,6 +6395,14 @@ msgstr ""
 
 msgid "The selected iCalendar file is incomplete."
 msgstr "Выбранный файл iCalendar неполон."
+
+msgid "The selected online account is disabled, offline or unreachable."
+msgstr "Выбранная сетевая учётная запись отключена, не в сети или недоступна."
+
+msgid ""
+"The selected online account source is disabled. Select an enabled source in "
+"Settings."
+msgstr "Выбранный источник сетевой учётной записи отключён. Выберите включённый источник в настройках."
 
 msgid "The selected path is not a regular file."
 msgstr "Выбранный путь не указывает на обычный файл."

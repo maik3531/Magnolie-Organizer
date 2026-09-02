@@ -44,7 +44,7 @@ with tempfile.TemporaryDirectory() as tmp:
                                          jetzt=zeit, disk_usage=disk)
     assert stand["format"] == "magnolie-snapshot"
     assert stand["formatVersion"] == 1 and stand["platform"] == "linux"
-    assert stand["appVersion"] == "2.0.15" and stand["integrity"] == "ok"
+    assert stand["appVersion"] == "2.0.16" and stand["integrity"] == "ok"
     assert stand["payload"]["schema"] == 1 and stand["summary"]["termine"] == 1
     assert os.stat(m.journal_verzeichnis(tmp)).st_mode & 0o777 == 0o700
     assert os.stat(os.path.join(stand["path"], "manifest.json")).st_mode & 0o777 == 0o600
@@ -261,6 +261,31 @@ with tempfile.TemporaryDirectory() as tmp:
     ids = {x["snapshotId"] for x in behalten}
     assert manuell["snapshotId"] in ids and restore["snapshotId"] in ids
     assert len(behalten) == 3
+
+# Altersbasierte Aufbewahrung entfernt alte automatische, aber keine angehefteten Stände.
+with tempfile.TemporaryDirectory() as tmp:
+    start = datetime(2026, 1, 1, tzinfo=timezone.utc)
+    manuell = m.journal_snapshot_erzeugen(daten(), "manual", basis=tmp,
+        jetzt=start, disk_usage=disk, tage=14)
+    alt = m.journal_snapshot_erzeugen(daten(2), "pre-sync", basis=tmp,
+        jetzt=start + timedelta(days=1), disk_usage=disk, tage=14)
+    neu = m.journal_snapshot_erzeugen(daten(3), "pre-sync", basis=tmp,
+        jetzt=start + timedelta(days=20), disk_usage=disk, tage=14)
+    behalten = m.journal_liste(tmp, integritaet=False)
+    ids = {x["snapshotId"] for x in behalten}
+    assert manuell["snapshotId"] in ids and neu["snapshotId"] in ids
+    assert alt["snapshotId"] not in ids
+
+# Die Altersaufbewahrung lässt auch nach langer Pause den neuesten Stand übrig.
+with tempfile.TemporaryDirectory() as tmp:
+    start = datetime(2026, 1, 1, tzinfo=timezone.utc)
+    m.journal_snapshot_erzeugen(daten(), "pre-sync", basis=tmp,
+        jetzt=start, disk_usage=disk)
+    letzter = m.journal_snapshot_erzeugen(daten(2), "pre-sync", basis=tmp,
+        jetzt=start + timedelta(days=1), disk_usage=disk)
+    m.journal_retention(tmp, start + timedelta(days=100), disk_usage=disk, tage=14)
+    behalten = m.journal_liste(tmp, integritaet=False)
+    assert [stand["snapshotId"] for stand in behalten] == [letzter["snapshotId"]]
 
 # Atomarer Fehler hinterlässt keinen sichtbaren Stand.
 with tempfile.TemporaryDirectory() as tmp:

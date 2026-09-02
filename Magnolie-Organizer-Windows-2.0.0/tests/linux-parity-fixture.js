@@ -7,6 +7,11 @@ const path = require("node:path");
 const sha256 = (value) => crypto.createHash("sha256").update(value).digest("hex");
 const values = (source, expression) => [...new Set(Array.from(source.matchAll(expression), match => match[1]))].sort();
 const commands = source => values(source, /cmd:\s*"([a-z0-9_]+)"/g);
+const PLATFORM_ONLY_COMMANDS = new Set([
+  "background_settings_get", "background_settings_set", "baum_paarungsqr_erzeugen",
+  "debug_startphase", "kde_empfangsordner_waehlen", "kde_receive_decide",
+  "kde_receive_settings", "kde_receive_ziel_waehlen", "telefon_anruf_bluetooth"
+]);
 
 function scanJavaScript(source, start, stopAtClosingBrace) {
   const parts = [];
@@ -90,7 +95,6 @@ function generate(linuxRoot) {
     for (const command of values(match[1], /"([a-z0-9_]+)"/g)) dispatchedCommands.add(command);
   }
   const callbackHandlers = new Set(values(ui, /\n    ([A-Za-z0-9_]+)\([^)]*\)\s*\{/g));
-  const windowsCommands = new Set(commands(windowsUi));
   const windowsCallbacks = new Set(values(windowsDispatcher, /SendAsync\("App\.([A-Za-z0-9_]+)"/g));
   const windowsCallbackHandlers = new Set(values(windowsUi, /\n    ([A-Za-z0-9_]+)\([^)]*\)\s*\{/g));
   const fixture = {
@@ -99,7 +103,7 @@ function generate(linuxRoot) {
       "web/anwendung.js": sha256(ui),
       "bin/magnolie-organizer": sha256(dispatcher)
     },
-    commands: commands(ui).filter(command => dispatchedCommands.has(command) && windowsCommands.has(command)),
+    commands: commands(ui).filter(command => dispatchedCommands.has(command) && !PLATFORM_ONLY_COMMANDS.has(command)),
     callbacks: values(dispatcher, /self\.antwort\("App\.([A-Za-z0-9_]+)"/g)
       .filter(callback => callbackHandlers.has(callback) && windowsCallbacks.has(callback) && windowsCallbackHandlers.has(callback)),
     payloadSchemas: {

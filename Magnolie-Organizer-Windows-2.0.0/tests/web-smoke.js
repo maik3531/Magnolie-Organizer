@@ -156,6 +156,16 @@ const projectVersion = fs.readFileSync(path.join(root, "Directory.Build.props"),
   .match(/<Version>([^<]+)<\/Version>/)[1];
 const webVersion = application.match(/const FASSUNG = "([^"]+)"/)[1];
 assert.strictEqual(webVersion, projectVersion, "web and native versions differ");
+const releaseNotesVersion = application.match(/const NEU_IN_DIESER_FASSUNG_VERSION = "([^"]+)"/)[1];
+assert.strictEqual(releaseNotesVersion, webVersion, "What's New content is stale for the current release");
+const releaseNotesSource = application.match(/const NEU_IN_DIESER_FASSUNG = (\{[\s\S]*?\n\});/)[1];
+const releaseNotes = Function(`"use strict"; return (${releaseNotesSource});`)();
+assert.strictEqual(Object.keys(releaseNotes).length, 20, "What's New does not cover every locale");
+assert.ok(Object.values(releaseNotes).every((items) => items.length === 4),
+  "What's New locales do not contain the complete 2.0.16 bullet set");
+assert.ok(application.includes("Recovery snapshots can be retained by maximum count or days") &&
+  !application.includes("Faster native Wayland/AppImage graphics"),
+"Windows What's New content is stale or describes Linux-only changes");
 assert.match(fs.readFileSync(path.join(root, "LIESMICH.md"), "utf8"),
   /Oberfläche unter .+ ist\s+aus Magnolie Organizer 2\.0\.0 übernommen/,
   "README does not identify the web UI provenance");
@@ -178,6 +188,14 @@ assert.ok(printSearch && printSearch.placeholder === "Suche" &&
 "print selection does not expose the localized search field on Windows");
 window.document.querySelector("#druck-schleier button[aria-label='Schließen']").click();
 const defaults = T.normalisiere({});
+assert.strictEqual(defaults.einstellungen.allgemein.wiederherstellungsaufbewahrung, "count");
+assert.strictEqual(defaults.einstellungen.allgemein.wiederherstellungstage, 14);
+const retentionNormalized = T.normalisiere({ einstellungen: { allgemein: {
+  wiederherstellungsaufbewahrung: "days", wiederherstellungsanzahl: 999,
+  wiederherstellungstage: 99999 } } });
+assert.strictEqual(retentionNormalized.einstellungen.allgemein.wiederherstellungsaufbewahrung, "days");
+assert.strictEqual(retentionNormalized.einstellungen.allgemein.wiederherstellungsanzahl, 100);
+assert.strictEqual(retentionNormalized.einstellungen.allgemein.wiederherstellungstage, 3650);
 assert.strictEqual(defaults.einstellungen.adressen.karten, "google");
 assert.strictEqual(defaults.einstellungen.kalender.gesundheitPlanung.vital.zeit, "",
   "health planning fabricates a default time");
@@ -445,9 +463,9 @@ const newInVersion = window.document.querySelector(
 assert.ok(newInVersion && newInVersion.tagName === "SECTION" &&
   newInVersion.querySelector("h4")?.textContent === "Neu in dieser Version" &&
   newInVersion.querySelector(".ueber-neu-fassung")?.textContent === webVersion &&
-  newInVersion.querySelectorAll("ul > li").length === 6 &&
-  newInVersion.textContent.includes("Wayland-/AppImage-Grafik") &&
-  newInVersion.textContent.includes("Befehlszeilen-Aliase"),
+  newInVersion.querySelectorAll("ul > li").length === 3 &&
+  newInVersion.textContent.includes("Höchstzahl oder Tagen") &&
+  newInVersion.textContent.includes("Windows und Linux"),
 "Windows-Versionshinweise fehlen oder sind nicht semantisch gegliedert");
 assert.ok(window.document.querySelector(
   "#einstellungen-inhalt .ueber-programmspalte > .ueber-rechtliches"),
@@ -626,7 +644,8 @@ const journalVorher = messages.filter((message) => message.cmd === "journal_list
 window.document.querySelector("#einst-tab-sicherheit").click();
 assert.strictEqual(messages.filter((message) => message.cmd === "journal_liste").length,
   journalVorher + 1, "the security page must request the journal state exactly once");
-const journalAntwort = { intervall: "weekly", letzte: "2026-08-01T10:00:00.0000000+00:00",
+const journalAntwort = { intervall: "weekly", mode: "days", maximum: 9, days: 30,
+  letzte: "2026-08-01T10:00:00.0000000+00:00",
   naechste: "2026-08-08T10:00:00.0000000+00:00", status: "ok", fehler: "",
   snapshots: [{ snapshotId: "s1", createdAt: "2026-08-01T10:00:00.0000000+00:00",
     reason: "weekly", integrity: "ok", summary: { termine: 3 }, payload: { size: 4096 } }] };
@@ -636,6 +655,16 @@ assert.strictEqual(messages.filter((message) => message.cmd === "journal_liste")
 assert.ok(window.document.querySelector("#journal-jetzt") &&
   window.document.querySelector("#einst-seite-sicherheit").textContent.includes("4 KiB"),
 "the security page does not show the recovery snapshots");
+assert.strictEqual(window.document.querySelector("#journal-aufbewahrung").value, "days");
+assert.ok(window.document.querySelector("#journal-anzahl").disabled &&
+  !window.document.querySelector("#journal-tage").disabled &&
+  window.document.querySelector("#journal-tage").value === "30",
+"the recovery retention controls do not reflect day mode");
+window.document.querySelector("#journal-aufbewahrung").value = "count";
+window.document.querySelector("#journal-aufbewahrung").dispatchEvent(new window.Event("change"));
+assert.ok(messages.some((message) => message.cmd === "journal_aufbewahrung" &&
+  message.modus === "count" && message.maximum === 9 && message.tage === 30),
+"the recovery retention controls do not send the complete bridge contract");
 /* Ein geänderter Stand muss weiterhin ankommen. */
 window.App.journalStand(Object.assign({}, journalAntwort, { snapshots: [] }));
 assert.ok(window.document.querySelector("#einst-seite-sicherheit").textContent

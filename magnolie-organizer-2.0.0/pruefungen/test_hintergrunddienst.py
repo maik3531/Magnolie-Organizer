@@ -77,7 +77,9 @@ def test_autostart_uses_stable_appimage_and_private_escaped_desktop_entry():
             assert background.configure_autostart({"enabled": True, "autostart": True},
                                                   path=target)
         text = open(target, encoding="utf-8").read()
-        assert appimage.replace("$", "\\$").replace('"', '\\"').replace("%", "%%") in text
+        escaped = appimage.replace("%", "%%").replace("\\", "\\\\\\\\").replace(
+            '"', '\\\\"').replace("`", "\\\\`").replace("$", "\\\\$")
+        assert escaped in text
         assert "--hintergrunddienst" in text
         assert stat.S_IMODE(os.stat(target).st_mode) == 0o600
         background.configure_autostart({}, path=target)
@@ -91,6 +93,35 @@ def test_flatpak_autostart_uses_host_visible_launcher():
     assert 'Exec="/usr/bin/flatpak" "run" "io.gitlab.maik3531.MagnolieOrganizer"' \
         in contents
     assert "/app/bin/magnolie-organizer" not in contents
+
+
+def test_sms_reply_intent_is_bounded_expires_and_launches_without_shell():
+    now = int(time.time() * 1000)
+    encoded = background.sms_reply_intent_encode({"from": "+491701234567",
+        "device_id": "d" * 32, "sms_id": "sms-1"}, now)
+    decoded = background.sms_reply_intent_decode(encoded, now)
+    assert decoded["number"] == "+491701234567" and decoded["device_id"] == "d" * 32
+    with pytest.raises(ValueError):
+        background.sms_reply_intent_decode(encoded,
+            now + background.SMS_REPLY_LIFETIME_MS + 1)
+    current = background.sms_reply_intent_encode({"from": "+491701234567",
+        "device_id": "d" * 32, "sms_id": "sms-2"})
+    notifications = background.NativeNotifications.__new__(background.NativeNotifications)
+    notifications.executable = "/opt/Magnolie Organizer/bin/magnolie-organizer"
+    with mock.patch.object(background.subprocess, "Popen") as popen:
+        notifications.open_organizer(current)
+    command = popen.call_args.args[0]
+    assert command[:2] == [notifications.executable, "--sms-reply-file"]
+    request_path = command[2]
+    assert current not in " ".join(command)
+    assert background.sms_reply_request_read(request_path) == current
+    assert not os.path.exists(request_path)
+    assert popen.call_args.kwargs.get("shell") is not True
+
+    formatted = background.sms_reply_intent_encode({"from": "0170 / 123 45 67",
+        "device_id": "d" * 32, "sms_id": "sms-3"}, now)
+    assert background.sms_reply_intent_decode(formatted, now)["number"] == \
+        "0170 / 123 45 67"
 
 
 def test_headless_cli_dispatches_before_any_gui_import():
@@ -114,7 +145,7 @@ def test_headless_cli_dispatches_before_any_gui_import():
         runpy.run_path(PROGRAM, run_name="__main__")
     assert stopped.value.code == 23
     fake_crash.install.assert_called_once_with(
-        "magnolie-organizer", "2.0.15", "background-service")
+        "magnolie-organizer", "2.0.16", "background-service")
     assert calls == ["crash", "daemon"]
     assert fake.daemon_main.called
     assert "gi" not in imported
@@ -296,7 +327,7 @@ def test_settings_ipc_and_proxy_callback_deliver_bounded_non_actionable_events()
             server.close()
 
 
-def test_gui_subscription_tracks_window_visibility_instead_of_process_presence():
+def test_gui_subscription_tracks_process_presence_and_window_visibility():
     with tempfile.TemporaryDirectory() as root:
         path = os.path.join(root, "runtime", "background.sock")
         server = background.IPCServer(FakeBackend(), path).start()
@@ -304,12 +335,18 @@ def test_gui_subscription_tracks_window_visibility_instead_of_process_presence()
         try:
             assert proxy.start()
             assert server.gui_present() is False
+            assert server.gui_connected() is True
+            assert server.gui_notification_ready() is False
+            assert proxy.set_ready(True)
+            assert server.gui_notification_ready() is True
             assert proxy.set_visible(True) is True
             assert server.gui_present() is True
             assert proxy.set_visible(False) is False
             assert server.gui_present() is False
+            assert server.gui_connected() is True
             proxy.stop()
             assert server.gui_present() is False
+            assert server.gui_connected() is False
         finally:
             server.close()
 
@@ -335,8 +372,9 @@ class RecordedNotifications:
         self.withdrawn.append(key)
         return True
 
-    def open_organizer(self):
+    def open_organizer(self, intent=None):
         self.opened += 1
+        self.intent = intent
 
 
 class ActionlessNotifications(RecordedNotifications):
@@ -375,8 +413,13 @@ def test_native_decision_actions_call_backend_without_opening_organizer():
 
     events("sms", {"notify": True, "from": "+49170\nBad", "text": "Hello\x00there"})
     assert notifications.opened == 0
+    assert not notifications.items[-1][2]
+    events("sms", {"notify": True, "from": "+491701234567", "text": "Hello",
+        "device_id": "d" * 32, "sms_id": "sms-1"})
     notifications.items[-1][2][0][2]()
     assert notifications.opened == 1
+    intent = background.sms_reply_intent_decode(notifications.intent)
+    assert intent["number"] == "+491701234567" and intent["device_id"] == "d" * 32
 
 
 def test_actionable_daemon_events_are_native_only_and_localized():
@@ -398,7 +441,7 @@ def test_actionable_daemon_events_are_native_only_and_localized():
     assert notifications.opened == 0
 
 
-def test_native_desktop_events_do_not_depend_on_gui_visibility():
+def test_connected_gui_owns_sms_notification_even_when_visibility_differs():
     backend = FakeBackend()
     notifications = RecordedNotifications()
     published = []
@@ -417,11 +460,11 @@ def test_native_desktop_events_do_not_depend_on_gui_visibility():
     events("receive_error", {"kind": "file", "reason": "transport"})
     assert [item[0] for item in notifications.items] == [
         "KDE Connect pairing", "Incoming KDE Connect file",
-        "Copy this KDE Connect text to the clipboard?", "SMS from +49170",
-        "Magnolie Organizer", "Magnolie Organizer", "Magnolie Organizer"]
+        "Copy this KDE Connect text to the clipboard?", "Magnolie Organizer",
+        "Magnolie Organizer", "Magnolie Organizer"]
     assert [event for event, _payload in published] == [
         "sms", "clipboard_apply", "file_ready", "receive_error"]
-    assert published[0][1]["notify"] is False
+    assert published[0][1]["notify"] is True
     assert copied == ["Desktop text"]
 
 
@@ -562,7 +605,7 @@ class FakeNativeNotifications:
     def show(self, *_arguments):
         return True
 
-    def open_organizer(self):
+    def open_organizer(self, _intent=None):
         raise AssertionError("Organizer must open only from an SMS action")
 
 
@@ -693,9 +736,11 @@ def test_gui_backend_factory_selects_proxy_while_daemon_is_running():
     proxy.start.return_value = True
     with mock.patch.object(module, "daemon_available", return_value=True), \
          mock.patch.object(module, "KDEConnectProxy", return_value=proxy), \
-         mock.patch.object(module, "KDEConnectSMSBackend") as local_backend:
+         mock.patch.object(module, "KDEConnectSMSBackend") as local_backend, \
+         mock.patch.object(module, "_hintergrund_bereitschaft_senden") as readiness:
         assert module._kdeconnect_backend() is proxy
     local_backend.assert_not_called()
+    readiness.assert_called_once_with(proxy, False, "magnolie-kde-readiness")
 
 
 def test_gui_visibility_helper_skips_thread_for_current_proxy_state():
@@ -718,6 +763,46 @@ def test_visibility_is_not_sent_again_after_success():
             assert proxy.set_visible(False) is False
             assert proxy.set_visible(False) is False
         assert request.call_count == 2
+
+
+def test_readiness_is_coalesced_and_stale_update_cannot_win():
+    loader = importlib.machinery.SourceFileLoader("magnolie_readiness_test", PROGRAM)
+    module = loader.load_module()
+    entered = threading.Event()
+    release = threading.Event()
+    finished = threading.Event()
+    calls = []
+
+    class Backend:
+        _ready = None
+
+        def set_ready(self, ready):
+            calls.append(ready)
+            if len(calls) == 1:
+                entered.set()
+                assert release.wait(2)
+            else:
+                finished.set()
+
+    backend = Backend()
+    module._hintergrund_bereitschaft_senden(backend, True, "readiness-test")
+    assert entered.wait(2)
+    module._hintergrund_bereitschaft_senden(backend, False, "readiness-test")
+    release.set()
+    assert finished.wait(2)
+    assert calls == [True, False]
+
+
+def test_proxy_readiness_is_not_sent_again_after_success():
+    proxy = background.KDEConnectProxy("/unused")
+    with mock.patch.object(background, "ipc_request",
+            side_effect=lambda _operation, arguments, *_args, **_kwargs: {
+                "ready": arguments["ready"]}) as request:
+        assert proxy.set_ready(True) is True
+        assert proxy.set_ready(True) is True
+        assert proxy.set_ready(False) is False
+        assert proxy.set_ready(False) is False
+    assert request.call_count == 2
 
 
 class FakePhoneService:
@@ -821,9 +906,10 @@ def test_dated_kde_sms_history_is_forwarded_without_native_replay():
                    "from": "+49170", "text": "old", "notify": True})
     events("sms", {"id": "new", "timestamp_ms": 2000, "read": False,
                    "from": "+49170", "text": "new", "notify": True})
-    assert len(notifications.items) == 1 and notifications.items[0][1] == "new"
+    assert notifications.items == []
     assert len(published) == 2
-    assert all(payload["notify"] is False for _event, payload in published)
+    assert published[0][1]["notify"] is False
+    assert published[1][1]["notify"] is True
 
 
 def test_old_clipboard_connect_replay_is_not_applied_or_offered():

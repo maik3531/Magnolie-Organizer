@@ -2786,6 +2786,9 @@ msgstr "后台服务无法应用 KDE Connect 接收设置。"
 msgid "KDE Connect reception failed."
 msgstr "KDE Connect 接收失败。"
 
+msgid "KDE/Akonadi integration is not available."
+msgstr "KDE/Akonadi 集成不可用。"
+
 msgid "Keep a troubleshooting log"
 msgstr "保留故障排除日志"
 
@@ -5313,6 +5316,10 @@ msgstr ""
 "KDE Connect 支持内置于管理器中。只需要Android上的KDE Connect应用程序；不需要"
 "额外的KDE Connect桌面程序。"
 
+msgid ""
+"The KDE/Akonadi database was replaced. Select the source again in Settings."
+msgstr "KDE/Akonadi 数据库已被替换。请在设置中重新选择来源。"
+
 msgid "The LDIF address book contains too many people."
 msgstr "LDIF 地址簿中的人员过多。"
 
@@ -6051,6 +6058,14 @@ msgstr "所选健康记录中没有可打印的值。"
 
 msgid "The selected iCalendar file is incomplete."
 msgstr "所选 iCalendar 文件不完整。"
+
+msgid "The selected online account is disabled, offline or unreachable."
+msgstr "所选在线账户已禁用、离线或无法访问。"
+
+msgid ""
+"The selected online account source is disabled. Select an enabled source in "
+"Settings."
+msgstr "所选在线账户来源已禁用。请在设置中选择已启用的来源。"
 
 msgid "The selected path is not a regular file."
 msgstr "所选路径不是普通文件。"

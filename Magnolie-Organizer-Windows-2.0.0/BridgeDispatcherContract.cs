@@ -18,6 +18,7 @@ internal static class BridgeDispatcherContract
         ["sicherung_wiederherstellen"] = S(T("pfad"), T("kennwort"), O("sicherungsordner", JsonValueKind.String)), ["journal_liste"] = S(), ["journal_erzeugen"] = S(), ["journal_manuell"] = S(),
         ["cloud_sicherung_status"] = S(), ["cloud_sicherung_kennwort"] = S(T("kennwort")), ["cloud_sicherung_test"] = S(),
         ["journal_vorschau"] = S(O("snapshotId", JsonValueKind.String), O("id", JsonValueKind.String)), ["journal_intervall"] = S(T("intervall")), ["journal_anzahl"] = S(N("maximum")),
+        ["journal_aufbewahrung"] = S(T("modus"), N("maximum"), N("tage")),
         ["journal_loeschen"] = S(O("snapshotId", JsonValueKind.String), O("id", JsonValueKind.String)), ["journal_wiederherstellen"] = S(O("snapshotId", JsonValueKind.String), O("id", JsonValueKind.String)),
         ["mutations_snapshot"] = S(T("token"), T("reason")), ["gesamtarchiv_waehlen"] = S(), ["gesamtarchiv_pruefen"] = S(T("pfad"), T("kennwort")),
         ["gesamtarchiv_importieren"] = S(T("pfad"), T("kennwort"), T("modus"), O("sicherungsordner", JsonValueKind.String)), ["gesamtarchiv_exportieren"] = S(T("kennwort")),

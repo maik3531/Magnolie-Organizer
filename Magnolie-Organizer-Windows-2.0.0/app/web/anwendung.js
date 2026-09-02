@@ -15,30 +15,32 @@
 (function () {
 
   /* Die Fassung erscheint auf der Seite „Über". */
-const FASSUNG = "2.0.15";
+const FASSUNG = "2.0.16";
+const NEU_IN_DIESER_FASSUNG_VERSION = "2.0.16";
 
 const NEU_IN_DIESER_FASSUNG = {
-  ar: ["ما الجديد في هذا الإصدار", "رسوميات Wayland وAppImage أصلية أسرع، مع وضع توافق اختياري", "عرض يومي أوضح وقابل للتوسيع", "حاويات محمية للصور الشخصية", "ملفات تعريف موسعة لتوزيعات RPM", "قناة موثوقة لنتائج الآلة الافتراضية", "أسماء مختصرة بديلة لسطر الأوامر"],
-  be: ["Што новага ў гэтай версіі", "Хутчэйшая ўласная графіка Wayland/AppImage з неабавязковым рэжымам сумяшчальнасці", "Больш зразумелы разгорнуты выгляд дня", "Абароненыя кантэйнеры асабістых выяў", "Пашыраныя профілі дыстрыбутываў RPM", "Надзейны канал вынікаў віртуальнай машыны", "Кароткія псеўданімы каманднага радка"],
-  cs: ["Co je nového v této verzi", "Rychlejší nativní grafika Wayland/AppImage s volitelným kompatibilním režimem", "Přehlednější rozbalovací denní pohled", "Chráněné kontejnery osobních obrázků", "Rozšířené profily distribucí RPM", "Spolehlivý kanál výsledků virtuálního stroje", "Krátké aliasy příkazového řádku"],
-  da: ["Nyt i denne version", "Hurtigere integreret Wayland/AppImage-grafik med valgfri kompatibilitetstilstand", "Tydeligere dagvisning, der kan foldes ud", "Beskyttede beholdere til personlige billeder", "Udvidede RPM-distributionsprofiler", "Pålidelig resultatkanal fra virtuelle maskiner", "Korte kommandolinjealiaser"],
-  de: ["Neu in dieser Version", "Schnellere native Wayland-/AppImage-Grafik mit optionalem Kompatibilitätsmodus", "Übersichtlichere, ausklappbare Tagesansicht", "Geschützte Container für persönliche Bilder", "Erweiterte RPM-Distributionsprofile", "Zuverlässiger Ergebniskanal der virtuellen Maschine", "Kurze Befehlszeilen-Aliase"],
-  en: ["What's new in this version", "Faster native Wayland/AppImage graphics with optional compatibility fallback", "Clearer expanding day view", "Protected personal image containers", "Expanded RPM distro profiles", "Reliable VM result channel", "CLI aliases"],
-  es: ["Novedades de esta versión", "Gráficos nativos Wayland/AppImage más rápidos con modo de compatibilidad opcional", "Vista diaria ampliable más clara", "Contenedores protegidos para imágenes personales", "Perfiles ampliados para distribuciones RPM", "Canal fiable de resultados de la máquina virtual", "Alias de línea de comandos"],
-  fr: ["Nouveautés de cette version", "Graphismes Wayland/AppImage natifs plus rapides avec repli de compatibilité facultatif", "Vue quotidienne extensible plus claire", "Conteneurs protégés pour les images personnelles", "Profils de distributions RPM étendus", "Canal fiable pour les résultats de la machine virtuelle", "Alias de ligne de commande"],
-  hi: ["इस संस्करण में नया", "वैकल्पिक संगतता फ़ॉलबैक के साथ तेज़ मूल Wayland/AppImage ग्राफ़िक्स", "अधिक स्पष्ट विस्तृत दैनिक दृश्य", "निजी चित्रों के लिए सुरक्षित कंटेनर", "विस्तारित RPM वितरण प्रोफ़ाइल", "विश्वसनीय वर्चुअल मशीन परिणाम चैनल", "कमांड-लाइन उपनाम"],
-  hsb: ["Nowe w tutej wersiji", "Spěšniša natiwna grafika Wayland/AppImage z opcionalnym kompatibelnym modusom", "Přehladniši rozšěrjowacy dnjowy napohlad", "Škitane kontejnerje za wosobinske wobrazy", "Rozšěrjene profile RPM-distribucijow", "Spušćomny wuslědkowy kanal wirtuelneje mašiny", "Krótke aliasy přikazoweje linki"],
-  it: ["Novità di questa versione", "Grafica nativa Wayland/AppImage più veloce con ripiego di compatibilità facoltativo", "Vista giornaliera espandibile più chiara", "Contenitori protetti per le immagini personali", "Profili ampliati per distribuzioni RPM", "Canale affidabile per i risultati della macchina virtuale", "Alias della riga di comando"],
-  ja: ["このバージョンの新機能", "オプションの互換モードを備えた高速なネイティブ Wayland/AppImage 描画", "より見やすい展開式の日表示", "個人画像用の保護コンテナー", "RPM ディストリビューションプロファイルの拡充", "信頼性の高い仮想マシン結果チャネル", "コマンドラインの短縮別名"],
-  nb: ["Nytt i denne versjonen", "Raskere integrert Wayland/AppImage-grafikk med valgfri kompatibilitetsmodus", "Tydeligere dagvisning som kan utvides", "Beskyttede beholdere for personlige bilder", "Utvidede RPM-distribusjonsprofiler", "Pålitelig resultatkanal fra virtuelle maskiner", "Korte kommandolinjealiaser"],
-  nl: ["Nieuw in deze versie", "Snellere native Wayland/AppImage-weergave met optionele compatibiliteitsmodus", "Duidelijker uitvouwbaar dagoverzicht", "Beveiligde containers voor persoonlijke afbeeldingen", "Uitgebreide RPM-distributieprofielen", "Betrouwbaar resultaatkanaal van de virtuele machine", "Korte opdrachtregelaliassen"],
-  pl: ["Nowości w tej wersji", "Szybsza natywna grafika Wayland/AppImage z opcjonalnym trybem zgodności", "Czytelniejszy rozwijany widok dnia", "Chronione kontenery obrazów osobistych", "Rozszerzone profile dystrybucji RPM", "Niezawodny kanał wyników maszyny wirtualnej", "Krótkie aliasy wiersza poleceń"],
-  pt: ["Novidades desta versão", "Gráficos nativos Wayland/AppImage mais rápidos com modo de compatibilidade opcional", "Vista diária expansível mais clara", "Contentores protegidos para imagens pessoais", "Perfis alargados de distribuições RPM", "Canal fiável de resultados da máquina virtual", "Aliases da linha de comandos"],
-  ru: ["Новое в этой версии", "Более быстрая нативная графика Wayland/AppImage с дополнительным режимом совместимости", "Более наглядный раскрывающийся вид дня", "Защищённые контейнеры личных изображений", "Расширенные профили дистрибутивов RPM", "Надёжный канал результатов виртуальной машины", "Короткие псевдонимы командной строки"],
-  tr: ["Bu sürümdeki yenilikler", "İsteğe bağlı uyumluluk modu ile daha hızlı yerel Wayland/AppImage grafikleri", "Daha anlaşılır genişletilebilir gün görünümü", "Kişisel görseller için korumalı kapsayıcılar", "Genişletilmiş RPM dağıtım profilleri", "Güvenilir sanal makine sonuç kanalı", "Komut satırı kısa adları"],
-  uk: ["Нове в цій версії", "Швидша нативна графіка Wayland/AppImage з додатковим режимом сумісності", "Зрозуміліший розгортаний перегляд дня", "Захищені контейнери особистих зображень", "Розширені профілі дистрибутивів RPM", "Надійний канал результатів віртуальної машини", "Короткі псевдоніми командного рядка"],
-  "zh-cn": ["此版本的新功能", "更快的原生 Wayland/AppImage 图形，并提供可选兼容模式", "更清晰的可展开日视图", "受保护的个人图像容器", "扩展的 RPM 发行版配置", "可靠的虚拟机结果通道", "命令行短别名"]
+  ar: ["ما الجديد في هذا الإصدار", "يمكن الاحتفاظ بلقطات الاسترداد حسب العدد الأقصى أو حسب الأيام", "يظل اختيار الاحتفاظ محفوظًا بعد إعادة تشغيل Windows مع دعم إعداد العدد القديم", "يحمي فحص التوافق أوامر الجسر المشتركة بين Windows وLinux"],
+  be: ["Што новага ў гэтай версіі", "Здымкі аднаўлення можна захоўваць паводле максімальнай колькасці або дзён", "Выбар захавання застаецца пасля перазапуску Windows і падтрымлівае старую наладу колькасці", "Праверка сумяшчальнасці абараняе агульныя каманды моста Windows і Linux"],
+  cs: ["Co je nového v této verzi", "Snímky obnovení lze uchovávat podle maximálního počtu nebo počtu dnů", "Volba uchování přetrvá restart Windows a podporuje původní nastavení počtu", "Kontrola parity chrání sdílené příkazy mostu Windows a Linux"],
+  da: ["Nyt i denne version", "Gendannelsesøjebliksbilleder kan bevares efter maksimalt antal eller dage", "Valget af opbevaring bevares efter genstart af Windows og understøtter den tidligere antalindstilling", "Paritetskontrollen beskytter fælles brokommandoer i Windows og Linux"],
+  de: ["Neu in dieser Version", "Wiederherstellungsstände lassen sich nach Höchstzahl oder Tagen aufbewahren", "Die Aufbewahrungswahl bleibt nach einem Windows-Neustart erhalten und unterstützt die bisherige Anzahl-Einstellung", "Die Paritätsprüfung schützt gemeinsame Bridge-Befehle von Windows und Linux"],
+  en: ["What's new in this version", "Recovery snapshots can be retained by maximum count or days", "The retention choice persists across Windows restarts and supports the legacy count setting", "Parity checks protect shared Windows and Linux bridge commands"],
+  es: ["Novedades de esta versión", "Las instantáneas de recuperación pueden conservarse por cantidad máxima o por días", "La opción de retención persiste tras reiniciar Windows y admite el ajuste de cantidad anterior", "La comprobación de paridad protege los comandos de puente compartidos entre Windows y Linux"],
+  fr: ["Nouveautés de cette version", "Les instantanés de récupération peuvent être conservés selon un nombre maximal ou une durée en jours", "Le choix de conservation persiste après le redémarrage de Windows et prend en charge l'ancien réglage du nombre", "Le contrôle de parité protège les commandes de pont communes à Windows et Linux"],
+  hi: ["इस संस्करण में नया", "पुनर्प्राप्ति स्नैपशॉट अधिकतम संख्या या दिनों के अनुसार रखे जा सकते हैं", "रिटेंशन विकल्प Windows पुनरारंभ के बाद बना रहता है और पुराने संख्या विकल्प का समर्थन करता है", "पैरिटी जाँच Windows और Linux के साझा ब्रिज कमांड सुरक्षित रखती है"],
+  hsb: ["Nowe w tutej wersiji", "Wobnowjenske stawy hodźa so po maksimalnej ličbje abo dnjach wobchować", "Wólba wobchowanja wostanje po nowym starće Windows a podpěruje dotalnu ličbowu nastajenosć", "Paritna kontrola škita zhromadne Bridge-přikazy Windows a Linux"],
+  it: ["Novità di questa versione", "Le istantanee di ripristino possono essere conservate per numero massimo o per giorni", "La scelta di conservazione persiste dopo il riavvio di Windows e supporta la precedente impostazione del numero", "Il controllo di parità protegge i comandi bridge condivisi tra Windows e Linux"],
+  ja: ["このバージョンの新機能", "復旧スナップショットを最大数または日数で保持できます", "保持方法は Windows の再起動後も保存され、従来の件数設定にも対応します", "パリティ検査により Windows と Linux 共通のブリッジコマンドを保護します"],
+  nb: ["Nytt i denne versjonen", "Gjenopprettingsbilder kan beholdes etter maksimalt antall eller dager", "Valget for oppbevaring beholdes etter omstart av Windows og støtter den tidligere antallsinnstillingen", "Paritetskontrollen beskytter delte brokommandoer for Windows og Linux"],
+  nl: ["Nieuw in deze versie", "Herstelmomenten kunnen op maximumaantal of dagen worden bewaard", "De bewaarkeuze blijft na een herstart van Windows behouden en ondersteunt de eerdere aantalinstelling", "De pariteitscontrole beschermt gedeelde bridge-opdrachten van Windows en Linux"],
+  pl: ["Nowości w tej wersji", "Migawki odzyskiwania można zachowywać według maksymalnej liczby lub dni", "Wybór przechowywania pozostaje po ponownym uruchomieniu Windows i obsługuje starsze ustawienie liczby", "Kontrola zgodności chroni wspólne polecenia mostu Windows i Linux"],
+  pt: ["Novidades desta versão", "Os instantâneos de recuperação podem ser mantidos por número máximo ou por dias", "A escolha de retenção persiste após reiniciar o Windows e suporta a definição de quantidade anterior", "A verificação de paridade protege os comandos de ponte partilhados entre Windows e Linux"],
+  ru: ["Новое в этой версии", "Снимки восстановления можно хранить по максимальному количеству или числу дней", "Выбор срока хранения сохраняется после перезапуска Windows и поддерживает прежнюю настройку количества", "Проверка паритета защищает общие команды моста Windows и Linux"],
+  tr: ["Bu sürümdeki yenilikler", "Kurtarma anlık görüntüleri azami sayıya veya gün sayısına göre saklanabilir", "Saklama seçimi Windows yeniden başlatıldıktan sonra korunur ve eski sayı ayarını destekler", "Eşlik denetimi Windows ve Linux tarafından paylaşılan köprü komutlarını korur"],
+  uk: ["Нове в цій версії", "Знімки відновлення можна зберігати за максимальною кількістю або числом днів", "Вибір зберігання лишається після перезапуску Windows і підтримує попереднє налаштування кількості", "Перевірка паритету захищає спільні команди мосту Windows і Linux"],
+  "zh-cn": ["此版本的新功能", "恢复快照可按最大数量或天数保留", "保留方式在 Windows 重启后仍会保存，并兼容旧的数量设置", "一致性检查可保护 Windows 与 Linux 共享的桥接命令"]
 };
+if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes version mismatch");
   const CONTRIBUTOR_BRANDING = "No valid coffee allowance";
 
   /* ---------------------------------------------------------------------- */
@@ -206,7 +208,8 @@ const NEU_IN_DIESER_FASSUNG = {
           sicherungsordner: "", wiederherstellungsintervall: "weekly",
           cloudSicherung: { aktiv: false, intervall: "daily", aufbewahrung: 7,
             letzterErfolg: "", status: "" },
-          wiederherstellungsanzahl: 20,
+          wiederherstellungsaufbewahrung: "count", wiederherstellungsanzahl: 20,
+          wiederherstellungstage: 14,
           wiederherstellungsstatus: "", handbuchHinweisGezeigt: false,
           kontaktErsteinrichtungVersion: 1,
           notizAnhangHoehe: 200, contributorFreigeschaltet: false,
@@ -4260,6 +4263,11 @@ const NEU_IN_DIESER_FASSUNG = {
         ? al.wiederherstellungsintervall : "weekly";
     d.einstellungen.allgemein.wiederherstellungsanzahl =
       Math.max(1, Math.min(100, Math.round(Number(al.wiederherstellungsanzahl) || 20)));
+    d.einstellungen.allgemein.wiederherstellungsaufbewahrung =
+      ["count", "days"].includes(al.wiederherstellungsaufbewahrung)
+        ? al.wiederherstellungsaufbewahrung : "count";
+    d.einstellungen.allgemein.wiederherstellungstage =
+      Math.max(1, Math.min(3650, Math.round(Number(al.wiederherstellungstage) || 14)));
     d.einstellungen.allgemein.wiederherstellungsstatus = S(al.wiederherstellungsstatus);
     d.einstellungen.allgemein.handbuchHinweisGezeigt =
       !!al.handbuchHinweisGezeigt;
@@ -15881,20 +15889,44 @@ const NEU_IN_DIESER_FASSUNG = {
       Bruecke.sende({ cmd: "journal_intervall", intervall: intervall.value });
     });
     abs.append(formZeile(_("Snapshot interval"), intervall));
+    const modus = auswahlFeld([["count", _("Maximum recovery snapshots")],
+      ["days", _("Days")]], journalStand.mode ||
+      DATEN.einstellungen.allgemein.wiederherstellungsaufbewahrung);
+    modus.id = "journal-aufbewahrung";
     const anzahl = eingabe("number", String(
       journalStand.maximum || DATEN.einstellungen.allgemein.wiederherstellungsanzahl));
     anzahl.id = "journal-anzahl";
     anzahl.min = "1";
     anzahl.max = "100";
     anzahl.step = "1";
-    anzahl.addEventListener("change", () => {
+    const tage = eingabe("number", String(
+      journalStand.days || DATEN.einstellungen.allgemein.wiederherstellungstage));
+    tage.id = "journal-tage";
+    tage.min = "1";
+    tage.max = "3650";
+    tage.step = "1";
+    const aufbewahrungUebernehmen = () => {
       const maximum = Math.max(1, Math.min(100, Math.round(Number(anzahl.value) || 20)));
+      const alter = Math.max(1, Math.min(3650, Math.round(Number(tage.value) || 14)));
       anzahl.value = String(maximum);
+      tage.value = String(alter);
+      anzahl.disabled = modus.value !== "count";
+      tage.disabled = modus.value !== "days";
+      DATEN.einstellungen.allgemein.wiederherstellungsaufbewahrung = modus.value;
       DATEN.einstellungen.allgemein.wiederherstellungsanzahl = maximum;
+      DATEN.einstellungen.allgemein.wiederherstellungstage = alter;
       planeSpeichern();
-      Bruecke.sende({ cmd: "journal_anzahl", maximum: maximum });
-    });
-    abs.append(formZeile(_("Maximum recovery snapshots"), anzahl));
+      Bruecke.sende({ cmd: "journal_aufbewahrung", modus: modus.value,
+        maximum: maximum, tage: alter });
+    };
+    modus.addEventListener("change", aufbewahrungUebernehmen);
+    anzahl.addEventListener("change", aufbewahrungUebernehmen);
+    tage.addEventListener("change", aufbewahrungUebernehmen);
+    anzahl.disabled = modus.value !== "count";
+    tage.disabled = modus.value !== "days";
+    abs.append(formZeile(_("Retention"), modus),
+      formZeile(_("Maximum recovery snapshots"), anzahl),
+      formZeile(_("Days"), tage));
     abs.append(el("p", "einst-hinweis",
       _("When the limit is lowered, the oldest recovery snapshots are removed automatically.")));
     abs.append(el("p", "einst-hinweis", _("Last snapshot") + ": " + journalDatum(journalStand.last) +
@@ -21119,7 +21151,8 @@ const NEU_IN_DIESER_FASSUNG = {
         }));
       journalStand = Object.assign({ snapshots: snapshots,
         interval: nutzlast.intervall || "weekly", last: nutzlast.letzte || "",
-        next: nutzlast.naechste || "", maximum: nutzlast.maximum || 20,
+        next: nutzlast.naechste || "", mode: nutzlast.mode || "count",
+        maximum: nutzlast.maximum || 20, days: nutzlast.days || 14,
         status: nutzlast.fehler || nutzlast.status || "" },
       nutzlast, { snapshots: snapshots });
       journalListeAngefragt = true;

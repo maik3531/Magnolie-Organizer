@@ -29,7 +29,7 @@
         "mkdir -p web/i18n /app/bin /app/lib/magnolie-organizer /app/share/doc/magnolie-organizer /app/share/magnolie-organizer/web/i18n /app/share/magnolie-organizer/klang /app/share/magnolie-organizer/werkzeuge /app/share/locale /app/share/applications /app/share/metainfo /app/share/icons/hicolor/scalable/apps /app/share/icons/hicolor/256x256/apps",
         "while read -r language; do mkdir -p locale/$language/LC_MESSAGES /app/share/locale/$language/LC_MESSAGES; msgfmt --check --check-format -o locale/$language/LC_MESSAGES/magnolie-organizer.mo po/$language.po; python3 werkzeuge/po_zu_js.py $language po/$language.po web/i18n/$language.js; install -m 0644 locale/$language/LC_MESSAGES/magnolie-organizer.mo /app/share/locale/$language/LC_MESSAGES/magnolie-organizer.mo; done < po/LINGUAS",
         "install -m 0755 bin/magnolie-organizer /app/bin/magnolie-organizer",
-        "install -m 0644 bin/magnolie_telefon.py bin/magnolie_kdeconnect.py bin/magnolie_hintergrund.py bin/magnolie_personal_sync.py bin/magnolie_nextcloud.py bin/magnolie_cloud_backup.py bin/magnolie_crash.py bin/magnolie_asset.py /app/bin/",
+        "install -m 0644 bin/magnolie_telefon.py bin/magnolie_kdeconnect.py bin/magnolie_hintergrund.py bin/magnolie_personal_sync.py bin/magnolie_nextcloud.py bin/magnolie_cloud_backup.py bin/magnolie_akonadi.py bin/magnolie_crash.py bin/magnolie_asset.py /app/bin/",
         "install -m 0644 bin/magnolie_personal_sync.py /app/lib/magnolie-organizer/magnolie_personal_sync.py",
         "cp -a web/. /app/share/magnolie-organizer/web/",
         "install -m 0644 klang/erinnerung.wav /app/share/magnolie-organizer/klang/erinnerung.wav",

@@ -84,6 +84,9 @@ tar --sort=name --mtime="@$EPOCH" --clamp-mtime \
     --exclude="$QUELLNAME/debian/debhelper-build-stamp" \
     --exclude="$QUELLNAME/debian/files" \
     --exclude="$QUELLNAME/debian/*.substvars" \
+    --exclude="$QUELLNAME/native/akonadi-helper/obj-*" \
+    --exclude="$QUELLNAME/native/akonadi-helper/debian/files" \
+    --exclude="$QUELLNAME/native/akonadi-helper/debian/*.substvars" \
     --exclude="$QUELLNAME/REVIEW*.md" \
     --exclude="$QUELLNAME/ENTWURF*.md" \
     --exclude="$QUELLNAME/OFFENE-PUNKTE*.md" \

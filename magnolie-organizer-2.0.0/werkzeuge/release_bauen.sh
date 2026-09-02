@@ -19,6 +19,11 @@ python3 "$LIVE_SOURCE/werkzeuge/update_signieren.py" --check-key \
     "$MAGNOLIE_UPDATE_SIGNING_KEY" "$UPDATE_SIGNATUR_SCHLUESSEL"
 FASSUNG=$(dpkg-parsechangelog -l"$LIVE_SOURCE/debian/changelog" -SVersion)
 SOURCE_NAME="magnolie-organizer-$FASSUNG"
+AKONADI_VERSION=$(dpkg-parsechangelog \
+    -l"$LIVE_SOURCE/native/akonadi-helper/debian/changelog" -SVersion)
+[ "$AKONADI_VERSION" = 1.0.0 ] || {
+    printf '%s\n' 'Unerwartete Akonadi-Helfer-Version.' >&2; exit 1;
+}
 LIVE_SOURCE_NAME=$(basename "$LIVE_SOURCE")
 LIVE_WINDOWS=${MAGNOLIE_WINDOWS_ROOT:-"$LIVE_ROOT/Magnolie-Organizer-Windows-2.0.0"}
 WINDOWS_INSTALLER="$LIVE_WINDOWS/Magnolie-Organizer-Windows-$FASSUNG-Setup-x64.exe"
@@ -91,11 +96,16 @@ trap 'exit 1' HUP INT TERM
 mkdir -p "$WURZEL" "$STAGE/magnolie-handbuch-stamm"
 tar -C "$LIVE_SOURCE" --exclude='./.git' --exclude='./bau' \
     --exclude='./.flatpak-builder' --exclude='./.pytest_cache' --exclude='./.kotlin' --exclude='./.gradle' \
-    --exclude='./build' -cf - . | tar -C "$WURZEL" -xf -
+    --exclude='./build' --exclude='./native/akonadi-helper/obj-*' \
+    --exclude='./native/akonadi-helper/debian/files' \
+    --exclude='./native/akonadi-helper/debian/*.substvars' \
+    -cf - . | tar -C "$WURZEL" -xf -
 tar -C "$LIVE_HANDBUCH" --exclude='./.git' --exclude='./bau' \
     --exclude='./.pytest_cache' -cf - . | \
     tar -C "$STAGE/magnolie-handbuch-stamm" -xf -
 cp "$LIVE_ROOT/update.xml" "$STAGE/update.xml"
+cp "$LIVE_ROOT/.gitignore" "$LIVE_ROOT/HINWEIS.txt" \
+    "$LIVE_ROOT/FREIGABE.md" "$STAGE/"
 rm -rf "$WURZEL/.git" "$WURZEL/.flatpak-builder" "$WURZEL/bau" "$WURZEL/.pytest_cache" "$WURZEL/.kotlin" \
     "$WURZEL/.gradle" "$WURZEL/build" \
     "$WURZEL/debian/.debhelper" "$WURZEL/debian/debhelper-build-stamp" \
@@ -109,6 +119,11 @@ rm -rf "$WURZEL/.git" "$WURZEL/.flatpak-builder" "$WURZEL/bau" "$WURZEL/.pytest_
     "$STAGE/magnolie-handbuch-stamm"/debian/*.substvars
 find "$WURZEL" -type d \( -name __pycache__ -o -name .pytest_cache \
     -o -name .kotlin -o -name .gradle \) -prune -exec rm -rf {} +
+find "$WURZEL/native/akonadi-helper" -type d \
+    \( -name build -o -name bau -o -name 'obj-*' -o -name .debhelper \) \
+    -prune -exec rm -rf {} +
+rm -f "$WURZEL/native/akonadi-helper/debian/files" \
+    "$WURZEL/native/akonadi-helper"/debian/*.substvars
 
 cd "$WURZEL"
 debian/rules build
@@ -148,6 +163,10 @@ FLATPAK="$STAGE/Magnolie-Organizer-$FASSUNG-x86_64.flatpak"
 HANDBUCH_DEB="$STAGE/magnolie-handbuch_${FASSUNG}_all.deb"
 HANDBUCH_DSC="$STAGE/magnolie-handbuch_${FASSUNG}.dsc"
 HANDBUCH_SOURCE_TAR="$STAGE/magnolie-handbuch_${FASSUNG}.tar.xz"
+AKONADI_ARCH=$(dpkg-architecture -qDEB_HOST_ARCH)
+AKONADI_DEB="$STAGE/magnolie-organizer-akonadi_${AKONADI_VERSION}_${AKONADI_ARCH}.deb"
+AKONADI_DSC="$STAGE/magnolie-organizer-akonadi_${AKONADI_VERSION}.dsc"
+AKONADI_SOURCE_TAR="$STAGE/magnolie-organizer-akonadi_${AKONADI_VERSION}.tar.xz"
 test -s "$DEB"
 
 DEB_VERGLEICH=$(mktemp "$STAGE/deb-compare.XXXXXX")
@@ -172,6 +191,73 @@ xvfb-run -a -s "-screen 0 1280x800x24" env \
     MAGNOLIE_TEST_WEB="$PAKET_TEST/usr/share/magnolie-organizer/web" \
     python3 debian/tests/gtk-webkit.py
 rm -rf "$PAKET_TEST"
+
+AKONADI_WURZEL="$WURZEL/native/akonadi-helper"
+akonadi_artefakte_bereinigen() {
+    rm -f "$WURZEL/native"/magnolie-organizer-akonadi_*
+}
+cd "$AKONADI_WURZEL"
+akonadi_epoch=$(dpkg-parsechangelog -STimestamp)
+debian/rules clean
+find . -exec touch -h -d "@$akonadi_epoch" {} +
+DEB_BUILD_OPTIONS=nocheck SOURCE_DATE_EPOCH=$akonadi_epoch \
+    dpkg-buildpackage -b -d -us -uc
+cp "$WURZEL/native/$(basename "$AKONADI_DEB")" "$AKONADI_DEB"
+AKONADI_VERGLEICH=$(mktemp "$STAGE/akonadi-deb-compare.XXXXXX")
+cp "$AKONADI_DEB" "$AKONADI_VERGLEICH"
+akonadi_artefakte_bereinigen
+debian/rules clean
+find . -exec touch -h -d "@$akonadi_epoch" {} +
+DEB_BUILD_OPTIONS=nocheck SOURCE_DATE_EPOCH=$akonadi_epoch \
+    dpkg-buildpackage -b -d -us -uc
+cmp "$AKONADI_VERGLEICH" "$WURZEL/native/$(basename "$AKONADI_DEB")" || {
+    printf '%s\n' 'Akonadi-Helfer-Debian-Paket ist nicht reproduzierbar:' >&2
+    sha256sum "$AKONADI_VERGLEICH" \
+        "$WURZEL/native/$(basename "$AKONADI_DEB")" >&2
+    exit 1
+}
+rm -f "$AKONADI_VERGLEICH"
+cp "$WURZEL/native/$(basename "$AKONADI_DEB")" "$AKONADI_DEB"
+akonadi_artefakte_bereinigen
+
+AKONADI_TEST=$(mktemp -d "$STAGE/akonadi-package-test.XXXXXX")
+test "$(dpkg-deb -f "$AKONADI_DEB" Architecture)" = "$AKONADI_ARCH"
+dpkg-deb -f "$AKONADI_DEB" Depends | \
+    grep -Eq '(^|, )magnolie-organizer \(>= 2[.]0[.]16\)($|, )'
+dpkg-deb -x "$AKONADI_DEB" "$AKONADI_TEST"
+AKONADI_PROGRAMM="$AKONADI_TEST/usr/libexec/magnolie-organizer/magnolie-akonadi-helper"
+test -x "$AKONADI_PROGRAMM"
+if printf '%s' '{"command":"unsupported-smoke"}' | "$AKONADI_PROGRAMM" \
+        > "$AKONADI_TEST/response.json"; then
+    akonadi_status=0
+else
+    akonadi_status=$?
+fi
+[ "$akonadi_status" -eq 1 ] || {
+    printf '%s\n' "Akonadi-Helfer lieferte Status $akonadi_status statt 1." >&2
+    exit 1
+}
+python3 - "$AKONADI_TEST/response.json" <<'PY'
+import json
+import pathlib
+import sys
+
+response = json.loads(pathlib.Path(sys.argv[1]).read_text(encoding="utf-8"))
+assert response["ok"] is False
+assert "unsupported command" in response["error"]
+PY
+rm -rf "$AKONADI_TEST"
+
+debian/rules clean
+find . -exec touch -h -d "@$akonadi_epoch" {} +
+DEB_BUILD_OPTIONS=nocheck SOURCE_DATE_EPOCH=$akonadi_epoch \
+    dpkg-buildpackage -S -d -us -uc
+for datei in "$AKONADI_DSC" "$AKONADI_SOURCE_TAR"; do
+    cp "$WURZEL/native/$(basename "$datei")" "$datei"
+    test -s "$datei"
+done
+akonadi_artefakte_bereinigen
+cd "$WURZEL"
 
 cd "$STAGE/magnolie-handbuch-stamm"
 handbuch_epoch=$(dpkg-parsechangelog -STimestamp)
@@ -261,10 +347,18 @@ python3 werkzeuge/update_signieren.py --verify "$UPDATE_SIGNATUR_SCHLUESSEL" \
     "$STAGE/update.xml" "$DEB" "$APPIMAGE"
 rm -f Magnolie-Organizer-PRUEFSUMMEN.sha256
 debian/rules clean
+find native/akonadi-helper -type d -name 'obj-*' -prune -exec rm -rf {} +
+rm -f native/akonadi-helper/debian/files \
+    native/akonadi-helper/debian/*.substvars
 find . -exec touch -h -d "@$epoch" {} +
 DEB_BUILD_OPTIONS=nocheck SOURCE_DATE_EPOCH=$epoch \
     dpkg-buildpackage -S -d -us -uc
-for datei in "$DSC" "$SOURCE_TAR"; do test -s "$datei"; done
+for datei in "$DSC" "$SOURCE_TAR"; do
+    test -s "$datei" || {
+        printf '%s\n' "Quellpaketartefakt fehlt: $datei" >&2
+        exit 1
+    }
+done
 python3 - "$DEB" "$APPIMAGE" "$HANDBUCH_DEB" "$WINDOWS_INSTALLER" \
     "$WURZEL/update.xml" <<'PY'
 import hashlib
@@ -293,14 +387,17 @@ rm -f "$ARCHIV_MANIFEST"
 pruefe_quellarchiv() {
     archiv=$1
     prefix=$2
-    pflicht=${3:-"update.xml pruefungen/test_paketinhalt.py pruefungen/test_flatpak.py werkzeuge/png_pruefen.py werkzeuge/flatpak_bauen.sh flatpak/io.gitlab.maik3531.MagnolieOrganizer.json flatpak/python3-dependencies.json"}
+    pflicht=${3:-"update.xml pruefungen/test_paketinhalt.py pruefungen/test_flatpak.py werkzeuge/png_pruefen.py werkzeuge/flatpak_bauen.sh flatpak/io.gitlab.maik3531.MagnolieOrganizer.json flatpak/python3-dependencies.json native/akonadi-helper/CMakeLists.txt native/akonadi-helper/main.cpp native/akonadi-helper/debian/control native/akonadi-helper/debian/source/format native/akonadi-helper/magnolie-organizer-akonadi.spec"}
     liste=$(mktemp "$STAGE/archive-list.XXXXXX")
     tar -tf "$archiv" > "$liste"
     for pfad in $pflicht; do
-        grep -Fxq "$prefix/$pfad" "$liste"
+        grep -Fxq "$prefix/$pfad" "$liste" || {
+            printf '%s\n' "Pflichtdatei fehlt im Quellarchiv: $prefix/$pfad" >&2
+            exit 1
+        }
     done
     ! grep -Eq '(^|/)Magnolie-Organizer-PRUEFSUMMEN[.]sha256$' "$liste"
-    ! grep -Eq '(^|/)([.]git|[.]pytest_cache|[.]kotlin|[.]gradle|__pycache__|bau|build)(/|$)|[.](tar[.](xz|gz)|zip|rpm|deb|AppImage|flatpak)$' "$liste"
+    ! grep -Eq '(^|/)([.]git|[.]pytest_cache|[.]kotlin|[.]gradle|__pycache__|bau|build|obj-[^/]*)(/|$)|(^|/)debian/(files|[^/]*[.]substvars)$|[.](tar[.](xz|gz)|zip|rpm|deb|AppImage|flatpak)$' "$liste"
     ! grep -Ei '(^|/)(REVIEW|ENTWURF|OFFENE[-_ ]?PUNKTE|[^/]*(ANALYSE|PLAN|AUDIT)[^/]*)[.]md$' "$liste"
     ! grep -Eq '(^|/)build-config[.]json$' "$liste"
     python3 - "$archiv" "$MAGNOLIE_CONTRIBUTOR_HASH" <<'PY'
@@ -331,6 +428,9 @@ PY
     rm -f "$liste"
 }
 pruefe_quellarchiv "$SOURCE_TAR" "$SOURCE_NAME"
+pruefe_quellarchiv "$AKONADI_SOURCE_TAR" \
+    "akonadi-helper" \
+    "CMakeLists.txt main.cpp debian/control debian/source/format magnolie-organizer-akonadi.spec"
 pruefe_quellarchiv "$HANDBUCH_SOURCE_TAR" "magnolie-handbuch-stamm" \
     "bin/magnolie-handbuch web/handbuch.js debian/control"
 
@@ -338,6 +438,8 @@ RPM_PAKET=
 RPM_QUELLE=
 HANDBUCH_RPM_PAKET=
 HANDBUCH_RPM_QUELLE=
+AKONADI_RPM_PAKET=
+AKONADI_RPM_QUELLE=
 if [ "$AUTOPKGTESTS" -eq 1 ]; then
     command -v autopkgtest >/dev/null 2>&1 || {
         printf '%s\n' 'autopkgtest fehlt; Freigabe abgebrochen.' >&2; exit 1;
@@ -357,34 +459,35 @@ if [ "$FEDORA_TESTS" -eq 1 ]; then
         printf '%s\n' 'Organizer und Handbuch haben unterschiedliche Versionen.' >&2
         exit 1
     }
-    RPM_FEDORA_DIR="$STAGE/rpm-fedora" \
+    RPM_FEDORA_ARBEIT=${RPM_FEDORA_DIR:-"$STAGE/rpm-fedora"}
+    RPM_FEDORA_DIR="$RPM_FEDORA_ARBEIT" \
         werkzeuge/rpm_fedora_bauen.sh
 
-    set -- "$STAGE"/rpm-fedora/rpm/fedora/RPMS/noarch/magnolie-organizer-"$FASSUNG"-*.noarch.rpm
+    set -- "$RPM_FEDORA_ARBEIT"/rpm/fedora/RPMS/noarch/magnolie-organizer-"$FASSUNG"-*.noarch.rpm
     [ "$#" -eq 1 ] && [ -f "$1" ] || {
         printf '%s\n' 'Genau ein binaeres Organizer-RPM wurde erwartet.' >&2; exit 1;
     }
     RPM_PAKET="$WURZEL/bau/rpm/fedora/RPMS/noarch/$(basename "$1")"
     mkdir -p "$(dirname "$RPM_PAKET")"
     cp "$1" "$RPM_PAKET"
-    set -- "$STAGE"/rpm-fedora/rpm/fedora/SRPMS/magnolie-organizer-"$FASSUNG"-*.src.rpm
+    set -- "$RPM_FEDORA_ARBEIT"/rpm/fedora/SRPMS/magnolie-organizer-"$FASSUNG"-*.src.rpm
     [ "$#" -eq 1 ] && [ -f "$1" ] || {
         printf '%s\n' 'Genau ein Organizer-SRPM wurde erwartet.' >&2; exit 1;
     }
     RPM_QUELLE="$WURZEL/bau/rpm/fedora/SRPMS/$(basename "$1")"
     mkdir -p "$(dirname "$RPM_QUELLE")"
     cp "$1" "$RPM_QUELLE"
-    pruefe_quellarchiv "$STAGE/rpm-fedora/rpm/fedora/SOURCES/magnolie-organizer-$FASSUNG.tar.xz" \
+    pruefe_quellarchiv "$RPM_FEDORA_ARBEIT/rpm/fedora/SOURCES/magnolie-organizer-$FASSUNG.tar.xz" \
         "magnolie-organizer-$FASSUNG"
 
-    set -- "$STAGE"/rpm-fedora/handbuch-rpm/fedora/RPMS/noarch/magnolie-handbuch-"$FASSUNG"-*.noarch.rpm
+    set -- "$RPM_FEDORA_ARBEIT"/handbuch-rpm/fedora/RPMS/noarch/magnolie-handbuch-"$FASSUNG"-*.noarch.rpm
     [ "$#" -eq 1 ] && [ -f "$1" ] || {
         printf '%s\n' 'Genau ein binaeres Handbuch-RPM wurde erwartet.' >&2; exit 1;
     }
     HANDBUCH_RPM_PAKET="$STAGE/magnolie-handbuch-stamm/bau/rpm/fedora/RPMS/noarch/$(basename "$1")"
     mkdir -p "$(dirname "$HANDBUCH_RPM_PAKET")"
     cp "$1" "$HANDBUCH_RPM_PAKET"
-    set -- "$STAGE"/rpm-fedora/handbuch-rpm/fedora/SRPMS/magnolie-handbuch-"$FASSUNG"-*.src.rpm
+    set -- "$RPM_FEDORA_ARBEIT"/handbuch-rpm/fedora/SRPMS/magnolie-handbuch-"$FASSUNG"-*.src.rpm
     [ "$#" -eq 1 ] && [ -f "$1" ] || {
         printf '%s\n' 'Genau ein Handbuch-SRPM wurde erwartet.' >&2; exit 1;
     }
@@ -392,9 +495,28 @@ if [ "$FEDORA_TESTS" -eq 1 ]; then
     mkdir -p "$(dirname "$HANDBUCH_RPM_QUELLE")"
     cp "$1" "$HANDBUCH_RPM_QUELLE"
     pruefe_quellarchiv \
-        "$STAGE/rpm-fedora/handbuch-rpm/fedora/SOURCES/magnolie-handbuch-$FASSUNG.tar.xz" \
+        "$RPM_FEDORA_ARBEIT/handbuch-rpm/fedora/SOURCES/magnolie-handbuch-$FASSUNG.tar.xz" \
         "magnolie-handbuch-$FASSUNG" \
         "bin/magnolie-handbuch web/handbuch.js rpm/magnolie-handbuch.spec"
+
+    set -- "$RPM_FEDORA_ARBEIT"/akonadi-rpm/RPMS/*/magnolie-organizer-akonadi-"$AKONADI_VERSION"-*.rpm
+    [ "$#" -eq 1 ] && [ -f "$1" ] || {
+        printf '%s\n' 'Genau ein binaeres Akonadi-Helfer-RPM wurde erwartet.' >&2; exit 1;
+    }
+    AKONADI_RPM_PAKET="$WURZEL/bau/rpm/fedora/RPMS/$(basename "$1")"
+    mkdir -p "$(dirname "$AKONADI_RPM_PAKET")"
+    cp "$1" "$AKONADI_RPM_PAKET"
+    set -- "$RPM_FEDORA_ARBEIT"/akonadi-rpm/SRPMS/magnolie-organizer-akonadi-"$AKONADI_VERSION"-*.src.rpm
+    [ "$#" -eq 1 ] && [ -f "$1" ] || {
+        printf '%s\n' 'Genau ein Akonadi-Helfer-SRPM wurde erwartet.' >&2; exit 1;
+    }
+    AKONADI_RPM_QUELLE="$WURZEL/bau/rpm/fedora/SRPMS/$(basename "$1")"
+    mkdir -p "$(dirname "$AKONADI_RPM_QUELLE")"
+    cp "$1" "$AKONADI_RPM_QUELLE"
+    pruefe_quellarchiv \
+        "$RPM_FEDORA_ARBEIT/akonadi-rpm/SOURCES/magnolie-organizer-akonadi-$AKONADI_VERSION.tar.xz" \
+        "magnolie-organizer-akonadi-$AKONADI_VERSION" \
+        "CMakeLists.txt main.cpp debian/copyright magnolie-organizer-akonadi.spec"
 else
     printf '%s\n' \
         'WARNUNG: Fedora-Bau und -Installationstest ausdruecklich uebersprungen; dieser Bau darf nicht veroeffentlicht werden.' >&2
@@ -406,11 +528,15 @@ set -- "../magnolie-organizer_${FASSUNG}_all.deb" \
     "../Magnolie-Organizer-$FASSUNG-x86_64.AppImage" \
     "../Magnolie-Organizer-$FASSUNG-x86_64.flatpak" \
     "../magnolie-handbuch_${FASSUNG}_all.deb" \
-    "../magnolie-handbuch_${FASSUNG}.tar.xz"
+    "../magnolie-handbuch_${FASSUNG}.tar.xz" \
+    "../magnolie-organizer-akonadi_${AKONADI_VERSION}_${AKONADI_ARCH}.deb" \
+    "../magnolie-organizer-akonadi_${AKONADI_VERSION}.dsc" \
+    "../magnolie-organizer-akonadi_${AKONADI_VERSION}.tar.xz"
 if [ -n "$RPM_PAKET" ]; then
     set -- "$@" "${RPM_PAKET#"$WURZEL/"}" "${RPM_QUELLE#"$WURZEL/"}" \
         "../magnolie-handbuch-stamm/${HANDBUCH_RPM_PAKET#"$STAGE/magnolie-handbuch-stamm/"}" \
-        "../magnolie-handbuch-stamm/${HANDBUCH_RPM_QUELLE#"$STAGE/magnolie-handbuch-stamm/"}"
+        "../magnolie-handbuch-stamm/${HANDBUCH_RPM_QUELLE#"$STAGE/magnolie-handbuch-stamm/"}" \
+        "${AKONADI_RPM_PAKET#"$WURZEL/"}" "${AKONADI_RPM_QUELLE#"$WURZEL/"}"
 fi
 (cd "$WURZEL" && sha256sum "$@") > "$PRUEFSUMMEN"
 (cd "$WURZEL" && sha256sum -c "$PRUEFSUMMEN")
@@ -421,6 +547,9 @@ magnolie-organizer_${FASSUNG}.tar.xz
 magnolie-handbuch_${FASSUNG}_all.deb
 magnolie-handbuch_${FASSUNG}.dsc
 magnolie-handbuch_${FASSUNG}.tar.xz
+magnolie-organizer-akonadi_${AKONADI_VERSION}_${AKONADI_ARCH}.deb
+magnolie-organizer-akonadi_${AKONADI_VERSION}.dsc
+magnolie-organizer-akonadi_${AKONADI_VERSION}.tar.xz
 Magnolie-Organizer-$FASSUNG-x86_64.AppImage
 Magnolie-Organizer-$FASSUNG-x86_64.flatpak"
 if [ -n "$RPM_PAKET" ]; then
@@ -429,10 +558,16 @@ if [ -n "$RPM_PAKET" ]; then
             "$STAGE/$LIVE_SOURCE_NAME/bau/rpm/fedora/SRPMS"
         cp "$RPM_PAKET" "$STAGE/$LIVE_SOURCE_NAME/${RPM_PAKET#"$WURZEL/"}"
         cp "$RPM_QUELLE" "$STAGE/$LIVE_SOURCE_NAME/${RPM_QUELLE#"$WURZEL/"}"
+        cp "$AKONADI_RPM_PAKET" \
+            "$STAGE/$LIVE_SOURCE_NAME/${AKONADI_RPM_PAKET#"$WURZEL/"}"
+        cp "$AKONADI_RPM_QUELLE" \
+            "$STAGE/$LIVE_SOURCE_NAME/${AKONADI_RPM_QUELLE#"$WURZEL/"}"
     fi
     PUBLISH_PATHS="$PUBLISH_PATHS
 $LIVE_SOURCE_NAME/${RPM_PAKET#"$WURZEL/"}
 $LIVE_SOURCE_NAME/${RPM_QUELLE#"$WURZEL/"}
+$LIVE_SOURCE_NAME/${AKONADI_RPM_PAKET#"$WURZEL/"}
+$LIVE_SOURCE_NAME/${AKONADI_RPM_QUELLE#"$WURZEL/"}
 magnolie-handbuch-stamm/${HANDBUCH_RPM_PAKET#"$STAGE/magnolie-handbuch-stamm/"}
 magnolie-handbuch-stamm/${HANDBUCH_RPM_QUELLE#"$STAGE/magnolie-handbuch-stamm/"}"
 fi

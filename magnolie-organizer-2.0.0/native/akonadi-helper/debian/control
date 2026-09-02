@@ -1,0 +1,18 @@
+Source: magnolie-organizer-akonadi
+Section: utils
+Priority: optional
+Maintainer: Maik Walter <maik3531@gmail.com>
+Build-Depends: debhelper-compat (= 13), cmake, extra-cmake-modules, qtbase5-dev,
+ libkf5akonadi-dev, libkf5calendarcore-dev, libkf5contacts-dev
+Standards-Version: 4.6.2
+Rules-Requires-Root: no
+
+Package: magnolie-organizer-akonadi
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, akonadi-server,
+ magnolie-organizer (>= 2.0.16)
+Recommends: kdepim-runtime
+Description: KDE system-account bridge for Magnolie Organizer
+ This optional helper lets Magnolie Organizer use calendars and address books
+ already configured in KDE Akonadi. It communicates through a bounded local
+ protocol and never receives account credentials.

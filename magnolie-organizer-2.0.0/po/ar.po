@@ -3,7 +3,8 @@ msgstr ""
 "Report-Msgid-Bugs-To: maik3531@gmail.com\n"
 "POT-Creation-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Content-Type: text/plain; charset=UTF-8\n"
-"Plural-Forms: nplurals=6; plural=(n==0 ? 0 : n==1 ? 1 : n==2 ? 2 : n%100>=3 && n%100<=10 ? 3 : n%100>=11 && n%100<=99 ? 4 : 5);\n"
+"Plural-Forms: nplurals=6; plural=(n==0 ? 0 : n==1 ? 1 : n==2 ? 2 : n%100>=3 "
+"&& n%100<=10 ? 3 : n%100>=11 && n%100<=99 ? 4 : 5);\n"
 
 msgid " (filtered)"
 msgstr " (مصفّى)"
@@ -3034,6 +3035,9 @@ msgstr "تعذر على خدمة الخلفية تطبيق إعدادات الا
 msgid "KDE Connect reception failed."
 msgstr "فشل الاستقبال عبر KDE Connect."
 
+msgid "KDE/Akonadi integration is not available."
+msgstr "تكامل KDE/Akonadi غير متاح."
+
 msgid "Keep a troubleshooting log"
 msgstr "الاحتفاظ بسجل لاستكشاف الأخطاء وإصلاحها"
 
@@ -5675,6 +5679,10 @@ msgstr ""
 "دعم KDE Connect مدمج في المنظم. مطلوب فقط تطبيق KDE Connect على Android؛ "
 "ليست هناك حاجة إلى برنامج سطح مكتب KDE Connect إضافي."
 
+msgid ""
+"The KDE/Akonadi database was replaced. Select the source again in Settings."
+msgstr "تم استبدال قاعدة بيانات KDE/Akonadi. اختر المصدر مرة أخرى في الإعدادات."
+
 msgid "The LDIF address book contains too many people."
 msgstr "يحتوي دفتر عناوين LDIF على عدد كبير جدًا من الأشخاص."
 
@@ -6435,6 +6443,14 @@ msgstr "لا تحتوي السجلات الصحية المحددة على أي �
 
 msgid "The selected iCalendar file is incomplete."
 msgstr "ملف iCalendar المحدد غير مكتمل."
+
+msgid "The selected online account is disabled, offline or unreachable."
+msgstr "الحساب المتصل المحدد معطل أو غير متصل أو يتعذر الوصول إليه."
+
+msgid ""
+"The selected online account source is disabled. Select an enabled source in "
+"Settings."
+msgstr "مصدر الحساب المتصل المحدد معطل. اختر مصدراً مفعلاً في الإعدادات."
 
 msgid "The selected path is not a regular file."
 msgstr "المسار المحدد ليس ملفًا عاديًا."

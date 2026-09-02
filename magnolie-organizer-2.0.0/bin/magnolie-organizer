@@ -93,7 +93,7 @@ if __name__ == "__main__":
     _crash_component = ("background-service" if any(argument in (
         "--hintergrunddienst", "--background-service") for argument in sys.argv[1:])
         else "organizer")
-    _crash_reporting_install("magnolie-organizer", "2.0.15", _crash_component)
+    _crash_reporting_install("magnolie-organizer", "2.0.16", _crash_component)
 if any(argument in ("--hintergrunddienst", "--background-service")
        for argument in sys.argv[1:]):
     from magnolie_hintergrund import daemon_main
@@ -101,11 +101,14 @@ if any(argument in ("--hintergrunddienst", "--background-service")
 
 from magnolie_telefon import PhoneService, PORT as TELEFON_PORT
 from magnolie_asset import read_asset
-from magnolie_kdeconnect import KDEConnectSMSBackend, local_device_name
+from magnolie_kdeconnect import DEVICE_ID, KDEConnectSMSBackend, local_device_name
 from magnolie_hintergrund import (KDEConnectProxy, PhoneServiceProxy, daemon_available,
+    configure_autostart as background_autostart_configure,
     daemon_status as background_daemon_status,
     ipc_request as background_ipc_request, read_settings as background_settings_read,
     settings_status as background_settings_status,
+    sms_reply_intent_decode,
+    sms_reply_request_read,
     start_service as background_service_start,
     wait_for_daemon_release as background_wait_for_release,
     write_settings as background_settings_write)
@@ -118,6 +121,8 @@ from magnolie_cloud_backup import (
     ArchiveSecretStore, PREFIX as CLOUD_BACKUP_PREFIX,
     apply_retention as cloud_backup_retention, due as cloud_backup_due,
     retention_count as cloud_backup_retention_count)
+from magnolie_akonadi import (AkonadiClient, AkonadiError, AkonadiUnavailable,
+    akonadi_status as akonadi_helper_status, find_helper as akonadi_helper_finden)
 
 _DEBUG_ANGEFORDERT = "--debug" in sys.argv[1:]
 _GTK_IMPORT_FEHLER = ""
@@ -220,7 +225,7 @@ def tray_system_verfuegbar(desktop=None, aktivierte_erweiterungen=None):
 PROGRAMM_NAME = "magnolie-organizer"
 HANDBUCH_NAME = "magnolie-handbuch"
 FENSTER_TITEL = "Magnolie Organizer"
-PROGRAMM_FASSUNG = "2.0.15"
+PROGRAMM_FASSUNG = "2.0.16"
 ALTER_NAME = "organizer-klassik"
 I18N_DOMAIN = "magnolie-organizer"
 
@@ -640,6 +645,21 @@ def eigener_pfad():
     return os.path.realpath(__file__)
 
 
+def registrierungs_programm(programm=None):
+    if programm:
+        return programm
+    appimage = os.environ.get("APPIMAGE")
+    if appimage and os.path.isabs(appimage):
+        return appimage
+    return eigener_pfad()
+
+
+def desktop_exec_pfad(programm=None):
+    return registrierungs_programm(programm).replace(
+        "%", "%%").replace("\\", "\\\\\\\\").replace('"', '\\\\"').replace(
+            "`", "\\\\`").replace("$", "\\\\$")
+
+
 def atomar_text_schreiben(pfad, inhalt, modus=0o600):
     """Ersetzt eine private Textdatei atomar im selben Verzeichnis."""
     ordner = os.path.dirname(os.path.abspath(pfad))
@@ -1015,7 +1035,39 @@ def _journal_anzahl(wert, standard=20):
         return standard
 
 
-def _journal_behalten(staende, jetzt, maximum=None):
+def _journal_tage(wert, standard=14):
+    try:
+        return max(1, min(3650, int(wert)))
+    except (TypeError, ValueError):
+        return standard
+
+
+def _journal_aufbewahrung(allgemein):
+    modus = allgemein.get("wiederherstellungsaufbewahrung")
+    if modus not in ("count", "days"):
+        modus = "count"
+    return (modus, _journal_anzahl(allgemein.get("wiederherstellungsanzahl")),
+            _journal_tage(allgemein.get("wiederherstellungstage")))
+
+
+def _journal_behalten(staende, jetzt, maximum=None, tage=None):
+    if tage is not None:
+        grenze = jetzt - timedelta(days=_journal_tage(tage))
+        behalten, gueltig = set(), []
+        for stand in staende:
+            try:
+                zeit = _journal_zeit(stand["createdAt"])
+            except (KeyError, ValueError, TypeError):
+                continue
+            gueltig.append((zeit, stand["snapshotId"]))
+            if (zeit >= grenze or
+                    (stand.get("reason") == "manual" and stand.get("pinned", True)) or
+                    (stand.get("reason") == "pre-restore" and
+                     (jetzt - zeit).total_seconds() <= 30 * 86400)):
+                behalten.add(stand["snapshotId"])
+        if not behalten and gueltig:
+            behalten.add(max(gueltig)[1])
+        return behalten
     if maximum is not None:
         geschuetzt, sortiert = set(), []
         for stand in staende:
@@ -1067,10 +1119,10 @@ def _journal_behalten(staende, jetzt, maximum=None):
 
 
 def _journal_retention_plan(basis=None, jetzt=None, budget=None, disk_usage=None,
-                            maximum=None):
+                             maximum=None, tage=None, reserve_bytes=0):
     wurzel = journal_bereinigen(basis)
     staende = journal_liste(basis, integritaet=False)
-    behalten = _journal_behalten(staende, _journal_zeit(jetzt), maximum)
+    behalten = _journal_behalten(staende, _journal_zeit(jetzt), maximum, tage)
     loeschen = [stand for stand in staende
                 if stand.get("snapshotId") not in behalten]
     staende = [stand for stand in staende
@@ -1084,7 +1136,7 @@ def _journal_retention_plan(basis=None, jetzt=None, budget=None, disk_usage=None
                  and not (s.get("reason") == "pre-restore" and s.get("createdAt")
                           and (jetzt_utc - _journal_zeit(s["createdAt"])).total_seconds()
                           <= 30 * 86400)]
-    while gesamt > limit and loeschbar:
+    while gesamt + max(0, int(reserve_bytes)) > limit and loeschbar:
         stand = loeschbar.pop(0)
         gesamt -= int(stand.get("payload", {}).get("size", 0))
         loeschen.append(stand)
@@ -1093,8 +1145,8 @@ def _journal_retention_plan(basis=None, jetzt=None, budget=None, disk_usage=None
 
 
 def journal_retention(basis=None, jetzt=None, budget=None, disk_usage=None,
-                      maximum=None):
-    plan = _journal_retention_plan(basis, jetzt, budget, disk_usage, maximum)
+                       maximum=None, tage=None):
+    plan = _journal_retention_plan(basis, jetzt, budget, disk_usage, maximum, tage)
     for stand in plan.pop("delete"):
         shutil.rmtree(stand["path"])
     return plan
@@ -1102,7 +1154,7 @@ def journal_retention(basis=None, jetzt=None, budget=None, disk_usage=None,
 
 def journal_snapshot_erzeugen(daten, grund, kennwort="", basis=None, jetzt=None,
                                pinned=None, disk_usage=None, haken=None,
-                               maximum=None):
+                               maximum=None, tage=None):
     if grund not in JOURNAL_GRUENDE or not isinstance(daten, dict):
         raise ValueError("snapshot")
     zeit = _journal_zeit(jetzt)
@@ -1122,7 +1174,8 @@ def journal_snapshot_erzeugen(daten, grund, kennwort="", basis=None, jetzt=None,
     payload = text.encode("utf-8")
     plan_maximum = None if maximum is None else max(0, _journal_anzahl(maximum) - 1)
     stand = _journal_retention_plan(basis, zeit, disk_usage=disk_usage,
-                                    maximum=plan_maximum)
+                                    maximum=plan_maximum, tage=tage,
+                                    reserve_bytes=len(payload))
     if stand["size"] + len(payload) > stand["budget"]:
         raise OSError(_("Not enough protected disk space for a recovery snapshot."))
     wurzel = journal_bereinigen(basis)
@@ -1174,7 +1227,8 @@ def journal_snapshot_erzeugen(daten, grund, kennwort="", basis=None, jetzt=None,
     for alt in stand["delete"]:
         shutil.rmtree(alt["path"])
     journal_retention(basis, zeit, disk_usage=disk_usage,
-                      maximum=None if maximum is None else _journal_anzahl(maximum))
+                      maximum=None if maximum is None else _journal_anzahl(maximum),
+                      tage=tage)
     aus = dict(manifest)
     aus.update(path=ziel, integrity="ok", deduplicated=False)
     return aus
@@ -5430,8 +5484,7 @@ def tray_autostart_text(programm=None):
         "Version=1.0\n"
         "Name=%s\n" % _("Magnolie Organizer – Tray Applet") +
         "Comment=%s\n" % _("Starts Magnolie Organizer when signing in") +
-        "Exec=\"%s\" --tray-start\n" % (programm or eigener_pfad()).replace(
-            "\\", "\\\\").replace('"', '\\"') +
+        "Exec=\"%s\" --tray-start\n" % desktop_exec_pfad(programm) +
         "Icon=magnolie-organizer\n"
         "Terminal=false\n"
         "NoDisplay=true\n"
@@ -6560,8 +6613,9 @@ def ton_abspielen(befehle=None, starter=None, eigener=True):
 
 
 def systemd_dienst_text(programm=None):
-    programm = (programm or eigener_pfad()).replace("\\", "\\\\").replace(
-        '"', '\\"')
+    programm = registrierungs_programm(programm).replace("%", "%%").replace(
+        "\\", "\\\\").replace(
+        '"', '\\"').replace("$", "$$")
     return (
         "[Unit]\n"
         "Description=" + _("Magnolie Organizer – appointment reminders") + "\n"
@@ -6758,7 +6812,8 @@ def systemkalender_bereinigen(merkdatei=None, abfrager=None, setzer=None,
     return True
 
 
-def erinnerungsdienst_einrichten(an, ordner=None, laufer=None):
+def erinnerungsdienst_einrichten(an, ordner=None, laufer=None,
+                                  autostart_pfad=None):
     """Legt den Dienst der Sitzung an oder entfernt ihn wieder."""
     import subprocess
     ordner = ordner or systemd_verzeichnis()
@@ -6770,7 +6825,7 @@ def erinnerungsdienst_einrichten(an, ordner=None, laufer=None):
 
     # Der Autostart-Eintrag ist der verlässliche Weg: Er startet den Wecker
     # in der angemeldeten Sitzung. Der Dienst unten kommt als Rückhalt dazu.
-    eintrag = autostart_einrichten(an)
+    eintrag = autostart_einrichten(an, autostart_pfad)
 
     if not shutil.which("systemctl"):
         return {"ok": eintrag["ok"], "fehler": eintrag["fehler"] or
@@ -7417,8 +7472,7 @@ def autostart_text(programm=None):
         "Name=" + _("Magnolie Organizer – reminders") + "\n"
         "Comment=" + _("Reminds you about appointments even when the organizer "
                         "is closed") + "\n"
-        "Exec=\"" + (programm or eigener_pfad()).replace(
-            "\\", "\\\\").replace('"', '\\"') + "\" --wecker\n"
+        "Exec=\"" + desktop_exec_pfad(programm) + "\" --wecker\n"
         "Icon=magnolie-organizer\n"
         "Terminal=false\n"
         "NoDisplay=true\n"
@@ -8408,21 +8462,22 @@ _KDECONNECT_BACKEND = None
 _KDECONNECT_SPERRE = threading.Lock()
 _HINTERGRUND_EINSTELLUNGEN_SPERRE = threading.RLock()
 _HINTERGRUND_GUI_SICHTBAR = False
+_HINTERGRUND_GUI_BEREIT = False
 _HINTERGRUND_SICHTBARKEITS_SPERRE = threading.Lock()
 _HINTERGRUND_SICHTBARKEITS_ARBEITER = {}
 
 
-def _hintergrund_sichtbarkeit_senden(backend, sichtbar, name):
-    sichtbar = bool(sichtbar)
-    if getattr(backend, "_visible", None) is sichtbar:
+def _hintergrund_zustand_senden(backend, wert, name, methode, attribut):
+    wert = bool(wert)
+    if getattr(backend, attribut, None) is wert:
         return
-    schluessel = id(backend)
+    schluessel = (id(backend), methode)
     with _HINTERGRUND_SICHTBARKEITS_SPERRE:
         stand = _HINTERGRUND_SICHTBARKEITS_ARBEITER.get(schluessel)
         if stand is not None:
-            stand["sichtbar"] = sichtbar
+            stand["wert"] = wert
             return
-        stand = {"backend": backend, "sichtbar": sichtbar}
+        stand = {"backend": backend, "wert": wert}
         _HINTERGRUND_SICHTBARKEITS_ARBEITER[schluessel] = stand
 
     def senden():
@@ -8431,16 +8486,16 @@ def _hintergrund_sichtbarkeit_senden(backend, sichtbar, name):
                 aktuell = _HINTERGRUND_SICHTBARKEITS_ARBEITER.get(schluessel)
                 if aktuell is not stand:
                     return
-                ziel = aktuell["sichtbar"]
+                ziel = aktuell["wert"]
             try:
-                backend.set_visible(ziel)
+                getattr(backend, methode)(ziel)
             except Exception as fehler:
-                debug_notiz("background.visibility-failed", error=fehler)
+                debug_notiz("background.%s-failed" % methode, error=fehler)
             with _HINTERGRUND_SICHTBARKEITS_SPERRE:
                 aktuell = _HINTERGRUND_SICHTBARKEITS_ARBEITER.get(schluessel)
                 if aktuell is not stand:
                     return
-                if aktuell["sichtbar"] == ziel:
+                if aktuell["wert"] == ziel:
                     _HINTERGRUND_SICHTBARKEITS_ARBEITER.pop(schluessel, None)
                     return
 
@@ -8451,6 +8506,14 @@ def _hintergrund_sichtbarkeit_senden(backend, sichtbar, name):
             if _HINTERGRUND_SICHTBARKEITS_ARBEITER.get(schluessel) is stand:
                 _HINTERGRUND_SICHTBARKEITS_ARBEITER.pop(schluessel, None)
         debug_notiz("background.visibility-thread-failed", error=fehler)
+
+
+def _hintergrund_sichtbarkeit_senden(backend, sichtbar, name):
+    _hintergrund_zustand_senden(backend, sichtbar, name, "set_visible", "_visible")
+
+
+def _hintergrund_bereitschaft_senden(backend, bereit, name):
+    _hintergrund_zustand_senden(backend, bereit, name, "set_ready", "_ready")
 
 
 def _kde_gui_sichtbarkeit(sichtbar):
@@ -8464,6 +8527,16 @@ def _kde_gui_sichtbarkeit(sichtbar):
             "magnolie-background-visibility")
 
 
+def _kde_gui_bereitschaft(bereit):
+    global _HINTERGRUND_GUI_BEREIT
+    _HINTERGRUND_GUI_BEREIT = bool(bereit)
+    with _KDECONNECT_SPERRE:
+        backend = _KDECONNECT_BACKEND
+    if hasattr(backend, "set_ready"):
+        _hintergrund_bereitschaft_senden(
+            backend, _HINTERGRUND_GUI_BEREIT, "magnolie-background-readiness")
+
+
 def hintergrund_einstellungen_lesen():
     try:
         daemon_state = background_daemon_status()
@@ -8471,7 +8544,13 @@ def hintergrund_einstellungen_lesen():
             stand = background_ipc_request("get_settings")
         else:
             stand = background_settings_status(background_settings_read())
-        return dict(stand, running=daemon_state == "ready", lifecycle=daemon_state)
+        result = dict(stand, running=daemon_state == "ready", lifecycle=daemon_state)
+        try:
+            background_autostart_configure(stand)
+        except OSError as fehler:
+            result["error"] = fehler_deutsch(
+                fehler, _("Loading background settings"))
+        return result
     except Exception as fehler:
         return {"enabled": False, "autostart": False, "running": False,
                 "error": fehler_deutsch(fehler, _("Loading background settings"))}
@@ -8566,6 +8645,9 @@ def _kdeconnect_backend(callback=None):
     if hasattr(backend, "set_visible"):
         _hintergrund_sichtbarkeit_senden(
             backend, _HINTERGRUND_GUI_SICHTBAR, "magnolie-kde-visibility")
+    if hasattr(backend, "set_ready"):
+        _hintergrund_bereitschaft_senden(
+            backend, _HINTERGRUND_GUI_BEREIT, "magnolie-kde-readiness")
     return backend
 
 
@@ -8578,12 +8660,18 @@ def kdeconnect_sms_stand(welcher=None, ausfuehren=None):
                 "reason": "backend_error", "pairing_state": "idle"}
 
 
-def kdeconnect_sms_senden(nummer, text, land="DE", welcher=None, ausfuehren=None):
+def kdeconnect_sms_senden(nummer, text, land="DE", welcher=None, ausfuehren=None,
+                          device_id=None):
     ziel = _telefon_schluessel(str(nummer or ""), land).split("x", 1)[0]
     nachricht = str(text or "")
     if len(ziel) < 6 or not nachricht.strip() or len(nachricht) > 5000:
         raise ValueError(_("The SMS recipient or message is invalid."))
-    return _kdeconnect_backend().send_sms(ziel, nachricht)
+    if device_id is not None and not DEVICE_ID.fullmatch(str(device_id)):
+        raise ValueError(_("The phone connection is not available."))
+    backend = _kdeconnect_backend()
+    if device_id is None:
+        return backend.send_sms(ziel, nachricht)
+    return backend.send_sms(ziel, nachricht, device_id=device_id)
 
 
 _FLATPAK_PROGRAMME = {
@@ -14880,6 +14968,7 @@ def _dav_uid_dateiname(uid, endung):
 
 
 _EDS = {"geprueft": False, "ok": False, "buch_ok": False, "fehler": ""}
+_AKONADI_QUELLEN = {}
 
 EDS_PAKETE = "gir1.2-ecal-2.0 gir1.2-ebook-1.2 gir1.2-edataserver-1.2"
 
@@ -14925,7 +15014,7 @@ def eds_quellen(registry):
         aus = []
         for quelle in registry.list_sources(erweiterung):
             try:
-                if not quelle.get_enabled():
+                if not _eds_quelle_aktiv(registry, quelle):
                     continue
                 name = _eds_quellenname(registry, quelle)
                 aus.append({"uid": quelle.get_uid(), "name": name})
@@ -14937,6 +15026,51 @@ def eds_quellen(registry):
     kalender = liste(ES.SOURCE_EXTENSION_CALENDAR)
     buecher = liste(ES.SOURCE_EXTENSION_ADDRESS_BOOK) if _EDS["buch_ok"] else []
     return kalender, buecher
+
+
+def akonadi_quellen_status():
+    global _AKONADI_QUELLEN
+    if not akonadi_helper_finden():
+        _AKONADI_QUELLEN = {}
+        return {"verfuegbar": False, "kalender": [], "adressbuecher": [],
+                "fehler": ""}
+    try:
+        stand = akonadi_helper_status()
+        kalender = stand["calendars"]
+        buecher = stand["addressbooks"]
+        _AKONADI_QUELLEN = {item["uid"]: item for item in kalender + buecher}
+        return {"verfuegbar": True, "kalender": kalender,
+                "adressbuecher": buecher, "fehler": ""}
+    except AkonadiUnavailable:
+        _AKONADI_QUELLEN = {}
+        return {"verfuegbar": False, "kalender": [], "adressbuecher": [],
+                "fehler": ""}
+    except AkonadiError as fehler:
+        _AKONADI_QUELLEN = {}
+        return {"verfuegbar": True, "kalender": [], "adressbuecher": [],
+                "fehler": str(fehler)}
+
+
+def _sync_quellenname(registry, uid, akonadi_quellen=None):
+    if uid.startswith("akonadi-"):
+        return ((akonadi_quellen if akonadi_quellen is not None else
+                 _AKONADI_QUELLEN).get(uid) or {}).get("name") or uid
+    return _eds_quellenname(registry, _quelle(registry, uid))
+
+
+def _eds_quelle_aktiv(registry, quelle):
+    pruefen = getattr(registry, "check_enabled", None)
+    if pruefen is not None:
+        return bool(pruefen(quelle))
+    return bool(quelle.get_enabled())
+
+
+def _eds_client_online(client):
+    pruefen = getattr(client, "is_online", None)
+    if pruefen is None or not bool(pruefen()):
+        raise RuntimeError(_(
+            "The selected online account is disabled, offline or unreachable."))
+    return client
 
 
 def _eds_quellenname(registry, quelle):
@@ -14997,17 +15131,28 @@ def _quelle(registry, quellen_uid):
     raise RuntimeError(_("The selected source was not found. Select it again in Settings."))
 
 
-def eds_kalender_client(registry, quellen_uid):
+def eds_kalender_client(registry, quellen_uid, akonadi_quellen=None):
+    if quellen_uid.startswith("akonadi-calendar:"):
+        quelle = ((akonadi_quellen if akonadi_quellen is not None else
+                   _AKONADI_QUELLEN).get(quellen_uid) or {})
+        return AkonadiClient("calendar", quellen_uid,
+            generation=quelle.get("generation"), instance=quelle.get("instance"))
     ECal = _EDS["ECal"]
     q = _quelle(registry, quellen_uid)
+    if not _eds_quelle_aktiv(registry, q):
+        raise RuntimeError(_(
+            "The selected online account source is disabled. Select an enabled source in Settings."))
     try:
-        return ECal.Client.connect_sync(q, ECal.ClientSourceType.EVENTS, 20, None)
+        client = ECal.Client.connect_sync(q, ECal.ClientSourceType.EVENTS, 20, None)
     except TypeError:
-        return ECal.Client.connect_sync(q, ECal.ClientSourceType.EVENTS, None)
+        client = ECal.Client.connect_sync(q, ECal.ClientSourceType.EVENTS, None)
+    return _eds_client_online(client)
 
 
 def eds_events_lesen(client):
     """Liefert nur einen nachweislich vollständigen Kalender-Snapshot."""
+    if isinstance(client, AkonadiClient):
+        return client.event_texts()
     try:
         ergebnis = client.get_object_list_sync("#t", None)
     except (AttributeError, TypeError):
@@ -15047,10 +15192,13 @@ def eds_events_lesen(client):
 
 def eds_event_fehlend_bestaetigt(client, uid_wert):
     """Bestätigt eine Fernlöschung unabhängig vom vollständigen Listenabruf."""
+    if isinstance(client, AkonadiClient):
+        return not client.verify_exists(uid_wert)
     lesen = getattr(client, "get_objects_for_uid_sync", None)
     if lesen is None:
         raise RuntimeError(_(
             "A missing appointment could not be verified. Synchronization was stopped."))
+    _eds_client_online(client)
     try:
         ergebnis = lesen(uid_wert, None)
     except Exception as fehler:
@@ -15063,7 +15211,10 @@ def eds_event_fehlend_bestaetigt(client, uid_wert):
         liste = ergebnis[-1] or []
     else:
         liste = ergebnis or []
-    return not bool(liste)
+    if liste:
+        return False
+    _eds_client_online(client)
+    return True
 
 
 def _icomp_aus_text(text):
@@ -15084,7 +15235,16 @@ def _icomp_aus_text(text):
     return comp
 
 
+def _akonadi_ical_text(text):
+    if re.search(r"(?im)^BEGIN:VCALENDAR\s*$", text):
+        return text
+    return "BEGIN:VCALENDAR\r\nVERSION:2.0\r\n" + text.rstrip() + \
+        "\r\nEND:VCALENDAR\r\n"
+
+
 def eds_event_anlegen(client, text):
+    if isinstance(client, AkonadiClient):
+        return client.create(_akonadi_ical_text(text))
     ECal = _EDS["ECal"]
     comp = _icomp_aus_text(text)
     if comp is None:
@@ -15099,6 +15259,9 @@ def eds_event_anlegen(client, text):
 
 
 def eds_event_aendern(client, text):
+    if isinstance(client, AkonadiClient):
+        client.modify_content(_akonadi_ical_text(text))
+        return
     ECal = _EDS["ECal"]
     comp = _icomp_aus_text(text)
     if comp is None:
@@ -15111,6 +15274,9 @@ def eds_event_aendern(client, text):
 
 
 def eds_event_loeschen(client, uid_wert):
+    if isinstance(client, AkonadiClient):
+        client.delete(uid_wert)
+        return
     ECal = _EDS["ECal"]
     try:
         client.remove_object_sync(uid_wert, None, ECal.ObjModType.ALL,
@@ -15119,13 +15285,22 @@ def eds_event_loeschen(client, uid_wert):
         client.remove_object_sync(uid_wert, None, ECal.ObjModType.ALL, None)
 
 
-def eds_buch_client(registry, quellen_uid):
+def eds_buch_client(registry, quellen_uid, akonadi_quellen=None):
+    if quellen_uid.startswith("akonadi-addressbook:"):
+        quelle = ((akonadi_quellen if akonadi_quellen is not None else
+                   _AKONADI_QUELLEN).get(quellen_uid) or {})
+        return AkonadiClient("addressbook", quellen_uid,
+            generation=quelle.get("generation"), instance=quelle.get("instance"))
     EBook = _EDS["EBook"]
     q = _quelle(registry, quellen_uid)
+    if not _eds_quelle_aktiv(registry, q):
+        raise RuntimeError(_(
+            "The selected online account source is disabled. Select an enabled source in Settings."))
     try:
-        return EBook.BookClient.connect_sync(q, 20, None)
+        client = EBook.BookClient.connect_sync(q, 20, None)
     except TypeError:
-        return EBook.BookClient.connect_sync(q, None)
+        client = EBook.BookClient.connect_sync(q, None)
+    return _eds_client_online(client)
 
 
 def _vcard_format():
@@ -15374,6 +15549,43 @@ def _eds_vcard_ergaenzen(kontakt, text):
 
 def eds_kontakte_lesen(client):
     """Liest und prüft einen vollständigen Adressbuch-Snapshot."""
+    if isinstance(client, AkonadiClient):
+        texte = client.contact_texts()
+        aus = {"remoteGesamt": len(texte), "serialisiert": len(texte),
+               "geparst": 0, "gueltigeUids": 0, "fehler": [],
+               "vollstaendig": True, "texte": [], "kontakte": [],
+               "geburtstage": []}
+        uids = set()
+        for nummer, text in enumerate(texte, 1):
+            try:
+                gelesen = vcf_lesen(text)
+            except Exception as fehler:
+                aus["fehler"].append(_(
+                    "Contact %d contains an unreadable vCard: %s") %
+                    (nummer, fehler))
+                continue
+            if len(gelesen["kontakte"]) != 1 or gelesen.get("uebersprungen"):
+                aus["fehler"].append(_(
+                    "Contact %d contains an unreadable vCard.") % nummer)
+                continue
+            aus["geparst"] += 1
+            obj = gelesen["kontakte"][0]
+            uid_wert = str(obj.get("uid") or "").strip()
+            if not uid_wert:
+                aus["fehler"].append(_("Contact %d has no UID.") % nummer)
+                continue
+            if uid_wert in uids:
+                aus["fehler"].append(_(
+                    "The address book contains the UID %s more than once.") % uid_wert)
+                continue
+            uids.add(uid_wert)
+            aus["gueltigeUids"] += 1
+            aus["texte"].append(text)
+            aus["kontakte"].append(obj)
+            aus["geburtstage"].extend(gelesen["geburtstage"])
+        aus["vollstaendig"] = not aus["fehler"] and (
+            aus["remoteGesamt"] == aus["geparst"] == aus["gueltigeUids"])
+        return aus
     abfrage = '(contains "x-evolution-any-field" "")'
     try:
         ergebnis = client.get_contacts_sync(abfrage, None)
@@ -15492,6 +15704,8 @@ def kontakte_erster_sync(lokal, entfernt):
 
 
 def eds_kontakt_anlegen(client, vcard):
+    if isinstance(client, AkonadiClient):
+        return client.create(vcard)
     EBookContacts = _EDS["EBookContacts"]
     kontakt = EBookContacts.Contact.new_from_vcard(vcard)
     try:
@@ -15504,6 +15718,9 @@ def eds_kontakt_anlegen(client, vcard):
 
 
 def eds_kontakt_aendern(client, vcard):
+    if isinstance(client, AkonadiClient):
+        client.modify_content(vcard)
+        return
     EBookContacts = _EDS["EBookContacts"]
     kontakt = EBookContacts.Contact.new_from_vcard(vcard)
     try:
@@ -15513,6 +15730,9 @@ def eds_kontakt_aendern(client, vcard):
 
 
 def eds_kontakt_loeschen(client, uid_wert):
+    if isinstance(client, AkonadiClient):
+        client.delete(uid_wert)
+        return
     try:
         client.remove_contact_by_uid_sync(uid_wert, _buch_flags(), None)
     except TypeError:
@@ -16149,7 +16369,11 @@ class Fenster(_FENSTER_BASIS):
         self._baum_briefkasten_zustand = "nicht_eingerichtet"
         self._telefon = None
         self._telefon_sperre = threading.RLock()
+        self._sms_antworten = []
         self._tray_einstellungen = tray_einstellungen_lesen()
+        tray_autostart_einrichten(
+            self._tray_einstellungen["aktiv"] and
+            self._tray_einstellungen["autostart"])
         self._regional = dict(_REGIONAL)
         self._tray_indikator = None
         self._tray_art = ""
@@ -16830,8 +17054,11 @@ class Fenster(_FENSTER_BASIS):
     def _bei_laden(self, ansicht, ereignis):
         if ereignis == WebKit2.LoadEvent.STARTED:
             self._organizer_geladen = False
+            _kde_gui_bereitschaft(False)
         elif ereignis == WebKit2.LoadEvent.COMMITTED:
             self._organizer_geladen = ansicht.get_uri() == self._organizer_uri
+            _kde_gui_bereitschaft(
+                self._organizer_vertraut() and not self._gesperrt)
 
     def _organizer_vertraut(self):
         if getattr(self, "_chromium", None):
@@ -17141,6 +17368,23 @@ class Fenster(_FENSTER_BASIS):
                         "einstellungen", {}).setdefault("allgemein", {})
                     allgemein["wiederherstellungsanzahl"] = maximum
             journal_retention(maximum=maximum)
+            self._journal_stand_melden()
+
+        elif befehl == "journal_aufbewahrung":
+            modus = nachricht.get("modus")
+            if modus not in ("count", "days"):
+                modus = "count"
+            maximum = _journal_anzahl(nachricht.get("maximum"))
+            tage = _journal_tage(nachricht.get("tage"))
+            with self._daten_sperre:
+                if isinstance(self._aktuelle_daten, dict):
+                    allgemein = self._aktuelle_daten.setdefault(
+                        "einstellungen", {}).setdefault("allgemein", {})
+                    allgemein["wiederherstellungsaufbewahrung"] = modus
+                    allgemein["wiederherstellungsanzahl"] = maximum
+                    allgemein["wiederherstellungstage"] = tage
+            journal_retention(maximum=maximum if modus == "count" else None,
+                              tage=tage if modus == "days" else None)
             self._journal_stand_melden()
 
         elif befehl == "journal_erzeugen":
@@ -17489,7 +17733,8 @@ class Fenster(_FENSTER_BASIS):
         elif befehl == "kde_sms_senden":
             threading.Thread(target=lambda: self._kde_sms_senden(
                 nachricht.get("nummer") or "", nachricht.get("text") or "",
-                nachricht.get("land") or "DE", nachricht.get("clientRef") or ""),
+                nachricht.get("land") or "DE", nachricht.get("clientRef") or "",
+                nachricht.get("deviceId") or None),
                 daemon=True).start()
 
         elif befehl == "kde_pairing_start":
@@ -17647,6 +17892,8 @@ class Fenster(_FENSTER_BASIS):
 
         elif befehl in ("sync", "sync_start"):
             if self._sync_laeuft or self._operation_laeuft:
+                self.antwort("App.syncFehler",
+                             _("Another data operation is still running."))
                 return
             self._sync_laeuft = True
             threading.Thread(target=self._sync_arbeit, args=(nachricht,),
@@ -18029,9 +18276,33 @@ class Fenster(_FENSTER_BASIS):
             if not isinstance(daten, dict):
                 raise RuntimeError(_("The current organizer data is incomplete."))
             allgemein = (daten.get("einstellungen") or {}).get("allgemein") or {}
-            maximum = _journal_anzahl(allgemein.get("wiederherstellungsanzahl"))
+            modus, maximum, tage = _journal_aufbewahrung(allgemein)
             return journal_snapshot_erzeugen(daten, grund, self._kennwort,
-                                              maximum=maximum)
+                                              maximum=maximum if modus == "count" else None,
+                                              tage=tage if modus == "days" else None)
+
+    def _sms_antwort_empfangen(self, intent):
+        jetzt = int(time.time() * 1000)
+        self._sms_antworten = [item for item in self._sms_antworten
+                               if item["expires_ms"] >= jetzt]
+        if any(item["nonce"] == intent["nonce"] for item in self._sms_antworten):
+            return
+        self._sms_antworten.append(intent)
+        self._sms_antworten = self._sms_antworten[-16:]
+        self._tray_zeigen()
+        self._sms_antworten_ausliefern()
+
+    def _sms_antworten_ausliefern(self):
+        if self._gesperrt or not self._organizer_vertraut():
+            return False
+        jetzt = int(time.time() * 1000)
+        antworten = [item for item in self._sms_antworten
+                     if item["expires_ms"] >= jetzt]
+        self._sms_antworten = []
+        for intent in antworten:
+            self.antwort("App.telefonAntwort", {
+                "nummer": intent["number"], "device_id": intent["device_id"]})
+        return False
 
     def _journal_stand_melden(self):
         try:
@@ -18039,7 +18310,7 @@ class Fenster(_FENSTER_BASIS):
             allgemein = ((self._aktuelle_daten or {}).get("einstellungen") or {}).get(
                 "allgemein") or {}
             intervall = allgemein.get("wiederherstellungsintervall", "weekly")
-            maximum = _journal_anzahl(allgemein.get("wiederherstellungsanzahl"))
+            modus, maximum, tage = _journal_aufbewahrung(allgemein)
             if intervall not in JOURNAL_INTERVALLE:
                 intervall = "weekly"
             periodisch = next((s for s in staende if s.get("reason") == "weekly"), None)
@@ -18050,7 +18321,7 @@ class Fenster(_FENSTER_BASIS):
                     seconds=JOURNAL_INTERVALLE[intervall])).isoformat().replace("+00:00", "Z")
             self.antwort("App.journalStand", {"ok": True, "snapshots": staende,
                 "interval": intervall, "last": letzter, "next": naechster,
-                "maximum": maximum,
+                "mode": modus, "maximum": maximum, "days": tage,
                 "status": allgemein.get("wiederherstellungsstatus", "")})
         except Exception as fehler:
             self.antwort("App.journalStand", {"ok": False, "snapshots": [],
@@ -18062,7 +18333,17 @@ class Fenster(_FENSTER_BASIS):
         daten = self._aktuelle_daten or {}
         allgemein = (daten.get("einstellungen") or {}).get("allgemein") or {}
         intervall = allgemein.get("wiederherstellungsintervall", "weekly")
-        periodisch = next((s for s in journal_liste(integritaet=False)
+        modus, maximum, tage = _journal_aufbewahrung(allgemein)
+        staende = journal_liste(integritaet=False)
+        try:
+            journal_retention(maximum=maximum if modus == "count" else None,
+                              tage=tage if modus == "days" else None)
+        except Exception as fehler:
+            allgemein["wiederherstellungsstatus"] = str(fehler)
+            debug_notiz("snapshot.retention.skipped", error=fehler)
+        neue_staende = journal_liste(integritaet=False)
+        bereinigt = len(neue_staende) != len(staende)
+        periodisch = next((s for s in neue_staende
                            if s.get("reason") == "weekly"), None)
         if journal_faellig(intervall, periodisch.get("createdAt") if periodisch else None):
             try:
@@ -18071,6 +18352,8 @@ class Fenster(_FENSTER_BASIS):
             except Exception as fehler:
                 allgemein["wiederherstellungsstatus"] = str(fehler)
                 debug_notiz("snapshot.periodic.skipped", error=fehler)
+            self._journal_stand_melden()
+        elif bereinigt:
             self._journal_stand_melden()
         return True
 
@@ -18116,6 +18399,7 @@ class Fenster(_FENSTER_BASIS):
             kennwort_transaktion_reparieren()
         except RuntimeError as fehler:
             self._gesperrt = True
+            _kde_gui_bereitschaft(False)
             self.antwort("App.init", {"gesperrt": True, "neu": False,
                                       "datenPfad": daten_datei(),
                                       "handbuchInstalliert": handbuch_installiert(),
@@ -18142,6 +18426,7 @@ class Fenster(_FENSTER_BASIS):
                     bytes=len(roh.encode("utf-8")))
         if ist_verschluesselt(roh):
             self._gesperrt = True
+            _kde_gui_bereitschaft(False)
             self._tray_telefone_aktualisieren()
             zustand = sperre_lesen()
             erlaubt, sekunden = sperre_pruefen(zustand)
@@ -18159,6 +18444,8 @@ class Fenster(_FENSTER_BASIS):
                                           "WAYLAND_DISPLAY"))})
             return
         self._gesperrt = False
+        _kde_gui_bereitschaft(bool(getattr(
+            self, "_organizer_vertraut", lambda: False)()))
         laden_start = time.monotonic()
         daten_vorher_vorhanden = os.path.isfile(daten_datei())
         daten, ist_neu, migriert = lade_daten()
@@ -18189,6 +18476,9 @@ class Fenster(_FENSTER_BASIS):
                                   "regional": self._regional,
                                   "wayland": bool(os.environ.get(
                                           "WAYLAND_DISPLAY"))})
+        sms_ausliefern = getattr(self, "_sms_antworten_ausliefern", None)
+        if sms_ausliefern:
+            GLib.idle_add(sms_ausliefern)
         debug_notiz("startup.data-dispatched",
                     duration_ms=round((time.monotonic() - senden_start) * 1000, 1),
                     total_ms=round((time.monotonic() - start) * 1000, 1))
@@ -18254,6 +18544,8 @@ class Fenster(_FENSTER_BASIS):
         self._daten_dek_kennung = daten_dek_kennung
         self._daten_umschlag = daten_umschlag
         self._gesperrt = False
+        _kde_gui_bereitschaft(bool(getattr(
+            self, "_organizer_vertraut", lambda: False)()))
         self._aktuelle_daten = daten
         sperre_schreiben(sperre_zuruecksetzen())
         self.antwort("App.init", {"daten": daten, "neu": False,
@@ -18268,6 +18560,9 @@ class Fenster(_FENSTER_BASIS):
                                   "regional": self._regional,
                                   "wayland": bool(os.environ.get(
                                        "WAYLAND_DISPLAY"))})
+        sms_ausliefern = getattr(self, "_sms_antworten_ausliefern", None)
+        if sms_ausliefern:
+            GLib.idle_add(sms_ausliefern)
         journal_planen = getattr(self, "_journal_planen", None)
         if journal_planen:
             journal_planen()
@@ -19006,9 +19301,10 @@ class Fenster(_FENSTER_BASIS):
         elif state == "idle":
             _ANRUF_BLUETOOTH.restore(str(call_ref or ""))
 
-    def _kde_sms_senden(self, nummer, text, land, client_ref):
+    def _kde_sms_senden(self, nummer, text, land, client_ref, device_id=None):
         try:
-            antwort = kdeconnect_sms_senden(nummer, text, land)
+            antwort = kdeconnect_sms_senden(nummer, text, land,
+                                             device_id=device_id)
             antwort["client_ref"] = str(client_ref or "")[:160]
             self.antwort("App.kdeSmsStatus", antwort)
         except Exception as fehler:
@@ -19766,7 +20062,10 @@ class Fenster(_FENSTER_BASIS):
         self.antwort("App.wetterErgebnis", nutzlast)
 
     def _update_pruefen_arbeit(self):
-        self.antwort("App.updateErgebnis", update_pruefen())
+        ergebnis = update_pruefen()
+        ergebnis["handbuchInstalliert"] = handbuch_installiert()
+        ergebnis["handbuchVersion"] = handbuch_version()
+        self.antwort("App.updateErgebnis", ergebnis)
 
     def _import_lokal_arbeit(self, nur_kontakte=False):
         try:
@@ -19793,15 +20092,21 @@ class Fenster(_FENSTER_BASIS):
         except Exception as fehler:
             nutzlast["fehler"] = fehler_deutsch(fehler)
         cloud = nextcloud_status()
+        akonadi = akonadi_quellen_status()
         nutzlast["nextcloud"] = cloud
+        nutzlast["akonadi"] = akonadi
         nutzlast["alleKalender"] = [dict(item, quelle="eds") for item in
                                      nutzlast["kalender"]] + [
                                          dict(item, quelle="nextcloud") for item in
-                                         cloud["kalender"]]
+                                         cloud["kalender"]] + [
+                                             dict(item, quelle="akonadi") for item in
+                                             akonadi["kalender"]]
         nutzlast["alleAdressbuecher"] = [dict(item, quelle="eds") for item in
                                           nutzlast["adressbuecher"]] + [
-                                              dict(item, quelle="nextcloud") for item in
-                                              cloud["adressbuecher"]]
+                                               dict(item, quelle="nextcloud") for item in
+                                               cloud["adressbuecher"]] + [
+                                                   dict(item, quelle="akonadi") for item in
+                                                   akonadi["adressbuecher"]]
         self.antwort("App.edsStatus", nutzlast)
 
     def _nextcloud_status_melden(self, callback="App.nextcloudStatus"):
@@ -19853,13 +20158,16 @@ class Fenster(_FENSTER_BASIS):
         except Exception as fehler:
             eds["fehler"] = fehler_deutsch(fehler)
         cloud = nextcloud_status()
+        akonadi = akonadi_quellen_status()
         self.antwort("App.syncStatus", {
-            "quellen": {"eds": eds, "nextcloud": cloud},
+            "quellen": {"eds": eds, "nextcloud": cloud, "akonadi": akonadi},
             "kalender": [dict(item, quelle="eds") for item in eds["kalender"]] +
-                        [dict(item, quelle="nextcloud") for item in cloud["kalender"]],
+                        [dict(item, quelle="nextcloud") for item in cloud["kalender"]] +
+                        [dict(item, quelle="akonadi") for item in akonadi["kalender"]],
             "adressbuecher": [dict(item, quelle="eds") for item in eds["adressbuecher"]] +
-                             [dict(item, quelle="nextcloud") for item in cloud["adressbuecher"]],
-            "fehler": ""})
+                              [dict(item, quelle="nextcloud") for item in cloud["adressbuecher"]] +
+                              [dict(item, quelle="akonadi") for item in akonadi["adressbuecher"]],
+            "fehler": eds["fehler"]})
 
     def _sync_arbeit(self, nachricht):
         try:
@@ -20275,6 +20583,22 @@ class Fenster(_FENSTER_BASIS):
                               or buch_uid.startswith("nextcloud-addressbook:"))
         nextcloud_kalender, eds_kalender, nextcloud_buch, eds_buch = \
             sync_quellen_aufteilen(kal_uids, buch_uid)
+        akonadi_gewaehlt = (any(uid.startswith("akonadi-calendar:")
+                                for uid in eds_kalender) or
+                              eds_buch.startswith("akonadi-addressbook:"))
+        eds_gewaehlt = (any(not uid.startswith("akonadi-calendar:")
+                            for uid in eds_kalender) or
+                        bool(eds_buch and not eds_buch.startswith(
+                            "akonadi-addressbook:")))
+        akonadi_quellen = {}
+        if akonadi_gewaehlt:
+            akonadi = akonadi_quellen_status()
+            if not akonadi["verfuegbar"]:
+                raise RuntimeError(_("KDE/Akonadi integration is not available."))
+            if akonadi["fehler"]:
+                raise RuntimeError(akonadi["fehler"])
+            akonadi_quellen = {item["uid"]: dict(item) for item in
+                akonadi["kalender"] + akonadi["adressbuecher"]}
         if nextcloud_gewaehlt and not eds_kalender and not eds_buch:
             return self._nextcloud_sync_ausfuehren(
                 nachricht, nextcloud_kalender, nextcloud_buch,
@@ -20345,7 +20669,7 @@ class Fenster(_FENSTER_BASIS):
                 self.antwort("App.syncFertig", ergebnis)
             sync_transaktion_abschliessen()
             return ergebnis
-        if not eds_laden():
+        if eds_gewaehlt and not eds_laden():
             raise RuntimeError(
                 _("Online account integration (Evolution Data Server) is not available "
                   "on this system. Install it with:\nsudo apt install %s") % EDS_PAKETE)
@@ -20360,6 +20684,24 @@ class Fenster(_FENSTER_BASIS):
             daten.get("syncMetadaten"), dict) else {}
         eds_meta = sync_meta.get("eds") if isinstance(sync_meta.get("eds"), dict) else {}
         eds_adress_meta = dict(eds_meta.get("adressbuecher") or {})
+        akonadi_meta = sync_meta.get("akonadi") if isinstance(
+            sync_meta.get("akonadi"), dict) else {}
+        akonadi_bindungen = dict(akonadi_meta.get("bindungen") or {})
+        for akonadi_uid in [uid for uid in kal_uids if uid.startswith(
+                "akonadi-calendar:")] + ([buch_uid] if buch_uid.startswith(
+                    "akonadi-addressbook:") else []):
+            quelle = akonadi_quellen.get(akonadi_uid)
+            if not quelle:
+                raise RuntimeError(_(
+                    "The selected source was not found. Select it again in Settings."))
+            generation = int(quelle.get("generation") or 0)
+            instanz = str(quelle.get("instance") or "")
+            bindung = {"generation": generation, "instance": instanz}
+            vorher = akonadi_bindungen.get(akonadi_uid)
+            if vorher is not None and vorher != bindung:
+                raise RuntimeError(_(
+                    "The KDE/Akonadi database was replaced. Select the source again in Settings."))
+            akonadi_bindungen[akonadi_uid] = bindung
         loeschungsfrei = bool(sync_meta.get("ersteSyncLoeschungsfrei") or
                              ((daten.get("einstellungen") or {}).get("sync") or {}).get(
                                  "ersteSyncLoeschungsfrei"))
@@ -20388,18 +20730,27 @@ class Fenster(_FENSTER_BASIS):
             adressbuch_syncs.pop(buch_uid, None)
         bericht = []
         sync_fehler = []
-        registry = eds_registry()
+        registry = eds_registry() if eds_gewaehlt else None
+        buch_ok = bool(eds_buch.startswith("akonadi-addressbook:") or
+                       _EDS["buch_ok"])
 
         buch_client = buch_lesen = buch_fern = buch_basis = None
         erster_buch_sync = False
         buch_name = buch_uid
-        if buch_uid and _EDS["buch_ok"]:
+        buch_rechte = set((akonadi_quellen.get(buch_uid) or {}).get(
+            "rights") or []) if buch_uid.startswith("akonadi-addressbook:") else {
+                "create", "change", "delete"}
+        buch_nur_lesen = bool(buch_uid.startswith("akonadi-addressbook:") and
+                              not {"create", "change", "delete"}.issubset(
+                                  buch_rechte))
+        if buch_uid and buch_ok:
             try:
-                buch_quelle = _quelle(registry, buch_uid)
-                buch_name = buch_quelle.get_display_name() or buch_uid
+                buch_name = _sync_quellenname(registry, buch_uid, akonadi_quellen)
             except Exception:
                 pass
-            buch_client = eds_buch_client(registry, buch_uid)
+            buch_client = (eds_buch_client(registry, buch_uid, akonadi_quellen)
+                           if buch_uid.startswith("akonadi-addressbook:") else
+                           eds_buch_client(registry, buch_uid))
             buch_basis = eds_adress_meta.get(buch_uid)
             if not isinstance(buch_basis, dict):
                 buch_basis = {}
@@ -20435,13 +20786,23 @@ class Fenster(_FENSTER_BASIS):
             neue_tote = list(uebrige_tote)
             sync_zeit = jetzt_ms()
             for quelle_uid in kal_uids:
-                quelle_name = _("Evolution Data Server")
+                ist_akonadi = quelle_uid.startswith("akonadi-calendar:")
+                anbieter = "KDE/Akonadi" if ist_akonadi else _(
+                    "Evolution Data Server")
+                quellenpraefix = "akonadi:" if ist_akonadi else "eds:"
+                quelle_name = anbieter
+                rechte = set((akonadi_quellen.get(quelle_uid) or {}).get(
+                    "rights") or []) if ist_akonadi else {
+                        "create", "change", "delete"}
+                quellen_nur_lesen = "change" not in rechte
                 try:
-                    quellobjekt = _quelle(registry, quelle_uid)
-                    quelle_name = _eds_quellenname(registry, quellobjekt)
+                    quelle_name = _sync_quellenname(
+                        registry, quelle_uid, akonadi_quellen)
                 except Exception:
                     pass
-                client = eds_kalender_client(registry, quelle_uid)
+                client = (eds_kalender_client(
+                    registry, quelle_uid, akonadi_quellen) if ist_akonadi else
+                    eds_kalender_client(registry, quelle_uid))
                 fern = {}
                 fern_gelesen = []
                 gesperrte_serien = set()
@@ -20464,9 +20825,12 @@ class Fenster(_FENSTER_BASIS):
                 fern_komplex = []
                 for t in fern_gelesen:
                     _termin_quelle_hinzufuegen(
-                        t, "eds:" + quelle_uid, quelle_name, t.get("uid"))
+                        t, quellenpraefix + quelle_uid, quelle_name, t.get("uid"))
                     t["kalenderQuelle"] = {"id": quelle_uid, "name": quelle_name,
-                                            "anbieter": _("Evolution Data Server")}
+                                            "anbieter": anbieter}
+                    if quellen_nur_lesen:
+                        t["icsReadOnly"] = True
+                        t["icsReadOnlyGrund"] = "Akonadi"
                     if (t.get("uid") and t.get("uid") not in gesperrte_serien and
                             t.get("icsSerienUid") not in gesperrte_serien):
                         if t["uid"] in fern:
@@ -20476,7 +20840,7 @@ class Fenster(_FENSTER_BASIS):
                         fern[t["uid"]] = t
                     elif t.get("uid"):
                         t["icsReadOnly"] = True
-                        t["icsReadOnlyGrund"] = "EDS"
+                        t["icsReadOnlyGrund"] = "Akonadi" if ist_akonadi else "EDS"
                         t["syncKalenderUid"] = quelle_uid
                         t["sync"] = True
                         fern_komplex.append(t)
@@ -20503,10 +20867,14 @@ class Fenster(_FENSTER_BASIS):
                             continue
                         remote_uid = str(entfernt.get("uid") or "")
                         _termin_quelle_hinzufuegen(
-                            vorhanden, "eds:" + quelle_uid, quelle_name, remote_uid)
+                            vorhanden, quellenpraefix + quelle_uid, quelle_name,
+                            remote_uid)
                         vorhanden["kalenderQuelle"] = {
                             "id": quelle_uid, "name": quelle_name,
-                            "anbieter": _("Evolution Data Server")}
+                            "anbieter": anbieter}
+                        if quellen_nur_lesen:
+                            vorhanden["icsReadOnly"] = True
+                            vorhanden["icsReadOnlyGrund"] = "Akonadi"
                         vorhanden["syncKalenderUid"] = quelle_uid
                         zugeordnete_lokale.add(id(vorhanden))
                         if remote_uid and (remote_uid == vorhanden.get("uid") or
@@ -20527,9 +20895,11 @@ class Fenster(_FENSTER_BASIS):
                                 t.get("uid") in gesperrte_serien or
                                 t.get("icsSerienUid") in gesperrte_serien):
                             t["icsReadOnly"] = True
-                            t["icsReadOnlyGrund"] = "EDS"
+                            t["icsReadOnlyGrund"] = (
+                                "Akonadi" if ist_akonadi else "EDS")
                             _termin_quelle_hinzufuegen(
-                                t, "eds:" + quelle_uid, quelle_name, t.get("uid"))
+                                t, quellenpraefix + quelle_uid, quelle_name,
+                                t.get("uid"))
                             neue_termine.append(t)
                             vorhandene_komplex_uids.add(t.get("uid"))
                             geschuetzt += 1
@@ -20561,9 +20931,39 @@ class Fenster(_FENSTER_BASIS):
                     lokal, fern, tombstones, letzter_kalender_sync, TERMIN_FELDER)
                 for obj in lokal:
                     obj["syncKalenderUid"] = quelle_uid
+                    if quellen_nur_lesen and obj.get("uid") in fern:
+                        obj["icsReadOnly"] = True
+                        obj["icsReadOnlyGrund"] = "Akonadi"
                     _termin_quelle_hinzufuegen(
-                        obj, "eds:" + quelle_uid, quelle_name, obj.get("uid"))
+                        obj, quellenpraefix + quelle_uid, quelle_name,
+                        obj.get("uid"))
                 fehler = 0
+                verweigert = []
+                for recht, liste, zaehler in (("create", anlegen, "remote_neu"),
+                                              ("change", aendern,
+                                               "remote_geaendert")):
+                    if recht not in rechte and liste:
+                        for obj in liste:
+                            obj["sync"] = False
+                        verweigert.extend(liste)
+                        z[zaehler] = max(0, z[zaehler] - len(liste))
+                        liste[:] = []
+                if verweigert:
+                    fehler += len(verweigert)
+                    sync_fehler.append(_sync_fehlertext(
+                        "%s · %s" % (quelle_name, _("Appointments")),
+                        RuntimeError(_nur_lesen_text())))
+                if ist_akonadi and loeschen:
+                    # Akonadi remote deletion is intentionally disabled. Keep the
+                    # tombstones so the user's deletion remains pending and visible.
+                    fehler += len(loeschen)
+                    sync_fehler.append(_sync_fehlertext(
+                        "%s · %s" % (quelle_name, _("Appointments")),
+                        RuntimeError(_nur_lesen_text())))
+                    neue_tote.extend(tombstones)
+                    tombstones = []
+                    z["remote_geloescht"] = 0
+                    loeschen[:] = []
                 for obj in anlegen:
                     try:
                         neu = eds_event_anlegen(client, vevent_text(obj))
@@ -20616,7 +21016,7 @@ class Fenster(_FENSTER_BASIS):
             tote_termine = neue_tote
 
         if buch_uid:
-            if not _EDS["buch_ok"]:
+            if not buch_ok:
                 bericht.append(_(
                     "Contacts: component gir1.2-ebook-1.2 is missing; skipped."))
             else:
@@ -20624,8 +21024,11 @@ class Fenster(_FENSTER_BASIS):
                 fern = buch_fern
                 geburtstage = buch_lesen["geburtstage"]
                 erster_buch_sync = not bool(buch_basis.get("initialisiert"))
-                if erster_buch_sync:
+                if erster_buch_sync or buch_nur_lesen:
                     kontakte, plan = kontakte_erster_sync(kontakte, fern)
+                    if buch_nur_lesen:
+                        tote_kontakte = [t for t in tote_kontakte
+                            if t.get("uid") not in fern]
                     anlegen, aendern, loeschen = [], [], []
                     z = {"lokal_neu": plan["lokalNeu"],
                          "lokal_geaendert": plan["lokalAktualisiert"],
@@ -20641,6 +21044,27 @@ class Fenster(_FENSTER_BASIS):
                             "loeschen": len(loeschen)}
                 erfolgreich = {"anlegen": 0, "aendern": 0, "loeschen": 0}
                 fehler = 0
+                verweigert = []
+                for recht, liste in (("create", anlegen), ("change", aendern)):
+                    if recht not in buch_rechte and liste:
+                        verweigert.extend(liste)
+                        liste[:] = []
+                if verweigert:
+                    fehler += len(verweigert)
+                    sync_fehler.append(_sync_fehlertext(
+                        "%s · %s" % (buch_name, _("Contacts")),
+                        RuntimeError(_nur_lesen_text())))
+                if buch_uid.startswith("akonadi-addressbook:") and loeschen:
+                    verweigerte_uids = set(loeschen)
+                    vorhandene_uids = {str(obj.get("uid") or "") for obj in kontakte}
+                    kontakte.extend(dict(fern[uid], sync=True)
+                                     for uid in verweigerte_uids
+                                     if uid in fern and uid not in vorhandene_uids)
+                    tote_kontakte = [t for t in tote_kontakte
+                                     if t.get("uid") not in verweigerte_uids]
+                    z["remote_geloescht"] = 0
+                    geplant["loeschen"] = 0
+                    loeschen[:] = []
                 for obj in anlegen:
                     try:
                         neu = eds_kontakt_anlegen(client, vcard_text(obj))
@@ -20714,7 +21138,7 @@ class Fenster(_FENSTER_BASIS):
                         neu_jt) % neu_jt)
 
         adressbuch_kandidat = None
-        if buch_uid and _EDS["buch_ok"] and erster_buch_sync:
+        if buch_uid and buch_ok and erster_buch_sync:
             adressbuch_kandidat = {
                 "sourceUid": buch_uid, "initialisiert": True,
                 "letzterSync": jetzt_ms(),
@@ -20725,7 +21149,8 @@ class Fenster(_FENSTER_BASIS):
                                daten.get("syncEpoch") or str(uuid.uuid4()),
                                "ersteSyncLoeschungsfrei": False,
                                "quarantinedDeletes": sync_meta.get("quarantinedDeletes") or {},
-                               "eds": {"adressbuecher": eds_adress_meta}})
+                               "eds": {"adressbuecher": eds_adress_meta},
+                               "akonadi": {"bindungen": akonadi_bindungen}})
         ergebnis = {
             "termine": termine, "kontakte": kontakte, "jahrestage": jahrestage,
             "geloescht": {"termine": tote_termine, "kontakte": tote_kontakte},
@@ -20735,14 +21160,15 @@ class Fenster(_FENSTER_BASIS):
             "adressbuchBaselineKandidat": adressbuch_kandidat,
             "kontaktVorschau": ({
                 "quelle": buch_name,
-                "modus": "erstimport" if erster_buch_sync else "bidirektional",
+                "modus": ("nurLesen" if buch_nur_lesen else
+                          "erstimport" if erster_buch_sync else "bidirektional"),
                 "remoteGemeldet": buch_lesen["remoteGesamt"],
                 "remoteGelesen": buch_lesen["gueltigeUids"],
                 "lokalNeu": z["lokal_neu"],
                 "lokalAktualisiert": z["lokal_geaendert"],
                 "remoteGeplant": geplant,
                 "remoteErfolgreich": erfolgreich,
-                "fehler": fehler} if buch_uid and _EDS["buch_ok"] else None),
+                "fehler": fehler} if buch_uid and buch_ok else None),
             "syncMetadaten": neue_sync_meta, "ok": not sync_fehler,
             "fehler": " ".join(sync_fehler[:3]),
             "bericht": " ".join(bericht) or _("Synchronization completed.")}
@@ -20880,11 +21306,22 @@ def _sync_satz(was, z, fehler):
 # Programmstart
 # ---------------------------------------------------------------------------
 
-def einzelinstanz_anmelden(anwendungskennung, aktivieren):
+def einzelinstanz_anmelden(anwendungskennung, aktivieren, reply_intent=None,
+                           reply_empfangen=None):
     """Meldet die Anwendung am Sitzungsbus an. Ein weiterer Start sendet nur
     ein Aktivierungssignal an das bereits laufende Fenster."""
     anwendung = Gio.Application.new(anwendungskennung,
                                     Gio.ApplicationFlags.FLAGS_NONE)
+    aktion = Gio.SimpleAction.new("sms-reply", GLib.VariantType.new("s"))
+    def bei_sms_antwort(_aktion, parameter):
+        try:
+            intent = sms_reply_intent_decode(parameter.get_string())
+        except ValueError:
+            return
+        if reply_empfangen:
+            reply_empfangen(intent)
+    aktion.connect("activate", bei_sms_antwort)
+    anwendung.add_action(aktion)
     def bei_aktivierung(_anwendung):
         debug_notiz("singleton.activate")
         aktivieren()
@@ -20897,14 +21334,36 @@ def einzelinstanz_anmelden(anwendungskennung, aktivieren):
         return anwendung, False
     if anwendung.get_is_remote():
         debug_notiz("singleton.remote", activation="send")
+        if reply_intent:
+            anwendung.activate_action("sms-reply", GLib.Variant("s", reply_intent))
         anwendung.activate()
         return anwendung, True
     anwendung.hold()
+    if reply_intent and reply_empfangen:
+        try:
+            reply_empfangen(sms_reply_intent_decode(reply_intent))
+        except ValueError:
+            pass
     debug_notiz("singleton.primary", held=True)
     return anwendung, False
 
 def haupt():
     sys.argv[1:] = kurzoptionen_normalisieren(sys.argv[1:])
+    reply_intent = None
+    if "--sms-reply-file" in sys.argv[1:]:
+        arguments = sys.argv[1:]
+        index = arguments.index("--sms-reply-file")
+        if (arguments.count("--sms-reply-file") != 1 or index + 1 >= len(arguments) or
+                arguments[index + 1].startswith("-")):
+            sys.stderr.write("Invalid SMS reply request.\n")
+            sys.exit(2)
+        try:
+            reply_intent = sms_reply_request_read(arguments[index + 1])
+        except (OSError, ValueError):
+            sys.stderr.write("Invalid SMS reply request.\n")
+            sys.exit(2)
+        del arguments[index:index + 2]
+        sys.argv[1:] = arguments
     befehlszeilen_sprache_anwenden(sys.argv[1:])
     if len(sys.argv) == 3 and sys.argv[1] == "--update-helper":
         try:
@@ -21052,12 +21511,18 @@ def haupt():
     GLib.set_application_name(FENSTER_TITEL)
     debug_notiz("startup.branch", branch="gui", transport=transport)
 
-    fenster_halter = {"fenster": None}
+    fenster_halter = {"fenster": None, "sms": []}
+    def sms_empfangen(intent):
+        if fenster_halter["fenster"]:
+            fenster_halter["fenster"]._sms_antwort_empfangen(intent)
+        else:
+            fenster_halter["sms"].append(intent)
     anwendung, schon_offen = einzelinstanz_anmelden(
         "io.gitlab.maik3531.MagnolieOrganizer",
         lambda: (fenster_halter["fenster"]._tray_zeigen()
                  if fenster_halter["fenster"] and
-                 "--tray-start" not in sys.argv[1:] else None))
+                 "--tray-start" not in sys.argv[1:] else None),
+        reply_intent, sms_empfangen)
     if schon_offen:
         debug_notiz("startup.exit", reason="existing-instance")
         return
@@ -21079,6 +21544,8 @@ def haupt():
     debug_notiz("startup.window-create", web="found")
     fenster = Fenster(web_verzeichnis)
     fenster_halter["fenster"] = fenster
+    for intent in fenster_halter["sms"]:
+        fenster._sms_antwort_empfangen(intent)
     fenster.zeige_wenn_bereit()
     try:
         debug_notiz("startup.gtk-main", state="enter")

@@ -1,0 +1,21 @@
+#!/usr/bin/make -f
+
+%:
+	dh $@ --buildsystem=cmake
+
+override_dh_auto_configure:
+	dh_auto_configure -- -DCMAKE_BUILD_TYPE=Release \
+		-DCMAKE_INSTALL_LIBEXECDIR=libexec \
+		-DCMAKE_DISABLE_FIND_PACKAGE_KPim6Akonadi=ON
+
+override_dh_clean:
+	dh_clean
+	rm -rf obj-*
+	rm -f debian/files debian/*.substvars
+
+override_dh_shlibdeps:
+	if test -n "$$MAGNOLIE_SHLIBS_LOCAL"; then \
+		dh_shlibdeps -- -L"$$MAGNOLIE_SHLIBS_LOCAL"; \
+	else \
+		dh_shlibdeps; \
+	fi

@@ -52,6 +52,7 @@ test -f "$APPDIR/usr/bin/magnolie_telefon.py"
 test -f "$APPDIR/usr/bin/magnolie_personal_sync.py"
 test -f "$APPDIR/usr/bin/magnolie_nextcloud.py"
 test -f "$APPDIR/usr/bin/magnolie_cloud_backup.py"
+test -f "$APPDIR/usr/bin/magnolie_akonadi.py"
 test -f "$APPDIR/usr/share/magnolie-organizer/web/index.html"
 test "$(cat "$APPDIR/usr/share/magnolie-organizer/build-config.json")" = \
     "{\"contributorHash\":\"$CONTRIBUTOR_HASH\"}"

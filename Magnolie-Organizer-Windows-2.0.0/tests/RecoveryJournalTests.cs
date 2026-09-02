@@ -65,6 +65,27 @@ internal static class RecoveryJournalTests
             }
             TestAssert.That(journal.List().Count == 3,
                 "Die gewählte Anzahl der Wiederherstellungspunkte wird nicht durchgesetzt.");
+            var daysSchedule = journal.SetRetention("days", 9, 2);
+            TestAssert.That(daysSchedule.Mode == "days" && daysSchedule.Maximum == 9 && daysSchedule.Days == 2,
+                "Der tagebasierte Aufbewahrungsmodus wird nicht vollständig gespeichert.");
+            var persistedJournal = new RecoveryJournal(Path.Combine(root, "wiederherstellungsstaende"),
+                Path.Combine(root, "journal.json"), clock: () => now);
+            TestAssert.That(persistedJournal.Schedule() is { Mode: "days", Maximum: 9, Days: 2 },
+                "Die Aufbewahrungswahl überlebt keinen Neustart.");
+            var expiring = journal.Create(new JsonObject { ["termine"] = new JsonArray(
+                new JsonObject { ["id"] = "days-old" }) }, SnapshotReason.PreSync, "2.0.2");
+            now = now.AddDays(3);
+            var current = journal.Create(new JsonObject { ["termine"] = new JsonArray(
+                new JsonObject { ["id"] = "days-current" }) }, SnapshotReason.PreSync, "2.0.2");
+            TestAssert.That(journal.List().All(item => item.Id != expiring.Id) &&
+                journal.List().Any(item => item.Id == current.Id) && journal.List().Any(item => item.Id == manual.Id),
+                "Die tagebasierte Aufbewahrung entfernt junge oder angeheftete Stände nicht korrekt.");
+            TestAssert.That(journal.SetMaximum(2) is { Mode: "count", Maximum: 2, Days: 2 },
+                "Der alte journal_anzahl-Vertrag schaltet nicht kompatibel auf Anzahl zurück.");
+            using (var retentionCommand = BridgeDispatcherContract.Parse(
+                "{\"cmd\":\"journal_aufbewahrung\",\"modus\":\"days\",\"maximum\":20,\"tage\":14}")) { }
+            using (var legacyCountCommand = BridgeDispatcherContract.Parse(
+                "{\"cmd\":\"journal_anzahl\",\"maximum\":20}")) { }
             File.WriteAllText(Path.Combine(root, "journal.json"), "{kaputt");
             File.WriteAllText(AtomicStore.BackupPath(Path.Combine(root, "journal.json")), "{auch-kaputt");
             var damagedSchedule = journal.Schedule();

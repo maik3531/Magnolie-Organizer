@@ -1,5 +1,19 @@
 # Changelog / Änderungen
 
+## 2.0.16 / Notes 1.0.12 — 2026-09-01
+
+### English
+
+- Uses existing GNOME and KDE system accounts without requesting another login, with an optional bounded native Akonadi bridge.
+- Hardens EDS and Akonadi synchronization against incomplete snapshots, concurrent status refreshes, read-only sources, and unintended remote deletion.
+- Corrects SMS notification ownership, Desktop Entry escaping, AppImage host-helper startup, and recovery-snapshot retention.
+
+### Deutsch
+
+- Verwendet vorhandene GNOME- und KDE-Systemkonten ohne erneute Anmeldung und ergänzt eine optionale begrenzte native Akonadi-Brücke.
+- Härtet EDS- und Akonadi-Abgleich gegen unvollständige Stände, parallele Statusabrufe, schreibgeschützte Quellen und unbeabsichtigte Fernlöschungen.
+- Korrigiert SMS-Meldungszuständigkeit, Desktop-Entry-Escaping, AppImage-Hosthelfer und die Aufbewahrung von Wiederherstellungsständen.
+
 ## 2.0.15 / Notes 1.0.12 — 2026-09-01
 
 ### English

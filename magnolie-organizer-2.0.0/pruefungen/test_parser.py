@@ -932,8 +932,8 @@ class KdeBackend:
     def status(self):
         return {"available": True, "device_count": 1, "device_id": "a" * 32,
                 "reason": "", "pairing_state": "idle"}
-    def send_sms(self, nummer, text):
-        self.sms.append((nummer, text))
+    def send_sms(self, nummer, text, device_id=None):
+        self.sms.append((nummer, text, device_id))
         return {"ok": True, "state": "queued", "backend": "kdeconnect-direct"}
 
 kde_backend = KdeBackend()
@@ -943,8 +943,11 @@ pruefe(kde["available"] and kde["device_id"] == "a" * 32,
        "Direktes KDE Connect meldet genau ein gepaartes SMS-Gerät")
 text = "Test; $(kein Befehl)\nzweite Zeile"
 kde = m.kdeconnect_sms_senden("+49 170 1234567", text, "DE")
-pruefe(kde["ok"] and kde_backend.sms == [("+491701234567", text)],
+pruefe(kde["ok"] and kde_backend.sms == [("+491701234567", text, None)],
        "KDE-SMS übergibt Nummer und Text direkt und unverändert an das Backend")
+kde = m.kdeconnect_sms_senden("+49 170 1234567", text, "DE", device_id="a" * 32)
+pruefe(kde["ok"] and kde_backend.sms[-1] == ("+491701234567", text, "a" * 32),
+       "eine SMS-Antwort bleibt an das ursprüngliche KDE-Gerät gebunden")
 
 class KdeFensterProbe:
     def __init__(self): self.antworten = []
@@ -2050,7 +2053,7 @@ except RuntimeError as f:
 
 print()
 print("— Aktualisierungsprüfung —")
-pruefe(m.PROGRAMM_FASSUNG == "2.0.15", "Programmkern trägt die neue Fassung")
+pruefe(m.PROGRAMM_FASSUNG == "2.0.16", "Programmkern trägt die neue Fassung")
 desktop_pfad = os.path.abspath(os.path.join(os.path.dirname(PFAD), "..",
                                              "io.gitlab.maik3531.MagnolieOrganizer.desktop"))
 with open(desktop_pfad, encoding="utf-8") as datei:
@@ -2125,28 +2128,28 @@ update_oeffentlich = m.base64.b64encode(update_privat.public_key().public_bytes(
     update_serialisierung.Encoding.Raw,
     update_serialisierung.PublicFormat.Raw)).decode("ascii")
 update_summe = "ab" * 32
-update_paket = m.UPDATE_BASIS + "magnolie-organizer_2.0.16_all.deb"
+update_paket = m.UPDATE_BASIS + "magnolie-organizer_2.0.17_all.deb"
 update_signatur = m.base64.b64encode(update_privat.sign(
-    m.update_signatur_nachricht("2.0.16", update_paket, update_summe))).decode("ascii")
-update_xml = ("<?xml version='1.0'?><update><version>2.0.16</version>"
+    m.update_signatur_nachricht("2.0.17", update_paket, update_summe))).decode("ascii")
+update_xml = ("<?xml version='1.0'?><update><version>2.0.17</version>"
                "<deb>" + update_paket + "</deb><sha256>" + update_summe +
                "</sha256><signature>" + update_signatur + "</signature></update>")
 version, paket = m.update_info_lesen(update_xml)
-pruefe(version == "2.0.16" and paket.endswith("_2.0.16_all.deb"),
+pruefe(version == "2.0.17" and paket.endswith("_2.0.17_all.deb"),
        "update.xml liefert Fassung und Paketadresse")
 update_neu = m.update_pruefen(lambda _url: update_xml, update_oeffentlich)
 pruefe(update_neu["ok"] and not update_neu["aktuell"] and
-       update_neu["version"] == "2.0.16" and
+       update_neu["version"] == "2.0.17" and
        update_neu["sha256"] == update_summe and update_neu["url"] == update_paket,
        "eine Debian-Installation erhält das signierte Debian-Paket")
-appimage_paket = m.UPDATE_BASIS + "Magnolie-Organizer-2.0.16-x86_64.AppImage"
+appimage_paket = m.UPDATE_BASIS + "Magnolie-Organizer-2.0.17-x86_64.AppImage"
 appimage_summe = "ef" * 32
-appimage_xml = ("<update><version>2.0.16</version><deb>" + update_paket +
+appimage_xml = ("<update><version>2.0.17</version><deb>" + update_paket +
                  "</deb><sha256>" + update_summe + "</sha256><appimage>"
                  "<architecture>x86_64</architecture><url>" + appimage_paket +
                  "</url><sha256>" + appimage_summe + "</sha256></appimage>")
 appimage_signatur = m.base64.b64encode(update_privat.sign(
-    m.update_signatur_nachricht("2.0.16", update_paket, update_summe,
+    m.update_signatur_nachricht("2.0.17", update_paket, update_summe,
                                appimage_paket, appimage_summe))).decode("ascii")
 appimage_xml += "<signature>" + appimage_signatur + "</signature></update>"
 appimage_umgebung = os.environ.get("APPIMAGE")
@@ -2163,28 +2166,28 @@ pruefe(appimage_update["ok"] and not appimage_update["aktuell"] and
        appimage_update["url"] == appimage_paket and
        appimage_update["sha256"] == appimage_summe and not appimage_fehlt["ok"],
        "eine AppImage-Installation erhält nur das passende geprüfte AppImage")
-aarch64_paket = m.UPDATE_BASIS + "Magnolie-Organizer-2.0.16-aarch64.AppImage"
-aarch64_xml = ("<update><version>2.0.16</version><deb>" + update_paket +
+aarch64_paket = m.UPDATE_BASIS + "Magnolie-Organizer-2.0.17-aarch64.AppImage"
+aarch64_xml = ("<update><version>2.0.17</version><deb>" + update_paket +
                "</deb><sha256>" + update_summe + "</sha256><appimage>"
                "<architecture>aarch64</architecture><url>" + aarch64_paket +
                "</url><sha256>" + appimage_summe + "</sha256></appimage>")
 aarch64_signatur = m.base64.b64encode(update_privat.sign(
-    m.update_signatur_nachricht("2.0.16", update_paket, update_summe,
+    m.update_signatur_nachricht("2.0.17", update_paket, update_summe,
                                aarch64_paket, appimage_summe))).decode("ascii")
 aarch64_geprueft = m.update_manifest_pruefen(
     aarch64_xml + "<signature>" + aarch64_signatur + "</signature></update>",
     update_oeffentlich)
 pruefe(aarch64_geprueft["url"] == update_paket and not aarch64_geprueft["appimage"],
        "ein signierter fremder AppImage-Abschnitt sperrt das Debian-Update nicht")
-aktuell_paket = m.UPDATE_BASIS + "magnolie-organizer_2.0.15_all.deb"
+aktuell_paket = m.UPDATE_BASIS + "magnolie-organizer_2.0.16_all.deb"
 aktuell_signatur = m.base64.b64encode(update_privat.sign(
-    m.update_signatur_nachricht("2.0.15", aktuell_paket, update_summe))).decode("ascii")
-aktuell_xml = ("<update><version>2.0.15</version><deb>" + aktuell_paket +
+    m.update_signatur_nachricht("2.0.16", aktuell_paket, update_summe))).decode("ascii")
+aktuell_xml = ("<update><version>2.0.16</version><deb>" + aktuell_paket +
                "</deb><sha256>" + update_summe + "</sha256><signature>" +
                aktuell_signatur + "</signature></update>")
 update_aktuell = m.update_pruefen(lambda _url: aktuell_xml, update_oeffentlich)
 pruefe(update_aktuell["ok"] and update_aktuell["aktuell"] and
-       update_aktuell["version"] == "2.0.15" and not update_aktuell["url"],
+       update_aktuell["version"] == "2.0.16" and not update_aktuell["url"],
        "dieselbe signierte Fassung gilt als aktuell")
 alt_paket = m.UPDATE_BASIS + "magnolie-organizer_2.0.0_all.deb"
 alt_signatur = m.base64.b64encode(update_privat.sign(
@@ -2199,17 +2202,17 @@ pruefe(update_alt["ok"] and update_alt["aktuell"] and
 handbuch_paket = m.UPDATE_BASIS + "magnolie-handbuch_1.9.8_all.deb"
 handbuch_summe = "cd" * 32
 handbuch_signatur = m.base64.b64encode(update_privat.sign(
-    m.update_signatur_nachricht("2.0.15", aktuell_paket, update_summe,
+    m.update_signatur_nachricht("2.0.16", aktuell_paket, update_summe,
                                manual_version="1.9.8", manual_linux=handbuch_paket,
                                manual_linux_sha=handbuch_summe))).decode("ascii")
-handbuch_xml = ("<update><version>2.0.15</version><deb>" + aktuell_paket +
+handbuch_xml = ("<update><version>2.0.16</version><deb>" + aktuell_paket +
     "</deb><sha256>" + update_summe + "</sha256><manual><version>1.9.8</version>"
     "<linux><deb>" + handbuch_paket + "</deb><sha256>" + handbuch_summe +
     "</sha256></linux></manual><signature>" + handbuch_signatur +
     "</signature></update>")
 handbuch_update = m.update_pruefen(lambda _url: handbuch_xml, update_oeffentlich)
 pruefe(handbuch_update["ok"] and handbuch_update["aktuell"] and
-       handbuch_update["version"] == "2.0.15" and
+       handbuch_update["version"] == "2.0.16" and
        handbuch_update["handbuch"] == {"version": "1.9.8",
        "url": handbuch_paket, "sha256": handbuch_summe, "platform": "linux"},
        "verschachtelte Handbuchdaten verändern die Organizerfelder nicht")
@@ -2218,7 +2221,7 @@ pruefe(bool(handbuch_update.get("handbuch")) and
        "der Handbuchdownload wird an das zuletzt validierte Manifest gebunden")
 falsches_handbuch_paket = m.UPDATE_BASIS + "magnolie-organizer_1.9.8_all.deb"
 falsche_handbuch_signatur = m.base64.b64encode(update_privat.sign(
-    m.update_signatur_nachricht("2.0.15", aktuell_paket, update_summe,
+    m.update_signatur_nachricht("2.0.16", aktuell_paket, update_summe,
                                manual_version="1.9.8",
                                manual_linux=falsches_handbuch_paket,
                                manual_linux_sha=handbuch_summe))).decode("ascii")
@@ -2234,7 +2237,7 @@ for falsches_paket in (handbuch_paket + "?download=1",
                        "https://example.org/magnolie-handbuch_1.9.8_all.deb"):
     pruefe(not m._handbuch_update_url_erlaubt(falsches_paket, "1.9.8"),
            "Handbuchadresse, Dateiname und Version werden strikt gebunden")
-altes_update_xml = ("<update><version>2.0.15</version><deb>" +
+altes_update_xml = ("<update><version>2.0.16</version><deb>" +
                     update_paket + "</deb></update>")
 update_abrufe = []
 update_ohne_schluessel = m.update_pruefen(
@@ -2255,8 +2258,8 @@ pruefe(not update_ohne_signatur["ok"] and "signatur" in
        update_ohne_signatur["fehler"].lower(),
        "ein Manifest ohne Signatur wird mit gültigem Release-Schlüssel abgewiesen")
 update_veraendert = m.update_pruefen(
-    lambda _url: update_xml.replace("<version>2.0.16</version>",
-                                    "<version>2.0.17</version>"),
+    lambda _url: update_xml.replace("<version>2.0.17</version>",
+                                    "<version>2.0.18</version>"),
     update_oeffentlich)
 pruefe(not update_veraendert["ok"] and any(text in
        update_veraendert["fehler"].lower() for text in
@@ -3181,6 +3184,21 @@ pruefe("Name=Magnolie Organizer – Tray-Applet" in tray_autostart_inhalt and
 pruefe(m.tray_autostart_einrichten(False, tray_autostart)["ok"] and
        not os.path.exists(tray_autostart),
        "das Abschalten entfernt nur den eigenen Tray-Autostart")
+appimage_alt = os.environ.get("APPIMAGE")
+os.environ["APPIMAGE"] = "/tmp/Magnolie Organizer-${HOME}-100%.AppImage"
+try:
+    pruefe('Exec="/tmp/Magnolie Organizer-\\\\${HOME}-100%%.AppImage" --tray-start' in
+           m.tray_autostart_text() and
+           'ExecStart="/tmp/Magnolie Organizer-$${HOME}-100%%.AppImage" --erinnerung' in
+           m.systemd_dienst_text() and
+           'Exec="/tmp/Magnolie Organizer-\\\\${HOME}-100%%.AppImage" --wecker' in
+           m.autostart_text(),
+           "dauerhafte AppImage-Registrierungen verwenden das stabile Abbild")
+finally:
+    if appimage_alt is None:
+        os.environ.pop("APPIMAGE", None)
+    else:
+        os.environ["APPIMAGE"] = appimage_alt
 if m.AppIndicator is not None:
     pruefe(m.tray_system_verfuegbar("X-Cinnamon", []),
            "Cinnamon unterstützt den StatusNotifier ohne GNOME-Erweiterung")
@@ -3336,6 +3354,12 @@ class _ProbeAnwendung:
     def get_is_remote(self): return self.remote
     def activate(self): self.aktiviert += 1
     def hold(self): self.gehalten += 1
+    def add_action(self, aktion): self.aktion = aktion
+    def activate_action(self, _name, parameter): self.aktion.rueckruf(self.aktion, parameter)
+class _ProbeAktion:
+    @classmethod
+    def new(cls, *_a): return cls()
+    def connect(self, _signal, rueckruf): self.rueckruf = rueckruf
 class _ProbeApplication:
     remote = False
     letzte = None
@@ -3345,6 +3369,7 @@ class _ProbeApplication:
         return cls.letzte
 class _ProbeGio:
     Application = _ProbeApplication
+    SimpleAction = _ProbeAktion
     class ApplicationFlags:
         FLAGS_NONE = 0
 gio_echt = m.Gio

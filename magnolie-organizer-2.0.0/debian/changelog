@@ -1,3 +1,14 @@
+magnolie-organizer (2.0.16) unstable; urgency=high
+
+  * Verwendet vorhandene GNOME- und KDE-Systemkonten ohne erneute Anmeldung.
+  * Härtet EDS- und Akonadi-Abgleich gegen unvollständige Stände, Rennen,
+    schreibgeschützte Quellen und unbeabsichtigte Fernlöschungen.
+  * Verbessert SMS-Meldungszuständigkeit, Autostart-Escaping und AppImage-Helfer.
+  * Ergänzt flexible Aufbewahrung und periodische Bereinigung der
+    Wiederherstellungsstände.
+
+ -- Maik Walter <maik3531@gmail.com>  Tue, 01 Sep 2026 21:59:15 +0200
+
 magnolie-organizer (2.0.15) unstable; urgency=high
 
   * Richtet die beiden Seiten der Tagesansicht mit und ohne Wetter dauerhaft aus.

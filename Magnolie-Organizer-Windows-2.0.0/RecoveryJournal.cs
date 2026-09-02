@@ -16,7 +16,7 @@ internal sealed record SnapshotInfo(
     string Directory);
 
 internal sealed record RecoverySchedule(string Interval, DateTimeOffset? Last, DateTimeOffset? Next,
-    int Maximum, string Status, string Error);
+    string Mode, int Maximum, int Days, string Status, string Error);
 
 internal sealed class RecoveryJournal
 {
@@ -261,10 +261,12 @@ internal sealed class RecoveryJournal
     {
         var settings = ReadSettings();
         var interval = Interval(settings["interval"]?.GetValue<string>() ?? "weekly");
+        var mode = Mode(settings);
         var maximum = Maximum(settings);
+        var days = Days(settings);
         var last = ParseDate(settings["last"]?.GetValue<string>());
         DateTimeOffset? next = interval == "off" ? null : (last ?? DateTimeOffset.MinValue) + Duration(interval);
-        return new RecoverySchedule(interval, last, next, maximum, interval == "off" ? "off" :
+        return new RecoverySchedule(interval, last, next, mode, maximum, days, interval == "off" ? "off" :
             next <= clock() ? "due" : "scheduled", settings["error"]?.GetValue<string>() ?? "");
     }
 
@@ -280,7 +282,19 @@ internal sealed class RecoveryJournal
     internal RecoverySchedule SetMaximum(int maximum)
     {
         var settings = ReadSettings();
+        settings["mode"] = "count";
         settings["maximum"] = Math.Clamp(maximum, 1, 100);
+        WriteSettings(settings);
+        Prune();
+        return Schedule();
+    }
+
+    internal RecoverySchedule SetRetention(string mode, int maximum, int days)
+    {
+        var settings = ReadSettings();
+        settings["mode"] = mode is "count" or "days" ? mode : "count";
+        settings["maximum"] = Math.Clamp(maximum, 1, 100);
+        settings["days"] = Math.Clamp(days, 1, 3650);
         WriteSettings(settings);
         Prune();
         return Schedule();
@@ -299,9 +313,21 @@ internal sealed class RecoveryJournal
     internal void Prune(long? availableBytes = null, long? volumeBytes = null)
     {
         var all = List().OrderByDescending(item => item.CreatedUtc).ToList();
-        var keep = new HashSet<string>(all.Take(Maximum(ReadSettings())).Select(item => item.Id));
-        foreach (var item in all.Where(item => File.Exists(Path.Combine(item.Directory, RestoreLeaseFile))))
-            keep.Add(item.Id);
+        var settings = ReadSettings();
+        var protectedItems = all.Where(item => item.Reason == "manual" ||
+            File.Exists(Path.Combine(item.Directory, RestoreLeaseFile))).ToList();
+        var keep = new HashSet<string>(protectedItems.Select(item => item.Id));
+        if (Mode(settings) == "days")
+        {
+            var cutoff = clock().ToUniversalTime().AddDays(-Days(settings));
+            foreach (var item in all.Where(item => item.CreatedUtc >= cutoff)) keep.Add(item.Id);
+            if (keep.Count == 0 && all.Count > 0) keep.Add(all[0].Id);
+        }
+        else
+        {
+            var freeSlots = Math.Max(0, Maximum(settings) - keep.Count);
+            foreach (var item in all.Where(item => !keep.Contains(item.Id)).Take(freeSlots)) keep.Add(item.Id);
+        }
 
         foreach (var item in all.Where(item => !keep.Contains(item.Id))) Delete(item.Id);
         all = List().OrderBy(item => item.CreatedUtc).ToList();
@@ -310,7 +336,8 @@ internal sealed class RecoveryJournal
         var volume = volumeBytes ?? drive.TotalSize;
         var budget = Math.Min(OneGiB, volume / 20);
         var used = all.Sum(item => item.Size);
-        foreach (var item in all.Where(item => !File.Exists(Path.Combine(item.Directory, RestoreLeaseFile))))
+        foreach (var item in all.Where(item => item.Reason != "manual" &&
+                     !File.Exists(Path.Combine(item.Directory, RestoreLeaseFile))))
         {
             if (used <= budget && available >= OneGiB) break;
             Delete(item.Id); used -= item.Size; available += item.Size;
@@ -398,8 +425,12 @@ internal sealed class RecoveryJournal
     }
 
     private void WriteSettings(JsonObject settings) => store.WriteRecoverableJson(settingsPath, settings.ToJsonString(Indented), 64 * 1024);
+    private static string Mode(JsonObject settings) => settings["mode"] is JsonValue value &&
+        value.TryGetValue<string>(out var mode) && mode == "days" ? "days" : "count";
     private static int Maximum(JsonObject settings) => settings["maximum"] is JsonValue value &&
         value.TryGetValue<int>(out var maximum) ? Math.Clamp(maximum, 1, 100) : 20;
+    private static int Days(JsonObject settings) => settings["days"] is JsonValue value &&
+        value.TryGetValue<int>(out var days) ? Math.Clamp(days, 1, 3650) : 14;
     private static DateTimeOffset? ParseDate(string? value) => DateTimeOffset.TryParse(value, out var result) ? result.ToUniversalTime() : null;
     private static string Interval(string value) => value is "off" or "6h" or "12h" or "daily" or "weekly" ? value : "weekly";
     private static TimeSpan Duration(string value) => value switch { "6h" => TimeSpan.FromHours(6), "12h" => TimeSpan.FromHours(12), "daily" => TimeSpan.FromDays(1), _ => TimeSpan.FromDays(7) };

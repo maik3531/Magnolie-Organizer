@@ -18,6 +18,7 @@ Recommends: gir1.2-ecal-2.0, gir1.2-ebook-1.2, gir1.2-edataserver-1.2,
  hunspell-de-de, hunspell-en-us, libnotify-bin,
  gir1.2-ayatanaappindicator3-0.1, xdg-utils
 Suggests: bluez, gnome-shell-extension-appindicator, gir1.2-xapp-1.0,
+  magnolie-organizer-akonadi,
  libcanberra-gtk3-module, pulseaudio-utils | pipewire-bin | alsa-utils
 Description: Personal organizer with a classic paper appearance
  Calendar, address book, tasks, notes, anniversaries, and a year planner in
@@ -33,7 +34,9 @@ Description: Personal organizer with a classic paper appearance
  optional three-day forecast uses a local address when available; its disclosed
  public-IP location fallback can be disabled.
  Evolution Data Server integration synchronizes appointments and contacts,
- including contact photos, with system online accounts.
+ including contact photos, with GNOME system online accounts. The optional
+ Akonadi bridge uses existing KDE calendar and address-book resources without
+ requesting their account credentials again.
  .
  Notes support print and handwriting fonts, three font sizes, black or blue
  ink, rich-text formatting, and optional spell checking. Appointment reminders

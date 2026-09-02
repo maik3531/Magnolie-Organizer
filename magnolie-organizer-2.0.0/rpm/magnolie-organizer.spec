@@ -33,7 +33,7 @@
 %endif
 
 Name:           magnolie-organizer
-Version:        2.0.15
+Version:        2.0.16
 Release:        1%{?dist}
 Summary:        Personal organizer with a classic paper appearance
 
@@ -52,6 +52,7 @@ BuildRequires:  %{magnolie_build_deps}
 BuildRequires:  %{magnolie_deps}
 Requires:       /usr/bin/python3
 Requires:       %{magnolie_deps}
+Suggests:       magnolie-organizer-akonadi
 
 %description
 Magnolie Organizer combines a calendar, contacts, tasks, notes,
@@ -76,7 +77,7 @@ done < po/LINGUAS
 
 %check
 set -eu
-/usr/bin/python3 -m py_compile bin/%{name} bin/magnolie_telefon.py bin/magnolie_kdeconnect.py bin/magnolie_hintergrund.py bin/magnolie_personal_sync.py bin/magnolie_nextcloud.py bin/magnolie_cloud_backup.py bin/magnolie_crash.py bin/magnolie_asset.py werkzeuge/*.py pruefungen/*.py
+/usr/bin/python3 -m py_compile bin/%{name} bin/magnolie_telefon.py bin/magnolie_kdeconnect.py bin/magnolie_hintergrund.py bin/magnolie_personal_sync.py bin/magnolie_nextcloud.py bin/magnolie_cloud_backup.py bin/magnolie_akonadi.py bin/magnolie_crash.py bin/magnolie_asset.py werkzeuge/*.py pruefungen/*.py
 while read -r language; do
     test -n "$language" || continue
     /usr/bin/python3 werkzeuge/katalog_pruefen.py \
@@ -127,6 +128,7 @@ install -Dpm 0644 bin/magnolie_hintergrund.py %{buildroot}%{_bindir}/magnolie_hi
 install -Dpm 0644 bin/magnolie_personal_sync.py %{buildroot}%{_bindir}/magnolie_personal_sync.py
 install -Dpm 0644 bin/magnolie_nextcloud.py %{buildroot}%{_bindir}/magnolie_nextcloud.py
 install -Dpm 0644 bin/magnolie_cloud_backup.py %{buildroot}%{_bindir}/magnolie_cloud_backup.py
+install -Dpm 0644 bin/magnolie_akonadi.py %{buildroot}%{_bindir}/magnolie_akonadi.py
 install -Dpm 0644 bin/magnolie_crash.py %{buildroot}%{_bindir}/magnolie_crash.py
 install -Dpm 0644 bin/magnolie_asset.py %{buildroot}%{_bindir}/magnolie_asset.py
 
@@ -192,7 +194,7 @@ root = pathlib.Path(r"%{buildroot}")
 bindir = root / "usr/bin"
 for name in ("magnolie-organizer", "magnolie_telefon.py",
               "magnolie_kdeconnect.py", "magnolie_hintergrund.py", "magnolie_personal_sync.py",
-              "magnolie_nextcloud.py", "magnolie_cloud_backup.py"):
+              "magnolie_nextcloud.py", "magnolie_cloud_backup.py", "magnolie_akonadi.py"):
     ast.parse((bindir / name).read_text(encoding="utf-8"), filename=name)
 sys.path.insert(0, str(bindir))
 import magnolie_personal_sync
@@ -225,6 +227,7 @@ done
 %{_bindir}/magnolie_personal_sync.py
 %{_bindir}/magnolie_nextcloud.py
 %{_bindir}/magnolie_cloud_backup.py
+%{_bindir}/magnolie_akonadi.py
 %{_bindir}/magnolie_crash.py
 %{_bindir}/magnolie_asset.py
 %{_datadir}/%{name}/
@@ -236,6 +239,10 @@ done
 %{_mandir}/*/man1/magnolie-organizer.1*
 
 %changelog
+* Tue Sep 01 2026 Maik Walter <maik3531@gmail.com> - 2.0.16-1
+- Use existing GNOME and KDE system accounts without another login.
+- Harden synchronization, SMS ownership, recovery retention and AppImage startup.
+
 * Tue Sep 01 2026 Maik Walter <maik3531@gmail.com> - 2.0.15-1
 - Align day pages across tab changes and optional weather.
 - Refine anniversary scrolling and month-boundary navigation.

@@ -14,7 +14,7 @@ sys.path.insert(0, str(ROOT / "werkzeuge"))
 from png_pruefen import pruefen as png_pruefen
 WINDOWS = WORKSPACE / "Magnolie-Organizer-Windows-2.0.0"
 HANDBOOK = WORKSPACE / "magnolie-handbuch-stamm"
-VERSION = "2.0.15"
+VERSION = "2.0.16"
 MANIFEST_VERSION = VERSION
 INTERNAL_NOTE = re.compile(
     r"(REVIEW|ENTWURF|OFFENE[-_ ]?PUNKTE|ANALYSE|PLAN|AUDIT).*\.md$", re.I)
@@ -110,6 +110,7 @@ assert f"{helper}          usr/bin" in install_manifest
 assert f"{helper}          usr/lib/magnolie-organizer" in install_manifest
 assert "bin/magnolie_nextcloud.py              usr/bin" in install_manifest
 assert "bin/magnolie_cloud_backup.py           usr/bin" in install_manifest
+assert "bin/magnolie_akonadi.py                usr/bin" in install_manifest
 assert (ROOT / "web/kaffee-qr.mga").read_bytes().startswith(b"MGA1")
 assert '"/kaffee-qr.png": ("kaffee-qr.mga", "image/png")' in text(
     ROOT / "bin/magnolie-organizer")
@@ -125,6 +126,8 @@ assert "bin/magnolie_nextcloud.py %{buildroot}%{_bindir}/magnolie_nextcloud.py" 
 assert "%{_bindir}/magnolie_nextcloud.py" in rpm_spec
 assert "bin/magnolie_cloud_backup.py %{buildroot}%{_bindir}/magnolie_cloud_backup.py" in rpm_spec
 assert "%{_bindir}/magnolie_cloud_backup.py" in rpm_spec
+assert "bin/magnolie_akonadi.py %{buildroot}%{_bindir}/magnolie_akonadi.py" in rpm_spec
+assert "%{_bindir}/magnolie_akonadi.py" in rpm_spec
 assert "web/kaffee-qr.mga" in rpm_spec
 assert '%{buildroot}%{_datadir}/%{name}/web/kaffee-qr.mga' in rpm_spec
 assert 'root = pathlib.Path(r"%{buildroot}")' in rpm_spec
@@ -155,6 +158,42 @@ assert '@keyframes puls' not in web_style
 assert 'bin/magnolie_personal_sync.py" "$APPDIR/usr/bin/magnolie_personal_sync.py"' in appimage_builder
 assert 'bin/magnolie_nextcloud.py" "$APPDIR/usr/bin/magnolie_nextcloud.py"' in appimage_builder
 assert 'bin/magnolie_cloud_backup.py" "$APPDIR/usr/bin/magnolie_cloud_backup.py"' in appimage_builder
+assert 'bin/magnolie_akonadi.py" "$APPDIR/usr/bin/magnolie_akonadi.py"' in appimage_builder
+
+akonadi_cmake = (ROOT / "native" / "akonadi-helper" / "CMakeLists.txt").read_text(
+    encoding="utf-8")
+akonadi_source = (ROOT / "native" / "akonadi-helper" / "main.cpp").read_text(
+    encoding="utf-8")
+akonadi_control = (ROOT / "native" / "akonadi-helper" / "debian" / "control").read_text(
+    encoding="utf-8")
+akonadi_changelog = text(ROOT / "native" / "akonadi-helper" / "debian" / "changelog")
+akonadi_spec = text(ROOT / "native" / "akonadi-helper" / "magnolie-organizer-akonadi.spec")
+assert "KPim6::AkonadiCore" in akonadi_cmake and "KPim5::AkonadiCore" in akonadi_cmake
+assert "${CMAKE_INSTALL_LIBEXECDIR}/magnolie-organizer" in akonadi_cmake
+assert "VERSION 1.0.0" in akonadi_cmake
+assert all(('command == QLatin1String("%s")' % command) in akonadi_source
+           for command in ("status", "snapshot", "create", "modify", "delete", "exists"))
+assert "Package: magnolie-organizer-akonadi" in akonadi_control
+assert "magnolie-organizer-akonadi (1.0.0)" in akonadi_changelog.splitlines()[0]
+assert text(ROOT / "native" / "akonadi-helper" / "debian" / "source" / "format").strip() == "3.0 (native)"
+assert "magnolie-organizer (>= 2.0.16)" in akonadi_control
+assert "magnolie-organizer-akonadi" in debian_control
+akonadi_rules = text(ROOT / "native" / "akonadi-helper" / "debian" / "rules")
+assert "-DCMAKE_DISABLE_FIND_PACKAGE_KPim6Akonadi=ON" in akonadi_rules
+assert "-DCMAKE_INSTALL_LIBEXECDIR=libexec" in akonadi_rules
+assert "override_dh_clean:" in akonadi_rules
+assert "rm -rf obj-*" in akonadi_rules
+assert "rm -f debian/files debian/*.substvars" in akonadi_rules
+assert "override_dh_shlibdeps:" in akonadi_rules
+assert 'test -n "$$MAGNOLIE_SHLIBS_LOCAL"' in akonadi_rules
+assert 'dh_shlibdeps -- -L"$$MAGNOLIE_SHLIBS_LOCAL"' in akonadi_rules
+assert re.search(r"else \\\n\s*dh_shlibdeps;", akonadi_rules)
+assert "%cmake -DCMAKE_BUILD_TYPE=Release" not in akonadi_spec
+for metadata in ("Version:        1.0.0", "Source0:        %{name}-%{version}.tar.xz",
+                 "Requires:       magnolie-organizer >= 2.0.16",
+                 "%license debian/copyright", "%dir %{_libexecdir}/magnolie-organizer"):
+    assert metadata in akonadi_spec
+assert "Suggests:       magnolie-organizer-akonadi" in rpm_spec
 assert ': "${MAGNOLIE_GRAPHICS_COMPAT:=0}"' in appimage_builder
 assert ': "${WEBKIT_DISABLE_DMABUF_RENDERER:=1}"' not in appimage_builder
 assert "WEBKIT_DISABLE_COMPOSITING_MODE" not in appimage_builder
@@ -172,6 +211,10 @@ for binary_builder in (appimage_builder, rpm_builder, text(ROOT / "debian/rules"
     assert 'if [ -n "$' in binary_builder or 'if test -n "$hash"' in binary_builder
 assert "ubuntu-base-22.04.5" in jammy_builder
 assert "BASIS_SHA=" in jammy_builder and "SNAPSHOT=" in jammy_builder
+assert "Acquire::Retries=2" in jammy_builder
+assert "Acquire::https::Timeout=30" in jammy_builder
+assert 'timeout --foreground "$zeitlimit"' in jammy_builder
+assert 'for pause in 0 15 45' in jammy_builder
 assert "werkzeuge/appimage_jammy_bauen.sh" in text(ROOT / "werkzeuge/release_bauen.sh")
 flatpak_manifest = text(ROOT / "flatpak/io.gitlab.maik3531.MagnolieOrganizer.json")
 flatpak_builder = text(ROOT / "werkzeuge/flatpak_bauen.sh")
@@ -198,15 +241,43 @@ for gate in ("--skip-autopkgtest", "--skip-system-package-tests",
                "MAGNOLIE_VOLLPRUEFUNG=1", "test_debian_koinstallation.sh",
                "test_naechster_weckzeitpunkt.py"):
     assert gate in release_builder, gate
+for gate in ("AKONADI_ARCH=$(dpkg-architecture -qDEB_HOST_ARCH)",
+             "magnolie-organizer-akonadi_${AKONADI_VERSION}_${AKONADI_ARCH}.deb",
+             "AKONADI_DSC", "AKONADI_SOURCE_TAR", "AKONADI_VERGLEICH",
+             "unsupported-smoke", "native/akonadi-helper/debian/source/format",
+             "AKONADI_RPM_PAKET", "AKONADI_RPM_QUELLE"):
+    assert gate in release_builder, gate
+release_smoke = release_builder[release_builder.index(
+    'if printf \'%s\' \'{"command":"unsupported-smoke"}\''):
+    release_builder.index('rm -rf "$AKONADI_TEST"')]
+assert 'akonadi_status=$?' in release_smoke
+assert '[ "$akonadi_status" -eq 1 ]' in release_smoke
+assert release_smoke.index('[ "$akonadi_status" -eq 1 ]') < release_smoke.index(
+    'python3 - "$AKONADI_TEST/response.json"')
 assert "autopkgtest fehlt; Freigabe abgebrochen" in release_builder
 assert release_builder.index("werkzeuge/rpm_fedora_bauen.sh") < release_builder.rindex(
     "VEROEFFENTLICHEN=1")
 fedora_builder = text(ROOT / "werkzeuge/rpm_fedora_bauen.sh")
 for gate in ("Fedora-WSL-Base-42-1.1.x86_64.tar.xz", "BASIS_SHA=", "bwrap",
-              "--unshare-user", "gpgcheck=1", "fakeroot", "rpm -V",
+              "--unshare-user", "gpgcheck=1", "rpm -V",
               "magnolie-organizer", "magnolie-handbuch", "rpm -qf",
               "dnf -y remove magnolie-handbuch"):
     assert gate in fedora_builder, gate
+assert "install fakeroot" in fedora_builder
+assert fedora_builder.count("/usr/bin/fakeroot /usr/bin/dnf") == 3
+assert fedora_builder.count("chmod -R u+rwX") == 2
+for gate in ("AKONADI_TOPDIR", '--bind "$AKONADI_TOPDIR" "$AKONADI_TOPDIR"',
+             "magnolie-organizer-akonadi-$AKONADI_VERSION.tar.xz",
+             "rpmbuild -ba", "magnolie-organizer-akonadi", "unsupported-smoke"):
+    assert gate in fedora_builder, gate
+fedora_smoke_start = fedora_builder.index(
+    "if fedora /bin/sh -c", fedora_builder.index("AKONADI_ANTWORT="))
+fedora_smoke = fedora_builder[fedora_smoke_start:fedora_builder.index(
+    "if [ -n \"$CONTRIBUTOR_HASH\" ]", fedora_smoke_start)]
+assert 'akonadi_status=$?' in fedora_smoke
+assert '[ "$akonadi_status" -eq 1 ]' in fedora_smoke
+assert fedora_smoke.index('[ "$akonadi_status" -eq 1 ]') < fedora_smoke.index(
+    'python3 - "$AKONADI_ANTWORT"')
 assert "command -v flock" in release_builder and "flock -n 9" in release_builder
 assert release_builder.index("flock -n 9") < release_builder.index("STAGE=$(mktemp")
 assert "MAGNOLIE_UPDATE_SIGNING_KEY" in release_builder
@@ -223,8 +294,8 @@ assert "AppImage|flatpak" in release_builder
 assert 'export MAGNOLIE_CONTRIBUTOR_HASH' in release_builder
 assert 'build-config.json' in release_builder
 assert 'MAGNOLIE_CONTRIBUTOR_HASH="$CONTRIBUTOR_HASH"' in fedora_builder
-assert release_builder.count("dpkg-buildpackage -b -d -us -uc") == 4
-assert release_builder.count("DEB_BUILD_OPTIONS=nocheck") == 6
+assert release_builder.count("dpkg-buildpackage -b -d -us -uc") == 6
+assert release_builder.count("DEB_BUILD_OPTIONS=nocheck") == 9
 assert "dpkg-buildpackage -S -d -us -uc" in release_builder
 binary_compare = release_builder.index('cmp "$DEB_VERGLEICH" "$DEB"')
 manifest_build = release_builder.index("python3 werkzeuge/release_manifest.py")
@@ -247,6 +318,27 @@ assert publish_list.rindex("RPM_QUELLE") < publish_list.rindex("PRUEFSUMMEN.sha2
 assert publish_list.rindex("PRUEFSUMMEN.sha256") < publish_list.rindex("update.xml")
 for excluded in (".pytest_cache", ".kotlin", "app/build", "*.tar.*"):
     assert excluded in text(ROOT / "werkzeuge/rpm_bauen.sh")
+for excluded in ("native/akonadi-helper/obj-*",
+                 "native/akonadi-helper/debian/files",
+                 "native/akonadi-helper/debian/*.substvars"):
+    assert excluded in release_builder
+    assert excluded in rpm_builder
+assert "--exclude='./obj-*'" in fedora_builder
+assert "obj-[^/]*" in release_builder
+assert "debian/(files|[^/]*[.]substvars)" in release_builder
+
+readme = text(ROOT / "LIESMICH.md")
+assert "sudo apt install native/magnolie-organizer-akonadi_1.0.0_" in readme
+assert "sudo apt install ../native/magnolie-organizer-akonadi_1.0.0_" not in readme
+if (WORKSPACE / ".gitignore").is_file():
+    workspace_ignore = text(WORKSPACE / ".gitignore")
+    assert "*.buildinfo" in workspace_ignore and "*.changes" in workspace_ignore
+    release_notes = text(WORKSPACE / "HINWEIS.txt")
+    assert "Akonadi-Helfers" in release_notes
+    assert "Akonadi helper" in release_notes
+    release_guide = text(WORKSPACE / "FREIGABE.md")
+    assert "MAGNOLIE_SHLIBS_LOCAL=/pfad/zu/lokalen.shlibs" in release_guide
+    assert "nicht für normale Paketbauten gesetzt" in release_guide
 
 for source_root in (ROOT, WINDOWS, HANDBOOK):
     for path in source_root.glob("*.md"):
@@ -271,4 +363,4 @@ def test_statische_paketpruefung():
     assert True
 
 
-print("Paketinhalt und Linux-Version 2.0.15: ok")
+print("Paketinhalt und Linux-Version 2.0.16: ok")

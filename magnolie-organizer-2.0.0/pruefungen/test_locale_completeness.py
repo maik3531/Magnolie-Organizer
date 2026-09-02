@@ -135,6 +135,19 @@ def test_gettext_catalogs_are_complete_and_safe():
     assert not errors, "\n" + "\n".join(errors)
 
 
+def test_pot_matches_deterministic_source_extraction():
+    with tempfile.TemporaryDirectory() as directory:
+        generated = Path(directory) / "magnolie-organizer.pot"
+        subprocess.run(
+            ["python3", str(ROOT / "werkzeuge" / "pot_erzeugen.py"),
+             "--output", str(generated)],
+            check=True, capture_output=True, text=True,
+        )
+        expected = _catalog(generated)
+    actual = _catalog(PO_DIR / "magnolie-organizer.pot")
+    assert actual == expected, "magnolie-organizer.pot is stale; regenerate it from the sources"
+
+
 def test_generated_js_and_mo_match_po_catalogs():
     locales = (PO_DIR / "LINGUAS").read_text(encoding="utf-8").split()
     with tempfile.TemporaryDirectory() as directory:

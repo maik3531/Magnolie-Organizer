@@ -3,7 +3,8 @@ msgstr ""
 "Report-Msgid-Bugs-To: maik3531@gmail.com\n"
 "POT-Creation-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Content-Type: text/plain; charset=UTF-8\n"
-"Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
+"Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && "
+"n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
 
 msgid " (filtered)"
 msgstr " (відфільтровано)"
@@ -2950,6 +2951,9 @@ msgstr ""
 msgid "KDE Connect reception failed."
 msgstr "Не вдалося отримати дані через KDE Connect."
 
+msgid "KDE/Akonadi integration is not available."
+msgstr "Інтеграція KDE/Akonadi недоступна."
+
 msgid "Keep a troubleshooting log"
 msgstr "Зберігати журнал усунення несправностей"
 
@@ -5584,6 +5588,10 @@ msgstr ""
 "Підтримка KDE Connect вбудована в органайзер. На Android потрібна лише "
 "програма KDE Connect; не потрібна додаткова настільна програма KDE Connect."
 
+msgid ""
+"The KDE/Akonadi database was replaced. Select the source again in Settings."
+msgstr "Базу даних KDE/Akonadi було замінено. Знову виберіть джерело в налаштуваннях."
+
 msgid "The LDIF address book contains too many people."
 msgstr "Адресна книга LDIF містить забагато людей."
 
@@ -6358,6 +6366,14 @@ msgstr "Вибрані дані про здоров’я не містять з�
 
 msgid "The selected iCalendar file is incomplete."
 msgstr "Вибраний файл iCalendar неповний."
+
+msgid "The selected online account is disabled, offline or unreachable."
+msgstr "Вибраний онлайн-обліковий запис вимкнено, він не в мережі або недоступний."
+
+msgid ""
+"The selected online account source is disabled. Select an enabled source in "
+"Settings."
+msgstr "Вибране джерело онлайн-облікового запису вимкнено. Виберіть увімкнене джерело в налаштуваннях."
 
 msgid "The selected path is not a regular file."
 msgstr "Вибраний шлях не є звичайним файлом."

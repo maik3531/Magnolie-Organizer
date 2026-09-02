@@ -53,8 +53,19 @@ def test_fedora_remains_the_release_validated_wrapper():
     assert wrapper.count("--distro fedora") == 2
     assert "libnotify nodejs" in wrapper
     assert "rpm-build webkit2gtk4.1 xdg-utils" in wrapper
+    assert "install fakeroot" in wrapper
+    assert wrapper.count("/usr/bin/fakeroot /usr/bin/dnf") == 3
+    assert wrapper.count("chmod -R u+rwX") == 2
     assert '--bind "$TOPDIR" "$TOPDIR"' in wrapper
     assert '--bind "$HANDBUCH_TOPDIR" "$HANDBUCH_TOPDIR"' in wrapper
+    assert '--bind "$AKONADI_TOPDIR" "$AKONADI_TOPDIR"' in wrapper
+    assert 'magnolie-organizer-akonadi-"$AKONADI_VERSION"-*.rpm' in wrapper
+    assert 'AKONADI_ANTWORT="$AKONADI_TOPDIR/akonadi-response.json"' in wrapper
+    assert "rpm -q magnolie-handbuch" in wrapper
+    assert "test ! -e /usr/lib/magnolie-handbuch/magnolie_crash.py" in wrapper
+    assert 'mkdir -p "$ARBEIT" "$TOPDIR" "$HANDBUCH_TOPDIR" "$AKONADI_TOPDIR"' in wrapper
+    assert "akonadi-rpm/RPMS/*/magnolie-organizer-akonadi-" in release_builder
+    assert "akonadi-rpm/SRPMS/magnolie-organizer-akonadi-" in release_builder
     for profile in PROFILES[1:]:
         assert f"--distro {profile}" not in wrapper
     assert "/fedora/RPMS/noarch/magnolie-organizer-" in wrapper

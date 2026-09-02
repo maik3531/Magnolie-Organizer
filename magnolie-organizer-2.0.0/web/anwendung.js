@@ -15,30 +15,34 @@
 (function () {
 
   /* Die Fassung erscheint auf der Seite „Über". */
-const FASSUNG = "2.0.15";
+const FASSUNG = "2.0.16";
 
+const NEU_IN_DIESER_FASSUNG_FASSUNG = "2.0.16";
 const NEU_IN_DIESER_FASSUNG = {
-  ar: ["ما الجديد في هذا الإصدار", "رسوميات Wayland وAppImage أصلية أسرع، مع وضع توافق اختياري", "عرض يومي أوضح وقابل للتوسيع", "حاويات محمية للصور الشخصية", "ملفات تعريف موسعة لتوزيعات RPM", "قناة موثوقة لنتائج الآلة الافتراضية", "أسماء مختصرة بديلة لسطر الأوامر"],
-  be: ["Што новага ў гэтай версіі", "Хутчэйшая ўласная графіка Wayland/AppImage з неабавязковым рэжымам сумяшчальнасці", "Больш зразумелы разгорнуты выгляд дня", "Абароненыя кантэйнеры асабістых выяў", "Пашыраныя профілі дыстрыбутываў RPM", "Надзейны канал вынікаў віртуальнай машыны", "Кароткія псеўданімы каманднага радка"],
-  cs: ["Co je nového v této verzi", "Rychlejší nativní grafika Wayland/AppImage s volitelným kompatibilním režimem", "Přehlednější rozbalovací denní pohled", "Chráněné kontejnery osobních obrázků", "Rozšířené profily distribucí RPM", "Spolehlivý kanál výsledků virtuálního stroje", "Krátké aliasy příkazového řádku"],
-  da: ["Nyt i denne version", "Hurtigere integreret Wayland/AppImage-grafik med valgfri kompatibilitetstilstand", "Tydeligere dagvisning, der kan foldes ud", "Beskyttede beholdere til personlige billeder", "Udvidede RPM-distributionsprofiler", "Pålidelig resultatkanal fra virtuelle maskiner", "Korte kommandolinjealiaser"],
-  de: ["Neu in dieser Version", "Schnellere native Wayland-/AppImage-Grafik mit optionalem Kompatibilitätsmodus", "Übersichtlichere, ausklappbare Tagesansicht", "Geschützte Container für persönliche Bilder", "Erweiterte RPM-Distributionsprofile", "Zuverlässiger Ergebniskanal der virtuellen Maschine", "Kurze Befehlszeilen-Aliase"],
-  en: ["What's new in this version", "Faster native Wayland/AppImage graphics with optional compatibility fallback", "Clearer expanding day view", "Protected personal image containers", "Expanded RPM distro profiles", "Reliable VM result channel", "CLI aliases"],
-  es: ["Novedades de esta versión", "Gráficos nativos Wayland/AppImage más rápidos con modo de compatibilidad opcional", "Vista diaria ampliable más clara", "Contenedores protegidos para imágenes personales", "Perfiles ampliados para distribuciones RPM", "Canal fiable de resultados de la máquina virtual", "Alias de línea de comandos"],
-  fr: ["Nouveautés de cette version", "Graphismes Wayland/AppImage natifs plus rapides avec repli de compatibilité facultatif", "Vue quotidienne extensible plus claire", "Conteneurs protégés pour les images personnelles", "Profils de distributions RPM étendus", "Canal fiable pour les résultats de la machine virtuelle", "Alias de ligne de commande"],
-  hi: ["इस संस्करण में नया", "वैकल्पिक संगतता फ़ॉलबैक के साथ तेज़ मूल Wayland/AppImage ग्राफ़िक्स", "अधिक स्पष्ट विस्तृत दैनिक दृश्य", "निजी चित्रों के लिए सुरक्षित कंटेनर", "विस्तारित RPM वितरण प्रोफ़ाइल", "विश्वसनीय वर्चुअल मशीन परिणाम चैनल", "कमांड-लाइन उपनाम"],
-  hsb: ["Nowe w tutej wersiji", "Spěšniša natiwna grafika Wayland/AppImage z opcionalnym kompatibelnym modusom", "Přehladniši rozšěrjowacy dnjowy napohlad", "Škitane kontejnerje za wosobinske wobrazy", "Rozšěrjene profile RPM-distribucijow", "Spušćomny wuslědkowy kanal wirtuelneje mašiny", "Krótke aliasy přikazoweje linki"],
-  it: ["Novità di questa versione", "Grafica nativa Wayland/AppImage più veloce con ripiego di compatibilità facoltativo", "Vista giornaliera espandibile più chiara", "Contenitori protetti per le immagini personali", "Profili ampliati per distribuzioni RPM", "Canale affidabile per i risultati della macchina virtuale", "Alias della riga di comando"],
-  ja: ["このバージョンの新機能", "オプションの互換モードを備えた高速なネイティブ Wayland/AppImage 描画", "より見やすい展開式の日表示", "個人画像用の保護コンテナー", "RPM ディストリビューションプロファイルの拡充", "信頼性の高い仮想マシン結果チャネル", "コマンドラインの短縮別名"],
-  nb: ["Nytt i denne versjonen", "Raskere integrert Wayland/AppImage-grafikk med valgfri kompatibilitetsmodus", "Tydeligere dagvisning som kan utvides", "Beskyttede beholdere for personlige bilder", "Utvidede RPM-distribusjonsprofiler", "Pålitelig resultatkanal fra virtuelle maskiner", "Korte kommandolinjealiaser"],
-  nl: ["Nieuw in deze versie", "Snellere native Wayland/AppImage-weergave met optionele compatibiliteitsmodus", "Duidelijker uitvouwbaar dagoverzicht", "Beveiligde containers voor persoonlijke afbeeldingen", "Uitgebreide RPM-distributieprofielen", "Betrouwbaar resultaatkanaal van de virtuele machine", "Korte opdrachtregelaliassen"],
-  pl: ["Nowości w tej wersji", "Szybsza natywna grafika Wayland/AppImage z opcjonalnym trybem zgodności", "Czytelniejszy rozwijany widok dnia", "Chronione kontenery obrazów osobistych", "Rozszerzone profile dystrybucji RPM", "Niezawodny kanał wyników maszyny wirtualnej", "Krótkie aliasy wiersza poleceń"],
-  pt: ["Novidades desta versão", "Gráficos nativos Wayland/AppImage mais rápidos com modo de compatibilidade opcional", "Vista diária expansível mais clara", "Contentores protegidos para imagens pessoais", "Perfis alargados de distribuições RPM", "Canal fiável de resultados da máquina virtual", "Aliases da linha de comandos"],
-  ru: ["Новое в этой версии", "Более быстрая нативная графика Wayland/AppImage с дополнительным режимом совместимости", "Более наглядный раскрывающийся вид дня", "Защищённые контейнеры личных изображений", "Расширенные профили дистрибутивов RPM", "Надёжный канал результатов виртуальной машины", "Короткие псевдонимы командной строки"],
-  tr: ["Bu sürümdeki yenilikler", "İsteğe bağlı uyumluluk modu ile daha hızlı yerel Wayland/AppImage grafikleri", "Daha anlaşılır genişletilebilir gün görünümü", "Kişisel görseller için korumalı kapsayıcılar", "Genişletilmiş RPM dağıtım profilleri", "Güvenilir sanal makine sonuç kanalı", "Komut satırı kısa adları"],
-  uk: ["Нове в цій версії", "Швидша нативна графіка Wayland/AppImage з додатковим режимом сумісності", "Зрозуміліший розгортаний перегляд дня", "Захищені контейнери особистих зображень", "Розширені профілі дистрибутивів RPM", "Надійний канал результатів віртуальної машини", "Короткі псевдоніми командного рядка"],
-  "zh-cn": ["此版本的新功能", "更快的原生 Wayland/AppImage 图形，并提供可选兼容模式", "更清晰的可展开日视图", "受保护的个人图像容器", "扩展的 RPM 发行版配置", "可靠的虚拟机结果通道", "命令行短别名"]
+  ar: ["ما الجديد في هذا الإصدار", "استخدام حسابات نظام GNOME وKDE الحالية مع جسر Akonadi اختياري", "تعزيز مزامنة EDS وAkonadi ومنع الحذف البعيد غير المقصود", "تصحيح ملكية رسائل SMS وخدمة الخلفية مع احتفاظ مرن بنقاط الاسترداد"],
+  be: ["Што новага ў гэтай версіі", "Выкарыстанне існуючых сістэмных уліковых запісаў GNOME і KDE з неабавязковым мостам Akonadi", "Узмоцненая сінхранізацыя EDS і Akonadi без ненаўмыснага аддаленага выдалення", "Выпраўлена адказнасць за SMS і фонавы сэрвіс, а таксама гнуткае захоўванне пунктаў аднаўлення"],
+  cs: ["Co je nového v této verzi", "Použití stávajících systémových účtů GNOME a KDE s volitelným mostem Akonadi", "Odolnější synchronizace EDS a Akonadi bez nechtěného vzdáleného mazání", "Opravené vlastnictví SMS a služby na pozadí a pružné uchovávání bodů obnovení"],
+  da: ["Nyt i denne version", "Bruger eksisterende GNOME- og KDE-systemkonti med en valgfri Akonadi-bro", "Styrket EDS- og Akonadi-synkronisering uden utilsigtet fjernsletning", "Korrekt ejerskab af SMS og baggrundstjeneste samt fleksibel opbevaring af gendannelsespunkter"],
+  de: ["Neu in dieser Version", "Vorhandene GNOME- und KDE-Systemkonten mit optionaler Akonadi-Brücke", "Gehärteter EDS- und Akonadi-Abgleich ohne unbeabsichtigte Fernlöschungen", "Korrigierte SMS- und Hintergrunddienst-Zuständigkeit sowie flexible Wiederherstellungsaufbewahrung"],
+  en: ["What's new in this version", "Existing GNOME and KDE system accounts with an optional Akonadi bridge", "Hardened EDS and Akonadi sync without unintended remote deletion", "Correct SMS and background-service ownership with flexible recovery retention"],
+  es: ["Novedades de esta versión", "Uso de las cuentas del sistema GNOME y KDE existentes con un puente Akonadi opcional", "Sincronización EDS y Akonadi reforzada sin eliminaciones remotas involuntarias", "Propiedad corregida de SMS y servicio en segundo plano con retención flexible de recuperación"],
+  fr: ["Nouveautés de cette version", "Utilisation des comptes système GNOME et KDE existants avec un pont Akonadi facultatif", "Synchronisation EDS et Akonadi renforcée sans suppression distante involontaire", "Responsabilité corrigée des SMS et du service d’arrière-plan avec conservation flexible des restaurations"],
+  hi: ["इस संस्करण में नया", "वैकल्पिक Akonadi सेतु के साथ मौजूदा GNOME और KDE सिस्टम खातों का उपयोग", "अनचाहे दूरस्थ विलोपन के बिना सुदृढ़ EDS और Akonadi सिंक", "लचीली पुनर्प्राप्ति अवधारण के साथ सही SMS और पृष्ठभूमि-सेवा स्वामित्व"],
+  hsb: ["Nowe w tutej wersiji", "Wužiwanje eksistowacych systemowych kontow GNOME a KDE z opcionalnym mostom Akonadi", "Wotwjerdźena synchronizacija EDS a Akonadi bjez njewotpohladowaneho zdaleneho zhašenja", "Korigowana přisłušnosć SMS a pozadkoweje słužby kaž tež fleksibelne wobchowanje wobnowjenskich dypkow"],
+  it: ["Novità di questa versione", "Uso degli account di sistema GNOME e KDE esistenti con un bridge Akonadi facoltativo", "Sincronizzazione EDS e Akonadi rafforzata senza eliminazioni remote involontarie", "Gestione corretta di SMS e servizio in background con conservazione flessibile dei ripristini"],
+  ja: ["このバージョンの新機能", "既存の GNOME・KDE システムアカウントと任意の Akonadi ブリッジを使用", "意図しないリモート削除を防ぐ EDS・Akonadi 同期の強化", "SMS とバックグラウンドサービスの所有権を修正し、復元データを柔軟に保持"],
+  nb: ["Nytt i denne versjonen", "Bruker eksisterende GNOME- og KDE-systemkontoer med en valgfri Akonadi-bro", "Styrket EDS- og Akonadi-synkronisering uten utilsiktet fjernsletting", "Riktig eierskap for SMS og bakgrunnstjeneste samt fleksibel oppbevaring av gjenopprettingspunkter"],
+  nl: ["Nieuw in deze versie", "Gebruik van bestaande GNOME- en KDE-systeemaccounts met een optionele Akonadi-brug", "Versterkte EDS- en Akonadi-synchronisatie zonder onbedoelde verwijdering op afstand", "Gecorrigeerd eigenaarschap van sms en achtergronddienst met flexibele herstelbewaring"],
+  pl: ["Nowości w tej wersji", "Użycie istniejących kont systemowych GNOME i KDE z opcjonalnym mostem Akonadi", "Wzmocniona synchronizacja EDS i Akonadi bez niezamierzonego zdalnego usuwania", "Poprawiona obsługa własności SMS i usługi w tle oraz elastyczne przechowywanie punktów odzyskiwania"],
+  pt: ["Novidades desta versão", "Utilização das contas de sistema GNOME e KDE existentes com uma ponte Akonadi opcional", "Sincronização EDS e Akonadi reforçada sem eliminações remotas involuntárias", "Propriedade corrigida de SMS e serviço em segundo plano com retenção flexível de recuperação"],
+  ru: ["Новое в этой версии", "Использование существующих системных учётных записей GNOME и KDE с дополнительным мостом Akonadi", "Усиленная синхронизация EDS и Akonadi без непреднамеренного удалённого удаления", "Исправлено владение SMS и фоновой службой, добавлено гибкое хранение точек восстановления"],
+  tr: ["Bu sürümdeki yenilikler", "İsteğe bağlı Akonadi köprüsüyle mevcut GNOME ve KDE sistem hesaplarının kullanılması", "İstenmeyen uzaktan silme olmadan güçlendirilmiş EDS ve Akonadi eşitlemesi", "Esnek kurtarma saklamasıyla düzeltilmiş SMS ve arka plan hizmeti sahipliği"],
+  uk: ["Нове в цій версії", "Використання наявних системних облікових записів GNOME і KDE з необов’язковим мостом Akonadi", "Посилена синхронізація EDS і Akonadi без ненавмисного віддаленого видалення", "Виправлено відповідальність за SMS і фонову службу та гнучке зберігання точок відновлення"],
+  "zh-cn": ["此版本的新功能", "使用现有 GNOME 和 KDE 系统账户，并提供可选的 Akonadi 桥接", "强化 EDS 和 Akonadi 同步，避免意外远程删除", "修正短信和后台服务的归属，并支持灵活的恢复保留策略"]
 };
+if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
+  throw new Error("Release notes do not match the application version");
+}
   const CONTRIBUTOR_BRANDING = "No valid coffee allowance";
 
   /* ---------------------------------------------------------------------- */
@@ -124,7 +128,8 @@ const NEU_IN_DIESER_FASSUNG = {
   let unterWayland = false;
   let trayVerfuegbar = false;
   let sicherungWahl = null;
-  let journalStand = { snapshots: [], interval: "weekly", maximum: 20, last: "", next: "" };
+  let journalStand = { snapshots: [], interval: "weekly", mode: "",
+    maximum: 20, days: 14, last: "", next: "" };
   let cloudSicherungStand = { kennwortVorhanden: false, status: "" };
   /* Der Journalstand wird genau einmal je geoeffnetem Einstellungsfenster
      angefordert. Ohne diese Sperre fordert jeder Aufbau der Sicherheitsseite
@@ -208,7 +213,8 @@ const NEU_IN_DIESER_FASSUNG = {
           sicherungsordner: "", wiederherstellungsintervall: "weekly",
           cloudSicherung: { aktiv: false, intervall: "daily", aufbewahrung: 7,
             letzterErfolg: "", status: "" },
-          wiederherstellungsanzahl: 20,
+          wiederherstellungsaufbewahrung: "count", wiederherstellungsanzahl: 20,
+          wiederherstellungstage: 14,
           wiederherstellungsstatus: "", handbuchHinweisGezeigt: false,
           kontaktErsteinrichtungVersion: 1,
           notizAnhangHoehe: 200, contributorFreigeschaltet: false,
@@ -266,7 +272,8 @@ const NEU_IN_DIESER_FASSUNG = {
       geloescht: { termine: [], kontakte: [] }, syncEpoch: "",
       syncMetadaten: { syncEpoch: "", ersteSyncLoeschungsfrei: false,
         quarantinedDeletes: {}, nextcloud: { kalender: {}, adressbuecher: {},
-          quarantinedDeletes: {}, transaktionen: {} }, eds: { adressbuecher: {} } } };
+          quarantinedDeletes: {}, transaktionen: {} }, eds: { adressbuecher: {} },
+        akonadi: { bindungen: {} } } };
   }
 
   function personalSyncKanonisch(wert) {
@@ -1758,6 +1765,16 @@ const NEU_IN_DIESER_FASSUNG = {
     return ziffern.length >= 6 ? ziffern + erweiterung : "";
   }
 
+  function adressLandCode() {
+    const roh = DATEN.einstellungen.adressen.landCode || DATEN.einstellungen.adressen.land || "DE";
+    const code = String(roh).trim().toUpperCase();
+    if (["DE", "AT", "CH"].includes(code)) return code;
+    const name = kanonischerText(roh);
+    if (["osterreich", "oesterreich", "austria"].includes(name)) return "AT";
+    if (["schweiz", "switzerland", "suisse", "svizzera"].includes(name)) return "CH";
+    return "DE";
+  }
+
   function istEdsZeigerwert(wert) {
     const text = String(wert || "").trim();
     if (!/^\d{13,15}$/.test(text)) return false;
@@ -1907,9 +1924,10 @@ const NEU_IN_DIESER_FASSUNG = {
   function zeichneSmsVerlauf(chat) {
     if (!chat || !chat.verlauf.isConnected) return;
     chat.verlauf.replaceChildren();
-    const schluessel = telefonSchluessel(chat.nummer.value);
+    const land = adressLandCode();
+    const schluessel = telefonSchluessel(chat.nummer.value, land);
     const nachrichten = DATEN.smsVerlauf.filter((eintrag) => eintrag.kontaktId === chat.kontaktId &&
-      telefonSchluessel(eintrag.nummer) === schluessel).sort((a, b) => a.zeit - b.zeit);
+      telefonSchluessel(eintrag.nummer, land) === schluessel).sort((a, b) => a.zeit - b.zeit);
     let letzterTag = "";
     for (const nachricht of nachrichten) {
       const tag = new Date(nachricht.zeit).toLocaleDateString(undefined, {
@@ -1981,8 +1999,12 @@ const NEU_IN_DIESER_FASSUNG = {
       : _("Delete this contact's SMS history?")).then((ja) => {
       if (!ja) return;
       if (alle) DATEN.smsVerlauf = [];
-      else DATEN.smsVerlauf = DATEN.smsVerlauf.filter((eintrag) => !(eintrag.kontaktId ===
-        chat.kontaktId && telefonSchluessel(eintrag.nummer) === telefonSchluessel(chat.nummer.value)));
+      else {
+        const land = adressLandCode();
+        DATEN.smsVerlauf = DATEN.smsVerlauf.filter((eintrag) => !(eintrag.kontaktId ===
+          chat.kontaktId && telefonSchluessel(eintrag.nummer, land) ===
+          telefonSchluessel(chat.nummer.value, land)));
+      }
       planeSpeichern(); zeichneSmsVerlauf(chat); schliessen();
     });
     const knoepfe = el("div", "dialog-knoepfe");
@@ -2027,7 +2049,7 @@ const NEU_IN_DIESER_FASSUNG = {
     return { text: text, einheiten: einheiten, teile: teile, geaendert: text !== original };
   }
 
-  function oeffneSmsDialog(kontakt, vorauswahl) {
+  function oeffneSmsDialog(kontakt, vorauswahl, deviceId = "") {
     const nummern = smsNummern(kontakt);
     const kde = telefonStand && telefonStand.kdeconnect;
     if (!nummern.length) return;
@@ -2041,9 +2063,10 @@ const NEU_IN_DIESER_FASSUNG = {
       option.textContent = telefonBezeichnung(eintrag) + ": " + eintrag.wert;
       nummer.append(option);
     }
-    if (vorauswahl && nummern.some((x) => telefonSchluessel(x.wert) ===
-      telefonSchluessel(vorauswahl))) nummer.value = nummern.find((x) =>
-        telefonSchluessel(x.wert) === telefonSchluessel(vorauswahl)).wert;
+    const land = adressLandCode();
+    if (vorauswahl && nummern.some((x) => telefonSchluessel(x.wert, land) ===
+      telefonSchluessel(vorauswahl, land))) nummer.value = nummern.find((x) =>
+        telefonSchluessel(x.wert, land) === telefonSchluessel(vorauswahl, land)).wert;
     const geraet = document.createElement("select");
     const option = document.createElement("option"); option.value = "kde";
     option.textContent = "KDE Connect" + (kde && kde.available ? "" : " (" + _("Offline") + ")");
@@ -2067,14 +2090,14 @@ const NEU_IN_DIESER_FASSUNG = {
       if (!nachricht.trim()) return;
       const clientRef = uid();
       DATEN.smsVerlauf.push({ id: "kde:out:" + clientRef, kontaktId: kontakt.id || "",
-        nummer: telefonSchluessel(nummer.value).split("x", 1)[0],
+        nummer: telefonSchluessel(nummer.value, land).split("x", 1)[0],
         richtung: "ausgang", text: nachricht.trim().slice(0, 5000), zeit: Date.now(),
-        status: "queued", clientRef: clientRef, weg: "kde", geraet: "", fehler: "" });
+        status: "queued", clientRef: clientRef, weg: "kde", geraet: deviceId, fehler: "" });
       DATEN.smsVerlauf = DATEN.smsVerlauf.slice(-5000); planeSpeichern();
       senden.disabled = true; offenerSmsChat.clientRef = clientRef; zeichneSmsVerlauf(offenerSmsChat);
       const uebergeben = Bruecke.sende({ cmd: "kde_sms_senden", nummer: nummer.value,
-        text: nachricht, land: DATEN.einstellungen.adressen.landCode ||
-          DATEN.einstellungen.adressen.land || "DE", clientRef: clientRef });
+        text: nachricht, land: land, clientRef: clientRef,
+        deviceId: deviceId });
       if (!uebergeben) aktualisiereSmsStatus({ ok: false, state: "failed",
         client_ref: clientRef, error: _("Failed") }, true);
     };
@@ -4356,6 +4379,11 @@ const NEU_IN_DIESER_FASSUNG = {
         ? al.wiederherstellungsintervall : "weekly";
     d.einstellungen.allgemein.wiederherstellungsanzahl =
       Math.max(1, Math.min(100, Math.round(Number(al.wiederherstellungsanzahl) || 20)));
+    d.einstellungen.allgemein.wiederherstellungsaufbewahrung =
+      ["count", "days"].includes(al.wiederherstellungsaufbewahrung)
+        ? al.wiederherstellungsaufbewahrung : "count";
+    d.einstellungen.allgemein.wiederherstellungstage =
+      Math.max(1, Math.min(3650, Math.round(Number(al.wiederherstellungstage) || 14)));
     d.einstellungen.allgemein.wiederherstellungsstatus = S(al.wiederherstellungsstatus);
     d.einstellungen.allgemein.handbuchHinweisGezeigt =
       !!al.handbuchHinweisGezeigt;
@@ -4571,7 +4599,9 @@ const NEU_IN_DIESER_FASSUNG = {
         adressbuecher: davBereich(nextcloud.adressbuecher),
         quarantinedDeletes: davBereich(nextcloud.quarantinedDeletes),
         transaktionen: davBereich(nextcloud.transaktionen) },
-      eds: { adressbuecher: davBereich(syncMeta.eds && syncMeta.eds.adressbuecher) } };
+      eds: { adressbuecher: davBereich(syncMeta.eds && syncMeta.eds.adressbuecher) },
+      akonadi: { bindungen: davBereich(
+        syncMeta.akonadi && syncMeta.akonadi.bindungen) } };
     for (const [quellenUid, stand] of Object.entries(adressbuchSyncs)) {
       const sauber = S(quellenUid).trim();
       if (!sauber || sauber.startsWith("nextcloud-addressbook:") ||
@@ -15396,7 +15426,8 @@ const NEU_IN_DIESER_FASSUNG = {
       for (const buch of buecher) {
         const anbieter = buch.art === "graph" ? "Microsoft 365" :
           (buch.art === "nextcloud-carddav" || String(buch.uid || "").startsWith("nextcloud-"))
-            ? "Nextcloud" : "Evolution Data Server";
+            ? "Nextcloud" : String(buch.uid || "").startsWith("akonadi-")
+              ? "KDE/Akonadi" : "Evolution Data Server";
         auswahl.append(knopf((buch.name || _("Address book")) + " — " + anbieter,
           "kontakt-assistent-knopf", () => {
           DATEN.einstellungen.sync.adressbuchUid = buch.uid;
@@ -15986,7 +16017,7 @@ const NEU_IN_DIESER_FASSUNG = {
       anzahl.value = String(cloud.aufbewahrung); planeSpeichern();
     });
     ab.append(formZeile(_("Use automatic backups"), aktiv),
-      formZeile(_("Snapshot interval"), intervall), formZeile(_("Retention"), anzahl),
+      formZeile(_("Snapshot interval"), intervall), formZeile(_("Backups"), anzahl),
       formZeile(_("Backup password"), geheim));
     const cloudReihe = el("div", "knopfreihe"); cloudReihe.append(geheimKnopf, testKnopf); ab.append(cloudReihe);
     if (!cloudVerfuegbar) ab.append(el("p", "einst-hinweis", _("Select a custom backup folder and store an archive password to enable automatic backups.")));
@@ -16043,20 +16074,44 @@ const NEU_IN_DIESER_FASSUNG = {
       Bruecke.sende({ cmd: "journal_intervall", intervall: intervall.value });
     });
     abs.append(formZeile(_("Snapshot interval"), intervall));
+    const modus = auswahlFeld([["count", _("Backups")],
+      ["days", _("Days")]], journalStand.mode ||
+      DATEN.einstellungen.allgemein.wiederherstellungsaufbewahrung);
+    modus.id = "journal-aufbewahrung";
     const anzahl = eingabe("number", String(
       journalStand.maximum || DATEN.einstellungen.allgemein.wiederherstellungsanzahl));
     anzahl.id = "journal-anzahl";
     anzahl.min = "1";
     anzahl.max = "100";
     anzahl.step = "1";
-    anzahl.addEventListener("change", () => {
+    const tage = eingabe("number", String(
+      journalStand.days || DATEN.einstellungen.allgemein.wiederherstellungstage));
+    tage.id = "journal-tage";
+    tage.min = "1";
+    tage.max = "3650";
+    tage.step = "1";
+    const aufbewahrungUebernehmen = () => {
       const maximum = Math.max(1, Math.min(100, Math.round(Number(anzahl.value) || 20)));
+      const alter = Math.max(1, Math.min(3650, Math.round(Number(tage.value) || 14)));
       anzahl.value = String(maximum);
+      tage.value = String(alter);
+      anzahl.disabled = modus.value !== "count";
+      tage.disabled = modus.value !== "days";
+      DATEN.einstellungen.allgemein.wiederherstellungsaufbewahrung = modus.value;
       DATEN.einstellungen.allgemein.wiederherstellungsanzahl = maximum;
+      DATEN.einstellungen.allgemein.wiederherstellungstage = alter;
       planeSpeichern();
-      Bruecke.sende({ cmd: "journal_anzahl", maximum: maximum });
-    });
-    abs.append(formZeile(_("Maximum recovery snapshots"), anzahl));
+      Bruecke.sende({ cmd: "journal_aufbewahrung", modus: modus.value,
+        maximum: maximum, tage: alter });
+    };
+    modus.addEventListener("change", aufbewahrungUebernehmen);
+    anzahl.addEventListener("change", aufbewahrungUebernehmen);
+    tage.addEventListener("change", aufbewahrungUebernehmen);
+    anzahl.disabled = modus.value !== "count";
+    tage.disabled = modus.value !== "days";
+    abs.append(formZeile(_("Retention"), modus),
+      formZeile(_("Maximum recovery snapshots"), anzahl),
+      formZeile(_("Days"), tage));
     abs.append(el("p", "einst-hinweis",
       _("When the limit is lowered, the oldest recovery snapshots are removed automatically.")));
     abs.append(el("p", "einst-hinweis", _("Last snapshot") + ": " + journalDatum(journalStand.last) +
@@ -16071,6 +16126,9 @@ const NEU_IN_DIESER_FASSUNG = {
     jetzt.id = "journal-jetzt";
     const reihe = el("div", "knopfreihe"); reihe.append(jetzt); abs.append(reihe);
     const liste = el("div", "journal-liste");
+    liste.tabIndex = 0;
+    liste.setAttribute("role", "region");
+    liste.setAttribute("aria-label", _("Recovery snapshots"));
     for (const stand of journalStand.snapshots || []) {
       const eintrag = el("div", "journal-eintrag");
       const groesse = Math.round(Number(stand.payload && stand.payload.size || 0) / 1024);
@@ -19786,7 +19844,8 @@ const NEU_IN_DIESER_FASSUNG = {
     const gewaehlte = new Set(sw.kalenderUids || []);
     const anbieter = (quelle) => quelle.quelle === "nextcloud" ||
       String(quelle.uid || "").startsWith("nextcloud-") ? "Nextcloud" :
-      _("Evolution Data Server");
+      quelle.quelle === "akonadi" || String(quelle.uid || "").startsWith("akonadi-")
+        ? "KDE/Akonadi" : _("Evolution Data Server");
     for (const quelle of kalender) {
       const hak = document.createElement("input");
       hak.type = "checkbox";
@@ -20955,8 +21014,9 @@ const NEU_IN_DIESER_FASSUNG = {
       }
       /* Den Dienst im Hintergrund auffrischen – so bekommt auch eine
          ältere Einrichtung die verbesserten Angaben. */
-      if (Bruecke.vorhanden && DATEN.einstellungen.erinnerung.an) {
-        setTimeout(() => Bruecke.sende({ cmd: "erinnerung_einrichten", an: true,
+      if (Bruecke.vorhanden) {
+        setTimeout(() => Bruecke.sende({ cmd: "erinnerung_einrichten",
+          an: DATEN.einstellungen.erinnerung.an,
           vorlauf: DATEN.einstellungen.erinnerung.vorlauf,
           wecken: DATEN.einstellungen.erinnerung.wecken,
           termine: DATEN.termine }), 2500);
@@ -21351,9 +21411,10 @@ const NEU_IN_DIESER_FASSUNG = {
     telefonSmsEmpfangen(nutzlast) {
       nutzlast = nutzlast || {};
       const nummer = nutzlast.from || nutzlast.nummer;
-      const schluessel = telefonSchluessel(nummer);
+      const land = adressLandCode();
+      const schluessel = telefonSchluessel(nummer, land);
       const treffer = DATEN.kontakte.filter((kontakt) => telefonListe(kontakt).some((eintrag) =>
-        telefonSchluessel(eintrag.wert) === schluessel));
+        telefonSchluessel(eintrag.wert, land) === schluessel));
       const kontakt = treffer.length === 1 ? treffer[0] : null;
       const smsId = String(nutzlast.sms_id || "").slice(0, 120);
       const geraet = String(nutzlast.device_id || "").slice(0, 120);
@@ -21366,7 +21427,7 @@ const NEU_IN_DIESER_FASSUNG = {
       if (!Number.isFinite(zeit) || zeit <= 0 || zeit > Date.now() + 86400000) zeit = Date.now();
       const eingang = nutzlast.incoming !== false;
       const lokal = !eingang && DATEN.smsVerlauf.find((eintrag) => eintrag.richtung === "ausgang" &&
-        eintrag.weg === "kde" && telefonSchluessel(eintrag.nummer) === schluessel &&
+        eintrag.weg === "kde" && telefonSchluessel(eintrag.nummer, land) === schluessel &&
         eintrag.text === text && Math.abs(eintrag.zeit - zeit) <= 120000);
       if (lokal) {
         lokal.id = id; lokal.zeit = zeit; lokal.status = "sent"; lokal.clientRef = "";
@@ -21380,7 +21441,7 @@ const NEU_IN_DIESER_FASSUNG = {
           clientRef: "", weg: "kde", geraet: geraet, fehler: "" });
         DATEN.smsVerlauf = DATEN.smsVerlauf.slice(-5000); planeSpeichern();
         if (offenerSmsChat && offenerSmsChat.kontaktId === (kontakt ? kontakt.id : "") &&
-          telefonSchluessel(offenerSmsChat.nummer.value) === schluessel) zeichneSmsVerlauf(offenerSmsChat);
+          telefonSchluessel(offenerSmsChat.nummer.value, land) === schluessel) zeichneSmsVerlauf(offenerSmsChat);
       }
       if (vorhanden && vorhanden.richtung === "eingang" && vorhanden.gelesen !== gelesen) {
         vorhanden.gelesen = gelesen;
@@ -21400,13 +21461,18 @@ const NEU_IN_DIESER_FASSUNG = {
     },
     telefonAntwort(nutzlast) {
       nutzlast = nutzlast || {};
-      const schluessel = telefonSchluessel(nutzlast.nummer);
+      const deviceId = String(nutzlast.device_id || nutzlast.kennung || "");
+      const land = adressLandCode();
+      const schluessel = telefonSchluessel(nutzlast.nummer, land);
+      const kanonisch = schluessel.split("x", 1)[0];
+      if (!/^\+[1-9][0-9]{5,19}$/.test(kanonisch) ||
+          !/^[A-Za-z0-9_-]{32,38}$/.test(deviceId)) return;
       const treffer = DATEN.kontakte.filter((kontakt) => telefonListe(kontakt).some((eintrag) =>
-        telefonSchluessel(eintrag.wert) === schluessel));
-      if (treffer.length === 1) oeffneSmsDialog(treffer[0], nutzlast.nummer);
+        telefonSchluessel(eintrag.wert, land) === schluessel));
+      if (treffer.length === 1) oeffneSmsDialog(treffer[0], kanonisch, deviceId);
       else if (!treffer.length && schluessel) oeffneSmsDialog({ id: "", vorname: "",
-        nachname: nutzlast.nummer, telefone: [{ wert: nutzlast.nummer, typen: ["CELL"] }] },
-      nutzlast.nummer);
+        nachname: kanonisch, telefone: [{ wert: kanonisch, typen: ["CELL"] }] },
+      kanonisch, deviceId);
     },
     telefonMeldung(nutzlast) {
       nutzlast = nutzlast || {};
@@ -21622,8 +21688,8 @@ const NEU_IN_DIESER_FASSUNG = {
       kdeEmpfangSpeichern();
     },
     journalStand(nutzlast) {
-      journalStand = Object.assign({ snapshots: [], interval: "weekly", maximum: 20,
-        last: "", next: "" },
+      journalStand = Object.assign({ snapshots: [], interval: "weekly", mode: "",
+        maximum: 20, days: 14, last: "", next: "" },
         nutzlast || {});
       journalListeAngefragt = true;
       /* Nur bei echter Aenderung neu zeichnen. */
@@ -21944,6 +22010,11 @@ const NEU_IN_DIESER_FASSUNG = {
     updateErgebnis(nutzlast) {
       nutzlast = nutzlast || {};
       updateLaeuft = false;
+      if (Object.prototype.hasOwnProperty.call(nutzlast, "handbuchInstalliert")) {
+        handbuchInstalliert = nutzlast.handbuchInstalliert === true;
+        handbuchVersion = versionsSchluessel(nutzlast.handbuchVersion).length
+          ? String(nutzlast.handbuchVersion) : "";
+      }
       const u = DATEN.einstellungen.update;
       u.letztePruefung = Date.now();
       u.letzteVersion = String(nutzlast.version || "");
@@ -21985,8 +22056,6 @@ const NEU_IN_DIESER_FASSUNG = {
       if (handbuchHinweisAusstehend && $("#buch").classList.contains("offen")) {
         if (!zeigeHandbuchHinweis()) {
           handbuchHinweisAusstehend = false;
-          DATEN.einstellungen.allgemein.handbuchHinweisGezeigt = true;
-          planeSpeichern();
           zeigeKontaktAssistent();
         }
       }
@@ -22597,7 +22666,8 @@ const NEU_IN_DIESER_FASSUNG = {
           migriert = !!roh;
         } catch (e) { /* egal */ }
       }
-      App.init({ daten: roh, neu: !roh, datenPfad: "", migriert: migriert });
+      App.init({ daten: roh, neu: !roh, echterErststart: !roh && !migriert,
+        datenPfad: "", migriert: migriert });
     }
   }
 

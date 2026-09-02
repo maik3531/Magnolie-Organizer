@@ -2875,6 +2875,9 @@ msgstr ""
 msgid "KDE Connect reception failed."
 msgstr "KDE Connect の受信に失敗しました。"
 
+msgid "KDE/Akonadi integration is not available."
+msgstr "KDE/Akonadi 連携は利用できません。"
+
 msgid "Keep a troubleshooting log"
 msgstr "トラブルシューティングログを保存"
 
@@ -5469,6 +5472,10 @@ msgstr ""
 "Connect アプリのみが必要です。追加の KDE Connect デスクトップ プログラムは必"
 "要ありません。"
 
+msgid ""
+"The KDE/Akonadi database was replaced. Select the source again in Settings."
+msgstr "KDE/Akonadi データベースが置き換えられました。設定でソースを選び直してください。"
+
 msgid "The LDIF address book contains too many people."
 msgstr "LDIF アドレス帳の人数が多すぎます。"
 
@@ -6254,6 +6261,14 @@ msgstr "選択した健康記録には印刷可能な値がありません。"
 
 msgid "The selected iCalendar file is incomplete."
 msgstr "選択した iCalendar ファイルは不完全です。"
+
+msgid "The selected online account is disabled, offline or unreachable."
+msgstr "選択したオンラインアカウントは無効、オフライン、または到達不能です。"
+
+msgid ""
+"The selected online account source is disabled. Select an enabled source in "
+"Settings."
+msgstr "選択したオンラインアカウントのソースは無効です。設定で有効なソースを選択してください。"
 
 msgid "The selected path is not a regular file."
 msgstr "選択したパスは通常のファイルではありません。"

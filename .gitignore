@@ -17,6 +17,8 @@ schluessel.properties
 *.aab
 *.deb
 *.dsc
+*.buildinfo
+*.changes
 *.rpm
 *.AppImage
 *.flatpak

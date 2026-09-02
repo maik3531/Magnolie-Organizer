@@ -151,6 +151,7 @@ install -m 0644 "$WURZEL/bin/magnolie_hintergrund.py" "$APPDIR/usr/bin/magnolie_
 install -m 0644 "$WURZEL/bin/magnolie_personal_sync.py" "$APPDIR/usr/bin/magnolie_personal_sync.py"
 install -m 0644 "$WURZEL/bin/magnolie_nextcloud.py" "$APPDIR/usr/bin/magnolie_nextcloud.py"
 install -m 0644 "$WURZEL/bin/magnolie_cloud_backup.py" "$APPDIR/usr/bin/magnolie_cloud_backup.py"
+install -m 0644 "$WURZEL/bin/magnolie_akonadi.py" "$APPDIR/usr/bin/magnolie_akonadi.py"
 install -m 0644 "$WURZEL/bin/magnolie_crash.py" "$APPDIR/usr/bin/magnolie_crash.py"
 install -m 0755 "$(readlink -f "$(command -v python3)")" "$APPDIR/usr/bin/python$PYTHON_VERSION"
 ln -s "python$PYTHON_VERSION" "$APPDIR/usr/bin/python3"

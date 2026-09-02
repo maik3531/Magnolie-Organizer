@@ -6,6 +6,7 @@ bin/magnolie_kdeconnect.py             usr/bin
 bin/magnolie_hintergrund.py            usr/bin
 bin/magnolie_nextcloud.py              usr/bin
 bin/magnolie_cloud_backup.py           usr/bin
+bin/magnolie_akonadi.py                usr/bin
 bin/magnolie_crash.py                  usr/bin
 bin/magnolie_asset.py                  usr/bin
 web/index.html                        usr/share/magnolie-organizer/web

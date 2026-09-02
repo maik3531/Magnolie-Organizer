@@ -1402,6 +1402,10 @@ function knopfMit(text, wurzel) {
     enJournalAnzahl.max === "100" && enSicherungsbereiche.textContent.includes(
       "Maximum recovery snapshots"),
   "Anzahl der Wiederherstellungspunkte ist nicht wählbar");
+  assert.ok(!js.includes('_("Number of snapshots")') &&
+    !js.includes('_("Age in days")') &&
+    !js.includes('_("Keep recovery snapshots for days")'),
+  "unkatalogisierte Aufbewahrungsbeschriftungen werden weiterhin verwendet");
   enJournalAnzahl.value = "7";
   enJournalAnzahl.dispatchEvent(new enDom.window.Event("change", { bubbles: true }));
   assert.strictEqual(enT.daten().einstellungen.allgemein.wiederherstellungsanzahl, 7,
@@ -2228,11 +2232,23 @@ function knopfMit(text, wurzel) {
     enUeber.querySelector(".ueber-werkzeugspalte"),
   "Über-Seite ist nicht in zwei ausgewogene Informationsflächen gegliedert");
   const enNeu = enUeber.querySelector(".ueber-werkzeugspalte .ueber-neu");
+  const neuQuellblock = js.match(
+    /const NEU_IN_DIESER_FASSUNG = \{([\s\S]*?)\n\};/)?.[1] || "";
+  const neuGebiete = Array.from(neuQuellblock.matchAll(
+    /^\s*(?:"zh-cn"|[a-z]+):\s*\[/gm));
   assert.ok(enNeu && enNeu.tagName === "SECTION" &&
+    neuGebiete.length === 20 &&
+    !neuQuellblock.includes("Wayland/AppImage") &&
+    !neuQuellblock.includes("CLI aliases") &&
     enNeu.querySelector("h4")?.textContent === "What's new in this version" &&
     enNeu.querySelector(".ueber-neu-fassung")?.textContent === webFassung &&
-    enNeu.querySelectorAll("ul > li").length === 6 &&
-    enNeu.textContent.includes("Wayland/AppImage") && enNeu.textContent.includes("CLI aliases"),
+    enNeu.querySelectorAll("ul > li").length === 3 &&
+    enNeu.textContent.includes("GNOME and KDE system accounts") &&
+    enNeu.textContent.includes("EDS and Akonadi sync") &&
+    enNeu.textContent.includes("background-service ownership") &&
+    enNeu.textContent.includes("flexible recovery retention") &&
+    js.includes('const NEU_IN_DIESER_FASSUNG_FASSUNG = "' + webFassung + '";') &&
+    js.includes("NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG"),
   "kompakte englische Versionshinweise fehlen oder sind nicht semantisch gegliedert");
   assert.ok(enUeber.querySelector(".ueber-programmspalte > .ueber-rechtliches"),
     "rechtlicher Block wurde aus der linken Spalte verschoben");
@@ -2256,12 +2272,12 @@ function knopfMit(text, wurzel) {
     enSyncNachrichten.some((nachricht) => nachricht.cmd === "update_pruefen"),
   "englische Über-Seite verändert Handbuch- oder Update-Befehl");
   const enUpdateUrl = "https://gitlab.com/maik3531/mint-forgs/-/raw/main/" +
-    "Magnolie-Organitzer/magnolie-organizer_2.0.16_all.deb";
-  enSW.App.updateErgebnis({ ok: true, aktuell: false, version: "2.0.16",
+    "Magnolie-Organitzer/magnolie-organizer_2.0.17_all.deb";
+  enSW.App.updateErgebnis({ ok: true, aktuell: false, version: "2.0.17",
     url: enUpdateUrl, sha256: "ab".repeat(32), fehler: "" });
   assert.ok(enSD.querySelector("#update-stand").textContent.includes(
-    "New version 2.0.16 is available") &&
-    enSD.querySelector("#update-herunterladen").textContent.includes("2.0.16") &&
+    "New version 2.0.17 is available") &&
+    enSD.querySelector("#update-herunterladen").textContent.includes("2.0.17") &&
     enSD.querySelector(".update-pruefsumme").textContent.includes("ab".repeat(32)) &&
     enSD.querySelector(".update-pruefsumme").textContent.includes("sha256sum"),
   "englischer neuer Update-Stand fehlt");
@@ -2298,11 +2314,11 @@ function knopfMit(text, wurzel) {
   "bestätigtes Update startet keinen parameterlosen geprüften Download: " +
     JSON.stringify(enSyncNachrichten.slice(-8)));
   enSW.App.updateHeruntergeladen({ ok: true, bereit: true,
-    version: "2.0.15", artifact: "deb" });
+    version: "2.0.17", artifact: "deb" });
   assert.ok(enSyncNachrichten.some((nachricht) => nachricht.cmd === "update_installieren"),
     "verifiziertes Update wird nicht zur Installation vorbereitet");
   enSW.App.updateInstallationVorbereitet({ ok: true, bereitZumBeenden: true,
-    version: "2.0.15", artifact: "deb" });
+    version: "2.0.17", artifact: "deb" });
   assert.ok(enSyncNachrichten.some((nachricht) => nachricht.cmd === "beenden"),
     "nach vorbereiteter Installation startet der sichere Beenden- und Neustartablauf nicht");
   enSW.App.updateGeoeffnet({ ok: false, fehler: "" });
@@ -6409,7 +6425,7 @@ function knopfMit(text, wurzel) {
   assert.ok(ueberText.includes("Version 3"), "die Lizenzfassung fehlt");
   assert.ok($(".ueber-fassung").textContent.includes("Fassung"),
     "die Programmfassung fehlt");
-  assert.ok($(".ueber-fassung").textContent.includes("2.0.15"),
+  assert.ok($(".ueber-fassung").textContent.includes("2.0.16"),
     "die neue Programmfassung fehlt");
   assert.ok($(".ueber-blume"), "die Magnolienblüte fehlt");
   const beschreibung = $(".ueber-beschreibung");
@@ -6429,18 +6445,18 @@ function knopfMit(text, wurzel) {
     "neben der gemeinsamen Aktualisierungsprüfung ist ein zweiter Prüfknopf sichtbar");
   assert.ok($("#handbuch-stand").textContent.includes("nicht installiert"),
     "der Handbuchstatus nennt die fehlende Installation nicht");
-  assert.ok(!T.istNeuereFassung("2.0.1") && !T.istNeuereFassung("2.0.15") &&
-    T.istNeuereFassung("2.0.16"),
+  assert.ok(!T.istNeuereFassung("2.0.1") && !T.istNeuereFassung("2.0.16") &&
+    T.istNeuereFassung("2.0.17"),
     "Fassungsvergleich der Oberfläche stimmt nicht");
   assert.ok(T.vergleicheText("Termin 2", "Termin 10") < 0,
     "der regionale Collator sortiert Zahlen weiterhin rein lexikografisch");
-  w.App.updateErgebnis({ ok: true, aktuell: false, version: "2.0.16",
+  w.App.updateErgebnis({ ok: true, aktuell: false, version: "2.0.17",
     url: "https://gitlab.com/maik3531/mint-forgs/-/raw/main/" +
-      "Magnolie-Organitzer/magnolie-organizer_2.0.16_all.deb" });
-  assert.ok($("#update-stand").textContent.includes("2.0.16"),
+      "Magnolie-Organitzer/magnolie-organizer_2.0.17_all.deb" });
+  assert.ok($("#update-stand").textContent.includes("2.0.17"),
     "gefundene Fassung erscheint nicht unter Über");
   assert.ok($("#update-herunterladen"), "Downloadknopf für neue Fassung fehlt");
-  assert.strictEqual(T.daten().einstellungen.update.letzteVersion, "2.0.16",
+  assert.strictEqual(T.daten().einstellungen.update.letzteVersion, "2.0.17",
     "Prüfstand wird nicht gespeichert");
   $("#update-automatisch").checked = false;
   $("#update-automatisch").dispatchEvent(new w.Event("change", { bubbles: true }));
@@ -7445,7 +7461,7 @@ function knopfMit(text, wurzel) {
     "ohne Handbuch darf der Hinweis nicht als gezeigt gespeichert werden");
   const handbuchUrl = "https://gitlab.com/maik3531/mint-forgs/-/raw/main/" +
     "Magnolie-Organitzer/magnolie-handbuch_1.9.8_all.deb";
-  hw.App.updateErgebnis({ ok: true, aktuell: true, version: "2.0.15", url: "",
+  hw.App.updateErgebnis({ ok: true, aktuell: true, version: "2.0.16", url: "",
     sha256: "ab".repeat(32), handbuch: { version: "1.9.8", url: handbuchUrl,
       sha256: "cd".repeat(32) }, fehler: "" });
   assert.ok(!hd.querySelector("#dialog-schleier").classList.contains("verborgen") &&
@@ -8248,11 +8264,49 @@ function knopfMit(text, wurzel) {
     x.richtung === "ausgang" && x.status === "sent"),
   "ausgehende KDE-Historie wird nicht rechts als gesendet importiert");
   kdeDialog.querySelector(".sms-schliessen").click();
-  kontaktW.App.telefonAntwort({ nummer: "+49 170 9999999" });
+  kontaktW.App.telefonAntwort({ nummer: "+49 170 / 9999999", kennung: "d".repeat(32) });
   const unbekanntDialog = kontaktD.querySelector(".sms-dialog");
-  assert.ok(unbekanntDialog && unbekanntDialog.textContent.includes("+49 170 9999999"),
-    "eine unbekannte Nummer öffnet keinen antwortbaren nummernbasierten KDE-Chat");
+  assert.ok(unbekanntDialog && unbekanntDialog.textContent.includes("+491709999999"),
+    "eine formatierte unbekannte Nummer öffnet keinen gerätegebundenen KDE-Chat");
+  setze(unbekanntDialog.querySelector("textarea"), "Gebundene Antwort");
+  Array.from(unbekanntDialog.querySelectorAll("button"))
+    .find((button) => button.textContent === "SMS senden").click();
+  const antwortBefehl = kontaktAktionenNachrichten.findLast((nachricht) =>
+    nachricht.cmd === "kde_sms_senden" && nachricht.text === "Gebundene Antwort");
+  assert.ok(antwortBefehl && antwortBefehl.deviceId === "d".repeat(32),
+    "die SMS-Antwort bleibt nicht an das ursprüngliche KDE-Gerät gebunden");
   unbekanntDialog.querySelector(".sms-schliessen").click();
+
+  kontaktKarte = zeichneKontaktAktionen([{ wert: "0664 1234567", typen: ["CELL"] }], [],
+    { peers: [], kdeconnect: { available: true, device_count: 1 } });
+  kontaktT.daten().einstellungen.adressen.landCode = "AT";
+  kontaktW.App.telefonSmsEmpfangen({ device_id: "telefon-at", sms_id: "eingang-at",
+    from: "0664 1234567", text: "Servus", timestamp_ms: Date.now(), notify: false });
+  const smsAt = kontaktT.daten().smsVerlauf.find((x) => x.id === "kde:telefon-at::eingang-at");
+  assert.ok(smsAt && smsAt.kontaktId === "kontakt-aktionen" && smsAt.nummer === "+436641234567",
+    "österreichische eingehende SMS wird nicht mit dem Adressland normalisiert oder zugeordnet");
+  kontaktW.App.telefonAntwort({ nummer: "0664 1234567", kennung: "a".repeat(32) });
+  const antwortAt = kontaktD.querySelector(".sms-dialog");
+  assert.ok(antwortAt && antwortAt.querySelector(".sms-nummer").value === "0664 1234567",
+    "österreichische nationale Antwortnummer findet den vorhandenen Kontakt nicht");
+  setze(antwortAt.querySelector("textarea"), "Antwort AT");
+  Array.from(antwortAt.querySelectorAll("button"))
+    .find((button) => button.textContent === "SMS senden").click();
+  const befehlAt = kontaktAktionenNachrichten.findLast((nachricht) =>
+    nachricht.cmd === "kde_sms_senden" && nachricht.text === "Antwort AT");
+  assert.ok(befehlAt && befehlAt.nummer === "0664 1234567" && befehlAt.land === "AT" &&
+    kontaktT.daten().smsVerlauf.at(-1).nummer === "+436641234567" &&
+    !kontaktT.daten().smsVerlauf.some((x) => x.nummer === "+496641234567"),
+  "österreichische nationale SMS wird vorzeitig verändert oder als +49 gespeichert");
+  antwortAt.querySelector(".sms-schliessen").click();
+  kontaktT.daten().einstellungen.adressen.landCode = "";
+  kontaktT.daten().einstellungen.adressen.land = "Schweiz";
+  kontaktW.App.telefonSmsEmpfangen({ device_id: "telefon-ch", sms_id: "eingang-ch",
+    from: "079 123 45 67", text: "Grüezi", timestamp_ms: Date.now(), notify: false });
+  const smsCh = kontaktT.daten().smsVerlauf.find((x) => x.id === "kde:telefon-ch::eingang-ch");
+  assert.ok(smsCh && smsCh.nummer === "+41791234567" &&
+    !kontaktT.daten().smsVerlauf.some((x) => x.nummer === "+49791234567"),
+  "Schweizer nationale SMS wird bei textueller Ländereinstellung als +49 gespeichert");
 
   kontaktKarte = zeichneKontaktAktionen([{ wert: "0178 555555", typen: ["CELL"] }]);
   kontaktKarte.querySelector(".kontakt-sms").dispatchEvent(

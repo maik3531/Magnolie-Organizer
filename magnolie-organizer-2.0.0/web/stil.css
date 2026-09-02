@@ -2699,7 +2699,11 @@ label.hak input { accent-color: var(--braun); }
   color: var(--braun);
 }
 
-.journal-liste { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
+.journal-liste { display: flex; flex-direction: column; gap: 8px; max-height: 360px;
+  margin-top: 12px; padding: 2px 5px 2px 2px; overflow-y: auto; overscroll-behavior: contain; }
+body[data-hilfsrahmen="an"] .journal-liste:focus-visible {
+  outline: 2px solid #8a6d3b; outline-offset: 2px;
+}
 .journal-eintrag { display: grid; grid-template-columns: minmax(0, 1fr) auto;
   gap: 4px 12px; padding: 9px 11px; border: 1px solid rgba(91,70,46,.28);
   border-radius: 5px; background: rgba(255,252,240,.55); }

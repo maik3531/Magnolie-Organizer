@@ -3,7 +3,8 @@ msgstr ""
 "Report-Msgid-Bugs-To: maik3531@gmail.com\n"
 "POT-Creation-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Content-Type: text/plain; charset=UTF-8\n"
-"Plural-Forms: nplurals=4; plural=(n%100==1 ? 0 : n%100==2 ? 1 : (n%100==3 || n%100==4) ? 2 : 3);\n"
+"Plural-Forms: nplurals=4; plural=(n%100==1 ? 0 : n%100==2 ? 1 : (n%100==3 || "
+"n%100==4) ? 2 : 3);\n"
 
 msgid " (filtered)"
 msgstr " (filtrowane)"
@@ -3005,6 +3006,9 @@ msgstr "Pozadkowa słužba njemóžeše přijimanske nastajenja KDE Connect nał
 msgid "KDE Connect reception failed."
 msgstr "Přijimanje KDE Connect je so njeporadźiło."
 
+msgid "KDE/Akonadi integration is not available."
+msgstr "Integracija KDE/Akonadi k dispoziciji njeje."
+
 msgid "Keep a troubleshooting log"
 msgstr "Protokol za pytanje zmylkow wobchować"
 
@@ -5660,6 +5664,10 @@ msgstr ""
 "KDE Connect na Androidźe; přidatny desktopowy program KDE Connect trjeba "
 "njeje."
 
+msgid ""
+"The KDE/Akonadi database was replaced. Select the source again in Settings."
+msgstr "Datowa banka KDE/Akonadi je so narunała. Wubjerće žórło w nastajenjach znowa."
+
 msgid "The LDIF address book contains too many people."
 msgstr "LDIF-adresnik wobsahuje přewjele wosobow."
 
@@ -6441,6 +6449,14 @@ msgstr "Wubrane strowotne zapiski žane ćišćomne hódnoty njewobsahuja."
 
 msgid "The selected iCalendar file is incomplete."
 msgstr "Wubrany iCalendar-dataj njeje dospołny."
+
+msgid "The selected online account is disabled, offline or unreachable."
+msgstr "Wubrane internetne konto je znjemóžnjene, offline abo njedocpějomne."
+
+msgid ""
+"The selected online account source is disabled. Select an enabled source in "
+"Settings."
+msgstr "Wubrane žórło internetneho konta je znjemóžnjene. Wubjerće zmóžnjene žórło w nastajenjach."
 
 msgid "The selected path is not a regular file."
 msgstr "Wubrana šćežka njeje regularny dataj."

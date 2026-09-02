@@ -2915,6 +2915,9 @@ msgstr "KDE Connect alma ayarları arka plan hizmeti tarafından uygulanamadı."
 msgid "KDE Connect reception failed."
 msgstr "KDE Connect ile alım başarısız oldu."
 
+msgid "KDE/Akonadi integration is not available."
+msgstr "KDE/Akonadi tümleştirmesi kullanılamıyor."
+
 msgid "Keep a troubleshooting log"
 msgstr "Sorun giderme günlüğü tut"
 
@@ -5532,6 +5535,10 @@ msgstr ""
 "Android'deki KDE Connect uygulaması gereklidir; ek KDE Connect masaüstü "
 "programına gerek yoktur."
 
+msgid ""
+"The KDE/Akonadi database was replaced. Select the source again in Settings."
+msgstr "KDE/Akonadi veritabanı değiştirildi. Ayarlar’da kaynağı yeniden seçin."
+
 msgid "The LDIF address book contains too many people."
 msgstr "LDIF adres defterinde çok fazla kişi var."
 
@@ -6305,6 +6312,14 @@ msgstr "Seçili sağlık kayıtlarında yazdırılabilir değer yok."
 
 msgid "The selected iCalendar file is incomplete."
 msgstr "Seçili iCalendar dosyası eksik."
+
+msgid "The selected online account is disabled, offline or unreachable."
+msgstr "Seçilen çevrimiçi hesap devre dışı, çevrimdışı veya erişilemiyor."
+
+msgid ""
+"The selected online account source is disabled. Select an enabled source in "
+"Settings."
+msgstr "Seçilen çevrimiçi hesap kaynağı devre dışı. Ayarlar’da etkin bir kaynak seçin."
 
 msgid "The selected path is not a regular file."
 msgstr "Seçilen yol normal bir dosya değil."

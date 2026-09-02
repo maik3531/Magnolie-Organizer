@@ -91,6 +91,38 @@ def test_eds_reader_aborts_on_one_unserializable_component():
         raise AssertionError("partial EDS snapshots must be rejected")
 
 
+def test_eds_enumeration_uses_effective_parent_enabled_state(monkeypatch):
+    class Source:
+        def get_enabled(self): return True
+        def get_uid(self): return "calendar"
+        def get_display_name(self): return "Calendar"
+        def get_parent(self): return ""
+    source = Source()
+    class EffectiveRegistry:
+        def list_sources(self, _extension): return [source]
+        def check_enabled(self, _source): return False
+    class ES:
+        SOURCE_EXTENSION_CALENDAR = "calendar"
+        SOURCE_EXTENSION_ADDRESS_BOOK = "book"
+    monkeypatch.setitem(m._EDS, "EDataServer", ES)
+    monkeypatch.setitem(m._EDS, "buch_ok", False)
+    calendars, books = m.eds_quellen(EffectiveRegistry())
+    assert calendars == [] and books == []
+
+
+def test_missing_event_needs_online_state_before_and_after_lookup():
+    class Client:
+        def __init__(self): self.checks = iter((True, False))
+        def is_online(self): return next(self.checks)
+        def get_objects_for_uid_sync(self, _uid, _cancellable): return True, []
+    try:
+        m.eds_event_fehlend_bestaetigt(Client(), "event")
+    except RuntimeError as error:
+        assert str(error)
+    else:
+        raise AssertionError("offline cache must not confirm a remote deletion")
+
+
 def test_yearly_all_day_from_ics_and_eds_is_one_read_only_event(monkeypatch):
     uid = "google-birthday-42@google.com"
     imported = m.ics_lesen(

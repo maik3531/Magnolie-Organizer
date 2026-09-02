@@ -105,6 +105,7 @@ internal sealed partial class BridgeDispatcher : IDisposable
                     case "journal_vorschau": await PreviewSnapshotAsync(SnapshotId(message)); break;
                     case "journal_intervall": recovery.SetInterval(Text(message, "intervall")); await SendRecoveryStatusAsync(); break;
                     case "journal_anzahl": recovery.SetMaximum(Integer(message, "maximum")); await SendRecoveryStatusAsync(); break;
+                    case "journal_aufbewahrung": recovery.SetRetention(Text(message, "modus"), Integer(message, "maximum"), Integer(message, "tage")); await SendRecoveryStatusAsync(); break;
                     case "journal_loeschen": recovery.Delete(SnapshotId(message)); await form.SendAsync("App.journalErgebnis", new { ok = true, deleted = true, fehler = "" }); await SendRecoveryStatusAsync(); break;
                     case "journal_wiederherstellen": await RestoreSnapshotAsync(SnapshotId(message)); break;
                     case "mutations_snapshot": await CreateMutationSnapshotAsync(message); break;
@@ -1136,7 +1137,7 @@ internal sealed partial class BridgeDispatcher : IDisposable
         {
             intervall = schedule.Interval, letzte = schedule.Last?.ToString("O"),
             naechste = schedule.Next?.ToString("O"), status = schedule.Status, fehler = schedule.Error,
-            maximum = schedule.Maximum,
+            mode = schedule.Mode, maximum = schedule.Maximum, days = schedule.Days,
             snapshots = recovery.List().Select(NativeSnapshot)
         });
     }

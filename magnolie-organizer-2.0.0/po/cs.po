@@ -2941,6 +2941,9 @@ msgstr "Službě na pozadí se nepodařilo použít nastavení příjmu KDE Conn
 msgid "KDE Connect reception failed."
 msgstr "Příjem KDE Connect selhal."
 
+msgid "KDE/Akonadi integration is not available."
+msgstr "Integrace KDE/Akonadi není dostupná."
+
 msgid "Keep a troubleshooting log"
 msgstr "Uchovávat protokol pro řešení potíží"
 
@@ -5562,6 +5565,10 @@ msgstr ""
 "KDE Connect na Android; není potřeba žádný další desktopový program KDE "
 "Connect."
 
+msgid ""
+"The KDE/Akonadi database was replaced. Select the source again in Settings."
+msgstr "Databáze KDE/Akonadi byla nahrazena. Vyberte zdroj znovu v Nastavení."
+
 msgid "The LDIF address book contains too many people."
 msgstr "Adresář LDIF obsahuje příliš mnoho osob."
 
@@ -6336,6 +6343,14 @@ msgstr "Vybrané zdravotní záznamy neobsahují žádné hodnoty vhodné k tisk
 
 msgid "The selected iCalendar file is incomplete."
 msgstr "Vybraný soubor iCalendar je neúplný."
+
+msgid "The selected online account is disabled, offline or unreachable."
+msgstr "Vybraný online účet je zakázaný, offline nebo nedostupný."
+
+msgid ""
+"The selected online account source is disabled. Select an enabled source in "
+"Settings."
+msgstr "Vybraný zdroj online účtu je zakázaný. Vyberte v Nastavení povolený zdroj."
 
 msgid "The selected path is not a regular file."
 msgstr "Vybraná cesta není běžný soubor."

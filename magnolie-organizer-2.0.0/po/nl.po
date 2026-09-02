@@ -2938,6 +2938,9 @@ msgstr ""
 msgid "KDE Connect reception failed."
 msgstr "Ontvangst via KDE Connect mislukt."
 
+msgid "KDE/Akonadi integration is not available."
+msgstr "De KDE/Akonadi-integratie is niet beschikbaar."
+
 msgid "Keep a troubleshooting log"
 msgstr "Logboek voor probleemoplossing bijhouden"
 
@@ -5585,6 +5588,10 @@ msgstr ""
 "Connect-app op Android is vereist; er is geen extra KDE Connect "
 "desktopprogramma nodig."
 
+msgid ""
+"The KDE/Akonadi database was replaced. Select the source again in Settings."
+msgstr "De KDE/Akonadi-database is vervangen. Selecteer de bron opnieuw in Instellingen."
+
 msgid "The LDIF address book contains too many people."
 msgstr "Het LDIF-adresboek bevat te veel personen."
 
@@ -6388,6 +6395,14 @@ msgstr "De geselecteerde gezondheidsgegevens bevatten geen afdrukbare waarden."
 
 msgid "The selected iCalendar file is incomplete."
 msgstr "Het geselecteerde iCalendar-bestand is onvolledig."
+
+msgid "The selected online account is disabled, offline or unreachable."
+msgstr "Het geselecteerde onlineaccount is uitgeschakeld, offline of onbereikbaar."
+
+msgid ""
+"The selected online account source is disabled. Select an enabled source in "
+"Settings."
+msgstr "De geselecteerde onlineaccountbron is uitgeschakeld. Selecteer een ingeschakelde bron in Instellingen."
 
 msgid "The selected path is not a regular file."
 msgstr "Het geselecteerde pad is geen regulier bestand."

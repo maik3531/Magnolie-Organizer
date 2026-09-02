@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """Private background-service foundation for Magnolie Organizer."""
 
+import base64
+import binascii
 import gettext
 import hashlib
 import json
@@ -36,6 +38,10 @@ MAX_PHONE_ARGUMENTS = 2 * 1024 * 1024
 MAX_PHONE_MESSAGE = 72 * 1024 * 1024
 MAX_EVENTS = 256
 MAX_IPC_HANDLERS = 8
+SMS_REPLY_LIFETIME_MS = 10 * 60 * 1000
+SMS_REPLY_FIELDS = {"v", "source", "device_id", "number", "message_id",
+                    "issued_ms", "expires_ms", "nonce"}
+SMS_REPLY_REQUEST_PREFIX = ".sms-reply-"
 IPC_READ_TIMEOUT = 5
 LARGE_IPC_OPERATIONS = {
     "phone_send_personal_sync_run", "phone_index_local_attachments",
@@ -240,12 +246,126 @@ def service_executable(executable=None):
     return os.path.abspath(candidate)
 
 
+def _json_unique_pairs(pairs):
+    value = {}
+    for key, item in pairs:
+        if key in value:
+            raise ValueError("duplicate JSON member")
+        value[key] = item
+    return value
+
+
+def _sms_reply_number_valid(number):
+    return (isinstance(number, str) and 6 <= len(number) <= 40 and
+            re.fullmatch(r"[+0-9 ()/.-]+", number) is not None and
+            6 <= len(re.sub(r"\D", "", number)) <= 20)
+
+
+def sms_reply_intent_encode(payload, now_ms=None):
+    now_ms = int(time.time() * 1000) if now_ms is None else int(now_ms)
+    number = str(payload.get("from") or "")
+    device_id = str(payload.get("device_id") or "")
+    message_id = str(payload.get("sms_id") or "")
+    if (not _sms_reply_number_valid(number) or
+            not DEVICE_ID.fullmatch(device_id) or not message_id or
+            len(message_id) > 160 or any(ord(char) < 32 for char in message_id)):
+        return ""
+    intent = {"v": 1, "source": "kde", "device_id": device_id,
+              "number": number, "message_id": message_id,
+              "issued_ms": now_ms, "expires_ms": now_ms + SMS_REPLY_LIFETIME_MS,
+              "nonce": os.urandom(16).hex()}
+    raw = json.dumps(intent, ensure_ascii=True, separators=(",", ":"),
+                     sort_keys=True).encode("ascii")
+    return base64.urlsafe_b64encode(raw).decode("ascii").rstrip("=")
+
+
+def sms_reply_intent_decode(encoded, now_ms=None):
+    if (not isinstance(encoded, str) or not encoded or len(encoded) > 1400 or
+            not re.fullmatch(r"[A-Za-z0-9_-]+", encoded)):
+        raise ValueError("invalid SMS reply intent")
+    try:
+        raw = base64.urlsafe_b64decode(encoded + "=" * (-len(encoded) % 4))
+        if len(raw) > 1024:
+            raise ValueError("oversize SMS reply intent")
+        value = json.loads(raw.decode("utf-8"), object_pairs_hook=_json_unique_pairs)
+    except (binascii.Error, UnicodeError, json.JSONDecodeError, TypeError) as error:
+        raise ValueError("invalid SMS reply intent") from error
+    now_ms = int(time.time() * 1000) if now_ms is None else int(now_ms)
+    if (not isinstance(value, dict) or set(value) != SMS_REPLY_FIELDS or
+            value.get("v") != 1 or value.get("source") != "kde" or
+            not DEVICE_ID.fullmatch(str(value.get("device_id") or "")) or
+            not _sms_reply_number_valid(value.get("number")) or
+            not isinstance(value.get("message_id"), str) or
+            not value["message_id"] or len(value["message_id"]) > 160 or
+            any(ord(char) < 32 for char in value["message_id"]) or
+            not re.fullmatch(r"[0-9a-f]{32}", str(value.get("nonce") or "")) or
+            isinstance(value.get("issued_ms"), bool) or
+            not isinstance(value.get("issued_ms"), int) or
+            isinstance(value.get("expires_ms"), bool) or
+            not isinstance(value.get("expires_ms"), int) or
+            value["expires_ms"] < value["issued_ms"] or
+            value["expires_ms"] - value["issued_ms"] > SMS_REPLY_LIFETIME_MS or
+            value["issued_ms"] > now_ms + 60000 or now_ms > value["expires_ms"]):
+        raise ValueError("invalid SMS reply intent")
+    return value
+
+
+def sms_reply_request_write(encoded):
+    sms_reply_intent_decode(encoded)
+    directory = runtime_directory()
+    descriptor, path = tempfile.mkstemp(prefix=SMS_REPLY_REQUEST_PREFIX,
+                                        dir=directory)
+    try:
+        os.fchmod(descriptor, 0o600)
+        with os.fdopen(descriptor, "w", encoding="ascii") as output:
+            output.write(encoded)
+            output.flush()
+            os.fsync(output.fileno())
+        return path
+    except Exception:
+        try:
+            os.close(descriptor)
+        except OSError:
+            pass
+        try:
+            os.unlink(path)
+        except OSError:
+            pass
+        raise
+
+
+def sms_reply_request_read(path):
+    directory = os.path.realpath(runtime_directory())
+    if (not isinstance(path, str) or os.path.dirname(os.path.realpath(path)) != directory or
+            not re.fullmatch(r"\.sms-reply-[A-Za-z0-9_-]+", os.path.basename(path))):
+        raise ValueError("invalid SMS reply request")
+    flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0)
+    descriptor = os.open(path, flags)
+    try:
+        info = os.fstat(descriptor)
+        if (not stat.S_ISREG(info.st_mode) or info.st_uid != os.getuid() or
+                stat.S_IMODE(info.st_mode) & 0o077 or info.st_size > 1400):
+            raise ValueError("invalid SMS reply request")
+        with os.fdopen(descriptor, "r", encoding="ascii") as source:
+            descriptor = -1
+            encoded = source.read(1401)
+    finally:
+        if descriptor >= 0:
+            os.close(descriptor)
+        try:
+            os.unlink(path)
+        except OSError:
+            pass
+    sms_reply_intent_decode(encoded)
+    return encoded
+
+
 def _desktop_exec_argument(value):
     if not isinstance(value, str) or not value or "\0" in value or "\n" in value or "\r" in value:
         raise ValueError("invalid desktop Exec argument")
     value = value.replace("%", "%%")
-    value = value.replace("\\", "\\\\").replace('"', '\\"')
-    value = value.replace("`", "\\`").replace("$", "\\$")
+    value = value.replace("\\", "\\\\\\\\").replace('"', '\\\\"')
+    value = value.replace("`", "\\\\`").replace("$", "\\\\$")
     return '"%s"' % value
 
 
@@ -552,6 +672,7 @@ def _request_shape(operation, arguments):
         "event_cursor": set(), "poll_events": {"after", "timeout", "subscriber"},
         "gui_subscribe": {"subscriber"}, "gui_unsubscribe": {"subscriber"},
         "gui_visibility": {"subscriber", "visible"},
+        "gui_readiness": {"subscriber", "ready"},
         "send_sms": {"destination", "message", "device_id"},
         "begin_pairing": {"device_id", "replace_stored"},
         "complete_pairing": {"device_id"}, "confirm_pairing": {"code_matches"},
@@ -597,13 +718,16 @@ def _request_shape(operation, arguments):
                 or isinstance(timeout, bool) or not isinstance(timeout, (int, float))
                 or not 0 <= timeout <= 25):
             raise IPCError("invalid event poll")
-    if operation in ("gui_subscribe", "gui_unsubscribe", "gui_visibility") or operation == "poll_events" \
+    if operation in ("gui_subscribe", "gui_unsubscribe", "gui_visibility",
+                      "gui_readiness") or operation == "poll_events" \
             and "subscriber" in arguments:
         subscriber = arguments.get("subscriber")
         if not isinstance(subscriber, str) or not re.fullmatch(r"[a-f0-9]{32}", subscriber):
             raise IPCError("invalid GUI subscriber")
     if operation == "gui_visibility" and not isinstance(arguments.get("visible"), bool):
         raise IPCError("invalid GUI visibility")
+    if operation == "gui_readiness" and not isinstance(arguments.get("ready"), bool):
+        raise IPCError("invalid GUI readiness")
     if operation == "accept_receive" and (not isinstance(arguments.get("directory", ""), str)
             or len(arguments.get("directory", "").encode("utf-8")) > 4096):
         raise IPCError("invalid receive destination")
@@ -648,6 +772,21 @@ class IPCServer:
             self._gui_subscribers = {key: value for key, value in
                 self._gui_subscribers.items() if value[0] > now}
             return any(value[1] for value in self._gui_subscribers.values())
+
+    def gui_connected(self):
+        now = time.monotonic()
+        with self._event_condition:
+            self._gui_subscribers = {key: value for key, value in
+                self._gui_subscribers.items() if value[0] > now}
+            return bool(self._gui_subscribers)
+
+    def gui_notification_ready(self):
+        now = time.monotonic()
+        with self._event_condition:
+            self._gui_subscribers = {key: value for key, value in
+                self._gui_subscribers.items() if value[0] > now}
+            return any(len(value) > 2 and value[2]
+                       for value in self._gui_subscribers.values())
 
     def publish_event(self, event, payload):
         if not isinstance(event, str) or not event or len(event) > 80:
@@ -781,23 +920,35 @@ class IPCServer:
                     subscriber = arguments.get("subscriber")
                     if subscriber:
                         with self._event_condition:
-                            visible = self._gui_subscribers.get(subscriber, (0, False))[1]
-                            self._gui_subscribers[subscriber] = (time.monotonic() + 35, visible)
+                            previous = self._gui_subscribers.get(
+                                subscriber, (0, False, False))
+                            self._gui_subscribers[subscriber] = (
+                                time.monotonic() + 35, previous[1], previous[2])
                     result = self._poll_events(arguments["after"],
                                                float(arguments.get("timeout", 20)))
                 elif operation == "gui_subscribe":
                     with self._event_condition:
                         self._gui_subscribers[arguments["subscriber"]] = (
-                            time.monotonic() + 35, False)
+                            time.monotonic() + 35, False, False)
                         result = {"subscribed": True, "cursor": self._event_sequence}
                 elif operation == "gui_visibility":
                     subscriber = arguments["subscriber"]
                     with self._event_condition:
                         if subscriber not in self._gui_subscribers:
                             raise IPCError("GUI subscriber is not registered")
+                        previous = self._gui_subscribers[subscriber]
                         self._gui_subscribers[subscriber] = (
-                            time.monotonic() + 35, arguments["visible"])
+                            time.monotonic() + 35, arguments["visible"], previous[2])
                     result = {"visible": arguments["visible"]}
+                elif operation == "gui_readiness":
+                    subscriber = arguments["subscriber"]
+                    with self._event_condition:
+                        if subscriber not in self._gui_subscribers:
+                            raise IPCError("GUI subscriber is not registered")
+                        previous = self._gui_subscribers[subscriber]
+                        self._gui_subscribers[subscriber] = (
+                            time.monotonic() + 35, previous[1], arguments["ready"])
+                    result = {"ready": arguments["ready"]}
                 elif operation == "gui_unsubscribe":
                     with self._event_condition:
                         self._gui_subscribers.pop(arguments["subscriber"], None)
@@ -932,6 +1083,7 @@ class KDEConnectProxy:
         self._subscriber = os.urandom(16).hex()
         self._cursor = 0
         self._visible = None
+        self._ready = None
 
     def start(self):
         available = daemon_available(self.path)
@@ -967,6 +1119,20 @@ class KDEConnectProxy:
             if result.get("visible") is visible:
                 self._visible = visible
                 return visible
+            return False
+        except Exception:
+            return False
+
+    def set_ready(self, ready):
+        ready = bool(ready)
+        if self._ready is ready:
+            return ready
+        try:
+            result = ipc_request("gui_readiness", {"subscriber": self._subscriber,
+                "ready": ready}, self.path, timeout=1)
+            if result.get("ready") is ready:
+                self._ready = ready
+                return ready
             return False
         except Exception:
             return False
@@ -1216,10 +1382,23 @@ class NativeNotifications:
             pass
         return True
 
-    def open_organizer(self):
-        subprocess.Popen([self.executable], start_new_session=True,
-                         stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
-                         stderr=subprocess.DEVNULL)
+    def open_organizer(self, reply_intent=None):
+        command = [self.executable]
+        request_path = ""
+        if reply_intent is not None:
+            request_path = sms_reply_request_write(reply_intent)
+            command.extend(("--sms-reply-file", request_path))
+        try:
+            subprocess.Popen(command, start_new_session=True,
+                             stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
+                             stderr=subprocess.DEVNULL)
+        except Exception:
+            if request_path:
+                try:
+                    os.unlink(request_path)
+                except OSError:
+                    pass
+            raise
 
 
 def native_clipboard_set(text):
@@ -1241,14 +1420,16 @@ def native_clipboard_set(text):
 
 class DaemonEvents:
     def __init__(self, backend_getter, settings, notifications, glib,
-                  event_publisher=None, gui_present=None, clipboard_setter=None,
-                  notification_since_ms=0, diagnostics=None, freshness=None):
+                   event_publisher=None, gui_present=None, clipboard_setter=None,
+                   notification_since_ms=0, diagnostics=None, freshness=None,
+                   gui_connected=None):
         self.backend_getter = backend_getter
         self.settings = normalize_settings(settings)
         self.notifications = notifications
         self.glib = glib
         self.event_publisher = event_publisher or (lambda _event, _payload: None)
         self.gui_present = gui_present or (lambda: False)
+        self.gui_connected = gui_connected or self.gui_present
         self.clipboard_setter = clipboard_setter or native_clipboard_set
         self.notification_since_ms = notification_since_ms
         self.diagnostics = diagnostics
@@ -1386,13 +1567,16 @@ class DaemonEvents:
                                     _("KDE Connect reception failed."))
         elif event == "sms":
             fresh = self._fresh(event, payload, "timestamp_ms", "occurred_ms")
-            notify = bool(payload.get("notify") and fresh and
+            gui_connected = self.gui_connected()
+            notify = bool(not gui_connected and payload.get("notify") and fresh and
                           permissions["sms_phone_notifications"])
             if notify:
                 sender = _safe_text(payload.get("from"), 80) or _("Phone")
                 text = _safe_text(payload.get("text"), 300)
-                if not self.notifications.show(_("SMS from %s") % sender, text, (
-                        ("reply", _("Reply"), self.notifications.open_organizer),)):
+                intent = sms_reply_intent_encode(payload)
+                actions = (("reply", _("Reply"), lambda intent=intent:
+                    self.notifications.open_organizer(intent)),) if intent else ()
+                if not self.notifications.show(_("SMS from %s") % sender, text, actions):
                     self.notifications.show(_("SMS from %s") % sender, text)
             if self.diagnostics is not None:
                 self.diagnostics.record("kde_connect", "sms", payload,
@@ -1401,7 +1585,8 @@ class DaemonEvents:
         if forward_decision or event not in ("pairing", "file_proposal", "clipboard_proposal"):
             forwarded = dict(payload)
             if event == "sms":
-                forwarded["notify"] = False
+                forwarded["notify"] = bool(gui_connected and payload.get("notify") and
+                    fresh and permissions["sms_phone_notifications"])
             self.event_publisher(event, forwarded)
         return False
 
@@ -1628,7 +1813,8 @@ def daemon_main(_arguments=None, backend_factory=KDEConnectSMSBackend,
     events = DaemonEvents(lambda: holder["backend"], settings, notifications, glib,
                            server.publish_event, server.gui_present,
                            notification_since_ms=notification_since_ms,
-                           diagnostics=diagnostics, freshness=freshness)
+                           diagnostics=diagnostics, freshness=freshness,
+                           gui_connected=server.gui_notification_ready)
     phone_events = PhoneDaemonEvents(lambda: holder["phone"], settings, notifications,
                                      glib, server.publish_event, server.gui_present,
                                      notification_since_ms=notification_since_ms,

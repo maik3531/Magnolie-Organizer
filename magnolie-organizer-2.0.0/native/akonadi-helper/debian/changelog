@@ -1,0 +1,5 @@
+magnolie-organizer-akonadi (1.0.0) stable; urgency=medium
+
+  * Initial optional Akonadi calendar and address-book bridge.
+
+ -- Maik Walter <maik3531@gmail.com>  Tue, 01 Sep 2026 18:00:00 +0200
