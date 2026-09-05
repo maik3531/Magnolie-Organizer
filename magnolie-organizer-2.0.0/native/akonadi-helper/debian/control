@@ -10,7 +10,7 @@ Rules-Requires-Root: no
 Package: magnolie-organizer-akonadi
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}, akonadi-server,
- magnolie-organizer (>= 2.0.16)
+ magnolie-organizer (>= 2.0.17)
 Recommends: kdepim-runtime
 Description: KDE system-account bridge for Magnolie Organizer
  This optional helper lets Magnolie Organizer use calendars and address books

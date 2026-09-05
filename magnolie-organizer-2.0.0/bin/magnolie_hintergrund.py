@@ -25,6 +25,8 @@ from logging.handlers import RotatingFileHandler
 
 from magnolie_kdeconnect import (DEVICE_ID, KDEConnectSMSBackend, ProtocolError,
                                  local_device_name)
+from magnolie_setup_state import classify_and_adopt, services_allowed
+from magnolie_phone_region import enrich_call
 
 
 PROGRAM_NAME = "magnolie-organizer"
@@ -144,6 +146,7 @@ def normalize_settings(value):
 def _locale_directory():
     script = os.path.dirname(os.path.realpath(__file__))
     for candidate in (os.environ.get("MAGNOLIE_LOCALE_DIR"),
+            os.path.join(script, "..", "share", "locale"),
             os.path.join(script, "..", "locale"), os.path.join(script, "locale"),
             "/usr/share/locale"):
         if candidate and os.path.isdir(os.path.abspath(candidate)):
@@ -1653,6 +1656,8 @@ class PhoneDaemonEvents:
         return (("open", _("Start Organizer"), self.notifications.open_organizer),)
 
     def _handle(self, event, payload):
+        if event == "incoming_call":
+            payload = enrich_call(payload)
         backend = self.backend_getter()
         permissions = self.settings["permissions"]
         gui_present = self.gui_present()
@@ -1709,6 +1714,9 @@ class PhoneDaemonEvents:
               fresh and
               permissions["phone_call_notifications"]):
             caller = _safe_text(payload.get("number"), 120) or _("Unknown caller")
+            hint = _safe_text(payload.get("phone_display_hint"), 160)
+            if hint:
+                caller += "\n" + hint
             if not self.notifications.show(_("Incoming call"), caller, self._open_action()):
                 self.notifications.show(_("Incoming call"), caller)
         elif (event == "sms" and not payload.get("read") and fresh and
@@ -1733,6 +1741,8 @@ def daemon_main(_arguments=None, backend_factory=KDEConnectSMSBackend,
                  glib=None, notifications_factory=NativeNotifications,
                  phone_factory=None):
     """Run without importing Gtk, WebKit, AppIndicator, or creating a window."""
+    if not services_allowed(classify_and_adopt()):
+        return 0
     initialize_translation(_arguments)
     settings = read_settings()
     if not settings["enabled"]:

@@ -114,18 +114,18 @@ internal static class PersonalSyncContract
 
     private static void ValidateRequest(JsonObject body)
     {
-        Exact(body, "format", "run_id", "trigger", "modules"); Number(body, "format", 1, 2); Uuid4(String(body, "run_id")); Enum(body, "trigger", "manual", "auto_wifi");
+        Exact(body, "format", "run_id", "trigger", "modules"); Number(body, "format", 1, 3); Uuid4(String(body, "run_id")); Enum(body, "trigger", "manual", "auto_wifi");
         if (body["modules"] is not JsonArray modules || !new[] { "notes", "tasks", "notes\0tasks" }.Contains(string.Join("\0", modules.Select(item => String(item)))))
             throw new InvalidDataException("Personal-Sync-Module ungültig.");
     }
 
     private static void ValidateBatch(JsonObject body)
     {
-        var format = Number(body, "format", 1, 2); Exact(body, format == 2 ? ["format", "run_id", "batch_id", "sequence", "last", "reply", "records", "records_hash"] : ["format", "run_id", "batch_id", "sequence", "last", "reply", "records"]);
+        var format = Number(body, "format", 1, 3); Exact(body, format >= 2 ? ["format", "run_id", "batch_id", "sequence", "last", "reply", "records", "records_hash"] : ["format", "run_id", "batch_id", "sequence", "last", "reply", "records"]);
         Uuid4(String(body, "run_id")); Uuid4(String(body, "batch_id")); Number(body, "sequence", 0, 100000); Bool(body, "last"); Bool(body, "reply");
         if (body["records"] is not JsonArray records || records.Count > 32) throw new InvalidDataException("Personal-Sync-Batch ungültig.");
         var keys = new List<(string Kind, string Id)>(); foreach (var raw in records) { var record = raw as JsonObject ?? throw new InvalidDataException(); ValidateRecord(record, (int)format); keys.Add((String(record, "kind"), String(record, "id"))); }
-        if (!keys.SequenceEqual(keys.Distinct().OrderBy(item => item.Kind, Utf8Comparer.Instance).ThenBy(item => item.Id, Utf8Comparer.Instance)) || TelefonCrypto.Canonical(body).Length > 192 * 1024 || format == 2 && !Hash(String(body, "records_hash")))
+        if (!keys.SequenceEqual(keys.Distinct().OrderBy(item => item.Kind, Utf8Comparer.Instance).ThenBy(item => item.Id, Utf8Comparer.Instance)) || TelefonCrypto.Canonical(body).Length > 192 * 1024 || format >= 2 && !Hash(String(body, "records_hash")))
             throw new InvalidDataException("Personal-Sync-Batchsortierung ungültig.");
     }
 
@@ -141,15 +141,16 @@ internal static class PersonalSyncContract
     {
         if (kind == "note")
         {
-            Exact(value, format == 2 ? ["title", "text", "html", "notebook_id", "symbol", "created_ms", "modified_ms", "attachments"] : ["title", "text", "html", "notebook_id", "symbol", "created_ms", "modified_ms"]);
+            Exact(value, format >= 2 ? ["title", "text", "html", "notebook_id", "symbol", "created_ms", "modified_ms", "attachments"] : ["title", "text", "html", "notebook_id", "symbol", "created_ms", "modified_ms"]);
             Text(value, "title"); Text(value, "text"); Text(value, "html"); Text(value, "notebook_id", 160, true); Text(value, "symbol", 160); Number(value, "created_ms", 0, MaximumTimestamp); Number(value, "modified_ms", 0, MaximumTimestamp);
-            if (format == 2) { if (value["attachments"] is not JsonArray values || values.Count > 64) throw new InvalidDataException(); var ids = values.Select(raw => ValidateAttachmentDescriptor(raw as JsonObject ?? throw new InvalidDataException())).ToArray(); if (ids.Distinct(StringComparer.Ordinal).Count() != ids.Length) throw new InvalidDataException("Doppelte Attachment-ID."); }
+            if (format >= 2) { if (value["attachments"] is not JsonArray values || values.Count > 64) throw new InvalidDataException(); var ids = values.Select(raw => ValidateAttachmentDescriptor(raw as JsonObject ?? throw new InvalidDataException())).ToArray(); if (ids.Distinct(StringComparer.Ordinal).Count() != ids.Length) throw new InvalidDataException("Doppelte Attachment-ID."); }
         }
         else if (kind == "task")
         {
-            Exact(value, "title", "note", "due", "priority", "completed", "remind", "lead_days", "reminder_minute", "created_ms", "modified_ms");
+            Exact(value, format == 3 ? ["title", "note", "due", "priority", "completed", "remind", "lead_days", "reminder_minute", "created_ms", "modified_ms", "uid", "parent_uid", "order"] : ["title", "note", "due", "priority", "completed", "remind", "lead_days", "reminder_minute", "created_ms", "modified_ms"]);
             Text(value, "title"); Text(value, "note"); var due = Text(value, "due", 160); if (due.Length != 0 && (due.Length != 10 || due[4] != '-' || due[7] != '-' || due.Where((_, index) => index is not (4 or 7)).Any(character => !char.IsAsciiDigit(character)))) throw new InvalidDataException("Fälligkeitsdatum ungültig.");
             Number(value, "priority", 1, 3); Bool(value, "completed"); Bool(value, "remind"); Number(value, "lead_days", 0, 365); Number(value, "reminder_minute", 0, 1439); Number(value, "created_ms", 0, MaximumTimestamp); Number(value, "modified_ms", 0, MaximumTimestamp);
+            if (format == 3) { Text(value, "uid", 160, true); Text(value, "parent_uid", 160, true); Number(value, "order", 0, MaximumSafeInteger); }
         }
         else { Exact(value, "name", "modified_ms"); Text(value, "name"); Number(value, "modified_ms", 0, MaximumTimestamp); }
     }
@@ -164,12 +165,12 @@ internal static class PersonalSyncContract
 
     private static void ValidateReport(JsonObject body)
     {
-        var format = Number(body, "format", 1, 2); Exact(body, format == 2 ? ["format", "run_id", "state", "trigger", "transport", "sent", "received", "conflicts", "attachments_omitted", "oversized_skipped", "started_ms", "finished_ms", "error", "deletions", "attachments"] : ["format", "run_id", "state", "trigger", "transport", "sent", "received", "conflicts", "attachments_omitted", "oversized_skipped", "started_ms", "finished_ms", "error", "deletions"]);
+        var format = Number(body, "format", 1, 3); Exact(body, format >= 2 ? ["format", "run_id", "state", "trigger", "transport", "sent", "received", "conflicts", "attachments_omitted", "oversized_skipped", "started_ms", "finished_ms", "error", "deletions", "attachments"] : ["format", "run_id", "state", "trigger", "transport", "sent", "received", "conflicts", "attachments_omitted", "oversized_skipped", "started_ms", "finished_ms", "error", "deletions"]);
         Uuid4(String(body, "run_id")); Enum(body, "state", "complete", "partial", "blocked", "failed"); Enum(body, "trigger", "manual", "auto_wifi"); Enum(body, "transport", "wifi", "bluetooth");
         Counts(body, "sent", "notes", "tasks", "notebooks"); Counts(body, "received", "notes", "tasks", "notebooks"); Number(body, "conflicts", 0, MaximumSafeInteger); Number(body, "attachments_omitted", 0, MaximumSafeInteger); Number(body, "oversized_skipped", 0, MaximumSafeInteger);
         var started = Number(body, "started_ms", 0, MaximumTimestamp); var finished = Number(body, "finished_ms", 0, MaximumTimestamp); if (finished < started) throw new InvalidDataException("Berichtszeitachse ungültig.");
         Enum(body, "error", "none", "offline", "not_granted", "too_large", "save_failed", "protocol", "unknown");
-        if (format == 2) Counts(body, "attachments", "declared", "requested", "sent", "received", "reused", "preserved", "failed", "bytes");
+        if (format >= 2) Counts(body, "attachments", "declared", "requested", "sent", "received", "reused", "preserved", "failed", "bytes");
         var deletions = body["deletions"] as JsonObject ?? throw new InvalidDataException(); Exact(deletions, "pending", "deleted", "restored", "conflicts", "blocked", "trash");
         foreach (var name in new[] { "pending", "deleted", "restored", "conflicts", "blocked" }) Number(deletions, name, 0, MaximumSafeInteger); Counts(deletions, "trash", "notes", "tasks", "notebooks", "attachments");
     }

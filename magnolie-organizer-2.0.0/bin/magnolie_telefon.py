@@ -22,6 +22,7 @@ from collections import deque
 from magnolie_personal_sync import (CHUNK_RAW, MAX_ATTACHMENT, MAX_ATTACHMENTS, MIMES,
                                     decode_attachment_data_url, mime_from_magic, records_hash,
                                     validate_body as validate_personal_sync_body)
+from magnolie_phone_region import enrich_call
 
 PROTOCOL = "magnolie-phone/1"
 PORT = 8741
@@ -78,9 +79,8 @@ def desktop_capabilities(revision=1, bluetooth_available=False,
                        "reason": "available" if available else (
                            bluetooth_reason if name == "transport.bluetooth_rfcomm"
                            else "not_implemented"),
-                         "versions": ([1, 2, 3] if name == "device_status" else
-                                      [1, 2]) if name in {"device_status", "personal_notes_sync"} else
-                                    [2] if name == "incoming_call_state" else [1]}
+                         "versions": [1, 2, 3] if name in {"device_status", "personal_notes_sync", "personal_tasks_sync"} else
+                                     [2] if name == "incoming_call_state" else [1]}
     return {"revision": revision, "items": items}
 
 
@@ -135,7 +135,13 @@ def personal_sync_grants_needed(kind, body):
 def negotiated_personal_notes_format(peer):
     versions = (((peer or {}).get("capabilities") or {}).get("items") or {}).get(
         "personal_notes_sync", {}).get("versions", [])
-    return 2 if 2 in versions else 1
+    return max((version for version in versions if version in (1, 2, 3)), default=1)
+
+
+def supports_personal_format(peer, capability, format):
+    versions = (((peer or {}).get("capabilities") or {}).get("items") or {}).get(
+        capability, {}).get("versions", [])
+    return format in versions
 
 
 def strict_json(raw):
@@ -1909,8 +1915,11 @@ class PhoneService:
                 or not peer.get("personal_sync", {}).get("remote_own_device")
                 or not needed or any(not local.get(name) or not remote.get(name) for name in needed)):
             raise RuntimeError("Persoenlicher Sync ist nicht beidseitig freigegeben.")
-        if body.get("format") == 2 and negotiated_personal_notes_format(peer) != 2:
+        format = body.get("format", 1)
+        if format >= 2 and "personal_notes_sync" in needed and negotiated_personal_notes_format(peer) < 2:
             raise RuntimeError("Attachment-Format 2 wird von der Gegenstelle nicht unterstützt.")
+        if format == 3 and any(not supports_personal_format(peer, name, 3) for name in needed):
+            raise RuntimeError("Personal-Sync-Format 3 wurde nicht ausgehandelt.")
         if kind == "personal_sync.request":
             trigger = body["trigger"]
             if trigger == "auto_wifi" and self.store.active_auto_run(peer_id):
@@ -1926,7 +1935,7 @@ class PhoneService:
         ttl = 60 * 60 * 1000 if kind == "personal_sync.request" else DAY_MS
         policy = "wifi_only" if trigger == "auto_wifi" else "any"
         if attachment_sources:
-            if kind != "personal_sync.batch" or body.get("format") != 2:
+            if kind != "personal_sync.batch" or body.get("format", 1) < 2:
                 raise ValueError("attachment sources require format 2 batch")
             descriptors = {item["sha256"]: item for record in body["records"]
                            if record["kind"] == "note"
@@ -2179,7 +2188,7 @@ class PhoneService:
             message_id = aggregate.pop("message_id")
             run = self.store.personal_run(peer_id, aggregate["run_id"])
             format = aggregate["messages"][-1]["body"].get("format", 1)
-            if format == 2 and not self._prepare_format2_aggregate(peer_id, aggregate, "wifi"):
+            if format >= 2 and not self._prepare_format2_aggregate(peer_id, aggregate, "wifi"):
                 continue
             self.personal_dispatched.add(token)
             aggregate.pop("messages")
@@ -2897,8 +2906,8 @@ class PhoneService:
                         and value["revision"] <= previous_call["revision"]):
                     raise ValueError("stale call revision")
                 self.incoming_calls[peer["device_id"]] = value
-                self.callback("incoming_call", dict(value, device_id=peer["device_id"],
-                              display_name=peer["display_name"]))
+                self.callback("incoming_call", enrich_call(dict(value,
+                    device_id=peer["device_id"], display_name=peer["display_name"])))
             except PermissionError:
                 pass
             except ValueError:
@@ -2922,8 +2931,6 @@ class PhoneService:
         elif kind in {"personal_sync.settings"} | PERSONAL_DATA_KINDS:
             try:
                 value = validate_personal_sync_body(kind, payload["body"])
-                if value.get("format") == 2 and negotiated_personal_notes_format(peer) != 2:
-                    raise ValueError("format 2 was not negotiated")
                 personal = peer.get("personal_sync", {})
                 local = peer.get("local_grants", {}).get("grants", {})
                 remote = peer.get("grants", {}).get("grants", {})
@@ -2938,7 +2945,12 @@ class PhoneService:
                 needed = personal_sync_grants_needed(kind, value)
                 if kind != "personal_sync.settings" and not needed:
                     needed = {name for name in ("personal_notes_sync", "personal_tasks_sync")
-                              if local.get(name) and remote.get(name)}
+                               if local.get(name) and remote.get(name)}
+                format = value.get("format", 1)
+                if format >= 2 and "personal_notes_sync" in needed and negotiated_personal_notes_format(peer) < 2:
+                    raise ValueError("format 2 was not negotiated")
+                if format == 3 and any(not supports_personal_format(peer, name, 3) for name in needed):
+                    raise ValueError("format 3 was not negotiated")
                 if (kind != "personal_sync.settings" and (self.store.sole_peer(
                         peer["device_id"]) is None or not personal.get("own_device")
                         or not personal.get("remote_own_device") or not needed or any(
@@ -3046,7 +3058,7 @@ class PhoneService:
                                   "status": "accepted", "error": "none"})
                     if aggregate is None:
                         return
-                    if value["format"] == 2 and not self._prepare_format2_aggregate(
+                    if value["format"] >= 2 and not self._prepare_format2_aggregate(
                             peer["device_id"], aggregate,
                             self.connection_transports.get(peer["device_id"], "")):
                         return

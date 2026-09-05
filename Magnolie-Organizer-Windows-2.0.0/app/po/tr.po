@@ -1,3 +1,8 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the Magnolie Organizer package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
 msgid ""
 msgstr ""
 "Report-Msgid-Bugs-To: maik3531@gmail.com\n"
@@ -73,6 +78,11 @@ msgid "%(count)s contact card"
 msgid_plural "%(count)s contact cards"
 msgstr[0] "%(count)s kişi kartı"
 msgstr[1] "%(count)s kişi kartı"
+
+msgid "%(count)s contact imported."
+msgid_plural "%(count)s contacts imported."
+msgstr[0] "%(count)s kişi içe aktarıldı."
+msgstr[1] "%(count)s kişi içe aktarıldı."
 
 msgid "%(count)s contact photo added"
 msgid_plural "%(count)s contact photos added"
@@ -374,6 +384,9 @@ msgstr ""
 "Açarken sayısal kod, sayısal tuş takımıyla kolayca girilebilir; harfler de "
 "kullanılabilir. Üç başarısız denemeden sonra Organizer beş dakika bekler."
 
+msgid "A one-time import adds contacts only after your selection."
+msgstr "Tek seferlik içe aktarma, kişileri yalnızca seçiminizden sonra ekler."
+
 msgid ""
 "A pairing file works like a one-time key. Give it only to the person whose "
 "Organizer you want to connect; it expires after 15 minutes."
@@ -471,6 +484,12 @@ msgstr "Etkin arama"
 msgid "Add"
 msgstr "Ekle"
 
+msgid "Add %(type)s"
+msgstr "%(type)s ekle"
+
+msgid "Add another SMS"
+msgstr "Başka bir SMS ekle"
+
 msgid "Add appointment"
 msgstr "Randevu ekle"
 
@@ -483,6 +502,9 @@ msgstr "Katılımcı ekle"
 msgid "Add cycle marker"
 msgstr "Döngü işareti ekle"
 
+msgid "Add one custom tab"
+msgstr "Bir özel sekme ekle"
+
 msgid "Add person"
 msgstr "Kişi ekle"
 
@@ -494,6 +516,9 @@ msgstr "Şema satırı ekle"
 
 msgid "Add shift"
 msgstr "Vardiya ekle"
+
+msgid "Add subtask"
+msgstr "Alt görev ekle"
 
 msgid "Add to dictionary"
 msgstr "Sözlüğe ekle"
@@ -667,8 +692,16 @@ msgstr "Bu kişinin randevuları"
 msgid "Appointments · %(period)s"
 msgstr "Randevular · %(period)s"
 
+msgid "Apps for your phone"
+msgstr ""
+"Telefonunuz için uygulamalar\n"
+"Aşağıdaki bağlantıları veya QR kodlarını kullanarak"
+
 msgid "Archive password"
 msgstr "Şifreyi arşivle"
+
+msgid "Are you really sure?"
+msgstr "Gerçekten emin misiniz?"
 
 msgid "As usual (print)"
 msgstr "Her zamanki gibi (yazdır)"
@@ -740,6 +773,9 @@ msgstr "Son kaydedilen boy ve kiloya göre BKİ"
 msgid "BZ"
 msgstr "BZ"
 
+msgid "Back"
+msgstr "Geri"
+
 msgid "Backup failed."
 msgstr "Yedekleme başarısız oldu."
 
@@ -755,6 +791,9 @@ msgstr "Yedekleme parolası"
 msgid "Backup restored. The previous data was backed up automatically."
 msgstr "Yedek geri yüklendi. Önceki veriler otomatik olarak yedeklendi."
 
+msgid "Backup rhythm"
+msgstr "Yedekleme sıklığı"
+
 msgid "Backup saved to: %(path)s"
 msgstr "Yedek şuraya kaydedildi: %(path)s"
 
@@ -763,6 +802,9 @@ msgstr "Yedek başarıyla doğrulandı."
 
 msgid "Backups"
 msgstr "Yedekler"
+
+msgid "Backups and recovery"
+msgstr "Yedekleme klasörü"
 
 msgid ""
 "Backups outside the data location require a password with at least four "
@@ -852,6 +894,9 @@ msgstr "Kanama · hafif"
 msgid "Bleeding · medium"
 msgstr "Kanama · orta"
 
+msgid "Blocks"
+msgstr "Bloklar"
+
 msgid "Blood glucose"
 msgstr "Kan şekeri"
 
@@ -897,6 +942,9 @@ msgstr "Brandenburg"
 msgid "Bremen"
 msgstr "Bremen"
 
+msgid "Browse..."
+msgstr "Gözat..."
+
 msgid "Burgenland"
 msgstr "Burgenland"
 
@@ -905,6 +953,9 @@ msgstr "Ada göre (Hans Müller)"
 
 msgid "By last name (Müller, Hans)"
 msgstr "Soyada göre (Müller, Hans)"
+
+msgid "CSV / Lotus Organizer contacts …"
+msgstr "CSV / Lotus Organizer kişileri …"
 
 msgid "CSV files (*.csv)"
 msgstr "CSV dosyaları (*.csv)"
@@ -920,13 +971,6 @@ msgstr "Takvim"
 
 msgid "Calendar (*.ics)"
 msgstr "Takvim (*.ics)"
-
-msgid ""
-"Calendar and contact applications commonly export appointments as .ics files "
-"and contacts as .vcf files."
-msgstr ""
-"Takvim ve kişi uygulamaları genellikle randevuları .ics dosyaları, kişileri "
-"ise .vcf dosyaları olarak dışa aktarır."
 
 msgid "Calendar file (.ics/.vcs/.lcs) …"
 msgstr "Takvim dosyası (.ics/.vcs/.lcs) …"
@@ -1043,6 +1087,9 @@ msgstr "Geçerli kılavuz sürümü denetleniyor …"
 msgid "Checking the current version …"
 msgstr "Geçerli sürüm denetleniyor …"
 
+msgid "Choose Appointments, Notes or Tasks in Customize."
+msgstr "Özelleştir bölümünde Randevular, Notlar veya Görevler'i seçin."
+
 msgid ""
 "Choose a backup file. Before restoring it, the organizer automatically "
 "creates a copy of the current data. An encrypted backup requires its "
@@ -1092,6 +1139,13 @@ msgstr "En az dört karakter seçin."
 msgid "Choose entries to print, export or delete"
 msgstr "Yazdırılacak, dışa aktarılacak veya silinecek kayıtları seçin"
 
+msgid ""
+"Choose file and Windows contact imports that Magnolie can start directly "
+"after opening."
+msgstr ""
+"Magnolie açıldıktan hemen sonra başlatılabilecek dosya ve Windows kişi içe "
+"aktarımlarını seçin."
+
 msgid "Choose file…"
 msgstr "Dosya seç…"
 
@@ -1107,6 +1161,13 @@ msgstr "Fotoğraf seç…"
 msgid "Choose print or export content…"
 msgstr "Yazdırılacak veya dışa aktarılacak içeriği seçin…"
 
+msgid ""
+"Choose safe preferences now. No scheduled backup job is started in the "
+"assistant."
+msgstr ""
+"Güvenli tercihleri şimdi seçin. Asistanda zamanlanmış bir yedekleme görevi "
+"başlatılmaz."
+
 msgid "Choose service"
 msgstr "Hizmet seç"
 
@@ -1120,11 +1181,14 @@ msgstr ""
 msgid "Choose year…"
 msgstr "Yıl seç…"
 
+msgid "Choose your organizer tabs"
+msgstr "Organizer'ınızı oluşturun"
+
 msgid "City"
 msgstr "Şehir"
 
-msgid "Claws Mail (.xml/.ldif) …"
-msgstr "Claws Mail'den (.xml/.ldif) …"
+msgid "Claws Mail XML (.xml) …"
+msgstr "Claws Mail XML (.xml) …"
 
 msgid "Claws Mail address book (*.xml)"
 msgstr "Claws Mail adres defteri (*.xml)"
@@ -1297,9 +1361,6 @@ msgstr "Kişiler"
 msgid "Contacts (.vcf)"
 msgstr "Kişiler (.vcf)"
 
-msgid "Contacts (.vcf) …"
-msgstr "Kişiler (.vcf) …"
-
 msgid "Contacts are merged additively. No deletions are transmitted."
 msgstr "Kişiler eklemeli olarak birleştirilir. Silmeler aktarılmaz."
 
@@ -1345,6 +1406,9 @@ msgstr "Ülke ve bölge"
 msgid "Country for searches"
 msgstr "Aramalarda kullanılacak ülke"
 
+msgid "Country of origin"
+msgstr "Menşe ülke"
+
 msgid "Create"
 msgstr "Oluştur"
 
@@ -1375,8 +1439,8 @@ msgstr "Not defteri oluştur"
 msgid "Create pairing file …"
 msgstr "Eşleştirme dosyası oluştur …"
 
-msgid "Create snapshot now"
-msgstr "Şimdi anlık görüntü oluştur"
+msgid "Creating recovery snapshot …"
+msgstr "Kurtarma anlık görüntüsü oluşturuluyor …"
 
 msgid "Custom"
 msgstr "Özel"
@@ -1384,8 +1448,18 @@ msgstr "Özel"
 msgid "Custom application"
 msgstr "Özel uygulama"
 
+msgid ""
+"Custom content is saved locally and transferred through complete Magnolie "
+"archives only, not Personal Sync."
+msgstr ""
+"Özel içerik yerel olarak kaydedilir ve Personal Sync ile değil, yalnızca "
+"eksiksiz Magnolie arşivleri aracılığıyla aktarılır."
+
 msgid "Custom notification"
 msgstr "Özel bildirim"
+
+msgid "Custom tab"
+msgstr "Özel sekme"
 
 msgid "Custom websites must begin with https://."
 msgstr "Özel web siteleri https:// ile başlamalıdır."
@@ -1558,6 +1632,10 @@ msgstr "Tatil dönemini sil"
 msgid "Delete waste collection"
 msgstr "Atık toplamayı sil"
 
+msgid "Deleted and missing data is restored; newer existing data is retained."
+msgstr ""
+"Silinen ve eksik veriler geri yüklenir; daha yeni mevcut veriler korunur."
+
 msgid ""
 "Deleted items first go to the recycle bin and can be restored from there. "
 "They are permanently removed only afterwards."
@@ -1583,6 +1661,9 @@ msgstr "Teslim edildi"
 
 msgid "Delivered to %(branch)s."
 msgstr "%(branch)s dalına teslim edildi."
+
+msgid "Delivery status uncertain"
+msgstr "Teslimat durumu belirsiz"
 
 msgid "Dentist Dr. Hill — Preview of your entries"
 msgstr "Diş hekimi Dr. Hill — Kayıtlarınızın önizlemesi"
@@ -1656,6 +1737,9 @@ msgstr "Kılavuzu indir"
 
 msgid "Download manual version %(version)s"
 msgstr "Kılavuzun %(version)s sürümünü indir"
+
+msgid "Downloads"
+msgstr "İndirilenler"
 
 msgid "Drag the attachment area up or down"
 msgstr "Ek alanını yukarı veya aşağı sürükleyin"
@@ -1768,6 +1852,9 @@ msgstr ""
 msgid "Enable reminders"
 msgstr "Anımsatıcıları etkinleştir"
 
+msgid "Enable reminders for this block"
+msgstr "Bu blok için hatırlatıcıları etkinleştir"
+
 msgid "Enable shift planner"
 msgstr "Vardiya planlayıcıyı etkinleştir"
 
@@ -1783,6 +1870,13 @@ msgstr "Atık toplama takvimini etkinleştir"
 msgid "Enjoy getting organized!"
 msgstr "Düzenli olmanın keyfini çıkarın!"
 
+msgid ""
+"Enjoy organizing with Magnolie. Your choices stay under your control and can "
+"be changed later in Settings."
+msgstr ""
+"Magnolie ile düzenlemenin keyfini çıkarın. Seçimleriniz sizin denetiminizde "
+"kalır ve daha sonra Ayarlar'dan değiştirilebilir."
+
 msgid "Enter"
 msgstr "Gir"
 
@@ -1791,6 +1885,9 @@ msgid ""
 msgstr ""
 "Eşleşen şema satırlarını vurgulamak için sol tarafa bir kan şekeri değeri "
 "girin."
+
+msgid "Enter a future time and a valid SMS text for every entry."
+msgstr "Her kayıt için ileri bir saat ve geçerli bir SMS metni girin."
 
 msgid "Enter a medication name first."
 msgstr "Önce bir ilaç adı girin."
@@ -1841,20 +1938,33 @@ msgstr "Hata"
 msgid "Evening"
 msgstr "Akşam"
 
-msgid "Every 12 hours"
-msgstr "12 saatte bir"
-
-msgid "Every 6 hours"
-msgstr "6 saatte bir"
-
 msgid "Every filled medication row requires a name."
 msgstr "Doldurulan her ilaç satırında bir ad bulunmalıdır."
 
 msgid "Every filled row requires a valid date."
 msgstr "Doldurulan her satırda geçerli bir tarih bulunmalıdır."
 
+msgid ""
+"Every saved change is protected automatically by a private, integrity-"
+"checked snapshot."
+msgstr ""
+"Kaydedilen her değişiklik, bütünlüğü denetlenmiş özel bir anlık görüntüyle "
+"otomatik olarak korunur."
+
 msgid "Everything is done - the list is empty."
 msgstr "Her şey tamam – liste boş."
+
+msgid "Everything is ready"
+msgstr "Her şey hazır"
+
+msgid ""
+"Evolution and Thunderbird are selected explicitly. iPhone contacts require a "
+"vCard export from the iPhone or iCloud. KDE Connect, Bluetooth and PBAP are "
+"not contact sources."
+msgstr ""
+"Evolution ve Thunderbird açıkça seçilir. iPhone kişileri için iPhone veya "
+"iCloud'dan vCard dışa aktarımı gerekir. KDE Connect, Bluetooth ve PBAP kişi "
+"kaynağı değildir."
 
 msgid "Exactly one Magnolie Notes phone must be paired."
 msgstr "Tam olarak bir Magnolie Notes telefonun eşleştirilmesi gerekir."
@@ -2037,9 +2147,6 @@ msgstr "Cuma"
 msgid "From"
 msgstr "Başlangıç"
 
-msgid "From the Windows Contacts folder"
-msgstr "Windows Kişiler klasöründen"
-
 msgid "Full"
 msgstr "Dolu"
 
@@ -2162,6 +2269,9 @@ msgstr "Ev"
 msgid "Home address"
 msgstr "Ev adresi"
 
+msgid "Home country for phone numbers"
+msgstr "Telefon numaraları için ana ülke"
+
 msgid "Home phone"
 msgstr "Ev telefonu"
 
@@ -2170,6 +2280,9 @@ msgstr "Ev ziyareti"
 
 msgid "Hours"
 msgstr "Saat"
+
+msgid "How lovely that you chose Magnolie"
+msgstr "Magnolie'yi seçmeniz ne güzel"
 
 msgid "How the calendar should behave when you click a day."
 msgstr "Bir güne tıkladığınızda takvimin nasıl davranacağı."
@@ -2210,6 +2323,9 @@ msgstr "İçe aktar"
 msgid "Import Magnolie complete archive"
 msgstr "Magnolie arşivinin tamamını içe aktar"
 
+msgid "Import contacts additively"
+msgstr "Kişileri mevcutlara ekleyerek içe aktar"
+
 msgid "Import failed: %(error)s"
 msgstr "İçe aktarma başarısız oldu: %(error)s"
 
@@ -2218,6 +2334,9 @@ msgstr "LibreOffice üzerinden içe aktar"
 
 msgid "Import is available only in the installed application."
 msgstr "İçe aktarma yalnızca kurulu uygulamada kullanılabilir."
+
+msgid "Import once"
+msgstr "Bir kez içe aktar"
 
 msgid "Import pairing file …"
 msgstr "Eşleştirme dosyasını içe aktar …"
@@ -2315,6 +2434,9 @@ msgstr "İnsülin doz şeması"
 msgid "Integrity"
 msgstr "Bütünlük"
 
+msgid "International call"
+msgstr "Uluslararası arama"
+
 msgid "Internet IP"
 msgstr "İnternet IP’si"
 
@@ -2364,6 +2486,9 @@ msgstr "Sorun giderme günlüğü tut"
 msgid "LDIF address book (*.ldif)"
 msgstr "LDIF adres defteri (*.ldif)"
 
+msgid "LDIF address book (.ldif) …"
+msgstr "LDIF adres defteri (.ldif) …"
+
 msgid "Landline"
 msgstr "Sabit telefon"
 
@@ -2382,9 +2507,6 @@ msgstr "Son denetim başarısız oldu: %(error)s"
 msgid "Last name"
 msgstr "Soyad"
 
-msgid "Last snapshot"
-msgstr "Son anlık görüntü"
-
 msgid "Last successful backup"
 msgstr "Son başarılı yedek"
 
@@ -2397,11 +2519,20 @@ msgstr "Geç vardiya"
 msgid "Lead time"
 msgstr "Ön süre"
 
+msgid "Left page"
+msgstr "Sol sayfa"
+
 msgid "Letter"
 msgstr "Mektup"
 
 msgid "Letter template"
 msgstr "Mektup şablonu"
+
+msgid ""
+"LibreOffice is only read when you press the button. Its settings are not "
+"modified."
+msgstr ""
+"LibreOffice yalnızca düğmeye bastığınızda okunur. Ayarları değiştirilmez."
 
 msgid "License"
 msgstr "Lisans"
@@ -2463,6 +2594,12 @@ msgstr "Manolya"
 msgid "Magnolia weather symbols only"
 msgstr "Yalnızca Magnolie hava durumu simgeleri"
 
+msgid "Magnolie Notes / Android: check for pending import"
+msgstr "Magnolie Notes / Android: bekleyen içe aktarmayı denetle"
+
+msgid "Magnolie Notes contact import"
+msgstr "Magnolie Notes kişi içe aktarma"
+
 msgid "Magnolie Notes device status"
 msgstr "Magnolie Notes cihaz durumu"
 
@@ -2482,6 +2619,9 @@ msgid ""
 msgstr ""
 "Magnolie Notes telefonları ile KDE Connect telefonları ayrıdır: Android "
 "model adı Magnolie Notes'a, KDE eş adı KDE Connect'e aittir."
+
+msgid "Magnolie Organizer"
+msgstr "Magnolie Organizer"
 
 msgid "Magnolie Organizer is not completely installed."
 msgstr "Magnolie Organizer tam olarak kurulmamış."
@@ -2503,6 +2643,13 @@ msgstr ""
 
 msgid "Magnolie backup (*.json)"
 msgstr "Magnolie yedeği (*.json)"
+
+msgid ""
+"Magnolie can use this information when preparing routes and finding local "
+"weather. You can leave every field empty."
+msgstr ""
+"Magnolie rota hazırlarken ve yerel hava durumunu bulurken bu bilgileri "
+"kullanabilir. Tüm alanları boş bırakabilirsiniz."
 
 msgid "Magnolie complete archive (.magnolie) …"
 msgstr "Manolya arşivinin tamamı (.magnolie) …"
@@ -2550,6 +2697,9 @@ msgctxt "recovery snapshot reason"
 msgid "Manual"
 msgstr "Özel"
 
+msgid "Manual only"
+msgstr "Yalnızca elle"
+
 msgid "Manual version %(version)s is available."
 msgstr "Kılavuzun %(version)s sürümü kullanılabilir."
 
@@ -2574,9 +2724,6 @@ msgstr "Açık olarak işaretle"
 
 msgid "Maximized"
 msgstr "Ekranı kapla"
-
-msgid "Maximum recovery snapshots"
-msgstr "En fazla kurtarma noktası"
 
 msgid "Measurement context"
 msgstr "Ölçüm bağlamı"
@@ -2684,6 +2831,9 @@ msgstr "Mobil ağ"
 msgid "Model"
 msgstr "Model"
 
+msgid "Module"
+msgstr "Modül"
+
 msgid "Monday"
 msgstr "Pazartesi"
 
@@ -2692,6 +2842,9 @@ msgstr "Ay"
 
 msgid "Month calendar"
 msgstr "Aylık takvim"
+
+msgid "Monthly"
+msgstr "Aylık"
 
 msgid "Monthly view"
 msgstr "Aylık görünüm"
@@ -2714,6 +2867,9 @@ msgstr "Sabah"
 msgid "Mouse wheel over times"
 msgstr "Saatlerin üzerinde fare tekerleği"
 
+msgid "Move down"
+msgstr "Aşağı taşı"
+
 msgid "Move group down"
 msgstr "Grubu aşağı taşı"
 
@@ -2731,6 +2887,12 @@ msgstr "Not defterini yukarı taşı"
 
 msgid "Move the ticked entries to the wastebasket"
 msgstr "İşaretli girdileri çöp kutusuna taşı"
+
+msgid "Move to top level"
+msgstr "Üst düzeye taşı"
+
+msgid "Move up"
+msgstr "Yukarı taşı"
 
 msgid ""
 "Multiple Magnolie Notes phones are stored. Personal sync is blocked; remove "
@@ -2821,6 +2983,9 @@ msgstr "Yeni görev"
 msgid "New version %(version)s is available."
 msgstr "Yeni %(version)s sürümü kullanılabilir."
 
+msgid "Next"
+msgstr "İleri"
+
 msgid "Next appointment: %(title)s on %(date)s%(time)s%(notice)s"
 msgstr "Sonraki randevu: %(title)s, %(date)s%(time)s%(notice)s"
 
@@ -2829,9 +2994,6 @@ msgstr "Sonraki ay"
 
 msgid "Next page"
 msgstr "Sonraki sayfa"
-
-msgid "Next snapshot"
-msgstr "Sonraki anlık görüntü"
 
 msgid "Next tab"
 msgstr "Sonraki sekme"
@@ -2844,9 +3006,6 @@ msgstr "Sonraki hafta"
 
 msgid "Next year"
 msgstr "Sonraki yıl"
-
-msgid "Nextcloud account"
-msgstr "Nextcloud hesabı"
 
 msgid "Nextcloud is not enabled."
 msgstr "Nextcloud etkin değil."
@@ -2868,6 +3027,9 @@ msgstr "Hiçbir Bluetooth adresi seçilmedi."
 
 msgid "No KDE Connect pairing is awaiting confirmation."
 msgstr "Onay bekleyen KDE Connect eşleştirmesi yok."
+
+msgid "No SMS messages are scheduled."
+msgstr "Zamanlanmış SMS iletisi yok."
 
 msgid "No address books found."
 msgstr "Adres defteri bulunamadı."
@@ -2893,6 +3055,9 @@ msgstr "Son tarih yok"
 
 msgid "No duplicate contact cards were found."
 msgstr "Yinelenen kişi kartı bulunamadı."
+
+msgid "No entries yet."
+msgstr "Henüz giriş yok."
 
 msgid "No file selected"
 msgstr "Dosya seçilmedi"
@@ -3059,6 +3224,9 @@ msgstr "Hiçbir şey bulunamadı."
 msgid "Nothing has been entered under “%(letter)s” yet."
 msgstr "“%(letter)s” altında henüz hiçbir şey girilmemiş."
 
+msgid "Nothing has been imported yet."
+msgstr "Henüz hiçbir şey içe aktarılmadı."
+
 msgid "Nothing is opened or sent while this option is disabled."
 msgstr "Bu seçenek devre dışıyken hiçbir şey açılmaz veya gönderilmez."
 
@@ -3144,6 +3312,13 @@ msgstr "Grafikli bir tablo"
 msgid "One year"
 msgstr "Bir yıl"
 
+msgid ""
+"One-time imports are additive. They do not keep a source linked and do not "
+"delete contacts."
+msgstr ""
+"Tek seferlik içe aktarmalar mevcut verilere ekleme yapar. Kaynağı bağlı "
+"tutmaz ve kişileri silmez."
+
 msgid "Online"
 msgstr "Çevrimiçi"
 
@@ -3219,6 +3394,9 @@ msgstr "Microsoft oturum açma sayfasını açın"
 msgid "Open day view for %(date)s"
 msgstr "%(date)s için gün görünümünü aç"
 
+msgid "Open designer"
+msgstr "Tasarımcıyı aç"
+
 msgid "Open manual"
 msgstr "Kılavuzu aç"
 
@@ -3236,6 +3414,9 @@ msgstr "Magnolie Notes’ta telefon bağlantısını açın ve bu bilgisayarı s
 
 msgid "Open planner as an ODS spreadsheet"
 msgstr "Planlayıcıyı ODS elektronik tablosu olarak aç"
+
+msgid "Open requested designer"
+msgstr "İstenen tasarımcıyı aç"
 
 msgid "Open selected contacts as an ODS spreadsheet"
 msgstr "Seçili kişileri ODS elektronik tablosu olarak aç"
@@ -3273,9 +3454,6 @@ msgstr "Tarayıcıda OpenStreetMap"
 
 msgid "Opened in %(application)s."
 msgstr "%(application)s içinde açıldı."
-
-msgid "Operating system"
-msgstr "İşletim sistemi"
 
 msgid "Optional archive password"
 msgstr "İsteğe bağlı arşiv şifresi"
@@ -3330,6 +3508,9 @@ msgstr "PDF dosyası"
 msgid "Packaging / Yellow bin"
 msgstr "Ambalaj / Sarı kutu"
 
+msgid "Page"
+msgstr "Sayfa"
+
 msgid "Page %(page)s"
 msgstr "Sayfa %(page)s"
 
@@ -3364,6 +3545,9 @@ msgstr ""
 
 msgid "Palm tree"
 msgstr "Palmiye"
+
+msgid "Parent task"
+msgstr "Üst görev"
 
 msgid ""
 "Participate in the Magnolienbaum (opens port %(port)s on the local network)"
@@ -3405,6 +3589,9 @@ msgstr "Faturayı öde"
 msgid "Pen"
 msgstr "Kalem"
 
+msgid "Pending SMS messages"
+msgstr "Bekleyen SMS iletileri"
+
 msgid "People"
 msgstr "Kişiler"
 
@@ -3416,6 +3603,10 @@ msgstr "Kalıcı KDE dinleyicisi etkin"
 
 msgid "Permanent KDE listener stopped"
 msgstr "Kalıcı KDE dinleyicisi durduruldu"
+
+msgid ""
+"Permanent sources remain linked and are handled on the Synchronization page."
+msgstr "Kalıcı kaynaklar bağlı kalır ve Eşzamanlama sayfasından yönetilir."
 
 msgid "Permanently delete %(count)s completed task?"
 msgid_plural "Permanently delete %(count)s completed tasks?"
@@ -3463,6 +3654,9 @@ msgstr "Eşitleme başarısız oldu."
 
 msgid "Personal synchronization format 2 was not negotiated."
 msgstr "Kişisel senkronizasyon formatı 2 üzerinde anlaşma sağlanamadı."
+
+msgid "Personal synchronization format 3 was not negotiated."
+msgstr "Kişisel eşzamanlama biçimi 3 üzerinde anlaşma sağlanamadı."
 
 msgid "Personal synchronization is not permitted on both devices."
 msgstr "Her iki cihazda da kişisel senkronizasyona izin verilmez."
@@ -3584,6 +3778,9 @@ msgstr "Toz"
 msgid "Power source"
 msgstr "Güç kaynağı"
 
+msgid "Preferred backup folder"
+msgstr "Tercih edilen yedekleme klasörü"
+
 msgid "Preparing Microsoft sign-in …"
 msgstr "Microsoft oturum açma işlemi hazırlanıyor…"
 
@@ -3598,6 +3795,11 @@ msgstr "Yıl planlayıcıyı önizleyin, yazdırın veya dışa aktarın"
 
 msgid "Preview:"
 msgstr "Önizleme:"
+
+msgid "Preview: %(count)s contact"
+msgid_plural "Preview: %(count)s contacts"
+msgstr[0] "Önizleme: %(count)s kişi"
+msgstr[1] "Önizleme: %(count)s kişi"
 
 msgid "Previous month"
 msgstr "Önceki ay"
@@ -3647,12 +3849,6 @@ msgstr ""
 
 msgid "Private"
 msgstr "Özel"
-
-msgid ""
-"Private, integrity-checked snapshots are stored next to the application data."
-msgstr ""
-"Özel, bütünlüğü denetlenmiş anlık görüntüler uygulama verilerinin yanında "
-"saklanır."
 
 msgid "Protected archive password unavailable."
 msgstr "Korunan arşiv parolası kullanılamıyor."
@@ -3744,6 +3940,11 @@ msgstr "İlgili görevler"
 
 msgid "Remind me again on the day itself"
 msgstr "Aynı gün tekrar anımsat"
+
+msgid "Reminder"
+msgstr ""
+"Hatırlatıcı\n"
+"Aşağıdaki bağlantıları kullanarak"
 
 msgid "Reminder data:"
 msgstr "Hatırlatma verileri:"
@@ -3871,14 +4072,14 @@ msgstr ""
 msgid "Restore"
 msgstr "Geri yükle"
 
+msgid "Restore a Magnolie backup after startup"
+msgstr "Magnolie yedeğinden geri yükle"
+
 msgid "Restore backup"
 msgstr "Yedeği geri yükle"
 
 msgid "Restore backup …"
 msgstr "Yedeği geri yükle …"
-
-msgid "Restore completely"
-msgstr "Tamamen geri yükle"
 
 msgid "Restore defaults"
 msgstr "Varsayılan ayarları geri yükle"
@@ -3923,6 +4124,9 @@ msgstr "Hava durumu alınıyor…"
 msgid "Rhineland-Palatinate"
 msgstr "Renanya-Palatina"
 
+msgid "Right page"
+msgstr "Sağ sayfa"
+
 msgid "Route"
 msgstr "Rota"
 
@@ -3938,6 +4142,9 @@ msgstr ""
 msgid "S"
 msgstr "S"
 
+msgid "SMS app settings"
+msgstr "SMS ayarları"
+
 msgid "SMS assignment"
 msgstr "SMS ataması"
 
@@ -3949,6 +4156,9 @@ msgstr "%(name)s kişisinden SMS"
 
 msgid "SMS history"
 msgstr "SMS geçmişi"
+
+msgid "SMS scheduled."
+msgstr "SMS planlandı."
 
 msgid "SMS settings"
 msgstr "SMS ayarları"
@@ -4025,11 +4235,24 @@ msgstr "Saksonya-Anhalt"
 msgid "Schaffhausen"
 msgstr "Schaffhausen"
 
+msgid "Schedule"
+msgstr "Planlandı"
+
+msgid "Schedule SMS"
+msgstr "SMS planla"
+
 msgid "Schedule an appointment"
 msgstr "Randevu planla"
 
 msgid "Scheduled"
 msgstr "Planlandı"
+
+msgid ""
+"Scheduled SMS messages are sent only while Magnolie is running and exactly "
+"one KDE Connect phone is available."
+msgstr ""
+"Zamanlanmış SMS iletileri yalnızca Magnolie çalışırken ve tam olarak bir KDE "
+"Connect telefonu kullanılabilirken gönderilir."
 
 msgid "Scheme"
 msgstr "Şema"
@@ -4130,6 +4353,15 @@ msgid ""
 "Selected columns that are empty for every contact are omitted automatically."
 msgstr "Her kişi için boş olan seçili sütunlar otomatik olarak atlanır."
 
+msgid ""
+"Selected imports are started directly after Magnolie opens. Thunderbird "
+"contacts are not offered because Windows has no Thunderbird address-book "
+"importer."
+msgstr ""
+"Seçilen içe aktarımlar Magnolie açıldıktan hemen sonra başlatılır. "
+"Windows'ta Thunderbird adres defteri içe aktarıcısı bulunmadığından "
+"Thunderbird kişileri sunulmaz."
+
 msgid "Selection options"
 msgstr "Seçim seçenekleri"
 
@@ -4156,6 +4388,9 @@ msgstr "Sunucu adresi ve kullanıcı adı gereklidir."
 
 msgid "Set or change password"
 msgstr "Parola belirle veya değiştir"
+
+msgid "Set up Magnolie Organizer"
+msgstr "Magnolie Organizer'ı kur"
 
 msgid "Set up contacts"
 msgstr "Kişileri ayarla"
@@ -4279,6 +4514,9 @@ msgstr "Microsoft'ta oturum açıldı."
 msgid "Signed out from Microsoft."
 msgstr "Microsoft'tan çıkış yapıldı."
 
+msgid "Skip assistant"
+msgstr "Asistanı atla"
+
 msgid ""
 "Small action buttons appear on each contact card. You can hide anything you "
 "do not need here."
@@ -4315,6 +4553,9 @@ msgstr "Mevcut yedeklemelerden bazıları şifrelenemedi."
 msgid "Son"
 msgstr "Oğul"
 
+msgid "Sort contacts"
+msgstr "Kişileri sırala"
+
 msgid "Sort everything alphabetically"
 msgstr "Her şeyi alfabetik sırala"
 
@@ -4323,6 +4564,12 @@ msgstr "Sıralama"
 
 msgid "Sound only"
 msgstr "Yalnızca ses"
+
+msgid "Sources"
+msgstr "Kaynaklar"
+
+msgid "Sources and imports"
+msgstr "Boş başla ve içe aktarmayı atla"
 
 msgid "Space for anything you want to remember…"
 msgstr "Hatırlamak istediğiniz her şey için bir alan…"
@@ -4342,6 +4589,12 @@ msgstr "Sprey"
 msgid "St. Gallen"
 msgstr "St. Gallen"
 
+msgid "Start Magnolie"
+msgstr "Magnolie'yi başlat"
+
+msgid "Start Magnolie with Windows in the notification area (tray)"
+msgstr "Bildirim alanında (tepsi) Magnolie'yi Windows ile başlatın"
+
 msgid "Start automatically when signing in"
 msgstr "Oturum açarken otomatik başlat"
 
@@ -4350,6 +4603,9 @@ msgstr "Organizer’ı sistem tepsisinde başlat"
 
 msgid "State"
 msgstr "Eyalet"
+
+msgid "State / region"
+msgstr "Biçim bölgesi"
 
 msgid "Status"
 msgstr "Durum"
@@ -4377,6 +4633,9 @@ msgstr "İletildi"
 
 msgid "Submitted to KDE Connect"
 msgstr "KDE Connect'ye gönderildi"
+
+msgid "Submitting"
+msgstr "İletildi"
 
 msgid "Suggestions are available only in the installed application."
 msgstr "Öneriler yalnızca kurulu uygulamada kullanılabilir."
@@ -4445,6 +4704,9 @@ msgstr "Kişileri eşzamanla"
 msgid "Synchronize now"
 msgstr "Şimdi eşitle"
 
+msgid "Synchronize permanently"
+msgstr "Kalıcı olarak eşzamanla"
+
 msgid "Synchronize tasks"
 msgstr "Kişileri eşzamanla"
 
@@ -4453,6 +4715,9 @@ msgstr "Eşitleniyor …"
 
 msgid "System default"
 msgstr "Sistem varsayılanı"
+
+msgid "System internet accounts"
+msgstr "Sistem internet hesapları"
 
 msgid "System setting"
 msgstr "Sistem ayarı"
@@ -4476,6 +4741,9 @@ msgstr "Sekme %(letter)s"
 msgid "Tab %(letter)s · %(count)s"
 msgstr "Sekme %(letter)s · %(count)s"
 
+msgid "Tab name"
+msgstr "Sekme adı"
+
 msgid "Tablet"
 msgstr "Tablet"
 
@@ -4484,6 +4752,9 @@ msgstr "Sekmeler"
 
 msgid "Task"
 msgstr "Görev"
+
+msgid "Task is due"
+msgstr "Görevin süresi doluyor"
 
 msgid "Tasks"
 msgstr "Görevler"
@@ -4516,6 +4787,12 @@ msgstr "Şimdi test et"
 
 msgid "Testing…"
 msgstr "Test ediliyor…"
+
+msgid "Text"
+msgstr "Metin"
+
+msgid "Text block"
+msgstr "Metin bloğu"
 
 msgid "Text color"
 msgstr "Metin rengi"
@@ -4594,15 +4871,6 @@ msgstr "ODS dışa aktarımı çok büyük."
 msgid "The Organizer chooses a suitable installed application."
 msgstr "Organizer uygun bir kurulu uygulama seçer."
 
-msgid ""
-"The Windows Contacts folder is synchronized bidirectionally on the "
-"synchronization page. File imports do not modify their source files; "
-"existing entries are not added twice."
-msgstr ""
-"Windows Kişiler klasörü, senkronizasyon sayfasında çift yönlü olarak "
-"senkronize edilir. Dosya içe aktarmaları kaynak dosyalarını değiştirmez; "
-"mevcut girişler iki kez eklenmez."
-
 msgid "The address could not be opened."
 msgstr "Adres açılamadı."
 
@@ -4619,6 +4887,14 @@ msgid ""
 msgstr ""
 "Arşiv şifrelenmiştir. İçe aktarmadan önce tamamen doğrulamak için şifreyi "
 "girin."
+
+msgid ""
+"The assistant covers your address for routes and weather, data sources, "
+"phone connections, organizer tabs, backups, and startup behavior."
+msgstr ""
+"Asistan; rotalar ve hava durumu için adresinizi, veri kaynaklarını, telefon "
+"bağlantılarını, Organizer sekmelerini, yedeklemeleri ve başlangıç "
+"davranışını kapsar."
 
 msgid "The attachment range is invalid."
 msgstr "Ek aralığı geçersiz."
@@ -4650,6 +4926,9 @@ msgid ""
 msgstr ""
 "Arka plan anımsatıcı hizmeti ayrı anımsatıcı verilerini okuyabildiği için "
 "Organizer kapalıyken de çalışır."
+
+msgid "The backup chooser will open after Magnolie has started."
+msgstr "Yedek seçici Magnolie başladıktan sonra açılır."
 
 msgid "The backup could not be created."
 msgstr "Yedek oluşturulamadı."
@@ -4803,6 +5082,9 @@ msgstr ""
 "Bilgiler açık dizin openholidaysapi.org üzerinden bir kez alınır ve ardından "
 "Organizer’da tutulur. Bu nedenle uygulamanın yalnızca bir kez internet "
 "bağlantısına ihtiyacı vardır."
+
+msgid "The language setting could not be saved."
+msgstr "Dil ayarı kaydedilemedi."
 
 msgid "The last notebook cannot be deleted."
 msgstr "Son not defteri silinemez."
@@ -5035,6 +5317,11 @@ msgstr ""
 msgid "The save request is invalid."
 msgstr "Kaydetme isteği geçersiz."
 
+msgid "The selected areas are reset exactly; data added later is removed."
+msgstr ""
+"Seçilen alanlar önceki duruma tam olarak döndürülür; daha sonra eklenen "
+"veriler kaldırılır."
+
 msgid "The selected contacts contain no values for these columns."
 msgstr "Seçili kişiler bu sütunlar için herhangi bir değer içermiyor."
 
@@ -5047,6 +5334,9 @@ msgid ""
 msgstr ""
 "Sunucu işletmecisi hesabı, klasör ve dosya adlarını, boyutları ve "
 "iletilerinizin zamanlarını görebilir."
+
+msgid "The setup state could not be saved."
+msgstr "Kurulum durumu kaydedilemedi."
 
 msgid ""
 "The sheet appears at the edge of the screen, accompanied by the Magnolie "
@@ -5154,6 +5444,13 @@ msgid "There is nothing to print."
 msgstr "Yazdırılacak bir şey yok."
 
 msgid ""
+"These are Magnolie's actual tabs. You can show only the sections that fit "
+"your everyday life."
+msgstr ""
+"Bunlar Magnolie'nin gerçek sekmeleridir. Yalnızca günlük yaşamınıza uygun "
+"bölümleri gösterebilirsiniz."
+
+msgid ""
 "These choices change how the Organizer displays information. Your entries "
 "are not converted or moved."
 msgstr ""
@@ -5256,6 +5553,13 @@ msgstr ""
 msgid "This notebook is still empty."
 msgstr "Bu not defteri hâlâ boş."
 
+msgid ""
+"This one-time import only adds or enriches contacts. It does not synchronize "
+"or delete contacts."
+msgstr ""
+"Bu tek seferlik içe aktarma yalnızca kişi ekler veya mevcut kişilerin "
+"bilgilerini tamamlar. Kişileri eşzamanlamaz veya silmez."
+
 msgid "This paired phone is my own device"
 msgstr "Bu eşleştirilmiş telefon kendi cihazımdır"
 
@@ -5344,6 +5648,9 @@ msgstr "Çok fazla başarısız deneme. Bir süre bekleyin."
 msgid "Too many regions were selected."
 msgstr "Çok fazla bölge seçildi."
 
+msgid "Top level"
+msgstr "Üst düzey"
+
 msgid "Tray applet"
 msgstr "Sistem tepsisi uygulamacığı"
 
@@ -5414,6 +5721,9 @@ msgstr "Bilinmeyen hata"
 msgid "Unknown phone"
 msgstr "Bilinmeyen telefon"
 
+msgid "Unknown source"
+msgstr "Bilinmeyen kaynak"
+
 msgid "Unlink"
 msgstr "Bağlantıyı kaldır"
 
@@ -5455,6 +5765,9 @@ msgstr "Çalışma süresi"
 
 msgid "Uri"
 msgstr "URI"
+
+msgid "Use LibreOffice address"
+msgstr "LibreOffice adres verilerini kullan"
 
 msgid "Use a specific application or command"
 msgstr "Belirli bir uygulama veya komut kullan"
@@ -5616,6 +5929,13 @@ msgstr "Uyarı: Veriler kaydedilemedi."
 msgid "Waste collection calendar"
 msgstr "Atık toplama takvimi"
 
+msgid ""
+"We are delighted to welcome you. This short assistant prepares Magnolie "
+"Organizer around your wishes."
+msgstr ""
+"Sizi karşılamaktan mutluluk duyuyoruz. Bu kısa asistan Magnolie Organizer'ı "
+"isteklerinize göre hazırlar."
+
 msgid "We are glad you are here!"
 msgstr "Burada olmanıza sevindik!"
 
@@ -5714,12 +6034,6 @@ msgstr ""
 "aktarma, dışa aktarma ve çevrimiçi adres defteriyle eşzamanlama sırasında "
 "korunur. Kişi kartlarındaki e-posta adresleri her zaman tıklanabilir ve "
 "posta uygulamanızı açar."
-
-msgid ""
-"When the limit is lowered, the oldest recovery snapshots are removed "
-"automatically."
-msgstr ""
-"Sınır düşürüldüğünde en eski kurtarma noktaları otomatik olarak kaldırılır."
 
 msgid ""
 "When writing a note, a small toolbar above the sheet provides bold, italic, "
@@ -6138,6 +6452,12 @@ msgstr "bilinmeyen hata"
 msgid "untitled"
 msgstr "başlıksız"
 
+msgid "vCard (.vcf), including iPhone/iCloud export …"
+msgstr "iPhone/iCloud dışa aktarımı dâhil vCard (.vcf) …"
+
+msgid "vCard file (.vcf), including iPhone/iCloud export …"
+msgstr "iPhone/iCloud dışa aktarımı dâhil vCard dosyası (.vcf) …"
+
 msgid ""
 "vCard preserves more contact details. LDIF is intended for importing into "
 "Claws Mail; emergency contacts, social media, free labels and non-JPEG "
@@ -6225,5 +6545,172 @@ msgstr[1] "… ayrıca yazdırılacak %(count)s öğe daha."
 msgid "＋ Add appointment"
 msgstr "＋ Randevu ekle"
 
-msgid "Language & region"
-msgstr "Dil ve bölge"
+#~ msgid ""
+#~ "Download Magnolie Notes or KDE Connect using the links below. Bluetooth "
+#~ "opens Windows Settings for direct pairing."
+#~ msgstr ""
+#~ "Magnolie Notes veya KDE Connect'i indirin. Bluetooth, doğrudan eşleştirme "
+#~ "için Windows Ayarlarını açar."
+
+#~ msgid ""
+#~ "Magnolie Notes and KDE Connect are download links, not connection "
+#~ "actions. Bluetooth opens Windows Settings for direct pairing."
+#~ msgstr ""
+#~ "Magnolie Notes ve KDE Connect, bağlantı işlemleri değil, indirme "
+#~ "bağlantılarıdır. Bluetooth, doğrudan eşleştirme için Windows Ayarlarını "
+#~ "açar."
+
+#~ msgid ""
+#~ "The predefined Calendar tab is always available again from Settings, even "
+#~ "if you hide it here."
+#~ msgstr ""
+#~ "Önceden tanımlı Takvim sekmesi, burada gizleseniz bile Ayarlar'dan her "
+#~ "zaman yeniden kullanılabilir."
+
+#~ msgid "No more blocks can be added."
+#~ msgstr "Daha fazla blok eklenemez."
+
+#~ msgid "Yearly"
+#~ msgstr "Yıllık"
+
+#~ msgid ""
+#~ "Autostart also enables tray availability. Tray can be enabled "
+#~ "independently without autostart."
+#~ msgstr ""
+#~ "Otomatik başlatma, sistem tepsisini de kullanılabilir hâle getirir. "
+#~ "Sistem tepsisi otomatik başlatmadan bağımsız olarak etkinleştirilebilir."
+
+#~ msgid "Checklist / list block"
+#~ msgstr "Kontrol listesi / liste bloğu"
+
+#~ msgid "Connect Magnolie Notes"
+#~ msgstr "Telefon ve Magnolie Notes"
+
+#~ msgid "Pair KDE Connect for SMS"
+#~ msgstr "SMS için KDE Connect"
+
+#~ msgid "Recurrence block"
+#~ msgstr "Yineleme bloğu"
+
+#~ msgid "Start Magnolie with Windows"
+#~ msgstr "Magnolie'yi Windows ile başlat"
+
+#~ msgid ""
+#~ "The secure download links open directly. Bluetooth opens Windows "
+#~ "Settings; this assistant does not change or pair devices."
+#~ msgstr ""
+#~ "Güvenli indirme bağlantıları doğrudan açılır. Bluetooth, Windows "
+#~ "Ayarları'nı açar; bu asistan cihazları değiştirmez veya eşleştirmez."
+
+#~ msgid "Backup restore selected"
+#~ msgstr "Fotoğraf seçilmedi"
+
+#~ msgid ""
+#~ "Choose Start Magnolie to begin, or Manual to begin and open the manual "
+#~ "after the main window is visible."
+#~ msgstr ""
+#~ "Başlamak için Magnolie'yi Başlat'ı veya başlayıp ana pencere göründükten "
+#~ "sonra kılavuzu açmak için Kılavuz'u seçin."
+
+#~ msgid ""
+#~ "Choose permanent synchronization separately from data that should be "
+#~ "imported once, just as in Settings."
+#~ msgstr ""
+#~ "Ayarlar'da olduğu gibi kalıcı eşzamanlamayı bir kez içe aktarılacak "
+#~ "verilerden ayrı olarak seçin."
+
+#~ msgid "Create snapshot now"
+#~ msgstr "Şimdi anlık görüntü oluştur"
+
+#~ msgid "Design request selected"
+#~ msgstr "Tasarım isteği seçildi"
+
+#~ msgid "Every 12 hours"
+#~ msgstr "12 saatte bir"
+
+#~ msgid "Every 6 hours"
+#~ msgstr "6 saatte bir"
+
+#~ msgid "Include Bluetooth information"
+#~ msgstr "Bluetooth bilgilerini ekle"
+
+#~ msgid "Last snapshot"
+#~ msgstr "Son anlık görüntü"
+
+#~ msgid "Magnolie Notes"
+#~ msgstr "Magnolie Notes"
+
+#~ msgid "Maximum recovery snapshots"
+#~ msgstr "En fazla kurtarma noktası"
+
+#~ msgid "Next snapshot"
+#~ msgstr "Sonraki anlık görüntü"
+
+#~ msgid ""
+#~ "Nothing connects or imports automatically. Your choices appear as pending "
+#~ "actions in Settings."
+#~ msgstr ""
+#~ "Hiçbir şey otomatik olarak bağlanmaz veya içe aktarılmaz. Seçimleriniz "
+#~ "Ayarlar'da bekleyen eylemler olarak görünür."
+
+#~ msgid ""
+#~ "Nothing starts automatically. Choose an action below when you are ready."
+#~ msgstr ""
+#~ "Hiçbir şey otomatik olarak başlamaz. Hazır olduğunuzda aşağıdan bir işlem "
+#~ "seçin."
+
+#~ msgid "Number of backups"
+#~ msgstr "Yedek sayısı"
+
+#~ msgid "Operating system"
+#~ msgstr "İşletim sistemi"
+
+#~ msgid "Pending setup choices"
+#~ msgstr "Bekleyen kurulum tercihleri"
+
+#~ msgid "Permanent synchronization"
+#~ msgstr "Kalıcı eşzamanlama kaynakları"
+
+#~ msgid "Plan recovery points before important changes"
+#~ msgstr "Önemli değişikliklerden önce kurtarma noktaları planlayın"
+
+#~ msgid ""
+#~ "Private, integrity-checked snapshots are stored next to the application "
+#~ "data."
+#~ msgstr ""
+#~ "Özel, bütünlüğü denetlenmiş anlık görüntüler uygulama verilerinin yanında "
+#~ "saklanır."
+
+#~ msgid "Request a separate tab design"
+#~ msgstr "Ayrı bir sekme tasarımı iste"
+
+#~ msgid ""
+#~ "Restoring is deferred until Magnolie has opened; no file is changed by "
+#~ "this assistant."
+#~ msgstr ""
+#~ "Geri yükleme Magnolie açılana kadar ertelenir; bu asistan hiçbir dosyayı "
+#~ "değiştirmez."
+
+#~ msgid "Show Android download information"
+#~ msgstr "Elle indirme bilgileri alınıyor …"
+
+#~ msgid "Show QR pairing information"
+#~ msgstr "QR eşleştirme bilgilerini hazırla"
+
+#~ msgid "Standard CalDAV / CardDAV"
+#~ msgstr "Standart CalDAV / CardDAV"
+
+#~ msgid ""
+#~ "The QR code and download are shown only after Magnolie opens. No app is "
+#~ "installed, Bluetooth is not changed, and no device is paired now."
+#~ msgstr ""
+#~ "QR kodu ve indirme yalnızca Magnolie açıldıktan sonra gösterilir. Hiçbir "
+#~ "uygulama yüklenmez, Bluetooth değiştirilmez ve şu anda hiçbir cihaz "
+#~ "eşleştirilmez."
+
+#~ msgid ""
+#~ "When the limit is lowered, the oldest recovery snapshots are removed "
+#~ "automatically."
+#~ msgstr ""
+#~ "Sınır düşürüldüğünde en eski kurtarma noktaları otomatik olarak "
+#~ "kaldırılır."

@@ -34,13 +34,17 @@ internal sealed partial class BridgeDispatcher : IDisposable
     private readonly byte[]? contributorHash = ReadContributorHash();
     private readonly WindowsUpdateService updates;
     private readonly CloudBackupService cloudBackups;
+    private readonly FirstRunSetupSelections? setupSelections;
+    private bool postStartActionHandled;
     private string firewallHint = "";
     private bool disposed;
 
-    internal BridgeDispatcher(MainForm form, WindowsPaths paths)
+    internal BridgeDispatcher(MainForm form, WindowsPaths paths,
+        FirstRunSetupSelections? setupSelections = null)
     {
         this.form = form;
         this.paths = paths;
+        this.setupSelections = setupSelections;
         kdeConnectSms = new KdeConnectSms(paths);
         reminders = new ReminderScheduler(paths.ReminderState, notice =>
             form.ShowReminder(notice.Title, notice.Body, notice.Kind, notice.Style));
@@ -107,7 +111,7 @@ internal sealed partial class BridgeDispatcher : IDisposable
                     case "journal_anzahl": recovery.SetMaximum(Integer(message, "maximum")); await SendRecoveryStatusAsync(); break;
                     case "journal_aufbewahrung": recovery.SetRetention(Text(message, "modus"), Integer(message, "maximum"), Integer(message, "tage")); await SendRecoveryStatusAsync(); break;
                     case "journal_loeschen": recovery.Delete(SnapshotId(message)); await form.SendAsync("App.journalErgebnis", new { ok = true, deleted = true, fehler = "" }); await SendRecoveryStatusAsync(); break;
-                    case "journal_wiederherstellen": await RestoreSnapshotAsync(SnapshotId(message)); break;
+                    case "journal_wiederherstellen": await RestoreSnapshotAsync(message); break;
                     case "mutations_snapshot": await CreateMutationSnapshotAsync(message); break;
                     case "gesamtarchiv_waehlen": await SelectGesamtarchivAsync(); break;
                     case "gesamtarchiv_pruefen": await PreviewGesamtarchivAsync(Text(message, "pfad"), Text(message, "kennwort")); break;
@@ -174,7 +178,7 @@ internal sealed partial class BridgeDispatcher : IDisposable
                     case "baum_briefkasten_status": await baum.ReportMailboxStatusAsync(); break;
                     case "baum_briefkasten_speichern": await baum.SaveMailboxAsync(Boolean(message, "davAktiv"), Boolean(message, "briefkastenAktiv"),
                         Text(message, "url"), Text(message, "benutzer"), Text(message, "anwendungskennwort"),
-                        Boolean(message, "kennwortLoeschen")); break;
+                        Boolean(message, "kennwortLoeschen"), Text(message, "kontoArt")); break;
                     case "baum_briefkasten_pruefen": await baum.TestMailboxAsync(); break;
                     case "telefon_stand":
                     case "telefon_verbindung_stand": await telefon.ReportStatusAsync(); break;
@@ -329,21 +333,23 @@ internal sealed partial class BridgeDispatcher : IDisposable
         if (function == "App.telefonAuflegestatus") function = "App.telefonAuflegeStatus";
         if (function == "App.telefonEingehenderAnruf" && message is not null)
         {
+            message = PhoneRegionInfo.Enrich(message);
+            ResolveTelefonContact(message, true, "number");
             form.TrackIncomingCall(message);
         }
         await form.SendAsync(function, message ?? payload);
     }
 
-    private void ResolveTelefonContact(JsonObject message, bool sms)
+    private void ResolveTelefonContact(JsonObject message, bool sms, string phoneField = "from")
     {
         if (!currentPlainTextAvailable) return;
         try
         {
             var root = JsonNode.Parse(currentPlainText) as JsonObject; var contacts = root?["kontakte"] as JsonArray;
             var source = message["source"]?.GetValue<string>() ?? "";
-            var sought = sms ? NormalizePhone(message["from"]?.GetValue<string>() ?? "") : (message["sender"]?.GetValue<string>() ?? "").Trim().ToLowerInvariant();
+            var sought = sms ? PhoneRegionInfo.MatchKey(message[phoneField]?.GetValue<string>()) : (message["sender"]?.GetValue<string>() ?? "").Trim().ToLowerInvariant();
             var matches = contacts?.OfType<JsonObject>().Where(contact => sms
-                ? ContactPhones(contact).Any(phone => NormalizePhone(phone) == sought)
+                ? sought.Length > 0 && ContactPhones(contact).Any(phone => PhoneRegionInfo.MatchKey(phone) == sought)
                 : (contact["sozialeMedien"] as JsonArray)?.OfType<JsonObject>().Any(item =>
                     (item["dienst"]?.GetValue<string>() ?? "").Equals(source, StringComparison.OrdinalIgnoreCase) &&
                     (item["wert"]?.GetValue<string>() ?? "").Trim().Equals(sought, StringComparison.OrdinalIgnoreCase)) == true).Take(2).ToArray() ?? [];
@@ -361,8 +367,6 @@ internal sealed partial class BridgeDispatcher : IDisposable
         if (contact["telefone"] is JsonArray phones) foreach (var phone in phones.OfType<JsonObject>()) yield return phone["wert"]?.GetValue<string>() ?? "";
         yield return contact["telefon"]?.GetValue<string>() ?? ""; yield return contact["mobil"]?.GetValue<string>() ?? "";
     }
-    private static string NormalizePhone(string value) => new(value.Where(character => char.IsAsciiDigit(character) || character == '+').ToArray());
-
     private async Task InitializeAsync()
     {
         var text = store.ReadRecoverableJson(paths.Data);
@@ -378,7 +382,8 @@ internal sealed partial class BridgeDispatcher : IDisposable
                 teamsVerfuegbar = NativeMethods.HasUriScheme("msteams"),
                 trayEinstellungen = form.CurrentTraySettings,
                 contributorAktiv = contributorHash is not null,
-                regional = RegionalSettings.Read(paths.RegionalSettings)
+                regional = RegionalSettings.Read(paths.RegionalSettings),
+                setupSelections
             });
             return;
         }
@@ -412,8 +417,14 @@ internal sealed partial class BridgeDispatcher : IDisposable
             handbuchInstalliert = ManualInstalled(),
             handbuchVersion = ManualVersion(),
             contributorAktiv = contributorHash is not null,
-            regional = RegionalSettings.Read(paths.RegionalSettings)
+            regional = RegionalSettings.Read(paths.RegionalSettings),
+            setupSelections
         });
+        if (!postStartActionHandled && setupSelections?.RestoreRequest == true)
+        {
+            postStartActionHandled = true;
+            await SelectBackupAsync();
+        }
         _ = RunPeriodicSnapshotAsync();
     }
 
@@ -584,6 +595,8 @@ internal sealed partial class BridgeDispatcher : IDisposable
             using var document = JsonDocument.Parse(text);
             if (document.RootElement.ValueKind != JsonValueKind.Object)
                 throw new JsonException(T("The data is not a JSON object."));
+            if (currentPlainTextAvailable && !string.Equals(currentPlainText, text, StringComparison.Ordinal))
+                CreateSnapshot(SnapshotReason.PreChange);
 
             if (encryption.Session is not null)
             {
@@ -1155,16 +1168,21 @@ internal sealed partial class BridgeDispatcher : IDisposable
         return id.Length == 0 ? Text(message, "id") : id;
     }
 
-    private async Task RestoreSnapshotAsync(string id)
+    private async Task RestoreSnapshotAsync(JsonElement message)
     {
         await MutationGate.Global.WaitAsync();
         SnapshotInfo? restorePoint = null;
         try
         {
             restorePoint = CreateRestorePoint();
-            var payload = recovery.ReadPayload(id);
+            var payload = recovery.ReadPayload(SnapshotId(message));
             if (EncryptionService.IsEncrypted(payload)) payload = encryption.DecryptDataWithSession(payload);
-            var restored = GesamtarchivService.Read(payload).Daten.DeepClone().AsObject();
+            var snapshot = GesamtarchivService.Read(payload).Daten.DeepClone().AsObject();
+            var areas = message.TryGetProperty("bereiche", out var areaNode) && areaNode.ValueKind == JsonValueKind.Array
+                ? areaNode.EnumerateArray().Select(item => item.GetString() ?? "").ToArray() : ["all"];
+            var mode = Text(message, "modus");
+            if (mode.Length == 0) mode = "replace";
+            var restored = RestoreSelection.Select(snapshot, JsonNode.Parse(currentPlainText)!.AsObject(), areas, mode);
             PrepareRestoredData(restored);
             var plain = restored.ToJsonString(new JsonSerializerOptions { WriteIndented = true });
             var stored = encryption.Session is null ? plain : encryption.EncryptData(plain);
@@ -1226,7 +1244,7 @@ internal sealed partial class BridgeDispatcher : IDisposable
     private async Task ConfigureRemindersAsync(JsonElement message)
     {
         var active = message.TryGetProperty("an", out var enabled) && enabled.ValueKind == JsonValueKind.True;
-        reminders.UpdateData(currentPlainText);
+        reminders.UpdateData(ReminderScheduler.SelectRuntimeData(currentPlainText));
         reminders.Configure(active);
         form.SetReminderAutostart(active);
         var wake = message.TryGetProperty("wecken", out var wakeNode) && wakeNode.ValueKind == JsonValueKind.True;
@@ -1255,11 +1273,12 @@ internal sealed partial class BridgeDispatcher : IDisposable
 
     private void UpdateReminderRuntime(string text)
     {
-        reminders.UpdateData(text);
+        var selected = ReminderScheduler.SelectRuntimeData(text);
+        reminders.UpdateData(selected);
         var active = false;
         try
         {
-            using var document = JsonDocument.Parse(text);
+            using var document = JsonDocument.Parse(selected);
             active = document.RootElement.TryGetProperty("einstellungen", out var settings) &&
                      settings.TryGetProperty("erinnerung", out var reminder) &&
                      reminder.TryGetProperty("an", out var enabled) && enabled.ValueKind == JsonValueKind.True;
@@ -1742,10 +1761,11 @@ internal sealed partial class BridgeDispatcher : IDisposable
         try
         {
             var folder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Contacts");
-            var contacts = await new WindowsContactStore(folder).ReadAsync(CancellationToken.None);
+            var store = new WindowsContactStore(folder);
+            var contacts = await store.ReadAsync(CancellationToken.None);
             var payload = contacts.Select(contact =>
             {
-                var item = contact.Data.DeepClone().AsObject(); item["uid"] = $"mag-{Guid.NewGuid():N}@magnolie-organizer";
+                var item = contact.Data.DeepClone().AsObject(); item["uid"] = store.ImportUid(contact);
                 item["geaendert"] = contact.Modified; return item;
             }).ToArray();
             var termine = new JsonArray(); var jahrestage = new JsonArray(); var aufgaben = new JsonArray();

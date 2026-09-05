@@ -143,9 +143,11 @@ OPENSSL_MODULES="$APPDIR/usr/lib/x86_64-linux-gnu/ossl-modules" \
 SSL_CERT_FILE="$APPDIR/usr/share/magnolie-organizer/certs/ca-certificates.crt" \
     "$APPDIR/usr/bin/python3" - <<'PY'
 import gi
+import magnolie_phone_region
 import magnolie_personal_sync
 import magnolie_telefon
 import magnolie_cloud_backup
+import phonenumbers
 import qrcode
 import six
 import ssl
@@ -163,6 +165,8 @@ from gi.repository import Gio, Gst, EDataServer, ECal, ICalGLib
 Gst.init(None)
 assert magnolie_telefon.validate_personal_sync_body is \
     magnolie_personal_sync.validate_body
+assert magnolie_phone_region.analyze(
+    "+4930123456", "available", "DE", "de")["phone_origin_status"] == "known"
 assert Gio.TlsBackend.get_default().supports_tls()
 assert Gst.ElementFactory.find("appsink") is not None
 assert ssl.get_default_verify_paths().cafile.endswith("ca-certificates.crt")
@@ -178,6 +182,7 @@ assert component is not None
 assert component.as_ical_string().startswith("BEGIN:VEVENT")
 assert ECal.ClientSourceType.EVENTS is not None
 PY
+test -s "$APPDIR/usr/share/doc/magnolie-organizer/phonenumbers-copyright"
 
 # Verhindert bei der GI-Probe gezielt jeden Rueckfall auf die gleichnamigen
 # EDS/libical-Bibliotheken des Buildhosts, ohne glibc oder den Loader zu sperren.

@@ -17,6 +17,7 @@ def run():
               "--package-name=Magnolie Organizer", "--package-version=" + version,
               "--msgid-bugs-address=maik3531@gmail.com", "--output=" + TARGET]
     subprocess.run(["xgettext", "--language=JavaScript", "--keyword=_", "--keyword=msgid",
+                    "--keyword=customText",
                     "--keyword=uebersetzt", "--keyword=uebersetztMehrzahl:1,2",
                     "--keyword=ngettext:1,2", "--keyword=pgettext:1c,2", *common,
                     os.path.join(ROOT, "app", "web", "i18n-markers.js"),

@@ -27,7 +27,8 @@ class Probe:
 
 
 def sync(monkeypatch, lokale_termine, remote_ics, mutations=None,
-         client="google-calendar", tombstones=None, fail_operation="", last_sync=0):
+         client="google-calendar", tombstones=None, fail_operation="", last_sync=0,
+         lokale_jahrestage=None):
     mutations = mutations if mutations is not None else []
     def mutate(operation, value):
         if operation == fail_operation:
@@ -44,7 +45,8 @@ def sync(monkeypatch, lokale_termine, remote_ics, mutations=None,
     m.Fenster._sync_ausfuehren(probe, {
         "wahl": {"kalenderUid": "google-calendar",
                  "kalenderUids": ["google-calendar"]},
-        "daten": {"termine": lokale_termine, "kontakte": [], "jahrestage": [],
+        "daten": {"termine": lokale_termine, "kontakte": [],
+                  "jahrestage": lokale_jahrestage or [],
                   "geloescht": {"termine": tombstones or [], "kontakte": []},
                   "letzterSync": last_sync,
                   "letzteSyncs": {"kalender": {"google-calendar": last_sync}
@@ -175,7 +177,7 @@ def test_same_yearly_all_day_content_with_distinct_uids_stays_separate(monkeypat
         "family-copy", "work-copy"}
 
 
-def test_google_birthday_remains_a_calendar_event_during_eds_sync(monkeypatch):
+def test_google_birthday_stays_calendar_event_during_eds_sync(monkeypatch):
     remote = (
         "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nX-WR-CALNAME:Familie\r\n"
         "BEGIN:VEVENT\r\nUID:bettina-google\r\n"
@@ -190,10 +192,10 @@ def test_google_birthday_remains_a_calendar_event_during_eds_sync(monkeypatch):
     assert len(result["termine"]) == 1
     event = result["termine"][0]
     assert event["uid"] == "bettina-google"
-    assert event["datum"] == "1990-08-26" and event["zeit"] == ""
+    assert event["datum"] == "1990-08-26"
     assert event["wiederholung"]["art"] == "yearly"
-    assert event["kalenderQuelle"]["id"] == "google-calendar"
-    assert event["kalenderQuelle"]["name"] == "Google birthdays"
+    assert event["syncKalenderUid"] == "google-calendar"
+    assert "eds:google-calendar" in event["syncQuellen"]
 
 
 def test_unassigned_local_import_is_not_uploaded_to_selected_google_calendar(monkeypatch):
@@ -276,7 +278,7 @@ def test_birthday_dedup_never_changes_month_and_day():
         "1990-08-12", "1985-03-04"]
 
 
-def test_complex_yearly_master_deduplicates_anniversary_from_preserved_rrule():
+def test_appointment_and_anniversary_collections_are_never_cross_deduplicated():
     master = m.ics_lesen(
         "BEGIN:VEVENT\r\nUID:geb1\r\nDTSTART;VALUE=DATE:19900812\r\n"
         "RRULE:FREQ=YEARLY\r\nEXDATE;VALUE=DATE:20260812\r\n"
@@ -287,7 +289,8 @@ def test_complex_yearly_master_deduplicates_anniversary_from_preserved_rrule():
 
     m._lokale_kalender_dubletten_bereinigen(payload)
 
-    assert payload["jahrestage"] == []
+    assert payload["termine"] == [master]
+    assert len(payload["jahrestage"]) == 1
 
 
 def test_sync_ignores_non_semantic_rrule_form():
@@ -319,21 +322,52 @@ def test_local_appointment_and_anniversary_with_same_uid_appear_only_once():
     m._lokale_kalender_dubletten_bereinigen(payload)
 
     assert len(payload["termine"]) == 1
-    assert payload["jahrestage"] == []
+    assert len(payload["jahrestage"]) == 1
 
 
 def test_local_birthdays_with_distinct_external_uids_remain_separate():
     payload = {"termine": [], "jahrestage": [
         {"uid": "family-copy", "name": "Alex", "datum": "1990-05-17",
          "typ": "birthday"},
-        {"uid": "work-copy", "name": "Alex", "datum": "1990-05-17",
+        {"uid": "work-copy", "name": "Alex", "datum": "1985-05-17",
          "typ": "birthday"},
     ]}
 
     m._lokale_kalender_dubletten_bereinigen(payload)
 
-    assert {item["uid"] for item in payload["jahrestage"]} == {
-        "family-copy", "work-copy"}
+    assert [(item["uid"], item["datum"]) for item in payload["jahrestage"]] == [
+        ("family-copy", "1990-05-17"), ("work-copy", "1985-05-17")]
+
+
+def test_local_appointments_with_same_title_and_time_remain_separate():
+    payload = {"termine": [
+        {"uid": "first", "datum": "2026-08-17", "zeit": "09:00",
+         "endZeit": "10:00", "titel": "Besprechung", "ort": "Büro"},
+        {"uid": "second", "datum": "2026-08-17", "zeit": "09:00",
+         "endZeit": "11:00", "titel": "Besprechung", "ort": "Praxis"},
+    ], "jahrestage": []}
+
+    m._lokale_kalender_dubletten_bereinigen(payload)
+
+    assert [(item["uid"], item["ort"]) for item in payload["termine"]] == [
+        ("first", "Büro"), ("second", "Praxis")]
+
+
+def test_unbound_local_anniversary_is_uploaded_once(monkeypatch):
+    class WritableClient:
+        def is_readonly(self): return False
+
+    mutations = []
+    result = sync(monkeypatch, [], "", mutations, client=WritableClient(),
+                  lokale_jahrestage=[{"uid": "birthday-local", "name": "Alex",
+                      "datum": "--05-17", "typ": "birthday"}])
+
+    creates = [value for operation, value in mutations if operation == "create"]
+    assert len(creates) == 1
+    assert "UID:birthday-local" in creates[0]
+    assert "X-MAGNOLIE-DATE:--05-17" in creates[0]
+    assert len(result["jahrestage"]) == 1
+    assert set(result["jahrestage"][0]["syncQuellen"]) == {"eds:google-calendar"}
 
 
 def test_successful_remote_deletion_keeps_recent_tombstone(monkeypatch):

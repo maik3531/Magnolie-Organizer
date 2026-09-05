@@ -1,5 +1,29 @@
 # Changelog / Änderungen
 
+## 2.0.17 / Notes 1.0.13 — 2026-09-02
+
+### English
+
+- Fixes an address-book synchronization hang that was already present in 2.0.15 and earlier by bounding the final persistence acknowledgement with a timeout and failing without committing an incomplete baseline.
+- Adds a native first-run assistant for language, regional defaults, data sources and optional integrations.
+- Adds stable task hierarchy and ordering across the desktop editions and Personal Sync format 3, and preserves hierarchy through CalDAV VTODO `RELATED-TO` data where supported.
+- Supports standards-compatible CalDAV and CardDAV services generically. Nextcloud remains supported; Baïkal is only one example of a compatible server and does not provide the separate Magnolienbaum WebDAV mailbox.
+- Adds optional, explicitly confirmed contact imports over existing authenticated channels. Imports are previewed, bounded, read-only at the source and do not silently enable ongoing contact synchronization.
+- Derives incoming-call origin only from a valid phone number and the configured regional context, and distinguishes known, unknown and unavailable origins without guessing.
+- Writes total archives with data schema 3 and internal data model 7, while retaining readers for archive schemas 1 and 2. Personal Sync negotiates formats 1 through 3; format 3 adds task identity, parent and order fields.
+- Updates the 19 supported translations for the new assistant, DAV, task, contact-import and call-origin text.
+
+### Deutsch
+
+- Behebt einen bereits in 2.0.15 und älteren Fassungen vorhandenen Hänger beim Adressbuchabgleich, indem die abschließende Speicherbestätigung eine feste Zeitgrenze erhält und bei deren Überschreitung keine unvollständige Baseline festgeschrieben wird.
+- Ergänzt einen nativen Assistenten für die Ersteinrichtung von Sprache, regionalen Vorgaben, Datenquellen und optionalen Anbindungen.
+- Ergänzt stabile Aufgabenhierarchie und -reihenfolge auf den Desktopplattformen und in Personal-Sync-Format 3; CalDAV-VTODO übernimmt die Hierarchie über `RELATED-TO`, soweit die Gegenseite dies unterstützt.
+- Unterstützt standardkonforme CalDAV- und CardDAV-Dienste allgemein. Nextcloud bleibt unterstützt; Baïkal ist nur ein Beispiel für einen kompatiblen Server und stellt nicht das getrennte Magnolienbaum-WebDAV-Postfach bereit.
+- Ergänzt optionale, ausdrücklich bestätigte Kontaktimporte über bestehende authentifizierte Verbindungen. Sie zeigen eine Vorschau, sind begrenzt und an der Quelle nur lesend und aktivieren keinen dauerhaften Kontaktabgleich.
+- Ermittelt die Herkunft eingehender Anrufe nur aus einer gültigen Rufnummer und dem eingestellten Regionalkontext und unterscheidet bekannte, unbekannte und nicht verfügbare Herkunft ohne zu raten.
+- Schreibt Gesamtarchive mit Datenschema 3 und internem Datenmodell 7; Archivschemata 1 und 2 bleiben lesbar. Personal Sync handelt die Formate 1 bis 3 aus; Format 3 ergänzt Aufgabenkennung, Elternbezug und Reihenfolge.
+- Aktualisiert die 19 unterstützten Übersetzungen für Assistent, DAV, Aufgaben, Kontaktimport und Anrufherkunft.
+
 ## 2.0.16 / Notes 1.0.12 — 2026-09-01
 
 ### English

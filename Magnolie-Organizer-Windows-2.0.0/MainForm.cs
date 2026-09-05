@@ -35,11 +35,14 @@ internal sealed class MainForm : Form
     private JsonObject? pendingTelefonSms;
     private JsonObject? currentIncomingCall;
     private HandbookForm? handbookForm;
+    private readonly FirstRunSetupSelections? setupSelections;
 
     internal void SetTelefonCoordinator(TelefonCoordinator coordinator) => telefonCoordinator = coordinator;
 
-    internal MainForm(bool trayStart = false, bool reminderStart = false)
+    internal MainForm(bool trayStart = false, bool reminderStart = false,
+        FirstRunSetupSelections? setupSelections = null)
     {
+        this.setupSelections = setupSelections;
         Text = "Magnolie Organizer";
         BackColor = Color.FromArgb(46, 58, 52);
         StartPosition = FormStartPosition.CenterScreen;
@@ -54,6 +57,11 @@ internal sealed class MainForm : Form
         Controls.Add(webView);
         HandleCreated += (_, _) => NativeMethods.ApplySystemTitleBarTheme(Handle);
         Load += async (_, _) => await InitializeWebViewAsync();
+        if (setupSelections?.OpenHandbook == true) Shown += async (_, _) =>
+        {
+            var manual = Path.Combine(AppContext.BaseDirectory, "handbuch", "index.html");
+            await OpenHandbookAsync(manual);
+        };
         FormClosing += OnFormClosing;
         FormClosed += (_, _) => { handbookForm?.Close(); dispatcher?.Dispose(); SaveWindowState(); trayIcon.Dispose(); };
         Resize += (_, _) =>
@@ -150,8 +158,14 @@ internal sealed class MainForm : Form
         if (InvokeRequired) { BeginInvoke(() => ShowIncomingCall(payload)); return; }
         var name = payload.TryGetProperty("name", out var nameNode) ? nameNode.GetString() ?? "" : "";
         var number = payload.TryGetProperty("nummer", out var numberNode) ? numberNode.GetString() ?? "" : "";
+        var callRef = payload.TryGetProperty("callRef", out var callNode) ? callNode.GetString() ?? "" : "";
+        var current = currentIncomingCall?["call_ref"]?.GetValue<string>() == callRef ? currentIncomingCall : null;
+        name = current?["kontaktName"]?.GetValue<string>() is { Length: > 0 } contactName ? contactName : name;
+        var origin = PhoneRegionInfo.Analyze(number, number.Length > 0 ? "available" : "unavailable");
+        var caller = string.IsNullOrWhiteSpace(name) ? number : name;
+        if (origin.DisplayHint.Length > 0) caller += "\n" + origin.DisplayHint;
         trayIcon.Visible = true;
-        ShowNotification(T("Incoming call"), string.IsNullOrWhiteSpace(name) ? number : name);
+        ShowNotification(T("Incoming call"), caller);
         HideTemporaryTrayIcon();
     }
 
@@ -315,7 +329,7 @@ internal sealed class MainForm : Form
             var environment = await WebViewEnvironmentProvider.GetAsync(paths);
             await webView.EnsureCoreWebView2Async(environment);
             await ConfigureWebViewAsync();
-            dispatcher = new BridgeDispatcher(this, paths);
+            dispatcher = new BridgeDispatcher(this, paths, setupSelections);
             webView.CoreWebView2.WebMessageReceived += async (_, eventArgs) =>
             {
                 try

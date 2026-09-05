@@ -26,6 +26,10 @@ internal static class NativeLocalizationTests
         TestAssert.That(NativeLocalization.ResolveLanguage("xx-ZZ") == "en", "Englischer Fallback fehlt.");
         TestAssert.That(NativeLocalization.Gettext("Missing native key", "de") == "Missing native key",
             "Fehlende deutsche Schlüssel müssen sauber auf den englischen msgid zurückfallen.");
+        NativeLocalization.SetLanguage("fr");
+        TestAssert.That(NativeLocalization.Language == "fr" && NativeLocalization.Gettext("Open") != "Open",
+            "Eine Sprachwahl des nativen Ersteinrichtungsassistenten wird nicht sofort wirksam.");
+        NativeLocalization.SetLanguage("system");
         return Task.CompletedTask;
     }
 }

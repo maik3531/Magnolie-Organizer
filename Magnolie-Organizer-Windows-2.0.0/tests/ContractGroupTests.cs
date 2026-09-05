@@ -31,15 +31,16 @@ internal static class ContractGroupTests
         var data = JsonNode.Parse("""{"version":6,"termine":[],"kontakte":[{"foto":"data:image/jpeg;base64,/9j/2Q=="}],"notizen":[{"anhaenge":[{"daten":"data:application/pdf;base64,JVBERi0="}]}],"papierkorb":[],"einstellungen":{}}""")!.AsObject();
         var text = GesamtarchivService.Create(data, "linux", "1.31.7", "Rosenholz1896");
         var read = GesamtarchivService.Read(text, "Rosenholz1896");
-        TestAssert.That(read.Fotos == 1 && read.Anhaenge == 1 && JsonNode.DeepEquals(read.Daten, data),
+        var expected = data.DeepClone().AsObject(); expected["version"] = 7;
+        TestAssert.That(read.Fotos == 1 && read.Anhaenge == 1 && JsonNode.DeepEquals(read.Daten, expected),
             "Das geschützte Linux/Windows-Gesamtarchiv verlor Foto oder Anhang.");
-        var schema2 = JsonNode.Parse(GesamtarchivService.Create(data, "windows", "2.0.6"))!.AsObject();
-        TestAssert.That(schema2["datenschema"]!.GetValue<int>() == 2,
-            "Neue Gesamtarchive verwenden nicht Datenschema 2.");
-        schema2["datenschema"] = 1;
-        _ = GesamtarchivService.Read(schema2.ToJsonString());
-        schema2["datenschema"] = 3;
-        TestAssert.Throws<InvalidDataException>(() => GesamtarchivService.Read(schema2.ToJsonString()),
+        var schema3 = JsonNode.Parse(GesamtarchivService.Create(data, "windows", "2.0.6"))!.AsObject();
+        TestAssert.That(schema3["datenschema"]!.GetValue<int>() == 3,
+            "Neue Gesamtarchive verwenden nicht Datenschema 3.");
+        schema3["datenschema"] = 1;
+        _ = GesamtarchivService.Read(schema3.ToJsonString());
+        schema3["datenschema"] = 4;
+        TestAssert.Throws<InvalidDataException>(() => GesamtarchivService.Read(schema3.ToJsonString()),
             "Ein unbekanntes Gesamtarchiv-Datenschema wurde angenommen.");
         var golden = GesamtarchivService.Read(File.ReadAllText(Path.Combine("tests", "fixtures", "linux-ordinal.magnolie")));
         var goldenAppointments = golden.Daten["termine"]!.AsArray();
@@ -56,6 +57,35 @@ internal static class ContractGroupTests
         var taskArchive = GesamtarchivService.Read(GesamtarchivService.Create(taskData, "windows", "2.0.2"));
         TestAssert.That(JsonNode.DeepEquals(taskArchive.Daten["aufgaben"]![0]!["icsRoundtrip"], taskData["aufgaben"]![0]!["icsRoundtrip"]),
             "VTODO-ICS-Rohdaten gingen im Gesamtarchiv verloren.");
+        var missingUid = new JsonArray(new JsonObject { ["id"] = "ä-1" });
+        GesamtarchivService.NormalizeTaskGraph(missingUid);
+        TestAssert.That(missingUid[0]!["uid"]!.GetValue<string>() == "mag-task-c841a738bc2a124a@magnolie-organizer",
+            "Eine Aufgabe ohne UID wurde nicht deterministisch normalisiert.");
+        var graph = new JsonArray(new JsonObject { ["id"] = "kind", ["uid"] = "doppelt", ["elternUid"] = "doppelt" },
+            new JsonObject { ["id"] = "zweites", ["uid"] = "doppelt", ["elternUid"] = "fehlt" });
+        GesamtarchivService.NormalizeTaskGraph(graph);
+        TestAssert.That(graph.Select(item => item!["uid"]!.GetValue<string>()).Distinct(StringComparer.Ordinal).Count() == 2 &&
+            graph.All(item => item!["elternUid"]!.GetValue<string>().Length == 0),
+            "Windows-Aufgabenmigration weicht von Linux/Web ab oder behielt einen beschädigten Graphen.");
+        var reservedUid = GesamtarchivService.StableTaskUid("gleich", "");
+        var collisions = new JsonArray(
+            new JsonObject { ["id"] = "reserved", ["uid"] = reservedUid },
+            new JsonObject { ["id"] = "parent", ["uid"] = "parent" },
+            new JsonObject { ["id"] = "gleich", ["elternUid"] = "parent" },
+            new JsonObject { ["id"] = "gleich", ["elternUid"] = "parent" });
+        GesamtarchivService.NormalizeTaskGraph(collisions);
+        TestAssert.That(collisions[2]!["uid"]!.GetValue<string>() == GesamtarchivService.StableTaskUid("gleich", "0") &&
+            collisions[3]!["uid"]!.GetValue<string>() == GesamtarchivService.StableTaskUid("gleich", "1") &&
+            collisions[2]!["elternUid"]!.GetValue<string>() == "parent" && collisions[3]!["elternUid"]!.GetValue<string>() == "parent",
+            "Aufgaben-UID-Kollisionen verwendeten nicht die Salt-Folge leer/0/1 oder verloren ihre Eltern.");
+        var technicalUids = new[] { "ä", "z", "\U00010000", "a", "é", "e\u0301", "\ue000" };
+        var technicalGraph = new JsonArray(technicalUids.Reverse().Select(uid =>
+            (JsonNode)new JsonObject { ["id"] = uid, ["uid"] = uid, ["reihenfolge"] = 0 }).ToArray());
+        GesamtarchivService.NormalizeTaskGraph(technicalGraph);
+        TestAssert.That(technicalGraph.OrderBy(item => item!["reihenfolge"]!.GetValue<int>())
+                .Select(item => item!["uid"]!.GetValue<string>()).SequenceEqual(
+                    new[] { "a", "e\u0301", "z", "ä", "é", "\ue000", "\U00010000" }),
+            "Technische Aufgabenkennungen verwenden nicht plattformuebergreifend UTF-8-Reihenfolge.");
         return Task.CompletedTask;
     }
 
@@ -107,9 +137,14 @@ internal static class ContractGroupTests
                 imported.Jahrestage.Any(item => item?["uid"]?.ToString() == "full" && item?["datum"]?.ToString() == "2000-02-29"),
                 "ICS unterschied beim Jahrestags-Rundlauf jahrlos und echtes Jahr 2000 nicht.");
         }
-        const string invalidExtension = "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\nUID:external-2000\r\nDTSTART;VALUE=DATE:20000229\r\nRRULE:FREQ=YEARLY\r\nCATEGORIES:Geburtstag\r\nSUMMARY:Echt\r\nX-MAGNOLIE-DATE:--02-30\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n";
+        const string invalidExtension = "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\nUID:external-2000\r\nDTSTART;VALUE=DATE:20000229\r\nRRULE:FREQ=YEARLY\r\nCATEGORIES:Geburtstag\r\nSUMMARY:Echt\r\nX-MAGNOLIE-TYPE-ID:birthday\r\nX-MAGNOLIE-DATE:--02-30\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n";
         TestAssert.That(ExchangeCodec.ParseIcs(invalidExtension).Jahrestage[0]!["datum"]!.GetValue<string>() == "2000-02-29",
             "Eine ungültige Magnolie-ICS-Erweiterung überschrieb das externe echte Jahr 2000.");
+        const string externalNamedAnniversaries = "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\nUID:befreiung\r\nDTSTART;VALUE=DATE:20260508\r\nRRULE:FREQ=YEARLY\r\nCATEGORIES:Regionaler Feiertag\r\nSUMMARY:Jahrestag der Befreiung vom Nationalsozialismus\r\nEND:VEVENT\r\nBEGIN:VEVENT\r\nUID:google-birthday\r\nDTSTART;VALUE=DATE:19900826\r\nRRULE:FREQ=YEARLY\r\nCATEGORIES:Birthday\r\nSUMMARY:Herzlichen Glückwunsch zum Geburtstag\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n";
+        var externalNamedImport = ExchangeCodec.ParseIcs(externalNamedAnniversaries);
+        TestAssert.That(externalNamedImport.Termine.Count == 2 && externalNamedImport.Jahrestage.Count == 0 &&
+            externalNamedImport.Termine.All(item => item?["wiederholung"]?["art"]?.ToString() == "yearly"),
+            "Titel oder Kategorie wandelten externe Ganztagstermine in Jahrestage um.");
 
         var fixture = File.ReadAllText(Path.Combine("tests", "fixtures", "golden-komplex.ics"));
         var thunderbird = ExchangeCodec.ParseIcs(fixture);
@@ -136,7 +171,7 @@ internal static class ContractGroupTests
             throw new InvalidOperationException("Unvollständige ICS-Verschachtelung wurde akzeptiert.");
         }
         catch (InvalidDataException) { }
-        var anniversaryIcs = "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\nUID:anniversary-rich\r\nDTSTART;VALUE=DATE:19900812\r\nRRULE:FREQ=YEARLY\r\nCATEGORIES:Geburtstag\r\nSUMMARY:Mia\r\nLOCATION:Garten\r\nORGANIZER:mailto:host@example.org\r\nATTENDEE:mailto:mia@example.org\r\nATTACH:https://www.dropbox.com/s/a\r\nBEGIN:VALARM\r\nACTION:DISPLAY\r\nTRIGGER:-P1D\r\nEND:VALARM\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n";
+        var anniversaryIcs = "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\nUID:anniversary-rich\r\nDTSTART;VALUE=DATE:19900812\r\nRRULE:FREQ=YEARLY\r\nCATEGORIES:Geburtstag\r\nX-MAGNOLIE-TYPE-ID:birthday\r\nSUMMARY:Mia\r\nLOCATION:Garten\r\nORGANIZER:mailto:host@example.org\r\nATTENDEE:mailto:mia@example.org\r\nATTACH:https://www.dropbox.com/s/a\r\nBEGIN:VALARM\r\nACTION:DISPLAY\r\nTRIGGER:-P1D\r\nEND:VALARM\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n";
         var anniversary = ExchangeCodec.ParseIcs(anniversaryIcs);
         using (var anniversaryRestart = JsonDocument.Parse(anniversary.Jahrestage.ToJsonString()))
         {

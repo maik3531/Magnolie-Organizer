@@ -17,6 +17,7 @@ import threading
 import tempfile
 import time
 import urllib.error
+import urllib.parse
 
 import pytest
 from cryptography import x509
@@ -208,6 +209,17 @@ def test_secret_service_only_and_atomic_private_config(tmp_path, monkeypatch):
     assert backend.lookup(third_account) == "third-secret"
     assert backend.lookup(store.account("https://fourth.example", "fourth")) is None
 
+    generic = nc.NextcloudSettingsStore(str(tmp_path / "generic.json"),
+                                        nc.SecretServiceStore(backend))
+    generic.save(True, False, "https://dav.example/dav.php/", "user",
+                 "generic-password", account_type="generic-dav")
+    assert generic.load()["kontoArt"] == "generic-dav"
+    assert generic.password() == "generic-password"
+    assert "generic-password" not in (tmp_path / "generic.json").read_text()
+    with pytest.raises(ValueError):
+        generic.save(True, True, "https://dav.example", "user",
+                     account_type="generic-dav")
+
 
 @pytest.mark.parametrize("status", [401, 403, 404, 405, 507])
 def test_hostile_https_statuses_are_reported_once_without_redirect(status, tls_contexts):
@@ -227,16 +239,16 @@ def test_hostile_https_statuses_are_reported_once_without_redirect(status, tls_c
         server.close()
 
 
-def test_redirect_is_never_followed_and_cross_origin_is_rejected(tls_contexts):
+def test_cross_origin_redirect_is_never_followed(tls_contexts):
     server_context, client_context = tls_contexts
     server = HostileHttpsServer(
         lambda *_args: (302, {"Location": "https://evil.example/steal"}, b""),
         server_context)
     try:
         client = nc.DavHttpClient(server.url, "user", "secret", ssl_context=client_context)
-        with pytest.raises(nc.HttpStatusError) as raised:
+        with pytest.raises(nc.NextcloudError) as raised:
             client.request("GET", server.url + "/redirect")
-        assert raised.value.status == 302 and len(server.records) == 1
+        assert len(server.records) == 1
         with pytest.raises(nc.NextcloudError):
             client.request("GET", "https://evil.example/steal")
         assert len(server.records) == 1
@@ -345,6 +357,85 @@ def test_discovery_listing_reports_and_stable_source_ids():
     assert len(parsed_contact["telefone"]) == 2 and parsed_contact["foto"].startswith(
         "data:image/jpeg;base64,")
     assert all(record[2]["Authorization"].startswith("Basic ") for record in records)
+
+
+def test_generic_baikal_discovery_relative_redirects_and_vtodo_capability():
+    calls = []
+
+    def transport(method, url, headers, body, _timeout, _limit):
+        calls.append((method, url, headers, body))
+        path = urllib.parse.urlsplit(url).path
+        if path == "/.well-known/caldav":
+            return 301, {"Location": "/dav.php/"}, b""
+        if path == "/dav.php/":
+            return 207, {}, multistatus(dav_response("dav.php/", [
+                ("d:current-user-principal", "<d:href>principals/alice/</d:href>")]))
+        if path == "/dav.php/principals/alice/":
+            return 207, {}, multistatus(dav_response(path, [
+                ("c:calendar-home-set", "<d:href>../../calendars/alice/</d:href>")]),
+                namespaces='xmlns:c="urn:ietf:params:xml:ns:caldav"')
+        if path == "/.well-known/carddav":
+            return 207, {}, multistatus(dav_response(path, [
+                ("a:addressbook-home-set", "<d:href>/dav.php/addressbooks/alice/</d:href>")]),
+                namespaces='xmlns:a="urn:ietf:params:xml:ns:carddav"')
+        if path == "/dav.php/calendars/alice/":
+            components = ('<c:supported-calendar-component-set>'
+                          '<c:comp name="VEVENT"/></c:supported-calendar-component-set>')
+            return 207, {}, multistatus(dav_response("work/", [
+                ("d:displayname", "Work"),
+                ("d:resourcetype", '<c:calendar xmlns:c="urn:ietf:params:xml:ns:caldav"/>'),
+                ("c:supported-calendar-component-set", components.split(">", 1)[1].rsplit("<", 1)[0])]),
+                namespaces='xmlns:c="urn:ietf:params:xml:ns:caldav"')
+        if path == "/dav.php/addressbooks/alice/":
+            return 207, {}, multistatus(dav_response("contacts/", [
+                ("d:displayname", "Contacts"),
+                ("d:resourcetype", '<a:addressbook xmlns:a="urn:ietf:params:xml:ns:carddav"/>')]),
+                namespaces='xmlns:a="urn:ietf:params:xml:ns:carddav"')
+        raise AssertionError((method, url))
+
+    client = nc.DavHttpClient("https://dav.example/dav.php/", "alice", "not-in-errors",
+                              transport=transport)
+    client.account_type = "generic-dav"
+    dav = nc.NextcloudDav(client)
+    calendars = dav.collections("calendar")
+    books = dav.collections("addressbook")
+    assert calendars == [{"uid": "generic-dav-calendar:ff15e1cb495b36c977ba783d0848a6845514d25b04d0bfc5cadcff6a6c86c014",
+                          "name": "Work", "href": "https://dav.example/dav.php/calendars/alice/work/",
+                          "art": "calendar", "supportsVtodo": False}]
+    assert books[0]["uid"].startswith("generic-dav-addressbook:")
+    assert all("remote.php" not in url for _method, url, _headers, _body in calls)
+    assert sum(url.endswith("/dav.php/") for _method, url, _headers, _body in calls) == 1
+
+
+def test_generic_discovery_falls_back_to_configured_subpath_base():
+    calls = []
+    home = "https://dav.example/dav.php/calendars/alice/"
+
+    def transport(method, url, _headers, _body, _timeout, _limit):
+        calls.append((method, url))
+        path = urllib.parse.urlsplit(url).path
+        if path == "/.well-known/caldav":
+            return 404, {}, b""
+        if path == "/dav.php/":
+            return 207, {}, multistatus(dav_response(path, [
+                ("d:current-user-principal", "<d:href>principals/alice/</d:href>")]))
+        if path == "/dav.php/principals/alice/":
+            return 207, {}, multistatus(dav_response(path, [
+                ("c:calendar-home-set", "<d:href>../../calendars/alice/</d:href>")]),
+                namespaces='xmlns:c="urn:ietf:params:xml:ns:caldav"')
+        if url == home:
+            return 207, {}, multistatus()
+        raise AssertionError((method, url))
+
+    client = nc.DavHttpClient("https://dav.example/dav.php", "alice", "secret",
+                              transport=transport)
+    client.account_type = "generic-dav"
+    assert nc.NextcloudDav(client).collections("calendar") == []
+    assert calls[:3] == [
+        ("PROPFIND", "https://dav.example/.well-known/caldav"),
+        ("PROPFIND", "https://dav.example/dav.php/"),
+        ("PROPFIND", "https://dav.example/dav.php/principals/alice/"),
+    ]
 
 
 def test_dav_etag_conflict_and_conditional_create_delete():
@@ -602,16 +693,18 @@ def test_direct_http_rejection_does_not_fallback_to_mailbox():
 
 
 class SyncDav:
-    def __init__(self, resources, fail_put=False):
+    def __init__(self, resources, fail_put=False, supports_vtodo=True):
         self.resources = resources
         self.fail_put = fail_put
+        self.supports_vtodo = supports_vtodo
         self.puts = []
         self.deletes = []
 
     def collections(self, kind):
         href = "https://cloud.example/%s/" % kind
         return [{"uid": nc.source_id(kind, href), "name": kind,
-                 "href": href, "art": kind}]
+                 "href": href, "art": kind,
+                 **({"supportsVtodo": self.supports_vtodo} if kind == "calendar" else {})}]
 
     def report(self, _href, kind):
         return list(self.resources[kind])
@@ -645,7 +738,13 @@ def event_ics(uid="remote", title="Remote", modified="20260817T100000Z",
     return ("BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\nUID:%s\r\n"
             "DTSTART;VALUE=DATE:20260813\r\nLAST-MODIFIED:%s\r\n%s"
             "SUMMARY:%s\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n" %
-            (uid, modified, rrule, title))
+             (uid, modified, rrule, title))
+
+
+def task_ics(uid="remote-task", title="Remote task", modified="20260817T100000Z"):
+    return ("BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VTODO\r\nUID:%s\r\n"
+            "LAST-MODIFIED:%s\r\nSUMMARY:%s\r\nEND:VTODO\r\nEND:VCALENDAR\r\n" %
+            (uid, modified, title))
 
 
 def contact_vcf(uid="remote-contact", name="Example", rev="20260817T100000Z"):
@@ -675,6 +774,18 @@ def empty_data():
             "syncMetadaten": {"nextcloud": {"kalender": {},
                 "adressbuecher": {}, "quarantinedDeletes": {},
                 "transaktionen": {}}}}
+
+
+def test_calendar_without_vtodo_support_leaves_local_tasks_untouched(monkeypatch):
+    dav = SyncDav({"calendar": [], "addressbook": []}, supports_vtodo=False)
+    data = empty_data()
+    data["aufgaben"] = [{"id": "local-task", "uid": "task-1", "titel": "Local"}]
+    data["geloescht"]["aufgaben"] = []
+    result = run_sync(monkeypatch, dav, data)
+    assert len(result.payload["aufgaben"]) == 1
+    assert {key: result.payload["aufgaben"][0][key] for key in ("id", "uid", "titel")} == {
+        "id": "local-task", "uid": "task-1", "titel": "Local"}
+    assert dav.puts == [] and dav.deletes == []
 
 
 def test_nextcloud_safe_first_calendar_sync_preserves_local_and_tombstone(monkeypatch):
@@ -710,6 +821,41 @@ def test_nextcloud_established_delete_and_etag_cursor_commit(monkeypatch):
     assert probe.payload["geloescht"]["termine"] == []
     assert isinstance(probe.payload["letzteSyncs"]["kalender"][uid], int)
     assert probe.payload["syncMetadaten"]["nextcloud"]["kalender"][uid]["initialisiert"]
+
+
+def test_second_consecutive_vtodo_sync_creates_updates_and_deletes(monkeypatch):
+    task_one = "https://cloud.example/calendar/task-one.ics"
+    task_two = "https://cloud.example/calendar/task-two.ics"
+    dav = SyncDav({"calendar": [
+        {"href": task_one, "etag": '"one"', "data": task_ics("task-one", "One")},
+        {"href": task_two, "etag": '"two"', "data": task_ics("task-two", "Two")},
+    ], "addressbook": []})
+
+    first = run_sync(monkeypatch, dav, empty_data()).payload
+    uid = dav.collections("calendar")[0]["uid"]
+    metadata = first["syncMetadaten"]["nextcloud"]["kalender"][uid]
+    assert metadata["initialisiert"] and metadata["aufgabenInitialisiert"]
+
+    first["aufgaben"] = [item for item in first["aufgaben"] if item["uid"] != "task-two"]
+    first["aufgaben"][0].update(titel="One locally changed", geaendert=2_000_000_000_001)
+    first["aufgaben"].append({"id": "local-three", "uid": "task-three",
+                              "titel": "Three", "geaendert": 2_000_000_000_002,
+                              "sync": False, "syncKalenderUid": uid})
+    first["geloescht"]["aufgaben"] = [{"uid": "task-two",
+        "zeit": 2_000_000_000_003, "syncKalenderUid": uid}]
+    dav.puts.clear()
+
+    second = run_sync(monkeypatch, dav, first).payload
+
+    assert len(dav.puts) == 2
+    assert {call[0] for call in dav.puts} == {
+        task_one, "https://cloud.example/calendar/" +
+        m._dav_uid_dateiname("task-three", ".ics")}
+    assert dav.deletes == [(task_two, '"two"')]
+    assert {item["uid"] for item in second["aufgaben"]} == {"task-one", "task-three"}
+    metadata = second["syncMetadaten"]["nextcloud"]["kalender"][uid]
+    assert metadata["initialisiert"] and metadata["aufgabenInitialisiert"]
+    assert set(metadata["aufgabenEtags"]) == {"task-one", "task-three"}
 
 
 def test_nextcloud_established_remote_delete_removes_only_synced_item(monkeypatch):
@@ -832,19 +978,89 @@ def test_nextcloud_partial_report_aborts_without_result(monkeypatch):
     assert not dav.puts and not dav.deletes
 
 
-def test_nextcloud_unsupported_calendar_component_aborts_without_write(monkeypatch):
+def test_nextcloud_mixed_calendar_components_are_ignored_without_losing_targets(monkeypatch):
     resource = event_ics(uid="event-with-journal", title="Termin")
     resource = resource.replace(
         "END:VCALENDAR", "BEGIN:VJOURNAL\r\nUID:journal-1\r\n"
-        "SUMMARY:Nicht abbildbar\r\nEND:VJOURNAL\r\nEND:VCALENDAR")
+        "SUMMARY:Nicht abbildbar\r\nEND:VJOURNAL\r\nBEGIN:VFREEBUSY\r\n"
+        "UID:busy-1\r\nEND:VFREEBUSY\r\nBEGIN:X-CUSTOM\r\nUID:custom-1\r\n"
+        "END:X-CUSTOM\r\nEND:VCALENDAR")
     dav = SyncDav({"calendar": [{"href": "https://cloud.example/calendar/mixed.ics",
-                                  "etag": '"mixed"', "data": resource}],
-                   "addressbook": []})
+                                   "etag": '"mixed"', "data": resource}],
+                    "addressbook": []})
 
-    meldung = m._("The Nextcloud calendar was not read completely.")
-    with pytest.raises(RuntimeError, match=re.escape(meldung)):
+    probe = run_sync(monkeypatch, dav, empty_data())
+    assert [item["uid"] for item in probe.payload["termine"]] == ["event-with-journal"]
+    assert not dav.puts and not dav.deletes
+
+
+def test_event_only_sync_ignores_unreadable_vtodo(monkeypatch):
+    resource = event_ics(uid="valid-event", title="Termin").replace(
+        "END:VCALENDAR", "BEGIN:VTODO\r\nUID:broken-task\r\n"
+        "END:VTODO\r\nEND:VCALENDAR")
+    dav = SyncDav({"calendar": [{"href": "https://cloud.example/calendar/mixed.ics",
+                                   "etag": '"mixed"', "data": resource}],
+                    "addressbook": []}, supports_vtodo=False)
+
+    probe = run_sync(monkeypatch, dav, empty_data())
+
+    assert [item["uid"] for item in probe.payload["termine"]] == ["valid-event"]
+    assert probe.payload["aufgaben"] == []
+
+
+@pytest.mark.parametrize("target", [
+    "BEGIN:VEVENT\r\nUID:broken-event\r\nSUMMARY:No date\r\nEND:VEVENT\r\n",
+    "BEGIN:VTODO\r\nUID:broken-task\r\nEND:VTODO\r\n",
+])
+def test_nextcloud_mixed_resource_still_rejects_unreadable_target(monkeypatch, target):
+    resource = ("BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VJOURNAL\r\n"
+                "UID:journal-1\r\nEND:VJOURNAL\r\n" + target + "END:VCALENDAR\r\n")
+    dav = SyncDav({"calendar": [{"href": "https://cloud.example/calendar/bad-mixed.ics",
+                                  "etag": '"bad"', "data": resource}],
+                   "addressbook": []})
+    with pytest.raises(RuntimeError, match=re.escape(
+            m._("The Nextcloud calendar was not read completely."))):
         run_sync(monkeypatch, dav, empty_data())
     assert not dav.puts and not dav.deletes
+
+
+def test_appointment_delete_preserves_shared_calendar_resource(monkeypatch):
+    href = "https://cloud.example/calendar/shared.ics"
+    resource = event_ics(uid="remove-me", title="Remove me").replace(
+        "END:VCALENDAR", "BEGIN:VTODO\r\nUID:keep-task\r\nSUMMARY:Keep task\r\n"
+        "END:VTODO\r\nBEGIN:VJOURNAL\r\nUID:keep-journal\r\n"
+        "END:VJOURNAL\r\nEND:VCALENDAR")
+    dav = SyncDav({"calendar": [{"href": href, "etag": '"shared"', "data": resource}],
+                   "addressbook": []})
+    data = empty_data()
+    uid = dav.collections("calendar")[0]["uid"]
+    data["letzteSyncs"]["kalender"][uid] = 100
+    data["syncMetadaten"]["nextcloud"]["kalender"][uid] = {
+        "initialisiert": True, "letzterSync": 100,
+        "etags": {"remove-me": {"href": href, "etag": '"shared"'}}}
+    data["geloescht"]["termine"] = [{"uid": "remove-me", "zeit": 2_000_000_000_000,
+                                        "syncKalenderUid": uid}]
+
+    run_sync(monkeypatch, dav, data)
+
+    assert dav.deletes == [] and len(dav.puts) == 1
+    written = dav.puts[0][1]
+    assert "UID:remove-me" not in written
+    assert "UID:keep-task" in written and "UID:keep-journal" in written
+
+
+@pytest.mark.parametrize(("kind", "remove"), [
+    ("VEVENT", m.ics_termin_resource_entfernen),
+    ("VTODO", m.ics_aufgabe_resource_entfernen),
+])
+def test_delete_ignores_orphaned_timezone_component(kind, remove):
+    resource = ("BEGIN:VCALENDAR\r\nVERSION:2.0\r\n"
+                "BEGIN:VTIMEZONE\r\nTZID:Europe/Berlin\r\nEND:VTIMEZONE\r\n"
+                f"BEGIN:{kind}\r\nUID:remove-me\r\n"
+                + ("DTSTART:20260903T090000Z\r\n" if kind == "VEVENT" else
+                   "LAST-MODIFIED:20260903T090000Z\r\nSUMMARY:Remove me\r\n")
+                + f"END:{kind}\r\nEND:VCALENDAR\r\n")
+    assert remove(resource, "remove-me") is None
 
 
 def test_nextcloud_reports_complex_series_with_existing_read_only_text(monkeypatch):
@@ -962,6 +1178,8 @@ def test_mixed_provider_selection_is_partitioned_without_rejection():
         [cloud_calendar], ["eds-calendar"], "", "eds-book")
     assert m.sync_quellen_aufteilen(["eds-calendar", cloud_calendar], cloud_book) == (
         [cloud_calendar], ["eds-calendar"], cloud_book, "")
+    generic_book = "generic-dav-addressbook:" + "c" * 64
+    assert m.sync_quellen_aufteilen([], generic_book) == ([], [], generic_book, "")
 
 
 def test_mixed_provider_resume_journal_is_private_and_removable(monkeypatch, tmp_path):

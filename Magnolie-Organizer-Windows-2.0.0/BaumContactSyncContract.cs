@@ -62,6 +62,45 @@ internal static class BaumContactSyncContract
         RequiredText(root, "quelle", 128);
     }
 
+    internal static void ValidateImport(JsonNode content, string kind)
+    {
+        if (content is not JsonObject root || Text(root, "art") != kind || Integer(root, "fassung") != 1)
+            throw InvalidImport();
+        RequiredText(root, "importId", 128);
+        if (kind == "kontakt_import_manifest")
+        {
+            if (!Only(root, ["art", "fassung", "importId", "anzahl", "herkuenfte"]) ||
+                Integer(root, "anzahl") is < 1 or > 250) throw InvalidImport();
+            ValidateOrigins(root, 64, true);
+            return;
+        }
+        if (kind != "kontakt_import_karte" ||
+            !Only(root, ["art", "fassung", "importId", "bindung", "herkuenfte", "kontakt"])) throw InvalidImport();
+        var binding = Text(root, "bindung");
+        if (!binding.StartsWith("urn:magnolie:import:android:", StringComparison.Ordinal) ||
+            binding.Length != "urn:magnolie:import:android:".Length + 64 ||
+            binding["urn:magnolie:import:android:".Length..].Any(character =>
+                character is not (>= '0' and <= '9') and not (>= 'a' and <= 'f'))) throw InvalidImport();
+        ValidateOrigins(root, 16, false);
+        var candidate = new JsonObject { ["art"] = "kontakt_sync", ["fassung"] = 1,
+            ["freigabeId"] = binding, ["version"] = 1, ["quelle"] = "android-import", ["geaendert"] = 0,
+            ["kontakt"] = root["kontakt"]?.DeepClone() };
+        Validate(candidate);
+    }
+
+    private static void ValidateOrigins(JsonObject root, int maximum, bool counts)
+    {
+        if (root["herkuenfte"] is not JsonArray origins || origins.Count is < 1 || origins.Count > maximum) throw InvalidImport();
+        var fields = counts ? new HashSet<string> { "kontoTyp", "kontoName", "dataSet", "anzahl" } :
+            new HashSet<string> { "kontoTyp", "kontoName", "dataSet" };
+        foreach (var node in origins)
+        {
+            if (node is not JsonObject origin || !Only(origin, fields)) throw InvalidImport();
+            foreach (var field in new[] { "kontoTyp", "kontoName", "dataSet" }) OptionalText(origin, field, 128);
+            if (counts && Integer(origin, "anzahl") is < 1 or > 250) throw InvalidImport();
+        }
+    }
+
     private static void ValidateList(JsonObject parent, string name, int maximum, HashSet<string> fields,
         Action<JsonObject> validate)
     {
@@ -117,8 +156,16 @@ internal static class BaumContactSyncContract
     private static string Text(JsonObject value, string name) => value[name]!.GetValue<string>();
     private static int Integer(JsonObject value, string name) =>
         value[name] is JsonValue node && node.TryGetValue<int>(out var result) ? result : int.MinValue;
-    private static long Long(JsonObject value, string name) =>
-        value[name] is JsonValue node && node.TryGetValue<long>(out var result) ? result : long.MinValue;
+    private static long Long(JsonObject value, string name)
+    {
+        if (value[name] is JsonValue node)
+        {
+            if (node.TryGetValue<long>(out var result)) return result;
+            if (node.TryGetValue<int>(out var integer)) return integer;
+        }
+        return long.MinValue;
+    }
     private static InvalidDataException Invalid() => new("Der Kontakt entspricht nicht dem kontakt_sync-Vertrag.");
     private static InvalidDataException InvalidDelete() => new("Die Löschung entspricht nicht dem kontakt_loeschen-Vertrag.");
+    private static InvalidDataException InvalidImport() => new("Der Kontakt entspricht nicht dem kontakt_import-Vertrag.");
 }

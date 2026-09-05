@@ -37,6 +37,16 @@ internal static class PersonalSyncTests
         }
         var unsorted = Record("note", "note-1", value); unsorted["clock"] = vectors["invalid"]!["unsorted_clock"]!.DeepClone();
         TestAssert.Throws<InvalidDataException>(() => PersonalSyncContract.ValidateBody("personal_sync.batch", Batch("44444444-4444-4444-8444-444444444444", unsorted)), "Unsortierte Vektoruhr wurde angenommen.");
+        var task3Value = new JsonObject { ["title"] = "Kind", ["note"] = "", ["due"] = "", ["priority"] = 2,
+            ["completed"] = false, ["remind"] = false, ["lead_days"] = 0, ["reminder_minute"] = 0,
+            ["created_ms"] = 1, ["modified_ms"] = 2, ["uid"] = "kind-1", ["parent_uid"] = "parent-1", ["order"] = 7 };
+        var task3Record = Record("task", "task-1", task3Value, format: 3);
+        TestAssert.That(task3Record["modified_ms"]!.GetValue<long>() == 2,
+            "Eine als Int32 aufgebaute JSON-Ganzzahl wurde nicht verlustfrei in den Personal-Sync-Datensatz übernommen.");
+        PersonalSyncContract.ValidateBody("personal_sync.batch", Batch("45454545-4545-4545-8545-454545454545", task3Record, 3));
+        TestAssert.Throws<InvalidDataException>(() => PersonalSyncContract.ValidateBody("personal_sync.batch",
+            Batch("45454545-4545-4545-8545-454545454545", task3Record.DeepClone().AsObject(), 2)),
+            "Format 2 akzeptierte AufgabenGraph-Felder aus Format 3.");
 
         var tempRoot = Path.Combine(Path.GetTempPath(), "magnolie-personal-tests-" + Guid.NewGuid().ToString("N"));
         try
@@ -237,11 +247,11 @@ internal static class PersonalSyncTests
     }
 
     private static JsonObject Record(string kind, string id, JsonObject value, int format = 1) => new()
-    { ["kind"] = kind, ["id"] = id, ["state"] = "live", ["clock"] = new JsonArray(new JsonObject { ["actor_id"] = "11111111-1111-4111-8111-111111111111", ["counter"] = 1 }), ["hash"] = PersonalSyncContract.ProjectionHash(value), ["modified_ms"] = value["modified_ms"]!.GetValue<long>(), ["value"] = value.DeepClone() };
+    { ["kind"] = kind, ["id"] = id, ["state"] = "live", ["clock"] = new JsonArray(new JsonObject { ["actor_id"] = "11111111-1111-4111-8111-111111111111", ["counter"] = 1 }), ["hash"] = PersonalSyncContract.ProjectionHash(value), ["modified_ms"] = TelefonProtocolContract.Integer(value["modified_ms"]), ["value"] = value.DeepClone() };
     private static JsonObject Batch(string run, JsonObject record, int format = 1)
     {
         var body = new JsonObject { ["format"] = format, ["run_id"] = run, ["batch_id"] = "99999999-9999-4999-8999-999999999999", ["sequence"] = 0, ["last"] = true, ["reply"] = false, ["records"] = new JsonArray(record) };
-        if (format == 2) body["records_hash"] = PersonalSyncContract.RecordsHash(new JsonArray(record.DeepClone()));
+        if (format >= 2) body["records_hash"] = PersonalSyncContract.RecordsHash(new JsonArray(record.DeepClone()));
         return body;
     }
     private static JsonObject Message(string kind, JsonObject body, long created, long expires, string id = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa") => new()

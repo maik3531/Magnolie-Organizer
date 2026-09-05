@@ -1,27 +1,27 @@
 %global magnolie_distro @MAGNOLIE_DISTRO@
 
 %if "%{magnolie_distro}" == "fedora"
-%global magnolie_deps gtk3 python3-gobject python3-cryptography python3-pyOpenSSL python3-qrcode python3-zeroconf webkit2gtk4.1 libnotify
+%global magnolie_deps gtk3 python3-gobject python3-cryptography python3-phonenumbers python3-pyOpenSSL python3-qrcode python3-zeroconf webkit2gtk4.1 libnotify
 %global magnolie_build_deps python3-pytest
 %else
 %if "%{magnolie_distro}" == "opensuse"
-%global magnolie_deps gtk3 python3-gobject python3-gobject-Gdk python3-cryptography python3-pyOpenSSL python3-qrcode python3-zeroconf typelib-1_0-WebKit2-4_1 typelib-1_0-Notify-0_7
+%global magnolie_deps gtk3 python3-gobject python3-gobject-Gdk python3-cryptography python3-phonenumbers python3-pyOpenSSL python3-qrcode python3-zeroconf typelib-1_0-WebKit2-4_1 typelib-1_0-Notify-0_7
 %global magnolie_build_deps python3-pytest
 %else
 %if "%{magnolie_distro}" == "mageia"
-%global magnolie_deps gtk+3.0 python3-gobject python3-cryptography python3-openssl python3-qrcode python3-zeroconf webkit2gtk4.1 %{_lib}notify-gir0.7
+%global magnolie_deps gtk+3.0 python3-gobject python3-cryptography python3-phonenumbers python3-openssl python3-qrcode python3-zeroconf webkit2gtk4.1 %{_lib}notify-gir0.7
 %global magnolie_build_deps python3-pytest
 %else
 %if "%{magnolie_distro}" == "openmandriva"
-%global magnolie_deps gtk+3.0 python-gobject3 python-cryptography python-pyopenssl python-qrcode python-zeroconf %{_lib}webkit2gtk4.1_0 %{_lib}webkit2gtk-gir4.1 %{_lib}notify-gir0.7
+%global magnolie_deps gtk+3.0 python-gobject3 python-cryptography python-phonenumbers python-pyopenssl python-qrcode python-zeroconf %{_lib}webkit2gtk4.1_0 %{_lib}webkit2gtk-gir4.1 %{_lib}notify-gir0.7
 %global magnolie_build_deps python-pytest
 %else
 %if "%{magnolie_distro}" == "pclinuxos"
-%global magnolie_deps gtk+3.0 python3-gobject python3-cryptography python3-openssl python3-qrcode python3-zeroconf webkit2gtk4.1 %{_lib}notify-gir0.7
+%global magnolie_deps gtk+3.0 python3-gobject python3-cryptography python3-phonenumbers python3-openssl python3-qrcode python3-zeroconf webkit2gtk4.1 %{_lib}notify-gir0.7
 %global magnolie_build_deps python3-pytest
 %else
 %if "%{magnolie_distro}" == "rosa"
-%global magnolie_deps gtk+3.0 python3-gobject python3-cryptography python3-OpenSSL python3-qrcode python3-zeroconf webkit2gtk4.1 %{_lib}webkit2-gir4.1 %{_lib}notify-gir0.7
+%global magnolie_deps gtk+3.0 python3-gobject python3-cryptography python3-phonenumbers python3-OpenSSL python3-qrcode python3-zeroconf webkit2gtk4.1 %{_lib}webkit2-gir4.1 %{_lib}notify-gir0.7
 %global magnolie_build_deps python3-pytest
 %else
 %{error:Unpinned or unsupported Magnolie RPM distro profile}
@@ -33,7 +33,7 @@
 %endif
 
 Name:           magnolie-organizer
-Version:        2.0.16
+Version:        2.0.17
 Release:        1%{?dist}
 Summary:        Personal organizer with a classic paper appearance
 
@@ -77,7 +77,7 @@ done < po/LINGUAS
 
 %check
 set -eu
-/usr/bin/python3 -m py_compile bin/%{name} bin/magnolie_telefon.py bin/magnolie_kdeconnect.py bin/magnolie_hintergrund.py bin/magnolie_personal_sync.py bin/magnolie_nextcloud.py bin/magnolie_cloud_backup.py bin/magnolie_akonadi.py bin/magnolie_crash.py bin/magnolie_asset.py werkzeuge/*.py pruefungen/*.py
+/usr/bin/python3 -m py_compile bin/%{name} bin/magnolie_telefon.py bin/magnolie_phone_region.py bin/magnolie_kdeconnect.py bin/magnolie_hintergrund.py bin/magnolie_personal_sync.py bin/magnolie_nextcloud.py bin/magnolie_cloud_backup.py bin/magnolie_akonadi.py bin/magnolie_crash.py bin/magnolie_asset.py bin/magnolie_setup_state.py bin/magnolie_setup_ui.py werkzeuge/*.py pruefungen/*.py
 while read -r language; do
     test -n "$language" || continue
     /usr/bin/python3 werkzeuge/katalog_pruefen.py \
@@ -111,6 +111,9 @@ export XDG_CACHE_HOME="$test_root/cache"
 /usr/bin/python3 -m pytest -q pruefungen/test_crash_reports.py
 /usr/bin/python3 -m pytest -q pruefungen/test_hintergrunddienst.py
 /usr/bin/python3 pruefungen/test_asset_container.py
+/usr/bin/python3 -m pytest -q pruefungen/test_ersteinrichtung.py
+/usr/bin/python3 -m pytest -q pruefungen/test_optionale_kontaktquellen.py
+/usr/bin/python3 -m pytest -q pruefungen/test_phone_region.py
 
 desktop-file-validate io.gitlab.maik3531.MagnolieOrganizer.desktop
 appstreamcli validate --no-net \
@@ -131,6 +134,9 @@ install -Dpm 0644 bin/magnolie_cloud_backup.py %{buildroot}%{_bindir}/magnolie_c
 install -Dpm 0644 bin/magnolie_akonadi.py %{buildroot}%{_bindir}/magnolie_akonadi.py
 install -Dpm 0644 bin/magnolie_crash.py %{buildroot}%{_bindir}/magnolie_crash.py
 install -Dpm 0644 bin/magnolie_asset.py %{buildroot}%{_bindir}/magnolie_asset.py
+install -Dpm 0644 bin/magnolie_setup_state.py %{buildroot}%{_bindir}/magnolie_setup_state.py
+install -Dpm 0644 bin/magnolie_setup_ui.py %{buildroot}%{_bindir}/magnolie_setup_ui.py
+install -Dpm 0644 bin/magnolie_phone_region.py %{buildroot}%{_bindir}/magnolie_phone_region.py
 
 install -d %{buildroot}%{_datadir}/%{name}/web/i18n
 install -pm 0644 web/index.html web/stil.css web/anwendung.js \
@@ -194,7 +200,8 @@ root = pathlib.Path(r"%{buildroot}")
 bindir = root / "usr/bin"
 for name in ("magnolie-organizer", "magnolie_telefon.py",
               "magnolie_kdeconnect.py", "magnolie_hintergrund.py", "magnolie_personal_sync.py",
-              "magnolie_nextcloud.py", "magnolie_cloud_backup.py", "magnolie_akonadi.py"):
+              "magnolie_nextcloud.py", "magnolie_cloud_backup.py", "magnolie_akonadi.py",
+              "magnolie_setup_state.py", "magnolie_setup_ui.py", "magnolie_phone_region.py"):
     ast.parse((bindir / name).read_text(encoding="utf-8"), filename=name)
 sys.path.insert(0, str(bindir))
 import magnolie_personal_sync
@@ -230,6 +237,9 @@ done
 %{_bindir}/magnolie_akonadi.py
 %{_bindir}/magnolie_crash.py
 %{_bindir}/magnolie_asset.py
+%{_bindir}/magnolie_setup_state.py
+%{_bindir}/magnolie_setup_ui.py
+%{_bindir}/magnolie_phone_region.py
 %{_datadir}/%{name}/
 %{_datadir}/applications/io.gitlab.maik3531.MagnolieOrganizer.desktop
 %{_datadir}/metainfo/io.gitlab.maik3531.MagnolieOrganizer.metainfo.xml
@@ -239,6 +249,10 @@ done
 %{_mandir}/*/man1/magnolie-organizer.1*
 
 %changelog
+* Wed Sep 02 2026 Maik Walter <maik3531@gmail.com> - 2.0.17-1
+- Add the native setup assistant, task hierarchy and generic CalDAV/CardDAV.
+- Bound address-book completion and add safe contact import and call origin.
+
 * Tue Sep 01 2026 Maik Walter <maik3531@gmail.com> - 2.0.16-1
 - Use existing GNOME and KDE system accounts without another login.
 - Harden synchronization, SMS ownership, recovery retention and AppImage startup.

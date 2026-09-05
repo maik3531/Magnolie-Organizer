@@ -180,6 +180,17 @@ function baueTermine(anzahl) {
     }, 4000);
   }
   messe("Aufgabenliste zeichnen", () => T.wechsel("aufgaben"), 4000);
+  const elternSuche = d.getElementById("aufgabe-eltern-suche");
+  messe("Elternaufgabe am Listenende suchen", () => {
+    elternSuche.value = "lotus-a" + (ANZAHL - 1);
+    elternSuche.dispatchEvent(new w.Event("input", { bubbles: true }));
+  }, 4000);
+  const elternWahl = d.getElementById("aufgabe-eltern");
+  pruefe(Array.from(elternWahl.options).some((option) =>
+    option.value === "lotus-a" + (ANZAHL - 1)),
+  "jede Elternaufgabe bleibt über die Suche auswählbar");
+  pruefe(elternWahl.options.length <= 252,
+    "die Elternauswahl bleibt auf ein Listenhäppchen begrenzt");
   messe("Notizbuch zeichnen", () => T.wechsel("notizen"), 4000);
   messe("Jahrestage zeichnen", () => T.wechsel("jahrestage"), 4000);
   T.wechsel("kalender");

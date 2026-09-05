@@ -1,6 +1,7 @@
 import importlib.machinery
 import importlib.util
 from pathlib import Path
+import time
 
 import pytest
 
@@ -12,11 +13,12 @@ m = importlib.util.module_from_spec(spec)
 lader.exec_module(m)
 
 
-def vcard(uid="remote-1", name="Remote", rev="20260812T120000Z"):
+def vcard(uid="remote-1", name="Remote", rev="20260812T120000Z", birthday=""):
     uid_zeile = "UID:%s\r\n" % uid if uid is not None else ""
+    birthday_line = "BDAY:%s\r\n" % birthday if birthday else ""
     return ("BEGIN:VCARD\r\nVERSION:3.0\r\n" + uid_zeile +
-            "N:%s;;;;\r\nFN:%s\r\nREV:%s\r\nEND:VCARD\r\n" %
-            (name, name, rev))
+            "N:%s;;;;\r\nFN:%s\r\nREV:%s\r\n" %
+            (name, name, rev) + birthday_line + "END:VCARD\r\n")
 
 
 class Kontakt:
@@ -140,7 +142,7 @@ def test_erster_sync_leer_lokal_remote_voll(monkeypatch):
     client = Client([Kontakt(vcard("r1")), Kontakt(vcard("r2", "Zwei"))],
                     capabilities=["refresh-supported"])
     probe, erstellt, geaendert, geloescht = sync_lauf(monkeypatch, client)
-    assert client.refreshes == 1 and probe.snapshots == ["pre-sync"]
+    assert client.refreshes == 0 and probe.snapshots == ["pre-sync"]
     assert {k["uid"] for k in probe.nutzlast["kontakte"]} == {"r1", "r2"}
     assert not erstellt and not geaendert and not geloescht
     assert probe.nutzlast["kontaktVorschau"]["lokalNeu"] == 2
@@ -193,6 +195,34 @@ def test_etablierter_bidirektionaler_sync_und_erfolgszaehler(monkeypatch):
     assert neuer_cursor["initialisiert"] and neuer_cursor["letzterSync"] > basis["letzterSync"]
 
 
+def test_leeres_remote_geburtsdatum_loescht_lokales_nicht(monkeypatch):
+    lokal = [{"uid": "gemeinsam", "nachname": "Remote",
+              "geburtstag": "1980-04-03", "geburtstagJahrUnbekannt": False,
+              "geaendert": 10, "sync": True}]
+    basis = {"initialisiert": True, "letzterSync": 100,
+             "remoteAnzahl": 1, "snapshotHash": "e" * 64}
+    probe, _erstellt, geaendert, _geloescht = sync_lauf(
+        monkeypatch, Client([Kontakt(vcard("gemeinsam", "Remote"))]),
+        lokal, basis=basis)
+    kontakt = probe.nutzlast["kontakte"][0]
+    assert kontakt["geburtstag"] == "1980-04-03"
+    assert len(geaendert) == 1
+    assert "BDAY:1980-04-03" in geaendert[0]
+
+
+def test_anderes_remote_geburtsdatum_bleibt_echte_aenderung(monkeypatch):
+    lokal = [{"uid": "gemeinsam", "nachname": "Remote",
+              "geburtstag": "1980-04-03", "geburtstagJahrUnbekannt": False,
+              "geaendert": 10, "sync": True}]
+    basis = {"initialisiert": True, "letzterSync": 100,
+             "remoteAnzahl": 1, "snapshotHash": "f" * 64}
+    probe, _erstellt, _geaendert, _geloescht = sync_lauf(
+        monkeypatch, Client([Kontakt(vcard(
+            "gemeinsam", "Remote", birthday="1981-05-04"))]),
+        lokal, basis=basis)
+    assert probe.nutzlast["kontakte"][0]["geburtstag"] == "1981-05-04"
+
+
 def test_etabliert_remote_leer_uebernimmt_remote_loeschung(monkeypatch):
     lokal = [{"uid": "weg", "nachname": "Weg", "geaendert": 10, "sync": True}]
     basis = {"initialisiert": True, "letzterSync": 100,
@@ -237,6 +267,48 @@ def test_unvollstaendiger_sync_mutiert_keinen_stand(monkeypatch):
     with pytest.raises(RuntimeError):
         sync_lauf(monkeypatch, client, lokal)
     assert lokal == [{"uid": "bleibt", "nachname": "Bleibt", "sync": True}]
+
+
+def test_blockierter_eds_aufruf_wird_abgebrochen(monkeypatch):
+    class Abbruch:
+        def __init__(self):
+            self.abgebrochen = False
+
+        def cancel(self):
+            self.abgebrochen = True
+
+        def is_cancelled(self):
+            return self.abgebrochen
+
+    class GioProbe:
+        Cancellable = Abbruch
+
+    monkeypatch.setattr(m, "Gio", GioProbe)
+
+    def blockiert(abbruch):
+        while not abbruch.is_cancelled():
+            time.sleep(0.001)
+        raise RuntimeError("cancelled")
+
+    start = time.monotonic()
+    with pytest.raises(RuntimeError) as fehler:
+        m._eds_mit_frist(blockiert, 0.02)
+    assert str(fehler.value) == m._("The online account operation timed out.")
+    assert time.monotonic() - start < 0.5
+
+
+def test_lesender_eds_aufruf_wird_einmal_wiederholt(monkeypatch):
+    monkeypatch.setattr(m, "Gio", None)
+    aufrufe = []
+
+    def instabil(_abbruch):
+        aufrufe.append(True)
+        if len(aufrufe) == 1:
+            raise RuntimeError("temporary")
+        return "ok"
+
+    assert m._eds_mit_frist(instabil, 0.1, schritt="probe") == "ok"
+    assert len(aufrufe) == 2
 
 
 def test_erster_sync_retry_erzeugt_keine_dubletten(monkeypatch):

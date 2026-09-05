@@ -1,54 +1,52 @@
-Magnolie Organizer 2.0.16 / Notes 1.0.12
+Magnolie Organizer 2.0.17 / Notes 1.0.13
 
 Bitte pruefen Sie heruntergeladene Dateien mit PRUEFSUMMEN.sha256.
 Die anwendungsspezifischen Pruefsummen stehen zusaetzlich in
 Magnolie-Organizer-PRUEFSUMMEN.sha256,
-Magnolie-Organizer-Windows-2.0.16-PRUEFSUMMEN.sha256 und
+Magnolie-Organizer-Windows-2.0.17-PRUEFSUMMEN.sha256 und
 Magnolie-Notes-PRUEFSUMMEN.sha256.
 Die optionalen DEB-, DSC-, Quellarchiv-, RPM- und SRPM-Artefakte des nativen
 Akonadi-Helfers sind in Magnolie-Organizer-PRUEFSUMMEN.sha256 aufgeführt.
 
-Die Windows-Artefakte sind bewusst unsignierte Linux-Cross-Builds. Sie sind
-mit artifactTrust=UNSIGNED, windowsRuntimeVerified=false und
-windowsVmValidationRequired=true gekennzeichnet. Authenticode-Signierung und
-native Windows-Kompilierung waren nicht Bestandteil dieser Community-Freigabe;
-eine native Windows-Laufzeitprüfung war nicht verfügbar.
+Version 2.0.17 behebt den mindestens seit 2.0.15 vorhandenen Adressbuchhänger
+durch eine begrenzte Speicherbestätigung. Sie ergänzt einen nativen
+Ersteinrichtungsassistenten, Aufgabenhierarchie einschließlich CalDAV-VTODO,
+allgemeines CalDAV/CardDAV (Baïkal ist nur ein Beispiel eines kompatiblen
+Servers), sichere optionale Kontaktimporte und eine vorsichtige Ermittlung der
+Anrufherkunft. Gesamtarchive verwenden Datenschema 3 und internes Datenmodell 7;
+Personal Sync unterstützt die Formate 1 bis 3. Die neuen Texte sind in den 19
+unterstützten Übersetzungen berücksichtigt. Magnolie Notes 1.0.13 übernimmt
+diese Android-Änderungen mit einer erhöhten Paketversion.
 
-Die Linux-DEBs, das AppImage, Flatpak und die Fedora-42-RPMs wurden gebaut und
-geprueft; DEBs, AppImage und Flatpak wurden zusaetzlich reproduzierbar
-verglichen. Der externe QEMU-autopkgtest-Lauf wurde mangels Testabbild nicht
-ausgeführt; die Paket-, GTK-/WebKit- und Installationsprüfungen im Releasebau
-blieben aktiv.
-Magnolie Notes wurde mit dem bestehenden
-Produktionsschluessel gebaut; Unit-, Lint-, Signatur-, Installations-,
-Aktualisierungs- und Wiederherstellungspruefungen liefen erfolgreich auf einem
-dedizierten Android-35-AVD.
+Am 5. September 2026 bestand der aktuelle Quellstand den vollständigen
+Desktop-Releasebau einschließlich QEMU-autopkgtest, DEB-Upgrade- und
+Installationstests, Fedora-42-RPM-Bau und -Installation, AppImage-Prüfung unter
+Ubuntu 22.04 und Arch Linux sowie Flatpak-Bau und -Prüfung. Das Android-
+Releasegate bestand Unit-, Lint-, Signatur-, Upgrade-, Start- und
+Instrumentationstests in einem dedizierten API-35-AVD. Der Windows-Bau bestand
+Core-, Web-, Paritäts-, Quellarchiv- und Installer-Audits als markierter,
+unsignierter Linux-Cross-Build. Eine native Windows-Laufzeitprüfung und
+Authenticode-Signatur liegen nicht vor. Die Darstellungskorrektur für
+MATE/NVIDIA ist durch Regressionstests abgedeckt, aber auf dem ursprünglich
+betroffenen System noch nicht visuell bestätigt.
 
-Version 2.0.16 verwendet vorhandene GNOME- und KDE-Systemkonten ohne erneute
-Anmeldung, härtet EDS-/Akonadi-Abgleich, SMS-Meldungszuständigkeit, Autostart und
-AppImage-Hosthelfer und erweitert die Aufbewahrung der Wiederherstellungsstände.
-Notes 1.0.12 entfernt überflüssige Bestätigungsknöpfe aus den Zahlenfeldern der
-Sicherungsansicht, verhindert überlagerte Beschriftungen und verbessert den
-Kontrast deaktivierter Knöpfe.
+Version 2.0.17 fixes the address-book hang present since at least 2.0.15 by
+bounding the final persistence acknowledgement. It adds a native first-run
+assistant, task hierarchy including CalDAV VTODO, generic CalDAV/CardDAV
+support (Baïkal is only an example of a compatible server), safe optional
+contact imports, and conservative incoming-call origin reporting. Total
+archives use data schema 3 and internal data model 7; Personal Sync supports
+formats 1 through 3. The new text is covered by the 19 supported translations.
+Magnolie Notes 1.0.13 includes these Android changes with an incremented package
+version.
 
-The Windows artifacts intentionally are unsigned Linux cross-builds marked
-artifactTrust=UNSIGNED, windowsRuntimeVerified=false and
-windowsVmValidationRequired=true. Authenticode signing and native Windows
-compilation were not part of this community release; the installer and update
-were not runtime-tested on a native Windows system.
-
-The Linux DEBs, AppImage, Flatpak and Fedora 42 RPMs were built and tested;
-the DEBs, AppImage and Flatpak were also compared for reproducibility. The
-external QEMU autopkgtest was skipped because no test image was available; the
-package, GTK/WebKit and installation checks in the release build remained active.
-The optional native Akonadi helper DEB, DSC, source archive, RPM and SRPM are
-listed in Magnolie-Organizer-PRUEFSUMMEN.sha256.
-Magnolie Notes was built with the existing
-production key; unit, lint, signature, installation, upgrade and recovery
-checks passed on a dedicated Android 35 AVD.
-
-Version 2.0.16 uses existing GNOME and KDE system accounts without another
-login and hardens EDS/Akonadi synchronization, SMS notification ownership,
-autostart, the AppImage host helper and recovery-snapshot retention. Notes 1.0.12 removes redundant
-confirmation buttons from numeric backup fields, prevents overlapping labels,
-and improves disabled-button contrast.
+On September 5, 2026, the current source passed the complete desktop release
+build, including QEMU autopkgtest, DEB upgrade and installation tests, Fedora
+42 RPM build and installation, AppImage checks on Ubuntu 22.04 and Arch Linux,
+and Flatpak build and validation. The Android release gate passed unit, lint,
+signature, upgrade, launch, and instrumentation tests in a dedicated API 35
+AVD. The Windows build passed core, web, parity, source archive, and installer
+audits as a marked unsigned Linux cross-build. Native Windows runtime validation
+and Authenticode signing remain unavailable. Regression tests cover the
+MATE/NVIDIA rendering correction, but it has not yet been visually confirmed
+on the originally affected system.

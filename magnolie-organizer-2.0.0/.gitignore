@@ -4,11 +4,14 @@
 /debian/debhelper-build-stamp
 /debian/magnolie-organizer/
 /debian/files
+/debian/test-config/
+/debian/test-data/
 /debian/*.debhelper.log
 /debian/*.substvars
 /debian/*.buildinfo
 /debian/*.changes
 /debian/magnolie-organizer_*
+/native/akonadi-helper/debian/files
 
 # Local test and tool caches
 /.pytest_cache/

@@ -12,10 +12,15 @@ internal static class NativeLocalization
     ];
     private static readonly Lazy<IReadOnlyDictionary<string, IReadOnlyDictionary<string, string>>> Catalogs =
         new(LoadCatalogs);
-
-    internal static string Language { get; } = ResolveLanguage(
+    private static volatile string currentLanguage = ResolveLanguage(
         RegionalSettings.LanguagePreference() is var preference && preference != "system"
             ? preference : CultureInfo.CurrentUICulture.Name);
+
+    internal static string Language => currentLanguage;
+
+    internal static void SetLanguage(string preference) => currentLanguage = ResolveLanguage(
+        string.Equals(preference, "system", StringComparison.OrdinalIgnoreCase)
+            ? CultureInfo.CurrentUICulture.Name : preference);
 
     internal static string Gettext(string message) => Gettext(message, Language);
 

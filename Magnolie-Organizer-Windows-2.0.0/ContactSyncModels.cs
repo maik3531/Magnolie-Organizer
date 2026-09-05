@@ -34,7 +34,8 @@ internal static class ContactFields
     internal static JsonObject CopyRemoteFields(JsonObject target, JsonObject source)
     {
         foreach (var name in Names)
-            if (name != "geburtstag" || source.ContainsKey(name)) target[name] = source[name]?.DeepClone();
+            if (name != "geburtstag" || Text(source, name).Length > 0 || Text(target, name).Length == 0)
+                target[name] = source[name]?.DeepClone();
         return target;
     }
 
@@ -93,6 +94,9 @@ internal sealed class ContactSyncEngine
                 var localTime = item["geaendert"]?.GetValue<long>() ?? 0;
                 var remoteChanged = mapping?["etag"]?.GetValue<string>() is string priorEtag && priorEtag != other.ETag;
                 var localChanged = localTime > lastSync;
+                var repairBirthday = ContactFields.Text(item, "geburtstag").Length > 0 &&
+                    ContactFields.Text(other.Data, "geburtstag").Length == 0;
+                var wroteRemote = false;
                 if (other.Modified > localTime)
                 {
                     ContactFields.CopyRemoteFields(item, other.Data); item["geaendert"] = other.Modified;
@@ -100,7 +104,7 @@ internal sealed class ContactSyncEngine
                 }
                 else if (localTime > other.Modified)
                 {
-                    try { var changed = await remoteStore.UpdateAsync(other, uid, item, cancellationToken); ContactFields.SetSource(item, source, changed); updated++; }
+                    try { var changed = await remoteStore.UpdateAsync(other, uid, item, cancellationToken); ContactFields.SetSource(item, source, changed); updated++; wroteRemote = true; }
                     catch { errors++; }
                 }
                 else if (remoteChanged && localChanged)
@@ -118,6 +122,11 @@ internal sealed class ContactSyncEngine
                     ContactFields.SetSource(item, source, other); updated++;
                 }
                 else ContactFields.SetSource(item, source, other);
+                if (repairBirthday && !wroteRemote)
+                {
+                    try { var changed = await remoteStore.UpdateAsync(other, uid, item, cancellationToken); ContactFields.SetSource(item, source, changed); updated++; }
+                    catch { errors++; }
+                }
                 continue;
             }
             try { var made = await remoteStore.CreateAsync(uid, item, cancellationToken); ContactFields.SetSource(item, source, made); exported++; }

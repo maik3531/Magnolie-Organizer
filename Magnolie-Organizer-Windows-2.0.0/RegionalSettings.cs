@@ -15,6 +15,9 @@ internal static class RegionalSettings
         return Read(path)["language"]?.GetValue<string>() ?? "system";
     }
 
+    internal static string HomeCountry() =>
+        Read(new WindowsPaths().RegionalSettings)["homeCountry"]?.GetValue<string>() ?? "DE";
+
     internal static JsonObject Read(string path)
     {
         try
@@ -30,7 +33,19 @@ internal static class RegionalSettings
 
     internal static JsonObject Write(string path, JsonElement value)
     {
-        var clean = Clean(JsonNode.Parse(value.GetRawText()) as JsonObject);
+        var source = JsonNode.Parse(value.GetRawText()) as JsonObject;
+        if (source is not null && !source.ContainsKey("homeCountry"))
+            source["homeCountry"] = Read(path)["homeCountry"]?.DeepClone();
+        var clean = Clean(source);
+        new AtomicStore().Write(path, clean.ToJsonString(new JsonSerializerOptions { WriteIndented = true }), 64 * 1024);
+        return clean;
+    }
+
+    internal static JsonObject WriteLanguage(string path, string language)
+    {
+        var settings = Read(path);
+        settings["language"] = language;
+        var clean = Clean(settings);
         new AtomicStore().Write(path, clean.ToJsonString(new JsonSerializerOptions { WriteIndented = true }), 64 * 1024);
         return clean;
     }
@@ -46,9 +61,11 @@ internal static class RegionalSettings
         var temperature = OneOf(Text(source, "temperatureUnit", "system"), "system", "celsius", "fahrenheit");
         var zone = Text(source, "timeZone", "system");
         if (zone != "system" && zone != "UTC" && (zone.Contains("..") || !Regex.IsMatch(zone, @"^[A-Za-z0-9._+-]+(?:/[A-Za-z0-9._+-]+)+$"))) zone = "system";
+        var homeCountry = PhoneRegionInfo.HomeCountry(Text(source, "homeCountry", "DE"));
         return new JsonObject { ["language"] = language, ["formatLocale"] = format,
             ["hourCycle"] = hours, ["firstDayOfWeek"] = first, ["weekRule"] = "iso",
-            ["temperatureUnit"] = temperature, ["timeZone"] = zone };
+            ["temperatureUnit"] = temperature, ["timeZone"] = zone,
+            ["homeCountry"] = homeCountry };
     }
 
     private static string Text(JsonObject? source, string name, string fallback)

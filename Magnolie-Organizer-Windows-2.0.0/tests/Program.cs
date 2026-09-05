@@ -31,6 +31,8 @@ runner.Add("Windows-Update / Manifest / Download / Installation", WindowsUpdateT
 runner.Add("F11-Vollbild / WebView2 / Persistenz / Tray", FullscreenSourceTests.RunAsync);
 runner.Add("Native Lokalisierung / 20 Sprachen / Fallback", NativeLocalizationTests.RunAsync);
 runner.Add("Regionale Einstellungen / Grenzen / frühe Persistenz", RegionalSettingsTests.RunAsync);
+runner.Add("Telefonnummern / Herkunft / gemeinsame Vektoren", PhoneRegionInfoTests.RunAsync);
+runner.Add("Ersteinrichtung / Zustand / Atomik / Startreihenfolge", FirstRunSetupTests.RunAsync);
 runner.Add("Vertiefte portable Cross-Platform-Regression", PortableRegressionTests.RunAsync);
 runner.Add("Größen, Grenzen und Last", StressTests.RunAsync);
 return await runner.RunAsync(args.Length == 0 ? null : string.Join(' ', args));

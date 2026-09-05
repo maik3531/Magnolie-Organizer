@@ -46,8 +46,8 @@ internal static class TelefonProtocolContract
         ["answer_call"] = Capability(true, "available", 1), ["device_status"] = Capability(true, "available", 1, 2, 3),
         ["dial_request"] = Capability(true, "available", 1), ["end_call"] = Capability(true, "available", 1),
         ["incoming_call_number"] = Capability(true, "available", 1), ["incoming_call_state"] = Capability(true, "available", 2),
-        ["personal_deletions_sync"] = Capability(true, "available", 1), ["personal_notes_sync"] = Capability(true, "available", 1, 2),
-        ["personal_tasks_sync"] = Capability(true, "available", 1), ["selected_notifications_readonly"] = Capability(false, "not_implemented", 1),
+        ["personal_deletions_sync"] = Capability(true, "available", 1), ["personal_notes_sync"] = Capability(true, "available", 1, 2, 3),
+        ["personal_tasks_sync"] = Capability(true, "available", 1, 2, 3), ["selected_notifications_readonly"] = Capability(false, "not_implemented", 1),
         ["transport.bluetooth_rfcomm"] = Capability(TelefonBluetoothSupport.Available, TelefonBluetoothSupport.Reason, 1)
     }};
 

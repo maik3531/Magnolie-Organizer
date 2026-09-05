@@ -60,16 +60,16 @@ def test_manifest_signiert_und_tamper_wird_abgelehnt(tmp_path):
     handbuch.write_bytes(b"handbuch-testinhalt")
     windows.write_bytes(b"windows-testinhalt")
     manifest.write_text(
-        "<update><version>9.8.7</version>"
-        "<deb>https://example.invalid/magnolie-organizer_9.8.7_all.deb</deb>"
+        "<update><version>9.8.6</version>"
+        "<deb>https://example.invalid/magnolie-organizer_9.8.6_all.deb</deb>"
         "<signature>alte-signatur</signature><appimage><architecture>x86_64</architecture>"
-        "<url>https://example.invalid/Magnolie-Organizer-9.8.7-x86_64.AppImage</url>"
-        "</appimage><manual><version>9.8.7</version><linux>"
-        "<deb>https://example.invalid/magnolie-handbuch_9.8.7_all.deb</deb>"
+        "<url>https://example.invalid/Magnolie-Organizer-9.8.6-x86_64.AppImage</url>"
+        "</appimage><manual><version>9.8.6</version><linux>"
+        "<deb>https://example.invalid/magnolie-handbuch_9.8.6_all.deb</deb>"
         "</linux><windows><url>https://example.invalid/"
-        "Magnolie-Organizer-Windows-9.8.7-Setup-x64.exe</url></windows></manual>"
-        "<windows><version>9.8.7</version><url>https://example.invalid/"
-        "Magnolie-Organizer-Windows-9.8.7-Setup-x64.exe</url></windows></update>",
+        "Magnolie-Organizer-Windows-9.8.6-Setup-x64.exe</url></windows></manual>"
+        "<windows><version>9.8.6</version><url>https://example.invalid/"
+        "Magnolie-Organizer-Windows-9.8.6-Setup-x64.exe</url></windows></update>",
         encoding="utf-8")
 
     ohne_freigabe = subprocess.run(
@@ -82,6 +82,14 @@ def test_manifest_signiert_und_tamper_wird_abgelehnt(tmp_path):
                    check=True, stdout=subprocess.DEVNULL)
     assert ET.parse(manifest).getroot().find("signature") is None
     root = ET.parse(manifest).getroot()
+    assert root.findtext("./version") == "9.8.7"
+    assert root.findtext("./deb").endswith("magnolie-organizer_9.8.7_all.deb")
+    assert root.findtext("./manual/version") == "9.8.7"
+    assert root.findtext("./windows/version") == "9.8.7"
+    assert root.findtext("./manual/linux/deb").endswith(
+        "magnolie-handbuch_9.8.7_all.deb")
+    assert root.findtext("./manual/windows/url").endswith(
+        "Magnolie-Organizer-Windows-9.8.7-Setup-x64.exe")
     assert root.findtext("./manual/linux/sha256") == __import__("hashlib").sha256(
         handbuch.read_bytes()).hexdigest()
     assert root.findtext("./manual/windows/sha256") == __import__("hashlib").sha256(

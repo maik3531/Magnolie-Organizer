@@ -82,14 +82,31 @@ internal sealed class ReminderScheduler : IDisposable
         var security = Child(settings, "sicherheit");
         if (!True(security, "erinnernTrotzKennwort")) return null;
         var confidential = True(security, "vertraulicheErinnerungen");
+        return SelectData(root, confidential);
+    }
+
+    internal static string SelectRuntimeData(string plainText)
+    {
+        using var document = JsonDocument.Parse(plainText);
+        return document.RootElement.ValueKind == JsonValueKind.Object
+            ? SelectData(document.RootElement, true) : "{}";
+    }
+
+    private static string SelectData(JsonElement root, bool confidential)
+    {
+        var appointments = SelectAppointments(root, item => confidential || !True(item, "vertraulich")).ToList();
+        appointments.AddRange(SelectCustomEntries(root, "appointments"));
+        var tasks = SelectArray(root, "aufgaben", item => confidential || !True(item, "vertraulich"),
+            "id", "uid", "titel", "faellig", "startZeit", "faelligZeit", "erledigt", "erinnern",
+            "individuelleErinnerungTage").ToList();
+        tasks.AddRange(SelectCustomEntries(root, "tasks"));
+        var settings = Child(root, "einstellungen");
         var selected = new Dictionary<string, object?>
         {
             ["version"] = 1,
             ["nurErinnerungen"] = true,
-            ["termine"] = SelectAppointments(root, item => confidential || !True(item, "vertraulich")),
-            ["aufgaben"] = SelectArray(root, "aufgaben", item => confidential || !True(item, "vertraulich"),
-                "id", "uid", "titel", "faellig", "startZeit", "faelligZeit", "erledigt", "erinnern",
-                "individuelleErinnerungTage"),
+            ["termine"] = appointments,
+            ["aufgaben"] = tasks,
             ["jahrestage"] = SelectArray(root, "jahrestage", item => confidential || !True(item, "vertraulich"),
                 "id", "uid", "name", "datum", "typ"),
             ["einstellungen"] = new JsonObject
@@ -99,6 +116,49 @@ internal sealed class ReminderScheduler : IDisposable
             }
         };
         return JsonSerializer.Serialize(selected);
+    }
+
+    private static JsonObject[] SelectCustomEntries(JsonElement root, string type)
+    {
+        var custom = Child(root, "customOrganizer");
+        if (custom.ValueKind != JsonValueKind.Object ||
+            !custom.TryGetProperty("modules", out var modules) || modules.ValueKind != JsonValueKind.Array)
+            return Array.Empty<JsonObject>();
+        var result = new List<JsonObject>();
+        foreach (var module in modules.EnumerateArray().Take(24))
+        {
+            if (module.ValueKind != JsonValueKind.Object || Text(module, "type") != type || !True(module, "reminders") ||
+                !module.TryGetProperty("items", out var items) || items.ValueKind != JsonValueKind.Array) continue;
+            var moduleTitle = Text(module, "title");
+            var moduleId = Text(module, "id");
+            foreach (var item in items.EnumerateArray().Take(500))
+            {
+                if (item.ValueKind != JsonValueKind.Object ||
+                    item.TryGetProperty("remind", out var remind) && remind.ValueKind == JsonValueKind.False) continue;
+                var title = string.Join(" · ", new[] { moduleTitle, Text(item, "title") }.Where(value => value.Length > 0));
+                var reminderId = $"custom:{moduleId}:{Text(item, "id")}";
+                var date = Text(item, type == "appointments" ? "date" : "due");
+                if (!DateTime.TryParseExact(date, "yyyy-MM-dd", CultureInfo.InvariantCulture,
+                    DateTimeStyles.None, out _)) continue;
+                var time = Text(item, "time");
+                time = time.Length >= 5 && TimeOnly.TryParseExact(time[..5], "HH:mm",
+                    CultureInfo.InvariantCulture, DateTimeStyles.None, out _) ? time[..5] : "";
+                if (type == "appointments")
+                {
+                    var selected = new JsonObject { ["id"] = reminderId, ["datum"] = date,
+                        ["zeit"] = time, ["titel"] = title, ["standardErinnerung"] = true };
+                    if (item.TryGetProperty("wiederholung", out var recurrence))
+                        selected["wiederholung"] = SelectFields(recurrence,
+                            "art", "bis", "ordinal", "wochentag", "intervall", "daten");
+                    result.Add(selected);
+                }
+                else
+                    result.Add(new JsonObject { ["id"] = reminderId, ["titel"] = title,
+                        ["faellig"] = date, ["faelligZeit"] = time,
+                        ["erledigt"] = True(item, "done"), ["erinnern"] = true });
+            }
+        }
+        return result.ToArray();
     }
 
     internal static IReadOnlyList<(string Key, DateTime Start, DateTime Due)> DueAppointments(

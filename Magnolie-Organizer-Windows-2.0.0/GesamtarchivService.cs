@@ -13,7 +13,7 @@ internal static class GesamtarchivService
 {
     internal const string Marker = "magnolie-gesamtarchiv";
     internal const int Fassung = 1;
-    internal const int Datenschema = 2;
+    internal const int Datenschema = 3;
 
     internal static bool IsArchivePath(string path) =>
         string.Equals(Path.GetExtension(path), ".magnolie", StringComparison.OrdinalIgnoreCase);
@@ -67,7 +67,7 @@ internal static class GesamtarchivService
                 Encoding.ASCII.GetBytes(Convert.ToHexString(SHA256.HashData(
                     MagnolienbaumCrypto.Canonical(data))).ToLowerInvariant())))
             throw new InvalidDataException("Die SHA-256-Prüfsumme des Gesamtarchivs stimmt nicht.");
-        if (Integer(root, "datenschema") is not (1 or Datenschema))
+        if (Integer(root, "datenschema") is not (1 or 2 or Datenschema))
             throw new InvalidDataException("Format oder Datenschema des Gesamtarchivs wird nicht unterstützt.");
         RejectIntegrationSecrets(data);
         data = NormalizeRecurrences(data);
@@ -133,7 +133,76 @@ internal static class GesamtarchivService
                 if (appointment["wiederholung"] is JsonObject recurrence &&
                     string.Equals(recurrence["art"]?.GetValue<string>(), "monthly_weekday", StringComparison.OrdinalIgnoreCase))
                     recurrence["art"] = "monthly";
+        if (result["aufgaben"] is JsonArray tasks) NormalizeTaskGraph(tasks);
+        result["version"] = Math.Max(7, result["version"]?.GetValue<int>() ?? 0);
         return result;
+    }
+
+    internal static void NormalizeTaskGraph(JsonArray tasks)
+    {
+        var technicalOrder = Comparer<string>.Create((left, right) =>
+            Encoding.UTF8.GetBytes(left).AsSpan().SequenceCompareTo(Encoding.UTF8.GetBytes(right)));
+        var values = tasks.OfType<JsonObject>().ToArray();
+        var old = values.GroupBy(task => task["uid"]?.GetValue<string>()?.Trim() ?? "", StringComparer.Ordinal)
+            .Where(group => group.Key.Length > 0).ToDictionary(group => group.Key, group => group.ToArray(), StringComparer.Ordinal);
+        var reserved = old.Where(pair => pair.Value.Length == 1).Select(pair => pair.Key).ToHashSet(StringComparer.Ordinal);
+        var used = new HashSet<string>(StringComparer.Ordinal);
+        var nextAttempt = new Dictionary<string, int>(StringComparer.Ordinal);
+        foreach (var pair in values.Select((task, index) => (Task: task, Index: index))
+                     .OrderBy(pair => pair.Task["id"]?.GetValue<string>() ?? "", technicalOrder).ThenBy(pair => pair.Index))
+        {
+            var uid = pair.Task["uid"]?.GetValue<string>()?.Trim() ?? "";
+            if (!reserved.Contains(uid) || !used.Add(uid))
+            {
+                var id = pair.Task["id"]?.GetValue<string>() ?? "";
+                var attempt = nextAttempt.GetValueOrDefault(id);
+                do
+                {
+                    var suffix = attempt == 0 ? "" : (attempt - 1).ToString(System.Globalization.CultureInfo.InvariantCulture);
+                    uid = StableTaskUid(id, suffix);
+                    attempt++;
+                } while (reserved.Contains(uid) || !used.Add(uid));
+                nextAttempt[id] = attempt;
+            }
+            pair.Task["uid"] = uid;
+        }
+        var byUid = values.ToDictionary(task => task["uid"]!.GetValue<string>(), StringComparer.Ordinal);
+        foreach (var pair in values.Select((task, index) => (Task: task, Index: index)))
+        {
+            var raw = pair.Task["elternUid"]?.GetValue<string>()?.Trim() ?? "";
+            byUid.TryGetValue(raw, out var parent);
+            if (parent is null && old.TryGetValue(raw, out var matches) && matches.Length == 1) parent = matches[0];
+            pair.Task["elternUid"] = parent is not null && !ReferenceEquals(parent, pair.Task) ? parent["uid"]!.GetValue<string>() : "";
+            pair.Task["reihenfolge"] = pair.Task["reihenfolge"] is JsonValue order && order.TryGetValue<int>(out var number) && number >= 0 ? number : pair.Index;
+        }
+        var done = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var start in values)
+        {
+            var path = new List<JsonObject>(); var positions = new Dictionary<string, int>(StringComparer.Ordinal); JsonObject? current = start;
+            while (current is not null && !done.Contains(current["uid"]!.GetValue<string>()) && !positions.ContainsKey(current["uid"]!.GetValue<string>()))
+            {
+                var uid = current["uid"]!.GetValue<string>(); positions[uid] = path.Count; path.Add(current);
+                byUid.TryGetValue(current["elternUid"]!.GetValue<string>(), out current);
+            }
+            if (current is not null && positions.TryGetValue(current["uid"]!.GetValue<string>(), out var at))
+                path.Skip(at).MinBy(task => task["uid"]!.GetValue<string>(), technicalOrder)!["elternUid"] = "";
+            foreach (var task in path) done.Add(task["uid"]!.GetValue<string>());
+        }
+        foreach (var group in values.GroupBy(task => task["elternUid"]!.GetValue<string>(), StringComparer.Ordinal))
+            foreach (var pair in group.OrderBy(task => task["reihenfolge"]!.GetValue<int>()).ThenBy(task => task["uid"]!.GetValue<string>(), technicalOrder).Select((task, index) => (Task: task, Index: index)))
+                pair.Task["reihenfolge"] = pair.Index;
+    }
+
+    internal static string StableTaskUid(string id, string salt)
+    {
+        var bytes = Encoding.UTF8.GetBytes("magnolie-task-v1\0" + id + "\0" + salt);
+        uint first = 2166136261, second = 2166136261;
+        unchecked
+        {
+            foreach (var value in bytes) first = (first ^ value) * 16777619;
+            for (var index = bytes.Length - 1; index >= 0; index--) second = (second ^ bytes[index]) * 16777619;
+        }
+        return $"mag-task-{first:x8}{second:x8}@magnolie-organizer";
     }
 
     private static int CountDataUrls(JsonNode node, string field)

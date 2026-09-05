@@ -16,6 +16,9 @@ internal static class TelefonProtocolTests
         TestAssert.That(capabilities["items"]!["device_status"]!["versions"]!.AsArray()
             .Select(value => value!.GetValue<int>()).SequenceEqual(new[] { 1, 2, 3 }),
             "Gerätestatus v1 bis v3 wird nicht vollständig beworben.");
+        TestAssert.That(capabilities["items"]!["personal_tasks_sync"]!["versions"]!.AsArray()
+            .Select(value => value!.GetValue<int>()).SequenceEqual(new[] { 1, 2, 3 }),
+            "Aufgaben-Sync v1 bis v3 wird nicht vollständig beworben.");
         TestAssert.That(!capabilities["items"]!["transport.bluetooth_rfcomm"]!["available"]!.GetValue<bool>() &&
             capabilities["items"]!["transport.bluetooth_rfcomm"]!["reason"]!.GetValue<string>() == "os_restricted" &&
             capabilities["items"]!["incoming_call_state"]!["versions"]!.AsArray().Single()!.GetValue<int>() == 2,
@@ -48,6 +51,11 @@ internal static class TelefonProtocolTests
             control["android_capabilities"]!["device_status"]!["versions"]!.AsArray()
             .Select(value => value!.GetValue<int>()).SequenceEqual(new[] { 1, 2, 3 }),
             "Der Telefon-Control-Vertrag bewirbt nicht auf beiden Seiten Gerätestatus v3.");
+        TestAssert.That(control["desktop_capabilities"]!["personal_tasks_sync"]!["versions"]!.AsArray()
+            .Select(value => value!.GetValue<int>()).SequenceEqual(new[] { 1, 2, 3 }) &&
+            control["android_capabilities"]!["personal_tasks_sync"]!["versions"]!.AsArray()
+            .Select(value => value!.GetValue<int>()).SequenceEqual(new[] { 1, 2, 3 }),
+            "Der Telefon-Control-Vertrag bewirbt nicht auf beiden Seiten Aufgaben-Sync v1 bis v3.");
         foreach (var name in new[] { "device_status_v1", "device_status_v2", "device_status_v3" })
             TelefonDeviceStatusContract.ValidateReport(control[name]!);
         var requestId = "123e4567-e89b-42d3-a456-426614174000";

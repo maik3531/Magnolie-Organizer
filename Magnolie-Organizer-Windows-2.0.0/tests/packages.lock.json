@@ -15,6 +15,12 @@
         "contentHash": "GcYP5qUdpnF3FPoVZ6EewQ7EESRWuX79pTBYxRo/KCCiz9HTDtTka0FH+h3fUGJqk21nc0Q9BApThywO1enFaw==",
         "dependencies": { "Microsoft.Data.Sqlite.Core": "8.0.19", "SQLitePCLRaw.bundle_e_sqlite3": "2.1.6" }
       },
+      "libphonenumber-csharp": {
+        "type": "Direct",
+        "requested": "[9.0.38, )",
+        "resolved": "9.0.38",
+        "contentHash": "QRvXk+Ih0VjKtq03ouAqhUFDnBe1sqS2wTd6htWyvzPhdVIcyNPuoprDCWnPJk6RIYfsePTOG38VVc1EdH3u7A=="
+      },
       "System.Security.Cryptography.ProtectedData": {
         "type": "Direct",
         "requested": "[8.0.0, )",

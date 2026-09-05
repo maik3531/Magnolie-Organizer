@@ -18,10 +18,11 @@ internal sealed partial class BridgeDispatcher
     {
         var clientId = GraphConfig.ClientId; var signedIn = false;
         try { signedIn = GraphTokens.Exists; } catch (Exception) { }
-        NextcloudDavSources dav = new([], []); var nextcloudConfigured = false; var nextcloudError = "";
+        NextcloudDavSources dav = new([], []); var nextcloudConfigured = false; var nextcloudError = ""; var accountType = "nextcloud";
         try
         {
-            var settings = NextcloudSettings; nextcloudConfigured = settings.Load()?.DavActive == true && settings.HasApplicationPassword;
+            var settings = NextcloudSettings; var loaded = settings.Load(); accountType = loaded?.AccountType ?? "nextcloud";
+            nextcloudConfigured = loaded?.DavActive == true && settings.HasApplicationPassword;
             if (nextcloudConfigured)
             {
                 using var davClient = new NextcloudDavClient(settings); using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(12));
@@ -31,14 +32,14 @@ internal sealed partial class BridgeDispatcher
         catch (Exception error) { nextcloudError = error.Message; }
         var addressBooks = new List<object> { new { uid = "windows-contacts", name = T("Windows Contacts folder"), art = "lokal", eingerichtet = true } };
         if (clientId.Length > 0 && signedIn) addressBooks.Add(new { uid = "microsoft-graph", name = "Outlook.com / Microsoft 365", art = "graph", eingerichtet = true });
-        addressBooks.AddRange(dav.AddressBooks.Select(source => (object)new { uid = source.Uid, name = source.Name, art = "nextcloud-carddav", eingerichtet = true }));
+        addressBooks.AddRange(dav.AddressBooks.Select(source => (object)new { uid = source.Uid, name = source.Name, art = accountType == "generic-dav" ? "generic-carddav" : "nextcloud-carddav", eingerichtet = true }));
         await form.SendAsync("App.edsStatus", new
         {
             verfuegbar = true, buchOk = nextcloudError.Length == 0, windows = true,
-            kalender = dav.Calendars.Select(source => new { uid = source.Uid, name = source.Name, art = "nextcloud-caldav", eingerichtet = true }).ToArray(),
+            kalender = dav.Calendars.Select(source => new { uid = source.Uid, name = source.Name, art = accountType == "generic-dav" ? "generic-caldav" : "nextcloud-caldav", supportsVtodo = source.SupportsVTodo, eingerichtet = true }).ToArray(),
             adressbuecher = addressBooks.ToArray(),
             graph = new { eingerichtet = clientId.Length > 0, angemeldet = signedIn },
-            nextcloud = new { eingerichtet = nextcloudConfigured, erreichbar = nextcloudConfigured && nextcloudError.Length == 0, fehler = nextcloudError }
+            nextcloud = new { eingerichtet = nextcloudConfigured, erreichbar = nextcloudConfigured && nextcloudError.Length == 0, kontoArt = accountType, fehler = nextcloudError }
         });
     }
 
@@ -112,10 +113,11 @@ internal sealed partial class BridgeDispatcher
             var sourceCursors = data.TryGetProperty("letzteSyncs", out var syncsNode) && syncsNode.ValueKind == JsonValueKind.Object
                 ? JsonNode.Parse(syncsNode.GetRawText())!.AsObject() : new JsonObject();
             var calendarCursors = sourceCursors["kalender"] as JsonObject ?? new JsonObject(); sourceCursors["kalender"] = calendarCursors;
+            var taskCursors = sourceCursors["aufgaben"] as JsonObject ?? new JsonObject(); sourceCursors["aufgaben"] = taskCursors;
             var addressCursors = sourceCursors["adressbuecher"] as JsonObject ?? new JsonObject(); sourceCursors["adressbuecher"] = addressCursors;
-            foreach (var item in sourceCursors.Where(item => item.Key is not ("kalender" or "adressbuecher")).ToArray())
+            foreach (var item in sourceCursors.Where(item => item.Key is not ("kalender" or "aufgaben" or "adressbuecher")).ToArray())
             {
-                if (item.Key.StartsWith("nextcloud-calendar:", StringComparison.Ordinal)) calendarCursors[item.Key] = item.Value?.DeepClone();
+                if (NextcloudDavSelection.IsCalendar(item.Key)) calendarCursors[item.Key] = item.Value?.DeepClone();
                 else addressCursors[item.Key] = item.Value?.DeepClone();
                 sourceCursors.Remove(item.Key);
             }
@@ -130,14 +132,16 @@ internal sealed partial class BridgeDispatcher
                 restoreMode.ValueKind == JsonValueKind.Object && restoreMode.TryGetProperty("additiv", out var additive) && additive.ValueKind == JsonValueKind.True;
             var result = new ContactSyncResult(contacts, tombstones, new ContactSyncCounts(0, 0, 0, 0, 0));
             var title = ""; NextcloudDavClient? davClient = null;
+            var taskCalendars = new HashSet<string>(StringComparer.Ordinal);
             var terms = data.TryGetProperty("termine", out var termsNode) ? JsonNode.Parse(termsNode.GetRawText()) : new JsonArray();
+            var tasks = data.TryGetProperty("aufgaben", out var tasksNode) ? JsonNode.Parse(tasksNode.GetRawText()) : new JsonArray();
             var anniversaries = data.TryGetProperty("jahrestage", out var anniversariesNode) ? JsonNode.Parse(anniversariesNode.GetRawText()) : new JsonArray();
-            var termTombstones = ParseArray(deletedRoot, "termine"); var calendarReports = new List<string>();
+            var termTombstones = ParseArray(deletedRoot, "termine"); var taskTombstones = ParseArray(deletedRoot, "aufgaben"); var calendarReports = new List<string>();
             void SaveProgress(string phase) => syncJournal.Save(transactionId, phase, new JsonObject
             {
-                ["termine"] = terms?.DeepClone(), ["kontakte"] = result.Contacts.DeepClone(),
+                ["termine"] = terms?.DeepClone(), ["aufgaben"] = tasks?.DeepClone(), ["kontakte"] = result.Contacts.DeepClone(),
                 ["jahrestage"] = anniversaries?.DeepClone(),
-                ["geloescht"] = new JsonObject { ["termine"] = termTombstones.DeepClone(), ["kontakte"] = result.Tombstones.DeepClone() },
+                ["geloescht"] = new JsonObject { ["termine"] = termTombstones.DeepClone(), ["aufgaben"] = taskTombstones.DeepClone(), ["kontakte"] = result.Tombstones.DeepClone() },
                 ["letzterSync"] = lastSync, ["letzteSyncs"] = sourceCursors.DeepClone(),
                 ["syncMetadaten"] = syncMetadata.DeepClone(), ["syncEpoch"] = originalEpoch,
                 ["syncNachRestore"] = data.TryGetProperty("syncNachRestore", out var restore) ? JsonNode.Parse(restore.GetRawText()) : null
@@ -168,7 +172,7 @@ internal sealed partial class BridgeDispatcher
                 }
                 using var syncTimeout = new CancellationTokenSource(TimeSpan.FromSeconds(12));
                 var contactCursor = Cursor(addressCursors, source);
-                var initialized = !source.StartsWith("nextcloud-addressbook:", StringComparison.Ordinal) ||
+                var initialized = !NextcloudDavSelection.IsAddressBook(source) ||
                     nextcloudAddressBooks[source]?["initialisiert"]?.GetValue<bool>() == true;
                 var firstContactRun = !initialized || contactCursor <= 0 || !contacts.OfType<JsonObject>().Any(item => ContactFields.Source(item, source) is not null);
                 result = await new ContactSyncEngine().SyncAsync(source, contacts, tombstones, contactCursor, remote,
@@ -182,12 +186,15 @@ internal sealed partial class BridgeDispatcher
                 var sources = await davClient.ListSourcesAsync(discoveryTimeout.Token);
                 var selected = calendarIds.Select(id => sources.Calendars.SingleOrDefault(item => item.Uid == id) ??
                     throw new InvalidOperationException(T("No calendars found."))).ToArray();
+                foreach (var calendar in selected.Where(item => item.SupportsVTodo)) taskCalendars.Add(calendar.Uid);
                 foreach (var calendar in selected)
                 {
                     var phase = "calendar:" + calendar.Uid;
                     if (resumedIndex >= phases.IndexOf(phase)) continue;
                     var calendarCursor = Cursor(calendarCursors, calendar.Uid);
                     var firstCalendarRun = nextcloudCalendars[calendar.Uid]?["initialisiert"]?.GetValue<bool>() != true || calendarCursor <= 0;
+                    var taskCursor = Cursor(taskCursors, calendar.Uid);
+                    var firstTaskRun = nextcloudCalendars[calendar.Uid]?["aufgabenInitialisiert"]?.GetValue<bool>() != true || taskCursor <= 0;
                     var isDefaultCalendar = calendar.Uid == selected[0].Uid;
                     var (calendarTerms, remainingTerms) = NextcloudDavSelection.SplitCalendarItems(
                         terms as JsonArray ?? [], calendar.Uid, isDefaultCalendar);
@@ -195,6 +202,10 @@ internal sealed partial class BridgeDispatcher
                         anniversaries as JsonArray ?? [], calendar.Uid, isDefaultCalendar);
                     var (calendarTombstones, remainingTombstones) = NextcloudDavSelection.SplitCalendarTombstones(
                         termTombstones, calendar.Uid, isDefaultCalendar);
+                    var (calendarTasks, remainingTasks) = NextcloudDavSelection.SplitCalendarItems(
+                        tasks as JsonArray ?? [], calendar.Uid, isDefaultCalendar);
+                    var (calendarTaskTombstones, remainingTaskTombstones) = NextcloudDavSelection.SplitCalendarTombstones(
+                        taskTombstones, calendar.Uid, isDefaultCalendar);
                     using var calendarTimeout = new CancellationTokenSource(TimeSpan.FromSeconds(12));
                     var calendarResult = await new NextcloudCalendarSync(davClient).SyncAsync(calendar,
                         calendarTerms, calendarAnniversaries, calendarTombstones, calendarCursor,
@@ -203,28 +214,60 @@ internal sealed partial class BridgeDispatcher
                     foreach (var item in calendarResult.Jahrestage) remainingAnniversaries.Add(item?.DeepClone());
                     foreach (var item in calendarResult.Tombstones) remainingTombstones.Add(item?.DeepClone());
                     terms = remainingTerms; anniversaries = remainingAnniversaries; termTombstones = remainingTombstones;
-                    calendarReports.Add($"{calendar.Name}: {calendarResult.Imported} importiert, {calendarResult.Exported} exportiert, {calendarResult.Updated} aktualisiert, {calendarResult.Deleted} gelöscht, {calendarResult.Conflicts} Konflikte.");
+                    NextcloudTaskResult taskResult;
+                    if (calendar.SupportsVTodo)
+                    {
+                        using var taskTimeout = new CancellationTokenSource(TimeSpan.FromSeconds(12));
+                        taskResult = await new NextcloudTaskSync(davClient).SyncAsync(calendar,
+                            calendarTasks, calendarTaskTombstones, taskCursor,
+                            additiveOnly || firstTaskRun, taskTimeout.Token);
+                    }
+                    else
+                    {
+                        foreach (var item in calendarTasks) remainingTasks.Add(item?.DeepClone());
+                        foreach (var item in calendarTaskTombstones) remainingTaskTombstones.Add(item?.DeepClone());
+                        taskResult = new NextcloudTaskResult([], [], 0, 0, 0, 0, 0);
+                    }
+                    foreach (var item in taskResult.Tasks) remainingTasks.Add(item?.DeepClone());
+                    foreach (var item in taskResult.Tombstones) remainingTaskTombstones.Add(item?.DeepClone());
+                    tasks = remainingTasks; taskTombstones = remainingTaskTombstones;
+                    calendarReports.Add($"{calendar.Name}: {calendarResult.Imported + taskResult.Imported} importiert, {calendarResult.Exported + taskResult.Exported} exportiert, {calendarResult.Updated + taskResult.Updated} aktualisiert, {calendarResult.Deleted + taskResult.Deleted} gelöscht, {calendarResult.Conflicts + taskResult.Conflicts} Konflikte.");
                     SaveProgress(phase);
                 }
             }
             davClient?.Dispose();
             var now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
             if (source.Length > 0) addressCursors[source] = now;
-            if (source.StartsWith("nextcloud-addressbook:", StringComparison.Ordinal))
+            if (NextcloudDavSelection.IsAddressBook(source))
                 nextcloudAddressBooks[source] = new JsonObject { ["initialisiert"] = true,
                     ["letzterSync"] = now, ["etags"] = SourceEtags(result.Contacts, source) };
             foreach (var calendarId in calendarIds)
             {
                 calendarCursors[calendarId] = now;
+                var supportsTasks = taskCalendars.Contains(calendarId);
+                if (supportsTasks) taskCursors[calendarId] = now;
                 var etags = SourceEtags(terms as JsonArray ?? [], calendarId);
                 foreach (var item in SourceEtags(anniversaries as JsonArray ?? [], calendarId)) etags[item.Key] = item.Value?.DeepClone();
-                nextcloudCalendars[calendarId] = new JsonObject { ["initialisiert"] = true,
+                foreach (var item in SourceEtags(tasks as JsonArray ?? [], calendarId)) etags[item.Key] = item.Value?.DeepClone();
+                var priorMetadata = nextcloudCalendars[calendarId] as JsonObject;
+                var calendarMetadata = new JsonObject { ["initialisiert"] = true,
                     ["letzterSync"] = now, ["etags"] = etags };
+                if (supportsTasks)
+                {
+                    calendarMetadata["aufgabenInitialisiert"] = true;
+                    calendarMetadata["letzterAufgabenSync"] = now;
+                }
+                else
+                {
+                    calendarMetadata["aufgabenInitialisiert"] = priorMetadata?["aufgabenInitialisiert"]?.DeepClone();
+                    calendarMetadata["letzterAufgabenSync"] = priorMetadata?["letzterAufgabenSync"]?.DeepClone();
+                }
+                nextcloudCalendars[calendarId] = calendarMetadata;
             }
             var report = (source.Length > 0 ? result.Counts.Report(title) : "") +
                 (calendarReports.Count > 0 ? (source.Length > 0 ? " " : "") + string.Join(' ', calendarReports) : "");
-            await form.SendAsync("App.syncFertig", new { transactionId, termine = terms, kontakte = result.Contacts, jahrestage = anniversaries,
-                geloescht = new { termine = termTombstones, kontakte = result.Tombstones }, letzterSync = now,
+            await form.SendAsync("App.syncFertig", new { transactionId, termine = terms, aufgaben = tasks, kontakte = result.Contacts, jahrestage = anniversaries,
+                geloescht = new { termine = termTombstones, aufgaben = taskTombstones, kontakte = result.Tombstones }, letzterSync = now,
                 letzteSyncs = sourceCursors,
                 syncMetadaten = syncMetadata,
                 syncEpoch = data.TryGetProperty("syncEpoch", out var epoch) ? epoch.GetString() : null,
@@ -267,7 +310,7 @@ internal sealed partial class BridgeDispatcher
         if (values.ValueKind != JsonValueKind.Array) throw new InvalidDataException("Die Kalenderauswahl ist ungültig.");
         var result = values.EnumerateArray().Select(value => value.ValueKind == JsonValueKind.String ? value.GetString() ?? "" :
             value.ValueKind == JsonValueKind.Object ? PropertyText(value, "uid") : "").ToArray();
-        if (result.Any(value => !value.StartsWith("nextcloud-calendar:", StringComparison.Ordinal)) || result.Distinct(StringComparer.Ordinal).Count() != result.Length)
+        if (result.Any(value => !NextcloudDavSelection.IsCalendar(value)) || result.Distinct(StringComparer.Ordinal).Count() != result.Length)
             throw new InvalidDataException("Die Kalenderauswahl ist ungültig.");
         return result;
     }
@@ -642,7 +685,7 @@ internal sealed partial class BridgeDispatcher
             body["format"] = body["records_hash"]?.GetValue<string>()?.Length == 64 ? 2 : 1;
             body["requested_modules"] = request?["modules"]?.DeepClone() ?? new JsonArray();
             body["trigger"] = request?["trigger"]?.DeepClone();
-            if (body["format"]?.GetValue<int>() == 2) body["attachment_data"] = BuildAttachmentData(peerId, body);
+            if (body["format"]?.GetValue<int>() >= 2) body["attachment_data"] = BuildAttachmentData(peerId, body);
             var token = message["commit_token"]?.GetValue<string>() ?? throw new InvalidDataException(T("The personal synchronization commit token is missing."));
             var completion = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
             lock (personalSyncGate) personalSyncWebCommits[token] = (peerId, completion);

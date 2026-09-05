@@ -31,8 +31,11 @@ def quellen_finden(wurzel=WURZEL,
     hintergrund = os.path.join(wurzel, "bin", "magnolie_hintergrund.py")
     if not os.path.isfile(hintergrund):
         hintergrund = os.path.join(os.path.dirname(start), "magnolie_hintergrund.py")
+    setup_ui = os.path.join(wurzel, "bin", "magnolie_setup_ui.py")
+    if not os.path.isfile(setup_ui):
+        setup_ui = os.path.join(os.path.dirname(start), "magnolie_setup_ui.py")
     quellen = [os.path.join(web, "i18n-markers.js"),
-               os.path.join(web, "anwendung.js"), start, hintergrund]
+               os.path.join(web, "anwendung.js"), start, hintergrund, setup_ui]
     fehlend = [pfad for pfad in quellen if not os.path.isfile(pfad)]
     if fehlend:
         raise FileNotFoundError(", ".join(fehlend))
@@ -47,13 +50,13 @@ def haupt(argv=None):
     ziel = os.path.abspath(argumente.output)
     if not shutil.which("xgettext"):
         raise FileNotFoundError("xgettext")
-    marken, javascript, start, hintergrund = quellen_finden()
+    marken, javascript, start, hintergrund, setup_ui = quellen_finden()
     version = paket_version()
     os.makedirs(os.path.dirname(ziel), exist_ok=True)
 
     subprocess.run([
         "xgettext", "--language=JavaScript", "--from-code=UTF-8",
-        "--keyword=_", "--keyword=msgid", "--keyword=uebersetzt", "--keyword=uebersetztMehrzahl:1,2",
+        "--keyword=_", "--keyword=customText", "--keyword=msgid", "--keyword=uebersetzt", "--keyword=uebersetztMehrzahl:1,2",
         "--keyword=gettext",
         "--keyword=ngettext:1,2", "--keyword=pgettext:1c,2",
         "--no-location", "--sort-output",
@@ -64,10 +67,14 @@ def haupt(argv=None):
 
     subprocess.run([
         "xgettext", "--join-existing", "--language=Python", "--from-code=UTF-8",
-        "--keyword=_", "--no-location", "--sort-output",
+        "--keyword=_", "--keyword=N_", "--keyword=tr:1", "--keyword=bind:2",
+        "--keyword=label:1", "--keyword=check:1", "--keyword=radio:2",
+        "--keyword=entry:1", "--keyword=field:3",
+        "--keyword=page:1", "--keyword=section:2",
+        "--no-location", "--sort-output",
         "--package-name=Magnolie Organizer", "--package-version=" + version,
         "--msgid-bugs-address=maik3531@gmail.com",
-        "--output=" + ziel, start, hintergrund
+        "--output=" + ziel, start, hintergrund, setup_ui
     ], check=True)
     with open(ziel, "r", encoding="utf-8") as datei:
         inhalt = datei.read()

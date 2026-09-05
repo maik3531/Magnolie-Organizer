@@ -14,7 +14,7 @@ BuildRequires:  cmake(KPim6Akonadi)
 BuildRequires:  cmake(KF6CalendarCore)
 BuildRequires:  cmake(KF6Contacts)
 Requires:       akonadi-server
-Requires:       magnolie-organizer >= 2.0.16
+Requires:       magnolie-organizer >= 2.0.17
 Recommends:     kdepim-runtime
 
 %description

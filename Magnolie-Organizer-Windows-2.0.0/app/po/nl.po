@@ -1,3 +1,8 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the Magnolie Organizer package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
 msgid ""
 msgstr ""
 "Report-Msgid-Bugs-To: maik3531@gmail.com\n"
@@ -73,6 +78,11 @@ msgid "%(count)s contact card"
 msgid_plural "%(count)s contact cards"
 msgstr[0] "%(count)s contactkaart"
 msgstr[1] "%(count)s contactkaarten"
+
+msgid "%(count)s contact imported."
+msgid_plural "%(count)s contacts imported."
+msgstr[0] "%(count)s contact geïmporteerd."
+msgstr[1] "%(count)s contacten geïmporteerd."
 
 msgid "%(count)s contact photo added"
 msgid_plural "%(count)s contact photos added"
@@ -374,6 +384,10 @@ msgstr ""
 "toetsenblok; letters werken ook. Na drie mislukte pogingen wacht de "
 "organizer vijf minuten."
 
+msgid "A one-time import adds contacts only after your selection."
+msgstr ""
+"Bij een eenmalige import worden contacten pas na uw selectie toegevoegd."
+
 msgid ""
 "A pairing file works like a one-time key. Give it only to the person whose "
 "Organizer you want to connect; it expires after 15 minutes."
@@ -473,6 +487,12 @@ msgstr "Actief gesprek"
 msgid "Add"
 msgstr "Toevoegen"
 
+msgid "Add %(type)s"
+msgstr "%(type)s toevoegen"
+
+msgid "Add another SMS"
+msgstr "Nog een SMS toevoegen"
+
 msgid "Add appointment"
 msgstr "Afspraak toevoegen"
 
@@ -485,6 +505,9 @@ msgstr "Deelnemer toevoegen"
 msgid "Add cycle marker"
 msgstr "Cyclusmarkering toevoegen"
 
+msgid "Add one custom tab"
+msgstr "Eén aangepast tabblad toevoegen"
+
 msgid "Add person"
 msgstr "Persoon toevoegen"
 
@@ -496,6 +519,9 @@ msgstr "Schemaregel toevoegen"
 
 msgid "Add shift"
 msgstr "Dienst toevoegen"
+
+msgid "Add subtask"
+msgstr "Subtaak toevoegen"
 
 msgid "Add to dictionary"
 msgstr "Aan woordenboek toevoegen"
@@ -669,8 +695,14 @@ msgstr "Afspraken voor deze persoon"
 msgid "Appointments · %(period)s"
 msgstr "Afspraken · %(period)s"
 
+msgid "Apps for your phone"
+msgstr "Apps voor je telefoon"
+
 msgid "Archive password"
 msgstr "Wachtwoord archiveren"
+
+msgid "Are you really sure?"
+msgstr "Weet u het echt zeker?"
 
 msgid "As usual (print)"
 msgstr "Zoals gebruikelijk (drukschrift)"
@@ -744,6 +776,9 @@ msgstr ""
 msgid "BZ"
 msgstr "Bloedglucose"
 
+msgid "Back"
+msgstr "Terug"
+
 msgid "Backup failed."
 msgstr "Back-up mislukt."
 
@@ -761,6 +796,9 @@ msgstr ""
 "Back-up teruggezet. Van de vorige gegevens is automatisch een back-up "
 "gemaakt."
 
+msgid "Backup rhythm"
+msgstr "Back-upfrequentie"
+
 msgid "Backup saved to: %(path)s"
 msgstr "Back-up opgeslagen in: %(path)s"
 
@@ -769,6 +807,9 @@ msgstr "Back-up met succes gecontroleerd."
 
 msgid "Backups"
 msgstr "Back-ups"
+
+msgid "Backups and recovery"
+msgstr "Back-upmap"
 
 msgid ""
 "Backups outside the data location require a password with at least four "
@@ -858,6 +899,9 @@ msgstr "Bloeding · licht"
 msgid "Bleeding · medium"
 msgstr "Bloeding · gemiddeld"
 
+msgid "Blocks"
+msgstr "Blokken"
+
 msgid "Blood glucose"
 msgstr "Bloedglucose"
 
@@ -903,6 +947,9 @@ msgstr "Brandenburg"
 msgid "Bremen"
 msgstr "Bremen"
 
+msgid "Browse..."
+msgstr "Bladeren..."
+
 msgid "Burgenland"
 msgstr "Burgenland"
 
@@ -911,6 +958,9 @@ msgstr "Op voornaam (Hans Müller)"
 
 msgid "By last name (Müller, Hans)"
 msgstr "Op achternaam (Müller, Hans)"
+
+msgid "CSV / Lotus Organizer contacts …"
+msgstr "CSV-/Lotus Organizer-contacten …"
 
 msgid "CSV files (*.csv)"
 msgstr "CSV-bestanden (*.csv)"
@@ -926,13 +976,6 @@ msgstr "Kalender"
 
 msgid "Calendar (*.ics)"
 msgstr "Kalender (*.ics)"
-
-msgid ""
-"Calendar and contact applications commonly export appointments as .ics files "
-"and contacts as .vcf files."
-msgstr ""
-"Agenda- en contacttoepassingen exporteren doorgaans afspraken als .ics-"
-"bestanden en contacten als .vcf-bestanden."
 
 msgid "Calendar file (.ics/.vcs/.lcs) …"
 msgstr "Kalenderbestand (.ics/.vcs/.lcs) …"
@@ -1049,6 +1092,9 @@ msgstr "De huidige versie van de handleiding wordt gecontroleerd …"
 msgid "Checking the current version …"
 msgstr "Huidige versie controleren …"
 
+msgid "Choose Appointments, Notes or Tasks in Customize."
+msgstr "Kies Afspraken, Notities of Taken onder Aanpassen."
+
 msgid ""
 "Choose a backup file. Before restoring it, the organizer automatically "
 "creates a copy of the current data. An encrypted backup requires its "
@@ -1098,6 +1144,13 @@ msgstr "Kies minimaal vier tekens."
 msgid "Choose entries to print, export or delete"
 msgstr "Items kiezen om af te drukken, te exporteren of te verwijderen"
 
+msgid ""
+"Choose file and Windows contact imports that Magnolie can start directly "
+"after opening."
+msgstr ""
+"Kies de bestands- en Windows-contactimporten die Magnolie direct na het "
+"openen kan starten."
+
 msgid "Choose file…"
 msgstr "Bestand kiezen…"
 
@@ -1113,6 +1166,13 @@ msgstr "Foto kiezen…"
 msgid "Choose print or export content…"
 msgstr "Inhoud voor afdrukken of exporteren kiezen…"
 
+msgid ""
+"Choose safe preferences now. No scheduled backup job is started in the "
+"assistant."
+msgstr ""
+"Kies nu veilige voorkeuren. Er wordt geen geplande back-uptaak gestart in de "
+"assistent."
+
 msgid "Choose service"
 msgstr "Service kiezen"
 
@@ -1126,11 +1186,14 @@ msgstr ""
 msgid "Choose year…"
 msgstr "Jaar kiezen…"
 
+msgid "Choose your organizer tabs"
+msgstr "Uw organizer samenstellen"
+
 msgid "City"
 msgstr "Plaats"
 
-msgid "Claws Mail (.xml/.ldif) …"
-msgstr "Claws Mail (.xml/.ldif) …"
+msgid "Claws Mail XML (.xml) …"
+msgstr "Claws Mail-XML (.xml) …"
 
 msgid "Claws Mail address book (*.xml)"
 msgstr "Claws Mail-adresboek (*.xml)"
@@ -1313,9 +1376,6 @@ msgstr "Contacten"
 msgid "Contacts (.vcf)"
 msgstr "Contacten (.vcf)"
 
-msgid "Contacts (.vcf) …"
-msgstr "Contacten (.vcf) …"
-
 msgid "Contacts are merged additively. No deletions are transmitted."
 msgstr ""
 "Contacten worden aanvullend samengevoegd. Verwijderingen worden niet "
@@ -1364,6 +1424,9 @@ msgstr "Land en regio"
 msgid "Country for searches"
 msgstr "Land voor zoekopdrachten"
 
+msgid "Country of origin"
+msgstr "Land van herkomst"
+
 msgid "Create"
 msgstr "Aanmaken"
 
@@ -1394,8 +1457,8 @@ msgstr "Notitieboek maken"
 msgid "Create pairing file …"
 msgstr "Koppelingsbestand maken …"
 
-msgid "Create snapshot now"
-msgstr "Nu een momentopname maken"
+msgid "Creating recovery snapshot …"
+msgstr "Herstelmomentopname maken …"
 
 msgid "Custom"
 msgstr "Aangepast"
@@ -1403,8 +1466,18 @@ msgstr "Aangepast"
 msgid "Custom application"
 msgstr "Aangepaste applicatie"
 
+msgid ""
+"Custom content is saved locally and transferred through complete Magnolie "
+"archives only, not Personal Sync."
+msgstr ""
+"Aangepaste inhoud wordt lokaal opgeslagen en alleen via volledige Magnolie-"
+"archieven overgedragen, niet via Personal Sync."
+
 msgid "Custom notification"
 msgstr "Aangepaste melding"
+
+msgid "Custom tab"
+msgstr "Aangepast tabblad"
 
 msgid "Custom websites must begin with https://."
 msgstr "Aangepaste websites moeten met https:// beginnen."
@@ -1581,6 +1654,11 @@ msgstr "Vakantieperiode verwijderen"
 msgid "Delete waste collection"
 msgstr "Afvalinzameling verwijderen"
 
+msgid "Deleted and missing data is restored; newer existing data is retained."
+msgstr ""
+"Verwijderde en ontbrekende gegevens worden hersteld; nieuwere bestaande "
+"gegevens blijven behouden."
+
 msgid ""
 "Deleted items first go to the recycle bin and can be restored from there. "
 "They are permanently removed only afterwards."
@@ -1606,6 +1684,9 @@ msgstr "Afgeleverd"
 
 msgid "Delivered to %(branch)s."
 msgstr "Bezorgd bij %(branch)s."
+
+msgid "Delivery status uncertain"
+msgstr "Bezorgstatus onzeker"
 
 msgid "Dentist Dr. Hill — Preview of your entries"
 msgstr "Tandarts dr. Hill — Voorbeeld van uw items"
@@ -1679,6 +1760,9 @@ msgstr "Handboek downloaden"
 
 msgid "Download manual version %(version)s"
 msgstr "Handboekversie %(version)s downloaden"
+
+msgid "Downloads"
+msgstr "Downloads"
 
 msgid "Drag the attachment area up or down"
 msgstr "Sleep het bijlagengebied omhoog of omlaag"
@@ -1791,6 +1875,9 @@ msgstr ""
 msgid "Enable reminders"
 msgstr "Herinneringen inschakelen"
 
+msgid "Enable reminders for this block"
+msgstr "Schakel herinneringen in voor dit blok"
+
 msgid "Enable shift planner"
 msgstr "Dienstplanner inschakelen"
 
@@ -1806,6 +1893,13 @@ msgstr "Afvalinzamelingskalender inschakelen"
 msgid "Enjoy getting organized!"
 msgstr "Veel plezier met organiseren!"
 
+msgid ""
+"Enjoy organizing with Magnolie. Your choices stay under your control and can "
+"be changed later in Settings."
+msgstr ""
+"Veel plezier met organiseren in Magnolie. U houdt controle over uw keuzes en "
+"kunt ze later wijzigen in Instellingen."
+
 msgid "Enter"
 msgstr "Invoeren"
 
@@ -1814,6 +1908,10 @@ msgid ""
 msgstr ""
 "Voer links een bloedglucosewaarde in om overeenkomende schemaregels te "
 "markeren."
+
+msgid "Enter a future time and a valid SMS text for every entry."
+msgstr ""
+"Voer voor elk item een toekomstig tijdstip en een geldige SMS-tekst in."
 
 msgid "Enter a medication name first."
 msgstr "Voer eerst de naam van een geneesmiddel in."
@@ -1864,20 +1962,33 @@ msgstr "Fout"
 msgid "Evening"
 msgstr "Avond"
 
-msgid "Every 12 hours"
-msgstr "Elke 12 uur"
-
-msgid "Every 6 hours"
-msgstr "Elke 6 uur"
-
 msgid "Every filled medication row requires a name."
 msgstr "Elke ingevulde medicatieregel moet een naam bevatten."
 
 msgid "Every filled row requires a valid date."
 msgstr "Elke ingevulde regel moet een geldige datum bevatten."
 
+msgid ""
+"Every saved change is protected automatically by a private, integrity-"
+"checked snapshot."
+msgstr ""
+"Elke opgeslagen wijziging wordt automatisch beschermd door een privé-"
+"momentopname waarvan de integriteit is gecontroleerd."
+
 msgid "Everything is done - the list is empty."
 msgstr "Alles is gedaan - de lijst is leeg."
+
+msgid "Everything is ready"
+msgstr "Alles is gereed"
+
+msgid ""
+"Evolution and Thunderbird are selected explicitly. iPhone contacts require a "
+"vCard export from the iPhone or iCloud. KDE Connect, Bluetooth and PBAP are "
+"not contact sources."
+msgstr ""
+"Evolution en Thunderbird worden expliciet geselecteerd. Voor iPhone-"
+"contacten is een vCard-export vanuit de iPhone of iCloud nodig. KDE Connect, "
+"Bluetooth en PBAP zijn geen contactbronnen."
 
 msgid "Exactly one Magnolie Notes phone must be paired."
 msgstr "Er moet precies één Magnolie Notes-telefoon worden gekoppeld."
@@ -2063,9 +2174,6 @@ msgstr "Vrijdag"
 msgid "From"
 msgstr "Van"
 
-msgid "From the Windows Contacts folder"
-msgstr "Uit de map Windows-contactpersonen"
-
 msgid "Full"
 msgstr "Vol"
 
@@ -2188,6 +2296,9 @@ msgstr "Privé"
 msgid "Home address"
 msgstr "Privéadres"
 
+msgid "Home country for phone numbers"
+msgstr "Thuisland voor telefoonnummers"
+
 msgid "Home phone"
 msgstr "Privételefoon"
 
@@ -2196,6 +2307,9 @@ msgstr "Huisbezoek"
 
 msgid "Hours"
 msgstr "Uren"
+
+msgid "How lovely that you chose Magnolie"
+msgstr "Wat fijn dat u voor Magnolie hebt gekozen"
 
 msgid "How the calendar should behave when you click a day."
 msgstr "Hoe de kalender zich moet gedragen wanneer u op een dag klikt."
@@ -2236,6 +2350,9 @@ msgstr "Importeren"
 msgid "Import Magnolie complete archive"
 msgstr "Importeer het volledige archief van Magnolie"
 
+msgid "Import contacts additively"
+msgstr "Contacten aanvullend importeren"
+
 msgid "Import failed: %(error)s"
 msgstr "Importeren mislukt: %(error)s"
 
@@ -2244,6 +2361,9 @@ msgstr "Importeren uit LibreOffice"
 
 msgid "Import is available only in the installed application."
 msgstr "Importeren is alleen beschikbaar in de geïnstalleerde toepassing."
+
+msgid "Import once"
+msgstr "Eenmalig importeren"
 
 msgid "Import pairing file …"
 msgstr "Koppelingsbestand importeren …"
@@ -2342,6 +2462,9 @@ msgstr "Insulineschema"
 msgid "Integrity"
 msgstr "Integriteit"
 
+msgid "International call"
+msgstr "Internationaal gesprek"
+
 msgid "Internet IP"
 msgstr "Internet-IP"
 
@@ -2392,6 +2515,9 @@ msgstr "Logboek voor probleemoplossing bijhouden"
 msgid "LDIF address book (*.ldif)"
 msgstr "LDIF-adresboek (*.ldif)"
 
+msgid "LDIF address book (.ldif) …"
+msgstr "LDIF-adresboek (.ldif) …"
+
 msgid "Landline"
 msgstr "Vaste telefoon"
 
@@ -2410,9 +2536,6 @@ msgstr "Laatste controle mislukt: %(error)s"
 msgid "Last name"
 msgstr "Achternaam"
 
-msgid "Last snapshot"
-msgstr "Laatste momentopname"
-
 msgid "Last successful backup"
 msgstr "Laatste geslaagde back-up"
 
@@ -2425,11 +2548,21 @@ msgstr "Late dienst"
 msgid "Lead time"
 msgstr "Voorlooptijd"
 
+msgid "Left page"
+msgstr "Linkerpagina"
+
 msgid "Letter"
 msgstr "Brief"
 
 msgid "Letter template"
 msgstr "Briefsjabloon"
+
+msgid ""
+"LibreOffice is only read when you press the button. Its settings are not "
+"modified."
+msgstr ""
+"LibreOffice wordt alleen uitgelezen wanneer u op de knop drukt. De "
+"instellingen ervan worden niet gewijzigd."
 
 msgid "License"
 msgstr "Licentie"
@@ -2491,6 +2624,12 @@ msgstr "Magnoliaboom"
 msgid "Magnolia weather symbols only"
 msgstr "Alleen Magnolie-weersymbolen"
 
+msgid "Magnolie Notes / Android: check for pending import"
+msgstr "Magnolie Notes/Android: controleren op import die klaarstaat"
+
+msgid "Magnolie Notes contact import"
+msgstr "Contactimport uit Magnolie Notes"
+
 msgid "Magnolie Notes device status"
 msgstr "Apparaatstatus van Magnolie Notes"
 
@@ -2511,6 +2650,9 @@ msgstr ""
 "Telefoons van Magnolie Notes en KDE Connect-telefoons zijn afzonderlijk: de "
 "Android-modelnaam hoort bij Magnolie Notes; de KDE-peernaam komt van KDE "
 "Connect."
+
+msgid "Magnolie Organizer"
+msgstr "Magnolie Organizer"
 
 msgid "Magnolie Organizer is not completely installed."
 msgstr "Magnolie Organizer is niet volledig geïnstalleerd."
@@ -2533,6 +2675,13 @@ msgstr ""
 
 msgid "Magnolie backup (*.json)"
 msgstr "Magnolie-back-up (*.json)"
+
+msgid ""
+"Magnolie can use this information when preparing routes and finding local "
+"weather. You can leave every field empty."
+msgstr ""
+"Magnolie kan deze informatie gebruiken om routes voor te bereiden en lokaal "
+"weer te vinden. U kunt elk veld leeg laten."
 
 msgid "Magnolie complete archive (.magnolie) …"
 msgstr "Magnolie compleet archief (.magnolie) …"
@@ -2580,6 +2729,9 @@ msgctxt "recovery snapshot reason"
 msgid "Manual"
 msgstr "Aangepast"
 
+msgid "Manual only"
+msgstr "Alleen handmatig"
+
 msgid "Manual version %(version)s is available."
 msgstr "Versie %(version)s van de handleiding is beschikbaar."
 
@@ -2604,9 +2756,6 @@ msgstr "Als open markeren"
 
 msgid "Maximized"
 msgstr "Gemaximaliseerd"
-
-msgid "Maximum recovery snapshots"
-msgstr "Maximaal aantal herstelpunten"
 
 msgid "Measurement context"
 msgstr "Meetcontext"
@@ -2715,6 +2864,9 @@ msgstr "Mobiel netwerk"
 msgid "Model"
 msgstr "Model"
 
+msgid "Module"
+msgstr "Module"
+
 msgid "Monday"
 msgstr "Maandag"
 
@@ -2723,6 +2875,9 @@ msgstr "Maand"
 
 msgid "Month calendar"
 msgstr "Maandkalender"
+
+msgid "Monthly"
+msgstr "Maandelijks"
 
 msgid "Monthly view"
 msgstr "Maandweergave"
@@ -2745,6 +2900,9 @@ msgstr "Ochtend"
 msgid "Mouse wheel over times"
 msgstr "Muiswiel boven tijden"
 
+msgid "Move down"
+msgstr "Omlaag verplaatsen"
+
 msgid "Move group down"
 msgstr "Groep omlaag verplaatsen"
 
@@ -2762,6 +2920,12 @@ msgstr "Notitieboek omhoog verplaatsen"
 
 msgid "Move the ticked entries to the wastebasket"
 msgstr "Aangevinkte items naar de prullenbak verplaatsen"
+
+msgid "Move to top level"
+msgstr "Naar het hoogste niveau verplaatsen"
+
+msgid "Move up"
+msgstr "Omhoog verplaatsen"
 
 msgid ""
 "Multiple Magnolie Notes phones are stored. Personal sync is blocked; remove "
@@ -2853,6 +3017,9 @@ msgstr "Nieuwe taak"
 msgid "New version %(version)s is available."
 msgstr "Nieuwe versie %(version)s is beschikbaar."
 
+msgid "Next"
+msgstr "Volgende"
+
 msgid "Next appointment: %(title)s on %(date)s%(time)s%(notice)s"
 msgstr "Volgende afspraak: %(title)s op %(date)s%(time)s%(notice)s"
 
@@ -2861,9 +3028,6 @@ msgstr "Volgende maand"
 
 msgid "Next page"
 msgstr "Volgende pagina"
-
-msgid "Next snapshot"
-msgstr "Volgende momentopname"
 
 msgid "Next tab"
 msgstr "Volgend tabblad"
@@ -2876,9 +3040,6 @@ msgstr "Volgende week"
 
 msgid "Next year"
 msgstr "Volgend jaar"
-
-msgid "Nextcloud account"
-msgstr "Nextcloud-account"
 
 msgid "Nextcloud is not enabled."
 msgstr "Nextcloud is niet ingeschakeld."
@@ -2900,6 +3061,9 @@ msgstr "Er is geen Bluetooth-adres geselecteerd."
 
 msgid "No KDE Connect pairing is awaiting confirmation."
 msgstr "Er wacht geen KDE Connect-koppeling op bevestiging."
+
+msgid "No SMS messages are scheduled."
+msgstr "Er zijn geen SMS-berichten gepland."
 
 msgid "No address books found."
 msgstr "Geen adresboeken gevonden."
@@ -2925,6 +3089,9 @@ msgstr "Geen vervaldatum"
 
 msgid "No duplicate contact cards were found."
 msgstr "Er zijn geen dubbele contactkaarten gevonden."
+
+msgid "No entries yet."
+msgstr "Nog geen vermeldingen."
 
 msgid "No file selected"
 msgstr "Geen bestand geselecteerd"
@@ -3093,6 +3260,9 @@ msgstr "Niets gevonden."
 msgid "Nothing has been entered under “%(letter)s” yet."
 msgstr "Er is nog niets ingevoerd onder ‘%(letter)s’."
 
+msgid "Nothing has been imported yet."
+msgstr "Er is nog niets geïmporteerd."
+
 msgid "Nothing is opened or sent while this option is disabled."
 msgstr "Zolang deze optie is uitgeschakeld, wordt niets geopend of verzonden."
 
@@ -3178,6 +3348,13 @@ msgstr "Eén tabel met grafiek"
 msgid "One year"
 msgstr "Eén jaar"
 
+msgid ""
+"One-time imports are additive. They do not keep a source linked and do not "
+"delete contacts."
+msgstr ""
+"Eenmalige imports zijn aanvullend. Ze houden geen bron gekoppeld en "
+"verwijderen geen contacten."
+
 msgid "Online"
 msgstr "Online"
 
@@ -3253,6 +3430,9 @@ msgstr "Open de aanmeldingspagina van Microsoft"
 msgid "Open day view for %(date)s"
 msgstr "Dagweergave voor %(date)s openen"
 
+msgid "Open designer"
+msgstr "Ontwerper openen"
+
 msgid "Open manual"
 msgstr "Handboek openen"
 
@@ -3271,6 +3451,9 @@ msgstr ""
 
 msgid "Open planner as an ODS spreadsheet"
 msgstr "Planner openen als ODS-werkblad"
+
+msgid "Open requested designer"
+msgstr "Gevraagde ontwerper openen"
 
 msgid "Open selected contacts as an ODS spreadsheet"
 msgstr "Geselecteerde contacten openen als ODS-werkblad"
@@ -3308,9 +3491,6 @@ msgstr "OpenStreetMap in de browser"
 
 msgid "Opened in %(application)s."
 msgstr "Geopend in %(application)s."
-
-msgid "Operating system"
-msgstr "Besturingssysteem"
 
 msgid "Optional archive password"
 msgstr "Optioneel archiefwachtwoord"
@@ -3365,6 +3545,9 @@ msgstr "PDF-bestand"
 msgid "Packaging / Yellow bin"
 msgstr "Verpakkingsafval / gele bak"
 
+msgid "Page"
+msgstr "Pagina"
+
 msgid "Page %(page)s"
 msgstr "Pagina %(page)s"
 
@@ -3399,6 +3582,9 @@ msgstr ""
 
 msgid "Palm tree"
 msgstr "Palmboom"
+
+msgid "Parent task"
+msgstr "Bovenliggende taak"
 
 msgid ""
 "Participate in the Magnolienbaum (opens port %(port)s on the local network)"
@@ -3442,6 +3628,9 @@ msgstr "Factuur betalen"
 msgid "Pen"
 msgstr "Pen"
 
+msgid "Pending SMS messages"
+msgstr "Wachtende SMS-berichten"
+
 msgid "People"
 msgstr "Personen"
 
@@ -3453,6 +3642,12 @@ msgstr "Permanente KDE-listener actief"
 
 msgid "Permanent KDE listener stopped"
 msgstr "Permanente KDE-luisteraar gestopt"
+
+msgid ""
+"Permanent sources remain linked and are handled on the Synchronization page."
+msgstr ""
+"Permanente bronnen blijven gekoppeld en worden op de pagina Synchronisatie "
+"beheerd."
 
 msgid "Permanently delete %(count)s completed task?"
 msgid_plural "Permanently delete %(count)s completed tasks?"
@@ -3504,6 +3699,9 @@ msgstr "Synchronisatie mislukt."
 
 msgid "Personal synchronization format 2 was not negotiated."
 msgstr "Er is niet onderhandeld over persoonlijk synchronisatieformaat 2."
+
+msgid "Personal synchronization format 3 was not negotiated."
+msgstr "Persoonlijk synchronisatieformaat 3 is niet overeengekomen."
 
 msgid "Personal synchronization is not permitted on both devices."
 msgstr "Persoonlijke synchronisatie is op beide apparaten niet toegestaan."
@@ -3625,6 +3823,9 @@ msgstr "Poeder"
 msgid "Power source"
 msgstr "Voedingsbron"
 
+msgid "Preferred backup folder"
+msgstr "Voorkeursmap voor back-ups"
+
 msgid "Preparing Microsoft sign-in …"
 msgstr "Aanmelden bij Microsoft voorbereiden…"
 
@@ -3639,6 +3840,11 @@ msgstr "Voorbeeld bekijken, jaarplanner afdrukken of exporteren"
 
 msgid "Preview:"
 msgstr "Voorbeeld:"
+
+msgid "Preview: %(count)s contact"
+msgid_plural "Preview: %(count)s contacts"
+msgstr[0] "Voorbeeld: %(count)s contact"
+msgstr[1] "Voorbeeld: %(count)s contacten"
 
 msgid "Previous month"
 msgstr "Vorige maand"
@@ -3688,12 +3894,6 @@ msgstr ""
 
 msgid "Private"
 msgstr "Privé"
-
-msgid ""
-"Private, integrity-checked snapshots are stored next to the application data."
-msgstr ""
-"Persoonlijke, op integriteit gecontroleerde momentopnamen worden naast de "
-"toepassingsgegevens opgeslagen."
 
 msgid "Protected archive password unavailable."
 msgstr "Het beveiligde archiefwachtwoord is niet beschikbaar."
@@ -3783,6 +3983,9 @@ msgstr "Gerelateerde taken"
 
 msgid "Remind me again on the day itself"
 msgstr "Mij op de dag zelf nogmaals herinneren"
+
+msgid "Reminder"
+msgstr "Herinnering"
 
 msgid "Reminder data:"
 msgstr "Herinneringsgegevens:"
@@ -3911,14 +4114,14 @@ msgstr ""
 msgid "Restore"
 msgstr "Herstellen"
 
+msgid "Restore a Magnolie backup after startup"
+msgstr "Herstellen vanuit een Magnolie-back-up"
+
 msgid "Restore backup"
 msgstr "Back-up herstellen"
 
 msgid "Restore backup …"
 msgstr "Back-up herstellen …"
-
-msgid "Restore completely"
-msgstr "Volledig herstellen"
 
 msgid "Restore defaults"
 msgstr "Standaardinstellingen herstellen"
@@ -3964,6 +4167,9 @@ msgstr "Weer ophalen…"
 msgid "Rhineland-Palatinate"
 msgstr "Rijnland-Palts"
 
+msgid "Right page"
+msgstr "Rechterpagina"
+
 msgid "Route"
 msgstr "Route"
 
@@ -3979,6 +4185,9 @@ msgstr ""
 msgid "S"
 msgstr "D"
 
+msgid "SMS app settings"
+msgstr "SMS-instellingen"
+
 msgid "SMS assignment"
 msgstr "SMS-toewijzing"
 
@@ -3990,6 +4199,9 @@ msgstr "SMS van %(name)s"
 
 msgid "SMS history"
 msgstr "SMS-geschiedenis"
+
+msgid "SMS scheduled."
+msgstr "SMS gepland."
 
 msgid "SMS settings"
 msgstr "SMS-instellingen"
@@ -4067,11 +4279,24 @@ msgstr "Saksen-Anhalt"
 msgid "Schaffhausen"
 msgstr "Schaffhausen"
 
+msgid "Schedule"
+msgstr "Gepland"
+
+msgid "Schedule SMS"
+msgstr "SMS plannen"
+
 msgid "Schedule an appointment"
 msgstr "Afspraak inplannen"
 
 msgid "Scheduled"
 msgstr "Gepland"
+
+msgid ""
+"Scheduled SMS messages are sent only while Magnolie is running and exactly "
+"one KDE Connect phone is available."
+msgstr ""
+"Geplande SMS-berichten worden alleen verzonden wanneer Magnolie actief is en "
+"er precies één KDE Connect-telefoon beschikbaar is."
 
 msgid "Scheme"
 msgstr "Schema"
@@ -4176,6 +4401,15 @@ msgstr ""
 "Geselecteerde kolommen die voor elk contact leeg zijn, worden automatisch "
 "weggelaten."
 
+msgid ""
+"Selected imports are started directly after Magnolie opens. Thunderbird "
+"contacts are not offered because Windows has no Thunderbird address-book "
+"importer."
+msgstr ""
+"Geselecteerde importbewerkingen worden direct gestart nadat Magnolie is "
+"geopend. Thunderbird-contacten worden niet aangeboden omdat Windows geen "
+"importfunctie voor het Thunderbird-adresboek heeft."
+
 msgid "Selection options"
 msgstr "Selectieopties"
 
@@ -4202,6 +4436,9 @@ msgstr "Serveradres en gebruikersnaam zijn vereist."
 
 msgid "Set or change password"
 msgstr "Wachtwoord instellen of wijzigen"
+
+msgid "Set up Magnolie Organizer"
+msgstr "Magnolie Organizer configureren"
 
 msgid "Set up contacts"
 msgstr "Contacten instellen"
@@ -4324,6 +4561,9 @@ msgstr "Aangemeld bij Microsoft."
 msgid "Signed out from Microsoft."
 msgstr "Afgemeld bij Microsoft."
 
+msgid "Skip assistant"
+msgstr "Assistent overslaan"
+
 msgid ""
 "Small action buttons appear on each contact card. You can hide anything you "
 "do not need here."
@@ -4360,6 +4600,9 @@ msgstr "Sommige bestaande back-ups konden niet worden gecodeerd."
 msgid "Son"
 msgstr "Zoon"
 
+msgid "Sort contacts"
+msgstr "Contacten sorteren"
+
 msgid "Sort everything alphabetically"
 msgstr "Alles alfabetisch sorteren"
 
@@ -4368,6 +4611,12 @@ msgstr "Sortering"
 
 msgid "Sound only"
 msgstr "Alleen geluid"
+
+msgid "Sources"
+msgstr "Bronnen"
+
+msgid "Sources and imports"
+msgstr "Leeg beginnen en import overslaan"
 
 msgid "Space for anything you want to remember…"
 msgstr "Ruimte voor alles wat u wilt onthouden…"
@@ -4387,6 +4636,12 @@ msgstr "Spray"
 msgid "St. Gallen"
 msgstr "St. Gallen"
 
+msgid "Start Magnolie"
+msgstr "Magnolie starten"
+
+msgid "Start Magnolie with Windows in the notification area (tray)"
+msgstr "Start Magnolie met Windows in het systeemvak (lade)"
+
 msgid "Start automatically when signing in"
 msgstr "Automatisch starten bij aanmelden"
 
@@ -4395,6 +4650,9 @@ msgstr "Organizer starten in het systeemvak"
 
 msgid "State"
 msgstr "Deelstaat"
+
+msgid "State / region"
+msgstr "Notatieregio"
 
 msgid "Status"
 msgstr "Status"
@@ -4422,6 +4680,9 @@ msgstr "Ingediend"
 
 msgid "Submitted to KDE Connect"
 msgstr "Verzonden naar KDE Connect"
+
+msgid "Submitting"
+msgstr "Ingediend"
 
 msgid "Suggestions are available only in the installed application."
 msgstr "Suggesties zijn alleen beschikbaar in de geïnstalleerde toepassing."
@@ -4491,6 +4752,9 @@ msgstr "Contacten synchroniseren"
 msgid "Synchronize now"
 msgstr "Nu synchroniseren"
 
+msgid "Synchronize permanently"
+msgstr "Permanent synchroniseren"
+
 msgid "Synchronize tasks"
 msgstr "Contacten synchroniseren"
 
@@ -4499,6 +4763,9 @@ msgstr "Synchroniseren …"
 
 msgid "System default"
 msgstr "Systeemstandaard"
+
+msgid "System internet accounts"
+msgstr "Internetaccounts van het systeem"
 
 msgid "System setting"
 msgstr "Systeeminstelling"
@@ -4522,6 +4789,9 @@ msgstr "Tabblad %(letter)s"
 msgid "Tab %(letter)s · %(count)s"
 msgstr "Tabblad %(letter)s · %(count)s"
 
+msgid "Tab name"
+msgstr "Naam van tabblad"
+
 msgid "Tablet"
 msgstr "Tablet"
 
@@ -4530,6 +4800,9 @@ msgstr "Tabbladen"
 
 msgid "Task"
 msgstr "Taak"
+
+msgid "Task is due"
+msgstr "Taak is aan de beurt"
 
 msgid "Tasks"
 msgstr "Taken"
@@ -4562,6 +4835,12 @@ msgstr "Nu testen"
 
 msgid "Testing…"
 msgstr "Testen…"
+
+msgid "Text"
+msgstr "Tekst"
+
+msgid "Text block"
+msgstr "Tekstblok"
 
 msgid "Text color"
 msgstr "Tekstkleur"
@@ -4644,16 +4923,6 @@ msgstr "De ODS-export is te groot."
 msgid "The Organizer chooses a suitable installed application."
 msgstr "De Organizer kiest een geschikte geïnstalleerde toepassing."
 
-msgid ""
-"The Windows Contacts folder is synchronized bidirectionally on the "
-"synchronization page. File imports do not modify their source files; "
-"existing entries are not added twice."
-msgstr ""
-"De map Windows Contactpersonen wordt bidirectioneel gesynchroniseerd op de "
-"synchronisatiepagina. Bij het importeren van bestanden worden de "
-"bronbestanden niet gewijzigd; bestaande vermeldingen worden niet tweemaal "
-"toegevoegd."
-
 msgid "The address could not be opened."
 msgstr "Het adres kon niet worden geopend."
 
@@ -4671,6 +4940,13 @@ msgid ""
 msgstr ""
 "Het archief is gecodeerd. Voer het wachtwoord in om het volledig te "
 "verifiëren voordat u importeert."
+
+msgid ""
+"The assistant covers your address for routes and weather, data sources, "
+"phone connections, organizer tabs, backups, and startup behavior."
+msgstr ""
+"De assistent behandelt uw adres voor routes en weer, gegevensbronnen, "
+"telefoonverbindingen, organizertabbladen, back-ups en opstartgedrag."
 
 msgid "The attachment range is invalid."
 msgstr "Het bijlagebereik is ongeldig."
@@ -4703,6 +4979,9 @@ msgstr ""
 "De herinneringsservice op de achtergrond mag de afzonderlijke "
 "herinneringsgegevens lezen en werkt daardoor ook wanneer de organizer "
 "gesloten is."
+
+msgid "The backup chooser will open after Magnolie has started."
+msgstr "De back-upkiezer wordt geopend nadat Magnolie is gestart."
 
 msgid "The backup could not be created."
 msgstr "De back-up kon niet worden gemaakt."
@@ -4859,6 +5138,9 @@ msgstr ""
 "De informatie wordt één keer opgehaald uit de openbare directory "
 "openholidaysapi.org en daarna in de organizer bewaard. De toepassing heeft "
 "daarom slechts één keer een internetverbinding nodig."
+
+msgid "The language setting could not be saved."
+msgstr "De taalinstelling kon niet worden opgeslagen."
 
 msgid "The last notebook cannot be deleted."
 msgstr "Het laatste notitieboek kan niet worden verwijderd."
@@ -5100,6 +5382,11 @@ msgstr ""
 msgid "The save request is invalid."
 msgstr "Het opslagverzoek is ongeldig."
 
+msgid "The selected areas are reset exactly; data added later is removed."
+msgstr ""
+"De geselecteerde gebieden worden exact teruggezet; later toegevoegde "
+"gegevens worden verwijderd."
+
 msgid "The selected contacts contain no values for these columns."
 msgstr "De geselecteerde contacten bevatten geen waarden voor deze kolommen."
 
@@ -5112,6 +5399,9 @@ msgid ""
 msgstr ""
 "De serverbeheerder kan account, map- en bestandsnamen, groottes en tijden "
 "van uw berichten zien."
+
+msgid "The setup state could not be saved."
+msgstr "De configuratiestatus kon niet worden opgeslagen."
 
 msgid ""
 "The sheet appears at the edge of the screen, accompanied by the Magnolie "
@@ -5223,6 +5513,13 @@ msgid "There is nothing to print."
 msgstr "Er is niets om af te drukken."
 
 msgid ""
+"These are Magnolie's actual tabs. You can show only the sections that fit "
+"your everyday life."
+msgstr ""
+"Dit zijn de daadwerkelijke tabbladen van Magnolie. U kunt alleen de "
+"onderdelen tonen die bij uw dagelijks leven passen."
+
+msgid ""
 "These choices change how the Organizer displays information. Your entries "
 "are not converted or moved."
 msgstr ""
@@ -5326,6 +5623,13 @@ msgstr ""
 msgid "This notebook is still empty."
 msgstr "Dit notitieboek is nog leeg."
 
+msgid ""
+"This one-time import only adds or enriches contacts. It does not synchronize "
+"or delete contacts."
+msgstr ""
+"Deze eenmalige import voegt alleen contacten toe of vult ze aan. Contacten "
+"worden niet gesynchroniseerd of verwijderd."
+
 msgid "This paired phone is my own device"
 msgstr "Deze gekoppelde telefoon is mijn eigen apparaat"
 
@@ -5415,6 +5719,9 @@ msgstr "Te veel mislukte pogingen. Wacht even."
 msgid "Too many regions were selected."
 msgstr "Er zijn te veel regio's geselecteerd."
 
+msgid "Top level"
+msgstr "Hoogste niveau"
+
 msgid "Tray applet"
 msgstr "Systeemvak-applet"
 
@@ -5485,6 +5792,9 @@ msgstr "Onbekende fout"
 msgid "Unknown phone"
 msgstr "Onbekende telefoon"
 
+msgid "Unknown source"
+msgstr "Onbekende bron"
+
 msgid "Unlink"
 msgstr "Koppeling verbreken"
 
@@ -5527,6 +5837,9 @@ msgstr "Bedrijfstijd"
 
 msgid "Uri"
 msgstr "URI"
+
+msgid "Use LibreOffice address"
+msgstr "Adresgegevens van LibreOffice gebruiken"
 
 msgid "Use a specific application or command"
 msgstr "Een specifieke toepassing of opdracht gebruiken"
@@ -5689,6 +6002,13 @@ msgstr "Waarschuwing: de gegevens konden niet worden opgeslagen."
 msgid "Waste collection calendar"
 msgstr "Afvalinzamelingskalender"
 
+msgid ""
+"We are delighted to welcome you. This short assistant prepares Magnolie "
+"Organizer around your wishes."
+msgstr ""
+"We heten u van harte welkom. Deze korte assistent richt Magnolie Organizer "
+"in volgens uw wensen."
+
 msgid "We are glad you are here!"
 msgstr "Fijn dat u er bent!"
 
@@ -5788,13 +6108,6 @@ msgstr ""
 "toewijzen. Ingesloten foto's blijven behouden bij importeren, exporteren en "
 "synchroniseren met een online-adresboek. E-mailadressen op contactkaarten "
 "zijn altijd aanklikbaar en openen uw e-mailtoepassing."
-
-msgid ""
-"When the limit is lowered, the oldest recovery snapshots are removed "
-"automatically."
-msgstr ""
-"Wanneer de limiet wordt verlaagd, worden de oudste herstelpunten automatisch "
-"verwijderd."
 
 msgid ""
 "When writing a note, a small toolbar above the sheet provides bold, italic, "
@@ -6215,6 +6528,12 @@ msgstr "onbekende fout"
 msgid "untitled"
 msgstr "naamloos"
 
+msgid "vCard (.vcf), including iPhone/iCloud export …"
+msgstr "vCard (.vcf), inclusief iPhone-/iCloud-export …"
+
+msgid "vCard file (.vcf), including iPhone/iCloud export …"
+msgstr "vCard-bestand (.vcf), inclusief iPhone-/iCloud-export …"
+
 msgid ""
 "vCard preserves more contact details. LDIF is intended for importing into "
 "Claws Mail; emergency contacts, social media, free labels and non-JPEG "
@@ -6303,5 +6622,172 @@ msgstr[1] "… en %(count)s extra items die ook worden afgedrukt."
 msgid "＋ Add appointment"
 msgstr "＋ Afspraak toevoegen"
 
-msgid "Language & region"
-msgstr "Taal en regio"
+#~ msgid ""
+#~ "Download Magnolie Notes or KDE Connect using the links below. Bluetooth "
+#~ "opens Windows Settings for direct pairing."
+#~ msgstr ""
+#~ "Download Magnolie Notes of KDE Connect via de onderstaande links. "
+#~ "Bluetooth opent Windows-instellingen voor directe koppeling."
+
+#~ msgid ""
+#~ "Magnolie Notes and KDE Connect are download links, not connection "
+#~ "actions. Bluetooth opens Windows Settings for direct pairing."
+#~ msgstr ""
+#~ "Magnolie Notes en KDE Connect zijn downloadlinks, geen verbindingsacties. "
+#~ "Bluetooth opent Windows-instellingen voor directe koppeling."
+
+#~ msgid ""
+#~ "The predefined Calendar tab is always available again from Settings, even "
+#~ "if you hide it here."
+#~ msgstr ""
+#~ "Het vooraf ingestelde tabblad Kalender is altijd weer beschikbaar via "
+#~ "Instellingen, zelfs als u het hier verbergt."
+
+#~ msgid "No more blocks can be added."
+#~ msgstr "Er kunnen geen blokken meer worden toegevoegd."
+
+#~ msgid "Yearly"
+#~ msgstr "Jaarlijks"
+
+#~ msgid ""
+#~ "Autostart also enables tray availability. Tray can be enabled "
+#~ "independently without autostart."
+#~ msgstr ""
+#~ "Automatisch starten maakt Magnolie ook beschikbaar in het systeemvak. Het "
+#~ "systeemvak kan onafhankelijk, zonder automatisch starten, worden "
+#~ "ingeschakeld."
+
+#~ msgid "Checklist / list block"
+#~ msgstr "Checklist-/lijstblok"
+
+#~ msgid "Connect Magnolie Notes"
+#~ msgstr "Telefoon en Magnolie Notes"
+
+#~ msgid "Pair KDE Connect for SMS"
+#~ msgstr "KDE Connect voor SMS"
+
+#~ msgid "Recurrence block"
+#~ msgstr "Herhalingsblok"
+
+#~ msgid "Start Magnolie with Windows"
+#~ msgstr "Magnolie samen met Windows starten"
+
+#~ msgid ""
+#~ "The secure download links open directly. Bluetooth opens Windows "
+#~ "Settings; this assistant does not change or pair devices."
+#~ msgstr ""
+#~ "De beveiligde downloadlinks worden direct geopend. Bluetooth opent "
+#~ "Windows-instellingen; deze assistent wijzigt of koppelt geen apparaten."
+
+#~ msgid "Backup restore selected"
+#~ msgstr "Geen foto geselecteerd"
+
+#~ msgid ""
+#~ "Choose Start Magnolie to begin, or Manual to begin and open the manual "
+#~ "after the main window is visible."
+#~ msgstr ""
+#~ "Kies Magnolie starten om te beginnen, of Handleiding om te beginnen en de "
+#~ "handleiding te openen zodra het hoofdvenster zichtbaar is."
+
+#~ msgid ""
+#~ "Choose permanent synchronization separately from data that should be "
+#~ "imported once, just as in Settings."
+#~ msgstr ""
+#~ "Kies permanente synchronisatie afzonderlijk van gegevens die eenmalig "
+#~ "moeten worden geïmporteerd, net als in Instellingen."
+
+#~ msgid "Create snapshot now"
+#~ msgstr "Nu een momentopname maken"
+
+#~ msgid "Design request selected"
+#~ msgstr "Ontwerpverzoek geselecteerd"
+
+#~ msgid "Every 12 hours"
+#~ msgstr "Elke 12 uur"
+
+#~ msgid "Every 6 hours"
+#~ msgstr "Elke 6 uur"
+
+#~ msgid "Include Bluetooth information"
+#~ msgstr "Bluetooth-informatie opnemen"
+
+#~ msgid "Last snapshot"
+#~ msgstr "Laatste momentopname"
+
+#~ msgid "Magnolie Notes"
+#~ msgstr "Magnolie Notes"
+
+#~ msgid "Maximum recovery snapshots"
+#~ msgstr "Maximaal aantal herstelpunten"
+
+#~ msgid "Next snapshot"
+#~ msgstr "Volgende momentopname"
+
+#~ msgid ""
+#~ "Nothing connects or imports automatically. Your choices appear as pending "
+#~ "actions in Settings."
+#~ msgstr ""
+#~ "Er wordt niets automatisch verbonden of geïmporteerd. Uw keuzes "
+#~ "verschijnen als wachtende acties in Instellingen."
+
+#~ msgid ""
+#~ "Nothing starts automatically. Choose an action below when you are ready."
+#~ msgstr ""
+#~ "Er wordt niets automatisch gestart. Kies hieronder een actie wanneer u er "
+#~ "klaar voor bent."
+
+#~ msgid "Number of backups"
+#~ msgstr "Aantal back-ups"
+
+#~ msgid "Operating system"
+#~ msgstr "Besturingssysteem"
+
+#~ msgid "Pending setup choices"
+#~ msgstr "Openstaande configuratiekeuzes"
+
+#~ msgid "Permanent synchronization"
+#~ msgstr "Permanente synchronisatiebronnen"
+
+#~ msgid "Plan recovery points before important changes"
+#~ msgstr "Herstelpunten vóór belangrijke wijzigingen plannen"
+
+#~ msgid ""
+#~ "Private, integrity-checked snapshots are stored next to the application "
+#~ "data."
+#~ msgstr ""
+#~ "Persoonlijke, op integriteit gecontroleerde momentopnamen worden naast de "
+#~ "toepassingsgegevens opgeslagen."
+
+#~ msgid "Request a separate tab design"
+#~ msgstr "Een afzonderlijk tabbladontwerp aanvragen"
+
+#~ msgid ""
+#~ "Restoring is deferred until Magnolie has opened; no file is changed by "
+#~ "this assistant."
+#~ msgstr ""
+#~ "Het herstel wordt uitgesteld totdat Magnolie is geopend; deze assistent "
+#~ "wijzigt geen bestanden."
+
+#~ msgid "Show Android download information"
+#~ msgstr "Downloadinformatie van het handboek ophalen …"
+
+#~ msgid "Show QR pairing information"
+#~ msgstr "QR-koppelingsgegevens voorbereiden"
+
+#~ msgid "Standard CalDAV / CardDAV"
+#~ msgstr "Standaard CalDAV / CardDAV"
+
+#~ msgid ""
+#~ "The QR code and download are shown only after Magnolie opens. No app is "
+#~ "installed, Bluetooth is not changed, and no device is paired now."
+#~ msgstr ""
+#~ "De QR-code en download worden pas getoond nadat Magnolie is geopend. Er "
+#~ "wordt geen app geïnstalleerd, Bluetooth wordt niet gewijzigd en er wordt "
+#~ "nu geen apparaat gekoppeld."
+
+#~ msgid ""
+#~ "When the limit is lowered, the oldest recovery snapshots are removed "
+#~ "automatically."
+#~ msgstr ""
+#~ "Wanneer de limiet wordt verlaagd, worden de oudste herstelpunten "
+#~ "automatisch verwijderd."

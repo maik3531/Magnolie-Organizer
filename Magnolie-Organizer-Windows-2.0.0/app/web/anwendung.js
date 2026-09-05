@@ -15,30 +15,31 @@
 (function () {
 
   /* Die Fassung erscheint auf der Seite „Über". */
-const FASSUNG = "2.0.16";
-const NEU_IN_DIESER_FASSUNG_VERSION = "2.0.16";
+const FASSUNG = "2.0.17";
+const S = (x) => (x === undefined || x === null) ? "" : String(x);
+const NEU_IN_DIESER_FASSUNG_VERSION = "2.0.17";
 
 const NEU_IN_DIESER_FASSUNG = {
-  ar: ["ما الجديد في هذا الإصدار", "يمكن الاحتفاظ بلقطات الاسترداد حسب العدد الأقصى أو حسب الأيام", "يظل اختيار الاحتفاظ محفوظًا بعد إعادة تشغيل Windows مع دعم إعداد العدد القديم", "يحمي فحص التوافق أوامر الجسر المشتركة بين Windows وLinux"],
-  be: ["Што новага ў гэтай версіі", "Здымкі аднаўлення можна захоўваць паводле максімальнай колькасці або дзён", "Выбар захавання застаецца пасля перазапуску Windows і падтрымлівае старую наладу колькасці", "Праверка сумяшчальнасці абараняе агульныя каманды моста Windows і Linux"],
-  cs: ["Co je nového v této verzi", "Snímky obnovení lze uchovávat podle maximálního počtu nebo počtu dnů", "Volba uchování přetrvá restart Windows a podporuje původní nastavení počtu", "Kontrola parity chrání sdílené příkazy mostu Windows a Linux"],
-  da: ["Nyt i denne version", "Gendannelsesøjebliksbilleder kan bevares efter maksimalt antal eller dage", "Valget af opbevaring bevares efter genstart af Windows og understøtter den tidligere antalindstilling", "Paritetskontrollen beskytter fælles brokommandoer i Windows og Linux"],
-  de: ["Neu in dieser Version", "Wiederherstellungsstände lassen sich nach Höchstzahl oder Tagen aufbewahren", "Die Aufbewahrungswahl bleibt nach einem Windows-Neustart erhalten und unterstützt die bisherige Anzahl-Einstellung", "Die Paritätsprüfung schützt gemeinsame Bridge-Befehle von Windows und Linux"],
-  en: ["What's new in this version", "Recovery snapshots can be retained by maximum count or days", "The retention choice persists across Windows restarts and supports the legacy count setting", "Parity checks protect shared Windows and Linux bridge commands"],
-  es: ["Novedades de esta versión", "Las instantáneas de recuperación pueden conservarse por cantidad máxima o por días", "La opción de retención persiste tras reiniciar Windows y admite el ajuste de cantidad anterior", "La comprobación de paridad protege los comandos de puente compartidos entre Windows y Linux"],
-  fr: ["Nouveautés de cette version", "Les instantanés de récupération peuvent être conservés selon un nombre maximal ou une durée en jours", "Le choix de conservation persiste après le redémarrage de Windows et prend en charge l'ancien réglage du nombre", "Le contrôle de parité protège les commandes de pont communes à Windows et Linux"],
-  hi: ["इस संस्करण में नया", "पुनर्प्राप्ति स्नैपशॉट अधिकतम संख्या या दिनों के अनुसार रखे जा सकते हैं", "रिटेंशन विकल्प Windows पुनरारंभ के बाद बना रहता है और पुराने संख्या विकल्प का समर्थन करता है", "पैरिटी जाँच Windows और Linux के साझा ब्रिज कमांड सुरक्षित रखती है"],
-  hsb: ["Nowe w tutej wersiji", "Wobnowjenske stawy hodźa so po maksimalnej ličbje abo dnjach wobchować", "Wólba wobchowanja wostanje po nowym starće Windows a podpěruje dotalnu ličbowu nastajenosć", "Paritna kontrola škita zhromadne Bridge-přikazy Windows a Linux"],
-  it: ["Novità di questa versione", "Le istantanee di ripristino possono essere conservate per numero massimo o per giorni", "La scelta di conservazione persiste dopo il riavvio di Windows e supporta la precedente impostazione del numero", "Il controllo di parità protegge i comandi bridge condivisi tra Windows e Linux"],
-  ja: ["このバージョンの新機能", "復旧スナップショットを最大数または日数で保持できます", "保持方法は Windows の再起動後も保存され、従来の件数設定にも対応します", "パリティ検査により Windows と Linux 共通のブリッジコマンドを保護します"],
-  nb: ["Nytt i denne versjonen", "Gjenopprettingsbilder kan beholdes etter maksimalt antall eller dager", "Valget for oppbevaring beholdes etter omstart av Windows og støtter den tidligere antallsinnstillingen", "Paritetskontrollen beskytter delte brokommandoer for Windows og Linux"],
-  nl: ["Nieuw in deze versie", "Herstelmomenten kunnen op maximumaantal of dagen worden bewaard", "De bewaarkeuze blijft na een herstart van Windows behouden en ondersteunt de eerdere aantalinstelling", "De pariteitscontrole beschermt gedeelde bridge-opdrachten van Windows en Linux"],
-  pl: ["Nowości w tej wersji", "Migawki odzyskiwania można zachowywać według maksymalnej liczby lub dni", "Wybór przechowywania pozostaje po ponownym uruchomieniu Windows i obsługuje starsze ustawienie liczby", "Kontrola zgodności chroni wspólne polecenia mostu Windows i Linux"],
-  pt: ["Novidades desta versão", "Os instantâneos de recuperação podem ser mantidos por número máximo ou por dias", "A escolha de retenção persiste após reiniciar o Windows e suporta a definição de quantidade anterior", "A verificação de paridade protege os comandos de ponte partilhados entre Windows e Linux"],
-  ru: ["Новое в этой версии", "Снимки восстановления можно хранить по максимальному количеству или числу дней", "Выбор срока хранения сохраняется после перезапуска Windows и поддерживает прежнюю настройку количества", "Проверка паритета защищает общие команды моста Windows и Linux"],
-  tr: ["Bu sürümdeki yenilikler", "Kurtarma anlık görüntüleri azami sayıya veya gün sayısına göre saklanabilir", "Saklama seçimi Windows yeniden başlatıldıktan sonra korunur ve eski sayı ayarını destekler", "Eşlik denetimi Windows ve Linux tarafından paylaşılan köprü komutlarını korur"],
-  uk: ["Нове в цій версії", "Знімки відновлення можна зберігати за максимальною кількістю або числом днів", "Вибір зберігання лишається після перезапуску Windows і підтримує попереднє налаштування кількості", "Перевірка паритету захищає спільні команди мосту Windows і Linux"],
-  "zh-cn": ["此版本的新功能", "恢复快照可按最大数量或天数保留", "保留方式在 Windows 重启后仍会保存，并兼容旧的数量设置", "一致性检查可保护 Windows 与 Linux 共享的桥接命令"]
+  ar: ["ما الجديد في هذا الإصدار", "مساعد إعداد Windows أولي وتسلسل هرمي واضح للمهام والمهام الفرعية", "مهام CalDAV VTODO مع خوادم DAV عامة، واستيراد آمن لجهات الاتصال وتحديد موثوق لمصدر المكالمة", "تقوية المزامنة ومعالجة التعارضات والحذف، وأرشيفات كاملة أكثر أمانا مع الاسترداد"],
+  be: ["Што новага ў гэтай версіі", "Памочнік першапачатковай наладкі Windows і выразная іерархія задач і падзадач", "Задачы CalDAV VTODO на звычайных DAV-серверах, бяспечны імпарт кантактаў і надзейнае вызначэнне крыніцы выкліку", "Узмоцненая сінхранізацыя, апрацоўка канфліктаў і выдаленняў, а таксама бяспечнейшыя поўныя архівы з аднаўленнем"],
+  cs: ["Co je nového v této verzi", "Průvodce prvním nastavením Windows a přehledná hierarchie úkolů a podúkolů", "Úkoly CalDAV VTODO na obecných serverech DAV, bezpečný import kontaktů a spolehlivé určení původu hovoru", "Odolnější synchronizace, řešení konfliktů a mazání a bezpečnější úplné archivy s obnovou"],
+  da: ["Nyt i denne version", "Windows-førstegangsassistent og tydeligt hierarki for opgaver og underopgaver", "CalDAV VTODO-opgaver på generiske DAV-servere, sikker kontaktimport og pålidelig registrering af opkaldets oprindelse", "Hærdet synkronisering, konflikt- og slettehåndtering samt sikrere komplette arkiver med gendannelse"],
+  de: ["Neu in dieser Version", "Windows-Ersteinrichtungsassistent und klare Hierarchie für Aufgaben und Unteraufgaben", "CalDAV-VTODO-Aufgaben mit allgemeinen DAV-Servern, sichere Kontaktimporte und verlässliche Anrufherkunft", "Gehärteter Abgleich samt Konflikt- und Löschbehandlung und sicherere Gesamtarchive mit Wiederherstellung"],
+  en: ["What's new in this version", "Windows first-run setup assistant and clear task and subtask hierarchy", "CalDAV VTODO tasks on generic DAV servers, safe contact imports, and reliable call-origin attribution", "Hardened sync, conflict and deletion handling, and safer complete archives with recovery"],
+  es: ["Novedades de esta versión", "Asistente de configuración inicial de Windows y jerarquía clara de tareas y subtareas", "Tareas CalDAV VTODO en servidores DAV genéricos, importación segura de contactos y origen fiable de llamadas", "Sincronización y gestión de conflictos y eliminaciones reforzadas, y archivos completos más seguros con recuperación"],
+  fr: ["Nouveautés de cette version", "Assistant de première configuration Windows et hiérarchie claire des tâches et sous-tâches", "Tâches CalDAV VTODO sur des serveurs DAV génériques, importation sûre des contacts et origine fiable des appels", "Synchronisation et gestion des conflits et suppressions renforcées, avec des archives complètes et une restauration plus sûres"],
+  hi: ["इस संस्करण में नया", "Windows पहली बार सेटअप सहायक और कार्यों व उपकार्यों का स्पष्ट पदानुक्रम", "सामान्य DAV सर्वरों पर CalDAV VTODO कार्य, सुरक्षित संपर्क आयात और कॉल के स्रोत की विश्वसनीय पहचान", "मजबूत सिंक, टकराव और विलोपन प्रबंधन तथा पुनर्प्राप्ति सहित अधिक सुरक्षित पूर्ण अभिलेख"],
+  hsb: ["Nowe w tutej wersiji", "Asistent prěnjeho zarjadowanja Windows a jasna hierarchija nadawkow a podnadawkow", "CalDAV VTODO-nadawki na powšitkownych DAV-serwerach, wěsty import kontaktow a spušćomne připokazanje pochada zawołanja", "Wotwjerdźeny wotrjad, wobchadźenje z konfliktami a zhašenjemi kaž tež wěsćiše dospołne archiwy z wobnowjenjom"],
+  it: ["Novità di questa versione", "Assistente alla prima configurazione di Windows e gerarchia chiara di attività e sottoattività", "Attività CalDAV VTODO su server DAV generici, importazione sicura dei contatti e origine affidabile delle chiamate", "Sincronizzazione e gestione di conflitti ed eliminazioni rafforzate, con archivi completi e ripristino più sicuri"],
+  ja: ["このバージョンの新機能", "Windows 初回セットアップアシスタントと、タスク・サブタスクの明確な階層", "一般的な DAV サーバーでの CalDAV VTODO タスク、安全な連絡先インポート、確実な着信元判定", "同期、競合・削除処理を強化し、復旧可能な完全アーカイブをより安全に"],
+  nb: ["Nytt i denne versjonen", "Windows-førstegangsassistent og tydelig hierarki for oppgaver og deloppgaver", "CalDAV VTODO-oppgaver på generelle DAV-servere, trygg kontaktimport og pålitelig registrering av anropsopprinnelse", "Styrket synkronisering, konflikt- og slettehåndtering samt sikrere komplette arkiver med gjenoppretting"],
+  nl: ["Nieuw in deze versie", "Windows-assistent voor de eerste configuratie en een duidelijke hiërarchie van taken en subtaken", "CalDAV VTODO-taken op algemene DAV-servers, veilige contactimport en betrouwbare herkomst van oproepen", "Versterkte synchronisatie, conflict- en verwijderingsafhandeling en veiligere volledige archieven met herstel"],
+  pl: ["Nowości w tej wersji", "Asystent pierwszej konfiguracji Windows i przejrzysta hierarchia zadań oraz podzadań", "Zadania CalDAV VTODO na ogólnych serwerach DAV, bezpieczny import kontaktów i wiarygodne ustalanie pochodzenia połączeń", "Wzmocniona synchronizacja, obsługa konfliktów i usuwania oraz bezpieczniejsze pełne archiwa z odzyskiwaniem"],
+  pt: ["Novidades desta versão", "Assistente de configuração inicial do Windows e hierarquia clara de tarefas e subtarefas", "Tarefas CalDAV VTODO em servidores DAV genéricos, importação segura de contactos e origem fiável das chamadas", "Sincronização e tratamento de conflitos e eliminações reforçados, com arquivos completos e recuperação mais seguros"],
+  ru: ["Новое в этой версии", "Помощник первоначальной настройки Windows и наглядная иерархия задач и подзадач", "Задачи CalDAV VTODO на обычных DAV-серверах, безопасный импорт контактов и надёжное определение источника вызова", "Усиленная синхронизация, обработка конфликтов и удалений, а также более безопасные полные архивы с восстановлением"],
+  tr: ["Bu sürümdeki yenilikler", "Windows ilk kurulum yardımcısı ve açık görev-alt görev hiyerarşisi", "Genel DAV sunucularında CalDAV VTODO görevleri, güvenli kişi içe aktarma ve güvenilir arama kaynağı belirleme", "Güçlendirilmiş eşitleme, çakışma ve silme yönetimi ile kurtarmalı daha güvenli tam arşivler"],
+  uk: ["Нове в цій версії", "Помічник першого налаштування Windows та чітка ієрархія завдань і підзавдань", "Завдання CalDAV VTODO на звичайних DAV-серверах, безпечний імпорт контактів і надійне визначення походження виклику", "Посилена синхронізація, обробка конфліктів і видалень та безпечніші повні архіви з відновленням"],
+  "zh-cn": ["此版本的新功能", "Windows 首次运行设置助手，以及清晰的任务和子任务层级", "通用 DAV 服务器上的 CalDAV VTODO 任务、安全的联系人导入和可靠的来电来源识别", "强化同步、冲突和删除处理，并提供可恢复的更安全完整归档"]
 };
 if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes version mismatch");
   const CONTRIBUTOR_BRANDING = "No valid coffee allowance";
@@ -65,6 +66,8 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       : text;
   };
 
+  const customText = (text) => _(text);
+
   const SEKTIONEN = [
     { id: "kalender",   name: msgid("Calendar"),      farbe: "#dcaf4e" },
     { id: "aufgaben",   name: msgid("Tasks"),         farbe: "#8fae72" },
@@ -72,16 +75,31 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     { id: "notizen",    name: msgid("Notes"),         farbe: "#c99a63" },
     { id: "jahrestage", name: msgid("Anniversaries"), farbe: "#b98aa8" },
     { id: "planer",     name: msgid("Planner"),       farbe: "#9a94c2" },
-    { id: "gesundheit", name: msgid("Health"),        farbe: "#76a69b" }
+    { id: "gesundheit", name: msgid("Health"),        farbe: "#76a69b" },
+    { id: "custom",     name: customText("Custom"),   farbe: "#b58b65" }
   ];
 
-  const OPTIONALE_SEKTIONEN = SEKTIONEN.filter((sektion) => sektion.id !== "kalender");
+  const OPTIONALE_SEKTIONEN = SEKTIONEN.filter((sektion) =>
+    !["kalender", "custom"].includes(sektion.id));
 
   function registerAktiv(id) {
     if (id === "kalender") return true;
     const allgemein = DATEN && DATEN.einstellungen && DATEN.einstellungen.allgemein;
+    if (id === "custom") return !!(allgemein && allgemein.customTab &&
+      allgemein.customTab.enabled);
     const register = allgemein && allgemein.registerkarten;
     return !register || register[id] !== false;
+  }
+
+  function customTabName(wert, ersatz = true) {
+    const name = String(wert || "").replace(/[\x00-\x1f\x7f]/g, " ")
+      .replace(/\s+/g, " ").trim();
+    return Array.from(name).slice(0, 40).join("") || (ersatz ? customText("Custom") : "");
+  }
+
+  function sektionName(sektion) {
+    return sektion.id === "custom"
+      ? customTabName(DATEN.einstellungen.allgemein.customTab.name) : _(sektion.name);
   }
 
   function sichtbareSektionen() {
@@ -143,7 +161,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     sektion: "kalender",
     kalender: { jahr: jetztTeile.jahr, monat: jetztTeile.monat - 1, tag: isoHeute(jetzt),
       bearbeiteId: null, ansicht: "week" },
-    aufgaben: { bearbeiteId: null,
+    aufgaben: { bearbeiteId: null, neueElternUid: "",
       filter: { person: "", von: "", bis: "" } },
     adressen: { buchstabe: "A", auswahlId: null, suche: "", modus: "ansehen" },
     notizen: { auswahlId: null, gruppeId: NOTIZ_STANDARD_GRUPPE,
@@ -154,7 +172,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       entwurf: null }
   };
   const suchZustand = { kalender: "", aufgaben: "", jahrestage: "", planer: "",
-    gesundheit: "" };
+    gesundheit: "", custom: "" };
 
   let aktiverEditor = null;
   let aenderungsGuard = null;
@@ -187,11 +205,12 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
 
   function leereDaten() {
     return { version: 6, termine: [], aufgaben: [], kontakte: [], notizen: [],
+      customOrganizer: { version: 3, modules: [] },
       notizgruppen: [{ id: NOTIZ_STANDARD_GRUPPE, name: _("General") }],
       notizbuecher: [{ id: NOTIZ_STANDARD_BUCH, gruppeId: NOTIZ_STANDARD_GRUPPE,
         name: _("Loose Notes") }], jahrestage: [],
       feiertage: [], urlaube: [], muelltermine: [], papierkorb: [], personen: [], schichten: [],
-      smsVerlauf: [], zyklusmarker: [], tagmarken: [],
+      smsVerlauf: [], smsPlanung: [], zyklusmarker: [], tagmarken: [],
       gesundheit: { vitalwerte: [], blutzucker: [], medikamente: [],
         insulinschema: { basisAn: false, basisEinheiten: 0, festEinheiten: 0,
           langzeitInsulin: "", langzeitModus: "fixed", langzeitFestEinheiten: 0,
@@ -208,11 +227,12 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
           sicherungsordner: "", wiederherstellungsintervall: "weekly",
           cloudSicherung: { aktiv: false, intervall: "daily", aufbewahrung: 7,
             letzterErfolg: "", status: "" },
-          wiederherstellungsaufbewahrung: "count", wiederherstellungsanzahl: 20,
-          wiederherstellungstage: 14,
+          wiederherstellungsaufbewahrung: "days", wiederherstellungsanzahl: 20,
+          wiederherstellungstage: 3650,
           wiederherstellungsstatus: "", handbuchHinweisGezeigt: false,
           kontaktErsteinrichtungVersion: 1,
           notizAnhangHoehe: 200, contributorFreigeschaltet: false,
+          customTab: { enabled: false, name: "", designRequested: false },
           registerkarten: { aufgaben: true, adressen: true, notizen: true,
             jahrestage: true, planer: true, gesundheit: true },
           tray: { aktiv: false, minimierenInTray: true, schliessenInTray: true,
@@ -222,13 +242,13 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
           letzteVersion: "", letzteUrl: "", letztePruefsumme: "", letzterFehler: "" },
         regional: { language: "de", formatLocale: "de-DE", hourCycle: "h23",
           firstDayOfWeek: "monday", weekRule: "iso",
-          temperatureUnit: "celsius", timeZone: "system" },
+          temperatureUnit: "celsius", timeZone: "system", homeCountry: "DE" },
         schrift: { art: "regular", farbe: "black", groesse: "normal",
           rechtschreibung: true, linien: true, radRichtung: "up-earlier" },
         ansicht: "week",
-        erinnerung: { an: false, vorlauf: 15, art: "both", verpasste: true,
+        erinnerung: { an: true, vorlauf: 15, art: "both", verpasste: true,
           wecken: false, stil: "magnolie",
-          jahrestage: { an: false, tage: 1, amTag: true, stunde: 8 },
+          jahrestage: { an: true, tage: 1, amTag: true, stunde: 8 },
           protokoll: false, protokollVoreinstellung: 1 },
         adressen: { absender: "", karten: "google", land: "Deutschland", landCode: "DE",
           sortierung: "last-name", brief: true, karte: true, route: false,
@@ -263,7 +283,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
         last_reports: [], applied_batches: [], last_auto_ms: 0, last_auto_hash: "",
         peer_device_id: "", restoration_requests: [], pending_proposals: [],
         applied_decisions: [], pending_decisions: [] },
-      geloescht: { termine: [], kontakte: [] }, syncEpoch: "",
+      geloescht: { termine: [], kontakte: [], aufgaben: [] }, syncEpoch: "",
       syncMetadaten: { syncEpoch: "", ersteSyncLoeschungsfrei: false,
         quarantinedDeletes: {}, nextcloud: { kalender: {}, adressbuecher: {},
           quarantinedDeletes: {}, transaktionen: {} }, eds: { adressbuecher: {} } } };
@@ -364,7 +384,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       !x.vonZweig && !x.fremdId && !x.delegiertAn && !x.herkunft).forEach((x) => kandidaten.push(["task", x]));
     const vorhanden = new Set(kandidaten.map(([art, objekt]) => art + "\u0000" + objekt.id));
     const anhangVorhanden = new Set();
-    if (format === 2 && module.includes("notes")) for (const notiz of DATEN.notizen) {
+    if (format >= 2 && module.includes("notes")) for (const notiz of DATEN.notizen) {
       if (String(notiz.baumQuelle || "")) continue;
       for (const anhang of (notiz.anhaenge || [])) anhangVorhanden.add(
         "attachment\u0000" + notiz.id + "\u0000" + anhang.id);
@@ -393,7 +413,9 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       const key = art + "\u0000" + objekt.id;
       let meta = ps.entities[key] || null;
       let wert = personalSyncWert(art, objekt, meta ? Number(meta.modified_ms || 0) : 0);
-      if (format === 2 && art === "note") {
+      if (format === 3 && art === "task") Object.assign(wert, { uid: String(objekt.uid || ""),
+        parent_uid: String(objekt.elternUid || ""), order: Math.max(0, Number(objekt.reihenfolge) || 0) });
+      if (format >= 2 && art === "note") {
         const anhaenge = [];
         for (const anhang of (Array.isArray(objekt.anhaenge) ? objekt.anhaenge : [])) {
           const snapshot = await personalSyncAnhangSnapshot(anhang);
@@ -407,6 +429,8 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
         const modified = Date.now();
         objekt.personalGeaendert = modified;
         wert = personalSyncWert(art, objekt, modified);
+        if (format === 3 && art === "task") Object.assign(wert, { uid: String(objekt.uid || ""),
+          parent_uid: String(objekt.elternUid || ""), order: Math.max(0, Number(objekt.reihenfolge) || 0) });
         hash = await personalSyncHash(wert);
         const clock = personalSyncVereinige(meta && Array.isArray(meta.clock) ? meta.clock : [],
           [{ actor_id: ps.actor_id, counter: ps.counter }]);
@@ -418,7 +442,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       records.push({ kind: art, id: String(objekt.id), state: "live", clock: meta.clock,
         hash: meta.hash, modified_ms: meta.modified_ms, value: wert });
     }
-    if (format === 2 && module.includes("notes")) for (const notiz of DATEN.notizen) {
+    if (format >= 2 && module.includes("notes")) for (const notiz of DATEN.notizen) {
       if (String(notiz.baumQuelle || "")) continue;
       for (const anhang of (notiz.anhaenge || [])) {
         const snapshot = await personalSyncAnhangSnapshot(anhang); if (!snapshot) continue;
@@ -434,7 +458,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       }
     }
     records.sort((a, b) => personalSyncUtf8(a.kind, b.kind) || personalSyncUtf8(a.id, b.id));
-    if (format === 2) {
+    if (format >= 2) {
       const quellen = new Map();
       for (const [, objekt] of kandidaten.filter((x) => x[0] === "note")) for (const anhang of (objekt.anhaenge || [])) {
         const snapshot = await personalSyncAnhangSnapshot(anhang);
@@ -639,6 +663,9 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
         vorlaufTage: v.lead_days, individuelleErinnerungTage: v.lead_days,
         erinnerungsMinute: v.reminder_minute, angelegt: v.created_ms,
         personalGeaendert: v.modified_ms });
+      if (Object.prototype.hasOwnProperty.call(v, "uid")) {
+        neu.uid = v.uid; neu.elternUid = v.parent_uid; neu.reihenfolge = v.order;
+      }
       if (!alt) neu.geaendert = v.modified_ms;
       if (alt) DATEN.aufgaben[DATEN.aufgaben.indexOf(alt)] = neu; else DATEN.aufgaben.push(neu);
     } else {
@@ -675,9 +702,16 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       if (remoteWins) {
         const liste = record.kind === "note" ? DATEN.notizen : record.kind === "task" ? DATEN.aufgaben : DATEN.notizbuecher;
         const original = liste.find((x) => x.id === record.id);
-        if (original && !liste.some((x) => x.id === konfliktId)) liste.push(Object.assign({}, original, { id: konfliktId }));
+        if (original && !liste.some((x) => x.id === konfliktId)) liste.push(Object.assign({}, original,
+          { id: konfliktId, uid: record.kind === "task" ? stabileAufgabenUid(konfliktId) : original.uid }));
         personalSyncSetze(record, record.id, record.kind === "note", attachmentData);
-      } else personalSyncSetze(record, konfliktId, true, attachmentData);
+      } else {
+        personalSyncSetze(record, konfliktId, true, attachmentData);
+        if (record.kind === "task") {
+          const kopie = DATEN.aufgaben.find((x) => x.id === konfliktId);
+          if (kopie) kopie.uid = stabileAufgabenUid(konfliktId);
+        }
+      }
       DATEN.personalSync.entities[key] = { clock: merged, hash: remoteWins ? record.hash : lokal.hash,
         modified_ms: remoteWins ? record.modified_ms : lokal.modified_ms, conflict: true };
       DATEN.personalSync.entities[record.kind + "\u0000" + konfliktId] = { clock: merged, hash: loser,
@@ -694,9 +728,13 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     if (!vorbereitet && local.personal_tasks_sync && remote.personal_tasks_sync) modules.push("tasks");
     if (!peer.own_device || !peer.remote_own_device || !modules.length) throw new Error("Personal Sync ist nicht beidseitig freigegeben.");
     if (trigger === "auto_wifi" && peer.transport !== "wifi") throw new Error("Auto-Sync ist nur im WLAN möglich.");
-    const versions = peer.capabilities && peer.capabilities.items &&
+    const notesVersions = peer.capabilities && peer.capabilities.items &&
       peer.capabilities.items.personal_notes_sync && peer.capabilities.items.personal_notes_sync.versions || [];
-    const format = modules.includes("notes") && versions.includes(2) ? 2 : 1;
+    const taskVersions = peer.capabilities && peer.capabilities.items &&
+      peer.capabilities.items.personal_tasks_sync && peer.capabilities.items.personal_tasks_sync.versions || [];
+    const format = modules.includes("tasks") && taskVersions.includes(3) &&
+      (!modules.includes("notes") || notesVersions.includes(3)) ? 3 :
+      modules.includes("notes") && notesVersions.includes(2) ? 2 : 1;
     const run = crypto.randomUUID();
     if (trigger === "auto_wifi" && vorbereitet) personalSyncAutoHash.set(run,
       { hash: vorbereitet.hash, modules: vorbereitet.modules.slice() });
@@ -707,12 +745,12 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     nachDauerhaftemSpeichern(() => {
       const chunks = personalSyncPakete(records, run, false);
       const sentRecords = chunks.flat();
-      const aggregatePromise = format === 2 ? personalSyncHash(sentRecords) : Promise.resolve("");
+      const aggregatePromise = format >= 2 ? personalSyncHash(sentRecords) : Promise.resolve("");
       aggregatePromise.then((aggregate) => {
       const batches = chunks.map((teil, sequence) => ({ format: format, run_id: run,
           batch_id: crypto.randomUUID(), sequence: sequence, last: sequence === chunks.length - 1,
-          reply: false, records_hash: format === 2 ? aggregate : undefined, records: teil }));
-      if (format === 2) Bruecke.sende({ cmd: "personal_sync_lauf_senden", kennung: peer.device_id,
+          reply: false, records_hash: format >= 2 ? aggregate : undefined, records: teil }));
+      if (format >= 2) Bruecke.sende({ cmd: "personal_sync_lauf_senden", kennung: peer.device_id,
         request: request, batches: batches, sources: (records.attachmentSources || []).filter(
           (source) => sentRecords.some((record) => record.kind === "note" &&
             record.value.attachments.some((item) => item.sha256 === source.sha256))) });
@@ -745,9 +783,13 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     if (local.personal_notes_sync && remote.personal_notes_sync) modules.push("notes");
     if (local.personal_tasks_sync && remote.personal_tasks_sync) modules.push("tasks");
     if (!modules.length) return;
-    const versions = peer.capabilities && peer.capabilities.items &&
+    const notesVersions = peer.capabilities && peer.capabilities.items &&
       peer.capabilities.items.personal_notes_sync && peer.capabilities.items.personal_notes_sync.versions || [];
-    const format = modules.includes("notes") && versions.includes(2) ? 2 : 1;
+    const taskVersions = peer.capabilities && peer.capabilities.items &&
+      peer.capabilities.items.personal_tasks_sync && peer.capabilities.items.personal_tasks_sync.versions || [];
+    const format = modules.includes("tasks") && taskVersions.includes(3) &&
+      (!modules.includes("notes") || notesVersions.includes(3)) ? 3 :
+      modules.includes("notes") && notesVersions.includes(2) ? 2 : 1;
     const records = await personalSyncSnapshot(modules, format, peer.device_id);
     const hash = await personalSyncHash(records);
     const lastHash = String(DATEN.personalSync.last_auto_hash || "");
@@ -1766,6 +1808,18 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     return ziffern.length >= 6 ? ziffern + erweiterung : "";
   }
 
+  const ISO_ALPHA2 = new Set(("AD AE AF AG AI AL AM AO AQ AR AS AT AU AW AX AZ BA BB BD BE BF BG BH BI BJ BL BM BN BO BQ BR BS BT BV BW BY BZ CA CC CD CF CG CH CI CK CL CM CN CO CR CU CV CW CX CY CZ DE DJ DK DM DO DZ EC EE EG EH ER ES ET FI FJ FK FM FO FR GA GB GD GE GF GG GH GI GL GM GN GP GQ GR GS GT GU GW GY HK HM HN HR HT HU ID IE IL IM IN IO IQ IR IS IT JE JM JO JP KE KG KH KI KM KN KP KR KW KY KZ LA LB LC LI LK LR LS LT LU LV LY MA MC MD ME MF MG MH MK ML MM MN MO MP MQ MR MS MT MU MV MW MX MY MZ NA NC NE NF NG NI NL NO NP NR NU NZ OM PA PE PF PG PH PK PL PM PN PR PS PT PW PY QA RE RO RS RU RW SA SB SC SD SE SG SH SI SJ SK SL SM SN SO SR SS ST SV SX SY SZ TC TD TF TG TH TJ TK TL TM TN TO TR TT TV TW TZ UA UG UM US UY UZ VA VC VE VG VI VN VU WF WS YE YT ZA ZM ZW").split(" "));
+
+  function isoLand(wert, fallback = "DE") {
+    const code = String(wert || "").trim().toUpperCase();
+    return ISO_ALPHA2.has(code) ? code : fallback;
+  }
+
+  function telefonHeimatland() {
+    return isoLand(DATEN && DATEN.einstellungen && DATEN.einstellungen.regional &&
+      DATEN.einstellungen.regional.homeCountry, "DE");
+  }
+
   function istEdsZeigerwert(wert) {
     const text = String(wert || "").trim();
     if (!/^\d{13,15}$/.test(text)) return false;
@@ -1845,6 +1899,9 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       if (!stellen.has(schluessel)) stellen.set(schluessel, []);
       stellen.get(schluessel).push(aus.length);
       const neu = { wert: wert, typen: typen };
+      const e164 = String(roh && typeof roh === "object" &&
+        (roh.phone_e164 || roh.e164) || "").trim();
+      if (/^\+[1-9][0-9]{5,19}$/.test(e164)) neu.e164 = e164;
       if (roh && typeof roh === "object" && Array.isArray(roh.vcardParameter))
         neu.vcardParameter = roh.vcardParameter.map(S).filter(Boolean).slice(0, 32);
       if (label) neu.label = label;
@@ -2012,6 +2069,110 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     return { text: text, einheiten: einheiten, teile: teile, geaendert: text !== original };
   }
 
+  function smsPlanNummern(kontakt) {
+    return telefonListe(kontakt).filter((eintrag) =>
+      eintrag.typen.some((typ) => ["CELL", "MOBILE"].includes(typ)));
+  }
+
+  function lokalerZeitwert(zeit) {
+    const datum = new Date(zeit); const teil = (wert) => String(wert).padStart(2, "0");
+    return datum.getFullYear() + "-" + teil(datum.getMonth() + 1) + "-" + teil(datum.getDate()) +
+      "T" + teil(datum.getHours()) + ":" + teil(datum.getMinutes());
+  }
+
+  function oeffneSmsPlanung(kontakt, vorauswahl = "", vorlage = "") {
+    const nummern = smsPlanNummern(kontakt); if (!nummern.length) return;
+    const schleier = el("div", "eingabe-schleier sms-planung-schleier");
+    const dialog = el("div", "eingabe-dialog sms-planung-dialog");
+    const zeilen = el("div", "sms-planung-zeilen");
+    const schliessen = () => { beendeModal(schleier); schleier.remove(); };
+    const neueZeile = (nummerWert = vorauswahl, textWert = vorlage, zeit = Date.now() + 3600000) => {
+      const zeile = el("section", "sms-planung-zeile"); const nummer = document.createElement("select");
+      for (const eintrag of nummern) { const option = document.createElement("option"); option.value = eintrag.wert;
+        option.textContent = telefonBezeichnung(eintrag) + ": " + eintrag.wert; nummer.append(option); }
+      if (nummerWert && nummern.some((wert) => wert.wert === nummerWert)) nummer.value = nummerWert;
+      const lokalerWert = lokalerZeitwert(zeit);
+      const datum = eingabe("date", lokalerWert.slice(0, 10),
+        { leerHeute: true, textModus: true });
+      const uhrzeit = eingabe("time", lokalerWert.slice(11));
+      bindeZeitRad(uhrzeit);
+      const text = document.createElement("textarea"); text.className = "feld";
+      text.maxLength = 5000; text.rows = 3; text.value = textWert;
+      zeile.append(formZeile(_("Phone number"), nummer), formZeile(_("Date"), datum),
+        formZeile(_("Time"), uhrzeit),
+        formZeile(_("Message text"), text), knopf(_("Remove"), "", () => zeile.remove()));
+      zeile._werte = { nummer: nummer, datum: datum, uhrzeit: uhrzeit, text: text };
+      zeilen.append(zeile);
+    };
+    neueZeile();
+    const gespeichert = el("div", "sms-planung-liste");
+    const zeichneGespeichert = () => {
+      gespeichert.replaceChildren();
+      const liste = DATEN.smsPlanung.filter((sms) => sms.kontaktId === (kontakt.id || "") &&
+        ["planned", "submitting", "uncertain", "failed"].includes(sms.status)).sort((a, b) => a.zeit - b.zeit);
+      if (!liste.length) { gespeichert.append(el("p", "leer-hinweis", _("No SMS messages are scheduled."))); return; }
+      const statusText = { planned: _("Scheduled"), submitting: _("Submitting"),
+        uncertain: _("Delivery status uncertain"), failed: _("Failed") };
+      for (const sms of liste) { const karte = el("div", "sms-planung-eintrag");
+        karte.append(el("strong", null, new Date(sms.zeit).toLocaleString()),
+          el("span", null, " · " + statusText[sms.status]), el("p", null, sms.text),
+          knopf(_("Delete"), "", () => { DATEN.smsPlanung = DATEN.smsPlanung.filter((wert) => wert.id !== sms.id);
+            planeSpeichern(); zeichneGespeichert(); })); gespeichert.append(karte); }
+    };
+    zeichneGespeichert();
+    const plus = knopf("+", "", () => neueZeile()); plus.setAttribute("aria-label", _("Add another SMS"));
+    const speichern = knopf(_("Schedule SMS"), "hauptknopf", () => {
+      const neu = [];
+      for (const zeile of zeilen.children) { const werte = zeile._werte;
+        const zeit = new Date(datumswert(werte.datum) + "T" + werte.uhrzeit.value).getTime();
+        const angepasst = smsTextAnpassen(werte.text.value);
+        if (!Number.isFinite(zeit) || zeit <= Date.now() || !angepasst.text.trim() || angepasst.teile > 10) {
+          zettel(_("Enter a future time and a valid SMS text for every entry.")); return; }
+        neu.push({ id: uid(), kontaktId: kontakt.id || "", nummer: werte.nummer.value,
+          text: angepasst.text, zeit: zeit, status: "planned", clientRef: "", fehler: "" }); }
+      if (!neu.length) return;
+      DATEN.smsPlanung.push(...neu); DATEN.smsPlanung = DATEN.smsPlanung.slice(-500);
+      planeSpeichern(); pruefeSmsPlanung(); zettel(_("SMS scheduled.")); schliessen();
+    });
+    const knoepfe = el("div", "dialog-knoepfe");
+    const belegung = knopf(_("SMS app settings"), "sms-planung-einstellungen", () => {
+      schliessen(); oeffneKommunikationsBelegung("sms");
+    });
+    knoepfe.append(plus, belegung, knopf(_("Close"), "", schliessen), speichern);
+    dialog.append(el("h3", null, _("Schedule SMS")), el("p", "einst-hinweis",
+      _("Scheduled SMS messages are sent only while Magnolie is running and exactly one KDE Connect phone is available.")),
+      zeilen, el("h4", null, _("Pending SMS messages")), gespeichert, knoepfe);
+    schleier.append(dialog); document.body.append(schleier);
+    registriereModal(schleier, dialog, { anfang: zeilen.querySelector("textarea"), schliessen: schliessen });
+  }
+
+  let smsPlanungsTimer = null;
+  function pruefeSmsPlanung() {
+    clearTimeout(smsPlanungsTimer); smsPlanungsTimer = setTimeout(pruefeSmsPlanung, 30000);
+    const kde = telefonStand && telefonStand.kdeconnect;
+    if (!Bruecke.vorhanden || !kde || kde.available !== true ||
+        DATEN.smsPlanung.some((sms) => sms.status === "submitting")) return;
+    const sms = DATEN.smsPlanung.filter((wert) => wert.status === "planned" && wert.zeit <= Date.now())
+      .sort((a, b) => a.zeit - b.zeit)[0]; if (!sms) return;
+    const land = DATEN.einstellungen.adressen.landCode || DATEN.einstellungen.adressen.land || "DE";
+    sms.status = "submitting"; sms.clientRef = "plan:" + sms.id; sms.fehler = "";
+    DATEN.smsVerlauf.push({ id: "kde:out:" + sms.clientRef, kontaktId: sms.kontaktId,
+      nummer: telefonSchluessel(sms.nummer, land).split("x", 1)[0], richtung: "ausgang",
+      text: sms.text, zeit: Date.now(), status: "queued", clientRef: sms.clientRef,
+      weg: "kde", geraet: kde.device_id || "", fehler: "" });
+    DATEN.smsVerlauf = DATEN.smsVerlauf.slice(-5000); planeSpeichern();
+    if (!Bruecke.sende({ cmd: "kde_sms_senden", nummer: sms.nummer, text: sms.text,
+      land: land, clientRef: sms.clientRef })) {
+      sms.status = "failed"; sms.fehler = _("Failed"); planeSpeichern(); }
+  }
+
+  function aktualisiereSmsPlanung(nutzlast) {
+    const sms = DATEN.smsPlanung.find((wert) => wert.clientRef &&
+      wert.clientRef === String(nutzlast.client_ref || nutzlast.clientRef || "")); if (!sms) return;
+    sms.status = nutzlast.ok === true ? "sent" : "failed";
+    sms.fehler = nutzlast.ok === true ? "" : String(nutzlast.error || "").slice(0, 1000); planeSpeichern();
+  }
+
   function oeffneSmsDialog(kontakt, vorauswahl) {
     const nummern = telefonListe(kontakt).filter((eintrag) =>
       eintrag.typen.some((typ) => ["CELL", "MOBILE"].includes(typ)));
@@ -2075,7 +2236,8 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     schliessKnopf.setAttribute("aria-label", _("Close"));
     const komponistText = el("div", "sms-komponist-text");
     komponistText.append(text, zaehler, vorschau);
-    knoepfe.append(komponistText, senden);
+    const planen = knopf(_("Schedule"), "", () => oeffneSmsPlanung(kontakt, nummer.value, text.value));
+    knoepfe.append(komponistText, planen, senden);
     const kopf = el("div", "sms-kopf");
     if (kontakt.foto) {
       const foto = document.createElement("img"); foto.className = "kontakt-foto";
@@ -2167,12 +2329,24 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
   let anrufUhr = 0;
   const anrufUuidV4 = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
-  function anrufKontakt(nummer) {
-    const schluessel = telefonSchluessel(nummer);
+  function anrufKontakt(nummer, e164) {
+    const land = telefonHeimatland();
+    const angereichert = /^\+[1-9][0-9]{5,19}$/.test(String(e164 || "")) ? String(e164) : "";
+    const schluessel = angereichert || telefonSchluessel(nummer, land);
     if (!schluessel) return null;
     const treffer = DATEN.kontakte.filter((kontakt) => telefonListe(kontakt).some((eintrag) =>
-      telefonSchluessel(eintrag.wert) === schluessel));
+      (eintrag.e164 || telefonSchluessel(eintrag.wert, land)) === schluessel));
     return treffer.length === 1 ? treffer[0] : null;
+  }
+
+  function anrufHerkunft(anruf) {
+    if (!anruf || anruf.number_status !== "available") return null;
+    const code = isoLand(anruf.origin_country_code || anruf.phone_region, "");
+    const name = String(anruf.origin_country_name || anruf.phone_country_name || "").trim().slice(0, 128);
+    const international = typeof anruf.is_international === "boolean"
+      ? anruf.is_international : anruf.phone_is_foreign;
+    if (!code || !name || typeof international !== "boolean") return null;
+    return { code: code, name: name, international: international };
   }
 
   function anrufDauer(ms) {
@@ -2185,7 +2359,8 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     const eigenerText = String(anruf.note || "").trim();
     const id = "call:" + String(anruf.device_id || "phone") + ":" + anruf.call_ref;
     if (!eigenerText || DATEN.notizen.some((notiz) => notiz.id === id)) return;
-    const kontakt = anrufKontakt(anruf.number_status === "available" ? anruf.number : "");
+    const kontakt = anrufKontakt(anruf.number_status === "available" ? anruf.number : "",
+      anruf.phone_e164 || anruf.normalized_number);
     const name = kontakt ? kontaktName(kontakt) : (anruf.number || _("Unknown caller"));
     const zeilen = [
       _("Direction") + ": " + ({ incoming: _("Incoming"), outgoing: _("Outgoing"), unknown: _("Unknown") }[anruf.direction]),
@@ -2228,7 +2403,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     if (aktiverAnruf.hidden) return;
     $("#anruf-schleier")?.remove(); $("#anruf-chip")?.remove();
     const nummer = aktiverAnruf.number_status === "available" ? aktiverAnruf.number : "";
-    const kontakt = anrufKontakt(nummer);
+    const kontakt = anrufKontakt(nummer, aktiverAnruf.phone_e164 || aktiverAnruf.normalized_number);
     const name = String(kontakt ? kontaktName(kontakt) : (nummer || _("Unknown caller")));
     const schleier = el("div", "eingabe-schleier anruf-aktiv-schleier"); schleier.id = "anruf-schleier";
     const dialog = el("div", "eingabe-dialog anruf-aktiv-dialog"); dialog.setAttribute("role", "dialog");
@@ -2238,7 +2413,16 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     const titel = el("h2", null, name); titel.id = "anruf-aktiv-titel";
     const status = el("p", "anruf-status", aktiverAnruf.offhook_ms ? _("Connected") :
       aktiverAnruf.direction === "incoming" && aktiverAnruf.state === "ringing" ? _("Incoming call") : _("Dialing…"));
-    const kopftext = el("div"); kopftext.append(titel, status); kopf.append(avatar, kopftext);
+    const kopftext = el("div"); kopftext.append(titel);
+    const herkunft = anrufHerkunft(aktiverAnruf);
+    if (herkunft) {
+      const herkunftZeile = el("p", "anruf-herkunft", _("Country of origin") + ": " +
+        herkunft.name + " (" + herkunft.code + ")" +
+        (herkunft.international ? " · " + _("International call") : ""));
+      herkunftZeile.id = "anruf-herkunft";
+      kopftext.append(herkunftZeile);
+    }
+    kopftext.append(status); kopf.append(avatar, kopftext);
     const dauer = el("output", "anruf-dauer", "00:00:00"); dauer.setAttribute("aria-live", "off");
     const aktualisiere = () => { dauer.textContent = anrufDauer(aktiverAnruf && aktiverAnruf.offhook_ms
       ? Date.now() - aktiverAnruf.offhook_ms : 0); }; aktualisiere();
@@ -2367,6 +2551,22 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     return externeKontaktAktion(kontakt, typ, belegung);
   }
 
+  function telefonLaenderOptionen() {
+    let namen = null;
+    try { namen = new Intl.DisplayNames([formatGebiet().replace("_", "-")], { type: "region" }); }
+    catch (_) { /* Codes remain usable without localized region names. */ }
+    return Array.from(ISO_ALPHA2, (code) => [code,
+      (namen && namen.of(code) || code) + " (" + code + ")"])
+      .sort((a, b) => vergleicheText(a[1], b[1]));
+  }
+
+  function regionaleEinstellungenNutzlast(homeCountry) {
+    const r = DATEN.einstellungen.regional;
+    return { language: r.language, formatLocale: r.formatLocale, hourCycle: r.hourCycle,
+      firstDayOfWeek: r.firstDayOfWeek, weekRule: "iso", temperatureUnit: r.temperatureUnit,
+      timeZone: r.timeZone, homeCountry: isoLand(homeCountry, "DE") };
+  }
+
   function oeffneKommunikationsBelegung(typ) {
     const sms = typ === "sms";
     const aktuell = DATEN.einstellungen.adressen.kommunikation[typ];
@@ -2397,6 +2597,8 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     const eingehend = sms ? null : option(_("Notify me about incoming calls"), "eingehendBenachrichtigen");
     const computer = sms ? null : option(_("Answer calls on the computer and talk"), "computerTelefonie");
     const leiser = sms ? null : option(_("Lower other sounds while ringing"), "klingeltonLeiser");
+    const heimatland = sms ? null : auswahlFeld(telefonLaenderOptionen(), telefonHeimatland());
+    if (heimatland) heimatland.id = "anruf-heimatland";
     const optionenAktualisieren = () => {
       if (computer && computer.checked) eingehend.checked = true;
       if (leiser) { leiser.disabled = !eingehend.checked || computer.checked; if (leiser.disabled) leiser.checked = false; }
@@ -2410,6 +2612,8 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       if (!sms) Object.assign(DATEN.einstellungen.adressen.kommunikation[typ], {
         eingehendBenachrichtigen: eingehend.checked || computer.checked,
         computerTelefonie: computer.checked, klingeltonLeiser: leiser.checked });
+      if (!sms) Bruecke.sende({ cmd: "regional_einstellungen",
+        regional: regionaleEinstellungenNutzlast(heimatland.value) });
       if (!sms && art === "magnolie") for (const peer of (telefonStand && telefonStand.peers || [])) {
         Bruecke.sende({ cmd: "telefon_freigabe", kennung: peer.device_id,
           name: "incoming_call_state", an: eingehend.checked || computer.checked });
@@ -2434,7 +2638,8 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     knoepfe.append(speichern, zurueck, knopf(_("Cancel"), "", schliessen));
     dialog.append(el("h3", null, sms ? _("Assign SMS action") : _("Assign call action")), auswahl,
       formZeile(_("Application command"), programm), hinweis);
-    if (!sms) dialog.append(optionen, el("p", "einst-hinweis",
+    if (!sms) dialog.append(optionen, formZeile(_("Home country for phone numbers"), heimatland),
+      el("p", "einst-hinweis",
       _("These options require the matching permissions in Magnolie Notes. Call audio is not sent over the Magnolie data connection.")));
     dialog.append(fehler, knoepfe);
     schleier.append(dialog); document.body.append(schleier);
@@ -2505,7 +2710,12 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       kandidaten.push({ strasse: kontakt.strasse, plz: kontakt.plz, ort: kontakt.ort,
         land: "", typen: ["HOME"] });
     }
-    const aus = [], gesehen = new Map();
+    const aus = [];
+    const normiereFeld = (feld, wert) => {
+      let normiert = kanonischerText(wert);
+      if (feld === "strasse") normiert = normiert.replace(/strasse|str\./g, "strasse");
+      return normiert.replace(/[^\p{L}\p{N}]/gu, "");
+    };
     for (const roh of kandidaten) {
       if (!roh || typeof roh !== "object") continue;
       const adr = { strasse: String(roh.strasse || "").trim(),
@@ -2516,15 +2726,24 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
         adr.vcardParameter = roh.vcardParameter.map(S).filter(Boolean).slice(0, 32);
       if (!adr.label) delete adr.label;
       if (!adr.strasse && !adr.plz && !adr.ort && !adr.land) continue;
-      const strasse = kanonischerText(adr.strasse)
-        .replace(/strasse|str\./g, "strasse").replace(/[^\p{L}\p{N}]/gu, "");
-      const key = [strasse, adr.plz, adr.ort, adr.land]
-        .map((wert) => kanonischerText(wert).replace(/[^\p{L}\p{N}]/gu, "")).join("|");
+      const felder = ["strasse", "plz", "ort", "land"];
+      const normiert = Object.fromEntries(felder.map((feld) =>
+        [feld, normiereFeld(feld, adr[feld])]));
       let vereinigt = false;
-      for (const stelle of gesehen.get(key) || []) {
-        const ziel = aus[stelle];
+      for (const ziel of aus) {
         if (ziel.label && adr.label &&
           kanonischerText(ziel.label) !== kanonischerText(adr.label)) continue;
+        const zielNormiert = Object.fromEntries(felder.map((feld) =>
+          [feld, normiereFeld(feld, ziel[feld])]));
+        const widerspruch = felder.some((feld) => normiert[feld] &&
+          zielNormiert[feld] && normiert[feld] !== zielNormiert[feld]);
+        const gleicheStrasse = !!normiert.strasse &&
+          normiert.strasse === zielNormiert.strasse;
+        const gleicherOrt = !!normiert.plz && !!normiert.ort &&
+          normiert.plz === zielNormiert.plz && normiert.ort === zielNormiert.ort;
+        const exakt = felder.every((feld) => normiert[feld] === zielNormiert[feld]);
+        if (!exakt && (widerspruch || (!gleicheStrasse && !gleicherOrt))) continue;
+        for (const feld of felder) if (!ziel[feld] && adr[feld]) ziel[feld] = adr[feld];
         for (const typ of adr.typen) if (!ziel.typen.includes(typ)) ziel.typen.push(typ);
         if (adr.vcardParameter) ziel.vcardParameter =
           [...new Set([...(ziel.vcardParameter || []), ...adr.vcardParameter])].slice(0, 32);
@@ -2533,8 +2752,6 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
         break;
       }
       if (vereinigt) continue;
-      if (!gesehen.has(key)) gesehen.set(key, []);
-      gesehen.get(key).push(aus.length);
       aus.push(adr);
     }
     return aus;
@@ -2945,6 +3162,87 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     return "mag-" + uid() + "@magnolie-organizer";
   }
 
+  function stabileAufgabenUid(id, salt = "") {
+    const text = [];
+    for (const zeichen of "magnolie-task-v1\u0000" + String(id || "") + "\u0000" + salt) {
+      const cp = zeichen.codePointAt(0);
+      if (cp < 0x80) text.push(cp);
+      else if (cp < 0x800) text.push(0xc0 | cp >> 6, 0x80 | cp & 0x3f);
+      else if (cp < 0x10000) text.push(0xe0 | cp >> 12, 0x80 | cp >> 6 & 0x3f, 0x80 | cp & 0x3f);
+      else text.push(0xf0 | cp >> 18, 0x80 | cp >> 12 & 0x3f, 0x80 | cp >> 6 & 0x3f, 0x80 | cp & 0x3f);
+    }
+    let a = 2166136261, b = 2166136261;
+    for (let i = 0; i < text.length; i++) {
+      a = Math.imul(a ^ text[i], 16777619) >>> 0;
+      b = Math.imul(b ^ text[text.length - 1 - i], 16777619) >>> 0;
+    }
+    return "mag-task-" + a.toString(16).padStart(8, "0") +
+      b.toString(16).padStart(8, "0") + "@magnolie-organizer";
+  }
+
+  function vergleicheTechnischeKennung(a, b) {
+    const left = String(a || ""), right = String(b || "");
+    let li = 0, ri = 0;
+    while (li < left.length && ri < right.length) {
+      const lcp = left.codePointAt(li), rcp = right.codePointAt(ri);
+      if (lcp !== rcp) return lcp < rcp ? -1 : 1;
+      li += lcp > 0xffff ? 2 : 1;
+      ri += rcp > 0xffff ? 2 : 1;
+    }
+    return li < left.length ? 1 : ri < right.length ? -1 : 0;
+  }
+
+  function normalisiereAufgabenGraph(aufgaben) {
+    const nachAltUid = new Map(), uidAnzahl = new Map();
+    aufgaben.forEach((a, index) => {
+      a.__graphIndex = index; a.__alteUid = String(a.uid || "").trim();
+      if (a.__alteUid) {
+        uidAnzahl.set(a.__alteUid, (uidAnzahl.get(a.__alteUid) || 0) + 1);
+        if (!nachAltUid.has(a.__alteUid)) nachAltUid.set(a.__alteUid, a);
+      }
+    });
+    const reserviert = new Set(Array.from(uidAnzahl).filter((paar) => paar[1] === 1).map((paar) => paar[0]));
+    const vergeben = new Set(), naechsterVersuch = new Map();
+    for (const a of aufgaben.slice().sort((x, y) => vergleicheTechnischeKennung(x.id, y.id) || x.__graphIndex - y.__graphIndex)) {
+      let wert = a.__alteUid;
+      if (!wert || uidAnzahl.get(wert) !== 1 || vergeben.has(wert)) {
+        const kennung = String(a.id || "");
+        let versuch = naechsterVersuch.get(kennung) || 0;
+        do {
+          const salt = versuch === 0 ? "" : String(versuch - 1);
+          wert = stabileAufgabenUid(kennung, salt); versuch++;
+        } while (reserviert.has(wert) || vergeben.has(wert));
+        naechsterVersuch.set(kennung, versuch);
+      }
+      a.uid = wert; vergeben.add(wert);
+    }
+    const nachUid = new Map(aufgaben.map((a) => [a.uid, a]));
+    for (const a of aufgaben) {
+      const roh = String(a.elternUid || "").trim();
+      const eltern = nachUid.get(roh) || (uidAnzahl.get(roh) === 1 ? nachAltUid.get(roh) : null);
+      a.elternUid = eltern && eltern !== a ? eltern.uid : "";
+      const n = Number(a.reihenfolge);
+      a.reihenfolge = Number.isSafeInteger(n) && n >= 0 ? n : a.__graphIndex;
+    }
+    const fertig = new Set();
+    for (const start of aufgaben) {
+      const pfad = [], position = new Map(); let aktuell = start;
+      while (aktuell && !fertig.has(aktuell.uid) && !position.has(aktuell.uid)) {
+        position.set(aktuell.uid, pfad.length); pfad.push(aktuell);
+        aktuell = aktuell.elternUid ? nachUid.get(aktuell.elternUid) : null;
+      }
+      if (aktuell && position.has(aktuell.uid)) pfad.slice(position.get(aktuell.uid))
+        .sort((x, y) => vergleicheTechnischeKennung(x.uid, y.uid))[0].elternUid = "";
+      pfad.forEach((a) => fertig.add(a.uid));
+    }
+    const gruppen = new Map();
+    for (const a of aufgaben) { if (!gruppen.has(a.elternUid)) gruppen.set(a.elternUid, []); gruppen.get(a.elternUid).push(a); }
+    for (const kinder of gruppen.values()) kinder.sort((a, b) => a.reihenfolge - b.reihenfolge || vergleicheTechnischeKennung(a.uid, b.uid))
+      .forEach((a, index) => { a.reihenfolge = index; });
+    aufgaben.forEach((a) => { delete a.__graphIndex; delete a.__alteUid; });
+    return aufgaben;
+  }
+
   /* Gelöschte, bereits synchronisierte Einträge vormerken, damit der
      nächste Abgleich sie auch drüben entfernen kann. */
   const PAPIERKORB_ARTEN = {
@@ -3017,8 +3315,14 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     const liste = listen[stueck.art];
     if (!liste) return false;
     const eintrag = JSON.parse(JSON.stringify(stueck.eintrag));
+    if (stueck.art === "task" && eintrag.elternUid &&
+        !DATEN.aufgaben.some((x) => x.uid === eintrag.elternUid)) {
+      eintrag.elternUid = "";
+      eintrag.reihenfolge = DATEN.aufgaben.filter((x) => !x.elternUid).length;
+    }
     if (DATEN[liste].some((x) => x.id === eintrag.id)) eintrag.id = uid();
     DATEN[liste].push(eintrag);
+    if (stueck.art === "task") normalisiereAufgabenGraph(DATEN.aufgaben);
     if (stueck.art === "notebook" && eintrag.id === stueck.eintrag.id) {
       for (const notiz of DATEN.notizen) if (stueck.notiz_zuordnungen &&
           stueck.notiz_zuordnungen[notiz.id] === eintrag.id) notiz.notizbuchId = eintrag.id;
@@ -3073,7 +3377,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
 
   function raeumeTombstonesAuf() {
     const grenze = Date.now() - 180 * 86400000;
-    for (const art of ["termine", "kontakte"]) {
+    for (const art of ["termine", "kontakte", "aufgaben"]) {
       DATEN.geloescht[art] = DATEN.geloescht[art].filter((g) => g.zeit > grenze);
     }
   }
@@ -3424,6 +3728,121 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       .replace(/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/g, "").slice(0, laenge);
   }
 
+  function terminIdentitaetsText(wert) {
+    return String(wert === undefined || wert === null ? "" : wert)
+      .replace(/\r\n?/g, "\n").normalize("NFC").trim();
+  }
+
+  function terminIdentitaet(termin) {
+    if (!termin || !gueltigesISO(termin.datum)) return "";
+    const zeit = /^(?:[01]\d|2[0-3]):[0-5]\d/.test(String(termin.zeit || ""))
+      ? String(termin.zeit).slice(0, 5) : "";
+    return termin.datum + "\u0000" + zeit + "\u0000" + terminIdentitaetsText(termin.titel);
+  }
+
+  function terminStarkeKennungen(termin) {
+    const aus = new Set();
+    for (const wert of [termin && termin.uid, termin && termin.icsSerienUid]) {
+      if (String(wert || "").trim()) aus.add("extern:" + String(wert).trim());
+    }
+    if (String(termin && termin.id || "").trim()) aus.add("id:" + String(termin.id).trim());
+    return aus;
+  }
+
+  function termineStarkIdentisch(links, rechts) {
+    if (terminIdentitaet(links) !== terminIdentitaet(rechts)) return false;
+    const rechtsIds = terminStarkeKennungen(rechts);
+    return Array.from(terminStarkeKennungen(links)).some((id) => rechtsIds.has(id));
+  }
+
+  function jahrestagIdentitaet(jahrestag) {
+    if (!jahrestag || !jahrestag.name || !gueltigesJahresdatum(jahrestag.datum)) return "";
+    const typ = jahrestagTypId(jahrestag.typ) || kanonischerText(jahrestag.typ);
+    return kanonischerText(jahrestag.name) + "\u0000" + monatTag(jahrestag.datum) + "\u0000" + typ;
+  }
+
+  function jahrestagStarkeKennungen(jahrestag) {
+    const aus = new Set();
+    for (const wert of [jahrestag && jahrestag.uid, jahrestag && jahrestag.icsSerienUid]) {
+      if (String(wert || "").trim()) aus.add("extern:" + String(wert).trim());
+    }
+    if (String(jahrestag && jahrestag.kontaktId || "").trim()) {
+      aus.add("kontakt:" + String(jahrestag.kontaktId).trim());
+    }
+    if (String(jahrestag && jahrestag.id || "").trim()) {
+      aus.add("id:" + String(jahrestag.id).trim());
+    }
+    return aus;
+  }
+
+  function jahrestageStarkIdentisch(links, rechts) {
+    if (jahrestagIdentitaet(links) !== jahrestagIdentitaet(rechts)) return false;
+    const rechtsIds = jahrestagStarkeKennungen(rechts);
+    return Array.from(jahrestagStarkeKennungen(links)).some((id) => rechtsIds.has(id));
+  }
+
+  function vereinigeJahrestagMetadaten(ziel, quelle) {
+    if (!ziel.uid && quelle.uid) ziel.uid = String(quelle.uid);
+    if (!ziel.icsSerienUid && quelle.icsSerienUid) ziel.icsSerienUid = String(quelle.icsSerienUid);
+    if (!ziel.icsQuelleId && quelle.icsQuelleId) ziel.icsQuelleId = String(quelle.icsQuelleId);
+    if (!ziel.icsQuelleName && quelle.icsQuelleName) ziel.icsQuelleName = String(quelle.icsQuelleName);
+    if (!ziel.syncKalenderUid && quelle.syncKalenderUid) ziel.syncKalenderUid = String(quelle.syncKalenderUid);
+    if (!ziel.kontaktId && quelle.kontaktId) ziel.kontaktId = String(quelle.kontaktId);
+    if ((!ziel.icsRoundtrip || !ziel.icsRoundtrip.length) && Array.isArray(quelle.icsRoundtrip)) {
+      ziel.icsRoundtrip = quelle.icsRoundtrip.slice();
+    }
+    ziel.syncQuellen = Object.assign({}, ziel.syncQuellen || {}, quelle.syncQuellen || {});
+    ziel.geaendert = Math.max(Number(ziel.geaendert) || 0, Number(quelle.geaendert) || 0);
+  }
+
+  function vereinigeTerminMetadaten(ziel, quelle) {
+    const vereinigeListe = (name, grenze) => {
+      const gesehen = new Set(), liste = [];
+      for (const wert of (Array.isArray(ziel[name]) ? ziel[name] : [])
+        .concat(Array.isArray(quelle[name]) ? quelle[name] : [])) {
+        const schluessel = typeof wert === "string" ? "s:" + wert : "j:" + JSON.stringify(wert);
+        if (gesehen.has(schluessel)) continue;
+        gesehen.add(schluessel); liste.push(kopie(wert));
+        if (liste.length >= grenze) break;
+      }
+      ziel[name] = liste;
+    };
+    const vereinigeObjekt = (links, rechts) => {
+      const aus = links && typeof links === "object" && !Array.isArray(links) ? kopie(links) : {};
+      for (const [name, wert] of Object.entries(
+        rechts && typeof rechts === "object" && !Array.isArray(rechts) ? rechts : {})) {
+        if (!(name in aus)) aus[name] = kopie(wert);
+        else if (aus[name] && wert && typeof aus[name] === "object" &&
+          typeof wert === "object" && !Array.isArray(aus[name]) && !Array.isArray(wert)) {
+          aus[name] = vereinigeObjekt(aus[name], wert);
+        }
+      }
+      return aus;
+    };
+    ziel.syncQuellen = vereinigeObjekt(ziel.syncQuellen, quelle.syncQuellen);
+    ziel.providerMetadaten = vereinigeObjekt(ziel.providerMetadaten, quelle.providerMetadaten);
+    for (const [name, grenze] of [["icsRoundtrip", 512], ["icsAusnahmen", 256],
+      ["icsZusatzDaten", 256], ["icsZusatzTermine", 256], ["syncKonflikte", 16],
+      ["alarme", TERMIN_MAX_ALARME], ["teilnehmer", TERMIN_MAX_TEILNEHMER],
+      ["kalenderAnhaenge", TERMIN_MAX_ANHAENGE], ["aufgaben", 10000]]) {
+      vereinigeListe(name, grenze);
+    }
+    for (const name of ["syncKalenderUid", "icsQuelleName", "icsQuelleId", "icsSerienUid",
+      "icsReadOnlyGrund"]) if (!ziel[name] && quelle[name]) ziel[name] = quelle[name];
+    if ((!ziel.kalenderQuelle || !ziel.kalenderQuelle.id) && quelle.kalenderQuelle) {
+      ziel.kalenderQuelle = kopie(quelle.kalenderQuelle);
+    }
+    if ((!ziel.organisator || !ziel.organisator.uri) && quelle.organisator &&
+      (quelle.organisator.uri || quelle.organisator.name || quelle.organisator.email)) {
+      ziel.organisator = kopie(quelle.organisator);
+    }
+    ziel.geaendert = Math.max(Number(ziel.geaendert) || 0, Number(quelle.geaendert) || 0);
+    ziel.icsSequence = Math.max(Number(ziel.icsSequence) || 0, Number(quelle.icsSequence) || 0);
+    for (const name of ["sync", "icsKomplex", "icsReadOnly", "icsAenderungszeitFehlt",
+      "icsEndeFehlt", "icsNullDauer"]) ziel[name] = !!(ziel[name] || quelle[name]);
+    return ziel;
+  }
+
   function terminKennung(wert, fallback) {
     const sauber = terminText(wert, 160).trim().replace(/[^A-Za-z0-9_.:@-]/g, "-");
     return sauber || fallback || uid();
@@ -3718,10 +4137,86 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     return aus.slice(0, 512);
   }
 
+  const CUSTOM_MAX_MODULES = 3;
+  const CUSTOM_MAX_ITEMS = 500;
+
+  function normalisiereCustomOrganizer(roh) {
+    const quelle = roh && typeof roh === "object" ? roh : {};
+    const text = (wert, laenge) => Array.from(String(wert || "")
+      .replace(/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/g, ""))
+      .slice(0, laenge).join("");
+    const ids = new Set();
+    const eindeutigeId = (wert, prefix) => {
+      let id = text(wert, 160).trim();
+      if (!id || ids.has(id)) id = prefix + "-" + uid();
+      ids.add(id);
+      return id;
+    };
+    const typen = { appointments: true, notes: true, tasks: true };
+    const modules = [];
+    const quelleModule = (Array.isArray(quelle.modules) ? quelle.modules : []).slice();
+    for (const [index, block] of (Array.isArray(quelle.blocks) ? quelle.blocks : []).entries()) {
+      if (!block || !["note", "checklist", "recurrence"].includes(block.type)) continue;
+      quelleModule.push(Object.assign({}, block, { _legacy: true,
+        type: block.type === "note" ? "notes" : block.type === "checklist" ? "tasks" : "appointments",
+        page: index % 2 ? "right" : "left", order: Math.floor(index / 2) }));
+    }
+    for (const modul of quelleModule.slice(0, 24)) {
+      if (!modul || !typen[modul.type]) continue;
+      const basis = { id: eindeutigeId(modul.id, "custom-module"), type: modul.type,
+        title: text(modul.title, 120).trim(), page: modul.page === "right" ? "right" : "left",
+        order: Math.max(0, Math.min(40, Math.floor(Number(modul.order) || 0))),
+        reminders: modul.reminders === true, modified_ms: Math.max(0,
+          Math.floor(Number(modul.modified_ms) || 0)) };
+      if (basis.type === "notes") {
+        basis.items = [];
+        const roheItems = Array.isArray(modul.items) ? modul.items :
+          ((modul.text || modul.html) ? [{ id: modul.id + "-text", text: modul.text,
+            html: modul.html, modified_ms: modul.modified_ms }] : []);
+        for (const item of roheItems.slice(0, CUSTOM_MAX_ITEMS)) {
+          if (!item) continue;
+          const itemText = text(item.text, 50000);
+          basis.items.push({ id: eindeutigeId(item.id, "custom-text"), text: itemText,
+            html: saeubereHtml(text(item.html, 100000)) || textZuHtml(itemText),
+            modified_ms: Math.max(0, Math.floor(Number(item.modified_ms) || 0)) });
+        }
+      } else {
+        basis.items = [];
+        const roheItems = modul._legacy && basis.type === "appointments"
+          ? [{ id: modul.id + "-entry", title: modul.title, date: modul.startDate,
+            note: [modul.interval, modul.cadence].filter(Boolean).join(" × ") }]
+          : (Array.isArray(modul.items) ? modul.items : []);
+        for (const item of roheItems.slice(0, CUSTOM_MAX_ITEMS)) {
+          if (!item) continue;
+          const title = text(item.title === undefined ? item.name : item.title, 300).trim();
+          const eintrag = { id: eindeutigeId(item.id, "custom-item"), title: title,
+            note: text(item.note, 5000), remind: item.remind !== false,
+            modified_ms: Math.max(0, Math.floor(Number(item.modified_ms) || 0)) };
+          if (basis.type === "appointments") {
+            eintrag.date = gueltigesISO(item.date) ? item.date : "";
+            eintrag.time = /^(?:[01]\d|2[0-3]):[0-5]\d$/.test(String(item.time || "")) ? item.time : "";
+            eintrag.wiederholung = leseWiederholung(item.wiederholung);
+          } else {
+            eintrag.due = gueltigesISO(item.due) ? item.due : "";
+            eintrag.time = /^(?:[01]\d|2[0-3]):[0-5]\d$/.test(String(item.time || "")) ? item.time : "";
+            eintrag.done = item.done === true || item.checked === true;
+          }
+          basis.items.push(eintrag);
+        }
+      }
+      const vorhanden = modules.find((wert) => wert.type === basis.type);
+      if (vorhanden) {
+        vorhanden.items = (vorhanden.items || []).concat(basis.items || []).slice(0, CUSTOM_MAX_ITEMS);
+        vorhanden.reminders = vorhanden.reminders || basis.reminders;
+        vorhanden.modified_ms = Math.max(vorhanden.modified_ms, basis.modified_ms);
+      } else modules.push(basis);
+    }
+    return { version: 3, modules: modules };
+  }
+
   function normalisiere(roh) {
     const d = leereDaten();
     if (!roh || typeof roh !== "object") return d;
-    const S = (x) => (x === undefined || x === null) ? "" : String(x);
     const Z = (x) => {
       if (typeof x !== "string") return "";
       const kurz = x.slice(0, 5);
@@ -3729,7 +4224,13 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     };
     const N = (x) => { const n = Number(x); return Number.isFinite(n) && n > 0 ? n : 0; };
     const Q = (x) => x && typeof x === "object" ? JSON.parse(JSON.stringify(x)) : {};
+    const importBindungen = (werte) => Array.from(new Set((Array.isArray(werte) ? werte : [])
+      .map((wert) => String(wert || "").trim().toLowerCase())
+      .filter((wert) => /^urn:magnolie:import:android:[0-9a-f]{64}$/.test(wert)))).slice(-32);
 
+    d.customOrganizer = normalisiereCustomOrganizer(roh.customOrganizer);
+
+    const termineNachIdentitaet = new Map();
     for (const t of Array.isArray(roh.termine) ? roh.termine : []) {
       if (!t || !gueltigesISO(t.datum)) continue;
       const endDatum = gueltigesISO(t.endDatum) && t.endDatum > t.datum
@@ -3766,7 +4267,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
         icsZusatzTermine.push({ datum: zDatum, zeit: zZeit });
         if (icsZusatzTermine.length >= 256) break;
       }
-      d.termine.push({ id: S(t.id) || uid(), uid: S(t.uid), datum: t.datum,
+      const normalisierterTermin = { id: S(t.id) || uid(), uid: S(t.uid), datum: t.datum,
         endDatum: endDatum,
         zeit: Z(t.zeit), endZeit: Z(t.endZeit),
         titel: S(t.titel), notiz: S(t.notiz), kategorien: S(t.kategorien),
@@ -3802,8 +4303,18 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       icsQuelleName: S(t.icsQuelleName), icsQuelleId: S(t.icsQuelleId),
       aufgaben: Array.isArray(t.aufgaben) ? t.aufgaben.map(S).filter(Boolean) : [],
         kontaktId: S(t.kontaktId), syncKalenderUid: S(t.syncKalenderUid),
-        geaendert: N(t.geaendert), sync: !!t.sync, syncQuellen: Q(t.syncQuellen) });
-      d.termine[d.termine.length - 1].providerMetadaten = providerMetadaten;
+        geaendert: N(t.geaendert), sync: !!t.sync, syncQuellen: Q(t.syncQuellen) };
+      normalisierterTermin.providerMetadaten = providerMetadaten;
+      const identitaet = terminIdentitaet(normalisierterTermin);
+      const gruppe = termineNachIdentitaet.get(identitaet) || [];
+      const kanonisch = gruppe.find((vorhanden) =>
+        termineStarkIdentisch(vorhanden, normalisierterTermin));
+      if (kanonisch) vereinigeTerminMetadaten(kanonisch, normalisierterTermin);
+      else {
+        d.termine.push(normalisierterTermin);
+        gruppe.push(normalisierterTermin);
+        termineNachIdentitaet.set(identitaet, gruppe);
+      }
     }
     for (const a of Array.isArray(roh.aufgaben) ? roh.aufgaben : []) {
       if (!a) continue;
@@ -3811,6 +4322,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       if (![1, 2, 3].includes(prio)) prio = 2;
       const taskAngelegt = N(a.angelegt) || N(a.geaendert) || Date.now();
       d.aufgaben.push({ id: S(a.id) || uid(), uid: S(a.uid),
+        elternUid: S(a.elternUid), reihenfolge: Math.max(0, Math.floor(Number(a.reihenfolge) || 0)),
         titel: S(a.titel), prio: prio,
         faellig: gueltigesISO(a.faellig) ? a.faellig : "",
         startZeit: Z(a.startZeit), faelligZeit: Z(a.faelligZeit),
@@ -3830,6 +4342,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
         geaendert: N(a.geaendert), personalGeaendert: N(a.personalGeaendert) ||
           N(a.geaendert) || taskAngelegt });
     }
+    normalisiereAufgabenGraph(d.aufgaben);
     for (const k of Array.isArray(roh.kontakte) ? roh.kontakte : []) {
       if (!k) continue;
       const emailEintraege = emailEintragListe(k);
@@ -3853,6 +4366,11 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
         vcardRoundtrip: Array.isArray(k.vcardRoundtrip)
           ? k.vcardRoundtrip.map(S).filter(Boolean).slice(0, 256) : [],
         sozialeMedien: sozialeMedienListe(k),
+        importBindungen: importBindungen(k.importBindungen),
+        importKonflikt: k.importKonflikt === true,
+        importHerkunfte: (Array.isArray(k.importHerkunfte) ? k.importHerkunfte : [])
+          .map((wert) => String(wert || "").replace(/[\x00-\x1f\x7f]/g, " ").trim().slice(0, 128))
+          .filter(Boolean).slice(0, 16),
         baumKontakt: k.baumKontakt && typeof k.baumKontakt === "object" &&
           S(k.baumKontakt.freigabeId) ? {
             freigabeId: S(k.baumKontakt.freigabeId).slice(0, 128),
@@ -3887,6 +4405,19 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
         clientRef: S(sms.clientRef || sms.client_ref).slice(0, 160),
         weg: "kde", geraet: S(sms.geraet).slice(0, 160),
         fehler: S(sms.fehler).slice(0, 1000) });
+    }
+    const smsPlanIds = new Set();
+    for (const sms of (Array.isArray(roh.smsPlanung) ? roh.smsPlanung : []).slice(-500)) {
+      if (!sms || !["planned", "submitting", "uncertain", "sent", "failed"].includes(sms.status)) continue;
+      const zeit = Math.floor(Number(sms.zeit));
+      const nummer = telefonSchluessel(S(sms.nummer)).split("x", 1)[0].slice(0, 32);
+      const text = S(sms.text).trim().slice(0, 5000);
+      let id = S(sms.id).replace(/[\x00-\x1f\x7f]/g, "").slice(0, 160) || uid();
+      if (!nummer || !text || !Number.isFinite(zeit) || zeit <= 0 || smsPlanIds.has(id)) continue;
+      smsPlanIds.add(id);
+      d.smsPlanung.push({ id: id, kontaktId: S(sms.kontaktId).slice(0, 160), nummer: nummer,
+        text: text, zeit: zeit, status: sms.status === "submitting" ? "uncertain" : sms.status,
+        clientRef: S(sms.clientRef).slice(0, 160), fehler: S(sms.fehler).slice(0, 1000) });
     }
     if (Array.isArray(roh.notizgruppen) && roh.notizgruppen.length) {
       d.notizgruppen = [];
@@ -3943,35 +4474,85 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
         baumGeaendert: N(n.baumGeaendert),
         baumVersion: N(n.baumVersion), baumQuelle: S(n.baumQuelle) });
     }
+    const jahrestageNachIdentitaet = new Map();
     for (const j of Array.isArray(roh.jahrestage) ? roh.jahrestage : []) {
       if (!j) continue;
       const typ = S(j.typ).trim().slice(0, 80);
-      const datum = kanonischesJahresdatum(S(j.datum), j.jahrUnbekannt);
+      const edsQuelle = j.syncQuellen && typeof j.syncQuellen === "object" &&
+        Object.keys(j.syncQuellen).some((key) => key.startsWith("eds:"));
+      const providerJahrUnbekannt = istGeburtstagTyp(typ) && /^1604-\d{2}-\d{2}$/.test(S(j.datum)) && edsQuelle;
+      const datum = kanonischesJahresdatum(providerJahrUnbekannt
+        ? "--" + S(j.datum).slice(5) : S(j.datum), j.jahrUnbekannt || providerJahrUnbekannt);
       if (!datum) continue;
-      d.jahrestage.push({ id: S(j.id) || uid(), uid: S(j.uid), name: S(j.name), datum: datum,
+      const normalisierterJahrestag = { id: S(j.id) || uid(), uid: S(j.uid), name: S(j.name), datum: datum,
         jahrUnbekannt: gueltigesTeildatum(datum), kontaktId: S(j.kontaktId),
-        typ: jahrestagTypId(typ) || typ || "other", syncKalenderUid: S(j.syncKalenderUid),
+        typ: jahrestagTypId(typ) || typ || "other",
         icsSerienUid: S(j.icsSerienUid),
         icsQuelleName: S(j.icsQuelleName), icsQuelleId: S(j.icsQuelleId),
         icsRoundtrip: Array.isArray(j.icsRoundtrip) ? j.icsRoundtrip.map(S) : [],
-        geaendert: N(j.geaendert) });
+        syncKalenderUid: S(j.syncKalenderUid), syncQuellen: Q(j.syncQuellen),
+        geaendert: N(j.geaendert), _providerJahrUnbekannt: providerJahrUnbekannt };
+      const identitaet = jahrestagIdentitaet(normalisierterJahrestag);
+      const gruppe = jahrestageNachIdentitaet.get(identitaet) || [];
+      const kanonisch = gruppe.find((vorhanden) =>
+        jahrestageStarkIdentisch(vorhanden, normalisierterJahrestag));
+      if (kanonisch) vereinigeJahrestagMetadaten(kanonisch, normalisierterJahrestag);
+      else {
+        d.jahrestage.push(normalisierterJahrestag);
+        gruppe.push(normalisierterJahrestag);
+        jahrestageNachIdentitaet.set(identitaet, gruppe);
+      }
+    }
+    const kontaktIds = new Set(d.kontakte.map((k) => k.id));
+    const kontakteNachName = new Map();
+    for (const k of d.kontakte) {
+      const namen = new Set([
+        [k.vorname, k.nachname].filter(Boolean).join(" "),
+        [k.nachname, k.vorname].filter(Boolean).join(" "), k.firma
+      ].map(kanonischerText).filter(Boolean));
+      for (const name of namen) {
+        if (!kontakteNachName.has(name)) kontakteNachName.set(name, []);
+        kontakteNachName.get(name).push(k);
+      }
+    }
+    for (const j of d.jahrestage) {
+      if (!istGeburtstagTyp(j.typ) || kontaktIds.has(j.kontaktId)) continue;
+      const kandidaten = kontakteNachName.get(kanonischerText(j.name)) || [];
+      if (kandidaten.length !== 1) continue;
+      const kontakt = kandidaten[0];
+      j.kontaktId = kontakt.id;
+      if (!kontakt.geburtstag) {
+        kontakt.geburtstag = j.datum;
+        kontakt.geburtstagJahrUnbekannt = gueltigesTeildatum(j.datum);
+      }
     }
     for (const k of d.kontakte) {
       const verknuepft = d.jahrestage.find((j) => j.kontaktId === k.id &&
         istGeburtstagTyp(j.typ));
+      const namensgleich = k.geburtstag ? d.jahrestage.find((j) =>
+        istGeburtstagTyp(j.typ) && monatTag(j.datum) === monatTag(k.geburtstag) &&
+        kanonischerText(j.name) === kanonischerText(
+          [k.vorname, k.nachname].filter(Boolean).join(" ") || k.firma)) : null;
       if (!k.geburtstag && verknuepft) {
         k.geburtstag = verknuepft.datum;
         k.geburtstagJahrUnbekannt = gueltigesTeildatum(verknuepft.datum);
       } else if (k.geburtstag && verknuepft) {
-        verknuepft.datum = k.geburtstag;
-        verknuepft.jahrUnbekannt = gueltigesTeildatum(k.geburtstag);
-      } else if (k.geburtstag) {
+        if (verknuepft._providerJahrUnbekannt && /^1604-\d{2}-\d{2}$/.test(k.geburtstag) &&
+            monatTag(verknuepft.datum) === monatTag(k.geburtstag)) {
+          k.geburtstag = verknuepft.datum;
+          k.geburtstagJahrUnbekannt = true;
+        } else {
+          verknuepft.datum = k.geburtstag;
+          verknuepft.jahrUnbekannt = gueltigesTeildatum(k.geburtstag);
+        }
+      } else if (k.geburtstag && !namensgleich) {
         d.jahrestage.push({ id: uid(), uid: "", kontaktId: k.id,
           name: [k.vorname, k.nachname].filter(Boolean).join(" ") || k.firma,
           datum: k.geburtstag, jahrUnbekannt: gueltigesTeildatum(k.geburtstag),
           typ: "birthday" });
       }
     }
+    for (const j of d.jahrestage) delete j._providerJahrUnbekannt;
 
     for (const f of Array.isArray(roh.feiertage) ? roh.feiertage : []) {
       if (!f || !gueltigesISO(f.von) || !f.name) continue;
@@ -4176,7 +4757,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
         tag: "day", day: "day" }, "week");
     const er = (e.erinnerung && typeof e.erinnerung === "object") ? e.erinnerung : {};
     const zw = d.einstellungen.erinnerung;
-    zw.an = !!er.an;
+    zw.an = er.an === undefined ? true : !!er.an;
     zw.vorlauf = [0, 5, 10, 15, 30, 60, 120].includes(Number(er.vorlauf))
       ? Number(er.vorlauf) : 15;
     zw.art = enumWert(er.art,
@@ -4187,7 +4768,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     zw.stil = er.stil === "system" ? "system" : "magnolie";
     const jt = (er.jahrestage && typeof er.jahrestage === "object")
       ? er.jahrestage : {};
-    zw.jahrestage.an = !!jt.an;
+    zw.jahrestage.an = jt.an === undefined ? true : !!jt.an;
     zw.jahrestage.tage = [0, 1, 2, 3, 4, 5, 6, 7].includes(Number(jt.tage))
       ? Number(jt.tage) : 1;
     zw.jahrestage.amTag = jt.amTag === undefined ? true : !!jt.amTag;
@@ -4265,18 +4846,23 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       Math.max(1, Math.min(100, Math.round(Number(al.wiederherstellungsanzahl) || 20)));
     d.einstellungen.allgemein.wiederherstellungsaufbewahrung =
       ["count", "days"].includes(al.wiederherstellungsaufbewahrung)
-        ? al.wiederherstellungsaufbewahrung : "count";
+        ? al.wiederherstellungsaufbewahrung : "days";
     d.einstellungen.allgemein.wiederherstellungstage =
-      Math.max(1, Math.min(3650, Math.round(Number(al.wiederherstellungstage) || 14)));
+      Math.max(1, Math.min(3650, Math.round(Number(al.wiederherstellungstage) || 3650)));
     d.einstellungen.allgemein.wiederherstellungsstatus = S(al.wiederherstellungsstatus);
     d.einstellungen.allgemein.handbuchHinweisGezeigt =
       !!al.handbuchHinweisGezeigt;
-    d.einstellungen.allgemein.kontaktErsteinrichtungVersion =
-      al.kontaktErsteinrichtungVersion === 0 ? 0 : 1;
+    d.einstellungen.allgemein.kontaktErsteinrichtungVersion = 1;
     d.einstellungen.allgemein.contributorFreigeschaltet =
       !!al.contributorFreigeschaltet;
     d.einstellungen.allgemein.notizAnhangHoehe =
       Math.max(68, Math.min(260, Number(al.notizAnhangHoehe) || 200));
+    const customTab = al.customTab && typeof al.customTab === "object" ? al.customTab : {};
+    d.einstellungen.allgemein.customTab = {
+      enabled: customTab.enabled === true,
+      name: customTabName(customTab.name, false),
+      designRequested: customTab.designRequested === true
+    };
     const register = al.registerkarten && typeof al.registerkarten === "object"
       ? al.registerkarten : {};
     for (const id of ["aufgaben", "adressen", "notizen", "jahrestage", "planer"]) {
@@ -4313,6 +4899,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     if (["system", "celsius", "fahrenheit"].includes(reg.temperatureUnit)) {
       zr.temperatureUnit = reg.temperatureUnit;
     }
+    zr.homeCountry = isoLand(reg.homeCountry, "DE");
     const zonenwert = S(reg.timeZone);
     if (zonenwert === "system" || (/^[A-Za-z0-9._+-]+(?:\/[A-Za-z0-9._+-]+)+$/.test(zonenwert) &&
         !zonenwert.includes(".."))) zr.timeZone = zonenwert;
@@ -4440,10 +5027,10 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       if (sauber && zeitstempel) d.letzteSyncs.adressbuecher[sauber] = zeitstempel;
     }
     const g = (roh.geloescht && typeof roh.geloescht === "object") ? roh.geloescht : {};
-    for (const art of ["termine", "kontakte"]) {
+    for (const art of ["termine", "kontakte", "aufgaben"]) {
       for (const tot of Array.isArray(g[art]) ? g[art] : []) {
         if (tot && tot.uid) d.geloescht[art].push({ uid: S(tot.uid), zeit: N(tot.zeit),
-          syncKalenderUid: art === "termine" ? S(tot.syncKalenderUid) : "",
+          syncKalenderUid: ["termine", "aufgaben"].includes(art) ? S(tot.syncKalenderUid) : "",
           syncQuellen: Q(tot.syncQuellen) });
       }
     }
@@ -6312,6 +6899,31 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
         loeschen: { schluessel: "notizen", art: "notiz" } };
     }
 
+    if (sektion === "custom") {
+      const liste = DATEN.customOrganizer.modules.slice();
+      return { titel: customTabName(DATEN.einstellungen.allgemein.customTab.name),
+        wort: customText("Blocks"), liste: liste,
+        name: (block) => block.title || customText("Untitled"),
+        karte: (block) => {
+          const karte = el("div", "druck-karte");
+          karte.append(el("div", "dk-name", block.title || customText("Untitled")),
+            el("div", "dk-zeile", customModulTitel(block.type)),
+            el("div", "dk-notiz", customBlockText(block)));
+          return karte;
+        },
+        html: (block) => '<div class="karte"><div class="name">' +
+          sicher(block.title || customText("Untitled")) + "</div><div>" +
+          sicher(customModulTitel(block.type)) +
+          '</div><div class="notiz">' + sicher(customBlockText(block)).replace(/\n/g, "<br>") +
+          "</div></div>",
+        vorgewaehlt: liste.map((block) => block.id),
+        entfernen: (eintraege) => {
+          const ids = new Set(eintraege.map((block) => block.id));
+          DATEN.customOrganizer.modules = DATEN.customOrganizer.modules.filter((block) => !ids.has(block.id));
+          return ids.size;
+        }, loeschen: { custom: true } };
+    }
+
     if (sektion === "jahrestage") {
       const liste = DATEN.jahrestage.slice().sort(
         (a, b) => monatTag(a.datum).localeCompare(monatTag(b.datum)));
@@ -7776,6 +8388,21 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     return treffer;
   }
 
+  function customSuchTreffer(_kontext, begriffe, grenze) {
+    const treffer = [];
+    for (const block of DATEN.customOrganizer.modules) {
+      const eintrag = { titel: block.title || customText("Untitled"),
+        meta: customModulTitel(block.type),
+        text: suchText([block.title, block.text,
+          (block.items || []).map((item) => [item.title, item.text, item.note, item.date, item.due, item.time])]),
+        oeffnen: () => { zustand.sektion = "custom"; zeichneAlles(); oeffneCustomDesigner(); } };
+      if (begriffe && !suchPasst(eintrag.text, begriffe)) continue;
+      treffer.push(eintrag);
+      if (treffer.length >= (grenze || Infinity)) break;
+    }
+    return treffer;
+  }
+
   function suchTrefferFuer(sektion, begriffe, grenze) {
     const kontext = suchKontext();
     if (sektion === "kalender") return kalenderSuchTreffer(kontext, begriffe, grenze);
@@ -7783,6 +8410,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     if (sektion === "jahrestage") return jahrestageSuchTreffer(kontext, begriffe, grenze);
     if (sektion === "planer") return planerSuchTreffer(kontext, begriffe, grenze);
     if (sektion === "gesundheit") return gesundheitSuchTreffer(kontext, begriffe, grenze);
+    if (sektion === "custom") return customSuchTreffer(kontext, begriffe, grenze);
     return [];
   }
 
@@ -7806,7 +8434,8 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       : sektion === "aufgaben" ? _("Tasks")
         : sektion === "jahrestage" ? _("Anniversaries")
           : sektion === "planer" ? uebersetzt("Year planner %(year)s",
-            { year: zustand.planer.jahr }) : _("Health");
+            { year: zustand.planer.jahr }) : sektion === "custom"
+              ? customTabName(DATEN.einstellungen.allgemein.customTab.name) : _("Health");
     const titel = el("h3", null, suchTitel);
     titel.id = "such-titel";
     let schliessen = () => {};
@@ -7969,7 +8598,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     if (ohneRegister) return;
     const aktuellerIndex = sektionen.findIndex((s) => s.id === zustand.sektion);
     sektionen.forEach((s, i) => {
-      const name = _(s.name);
+      const name = sektionName(s);
       const b = el("button", "registerknopf" + (i === aktuellerIndex ? " aktiv" : ""));
       const beschriftung = el("span", "registertext", name);
       const laenge = Array.from(name).length;
@@ -8030,7 +8659,8 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       notizen: zeichneNotizen,
       jahrestage: zeichneJahrestage,
       planer: zeichnePlaner,
-      gesundheit: zeichneGesundheit
+      gesundheit: zeichneGesundheit,
+      custom: zeichneCustomOrganizer
     };
     (zeichner[zustand.sektion] || zeichneKalender)();
     const druckKnopf = $("#knopf-drucken");
@@ -8064,6 +8694,243 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
   function zeichneStatusDatum() {
     $("#status-datum").textContent = uebersetzt(
       "Today is %(date)s", { date: fmtLang(isoHeute()) });
+  }
+
+  function customBlockText(block) {
+    if (block.type === "notes") return (block.items || []).map((item) => item.text || "").join("\n");
+    return (block.items || []).map((item) => [block.type === "tasks" ? (item.done ? "☑" : "☐") : "",
+      item.date || item.due || "", item.time || "", item.title, item.note]
+      .filter(Boolean).join(" · ")).join("\n");
+  }
+
+  function customModulTitel(type) {
+    return type === "appointments" ? _("Appointments") :
+      type === "tasks" ? _("Tasks") : _("Text");
+  }
+
+  function customModulGeaendert(modul) {
+    modul.modified_ms = Date.now();
+    planeSpeichern();
+  }
+
+  function customTermineFuerErinnerung() {
+    const termine = [];
+    for (const modul of DATEN.customOrganizer.modules || []) {
+      if (modul.type !== "appointments" || !modul.reminders) continue;
+      for (const item of modul.items || []) if (item.remind !== false && gueltigesISO(item.date)) {
+        termine.push({ id: ["custom", modul.id, item.id].join(":"), datum: item.date, zeit: item.time || "",
+          titel: [modul.title, item.title].filter(Boolean).join(" · ") || _("Untitled"),
+          standardErinnerung: true, wiederholung: leseWiederholung(item.wiederholung) });
+      }
+    }
+    return termine;
+  }
+
+  function customAufgabenFuerErinnerung() {
+    const aufgaben = [];
+    for (const modul of DATEN.customOrganizer.modules || []) {
+      if (modul.type !== "tasks" || !modul.reminders) continue;
+      for (const item of modul.items || []) if (item.remind !== false && !item.done && gueltigesISO(item.due)) {
+        aufgaben.push({ id: ["custom", modul.id, item.id].join(":"), faellig: item.due,
+          faelligZeit: item.time || "", titel: [modul.title, item.title].filter(Boolean).join(" · ") || _("Untitled"),
+          erinnern: true, erledigt: false });
+      }
+    }
+    return aufgaben;
+  }
+
+  function fuegeCustomEintragHinzu(modul) {
+    if (!Array.isArray(modul.items)) modul.items = [];
+    if (modul.items.length >= CUSTOM_MAX_ITEMS) return;
+    const eintrag = { id: "custom-item-" + uid(), title: "", note: "", remind: true,
+      modified_ms: Date.now(), time: "" };
+    if (modul.type === "appointments") {
+      eintrag.date = isoHeute();
+      eintrag.wiederholung = { art: "none", bis: "" };
+    }
+    else { eintrag.due = isoHeute(); eintrag.done = false; }
+    modul.items.unshift(eintrag);
+    customModulGeaendert(modul);
+    zeichneAlles();
+  }
+
+  function zeichneCustomModul(modul, ziel, begriffe = []) {
+    const sektion = el("section", "custom-modul custom-modul-" + modul.type);
+    const kopf = el("div", "custom-modul-kopf");
+    kopf.append(el("h2", null, modul.title || customModulTitel(modul.type)));
+    const plus = knopf("+", "klein", () => {
+      if (modul.type === "notes") {
+        if (!Array.isArray(modul.items)) modul.items = [];
+        if (modul.items.length >= CUSTOM_MAX_ITEMS) return;
+        modul.items.unshift({ id: "custom-text-" + uid(), text: "", html: "", modified_ms: Date.now() });
+        customModulGeaendert(modul); zeichneAlles();
+      } else fuegeCustomEintragHinzu(modul);
+    });
+    plus.title = uebersetzt("Add %(type)s", { type: customModulTitel(modul.type) });
+    plus.setAttribute("aria-label", plus.title);
+    kopf.append(plus);
+    const liste = el("div", "custom-modul-liste");
+    let sichtbareEintraege = 0;
+    if (modul.type === "notes") for (const item of modul.items || []) {
+      if (begriffe.length && !suchPasst(suchText([item.text]), begriffe)) continue;
+      sichtbareEintraege++;
+      const karte = el("article", "custom-text-karte");
+      const werkzeuge = el("div", "custom-text-werkzeuge");
+      const editor = el("div", "custom-text-editor");
+      editor.contentEditable = "true";
+      editor.innerHTML = saeubereHtml(item.html) || textZuHtml(item.text || "");
+      for (const [zeichen, befehl] of [["B", "bold"], ["I", "italic"], ["U", "underline"]]) {
+        werkzeuge.append(knopf(zeichen, "klein", () => {
+          editor.focus(); if (typeof document.execCommand === "function") document.execCommand(befehl, false, null);
+        }));
+      }
+      editor.addEventListener("input", () => {
+        item.html = saeubereHtml(editor.innerHTML);
+        item.text = String(editor.innerText || editor.textContent || "").slice(0, 50000);
+        item.modified_ms = Date.now();
+        customModulGeaendert(modul);
+      });
+      const minus = knopf("−", "klein rot", () => {
+        modul.items = modul.items.filter((wert) => wert.id !== item.id);
+        customModulGeaendert(modul); zeichneAlles();
+      });
+      minus.title = _("Remove"); minus.setAttribute("aria-label", minus.title);
+      werkzeuge.append(minus);
+      karte.append(werkzeuge, editor); liste.append(karte);
+    } else for (const item of modul.items || []) {
+      if (begriffe.length && !suchPasst(suchText(
+        [item.title, item.note, item.date, item.due, item.time]), begriffe)) continue;
+      sichtbareEintraege++;
+      const karte = el("article", "custom-eintrag-editor");
+      const titel = eingabe("text", item.title); titel.maxLength = 300;
+      const datum = eingabe("date", modul.type === "appointments" ? item.date : item.due);
+      const zeit = eingabe("time", item.time || "");
+      const wiederholung = modul.type === "appointments" ? auswahlFeld(
+        WIEDERHOLUNGEN.filter((wert) => ["none", "daily", "weekly", "monthly", "yearly"].includes(wert[0]))
+          .map((wert) => [wert[0], _(wert[1])]),
+        leseWiederholung(item.wiederholung).art) : null;
+      const notiz = document.createElement("textarea"); notiz.maxLength = 5000; notiz.value = item.note || "";
+      const speichern = () => {
+        item.title = Array.from(titel.value).slice(0, 300).join("");
+        if (modul.type === "appointments") item.date = datumswert(datum);
+        else item.due = datumswert(datum);
+        item.time = /^(?:[01]\d|2[0-3]):[0-5]\d$/.test(zeit.value) ? zeit.value : "";
+        if (wiederholung) item.wiederholung = { art: wiederholung.value, bis: "" };
+        item.note = notiz.value.slice(0, 5000); item.modified_ms = Date.now(); customModulGeaendert(modul);
+      };
+      [titel, datum, zeit, notiz].forEach((feld) => {
+        feld.addEventListener("input", speichern); feld.addEventListener("change", speichern);
+      });
+      if (wiederholung) wiederholung.addEventListener("change", speichern);
+      if (modul.type === "tasks") {
+        const erledigt = document.createElement("input"); erledigt.type = "checkbox"; erledigt.checked = !!item.done;
+        erledigt.addEventListener("change", () => { item.done = erledigt.checked; speichern(); });
+        const zeile = el("label", "hak"); zeile.append(erledigt, document.createTextNode(" " + _("Done")));
+        karte.append(zeile);
+      }
+      karte.append(formZeile(_("Title"), titel), formZeile(_("Date"), datum), formZeile(_("Time"), zeit),
+        formZeile(_("Notes"), notiz));
+      if (wiederholung) karte.append(formZeile(_("Frequency"), wiederholung));
+      if (modul.reminders) {
+        const erinnern = document.createElement("input"); erinnern.type = "checkbox"; erinnern.checked = item.remind !== false;
+        erinnern.addEventListener("change", () => { item.remind = erinnern.checked; speichern(); });
+        const zeile = el("label", "hak"); zeile.append(erinnern, document.createTextNode(" " + _("Reminder")));
+        karte.append(zeile);
+      }
+      karte.append(knopf(_("Remove"), "klein rot", () => {
+        modul.items = modul.items.filter((wert) => wert.id !== item.id);
+        customModulGeaendert(modul); zeichneAlles();
+      }));
+      liste.append(karte);
+    }
+    if (!liste.children.length) liste.append(el("p", "leer-hinweis", _("No entries yet.")));
+    if (begriffe.length && !sichtbareEintraege) return;
+    sektion.append(kopf, liste);
+    ziel.append(sektion);
+  }
+
+  function zeichneCustomOrganizer() {
+    const name = customTabName(DATEN.einstellungen.allgemein.customTab.name);
+    const suche = eingabe("search", suchZustand.custom);
+    suche.className = "custom-suche"; suche.placeholder = _("Search");
+    suche.setAttribute("aria-label", _("Search")); fokusMarke(suche, "custom:suche");
+    suche.addEventListener("input", () => { suchZustand.custom = suche.value; zeichneAlles(); });
+    baueKopf("links", name, "", [suche, knopf(_("Customize"), "klein", oeffneCustomDesigner)]);
+    baueKopf("rechts", "", "", []);
+    const ziele = { left: $("#inhalt-links"), right: $("#inhalt-rechts") };
+    Object.values(ziele).forEach((ziel) => ziel.classList.add("custom-uebersicht"));
+    const begriffe = suchBegriffe(suchZustand.custom);
+    const modules = (DATEN.customOrganizer.modules || []).slice().sort((a, b) =>
+      a.page.localeCompare(b.page) || a.order - b.order);
+    for (const seite of ["left", "right"]) {
+      const typen = new Set(modules.filter((modul) => modul.page === seite).map((modul) => modul.type));
+      if (typen.has("appointments") && typen.has("tasks")) {
+        ziele[seite].classList.add("custom-termine-aufgaben-geteilt");
+      }
+    }
+    for (const modul of modules) zeichneCustomModul(modul, ziele[modul.page], begriffe);
+    if (!modules.length) ziele.left.append(el("p", "leer-hinweis",
+      _("Choose Appointments, Notes or Tasks in Customize.")));
+  }
+
+  function oeffneCustomDesigner() {
+    const vorhanden = $("#custom-designer-schleier");
+    if (vorhanden) return;
+    const schleier = el("div", "eingabe-schleier custom-designer-schleier");
+    schleier.id = "custom-designer-schleier";
+    const dialog = el("section", "eingabe-dialog custom-designer");
+    dialog.setAttribute("role", "dialog"); dialog.setAttribute("aria-modal", "true");
+    dialog.setAttribute("aria-labelledby", "custom-designer-titel");
+    const kopf = el("div", "custom-designer-kopf");
+    const titel = el("h2", null, _("Customize")); titel.id = "custom-designer-titel";
+    let schliessen = () => {};
+    const zu = knopf("✕", "", () => schliessen()); zu.setAttribute("aria-label", _("Close"));
+    kopf.append(titel, zu);
+    const werkzeuge = el("div", "custom-designer-werkzeuge");
+    const typ = auswahlFeld([["appointments", _("Appointments")], ["notes", _("Text block")],
+      ["tasks", _("Tasks")]], "appointments");
+    const liste = el("div", "custom-designer-liste");
+    const zeichnen = () => {
+      liste.replaceChildren();
+      for (const modul of DATEN.customOrganizer.modules || []) {
+        const karte = el("article", "custom-editor-karte");
+        const name = eingabe("text", modul.title || ""); name.maxLength = 120;
+        const seite = auswahlFeld([["left", _("Left page")], ["right", _("Right page")]], modul.page);
+        name.addEventListener("input", () => { modul.title = Array.from(name.value).slice(0, 120).join(""); customModulGeaendert(modul); });
+        seite.addEventListener("change", () => { modul.page = seite.value; planeSpeichern(); });
+        karte.append(el("strong", null, customModulTitel(modul.type)),
+          formZeile(_("Title"), name), formZeile(_("Page"), seite));
+        if (modul.type !== "notes") {
+          const erinnern = document.createElement("input"); erinnern.type = "checkbox"; erinnern.checked = !!modul.reminders;
+          erinnern.addEventListener("change", () => { modul.reminders = erinnern.checked; customModulGeaendert(modul); });
+          const zeile = el("label", "hak"); zeile.append(erinnern,
+            document.createTextNode(" " + _("Enable reminders for this block"))); karte.append(zeile);
+        }
+        karte.append(knopf(_("Remove"), "klein rot", () => {
+            DATEN.customOrganizer.modules = DATEN.customOrganizer.modules.filter((wert) => wert.id !== modul.id);
+            planeSpeichern(); zeichnen();
+          }));
+        liste.append(karte);
+      }
+    };
+    werkzeuge.append(formZeile(_("Module"), typ), knopf(_("Add"), "knopf", () => {
+      const modules = DATEN.customOrganizer.modules || (DATEN.customOrganizer.modules = []);
+      if (modules.length >= CUSTOM_MAX_MODULES || modules.some((modul) => modul.type === typ.value)) return;
+      const index = modules.length;
+      const modul = { id: "custom-module-" + uid(), type: typ.value, title: "",
+        page: index % 2 ? "right" : "left", order: Math.floor(index / 2),
+        reminders: false, modified_ms: Date.now() };
+      modul.items = [];
+      modules.push(modul);
+      planeSpeichern(); zeichnen();
+    }));
+    dialog.append(kopf, werkzeuge, liste);
+    schleier.append(dialog); document.body.append(schleier);
+    schliessen = () => { beendeModal(schleier); schleier.remove(); zeichneAlles(); };
+    schleier.addEventListener("click", (event) => { if (event.target === schleier) schliessen(); });
+    registriereModal(schleier, dialog, { vorher: document.activeElement, anfang: typ,
+      schliessen: schliessen });
+    zeichnen();
   }
 
   /* ---------------------------------------------------------------------- */
@@ -8585,8 +9452,11 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       letzterEdsStatus.kalender) || [];
     const aus = alle.slice(0, 100).map((quelle) => saubereKalenderQuelle({
       id: quelle.uid, name: quelle.name, gruppe: quelle.gruppe || quelle.account || "",
-      farbe: quelle.farbe || quelle.color || "", anbieter: quelle.quelle ||
-        (String(quelle.uid || "").startsWith("nextcloud-") ? "Nextcloud" : "") }));
+      farbe: quelle.farbe || quelle.color || "", anbieter:
+        String(quelle.art || quelle.quelle || "").startsWith("generic-") ? "CalDAV" :
+        (String(quelle.art || quelle.quelle || "").startsWith("nextcloud-") ||
+          quelle.quelle === "nextcloud" || String(quelle.uid || "").startsWith("nextcloud-"))
+          ? "Nextcloud" : (quelle.quelle || "") }));
     if (aktuell && aktuell.id && !aus.some((quelle) => quelle.id === aktuell.id)) aus.unshift(aktuell);
     return aus;
   }
@@ -10066,6 +10936,49 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     return a.titel.localeCompare(b.titel, formatGebiet());
   }
 
+  function aufgabenNachHierarchie(filterAktiv) {
+    normalisiereAufgabenGraph(DATEN.aufgaben);
+    const nachEltern = new Map(), nachUid = new Map(DATEN.aufgaben.map((a) => [a.uid, a]));
+    for (const a of DATEN.aufgaben) {
+      if (!nachEltern.has(a.elternUid)) nachEltern.set(a.elternUid, []);
+      nachEltern.get(a.elternUid).push(a);
+    }
+    for (const kinder of nachEltern.values()) kinder.sort((a, b) =>
+      a.reihenfolge - b.reihenfolge || sortiereAufgaben(a, b) || vergleicheTechnischeKennung(a.uid, b.uid));
+    let sichtbar = null;
+    if (filterAktiv) {
+      sichtbar = new Set(DATEN.aufgaben.filter(aufgabePasst).map((a) => a.uid));
+      const stapel = Array.from(sichtbar);
+      while (stapel.length) {
+        const uid2 = stapel.pop(), a = nachUid.get(uid2);
+        if (a && a.elternUid && !sichtbar.has(a.elternUid)) {
+          sichtbar.add(a.elternUid); stapel.push(a.elternUid);
+        }
+        for (const kind of nachEltern.get(uid2) || []) if (!sichtbar.has(kind.uid)) {
+          sichtbar.add(kind.uid); stapel.push(kind.uid);
+        }
+      }
+    }
+    const aus = [], stapel = (nachEltern.get("") || []).slice().reverse()
+      .map((a) => ({ a: a, tiefe: 1 }));
+    while (stapel.length) {
+      const eintrag = stapel.pop();
+      if (!sichtbar || sichtbar.has(eintrag.a.uid)) aus.push(eintrag);
+      const kinder = nachEltern.get(eintrag.a.uid) || [];
+      for (let i = kinder.length - 1; i >= 0; i--) stapel.push({ a: kinder[i], tiefe: eintrag.tiefe + 1 });
+    }
+    return aus;
+  }
+
+  function entferneAufgabe(aufgabe) {
+    const kinder = DATEN.aufgaben.filter((a) => a.elternUid === aufgabe.uid)
+      .sort((a, b) => a.reihenfolge - b.reihenfolge || vergleicheTechnischeKennung(a.uid, b.uid));
+    const basis = Math.max(0, Number(aufgabe.reihenfolge) || 0);
+    kinder.forEach((kind, index) => { kind.elternUid = aufgabe.elternUid; kind.reihenfolge = basis + index; });
+    DATEN.aufgaben = DATEN.aufgaben.filter((a) => a !== aufgabe);
+    normalisiereAufgabenGraph(DATEN.aufgaben);
+  }
+
   /* Sehr lange Listen werden häppchenweise gezeigt: Wer aus dem Lotus
      Organizer Tausende von Einträgen mitbringt, soll trotzdem ohne
      Wartezeit blättern können. */
@@ -10523,14 +11436,14 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
   function zeichneAufgaben() {
     const z = zustand.aufgaben;
     const heute = isoHeute();
-    const gefiltert = DATEN.aufgaben.filter(aufgabePasst);
-    const offene = gefiltert.filter((a) => !a.erledigt).sort(sortiereAufgaben);
-    const erledigte = gefiltert.filter((a) => a.erledigt);
     const f = z.filter;
     const eingeschraenkt = !!(f.person || f.von || f.bis);
+    const hierarchie = aufgabenNachHierarchie(eingeschraenkt);
+    const offene = hierarchie.filter((x) => !x.a.erledigt);
+    const erledigte = hierarchie.filter((x) => x.a.erledigt);
 
     const neuKnopf = knopf(_("New task"), "klein", () => {
-      z.bearbeiteId = null; zeichneAlles();
+      z.bearbeiteId = null; z.neueElternUid = ""; zeichneAlles();
     });
     const personenKnopf = knopf(_("People"), "klein", oeffnePersonenblatt);
     personenKnopf.id = "aufgaben-personen";
@@ -10583,7 +11496,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       const liste = el("ul", "liste");
       inhaltL.append(liste);
       zeigeHaeppchen("aufgaben-offen", offene, liste,
-        (a) => aufgabenZeile(a, false, heute));
+        (x) => aufgabenZeile(x.a, false, heute, x.tiefe));
     }
 
     if (erledigte.length) {
@@ -10597,8 +11510,9 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
           if (!ja) return;
           for (const a of DATEN.aufgaben.filter((x) => x.erledigt)) {
             inDenPapierkorb("aufgabe", a, a.titel);
+            merkeGeloescht("aufgaben", a);
           }
-          DATEN.aufgaben = DATEN.aufgaben.filter((a) => !a.erledigt);
+          for (const a of DATEN.aufgaben.filter((x) => x.erledigt)) entferneAufgabe(a);
           planeSpeichern();
           zeichneAlles();
         });
@@ -10607,7 +11521,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       const liste2 = el("ul", "liste");
       inhaltL.append(liste2);
       zeigeHaeppchen("aufgaben-erledigt", erledigte, liste2,
-        (a) => aufgabenZeile(a, true, heute));
+        (x) => aufgabenZeile(x.a, true, heute, x.tiefe));
     }
 
     /* Rechte Seite: Formular */
@@ -10639,6 +11553,45 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     faelligZeile.id = "aufgabe-faellig-zeile";
     raster.append(formZeile(_("Priority"), feldPrio), faelligZeile);
     form.append(raster);
+    const verboten = new Set();
+    if (bearbeitet) {
+      const stapel = [bearbeitet.uid];
+      while (stapel.length) {
+        const eltern = stapel.pop(); verboten.add(eltern);
+        DATEN.aufgaben.filter((a) => a.elternUid === eltern).forEach((a) => stapel.push(a.uid));
+      }
+    }
+    const elternUid = bearbeitet ? bearbeitet.elternUid : z.neueElternUid;
+    const aktuellesElternteil = elternUid && DATEN.aufgaben.find((a) => a.uid === elternUid);
+    const elternWahl = auswahlFeld([["", _("Top level")]].concat(aktuellesElternteil
+      ? [[aktuellesElternteil.uid, aktuellesElternteil.titel]] : []), elternUid);
+    const elternSuche = eingabe("search", "");
+    elternSuche.id = "aufgabe-eltern-suche";
+    elternSuche.placeholder = _("Search");
+    elternSuche.setAttribute("aria-label", _("Parent task") + ": " + _("Search"));
+    let elternKandidaten = null;
+    const fuelleElternWahl = () => {
+      const wert = elternWahl.value;
+      if (!elternKandidaten) elternKandidaten = DATEN.aufgaben
+        .filter((a) => !verboten.has(a.uid)).sort(sortiereAufgaben);
+      const suche = kanonischerText(elternSuche.value);
+      const treffer = elternKandidaten.filter((a) => !suche ||
+        kanonischerText(a.titel + " " + a.uid).includes(suche)).slice(0, LISTEN_HAEPPCHEN);
+      const gewaehltesElternteil = elternKandidaten.find((a) => a.uid === wert);
+      if (gewaehltesElternteil && !treffer.includes(gewaehltesElternteil)) treffer.unshift(gewaehltesElternteil);
+      const auswahl = auswahlFeld([["", _("Top level")]].concat(
+        treffer.map((a) => [a.uid, a.titel])), wert);
+      elternWahl.replaceChildren(...auswahl.children);
+      elternWahl.value = wert;
+    };
+    elternSuche.addEventListener("input", fuelleElternWahl);
+    elternSuche.addEventListener("focus", fuelleElternWahl, { once: true });
+    elternWahl.addEventListener("focus", fuelleElternWahl, { once: true });
+    elternWahl.id = "aufgabe-eltern";
+    elternWahl.setAttribute("aria-label", _("Parent task"));
+    const elternZeile = formZeile(_("Parent task"), elternWahl);
+    elternZeile.insertBefore(elternSuche, elternWahl);
+    form.append(elternZeile);
     const einzelZeitZeile = formZeile(_("Due on") + " / " + _("Time"), feldFaelligZeit);
     einzelZeitZeile.id = "aufgabe-faellig-zeit-zeile";
     const zeitfenster = el("div", "aufgabe-zeitfenster");
@@ -10782,6 +11735,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
           return !eig || !["DUE", "DTSTART"].includes(eig.name);
         });
         bearbeitet.notiz = feldNotiz.value;
+        bearbeitet.elternUid = elternWahl.value;
         bearbeitet.personen = Array.from(gewaehltePersonen);
         bearbeitet.erinnern = erinnerHak.checked;
         bearbeitet.individuelleErinnerungTage =
@@ -10791,7 +11745,9 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
         if (zweigWahl) bearbeitet.delegiertAn = zweigWahl.value;
         schickeAnZweig(bearbeitet, zweigWahl ? zweigWahl.value : "");
       } else {
-        DATEN.aufgaben.push({ id: uid(), titel: titel, prio: Number(feldPrio.value),
+        DATEN.aufgaben.push({ id: uid(), uid: "", elternUid: elternWahl.value,
+          reihenfolge: DATEN.aufgaben.filter((a) => a.elternUid === elternWahl.value).length,
+          titel: titel, prio: Number(feldPrio.value),
           faellig: faellig, startZeit: startZeit, faelligZeit: faelligZeit,
           erledigt: false, notiz: feldNotiz.value,
           personen: Array.from(gewaehltePersonen),
@@ -10805,6 +11761,8 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
         schickeAnZweig(DATEN.aufgaben[DATEN.aufgaben.length - 1],
           zweigWahl ? zweigWahl.value : "");
       }
+      normalisiereAufgabenGraph(DATEN.aufgaben);
+      z.neueElternUid = "";
       z.bearbeiteId = null;
       planeSpeichern();
       zeichneAlles();
@@ -10827,10 +11785,12 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     setzeEcken(null, "", null, "");
   }
 
-  function aufgabenZeile(a, istErledigt, heute) {
+  function aufgabenZeile(a, istErledigt, heute, tiefe = 1) {
     const z = zustand.aufgaben;
     const zeile = el("li", "zeile" + (istErledigt ? " erledigt" : "") +
       (a.id === z.bearbeiteId ? " aktiv" : ""));
+    zeile.style.paddingInlineStart = Math.min(12, Math.max(0, tiefe - 1)) * 18 + "px";
+    zeile.setAttribute("aria-level", String(tiefe));
 
     const kasten = el("button", "check" + (istErledigt ? " an" : ""));
     kasten.type = "button";
@@ -10886,6 +11846,34 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       zeile.append(f);
     }
 
+    const struktur = el("span", "aufgaben-struktur");
+    const verschiebe = (delta) => {
+      const geschwister = DATEN.aufgaben.filter((x2) => x2.elternUid === a.elternUid)
+        .sort((x2, y2) => x2.reihenfolge - y2.reihenfolge || vergleicheTechnischeKennung(x2.uid, y2.uid));
+      const index = geschwister.indexOf(a), ziel = geschwister[index + delta];
+      if (!ziel) return;
+      const alt = a.reihenfolge; a.reihenfolge = ziel.reihenfolge; ziel.reihenfolge = alt;
+      a.geaendert = ziel.geaendert = Date.now(); normalisiereAufgabenGraph(DATEN.aufgaben);
+      planeSpeichern(); zeichneAlles();
+    };
+    const teil = knopf("+", "klein", (ev) => { ev.stopPropagation(); z.bearbeiteId = null;
+      z.neueElternUid = a.uid; zeichneAlles(); });
+    teil.title = _("Add subtask"); teil.setAttribute("aria-label", teil.title);
+    const hoch = knopf("↑", "klein", (ev) => { ev.stopPropagation(); verschiebe(-1); });
+    hoch.title = _("Move up"); hoch.setAttribute("aria-label", hoch.title);
+    const runter = knopf("↓", "klein", (ev) => { ev.stopPropagation(); verschiebe(1); });
+    runter.title = _("Move down"); runter.setAttribute("aria-label", runter.title);
+    struktur.append(teil, hoch, runter);
+    if (a.elternUid) {
+      const wurzel = knopf("↥", "klein", (ev) => { ev.stopPropagation(); a.elternUid = "";
+        a.reihenfolge = DATEN.aufgaben.filter((x2) => !x2.elternUid).length;
+        a.geaendert = Date.now(); normalisiereAufgabenGraph(DATEN.aufgaben);
+        planeSpeichern(); zeichneAlles(); });
+      wurzel.title = _("Move to top level"); wurzel.setAttribute("aria-label", wurzel.title);
+      struktur.append(wurzel);
+    }
+    zeile.append(struktur);
+
     const x = el("button", "loesch-x", "✕");
     x.type = "button";
     x.title = _("Delete task");
@@ -10895,7 +11883,8 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
         { title: a.titel || _("untitled") })).then((ja) => {
         if (!ja) return;
         inDenPapierkorb("aufgabe", a, a.titel);
-        DATEN.aufgaben = DATEN.aufgaben.filter((x2) => x2.id !== a.id);
+        merkeGeloescht("aufgaben", a);
+        entferneAufgabe(a);
         if (z.bearbeiteId === a.id) z.bearbeiteId = null;
         const naechste = DATEN.aufgaben.slice().sort(sortiereAufgaben)[0];
         fokussiereNachZeichnen(naechste ? "aufgabe:" + naechste.id : "register:aufgaben");
@@ -11200,7 +12189,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
         _("Write an SMS using KDE Connect or the assigned application"));
       sms.classList.add("kontakt-sms");
       sms.addEventListener("contextmenu", (ev) => {
-        ev.preventDefault(); oeffneKommunikationsBelegung("sms");
+        ev.preventDefault(); oeffneSmsPlanung(k);
       });
       wege.append(sms);
     }
@@ -11228,7 +12217,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     }));
     knoepfe.append(knopf(_("Delete"), "rot", () => {
       frage(uebersetzt("Delete contact card “%(name)s”?",
-        { name: kontaktName(k) })).then((ja) => {
+        { name: kontaktName(k) }) + "\n\n" + _("Are you really sure?")).then((ja) => {
         if (!ja) return;
         mitMutationsSnapshot("pre-contact-delete", () => {
           merkeGeloescht("kontakte", k);
@@ -15184,6 +16173,127 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
   let kontaktAssistentSchleier = null;
   let kontaktAssistentQuellenSeite = null;
   let handbuchDownload = { version: "", url: "", sha256: "" };
+  let setupAbsichtenUebernommen = false;
+  let setupImportWarteschlange = [];
+  let setupImportLaeuft = false;
+  let setupSyncStarten = false;
+
+  function starteNaechstenSetupImport() {
+    if (setupImportLaeuft) return;
+    const quelle = setupImportWarteschlange.shift();
+    if (quelle) {
+      setupImportLaeuft = true;
+      const art = quelle === "windows-contacts" ? "lokal" :
+        quelle === "vcard" ? "vcf" :
+          (quelle === "claws" || quelle === "ldif") ? "claws" : "lotus";
+      starteImport(art, false);
+      return;
+    }
+    if (setupSyncStarten) {
+      setupSyncStarten = false;
+      starteSync(false);
+    }
+  }
+
+  function uebernehmeSetupAbsichten(nutzlast) {
+    const roh = nutzlast && (nutzlast.setupAbsichten || nutzlast.setupSelections || nutzlast.setupAuswahl);
+    if (!roh || typeof roh !== "object" || setupAbsichtenUebernommen) return false;
+    setupAbsichtenUebernommen = true;
+    const allgemein = DATEN.einstellungen.allgemein;
+    setupImportWarteschlange = Array.from(new Set(
+      (Array.isArray(roh.oneTimeImports) ? roh.oneTimeImports : [])
+        .map(String).filter((wert) => ["claws", "vcard", "ldif", "csv-lotus",
+          "windows-contacts"].includes(wert))));
+    const kalenderUids = Array.from(new Set((Array.isArray(roh.calendarUids) ? roh.calendarUids : [])
+      .map((wert) => String(wert || "").trim()).filter(Boolean))).slice(0, 32);
+    const adressbuchUid = String(roh.addressBookUid || "").trim().slice(0, 512);
+    if (kalenderUids.length || adressbuchUid) {
+      DATEN.einstellungen.sync.kalenderUids = kalenderUids;
+      DATEN.einstellungen.sync.kalenderUid = kalenderUids[0] || "";
+      DATEN.einstellungen.sync.adressbuchUid = adressbuchUid;
+      DATEN.einstellungen.sync.beimStart = true;
+      setupSyncStarten = true;
+    }
+    const registerIds = { tasks: "aufgaben", addresses: "adressen", notes: "notizen",
+      anniversaries: "jahrestage", planner: "planer", health: "gesundheit" };
+    if (Array.isArray(roh.registers)) {
+      const gewaehlt = new Set(roh.registers.map(String));
+      for (const [setupId, webId] of Object.entries(registerIds)) {
+        allgemein.registerkarten[webId] = gewaehlt.has(setupId);
+      }
+      DATEN.einstellungen.kalender.gesundheitAn = allgemein.registerkarten.gesundheit;
+    }
+    const customRegisters = Array.isArray(roh.customRegisters) ? roh.customRegisters : [];
+    const customEnabled = roh.customTabEnabled === true || customRegisters.length > 0;
+    if (roh.customTabChanged === true) {
+      allgemein.customTab.enabled = customEnabled;
+      allgemein.customTab.name = customTabName(roh.customTabName || customRegisters[0], false);
+    }
+    if (roh.customTabDesignRequested === true || roh.designRequest === true) {
+      allgemein.customTab.designRequested = true;
+    }
+    if (roh.customOrganizerChanged === true && roh.customOrganizer &&
+        typeof roh.customOrganizer === "object") {
+      const design = normalisiereCustomOrganizer(roh.customOrganizer);
+      const bestand = new Map((DATEN.customOrganizer.modules || []).map((modul) => [modul.type, modul]));
+      DATEN.customOrganizer = { version: 3, modules: design.modules.map((modul) => {
+        const vorhanden = bestand.get(modul.type);
+        return vorhanden ? { ...vorhanden, page: modul.page, order: modul.order } : modul;
+      }) };
+    }
+    const adresse = roh.address && typeof roh.address === "object" ? roh.address : roh;
+    const landText = String(adresse.country || roh.country || "").trim().slice(0, 80);
+    const landNamen = { deutschland: "DE", germany: "DE", oesterreich: "AT", österreich: "AT",
+      austria: "AT", schweiz: "CH", switzerland: "CH" };
+    const land = /^[A-Za-z]{2}$/.test(landText) ? landText.toUpperCase() :
+      (landNamen[landText.toLocaleLowerCase("de")] || "");
+    const region = String(adresse.state || roh.state || "").trim();
+    if (land) {
+      DATEN.einstellungen.ort.land = land;
+      DATEN.einstellungen.regional.homeCountry = land;
+      DATEN.einstellungen.adressen.landCode = land;
+      DATEN.einstellungen.adressen.land = land;
+    }
+    if (region) {
+      const vergleich = region.toLocaleLowerCase().trim();
+      const aliasCode = land === "DE" && vergleich === "sachsen" ? "DE-SN" : "";
+      const landEintrag = LAENDER.find((eintrag) => eintrag.code === land);
+      const treffer = landEintrag && landEintrag.regionen.find(([code, name]) => code === aliasCode ||
+        [code, name, _(name)].some((wert) => String(wert).toLocaleLowerCase().trim() === vergleich));
+      DATEN.einstellungen.ort.region = treffer ? treffer[0] : region.slice(0, 80);
+      DATEN.einstellungen.ort.regionName = treffer ? _(treffer[1]) : region.slice(0, 80);
+    }
+    if ([adresse.firstName, adresse.lastName, adresse.street, adresse.postalCode,
+          adresse.city, adresse.country].some((wert) => String(wert || "").trim())) {
+      DATEN.einstellungen.adressen.absender = [
+        [adresse.firstName, adresse.lastName].map((wert) => String(wert || "").trim())
+          .filter(Boolean).join(" "), String(adresse.street || "").trim(),
+        [adresse.postalCode, adresse.city].map((wert) => String(wert || "").trim())
+          .filter(Boolean).join(" "), String(adresse.country || "").trim()
+      ].filter(Boolean).join("\n").slice(0, 1000);
+    }
+    DATEN.einstellungen.adressen.sortierung = roh.addressSort === "first-name"
+      ? "first-name" : "last-name";
+    if (typeof roh.backupPath === "string" && roh.backupPath.trim()) {
+      allgemein.sicherungsordner = roh.backupPath.trim().slice(0, 4096);
+    }
+    if (["daily", "weekly", "monthly"].includes(roh.backupInterval)) {
+      allgemein.cloudSicherung.intervall = roh.backupInterval === "daily" ? "daily" : "weekly";
+    }
+    if (Object.prototype.hasOwnProperty.call(roh, "weather")) allgemein.wetter = roh.weather === true;
+    if (Object.prototype.hasOwnProperty.call(roh, "tray") ||
+        Object.prototype.hasOwnProperty.call(roh, "autostart")) {
+      allgemein.tray.aktiv = roh.tray === true || roh.autostart === true;
+      allgemein.tray.autostart = roh.autostart === true;
+      allgemein.tray.startMinimiert = roh.autostart === true;
+      if (Bruecke.vorhanden) Bruecke.sende({ cmd: "tray_einstellungen",
+        einstellungen: allgemein.tray });
+    }
+    DATEN.einstellungen.allgemein.kontaktErsteinrichtungVersion = 1;
+    planeSpeichern();
+    setTimeout(starteNaechstenSetupImport, 0);
+    return false;
+  }
 
   function kontaktAssistentAbschliessen(aktion) {
     if (!kontaktAssistentSchleier) return;
@@ -15206,8 +16316,8 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
 
   function kontaktAssistentSpeicherFehler(fehler) {
     if (!kontaktAssistentSchleier) return;
-    DATEN.einstellungen.allgemein.kontaktErsteinrichtungVersion = 0;
-    kontaktAssistentAusstehend = true;
+    DATEN.einstellungen.allgemein.kontaktErsteinrichtungVersion = 1;
+    kontaktAssistentAusstehend = false;
     kontaktAssistentSchleier.querySelectorAll("button").forEach((button) => {
       button.disabled = false;
     });
@@ -15248,8 +16358,9 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
         .filter((buch) => buch.art !== "lokal");
       for (const buch of buecher) {
         const anbieter = buch.art === "graph" ? "Microsoft 365" :
+          buch.art === "generic-carddav" ? "CardDAV" :
           (buch.art === "nextcloud-carddav" || String(buch.uid || "").startsWith("nextcloud-"))
-            ? "Nextcloud" : "Evolution Data Server";
+            ? "Nextcloud" : _("System internet accounts");
         auswahl.append(knopf((buch.name || _("Address book")) + " — " + anbieter,
           "kontakt-assistent-knopf", () => {
           DATEN.einstellungen.sync.adressbuchUid = buch.uid;
@@ -15275,12 +16386,18 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       frageText.textContent = _("Where are your contacts now?");
       auswahl.textContent = "";
       fuss.textContent = "";
-      auswahl.append(
-        knopf(_("From the Windows Contacts folder"), "kontakt-assistent-knopf", () =>
+      const einmal = el("section", "kontakt-quellen-gruppe einmalig");
+      einmal.append(el("h3", null, _("Import once")),
+        el("p", "einst-hinweis", _("A one-time import adds contacts only after your selection.")),
+        knopf(_("Windows Contacts folder"), "kontakt-assistent-knopf", () =>
           beenden(() => starteImport("lokal", true))),
-        knopf(_("Contacts (.vcf) …"), "kontakt-assistent-knopf", () =>
-          beenden(() => starteImport("vcf"))),
+        knopf(_("vCard file (.vcf), including iPhone/iCloud export …"),
+          "kontakt-assistent-knopf", () => beenden(() => starteImport("vcf"))));
+      const dauerhaft = el("section", "kontakt-quellen-gruppe dauerhaft");
+      dauerhaft.append(el("h3", null, _("Synchronize permanently")),
+        el("p", "einst-hinweis", _("Permanent sources remain linked and are handled on the Synchronization page.")),
         knopf(_("Online address book"), "kontakt-assistent-knopf", zeigeAdressbuecher));
+      auswahl.append(einmal, dauerhaft);
       fuss.append(knopf(_("Not now"), "", () => beenden(null)));
       auswahl.querySelector("button")?.focus();
     };
@@ -15671,7 +16788,33 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
         }).then((ok) => { if (!ok) baueEinstellungen(); });
       });
     }
-    registerGruppe.append(registerAuswahl);
+    const customAn = document.createElement("input");
+    customAn.type = "checkbox"; customAn.id = "allgemein-register-custom";
+    customAn.checked = !!a.customTab.enabled;
+    const customZeile = el("label", "hak");
+    customZeile.append(customAn, document.createTextNode(" " + customText("Custom tab")));
+    registerAuswahl.append(customZeile);
+    const customName = eingabe("text", customTabName(a.customTab.name, false));
+    customName.id = "allgemein-custom-name"; customName.maxLength = 40;
+    customName.placeholder = customText("Custom");
+    const customFelder = el("div", "custom-tab-einstellungen");
+    const designerText = a.customTab.designRequested
+      ? customText("Open requested designer") : customText("Open designer");
+    customFelder.append(formZeile(customText("Tab name"), customName),
+      knopf(designerText, "klein", oeffneCustomDesigner),
+      el("p", "einst-hinweis",
+        customText("Custom content is saved locally and transferred through complete Magnolie archives only, not Personal Sync.")));
+    customFelder.hidden = !customAn.checked;
+    registerGruppe.append(registerAuswahl, customFelder);
+    customAn.addEventListener("change", () => {
+      a.customTab.enabled = customAn.checked; customFelder.hidden = !customAn.checked;
+      if (!customAn.checked && zustand.sektion === "custom") zustand.sektion = "kalender";
+      planeSpeichern(); zeichneAlles();
+    });
+    customName.addEventListener("input", () => {
+      a.customTab.name = customTabName(customName.value, false);
+      planeSpeichern(); zeichneRegister();
+    });
     ab.append(registerGruppe);
 
     const tray = a.tray;
@@ -15682,7 +16825,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     const trayHak = document.createElement("input");
     trayHak.type = "checkbox";
     trayHak.id = "allgemein-tray-aktiv";
-    trayHak.checked = !!tray.aktiv;
+    trayHak.checked = !!tray.aktiv || !!tray.autostart;
     trayHak.disabled = !Bruecke.vorhanden || !trayVerfuegbar;
     const trayZeile = el("label", "hak");
     trayZeile.append(trayHak, document.createTextNode(" " + _("Enable tray applet")));
@@ -15705,7 +16848,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     const startHak = document.createElement("input");
     startHak.type = "checkbox";
     startHak.id = "allgemein-tray-start-minimiert";
-    startHak.checked = !!tray.startMinimiert;
+    startHak.checked = !!tray.startMinimiert || !!tray.autostart;
     const startZeile = el("label", "hak");
     startZeile.append(startHak,
       document.createTextNode(" " + _("Start the organizer in the tray")));
@@ -15716,6 +16859,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     const autostartZeile = el("label", "hak");
     autostartZeile.append(autostartHak,
       document.createTextNode(" " + _("Start automatically when signing in")));
+    trayGruppe.append(autostartZeile);
     const oeffnenWahl = auswahlFeld([
       ["previous", _("Previous window state")],
       ["centered", _("Centered on the screen")],
@@ -15729,7 +16873,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     const zaehlerZeile = el("label", "hak");
     zaehlerZeile.append(zaehlerHak,
       document.createTextNode(" " + _("Show today's notification count on the tray icon")));
-    trayFelder.append(minimierenZeile, schliessenZeile, startZeile, autostartZeile,
+    trayFelder.append(minimierenZeile, schliessenZeile, startZeile,
       zaehlerZeile, formZeile(_("When opening from the tray"), oeffnenWahl),
       el("p", "einst-hinweis", unterWayland
         ? _("Under Wayland, the compositor determines the exact window position; " +
@@ -15740,7 +16884,14 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     if (!trayVerfuegbar) trayGruppe.append(el("p", "einst-hinweis warnt",
       _("The tray applet is not available on this system.")));
     ab.append(trayGruppe);
-    const trayUebernehmen = () => {
+    const trayUebernehmen = (ereignis) => {
+      if (ereignis && ereignis.currentTarget === autostartHak && autostartHak.checked) {
+        trayHak.checked = true;
+        startHak.checked = true;
+      } else if (ereignis && ereignis.currentTarget === trayHak && !trayHak.checked) {
+        autostartHak.checked = false;
+        startHak.checked = false;
+      }
       tray.aktiv = trayHak.checked;
       tray.minimierenInTray = minimierenHak.checked;
       tray.schliessenInTray = schliessenHak.checked;
@@ -15868,7 +17019,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
 
   function journalGrund(grund) {
     return ({ weekly: _("Scheduled"),
-      manual: pgettext("recovery snapshot reason", "Manual"),
+      manual: pgettext("recovery snapshot reason", "Manual"), "pre-change": _("Before synchronization"),
       "pre-sync": _("Before synchronization"), "pre-restore": _("Before restore"),
       "pre-contact": _("Before synchronization"),
       "pre-contact-import": _("Before contact import"),
@@ -15878,93 +17029,75 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
 
   function baueSeiteSicherungen(wurzel) {
     const abs = abschnitt(_("Recovery snapshots"),
-      _("Private, integrity-checked snapshots are stored next to the application data."));
-    const intervall = auswahlFeld([["off", _("Off")], ["6h", _("Every 6 hours")],
-      ["12h", _("Every 12 hours")], ["daily", _("Daily")], ["weekly", _("Weekly")]],
-      journalStand.interval || DATEN.einstellungen.allgemein.wiederherstellungsintervall);
-    intervall.id = "journal-intervall";
-    intervall.addEventListener("change", () => {
-      DATEN.einstellungen.allgemein.wiederherstellungsintervall = intervall.value;
-      planeSpeichern();
-      Bruecke.sende({ cmd: "journal_intervall", intervall: intervall.value });
-    });
-    abs.append(formZeile(_("Snapshot interval"), intervall));
-    const modus = auswahlFeld([["count", _("Maximum recovery snapshots")],
-      ["days", _("Days")]], journalStand.mode ||
-      DATEN.einstellungen.allgemein.wiederherstellungsaufbewahrung);
-    modus.id = "journal-aufbewahrung";
-    const anzahl = eingabe("number", String(
-      journalStand.maximum || DATEN.einstellungen.allgemein.wiederherstellungsanzahl));
-    anzahl.id = "journal-anzahl";
-    anzahl.min = "1";
-    anzahl.max = "100";
-    anzahl.step = "1";
-    const tage = eingabe("number", String(
-      journalStand.days || DATEN.einstellungen.allgemein.wiederherstellungstage));
-    tage.id = "journal-tage";
-    tage.min = "1";
-    tage.max = "3650";
-    tage.step = "1";
-    const aufbewahrungUebernehmen = () => {
-      const maximum = Math.max(1, Math.min(100, Math.round(Number(anzahl.value) || 20)));
-      const alter = Math.max(1, Math.min(3650, Math.round(Number(tage.value) || 14)));
-      anzahl.value = String(maximum);
-      tage.value = String(alter);
-      anzahl.disabled = modus.value !== "count";
-      tage.disabled = modus.value !== "days";
-      DATEN.einstellungen.allgemein.wiederherstellungsaufbewahrung = modus.value;
-      DATEN.einstellungen.allgemein.wiederherstellungsanzahl = maximum;
-      DATEN.einstellungen.allgemein.wiederherstellungstage = alter;
-      planeSpeichern();
-      Bruecke.sende({ cmd: "journal_aufbewahrung", modus: modus.value,
-        maximum: maximum, tage: alter });
-    };
-    modus.addEventListener("change", aufbewahrungUebernehmen);
-    anzahl.addEventListener("change", aufbewahrungUebernehmen);
-    tage.addEventListener("change", aufbewahrungUebernehmen);
-    anzahl.disabled = modus.value !== "count";
-    tage.disabled = modus.value !== "days";
-    abs.append(formZeile(_("Retention"), modus),
-      formZeile(_("Maximum recovery snapshots"), anzahl),
-      formZeile(_("Days"), tage));
-    abs.append(el("p", "einst-hinweis",
-      _("When the limit is lowered, the oldest recovery snapshots are removed automatically.")));
-    abs.append(el("p", "einst-hinweis", _("Last snapshot") + ": " + journalDatum(journalStand.last) +
-      " · " + _("Next snapshot") + ": " + journalDatum(journalStand.next)));
+      _("Every saved change is protected automatically by a private, integrity-checked snapshot."));
     if (journalStand.status && !["ok", "off", "due", "scheduled"].includes(journalStand.status)) {
       abs.append(el("p", "einst-warnung", journalStand.status));
     }
-    const jetzt = knopf(_("Create snapshot now"), "", () => {
-      jetzt.disabled = true;
-      nachDauerhaftemSpeichern(() => Bruecke.sende({ cmd: "journal_erzeugen" }));
-    });
-    jetzt.id = "journal-jetzt";
-    const reihe = el("div", "knopfreihe"); reihe.append(jetzt); abs.append(reihe);
+    const datumFilter = eingabe("date", "");
+    datumFilter.id = "journal-datum-filter";
+    abs.append(formZeile(_("Date"), datumFilter));
     const liste = el("div", "journal-liste");
-    for (const stand of journalStand.snapshots || []) {
+    liste.tabIndex = 0;
+    liste.setAttribute("role", "region");
+    liste.setAttribute("aria-label", _("Recovery snapshots"));
+    const listeZeichnen = () => {
+      liste.replaceChildren();
+      for (const stand of journalStand.snapshots || []) {
+      const zeit = new Date(stand.createdAt);
+      const lokal = Number.isNaN(zeit.getTime()) ? "" : [zeit.getFullYear(),
+        String(zeit.getMonth() + 1).padStart(2, "0"),
+        String(zeit.getDate()).padStart(2, "0")].join("-");
+      if (datumFilter.value && lokal !== datumFilter.value) continue;
       const eintrag = el("div", "journal-eintrag");
       const groesse = Math.round(Number(stand.payload && stand.payload.size || 0) / 1024);
       const summe = stand.summary || {};
-      eintrag.append(el("strong", null, journalDatum(stand.createdAt) + " · " +
-        journalGrund(stand.reason)), el("span", "einst-hinweis",
-        groesse + " KiB · " + _("Integrity") + ": " +
-        (stand.integrity === "ok" ? _("OK") : _("Damaged")) + " · " +
-        _("Objects") + ": " + Object.values(summe).reduce((a, b) => a + Number(b || 0), 0)));
-      const aktionen = el("div", "knopfreihe");
+        const kopf = el("div", "journal-kopf");
+        kopf.append(el("strong", null, journalDatum(stand.createdAt) + " · " +
+          journalGrund(stand.reason)), el("span", "einst-hinweis",
+          groesse + " KiB · " + _("Integrity") + ": " +
+          (stand.integrity === "ok" ? _("OK") : _("Damaged")) + " · " +
+          _("Objects") + ": " + Object.values(summe).reduce((a, b) => a + Number(b || 0), 0)));
+        eintrag.append(kopf);
+      const aktionen = el("div", "knopfreihe journal-aktionen");
       aktionen.append(knopf(_("Preview"), "klein", () => Bruecke.sende({
         cmd: "journal_vorschau", snapshotId: stand.snapshotId })));
-      const restore = knopf(_("Restore completely"), "klein", () => frage(
-        _("Restore this snapshot completely? A mandatory pre-restore snapshot is created first."),
-        _("Restore")).then((ja) => { if (ja) Bruecke.sende({
-          cmd: "journal_wiederherstellen", snapshotId: stand.snapshotId }); }));
+        const bereichReihe = el("div", "journal-bereiche");
+      const bereichFelder = [["all", _("All")],
+        ["contacts", _("Contacts") + " · " + _("Anniversaries")],
+        ["calendar", _("Appointments") + " · " + _("Tasks")], ["notes", _("Notes")]].map(([wert, text]) => {
+        const feld = document.createElement("input"); feld.type = "checkbox"; feld.checked = wert !== "all";
+        const label = el("label", null); label.append(feld, document.createTextNode(" " + text));
+        bereichReihe.append(label); return [wert, feld];
+      });
+      const verfahren = auswahlFeld([
+        ["additive", _("Deleted and missing data is restored; newer existing data is retained.")],
+        ["replace", _("The selected areas are reset exactly; data added later is removed.")]], "additive");
+        const verfahrenZeile = formZeile(_("Restore"), verfahren);
+        verfahrenZeile.classList.add("journal-verfahren");
+        eintrag.append(bereichReihe, verfahrenZeile);
+      const restore = knopf(_("Restore"), "klein", () => {
+        const alles = bereichFelder.find(([wert]) => wert === "all")[1].checked;
+        const bereiche = alles ? ["all"] : bereichFelder.filter(([wert, feld]) =>
+          wert !== "all" && feld.checked).map(([wert]) => wert);
+        if (!bereiche.length) { zettel(_("Select something first.")); return; }
+        frage(alles ? _("Restore this snapshot completely? A mandatory pre-restore snapshot is created first.") :
+          (verfahren.value === "additive" ?
+            _("Deleted and missing data is restored; newer existing data is retained.") :
+            _("The selected areas are reset exactly; data added later is removed.")),
+          _("Restore")).then((ja) => { if (ja) Bruecke.sende({ cmd: "journal_wiederherstellen",
+            snapshotId: stand.snapshotId, bereiche: bereiche, modus: verfahren.value }); });
+      });
       restore.disabled = stand.integrity !== "ok";
       aktionen.append(restore, knopf(_("Delete"), "klein rot", () => frage(
         _("Delete this recovery snapshot permanently?"), _("Delete")).then((ja) => {
           if (ja) Bruecke.sende({ cmd: "journal_loeschen", snapshotId: stand.snapshotId });
         })));
       eintrag.append(aktionen); liste.append(eintrag);
-    }
-    if (!liste.children.length) liste.append(el("p", "einst-hinweis", _("No snapshots yet.")));
+      }
+      if (!liste.children.length) liste.append(el("p", "einst-hinweis", _("No snapshots yet.")));
+    };
+    datumFilter.addEventListener("change", listeZeichnen);
+    listeZeichnen();
     abs.append(liste); wurzel.append(abs);
     if (Bruecke.vorhanden && !journalListeAngefragt) {
       journalListeAngefragt = true;
@@ -15981,10 +17114,8 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
   }
 
   function baueSeiteImport(wurzel) {
-    /* Übernehmen */
-    const imp = abschnitt(_("Import"),
-      _("Calendar and contact applications commonly export appointments as .ics " +
-        "files and contacts as .vcf files."));
+    const imp = abschnitt(_("Import once"),
+      _("One-time imports are additive. They do not keep a source linked and do not delete contacts."));
     const impReihe = el("div", "knopfreihe");
     const archivImport = knopf(_("Magnolie complete archive (.magnolie) …"), "", () => {
       if (!Bruecke.vorhanden) { zettel(_("Complete archive import is available only in the installed application.")); return; }
@@ -15993,17 +17124,21 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     archivImport.id = "gesamtarchiv-import";
     impReihe.append(
       archivImport,
-      knopf(_("From the Windows Contacts folder"), "", () => starteImport("lokal")),
       knopf(_("Calendar file (.ics/.vcs/.lcs) …"), "", () => starteImport("ics")),
       knopf(_("Lotus Organizer CSV …"), "", () => starteImport("lotus")));
     if (registerAktiv("adressen")) impReihe.append(
-      knopf(_("Contacts (.vcf) …"), "", () => starteImport("vcf")),
-      knopf(_("Claws Mail (.xml/.ldif) …"), "", () => starteImport("claws")));
+      knopf("Evolution", "", () => starteImport("lokal", false)),
+      knopf("Thunderbird", "", () => starteImport("lokal", false)),
+      knopf(_("Windows Contacts folder"), "", () => starteImport("lokal", true)),
+      knopf(_("Claws Mail XML (.xml) …"), "", () => starteImport("claws")),
+      knopf(_("vCard (.vcf), including iPhone/iCloud export …"), "", () => starteImport("vcf")),
+      knopf(_("LDIF address book (.ldif) …"), "", () => starteImport("ldif")),
+      knopf(_("CSV / Lotus Organizer contacts …"), "", () => starteImport("lotus")),
+      knopf(_("Magnolie Notes / Android: check for pending import"), "", () =>
+        Bruecke.sende({ cmd: "baum_stand" })));
     imp.append(impReihe);
     imp.append(el("p", "einst-hinweis",
-      _("The Windows Contacts folder is synchronized bidirectionally on the " +
-        "synchronization page. File imports do not modify their source files; existing " +
-        "entries are not added twice.")));
+      _("Evolution and Thunderbird are selected explicitly. iPhone contacts require a vCard export from the iPhone or iCloud. KDE Connect, Bluetooth and PBAP are not contact sources.")));
     wurzel.append(imp);
   }
 
@@ -16149,6 +17284,110 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
   let baumInternet = null;
   const baumGemeldeteAngebote = new Set();
   const baumKontaktLaeufe = new Map();
+  let kontaktImportDialogOffen = false;
+
+  function kontaktImportHerkunft(roh, mitAnzahl) {
+    if (!roh || typeof roh !== "object") return null;
+    const sauber = (wert) => String(wert || "").replace(/[\x00-\x1f\x7f]/g, " ").trim().slice(0, 128);
+    const teile = [sauber(roh.kontoName), sauber(roh.kontoTyp), sauber(roh.dataSet)].filter(Boolean);
+    if (!teile.length) teile.push(_("Unknown source"));
+    const anzahl = Math.max(0, Math.min(250, Math.floor(Number(roh.anzahl) || 0)));
+    return { text: teile.join(" · ") + (mitAnzahl && anzahl ? " (" + anzahl + ")" : ""), anzahl: anzahl };
+  }
+
+  function androidImportKontakt(karte) {
+    const kontakt = karte && karte.kontakt && typeof karte.kontakt === "object" ? kopie(karte.kontakt) : null;
+    const bindung = String(karte && karte.bindung || "").trim().toLowerCase();
+    if (!kontakt || !/^urn:magnolie:import:android:[0-9a-f]{64}$/.test(bindung) ||
+        ["geloescht", "loeschen", "sync", "syncQuellen", "baumKontakt"].some((feld) =>
+          Object.prototype.hasOwnProperty.call(kontakt, feld))) return null;
+    const herkunftRoh = Array.isArray(karte.herkuenfte) ? karte.herkuenfte : [];
+    if (herkunftRoh.length < 1 || herkunftRoh.length > 16) return null;
+    kontakt.importBindungen = [bindung];
+    kontakt.importHerkunfte = herkunftRoh.map((wert) =>
+      kontaktImportHerkunft(wert, false)).filter(Boolean).map((wert) => wert.text);
+    if (kontakt.importHerkunfte.length !== herkunftRoh.length) return null;
+    const bindungsZiel = DATEN.kontakte.find((wert) => (wert.importBindungen || []).includes(bindung));
+    if (bindungsZiel) { kontakt.uid = bindungsZiel.uid; return kontakt; }
+    const trefferFuer = (schluessel, werte) => {
+      const treffer = new Set();
+      for (const wert of werte) for (const bestand of DATEN.kontakte)
+        if (schluessel(bestand).includes(wert)) treffer.add(bestand);
+      return treffer;
+    };
+    const mailTreffer = trefferFuer((wert) => emailListe(wert).map(kanonischerText),
+      emailListe(kontakt).map(kanonischerText).filter(Boolean));
+    const telefonTreffer = trefferFuer(kontaktTelefone, kontaktTelefone(kontakt));
+    const gemeinsam = new Set([...mailTreffer, ...telefonTreffer]);
+    if (mailTreffer.size > 1 || telefonTreffer.size > 1 || gemeinsam.size > 1) kontakt.importKonflikt = true;
+    else if (gemeinsam.size === 1) kontakt.uid = Array.from(gemeinsam)[0].uid;
+    return kontakt;
+  }
+
+  function zeigeKontaktImportAngebot(eingang) {
+    if (kontaktImportDialogOffen) return;
+    const manifeste = (eingang || []).filter((stueck) =>
+      ((stueck.inhalt || {}).art || stueck.art) === "kontakt_import_manifest");
+    for (const manifestStueck of manifeste) {
+      const manifest = manifestStueck.inhalt || {}; const importId = String(manifest.importId || "");
+      const anzahl = Math.floor(Number(manifest.anzahl) || 0);
+      const karten = (eingang || []).filter((stueck) => stueck.von === manifestStueck.von &&
+        ((stueck.inhalt || {}).art || stueck.art) === "kontakt_import_karte" &&
+        Number((stueck.inhalt || {}).fassung) === 1 &&
+        String((stueck.inhalt || {}).importId || "") === importId);
+      const manifestIndex = (eingang || []).indexOf(manifestStueck);
+      const ids = [manifestStueck, ...karten].map((stueck) => String(stueck.id || "")).filter(Boolean);
+      const herkunftRoh = Array.isArray(manifest.herkuenfte) ? manifest.herkuenfte : [];
+      const kartenBytes = new Blob([JSON.stringify(
+        karten.map((stueck) => stueck.inhalt || {}))]).size;
+      if (Number(manifest.fassung) !== 1 || !importId || anzahl < 1 || anzahl > 250 ||
+          karten.length !== anzahl || herkunftRoh.length < 1 || herkunftRoh.length > 64 ||
+          ids.length !== karten.length + 1 || new Set(ids).size !== ids.length ||
+          kartenBytes > 8388608 || karten.some((stueck) =>
+            (eingang || []).indexOf(stueck) <= manifestIndex ||
+            !Array.isArray((stueck.inhalt || {}).herkuenfte) ||
+            (stueck.inhalt || {}).herkuenfte.length < 1 ||
+            (stueck.inhalt || {}).herkuenfte.length > 16)) continue;
+      const kontakte = karten.map((stueck) => androidImportKontakt(stueck.inhalt || {}));
+      if (kontakte.some((kontakt) => !kontakt)) continue;
+      const herkuenfte = herkunftRoh.map((wert) =>
+        kontaktImportHerkunft(wert, true)).filter(Boolean).slice(0, 64);
+      if (herkuenfte.length !== herkunftRoh.length) continue;
+      kontaktImportDialogOffen = true;
+      const schleier = el("div", "eingabe-schleier kontakt-import-schleier");
+      const dialog = el("section", "eingabe-dialog kontakt-import-dialog");
+      dialog.setAttribute("role", "dialog"); dialog.setAttribute("aria-modal", "true");
+      const liste = el("ul", "kontakt-import-herkuenfte");
+      herkuenfte.forEach((wert) => liste.append(el("li", null, wert.text)));
+      const status = el("p", "einst-hinweis", _("Nothing has been imported yet."));
+      const schliessen = () => { beendeModal(schleier); schleier.remove(); kontaktImportDialogOffen = false; };
+      const bestaetigen = knopf(_("Import contacts additively"), "hauptknopf", () => {
+        dialog.querySelectorAll("button").forEach((button) => { button.disabled = true; });
+        status.textContent = _("Creating recovery snapshot …");
+        mitMutationsSnapshot("pre-contact-import", () => {
+          const ergebnis = mergeKontakte(kontakte); zeichneAlles();
+          nachDauerhaftemSpeichern(() => {
+            Bruecke.sende({ cmd: "baum_eingang_geleert", ids: ids }); schliessen();
+            zettel(uebersetztMehrzahl("%(count)s contact imported.", "%(count)s contacts imported.",
+              ergebnis.neu + ergebnis.doppelt));
+          });
+        });
+      });
+      const ablehnen = knopf(_("Reject"), "", () => {
+        Bruecke.sende({ cmd: "baum_eingang_geleert", ids: ids }); schliessen();
+      });
+      const knoepfe = el("div", "dialog-knoepfe"); knoepfe.append(bestaetigen, ablehnen);
+      dialog.append(el("h2", null, _("Magnolie Notes contact import")),
+        el("p", "kontakt-import-anzahl", uebersetztMehrzahl(
+          "Preview: %(count)s contact", "Preview: %(count)s contacts", anzahl)),
+        el("h3", null, _("Sources")), liste, el("p", "einst-warnung",
+          _("This one-time import only adds or enriches contacts. It does not synchronize or delete contacts.")),
+        status, knoepfe);
+      schleier.append(dialog); document.body.append(schleier);
+      registriereModal(schleier, dialog, { anfang: bestaetigen, schliessen: () => {} });
+      return;
+    }
+  }
 
   /* Verarbeitet technische Updates sowie Angebote ausdrücklich vertrauter
      Partner automatisch. Andere neue Angebote warten auf eine Bestätigung. */
@@ -16867,8 +18106,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
      Abschnitt richtet nur den Briefkasten ein, ueber den Nachrichten laufen,
      wenn der Zweig nicht erreichbar ist. */
   function baueNextcloudKonto(wurzel) {
-    const ab = abschnitt(_("Nextcloud account"),
-      _("Shared credentials") + ": CalDAV / CardDAV / " + _("Magnolienbaum mailbox"));
+    const ab = abschnitt("DAV account", _("Shared credentials") + ": CalDAV / CardDAV");
     ab.id = "nextcloud-konto";
     if (!Bruecke.vorhanden) {
       ab.append(el("p", "einst-hinweis", _("This is available only in the installed application.")));
@@ -16883,11 +18121,25 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     }
 
     if (!nextcloudEntwurf) nextcloudEntwurf = {
+      kontoArt: briefkastenStand.kontoArt === "generic-dav" ? "generic-dav" : "nextcloud",
       davAktiv: briefkastenStand.davAktiv === true,
       briefkastenAktiv: briefkastenStand.briefkastenAktiv === true,
       url: String(briefkastenStand.url || ""),
       benutzer: String(briefkastenStand.benutzer || "")
     };
+    const kontoArtFeld = auswahlFeld([
+      ["nextcloud", "Nextcloud"],
+      ["generic-dav", "Standard CalDAV/CardDAV"]
+    ], nextcloudEntwurf.kontoArt);
+    kontoArtFeld.id = "dav-konto-art";
+    kontoArtFeld.addEventListener("change", () => {
+      nextcloudEntwurf.kontoArt = kontoArtFeld.value;
+      if (kontoArtFeld.value === "generic-dav") nextcloudEntwurf.briefkastenAktiv = false;
+      nextcloudEntwurfGeaendert = true;
+      baueEinstellungen();
+    });
+    ab.append(formZeile("Account type", kontoArtFeld));
+    const generisch = nextcloudEntwurf.kontoArt === "generic-dav";
     const anHak = document.createElement("input");
     anHak.type = "checkbox";
     anHak.id = "nextcloud-dav-an";
@@ -16898,7 +18150,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     });
     const anZeile = el("label", "hak");
     anZeile.append(anHak, document.createTextNode(" " +
-      _("Synchronization") + ": Nextcloud"));
+      _("Synchronization") + ": " + (generisch ? "CalDAV / CardDAV" : "Nextcloud")));
     ab.append(anZeile);
 
     const urlFeld = eingabe("text", nextcloudEntwurf.url);
@@ -16909,6 +18161,9 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       nextcloudEntwurfGeaendert = true;
     });
     ab.append(formZeile(_("Server address"), urlFeld));
+    if (generisch) ab.append(el("p", "einst-hinweis dav-server-hinweis",
+      "Enter the CalDAV/CardDAV server address supplied by your provider. " +
+      "Do not append Nextcloud paths such as /remote.php/dav."));
 
     const benutzerFeld = eingabe("text", nextcloudEntwurf.benutzer);
     benutzerFeld.id = "briefkasten-benutzer";
@@ -16923,16 +18178,18 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     kennwortFeld.autocomplete = "new-password";
     kennwortFeld.placeholder = briefkastenStand.kennwortVorhanden
       ? _("stored \u2013 leave empty to keep")
-      : _("app password from Nextcloud");
-    ab.append(formZeile(_("App password"), kennwortFeld));
+      : (generisch ? "DAV password" : _("app password from Nextcloud"));
+    ab.append(formZeile(generisch ? "Password" : _("App password"), kennwortFeld));
 
-    ab.append(el("p", "einst-hinweis",
-      _("Only HTTPS. Create an app password in Nextcloud under Settings, Security. " +
+    ab.append(el("p", "einst-hinweis", generisch
+      ? "Only HTTPS. The password is stored in the application's native secret storage."
+      : _("Only HTTPS. Create an app password in Nextcloud under Settings, Security. " +
         "Your account password is never used.")));
 
     const reihe = el("div", "knopfreihe");
     const senden = (kennwortLoeschen) => {
-      const briefkastenAktiv = !!($("#briefkasten-an") && $("#briefkasten-an").checked);
+      const briefkastenAktiv = !generisch &&
+        !!($("#briefkasten-an") && $("#briefkasten-an").checked);
       nextcloudEntwurf.davAktiv = anHak.checked;
       nextcloudEntwurf.briefkastenAktiv = briefkastenAktiv;
       nextcloudEntwurf.url = urlFeld.value;
@@ -16941,6 +18198,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       for (const feld of ab.querySelectorAll("input, button")) feld.disabled = true;
       Bruecke.sende({
         cmd: "baum_briefkasten_speichern",
+        kontoArt: nextcloudEntwurf.kontoArt,
         davAktiv: kennwortLoeschen ? false : anHak.checked,
         briefkastenAktiv: kennwortLoeschen ? false : briefkastenAktiv,
         url: nextcloudEntwurf.url.trim(),
@@ -16999,8 +18257,10 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     const an = document.createElement("input");
     an.type = "checkbox";
     an.id = "briefkasten-an";
-    an.checked = nextcloudEntwurf ? nextcloudEntwurf.briefkastenAktiv
+    const generisch = nextcloudEntwurf && nextcloudEntwurf.kontoArt === "generic-dav";
+    an.checked = generisch ? false : nextcloudEntwurf ? nextcloudEntwurf.briefkastenAktiv
       : briefkastenStand.briefkastenAktiv === true;
+    an.disabled = !!generisch;
     an.addEventListener("change", () => {
       if (nextcloudEntwurf) {
         nextcloudEntwurf.briefkastenAktiv = an.checked;
@@ -17011,6 +18271,8 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     zeile.append(an, document.createTextNode(" " +
       _("Use the mailbox as a fallback for branch baum-1")));
     ab.append(zeile);
+    if (generisch) ab.append(el("p", "einst-hinweis dav-briefkasten-hinweis",
+      "The Magnolienbaum mailbox is available only with a Nextcloud account."));
     wurzel.append(ab);
   }
 
@@ -18859,7 +20121,8 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       if (neuEinrichten && Bruecke.vorhanden) {
         stand.textContent = _("Setting up reminders …");
         Bruecke.sende({ cmd: "erinnerung_einrichten", an: e.an,
-          vorlauf: e.vorlauf, wecken: e.wecken, termine: DATEN.termine });
+          vorlauf: e.vorlauf, wecken: e.wecken,
+          termine: DATEN.termine.concat(customTermineFuerErinnerung()) });
       }
       pruefeErinnerungen(true);
     };
@@ -18950,7 +20213,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
   function naechsterTermin() {
     const jetztWert = new Date();
     let bester = null;
-    for (const t of DATEN.termine) {
+    for (const t of DATEN.termine.concat(customTermineFuerErinnerung())) {
       const zeitpunkt = terminZeitpunkt(t);
       if (!zeitpunkt || zeitpunkt < jetztWert) continue;
       if (!bester || zeitpunkt < terminZeitpunkt(bester)) bester = t;
@@ -18987,7 +20250,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
        sonst käme jede Erinnerung doppelt. */
     if (Bruecke.vorhanden) return;
     const jetztWert = new Date();
-    for (const t of DATEN.termine) {
+    for (const t of DATEN.termine.concat(customTermineFuerErinnerung())) {
       const zeitpunkt = terminZeitpunkt(t);
       if (!zeitpunkt) continue;
       const meldungen = new Map();
@@ -19023,6 +20286,19 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
           ? _("Appointment reminder") : _("Appointment is due"),
         uebersetzt("%(title)s – %(when)s", { title: t.titel, when: wann }));
       }
+    }
+    for (const aufgabe of DATEN.aufgaben.concat(customAufgabenFuerErinnerung())) {
+      if (aufgabe.erledigt || !aufgabe.erinnern) continue;
+      const zeitpunkt = terminZeitpunkt({ datum: aufgabe.faellig, zeit: aufgabe.faelligZeit });
+      const id = (aufgabe.uid || aufgabe.id || aufgabe.titel) + "@DUE|" + aufgabe.faellig + "|" +
+        (aufgabe.faelligZeit || "08:00");
+      if (!zeitpunkt || gemeldeteTermine.has(id) || jetztWert < zeitpunkt ||
+          jetztWert > new Date(zeitpunkt.getTime() + 5 * 60000)) continue;
+      gemeldeteTermine.add(id);
+      const wann = aufgabe.faelligZeit ? uebersetzt("at %(time)s",
+        { time: zeitText(aufgabe.faellig, aufgabe.faelligZeit) }) : _("today");
+      meldeErinnerung(_("Task is due"),
+        uebersetzt("%(title)s – %(when)s", { title: aufgabe.titel, when: wann }));
     }
   }
 
@@ -19151,13 +20427,16 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     zone.value = r.timeZone || "system";
     zone.placeholder = "Europe/Berlin";
     ab.append(formZeile(_("Time zone"), zone));
+    const heimatland = auswahlFeld(telefonLaenderOptionen(), telefonHeimatland());
+    heimatland.id = "regional-heimatland";
+    ab.append(formZeile(_("Home country for phone numbers"), heimatland));
     const speichern = knopf(_("Save"), "", () => {
       if (!Bruecke.vorhanden) return;
       speichern.disabled = true;
       Bruecke.sende({ cmd: "regional_einstellungen", regional: {
         language: sprache.value, formatLocale: format.value.trim(), hourCycle: stunden.value,
         firstDayOfWeek: wochenanfang.value, weekRule: "iso", temperatureUnit: temperatur.value,
-        timeZone: zone.value.trim() } });
+        timeZone: zone.value.trim(), homeCountry: isoLand(heimatland.value, "DE") } });
     });
     speichern.id = "regional-speichern";
     if (!Bruecke.vorhanden) speichern.disabled = true;
@@ -19405,12 +20684,13 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     const gewaehlte = new Set(sw.kalenderUids || []);
     const kalender = nutzlast.alleKalender || nutzlast.kalender || [];
     const adressbuecher = nutzlast.alleAdressbuecher || nutzlast.adressbuecher || [];
-    const anbieter = (quelle) => quelle.quelle === "nextcloud" ||
-      String(quelle.art || "").startsWith("nextcloud-") ||
+    const anbieter = (quelle, davName) =>
+      String(quelle.art || quelle.quelle || "").startsWith("generic-") ? davName :
+      quelle.quelle === "nextcloud" || String(quelle.art || "").startsWith("nextcloud-") ||
       String(quelle.uid || "").startsWith("nextcloud-") ? "Nextcloud" :
       quelle.uid === "windows-contacts" ? _("Windows Contacts folder") :
       quelle.uid === "microsoft-graph" ? _("Outlook.com / Microsoft 365") :
-      _("Operating system");
+      _("System internet accounts");
     for (const quelle of kalender) {
       const hak = document.createElement("input");
       hak.type = "checkbox";
@@ -19418,7 +20698,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       hak.checked = gewaehlte.has(quelle.uid);
       hak.dataset.kalenderUid = quelle.uid;
       const zeile = el("label", "hak sync-kalender");
-      zeile.append(hak, document.createTextNode(" " + quelle.name + " — " + anbieter(quelle)));
+      zeile.append(hak, document.createTextNode(" " + quelle.name + " — " + anbieter(quelle, "CalDAV")));
       hak.addEventListener("change", () => {
         const auswahl = Array.from(kalListe.querySelectorAll("input:checked"))
           .map((feld) => feld.value);
@@ -19427,6 +20707,9 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
         planeSpeichern();
       });
       kalListe.append(zeile);
+      if (quelle.supportsVtodo === false) kalListe.append(el("p",
+        "einst-hinweis sync-vtodo-hinweis",
+        "This calendar does not support tasks (VTODO). Appointments remain available."));
     }
     if (!kalender.length) {
       kalListe.append(el("p", "einst-hinweis", _("No calendars found.")));
@@ -19436,7 +20719,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     if (nutzlast.buchOk || adressbuecher.length) {
       const adrWahl = auswahlFeld(
         [["", _("— do not link —")]].concat(
-          adressbuecher.map((q) => [q.uid, q.name + " — " + anbieter(q)])), sw.adressbuchUid);
+          adressbuecher.map((q) => [q.uid, q.name + " — " + anbieter(q, "CardDAV")])), sw.adressbuchUid);
       if (nutzlast.windows) adrWahl.id = "sync-windows-quelle";
       adrWahl.addEventListener("change", () => {
         sw.adressbuchUid = adrWahl.value;
@@ -19519,7 +20802,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     nachDauerhaftemSpeichern(() => Bruecke.sende({ cmd: "sync", transactionId: transactionId,
       wahl: { kalenderUid: w.kalenderUid || kalenderUids[0] || "",
         kalenderUids: kalenderUids, adressbuchUid: w.adressbuchUid },
-      daten: { termine: DATEN.termine, kontakte: DATEN.kontakte,
+      daten: { termine: DATEN.termine, aufgaben: DATEN.aufgaben, kontakte: DATEN.kontakte,
         jahrestage: DATEN.jahrestage, geloescht: DATEN.geloescht,
         letzterSync: DATEN.letzterSync, letzteSyncs: DATEN.letzteSyncs,
         syncEpoch: DATEN.syncEpoch, syncMetadaten: DATEN.syncMetadaten,
@@ -19556,7 +20839,9 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
   }
 
   function kontaktTelefone(k) {
-    return telefonListe(k).map((telefon) => telefonSchluessel(telefon.wert)).filter(Boolean);
+    const land = telefonHeimatland();
+    return telefonListe(k).map((telefon) => telefon.e164 ||
+      telefonSchluessel(telefon.wert, land)).filter(Boolean);
   }
 
   function kontaktIstSparsam(k) {
@@ -19571,6 +20856,9 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
   }
 
   function indexiereKontakt(indexe, kontakt) {
+    for (const bindung of (kontakt.importBindungen || [])) {
+      setzeKontaktIndex(indexe.bindungen, bindung, kontakt);
+    }
     if (kontakt.uid) setzeKontaktIndex(indexe.uids, kontakt.uid, kontakt);
     for (const mail of emailListe(kontakt)) {
       setzeKontaktIndex(indexe.mails, kanonischerText(mail), kontakt);
@@ -19578,13 +20866,14 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     for (const telefon of kontaktTelefone(kontakt)) {
       setzeKontaktIndex(indexe.telefone, telefon, kontakt);
     }
-    const name = kontaktNameSchluessel(kontakt);
-    setzeKontaktIndex(indexe.namen, name, kontakt);
-    if (kontaktIstSparsam(kontakt)) setzeKontaktIndex(indexe.sparsameNamen, name, kontakt);
-    else if (indexe.sparsameNamen.get(name) === kontakt) indexe.sparsameNamen.delete(name);
   }
 
   function findeImportKontakt(k, indexe) {
+    if (k.importKonflikt) return null;
+    for (const bindung of (k.importBindungen || [])) {
+      const nachBindung = indexe.bindungen.get(bindung);
+      if (nachBindung) return nachBindung;
+    }
     if (k.uid) {
       const nachUid = indexe.uids.get(k.uid);
       if (nachUid) return nachUid;
@@ -19596,12 +20885,6 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     const telefonTreffer = new Set(kontaktTelefone(k).map(
       (wert) => indexe.telefone.get(wert)).filter(Boolean));
     if (telefonTreffer.size === 1) return Array.from(telefonTreffer)[0];
-    const name = kontaktNameSchluessel(k);
-    if (name !== "|" && name !== "firma|") {
-      const treffer = kontaktIstSparsam(k)
-        ? indexe.namen.get(name) : indexe.sparsameNamen.get(name);
-      if (treffer) return treffer;
-    }
     return null;
   }
 
@@ -19613,17 +20896,12 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     };
     const uids = new Map(DATEN.termine.filter((t) => t.uid)
       .map((t) => [importKennung(t, t.uid), t]));
-    const schluessel = new Set(DATEN.termine.map(
-      (t) => t.datum + "|" + (t.endDatum || "") + "|" + t.zeit + "|" +
-        kanonischerText(t.titel)));
     for (const rohTermin of liste || []) {
       if (!rohTermin || !gueltigesISO(rohTermin.datum)) continue;
       const t = normalisiere({ termine: [rohTermin] }).termine[0];
       if (!t) continue;
       const endDatum = gueltigesISO(t.endDatum) && t.endDatum > t.datum
         ? t.endDatum : "";
-      const s = t.datum + "|" + endDatum + "|" + (t.zeit || "") + "|" +
-        kanonischerText(t.titel);
       const uidTreffer = t.uid ? uids.get(importKennung(t, t.uid)) : null;
       if (uidTreffer) {
         if ((Number(t.geaendert) || 0) > (Number(uidTreffer.geaendert) || 0)) {
@@ -19639,10 +20917,6 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
             sync: false });
           z.neu++;
         } else z.doppelt++;
-        continue;
-      }
-      if (!t.uid && schluessel.has(s)) {
-        z.doppelt++;
         continue;
       }
       DATEN.termine.push({ id: uid(), uid: t.uid || syncUid(), datum: t.datum,
@@ -19667,11 +20941,19 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
         icsZusatzDaten: Array.isArray(t.icsZusatzDaten) ? t.icsZusatzDaten.slice(0, 256) : [],
         icsZusatzTermine: Array.isArray(t.icsZusatzTermine) ? t.icsZusatzTermine.slice(0, 256) : [],
         icsRoundtrip: Array.isArray(t.icsRoundtrip) ? t.icsRoundtrip.slice() : [],
+        icsReadOnly: !!t.icsReadOnly,
+        icsReadOnlyGrund: String(t.icsReadOnlyGrund || ""),
         icsEndeFehlt: !!t.icsEndeFehlt, icsNullDauer: !!t.icsNullDauer,
+        icsQuelleName: String(t.icsQuelleName || ""),
+        icsQuelleId: String(t.icsQuelleId || ""),
+        icsSequence: Number(t.icsSequence) || 0,
+        icsAenderungszeitFehlt: !!t.icsAenderungszeitFehlt,
+        syncKonflikte: Array.isArray(t.syncKonflikte) ? kopie(t.syncKonflikte) : [],
         syncKalenderUid: String(t.syncKalenderUid || ""),
+        syncQuellen: t.syncQuellen && typeof t.syncQuellen === "object"
+          ? kopie(t.syncQuellen) : {},
         geaendert: Number(t.geaendert) || Date.now(), sync: false });
       if (t.uid) uids.set(importKennung(t, t.uid), DATEN.termine[DATEN.termine.length - 1]);
-      schluessel.add(s);
       z.neu++;
     }
     return z;
@@ -19686,17 +20968,12 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     const uids = new Map(DATEN.jahrestage.flatMap((j) =>
       [j.uid, j.icsSerienUid].map((wert) => String(wert || "")).filter(Boolean)
         .map((wert) => [importKennung(j, wert), j])));
-    const schluessel = new Set(DATEN.jahrestage.map((j) => importKennung(j,
-      kanonischerText(j.name) + "|" + monatTag(j.datum) + "|" +
-        (jahrestagTypId(j.typ) || kanonischerText(j.typ)))));
     for (const j of liste || []) {
       if (!j || !j.name) continue;
       const datum = kanonischesJahresdatum(String(j.datum || ""), j.jahrUnbekannt);
       if (!datum) continue;
       const typ = erzwungenerTyp || j.typ;
       const typId = jahrestagTypId(typ) || String(typ || "").trim().slice(0, 80) || "other";
-      const s = kanonischerText(j.name) + "|" + monatTag(datum) + "|" +
-        (jahrestagTypId(typId) || kanonischerText(typId));
       const serienUid = String(j.icsSerienUid || "");
       const uidTreffer = (j.uid && uids.get(importKennung(j, j.uid))) ||
         (serienUid && uids.get(importKennung(j, serienUid)));
@@ -19715,7 +20992,6 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
         } else z.doppelt++;
         continue;
       }
-      if (!j.uid && schluessel.has(importKennung(j, s))) { z.doppelt++; continue; }
       DATEN.jahrestage.push({ id: uid(), uid: j.uid || syncUid(),
         name: String(j.name), datum: datum,
         typ: typId, jahrUnbekannt: gueltigesTeildatum(datum),
@@ -19724,11 +21000,12 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
         icsQuelleName: String(j.icsQuelleName || ""),
         icsQuelleId: String(j.icsQuelleId || ""),
         icsRoundtrip: Array.isArray(j.icsRoundtrip) ? j.icsRoundtrip.slice() : [],
+        syncQuellen: j.syncQuellen && typeof j.syncQuellen === "object"
+          ? kopie(j.syncQuellen) : {},
         geaendert: Number(j.geaendert) || Date.now() });
       if (j.uid) uids.set(importKennung(j, j.uid), DATEN.jahrestage[DATEN.jahrestage.length - 1]);
       if (serienUid) uids.set(importKennung(j, serienUid),
         DATEN.jahrestage[DATEN.jahrestage.length - 1]);
-      schluessel.add(importKennung(j, s));
       z.neu++;
     }
     return z;
@@ -19747,6 +21024,8 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       if (uidTreffer) {
         if ((Number(a.geaendert) || 0) > (Number(uidTreffer.geaendert) || 0)) {
           Object.assign(uidTreffer, a, { id: uidTreffer.id, uid: a.uid,
+            elternUid: String(a.elternUid || ""),
+            reihenfolge: Math.max(0, Math.floor(Number(a.reihenfolge) || 0)),
             erinnern: !!a.erinnern,
             individuelleErinnerungTage: Number(a.individuelleErinnerungTage) || 0,
             icsRoundtrip: Array.isArray(a.icsRoundtrip) ? a.icsRoundtrip.slice() : [],
@@ -19759,6 +21038,8 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       let prio = Number(a.prio);
       if (![1, 2, 3].includes(prio)) prio = 2;
       DATEN.aufgaben.push({ id: uid(), uid: String(a.uid || ""),
+        elternUid: String(a.elternUid || ""),
+        reihenfolge: Math.max(0, Math.floor(Number(a.reihenfolge) || 0)),
         titel: String(a.titel), prio: prio,
         faellig: gueltigesISO(a.faellig) ? a.faellig : "",
         erledigt: !!a.erledigt, notiz: String(a.notiz || ""),
@@ -19771,6 +21052,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       if (a.uid) uids.set(a.uid, DATEN.aufgaben[DATEN.aufgaben.length - 1]);
       z.neu++;
     }
+    normalisiereAufgabenGraph(DATEN.aufgaben);
     return z;
   }
 
@@ -19805,8 +21087,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
 
   function mergeKontakte(liste) {
     const z = { neu: 0, doppelt: 0, fotos: 0, emails: 0 };
-    const indexe = { uids: new Map(), mails: new Map(), telefone: new Map(),
-      namen: new Map(), sparsameNamen: new Map() };
+    const indexe = { bindungen: new Map(), uids: new Map(), mails: new Map(), telefone: new Map() };
     for (const kontakt of DATEN.kontakte) indexiereKontakt(indexe, kontakt);
     for (const k of liste || []) {
       if (!k) continue;
@@ -19865,6 +21146,11 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
           vorhanden.geburtstagJahrUnbekannt = gueltigesTeildatum(importGeburtstag);
           geaendert = true;
         }
+        vorhanden.importBindungen = Array.from(new Set((vorhanden.importBindungen || [])
+          .concat(k.importBindungen || []))).slice(-32);
+        vorhanden.importHerkunfte = Array.from(new Set((vorhanden.importHerkunfte || [])
+          .concat(k.importHerkunfte || []))).slice(0, 16);
+        if (k.importKonflikt) vorhanden.importKonflikt = true;
         if (geaendert) vorhanden.geaendert = Math.max(
           Number(vorhanden.geaendert) || 0, Number(k.geaendert) || Date.now());
         verknuepfeKontaktGeburtstag(vorhanden);
@@ -19887,6 +21173,9 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
         foto: sauberesFoto(k.foto),
         geburtstag: importGeburtstag,
         geburtstagJahrUnbekannt: gueltigesTeildatum(importGeburtstag),
+        importBindungen: (k.importBindungen || []).slice(-32),
+        importHerkunfte: (k.importHerkunfte || []).slice(0, 16),
+        importKonflikt: k.importKonflikt === true,
         geaendert: Number(k.geaendert) || Date.now(), sync: false };
       setzeTelefonListe(neu, telefonListe(k));
       setzeAnschriftListe(neu, anschriftListe(k));
@@ -20520,13 +21809,11 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
         DATEN.einstellungen.allgemein.tray = leseTrayEinstellungen(
           nutzlast.trayEinstellungen, DATEN.einstellungen.allgemein.tray);
       }
+      uebernehmeSetupAbsichten(nutzlast);
       handbuchHinweisAusstehend =
         !DATEN.einstellungen.allgemein.handbuchHinweisGezeigt;
-      if (nutzlast.echterErststart) {
-        DATEN.einstellungen.allgemein.kontaktErsteinrichtungVersion = 0;
-      }
-      kontaktAssistentAusstehend =
-        DATEN.einstellungen.allgemein.kontaktErsteinrichtungVersion === 0;
+      DATEN.einstellungen.allgemein.kontaktErsteinrichtungVersion = 1;
+      kontaktAssistentAusstehend = false;
       if (unterWayland) DATEN.einstellungen.erinnerung.stil = "system";
       terminIndexVeraltet = true;
       jahrestagIndexVeraltet = true;
@@ -20565,7 +21852,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
         setTimeout(() => Bruecke.sende({ cmd: "erinnerung_einrichten", an: true,
           vorlauf: DATEN.einstellungen.erinnerung.vorlauf,
           wecken: DATEN.einstellungen.erinnerung.wecken,
-          termine: DATEN.termine }), 2500);
+          termine: DATEN.termine.concat(customTermineFuerErinnerung()) }), 2500);
       }
       if (Bruecke.vorhanden) Bruecke.sende({ cmd: "baum_stand" });
       if (Bruecke.vorhanden) Bruecke.sende({ cmd: "telefon_stand" });
@@ -20616,6 +21903,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     },
     telefonStand(nutzlast) {
       telefonStand = nutzlast || null;
+      pruefeSmsPlanung();
       document.querySelectorAll("[data-personal-sync-peer]").forEach((anzeige) => {
         const peer = (telefonStand && telefonStand.peers || []).find((wert) =>
           wert.device_id === anzeige.dataset.personalSyncPeer);
@@ -20882,6 +22170,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     },
     kdeSmsStatus(nutzlast) {
       nutzlast = nutzlast || {};
+      aktualisiereSmsPlanung(nutzlast);
       aktualisiereSmsStatus(nutzlast, true);
       zettel(nutzlast.ok ? _("Submitted to KDE Connect")
         : (_("Failed") + (nutzlast.error ? ": " + nutzlast.error : "")));
@@ -20992,18 +22281,16 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       if (!peer || !capability || !capability.available || !capability.versions ||
           !capability.versions.includes(2) || !local || !local.incoming_call_state) return;
       const nummer = nutzlast.number_status === "available" ? nutzlast.number : "";
-      const schluessel = telefonSchluessel(nummer);
-      const treffer = DATEN.kontakte.filter((kontakt) => telefonListe(kontakt).some((eintrag) =>
-        telefonSchluessel(eintrag.wert) === schluessel));
-      const name = treffer.length === 1 ? kontaktName(treffer[0]) : (nummer || _("Unknown caller"));
+      const kontakt = anrufKontakt(nummer, nutzlast.phone_e164 || nutzlast.normalized_number);
+      const name = kontakt ? kontaktName(kontakt) : (nummer || _("Unknown caller"));
       if (nutzlast.direction === "incoming" && nutzlast.state === "ringing")
         verwerfeAnrufDialog(nutzlast.call_ref, nutzlast.device_id);
       if (nutzlast.direction === "incoming" && nutzlast.state === "ringing") Bruecke.sende({ cmd: "telefon_anruf_anzeigen", kennung: nutzlast.device_id,
           callRef: nutzlast.call_ref, revision: nutzlast.revision, state: nutzlast.state,
           name: name, nummer: nummer,
-          foto: treffer.length === 1 && new RegExp(
-            "^data:image/(?:png|jpeg|webp);base64,[A-Za-z0-9+/=]+$").test(treffer[0].foto || "")
-            ? treffer[0].foto : "", stil: DATEN.einstellungen.erinnerung.stil, dauer: 60,
+          foto: kontakt && new RegExp(
+            "^data:image/(?:png|jpeg|webp);base64,[A-Za-z0-9+/=]+$").test(kontakt.foto || "")
+            ? kontakt.foto : "", stil: DATEN.einstellungen.erinnerung.stil, dauer: 60,
           annehmen: !!optionen.computerTelefonie &&
             !!(peer.capabilities.items.answer_call && peer.capabilities.items.answer_call.available &&
                peer.grants && peer.grants.grants && peer.grants.grants.answer_call && local.answer_call),
@@ -21178,6 +22465,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       jahrestagIndexVeraltet = true; letzterSpeicherText = JSON.stringify(DATEN);
       zeichneAlles(); setzeSpeicherStatus(_("Saved"), true);
       zettel(_("Snapshot restored. The first synchronization will not send deletions."));
+      setTimeout(() => starteSync(false), 500);
     },
     mutationsSnapshot(nutzlast) {
       const token = String((nutzlast || {}).token || "");
@@ -21255,6 +22543,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       if (warAktiv !== !!(baumStand && baumStand.an) &&
         zustand.sektion === "notizen") zeichneAlles();
       if (baumStand && (baumStand.eingang || []).length) {
+        zeigeKontaktImportAngebot(baumStand.eingang);
         const neu = baumStand.eingang.filter((stueck) => {
           const art = (stueck.inhalt || {}).art || stueck.art || "";
           const partner = (baumStand.partner || []).find((p2) => p2.kennung === stueck.von);
@@ -21588,9 +22877,15 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     },
     importErgebnis(nutzlast) {
       nutzlast = nutzlast || {};
-      if (nutzlast.abgebrochen) return;
+      const setupImportBeenden = () => {
+        if (!setupImportLaeuft) return;
+        setupImportLaeuft = false;
+        setTimeout(starteNaechstenSetupImport, 0);
+      };
+      if (nutzlast.abgebrochen) { setupImportBeenden(); return; }
       if (nutzlast.fehler) {
         zettel(uebersetzt("Import failed: %(error)s", { error: nutzlast.fehler }));
+        setupImportBeenden();
         return;
       }
       const teile = [];
@@ -21654,6 +22949,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       }
       if (nutzlast.bericht) text += " " + nutzlast.bericht;
       zettel(text);
+      setupImportBeenden();
     },
     exportErgebnis(nutzlast) {
       nutzlast = nutzlast || {};
@@ -21701,9 +22997,10 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       jahrestagIndexVeraltet = true;
       DATEN = normalisiere(Object.assign({}, DATEN, {
         termine: nutzlast.termine || DATEN.termine,
+        aufgaben: nutzlast.aufgaben || DATEN.aufgaben,
         kontakte: nutzlast.kontakte || DATEN.kontakte,
         jahrestage: nutzlast.jahrestage || DATEN.jahrestage,
-        geloescht: nutzlast.geloescht || { termine: [], kontakte: [] },
+        geloescht: nutzlast.geloescht || { termine: [], kontakte: [], aufgaben: [] },
         letzterSync: erfolgreich ? (Number(nutzlast.letzterSync) || Date.now()) : DATEN.letzterSync,
         letzteSyncs: nutzlast.letzteSyncs || DATEN.letzteSyncs,
         syncMetadaten: nutzlast.syncMetadaten || DATEN.syncMetadaten,
@@ -21780,6 +23077,12 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
             ergebnis.fehler || _("Warning: The data could not be saved."), false));
         } else zettel(ergebnis.fehler || _("Warning: The data could not be saved."));
         kontaktAssistentSpeicherFehler(ergebnis.fehler);
+        const kontaktImport = document.querySelector(".kontakt-import-dialog");
+        if (kontaktImport) {
+          kontaktImport.querySelectorAll("button").forEach((button) => { button.disabled = false; });
+          const status = kontaktImport.querySelector(".einst-hinweis");
+          if (status) status.textContent = ergebnis.fehler || _("Warning: The data could not be saved.");
+        }
       }
     },
     contributorGeprueft(nutzlast) {
@@ -21873,7 +23176,12 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     aktualisiereNotizlinien: aktualisiereNotizlinien,
     baueEinstellungen: baueEinstellungen,
     smsTextAnpassen: smsTextAnpassen,
+    pruefeSmsPlanung: pruefeSmsPlanung,
+    aktualisiereSmsPlanung: aktualisiereSmsPlanung,
     anrufClientRef: anrufClientRef,
+    anrufHerkunft: anrufHerkunft,
+    androidImportKontakt: androidImportKontakt,
+    zeigeAnrufDialog: zeigeAnrufDialog,
     oeffneDruckvorschau: oeffneDruckvorschau,
     oeffneTerminBlatt: oeffneTerminBlatt,
     leereDaten: leereDaten,
@@ -21922,6 +23230,17 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     kontaktLoeschVorschlaege: kontaktLoeschVorschlaege,
     fuehreZusammen: fuehreZusammen,
     normalisiere: normalisiere,
+    normalisiereCustomOrganizer: normalisiereCustomOrganizer,
+    customTabName: customTabName,
+    uebernehmeSetupAbsichten: uebernehmeSetupAbsichten,
+    customTermineFuerErinnerung: customTermineFuerErinnerung,
+    customAufgabenFuerErinnerung: customAufgabenFuerErinnerung,
+    oeffneCustomDesigner: oeffneCustomDesigner,
+    druckStoff: druckStoff,
+    normalisiereAufgabenGraph: normalisiereAufgabenGraph,
+    aufgabenNachHierarchie: aufgabenNachHierarchie,
+    entferneAufgabe: entferneAufgabe,
+    ausDemPapierkorb: ausDemPapierkorb,
     icsProjektion: icsProjektion,
     spiegeleTerminInIcs: spiegeleTerminInIcs,
     anbieterAusUri: anbieterAusUri,
@@ -22051,7 +23370,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
         !$("#einstellungen-schleier").classList.contains("verborgen")) {
         schliesseEinstellungen();
       }
-      if (ev.ctrlKey && !ev.altKey && ev.key >= "1" && ev.key <= "7") {
+      if (ev.ctrlKey && !ev.altKey && ev.key >= "1" && ev.key <= "8") {
         const s = sichtbareSektionen()[Number(ev.key) - 1];
         if (s) { ev.preventDefault(); wechsel(s.id); }
       }

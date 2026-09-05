@@ -155,7 +155,7 @@ for (const locale of supportedLocales.filter((code) => code !== "en")) {
 assert.ok(replacementIds.every((id) => rawSourcePages.find((page) => page.id === id)
   .inhaltAnhangErsetzt === true), "current SMS pages must explicitly replace their old content");
 contentDom.window.close();
-assert.strictEqual(sourcePages.length, 156, "the release handbook must contain exactly 156 pages");
+assert.strictEqual(sourcePages.length, 164, "the release handbook must contain exactly 164 pages");
 const protectedIds = new Set(["license-and-acknowledgments", "in-closing",
   "support-with-a-coffee", "about-maik-walter"]);
 assert.deepStrictEqual(sourcePages.slice(-2).map((page) => page.id),
@@ -197,8 +197,57 @@ for (const page of sourcePages) {
   for (const match of page.inhalt.matchAll(/data-page=['\"]([^'\"]+)['\"]/g)) {
     assert.ok(explicitIds.has(match[1]), `${page.titel}: unknown data-page target ${match[1]}`);
   }
+  for (const appendix of Object.values(page.inhaltAnhang || {})) {
+    for (const match of appendix.matchAll?.(/data-page=['\"]([^'\"]+)['\"]/g) || []) {
+      assert.ok(explicitIds.has(match[1]),
+        `${page.titel}: unknown appendix data-page target ${match[1]}`);
+    }
+  }
 }
+const englishPageText = (id) => {
+  const page = sourcePages.find((candidate) => candidate.id === id);
+  assert.ok(page, `missing handbook page: ${id}`);
+  const appendix = page.inhaltAnhang?.en || "";
+  return page.inhaltAnhangErsetzt ? appendix : page.inhalt + appendix;
+};
+assert.ok(englishPageText("welcome").includes("Handbook 2.0.17") &&
+  englishPageText("welcome").includes("For Magnolie Organizer 2.0.17"),
+"the rendered English title page must identify release 2.0.17");
+const firstRunText = ["starting-for-the-first-time", "first-run-assistant",
+  "first-run-saved-intentions"].map(englishPageText).join("\n");
+for (const claim of ["seven-page", "Skip the entire setup", "restore a Magnolie backup",
+  "permanent synchronization sources separately", "one-time imports", "not</b> import, restore, synchronize",
+  "does <b>not</b> install an APK", "saved intention", "own later step and confirmation"]) {
+  assert.ok(firstRunText.includes(claim), `first-run documentation missing: ${claim}`);
+}
+assert.ok(!englishPageText("starting-for-the-first-time")
+  .includes("does not ask you to set anything up"),
+"the effective first-start page must not retain the obsolete no-setup claim");
+const hierarchyText = ["task-hierarchy-basics", "task-hierarchy-safety-sync"]
+  .map(englishPageText).join("\n");
+for (const claim of ["Subtask", "Choose parent task", "Move to top level", "own descendants",
+  "missing parent", "cycles", "lifts its direct children", "complete <b>.magnolie</b> archive"]) {
+  assert.ok(hierarchyText.includes(claim), `task-hierarchy documentation missing: ${claim}`);
+}
+const contactImportText = englishPageText("android-one-time-contact-import");
+for (const claim of ["<b>not synchronization</b>", "contact <b>read</b> permission",
+  "current matching preview", "no delete request", "does not request write access",
+  "<b>250 contacts</b>", "<b>64 origins</b>", "<b>8 MiB</b>"]) {
+  assert.ok(contactImportText.includes(claim), `one-time contact import missing: ${claim}`);
+}
+const davText = ["dav-server-setup", "dav-tasks-etags-limits", "nextcloud-overview",
+  "nextcloud-account", "nextcloud-caldav-carddav"].map(englishPageText).join("\n");
+for (const claim of ["Can I use Baïkal?", "<b>Yes.</b>", "CalDAV", "CardDAV", "VTODO",
+  "ETag", "If-Match", "If-None-Match", "not a Nextcloud mailbox", "first synchronization is additive"]) {
+  assert.ok(davText.includes(claim), `DAV documentation missing: ${claim}`);
+}
+assert.ok(englishPageText("glossary-a-m").includes("not Nextcloud-only features"),
+  "the glossary must define CalDAV and CardDAV as open, provider-independent protocols");
 const newPageIds = new Set([
+  "first-run-assistant", "first-run-saved-intentions",
+  "task-hierarchy-basics", "task-hierarchy-safety-sync",
+  "android-one-time-contact-import", "dav-server-setup", "dav-tasks-etags-limits",
+  "phone-number-origin",
   "nextcloud-overview", "nextcloud-account", "nextcloud-caldav-carddav",
   "nextcloud-mailbox", "nextcloud-troubleshooting", "baum-eigener-zweig",
   "baum-netzsuche", "baum-code-vergleichen", "baum-paarungsdatei-erzeugen",
@@ -236,13 +285,18 @@ const pendingBodyIds = new Set([
 const pendingPageIds = new Set([
   "settings-pages-overview", "settings-language-format-region"
 ]);
+const release2017PageIds = new Set([
+  "first-run-assistant", "first-run-saved-intentions",
+  "task-hierarchy-basics", "task-hierarchy-safety-sync",
+  "android-one-time-contact-import", "dav-server-setup", "dav-tasks-etags-limits",
+  "phone-number-origin"
+]);
 const pendingMessages = (language) => {
   const offen = new Set();
-  if (language === "de") return offen;
   for (const page of sourcePages) {
-    if (pendingPageIds.has(page.id)) {
+    if (release2017PageIds.has(page.id) || language !== "de" && pendingPageIds.has(page.id)) {
       for (const key of ["titel", "inhalt"]) if (page[key]) offen.add(page[key]);
-    } else if (pendingBodyIds.has(page.id) && page.inhalt) {
+    } else if (language !== "de" && pendingBodyIds.has(page.id) && page.inhalt) {
       offen.add(page.inhalt);
     }
   }
@@ -271,8 +325,8 @@ for (const id of ["android-apk-transfer", "android-apk-install-update", "my-proj
   "glossary-a-m", "glossary-n-z"]) {
   assert.ok(explicitIds.has(id), `new shared page is missing: ${id}`);
 }
-const route17Ids = ["phone-call-getting-started", "phone-call-control",
-  "sms-getting-started", "sms-kde-connect-setup"];
+const route17Ids = ["phone-call-getting-started", "phone-call-control", "sms-getting-started",
+  "phone-number-origin", "sms-kde-connect-setup"];
 assert.deepStrictEqual(sourcePages.slice(sourcePages.findIndex((page) =>
   page.id === "android-recovery-journal") + 1, sourcePages.findIndex((page) =>
   page.id === "technical-connection-map")).map((page) => page.id), route17Ids,
@@ -283,6 +337,9 @@ assert.ok(route17Text["phone-call-getting-started"].includes("TelecomManager.pla
   route17Text["phone-call-getting-started"].includes("Choose a phone number to call") &&
   route17Text["phone-call-control"].includes("Share incoming call status") &&
   route17Text["phone-call-control"].includes("Bluetooth HFP") &&
+  route17Text["phone-number-origin"].includes("SIM country") &&
+  route17Text["phone-number-origin"].includes("not roaming") &&
+  route17Text["phone-number-origin"].includes("E.164") &&
   route17Text["sms-getting-started"].includes("supported only by the Linux backend") &&
   route17Text["sms-getting-started"].includes("only an <b>sms:</b> address") &&
   route17Text["sms-kde-connect-setup"].includes("<b>5,000 characters</b>") &&
@@ -505,7 +562,7 @@ for (const language of languages) {
             assert.ok(digits.includes(value),
               `${language}: synchronization limit ${value} changed on ${page.titel}`);
           }
-          assert.ok(data.messages[page[key]].includes("2.0.16") &&
+          assert.ok(data.messages[page[key]].includes("2.0.17") &&
             data.messages[page[key]].includes("1.0.11"),
           `${language}: supported version changed on ${page.titel}`);
         }
@@ -765,9 +822,9 @@ function checkLocale(locale, expected) {
   for (const text of expected.completeText) {
     assert.ok(print.includes(text), `${locale}: missing complete-book marker: ${text}`);
   }
-  for (const preserved of ["backing-up-and-restoring", "magnolie-organizer_2.0.16_all.deb",
-    "sudo apt install ./magnolie-organizer_2.0.16_all.deb", "wttr.in",
-    "maik3531@gmail.com", "2.0.16"]) {
+  for (const preserved of ["backing-up-and-restoring", "magnolie-organizer_2.0.17_all.deb",
+    "sudo apt install ./magnolie-organizer_2.0.17_all.deb", "wttr.in",
+    "maik3531@gmail.com", "2.0.17"]) {
     assert.ok(print.includes(preserved), `${locale}: technical value changed: ${preserved}`);
   }
   assert.ok(!print.includes("1.28.0") && !print.includes("1.31.37") &&
@@ -1002,9 +1059,9 @@ try {
   assert.ok(english.H.blaettereZuId("kde-sms") &&
     english.H.seiten()[english.H.seiten().findIndex((page) => page.id === "kde-sms")].titel,
   "slug navigation failed");
-  assert.ok(englishText.includes("sudo dnf install ./magnolie-organizer-2.0.16-1.noarch.rpm"));
-  assert.ok(englishText.includes("rpmbuild --rebuild magnolie-organizer-2.0.16-1.src.rpm"));
-  assert.ok(englishText.includes("sudo dnf upgrade ./magnolie-organizer-2.0.16-1.noarch.rpm"));
+  assert.ok(englishText.includes("sudo dnf install ./magnolie-organizer-2.0.17-1.noarch.rpm"));
+  assert.ok(englishText.includes("rpmbuild --rebuild magnolie-organizer-2.0.17-1.src.rpm"));
+  assert.ok(englishText.includes("sudo dnf upgrade ./magnolie-organizer-2.0.17-1.noarch.rpm"));
   assert.ok(englishText.includes("Only one <i>Magnolie Organizer</i> entry remains"));
   assert.ok(englishText.includes("Update manual …") &&
     englishText.includes("verifies SHA-256") && englishText.includes("never runs sudo or dpkg"));
@@ -1138,15 +1195,15 @@ try {
   const python = fs.readFileSync(path.join(ROOT, "bin", "magnolie-handbuch"), "utf8");
   assert.ok(python.includes("gettext.translation") && python.includes("/usr/share/locale"));
   assert.ok(python.includes("window.MAGNOLIE_LOCALE") && python.includes("get_is_remote"));
-  assert.ok(python.includes('PROGRAMM_FASSUNG = "2.0.16"') && python.includes('"--version"'));
+  assert.ok(python.includes('PROGRAMM_FASSUNG = "2.0.17"') && python.includes('"--version"'));
   const changelog = fs.readFileSync(path.join(ROOT, "debian", "changelog"), "utf8");
   const pot = fs.readFileSync(path.join(ROOT, "po", "magnolie-handbuch.pot"), "utf8");
-  assert.ok(changelog.startsWith("magnolie-handbuch (2.0.16)"));
-  assert.ok(pot.includes('"Project-Id-Version: Magnolie Handbook 2.0.16'));
+  assert.ok(changelog.startsWith("magnolie-handbuch (2.0.17)"));
+  assert.ok(pot.includes('"Project-Id-Version: Magnolie Handbook 2.0.17'));
   for (const relative of ["man/magnolie-handbuch.1",
     ...languages.map(language => `man/${language}/magnolie-handbuch.1`)]) {
     assert.ok(fs.readFileSync(path.join(ROOT, relative), "utf8").split("\n", 1)[0]
-      .includes("2.0.16"), `${relative}: stale manual version`);
+      .includes("2.0.17"), `${relative}: stale manual version`);
   }
   assert.ok(!sources.i18n.includes("pageReferenceUpdates") &&
     !sources.content.includes("data-seite="), "brittle page-number migration remains");

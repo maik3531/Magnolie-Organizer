@@ -18,7 +18,9 @@ internal sealed record ExchangeImportResult(
     int Uebersprungen = 0,
     int Wiederholend = 0,
     string Bericht = "",
-    JsonArray? Notizen = null)
+    JsonArray? Notizen = null,
+    int FehlerhafteTermine = 0,
+    int FehlerhafteAufgaben = 0)
 {
     internal JsonObject ToPayload(string art, string fileName) => new()
     {
@@ -80,7 +82,9 @@ internal static partial class ExchangeCodec
             Append(result.Kontakte, part.Kontakte); if (result.Notizen is not null && part.Notizen is not null) Append(result.Notizen, part.Notizen);
             if (part.Bericht.Length > 0) reports.Add(part.Bericht); read++;
             result = result with { Uebersprungen = result.Uebersprungen + part.Uebersprungen,
-                Wiederholend = result.Wiederholend + part.Wiederholend };
+                Wiederholend = result.Wiederholend + part.Wiederholend,
+                FehlerhafteTermine = result.FehlerhafteTermine + part.FehlerhafteTermine,
+                FehlerhafteAufgaben = result.FehlerhafteAufgaben + part.FehlerhafteAufgaben };
         }
         if (read == 0) throw new InvalidDataException("Das Archiv enthält keine unterstützten Importdateien.");
         return result with { Bericht = string.Join(' ', reports) };
@@ -132,6 +136,8 @@ internal static partial class ExchangeCodec
         var tasks = new JsonArray();
         var skipped = 0;
         var complex = 0;
+        var invalidEvents = 0;
+        var invalidTasks = 0;
         string? component = null;
         var componentDepth = 0;
         var components = new List<string>();
@@ -174,7 +180,12 @@ internal static partial class ExchangeCodec
                         }
                         else tasks.Add(ParseTask(properties));
                     }
-                    catch (Exception) { skipped++; }
+                    catch (Exception)
+                    {
+                        skipped++;
+                        if (component == "VEVENT") invalidEvents++;
+                        else invalidTasks++;
+                    }
                     component = null;
                     componentDepth = 0;
                 }
@@ -188,7 +199,8 @@ internal static partial class ExchangeCodec
             throw new InvalidDataException("Die iCalendar-Datei ist unvollständig.");
         return new ExchangeImportResult(appointments, anniversaries, new JsonArray(), tasks,
             new JsonArray(), skipped, complex,
-            complex > 0 ? $"{complex} komplexe Serien wurden als einzelner Eintrag übernommen." : "");
+            complex > 0 ? $"{complex} komplexe Serien wurden als einzelner Eintrag übernommen." : "",
+            FehlerhafteTermine: invalidEvents, FehlerhafteAufgaben: invalidTasks);
     }
 
     internal static ExchangeExportResult WriteIcs(string art, JsonElement data)
@@ -239,9 +251,11 @@ internal static partial class ExchangeCodec
                 var values = ParseVCardProperties(lines);
                 var names = SplitVCard(RawValue(values, "N"));
                 var fullName = Value(values, "FN");
+                var company = SplitVCard(RawValue(values, "ORG")).FirstOrDefault()?.Trim() ?? "";
                 var lastName = names.ElementAtOrDefault(0) ?? "";
                 var firstName = names.ElementAtOrDefault(1) ?? "";
-                if (firstName.Length == 0 && lastName.Length == 0) firstName = fullName;
+                if (firstName.Length == 0 && lastName.Length == 0 && company.Length == 0)
+                    (firstName, lastName) = DisplayNameParts(fullName);
                 var phones = Entries(values, "TEL").Select(entry => new JsonObject
                 {
                     ["wert"] = CleanUri(entry.Value, "tel:"),
@@ -276,7 +290,7 @@ internal static partial class ExchangeCodec
                 var contact = new JsonObject
                 {
                     ["uid"] = Value(values, "UID"), ["nachname"] = lastName, ["vorname"] = firstName,
-                    ["firma"] = SplitVCard(RawValue(values, "ORG")).FirstOrDefault() ?? "",
+                    ["firma"] = company,
                     ["strasse"] = firstAddress?["strasse"]?.ToString() ?? "",
                     ["plz"] = firstAddress?["plz"]?.ToString() ?? "", ["ort"] = firstAddress?["ort"]?.ToString() ?? "",
                     ["anschriften"] = new JsonArray(addresses),
@@ -614,8 +628,7 @@ internal static partial class ExchangeCodec
         var anniversaryType = IcsText(First(values, "X-MAGNOLIE-TYPE-ID")?.Value ??
                                       First(values, "X-MAGNOLIE-TYP")?.Value ??
                                       First(values, "X-MAGNOLIE-JAHRESTAG-TYP")?.Value ?? "");
-        var anniversary = start.AllDay && recurrenceKind == "yearly" &&
-                          (anniversaryType.Length > 0 || category.Contains("birthday", StringComparison.OrdinalIgnoreCase) || category.Contains("Geburtstag", StringComparison.OrdinalIgnoreCase));
+        var anniversary = start.AllDay && recurrenceKind == "yearly" && anniversaryType.Length > 0;
         if (anniversary)
         {
             var date = start.DateTime.ToString("yyyy-MM-dd");
@@ -623,7 +636,7 @@ internal static partial class ExchangeCodec
             if (TryParseCanonicalDate(magnolieDate, out var fullDate, out _, out _) && fullDate is null)
                 date = magnolieDate;
             return (new JsonObject { ["uid"] = First(values, "UID")?.Value ?? "", ["name"] = title,
-                ["datum"] = date, ["typ"] = anniversaryType.Length > 0 ? anniversaryType : "birthday",
+                ["datum"] = date, ["typ"] = anniversaryType,
                 ["icsRoundtrip"] = IcsRoundtrip(roundtripValues, complex), ["geaendert"] = IcsModified(values) }, true, complex);
         }
         var until = RRuleValue(recurrence, "UNTIL");
@@ -664,9 +677,14 @@ internal static partial class ExchangeCodec
         var dueValue = due is null ? default : ParseIcsDate(due);
         var start = First(values, "DTSTART");
         var startValue = start is null ? default : ParseIcsDate(start);
+        var parent = values.FirstOrDefault(value => value.Name == "RELATED-TO" && value.Parameters.Any(
+            parameter => parameter.Equals("RELTYPE=PARENT", StringComparison.OrdinalIgnoreCase)))?.Value ?? "";
+        var order = int.TryParse(First(values, "X-MAGNOLIE-REIHENFOLGE")?.Value, out var parsedOrder)
+            ? Math.Max(0, parsedOrder) : 0;
         return new JsonObject
         {
-            ["uid"] = First(values, "UID")?.Value ?? "", ["titel"] = IcsText(First(values, "SUMMARY")?.Value ?? ""),
+            ["uid"] = First(values, "UID")?.Value ?? "", ["elternUid"] = IcsText(parent),
+            ["reihenfolge"] = order, ["titel"] = IcsText(First(values, "SUMMARY")?.Value ?? ""),
             ["faellig"] = due is null ? "" : dueValue.DateTime.ToString("yyyy-MM-dd"),
             ["faelligZeit"] = due is null || dueValue.AllDay ? "" : dueValue.DateTime.ToString("HH:mm"),
             ["startZeit"] = start is null || startValue.AllDay ? "" : startValue.DateTime.ToString("HH:mm"),
@@ -777,6 +795,8 @@ internal static partial class ExchangeCodec
         }
         if (JBool(item, "erledigt")) lines.AddRange(new[] { "STATUS:COMPLETED", "PERCENT-COMPLETE:100" });
         if (J(item, "notiz") is { Length: > 0 } note) lines.Add($"DESCRIPTION:{V(note)}");
+        if (J(item, "elternUid") is { Length: > 0 } parent) lines.Add($"RELATED-TO;RELTYPE=PARENT:{V(parent)}");
+        lines.Add($"X-MAGNOLIE-REIHENFOLGE:{Math.Max(0, JInt(item, "reihenfolge"))}");
         if (JBool(item, "erinnern")) lines.Add("X-MAGNOLIE-ERINNERUNG-AM-TAG:1");
         if (JInt(item, "individuelleErinnerungTage") is > 0 and <= 7) lines.Add($"X-MAGNOLIE-ERINNERUNG-TAGE:{JInt(item, "individuelleErinnerungTage")}");
         ApplyIcsRoundtrip(lines, item);
@@ -817,11 +837,13 @@ internal static partial class ExchangeCodec
     private static JsonArray IcsRoundtrip(IEnumerable<IcsProperty> values, bool complex)
     {
         var names = new HashSet<string>(new[] { "RRULE", "RDATE", "EXDATE", "EXRULE", "RECURRENCE-ID", "DURATION", "LOCATION", "URL", "ORGANIZER", "ATTENDEE", "ATTACH", "X-ALT-DESC", "TRANSP", "BEGIN", "END", "ACTION", "TRIGGER", "REPEAT" });
-        var generated = new HashSet<string>(new[] { "UID", "DTSTAMP", "LAST-MODIFIED", "DTSTART", "DTEND", "SUMMARY", "DESCRIPTION", "CATEGORIES", "CLASS", "STATUS", "X-MAGNOLIE-KOSTENSTELLE", "X-MAGNOLIE-KUNDE", "X-MAGNOLIE-ERINNERUNG-TAGE", "X-MAGNOLIE-STANDARDERINNERUNG", "X-MAGNOLIE-TYPE-ID", "X-MAGNOLIE-TYP", "X-MAGNOLIE-JAHRESTAG-TYP", "X-MAGNOLIE-DATE" });
+        var generated = new HashSet<string>(new[] { "UID", "DTSTAMP", "LAST-MODIFIED", "DTSTART", "DTEND", "SUMMARY", "DESCRIPTION", "CATEGORIES", "CLASS", "STATUS", "X-MAGNOLIE-KOSTENSTELLE", "X-MAGNOLIE-KUNDE", "X-MAGNOLIE-ERINNERUNG-TAGE", "X-MAGNOLIE-STANDARDERINNERUNG", "X-MAGNOLIE-TYPE-ID", "X-MAGNOLIE-TYP", "X-MAGNOLIE-JAHRESTAG-TYP", "X-MAGNOLIE-DATE", "X-MAGNOLIE-REIHENFOLGE" });
         if (complex) { names.Add("DTSTART"); names.Add("DTEND"); }
         var result = new JsonArray(); var depth = 0;
         foreach (var value in values)
         {
+            if (value.Name == "RELATED-TO" && value.Parameters.Any(parameter =>
+                parameter.Equals("RELTYPE=PARENT", StringComparison.OrdinalIgnoreCase))) continue;
             if (value.Name == "BEGIN") depth++;
             if (depth > 0 || names.Contains(value.Name) || !generated.Contains(value.Name)) result.Add(value.Raw);
             if (value.Name == "END" && depth > 0) depth--;
@@ -861,11 +883,77 @@ internal static partial class ExchangeCodec
         return resource[..target.Index] + replacement.Value.TrimEnd('\r', '\n') + resource[(target.Index + target.Length)..];
     }
 
+    internal static string ReplaceCalendarAnniversary(string resource, JsonObject anniversary)
+    {
+        using var item = JsonDocument.Parse(new JsonArray(anniversary.DeepClone()).ToJsonString());
+        var replacement = EventBlock().Match(WriteIcs("ics-jahrestage", item.RootElement).Text);
+        if (!replacement.Success) throw new InvalidDataException("Der Jahrestag konnte nicht geschrieben werden.");
+        var matches = EventBlock().Matches(resource).Cast<Match>().Where(match =>
+        {
+            try
+            {
+                var parsed = ParseIcs(match.Value);
+                return parsed.Jahrestage.Count == 1 && parsed.Jahrestage[0]?["uid"]?.GetValue<string>() == anniversary["uid"]?.GetValue<string>();
+            }
+            catch (Exception) { return false; }
+        }).ToArray();
+        if (matches.Length != 1) throw new InvalidDataException("Die Kalenderressource enthält nicht genau einen passenden Jahrestag.");
+        var target = matches[0];
+        return resource[..target.Index] + replacement.Value.TrimEnd('\r', '\n') + resource[(target.Index + target.Length)..];
+    }
+
+    internal static string ReplaceCalendarTask(string resource, JsonObject task)
+    {
+        using var item = JsonDocument.Parse(new JsonArray(task.DeepClone()).ToJsonString());
+        var replacement = TaskBlock().Match(WriteIcs("ics-aufgaben", item.RootElement).Text);
+        if (!replacement.Success) throw new InvalidDataException("Die Aufgabe konnte nicht geschrieben werden.");
+        var matches = TaskBlock().Matches(resource).Cast<Match>().Where(match =>
+        {
+            var parsed = ParseIcs(match.Value);
+            return parsed.Aufgaben.Count == 1 && parsed.Aufgaben[0]?["uid"]?.GetValue<string>() == task["uid"]?.GetValue<string>();
+        }).ToArray();
+        if (matches.Length != 1) throw new InvalidDataException("Die Kalenderressource enthält nicht genau eine passende Aufgabe.");
+        var target = matches[0];
+        return resource[..target.Index] + replacement.Value.TrimEnd('\r', '\n') + resource[(target.Index + target.Length)..];
+    }
+
+    internal static string? RemoveCalendarTask(string resource, string uid)
+    {
+        var matches = TaskBlock().Matches(resource).Cast<Match>().Where(match =>
+        {
+            var parsed = ParseIcs(match.Value);
+            return parsed.Aufgaben.Count == 1 && parsed.Aufgaben[0]?["uid"]?.GetValue<string>() == uid;
+        }).ToArray();
+        if (matches.Length != 1) throw new InvalidDataException("Die Kalenderressource enthält nicht genau eine passende Aufgabe.");
+        var target = matches[0]; var remaining = resource[..target.Index] + resource[(target.Index + target.Length)..];
+        return Regex.IsMatch(remaining, "^BEGIN:(?:VEVENT|VTODO|VJOURNAL|VFREEBUSY)\\s*$", RegexOptions.IgnoreCase | RegexOptions.Multiline)
+            ? remaining : null;
+    }
+
+    internal static string? RemoveCalendarEvent(string resource, string uid)
+    {
+        var matches = EventBlock().Matches(resource).Cast<Match>().Where(match =>
+        {
+            var parsed = ParseIcs(match.Value);
+            return parsed.FehlerhafteTermine == 0 && parsed.Termine.Count + parsed.Jahrestage.Count == 1 &&
+                (parsed.Termine.FirstOrDefault() ?? parsed.Jahrestage.FirstOrDefault())?["uid"]?.GetValue<string>() == uid;
+        }).ToArray();
+        if (matches.Length != 1) throw new InvalidDataException("Die Kalenderressource enthält nicht genau einen passenden Termin.");
+        var target = matches[0]; var remaining = resource[..target.Index] + resource[(target.Index + target.Length)..];
+        return Regex.IsMatch(remaining, "^BEGIN:(?:VEVENT|VTODO|VJOURNAL|VFREEBUSY)\\s*$", RegexOptions.IgnoreCase | RegexOptions.Multiline)
+            ? remaining : null;
+    }
+
     private static void ApplyIcsRoundtrip(List<string> lines, JsonElement item)
     {
         if (!item.TryGetProperty("icsRoundtrip", out var metadata) || metadata.ValueKind != JsonValueKind.Array) return;
         var raw = metadata.EnumerateArray().Where(value => value.ValueKind == JsonValueKind.String).Select(value => value.GetString() ?? "")
-            .Where(ValidIcsRoundtripLine).ToArray();
+            .Where(ValidIcsRoundtripLine).Where(line =>
+            {
+                var property = ParseIcsProperty(line);
+                return property?.Name != "X-MAGNOLIE-REIHENFOLGE" && !(property?.Name == "RELATED-TO" &&
+                    property.Parameters.Any(parameter => parameter.Equals("RELTYPE=PARENT", StringComparison.OrdinalIgnoreCase)));
+            }).ToArray();
         var replace = raw.Select(PropertyName).Where(name => name is "DTSTART" or "DTEND" or "DUE" or "DURATION" or "RRULE" or "EXRULE" or "RECURRENCE-ID").ToHashSet();
         lines.RemoveAll(line => replace.Contains(PropertyName(line)));
         lines.AddRange(raw);
@@ -1113,7 +1201,7 @@ internal static partial class ExchangeCodec
         string One(params string[] names) => Field(fields, names);
         IEnumerable<string> Many(params string[] names) => names.SelectMany(name => fields.TryGetValue(name, out var values) ? values : Enumerable.Empty<string>()).Where(value => value.Length > 0);
         var first = One("givenName", "first-name"); var last = One("sn", "surname", "last-name"); var display = One("cn", "displayName");
-        if (first.Length + last.Length == 0 && display.Length > 0) { var split = display.LastIndexOf(' '); if (split > 0) { first = display[..split]; last = display[(split + 1)..]; } else last = display; }
+        if (first.Length + last.Length == 0 && display.Length > 0) (first, last) = DisplayNameParts(display);
         var emails = Many("mail", "email", "primaryEmail", "secondEmail", "mozillaSecondEmail").Where(ValidEmail).Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
         var phones = new JsonArray();
         void Phones(string[] names, params string[] types) { foreach (var value in Many(names)) phones.Add(new JsonObject { ["wert"] = value, ["typen"] = new JsonArray(types.Select(type => JsonValue.Create(type)).ToArray()) }); }
@@ -1138,6 +1226,12 @@ internal static partial class ExchangeCodec
             ["telefone"] = phones, ["email"] = emails.FirstOrDefault() ?? "", ["emails"] = new JsonArray(emails.Select(email => JsonValue.Create(email)).ToArray()), ["notiz"] = string.Join("\n", notes),
             ["foto"] = NormalizePhoto(photo), ["geburtstag"] = birthday, ["geburtstagJahrUnbekannt"] = unknown, ["geaendert"] = 0 };
         return (contact, name, birthday, unknown);
+    }
+
+    private static (string First, string Last) DisplayNameParts(string display)
+    {
+        var match = Regex.Match(display.Trim(), @"^(.*\S)\s+(\S+)$");
+        return match.Success ? (match.Groups[1].Value, match.Groups[2].Value) : ("", display.Trim());
     }
 
     private static JsonObject BirthdayNode(string name, string date, bool unknown) => new() { ["name"] = name, ["datum"] = date, ["jahrUnbekannt"] = unknown };
@@ -1416,5 +1510,6 @@ internal static partial class ExchangeCodec
     }
     [GeneratedRegex("BEGIN:(VCALENDAR|VEVENT|VTODO)", RegexOptions.IgnoreCase)] private static partial Regex IcsMarker();
     [GeneratedRegex("^BEGIN:VEVENT\\s*$.*?^END:VEVENT\\s*$", RegexOptions.IgnoreCase | RegexOptions.Multiline | RegexOptions.Singleline)] private static partial Regex EventBlock();
+    [GeneratedRegex("^BEGIN:VTODO\\s*$.*?^END:VTODO\\s*$", RegexOptions.IgnoreCase | RegexOptions.Multiline | RegexOptions.Singleline)] private static partial Regex TaskBlock();
     [GeneratedRegex("BEGIN:VCARD.*?END:VCARD", RegexOptions.IgnoreCase | RegexOptions.Singleline)] private static partial Regex VCardBlock();
 }

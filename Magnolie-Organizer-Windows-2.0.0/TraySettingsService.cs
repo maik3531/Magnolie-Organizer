@@ -15,6 +15,7 @@ internal sealed record TraySettings(
     internal static TraySettings FromJson(JsonElement element)
     {
         if (element.ValueKind != JsonValueKind.Object) return new TraySettings();
+        var autostart = True(element, "autostart");
         var opening = Text(element, "oeffnen").ToLowerInvariant() switch
         {
             "zentriert" or "centered" => "centered",
@@ -22,11 +23,11 @@ internal sealed record TraySettings(
             _ => "previous"
         };
         return new TraySettings(
-            True(element, "aktiv"),
+            True(element, "aktiv") || autostart,
             NotFalse(element, "minimierenInTray"),
             NotFalse(element, "schliessenInTray"),
-            True(element, "startMinimiert"),
-            True(element, "autostart"),
+            True(element, "startMinimiert") || autostart,
+            autostart,
             True(element, "zaehler"),
             opening);
     }

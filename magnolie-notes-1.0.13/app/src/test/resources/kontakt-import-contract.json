@@ -1,0 +1,21 @@
+{
+  "format": "magnolie-contact-import-contract",
+  "version": 1,
+  "transport": "existing authenticated Magnolienbaum channel only",
+  "mode": "one-shot read-only import after a matching local preview and confirmation",
+  "limits": {
+    "contacts": 250,
+    "origins": 64,
+    "origins_per_contact": 16,
+    "total_card_bytes": 8388608,
+    "origin_text_code_points": 128
+  },
+  "messages": ["kontakt_import_manifest", "kontakt_import_karte"],
+  "rules": [
+    "the manifest is queued before all cards",
+    "cards contain no delete operation or deletion marker",
+    "bindings are SHA-256 based and namespaced by partner and Android device",
+    "SOURCE_ID is used for binding and the Android lookup key is the fallback",
+    "the import does not enable permanent contact synchronization"
+  ]
+}

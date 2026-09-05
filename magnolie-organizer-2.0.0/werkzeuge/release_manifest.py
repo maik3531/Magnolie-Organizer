@@ -3,6 +3,7 @@
 
 import hashlib
 import os
+import re
 import sys
 import tempfile
 import xml.etree.ElementTree as ET
@@ -27,28 +28,30 @@ def manifest_schreiben(pfad, deb_pfad, appimage_pfad, handbuch_pfad,
                        windows_pfad):
     baum = ET.parse(pfad)
     wurzel = baum.getroot()
-    version = (wurzel.findtext("./version") or "").strip()
     deb_url = (wurzel.findtext("./deb") or "").strip()
-    if not version or not deb_url:
-        raise RuntimeError("Manifest ohne Version oder Debian-Adresse: " + pfad)
+    if not deb_url:
+        raise RuntimeError("Manifest ohne Debian-Adresse: " + pfad)
+    treffer = re.fullmatch(r"magnolie-organizer_(\d+\.\d+\.\d+)_all[.]deb",
+                           os.path.basename(deb_pfad))
+    if treffer is None:
+        raise RuntimeError("Ungültiger Debian-Paketname.")
+    version = treffer.group(1)
     deb_name = "magnolie-organizer_%s_all.deb" % version
     appimage_name = "Magnolie-Organizer-%s-x86_64.AppImage" % version
     handbuch_name = "magnolie-handbuch_%s_all.deb" % version
     windows_name = "Magnolie-Organizer-Windows-%s-Setup-x64.exe" % version
-    if os.path.basename(deb_pfad) != deb_name:
-        raise RuntimeError("Debian-Paket passt nicht zur Manifestversion.")
     if os.path.basename(appimage_pfad) != appimage_name:
         raise RuntimeError("AppImage passt nicht zur Manifestversion.")
     if os.path.basename(handbuch_pfad) != handbuch_name:
         raise RuntimeError("Handbuch-Paket passt nicht zur Manifestversion.")
     if os.path.basename(windows_pfad) != windows_name:
         raise RuntimeError("Windows-Installer passt nicht zur Manifestversion.")
-    if os.path.basename(deb_url) != deb_name:
-        raise RuntimeError("Debian-Adresse passt nicht zur Manifestversion.")
     for signatur in wurzel.findall("./signature"):
         wurzel.remove(signatur)
 
     basis = deb_url.rsplit("/", 1)[0] + "/"
+    text_setzen(wurzel, "version", version)
+    text_setzen(wurzel, "deb", basis + deb_name)
     text_setzen(wurzel, "sha256", datei_summe(deb_pfad))
     text_setzen(wurzel, "source", basis + "magnolie-organizer_%s.tar.xz" % version)
     appimage = wurzel.find("./appimage")
@@ -64,15 +67,12 @@ def manifest_schreiben(pfad, deb_pfad, appimage_pfad, handbuch_pfad,
     if any(knoten is None for knoten in
            (handbuch, handbuch_linux, handbuch_windows, windows)):
         raise RuntimeError("Manifest ohne vollständige Handbuch-/Windows-Angaben: " + pfad)
-    if (handbuch.findtext("./version") or "").strip() != version:
-        raise RuntimeError("Handbuchversion passt nicht zur Manifestversion.")
-    if (windows.findtext("./version") or "").strip() != version:
-        raise RuntimeError("Windows-Version passt nicht zur Manifestversion.")
+    text_setzen(handbuch, "version", version)
+    text_setzen(windows, "version", version)
     for knoten, name, feld in ((handbuch_linux, handbuch_name, "deb"),
-                               (handbuch_windows, windows_name, "url"),
-                               (windows, windows_name, "url")):
-        if os.path.basename((knoten.findtext("./" + feld) or "").strip()) != name:
-            raise RuntimeError("Manifest-Adresse passt nicht zur Manifestversion.")
+                                (handbuch_windows, windows_name, "url"),
+                                (windows, windows_name, "url")):
+        text_setzen(knoten, feld, basis + name)
     text_setzen(handbuch_linux, "sha256", datei_summe(handbuch_pfad))
     windows_summe = datei_summe(windows_pfad)
     text_setzen(handbuch_windows, "sha256", windows_summe)

@@ -54,8 +54,9 @@ def schema23_regression_db(tmp_path):
         ("arbeit", "eiermann-serie", None, None,
          "RRULE:FREQ=WEEKLY;INTERVAL=2;BYDAY=MO"),
     ))
-    db.execute("INSERT INTO cal_properties VALUES (?,?,?,?,?,?)", (
-        "familie", "gottfried-serie", None, None, "CATEGORIES", "Birthday"))
+    db.executemany("INSERT INTO cal_properties VALUES (?,?,?,?,?,?)", (
+        ("familie", "gottfried-serie", None, None, "CATEGORIES", "Birthday"),
+        ("familie", "gottfried-serie", None, None, "X-MAGNOLIE-TYPE-ID", "birthday")))
     db.commit()
     db.close()
     return pfad
@@ -485,16 +486,22 @@ def test_allgemeiner_ics_import_bewahrt_zeitgebundenes_rdate():
     assert "RDATE:20260819T150000,20260819T180000,20260824T150000\r\n" in export
 
 
-def test_lokale_dubletten_trennen_gleiche_uid_aus_verschiedenen_quellen():
-    termine = [{"uid": "gleich", "datum": "2026-08-17", "zeit": "09:00",
-                "titel": "Gleich", "icsQuelleId": "thunderbird:a"},
-               {"uid": "gleich", "datum": "2026-08-17", "zeit": "09:00",
-                "titel": "Gleich", "icsQuelleId": "thunderbird:b"}]
+def test_lokale_dubletten_vereinigen_fachlich_gleiche_eintraege_aus_quellen():
+    termine = [{"uid": "gleiche-uid", "datum": "2026-08-17", "zeit": "09:00",
+                "endZeit": "10:00", "titel": " Café ",
+                "icsQuelleId": "thunderbird:a"},
+               {"uid": "gleiche-uid", "datum": "2026-08-17", "zeit": "09:00",
+                "endZeit": "10:00", "titel": "Cafe\u0301",
+                "icsQuelleId": "thunderbird:b"}]
     jahrestage = [{"uid": "gleich", "icsSerienUid": "gleich", "name": "Mia",
                    "datum": "1990-08-12", "icsQuelleId": "thunderbird:a"},
                   {"uid": "gleich", "icsSerienUid": "gleich", "name": "Mia",
                    "datum": "1990-08-12", "icsQuelleId": "thunderbird:b"}]
     nutzlast = {"termine": termine, "jahrestage": jahrestage}
     m._lokale_kalender_dubletten_bereinigen(nutzlast)
-    assert len(nutzlast["termine"]) == 2
-    assert len(nutzlast["jahrestage"]) == 2
+    assert len(nutzlast["termine"]) == 1
+    assert set(nutzlast["termine"][0]["syncQuellen"]) == {
+        "thunderbird:a", "thunderbird:b"}
+    assert len(nutzlast["jahrestage"]) == 1
+    assert set(nutzlast["jahrestage"][0]["syncQuellen"]) == {
+        "thunderbird:a", "thunderbird:b"}

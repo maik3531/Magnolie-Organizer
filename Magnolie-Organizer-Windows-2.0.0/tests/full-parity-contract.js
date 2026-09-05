@@ -22,8 +22,10 @@ assert.strictEqual(canonicalContract({ ...fixture, sources: {
 } }), canonicalContract(fixture), "Provenienz-Hashes dürfen den semantischen Vertrag nicht verändern");
 assert.ok(fixture.commands.length > 40, "Befehlsfixture ist unplausibel klein");
 assert.ok(fixture.callbacks.length > 25, "Callbackfixture ist unplausibel klein");
-assert.ok(fixture.commands.includes("journal_aufbewahrung"),
-  "shared Linux recovery-retention command disappeared from the fixture");
+assert.ok(fixture.commands.includes("mutations_snapshot") &&
+  !fixture.commands.some(command => ["journal_aufbewahrung", "journal_erzeugen",
+    "journal_intervall"].includes(command)),
+"Linux fixture must expose automatic mutation snapshots without manual journal controls");
 
 const windowsCommands = new Set(Array.from(windowsUi.matchAll(/cmd:\s*"([a-z0-9_]+)"/g), match => match[1]));
 for (const command of fixture.commands) {

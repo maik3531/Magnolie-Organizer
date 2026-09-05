@@ -70,7 +70,7 @@ function generatedCatalog(locale) {
 
 const template = poEntries(fs.readFileSync(path.join(poDir, "magnolie-organizer.pot"), "utf8"));
 const locales = fs.readFileSync(path.join(poDir, "LINGUAS"), "utf8").trim().split(/\s+/);
-const dormantKeys = new Set(["Language & region"]);
+const dormantKeys = new Set();
 assert.deepStrictEqual(fs.readdirSync(poDir).filter((file) => file.endsWith(".po"))
   .map((file) => path.basename(file, ".po")).sort(), [...locales].sort(), "LINGUAS and PO files differ");
 

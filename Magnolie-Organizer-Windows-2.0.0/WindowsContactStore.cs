@@ -24,6 +24,21 @@ internal sealed class WindowsContactStore : IContactRemote
         return clean.Length == 0 ? "Kontakt" : clean[..Math.Min(clean.Length, 80)];
     }
 
+    internal static string StableImportUid(string sourceId, string embeddedUid)
+    {
+        if (ValidUid(embeddedUid)) return embeddedUid;
+        var source = "windows-contact\0" + sourceId.Normalize(NormalizationForm.FormC).ToUpperInvariant();
+        var digest = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(source))).ToLowerInvariant();
+        return $"urn:magnolie:import:windows-contact:{digest}";
+    }
+
+    internal string ImportUid(RemoteContact contact)
+    {
+        var path = SafeMappedPath(contact.Id);
+        var embedded = File.Exists(path) ? ReadMagnolieUid(File.ReadAllText(path, Encoding.UTF8)) : "";
+        return StableImportUid(contact.Id, embedded);
+    }
+
     internal static JsonObject Parse(string xml)
     {
         var settings = new XmlReaderSettings { DtdProcessing = DtdProcessing.Prohibit, XmlResolver = null, MaxCharactersInDocument = MaxContactBytes };
@@ -152,6 +167,8 @@ internal sealed class WindowsContactStore : IContactRemote
         using var reader = XmlReader.Create(new StringReader(xml), settings); var document = XDocument.Load(reader, LoadOptions.None);
         return document.Descendants(MagnolieNs + "MagnolieUid").FirstOrDefault()?.Value ?? "";
     }
+    private static bool ValidUid(string value) => value.Length > 0 && value.EnumerateRunes().Count() <= 128 &&
+        !value.EnumerateRunes().Any(rune => rune.Value < 32);
     private static RemoteContact Describe(string path, JsonObject data, bool owned) { var info = new FileInfo(path); return new RemoteContact(Path.GetFileName(path), $"{info.LastWriteTimeUtc.Ticks:x}-{info.Length:x}", new DateTimeOffset(info.LastWriteTimeUtc).ToUnixTimeMilliseconds(), data.DeepClone().AsObject(), owned); }
     private static void WriteAtomic(string path, string content)
     {

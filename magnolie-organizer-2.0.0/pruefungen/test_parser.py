@@ -97,6 +97,7 @@ ics = (
     "DTSTART;VALUE=DATE:19400212\r\n"
     "RRULE:FREQ=YEARLY\r\n"
     "CATEGORIES:Birthday\r\n"
+    "X-MAGNOLIE-TYPE-ID:birthday\r\n"
     "END:VEVENT\r\n"
     "BEGIN:VEVENT\r\n"
     "UID:woech-1\r\n"
@@ -278,12 +279,11 @@ with open(os.path.join(FIXTURES, "muster-jahrestage-thunderbird.ics"),
 with open(os.path.join(FIXTURES, "muster-jahrestage-lotus.ics"),
           encoding="utf-8") as datei:
     lotus_jahrestage = m.ics_lesen(datei.read())
-pruefe(not thunderbird_jahrestage["termine"] and
-       {j["typ"] for j in thunderbird_jahrestage["jahrestage"]} ==
-       {"birthday", "wedding-anniversary", "death-anniversary"} and
-       not lotus_jahrestage["termine"] and
-       len(lotus_jahrestage["jahrestage"]) == 3,
-       "echte Thunderbird- und Lotus-Jahrestage landen in der Jahrestagsrubrik")
+pruefe(len(thunderbird_jahrestage["termine"]) == 3 and
+       not thunderbird_jahrestage["jahrestage"] and
+       len(lotus_jahrestage["termine"]) == 3 and
+       not lotus_jahrestage["jahrestage"],
+       "externe Thunderbird- und Lotus-Ereignisse bleiben ohne Magnolie-Typ Termine")
 with open(os.path.join(FIXTURES, "muster-organizer-lotus.ics"),
           encoding="utf-8") as datei:
     lotus_ics_original = m.ics_lesen(datei.read())
@@ -365,7 +365,7 @@ pruefe(len(komponenten["aufgaben"]) == 1 and
        komponenten["aufgaben"][0]["uid"] == "todo-1",
        "VTODO zwischen fremden Komponenten gelesen")
 pruefe(komponenten["uebersprungen"] == 2,
-       "VJOURNAL und unbekannte Top-Level-Komponente werden gemeldet")
+       "VJOURNAL und unbekannte Top-Level-Komponente stehen im Importbericht")
 verlustprobe = m.ics_lesen(
     "BEGIN:VCALENDAR\r\nBEGIN:VTIMEZONE\r\nTZID:UTC\r\nEND:VTIMEZONE\r\n"
     "BEGIN:VEVENT\r\nUID:alarm-event\r\nDTSTART:20260818T100000Z\r\n"
@@ -376,7 +376,7 @@ verlustprobe = m.ics_lesen(
 pruefe(verlustprobe["uebersprungen"] == 2 and
        "BEGIN:VALARM" in verlustprobe["termine"][0]["icsRoundtrip"] and
        "END:VALARM" in verlustprobe["termine"][0]["icsRoundtrip"],
-       "VJOURNAL/VFREEBUSY zählen, VTIMEZONE und erhaltener VALARM nicht")
+       "VJOURNAL/VFREEBUSY werden gemeldet, VTIMEZONE und VALARM bleiben erhalten")
 try:
     m.ics_lesen("BEGIN:VCALENDAR\r\nBEGIN:VEVENT\r\nDTSTART:20260818T100000Z\r\n"
                 "BEGIN:VALARM\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n")
@@ -462,10 +462,12 @@ pruefe("DTSTART;VALUE=DATE:20000229" in jt_jahrlos_text and
        "jahrlose ICS-Jahrestage nutzen nur an der Grenze ein gültiges Projektdatum")
 echtes_2000 = m.ics_lesen(
     "BEGIN:VEVENT\r\nSUMMARY:Echtes Jahr 2000\r\nCATEGORIES:Birthday\r\n"
-    "DTSTART;VALUE=DATE:20000229\r\nRRULE:FREQ=YEARLY\r\nEND:VEVENT\r\n")
+    "DTSTART;VALUE=DATE:20000229\r\nRRULE:FREQ=YEARLY\r\n"
+    "X-MAGNOLIE-TYPE-ID:birthday\r\nEND:VEVENT\r\n")
 ungueltige_erweiterung = m.ics_lesen(
     "BEGIN:VEVENT\r\nSUMMARY:Kaputte Erweiterung\r\nCATEGORIES:Birthday\r\n"
     "DTSTART;VALUE=DATE:20000229\r\nRRULE:FREQ=YEARLY\r\n"
+    "X-MAGNOLIE-TYPE-ID:birthday\r\n"
     "X-MAGNOLIE-DATE:--02-30\r\nEND:VEVENT\r\n")
 pruefe(echtes_2000["jahrestage"][0]["datum"] == "2000-02-29" and
        ungueltige_erweiterung["jahrestage"][0]["datum"] == "2000-02-29",
@@ -486,6 +488,29 @@ pruefe(aufz["erinnern"] and aufz["individuelleErinnerungTage"] == 4,
        "Aufgabenerinnerungen überstehen die ICS-Rundreise")
 pruefe(aufz["startZeit"] == "14:00" and aufz["faelligZeit"] == "16:30",
        "Aufgabenzeitfenster übersteht die ICS-Rundreise")
+kind_aufgabe = dict(auf, uid="kind-1", elternUid="eltern-1", reihenfolge=7,
+                    icsRoundtrip=["RELATED-TO;RELTYPE=SIBLING:fremd",
+                                  "RELATED-TO;RELTYPE=PARENT:veraltet",
+                                  "X-MAGNOLIE-REIHENFOLGE:99"])
+kind_text = m.ics_schreiben_aufgaben([kind_aufgabe])
+kind_zurueck = m.ics_lesen(kind_text)["aufgaben"][0]
+pruefe(kind_zurueck["elternUid"] == "eltern-1" and
+       kind_zurueck["reihenfolge"] == 7 and
+       kind_text.count("RELATED-TO;RELTYPE=PARENT:") == 1 and
+       kind_text.count("X-MAGNOLIE-REIHENFOLGE:") == 1 and
+       "RELATED-TO;RELTYPE=SIBLING:fremd" in kind_text,
+       "Aufgabenhierarchie und fremde Beziehungen überstehen die ICS-Rundreise")
+gemischte_resource = ("BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\nUID:termin-1\r\n"
+                      "DTSTART;VALUE=DATE:20261015\r\nSUMMARY:Termin behalten\r\nEND:VEVENT\r\n" +
+                      "\r\n".join(m._vtodo_zeilen(kind_aufgabe)) +
+                      "\r\nEND:VCALENDAR\r\n")
+gemischt_neu = m.ics_aufgabe_resource_aktualisieren(
+    gemischte_resource, dict(kind_aufgabe, titel="Geändert"))
+gemischt_ohne = m.ics_aufgabe_resource_entfernen(gemischt_neu, "kind-1")
+pruefe("SUMMARY:Termin behalten" in gemischt_neu and "SUMMARY:Geändert" in gemischt_neu and
+       gemischt_ohne is not None and "BEGIN:VEVENT" in gemischt_ohne and
+       "BEGIN:VTODO" not in gemischt_ohne,
+       "VTODO-Änderung oder -Löschung erhält eine gemischte Kalenderressource")
 stale_aufgabe = m.ics_lesen("""BEGIN:VCALENDAR\r
 VERSION:2.0\r
 BEGIN:VTODO\r
@@ -599,9 +624,24 @@ pruefe(len(jahresbesprechung["termine"]) == 1 and
        jahresbesprechung["termine"][0]["zeit"] == "14:00" and
        jahresbesprechung["termine"][0]["wiederholung"]["art"] == "yearly",
        "eine jährliche Besprechung bleibt ein Termin mit Uhrzeit")
+feiertage = m.ics_lesen(
+    "BEGIN:VEVENT\r\nUID:befreiung\r\n"
+    "SUMMARY:Jahrestag der Befreiung vom Nationalsozialismus\r\n"
+    "CATEGORIES:Regionaler Feiertag\r\nDTSTART;VALUE=DATE:20260508\r\n"
+    "RRULE:FREQ=YEARLY\r\nEND:VEVENT\r\n"
+    "BEGIN:VEVENT\r\nUID:google-geburtstag\r\n"
+    "SUMMARY:Herzlichen Glückwunsch zum Geburtstag\r\n"
+    "CATEGORIES:Birthday\r\nDTSTART;VALUE=DATE:19900826\r\n"
+    "RRULE:FREQ=YEARLY\r\nEND:VEVENT\r\n")
+pruefe(len(feiertage["termine"]) == 2 and not feiertage["jahrestage"] and
+       all(t["wiederholung"]["art"] == "yearly" for t in feiertage["termine"]),
+       "Titel und Kategorie machen Ganztagstermine nicht zu Jahrestagen")
 
 # ------------------------------------------------------------------ vCard
 print("\n[vCard lesen – 3.0, 2.1 mit Quoted-Printable, 4.0]")
+fn_allein = m.vcf_lesen("BEGIN:VCARD\r\nVERSION:3.0\r\nFN:Hans Müller\r\nEND:VCARD\r\n")["kontakte"][0]
+pruefe((fn_allein["vorname"], fn_allein["nachname"]) == ("Hans", "Müller"),
+       "FN-only-vCard behält die bisherige Namenszerlegung")
 vcf = (
     "BEGIN:VCARD\r\n"
     "VERSION:3.0\r\n"
@@ -679,6 +719,12 @@ adress_probe = {"anschriften": [
     {"strasse": "Musterstrasse 7", "plz": "47051", "ort": "Duisburg"}]}
 pruefe(len(m._anschrift_liste(adress_probe)) == 1,
        "Straße, Strasse und Str. werden als dieselbe Anschrift erkannt")
+adress_ergaenzt = m._anschrift_liste({"anschriften": [
+    {"strasse": "28 Albert-Einstein Straße"},
+    {"strasse": "28 Albert-Einstein Straße", "plz": "02625", "ort": "Bautzen"}]})
+pruefe(len(adress_ergaenzt) == 1 and adress_ergaenzt[0]["plz"] == "02625" and
+       adress_ergaenzt[0]["ort"] == "Bautzen",
+       "eine vervollständigte Teilanschrift wird nicht als zweite Anschrift angelegt")
 pruefe(k0["notiz"] == "Stammkunde\nmag Roggenbrot", "NOTE mit Umbruch")
 pruefe(k0["uid"] == "hans-1@buch" and k0["geaendert"] > 0, "UID und REV")
 k1 = vg["kontakte"][1]
@@ -686,9 +732,14 @@ pruefe(k1["nachname"] == "Schönefeld" and k1["vorname"] == "Jürgen",
        "Quoted-Printable-Umlaute (vCard 2.1)")
 pruefe(k1["telefon"] == "030 555", "nackter HOME-Parameter (2.1)")
 k2 = vg["kontakte"][2]
-pruefe(k2["firma"] == "Sonnenschein GmbH" and k2["nachname"] == "GmbH",
-       "FN-Rückfall ohne N")
+pruefe(k2["firma"] == "Sonnenschein GmbH" and not k2["nachname"] and
+       not k2["vorname"], "Firmenname wird nicht in Personennamen zerlegt")
 pruefe(k2["mobil"] == "+49 160 111222", "TYPE=cell kleingeschrieben (4.0)")
+name_only = m.vcf_lesen(
+    "BEGIN:VCARD\r\nVERSION:3.0\r\nUID:name-only\r\n"
+    "N:;;;;\r\nFN:Meyer Schulze\r\nEND:VCARD\r\n")["kontakte"][0]
+pruefe(name_only["nachname"] == "Schulze" and name_only["vorname"] == "Meyer",
+       "unstrukturierter Anzeigename wird wie ein LDAP-Anzeigename zerlegt")
 
 cardbook_vcf = (
     "BEGIN:VCARD\r\nVERSION:3.0\r\nN:CardBook;Clara;;;\r\n"
@@ -867,9 +918,10 @@ kontakt = {"nachname": "Schmidt-Rüttgers", "vorname": "Änne", "firma": "Werft 
                   {"dienst": "x", "wert": "aenne"},
                   {"dienst": "linkedin", "wert": "aenne-schmidt"},
                   {"dienst": "reddit", "wert": "aenne"},
-                  {"dienst": "custom", "wert": "https://irc.example/aenne",
-                   "symbol": "irc"}],
-             "foto": "data:image/png;base64,iVBORw0KGgo=",
+                   {"dienst": "custom", "wert": "https://irc.example/aenne",
+                    "symbol": "irc"}],
+              "geburtstag": "1980-06-15", "geburtstagJahrUnbekannt": False,
+              "foto": "data:image/png;base64,iVBORw0KGgo=",
            "uid": "k-rund@magnolie", "geaendert": 1750000000000}
 kz = m.vcf_lesen(m.vcf_schreiben([kontakt]))["kontakte"][0]
 for feld in m.KONTAKT_FELDER + ["uid"]:
@@ -965,7 +1017,8 @@ pruefe("_kdeconnect_backend(self._kde_ereignis)" in kde_quelltext and
        "_KDECONNECT_BACKEND.stop()" in kde_quelltext,
        "das Fenster startet KDE Connect früh und beendet es erst beim echten Ende")
 pruefe(kde_quelltext.index("if \"--wecker\" in sys.argv[1:]") <
-       kde_quelltext.index("fenster = Fenster(web_verzeichnis)"),
+       kde_quelltext.index(
+           "fenster = Fenster(web_verzeichnis, setup_auswahl=setup_auswahl)"),
        "der Weckerzweig endet vor Fenster und KDE-Listener")
 sozial_aufrufe = []
 sozial = m.sozial_oeffnen(
@@ -1304,7 +1357,7 @@ pruefe("nur lesbar" in probe.nutzlast["bericht"].lower() or
        "EDS-Bericht kennzeichnet neue komplexe Serien als nur lesbar")
 pruefe(set(probe.nutzlast["letzteSyncs"]["kalender"]) == {"kal-a", "kal-b"},
        "jeder ausgewählte Kalender erhält einen eigenen Abgleichzeitpunkt")
-pruefe("Evolution Data Server" in probe.nutzlast["bericht"] and
+pruefe("Internetkonten des Systems" in probe.nutzlast["bericht"] and
        "Termine:" in probe.nutzlast["bericht"] and
        "kal-a" not in probe.nutzlast["bericht"] and
        "kal-b" not in probe.nutzlast["bericht"],
@@ -1398,8 +1451,13 @@ for eintrag in [("k1", "FirstName", "Dora"), ("k1", "LastName", "Vogel"),
                 ("k1", "BirthMonth", "7"), ("k1", "BirthDay", "12"),
                 ("k1", "BirthYear", "1980"),
                 ("k2", "DisplayName", "Firma Kn\u00f6del GmbH"),
-                ("k2", "PrimaryEmail", "info@knoedel.de"),
-                ("k2", "HomeCity", "Duisburg")]:
+                 ("k2", "PrimaryEmail", "info@knoedel.de"),
+                 ("k2", "HomeCity", "Duisburg"),
+                 ("k3", "LastName", "Meyer Schulze"),
+                 ("k3", "DisplayName", "Meyer Schulze"),
+                 ("k3", "PrimaryEmail", "meyer@example.test"),
+                 ("k3", "_vCard", "BEGIN:VCARD\r\nVERSION:3.0\r\nUID:k3\r\n"
+                  "N:;;;;\r\nFN:Meyer Schulze\r\nEMAIL:meyer@example.test\r\nEND:VCARD\r\n")]:
     verb.execute("INSERT INTO properties VALUES (?,?,?)", eintrag)
 verb.commit()
 verb.close()
@@ -1461,6 +1519,8 @@ verb.execute("INSERT INTO cal_properties VALUES (?,?,?,?)",
              ("modern", "tb-modern-birthday", "DESCRIPTION", "Familiennotiz"))
 verb.execute("INSERT INTO cal_properties VALUES (?,?,?,?)",
              ("modern", "tb-modern-birthday", "CATEGORIES", "ANNIVERSARY"))
+verb.execute("INSERT INTO cal_properties VALUES (?,?,?,?)",
+             ("modern", "tb-modern-birthday", "X-MAGNOLIE-TYPE-ID", "birthday"))
 verb.execute("INSERT INTO cal_recurrence VALUES (?,?,?)",
              ("modern", "tb-modern-weekly", "RRULE:FREQ=WEEKLY;BYDAY=WE"))
 verb.execute("INSERT INTO cal_recurrence VALUES (?,?,?)",
@@ -1474,8 +1534,8 @@ verb.commit()
 verb.close()
 
 erg = m.lokal_scannen(basis)
-pruefe(len(erg["kontakte"]) == 5,
-       "5 Adressen aus drei Quellen gefunden (%d)" % len(erg["kontakte"]))
+pruefe(len(erg["kontakte"]) == 6,
+       "6 Adressen aus drei Quellen gefunden (%d)" % len(erg["kontakte"]))
 namen = {k["nachname"] or k["firma"] for k in erg["kontakte"]}
 pruefe("M\u00fcller" in namen and "Vogel" in namen,
        "Umlaute und Thunderbird-Namen kommen sauber an")
@@ -1495,6 +1555,9 @@ pruefe(len(tb_dora["telefone"]) == 7 and len(tb_dora["anschriften"]) == 2 and
 pruefe(any(k["email"] == "info@knoedel.de" and k["ort"] == "Duisburg"
            for k in erg["kontakte"]),
        "Karte nur mit Anzeigename wird samt Ort \u00fcbernommen")
+pruefe(any(k["uid"] == "k3" and k["nachname"] == "Meyer Schulze" and
+           not k["vorname"] for k in erg["kontakte"]),
+       "Thunderbird-_vCard bewahrt den strukturierten mehrteiligen Nachnamen")
 pruefe(len(erg["geburtstage"]) == 2,
        "Geburtstage aus vCard und Thunderbird-Feldern (%d)" % len(erg["geburtstage"]))
 pruefe(any(g["datum"] == "1980-07-12" for g in erg["geburtstage"]),
@@ -1537,7 +1600,7 @@ pruefe(tb_aufgabe["faellig"] == "2026-09-01" and tb_aufgabe["prio"] == 1 and
 pruefe("Evolution" in erg["bericht"] and "Thunderbird" in erg["bericht"],
        "Fundbericht nennt beide Quellen: " + erg["bericht"])
 nur_kontakte = m.lokal_scannen(basis, nur_kontakte=True)
-pruefe(len(nur_kontakte["kontakte"]) == 5 and
+pruefe(len(nur_kontakte["kontakte"]) == 6 and
        not nur_kontakte["geburtstage"] and
        not nur_kontakte["termine"] and not nur_kontakte["jahrestage"] and
        not nur_kontakte["aufgaben"],
@@ -2053,7 +2116,7 @@ except RuntimeError as f:
 
 print()
 print("— Aktualisierungsprüfung —")
-pruefe(m.PROGRAMM_FASSUNG == "2.0.16", "Programmkern trägt die neue Fassung")
+pruefe(m.PROGRAMM_FASSUNG == "2.0.17", "Programmkern trägt die neue Fassung")
 desktop_pfad = os.path.abspath(os.path.join(os.path.dirname(PFAD), "..",
                                              "io.gitlab.maik3531.MagnolieOrganizer.desktop"))
 with open(desktop_pfad, encoding="utf-8") as datei:
@@ -2128,28 +2191,28 @@ update_oeffentlich = m.base64.b64encode(update_privat.public_key().public_bytes(
     update_serialisierung.Encoding.Raw,
     update_serialisierung.PublicFormat.Raw)).decode("ascii")
 update_summe = "ab" * 32
-update_paket = m.UPDATE_BASIS + "magnolie-organizer_2.0.17_all.deb"
+update_paket = m.UPDATE_BASIS + "magnolie-organizer_2.0.18_all.deb"
 update_signatur = m.base64.b64encode(update_privat.sign(
-    m.update_signatur_nachricht("2.0.17", update_paket, update_summe))).decode("ascii")
-update_xml = ("<?xml version='1.0'?><update><version>2.0.17</version>"
+    m.update_signatur_nachricht("2.0.18", update_paket, update_summe))).decode("ascii")
+update_xml = ("<?xml version='1.0'?><update><version>2.0.18</version>"
                "<deb>" + update_paket + "</deb><sha256>" + update_summe +
                "</sha256><signature>" + update_signatur + "</signature></update>")
 version, paket = m.update_info_lesen(update_xml)
-pruefe(version == "2.0.17" and paket.endswith("_2.0.17_all.deb"),
+pruefe(version == "2.0.18" and paket.endswith("_2.0.18_all.deb"),
        "update.xml liefert Fassung und Paketadresse")
 update_neu = m.update_pruefen(lambda _url: update_xml, update_oeffentlich)
 pruefe(update_neu["ok"] and not update_neu["aktuell"] and
-       update_neu["version"] == "2.0.17" and
+       update_neu["version"] == "2.0.18" and
        update_neu["sha256"] == update_summe and update_neu["url"] == update_paket,
        "eine Debian-Installation erhält das signierte Debian-Paket")
-appimage_paket = m.UPDATE_BASIS + "Magnolie-Organizer-2.0.17-x86_64.AppImage"
+appimage_paket = m.UPDATE_BASIS + "Magnolie-Organizer-2.0.18-x86_64.AppImage"
 appimage_summe = "ef" * 32
-appimage_xml = ("<update><version>2.0.17</version><deb>" + update_paket +
+appimage_xml = ("<update><version>2.0.18</version><deb>" + update_paket +
                  "</deb><sha256>" + update_summe + "</sha256><appimage>"
                  "<architecture>x86_64</architecture><url>" + appimage_paket +
                  "</url><sha256>" + appimage_summe + "</sha256></appimage>")
 appimage_signatur = m.base64.b64encode(update_privat.sign(
-    m.update_signatur_nachricht("2.0.17", update_paket, update_summe,
+    m.update_signatur_nachricht("2.0.18", update_paket, update_summe,
                                appimage_paket, appimage_summe))).decode("ascii")
 appimage_xml += "<signature>" + appimage_signatur + "</signature></update>"
 appimage_umgebung = os.environ.get("APPIMAGE")
@@ -2166,13 +2229,13 @@ pruefe(appimage_update["ok"] and not appimage_update["aktuell"] and
        appimage_update["url"] == appimage_paket and
        appimage_update["sha256"] == appimage_summe and not appimage_fehlt["ok"],
        "eine AppImage-Installation erhält nur das passende geprüfte AppImage")
-aarch64_paket = m.UPDATE_BASIS + "Magnolie-Organizer-2.0.17-aarch64.AppImage"
-aarch64_xml = ("<update><version>2.0.17</version><deb>" + update_paket +
+aarch64_paket = m.UPDATE_BASIS + "Magnolie-Organizer-2.0.18-aarch64.AppImage"
+aarch64_xml = ("<update><version>2.0.18</version><deb>" + update_paket +
                "</deb><sha256>" + update_summe + "</sha256><appimage>"
                "<architecture>aarch64</architecture><url>" + aarch64_paket +
                "</url><sha256>" + appimage_summe + "</sha256></appimage>")
 aarch64_signatur = m.base64.b64encode(update_privat.sign(
-    m.update_signatur_nachricht("2.0.17", update_paket, update_summe,
+    m.update_signatur_nachricht("2.0.18", update_paket, update_summe,
                                aarch64_paket, appimage_summe))).decode("ascii")
 aarch64_geprueft = m.update_manifest_pruefen(
     aarch64_xml + "<signature>" + aarch64_signatur + "</signature></update>",
@@ -2258,8 +2321,8 @@ pruefe(not update_ohne_signatur["ok"] and "signatur" in
        update_ohne_signatur["fehler"].lower(),
        "ein Manifest ohne Signatur wird mit gültigem Release-Schlüssel abgewiesen")
 update_veraendert = m.update_pruefen(
-    lambda _url: update_xml.replace("<version>2.0.17</version>",
-                                    "<version>2.0.18</version>"),
+    lambda _url: update_xml.replace("<version>2.0.18</version>",
+                                    "<version>2.0.19</version>"),
     update_oeffentlich)
 pruefe(not update_veraendert["ok"] and any(text in
        update_veraendert["fehler"].lower() for text in
@@ -2530,9 +2593,9 @@ regional = m.regional_einstellungen({"language": "fr-CH", "formatLocale": "en_US
                                      "weekRule": "fremd", "temperatureUnit": "fahrenheit",
                                      "timeZone": "America/New_York"})
 pruefe(regional == {"language": "fr-CH", "formatLocale": "en-US",
-                    "hourCycle": "h12", "firstDayOfWeek": "sunday",
-                    "weekRule": "iso", "temperatureUnit": "fahrenheit",
-                    "timeZone": "America/New_York"},
+                     "hourCycle": "h12", "firstDayOfWeek": "sunday",
+                     "weekRule": "iso", "temperatureUnit": "fahrenheit",
+                     "timeZone": "America/New_York", "homeCountry": "DE"},
        "Regionalwerte werden sprachunabhängig und begrenzt übernommen")
 pruefe(m.regional_einstellungen_schreiben(regional, regional_probe) and
        m.regional_einstellungen_lesen(regional_probe) == regional,
@@ -2938,6 +3001,7 @@ class _SpeicherProbe:
         self._speicher_auftraege = m.queue.Queue()
         self._speicher_laeuft = False
         self._daten_sperre = m.threading.RLock()
+        self._aktuelle_daten = {}
         self._kennwort = ""
         self._beenden_angefragt = False
         self._beenden_speicherfehler = False
@@ -2946,6 +3010,9 @@ class _SpeicherProbe:
 
     def _vielleicht_verschluesseln(self, text):
         return text
+
+    def _journal_snapshot(self, _grund):
+        return None
 
     def antwort(self, funktion, nutzlast):
         self.antworten.append((funktion, nutzlast))
@@ -4260,6 +4327,9 @@ with open(installierter_start, "w", encoding="utf-8") as datei:
 installierter_hintergrund = os.path.join(arbeitsordner, "magnolie_hintergrund.py")
 with open(installierter_hintergrund, "w", encoding="utf-8") as datei:
     datei.write("#!/usr/bin/env python3\n")
+installierte_setup_ui = os.path.join(arbeitsordner, "magnolie_setup_ui.py")
+with open(installierte_setup_ui, "w", encoding="utf-8") as datei:
+    datei.write("#!/usr/bin/env python3\n")
 pot_lader = importlib.machinery.SourceFileLoader(
     "magorg_pot", os.path.join(os.path.dirname(PFAD), "..", "werkzeuge",
                                "pot_erzeugen.py"))
@@ -4270,7 +4340,7 @@ installierte_quellen = pot_modul.quellen_finden(installiert, installierter_start
 pruefe(installierte_quellen == [
            os.path.join(installiert_web, "i18n-markers.js"),
            os.path.join(installiert_web, "anwendung.js"), installierter_start,
-           installierter_hintergrund],
+           installierter_hintergrund, installierte_setup_ui],
        "POT-Erzeuger findet Webquellen und Launcher im installierten Aufbau")
 
 pot_erzeugen_alt = m.pot_erzeugen
@@ -5630,6 +5700,10 @@ pruefe(not m.faellige_aufgaben(aufgaben_daten, _dt(2026, 7, 28, 6, 0))["faellig"
        "vor der eingestellten Stunde bleibt es still")
 pruefe(not m.faellige_aufgaben(aufgaben_daten, _dt(2026, 7, 29, 12, 0))["faellig"],
        "einen Tag später wird nichts nachgereicht")
+ohne_verpasste = m.faellige_aufgaben(
+    aufgaben_daten, _dt(2026, 7, 28, 23, 0), verpasste=False)
+pruefe(not ohne_verpasste["faellig"] and not ohne_verpasste["verpasst"],
+       "abgeschaltete verpasste Erinnerungen gelten auch für Aufgaben")
 aufgabe_individuell = {"aufgaben": [{"id": "ai", "titel": "Unterlagen senden",
     "faellig": "2026-08-04", "erinnern": True, "erledigt": False,
     "individuelleErinnerungTage": 7}]}
@@ -6509,6 +6583,18 @@ erinner_daten = {
     "notizen": [{"text": "Darf ebenfalls nicht hinein"}],
     "notizbuchseiten": [{"titel": "Auch nicht"}],
     "syncMetadaten": {"token": "bestand-token"},
+    "customOrganizer": {"version": 3, "modules": [
+        {"id": "modul-t", "type": "appointments", "title": "Privat",
+         "reminders": True, "items": [
+             {"id": "offen", "title": "Abholen", "date": "2026-08-19",
+               "time": "11:00", "remind": True,
+               "wiederholung": {"art": "yearly", "bis": "",
+                                  "notiz": "Customgeheimnis"}}]},
+        {"id": "modul-a", "type": "tasks", "title": "Werkstatt",
+         "reminders": True, "items": [
+             {"id": "a", "title": "Prüfen", "due": "2026-08-20",
+              "time": "12:00", "done": False, "remind": True}]},
+    ]},
     "einstellungen": {
         "erinnerung": {
             "an": True, "vorlauf": 15, "verpasste": True,
@@ -6524,11 +6610,27 @@ erinner_daten = {
     },
 }
 auswahl = m.erinnerungsdaten_auswaehlen(erinner_daten)
-pruefe([t["id"] for t in auswahl["termine"]] == ["offen"],
+pruefe([t["id"] for t in auswahl["termine"]] ==
+       ["offen", "custom:modul-t:offen"],
        "vertrauliche Termine bleiben ohne zweite Zustimmung draußen")
-pruefe([a["id"] for a in auswahl["aufgaben"]] == ["a"] and
+pruefe(auswahl["termine"][1]["wiederholung"] == {"art": "yearly", "bis": ""},
+       "eigene Serientermine behalten ihre gefilterte Wiederholung im Weckerbestand")
+viele_custom_termine, _ = m._custom_erinnerungseintraege({
+    "customOrganizer": {"modules": [{"id": "viele", "type": "appointments",
+        "reminders": True, "items": [{"id": str(index), "title": "Termin",
+                                        "date": "2026-08-19"}
+                                       for index in range(150)]}]}})
+pruefe(len(viele_custom_termine) == 150 and
+       viele_custom_termine[-1]["id"] == "custom:viele:149",
+       "alle 150 eigenen Termine gelangen in den Weckerbestand")
+pruefe(m._custom_erinnerungseintraege({"customOrganizer": {"modules": [
+    {"id": "kaputt", "type": "appointments", "reminders": True,
+     "items": {"kein": "array"}}]}}) == ([], []),
+       "unförmige eigene Einträge bringen den Weckerbestand nicht zum Absturz")
+pruefe([a["id"] for a in auswahl["aufgaben"]] ==
+       ["a", "custom:modul-a:a"] and
        [j["id"] for j in auswahl["jahrestage"]] == ["j"],
-       "vertrauliche Aufgaben und Jahrestage bleiben ebenfalls draußen")
+       "eigene Aufgaben werden getrennt projiziert und Vertrauliches bleibt draußen")
 pruefe(set(auswahl) == {"version", "nurErinnerungen", "termine", "aufgaben",
                         "jahrestage", "einstellungen"},
        "Personen, Kontaktkarten, Notizbuchseiten und Sync-Metadaten fehlen oben")
@@ -6554,16 +6656,18 @@ verbotene_werte = {"Terminnotiz", "Wiederholungsgeheimnis", "Aufgabennotiz",
                    "Einstellungsgeheimnis", "bestand-token",
                    "termin-etag", "aufgabe-etag", "lotus-termin",
                    "lotus-aufgabe", "lotus-jahrestag",
-                   "https://example.invalid", "Max"}
+                   "https://example.invalid", "Max", "Customgeheimnis"}
 auswahl_text = _json.dumps(auswahl, ensure_ascii=False)
 pruefe(not any(wert in auswahl_text for wert in verbotene_werte),
        "Notizen, Lotus-Felder, Links, Zuordnungen und Sync-Daten werden verworfen")
 
 erinner_daten["einstellungen"]["sicherheit"]["vertraulicheErinnerungen"] = True
 auswahl = m.erinnerungsdaten_auswaehlen(erinner_daten)
-pruefe({t["id"] for t in auswahl["termine"]} == {"offen", "geheim"},
+pruefe({t["id"] for t in auswahl["termine"]} ==
+       {"offen", "geheim", "custom:modul-t:offen"},
        "die zweite Zustimmung nimmt vertrauliche Termine ausdrücklich auf")
-pruefe({a["id"] for a in auswahl["aufgaben"]} == {"a", "a-geheim"} and
+pruefe({a["id"] for a in auswahl["aufgaben"]} ==
+       {"a", "a-geheim", "custom:modul-a:a"} and
        {j["id"] for j in auswahl["jahrestage"]} == {"j", "j-geheim"} and
        all("vertraulich" not in eintrag for gruppe in
            (auswahl["termine"], auswahl["aufgaben"], auswahl["jahrestage"])

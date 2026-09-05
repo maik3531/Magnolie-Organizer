@@ -8,7 +8,7 @@ from importlib.machinery import SourceFileLoader
 
 PFAD = os.environ.get("MAGNOLIE_PROGRAMM") or os.path.join(
     os.path.dirname(os.path.abspath(__file__)), "..", "bin", "magnolie-organizer")
-m = SourceFileLoader("magnolie_cloud_backup", PFAD).load_module()
+m = SourceFileLoader("magnolie_organizer_cloud_test", PFAD).load_module()
 
 
 with tempfile.TemporaryDirectory(prefix="magnolie-cloud-backup-") as tmp:
@@ -43,8 +43,9 @@ with tempfile.TemporaryDirectory(prefix="magnolie-cloud-backup-") as tmp:
     gelesen = m.gesamtarchiv_lesen(erstes, "Rosenholz1896")
     assert gelesen["plattform"] == "linux"
     assert gelesen["appversion"] == m.PROGRAMM_FASSUNG
-    assert gelesen["daten"] == daten
-    assert m.sicherung_lesen(erstes, "Rosenholz1896")["daten"] == daten
+    migriert = dict(daten, version=7)
+    assert gelesen["daten"] == migriert
+    assert m.sicherung_lesen(erstes, "Rosenholz1896")["daten"] == migriert
     assert not any(name.startswith(".magnolie-") for name in os.listdir(cloudordner))
 
 print("Cloud-Sicherungsvertrag: ok")

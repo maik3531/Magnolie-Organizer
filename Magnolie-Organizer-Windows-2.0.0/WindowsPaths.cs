@@ -11,6 +11,7 @@ internal sealed class WindowsPaths
         Settings = Path.Combine(Root, "fenster.json");
         TraySettings = Path.Combine(Root, "tray.json");
         RegionalSettings = Path.Combine(Root, "locale.json");
+        FirstRunSetup = Path.Combine(Root, "ersteinrichtung.json");
         ReminderState = Path.Combine(Root, "erinnerungen.json");
         ReminderData = Path.Combine(Root, "erinnerungsdaten.json");
         Baum = Path.Combine(Root, "baum.json");
@@ -34,8 +35,11 @@ internal sealed class WindowsPaths
         KdeConnectPeers = Path.Combine(KdeConnect, "peers.json");
         Logs = Path.Combine(Root, "Logs");
         WebView = Path.Combine(Root, "WebView2");
-        RecoveryJournal = Path.Combine(Root, "wiederherstellungsstaende");
-        RecoverySettings = Path.Combine(Root, "wiederherstellungsjournal.json");
+        var recoveryRoot = root is null
+            ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "mo-snapshots")
+            : Path.Combine(Root, "mo-snapshots");
+        RecoveryJournal = Path.Combine(recoveryRoot, "wiederherstellungsstaende");
+        RecoverySettings = Path.Combine(recoveryRoot, "einstellungen.json");
         Backups = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
             "Magnolie Organizer", "Sicherungen");
@@ -46,6 +50,7 @@ internal sealed class WindowsPaths
     internal string Settings { get; }
     internal string TraySettings { get; }
     internal string RegionalSettings { get; }
+    internal string FirstRunSetup { get; }
     internal string ReminderState { get; }
     internal string ReminderData { get; }
     internal string Baum { get; }
@@ -76,6 +81,27 @@ internal sealed class WindowsPaths
     internal void EnsureDirectories()
     {
         Directory.CreateDirectory(Root);
+        var recoveryRoot = Path.GetDirectoryName(RecoveryJournal)!;
+        Directory.CreateDirectory(recoveryRoot);
+        var legacyJournal = Path.Combine(Root, "wiederherstellungsstaende");
+        if (!Directory.Exists(RecoveryJournal) && Directory.Exists(legacyJournal))
+            Directory.Move(legacyJournal, RecoveryJournal);
+        else if (Directory.Exists(RecoveryJournal) && Directory.Exists(legacyJournal) &&
+                 (File.GetAttributes(legacyJournal) & FileAttributes.ReparsePoint) == 0)
+        {
+            foreach (var directory in Directory.EnumerateDirectories(legacyJournal))
+            {
+                var name = Path.GetFileName(directory);
+                if (!Guid.TryParse(name, out var id) || id.ToString() != name ||
+                    (File.GetAttributes(directory) & FileAttributes.ReparsePoint) != 0) continue;
+                var target = Path.Combine(RecoveryJournal, name);
+                if (!Directory.Exists(target) && !File.Exists(target)) Directory.Move(directory, target);
+            }
+            if (!Directory.EnumerateFileSystemEntries(legacyJournal).Any()) Directory.Delete(legacyJournal);
+        }
+        var legacySettings = Path.Combine(Root, "wiederherstellungsjournal.json");
+        if (!File.Exists(RecoverySettings) && File.Exists(legacySettings))
+            File.Move(legacySettings, RecoverySettings);
         Directory.CreateDirectory(Logs);
         Directory.CreateDirectory(WebView);
         Directory.CreateDirectory(Telefon);

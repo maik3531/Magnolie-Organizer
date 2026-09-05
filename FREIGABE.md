@@ -34,7 +34,9 @@ Bibliotheksinformationen.
 
 ## Reihenfolge
 
-1. Versionen in Organizer, Handbuch und Windows angleichen.
+1. Desktop-Versionen in Organizer, Handbuch und Windows angleichen. Die
+   Android-Version bleibt unabhängig und wird nur für eine ausdrücklich
+   beschlossene Notes-Veröffentlichung erhöht.
 2. Parser-, Python-, DOM-, Handbuch-, Paket- und Shellprüfungen ausführen.
 3. Windows als ausdrücklich unsignierten Linux-Cross-Build erzeugen:
 
@@ -47,18 +49,23 @@ Bibliotheksinformationen.
        -File Magnolie-Organizer-Windows-2.0.0/build/Build.ps1 -CrossCompile
    ```
 
-4. Den Desktop-Releasebau starten. Ohne bereitgestelltes QEMU-Abbild ist nur
-   der ausdrücklich dokumentierte eingeschränkte Lauf zulässig; Fedora-Bau und
-   Fedora-Installationstest bleiben aktiv:
+4. Den vollständigen Desktop-Releasebau einschließlich `autopkgtest` starten.
+   Nur wenn die benötigte QEMU-Umgebung im konkreten Lauf nachweislich fehlt,
+   darf der eingeschränkte Lauf verwendet werden; Grund und ausgelassene
+   Prüfung sind in `HINWEIS.txt` festzuhalten. Fedora-Bau und
+   Fedora-Installationstest bleiben dabei aktiv:
 
    ```sh
    export MAGNOLIE_CONTRIBUTOR_HASH='<64-hex>'
-   magnolie-organizer-2.0.0/werkzeuge/release_bauen.sh --skip-autopkgtest
+   magnolie-organizer-2.0.0/werkzeuge/release_bauen.sh
    ```
 
 5. Prüfen, dass `update.xml` echte Artefaktsummen und eine gültige Signatur
    enthält. Danach die globale `PRUEFSUMMEN.sha256` aus genau den hochzuladenden
    Dateien neu erzeugen und mit `sha256sum -c` prüfen.
+   Keine frühere Testaussage als Ergebnis des aktuellen Releases übernehmen;
+   Windows-VM, Android-AVD, QEMU und Paketprüfungen nur als bestanden nennen,
+   wenn ein Ergebnis des aktuellen Releasekandidaten vorliegt.
 6. Ausschließlich Quell-, Metadaten- und vorgesehene Releaseänderungen committen.
    Alte `.buildinfo`-/`.changes`-Dateien und private Schlüssel nie aufnehmen.
 7. Commit nach `main` pushen, Tag `vVERSION` setzen und pushen.

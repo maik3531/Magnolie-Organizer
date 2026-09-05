@@ -1,7 +1,10 @@
 #!/usr/bin/env python3
+import copy
+import hashlib
 import json
 import os
 import tempfile
+import uuid
 from pathlib import Path
 from collections import namedtuple
 from datetime import datetime, timedelta, timezone
@@ -15,13 +18,14 @@ Disk = namedtuple("Disk", "total used free")
 
 
 assert m.JOURNAL_GRUENDE == {
-    "weekly", "manual", "pre-sync", "pre-restore", "pre-contact",
+    "weekly", "manual", "pre-change", "pre-sync", "pre-restore", "pre-contact",
     "pre-contact-import", "pre-contact-merge", "pre-contact-delete",
 }
 web_quelle = (Path(PFAD).resolve().parents[1] / "web" / "anwendung.js").read_text(
     encoding="utf-8")
 assert 'manual: pgettext("recovery snapshot reason", "Manual")' in web_quelle
 assert '"pre-contact": _("Before synchronization")' in web_quelle
+assert '_("Are you really sure?")' in web_quelle
 
 
 def daten(n=1):
@@ -38,19 +42,37 @@ def disk(_pfad):
     return Disk(100 * 1024 ** 3, 0, 10 * 1024 ** 3)
 
 
+# Auch nach der ersten Migration von einer alten Version neu angelegte Punkte
+# werden einzeln nachgezogen, ohne einen vorhandenen Zielpunkt zu überschreiben.
+with tempfile.TemporaryDirectory() as tmp:
+    alt = os.path.join(tmp, "alt")
+    ziel = os.path.join(tmp, "ziel")
+    os.mkdir(alt)
+    os.mkdir(ziel)
+    alt_id, ziel_id = str(uuid.uuid4()), str(uuid.uuid4())
+    os.mkdir(os.path.join(alt, alt_id))
+    os.mkdir(os.path.join(ziel, ziel_id))
+    m._journal_altbestand_verschieben(alt, ziel)
+    assert set(os.listdir(ziel)) == {alt_id, ziel_id}
+    assert not os.path.exists(alt)
+
+
 with tempfile.TemporaryDirectory() as tmp:
     zeit = datetime(2026, 8, 12, 12, tzinfo=timezone.utc)
-    stand = m.journal_snapshot_erzeugen(daten(), "weekly", basis=tmp,
+    quelle = daten()
+    quelle_vorher = copy.deepcopy(quelle)
+    stand = m.journal_snapshot_erzeugen(quelle, "weekly", basis=tmp,
                                          jetzt=zeit, disk_usage=disk)
     assert stand["format"] == "magnolie-snapshot"
     assert stand["formatVersion"] == 1 and stand["platform"] == "linux"
-    assert stand["appVersion"] == "2.0.16" and stand["integrity"] == "ok"
+    assert stand["appVersion"] == "2.0.17" and stand["integrity"] == "ok"
     assert stand["payload"]["schema"] == 1 and stand["summary"]["termine"] == 1
     assert os.stat(m.journal_verzeichnis(tmp)).st_mode & 0o777 == 0o700
     assert os.stat(os.path.join(stand["path"], "manifest.json")).st_mode & 0o777 == 0o600
     assert os.stat(os.path.join(stand["path"], "payload.magnolie")).st_mode & 0o777 == 0o600
     manifest = json.load(open(os.path.join(stand["path"], "manifest.json"), encoding="utf-8"))
     assert manifest["snapshotId"] == stand["snapshotId"]
+    assert quelle == quelle_vorher, "Snapshot-Erzeugung mutierte die Quelldaten"
 
     # Gleiches Motiv und derselbe Quellhash innerhalb 15 Minuten werden dedupliziert.
     gleich = m.journal_snapshot_erzeugen(daten(), "weekly", basis=tmp,
@@ -91,6 +113,18 @@ with tempfile.TemporaryDirectory() as tmp:
     os.symlink(anders["path"], link)
     assert all(x["snapshotId"] != "link" for x in m.journal_liste(tmp))
 
+# Ein beschädigter, ansonsten identischer Pflichtstand darf nie dedupliziert werden.
+with tempfile.TemporaryDirectory() as tmp:
+    zeit = datetime(2026, 8, 12, 12, tzinfo=timezone.utc)
+    alt = m.journal_snapshot_erzeugen(daten(), "pre-sync", basis=tmp,
+                                      jetzt=zeit, disk_usage=disk)
+    with open(os.path.join(alt["path"], "payload.magnolie"), "ab") as ausgabe:
+        ausgabe.write(b"beschaedigt")
+    neu = m.journal_snapshot_erzeugen(daten(), "pre-sync", basis=tmp,
+                                      jetzt=zeit + timedelta(minutes=1), disk_usage=disk)
+    assert not neu["deduplicated"] and neu["snapshotId"] != alt["snapshotId"]
+    assert m.journal_snapshot_lesen(neu["snapshotId"], basis=tmp)[0]["integrity"] == "ok"
+
 assert m.journal_faellig("weekly", None)
 assert not m.journal_faellig("off", None)
 assert not m.journal_faellig("weekly", "2026-08-10T00:00:00Z",
@@ -112,6 +146,79 @@ with tempfile.TemporaryDirectory() as tmp:
     assert bericht == {"geschafft": 1, "misslungen": 0}
     m.journal_snapshot_lesen(punkt["snapshotId"], "", tmp)
 
+# Mehr als ein Jahr alte Einzelstände werden atomar als XZ komprimiert und
+# bleiben auch über einen Kennwortwechsel hinweg lesbar.
+with tempfile.TemporaryDirectory() as tmp:
+    alt_zeit = datetime(2024, 1, 1, tzinfo=timezone.utc)
+    punkt = m.journal_snapshot_erzeugen(
+        daten(40), "manual", basis=tmp, jetzt=alt_zeit, disk_usage=disk)
+    bericht = m.journal_komprimieren(tmp, alt_zeit + timedelta(days=366))
+    assert bericht == {"geschafft": 1, "misslungen": 0}
+    stand = next(x for x in m.journal_liste(tmp)
+                 if x["snapshotId"] == punkt["snapshotId"])
+    assert stand["payload"]["file"] == "payload.magnolie.xz"
+    assert stand["payload"]["compression"] == "xz"
+    assert not os.path.exists(os.path.join(stand["path"], "payload.magnolie"))
+    assert len(m.journal_snapshot_lesen(punkt["snapshotId"], basis=tmp)[1]
+               ["daten"]["termine"]) == 40
+    assert m.journal_umschluesseln("Rosenholz1896", "", tmp) == {
+        "geschafft": 1, "misslungen": 0}
+    assert len(m.journal_snapshot_lesen(
+        punkt["snapshotId"], "Rosenholz1896", tmp)[1]["daten"]["termine"]) == 40
+
+# Handgebaute Schema-1/2-Payloads tragen den echten Hash ihrer unnormalisierten
+# Quelldaten. Beim Rekey auf Schema 3 muss das Manifest den migrierten Hash erhalten.
+with tempfile.TemporaryDirectory() as tmp:
+    quell_daten = daten()
+    quell_daten["termine"] = [{"id": "legacy", "wiederholung": {
+        "art": "monthly_weekday", "ordinal": 2, "wochentag": "TH"}}]
+    quell_daten["aufgaben"] = [{"id": "ohne-uid"}]
+    quell_vorher = copy.deepcopy(quell_daten)
+    quellhash = hashlib.sha256(m._gesamtarchiv_kanonisch(quell_daten)).hexdigest()
+    ids = []
+    wurzel = m.journal_bereinigen(tmp)
+    for schema in (1, 2):
+        snapshot_id = str(uuid.uuid4())
+        ids.append(snapshot_id)
+        erstellt = "2026-08-1%dT12:00:00.000000Z" % schema
+        archiv = {"magnolie": m.GESAMTARCHIV_KENNUNG,
+                  "fassung": m.GESAMTARCHIV_FASSUNG, "datenschema": schema,
+                  "erstellt": erstellt, "plattform": "linux", "appversion": "1.9.0",
+                  "sha256": quellhash, "daten": copy.deepcopy(quell_daten)}
+        payload = m._gesamtarchiv_kanonisch(archiv)
+        manifest = {"format": m.JOURNAL_KENNUNG, "formatVersion": m.JOURNAL_FASSUNG,
+                    "snapshotId": snapshot_id, "createdAt": erstellt,
+                    "platform": "linux", "appVersion": "1.9.0", "reason": "manual",
+                    "pinned": True, "payload": {
+                        "sha256": hashlib.sha256(payload).hexdigest(),
+                        "sourceSha256": quellhash, "size": len(payload),
+                        "schema": m.JOURNAL_PAYLOAD_SCHEMA},
+                    "summary": {"termine": 1, "aufgaben": 1},
+                    "syncEpoch": str(uuid.uuid4())}
+        ordner = os.path.join(wurzel, snapshot_id)
+        os.mkdir(ordner)
+        m.atomar_binaer_schreiben(os.path.join(ordner, "payload.magnolie"), payload)
+        m.atomar_text_schreiben(os.path.join(ordner, "manifest.json"),
+                                json.dumps(manifest, sort_keys=True) + "\n")
+
+    for snapshot_id in ids:
+        _stand, gelesen = m.journal_snapshot_lesen(snapshot_id, basis=tmp)
+        assert gelesen["quellsha256"] == quellhash
+        assert gelesen["daten"]["termine"][0]["wiederholung"]["art"] == "monthly"
+        assert gelesen["daten"]["aufgaben"][0]["uid"]
+        assert hashlib.sha256(m._gesamtarchiv_kanonisch(gelesen["daten"])).hexdigest() != quellhash
+    assert quell_daten == quell_vorher
+
+    bericht = m.journal_umschluesseln("Rosenholz1896", "", tmp)
+    assert bericht == {"geschafft": 2, "misslungen": 0}
+    for snapshot_id in ids:
+        stand, gelesen = m.journal_snapshot_lesen(snapshot_id, "Rosenholz1896", tmp)
+        migriert_hash = hashlib.sha256(
+            m._gesamtarchiv_kanonisch(gelesen["daten"])).hexdigest()
+        assert stand["payload"]["sourceSha256"] == migriert_hash
+        assert gelesen["quellsha256"] == migriert_hash
+    assert quell_daten == quell_vorher
+
 # Ein Prozessabbruch zwischen den beiden Verzeichniswechseln stellt den alten Stand her.
 with tempfile.TemporaryDirectory() as tmp:
     punkt = m.journal_snapshot_erzeugen(daten(), "manual", basis=tmp, disk_usage=disk)
@@ -119,6 +226,19 @@ with tempfile.TemporaryDirectory() as tmp:
     alt = os.path.join(wurzel, ".%s.rewrite-old" % punkt["snapshotId"])
     os.replace(punkt["path"], alt)
     m.journal_bereinigen(tmp)
+    m.journal_snapshot_lesen(punkt["snapshotId"], "", tmp)
+
+# Ein unvollständiger neuer Umschreibestand darf den gültigen Altstand nicht verdrängen.
+with tempfile.TemporaryDirectory() as tmp:
+    punkt = m.journal_snapshot_erzeugen(daten(), "manual", basis=tmp, disk_usage=disk)
+    wurzel = m.journal_verzeichnis(tmp)
+    alt = os.path.join(wurzel, ".%s.rewrite-old" % punkt["snapshotId"])
+    neu = os.path.join(wurzel, ".%s.rewrite-new" % punkt["snapshotId"])
+    os.replace(punkt["path"], alt)
+    os.mkdir(neu)
+    open(os.path.join(neu, "manifest.json"), "w").close()
+    m.journal_bereinigen(tmp)
+    assert not os.path.exists(neu) and not os.path.exists(alt)
     m.journal_snapshot_lesen(punkt["snapshotId"], "", tmp)
 
 # Eine Stufe vor dem ersten Verzeichniswechsel ist unvollständig und verschwindet.
@@ -309,5 +429,44 @@ assert neu["syncMetadaten"]["quarantinedDeletes"]["geloescht"] == alt["geloescht
 assert neu["geloescht"] == {"termine": [], "kontakte": []}
 assert neu["tombstones"] == [] and neu["baumKontaktGeloescht"] == []
 assert neu["einstellungen"]["sync"]["syncEpoch"] == neu["syncEpoch"]
+
+# Automatische Punkte enthalten keine Anhang-Nutzdaten.
+with tempfile.TemporaryDirectory() as tmp:
+    mit_anhang = daten()
+    mit_anhang["notizen"] = [{"id": "n1", "anhaenge": [{"name": "a.pdf",
+        "sha256": "a" * 64, "daten": "data:application/pdf;base64,JVBERg=="}]}]
+    stand = m.journal_snapshot_erzeugen(
+        mit_anhang, "pre-change", basis=tmp, disk_usage=disk)
+    _manifest, gelesen = m.journal_snapshot_lesen(stand["snapshotId"], basis=tmp)
+    assert gelesen["anhaenge"] == 0
+    assert gelesen["daten"]["notizen"][0]["anhaenge"][0]["daten"] == ""
+    assert mit_anhang["notizen"][0]["anhaenge"][0]["daten"].startswith("data:")
+
+# Teilrestore kann Fehlendes ergänzen oder den ausgewählten Bereich ersetzen.
+snapshot = daten()
+snapshot["kontakte"] = [{"uid": "k1", "nachname": "Alt", "geburtstag": "1980-04-03",
+                          "sync": True, "geaendert": 1},
+                         {"uid": "k2", "nachname": "Zurück", "sync": True, "geaendert": 1}]
+snapshot["jahrestage"] = [{"uid": "j1", "name": "Alt", "datum": "1980-04-03"}]
+aktuell = daten()
+aktuell["kontakte"] = [{"uid": "k1", "nachname": "Neu", "geburtstag": ""},
+                        {"uid": "k3", "nachname": "Später"}]
+aktuell["termine"] = [{"uid": "t-neu"}]
+additiv = m.journal_restore_daten(snapshot, aktuell, ["contacts"], "additive")
+assert {k["uid"] for k in additiv["kontakte"]} == {"k1", "k2", "k3"}
+assert next(k for k in additiv["kontakte"] if k["uid"] == "k1")["geburtstag"] == "1980-04-03"
+assert additiv["termine"] == aktuell["termine"] and len(additiv["jahrestage"]) == 1
+ersetzt = m.journal_restore_daten(snapshot, aktuell, ["contacts"], "replace")
+assert {k["uid"] for k in ersetzt["kontakte"]} == {"k1", "k2"}
+assert ersetzt["termine"] == aktuell["termine"]
+assert all(k["geaendert"] > 1 for k in ersetzt["kontakte"] if k.get("sync"))
+voll = m.journal_restore_daten(snapshot, aktuell, ["all"], "replace")
+assert voll["kontakte"][0]["nachname"] == "Alt"
+for bereiche, aktueller_stand in ((["all", "contacts"], aktuell), (["contacts"], None)):
+    try:
+        m.journal_restore_daten(snapshot, aktueller_stand, bereiche, "replace")
+        raise AssertionError("ungültige Wiederherstellungswahl wurde angenommen")
+    except ValueError:
+        pass
 
 print("Wiederherstellungsjournal-Vertrag: ok")

@@ -11,10 +11,14 @@ namespace MagnolieOrganizer.Windows;
 
 internal static class NextcloudDavSelection
 {
+    internal static bool IsCalendar(string value) => value.StartsWith("nextcloud-calendar:", StringComparison.Ordinal) ||
+        value.StartsWith("generic-dav-calendar:", StringComparison.Ordinal);
+    internal static bool IsAddressBook(string value) => value.StartsWith("nextcloud-addressbook:", StringComparison.Ordinal) ||
+        value.StartsWith("generic-dav-addressbook:", StringComparison.Ordinal);
+
     internal static bool IsSupported(string addressBook, IReadOnlyList<string> calendarIds) =>
         (addressBook.Length == 0 || addressBook is "windows-contacts" or "microsoft-graph" ||
-         addressBook.StartsWith("nextcloud-addressbook:", StringComparison.Ordinal)) &&
-        calendarIds.All(value => value.StartsWith("nextcloud-calendar:", StringComparison.Ordinal));
+         IsAddressBook(addressBook)) && calendarIds.All(IsCalendar);
 
     internal static (JsonArray Selected, JsonArray Remaining) SplitCalendarItems(
         JsonArray items, string calendarUid, bool isDefaultCalendar)
@@ -42,7 +46,7 @@ internal static class NextcloudDavSelection
         {
             var owner = item["syncKalenderUid"]?.GetValue<string>() ?? "";
             var hasCalendarMappings = item["syncQuellen"] is JsonObject sources &&
-                sources.Any(source => source.Key.StartsWith("nextcloud-calendar:", StringComparison.Ordinal));
+                sources.Any(source => IsCalendar(source.Key));
             var clone = item.DeepClone().AsObject();
             if (owner == calendarUid || ContactFields.Source(item, calendarUid) is not null ||
                 (owner.Length == 0 && !hasCalendarMappings && isDefaultCalendar))
@@ -56,7 +60,7 @@ internal static class NextcloudDavSelection
     }
 }
 
-internal sealed record NextcloudDavSource(string Uid, string Name, string Kind, Uri Href);
+internal sealed record NextcloudDavSource(string Uid, string Name, string Kind, Uri Href, bool SupportsVTodo = true);
 internal sealed record NextcloudDavSources(IReadOnlyList<NextcloudDavSource> Calendars,
     IReadOnlyList<NextcloudDavSource> AddressBooks, string Error = "");
 internal sealed record NextcloudDavObject(Uri Href, string ETag, string Text);
@@ -70,6 +74,7 @@ internal sealed class NextcloudDavClient : IDisposable
     private readonly NextcloudMailboxSettingsStore settingsStore;
     private readonly HttpClient http;
     private readonly bool ownsHttp;
+    private Uri? lastPropFindUri;
 
     internal NextcloudDavClient(NextcloudMailboxSettingsStore settingsStore, HttpClient? http = null)
     {
@@ -85,13 +90,8 @@ internal sealed class NextcloudDavClient : IDisposable
     internal async Task<NextcloudDavSources> ListSourcesAsync(CancellationToken cancellationToken)
     {
         var context = settingsStore.Context(false);
-        var root = ServerUri(context, "/remote.php/dav/");
-        var principal = await DiscoverPrincipalAsync(context, root, cancellationToken).ConfigureAwait(false);
-        var homes = await DiscoverHomesAsync(context, principal, cancellationToken).ConfigureAwait(false);
-        var calendarHome = homes.Calendar ?? ServerUri(context,
-            "/remote.php/dav/calendars/" + Uri.EscapeDataString(context.Settings.User) + "/");
-        var addressHome = homes.AddressBook ?? ServerUri(context,
-            "/remote.php/dav/addressbooks/users/" + Uri.EscapeDataString(context.Settings.User) + "/");
+        var calendarHome = await DiscoverHomeAsync(context, "calendar", cancellationToken).ConfigureAwait(false);
+        var addressHome = await DiscoverHomeAsync(context, "addressbook", cancellationToken).ConfigureAwait(false);
         var calendars = await ListCollectionsAsync(context, calendarHome, "calendar", cancellationToken).ConfigureAwait(false);
         var addressBooks = await ListCollectionsAsync(context, addressHome, "addressbook", cancellationToken).ConfigureAwait(false);
         return new NextcloudDavSources(calendars, addressBooks);
@@ -99,7 +99,7 @@ internal sealed class NextcloudDavClient : IDisposable
 
     internal async Task<IReadOnlyList<NextcloudDavObject>> ReadCalendarAsync(NextcloudDavSource source,
         CancellationToken cancellationToken) => await ReportAsync(source, "calendar-data", "urn:ietf:params:xml:ns:caldav",
-        "<c:calendar-query xmlns:d=\"DAV:\" xmlns:c=\"urn:ietf:params:xml:ns:caldav\"><d:prop><d:getetag/><c:calendar-data/></d:prop><c:filter><c:comp-filter name=\"VCALENDAR\"><c:comp-filter name=\"VEVENT\"/></c:comp-filter></c:filter></c:calendar-query>", cancellationToken).ConfigureAwait(false);
+        "<c:calendar-query xmlns:d=\"DAV:\" xmlns:c=\"urn:ietf:params:xml:ns:caldav\"><d:prop><d:getetag/><c:calendar-data/></d:prop><c:filter><c:comp-filter name=\"VCALENDAR\"/></c:filter></c:calendar-query>", cancellationToken).ConfigureAwait(false);
 
     internal async Task<IReadOnlyList<NextcloudDavObject>> ReadAddressBookAsync(NextcloudDavSource source,
         CancellationToken cancellationToken) => await ReportAsync(source, "address-data", "urn:ietf:params:xml:ns:carddav",
@@ -118,6 +118,7 @@ internal sealed class NextcloudDavClient : IDisposable
 
     internal async Task DeleteAsync(Uri href, string etag, CancellationToken cancellationToken)
     {
+        if (string.IsNullOrWhiteSpace(etag)) throw new InvalidOperationException("Der DAV-ETag fehlt; das Objekt wird nicht ungeschützt gelöscht.");
         var context = settingsStore.Context(false);
         EnsureAllowed(context, href);
         using var request = Request(HttpMethod.Delete, href, context);
@@ -128,44 +129,50 @@ internal sealed class NextcloudDavClient : IDisposable
         if (response.StatusCode != HttpStatusCode.NotFound) EnsureSuccess(response);
     }
 
-    internal static string StableSourceId(string kind, Uri href)
+    internal static string StableSourceId(string kind, Uri href, string accountType = "nextcloud")
     {
         var canonical = href.GetComponents(UriComponents.SchemeAndServer | UriComponents.Path, UriFormat.UriEscaped);
         var hash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(canonical))).ToLowerInvariant();
-        return $"nextcloud-{kind}:{hash}";
+        var provider = NextcloudMailboxSettingsStore.ValidateAccountType(accountType) == "generic-dav" ? "generic-dav" : "nextcloud";
+        return $"{provider}-{kind}:{hash}";
     }
 
-    private async Task<Uri> DiscoverPrincipalAsync(NextcloudMailboxContext context, Uri fallback,
+    private async Task<Uri> DiscoverHomeAsync(NextcloudMailboxContext context, string kind,
         CancellationToken cancellationToken)
     {
-        foreach (var relative in new[] { "/.well-known/caldav", "/.well-known/carddav", "/remote.php/dav/" })
+        var isCalendar = kind == "calendar";
+        var endpoint = OriginUri(context, isCalendar ? "/.well-known/caldav" : "/.well-known/carddav");
+        var homeName = isCalendar ? "calendar-home-set" : "addressbook-home-set";
+        var homeNamespace = isCalendar ? "urn:ietf:params:xml:ns:caldav" : "urn:ietf:params:xml:ns:carddav";
+        var endpoints = context.Settings.AccountType == "generic-dav"
+            ? new[] { endpoint, new Uri(NextcloudMailbox.ValidateServer(context.Settings.ServerBase).AbsoluteUri.TrimEnd('/') + "/") }.Distinct().ToArray()
+            : new[] { endpoint };
+        foreach (var candidate in endpoints)
         {
             try
             {
-                var endpoint = ServerUri(context, relative);
-                var xml = await PropFindAsync(context, endpoint, "0",
-                    "<d:propfind xmlns:d=\"DAV:\"><d:prop><d:current-user-principal/></d:prop></d:propfind>", cancellationToken).ConfigureAwait(false);
-                var href = PropertyHref(xml, "current-user-principal");
-                if (href is not null) return ResolveDavHref(context, endpoint, href);
+                var xml = await PropFindAsync(context, candidate, "0",
+                    $"<d:propfind xmlns:d=\"DAV:\" xmlns:x=\"{homeNamespace}\"><d:prop><d:current-user-principal/><x:{homeName}/></d:prop></d:propfind>", cancellationToken).ConfigureAwait(false);
+                var direct = PropertyHref(xml, homeName, homeNamespace);
+                var responseBase = lastPropFindUri ?? candidate;
+                if (direct is not null) return ResolveDavHref(context, responseBase, direct);
+                var principalHref = PropertyHref(xml, "current-user-principal", "DAV:");
+                if (principalHref is not null)
+                {
+                    var principal = ResolveDavHref(context, responseBase, principalHref);
+                    var homes = await PropFindAsync(context, principal, "0",
+                        $"<d:propfind xmlns:d=\"DAV:\" xmlns:x=\"{homeNamespace}\"><d:prop><x:{homeName}/></d:prop></d:propfind>", cancellationToken).ConfigureAwait(false);
+                    var home = PropertyHref(homes, homeName, homeNamespace);
+                    if (home is not null) return ResolveDavHref(context, principal, home);
+                }
             }
             catch (HttpRequestException error) when (error.StatusCode is HttpStatusCode.NotFound or HttpStatusCode.MethodNotAllowed) { }
         }
-        return fallback;
-    }
-
-    private async Task<(Uri? Calendar, Uri? AddressBook)> DiscoverHomesAsync(NextcloudMailboxContext context,
-        Uri principal, CancellationToken cancellationToken)
-    {
-        try
-        {
-            var xml = await PropFindAsync(context, principal, "0",
-                "<d:propfind xmlns:d=\"DAV:\" xmlns:c=\"urn:ietf:params:xml:ns:caldav\" xmlns:card=\"urn:ietf:params:xml:ns:carddav\"><d:prop><c:calendar-home-set/><card:addressbook-home-set/></d:prop></d:propfind>", cancellationToken).ConfigureAwait(false);
-            var calendar = PropertyHref(xml, "calendar-home-set");
-            var address = PropertyHref(xml, "addressbook-home-set");
-            return (calendar is null ? null : ResolveDavHref(context, principal, calendar),
-                address is null ? null : ResolveDavHref(context, principal, address));
-        }
-        catch (HttpRequestException error) when (error.StatusCode is HttpStatusCode.NotFound or HttpStatusCode.MethodNotAllowed) { return (null, null); }
+        if (context.Settings.AccountType == "nextcloud")
+            return ServerUri(context, isCalendar
+                ? "/remote.php/dav/calendars/" + Uri.EscapeDataString(context.Settings.User) + "/"
+                : "/remote.php/dav/addressbooks/users/" + Uri.EscapeDataString(context.Settings.User) + "/");
+        throw new InvalidDataException("Der DAV-Server hat kein Home-Set bekannt gegeben.");
     }
 
     private async Task<IReadOnlyList<NextcloudDavSource>> ListCollectionsAsync(NextcloudMailboxContext context,
@@ -173,18 +180,23 @@ internal sealed class NextcloudDavClient : IDisposable
     {
         var typeNamespace = kind == "calendar" ? "urn:ietf:params:xml:ns:caldav" : "urn:ietf:params:xml:ns:carddav";
         var typeName = kind == "calendar" ? "calendar" : "addressbook";
+        var componentProperty = kind == "calendar" ? "<c:supported-calendar-component-set/>" : "";
         var xml = await PropFindAsync(context, home, "1",
-            "<d:propfind xmlns:d=\"DAV:\"><d:prop><d:displayname/><d:resourcetype/></d:prop></d:propfind>", cancellationToken).ConfigureAwait(false);
-        ValidateMultiStatus(xml);
+            $"<d:propfind xmlns:d=\"DAV:\" xmlns:c=\"urn:ietf:params:xml:ns:caldav\"><d:prop><d:displayname/><d:resourcetype/>{componentProperty}</d:prop></d:propfind>", cancellationToken).ConfigureAwait(false);
+        ValidateMultiStatus(xml, false);
         var result = new Dictionary<string, NextcloudDavSource>(StringComparer.Ordinal);
         foreach (var response in Responses(xml))
         {
-            if (!Successful(response) || !response.Descendants().Any(element => element.Name.LocalName == typeName && element.Name.NamespaceName == typeNamespace)) continue;
+            var properties = SuccessfulProperties(response).ToArray();
+            if (!Successful(response) || !properties.SelectMany(element => element.DescendantsAndSelf()).Any(element => element.Name.LocalName == typeName && element.Name.NamespaceName == typeNamespace)) continue;
             var rawHref = DirectHref(response); if (rawHref is null) continue;
             var href = ResolveDavHref(context, home, rawHref);
-            var displayName = response.Descendants().FirstOrDefault(element => element.Name.LocalName == "displayname")?.Value.Trim();
-            var uid = StableSourceId(kind, href);
-            result[uid] = new NextcloudDavSource(uid, string.IsNullOrWhiteSpace(displayName) ? Uri.UnescapeDataString(href.Segments.Last().Trim('/')) : displayName, kind, href);
+            var displayName = properties.SelectMany(element => element.DescendantsAndSelf()).FirstOrDefault(element => element.Name.LocalName == "displayname")?.Value.Trim();
+            var uid = StableSourceId(kind, href, context.Settings.AccountType);
+            var components = properties.SelectMany(element => element.DescendantsAndSelf()).FirstOrDefault(element => element.Name.LocalName == "supported-calendar-component-set" && element.Name.NamespaceName == "urn:ietf:params:xml:ns:caldav");
+            var supportsVTodo = components is null || components.Descendants().Any(element => element.Name.LocalName == "comp" &&
+                string.Equals(element.Attribute("name")?.Value, "VTODO", StringComparison.OrdinalIgnoreCase));
+            result[uid] = new NextcloudDavSource(uid, string.IsNullOrWhiteSpace(displayName) ? Uri.UnescapeDataString(href.Segments.Last().Trim('/')) : displayName, kind, href, supportsVTodo);
         }
         return result.Values.OrderBy(item => item.Name, StringComparer.CurrentCultureIgnoreCase).ThenBy(item => item.Uid, StringComparer.Ordinal).ToArray();
     }
@@ -259,7 +271,8 @@ internal sealed class NextcloudDavClient : IDisposable
             }
             if (response.StatusCode != HttpStatusCode.MultiStatus) EnsureSuccess(response);
             var xml = ParseXml(await ReadLimitedAsync(response, MaximumXmlBytes, cancellationToken).ConfigureAwait(false));
-            ValidateMultiStatus(xml);
+            ValidateMultiStatus(xml, false);
+            lastPropFindUri = uri;
             return xml;
         }
     }
@@ -283,6 +296,12 @@ internal sealed class NextcloudDavClient : IDisposable
         return new UriBuilder(server) { Path = basePath + "/" + relative.TrimStart('/'), Query = "", Fragment = "" }.Uri;
     }
 
+    private static Uri OriginUri(NextcloudMailboxContext context, string path)
+    {
+        var server = NextcloudMailbox.ValidateServer(context.Settings.ServerBase);
+        return new UriBuilder(server) { Path = path, Query = "", Fragment = "" }.Uri;
+    }
+
     private static Uri ResolveDavHref(NextcloudMailboxContext context, Uri requestUri, string href)
     {
         if (href.IndexOfAny(['\r', '\n']) >= 0) throw new InvalidDataException("Ungültiger DAV-Href.");
@@ -302,21 +321,29 @@ internal sealed class NextcloudDavClient : IDisposable
             throw new InvalidDataException("DAV-Ziel liegt außerhalb des konfigurierten HTTPS-Origin.");
     }
 
-    private static string? PropertyHref(XDocument xml, string property) => xml.Descendants().FirstOrDefault(element => element.Name.LocalName == property)?
+    private static string? PropertyHref(XDocument xml, string property, string? propertyNamespace = null) => Responses(xml)
+        .SelectMany(SuccessfulProperties).SelectMany(element => element.DescendantsAndSelf()).FirstOrDefault(element => element.Name.LocalName == property &&
+        (propertyNamespace is null || element.Name.NamespaceName == propertyNamespace))?
         .Descendants().FirstOrDefault(element => element.Name.LocalName == "href")?.Value;
     private static IEnumerable<XElement> Responses(XDocument xml) => xml.Descendants().Where(element => element.Name.LocalName == "response" && element.Name.NamespaceName == "DAV:");
     private static string? DirectHref(XElement response) => response.Elements().FirstOrDefault(element => element.Name.LocalName == "href" && element.Name.NamespaceName == "DAV:")?.Value;
     private static bool Successful(XElement response)
     {
-        var statuses = response.Descendants().Where(element => element.Name.LocalName == "status").Select(element => element.Value).ToArray();
-        return statuses.Length > 0 && statuses.All(IsSuccessfulStatus);
+        var direct = response.Elements(XName.Get("status", "DAV:")).Select(element => element.Value).ToArray();
+        if (direct.Length > 0) return direct.All(IsSuccessfulStatus);
+        return response.Elements(XName.Get("propstat", "DAV:")).Any(propstat =>
+            propstat.Element(XName.Get("status", "DAV:")) is { } status && IsSuccessfulStatus(status.Value));
     }
+
+    private static IEnumerable<XElement> SuccessfulProperties(XElement response) => response.Elements(XName.Get("propstat", "DAV:"))
+        .Where(propstat => propstat.Element(XName.Get("status", "DAV:")) is { } status && IsSuccessfulStatus(status.Value))
+        .SelectMany(propstat => propstat.Element(XName.Get("prop", "DAV:"))?.Elements() ?? []);
 
     private static bool IsSuccessfulStatus(string status) =>
         status.StartsWith("HTTP/", StringComparison.Ordinal) && status.Length >= 12 &&
         int.TryParse(status.AsSpan(status.IndexOf(' ') + 1, 3), out var code) && code is >= 200 and <= 299;
 
-    private static void ValidateMultiStatus(XDocument xml)
+    private static void ValidateMultiStatus(XDocument xml, bool requireAllSuccess = true)
     {
         if (xml.Root?.Name != XName.Get("multistatus", "DAV:"))
             throw new InvalidDataException("Die DAV-Antwort ist kein Multi-Status-Dokument.");
@@ -327,9 +354,12 @@ internal sealed class NextcloudDavClient : IDisposable
             var propstats = response.Elements(XName.Get("propstat", "DAV:")).ToArray();
             if (direct.Length + propstats.Length == 0)
                 throw new InvalidDataException("DAV-Antwort ohne Response-Status.");
-            if (direct.Any(status => !IsSuccessfulStatus(status.Value)) || propstats.Any(propstat =>
+            if (requireAllSuccess && (direct.Any(status => !IsSuccessfulStatus(status.Value)) || propstats.Any(propstat =>
                     propstat.Element(XName.Get("status", "DAV:")) is not { } status || !IsSuccessfulStatus(status.Value)))
+                )
                 throw new InvalidDataException("Die DAV-Multi-Status-Antwort ist nur teilweise erfolgreich.");
+            if (!requireAllSuccess && propstats.Any(propstat => propstat.Element(XName.Get("status", "DAV:")) is null))
+                throw new InvalidDataException("DAV-Antwort ohne Property-Status.");
         }
     }
 
@@ -421,8 +451,10 @@ internal sealed class NextcloudCalendarSync(NextcloudDavClient client)
             var parsed = ExchangeCodec.ParseIcs(item.Text);
             var values = parsed.Termine.OfType<JsonObject>().Select(value => (Value: value, Anniversary: false))
                 .Concat(parsed.Jahrestage.OfType<JsonObject>().Select(value => (Value: value, Anniversary: true))).ToArray();
-            if (parsed.Uebersprungen > 0 || values.Length == 0 || values.Length != parsed.Termine.Count + parsed.Jahrestage.Count)
+            if (parsed.FehlerhafteTermine > 0 ||
+                values.Length != parsed.Termine.Count + parsed.Jahrestage.Count)
                 throw new InvalidDataException("Ein CalDAV-Objekt wurde nicht vollständig gelesen.");
+            if (values.Length == 0) continue;
             foreach (var value in values)
             {
                 var uid = ContactFields.Text(value.Value, "uid");
@@ -440,14 +472,23 @@ internal sealed class NextcloudCalendarSync(NextcloudDavClient client)
             if (id.Length == 0) continue;
             if (remote.Remove(id, out var other))
             {
-                await client.DeleteAsync(other.Object.Href, other.Object.ETag, cancellationToken).ConfigureAwait(false); deleted++;
+                var remaining = ExchangeCodec.RemoveCalendarEvent(other.Object.Text, ContactFields.Text(tombstone, "uid"));
+                if (remaining is null) await client.DeleteAsync(other.Object.Href, other.Object.ETag, cancellationToken).ConfigureAwait(false);
+                else
+                {
+                    var changed = await client.UpdateAsync(other.Object.Href, other.Object.ETag, "text/calendar", remaining, cancellationToken).ConfigureAwait(false);
+                    foreach (var key in remote.Keys.ToArray())
+                        if (remote[key].Object.Href == changed.Href)
+                            remote[key] = (changed with { Text = remaining }, remote[key].Data, remote[key].Anniversary);
+                }
+                deleted++;
             }
             var sources = tombstone["syncQuellen"] as JsonObject;
             sources?.Remove(source.Uid);
             if (sources is null || sources.Count == 0) dead.Remove(tombstone);
             else if (tombstone["syncKalenderUid"]?.GetValue<string>() is not string owner || owner.Length == 0 || owner == source.Uid)
                 tombstone["syncKalenderUid"] = sources.FirstOrDefault(item =>
-                    item.Key.StartsWith("nextcloud-calendar:", StringComparison.Ordinal)).Key ?? "";
+                    NextcloudDavSelection.IsCalendar(item.Key)).Key ?? "";
         }
         foreach (var other in remote.Values)
         {
@@ -480,7 +521,7 @@ internal sealed class NextcloudCalendarSync(NextcloudDavClient client)
                     }
                     continue;
                 }
-                if (id.Length > 0 && !additiveOnly && (value["geaendert"]?.GetValue<long>() ?? 0) <= lastSync) { values.Remove(value); deleted++; continue; }
+                if (id.Length > 0 && !anniversary && !additiveOnly && (value["geaendert"]?.GetValue<long>() ?? 0) <= lastSync) { values.Remove(value); deleted++; continue; }
                 var made = await WriteAsync(value, anniversary, null, cancellationToken).ConfigureAwait(false); SetSource(value, source.Uid, RemoteKey(made.Href, value), made.ETag); exported++;
             }
         }
@@ -489,8 +530,9 @@ internal sealed class NextcloudCalendarSync(NextcloudDavClient client)
         {
             using var document = JsonDocument.Parse(new JsonArray(value.DeepClone()).ToJsonString());
             var text = ExchangeCodec.WriteIcs(anniversary ? "ics-jahrestage" : "ics-termine", document.RootElement).Text;
-            if (prior is not null && !anniversary)
-                text = ExchangeCodec.ReplaceCalendarEvent(prior.Text, value);
+            if (prior is not null)
+                text = anniversary ? ExchangeCodec.ReplaceCalendarAnniversary(prior.Text, value)
+                    : ExchangeCodec.ReplaceCalendarEvent(prior.Text, value);
             return prior is null ? await client.CreateAsync(source, ContactFields.Text(value, "uid"), ".ics", "text/calendar", text, token).ConfigureAwait(false)
                 : await client.UpdateAsync(prior.Href, prior.ETag, "text/calendar", text, token).ConfigureAwait(false);
         }
@@ -506,5 +548,116 @@ internal sealed class NextcloudCalendarSync(NextcloudDavClient client)
     private static void CopyCalendar(JsonObject target, JsonObject source)
     {
         foreach (var item in source) if (item.Key is not ("id" or "syncQuellen" or "sync")) target[item.Key] = item.Value?.DeepClone();
+    }
+}
+
+internal sealed record NextcloudTaskResult(JsonArray Tasks, JsonArray Tombstones,
+    int Imported, int Exported, int Updated, int Deleted, int Conflicts);
+
+internal sealed class NextcloudTaskSync(NextcloudDavClient client)
+{
+    internal async Task<NextcloudTaskResult> SyncAsync(NextcloudDavSource source, JsonArray tasks,
+        JsonArray tombstones, long lastSync, bool additiveOnly, CancellationToken cancellationToken)
+    {
+        var local = new JsonArray(tasks.Select(value => value?.DeepClone()).ToArray());
+        var dead = new JsonArray(tombstones.Select(value => value?.DeepClone()).ToArray());
+        GesamtarchivService.NormalizeTaskGraph(local);
+        var remote = new Dictionary<string, (NextcloudDavObject Object, JsonObject Data)>(StringComparer.Ordinal);
+        foreach (var resource in await client.ReadCalendarAsync(source, cancellationToken).ConfigureAwait(false))
+        {
+            var parsed = ExchangeCodec.ParseIcs(resource.Text);
+            if (parsed.FehlerhafteAufgaben > 0) throw new InvalidDataException("Ein CalDAV-Objekt wurde nicht vollständig gelesen.");
+            GesamtarchivService.NormalizeTaskGraph(parsed.Aufgaben);
+            foreach (var task in parsed.Aufgaben.OfType<JsonObject>())
+            {
+                var uid = ContactFields.Text(task, "uid");
+                if (uid.Length == 0 || !remote.TryAdd(uid, (resource, task)))
+                    throw new InvalidDataException("Die CalDAV-Aufgabensammlung enthält fehlende oder doppelte UIDs.");
+            }
+        }
+        var imported = 0; var exported = 0; var updated = 0; var deleted = 0; var conflicts = 0;
+        foreach (var value in local.OfType<JsonObject>().ToArray())
+        {
+            var uid = ContactFields.Text(value, "uid");
+            if (remote.Remove(uid, out var other))
+            {
+                var mapping = ContactFields.Source(value, source.Uid);
+                var localChanged = (value["geaendert"]?.GetValue<long>() ?? 0) > lastSync;
+                var remoteChanged = mapping?["etag"]?.GetValue<string>() != other.Object.ETag;
+                if (!additiveOnly && localChanged && remoteChanged)
+                {
+                    var clone = other.Data.DeepClone().AsObject(); clone["id"] = Guid.NewGuid().ToString("N");
+                    clone["uid"] = $"mag-task-{Guid.NewGuid():N}@magnolie-organizer";
+                    SetSource(clone, source.Uid, other.Object.Href.AbsoluteUri, other.Object.ETag); local.Add(clone); conflicts++;
+                }
+                else if (remoteChanged || additiveOnly)
+                {
+                    CopyTask(value, other.Data); SetSource(value, source.Uid, other.Object.Href.AbsoluteUri, other.Object.ETag); updated++;
+                }
+                else if (localChanged)
+                {
+                    var text = ExchangeCodec.ReplaceCalendarTask(other.Object.Text, value);
+                    var changed = await client.UpdateAsync(other.Object.Href, other.Object.ETag, "text/calendar", text, cancellationToken).ConfigureAwait(false);
+                    RefreshResource(remote, changed, text);
+                    SetSource(value, source.Uid, changed.Href.AbsoluteUri, changed.ETag); updated++;
+                }
+                continue;
+            }
+            if (!additiveOnly)
+            {
+                using var document = JsonDocument.Parse(new JsonArray(value.DeepClone()).ToJsonString());
+                var text = ExchangeCodec.WriteIcs("ics-aufgaben", document.RootElement).Text;
+                var made = await client.CreateAsync(source, uid, ".ics", "text/calendar", text, cancellationToken).ConfigureAwait(false);
+                SetSource(value, source.Uid, made.Href.AbsoluteUri, made.ETag); exported++;
+            }
+        }
+        if (!additiveOnly) foreach (var tombstone in dead.OfType<JsonObject>().ToArray())
+        {
+            var uid = ContactFields.Text(tombstone, "uid");
+            if (remote.Remove(uid, out var other))
+            {
+                var remaining = ExchangeCodec.RemoveCalendarTask(other.Object.Text, uid);
+                if (remaining is null) await client.DeleteAsync(other.Object.Href, other.Object.ETag, cancellationToken).ConfigureAwait(false);
+                else
+                {
+                    var changed = await client.UpdateAsync(other.Object.Href, other.Object.ETag, "text/calendar", remaining, cancellationToken).ConfigureAwait(false);
+                    RefreshResource(remote, changed, remaining);
+                }
+                deleted++;
+            }
+            var sources = tombstone["syncQuellen"] as JsonObject;
+            sources?.Remove(source.Uid);
+            if (sources is null || sources.Count == 0) dead.Remove(tombstone);
+            else if (tombstone["syncKalenderUid"]?.GetValue<string>() is not string owner || owner.Length == 0 || owner == source.Uid)
+                tombstone["syncKalenderUid"] = sources.FirstOrDefault(item =>
+                    NextcloudDavSelection.IsCalendar(item.Key)).Key ?? "";
+        }
+        foreach (var other in remote.Values)
+        {
+            var value = other.Data.DeepClone().AsObject(); value["id"] = Guid.NewGuid().ToString("N");
+            value["geaendert"] = Math.Max(value["geaendert"]?.GetValue<long>() ?? 0, DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
+            SetSource(value, source.Uid, other.Object.Href.AbsoluteUri, other.Object.ETag); local.Add(value); imported++;
+        }
+        GesamtarchivService.NormalizeTaskGraph(local);
+        return new NextcloudTaskResult(local, dead, imported, exported, updated, deleted, conflicts);
+    }
+
+    private static void SetSource(JsonObject value, string source, string id, string etag)
+    {
+        var all = value["syncQuellen"] as JsonObject ?? new JsonObject(); value["syncQuellen"] = all;
+        all[source] = new JsonObject { ["id"] = id, ["etag"] = etag, ["geaendert"] = value["geaendert"]?.DeepClone(), ["eigen"] = true };
+        value["syncKalenderUid"] = source; value["sync"] = true;
+    }
+
+    private static void CopyTask(JsonObject target, JsonObject source)
+    {
+        foreach (var item in source) if (item.Key is not ("id" or "syncQuellen" or "sync")) target[item.Key] = item.Value?.DeepClone();
+    }
+
+    private static void RefreshResource(Dictionary<string, (NextcloudDavObject Object, JsonObject Data)> remote,
+        NextcloudDavObject changed, string text)
+    {
+        foreach (var pair in remote.Where(pair => pair.Value.Object.Href == changed.Href).ToArray())
+            remote[pair.Key] = (changed with { Text = text }, pair.Value.Data);
     }
 }

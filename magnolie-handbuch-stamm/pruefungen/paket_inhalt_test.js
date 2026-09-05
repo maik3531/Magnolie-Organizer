@@ -61,7 +61,7 @@ try {
   }
   const sourcePages = pages(source);
   const installedPages = pages(installed);
-  assert.strictEqual(sourcePages.count, 156, "source package does not contain exactly 156 pages");
+  assert.strictEqual(sourcePages.count, 164, "source package does not contain exactly 164 pages");
   for (const id of ["command-line-and-man-page", "reminder-command-modes",
     "linux-diagnostic-reminder-logs", "windows-diagnostic-logs",
     "supported-environment-variables", "glossary-a-m", "glossary-n-z"]) {

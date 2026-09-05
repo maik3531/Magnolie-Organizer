@@ -82,7 +82,7 @@ fi
 fedora /usr/bin/dnf -y --setopt=install_weak_deps=False install fakeroot
 fedora /usr/bin/fakeroot /usr/bin/dnf -y --setopt=install_weak_deps=False install \
     appstream desktop-file-utils dpkg-dev gettext gtk3 libnotify nodejs \
-    python3-cryptography python3-devel python3-gobject python3-pyOpenSSL \
+    python3-cryptography python3-devel python3-gobject python3-phonenumbers python3-pyOpenSSL \
     python3-pytest python3-qrcode python3-zeroconf rpm-build webkit2gtk4.1 xdg-utils \
     cmake gcc-c++ extra-cmake-modules akonadi-server-devel \
     kf6-kcalendarcore-devel kf6-kcontacts-devel
@@ -129,7 +129,7 @@ AKONADI_RPM=$1
 test "$(fedora /usr/bin/rpm -qp --qf '%{LICENSE}' "$AKONADI_RPM")" = \
     GPL-3.0-or-later
 fedora /bin/sh -c \
-    "/usr/bin/rpm -qp --requires '$AKONADI_RPM' | /usr/bin/grep -Fx 'magnolie-organizer >= 2.0.16'"
+    "/usr/bin/rpm -qp --requires '$AKONADI_RPM' | /usr/bin/grep -Fx 'magnolie-organizer >= 2.0.17'"
 ORGANIZER_DATEILISTE="$ARBEIT/organizer-rpm-files.txt"
 HANDBUCH_DATEILISTE="$ARBEIT/handbook-rpm-files.txt"
 fedora /usr/bin/rpm -qp --qf '[%{FILENAMES}\t%{FILEMODES}\n]' \
@@ -154,6 +154,10 @@ if overlap:
     raise SystemExit("RPM-Pakete enthalten gemeinsame Dateien: " +
                      ", ".join(sorted(overlap)))
 PY
+# BuildRequires must not mask missing runtime Requires during installation.
+fedora /usr/bin/fakeroot /usr/bin/dnf -y remove \
+    gtk3 libnotify python3-cryptography python3-gobject python3-phonenumbers \
+    python3-pyOpenSSL python3-qrcode python3-zeroconf webkit2gtk4.1
 fedora /usr/bin/fakeroot /usr/bin/dnf -y --setopt=install_weak_deps=False install \
     "$ORGANIZER_RPM" "$HANDBUCH_RPM" "$AKONADI_RPM"
 fedora /usr/bin/rpm -V magnolie-organizer magnolie-handbuch magnolie-organizer-akonadi

@@ -398,13 +398,28 @@ try
     var gesamtArchive = GesamtarchivService.Create(fullArchiveData, "windows", "2.0.2", "",
         DateTimeOffset.Parse("2026-08-11T12:34:56+00:00"));
     var archiveInfo = GesamtarchivService.Read(gesamtArchive);
-    Check(JsonNode.DeepEquals(archiveInfo.Daten, fullArchiveData) && archiveInfo.Fotos == 4 && archiveInfo.Anhaenge == 3,
-        "Gesamtarchiv-Vollmodell mit bytegleichen Data-URLs und unbekannten Feldern");
+    var archivedData = JsonNode.Parse(gesamtArchive)!["daten"]!.AsObject();
+    Check(JsonNode.DeepEquals(archiveInfo.Daten, archivedData) && archiveInfo.Daten["version"]!.GetValue<int>() == 7 &&
+          archiveInfo.Fotos == 4 && archiveInfo.Anhaenge == 3,
+        "Gesamtarchiv-Vollmodell nach Schema-3-Migration");
+    Check(JsonNode.DeepEquals(archiveInfo.Daten["zukuenftigesFeld"], fullArchiveData["zukuenftigesFeld"]) &&
+          JsonNode.DeepEquals(archiveInfo.Daten["kontakte"]![0]!["unbekanntKontakt"], fullArchiveData["kontakte"]![0]!["unbekanntKontakt"]),
+        "Schema-3-Migration bewahrt unbekannte Root- und Kontaktfelder");
+    Check(archiveInfo.Daten["kontakte"]![0]!["foto"]!.GetValue<string>() == fullArchiveData["kontakte"]![0]!["foto"]!.GetValue<string>() &&
+          archiveInfo.Daten["kontakte"]![1]!["foto"]!.GetValue<string>() == fullArchiveData["kontakte"]![1]!["foto"]!.GetValue<string>() &&
+          archiveInfo.Daten["kontakte"]![2]!["foto"]!.GetValue<string>() == fullArchiveData["kontakte"]![2]!["foto"]!.GetValue<string>() &&
+          archiveInfo.Daten["kontakte"]![3]!["foto"]!.GetValue<string>() == fullArchiveData["kontakte"]![3]!["foto"]!.GetValue<string>() &&
+          archiveInfo.Daten["notizen"]![0]!["anhaenge"]![0]!["daten"]!.GetValue<string>() == fullArchiveData["notizen"]![0]!["anhaenge"]![0]!["daten"]!.GetValue<string>() &&
+          archiveInfo.Daten["notizen"]![0]!["anhaenge"]![1]!["daten"]!.GetValue<string>() == fullArchiveData["notizen"]![0]!["anhaenge"]![1]!["daten"]!.GetValue<string>() &&
+          archiveInfo.Daten["papierkorb"]![0]!["wert"]!["anhaenge"]![0]!["daten"]!.GetValue<string>() == fullArchiveData["papierkorb"]![0]!["wert"]!["anhaenge"]![0]!["daten"]!.GetValue<string>(),
+        "Schema-3-Migration bewahrt Foto- und Anhang-Data-URLs bytegleich");
+    Check(fullArchiveData["version"]!.GetValue<int>() == 6 && fullArchiveData["aufgaben"]![0]!["uid"] is null,
+        "Schema-3-Migration mutiert den übergebenen Datenbestand nicht");
     Check(JsonNode.Parse(gesamtArchive)!["sha256"]!.GetValue<string>() ==
-          "e17205be343f22cf24d379d954c2bfec0fbf62807143fb7af29e90fe1ba1a0c9",
+          "b673f30a36c0c0b1a3151121ce33d0c76abd9103aaa52bafed1564ce53be16e4",
         "gemeinsamer Python/.NET-Golden-Vector des kanonischen Vollmodells");
     var protectedArchive = GesamtarchivService.Create(fullArchiveData, "linux", "1.31.95", "Rosenholz1896");
-    Check(JsonNode.DeepEquals(GesamtarchivService.Read(protectedArchive, "Rosenholz1896").Daten, fullArchiveData),
+    Check(JsonNode.DeepEquals(GesamtarchivService.Read(protectedArchive, "Rosenholz1896").Daten, archiveInfo.Daten),
         "Linux/Windows-kompatible AES-GCM-Hülle für Gesamtarchive");
     try { _ = GesamtarchivService.Read(protectedArchive, "falsch"); throw new InvalidOperationException("Falsches Archivkennwort angenommen"); }
     catch (CryptographicException) { }
@@ -416,7 +431,7 @@ try
     try { _ = GesamtarchivService.Read(damagedArchive.ToJsonString()); throw new InvalidOperationException("Unbekannte Archivfassung angenommen"); }
     catch (InvalidDataException) { }
     damagedArchive = JsonNode.Parse(gesamtArchive)!.AsObject(); damagedArchive["zusaetzlich"] = new JsonObject { ["bleibt"] = true };
-    Check(JsonNode.DeepEquals(GesamtarchivService.Read(damagedArchive.ToJsonString()).Daten, fullArchiveData),
+    Check(JsonNode.DeepEquals(GesamtarchivService.Read(damagedArchive.ToJsonString()).Daten, archiveInfo.Daten),
         "Unbekannte optionale Containerfelder werden akzeptiert");
     var localSettings = JsonNode.Parse("""{"einstellungen":{"allgemein":{"tray":{"aktiv":false,"autostart":false},"sicherungsordner":"C:\\lokal"},"sync":{"kalenderUids":["lokal"]}}}""")!.AsObject();
     var overlaid = GesamtarchivService.PreserveDeviceSettings(fullArchiveData, localSettings, true);
@@ -531,6 +546,18 @@ try
         "VCF importiert Kontakt und Geburtstag");
     Check(contactImport.Kontakte[0]?["nachname"]?.ToString() == "Muster" &&
           contactImport.Kontakte[0]?["mobil"]?.ToString() == "+49170123456", "VCF-Feldabbildung");
+    var nameOnly = ExchangeCodec.ParseVCard("""
+        BEGIN:VCARD
+        VERSION:3.0
+        UID:name-only
+        N:;;;;
+        FN:Meyer Schulze
+        ORG:;Vertrieb
+        END:VCARD
+        """);
+    Check(nameOnly.Kontakte[0]?["nachname"]?.ToString() == "Schulze" &&
+          nameOnly.Kontakte[0]?["vorname"]?.ToString() == "Meyer",
+        "Unstrukturierter VCF-Anzeigename wird plattformgleich zerlegt");
     var escapedAddress = ExchangeCodec.ParseVCard(vcard.Replace("Gartenweg 1;Berlin", "Gartenweg 1\\; Hinterhaus;Berlin"));
     Check(escapedAddress.Kontakte[0]?["strasse"]?.ToString() == "Gartenweg 1; Hinterhaus" &&
           escapedAddress.Kontakte[0]?["ort"]?.ToString() == "Berlin", "VCF-Strukturwerte beachten Escapes");
@@ -601,6 +628,15 @@ try
           ldifImport.Kontakte[0]?["foto"]?.ToString().StartsWith("data:image/jpeg;base64,") == true &&
           ldifImport.Kontakte[0]?["geburtstagJahrUnbekannt"]?.GetValue<bool>() == true,
         "Thunderbird-LDIF liest Mozilla-Aliasse, Geburtstagsteile, Home-Felder und jpegPhoto: " + ldifImport.Kontakte.ToJsonString());
+    var displayOnlyLdif = ExchangeCodec.ParseLdif("""
+        dn: cn=Meyer Schulze
+        cn: Meyer Schulze
+        mail: name-only@example.test
+
+        """);
+    Check(displayOnlyLdif.Kontakte[0]?["nachname"]?.ToString() == "Schulze" &&
+          displayOnlyLdif.Kontakte[0]?["vorname"]?.ToString() == "Meyer",
+        "Unstrukturierter LDIF-Anzeigename wird plattformgleich zerlegt");
     using (var ldifDocument = JsonDocument.Parse("""
         [{"uid":"kontakt,sonder","vorname":"Änne","nachname":"Bei,spiel","firma":"Muster GmbH","emailEintraege":[{"wert":"aenne@example.org","typen":["HOME"]},{"wert":"buero@example.org","typen":["WORK"]}],"telefone":[{"wert":"0203 1","typen":["VOICE"]},{"wert":"0171 2","typen":["CELL"]},{"wert":"0203 3","typen":["HOME"]},{"wert":"0203 4","typen":["WORK"]},{"wert":"0203 5","typen":["FAX"]},{"wert":"0203 6","typen":["PAGER"]}],"anschriften":[{"strasse":"A$B Straße 1","plz":"47051","ort":"Duisburg","land":"Deutschland"},{"strasse":"Büro 2","plz":"10115","ort":"Berlin","land":"Deutschland"}],"notiz":"Erste Zeile\nZweite Zeile mit Unicode Ä und einer ausreichend langen Beschreibung für eine sichere Faltung über mehrere physische LDIF-Zeilen.","geburtstag":"1980-04-03","foto":"data:image/jpeg;base64,/9j/2Q=="}]
         """))
@@ -687,6 +723,49 @@ try
     Check(ReminderScheduler.DueAnniversaries(reminderRoot, reminderSettings, new DateTime(2026, 8, 11, 9, 0, 0))
         .Any(item => item.Key.Contains(":vorlauf", StringComparison.Ordinal)), "Jahrestagsvorlauf");
 
+    using var customReminderDocument = JsonDocument.Parse(ReminderScheduler.SelectRuntimeData("""
+        {
+          "einstellungen":{"erinnerung":{"an":true,"aufgaben":true}},
+          "termine":[{"id":"gleich","datum":"2026-08-11","titel":"Kalender"}],
+          "aufgaben":[{"id":"gleich","faellig":"2026-08-11","titel":"Global","erinnern":true}],
+          "customOrganizer":{"version":3,"modules":[
+            {"id":"termine","type":"appointments","title":"Privat","reminders":true,
+             "items":[{"id":"gleich","title":"Abholen","date":"2026-08-11","time":"14:30:59","remind":true,
+                        "wiederholung":{"art":"yearly","bis":"","notiz":"nicht übernehmen"}},
+                      {"id":"kaputt","title":"Falsch","date":"2026-99-99","remind":true}]},
+            {"id":"aufgaben","type":"tasks","title":"Werkstatt","reminders":true,
+             "items":[{"id":"gleich","title":"Prüfen","due":"2026-08-11","remind":true,"done":false},
+                      {"id":"kaputt","title":"Falsch","due":"kein-datum","remind":true,"done":false}]}
+          ]}
+        }
+        """));
+    var customReminderRoot = customReminderDocument.RootElement;
+    var customAppointments = customReminderRoot.GetProperty("termine").EnumerateArray().ToArray();
+    var customTasks = customReminderRoot.GetProperty("aufgaben").EnumerateArray().ToArray();
+    Check(customAppointments.Length == 2 && customTasks.Length == 2 &&
+           customAppointments.Any(item => item.GetProperty("id").GetString() == "custom:termine:gleich" &&
+                                          item.GetProperty("zeit").GetString() == "14:30" &&
+                                          item.GetProperty("wiederholung").GetProperty("art").GetString() == "yearly" &&
+                                          !item.GetProperty("wiederholung").TryGetProperty("notiz", out _)) &&
+          customTasks.Any(item => item.GetProperty("id").GetString() == "custom:aufgaben:gleich"),
+        "eigene Erinnerungen validieren Datum und Zeit oder verlieren kollisionsfreie Kennungen");
+    var manyCustomItems = string.Join(",", Enumerable.Range(0, 150).Select(index =>
+        $"{{\"id\":\"{index}\",\"title\":\"Termin\",\"date\":\"2026-08-11\"}}"));
+    using var manyCustomDocument = JsonDocument.Parse(ReminderScheduler.SelectRuntimeData(
+        "{\"customOrganizer\":{\"modules\":[{\"id\":\"viele\",\"type\":\"appointments\",\"reminders\":true,\"items\":[" +
+        manyCustomItems + "]}]}}"));
+    Check(manyCustomDocument.RootElement.GetProperty("termine").GetArrayLength() == 150,
+        "Erinnerungsbestand schneidet eigene Termine nach 100 Einträgen ab");
+
+    var restoreSnapshot = JsonNode.Parse("""{"kontakte":[{"id":"alt"}],"customOrganizer":{"version":3}}""")!.AsObject();
+    var restoreCurrent = JsonNode.Parse("""{"kontakte":[{"id":"neu"}],"customOrganizer":{"version":2}}""")!.AsObject();
+    var completeRestore = RestoreSelection.Select(restoreSnapshot, restoreCurrent, ["all"], "replace");
+    Check(completeRestore["customOrganizer"]?["version"]?.GetValue<int>() == 3,
+        "vollständige Wiederherstellung lässt Datenbereiche aus");
+    TestAssert.Throws<InvalidDataException>(() => RestoreSelection.Select(
+        restoreSnapshot, restoreCurrent, ["all", "contacts"], "replace"),
+        "gemischte vollständige und partielle Wiederherstellung wurde angenommen");
+
     using var trayDocument = JsonDocument.Parse("""
         {"aktiv":true,"startMinimiert":true,"autostart":true,"oeffnen":"zentriert"}
         """);
@@ -724,14 +803,17 @@ try
           <item oor:path="/org.openoffice.UserProfile/Data"><prop oor:name="street"><value>Musterweg 3</value></prop></item>
           <item oor:path="/org.openoffice.UserProfile/Data"><prop oor:name="postalcode"><value>47051</value></prop></item>
           <item oor:path="/org.openoffice.UserProfile/Data"><prop oor:name="l"><value>Duisburg</value></prop></item>
+          <item oor:path="/org.openoffice.UserProfile/Data"><prop oor:name="c"><value>DE</value></prop></item>
+          <item oor:path="/org.openoffice.UserProfile/Data"><prop oor:name="st"><value>Nordrhein-Westfalen</value></prop></item>
         </oor:items>
         """);
     Check(LibreOfficeUserData.FindSettingsFile(root) == libreOfficeFile,
         "LibreOffice-Einstellungsdatei wird gefunden");
     var libreOffice = LibreOfficeUserData.Read(libreOfficeFile);
     Check(libreOffice.Ok && libreOffice.Absender ==
-          "Erika Beispiel\nBeispiel & Söhne\nMusterweg 3\n47051 Duisburg" &&
-          !libreOffice.Absender.Contains("NichtIch"), "LibreOffice-Anschrift wird sicher übernommen");
+          "Erika Beispiel\nBeispiel & Söhne\nMusterweg 3\n47051 Duisburg\nDE" &&
+          libreOffice.Felder["st"] == "Nordrhein-Westfalen" &&
+          !libreOffice.Absender.Contains("NichtIch"), "LibreOffice-Anschrift einschließlich Region wird sicher übernommen");
     File.WriteAllText(libreOfficeFile,
         "<!DOCTYPE x [<!ENTITY xxe SYSTEM \"file:///etc/passwd\">]><x>&xxe;</x>");
     var xxe = LibreOfficeUserData.Read(libreOfficeFile);

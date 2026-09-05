@@ -185,6 +185,7 @@ internal sealed class TelefonCoordinator : IDisposable
         var settings = store.PersonalSettings(id);
         if (!settings.OwnDevice || !settings.RemoteOwnDevice || needed.Count == 0 || needed.Any(name => store.LocalGrants()[name]?.GetValue<bool>() != true || peer.Grants[name]?.GetValue<bool>() != true)) throw new InvalidOperationException(T("Personal synchronization is not permitted on both devices."));
         if (body["format"]?.GetValue<int>() == 2 && !SupportsPersonalFormat2(peer)) throw new InvalidOperationException(T("Personal synchronization format 2 was not negotiated."));
+        if (body["format"]?.GetValue<int>() == 3 && needed.Any(name => !SupportsPersonalFormat(peer, name, 3))) throw new InvalidOperationException(T("Personal synchronization format 3 was not negotiated."));
         string policy;
         if (kind == "personal_sync.request") { personalSync.RememberRun(id, body, now); policy = body["trigger"]?.GetValue<string>() == "auto_wifi" ? "wifi_only" : "any"; }
         else { if (run!.Expired) throw new InvalidOperationException(T("The personal synchronization run has expired.")); policy = run.Policy; }
@@ -635,7 +636,7 @@ internal sealed class TelefonCoordinator : IDisposable
                 await radioSwitch.ReleaseAsync("waehlen/" + peer.Id);
             }
             else if (callState == "idle") await radioSwitch.ReleaseAllAsync(peer.Id);
-            await emit("App.telefonEingehenderAnruf", WithPeer(body, peer)); return null;
+            await emit("App.telefonEingehenderAnruf", PhoneRegionInfo.Enrich(WithPeer(body, peer))); return null;
         }
         if (TelefonProtocolContract.PersonalKinds.Contains(kind)) return await HandlePersonalMessageAsync(peer, message, body, transport);
         if (kind != "device_status.report") return null;
@@ -653,6 +654,7 @@ internal sealed class TelefonCoordinator : IDisposable
         var grants = PersonalGrants(kind, body, run?.Request); if (grants.Count == 0 || grants.Any(name => store.LocalGrants()[name]?.GetValue<bool>() != true || peer.Grants[name]?.GetValue<bool>() != true)) return new TelefonAck(id, "rejected", "not_granted");
         var settings = store.PersonalSettings(peer.Id); if (!settings.OwnDevice || !settings.RemoteOwnDevice) return new TelefonAck(id, "rejected", "not_granted");
         if (body["format"]?.GetValue<int>() == 2 && !SupportsPersonalFormat2(peer)) return new TelefonAck(id, "rejected", "invalid_schema");
+        if (body["format"]?.GetValue<int>() == 3 && grants.Any(name => !SupportsPersonalFormat(peer, name, 3))) return new TelefonAck(id, "rejected", "invalid_schema");
         if (kind == "personal_sync.request") { personalSync.RememberRun(peer.Id, body, now, message["expires_ms"]!.GetValue<long>()); await emit("App.telefonPersonalSync", new { device_id = peer.Id, transport, kind, body }); return null; }
         if (kind == "personal_sync.batch")
         {
@@ -733,6 +735,8 @@ internal sealed class TelefonCoordinator : IDisposable
     }
     private static JsonObject WithPeer(JsonObject body, TelefonPeer peer) { var copy = body.DeepClone().AsObject(); copy["device_id"] = peer.Id; copy["display_name"] = peer.Name; return copy; }
     internal static bool SupportsPersonalFormat2(TelefonPeer peer) => peer.Capabilities["personal_notes_sync"]?["versions"] is JsonArray versions && versions.Any(item => item?.GetValue<int>() == 2);
+    private static bool SupportsPersonalFormat(TelefonPeer peer, string capability, int format) =>
+        peer.Capabilities[capability]?["versions"] is JsonArray versions && versions.Any(item => item?.GetValue<int>() == format);
     internal static string IncomingCallDisposition(JsonObject? current, JsonObject incoming)
     {
         if (current is null || current["call_ref"]?.GetValue<string>() != incoming["call_ref"]?.GetValue<string>()) return "accepted";

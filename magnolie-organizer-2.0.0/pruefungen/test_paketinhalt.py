@@ -3,8 +3,10 @@
 
 from pathlib import Path
 import base64
+import hashlib
 import re
 import sys
+import tarfile
 import xml.etree.ElementTree as ET
 
 
@@ -14,8 +16,9 @@ sys.path.insert(0, str(ROOT / "werkzeuge"))
 from png_pruefen import pruefen as png_pruefen
 WINDOWS = WORKSPACE / "Magnolie-Organizer-Windows-2.0.0"
 HANDBOOK = WORKSPACE / "magnolie-handbuch-stamm"
-VERSION = "2.0.16"
-MANIFEST_VERSION = VERSION
+NOTES = WORKSPACE / "magnolie-notes-1.0.13"
+VERSION = "2.0.17"
+PUBLISHED_VERSION = "2.0.16"
 INTERNAL_NOTE = re.compile(
     r"(REVIEW|ENTWURF|OFFENE[-_ ]?PUNKTE|ANALYSE|PLAN|AUDIT).*\.md$", re.I)
 PRIVATE_KEY = re.compile(
@@ -42,6 +45,29 @@ for source_path in ROOT.rglob("*"):
         assert not PRIVATE_KEY.search(source_path.read_bytes()), \
             f"privater Schlüssel im Quellbaum: {relative}"
 
+staged_apk = WORKSPACE / "Magnolie-Notes-1.0.13.apk"
+built_apk = NOTES / "app/build/outputs/apk/release/app-release.apk"
+source_archive = WORKSPACE / "magnolie-notes_1.0.13.tar.xz"
+if NOTES.exists() and all(path.is_file() for path in (
+        staged_apk, built_apk, source_archive)):
+    assert hashlib.sha256(staged_apk.read_bytes()).digest() == \
+        hashlib.sha256(built_apk.read_bytes()).digest()
+    excluded = {".gradle", ".kotlin", "build"}
+    source_files = {
+        path.relative_to(WORKSPACE).as_posix(): path
+        for path in NOTES.rglob("*")
+        if path.is_file() and not path.is_symlink() and
+        not any(part in excluded for part in path.relative_to(NOTES).parts) and
+        path.name not in {"local.properties", "schluessel.properties"}
+    }
+    with tarfile.open(source_archive, "r:xz") as archive:
+        archived_files = {member.name: member for member in archive.getmembers()
+                          if member.isfile()}
+        assert set(archived_files) == set(source_files)
+        for name, path in source_files.items():
+            stream = archive.extractfile(archived_files[name])
+            assert stream is not None and stream.read() == path.read_bytes(), name
+
 
 assert f'PROGRAMM_FASSUNG = "{VERSION}"' in text(ROOT / "bin/magnolie-organizer")
 version_lock = WORKSPACE / "DESKTOP_VERSION"
@@ -65,6 +91,21 @@ if WINDOWS.exists():
     assert "New-DeterministicZip" in windows_build
     assert "Compression.ZipArchive" in windows_common
     assert "Compress-Archive" not in windows_build
+for readme_name in ("README.md", "README.DE.md"):
+    readme_path = WORKSPACE / readme_name
+    if readme_path.exists():
+        readme = text(readme_path)
+        assert f"/Magnolie-Organizer-{VERSION}-x86_64.flatpak" in readme
+        assert f"/Magnolie-Organizer-{VERSION}-x86_64.AppImage" in readme
+        assert f"/magnolie-organizer_{VERSION}_all.deb" in readme
+        assert f"/Magnolie-Organizer-Windows-{VERSION}-Setup-x64.exe" in readme
+        assert f"/Magnolie-Organizer-Windows-{VERSION}-x64.zip" in readme
+        assert f"/magnolie-handbuch_{VERSION}_all.deb" in readme
+        desktop_download_versions = re.findall(
+            r"/Magnolie-Organizer(?:-Windows)?-(\d+\.\d+\.\d+)-"
+            r"|/magnolie-(?:organizer|handbuch)_(\d+\.\d+\.\d+)_", readme)
+        assert desktop_download_versions
+        assert all(VERSION in match for match in desktop_download_versions)
 if HANDBOOK.exists():
     handbook_rules = text(HANDBOOK / "debian/rules")
     assert "override_dh_auto_test:" in handbook_rules
@@ -74,7 +115,8 @@ if HANDBOOK.exists():
 
 organizer_update = ET.parse(ROOT / "update.xml").getroot()
 for manifest in (organizer_update,):
-    assert manifest.findtext("version") == VERSION
+    manifest_version = manifest.findtext("version")
+    assert manifest_version in {PUBLISHED_VERSION, VERSION}
     signatur = manifest.findtext("signature")
     pruefsummen = [manifest.findtext(pfad) for pfad in (
         "sha256", "appimage/sha256", "manual/linux/sha256",
@@ -88,7 +130,7 @@ for manifest in (organizer_update,):
     manual = manifest.find("manual")
     assert manual is not None
     assert [child.tag for child in manual] == ["version", "linux", "windows"]
-    assert manual.findtext("version") == VERSION
+    assert manual.findtext("version") == manifest_version
 install_manifest = text(ROOT / "debian/install")
 debian_control = text(ROOT / "debian/control")
 recommends = debian_control.split("Recommends:", 1)[1].split("Suggests:", 1)[0]
@@ -117,6 +159,12 @@ assert '"/kaffee-qr.png": ("kaffee-qr.mga", "image/png")' in text(
 rpm_builder = text(ROOT / "werkzeuge/rpm_bauen.sh")
 for marker in ("REVIEW", "ENTWURF", "OFFENE-PUNKTE", "ANALYSE", "PLAN", "AUDIT"):
     assert marker in rpm_builder
+appimage_builder = text(ROOT / "werkzeuge/appimage_bauen.sh")
+assert appimage_builder.startswith("#!/bin/sh\nset -eu\numask 022\n")
+assert "phonenumbers-9.0.38-py2.py3-none-any.whl" in appimage_builder
+assert "f3cbeb1a42bf226060c60fc6277f5431755d325eddc23fbf2c72ef7e156113c6" in appimage_builder
+assert "Das phonenumbers-Wheel ist ungueltig." in appimage_builder
+assert "phonenumbers-copyright" in appimage_builder
 source_options = text(ROOT / "debian/source/options")
 assert "magnolie_personal_sync.py" not in source_options
 rpm_spec = text(ROOT / "rpm/magnolie-organizer.spec")
@@ -176,8 +224,14 @@ assert all(('command == QLatin1String("%s")' % command) in akonadi_source
 assert "Package: magnolie-organizer-akonadi" in akonadi_control
 assert "magnolie-organizer-akonadi (1.0.0)" in akonadi_changelog.splitlines()[0]
 assert text(ROOT / "native" / "akonadi-helper" / "debian" / "source" / "format").strip() == "3.0 (native)"
-assert "magnolie-organizer (>= 2.0.16)" in akonadi_control
+assert "magnolie-organizer (>= 2.0.17)" in akonadi_control
 assert "magnolie-organizer-akonadi" in debian_control
+organizer_binary_control = debian_control.split("Package: magnolie-organizer\n", 1)[1]
+organizer_hard_dependencies = organizer_binary_control.split("Recommends:", 1)[0].lower()
+assert all(name not in organizer_hard_dependencies
+           for name in ("akonadi", "kdepim", "libkf", "qt5", "qt6"))
+assert "Suggests:" in organizer_binary_control
+assert "magnolie-organizer-akonadi" in organizer_binary_control.split("Suggests:", 1)[1]
 akonadi_rules = text(ROOT / "native" / "akonadi-helper" / "debian" / "rules")
 assert "-DCMAKE_DISABLE_FIND_PACKAGE_KPim6Akonadi=ON" in akonadi_rules
 assert "-DCMAKE_INSTALL_LIBEXECDIR=libexec" in akonadi_rules
@@ -190,7 +244,7 @@ assert 'dh_shlibdeps -- -L"$$MAGNOLIE_SHLIBS_LOCAL"' in akonadi_rules
 assert re.search(r"else \\\n\s*dh_shlibdeps;", akonadi_rules)
 assert "%cmake -DCMAKE_BUILD_TYPE=Release" not in akonadi_spec
 for metadata in ("Version:        1.0.0", "Source0:        %{name}-%{version}.tar.xz",
-                 "Requires:       magnolie-organizer >= 2.0.16",
+                 "Requires:       magnolie-organizer >= 2.0.17",
                  "%license debian/copyright", "%dir %{_libexecdir}/magnolie-organizer"):
     assert metadata in akonadi_spec
 assert "Suggests:       magnolie-organizer-akonadi" in rpm_spec
@@ -261,10 +315,11 @@ fedora_builder = text(ROOT / "werkzeuge/rpm_fedora_bauen.sh")
 for gate in ("Fedora-WSL-Base-42-1.1.x86_64.tar.xz", "BASIS_SHA=", "bwrap",
               "--unshare-user", "gpgcheck=1", "rpm -V",
               "magnolie-organizer", "magnolie-handbuch", "rpm -qf",
-              "dnf -y remove magnolie-handbuch"):
+              "dnf -y remove magnolie-handbuch",
+              "dnf -y remove \\\n    gtk3 libnotify"):
     assert gate in fedora_builder, gate
 assert "install fakeroot" in fedora_builder
-assert fedora_builder.count("/usr/bin/fakeroot /usr/bin/dnf") == 3
+assert fedora_builder.count("/usr/bin/fakeroot /usr/bin/dnf") == 4
 assert fedora_builder.count("chmod -R u+rwX") == 2
 for gate in ("AKONADI_TOPDIR", '--bind "$AKONADI_TOPDIR" "$AKONADI_TOPDIR"',
              "magnolie-organizer-akonadi-$AKONADI_VERSION.tar.xz",
@@ -294,6 +349,8 @@ assert "AppImage|flatpak" in release_builder
 assert 'export MAGNOLIE_CONTRIBUTOR_HASH' in release_builder
 assert 'build-config.json' in release_builder
 assert 'MAGNOLIE_CONTRIBUTOR_HASH="$CONTRIBUTOR_HASH"' in fedora_builder
+assert 'grep -Fq "magnolie-organizer (>= $FASSUNG)"' in release_builder
+assert "magnolie-organizer \\(>= 2[.]0[.]16\\)" not in release_builder
 assert release_builder.count("dpkg-buildpackage -b -d -us -uc") == 6
 assert release_builder.count("DEB_BUILD_OPTIONS=nocheck") == 9
 assert "dpkg-buildpackage -S -d -us -uc" in release_builder
@@ -335,7 +392,7 @@ if (WORKSPACE / ".gitignore").is_file():
     assert "*.buildinfo" in workspace_ignore and "*.changes" in workspace_ignore
     release_notes = text(WORKSPACE / "HINWEIS.txt")
     assert "Akonadi-Helfers" in release_notes
-    assert "Akonadi helper" in release_notes
+    assert "native first-run" in release_notes and "assistant" in release_notes
     release_guide = text(WORKSPACE / "FREIGABE.md")
     assert "MAGNOLIE_SHLIBS_LOCAL=/pfad/zu/lokalen.shlibs" in release_guide
     assert "nicht für normale Paketbauten gesetzt" in release_guide
@@ -346,7 +403,7 @@ for source_root in (ROOT, WINDOWS, HANDBOOK):
 
 current_files = [
     (ROOT / "LIESMICH.md", VERSION),
-    (ROOT / "update.xml", MANIFEST_VERSION),
+    (ROOT / "update.xml", manifest_version),
 ]
 if WINDOWS.exists():
     current_files += [(WINDOWS / "LIESMICH.md", VERSION)]
@@ -363,4 +420,4 @@ def test_statische_paketpruefung():
     assert True
 
 
-print("Paketinhalt und Linux-Version 2.0.16: ok")
+print("Paketinhalt und Linux-Version 2.0.17: ok")

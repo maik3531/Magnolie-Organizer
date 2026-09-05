@@ -75,6 +75,13 @@ def error_code(error):
     return getattr(error, "code", "nextcloud_error")
 
 
+def validate_account_type(value):
+    value = str(value or "nextcloud").strip().lower()
+    if value not in ("nextcloud", "generic-dav"):
+        raise ValueError("Die DAV-Kontoart ist ungueltig.")
+    return value
+
+
 def validate_server(value):
     value = str(value or "").strip()
     parsed = urllib.parse.urlsplit(value)
@@ -200,8 +207,10 @@ class NextcloudSettingsStore:
         self.secrets = secrets or SecretServiceStore()
 
     @staticmethod
-    def account(server, user):
-        return hashlib.sha256((validate_server(server) + "\0" +
+    def account(server, user, account_type="nextcloud"):
+        account_type = validate_account_type(account_type)
+        discriminator = "" if account_type == "nextcloud" else account_type + "\0"
+        return hashlib.sha256((discriminator + validate_server(server) + "\0" +
                                validate_user(user)).encode("utf-8")).hexdigest()
 
     def load(self):
@@ -212,14 +221,19 @@ class NextcloudSettingsStore:
                 value = json.load(source)
             keys = set(value)
             if keys not in ({"aktiv", "server", "benutzer"},
-                            {"davAktiv", "briefkastenAktiv", "server", "benutzer"}):
+                            {"davAktiv", "briefkastenAktiv", "server", "benutzer"},
+                            {"kontoArt", "davAktiv", "briefkastenAktiv", "server", "benutzer"}):
                 raise ValueError
+            account_type = validate_account_type(value.get("kontoArt", "nextcloud"))
             old_active = value.get("aktiv")
             dav_active = value.get("davAktiv", old_active)
             mailbox_active = value.get("briefkastenAktiv", old_active)
             if not isinstance(dav_active, bool) or not isinstance(mailbox_active, bool):
                 raise ValueError
-            return {"davAktiv": dav_active, "briefkastenAktiv": mailbox_active,
+            if account_type == "generic-dav" and mailbox_active:
+                raise ValueError
+            return {"kontoArt": account_type, "davAktiv": dav_active,
+                    "briefkastenAktiv": mailbox_active,
                     "server": validate_server(value["server"]),
                     "benutzer": validate_user(value["benutzer"])}
         except FileNotFoundError:
@@ -232,23 +246,29 @@ class NextcloudSettingsStore:
         settings = settings or self.load()
         if not settings:
             return False
-        return bool(self.secrets.lookup(self.account(settings["server"], settings["benutzer"])))
+        return bool(self.secrets.lookup(self.account(settings["server"], settings["benutzer"],
+                                                     settings.get("kontoArt"))))
 
     def password(self, settings=None):
         settings = settings or self.load()
         if not settings:
             raise NextcloudError("Nextcloud ist nicht eingerichtet.", "not_configured")
-        password = self.secrets.lookup(self.account(settings["server"], settings["benutzer"]))
+        password = self.secrets.lookup(self.account(settings["server"], settings["benutzer"],
+                                                    settings.get("kontoArt")))
         if not password:
             raise NextcloudError("Das Nextcloud-App-Kennwort fehlt.", "app_password_missing")
         return password
 
     def save(self, dav_active, mailbox_active, server, user, password="",
-             delete_password=False):
+              delete_password=False, account_type="nextcloud"):
+        account_type = validate_account_type(account_type)
+        if account_type == "generic-dav" and mailbox_active:
+            raise ValueError("Der Magnolienbaum-Briefkasten benoetigt ein Nextcloud-Konto.")
         server, user = validate_server(server), validate_user(user)
         previous = self.load()
-        old_account = self.account(previous["server"], previous["benutzer"]) if previous else ""
-        account = self.account(server, user)
+        old_account = self.account(previous["server"], previous["benutzer"],
+                                   previous.get("kontoArt")) if previous else ""
+        account = self.account(server, user, account_type)
         if delete_password and password:
             raise ValueError("Das Kennwort kann nicht gleichzeitig geloescht und ersetzt werden.")
         if (dav_active or mailbox_active) and delete_password:
@@ -264,7 +284,8 @@ class NextcloudSettingsStore:
             elif delete_password:
                 self.secrets.clear(account)
             # Erst nach erfolgreicher Secret-Service-Aktion wird die Config sichtbar.
-            _atomic_json(self.path, {"davAktiv": bool(dav_active),
+            _atomic_json(self.path, {"kontoArt": account_type,
+                                    "davAktiv": bool(dav_active),
                                     "briefkastenAktiv": bool(mailbox_active),
                                     "server": server, "benutzer": user})
             config_written = True
@@ -280,10 +301,6 @@ class NextcloudSettingsStore:
                 _atomic_json(self.path, previous)
             raise
         return self.load()
-
-
-class NoRedirect:
-    """Marker fuer Tests und Vertrag: Redirects werden als Antwort geliefert."""
 
 
 class DavHttpClient:
@@ -305,18 +322,19 @@ class DavHttpClient:
             origin = (parsed.scheme, (parsed.hostname or "").lower(), parsed.port or 443)
         except ValueError as error:
             raise NextcloudError("Die DAV-Antwort enthaelt eine ungueltige Adresse.") from error
-        if origin != self.origin or parsed.username is not None or parsed.password is not None:
+        if (origin != self.origin or parsed.username is not None or parsed.password is not None
+                or parsed.query or parsed.fragment):
             raise NextcloudError("Die DAV-Antwort verweist auf einen anderen Origin.")
-        return urllib.parse.urlunsplit((parsed.scheme, parsed.netloc, parsed.path,
-                                       parsed.query, ""))
+        configured = urllib.parse.urlsplit(self.server)
+        return urllib.parse.urlunsplit(("https", configured.netloc, parsed.path, "", ""))
 
     def request(self, method, url, body=b"", headers=None, limit=XML_LIMIT,
-                expected=None):
+                expected=None, redirects=1):
         url = self.same_origin_url(url)
         headers = dict(headers or {})
         token = base64.b64encode((self.user + ":" + self.password).encode("utf-8")).decode("ascii")
         headers["Authorization"] = "Basic " + token
-        headers.setdefault("User-Agent", "Magnolie-Organizer-Linux/2.0.16")
+        headers.setdefault("User-Agent", "Magnolie-Organizer-Linux/2.0.17")
         if body:
             headers.setdefault("Content-Length", str(len(body)))
         started = time.monotonic()
@@ -365,9 +383,15 @@ class DavHttpClient:
         if len(data) > limit:
             raise NextcloudError("Die WebDAV-Antwort ist zu gross.")
         if 300 <= status < 400:
-            raise HttpStatusError(status, "Nextcloud-Redirects werden aus Sicherheitsgruenden nicht verfolgt.")
+            location = {str(k).lower(): str(v) for k, v in response_headers.items()}.get("location")
+            if not location or redirects <= 0:
+                raise HttpStatusError(status, "Die DAV-Weiterleitung wurde nicht verfolgt.")
+            redirected = self.same_origin_url(location, url)
+            return self.request(method, redirected, body, headers, limit, expected,
+                                redirects - 1)
         if expected is not None and status not in expected:
             raise HttpStatusError(status)
+        self.last_response_url = url
         return status, {str(k).lower(): str(v) for k, v in response_headers.items()}, data
 
 
@@ -423,8 +447,9 @@ def _responses(data, limit=XML_LIMIT, strict=False):
     return result
 
 
-def source_id(kind, href):
-    prefix = "nextcloud-calendar:" if kind == "calendar" else "nextcloud-addressbook:"
+def source_id(kind, href, account_type="nextcloud"):
+    provider = "generic-dav" if validate_account_type(account_type) == "generic-dav" else "nextcloud"
+    prefix = provider + ("-calendar:" if kind == "calendar" else "-addressbook:")
     return prefix + hashlib.sha256(href.encode("utf-8")).hexdigest()
 
 
@@ -442,24 +467,32 @@ class NextcloudDav:
     def _home(self, kind):
         namespace = CALDAV if kind == "calendar" else CARDDAV
         home_name = namespace + ("calendar-home-set" if kind == "calendar" else "addressbook-home-set")
-        base_path = urllib.parse.urlsplit(self.client.server).path.rstrip("/")
-        well_known = self.client.server + ("/.well-known/caldav" if kind == "calendar" else "/.well-known/carddav")
-        principal_paths = [well_known,
-                           self.client.server + "/remote.php/dav/principals/users/" +
-                           urllib.parse.quote(self.client.user, safe="") + "/"]
+        parsed = urllib.parse.urlsplit(self.client.server)
+        origin = urllib.parse.urlunsplit((parsed.scheme, parsed.netloc, "", "", ""))
+        well_known = origin + ("/.well-known/caldav" if kind == "calendar" else "/.well-known/carddav")
+        account_type = getattr(self.client, "account_type", "nextcloud")
+        principal_paths = [well_known]
+        if account_type == "generic-dav":
+            configured_base = self.client.server + "/"
+            if configured_base not in principal_paths:
+                principal_paths.append(configured_base)
+        else:
+            principal_paths.append(self.client.server + "/remote.php/dav/principals/users/" +
+                                   urllib.parse.quote(self.client.user, safe="") + "/")
         for target in principal_paths:
             try:
                 rows = self.propfind(target, [DAV + "current-user-principal", home_name])
                 if rows:
+                    response_base = getattr(self.client, "last_response_url", target)
                     properties = rows[0][1]
                     home = properties.get(home_name)
                     href = home.findtext(DAV + "href") if home is not None else ""
                     if href:
-                        return self.client.same_origin_url(href, target)
+                        return self.client.same_origin_url(href, response_base)
                     principal = properties.get(DAV + "current-user-principal")
                     principal_href = principal.findtext(DAV + "href") if principal is not None else ""
                     if principal_href:
-                        principal_url = self.client.same_origin_url(principal_href, target)
+                        principal_url = self.client.same_origin_url(principal_href, response_base)
                         second = self.propfind(principal_url, [home_name])
                         node = second[0][1].get(home_name) if second else None
                         href = node.findtext(DAV + "href") if node is not None else ""
@@ -468,13 +501,18 @@ class NextcloudDav:
             except HttpStatusError as error:
                 if error.status not in (301, 302, 303, 307, 308, 404, 405):
                     raise
-        suffix = "/remote.php/dav/calendars/" if kind == "calendar" else "/remote.php/dav/addressbooks/users/"
-        return self.client.server + suffix + urllib.parse.quote(self.client.user, safe="") + "/"
+        if account_type == "nextcloud":
+            suffix = "/remote.php/dav/calendars/" if kind == "calendar" else "/remote.php/dav/addressbooks/users/"
+            return self.client.server + suffix + urllib.parse.quote(self.client.user, safe="") + "/"
+        raise NextcloudError("Der DAV-Server hat kein Home-Set bekannt gegeben.",
+                             "dav_home_missing")
 
     def collections(self, kind):
         home = self._home(kind)
-        rows = self.propfind(home, [DAV + "displayname", DAV + "resourcetype",
-                                    DAV + "sync-token"], "1")
+        properties = [DAV + "displayname", DAV + "resourcetype", DAV + "sync-token"]
+        if kind == "calendar":
+            properties.append(CALDAV + "supported-calendar-component-set")
+        rows = self.propfind(home, properties, "1")
         marker = CALDAV + "calendar" if kind == "calendar" else CARDDAV + "addressbook"
         result = []
         for href, props in rows:
@@ -483,10 +521,15 @@ class NextcloudDav:
                 continue
             absolute = self.client.same_origin_url(href, home)
             display = props.get(DAV + "displayname")
-            result.append({"uid": source_id(kind, absolute), "name":
+            components = props.get(CALDAV + "supported-calendar-component-set")
+            supports_vtodo = components is None or any(
+                child.attrib.get("name", "").upper() == "VTODO" for child in components)
+            result.append({"uid": source_id(kind, absolute,
+                                             getattr(self.client, "account_type", "nextcloud")), "name":
                            ((display.text or "").strip() if display is not None else "") or
                            urllib.parse.unquote(urllib.parse.urlsplit(absolute).path.rstrip("/").rsplit("/", 1)[-1]),
-                           "href": absolute, "art": kind})
+                           "href": absolute, "art": kind,
+                           **({"supportsVtodo": supports_vtodo} if kind == "calendar" else {})})
         return sorted(result, key=lambda item: (item["name"].casefold(), item["uid"]))
 
     def report(self, collection, kind):
@@ -718,5 +761,7 @@ def configured_client(store, transport=None, purpose="dav"):
     active_key = "briefkastenAktiv" if purpose == "briefkasten" else "davAktiv"
     if not settings or not settings[active_key]:
         raise NextcloudError("Nextcloud ist nicht aktiviert.", "not_active")
-    return DavHttpClient(settings["server"], settings["benutzer"],
-                         store.password(settings), transport=transport)
+    client = DavHttpClient(settings["server"], settings["benutzer"],
+                           store.password(settings), transport=transport)
+    client.account_type = settings.get("kontoArt", "nextcloud")
+    return client

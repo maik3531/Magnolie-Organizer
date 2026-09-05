@@ -1,0 +1,13 @@
+{
+  "format": "magnolie-phone-region-v1",
+  "vectors": [
+    {"number": "+4930123456", "number_status": "available", "home_country": "DE", "language": "de", "status": "known", "e164": "+4930123456", "region": "DE", "foreign": false},
+    {"number": "030 123456", "number_status": "available", "home_country": "DE", "language": "en", "status": "known", "e164": "+4930123456", "region": "DE", "foreign": false},
+    {"number": "+12025550123", "number_status": "available", "home_country": "DE", "language": "de", "status": "known", "e164": "+12025550123", "region": "US", "foreign": true},
+    {"number": "+442083661177", "number_status": "available", "home_country": "GB", "language": "fr", "status": "known", "e164": "+442083661177", "region": "GB", "foreign": false},
+    {"number": "", "number_status": "withheld", "home_country": "DE", "language": "de", "status": "unknown"},
+    {"number": "", "number_status": "permission_missing", "home_country": "DE", "language": "de", "status": "unknown"},
+    {"number": "+999123", "number_status": "available", "home_country": "DE", "language": "de", "status": "unknown"},
+    {"number": "+80012345678", "number_status": "available", "home_country": "DE", "language": "de", "status": "unknown"}
+  ]
+}

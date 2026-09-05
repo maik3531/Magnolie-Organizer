@@ -24,6 +24,7 @@ internal static class NextcloudMailboxTests
         using (var statusCommand = BridgeDispatcherContract.Parse("{\"cmd\":\"baum_briefkasten_status\"}")) { }
         using (var testCommand = BridgeDispatcherContract.Parse("{\"cmd\":\"baum_briefkasten_pruefen\"}")) { }
         using (var saveCommand = BridgeDispatcherContract.Parse("{\"cmd\":\"baum_briefkasten_speichern\",\"davAktiv\":true,\"briefkastenAktiv\":false,\"url\":\"https://cloud.example\",\"benutzer\":\"user\",\"anwendungskennwort\":\"\",\"kennwortLoeschen\":false}")) { }
+        using (var genericDavSaveCommand = BridgeDispatcherContract.Parse("{\"cmd\":\"baum_briefkasten_speichern\",\"davAktiv\":true,\"briefkastenAktiv\":false,\"url\":\"https://dav.example\",\"benutzer\":\"user\",\"anwendungskennwort\":\"secret\",\"kennwortLoeschen\":false,\"kontoArt\":\"generic-dav\"}")) { }
         TestAssert.Throws<InvalidDataException>(() => BridgeDispatcherContract.Parse(
             "{\"cmd\":\"baum_briefkasten_speichern\",\"davAktiv\":true,\"briefkastenAktiv\":false,\"url\":\"https://cloud.example\",\"benutzer\":\"user\",\"kennwortLoeschen\":false}"),
             "Der Briefkastenvertrag akzeptierte einen Speicherbefehl ohne Kennwortfeld.");

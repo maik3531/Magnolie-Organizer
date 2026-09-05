@@ -1,9 +1,15 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the Magnolie Organizer package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
 msgid ""
 msgstr ""
 "Report-Msgid-Bugs-To: maik3531@gmail.com\n"
 "POT-Creation-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Content-Type: text/plain; charset=UTF-8\n"
-"Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
+"Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && "
+"n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
 
 msgid " (filtered)"
 msgstr " (відфільтровано)"
@@ -78,6 +84,12 @@ msgid_plural "%(count)s contact cards"
 msgstr[0] "%(count)s картка контакту"
 msgstr[1] "%(count)s картки контакту"
 msgstr[2] "%(count)s картки контакту"
+
+msgid "%(count)s contact imported."
+msgid_plural "%(count)s contacts imported."
+msgstr[0] "Імпортовано %(count)s контакт."
+msgstr[1] "Імпортовано %(count)s контакти."
+msgstr[2] "Імпортовано %(count)s контактів."
 
 msgid "%(count)s contact photo added"
 msgid_plural "%(count)s contact photos added"
@@ -403,6 +415,10 @@ msgstr ""
 "Під час відкриття цифровий код зручно вводити з цифрової клавіатури; літери "
 "також працюють. Після трьох невдалих спроб Organizer чекає п’ять хвилин."
 
+msgid "A one-time import adds contacts only after your selection."
+msgstr ""
+"Під час одноразового імпорту контакти додаються лише після вашого вибору."
+
 msgid ""
 "A pairing file works like a one-time key. Give it only to the person whose "
 "Organizer you want to connect; it expires after 15 minutes."
@@ -498,6 +514,12 @@ msgstr "Активний виклик"
 msgid "Add"
 msgstr "Додати"
 
+msgid "Add %(type)s"
+msgstr "Додати %(type)s"
+
+msgid "Add another SMS"
+msgstr "Додати ще одне SMS"
+
 msgid "Add appointment"
 msgstr "Додати зустріч"
 
@@ -510,6 +532,9 @@ msgstr "Додати учасника"
 msgid "Add cycle marker"
 msgstr "Додати позначку циклу"
 
+msgid "Add one custom tab"
+msgstr "Додати одну власну вкладку"
+
 msgid "Add person"
 msgstr "Додати особу"
 
@@ -521,6 +546,9 @@ msgstr "Додати рядок схеми"
 
 msgid "Add shift"
 msgstr "Додати зміну"
+
+msgid "Add subtask"
+msgstr "Додати підзавдання"
 
 msgid "Add to dictionary"
 msgstr "Додати до словника"
@@ -693,8 +721,14 @@ msgstr "Зустрічі цієї особи"
 msgid "Appointments · %(period)s"
 msgstr "Зустрічі · %(period)s"
 
+msgid "Apps for your phone"
+msgstr "Програми для вашого телефону"
+
 msgid "Archive password"
 msgstr "Пароль архіву"
+
+msgid "Are you really sure?"
+msgstr "Ви справді впевнені?"
 
 msgid "As usual (print)"
 msgstr "Як завжди (друк)"
@@ -766,6 +800,9 @@ msgstr "ІМТ за останніми збереженими даними пр�
 msgid "BZ"
 msgstr "BZ"
 
+msgid "Back"
+msgstr "Назад"
+
 msgid "Backup failed."
 msgstr "Не вдалося створити резервну копію."
 
@@ -782,6 +819,9 @@ msgid "Backup restored. The previous data was backed up automatically."
 msgstr ""
 "Резервну копію відновлено. Попередні дані було автоматично зарезервовано."
 
+msgid "Backup rhythm"
+msgstr "Періодичність резервного копіювання"
+
 msgid "Backup saved to: %(path)s"
 msgstr "Резервну копію збережено в: %(path)s"
 
@@ -790,6 +830,9 @@ msgstr "Резервну копію успішно перевірено."
 
 msgid "Backups"
 msgstr "Резервні копії"
+
+msgid "Backups and recovery"
+msgstr "Папка резервних копій"
 
 msgid ""
 "Backups outside the data location require a password with at least four "
@@ -879,6 +922,9 @@ msgstr "Кровотеча · слабка"
 msgid "Bleeding · medium"
 msgstr "Кровотеча · середня"
 
+msgid "Blocks"
+msgstr "Блоки"
+
 msgid "Blood glucose"
 msgstr "Глюкоза крові"
 
@@ -924,6 +970,9 @@ msgstr "Бранденбург"
 msgid "Bremen"
 msgstr "Бремен"
 
+msgid "Browse..."
+msgstr "Огляд..."
+
 msgid "Burgenland"
 msgstr "Бургенланд"
 
@@ -932,6 +981,9 @@ msgstr "За ім’ям (Hans Müller)"
 
 msgid "By last name (Müller, Hans)"
 msgstr "За прізвищем (Müller, Hans)"
+
+msgid "CSV / Lotus Organizer contacts …"
+msgstr "Контакти CSV / Lotus Organizer …"
 
 msgid "CSV files (*.csv)"
 msgstr "Файли CSV (*.csv)"
@@ -947,13 +999,6 @@ msgstr "Календар"
 
 msgid "Calendar (*.ics)"
 msgstr "Календар (*.ics)"
-
-msgid ""
-"Calendar and contact applications commonly export appointments as .ics files "
-"and contacts as .vcf files."
-msgstr ""
-"Програми календаря та контактів зазвичай експортують зустрічі як файли .ics, "
-"а контакти – як файли .vcf."
 
 msgid "Calendar file (.ics/.vcs/.lcs) …"
 msgstr "Файл календаря (.ics/.vcs/.lcs) …"
@@ -1071,6 +1116,9 @@ msgstr "Перевірка поточної версії посібника …"
 msgid "Checking the current version …"
 msgstr "Перевірка поточної версії …"
 
+msgid "Choose Appointments, Notes or Tasks in Customize."
+msgstr "Виберіть «Зустрічі», «Нотатки» або «Завдання» в розділі «Налаштувати»."
+
 msgid ""
 "Choose a backup file. Before restoring it, the organizer automatically "
 "creates a copy of the current data. An encrypted backup requires its "
@@ -1119,6 +1167,13 @@ msgstr "Виберіть щонайменше чотири символи."
 msgid "Choose entries to print, export or delete"
 msgstr "Виберіть записи для друку, експорту або видалення"
 
+msgid ""
+"Choose file and Windows contact imports that Magnolie can start directly "
+"after opening."
+msgstr ""
+"Виберіть імпорт контактів із файлів і Windows, який Magnolie зможе запустити "
+"відразу після відкриття."
+
 msgid "Choose file…"
 msgstr "Вибрати файл…"
 
@@ -1134,6 +1189,13 @@ msgstr "Вибрати фото…"
 msgid "Choose print or export content…"
 msgstr "Виберіть вміст для друку або експорту…"
 
+msgid ""
+"Choose safe preferences now. No scheduled backup job is started in the "
+"assistant."
+msgstr ""
+"Виберіть безпечні параметри зараз. Заплановане резервне копіювання в "
+"помічнику не запускається."
+
 msgid "Choose service"
 msgstr "Вибрати службу"
 
@@ -1147,11 +1209,14 @@ msgstr ""
 msgid "Choose year…"
 msgstr "Вибрати рік…"
 
+msgid "Choose your organizer tabs"
+msgstr "Налаштуйте свій органайзер"
+
 msgid "City"
 msgstr "Місто"
 
-msgid "Claws Mail (.xml/.ldif) …"
-msgstr "Claws Mail (.xml/.ldif) …"
+msgid "Claws Mail XML (.xml) …"
+msgstr "XML Claws Mail (.xml) …"
 
 msgid "Claws Mail address book (*.xml)"
 msgstr "Адресна книга Claws Mail (*.xml)"
@@ -1323,9 +1388,6 @@ msgstr "Контакти"
 msgid "Contacts (.vcf)"
 msgstr "Контакти (.vcf)"
 
-msgid "Contacts (.vcf) …"
-msgstr "Контакти (.vcf) …"
-
 msgid "Contacts are merged additively. No deletions are transmitted."
 msgstr "Контакти об’єднуються з доповненням. Видалення не передаються."
 
@@ -1371,6 +1433,9 @@ msgstr "Країна та регіон"
 msgid "Country for searches"
 msgstr "Країна для пошуку"
 
+msgid "Country of origin"
+msgstr "Країна походження"
+
 msgid "Create"
 msgstr "Створити"
 
@@ -1401,8 +1466,8 @@ msgstr "Створити блокнот"
 msgid "Create pairing file …"
 msgstr "Створити файл сполучення …"
 
-msgid "Create snapshot now"
-msgstr "Створити знімок зараз"
+msgid "Creating recovery snapshot …"
+msgstr "Створення знімка відновлення …"
 
 msgid "Custom"
 msgstr "Власне"
@@ -1410,8 +1475,18 @@ msgstr "Власне"
 msgid "Custom application"
 msgstr "Індивідуальний додаток"
 
+msgid ""
+"Custom content is saved locally and transferred through complete Magnolie "
+"archives only, not Personal Sync."
+msgstr ""
+"Власний вміст зберігається локально й передається лише в складі повних "
+"архівів Magnolie, а не через Personal Sync."
+
 msgid "Custom notification"
 msgstr "Власне сповіщення"
+
+msgid "Custom tab"
+msgstr "Власна вкладка"
 
 msgid "Custom websites must begin with https://."
 msgstr "Власні вебсайти мають починатися з https://."
@@ -1585,6 +1660,10 @@ msgstr "Видалити період відпустки"
 msgid "Delete waste collection"
 msgstr "Видалити вивезення відходів"
 
+msgid "Deleted and missing data is restored; newer existing data is retained."
+msgstr ""
+"Видалені та відсутні дані відновлюються; новіші наявні дані зберігаються."
+
 msgid ""
 "Deleted items first go to the recycle bin and can be restored from there. "
 "They are permanently removed only afterwards."
@@ -1610,6 +1689,9 @@ msgstr "Доставлено"
 
 msgid "Delivered to %(branch)s."
 msgstr "Доставлено до %(branch)s."
+
+msgid "Delivery status uncertain"
+msgstr "Статус доставки невідомий"
 
 msgid "Dentist Dr. Hill — Preview of your entries"
 msgstr "Стоматолог д-р Hill — Попередній перегляд ваших записів"
@@ -1682,6 +1764,9 @@ msgstr "Завантажити посібник"
 
 msgid "Download manual version %(version)s"
 msgstr "Завантажити посібник версії %(version)s"
+
+msgid "Downloads"
+msgstr "Завантаження"
 
 msgid "Drag the attachment area up or down"
 msgstr "Перетягніть область вкладень угору або вниз"
@@ -1794,6 +1879,9 @@ msgstr ""
 msgid "Enable reminders"
 msgstr "Увімкнути нагадування"
 
+msgid "Enable reminders for this block"
+msgstr "Увімкнути нагадування для цього блоку"
+
 msgid "Enable shift planner"
 msgstr "Увімкнути планувальник змін"
 
@@ -1809,6 +1897,13 @@ msgstr "Увімкнути календар вивезення відходів"
 msgid "Enjoy getting organized!"
 msgstr "Приємного впорядкування!"
 
+msgid ""
+"Enjoy organizing with Magnolie. Your choices stay under your control and can "
+"be changed later in Settings."
+msgstr ""
+"Насолоджуйтеся впорядкуванням із Magnolie. Ви контролюєте свій вибір і "
+"згодом можете змінити його в налаштуваннях."
+
 msgid "Enter"
 msgstr "Ввести"
 
@@ -1817,6 +1912,9 @@ msgid ""
 msgstr ""
 "Введіть ліворуч значення глюкози в крові, щоб виділити відповідні рядки "
 "схеми."
+
+msgid "Enter a future time and a valid SMS text for every entry."
+msgstr "Для кожного запису введіть майбутній час і коректний текст SMS."
 
 msgid "Enter a medication name first."
 msgstr "Спочатку введіть назву препарату."
@@ -1867,20 +1965,33 @@ msgstr "Помилка"
 msgid "Evening"
 msgstr "Вечір"
 
-msgid "Every 12 hours"
-msgstr "Кожні 12 годин"
-
-msgid "Every 6 hours"
-msgstr "Кожні 6 годин"
-
 msgid "Every filled medication row requires a name."
 msgstr "У кожному заповненому рядку препарату має бути назва."
 
 msgid "Every filled row requires a valid date."
 msgstr "У кожному заповненому рядку має бути чинна дата."
 
+msgid ""
+"Every saved change is protected automatically by a private, integrity-"
+"checked snapshot."
+msgstr ""
+"Кожна збережена зміна автоматично захищається приватним знімком із "
+"перевіркою цілісності."
+
 msgid "Everything is done - the list is empty."
 msgstr "Усе виконано – список порожній."
+
+msgid "Everything is ready"
+msgstr "Усе готово"
+
+msgid ""
+"Evolution and Thunderbird are selected explicitly. iPhone contacts require a "
+"vCard export from the iPhone or iCloud. KDE Connect, Bluetooth and PBAP are "
+"not contact sources."
+msgstr ""
+"Evolution і Thunderbird вибираються явно. Для контактів iPhone потрібен "
+"експорт vCard з iPhone або iCloud. KDE Connect, Bluetooth і PBAP не є "
+"джерелами контактів."
 
 msgid "Exactly one Magnolie Notes phone must be paired."
 msgstr "Необхідно створити пару лише з одним телефоном Magnolie Notes."
@@ -2063,9 +2174,6 @@ msgstr "П’ятниця"
 msgid "From"
 msgstr "Від"
 
-msgid "From the Windows Contacts folder"
-msgstr "З папки «Контакти Windows»"
-
 msgid "Full"
 msgstr "Повний"
 
@@ -2187,6 +2295,9 @@ msgstr "Дім"
 msgid "Home address"
 msgstr "Домашня адреса"
 
+msgid "Home country for phone numbers"
+msgstr "Основна країна для телефонних номерів"
+
 msgid "Home phone"
 msgstr "Домашній телефон"
 
@@ -2195,6 +2306,9 @@ msgstr "Домашній візит"
 
 msgid "Hours"
 msgstr "Години"
+
+msgid "How lovely that you chose Magnolie"
+msgstr "Як чудово, що ви вибрали Magnolie"
 
 msgid "How the calendar should behave when you click a day."
 msgstr "Як календар має поводитися під час клацання на дні."
@@ -2235,6 +2349,9 @@ msgstr "Імпорт"
 msgid "Import Magnolie complete archive"
 msgstr "Імпортуйте повний архів Magnolie"
 
+msgid "Import contacts additively"
+msgstr "Імпортувати контакти з доповненням"
+
 msgid "Import failed: %(error)s"
 msgstr "Не вдалося імпортувати: %(error)s"
 
@@ -2243,6 +2360,9 @@ msgstr "Імпортувати з LibreOffice"
 
 msgid "Import is available only in the installed application."
 msgstr "Імпорт доступний лише у встановленій програмі."
+
+msgid "Import once"
+msgstr "Імпортувати один раз"
 
 msgid "Import pairing file …"
 msgstr "Імпортувати файл сполучення …"
@@ -2338,6 +2458,9 @@ msgstr "Схема інсулінотерапії"
 msgid "Integrity"
 msgstr "Цілісність"
 
+msgid "International call"
+msgstr "Міжнародний виклик"
+
 msgid "Internet IP"
 msgstr "Інтернет-IP"
 
@@ -2387,6 +2510,9 @@ msgstr "Зберігати журнал усунення несправност�
 msgid "LDIF address book (*.ldif)"
 msgstr "Адресна книга LDIF (*.ldif)"
 
+msgid "LDIF address book (.ldif) …"
+msgstr "Адресна книга LDIF (.ldif) …"
+
 msgid "Landline"
 msgstr "Стаціонарний телефон"
 
@@ -2405,9 +2531,6 @@ msgstr "Остання перевірка не вдалася: %(error)s"
 msgid "Last name"
 msgstr "Прізвище"
 
-msgid "Last snapshot"
-msgstr "Останній знімок"
-
 msgid "Last successful backup"
 msgstr "Остання успішна копія"
 
@@ -2420,11 +2543,21 @@ msgstr "Пізня зміна"
 msgid "Lead time"
 msgstr "Випередження"
 
+msgid "Left page"
+msgstr "Ліва сторінка"
+
 msgid "Letter"
 msgstr "Лист"
 
 msgid "Letter template"
 msgstr "Шаблон листа"
+
+msgid ""
+"LibreOffice is only read when you press the button. Its settings are not "
+"modified."
+msgstr ""
+"Дані LibreOffice зчитуються лише після натискання кнопки. Його налаштування "
+"не змінюються."
 
 msgid "License"
 msgstr "Ліцензія"
@@ -2486,6 +2619,12 @@ msgstr "Магнолія"
 msgid "Magnolia weather symbols only"
 msgstr "Лише погодні символи Magnolie"
 
+msgid "Magnolie Notes / Android: check for pending import"
+msgstr "Magnolie Notes / Android: перевірити наявність імпорту"
+
+msgid "Magnolie Notes contact import"
+msgstr "Імпорт контактів із Magnolie Notes"
+
 msgid "Magnolie Notes device status"
 msgstr "Стан пристрою Magnolie Notes"
 
@@ -2505,6 +2644,9 @@ msgid ""
 msgstr ""
 "Телефони Magnolie Notes і телефони KDE Connect відокремлені: назва моделі "
 "Android належить Magnolie Notes, а назва вузла KDE надходить із KDE Connect."
+
+msgid "Magnolie Organizer"
+msgstr "Magnolie Organizer"
 
 msgid "Magnolie Organizer is not completely installed."
 msgstr "Magnolie Organizer встановлено не повністю."
@@ -2527,6 +2669,13 @@ msgstr ""
 
 msgid "Magnolie backup (*.json)"
 msgstr "Резервна копія Magnolie (*.json)"
+
+msgid ""
+"Magnolie can use this information when preparing routes and finding local "
+"weather. You can leave every field empty."
+msgstr ""
+"Magnolie може використовувати ці відомості для побудови маршрутів і пошуку "
+"місцевої погоди. Усі поля можна залишити порожніми."
 
 msgid "Magnolie complete archive (.magnolie) …"
 msgstr "Повний архів Magnolie (.magnolie) …"
@@ -2574,6 +2723,9 @@ msgctxt "recovery snapshot reason"
 msgid "Manual"
 msgstr "Власне"
 
+msgid "Manual only"
+msgstr "Лише вручну"
+
 msgid "Manual version %(version)s is available."
 msgstr "Доступна версія посібника %(version)s."
 
@@ -2598,9 +2750,6 @@ msgstr "Позначити як відкрите"
 
 msgid "Maximized"
 msgstr "Розгорнуте"
-
-msgid "Maximum recovery snapshots"
-msgstr "Максимальна кількість точок відновлення"
 
 msgid "Measurement context"
 msgstr "Контекст вимірювання"
@@ -2708,6 +2857,9 @@ msgstr "Мобільна мережа"
 msgid "Model"
 msgstr "Модель"
 
+msgid "Module"
+msgstr "Модуль"
+
 msgid "Monday"
 msgstr "Понеділок"
 
@@ -2716,6 +2868,9 @@ msgstr "Місяць"
 
 msgid "Month calendar"
 msgstr "Місячний календар"
+
+msgid "Monthly"
+msgstr "Щомісяця"
 
 msgid "Monthly view"
 msgstr "Місячний перегляд"
@@ -2738,6 +2893,9 @@ msgstr "Ранок"
 msgid "Mouse wheel over times"
 msgstr "Коліщатко миші над часом"
 
+msgid "Move down"
+msgstr "Перемістити вниз"
+
 msgid "Move group down"
 msgstr "Перемістити групу вниз"
 
@@ -2755,6 +2913,12 @@ msgstr "Перемістити записник вгору"
 
 msgid "Move the ticked entries to the wastebasket"
 msgstr "Перемістити позначені записи до кошика"
+
+msgid "Move to top level"
+msgstr "Перемістити на верхній рівень"
+
+msgid "Move up"
+msgstr "Перемістити вгору"
 
 msgid ""
 "Multiple Magnolie Notes phones are stored. Personal sync is blocked; remove "
@@ -2846,6 +3010,9 @@ msgstr "Нове завдання"
 msgid "New version %(version)s is available."
 msgstr "Доступна нова версія %(version)s."
 
+msgid "Next"
+msgstr "Далі"
+
 msgid "Next appointment: %(title)s on %(date)s%(time)s%(notice)s"
 msgstr "Наступна зустріч: %(title)s — %(date)s%(time)s%(notice)s"
 
@@ -2854,9 +3021,6 @@ msgstr "Наступний місяць"
 
 msgid "Next page"
 msgstr "Наступна сторінка"
-
-msgid "Next snapshot"
-msgstr "Наступний знімок"
 
 msgid "Next tab"
 msgstr "Наступна вкладка"
@@ -2869,9 +3033,6 @@ msgstr "Наступний тиждень"
 
 msgid "Next year"
 msgstr "Наступний рік"
-
-msgid "Nextcloud account"
-msgstr "Обліковий запис Nextcloud"
 
 msgid "Nextcloud is not enabled."
 msgstr "Nextcloud не увімкнено."
@@ -2893,6 +3054,9 @@ msgstr "Не було вибрано жодної адреси Bluetooth."
 
 msgid "No KDE Connect pairing is awaiting confirmation."
 msgstr "Жодне сполучення KDE Connect не очікує підтвердження."
+
+msgid "No SMS messages are scheduled."
+msgstr "Немає запланованих SMS-повідомлень."
 
 msgid "No address books found."
 msgstr "Адресних книг не знайдено."
@@ -2918,6 +3082,9 @@ msgstr "Без терміну"
 
 msgid "No duplicate contact cards were found."
 msgstr "Дублікатів карток контактів не знайдено."
+
+msgid "No entries yet."
+msgstr "Записів ще немає."
 
 msgid "No file selected"
 msgstr "Файл не вибрано"
@@ -3084,6 +3251,9 @@ msgstr "Нічого не знайдено."
 msgid "Nothing has been entered under “%(letter)s” yet."
 msgstr "Під «%(letter)s» ще нічого не введено."
 
+msgid "Nothing has been imported yet."
+msgstr "Ще нічого не імпортовано."
+
 msgid "Nothing is opened or sent while this option is disabled."
 msgstr "Поки цей параметр вимкнено, нічого не відкривається й не надсилається."
 
@@ -3171,6 +3341,13 @@ msgstr "Одна таблиця з графіком"
 msgid "One year"
 msgstr "Один рік"
 
+msgid ""
+"One-time imports are additive. They do not keep a source linked and do not "
+"delete contacts."
+msgstr ""
+"Одноразові імпорти лише доповнюють дані. Вони не зберігають зв’язок із "
+"джерелом і не видаляють контакти."
+
 msgid "Online"
 msgstr "В Інтернеті"
 
@@ -3246,6 +3423,9 @@ msgstr "Відкрийте сторінку входу Microsoft"
 msgid "Open day view for %(date)s"
 msgstr "Відкрити денний перегляд для %(date)s"
 
+msgid "Open designer"
+msgstr "Відкрити конструктор"
+
 msgid "Open manual"
 msgstr "Відкрити посібник"
 
@@ -3264,6 +3444,9 @@ msgstr ""
 
 msgid "Open planner as an ODS spreadsheet"
 msgstr "Відкрити планувальник як таблицю ODS"
+
+msgid "Open requested designer"
+msgstr "Відкрити запитаний конструктор"
 
 msgid "Open selected contacts as an ODS spreadsheet"
 msgstr "Відкрити вибрані контакти як таблицю ODS"
@@ -3301,9 +3484,6 @@ msgstr "OpenStreetMap у браузері"
 
 msgid "Opened in %(application)s."
 msgstr "Відкрито в %(application)s."
-
-msgid "Operating system"
-msgstr "Операційна система"
 
 msgid "Optional archive password"
 msgstr "Додатковий пароль архіву"
@@ -3358,6 +3538,9 @@ msgstr "Файл PDF"
 msgid "Packaging / Yellow bin"
 msgstr "Паковання / жовтий контейнер"
 
+msgid "Page"
+msgstr "Сторінка"
+
 msgid "Page %(page)s"
 msgstr "Сторінка %(page)s"
 
@@ -3391,6 +3574,9 @@ msgstr ""
 
 msgid "Palm tree"
 msgstr "Пальма"
+
+msgid "Parent task"
+msgstr "Батьківське завдання"
 
 msgid ""
 "Participate in the Magnolienbaum (opens port %(port)s on the local network)"
@@ -3433,6 +3619,9 @@ msgstr "Сплатити рахунок"
 msgid "Pen"
 msgstr "Шприц-ручка"
 
+msgid "Pending SMS messages"
+msgstr "Заплановані SMS-повідомлення"
+
 msgid "People"
 msgstr "Люди"
 
@@ -3444,6 +3633,12 @@ msgstr "Активний постійний приймач KDE"
 
 msgid "Permanent KDE listener stopped"
 msgstr "Постійний приймач KDE зупинено"
+
+msgid ""
+"Permanent sources remain linked and are handled on the Synchronization page."
+msgstr ""
+"Постійні джерела залишаються підключеними й керуються на сторінці "
+"синхронізації."
 
 msgid "Permanently delete %(count)s completed task?"
 msgid_plural "Permanently delete %(count)s completed tasks?"
@@ -3493,6 +3688,9 @@ msgstr "Не вдалося синхронізувати."
 
 msgid "Personal synchronization format 2 was not negotiated."
 msgstr "Персональний формат синхронізації 2 не обговорювався."
+
+msgid "Personal synchronization format 3 was not negotiated."
+msgstr "Не вдалося узгодити формат 3 особистої синхронізації."
 
 msgid "Personal synchronization is not permitted on both devices."
 msgstr "Персональна синхронізація не дозволена на обох пристроях."
@@ -3614,6 +3812,9 @@ msgstr "Порошок"
 msgid "Power source"
 msgstr "Джерело живлення"
 
+msgid "Preferred backup folder"
+msgstr "Бажана папка резервних копій"
+
 msgid "Preparing Microsoft sign-in …"
 msgstr "Підготовка до входу в Microsoft…"
 
@@ -3628,6 +3829,12 @@ msgstr "Попередній перегляд, друк або експорт р
 
 msgid "Preview:"
 msgstr "Попередній перегляд:"
+
+msgid "Preview: %(count)s contact"
+msgid_plural "Preview: %(count)s contacts"
+msgstr[0] "Попередній перегляд: %(count)s контакт"
+msgstr[1] "Попередній перегляд: %(count)s контакти"
+msgstr[2] "Попередній перегляд: %(count)s контактів"
 
 msgid "Previous month"
 msgstr "Попередній місяць"
@@ -3677,12 +3884,6 @@ msgstr ""
 
 msgid "Private"
 msgstr "Приватне"
-
-msgid ""
-"Private, integrity-checked snapshots are stored next to the application data."
-msgstr ""
-"Приватні знімки з перевіркою цілісності зберігаються поруч із даними "
-"програми."
 
 msgid "Protected archive password unavailable."
 msgstr "Захищений пароль архіву недоступний."
@@ -3773,6 +3974,9 @@ msgstr "Пов’язані завдання"
 
 msgid "Remind me again on the day itself"
 msgstr "Нагадати мені ще раз у сам день"
+
+msgid "Reminder"
+msgstr "Нагадування"
 
 msgid "Reminder data:"
 msgstr "Дані нагадування:"
@@ -3898,14 +4102,14 @@ msgstr ""
 msgid "Restore"
 msgstr "Відновити"
 
+msgid "Restore a Magnolie backup after startup"
+msgstr "Відновити з резервної копії Magnolie"
+
 msgid "Restore backup"
 msgstr "Відновити резервну копію"
 
 msgid "Restore backup …"
 msgstr "Відновити резервну копію …"
-
-msgid "Restore completely"
-msgstr "Відновити повністю"
 
 msgid "Restore defaults"
 msgstr "Відновити типові налаштування"
@@ -3950,6 +4154,9 @@ msgstr "Отримання погоди…"
 msgid "Rhineland-Palatinate"
 msgstr "Рейнланд-Пфальц"
 
+msgid "Right page"
+msgstr "Права сторінка"
+
 msgid "Route"
 msgstr "Маршрут"
 
@@ -3964,6 +4171,9 @@ msgstr ""
 msgid "S"
 msgstr "S"
 
+msgid "SMS app settings"
+msgstr "Налаштування SMS"
+
 msgid "SMS assignment"
 msgstr "Присвоєння SMS"
 
@@ -3975,6 +4185,9 @@ msgstr "SMS від %(name)s"
 
 msgid "SMS history"
 msgstr "Історія SMS"
+
+msgid "SMS scheduled."
+msgstr "SMS заплановано."
 
 msgid "SMS settings"
 msgstr "Налаштування SMS"
@@ -4052,11 +4265,24 @@ msgstr "Саксонія-Ангальт"
 msgid "Schaffhausen"
 msgstr "Шаффгаузен"
 
+msgid "Schedule"
+msgstr "Запланований"
+
+msgid "Schedule SMS"
+msgstr "Запланувати SMS"
+
 msgid "Schedule an appointment"
 msgstr "Запланувати зустріч"
 
 msgid "Scheduled"
 msgstr "Запланований"
+
+msgid ""
+"Scheduled SMS messages are sent only while Magnolie is running and exactly "
+"one KDE Connect phone is available."
+msgstr ""
+"Заплановані SMS-повідомлення надсилаються, лише коли Magnolie працює й "
+"доступний рівно один телефон KDE Connect."
 
 msgid "Scheme"
 msgstr "Схема"
@@ -4160,6 +4386,15 @@ msgid ""
 msgstr ""
 "Вибрані стовпці, порожні для всіх контактів, автоматично пропускаються."
 
+msgid ""
+"Selected imports are started directly after Magnolie opens. Thunderbird "
+"contacts are not offered because Windows has no Thunderbird address-book "
+"importer."
+msgstr ""
+"Вибрані операції імпорту запускаються відразу після відкриття Magnolie. "
+"Контакти Thunderbird не пропонуються, оскільки у Windows немає засобу "
+"імпорту адресної книги Thunderbird."
+
 msgid "Selection options"
 msgstr "Параметри вибору"
 
@@ -4186,6 +4421,9 @@ msgstr "Потрібні адреса сервера та ім’я корист
 
 msgid "Set or change password"
 msgstr "Установити або змінити пароль"
+
+msgid "Set up Magnolie Organizer"
+msgstr "Налаштувати Magnolie Organizer"
 
 msgid "Set up contacts"
 msgstr "Налаштувати контакти"
@@ -4310,6 +4548,9 @@ msgstr "Ви ввійшли в Microsoft."
 msgid "Signed out from Microsoft."
 msgstr "Вийшов з Microsoft."
 
+msgid "Skip assistant"
+msgstr "Пропустити помічника"
+
 msgid ""
 "Small action buttons appear on each contact card. You can hide anything you "
 "do not need here."
@@ -4344,6 +4585,9 @@ msgstr "Деякі наявні резервні копії не вдалося 
 msgid "Son"
 msgstr "Син"
 
+msgid "Sort contacts"
+msgstr "Сортувати контакти"
+
 msgid "Sort everything alphabetically"
 msgstr "Сортувати все за абеткою"
 
@@ -4352,6 +4596,12 @@ msgstr "Сортування"
 
 msgid "Sound only"
 msgstr "Лише звук"
+
+msgid "Sources"
+msgstr "Джерела"
+
+msgid "Sources and imports"
+msgstr "Почати з порожнього органайзера й пропустити імпорт"
 
 msgid "Space for anything you want to remember…"
 msgstr "Місце для всього, що хочеться запам’ятати…"
@@ -4371,6 +4621,12 @@ msgstr "Спрей"
 msgid "St. Gallen"
 msgstr "Санкт-Галлен"
 
+msgid "Start Magnolie"
+msgstr "Запустити Magnolie"
+
+msgid "Start Magnolie with Windows in the notification area (tray)"
+msgstr "Запустіть Magnolie з Windows в області сповіщень (треї)"
+
 msgid "Start automatically when signing in"
 msgstr "Автоматично запускати під час входу"
 
@@ -4379,6 +4635,9 @@ msgstr "Запускати органайзер у системному лотк
 
 msgid "State"
 msgstr "Федеральна земля"
+
+msgid "State / region"
+msgstr "Регіон формату"
 
 msgid "Status"
 msgstr "Статус"
@@ -4406,6 +4665,9 @@ msgstr "Надіслано"
 
 msgid "Submitted to KDE Connect"
 msgstr "Надіслано до KDE Connect"
+
+msgid "Submitting"
+msgstr "Надіслано"
 
 msgid "Suggestions are available only in the installed application."
 msgstr "Пропозиції доступні лише у встановленій програмі."
@@ -4474,6 +4736,9 @@ msgstr "Синхронізувати контакти"
 msgid "Synchronize now"
 msgstr "Синхронізувати зараз"
 
+msgid "Synchronize permanently"
+msgstr "Синхронізувати постійно"
+
 msgid "Synchronize tasks"
 msgstr "Синхронізувати контакти"
 
@@ -4482,6 +4747,9 @@ msgstr "Синхронізація …"
 
 msgid "System default"
 msgstr "Система за умовчанням"
+
+msgid "System internet accounts"
+msgstr "Системні інтернет-облікові записи"
 
 msgid "System setting"
 msgstr "Системне налаштування"
@@ -4505,6 +4773,9 @@ msgstr "Вкладка %(letter)s"
 msgid "Tab %(letter)s · %(count)s"
 msgstr "Вкладка %(letter)s · %(count)s"
 
+msgid "Tab name"
+msgstr "Назва вкладки"
+
 msgid "Tablet"
 msgstr "Таблетка"
 
@@ -4513,6 +4784,9 @@ msgstr "Вкладки"
 
 msgid "Task"
 msgstr "Завдання"
+
+msgid "Task is due"
+msgstr "Термін завдання"
 
 msgid "Tasks"
 msgstr "Завдання"
@@ -4544,6 +4818,12 @@ msgstr "Перевірити зараз"
 
 msgid "Testing…"
 msgstr "Перевірка…"
+
+msgid "Text"
+msgstr "Текст"
+
+msgid "Text block"
+msgstr "Текстовий блок"
 
 msgid "Text color"
 msgstr "Колір тексту"
@@ -4628,15 +4908,6 @@ msgstr "Експорт ODS завеликий."
 msgid "The Organizer chooses a suitable installed application."
 msgstr "Органайзер вибирає відповідну встановлену програму."
 
-msgid ""
-"The Windows Contacts folder is synchronized bidirectionally on the "
-"synchronization page. File imports do not modify their source files; "
-"existing entries are not added twice."
-msgstr ""
-"Папка Windows Contacts синхронізується двонаправлено на сторінці "
-"синхронізації. Імпорт файлів не змінює вихідні файли; існуючі записи не "
-"додаються двічі."
-
 msgid "The address could not be opened."
 msgstr "Не вдалося відкрити адресу."
 
@@ -4653,6 +4924,13 @@ msgid ""
 msgstr ""
 "Архів зашифрований. Введіть пароль, щоб повністю підтвердити його перед "
 "імпортом."
+
+msgid ""
+"The assistant covers your address for routes and weather, data sources, "
+"phone connections, organizer tabs, backups, and startup behavior."
+msgstr ""
+"Помічник допоможе налаштувати адресу для маршрутів і погоди, джерела даних, "
+"з’єднання з телефоном, вкладки Organizer, резервні копії та запуск."
 
 msgid "The attachment range is invalid."
 msgstr "Діапазон вкладень недійсний."
@@ -4684,6 +4962,9 @@ msgid ""
 msgstr ""
 "Фонова служба нагадувань може читати окремі дані нагадувань, тому працює "
 "навіть після закриття органайзера."
+
+msgid "The backup chooser will open after Magnolie has started."
+msgstr "Вікно вибору резервної копії відкриється після запуску Magnolie."
 
 msgid "The backup could not be created."
 msgstr "Не вдалося створити резервну копію."
@@ -4837,6 +5118,9 @@ msgstr ""
 "Інформація один раз отримується з відкритого каталогу openholidaysapi.org і "
 "потім зберігається в органайзері. Тому програмі потрібне підключення до "
 "Інтернету лише один раз."
+
+msgid "The language setting could not be saved."
+msgstr "Не вдалося зберегти налаштування мови."
 
 msgid "The last notebook cannot be deleted."
 msgstr "Останній записник не можна видалити."
@@ -5071,6 +5355,11 @@ msgstr ""
 msgid "The save request is invalid."
 msgstr "Запит на збереження недійсний."
 
+msgid "The selected areas are reset exactly; data added later is removed."
+msgstr ""
+"Вибрані області точно повертаються до попереднього стану; додані пізніше "
+"дані видаляються."
+
 msgid "The selected contacts contain no values for these columns."
 msgstr "Вибрані контакти не містять значень для цих стовпців."
 
@@ -5083,6 +5372,9 @@ msgid ""
 msgstr ""
 "Оператор сервера бачить обліковий запис, назви тек і файлів, розміри та час "
 "ваших повідомлень."
+
+msgid "The setup state could not be saved."
+msgstr "Не вдалося зберегти стан налаштування."
 
 msgid ""
 "The sheet appears at the edge of the screen, accompanied by the Magnolie "
@@ -5192,6 +5484,13 @@ msgid "There is nothing to print."
 msgstr "Немає чого друкувати."
 
 msgid ""
+"These are Magnolie's actual tabs. You can show only the sections that fit "
+"your everyday life."
+msgstr ""
+"Це справжні вкладки Magnolie. Можна відобразити лише ті розділи, які "
+"потрібні вам щодня."
+
+msgid ""
 "These choices change how the Organizer displays information. Your entries "
 "are not converted or moved."
 msgstr ""
@@ -5295,6 +5594,13 @@ msgstr ""
 msgid "This notebook is still empty."
 msgstr "Цей записник досі порожній."
 
+msgid ""
+"This one-time import only adds or enriches contacts. It does not synchronize "
+"or delete contacts."
+msgstr ""
+"Цей одноразовий імпорт лише додає або доповнює контакти. Він не синхронізує "
+"й не видаляє їх."
+
 msgid "This paired phone is my own device"
 msgstr "Цей спарений телефон є моїм власним пристроєм"
 
@@ -5383,6 +5689,9 @@ msgstr "Забагато невдалих спроб. Трохи зачекай�
 msgid "Too many regions were selected."
 msgstr "Вибрано забагато регіонів."
 
+msgid "Top level"
+msgstr "Верхній рівень"
+
 msgid "Tray applet"
 msgstr "Аплет системного лотка"
 
@@ -5453,6 +5762,9 @@ msgstr "Невідома помилка"
 msgid "Unknown phone"
 msgstr "Невідома кінцева точка."
 
+msgid "Unknown source"
+msgstr "Невідоме джерело"
+
 msgid "Unlink"
 msgstr "Від’єднати"
 
@@ -5494,6 +5806,9 @@ msgstr "Час роботи"
 
 msgid "Uri"
 msgstr "URI"
+
+msgid "Use LibreOffice address"
+msgstr "Використовувати адресні дані LibreOffice"
 
 msgid "Use a specific application or command"
 msgstr "Використовувати певну програму або команду"
@@ -5655,6 +5970,13 @@ msgstr "Попередження: не вдалося зберегти дані.
 msgid "Waste collection calendar"
 msgstr "Календар вивезення відходів"
 
+msgid ""
+"We are delighted to welcome you. This short assistant prepares Magnolie "
+"Organizer around your wishes."
+msgstr ""
+"Раді вітати вас. Цей короткий помічник налаштує Magnolie Organizer "
+"відповідно до ваших побажань."
+
 msgid "We are glad you are here!"
 msgstr "Ми раді, що ви тут!"
 
@@ -5753,12 +6075,6 @@ msgstr ""
 "зберігаються під час імпорту, експорту й синхронізації з онлайн-адресною "
 "книгою. Адреси електронної пошти на картках контактів завжди можна натиснути "
 "— вони відкривають поштову програму."
-
-msgid ""
-"When the limit is lowered, the oldest recovery snapshots are removed "
-"automatically."
-msgstr ""
-"Коли ліміт зменшується, найстаріші точки відновлення автоматично видаляються."
 
 msgid ""
 "When writing a note, a small toolbar above the sheet provides bold, italic, "
@@ -6183,6 +6499,12 @@ msgstr "невідома помилка"
 msgid "untitled"
 msgstr "без назви"
 
+msgid "vCard (.vcf), including iPhone/iCloud export …"
+msgstr "vCard (.vcf), зокрема експорт з iPhone/iCloud …"
+
+msgid "vCard file (.vcf), including iPhone/iCloud export …"
+msgstr "Файл vCard (.vcf), зокрема експорт з iPhone/iCloud …"
+
 msgid ""
 "vCard preserves more contact details. LDIF is intended for importing into "
 "Claws Mail; emergency contacts, social media, free labels and non-JPEG "
@@ -6272,5 +6594,173 @@ msgstr[2] "… і ще %(count)s елементи, які також буде н
 msgid "＋ Add appointment"
 msgstr "＋ Додати зустріч"
 
-msgid "Language & region"
-msgstr "Мова й регіон"
+#~ msgid ""
+#~ "Download Magnolie Notes or KDE Connect using the links below. Bluetooth "
+#~ "opens Windows Settings for direct pairing."
+#~ msgstr ""
+#~ "Завантажте Magnolie Notes або KDE Connect за посиланнями нижче. Bluetooth "
+#~ "відкриває налаштування Windows для прямого сполучення."
+
+#~ msgid ""
+#~ "Magnolie Notes and KDE Connect are download links, not connection "
+#~ "actions. Bluetooth opens Windows Settings for direct pairing."
+#~ msgstr ""
+#~ "Magnolie Notes і KDE Connect є посиланнями для завантаження, а не діями "
+#~ "підключення. Bluetooth відкриває налаштування Windows для прямого "
+#~ "сполучення."
+
+#~ msgid ""
+#~ "The predefined Calendar tab is always available again from Settings, even "
+#~ "if you hide it here."
+#~ msgstr ""
+#~ "Готову вкладку «Календар» завжди можна знову ввімкнути в налаштуваннях, "
+#~ "навіть якщо приховати її тут."
+
+#~ msgid "No more blocks can be added."
+#~ msgstr "Більше не можна додати жодного блоку."
+
+#~ msgid "Yearly"
+#~ msgstr "Щороку"
+
+#~ msgid ""
+#~ "Autostart also enables tray availability. Tray can be enabled "
+#~ "independently without autostart."
+#~ msgstr ""
+#~ "Автозапуск також забезпечує доступність у системному треї. Системний трей "
+#~ "можна ввімкнути окремо без автозапуску."
+
+#~ msgid "Checklist / list block"
+#~ msgstr "Контрольний список / блок списку"
+
+#~ msgid "Connect Magnolie Notes"
+#~ msgstr "Телефон і Magnolie Notes"
+
+#~ msgid "Pair KDE Connect for SMS"
+#~ msgstr "KDE Connect для SMS"
+
+#~ msgid "Recurrence block"
+#~ msgstr "Блок повторення"
+
+#~ msgid "Start Magnolie with Windows"
+#~ msgstr "Запускати Magnolie разом із Windows"
+
+#~ msgid ""
+#~ "The secure download links open directly. Bluetooth opens Windows "
+#~ "Settings; this assistant does not change or pair devices."
+#~ msgstr ""
+#~ "Безпечні посилання для завантаження відкриваються безпосередньо. "
+#~ "Bluetooth відкриває Windows Settings; цей помічник не вносить змін і не "
+#~ "сполучає пристрої."
+
+#~ msgid "Backup restore selected"
+#~ msgstr "Фото не вибрано"
+
+#~ msgid ""
+#~ "Choose Start Magnolie to begin, or Manual to begin and open the manual "
+#~ "after the main window is visible."
+#~ msgstr ""
+#~ "Щоб почати, виберіть «Запустити Magnolie» або «Посібник», щоб почати й "
+#~ "відкрити посібник після появи головного вікна."
+
+#~ msgid ""
+#~ "Choose permanent synchronization separately from data that should be "
+#~ "imported once, just as in Settings."
+#~ msgstr ""
+#~ "Окремо виберіть постійну синхронізацію та дані для одноразового імпорту, "
+#~ "як у налаштуваннях."
+
+#~ msgid "Create snapshot now"
+#~ msgstr "Створити знімок зараз"
+
+#~ msgid "Design request selected"
+#~ msgstr "Запит на оформлення вибрано"
+
+#~ msgid "Every 12 hours"
+#~ msgstr "Кожні 12 годин"
+
+#~ msgid "Every 6 hours"
+#~ msgstr "Кожні 6 годин"
+
+#~ msgid "Include Bluetooth information"
+#~ msgstr "Додати відомості про Bluetooth"
+
+#~ msgid "Last snapshot"
+#~ msgstr "Останній знімок"
+
+#~ msgid "Magnolie Notes"
+#~ msgstr "Magnolie Notes"
+
+#~ msgid "Maximum recovery snapshots"
+#~ msgstr "Максимальна кількість точок відновлення"
+
+#~ msgid "Next snapshot"
+#~ msgstr "Наступний знімок"
+
+#~ msgid ""
+#~ "Nothing connects or imports automatically. Your choices appear as pending "
+#~ "actions in Settings."
+#~ msgstr ""
+#~ "Нічого не підключається й не імпортується автоматично. Ваш вибір "
+#~ "відображатиметься в налаштуваннях як очікувані дії."
+
+#~ msgid ""
+#~ "Nothing starts automatically. Choose an action below when you are ready."
+#~ msgstr ""
+#~ "Нічого не запускається автоматично. Коли будете готові, виберіть дію "
+#~ "нижче."
+
+#~ msgid "Number of backups"
+#~ msgstr "Кількість резервних копій"
+
+#~ msgid "Operating system"
+#~ msgstr "Операційна система"
+
+#~ msgid "Pending setup choices"
+#~ msgstr "Параметри налаштування, що очікують застосування"
+
+#~ msgid "Permanent synchronization"
+#~ msgstr "Постійні джерела синхронізації"
+
+#~ msgid "Plan recovery points before important changes"
+#~ msgstr "Плануйте точки відновлення перед важливими змінами"
+
+#~ msgid ""
+#~ "Private, integrity-checked snapshots are stored next to the application "
+#~ "data."
+#~ msgstr ""
+#~ "Приватні знімки з перевіркою цілісності зберігаються поруч із даними "
+#~ "програми."
+
+#~ msgid "Request a separate tab design"
+#~ msgstr "Запросити окреме оформлення вкладки"
+
+#~ msgid ""
+#~ "Restoring is deferred until Magnolie has opened; no file is changed by "
+#~ "this assistant."
+#~ msgstr ""
+#~ "Відновлення відкладається до запуску Magnolie; цей помічник не змінює "
+#~ "жодних файлів."
+
+#~ msgid "Show Android download information"
+#~ msgstr "Отримання відомостей для ручного завантаження …"
+
+#~ msgid "Show QR pairing information"
+#~ msgstr "Підготувати дані для сполучення за QR-кодом"
+
+#~ msgid "Standard CalDAV / CardDAV"
+#~ msgstr "Стандартний CalDAV / CardDAV"
+
+#~ msgid ""
+#~ "The QR code and download are shown only after Magnolie opens. No app is "
+#~ "installed, Bluetooth is not changed, and no device is paired now."
+#~ msgstr ""
+#~ "QR-код і завантаження відображаються лише після запуску Magnolie. Зараз "
+#~ "жодна програма не встановлюється, параметри Bluetooth не змінюються й "
+#~ "жоден пристрій не сполучається."
+
+#~ msgid ""
+#~ "When the limit is lowered, the oldest recovery snapshots are removed "
+#~ "automatically."
+#~ msgstr ""
+#~ "Коли ліміт зменшується, найстаріші точки відновлення автоматично "
+#~ "видаляються."

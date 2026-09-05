@@ -18,6 +18,12 @@
           "SQLitePCLRaw.bundle_e_sqlite3": "2.1.6"
         }
       },
+      "libphonenumber-csharp": {
+        "type": "Direct",
+        "requested": "[9.0.38, )",
+        "resolved": "9.0.38",
+        "contentHash": "QRvXk+Ih0VjKtq03ouAqhUFDnBe1sqS2wTd6htWyvzPhdVIcyNPuoprDCWnPJk6RIYfsePTOG38VVc1EdH3u7A=="
+      },
       "Microsoft.Web.WebView2": {
         "type": "Direct",
         "requested": "[1.0.3351.48, )",

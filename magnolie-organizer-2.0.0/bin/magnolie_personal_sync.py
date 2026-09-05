@@ -7,7 +7,7 @@ import json
 import re
 import uuid
 
-FORMATS = [1, 2]
+FORMATS = [1, 2, 3]
 FORMAT = 1
 MAX_RECORDS = 32
 MAX_PACKET = 192 * 1024
@@ -183,9 +183,10 @@ def validate_value(kind, value, format=1):
         raise ValueError("invalid personal sync value")
     fields = {
         "note": {"title", "text", "html", "notebook_id", "symbol", "created_ms", "modified_ms"} |
-                ({"attachments"} if format == 2 else set()),
+                ({"attachments"} if format >= 2 else set()),
         "task": {"title", "note", "due", "priority", "completed", "remind", "lead_days",
-                 "reminder_minute", "created_ms", "modified_ms"},
+                  "reminder_minute", "created_ms", "modified_ms"} |
+                ({"uid", "parent_uid", "order"} if format == 3 else set()),
         "notebook": {"name", "modified_ms"},
     }[kind]
     if set(value) != fields:
@@ -201,16 +202,16 @@ def validate_value(kind, value, format=1):
             if len(ids) != len(set(ids)):
                 raise ValueError("duplicate attachment id")
             continue
-        if name in {"created_ms", "modified_ms", "priority", "lead_days", "reminder_minute"}:
+        if name in {"created_ms", "modified_ms", "priority", "lead_days", "reminder_minute", "order"}:
             if (isinstance(item, bool) or not isinstance(item, int) or item < 0
                     or item > (MAX_TIMESTAMP if name.endswith("_ms") else MAX_SAFE_INTEGER)):
                 raise ValueError("invalid personal sync number")
         elif name in {"completed", "remind"}:
             if not isinstance(item, bool):
                 raise ValueError("invalid personal sync boolean")
-        elif not _text(item, 160 if name in {"notebook_id", "symbol", "due"} else MAX_TEXT):
+        elif not _text(item, 160 if name in {"notebook_id", "symbol", "due", "uid", "parent_uid"} else MAX_TEXT):
             raise ValueError("invalid personal sync text")
-        elif name == "notebook_id" and item != item.strip():
+        elif name in {"notebook_id", "uid", "parent_uid"} and item != item.strip():
             raise ValueError("invalid notebook id")
     if kind == "task" and (value["priority"] not in {1, 2, 3}
                             or value["lead_days"] > 365 or value["reminder_minute"] > 1439
@@ -247,7 +248,7 @@ def validate_body(kind, body):
             raise ValueError("invalid personal sync request")
     elif kind == "personal_sync.batch":
         format = body.get("format")
-        fields = {"format", "run_id", "batch_id", "sequence", "last", "reply", "records"} | ({"records_hash"} if format == 2 else set())
+        fields = {"format", "run_id", "batch_id", "sequence", "last", "reply", "records"} | ({"records_hash"} if format >= 2 else set())
         if (set(body) != fields or format not in FORMATS
                 or not UUID4.fullmatch(body.get("run_id", ""))
                 or not UUID4.fullmatch(body.get("batch_id", ""))
@@ -261,14 +262,14 @@ def validate_body(kind, body):
             validate_record(record, format)
             keys.append((record["kind"], record["id"]))
         ordered = sorted(set(keys), key=lambda item: (item[0].encode("utf-8"), item[1].encode("utf-8")))
-        if keys != ordered or len(canonical(body)) > MAX_PACKET or (format == 2 and not HASH.fullmatch(body.get("records_hash", ""))):
+        if keys != ordered or len(canonical(body)) > MAX_PACKET or (format >= 2 and not HASH.fullmatch(body.get("records_hash", ""))):
             raise ValueError("invalid personal sync batch ordering")
     elif kind == "personal_sync.report":
         format = body.get("format")
         fields = {"format", "run_id", "state", "trigger", "transport", "sent", "received",
                    "conflicts", "attachments_omitted", "oversized_skipped", "started_ms", "finished_ms", "error",
                    "deletions"}
-        if format == 2:
+        if format >= 2:
             fields.add("attachments")
         if set(body) != fields or format not in FORMATS or not UUID4.fullmatch(body.get("run_id", "")):
             raise ValueError("invalid personal sync report")
@@ -286,7 +287,7 @@ def validate_body(kind, body):
                    "none", "offline", "not_granted", "too_large", "save_failed", "protocol", "unknown"}
                  or body["finished_ms"] < body["started_ms"]):
             raise ValueError("invalid personal sync report counters")
-        if format == 2:
+        if format >= 2:
             attachments = body["attachments"]
             names = {"declared", "requested", "sent", "received", "reused", "preserved", "failed", "bytes"}
             if (not isinstance(attachments, dict) or set(attachments) != names or any(

@@ -105,6 +105,20 @@
             ]
         },
         {
+            "name": "python3-phonenumbers",
+            "buildsystem": "simple",
+            "build-commands": [
+                "pip3 install --verbose --exists-action=i --no-index --find-links=\"file://${PWD}\" --prefix=${FLATPAK_DEST} \"phonenumbers==9.0.38\" --no-build-isolation"
+            ],
+            "sources": [
+                {
+                    "type": "file",
+                    "url": "https://files.pythonhosted.org/packages/b2/09/6df2574777489592b37e6b9cda72962709af2e121b122bf6aae19bcce7b4/phonenumbers-9.0.38-py2.py3-none-any.whl",
+                    "sha256": "f3cbeb1a42bf226060c60fc6277f5431755d325eddc23fbf2c72ef7e156113c6"
+                }
+            ]
+        },
+        {
             "name": "python3-pyenchant",
             "buildsystem": "simple",
             "build-commands": [

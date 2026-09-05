@@ -11,7 +11,7 @@ internal static class LibreOfficeUserData
     private const long MaxFileBytes = 8 * 1024 * 1024;
     private static readonly HashSet<string> Interesting = new(StringComparer.Ordinal)
     {
-        "givenname", "sn", "o", "street", "postalcode", "l", "c",
+        "givenname", "sn", "o", "street", "postalcode", "l", "c", "st",
         "mail", "telephonenumber", "homephone"
     };
 

@@ -1,3 +1,8 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the Magnolie Organizer package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
 msgid ""
 msgstr ""
 "Report-Msgid-Bugs-To: maik3531@gmail.com\n"
@@ -78,6 +83,12 @@ msgid_plural "%(count)s contact cards"
 msgstr[0] "%(count)s kontaktní karta"
 msgstr[1] "%(count)s kontaktní karty"
 msgstr[2] "%(count)s kontaktní karty"
+
+msgid "%(count)s contact imported."
+msgid_plural "%(count)s contacts imported."
+msgstr[0] "Importován %(count)s kontakt."
+msgstr[1] "Importovány %(count)s kontakty."
+msgstr[2] "Importováno %(count)s kontaktů."
 
 msgid "%(count)s contact photo added"
 msgid_plural "%(count)s contact photos added"
@@ -403,6 +414,9 @@ msgstr ""
 "Číselný kód lze při otevření pohodlně zadat pomocí numerické klávesnice; "
 "fungují i písmena. Po třech neúspěšných pokusech Organizér pět minut počká."
 
+msgid "A one-time import adds contacts only after your selection."
+msgstr "Jednorázový import přidá kontakty až poté, co je vyberete."
+
 msgid ""
 "A pairing file works like a one-time key. Give it only to the person whose "
 "Organizer you want to connect; it expires after 15 minutes."
@@ -498,6 +512,12 @@ msgstr "Aktivní hovor"
 msgid "Add"
 msgstr "Přidat"
 
+msgid "Add %(type)s"
+msgstr "Přidat %(type)s"
+
+msgid "Add another SMS"
+msgstr "Přidat další SMS"
+
 msgid "Add appointment"
 msgstr "Přidat schůzku"
 
@@ -510,6 +530,9 @@ msgstr "Přidat účastníka"
 msgid "Add cycle marker"
 msgstr "Přidat značku cyklu"
 
+msgid "Add one custom tab"
+msgstr "Přidat jednu vlastní kartu"
+
 msgid "Add person"
 msgstr "Přidat osobu"
 
@@ -521,6 +544,9 @@ msgstr "Přidat řádek schématu"
 
 msgid "Add shift"
 msgstr "Přidat směnu"
+
+msgid "Add subtask"
+msgstr "Přidat dílčí úkol"
 
 msgid "Add to dictionary"
 msgstr "Přidat do slovníku"
@@ -693,8 +719,14 @@ msgstr "Schůzky této osoby"
 msgid "Appointments · %(period)s"
 msgstr "Schůzky · %(period)s"
 
+msgid "Apps for your phone"
+msgstr "Aplikace pro váš telefon"
+
 msgid "Archive password"
 msgstr "Heslo archivu"
+
+msgid "Are you really sure?"
+msgstr "Opravdu jste si jisti?"
 
 msgid "As usual (print)"
 msgstr "Jako obvykle (tisk)"
@@ -766,6 +798,9 @@ msgstr "BMI z poslední uložené výšky a hmotnosti"
 msgid "BZ"
 msgstr "BZ"
 
+msgid "Back"
+msgstr "Zpět"
+
 msgid "Backup failed."
 msgstr "Zálohování selhalo."
 
@@ -781,6 +816,9 @@ msgstr "Heslo zálohy"
 msgid "Backup restored. The previous data was backed up automatically."
 msgstr "Záloha obnovena. Předchozí data byla automaticky zazálohována."
 
+msgid "Backup rhythm"
+msgstr "Frekvence zálohování"
+
 msgid "Backup saved to: %(path)s"
 msgstr "Záloha uložena do: %(path)s"
 
@@ -789,6 +827,9 @@ msgstr "Záloha byla úspěšně ověřena."
 
 msgid "Backups"
 msgstr "Zálohy"
+
+msgid "Backups and recovery"
+msgstr "Složka záloh"
 
 msgid ""
 "Backups outside the data location require a password with at least four "
@@ -876,6 +917,9 @@ msgstr "Krvácení · slabé"
 msgid "Bleeding · medium"
 msgstr "Krvácení · střední"
 
+msgid "Blocks"
+msgstr "Bloky"
+
 msgid "Blood glucose"
 msgstr "Krevní glukóza"
 
@@ -920,6 +964,9 @@ msgstr "Braniborsko"
 msgid "Bremen"
 msgstr "Brémy"
 
+msgid "Browse..."
+msgstr "Procházet..."
+
 msgid "Burgenland"
 msgstr "Burgenland"
 
@@ -928,6 +975,9 @@ msgstr "Podle jména (Hans Müller)"
 
 msgid "By last name (Müller, Hans)"
 msgstr "Podle příjmení (Müller, Hans)"
+
+msgid "CSV / Lotus Organizer contacts …"
+msgstr "Kontakty CSV / Lotus Organizer…"
 
 msgid "CSV files (*.csv)"
 msgstr "Soubory CSV (*.csv)"
@@ -943,13 +993,6 @@ msgstr "Kalendář"
 
 msgid "Calendar (*.ics)"
 msgstr "Kalendář (*.ics)"
-
-msgid ""
-"Calendar and contact applications commonly export appointments as .ics files "
-"and contacts as .vcf files."
-msgstr ""
-"Kalendář a kontaktní aplikace běžně exportují schůzky jako soubory .ics a "
-"kontakty jako soubory .vcf."
 
 msgid "Calendar file (.ics/.vcs/.lcs) …"
 msgstr "Soubor kalendáře (.ics/.vcs/.lcs) …"
@@ -1066,6 +1109,9 @@ msgstr "Kontrola aktuální verze manuálu…"
 msgid "Checking the current version …"
 msgstr "Kontrola aktuální verze …"
 
+msgid "Choose Appointments, Notes or Tasks in Customize."
+msgstr "V části Přizpůsobit vyberte Schůzky, Poznámky nebo Úkoly."
+
 msgid ""
 "Choose a backup file. Before restoring it, the organizer automatically "
 "creates a copy of the current data. An encrypted backup requires its "
@@ -1113,6 +1159,13 @@ msgstr "Zvolte alespoň čtyři znaky."
 msgid "Choose entries to print, export or delete"
 msgstr "Vyberte záznamy k tisku, exportu nebo odstranění"
 
+msgid ""
+"Choose file and Windows contact imports that Magnolie can start directly "
+"after opening."
+msgstr ""
+"Vyberte importy souborů a kontaktů Windows, které může Magnolie spustit "
+"ihned po otevření."
+
 msgid "Choose file…"
 msgstr "Vybrat soubor…"
 
@@ -1128,6 +1181,13 @@ msgstr "Vybrat fotografii…"
 msgid "Choose print or export content…"
 msgstr "Zvolte obsah pro tisk nebo export…"
 
+msgid ""
+"Choose safe preferences now. No scheduled backup job is started in the "
+"assistant."
+msgstr ""
+"Nyní zvolte bezpečné předvolby. V průvodci se nespustí žádná naplánovaná "
+"úloha zálohování."
+
 msgid "Choose service"
 msgstr "Vybrat službu"
 
@@ -1141,11 +1201,14 @@ msgstr ""
 msgid "Choose year…"
 msgstr "Vybrat rok…"
 
+msgid "Choose your organizer tabs"
+msgstr "Sestavte si svůj organizér"
+
 msgid "City"
 msgstr "Město"
 
-msgid "Claws Mail (.xml/.ldif) …"
-msgstr "Claws Mail (.xml/.ldif) …"
+msgid "Claws Mail XML (.xml) …"
+msgstr "Claws Mail XML (.xml)…"
 
 msgid "Claws Mail address book (*.xml)"
 msgstr "Adresář Claws Mail (*.xml)"
@@ -1318,9 +1381,6 @@ msgstr "Kontakty"
 msgid "Contacts (.vcf)"
 msgstr "Kontakty (.vcf)"
 
-msgid "Contacts (.vcf) …"
-msgstr "Kontakty (.vcf) …"
-
 msgid "Contacts are merged additively. No deletions are transmitted."
 msgstr "Kontakty se slučují doplněním. Odstranění se nepřenášejí."
 
@@ -1366,6 +1426,9 @@ msgstr "Země a oblast"
 msgid "Country for searches"
 msgstr "Země pro vyhledávání"
 
+msgid "Country of origin"
+msgstr "Země původu"
+
 msgid "Create"
 msgstr "Vytvořit"
 
@@ -1396,8 +1459,8 @@ msgstr "Vytvořit zápisník"
 msgid "Create pairing file …"
 msgstr "Vytvořit párovací soubor …"
 
-msgid "Create snapshot now"
-msgstr "Vytvořte snímek nyní"
+msgid "Creating recovery snapshot …"
+msgstr "Vytváří se snímek pro obnovení…"
 
 msgid "Custom"
 msgstr "Vlastní"
@@ -1405,8 +1468,18 @@ msgstr "Vlastní"
 msgid "Custom application"
 msgstr "Vlastní aplikace"
 
+msgid ""
+"Custom content is saved locally and transferred through complete Magnolie "
+"archives only, not Personal Sync."
+msgstr ""
+"Vlastní obsah se ukládá místně a přenáší se pouze prostřednictvím úplných "
+"archivů Magnolie, nikoli přes Personal Sync."
+
 msgid "Custom notification"
 msgstr "Vlastní oznámení"
+
+msgid "Custom tab"
+msgstr "Vlastní karta"
 
 msgid "Custom websites must begin with https://."
 msgstr "Vlastní webové stránky musí začínat https://."
@@ -1581,6 +1654,11 @@ msgstr "Odstranit období dovolené"
 msgid "Delete waste collection"
 msgstr "Odstranit svoz odpadu"
 
+msgid "Deleted and missing data is restored; newer existing data is retained."
+msgstr ""
+"Odstraněná a chybějící data se obnoví; novější existující data zůstanou "
+"zachována."
+
 msgid ""
 "Deleted items first go to the recycle bin and can be restored from there. "
 "They are permanently removed only afterwards."
@@ -1606,6 +1684,9 @@ msgstr "Doručeno"
 
 msgid "Delivered to %(branch)s."
 msgstr "Doručeno do %(branch)s."
+
+msgid "Delivery status uncertain"
+msgstr "Stav doručení je nejistý"
 
 msgid "Dentist Dr. Hill — Preview of your entries"
 msgstr "Zubař MUDr. Hill — Náhled vašich záznamů"
@@ -1678,6 +1759,9 @@ msgstr "Stáhnout příručku"
 
 msgid "Download manual version %(version)s"
 msgstr "Stáhnout příručku verze %(version)s"
+
+msgid "Downloads"
+msgstr "Stahování"
 
 msgid "Drag the attachment area up or down"
 msgstr "Přetáhněte oblast příloh nahoru nebo dolů"
@@ -1789,6 +1873,9 @@ msgstr ""
 msgid "Enable reminders"
 msgstr "Povolit připomínky"
 
+msgid "Enable reminders for this block"
+msgstr "Povolit připomenutí pro tento blok"
+
 msgid "Enable shift planner"
 msgstr "Povolit plánovač směn"
 
@@ -1804,6 +1891,13 @@ msgstr "Povolit kalendář svozu odpadu"
 msgid "Enjoy getting organized!"
 msgstr "Ať se vám dobře organizuje!"
 
+msgid ""
+"Enjoy organizing with Magnolie. Your choices stay under your control and can "
+"be changed later in Settings."
+msgstr ""
+"Užijte si organizování s Magnolie. Své volby máte pod kontrolou a můžete je "
+"později změnit v Nastavení."
+
 msgid "Enter"
 msgstr "Zadat"
 
@@ -1812,6 +1906,9 @@ msgid ""
 msgstr ""
 "Zadejte vlevo hodnotu krevní glukózy, aby se zvýraznily odpovídající řádky "
 "schématu."
+
+msgid "Enter a future time and a valid SMS text for every entry."
+msgstr "U každé položky zadejte budoucí čas a platný text SMS."
 
 msgid "Enter a medication name first."
 msgstr "Nejprve zadejte název léku."
@@ -1862,20 +1959,34 @@ msgstr "Chyba"
 msgid "Evening"
 msgstr "Večer"
 
-msgid "Every 12 hours"
-msgstr "Každých 12 hodin"
-
-msgid "Every 6 hours"
-msgstr "Každých 6 hodin"
-
 msgid "Every filled medication row requires a name."
 msgstr "Každý vyplněný řádek léku musí obsahovat název."
 
 msgid "Every filled row requires a valid date."
 msgstr "Každý vyplněný řádek musí obsahovat platné datum."
 
+msgid ""
+"Every saved change is protected automatically by a private, integrity-"
+"checked snapshot."
+msgstr ""
+"Každá uložená změna je automaticky chráněna soukromým snímkem s kontrolou "
+"integrity."
+
 msgid "Everything is done - the list is empty."
 msgstr "Všechno je hotové – seznam je prázdný."
+
+msgid "Everything is ready"
+msgstr "Vše je připraveno"
+
+msgid ""
+"Evolution and Thunderbird are selected explicitly. iPhone contacts require a "
+"vCard export from the iPhone or iCloud. KDE Connect, Bluetooth and PBAP are "
+"not contact sources."
+msgstr ""
+"Evolution a Thunderbird se vybírají výslovně. Kontakty z iPhonu vyžadují "
+"export vCard z iPhonu nebo iCloudu. KDE Connect, Bluetooth a PBAP nejsou "
+"zdroje kontaktů.Kontakty z iPhonu vyžadují export vCard z iPhonu nebo "
+"iCloudu. KDE Connect, Bluetooth a PBAP nejsou zdroje kontaktů."
 
 msgid "Exactly one Magnolie Notes phone must be paired."
 msgstr "Musí být spárován přesně jeden telefon Magnolie Notes."
@@ -2058,9 +2169,6 @@ msgstr "Pátek"
 msgid "From"
 msgstr "Od"
 
-msgid "From the Windows Contacts folder"
-msgstr "Ze složky Kontakty Windows"
-
 msgid "Full"
 msgstr "Plný"
 
@@ -2182,6 +2290,9 @@ msgstr "Domů"
 msgid "Home address"
 msgstr "Domácí adresa"
 
+msgid "Home country for phone numbers"
+msgstr "Domovská země pro telefonní čísla"
+
 msgid "Home phone"
 msgstr "Telefon domů"
 
@@ -2190,6 +2301,9 @@ msgstr "Návštěva doma"
 
 msgid "Hours"
 msgstr "Hodiny"
+
+msgid "How lovely that you chose Magnolie"
+msgstr "Jsme rádi, že jste si vybrali Magnolie"
 
 msgid "How the calendar should behave when you click a day."
 msgstr "Jak se má kalendář chovat při kliknutí na den."
@@ -2230,6 +2344,9 @@ msgstr "Importovat"
 msgid "Import Magnolie complete archive"
 msgstr "Importujte kompletní archiv Magnolie"
 
+msgid "Import contacts additively"
+msgstr "Importovat kontakty bez nahrazení stávajících"
+
 msgid "Import failed: %(error)s"
 msgstr "Import selhal: %(error)s"
 
@@ -2238,6 +2355,9 @@ msgstr "Importovat z LibreOffice"
 
 msgid "Import is available only in the installed application."
 msgstr "Import je dostupný pouze v nainstalované aplikaci."
+
+msgid "Import once"
+msgstr "Importovat jednorázově"
 
 msgid "Import pairing file …"
 msgstr "Importovat párovací soubor …"
@@ -2334,6 +2454,9 @@ msgstr "Inzulinové schéma"
 msgid "Integrity"
 msgstr "Integrita"
 
+msgid "International call"
+msgstr "Mezinárodní hovor"
+
 msgid "Internet IP"
 msgstr "Internetová IP"
 
@@ -2383,6 +2506,9 @@ msgstr "Uchovávat protokol pro řešení potíží"
 msgid "LDIF address book (*.ldif)"
 msgstr "Adresář LDIF (*.ldif)"
 
+msgid "LDIF address book (.ldif) …"
+msgstr "Adresář LDIF (.ldif)…"
+
 msgid "Landline"
 msgstr "Pevná linka"
 
@@ -2401,9 +2527,6 @@ msgstr "Poslední kontrola selhala: %(error)s"
 msgid "Last name"
 msgstr "Příjmení"
 
-msgid "Last snapshot"
-msgstr "Poslední snímek"
-
 msgid "Last successful backup"
 msgstr "Poslední úspěšná záloha"
 
@@ -2416,11 +2539,21 @@ msgstr "Odpolední směna"
 msgid "Lead time"
 msgstr "Předstih"
 
+msgid "Left page"
+msgstr "Levá stránka"
+
 msgid "Letter"
 msgstr "Dopis"
 
 msgid "Letter template"
 msgstr "Šablona dopisu"
+
+msgid ""
+"LibreOffice is only read when you press the button. Its settings are not "
+"modified."
+msgstr ""
+"Data z LibreOffice se načtou pouze po stisknutí tlačítka. Jeho nastavení se "
+"nezmění."
 
 msgid "License"
 msgstr "Licence"
@@ -2482,6 +2615,12 @@ msgstr "Magnólie"
 msgid "Magnolia weather symbols only"
 msgstr "Pouze symboly počasí Magnolie"
 
+msgid "Magnolie Notes / Android: check for pending import"
+msgstr "Magnolie Notes / Android: zkontrolovat čekající import"
+
+msgid "Magnolie Notes contact import"
+msgstr "Import kontaktů z Magnolie Notes"
+
 msgid "Magnolie Notes device status"
 msgstr "Stav zařízení Magnolie Notes"
 
@@ -2501,6 +2640,9 @@ msgid ""
 msgstr ""
 "Telefony Magnolie Notes a telefony KDE Connect jsou oddělené: název modelu "
 "Android patří Magnolie Notes, název protějšku KDE pochází z KDE Connect."
+
+msgid "Magnolie Organizer"
+msgstr "Magnolie Organizer"
 
 msgid "Magnolie Organizer is not completely installed."
 msgstr "Magnolie Organizer není nainstalován úplně."
@@ -2522,6 +2664,13 @@ msgstr ""
 
 msgid "Magnolie backup (*.json)"
 msgstr "Záloha Magnolie (*.json)"
+
+msgid ""
+"Magnolie can use this information when preparing routes and finding local "
+"weather. You can leave every field empty."
+msgstr ""
+"Magnolie může tyto informace použít při přípravě tras a zjišťování místního "
+"počasí. Všechna pole můžete ponechat prázdná."
 
 msgid "Magnolie complete archive (.magnolie) …"
 msgstr "Kompletní archiv Magnolie (.magnolie) …"
@@ -2569,6 +2718,9 @@ msgctxt "recovery snapshot reason"
 msgid "Manual"
 msgstr "Vlastní"
 
+msgid "Manual only"
+msgstr "Pouze ručně"
+
 msgid "Manual version %(version)s is available."
 msgstr "K dispozici je manuální verze %(version)s."
 
@@ -2593,9 +2745,6 @@ msgstr "Označit jako otevřené"
 
 msgid "Maximized"
 msgstr "Maximalizované"
-
-msgid "Maximum recovery snapshots"
-msgstr "Maximální počet bodů obnovení"
 
 msgid "Measurement context"
 msgstr "Kontext měření"
@@ -2703,6 +2852,9 @@ msgstr "Mobilní síť"
 msgid "Model"
 msgstr "Model"
 
+msgid "Module"
+msgstr "Modul"
+
 msgid "Monday"
 msgstr "Pondělí"
 
@@ -2711,6 +2863,9 @@ msgstr "Měsíc"
 
 msgid "Month calendar"
 msgstr "Měsíční kalendář"
+
+msgid "Monthly"
+msgstr "Měsíčně"
 
 msgid "Monthly view"
 msgstr "Měsíční zobrazení"
@@ -2733,6 +2888,9 @@ msgstr "Ráno"
 msgid "Mouse wheel over times"
 msgstr "Kolečko myši nad časy"
 
+msgid "Move down"
+msgstr "Přesunout dolů"
+
 msgid "Move group down"
 msgstr "Přesunout skupinu dolů"
 
@@ -2750,6 +2908,12 @@ msgstr "Přesunout zápisník nahoru"
 
 msgid "Move the ticked entries to the wastebasket"
 msgstr "Přesunout zaškrtnuté položky do koše"
+
+msgid "Move to top level"
+msgstr "Přesunout na nejvyšší úroveň"
+
+msgid "Move up"
+msgstr "Přesunout nahoru"
 
 msgid ""
 "Multiple Magnolie Notes phones are stored. Personal sync is blocked; remove "
@@ -2840,6 +3004,9 @@ msgstr "Nový úkol"
 msgid "New version %(version)s is available."
 msgstr "Je k dispozici nová verze %(version)s."
 
+msgid "Next"
+msgstr "Další"
+
 msgid "Next appointment: %(title)s on %(date)s%(time)s%(notice)s"
 msgstr "Další schůzka: %(title)s dne %(date)s%(time)s%(notice)s"
 
@@ -2848,9 +3015,6 @@ msgstr "Další měsíc"
 
 msgid "Next page"
 msgstr "Další stránka"
-
-msgid "Next snapshot"
-msgstr "Další snímek"
 
 msgid "Next tab"
 msgstr "Další karta"
@@ -2863,9 +3027,6 @@ msgstr "Další týden"
 
 msgid "Next year"
 msgstr "Další rok"
-
-msgid "Nextcloud account"
-msgstr "Účet Nextcloud"
 
 msgid "Nextcloud is not enabled."
 msgstr "Nextcloud není povolen."
@@ -2887,6 +3048,9 @@ msgstr "Nebyla vybrána žádná adresa Bluetooth."
 
 msgid "No KDE Connect pairing is awaiting confirmation."
 msgstr "Žádné párování KDE Connect nečeká na potvrzení."
+
+msgid "No SMS messages are scheduled."
+msgstr "Nejsou naplánovány žádné SMS."
 
 msgid "No address books found."
 msgstr "Nebyly nalezeny žádné adresáře."
@@ -2912,6 +3076,9 @@ msgstr "Bez termínu"
 
 msgid "No duplicate contact cards were found."
 msgstr "Nebyly nalezeny žádné duplicitní karty kontaktů."
+
+msgid "No entries yet."
+msgstr "Zatím žádné záznamy."
 
 msgid "No file selected"
 msgstr "Nebyl vybrán žádný soubor"
@@ -3077,6 +3244,9 @@ msgstr "Nic nebylo nalezeno."
 msgid "Nothing has been entered under “%(letter)s” yet."
 msgstr "Pod „%(letter)s“ zatím nebylo nic zadáno."
 
+msgid "Nothing has been imported yet."
+msgstr "Zatím nebylo nic importováno."
+
 msgid "Nothing is opened or sent while this option is disabled."
 msgstr "Dokud je tato možnost vypnutá, nic se neotevírá ani neodesílá."
 
@@ -3164,6 +3334,13 @@ msgstr "Jedna tabulka s grafem"
 msgid "One year"
 msgstr "Jeden rok"
 
+msgid ""
+"One-time imports are additive. They do not keep a source linked and do not "
+"delete contacts."
+msgstr ""
+"Jednorázové importy kontakty pouze přidávají. Neudržují propojení se zdrojem "
+"a nemažou kontakty."
+
 msgid "Online"
 msgstr "Online"
 
@@ -3239,6 +3416,9 @@ msgstr "Otevřete přihlašovací stránku společnosti Microsoft"
 msgid "Open day view for %(date)s"
 msgstr "Otevřít denní zobrazení pro %(date)s"
 
+msgid "Open designer"
+msgstr "Otevřít návrhář"
+
 msgid "Open manual"
 msgstr "Otevřít příručku"
 
@@ -3256,6 +3436,9 @@ msgstr "Otevřete telefonní připojení v Magnolie Notes a vyberte tento počí
 
 msgid "Open planner as an ODS spreadsheet"
 msgstr "Otevřít plánovač jako tabulku ODS"
+
+msgid "Open requested designer"
+msgstr "Otevřít požadovaný návrhář"
 
 msgid "Open selected contacts as an ODS spreadsheet"
 msgstr "Otevřít vybrané kontakty jako tabulku ODS"
@@ -3293,9 +3476,6 @@ msgstr "OpenStreetMap v prohlížeči"
 
 msgid "Opened in %(application)s."
 msgstr "Otevřeno v aplikaci %(application)s."
-
-msgid "Operating system"
-msgstr "Operační systém"
 
 msgid "Optional archive password"
 msgstr "Volitelné archivní heslo"
@@ -3350,6 +3530,9 @@ msgstr "Soubor PDF"
 msgid "Packaging / Yellow bin"
 msgstr "Obaly / žlutá nádoba"
 
+msgid "Page"
+msgstr "Stránka"
+
 msgid "Page %(page)s"
 msgstr "Stránka %(page)s"
 
@@ -3383,6 +3566,9 @@ msgstr ""
 
 msgid "Palm tree"
 msgstr "Palma"
+
+msgid "Parent task"
+msgstr "Nadřazený úkol"
 
 msgid ""
 "Participate in the Magnolienbaum (opens port %(port)s on the local network)"
@@ -3424,6 +3610,9 @@ msgstr "Zaplatit fakturu"
 msgid "Pen"
 msgstr "Inzulínové pero"
 
+msgid "Pending SMS messages"
+msgstr "Čekající SMS"
+
 msgid "People"
 msgstr "Osoby"
 
@@ -3435,6 +3624,11 @@ msgstr "Trvalý posluchač KDE je aktivní"
 
 msgid "Permanent KDE listener stopped"
 msgstr "Stálý posluchač KDE se zastavil"
+
+msgid ""
+"Permanent sources remain linked and are handled on the Synchronization page."
+msgstr ""
+"Trvalé zdroje zůstávají propojené a spravují se na stránce Synchronizace."
 
 msgid "Permanently delete %(count)s completed task?"
 msgid_plural "Permanently delete %(count)s completed tasks?"
@@ -3484,6 +3678,9 @@ msgstr "Synchronizace se nezdařila."
 
 msgid "Personal synchronization format 2 was not negotiated."
 msgstr "Osobní formát synchronizace 2 nebyl vyjednán."
+
+msgid "Personal synchronization format 3 was not negotiated."
+msgstr "Osobní synchronizační formát 3 nebyl dohodnut."
 
 msgid "Personal synchronization is not permitted on both devices."
 msgstr "Osobní synchronizace není povolena na obou zařízeních."
@@ -3605,6 +3802,9 @@ msgstr "Prášek"
 msgid "Power source"
 msgstr "Zdroj napájení"
 
+msgid "Preferred backup folder"
+msgstr "Upřednostňovaná složka pro zálohy"
+
 msgid "Preparing Microsoft sign-in …"
 msgstr "Příprava přihlášení k Microsoftu…"
 
@@ -3619,6 +3819,12 @@ msgstr "Náhled, tisk nebo export ročního plánovače"
 
 msgid "Preview:"
 msgstr "Náhled:"
+
+msgid "Preview: %(count)s contact"
+msgid_plural "Preview: %(count)s contacts"
+msgstr[0] "Náhled: %(count)s kontakt"
+msgstr[1] "Náhled: %(count)s kontakty"
+msgstr[2] "Náhled: %(count)s kontaktů"
 
 msgid "Previous month"
 msgstr "Předchozí měsíc"
@@ -3667,10 +3873,6 @@ msgstr "Priorita 1 se řadí jako první. Úkoly po termínu se zobrazují červ
 
 msgid "Private"
 msgstr "Soukromé"
-
-msgid ""
-"Private, integrity-checked snapshots are stored next to the application data."
-msgstr "Soukromé snímky s kontrolou integrity jsou uloženy vedle dat aplikace."
 
 msgid "Protected archive password unavailable."
 msgstr "Chráněné heslo archivu není dostupné."
@@ -3760,6 +3962,9 @@ msgstr "Související úkoly"
 
 msgid "Remind me again on the day itself"
 msgstr "Připomenout znovu v daný den"
+
+msgid "Reminder"
+msgstr "Připomenutí"
 
 msgid "Reminder data:"
 msgstr "Údaje připomenutí:"
@@ -3886,14 +4091,14 @@ msgstr ""
 msgid "Restore"
 msgstr "Obnovit"
 
+msgid "Restore a Magnolie backup after startup"
+msgstr "Obnovit ze zálohy Magnolie"
+
 msgid "Restore backup"
 msgstr "Obnovit zálohu"
 
 msgid "Restore backup …"
 msgstr "Obnovit zálohu …"
-
-msgid "Restore completely"
-msgstr "Úplně obnovit"
 
 msgid "Restore defaults"
 msgstr "Obnovit výchozí nastavení"
@@ -3937,6 +4142,9 @@ msgstr "Načítání počasí…"
 msgid "Rhineland-Palatinate"
 msgstr "Porýní-Falc"
 
+msgid "Right page"
+msgstr "Pravá stránka"
+
 msgid "Route"
 msgstr "Trasa"
 
@@ -3952,6 +4160,9 @@ msgstr ""
 msgid "S"
 msgstr "S"
 
+msgid "SMS app settings"
+msgstr "Nastavení SMS"
+
 msgid "SMS assignment"
 msgstr "Přiřazení SMS"
 
@@ -3963,6 +4174,9 @@ msgstr "SMS od %(name)s"
 
 msgid "SMS history"
 msgstr "Historie SMS"
+
+msgid "SMS scheduled."
+msgstr "SMS naplánována."
 
 msgid "SMS settings"
 msgstr "Nastavení SMS"
@@ -4040,11 +4254,24 @@ msgstr "Sasko-Anhaltsko"
 msgid "Schaffhausen"
 msgstr "Schaffhausen"
 
+msgid "Schedule"
+msgstr "Naplánováno"
+
+msgid "Schedule SMS"
+msgstr "Naplánovat SMS"
+
 msgid "Schedule an appointment"
 msgstr "Naplánovat schůzku"
 
 msgid "Scheduled"
 msgstr "Naplánováno"
+
+msgid ""
+"Scheduled SMS messages are sent only while Magnolie is running and exactly "
+"one KDE Connect phone is available."
+msgstr ""
+"Naplánované SMS se odesílají pouze tehdy, když je Magnolie spuštěna a je "
+"dostupný právě jeden telefon s KDE Connect."
 
 msgid "Scheme"
 msgstr "Schéma"
@@ -4149,6 +4376,14 @@ msgstr ""
 "Vybrané sloupce, které jsou prázdné u všech kontaktů, se automaticky "
 "vynechají."
 
+msgid ""
+"Selected imports are started directly after Magnolie opens. Thunderbird "
+"contacts are not offered because Windows has no Thunderbird address-book "
+"importer."
+msgstr ""
+"Vybrané importy se spustí ihned po otevření Magnolie. Kontakty Thunderbirdu "
+"nejsou nabízeny, protože Windows nemá importér adresáře Thunderbirdu."
+
 msgid "Selection options"
 msgstr "Možnosti výběru"
 
@@ -4175,6 +4410,9 @@ msgstr "Je nutná adresa serveru a uživatelské jméno."
 
 msgid "Set or change password"
 msgstr "Nastavit nebo změnit heslo"
+
+msgid "Set up Magnolie Organizer"
+msgstr "Nastavit Magnolie Organizer"
 
 msgid "Set up contacts"
 msgstr "Nastavit kontakty"
@@ -4297,6 +4535,9 @@ msgstr "Přihlášeni k Microsoftu."
 msgid "Signed out from Microsoft."
 msgstr "Odhlášen z Microsoftu."
 
+msgid "Skip assistant"
+msgstr "Přeskočit průvodce"
+
 msgid ""
 "Small action buttons appear on each contact card. You can hide anything you "
 "do not need here."
@@ -4331,6 +4572,9 @@ msgstr "Některé existující zálohy se nepodařilo zašifrovat."
 msgid "Son"
 msgstr "Syn"
 
+msgid "Sort contacts"
+msgstr "Seřadit kontakty"
+
 msgid "Sort everything alphabetically"
 msgstr "Řadit vše abecedně"
 
@@ -4339,6 +4583,12 @@ msgstr "Řazení"
 
 msgid "Sound only"
 msgstr "Pouze zvuk"
+
+msgid "Sources"
+msgstr "Zdroje"
+
+msgid "Sources and imports"
+msgstr "Začít s prázdným organizérem a přeskočit import"
 
 msgid "Space for anything you want to remember…"
 msgstr "Místo pro cokoli, co si chcete zapamatovat…"
@@ -4358,6 +4608,12 @@ msgstr "Sprej"
 msgid "St. Gallen"
 msgstr "St. Gallen"
 
+msgid "Start Magnolie"
+msgstr "Spustit Magnolie"
+
+msgid "Start Magnolie with Windows in the notification area (tray)"
+msgstr "Spusťte Magnolie s Windows v oznamovací oblasti (zásobník)"
+
 msgid "Start automatically when signing in"
 msgstr "Spouštět automaticky při přihlášení"
 
@@ -4366,6 +4622,9 @@ msgstr "Spouštět organizér v oznamovací oblasti"
 
 msgid "State"
 msgstr "Spolková země"
+
+msgid "State / region"
+msgstr "Oblast formátu"
 
 msgid "Status"
 msgstr "Postavení"
@@ -4393,6 +4652,9 @@ msgstr "Odesláno"
 
 msgid "Submitted to KDE Connect"
 msgstr "Odesláno KDE Connect"
+
+msgid "Submitting"
+msgstr "Odesláno"
 
 msgid "Suggestions are available only in the installed application."
 msgstr "Návrhy jsou k dispozici pouze v nainstalované aplikaci."
@@ -4461,6 +4723,9 @@ msgstr "Synchronizovat kontakty"
 msgid "Synchronize now"
 msgstr "Synchronizovat nyní"
 
+msgid "Synchronize permanently"
+msgstr "Synchronizovat trvale"
+
 msgid "Synchronize tasks"
 msgstr "Synchronizovat kontakty"
 
@@ -4469,6 +4734,9 @@ msgstr "Synchronizace …"
 
 msgid "System default"
 msgstr "Výchozí nastavení systému"
+
+msgid "System internet accounts"
+msgstr "Systémové internetové účty"
 
 msgid "System setting"
 msgstr "Nastavení systému"
@@ -4492,6 +4760,9 @@ msgstr "Karta %(letter)s"
 msgid "Tab %(letter)s · %(count)s"
 msgstr "Karta %(letter)s · %(count)s"
 
+msgid "Tab name"
+msgstr "Název karty"
+
 msgid "Tablet"
 msgstr "Tableta"
 
@@ -4500,6 +4771,9 @@ msgstr "Karty"
 
 msgid "Task"
 msgstr "Úkol"
+
+msgid "Task is due"
+msgstr "Úkol má termín"
 
 msgid "Tasks"
 msgstr "Úkoly"
@@ -4531,6 +4805,12 @@ msgstr "Vyzkoušet nyní"
 
 msgid "Testing…"
 msgstr "Testování…"
+
+msgid "Text"
+msgstr "Text"
+
+msgid "Text block"
+msgstr "Textový blok"
 
 msgid "Text color"
 msgstr "Barva textu"
@@ -4614,15 +4894,6 @@ msgstr "Export ODS je příliš velký."
 msgid "The Organizer chooses a suitable installed application."
 msgstr "Organizér vybere vhodnou nainstalovanou aplikaci."
 
-msgid ""
-"The Windows Contacts folder is synchronized bidirectionally on the "
-"synchronization page. File imports do not modify their source files; "
-"existing entries are not added twice."
-msgstr ""
-"Složka Windows Contacts je synchronizována obousměrně na stránce "
-"synchronizace. Import souborů nemění jejich zdrojové soubory; existující "
-"položky se nepřidávají dvakrát."
-
 msgid "The address could not be opened."
 msgstr "Adresu nelze otevřít."
 
@@ -4638,6 +4909,13 @@ msgid ""
 "importing."
 msgstr ""
 "Archiv je zašifrován. Před importem zadejte heslo pro jeho úplné ověření."
+
+msgid ""
+"The assistant covers your address for routes and weather, data sources, "
+"phone connections, organizer tabs, backups, and startup behavior."
+msgstr ""
+"Průvodce zahrnuje vaši adresu pro trasy a počasí, zdroje dat, připojení "
+"telefonu, karty organizéru, zálohy a chování při spuštění."
 
 msgid "The attachment range is invalid."
 msgstr "Rozsah přílohy je neplatný."
@@ -4669,6 +4947,9 @@ msgid ""
 msgstr ""
 "Služba připomínek na pozadí smí číst oddělená data připomínek, a funguje "
 "proto i se zavřeným organizérem."
+
+msgid "The backup chooser will open after Magnolie has started."
+msgstr "Výběr zálohy se otevře po spuštění Magnolie."
 
 msgid "The backup could not be created."
 msgstr "Zálohu se nepodařilo vytvořit."
@@ -4820,6 +5101,9 @@ msgstr ""
 "Informace se jednou načtou z otevřeného adresáře openholidaysapi.org a poté "
 "zůstanou v organizéru. Aplikace proto potřebuje připojení k internetu jen "
 "jednou."
+
+msgid "The language setting could not be saved."
+msgstr "Nastavení jazyka se nepodařilo uložit."
 
 msgid "The last notebook cannot be deleted."
 msgstr "Poslední zápisník nelze odstranit."
@@ -5052,6 +5336,11 @@ msgstr ""
 msgid "The save request is invalid."
 msgstr "Požadavek na uložení je neplatný."
 
+msgid "The selected areas are reset exactly; data added later is removed."
+msgstr ""
+"Vybrané oblasti se přesně vrátí do dřívějšího stavu; později přidaná data se "
+"odstraní."
+
 msgid "The selected contacts contain no values for these columns."
 msgstr "Vybrané kontakty neobsahují pro tyto sloupce žádné hodnoty."
 
@@ -5064,6 +5353,9 @@ msgid ""
 msgstr ""
 "Provozovatel serveru vidí účet, názvy složek a souborů, velikosti a časy "
 "vašich zpráv."
+
+msgid "The setup state could not be saved."
+msgstr "Stav nastavení se nepodařilo uložit."
 
 msgid ""
 "The sheet appears at the edge of the screen, accompanied by the Magnolie "
@@ -5172,6 +5464,13 @@ msgid "There is nothing to print."
 msgstr "Není co tisknout."
 
 msgid ""
+"These are Magnolie's actual tabs. You can show only the sections that fit "
+"your everyday life."
+msgstr ""
+"Toto jsou skutečné karty Magnolie. Můžete zobrazit pouze sekce, které "
+"odpovídají vašemu každodennímu životu."
+
+msgid ""
 "These choices change how the Organizer displays information. Your entries "
 "are not converted or moved."
 msgstr ""
@@ -5274,6 +5573,13 @@ msgstr ""
 msgid "This notebook is still empty."
 msgstr "Tento zápisník je stále prázdný."
 
+msgid ""
+"This one-time import only adds or enriches contacts. It does not synchronize "
+"or delete contacts."
+msgstr ""
+"Tento jednorázový import kontakty pouze přidá nebo doplní. Nesynchronizuje "
+"je ani nemaže."
+
 msgid "This paired phone is my own device"
 msgstr "Tento spárovaný telefon je moje vlastní zařízení"
 
@@ -5360,6 +5666,9 @@ msgstr "Příliš mnoho neúspěšných pokusů. Chvíli počkejte."
 msgid "Too many regions were selected."
 msgstr "Bylo vybráno příliš mnoho regionů."
 
+msgid "Top level"
+msgstr "Nejvyšší úroveň"
+
 msgid "Tray applet"
 msgstr "Applet oznamovací oblasti"
 
@@ -5430,6 +5739,9 @@ msgstr "Neznámá chyba"
 msgid "Unknown phone"
 msgstr "Neznámý koncový bod."
 
+msgid "Unknown source"
+msgstr "Neznámý zdroj"
+
 msgid "Unlink"
 msgstr "Odpojit"
 
@@ -5471,6 +5783,9 @@ msgstr "Doba provozu"
 
 msgid "Uri"
 msgstr "URI"
+
+msgid "Use LibreOffice address"
+msgstr "Použít adresní údaje LibreOffice"
 
 msgid "Use a specific application or command"
 msgstr "Použít konkrétní aplikaci nebo příkaz"
@@ -5629,6 +5944,13 @@ msgstr "Varování: Data se nepodařilo uložit."
 msgid "Waste collection calendar"
 msgstr "Kalendář svozu odpadu"
 
+msgid ""
+"We are delighted to welcome you. This short assistant prepares Magnolie "
+"Organizer around your wishes."
+msgstr ""
+"Jsme rádi, že vás můžeme přivítat. Tento krátký průvodce připraví Magnolie "
+"Organizer podle vašich přání."
+
 msgid "We are glad you are here!"
 msgstr "Jsme rádi, že jste tady!"
 
@@ -5727,11 +6049,6 @@ msgstr ""
 "fotografie se zachovají při importu, exportu i synchronizaci s online "
 "adresářem. E-mailové adresy na kartách kontaktů jsou vždy klikatelné a "
 "otevřou vaši poštovní aplikaci."
-
-msgid ""
-"When the limit is lowered, the oldest recovery snapshots are removed "
-"automatically."
-msgstr "Při snížení limitu se nejstarší body obnovení automaticky odstraní."
 
 msgid ""
 "When writing a note, a small toolbar above the sheet provides bold, italic, "
@@ -6155,6 +6472,12 @@ msgstr "neznámá chyba"
 msgid "untitled"
 msgstr "bez názvu"
 
+msgid "vCard (.vcf), including iPhone/iCloud export …"
+msgstr "vCard (.vcf), včetně exportu z iPhonu/iCloudu…"
+
+msgid "vCard file (.vcf), including iPhone/iCloud export …"
+msgstr "Soubor vCard (.vcf), včetně exportu z iPhonu/iCloudu…"
+
 msgid ""
 "vCard preserves more contact details. LDIF is intended for importing into "
 "Claws Mail; emergency contacts, social media, free labels and non-JPEG "
@@ -6245,5 +6568,167 @@ msgstr[2] "… a ještě %(count)s další položky, které se rovněž vytiskno
 msgid "＋ Add appointment"
 msgstr "＋ Přidat schůzku"
 
-msgid "Language & region"
-msgstr "Jazyk a oblast"
+#~ msgid ""
+#~ "Download Magnolie Notes or KDE Connect using the links below. Bluetooth "
+#~ "opens Windows Settings for direct pairing."
+#~ msgstr ""
+#~ "Stáhněte si Magnolie Notes nebo KDE Connect pomocí níže uvedených odkazů. "
+#~ "Bluetooth otevře Nastavení systému Windows pro přímé spárování."
+
+#~ msgid ""
+#~ "Magnolie Notes and KDE Connect are download links, not connection "
+#~ "actions. Bluetooth opens Windows Settings for direct pairing."
+#~ msgstr ""
+#~ "Magnolie Notes a KDE Connect jsou odkazy ke stažení, nikoli akce "
+#~ "připojení. Bluetooth otevře Nastavení systému Windows pro přímé spárování."
+
+#~ msgid ""
+#~ "The predefined Calendar tab is always available again from Settings, even "
+#~ "if you hide it here."
+#~ msgstr ""
+#~ "Předdefinovaná karta Kalendář je vždy znovu dostupná v Nastavení, i když "
+#~ "ji zde skryjete."
+
+#~ msgid "No more blocks can be added."
+#~ msgstr "Další bloky již nelze přidat."
+
+#~ msgid "Yearly"
+#~ msgstr "Ročně"
+
+#~ msgid ""
+#~ "Autostart also enables tray availability. Tray can be enabled "
+#~ "independently without autostart."
+#~ msgstr ""
+#~ "Automatické spuštění také zpřístupní ikonu v oznamovací oblasti. Tu lze "
+#~ "zapnout nezávisle i bez automatického spuštění."
+
+#~ msgid "Checklist / list block"
+#~ msgstr "Blok kontrolního seznamu / seznamu"
+
+#~ msgid "Connect Magnolie Notes"
+#~ msgstr "Telefon a Magnolie Notes"
+
+#~ msgid "Pair KDE Connect for SMS"
+#~ msgstr "KDE Connect pro SMS"
+
+#~ msgid "Recurrence block"
+#~ msgstr "Blok opakování"
+
+#~ msgid "Start Magnolie with Windows"
+#~ msgstr "Spouštět Magnolie se systémem Windows"
+
+#~ msgid ""
+#~ "The secure download links open directly. Bluetooth opens Windows "
+#~ "Settings; this assistant does not change or pair devices."
+#~ msgstr ""
+#~ "Zabezpečené odkazy ke stažení se otevřou přímo. Bluetooth otevře "
+#~ "Nastavení Windows; tento průvodce zařízení nemění ani nepáruje."
+
+#~ msgid "Backup restore selected"
+#~ msgstr "Nebyla vybrána žádná fotografie"
+
+#~ msgid ""
+#~ "Choose Start Magnolie to begin, or Manual to begin and open the manual "
+#~ "after the main window is visible."
+#~ msgstr ""
+#~ "Začněte výběrem možnosti Spustit Magnolie, nebo Ručně, chcete-li začít a "
+#~ "po zobrazení hlavního okna otevřít příručku."
+
+#~ msgid ""
+#~ "Choose permanent synchronization separately from data that should be "
+#~ "imported once, just as in Settings."
+#~ msgstr ""
+#~ "Trvalou synchronizaci vyberte odděleně od dat, která se mají jednorázově "
+#~ "importovat, stejně jako v Nastavení."
+
+#~ msgid "Create snapshot now"
+#~ msgstr "Vytvořte snímek nyní"
+
+#~ msgid "Design request selected"
+#~ msgstr "Požadavek na návrh byl vybrán"
+
+#~ msgid "Every 12 hours"
+#~ msgstr "Každých 12 hodin"
+
+#~ msgid "Every 6 hours"
+#~ msgstr "Každých 6 hodin"
+
+#~ msgid "Include Bluetooth information"
+#~ msgstr "Zahrnout informace o Bluetooth"
+
+#~ msgid "Last snapshot"
+#~ msgstr "Poslední snímek"
+
+#~ msgid "Magnolie Notes"
+#~ msgstr "Magnolie Notes"
+
+#~ msgid "Maximum recovery snapshots"
+#~ msgstr "Maximální počet bodů obnovení"
+
+#~ msgid "Next snapshot"
+#~ msgstr "Další snímek"
+
+#~ msgid ""
+#~ "Nothing connects or imports automatically. Your choices appear as pending "
+#~ "actions in Settings."
+#~ msgstr ""
+#~ "Nic se nepřipojí ani neimportuje automaticky. Vaše volby se v Nastavení "
+#~ "zobrazí jako čekající akce."
+
+#~ msgid ""
+#~ "Nothing starts automatically. Choose an action below when you are ready."
+#~ msgstr ""
+#~ "Nic se nespustí automaticky. Až budete připraveni, vyberte některou z "
+#~ "akcí níže."
+
+#~ msgid "Number of backups"
+#~ msgstr "Počet záloh"
+
+#~ msgid "Operating system"
+#~ msgstr "Operační systém"
+
+#~ msgid "Pending setup choices"
+#~ msgstr "Čekající volby nastavení"
+
+#~ msgid "Permanent synchronization"
+#~ msgstr "Trvalé zdroje synchronizace"
+
+#~ msgid "Plan recovery points before important changes"
+#~ msgstr "Naplánovat body obnovení před důležitými změnami"
+
+#~ msgid ""
+#~ "Private, integrity-checked snapshots are stored next to the application "
+#~ "data."
+#~ msgstr ""
+#~ "Soukromé snímky s kontrolou integrity jsou uloženy vedle dat aplikace."
+
+#~ msgid "Request a separate tab design"
+#~ msgstr "Požádat o samostatný návrh karty"
+
+#~ msgid ""
+#~ "Restoring is deferred until Magnolie has opened; no file is changed by "
+#~ "this assistant."
+#~ msgstr ""
+#~ "Obnovení je odloženo do otevření Magnolie; tento průvodce nezmění žádný "
+#~ "soubor."
+
+#~ msgid "Show Android download information"
+#~ msgstr "Načítání informací pro ruční stažení …"
+
+#~ msgid "Show QR pairing information"
+#~ msgstr "Připravit údaje pro párování pomocí QR kódu"
+
+#~ msgid "Standard CalDAV / CardDAV"
+#~ msgstr "Standardní CalDAV / CardDAV"
+
+#~ msgid ""
+#~ "The QR code and download are shown only after Magnolie opens. No app is "
+#~ "installed, Bluetooth is not changed, and no device is paired now."
+#~ msgstr ""
+#~ "QR kód a stažení se zobrazí až po otevření Magnolie. Žádná aplikace se "
+#~ "nenainstaluje, Bluetooth se nezmění a žádné zařízení se nyní nespáruje."
+
+#~ msgid ""
+#~ "When the limit is lowered, the oldest recovery snapshots are removed "
+#~ "automatically."
+#~ msgstr "Při snížení limitu se nejstarší body obnovení automaticky odstraní."

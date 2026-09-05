@@ -54,6 +54,7 @@ internal static class NextcloudDavTests
                     request.Headers.TryGetValues("If-Match", out var match) ? match.Single() : "", request.Content is null ? "" : await request.Content.ReadAsStringAsync()));
                 var path = request.RequestUri.AbsolutePath;
                 if (path.EndsWith("/.well-known/caldav", StringComparison.Ordinal)) return Xml("<d:multistatus xmlns:d=\"DAV:\"><d:response><d:href>/nc/.well-known/caldav</d:href><d:propstat><d:prop><d:current-user-principal><d:href>/nc/principals/users/a%20user/</d:href></d:current-user-principal></d:prop><d:status>HTTP/1.1 200 OK</d:status></d:propstat></d:response></d:multistatus>");
+                if (path.EndsWith("/.well-known/carddav", StringComparison.Ordinal)) return Xml("<d:multistatus xmlns:d=\"DAV:\"><d:response><d:href>/nc/.well-known/carddav</d:href><d:propstat><d:prop><d:current-user-principal><d:href>/nc/principals/users/a%20user/</d:href></d:current-user-principal></d:prop><d:status>HTTP/1.1 200 OK</d:status></d:propstat></d:response></d:multistatus>");
                 if (path.EndsWith("/principals/users/a%20user/", StringComparison.Ordinal)) return Xml("<d:multistatus xmlns:d=\"DAV:\" xmlns:c=\"urn:ietf:params:xml:ns:caldav\" xmlns:card=\"urn:ietf:params:xml:ns:carddav\"><d:response><d:href>/nc/principals/users/a%20user/</d:href><d:propstat><d:prop><c:calendar-home-set><d:href>/nc/calendars/a%20user/</d:href></c:calendar-home-set><card:addressbook-home-set><d:href>/nc/addressbooks/a%20user/</d:href></card:addressbook-home-set></d:prop><d:status>HTTP/1.1 200 OK</d:status></d:propstat></d:response></d:multistatus>");
                 if (request.Method.Method == "PROPFIND" && path.EndsWith("/calendars/a%20user/", StringComparison.Ordinal)) return Xml(Collections("calendar", "urn:ietf:params:xml:ns:caldav", "/nc/calendars/a%20user/work/", "Arbeit"));
                 if (request.Method.Method == "PROPFIND" && path.EndsWith("/addressbooks/a%20user/", StringComparison.Ordinal)) return Xml(Collections("addressbook", "urn:ietf:params:xml:ns:carddav", "/nc/addressbooks/a%20user/contacts/", "Kontakte"));
@@ -78,10 +79,135 @@ internal static class NextcloudDavTests
                 unprotected, "u1", CancellationToken.None), "CardDAV-Löschung ohne ETag wurde ungeschützt gesendet.");
 
             await TestHostileServers(settings);
+            await TestGenericBaikalDiscovery(root);
+            await TestGenericConfiguredBaseDiscovery(root);
+            await TestTaskTwoRunSafety(settings);
             TestRoundtrips();
+            TestDispatcherTaskStateAndBudget();
             TestSyncJournal(root);
         }
         finally { try { Directory.Delete(root, true); } catch (Exception) { } }
+    }
+
+    private static async Task TestGenericBaikalDiscovery(string root)
+    {
+        var settings = new NextcloudMailboxSettingsStore(Path.Combine(root, "generic.json"), Path.Combine(root, "generic-password.dpapi"), new Protector());
+        settings.Save(new NextcloudMailboxSettings(true, false, "https://dav.example/dav.php/", "alice") { AccountType = "generic-dav" });
+        settings.SetApplicationPassword("generic-secret");
+        TestAssert.That(settings.Load()?.AccountType == "generic-dav" && !File.ReadAllText(Path.Combine(root, "generic.json")).Contains("generic-secret", StringComparison.Ordinal) &&
+            !File.ReadAllText(Path.Combine(root, "generic-password.dpapi")).Contains("generic-secret", StringComparison.Ordinal),
+            "Generische DAV-Konfiguration verlor die Kontoart oder speicherte das Kennwort im Klartext.");
+        var requests = new List<string>();
+        using var http = new HttpClient(new Handler(request =>
+        {
+            var path = request.RequestUri!.AbsolutePath; requests.Add(path);
+            if (path == "/.well-known/caldav") return Task.FromResult(new HttpResponseMessage(HttpStatusCode.MovedPermanently)
+                { Headers = { Location = new Uri("/dav.php/", UriKind.Relative) } });
+            if (path == "/dav.php/") return Task.FromResult(Xml("<d:multistatus xmlns:d=\"DAV:\"><d:response><d:href>dav.php/</d:href><d:propstat><d:prop><d:current-user-principal><d:href>principals/alice/</d:href></d:current-user-principal></d:prop><d:status>HTTP/1.1 200 OK</d:status></d:propstat></d:response></d:multistatus>"));
+            if (path == "/dav.php/principals/alice/") return Task.FromResult(Xml("<d:multistatus xmlns:d=\"DAV:\" xmlns:c=\"urn:ietf:params:xml:ns:caldav\"><d:response><d:href>.</d:href><d:propstat><d:prop><c:calendar-home-set><d:href>../../calendars/alice/</d:href></c:calendar-home-set></d:prop><d:status>HTTP/1.1 200 OK</d:status></d:propstat></d:response></d:multistatus>"));
+            if (path == "/.well-known/carddav") return Task.FromResult(Xml("<d:multistatus xmlns:d=\"DAV:\" xmlns:a=\"urn:ietf:params:xml:ns:carddav\"><d:response><d:href>.</d:href><d:propstat><d:prop><a:addressbook-home-set><d:href>/dav.php/addressbooks/alice/</d:href></a:addressbook-home-set></d:prop><d:status>HTTP/1.1 200 OK</d:status></d:propstat></d:response></d:multistatus>"));
+            if (path == "/dav.php/calendars/alice/") return Task.FromResult(Xml("<d:multistatus xmlns:d=\"DAV:\" xmlns:c=\"urn:ietf:params:xml:ns:caldav\"><d:response><d:href>work/</d:href><d:propstat><d:prop><d:displayname>Work</d:displayname><d:resourcetype><d:collection/><c:calendar/></d:resourcetype><c:supported-calendar-component-set><c:comp name=\"VEVENT\"/></c:supported-calendar-component-set></d:prop><d:status>HTTP/1.1 200 OK</d:status></d:propstat></d:response></d:multistatus>"));
+            if (path == "/dav.php/addressbooks/alice/") return Task.FromResult(Xml(Collections("addressbook", "urn:ietf:params:xml:ns:carddav", "contacts/", "Contacts")));
+            throw new InvalidOperationException("Unexpected DAV request: " + path);
+        }));
+        using var client = new NextcloudDavClient(settings, http);
+        var sources = await client.ListSourcesAsync(CancellationToken.None);
+        TestAssert.That(sources.Calendars.Count == 1 && sources.AddressBooks.Count == 1 &&
+            sources.Calendars[0].Uid.StartsWith("generic-dav-calendar:", StringComparison.Ordinal) &&
+            sources.AddressBooks[0].Uid.StartsWith("generic-dav-addressbook:", StringComparison.Ordinal) &&
+            !sources.Calendars[0].SupportsVTodo && requests.All(path => !path.Contains("remote.php", StringComparison.Ordinal)),
+            "Generische Baïkal-Discovery erzwang Nextcloud-Pfade oder verlor getrennte Quellen/VTODO-Fähigkeit.");
+        const string expected = "generic-dav-calendar:ff15e1cb495b36c977ba783d0848a6845514d25b04d0bfc5cadcff6a6c86c014";
+        TestAssert.That(sources.Calendars[0].Uid == expected && requests.Count(path => path == "/dav.php/") == 1,
+            "Relative DAV-Weiterleitung/Hrefs oder stabile plattformgleiche Quellen-ID sind fehlerhaft.");
+    }
+
+    private static async Task TestGenericConfiguredBaseDiscovery(string root)
+    {
+        var settings = new NextcloudMailboxSettingsStore(Path.Combine(root, "generic-base.json"), Path.Combine(root, "generic-base-password.dpapi"), new Protector());
+        settings.Save(new NextcloudMailboxSettings(true, false, "https://dav.example/baikal/dav.php/", "alice") { AccountType = "generic-dav" });
+        settings.SetApplicationPassword("generic-secret");
+        var requests = new List<string>();
+        using var http = new HttpClient(new Handler(request =>
+        {
+            var path = request.RequestUri!.AbsolutePath; requests.Add(path);
+            if (path is "/.well-known/caldav" or "/.well-known/carddav")
+                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.NotFound));
+            if (path == "/baikal/dav.php/") return Task.FromResult(Xml("<d:multistatus xmlns:d=\"DAV:\" xmlns:c=\"urn:ietf:params:xml:ns:caldav\" xmlns:a=\"urn:ietf:params:xml:ns:carddav\"><d:response><d:href>.</d:href><d:propstat><d:prop><c:calendar-home-set><d:href>calendars/alice/</d:href></c:calendar-home-set><a:addressbook-home-set><d:href>addressbooks/alice/</d:href></a:addressbook-home-set></d:prop><d:status>HTTP/1.1 200 OK</d:status></d:propstat></d:response></d:multistatus>"));
+            if (path == "/baikal/dav.php/calendars/alice/") return Task.FromResult(Xml(Collections("calendar", "urn:ietf:params:xml:ns:caldav", "work/", "Work")));
+            if (path == "/baikal/dav.php/addressbooks/alice/") return Task.FromResult(Xml(Collections("addressbook", "urn:ietf:params:xml:ns:carddav", "contacts/", "Contacts")));
+            throw new InvalidOperationException("Unexpected DAV request: " + path);
+        }));
+        using var client = new NextcloudDavClient(settings, http);
+        var sources = await client.ListSourcesAsync(CancellationToken.None);
+        TestAssert.That(sources.Calendars.Count == 1 && sources.AddressBooks.Count == 1 &&
+            requests.Count(path => path == "/baikal/dav.php/") == 2 && requests.All(path => path.StartsWith("/baikal/", StringComparison.Ordinal) || path.StartsWith("/.well-known/", StringComparison.Ordinal)),
+            "Generische DAV-Discovery versuchte nach fehlendem Origin-Well-known nicht sicher die konfigurierte Basis-URL.");
+    }
+
+    private static async Task TestTaskTwoRunSafety(NextcloudMailboxSettingsStore settings)
+    {
+        var putBodies = new List<string>();
+        using var http = new HttpClient(new Handler(async request =>
+        {
+            if (request.Method.Method == "REPORT")
+                return Xml("<d:multistatus xmlns:d=\"DAV:\"/>");
+            if (request.Method == HttpMethod.Put)
+            {
+                putBodies.Add(await request.Content!.ReadAsStringAsync());
+                return new HttpResponseMessage(HttpStatusCode.Created) { Headers = { ETag = new System.Net.Http.Headers.EntityTagHeaderValue("\"t1\"") } };
+            }
+            throw new InvalidOperationException("Unexpected task sync request: " + request.Method);
+        }));
+        using var client = new NextcloudDavClient(settings, http);
+        var source = new NextcloudDavSource("nextcloud-calendar:tasks", "tasks", "calendar", new Uri("https://cloud.example/nc/tasks/"));
+        var local = new JsonArray(new JsonObject { ["id"] = "local", ["uid"] = "local-task", ["titel"] = "Local", ["geaendert"] = 10L });
+        var first = await new NextcloudTaskSync(client).SyncAsync(source, local, new JsonArray(), 0, true, CancellationToken.None);
+        TestAssert.That(first.Tasks.Count == 1 && first.Exported == 0 && putBodies.Count == 0,
+            "Erster Aufgabenlauf war nicht sicher additiv.");
+        var second = await new NextcloudTaskSync(client).SyncAsync(source, first.Tasks, first.Tombstones, 20, false, CancellationToken.None);
+        TestAssert.That(second.Exported == 1 && putBodies.Count == 1 && putBodies[0].Contains("UID:local-task", StringComparison.Ordinal),
+            "Zweiter Aufgabenlauf führte den ausgehenden Create nicht aus.");
+
+        const string remoteTask = "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VTODO\r\nUID:remote-task\r\nSUMMARY:Remote\r\nEND:VTODO\r\nEND:VCALENDAR\r\n";
+        var updates = 0;
+        using (var updateHttp = new HttpClient(new Handler(request =>
+               {
+                   if (request.Method.Method == "REPORT") return Task.FromResult(Xml(
+                       $"<d:multistatus xmlns:d=\"DAV:\" xmlns:c=\"urn:ietf:params:xml:ns:caldav\"><d:response><d:href>/nc/tasks/remote.ics</d:href><d:propstat><d:prop><d:getetag>&quot;r1&quot;</d:getetag><c:calendar-data>{remoteTask}</c:calendar-data></d:prop><d:status>HTTP/1.1 200 OK</d:status></d:propstat></d:response></d:multistatus>"));
+                   if (request.Method == HttpMethod.Put)
+                   {
+                       updates++;
+                       return Task.FromResult(new HttpResponseMessage(HttpStatusCode.NoContent) { Headers = { ETag = new System.Net.Http.Headers.EntityTagHeaderValue("\"r2\"") } });
+                   }
+                   throw new InvalidOperationException("Unexpected task update request: " + request.Method);
+               })))
+        using (var updateClient = new NextcloudDavClient(settings, updateHttp))
+        {
+            var localMatch = new JsonArray(new JsonObject { ["id"] = "matched", ["uid"] = "remote-task", ["titel"] = "Local", ["geaendert"] = 10L });
+            var initialized = await new NextcloudTaskSync(updateClient).SyncAsync(source, localMatch, new JsonArray(), 0, true, CancellationToken.None);
+            initialized.Tasks[0]!["titel"] = "Changed"; initialized.Tasks[0]!["geaendert"] = 30L;
+            var established = await new NextcloudTaskSync(updateClient).SyncAsync(source, initialized.Tasks, initialized.Tombstones, 20, false, CancellationToken.None);
+            TestAssert.That(initialized.Exported == 0 && established.Updated == 1 && updates == 1,
+                "Zweiter Aufgabenlauf führte ein ausgehendes Update nicht aus.");
+        }
+
+        var deletes = 0;
+        using (var deleteHttp = new HttpClient(new Handler(request =>
+               {
+                   if (request.Method.Method == "REPORT") return Task.FromResult(Xml(
+                       $"<d:multistatus xmlns:d=\"DAV:\" xmlns:c=\"urn:ietf:params:xml:ns:caldav\"><d:response><d:href>/nc/tasks/remote.ics</d:href><d:propstat><d:prop><d:getetag>&quot;r1&quot;</d:getetag><c:calendar-data>{remoteTask}</c:calendar-data></d:prop><d:status>HTTP/1.1 200 OK</d:status></d:propstat></d:response></d:multistatus>"));
+                   if (request.Method == HttpMethod.Delete) { deletes++; return Task.FromResult(new HttpResponseMessage(HttpStatusCode.NoContent)); }
+                   throw new InvalidOperationException("Unexpected task delete request: " + request.Method);
+               })))
+        using (var deleteClient = new NextcloudDavClient(settings, deleteHttp))
+        {
+            var initialized = await new NextcloudTaskSync(deleteClient).SyncAsync(source, new JsonArray(), new JsonArray(), 0, true, CancellationToken.None);
+            var tombstone = initialized.Tasks[0]!.DeepClone().AsObject();
+            var established = await new NextcloudTaskSync(deleteClient).SyncAsync(source, new JsonArray(), new JsonArray(tombstone), 20, false, CancellationToken.None);
+            TestAssert.That(initialized.Imported == 1 && established.Deleted == 1 && deletes == 1,
+                "Zweiter Aufgabenlauf führte ein ausgehendes Delete nicht aus.");
+        }
     }
 
     private static async Task TestHostileServers(NextcloudMailboxSettingsStore settings)
@@ -166,20 +292,26 @@ internal static class NextcloudDavTests
                 "Importierter CalDAV-Termin besitzt seinen Quellkalender nicht.");
         }
 
-        var calendarDeletes = 0;
+        var calendarDeletes = 0; var calendarPuts = 0;
         const string deletedUid = "delete-from-both";
         const string firstCalendar = "nextcloud-calendar:first";
         const string secondDeleteCalendar = "nextcloud-calendar:second";
         using (var http = new HttpClient(new Handler(request =>
                {
-                   if (request.Method == HttpMethod.Delete)
+                    if (request.Method == HttpMethod.Delete)
                    {
                        calendarDeletes++;
-                       return Task.FromResult(new HttpResponseMessage(HttpStatusCode.NoContent));
-                   }
-                   var collection = request.RequestUri!.AbsolutePath.EndsWith("/first/", StringComparison.Ordinal) ? "first" : "second";
-                   var href = $"/nc/calendar/{collection}/item.ics";
-                   var body = $"BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\nUID:{deletedUid}\r\nDTSTART;VALUE=DATE:20260817\r\nSUMMARY:Delete\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n";
+                        return Task.FromResult(new HttpResponseMessage(HttpStatusCode.NoContent));
+                    }
+                    if (request.Method == HttpMethod.Put)
+                    {
+                        calendarPuts++;
+                        return Task.FromResult(new HttpResponseMessage(HttpStatusCode.NoContent) { Headers = { ETag = new System.Net.Http.Headers.EntityTagHeaderValue("\"d2\"") } });
+                    }
+                    var collection = request.RequestUri!.AbsolutePath.EndsWith("/first/", StringComparison.Ordinal) ? "first" : "second";
+                    var href = $"/nc/calendar/{collection}/item.ics";
+                    var task = collection == "first" ? "BEGIN:VTODO\r\nUID:keep-task\r\nSUMMARY:Keep\r\nEND:VTODO\r\n" : "";
+                    var body = $"BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\nUID:{deletedUid}\r\nDTSTART;VALUE=DATE:20260817\r\nSUMMARY:Delete\r\nEND:VEVENT\r\n{task}END:VCALENDAR\r\n";
                    return Task.FromResult(Xml($"<d:multistatus xmlns:d=\"DAV:\" xmlns:c=\"urn:ietf:params:xml:ns:caldav\"><d:response><d:href>{href}</d:href><d:propstat><d:prop><d:getetag>&quot;d1&quot;</d:getetag><c:calendar-data>{body}</c:calendar-data></d:prop><d:status>HTTP/1.1 200 OK</d:status></d:propstat></d:response></d:multistatus>"));
                })))
         using (var client = new NextcloudDavClient(settings, http))
@@ -205,8 +337,8 @@ internal static class NextcloudDavTests
                 "Erste CalDAV-Löschung verwarf die noch offene zweite Kalenderzuordnung.");
             var afterSecond = await new NextcloudCalendarSync(client).SyncAsync(second,
                 new JsonArray(), new JsonArray(), afterFirst.Tombstones, 1, false, CancellationToken.None);
-            TestAssert.That(afterSecond.Deleted == 1 && afterSecond.Tombstones.Count == 0 && calendarDeletes == 2,
-                "Mehrfach zugeordneter Termin wurde nicht aus allen CalDAV-Kalendern gelöscht.");
+            TestAssert.That(afterSecond.Deleted == 1 && afterSecond.Tombstones.Count == 0 && calendarDeletes == 1 && calendarPuts == 1,
+                "Terminlöschung bewahrte eine co-lokalisierte Aufgabe nicht per PUT oder löschte eine leere Ressource nicht per DELETE.");
         }
 
         const string mixedCards = "BEGIN:VCARD\r\nVERSION:3.0\r\nUID:u1\r\nFN:Valid\r\nEND:VCARD\r\nBEGIN:VCARD\r\nVERSION:3.0\r\nUID:bad\r\nEND:VCARD\r\n";
@@ -237,6 +369,29 @@ internal static class NextcloudDavTests
             TestAssert.That(deletes == 0, "Aus einer unvollständig geparsten DAV-Payload wurde eine Löschung abgeleitet.");
         }
 
+        const string irrelevantCalendar = "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VTIMEZONE\r\nTZID:UTC\r\nEND:VTIMEZONE\r\nBEGIN:VJOURNAL\r\nUID:journal\r\nEND:VJOURNAL\r\nBEGIN:VFREEBUSY\r\nUID:busy\r\nEND:VFREEBUSY\r\nEND:VCALENDAR\r\n";
+        using (var http = new HttpClient(new Handler(_ => Task.FromResult(Xml(
+                   $"<d:multistatus xmlns:d=\"DAV:\" xmlns:c=\"urn:ietf:params:xml:ns:caldav\"><d:response><d:href>/nc/calendar/irrelevant.ics</d:href><d:propstat><d:prop><d:getetag>&quot;i1&quot;</d:getetag><c:calendar-data>{irrelevantCalendar}</c:calendar-data></d:prop><d:status>HTTP/1.1 200 OK</d:status></d:propstat></d:response></d:multistatus>")))))
+        using (var client = new NextcloudDavClient(settings, http))
+        {
+            var calendar = new NextcloudDavSource("nextcloud-calendar:irrelevant", "irrelevant", "calendar", new Uri("https://cloud.example/nc/calendar/"));
+            var appointments = await new NextcloudCalendarSync(client).SyncAsync(calendar, new JsonArray(), new JsonArray(), new JsonArray(), 1, true, CancellationToken.None);
+            var tasks = await new NextcloudTaskSync(client).SyncAsync(calendar, new JsonArray(), new JsonArray(), 1, true, CancellationToken.None);
+            TestAssert.That(appointments.Imported == 0 && tasks.Imported == 0,
+                "VJOURNAL/VFREEBUSY/VTIMEZONE-only Ressourcen wurden nicht als irrelevant übersprungen.");
+        }
+
+        const string malformedTask = "BEGIN:VCALENDAR\r\nBEGIN:VTODO\r\nUID:bad-task\r\nDUE:not-a-date\r\nEND:VTODO\r\nEND:VCALENDAR\r\n";
+        using (var http = new HttpClient(new Handler(_ => Task.FromResult(Xml(
+                   $"<d:multistatus xmlns:d=\"DAV:\" xmlns:c=\"urn:ietf:params:xml:ns:caldav\"><d:response><d:href>/nc/calendar/bad-task.ics</d:href><d:propstat><d:prop><d:getetag>&quot;b1&quot;</d:getetag><c:calendar-data>{malformedTask}</c:calendar-data></d:prop><d:status>HTTP/1.1 200 OK</d:status></d:propstat></d:response></d:multistatus>")))))
+        using (var client = new NextcloudDavClient(settings, http))
+        {
+            var calendar = new NextcloudDavSource("nextcloud-calendar:bad-task", "bad-task", "calendar", new Uri("https://cloud.example/nc/calendar/"));
+            await TestAssert.ThrowsAsync<InvalidDataException>(() => new NextcloudTaskSync(client).SyncAsync(calendar,
+                new JsonArray(), new JsonArray(), 1, true, CancellationToken.None),
+                "Ein genuinely malformed VTODO wurde als irrelevante Komponente übersprungen.");
+        }
+
         var source = new NextcloudDavSource("nextcloud-addressbook:x", "x", "addressbook", new Uri("https://cloud.example/nc/book/"));
         using (var http = new HttpClient(new Handler(_ => Task.FromResult(new HttpResponseMessage(HttpStatusCode.PreconditionFailed)))))
         using (var client = new NextcloudDavClient(settings, http))
@@ -262,6 +417,22 @@ internal static class NextcloudDavTests
         var parsed = ExchangeCodec.ParseIcs(ics); using var calendar = JsonDocument.Parse(parsed.Termine.ToJsonString()); var written = ExchangeCodec.WriteIcs("ics-termine", calendar.RootElement).Text;
         TestAssert.That(written.Contains("RRULE:FREQ=MONTHLY;BYDAY=MO;BYSETPOS=-1", StringComparison.Ordinal) && written.Contains("EXDATE;TZID=Europe/Berlin:20260928T100000", StringComparison.Ordinal) && written.Contains("RECURRENCE-ID;TZID=Europe/Berlin:20261031T100000", StringComparison.Ordinal), "CalDAV-ICS-Roundtrip verlor RRULE/EXDATE/RECURRENCE-ID.");
 
+        const string mixedTask = "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\nUID:event\r\nDTSTART;VALUE=DATE:20260817\r\nSUMMARY:Termin\r\nEND:VEVENT\r\nBEGIN:VTODO\r\nUID:child\r\nSUMMARY:Kind\r\nRELATED-TO;RELTYPE=PARENT:parent\r\nRELATED-TO;RELTYPE=SIBLING:foreign\r\nX-MAGNOLIE-REIHENFOLGE:7\r\nEND:VTODO\r\nEND:VCALENDAR\r\n";
+        var task = ExchangeCodec.ParseIcs(mixedTask).Aufgaben.Single()!.AsObject();
+        task["titel"] = "Geändert";
+        var changedTask = ExchangeCodec.ReplaceCalendarTask(mixedTask, task);
+        TestAssert.That(task["elternUid"]?.GetValue<string>() == "parent" && task["reihenfolge"]?.GetValue<int>() == 7 &&
+            changedTask.Contains("BEGIN:VEVENT", StringComparison.Ordinal) && changedTask.Contains("SUMMARY:Termin", StringComparison.Ordinal) &&
+            changedTask.Count("RELATED-TO;RELTYPE=PARENT:parent") == 1 && changedTask.Contains("RELATED-TO;RELTYPE=SIBLING:foreign", StringComparison.Ordinal),
+            "Gemischter CalDAV-VTODO-Roundtrip verlor Hierarchie, fremde Beziehung oder VEVENT.");
+        var withoutTask = ExchangeCodec.RemoveCalendarTask(changedTask, "child");
+        TestAssert.That(withoutTask is not null && withoutTask.Contains("BEGIN:VEVENT", StringComparison.Ordinal) && !withoutTask.Contains("BEGIN:VTODO", StringComparison.Ordinal),
+            "VTODO-Löschung beschädigte eine gemischte Kalenderressource.");
+        var withoutEvent = ExchangeCodec.RemoveCalendarEvent(changedTask, "event");
+        TestAssert.That(withoutEvent is not null && withoutEvent.Contains("BEGIN:VTODO", StringComparison.Ordinal) && !withoutEvent.Contains("BEGIN:VEVENT", StringComparison.Ordinal) &&
+            ExchangeCodec.RemoveCalendarEvent("BEGIN:VCALENDAR\r\nBEGIN:VEVENT\r\nUID:event\r\nDTSTART;VALUE=DATE:20260817\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n", "event") is null,
+            "VEVENT-Löschung beschädigte eine gemischte Ressource oder behielt eine leere VCALENDAR-Hülle.");
+
         var seriesResource = File.ReadAllText(Path.Combine("tests", "fixtures", "caldav-series-resource.ics"));
         var series = ExchangeCodec.ParseIcs(seriesResource);
         var master = series.Termine.OfType<JsonObject>().Single(value =>
@@ -280,6 +451,14 @@ internal static class NextcloudDavTests
             merged.Count("DESCRIPTION:Reminder") == 1 &&
             merged.Contains("X-EXAMPLE-META;X-TOKEN=alpha:opaque-value", StringComparison.Ordinal),
             "CalDAV-Serien-PUT zerlegte die Ressource oder verlor Zeitzone, Override, Ausnahme, Alarm oder unbekannte Parameter.");
+
+        const string anniversaryResource = "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\nUID:birthday\r\nDTSTART;VALUE=DATE:19800403\r\nRRULE:FREQ=YEARLY\r\nCATEGORIES:Geburtstag\r\nX-MAGNOLIE-TYPE-ID:birthday\r\nSUMMARY:Alt\r\nEND:VEVENT\r\nBEGIN:VEVENT\r\nUID:other\r\nDTSTART;VALUE=DATE:20260904\r\nSUMMARY:Unberührt\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n";
+        var anniversary = ExchangeCodec.ParseIcs(anniversaryResource).Jahrestage.Single()!.AsObject();
+        anniversary["name"] = "Neu";
+        var changedAnniversary = ExchangeCodec.ReplaceCalendarAnniversary(anniversaryResource, anniversary);
+        TestAssert.That(changedAnniversary.Count("BEGIN:VEVENT") == 2 && changedAnniversary.Contains("SUMMARY:Neu", StringComparison.Ordinal) &&
+            changedAnniversary.Contains("UID:other", StringComparison.Ordinal) && changedAnniversary.Contains("SUMMARY:Unberührt", StringComparison.Ordinal),
+            "Ein Jahrestags-PUT überschrieb benachbarte Ereignisse derselben CalDAV-Ressource.");
 
         using (var seriesDocument = JsonDocument.Parse(series.Termine.ToJsonString()))
         {
@@ -348,6 +527,19 @@ internal static class NextcloudDavTests
         TestAssert.Throws<InvalidDataException>(() => journal.Save(id, phases[0], new JsonObject
             { ["einstellungen"] = new JsonObject { ["anwendungskennwort"] = "secret" } }),
             "Zugangsdaten wurden im Synchronisationsjournal akzeptiert.");
+    }
+
+    private static void TestDispatcherTaskStateAndBudget()
+    {
+        var source = File.ReadAllText("BridgeDispatcher.Sync.cs");
+        TestAssert.That(source.Contains("sourceCursors[\"aufgaben\"]", StringComparison.Ordinal) &&
+            source.Contains("[\"aufgabenInitialisiert\"] = true", StringComparison.Ordinal) &&
+            source.Contains("taskCursors[calendarId] = now", StringComparison.Ordinal),
+            "Aufgaben besitzen keinen separat persistierten Initialisierungscursor.");
+        var taskTimeout = source.IndexOf("using var taskTimeout = new CancellationTokenSource(TimeSpan.FromSeconds(12));", StringComparison.Ordinal);
+        var taskCall = source.IndexOf("additiveOnly || firstTaskRun, taskTimeout.Token", StringComparison.Ordinal);
+        TestAssert.That(taskTimeout >= 0 && taskCall > taskTimeout && !source.Contains("additiveOnly || firstTaskRun, calendarTimeout.Token", StringComparison.Ordinal),
+            "Aufgabensync teilt weiterhin das 12-Sekunden-Budget des Terminsyncs.");
     }
 
     private static string Collections(string type, string ns, string href, string name) => $"<d:multistatus xmlns:d=\"DAV:\" xmlns:x=\"{ns}\"><d:response><d:href>{href}</d:href><d:propstat><d:prop><d:displayname>{name}</d:displayname><d:resourcetype><d:collection/><x:{type}/></d:resourcetype></d:prop><d:status>HTTP/1.1 200 OK</d:status></d:propstat></d:response></d:multistatus>";

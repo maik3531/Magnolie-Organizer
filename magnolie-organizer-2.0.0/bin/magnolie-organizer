@@ -29,6 +29,7 @@ import gettext
 import hashlib
 import hmac
 import io
+import lzma
 import json
 import logging
 from logging.handlers import RotatingFileHandler
@@ -88,18 +89,30 @@ def _grafik_kompatibilitaet_einrichten():
 _grafik_kompatibilitaet_einrichten()
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from magnolie_setup_state import (classify as setup_classify,
+    classify_and_adopt as setup_classify_and_adopt,
+    assistant_required as setup_assistant_required,
+    services_allowed as setup_services_allowed, write_state as setup_write_state)
+
+_SETUP_STARTZUSTAND = None
 if __name__ == "__main__":
+    _SETUP_HINTERGRUND = any(argument in ("--hintergrunddienst", "--background-service",
+            "--erinnerung", "--reminder-check", "--wecker", "--alarm-monitor",
+            "--tray-start") for argument in sys.argv[1:])
+    if _SETUP_HINTERGRUND and not setup_services_allowed(setup_classify()):
+        sys.exit(0)
     from magnolie_crash import install as _crash_reporting_install
     _crash_component = ("background-service" if any(argument in (
         "--hintergrunddienst", "--background-service") for argument in sys.argv[1:])
         else "organizer")
-    _crash_reporting_install("magnolie-organizer", "2.0.16", _crash_component)
+    _crash_reporting_install("magnolie-organizer", "2.0.17", _crash_component)
 if any(argument in ("--hintergrunddienst", "--background-service")
        for argument in sys.argv[1:]):
     from magnolie_hintergrund import daemon_main
     sys.exit(daemon_main(sys.argv[1:]))
 
 from magnolie_telefon import PhoneService, PORT as TELEFON_PORT
+from magnolie_phone_region import enrich_call as telefon_anreichern, match_key as telefon_schluessel
 from magnolie_asset import read_asset
 from magnolie_kdeconnect import DEVICE_ID, KDEConnectSMSBackend, local_device_name
 from magnolie_hintergrund import (KDEConnectProxy, PhoneServiceProxy, daemon_available,
@@ -113,7 +126,7 @@ from magnolie_hintergrund import (KDEConnectProxy, PhoneServiceProxy, daemon_ava
     wait_for_daemon_release as background_wait_for_release,
     write_settings as background_settings_write)
 from magnolie_nextcloud import (
-    DavHttpClient, NextcloudDav, NextcloudError, NextcloudMailbox,
+    NextcloudDav, NextcloudError, NextcloudMailbox,
     NextcloudSettingsStore, configured_client,
     error_code as nextcloud_fehlercode, mailbox_sender,
     read_mailbox_document, source_id)
@@ -225,7 +238,7 @@ def tray_system_verfuegbar(desktop=None, aktivierte_erweiterungen=None):
 PROGRAMM_NAME = "magnolie-organizer"
 HANDBUCH_NAME = "magnolie-handbuch"
 FENSTER_TITEL = "Magnolie Organizer"
-PROGRAMM_FASSUNG = "2.0.16"
+PROGRAMM_FASSUNG = "2.0.17"
 ALTER_NAME = "organizer-klassik"
 I18N_DOMAIN = "magnolie-organizer"
 
@@ -375,6 +388,9 @@ TERMIN_FELDER = ["datum", "endDatum", "zeit", "endZeit", "titel", "notiz", "kate
                  "vertraulich", "vorlaeufig", "kostenstelle", "kunde",
                  "individuelleErinnerungTage", "standardErinnerung",
                  "wiederholung"]
+AUFGABE_FELDER = ["titel", "faellig", "startZeit", "faelligZeit", "prio", "erledigt",
+                  "notiz", "erinnern", "individuelleErinnerungTage", "elternUid",
+                  "reihenfolge", "icsRoundtrip"]
 ICS_BEGLEITFELDER = ("icsRoundtrip", "icsKomplex", "icsSerienUid",
                        "icsAusnahmen", "icsZusatzDaten", "icsZusatzTermine",
                        "icsReadOnly", "icsReadOnlyGrund", "icsQuelleName",
@@ -382,9 +398,9 @@ ICS_BEGLEITFELDER = ("icsRoundtrip", "icsKomplex", "icsSerienUid",
                        "icsEndeFehlt", "icsNullDauer")
 KONTAKT_FELDER = ["nachname", "vorname", "firma", "strasse", "plz", "ort",
                    "anschriften", "telefon", "mobil", "telefone",
-                   "email", "emails", "emailEintraege", "notiz", "foto", "kontaktpersonName",
-                   "kontaktpersonTelefon", "kontaktpersonStatus", "kontaktpersonen",
-                   "sozialeMedien"]
+                    "email", "emails", "emailEintraege", "notiz", "foto", "kontaktpersonName",
+                    "kontaktpersonTelefon", "kontaktpersonStatus", "kontaktpersonen",
+                    "sozialeMedien", "geburtstag", "geburtstagJahrUnbekannt"]
 
 
 # ---------------------------------------------------------------------------
@@ -399,6 +415,7 @@ REGIONAL_STANDARD = {
     "weekRule": "iso",
     "temperatureUnit": "celsius",
     "timeZone": "system",
+    "homeCountry": "DE",
 }
 
 UNTERSTUETZTE_SPRACHEN = (
@@ -452,6 +469,9 @@ def regional_einstellungen(roh=None):
             (".." not in zeitzone and re.match(
                 r"^[A-Za-z0-9._+-]+(?:/[A-Za-z0-9._+-]+)+$", zeitzone))):
         aus["timeZone"] = zeitzone
+    land = str(roh.get("homeCountry") or "DE").strip().upper()
+    from magnolie_phone_region import ISO_ALPHA2
+    aus["homeCountry"] = land if land in ISO_ALPHA2 else "DE"
     return aus
 
 
@@ -475,6 +495,8 @@ def regional_einstellungen_lesen(pfad=None):
 
 def regional_einstellungen_schreiben(werte, pfad=None):
     ziel = pfad or regional_datei()
+    if isinstance(werte, dict) and "homeCountry" not in werte:
+        werte = dict(werte, homeCountry=regional_einstellungen_lesen(ziel)["homeCountry"])
     sauber = regional_einstellungen(werte)
     try:
         os.makedirs(os.path.dirname(ziel), mode=0o700, exist_ok=True)
@@ -496,6 +518,7 @@ def regional_einstellungen_schreiben(werte, pfad=None):
 def finde_locale_verzeichnis():
     skript = os.path.dirname(os.path.realpath(__file__))
     kandidaten = [os.environ.get("MAGNOLIE_LOCALE_DIR"),
+                  os.path.join(skript, "..", "share", "locale"),
                   os.path.join(skript, "..", "locale"),
                   os.path.join(skript, "locale"),
                   "/usr/share/locale"]
@@ -720,19 +743,21 @@ SICHERUNG_DATEI_MAX = 256 * 1024 * 1024
 GESAMTARCHIV_DATEI_MAX = 384 * 1024 * 1024
 GESAMTARCHIV_KENNUNG = "magnolie-gesamtarchiv"
 GESAMTARCHIV_FASSUNG = 1
-GESAMTARCHIV_DATENSCHEMA = 2
-GESAMTARCHIV_DATENSCHEMATA_LESBAR = (1, 2)
+GESAMTARCHIV_DATENSCHEMA = 3
+GESAMTARCHIV_DATENSCHEMATA_LESBAR = (1, 2, 3)
 JOURNAL_KENNUNG = "magnolie-snapshot"
 JOURNAL_FASSUNG = 1
 JOURNAL_PAYLOAD_SCHEMA = 1
 JOURNAL_INTERVALLE = {"off": 0, "6h": 6 * 3600, "12h": 12 * 3600,
                       "daily": 86400, "weekly": 7 * 86400}
-JOURNAL_GRUENDE = {"weekly", "manual", "pre-sync", "pre-restore",
+JOURNAL_GRUENDE = {"weekly", "manual", "pre-change", "pre-sync", "pre-restore",
                    "pre-contact",
                    "pre-contact-import", "pre-contact-merge",
                    "pre-contact-delete"}
 JOURNAL_BUDGET_MAX = 1024 * 1024 * 1024
 JOURNAL_RESERVE = 1024 * 1024 * 1024
+JOURNAL_KOMPRESSION_NACH_TAGEN = 365
+_JOURNAL_SPERRE = threading.RLock()
 FEIERTAG_ANTWORT_MAX = 1024 * 1024
 FEIERTAG_ABRUF_MAX = 8 * 1024 * 1024
 
@@ -807,7 +832,75 @@ def _gesamtarchiv_wiederholungen_normalisieren(daten):
         wiederholung = termin["wiederholung"]
         if str(wiederholung.get("art") or "").lower() == "monthly_weekday":
             wiederholung["art"] = "monthly"
+    _aufgaben_graph_normalisieren(ergebnis.get("aufgaben") or [])
+    ergebnis["version"] = max(7, int(ergebnis.get("version") or 0))
     return ergebnis
+
+
+def _aufgaben_graph_normalisieren(aufgaben):
+    """Deterministische, iterative Migration flacher oder beschaedigter Aufgaben."""
+    aufgaben = [a for a in aufgaben if isinstance(a, dict)]
+    alte = {}
+    for aufgabe in aufgaben:
+        wert = str(aufgabe.get("uid") or "").strip()
+        if wert:
+            alte.setdefault(wert, []).append(aufgabe)
+    reserviert = {wert for wert, treffer in alte.items() if len(treffer) == 1}
+    vergeben = set()
+    naechster_versuch = {}
+    for index, aufgabe in sorted(enumerate(aufgaben), key=lambda paar:
+                                  (str(paar[1].get("id") or "").encode("utf-8"), paar[0])):
+        wert = str(aufgabe.get("uid") or "").strip()
+        if wert not in reserviert or wert in vergeben:
+            kennung = str(aufgabe.get("id") or "")
+            versuch = naechster_versuch.get(kennung, 0)
+            while True:
+                salt = "" if versuch == 0 else str(versuch - 1)
+                wert = _stabile_aufgaben_uid(kennung, salt)
+                versuch += 1
+                if wert not in reserviert and wert not in vergeben:
+                    break
+            naechster_versuch[kennung] = versuch
+        aufgabe["uid"] = wert
+        vergeben.add(wert)
+    nach_uid = {a["uid"]: a for a in aufgaben}
+    for index, aufgabe in enumerate(aufgaben):
+        parent = str(aufgabe.get("elternUid") or "").strip()
+        kandidat = nach_uid.get(parent)
+        if kandidat is None and len(alte.get(parent, [])) == 1:
+            kandidat = alte[parent][0]
+        aufgabe["elternUid"] = kandidat["uid"] if kandidat is not None and kandidat is not aufgabe else ""
+        wert = aufgabe.get("reihenfolge")
+        aufgabe["reihenfolge"] = wert if isinstance(wert, int) and not isinstance(wert, bool) and wert >= 0 else index
+    fertig = set()
+    for start in aufgaben:
+        pfad, position, aktuell = [], {}, start
+        while aktuell is not None and aktuell["uid"] not in fertig and aktuell["uid"] not in position:
+            position[aktuell["uid"]] = len(pfad)
+            pfad.append(aktuell)
+            aktuell = nach_uid.get(aktuell["elternUid"])
+        if aktuell is not None and aktuell["uid"] in position:
+            min(pfad[position[aktuell["uid"]]:],
+                key=lambda a: a["uid"].encode("utf-8"))["elternUid"] = ""
+        fertig.update(a["uid"] for a in pfad)
+    gruppen = {}
+    for aufgabe in aufgaben:
+        gruppen.setdefault(aufgabe["elternUid"], []).append(aufgabe)
+    for kinder in gruppen.values():
+        kinder.sort(key=lambda a: (a["reihenfolge"], a["uid"].encode("utf-8")))
+        for index, kind in enumerate(kinder):
+            kind["reihenfolge"] = index
+    return aufgaben
+
+
+def _stabile_aufgaben_uid(kennung, salt=""):
+    oktette = ("magnolie-task-v1\0%s\0%s" % (kennung, salt)).encode("utf-8")
+    a = b = 2166136261
+    for oktett in oktette:
+        a = ((a ^ oktett) * 16777619) & 0xffffffff
+    for oktett in reversed(oktette):
+        b = ((b ^ oktett) * 16777619) & 0xffffffff
+    return "mag-task-%08x%08x@magnolie-organizer" % (a, b)
 
 
 def gesamtarchiv_lesen_text(text, kennwort=""):
@@ -852,6 +945,7 @@ def gesamtarchiv_lesen_text(text, kennwort=""):
     return {"daten": daten, "erstellt": wurzel["erstellt"],
             "plattform": wurzel["plattform"],
             "appversion": str(wurzel.get("appversion") or ""),
+            "quellsha256": ist_hash,
             "verschluesselt": verschluesselt,
             "anzahlen": {name: len(daten.get(name) or [])
                           if isinstance(daten.get(name), list) else 0
@@ -888,8 +982,11 @@ def gesamtarchiv_lokales_bewahren(importiert, lokal, plattformwechsel):
 
 
 def journal_verzeichnis(basis=None):
-    return os.path.join(os.path.abspath(basis or daten_verzeichnis()),
-                        "wiederherstellungsstaende")
+    if basis is not None:
+        return os.path.join(os.path.abspath(basis), "wiederherstellungsstaende")
+    konfiguration = (os.environ.get("XDG_CONFIG_HOME") or
+                     os.path.expanduser("~/.config"))
+    return os.path.join(os.path.abspath(konfiguration), "mo-snapshots")
 
 
 def _journal_zeit(wert=None):
@@ -925,7 +1022,12 @@ def _journal_manifest_pruefen(manifest):
     if not str(manifest.get("createdAt", "")).endswith("Z"):
         raise RuntimeError(_("The recovery snapshot manifest is invalid."))
     payload = manifest["payload"]
+    payload_datei = payload.get("file", "payload.magnolie")
+    kompression = payload.get("compression")
     if (payload.get("schema") != JOURNAL_PAYLOAD_SCHEMA
+            or payload_datei not in ("payload.magnolie", "payload.magnolie.xz")
+            or kompression not in (None, "xz")
+            or (kompression == "xz") != payload_datei.endswith(".xz")
             or not re.fullmatch(r"[0-9a-f]{64}", str(payload.get("sha256", "")))
             or not re.fullmatch(r"[0-9a-f]{64}", str(payload.get("sourceSha256", "")))
             or isinstance(payload.get("size"), bool)
@@ -935,8 +1037,65 @@ def _journal_manifest_pruefen(manifest):
     return manifest
 
 
+def _journal_exklusiv(funktion):
+    def aufruf(*args, **kwargs):
+        with _JOURNAL_SPERRE:
+            return funktion(*args, **kwargs)
+    return aufruf
+
+
+def _journal_ordner_gueltig(pfad, snapshot_id):
+    try:
+        if os.path.islink(pfad) or not os.path.isdir(pfad):
+            return False
+        manifest_pfad = os.path.join(pfad, "manifest.json")
+        manifest = _journal_manifest_pruefen(json.loads(_text_dekodieren(
+            datei_begrenzt_lesen(manifest_pfad, 1024 * 1024,
+                                 _("The recovery snapshot manifest is too large.")))))
+        if manifest["snapshotId"] != snapshot_id:
+            return False
+        payload_pfad = os.path.join(
+            pfad, manifest["payload"].get("file", "payload.magnolie"))
+        return (not os.path.islink(manifest_pfad) and not os.path.islink(payload_pfad)
+                and os.path.getsize(payload_pfad) == manifest["payload"]["size"]
+                and hmac.compare_digest(_datei_sha256(payload_pfad),
+                                        manifest["payload"]["sha256"]))
+    except Exception:
+        return False
+
+
+def _journal_altbestand_verschieben(alt, ziel):
+    if not os.path.isdir(alt) or os.path.islink(alt):
+        return
+    os.makedirs(os.path.dirname(ziel), mode=0o700, exist_ok=True)
+    if not os.path.lexists(ziel):
+        os.replace(alt, ziel)
+        return
+    if not os.path.isdir(ziel) or os.path.islink(ziel):
+        return
+    for name in os.listdir(alt):
+        try:
+            if str(uuid.UUID(name)) != name:
+                continue
+        except (ValueError, AttributeError):
+            continue
+        quelle = os.path.join(alt, name)
+        neu = os.path.join(ziel, name)
+        if (os.path.isdir(quelle) and not os.path.islink(quelle)
+                and not os.path.lexists(neu)):
+            os.replace(quelle, neu)
+    try:
+        os.rmdir(alt)
+    except OSError:
+        pass
+
+
+@_journal_exklusiv
 def journal_bereinigen(basis=None):
     wurzel = journal_verzeichnis(basis)
+    if basis is None:
+        alt = os.path.join(daten_verzeichnis(), "wiederherstellungsstaende")
+        _journal_altbestand_verschieben(alt, wurzel)
     if os.path.lexists(wurzel) and os.path.islink(wurzel):
         raise OSError(_("The recovery snapshot folder must not be a symbolic link."))
     os.makedirs(wurzel, mode=0o700, exist_ok=True)
@@ -962,8 +1121,18 @@ def journal_bereinigen(basis=None):
         alt = os.path.join(wurzel, name)
         neu = os.path.join(wurzel, ".%s.rewrite-new" % snapshot_id)
         ziel = os.path.join(wurzel, snapshot_id)
-        if not os.path.exists(ziel):
-            os.replace(neu if os.path.isdir(neu) else alt, ziel)
+        if _journal_ordner_gueltig(ziel, snapshot_id):
+            if os.path.isdir(alt):
+                shutil.rmtree(alt)
+            if os.path.isdir(neu):
+                shutil.rmtree(neu)
+            continue
+        kandidat = neu if _journal_ordner_gueltig(neu, snapshot_id) else alt
+        if not _journal_ordner_gueltig(kandidat, snapshot_id):
+            continue
+        if os.path.isdir(ziel):
+            shutil.rmtree(ziel)
+        os.replace(kandidat, ziel)
         if os.path.isdir(alt):
             shutil.rmtree(alt)
         if os.path.isdir(neu):
@@ -978,21 +1147,23 @@ def journal_bereinigen(basis=None):
     return wurzel
 
 
+@_journal_exklusiv
 def journal_liste(basis=None, kennwort="", integritaet=True):
     wurzel = journal_bereinigen(basis)
-    ergebnis = []
+    ergebnis, gesehen = [], {}
     for name in os.listdir(wurzel):
         pfad = os.path.join(wurzel, name)
         if name.startswith(".") or os.path.islink(pfad) or not os.path.isdir(pfad):
             continue
         try:
             manifest_pfad = os.path.join(pfad, "manifest.json")
-            payload_pfad = os.path.join(pfad, "payload.magnolie")
-            if os.path.islink(manifest_pfad) or os.path.islink(payload_pfad):
-                raise OSError("symlink")
             manifest = _journal_manifest_pruefen(json.loads(_text_dekodieren(
                 datei_begrenzt_lesen(manifest_pfad, 1024 * 1024,
                                      _("The recovery snapshot manifest is too large.")))))
+            payload_pfad = os.path.join(
+                pfad, manifest["payload"].get("file", "payload.magnolie"))
+            if os.path.islink(manifest_pfad) or os.path.islink(payload_pfad):
+                raise OSError("symlink")
             if manifest["snapshotId"] != name:
                 raise RuntimeError(_("The recovery snapshot manifest is invalid."))
             stand = dict(manifest)
@@ -1035,7 +1206,7 @@ def _journal_anzahl(wert, standard=20):
         return standard
 
 
-def _journal_tage(wert, standard=14):
+def _journal_tage(wert, standard=3650):
     try:
         return max(1, min(3650, int(wert)))
     except (TypeError, ValueError):
@@ -1045,7 +1216,7 @@ def _journal_tage(wert, standard=14):
 def _journal_aufbewahrung(allgemein):
     modus = allgemein.get("wiederherstellungsaufbewahrung")
     if modus not in ("count", "days"):
-        modus = "count"
+        modus = "days"
     return (modus, _journal_anzahl(allgemein.get("wiederherstellungsanzahl")),
             _journal_tage(allgemein.get("wiederherstellungstage")))
 
@@ -1144,34 +1315,121 @@ def _journal_retention_plan(basis=None, jetzt=None, budget=None, disk_usage=None
             "reserve": JOURNAL_RESERVE, "delete": loeschen}
 
 
+@_journal_exklusiv
 def journal_retention(basis=None, jetzt=None, budget=None, disk_usage=None,
                        maximum=None, tage=None):
+    journal_komprimieren(basis, jetzt)
     plan = _journal_retention_plan(basis, jetzt, budget, disk_usage, maximum, tage)
     for stand in plan.pop("delete"):
         shutil.rmtree(stand["path"])
     return plan
 
 
+def _journal_payload_lesen(stand):
+    payload = stand["payload"]
+    pfad = os.path.join(stand["path"], payload.get("file", "payload.magnolie"))
+    roh = datei_begrenzt_lesen(
+        pfad, GESAMTARCHIV_DATEI_MAX,
+        _("The recovery snapshot is missing or damaged."))
+    if payload.get("compression") != "xz":
+        return roh
+    try:
+        with lzma.LZMAFile(io.BytesIO(roh), "rb") as eingabe:
+            klar = eingabe.read(GESAMTARCHIV_DATEI_MAX + 1)
+    except lzma.LZMAError:
+        raise RuntimeError(_("The recovery snapshot is missing or damaged."))
+    if len(klar) > GESAMTARCHIV_DATEI_MAX:
+        raise RuntimeError(_("The recovery snapshot is missing or damaged."))
+    return klar
+
+
+@_journal_exklusiv
+def journal_komprimieren(basis=None, jetzt=None):
+    """Komprimiert mehr als ein Jahr alte Einzelstände atomar als XZ."""
+    wurzel = journal_bereinigen(basis)
+    grenze = _journal_zeit(jetzt) - timedelta(days=JOURNAL_KOMPRESSION_NACH_TAGEN)
+    geschafft, misslungen = 0, 0
+    for stand in journal_liste(basis):
+        if (stand.get("integrity") != "ok" or
+                stand.get("payload", {}).get("compression") == "xz"):
+            continue
+        snapshot_id = stand["snapshotId"]
+        ziel = os.path.join(wurzel, snapshot_id)
+        neu = os.path.join(wurzel, ".%s.rewrite-new" % snapshot_id)
+        alt = os.path.join(wurzel, ".%s.rewrite-old" % snapshot_id)
+        try:
+            if _journal_zeit(stand["createdAt"]) >= grenze:
+                continue
+            roh = _journal_payload_lesen(stand)
+            komprimiert = lzma.compress(roh, format=lzma.FORMAT_XZ, preset=9)
+            if len(komprimiert) >= len(roh):
+                continue
+            manifest = json.loads(_text_dekodieren(datei_begrenzt_lesen(
+                os.path.join(ziel, "manifest.json"), 1024 * 1024,
+                _("The recovery snapshot manifest is too large."))))
+            manifest["payload"].update({
+                "file": "payload.magnolie.xz", "compression": "xz",
+                "sha256": hashlib.sha256(komprimiert).hexdigest(),
+                "size": len(komprimiert),
+            })
+            os.mkdir(neu, 0o700)
+            atomar_binaer_schreiben(
+                os.path.join(neu, "payload.magnolie.xz"), komprimiert)
+            atomar_text_schreiben(os.path.join(neu, "manifest.json"), json.dumps(
+                manifest, ensure_ascii=False, sort_keys=True, indent=2) + "\n")
+            _verzeichnis_sync(neu)
+            os.replace(ziel, alt)
+            os.replace(neu, ziel)
+            _verzeichnis_sync(wurzel)
+            shutil.rmtree(alt)
+            geschafft += 1
+        except Exception:
+            misslungen += 1
+            if not os.path.exists(ziel) and os.path.isdir(alt):
+                os.replace(alt, ziel)
+            if os.path.isdir(neu):
+                shutil.rmtree(neu)
+    return {"geschafft": geschafft, "misslungen": misslungen}
+
+
+@_journal_exklusiv
 def journal_snapshot_erzeugen(daten, grund, kennwort="", basis=None, jetzt=None,
                                pinned=None, disk_usage=None, haken=None,
                                maximum=None, tage=None):
     if grund not in JOURNAL_GRUENDE or not isinstance(daten, dict):
         raise ValueError("snapshot")
+    archiv_daten = _gesamtarchiv_wiederholungen_normalisieren(daten)
+    def anhaenge_entfernen(knoten):
+        if isinstance(knoten, dict):
+            for name, wert in list(knoten.items()):
+                if (name in ("daten", "data") and isinstance(wert, str) and
+                        wert.lower().startswith("data:")):
+                    knoten[name] = ""
+                else:
+                    anhaenge_entfernen(wert)
+        elif isinstance(knoten, list):
+            for wert in knoten:
+                anhaenge_entfernen(wert)
+    anhaenge_entfernen(archiv_daten)
     zeit = _journal_zeit(jetzt)
     erstellt = zeit.isoformat(timespec="microseconds").replace("+00:00", "Z")
-    quellhash = hashlib.sha256(_gesamtarchiv_kanonisch(daten)).hexdigest()
-    for alt in journal_liste(basis, integritaet=False):
+    quellhash = hashlib.sha256(_gesamtarchiv_kanonisch(archiv_daten)).hexdigest()
+    for alt in journal_liste(basis):
         if (alt.get("reason") == grund and
+                alt.get("integrity") == "ok" and
                 alt.get("payload", {}).get("sourceSha256") == quellhash):
             try:
                 if abs((zeit - _journal_zeit(alt["createdAt"])).total_seconds()) <= 900:
-                    alt["deduplicated"] = True
-                    return alt
-            except (ValueError, TypeError):
+                    geprueft, _gelesen = journal_snapshot_lesen(
+                        alt["snapshotId"], kennwort, basis)
+                    geprueft["deduplicated"] = True
+                    return geprueft
+            except (OSError, RuntimeError, ValueError, TypeError):
                 pass
-    text = gesamtarchiv_erzeugen(daten, "linux", PROGRAMM_FASSUNG,
+    text = gesamtarchiv_erzeugen(archiv_daten, "linux", PROGRAMM_FASSUNG,
                                  kennwort=kennwort, erstellt=erstellt)
     payload = text.encode("utf-8")
+    journal_komprimieren(basis, zeit)
     plan_maximum = None if maximum is None else max(0, _journal_anzahl(maximum) - 1)
     stand = _journal_retention_plan(basis, zeit, disk_usage=disk_usage,
                                     maximum=plan_maximum, tage=tage,
@@ -1234,18 +1492,21 @@ def journal_snapshot_erzeugen(daten, grund, kennwort="", basis=None, jetzt=None,
     return aus
 
 
+@_journal_exklusiv
 def journal_snapshot_lesen(snapshot_id, kennwort="", basis=None):
     snapshot_id = _journal_uuid(snapshot_id)
     stand = next((s for s in journal_liste(basis) if s.get("snapshotId") == snapshot_id), None)
     if not stand or stand.get("integrity") != "ok":
         raise RuntimeError(_("The recovery snapshot is missing or damaged."))
-    gelesen = gesamtarchiv_lesen(os.path.join(stand["path"], "payload.magnolie"), kennwort)
-    quellhash = hashlib.sha256(_gesamtarchiv_kanonisch(gelesen["daten"])).hexdigest()
-    if not hmac.compare_digest(quellhash, stand["payload"]["sourceSha256"]):
+    gelesen = gesamtarchiv_lesen_text(
+        _text_dekodieren(_journal_payload_lesen(stand)), kennwort)
+    if not hmac.compare_digest(
+            gelesen["quellsha256"], stand["payload"]["sourceSha256"]):
         raise RuntimeError(_("The recovery snapshot payload does not match its manifest."))
     return stand, gelesen
 
 
+@_journal_exklusiv
 def journal_umschluesseln(kennwort_neu, kennwort_alt="", basis=None):
     """Passt vorhandene Wiederherstellungspunkte atomar an den Kennwortschutz an."""
     wurzel = journal_bereinigen(basis)
@@ -1268,10 +1529,21 @@ def journal_umschluesseln(kennwort_neu, kennwort_alt="", basis=None):
             manifest = json.loads(_text_dekodieren(datei_begrenzt_lesen(
                 os.path.join(ziel, "manifest.json"), 1024 * 1024,
                 _("The recovery snapshot manifest is too large."))))
+            komprimiert = stand.get("payload", {}).get("compression") == "xz"
+            if komprimiert:
+                payload = lzma.compress(payload, format=lzma.FORMAT_XZ, preset=9)
+            payload_datei = "payload.magnolie.xz" if komprimiert else "payload.magnolie"
+            manifest["payload"]["file"] = payload_datei
+            if komprimiert:
+                manifest["payload"]["compression"] = "xz"
+            else:
+                manifest["payload"].pop("compression", None)
             manifest["payload"]["sha256"] = hashlib.sha256(payload).hexdigest()
+            manifest["payload"]["sourceSha256"] = hashlib.sha256(
+                _gesamtarchiv_kanonisch(gelesen["daten"])).hexdigest()
             manifest["payload"]["size"] = len(payload)
             os.mkdir(neu, 0o700)
-            atomar_binaer_schreiben(os.path.join(neu, "payload.magnolie"), payload)
+            atomar_binaer_schreiben(os.path.join(neu, payload_datei), payload)
             atomar_text_schreiben(os.path.join(neu, "manifest.json"), json.dumps(
                 manifest, ensure_ascii=False, sort_keys=True, indent=2) + "\n")
             _verzeichnis_sync(neu)
@@ -1289,8 +1561,89 @@ def journal_umschluesseln(kennwort_neu, kennwort_alt="", basis=None):
     return {"geschafft": geschafft, "misslungen": misslungen}
 
 
-def journal_restore_daten(daten):
-    neu = json.loads(json.dumps(daten, ensure_ascii=False))
+def _journal_liste_ergaenzen(aktuell, alt):
+    aus = json.loads(json.dumps(aktuell or [], ensure_ascii=False))
+    index = {}
+    for objekt in aus:
+        if isinstance(objekt, dict):
+            kennung = str(objekt.get("uid") or objekt.get("id") or "")
+            if kennung:
+                index[kennung] = objekt
+    for objekt in alt or []:
+        if not isinstance(objekt, dict):
+            continue
+        kennung = str(objekt.get("uid") or objekt.get("id") or "")
+        vorhanden = index.get(kennung) if kennung else None
+        if vorhanden is None:
+            kopie = json.loads(json.dumps(objekt, ensure_ascii=False))
+            aus.append(kopie)
+            if kennung:
+                index[kennung] = kopie
+            continue
+        for name, wert in objekt.items():
+            if (name not in vorhanden or vorhanden.get(name) in (None, "", [], {})) and wert not in (None, "", [], {}):
+                vorhanden[name] = json.loads(json.dumps(wert, ensure_ascii=False))
+    return aus
+
+
+def _journal_anhaenge_bewahren(neu, aktuell):
+    vorhanden = {}
+    def sammeln(knoten):
+        if isinstance(knoten, dict):
+            for name in ("daten", "data"):
+                wert = knoten.get(name)
+                if isinstance(wert, str) and wert.lower().startswith("data:"):
+                    schluessel = str(knoten.get("sha256") or knoten.get("attachment_id") or
+                                      knoten.get("id") or knoten.get("name") or "")
+                    if schluessel:
+                        vorhanden[(name, schluessel)] = wert
+            for wert in knoten.values():
+                sammeln(wert)
+        elif isinstance(knoten, list):
+            for wert in knoten:
+                sammeln(wert)
+    def einsetzen(knoten):
+        if isinstance(knoten, dict):
+            for name in ("daten", "data"):
+                if knoten.get(name) == "":
+                    schluessel = str(knoten.get("sha256") or knoten.get("attachment_id") or
+                                      knoten.get("id") or knoten.get("name") or "")
+                    if (name, schluessel) in vorhanden:
+                        knoten[name] = vorhanden[(name, schluessel)]
+            for wert in knoten.values():
+                einsetzen(wert)
+        elif isinstance(knoten, list):
+            for wert in knoten:
+                einsetzen(wert)
+    sammeln(aktuell)
+    einsetzen(neu)
+
+
+def journal_restore_daten(daten, aktuell=None, bereiche=None, modus="replace"):
+    snapshot = json.loads(json.dumps(daten, ensure_ascii=False))
+    bereiche = set(bereiche or ("all",))
+    erlaubt = {"all", "contacts", "calendar", "notes"}
+    if (not bereiche or not bereiche <= erlaubt or
+            ("all" in bereiche and bereiche != {"all"}) or
+            modus not in ("additive", "replace")):
+        raise ValueError(_("The save request is invalid."))
+    if aktuell is None and bereiche != {"all"}:
+        raise ValueError(_("The organizer data is not available."))
+    if bereiche == {"all"}:
+        neu = snapshot
+    else:
+        neu = json.loads(json.dumps(aktuell, ensure_ascii=False))
+        gruppen = {"contacts": ("kontakte", "jahrestage"),
+                   "calendar": ("termine", "aufgaben"),
+                   "notes": ("notizen", "notizgruppen", "notizbuecher")}
+        for bereich in bereiche:
+            for name in gruppen.get(bereich, ()):
+                if modus == "additive":
+                    neu[name] = _journal_liste_ergaenzen(neu.get(name), snapshot.get(name))
+                else:
+                    neu[name] = json.loads(json.dumps(snapshot.get(name) or [], ensure_ascii=False))
+    if aktuell is not None:
+        _journal_anhaenge_bewahren(neu, aktuell)
     epoch = str(uuid.uuid4())
     meta = neu.get("syncMetadaten") if isinstance(neu.get("syncMetadaten"), dict) else {}
     quarantined = {"geloescht": neu.get("geloescht") or {},
@@ -1303,6 +1656,11 @@ def journal_restore_daten(daten):
     neu["geloescht"] = {"termine": [], "kontakte": []}
     neu["tombstones"] = []
     neu["baumKontaktGeloescht"] = []
+    wiederhergestellt = jetzt_ms()
+    for art in ("termine", "aufgaben", "kontakte"):
+        for objekt in neu.get(art) or []:
+            if isinstance(objekt, dict) and objekt.get("sync"):
+                objekt["geaendert"] = wiederhergestellt
     einstellungen = neu.setdefault("einstellungen", {})
     sync = einstellungen.setdefault("sync", {})
     sync["syncEpoch"] = epoch
@@ -2065,28 +2423,9 @@ def _ics_wiederholung(rrule, datum, zeit=""):
     return ergebnis
 
 
-def _typ_aus_kategorien(kategorien):
-    k = (kategorien or "").lower()
-    if "geburtstag" in k or "birthday" in k:
-        return "birthday"
-    if "hochzeit" in k or "wedding" in k:
-        return "wedding-anniversary"
-    if "namenstag" in k:
-        return "name-day"
-    if any(wort in k for wort in ("todestag", "gestorben", "verstorben", "death")):
-        return "death-anniversary"
-    if "gedenk" in k or "memorial" in k:
-        return "memorial-day"
-    return "other"
-
-
-def _jahrestag_aus_ereignis(titel, kategorien, typ_feld=""):
-    """Erkennt ausdrücklich als Jahrestag bezeichnete Kalenderereignisse."""
-    text = "%s %s" % (kategorien or "", titel or "")
-    markiert = bool(typ_feld or re.search(
-        r"(?:geburtstag|birthday|hochzeit|wedding|todestag|gestorben|verstorben|"
-        r"death|anniversary|jahrestag|namenstag|memorial|gedenk)", text, re.I))
-    return markiert, typ_feld or _typ_aus_kategorien(text)
+def _jahrestag_aus_ereignis(typ_feld=""):
+    """Erkennt nur von Magnolie ausdrücklich markierte Jahrestage."""
+    return bool(typ_feld), typ_feld or "other"
 
 
 def _maschinen_datum(wert):
@@ -2136,11 +2475,14 @@ def _ics_roundtrip(props, komplex=False):
                "PERCENT-COMPLETE", "X-MAGNOLIE-ERINNERUNG-AM-TAG",
                "X-MAGNOLIE-KOSTENSTELLE", "X-MAGNOLIE-KUNDE",
                "X-MAGNOLIE-ERINNERUNG-TAGE", "X-MAGNOLIE-STANDARDERINNERUNG",
-               "X-MAGNOLIE-DATE"}
+               "X-MAGNOLIE-DATE", "X-MAGNOLIE-REIHENFOLGE"}
     if komplex:
         namen.update(("DTSTART", "DTEND"))
     ergebnis, tiefe = [], 0
     for name, params, wert in props:
+        if (name == "RELATED-TO" and
+                str((params or {}).get("RELTYPE") or "").upper() == "PARENT"):
+            continue
         if name == "BEGIN":
             tiefe += 1
         if tiefe or name in namen or name not in erzeugt:
@@ -2216,6 +2558,7 @@ def _ics_komponente(art, props, ergebnis, komplexe_serie=False,
         titel = wert("SUMMARY")
         if not titel:
             ergebnis["uebersprungen"] += 1
+            ergebnis["uebersprungenAufgaben"] += 1
             return
         p_due, w_due = _hole(props, "DUE")
         faellig, faellig_zeit = "", ""
@@ -2229,6 +2572,13 @@ def _ics_komponente(art, props, ergebnis, komplexe_serie=False,
         except ValueError:
             prio_roh = 0
         prio = 1 if 1 <= prio_roh <= 3 else (3 if prio_roh >= 7 else 2)
+        eltern = next((_ical_unescape(w) for n, p, w in props
+                       if n == "RELATED-TO" and
+                       str((p or {}).get("RELTYPE") or "").upper() == "PARENT"), "")
+        try:
+            reihenfolge = max(0, int(wert("X-MAGNOLIE-REIHENFOLGE") or 0))
+        except (TypeError, ValueError):
+            reihenfolge = 0
         ergebnis["aufgaben"].append({
             "titel": titel, "faellig": faellig,
             "startZeit": start_zeit, "faelligZeit": faellig_zeit, "prio": prio,
@@ -2237,17 +2587,20 @@ def _ics_komponente(art, props, ergebnis, komplexe_serie=False,
             "notiz": wert("DESCRIPTION"),
             "erinnern": wert("X-MAGNOLIE-ERINNERUNG-AM-TAG") == "1",
             "individuelleErinnerungTage": ganzzahl("X-MAGNOLIE-ERINNERUNG-TAGE"),
-            "uid": uid_wert, "geaendert": geaendert,
+            "uid": uid_wert, "elternUid": eltern,
+            "reihenfolge": reihenfolge, "geaendert": geaendert,
             "icsRoundtrip": _ics_roundtrip(roundtrip_props, nicht_abbildbar)})
         return
 
     p_start, w_start = _hole(props, "DTSTART")
     if not w_start:
         ergebnis["uebersprungen"] += 1
+        ergebnis["uebersprungenTermine"] += 1
         return
     datum, zeit = _ics_datumzeit(w_start, p_start or {})
     if not datum:
         ergebnis["uebersprungen"] += 1
+        ergebnis["uebersprungenTermine"] += 1
         return
     titel = wert("SUMMARY") or _("Untitled appointment")
     rrule = wert("RRULE").upper()
@@ -2289,8 +2642,7 @@ def _ics_komponente(art, props, ergebnis, komplexe_serie=False,
     typ_feld = (wert("X-MAGNOLIE-TYP") or
                 wert("X-MAGNOLIE-JAHRESTAG-TYP")).strip()[:80]
     typ_feld = typ_id or jahrestag_typ_id(typ_feld) or typ_feld
-    jahrestag_markiert, typ_kategorie = _jahrestag_aus_ereignis(
-        titel, kategorien, typ_feld)
+    jahrestag_markiert, typ_kategorie = _jahrestag_aus_ereignis(typ_feld)
     rdate_daten = []
     rdate_termine = []
     if "RDATE" in wiederholungsteile and not nicht_abbildbar:
@@ -2460,11 +2812,24 @@ def _termin_quelle_hinzufuegen(termin, quellen_id, name, externe_uid=""):
 
 
 def _lokale_kalender_dubletten_bereinigen(nutzlast):
-    """Vereinigt dieselbe externe Kalenderinstanz aus lokalen Cache-Kopien."""
+    """Vereinigt fachlich gleiche Kalendereinträge und bewahrt ihre Quellen."""
     termine = []
     for termin in nutzlast.get("termine") or []:
         treffer = next((vorhanden for vorhanden in termine
-                        if _termin_eds_ics_identisch(vorhanden, termin)), None)
+                        if (_termin_externe_kennungen(vorhanden) &
+                            _termin_externe_kennungen(termin)) and
+                        _termin_recurrence_id(vorhanden) ==
+                        _termin_recurrence_id(termin) and
+                        (vorhanden.get("datum") or "",
+                         vorhanden.get("endDatum") or "",
+                         vorhanden.get("zeit") or "",
+                         vorhanden.get("endZeit") or "",
+                         kanonischer_text(vorhanden.get("titel"))) ==
+                        (termin.get("datum") or "",
+                         termin.get("endDatum") or "",
+                         termin.get("zeit") or "",
+                         termin.get("endZeit") or "",
+                         kanonischer_text(termin.get("titel")))), None)
         if treffer is None:
             termine.append(termin)
             continue
@@ -2485,55 +2850,45 @@ def _lokale_kalender_dubletten_bereinigen(nutzlast):
             eintrag.get("uid"), eintrag.get("icsSerienUid"))
                 if str(wert or "").strip()}
 
-    def quelle_passt(links, rechts):
-        a = str(links.get("icsQuelleId") or "")
-        b = str(rechts.get("icsQuelleId") or "")
-        lokaler_cache = lambda wert: wert.startswith(("eds:", "evolution:"))
-        return not a or not b or a == b or lokaler_cache(a) or lokaler_cache(b)
-
     jahrestage = []
     for jahrestag in nutzlast.get("jahrestage") or []:
+        schluessel = (kanonischer_text(jahrestag.get("name")),
+                       _maschinen_monat_tag(jahrestag.get("datum")),
+                       jahrestag_typ_id(jahrestag.get("typ")) or
+                       kanonischer_text(jahrestag.get("typ")))
         ids = kennungen(jahrestag)
+        kontakt_id = str(jahrestag.get("kontaktId") or "").strip()
         treffer = next((vorhanden for vorhanden in jahrestage
-                        if ids and ids & kennungen(vorhanden) and
-                        _maschinen_monat_tag(vorhanden.get("datum")) ==
-                        _maschinen_monat_tag(jahrestag.get("datum")) and
-                        quelle_passt(vorhanden, jahrestag) and
-                        kanonischer_text(vorhanden.get("name")) ==
-                        kanonischer_text(jahrestag.get("name"))), None)
+                        if (kanonischer_text(vorhanden.get("name")),
+                            _maschinen_monat_tag(vorhanden.get("datum")),
+                            jahrestag_typ_id(vorhanden.get("typ")) or
+                            kanonischer_text(vorhanden.get("typ"))) == schluessel and
+                        ((ids and ids & kennungen(vorhanden)) or
+                         (kontakt_id and kontakt_id == str(
+                             vorhanden.get("kontaktId") or "").strip()))), None)
         if treffer is None:
             jahrestage.append(jahrestag)
             continue
-        namen = [str(treffer.get("icsQuelleName") or "").strip(),
-                 str(jahrestag.get("icsQuelleName") or "").strip()]
-        treffer["icsQuelleName"] = " + ".join(dict.fromkeys(n for n in namen if n))
-        if (jahrestag.get("datum") or "9999-99-99") < (
-                treffer.get("datum") or "9999-99-99"):
-            jahr = str(jahrestag.get("datum") or "")[:4]
-            if jahr.isdigit():
-                treffer["datum"] = jahr + "-" + _maschinen_monat_tag(
-                    treffer.get("datum"))
+        quelle_id = str(jahrestag.get("icsQuelleId") or "")
+        if quelle_id:
+            _termin_quelle_hinzufuegen(
+                treffer, quelle_id, jahrestag.get("icsQuelleName"),
+                jahrestag.get("uid"))
+        if str(treffer.get("datum") or "").startswith("--") and not str(
+                jahrestag.get("datum") or "").startswith("--"):
+            treffer["datum"] = jahrestag.get("datum")
         if not treffer.get("icsSerienUid"):
             treffer["icsSerienUid"] = jahrestag.get("icsSerienUid") or ""
+        if not treffer.get("icsQuelleId"):
+            treffer["icsQuelleId"] = jahrestag.get("icsQuelleId") or ""
+        if not treffer.get("syncKalenderUid"):
+            treffer["syncKalenderUid"] = jahrestag.get("syncKalenderUid") or ""
+        quellen = dict(treffer.get("syncQuellen") or {})
+        quellen.update(jahrestag.get("syncQuellen") or {})
+        treffer["syncQuellen"] = quellen
 
-    def ist_jahresserie(termin):
-        if (termin.get("wiederholung") or {}).get("art") == "yearly":
-            return True
-        return bool(termin.get("icsKomplex")) and any(
-            "FREQ=YEARLY" in str(zeile).upper()
-            for zeile in (termin.get("icsRoundtrip") or []))
-
-    def gleicher_jahresmaster(jahrestag):
-        ids = kennungen(jahrestag)
-        monat_tag = _maschinen_monat_tag(jahrestag.get("datum"))
-        return any(ids and ids & kennungen(termin) and
-                   quelle_passt(jahrestag, termin) and
-                   not termin.get("icsOriginalDatum") and
-                   ist_jahresserie(termin) and
-                   _maschinen_monat_tag(termin.get("datum")) == monat_tag
-                   for termin in termine)
-
-    nutzlast["jahrestage"] = [j for j in jahrestage if not gleicher_jahresmaster(j)]
+    nutzlast["termine"] = termine
+    nutzlast["jahrestage"] = jahrestage
     return nutzlast
 
 
@@ -2546,6 +2901,7 @@ def ics_lesen(text, quellenname="", quellen_id="", jahrestage_als_termine=False)
         raise ValueError(_("The selected file is not a readable iCalendar file."))
     ergebnis = {"termine": [], "jahrestage": [], "aufgaben": [],
                 "wiederholend": 0, "uebersprungen": 0,
+                "uebersprungenTermine": 0, "uebersprungenAufgaben": 0,
                 "komplexeSerien": []}
     komponenten = []
     art = None
@@ -2564,6 +2920,8 @@ def ics_lesen(text, quellenname="", quellen_id="", jahrestage_als_termine=False)
                     None, "VCALENDAR"):
                 art = w
                 props = []
+            elif art is None and elternart == "VCALENDAR" and w != "VTIMEZONE":
+                ergebnis["uebersprungen"] += 1
             elif art is not None:
                 props.append((name, params, wert))
         elif name == "END":
@@ -2576,8 +2934,6 @@ def ics_lesen(text, quellenname="", quellen_id="", jahrestage_als_termine=False)
             elif art == w:
                 komponenten.append((art, props))
                 art = None
-            elif elternart == "VCALENDAR" and w != "VTIMEZONE":
-                ergebnis["uebersprungen"] += 1
             stapel.pop()
         elif art is not None:
             props.append((name, params, wert))
@@ -2806,6 +3162,13 @@ def _vtodo_zeilen(a):
     tage = _erinnerung_tage(a.get("individuelleErinnerungTage"))
     if tage:
         z.append("X-MAGNOLIE-ERINNERUNG-TAGE:%d" % tage)
+    if a.get("elternUid"):
+        z.append("RELATED-TO;RELTYPE=PARENT:" + _ical_escape(a["elternUid"]))
+    try:
+        reihenfolge = max(0, int(a.get("reihenfolge") or 0))
+    except (TypeError, ValueError):
+        reihenfolge = 0
+    z.append("X-MAGNOLIE-REIHENFOLGE:%d" % reihenfolge)
     _ics_roundtrip_anwenden(z, a.get("icsRoundtrip"))
     z.append("END:VTODO")
     return z
@@ -2815,6 +3178,12 @@ def _ics_roundtrip_anwenden(zeilen, roundtrip):
     rohzeilen = [str(zeile).replace("\r", "").replace("\n", "")
                  for zeile in (roundtrip or []) if isinstance(zeile, str) and
                  re.match(r"^[A-Za-z0-9-]+(?:;[^:]*)?:", zeile)]
+    def fremd(zeile):
+        eigenschaft = _prop_zerlegen(zeile)
+        return bool(eigenschaft and eigenschaft[0] != "X-MAGNOLIE-REIHENFOLGE" and
+                    not (eigenschaft[0] == "RELATED-TO" and
+                         str(eigenschaft[1].get("RELTYPE") or "").upper() == "PARENT"))
+    rohzeilen = [zeile for zeile in rohzeilen if fremd(zeile)]
     if not rohzeilen:
         return
     ersetzen = {zeile.split(":", 1)[0].split(";", 1)[0].upper()
@@ -2964,6 +3333,11 @@ def vevent_text(t):
     return "\r\n".join(_falte(z) for z in _vevent_zeilen(t)) + "\r\n"
 
 
+def jahrestag_text(jahrestag):
+    """Einzelner Jahrestags-VEVENT für einen Kalenderanbieter."""
+    return "\r\n".join(_falte(z) for z in _jahrestag_zeilen(jahrestag)) + "\r\n"
+
+
 def ics_resource_aktualisieren(text, termin):
     """Ersetzt genau einen VEVENT und behaelt die CalDAV-Ressource zusammen."""
     muster = re.compile(r"(?ims)^BEGIN:VEVENT\s*$.*?^END:VEVENT\s*$")
@@ -2981,6 +3355,66 @@ def ics_resource_aktualisieren(text, termin):
     block = treffer[0]
     ersatz = vevent_text(termin).rstrip("\r\n")
     return text[:block.start()] + ersatz + text[block.end():]
+
+
+def ics_aufgabe_resource_aktualisieren(text, aufgabe):
+    """Ersetzt genau ein VTODO und bewahrt andere Ressourceteile bytegetreu."""
+    muster = re.compile(r"(?ims)^BEGIN:VTODO\s*$.*?^END:VTODO\s*$")
+    treffer = []
+    for block in muster.finditer(text):
+        gelesen = ics_lesen(block.group(0))
+        if (len(gelesen["aufgaben"]) == 1 and
+                gelesen["aufgaben"][0].get("uid") == aufgabe.get("uid")):
+            treffer.append(block)
+    if len(treffer) != 1:
+        raise ValueError(_("The calendar resource does not contain exactly one matching task."))
+    block = treffer[0]
+    ersatz = "\r\n".join(_falte(z) for z in _vtodo_zeilen(aufgabe))
+    return text[:block.start()] + ersatz + text[block.end():]
+
+
+def ics_aufgabe_resource_entfernen(text, uid):
+    """Entfernt nur das adressierte VTODO; gemischte Ressourcen bleiben bestehen."""
+    return _ics_resource_komponente_entfernen(text, "VTODO", uid)
+
+
+def ics_termin_resource_entfernen(text, uid):
+    """Entfernt nur den adressierten VEVENT; andere Komponenten bleiben bestehen."""
+    return _ics_resource_komponente_entfernen(text, "VEVENT", uid)
+
+
+def _ics_resource_komponente_entfernen(text, art, uid):
+    """Entfernt genau eine Zielkomponente aus einer gueltigen Kalenderressource."""
+    if art not in ("VEVENT", "VTODO"):
+        raise ValueError("unsupported iCalendar component")
+    muster = re.compile(r"(?ims)^BEGIN:%s\s*$.*?^END:%s\s*$" % (art, art))
+    treffer = []
+    for block in muster.finditer(text):
+        gelesen = ics_lesen(block.group(0))[
+            "termine" if art == "VEVENT" else "aufgaben"]
+        if len(gelesen) == 1 and gelesen[0].get("uid") == uid:
+            treffer.append(block)
+    if len(treffer) != 1:
+        meldung = (_("The calendar resource does not contain exactly one matching appointment.")
+                   if art == "VEVENT" else
+                   _("The calendar resource does not contain exactly one matching task."))
+        raise ValueError(meldung)
+    block = treffer[0]
+    rest = text[:block.start()] + text[block.end():]
+    stapel = []
+    for zeile in _entfalte_zeilen(rest):
+        prop = _prop_zerlegen(zeile)
+        if not prop:
+            continue
+        if prop[0] == "BEGIN":
+            komponentenart = prop[2].strip().upper()
+            if komponentenart not in ("VCALENDAR", "VTIMEZONE") and (
+                    not stapel or stapel[-1] == "VCALENDAR"):
+                return rest
+            stapel.append(komponentenart)
+        elif prop[0] == "END" and stapel:
+            stapel.pop()
+    return None
 
 
 # ---------------------------------------------------------------------------
@@ -3564,7 +3998,7 @@ def _anschrift_liste(kontakt):
                            "plz": kontakt.get("plz", ""),
                            "ort": kontakt.get("ort", ""), "land": "",
                            "typen": ["HOME"]})
-    ergebnis, gesehen = [], {}
+    ergebnis = []
     for eintrag in kandidaten:
         if not isinstance(eintrag, dict):
             continue
@@ -3581,19 +4015,36 @@ def _anschrift_liste(kontakt):
             sauber.pop("label")
         if not any(sauber[feld] for feld in ("strasse", "plz", "ort", "land")):
             continue
-        strasse_norm = kanonischer_text(sauber["strasse"])
-        strasse_norm = re.sub(r"strasse|str\.", "strasse", strasse_norm)
-        strasse_norm = re.sub(r"[^\w]", "", strasse_norm).replace("_", "")
-        schluessel = (strasse_norm,) + tuple(
-            re.sub(r"[^\w]", "", kanonischer_text(sauber[feld])).replace("_", "")
-            for feld in ("plz", "ort", "land"))
+        felder = ("strasse", "plz", "ort", "land")
+
+        def normiere(feld, wert):
+            normiert = kanonischer_text(wert)
+            if feld == "strasse":
+                normiert = re.sub(r"strasse|str\.", "strasse", normiert)
+            return re.sub(r"[^\w]", "", normiert).replace("_", "")
+
+        normiert = {feld: normiere(feld, sauber[feld]) for feld in felder}
         vereinigt = False
-        for stelle in gesehen.get(schluessel, []):
-            ziel = ergebnis[stelle]
+        for ziel in ergebnis:
             label = sauber.get("label", "")
             if ziel.get("label") and label and \
                     kanonischer_text(ziel["label"]) != kanonischer_text(label):
                 continue
+            ziel_normiert = {feld: normiere(feld, ziel[feld]) for feld in felder}
+            widerspruch = any(normiert[feld] and ziel_normiert[feld] and
+                              normiert[feld] != ziel_normiert[feld]
+                              for feld in felder)
+            gleiche_strasse = (bool(normiert["strasse"]) and
+                                normiert["strasse"] == ziel_normiert["strasse"])
+            gleicher_ort = (bool(normiert["plz"] and normiert["ort"]) and
+                            normiert["plz"] == ziel_normiert["plz"] and
+                            normiert["ort"] == ziel_normiert["ort"])
+            exakt = all(normiert[feld] == ziel_normiert[feld] for feld in felder)
+            if not exakt and (widerspruch or not (gleiche_strasse or gleicher_ort)):
+                continue
+            for feld in felder:
+                if not ziel[feld] and sauber[feld]:
+                    ziel[feld] = sauber[feld]
             for typ in sauber["typen"]:
                 if typ not in ziel["typen"]:
                     ziel["typen"].append(typ)
@@ -3605,7 +4056,6 @@ def _anschrift_liste(kontakt):
             break
         if vereinigt:
             continue
-        gesehen.setdefault(schluessel, []).append(len(ergebnis))
         ergebnis.append(sauber)
     return ergebnis
 
@@ -3651,11 +4101,8 @@ def _claws_kontakt(felder):
     nachname = erster("sn", "surname", "last-name")
     anzeigename = erster("cn", "commonName", "displayName")
     if not vorname and not nachname and anzeigename:
-        teile = anzeigename.split()
-        if len(teile) > 1:
-            vorname, nachname = " ".join(teile[:-1]), teile[-1]
-        else:
-            nachname = anzeigename
+        namen = anzeigename.rsplit(None, 1)
+        vorname, nachname = (namen if len(namen) == 2 else ("", namen[0]))
     emails = _email_liste({"emails": werte("mail", "email", "primaryEmail",
                                              "secondEmail", "mozillaSecondEmail")})
     strasse = erster("street", "streetAddress", "homeStreet", "mozillaHomeStreet")
@@ -4197,13 +4644,10 @@ def vcf_lesen(text, lokale_dateien=False):
                 vcard_roundtrip.append(zeile)
         nachname = (n_teile[0] if len(n_teile) > 0 else "").strip()
         vorname = (n_teile[1] if len(n_teile) > 1 else "").strip()
-        if not nachname and not vorname and fn:
-            worte = fn.split()
-            if len(worte) == 1:
-                nachname = worte[0]
-            else:
-                nachname = worte[-1]
-                vorname = " ".join(worte[:-1])
+        if not nachname and not vorname and fn and not firma:
+            namen = fn.rsplit(None, 1)
+            vorname = namen[0] if len(namen) > 1 else ""
+            nachname = namen[-1]
         if not (nachname or vorname or firma):
             ergebnis["uebersprungen"] += 1
             continue
@@ -5101,6 +5545,12 @@ def sync_merge(lokal, entfernt, tombstones, letzter_sync, felder):
                     # keine ausdrückliche Löschung. Das lokale Bild erhalten
                     # und nach dem Zusammenführen erneut hochgeben.
                     ergaenzung_hochladen = True
+            if "geburtstag" in felder:
+                lokaler_geburtstag = obj.get("geburtstag") or ""
+                ferner_geburtstag = fern.get("geburtstag") or ""
+                if lokaler_geburtstag and not ferner_geburtstag:
+                    # Ein fehlendes BDAY wird aus dem lokalen Bestand repariert.
+                    ergaenzung_hochladen = True
             if "email" in felder or "emails" in felder:
                 lokale_emails = _email_liste(obj)
                 ferne_emails = _email_liste(fern)
@@ -5169,6 +5619,9 @@ def sync_merge(lokal, entfernt, tombstones, letzter_sync, felder):
             if entscheidung == "remote":
                 for f in felder:
                     if f == "foto" and not fern.get(f) and obj.get(f):
+                        continue
+                    if (f in ("geburtstag", "geburtstagJahrUnbekannt") and
+                            obj.get("geburtstag") and not fern.get("geburtstag")):
                         continue
                     if f in ("email", "emails", "emailEintraege",
                              "telefon", "mobil", "telefone",
@@ -5438,15 +5891,16 @@ def tray_datei():
 
 def tray_einstellungen(roh=None):
     roh = roh if isinstance(roh, dict) else {}
+    autostart = bool(roh.get("autostart"))
     oeffnen = {"letzte": "previous", "previous": "previous",
                "zentriert": "centered", "centered": "centered",
                "maximiert": "maximized", "maximized": "maximized"}.get(
                    str(roh.get("oeffnen") or "").lower(), "previous")
-    return {"aktiv": bool(roh.get("aktiv")),
+    return {"aktiv": bool(roh.get("aktiv")) or autostart,
             "minimierenInTray": roh.get("minimierenInTray") is not False,
             "schliessenInTray": roh.get("schliessenInTray") is not False,
-            "startMinimiert": bool(roh.get("startMinimiert")),
-            "autostart": bool(roh.get("autostart")),
+            "startMinimiert": bool(roh.get("startMinimiert")) or autostart,
+            "autostart": autostart,
             "zaehler": bool(roh.get("zaehler")),
             "oeffnen": oeffnen}
 
@@ -5594,6 +6048,43 @@ def _alarm_normalisieren(alarm):
     return basis
 
 
+def _custom_erinnerungseintraege(daten):
+    termine = []
+    aufgaben = []
+    custom = daten.get("customOrganizer") if isinstance(daten, dict) else None
+    module = custom.get("modules") if isinstance(custom, dict) else []
+    for modul in (module if isinstance(module, list) else [])[:24]:
+        if not isinstance(modul, dict) or not modul.get("reminders"):
+            continue
+        modul_id = str(modul.get("id") or "")[:72]
+        modul_titel = str(modul.get("title") or "").strip()[:120]
+        items = modul.get("items")
+        if not isinstance(items, list):
+            continue
+        for item in items[:500]:
+            if not isinstance(item, dict) or item.get("remind") is False:
+                continue
+            titel = " · ".join(wert for wert in (
+                modul_titel, str(item.get("title") or "").strip()[:300]) if wert)
+            item_id = str(item.get("id") or "")[:72]
+            erinnerungs_id = "custom:%s:%s" % (modul_id, item_id)
+            if modul.get("type") == "appointments" and re.fullmatch(
+                    r"\d{4}-\d{2}-\d{2}", str(item.get("date") or "")):
+                termin = {"id": erinnerungs_id,
+                    "datum": item["date"], "zeit": str(item.get("time") or "")[:5],
+                    "titel": titel, "standardErinnerung": True}
+                if "wiederholung" in item:
+                    termin["wiederholung"] = _erinnerungsfelder_auswaehlen(
+                        item["wiederholung"], ERINNERUNG_WIEDERHOLUNG_FELDER)
+                termine.append(termin)
+            elif modul.get("type") == "tasks" and re.fullmatch(
+                    r"\d{4}-\d{2}-\d{2}", str(item.get("due") or "")):
+                aufgaben.append({"id": erinnerungs_id, "titel": titel,
+                    "faellig": item["due"], "faelligZeit": str(item.get("time") or "")[:5],
+                    "erledigt": bool(item.get("done")), "erinnern": True})
+    return termine, aufgaben
+
+
 def erinnerungsdaten_auswaehlen(daten):
     """Wählt ausschließlich Inhalte aus, die der Wecker benötigt.
 
@@ -5631,6 +6122,9 @@ def erinnerungsdaten_auswaehlen(daten):
             ausgewaehlt["wiederholung"] = _erinnerungsfelder_auswaehlen(
                 original["wiederholung"], ERINNERUNG_WIEDERHOLUNG_FELDER)
 
+    custom_termine, custom_aufgaben = _custom_erinnerungseintraege(daten)
+    termine.extend(custom_termine)
+
     erinnerung = _erinnerungsfelder_auswaehlen(
         einstellungen.get("erinnerung"), ERINNERUNG_EINSTELLUNG_FELDER)
     rohe_jahrestage = (einstellungen.get("erinnerung") or {}).get(
@@ -5642,7 +6136,7 @@ def erinnerungsdaten_auswaehlen(daten):
         "version": 1,
         "nurErinnerungen": True,
         "termine": termine,
-        "aufgaben": eintraege("aufgaben", ERINNERUNG_AUFGABE_FELDER),
+        "aufgaben": eintraege("aufgaben", ERINNERUNG_AUFGABE_FELDER) + custom_aufgaben,
         "jahrestage": eintraege("jahrestage", ERINNERUNG_JAHRESTAG_FELDER),
         "einstellungen": {"erinnerung": erinnerung},
     }
@@ -6256,7 +6750,7 @@ def faellige_jahrestage(daten, jetzt, ergebnis=None, tage_vorher=0,
     return ergebnis
 
 
-def faellige_aufgaben(daten, jetzt, ergebnis=None, stunde=8):
+def faellige_aufgaben(daten, jetzt, ergebnis=None, stunde=8, verpasste=True):
     """Sucht Aufgaben, an die am Fälligkeitstag oder vorher zu erinnern ist.
 
     Gemeldet wird am Morgen des Fälligkeitstages – und nur, wenn die
@@ -6307,6 +6801,9 @@ def faellige_aufgaben(daten, jetzt, ergebnis=None, stunde=8):
                 continue
             wer = ", ".join(n for n in (aufgabe.get("personenNamen") or []) if n)
             verpasst = jetzt > zeitpunkt + timedelta(hours=14)
+            if verpasst and not verpasste:
+                gemeldet[marke] = jetzt.strftime("%Y-%m-%d %H:%M")
+                continue
             eintrag = {
                 "id": marke, "aufgabe": True,
                 "kopf": _("Task reminder") if tage_vorher else _("Task is due"),
@@ -7782,6 +8279,12 @@ def erinnerungslauf(jetzt=None, als_wecker=False):
             _("The data is encrypted – the enabled, limited reminder data is being used."))
     if not isinstance(daten, dict):
         return {"gemeldet": 0, "fehler": _("No data was found.")}
+    if not daten.get("nurErinnerungen"):
+        custom_termine, custom_aufgaben = _custom_erinnerungseintraege(daten)
+        if custom_termine or custom_aufgaben:
+            daten = dict(daten)
+            daten["termine"] = list(daten.get("termine") or []) + custom_termine
+            daten["aufgaben"] = list(daten.get("aufgaben") or []) + custom_aufgaben
 
     einstellungen = (daten.get("einstellungen") or {}) if isinstance(daten, dict) else {}
     wecker = einstellungen.get("erinnerung") or {}
@@ -7809,7 +8312,9 @@ def erinnerungslauf(jetzt=None, als_wecker=False):
             if isinstance(a, dict):
                 a["personenNamen"] = [personen.get(x) for x in (a.get("personen") or [])
                                       if personen.get(x)]
-        ergebnis = faellige_aufgaben(daten, jetzt, ergebnis)
+        ergebnis = faellige_aufgaben(
+            daten, jetzt, ergebnis,
+            verpasste=bool(wecker.get("verpasste", True)))
 
     jt = wecker.get("jahrestage") or {}
     if jt.get("an"):
@@ -8269,7 +8774,7 @@ def libreoffice_benutzerdaten(pfad=None):
         return {"ok": False, "felder": {}, "absender": "",
                 "fehler": fehler_deutsch(fehler, _("Reading the user data"))}
 
-    interessant = ("givenname", "sn", "o", "street", "postalcode", "l", "c",
+    interessant = ("givenname", "sn", "o", "street", "postalcode", "l", "c", "st",
                    "mail", "telephonenumber", "homephone")
     felder = {}
     for stueck in text.split("UserProfile/Data")[1:]:
@@ -10483,6 +10988,56 @@ def baum_kontakt_loeschen_pruefen(inhalt):
     return inhalt
 
 
+def baum_kontakt_import_pruefen(art, inhalt):
+    """Begrenzt den einmaligen read-only Import auf Manifest und Einzelkarten."""
+    fehler = _("The contact synchronization message is invalid.")
+    if not isinstance(inhalt, dict) or inhalt.get("art") != art or inhalt.get("fassung") != 1:
+        raise RuntimeError(fehler)
+    import_id = inhalt.get("importId")
+    if (not isinstance(import_id, str) or not import_id or len(import_id) > 128
+            or any(ord(zeichen) < 32 for zeichen in import_id)):
+        raise RuntimeError(fehler)
+
+    def herkuenfte_pruefen(werte, maximum, mit_anzahl):
+        felder = {"kontoTyp", "kontoName", "dataSet"} | ({"anzahl"} if mit_anzahl else set())
+        if not isinstance(werte, list) or not 1 <= len(werte) <= maximum:
+            raise RuntimeError(fehler)
+        for wert in werte:
+            if not isinstance(wert, dict) or set(wert) != felder:
+                raise RuntimeError(fehler)
+            for name in ("kontoTyp", "kontoName", "dataSet"):
+                text = wert.get(name)
+                if not isinstance(text, str) or len(text) > 128 or any(ord(c) < 32 for c in text):
+                    raise RuntimeError(fehler)
+            if mit_anzahl and (isinstance(wert.get("anzahl"), bool)
+                               or not isinstance(wert.get("anzahl"), int)
+                               or not 1 <= wert["anzahl"] <= 250):
+                raise RuntimeError(fehler)
+
+    if art == "kontakt_import_manifest":
+        if set(inhalt) != {"art", "fassung", "importId", "anzahl", "herkuenfte"}:
+            raise RuntimeError(fehler)
+        anzahl = inhalt.get("anzahl")
+        if isinstance(anzahl, bool) or not isinstance(anzahl, int) or not 1 <= anzahl <= 250:
+            raise RuntimeError(fehler)
+        herkuenfte_pruefen(inhalt.get("herkuenfte"), 64, True)
+    elif art == "kontakt_import_karte":
+        if set(inhalt) != {"art", "fassung", "importId", "bindung", "herkuenfte", "kontakt"}:
+            raise RuntimeError(fehler)
+        bindung = inhalt.get("bindung")
+        if (not isinstance(bindung, str)
+                or not re.fullmatch(r"urn:magnolie:import:android:[0-9a-f]{64}", bindung)):
+            raise RuntimeError(fehler)
+        herkuenfte_pruefen(inhalt.get("herkuenfte"), 16, False)
+        baum_kontakt_sync_pruefen({
+            "art": "kontakt_sync", "fassung": 1, "freigabeId": bindung,
+            "version": 1, "quelle": "android-import", "geaendert": 0,
+            "kontakt": inhalt.get("kontakt")})
+    else:
+        raise RuntimeError(fehler)
+    return inhalt
+
+
 def baum_kontakt_nutzlast_pruefen(art, inhalt):
     if art in ("geraete_status_anfrage", "geraete_status"):
         raise RuntimeError(_("This type cannot be shared."))
@@ -10490,6 +11045,8 @@ def baum_kontakt_nutzlast_pruefen(art, inhalt):
         return baum_kontakt_sync_pruefen(inhalt)
     if art == "kontakt_loeschen":
         return baum_kontakt_loeschen_pruefen(inhalt)
+    if art in ("kontakt_import_manifest", "kontakt_import_karte"):
+        return baum_kontakt_import_pruefen(art, inhalt)
     return inhalt
 
 
@@ -14141,14 +14698,22 @@ def _tb_karten_vcards(pfad):
 
     vcards = []
     for karten_uid, eigenschaften in karten.items():
-        direkte = eigenschaften.get("_vCard", [])
-        if direkte:
-            vcards.extend(wert for wert in direkte if "BEGIN:VCARD" in wert.upper())
-            continue
         def e(name, standard="", eigenschaften=eigenschaften):
             werte = eigenschaften.get(name, [])
             return werte[0] if werte else standard
         nach, vor = e("LastName", "").strip(), e("FirstName", "").strip()
+        direkte = eigenschaften.get("_vCard", [])
+        if direkte:
+            for wert in direkte:
+                if "BEGIN:VCARD" not in wert.upper():
+                    continue
+                if nach or vor:
+                    n_zeile = "N:%s;%s;;;" % (_vcard_escape(nach), _vcard_escape(vor))
+                    wert = re.sub(r"(?i)(\r?\nEND:VCARD)",
+                                  lambda treffer: "\r\n" + n_zeile + treffer.group(1),
+                                  wert, count=1)
+                vcards.append(wert)
+            continue
         anzeige = e("DisplayName", "").strip()
         firma = e("Company", "").strip()
         emails = _email_liste({"emails": [e("PrimaryEmail", "").strip(),
@@ -14412,8 +14977,7 @@ def _tb_normalisiertes_ereignis(zeile, spalten, eigenschaften, parameter,
     kategorien = _ical_unescape(prop("CATEGORIES") or master_prop("CATEGORIES"))
     typ_feld = jahrestag_typ_id(prop("X-MAGNOLIE-TYPE-ID") or
                                 master_prop("X-MAGNOLIE-TYPE-ID"))
-    jahrestag_markiert, jahrestag_typ = _jahrestag_aus_ereignis(
-        titel, kategorien, typ_feld)
+    jahrestag_markiert, jahrestag_typ = _jahrestag_aus_ereignis(typ_feld)
     serien_uid = str(zeile["id"] or "")
     quellen_name, quellen_id = _tb_quelle(cal_id, kalender)
     if (recurrence_id is None and not ics_komplex and ganztag and not end_datum and jahrestag_markiert and
@@ -14770,10 +15334,14 @@ def _nur_lesen_text():
     return treffer.group(1) if treffer else "read only"
 
 
-def lokal_scannen(basis=None, nur_kontakte=False):
+def lokal_scannen(basis=None, nur_kontakte=False, quelle=None):
     """Durchsucht die lokalen Ablagen von Evolution und Thunderbird nach
     Adressen, Terminen und Aufgaben und liefert eine Import-Nutzlast."""
     basis = basis or os.path.expanduser("~")
+    if quelle not in (None, "evolution", "thunderbird"):
+        raise ValueError("Unbekannte lokale Kontaktquelle.")
+    evolution_lesen = quelle in (None, "evolution")
+    thunderbird_lesen = quelle in (None, "thunderbird")
     ICS_ANFAENGE = ("BEGIN:VCALENDAR", "BEGIN:VEVENT", "BEGIN:VTODO")
     nutzlast = {"kontakte": [], "geburtstage": [], "termine": [],
                 "jahrestage": [], "aufgaben": [],
@@ -14795,7 +15363,7 @@ def lokal_scannen(basis=None, nur_kontakte=False):
 
     # ---- Evolution: Adressbücher (lokale Ablage und Konten-Zwischenspeicher)
     ev = [0, 0, 0]
-    for wurzel in _evolution_wurzeln(basis, "addressbook"):
+    for wurzel in _evolution_wurzeln(basis, "addressbook") if evolution_lesen else ():
         for dateiname in ("contacts.db", "cache.db"):
             for pfad in _unterdateien(wurzel, dateiname):
                 texte = _texte_aus_sqlite(pfad, ("BEGIN:VCARD",))
@@ -14804,7 +15372,7 @@ def lokal_scannen(basis=None, nur_kontakte=False):
                     ev = [a + b for a, b in zip(ev, z)]
 
     # ---- Evolution: Kalender und Aufgaben
-    if not nur_kontakte:
+    if evolution_lesen and not nur_kontakte:
         for was, dateien in (("calendar", ("calendar.ics", "cache.db")),
                              ("tasks", ("tasks.ics", "cache.db"))):
             for wurzel in _evolution_wurzeln(basis, was):
@@ -14832,7 +15400,7 @@ def lokal_scannen(basis=None, nur_kontakte=False):
 
     # ---- Thunderbird: Adressbücher und Kalender
     tb = [0, 0, 0]
-    for profil in _thunderbird_profile(basis):
+    for profil in _thunderbird_profile(basis) if thunderbird_lesen else ():
         try:
             dateien = sorted(os.listdir(profil))
         except OSError:
@@ -14870,6 +15438,7 @@ def lokal_scannen(basis=None, nur_kontakte=False):
         nutzlast["geburtstage"] = []
     nutzlast["bericht"] = (_("Found – %s.") % "; ".join(bericht)) if bericht \
         else _("No readable Evolution or Thunderbird stores were found on this computer.")
+    nutzlast["quelle"] = quelle or "alle"
     return nutzlast
 
 
@@ -14919,7 +15488,7 @@ def nextcloud_status(transport=None, discover=True):
     store = nextcloud_speicher()
     result = {"verfuegbar": True, "aktiv": False, "davAktiv": False,
               "briefkastenAktiv": False, "server": "", "url": "",
-              "benutzer": "",
+              "benutzer": "", "kontoArt": "nextcloud",
               "kennwortVorhanden": False, "zustand": "nicht_eingerichtet",
               "fehler": "", "fehlerCode": "none", "kalender": [],
               "adressbuecher": []}
@@ -14928,6 +15497,7 @@ def nextcloud_status(transport=None, discover=True):
         if not settings:
             return result
         result.update(aktiv=settings["briefkastenAktiv"],
+                      kontoArt=settings.get("kontoArt", "nextcloud"),
                       davAktiv=settings["davAktiv"],
                       briefkastenAktiv=settings["briefkastenAktiv"],
                       server=settings["server"],
@@ -14971,6 +15541,8 @@ _EDS = {"geprueft": False, "ok": False, "buch_ok": False, "fehler": ""}
 _AKONADI_QUELLEN = {}
 
 EDS_PAKETE = "gir1.2-ecal-2.0 gir1.2-ebook-1.2 gir1.2-edataserver-1.2"
+EDS_OPERATION_TIMEOUT = 10.0
+EDS_READ_ATTEMPTS = 2
 
 
 def eds_laden():
@@ -15004,6 +15576,44 @@ def eds_laden():
 
 def eds_registry():
     return _EDS["EDataServer"].SourceRegistry.new_sync(None)
+
+
+def _eds_mit_frist(aufruf, sekunden=EDS_OPERATION_TIMEOUT,
+                   versuche=EDS_READ_ATTEMPTS, schritt="eds-read"):
+    """Begrenzt und wiederholt ausschließlich lesende EDS-Aufrufe."""
+    letzter_fehler = None
+    for versuch in range(1, max(1, int(versuche)) + 1):
+        abbruch = Gio.Cancellable() if Gio is not None else None
+        abgelaufen = threading.Event()
+
+        def abbrechen():
+            abgelaufen.set()
+            if abbruch is not None:
+                abbruch.cancel()
+
+        start = time.monotonic()
+        timer = threading.Timer(max(0.001, float(sekunden)), abbrechen)
+        timer.daemon = True
+        timer.start()
+        try:
+            ergebnis = aufruf(abbruch)
+            if abgelaufen.is_set():
+                raise RuntimeError(_("The online account operation timed out."))
+            debug_notiz("sync.step.ok", step=schritt, attempt=versuch,
+                        duration_ms=round((time.monotonic() - start) * 1000, 1))
+            return ergebnis
+        except Exception as fehler:
+            ist_timeout = abgelaufen.is_set()
+            letzter_fehler = (RuntimeError(_(
+                "The online account operation timed out.")) if ist_timeout
+                else fehler)
+            debug_notiz("sync.step.failed", step=schritt, attempt=versuch,
+                         duration_ms=round((time.monotonic() - start) * 1000, 1),
+                         timeout=ist_timeout, cause=type(fehler).__name__,
+                         error=letzter_fehler)
+        finally:
+            timer.cancel()
+    raise letzter_fehler
 
 
 def eds_quellen(registry):
@@ -15049,6 +15659,24 @@ def akonadi_quellen_status():
         _AKONADI_QUELLEN = {}
         return {"verfuegbar": True, "kalender": [], "adressbuecher": [],
                 "fehler": str(fehler)}
+
+
+def setup_internetkonten():
+    """Liefert lokale Systemkonten für die direkte Auswahl im Erstassistenten."""
+    ergebnis = []
+    try:
+        if eds_laden():
+            kalender, buecher = eds_quellen(eds_registry())
+            ergebnis.extend(dict(eintrag, kind="calendar") for eintrag in kalender)
+            ergebnis.extend(dict(eintrag, kind="addressbook") for eintrag in buecher)
+    except Exception as fehler:
+        debug_ausnahme("setup.system-accounts.failed", error=fehler)
+    akonadi = akonadi_quellen_status()
+    ergebnis.extend(dict(eintrag, kind="calendar")
+                    for eintrag in akonadi.get("kalender", []))
+    ergebnis.extend(dict(eintrag, kind="addressbook")
+                    for eintrag in akonadi.get("adressbuecher", []))
+    return ergebnis
 
 
 def _sync_quellenname(registry, uid, akonadi_quellen=None):
@@ -15142,10 +15770,13 @@ def eds_kalender_client(registry, quellen_uid, akonadi_quellen=None):
     if not _eds_quelle_aktiv(registry, q):
         raise RuntimeError(_(
             "The selected online account source is disabled. Select an enabled source in Settings."))
-    try:
-        client = ECal.Client.connect_sync(q, ECal.ClientSourceType.EVENTS, 20, None)
-    except TypeError:
-        client = ECal.Client.connect_sync(q, ECal.ClientSourceType.EVENTS, None)
+    def verbinden(abbruch):
+        try:
+            return ECal.Client.connect_sync(
+                q, ECal.ClientSourceType.EVENTS, 10, abbruch)
+        except TypeError:
+            return ECal.Client.connect_sync(q, ECal.ClientSourceType.EVENTS, abbruch)
+    client = _eds_mit_frist(verbinden, schritt="calendar-connect")
     return _eds_client_online(client)
 
 
@@ -15154,10 +15785,14 @@ def eds_events_lesen(client):
     if isinstance(client, AkonadiClient):
         return client.event_texts()
     try:
-        ergebnis = client.get_object_list_sync("#t", None)
+        ergebnis = _eds_mit_frist(
+            lambda abbruch: client.get_object_list_sync("#t", abbruch),
+            schritt="calendar-read")
     except (AttributeError, TypeError):
         try:
-            ergebnis = client.get_object_list_as_comps_sync("#t", None)
+            ergebnis = _eds_mit_frist(
+                lambda abbruch: client.get_object_list_as_comps_sync("#t", abbruch),
+                schritt="calendar-read-fallback")
         except Exception as fehler:
             raise RuntimeError(_("The calendar could not be read: %s") % fehler) from fehler
     except Exception as fehler:
@@ -15296,10 +15931,12 @@ def eds_buch_client(registry, quellen_uid, akonadi_quellen=None):
     if not _eds_quelle_aktiv(registry, q):
         raise RuntimeError(_(
             "The selected online account source is disabled. Select an enabled source in Settings."))
-    try:
-        client = EBook.BookClient.connect_sync(q, 20, None)
-    except TypeError:
-        client = EBook.BookClient.connect_sync(q, None)
+    def verbinden(abbruch):
+        try:
+            return EBook.BookClient.connect_sync(q, 20, abbruch)
+        except TypeError:
+            return EBook.BookClient.connect_sync(q, abbruch)
+    client = _eds_mit_frist(verbinden, schritt="addressbook-connect")
     return _eds_client_online(client)
 
 
@@ -15588,7 +16225,9 @@ def eds_kontakte_lesen(client):
         return aus
     abfrage = '(contains "x-evolution-any-field" "")'
     try:
-        ergebnis = client.get_contacts_sync(abfrage, None)
+        ergebnis = _eds_mit_frist(
+            lambda abbruch: client.get_contacts_sync(abfrage, abbruch),
+            schritt="addressbook-read")
     except Exception as fehler:
         raise RuntimeError(_("The address book could not be read: %s") % fehler)
     if isinstance(ergebnis, tuple):
@@ -15708,10 +16347,12 @@ def eds_kontakt_anlegen(client, vcard):
         return client.create(vcard)
     EBookContacts = _EDS["EBookContacts"]
     kontakt = EBookContacts.Contact.new_from_vcard(vcard)
-    try:
-        ergebnis = client.add_contact_sync(kontakt, _buch_flags(), None)
-    except TypeError:
-        ergebnis = client.add_contact_sync(kontakt, None)
+    def anlegen(abbruch):
+        try:
+            return client.add_contact_sync(kontakt, _buch_flags(), abbruch)
+        except TypeError:
+            return client.add_contact_sync(kontakt, abbruch)
+    ergebnis = _eds_mit_frist(anlegen)
     if isinstance(ergebnis, tuple):
         return ergebnis[-1] if ergebnis[0] else None
     return ergebnis
@@ -15723,20 +16364,25 @@ def eds_kontakt_aendern(client, vcard):
         return
     EBookContacts = _EDS["EBookContacts"]
     kontakt = EBookContacts.Contact.new_from_vcard(vcard)
-    try:
-        client.modify_contact_sync(kontakt, _buch_flags(), None)
-    except TypeError:
-        client.modify_contact_sync(kontakt, None)
+    def aendern(abbruch):
+        try:
+            return client.modify_contact_sync(kontakt, _buch_flags(), abbruch)
+        except TypeError:
+            return client.modify_contact_sync(kontakt, abbruch)
+    _eds_mit_frist(aendern)
 
 
 def eds_kontakt_loeschen(client, uid_wert):
     if isinstance(client, AkonadiClient):
         client.delete(uid_wert)
         return
-    try:
-        client.remove_contact_by_uid_sync(uid_wert, _buch_flags(), None)
-    except TypeError:
-        client.remove_contact_by_uid_sync(uid_wert, None)
+    def loeschen(abbruch):
+        try:
+            return client.remove_contact_by_uid_sync(
+                uid_wert, _buch_flags(), abbruch)
+        except TypeError:
+            return client.remove_contact_by_uid_sync(uid_wert, abbruch)
+    _eds_mit_frist(loeschen)
 
 
 # ---------------------------------------------------------------------------
@@ -16332,7 +16978,7 @@ class ChromiumTransport:
 
 class Fenster(_FENSTER_BASIS):
 
-    def __init__(self, web_verzeichnis):
+    def __init__(self, web_verzeichnis, setup_auswahl=None):
         super().__init__(title=FENSTER_TITEL)
         self._fenster = fenster_zustand_lesen()
         self.set_default_size(self._fenster["breite"], self._fenster["hoehe"])
@@ -16347,6 +16993,7 @@ class Fenster(_FENSTER_BASIS):
         self._daten_dek_kennung = None
         self._daten_umschlag = None
         self._aktuelle_daten = None
+        self._setup_auswahl = setup_auswahl if isinstance(setup_auswahl, dict) else None
         self._cloud_sicherung_secrets = ArchiveSecretStore()
         self._cloud_sicherung_sperre = threading.Lock()
         self._daten_sperre = threading.RLock()
@@ -16498,12 +17145,23 @@ class Fenster(_FENSTER_BASIS):
             return False
         GLib.timeout_add(50, abschliessen)
 
-    def zeige_wenn_bereit(self, wartezeit=3):
+    def zeige_wenn_bereit(self, wartezeit=3, nach_anzeigen=None):
         """Zeigt das Fenster erst, wenn die Seite gezeichnet ist.
 
         Sonst steht für einen Augenblick ein leeres Fenster auf dem
         Schirm – je nach System weiß oder schwarz."""
         self._gezeigt = False
+        nach_anzeigen_erledigt = [False]
+
+        def nach_anzeigen_planen(*_egal):
+            if nach_anzeigen_erledigt[0] or nach_anzeigen is None:
+                return False
+            nach_anzeigen_erledigt[0] = True
+            def ausfuehren():
+                nach_anzeigen()
+                return False
+            GLib.idle_add(ausfuehren)
+            return False
 
         if getattr(self, "_chromium", None):
             self._gezeigt = True
@@ -16516,7 +17174,11 @@ class Fenster(_FENSTER_BASIS):
             else:
                 Fenster._hintergrund_gui_sichtbarkeit(self, True)
                 self._chromium.bring_to_front()
+                nach_anzeigen_planen()
             return
+
+        if nach_anzeigen is not None:
+            self.connect("map-event", nach_anzeigen_planen)
 
         def zeigen(*_egal):
             if self._gezeigt:
@@ -17422,7 +18084,9 @@ class Fenster(_FENSTER_BASIS):
             self._journal_stand_melden()
 
         elif befehl == "journal_wiederherstellen":
-            self._journal_wiederherstellen(nachricht.get("snapshotId") or "")
+            self._journal_wiederherstellen(
+                nachricht.get("snapshotId") or "", nachricht.get("bereiche"),
+                nachricht.get("modus") or "replace")
 
         elif befehl == "mutations_snapshot":
             grund = nachricht.get("reason") or ""
@@ -17504,11 +18168,13 @@ class Fenster(_FENSTER_BASIS):
                 nachricht.get("anwendungskennwort") or
                 nachricht.get("kennwort") or "",
                 bool(nachricht.get("kennwortLoeschen")),
-                "App.baumBriefkastenGespeichert"), daemon=True).start()
+                "App.baumBriefkastenGespeichert",
+                nachricht.get("kontoArt") or "nextcloud"), daemon=True).start()
 
         elif befehl == "import_lokal":
             threading.Thread(target=self._import_lokal_arbeit,
-                             args=(nachricht.get("bereich") == "kontakte",),
+                             args=(nachricht.get("bereich") == "kontakte",
+                                   nachricht.get("quelle")),
                              daemon=True).start()
 
         elif befehl == "feiertage":
@@ -18169,6 +18835,8 @@ class Fenster(_FENSTER_BASIS):
                     daten = json.loads(klartext)
                     if not isinstance(daten, dict):
                         raise ValueError(_("The data is not a JSON object."))
+                    if isinstance(self._aktuelle_daten, dict) and daten != self._aktuelle_daten:
+                        self._journal_snapshot("pre-change")
                     if getattr(self, "_kennwort", ""):
                         erinnerungsdaten_schreiben(daten)
                     else:
@@ -18364,7 +19032,7 @@ class Fenster(_FENSTER_BASIS):
         self._journal_timer = GLib.timeout_add_seconds(15 * 60,
                                                        self._journal_periodisch)
 
-    def _journal_wiederherstellen(self, snapshot_id):
+    def _journal_wiederherstellen(self, snapshot_id, bereiche=None, modus="replace"):
         if (getattr(self, "_operation_laeuft", False) or
                 getattr(self, "_sync_laeuft", False)):
             self.antwort("App.journalWiederhergestellt", {"ok": False,
@@ -18375,7 +19043,15 @@ class Fenster(_FENSTER_BASIS):
             with self._daten_sperre:
                 _stand, gelesen = journal_snapshot_lesen(snapshot_id, self._kennwort)
                 vorher = self._journal_snapshot("pre-restore")
-                daten = journal_restore_daten(gelesen["daten"])
+                if not isinstance(bereiche, list) or not bereiche:
+                    bereiche = ["all"]
+                if (any(wert not in ("all", "contacts", "calendar", "notes")
+                        for wert in bereiche) or
+                        ("all" in bereiche and len(bereiche) != 1) or
+                        modus not in ("additive", "replace")):
+                    raise ValueError(_("The save request is invalid."))
+                daten = journal_restore_daten(
+                    gelesen["daten"], self._aktuelle_daten, bereiche, modus)
                 klar = json.dumps(daten, ensure_ascii=False, indent=1)
                 atomar_text_schreiben(daten_datei(), self._vielleicht_verschluesseln(klar))
                 erinnerungsdaten_schreiben(daten if self._kennwort else {})
@@ -18472,8 +19148,9 @@ class Fenster(_FENSTER_BASIS):
                                   "trayVerfuegbar": tray_system_verfuegbar(),
                                   "trayEinstellungen": self._tray_einstellungen,
                                   "contributorAktiv": bool(getattr(
-                                      self, "_contributor_hash", "")),
+                                       self, "_contributor_hash", "")),
                                   "regional": self._regional,
+                                  "setupAuswahl": self._setup_auswahl,
                                   "wayland": bool(os.environ.get(
                                           "WAYLAND_DISPLAY"))})
         sms_ausliefern = getattr(self, "_sms_antworten_ausliefern", None)
@@ -18912,6 +19589,9 @@ class Fenster(_FENSTER_BASIS):
         return result
 
     def _telefon_ereignis(self, art, nutzlast):
+        if art == "incoming_call":
+            nutzlast = telefon_anreichern(nutzlast, _REGIONAL["homeCountry"],
+                                          _REGIONAL["language"])
         if art == "pairing_open":
             self.antwort("App.telefonPairingOffen", nutzlast)
         elif art == "pairing_code":
@@ -19409,6 +20089,22 @@ class Fenster(_FENSTER_BASIS):
         kennung = str(nachricht.get("kennung") or "")
         name = str(nachricht.get("name") or _("Unknown caller"))[:200]
         nummer = str(nachricht.get("nummer") or "")[:128]
+        hilfe = telefon_anreichern({"number": nummer,
+            "number_status": "available" if nummer else "unavailable"},
+            _REGIONAL["homeCountry"], _REGIONAL["language"])
+        schluessel = telefon_schluessel(nummer, _REGIONAL["homeCountry"])
+        if schluessel:
+            with self._daten_sperre:
+                kontakte = list((self._aktuelle_daten or {}).get("kontakte") or [])
+            treffer = [kontakt for kontakt in kontakte if any(
+                telefon_schluessel(eintrag.get("wert"), _REGIONAL["homeCountry"]) == schluessel
+                for eintrag in _telefon_liste(kontakt))]
+            if len(treffer) == 1:
+                kontakt = treffer[0]
+                name = " ".join(teil for teil in (
+                    str(kontakt.get("vorname") or "").strip(),
+                    str(kontakt.get("nachname") or "").strip()) if teil)
+                name = name or str(kontakt.get("firma") or "").strip() or name
         stil = "magnolie" if (nachricht.get("stil") == "magnolie"
             and not os.environ.get("WAYLAND_DISPLAY")) else "system"
         dauer = nachricht.get("dauer") if nachricht.get("dauer") in (0, 15, 30, 60, 120) else 60
@@ -19447,6 +20143,8 @@ class Fenster(_FENSTER_BASIS):
         def anzeigen():
             titel = _("Incoming call")
             text = name + (("\n" + nummer) if nummer and nummer != name else "")
+            if hilfe["phone_display_hint"]:
+                text += "\n" + hilfe["phone_display_hint"]
             aktionsname = _("Answer") if nachricht.get("annehmen") else _("Open organizer")
             aktion = annehmen if nachricht.get("annehmen") else oeffnen
             if stil == "magnolie":
@@ -19951,7 +20649,8 @@ class Fenster(_FENSTER_BASIS):
 
     def _baum_teilen(self, kennung, art, inhalt):
         if art not in ("termin", "kontakt", "notiz", "notiz_sync", "sync_anfrage",
-                       "kontakt_sync", "kontakt_loeschen"):
+                       "kontakt_sync", "kontakt_loeschen", "kontakt_import_manifest",
+                       "kontakt_import_karte"):
             self.antwort("App.baumGesendet", {
                 "ok": False, "fehler": _("This type cannot be shared.")})
             return
@@ -20067,9 +20766,9 @@ class Fenster(_FENSTER_BASIS):
         ergebnis["handbuchVersion"] = handbuch_version()
         self.antwort("App.updateErgebnis", ergebnis)
 
-    def _import_lokal_arbeit(self, nur_kontakte=False):
+    def _import_lokal_arbeit(self, nur_kontakte=False, quelle=None):
         try:
-            nutzlast = lokal_scannen(nur_kontakte=nur_kontakte)
+            nutzlast = lokal_scannen(nur_kontakte=nur_kontakte, quelle=quelle)
         except Exception as fehler:
             nutzlast = {"fehler": fehler_deutsch(
                 fehler, _("Scanning this computer"))}
@@ -20129,17 +20828,19 @@ class Fenster(_FENSTER_BASIS):
 
     def _nextcloud_speichern(self, dav_aktiv, briefkasten_aktiv, server, benutzer,
                               app_kennwort,
-                              kennwort_loeschen, callback="App.nextcloudGespeichert"):
+                              kennwort_loeschen, callback="App.nextcloudGespeichert",
+                              konto_art="nextcloud"):
         try:
             nextcloud_speicher().save(dav_aktiv, briefkasten_aktiv, server, benutzer,
                                       app_kennwort,
-                                      kennwort_loeschen)
+                                      kennwort_loeschen, konto_art)
             ergebnis = nextcloud_status(
                 discover=not callback.startswith("App.baumBriefkasten"))
         except Exception as fehler:
             ergebnis = {"verfuegbar": True, "aktiv": False, "davAktiv": False,
                         "briefkastenAktiv": False, "server": "", "url": "",
-                        "benutzer": "", "kennwortVorhanden": False,
+                        "benutzer": "", "kontoArt": konto_art,
+                        "kennwortVorhanden": False,
                         "zustand": "fehler", "fehler": nextcloud_fehlertext(fehler),
                         "fehlerCode": nextcloud_fehlercode(fehler),
                         "kalender": [], "adressbuecher": []}
@@ -20170,16 +20871,28 @@ class Fenster(_FENSTER_BASIS):
             "fehler": eds["fehler"]})
 
     def _sync_arbeit(self, nachricht):
+        debug_einrichten()
+        start = time.monotonic()
+        debug_notiz("sync.begin")
         try:
-            self._sync_ausfuehren(nachricht)
+            ergebnis = self._sync_ausfuehren(nachricht)
+            debug_notiz("sync.success",
+                        duration_ms=round((time.monotonic() - start) * 1000, 1),
+                        appointments=len(ergebnis.get("termine") or []),
+                        contacts=len(ergebnis.get("kontakte") or []),
+                        errors=0 if ergebnis.get("ok", True) else 1)
         except Exception as fehler:
-            debug_ausnahme("sync.failed")
+            debug_ausnahme("sync.failed",
+                           duration_ms=round((time.monotonic() - start) * 1000, 1),
+                           error=fehler)
             text = (nextcloud_fehlertext(fehler) if isinstance(fehler, NextcloudError)
                     else fehler_deutsch(fehler))
             self.sende_js("App.syncFehler(JSON.parse(%s));"
                           % js_zeichenkette(text))
         finally:
             self._sync_laeuft = False
+            debug_notiz("sync.end",
+                        duration_ms=round((time.monotonic() - start) * 1000, 1))
 
     def _nextcloud_sync_ausfuehren(self, nachricht, kal_uids, buch_uid,
                                    antworten=True, snapshot=True):
@@ -20189,10 +20902,13 @@ class Fenster(_FENSTER_BASIS):
             snapshot_funktion("pre-sync")
         dav = NextcloudDav(configured_client(nextcloud_speicher()))
         termine = [dict(item) for item in (daten.get("termine") or [])]
+        aufgaben = [dict(item) for item in (daten.get("aufgaben") or [])]
+        _aufgaben_graph_normalisieren(aufgaben)
         kontakte = [dict(item) for item in (daten.get("kontakte") or [])]
         jahrestage = [dict(item) for item in (daten.get("jahrestage") or [])]
         geloescht = daten.get("geloescht") or {}
         tote_termine = [dict(item) for item in (geloescht.get("termine") or [])]
+        tote_aufgaben = [dict(item) for item in (geloescht.get("aufgaben") or [])]
         tote_kontakte = [dict(item) for item in (geloescht.get("kontakte") or [])]
         letzte = daten.get("letzteSyncs") if isinstance(daten.get("letzteSyncs"), dict) else {}
         kalender_syncs = dict(letzte.get("kalender") or {})
@@ -20231,7 +20947,7 @@ class Fenster(_FENSTER_BASIS):
                 for resource in resources:
                     remote_data[resource["href"]] = resource["data"]
                     gelesen = ics_lesen(resource["data"])
-                    if gelesen.get("uebersprungen"):
+                    if gelesen.get("uebersprungenTermine"):
                         raise RuntimeError(_("The Nextcloud calendar was not read completely."))
                     komplexe_serien.update(gelesen.get("komplexeSerien") or [])
                     for item in gelesen["termine"]:
@@ -20290,8 +21006,9 @@ class Fenster(_FENSTER_BASIS):
                     rest.extend(lokal)
                     rest_tote.extend(tombstones)
                     sync_zeit = jetzt_ms()
-                    kalender_meta[uid] = {"initialisiert": True, "letzterSync": sync_zeit,
-                                          "etags": remote_meta}
+                    basis.update({"initialisiert": True, "letzterSync": sync_zeit,
+                                  "etags": remote_meta})
+                    kalender_meta[uid] = basis
                     kalender_syncs[uid] = sync_zeit
                     bericht.append(_("Appointments: safe first import from %(source)s: %(count)d received.") %
                                    {"source": quelle["name"], "count": empfangen})
@@ -20351,7 +21068,17 @@ class Fenster(_FENSTER_BASIS):
                     try:
                         if not meta:
                             raise RuntimeError(_("The DAV ETag is missing."))
-                        dav.delete(meta["href"], meta["etag"])
+                        rest_resource = ics_termin_resource_entfernen(
+                            remote_data[meta["href"]], item_uid)
+                        if rest_resource is None:
+                            dav.delete(meta["href"], meta["etag"])
+                        else:
+                            neuer_etag = dav.put(
+                                meta["href"], rest_resource, meta["etag"])
+                            remote_data[meta["href"]] = rest_resource
+                            for andere_meta in remote_meta.values():
+                                if andere_meta.get("href") == meta["href"]:
+                                    andere_meta["etag"] = neuer_etag
                         geschafft.add(item_uid)
                         remote_meta.pop(item_uid, None)
                     except Exception as fehler_ursache:
@@ -20378,14 +21105,147 @@ class Fenster(_FENSTER_BASIS):
                 rest.extend(merged)
                 if not fehler:
                     sync_zeit = jetzt_ms()
-                    kalender_meta[uid] = {"initialisiert": True,
-                                          "letzterSync": sync_zeit,
-                                          "etags": remote_meta}
+                    basis.update({"initialisiert": True,
+                                  "letzterSync": sync_zeit,
+                                  "etags": remote_meta})
+                    kalender_meta[uid] = basis
                     kalender_syncs[uid] = sync_zeit
                 bericht.append(_sync_satz(_("Appointments"), zaehler, fehler))
                 if komplex_bericht:
                     bericht.append(komplex_bericht)
             termine, tote_termine = rest, rest_tote
+
+            # Aufgaben liegen nach CalDAV-Konvention in derselben Sammlung wie
+            # Termine, besitzen aber einen eigenen additiven Erstlauf-Cursor.
+            rest_aufgaben = [item for item in aufgaben if item.get("syncKalenderUid") and
+                             item.get("syncKalenderUid") not in ausgewaehlt]
+            rest_tote_aufgaben = [item for item in tote_aufgaben if item.get("syncKalenderUid") and
+                                  item.get("syncKalenderUid") not in ausgewaehlt]
+            for uid in kal_uids:
+                quelle = _nextcloud_quelle(dav, "calendar", uid)
+                if not quelle.get("supportsVtodo", True):
+                    rest_aufgaben.extend(item for item in aufgaben if
+                                         item.get("syncKalenderUid") == uid or
+                                         (not item.get("syncKalenderUid") and uid == standard))
+                    rest_tote_aufgaben.extend(item for item in tote_aufgaben if
+                                              item.get("syncKalenderUid") == uid or
+                                              (not item.get("syncKalenderUid") and uid == standard))
+                    continue
+                resources = dav.report(quelle["href"], "calendar")
+                fern, remote_meta, remote_data = {}, {}, {}
+                for resource in resources:
+                    remote_data[resource["href"]] = resource["data"]
+                    gelesen = ics_lesen(resource["data"])
+                    if gelesen.get("uebersprungenAufgaben"):
+                        raise RuntimeError(_("The Nextcloud calendar was not read completely."))
+                    for item in gelesen["aufgaben"]:
+                        item_uid = item.get("uid")
+                        if not item_uid or item_uid in fern:
+                            raise RuntimeError(_("The Nextcloud calendar contains missing or duplicate UIDs."))
+                        fern[item_uid] = item
+                        remote_meta[item_uid] = {"href": resource["href"], "etag": resource["etag"]}
+                _aufgaben_graph_normalisieren(list(fern.values()))
+                basis = kalender_meta.get(uid) if isinstance(kalender_meta.get(uid), dict) else {}
+                erster = not basis.get("aufgabenInitialisiert")
+                lokal = []
+                for item in aufgaben:
+                    besitzer = item.get("syncKalenderUid") or ""
+                    if besitzer == uid or (not besitzer and uid == standard):
+                        item["syncKalenderUid"] = uid; lokal.append(item)
+                tombstones = [item for item in tote_aufgaben if
+                              item.get("syncKalenderUid") == uid or
+                              (not item.get("syncKalenderUid") and uid == standard)]
+                if erster:
+                    lokal_nach_uid = {item.get("uid"): item for item in lokal if item.get("uid")}
+                    for item in lokal:
+                        item["sync"] = False
+                    for item_uid, remote in fern.items():
+                        local = lokal_nach_uid.get(item_uid)
+                        if local is None:
+                            local = dict(remote); lokal.append(local)
+                        elif (remote.get("geaendert") or 0) > (local.get("geaendert") or 0):
+                            for feld in AUFGABE_FELDER:
+                                if feld in remote: local[feld] = remote[feld]
+                        local.update({"sync": True, "syncKalenderUid": uid,
+                                      "davHref": remote_meta[item_uid]["href"],
+                                      "davEtag": remote_meta[item_uid]["etag"]})
+                        _dav_syncquelle_setzen(local, uid, local["davHref"], local["davEtag"])
+                    rest_aufgaben.extend(lokal); rest_tote_aufgaben.extend(tombstones)
+                    basis.update({"aufgabenInitialisiert": True, "aufgabenLetzterSync": jetzt_ms(),
+                                  "aufgabenEtags": remote_meta})
+                    kalender_meta[uid] = basis
+                    bericht.append(_("Tasks: safe first import from %(source)s: %(count)d received.") %
+                                   {"source": quelle["name"], "count": len(fern)})
+                    continue
+                merged, anlegen, aendern, loeschen, zaehler = sync_merge(
+                    lokal, fern, tombstones, int(basis.get("aufgabenLetzterSync") or 0), AUFGABE_FELDER)
+                fehler = 0
+                for item in anlegen:
+                    href = quelle["href"].rstrip("/") + "/" + _dav_uid_dateiname(item["uid"], ".ics")
+                    try:
+                        item["davEtag"] = dav.put(href, ics_schreiben_aufgaben([item]), create=True)
+                        item["davHref"] = href; remote_meta[item["uid"]] = {"href": href, "etag": item["davEtag"]}
+                        _dav_syncquelle_setzen(item, uid, href, item["davEtag"])
+                    except Exception as ursache:
+                        item["sync"] = False; fehler += 1
+                        sync_fehler.append(_sync_fehlertext("%s · %s" % (quelle["name"], _("Tasks")), ursache))
+                for item in aendern:
+                    meta = remote_meta.get(item["uid"])
+                    try:
+                        if not meta or not meta.get("etag"): raise RuntimeError(_("The DAV ETag is missing."))
+                        text = ics_aufgabe_resource_aktualisieren(remote_data[meta["href"]], item)
+                        item["davEtag"] = dav.put(meta["href"], text, meta["etag"])
+                        item["davHref"] = meta["href"]; remote_data[meta["href"]] = text
+                        remote_meta[item["uid"]] = {"href": meta["href"], "etag": item["davEtag"]}
+                        _dav_syncquelle_setzen(item, uid, item["davHref"], item["davEtag"])
+                    except Exception as ursache:
+                        item["sync"] = False; fehler += 1
+                        sync_fehler.append(_sync_fehlertext("%s · %s" % (quelle["name"], _("Tasks")), ursache))
+                geschafft = set()
+                for item_uid in loeschen:
+                    meta = remote_meta.get(item_uid)
+                    try:
+                        if not meta or not meta.get("etag"): raise RuntimeError(_("The DAV ETag is missing."))
+                        rest_resource = ics_aufgabe_resource_entfernen(remote_data[meta["href"]], item_uid)
+                        if rest_resource is None:
+                            dav.delete(meta["href"], meta["etag"])
+                        else:
+                            neuer_etag = dav.put(meta["href"], rest_resource, meta["etag"])
+                            remote_data[meta["href"]] = rest_resource
+                            for andere_meta in remote_meta.values():
+                                if andere_meta.get("href") == meta["href"]:
+                                    andere_meta["etag"] = neuer_etag
+                        geschafft.add(item_uid); remote_meta.pop(item_uid, None)
+                    except Exception as ursache:
+                        fehler += 1; sync_fehler.append(_sync_fehlertext(
+                            "%s · %s" % (quelle["name"], _("Tasks")), ursache))
+                tote_nach_uid = {item.get("uid"): item for item in tombstones}
+                for item_uid in loeschen:
+                    grab = dict(tote_nach_uid.get(item_uid) or {})
+                    grab.update({"uid": item_uid, "syncKalenderUid": uid})
+                    if item_uid in geschafft:
+                        quellen = dict(grab.get("syncQuellen") or {})
+                        quellen.pop(uid, None)
+                        if not quellen:
+                            continue
+                        grab["syncQuellen"] = quellen
+                        grab["syncKalenderUid"] = next((name for name in quellen
+                            if name.startswith(("nextcloud-calendar:",
+                                                "generic-dav-calendar:"))), "")
+                    rest_tote_aufgaben.append(grab)
+                for item in merged:
+                    item["syncKalenderUid"] = uid
+                    meta = remote_meta.get(item.get("uid"))
+                    if meta:
+                        item.update({"davHref": meta["href"], "davEtag": meta["etag"]})
+                        _dav_syncquelle_setzen(item, uid, meta["href"], meta["etag"])
+                rest_aufgaben.extend(merged)
+                if not fehler:
+                    basis.update({"aufgabenInitialisiert": True, "aufgabenLetzterSync": jetzt_ms(),
+                                  "aufgabenEtags": remote_meta}); kalender_meta[uid] = basis
+                bericht.append(_sync_satz(_("Tasks"), zaehler, fehler))
+            aufgaben, tote_aufgaben = rest_aufgaben, rest_tote_aufgaben
+            _aufgaben_graph_normalisieren(aufgaben)
 
         if buch_uid:
             quelle = _nextcloud_quelle(dav, "addressbook", buch_uid)
@@ -20543,8 +21403,9 @@ class Fenster(_FENSTER_BASIS):
                                "quarantinedDeletes": sync_meta.get("quarantinedDeletes") or {},
                                "nextcloud": nextcloud_meta})
         ergebnis = {
-            "termine": termine, "kontakte": kontakte, "jahrestage": jahrestage,
-            "geloescht": {"termine": tote_termine, "kontakte": tote_kontakte},
+            "termine": termine, "aufgaben": aufgaben, "kontakte": kontakte, "jahrestage": jahrestage,
+            "geloescht": {"termine": tote_termine, "kontakte": tote_kontakte,
+                           "aufgaben": tote_aufgaben},
             "letzterSync": (daten.get("letzterSync") or 0) if sync_fehler else jetzt_ms(),
             "letzteSyncs": {"kalender": kalender_syncs, "adressbuecher": adress_syncs},
             "adressbuchBaselineKandidat": None, "kontaktVorschau": vorschau,
@@ -20579,8 +21440,10 @@ class Fenster(_FENSTER_BASIS):
         if not kal_uids and not buch_uid:
             raise RuntimeError(_(
                 "First select a calendar or address book from the online accounts."))
-        nextcloud_gewaehlt = (any(uid.startswith("nextcloud-calendar:") for uid in kal_uids)
-                              or buch_uid.startswith("nextcloud-addressbook:"))
+        nextcloud_gewaehlt = (any(uid.startswith(("nextcloud-calendar:",
+                                                  "generic-dav-calendar:")) for uid in kal_uids)
+                              or buch_uid.startswith(("nextcloud-addressbook:",
+                                                      "generic-dav-addressbook:")))
         nextcloud_kalender, eds_kalender, nextcloud_buch, eds_buch = \
             sync_quellen_aufteilen(kal_uids, buch_uid)
         akonadi_gewaehlt = (any(uid.startswith("akonadi-calendar:")
@@ -20671,8 +21534,8 @@ class Fenster(_FENSTER_BASIS):
             return ergebnis
         if eds_gewaehlt and not eds_laden():
             raise RuntimeError(
-                _("Online account integration (Evolution Data Server) is not available "
-                  "on this system. Install it with:\nsudo apt install %s") % EDS_PAKETE)
+                _("System internet accounts are not available "
+                  "on this system. Install the required components with:\nsudo apt install %s") % EDS_PAKETE)
 
         termine = list(daten.get("termine") or [])
         kontakte = list(daten.get("kontakte") or [])
@@ -20755,17 +21618,6 @@ class Fenster(_FENSTER_BASIS):
             if not isinstance(buch_basis, dict):
                 buch_basis = {}
             erster_buch_sync = not bool(buch_basis.get("initialisiert"))
-            if erster_buch_sync and "refresh-supported" in (
-                    getattr(buch_client, "get_capabilities", lambda: [])() or []):
-                try:
-                    if buch_client.refresh_sync(None) is False:
-                        raise RuntimeError(_(
-                            "The address book backend could not be refreshed."))
-                except RuntimeError:
-                    raise
-                except Exception as fehler:
-                    raise RuntimeError(_("The address book could not be refreshed: %s") %
-                                       fehler)
             buch_lesen = eds_kontakte_lesen(buch_client)
             if not buch_lesen["vollstaendig"]:
                 details = "; ".join(buch_lesen["fehler"][:3])
@@ -20785,10 +21637,13 @@ class Fenster(_FENSTER_BASIS):
             neue_termine = list(uebrige_termine)
             neue_tote = list(uebrige_tote)
             sync_zeit = jetzt_ms()
+            kalender_clients = {}
+            kalender_namen = {}
+            kalender_schreibbar = {}
             for quelle_uid in kal_uids:
                 ist_akonadi = quelle_uid.startswith("akonadi-calendar:")
                 anbieter = "KDE/Akonadi" if ist_akonadi else _(
-                    "Evolution Data Server")
+                    "System internet accounts")
                 quellenpraefix = "akonadi:" if ist_akonadi else "eds:"
                 quelle_name = anbieter
                 rechte = set((akonadi_quellen.get(quelle_uid) or {}).get(
@@ -20802,20 +21657,34 @@ class Fenster(_FENSTER_BASIS):
                     pass
                 client = (eds_kalender_client(
                     registry, quelle_uid, akonadi_quellen) if ist_akonadi else
-                    eds_kalender_client(registry, quelle_uid))
+                             eds_kalender_client(registry, quelle_uid))
+                kalender_clients[quelle_uid] = client
+                kalender_namen[quelle_uid] = quelle_name
+                if ist_akonadi:
+                    kalender_schreibbar[quelle_uid] = "create" in rechte
+                else:
+                    readonly = getattr(client, "is_readonly", None)
+                    try:
+                        kalender_schreibbar[quelle_uid] = bool(
+                            callable(readonly) and not readonly())
+                    except Exception:
+                        kalender_schreibbar[quelle_uid] = False
                 fern = {}
                 fern_gelesen = []
                 gesperrte_serien = set()
                 for text in eds_events_lesen(client):
-                    # Online-Kalenderereignisse bleiben Kalenderereignisse. Eine
-                    # Umklassifizierung als Magnolie-Jahrestag würde Kategorien,
-                    # Alarme und die Serienprovenienz verlieren.
-                    gelesen = ics_lesen(text, jahrestage_als_termine=True)
+                    gelesen = ics_lesen(text)
                     if gelesen.get("uebersprungen"):
                         raise RuntimeError(_(
                             "Calendar synchronization was stopped because an EDS "
                             "entry was not read completely."))
                     fern_gelesen.extend(gelesen["termine"])
+                    for jahrestag in gelesen["jahrestage"]:
+                        _termin_quelle_hinzufuegen(
+                            jahrestag, quellenpraefix + quelle_uid,
+                            quelle_name, jahrestag.get("uid"))
+                        jahrestag["syncKalenderUid"] = quelle_uid
+                        jahrestage.append(jahrestag)
                     gesperrte_serien.update(gelesen.get("komplexeSerien") or [])
                 gesperrte_serien.update({
                     t.get("icsSerienUid") or t.get("uid")
@@ -21014,6 +21883,39 @@ class Fenster(_FENSTER_BASIS):
                         _nur_lesen_text()))
             termine = neue_termine
             tote_termine = neue_tote
+            jahrestag_daten = _lokale_kalender_dubletten_bereinigen({
+                "termine": [], "jahrestage": jahrestage})
+            jahrestage = jahrestag_daten["jahrestage"]
+            ziel_uid = next((uid for uid in kal_uids
+                              if kalender_schreibbar.get(uid)), "")
+            if ziel_uid:
+                ziel_client = kalender_clients[ziel_uid]
+                ziel_name = kalender_namen[ziel_uid]
+                ziel_quelle = ("akonadi:" if ziel_uid.startswith(
+                    "akonadi-calendar:") else "eds:") + ziel_uid
+                angelegte_jahrestage = 0
+                for jahrestag in jahrestage:
+                    if jahrestag.get("syncQuellen"):
+                        continue
+                    if not jahrestag.get("uid"):
+                        jahrestag["uid"] = _neue_uid()
+                    try:
+                        neu = eds_event_anlegen(
+                            ziel_client, jahrestag_text(jahrestag))
+                        if neu:
+                            jahrestag["uid"] = neu
+                        _termin_quelle_hinzufuegen(
+                            jahrestag, ziel_quelle, ziel_name,
+                            jahrestag.get("uid"))
+                        jahrestag["syncKalenderUid"] = ziel_uid
+                        angelegte_jahrestage += 1
+                    except Exception as fehler_ursache:
+                        sync_fehler.append(_sync_fehlertext(
+                            "%s · %s" % (ziel_name, _("Anniversaries")),
+                            fehler_ursache))
+                if angelegte_jahrestage:
+                    bericht.append("%s: %s" % (_("Anniversaries"),
+                        _("%d uploaded") % angelegte_jahrestage))
 
         if buch_uid:
             if not buch_ok:
@@ -21179,11 +22081,11 @@ class Fenster(_FENSTER_BASIS):
 
 def sync_quellen_aufteilen(kalender_uids, adressbuch_uid):
     nextcloud_kalender = [uid for uid in kalender_uids
-                          if uid.startswith("nextcloud-calendar:")]
+                          if uid.startswith(("nextcloud-calendar:", "generic-dav-calendar:"))]
     eds_kalender = [uid for uid in kalender_uids
-                    if not uid.startswith("nextcloud-calendar:")]
+                    if not uid.startswith(("nextcloud-calendar:", "generic-dav-calendar:"))]
     nextcloud_buch = (adressbuch_uid if adressbuch_uid.startswith(
-        "nextcloud-addressbook:") else "")
+        ("nextcloud-addressbook:", "generic-dav-addressbook:")) else "")
     return nextcloud_kalender, eds_kalender, nextcloud_buch, (
         "" if nextcloud_buch else adressbuch_uid)
 
@@ -21407,10 +22309,6 @@ def haupt():
         sys.stdout.write(_("POT template written to: %s") % ziel + "\n")
         sys.exit(0)
 
-    if not any(a in sys.argv[1:] for a in
-               ("--erinnerung", "--wecker", "--probe", "--hilfe", "--help", "--version")):
-        systemkalender_bereinigen()
-
     if "--version" in sys.argv[1:]:
         sys.stdout.write(PROGRAMM_FASSUNG + "\n")
         sys.exit(0)
@@ -21507,6 +22405,34 @@ def haupt():
             + _("Error: %s") % einzelheit + "\n")
         sys.exit(1)
 
+    _SETUP_STARTZUSTAND = setup_classify_and_adopt()
+    setup_auswahl = None
+    if setup_assistant_required(_SETUP_STARTZUSTAND):
+        from magnolie_setup_ui import run_setup
+        if _SETUP_STARTZUSTAND == "fresh":
+            try:
+                setup_write_state("pending")
+            except OSError as fehler:
+                debug_ausnahme("startup.setup-pending-write-failed")
+                dialog = Gtk.MessageDialog(
+                    message_type=Gtk.MessageType.ERROR,
+                    buttons=Gtk.ButtonsType.CLOSE,
+                    text=_("Warning: The data could not be saved."))
+                dialog.format_secondary_text(str(fehler))
+                dialog.run()
+                dialog.destroy()
+                return
+        setup_auswahl = run_setup(
+            Gtk, Gdk, _, setup_write_state,
+            os.path.dirname(os.path.realpath(__file__)),
+            read_libreoffice=libreoffice_benutzerdaten,
+            internet_accounts=setup_internetkonten())
+        if setup_auswahl is None:
+            debug_notiz("startup.exit", reason="setup-incomplete")
+            return
+        sprache_anwenden(setup_auswahl.get("language"))
+
+    systemkalender_bereinigen()
     GLib.set_prgname(PROGRAMM_NAME)
     GLib.set_application_name(FENSTER_TITEL)
     debug_notiz("startup.branch", branch="gui", transport=transport)
@@ -21542,11 +22468,21 @@ def haupt():
         sys.exit(1)
 
     debug_notiz("startup.window-create", web="found")
-    fenster = Fenster(web_verzeichnis)
+    fenster = Fenster(web_verzeichnis, setup_auswahl=setup_auswahl)
     fenster_halter["fenster"] = fenster
     for intent in fenster_halter["sms"]:
         fenster._sms_antwort_empfangen(intent)
-    fenster.zeige_wenn_bereit()
+    def setup_aktionen_nach_start():
+        if setup_auswahl.get("restoreRequest") is True:
+            fenster.sende_js(
+                "App.oeffneEinstellungen();setTimeout(function(){var b="
+                "document.getElementById('allgemein-sicherung-wiederherstellen');"
+                "if(b){b.click();}},0);")
+        if setup_auswahl.get("openHandbook") is True:
+            handbuch_oeffnen()
+
+    fenster.zeige_wenn_bereit(
+        nach_anzeigen=(setup_aktionen_nach_start if setup_auswahl else None))
     try:
         debug_notiz("startup.gtk-main", state="enter")
         Gtk.main()

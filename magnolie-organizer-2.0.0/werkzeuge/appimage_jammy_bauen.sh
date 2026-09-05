@@ -98,7 +98,7 @@ if [ ! -f "$MARKER" ] || [ "$(cat "$MARKER")" != "$BASIS_STAND" ]; then
         gir1.2-notify-0.7 gir1.2-webkit2-4.1 gir1.2-xapp-1.0 gobject-introspection \
         gnome-themes-extra-data libayatana-appindicator3-1 libglib2.0-bin libgtk-3-0 libwebkit2gtk-4.1-0 \
         libxapp1 xapp python3 python3-cryptography python3-gi \
-        python3-ifaddr python3-openssl \
+        python3-ifaddr python3-openssl python3-phonenumbers \
         python3-qrcode python3-zeroconf
     printf '%s\n' "$BASIS_STAND" > "$MARKER"
 fi

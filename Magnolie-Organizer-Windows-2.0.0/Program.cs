@@ -39,11 +39,11 @@ internal static class Program
             return;
         }
 
-        ApplicationConfiguration.Initialize();
-        CultureInfo.DefaultThreadCurrentCulture = CultureInfo.CurrentCulture;
-        CultureInfo.DefaultThreadCurrentUICulture = CultureInfo.CurrentUICulture;
         if (handbookStart)
         {
+            ApplicationConfiguration.Initialize();
+            CultureInfo.DefaultThreadCurrentCulture = CultureInfo.CurrentCulture;
+            CultureInfo.DefaultThreadCurrentUICulture = CultureInfo.CurrentUICulture;
             using var handbookMutex = new Mutex(true, HandbookMutexName, out var firstHandbook);
             if (!firstHandbook) { NativeMethods.ActivateExistingWindow(HandbookForm.WindowTitle); return; }
             Application.Run(new HandbookForm());
@@ -57,6 +57,47 @@ internal static class Program
             return;
         }
 
-        Application.Run(new MainForm(trayStart, reminderStart));
+        ApplicationConfiguration.Initialize();
+        CultureInfo.DefaultThreadCurrentCulture = CultureInfo.CurrentCulture;
+        CultureInfo.DefaultThreadCurrentUICulture = CultureInfo.CurrentUICulture;
+
+        var paths = new WindowsPaths();
+        var setupState = new FirstRunSetupState(paths);
+        var setupClassification = setupState.Classify();
+        if (FirstRunSetupStartup.MustExitBackground(setupClassification, trayStart, reminderStart)) return;
+        if (setupClassification == FirstRunSetupClassification.ExistingWithoutMarker)
+        {
+            try { setupState.AdoptExisting(); }
+            catch (Exception error) when (error is IOException or UnauthorizedAccessException)
+            {
+                RotatingLog.Append(Path.Combine(paths.Logs, "startup.log"),
+                    $"{DateTimeOffset.Now:O} Ersteinrichtung: bestehende Installation konnte nicht adoptiert werden: {error.Message}");
+                if (trayStart || reminderStart) return;
+            }
+        }
+
+        FirstRunSetupSelections? setupSelections = null;
+        if (FirstRunSetupStartup.MustShowAssistant(setupClassification, trayStart, reminderStart))
+        {
+            if (setupClassification == FirstRunSetupClassification.Fresh)
+            {
+                try { setupState.Begin(); }
+                catch (Exception error) when (error is IOException or UnauthorizedAccessException)
+                {
+                    RotatingLog.Append(Path.Combine(paths.Logs, "startup.log"),
+                        $"{DateTimeOffset.Now:O} Ersteinrichtung: Status konnte nicht gespeichert werden: {error.Message}");
+                    MessageBox.Show(NativeLocalization.Gettext("The setup state could not be saved.") +
+                        Environment.NewLine + error.Message, NativeLocalization.Gettext("Magnolie Organizer"),
+                        MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
+                setupClassification = FirstRunSetupClassification.Pending;
+            }
+            using var setup = new FirstRunSetupForm(paths, setupState);
+            if (setup.ShowDialog() != DialogResult.OK) return;
+            setupSelections = setup.Selections;
+        }
+
+        Application.Run(new MainForm(trayStart, reminderStart, setupSelections));
     }
 }

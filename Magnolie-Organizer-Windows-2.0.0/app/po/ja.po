@@ -1,3 +1,8 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the Magnolie Organizer package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
 msgid ""
 msgstr ""
 "Report-Msgid-Bugs-To: maik3531@gmail.com\n"
@@ -65,6 +70,10 @@ msgstr[0] "連絡先 %(count)s 件"
 msgid "%(count)s contact card"
 msgid_plural "%(count)s contact cards"
 msgstr[0] "連絡先カード %(count)s 件"
+
+msgid "%(count)s contact imported."
+msgid_plural "%(count)s contacts imported."
+msgstr[0] "%(count)s件の連絡先をインポートしました。"
 
 msgid "%(count)s contact photo added"
 msgid_plural "%(count)s contact photos added"
@@ -343,6 +352,9 @@ msgstr ""
 "開くときの数値コードはテンキーで簡単に入力できます。文字も使用できます。3 回"
 "失敗すると Organizer は 5 分間待機します。"
 
+msgid "A one-time import adds contacts only after your selection."
+msgstr "1回限りのインポートでは、選択後にのみ連絡先が追加されます。"
+
 msgid ""
 "A pairing file works like a one-time key. Give it only to the person whose "
 "Organizer you want to connect; it expires after 15 minutes."
@@ -438,6 +450,12 @@ msgstr "通話中"
 msgid "Add"
 msgstr "追加"
 
+msgid "Add %(type)s"
+msgstr "%(type)sを追加"
+
+msgid "Add another SMS"
+msgstr "別の SMS を追加"
+
 msgid "Add appointment"
 msgstr "予定を追加"
 
@@ -450,6 +468,9 @@ msgstr "出席者を追加"
 msgid "Add cycle marker"
 msgstr "周期マーカーを追加"
 
+msgid "Add one custom tab"
+msgstr "カスタムタブを 1 つ追加"
+
 msgid "Add person"
 msgstr "人物を追加"
 
@@ -461,6 +482,9 @@ msgstr "投与スキームの行を追加"
 
 msgid "Add shift"
 msgstr "シフトを追加"
+
+msgid "Add subtask"
+msgstr "サブタスクを追加"
 
 msgid "Add to dictionary"
 msgstr "辞書に追加"
@@ -630,8 +654,14 @@ msgstr "この人物の予定"
 msgid "Appointments · %(period)s"
 msgstr "予定 · %(period)s"
 
+msgid "Apps for your phone"
+msgstr "携帯電話用アプリ"
+
 msgid "Archive password"
 msgstr "アーカイブパスワード"
+
+msgid "Are you really sure?"
+msgstr "本当によろしいですか？"
 
 msgid "As usual (print)"
 msgstr "通常どおり（印刷）"
@@ -703,6 +733,9 @@ msgstr "最後に保存した身長と体重から算出した BMI"
 msgid "BZ"
 msgstr "血糖値"
 
+msgid "Back"
+msgstr "戻る"
+
 msgid "Backup failed."
 msgstr "バックアップに失敗しました。"
 
@@ -719,6 +752,9 @@ msgid "Backup restored. The previous data was backed up automatically."
 msgstr ""
 "バックアップを復元しました。以前のデータは自動的にバックアップされました。"
 
+msgid "Backup rhythm"
+msgstr "バックアップの頻度"
+
 msgid "Backup saved to: %(path)s"
 msgstr "バックアップの保存先: %(path)s"
 
@@ -727,6 +763,9 @@ msgstr "バックアップを正常に検証しました。"
 
 msgid "Backups"
 msgstr "バックアップ"
+
+msgid "Backups and recovery"
+msgstr "バックアップフォルダー"
 
 msgid ""
 "Backups outside the data location require a password with at least four "
@@ -816,6 +855,9 @@ msgstr "出血 · 少ない"
 msgid "Bleeding · medium"
 msgstr "出血 · 普通"
 
+msgid "Blocks"
+msgstr "ブロック"
+
 msgid "Blood glucose"
 msgstr "血糖値"
 
@@ -860,6 +902,9 @@ msgstr "ブランデンブルク州"
 msgid "Bremen"
 msgstr "ブレーメン"
 
+msgid "Browse..."
+msgstr "参照..."
+
 msgid "Burgenland"
 msgstr "ブルゲンラント州"
 
@@ -868,6 +913,9 @@ msgstr "名で並べる（Hans Müller）"
 
 msgid "By last name (Müller, Hans)"
 msgstr "姓で並べる（Müller, Hans）"
+
+msgid "CSV / Lotus Organizer contacts …"
+msgstr "CSV / Lotus Organizerの連絡先…"
 
 msgid "CSV files (*.csv)"
 msgstr "CSV ファイル (*.csv)"
@@ -883,13 +931,6 @@ msgstr "カレンダー"
 
 msgid "Calendar (*.ics)"
 msgstr "カレンダー (*.ics)"
-
-msgid ""
-"Calendar and contact applications commonly export appointments as .ics files "
-"and contacts as .vcf files."
-msgstr ""
-"カレンダーおよび連絡先アプリケーションは通常、予定を .ics ファイルとしてエク"
-"スポートし、連絡先を .vcf ファイルとしてエクスポートします。"
 
 msgid "Calendar file (.ics/.vcs/.lcs) …"
 msgstr "カレンダーファイル (.ics/.vcs/.lcs) …"
@@ -1007,6 +1048,9 @@ msgstr "現在のマニュアルのバージョンを確認しています…"
 msgid "Checking the current version …"
 msgstr "現在のバージョンを確認しています …"
 
+msgid "Choose Appointments, Notes or Tasks in Customize."
+msgstr "カスタマイズで予定、ノート、またはタスクを選択してください。"
+
 msgid ""
 "Choose a backup file. Before restoring it, the organizer automatically "
 "creates a copy of the current data. An encrypted backup requires its "
@@ -1055,6 +1099,13 @@ msgstr "4 文字以上を選択してください。"
 msgid "Choose entries to print, export or delete"
 msgstr "印刷、エクスポート、削除する項目を選択"
 
+msgid ""
+"Choose file and Windows contact imports that Magnolie can start directly "
+"after opening."
+msgstr ""
+"Magnolie を開いた直後に開始できるファイルと Windows 連絡先のインポートを選択"
+"してください。"
+
 msgid "Choose file…"
 msgstr "ファイルを選択…"
 
@@ -1070,6 +1121,13 @@ msgstr "写真を選択…"
 msgid "Choose print or export content…"
 msgstr "印刷またはエクスポートする内容を選択…"
 
+msgid ""
+"Choose safe preferences now. No scheduled backup job is started in the "
+"assistant."
+msgstr ""
+"安全な設定を選択してください。このアシスタントでは、スケジュールされたバック"
+"アップジョブは開始されません。"
+
 msgid "Choose service"
 msgstr "サービスを選択"
 
@@ -1083,11 +1141,14 @@ msgstr ""
 msgid "Choose year…"
 msgstr "年を選択…"
 
+msgid "Choose your organizer tabs"
+msgstr "オーガナイザーを構成"
+
 msgid "City"
 msgstr "市区町村"
 
-msgid "Claws Mail (.xml/.ldif) …"
-msgstr "Claws Mail（.xml/.ldif）…"
+msgid "Claws Mail XML (.xml) …"
+msgstr "Claws Mail XML（.xml）…"
 
 msgid "Claws Mail address book (*.xml)"
 msgstr "Claws Mail アドレス帳 (*.xml)"
@@ -1264,9 +1325,6 @@ msgstr "連絡先"
 msgid "Contacts (.vcf)"
 msgstr "連絡先 (.vcf)"
 
-msgid "Contacts (.vcf) …"
-msgstr "連絡先 (.vcf) …"
-
 msgid "Contacts are merged additively. No deletions are transmitted."
 msgstr "連絡先は追加方式で統合されます。削除は送信されません。"
 
@@ -1312,6 +1370,9 @@ msgstr "国と地域"
 msgid "Country for searches"
 msgstr "検索に使用する国"
 
+msgid "Country of origin"
+msgstr "発信元の国"
+
 msgid "Create"
 msgstr "作成"
 
@@ -1342,8 +1403,8 @@ msgstr "ノートブックを作成"
 msgid "Create pairing file …"
 msgstr "ペアリングファイルを作成 …"
 
-msgid "Create snapshot now"
-msgstr "今すぐスナップショットを作成"
+msgid "Creating recovery snapshot …"
+msgstr "復元用スナップショットを作成中…"
 
 msgid "Custom"
 msgstr "カスタム"
@@ -1351,8 +1412,18 @@ msgstr "カスタム"
 msgid "Custom application"
 msgstr "カスタムアプリケーション"
 
+msgid ""
+"Custom content is saved locally and transferred through complete Magnolie "
+"archives only, not Personal Sync."
+msgstr ""
+"カスタムコンテンツはローカルに保存され、完全な Magnolie アーカイブでのみ転送"
+"されます。Personal Sync では転送されません。"
+
 msgid "Custom notification"
 msgstr "カスタム通知"
+
+msgid "Custom tab"
+msgstr "カスタムタブ"
 
 msgid "Custom websites must begin with https://."
 msgstr "カスタム Web サイトは https:// で始める必要があります。"
@@ -1522,6 +1593,11 @@ msgstr "休暇期間を削除"
 msgid "Delete waste collection"
 msgstr "ごみ収集を削除"
 
+msgid "Deleted and missing data is restored; newer existing data is retained."
+msgstr ""
+"削除されたデータと不足しているデータを復元し、既存の新しいデータは保持しま"
+"す。"
+
 msgid ""
 "Deleted items first go to the recycle bin and can be restored from there. "
 "They are permanently removed only afterwards."
@@ -1547,6 +1623,9 @@ msgstr "配信済み"
 
 msgid "Delivered to %(branch)s."
 msgstr "%(branch)s に配信しました。"
+
+msgid "Delivery status uncertain"
+msgstr "配信状況が不明です"
 
 msgid "Dentist Dr. Hill — Preview of your entries"
 msgstr "歯科医 Hill 先生 — 入力内容のプレビュー"
@@ -1620,6 +1699,9 @@ msgstr "マニュアルをダウンロード"
 
 msgid "Download manual version %(version)s"
 msgstr "マニュアル バージョン %(version)s をダウンロード"
+
+msgid "Downloads"
+msgstr "ダウンロード"
 
 msgid "Drag the attachment area up or down"
 msgstr "添付領域を上下にドラッグ"
@@ -1731,6 +1813,9 @@ msgstr ""
 msgid "Enable reminders"
 msgstr "リマインダーを有効化"
 
+msgid "Enable reminders for this block"
+msgstr "このブロックのリマインダーを有効にする"
+
 msgid "Enable shift planner"
 msgstr "シフトプランナーを有効化"
 
@@ -1746,12 +1831,22 @@ msgstr "ごみ収集カレンダーを有効化"
 msgid "Enjoy getting organized!"
 msgstr "整理を楽しみましょう！"
 
+msgid ""
+"Enjoy organizing with Magnolie. Your choices stay under your control and can "
+"be changed later in Settings."
+msgstr ""
+"Magnolie での整理をお楽しみください。選択内容はいつでも管理でき、後から設定で"
+"変更できます。"
+
 msgid "Enter"
 msgstr "入力"
 
 msgid ""
 "Enter a blood glucose value on the left to highlight matching scheme rows."
 msgstr "左側に血糖値を入力すると、該当するスキーム行が強調表示されます。"
+
+msgid "Enter a future time and a valid SMS text for every entry."
+msgstr "各項目に未来の時刻と有効な SMS テキストを入力してください。"
 
 msgid "Enter a medication name first."
 msgstr "先に薬の名前を入力してください。"
@@ -1802,20 +1897,33 @@ msgstr "エラー"
 msgid "Evening"
 msgstr "夕方"
 
-msgid "Every 12 hours"
-msgstr "12時間ごと"
-
-msgid "Every 6 hours"
-msgstr "6時間ごと"
-
 msgid "Every filled medication row requires a name."
 msgstr "入力したすべての服薬行に薬の名前が必要です。"
 
 msgid "Every filled row requires a valid date."
 msgstr "入力したすべての行に有効な日付が必要です。"
 
+msgid ""
+"Every saved change is protected automatically by a private, integrity-"
+"checked snapshot."
+msgstr ""
+"保存された変更はすべて、整合性が確認された非公開のスナップショットによって自"
+"動的に保護されます。"
+
 msgid "Everything is done - the list is empty."
 msgstr "すべて完了しました – リストは空です。"
+
+msgid "Everything is ready"
+msgstr "準備がすべて整いました"
+
+msgid ""
+"Evolution and Thunderbird are selected explicitly. iPhone contacts require a "
+"vCard export from the iPhone or iCloud. KDE Connect, Bluetooth and PBAP are "
+"not contact sources."
+msgstr ""
+"Evolution と Thunderbird は明示的に選択します。iPhone の連絡先を使用するに"
+"は、iPhone または iCloud から vCard をエクスポートする必要があります。KDE "
+"Connect、Bluetooth、PBAP は連絡先の取得元ではありません。"
 
 msgid "Exactly one Magnolie Notes phone must be paired."
 msgstr "1 つの Magnolie Notes 電話機をペアリングする必要があります。"
@@ -1997,9 +2105,6 @@ msgstr "金曜日"
 msgid "From"
 msgstr "開始"
 
-msgid "From the Windows Contacts folder"
-msgstr "Windows の連絡先フォルダーから"
-
 msgid "Full"
 msgstr "満杯"
 
@@ -2121,6 +2226,9 @@ msgstr "自宅"
 msgid "Home address"
 msgstr "自宅住所"
 
+msgid "Home country for phone numbers"
+msgstr "電話番号の自国"
+
 msgid "Home phone"
 msgstr "自宅電話"
 
@@ -2129,6 +2237,9 @@ msgstr "訪問"
 
 msgid "Hours"
 msgstr "時間"
+
+msgid "How lovely that you chose Magnolie"
+msgstr "Magnolie をお選びいただきありがとうございます"
 
 msgid "How the calendar should behave when you click a day."
 msgstr "日付をクリックしたときのカレンダーの動作。"
@@ -2169,6 +2280,9 @@ msgstr "インポート"
 msgid "Import Magnolie complete archive"
 msgstr "Magnolie の完全なアーカイブをインポートする"
 
+msgid "Import contacts additively"
+msgstr "連絡先を追加方式でインポート"
+
 msgid "Import failed: %(error)s"
 msgstr "インポートに失敗しました: %(error)s"
 
@@ -2177,6 +2291,9 @@ msgstr "LibreOffice からインポート"
 
 msgid "Import is available only in the installed application."
 msgstr "インポートはインストール版アプリケーションでのみ利用できます。"
+
+msgid "Import once"
+msgstr "1回だけインポート"
 
 msgid "Import pairing file …"
 msgstr "ペアリングファイルをインポート …"
@@ -2274,6 +2391,9 @@ msgstr "インスリン投与計画"
 msgid "Integrity"
 msgstr "誠実さ"
 
+msgid "International call"
+msgstr "国際電話"
+
 msgid "Internet IP"
 msgstr "インターネット IP"
 
@@ -2324,6 +2444,9 @@ msgstr "トラブルシューティングログを保存"
 msgid "LDIF address book (*.ldif)"
 msgstr "LDIF アドレス帳 (*.ldif)"
 
+msgid "LDIF address book (.ldif) …"
+msgstr "LDIFアドレス帳（.ldif）…"
+
 msgid "Landline"
 msgstr "固定電話"
 
@@ -2342,9 +2465,6 @@ msgstr "前回の確認に失敗しました: %(error)s"
 msgid "Last name"
 msgstr "姓"
 
-msgid "Last snapshot"
-msgstr "最後のスナップショット"
-
 msgid "Last successful backup"
 msgstr "前回成功したバックアップ"
 
@@ -2357,11 +2477,21 @@ msgstr "遅番"
 msgid "Lead time"
 msgstr "事前通知時間"
 
+msgid "Left page"
+msgstr "左ページ"
+
 msgid "Letter"
 msgstr "手紙"
 
 msgid "Letter template"
 msgstr "手紙テンプレート"
+
+msgid ""
+"LibreOffice is only read when you press the button. Its settings are not "
+"modified."
+msgstr ""
+"ボタンを押したときだけ LibreOffice から情報が読み取られます。LibreOffice の設"
+"定は変更されません。"
 
 msgid "License"
 msgstr "ライセンス"
@@ -2423,6 +2553,12 @@ msgstr "モクレン"
 msgid "Magnolia weather symbols only"
 msgstr "Magnolie の天気記号のみ"
 
+msgid "Magnolie Notes / Android: check for pending import"
+msgstr "Magnolie Notes / Android：保留中のインポートを確認"
+
+msgid "Magnolie Notes contact import"
+msgstr "Magnolie Notesの連絡先インポート"
+
 msgid "Magnolie Notes device status"
 msgstr "Magnolie Notes のデバイス状態"
 
@@ -2442,6 +2578,9 @@ msgid ""
 msgstr ""
 "Magnolie Notes の電話と KDE Connect の電話は別です。Android のモデル名は "
 "Magnolie Notes に属し、KDE のピア名は KDE Connect から取得されます。"
+
+msgid "Magnolie Organizer"
+msgstr "Magnolie Organizer"
 
 msgid "Magnolie Organizer is not completely installed."
 msgstr "Magnolie Organizer が完全にインストールされていません。"
@@ -2463,6 +2602,13 @@ msgstr ""
 
 msgid "Magnolie backup (*.json)"
 msgstr "Magnolie バックアップ (*.json)"
+
+msgid ""
+"Magnolie can use this information when preparing routes and finding local "
+"weather. You can leave every field empty."
+msgstr ""
+"Magnolie は経路の作成や地域の天気の検索にこの情報を使用できます。すべての欄を"
+"空のままにすることもできます。"
 
 msgid "Magnolie complete archive (.magnolie) …"
 msgstr "Magnolie 完全アーカイブ (.magnolie) …"
@@ -2510,6 +2656,9 @@ msgctxt "recovery snapshot reason"
 msgid "Manual"
 msgstr "カスタム"
 
+msgid "Manual only"
+msgstr "手動のみ"
+
 msgid "Manual version %(version)s is available."
 msgstr "マニュアル版 %(version)s が利用可能です。"
 
@@ -2534,9 +2683,6 @@ msgstr "未完了としてマーク"
 
 msgid "Maximized"
 msgstr "最大化"
-
-msgid "Maximum recovery snapshots"
-msgstr "復元ポイントの最大数"
 
 msgid "Measurement context"
 msgstr "測定時の状況"
@@ -2642,6 +2788,9 @@ msgstr "モバイルネットワーク"
 msgid "Model"
 msgstr "モデル"
 
+msgid "Module"
+msgstr "モジュール"
+
 msgid "Monday"
 msgstr "月曜日"
 
@@ -2650,6 +2799,9 @@ msgstr "月"
 
 msgid "Month calendar"
 msgstr "月間カレンダー"
+
+msgid "Monthly"
+msgstr "毎月"
 
 msgid "Monthly view"
 msgstr "月表示"
@@ -2672,6 +2824,9 @@ msgstr "朝"
 msgid "Mouse wheel over times"
 msgstr "時刻の上でマウスホイール"
 
+msgid "Move down"
+msgstr "下へ移動"
+
 msgid "Move group down"
 msgstr "グループを下へ移動"
 
@@ -2689,6 +2844,12 @@ msgstr "ノートブックを上へ移動"
 
 msgid "Move the ticked entries to the wastebasket"
 msgstr "チェックした項目をゴミ箱へ移動"
+
+msgid "Move to top level"
+msgstr "最上位へ移動"
+
+msgid "Move up"
+msgstr "上へ移動"
 
 msgid ""
 "Multiple Magnolie Notes phones are stored. Personal sync is blocked; remove "
@@ -2780,6 +2941,9 @@ msgstr "新しいタスク"
 msgid "New version %(version)s is available."
 msgstr "新しいバージョン %(version)s を利用できます。"
 
+msgid "Next"
+msgstr "次へ"
+
 msgid "Next appointment: %(title)s on %(date)s%(time)s%(notice)s"
 msgstr "次の予定：%(title)s、%(date)s%(time)s%(notice)s"
 
@@ -2788,9 +2952,6 @@ msgstr "次の月"
 
 msgid "Next page"
 msgstr "次のページ"
-
-msgid "Next snapshot"
-msgstr "次のスナップショット"
 
 msgid "Next tab"
 msgstr "次のタブ"
@@ -2803,9 +2964,6 @@ msgstr "次の週"
 
 msgid "Next year"
 msgstr "次の年"
-
-msgid "Nextcloud account"
-msgstr "Nextcloud アカウント"
 
 msgid "Nextcloud is not enabled."
 msgstr "Nextcloud が有効になっていません。"
@@ -2827,6 +2985,9 @@ msgstr "Bluetooth アドレスが選択されていません。"
 
 msgid "No KDE Connect pairing is awaiting confirmation."
 msgstr "確認を待っている KDE Connect ペアリングはありません。"
+
+msgid "No SMS messages are scheduled."
+msgstr "予約されている SMS メッセージはありません。"
 
 msgid "No address books found."
 msgstr "アドレス帳が見つかりませんでした。"
@@ -2852,6 +3013,9 @@ msgstr "期限なし"
 
 msgid "No duplicate contact cards were found."
 msgstr "重複する連絡先カードは見つかりませんでした。"
+
+msgid "No entries yet."
+msgstr "エントリはまだありません。"
 
 msgid "No file selected"
 msgstr "ファイルが選択されていません"
@@ -3021,6 +3185,9 @@ msgstr "何も見つかりませんでした。"
 msgid "Nothing has been entered under “%(letter)s” yet."
 msgstr "「%(letter)s」にはまだ何も入力されていません。"
 
+msgid "Nothing has been imported yet."
+msgstr "まだ何もインポートされていません。"
+
 msgid "Nothing is opened or sent while this option is disabled."
 msgstr "このオプションが無効な間は、何も開かれず、送信もされません。"
 
@@ -3100,6 +3267,13 @@ msgstr "グラフ付きの表1つ"
 msgid "One year"
 msgstr "1 年"
 
+msgid ""
+"One-time imports are additive. They do not keep a source linked and do not "
+"delete contacts."
+msgstr ""
+"1回限りのインポートは追加方式です。取得元とのリンクは維持されず、連絡先が削除"
+"されることもありません。"
+
 msgid "Online"
 msgstr "オンライン"
 
@@ -3175,6 +3349,9 @@ msgstr "Microsoft サインイン ページを開く"
 msgid "Open day view for %(date)s"
 msgstr "%(date)s の日表示を開く"
 
+msgid "Open designer"
+msgstr "デザイナーを開く"
+
 msgid "Open manual"
 msgstr "マニュアルを開く"
 
@@ -3192,6 +3369,9 @@ msgstr "Magnolie Notesで電話接続を開き、このコンピュータを選�
 
 msgid "Open planner as an ODS spreadsheet"
 msgstr "プランナーを ODS 表計算として開く"
+
+msgid "Open requested designer"
+msgstr "指定されたデザイナーを開く"
 
 msgid "Open selected contacts as an ODS spreadsheet"
 msgstr "選択した連絡先を ODS 表計算として開く"
@@ -3229,9 +3409,6 @@ msgstr "ブラウザーで OpenStreetMap を開く"
 
 msgid "Opened in %(application)s."
 msgstr "%(application)s で開きました。"
-
-msgid "Operating system"
-msgstr "オペレーティングシステム"
 
 msgid "Optional archive password"
 msgstr "オプションのアーカイブパスワード"
@@ -3286,6 +3463,9 @@ msgstr "PDF ファイル"
 msgid "Packaging / Yellow bin"
 msgstr "容器包装 / 黄色いごみ箱"
 
+msgid "Page"
+msgstr "ページ"
+
 msgid "Page %(page)s"
 msgstr "ページ %(page)s"
 
@@ -3319,6 +3499,9 @@ msgstr ""
 
 msgid "Palm tree"
 msgstr "ヤシの木"
+
+msgid "Parent task"
+msgstr "親タスク"
 
 msgid ""
 "Participate in the Magnolienbaum (opens port %(port)s on the local network)"
@@ -3361,6 +3544,9 @@ msgstr "請求書を支払う"
 msgid "Pen"
 msgstr "ペン型注入器"
 
+msgid "Pending SMS messages"
+msgstr "送信待ちの SMS メッセージ"
+
 msgid "People"
 msgstr "担当者"
 
@@ -3372,6 +3558,10 @@ msgstr "永続的な KDE リスナーがアクティブです"
 
 msgid "Permanent KDE listener stopped"
 msgstr "永続的な KDE リスナーが停止されました"
+
+msgid ""
+"Permanent sources remain linked and are handled on the Synchronization page."
+msgstr "常設の取得元はリンクされたままになり、同期ページで管理されます。"
 
 msgid "Permanently delete %(count)s completed task?"
 msgid_plural "Permanently delete %(count)s completed tasks?"
@@ -3415,6 +3605,9 @@ msgstr "同期に失敗しました。"
 
 msgid "Personal synchronization format 2 was not negotiated."
 msgstr "個人同期形式 2 はネゴシエートされませんでした。"
+
+msgid "Personal synchronization format 3 was not negotiated."
+msgstr "個人用同期形式3をネゴシエートできませんでした。"
 
 msgid "Personal synchronization is not permitted on both devices."
 msgstr "どちらのデバイスでも個人的な同期は許可されていません。"
@@ -3536,6 +3729,9 @@ msgstr "散剤"
 msgid "Power source"
 msgstr "電源"
 
+msgid "Preferred backup folder"
+msgstr "優先するバックアップフォルダー"
+
 msgid "Preparing Microsoft sign-in …"
 msgstr "Microsoft サインインを準備しています…"
 
@@ -3550,6 +3746,10 @@ msgstr "年間プランナーをプレビュー、印刷、またはエクスポ
 
 msgid "Preview:"
 msgstr "プレビュー："
+
+msgid "Preview: %(count)s contact"
+msgid_plural "Preview: %(count)s contacts"
+msgstr[0] "プレビュー：%(count)s件の連絡先"
 
 msgid "Previous month"
 msgstr "前の月"
@@ -3598,12 +3798,6 @@ msgstr "優先度 1 が最初に表示されます。期限切れのタスクは
 
 msgid "Private"
 msgstr "非公開"
-
-msgid ""
-"Private, integrity-checked snapshots are stored next to the application data."
-msgstr ""
-"整合性チェック済みのプライベート スナップショットは、アプリケーション データ"
-"の隣に保存されます。"
 
 msgid "Protected archive password unavailable."
 msgstr "保護されたアーカイブパスワードを利用できません。"
@@ -3690,6 +3884,9 @@ msgstr "関連タスク"
 
 msgid "Remind me again on the day itself"
 msgstr "当日にももう一度通知"
+
+msgid "Reminder"
+msgstr "リマインダー"
 
 msgid "Reminder data:"
 msgstr "リマインダーデータ:"
@@ -3815,14 +4012,14 @@ msgstr ""
 msgid "Restore"
 msgstr "復元"
 
+msgid "Restore a Magnolie backup after startup"
+msgstr "Magnolieのバックアップから復元"
+
 msgid "Restore backup"
 msgstr "バックアップを復元"
 
 msgid "Restore backup …"
 msgstr "バックアップを復元 …"
-
-msgid "Restore completely"
-msgstr "完全に復元する"
 
 msgid "Restore defaults"
 msgstr "既定値に戻す"
@@ -3867,6 +4064,9 @@ msgstr "天気を取得しています…"
 msgid "Rhineland-Palatinate"
 msgstr "ラインラント＝プファルツ"
 
+msgid "Right page"
+msgstr "右ページ"
+
 msgid "Route"
 msgstr "経路"
 
@@ -3882,6 +4082,9 @@ msgstr ""
 msgid "S"
 msgstr "S"
 
+msgid "SMS app settings"
+msgstr "SMSの設定"
+
 msgid "SMS assignment"
 msgstr "SMSの割り当て"
 
@@ -3893,6 +4096,9 @@ msgstr "%(name)sからのSMS"
 
 msgid "SMS history"
 msgstr "SMSの歴史"
+
+msgid "SMS scheduled."
+msgstr "SMSを予約しました。"
 
 msgid "SMS settings"
 msgstr "SMSの設定"
@@ -3969,11 +4175,24 @@ msgstr "ザクセン＝アンハルト"
 msgid "Schaffhausen"
 msgstr "シャフハウゼン"
 
+msgid "Schedule"
+msgstr "予定された"
+
+msgid "Schedule SMS"
+msgstr "SMSを予約"
+
 msgid "Schedule an appointment"
 msgstr "予定を登録"
 
 msgid "Scheduled"
 msgstr "予定された"
+
+msgid ""
+"Scheduled SMS messages are sent only while Magnolie is running and exactly "
+"one KDE Connect phone is available."
+msgstr ""
+"予約した SMS メッセージは、Magnolie の実行中に KDE Connect 電話がちょうど 1 "
+"台利用できる場合だけ送信されます。"
 
 msgid "Scheme"
 msgstr "スキーム"
@@ -4074,6 +4293,15 @@ msgid ""
 "Selected columns that are empty for every contact are omitted automatically."
 msgstr "すべての連絡先で空になっている選択列は自動的に省略されます。"
 
+msgid ""
+"Selected imports are started directly after Magnolie opens. Thunderbird "
+"contacts are not offered because Windows has no Thunderbird address-book "
+"importer."
+msgstr ""
+"選択したインポートは Magnolie を開いた直後に開始されます。Windows には "
+"Thunderbird のアドレス帳インポーターがないため、Thunderbird の連絡先は選択で"
+"きません。"
+
 msgid "Selection options"
 msgstr "選択オプション"
 
@@ -4100,6 +4328,9 @@ msgstr "サーバーアドレスとユーザー名が必要です。"
 
 msgid "Set or change password"
 msgstr "パスワードを設定または変更"
+
+msgid "Set up Magnolie Organizer"
+msgstr "Magnolie Organizerをセットアップ"
 
 msgid "Set up contacts"
 msgstr "連絡先を設定"
@@ -4221,6 +4452,9 @@ msgstr "Microsoft にサインインしました。"
 msgid "Signed out from Microsoft."
 msgstr "マイクロソフトからサインアウトしました。"
 
+msgid "Skip assistant"
+msgstr "アシスタントをスキップ"
+
 msgid ""
 "Small action buttons appear on each contact card. You can hide anything you "
 "do not need here."
@@ -4255,6 +4489,9 @@ msgstr "一部の既存のバックアップは暗号化できませんでした
 msgid "Son"
 msgstr "息子"
 
+msgid "Sort contacts"
+msgstr "連絡先を並べ替え"
+
 msgid "Sort everything alphabetically"
 msgstr "すべてをアルファベット順に並べ替え"
 
@@ -4263,6 +4500,12 @@ msgstr "並べ替え"
 
 msgid "Sound only"
 msgstr "サウンドのみ"
+
+msgid "Sources"
+msgstr "取得元"
+
+msgid "Sources and imports"
+msgstr "空の状態で開始し、インポートをスキップ"
 
 msgid "Space for anything you want to remember…"
 msgstr "覚えておきたいことを何でも書ける場所…"
@@ -4282,6 +4525,12 @@ msgstr "スプレー剤"
 msgid "St. Gallen"
 msgstr "ザンクト・ガレン"
 
+msgid "Start Magnolie"
+msgstr "Magnolie を起動"
+
+msgid "Start Magnolie with Windows in the notification area (tray)"
+msgstr "通知領域 (トレイ) の Windows で Magnolie を起動します"
+
 msgid "Start automatically when signing in"
 msgstr "サインイン時に自動起動"
 
@@ -4290,6 +4539,9 @@ msgstr "Organizer をシステムトレイで起動"
 
 msgid "State"
 msgstr "州"
+
+msgid "State / region"
+msgstr "書式の地域"
 
 msgid "Status"
 msgstr "状態"
@@ -4317,6 +4569,9 @@ msgstr "提出済み"
 
 msgid "Submitted to KDE Connect"
 msgstr "KDE Connect に送信されました"
+
+msgid "Submitting"
+msgstr "提出済み"
 
 msgid "Suggestions are available only in the installed application."
 msgstr "候補はインストール済みアプリでのみ利用できます。"
@@ -4385,6 +4640,9 @@ msgstr "連絡先を同期"
 msgid "Synchronize now"
 msgstr "今すぐ同期"
 
+msgid "Synchronize permanently"
+msgstr "常時同期"
+
 msgid "Synchronize tasks"
 msgstr "連絡先を同期"
 
@@ -4393,6 +4651,9 @@ msgstr "同期しています …"
 
 msgid "System default"
 msgstr "システムのデフォルト"
+
+msgid "System internet accounts"
+msgstr "システムのインターネットアカウント"
 
 msgid "System setting"
 msgstr "システム設定"
@@ -4416,6 +4677,9 @@ msgstr "タブ %(letter)s"
 msgid "Tab %(letter)s · %(count)s"
 msgstr "タブ %(letter)s · %(count)s"
 
+msgid "Tab name"
+msgstr "タブ名"
+
 msgid "Tablet"
 msgstr "錠剤"
 
@@ -4424,6 +4688,9 @@ msgstr "タブ"
 
 msgid "Task"
 msgstr "タスク"
+
+msgid "Task is due"
+msgstr "タスクの期限"
 
 msgid "Tasks"
 msgstr "タスク"
@@ -4455,6 +4722,12 @@ msgstr "今すぐテスト"
 
 msgid "Testing…"
 msgstr "テスト中…"
+
+msgid "Text"
+msgstr "テキスト"
+
+msgid "Text block"
+msgstr "テキストブロック"
 
 msgid "Text color"
 msgstr "文字色"
@@ -4532,15 +4805,6 @@ msgstr "ODS エクスポートが大きすぎます。"
 msgid "The Organizer chooses a suitable installed application."
 msgstr "Organizer が適切なインストール済みアプリを選びます。"
 
-msgid ""
-"The Windows Contacts folder is synchronized bidirectionally on the "
-"synchronization page. File imports do not modify their source files; "
-"existing entries are not added twice."
-msgstr ""
-"Windows の連絡先フォルダーは、同期ページで双方向に同期されます。ファイルのイ"
-"ンポートでは、ソース ファイルは変更されません。既存のエントリが 2 回追加され"
-"ることはありません。"
-
 msgid "The address could not be opened."
 msgstr "アドレスを開けませんでした。"
 
@@ -4558,6 +4822,13 @@ msgid ""
 msgstr ""
 "アーカイブは暗号化されています。インポートする前にパスワードを入力して完全に"
 "検証します。"
+
+msgid ""
+"The assistant covers your address for routes and weather, data sources, "
+"phone connections, organizer tabs, backups, and startup behavior."
+msgstr ""
+"このアシスタントでは、経路と天気に使う住所、データソース、電話接続、"
+"Organizer のタブ、バックアップ、起動時の動作を設定します。"
 
 msgid "The attachment range is invalid."
 msgstr "添付範囲が無効です。"
@@ -4589,6 +4860,9 @@ msgid ""
 msgstr ""
 "バックグラウンドのリマインダーサービスは個別のリマインダーデータを読めるた"
 "め、Organizer を閉じていても動作します。"
+
+msgid "The backup chooser will open after Magnolie has started."
+msgstr "Magnolie の起動後にバックアップ選択画面が開きます。"
 
 msgid "The backup could not be created."
 msgstr "バックアップを作成できませんでした。"
@@ -4740,6 +5014,9 @@ msgstr ""
 "情報は公開ディレクトリ openholidaysapi.org から一度だけ取得し、その後 "
 "Organizer 内に保存されます。そのためインターネット接続が必要なのは一度だけで"
 "す。"
+
+msgid "The language setting could not be saved."
+msgstr "言語設定を保存できませんでした。"
 
 msgid "The last notebook cannot be deleted."
 msgstr "最後のノートブックは削除できません。"
@@ -4971,6 +5248,10 @@ msgstr ""
 msgid "The save request is invalid."
 msgstr "保存要求が無効です。"
 
+msgid "The selected areas are reset exactly; data added later is removed."
+msgstr ""
+"選択した領域を以前の状態に正確に戻し、その後に追加されたデータを削除します。"
+
 msgid "The selected contacts contain no values for these columns."
 msgstr "選択した連絡先には、これらの列に値がありません。"
 
@@ -4983,6 +5264,9 @@ msgid ""
 msgstr ""
 "サーバー管理者は、アカウント、フォルダー名とファイル名、サイズ、メッセージの"
 "時刻を見ることができます。"
+
+msgid "The setup state could not be saved."
+msgstr "セットアップの状態を保存できませんでした。"
 
 msgid ""
 "The sheet appears at the edge of the screen, accompanied by the Magnolie "
@@ -5090,6 +5374,13 @@ msgid "There is nothing to print."
 msgstr "印刷する内容がありません。"
 
 msgid ""
+"These are Magnolie's actual tabs. You can show only the sections that fit "
+"your everyday life."
+msgstr ""
+"これらは Magnolie で実際に使われるタブです。日常生活に合うセクションだけを表"
+"示できます。"
+
+msgid ""
 "These choices change how the Organizer displays information. Your entries "
 "are not converted or moved."
 msgstr ""
@@ -5191,6 +5482,13 @@ msgstr ""
 msgid "This notebook is still empty."
 msgstr "このノートブックはまだ空です。"
 
+msgid ""
+"This one-time import only adds or enriches contacts. It does not synchronize "
+"or delete contacts."
+msgstr ""
+"この1回限りのインポートでは、連絡先の追加または情報の補完のみを行います。連絡"
+"先の同期や削除は行いません。"
+
 msgid "This paired phone is my own device"
 msgstr "このペアリング済み電話は自分のデバイスです"
 
@@ -5279,6 +5577,9 @@ msgstr "失敗が多すぎます。しばらく待ってください。"
 msgid "Too many regions were selected."
 msgstr "選択した地域が多すぎます。"
 
+msgid "Top level"
+msgstr "最上位"
+
 msgid "Tray applet"
 msgstr "システムトレイアプレット"
 
@@ -5349,6 +5650,9 @@ msgstr "不明なエラー"
 msgid "Unknown phone"
 msgstr "不明なエンドポイント。"
 
+msgid "Unknown source"
+msgstr "不明な取得元"
+
 msgid "Unlink"
 msgstr "リンク解除"
 
@@ -5390,6 +5694,9 @@ msgstr "稼働時間"
 
 msgid "Uri"
 msgstr "URI"
+
+msgid "Use LibreOffice address"
+msgstr "LibreOfficeの住所データを使用"
 
 msgid "Use a specific application or command"
 msgstr "特定のアプリまたはコマンドを使用"
@@ -5548,6 +5855,13 @@ msgstr "警告：データを保存できませんでした。"
 msgid "Waste collection calendar"
 msgstr "ごみ収集カレンダー"
 
+msgid ""
+"We are delighted to welcome you. This short assistant prepares Magnolie "
+"Organizer around your wishes."
+msgstr ""
+"ようこそ。この短いアシスタントで、ご希望に合わせて Magnolie Organizer を準備"
+"します。"
+
 msgid "We are glad you are here!"
 msgstr "お越しいただきありがとうございます！"
 
@@ -5644,11 +5958,6 @@ msgstr ""
 "選択すると各人物に写真を割り当てられます。埋め込まれた写真は、インポート、エ"
 "クスポート、およびオンラインアドレス帳との同期でも保持されます。連絡先カード"
 "のメールアドレスは常にクリックでき、メールアプリを開きます。"
-
-msgid ""
-"When the limit is lowered, the oldest recovery snapshots are removed "
-"automatically."
-msgstr "上限を減らすと、最も古い復元ポイントが自動的に削除されます。"
 
 msgid ""
 "When writing a note, a small toolbar above the sheet provides bold, italic, "
@@ -6063,6 +6372,12 @@ msgstr "不明なエラー"
 msgid "untitled"
 msgstr "無題"
 
+msgid "vCard (.vcf), including iPhone/iCloud export …"
+msgstr "vCard（.vcf、iPhone/iCloudからのエクスポートを含む）…"
+
+msgid "vCard file (.vcf), including iPhone/iCloud export …"
+msgstr "vCardファイル（.vcf、iPhone/iCloudからのエクスポートを含む）…"
+
 msgid ""
 "vCard preserves more contact details. LDIF is intended for importing into "
 "Claws Mail; emergency contacts, social media, free labels and non-JPEG "
@@ -6148,5 +6463,172 @@ msgstr[0] "… ほか %(count)s 件も印刷されます。"
 msgid "＋ Add appointment"
 msgstr "＋ 予定を追加"
 
-msgid "Language & region"
-msgstr "言語と地域"
+#~ msgid ""
+#~ "Download Magnolie Notes or KDE Connect using the links below. Bluetooth "
+#~ "opens Windows Settings for direct pairing."
+#~ msgstr ""
+#~ "以下のリンクを使用して Magnolie Notes または KDE Connect をダウンロードし"
+#~ "ます。 Bluetooth を使用すると、直接ペアリングするための Windows 設定が開き"
+#~ "ます。"
+
+#~ msgid ""
+#~ "Magnolie Notes and KDE Connect are download links, not connection "
+#~ "actions. Bluetooth opens Windows Settings for direct pairing."
+#~ msgstr ""
+#~ "Magnolie Notes と KDE Connect はダウンロード リンクであり、接続アクション"
+#~ "ではありません。 Bluetooth を使用すると、直接ペアリングするための Windows "
+#~ "設定が開きます。"
+
+#~ msgid ""
+#~ "The predefined Calendar tab is always available again from Settings, even "
+#~ "if you hide it here."
+#~ msgstr ""
+#~ "定義済みのカレンダータブは、ここで非表示にしても設定からいつでも再び利用で"
+#~ "きます。"
+
+#~ msgid "No more blocks can be added."
+#~ msgstr "これ以上ブロックを追加できません。"
+
+#~ msgid "Yearly"
+#~ msgstr "毎年"
+
+#~ msgid ""
+#~ "Autostart also enables tray availability. Tray can be enabled "
+#~ "independently without autostart."
+#~ msgstr ""
+#~ "自動起動を有効にすると、トレイも利用可能になります。トレイは自動起動とは別"
+#~ "に有効にできます。"
+
+#~ msgid "Checklist / list block"
+#~ msgstr "チェックリスト / リストブロック"
+
+#~ msgid "Connect Magnolie Notes"
+#~ msgstr "電話とMagnolie Notes"
+
+#~ msgid "Pair KDE Connect for SMS"
+#~ msgstr "KDE Connect SMS用"
+
+#~ msgid "Recurrence block"
+#~ msgstr "繰り返しブロック"
+
+#~ msgid "Start Magnolie with Windows"
+#~ msgstr "Windows とともに Magnolie を起動"
+
+#~ msgid ""
+#~ "The secure download links open directly. Bluetooth opens Windows "
+#~ "Settings; this assistant does not change or pair devices."
+#~ msgstr ""
+#~ "安全なダウンロードリンクは直接開きます。Bluetooth を選択すると Windows "
+#~ "Settings が開きます。このアシスタントがデバイスを変更したり、ペアリングし"
+#~ "たりすることはありません。"
+
+#~ msgid "Backup restore selected"
+#~ msgstr "写真が選択されていません"
+
+#~ msgid ""
+#~ "Choose Start Magnolie to begin, or Manual to begin and open the manual "
+#~ "after the main window is visible."
+#~ msgstr ""
+#~ "開始するには「Magnolie を起動」を選択します。または「マニュアル」を選択す"
+#~ "ると、開始後にメインウィンドウが表示されてからマニュアルが開きます。"
+
+#~ msgid ""
+#~ "Choose permanent synchronization separately from data that should be "
+#~ "imported once, just as in Settings."
+#~ msgstr ""
+#~ "設定と同様に、常時同期と 1 回だけインポートするデータを別々に選択してくだ"
+#~ "さい。"
+
+#~ msgid "Create snapshot now"
+#~ msgstr "今すぐスナップショットを作成"
+
+#~ msgid "Design request selected"
+#~ msgstr "デザインの依頼を選択しました"
+
+#~ msgid "Every 12 hours"
+#~ msgstr "12時間ごと"
+
+#~ msgid "Every 6 hours"
+#~ msgstr "6時間ごと"
+
+#~ msgid "Include Bluetooth information"
+#~ msgstr "Bluetooth 情報を含める"
+
+#~ msgid "Last snapshot"
+#~ msgstr "最後のスナップショット"
+
+#~ msgid "Magnolie Notes"
+#~ msgstr "Magnolie Notes"
+
+#~ msgid "Maximum recovery snapshots"
+#~ msgstr "復元ポイントの最大数"
+
+#~ msgid "Next snapshot"
+#~ msgstr "次のスナップショット"
+
+#~ msgid ""
+#~ "Nothing connects or imports automatically. Your choices appear as pending "
+#~ "actions in Settings."
+#~ msgstr ""
+#~ "接続やインポートが自動的に行われることはありません。選択内容は設定に保留中"
+#~ "の操作として表示されます。"
+
+#~ msgid ""
+#~ "Nothing starts automatically. Choose an action below when you are ready."
+#~ msgstr ""
+#~ "自動的には何も開始されません。準備ができたら、以下の操作を選択してくださ"
+#~ "い。"
+
+#~ msgid "Number of backups"
+#~ msgstr "バックアップの保存数"
+
+#~ msgid "Operating system"
+#~ msgstr "オペレーティングシステム"
+
+#~ msgid "Pending setup choices"
+#~ msgstr "保留中のセットアップ項目"
+
+#~ msgid "Permanent synchronization"
+#~ msgstr "常時同期する取得元"
+
+#~ msgid "Plan recovery points before important changes"
+#~ msgstr "重要な変更の前に復元ポイントを準備"
+
+#~ msgid ""
+#~ "Private, integrity-checked snapshots are stored next to the application "
+#~ "data."
+#~ msgstr ""
+#~ "整合性チェック済みのプライベート スナップショットは、アプリケーション デー"
+#~ "タの隣に保存されます。"
+
+#~ msgid "Request a separate tab design"
+#~ msgstr "別のタブデザインを依頼"
+
+#~ msgid ""
+#~ "Restoring is deferred until Magnolie has opened; no file is changed by "
+#~ "this assistant."
+#~ msgstr ""
+#~ "復元は Magnolie が開くまで延期されます。このアシスタントではファイルは変更"
+#~ "されません。"
+
+#~ msgid "Show Android download information"
+#~ msgstr "手動ダウンロード情報を取得しています …"
+
+#~ msgid "Show QR pairing information"
+#~ msgstr "QRペアリング情報を準備"
+
+#~ msgid "Standard CalDAV / CardDAV"
+#~ msgstr "標準 CalDAV / CardDAV"
+
+#~ msgid ""
+#~ "The QR code and download are shown only after Magnolie opens. No app is "
+#~ "installed, Bluetooth is not changed, and no device is paired now."
+#~ msgstr ""
+#~ "QR コードとダウンロードは Magnolie を開いた後にだけ表示されます。ここでは"
+#~ "アプリのインストール、Bluetooth の変更、デバイスのペアリングは行われませ"
+#~ "ん。"
+
+#~ msgid ""
+#~ "When the limit is lowered, the oldest recovery snapshots are removed "
+#~ "automatically."
+#~ msgstr "上限を減らすと、最も古い復元ポイントが自動的に削除されます。"

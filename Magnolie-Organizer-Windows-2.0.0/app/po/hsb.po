@@ -1,9 +1,15 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the Magnolie Organizer package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
 msgid ""
 msgstr ""
 "Report-Msgid-Bugs-To: maik3531@gmail.com\n"
 "POT-Creation-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Content-Type: text/plain; charset=UTF-8\n"
-"Plural-Forms: nplurals=4; plural=(n%100==1 ? 0 : n%100==2 ? 1 : (n%100==3 || n%100==4) ? 2 : 3);\n"
+"Plural-Forms: nplurals=4; plural=(n%100==1 ? 0 : n%100==2 ? 1 : (n%100==3 || "
+"n%100==4) ? 2 : 3);\n"
 
 msgid " (filtered)"
 msgstr " (filtrowane)"
@@ -85,6 +91,13 @@ msgstr[0] "Ličba kontaktnych kartow: %(count)s"
 msgstr[1] "Ličba kontaktnych kartow: %(count)s"
 msgstr[2] "Ličba kontaktnych kartow: %(count)s"
 msgstr[3] "Ličba kontaktnych kartow: %(count)s"
+
+msgid "%(count)s contact imported."
+msgid_plural "%(count)s contacts imported."
+msgstr[0] "Je so %(count)s kontakt importował."
+msgstr[1] "Stej so %(count)s kontaktaj importowałoj."
+msgstr[2] "Su so %(count)s kontakty importowali."
+msgstr[3] "Je so %(count)s kontaktow importowało."
 
 msgid "%(count)s contact photo added"
 msgid_plural "%(count)s contact photos added"
@@ -436,6 +449,9 @@ msgstr ""
 "zapodać; pismiki tež funguja. Po třoch njewuspěšnych pospytach čaka "
 "Organizator pjeć mjeńšin."
 
+msgid "A one-time import adds contacts only after your selection."
+msgstr "Jónkróćny import kontakty hakle po wašim wuběru přida."
+
 msgid ""
 "A pairing file works like a one-time key. Give it only to the person whose "
 "Organizer you want to connect; it expires after 15 minutes."
@@ -533,6 +549,12 @@ msgstr "Aktualne zawołanje"
 msgid "Add"
 msgstr "Přidać"
 
+msgid "Add %(type)s"
+msgstr "%(type)s přidać"
+
+msgid "Add another SMS"
+msgstr "Dalšu SMS přidać"
+
 msgid "Add appointment"
 msgstr "Termin přidać"
 
@@ -545,6 +567,9 @@ msgstr "Wobdźělnika přidać"
 msgid "Add cycle marker"
 msgstr "Cykusowe znamjo přidać"
 
+msgid "Add one custom tab"
+msgstr "Swójski rajtark přidać"
+
 msgid "Add person"
 msgstr "Wosobu přidać"
 
@@ -556,6 +581,9 @@ msgstr "Linku šemy přidać"
 
 msgid "Add shift"
 msgstr "Směnu přidać"
+
+msgid "Add subtask"
+msgstr "Dźělny nadawk přidać"
 
 msgid "Add to dictionary"
 msgstr "Do słownika přidać"
@@ -728,8 +756,14 @@ msgstr "Terminy za tutu wosobu"
 msgid "Appointments · %(period)s"
 msgstr "Terminy · %(period)s"
 
+msgid "Apps for your phone"
+msgstr "Nałoženja za waš telefon"
+
 msgid "Archive password"
 msgstr "Hesło archiwa"
+
+msgid "Are you really sure?"
+msgstr "Sće woprawdźe wěsty?"
 
 msgid "As usual (print)"
 msgstr "Kaž zwjetša (ćišć)"
@@ -801,6 +835,9 @@ msgstr "BMI z poslednje składowaneje wysokosće a waha"
 msgid "BZ"
 msgstr "BZ"
 
+msgid "Back"
+msgstr "Wróćo"
+
 msgid "Backup failed."
 msgstr "Zawěsćenje njeje so poradźiło."
 
@@ -816,6 +853,9 @@ msgstr "Hesło zawěsćenja"
 msgid "Backup restored. The previous data was backed up automatically."
 msgstr "Zawěsćenje wobnowjene. Předchadne daty buchu awtomatisce zawěsćene."
 
+msgid "Backup rhythm"
+msgstr "Rytmus zawěsćenja"
+
 msgid "Backup saved to: %(path)s"
 msgstr "Zawěsćenje składowane w: %(path)s"
 
@@ -824,6 +864,9 @@ msgstr "Zawěsćenje je so wuspěšnje přepruwowało."
 
 msgid "Backups"
 msgstr "Backupy"
+
+msgid "Backups and recovery"
+msgstr "Rjadowak zawěsćenjow"
 
 msgid ""
 "Backups outside the data location require a password with at least four "
@@ -913,6 +956,9 @@ msgstr "Krawjenje · słabe"
 msgid "Bleeding · medium"
 msgstr "Krawjenje · srjedźne"
 
+msgid "Blocks"
+msgstr "Bloki"
+
 msgid "Blood glucose"
 msgstr "Krawny cokor"
 
@@ -958,6 +1004,9 @@ msgstr "Braniborska"
 msgid "Bremen"
 msgstr "Bremen"
 
+msgid "Browse..."
+msgstr "Přepytać..."
+
 msgid "Burgenland"
 msgstr "Burgenland"
 
@@ -966,6 +1015,9 @@ msgstr "Po předmjenje (Hans Müller)"
 
 msgid "By last name (Müller, Hans)"
 msgstr "Po swójbnym mjenje (Müller, Hans)"
+
+msgid "CSV / Lotus Organizer contacts …"
+msgstr "Kontakty CSV / Lotus Organizer …"
 
 msgid "CSV files (*.csv)"
 msgstr "CSV-dataje (*.csv)"
@@ -981,13 +1033,6 @@ msgstr "Protyka"
 
 msgid "Calendar (*.ics)"
 msgstr "Protyka (*.ics)"
-
-msgid ""
-"Calendar and contact applications commonly export appointments as .ics files "
-"and contacts as .vcf files."
-msgstr ""
-"Protykowe a kontaktowe nałoženja eksportuja terminy zwjetša jako .ics-dataje "
-"a kontakty jako .vcf-dataje."
 
 msgid "Calendar file (.ics/.vcs/.lcs) …"
 msgstr "Protykowy dataj (.ics/.vcs/.lcs) …"
@@ -1103,6 +1148,9 @@ msgstr "Aktualnu manualnu wersiju přepruwować …"
 msgid "Checking the current version …"
 msgstr "Aktualna wersija so přepruwuje …"
 
+msgid "Choose Appointments, Notes or Tasks in Customize."
+msgstr "Wubjerće Terminy, Notice abo Nadawki w Přiměrić."
+
 msgid ""
 "Choose a backup file. Before restoring it, the organizer automatically "
 "creates a copy of the current data. An encrypted backup requires its "
@@ -1152,6 +1200,13 @@ msgstr "Wubjerće znajmjeńša štyri znamješka."
 msgid "Choose entries to print, export or delete"
 msgstr "Zapiski za ćišć, eksport abo zhašenje wubrać"
 
+msgid ""
+"Choose file and Windows contact imports that Magnolie can start directly "
+"after opening."
+msgstr ""
+"Wubjerće importy datajow a kontaktow Windows, kotrež móže Magnolie direktnje "
+"po wočinjenju startować."
+
 msgid "Choose file…"
 msgstr "Dataj wubrać…"
 
@@ -1167,6 +1222,13 @@ msgstr "Foto wubrać…"
 msgid "Choose print or export content…"
 msgstr "Wobsah za ćišć abo eksport wubrać…"
 
+msgid ""
+"Choose safe preferences now. No scheduled backup job is started in the "
+"assistant."
+msgstr ""
+"Wubjerće nětko wěste nastajenja. W asistencu so žadyn planowany zawěsćenski "
+"nadawk njestartuje."
+
 msgid "Choose service"
 msgstr "Słužbu wubrać"
 
@@ -1180,11 +1242,14 @@ msgstr ""
 msgid "Choose year…"
 msgstr "Lěto wubrać…"
 
+msgid "Choose your organizer tabs"
+msgstr "Zestajće swój organizer"
+
 msgid "City"
 msgstr "Město"
 
-msgid "Claws Mail (.xml/.ldif) …"
-msgstr "Claws Mail (.xml/.ldif) ..."
+msgid "Claws Mail XML (.xml) …"
+msgstr "Claws Mail XML (.xml) …"
 
 msgid "Claws Mail address book (*.xml)"
 msgstr "Adresnik Claws Mail (*.xml)"
@@ -1361,9 +1426,6 @@ msgstr "Kontakty"
 msgid "Contacts (.vcf)"
 msgstr "Kontakty (.vcf)"
 
-msgid "Contacts (.vcf) …"
-msgstr "Kontakty (.vcf) …"
-
 msgid "Contacts are merged additively. No deletions are transmitted."
 msgstr "Kontakty so přidawajo zjednoćeja. Zhašenja so njepřenjesu."
 
@@ -1409,6 +1471,9 @@ msgstr "Kraj a region"
 msgid "Country for searches"
 msgstr "Kraj za pytanja"
 
+msgid "Country of origin"
+msgstr "Pochadna krajina"
+
 msgid "Create"
 msgstr "Wutworić"
 
@@ -1439,8 +1504,8 @@ msgstr "Noticowy zešiwk wutworić"
 msgid "Create pairing file …"
 msgstr "Porowanski dataj wutworić …"
 
-msgid "Create snapshot now"
-msgstr "Zhotowće wokomik wokomika nětko"
+msgid "Creating recovery snapshot …"
+msgstr "Wobnowjenski dypk so wutworja …"
 
 msgid "Custom"
 msgstr "Swójske"
@@ -1448,8 +1513,18 @@ msgstr "Swójske"
 msgid "Custom application"
 msgstr "Swójske nałoženje"
 
+msgid ""
+"Custom content is saved locally and transferred through complete Magnolie "
+"archives only, not Personal Sync."
+msgstr ""
+"Swójski wobsah so lokalnje składuje a jenož přez dospołne archiwy Magnolie "
+"přenošuje, nic přez Personal Sync."
+
 msgid "Custom notification"
 msgstr "Swójska zdźělenka"
+
+msgid "Custom tab"
+msgstr "Swójski rajtark"
 
 msgid "Custom websites must begin with https://."
 msgstr "Swójske websydła dyrbja so z https:// započeć."
@@ -1633,6 +1708,10 @@ msgstr "Prózdninsku dobu zhašeć"
 msgid "Delete waste collection"
 msgstr "Wotwóz wotpadkow zhašeć"
 
+msgid "Deleted and missing data is restored; newer existing data is retained."
+msgstr ""
+"Zhašane a falowace daty so wobnowja; nowše eksistowace daty so wobchowaja."
+
 msgid ""
 "Deleted items first go to the recycle bin and can be restored from there. "
 "They are permanently removed only afterwards."
@@ -1658,6 +1737,9 @@ msgstr "Doručene"
 
 msgid "Delivered to %(branch)s."
 msgstr "Do %(branch)s dodate."
+
+msgid "Delivery status uncertain"
+msgstr "Status doručenja njejasny"
 
 msgid "Dentist Dr. Hill — Preview of your entries"
 msgstr "Zubny lěkar dr. Hill — Přehlad wašich zapiskow"
@@ -1731,6 +1813,9 @@ msgstr "Přiručku sćahnyć"
 
 msgid "Download manual version %(version)s"
 msgstr "Přiručku wersije %(version)s sćahnyć"
+
+msgid "Downloads"
+msgstr "Sćehnjenja"
 
 msgid "Drag the attachment area up or down"
 msgstr "Wobłuk přiwěškow horje abo dele ćahnyć"
@@ -1842,6 +1927,9 @@ msgstr ""
 msgid "Enable reminders"
 msgstr "Dopominanja zmóžnić"
 
+msgid "Enable reminders for this block"
+msgstr "Dopomnjenki za tutón blok zmóžnić"
+
 msgid "Enable shift planner"
 msgstr "Planowak směnow zmóžnić"
 
@@ -1857,6 +1945,13 @@ msgstr "Protyku wotwoza wotpadkow zmóžnić"
 msgid "Enjoy getting organized!"
 msgstr "Wjele wjesela při organizowanju!"
 
+msgid ""
+"Enjoy organizing with Magnolie. Your choices stay under your control and can "
+"be changed later in Settings."
+msgstr ""
+"Wjeselće so při organizowanju z Magnolie. Waše wuběry wostanu pod wašej "
+"kontrolu a dadźa so pozdźišo w nastajenjach změnić."
+
 msgid "Enter"
 msgstr "Zapodać"
 
@@ -1865,6 +1960,9 @@ msgid ""
 msgstr ""
 "Zapodajće nalěwo hódnotu krawneho cokora, zo byšće wotpowědne linki šemy "
 "wuzběhnyli."
+
+msgid "Enter a future time and a valid SMS text for every entry."
+msgstr "Zapodajće za kóždy zapisk čas w přichodźe a płaćiwy SMS-tekst."
 
 msgid "Enter a medication name first."
 msgstr "Zapodajće najprjedy mjeno lěka."
@@ -1915,20 +2013,33 @@ msgstr "Fehler"
 msgid "Evening"
 msgstr "Wječor"
 
-msgid "Every 12 hours"
-msgstr "Kóžde 12 hodźin"
-
-msgid "Every 6 hours"
-msgstr "Kóžde 6 hodźin"
-
 msgid "Every filled medication row requires a name."
 msgstr "Kóžda wupjelnjena linka lěka trjeba mjeno."
 
 msgid "Every filled row requires a valid date."
 msgstr "Kóžda wupjelnjena linka trjeba płaćiwy datum."
 
+msgid ""
+"Every saved change is protected automatically by a private, integrity-"
+"checked snapshot."
+msgstr ""
+"Kóžda składowana změna so awtomatisce přez priwatny wokomikny wobraz z "
+"přepruwowanej integritu škita."
+
 msgid "Everything is done - the list is empty."
 msgstr "Wšitko je hotowe – lisćina je prózdna."
+
+msgid "Everything is ready"
+msgstr "Wšitko je hotowe"
+
+msgid ""
+"Evolution and Thunderbird are selected explicitly. iPhone contacts require a "
+"vCard export from the iPhone or iCloud. KDE Connect, Bluetooth and PBAP are "
+"not contact sources."
+msgstr ""
+"Evolution a Thunderbird so wuraznje wubjeratej. Kontakty z iPhone trjebaja "
+"eksport vCard z iPhone abo iCloud. KDE Connect, Bluetooth a PBAP žórła "
+"kontaktow njejsu."
 
 msgid "Exactly one Magnolie Notes phone must be paired."
 msgstr "Es muss genau ein Magnolie Notes-Telefon gekoppelt sein."
@@ -2111,9 +2222,6 @@ msgstr "Pjatk"
 msgid "From"
 msgstr "Wot"
 
-msgid "From the Windows Contacts folder"
-msgstr "Z Windowsoweho kontaktoweho rjadowaka"
-
 msgid "Full"
 msgstr "Połny"
 
@@ -2236,6 +2344,9 @@ msgstr "Doma"
 msgid "Home address"
 msgstr "Domjaca adresa"
 
+msgid "Home country for phone numbers"
+msgstr "Domizniska krajina za telefonowe čisła"
+
 msgid "Home phone"
 msgstr "Domjacy telefon"
 
@@ -2244,6 +2355,9 @@ msgstr "Domjaca wopyt"
 
 msgid "Hours"
 msgstr "Hodźiny"
+
+msgid "How lovely that you chose Magnolie"
+msgstr "Rjenje, zo sće so za Magnolie rozsudźili"
 
 msgid "How the calendar should behave when you click a day."
 msgstr "Kak ma so protyka zadźeržeć, hdyž na dźeń kliknjeće."
@@ -2284,6 +2398,9 @@ msgstr "Importować"
 msgid "Import Magnolie complete archive"
 msgstr "Dospołny archiw Magnolie importować"
 
+msgid "Import contacts additively"
+msgstr "Kontakty přidawajo importować"
+
 msgid "Import failed: %(error)s"
 msgstr "Import njeje so poradźił: %(error)s"
 
@@ -2292,6 +2409,9 @@ msgstr "Z LibreOffice importować"
 
 msgid "Import is available only in the installed application."
 msgstr "Import je jenož w instalowanym nałoženju k dispoziciji."
+
+msgid "Import once"
+msgstr "Jónu importować"
 
 msgid "Import pairing file …"
 msgstr "Porowanski dataj importować …"
@@ -2390,6 +2510,9 @@ msgstr "Insulinowa šema"
 msgid "Integrity"
 msgstr "Integrita"
 
+msgid "International call"
+msgstr "Mjezynarodne zawołanje"
+
 msgid "Internet IP"
 msgstr "Internetowa IP"
 
@@ -2439,6 +2562,9 @@ msgstr "Protokol za pytanje zmylkow wobchować"
 msgid "LDIF address book (*.ldif)"
 msgstr "LDIF-adresnik (*.ldif)"
 
+msgid "LDIF address book (.ldif) …"
+msgstr "Adresnik LDIF (.ldif) …"
+
 msgid "Landline"
 msgstr "Pevny telefon"
 
@@ -2457,9 +2583,6 @@ msgstr "Poslednja kontrola njeje so poradźiła: %(error)s"
 msgid "Last name"
 msgstr "Swójbne mjeno"
 
-msgid "Last snapshot"
-msgstr "Posledni wobraz"
-
 msgid "Last successful backup"
 msgstr "Poslednje wuspěšne zawěsćenje"
 
@@ -2472,11 +2595,21 @@ msgstr "Pozdna směna"
 msgid "Lead time"
 msgstr "Předčas"
 
+msgid "Left page"
+msgstr "Lěwa strona"
+
 msgid "Letter"
 msgstr "List"
 
 msgid "Letter template"
 msgstr "Listowa předłoha"
+
+msgid ""
+"LibreOffice is only read when you press the button. Its settings are not "
+"modified."
+msgstr ""
+"LibreOffice so jenož wučita, hdyž tłóčatko stłóčiće. Jeho nastajenja so "
+"njezměnja."
 
 msgid "License"
 msgstr "Licenca"
@@ -2538,6 +2671,12 @@ msgstr "Magnolienbaum"
 msgid "Magnolia weather symbols only"
 msgstr "Jenož wjedrowe symbole Magnolie"
 
+msgid "Magnolie Notes / Android: check for pending import"
+msgstr "Magnolie Notes / Android: čakacy import přepruwować"
+
+msgid "Magnolie Notes contact import"
+msgstr "Import kontaktow z Magnolie Notes"
+
 msgid "Magnolie Notes device status"
 msgstr "Gratowy staw Magnolie Notes"
 
@@ -2557,6 +2696,9 @@ msgid ""
 msgstr ""
 "Telefony Magnolie Notes a telefony KDE Connect su separatne: mjeno modela "
 "Android słuša k Magnolie Notes; mjeno partnera KDE pochadźa z KDE Connect."
+
+msgid "Magnolie Organizer"
+msgstr "Magnolie Organizer"
 
 msgid "Magnolie Organizer is not completely installed."
 msgstr "Magnolie Organizer njeje dospołnje instalowany."
@@ -2579,6 +2721,13 @@ msgstr ""
 
 msgid "Magnolie backup (*.json)"
 msgstr "Zawěsćenje Magnolie (*.json)"
+
+msgid ""
+"Magnolie can use this information when preparing routes and finding local "
+"weather. You can leave every field empty."
+msgstr ""
+"Magnolie móže tute informacije při přihotowanju pućow a pytanju lokalneho "
+"wjedra wužiwać. Móžeće kóžde polo prózdne wostajić."
 
 msgid "Magnolie complete archive (.magnolie) …"
 msgstr "Dospołny archiw Magnolie (.magnolie) …"
@@ -2626,6 +2775,9 @@ msgctxt "recovery snapshot reason"
 msgid "Manual"
 msgstr "Swójske"
 
+msgid "Manual only"
+msgstr "Jenož manuelnje"
+
 msgid "Manual version %(version)s is available."
 msgstr "Manuelna wersija %(version)s je k dispoziciji."
 
@@ -2650,9 +2802,6 @@ msgstr "Jako wočinjene markěrować"
 
 msgid "Maximized"
 msgstr "Maksimizowane"
-
-msgid "Maximum recovery snapshots"
-msgstr "Maksimalna ličba wobnowjenskich dypkow"
 
 msgid "Measurement context"
 msgstr "Kontekst měrjenja"
@@ -2760,6 +2909,9 @@ msgstr "Mobilna syć"
 msgid "Model"
 msgstr "Model"
 
+msgid "Module"
+msgstr "Modul"
+
 msgid "Monday"
 msgstr "Póndźela"
 
@@ -2768,6 +2920,9 @@ msgstr "Měsac"
 
 msgid "Month calendar"
 msgstr "Měsačna protyka"
+
+msgid "Monthly"
+msgstr "Měsačnje"
 
 msgid "Monthly view"
 msgstr "Měsačny napohlad"
@@ -2790,6 +2945,9 @@ msgstr "Rano"
 msgid "Mouse wheel over times"
 msgstr "Myšace kolesko nad časami"
 
+msgid "Move down"
+msgstr "Dele sunyć"
+
 msgid "Move group down"
 msgstr "Skupinu dele přesunyć"
 
@@ -2807,6 +2965,12 @@ msgstr "Noticnik horje přesunyć"
 
 msgid "Move the ticked entries to the wastebasket"
 msgstr "Wotškrtnjene zapiski do papjeroweho koša přesunyć"
+
+msgid "Move to top level"
+msgstr "Na najwyšu runinu sunyć"
+
+msgid "Move up"
+msgstr "Horje sunyć"
 
 msgid ""
 "Multiple Magnolie Notes phones are stored. Personal sync is blocked; remove "
@@ -2897,6 +3061,9 @@ msgstr "Nowy nadawk"
 msgid "New version %(version)s is available."
 msgstr "Nowa wersija %(version)s je k dispoziciji."
 
+msgid "Next"
+msgstr "Dale"
+
 msgid "Next appointment: %(title)s on %(date)s%(time)s%(notice)s"
 msgstr "Přichodny termin: %(title)s dnja %(date)s%(time)s%(notice)s"
 
@@ -2905,9 +3072,6 @@ msgstr "Přichodny měsac"
 
 msgid "Next page"
 msgstr "Přichodna strona"
-
-msgid "Next snapshot"
-msgstr "Přichodny wobraz"
 
 msgid "Next tab"
 msgstr "Přichodny rajtark"
@@ -2920,9 +3084,6 @@ msgstr "Přichodny tydźeń"
 
 msgid "Next year"
 msgstr "Přichodne lěto"
-
-msgid "Nextcloud account"
-msgstr "Konto Nextcloud"
 
 msgid "Nextcloud is not enabled."
 msgstr "Nextcloud njeje zmóžnjeny."
@@ -2944,6 +3105,9 @@ msgstr "Es wurde keine Bluetooth-Adresse ausgewählt."
 
 msgid "No KDE Connect pairing is awaiting confirmation."
 msgstr "Es wartet keine KDE Connect-Kopplung auf Bestätigung."
+
+msgid "No SMS messages are scheduled."
+msgstr "Žane SMS-powěsće njejsu planowane."
 
 msgid "No address books found."
 msgstr "Žane adresniki namakane."
@@ -2969,6 +3133,9 @@ msgstr "Bjez termina"
 
 msgid "No duplicate contact cards were found."
 msgstr "Žane dwójne kontaktowe karty namakane."
+
+msgid "No entries yet."
+msgstr "Hišće žane zapiski."
 
 msgid "No file selected"
 msgstr "Žadyn dataj wubrany"
@@ -3135,6 +3302,9 @@ msgstr "Ničo namakane."
 msgid "Nothing has been entered under “%(letter)s” yet."
 msgstr "Pod „%(letter)s“ hišće ničo zapodate njeje."
 
+msgid "Nothing has been imported yet."
+msgstr "Hišće njeje so ničo importowało."
+
 msgid "Nothing is opened or sent while this option is disabled."
 msgstr "Doniž je tuta opcija znjemóžnjena, so ničo njewočińa ani njepósćele."
 
@@ -3226,6 +3396,13 @@ msgstr "Jedna tabela z diagramom"
 msgid "One year"
 msgstr "Jedne lěto"
 
+msgid ""
+"One-time imports are additive. They do not keep a source linked and do not "
+"delete contacts."
+msgstr ""
+"Jónkróćne importy daty jenož přidawaja. Žórło zwjazane njewostanje a "
+"kontakty so njezhašeja."
+
 msgid "Online"
 msgstr "Online"
 
@@ -3301,6 +3478,9 @@ msgstr "Přizjewjensku stronu Microsoft wočinić"
 msgid "Open day view for %(date)s"
 msgstr "Dnjowy napohlad za %(date)s wočinić"
 
+msgid "Open designer"
+msgstr "Nawjerhowak wočinić"
+
 msgid "Open manual"
 msgstr "Přiručku wočinić"
 
@@ -3318,6 +3498,9 @@ msgstr "Wočińće telefonowy zwisk w Magnolie Notes a wuzwolće tutón kompjute
 
 msgid "Open planner as an ODS spreadsheet"
 msgstr "Planowak jako ODS-tabelu wočinić"
+
+msgid "Open requested designer"
+msgstr "Požadany nawjerhowak wočinić"
 
 msgid "Open selected contacts as an ODS spreadsheet"
 msgstr "Wubrane kontakty jako ODS-tabelu wočinić"
@@ -3355,9 +3538,6 @@ msgstr "OpenStreetMap we wobhladowaku"
 
 msgid "Opened in %(application)s."
 msgstr "W %(application)s wočinjene."
-
-msgid "Operating system"
-msgstr "Dźěłowy system"
 
 msgid "Optional archive password"
 msgstr "Archiwowe hesło na přeće"
@@ -3412,6 +3592,9 @@ msgstr "PDF-dataj"
 msgid "Packaging / Yellow bin"
 msgstr "Zapakowanja / Žołty kontejner"
 
+msgid "Page"
+msgstr "Strona"
+
 msgid "Page %(page)s"
 msgstr "Strona %(page)s"
 
@@ -3446,6 +3629,9 @@ msgstr ""
 
 msgid "Palm tree"
 msgstr "Palma"
+
+msgid "Parent task"
+msgstr "Nadrjadowany nadawk"
 
 msgid ""
 "Participate in the Magnolienbaum (opens port %(port)s on the local network)"
@@ -3487,6 +3673,9 @@ msgstr "Ličbu zapłaćić"
 msgid "Pen"
 msgstr "Injekciski pisak"
 
+msgid "Pending SMS messages"
+msgstr "Čakace SMS-powěsće"
+
 msgid "People"
 msgstr "Wosoby"
 
@@ -3498,6 +3687,10 @@ msgstr "Permanenter KDE-Listener aktiv"
 
 msgid "Permanent KDE listener stopped"
 msgstr "Trajny KDE-připosłuchar je so zastajił"
+
+msgid ""
+"Permanent sources remain linked and are handled on the Synchronization page."
+msgstr "Trajne žórła wostanu zwjazane a rjaduja so na stronje Synchronizacija."
 
 msgid "Permanently delete %(count)s completed task?"
 msgid_plural "Permanently delete %(count)s completed tasks?"
@@ -3554,6 +3747,9 @@ msgstr "Synchronizacija njeje so poradźiła."
 
 msgid "Personal synchronization format 2 was not negotiated."
 msgstr "Persönliches Synchronisationsformat 2 wurde nicht ausgehandelt."
+
+msgid "Personal synchronization format 3 was not negotiated."
+msgstr "Wosobinski synchronizaciski format 3 njeje so wujednał."
 
 msgid "Personal synchronization is not permitted on both devices."
 msgstr ""
@@ -3676,6 +3872,9 @@ msgstr "Prošk"
 msgid "Power source"
 msgstr "Žórło energije"
 
+msgid "Preferred backup folder"
+msgstr "Preferowany rjadowak zawěsćenjow"
+
 msgid "Preparing Microsoft sign-in …"
 msgstr "Přizjewjenje pola Microsoft so přihotuje…"
 
@@ -3690,6 +3889,13 @@ msgstr "Přehlad, ćišćenje abo eksport lětneho planowaka"
 
 msgid "Preview:"
 msgstr "Přehlad:"
+
+msgid "Preview: %(count)s contact"
+msgid_plural "Preview: %(count)s contacts"
+msgstr[0] "Přehlad: %(count)s kontakt"
+msgstr[1] "Přehlad: %(count)s kontaktaj"
+msgstr[2] "Přehlad: %(count)s kontakty"
+msgstr[3] "Přehlad: %(count)s kontaktow"
 
 msgid "Previous month"
 msgstr "Předchadny měsac"
@@ -3740,12 +3946,6 @@ msgstr ""
 
 msgid "Private"
 msgstr "Priwatne"
-
-msgid ""
-"Private, integrity-checked snapshots are stored next to the application data."
-msgstr ""
-"Priwatne, přez integritu pruwowane momenty składuja so pódla aplikacijskich "
-"datow."
 
 msgid "Protected archive password unavailable."
 msgstr "Škitane archiwowe hesło njeje k dispoziciji."
@@ -3837,6 +4037,9 @@ msgstr "Zwisowace nadawki"
 
 msgid "Remind me again on the day itself"
 msgstr "Na samsnym dnju hišće raz dopomnić"
+
+msgid "Reminder"
+msgstr "Dopomnjenka"
 
 msgid "Reminder data:"
 msgstr "Erinnerungsdaten:"
@@ -3964,14 +4167,14 @@ msgstr ""
 msgid "Restore"
 msgstr "Wobnowić"
 
+msgid "Restore a Magnolie backup after startup"
+msgstr "Ze zawěsćenja Magnolie wobnowić"
+
 msgid "Restore backup"
 msgstr "Zawěsćenje wobnowić"
 
 msgid "Restore backup …"
 msgstr "Zawěsćenje wobnowić …"
-
-msgid "Restore completely"
-msgstr "Dospołnje restawrować"
 
 msgid "Restore defaults"
 msgstr "Standardne nastajenja wobnowić"
@@ -4017,6 +4220,9 @@ msgstr "Wjedro so wotwołuje…"
 msgid "Rhineland-Palatinate"
 msgstr "Porýnska-Pfalca"
 
+msgid "Right page"
+msgstr "Prawa strona"
+
 msgid "Route"
 msgstr "Rota"
 
@@ -4032,6 +4238,9 @@ msgstr ""
 msgid "S"
 msgstr "S"
 
+msgid "SMS app settings"
+msgstr "SMS-nastajenja"
+
 msgid "SMS assignment"
 msgstr "SMS-připokazanje"
 
@@ -4043,6 +4252,9 @@ msgstr "SMS wot %(name)s"
 
 msgid "SMS history"
 msgstr "SMS-historija"
+
+msgid "SMS scheduled."
+msgstr "SMS naplanowana."
 
 msgid "SMS settings"
 msgstr "SMS-nastajenja"
@@ -4122,11 +4334,24 @@ msgstr "Sakska-Anhalt"
 msgid "Schaffhausen"
 msgstr "Schaffhausen"
 
+msgid "Schedule"
+msgstr "Planowane"
+
+msgid "Schedule SMS"
+msgstr "SMS naplanować"
+
 msgid "Schedule an appointment"
 msgstr "Termin planować"
 
 msgid "Scheduled"
 msgstr "Planowane"
+
+msgid ""
+"Scheduled SMS messages are sent only while Magnolie is running and exactly "
+"one KDE Connect phone is available."
+msgstr ""
+"Planowane SMS-powěsće so jenož pósćelu, hdyž Magnolie běži a runje jedyn "
+"telefon z KDE Connect k dispoziciji steji."
 
 msgid "Scheme"
 msgstr "Šema"
@@ -4229,6 +4454,15 @@ msgstr ""
 "Wubrane stołpiki, kotrež su za kóždy kontakt prózdne, so awtomatisce "
 "wuwostaja."
 
+msgid ""
+"Selected imports are started directly after Magnolie opens. Thunderbird "
+"contacts are not offered because Windows has no Thunderbird address-book "
+"importer."
+msgstr ""
+"Wubrane importy so direktnje po wočinjenju Magnolie startuja. Kontakty "
+"Thunderbird so njeposkićeja, dokelž Windows importer adresnika Thunderbird "
+"nima."
+
 msgid "Selection options"
 msgstr "Wuběranske opcije"
 
@@ -4255,6 +4489,9 @@ msgstr "Serwerowa adresa a wužiwarske mjeno stej trěbnej."
 
 msgid "Set or change password"
 msgstr "Hesło nastajić abo změnić"
+
+msgid "Set up Magnolie Organizer"
+msgstr "Magnolie Organizer zarjadować"
 
 msgid "Set up contacts"
 msgstr "Kontakty přirjadować"
@@ -4376,6 +4613,9 @@ msgstr "Pola Microsoft přizjewjeny."
 msgid "Signed out from Microsoft."
 msgstr "Wot Microsoft wotzjewjeny."
 
+msgid "Skip assistant"
+msgstr "Asistent přeskočić"
+
 msgid ""
 "Small action buttons appear on each contact card. You can hide anything you "
 "do not need here."
@@ -4411,6 +4651,9 @@ msgstr "Einige vorhandene Backups konnten nicht verschlüsselt werden."
 msgid "Son"
 msgstr "Syn"
 
+msgid "Sort contacts"
+msgstr "Kontakty sortěrować"
+
 msgid "Sort everything alphabetically"
 msgstr "Wšitko alfabetisce sortěrować"
 
@@ -4419,6 +4662,12 @@ msgstr "Sortěrowanje"
 
 msgid "Sound only"
 msgstr "Jenož zynk"
+
+msgid "Sources"
+msgstr "Žórła"
+
+msgid "Sources and imports"
+msgstr "Z prózdnym započeć a import přeskočić"
 
 msgid "Space for anything you want to remember…"
 msgstr "Městno za wšitko, na što chceće sej spomnić…"
@@ -4438,6 +4687,12 @@ msgstr "Sprej"
 msgid "St. Gallen"
 msgstr "St. Gallen"
 
+msgid "Start Magnolie"
+msgstr "Magnolie startować"
+
+msgid "Start Magnolie with Windows in the notification area (tray)"
+msgstr "Magnolie z Windows w zdźělenskim wobłuku (tray) startować"
+
 msgid "Start automatically when signing in"
 msgstr "Při přizjewjenju awtomatisce startować"
 
@@ -4446,6 +4701,9 @@ msgstr "Organizator w systemowym polu startować"
 
 msgid "State"
 msgstr "Zwjazkowy kraj"
+
+msgid "State / region"
+msgstr "Formatowy region"
 
 msgid "Status"
 msgstr "Status"
@@ -4473,6 +4731,9 @@ msgstr "Wotedany"
 
 msgid "Submitted to KDE Connect"
 msgstr "Do KDE Connect wotpósłane"
+
+msgid "Submitting"
+msgstr "Wotedany"
 
 msgid "Suggestions are available only in the installed application."
 msgstr "Namjety su jenož w instalowanym nałoženju k dispoziciji."
@@ -4541,6 +4802,9 @@ msgstr "Kontakty synchronizować"
 msgid "Synchronize now"
 msgstr "Nětko synchronizować"
 
+msgid "Synchronize permanently"
+msgstr "Trajnje synchronizować"
+
 msgid "Synchronize tasks"
 msgstr "Kontakty synchronizować"
 
@@ -4549,6 +4813,9 @@ msgstr "Synchronizuje so …"
 
 msgid "System default"
 msgstr "Systemstandard"
+
+msgid "System internet accounts"
+msgstr "Systemowe internetne konta"
 
 msgid "System setting"
 msgstr "Systemowe nastajenje"
@@ -4572,6 +4839,9 @@ msgstr "Rajtark %(letter)s"
 msgid "Tab %(letter)s · %(count)s"
 msgstr "Rajtark %(letter)s · %(count)s"
 
+msgid "Tab name"
+msgstr "Mjeno rajtarka"
+
 msgid "Tablet"
 msgstr "Tableta"
 
@@ -4580,6 +4850,9 @@ msgstr "Rajtarki"
 
 msgid "Task"
 msgstr "Nadawk"
+
+msgid "Task is due"
+msgstr "Nadawk je dospěty"
 
 msgid "Tasks"
 msgstr "Nadawki"
@@ -4612,6 +4885,12 @@ msgstr "Nětko testować"
 
 msgid "Testing…"
 msgstr "Testuje so…"
+
+msgid "Text"
+msgstr "Tekst"
+
+msgid "Text block"
+msgstr "Tekstowy blok"
 
 msgid "Text color"
 msgstr "Tekstowa barba"
@@ -4696,15 +4975,6 @@ msgstr "ODS-eksport je přewulki."
 msgid "The Organizer chooses a suitable installed application."
 msgstr "Organizator wubjerje přihódne instalowane nałoženje."
 
-msgid ""
-"The Windows Contacts folder is synchronized bidirectionally on the "
-"synchronization page. File imports do not modify their source files; "
-"existing entries are not added twice."
-msgstr ""
-"Rjadowak Windows Contacts so na synchronizaciskej stronje dwusměrnje "
-"synchronizuje. Importy datajow jich žórłowe dataje njezměnja; eksistowace "
-"zapiski so njepřidawaja dwójce."
-
 msgid "The address could not be opened."
 msgstr "Die Adresse konnte nicht geöffnet werden."
 
@@ -4721,6 +4991,13 @@ msgid ""
 msgstr ""
 "Archiw je zaklučowany. Zapodajće hesło, zo byšće jón před importom dospołnje "
 "přepruwowali."
+
+msgid ""
+"The assistant covers your address for routes and weather, data sources, "
+"phone connections, organizer tabs, backups, and startup behavior."
+msgstr ""
+"Asistent wobsahuje wašu adresu za puće a wjedro, datowe žórła, telefonowe "
+"zwiski, rajtarki organizatora, zawěsćenja a zadźerženje při starće."
 
 msgid "The attachment range is invalid."
 msgstr "Der Anhangsbereich ist ungültig."
@@ -4752,6 +5029,9 @@ msgid ""
 msgstr ""
 "Słužba dopominanjow w pozadku smě wotdźělene daty dopominanjow čitać a "
 "funguje tuž tež při začinjenym organizatorje."
+
+msgid "The backup chooser will open after Magnolie has started."
+msgstr "Wuběr zawěsćenja so wočini, po tym zo je Magnolie startował."
 
 msgid "The backup could not be created."
 msgstr "Zawěsćenje njehodźeše so załožić."
@@ -4903,6 +5183,9 @@ msgstr ""
 "Informacije so jónu z wotewrjeneho zapisa openholidaysapi.org wotwołaja a "
 "potom w organizatorje wobchowaja. Nałoženje tuž internetny zwisk jenož jónu "
 "trjeba."
+
+msgid "The language setting could not be saved."
+msgstr "Rěčne nastajenje njeda so składować."
 
 msgid "The last notebook cannot be deleted."
 msgstr "Posledni noticnik njehodźi so zhašeć."
@@ -5142,6 +5425,11 @@ msgstr ""
 msgid "The save request is invalid."
 msgstr "Składowanske naprašowanje je njepłaćiwe."
 
+msgid "The selected areas are reset exactly; data added later is removed."
+msgstr ""
+"Wubrane wobłuki so eksaktnje wróćo stajeja; pozdźišo přidate daty so "
+"wotstronja."
+
 msgid "The selected contacts contain no values for these columns."
 msgstr "Wubrane kontakty za tute stołpiki žane hódnoty njewobsahuja."
 
@@ -5154,6 +5442,9 @@ msgid ""
 msgstr ""
 "Serwerowy wobhospodowar móže konto, mjena rjadowakow a datajow, wulkosće a "
 "časy wašich powěsćow widźeć."
+
+msgid "The setup state could not be saved."
+msgstr "Staw zarjadowanja njeda so składować."
 
 msgid ""
 "The sheet appears at the edge of the screen, accompanied by the Magnolie "
@@ -5263,6 +5554,13 @@ msgid "There is nothing to print."
 msgstr "Ničo za ćišćenje njeje."
 
 msgid ""
+"These are Magnolie's actual tabs. You can show only the sections that fit "
+"your everyday life."
+msgstr ""
+"To su woprawdźite rajtarki Magnolie. Móžeće jenož wotrězki pokazać, kotrež "
+"so za wašu wšědnu rutinu hodźa."
+
+msgid ""
 "These choices change how the Organizer displays information. Your entries "
 "are not converted or moved."
 msgstr ""
@@ -5368,6 +5666,13 @@ msgstr ""
 msgid "This notebook is still empty."
 msgstr "Tutón noticnik je hišće prózdny."
 
+msgid ""
+"This one-time import only adds or enriches contacts. It does not synchronize "
+"or delete contacts."
+msgstr ""
+"Tutón jónkróćny import kontakty jenož přidawa abo wudospołnja. Kontakty "
+"njesynchronizuje ani njezhaša."
+
 msgid "This paired phone is my own device"
 msgstr "Tutón zwjazany telefon je mój swójski grat"
 
@@ -5453,6 +5758,9 @@ msgstr "Přewjele njeporadźenych pospytow. Čakajće wokomik."
 msgid "Too many regions were selected."
 msgstr "Přewjele regionow wubrane."
 
+msgid "Top level"
+msgstr "Najwyša runina"
+
 msgid "Tray applet"
 msgstr "Aplet systemoweho pola"
 
@@ -5523,6 +5831,9 @@ msgstr "Njeznaty zmylk"
 msgid "Unknown phone"
 msgstr "Njeznaty kónčny dypk."
 
+msgid "Unknown source"
+msgstr "Njeznate žórło"
+
 msgid "Unlink"
 msgstr "Wotwjazać"
 
@@ -5567,6 +5878,9 @@ msgstr "Čas běženja"
 
 msgid "Uri"
 msgstr "URI"
+
+msgid "Use LibreOffice address"
+msgstr "Adresowe daty LibreOffice wužiwać"
 
 msgid "Use a specific application or command"
 msgstr "Wěste nałoženje abo přikaz wužiwać"
@@ -5726,6 +6040,13 @@ msgstr "Warnowanje: Daty njedadźachu so składować."
 msgid "Waste collection calendar"
 msgstr "Protyka wotwoženja wotpadkow"
 
+msgid ""
+"We are delighted to welcome you. This short assistant prepares Magnolie "
+"Organizer around your wishes."
+msgstr ""
+"Wjeselimy so, zo móžemy was witać. Tutón krótki asistent přihotuje Magnolie "
+"Organizer po wašich přećach."
+
 msgid "We are glad you are here!"
 msgstr "Wjeselimy so, zo sće tu!"
 
@@ -5824,13 +6145,6 @@ msgstr ""
 "Zasadźene fota so při imporće, eksporće a synchronizaciji z internetnym "
 "adresnikom wobchowaja. E-mejlowe adresy na kontaktowych kartach su přeco "
 "klikajomne a wočinja waše mejlowe nałoženje."
-
-msgid ""
-"When the limit is lowered, the oldest recovery snapshots are removed "
-"automatically."
-msgstr ""
-"Hdyž so limit pomjeńši, so najstarše wobnowjenske dypki awtomatisce "
-"wotstronja."
 
 msgid ""
 "When writing a note, a small toolbar above the sheet provides bold, italic, "
@@ -6259,6 +6573,12 @@ msgstr "njeznaty zmylk"
 msgid "untitled"
 msgstr "bjez titula"
 
+msgid "vCard (.vcf), including iPhone/iCloud export …"
+msgstr "vCard (.vcf), inkluziwnje eksporta z iPhone/iCloud …"
+
+msgid "vCard file (.vcf), including iPhone/iCloud export …"
+msgstr "Dataja vCard (.vcf), inkluziwnje eksporta z iPhone/iCloud …"
+
 msgid ""
 "vCard preserves more contact details. LDIF is intended for importing into "
 "Claws Mail; emergency contacts, social media, free labels and non-JPEG "
@@ -6349,5 +6669,172 @@ msgstr[3] "… a dale %(count)s zapiskaj, kotrejž so tež ćišćitej."
 msgid "＋ Add appointment"
 msgstr "＋ Termin přidać"
 
-msgid "Language & region"
-msgstr "Rěč a region"
+#~ msgid ""
+#~ "Download Magnolie Notes or KDE Connect using the links below. Bluetooth "
+#~ "opens Windows Settings for direct pairing."
+#~ msgstr ""
+#~ "Sćehńće Magnolie Notes abo KDE Connect z pomocu slědowacych wotkazow. "
+#~ "Bluetooth wočinja nastajenja Windows za direktne zwjazanje."
+
+#~ msgid ""
+#~ "Magnolie Notes and KDE Connect are download links, not connection "
+#~ "actions. Bluetooth opens Windows Settings for direct pairing."
+#~ msgstr ""
+#~ "Magnolie Notes a KDE Connect stej sćehnjenskej wotkazaj, nic "
+#~ "zwjazowanskej akciji. Bluetooth wočinja nastajenja Windows za direktne "
+#~ "zwjazanje."
+
+#~ msgid ""
+#~ "The predefined Calendar tab is always available again from Settings, even "
+#~ "if you hide it here."
+#~ msgstr ""
+#~ "Předdefinowany rajtark Protyka je přeco zaso w nastajenjach k "
+#~ "dispoziciji, samo hdyž jón tu schowaće."
+
+#~ msgid "No more blocks can be added."
+#~ msgstr "Dalše bloki njehodźa so přidać."
+
+#~ msgid "Yearly"
+#~ msgstr "Lětnje"
+
+#~ msgid ""
+#~ "Autostart also enables tray availability. Tray can be enabled "
+#~ "independently without autostart."
+#~ msgstr ""
+#~ "Awtomatiski start tež systemowu lajstu zmóžnja. Systemowa lajsta da so "
+#~ "njewotwisnje bjez awtomatiskeho starta zmóžnić."
+
+#~ msgid "Checklist / list block"
+#~ msgstr "Blok kontrolneje lisćiny / lisćiny"
+
+#~ msgid "Connect Magnolie Notes"
+#~ msgstr "Telefon a Magnolie Notes"
+
+#~ msgid "Pair KDE Connect for SMS"
+#~ msgstr "KDE Connect za SMS"
+
+#~ msgid "Recurrence block"
+#~ msgstr "Wospjetowanski blok"
+
+#~ msgid "Start Magnolie with Windows"
+#~ msgstr "Magnolie z Windows startować"
+
+#~ msgid ""
+#~ "The secure download links open directly. Bluetooth opens Windows "
+#~ "Settings; this assistant does not change or pair devices."
+#~ msgstr ""
+#~ "Wěste sćehnjenske wotkazy so direktnje wočinja. Bluetooth wočinja "
+#~ "nastajenja Windows; tutón asistent graty njezměni ani njezwjaza."
+
+#~ msgid "Backup restore selected"
+#~ msgstr "Žane foto wubrane"
+
+#~ msgid ""
+#~ "Choose Start Magnolie to begin, or Manual to begin and open the manual "
+#~ "after the main window is visible."
+#~ msgstr ""
+#~ "Wubjerće Magnolie startować, zo byšće započeli, abo Přiručku, zo byšće "
+#~ "započeli a přiručku wočinili, po tym zo je hłowne wokno widźomne."
+
+#~ msgid ""
+#~ "Choose permanent synchronization separately from data that should be "
+#~ "imported once, just as in Settings."
+#~ msgstr ""
+#~ "Wubjerće trajnu synchronizaciju separatnje wot datow, kotrež maja so "
+#~ "jenož jónu importować, runje tak kaž w nastajenjach."
+
+#~ msgid "Create snapshot now"
+#~ msgstr "Zhotowće wokomik wokomika nětko"
+
+#~ msgid "Design request selected"
+#~ msgstr "Próstwa wo wuhotowanje wubrana"
+
+#~ msgid "Every 12 hours"
+#~ msgstr "Kóžde 12 hodźin"
+
+#~ msgid "Every 6 hours"
+#~ msgstr "Kóžde 6 hodźin"
+
+#~ msgid "Include Bluetooth information"
+#~ msgstr "Bluetoothowe informacije zapřijeć"
+
+#~ msgid "Last snapshot"
+#~ msgstr "Posledni wobraz"
+
+#~ msgid "Magnolie Notes"
+#~ msgstr "Magnolie Notes"
+
+#~ msgid "Maximum recovery snapshots"
+#~ msgstr "Maksimalna ličba wobnowjenskich dypkow"
+
+#~ msgid "Next snapshot"
+#~ msgstr "Přichodny wobraz"
+
+#~ msgid ""
+#~ "Nothing connects or imports automatically. Your choices appear as pending "
+#~ "actions in Settings."
+#~ msgstr ""
+#~ "Ničo so awtomatisce njezwjazuje ani njeimportuje. Waše wuběry so jako "
+#~ "čakace akcije w nastajenjach jewja."
+
+#~ msgid ""
+#~ "Nothing starts automatically. Choose an action below when you are ready."
+#~ msgstr ""
+#~ "Ničo so awtomatisce njestartuje. Wubjerće deleka jednanje, hdyž sće "
+#~ "hotowi."
+
+#~ msgid "Number of backups"
+#~ msgstr "Ličba zawěsćenjow"
+
+#~ msgid "Operating system"
+#~ msgstr "Dźěłowy system"
+
+#~ msgid "Pending setup choices"
+#~ msgstr "Čakace zarjadowanske wuběry"
+
+#~ msgid "Permanent synchronization"
+#~ msgstr "Trajne synchronizaciske žórła"
+
+#~ msgid "Plan recovery points before important changes"
+#~ msgstr "Wobnowjenske dypki před wažnymi změnami planować"
+
+#~ msgid ""
+#~ "Private, integrity-checked snapshots are stored next to the application "
+#~ "data."
+#~ msgstr ""
+#~ "Priwatne, přez integritu pruwowane momenty składuja so pódla "
+#~ "aplikacijskich datow."
+
+#~ msgid "Request a separate tab design"
+#~ msgstr "Separatne wuhotowanje rajtarka požadać"
+
+#~ msgid ""
+#~ "Restoring is deferred until Magnolie has opened; no file is changed by "
+#~ "this assistant."
+#~ msgstr ""
+#~ "Wobnowjenje so wotstorči, doniž Magnolie njeje wočinjena; tutón asistent "
+#~ "žanu dataju njezměni."
+
+#~ msgid "Show Android download information"
+#~ msgstr "Informacije za manuelne sćehnjenje so wotwołuja …"
+
+#~ msgid "Show QR pairing information"
+#~ msgstr "Informacije za sparowanje z QR-kodom přihotować"
+
+#~ msgid "Standard CalDAV / CardDAV"
+#~ msgstr "Standardny CalDAV / CardDAV"
+
+#~ msgid ""
+#~ "The QR code and download are shown only after Magnolie opens. No app is "
+#~ "installed, Bluetooth is not changed, and no device is paired now."
+#~ msgstr ""
+#~ "QR-kod a sćehnjenje so hakle po wočinjenju Magnolie pokazujetej. Žana "
+#~ "nałoženka so njeinstaluje, Bluetooth so njezměni a žadyn grat so nětko "
+#~ "njesparuje."
+
+#~ msgid ""
+#~ "When the limit is lowered, the oldest recovery snapshots are removed "
+#~ "automatically."
+#~ msgstr ""
+#~ "Hdyž so limit pomjeńši, so najstarše wobnowjenske dypki awtomatisce "
+#~ "wotstronja."

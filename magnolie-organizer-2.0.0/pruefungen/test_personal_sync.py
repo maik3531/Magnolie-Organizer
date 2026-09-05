@@ -110,6 +110,22 @@ def test_exact_batch_and_no_tombstones():
             raise AssertionError("schema accepted deletion")
 
 
+def test_format3_task_hierarchy_is_exact_and_format2_stays_unchanged():
+    value = {"title": "Kind", "note": "", "due": "", "priority": 2,
+        "completed": False, "remind": False, "lead_days": 0,
+        "reminder_minute": 0, "created_ms": 1, "modified_ms": 2,
+        "uid": "kind-1", "parent_uid": "eltern-1", "order": 7}
+    assert sync.validate_value("task", value, 3) is value
+    try:
+        sync.validate_value("task", value, 2)
+        raise AssertionError("format 2 accepted format 3 task fields")
+    except ValueError:
+        pass
+    without_graph = {name: item for name, item in value.items()
+                     if name not in {"uid", "parent_uid", "order"}}
+    assert sync.validate_value("task", without_graph, 2) is without_graph
+
+
 def test_settings_default_fail_closed_shape():
     assert sync.validate_body("personal_sync.settings", {"format": 1, "own_device": False})
     for bad in ({"format": 1, "own_device": False, "auto_wifi": False},

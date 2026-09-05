@@ -1,5 +1,6 @@
 #!/bin/sh
 set -eu
+umask 022
 
 WURZEL=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 FASSUNG=$(dpkg-parsechangelog -l"$WURZEL/debian/changelog" -SVersion)
@@ -34,8 +35,11 @@ LINUXDEPLOY_URL=https://github.com/linuxdeploy/linuxdeploy/releases/download/1-a
 LINUXDEPLOY_SHA=c20cd71e3a4e3b80c3483cef793cda3f4e990aca14014d23c544ca3ce1270b4d
 APPIMAGETOOL_URL=https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage
 APPIMAGETOOL_SHA=a6d71e2b6cd66f8e8d16c37ad164658985e0cf5fcaa950c90a482890cb9d13e0
+PHONENUMBERS_URL=https://files.pythonhosted.org/packages/b2/09/6df2574777489592b37e6b9cda72962709af2e121b122bf6aae19bcce7b4/phonenumbers-9.0.38-py2.py3-none-any.whl
+PHONENUMBERS_SHA=f3cbeb1a42bf226060c60fc6277f5431755d325eddc23fbf2c72ef7e156113c6
 LINUXDEPLOY="$WERKZEUGE/linuxdeploy-x86_64.AppImage"
 APPIMAGETOOL="$WERKZEUGE/appimagetool-x86_64.AppImage"
+PHONENUMBERS_WHEEL="$WERKZEUGE/phonenumbers-9.0.38-py2.py3-none-any.whl"
 
 holen() {
     ziel=$1
@@ -146,6 +150,7 @@ done < "$WURZEL/po/LINGUAS"
 install -m 0755 "$WURZEL/bin/magnolie-organizer" "$APPDIR/usr/bin/magnolie-organizer"
 install -m 0644 "$WURZEL/bin/magnolie_asset.py" "$APPDIR/usr/bin/magnolie_asset.py"
 install -m 0644 "$WURZEL/bin/magnolie_telefon.py" "$APPDIR/usr/bin/magnolie_telefon.py"
+install -m 0644 "$WURZEL/bin/magnolie_phone_region.py" "$APPDIR/usr/bin/magnolie_phone_region.py"
 install -m 0644 "$WURZEL/bin/magnolie_kdeconnect.py" "$APPDIR/usr/bin/magnolie_kdeconnect.py"
 install -m 0644 "$WURZEL/bin/magnolie_hintergrund.py" "$APPDIR/usr/bin/magnolie_hintergrund.py"
 install -m 0644 "$WURZEL/bin/magnolie_personal_sync.py" "$APPDIR/usr/bin/magnolie_personal_sync.py"
@@ -153,14 +158,64 @@ install -m 0644 "$WURZEL/bin/magnolie_nextcloud.py" "$APPDIR/usr/bin/magnolie_ne
 install -m 0644 "$WURZEL/bin/magnolie_cloud_backup.py" "$APPDIR/usr/bin/magnolie_cloud_backup.py"
 install -m 0644 "$WURZEL/bin/magnolie_akonadi.py" "$APPDIR/usr/bin/magnolie_akonadi.py"
 install -m 0644 "$WURZEL/bin/magnolie_crash.py" "$APPDIR/usr/bin/magnolie_crash.py"
+install -m 0644 "$WURZEL/bin/magnolie_setup_state.py" "$APPDIR/usr/bin/magnolie_setup_state.py"
+install -m 0644 "$WURZEL/bin/magnolie_setup_ui.py" "$APPDIR/usr/bin/magnolie_setup_ui.py"
 install -m 0755 "$(readlink -f "$(command -v python3)")" "$APPDIR/usr/bin/python$PYTHON_VERSION"
 ln -s "python$PYTHON_VERSION" "$APPDIR/usr/bin/python3"
 cp -a "/usr/lib/python$PYTHON_VERSION" "$APPDIR/usr/lib/"
 find "$APPDIR/usr/lib/python$PYTHON_VERSION" -type f \( -name '*.a' -o -name '*.o' \) -delete
-for paket in gi cryptography OpenSSL zeroconf ifaddr async_timeout qrcode; do
+for paket in gi cryptography OpenSSL zeroconf ifaddr async_timeout qrcode phonenumbers; do
     quelle="/usr/lib/python3/dist-packages/$paket"
     [ ! -e "$quelle" ] || cp -a "$quelle" "$APPDIR/usr/lib/python3/dist-packages/"
 done
+if [ ! -e "$APPDIR/usr/lib/python3/dist-packages/phonenumbers" ]; then
+    if [ ! -f "$PHONENUMBERS_WHEEL" ] ||
+            [ "$(sha256sum "$PHONENUMBERS_WHEEL" | cut -d' ' -f1)" != "$PHONENUMBERS_SHA" ]; then
+        rm -f "$PHONENUMBERS_WHEEL"
+        curl -L --fail --retry 3 -o "$PHONENUMBERS_WHEEL" "$PHONENUMBERS_URL"
+    fi
+    printf '%s  %s\n' "$PHONENUMBERS_SHA" "$PHONENUMBERS_WHEEL" | sha256sum -c -
+    python3 - "$PHONENUMBERS_WHEEL" "$APPDIR/usr/lib/python3/dist-packages" \
+        "$APPDIR/usr/share/doc/magnolie-organizer/phonenumbers-copyright" <<'PY'
+import os
+import pathlib
+import sys
+import zipfile
+
+destination = pathlib.Path(sys.argv[2])
+license_path = pathlib.Path(sys.argv[3])
+with zipfile.ZipFile(sys.argv[1]) as archive:
+    members = [member for member in archive.infolist()
+               if pathlib.PurePosixPath(member.filename).parts[:1] == ("phonenumbers",)]
+    licenses = [member for member in archive.infolist()
+                if member.filename == "phonenumbers-9.0.38.dist-info/licenses/LICENSE"]
+    if not members or len(licenses) != 1 or any(
+            ".." in pathlib.PurePosixPath(member.filename).parts for member in members):
+        raise SystemExit("Das phonenumbers-Wheel ist ungueltig.")
+    for member in members:
+        target = destination.joinpath(*pathlib.PurePosixPath(member.filename).parts)
+        if member.is_dir():
+            target.mkdir(parents=True, exist_ok=True)
+            os.chmod(target, 0o755)
+        else:
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_bytes(archive.read(member))
+            os.chmod(target, 0o644)
+    for directory in [destination / "phonenumbers",
+                      *(destination / "phonenumbers").rglob("*")]:
+        if directory.is_dir():
+            os.chmod(directory, 0o755)
+    license_path.write_bytes(archive.read(licenses[0]))
+    os.chmod(license_path, 0o644)
+PY
+fi
+[ ! -f /usr/share/doc/python3-phonenumbers/copyright ] || install -m 0644 \
+    /usr/share/doc/python3-phonenumbers/copyright \
+    "$APPDIR/usr/share/doc/magnolie-organizer/phonenumbers-copyright"
+[ -e "$APPDIR/usr/lib/python3/dist-packages/phonenumbers" ] || {
+    printf '%s\n' 'phonenumbers konnte nicht in das AppImage kopiert werden.' >&2
+    exit 1
+}
 for modul in /usr/lib/python3/dist-packages/_cffi_backend*.so; do
     [ ! -e "$modul" ] || cp -a "$modul" "$APPDIR/usr/lib/python3/dist-packages/"
 done

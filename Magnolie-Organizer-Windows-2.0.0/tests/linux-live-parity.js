@@ -26,4 +26,24 @@ const semanticFields = ["schema", "commands", "callbacks", "payloadSchemas", "pe
 const semanticContract = contract => Object.fromEntries(semanticFields.map(field => [field, contract[field]]));
 assert.deepStrictEqual(semanticContract(generate(linuxRoot)), semanticContract(fixture),
   `Linux-Vertragsfixture ist veraltet; aktualisieren mit tests/generate-linux-parity-fixture.js ${linuxRoot}`);
+const linuxUi = fs.readFileSync(path.join(linuxRoot, "web", "anwendung.js"), "utf8");
+const windowsUi = fs.readFileSync(path.join(root, "app", "web", "anwendung.js"), "utf8");
+for (const [name, source] of [["Linux", linuxUi], ["Windows", windowsUi]]) {
+  assert.match(source, /\["generic-dav", "Standard CalDAV\/CardDAV"\]/,
+    `${name}: generische DAV-Kontotypauswahl fehlt`);
+  assert.match(source, /kontoArt:\s*nextcloudEntwurf\.kontoArt/,
+    `${name}: kontoArt fehlt im DAV-Speichervertrag`);
+  assert.match(source, /briefkastenAktiv = !generisch/,
+    `${name}: generisches DAV sperrt den Briefkasten nicht`);
+  assert.match(source, /startsWith\("generic-"\) \? davName/,
+    `${name}: generische Quellen werden nicht neutral beschriftet`);
+  assert.match(source, /supportsVtodo === false[\s\S]{0,180}Appointments remain available/,
+    `${name}: VTODO-Fähigkeitshinweis fehlt`);
+  assert.match(source, /setupImportWarteschlange = Array\.from/,
+    `${name}: direkte Assistentenimporte fehlen`);
+  assert.doesNotMatch(source, /setupTelefonAktionen/,
+    `${name}: veraltete automatische Telefonkopplung ist noch aktiv`);
+  assert.match(source, /setTimeout\(starteNaechstenSetupImport, 0\)/,
+    `${name}: Assistentenaktionen werden nicht direkt gestartet`);
+}
 console.log(`LINUX LIVE PARITY PASSED (${linuxRoot})`);

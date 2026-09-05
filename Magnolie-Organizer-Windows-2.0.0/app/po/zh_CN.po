@@ -1,3 +1,8 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the Magnolie Organizer package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
 msgid ""
 msgstr ""
 "Report-Msgid-Bugs-To: maik3531@gmail.com\n"
@@ -64,6 +69,10 @@ msgstr[0] "%(count)s 个联系人"
 msgid "%(count)s contact card"
 msgid_plural "%(count)s contact cards"
 msgstr[0] "%(count)s 张联系人卡片"
+
+msgid "%(count)s contact imported."
+msgid_plural "%(count)s contacts imported."
+msgstr[0] "已导入 %(count)s 个联系人。"
 
 msgid "%(count)s contact photo added"
 msgid_plural "%(count)s contact photos added"
@@ -339,6 +348,9 @@ msgstr ""
 "打开时可用数字键盘方便地输入数字代码；也可以使用字母。连续三次输入失败后，"
 "Organizer 会等待五分钟。"
 
+msgid "A one-time import adds contacts only after your selection."
+msgstr "一次性导入只会在您选择后添加联系人。"
+
 msgid ""
 "A pairing file works like a one-time key. Give it only to the person whose "
 "Organizer you want to connect; it expires after 15 minutes."
@@ -430,6 +442,12 @@ msgstr "当前通话"
 msgid "Add"
 msgstr "添加"
 
+msgid "Add %(type)s"
+msgstr "添加%(type)s"
+
+msgid "Add another SMS"
+msgstr "再添加一条 SMS"
+
 msgid "Add appointment"
 msgstr "添加约会"
 
@@ -442,6 +460,9 @@ msgstr "添加参与者"
 msgid "Add cycle marker"
 msgstr "添加周期标记"
 
+msgid "Add one custom tab"
+msgstr "添加一个自定义标签页"
+
 msgid "Add person"
 msgstr "添加人员"
 
@@ -453,6 +474,9 @@ msgstr "添加方案行"
 
 msgid "Add shift"
 msgstr "添加班次"
+
+msgid "Add subtask"
+msgstr "添加子任务"
 
 msgid "Add to dictionary"
 msgstr "添加到词典"
@@ -620,8 +644,14 @@ msgstr "此人的约会"
 msgid "Appointments · %(period)s"
 msgstr "约会 · %(period)s"
 
+msgid "Apps for your phone"
+msgstr "适用于您手机的应用程序"
+
 msgid "Archive password"
 msgstr "存档密码"
+
+msgid "Are you really sure?"
+msgstr "您真的确定吗？"
 
 msgid "As usual (print)"
 msgstr "照常（打印）"
@@ -693,6 +723,9 @@ msgstr "根据最近保存的身高和体重计算的 BMI"
 msgid "BZ"
 msgstr "血糖"
 
+msgid "Back"
+msgstr "返回"
+
 msgid "Backup failed."
 msgstr "备份失败。"
 
@@ -708,6 +741,9 @@ msgstr "备份密码"
 msgid "Backup restored. The previous data was backed up automatically."
 msgstr "备份已恢复。之前的数据已自动备份。"
 
+msgid "Backup rhythm"
+msgstr "备份频率"
+
 msgid "Backup saved to: %(path)s"
 msgstr "备份已保存到：%(path)s"
 
@@ -716,6 +752,9 @@ msgstr "备份验证成功。"
 
 msgid "Backups"
 msgstr "备份"
+
+msgid "Backups and recovery"
+msgstr "备份文件夹"
 
 msgid ""
 "Backups outside the data location require a password with at least four "
@@ -803,6 +842,9 @@ msgstr "出血 · 少"
 msgid "Bleeding · medium"
 msgstr "出血 · 中等"
 
+msgid "Blocks"
+msgstr "区块"
+
 msgid "Blood glucose"
 msgstr "血糖"
 
@@ -847,6 +889,9 @@ msgstr "勃兰登堡州"
 msgid "Bremen"
 msgstr "不来梅"
 
+msgid "Browse..."
+msgstr "浏览..."
+
 msgid "Burgenland"
 msgstr "布尔根兰州"
 
@@ -855,6 +900,9 @@ msgstr "按名字排序（Hans Müller）"
 
 msgid "By last name (Müller, Hans)"
 msgstr "按姓氏排序（Müller, Hans）"
+
+msgid "CSV / Lotus Organizer contacts …"
+msgstr "CSV / Lotus Organizer 联系人 …"
 
 msgid "CSV files (*.csv)"
 msgstr "CSV 文件 (*.csv)"
@@ -870,12 +918,6 @@ msgstr "日历"
 
 msgid "Calendar (*.ics)"
 msgstr "日历 (*.ics)"
-
-msgid ""
-"Calendar and contact applications commonly export appointments as .ics files "
-"and contacts as .vcf files."
-msgstr ""
-"日历和联系人应用程序通常将约会导出为 .ics 文件，将联系人导出为 .vcf 文件。"
 
 msgid "Calendar file (.ics/.vcs/.lcs) …"
 msgstr "日历文件 (.ics/.vcs/.lcs) …"
@@ -991,6 +1033,9 @@ msgstr "正在检查当前手册版本…"
 msgid "Checking the current version …"
 msgstr "正在检查当前版本 …"
 
+msgid "Choose Appointments, Notes or Tasks in Customize."
+msgstr "请在自定义中选择预约、笔记或任务。"
+
 msgid ""
 "Choose a backup file. Before restoring it, the organizer automatically "
 "creates a copy of the current data. An encrypted backup requires its "
@@ -1036,6 +1081,11 @@ msgstr "请至少选择四个字符。"
 msgid "Choose entries to print, export or delete"
 msgstr "选择要打印、导出或删除的条目"
 
+msgid ""
+"Choose file and Windows contact imports that Magnolie can start directly "
+"after opening."
+msgstr "请选择 Magnolie 打开后可直接启动的文件和 Windows 联系人导入。"
+
 msgid "Choose file…"
 msgstr "选择文件…"
 
@@ -1051,6 +1101,11 @@ msgstr "选择照片…"
 msgid "Choose print or export content…"
 msgstr "选择要打印或导出的内容…"
 
+msgid ""
+"Choose safe preferences now. No scheduled backup job is started in the "
+"assistant."
+msgstr "现在选择安全的偏好设置。助手不会启动任何计划备份任务。"
+
 msgid "Choose service"
 msgstr "选择服务"
 
@@ -1062,11 +1117,14 @@ msgstr "选择要在记事本中显示为标签页的分区。日历始终可用
 msgid "Choose year…"
 msgstr "选择年份…"
 
+msgid "Choose your organizer tabs"
+msgstr "打造您的 Organizer"
+
 msgid "City"
 msgstr "城市"
 
-msgid "Claws Mail (.xml/.ldif) …"
-msgstr "Claws Mail（.xml/.ldif）…"
+msgid "Claws Mail XML (.xml) …"
+msgstr "Claws Mail XML (.xml) …"
 
 msgid "Claws Mail address book (*.xml)"
 msgstr "Claws Mail 通讯录 (*.xml)"
@@ -1232,9 +1290,6 @@ msgstr "联系人"
 msgid "Contacts (.vcf)"
 msgstr "联系人 (.vcf)"
 
-msgid "Contacts (.vcf) …"
-msgstr "联系人 (.vcf) …"
-
 msgid "Contacts are merged additively. No deletions are transmitted."
 msgstr "联系人以增量方式合并，不传输删除操作。"
 
@@ -1280,6 +1335,9 @@ msgstr "国家/地区与区域"
 msgid "Country for searches"
 msgstr "用于搜索的国家/地区"
 
+msgid "Country of origin"
+msgstr "原籍国"
+
 msgid "Create"
 msgstr "创建"
 
@@ -1310,8 +1368,8 @@ msgstr "创建笔记本"
 msgid "Create pairing file …"
 msgstr "创建配对文件 …"
 
-msgid "Create snapshot now"
-msgstr "立即创建快照"
+msgid "Creating recovery snapshot …"
+msgstr "正在创建恢复快照 …"
 
 msgid "Custom"
 msgstr "自定义"
@@ -1319,8 +1377,18 @@ msgstr "自定义"
 msgid "Custom application"
 msgstr "定制应用程序"
 
+msgid ""
+"Custom content is saved locally and transferred through complete Magnolie "
+"archives only, not Personal Sync."
+msgstr ""
+"自定义内容保存在本地，并且只能通过完整的 Magnolie 归档传输，不能通过 "
+"Personal Sync 传输。"
+
 msgid "Custom notification"
 msgstr "自定义通知"
+
+msgid "Custom tab"
+msgstr "自定义标签页"
 
 msgid "Custom websites must begin with https://."
 msgstr "自定义网站必须以 https:// 开头。"
@@ -1485,6 +1553,9 @@ msgstr "删除休假时段"
 msgid "Delete waste collection"
 msgstr "删除垃圾收集"
 
+msgid "Deleted and missing data is restored; newer existing data is retained."
+msgstr "恢复已删除和缺失的数据；保留较新的现有数据。"
+
 msgid ""
 "Deleted items first go to the recycle bin and can be restored from there. "
 "They are permanently removed only afterwards."
@@ -1506,6 +1577,9 @@ msgstr "已送达"
 
 msgid "Delivered to %(branch)s."
 msgstr "已送达 %(branch)s。"
+
+msgid "Delivery status uncertain"
+msgstr "送达状态不确定"
 
 msgid "Dentist Dr. Hill — Preview of your entries"
 msgstr "牙医 Hill 医生 — 您的条目预览"
@@ -1576,6 +1650,9 @@ msgstr "下载手册"
 
 msgid "Download manual version %(version)s"
 msgstr "下载手册版本 %(version)s"
+
+msgid "Downloads"
+msgstr "下载"
 
 msgid "Drag the attachment area up or down"
 msgstr "向上或向下拖动附件区域"
@@ -1687,6 +1764,9 @@ msgstr ""
 msgid "Enable reminders"
 msgstr "启用提醒"
 
+msgid "Enable reminders for this block"
+msgstr "为此区块启用提醒"
+
 msgid "Enable shift planner"
 msgstr "启用班次计划器"
 
@@ -1702,12 +1782,22 @@ msgstr "启用垃圾收集日历"
 msgid "Enjoy getting organized!"
 msgstr "祝您整理顺利！"
 
+msgid ""
+"Enjoy organizing with Magnolie. Your choices stay under your control and can "
+"be changed later in Settings."
+msgstr ""
+"愿您享受使用 Magnolie 整理事务的过程。所有选择均由您掌控，之后可在“设置”中更"
+"改。"
+
 msgid "Enter"
 msgstr "输入"
 
 msgid ""
 "Enter a blood glucose value on the left to highlight matching scheme rows."
 msgstr "在左侧输入血糖值，以突出显示匹配的方案行。"
+
+msgid "Enter a future time and a valid SMS text for every entry."
+msgstr "请为每个条目输入未来的时间和有效的 SMS 内容。"
 
 msgid "Enter a medication name first."
 msgstr "请先输入药物名称。"
@@ -1756,20 +1846,30 @@ msgstr "错误"
 msgid "Evening"
 msgstr "傍晚"
 
-msgid "Every 12 hours"
-msgstr "每12小时"
-
-msgid "Every 6 hours"
-msgstr "每6小时"
-
 msgid "Every filled medication row requires a name."
 msgstr "每个已填写的用药行都必须包含药物名称。"
 
 msgid "Every filled row requires a valid date."
 msgstr "每个已填写的行都必须包含有效日期。"
 
+msgid ""
+"Every saved change is protected automatically by a private, integrity-"
+"checked snapshot."
+msgstr "每项已保存的更改都会由经过完整性检查的私有快照自动保护。"
+
 msgid "Everything is done - the list is empty."
 msgstr "全部完成 – 列表为空。"
+
+msgid "Everything is ready"
+msgstr "一切准备就绪"
+
+msgid ""
+"Evolution and Thunderbird are selected explicitly. iPhone contacts require a "
+"vCard export from the iPhone or iCloud. KDE Connect, Bluetooth and PBAP are "
+"not contact sources."
+msgstr ""
+"Evolution 和 Thunderbird 需明确选择。iPhone 联系人需要从 iPhone 或 iCloud 导"
+"出 vCard。KDE Connect、Bluetooth 和 PBAP 不是联系人来源。"
 
 msgid "Exactly one Magnolie Notes phone must be paired."
 msgstr "必须配对一部 Magnolie Notes 手机。"
@@ -1948,9 +2048,6 @@ msgstr "星期五"
 msgid "From"
 msgstr "从"
 
-msgid "From the Windows Contacts folder"
-msgstr "从 Windows 联系人文件夹"
-
 msgid "Full"
 msgstr "满"
 
@@ -2072,6 +2169,9 @@ msgstr "家庭"
 msgid "Home address"
 msgstr "家庭地址"
 
+msgid "Home country for phone numbers"
+msgstr "电话号码的默认国家/地区"
+
 msgid "Home phone"
 msgstr "家庭电话"
 
@@ -2080,6 +2180,9 @@ msgstr "上门拜访"
 
 msgid "Hours"
 msgstr "小时"
+
+msgid "How lovely that you chose Magnolie"
+msgstr "很高兴您选择了 Magnolie"
 
 msgid "How the calendar should behave when you click a day."
 msgstr "点击某一天时日历应如何响应。"
@@ -2120,6 +2223,9 @@ msgstr "导入"
 msgid "Import Magnolie complete archive"
 msgstr "导入 Magnolie 完整档案"
 
+msgid "Import contacts additively"
+msgstr "增量导入联系人"
+
 msgid "Import failed: %(error)s"
 msgstr "导入失败：%(error)s"
 
@@ -2128,6 +2234,9 @@ msgstr "从 LibreOffice 导入"
 
 msgid "Import is available only in the installed application."
 msgstr "只有安装版应用程序支持导入。"
+
+msgid "Import once"
+msgstr "仅导入一次"
 
 msgid "Import pairing file …"
 msgstr "导入配对文件 …"
@@ -2221,6 +2330,9 @@ msgstr "胰岛素给药方案"
 msgid "Integrity"
 msgstr "诚信"
 
+msgid "International call"
+msgstr "国际电话"
+
 msgid "Internet IP"
 msgstr "互联网 IP"
 
@@ -2268,6 +2380,9 @@ msgstr "保留故障排除日志"
 msgid "LDIF address book (*.ldif)"
 msgstr "LDIF 地址簿 (*.ldif)"
 
+msgid "LDIF address book (.ldif) …"
+msgstr "LDIF 通讯录 (.ldif) …"
+
 msgid "Landline"
 msgstr "固定电话"
 
@@ -2286,9 +2401,6 @@ msgstr "上次检查失败：%(error)s"
 msgid "Last name"
 msgstr "姓氏"
 
-msgid "Last snapshot"
-msgstr "最后快照"
-
 msgid "Last successful backup"
 msgstr "上次成功备份"
 
@@ -2301,11 +2413,19 @@ msgstr "晚班"
 msgid "Lead time"
 msgstr "提前时间"
 
+msgid "Left page"
+msgstr "左页"
+
 msgid "Letter"
 msgstr "信件"
 
 msgid "Letter template"
 msgstr "信件模板"
+
+msgid ""
+"LibreOffice is only read when you press the button. Its settings are not "
+"modified."
+msgstr "只有按下按钮时才会读取 LibreOffice，不会修改其设置。"
 
 msgid "License"
 msgstr "许可证"
@@ -2367,6 +2487,12 @@ msgstr "木兰"
 msgid "Magnolia weather symbols only"
 msgstr "仅使用 Magnolie 天气符号"
 
+msgid "Magnolie Notes / Android: check for pending import"
+msgstr "Magnolie Notes / Android：检查待处理的导入"
+
+msgid "Magnolie Notes contact import"
+msgstr "Magnolie Notes 联系人导入"
+
 msgid "Magnolie Notes device status"
 msgstr "Magnolie Notes 设备状态"
 
@@ -2385,6 +2511,9 @@ msgstr ""
 "Magnolie Notes 手机与 KDE Connect 手机相互独立：Android 型号名称属于 "
 "Magnolie Notes；KDE 对等设备名称来自 KDE Connect。"
 
+msgid "Magnolie Organizer"
+msgstr "Magnolie Organizer"
+
 msgid "Magnolie Organizer is not completely installed."
 msgstr "Magnolie Organizer 未完整安装。"
 
@@ -2402,6 +2531,11 @@ msgstr "Magnolie SMS 不再是当前 Magnolie Notes 电话协议的一部分。"
 
 msgid "Magnolie backup (*.json)"
 msgstr "Magnolie 备份 (*.json)"
+
+msgid ""
+"Magnolie can use this information when preparing routes and finding local "
+"weather. You can leave every field empty."
+msgstr "Magnolie 可使用这些信息规划路线和查询当地天气。所有字段都可以留空。"
 
 msgid "Magnolie complete archive (.magnolie) …"
 msgstr "Magnolie 完整档案 (.magnolie) …"
@@ -2449,6 +2583,9 @@ msgctxt "recovery snapshot reason"
 msgid "Manual"
 msgstr "自定义"
 
+msgid "Manual only"
+msgstr "仅手动"
+
 msgid "Manual version %(version)s is available."
 msgstr "手动版本 %(version)s 可用。"
 
@@ -2473,9 +2610,6 @@ msgstr "标记为未完成"
 
 msgid "Maximized"
 msgstr "最大化"
-
-msgid "Maximum recovery snapshots"
-msgstr "恢复点的最大数量"
 
 msgid "Measurement context"
 msgstr "测量情境"
@@ -2579,6 +2713,9 @@ msgstr "移动网络"
 msgid "Model"
 msgstr "模型"
 
+msgid "Module"
+msgstr "模块"
+
 msgid "Monday"
 msgstr "星期一"
 
@@ -2587,6 +2724,9 @@ msgstr "月"
 
 msgid "Month calendar"
 msgstr "月历"
+
+msgid "Monthly"
+msgstr "每月"
 
 msgid "Monthly view"
 msgstr "月视图"
@@ -2607,6 +2747,9 @@ msgstr "早晨"
 msgid "Mouse wheel over times"
 msgstr "在时间上滚动鼠标滚轮"
 
+msgid "Move down"
+msgstr "下移"
+
 msgid "Move group down"
 msgstr "下移分组"
 
@@ -2624,6 +2767,12 @@ msgstr "上移笔记本"
 
 msgid "Move the ticked entries to the wastebasket"
 msgstr "将勾选的条目移到回收站"
+
+msgid "Move to top level"
+msgstr "移至顶层"
+
+msgid "Move up"
+msgstr "上移"
 
 msgid ""
 "Multiple Magnolie Notes phones are stored. Personal sync is blocked; remove "
@@ -2711,6 +2860,9 @@ msgstr "新建任务"
 msgid "New version %(version)s is available."
 msgstr "有新版本 %(version)s 可用。"
 
+msgid "Next"
+msgstr "下一步"
+
 msgid "Next appointment: %(title)s on %(date)s%(time)s%(notice)s"
 msgstr "下一个约会：%(title)s，%(date)s%(time)s%(notice)s"
 
@@ -2719,9 +2871,6 @@ msgstr "下个月"
 
 msgid "Next page"
 msgstr "下一页"
-
-msgid "Next snapshot"
-msgstr "下一快照"
 
 msgid "Next tab"
 msgstr "下一个标签页"
@@ -2734,9 +2883,6 @@ msgstr "下周"
 
 msgid "Next year"
 msgstr "明年"
-
-msgid "Nextcloud account"
-msgstr "Nextcloud 帐户"
 
 msgid "Nextcloud is not enabled."
 msgstr "Nextcloud 未启用。"
@@ -2758,6 +2904,9 @@ msgstr "未选择 Bluetooth 地址。"
 
 msgid "No KDE Connect pairing is awaiting confirmation."
 msgstr "没有 KDE Connect 配对正在等待确认。"
+
+msgid "No SMS messages are scheduled."
+msgstr "没有已计划的 SMS。"
 
 msgid "No address books found."
 msgstr "未找到通讯录。"
@@ -2783,6 +2932,9 @@ msgstr "无截止日期"
 
 msgid "No duplicate contact cards were found."
 msgstr "未找到重复的联系人卡片。"
+
+msgid "No entries yet."
+msgstr "尚无条目。"
 
 msgid "No file selected"
 msgstr "未选择文件"
@@ -2946,6 +3098,9 @@ msgstr "未找到任何内容。"
 msgid "Nothing has been entered under “%(letter)s” yet."
 msgstr "“%(letter)s”下尚未输入任何内容。"
 
+msgid "Nothing has been imported yet."
+msgstr "尚未导入任何内容。"
+
 msgid "Nothing is opened or sent while this option is disabled."
 msgstr "此选项禁用时，不会打开或发送任何内容。"
 
@@ -3025,6 +3180,11 @@ msgstr "一个表格及图表"
 msgid "One year"
 msgstr "一年"
 
+msgid ""
+"One-time imports are additive. They do not keep a source linked and do not "
+"delete contacts."
+msgstr "一次性导入只会增添数据，不会保持来源链接，也不会删除联系人。"
+
 msgid "Online"
 msgstr "在线"
 
@@ -3095,6 +3255,9 @@ msgstr "打开 Microsoft 登录页面"
 msgid "Open day view for %(date)s"
 msgstr "打开 %(date)s 的日视图"
 
+msgid "Open designer"
+msgstr "打开设计器"
+
 msgid "Open manual"
 msgstr "打开手册"
 
@@ -3112,6 +3275,9 @@ msgstr "在 Magnolie Notes 中打开手机连接并选择这台电脑。"
 
 msgid "Open planner as an ODS spreadsheet"
 msgstr "以 ODS 电子表格打开计划器"
+
+msgid "Open requested designer"
+msgstr "打开所请求的设计器"
 
 msgid "Open selected contacts as an ODS spreadsheet"
 msgstr "以 ODS 电子表格打开选中的联系人"
@@ -3147,9 +3313,6 @@ msgstr "在浏览器中打开 OpenStreetMap"
 
 msgid "Opened in %(application)s."
 msgstr "已在 %(application)s 中打开。"
-
-msgid "Operating system"
-msgstr "操作系统"
 
 msgid "Optional archive password"
 msgstr "可选的存档密码"
@@ -3204,6 +3367,9 @@ msgstr "PDF 文件"
 msgid "Packaging / Yellow bin"
 msgstr "包装物 / 黄色垃圾桶"
 
+msgid "Page"
+msgstr "页面"
+
 msgid "Page %(page)s"
 msgstr "第 %(page)s 页"
 
@@ -3236,6 +3402,9 @@ msgstr ""
 
 msgid "Palm tree"
 msgstr "棕榈树"
+
+msgid "Parent task"
+msgstr "上级任务"
 
 msgid ""
 "Participate in the Magnolienbaum (opens port %(port)s on the local network)"
@@ -3277,6 +3446,9 @@ msgstr "支付账单"
 msgid "Pen"
 msgstr "注射笔"
 
+msgid "Pending SMS messages"
+msgstr "待发送的 SMS"
+
 msgid "People"
 msgstr "人员"
 
@@ -3288,6 +3460,10 @@ msgstr "永久激活 KDE 侦听器"
 
 msgid "Permanent KDE listener stopped"
 msgstr "永久 KDE 侦听器已停止"
+
+msgid ""
+"Permanent sources remain linked and are handled on the Synchronization page."
+msgstr "永久来源会保持链接，并在“同步”页面中管理。"
 
 msgid "Permanently delete %(count)s completed task?"
 msgid_plural "Permanently delete %(count)s completed tasks?"
@@ -3330,6 +3506,9 @@ msgstr "同步失败。"
 
 msgid "Personal synchronization format 2 was not negotiated."
 msgstr "个人同步格式 2 未协商。"
+
+msgid "Personal synchronization format 3 was not negotiated."
+msgstr "未协商使用个人同步格式 3。"
 
 msgid "Personal synchronization is not permitted on both devices."
 msgstr "两个设备上不允许进行个人同步。"
@@ -3451,6 +3630,9 @@ msgstr "粉剂"
 msgid "Power source"
 msgstr "电源"
 
+msgid "Preferred backup folder"
+msgstr "首选备份文件夹"
+
 msgid "Preparing Microsoft sign-in …"
 msgstr "正在准备 Microsoft 登录..."
 
@@ -3465,6 +3647,10 @@ msgstr "预览、打印或导出年度计划器"
 
 msgid "Preview:"
 msgstr "预览："
+
+msgid "Preview: %(count)s contact"
+msgid_plural "Preview: %(count)s contacts"
+msgstr[0] "预览：%(count)s 个联系人"
 
 msgid "Previous month"
 msgstr "上个月"
@@ -3513,10 +3699,6 @@ msgstr "优先级 1 排在最前。逾期任务以红色显示。"
 
 msgid "Private"
 msgstr "私人"
-
-msgid ""
-"Private, integrity-checked snapshots are stored next to the application data."
-msgstr "经过完整性检查的私有快照存储在应用程序数据旁边。"
 
 msgid "Protected archive password unavailable."
 msgstr "受保护的存档密码不可用。"
@@ -3601,6 +3783,9 @@ msgstr "相关任务"
 
 msgid "Remind me again on the day itself"
 msgstr "当天再次提醒我"
+
+msgid "Reminder"
+msgstr "提醒"
 
 msgid "Reminder data:"
 msgstr "提醒数据："
@@ -3720,14 +3905,14 @@ msgstr "保存后请重启 Organizer，以便语言、时区和所有原生窗�
 msgid "Restore"
 msgstr "恢复"
 
+msgid "Restore a Magnolie backup after startup"
+msgstr "从 Magnolie 备份恢复"
+
 msgid "Restore backup"
 msgstr "恢复备份"
 
 msgid "Restore backup …"
 msgstr "恢复备份 …"
-
-msgid "Restore completely"
-msgstr "完全恢复"
 
 msgid "Restore defaults"
 msgstr "恢复默认设置"
@@ -3770,6 +3955,9 @@ msgstr "正在获取天气…"
 msgid "Rhineland-Palatinate"
 msgstr "莱茵兰-普法尔茨"
 
+msgid "Right page"
+msgstr "右页"
+
 msgid "Route"
 msgstr "路线"
 
@@ -3783,6 +3971,9 @@ msgstr "以可见方式运行下载的安装程序，并保持手动组件处于
 msgid "S"
 msgstr "S"
 
+msgid "SMS app settings"
+msgstr "SMS设置"
+
 msgid "SMS assignment"
 msgstr "SMS 分配"
 
@@ -3794,6 +3985,9 @@ msgstr "来自 %(name)s 的 SMS"
 
 msgid "SMS history"
 msgstr "SMS历史"
+
+msgid "SMS scheduled."
+msgstr "SMS 已安排。"
 
 msgid "SMS settings"
 msgstr "SMS设置"
@@ -3869,11 +4063,24 @@ msgstr "萨克森-安哈尔特"
 msgid "Schaffhausen"
 msgstr "沙夫豪森"
 
+msgid "Schedule"
+msgstr "已安排"
+
+msgid "Schedule SMS"
+msgstr "安排 SMS"
+
 msgid "Schedule an appointment"
 msgstr "安排约会"
 
 msgid "Scheduled"
 msgstr "已安排"
+
+msgid ""
+"Scheduled SMS messages are sent only while Magnolie is running and exactly "
+"one KDE Connect phone is available."
+msgstr ""
+"只有在 Magnolie 正在运行且恰好有一部 KDE Connect 手机可用时，才会发送已计划"
+"的 SMS。"
 
 msgid "Scheme"
 msgstr "方案"
@@ -3972,6 +4179,14 @@ msgid ""
 "Selected columns that are empty for every contact are omitted automatically."
 msgstr "对于所有联系人都为空的已选列会自动省略。"
 
+msgid ""
+"Selected imports are started directly after Magnolie opens. Thunderbird "
+"contacts are not offered because Windows has no Thunderbird address-book "
+"importer."
+msgstr ""
+"选定的导入会在 Magnolie 打开后立即启动。由于 Windows 没有 Thunderbird 通讯录"
+"导入器，因此不提供 Thunderbird 联系人。"
+
 msgid "Selection options"
 msgstr "选择选项"
 
@@ -3998,6 +4213,9 @@ msgstr "需要服务器地址和用户名。"
 
 msgid "Set or change password"
 msgstr "设置或更改密码"
+
+msgid "Set up Magnolie Organizer"
+msgstr "设置 Magnolie Organizer"
 
 msgid "Set up contacts"
 msgstr "设置联系人"
@@ -4119,6 +4337,9 @@ msgstr "已登录 Microsoft。"
 msgid "Signed out from Microsoft."
 msgstr "已从 Microsoft 注销。"
 
+msgid "Skip assistant"
+msgstr "跳过助手"
+
 msgid ""
 "Small action buttons appear on each contact card. You can hide anything you "
 "do not need here."
@@ -4151,6 +4372,9 @@ msgstr "某些现有备份无法加密。"
 msgid "Son"
 msgstr "儿子"
 
+msgid "Sort contacts"
+msgstr "联系人排序"
+
 msgid "Sort everything alphabetically"
 msgstr "全部按字母顺序排序"
 
@@ -4159,6 +4383,12 @@ msgstr "排序"
 
 msgid "Sound only"
 msgstr "仅声音"
+
+msgid "Sources"
+msgstr "来源"
+
+msgid "Sources and imports"
+msgstr "从空白开始并跳过导入"
 
 msgid "Space for anything you want to remember…"
 msgstr "用于记录任何您想记住的事情…"
@@ -4178,6 +4408,12 @@ msgstr "喷雾剂"
 msgid "St. Gallen"
 msgstr "圣加仑"
 
+msgid "Start Magnolie"
+msgstr "启动 Magnolie"
+
+msgid "Start Magnolie with Windows in the notification area (tray)"
+msgstr "在通知区域（托盘）中启动 Magnolie 并使用 Windows"
+
 msgid "Start automatically when signing in"
 msgstr "登录时自动启动"
 
@@ -4186,6 +4422,9 @@ msgstr "启动 Organizer 时进入系统托盘"
 
 msgid "State"
 msgstr "州"
+
+msgid "State / region"
+msgstr "格式区域"
 
 msgid "Status"
 msgstr "地位"
@@ -4213,6 +4452,9 @@ msgstr "已提交"
 
 msgid "Submitted to KDE Connect"
 msgstr "已提交至KDE Connect"
+
+msgid "Submitting"
+msgstr "已提交"
 
 msgid "Suggestions are available only in the installed application."
 msgstr "建议仅在已安装的应用中可用。"
@@ -4281,6 +4523,9 @@ msgstr "同步联系人"
 msgid "Synchronize now"
 msgstr "立即同步"
 
+msgid "Synchronize permanently"
+msgstr "永久同步"
+
 msgid "Synchronize tasks"
 msgstr "同步联系人"
 
@@ -4289,6 +4534,9 @@ msgstr "正在同步 …"
 
 msgid "System default"
 msgstr "系统默认"
+
+msgid "System internet accounts"
+msgstr "系统互联网账户"
 
 msgid "System setting"
 msgstr "系统设置"
@@ -4312,6 +4560,9 @@ msgstr "标签页 %(letter)s"
 msgid "Tab %(letter)s · %(count)s"
 msgstr "标签页 %(letter)s · %(count)s"
 
+msgid "Tab name"
+msgstr "标签页名称"
+
 msgid "Tablet"
 msgstr "片剂"
 
@@ -4320,6 +4571,9 @@ msgstr "标签页"
 
 msgid "Task"
 msgstr "任务"
+
+msgid "Task is due"
+msgstr "任务到期"
 
 msgid "Tasks"
 msgstr "任务"
@@ -4351,6 +4605,12 @@ msgstr "立即测试"
 
 msgid "Testing…"
 msgstr "正在测试…"
+
+msgid "Text"
+msgstr "文本"
+
+msgid "Text block"
+msgstr "文本块"
 
 msgid "Text color"
 msgstr "文本颜色"
@@ -4423,14 +4683,6 @@ msgstr "ODS 导出内容过大。"
 msgid "The Organizer chooses a suitable installed application."
 msgstr "Organizer 会选择合适的已安装应用。"
 
-msgid ""
-"The Windows Contacts folder is synchronized bidirectionally on the "
-"synchronization page. File imports do not modify their source files; "
-"existing entries are not added twice."
-msgstr ""
-"Windows 联系人文件夹在同步页面上进行双向同步。文件导入不会修改其源文件；现有"
-"条目不会添加两次。"
-
 msgid "The address could not be opened."
 msgstr "该地址无法打开。"
 
@@ -4445,6 +4697,13 @@ msgid ""
 "The archive is encrypted. Enter the password to verify it completely before "
 "importing."
 msgstr "存档已加密。输入密码以在导入前进行彻底验证。"
+
+msgid ""
+"The assistant covers your address for routes and weather, data sources, "
+"phone connections, organizer tabs, backups, and startup behavior."
+msgstr ""
+"此助手涵盖用于路线和天气的地址、数据源、手机连接、Organizer 标签页、备份和启"
+"动行为。"
 
 msgid "The attachment range is invalid."
 msgstr "附件范围无效。"
@@ -4469,6 +4728,9 @@ msgid ""
 "therefore works even when the organizer is closed."
 msgstr ""
 "后台提醒服务可以读取单独的提醒数据，因此即使 Organizer 已关闭也能工作。"
+
+msgid "The backup chooser will open after Magnolie has started."
+msgstr "Magnolie 启动后将打开备份选择器。"
 
 msgid "The backup could not be created."
 msgstr "无法创建备份。"
@@ -4614,6 +4876,9 @@ msgid ""
 msgstr ""
 "信息只从开放目录 openholidaysapi.org 获取一次，之后保存在 Organizer 中。因此"
 "应用只需要一次互联网连接。"
+
+msgid "The language setting could not be saved."
+msgstr "无法保存语言设置。"
 
 msgid "The last notebook cannot be deleted."
 msgstr "不能删除最后一个笔记本。"
@@ -4839,6 +5104,9 @@ msgstr ""
 msgid "The save request is invalid."
 msgstr "保存请求无效。"
 
+msgid "The selected areas are reset exactly; data added later is removed."
+msgstr "所选区域将精确重置；之后添加的数据将被移除。"
+
 msgid "The selected contacts contain no values for these columns."
 msgstr "所选联系人在这些列中没有任何值。"
 
@@ -4849,6 +5117,9 @@ msgid ""
 "The server operator can see the account, folder and file names, sizes and "
 "times of your messages."
 msgstr "服务器运营者可以看到账户、文件夹和文件名称、大小以及消息的时间。"
+
+msgid "The setup state could not be saved."
+msgstr "无法保存设置状态。"
 
 msgid ""
 "The sheet appears at the edge of the screen, accompanied by the Magnolie "
@@ -4952,6 +5223,11 @@ msgid "There is nothing to print."
 msgstr "没有可打印的内容。"
 
 msgid ""
+"These are Magnolie's actual tabs. You can show only the sections that fit "
+"your everyday life."
+msgstr "这些是 Magnolie 的实际标签页。您可以只显示符合日常需要的分区。"
+
+msgid ""
 "These choices change how the Organizer displays information. Your entries "
 "are not converted or moved."
 msgstr "这些选项会更改 Organizer 显示信息的方式。您的条目不会被转换或移动。"
@@ -5044,6 +5320,11 @@ msgstr ""
 msgid "This notebook is still empty."
 msgstr "此笔记本仍为空。"
 
+msgid ""
+"This one-time import only adds or enriches contacts. It does not synchronize "
+"or delete contacts."
+msgstr "此次一次性导入只会添加或补充联系人信息，不会同步或删除联系人。"
+
 msgid "This paired phone is my own device"
 msgstr "这部已配对的手机是我自己的设备"
 
@@ -5126,6 +5407,9 @@ msgstr "失败尝试过多。请稍候。"
 msgid "Too many regions were selected."
 msgstr "选择的地区过多。"
 
+msgid "Top level"
+msgstr "顶层"
+
 msgid "Tray applet"
 msgstr "系统托盘小程序"
 
@@ -5195,6 +5479,9 @@ msgstr "未知错误"
 msgid "Unknown phone"
 msgstr "未知端点。"
 
+msgid "Unknown source"
+msgstr "未知来源"
+
 msgid "Unlink"
 msgstr "取消关联"
 
@@ -5236,6 +5523,9 @@ msgstr "运行时间"
 
 msgid "Uri"
 msgstr "URI"
+
+msgid "Use LibreOffice address"
+msgstr "使用 LibreOffice 地址数据"
 
 msgid "Use a specific application or command"
 msgstr "使用指定应用或命令"
@@ -5385,6 +5675,11 @@ msgstr "警告：无法保存数据。"
 msgid "Waste collection calendar"
 msgstr "垃圾收运日历"
 
+msgid ""
+"We are delighted to welcome you. This short assistant prepares Magnolie "
+"Organizer around your wishes."
+msgstr "欢迎使用。这个简短的助手将按照您的意愿设置 Magnolie Organizer。"
+
 msgid "We are glad you are here!"
 msgstr "很高兴您来到这里！"
 
@@ -5476,11 +5771,6 @@ msgid ""
 msgstr ""
 "选中后，可以为每个人指定一张照片。嵌入的照片在导入、导出以及与在线通讯录同步"
 "时都会保留。联系人卡片上的电子邮件地址始终可点击，并会打开您的邮件应用。"
-
-msgid ""
-"When the limit is lowered, the oldest recovery snapshots are removed "
-"automatically."
-msgstr "降低数量限制时，最旧的恢复点会自动删除。"
 
 msgid ""
 "When writing a note, a small toolbar above the sheet provides bold, italic, "
@@ -5889,6 +6179,12 @@ msgstr "未知错误"
 msgid "untitled"
 msgstr "无标题"
 
+msgid "vCard (.vcf), including iPhone/iCloud export …"
+msgstr "vCard (.vcf)，包括从 iPhone/iCloud 导出的文件 …"
+
+msgid "vCard file (.vcf), including iPhone/iCloud export …"
+msgstr "vCard 文件 (.vcf)，包括从 iPhone/iCloud 导出的文件 …"
+
 msgid ""
 "vCard preserves more contact details. LDIF is intended for importing into "
 "Claws Mail; emergency contacts, social media, free labels and non-JPEG "
@@ -5967,5 +6263,153 @@ msgstr[0] "… 以及另外 %(count)s 项也将打印。"
 msgid "＋ Add appointment"
 msgstr "＋ 添加约会"
 
-msgid "Language & region"
-msgstr "语言和区域"
+#~ msgid ""
+#~ "Download Magnolie Notes or KDE Connect using the links below. Bluetooth "
+#~ "opens Windows Settings for direct pairing."
+#~ msgstr ""
+#~ "使用下面的链接下载 Magnolie Notes 或 KDE Connect。Bluetooth 会打开 "
+#~ "Windows 设置以进行直接配对。"
+
+#~ msgid ""
+#~ "Magnolie Notes and KDE Connect are download links, not connection "
+#~ "actions. Bluetooth opens Windows Settings for direct pairing."
+#~ msgstr ""
+#~ "Magnolie Notes 和 KDE Connect 是下载链接，而不是连接操作。Bluetooth 会打"
+#~ "开 Windows 设置以进行直接配对。"
+
+#~ msgid ""
+#~ "The predefined Calendar tab is always available again from Settings, even "
+#~ "if you hide it here."
+#~ msgstr "即使在此处隐藏预定义的“日历”标签页，也始终可以在“设置”中重新启用。"
+
+#~ msgid "No more blocks can be added."
+#~ msgstr "无法再添加更多区块。"
+
+#~ msgid "Yearly"
+#~ msgstr "每年"
+
+#~ msgid ""
+#~ "Autostart also enables tray availability. Tray can be enabled "
+#~ "independently without autostart."
+#~ msgstr "启用自动启动也会使托盘可用。无需启用自动启动，也可以单独启用托盘。"
+
+#~ msgid "Checklist / list block"
+#~ msgstr "清单 / 列表区块"
+
+#~ msgid "Connect Magnolie Notes"
+#~ msgstr "电话与 Magnolie Notes"
+
+#~ msgid "Pair KDE Connect for SMS"
+#~ msgstr "KDE Connect 为 SMS"
+
+#~ msgid "Recurrence block"
+#~ msgstr "重复区块"
+
+#~ msgid "Start Magnolie with Windows"
+#~ msgstr "随 Windows 启动 Magnolie"
+
+#~ msgid ""
+#~ "The secure download links open directly. Bluetooth opens Windows "
+#~ "Settings; this assistant does not change or pair devices."
+#~ msgstr ""
+#~ "安全下载链接会直接打开。Bluetooth 会打开 Windows Settings；此助手不会更改"
+#~ "设备或与设备配对。"
+
+#~ msgid "Backup restore selected"
+#~ msgstr "未选择照片"
+
+#~ msgid ""
+#~ "Choose Start Magnolie to begin, or Manual to begin and open the manual "
+#~ "after the main window is visible."
+#~ msgstr "选择“启动 Magnolie”开始，或选择“手册”开始并在主窗口显示后打开手册。"
+
+#~ msgid ""
+#~ "Choose permanent synchronization separately from data that should be "
+#~ "imported once, just as in Settings."
+#~ msgstr "请像在“设置”中一样，分别选择永久同步和只需导入一次的数据。"
+
+#~ msgid "Create snapshot now"
+#~ msgstr "立即创建快照"
+
+#~ msgid "Design request selected"
+#~ msgstr "已选择设计请求"
+
+#~ msgid "Every 12 hours"
+#~ msgstr "每12小时"
+
+#~ msgid "Every 6 hours"
+#~ msgstr "每6小时"
+
+#~ msgid "Include Bluetooth information"
+#~ msgstr "包括 Bluetooth 信息"
+
+#~ msgid "Last snapshot"
+#~ msgstr "最后快照"
+
+#~ msgid "Magnolie Notes"
+#~ msgstr "Magnolie Notes"
+
+#~ msgid "Maximum recovery snapshots"
+#~ msgstr "恢复点的最大数量"
+
+#~ msgid "Next snapshot"
+#~ msgstr "下一快照"
+
+#~ msgid ""
+#~ "Nothing connects or imports automatically. Your choices appear as pending "
+#~ "actions in Settings."
+#~ msgstr ""
+#~ "系统不会自动连接或导入任何内容。您的选择会在“设置”中显示为待执行操作。"
+
+#~ msgid ""
+#~ "Nothing starts automatically. Choose an action below when you are ready."
+#~ msgstr "不会自动启动任何操作。准备就绪后，请从下方选择操作。"
+
+#~ msgid "Number of backups"
+#~ msgstr "备份数量"
+
+#~ msgid "Operating system"
+#~ msgstr "操作系统"
+
+#~ msgid "Pending setup choices"
+#~ msgstr "待处理的设置选项"
+
+#~ msgid "Permanent synchronization"
+#~ msgstr "永久同步来源"
+
+#~ msgid "Plan recovery points before important changes"
+#~ msgstr "在重要更改前规划恢复点"
+
+#~ msgid ""
+#~ "Private, integrity-checked snapshots are stored next to the application "
+#~ "data."
+#~ msgstr "经过完整性检查的私有快照存储在应用程序数据旁边。"
+
+#~ msgid "Request a separate tab design"
+#~ msgstr "请求单独设计标签页"
+
+#~ msgid ""
+#~ "Restoring is deferred until Magnolie has opened; no file is changed by "
+#~ "this assistant."
+#~ msgstr "恢复操作会推迟到 Magnolie 打开后进行；此助手不会更改任何文件。"
+
+#~ msgid "Show Android download information"
+#~ msgstr "正在获取手动下载信息 …"
+
+#~ msgid "Show QR pairing information"
+#~ msgstr "准备二维码配对信息"
+
+#~ msgid "Standard CalDAV / CardDAV"
+#~ msgstr "标准 CalDAV / CardDAV"
+
+#~ msgid ""
+#~ "The QR code and download are shown only after Magnolie opens. No app is "
+#~ "installed, Bluetooth is not changed, and no device is paired now."
+#~ msgstr ""
+#~ "二维码和下载信息只会在 Magnolie 打开后显示。现在不会安装任何应用、更改 "
+#~ "Bluetooth 或配对任何设备。"
+
+#~ msgid ""
+#~ "When the limit is lowered, the oldest recovery snapshots are removed "
+#~ "automatically."
+#~ msgstr "降低数量限制时，最旧的恢复点会自动删除。"

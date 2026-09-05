@@ -2,7 +2,7 @@ Source: magnolie-organizer
 Section: utils
 Priority: optional
 Maintainer: Maik Walter <maik3531@gmail.com>
-Build-Depends: debhelper-compat (= 13), python3:any, python3-cryptography, python3-openssl, python3-pytest, python3-qrcode, python3-zeroconf,
+Build-Depends: debhelper-compat (= 13), python3:any, python3-cryptography, python3-openssl, python3-phonenumbers, python3-pytest, python3-qrcode, python3-zeroconf,
  gettext, nodejs, node-jsdom
 Standards-Version: 4.6.2
 Rules-Requires-Root: no
@@ -10,7 +10,7 @@ Rules-Requires-Root: no
 Package: magnolie-organizer
 Architecture: all
 Depends: ${misc:Depends}, python3, gettext, python3-gi, gir1.2-gtk-3.0, gir1.2-webkit2-4.1 | gir1.2-webkit2-4.0,
- python3-enchant, python3-cryptography, python3-openssl, python3-qrcode, python3-zeroconf,
+ python3-enchant, python3-cryptography, python3-openssl, python3-phonenumbers, python3-qrcode, python3-zeroconf,
  gir1.2-notify-0.7
 Replaces: magnolie-handbuch (<< 2.0.10)
 Breaks: magnolie-handbuch (<< 2.0.10)

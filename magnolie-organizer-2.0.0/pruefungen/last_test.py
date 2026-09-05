@@ -247,6 +247,7 @@ with tempfile.TemporaryDirectory(prefix="magnolie-thunderbird-last-") as tb_tmp:
             eigenschaften.append(("last", uid, "DESCRIPTION", lange_notiz))
         if jahrestag:
             eigenschaften.append(("last", uid, "CATEGORIES", "ANNIVERSARY"))
+            eigenschaften.append(("last", uid, "X-MAGNOLIE-TYPE-ID", "birthday"))
             wiederholungen.append(("last", uid, "RRULE:FREQ=YEARLY"))
         elif flags & 16:
             wiederholungen.append(("last", uid, "RRULE:FREQ=WEEKLY"))

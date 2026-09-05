@@ -15,6 +15,35 @@ internal static class WindowsContactGraphTests
         {
             var store = new WindowsContactStore(root);
             var contact = new JsonObject { ["vorname"] = "Änne", ["nachname"] = "Beispiel", ["email"] = "a@example.test" };
+            var stableOne = WindowsContactStore.StableImportUid("Anna.contact", "");
+            var stableTwo = WindowsContactStore.StableImportUid("Anna.contact", "");
+            TestAssert.That(stableOne == stableTwo && stableOne.StartsWith("urn:magnolie:import:windows-contact:", StringComparison.Ordinal),
+                "Der einmalige Windows-Import erzeugte keine idempotente namespaced Bindung.");
+            TestAssert.That(WindowsContactStore.StableImportUid("Anna.contact", "mag-eingebettet") == "mag-eingebettet" &&
+                WindowsContactStore.StableImportUid("Anna.contact", "ungueltig\n") == stableOne,
+                "Eine gültige eingebettete Magnolie-UID hatte keinen Vorrang oder eine ungültige wurde übernommen.");
+            var importManifest = new JsonObject { ["art"] = "kontakt_import_manifest", ["fassung"] = 1,
+                ["importId"] = Guid.Empty.ToString(), ["anzahl"] = 1,
+                ["herkuenfte"] = new JsonArray(new JsonObject { ["kontoTyp"] = "type", ["kontoName"] = "Privat", ["dataSet"] = "", ["anzahl"] = 1 }) };
+            BaumContactSyncContract.ValidateImport(importManifest, "kontakt_import_manifest");
+            var importCard = new JsonObject { ["art"] = "kontakt_import_karte", ["fassung"] = 1,
+                ["importId"] = Guid.Empty.ToString(), ["bindung"] = "urn:magnolie:import:android:" + new string('a', 64),
+                ["herkuenfte"] = new JsonArray(new JsonObject { ["kontoTyp"] = "type", ["kontoName"] = "Privat", ["dataSet"] = "" }),
+                ["kontakt"] = new JsonObject { ["vorname"] = "Ada", ["nachname"] = "", ["firma"] = "", ["notiz"] = "",
+                    ["geburtstag"] = "", ["telefone"] = new JsonArray(), ["emailEintraege"] = new JsonArray(), ["anschriften"] = new JsonArray() } };
+            BaumContactSyncContract.ValidateImport(importCard, "kontakt_import_karte");
+            var uppercaseBinding = importCard.DeepClone().AsObject();
+            uppercaseBinding["bindung"] = "urn:magnolie:import:android:" + new string('A', 64);
+            TestAssert.Throws<InvalidDataException>(() => BaumContactSyncContract.ValidateImport(uppercaseBinding, "kontakt_import_karte"),
+                "Der Windows-Import akzeptierte eine plattformfremde grossgeschriebene Bindung.");
+            var fractionalSync = new JsonObject { ["art"] = "kontakt_sync", ["fassung"] = 1,
+                ["freigabeId"] = "import-test", ["version"] = 1.0, ["quelle"] = "test", ["geaendert"] = 0,
+                ["kontakt"] = importCard["kontakt"]!.DeepClone() };
+            TestAssert.Throws<InvalidDataException>(() => BaumContactSyncContract.Validate(fractionalSync),
+                "Der Kontaktvertrag akzeptierte eine Fließkommazahl als Version.");
+            var deleteCard = importCard.DeepClone().AsObject(); deleteCard["loeschen"] = true;
+            try { BaumContactSyncContract.ValidateImport(deleteCard, "kontakt_import_karte"); throw new InvalidOperationException("Importkarte akzeptierte eine Löschanweisung."); }
+            catch (InvalidDataException) { }
             await TestAssert.ThrowsAsync<IOException>(() => store.UpdateAsync(
                     new RemoteContact("../fremd.contact", "", 0, contact, true), "uid", contact, CancellationToken.None),
                 "Windows Contacts akzeptierte Pfadtraversal als Remote-ID.");
@@ -38,6 +67,9 @@ internal static class WindowsContactGraphTests
             ContactFields.CopyRemoteFields(mergeTarget, new JsonObject { ["vorname"] = "Remote" });
             TestAssert.That(mergeTarget["geburtstag"]!.GetValue<string>() == "--02-29",
                 "Ein Provider ohne Geburtstagsfeld löschte das lokale jahrlose Datum.");
+            ContactFields.CopyRemoteFields(mergeTarget, new JsonObject { ["geburtstag"] = "" });
+            TestAssert.That(mergeTarget["geburtstag"]!.GetValue<string>() == "--02-29",
+                "Ein leeres Provider-Geburtstagsfeld löschte das lokale Datum.");
             using (var graph2000 = System.Text.Json.JsonDocument.Parse("""{"id":"genuine","birthday":"2000-02-29T00:00:00Z"}"""))
                 TestAssert.That(GraphApiClient.ParseContact(graph2000.RootElement).Data["geburtstag"]!.GetValue<string>() == "2000-02-29",
                     "Graph interpretierte ein externes Jahr 2000 als unbekannt.");
@@ -85,6 +117,13 @@ internal static class WindowsContactGraphTests
             var partialResult = await new ContactSyncEngine().SyncAsync("fake", new JsonArray(changedLocal), new JsonArray(deleteCandidate), 100, partial);
             TestAssert.That(partialResult.Counts.Errors == 1 && partial.Deletes == 0,
                 "Ein partiell fehlgeschlagener Kontaktlauf führte eine Remote-Löschung aus.");
+            var birthdayRemote = new BirthdayRepairRemote();
+            var birthdayLocal = new JsonObject { ["uid"] = "birthday", ["geburtstag"] = "1980-04-03", ["geaendert"] = 10L,
+                ["syncQuellen"] = new JsonObject { ["fake"] = new JsonObject { ["id"] = "birthday", ["etag"] = "\"same\"", ["eigen"] = true } } };
+            var birthdayResult = await new ContactSyncEngine().SyncAsync("fake", new JsonArray(birthdayLocal), new JsonArray(), 100, birthdayRemote);
+            TestAssert.That(birthdayRemote.Updates == 1 && birthdayRemote.Birthday == "1980-04-03" &&
+                birthdayResult.Contacts[0]?["geburtstag"]?.GetValue<string>() == "1980-04-03",
+                "Ein beim Provider fehlender Geburtstag wurde nicht aus dem lokalen Bestand repariert.");
 
             using var badNextHttp = new HttpClient(new RecordingHttpHandler(_ => Task.FromResult(Json(HttpStatusCode.OK,
                 "{\"value\":[],\"@odata.nextLink\":\"https://attacker.invalid/steal\"}"))));
@@ -149,5 +188,21 @@ internal static class WindowsContactGraphTests
         public Task<RemoteContact> CreateAsync(string uid, JsonObject contact, CancellationToken cancellationToken) => throw new IOException("partial");
         public Task<RemoteContact> UpdateAsync(RemoteContact remote, string uid, JsonObject contact, CancellationToken cancellationToken) => throw new IOException("partial");
         public Task DeleteAsync(RemoteContact remote, string uid, CancellationToken cancellationToken) { Deletes++; return Task.CompletedTask; }
+    }
+
+    private sealed class BirthdayRepairRemote : IContactRemote
+    {
+        internal int Updates { get; private set; }
+        internal string Birthday { get; private set; } = "";
+        public Task<IReadOnlyList<RemoteContact>> ReadAsync(CancellationToken cancellationToken) => Task.FromResult<IReadOnlyList<RemoteContact>>([
+            new RemoteContact("birthday", "\"same\"", 200, new JsonObject { ["uid"] = "birthday" }, true)]);
+        public Task<RemoteContact> CreateAsync(string uid, JsonObject contact, CancellationToken cancellationToken) => throw new InvalidOperationException();
+        public Task<RemoteContact> UpdateAsync(RemoteContact remote, string uid, JsonObject contact, CancellationToken cancellationToken)
+        {
+            Updates++;
+            Birthday = contact["geburtstag"]?.GetValue<string>() ?? "";
+            return Task.FromResult(remote with { Data = contact.DeepClone().AsObject() });
+        }
+        public Task DeleteAsync(RemoteContact remote, string uid, CancellationToken cancellationToken) => throw new InvalidOperationException();
     }
 }

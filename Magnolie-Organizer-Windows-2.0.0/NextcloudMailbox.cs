@@ -14,6 +14,7 @@ internal sealed record NextcloudMailboxSettings(bool DavActive, bool MailboxActi
     internal NextcloudMailboxSettings(bool active, string serverBase, string user) :
         this(active, active, serverBase, user) { }
     internal bool Active => MailboxActive;
+    internal string AccountType { get; init; } = "nextcloud";
 }
 internal sealed record NextcloudMailboxContext(NextcloudMailboxSettings Settings, AuthenticationHeaderValue Authorization);
 
@@ -40,8 +41,12 @@ internal sealed class NextcloudMailboxSettingsStore
         {
             var server = NextcloudMailbox.ValidateServer(settings.ServerBase);
             var user = ValidateUser(settings.User);
+            var accountType = ValidateAccountType(settings.AccountType);
+            if (accountType == "generic-dav" && settings.MailboxActive)
+                throw new ArgumentException("Der Magnolienbaum-Briefkasten benötigt ein Nextcloud-Konto.");
             new AtomicStore().Write(settingsPath, new JsonObject
             {
+                ["kontoArt"] = accountType,
                 ["davAktiv"] = settings.DavActive,
                 ["briefkastenAktiv"] = settings.MailboxActive,
                 ["server"] = server.AbsoluteUri.TrimEnd('/'),
@@ -72,7 +77,11 @@ internal sealed class NextcloudMailboxSettingsStore
                 var mailboxActive = root.TryGetProperty("briefkastenAktiv", out var mailbox) && mailbox.ValueKind is JsonValueKind.True or JsonValueKind.False
                     ? mailbox.GetBoolean() : oldActive;
                 if (davActive is null || mailboxActive is null) throw new InvalidDataException("Die Nextcloud-Einstellungen sind ungültig.");
-                return new NextcloudMailboxSettings(davActive.Value, mailboxActive.Value, serverText, ValidateUser(user.GetString() ?? ""));
+                var accountType = ValidateAccountType(root.TryGetProperty("kontoArt", out var account) && account.ValueKind == JsonValueKind.String
+                    ? account.GetString() ?? "" : "nextcloud");
+                if (accountType == "generic-dav" && mailboxActive.Value) throw new InvalidDataException("Generisches DAV unterstützt keinen Magnolienbaum-Briefkasten.");
+                return new NextcloudMailboxSettings(davActive.Value, mailboxActive.Value, serverText, ValidateUser(user.GetString() ?? ""))
+                    { AccountType = accountType };
             }
             catch (JsonException error) { throw new InvalidDataException("Die Nextcloud-Briefkasten-Einstellungen sind ungültig.", error); }
         }
@@ -187,6 +196,13 @@ internal sealed class NextcloudMailboxSettingsStore
         user = user.Trim();
         if (user.Length is < 1 or > 256 || user.Contains(':') || user.Any(char.IsControl)) throw new ArgumentException("Der Nextcloud-Benutzer ist ungültig.", nameof(user));
         return user;
+    }
+
+    internal static string ValidateAccountType(string accountType)
+    {
+        accountType = string.IsNullOrWhiteSpace(accountType) ? "nextcloud" : accountType.Trim().ToLowerInvariant();
+        if (accountType is not ("nextcloud" or "generic-dav")) throw new ArgumentException("Die DAV-Kontoart ist ungültig.", nameof(accountType));
+        return accountType;
     }
 }
 

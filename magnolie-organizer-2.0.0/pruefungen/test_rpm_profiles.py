@@ -54,7 +54,7 @@ def test_fedora_remains_the_release_validated_wrapper():
     assert "libnotify nodejs" in wrapper
     assert "rpm-build webkit2gtk4.1 xdg-utils" in wrapper
     assert "install fakeroot" in wrapper
-    assert wrapper.count("/usr/bin/fakeroot /usr/bin/dnf") == 3
+    assert wrapper.count("/usr/bin/fakeroot /usr/bin/dnf") == 4
     assert wrapper.count("chmod -R u+rwX") == 2
     assert '--bind "$TOPDIR" "$TOPDIR"' in wrapper
     assert '--bind "$HANDBUCH_TOPDIR" "$HANDBUCH_TOPDIR"' in wrapper

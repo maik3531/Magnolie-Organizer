@@ -73,6 +73,7 @@ internal sealed class MagnolienbaumCoordinator : IDisposable
         var hasPassword = mailboxSettings.HasApplicationPassword;
         await emit(callback, new { aktiv = settings?.MailboxActive ?? false,
             davAktiv = settings?.DavActive ?? false, briefkastenAktiv = settings?.MailboxActive ?? false,
+            kontoArt = settings?.AccountType ?? "nextcloud",
             url = settings?.ServerBase ?? "",
             benutzer = settings?.User ?? "", kennwortVorhanden = hasPassword,
             zustand = mailboxError.Length > 0 ? "unvollstaendig" : settings is null ? "unvollstaendig" :
@@ -82,22 +83,25 @@ internal sealed class MagnolienbaumCoordinator : IDisposable
     }
 
     internal async Task SaveMailboxAsync(bool davActive, bool mailboxActive, string url, string user, string applicationPassword,
-        bool deletePassword)
+        bool deletePassword, string accountType = "nextcloud")
     {
         try
         {
             var server = NextcloudMailbox.ValidateServer(url).AbsoluteUri.TrimEnd('/');
             var validatedUser = NextcloudMailboxSettingsStore.ValidateUser(user);
+            accountType = NextcloudMailboxSettingsStore.ValidateAccountType(accountType);
+            if (accountType == "generic-dav" && mailboxActive)
+                throw new InvalidOperationException("Der Magnolienbaum-Briefkasten benötigt ein Nextcloud-Konto.");
             var previous = mailboxSettings.Load();
             var endpointChanged = previous is not null &&
-                (previous.ServerBase != server || previous.User != validatedUser);
+                (previous.ServerBase != server || previous.User != validatedUser || previous.AccountType != accountType);
             if (deletePassword && applicationPassword.Length > 0)
                 throw new ArgumentException("Das Kennwort kann nicht gleichzeitig gelöscht und ersetzt werden.");
             if (endpointChanged && mailboxSettings.HasApplicationPassword && applicationPassword.Length == 0)
                 throw new InvalidOperationException("Bei einer neuen Serveradresse oder einem neuen Benutzer ist ein neues Anwendungskennwort erforderlich.");
             if ((davActive || mailboxActive) && (deletePassword || applicationPassword.Length == 0 && !mailboxSettings.HasApplicationPassword))
                 throw new InvalidOperationException("Das Nextcloud-Anwendungskennwort fehlt.");
-            var target = new NextcloudMailboxSettings(davActive, mailboxActive, server, validatedUser);
+            var target = new NextcloudMailboxSettings(davActive, mailboxActive, server, validatedUser) { AccountType = accountType };
             mailboxSettings.SaveConfiguration(target, applicationPassword, deletePassword);
             mailboxError = ""; mailboxErrorCode = "none"; mailboxState = davActive || mailboxActive ? "bereit" : "aus";
         }
@@ -361,7 +365,7 @@ internal sealed class MagnolienbaumCoordinator : IDisposable
 
     internal async Task SendAsync(string id, string kind, JsonNode content)
     {
-        if (kind is not ("aufgabe" or "stand" or "termin" or "kontakt" or "notiz" or "notiz_sync" or "sync_anfrage" or "kontakt_sync" or "kontakt_loeschen"))
+        if (kind is not ("aufgabe" or "stand" or "termin" or "kontakt" or "notiz" or "notiz_sync" or "sync_anfrage" or "kontakt_sync" or "kontakt_loeschen" or "kontakt_import_manifest" or "kontakt_import_karte"))
         { await emit("App.baumGesendet", new { ok = false, fehler = "Diese Art kann nicht geteilt werden." }); return; }
         if (kind is "kontakt_sync" or "kontakt_loeschen")
         {
@@ -371,6 +375,12 @@ internal sealed class MagnolienbaumCoordinator : IDisposable
                 if (kind == "kontakt_sync") BaumContactSyncContract.Validate(candidate);
                 else if (kind == "kontakt_loeschen") BaumContactSyncContract.ValidateDelete(candidate);
             }
+            catch (Exception error) when (error is InvalidDataException or InvalidOperationException)
+            { await emit("App.baumGesendet", new { ok = false, fehler = error.Message }); return; }
+        }
+        if (kind is "kontakt_import_manifest" or "kontakt_import_karte")
+        {
+            try { var candidate = content.DeepClone().AsObject(); candidate["art"] = kind; BaumContactSyncContract.ValidateImport(candidate, kind); }
             catch (Exception error) when (error is InvalidDataException or InvalidOperationException)
             { await emit("App.baumGesendet", new { ok = false, fehler = error.Message }); return; }
         }
@@ -677,6 +687,7 @@ internal sealed class MagnolienbaumCoordinator : IDisposable
     {
         var kind = content["art"]?.GetValue<string>() ?? "aufgabe";
         if (kind == "kontakt_sync") BaumContactSyncContract.Validate(content);
+        if (kind is "kontakt_import_manifest" or "kontakt_import_karte") BaumContactSyncContract.ValidateImport(content, kind);
         if (kind == "kontakt_loeschen")
         {
             BaumContactSyncContract.ValidateDelete(content);

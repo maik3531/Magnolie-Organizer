@@ -1,3 +1,14 @@
+magnolie-organizer (2.0.17) unstable; urgency=high
+
+  * Behebt den alten Adressbuchhänger durch eine begrenzte Speicherbestätigung.
+  * Ergänzt nativen Ersteinrichtungsassistenten, Aufgabenhierarchie und
+    generischen CalDAV-/CardDAV-Abgleich einschließlich VTODO.
+  * Ergänzt sichere optionale Kontaktimporte und Anrufherkunft.
+  * Aktualisiert Gesamtarchiv-Datenschema 3, Personal-Sync-Format 3 und
+    die unterstützten Übersetzungen.
+
+ -- Maik Walter <maik3531@gmail.com>  Wed, 02 Sep 2026 21:45:34 +0200
+
 magnolie-organizer (2.0.16) unstable; urgency=high
 
   * Verwendet vorhandene GNOME- und KDE-Systemkonten ohne erneute Anmeldung.

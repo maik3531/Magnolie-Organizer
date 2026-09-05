@@ -11,10 +11,27 @@ internal static class RecoveryJournalTests
         var now = new DateTimeOffset(2026, 8, 12, 10, 0, 0, TimeSpan.Zero);
         try
         {
+            var migrationRoot = Path.Combine(root, "migration");
+            var migrationPaths = new WindowsPaths(migrationRoot);
+            Directory.CreateDirectory(migrationPaths.RecoveryJournal);
+            var currentId = Guid.NewGuid().ToString();
+            Directory.CreateDirectory(Path.Combine(migrationPaths.RecoveryJournal, currentId));
+            var legacy = Path.Combine(migrationRoot, "wiederherstellungsstaende");
+            Directory.CreateDirectory(legacy);
+            var legacyId = Guid.NewGuid().ToString();
+            Directory.CreateDirectory(Path.Combine(legacy, legacyId));
+            migrationPaths.EnsureDirectories();
+            TestAssert.That(!Directory.Exists(legacy) &&
+                Directory.Exists(Path.Combine(migrationPaths.RecoveryJournal, currentId)) &&
+                Directory.Exists(Path.Combine(migrationPaths.RecoveryJournal, legacyId)),
+                "Nach der ersten Migration neu angelegte alte Snapshotpunkte werden nicht sicher nachgezogen.");
+
             var journal = new RecoveryJournal(Path.Combine(root, "wiederherstellungsstaende"),
                 Path.Combine(root, "journal.json"), clock: () => now);
             var data = new JsonObject { ["termine"] = new JsonArray(new JsonObject { ["id"] = "t1" }),
-                ["kontakte"] = new JsonArray(), ["notizen"] = new JsonArray(), ["syncEpoch"] = "epoch-1" };
+                ["kontakte"] = new JsonArray(), ["notizen"] = new JsonArray(new JsonObject { ["id"] = "n1",
+                    ["anhaenge"] = new JsonArray(new JsonObject { ["name"] = "a.pdf", ["sha256"] = new string('a', 64),
+                        ["daten"] = "data:application/pdf;base64,JVBERg==" }) }), ["syncEpoch"] = "epoch-1" };
             var first = journal.Create(data, SnapshotReason.Periodic, "2.0.2");
             var manifest = JsonNode.Parse(File.ReadAllText(Path.Combine(first.Directory, "manifest.json")))!.AsObject();
             TestAssert.That(manifest["format"]?.GetValue<string>() == "magnolie-snapshot" &&
@@ -24,6 +41,9 @@ internal static class RecoveryJournalTests
                 "Snapshot-Manifest verletzt Format, UUID, Plattform oder Sync-Epoche.");
             TestAssert.That(GesamtarchivService.Read(journal.ReadPayload(first.Id)).Daten["termine"]!.AsArray().Count == 1,
                 "Journal verwendet nicht den vorhandenen Gesamtarchiv-Payload.");
+            TestAssert.That(GesamtarchivService.Read(journal.ReadPayload(first.Id)).Anhaenge == 0 &&
+                data["notizen"]![0]!["anhaenge"]![0]!["daten"]!.ToString().StartsWith("data:", StringComparison.Ordinal),
+                "Das Journal speichert Anhangdaten oder verändert den aktiven Datenbestand.");
             var duplicate = journal.Create(data, SnapshotReason.Periodic, "2.0.2");
             TestAssert.That(duplicate.Id == first.Id && journal.List().Count == 1, "15-Minuten-Deduplizierung greift nicht.");
 
@@ -82,6 +102,22 @@ internal static class RecoveryJournalTests
                 "Die tagebasierte Aufbewahrung entfernt junge oder angeheftete Stände nicht korrekt.");
             TestAssert.That(journal.SetMaximum(2) is { Mode: "count", Maximum: 2, Days: 2 },
                 "Der alte journal_anzahl-Vertrag schaltet nicht kompatibel auf Anzahl zurück.");
+
+            var compressionRoot = Path.Combine(root, "compression");
+            var compressionNow = new DateTimeOffset(2024, 1, 1, 10, 0, 0, TimeSpan.Zero);
+            var compressionJournal = new RecoveryJournal(compressionRoot,
+                Path.Combine(root, "compression.json"), clock: () => compressionNow);
+            var compressionData = new JsonObject { ["notizen"] = new JsonArray(
+                Enumerable.Range(0, 200).Select(index => (JsonNode)new JsonObject
+                    { ["id"] = index.ToString(), ["text"] = new string('M', 200) }).ToArray()) };
+            var oldPoint = compressionJournal.Create(compressionData, SnapshotReason.Manual, "2.0.2");
+            compressionNow = compressionNow.AddDays(366);
+            var compressed = compressionJournal.CompressOld();
+            TestAssert.That(compressed == (1, 0) &&
+                File.Exists(Path.Combine(oldPoint.Directory, "payload.magnolie.tar.xz")) &&
+                !File.Exists(Path.Combine(oldPoint.Directory, "payload.magnolie")) &&
+                GesamtarchivService.Read(compressionJournal.ReadPayload(oldPoint.Id)).Daten["notizen"]!.AsArray().Count == 200,
+                "Ein mehr als ein Jahr alter Einzelstand wurde nicht verlustfrei als XZ komprimiert.");
             using (var retentionCommand = BridgeDispatcherContract.Parse(
                 "{\"cmd\":\"journal_aufbewahrung\",\"modus\":\"days\",\"maximum\":20,\"tage\":14}")) { }
             using (var legacyCountCommand = BridgeDispatcherContract.Parse(

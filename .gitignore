@@ -16,6 +16,7 @@ schluessel.properties
 *.apk
 *.aab
 *.deb
+*.ddeb
 *.dsc
 *.buildinfo
 *.changes

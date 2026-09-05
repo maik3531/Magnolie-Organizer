@@ -223,7 +223,7 @@ akonadi_artefakte_bereinigen
 AKONADI_TEST=$(mktemp -d "$STAGE/akonadi-package-test.XXXXXX")
 test "$(dpkg-deb -f "$AKONADI_DEB" Architecture)" = "$AKONADI_ARCH"
 dpkg-deb -f "$AKONADI_DEB" Depends | \
-    grep -Eq '(^|, )magnolie-organizer \(>= 2[.]0[.]16\)($|, )'
+    grep -Fq "magnolie-organizer (>= $FASSUNG)"
 dpkg-deb -x "$AKONADI_DEB" "$AKONADI_TEST"
 AKONADI_PROGRAMM="$AKONADI_TEST/usr/libexec/magnolie-organizer/magnolie-akonadi-helper"
 test -x "$AKONADI_PROGRAMM"
@@ -447,7 +447,7 @@ if [ "$AUTOPKGTESTS" -eq 1 ]; then
     test -n "${MAGNOLIE_AUTOPKGTEST_QEMU_IMAGE:-}" || {
         printf '%s\n' 'MAGNOLIE_AUTOPKGTEST_QEMU_IMAGE fehlt; Freigabe abgebrochen.' >&2; exit 1;
     }
-    autopkgtest "$DSC" -- qemu "$MAGNOLIE_AUTOPKGTEST_QEMU_IMAGE"
+    autopkgtest -U "$DSC" -- qemu "$MAGNOLIE_AUTOPKGTEST_QEMU_IMAGE"
 else
     printf '%s\n' \
         'WARNUNG: externes QEMU-autopkgtest uebersprungen; diese Einschraenkung muss in den Release-Hinweisen stehen.' >&2

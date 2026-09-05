@@ -1,8 +1,8 @@
 {
   "schema": "magnolie-linux-parity-v1",
   "sources": {
-    "web/anwendung.js": "44718d7021901a3aa3ffef8b0d2190bf6576a65c59884a30515c352ce6948ce7",
-    "bin/magnolie-organizer": "79ea45234db9e4e4fb6f5d511df1d950fbe03c60c55f89c7fdd56f5d3b0498c2"
+    "web/anwendung.js": "01d4b417e27d7d55a96ce2334e24e6002102d5e4ce17068be387d0a65ce19b48",
+    "bin/magnolie-organizer": "9430b366c1aab0bb05d01a3dbc05d0dc5aa238aa3a8744a1edf9dbd7c24d3221"
   },
   "commands": [
     "ablage_holen",
@@ -50,9 +50,6 @@
     "handbuch_oeffnen",
     "import",
     "import_lokal",
-    "journal_aufbewahrung",
-    "journal_erzeugen",
-    "journal_intervall",
     "journal_liste",
     "journal_loeschen",
     "journal_vorschau",
@@ -344,5 +341,5 @@
       ]
     ]
   ],
-  "contractSha256": "0f4c6e37925cd5d740cc450c5ef6c2e6cb7489f5cd31c76c0198d489deaaf14f"
+  "contractSha256": "08fcbfab8f4a0f50e0f0cb8070ce75a9b551a810ce57270fa7676da1043fdcef"
 }

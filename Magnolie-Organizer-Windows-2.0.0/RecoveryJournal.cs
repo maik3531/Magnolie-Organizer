@@ -1,4 +1,5 @@
 using System.Security.Cryptography;
+using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -7,13 +8,13 @@ namespace MagnolieOrganizer.Windows;
 
 internal enum SnapshotReason
 {
-    Periodic, Manual, PreSync, PreContact, PreContactImport, PreContactMerge, PreContactDelete, PreRestore
+    Periodic, Manual, PreChange, PreSync, PreContact, PreContactImport, PreContactMerge, PreContactDelete, PreRestore
 }
 
 internal sealed record SnapshotInfo(
     string Id, DateTimeOffset CreatedUtc, string Reason, long Size, string Hash,
     string SyncEpoch, JsonObject Summary, bool Encrypted, bool Pinned, string Integrity,
-    string Directory);
+    string PayloadFile, string Directory);
 
 internal sealed record RecoverySchedule(string Interval, DateTimeOffset? Last, DateTimeOffset? Next,
     string Mode, int Maximum, int Days, string Status, string Error);
@@ -23,12 +24,15 @@ internal sealed class RecoveryJournal
     internal const string Marker = "magnolie-snapshot";
     internal const int FormatVersion = 1;
     private const string RestoreLeaseFile = ".restore-lease";
+    private const string PayloadFile = "payload.magnolie";
+    private const string CompressedPayloadFile = "payload.magnolie.tar.xz";
     private const long OneGiB = 1024L * 1024 * 1024;
     private static readonly JsonSerializerOptions Indented = new() { WriteIndented = true };
     private readonly string root;
     private readonly string settingsPath;
     private readonly AtomicStore store;
     private readonly Func<DateTimeOffset> clock;
+    private readonly object gate = new();
 
     internal RecoveryJournal(string root, string settingsPath, AtomicStore? store = null,
         Func<DateTimeOffset>? clock = null)
@@ -41,11 +45,15 @@ internal sealed class RecoveryJournal
 
     internal SnapshotInfo Create(JsonObject data, SnapshotReason reason, string appVersion,
         Func<string, string>? protect = null, string? syncEpoch = null)
-        => Create(data, reason, appVersion, protect, syncEpoch, restoreLease: false);
+    {
+        lock (gate) return Create(data, reason, appVersion, protect, syncEpoch, restoreLease: false);
+    }
 
     internal SnapshotInfo CreateRestorePoint(JsonObject data, string appVersion,
         Func<string, string>? protect = null, string? syncEpoch = null)
-        => Create(data, SnapshotReason.PreRestore, appVersion, protect, syncEpoch, restoreLease: true);
+    {
+        lock (gate) return Create(data, SnapshotReason.PreRestore, appVersion, protect, syncEpoch, restoreLease: true);
+    }
 
     private SnapshotInfo Create(JsonObject data, SnapshotReason reason, string appVersion,
         Func<string, string>? protect, string? syncEpoch, bool restoreLease)
@@ -53,7 +61,9 @@ internal sealed class RecoveryJournal
         EnsureSafeRoot();
         var now = clock().ToUniversalTime();
         var reasonText = ReasonText(reason);
-        var archive = GesamtarchivService.Create(data, "windows", appVersion, created: now);
+        var snapshotData = data.DeepClone().AsObject();
+        RemoveAttachments(snapshotData);
+        var archive = GesamtarchivService.Create(snapshotData, "windows", appVersion, created: now);
         var sourceHash = Sha256(archive);
         SnapshotInfo? duplicate = null;
         foreach (var item in List().Where(item => item.Reason == reasonText &&
@@ -120,7 +130,26 @@ internal sealed class RecoveryJournal
         }
     }
 
-    internal IReadOnlyList<SnapshotInfo> List() => List(verifyPayload: true);
+    private static void RemoveAttachments(JsonNode node)
+    {
+        if (node is JsonObject value)
+        {
+            foreach (var pair in value.ToArray())
+            {
+                if ((pair.Key is "daten" or "data") && pair.Value is JsonValue scalar &&
+                    scalar.TryGetValue<string>(out var text) && text.StartsWith("data:", StringComparison.OrdinalIgnoreCase))
+                    value[pair.Key] = "";
+                else if (pair.Value is not null) RemoveAttachments(pair.Value);
+            }
+        }
+        else if (node is JsonArray array)
+            foreach (var item in array) if (item is not null) RemoveAttachments(item);
+    }
+
+    internal IReadOnlyList<SnapshotInfo> List()
+    {
+        lock (gate) return List(verifyPayload: true);
+    }
 
     private IReadOnlyList<SnapshotInfo> List(bool verifyPayload)
     {
@@ -147,16 +176,29 @@ internal sealed class RecoveryJournal
         return result.OrderByDescending(item => item.CreatedUtc).ToArray();
     }
 
-    internal SnapshotInfo Verify(string id) => ParseManifest(Child(ValidId(id)), verifyPayload: true);
+    internal SnapshotInfo Verify(string id)
+    {
+        lock (gate) return ParseManifest(Child(ValidId(id)), verifyPayload: true);
+    }
 
     internal string ReadPayload(string id)
     {
-        var info = Verify(id);
-        return store.Read(Path.Combine(info.Directory, "payload.magnolie"), AtomicStore.MaxArchiveBytes)
-            ?? throw new InvalidDataException("Der Snapshot-Payload fehlt.");
+        lock (gate)
+        {
+            var info = Verify(id);
+            if (info.PayloadFile == PayloadFile)
+                return store.Read(Path.Combine(info.Directory, info.PayloadFile), AtomicStore.MaxArchiveBytes)
+                    ?? throw new InvalidDataException("Der Snapshot-Payload fehlt.");
+            return ExtractPayload(Path.Combine(info.Directory, info.PayloadFile));
+        }
     }
 
     internal (int Changed, int Failed) RewritePayloads(Func<string, bool, string> rewrite)
+    {
+        lock (gate) return RewritePayloadsCore(rewrite);
+    }
+
+    private (int Changed, int Failed) RewritePayloadsCore(Func<string, bool, string> rewrite)
     {
         EnsureSafeRoot();
         var changed = 0; var failed = 0;
@@ -170,13 +212,13 @@ internal sealed class RecoveryJournal
                 var original = ReadPayload(item.Id);
                 var rewritten = rewrite(original, item.Encrypted);
                 if (rewritten == original) continue;
-                var bytes = Encoding.UTF8.GetBytes(rewritten);
                 var manifest = JsonNode.Parse(store.Read(manifestPath, 1024 * 1024)!)!.AsObject();
                 var payload = manifest["payload"]!.AsObject();
-                payload["sha256"] = Sha256(bytes); payload["size"] = bytes.LongLength;
                 payload["encrypted"] = EncryptionService.IsEncrypted(rewritten);
                 Directory.CreateDirectory(replacement);
-                store.Write(Path.Combine(replacement, "payload.magnolie"), rewritten, AtomicStore.MaxArchiveBytes);
+                WritePayload(replacement, manifest, rewritten,
+                    payload["compression"]?.GetValue<string>() == "xz");
+                if (File.Exists(Path.Combine(item.Directory, RestoreLeaseFile))) WriteRestoreLease(replacement);
                 store.Write(Path.Combine(replacement, "manifest.json"), manifest.ToJsonString(Indented), 1024 * 1024);
                 Directory.Move(item.Directory, previous);
                 Directory.Move(replacement, item.Directory);
@@ -185,7 +227,7 @@ internal sealed class RecoveryJournal
                 changed++;
             }
             catch (Exception error) when (error is IOException or UnauthorizedAccessException or InvalidDataException or
-                                           JsonException or CryptographicException)
+                                           JsonException or CryptographicException or System.ComponentModel.Win32Exception)
             {
                 RecoverInterruptedRewrite(item.Id);
                 failed++;
@@ -232,10 +274,13 @@ internal sealed class RecoveryJournal
 
     internal void Delete(string id)
     {
-        var directory = Child(ValidId(id));
-        if (!Directory.Exists(directory)) return;
-        RejectReparseTree(directory);
-        Directory.Delete(directory, true);
+        lock (gate)
+        {
+            var directory = Child(ValidId(id));
+            if (!Directory.Exists(directory)) return;
+            RejectReparseTree(directory);
+            Directory.Delete(directory, true);
+        }
     }
 
     internal void ReleaseRestoreLease(string id)
@@ -312,6 +357,12 @@ internal sealed class RecoveryJournal
 
     internal void Prune(long? availableBytes = null, long? volumeBytes = null)
     {
+        lock (gate) PruneCore(availableBytes, volumeBytes);
+    }
+
+    private void PruneCore(long? availableBytes, long? volumeBytes)
+    {
+        _ = CompressOld();
         var all = List().OrderByDescending(item => item.CreatedUtc).ToList();
         var settings = ReadSettings();
         var protectedItems = all.Where(item => item.Reason == "manual" ||
@@ -344,6 +395,55 @@ internal sealed class RecoveryJournal
         }
     }
 
+    internal (int Changed, int Failed) CompressOld()
+    {
+        lock (gate) return CompressOldCore();
+    }
+
+    private (int Changed, int Failed) CompressOldCore()
+    {
+        EnsureSafeRoot();
+        var cutoff = clock().ToUniversalTime().AddDays(-365);
+        var changed = 0; var failed = 0;
+        foreach (var item in List().Where(item => item.Integrity == "ok" &&
+                     item.CreatedUtc < cutoff && !IsCompressed(item.Directory)))
+        {
+            var replacement = Child($".{item.Id}.rewrite-new");
+            var previous = Child($".{item.Id}.rewrite-old");
+            try
+            {
+                var original = ReadPayload(item.Id);
+                var manifest = ReadManifest(item.Directory);
+                Directory.CreateDirectory(replacement);
+                WritePayload(replacement, manifest, original, compressed: true);
+                var compressedSize = manifest["payload"]!["size"]!.GetValue<long>();
+                if (compressedSize >= item.Size)
+                {
+                    Directory.Delete(replacement, true);
+                    continue;
+                }
+                if (File.Exists(Path.Combine(item.Directory, RestoreLeaseFile))) WriteRestoreLease(replacement);
+                store.Write(Path.Combine(replacement, "manifest.json"), manifest.ToJsonString(Indented), 1024 * 1024);
+                Directory.Move(item.Directory, previous);
+                Directory.Move(replacement, item.Directory);
+                _ = Verify(item.Id);
+                Directory.Delete(previous, true);
+                changed++;
+            }
+            catch (Exception error) when (error is IOException or UnauthorizedAccessException or InvalidDataException or
+                                           JsonException or CryptographicException or System.ComponentModel.Win32Exception)
+            {
+                RecoverInterruptedRewrite(item.Id);
+                failed++;
+            }
+            finally
+            {
+                if (Directory.Exists(replacement)) Directory.Delete(replacement, true);
+            }
+        }
+        return (changed, failed);
+    }
+
     private SnapshotInfo ParseManifest(string directory, bool verifyPayload)
     {
         EnsureContained(directory);
@@ -358,14 +458,20 @@ internal sealed class RecoveryJournal
         var created = DateTimeOffset.Parse(rootNode["createdUtc"]?.GetValue<string>() ?? "", null,
             System.Globalization.DateTimeStyles.RoundtripKind).ToUniversalTime();
         var payload = rootNode["payload"] as JsonObject ?? throw new InvalidDataException("Die Payload-Angaben fehlen.");
-        if (payload["file"]?.GetValue<string>() != "payload.magnolie" || payload["schema"]?.GetValue<int>() is not (1 or GesamtarchivService.Datenschema))
+        var payloadFile = payload["file"]?.GetValue<string>() ?? PayloadFile;
+        var compression = payload["compression"]?.GetValue<string>();
+        if (payloadFile is not (PayloadFile or CompressedPayloadFile) || compression is not (null or "xz") ||
+            (compression == "xz") != (payloadFile == CompressedPayloadFile) ||
+            payload["schema"]?.GetValue<int>() is not (1 or 2 or GesamtarchivService.Datenschema))
             throw new InvalidDataException("Das Payload-Schema wird nicht unterstützt.");
         var size = payload["size"]?.GetValue<long>() ?? -1;
         var hash = payload["sha256"]?.GetValue<string>() ?? "";
+        if (size < 1 || size > AtomicStore.MaxArchiveBytes || !ValidHash(hash))
+            throw new InvalidDataException("Die Payload-Angaben sind ungültig.");
         if (verifyPayload)
         {
-            var bytes = File.ReadAllBytes(Path.Combine(directory, "payload.magnolie"));
-            if (bytes.LongLength != size || !FixedHash(hash, Sha256(bytes))) throw new InvalidDataException("Der Snapshot wurde verändert oder beschädigt.");
+            var actual = HashFile(Path.Combine(directory, payloadFile));
+            if (actual.Size != size || !FixedHash(hash, actual.Hash)) throw new InvalidDataException("Der Snapshot wurde verändert oder beschädigt.");
         }
         var reason = rootNode["reason"]?.GetValue<string>() ?? "";
         if (reason == "periodic") reason = "weekly";
@@ -373,7 +479,7 @@ internal sealed class RecoveryJournal
             (rootNode["summary"] as JsonObject)?.DeepClone().AsObject() ?? new JsonObject(),
             payload["encrypted"]?.GetValue<bool>() ?? false,
             reason == "manual" || File.Exists(Path.Combine(directory, RestoreLeaseFile)),
-            verifyPayload ? "ok" : "unchecked", directory);
+            verifyPayload ? "ok" : "unchecked", payloadFile, directory);
     }
 
     private void EnsureSafeRoot()
@@ -425,18 +531,107 @@ internal sealed class RecoveryJournal
     }
 
     private void WriteSettings(JsonObject settings) => store.WriteRecoverableJson(settingsPath, settings.ToJsonString(Indented), 64 * 1024);
+    private JsonObject ReadManifest(string directory) => JsonNode.Parse(
+        store.Read(Path.Combine(directory, "manifest.json"), 1024 * 1024)
+            ?? throw new InvalidDataException("Das Snapshot-Manifest fehlt."))!.AsObject();
+
+    private static bool IsCompressed(string directory)
+    {
+        try { return JsonNode.Parse(File.ReadAllText(Path.Combine(directory, "manifest.json")))?
+            ["payload"]?["compression"]?.GetValue<string>() == "xz"; }
+        catch { return false; }
+    }
+
+    private void WritePayload(string directory, JsonObject manifest, string text, bool compressed)
+    {
+        var payload = manifest["payload"]!.AsObject();
+        var plainPath = Path.Combine(directory, PayloadFile);
+        store.Write(plainPath, text, AtomicStore.MaxArchiveBytes);
+        var storedPath = plainPath;
+        if (compressed)
+        {
+            storedPath = Path.Combine(directory, CompressedPayloadFile);
+            RunTar(directory, "-cJf", storedPath, "-C", directory, "--", PayloadFile);
+            File.Delete(plainPath);
+            payload["file"] = CompressedPayloadFile;
+            payload["compression"] = "xz";
+        }
+        else
+        {
+            payload["file"] = PayloadFile;
+            payload.Remove("compression");
+        }
+        var stored = HashFile(storedPath);
+        payload["sha256"] = stored.Hash;
+        payload["size"] = stored.Size;
+    }
+
+    private string ExtractPayload(string archive)
+    {
+        var temporary = Child($".extract-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(temporary);
+        try
+        {
+            var output = Path.Combine(temporary, PayloadFile);
+            ExtractTarPayload(temporary, archive, output);
+            return store.Read(output, AtomicStore.MaxArchiveBytes)
+                ?? throw new InvalidDataException("Der Snapshot-Payload fehlt.");
+        }
+        finally { if (Directory.Exists(temporary)) Directory.Delete(temporary, true); }
+    }
+
+    private static void ExtractTarPayload(string workingDirectory, string archive, string output)
+    {
+        var start = new ProcessStartInfo("tar") { WorkingDirectory = workingDirectory,
+            UseShellExecute = false, RedirectStandardOutput = true, RedirectStandardError = true, CreateNoWindow = true };
+        foreach (var argument in new[] { "-xJOf", archive, "--", PayloadFile }) start.ArgumentList.Add(argument);
+        using var process = Process.Start(start) ?? throw new IOException("XZ-Dekomprimierung konnte nicht gestartet werden.");
+        var errorTask = process.StandardError.ReadToEndAsync();
+        try
+        {
+            using var target = new FileStream(output, FileMode.CreateNew, FileAccess.Write, FileShare.None);
+            var buffer = new byte[64 * 1024];
+            long total = 0;
+            int read;
+            while ((read = process.StandardOutput.BaseStream.Read(buffer, 0, buffer.Length)) > 0)
+            {
+                total += read;
+                if (total > AtomicStore.MaxArchiveBytes)
+                {
+                    process.Kill(entireProcessTree: true);
+                    throw new InvalidDataException("Der dekomprimierte Snapshot-Payload ist zu groß.");
+                }
+                target.Write(buffer, 0, read);
+            }
+        }
+        finally { process.WaitForExit(); }
+        var error = errorTask.GetAwaiter().GetResult();
+        if (process.ExitCode != 0) throw new IOException("XZ-Dekomprimierung ist fehlgeschlagen: " + error.Trim());
+    }
+
+    private static void RunTar(string workingDirectory, params string[] arguments)
+    {
+        var start = new ProcessStartInfo("tar") { WorkingDirectory = workingDirectory,
+            UseShellExecute = false, RedirectStandardError = true, CreateNoWindow = true };
+        foreach (var argument in arguments) start.ArgumentList.Add(argument);
+        using var process = Process.Start(start) ?? throw new IOException("XZ-Komprimierung konnte nicht gestartet werden.");
+        var error = process.StandardError.ReadToEnd();
+        process.WaitForExit();
+        if (process.ExitCode != 0) throw new IOException("XZ-Komprimierung ist fehlgeschlagen: " + error.Trim());
+    }
     private static string Mode(JsonObject settings) => settings["mode"] is JsonValue value &&
-        value.TryGetValue<string>(out var mode) && mode == "days" ? "days" : "count";
+        value.TryGetValue<string>(out var mode) && mode == "count" ? "count" : "days";
     private static int Maximum(JsonObject settings) => settings["maximum"] is JsonValue value &&
         value.TryGetValue<int>(out var maximum) ? Math.Clamp(maximum, 1, 100) : 20;
     private static int Days(JsonObject settings) => settings["days"] is JsonValue value &&
-        value.TryGetValue<int>(out var days) ? Math.Clamp(days, 1, 3650) : 14;
+        value.TryGetValue<int>(out var days) ? Math.Clamp(days, 1, 3650) : 3650;
     private static DateTimeOffset? ParseDate(string? value) => DateTimeOffset.TryParse(value, out var result) ? result.ToUniversalTime() : null;
     private static string Interval(string value) => value is "off" or "6h" or "12h" or "daily" or "weekly" ? value : "weekly";
     private static TimeSpan Duration(string value) => value switch { "6h" => TimeSpan.FromHours(6), "12h" => TimeSpan.FromHours(12), "daily" => TimeSpan.FromDays(1), _ => TimeSpan.FromDays(7) };
     private static string ReasonText(SnapshotReason reason) => reason switch
     {
-        SnapshotReason.Periodic => "weekly", SnapshotReason.Manual => "manual", SnapshotReason.PreSync => "pre-sync",
+        SnapshotReason.Periodic => "weekly", SnapshotReason.Manual => "manual", SnapshotReason.PreChange => "pre-change",
+        SnapshotReason.PreSync => "pre-sync",
         SnapshotReason.PreContact => "pre-contact", SnapshotReason.PreContactImport => "pre-contact-import",
         SnapshotReason.PreContactMerge => "pre-contact-merge", SnapshotReason.PreContactDelete => "pre-contact-delete",
         _ => "pre-restore"
@@ -444,7 +639,25 @@ internal sealed class RecoveryJournal
     private static string ValidId(string value) => Guid.TryParse(value, out var id) ? id.ToString() : throw new InvalidDataException("Die Snapshot-ID ist ungültig.");
     private static string Sha256(string text) => Sha256(Encoding.UTF8.GetBytes(text));
     private static string Sha256(byte[] bytes) => Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant();
+    private static (long Size, string Hash) HashFile(string path)
+    {
+        using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
+        using var hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
+        var buffer = new byte[64 * 1024];
+        long total = 0;
+        int read;
+        while ((read = stream.Read(buffer, 0, buffer.Length)) > 0)
+        {
+            total += read;
+            if (total > AtomicStore.MaxArchiveBytes)
+                throw new InvalidDataException("Der Snapshot-Payload ist zu groß.");
+            hash.AppendData(buffer, 0, read);
+        }
+        return (total, Convert.ToHexString(hash.GetHashAndReset()).ToLowerInvariant());
+    }
     private static bool FixedHash(string left, string right) => left.Length == 64 && CryptographicOperations.FixedTimeEquals(Encoding.ASCII.GetBytes(left.ToLowerInvariant()), Encoding.ASCII.GetBytes(right));
+    private static bool ValidHash(string value) => value.Length == 64 && value.All(character =>
+        character is >= '0' and <= '9' or >= 'a' and <= 'f' or >= 'A' and <= 'F');
     private static string DataEpoch(JsonObject data) => data["syncEpoch"]?.GetValue<string>() ?? "legacy";
     private static string SourceHash(string directory)
     {
