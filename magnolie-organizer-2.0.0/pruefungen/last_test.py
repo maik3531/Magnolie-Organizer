@@ -14,12 +14,14 @@ import sqlite3
 import sys
 import tempfile
 import time
-from importlib.machinery import SourceFileLoader
+from modul_laden import quellmodul_laden
 from datetime import datetime
+
+sys.stdout.reconfigure(line_buffering=True)
 
 PFAD = os.environ.get("MAGNOLIE_PROGRAMM") or os.path.join(
     os.path.dirname(os.path.abspath(__file__)), "..", "bin", "magnolie-organizer")
-m = SourceFileLoader("magorg", PFAD).load_module()
+m = quellmodul_laden("magorg", PFAD)
 
 GRENZEN = []
 fehler = 0
@@ -87,15 +89,13 @@ print("Speicher nach dem Einlesen: %.0f MB" % speicher_mb())
 print()
 
 print("Die uebrigen Bereiche des Lotus Organizers")
-bereiche = [("/tmp/lotus-adressen.csv", "kontakte", 30000, "Adressen"),
-            ("/tmp/lotus-aufgaben.csv", "aufgaben", 30000, "Aufgaben"),
-            ("/tmp/lotus-jahrestage.csv", "jahrestage", 30000, "Jahrestage"),
-            ("/tmp/lotus-notizen.csv", "notizen", 30000, "Notizen")]
+bereiche = [("lotus-adressen.csv", "kontakte", 30000, "Adressen"),
+            ("lotus-aufgaben.csv", "aufgaben", 30000, "Aufgaben"),
+            ("lotus-jahrestage.csv", "jahrestage", 30000, "Jahrestage"),
+            ("lotus-notizen.csv", "notizen", 30000, "Notizen")]
 gelesen = {}
 for pfad, schluessel, menge, name in bereiche:
-    if not os.path.exists(pfad):
-        print("  (uebersprungen - %s fehlt)" % pfad)
-        continue
+    pfad = os.path.join(os.path.dirname(os.path.abspath(quelle)), pfad)
     with open(pfad, "rb") as datei:
         rohe = datei.read()
     erg = messe("%s einlesen (%d)" % (name, menge),

@@ -1,0 +1,28 @@
+using System.Text.Json;
+using System.Text.Json.Nodes;
+using MagnolieOrganizer.Windows;
+
+var request = JsonNode.Parse(Console.In.ReadToEnd())!.AsObject();
+var text = request["text"]?.ToString() ?? "";
+try {
+object result = request["operation"]?.ToString() switch {
+    "parse" => ExchangeCodec.ParseImport(System.Text.Encoding.UTF8.GetBytes(text), request["art"]!.ToString(), request["file"]?.ToString() ?? "input.ics"),
+    "export" => ExchangeCodec.WriteIcs(request["art"]!.ToString(), JsonSerializer.SerializeToElement(request["data"])),
+    "vcf" => ExchangeCodec.WriteVCard(JsonSerializer.SerializeToElement(request["data"])),
+    "ldif" => ExchangeCodec.WriteLdif(JsonSerializer.SerializeToElement(request["data"])),
+    "contact" => WindowsContactStore.Parse(text),
+    "contactRoundtrip" => WindowsContactStore.Parse(WindowsContactStore.Serialize(request["data"]!.AsObject(), "native")),
+    "persist" => Persist(request),
+    _ => throw new ArgumentException()
+};
+Console.WriteLine(JsonSerializer.Serialize(result));
+} catch (Exception error) {
+    Console.WriteLine(JsonSerializer.Serialize(new { error = error.GetType().Name }));
+}
+
+static JsonNode Persist(JsonObject request) {
+    var store = new AtomicStore();
+    var path = request["file"]!.ToString();
+    store.Write(path, request["data"]!.ToJsonString());
+    return JsonNode.Parse(store.Read(path)!)!;
+}

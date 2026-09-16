@@ -84,7 +84,7 @@ class TelefonSitzungTest {
             (grants["grants"] as JsonObject).keys)
         assertEquals(listOf("1", "2", "3"), (((capabilities["items"] as JsonObject)["device_status"] as JsonObject)
             ["versions"] as kotlinx.serialization.json.JsonArray).map { (it as JsonPrimitive).content })
-        assertEquals(listOf("1", "2", "3"), (((capabilities["items"] as JsonObject)["personal_tasks_sync"] as JsonObject)
+        assertEquals(listOf("1", "2", "3", "4"), (((capabilities["items"] as JsonObject)["personal_tasks_sync"] as JsonObject)
             ["versions"] as kotlinx.serialization.json.JsonArray).map { (it as JsonPrimitive).content })
         assertEquals(false, ((grants["grants"] as JsonObject)["dial_request"] as JsonPrimitive).content.toBoolean())
     }
@@ -92,7 +92,12 @@ class TelefonSitzungTest {
     @Test fun `Control Vertrag entspricht gemeinsamem Golden`() {
         val golden = TelefonKanonisch.json.parseToJsonElement(
             File("app/src/test/resources/telefon-control-contract.json").readText()).jsonObject
-        assertEquals(golden.getValue("android_capabilities"), TelefonNachrichten.capabilities()["items"])
+        // Keep the shared v1 fixture as an old-peer compatibility vector. Only the
+        // negotiated dial version list changes; the exact capability keys do not.
+        val legacy = golden.getValue("android_capabilities").jsonObject
+        val scoped = JsonObject(legacy + ("dial_request" to JsonObject(legacy.getValue("dial_request").jsonObject +
+            ("versions" to buildJsonArray { add(JsonPrimitive(1)); add(JsonPrimitive(2)) }))))
+        assertEquals(scoped, TelefonNachrichten.capabilities()["items"])
         assertEquals(golden.getValue("android_grants"), TelefonNachrichten.grants()["grants"])
         TelefonNachrichten.validate(TelefonNachrichten.message("incoming_call_state.event",
             golden.getValue("incoming_call_state_v2").jsonObject, 60_000, 1_000), 1_000)

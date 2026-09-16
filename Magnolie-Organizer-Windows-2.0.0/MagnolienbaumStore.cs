@@ -83,7 +83,7 @@ internal sealed class MagnolienbaumStore
             if (protectedSecret is not null) CryptographicOperations.ZeroMemory(protectedSecret);
         }
         persisted.Remove("geheim");
-        store.Write(paths.Baum, persisted.ToJsonString(Indented));
+        store.Write(paths.Baum, persisted.ToJsonString(Indented), 4 * 1024 * 1024);
     }
     internal JsonArray LoadOutbox() => LoadArray(paths.BaumOutbox);
     internal JsonArray LoadInbox() => LoadArray(paths.BaumInbox);

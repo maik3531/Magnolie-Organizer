@@ -13,7 +13,7 @@ assert.ok(/^\d+\.\d+\.\d+$/.test(expectedVersion || ""), "Kanonische Testversion
 assert.strictEqual(expectedInstaller,
   `Magnolie-Organizer-Windows-${expectedVersion}-Setup-x64.exe`,
   "Unerlaubter Test-Installername");
-const handbookSource = selectHandbookWeb(root, ["index.html", "inhalt.js", "i18n/de.js"]);
+const handbookSource = selectHandbookWeb(root, ["index.html", "inhalt.js", "mobile-downloads.js", "i18n/de.js"]);
 const selectedHandbook = handbookSource.directory;
 const handbook = [process.env.MAGNOLIE_HANDBUCH_WEB,
   path.resolve(root, "..", "magnolie-handbuch-stamm", "web"),
@@ -30,6 +30,7 @@ const runtime = fs.readFileSync(path.join(handbook, "handbuch.js"), "utf8");
 const i18n = fs.readFileSync(path.join(handbook, "i18n.js"), "utf8");
 const deCatalog = fs.readFileSync(path.join(handbook, "i18n", "de.js"), "utf8");
 const localeStart = fs.readFileSync(path.join(handbook, "i18n-start.js"), "utf8");
+const mobileDownloads = fs.readFileSync(path.join(handbook, "mobile-downloads.js"), "utf8");
 const style = fs.readFileSync(path.join(handbook, "stil.css"), "utf8");
 const fontDigest = (name) => require("node:crypto").createHash("sha256")
   .update(fs.readFileSync(path.join(handbook, "schriften", name))).digest("hex");
@@ -58,6 +59,7 @@ window.eval(i18n);
 window.eval(deCatalog);
 window.__MAGNOLIE_SPRACHE__ = "de";
 window.eval(localeStart);
+window.eval(mobileDownloads);
 window.eval(content);
 window.eval(runtime);
 if (!window.Handbuch) window.document.dispatchEvent(new window.Event("DOMContentLoaded"));
@@ -70,6 +72,13 @@ assert.deepStrictEqual(pages.map((page) => page.id), expectedPageIds,
   "Windows-Handbuchseiten entsprechen nicht der ausgewählten kanonischen Quelle");
 assert.ok(pages.every((page) => page.titel && page.inhalt !== undefined));
 assert.ok(pages.some((page) => page.id === "the-appimage"), "Die AppImage-Seite fehlt");
+const apkPage = pages.find((page) => page.id === "android-apk-transfer");
+assert.ok(apkPage.inhalt.includes("Magnolie-Notes.apk") &&
+  apkPage.inhalt.includes("Magnolie-Notes-latest-PRUEFSUMMEN.sha256") &&
+  !apkPage.inhalt.includes("Magnolie-Notes-1.0.13.apk") &&
+  apkPage.inhalt.includes("play.google.com/store/apps/details?id=org.kde.kdeconnect_tp") &&
+  (apkPage.inhalt.match(/class='download-qr'/g) || []).length === 2,
+"APK-Handbuchseite enthält nicht beide aktuellen QR-Downloads");
 assert.ok(completeText.includes("%LOCALAPPDATA%\\Magnolie Organizer\\daten.json"));
 assert.ok(completeText.includes("Dokumente\\Magnolie Organizer\\Sicherungen"));
 assert.ok(completeText.includes(expectedInstaller));
@@ -127,7 +136,7 @@ assert.ok(completeText.includes("--erinnerung") && completeText.includes("--weck
 "Die Strecke-15-Fachphrasen zu CLI, Protokollen und Umgebung fehlen");
 assert.ok(completeText.includes("200:1") && completeText.includes("keine Speicherobergrenze") &&
   completeText.includes("525.600 Minuten") && completeText.includes("einmal pro Minute") &&
-  completeText.includes("nicht die Ed25519-Signatur") && completeText.includes("128 MiB") &&
+  completeText.includes("Ed25519") && completeText.includes("Unmittelbar vor der Übergabe an Windows") && completeText.includes("128 MiB") &&
   completeText.includes("512 MiB") && completeText.includes("format=j1") &&
   completeText.includes("keine entsprechende Begrenzung der Antwortgröße"),
 "Die Strecke-16-Fachphrasen fehlen");
@@ -161,7 +170,7 @@ assert.ok(!fs.existsSync(path.join(handbook, "kaffee-qr.png")) &&
   !fs.existsSync(path.join(handbook, "maik-walter.jpg")),
 "Handbuch darf keine Klartext-Personenassets enthalten");
 assert.ok(fs.existsSync(path.join(handbook, "maik-walter-FOTO-NUTZUNG.txt")));
-for (const marker of [`Windows ${expectedVersion}`, "Magnolie Notes für Android 1.0.11",
+for (const marker of [`Windows ${expectedVersion}`, "Magnolie Notes für Android 1.0.13",
   "Kontakte synchronisieren", "2.800.000", "stabile technische Bindung",
   "12.000.000", "24.000.000", "FileProvider", "256 MiB", "512 MiB",
   "Freiwilliger Löschabgleich", "höchstens 10 Löschungen", "höchstens 10 %",

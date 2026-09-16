@@ -6,6 +6,7 @@
     <Nullable>enable</Nullable>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
+    <DefaultItemExcludes>$(DefaultItemExcludes);**/bin/**;**/obj/**</DefaultItemExcludes>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="BouncyCastle.Cryptography" Version="2.5.1" />
@@ -15,6 +16,14 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="..\AtomicStore.cs" Link="AtomicStore.cs" />
+    <Compile Remove="callstate\**\*.cs" />
+    <Compile Remove="notification-uninstall\**\*.cs" />
+    <Compile Include="..\TelefonCallActions.cs" Link="TelefonCallActions.cs" />
+    <Compile Include="..\DeadlineHttp.cs" Link="DeadlineHttp.cs" />
+    <Compile Include="..\ProfileLease.cs" Link="ProfileLease.cs" />
+    <Compile Include="..\SmsSubmissionJournal.cs" Link="SmsSubmissionJournal.cs" />
+    <Compile Include="..\BaumReceipt.cs" Link="BaumReceipt.cs" />
+    <Compile Include="..\CloudBackupWorker.cs" Link="CloudBackupWorker.cs" />
     <Compile Include="..\EncryptionService.cs" Link="EncryptionService.cs" />
     <Compile Include="..\ExchangeCodec.cs" Link="ExchangeCodec.cs" />
     <Compile Include="..\ThunderbirdCalendarImporter.cs" Link="ThunderbirdCalendarImporter.cs" />
@@ -24,6 +33,7 @@
     <Compile Include="..\WindowsContactStore.cs" Link="WindowsContactStore.cs" />
     <Compile Include="..\GraphContactService.cs" Link="GraphContactService.cs" />
     <Compile Include="..\ReminderScheduler.cs" Link="ReminderScheduler.cs" />
+    <Compile Include="..\CalendarRecurrence.cs" Link="CalendarRecurrence.cs" />
     <Compile Include="..\WindowsPaths.cs" Link="WindowsPaths.cs" />
     <Compile Include="..\CloudBackupService.cs" Link="CloudBackupService.cs" />
     <Compile Include="..\RegionalSettings.cs" Link="RegionalSettings.cs" />
@@ -33,6 +43,7 @@
     <Compile Include="..\TraySettingsService.cs" Link="TraySettingsService.cs" />
     <Compile Include="..\LibreOfficeUserData.cs" Link="LibreOfficeUserData.cs" />
     <Compile Include="..\WeatherLocation.cs" Link="WeatherLocation.cs" />
+    <Compile Include="..\WeatherRequests.cs" Link="WeatherRequests.cs" />
     <Compile Include="..\LogPresentation.cs" Link="LogPresentation.cs" />
     <Compile Include="..\RotatingLog.cs" Link="RotatingLog.cs" />
     <Compile Include="..\CrashReportWriter.cs" Link="CrashReportWriter.cs" />
@@ -57,8 +68,13 @@
     <Compile Include="..\TelefonStore.cs" Link="TelefonStore.cs" />
     <Compile Include="..\TelefonCoordinator.cs" Link="TelefonCoordinator.cs" />
     <Compile Include="..\TelefonMdnsPublisher.cs" Link="TelefonMdnsPublisher.cs" />
+    <Compile Include="..\TelefonInvitation.cs" Link="TelefonInvitation.cs" />
+    <Compile Include="..\TelefonBluetoothClient.cs" Link="TelefonBluetoothClient.cs" />
+    <Compile Include="..\WindowsTelefonBluetoothClient.cs" Link="WindowsTelefonBluetoothClient.cs" />
+    <Compile Include="..\TelefonBluetoothTransport.cs" Link="TelefonBluetoothTransport.cs" Condition="$([System.String]::Copy('$(TargetFramework)').Contains('-windows'))" />
     <Compile Include="..\BridgeDispatcherContract.cs" Link="BridgeDispatcherContract.cs" />
     <Compile Include="..\WindowsUpdateService.cs" Link="WindowsUpdateService.cs" />
+    <Compile Include="..\ProtectedAssetPolicy.cs" Link="ProtectedAssetPolicy.cs" />
     <Compile Include="..\KdeConnectProtocol.cs" Link="KdeConnectProtocol.cs" />
     <Compile Include="..\KdeConnectIdentityStore.cs" Link="KdeConnectIdentityStore.cs" />
     <Compile Include="..\KdeConnectDirectBackend.cs" Link="KdeConnectDirectBackend.cs" />
@@ -68,10 +84,18 @@
     <Compile Include="..\WindowsFirewall.cs" Link="WindowsFirewall.cs" />
     <Compile Include="..\NativeLocalization.cs" Link="NativeLocalization.cs" />
     <Compile Include="..\FirstRunSetupState.cs" Link="FirstRunSetupState.cs" />
+    <Compile Include="..\FirstRunSetupPhoneServices.cs" Link="FirstRunSetupPhoneServices.cs" />
+    <Compile Include="..\FirstRunPhoneStartup.cs" Link="FirstRunPhoneStartup.cs" />
     <Compile Include="..\ShellLauncher.cs" Link="ShellLauncher.cs" />
   </ItemGroup>
   <ItemGroup>
-    <Content Include="resources\*.json">
+    <Content Include="resources\*.json" Exclude="resources\phone-region-vectors.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="..\..\contracts\baum-1-receipt-v1-vectors.json" Link="resources\baum-1-receipt-v1-vectors.json" Condition="Exists('..\..\contracts\baum-1-receipt-v1-vectors.json')">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="..\contracts\baum-1-receipt-v1-vectors.json" Link="resources\baum-1-receipt-v1-vectors.json" Condition="!Exists('..\..\contracts\baum-1-receipt-v1-vectors.json')">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="..\..\contracts\kontakt-sync-contract.json" Link="resources\kontakt-sync-contract.json" Condition="Exists('..\..\contracts\kontakt-sync-contract.json')">

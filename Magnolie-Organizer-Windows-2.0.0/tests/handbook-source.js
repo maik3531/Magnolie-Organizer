@@ -27,18 +27,17 @@ function selectHandbookWeb(root, requiredFiles) {
       `MAGNOLIE_HANDBOOK_WEB ist unvollständig: ${selected}`);
     return { directory: selected, label: `configured ${selected}` };
   }
-  if (hasFiles(canonical, requiredFiles)) return { directory: canonical, label: `canonical ${canonical}` };
-
-  assert.ok(hasFiles(bundled, requiredFiles), `Gebündelte Handbuchquelle fehlt: ${bundled}`);
-  if (hasFiles(canonical, ["index.html", "inhalt.js"])) {
+  if (hasFiles(canonical, requiredFiles)) {
+    assert.ok(hasFiles(bundled, requiredFiles), `Gebündelte Handbuchquelle fehlt: ${bundled}`);
     for (const relative of sourceFiles(canonical)) {
       const bundledFile = path.join(bundled, relative);
       assert.ok(fs.existsSync(bundledFile), `Gebündelte Handbuchquelle ist unvollständig: ${relative}`);
       assert.deepStrictEqual(fs.readFileSync(bundledFile), fs.readFileSync(path.join(canonical, relative)),
         `Gebündelte Handbuchquelle ist gegenüber der kanonischen Quelle veraltet: ${relative}`);
     }
-    return { directory: bundled, label: `bundled canonical sync ${bundled}` };
+    return { directory: canonical, label: `canonical and bundled sync ${canonical}` };
   }
+  assert.ok(hasFiles(bundled, requiredFiles), `Gebündelte Handbuchquelle fehlt: ${bundled}`);
   return { directory: bundled, label: `bundled standalone ${bundled}` };
 }
 

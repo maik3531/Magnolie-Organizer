@@ -30,9 +30,10 @@ internal static class WebViewStartupSourceTests
                         uiSelfTest.Contains("ClientSize.Width >= 1200", StringComparison.Ordinal),
             "Der echte Windows-UI-Selbsttest prüft Schriftladung oder Startgröße nicht.");
         TestAssert.That(main.Contains("WriteWebViewDiagnostic($\"Fehler beim Beenden: {error}\")", StringComparison.Ordinal) &&
-                        main.Contains("shutdownStarted = false;", StringComparison.Ordinal) &&
-                        main.CountText("ShowSaveWarning();") == 2,
-            "Ein Shutdown-Fehler schließt das Fenster oder zeigt nicht dieselbe Speicherwarnung.");
+                         main.Contains("ShutdownAsync().WaitAsync(TimeSpan.FromSeconds(10))", StringComparison.Ordinal) &&
+                         main.Contains("CloseReason.WindowsShutDown", StringComparison.Ordinal) &&
+                         main.Contains("ShowSaveWarning();", StringComparison.Ordinal),
+            "Saved shutdown is unbounded or a failed save no longer warns.");
         return Task.CompletedTask;
     }
 

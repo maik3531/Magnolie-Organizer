@@ -98,7 +98,7 @@ for typelib in $APP_TYPELIBS; do
     [ -f "/usr/lib/$MULTIARCH/girepository-1.0/$typelib.typelib" ] || {
         # Desktop-Zusatzmodule bleiben optional; die Kern- und EDS-Typelibs nicht.
         case "$typelib" in
-            AyatanaAppIndicator3-0.1|AppIndicator3-0.1|XApp-1.0) continue ;;
+            AyatanaAppIndicator3-0.1|AppIndicator3-0.1|XApp-1.0|GData-0.0|Goa-1.0) continue ;;
         esac
         printf '%s\n' "Fehlende AppImage-Bauvoraussetzung: $typelib.typelib" >&2
         exit 1
@@ -150,7 +150,9 @@ done < "$WURZEL/po/LINGUAS"
 install -m 0755 "$WURZEL/bin/magnolie-organizer" "$APPDIR/usr/bin/magnolie-organizer"
 install -m 0644 "$WURZEL/bin/magnolie_asset.py" "$APPDIR/usr/bin/magnolie_asset.py"
 install -m 0644 "$WURZEL/bin/magnolie_telefon.py" "$APPDIR/usr/bin/magnolie_telefon.py"
+install -m 0644 "$WURZEL/bin/magnolie_anruf_audio.py" "$APPDIR/usr/bin/magnolie_anruf_audio.py"
 install -m 0644 "$WURZEL/bin/magnolie_phone_region.py" "$APPDIR/usr/bin/magnolie_phone_region.py"
+install -m 0644 "$WURZEL/bin/magnolie_recurrence.py" "$APPDIR/usr/bin/magnolie_recurrence.py"
 install -m 0644 "$WURZEL/bin/magnolie_kdeconnect.py" "$APPDIR/usr/bin/magnolie_kdeconnect.py"
 install -m 0644 "$WURZEL/bin/magnolie_hintergrund.py" "$APPDIR/usr/bin/magnolie_hintergrund.py"
 install -m 0644 "$WURZEL/bin/magnolie_personal_sync.py" "$APPDIR/usr/bin/magnolie_personal_sync.py"
@@ -164,7 +166,8 @@ install -m 0755 "$(readlink -f "$(command -v python3)")" "$APPDIR/usr/bin/python
 ln -s "python$PYTHON_VERSION" "$APPDIR/usr/bin/python3"
 cp -a "/usr/lib/python$PYTHON_VERSION" "$APPDIR/usr/lib/"
 find "$APPDIR/usr/lib/python$PYTHON_VERSION" -type f \( -name '*.a' -o -name '*.o' \) -delete
-for paket in gi cryptography OpenSSL zeroconf ifaddr async_timeout qrcode phonenumbers; do
+python3 -c 'import gi; gi.require_foreign("cairo")'
+for paket in gi cairo cryptography OpenSSL zeroconf ifaddr async_timeout qrcode phonenumbers; do
     quelle="/usr/lib/python3/dist-packages/$paket"
     [ ! -e "$quelle" ] || cp -a "$quelle" "$APPDIR/usr/lib/python3/dist-packages/"
 done
@@ -227,6 +230,9 @@ for typelib in $APP_TYPELIBS; do
         "$APPDIR/usr/lib/$MULTIARCH/girepository-1.0/$typelib.typelib"
 done
 [ ! -d /usr/share/glib-2.0/schemas ] || cp -a /usr/share/glib-2.0 "$APPDIR/usr/share/"
+test -f /usr/share/zoneinfo/Europe/Berlin
+cp -a /usr/share/zoneinfo "$APPDIR/usr/share/"
+install -m 0644 /usr/share/doc/tzdata/copyright "$APPDIR/usr/share/doc/magnolie-organizer/tzdata-copyright"
 [ ! -d /usr/share/themes/Adwaita ] || {
     mkdir -p "$APPDIR/usr/share/themes"
     cp -a /usr/share/themes/Adwaita "$APPDIR/usr/share/themes/"
@@ -249,6 +255,7 @@ EOF
     cp -a /usr/lib/$MULTIARCH/webkit2gtk-4.1 "$APPDIR/usr/lib/"
 
 cp -a "$WURZEL/web/." "$APPDIR/usr/share/magnolie-organizer/web/"
+printf '{"version":"%s"}\n' "$FASSUNG" > "$APPDIR/usr/share/magnolie-organizer/version.json"
 if [ -n "$CONTRIBUTOR_HASH" ]; then
     printf '{"contributorHash":"%s"}\n' "$CONTRIBUTOR_HASH" > \
         "$APPDIR/usr/share/magnolie-organizer/build-config.json"
@@ -279,11 +286,16 @@ install -m 0644 /etc/ssl/certs/ca-certificates.crt \
     "$APPDIR/usr/share/magnolie-organizer/certs/ca-certificates.crt"
 install -m 0644 "$WURZEL/werkzeuge/appimage-fonts.conf" \
     "$APPDIR/usr/share/magnolie-organizer/fontconfig/fonts.conf"
+install -m 0644 "$WURZEL/werkzeuge/appimage_graphics.py" \
+    "$APPDIR/usr/share/magnolie-organizer/werkzeuge/appimage_graphics.py"
+install -m 0644 "$WURZEL/werkzeuge/appimage_runtime.py" \
+    "$APPDIR/usr/share/magnolie-organizer/werkzeuge/appimage_runtime.py"
 [ ! -f "/usr/share/doc/python$PYTHON_VERSION/copyright" ] || install -m 0644 \
     "/usr/share/doc/python$PYTHON_VERSION/copyright" \
     "$APPDIR/usr/share/doc/magnolie-organizer/python-copyright"
 
 for bibliothek in $EDS_BIBLIOTHEKEN \
+    "/usr/lib/$MULTIARCH/libnotify.so.4" \
     "/usr/lib/$MULTIARCH/libexpat.so.1" \
     "/usr/lib/$MULTIARCH/libfontconfig.so.1" \
     "/usr/lib/$MULTIARCH/libfreetype.so.6" \
@@ -308,7 +320,13 @@ GST_SCANNER=/usr/lib/$MULTIARCH/gstreamer1.0/gstreamer-1.0/gst-plugin-scanner
 if [ -x "$GST_SCANNER" ]; then
     install -m 0755 "$GST_SCANNER" "$APPDIR/usr/bin/gst-plugin-scanner"
 fi
+install -m 0755 /usr/bin/fc-match "$APPDIR/usr/bin/fc-match"
+install -m 0755 /usr/bin/xgettext "$APPDIR/usr/bin/xgettext"
+install -m 0755 /usr/bin/bwrap "$APPDIR/usr/bin/bwrap"
+install -m 0755 /usr/bin/xdg-dbus-proxy "$APPDIR/usr/bin/xdg-dbus-proxy"
 set -- --appdir "$APPDIR" --executable "$APPDIR/usr/bin/python$PYTHON_VERSION" \
+    --executable "$APPDIR/usr/bin/bwrap" --executable "$APPDIR/usr/bin/xdg-dbus-proxy" \
+    --executable "$APPDIR/usr/bin/xgettext" \
     --desktop-file "$APPDIR/usr/share/applications/io.gitlab.maik3531.MagnolieOrganizer.desktop" \
     --icon-file "$APPDIR/usr/share/icons/hicolor/256x256/apps/magnolie-organizer.png"
 "$LINUXDEPLOY" --appimage-extract-and-run "$@"
@@ -326,7 +344,7 @@ typelib_pfad="$APPDIR/usr/lib/$MULTIARCH/girepository-1.0"
     printf '%s\n' "ECal-2.0.typelib verweist nicht auf $ECAL_SONAME." >&2
     exit 1
 }
-for soname in $EDS_SONAMES; do
+for soname in $EDS_SONAMES libnotify.so.4; do
     [ -f "$APPDIR/usr/lib/$soname" ] || {
         printf '%s\n' "linuxdeploy-Closure ist unvollstaendig: $soname fehlt." >&2
         exit 1
@@ -394,6 +412,7 @@ MULTIARCH=x86_64-linux-gnu
 export PATH="$APPDIR/usr/bin:$PATH"
 export PYTHONHOME="$APPDIR/usr"
 export PYTHONPATH="$APPDIR/usr/lib/python3/dist-packages"
+export PYTHONTZPATH="$APPDIR/usr/share/zoneinfo"
 export LD_LIBRARY_PATH="$APPDIR/usr/lib/$MULTIARCH:$APPDIR/usr/lib:${LD_LIBRARY_PATH:-}"
 export GI_TYPELIB_PATH="$APPDIR/usr/lib/$MULTIARCH/girepository-1.0"
 export GIO_MODULE_DIR="$APPDIR/usr/lib/$MULTIARCH/gio/modules"
@@ -410,6 +429,7 @@ export GTK3_MODULES=
 export GTK_PATH="$APPDIR/usr/lib/$MULTIARCH/gtk-3.0"
 export GTK_DATA_PREFIX="$APPDIR/usr"
 export GTK_THEME=Adwaita
+export GSETTINGS_SCHEMA_DIR="$APPDIR/usr/share/glib-2.0/schemas"
 # Keep host font files, but never parse configuration for a newer fontconfig.
 export FONTCONFIG_PATH="$APPDIR/usr/share/magnolie-organizer/fontconfig"
 export FONTCONFIG_FILE="$FONTCONFIG_PATH/fonts.conf"
@@ -424,7 +444,9 @@ export MAGNOLIE_ORGANIZER_WEB="$APPDIR/usr/share/magnolie-organizer/web"
 export MAGNOLIE_LOCALE_DIR="$APPDIR/usr/share/locale"
 export MAGNOLIE_ORGANIZER_KLANG="$APPDIR/usr/share/magnolie-organizer/klang/erinnerung.wav"
 cd "$APPDIR"
-exec "$APPDIR/usr/bin/python3" "$APPDIR/usr/bin/magnolie-organizer" "$@"
+exec "$APPDIR/usr/bin/python3" -S \
+    "$APPDIR/usr/share/magnolie-organizer/werkzeuge/appimage_runtime.py" \
+    "$APPDIR" "$APPDIR/usr/bin/magnolie-organizer" "$@"
 EOF
 chmod 0755 "$APPDIR/AppRun"
 ln -sf usr/share/applications/io.gitlab.maik3531.MagnolieOrganizer.desktop \
@@ -433,12 +455,19 @@ ln -sf usr/share/icons/hicolor/256x256/apps/magnolie-organizer.png \
     "$APPDIR/magnolie-organizer.png"
 
 epoch=${SOURCE_DATE_EPOCH:-$(dpkg-parsechangelog -l"$WURZEL/debian/changelog" -STimestamp)}
+python3 "$WURZEL/werkzeuge/release_sources.py" binary "$APPDIR/usr/share/magnolie-organizer"
+python3 -I -B "$WURZEL/werkzeuge/runtime_pruefen.py" "$APPDIR/usr/bin" --tzpath "$APPDIR/usr/share/zoneinfo"
 image_epoch=$((epoch - epoch % 86400))
 sitecustomize="$APPDIR/usr/lib/python$PYTHON_VERSION/sitecustomize.py"
 if [ -L "$sitecustomize" ]; then
     rm -f "$sitecustomize"
     install -m 0644 "/etc/python$PYTHON_VERSION/sitecustomize.py" "$sitecustomize"
 fi
+# Normalizing mtimes invalidates distro timestamp-based bytecode. Hash-based
+# caches keep cold extracted CLI startup fast without accepting stale source.
+python3 -m compileall -q -f --invalidation-mode checked-hash -s "$APPDIR" -p / \
+    -x '/tests?/' "$APPDIR/usr/bin" "$APPDIR/usr/lib/python$PYTHON_VERSION" \
+    "$APPDIR/usr/lib/python3" "$APPDIR/usr/share/magnolie-organizer/werkzeuge"
 find "$APPDIR" -exec touch -h -d "@$image_epoch" {} +
 python3 "$WURZEL/werkzeuge/elf_glibc_pruefen.py" "$APPDIR" 2.35
 rm -f "$AUSGABE"

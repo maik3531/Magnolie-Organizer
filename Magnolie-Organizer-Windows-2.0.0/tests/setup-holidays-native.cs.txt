@@ -1,0 +1,40 @@
+global using System;
+global using System.IO;
+global using System.Collections.Generic;
+global using System.Linq;
+global using System.Threading;
+global using System.Threading.Tasks;
+
+// Host regional discovery is stubbed; setup state, normalizer, atomic persistence,
+// localization, and regression assertions are compiled from canonical source.
+namespace MagnolieOrganizer.Windows
+{
+    internal static class RegionalSettings
+    {
+        internal static string LanguagePreference() => "en";
+        internal static System.Text.Json.Nodes.JsonObject Read(string path) => new();
+        internal static void WriteLanguage(string path, string language) { }
+    }
+    public static class SetupHolidayProbe
+    {
+        public static void Run(string root, string app)
+        {
+            AppContext.SetData("APP_CONTEXT_BASE_DIRECTORY", app);
+            Tests.FirstRunSetupTests.VerifySchoolHolidayConsent(new WindowsPaths(root));
+            foreach (var name in new[] { "VerifySelectionNormalization", "VerifySelectionContract" })
+                typeof(Tests.FirstRunSetupTests).GetMethod(name, System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!
+                    .Invoke(null, new object[] { Path.Combine(root, "backups") });
+            foreach (var language in new[] { "en", "de", "fr", "es", "it", "nl", "pt", "ru", "cs", "pl", "hsb", "da", "nb", "hi", "zh_CN", "ja", "ar", "uk", "be", "tr" })
+            {
+                NativeLocalization.SetLanguage(language);
+                const string key = "Show school holidays for %(state)s in the calendar?";
+                var translated = NativeLocalization.Gettext(key);
+                var name = NativeLocalization.Gettext("Saxony");
+                var label = translated.Replace("%(state)s", name);
+                if (language != "en" && translated == key || !label.Contains(name) || label.Contains("%(state)s"))
+                    throw new Exception("Native dynamic gettext failed for " + language);
+            }
+            Console.WriteLine("Compiled Windows setup state: lifecycle, bound consent, JSON/atomic restart, and 20 native gettext languages passed.");
+        }
+    }
+}

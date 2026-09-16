@@ -7,6 +7,26 @@ internal static class FirstRunSetupTests
 {
     internal static async Task RunAsync()
     {
+        foreach (var (locale, expected) in new[] { ("de-AT", "AT"), ("de-CH", "CH"),
+                     ("en-DE", "DE"), ("de", ""), ("en", ""), ("", "") })
+            TestAssert.That(FirstRunSetupAddress.SystemCountry(locale) == expected,
+                "Setup country must use an explicit system territory, not a language default.");
+        var previousCulture = System.Globalization.CultureInfo.CurrentCulture;
+        var previousUiCulture = System.Globalization.CultureInfo.CurrentUICulture;
+        try
+        {
+            System.Globalization.CultureInfo.CurrentCulture = new("de-AT");
+            System.Globalization.CultureInfo.CurrentUICulture = new("de-DE");
+            TestAssert.That(new FirstRunSetupAddress().Country == "AT" &&
+                new FirstRunSetupAddress { Country = "CH" }.Country == "CH" &&
+                JsonSerializer.Deserialize<FirstRunSetupAddress>("{\"country\":\"NZ\"}")!.Country == "NZ",
+                "UI language must not replace system, explicit or imported address country.");
+        }
+        finally
+        {
+            System.Globalization.CultureInfo.CurrentCulture = previousCulture;
+            System.Globalization.CultureInfo.CurrentUICulture = previousUiCulture;
+        }
         var root = Path.Combine(Path.GetTempPath(), "magnolie-first-run-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(root);
         try
@@ -37,8 +57,9 @@ internal static class FirstRunSetupTests
                                 adopted.RootElement.GetProperty("Selections").TryGetProperty("language", out _),
                     "Der Adoptionsstatus fehlt im Setup-Marker.");
 
-            VerifySelectionContract(paths.Backups);
+            VerifySelectionContract(Path.Combine(root, "backups"));
             VerifySelectionNormalization(paths.Backups);
+            VerifySchoolHolidayConsent(paths);
 
             var interrupted = false;
             var interruptedState = new FirstRunSetupState(paths, new AtomicStore(stage =>
@@ -112,13 +133,13 @@ internal static class FirstRunSetupTests
             "Der native Wizard zieht WebView, Tray oder Dispatcher vor.");
         foreach (var required in new[]
         {
-            "claws", "vcard", "ldif", "csv-lotus", "windows-contacts",
+            "thunderbird", "claws", "vcard", "ldif", "csv-lotus", "windows-contacts",
             "tasks", "addresses", "notes", "appointments", "anniversaries", "planner", "health"
         })
             TestAssert.That(wizardSource.Contains($"\"{required}\"", StringComparison.Ordinal),
                 $"Die Assistenten-ID {required} fehlt.");
-        TestAssert.That(wizardSource.Contains("ClientSize = new Size(900, 680)", StringComparison.Ordinal) &&
-                         wizardSource.Contains("Dock = DockStyle.Top, Height = 190", StringComparison.Ordinal) &&
+        TestAssert.That(wizardSource.Contains("ClientSize = new Size(960, 780)", StringComparison.Ordinal) &&
+                          wizardSource.Contains("Dock = DockStyle.Top, Height = 165", StringComparison.Ordinal) &&
                           wizardSource.Contains("Color.FromArgb(218, 207, 178)", StringComparison.Ordinal) &&
                           wizardSource.Contains("MaxLength = 4096", StringComparison.Ordinal),
             "Fenstergeometrie, Kopfzeile oder Begrenzung freier Listen entsprechen nicht dem Vertrag.");
@@ -132,13 +153,15 @@ internal static class FirstRunSetupTests
         TestAssert.That(wizardSource.Contains("region = Value(result.Felder, \"st\")", StringComparison.Ordinal) &&
                         wizardSource.Contains("AddressSort = addressSort", StringComparison.Ordinal) &&
                         wizardSource.Contains("PhoneActions = []", StringComparison.Ordinal) &&
-                        wizardSource.Contains("https://gitlab.com/maik3531/mint-forgs/-/raw/main/Magnolie-Organitzer/Magnolie-Notes-1.0.13.apk", StringComparison.Ordinal) &&
-                        wizardSource.Contains("https://play.google.com/store/apps/details?id=org.kde.kdeconnect_tp&hl=de&pli=1", StringComparison.Ordinal) &&
+                        wizardSource.Contains("https://gitlab.com/maik3531/mint-forgs/-/raw/main/Magnolie-Organitzer/Magnolie-Notes.apk", StringComparison.Ordinal) &&
+                        wizardSource.Contains("https://play.google.com/store/apps/details?id=org.kde.kdeconnect_tp", StringComparison.Ordinal) &&
+                         wizardSource.Contains("phone-notes-qr.png", StringComparison.Ordinal) &&
+                         wizardSource.Contains("phone-kde-connect-qr.png", StringComparison.Ordinal) &&
                          !wizardSource.Contains("ms-settings:bluetooth", StringComparison.Ordinal) &&
                          !wizardSource.Contains("OpenBluetoothSettings", StringComparison.Ordinal) &&
                         !wizardSource.Contains("phoneIntentions", StringComparison.Ordinal) &&
                         !wizardSource.Contains("magnolienbaum", StringComparison.OrdinalIgnoreCase) &&
-                        !wizardSource.Contains("\"thunderbird\"", StringComparison.Ordinal) &&
+                         wizardSource.Contains("\"thunderbird\"", StringComparison.Ordinal) &&
                         !wizardSource.Contains("finishManual", StringComparison.Ordinal) &&
                         !wizardSource.Contains("openHandbook: true", StringComparison.Ordinal) &&
                          !wizardSource.Contains("RecoveryPointsIntent", StringComparison.Ordinal) &&
@@ -153,8 +176,16 @@ internal static class FirstRunSetupTests
         var bridge = File.ReadAllText("BridgeDispatcher.cs");
         TestAssert.That(program.Contains("new MainForm(trayStart, reminderStart, setupSelections)", StringComparison.Ordinal) &&
                         main.Contains("new BridgeDispatcher(this, paths, setupSelections)", StringComparison.Ordinal) &&
-                         bridge.Split("setupSelections", StringSplitOptions.None).Length >= 6,
+                         bridge.Split("setupSelections", StringSplitOptions.None).Length >= 6 &&
+                         bridge.Contains("thunderbirdOnly", StringComparison.Ordinal) &&
+                         bridge.Contains("area == \"thunderbird\"", StringComparison.Ordinal),
             "Die vollständige Setup-Auswahl wird nicht in beide App.init-Pfade weitergereicht.");
+        foreach (var file in new[] { "phone-notes-qr.png", "phone-kde-connect-qr.png" })
+        {
+            var bytes = File.ReadAllBytes(Path.Combine("app", "symbole", file));
+            TestAssert.That(bytes.Length > 100 && bytes.AsSpan(0, 8).SequenceEqual(
+                new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 }), $"{file} fehlt oder ist kein PNG-QR-Code.");
+        }
     }
 
     private static void VerifySelectionNormalization(string backupPath)
@@ -173,22 +204,24 @@ internal static class FirstRunSetupTests
                 new() { Id = "fremd", Type = "appointments", Page = "right", Order = 9 },
                 new() { Id = "fremd-2", Type = "unknown", Page = "left", Order = 0 },
                 new() { Id = "fremd-3", Type = "notes", Page = "right", Order = 4 },
-                new() { Id = "fremd-4", Type = "tasks", Page = "right", Order = 7 }
+                new() { Id = "fremd-4", Type = "tasks", Page = "right", Order = 7 },
+                new() { Id = "fremd-5", Type = "notes", Page = "left", Order = 8 }
             ] },
             BackupPath = "  ",
             Autostart = true,
             Tray = false
         }, backupPath);
         TestAssert.That(normalized.AddressSort == "first-name" &&
-                        normalized.OneTimeImports.SequenceEqual(new[] { "claws", "vcard", "windows-contacts" }) &&
+                        normalized.OneTimeImports.SequenceEqual(new[] { "thunderbird", "claws", "vcard", "windows-contacts" }) &&
                         normalized.PhoneActions.Count == 0 &&
                         normalized.Registers.SequenceEqual(new[] { "tasks", "health" }) &&
                         normalized.Address.FirstName == "Ada" && normalized.Address.State == "DE-MV" &&
                         normalized.CustomTabName == "Reisen" &&
-                         normalized.CustomOrganizer.Version == 3 && normalized.CustomOrganizer.Modules.Count == 3 &&
-                        normalized.CustomOrganizer.Modules[0] is { Id: "setup-0", Type: "appointments", Page: "left", Order: 0 } &&
-                        normalized.CustomOrganizer.Modules[1] is { Id: "setup-1", Type: "notes", Page: "right", Order: 0 } &&
-                        normalized.CustomOrganizer.Modules[2] is { Id: "setup-2", Type: "tasks", Page: "left", Order: 1 } &&
+                         normalized.CustomOrganizer.Version == 3 && normalized.CustomOrganizer.Modules.Count == 4 &&
+                        normalized.CustomOrganizer.Modules[0] is { Id: "setup-0", Type: "appointments", Page: "right", Order: 0 } &&
+                        normalized.CustomOrganizer.Modules[1] is { Id: "setup-1", Type: "notes", Page: "right", Order: 1 } &&
+                        normalized.CustomOrganizer.Modules[2] is { Id: "setup-2", Type: "tasks", Page: "left", Order: 0 } &&
+                        normalized.CustomOrganizer.Modules[3] is { Id: "setup-3", Type: "notes", Page: "left", Order: 1 } &&
                         normalized.Autostart && normalized.Tray,
             "Mehrfachauswahlen werden nicht in kanonischer UI-Reihenfolge gespeichert.");
         TestAssert.That(normalized.BackupPath == backupPath,
@@ -210,14 +243,55 @@ internal static class FirstRunSetupTests
             "Vollständiges Überspringen verwendet nicht die sicheren Linux-semantischen Werte.");
     }
 
+    internal static void VerifySchoolHolidayConsent(WindowsPaths paths)
+    {
+        TestAssert.That(!new FirstRunSetupSelections().SchoolHolidays, "School holidays require explicit opt-in.");
+        foreach (var (country, region, bound, expected) in new[]
+        {
+            ("DE", "DE-SN", "DE-SN", true), ("DE", "Sachsen", "DE-SN", true),
+            ("AT", "AT-9", "AT-9", true), ("CH", "CH-ZH", "CH-ZH", true),
+            ("AT", "DE-SN", "DE-SN", false), ("DE", "DE-BY", "DE-SN", false),
+            ("DE", "Unknown region", "Unknown region", false), ("US", "California", "California", false)
+        })
+        {
+            var draft = new FirstRunSetupSelections { Address = new() { Country = country, State = region },
+                SchoolHolidays = true, SchoolHolidayRegion = bound };
+            var chosen = FirstRunSetupSelectionNormalizer.Normalize(draft, paths.Backups);
+            TestAssert.That(chosen.SchoolHolidays == expected, "Consent must match a supported country and region.");
+            var roundtrip = JsonSerializer.Deserialize<FirstRunSetupSelections>(JsonSerializer.Serialize(chosen))!;
+            TestAssert.That(roundtrip.SchoolHolidays == expected && roundtrip.SchoolHolidayRegion == (expected ? bound : ""),
+                "Native setup handoff lost holiday consent.");
+            var state = new FirstRunSetupState(paths);
+            state.Begin();
+            // A cancelled draft is not handed to Complete.
+            TestAssert.That(JsonSerializer.Deserialize<FirstRunSetupMarker>(new AtomicStore().ReadRecoverableJson(paths.FirstRunSetup)!)!
+                .Selections.SchoolHolidays == false, "A staged draft must not persist consent on Cancel.");
+            state.Complete(roundtrip);
+            var saved = JsonSerializer.Deserialize<FirstRunSetupMarker>(new AtomicStore().ReadRecoverableJson(paths.FirstRunSetup)!)!;
+            TestAssert.That(saved.Selections.SchoolHolidays == expected, "Finish must persist normalized consent.");
+            var skipped = FirstRunSetupSelectionNormalizer.Normalize(draft, paths.Backups, skipped: true);
+            TestAssert.That(skipped.SetupSkipped && !skipped.SchoolHolidays && skipped.SchoolHolidayRegion == "",
+                "Skip must discard staged holiday consent.");
+        }
+    }
+
     private static void VerifySelectionContract(string backupPath)
     {
-        var defaults = new FirstRunSetupSelections { BackupPath = backupPath };
+        // The serialized fixture below expects Germany; the real default is
+        // intentionally taken from the OS territory, not the UI language.
+        var previousCulture = System.Globalization.CultureInfo.CurrentCulture;
+        FirstRunSetupSelections defaults;
+        try
+        {
+            System.Globalization.CultureInfo.CurrentCulture = new("de-DE");
+            defaults = new FirstRunSetupSelections { BackupPath = backupPath };
+        }
+        finally { System.Globalization.CultureInfo.CurrentCulture = previousCulture; }
         using var document = JsonDocument.Parse(JsonSerializer.Serialize(defaults));
         var root = document.RootElement;
         var expected = new[]
         {
-            "language", "address", "addressSource", "addressSort", "calendarUids", "addressBookUid", "oneTimeImports", "phoneActions",
+            "language", "address", "addressSource", "addressChanged", "schoolHolidays", "schoolHolidayRegion", "setupSkipped", "addressSort", "calendarUids", "addressBookUid", "oneTimeImports", "stagedImports", "phoneActions", "phoneBackgroundServices",
             "registers", "customTabEnabled", "customTabName", "customTabDesignRequested", "customTabChanged", "customOrganizerChanged", "customOrganizer",
             "openHandbook", "backupPath", "backupInterval", "autostart", "tray", "weather", "restoreRequest"
         };
@@ -230,12 +304,39 @@ internal static class FirstRunSetupTests
                          !root.GetProperty("openHandbook").GetBoolean() &&
                          !root.GetProperty("customTabChanged").GetBoolean() &&
                          !root.GetProperty("customOrganizerChanged").GetBoolean() &&
-                         root.GetProperty("phoneActions").GetArrayLength() == 0 &&
+                          root.GetProperty("phoneActions").GetArrayLength() == 0 &&
+                          root.GetProperty("stagedImports").GetArrayLength() == 0 &&
+                          root.GetProperty("phoneBackgroundServices").GetArrayLength() == 0 &&
                          root.GetProperty("customOrganizer").GetProperty("version").GetInt32() == 3 &&
                          root.GetProperty("customOrganizer").GetProperty("modules").GetArrayLength() == 0,
             "Die sicheren Standardwerte des Assistenten stimmen nicht.");
         TestAssert.That(root.GetProperty("registers").EnumerateArray().Select(value => value.GetString()).SequenceEqual(
                             new[] { "tasks", "addresses", "notes", "anniversaries", "planner", "health" }),
             "Nicht alle sechs auswählbaren Standardregister sind aktiviert.");
+        var selection = JsonSerializer.Deserialize<FirstRunSetupSelections>("""
+            {"language":"de","address":{"firstName":"Ada","lastName":""},
+             "oneTimeImports":["vcard"],"stagedImports":[{"source":"vcard","payload":{
+               "kontakte":[{"uid":"setup-card","anzeigename":"Meyer Schulze","vorname":"","nachname":"","geburtstag":"--02-29"}]}}],
+             "phoneActions":[],"phoneBackgroundServices":["bluetooth"],"tray":true}
+            """)!;
+        var normalized = FirstRunSetupSelectionNormalizer.Normalize(selection, backupPath);
+        var staged = normalized.StagedImports.Single();
+        TestAssert.That(staged.Source == "vcard" && staged.Payload["kontakte"]![0]!["uid"]!.GetValue<string>() == "setup-card" &&
+            normalized.OneTimeImports.SequenceEqual(["vcard"]) && normalized.PhoneBackgroundServices.SequenceEqual(["bluetooth"]),
+            "CamelCase setup input lost its staged import or background-service selection before handoff.");
+        using var handoff = JsonDocument.Parse(JsonSerializer.Serialize(normalized));
+        var card = handoff.RootElement.GetProperty("stagedImports")[0].GetProperty("payload").GetProperty("kontakte")[0];
+        TestAssert.That(card.GetProperty("anzeigename").GetString() == "Meyer Schulze" &&
+            card.GetProperty("vorname").GetString() == "" && card.GetProperty("nachname").GetString() == "" &&
+            card.GetProperty("geburtstag").GetString() == "--02-29",
+            "Setup handoff changed the staged contact's name or yearless birthday.");
+        var paths = new WindowsPaths(Path.Combine(Path.GetDirectoryName(backupPath)!, "selection-contract"));
+        var state = new FirstRunSetupState(paths);
+        state.Complete(normalized);
+        var marker = JsonSerializer.Deserialize<FirstRunSetupMarker>(new AtomicStore().ReadRecoverableJson(paths.FirstRunSetup)!)!;
+        TestAssert.That(state.Classify() == FirstRunSetupClassification.Complete && marker.Status == "completed" &&
+            marker.Selections.StagedImports.Count == 0 && normalized.StagedImports.Count == 1 &&
+            marker.Selections.PhoneBackgroundServices.SequenceEqual(["bluetooth"]) && marker.Selections.Address.FirstName == "Ada",
+            "Setup state did not retain startup choices or leaked/mutated transient imported personal data.");
     }
 }

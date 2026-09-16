@@ -45,7 +45,9 @@ class JournalKernTest {
         assertTrue(entries.filter { it.uuid in keep && it.reason == "pre-restore" }.size <= 5)
         assertTrue(entries.filter { it.uuid in keep && it.reason.startsWith("pre-sync") }.size <= 20)
         val limited = JournalRegeln.behalten(entries, now, 3)
-        assertEquals(setOf("0", "1", "2"), limited)
+        assertEquals(setOf("0", "1", "2", "29"), limited)
+        val restoring = entries.map { if (it.uuid == "29") it.copy(restoreOperationId = "restore") else it }
+        assertEquals(setOf("0", "29"), JournalRegeln.behalten(restoring, now, 1))
     }
 
     @Test fun `Manifest besitzt gemeinsamen Vertrag`() {
@@ -56,5 +58,19 @@ class JournalKernTest {
         assertEquals("android", m.platform)
         assertEquals(64, m.payload.hash.length)
         assertEquals(1, m.payload.schema)
+    }
+
+    @Test fun `Geschuetzte Punkte und neuester unbekannter Grund bleiben erhalten`() {
+        val now = Instant.parse("2026-09-10T12:00:00Z").toEpochMilli()
+        val old = JournalRegeln.manifest("manual", "android-app-data", "1.0.14",
+            byteArrayOf(1), "old", "epoch", pinned = true, now = now - 100L * 86400_000)
+        val recent = JournalRegeln.manifest("future-reason", "android-app-data", "1.0.14",
+            byteArrayOf(2), "recent", "epoch", now = now)
+        assertEquals(setOf(old.uuid, recent.uuid), JournalRegeln.behalten(listOf(old, recent), now, 1))
+        assertEquals(setOf(recent.uuid), JournalRegeln.behalten(listOf(old.copy(pinned = false, reason = "future-reason"), recent), now))
+        val damaged = old.copy(uuid = "damaged", pinned = false, createdUtc = "invalid-date")
+        assertNull(JournalRegeln.zeitpunkt(damaged))
+        assertEquals(setOf(damaged.uuid, recent.uuid), JournalRegeln.behalten(listOf(damaged, recent), now, 1))
+        assertEquals(setOf(damaged.uuid, recent.uuid), JournalRegeln.behalten(listOf(damaged, recent), now))
     }
 }

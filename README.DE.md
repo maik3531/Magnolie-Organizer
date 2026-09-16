@@ -33,16 +33,32 @@ Speicherung und bewusst freigegebener Datenaustausch.
 
 | Plattform | Empfohlenes Paket | Alternative |
 |---|---|---|
-| Linux | [Flatpak x86_64](https://github.com/maik3531/Magnolie-Organizer/releases/latest/download/Magnolie-Organizer-2.0.17-x86_64.flatpak) | [AppImage](https://github.com/maik3531/Magnolie-Organizer/releases/latest/download/Magnolie-Organizer-2.0.17-x86_64.AppImage) · [Debian-Paket](https://github.com/maik3531/Magnolie-Organizer/releases/latest/download/magnolie-organizer_2.0.17_all.deb) |
-| Windows 10/11 x64 | [Installationsprogramm](https://github.com/maik3531/Magnolie-Organizer/releases/latest/download/Magnolie-Organizer-Windows-2.0.17-Setup-x64.exe) | [Portable ZIP](https://github.com/maik3531/Magnolie-Organizer/releases/latest/download/Magnolie-Organizer-Windows-2.0.17-x64.zip) |
-| Android | [Magnolie Notes APK](https://github.com/maik3531/Magnolie-Organizer/releases/latest/download/Magnolie-Notes-1.0.13.apk) | Android 8.0 oder neuer |
-| Handbuch | [Debian-Paket](https://github.com/maik3531/Magnolie-Organizer/releases/latest/download/magnolie-handbuch_2.0.17_all.deb) | Optionale Komponente des Windows-Installers |
+| Linux | [Flatpak x86_64](https://github.com/maik3531/Magnolie-Organizer/releases/latest/download/Magnolie-Organizer-2.0.18-x86_64.flatpak) | [AppImage](https://github.com/maik3531/Magnolie-Organizer/releases/latest/download/Magnolie-Organizer-2.0.18-x86_64.AppImage) · [Debian-Paket](https://github.com/maik3531/Magnolie-Organizer/releases/latest/download/magnolie-organizer_2.0.18_all.deb) |
+| Windows 10/11 x64 | [Installationsprogramm](https://github.com/maik3531/Magnolie-Organizer/releases/latest/download/Magnolie-Organizer-Windows-2.0.18-Setup-x64.exe) | [Portable ZIP](https://github.com/maik3531/Magnolie-Organizer/releases/latest/download/Magnolie-Organizer-Windows-2.0.18-x64.zip) |
+| Android | [Magnolie Notes APK](https://github.com/maik3531/Magnolie-Organizer/releases/latest/download/Magnolie-Notes-1.0.14.apk) | Android 8.0 oder neuer |
+| Handbuch | [Debian-Paket](https://github.com/maik3531/Magnolie-Organizer/releases/latest/download/magnolie-handbuch_2.0.18_all.deb) | Optionale Komponente des Windows-Installers |
+
+Optionale KDE-Integration für das native Linux-Paket:
+
+| Distribution | KDE-Paket (amd64 / x86_64) |
+|---|---|
+| Debian 13, Ubuntu / Kubuntu 24.04 und 26.04, Linux Mint 22 | [Ein KDE-DEB](https://github.com/maik3531/Magnolie-Organizer/releases/latest/download/magnolie-organizer-kde_2.0.18_amd64.deb) |
+| Fedora 42 | [KDE-RPM](https://github.com/maik3531/Magnolie-Organizer/releases/latest/download/magnolie-organizer-kde-2.0.18-1.fc42.x86_64.rpm) |
+
+Das optionale KDE-DEB wählt eines von drei internen nativen Backends anhand der
+bereits konfigurierten KDE-Pakete und ihrer vollständigen ABI-Abhängigkeiten.
+Es installiert keine KDE-PIM-Suite. Es gibt keinen Übergangspaket-Download.
+Beim alten Paketnamen wird `magnolie-organizer-kde` ausdrücklich installiert;
+versionierte Paketbeziehungen erhalten das Upgrade von der freigegebenen 1.0.0.
+Die suffixierten 2.0.18-Dateien waren unveröffentlichte Testkandidaten und werden
+von dpkg höher als 2.0.18 einsortiert: Ihr Ersatz braucht eine ausdrückliche
+Downgrade-Entscheidung des Testers. Siehe [KDE-Anforderungen und Upgrade-Regeln](magnolie-organizer-2.0.0/native/akonadi-helper/DEB-TARGETS.md).
 
 SHA-256-Prüfsummen und Quellarchive liegen in der
 [aktuellen Freigabe](https://github.com/maik3531/Magnolie-Organizer/releases/latest).
 
 > [!IMPORTANT]
-> Die Windows-Artefakte 2.0.17 sind unsignierte Linux-Cross-Builds. Quellen-, Web-,
+> Die Windows-Artefakte 2.0.18 sind unsignierte Linux-Cross-Builds. Quellen-, Web-,
 > Paket- und 30.000er-Coretests bestehen. Native Kompilierung, Laufzeitprüfung
 > unter Windows und Authenticode-Signierung bleiben nicht verfügbar. Bitte vor
 > der Nutzung die Freigabehinweise lesen.
@@ -75,7 +91,7 @@ SHA-256-Prüfsummen und Quellarchive liegen in der
 | Magnolie-Handbuch | Python, GTK, HTML/CSS/JavaScript | [`magnolie-handbuch-stamm`](magnolie-handbuch-stamm/) |
 
 Jeder Ordner enthält eigene Bau- und Prüfanweisungen. Das Repository enthält
-die veröffentlichten Quellen für Organizer 2.0.17 und Notes 1.0.13. Fertige
+die veröffentlichten Quellen für Organizer 2.0.18 und Notes 1.0.13. Fertige
 Pakete bleiben auf der Releases-Seite und belasten nicht die Git-Historie.
 
 ## Sicherheit und Datenschutz

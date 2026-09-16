@@ -1,5 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="baum_postfach_unsicher">असत्यापित डिलीवरी: %1$d। संदेश सुरक्षित हैं और अपने आप दोबारा भेजना रोक दिया गया है। प्राप्ति की जाँच करें; पुराने उपकरण सत्यापित प्राप्ति-पुष्टि का समर्थन नहीं कर सकते हैं।</string>
+    <string name="telefon_bluetooth_setup">Bluetooth से नया Organizer जोड़ें</string>
+    <string name="telefon_bluetooth_setup_hinweis">यह स्क्रीन खुली रखें। Organizer में यह फ़ोन चुनें, सिस्टम पेयरिंग की पुष्टि करें, फिर दोनों डिवाइसों पर कोड की तुलना करें।</string>
     <string name="freigabe_ziel">Magnolie Notes में सहेजें</string>
     <string name="blatt_notizen">नोट्स</string>
     <string name="blatt_einfuhr">आयात</string>
@@ -320,7 +323,7 @@
     <string name="start_laden">सुरक्षित डेटा खोला जा रहा है…</string><string name="start_fehler_titel">सुरक्षित डेटा नहीं खुल सका</string><string name="start_daten_unveraendert">आपका डेटा न मिटाया गया न बदला गया। आप सुरक्षित रूप से फिर प्रयास कर सकते हैं।</string><string name="start_erneut">फिर प्रयास करें</string><string name="start_schliessen">ऐप बंद करें</string>
     <string name="absturzbericht_teilen">क्रैश रिपोर्ट साझा करें</string>
     <string name="journal_maximum">पुनर्प्राप्ति बिंदु</string>
-    <string name="journal_maximum_hinweis">सीमा घटाने पर सबसे पुराने पुनर्प्राप्ति बिंदु अपने आप हटा दिए जाते हैं।</string>
+    <string name="journal_maximum_hinweis">सीमा घटाने पर सबसे पुराने पुनर्प्राप्ति बिंदु हटाए जाते हैं। सुरक्षित रखने के लिए चुने गए बिंदु नहीं हटते।</string>
     <string name="portable_titel">पोर्टेबल बैकअप</string><string name="portable_hinweis">नोट, नोटबुक, कार्य, ट्रैश और अटैचमेंट का अलग पासवर्ड-सुरक्षित संग्रह बनाएँ या पुनर्स्थापित करें।</string><string name="portable_export">पोर्टेबल बैकअप बनाएँ</string><string name="portable_datei_oeffnen">पोर्टेबल बैकअप खोलें</string><string name="portable_restore">बैकअप पुनर्स्थापित करें</string><string name="portable_passwort">पासवर्ड</string><string name="portable_passwort_hinweis">संग्रह का पासवर्ड दर्ज करें। बैकअप की जाँच के दौरान कुछ भी नहीं बदलेगा।</string><string name="portable_pruefen">जाँचें और पूर्वावलोकन करें</string><string name="portable_vorschau">बैकअप पूर्वावलोकन</string><string name="portable_vorschau_text">%1$d नोट · %2$d नोटबुक · %3$d कार्य · ट्रैश में %4$d आइटम</string><string name="portable_restore_warnung">यह सभी मौजूदा निजी सामग्री बदल देगा। पहले स्थानीय सुरक्षा स्नैपशॉट बनाया जाएगा; इस डिवाइस की Magnolienbaum पहचान सुरक्षित रहेगी।</string><string name="portable_fehler">बैकअप खोला नहीं जा सका। फ़ाइल और पासवर्ड जाँचें।</string><string name="portable_exportiert">पोर्टेबल बैकअप बनाया गया।</string><string name="portable_wiederhergestellt">पोर्टेबल बैकअप पुनर्स्थापित किया गया।</string>
     <string name="auto_backup_titel">क्लाउड फ़ोल्डर में स्वचालित बैकअप</string>
     <string name="auto_backup_hinweis">वैकल्पिक रूप से प्रमाणित पोर्टेबल बैकअप को Android से चुने गए फ़ोल्डर में सहेजता है। प्रदाता इस फ़ोल्डर को सिंक कर सकता है।</string>
@@ -348,4 +351,27 @@
     <string name="aufgabe_zur_wurzel">शीर्ष स्तर पर</string>
     <string name="aufgabe_eltern_waehlen">मूल कार्य चुनें</string>
     <string name="aufgabe_oberste_ebene">शीर्ष स्तर</string>
+    <string name="baum_kontakt_jubilaeum">वर्षगाँठ</string>
+    <string name="baum_kontakt_update">वर्षगाँठ की तारीखें भी भेजने के लिए दोनों डिवाइस पर Magnolie अपडेट करें, दोनों ऐप खोलें और फिर कोशिश करें। इस बार कोई संपर्क नहीं भेजा गया है।</string>
+    <string name="baum_aufgabe_nicht_freigegeben">यह कार्य इस डिवाइस के साथ साझा नहीं किया गया है।</string>
+    <string name="baum_kontakt_import_nicht_unterstuetzt">इस डिवाइस पर संपर्क भेजने के लिए संपर्क सिंक का इस्तेमाल करें।</string>
+    <string name="aufgabe_nach_oben">कार्य ऊपर ले जाएँ</string>
+    <string name="aufgabe_nach_unten">कार्य नीचे ले जाएँ</string>
+    <string name="personal_custom_optin">कस्टम टैब के कार्य और मुलाकातें सिंक करें</string>
+    <string name="personal_custom_title">कस्टम टैब के कार्य और मुलाकातें (केवल पढ़ने के लिए)</string>
+    <string name="personal_custom_explanation">दोनों उपकरणों की सहमति ज़रूरी है। इसे बंद करने पर कस्टम टैब के अनुस्मारक और अपडेट रुक जाते हैं, लेकिन प्रतियाँ बनी रहती हैं। जुड़े हुए टेक्स्ट ब्लॉक साझा नहीं किए जाते।</string>
+    <string name="personal_custom_unsupported">यह उपकरण कस्टम टैब के सिंक का समर्थन नहीं करता।</string>
+    <string name="personal_custom_delete">स्रोत से हटा दिया गया: फ़ोन की यह प्रति हटाएँ या रखें? कंप्यूटर का स्रोत कभी नहीं बदला जाता।</string>
+    <string name="personal_custom_keep">प्रति रखें</string>
+    <string name="personal_custom_privacy">केवल दोनों उपकरणों की स्पष्ट सहमति से Personal Sync कस्टम कार्य और मुलाकातें, उनके अपने नोट सहित, केवल पढ़ने योग्य रूप में साझा करता है। टेक्स्ट ब्लॉक, जुड़े हुए टेक्स्ट और संलग्नक शामिल नहीं हैं। अभिलेख प्रतियाँ बहाल करते हैं, अनुमतियाँ नहीं।</string>
+    <string name="device_identifiers_share">अपने फ़ोन के पहचानकर्ता साझा करें</string>
+    <string name="device_identifiers_explanation">केवल अपने जुड़े कंप्यूटर के अनुरोध पर, 60 सेकंड के लिए, बिना सहेजे: डिफ़ॉल्ट वॉइस SIM का नंबर और, Android अनुमति दे तो, सीरियल नंबर और IMEI। Android 10 से सामान्य ऐप के लिए हार्डवेयर पहचानकर्ताओं पर प्रतिबंध हैं। नंबर की अनुमति वैकल्पिक है; कोई विशेष भूमिका नहीं माँगी जाती।</string>
+    <string name="device_identifiers_phone">अपना नंबर (डिफ़ॉल्ट वॉइस SIM)</string>
+    <string name="device_identifiers_serial">डिवाइस का सीरियल नंबर</string>
+    <string name="device_identifiers_imei">डिवाइस का IMEI</string>
+    <string name="device_identifiers_off">डिवाइस पहचानकर्ता साझा करना बंद है।</string>
+    <string name="device_identifiers_permission">डिवाइस पहचानकर्ता की अनुमति नहीं है।</string>
+    <string name="device_identifiers_restricted">Android इस डिवाइस पहचानकर्ता को प्रतिबंधित करता है।</string>
+    <string name="device_identifiers_subscription">कोई डिफ़ॉल्ट वॉइस सदस्यता उपलब्ध नहीं है।</string>
+    <string name="device_identifiers_unavailable">यह डिवाइस पहचानकर्ता उपलब्ध नहीं है।</string>
 </resources>

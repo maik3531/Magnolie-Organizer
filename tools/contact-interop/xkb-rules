@@ -1,0 +1,11 @@
+// Minimal US keyboard for the private Xvfb; no unsupported multimedia keysyms.
+! model = keycodes
+  * = evdev
+! model = types
+  * = complete
+! model = compat
+  * = complete
+! model = symbols
+  * = pc+us
+! model = geometry
+  * = pc(pc105)

@@ -69,16 +69,25 @@ jobs:
         run: |
           $version = [regex]::Match([IO.File]::ReadAllText("Directory.Build.props"), '<Version>([^<]+)</Version>').Groups[1].Value
           if ($version -notmatch '^\d+\.\d+\.\d+$') { throw "Kanonische Version fehlt." }
-          $projectArtifacts = Join-Path $env:ARTIFACT_DIR "project"
+          $projectArtifacts = $env:ARTIFACT_DIR
           New-Item -ItemType Directory -Path $projectArtifacts -Force | Out-Null
-          $source = "../Magnolie-Organizer-Windows-$version-Source.zip"
+          $source = "Magnolie-Organizer-Windows-$version-Source.zip"
           if (-not (Test-Path -LiteralPath $source -PathType Leaf)) { throw "Erwartetes Laufartefakt fehlt: $source" }
           Copy-Item -LiteralPath $source -Destination $env:ARTIFACT_DIR
           $files = @("Magnolie-Organizer-Windows-$version-x64.zip", "Magnolie-Organizer-Windows-$version-PRUEFSUMMEN.sha256")
-          if ($env:OFFICIAL_RELEASE -eq 'true') { $files += "Magnolie-Organizer-Windows-$version-Setup-x64.exe" }
+          if ($env:OFFICIAL_RELEASE -eq 'true') {
+            $files += "Magnolie-Organizer-Windows-$version-Setup-x64.exe",
+              "Magnolie-Organizer-Windows-$version-Setup-x64.exe.build.json",
+              "Magnolie-Organizer-Windows-$version-provenance.json"
+          }
           foreach ($file in $files) {
             if (-not (Test-Path -LiteralPath $file -PathType Leaf)) { throw "Erwartetes Laufartefakt fehlt: $file" }
             Copy-Item -LiteralPath $file -Destination $projectArtifacts
+          }
+          foreach ($line in Get-Content (Join-Path $projectArtifacts "Magnolie-Organizer-Windows-$version-PRUEFSUMMEN.sha256")) {
+            if ($line -cnotmatch '^([0-9a-f]{64})  ([^/\\:]+)$') { throw 'Invalid flat checksum entry.' }
+            $expected = $Matches[1]; $name = $Matches[2]
+            if ((Get-FileHash -LiteralPath (Join-Path $projectArtifacts $name)).Hash.ToLowerInvariant() -cne $expected) { throw 'Uploaded candidate checksum mismatch.' }
           }
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:

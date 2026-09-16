@@ -4,6 +4,29 @@ using System.Text.Json.Nodes;
 
 namespace MagnolieOrganizer.Windows;
 
+internal sealed record SetupConnectionRequest(string AccountType, string Server, string User, string Password);
+internal sealed record SetupSource(string Uid, string Name);
+internal sealed record SetupConnection(string Token, IReadOnlyList<SetupSource> Calendars,
+    IReadOnlyList<SetupSource> AddressBooks);
+
+internal interface IFirstRunSetupServices
+{
+    Task<JsonObject?> PrepareImportAsync(string source, string? path, CancellationToken cancellationToken);
+    Task<SetupConnection> DiscoverAsync(SetupConnectionRequest request, CancellationToken cancellationToken);
+    Task CommitConnectionAsync(string token, CancellationToken cancellationToken);
+}
+
+internal sealed record SetupPhoneCapability(string Transport, bool Available, bool CanAutoStart, string Reason = "");
+internal sealed record SetupPhonePrompt(string Kind, IReadOnlyList<SetupSource> Devices, string Code = "", bool CanMarkOwn = false);
+internal sealed record SetupPhoneResult(string Transport, string DeviceId, string Name, bool Authenticated);
+internal interface IFirstRunSetupPhoneServices
+{
+    IReadOnlyList<SetupPhoneCapability> Capabilities { get; }
+    Task<SetupPhoneResult> ConnectAsync(string transport, Func<SetupPhonePrompt, Task<string?>> prompt, CancellationToken cancellationToken);
+    Task<IReadOnlyList<string>> ConnectedAsync(CancellationToken cancellationToken);
+    Task CommitStartupAsync(IReadOnlyList<string> transports, CancellationToken cancellationToken);
+}
+
 internal enum FirstRunSetupClassification
 {
     Fresh,
@@ -15,12 +38,21 @@ internal enum FirstRunSetupClassification
 
 internal sealed record FirstRunSetupSelections
 {
+    internal IReadOnlyList<string> ForegroundPhoneTransports { get; init; } = [];
     [JsonPropertyName("language")]
     public string Language { get; init; } = "system";
     [JsonPropertyName("address")]
     public FirstRunSetupAddress Address { get; init; } = new();
     [JsonPropertyName("addressSource")]
     public string AddressSource { get; init; } = "own";
+    [JsonPropertyName("addressChanged")]
+    public bool AddressChanged { get; init; }
+    [JsonPropertyName("schoolHolidays")]
+    public bool SchoolHolidays { get; init; }
+    [JsonPropertyName("schoolHolidayRegion")]
+    public string SchoolHolidayRegion { get; init; } = "";
+    [JsonPropertyName("setupSkipped")]
+    public bool SetupSkipped { get; init; }
     [JsonPropertyName("addressSort")]
     public string AddressSort { get; init; } = "last-name";
     [JsonPropertyName("calendarUids")]
@@ -29,8 +61,12 @@ internal sealed record FirstRunSetupSelections
     public string AddressBookUid { get; init; } = "";
     [JsonPropertyName("oneTimeImports")]
     public List<string> OneTimeImports { get; init; } = [];
+    [JsonPropertyName("stagedImports")]
+    public List<FirstRunSetupImport> StagedImports { get; init; } = [];
     [JsonPropertyName("phoneActions")]
     public List<string> PhoneActions { get; init; } = [];
+    [JsonPropertyName("phoneBackgroundServices")]
+    public List<string> PhoneBackgroundServices { get; init; } = [];
     [JsonPropertyName("registers")]
     public List<string> Registers { get; init; } = ["tasks", "addresses", "notes", "anniversaries", "planner", "health"];
     [JsonPropertyName("customTabEnabled")]
@@ -67,6 +103,10 @@ internal sealed record FirstRunSetupCustomOrganizer
     [JsonPropertyName("modules")] public List<FirstRunSetupCustomModule> Modules { get; init; } = [];
 }
 
+internal sealed record FirstRunSetupImport(
+    [property: JsonPropertyName("source")] string Source,
+    [property: JsonPropertyName("payload")] JsonObject Payload);
+
 internal sealed record FirstRunSetupCustomModule
 {
     [JsonPropertyName("id")] public string Id { get; init; } = "";
@@ -82,7 +122,19 @@ internal sealed record FirstRunSetupAddress
     [JsonPropertyName("street")] public string Street { get; init; } = "";
     [JsonPropertyName("postalCode")] public string PostalCode { get; init; } = "";
     [JsonPropertyName("city")] public string City { get; init; } = "";
-    [JsonPropertyName("country")] public string Country { get; init; } = "DE";
+    [JsonPropertyName("country")] public string Country { get; init; } = SystemCountry(System.Globalization.CultureInfo.CurrentCulture.Name);
+
+    internal static string SystemCountry(string locale)
+    {
+        // A neutral language must not acquire an invented default territory.
+        try
+        {
+            var culture = System.Globalization.CultureInfo.GetCultureInfo(locale.Replace('_', '-'));
+            return culture.IsNeutralCulture || culture.Equals(System.Globalization.CultureInfo.InvariantCulture)
+                ? "" : new System.Globalization.RegionInfo(culture.Name).TwoLetterISORegionName;
+        }
+        catch (ArgumentException) { return ""; }
+    }
     [JsonPropertyName("state")] public string State { get; init; } = "";
 }
 
@@ -95,7 +147,7 @@ internal sealed record FirstRunSetupMarker(
 
 internal static class FirstRunSetupSelectionNormalizer
 {
-    private static readonly string[] ImportOrder = ["claws", "vcard", "ldif", "csv-lotus", "windows-contacts"];
+    private static readonly string[] ImportOrder = ["thunderbird", "claws", "vcard", "ldif", "csv-lotus", "windows-contacts"];
     private static readonly string[] RegisterOrder = ["tasks", "addresses", "notes", "anniversaries", "planner", "health"];
     private static readonly Dictionary<string, string> GermanRegions = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -124,13 +176,19 @@ internal static class FirstRunSetupSelectionNormalizer
             return new FirstRunSetupSelections
             {
                 Language = selections.Language,
+                SetupSkipped = true,
                 OpenHandbook = false,
                 BackupPath = defaultBackupPath,
                 BackupInterval = "manual"
             };
 
+        var holidayRegion = SchoolHolidayRegion(selections.Address.Country, selections.Address.State);
+        var holidayConsent = selections.SchoolHolidays && holidayRegion.Length > 0 &&
+            holidayRegion == selections.SchoolHolidayRegion;
         return selections with
         {
+            SchoolHolidays = holidayConsent,
+            SchoolHolidayRegion = holidayConsent ? holidayRegion : "",
             AddressSort = selections.AddressSort == "first-name" ? "first-name" : "last-name",
             OneTimeImports = Canonical(selections.OneTimeImports, ImportOrder),
             PhoneActions = [],
@@ -147,19 +205,7 @@ internal static class FirstRunSetupSelectionNormalizer
             },
             CustomTabName = Limited(selections.CustomTabName),
             CustomOrganizer = new FirstRunSetupCustomOrganizer
-            {
-                Modules = (selections.CustomOrganizer?.Modules ?? [])
-                    .Where(module => module is not null && module.Type is "appointments" or "notes" or "tasks")
-                    .Take(24)
-                    .Select((module, index) => new FirstRunSetupCustomModule
-                    {
-                        Id = $"setup-{index}",
-                        Type = module.Type,
-                        Page = index % 2 == 0 ? "left" : "right",
-                        Order = index / 2
-                    })
-                    .ToList()
-            },
+                { Modules = NormalizeCustomModules(selections.CustomOrganizer?.Modules ?? []) },
             BackupPath = string.IsNullOrWhiteSpace(selections.BackupPath)
                 ? defaultBackupPath
                 : selections.BackupPath.Trim(),
@@ -173,10 +219,50 @@ internal static class FirstRunSetupSelectionNormalizer
         return order.Where(values.Contains).ToList();
     }
 
+    private static List<FirstRunSetupCustomModule> NormalizeCustomModules(
+        IEnumerable<FirstRunSetupCustomModule> source)
+    {
+        var result = new List<FirstRunSetupCustomModule>();
+        foreach (var module in source.Take(24))
+        {
+            if (module is null || module.Type is not ("appointments" or "notes" or "tasks")) continue;
+            if (module.Type != "notes" && result.Any(item => item.Type == module.Type)) continue;
+            var page = module.Page == "right" ? "right" : "left";
+            if (result.Count(item => item.Page == page) >= 2 ||
+                module.Type == "notes" && result.Any(item => item.Type == "notes" && item.Page == page))
+            {
+                page = page == "left" ? "right" : "left";
+            }
+            if (result.Count(item => item.Page == page) >= 2 ||
+                module.Type == "notes" && result.Any(item => item.Type == "notes" && item.Page == page)) continue;
+            result.Add(new FirstRunSetupCustomModule
+            {
+                Id = $"setup-{result.Count}", Type = module.Type, Page = page,
+                Order = result.Count(item => item.Page == page)
+            });
+            if (result.Count == 4) break;
+        }
+        return result;
+    }
+
     private static string Limited(string value)
     {
         var trimmed = (value ?? "").Trim();
         return trimmed[..Math.Min(trimmed.Length, 120)];
+    }
+
+    internal static string SchoolHolidayRegion(string country, string region)
+    {
+        var value = NormalizeRegion(country, region).ToUpperInvariant();
+        var territory = Limited(country).ToUpperInvariant();
+        return territory switch
+        {
+            "DE" when GermanRegions.ContainsKey(value) => value,
+            "AT" when value.Length == 4 && value.StartsWith("AT-", StringComparison.Ordinal) && value[3] is >= '1' and <= '9' => value,
+            "CH" when new[] { "AG", "AI", "AR", "BE", "BL", "BS", "FR", "GE", "GL", "GR", "JU", "LU", "NE",
+                "NW", "OW", "SG", "SH", "SO", "SZ", "TG", "TI", "UR", "VD", "VS", "ZG", "ZH" }.Any(code => value == "CH-" + code) => value,
+            _ => ""
+        };
     }
 
     private static string NormalizeRegion(string country, string region)
@@ -247,7 +333,9 @@ internal sealed class FirstRunSetupState
 
     private void Write(string status, FirstRunSetupSelections selections)
     {
-        var marker = new FirstRunSetupMarker(Format, Version, status, DateTimeOffset.UtcNow, selections);
+        // Parsed personal data is a transient handoff, never part of the setup marker.
+        var marker = new FirstRunSetupMarker(Format, Version, status, DateTimeOffset.UtcNow,
+            selections with { StagedImports = [] });
         store.WriteRecoverableJson(paths.FirstRunSetup,
             JsonSerializer.Serialize(marker, new JsonSerializerOptions { WriteIndented = true }), MaximumBytes);
     }
@@ -258,6 +346,7 @@ internal sealed class FirstRunSetupState
         try
         {
             return Directory.EnumerateFileSystemEntries(paths.Root).Any(path =>
+                Path.GetFileName(path) != ".profile-owner.lock" &&
                 !string.Equals(path, paths.FirstRunSetup, StringComparison.OrdinalIgnoreCase) &&
                 !string.Equals(path, AtomicStore.BackupPath(paths.FirstRunSetup), StringComparison.OrdinalIgnoreCase));
         }

@@ -74,15 +74,20 @@ internal sealed class NextcloudDavClient : IDisposable
     private readonly NextcloudMailboxSettingsStore settingsStore;
     private readonly HttpClient http;
     private readonly bool ownsHttp;
+    private readonly NextcloudSyncJournal? journal;
+    private readonly string transactionId;
     private Uri? lastPropFindUri;
 
-    internal NextcloudDavClient(NextcloudMailboxSettingsStore settingsStore, HttpClient? http = null)
+    internal NextcloudDavClient(NextcloudMailboxSettingsStore settingsStore, HttpClient? http = null,
+        NextcloudSyncJournal? journal = null, string transactionId = "")
     {
         this.settingsStore = settingsStore;
+        this.journal = journal;
+        this.transactionId = transactionId;
         if (http is not null) this.http = http;
         else
         {
-            this.http = new HttpClient(NextcloudMailbox.CreateHandler()) { Timeout = TimeSpan.FromSeconds(12) };
+            this.http = DeadlineHttp.Create(TimeSpan.FromSeconds(12), NextcloudMailbox.CreateHandler(), MaximumXmlBytes);
             ownsHttp = true;
         }
     }
@@ -103,15 +108,18 @@ internal sealed class NextcloudDavClient : IDisposable
 
     internal async Task<IReadOnlyList<NextcloudDavObject>> ReadAddressBookAsync(NextcloudDavSource source,
         CancellationToken cancellationToken) => await ReportAsync(source, "address-data", "urn:ietf:params:xml:ns:carddav",
-        "<card:addressbook-query xmlns:d=\"DAV:\" xmlns:card=\"urn:ietf:params:xml:ns:carddav\"><d:prop><d:getetag/><card:address-data/></d:prop><card:filter><card:prop-filter name=\"FN\"/></card:filter></card:addressbook-query>", cancellationToken).ConfigureAwait(false);
+        "<card:addressbook-query xmlns:d=\"DAV:\" xmlns:card=\"urn:ietf:params:xml:ns:carddav\"><d:prop><d:getetag/><card:address-data/></d:prop><card:filter/></card:addressbook-query>", cancellationToken).ConfigureAwait(false);
 
     internal async Task<NextcloudDavObject> CreateAsync(NextcloudDavSource source, string uid, string extension,
         string mediaType, string text, CancellationToken cancellationToken)
     {
         var name = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(uid))).ToLowerInvariant() + extension;
         var href = ResolveCollectionChild(source.Href, name);
+        if (journal is not null) text = journal.PrepareCreate(transactionId, href, mediaType, text);
         return await PutAsync(href, null, text, mediaType, cancellationToken).ConfigureAwait(false);
     }
+
+    internal bool HasPendingCreate(Uri href) => journal?.HasPendingCreate(transactionId, href) == true;
 
     internal Task<NextcloudDavObject> UpdateAsync(Uri href, string etag, string mediaType, string text,
         CancellationToken cancellationToken) => PutAsync(href, etag, text, mediaType, cancellationToken);
@@ -231,6 +239,8 @@ internal sealed class NextcloudDavClient : IDisposable
     private async Task<NextcloudDavObject> PutAsync(Uri href, string? etag, string text, string mediaType,
         CancellationToken cancellationToken)
     {
+        if (etag is not null && string.IsNullOrWhiteSpace(etag))
+            throw new InvalidOperationException("Der DAV-ETag fehlt; das Objekt wird nicht ungeschützt überschrieben.");
         if (Encoding.UTF8.GetByteCount(text) > MaximumObjectBytes) throw new InvalidDataException("Ein DAV-Objekt ist zu groß.");
         if (mediaType.Equals("text/calendar", StringComparison.OrdinalIgnoreCase))
             ExchangeCodec.RejectLocalIcsAttachments(text);
@@ -438,6 +448,10 @@ internal sealed record NextcloudCalendarResult(JsonArray Termine, JsonArray Jahr
 
 internal sealed class NextcloudCalendarSync(NextcloudDavClient client)
 {
+    private static readonly string[] Fields = ["uid", "datum", "endDatum", "zeit", "endZeit", "titel", "notiz", "kategorien",
+        "ort", "vertraulich", "vorlaeufig", "kostenstelle", "kunde", "standardErinnerung", "individuelleErinnerungTage",
+        "wiederholung", "erinnern", "vorlaufTage", "name", "typ", "icsRoundtrip", "icsKomplex", "icsSerienUid", "icsSequence",
+        "icsAusnahmen", "icsAusnahmeTermine", "icsZusatzDaten", "icsZusatzTermine", "icsStatus", "icsEndeFehlt", "icsNullDauer"];
     internal async Task<NextcloudCalendarResult> SyncAsync(NextcloudDavSource source, JsonArray appointments,
         JsonArray anniversaries, JsonArray tombstones, long lastSync, bool additiveOnly, CancellationToken cancellationToken)
     {
@@ -462,6 +476,14 @@ internal sealed class NextcloudCalendarSync(NextcloudDavClient client)
                     throw new InvalidDataException("Der CalDAV-Kalender enthält fehlende oder doppelte UIDs.");
                 remote.Add(RemoteKey(item.Href, value.Value), (item, value.Value, value.Anniversary));
             }
+        }
+        var observedEtags = remote.Values.GroupBy(item => item.Object.Href)
+            .ToDictionary(group => group.Key, group => group.First().Object.ETag);
+        if (!additiveOnly) foreach (var tombstone in dead.OfType<JsonObject>())
+        {
+            var mapping = ContactFields.Source(tombstone, source.Uid);
+            if (mapping?["id"]?.GetValue<string>() is string id && remote.TryGetValue(id, out var other))
+                SyncBaseline.RequireDeletionRevision(mapping, other.Object.ETag);
         }
         var imported = 0; var exported = 0; var updated = 0; var deleted = 0; var conflicts = 0;
         await MergeArray(localAppointments, false).ConfigureAwait(false);
@@ -505,11 +527,40 @@ internal sealed class NextcloudCalendarSync(NextcloudDavClient client)
                 cancellationToken.ThrowIfCancellationRequested();
                 var uid = ContactFields.Text(value, "uid"); if (uid.Length == 0) { uid = $"mag-{Guid.NewGuid():N}@magnolie-organizer"; value["uid"] = uid; }
                 var mapping = ContactFields.Source(value, source.Uid); var id = mapping?["id"]?.GetValue<string>() ?? "";
+                if (additiveOnly && id.Length == 0)
+                {
+                    var match = remote.FirstOrDefault(pair => pair.Value.Anniversary == anniversary &&
+                        ContactFields.Text(pair.Value.Data, "uid") == uid);
+                    if (!string.IsNullOrEmpty(match.Key))
+                    {
+                        remote.Remove(match.Key);
+                        if ((match.Value.Data["geaendert"]?.GetValue<long>() ?? 0) > (value["geaendert"]?.GetValue<long>() ?? 0))
+                            CopyCalendar(value, match.Value.Data);
+                        SetSource(value, source.Uid, match.Key, match.Value.Object.ETag, match.Value.Data);
+                    }
+                    continue;
+                }
                 if (id.Length > 0 && remote.Remove(id, out var other))
                 {
-                    var localChanged = (value["geaendert"]?.GetValue<long>() ?? 0) > lastSync;
-                    var remoteChanged = mapping?["etag"]?.GetValue<string>() != other.Object.ETag;
-                    if (localChanged && remoteChanged) { var clone = other.Data.DeepClone().AsObject(); clone["id"] = Guid.NewGuid().ToString("N"); SetSource(clone, source.Uid, RemoteKey(other.Object.Href, clone), other.Object.ETag); values.Add(clone); conflicts++; continue; }
+                    var remoteChanged = mapping?["etag"]?.GetValue<string>() != observedEtags[other.Object.Href];
+                    var localChanged = SyncBaseline.Dirty(value, mapping, Fields, remoteChanged ? null : other.Data);
+                    if (additiveOnly)
+                    {
+                        if ((other.Data["geaendert"]?.GetValue<long>() ?? 0) > (value["geaendert"]?.GetValue<long>() ?? 0))
+                            CopyCalendar(value, other.Data);
+                        SetSource(value, source.Uid, id, other.Object.ETag, other.Data);
+                        continue;
+                    }
+                    if (localChanged && remoteChanged)
+                    {
+                        var clone = value.DeepClone().AsObject(); clone["id"] = Guid.NewGuid().ToString("N");
+                        clone["uid"] = $"mag-{Guid.NewGuid():N}@magnolie-organizer";
+                        clone.Remove("syncQuellen"); clone.Remove("icsSerienUid");
+                        clone["sync"] = false; clone["syncKalenderUid"] = source.Uid;
+                        values.Add(clone);
+                        CopyCalendar(value, other.Data); SetSource(value, source.Uid, id, other.Object.ETag);
+                        conflicts++; continue;
+                    }
                     if (remoteChanged) { CopyCalendar(value, other.Data); SetSource(value, source.Uid, id, other.Object.ETag); updated++; }
                     else if (localChanged)
                     {
@@ -519,10 +570,15 @@ internal sealed class NextcloudCalendarSync(NextcloudDavClient client)
                                 remote[key] = (changed, remote[key].Data, remote[key].Anniversary);
                         SetSource(value, source.Uid, RemoteKey(changed.Href, value), changed.ETag); updated++;
                     }
+                    else SetSource(value, source.Uid, id, other.Object.ETag);
                     continue;
                 }
-                if (id.Length > 0 && !anniversary && !additiveOnly && (value["geaendert"]?.GetValue<long>() ?? 0) <= lastSync) { values.Remove(value); deleted++; continue; }
-                var made = await WriteAsync(value, anniversary, null, cancellationToken).ConfigureAwait(false); SetSource(value, source.Uid, RemoteKey(made.Href, value), made.ETag); exported++;
+                if (additiveOnly) { (value["syncQuellen"] as JsonObject)?.Remove(source.Uid); continue; }
+                if (id.Length > 0 && !anniversary && !additiveOnly && !SyncBaseline.Dirty(value, mapping, Fields)) { values.Remove(value); deleted++; continue; }
+                if (!additiveOnly)
+                {
+                    var made = await WriteAsync(value, anniversary, null, cancellationToken).ConfigureAwait(false); SetSource(value, source.Uid, RemoteKey(made.Href, value), made.ETag); remote.Remove(RemoteKey(made.Href, value)); exported++;
+                }
             }
         }
 
@@ -539,14 +595,16 @@ internal sealed class NextcloudCalendarSync(NextcloudDavClient client)
     }
 
     private static string RemoteKey(Uri href, JsonObject value) => href.AbsoluteUri + "#" + Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(ContactFields.Text(value, "uid")))).ToLowerInvariant();
-    private static void SetSource(JsonObject value, string source, string id, string etag)
+    private static void SetSource(JsonObject value, string source, string id, string etag, JsonObject? baseline = null)
     {
         var all = value["syncQuellen"] as JsonObject ?? new JsonObject(); value["syncQuellen"] = all;
-        all[source] = new JsonObject { ["id"] = id, ["etag"] = etag, ["geaendert"] = value["geaendert"]?.DeepClone(), ["eigen"] = true };
+        all[source] = new JsonObject { ["id"] = id, ["etag"] = etag, ["geaendert"] = value["geaendert"]?.DeepClone(), ["eigen"] = true,
+            ["inhaltFormat"] = "windows-1", ["inhaltSha256"] = SyncBaseline.Hash(baseline ?? value, Fields) };
         value["syncKalenderUid"] = source; value["sync"] = true;
     }
     private static void CopyCalendar(JsonObject target, JsonObject source)
     {
+        foreach (var key in target.Select(item => item.Key).Where(key => key.StartsWith("ics", StringComparison.Ordinal) && !source.ContainsKey(key)).ToArray()) target.Remove(key);
         foreach (var item in source) if (item.Key is not ("id" or "syncQuellen" or "sync")) target[item.Key] = item.Value?.DeepClone();
     }
 }
@@ -556,6 +614,8 @@ internal sealed record NextcloudTaskResult(JsonArray Tasks, JsonArray Tombstones
 
 internal sealed class NextcloudTaskSync(NextcloudDavClient client)
 {
+    private static readonly string[] Fields = ["uid", "titel", "faellig", "startDatum", "startZeit", "faelligZeit", "prio", "erledigt",
+        "notiz", "erinnern", "vorlaufTage", "individuelleErinnerungTage", "erinnerungsMinute", "elternUid", "reihenfolge", "icsRoundtrip"];
     internal async Task<NextcloudTaskResult> SyncAsync(NextcloudDavSource source, JsonArray tasks,
         JsonArray tombstones, long lastSync, bool additiveOnly, CancellationToken cancellationToken)
     {
@@ -567,14 +627,20 @@ internal sealed class NextcloudTaskSync(NextcloudDavClient client)
         {
             var parsed = ExchangeCodec.ParseIcs(resource.Text);
             if (parsed.FehlerhafteAufgaben > 0) throw new InvalidDataException("Ein CalDAV-Objekt wurde nicht vollständig gelesen.");
-            GesamtarchivService.NormalizeTaskGraph(parsed.Aufgaben);
             foreach (var task in parsed.Aufgaben.OfType<JsonObject>())
             {
                 var uid = ContactFields.Text(task, "uid");
-                if (uid.Length == 0 || !remote.TryAdd(uid, (resource, task)))
+                if (uid.Length == 0 || !remote.TryAdd(uid, (resource, task.DeepClone().AsObject())))
                     throw new InvalidDataException("Die CalDAV-Aufgabensammlung enthält fehlende oder doppelte UIDs.");
             }
         }
+        GesamtarchivService.NormalizeTaskGraph(new JsonArray(remote.Values
+            .Select(value => (JsonNode?)value.Data).ToArray()));
+        var observedEtags = remote.Values.GroupBy(item => item.Object.Href)
+            .ToDictionary(group => group.Key, group => group.First().Object.ETag);
+        if (!additiveOnly) foreach (var tombstone in dead.OfType<JsonObject>())
+            if (remote.TryGetValue(ContactFields.Text(tombstone, "uid"), out var other))
+                SyncBaseline.RequireDeletionRevision(ContactFields.Source(tombstone, source.Uid), other.Object.ETag);
         var imported = 0; var exported = 0; var updated = 0; var deleted = 0; var conflicts = 0;
         foreach (var value in local.OfType<JsonObject>().ToArray())
         {
@@ -582,13 +648,30 @@ internal sealed class NextcloudTaskSync(NextcloudDavClient client)
             if (remote.Remove(uid, out var other))
             {
                 var mapping = ContactFields.Source(value, source.Uid);
-                var localChanged = (value["geaendert"]?.GetValue<long>() ?? 0) > lastSync;
-                var remoteChanged = mapping?["etag"]?.GetValue<string>() != other.Object.ETag;
+                if (!additiveOnly && mapping is null && client.HasPendingCreate(other.Object.Href))
+                {
+                    using var document = JsonDocument.Parse(new JsonArray(value.DeepClone()).ToJsonString());
+                    var made = await client.CreateAsync(source, uid, ".ics", "text/calendar",
+                        ExchangeCodec.WriteIcs("ics-aufgaben", document.RootElement).Text, cancellationToken).ConfigureAwait(false);
+                    SetSource(value, source.Uid, made.Href.AbsoluteUri, made.ETag);
+                    exported++; continue;
+                }
+                var remoteChanged = mapping?["etag"]?.GetValue<string>() != observedEtags[other.Object.Href];
+                var localChanged = SyncBaseline.Dirty(value, mapping, Fields, remoteChanged ? null : other.Data);
+                if (additiveOnly)
+                {
+                    if ((other.Data["geaendert"]?.GetValue<long>() ?? 0) > (value["geaendert"]?.GetValue<long>() ?? 0)) CopyTask(value, other.Data);
+                    SetSource(value, source.Uid, other.Object.Href.AbsoluteUri, other.Object.ETag, other.Data);
+                    continue;
+                }
                 if (!additiveOnly && localChanged && remoteChanged)
                 {
-                    var clone = other.Data.DeepClone().AsObject(); clone["id"] = Guid.NewGuid().ToString("N");
+                    var clone = value.DeepClone().AsObject(); clone["id"] = Guid.NewGuid().ToString("N");
                     clone["uid"] = $"mag-task-{Guid.NewGuid():N}@magnolie-organizer";
-                    SetSource(clone, source.Uid, other.Object.Href.AbsoluteUri, other.Object.ETag); local.Add(clone); conflicts++;
+                    clone.Remove("syncQuellen"); clone["sync"] = false; clone["syncKalenderUid"] = source.Uid;
+                    local.Add(clone);
+                    CopyTask(value, other.Data); SetSource(value, source.Uid, other.Object.Href.AbsoluteUri, other.Object.ETag);
+                    conflicts++;
                 }
                 else if (remoteChanged || additiveOnly)
                 {
@@ -601,7 +684,14 @@ internal sealed class NextcloudTaskSync(NextcloudDavClient client)
                     RefreshResource(remote, changed, text);
                     SetSource(value, source.Uid, changed.Href.AbsoluteUri, changed.ETag); updated++;
                 }
+                else SetSource(value, source.Uid, other.Object.Href.AbsoluteUri, other.Object.ETag);
                 continue;
+            }
+            if (additiveOnly) { (value["syncQuellen"] as JsonObject)?.Remove(source.Uid); continue; }
+            if (!additiveOnly && ContactFields.Source(value, source.Uid) is { } missingMapping &&
+                !SyncBaseline.Dirty(value, missingMapping, Fields))
+            {
+                local.Remove(value); deleted++; continue;
             }
             if (!additiveOnly)
             {
@@ -638,19 +728,25 @@ internal sealed class NextcloudTaskSync(NextcloudDavClient client)
             value["geaendert"] = Math.Max(value["geaendert"]?.GetValue<long>() ?? 0, DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
             SetSource(value, source.Uid, other.Object.Href.AbsoluteUri, other.Object.ETag); local.Add(value); imported++;
         }
+        var clean = local.OfType<JsonObject>().Where(value =>
+            ContactFields.Source(value, source.Uid) is { } mapping && !SyncBaseline.Dirty(value, mapping, Fields)).ToArray();
         GesamtarchivService.NormalizeTaskGraph(local);
+        // Internal sibling renumbering is not a new user edit; retain already-dirty baselines.
+        foreach (var value in clean) ContactFields.Source(value, source.Uid)!["inhaltSha256"] = SyncBaseline.Hash(value, Fields);
         return new NextcloudTaskResult(local, dead, imported, exported, updated, deleted, conflicts);
     }
 
-    private static void SetSource(JsonObject value, string source, string id, string etag)
+    private static void SetSource(JsonObject value, string source, string id, string etag, JsonObject? baseline = null)
     {
         var all = value["syncQuellen"] as JsonObject ?? new JsonObject(); value["syncQuellen"] = all;
-        all[source] = new JsonObject { ["id"] = id, ["etag"] = etag, ["geaendert"] = value["geaendert"]?.DeepClone(), ["eigen"] = true };
+        all[source] = new JsonObject { ["id"] = id, ["etag"] = etag, ["geaendert"] = value["geaendert"]?.DeepClone(), ["eigen"] = true,
+            ["inhaltFormat"] = "windows-1", ["inhaltSha256"] = SyncBaseline.Hash(baseline ?? value, Fields) };
         value["syncKalenderUid"] = source; value["sync"] = true;
     }
 
     private static void CopyTask(JsonObject target, JsonObject source)
     {
+        foreach (var key in target.Select(item => item.Key).Where(key => key.StartsWith("ics", StringComparison.Ordinal) && !source.ContainsKey(key)).ToArray()) target.Remove(key);
         foreach (var item in source) if (item.Key is not ("id" or "syncQuellen" or "sync")) target[item.Key] = item.Value?.DeepClone();
     }
 

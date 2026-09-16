@@ -8,10 +8,12 @@ import org.junit.Test
 class PersonalDeletionDecisionsTest {
     private val clock = listOf(PersonalSyncClock("11111111-1111-4111-8111-111111111111", 2))
     private val oldClock = listOf(PersonalSyncClock("11111111-1111-4111-8111-111111111111", 1))
+    private val hash = PersonalSync.reconcile(Bestand(notizen = listOf(Notiz("n"))), setOf("notes"))
+        .second.single().hash
     private val proposal = PersonalDeletionProposal("run-a", "proposal", "note", "n", clock = clock,
-        prior_hash = "a".repeat(64), deleted_ms = 1)
+        prior_hash = hash, deleted_ms = 1)
 
-    private fun state(meta: PersonalSyncEntity = PersonalSyncEntity(oldClock, "a".repeat(64), state = "live")) =
+    private fun state(meta: PersonalSyncEntity = PersonalSyncEntity(oldClock, hash, state = "live")) =
         Bestand(notizen = listOf(Notiz("n")), personalSync = PersonalSyncState(
             entities = mapOf("note\u0000n" to meta), pending_proposals = listOf(proposal)))
 

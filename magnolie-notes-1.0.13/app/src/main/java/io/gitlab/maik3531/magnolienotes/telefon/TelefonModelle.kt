@@ -27,8 +27,12 @@ data class TelefonPeer(
     val device_status_granted: Boolean = true,
     val remote_device_status_granted: Boolean = true,
     val remote_device_status_available: Boolean = false,
+    val remote_device_status_versions: List<Int> = listOf(1),
+    val identifier_sharing_enabled: Boolean = false,
+    val identifier_permission_mask: Int = 0,
     val remote_dial_request_granted: Boolean = false,
     val remote_dial_request_available: Boolean = false,
+    val remote_dial_request_versions: List<Int> = listOf(1),
     val remote_answer_call_granted: Boolean = false,
     val remote_answer_call_available: Boolean = false,
     val remote_incoming_call_state_granted: Boolean = false,
@@ -44,10 +48,12 @@ data class TelefonPeer(
     val remote_personal_notes_sync_versions: List<Int> = listOf(1),
     val remote_personal_tasks_sync_granted: Boolean = false,
     val remote_personal_tasks_sync_versions: List<Int> = listOf(1),
+    val remote_personal_tasks_sync_available: Boolean = false,
     val remote_personal_deletions_sync_granted: Boolean = false,
     val last_host: String = "",
     val last_contact_ms: Long = 0,
     val bluetooth_address: String = "",
+    val bluetooth_inbound: Boolean = false,
     val pending_finish: String = "",
     val pending_finish_expires_ms: Long = 0
 )
@@ -60,7 +66,8 @@ data class GefundenerDesktop(
     val name: String,
     val host: String,
     val token: String,
-    val port: Int = TelefonParameter.PORT
+    val port: Int = TelefonParameter.PORT,
+    val localAddress: java.net.InetAddress? = null
 )
 
 enum class TelefonVerbindungsstatus {
@@ -129,18 +136,18 @@ object TelefonCapabilities {
                dialResolvable: Boolean = false, dialPermission: Boolean = false,
                incomingCalls: Boolean = false,
                incomingNumber: Boolean = false, answerCalls: Boolean = false,
-               endCalls: Boolean = false) = linkedMapOf(
-        "device_status" to TelefonCapability(true, "available", listOf(1, 2, 3)),
+                endCalls: Boolean = false, identifiers: Boolean = false) = linkedMapOf(
+        "device_status" to TelefonCapability(true, "available", if (identifiers) listOf(1, 2, 3, 4) else listOf(1, 2, 3)),
         "selected_notifications_readonly" to TelefonCapability(notifications, if (notifications) "available" else "disabled"),
         "dial_request" to TelefonCapability(dialRequest && dialResolvable && dialPermission,
             if (dialRequest && dialResolvable && dialPermission) "available" else if (!dialResolvable) "os_restricted"
-            else if (!dialPermission) "permission_missing" else "disabled"),
+            else if (!dialPermission) "permission_missing" else "disabled", listOf(1, 2)),
         "incoming_call_state" to TelefonCapability(incomingCalls, if (incomingCalls) "available" else "disabled", listOf(2)),
         "incoming_call_number" to TelefonCapability(incomingNumber, if (incomingNumber) "available" else "disabled"),
         "answer_call" to TelefonCapability(answerCalls, if (answerCalls) "available" else "disabled"),
-        "end_call" to TelefonCapability(endCalls, if (endCalls) "available" else if (Build.VERSION.SDK_INT < 28) "os_restricted" else "disabled"),
+        "end_call" to TelefonCapability(endCalls, if (endCalls) "available" else if (Build.VERSION.SDK_INT < 28) "os_restricted" else "disabled", listOf(1, 2)),
         "personal_notes_sync" to TelefonCapability(true, "available", listOf(1, 2, 3)),
-        "personal_tasks_sync" to TelefonCapability(true, "available", listOf(1, 2, 3)),
+        "personal_tasks_sync" to TelefonCapability(true, "available", listOf(1, 2, 3, 4)),
         "personal_deletions_sync" to TelefonCapability(true, "available"),
         "transport.bluetooth_rfcomm" to TelefonCapability(true, "available")
     )

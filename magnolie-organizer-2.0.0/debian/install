@@ -1,5 +1,6 @@
 bin/magnolie-organizer                usr/bin
 bin/magnolie_telefon.py                usr/bin
+bin/magnolie_anruf_audio.py            usr/bin
 bin/magnolie_personal_sync.py          usr/bin
 bin/magnolie_personal_sync.py          usr/lib/magnolie-organizer
 bin/magnolie_kdeconnect.py             usr/bin
@@ -12,10 +13,13 @@ bin/magnolie_asset.py                  usr/bin
 bin/magnolie_setup_state.py            usr/bin
 bin/magnolie_setup_ui.py               usr/bin
 bin/magnolie_phone_region.py            usr/bin
+bin/magnolie_recurrence.py              usr/bin
 web/index.html                        usr/share/magnolie-organizer/web
 web/stil.css                          usr/share/magnolie-organizer/web
 web/kaffee-qr.mga                     usr/share/magnolie-organizer/web
 web/anwendung.js                      usr/share/magnolie-organizer/web
+web/phone-metadata-LICENSE.txt        usr/share/magnolie-organizer/web
+web/phone-metadata-NOTICE.txt         usr/share/magnolie-organizer/web
 web/i18n.js                           usr/share/magnolie-organizer/web
 web/i18n-en.js                        usr/share/magnolie-organizer/web
 web/i18n-start.js                     usr/share/magnolie-organizer/web

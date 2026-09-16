@@ -29,7 +29,7 @@ internal sealed partial class BridgeDispatcher
                 dav = await davClient.ListSourcesAsync(timeout.Token);
             }
         }
-        catch (Exception error) { nextcloudError = error.Message; }
+        catch (Exception error) { nextcloudError = NextcloudStatusText.For(error); }
         var addressBooks = new List<object> { new { uid = "windows-contacts", name = T("Windows Contacts folder"), art = "lokal", eingerichtet = true } };
         if (clientId.Length > 0 && signedIn) addressBooks.Add(new { uid = "microsoft-graph", name = "Outlook.com / Microsoft 365", art = "graph", eingerichtet = true });
         addressBooks.AddRange(dav.AddressBooks.Select(source => (object)new { uid = source.Uid, name = source.Name, art = accountType == "generic-dav" ? "generic-carddav" : "nextcloud-carddav", eingerichtet = true }));
@@ -48,44 +48,57 @@ internal sealed partial class BridgeDispatcher
         try
         {
             var previous = GraphConfig.ClientId; GraphConfig.Save(Text(message, "clientId"));
-            if (!previous.Equals(GraphConfig.ClientId, StringComparison.OrdinalIgnoreCase)) GraphTokens.Delete();
-            await form.SendAsync("App.graphKonfiguration", new { ok = true, fehler = "" }); await ContactSourcesAsync();
+            if (!previous.Equals(GraphConfig.ClientId, StringComparison.OrdinalIgnoreCase))
+                lock (serviceGate) { graphRevision++; graphSignIn?.Cancel(); GraphTokens.Delete(); }
+            await form.SendAsync("App.graphKonfiguration", new { ok = true, fehler = "" }); _ = QueueBackground(ContactSourcesAsync);
         }
         catch (Exception error) { await form.SendAsync("App.graphKonfiguration", new { ok = false, fehler = error.Message }); }
     }
 
     private async Task SignInGraphAsync()
     {
+        using var timeout = NetworkDeadline(TimeSpan.FromMinutes(16));
+        lock (serviceGate) graphSignIn = timeout;
         try
         {
             var clientId = GraphConfig.ClientId;
             if (clientId.Length == 0) throw new InvalidOperationException(T("Save your Microsoft OAuth client ID first."));
-            var oauth = new MicrosoftOAuthClient(http); using var timeout = new CancellationTokenSource(TimeSpan.FromMinutes(16));
+            var oauth = new MicrosoftOAuthClient(http);
             var device = await oauth.RequestDeviceCodeAsync(clientId, timeout.Token);
             var opened = ShellLauncher.OpenWebUri(device.VerificationUri);
             await form.SendAsync("App.graphAnmeldung", new { ok = true, fertig = false, code = device.UserCode, url = device.VerificationUri, nachricht = device.Message, browser = opened });
             var token = await oauth.PollTokenAsync(clientId, device, timeout.Token);
-            GraphTokens.Save(token.RefreshToken);
+            lock (serviceGate) { timeout.Token.ThrowIfCancellationRequested(); GraphTokens.Save(token.RefreshToken); }
             await form.SendAsync("App.graphAnmeldung", new { ok = true, fertig = true, code = "", url = "", nachricht = "Microsoft-Anmeldung abgeschlossen." });
             await ContactSourcesAsync();
         }
         catch (Exception error) { await form.SendAsync("App.graphAnmeldung", new { ok = false, fertig = true, fehler = error.Message }); }
+        finally { lock (serviceGate) if (ReferenceEquals(graphSignIn, timeout)) graphSignIn = null; }
     }
 
     private async Task SignOutGraphAsync()
     {
-        try { GraphTokens.Delete(); await form.SendAsync("App.graphAbmeldung", new { ok = true, fehler = "" }); await ContactSourcesAsync(); }
+        try
+        {
+            lock (serviceGate) { graphRevision++; graphSignIn?.Cancel(); if (graphSync) activeSync?.Cancel(); GraphTokens.Delete(); }
+            await form.SendAsync("App.graphAbmeldung", new { ok = true, fehler = "" }); _ = QueueBackground(ContactSourcesAsync);
+        }
         catch (Exception error) { await form.SendAsync("App.graphAbmeldung", new { ok = false, fehler = error.Message }); }
     }
 
     private async Task SynchronizeContactsAsync(JsonElement message)
     {
+        using var operation = NetworkDeadline(TimeSpan.FromMinutes(10));
         var locked = false;
+        NextcloudDavClient? davClient = null;
         try
         {
-            await MutationGate.Global.WaitAsync(); locked = true;
+            await MutationGate.Global.WaitAsync(operation.Token); locked = true;
+            operation.Token.ThrowIfCancellationRequested();
             CreateSnapshot(SnapshotReason.PreContact);
+            MutationGate.Global.Release(); locked = false;
             var source = message.TryGetProperty("wahl", out var choice) ? PropertyText(choice, "adressbuchUid") : "";
+            lock (serviceGate) { activeSync = operation; graphSync = source == "microsoft-graph"; }
             var calendarIds = choice.ValueKind == JsonValueKind.Object ? SelectedCalendarIds(choice) : [];
             if (!NextcloudDavSelection.IsSupported(source, calendarIds))
                 throw new InvalidOperationException(T("Address book"));
@@ -95,18 +108,33 @@ internal sealed partial class BridgeDispatcher
                 ? originalEpochNode.GetString() ?? "" : "";
             var transactionId = Text(message, "transactionId");
             ValidateSynchronizationTransaction(transactionId);
-            var syncJournal = new NextcloudSyncJournal(paths.NextcloudSyncJournal);
+            var syncJournal = SynchronizationJournal(transactionId);
             var phases = new List<string>();
             if (source.Length > 0) phases.Add("contacts:" + source);
             phases.AddRange(calendarIds.Select(id => "calendar:" + id));
-            var resumed = syncJournal.LoadFor(transactionId, phases);
+            phases.Add("complete");
+            var resumed = syncJournal.Load();
+            if (resumed is { } prior && (prior.Payload["syncEpoch"]?.GetValue<string>() ?? "") != originalEpoch)
+                throw new InvalidDataException(T("The data is invalid."));
+            if (resumed is { } pending && (pending.Id != transactionId || !phases.Contains(pending.Phase)))
+                throw new InvalidDataException(T("The data is invalid."));
             var resumedPhase = resumed?.Phase ?? "";
+            if (resumed is { Phase: "complete" } completedRun)
+            {
+                await form.SendAsync("App.syncFertig", completedRun.Payload);
+                return;
+            }
             if (resumed is { } saved)
             {
                 using var resumeDocument = JsonDocument.Parse(saved.Payload.ToJsonString());
                 data = resumeDocument.RootElement.Clone();
             }
             var contacts = ParseArray(data, "kontakte");
+            var reconciliationBasis = data.TryGetProperty("syncAbgleichBasis", out var reconciliationNode)
+                ? JsonNode.Parse(reconciliationNode.GetRawText())!.AsObject() : new JsonObject();
+            if (reconciliationBasis.Count == 0)
+                foreach (var field in new[] { "termine", "aufgaben", "kontakte", "jahrestage", "geloescht" })
+                    if (data.TryGetProperty(field, out var value)) reconciliationBasis[field] = JsonNode.Parse(value.GetRawText());
             var deletedRoot = data.TryGetProperty("geloescht", out var deleted) && deleted.ValueKind == JsonValueKind.Object ? deleted : default;
             var tombstones = ParseArray(deletedRoot, "kontakte");
             var lastSync = data.TryGetProperty("letzterSync", out var last) && last.TryGetInt64(out var timestamp) ? timestamp : 0;
@@ -128,15 +156,15 @@ internal sealed partial class BridgeDispatcher
             var nextcloudAddressBooks = nextcloudMetadata["adressbuecher"] as JsonObject ?? new JsonObject(); nextcloudMetadata["adressbuecher"] = nextcloudAddressBooks;
             nextcloudMetadata["quarantinedDeletes"] ??= new JsonObject(); nextcloudMetadata["transaktionen"] ??= new JsonObject();
             long Cursor(JsonObject cursors, string uid) => cursors[uid] is JsonValue cursor && cursor.TryGetValue<long>(out var value) ? value : lastSync;
-            var additiveOnly = data.TryGetProperty("syncNachRestore", out var restoreMode) &&
+            var additiveOnly = syncMetadata["ersteSyncLoeschungsfrei"]?.GetValue<bool>() == true ||
+                data.TryGetProperty("syncNachRestore", out var restoreMode) &&
                 restoreMode.ValueKind == JsonValueKind.Object && restoreMode.TryGetProperty("additiv", out var additive) && additive.ValueKind == JsonValueKind.True;
             var result = new ContactSyncResult(contacts, tombstones, new ContactSyncCounts(0, 0, 0, 0, 0));
-            var title = ""; NextcloudDavClient? davClient = null;
             var taskCalendars = new HashSet<string>(StringComparer.Ordinal);
             var terms = data.TryGetProperty("termine", out var termsNode) ? JsonNode.Parse(termsNode.GetRawText()) : new JsonArray();
             var tasks = data.TryGetProperty("aufgaben", out var tasksNode) ? JsonNode.Parse(tasksNode.GetRawText()) : new JsonArray();
             var anniversaries = data.TryGetProperty("jahrestage", out var anniversariesNode) ? JsonNode.Parse(anniversariesNode.GetRawText()) : new JsonArray();
-            var termTombstones = ParseArray(deletedRoot, "termine"); var taskTombstones = ParseArray(deletedRoot, "aufgaben"); var calendarReports = new List<string>();
+            var termTombstones = ParseArray(deletedRoot, "termine"); var taskTombstones = ParseArray(deletedRoot, "aufgaben");
             void SaveProgress(string phase) => syncJournal.Save(transactionId, phase, new JsonObject
             {
                 ["termine"] = terms?.DeepClone(), ["aufgaben"] = tasks?.DeepClone(), ["kontakte"] = result.Contacts.DeepClone(),
@@ -144,6 +172,7 @@ internal sealed partial class BridgeDispatcher
                 ["geloescht"] = new JsonObject { ["termine"] = termTombstones.DeepClone(), ["aufgaben"] = taskTombstones.DeepClone(), ["kontakte"] = result.Tombstones.DeepClone() },
                 ["letzterSync"] = lastSync, ["letzteSyncs"] = sourceCursors.DeepClone(),
                 ["syncMetadaten"] = syncMetadata.DeepClone(), ["syncEpoch"] = originalEpoch,
+                ["syncAbgleichBasis"] = reconciliationBasis.DeepClone(),
                 ["syncNachRestore"] = data.TryGetProperty("syncNachRestore", out var restore) ? JsonNode.Parse(restore.GetRawText()) : null
             });
             var resumedIndex = resumedPhase.Length == 0 ? -1 : phases.IndexOf(resumedPhase);
@@ -152,37 +181,41 @@ internal sealed partial class BridgeDispatcher
                 IContactRemote remote;
                 if (source == "windows-contacts")
                 {
-                    remote = new WindowsContactStore(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Contacts")); title = "Windows-Kontakte";
+                    remote = new WindowsContactStore(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Contacts"));
                 }
                 else if (source == "microsoft-graph")
                 {
                     var clientId = GraphConfig.ClientId; if (clientId.Length == 0) throw new InvalidOperationException(T("Microsoft Graph has not been configured yet."));
                     var refresh = GraphTokens.Load(); if (string.IsNullOrWhiteSpace(refresh)) throw new InvalidOperationException(T("Sign in to Microsoft first."));
-                    var token = await new MicrosoftOAuthClient(http).RefreshAsync(clientId, refresh, CancellationToken.None);
+                    var token = await new MicrosoftOAuthClient(http).RefreshAsync(clientId, refresh, operation.Token);
                     if (token.RefreshToken.Length > 0) GraphTokens.Save(token.RefreshToken);
-                    remote = new GraphApiClient(http, token.AccessToken); title = "Microsoft-Kontakte";
+                    remote = new GraphApiClient(http, token.AccessToken);
                 }
                 else
                 {
-                    davClient = new NextcloudDavClient(NextcloudSettings);
-                    using var discoveryTimeout = new CancellationTokenSource(TimeSpan.FromSeconds(12));
+                    davClient = new NextcloudDavClient(NextcloudSettings, journal: syncJournal, transactionId: transactionId);
+                    using var discoveryTimeout = CancellationTokenSource.CreateLinkedTokenSource(operation.Token); discoveryTimeout.CancelAfter(TimeSpan.FromSeconds(12));
                     var sources = await davClient.ListSourcesAsync(discoveryTimeout.Token);
                     var addressBook = sources.AddressBooks.SingleOrDefault(item => item.Uid == source) ?? throw new InvalidOperationException(T("Address book"));
-                    remote = new NextcloudCardDavRemote(davClient, addressBook); title = "Nextcloud-Kontakte";
+                    remote = new NextcloudCardDavRemote(davClient, addressBook);
                 }
-                using var syncTimeout = new CancellationTokenSource(TimeSpan.FromSeconds(12));
+                using var syncTimeout = CancellationTokenSource.CreateLinkedTokenSource(operation.Token); syncTimeout.CancelAfter(TimeSpan.FromSeconds(12));
                 var contactCursor = Cursor(addressCursors, source);
                 var initialized = !NextcloudDavSelection.IsAddressBook(source) ||
                     nextcloudAddressBooks[source]?["initialisiert"]?.GetValue<bool>() == true;
-                var firstContactRun = !initialized || contactCursor <= 0 || !contacts.OfType<JsonObject>().Any(item => ContactFields.Source(item, source) is not null);
+                var firstContactRun = !initialized || !NextcloudDavSelection.IsAddressBook(source) &&
+                    (contactCursor <= 0 || !contacts.Concat(tombstones).OfType<JsonObject>()
+                        .Any(item => ContactFields.Source(item, source) is not null));
                 result = await new ContactSyncEngine().SyncAsync(source, contacts, tombstones, contactCursor, remote,
                     syncTimeout.Token, additiveOnly || firstContactRun);
+                if (result.Counts.Errors > 0)
+                    throw new InvalidOperationException(T("The Nextcloud operation failed."));
                 SaveProgress("contacts:" + source);
             }
             if (calendarIds.Count > 0)
             {
-                davClient ??= new NextcloudDavClient(NextcloudSettings);
-                using var discoveryTimeout = new CancellationTokenSource(TimeSpan.FromSeconds(12));
+                davClient ??= new NextcloudDavClient(NextcloudSettings, journal: syncJournal, transactionId: transactionId);
+                using var discoveryTimeout = CancellationTokenSource.CreateLinkedTokenSource(operation.Token); discoveryTimeout.CancelAfter(TimeSpan.FromSeconds(12));
                 var sources = await davClient.ListSourcesAsync(discoveryTimeout.Token);
                 var selected = calendarIds.Select(id => sources.Calendars.SingleOrDefault(item => item.Uid == id) ??
                     throw new InvalidOperationException(T("No calendars found."))).ToArray();
@@ -206,7 +239,7 @@ internal sealed partial class BridgeDispatcher
                         tasks as JsonArray ?? [], calendar.Uid, isDefaultCalendar);
                     var (calendarTaskTombstones, remainingTaskTombstones) = NextcloudDavSelection.SplitCalendarTombstones(
                         taskTombstones, calendar.Uid, isDefaultCalendar);
-                    using var calendarTimeout = new CancellationTokenSource(TimeSpan.FromSeconds(12));
+                    using var calendarTimeout = CancellationTokenSource.CreateLinkedTokenSource(operation.Token); calendarTimeout.CancelAfter(TimeSpan.FromSeconds(12));
                     var calendarResult = await new NextcloudCalendarSync(davClient).SyncAsync(calendar,
                         calendarTerms, calendarAnniversaries, calendarTombstones, calendarCursor,
                         additiveOnly || firstCalendarRun, calendarTimeout.Token);
@@ -217,7 +250,7 @@ internal sealed partial class BridgeDispatcher
                     NextcloudTaskResult taskResult;
                     if (calendar.SupportsVTodo)
                     {
-                        using var taskTimeout = new CancellationTokenSource(TimeSpan.FromSeconds(12));
+                        using var taskTimeout = CancellationTokenSource.CreateLinkedTokenSource(operation.Token); taskTimeout.CancelAfter(TimeSpan.FromSeconds(12));
                         taskResult = await new NextcloudTaskSync(davClient).SyncAsync(calendar,
                             calendarTasks, calendarTaskTombstones, taskCursor,
                             additiveOnly || firstTaskRun, taskTimeout.Token);
@@ -231,11 +264,9 @@ internal sealed partial class BridgeDispatcher
                     foreach (var item in taskResult.Tasks) remainingTasks.Add(item?.DeepClone());
                     foreach (var item in taskResult.Tombstones) remainingTaskTombstones.Add(item?.DeepClone());
                     tasks = remainingTasks; taskTombstones = remainingTaskTombstones;
-                    calendarReports.Add($"{calendar.Name}: {calendarResult.Imported + taskResult.Imported} importiert, {calendarResult.Exported + taskResult.Exported} exportiert, {calendarResult.Updated + taskResult.Updated} aktualisiert, {calendarResult.Deleted + taskResult.Deleted} gelöscht, {calendarResult.Conflicts + taskResult.Conflicts} Konflikte.");
                     SaveProgress(phase);
                 }
             }
-            davClient?.Dispose();
             var now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
             if (source.Length > 0) addressCursors[source] = now;
             if (NextcloudDavSelection.IsAddressBook(source))
@@ -264,23 +295,64 @@ internal sealed partial class BridgeDispatcher
                 }
                 nextcloudCalendars[calendarId] = calendarMetadata;
             }
-            var report = (source.Length > 0 ? result.Counts.Report(title) : "") +
-                (calendarReports.Count > 0 ? (source.Length > 0 ? " " : "") + string.Join(' ', calendarReports) : "");
-            await form.SendAsync("App.syncFertig", new { transactionId, termine = terms, aufgaben = tasks, kontakte = result.Contacts, jahrestage = anniversaries,
+            operation.Token.ThrowIfCancellationRequested();
+            nextcloudMetadata["pendingCommitId"] = transactionId;
+            syncMetadata["ersteSyncLoeschungsfrei"] = false;
+            var completed = new { transactionId, termine = terms, aufgaben = tasks, kontakte = result.Contacts, jahrestage = anniversaries,
+                syncAbgleichBasis = reconciliationBasis,
                 geloescht = new { termine = termTombstones, aufgaben = taskTombstones, kontakte = result.Tombstones }, letzterSync = now,
                 letzteSyncs = sourceCursors,
                 syncMetadaten = syncMetadata,
                 syncEpoch = data.TryGetProperty("syncEpoch", out var epoch) ? epoch.GetString() : null,
-                syncNachRestore = (object?)null, bericht = report });
+                syncNachRestore = (object?)null, bericht = T("Synchronization completed.") };
+            syncJournal.Save(transactionId, "complete", JsonSerializer.SerializeToNode(completed)!.AsObject());
+            await form.SendAsync("App.syncFertig", completed);
         }
-        catch (Exception error) { await form.SendAsync("App.syncFehler", error.Message); }
-        finally { if (locked) MutationGate.Global.Release(); }
+        catch (Exception error)
+        {
+            await ReportErrorAsync("sync", error.ToString());
+            await form.SendAsync("App.syncFehler", T("Synchronization failed."));
+        }
+        finally
+        {
+            lock (serviceGate) if (ReferenceEquals(activeSync, operation)) { activeSync = null; graphSync = false; }
+            try { davClient?.Dispose(); }
+            finally { if (locked) MutationGate.Global.Release(); }
+        }
     }
 
     private void CommitSynchronization(string transactionId)
     {
         ValidateSynchronizationTransaction(transactionId);
-        new NextcloudSyncJournal(paths.NextcloudSyncJournal).Commit(transactionId);
+        if (!MutationGate.Global.Wait(0)) return;
+        try
+        {
+            var journal = SynchronizationJournal(transactionId);
+            if (journal.Load() is not { Phase: "complete" } completed || completed.Id != transactionId) return;
+            var text = store.Read(paths.Data);
+            if (text is null) return;
+            if (EncryptionService.IsEncrypted(text)) text = encryption.DecryptDataWithSession(text);
+            if (JsonNode.Parse(text) is not JsonObject saved || !SyncBaseline.ContainsSavedResult(completed.Payload, saved)) return;
+            journal.Commit(transactionId);
+        }
+        finally { MutationGate.Global.Release(); }
+    }
+
+    private NextcloudSyncJournal SynchronizationJournal(string transactionId)
+    {
+        ValidateSynchronizationTransaction(transactionId);
+        var path = paths.NextcloudSyncJournal + "." + transactionId;
+        if (File.Exists(path) || File.Exists(path + ".creates")) return new NextcloudSyncJournal(path);
+        var legacy = new NextcloudSyncJournal(paths.NextcloudSyncJournal).Load() ??
+            new NextcloudSyncJournal(paths.NextcloudSyncJournal + ".creates").Load();
+        if (legacy?.Id == transactionId) return new NextcloudSyncJournal(paths.NextcloudSyncJournal);
+        var directory = Path.GetDirectoryName(path)!;
+        var prefix = Path.GetFileName(paths.NextcloudSyncJournal) + ".";
+        var pendingIds = Directory.Exists(directory) ? Directory.EnumerateFiles(directory, prefix + "*")
+            .Select(file => Path.GetFileName(file)[prefix.Length..].Split('.')[0])
+            .Where(id => id.Length == 64 && id.All(Uri.IsHexDigit)).Distinct(StringComparer.OrdinalIgnoreCase).Count() : 0;
+        if (pendingIds + (legacy is null ? 0 : 1) >= 16) throw new InvalidDataException(T("Too many unfinished synchronization runs."));
+        return new NextcloudSyncJournal(path);
     }
 
     private static void ValidateSynchronizationTransaction(string transactionId)
@@ -366,7 +438,9 @@ internal sealed partial class BridgeDispatcher
 
     private async Task<object> KdeStatusForWebAsync()
     {
-        var status = await kdeConnectSms.DirectStatusAsync();
+        KdeConnectStatus status;
+        try { status = await kdeConnectSms.DirectStatusAsync(); }
+        catch (Exception) { return new { available = false, device_count = 0, reason = "unavailable" }; }
         return new
         {
             available = status.Available,
@@ -377,6 +451,7 @@ internal sealed partial class BridgeDispatcher
             paired = status.PairedCount == 1,
             paired_count = status.PairedCount,
             device_id = status.DeviceId,
+            device_fingerprint = status.DeviceFingerprint,
             peer_name = status.PeerName,
             pairing_state = status.PairingState,
             unpaired_candidate_count = status.UnpairedCandidateCount,
@@ -403,21 +478,23 @@ internal sealed partial class BridgeDispatcher
         if (TelefonBluetoothSupport.Available)
             foreach (var device in await TelefonBluetoothTransport.PairedDevicesAsync())
                 bluetoothDevices.Add(new JsonObject { ["address"] = device.Address, ["name"] = device.Name });
-        var online = (backend["telefone"] as JsonArray)?.OfType<JsonObject>()
-            .Where(item => item["online"]?.GetValue<bool>() == true)
-            .Select(item => item["kennung"]?.GetValue<string>() ?? "").ToHashSet(StringComparer.Ordinal) ?? [];
+        var phoneStatus = (backend["telefone"] as JsonArray)?.OfType<JsonObject>()
+            .ToDictionary(item => item["kennung"]!.GetValue<string>(), StringComparer.Ordinal) ?? [];
         var settings = ReadTelefonSettings();
         var localGrants = telefon.LocalGrants();
         var peers = new JsonArray();
         foreach (var peer in telefon.StatusPeers)
         {
+            var status = phoneStatus.GetValueOrDefault(peer.Id);
+            var transport = status?["online"]?.GetValue<bool>() == true ? status["transport"]?.GetValue<string>() ?? "offline" : "offline";
+            var bluetoothAddress = status?["bluetooth_address"]?.GetValue<string>() ?? "";
             var personal = settings["personal_sync"]?[peer.Id] as JsonObject;
             peers.Add(new JsonObject
             {
                 ["device_id"] = peer.Id,
                 ["display_name"] = peer.Name,
-                ["state"] = peer.State == "pair_commit_pending" ? "pair_commit_pending" : online.Contains(peer.Id) ? "online_wifi" : "offline",
-                ["transport"] = online.Contains(peer.Id) ? "wifi" : "offline",
+                ["state"] = peer.State == "pair_commit_pending" ? "pair_commit_pending" : transport is "wifi" or "bluetooth" ? "online_" + transport : "offline",
+                ["transport"] = transport,
                 ["fingerprint"] = TelefonCrypto.Fingerprint(peer.PublicKey),
                 ["last_contact_ms"] = peer.LastSeenMs,
                 ["capabilities"] = new JsonObject { ["revision"] = peer.CapabilityRevision,
@@ -426,13 +503,13 @@ internal sealed partial class BridgeDispatcher
                     ["grants"] = peer.Grants.DeepClone() },
                 ["local_grants"] = new JsonObject { ["grants"] = localGrants.DeepClone() },
                 ["own_device"] = personal?["own_device"]?.GetValue<bool>() == true,
+                ["custom_sync"] = telefon.CustomSettings(peer.Id),
                 ["remote_own_device"] = personal?["remote_own_device"]?.GetValue<bool>() == true,
                 ["auto_wifi"] = personal?["auto_wifi"]?.GetValue<bool>() == true,
                 ["personal_sync_active_auto"] = false,
                 ["status"] = telefon.CachedDeviceStatus(peer.Id),
-                ["bluetooth_enabled"] = TelefonBluetoothSupport.Available &&
-                    settings["bluetooth"]?[peer.Id]?["enabled"]?.GetValue<bool>() == true,
-                ["bluetooth_address"] = settings["bluetooth"]?[peer.Id]?["address"]?.GetValue<string>() ?? "",
+                ["bluetooth_enabled"] = TelefonBluetoothClient.ValidAddress(bluetoothAddress),
+                ["bluetooth_address"] = bluetoothAddress,
                 ["connection_error"] = ""
             });
         }
@@ -451,6 +528,7 @@ internal sealed partial class BridgeDispatcher
             ["error"] = TelefonError(backend["fehler"]?.GetValue<string>() ?? ""),
             ["peers"] = peers,
             ["capabilities"] = backend["capabilities"]?.DeepClone(),
+            ["call_audio"] = WindowsBluetoothRadio.CallRoutingCapability(),
             ["bluetooth"] = new JsonObject { ["available"] = TelefonBluetoothSupport.Available,
                 ["reason"] = TelefonBluetoothSupport.Reason,
                 ["blocker"] = TelefonBluetoothSupport.Blocker, ["devices"] = bluetoothDevices },
@@ -548,18 +626,14 @@ internal sealed partial class BridgeDispatcher
     {
         var number = PhoneUri.Normalize(Text(message, "nummer"), Text(message, "land"));
         var peerId = SoleTelefonId();
-        /* Schon vor dem Wählen einschalten: Der Funk braucht ein bis drei
-           Sekunden, und erst danach kann das Telefon sein Freisprechprofil
-           aufbauen. Der Vorgang ist befristet – kommt kein Anrufzustand
-           zurück, läuft er von selbst ab und der Funk kehrt zurück. */
-        await telefon.RadioSwitch.RequestAsync("waehlen/" + peerId, temporary: true);
+        if (Text(message, "kennung") is { Length: > 0 } expected && expected != peerId)
+            throw new InvalidOperationException(T("The phone is not paired."));
         await telefon.RequestDialAsync(peerId, number, Text(message, "clientRef"));
     }
 
     private async Task AnswerTelefonAsync(JsonElement message)
     {
         var peerId = Text(message, "kennung");
-        await telefon.RadioSwitch.RequestAsync("anruf/" + peerId);
         await telefon.RequestAnswerAsync(peerId, Text(message, "callRef"), Text(message, "commandRef"));
     }
 
@@ -573,7 +647,10 @@ internal sealed partial class BridgeDispatcher
     private async Task SendPersonalSyncAsync(JsonElement message)
     {
         var body = Object(message, "inhalt");
-        await telefon.SendPersonalSyncAsync(Text(message, "kennung"), Text(message, "art"), body);
+        var kind = Text(message, "art");
+        try { await telefon.SendPersonalSyncAsync(Text(message, "kennung"), kind, body); }
+        catch (Exception error) when (kind.StartsWith("personal_sync.custom_", StringComparison.Ordinal))
+        { throw new InvalidOperationException(T("Personal synchronization failed."), error); }
     }
 
     private async Task SendPersonalSyncRunAsync(JsonElement message)
@@ -587,9 +664,14 @@ internal sealed partial class BridgeDispatcher
         PersonalSyncContract.ValidateBody("personal_sync.request", request);
         foreach (var batch in batches) PersonalSyncContract.ValidateBody("personal_sync.batch", batch);
         var runId = request["run_id"]!.GetValue<string>();
-        if (batches.Any(batch => batch["run_id"]?.GetValue<string>() != runId)) throw new InvalidDataException(T("The personal synchronization run does not match."));
-        await telefon.SendPersonalSyncAsync(peerId, "personal_sync.request", request);
+        if (batches.Any(batch => batch["run_id"]?.GetValue<string>() != runId ||
+            batch["format"]!.GetValue<int>() != request["format"]!.GetValue<int>())) throw new InvalidDataException(T("The personal synchronization run does not match."));
         var reply = batches[0]["reply"]!.GetValue<bool>();
+        if (reply)
+        {
+            if (!JsonNode.DeepEquals(telefon.PersonalRunRequest(peerId, runId), request))
+                throw new InvalidDataException(T("The personal synchronization run does not match."));
+        }
         var recordsHash = batches[0]["records_hash"]?.GetValue<string>() ?? "";
         if (recordsHash.Length != 64 || batches.Any(batch => batch["reply"]?.GetValue<bool>() != reply ||
             batch["records_hash"]?.GetValue<string>() != recordsHash))
@@ -597,8 +679,10 @@ internal sealed partial class BridgeDispatcher
         var sources = ParseAttachmentSources(NodeArray(message, "sources"));
         var descriptors = batches.SelectMany(batch => (batch["records"] as JsonArray ?? []).OfType<JsonObject>())
             .SelectMany(record => (record["value"]?["attachments"] as JsonArray ?? []).OfType<JsonObject>())
-            .ToDictionary(descriptor => descriptor["sha256"]!.GetValue<string>(), descriptor => descriptor.DeepClone().AsObject(), StringComparer.Ordinal);
+            .GroupBy(descriptor => descriptor["sha256"]!.GetValue<string>(), StringComparer.Ordinal)
+            .ToDictionary(group => group.Key, group => group.First().DeepClone().AsObject(), StringComparer.Ordinal);
         if (!descriptors.Keys.ToHashSet(StringComparer.Ordinal).SetEquals(sources.Keys)) throw new InvalidDataException(T("The personal synchronization attachment sources are incomplete."));
+        if (!reply) await telefon.SendPersonalSyncAsync(peerId, "personal_sync.request", request);
         foreach (var source in sources.Values)
         {
             source.Descriptor = descriptors[source.Hash];
@@ -654,12 +738,17 @@ internal sealed partial class BridgeDispatcher
     private void CompletePersonalWebCommit(string token, bool committed)
     {
         TaskCompletionSource<bool>? completion;
-        lock (personalSyncGate) { completion = personalSyncWebCommits.Remove(token, out var pending) ? pending.Completion : null; }
+        lock (personalSyncGate)
+        {
+            personalUiPending.Remove(token);
+            completion = personalSyncWebCommits.Remove(token, out var pending) ? pending.Completion : null;
+        }
         completion?.TrySetResult(committed);
     }
 
     private async Task HandlePersonalSyncEventAsync(JsonObject message)
     {
+        lock (personalSyncGate) if (restoreInProgress) throw new OperationCanceledException();
         var peerId = message["device_id"]?.GetValue<string>() ?? "";
         var kind = message["kind"]?.GetValue<string>() ?? "";
         var body = message["body"] as JsonObject ?? new JsonObject();
@@ -682,18 +771,37 @@ internal sealed partial class BridgeDispatcher
             JsonObject? request;
             lock (personalSyncGate) personalSyncRequests.TryGetValue(PersonalRunKey(peerId, runId), out request);
             request ??= telefon.PersonalRunRequest(peerId, runId);
-            body["format"] = body["records_hash"]?.GetValue<string>()?.Length == 64 ? 2 : 1;
+            if (request is null || body["format"]?.GetValue<int>() != request["format"]!.GetValue<int>())
+                throw new InvalidDataException(T("The personal synchronization run does not match."));
             body["requested_modules"] = request?["modules"]?.DeepClone() ?? new JsonArray();
             body["trigger"] = request?["trigger"]?.DeepClone();
             if (body["format"]?.GetValue<int>() >= 2) body["attachment_data"] = BuildAttachmentData(peerId, body);
             var token = message["commit_token"]?.GetValue<string>() ?? throw new InvalidDataException(T("The personal synchronization commit token is missing."));
             var completion = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
-            lock (personalSyncGate) personalSyncWebCommits[token] = (peerId, completion);
+            lock (personalSyncGate)
+            {
+                if (restoreInProgress) throw new OperationCanceledException();
+                personalUiPending.Add(token); personalSyncWebCommits[token] = (peerId, completion);
+            }
             await form.SendAsync("App.personalSync", message);
             bool committed;
             try { committed = await completion.Task.WaitAsync(TimeSpan.FromSeconds(30)); }
-            finally { lock (personalSyncGate) personalSyncWebCommits.Remove(token); }
+            finally { lock (personalSyncGate) if (completion.Task.IsCompleted) personalSyncWebCommits.Remove(token); }
             if (!committed) throw new InvalidDataException(T("The personal synchronization batch was not saved permanently."));
+            return;
+        }
+        if (kind is "personal_sync.deletion_proposals" or "personal_sync.deletion_decision")
+        {
+            var token = message["commit_token"]?.GetValue<string>() ?? throw new InvalidDataException();
+            var completion = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            lock (personalSyncGate)
+            {
+                if (restoreInProgress) throw new OperationCanceledException();
+                personalUiPending.Add(token); personalSyncWebCommits[token] = (peerId, completion);
+            }
+            await form.SendAsync("App.personalSync", message);
+            try { await completion.Task.WaitAsync(TimeSpan.FromSeconds(30)); }
+            finally { lock (personalSyncGate) if (completion.Task.IsCompleted) personalSyncWebCommits.Remove(token); }
             return;
         }
         await form.SendAsync("App.personalSync", message);
@@ -782,7 +890,7 @@ internal sealed partial class BridgeDispatcher
     {
         lock (personalSyncGate)
         {
-            foreach (var pending in personalSyncWebCommits.Values) pending.Completion.TrySetResult(false);
+            foreach (var pending in personalSyncWebCommits.Values) pending.Completion.TrySetCanceled();
             personalSyncRequests.Clear(); personalSyncWebCommits.Clear();
         }
     }
@@ -793,7 +901,7 @@ internal sealed partial class BridgeDispatcher
         {
             foreach (var key in personalSyncRequests.Keys.Where(key => key.StartsWith(peerId + "\0", StringComparison.Ordinal)).ToArray()) personalSyncRequests.Remove(key);
             foreach (var token in personalSyncWebCommits.Where(item => item.Value.PeerId == peerId).Select(item => item.Key).ToArray())
-                if (personalSyncWebCommits.Remove(token, out var pending)) pending.Completion.TrySetResult(false);
+                if (personalSyncWebCommits.Remove(token, out var pending)) pending.Completion.TrySetCanceled();
         }
     }
 

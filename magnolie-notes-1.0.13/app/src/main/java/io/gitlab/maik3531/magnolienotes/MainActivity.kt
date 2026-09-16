@@ -36,6 +36,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
@@ -81,6 +82,7 @@ import io.gitlab.maik3531.magnolienotes.journal.AndroidJournal
 import io.gitlab.maik3531.magnolienotes.sicherung.AndroidAutoSicherung
 import io.gitlab.maik3531.magnolienotes.AnhangDatei
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.ByteArrayOutputStream
@@ -108,6 +110,7 @@ private fun liesPortableArchiv(context: Context, uri: Uri): ByteArray {
 class MainActivity : ComponentActivity() {
 
     private val gewuenschteAufgabe = mutableStateOf<String?>(null)
+    internal val gewuenschtesCustom = mutableStateOf<Intent?>(null)
     internal val qrPaarung = mutableStateOf<String?>(null)
     internal val bestaetigteQrPaarung = mutableStateOf<String?>(null)
     internal val benachrichtigungsFreigabe = registerForActivityResult(
@@ -115,13 +118,16 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(zustand: Bundle?) {
         super.onCreate(zustand)
-        gewuenschteAufgabe.value = intent?.getStringExtra(ZEIGE_AUFGABE)
         if (zustand?.getBoolean(QR_LINK_VERBRAUCHT) == true) {
+            if (intent?.data == null && intent?.action in listOf(null, Intent.ACTION_MAIN))
+                gewuenschteAufgabe.value = intent?.getStringExtra(ZEIGE_AUFGABE)
             qrPaarung.value = zustand.getString(QR_PAARUNG)
             bestaetigteQrPaarung.value = zustand.getString(QR_PAARUNG_BESTAETIGT)
-            intent?.data = null
+            @Suppress("DEPRECATION")
+            val custom = zustand.getParcelable<Intent>(CUSTOM_ZIEL)
+            gewuenschtesCustom.value = CustomNavigation.anfrage(this, custom)
         } else {
-            empfangePaarungsLink(intent)
+            empfangeAbsicht(intent)
         }
         setContent { MagnolieThema { Startblatt(gewuenschteAufgabe) } }
     }
@@ -135,23 +141,52 @@ class MainActivity : ComponentActivity() {
 
     override fun onNewIntent(absicht: Intent) {
         super.onNewIntent(absicht)
+        entwurfSichern()
         setIntent(absicht)
-        gewuenschteAufgabe.value = absicht.getStringExtra(ZEIGE_AUFGABE)
+        empfangeAbsicht(absicht)
+    }
+
+    private fun empfangeAbsicht(absicht: Intent?) {
+        val custom = CustomNavigation.anfrage(this, absicht)
+        if (custom != null) {
+            gewuenschtesCustom.value = custom
+            absicht?.data = null
+            return
+        }
+        // Ordinary reminders have no data URI. A foreign URI cannot inject an editor ID.
+        if (absicht?.data == null && absicht?.action in listOf(null, Intent.ACTION_MAIN))
+            gewuenschteAufgabe.value = absicht?.getStringExtra(ZEIGE_AUFGABE)
         empfangePaarungsLink(absicht)
     }
 
     private fun empfangePaarungsLink(absicht: Intent?) {
         if (absicht?.dataString != null) {
-            qrPaarung.value = PaarungsLink.dekodiere(absicht.dataString)
+            val paarung = PaarungsLink.dekodiere(absicht.dataString) ?: return
+            qrPaarung.value = paarung
+            absicht?.data = null
         }
-        absicht?.data = null
     }
 
     override fun onSaveInstanceState(zustand: Bundle) {
+        entwurfSichern()
         zustand.putBoolean(QR_LINK_VERBRAUCHT, true)
         qrPaarung.value?.let { zustand.putString(QR_PAARUNG, it) }
         bestaetigteQrPaarung.value?.let { zustand.putString(QR_PAARUNG_BESTAETIGT, it) }
+        gewuenschtesCustom.value?.let { zustand.putParcelable(CUSTOM_ZIEL, it) }
         super.onSaveInstanceState(zustand)
+    }
+
+    override fun onStop() {
+        entwurfSichern()
+        super.onStop()
+    }
+
+    private fun entwurfSichern() {
+        if ((application as MagnolieApp).startZustand.value == StartZustand.Bereit) {
+            runCatching { Ablage.hole(this).sichereEntwurf() }.onFailure {
+                Toast.makeText(this, fehlertext(it), Toast.LENGTH_LONG).show()
+            }
+        }
     }
 
     companion object {
@@ -160,6 +195,7 @@ class MainActivity : ComponentActivity() {
         private const val QR_LINK_VERBRAUCHT = "qr_link_verbraucht"
         private const val QR_PAARUNG = "qr_paarung"
         private const val QR_PAARUNG_BESTAETIGT = "qr_paarung_bestaetigt"
+        private const val CUSTOM_ZIEL = "custom_ziel"
     }
 }
 
@@ -208,7 +244,7 @@ private fun MainActivity.Startblatt(gewuenschteAufgabe: androidx.compose.runtime
     }
     when (val aktuell = zustand) {
         StartZustand.Laden -> Ladeblatt()
-        StartZustand.Bereit -> Hauptblatt(gewuenschteAufgabe)
+        StartZustand.Bereit -> Hauptblatt(gewuenschteAufgabe, gewuenschtesCustom)
         is StartZustand.Fehler -> RecoveryBlatt(
             art = aktuell.art,
             erneut = { (application as MagnolieApp).starten() },
@@ -330,7 +366,8 @@ class PortableExportVertrag : ActivityResultContract<String, Uri?>() {
 }
 
 @Composable
-private fun Hauptblatt(gewuenschteAufgabe: androidx.compose.runtime.MutableState<String?>) {
+private fun Hauptblatt(gewuenschteAufgabe: androidx.compose.runtime.MutableState<String?>,
+                      gewuenschtesCustom: androidx.compose.runtime.MutableState<Intent?>) {
     val zusammenhang = LocalContext.current
     val ablage = remember { Ablage.hole(zusammenhang) }
     val werk = remember { Baumwerk.hole(zusammenhang) }
@@ -346,18 +383,30 @@ private fun Hauptblatt(gewuenschteAufgabe: androidx.compose.runtime.MutableState
     val autoSicherungsZustand by autoSicherung.zustand.collectAsState()
     val telefonZustand by telefonWerk.state.collectAsState()
 
-    var blatt by remember { mutableStateOf(0) }
-    var offeneNotiz by remember { mutableStateOf<Notiz?>(null) }
-    var anhangZiel by remember { mutableStateOf<String?>(null) }
-    var anhangSpeicherZiel by remember { mutableStateOf<io.gitlab.maik3531.magnolienotes.daten.Anhang?>(null) }
+    var blatt by rememberSaveable { mutableStateOf(0) }
+    val entwurf by ablage.entwurf.collectAsState()
+    val offeneNotiz = entwurf.notiz
+    val offeneAufgabe = entwurf.aufgabe
+    var editorSpeichert by remember { mutableStateOf(false) }
+    var anhangZiel by rememberSaveable { mutableStateOf<String?>(null) }
+    var anhangSpeicherZiel by rememberSaveable { mutableStateOf<String?>(null) }
     var anhangEreignis by remember { mutableStateOf<AnhangEreignis?>(null) }
-    var offeneAufgabe by remember { mutableStateOf<Aufgabe?>(null) }
+
+    val customAnfrage = gewuenschtesCustom.value
+    val customZiel = CustomNavigation.ziel(zusammenhang, customAnfrage, bestand.personalCustom, telefonZustand.peer)
+    LaunchedEffect(customAnfrage, customZiel, entwurf) {
+        if (customAnfrage != null && customZiel == null) gewuenschtesCustom.value = null
+        // Keep both the editor and the request until the user finishes the draft.
+        // Revalidate on every content/consent change; a withdrawn target is consumed, not revived.
+        else if (customZiel != null && entwurf == io.gitlab.maik3531.magnolienotes.daten.EditorEntwurf()) blatt = 3
+    }
 
     // Kommt die App aus einer Erinnerung, wird die gemeinte Aufgabe geöffnet.
     val gewuenscht = gewuenschteAufgabe.value
     if (gewuenscht != null) {
         androidx.compose.runtime.LaunchedEffect(gewuenscht) {
-            ablage.aufgabe(gewuenscht)?.let { offeneAufgabe = it; blatt = 1 }
+            if (entwurf == io.gitlab.maik3531.magnolienotes.daten.EditorEntwurf())
+                ablage.aufgabe(gewuenscht)?.let { ablage.setzeAufgabenEntwurf(it); blatt = 1 }
             gewuenschteAufgabe.value = null
         }
     }
@@ -371,12 +420,32 @@ private fun Hauptblatt(gewuenschteAufgabe: androidx.compose.runtime.MutableState
     var kontaktImportZweig by remember { mutableStateOf<String?>(null) }
     var kontaktImportVorschau by remember { mutableStateOf<KontaktImportVorschau?>(null) }
     var portableExportPasswort by remember { mutableStateOf<String?>(null) }
+    var portableExportZiel by rememberSaveable { mutableStateOf<String?>(null) }
+    var exportPasswortErneut by remember { mutableStateOf("") }
     var portableImportUri by remember { mutableStateOf<Uri?>(null) }
     var portableGeprueft by remember { mutableStateOf<GeprueftesPortableArchiv?>(null) }
     var portableLaeuft by remember { mutableStateOf(false) }
     var portableFehler by remember { mutableStateOf(false) }
 
     fun sage(text: String) = Toast.makeText(zusammenhang, text, Toast.LENGTH_LONG).show()
+
+    LaunchedEffect(entwurf) {
+        delay(250)
+        withContext(Dispatchers.IO) { runCatching { ablage.sichereEntwurf() } }
+            .onFailure { sage(zusammenhang.fehlertext(it)) }
+    }
+
+    fun editorAktion(aktion: () -> Unit) {
+        if (editorSpeichert) return
+        editorSpeichert = true
+        faden.launch {
+            try {
+                val ergebnis = withContext(Dispatchers.IO) { runCatching(aktion) }
+                ergebnis.onFailure { sage(zusammenhang.fehlertext(it)) }
+                if (ergebnis.isSuccess) faden.launch(Dispatchers.IO) { runCatching { werk.postfachAbarbeiten() } }
+            } finally { editorSpeichert = false }
+        }
+    }
 
     fun bluetoothErlaubt(): Boolean = Build.VERSION.SDK_INT < Build.VERSION_CODES.S ||
         zusammenhang.checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) ==
@@ -388,7 +457,7 @@ private fun Hauptblatt(gewuenschteAufgabe: androidx.compose.runtime.MutableState
         if (erlaubt) {
             faden.launch {
                 bluetoothGeraete = withContext(Dispatchers.IO) {
-                    werk.bluetoothStarten()
+                    BaumDienst.starten(zusammenhang, bluetooth = true)
                     werk.gekoppelteBluetoothGeraete()
                 }
             }
@@ -404,6 +473,12 @@ private fun Hauptblatt(gewuenschteAufgabe: androidx.compose.runtime.MutableState
         else sage(zusammenhang.getString(R.string.telefon_bluetooth_berechtigung))
     }
     var telefonFreigabeZiel by remember { mutableStateOf("") }
+    var identifierPermissionToken by remember { mutableStateOf("") }
+    val identifierPermission = androidx.activity.compose.rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()) { granted ->
+        telefonWerk.completeIdentifierPermission(identifierPermissionToken, granted)
+        identifierPermissionToken = ""
+    }
     val telefonFreigabe = androidx.activity.compose.rememberLauncherForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()) { ergebnis ->
         val erlaubt = ergebnis.values.all { it }
@@ -485,21 +560,18 @@ private fun Hauptblatt(gewuenschteAufgabe: androidx.compose.runtime.MutableState
         }
     }
 
-    val portableExport = androidx.activity.compose.rememberLauncherForActivityResult(
-        PortableExportVertrag()) { ziel ->
-        val passwort = portableExportPasswort
-        portableExportPasswort = null
-        if (ziel == null || passwort == null) return@rememberLauncherForActivityResult
+    fun portableExportieren(ziel: Uri, passwort: String) {
         portableLaeuft = true
         faden.launch {
             val ergebnis = withContext(Dispatchers.IO) { runCatching {
                 val geheim = passwort.toCharArray()
                 try {
                     val bytes = PortableArchiv.erstellen(ablage.bestand.value, geheim)
+                    val erwartet = io.gitlab.maik3531.magnolienotes.daten.ArchivIdentitaet(bytes)
                     try { zusammenhang.contentResolver.openOutputStream(ziel, "w")?.use { it.write(bytes) }
                         ?: error("Datei kann nicht geoeffnet werden") } finally { bytes.fill(0) }
                     val rueckgelesen = liesPortableArchiv(zusammenhang, ziel)
-                    try { PortableArchiv.pruefen(rueckgelesen, geheim) }
+                    try { erwartet.pruefen(rueckgelesen); PortableArchiv.pruefen(rueckgelesen, geheim) }
                     finally { rueckgelesen.fill(0) }
                 } catch (fehler: Exception) {
                     runCatching { zusammenhang.contentResolver.delete(ziel, null, null) }
@@ -511,6 +583,28 @@ private fun Hauptblatt(gewuenschteAufgabe: androidx.compose.runtime.MutableState
             sage(zusammenhang.getString(if (ergebnis.isSuccess) R.string.portable_exportiert
                 else R.string.portable_fehler))
         }
+    }
+    val portableExport = androidx.activity.compose.rememberLauncherForActivityResult(
+        PortableExportVertrag()) { ziel ->
+        val passwort = portableExportPasswort
+        portableExportPasswort = null
+        if (ziel != null) {
+            if (passwort == null) portableExportZiel = ziel.toString()
+            else portableExportieren(ziel, passwort)
+        }
+    }
+    portableExportZiel?.let { ziel ->
+        AlertDialog(onDismissRequest = { portableExportZiel = null; exportPasswortErneut = "" },
+            title = { Text(stringResource(R.string.portable_export)) },
+            text = { io.gitlab.maik3531.magnolienotes.ui.Schreibfeld(exportPasswortErneut,
+                stringResource(R.string.portable_passwort), { exportPasswortErneut = it.take(1024) }, passwort = true) },
+            confirmButton = { TextButton(enabled = exportPasswortErneut.isNotEmpty(), onClick = {
+                val geheim = exportPasswortErneut
+                portableExportZiel = null; exportPasswortErneut = ""
+                portableExportieren(Uri.parse(ziel), geheim)
+            }) { Text(stringResource(R.string.portable_export)) } },
+            dismissButton = { TextButton(onClick = { portableExportZiel = null; exportPasswortErneut = "" }) {
+                Text(stringResource(R.string.abbrechen)) } })
     }
     val portableImport = androidx.activity.compose.rememberLauncherForActivityResult(
         ActivityResultContracts.OpenDocument()) { quelle ->
@@ -546,7 +640,7 @@ private fun Hauptblatt(gewuenschteAufgabe: androidx.compose.runtime.MutableState
         faden.launch {
             val gelesen = withContext(Dispatchers.IO) { AnhangLeser.lies(zusammenhang, quelle) }
             val anhang = gelesen.anhang
-            val aktuell = offeneNotiz
+            val aktuell = ablage.entwurf.value.notiz
             if (anhang == null) {
                 sage(zusammenhang.getString(
                     if (gelesen.fehler == AnhangLeser.Fehler.ZU_GROSS) R.string.notiz_anhang_gross
@@ -563,7 +657,7 @@ private fun Hauptblatt(gewuenschteAufgabe: androidx.compose.runtime.MutableState
                 } else if (!entscheidung.erlaubt) {
                     sage(zusammenhang.getString(R.string.baum_anhaenge_speicher))
                 } else {
-                    offeneNotiz = aktuell.copy(anhaenge = neu)
+                    ablage.setzeNotizEntwurf(aktuell.copy(anhaenge = neu))
                     anhangEreignis = AnhangEreignis(ziel, anhang)
                 }
             }
@@ -573,7 +667,7 @@ private fun Hauptblatt(gewuenschteAufgabe: androidx.compose.runtime.MutableState
     val anhangSpeicher = androidx.activity.compose.rememberLauncherForActivityResult(
         AnhangSpeichernVertrag()
     ) { ziel ->
-        val anhang = anhangSpeicherZiel
+        val anhang = ablage.entwurf.value.notiz?.anhaenge?.firstOrNull { it.id == anhangSpeicherZiel }
         anhangSpeicherZiel = null
         if (ziel == null || anhang == null) return@rememberLauncherForActivityResult
         faden.launch {
@@ -595,7 +689,7 @@ private fun Hauptblatt(gewuenschteAufgabe: androidx.compose.runtime.MutableState
             val ergebnis = withContext(Dispatchers.IO) {
                 runCatching {
                     val text = zusammenhang.contentResolver.openInputStream(quelle)
-                        ?.use { String(it.readBytes(), Charsets.UTF_8) }
+                        ?.use { io.gitlab.maik3531.magnolienotes.baum.Paarung.liesDatei(it) }
                         ?: throw BaumFehler(Fehlertext.DATEI_OEFFNEN)
                     werk.paareMitDatei(text)
                 }
@@ -619,42 +713,34 @@ private fun Hauptblatt(gewuenschteAufgabe: androidx.compose.runtime.MutableState
             aufgabe = offeneA,
             alleAufgaben = bestand.aufgaben,
             partnernamen = bestaetigte,
+            beiEntwurf = { if (!editorSpeichert) ablage.setzeAufgabenEntwurf(it) },
+            speichert = editorSpeichert,
             beiSichern = { geaendert ->
-                val gesichert = ablage.sichereAufgabe(geaendert)
-                offeneAufgabe = gesichert
-                Erinnerung.stellen(zusammenhang, gesichert)
-                if (gesichert.istFremd && gesichert.erledigt != offeneA.erledigt) {
-                    faden.launch {
-                        withContext(Dispatchers.IO) {
-                            werk.aufgabeAbhaken(gesichert.id, gesichert.erledigt)
-                        }
-                    }
+                val erwartet = ablage.entwurf.value
+                editorAktion {
+                    val gesichert = ablage.sichereAufgabe(erwartet.aufgabe?.takeIf { it.id == geaendert.id } ?: geaendert)
+                    Erinnerung.stellen(zusammenhang, gesichert)
+                    ablage.beendeEntwurf(erwartet)
                 }
             },
             beiLoeschen = {
-                Erinnerung.abbestellen(zusammenhang, offeneA.id)
-                ablage.loescheAufgabe(offeneA.id)
-            },
-            beiWeitergeben = { kennungen ->
-                faden.launch {
-                    val ergebnis = withContext(Dispatchers.IO) {
-                        runCatching {
-                            werk.teileAufgabe(ablage.aufgabe(offeneA.id) ?: offeneA, kennungen)
-                        }
-                    }
-                    ergebnis.onSuccess {
-                        offeneAufgabe = it
-                        sage(zusammenhang.getString(R.string.baum_geteilt))
-                    }
-                    ergebnis.onFailure { sage(zusammenhang.fehlertext(it)) }
+                val erwartet = entwurf
+                editorAktion {
+                    Erinnerung.abbestellen(zusammenhang, offeneA.id)
+                    ablage.loescheAufgabe(offeneA.id)
+                    ablage.beendeEntwurf(erwartet)
                 }
             },
-            beiZurueck = { offeneAufgabe = null }
+            beiWeitergeben = { kennungen ->
+                editorAktion {
+                    val gesichert = ablage.sichereAufgabe(offeneA)
+                    Erinnerung.stellen(zusammenhang, gesichert)
+                    val geteilt = werk.teileAufgabe(gesichert, kennungen, sofortSenden = false)
+                    ablage.setzeAufgabenEntwurf(geteilt)
+                    ablage.sichereEntwurf()
+                }
+            }
         )
-        // Ohne diesen Griff beendete die Zurueck-Taste des Geraets die ganze
-        // App, statt den Bearbeiter zu schliessen. Der Knopf oben bleibt; wer
-        // einhaendig bedient, kommt nun auch unten heraus.
-        BackHandler { offeneAufgabe = null }
         return
     }
 
@@ -663,31 +749,26 @@ private fun Hauptblatt(gewuenschteAufgabe: androidx.compose.runtime.MutableState
         NotizEditor(
             notiz = offen,
             partnernamen = bestaetigte,
+            beiEntwurf = { if (!editorSpeichert) ablage.setzeNotizEntwurf(it) },
+            speichert = editorSpeichert,
             beiSichern = { geaendert ->
-                val gesichert = ablage.sichereNotiz(geaendert)
-                offeneNotiz = gesichert
-                if (gesichert.baumFreigabe != null) {
-                    faden.launch {
-                        // Die fortgeschriebene Fassung zurückholen, damit die
-                        // Versionsnummer beim nächsten Sichern weiterzählt.
-                        val fortgeschrieben = withContext(Dispatchers.IO) {
-                            werk.notizFortschreiben(gesichert)
-                        }
-                        if (offeneNotiz?.id == fortgeschrieben.id) offeneNotiz = fortgeschrieben
-                    }
+                val erwartet = ablage.entwurf.value
+                editorAktion {
+                    val gesichert = ablage.sichereNotiz(erwartet.notiz?.takeIf { it.id == geaendert.id } ?: geaendert)
+                    werk.notizFortschreiben(gesichert, sofortSenden = false)
+                    ablage.beendeEntwurf(erwartet)
                 }
             },
-            beiLoeschen = { ablage.loescheNotiz(offen.id) },
+            beiLoeschen = {
+                val erwartet = entwurf
+                editorAktion { ablage.loescheNotiz(offen.id); ablage.beendeEntwurf(erwartet) }
+            },
             beiTeilen = { kennungen ->
-                faden.launch {
-                    val ergebnis = withContext(Dispatchers.IO) {
-                        runCatching { werk.teileNotiz(ablage.notiz(offen.id) ?: offen, kennungen) }
-                    }
-                    ergebnis.onSuccess {
-                        offeneNotiz = it
-                        sage(zusammenhang.getString(R.string.baum_geteilt))
-                    }
-                    ergebnis.onFailure { sage(zusammenhang.fehlertext(it)) }
+                editorAktion {
+                    val gesichert = ablage.sichereNotiz(offen)
+                    val geteilt = werk.teileNotiz(gesichert, kennungen, sofortSenden = false)
+                    ablage.setzeNotizEntwurf(geteilt)
+                    ablage.sichereEntwurf()
                 }
             },
             beiAnhangOeffnen = { anhang ->
@@ -701,7 +782,7 @@ private fun Hauptblatt(gewuenschteAufgabe: androidx.compose.runtime.MutableState
                     if (inhalt == null) {
                         sage(zusammenhang.getString(R.string.notiz_anhang_speichern_fehler))
                     } else {
-                        anhangSpeicherZiel = anhang
+                        anhangSpeicherZiel = anhang.id
                         anhangSpeicher.launch(AnhangSpeicherAnfrage(
                             inhalt.mime, AnhangDatei.sichererName(anhang, inhalt)
                         ))
@@ -717,16 +798,14 @@ private fun Hauptblatt(gewuenschteAufgabe: androidx.compose.runtime.MutableState
             anhangEreignis = anhangEreignis,
             beiAnhangEreignisVerbraucht = { anhangEreignis = null },
             beiAnhaengeAenderung = { anhaenge ->
-                val current = offeneNotiz?.takeIf { it.id == offen.id }
+                val current = ablage.entwurf.value.notiz?.takeIf { it.id == offen.id }
                 val removed = current?.anhaenge?.filter { old -> anhaenge.none { it.id == old.id } }.orEmpty()
                 if (removed.size == 1) {
                     ablage.loescheAnhang(offen.id, removed.single().id)
-                    offeneNotiz = ablage.notiz(offen.id)
-                } else offeneNotiz = current?.copy(anhaenge = anhaenge)
-            },
-            beiZurueck = { offeneNotiz = null }
+                }
+                current?.let { ablage.setzeNotizEntwurf(it.copy(anhaenge = anhaenge)) }
+            }
         )
-        BackHandler { offeneNotiz = null }
         return
     }
 
@@ -755,19 +834,19 @@ private fun Hauptblatt(gewuenschteAufgabe: androidx.compose.runtime.MutableState
                 0 -> NotizBlatt(
                     notizen = bestand.notizen,
                     notizbuecher = bestand.notizbuecher,
-                    beiOeffnen = { offeneNotiz = it },
+                    beiOeffnen = ablage::setzeNotizEntwurf,
                     beiNeu = {
-                        offeneNotiz = Notiz(
+                        ablage.setzeNotizEntwurf(Notiz(
                             id = Ablage.kennung(),
                             angelegt = System.currentTimeMillis(),
                             geaendert = System.currentTimeMillis()
-                        )
+                        ))
                     }
                 )
 
                 1 -> AufgabenBlatt(
                     aufgaben = bestand.aufgaben,
-                    beiOeffnen = { offeneAufgabe = it },
+                    beiOeffnen = ablage::setzeAufgabenEntwurf,
                     beiAbhaken = { aufgabe, erledigt ->
                         faden.launch {
                             withContext(Dispatchers.IO) {
@@ -777,18 +856,18 @@ private fun Hauptblatt(gewuenschteAufgabe: androidx.compose.runtime.MutableState
                     },
                     beiNeu = {
                         val id = Ablage.kennung()
-                        offeneAufgabe = Aufgabe(
+                        ablage.setzeAufgabenEntwurf(Aufgabe(
                             id = id, uid = AufgabenHierarchie.stabileUid(id),
                             angelegt = System.currentTimeMillis(),
                             geaendert = System.currentTimeMillis()
-                        )
+                        ))
                     },
                     beiTeilaufgabe = { parent ->
                         val id = Ablage.kennung()
-                        offeneAufgabe = Aufgabe(id = id, uid = AufgabenHierarchie.stabileUid(id),
+                        ablage.setzeAufgabenEntwurf(Aufgabe(id = id, uid = AufgabenHierarchie.stabileUid(id),
                             elternUid = parent.uid,
                             reihenfolge = bestand.aufgaben.count { it.elternUid == parent.uid },
-                            angelegt = System.currentTimeMillis(), geaendert = System.currentTimeMillis())
+                            angelegt = System.currentTimeMillis(), geaendert = System.currentTimeMillis()))
                     },
                     beiVerschieben = { aufgabe, delta -> ablage.verschiebeAufgabe(aufgabe.uid, delta) },
                     beiWurzel = { aufgabe -> ablage.setzeAufgabenEltern(aufgabe.uid, "") }
@@ -804,6 +883,8 @@ private fun Hauptblatt(gewuenschteAufgabe: androidx.compose.runtime.MutableState
                 3 -> BaumBlatt(
                     zustand = baumzustand,
                     bestand = bestand,
+                    customFokus = customZiel,
+                    beiCustomFokus = { if (gewuenschtesCustom.value === customAnfrage) gewuenschtesCustom.value = null },
                     fingerabdruck = werk.fingerabdruck(),
                     gefunden = gefunden,
                     bluetoothGeraete = bluetoothGeraete,
@@ -831,29 +912,54 @@ private fun Hauptblatt(gewuenschteAufgabe: androidx.compose.runtime.MutableState
                         beiBluetoothZiel = telefonWerk::assignBluetooth,
                         beiWaehlauftrag = { enabled ->
                             if (enabled && !TelefonModulStatus.dialPermissions(zusammenhang)) {
-                                telefonFreigabeZiel = "dial"; telefonFreigabe.launch(arrayOf(
-                                    Manifest.permission.CALL_PHONE, Manifest.permission.READ_PHONE_STATE))
+                                if (identifierPermissionToken.isEmpty() && telefonFreigabeZiel.isEmpty()) {
+                                    telefonFreigabeZiel = "dial"; telefonFreigabe.launch(arrayOf(
+                                        Manifest.permission.CALL_PHONE, Manifest.permission.READ_PHONE_STATE))
+                                }
                             } else telefonWerk.setDialRequestEnabled(enabled)
                         },
                         beiEingehendenAnrufen = { enabled ->
                             if (enabled && zusammenhang.checkSelfPermission(Manifest.permission.READ_PHONE_STATE) != PackageManager.PERMISSION_GRANTED) {
-                                telefonFreigabeZiel = "incoming"; telefonFreigabe.launch(arrayOf(Manifest.permission.READ_PHONE_STATE))
+                                if (identifierPermissionToken.isEmpty() && telefonFreigabeZiel.isEmpty()) {
+                                    telefonFreigabeZiel = "incoming"; telefonFreigabe.launch(arrayOf(Manifest.permission.READ_PHONE_STATE))
+                                }
                             } else telefonWerk.setIncomingCallsEnabled(enabled)
                         },
                         beiAnrufernummer = { enabled ->
                             if (enabled && zusammenhang.checkSelfPermission(Manifest.permission.READ_CALL_LOG) != PackageManager.PERMISSION_GRANTED) {
-                                telefonFreigabeZiel = "number"; telefonFreigabe.launch(arrayOf(Manifest.permission.READ_CALL_LOG))
+                                if (identifierPermissionToken.isEmpty() && telefonFreigabeZiel.isEmpty()) {
+                                    telefonFreigabeZiel = "number"; telefonFreigabe.launch(arrayOf(Manifest.permission.READ_CALL_LOG))
+                                }
                             } else telefonWerk.setIncomingNumberEnabled(enabled)
                         },
                         beiAnnehmen = { enabled ->
                             if (enabled && zusammenhang.checkSelfPermission(Manifest.permission.ANSWER_PHONE_CALLS) != PackageManager.PERMISSION_GRANTED) {
-                                telefonFreigabeZiel = "answer"; telefonFreigabe.launch(arrayOf(Manifest.permission.ANSWER_PHONE_CALLS))
+                                if (identifierPermissionToken.isEmpty() && telefonFreigabeZiel.isEmpty()) {
+                                    telefonFreigabeZiel = "answer"; telefonFreigabe.launch(arrayOf(Manifest.permission.ANSWER_PHONE_CALLS))
+                                }
                             } else telefonWerk.setAnswerCallsEnabled(enabled)
                         },
                         beiBenachrichtigungszugriff = {
                             zusammenhang.startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
                         },
-                        beiBenachrichtigungsApp = telefonWerk::toggleNotificationPackage,
+                        beiBenachrichtigungsApp = { paket ->
+                            faden.launch(Dispatchers.IO) {
+                                runCatching { telefonWerk.toggleNotificationPackage(paket) }.onFailure {
+                                    withContext(Dispatchers.Main) { sage(zusammenhang.fehlertext(it)) }
+                                }
+                            }
+                        },
+                        beiIdentifierSharing = { enabled ->
+                            if (!enabled) telefonWerk.setIdentifierSharingEnabled(false)
+                            else if (telefonFreigabeZiel.isEmpty() && identifierPermissionToken.isEmpty()) {
+                                if (zusammenhang.checkSelfPermission(Manifest.permission.READ_PHONE_NUMBERS) == PackageManager.PERMISSION_GRANTED)
+                                    telefonWerk.setIdentifierSharingEnabled(true)
+                                else telefonWerk.beginIdentifierPermission()?.let { token ->
+                                    identifierPermissionToken = token
+                                    identifierPermission.launch(Manifest.permission.READ_PHONE_NUMBERS)
+                                }
+                            }
+                        },
                         beiPersonalEigen = { telefonWerk.setPersonalSync(it, telefonZustand.personalNotesEnabled,
                             telefonZustand.personalTasksEnabled, telefonZustand.personalAutoWifi, telefonZustand.personalDeletionsEnabled) },
                         beiPersonalNotizen = { telefonWerk.setPersonalSync(telefonZustand.personalOwnDevice, it,
@@ -867,7 +973,12 @@ private fun Hauptblatt(gewuenschteAufgabe: androidx.compose.runtime.MutableState
                             telefonZustand.personalAutoWifi, it) },
                         beiPersonalJetzt = { runCatching { telefonWerk.personalSyncNow() }
                             .onFailure { sage(it.message.orEmpty()) } },
-                        beiPersonalEntscheidung = telefonWerk::personalDeletionDecision
+                        beiPersonalEntscheidung = telefonWerk::personalDeletionDecision,
+                        beiCustomSync = { runCatching { telefonWerk.setCustomSync(it) }
+                            .onFailure { sage(zusammenhang.fehlertext(it)) } },
+                        beiCustomEntscheidung = { id, revision, delete -> runCatching {
+                            telefonWerk.customDeletionDecision(id, revision, delete)
+                        }.onFailure { sage(zusammenhang.fehlertext(it)) } }
                     ),
                     handlungen = Baumhandlungen(
                         beiName = { werk.benenne(it) },
@@ -884,7 +995,7 @@ private fun Hauptblatt(gewuenschteAufgabe: androidx.compose.runtime.MutableState
                                 faden.launch {
                                     bluetoothGeraete = withContext(Dispatchers.IO) {
                                         if (an) {
-                                            werk.bluetoothStarten()
+                                            BaumDienst.starten(zusammenhang, bluetooth = true)
                                             werk.gekoppelteBluetoothGeraete()
                                         } else {
                                             werk.bluetoothAnhalten()
@@ -1023,7 +1134,10 @@ private fun Hauptblatt(gewuenschteAufgabe: androidx.compose.runtime.MutableState
                                 ergebnis.onFailure { sage(zusammenhang.fehlertext(it)) }
                             }
                         },
-                        beiBestaetigen = { werk.bestaetigen(it) },
+                        beiBestaetigen = { kennung ->
+                            runCatching { werk.bestaetigen(kennung) }
+                                .onFailure { sage(zusammenhang.fehlertext(it)) }
+                        },
                         beiVertrauen = { kennung, an -> werk.vertrauen(kennung, an) },
                         beiEingangAnnehmen = { werk.eingangAnnehmen(it) },
                         beiEingangAblehnen = { werk.eingangEntfernen(it) },
@@ -1060,7 +1174,13 @@ private fun Hauptblatt(gewuenschteAufgabe: androidx.compose.runtime.MutableState
                     beiLoeschen = journal::delete,
                     beiPapierkorbSchalter = ablage::setzePapierkorb,
                     beiPapierkorbTage = ablage::setzePapierkorb,
-                    beiPapierkorbWiederherstellen = { ablage.papierkorbWiederherstellen(it) },
+                    beiPapierkorbWiederherstellen = { id ->
+                        faden.launch(Dispatchers.IO) {
+                            runCatching {
+                                if (ablage.papierkorbWiederherstellen(id)) Erinnerung.allesNeuStellen(zusammenhang)
+                            }.onFailure { withContext(Dispatchers.Main) { sage(zusammenhang.fehlertext(it)) } }
+                        }
+                    },
                     beiPapierkorbLoeschen = ablage::papierkorbEndgueltig,
                     beiPapierkorbLeeren = ablage::papierkorbLeeren,
                     absturzberichtVorhanden = Absturzberichte.bericht(zusammenhang) != null,

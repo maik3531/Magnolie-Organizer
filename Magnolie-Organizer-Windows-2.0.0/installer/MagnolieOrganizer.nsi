@@ -132,7 +132,9 @@ Function CloseRunningApplication
   ${If} $0 != 0
     ; Der normale WM_CLOSE-Pfad lässt WebView zuerst dauerhaft speichern. Danach
     ; wartet der Installer, statt Programmdateien unter der laufenden App zu ersetzen.
-    SendMessage $0 ${WM_CLOSE} 0 0
+    ; SC_CLOSE is ordinary close-to-tray. This private message requests saved exit.
+    System::Call 'user32::RegisterWindowMessageW(w "MagnolieOrganizer.Windows.Exit") i .r2'
+    SendMessage $0 $2 0 0 /TIMEOUT=5000
     StrCpy $1 0
     wait_for_close:
       Sleep 250
@@ -569,6 +571,14 @@ Section "Uninstall"
     ${EndIf}
     ${If} $UninstallMarkerValid == 1
     ${AndIf} ${FileExists} "$INSTDIR\.magnolie-core.manifest"
+      ClearErrors
+      ExecWait '"$INSTDIR\${PRODUCT_EXE}" --unregister-call-notifications' $0
+      ${If} ${Errors}
+      ${OrIf} $0 != 0
+        SetErrorLevel 1
+        MessageBox MB_ICONSTOP|MB_OK "Die Benachrichtigungsregistrierung konnte nicht sicher entfernt werden. Programmdateien und fremde Registrierungen bleiben erhalten."
+        Abort
+      ${EndIf}
       StrCpy $UninstallCleanupFailed 0
       StrCpy $ManifestPath "$INSTDIR\.magnolie-handbook.manifest"
       Call un.DeleteManagedManifest
@@ -597,6 +607,11 @@ Section "Uninstall"
     MessageBox MB_ICONEXCLAMATION|MB_OK "Verwaltete Programmdateien wurden nicht gelöscht, weil Marker oder Besitzliste fehlen beziehungsweise ungültig sind. Unbekannte Ordnerinhalte bleiben geschützt."
     Goto uninstall_done
   product_removed:
+  ReadRegStr $0 HKCU "Software\Microsoft\Windows\CurrentVersion\Run" "Magnolie Organizer"
+  ${If} $0 == '$\"$INSTDIR\${PRODUCT_EXE}$\" --tray-start'
+  ${OrIf} $0 == '$\"$INSTDIR\${PRODUCT_EXE}$\" --tray-start --reminder-start'
+    DeleteRegValue HKCU "Software\Microsoft\Windows\CurrentVersion\Run" "Magnolie Organizer"
+  ${EndIf}
   Delete "$DESKTOP\Magnolie Organizer.lnk"
   Delete "$SMPROGRAMS\$StartMenuFolder\Magnolie Organizer.lnk"
   Delete "$SMPROGRAMS\$StartMenuFolder\Magnolie Organizer Benutzerhandbuch.lnk"

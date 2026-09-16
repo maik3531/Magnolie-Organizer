@@ -333,7 +333,7 @@ object Einfuhr {
                 val spalte = zeiger.getColumnIndex(OpenableColumns.DISPLAY_NAME)
                 if (spalte >= 0 && zeiger.moveToFirst()) return zeiger.getString(spalte).orEmpty()
             }
-        }
+        }.onFailure { if (it is java.util.concurrent.CancellationException) throw it }
         return quelle.lastPathSegment?.substringAfterLast('/').orEmpty()
     }
 

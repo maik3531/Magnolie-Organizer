@@ -61,6 +61,13 @@ mkdir -p "$TOPDIR/BUILD" "$TOPDIR/BUILDROOT" "$TOPDIR/RPMS" \
 
 # Generierte Kataloge, der Klang und lokale Debian-Baureste gehören nicht in
 # Source0. rpmbuild erzeugt sie ausschließlich aus den eigentlichen Quellen.
+SOURCE_WORK=$(mktemp -d /tmp/opencode/magnolie-rpm-source.XXXXXX)
+trap 'rm -rf "$SOURCE_WORK"' EXIT HUP INT TERM
+python3 "$WURZEL/werkzeuge/release_sources.py" copy "$WURZEL" "$SOURCE_WORK/$QUELLNAME"
+if [ -d "$(dirname "$WURZEL")/contracts" ]; then
+    python3 "$WURZEL/werkzeuge/release_sources.py" copy "$(dirname "$WURZEL")/contracts" "$SOURCE_WORK/contracts"
+fi
+python3 "$WURZEL/werkzeuge/release_sources.py" contracts "$SOURCE_WORK/$QUELLNAME"
 tar --sort=name --mtime="@$EPOCH" --clamp-mtime \
     --owner=0 --group=0 --numeric-owner --mode='u+rwX,go+rX,go-w' \
     --pax-option=delete=atime,delete=ctime \
@@ -99,7 +106,7 @@ tar --sort=name --mtime="@$EPOCH" --clamp-mtime \
     --exclude="$QUELLNAME/*.deb" \
     --exclude="$QUELLNAME/*.AppImage" \
     --transform="s,^$QUELLNAME,$NAME-$FASSUNG," \
-    -C "$(dirname "$WURZEL")" -cJf "$ARCHIV" "$(basename "$WURZEL")"
+    -C "$SOURCE_WORK" -cJf "$ARCHIV" "$QUELLNAME"
 
 sed "s/@MAGNOLIE_DISTRO@/$DISTRO/g" "$WURZEL/rpm/$NAME.spec" \
     > "$TOPDIR/SPECS/$NAME.spec"

@@ -1,0 +1,8 @@
+# Exact visible gettext source strings introduced by the Linux reliability changes.
+# Main application domain: magnolie-organizer.
+# Manual/handbook domain: no new msgids.
+# Translation handoff for all 19 catalog locales (no catalogs edited here):
+# ar be cs da de es fr hi hsb it ja nb nl pl pt ru tr uk zh_CN
+KDE Connect is unavailable; other background services remain active.
+Delivery status uncertain
+The phone service did not finish stopping.

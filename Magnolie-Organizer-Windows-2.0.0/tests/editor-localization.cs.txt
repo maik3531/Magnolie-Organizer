@@ -1,0 +1,61 @@
+using System.Globalization;
+using System.Text.Json;
+using MagnolieOrganizer.Windows;
+
+// Compile the actual WindowsSpellChecker and NativeLocalization classes.
+// Only the persisted preference boundary is replaced: no real profile access.
+namespace MagnolieOrganizer.Windows
+{
+    internal static class RegionalSettings
+    {
+        internal static string LanguagePreference() => "system";
+    }
+}
+
+internal static class Program
+{
+    private static int checks;
+    private static void Equal(string expected, string actual)
+    {
+        if (expected != actual) throw new Exception($"Expected {expected}; got {actual}");
+        checks++;
+    }
+
+    private static void Failure<T>(Action action, string expected) where T : Exception
+    {
+        try { action(); }
+        catch (T error) { Equal(expected, error.Message); return; }
+        throw new Exception("Expected " + typeof(T).Name);
+    }
+
+    public static void Main(string[] args)
+    {
+        if (OperatingSystem.IsWindows()) throw new Exception("Fixture requires the non-Windows error path.");
+        using var authored = JsonDocument.Parse(File.ReadAllText(args[0]));
+        var keys = authored.RootElement.GetProperty("en").EnumerateArray().Select(e => e.GetString()!).ToArray();
+        foreach (var locale in authored.RootElement.EnumerateObject())
+        {
+            var values = locale.Value.EnumerateArray().Select(e => e.GetString()!).ToArray();
+            NativeLocalization.SetLanguage(locale.Name);
+            for (var i = 0; i < 7; i++) Equal(values[i], NativeLocalization.Gettext(keys[i]));
+            Failure<PlatformNotSupportedException>(() => WindowsSpellChecker.Check("Haus", "de"), values[4]);
+            Failure<PlatformNotSupportedException>(() => WindowsSpellChecker.Add("Haus", "de"), values[4]);
+            Failure<InvalidOperationException>(() => WindowsSpellChecker.SupportedLanguage("de", _ => false), values[5]);
+            Failure<InvalidOperationException>(() => WindowsSpellChecker.SupportedLanguage("en", _ => false), values[5]);
+            Console.WriteLine("PASS actual native classes/resources " + locale.Name);
+        }
+        foreach (var (regional, basis) in new[] { ("ja-JP", "ja"), ("de-AT", "de"), ("nb-NO", "nb"), ("zh-CN", "zh_CN"), ("zh_CN", "zh_CN") })
+        {
+            CultureInfo.CurrentUICulture = CultureInfo.GetCultureInfo(regional.Replace('_', '-'));
+            NativeLocalization.SetLanguage("system");
+            Equal(basis, NativeLocalization.Language);
+            Equal(authored.RootElement.GetProperty(basis)[4].GetString()!, NativeLocalization.Gettext(keys[4]));
+        }
+        CultureInfo.CurrentUICulture = CultureInfo.GetCultureInfo("de-AT");
+        Equal("de-AT", WindowsSpellChecker.SupportedLanguage("de", _ => true));
+        Equal("de-DE", WindowsSpellChecker.SupportedLanguage("de", tag => tag == "de-DE"));
+        Equal("en-US", WindowsSpellChecker.SupportedLanguage("ja", _ => true));
+        Equal("en", WindowsSpellChecker.SupportedLanguage("en", tag => tag == "en"));
+        Console.WriteLine($"PASS {checks} native assertions; 20 locales; actual business errors, no COM/profile/clipboard access");
+    }
+}

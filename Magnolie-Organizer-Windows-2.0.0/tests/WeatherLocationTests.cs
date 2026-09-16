@@ -4,7 +4,7 @@ namespace MagnolieOrganizer.Windows.Tests;
 
 internal static class WeatherLocationTests
 {
-    internal static Task RunAsync()
+    internal static async Task RunAsync()
     {
         var loaderCalled = false;
         var saved = WeatherLocationSelector.Select(" 47051 Duisburg ", false, () =>
@@ -56,7 +56,7 @@ internal static class WeatherLocationTests
         TestAssert.That(malformedResult == new WeatherLocation("", "none"),
             "Ein fehlerhaftes LibreOffice-Ergebnis löst trotz Abrufsperre einen Standortweg aus.");
 
-        return Task.CompletedTask;
+        await WeatherRequestsTests.RunAsync();
     }
 
     private static LibreOfficeUserDataResult Result(params (string Name, string Value)[] fields) =>

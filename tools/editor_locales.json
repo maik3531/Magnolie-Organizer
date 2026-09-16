@@ -1,0 +1,162 @@
+{
+  "en": [
+    "Undo", "Redo", "Regular typeface",
+    "Tab: insert a tab stop. Shift+Tab: previous field. Ctrl+Tab: next field.",
+    "Windows spell checking is available only on Windows.",
+    "No Windows dictionary is installed for this language.",
+    "Windows marks misspelled words with red wavy lines. Right-click a word for suggestions or to add it to your personal dictionary. Magnolie requests German suggestions for a German interface and English suggestions otherwise. If suggestions are missing, open Windows Settings, Time & language, Language & region, then the language options for German or English, and install Basic typing. Dictionary availability depends on the installed Windows language features.",
+    "Clipboard write failed."
+  ],
+  "de": [
+    "Rückgängig", "Wiederholen", "Druckschrift",
+    "Tab: Tabulator einfügen. Umschalt+Tab: vorheriges Feld. Strg+Tab: nächstes Feld.",
+    "Die Windows-Rechtschreibprüfung ist nur unter Windows verfügbar.",
+    "Für diese Sprache ist kein Windows-Wörterbuch installiert.",
+    "Windows markiert falsch geschriebene Wörter mit roten Wellenlinien. Klicken Sie mit der rechten Maustaste auf ein Wort, um Vorschläge zu erhalten oder es Ihrem persönlichen Wörterbuch hinzuzufügen. Magnolie fordert bei deutscher Oberfläche deutsche Vorschläge an, sonst englische. Fehlen Vorschläge, öffnen Sie die Windows-Einstellungen, Zeit und Sprache, Sprache und Region, dann die Sprachoptionen für Deutsch oder Englisch, und installieren Sie die grundlegende Eingabe. Die Verfügbarkeit von Wörterbüchern hängt von den installierten Windows-Sprachfeatures ab.",
+    "Schreiben in die Zwischenablage fehlgeschlagen."
+  ],
+  "ar": [
+    "تراجع", "إعادة", "خط عادي غير يدوي",
+    "Tab: إدراج علامة جدولة. Shift+Tab: الحقل السابق. Ctrl+Tab: الحقل التالي.",
+    "التدقيق الإملائي الخاص بـ Windows متاح على Windows فقط.",
+    "لم يُثبّت قاموس Windows لهذه اللغة.",
+    "يضع Windows خطوطًا حمراء متموجة تحت الكلمات المكتوبة خطأً. انقر بزر الفأرة الأيمن على كلمة لعرض الاقتراحات أو لإضافتها إلى قاموسك الشخصي. يطلب Magnolie اقتراحات بالألمانية عندما تكون الواجهة بالألمانية، وبالإنجليزية في غير ذلك. إذا لم تظهر اقتراحات، فافتح إعدادات Windows، ثم الوقت واللغة، ثم اللغة والمنطقة، ثم خيارات اللغة الألمانية أو الإنجليزية، وثبّت ميزة الكتابة الأساسية. يعتمد توفر القواميس على ميزات اللغة المثبّتة في Windows.",
+    "تعذّرت الكتابة إلى الحافظة."
+  ],
+  "be": [
+    "Адмяніць", "Паўтарыць", "Друкаваны шрыфт",
+    "Tab: уставіць табуляцыю. Shift+Tab: папярэдняе поле. Ctrl+Tab: наступнае поле.",
+    "Праверка правапісу Windows даступная толькі ў Windows.",
+    "Для гэтай мовы не ўсталяваны слоўнік Windows.",
+    "Windows пазначае словы з памылкамі чырвонымі хвалістымі лініямі. Націсніце на слова правай кнопкай мышы, каб убачыць прапановы або дадаць яго ў асабісты слоўнік. Пры нямецкім інтэрфейсе Magnolie запытвае нямецкія прапановы, у астатніх выпадках — англійскія. Калі прапаноў няма, адкрыйце налады Windows, Час і мова, Мова і рэгіён, затым параметры нямецкай або англійскай мовы і ўсталюйце базавы ўвод тэксту. Даступнасць слоўнікаў залежыць ад усталяваных моўных кампанентаў Windows.",
+    "Не ўдалося запісаць у буфер абмену."
+  ],
+  "cs": [
+    "Zpět", "Znovu", "Tiskací písmo",
+    "Tab: vložit tabulátor. Shift+Tab: předchozí pole. Ctrl+Tab: další pole.",
+    "Kontrola pravopisu Windows je dostupná pouze ve Windows.",
+    "Pro tento jazyk není nainstalován slovník Windows.",
+    "Windows označuje chybně napsaná slova červenou vlnovkou. Kliknutím pravým tlačítkem na slovo zobrazíte návrhy nebo je přidáte do osobního slovníku. Pro německé rozhraní Magnolie žádá německé návrhy, jinak anglické. Pokud návrhy chybí, otevřete Nastavení Windows, Čas a jazyk, Jazyk a oblast, poté možnosti němčiny nebo angličtiny a nainstalujte základní psaní. Dostupnost slovníků závisí na nainstalovaných jazykových funkcích Windows.",
+    "Zápis do schránky se nezdařil."
+  ],
+  "da": [
+    "Fortryd", "Gentag", "Trykbogstaver",
+    "Tab: indsæt et tabulatortegn. Shift+Tab: forrige felt. Ctrl+Tab: næste felt.",
+    "Windows-stavekontrol er kun tilgængelig på Windows.",
+    "Der er ikke installeret en Windows-ordbog til dette sprog.",
+    "Windows markerer forkert stavede ord med røde bølgelinjer. Højreklik på et ord for at få forslag eller føje det til din personlige ordbog. Magnolie anmoder om tyske forslag ved tysk brugerflade og ellers engelske forslag. Hvis forslag mangler, skal du åbne Windows-indstillinger, Tid og sprog, Sprog og område, derefter sprogindstillingerne for tysk eller engelsk og installere grundlæggende indtastning. Tilgængelige ordbøger afhænger af de installerede sprogfunktioner i Windows.",
+    "Kunne ikke skrive til udklipsholderen."
+  ],
+  "es": [
+    "Deshacer", "Rehacer", "Letra de imprenta",
+    "Tab: insertar una tabulación. Mayús+Tab: campo anterior. Ctrl+Tab: campo siguiente.",
+    "La corrección ortográfica de Windows solo está disponible en Windows.",
+    "No hay ningún diccionario de Windows instalado para este idioma.",
+    "Windows marca las palabras mal escritas con líneas onduladas rojas. Haga clic derecho en una palabra para ver sugerencias o añadirla a su diccionario personal. Magnolie solicita sugerencias en alemán si la interfaz está en alemán y en inglés en los demás casos. Si no aparecen sugerencias, abra Configuración de Windows, Hora e idioma, Idioma y región, después las opciones de alemán o inglés, e instale la escritura básica. La disponibilidad de diccionarios depende de las características de idioma instaladas en Windows.",
+    "No se pudo escribir en el portapapeles."
+  ],
+  "fr": [
+    "Annuler", "Rétablir", "Caractères d’imprimerie",
+    "Tab : insérer une tabulation. Maj+Tab : champ précédent. Ctrl+Tab : champ suivant.",
+    "La vérification orthographique de Windows est disponible uniquement sous Windows.",
+    "Aucun dictionnaire Windows n’est installé pour cette langue.",
+    "Windows souligne les mots mal orthographiés d’une ligne ondulée rouge. Faites un clic droit sur un mot pour afficher des suggestions ou l’ajouter à votre dictionnaire personnel. Magnolie demande des suggestions en allemand si l’interface est en allemand, et en anglais dans les autres cas. Si les suggestions sont absentes, ouvrez les Paramètres Windows, Heure et langue, Langue et région, puis les options de l’allemand ou de l’anglais, et installez la saisie de base. La disponibilité des dictionnaires dépend des fonctionnalités linguistiques installées dans Windows.",
+    "L’écriture dans le presse-papiers a échoué."
+  ],
+  "hi": [
+    "पूर्ववत करें", "फिर से करें", "सामान्य टाइपफ़ेस",
+    "Tab: टैब जोड़ें। Shift+Tab: पिछला फ़ील्ड। Ctrl+Tab: अगला फ़ील्ड।",
+    "Windows की वर्तनी जाँच केवल Windows पर उपलब्ध है।",
+    "इस भाषा के लिए Windows शब्दकोश स्थापित नहीं है।",
+    "Windows गलत वर्तनी वाले शब्दों को लाल लहरदार रेखाओं से चिह्नित करता है। सुझाव देखने या किसी शब्द को अपने निजी शब्दकोश में जोड़ने के लिए उस पर दायाँ क्लिक करें। जर्मन इंटरफ़ेस होने पर Magnolie जर्मन सुझाव माँगता है, अन्यथा अंग्रेज़ी सुझाव। यदि सुझाव नहीं मिलते, तो Windows सेटिंग्स में समय और भाषा, फिर भाषा और क्षेत्र खोलें, जर्मन या अंग्रेज़ी के भाषा विकल्प खोलें और मूल टाइपिंग स्थापित करें। शब्दकोशों की उपलब्धता Windows में स्थापित भाषा सुविधाओं पर निर्भर करती है।",
+    "क्लिपबोर्ड में लिखना विफल रहा।"
+  ],
+  "hsb": [
+    "Cofnyć", "Wospjetować", "Ćišćerske pismo",
+    "Tab: tabulator zasadźić. Umschalt+Tab: předchadne polo. Strg+Tab: přichodne polo.",
+    "Prawopisna kontrola Windows je jenož pod Windows k dispoziciji.",
+    "Za tutu rěč njeje słownik Windows instalowany.",
+    "Windows woznamjenja wopak napisane słowa z čerwjenymi žołmojtymi linijemi. Klikńće z prawej tastu myše na słowo, zo byšće namjety widźeli abo słowo do swojeho wosobinskeho słownika přidali. Magnolie požaduje němske namjety při němskim powjerchu, hewak jendźelske. Jeli namjety faluja, wočińće nastajenja Windows, Čas a rěč, Rěč a region, potom rěčne opcije za němčinu abo jendźelšćinu a instalujće zakładne zapodawanje teksta. Dostupnosć słownikow wot instalowanych rěčnych funkcijow Windows wotwisuje.",
+    "Pisanje do mjezyskłada njeje so poradźiło."
+  ],
+  "it": [
+    "Annulla", "Ripristina", "Carattere stampatello",
+    "Tab: inserire una tabulazione. Maiusc+Tab: campo precedente. Ctrl+Tab: campo successivo.",
+    "Il controllo ortografico di Windows è disponibile solo su Windows.",
+    "Non è installato alcun dizionario di Windows per questa lingua.",
+    "Windows segna le parole errate con linee ondulate rosse. Fai clic destro su una parola per vedere i suggerimenti o aggiungerla al dizionario personale. Magnolie richiede suggerimenti in tedesco se l’interfaccia è in tedesco, altrimenti in inglese. Se mancano i suggerimenti, apri le Impostazioni di Windows, Data/ora e lingua, Lingua e area geografica, poi le opzioni della lingua tedesca o inglese e installa la digitazione di base. La disponibilità dei dizionari dipende dalle funzionalità della lingua installate in Windows.",
+    "Scrittura negli appunti non riuscita."
+  ],
+  "ja": [
+    "取り消す", "やり直す", "通常の書体",
+    "Tab：タブを挿入。Shift+Tab：前の入力欄へ。Ctrl+Tab：次の入力欄へ。",
+    "Windows のスペルチェックは Windows でのみ利用できます。",
+    "この言語の Windows 辞書がインストールされていません。",
+    "Windows はスペルを誤った単語に赤い波線を付けます。単語を右クリックすると、修正候補の表示や個人用辞書への追加ができます。Magnolie は表示言語がドイツ語の場合はドイツ語、それ以外は英語の候補を要求します。候補が表示されない場合は、Windows の設定で「時刻と言語」、「言語と地域」、ドイツ語または英語の言語オプションを開き、「基本の入力」をインストールしてください。利用できる辞書は、インストール済みの Windows の言語機能によって異なります。",
+    "クリップボードへの書き込みに失敗しました。"
+  ],
+  "nb": [
+    "Angre", "Gjør om", "Trykkskrift",
+    "Tab: sett inn et tabulatortegn. Shift+Tab: forrige felt. Ctrl+Tab: neste felt.",
+    "Windows-stavekontroll er bare tilgjengelig på Windows.",
+    "Ingen Windows-ordbok er installert for dette språket.",
+    "Windows markerer feilstavede ord med røde bølgelinjer. Høyreklikk på et ord for å se forslag eller legge det til i din personlige ordbok. Magnolie ber om tyske forslag når grensesnittet er på tysk, ellers engelske. Hvis forslag mangler, åpner du Windows-innstillinger, Tid og språk, Språk og område, deretter språkalternativene for tysk eller engelsk, og installerer grunnleggende skriving. Tilgjengelige ordbøker avhenger av språkfunksjonene som er installert i Windows.",
+    "Kunne ikke skrive til utklippstavlen."
+  ],
+  "nl": [
+    "Ongedaan maken", "Opnieuw", "Drukletters",
+    "Tab: een tab invoegen. Shift+Tab: vorig veld. Ctrl+Tab: volgend veld.",
+    "De spellingcontrole van Windows is alleen beschikbaar op Windows.",
+    "Er is geen Windows-woordenboek geïnstalleerd voor deze taal.",
+    "Windows markeert verkeerd gespelde woorden met rode golflijnen. Klik met de rechtermuisknop op een woord voor suggesties of om het aan uw persoonlijke woordenboek toe te voegen. Magnolie vraagt Duitse suggesties bij een Duitse interface en anders Engelse suggesties. Als suggesties ontbreken, opent u Windows-instellingen, Tijd en taal, Taal en regio, vervolgens de taalopties voor Duits of Engels en installeert u de basisfuncties voor typen. De beschikbaarheid van woordenboeken hangt af van de geïnstalleerde taalfuncties van Windows.",
+    "Schrijven naar het klembord is mislukt."
+  ],
+  "pl": [
+    "Cofnij", "Ponów", "Pismo drukowane",
+    "Tab: wstaw tabulator. Shift+Tab: poprzednie pole. Ctrl+Tab: następne pole.",
+    "Sprawdzanie pisowni Windows jest dostępne tylko w systemie Windows.",
+    "Dla tego języka nie zainstalowano słownika Windows.",
+    "Windows oznacza błędnie napisane wyrazy czerwonymi falistymi liniami. Kliknij wyraz prawym przyciskiem myszy, aby zobaczyć sugestie lub dodać go do osobistego słownika. Magnolie żąda niemieckich sugestii dla niemieckiego interfejsu, a angielskich w pozostałych przypadkach. Jeśli brakuje sugestii, otwórz Ustawienia Windows, Czas i język, Język i region, następnie opcje języka niemieckiego lub angielskiego i zainstaluj podstawowe wpisywanie. Dostępność słowników zależy od zainstalowanych funkcji językowych Windows.",
+    "Nie udało się zapisać do schowka."
+  ],
+  "pt": [
+    "Desfazer", "Refazer", "Letra de imprensa",
+    "Tab: inserir uma tabulação. Shift+Tab: campo anterior. Ctrl+Tab: campo seguinte.",
+    "A verificação ortográfica do Windows só está disponível no Windows.",
+    "Não está instalado nenhum dicionário do Windows para este idioma.",
+    "O Windows assinala palavras mal escritas com linhas onduladas vermelhas. Clique com o botão direito numa palavra para ver sugestões ou adicioná-la ao seu dicionário pessoal. O Magnolie pede sugestões em alemão quando a interface está em alemão e em inglês nos restantes casos. Se faltarem sugestões, abra as Definições do Windows, Hora e idioma, Idioma e região, depois as opções de alemão ou inglês e instale a escrita básica. A disponibilidade dos dicionários depende das funcionalidades de idioma instaladas no Windows.",
+    "Falha ao escrever na área de transferência."
+  ],
+  "ru": [
+    "Отменить", "Повторить", "Печатный шрифт",
+    "Tab: вставить табуляцию. Shift+Tab: предыдущее поле. Ctrl+Tab: следующее поле.",
+    "Проверка орфографии Windows доступна только в Windows.",
+    "Для этого языка не установлен словарь Windows.",
+    "Windows отмечает слова с ошибками красными волнистыми линиями. Щёлкните слово правой кнопкой мыши, чтобы увидеть варианты исправления или добавить его в личный словарь. При немецком интерфейсе Magnolie запрашивает немецкие варианты, в остальных случаях — английские. Если вариантов нет, откройте Параметры Windows, Время и язык, Язык и регион, затем параметры немецкого или английского языка и установите базовый ввод текста. Доступность словарей зависит от установленных языковых компонентов Windows.",
+    "Не удалось записать в буфер обмена."
+  ],
+  "tr": [
+    "Geri al", "Yinele", "Normal yazı tipi",
+    "Tab: sekme karakteri ekle. Shift+Tab: önceki alan. Ctrl+Tab: sonraki alan.",
+    "Windows yazım denetimi yalnızca Windows üzerinde kullanılabilir.",
+    "Bu dil için bir Windows sözlüğü yüklü değil.",
+    "Windows yanlış yazılmış sözcükleri kırmızı dalgalı çizgilerle işaretler. Önerileri görmek veya sözcüğü kişisel sözlüğünüze eklemek için sözcüğe sağ tıklayın. Magnolie, Almanca arayüz için Almanca, diğer durumlarda İngilizce öneriler ister. Öneriler yoksa Windows Ayarları, Zaman ve dil, Dil ve bölge bölümünü, ardından Almanca veya İngilizce dil seçeneklerini açın ve temel yazma özelliğini yükleyin. Sözlüklerin kullanılabilirliği, yüklü Windows dil özelliklerine bağlıdır.",
+    "Panoya yazılamadı."
+  ],
+  "uk": [
+    "Скасувати", "Повторити", "Друкований шрифт",
+    "Tab: вставити табуляцію. Shift+Tab: попереднє поле. Ctrl+Tab: наступне поле.",
+    "Перевірка правопису Windows доступна лише у Windows.",
+    "Для цієї мови не встановлено словник Windows.",
+    "Windows позначає слова з помилками червоними хвилястими лініями. Клацніть слово правою кнопкою миші, щоб побачити пропозиції або додати його до особистого словника. Для німецького інтерфейсу Magnolie запитує німецькі пропозиції, в інших випадках — англійські. Якщо пропозицій немає, відкрийте Налаштування Windows, Час і мова, Мова та регіон, потім параметри німецької або англійської мови та встановіть базове введення тексту. Доступність словників залежить від установлених мовних компонентів Windows.",
+    "Не вдалося записати до буфера обміну."
+  ],
+  "zh_CN": [
+    "撤销", "重做", "常规字体",
+    "Tab：插入制表符。Shift+Tab：上一个字段。Ctrl+Tab：下一个字段。",
+    "Windows 拼写检查仅在 Windows 上可用。",
+    "未安装此语言的 Windows 词典。",
+    "Windows 用红色波浪线标记拼写错误的单词。右键单击单词可查看建议或将其添加到个人词典。界面为德语时，Magnolie 请求德语建议，其他情况下请求英语建议。如果没有建议，请打开 Windows 设置中的“时间和语言”、“语言和区域”，然后打开德语或英语的语言选项，安装“基本输入”。词典是否可用取决于已安装的 Windows 语言功能。",
+    "写入剪贴板失败。"
+  ]
+}

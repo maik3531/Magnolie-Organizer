@@ -8,17 +8,19 @@ internal static class TelefonProtocolTests
 {
     internal static async Task RunAsync()
     {
+        TestAssert.That(await OutgoingDialTests.RunAsync() == 0,
+            "Scoped explicit outgoing lifecycle/control regression failed.");
         var copiedControl = Path.Combine(AppContext.BaseDirectory, "resources", "telefon-control-contract.json");
         TestAssert.That(File.Exists(copiedControl), "Repository-lokaler Telefon-Control-Vertrag fehlt.");
         var capabilities = TelefonProtocolContract.DesktopCapabilities();
         TestAssert.That(TelefonProtocolContract.ValidateCapabilities(capabilities) == 1 && capabilities["items"]!.AsObject().Count == 11,
             "Granulare Telefon-Capabilities fehlen.");
         TestAssert.That(capabilities["items"]!["device_status"]!["versions"]!.AsArray()
-            .Select(value => value!.GetValue<int>()).SequenceEqual(new[] { 1, 2, 3 }),
-            "Gerätestatus v1 bis v3 wird nicht vollständig beworben.");
+            .Select(value => value!.GetValue<int>()).SequenceEqual(new[] { 1, 2, 3, 4 }),
+            "Device status negotiation must include v4 without new capability names.");
         TestAssert.That(capabilities["items"]!["personal_tasks_sync"]!["versions"]!.AsArray()
-            .Select(value => value!.GetValue<int>()).SequenceEqual(new[] { 1, 2, 3 }),
-            "Aufgaben-Sync v1 bis v3 wird nicht vollständig beworben.");
+            .Select(value => value!.GetValue<int>()).SequenceEqual(new[] { 1, 2, 3, 4 }),
+            "Ordinary tasks v1-v3 and separate Custom v4 capability are missing.");
         TestAssert.That(!capabilities["items"]!["transport.bluetooth_rfcomm"]!["available"]!.GetValue<bool>() &&
             capabilities["items"]!["transport.bluetooth_rfcomm"]!["reason"]!.GetValue<string>() == "os_restricted" &&
             capabilities["items"]!["incoming_call_state"]!["versions"]!.AsArray().Single()!.GetValue<int>() == 2,
@@ -47,15 +49,15 @@ internal static class TelefonProtocolTests
             "Legacy-SMS/call_control wird noch beworben.");
         var control = JsonNode.Parse(File.ReadAllText(copiedControl))!.AsObject();
         TestAssert.That(control["desktop_capabilities"]!["device_status"]!["versions"]!.AsArray()
-            .Select(value => value!.GetValue<int>()).SequenceEqual(new[] { 1, 2, 3 }) &&
+            .Select(value => value!.GetValue<int>()).SequenceEqual(new[] { 1, 2, 3, 4 }) &&
             control["android_capabilities"]!["device_status"]!["versions"]!.AsArray()
             .Select(value => value!.GetValue<int>()).SequenceEqual(new[] { 1, 2, 3 }),
             "Der Telefon-Control-Vertrag bewirbt nicht auf beiden Seiten Gerätestatus v3.");
         TestAssert.That(control["desktop_capabilities"]!["personal_tasks_sync"]!["versions"]!.AsArray()
-            .Select(value => value!.GetValue<int>()).SequenceEqual(new[] { 1, 2, 3 }) &&
+            .Select(value => value!.GetValue<int>()).SequenceEqual(new[] { 1, 2, 3, 4 }) &&
             control["android_capabilities"]!["personal_tasks_sync"]!["versions"]!.AsArray()
-            .Select(value => value!.GetValue<int>()).SequenceEqual(new[] { 1, 2, 3 }),
-            "Der Telefon-Control-Vertrag bewirbt nicht auf beiden Seiten Aufgaben-Sync v1 bis v3.");
+            .Select(value => value!.GetValue<int>()).SequenceEqual(new[] { 1, 2, 3, 4 }),
+            "Control vectors must advertise ordinary task versions and separate Custom support.");
         foreach (var name in new[] { "device_status_v1", "device_status_v2", "device_status_v3" })
             TelefonDeviceStatusContract.ValidateReport(control[name]!);
         var requestId = "123e4567-e89b-42d3-a456-426614174000";
@@ -76,6 +78,7 @@ internal static class TelefonProtocolTests
         TestAssert.Throws<InvalidDataException>(() => TelefonDeviceStatusContract.ValidateReport(v3MissingField),
             "Gerätestatus v3 nahm einen unvollständigen Feldsatz an.");
         var v3 = control["device_status_v3"]!.DeepClone().AsObject();
+        DeviceIdentifierTests.Run(v3);
         v3["app_version"] = string.Concat(Enumerable.Repeat("\U0001F600", 80));
         TelefonDeviceStatusContract.ValidateReport(v3);
         foreach (var invalidVersion in new[] { "", "1.0\u0001", string.Concat(Enumerable.Repeat("\U0001F600", 81)) })
@@ -128,6 +131,12 @@ internal static class TelefonProtocolTests
                 "Semantisch veralteter oder doppelter Anrufzustand ist nicht deterministisch terminal.");
         TelefonCallContract.Validate("answer_call.command", new JsonObject { ["command_ref"] = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb", ["call_ref"] = "123e4567-e89b-42d3-a456-426614174000", ["expected_state"] = "ringing" });
         TelefonCallContract.Validate("end_call.command", new JsonObject { ["command_ref"] = "cccccccc-cccc-4ccc-8ccc-cccccccccccc", ["call_ref"] = "123e4567-e89b-42d3-a456-426614174000", ["expected_revision"] = 2, ["expected_state"] = "offhook" });
+        TelefonCallContract.Validate("end_call.command", new JsonObject { ["command_ref"] = "cccccccc-cccc-4ccc-8ccc-cccccccccccc", ["call_ref"] = "123e4567-e89b-42d3-a456-426614174000", ["expected_revision"] = 1, ["expected_state"] = "ringing" });
+        var wrongDirection = newer.DeepClone().AsObject(); wrongDirection["direction"] = "outgoing";
+        TestAssert.That(TelefonCoordinator.IncomingCallDisposition(incoming, wrongDirection) == "conflict", "Call direction changed within one call ID.");
+        var endedCall = newer.DeepClone().AsObject(); endedCall["state"] = "idle";
+        var resurrectedCall = newer.DeepClone().AsObject(); resurrectedCall["revision"] = 3;
+        TestAssert.That(TelefonCoordinator.IncomingCallDisposition(endedCall, resurrectedCall) == "conflict", "A disconnected call was resurrected.");
         var tooLong = Message("answer_call.command", new JsonObject { ["command_ref"] = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb", ["call_ref"] = "123e4567-e89b-42d3-a456-426614174000", ["expected_state"] = "ringing" }, 1, 10_002);
         TestAssert.Throws<TelefonMessageException>(() => TelefonMessageContract.ValidateMessage(tooLong, 1, false), "Destruktive Command-TTL über 10 Sekunden wurde angenommen.");
 

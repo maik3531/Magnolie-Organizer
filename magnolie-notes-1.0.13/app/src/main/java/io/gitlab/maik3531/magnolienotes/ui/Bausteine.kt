@@ -28,6 +28,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.IconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -41,6 +42,7 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.selected
@@ -176,10 +178,12 @@ fun Schreibfeld(
     einzeilig: Boolean = true,
     serifen: Boolean = false,
     passwort: Boolean = false,
+    aktiv: Boolean = true,
 ) {
     OutlinedTextField(
         value = wert,
         onValueChange = beiAenderung,
+        enabled = aktiv,
         label = { Text(beschriftung, fontSize = 12.sp) },
         modifier = modifier.fillMaxWidth(),
         singleLine = einzeilig,
@@ -362,14 +366,13 @@ fun Rundknopf(
     beschreibung: String,
     beiKlick: () -> Unit
 ) {
-    Box(
-        modifier
-            .size(36.dp)
+    IconButton(
+        onClick = beiKlick,
+        modifier = modifier
+            .size(48.dp)
             .background(Magnolie.papierTief, RoundedCornerShape(18.dp))
-            .semantics { contentDescription = beschreibung }
-            .clickable(onClick = beiKlick),
-        contentAlignment = Alignment.Center
     ) {
-        Text(zeichen, fontFamily = FontFamily.Serif, fontSize = 18.sp, color = Magnolie.braun)
+        Text(zeichen, fontFamily = FontFamily.Serif, fontSize = 18.sp, color = Magnolie.braun,
+            modifier = Modifier.clearAndSetSemantics { contentDescription = beschreibung })
     }
 }

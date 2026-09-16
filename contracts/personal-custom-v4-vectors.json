@@ -1,0 +1,76 @@
+{
+  "batch": {
+    "format": 4,
+    "source_id": "11111111-1111-4111-8111-111111111111",
+    "revision": 1,
+    "trigger": "manual",
+    "sender_epoch": "44444444-4444-4444-8444-444444444444",
+    "receiver_epoch": "33333333-3333-4333-8333-333333333333",
+    "sender_revision": 1,
+    "receiver_revision": 1,
+    "upserts": [
+      {
+        "id": "custom:ef5c860c62fed011d0de0a85503c8614079936bd99aad88b8494a501419ceab6",
+        "item_id": "custom-item-1",
+        "kind": "appointment",
+        "hash": "27dbdc371870941bdc2580c68436749bb9bd1f34de103dbae46d1636ddc6eac9",
+        "value": {
+          "module_id": "custom-module-appointments",
+          "module_title": "Garden",
+          "title": "Water plants",
+          "note": "Own item note only",
+          "date": "2028-01-31",
+          "time": "09:00",
+          "timezone": "Europe/Berlin",
+          "completed": false,
+          "module_reminders": true,
+          "item_reminder": true,
+          "lead_minutes": 15,
+          "default_minute": 480,
+          "recurrence": {
+            "frequency": "monthly",
+            "interval": 1,
+            "until": "",
+            "dates": [],
+            "ordinal": 0,
+            "weekday": 0
+          }
+        }
+      }
+    ],
+    "deletions": []
+  },
+  "deletion": {
+    "format": 4,
+    "source_id": "11111111-1111-4111-8111-111111111111",
+    "revision": 2,
+    "trigger": "manual",
+    "sender_epoch": "44444444-4444-4444-8444-444444444444",
+    "receiver_epoch": "33333333-3333-4333-8333-333333333333",
+    "sender_revision": 1,
+    "receiver_revision": 1,
+    "upserts": [],
+    "deletions": [
+      {
+        "id": "custom:ef5c860c62fed011d0de0a85503c8614079936bd99aad88b8494a501419ceab6",
+        "item_id": "custom-item-1",
+        "prior_hash": "27dbdc371870941bdc2580c68436749bb9bd1f34de103dbae46d1636ddc6eac9"
+      }
+    ]
+  },
+  "canonical": "{\"deletions\":[],\"format\":4,\"receiver_epoch\":\"33333333-3333-4333-8333-333333333333\",\"receiver_revision\":1,\"revision\":1,\"sender_epoch\":\"44444444-4444-4444-8444-444444444444\",\"sender_revision\":1,\"source_id\":\"11111111-1111-4111-8111-111111111111\",\"trigger\":\"manual\",\"upserts\":[{\"hash\":\"27dbdc371870941bdc2580c68436749bb9bd1f34de103dbae46d1636ddc6eac9\",\"id\":\"custom:ef5c860c62fed011d0de0a85503c8614079936bd99aad88b8494a501419ceab6\",\"item_id\":\"custom-item-1\",\"kind\":\"appointment\",\"value\":{\"completed\":false,\"date\":\"2028-01-31\",\"default_minute\":480,\"item_reminder\":true,\"lead_minutes\":15,\"module_id\":\"custom-module-appointments\",\"module_reminders\":true,\"module_title\":\"Garden\",\"note\":\"Own item note only\",\"recurrence\":{\"dates\":[],\"frequency\":\"monthly\",\"interval\":1,\"ordinal\":0,\"until\":\"\",\"weekday\":0},\"time\":\"09:00\",\"timezone\":\"Europe/Berlin\",\"title\":\"Water plants\"}}]}",
+  "alarms": [
+    {
+      "after": "2028-01-01T00:00:00Z",
+      "expected": "2028-01-31T07:45:00Z"
+    },
+    {
+      "after": "2028-01-31T07:45:00Z",
+      "expected": "2028-02-29T07:45:00Z"
+    },
+    {
+      "after": "2028-02-29T07:45:00Z",
+      "expected": "2028-03-31T06:45:00Z"
+    }
+  ]
+}

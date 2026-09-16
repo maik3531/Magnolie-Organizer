@@ -33,11 +33,11 @@
 %endif
 
 Name:           magnolie-organizer
-Version:        2.0.17
+Version:        2.0.18
 Release:        1%{?dist}
 Summary:        Personal organizer with a classic paper appearance
 
-License:        GPL-3.0-or-later AND CC0-1.0 AND LicenseRef-Magnolie-protected-assets
+License:        GPL-3.0-or-later AND CC0-1.0 AND Apache-2.0 AND LicenseRef-Magnolie-protected-assets
 URL:            https://gitlab.com/maik3531/mint-forgs
 Source0:        %{name}-%{version}.tar.xz
 BuildArch:      noarch
@@ -48,11 +48,18 @@ BuildRequires:  /usr/bin/desktop-file-validate
 BuildRequires:  /usr/bin/msgfmt
 BuildRequires:  /usr/bin/node
 BuildRequires:  /usr/bin/python3
+BuildRequires:  python(abi) >= 3.9
+BuildRequires:  /usr/share/zoneinfo/Europe/Berlin
+BuildRequires:  /usr/bin/xdg-open
 BuildRequires:  %{magnolie_build_deps}
 BuildRequires:  %{magnolie_deps}
 Requires:       /usr/bin/python3
+Requires:       /usr/bin/xgettext
+Requires:       python(abi) >= 3.9
+Requires:       /usr/share/zoneinfo/Europe/Berlin
+Requires:       /usr/bin/xdg-open
 Requires:       %{magnolie_deps}
-Suggests:       magnolie-organizer-akonadi
+Suggests:       magnolie-organizer-kde
 
 %description
 Magnolie Organizer combines a calendar, contacts, tasks, notes,
@@ -77,7 +84,7 @@ done < po/LINGUAS
 
 %check
 set -eu
-/usr/bin/python3 -m py_compile bin/%{name} bin/magnolie_telefon.py bin/magnolie_phone_region.py bin/magnolie_kdeconnect.py bin/magnolie_hintergrund.py bin/magnolie_personal_sync.py bin/magnolie_nextcloud.py bin/magnolie_cloud_backup.py bin/magnolie_akonadi.py bin/magnolie_crash.py bin/magnolie_asset.py bin/magnolie_setup_state.py bin/magnolie_setup_ui.py werkzeuge/*.py pruefungen/*.py
+/usr/bin/python3 -m py_compile bin/%{name} bin/magnolie_telefon.py bin/magnolie_phone_region.py bin/magnolie_kdeconnect.py bin/magnolie_hintergrund.py bin/magnolie_personal_sync.py bin/magnolie_nextcloud.py bin/magnolie_cloud_backup.py bin/magnolie_akonadi.py bin/magnolie_crash.py bin/magnolie_asset.py bin/magnolie_setup_state.py bin/magnolie_setup_ui.py bin/magnolie_recurrence.py werkzeuge/*.py pruefungen/*.py
 while read -r language; do
     test -n "$language" || continue
     /usr/bin/python3 werkzeuge/katalog_pruefen.py \
@@ -114,6 +121,10 @@ export XDG_CACHE_HOME="$test_root/cache"
 /usr/bin/python3 -m pytest -q pruefungen/test_ersteinrichtung.py
 /usr/bin/python3 -m pytest -q pruefungen/test_optionale_kontaktquellen.py
 /usr/bin/python3 -m pytest -q pruefungen/test_phone_region.py
+/usr/bin/python3 -m pytest -q pruefungen/test_thunderbird_contacts.py pruefungen/test_release_signatur.py pruefungen/test_release_packaging.py pruefungen/test_feature_packaging.py
+/usr/bin/python3 -m pytest -q pruefungen/test_recurrence.py pruefungen/test_recurrence_oracle.py pruefungen/test_recurrence_integration.py pruefungen/test_recurrence_timezones.py pruefungen/test_runtime_packaging.py
+/usr/bin/python3 -B pruefungen/run_background_reliability.py
+/usr/bin/python3 -B -m pytest -q pruefungen/test_letter_layout.py pruefungen/test_pot_source_coverage.py
 
 desktop-file-validate io.gitlab.maik3531.MagnolieOrganizer.desktop
 appstreamcli validate --no-net \
@@ -126,6 +137,7 @@ done
 %install
 install -Dpm 0755 bin/%{name} %{buildroot}%{_bindir}/%{name}
 install -Dpm 0644 bin/magnolie_telefon.py %{buildroot}%{_bindir}/magnolie_telefon.py
+install -Dpm 0644 bin/magnolie_anruf_audio.py %{buildroot}%{_bindir}/magnolie_anruf_audio.py
 install -Dpm 0644 bin/magnolie_kdeconnect.py %{buildroot}%{_bindir}/magnolie_kdeconnect.py
 install -Dpm 0644 bin/magnolie_hintergrund.py %{buildroot}%{_bindir}/magnolie_hintergrund.py
 install -Dpm 0644 bin/magnolie_personal_sync.py %{buildroot}%{_bindir}/magnolie_personal_sync.py
@@ -137,11 +149,15 @@ install -Dpm 0644 bin/magnolie_asset.py %{buildroot}%{_bindir}/magnolie_asset.py
 install -Dpm 0644 bin/magnolie_setup_state.py %{buildroot}%{_bindir}/magnolie_setup_state.py
 install -Dpm 0644 bin/magnolie_setup_ui.py %{buildroot}%{_bindir}/magnolie_setup_ui.py
 install -Dpm 0644 bin/magnolie_phone_region.py %{buildroot}%{_bindir}/magnolie_phone_region.py
+install -Dpm 0644 bin/magnolie_recurrence.py %{buildroot}%{_bindir}/magnolie_recurrence.py
 
 install -d %{buildroot}%{_datadir}/%{name}/web/i18n
+printf '{"version":"%{version}"}\n' > %{buildroot}%{_datadir}/%{name}/version.json
+install -d %{buildroot}%{_datadir}/%{name}/web/schriften
+install -pm 0644 web/schriften/Z003-MediumItalic.otf web/schriften/Z003-LIZENZ.txt %{buildroot}%{_datadir}/%{name}/web/schriften/
 install -pm 0644 web/index.html web/stil.css web/anwendung.js \
     web/i18n.js web/i18n-start.js web/i18n-markers.js \
-    web/i18n-en.js \
+    web/i18n-en.js web/phone-metadata-LICENSE.txt web/phone-metadata-NOTICE.txt \
     %{buildroot}%{_datadir}/%{name}/web/
 install -pm 0644 web/kaffee-qr.mga \
     %{buildroot}%{_datadir}/%{name}/web/kaffee-qr.mga
@@ -187,10 +203,12 @@ while read -r language; do
 done < po/LINGUAS
 
 %find_lang %{name}
+/usr/bin/python3 werkzeuge/release_sources.py binary %{buildroot}%{_datadir}/%{name}
 
 # %check runs before %install. Validate the installed product here while the
 # buildroot exists, without starting the graphical application.
 test -x %{buildroot}%{_bindir}/%{name}
+/usr/bin/python3 -I -B werkzeuge/runtime_pruefen.py %{buildroot}%{_bindir}
 PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 - <<'PY'
 import ast
 import pathlib
@@ -229,6 +247,7 @@ done
 %doc LIESMICH.md INTERNATIONALISIERUNG.md
 %{_bindir}/%{name}
 %{_bindir}/magnolie_telefon.py
+%{_bindir}/magnolie_anruf_audio.py
 %{_bindir}/magnolie_kdeconnect.py
 %{_bindir}/magnolie_hintergrund.py
 %{_bindir}/magnolie_personal_sync.py
@@ -240,6 +259,7 @@ done
 %{_bindir}/magnolie_setup_state.py
 %{_bindir}/magnolie_setup_ui.py
 %{_bindir}/magnolie_phone_region.py
+%{_bindir}/magnolie_recurrence.py
 %{_datadir}/%{name}/
 %{_datadir}/applications/io.gitlab.maik3531.MagnolieOrganizer.desktop
 %{_datadir}/metainfo/io.gitlab.maik3531.MagnolieOrganizer.metainfo.xml
@@ -249,6 +269,10 @@ done
 %{_mandir}/*/man1/magnolie-organizer.1*
 
 %changelog
+* Mon Sep 07 2026 Maik Walter <maik3531@gmail.com> - 2.0.18-1
+- Fix protected Windows WebView2 images and add real image decoding checks.
+- Complete translation metadata and include all Thunderbird and DAV fixes.
+
 * Wed Sep 02 2026 Maik Walter <maik3531@gmail.com> - 2.0.17-1
 - Add the native setup assistant, task hierarchy and generic CalDAV/CardDAV.
 - Bound address-book completion and add safe contact import and call origin.

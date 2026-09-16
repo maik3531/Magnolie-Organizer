@@ -1,5 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="baum_postfach_unsicher">Njewobkrućene doručenja: %1$d. Powěsće wostanu składowane a njezapósćelu so awtomatisce znowa. Přepruwujće přijeće; starše graty snadź přepruwowane potwjerdźenja njepodpěruja.</string>
+    <string name="telefon_bluetooth_setup">Nowy Organizer přez Bluetooth zwjazać</string>
+    <string name="telefon_bluetooth_setup_hinweis">Wostajće tutu wobrazowku wočinjenu. Wubjerće tutón telefon w Organizer, wobkrućće systemowe zwjazanje a přirunajće potom kod na woběmaj gratajomaj.</string>
     <string name="freigabe_ziel">Do Magnolie Notes składować</string>
     <string name="blatt_notizen">Notice</string>
     <string name="blatt_einfuhr">Import</string>
@@ -342,7 +345,7 @@
     <string name="start_laden">Škitane daty so wočinjeja…</string><string name="start_fehler_titel">Škitane daty njedadźa so wočinić</string><string name="start_daten_unveraendert">Waše daty njejsu zhašane ani přepisane. Móžeće wěsće hišće raz spytać.</string><string name="start_erneut">Hišće raz spytać</string><string name="start_schliessen">Nałoženje začinić</string>
     <string name="absturzbericht_teilen">Rozprawu wo spadźe dźělić</string>
     <string name="journal_maximum">Wobnowjenske dypki</string>
-    <string name="journal_maximum_hinweis">Hdyž so limit pomjeńši, so najstarše wobnowjenske dypki awtomatisce wotstronja.</string>
+    <string name="journal_maximum_hinweis">Hdyž so limit pomjeńši, so najstarše nješkitane wobnowjenske dypki wotstronja. Škitane dypki so wobchowaja.</string>
     <string name="portable_titel">Přenosne zawěsćenje</string><string name="portable_hinweis">Wutworće abo wobnowće separatny, z hesłom škitany archiw z noticami, noticownikami, nadawkami, papjernikom a přiwěškami.</string><string name="portable_export">Přenosne zawěsćenje wutworić</string><string name="portable_datei_oeffnen">Přenosne zawěsćenje wočinić</string><string name="portable_restore">Zawěsćenje wobnowić</string><string name="portable_passwort">Hesło</string><string name="portable_passwort_hinweis">Zapodajće hesło archiwa. Při přepruwowanju zawěsćenja so ničo njezměni.</string><string name="portable_pruefen">Přepruwować a přehlad pokazać</string><string name="portable_vorschau">Přehlad zawěsćenja</string><string name="portable_vorschau_text">%1$d noticow · %2$d noticownikow · %3$d nadawkow · %4$d zapiskow w papjerniku</string><string name="portable_restore_warnung">To naruna wšón aktualny wosobinski wobsah. Najprjedy so lokalny zawěsćenski momentowy wobraz wutwori; identita Magnolienbaum tutoho grata wobsteji.</string><string name="portable_fehler">Zawěsćenje njeda so wočinić. Přepruwujće dataju a hesło.</string><string name="portable_exportiert">Přenosne zawěsćenje je wutworjene.</string><string name="portable_wiederhergestellt">Přenosne zawěsćenje je wobnowjene.</string>
     <string name="auto_backup_titel">Awtomatiske zawěsćenje do mróčeloweho rjadowaka</string>
     <string name="auto_backup_hinweis">Składuje na přeće přepruwowane přenošomne zawěsćenja do přez Android wubraneho rjadowaka. Poskićowar móže jón synchronizować.</string>
@@ -370,4 +373,27 @@
     <string name="aufgabe_zur_wurzel">Na najwyšu runinu</string>
     <string name="aufgabe_eltern_waehlen">Nadrjadowany nadawk wubrać</string>
     <string name="aufgabe_oberste_ebene">Najwyša runina</string>
+    <string name="baum_kontakt_jubilaeum">Wročnica</string>
+    <string name="baum_kontakt_update">Za přenjesenje wročnic aktualizujće Magnolie na woběmaj gratomaj. Wočińće wobě aplikaciji a spytajće hišće raz. Při tutym pospyće so žane kontakty njepósłachu.</string>
+    <string name="baum_aufgabe_nicht_freigegeben">Tutón nadawk so z tutym gratom njedźěli.</string>
+    <string name="baum_kontakt_import_nicht_unterstuetzt">Za pósłanje kontaktow na tutón grat wužiwajće synchronizaciju kontaktow.</string>
+    <string name="aufgabe_nach_oben">Nadawk horje přesunyć</string>
+    <string name="aufgabe_nach_unten">Nadawk dele přesunyć</string>
+    <string name="personal_custom_optin">Nadawki a terminy z wužiwarjoweho rajtarka synchronizować</string>
+    <string name="personal_custom_title">Nadawki a terminy z wužiwarjoweho rajtarka (jenož za čitanje)</string>
+    <string name="personal_custom_explanation">Obaj grataj dyrbitej přihłosować. Wupinanje zastaji dopomnjenki a aktualizacije z wužiwarjoweho rajtarka, ale kopije wobchowa. Zwjazane tekstowe bloki so njedźěla.</string>
+    <string name="personal_custom_unsupported">Tutón grat synchronizaciju wužiwarjoweho rajtarka njepodpěruje.</string>
+    <string name="personal_custom_delete">Na žórle zhašane: Tutu telefonowu kopiju zhašeć abo wobchować? Žórło na ličaku so ženje njezměni.</string>
+    <string name="personal_custom_keep">Kopiju wobchować</string>
+    <string name="personal_custom_privacy">Jenož z wuraznej přihłosowanku woběju gratow dźěli Personal Sync swójske nadawki a terminy jenož za čitanje, inkluziwnje jich swójskich noticow. Tekstowe bloki, zwjazane teksty a přiwěški su wuzamknjene. Archiwy wobnowjeja kopije, nic dowolnosće.</string>
+    <string name="device_identifiers_share">Identifikatory swójskeho telefona dźělić</string>
+    <string name="device_identifiers_explanation">Jenož na naprašowanje swójskeho spřaženeho ličaka, na 60 sekund, bjez składowanja: čisło standardneje SIM za zawołanja a, jeli Android dowoli, serijowe čisło a IMEI. Wot Androida 10 su hardwarowe identifikatory za zwučene aplikacije wobmjezowane. Prawo za čisło je dobrowólne; žana wosebita róla so njepožada.</string>
+    <string name="device_identifiers_phone">Swójske čisło (standardna SIM za zawołanja)</string>
+    <string name="device_identifiers_serial">Serijowe čisło grata</string>
+    <string name="device_identifiers_imei">IMEI grata</string>
+    <string name="device_identifiers_off">Dźělenje identifikatorow je wupinjene.</string>
+    <string name="device_identifiers_permission">Prawo za identifikatory faluje.</string>
+    <string name="device_identifiers_restricted">Android tutón identifikator wobmjezuje.</string>
+    <string name="device_identifiers_subscription">Žadyn standardny abonement za zawołanja k dispoziciji njeje.</string>
+    <string name="device_identifiers_unavailable">Tutón identifikator k dispoziciji njeje.</string>
 </resources>

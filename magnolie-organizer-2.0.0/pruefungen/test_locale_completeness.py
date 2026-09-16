@@ -15,7 +15,26 @@ PROTECTED = (
     "WebDAV", "CalDAV", "CardDAV", "HTTPS", "JSON", "CSV",
     "ODS", "PDF", "SMS", "UID", "UFW", "GTK", "WebKit2GTK",
 )
-ENGLISH_EQUAL_ALLOWLIST = frozenset(PROTECTED)
+ENGLISH_EQUAL_ALLOWLIST = frozenset((*PROTECTED, "Claws Mail XML / LDIF"))
+SMS_TERMS = json.loads(Path(__file__).with_name("sms-localized-terms.json").read_text())
+
+
+def _preserves_token(value, token, locale, source):
+    if token in value:
+        return True
+    if token != "SMS" or locale not in SMS_TERMS["locales"] or source not in SMS_TERMS["messages"]:
+        return False
+    return value == SMS_TERMS["locales"][locale][SMS_TERMS["messages"].index(source)]
+
+
+def test_localized_sms_terms_are_exact_not_a_general_token_exemption():
+    assert _preserves_token("Sms-plannen bevestigen", "SMS", "nl", "Confirm SMS plans")
+    assert not _preserves_token("Plannen bevestigen", "SMS", "nl", "Confirm SMS plans")
+    assert not _preserves_token("短信", "SMS", "zh_CN", "Unknown SMS message")
+    assert not _preserves_token("蓝牙", "Bluetooth", "zh_CN", "Bluetooth")
+    windows = ROOT.parent / "Magnolie-Organizer-Windows-2.0.0/tests/resources/sms-localized-terms.json"
+    if windows.exists():
+        assert json.loads(windows.read_text()) == SMS_TERMS
 PLACEHOLDER = re.compile(
     r"%\([A-Za-z_][A-Za-z0-9_]*\)[#0 +\-]*\d*(?:\.\d+)?[diouxXeEfFgGcrs]"
     r"|%(?:\d+\$)?[#0 +\-]*\d*(?:\.\d+)?[diouxXeEfFgGcrs]"
@@ -62,7 +81,15 @@ def _catalog(path):
     return entries
 
 
-def _tokens(text):
+def _tokens(text, source=None):
+    if source is None:
+        source = text
+    # Only source literal percentages may mask a translated printf-like word.
+    for match in re.finditer(r"\d+(?:[.,]\d+)?%", source):
+        if PLACEHOLDER.match(source, match.end() - 1):
+            continue
+        text = re.sub(re.escape(match.group()) + r"(?=$|[\s.,;:!?])",
+                      lambda value: value.group()[:-1], text)
     return Counter(PLACEHOLDER.findall(text))
 
 
@@ -73,6 +100,24 @@ def _identifiers(text):
 def _sentence_length(text):
     plain = IDENTIFIER.sub("", PLACEHOLDER.sub("", text))
     return len(re.findall(r"[A-Za-z]+(?:'[A-Za-z]+)?", plain)) >= 4
+
+
+def test_technical_caption_exception_does_not_allow_english_ui_sentences():
+    assert "Claws Mail XML / LDIF" in ENGLISH_EQUAL_ALLOWLIST
+    for sentence in ("Import Claws Mail XML / LDIF",
+                     "Claws Mail XML / LDIF is unavailable.",
+                     "Open the Claws Mail address book"):
+        assert _sentence_length(sentence)
+        assert sentence not in ENGLISH_EQUAL_ALLOWLIST
+
+
+def test_literal_percentage_does_not_hide_real_placeholders():
+    assert not _tokens("Mit 100% drucken.", "Print at 100%.")
+    assert _tokens("100%dpx", "Print at 100%.") == Counter({"%d": 1})
+    assert _tokens("100% d") == Counter({"% d": 1})
+    assert _tokens("%dpx") == Counter({"%d": 1})
+    assert _tokens("Missing", "%(count)s entries") != _tokens("%(count)s entries")
+    assert _tokens("100% drucken. %s", "Print at 100%. %d") != _tokens("Print at 100%. %d")
 
 
 def _compiled_catalog(po_path, mo_path):
@@ -91,7 +136,22 @@ def test_gettext_catalogs_are_complete_and_safe():
     assert set(locales) == {path.stem for path in PO_DIR.glob("*.po")}
     errors = []
     for locale in locales:
-        entries = _catalog(PO_DIR / f"{locale}.po")
+        po_path = PO_DIR / f"{locale}.po"
+        entries = _catalog(po_path)
+        header = po_path.read_text(encoding="utf-8").split("\n\n", 1)[0]
+        required_header = {
+            "Project-Id-Version": "Magnolie Organizer 2.0.18",
+            "PO-Revision-Date": "2026-09-07 00:00+0200",
+            "Last-Translator": "Magnolie translation team <maik3531@gmail.com>",
+            "Language-Team": locale,
+            "Language": locale,
+            "MIME-Version": "1.0",
+            "Content-Type": "text/plain; charset=UTF-8",
+            "Content-Transfer-Encoding": "8bit",
+        }
+        for field, value in required_header.items():
+            assert f'"{field}: {value}\\n"' in header, \
+                f"{locale}: invalid or missing {field} header"
         missing = source.keys() - entries.keys()
         extra = entries.keys() - source.keys()
         if missing:
@@ -118,16 +178,22 @@ def test_gettext_catalogs_are_complete_and_safe():
                 valid_tokens = [_tokens(source_form)]
                 if template["plural"]:
                     valid_tokens.append(_tokens(template["plural"]))
-                if _tokens(value) not in valid_tokens:
+                if _tokens(value, source_form) not in valid_tokens:
                     errors.append(f"{label} changes placeholders in {value!r}")
                 if _identifiers(value) != _identifiers(source_form):
                     errors.append(f"{label} changes technical identifiers in {value!r}")
                 for token in PROTECTED:
-                    if token in " ".join(source_texts) and token not in value:
+                    if token in " ".join(source_texts) and not _preserves_token(value, token, locale, key[1]):
                         errors.append(f"{label} does not preserve {token!r}")
                 if (value == source_form and _sentence_length(source_form)
                         and source_form not in ENGLISH_EQUAL_ALLOWLIST):
                     errors.append(f"{label} is still the English sentence")
+                if (value != source_form and _sentence_length(source_form)
+                        and value.endswith(source_form)):
+                    errors.append(f"{label} appends the English source sentence")
+                if (locale == "hsb" and re.match(
+                        r"^(?:Der|Die|Das|Ein|Eine|Es)\s", value)):
+                    errors.append(f"{label} is still German")
         delivered = entries.get((None, "Delivered"), {}).get("values", [""])[0].casefold()
         offline = entries.get((None, "Offline"), {}).get("values", [""])[0].casefold()
         if delivered in {"offline", offline} or offline == "delivered":

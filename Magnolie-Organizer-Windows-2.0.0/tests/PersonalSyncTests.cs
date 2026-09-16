@@ -8,6 +8,7 @@ internal static class PersonalSyncTests
 {
     internal static async Task RunAsync()
     {
+        PersonalCustomConsentTests.Run();
         var resource = Path.Combine(AppContext.BaseDirectory, "resources", "personal-sync-contract.json");
         TestAssert.That(File.Exists(resource), "Repository-lokaler Personal-Sync-Vertrag fehlt.");
         var vectors = JsonNode.Parse(await File.ReadAllTextAsync(resource))!.AsObject(); var value = vectors["value"]!.AsObject();
@@ -51,6 +52,7 @@ internal static class PersonalSyncTests
         var tempRoot = Path.Combine(Path.GetTempPath(), "magnolie-personal-tests-" + Guid.NewGuid().ToString("N"));
         try
         {
+            await TestNegotiatedRoundtripAndFullChunks(Path.Combine(tempRoot, "roundtrip"), task3Value);
             var key = Enumerable.Range(1, 32).Select(value => (byte)value).ToArray(); var store = new TelefonStore(new WindowsPaths(tempRoot), key); var personal = new PersonalSyncStore(store);
             var runtimeNow = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
             const string peer = "55555555-5555-4555-8555-555555555555"; const string run = "66666666-6666-4666-8666-666666666666";
@@ -261,5 +263,79 @@ internal static class PersonalSyncTests
         using var database = store.OpenDatabase(); database.Open(); using var count = database.CreateCommand();
         count.CommandText = "SELECT (SELECT COUNT(*) FROM personal_batch WHERE peer_id=$peer AND run_id=$run)+(SELECT COUNT(*) FROM personal_attachment_transfer WHERE peer_id=$peer AND run_id=$run)+(SELECT COUNT(*) FROM personal_attachment_chunk WHERE peer_id=$peer AND run_id=$run)";
         count.Parameters.AddWithValue("$peer", peer); count.Parameters.AddWithValue("$run", run); return Convert.ToInt64(count.ExecuteScalar());
+    }
+
+    private static async Task TestNegotiatedRoundtripAndFullChunks(string root, JsonObject task3Value)
+    {
+        var paths = new WindowsPaths(root); var key = Enumerable.Repeat((byte)73, 32).ToArray();
+        var store = new TelefonStore(paths, key); var personal = new PersonalSyncStore(store);
+        const string peer = "34343434-3434-4434-8434-343434343434";
+        var capabilities = TelefonProtocolContract.DesktopCapabilities()["items"]!.DeepClone().AsObject();
+        store.SavePeers([new TelefonPeer(peer, "Synthetic", TelefonCrypto.GenerateX25519().Public,
+            StoredCapabilities: capabilities, StoredGrants: new JsonObject { ["personal_tasks_sync"] = true, ["personal_notes_sync"] = true })]);
+        store.SetLocalGrant("personal_tasks_sync", true); store.SetLocalGrant("personal_notes_sync", true);
+        store.SetPersonalSettings(peer, ownDevice: true, remoteOwnDevice: true);
+        var emitted = new List<JsonObject>();
+        Task Emit(string name, object payload) { if (name == "App.telefonPersonalSync") emitted.Add(System.Text.Json.JsonSerializer.SerializeToNode(payload)!.AsObject()); return Task.CompletedTask; }
+        foreach (var format in new[] { 1, 2, 3 })
+        {
+            var run = Guid.NewGuid().ToString(); var now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+            var request = new JsonObject { ["format"] = format, ["run_id"] = run, ["trigger"] = "manual", ["modules"] = format == 3 ? new JsonArray("notes", "tasks") : new JsonArray("tasks") };
+            using (var sender = new TelefonCoordinator(paths, Emit, dataStore: store))
+                await sender.SendPersonalSyncAsync(peer, "personal_sync.request", request);
+            var value = task3Value.DeepClone().AsObject();
+            if (format != 3) { value.Remove("uid"); value.Remove("parent_uid"); value.Remove("order"); }
+            var body = Batch(run, Record("task", "task-1", value, format), format); body["batch_id"] = Guid.NewGuid().ToString();
+            if (format == 3)
+            {
+                body["records"]!.AsArray().Insert(0, Record("note", "note-1", new JsonObject { ["title"] = "Note", ["text"] = "Text", ["html"] = "", ["notebook_id"] = "book",
+                    ["symbol"] = "note", ["created_ms"] = 1, ["modified_ms"] = 2, ["attachments"] = new JsonArray() }, 3));
+                body["records_hash"] = PersonalSyncContract.RecordsHash(body["records"]!.AsArray());
+            }
+            var message = Message("personal_sync.batch", body, now, now + 60_000, Guid.NewGuid().ToString());
+            store.CommitIncoming(peer, message, now, (_, _) => null, deferAcceptance: true);
+            var staged = personal.StageBatch(peer, message, "wifi", now)!;
+            var restartedStore = new TelefonStore(paths, key);
+            var replay = new PersonalSyncStore(restartedStore).ReadyBatches(now + 1).Single(item => item.RunId == run);
+            TestAssert.That(replay.Format == format && JsonNode.DeepEquals(replay.Records, staged.Records), "Restart changed the negotiated batch format or hierarchy.");
+            using var receiver = new TelefonCoordinator(paths, Emit, dataStore: restartedStore);
+            await receiver.ReplayPersonalSyncAsync();
+            var delivered = emitted.Last()["body"]!.AsObject();
+            TestAssert.That(delivered["format"]!.GetValue<int>() == format &&
+                JsonNode.DeepEquals(delivered["records"]!.AsArray().OfType<JsonObject>().Single(item => item["kind"]!.GetValue<string>() == "task")["value"], value), "Coordinator aggregate omitted format or task graph fields.");
+            var reply = body.DeepClone().AsObject(); reply["reply"] = true; reply["batch_id"] = Guid.NewGuid().ToString();
+            var outgoing = await receiver.SendPersonalSyncAsync(peer, "personal_sync.batch", reply);
+            TestAssert.That(restartedStore.OutboxMessage(peer, outgoing)?["body"]?["format"]?.GetValue<int>() == format,
+                "Reply did not retain the existing negotiated run format.");
+            if (format == 3)
+            {
+                var downgraded = Batch(run, Record("task", "task-1", new JsonObject { ["title"] = "Task", ["note"] = "", ["due"] = "", ["priority"] = 2,
+                    ["completed"] = false, ["remind"] = false, ["lead_days"] = 0, ["reminder_minute"] = 0, ["created_ms"] = 1, ["modified_ms"] = 2 }, 2), 2);
+                await TestAssert.ThrowsAsync<InvalidDataException>(async () => { _ = await receiver.SendPersonalSyncAsync(peer, "personal_sync.batch", downgraded); }, "A format-3 run accepted a downgraded reply.");
+                TestAssert.Throws<InvalidDataException>(() => personal.StageBatch(peer, Message("personal_sync.batch", downgraded, now, now + 60_000, Guid.NewGuid().ToString()), "wifi", now),
+                    "A format-3 run staged a downgraded incoming batch.");
+            }
+            TestAssert.That(receiver.CommitPersonalSync(peer, replay.PendingMessageId, replay.CommitToken, "applied"), "Negotiated batch could not be committed after replay.");
+        }
+        var chunkRun = Guid.NewGuid().ToString(); var instant = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+        personal.RememberRun(peer, new JsonObject { ["format"] = 3, ["run_id"] = chunkRun, ["trigger"] = "manual", ["modules"] = new JsonArray("notes", "tasks") }, instant);
+        var bytes = new byte[PersonalSyncContract.ChunkRaw + 1]; new byte[] { 0x89, 0x50, 0x4e, 0x47, 13, 10, 26, 10 }.CopyTo(bytes, 0); bytes[^1] = 77;
+        var hash = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(bytes)).ToLowerInvariant();
+        var recordsHash = new string('a', 64);
+        var descriptor = new JsonObject { ["attachment_id"] = "full", ["name"] = "full.png", ["kind"] = "image", ["mime"] = "image/png", ["size"] = bytes.Length, ["sha256"] = hash };
+        var chunk = new JsonObject { ["format"] = 2, ["run_id"] = chunkRun, ["reply"] = false, ["records_hash"] = recordsHash,
+            ["sha256"] = hash, ["index"] = 0, ["data"] = Convert.ToBase64String(bytes, 0, PersonalSyncContract.ChunkRaw) };
+        PersonalSyncContract.ValidateBody("personal_sync.attachment_chunk", chunk);
+        TelefonMessageContract.ValidateMessage(Message("personal_sync.attachment_chunk", chunk, instant, instant + 60_000), instant, true);
+        TestAssert.That(PersonalSyncContract.ChunkRaw == 180000 && PersonalSyncContract.MaxChunkBody == 256 * 1024 && TelefonCrypto.Canonical(chunk).Length > 192 * 1024 &&
+            TelefonCrypto.Canonical(chunk).Length <= PersonalSyncContract.MaxChunkBody, "Full raw blocks do not fit the agreed bounded chunk body.");
+        personal.StageAttachment(peer, chunkRun, false, recordsHash, descriptor, "incoming", "any", instant + 60_000,
+            [(0, bytes[..PersonalSyncContract.ChunkRaw])]);
+        var resumedChunks = new PersonalSyncStore(new TelefonStore(paths, key));
+        TestAssert.That(resumedChunks.MissingAttachmentRanges(peer, chunkRun, false, recordsHash, hash, "incoming", instant).SequenceEqual(new[] { (1, 2) }), "Persisted raw chunk offsets changed.");
+        resumedChunks.StageAttachmentChunk(peer, chunkRun, false, recordsHash, hash, "incoming", 1, [bytes[^1]], instant + 60_000);
+        TestAssert.That(resumedChunks.ReadVerifiedAttachment(peer, chunkRun, false, recordsHash, hash, "incoming", "wifi", instant).SequenceEqual(bytes), "Full chunk and final byte did not resume exactly.");
+        chunk["data"] = Convert.ToBase64String(bytes);
+        TestAssert.Throws<InvalidDataException>(() => PersonalSyncContract.ValidateBody("personal_sync.attachment_chunk", chunk), "Larger body allowance changed the persisted raw-block limit.");
     }
 }

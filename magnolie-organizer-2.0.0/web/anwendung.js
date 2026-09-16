@@ -15,10 +15,10 @@
 (function () {
 
   /* Die Fassung erscheint auf der Seite „Über". */
-const FASSUNG = "2.0.17";
+const FASSUNG = "2.0.18";
 const S = (x) => (x === undefined || x === null) ? "" : String(x);
 
-const NEU_IN_DIESER_FASSUNG_FASSUNG = "2.0.17";
+const NEU_IN_DIESER_FASSUNG_FASSUNG = "2.0.18";
 const NEU_IN_DIESER_FASSUNG = {
   ar: ["ما الجديد في هذا الإصدار", "مساعد إعداد أولي وتسلسل هرمي واضح للمهام والمهام الفرعية", "مهام CalDAV VTODO مع خوادم DAV عامة، واستيراد آمن لجهات الاتصال وتحديد موثوق لمصدر المكالمة", "تقوية المزامنة ومعالجة التعارضات والحذف، وأرشيفات كاملة أكثر أمانا مع الاسترداد"],
   be: ["Што новага ў гэтай версіі", "Памочнік першапачатковай наладкі і выразная іерархія задач і падзадач", "Задачы CalDAV VTODO на звычайных DAV-серверах, бяспечны імпарт кантактаў і надзейнае вызначэнне крыніцы выкліку", "Узмоцненая сінхранізацыя, апрацоўка канфліктаў і выдаленняў, а таксама бяспечнейшыя поўныя архівы з аднаўленнем"],
@@ -170,6 +170,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       notizbuchId: NOTIZ_STANDARD_BUCH, suche: "" },
     jahrestage: { bearbeiteId: null },
     planer: { jahr: jetztTeile.jahr },
+    custom: { textItemIds: {} },
     gesundheit: { ansicht: "vital", seiten: { vital: 0, blutzucker: 0, medikamente: 0 },
       entwurf: null }
   };
@@ -202,6 +203,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
 
   function editorIstGeaendert() {
     return !!(aktiverEditor &&
+      (!aktiverEditor.element || aktiverEditor.element.isConnected) &&
       kanonischerEntwurf(aktiverEditor.lesen()) !== aktiverEditor.snapshotText);
   }
 
@@ -257,9 +259,10 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
           protokoll: false, protokollVoreinstellung: 1 },
         adressen: { absender: "", karten: "auto", land: "Deutschland", landCode: "DE",
           sortierung: "last-name", brief: true, karte: true, route: false,
-          foto: true, fotoVoreinstellung: 1, briefLayout: "compact",
-          briefLayoutVoreinstellung: 2, sozialeSymbole: true,
+          foto: true, fotoVoreinstellung: 1, briefLayout: "din5008-b",
+          briefLayoutVoreinstellung: 3, sozialeSymbole: true,
           smsBenachrichtigungDauer: 60,
+          smsSchedulingEnabled: false,
           kommunikation: { sms: { art: "kde", programm: "" },
             anruf: { art: "magnolie", programm: "" } } },
         sicherheit: { erinnernTrotzKennwort: false,
@@ -299,9 +302,11 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
   function personalSyncKanonisch(wert) {
     if (Array.isArray(wert)) return "[" + wert.map(personalSyncKanonisch).join(",") + "]";
     if (wert && typeof wert === "object") return "{" + Object.keys(wert).sort(personalSyncUtf8).map((key) =>
-      JSON.stringify(key) + ":" + personalSyncKanonisch(wert[key])).join(",") + "}";
-    if (typeof wert === "number" && (!Number.isSafeInteger(wert) || wert < 0))
-      throw new Error("Ungültige Personal-Sync-Zahl.");
+      personalSyncKanonisch(key) + ":" + personalSyncKanonisch(wert[key])).join(",") + "}";
+    if (typeof wert === "number" && !Number.isSafeInteger(wert))
+      throw new Error(_("Personal synchronization failed."));
+    if (typeof wert === "string" && /[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/u.test(wert))
+      throw new Error(_("Personal synchronization failed."));
     return JSON.stringify(wert);
   }
 
@@ -318,6 +323,46 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     const bytes = new TextEncoder().encode(personalSyncKanonisch(wert));
     const digest = await crypto.subtle.digest("SHA-256", bytes);
     return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("");
+  }
+
+  async function personalSyncCustomSourceId(sourceId, itemId) {
+    if (typeof sourceId !== "string" || !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(sourceId) ||
+        typeof itemId !== "string" || !itemId || /[\x00-\x1f\x7f]/.test(itemId) ||
+        new TextEncoder().encode(itemId).length > 640 ||
+        Array.from(itemId).some((c) => c.length === 1 && c.charCodeAt(0) >= 0xd800 && c.charCodeAt(0) <= 0xdfff)) {
+      throw new Error("Invalid custom source identity.");
+    }
+    return "custom:" + await personalSyncHash(["personal-custom-v1", sourceId, itemId]);
+  }
+
+  // Separate scope consent; ordinary settings and the All action remain unchanged.
+  function personalSyncCustomSettings(body) {
+    if (!body || Array.isArray(body) || Object.keys(body).sort().join(",") !== "enabled,epoch,format,revision,scope" ||
+        body.format !== 4 || body.scope !== "custom" || typeof body.enabled !== "boolean" ||
+        !Number.isSafeInteger(body.revision) || body.revision < 1 || typeof body.epoch !== "string" ||
+        !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(body.epoch)) {
+      throw new Error("Invalid custom sync settings.");
+    }
+    return body;
+  }
+
+  function personalSyncCustomAllowed(local, remote, localVersions, remoteVersions, ownDevice, remoteOwnDevice, senderEpoch, receiverEpoch, senderRevision, receiverRevision) {
+    try { personalSyncCustomSettings(local); personalSyncCustomSettings(remote); }
+    catch (_) { return false; }
+    return ownDevice === true && remoteOwnDevice === true && Array.isArray(localVersions) && Array.isArray(remoteVersions) &&
+      localVersions.includes(4) && remoteVersions.includes(4) && local.enabled && remote.enabled &&
+      remote.epoch === senderEpoch && local.epoch === receiverEpoch &&
+      remote.revision === senderRevision && local.revision === receiverRevision;
+  }
+
+  function personalSyncAcceptCustomSettings(current, incoming) {
+    personalSyncCustomSettings(incoming);
+    if (current) {
+      personalSyncCustomSettings(current);
+      if (incoming.revision === current.revision && personalSyncKanonisch(current) === personalSyncKanonisch(incoming)) return { ...current };
+      if (incoming.revision <= current.revision || incoming.epoch === current.epoch) throw new Error("Stale custom sync settings.");
+    }
+    return { ...incoming };
   }
 
   function personalSyncAutoEntscheidung(zustand) {
@@ -342,7 +387,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     const werte = {};
     a.concat(b).forEach((x) => { werte[x.actor_id] = Math.max(werte[x.actor_id] || 0, x.counter); });
     const aus = Object.keys(werte).sort(personalSyncUtf8).map((actor_id) => ({ actor_id: actor_id, counter: werte[actor_id] }));
-    if (aus.length > 16) throw new Error("Personal-Sync-Versionsvektor ist zu groß.");
+    if (aus.length > 16) throw new Error(_("Personal synchronization failed."));
     return aus;
   }
 
@@ -376,6 +421,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
   }
 
   async function personalSyncSnapshot(module, format = 1, peerId = "") {
+    sichereNotizSnapshot();
     const ps = DATEN.personalSync;
     if (!ps.actor_id) ps.actor_id = crypto.randomUUID();
     const kandidaten = [];
@@ -400,7 +446,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     if (module.includes("tasks")) erlaubte.add("task");
     for (const [key, alt] of Object.entries(ps.entities)) {
       const art = key.split("\u0000", 1)[0];
-      const anhangWeg = art === "attachment" && !anhangVorhanden.has(key);
+      const anhangWeg = format >= 2 && module.includes("notes") && art === "attachment" && !anhangVorhanden.has(key);
       const teile = key.split("\u0000");
       const elternWeg = art === "attachment" && !vorhanden.has("note\u0000" + (teile[1] || ""));
       if ((!vorhanden.has(key) && erlaubte.has(art) || anhangWeg) && !elternWeg && alt.state !== "deleted" &&
@@ -435,9 +481,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
         ps.counter += 1;
         const modified = Date.now();
         objekt.personalGeaendert = modified;
-        wert = personalSyncWert(art, objekt, modified);
-        if (format === 3 && art === "task") Object.assign(wert, { uid: String(objekt.uid || ""),
-          parent_uid: String(objekt.elternUid || ""), order: Math.max(0, Number(objekt.reihenfolge) || 0) });
+        wert.modified_ms = modified;
         hash = await personalSyncHash(wert);
         const clock = personalSyncVereinige(meta && Array.isArray(meta.clock) ? meta.clock : [],
           [{ actor_id: ps.actor_id, counter: ps.counter }]);
@@ -649,7 +693,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       if (Array.isArray(v.attachments)) {
         const fern = v.attachments.map((x) => ({ id: x.attachment_id, name: x.name, art: x.kind,
           daten: attachmentData[x.sha256] })).filter((x) => typeof x.daten === "string");
-        if (fern.length !== v.attachments.length) throw new Error("Personal-Sync-Anhang fehlt.");
+        if (fern.length !== v.attachments.length) throw new Error(_("Personal synchronization failed."));
         if (nurFern) neu.anhaenge = fern;
         else for (const anhang of fern) {
           const gleich = neu.anhaenge.find((x) => x.id === anhang.id);
@@ -673,7 +717,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       if (Object.prototype.hasOwnProperty.call(v, "uid")) {
         neu.uid = v.uid; neu.elternUid = v.parent_uid; neu.reihenfolge = v.order;
       }
-      if (!alt) neu.geaendert = v.modified_ms;
+      neu.geaendert = Math.max(Date.now(), Number(alt && alt.geaendert) + 1 || 0, Number(v.modified_ms) || 0);
       if (alt) DATEN.aufgaben[DATEN.aufgaben.indexOf(alt)] = neu; else DATEN.aufgaben.push(neu);
     } else {
       const alt = DATEN.notizbuecher.find((x) => x.id === id);
@@ -682,18 +726,27 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     }
   }
 
-  async function personalSyncAnwenden(records, attachmentData = {}) {
-    await personalSyncSnapshot(["notes", "tasks"]);
+  async function personalSyncAnwenden(records, attachmentData = {}, format = 1, peerId = "", modules = ["notes", "tasks"]) {
+    // Validate the whole batch before changing clocks or applying its first record.
+    for (const record of records) {
+      if (await personalSyncHash(record.value) !== record.hash) throw new Error(_("Personal synchronization failed."));
+      if (record.kind === "note") {
+        const stand = {}; saeubereHtml(record.value.html, stand);
+        if (stand.gekuerzt) throw new Error(_("The message is too large."));
+        if ((record.value.attachments || []).some(item => typeof attachmentData[item.sha256] !== "string"))
+          throw new Error(_("Personal synchronization failed."));
+      }
+    }
+    await personalSyncSnapshot(modules, format, peerId);
     let konflikte = 0, anlagen = 0;
     for (const record of records) {
-      if (await personalSyncHash(record.value) !== record.hash) throw new Error("Ungültiger Personal-Sync-Hash.");
       const key = record.kind + "\u0000" + record.id, lokal = DATEN.personalSync.entities[key];
       if (lokal && lokal.state === "deleted") continue;
       if (!lokal) { personalSyncSetze(record, record.id, true, attachmentData); DATEN.personalSync.entities[key] = {
         clock: record.clock, hash: record.hash, modified_ms: record.modified_ms, conflict: false }; continue; }
       const vergleich = personalSyncVergleiche(lokal.clock, record.clock);
       if (vergleich === "dominates") continue;
-      if (vergleich === "equal") { if (lokal.hash !== record.hash) throw new Error("Inkonsistenter Personal Sync."); continue; }
+      if (vergleich === "equal") { if (lokal.hash !== record.hash) throw new Error(_("Personal synchronization failed.")); continue; }
       if (vergleich === "concurrent" && lokal.hash === record.hash) {
         DATEN.personalSync.entities[key] = { clock: personalSyncVereinige(lokal.clock, record.clock),
           hash: lokal.hash, modified_ms: Math.max(lokal.modified_ms || 0, record.modified_ms), conflict: false };
@@ -728,13 +781,133 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     return { conflicts: konflikte, attachments: anlagen };
   }
 
+  let personalCustomKette = Promise.resolve();
+  function personalCustomBestaetigt(receipt) {
+    const bestand = DATEN.personalSync;
+    personalCustomKette = personalCustomKette.catch(() => {}).then(async () => {
+      if (DATEN.personalSync !== bestand || gesperrt || !initialisiert || !antwortErhalten) return;
+      const ps = DATEN.personalSync, body = receipt.body;
+      if (!body || body.source_id !== ps.actor_id) return;
+      let changed = false;
+      for (const deletion of body.deletions || []) {
+        const old = ps.custom_entities?.[deletion.id];
+        if (!old?.deleted_revision || old.deleted_revision > body.revision ||
+            old.item_id !== deletion.item_id || old.hash !== deletion.prior_hash ||
+            !old.receivers?.includes(receipt.device_id)) continue;
+        old.receivers = old.receivers.filter(id => id !== receipt.device_id);
+        if (!old.receivers.length) delete ps.custom_entities[deletion.id];
+        changed = true;
+      }
+      // Losing this event/save is safe: the durable tombstone is sent again.
+      if (changed) await new Promise((resolve, reject) => nachDauerhaftemSpeichern(resolve, reject));
+    });
+    return personalCustomKette;
+  }
+  function personalCustomSenden(peer, trigger, force = false) {
+    const bestand = DATEN.personalSync;
+    personalCustomKette = personalCustomKette.catch(() => {}).then(async () => {
+      if (DATEN.personalSync !== bestand || gesperrt || !initialisiert || !antwortErhalten) return false;
+      const scopes = peer.custom_sync || {}, local = scopes.local, remote = scopes.remote;
+      const versions = peer.capabilities?.items?.personal_tasks_sync?.versions || [];
+      if (!local || !remote || !personalSyncCustomAllowed(remote, local, versions, [4],
+          peer.remote_own_device, peer.own_device, local.epoch, remote.epoch, local.revision, remote.revision)) return false;
+      if (trigger === "auto_wifi" && (!peer.auto_wifi || peer.transport !== "wifi")) return false;
+      const ps = DATEN.personalSync;
+      if (!ps.actor_id) ps.actor_id = crypto.randomUUID();
+      const source = ps.actor_id, previous = ps.custom_entities || {}, current = {}, records = [];
+      let revision = (ps.custom_revision || 0) + 1;
+      if (!Number.isSafeInteger(revision)) throw new Error(_("Personal synchronization failed."));
+      // Legacy snapshots did not record recipients. Keep every currently paired peer.
+      const recipients = old => old?.receivers || [...new Set([peer.device_id,
+        ...(typeof telefonStand === "undefined" ? [] : telefonStand?.peers || []).map(p => p.device_id)])];
+      let timezone;
+      try {
+        const configured = organizerZeitzone();
+        if (configured && !/^[A-Za-z][A-Za-z0-9_+.-]*(?:\/[A-Za-z0-9_+.-]+)*$/.test(configured)) throw new RangeError();
+        timezone = new Intl.DateTimeFormat("en", { timeZone: configured }).resolvedOptions().timeZone;
+      } catch (error) {
+        // Only "system" may choose the host zone. Never export an invalid explicit zone.
+        App.personalSyncFehler({ fehler: _("Personal synchronization failed.") + " " + _("Time zone") + ": " + organizerZeitzone() });
+        throw error;
+      }
+      const leadMinutes = DATEN.einstellungen.erinnerung.vorlauf;
+      const sourceModules = JSON.parse(JSON.stringify(DATEN.customOrganizer.modules || []));
+      for (const module of sourceModules) {
+        if (!["tasks", "appointments"].includes(module.type)) continue;
+        for (const item of module.items || []) {
+          const id = await personalSyncCustomSourceId(source, item.id);
+          if (current[id]) throw new Error(_("Personal synchronization failed."));
+          const r = module.type === "appointments" ? leseWiederholung(item.wiederholung) : { art: "none" };
+          const ordinal = r.ordinal || 0;
+          const value = { module_id: module.id, module_title: module.title || "", title: item.title || "", note: item.note || "",
+            date: item.date || item.due || "", time: item.time || "", timezone: timezone,
+            completed: module.type === "tasks" && item.done === true,
+            module_reminders: module.reminders === true, item_reminder: item.remind !== false,
+            lead_minutes: module.type === "appointments" ? leadMinutes : 0, default_minute: 480,
+            recurrence: { frequency: r.art || "none", interval: r.intervall || 1, until: r.bis || "", dates: r.daten || [],
+              ordinal: ordinal, weekday: ordinal ? ["MO", "TU", "WE", "TH", "FR", "SA", "SU"].indexOf(r.wochentag) + 1 : 0 } };
+          const record = { id: id, item_id: item.id, kind: module.type === "tasks" ? "task" : "appointment",
+            hash: await personalSyncHash(value), value: value };
+          if (previous[id] && previous[id].item_id !== item.id) throw new Error(_("Personal synchronization failed."));
+          current[id] = { item_id: item.id, hash: record.hash,
+            receivers: [...new Set([...recipients(previous[id]), peer.device_id])] }; records.push({ upsert: record });
+        }
+      }
+      // Only absence from this complete, unfiltered source traversal is a source deletion.
+      for (const [id, old] of Object.entries(previous)) if (!current[id]) {
+        current[id] = { ...old, receivers: recipients(old), deleted_revision: old.deleted_revision || revision };
+        if (current[id].receivers.includes(peer.device_id))
+          records.push({ deletion: { id: id, item_id: old.item_id, prior_hash: old.hash } });
+      }
+      const signature = await personalSyncHash([records, local.epoch, local.revision, remote.epoch, remote.revision]);
+      if (!force && trigger === "auto_wifi" && signature === ps.custom_auto_hash) return true;
+      // An unchanged retry must carry the same revision and exact batch bodies.
+      if (ps.custom_revision && JSON.stringify(previous) === JSON.stringify(current)) revision = ps.custom_revision;
+      const envelope = { format: 4, source_id: source, revision: revision, trigger: trigger,
+        sender_epoch: local.epoch, receiver_epoch: remote.epoch, sender_revision: local.revision, receiver_revision: remote.revision };
+      const batches = []; let batch = { ...envelope, upserts: [], deletions: [] };
+      for (const row of records) {
+        if (batch.upserts.length + batch.deletions.length >= 32 ||
+            new TextEncoder().encode(personalSyncKanonisch(batch)).length + new TextEncoder().encode(personalSyncKanonisch(row)).length > 180000) {
+          batches.push(batch); batch = { ...envelope, upserts: [], deletions: [] };
+        }
+        (row.upsert ? batch.upserts : batch.deletions).push(row.upsert || row.deletion);
+      }
+      if (batch.upserts.length || batch.deletions.length) batches.push(batch);
+      if (DATEN.personalSync !== ps || gesperrt || !initialisiert || !antwortErhalten) return false;
+      ps.custom_revision = revision; ps.custom_entities = current;
+      await new Promise((resolve, reject) => nachDauerhaftemSpeichern(resolve, reject));
+      if (DATEN.personalSync !== ps || gesperrt) return false;
+      for (const inhalt of batches) if (Bruecke.sende({ cmd: "personal_sync_senden", kennung: peer.device_id,
+        art: "personal_sync.custom_batch", inhalt: inhalt }) === false)
+        throw new Error(_("Personal synchronization failed."));
+      if (trigger === "auto_wifi") {
+        const previousHash = ps.custom_auto_hash;
+        ps.custom_auto_hash = signature;
+        try { await new Promise((resolve, reject) => nachDauerhaftemSpeichern(resolve, reject)); }
+        catch (error) {
+          if (DATEN.personalSync === ps) ps.custom_auto_hash = previousHash;
+          throw error;
+        }
+      }
+      return DATEN.personalSync === ps && !gesperrt;
+    });
+    return personalCustomKette;
+  }
+
   async function personalSyncSenden(peer, trigger, vorbereitet) {
+    const bestand = DATEN.personalSync;
+    const custom = await personalCustomSenden(peer, trigger);
+    if (DATEN.personalSync !== bestand) throw new Error(_("Personal synchronization failed."));
     const modules = vorbereitet ? vorbereitet.modules.slice() : [];
     const local = peer.local_grants && peer.local_grants.grants || {}, remote = peer.grants && peer.grants.grants || {};
     if (!vorbereitet && local.personal_notes_sync && remote.personal_notes_sync) modules.push("notes");
     if (!vorbereitet && local.personal_tasks_sync && remote.personal_tasks_sync) modules.push("tasks");
-    if (!peer.own_device || !peer.remote_own_device || !modules.length) throw new Error("Personal Sync ist nicht beidseitig freigegeben.");
-    if (trigger === "auto_wifi" && peer.transport !== "wifi") throw new Error("Auto-Sync ist nur im WLAN möglich.");
+    if (!modules.length && custom) return "custom";
+    if (!peer.own_device || !peer.remote_own_device || !modules.length)
+      throw new Error(_("Personal synchronization failed."));
+    if (trigger === "auto_wifi" && peer.transport !== "wifi")
+      throw new Error(_("Personal synchronization failed."));
     const notesVersions = peer.capabilities && peer.capabilities.items &&
       peer.capabilities.items.personal_notes_sync && peer.capabilities.items.personal_notes_sync.versions || [];
     const taskVersions = peer.capabilities && peer.capabilities.items &&
@@ -744,16 +917,17 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       modules.includes("notes") && notesVersions.includes(2) ? 2 : 1;
     const run = crypto.randomUUID();
     if (trigger === "auto_wifi" && vorbereitet) personalSyncAutoHash.set(run,
-      { hash: vorbereitet.hash, modules: vorbereitet.modules.slice() });
+      { hash: vorbereitet.hash, modules: vorbereitet.modules.slice(), format: format, peerId: peer.device_id });
     const request = { format: format, run_id: run, trigger: trigger, modules: modules };
-    if (format === 1) Bruecke.sende({ cmd: "personal_sync_senden", kennung: peer.device_id,
-      art: "personal_sync.request", inhalt: request });
     const records = vorbereitet && vorbereitet.format === format ? vorbereitet.records : await personalSyncSnapshot(modules, format, peer.device_id);
-    nachDauerhaftemSpeichern(() => {
-      const chunks = personalSyncPakete(records, run, false);
+    await new Promise((resolve, reject) => nachDauerhaftemSpeichern(resolve, reject));
+    {
+      const chunks = personalSyncPakete(records, run, false, format);
       const sentRecords = chunks.flat();
-      const aggregatePromise = format >= 2 ? personalSyncHash(sentRecords) : Promise.resolve("");
-      aggregatePromise.then((aggregate) => {
+      const aggregate = format >= 2 ? await personalSyncHash(sentRecords) : "";
+      if (DATEN.personalSync !== bestand || gesperrt) throw new Error(_("Personal synchronization failed."));
+      if (format === 1) Bruecke.sende({ cmd: "personal_sync_senden", kennung: peer.device_id,
+        art: "personal_sync.request", inhalt: request });
       const batches = chunks.map((teil, sequence) => ({ format: format, run_id: run,
           batch_id: crypto.randomUUID(), sequence: sequence, last: sequence === chunks.length - 1,
           reply: false, records_hash: format >= 2 ? aggregate : undefined, records: teil }));
@@ -778,12 +952,12 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
           inhalt: { format: 1, run_id: run, proposal_batch_id: crypto.randomUUID(),
             sequence: offset / 32, last: offset + 32 >= proposals.length, proposals: proposals.slice(offset, offset + 32) } });
       }
-      }).catch((fehler) => App.personalSyncFehler({ fehler: String(fehler.message || fehler) }));
-    });
+    }
     return run;
   }
 
   async function personalSyncAutoBeiSicheremWlan(peer, secureWifiTransition) {
+    await personalCustomSenden(peer, "auto_wifi", secureWifiTransition);
     const local = peer.local_grants && peer.local_grants.grants || {};
     const remote = peer.grants && peer.grants.grants || {};
     const modules = [];
@@ -813,7 +987,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     finally { personalSyncAutoLaeuft = false; }
   }
 
-  function personalSyncPakete(records, run, reply) {
+  function personalSyncPakete(records, run, reply, format = 1) {
     const chunks = []; let current = [], oversized = 0;
     const textPasst = (wert, maximum) => typeof wert === "string" &&
       new TextEncoder().encode(wert).length <= maximum;
@@ -826,7 +1000,8 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
         Object.values(wert).every((value) => typeof value !== "number" ||
           Number.isSafeInteger(value) && value >= 0);
     };
-    const passt = (teil) => new TextEncoder().encode(personalSyncKanonisch({ format: 1,
+    const passt = (teil) => new TextEncoder().encode(personalSyncKanonisch({ format: format,
+      ...(format >= 2 ? { records_hash: "0".repeat(64) } : {}),
       run_id: run, batch_id: "00000000-0000-4000-8000-000000000000", sequence: chunks.length,
       last: false, reply: reply, records: teil })).length <= 192 * 1024;
     records.forEach((record) => {
@@ -861,7 +1036,10 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     return aliase[schluessel] || fallback;
   }
 
+  const JT_TYPEN_NACH_ID = new Map(JT_TYPEN.map((typ) => [typ[0], typ]));
+
   function jahrestagTypId(wert) {
+    if (JT_TYPEN_NACH_ID.has(wert)) return wert;
     const schluessel = kanonischerText(wert);
     const gefunden = JT_TYPEN.find((typ) => [typ[0], typ[1], typ[2], _(typ[1])]
       .some((alias) => kanonischerText(alias) === schluessel));
@@ -870,7 +1048,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
 
   function jahrestagTypText(wert) {
     const id = jahrestagTypId(wert);
-    const gefunden = JT_TYPEN.find((typ) => typ[0] === id);
+    const gefunden = JT_TYPEN_NACH_ID.get(id);
     return gefunden ? _(gefunden[1]) : String(wert || "");
   }
 
@@ -921,7 +1099,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     const oben = modalStapel[modalStapel.length - 1] || null;
     for (const hintergrund of [$("#schreibtisch"), $("#statusleiste")]) {
       if (!hintergrund) continue;
-      if (oben) hintergrund.setAttribute("inert", "");
+      if (oben || !initialisiert) hintergrund.setAttribute("inert", "");
       else hintergrund.removeAttribute("inert");
     }
     modalStapel.forEach((eintrag) => {
@@ -1001,7 +1179,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       else eintrag.schliessen();
       return;
     }
-    if (ev.key !== "Tab") return;
+    if (ev.key !== "Tab" && ev.code !== "Tab") return;
     const elemente = fokussierbareElemente(eintrag.dialog);
     if (!elemente.length) {
       ev.preventDefault();
@@ -1067,10 +1245,13 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
   }
 
   function navigiereMitGuard(navigation) {
+    sichereNotizSnapshot();
     if (aenderungsGuard) return aenderungsGuard;
     if (!editorIstGeaendert()) {
-      aktiverEditor = null;
+      const editor = aktiverEditor;
+      if (!editor || !editor.element || !editor.element.isConnected) aktiverEditor = null;
       navigation();
+      if (aktiverEditor === editor && editor && editor.element && !editor.element.isConnected) aktiverEditor = null;
       return Promise.resolve(true);
     }
     const editor = aktiverEditor;
@@ -1089,7 +1270,21 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
   }
 
   let offenesGeraet = null;
+  function registriereFormEditor(form, speichern, verwerfen, zusatz = () => null) {
+    const lesen = () => ({ felder: Array.from(form.querySelectorAll("input, select, textarea, [contenteditable]"))
+      .filter((feld) => feld.dataset.editorTransient !== "true")
+      .map((feld) => [feld.value, feld.checked, feld.hasAttribute("contenteditable") ? feld.innerHTML : ""]), zusatz: zusatz() });
+    const editor = setzeAktivenEditor({ element: form, snapshot: lesen(), lesen, verwerfen,
+      speichern: () => {
+        aktiverEditor = null;
+        speichern();
+        if (form.isConnected) { aktiverEditor = editor; return false; }
+        return true;
+      } });
+    return editor;
+  }
   let personalSyncAutoLaeuft = false;
+  let personalSyncBatchKette = Promise.resolve();
   const personalSyncTrigger = new Map();
   const personalSyncSecureWifi = new Map();
   const personalSyncAutoHash = new Map();
@@ -1116,10 +1311,48 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     return tage ? tage + " d " + stunden + " h" : stunden + " h";
   }
 
+  const geraeteKennungen = new Map();
+  const geraeteKennungenAnfragen = new Map();
+  function zeichneGeraeteKennungen() {
+    const dialog = $("#geraet-dialog");
+    const peer = (telefonStand?.peers || []).find(p => p.device_id === offenesGeraet);
+    const own = peer?.own_device === true;
+    const entry = geraeteKennungen.get(offenesGeraet);
+    const allowed = own && peer.remote_own_device && peer.state !== "offline" &&
+      peer.capabilities?.items?.device_status?.versions?.includes(4) &&
+      peer.grants?.grants?.device_status && peer.local_grants?.grants?.device_status;
+    if (!allowed) geraeteKennungenAnfragen.delete(offenesGeraet);
+    if (entry && (!allowed || entry.deadline <= performance.now() || entry.expires <= Date.now() || entry.revision !== peer.capabilities?.revision || entry.fingerprint !== peer.fingerprint)) geraeteKennungen.delete(offenesGeraet);
+    for (const name of ["phone_number", "serial", "imei"]) {
+      const field = dialog?.querySelector('[data-identifier="' + name + '"]');
+      if (!field) continue;
+      field.hidden = !own; field.previousElementSibling.hidden = !own;
+      const value = geraeteKennungen.get(offenesGeraet)?.values?.[name];
+      const reasons = { not_shared: _("Device identifier sharing is off."), permission_missing: _("Device identifier permission is missing."),
+        os_restricted: _("Android restricts this device identifier."), no_subscription: _("No default voice subscription is available."),
+        unavailable: _("This device identifier is unavailable.") };
+      field.textContent = own && value?.status === "available" ? value.value : reasons[value?.status] || reasons.unavailable;
+    }
+  }
+
   function zeichneGeraeteStatus(status) {
     const dialog = $("#geraet-dialog");
     if (!dialog) return;
     status = status || {};
+    const peer = (telefonStand?.peers || []).find(p => p.device_id === offenesGeraet);
+    const request = geraeteKennungenAnfragen.get(offenesGeraet);
+    const requestDeadline = request?.deadline;
+    if (status.identifiers && status.request_id === request?.id && requestDeadline > performance.now() && peer?.own_device && peer.remote_own_device &&
+      typeof peer.fingerprint === "string" && status.identifiers_peer_fingerprint === peer.fingerprint) {
+      geraeteKennungenAnfragen.delete(offenesGeraet);
+      const expires = Math.min(Number(status.identifiers_expires_ms) || 0, Date.now() + 60000);
+      if (expires > Date.now()) {
+        const deadline = Math.min(requestDeadline, performance.now() + expires - Date.now());
+        geraeteKennungen.set(offenesGeraet, { values: status.identifiers, expires, deadline, revision: peer.capabilities?.revision, fingerprint: peer.fingerprint });
+        setTimeout(zeichneGeraeteKennungen, Math.max(0, deadline - performance.now()) + 1);
+      }
+    }
+    zeichneGeraeteKennungen();
     const offline = status.online === false;
     for (const element of dialog.querySelectorAll(".geraet-online-details")) {
       element.classList.toggle("verborgen", offline);
@@ -1138,8 +1371,6 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     const strom = { ac: "AC", usb: "USB", wireless: _("Wireless"), dock: "Dock",
       none: _("None"), unknown: _("Unknown") }[status.power_source] || "–";
     wert("power_source", strom);
-    wert("storage", geraeteGroesse(status.storage_available_bytes) + " / " + geraeteGroesse(status.storage_total_bytes));
-    wert("memory", geraeteGroesse(status.memory_available_bytes) + " / " + geraeteGroesse(status.memory_total_bytes));
     wert("uptime_ms", geraeteDauer(status.uptime_ms));
     const netz = { wifi: "WLAN", cellular: _("Mobile network"), ethernet: "Ethernet",
       vpn: "VPN", bluetooth: "Bluetooth", none: _("None") }[status.network_transport] || "–";
@@ -1169,6 +1400,12 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     }
   }
 
+  function personalCustomBeschriftung() {
+    const name = customTabName(DATEN.einstellungen.allgemein.customTab.name, false);
+    return name ? uebersetzt('Synchronize tasks and appointments from the "%(tab)s" tab', { tab: name })
+      : _("Synchronize tasks and appointments from the custom tab");
+  }
+
   function oeffneGeraeteDialog(nutzlast) {
     if (gesperrt) return;
     nutzlast = nutzlast || {};
@@ -1176,6 +1413,9 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     if (!kennung) return;
     schliesseVorhandenesModal("geraet-schleier");
     offenesGeraet = kennung;
+    geraeteKennungen.clear(); geraeteKennungenAnfragen.clear();
+    const requestId = anrufClientRef();
+    geraeteKennungenAnfragen.set(kennung, { id: requestId, deadline: performance.now() + 60000 });
     const schleier = el("div", "eingabe-schleier geraet-schleier");
     schleier.id = "geraet-schleier";
     const dialog = el("div", "eingabe-dialog geraet-dialog");
@@ -1195,7 +1435,6 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       ["os_version", _("Android version")],
       ["sdk_int", _("API level")], ["charging", _("Charging state")],
       ["power_source", _("Power source")],
-      ["storage", _("Storage available / total")], ["memory", _("Memory available / total")],
       ["uptime_ms", _("Uptime")], ["network_transport", _("Network")],
       ["network_validated", _("Internet available")], ["network_metered", _("Metered connection")],
       ["captured_ms", _("Captured")]]) {
@@ -1203,6 +1442,11 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       dd.dataset.geraet = name; details.append(dt, dd);
     }
     const akkuZeile = el("div", "geraet-akku-zeile geraet-online-details");
+    for (const [name, label] of [["phone_number", _("Own phone number (default voice SIM)")],
+      ["serial", _("Device serial number")], ["imei", _("Device IMEI")]]) {
+      const dt = el("dt", null, label), dd = el("dd"); dd.dataset.identifier = name;
+      dt.hidden = true; dd.hidden = true; details.append(dt, dd);
+    }
     const akku = el("div", "geraet-akku");
     akku.append(el("span", "geraet-akku-fuellung"));
     const akkuText = el("strong", null, "–");
@@ -1210,10 +1454,13 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     akkuZeile.append(el("span", null, _("Battery")), akku, akkuText);
     const schliessen = () => {
       if (!schleier.isConnected) return;
+      geraeteKennungen.clear(); geraeteKennungenAnfragen.clear();
       offenesGeraet = null; beendeModal(schleier); schleier.remove();
     };
     const aktualisieren = knopf(_("Refresh"), "hauptknopf", () => {
-      Bruecke.sende({ cmd: "telefon_status_anfordern", kennung: kennung });
+      const requestId = anrufClientRef();
+      geraeteKennungen.delete(kennung); geraeteKennungenAnfragen.set(kennung, { id: requestId, deadline: performance.now() + 60000 }); zeichneGeraeteKennungen();
+      Bruecke.sende({ cmd: "telefon_status_anfordern", kennung: kennung, requestId: requestId });
     });
     const zu = knopf(_("Close"), "", schliessen);
     const knoepfe = el("div", "dialog-knoepfe geraet-dialog-knoepfe");
@@ -1249,6 +1496,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
         const lokal = aktuell.local_grants && aktuell.local_grants.grants || {};
         const fern = aktuell.grants && aktuell.grants.grants || {};
         const bestaetigt = aktuell.remote_own_device &&
+          (!aktuell.custom_sync?.local?.enabled || aktuell.custom_sync?.remote?.enabled) &&
           ((!lokal.personal_notes_sync || fern.personal_notes_sync) &&
            (!lokal.personal_tasks_sync || fern.personal_tasks_sync));
         personalStand.textContent = !bestaetigt ? _("Waiting for consent on the other device.") :
@@ -1258,6 +1506,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       zeigePersonalStand(peer);
       personalHak(_("This paired phone is my own device"), eigen, (an) => {
         eigen = an; peer.own_device = an;
+        geraeteKennungen.delete(kennung); geraeteKennungenAnfragen.delete(kennung); zeichneGeraeteKennungen();
         zeigePersonalStand(peer);
         Bruecke.sende({ cmd: "personal_sync_einstellungen", kennung: kennung, eigen: an, autoWlan: an && auto });
         Bruecke.sende({ cmd: "telefon_stand" });
@@ -1278,6 +1527,23 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       inhaltWahl.append(knopf(_("All"), "klein", () => waehleInhalte(true)),
         knopf(_("None"), "klein", () => waehleInhalte(false)));
       personal.append(inhaltWahl);
+      const customSupported = peer.capabilities?.items?.personal_tasks_sync?.available === true &&
+        (peer.capabilities?.items?.personal_tasks_sync?.versions || []).includes(4);
+      let customLocal = peer.custom_sync?.local;
+      const custom = personalHak(personalCustomBeschriftung(), peer.custom_sync?.local?.enabled,
+        (enabled) => {
+          const latest = (telefonStand?.peers || []).find((p) => p.device_id === kennung)?.custom_sync?.local;
+          customLocal = { format: 4, scope: "custom", enabled: enabled, revision: Math.max(customLocal?.revision || 0, latest?.revision || 0) + 1, epoch: crypto.randomUUID() };
+          Bruecke.sende({ cmd: "personal_sync_senden", kennung: kennung, art: "personal_sync.custom_settings",
+            inhalt: customLocal });
+          Bruecke.sende({ cmd: "telefon_stand" });
+        });
+      custom.disabled = !customSupported;
+      custom.dataset.personalCustomPeer = kennung;
+      const customNote = el("p", "einst-hinweis", customSupported
+        ? _("Both devices must opt in. Turning this off pauses reminders and updates from the custom tab but keeps copies. Linked text blocks are not shared.")
+        : _("This device does not support synchronization of the custom tab."));
+      customNote.dataset.personalCustomNote = kennung; personal.append(customNote);
       personalHak(_("Automatically synchronize over Wi-Fi"), auto, (an) => {
         auto = an; peer.auto_wifi = an;
         Bruecke.sende({ cmd: "personal_sync_einstellungen", kennung: kennung, eigen: eigen, autoWlan: an });
@@ -1301,6 +1567,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     schleier.addEventListener("click", (ev) => { if (ev.target === schleier) schliessen(); });
     registriereModal(schleier, dialog, { anfang: aktualisieren, schliessen: schliessen });
     zeichneGeraeteStatus(nutzlast.status);
+    Bruecke.sende({ cmd: "telefon_status_anfordern", kennung: kennung, requestId: requestId });
   }
 
   function modalFokus(ev) {
@@ -1782,39 +2049,297 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       arbeit: ["WORK", "INTERNET"], sonstige: ["OTHER", "INTERNET"] }[art] || [];
   }
 
-  function telefonSchluessel(wert, land) {
+  // Offline libphonenumber metadata: see phone-metadata-NOTICE.txt and phone-metadata-LICENSE.txt.
+  // BEGIN GENERATED PHONE METADATA
+  const TELEFON_REGIONEN = {
+    "AC": ["247","00","","","(?:[01589]\\d|[46])\\d{4}",[5,6],false],
+    "AD": ["376","00","","","(?:1|6\\d)\\d{7}|[135-9]\\d{5}",[6,8,9],false],
+    "AE": ["971","00","0","","(?:[4-7]\\d|9[0-689])\\d{7}|800\\d{2,9}|[2-4679]\\d{7}",[5,6,7,8,9,10,11,12],true],
+    "AF": ["93","00","0","","[2-7]\\d{8}",[9],true],
+    "AG": ["1","011","1|([457]\\d{6})$","268\\1","(?:268|[58]\\d\\d|900)\\d{7}",[10],false],
+    "AI": ["1","011","1|([2457]\\d{6})$","264\\1","(?:264|[58]\\d\\d|900)\\d{7}",[10],false],
+    "AL": ["355","00","0","","(?:700\\d\\d|900)\\d{3}|8\\d{5,7}|(?:[2-5]|6\\d)\\d{7}",[6,7,8,9],true],
+    "AM": ["374","00","0","","(?:[1-489]\\d|55|60|77)\\d{6}",[8],true],
+    "AO": ["244","00","","","[29]\\d{8}",[9],false],
+    "AR": ["54","00","0?(?:(11|2(?:2(?:02?|[13]|2[13-79]|4[1-6]|5[2457]|6[124-8]|7[1-4]|8[13-6]|9[1267])|3(?:02?|1[467]|2[03-6]|3[13-8]|[49][2-6]|5[2-8]|[67])|4(?:7[3-578]|9)|6(?:[0136]|2[24-6]|4[6-8]?|5[15-8])|80|9(?:0[1-3]|[19]|2\\d|3[1-6]|4[02568]?|5[2-4]|6[2-46]|72?|8[23]?))|3(?:3(?:2[79]|6|8[2578])|4(?:0[0-24-9]|[12]|3[5-8]?|4[24-7]|5[4-68]?|6[02-9]|7[126]|8[2379]?|9[1-36-8])|5(?:1|2[1245]|3[237]?|4[1-46-9]|6[2-4]|7[1-6]|8[2-5]?)|6[24]|7(?:[069]|1[1568]|2[15]|3[145]|4[13]|5[14-8]|7[2-57]|8[126])|8(?:[01]|2[15-7]|3[2578]?|4[13-6]|5[4-8]?|6[1-357-9]|7[36-8]?|8[5-8]?|9[124])))15)?","9\\1","(?:11|[89]\\d\\d)\\d{8}|[2368]\\d{9}",[10,11],true],
+    "AS": ["1","011","1|([267]\\d{6})$","684\\1","(?:[58]\\d\\d|684|900)\\d{7}",[10],false],
+    "AT": ["43","00","0","","1\\d{3,12}|2\\d{6,12}|43(?:(?:0\\d|5[02-9])\\d{3,9}|2\\d{4,5}|[3467]\\d{4}|8\\d{4,6}|9\\d{4,7})|5\\d{4,12}|8\\d{7,12}|9\\d{8,12}|(?:[367]\\d|4[0-24-9])\\d{4,11}",[4,5,6,7,8,9,10,11,12,13],true],
+    "AU": ["61","001[14-689]|14(?:1[14]|34|4[17]|[56]6|7[47]|88)0011","0|(183[12])","","1(?:[0-79]\\d{7}(?:\\d(?:\\d{2})?)?|8[0-24-9]\\d{7})|[2-478]\\d{8}|1\\d{4,7}",[5,6,7,8,9,10,12],true],
+    "AW": ["297","00","","","(?:[25-79]\\d\\d|800)\\d{4}",[7],false],
+    "AX": ["358","00|99(?:[01469]|5(?:[14]1|3[23]|5[59]|77|88|9[09]))","0","","2\\d{4,9}|35\\d{4,5}|(?:60\\d\\d|800)\\d{4,6}|7\\d{5,11}|(?:[14]\\d|3[0-46-9]|50)\\d{4,8}",[5,6,7,8,9,10,11,12],true],
+    "AZ": ["994","00","0","","365\\d{6}|(?:[124579]\\d|60|88)\\d{7}",[9],true],
+    "BA": ["387","00","0","","6\\d{8}|(?:[35689]\\d|49|70)\\d{6}",[8,9],true],
+    "BB": ["1","011","1|([2-9]\\d{6})$","246\\1","(?:246|[58]\\d\\d|900)\\d{7}",[10],false],
+    "BD": ["880","00","0","","[1-469]\\d{9}|8[0-79]\\d{7,8}|[2-79]\\d{8}|[2-9]\\d{7}|[3-9]\\d{6}|[57-9]\\d{5}",[6,7,8,9,10],true],
+    "BE": ["32","00","0","","4\\d{8}|[1-9]\\d{7}",[8,9],true],
+    "BF": ["226","00","","","[025-7]\\d{7}",[8],false],
+    "BG": ["359","00","0","","[2-7]\\d{6,7}|[89]\\d{6,8}|2\\d{5}",[6,7,8,9],true],
+    "BH": ["973","00","","","[136-9]\\d{7}",[8],false],
+    "BI": ["257","00","","","(?:[267]\\d|31)\\d{6}",[8],false],
+    "BJ": ["229","00","","","(?:[25689]\\d|40)\\d{6}",[8],false],
+    "BL": ["590","00","0","","(?:590|(?:69|80)\\d|976)\\d{6}",[9],true],
+    "BM": ["1","011","1|([2-8]\\d{6})$","441\\1","(?:441|[58]\\d\\d|900)\\d{7}",[10],false],
+    "BN": ["673","00","","","[2-578]\\d{6}",[7],false],
+    "BO": ["591","00(?:1\\d)?","0(1\\d)?","","(?:[2-467]\\d\\d|8001)\\d{5}",[8,9],true],
+    "BQ": ["599","00","","","(?:[34]1|7\\d)\\d{5}",[7],false],
+    "BR": ["55","00(?:1[245]|2[1-35]|31|4[13]|[56]5|99)","(?:0|90)(?:(1[245]|2[1-35]|31|4[13]|[56]5|99)(\\d{10,11}))?","\\2","(?:[1-46-9]\\d\\d|5(?:[0-46-9]\\d|5[0-46-9]))\\d{8}|[1-9]\\d{9}|[3589]\\d{8}|[34]\\d{7}",[8,9,10,11],true],
+    "BS": ["1","011","1|([3-8]\\d{6})$","242\\1","(?:242|[58]\\d\\d|900)\\d{7}",[10],false],
+    "BT": ["975","00","","","[17]\\d{7}|[2-8]\\d{6}",[7,8],false],
+    "BW": ["267","00","","","(?:0800|(?:[37]|800)\\d)\\d{6}|(?:[2-6]\\d|90)\\d{5}",[7,8,10],false],
+    "BY": ["375","810","0|80?","","(?:[12]\\d|33|44|902)\\d{7}|8(?:0[0-79]\\d{5,7}|[1-7]\\d{9})|8(?:1[0-489]|[5-79]\\d)\\d{7}|8[1-79]\\d{6,7}|8[0-79]\\d{5}|8\\d{5}",[6,7,8,9,10,11],false],
+    "BZ": ["501","00","","","(?:0800\\d|[2-8])\\d{6}",[7,11],false],
+    "CA": ["1","011","1","","(?:[2-8]\\d|90)\\d{8}|3\\d{6}",[7,10],false],
+    "CC": ["61","001[14-689]|14(?:1[14]|34|4[17]|[56]6|7[47]|88)0011","0|([59]\\d{7})$","8\\1","1(?:[0-79]\\d{8}(?:\\d{2})?|8[0-24-9]\\d{7})|[148]\\d{8}|1\\d{5,7}",[6,7,8,9,10,12],true],
+    "CD": ["243","00","0","","[189]\\d{8}|[1-68]\\d{6}",[7,9],true],
+    "CF": ["236","00","","","(?:[27]\\d{3}|8776)\\d{4}",[8],false],
+    "CG": ["242","00","","","222\\d{6}|(?:0\\d|80)\\d{7}",[9],false],
+    "CH": ["41","00","0","","8\\d{11}|[2-9]\\d{8}",[9,12],true],
+    "CI": ["225","00","","","[02]\\d{9}",[10],false],
+    "CK": ["682","00","","","[2-578]\\d{4}",[5],false],
+    "CL": ["56","(?:0|1(?:1[0-69]|2[02-5]|5[13-58]|69|7[0167]|8[018]))0","","","12300\\d{6}|6\\d{9,10}|[2-9]\\d{8}",[9,10,11],false],
+    "CM": ["237","00","","","[26]\\d{8}|88\\d{6,7}",[8,9],false],
+    "CN": ["86","00|1(?:[12]\\d|79)\\d\\d00","0|(1(?:[12]\\d|79)\\d\\d)","","1[127]\\d{8,9}|2\\d{9}(?:\\d{2})?|[12]\\d{6,7}|86\\d{6}|(?:1[03-689]\\d|6)\\d{7,9}|(?:[3-579]\\d|8[0-57-9])\\d{6,9}",[7,8,9,10,11,12],true],
+    "CO": ["57","00(?:4(?:[14]4|56)|[579])","0(4(?:[14]4|56)|[579])?","","(?:60\\d\\d|9101)\\d{6}|(?:1\\d|3)\\d{9}",[10,11],true],
+    "CR": ["506","00","(19(?:0[0-2468]|1[09]|20|66|77|99))","","(?:8\\d|90)\\d{8}|(?:[24-8]\\d{3}|3005)\\d{4}",[8,10],false],
+    "CU": ["53","119","0","","[27]\\d{6,7}|[34]\\d{5,7}|(?:5|8\\d\\d)\\d{7}",[6,7,8,10],true],
+    "CV": ["238","0","","","(?:[2-59]\\d\\d|800)\\d{4}",[7],false],
+    "CW": ["599","00","","","(?:[34]1|60|(?:7|9\\d)\\d)\\d{5}",[7,8],false],
+    "CX": ["61","001[14-689]|14(?:1[14]|34|4[17]|[56]6|7[47]|88)0011","0|([59]\\d{7})$","8\\1","1(?:[0-79]\\d{8}(?:\\d{2})?|8[0-24-9]\\d{7})|[148]\\d{8}|1\\d{5,7}",[6,7,8,9,10,12],true],
+    "CY": ["357","00","","","(?:[279]\\d|[58]0)\\d{6}",[8],false],
+    "CZ": ["420","00","","","(?:[2-578]\\d|60)\\d{7}|9\\d{8,11}",[9,10,11,12],false],
+    "DE": ["49","00","0","","[2579]\\d{5,14}|49(?:[34]0|69|8\\d)\\d\\d?|49(?:37|49|60|7[089]|9\\d)\\d{1,3}|49(?:2[024-9]|3[2-689]|7[1-7])\\d{1,8}|(?:1|[368]\\d|4[0-8])\\d{3,13}|49(?:[015]\\d|2[13]|31|[46][1-8])\\d{1,9}",[4,5,6,7,8,9,10,11,12,13,14,15],true],
+    "DJ": ["253","00","","","(?:2\\d|77)\\d{6}",[8],false],
+    "DK": ["45","00","","","[2-9]\\d{7}",[8],false],
+    "DM": ["1","011","1|([2-7]\\d{6})$","767\\1","(?:[58]\\d\\d|767|900)\\d{7}",[10],false],
+    "DO": ["1","011","1","","(?:[58]\\d\\d|900)\\d{7}",[10],false],
+    "DZ": ["213","00","0","","(?:[1-4]|[5-79]\\d|80)\\d{7}",[8,9],true],
+    "EC": ["593","00","0","","1\\d{9,10}|(?:[2-7]|9\\d)\\d{7}",[8,9,10,11],true],
+    "EE": ["372","00","","","8\\d{9}|[4578]\\d{7}|(?:[3-8]\\d|90)\\d{5}",[7,8,10],false],
+    "EG": ["20","00","0","","[189]\\d{8,9}|[24-6]\\d{8}|[135]\\d{7}",[8,9,10],true],
+    "EH": ["212","00","0","","[5-8]\\d{8}",[9],true],
+    "ER": ["291","00","0","","[178]\\d{6}",[7],true],
+    "ES": ["34","00","","","[5-9]\\d{8}",[9],false],
+    "ET": ["251","00","0","","(?:11|[2-579]\\d)\\d{7}",[9],true],
+    "FI": ["358","00|99(?:[01469]|5(?:[14]1|3[23]|5[59]|77|88|9[09]))","0","","[1-35689]\\d{4}|7\\d{10,11}|(?:[124-7]\\d|3[0-46-9])\\d{8}|[1-9]\\d{5,8}",[5,6,7,8,9,10,11,12],true],
+    "FJ": ["679","0(?:0|52)","","","45\\d{5}|(?:0800\\d|[235-9])\\d{6}",[7,11],false],
+    "FK": ["500","00","","","[2-7]\\d{4}",[5],false],
+    "FM": ["691","00","","","(?:[39]\\d\\d|820)\\d{4}",[7],false],
+    "FO": ["298","00","(10(?:01|[12]0|88))","","[2-9]\\d{5}",[6],false],
+    "FR": ["33","00","0","","[1-9]\\d{8}",[9],true],
+    "GA": ["241","00","0(11\\d{6}|60\\d{6}|61\\d{6}|6[256]\\d{6}|7[467]\\d{6})","\\1","(?:[067]\\d|11)\\d{6}|[2-7]\\d{6}",[7,8],false],
+    "GB": ["44","00","0","","[1-357-9]\\d{9}|[18]\\d{8}|8\\d{6}",[7,9,10],true],
+    "GD": ["1","011","1|([2-9]\\d{6})$","473\\1","(?:473|[58]\\d\\d|900)\\d{7}",[10],false],
+    "GE": ["995","00","0","","(?:[3-57]\\d\\d|800)\\d{6}",[9],true],
+    "GF": ["594","00","0","","(?:[56]94|80\\d|976)\\d{6}",[9],true],
+    "GG": ["44","00","0|([25-9]\\d{5})$","1481\\1","(?:1481|[357-9]\\d{3})\\d{6}|8\\d{6}(?:\\d{2})?",[7,9,10],true],
+    "GH": ["233","00","0","","(?:[235]\\d{3}|800)\\d{5}",[8,9],true],
+    "GI": ["350","00","","","(?:[25]\\d\\d|606)\\d{5}",[8],false],
+    "GL": ["299","00","","","(?:19|[2-689]\\d|70)\\d{4}",[6],false],
+    "GM": ["220","00","","","[2-9]\\d{6}",[7],false],
+    "GN": ["224","00","","","722\\d{6}|(?:3|6\\d)\\d{7}",[8,9],false],
+    "GP": ["590","00","0","","(?:590|(?:69|80)\\d|976)\\d{6}",[9],true],
+    "GQ": ["240","00","","","222\\d{6}|(?:3\\d|55|[89]0)\\d{7}",[9],false],
+    "GR": ["30","00","","","5005000\\d{3}|8\\d{9,11}|(?:[269]\\d|70)\\d{8}",[10,11,12],false],
+    "GT": ["502","00","","","(?:1\\d{3}|[2-7])\\d{7}",[8,11],false],
+    "GU": ["1","011","1|([3-9]\\d{6})$","671\\1","(?:[58]\\d\\d|671|900)\\d{7}",[10],false],
+    "GW": ["245","00","","","[49]\\d{8}|4\\d{6}",[7,9],false],
+    "GY": ["592","001","","","9008\\d{3}|(?:[2-467]\\d\\d|862)\\d{4}",[7],false],
+    "HK": ["852","00(?:30|5[09]|[126-9]?)","","","8[0-46-9]\\d{6,7}|9\\d{4,7}|(?:[2-7]|9\\d{3})\\d{7}",[5,6,7,8,9,11],false],
+    "HN": ["504","00","","","8\\d{10}|[237-9]\\d{7}",[8,11],false],
+    "HR": ["385","00","0","","(?:[24-69]\\d|3[0-79])\\d{7}|80\\d{5,7}|[1-79]\\d{7}|6\\d{5,6}",[6,7,8,9],true],
+    "HT": ["509","00","","","[2-489]\\d{7}",[8],false],
+    "HU": ["36","00","06","","[235-7]\\d{8}|[1-9]\\d{7}",[8,9],false],
+    "ID": ["62","00[89]","0","","(?:(?:00[1-9]|8\\d)\\d{4}|[1-36])\\d{6}|00\\d{10}|[1-9]\\d{8,10}|[2-9]\\d{7}",[7,8,9,10,11,12,13],true],
+    "IE": ["353","00","0","","(?:1\\d|[2569])\\d{6,8}|4\\d{6,9}|7\\d{8}|8\\d{8,9}",[7,8,9,10],true],
+    "IL": ["972","0(?:0|1[2-9])","0","","1\\d{6}(?:\\d{3,5})?|[57]\\d{8}|[1-489]\\d{7}",[7,8,9,10,11,12],true],
+    "IM": ["44","00","0|([25-8]\\d{5})$","1624\\1","1624\\d{6}|(?:[3578]\\d|90)\\d{8}",[10],true],
+    "IN": ["91","00","0","","(?:000800|[2-9]\\d\\d)\\d{7}|1\\d{7,12}",[8,9,10,11,12,13],true],
+    "IO": ["246","00","","","3\\d{6}",[7],false],
+    "IQ": ["964","00","0","","(?:1|7\\d\\d)\\d{7}|[2-6]\\d{7,8}",[8,9,10],true],
+    "IR": ["98","00","0","","[1-9]\\d{9}|(?:[1-8]\\d\\d|9)\\d{3,4}",[4,5,6,7,10],true],
+    "IS": ["354","00|1(?:0(?:01|[12]0)|100)","","","(?:38\\d|[4-9])\\d{6}",[7,9],false],
+    "IT": ["39","00","","","0\\d{5,10}|1\\d{8,10}|3(?:[0-8]\\d{7,10}|9\\d{7,8})|(?:55|70)\\d{8}|8\\d{5}(?:\\d{2,4})?",[6,7,8,9,10,11,12],false],
+    "JE": ["44","00","0|([0-24-8]\\d{5})$","1534\\1","1534\\d{6}|(?:[3578]\\d|90)\\d{8}",[10],true],
+    "JM": ["1","011","1","","(?:[58]\\d\\d|658|900)\\d{7}",[10],false],
+    "JO": ["962","00","0","","(?:(?:[2689]|7\\d)\\d|32|53)\\d{6}",[8,9],true],
+    "JP": ["81","010","0","","00[1-9]\\d{6,14}|[257-9]\\d{9}|(?:00|[1-9]\\d\\d)\\d{6}",[8,9,10,11,12,13,14,15,16,17],true],
+    "KE": ["254","000","0","","(?:[17]\\d\\d|900)\\d{6}|(?:2|80)0\\d{6,7}|[4-6]\\d{6,8}",[7,8,9,10],true],
+    "KG": ["996","00","0","","8\\d{9}|(?:[235-8]\\d|99)\\d{7}",[9,10],true],
+    "KH": ["855","00[14-9]","0","","1\\d{9}|[1-9]\\d{7,8}",[8,9,10],true],
+    "KI": ["686","00","0","","(?:[37]\\d|6[0-79])\\d{6}|(?:[2-48]\\d|50)\\d{3}",[5,8],true],
+    "KM": ["269","00","","","[3478]\\d{6}",[7],false],
+    "KN": ["1","011","1|([2-7]\\d{6})$","869\\1","(?:[58]\\d\\d|900)\\d{7}",[10],false],
+    "KP": ["850","00|99","0","","85\\d{6}|(?:19\\d|[2-7])\\d{7}",[8,10],true],
+    "KR": ["82","00(?:[125689]|3(?:[46]5|91)|7(?:00|27|3|55|6[126]))","0(8(?:[1-46-8]|5\\d\\d))?","","00[1-9]\\d{8,11}|(?:[12]|5\\d{3})\\d{7}|[13-6]\\d{9}|(?:[1-6]\\d|80)\\d{7}|[3-6]\\d{4,5}|(?:00|7)0\\d{8}",[5,6,8,9,10,11,12,13,14],true],
+    "KW": ["965","00","","","18\\d{5}|(?:[2569]\\d|41)\\d{6}",[7,8],false],
+    "KY": ["1","011","1|([2-9]\\d{6})$","345\\1","(?:345|[58]\\d\\d|900)\\d{7}",[10],false],
+    "KZ": ["7","810","8","","(?:33622|8\\d{8})\\d{5}|[78]\\d{9}",[10,14],false],
+    "LA": ["856","00","0","","[23]\\d{9}|3\\d{8}|(?:[235-8]\\d|41)\\d{6}",[8,9,10],true],
+    "LB": ["961","00","0","","[27-9]\\d{7}|[13-9]\\d{6}",[7,8],true],
+    "LC": ["1","011","1|([2-8]\\d{6})$","758\\1","(?:[58]\\d\\d|758|900)\\d{7}",[10],false],
+    "LI": ["423","00","0|(1001)","","[68]\\d{8}|(?:[2378]\\d|90)\\d{5}",[7,9],true],
+    "LK": ["94","00","0","","[1-9]\\d{8}",[9],true],
+    "LR": ["231","00","0","","(?:2|33|5\\d|77|88)\\d{7}|[4-6]\\d{6}",[7,8,9],true],
+    "LS": ["266","00","","","(?:[256]\\d\\d|800)\\d{5}",[8],false],
+    "LT": ["370","00","[08]","","(?:[3469]\\d|52|[78]0)\\d{6}",[8],false],
+    "LU": ["352","00","(15(?:0[06]|1[12]|[35]5|4[04]|6[26]|77|88|99)\\d)","","35[013-9]\\d{4,8}|6\\d{8}|35\\d{2,4}|(?:[2457-9]\\d|3[0-46-9])\\d{2,9}",[4,5,6,7,8,9,10,11],false],
+    "LV": ["371","00","","","(?:[268]\\d|90)\\d{6}",[8],false],
+    "LY": ["218","00","0","","[2-9]\\d{8}",[9],true],
+    "MA": ["212","00","0","","[5-8]\\d{8}",[9],true],
+    "MC": ["377","00","0","","(?:[3489]|6\\d)\\d{7}",[8,9],true],
+    "MD": ["373","00","0","","(?:[235-7]\\d|[89]0)\\d{6}",[8],true],
+    "ME": ["382","00","0","","(?:20|[3-79]\\d)\\d{6}|80\\d{6,7}",[8,9],true],
+    "MF": ["590","00","0","","(?:590|(?:69|80)\\d|976)\\d{6}",[9],true],
+    "MG": ["261","00","0|([24-9]\\d{6})$","20\\1","[23]\\d{8}",[9],true],
+    "MH": ["692","011","1","","329\\d{4}|(?:[256]\\d|45)\\d{5}",[7],false],
+    "MK": ["389","00","0","","[2-578]\\d{7}",[8],true],
+    "ML": ["223","00","","","[24-9]\\d{7}",[8],false],
+    "MM": ["95","00","0","","1\\d{5,7}|95\\d{6}|(?:[4-7]|9[0-46-9])\\d{6,8}|(?:2|8\\d)\\d{5,8}",[6,7,8,9,10],true],
+    "MN": ["976","001","0","","[12]\\d{7,9}|[5-9]\\d{7}",[8,9,10],true],
+    "MO": ["853","00","","","0800\\d{3}|(?:28|[68]\\d)\\d{6}",[7,8],false],
+    "MP": ["1","011","1|([2-9]\\d{6})$","670\\1","[58]\\d{9}|(?:67|90)0\\d{7}",[10],false],
+    "MQ": ["596","00","0","","(?:69|80)\\d{7}|(?:59|97)6\\d{6}",[9],true],
+    "MR": ["222","00","","","(?:[2-4]\\d\\d|800)\\d{5}",[8],false],
+    "MS": ["1","011","1|([34]\\d{6})$","664\\1","(?:[58]\\d\\d|664|900)\\d{7}",[10],false],
+    "MT": ["356","00","","","3550\\d{4}|(?:[2579]\\d\\d|800)\\d{5}",[8],false],
+    "MU": ["230","0(?:0|[24-7]0|3[03])","","","(?:5|8\\d\\d)\\d{7}|[2-468]\\d{6}",[7,8,10],false],
+    "MV": ["960","0(?:0|19)","","","(?:800|9[0-57-9]\\d)\\d{7}|[34679]\\d{6}",[7,10],false],
+    "MW": ["265","00","0","","(?:[1289]\\d|31|77)\\d{7}|1\\d{6}",[7,9],true],
+    "MX": ["52","0[09]","0(?:[12]|4[45])|1","","1(?:(?:44|99)[1-9]|65[0-689])\\d{7}|(?:1(?:[017]\\d|[235][1-9]|4[0-35-9]|6[0-46-9]|8[1-79]|9[1-8])|[2-9]\\d)\\d{8}",[10,11],false],
+    "MY": ["60","00","0","","1\\d{8,9}|(?:3\\d|[4-9])\\d{7}",[8,9,10],true],
+    "MZ": ["258","00","","","(?:2|8\\d)\\d{7}",[8,9],false],
+    "NA": ["264","00","0","","[68]\\d{7,8}",[8,9],true],
+    "NC": ["687","00","","","(?:050|[2-57-9]\\d\\d)\\d{3}",[6],false],
+    "NE": ["227","00","","","[027-9]\\d{7}",[8],false],
+    "NF": ["672","00","([0-258]\\d{4})$","3\\1","[13]\\d{5}",[6],false],
+    "NG": ["234","009","0","","(?:[124-7]|9\\d{3})\\d{6}|[1-9]\\d{7}|[78]\\d{9,13}",[7,8,10,11,12,13,14],true],
+    "NI": ["505","00","","","(?:1800|[25-8]\\d{3})\\d{4}",[8],false],
+    "NL": ["31","00","0","","(?:[124-7]\\d\\d|3(?:[02-9]\\d|1[0-8]))\\d{6}|8\\d{6,9}|9\\d{6,10}|1\\d{4,5}",[5,6,7,8,9,10,11],true],
+    "NO": ["47","00","","","(?:0|[2-9]\\d{3})\\d{4}",[5,8],false],
+    "NP": ["977","00","0","","(?:1\\d|9)\\d{9}|[1-9]\\d{7}",[8,10,11],true],
+    "NR": ["674","00","","","(?:444|(?:55|8\\d)\\d|666)\\d{4}",[7],false],
+    "NU": ["683","00","","","(?:[47]|888\\d)\\d{3}",[4,7],false],
+    "NZ": ["64","0(?:0|161)","0","","[29]\\d{7,9}|50\\d{5}(?:\\d{2,3})?|6[0-35-9]\\d{6}|7\\d{7,8}|8\\d{4,9}|(?:11\\d|[34])\\d{7}",[5,6,7,8,9,10],true],
+    "OM": ["968","00","","","(?:1505|[279]\\d{3}|500)\\d{4}|800\\d{5,6}",[7,8,9],false],
+    "PA": ["507","00","","","(?:00800|8\\d{3})\\d{6}|[68]\\d{7}|[1-57-9]\\d{6}",[7,8,10,11],false],
+    "PE": ["51","00|19(?:1[124]|77|90)00","0","","(?:[14-8]|9\\d)\\d{7}",[8,9],true],
+    "PF": ["689","00","","","4\\d{5}(?:\\d{2})?|8\\d{7,8}",[6,8,9],false],
+    "PG": ["675","00|140[1-3]","","","(?:180|[78]\\d{3})\\d{4}|(?:[2-589]\\d|64)\\d{5}",[7,8],false],
+    "PH": ["63","00","0","","(?:[2-7]|9\\d)\\d{8}|2\\d{5}|(?:1800|8)\\d{7,9}",[6,8,9,10,11,12,13],true],
+    "PK": ["92","00","0","","122\\d{6}|[24-8]\\d{10,11}|9(?:[013-9]\\d{8,10}|2(?:[01]\\d\\d|2(?:[06-8]\\d|1[01]))\\d{7})|(?:[2-8]\\d{3}|92(?:[0-7]\\d|8[1-9]))\\d{6}|[24-9]\\d{8}|[89]\\d{7}",[8,9,10,11,12],true],
+    "PL": ["48","00","","","(?:6|8\\d\\d)\\d{7}|[1-9]\\d{6}(?:\\d{2})?|[26]\\d{5}",[6,7,8,9,10],false],
+    "PM": ["508","00","0","","(?:[45]|80\\d\\d)\\d{5}",[6,9],true],
+    "PR": ["1","011","1","","(?:[589]\\d\\d|787)\\d{7}",[10],false],
+    "PS": ["970","00","0","","[2489]2\\d{6}|(?:1\\d|5)\\d{8}",[8,9,10],true],
+    "PT": ["351","00","","","1693\\d{5}|(?:[26-9]\\d|30)\\d{7}",[9],false],
+    "PW": ["680","01[12]","","","(?:[24-8]\\d\\d|345|900)\\d{4}",[7],false],
+    "PY": ["595","00","0","","59\\d{4,6}|9\\d{5,10}|(?:[2-46-8]\\d|5[0-8])\\d{4,7}",[6,7,8,9,10,11],true],
+    "QA": ["974","00","","","[2-7]\\d{7}|800\\d{4}(?:\\d{2})?|2\\d{6}",[7,8,9],false],
+    "RE": ["262","00","0","","976\\d{6}|(?:26|[68]\\d)\\d{7}",[9],true],
+    "RO": ["40","00","0","","(?:[2378]\\d|90)\\d{7}|[23]\\d{5}",[6,9],true],
+    "RS": ["381","00","0","","38[02-9]\\d{6,9}|6\\d{7,9}|90\\d{4,8}|38\\d{5,6}|(?:7\\d\\d|800)\\d{3,9}|(?:[12]\\d|3[0-79])\\d{5,10}",[6,7,8,9,10,11,12],true],
+    "RU": ["7","810","8","","8\\d{13}|[347-9]\\d{9}",[10,14],false],
+    "RW": ["250","00","0","","(?:06|[27]\\d\\d|[89]00)\\d{6}",[8,9],true],
+    "SA": ["966","00","0","","92\\d{7}|(?:[15]|8\\d)\\d{8}",[9,10],true],
+    "SB": ["677","0[01]","","","(?:[1-6]|[7-9]\\d\\d)\\d{4}",[5,7],false],
+    "SC": ["248","010|0[0-2]","","","800\\d{4}|(?:[249]\\d|64)\\d{5}",[7],false],
+    "SD": ["249","00","0","","[19]\\d{8}",[9],true],
+    "SE": ["46","00","0","","(?:[26]\\d\\d|9)\\d{9}|[1-9]\\d{8}|[1-689]\\d{7}|[1-4689]\\d{6}|2\\d{5}",[6,7,8,9,10,12],true],
+    "SG": ["65","0[0-3]\\d","","","(?:(?:1\\d|8)\\d\\d|7000)\\d{7}|[3689]\\d{7}",[8,10,11],false],
+    "SH": ["290","00","","","(?:[256]\\d|8)\\d{3}",[4,5],false],
+    "SI": ["386","00|10(?:22|66|88|99)","0","","[1-7]\\d{7}|8\\d{4,7}|90\\d{4,6}",[5,6,7,8],true],
+    "SJ": ["47","00","","","0\\d{4}|(?:[489]\\d|[57]9)\\d{6}",[5,8],false],
+    "SK": ["421","00","0","","[2-689]\\d{8}|[2-59]\\d{6}|[2-5]\\d{5}",[6,7,9],true],
+    "SL": ["232","00","0","","(?:[237-9]\\d|66)\\d{6}",[8],true],
+    "SM": ["378","00","([89]\\d{5})$","0549\\1","(?:0549|[5-7]\\d)\\d{6}",[8,10],false],
+    "SN": ["221","00","","","(?:[378]\\d|93)\\d{7}",[9],false],
+    "SO": ["252","00","0","","[346-9]\\d{8}|[12679]\\d{7}|[1-5]\\d{6}|[1348]\\d{5}",[6,7,8,9],true],
+    "SR": ["597","00","","","(?:[2-5]|68|[78]\\d)\\d{5}",[6,7],false],
+    "SS": ["211","00","0","","[19]\\d{8}",[9],true],
+    "ST": ["239","00","","","(?:22|9\\d)\\d{5}",[7],false],
+    "SV": ["503","00","","","[267]\\d{7}|[89]00\\d{4}(?:\\d{4})?",[7,8,11],false],
+    "SX": ["1","011","1|(5\\d{6})$","721\\1","7215\\d{6}|(?:[58]\\d\\d|900)\\d{7}",[10],false],
+    "SY": ["963","00","0","","[1-39]\\d{8}|[1-5]\\d{7}",[8,9],true],
+    "SZ": ["268","00","","","0800\\d{4}|(?:[237]\\d|900)\\d{6}",[8,9],false],
+    "TA": ["290","00","","","8\\d{3}",[4],false],
+    "TC": ["1","011","1|([2-479]\\d{6})$","649\\1","(?:[58]\\d\\d|649|900)\\d{7}",[10],false],
+    "TD": ["235","00|16","","","(?:22|[69]\\d|77)\\d{6}",[8],false],
+    "TG": ["228","00","","","[279]\\d{7}",[8],false],
+    "TH": ["66","00[1-9]","0","","(?:001800|[2-57]|[689]\\d)\\d{7}|1\\d{7,9}",[8,9,10,13],true],
+    "TJ": ["992","810","","","(?:00|[1-57-9]\\d)\\d{7}",[9],false],
+    "TK": ["690","00","","","[2-47]\\d{3,6}",[4,5,6,7],false],
+    "TL": ["670","00","","","7\\d{7}|(?:[2-47]\\d|[89]0)\\d{5}",[7,8],false],
+    "TM": ["993","810","8","","[1-6]\\d{7}",[8],false],
+    "TN": ["216","00","","","[2-57-9]\\d{7}",[8],false],
+    "TO": ["676","00","","","(?:0800|(?:[5-8]\\d\\d|999)\\d)\\d{3}|[2-8]\\d{4}",[5,7],false],
+    "TR": ["90","00","0","","4\\d{6}|8\\d{11,12}|(?:[2-58]\\d\\d|900)\\d{7}",[7,10,12,13],true],
+    "TT": ["1","011","1|([2-46-8]\\d{6})$","868\\1","(?:[58]\\d\\d|900)\\d{7}",[10],false],
+    "TV": ["688","00","","","(?:2|7\\d\\d|90)\\d{4}",[5,6,7],false],
+    "TW": ["886","0(?:0[25-79]|19)","0","","[2-689]\\d{8}|7\\d{9,10}|[2-8]\\d{7}|2\\d{6}",[7,8,9,10,11],true],
+    "TZ": ["255","00[056]","0","","(?:[25-8]\\d|41|90)\\d{7}",[9],true],
+    "UA": ["380","00","0","","[89]\\d{9}|[3-9]\\d{8}",[9,10],true],
+    "UG": ["256","00[057]","0","","800\\d{6}|(?:[29]0|[347]\\d)\\d{7}",[9],true],
+    "US": ["1","011","1","","[2-9]\\d{9}|3\\d{6}",[10],false],
+    "UY": ["598","0(?:0|1[3-9]\\d)","0","","4\\d{9}|[1249]\\d{7}|(?:[49]\\d|80)\\d{5}",[7,8,10],true],
+    "UZ": ["998","810","8","","(?:33|55|[679]\\d|88)\\d{7}",[9],false],
+    "VA": ["39","00","","","0\\d{5,10}|3[0-8]\\d{7,10}|55\\d{8}|8\\d{5}(?:\\d{2,4})?|(?:1\\d|39)\\d{7,8}",[6,7,8,9,10,11,12],false],
+    "VC": ["1","011","1|([2-7]\\d{6})$","784\\1","(?:[58]\\d\\d|784|900)\\d{7}",[10],false],
+    "VE": ["58","00","0","","[68]00\\d{7}|(?:[24]\\d|[59]0)\\d{8}",[10],true],
+    "VG": ["1","011","1|([2-578]\\d{6})$","284\\1","(?:284|[58]\\d\\d|900)\\d{7}",[10],false],
+    "VI": ["1","011","1|([2-9]\\d{6})$","340\\1","[58]\\d{9}|(?:34|90)0\\d{7}",[10],false],
+    "VN": ["84","00","0","","[12]\\d{9}|[135-9]\\d{8}|[16]\\d{7}|[16-8]\\d{6}",[7,8,9,10],true],
+    "VU": ["678","00","","","[57-9]\\d{6}|(?:[238]\\d|48)\\d{3}",[5,7],false],
+    "WF": ["681","00","","","(?:40|72)\\d{4}|8\\d{5}(?:\\d{3})?",[6,9],false],
+    "WS": ["685","0","","","(?:[2-6]|8\\d{5})\\d{4}|[78]\\d{6}|[68]\\d{5}",[5,6,7,10],false],
+    "XK": ["383","00","0","","[23]\\d{7,8}|(?:4\\d\\d|[89]00)\\d{5}",[8,9],true],
+    "YE": ["967","00","0","","(?:1|7\\d)\\d{7}|[1-7]\\d{6}",[7,8,9],true],
+    "YT": ["262","00","0","","80\\d{7}|(?:26|63)9\\d{6}",[9],true],
+    "ZA": ["27","00","0","","[1-79]\\d{8}|8\\d{4,9}",[5,6,7,8,9,10],true],
+    "ZM": ["260","00","0","","800\\d{6}|(?:21|63|[79]\\d)\\d{7}",[9],true],
+    "ZW": ["263","00","0","","2(?:[0-57-9]\\d{6,8}|6[0-24-9]\\d{6,7})|[38]\\d{9}|[35-8]\\d{8}|[3-6]\\d{7}|[1-689]\\d{6}|[1-3569]\\d{5}|[1356]\\d{4}",[5,6,7,8,9,10],true]
+  };
+  // END GENERATED PHONE METADATA
+
+  function telefonSchluessel(wert, land = telefonHeimatland()) {
     let text = String(wert || "").trim().replace(/^tel:/i, "");
     let erweiterung = "";
     const ext = text.match(/(?:\b(?:ext|extension|durchwahl)\b|[x#])\s*(\d+)\s*$/i);
     if (ext) { erweiterung = "x" + ext[1]; text = text.slice(0, ext.index); }
-    text = text.replace(/^\s*\+(49|43|41)\s*\(0\)/, "+$1");
-    let plus = /^\s*\+/.test(text);
-    let ziffern = text.replace(/\D/g, "");
-    if (ziffern.startsWith("00")) { plus = true; ziffern = ziffern.slice(2); }
-    if (plus) {
-      for (const code of ["49", "43", "41"]) {
-        if (ziffern.startsWith(code + "0")) {
-          ziffern = code + ziffern.slice(code.length + 1);
-          break;
-        }
-      }
-      return ziffern.length >= 6 ? "+" + ziffern + erweiterung : "";
+    if (text.length > 128 || !/^[+0-9()./\s-]+$/.test(text) ||
+        (text.match(/\+/g) || []).length > 1 || text.includes("+") && !text.startsWith("+")) return "";
+    text = text.replace(/^\+(\d{1,3})\s*\(0\)/, (original, code) =>
+      Object.values(TELEFON_REGIONEN).some(r => r[0] === code && r[6]) ? "+" + code : original);
+    let ziffern = text.replace(/[^0-9]/g, "");
+    const international = digits => /^[1-9][0-9]{5,14}$/.test(digits) ? "+" + digits + erweiterung : "";
+    if (text.startsWith("+")) return international(ziffern);
+    if (ziffern.startsWith("00")) return international(ziffern.slice(2));
+    if (!ziffern.length || ziffern.length > 15) return "";
+    const roh = ziffern.length >= 6 ? ziffern + erweiterung : "";
+    const region = TELEFON_REGIONEN[String(land || "").trim().toUpperCase()];
+    if (!region) return roh;
+    const [code, ausland, praefix, ersatz, muster, laengen] = region;
+    const auslandswahl = ziffern.match(new RegExp("^(?:" + ausland + ")"));
+    if (auslandswahl && ziffern[auslandswahl[0].length] !== "0")
+      return international(ziffern.slice(auslandswahl[0].length));
+    const passt = number => new RegExp("^(?:" + muster + ")$").test(number);
+    const ohnePraefix = number => {
+      if (!praefix) return number;
+      const re = new RegExp("^(?:" + praefix + ")");
+      const match = number.match(re);
+      if (!match) return number;
+      const kandidat = ersatz && match.at(-1) ? number.replace(re, ersatz.replace(/\\(\d)/g, "$$$1")) : number.slice(match[0].length);
+      return passt(number) && !passt(kandidat) ? number : kandidat;
+    };
+    if (ziffern.startsWith(code)) {
+      const kandidat = ohnePraefix(ziffern.slice(code.length));
+      if (!passt(ziffern) && passt(kandidat) || ziffern.length > Math.max(...laengen)) ziffern = kandidat;
     }
-    if (ziffern.startsWith("0")) {
-      const code = { DE: "49", AT: "43", CH: "41" }[String(land || "DE").toUpperCase()] || "49";
-      return ziffern.length >= 6 ? "+" + code + ziffern.slice(1) + erweiterung : "";
-    }
-    return ziffern.length >= 6 ? ziffern + erweiterung : "";
+    ziffern = ohnePraefix(ziffern);
+    return laengen.includes(ziffern.length) ? international(code + ziffern) : roh;
   }
 
   function adressLandCode() {
-    const roh = DATEN.einstellungen.adressen.landCode || DATEN.einstellungen.adressen.land || "DE";
-    const code = String(roh).trim().toUpperCase();
-    if (["DE", "AT", "CH"].includes(code)) return code;
-    const name = kanonischerText(roh);
-    if (["osterreich", "oesterreich", "austria"].includes(name)) return "AT";
-    if (["schweiz", "switzerland", "suisse", "svizzera"].includes(name)) return "CH";
-    return "DE";
+    return telefonHeimatland();
   }
 
   const ISO_ALPHA2 = new Set(("AD AE AF AG AI AL AM AO AQ AR AS AT AU AW AX AZ BA BB BD BE BF BG BH BI BJ BL BM BN BO BQ BR BS BT BV BW BY BZ CA CC CD CF CG CH CI CK CL CM CN CO CR CU CV CW CX CY CZ DE DJ DK DM DO DZ EC EE EG EH ER ES ET FI FJ FK FM FO FR GA GB GD GE GF GG GH GI GL GM GN GP GQ GR GS GT GU GW GY HK HM HN HR HT HU ID IE IL IM IN IO IQ IR IS IT JE JM JO JP KE KG KH KI KM KN KP KR KW KY KZ LA LB LC LI LK LR LS LT LU LV LY MA MC MD ME MF MG MH MK ML MM MN MO MP MQ MR MS MT MU MV MW MX MY MZ NA NC NE NF NG NI NL NO NP NR NU NZ OM PA PE PF PG PH PK PL PM PN PR PS PT PW PY QA RE RO RS RU RW SA SB SC SD SE SG SH SI SJ SK SL SM SN SO SR SS ST SV SX SY SZ TC TD TF TG TH TJ TK TL TM TN TO TR TT TV TW TZ UA UG UM US UY UZ VA VC VE VG VI VN VU WF WS YE YT ZA ZM ZW").split(" "));
@@ -1824,9 +2349,13 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     return ISO_ALPHA2.has(code) ? code : fallback;
   }
 
-  function telefonHeimatland() {
-    return isoLand(DATEN && DATEN.einstellungen && DATEN.einstellungen.regional &&
-      DATEN.einstellungen.regional.homeCountry, adressLandCode());
+  function telefonHeimatland(daten = DATEN) {
+    const e = daten && daten.einstellungen || {};
+    const a = e.adressen || {};
+    const roh = String(e.regional?.homeCountry ?? (a.landCode || a.land || "DE")).trim();
+    const namen = { deutschland: "DE", germany: "DE", osterreich: "AT", oesterreich: "AT",
+      austria: "AT", schweiz: "CH", switzerland: "CH", suisse: "CH", svizzera: "CH" };
+    return isoLand(roh, namen[kanonischerText(roh)] || "");
   }
 
   function istEdsZeigerwert(wert) {
@@ -1869,7 +2398,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     return "";
   }
 
-  function telefonListe(kontakt) {
+  function telefonListe(kontakt, land = telefonHeimatland()) {
     const kandidaten = Array.isArray(kontakt && kontakt.telefone)
       ? kontakt.telefone.slice() : [];
     if (kontakt && kontakt.telefon) kandidaten.push({ wert: kontakt.telefon, typen: ["VOICE"] });
@@ -1884,7 +2413,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       const rolle = roh && typeof roh === "object" && (roh.rolle === "private" ||
         ["privat", "private"].includes(kanonischerText(label))) ? "private" : "";
       if (rolle) label = "";
-      const schluessel = telefonSchluessel(wert) || "roh:" + wert.replace(/\s/g, "").toLowerCase();
+      const schluessel = telefonSchluessel(wert, land) || "roh:" + wert.replace(/\s/g, "").toLowerCase();
       let vereinigt = false;
       for (const stelle of stellen.get(schluessel) || []) {
         const ziel = aus[stelle];
@@ -1921,8 +2450,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     const typen = eintrag && Array.isArray(eintrag.typen) ? eintrag.typen : [];
     if (typen.some((typ) => ["CELL", "MOBILE"].includes(typ))) return true;
     if (typen.some((typ) => ["FAX", "PAGER"].includes(typ))) return false;
-    const nummer = telefonSchluessel(eintrag && eintrag.wert,
-      DATEN.einstellungen.adressen.landCode || DATEN.einstellungen.adressen.land || "DE")
+    const nummer = telefonSchluessel(eintrag && eintrag.wert)
       .split("x", 1)[0];
     return /^\+49(?:15|16|17)\d+$/.test(nummer) ||
       /^\+43(?:65|66|67|68|69)\d+$/.test(nummer) ||
@@ -1937,7 +2465,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
 
   function smsStatusText(status) {
     return { queued: _("Queued"), submitted: _("Submitted"), sent: _("Sent"),
-      delivered: _("Delivered"), failed: _("Failed") }[status] || status;
+      delivered: _("Delivered"), failed: _("Failed"), uncertain: _("Delivery status uncertain") }[status] || status;
   }
 
   function smsStatusZeichen(status) {
@@ -1981,7 +2509,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     const land = adressLandCode();
     const schluessel = telefonSchluessel(chat.nummer.value, land);
     const nachrichten = DATEN.smsVerlauf.filter((eintrag) => eintrag.kontaktId === chat.kontaktId &&
-      telefonSchluessel(eintrag.nummer, land) === schluessel).sort((a, b) => a.zeit - b.zeit);
+      telefonSchluessel(eintrag.nummer, eintrag.land ?? land) === schluessel).sort((a, b) => a.zeit - b.zeit);
     let letzterTag = "";
     for (const nachricht of nachrichten) {
       const tag = new Date(nachricht.zeit).toLocaleDateString(undefined, {
@@ -2019,7 +2547,8 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     const clientRef = String(nutzlast.client_ref || nutzlast.clientRef || "").slice(0, 160);
     const eintrag = clientRef && DATEN.smsVerlauf.find((x) => x.clientRef === clientRef);
     if (!eintrag) return false;
-    let status = kde ? (nutzlast.ok ? "queued" : "failed") :
+    let status = kde ? (nutzlast.state === "uncertain" ? "uncertain" : nutzlast.ok ?
+      (nutzlast.state === "submitted" ? "submitted" : "queued") : "failed") :
       (["queued", "submitted", "sent", "delivered", "failed"].includes(nutzlast.state)
         ? nutzlast.state : "failed");
     const rang = { queued: 0, submitted: 1, sent: 2, delivered: 3 };
@@ -2029,10 +2558,13 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     planeSpeichern();
     if (offenerSmsChat) {
       zeichneSmsVerlauf(offenerSmsChat);
-      if (offenerSmsChat.clientRef === clientRef && (!kde || nutzlast.ok === true || status === "failed")) {
+      if (offenerSmsChat.clientRef === clientRef && status !== "queued") {
         offenerSmsChat.senden.disabled = false;
-        if (status !== "failed") offenerSmsChat.text.value = "";
+        if (["submitted", "sent", "delivered"].includes(status) &&
+            offenerSmsChat.entwurfRevision === offenerSmsChat.gesendeteRevision &&
+            offenerSmsChat.text.value === offenerSmsChat.gesendeterEntwurf) offenerSmsChat.text.value = "";
         offenerSmsChat.clientRef = "";
+        offenerSmsChat.text.dispatchEvent(new Event("input"));
       }
     }
     return true;
@@ -2042,6 +2574,20 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     const schleier = el("div", "eingabe-schleier sms-einstellungen-schleier");
     const dialog = el("div", "eingabe-dialog sms-einstellungen-dialog");
     const schliessen = () => { beendeModal(schleier); schleier.remove(); };
+    const planen = document.createElement("input"); planen.type = "checkbox";
+    planen.checked = DATEN.einstellungen.adressen.smsSchedulingEnabled === true;
+    const planZeile = el("label", "hak");
+    planZeile.append(planen, document.createTextNode(" " + _("Enable SMS scheduling")));
+    const planHinweis = el("p", "einst-hinweis", _("Off by default. Turning this off pauses pending SMS plans without deleting them. Enabling resumes them, including overdue plans. Messages already handed to KDE Connect cannot be recalled."));
+    planHinweis.append(" " + _("Restored pending plans stay paused until you review and enable each plan. Restoring contacts, calendar or notes does not change live SMS plans."));
+    planen.addEventListener("change", () => {
+      DATEN.einstellungen.adressen.smsSchedulingEnabled = planen.checked;
+      chat.planen.classList.toggle("verborgen", !planen.checked);
+      chat.planHinweis.classList.toggle("verborgen", planen.checked ||
+        !DATEN.smsPlanung.some((sms) => ["planned", "submitting"].includes(sms.status)));
+      planeSpeichern();
+    });
+    const vorhandene = knopf(_("Pending SMS messages"), "", () => oeffneSmsPlanung(null));
     const dauer = auswahlFeld([["15", _("15 seconds")], ["30", _("30 seconds")],
       ["60", _("1 minute")], ["120", _("2 minutes")], ["0", _("Never automatically")]],
       String(DATEN.einstellungen.adressen.smsBenachrichtigungDauer));
@@ -2056,7 +2602,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       else {
         const land = adressLandCode();
         DATEN.smsVerlauf = DATEN.smsVerlauf.filter((eintrag) => !(eintrag.kontaktId ===
-          chat.kontaktId && telefonSchluessel(eintrag.nummer, land) ===
+          chat.kontaktId && telefonSchluessel(eintrag.nummer, eintrag.land ?? land) ===
           telefonSchluessel(chat.nummer.value, land)));
       }
       planeSpeichern(); zeichneSmsVerlauf(chat); schliessen();
@@ -2065,6 +2611,8 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     knoepfe.append(knopf(_("Close"), "", schliessen));
     dialog.append(el("h3", null, _("SMS settings")),
       formZeile(_("Hide SMS notification after"), dauer),
+      planZeile, planHinweis, vorhandene,
+      knopf(_("SMS app settings"), "", () => oeffneKommunikationsBelegung("sms")),
       knopf(_("Delete this contact's history"), "", () => loeschen(false)),
       knopf(_("Delete all SMS histories"), "", () => loeschen(true)),
       knoepfe);
@@ -2110,14 +2658,56 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       "T" + teil(datum.getHours()) + ":" + teil(datum.getMinutes());
   }
 
+  const smsPlanFreigaben = new WeakSet();
+  function smsPlanVorschau(dialog) {
+    const box = el("div", "sms-plan-vorschau sms-anpassung verborgen");
+    let generation = 0, zustimmung = null;
+    const verwerfen = () => { generation++; zustimmung = null; box.classList.add("verborgen"); };
+    dialog.addEventListener("input", verwerfen);
+    dialog.addEventListener("change", verwerfen);
+    const anzeigen = async (lesen, uebernehmen, einzeln = false) => {
+      verwerfen();
+      const lauf = generation, daten = DATEN, batch = lesen();
+      if (!batch || !batch.length) return;
+      const json = JSON.stringify(batch);
+      try {
+        const hash = await personalSyncHash(json);
+        if (lauf !== generation || daten !== DATEN || !dialog.isConnected || gesperrt ||
+            JSON.stringify(lesen()) !== json) return;
+        const angebot = { hash, json, daten, batch };
+        zustimmung = angebot;
+        box.replaceChildren(el("strong", null, _("Review the exact SMS text for every recipient before confirming.")));
+        for (const sms of batch) box.append(el("p", null, sms.nummer + " · " + sms.land + " · " +
+          new Date(sms.zeit).toLocaleString()), el("pre", "sms-anpassung-text", sms.text));
+        if (einzeln) box.append(el("p", "einst-hinweis", _("Enabling this plan allows its overdue SMS to be sent while scheduling is on.")));
+        const bestaetigen = knopf(einzeln ? _("Enable this SMS plan") : _("Confirm SMS plans"), "hauptknopf", () => {
+          const token = zustimmung;
+          if (token !== angebot || lauf !== generation || token.hash !== hash || token.daten !== DATEN || gesperrt || !dialog.isConnected ||
+              DATEN.einstellungen.adressen.smsSchedulingEnabled !== true || JSON.stringify(lesen()) !== token.json) {
+            verwerfen(); return;
+          }
+          verwerfen(); uebernehmen(token.batch);
+        });
+        bestaetigen.disabled = DATEN.einstellungen.adressen.smsSchedulingEnabled !== true;
+        box.append(bestaetigen, knopf(_("Cancel"), "", verwerfen));
+        box.classList.remove("verborgen");
+      } catch (error) { verwerfen(); zettel(_("Failed")); }
+    };
+    return { box, anzeigen, verwerfen };
+  }
+
   function oeffneSmsPlanung(kontakt, vorauswahl = "", vorlage = "") {
-    const nummern = smsNummern(kontakt);
-    if (!nummern.length) return;
+    const nummern = kontakt ? smsNummern(kontakt) : [];
+    const anlegen = !!kontakt && DATEN.einstellungen.adressen.smsSchedulingEnabled === true;
+    if (kontakt && (!nummern.length || !anlegen)) return;
     const schleier = el("div", "eingabe-schleier sms-planung-schleier");
     const dialog = el("div", "eingabe-dialog sms-planung-dialog");
     const zeilen = el("div", "sms-planung-zeilen");
-    const schliessen = () => { beendeModal(schleier); schleier.remove(); };
+    const vorschau = smsPlanVorschau(dialog);
+    let speichernd = false;
+    const schliessen = () => { vorschau.verwerfen(); beendeModal(schleier); schleier.remove(); };
     const neueZeile = (nummerWert = vorauswahl, textWert = vorlage, zeit = Date.now() + 3600000) => {
+      vorschau.verwerfen();
       const zeile = el("section", "sms-planung-zeile");
       const nummer = document.createElement("select");
       for (const eintrag of nummern) {
@@ -2132,27 +2722,42 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       bindeZeitRad(uhrzeit);
       const text = document.createElement("textarea"); text.className = "feld";
       text.maxLength = 5000; text.rows = 3; text.value = textWert;
-      const entfernen = knopf(_("Remove"), "", () => zeile.remove());
+      const entfernen = knopf(_("Remove"), "", () => { vorschau.verwerfen(); zeile.remove(); });
       zeile.append(formZeile(_("Phone number"), nummer), formZeile(_("Date"), datum),
         formZeile(_("Time"), uhrzeit),
         formZeile(_("Message text"), text), entfernen);
       zeile._werte = { nummer: nummer, datum: datum, uhrzeit: uhrzeit, text: text };
       zeilen.append(zeile);
     };
-    neueZeile();
+    if (anlegen) neueZeile();
     const gespeichert = el("div", "sms-planung-liste");
     const zeichneGespeichert = () => {
       gespeichert.replaceChildren();
-      const liste = DATEN.smsPlanung.filter((sms) => sms.kontaktId === (kontakt.id || "") &&
-        ["planned", "submitting", "uncertain", "failed"].includes(sms.status)).sort((a, b) => a.zeit - b.zeit);
+      const liste = DATEN.smsPlanung.filter((sms) => (!kontakt || sms.kontaktId === (kontakt.id || "")) &&
+        ["paused", "planned", "submitting", "queued", "submitted", "uncertain", "failed"].includes(sms.status)).sort((a, b) => a.zeit - b.zeit);
       if (!liste.length) { gespeichert.append(el("p", "leer-hinweis", _("No SMS messages are scheduled."))); return; }
-      const statusText = { planned: _("Scheduled"), submitting: _("Submitting"),
-        uncertain: _("Delivery status uncertain"), failed: _("Failed") };
+      const statusText = { paused: _("Paused — review required"), planned: _("Scheduled"), submitting: _("Submitting"),
+        queued: _("Queued"), submitted: _("Submitted"), uncertain: _("Delivery status uncertain"), failed: _("Failed") };
       for (const sms of liste) {
         const karte = el("div", "sms-planung-eintrag");
         karte.append(el("strong", null, new Date(sms.zeit).toLocaleString()),
           el("span", null, " · " + statusText[sms.status]), el("p", null, sms.text));
+        if (!kontakt) karte.prepend(el("p", null, sms.nummer));
+        if (sms.status === "paused") karte.append(knopf(_("Review and enable"), "", () => {
+          if (speichernd) return;
+          vorschau.anzeigen(() => DATEN.smsPlanung.includes(sms) && sms.status === "paused" ? [{ ...sms }] : null,
+            () => {
+              sms.status = "planned"; speichernd = true; smsPlanFreigaben.add(sms);
+              nachDauerhaftemSpeichern(() => { smsPlanFreigaben.delete(sms); speichernd = false; zeichneGespeichert(); pruefeSmsPlanung(); }, () => {
+                smsPlanFreigaben.delete(sms);
+                speichernd = false;
+                if (DATEN.smsPlanung.includes(sms) && sms.status === "planned") sms.status = "paused";
+                zeichneGespeichert();
+              });
+            }, true);
+        }));
         karte.append(knopf(_("Delete"), "", () => {
+          vorschau.verwerfen();
           DATEN.smsPlanung = DATEN.smsPlanung.filter((wert) => wert.id !== sms.id);
           planeSpeichern(); zeichneGespeichert();
         }));
@@ -2161,7 +2766,8 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     };
     zeichneGespeichert();
     const plus = knopf("+", "", () => neueZeile()); plus.setAttribute("aria-label", _("Add another SMS"));
-    const speichern = knopf(_("Schedule SMS"), "hauptknopf", () => {
+    const leseBatch = () => {
+      if (!anlegen || DATEN.einstellungen.adressen.smsSchedulingEnabled !== true || speichernd) return null;
       const neu = [];
       for (const zeile of zeilen.children) {
         const werte = zeile._werte;
@@ -2170,52 +2776,110 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
         if (!Number.isFinite(zeit) || zeit <= Date.now() || !angepasst.text.trim() || angepasst.teile > 10) {
           zettel(_("Enter a future time and a valid SMS text for every entry.")); return;
         }
-        neu.push({ id: uid(), kontaktId: kontakt.id || "", nummer: werte.nummer.value,
-          text: angepasst.text, zeit: zeit, status: "planned", clientRef: "", fehler: "" });
+        neu.push({ kontaktId: kontakt.id || "",
+          nummer: telefonSchluessel(werte.nummer.value).split("x", 1)[0], land: telefonHeimatland(),
+          text: angepasst.text.trim(), originalText: werte.text.value, zeit: zeit });
       }
-      if (!neu.length) return;
-      DATEN.smsPlanung.push(...neu); DATEN.smsPlanung = DATEN.smsPlanung.slice(-500);
-      planeSpeichern(); pruefeSmsPlanung(); zettel(_("SMS scheduled.")); schliessen();
-    });
+      return neu;
+    };
+    const speichern = knopf(_("Schedule SMS"), "hauptknopf", () => vorschau.anzeigen(leseBatch, (batch) => {
+      const neu = batch.map(sms => ({ ...sms, id: uid(), status: "planned", clientRef: "", fehler: "" }));
+      if (DATEN.smsPlanung.length + neu.length > 500) { zettel(_("Failed")); return; }
+      DATEN.smsPlanung.push(...neu); speichernd = true; speichern.disabled = true;
+      neu.forEach(sms => smsPlanFreigaben.add(sms));
+      const bedienung = [...dialog.querySelectorAll("input, textarea, select, button")];
+      bedienung.forEach(feld => feld.disabled = true);
+      nachDauerhaftemSpeichern(() => {
+        neu.forEach(sms => smsPlanFreigaben.delete(sms));
+        speichernd = false; zettel(_("SMS scheduled.")); schliessen();
+      }, () => {
+        neu.forEach(sms => smsPlanFreigaben.delete(sms));
+        DATEN.smsPlanung = DATEN.smsPlanung.filter(sms => !neu.includes(sms));
+        bedienung.forEach(feld => feld.disabled = false);
+        speichernd = false; speichern.disabled = false;
+      });
+    }));
     const knoepfe = el("div", "dialog-knoepfe");
     const belegung = knopf(_("SMS app settings"), "sms-planung-einstellungen", () => {
       schliessen(); oeffneKommunikationsBelegung("sms");
     });
-    knoepfe.append(plus, belegung, knopf(_("Close"), "", schliessen), speichern);
-    dialog.append(el("h3", null, _("Schedule SMS")),
+    if (anlegen) knoepfe.append(plus, belegung);
+    knoepfe.append(knopf(_("Close"), "", schliessen));
+    if (anlegen) knoepfe.append(speichern);
+    dialog.append(el("h3", null, anlegen ? _("Schedule SMS") : _("Pending SMS messages")),
       el("p", "einst-hinweis", _("Scheduled SMS messages are sent only while Magnolie is running and exactly one KDE Connect phone is available.")),
-      zeilen, el("h4", null, _("Pending SMS messages")), gespeichert, knoepfe);
+      el("p", "einst-hinweis", _("Restored pending plans stay paused until you review and enable each plan. Restoring contacts, calendar or notes does not change live SMS plans.")),
+      zeilen, vorschau.box, el("h4", null, _("Pending SMS messages")), gespeichert, knoepfe);
+    if (DATEN.einstellungen.adressen.smsSchedulingEnabled !== true)
+      dialog.insertBefore(el("p", "einst-warnung", _("SMS scheduling is off. Pending plans are paused. Review them in SMS settings before enabling scheduling.")), gespeichert);
     schleier.append(dialog); document.body.append(schleier);
-    registriereModal(schleier, dialog, { anfang: zeilen.querySelector("textarea"), schliessen: schliessen });
+    registriereModal(schleier, dialog, { anfang: zeilen.querySelector("textarea") || knoepfe.querySelector("button"), schliessen: schliessen });
   }
 
   let smsPlanungsTimer = null;
+  let smsPlanungsHinweisGezeigt = false;
   function pruefeSmsPlanung() {
     clearTimeout(smsPlanungsTimer);
     smsPlanungsTimer = setTimeout(pruefeSmsPlanung, 30000);
     const kde = telefonStand && telefonStand.kdeconnect;
-    if (!Bruecke.vorhanden || !kde || kde.available !== true ||
+    if (DATEN.einstellungen.adressen.smsSchedulingEnabled !== true) {
+      if (initialisiert && antwortErhalten && !gesperrt && !smsPlanungsHinweisGezeigt &&
+          DATEN.smsPlanung.some((sms) => sms.status === "planned")) {
+        smsPlanungsHinweisGezeigt = true;
+        zettel(_("SMS scheduling is off. Pending plans are paused. Review them in SMS settings before enabling scheduling."));
+      }
+      return;
+    }
+    if (!initialisiert || !antwortErhalten || gesperrt || !Bruecke.vorhanden || !kde || kde.available !== true ||
         DATEN.smsPlanung.some((sms) => sms.status === "submitting")) return;
-    const sms = DATEN.smsPlanung.filter((wert) => wert.status === "planned" && wert.zeit <= Date.now())
+    const sms = DATEN.smsPlanung.filter((wert) => wert.status === "planned" && !smsPlanFreigaben.has(wert) && wert.zeit <= Date.now())
       .sort((a, b) => a.zeit - b.zeit)[0];
     if (!sms) return;
     sms.status = "submitting"; sms.clientRef = "plan:" + sms.id; sms.fehler = "";
-    DATEN.smsVerlauf.push({ id: "kde:out:" + sms.clientRef, kontaktId: sms.kontaktId,
-      nummer: telefonSchluessel(sms.nummer, adressLandCode()).split("x", 1)[0], richtung: "ausgang",
+    const verlauf = { id: "kde:out:" + sms.clientRef, kontaktId: sms.kontaktId,
+      nummer: telefonSchluessel(sms.nummer, sms.land ?? telefonHeimatland()).split("x", 1)[0],
+      land: sms.land ?? telefonHeimatland(), richtung: "ausgang",
       text: sms.text, zeit: Date.now(), status: "queued", clientRef: sms.clientRef,
-      weg: "kde", geraet: kde.device_id || "", fehler: "" });
-    DATEN.smsVerlauf = DATEN.smsVerlauf.slice(-5000); planeSpeichern();
-    if (!Bruecke.sende({ cmd: "kde_sms_senden", nummer: sms.nummer, text: sms.text,
-      land: adressLandCode(), clientRef: sms.clientRef, deviceId: kde.device_id || "" })) {
-      sms.status = "failed"; sms.fehler = _("Failed"); planeSpeichern();
-    }
+      weg: "kde", geraet: kde.device_id || "", fehler: "" };
+    const vorher = DATEN.smsVerlauf.findIndex((wert) => wert.id === verlauf.id);
+    if (vorher < 0) DATEN.smsVerlauf.push(verlauf); else DATEN.smsVerlauf[vorher] = verlauf;
+    DATEN.smsVerlauf = DATEN.smsVerlauf.slice(-5000);
+    const land = sms.land ?? telefonHeimatland();
+    const freigabe = JSON.stringify([sms.id, sms.nummer, land, sms.text, sms.zeit, sms.clientRef]);
+    const nichtUebergeben = (fehler) => {
+      if (!DATEN.smsPlanung.includes(sms) || sms.status !== "submitting") return;
+      sms.status = "planned"; sms.fehler = fehler.message || _("Failed");
+      verlauf.status = "failed"; verlauf.fehler = sms.fehler;
+    };
+    nachDauerhaftemSpeichern(() => {
+      if (!DATEN.smsPlanung.includes(sms) || sms.status !== "submitting") return;
+      if (JSON.stringify([sms.id, sms.nummer, sms.land ?? telefonHeimatland(), sms.text, sms.zeit, sms.clientRef]) !== freigabe) {
+        sms.status = "paused"; verlauf.status = "failed"; planeSpeichern(); return;
+      }
+      if (DATEN.einstellungen.adressen.smsSchedulingEnabled !== true) {
+        nichtUebergeben(new Error(_("SMS scheduling is off. Pending plans are paused. Review them in SMS settings before enabling scheduling.")));
+        planeSpeichern(); return;
+      }
+      const current = telefonStand && telefonStand.kdeconnect;
+      if (gesperrt || !current || !current.available || current.device_id !== kde.device_id) {
+        nichtUebergeben(new Error(_("Failed"))); planeSpeichern(); return;
+      }
+      if (!Bruecke.sende({ cmd: "kde_sms_senden", nummer: sms.nummer, text: sms.text,
+        land: land, clientRef: sms.clientRef, deviceId: kde.device_id || "" })) {
+        nichtUebergeben(new Error(_("Failed"))); planeSpeichern();
+      } else if (sms.status === "submitting") {
+        // Local handoff is not delivery. Never automatically retry it while waiting for native status.
+        sms.status = "queued"; planeSpeichern();
+      }
+    }, nichtUebergeben);
   }
 
   function aktualisiereSmsPlanung(nutzlast) {
     const sms = DATEN.smsPlanung.find((wert) => wert.clientRef &&
       wert.clientRef === String(nutzlast.client_ref || nutzlast.clientRef || ""));
     if (!sms) return;
-    sms.status = nutzlast.ok === true ? "sent" : "failed";
+    sms.status = nutzlast.state === "uncertain" ? "uncertain" : nutzlast.ok === true ?
+      (nutzlast.state === "submitted" ? "submitted" : "queued") : "failed";
     sms.fehler = nutzlast.ok === true ? "" : String(nutzlast.error || "").slice(0, 1000);
     planeSpeichern();
   }
@@ -2255,17 +2919,22 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     const vorschauText = el("pre", "sms-anpassung-text");
     const angepasstSenden = knopf(_("Send adjusted text"), "hauptknopf");
     const anpassungAbbrechen = knopf(_("Cancel"), "");
+    const anpassungKnoepfe = el("div", "dialog-knoepfe");
+    anpassungKnoepfe.append(angepasstSenden, anpassungAbbrechen);
     vorschau.append(el("strong", null, _("SMS text was adjusted:")), vorschauText,
-      el("div", "dialog-knoepfe", angepasstSenden, anpassungAbbrechen));
+      anpassungKnoepfe);
     const wirklichSenden = (nachricht) => {
-      if (!nachricht.trim()) return;
+      if (senden.disabled || !telefonStand?.kdeconnect?.available || !nachricht.trim()) return;
       const clientRef = uid();
       DATEN.smsVerlauf.push({ id: "kde:out:" + clientRef, kontaktId: kontakt.id || "",
-        nummer: telefonSchluessel(nummer.value, land).split("x", 1)[0],
+        nummer: telefonSchluessel(nummer.value, land).split("x", 1)[0], land: land,
         richtung: "ausgang", text: nachricht.trim().slice(0, 5000), zeit: Date.now(),
         status: "queued", clientRef: clientRef, weg: "kde", geraet: deviceId, fehler: "" });
       DATEN.smsVerlauf = DATEN.smsVerlauf.slice(-5000); planeSpeichern();
-      senden.disabled = true; offenerSmsChat.clientRef = clientRef; zeichneSmsVerlauf(offenerSmsChat);
+      senden.disabled = angepasstSenden.disabled = true; offenerSmsChat.clientRef = clientRef;
+      offenerSmsChat.gesendeterEntwurf = text.value;
+      offenerSmsChat.gesendeteRevision = offenerSmsChat.entwurfRevision;
+      zeichneSmsVerlauf(offenerSmsChat);
       const uebergeben = Bruecke.sende({ cmd: "kde_sms_senden", nummer: nummer.value,
         text: nachricht, land: land, clientRef: clientRef,
         deviceId: deviceId });
@@ -2286,7 +2955,12 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     const komponistText = el("div", "sms-komponist-text");
     komponistText.append(text, zaehler, vorschau);
     const planen = knopf(_("Schedule"), "", () => oeffneSmsPlanung(kontakt, nummer.value, text.value));
-    knoepfe.append(komponistText, planen, senden);
+    planen.classList.toggle("verborgen", DATEN.einstellungen.adressen.smsSchedulingEnabled !== true);
+    const planHinweis = el("p", "einst-warnung sms-planung-hinweis", _("SMS scheduling is off. Pending plans are paused. Review them in SMS settings before enabling scheduling."));
+    planHinweis.classList.toggle("verborgen", DATEN.einstellungen.adressen.smsSchedulingEnabled === true ||
+      !DATEN.smsPlanung.some((sms) => ["planned", "submitting"].includes(sms.status)));
+    komponistText.prepend(planHinweis);
+    knoepfe.append(komponistText, senden, planen);
     const kopf = el("div", "sms-kopf");
     if (kontakt.foto) {
       const foto = document.createElement("img"); foto.className = "kontakt-foto";
@@ -2310,10 +2984,13 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     dialog.append(kopf, blatt, verlauf, knoepfe);
     schleier.append(dialog); document.body.append(schleier);
     offenerSmsChat = { kontakt: kontakt, kontaktId: kontakt.id || "", nummer: nummer,
-      verlauf: verlauf, text: text,
-      senden: senden, schleier: schleier, schliessen: schliessen, clientRef: "" };
-    nummer.addEventListener("change", () => zeichneSmsVerlauf(offenerSmsChat));
+      verlauf: verlauf, text: text, planen: planen, planHinweis: planHinweis,
+      senden: senden, schleier: schleier, schliessen: schliessen, clientRef: "", entwurfRevision: 0 };
+    nummer.addEventListener("change", () => {
+      offenerSmsChat.entwurfRevision++; zeichneSmsVerlauf(offenerSmsChat);
+    });
     text.addEventListener("input", () => {
+      offenerSmsChat.entwurfRevision++;
       text.style.height = "auto"; text.style.height = Math.min(text.scrollHeight, 126) + "px";
       const angepasst = smsTextAnpassen(text.value);
       zaehler.textContent = uebersetzt("%(parts)s SMS parts · %(units)s character units", {
@@ -2321,8 +2998,9 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       vorschau.classList.toggle("verborgen", !angepasst.geaendert);
       vorschauText.textContent = angepasst.text;
       const zuLang = angepasst.text.length > 5000 || angepasst.teile > 10;
-      senden.disabled = !(kde && kde.available) || !angepasst.text.trim() || zuLang;
-      angepasstSenden.disabled = zuLang;
+      senden.disabled = !telefonStand?.kdeconnect?.available || !!offenerSmsChat?.clientRef ||
+        !angepasst.text.trim() || zuLang;
+      angepasstSenden.disabled = senden.disabled;
       zaehler.classList.toggle("fehler", zuLang);
       if (zuLang) zaehler.textContent += " · " + _("A maximum of 10 SMS parts is allowed.");
     });
@@ -2357,8 +3035,8 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
         started_ms: Date.now(), offhook_ms: 0, ended_ms: 0, occurred_ms: Date.now(),
         spam_status: "unknown", battery_percent: -1, battery_captured_ms: 0 }, telefone[0]);
       Bruecke.sende({ cmd: "telefon_waehlen", kennung: telefone[0].device_id,
-        hfpAdresse: optionen.hfpAdresse || "", nummer: eintrag.wert, clientRef: clientRef,
-        land: DATEN.einstellungen.adressen.landCode || DATEN.einstellungen.adressen.land || "DE" });
+        nummer: eintrag.wert, clientRef: clientRef,
+        land: telefonHeimatland() });
       zettel(_("Queued"));
       return true;
     }
@@ -2379,6 +3057,21 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
   }
 
   let aktiverAnruf = null;
+  const anrufEreignisse = new Map();
+
+  function neuesAnrufEreignis(value) {
+    if (!value.device_id || !value.call_ref || !Number.isSafeInteger(value.revision) || value.revision < 1 ||
+        !Number.isFinite(value.occurred_ms) || !["ringing", "offhook", "idle"].includes(value.state) ||
+        !["incoming", "outgoing", "unknown"].includes(value.direction)) return false;
+    const old = anrufEreignisse.get(value.device_id);
+    if (old && (value.occurred_ms < old.occurred_ms || old.call_ref === value.call_ref &&
+        (value.revision <= old.revision || value.direction !== old.direction || old.state === "idle"))) return false;
+    // Runtime-only lifecycle metadata: no caller identity or photo history.
+    anrufEreignisse.set(value.device_id, {call_ref: value.call_ref, revision: value.revision,
+      occurred_ms: value.occurred_ms, direction: value.direction, state: value.state});
+    while (anrufEreignisse.size > 32) anrufEreignisse.delete(anrufEreignisse.keys().next().value);
+    return true;
+  }
   let anrufUhr = 0;
   const anrufUuidV4 = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -2501,7 +3194,6 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       if (annehmen.disabled || !kannAnrufAnnehmen(aktiverAnruf, aktuellerPeer) || aktiverAnruf.answerPending) return;
       annehmen.disabled = true; aktiverAnruf.answerPending = true;
       Bruecke.sende({ cmd: "telefon_annehmen", kennung: aktiverAnruf.device_id,
-        hfpAdresse: (DATEN.einstellungen.adressen.kommunikation.anruf || {}).hfpAdresse || "",
         callRef: aktiverAnruf.call_ref, commandRef: anrufClientRef() });
     });
     annehmen.disabled = !kannAnrufAnnehmen(aktiverAnruf, endPeer) || !!aktiverAnruf.answerPending;
@@ -2518,7 +3210,11 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       const chip = knopf(_("Active call") + " · " + name, "anruf-chip", () => {
         aktiverAnruf.hidden = false; zeigeAnrufDialog(aktiverAnruf); }); chip.id = "anruf-chip"; document.body.append(chip);
     });
-    dialog.append(minimieren, kopf, dauer, meta, el("label", null, _("Call notes"), notiz), fehler);
+    const audioStatus = el("p", "einst-hinweis", anrufAudioHinweis(telefonStand && telefonStand.call_audio, aktiverAnruf));
+    audioStatus.id = "anruf-audio-status";
+    const notizLabel = el("label", null, _("Call notes"));
+    notizLabel.append(notiz);
+    dialog.append(minimieren, kopf, dauer, meta, audioStatus, notizLabel, fehler);
     if (aktiverAnruf.direction === "incoming" && aktiverAnruf.state === "ringing") dialog.append(annehmen);
     dialog.append(auflegen);
     schleier.append(dialog); document.body.append(schleier); notiz.focus();
@@ -2606,7 +3302,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     return externeKontaktAktion(kontakt, typ, belegung);
   }
 
-  function synchronisiereAnrufFreigaben(peer) {
+  function synchronisiereAnrufFreigaben(peer, audioAendern = false) {
     const optionen = DATEN.einstellungen.adressen.kommunikation.anruf || {};
     if (!peer) return;
     const peers = telefonStand && telefonStand.peers || [];
@@ -2617,6 +3313,20 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     }
     const lokal = peer.local_grants && peer.local_grants.grants || {};
     const gebunden = magnolie && optionen.telefonId === peer.device_id;
+    const audioKey = peer.device_id + "\u0000call_audio";
+    if (!audioAendern && peer.call_audio && peer.call_audio.prefer_pc === false &&
+        anrufFreigabenAusstehend.get(audioKey) !== true && optionen.preferPcAudio !== false) {
+      // A saved opt-out also survives a crash before the main book was saved.
+      optionen.preferPcAudio = false;
+      planeSpeichern();
+    }
+    const audio = optionen.preferPcAudio !== false &&
+      (!optionen.telefonId || optionen.telefonId === peer.device_id) &&
+      (!optionen.hfpAdresse || optionen.hfpAdresse === peer.bluetooth_address);
+    if (peer.call_audio && peer.call_audio.prefer_pc === audio) anrufFreigabenAusstehend.delete(audioKey);
+    else if (anrufFreigabenAusstehend.get(audioKey) !== audio && Bruecke.sende({
+      cmd: "telefon_anruf_audio_einstellung", kennung: peer.device_id, preferPc: audio }))
+      anrufFreigabenAusstehend.set(audioKey, audio);
     const ausgehend = !!(aktiverAnruf && aktiverAnruf.device_id === peer.device_id &&
       aktiverAnruf.direction === "outgoing" && aktiverAnruf.state !== "idle");
     const eingehend = !!(gebunden && (optionen.eingehendBenachrichtigen || optionen.computerTelefonie));
@@ -2634,6 +3344,17 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       if (Bruecke.sende({ cmd: "telefon_freigabe", kennung: peer.device_id, name: name, an: an }))
         anrufFreigabenAusstehend.set(key, an);
     }
+  }
+
+  function anrufAudioHinweis(capability, call) {
+    capability = capability || {};
+    const route = capability.route || {};
+    if (call && call.state === "offhook" && route.active === true &&
+        route.device_id === call.device_id && route.call_ref === call.call_ref && route.revision === call.revision)
+      return _("Bluetooth device for call audio") + ": " + _("Connected");
+    if (capability.state === "unsupported") return _("Automatic call audio is unsupported in this Windows build. Package identity and an approved phoneLineTransportManagement capability are required. Select native audio manually in system settings.");
+    if (call || capability.available !== true) return _("Automatic call audio is unavailable. Keep the call on the phone or select native audio manually in system settings.");
+    return _("Bluetooth device for call audio") + ": HFP (111e / 111f)";
   }
 
   function telefonLaenderOptionen() {
@@ -2683,25 +3404,14 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     const eingehend = sms ? null : option(_("Notify me about incoming calls"), "eingehendBenachrichtigen");
     const computer = sms ? null : option(_("Answer calls on the computer and talk"), "computerTelefonie");
     const leiser = sms ? null : option(_("Lower other sounds while ringing"), "klingeltonLeiser");
-    const hfpAdresse = sms ? null : document.createElement("select");
-    if (hfpAdresse) {
-      hfpAdresse.className = "kommunikation-hfp-auswahl";
-      hfpAdresse.setAttribute("aria-label", _("Bluetooth device for call audio"));
-      const aus = document.createElement("option");
-      aus.value = ""; aus.textContent = _("Do not connect Bluetooth call audio automatically");
-      hfpAdresse.append(aus);
-      const btGeraete = telefonStand && telefonStand.bluetooth && telefonStand.bluetooth.devices || [];
-      for (const geraet of btGeraete) {
-        const option = document.createElement("option");
-        option.value = geraet.address; option.textContent = geraet.name || geraet.address;
-        hfpAdresse.append(option);
-      }
-      if (aktuell.hfpAdresse && !btGeraete.some((geraet) => geraet.address === aktuell.hfpAdresse)) {
-        const option = document.createElement("option");
-        option.value = aktuell.hfpAdresse; option.textContent = aktuell.hfpAdresse;
-        hfpAdresse.append(option);
-      }
-      hfpAdresse.value = aktuell.hfpAdresse || "";
+    const audioPeer = (telefonStand && telefonStand.peers || []).find((peer) =>
+      peer.device_id === aktuell.telefonId);
+    const audioCapability = telefonStand && telefonStand.call_audio || {};
+    const pcAudio = sms ? null : option(
+      _("Prefer PC speakers and microphone for calls on my own Bluetooth phone"), "preferPcAudio");
+    if (pcAudio) {
+      pcAudio.checked = aktuell.preferPcAudio !== false;
+      pcAudio.disabled = audioCapability.state === "unsupported" || !audioPeer || !audioPeer.own_device;
     }
     const optionenAktualisieren = () => {
       if (computer && computer.checked) eingehend.checked = true;
@@ -2716,14 +3426,15 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       if (!sms) Object.assign(DATEN.einstellungen.adressen.kommunikation[typ], {
         eingehendBenachrichtigen: eingehend.checked || computer.checked,
         computerTelefonie: computer.checked, klingeltonLeiser: leiser.checked,
-        hfpAdresse: hfpAdresse.value });
+        preferPcAudio: pcAudio.checked,
+        hfpAdresse: pcAudio.disabled ? aktuell.hfpAdresse || "" : "" });
       const telefonPeers = telefonStand && telefonStand.peers || [];
       if (!sms && art === "magnolie" && telefonPeers.length === 1)
         DATEN.einstellungen.adressen.kommunikation[typ].telefonId = telefonPeers[0].device_id;
       else if (!sms && aktuell.telefonId)
         DATEN.einstellungen.adressen.kommunikation[typ].telefonId = aktuell.telefonId;
       if (!sms) for (const peer of telefonPeers)
-        synchronisiereAnrufFreigaben(peer);
+        synchronisiereAnrufFreigaben(peer, true);
       planeSpeichern(); schliessen(); zeichneAlles();
     });
     const zurueck = knopf(_("Restore defaults"), "", () => {
@@ -2732,7 +3443,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       if (eingehend) eingehend.checked = false;
       if (computer) computer.checked = false;
       if (leiser) leiser.checked = false;
-      if (hfpAdresse) hfpAdresse.value = "";
+      if (pcAudio && !pcAudio.disabled) pcAudio.checked = true;
       optionenAktualisieren();
     });
     const knoepfe = el("div", "dialog-knoepfe");
@@ -2740,7 +3451,9 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     dialog.append(el("h3", null, sms ? _("Assign SMS action") : _("Assign call action")), auswahl,
       formZeile(_("Application command"), programm), hinweis);
     if (!sms) dialog.append(optionen,
-      formZeile(_("Bluetooth device for call audio"), hfpAdresse),
+      formZeile(_("Bluetooth device for call audio"), el("output", null,
+        audioPeer && audioPeer.bluetooth_address || _("Unavailable"))),
+      el("p", "einst-hinweis", anrufAudioHinweis(audioCapability)),
       el("p", "einst-hinweis", _("This selection is independent of the Bluetooth data fallback.")),
       el("p", "einst-hinweis",
       _("These options require the matching permissions in Magnolie Notes. Call audio is not sent over the Magnolie data connection.")));
@@ -2749,8 +3462,8 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     registriereModal(schleier, dialog, { anfang: auswahl.querySelector("input:checked"), schliessen: schliessen });
   }
 
-  function setzeTelefonListe(kontakt, telefone) {
-    kontakt.telefone = telefonListe({ telefone: telefone });
+  function setzeTelefonListe(kontakt, telefone, land = telefonHeimatland()) {
+    kontakt.telefone = telefonListe({ telefone: telefone }, land);
     const mobil = kontakt.telefone.find((t) => t.typen.some((typ) => ["CELL", "MOBILE"].includes(typ)));
     const fest = kontakt.telefone.find((t) => !t.typen.some((typ) => ["CELL", "MOBILE"].includes(typ)));
     kontakt.telefon = fest ? fest.wert : (kontakt.telefone[0] ? kontakt.telefone[0].wert : "");
@@ -2821,15 +3534,16 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     };
     for (const roh of kandidaten) {
       if (!roh || typeof roh !== "object") continue;
-      const adr = { strasse: String(roh.strasse || "").trim(),
+      const adr = { postfach: String(roh.postfach || ""), zusatz: String(roh.zusatz || ""), strasse: String(roh.strasse || "").trim(),
         plz: String(roh.plz || "").trim(), ort: String(roh.ort || "").trim(),
+        region: String(roh.region || "").trim(),
         land: String(roh.land || "").trim(), typen: telefonTypen(roh.typen || []),
         label: kontaktLabel(roh.label) };
       if (Array.isArray(roh.vcardParameter))
         adr.vcardParameter = roh.vcardParameter.map(S).filter(Boolean).slice(0, 32);
       if (!adr.label) delete adr.label;
-      if (!adr.strasse && !adr.plz && !adr.ort && !adr.land) continue;
-      const felder = ["strasse", "plz", "ort", "land"];
+      if (!adr.strasse && !adr.plz && !adr.ort && !adr.region && !adr.land && !adr.postfach && !adr.zusatz) continue;
+      const felder = ["postfach", "zusatz", "strasse", "plz", "ort", "region", "land"];
       const normiert = Object.fromEntries(felder.map((feld) =>
         [feld, normiereFeld(feld, adr[feld])]));
       let vereinigt = false;
@@ -2857,6 +3571,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       if (vereinigt) continue;
       aus.push(adr);
     }
+    for (const adr of aus) for (const feld of ["postfach", "zusatz"]) if (!adr[feld]) delete adr[feld];
     return aus;
   }
 
@@ -3119,6 +3834,13 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
   }
 
   const TEXT_SORTIERER = new Map();
+  const STANDARD_TEXT_SORTIERER = new Map();
+
+  function vergleicheStandardText(a, b) {
+    const gebiet = formatGebiet();
+    if (!STANDARD_TEXT_SORTIERER.has(gebiet)) STANDARD_TEXT_SORTIERER.set(gebiet, new Intl.Collator(gebiet));
+    return STANDARD_TEXT_SORTIERER.get(gebiet).compare(a, b);
+  }
 
   function vergleicheText(a, b) {
     const gebiet = formatGebiet();
@@ -3296,6 +4018,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
   }
 
   function normalisiereAufgabenGraph(aufgaben) {
+    for (const a of aufgaben) if (a.icsSerienUid) a.icsSerienUid = aufgabenSerienUid(a);
     const nachAltUid = new Map(), uidAnzahl = new Map();
     aufgaben.forEach((a, index) => {
       a.__graphIndex = index; a.__alteUid = String(a.uid || "").trim();
@@ -3320,9 +4043,17 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       a.uid = wert; vergeben.add(wert);
     }
     const nachUid = new Map(aufgaben.map((a) => [a.uid, a]));
+    const externeEltern = new Map();
+    for (const a of aufgaben) {
+      if (aufgabenInstanzEnde(a)) continue;
+      const key = JSON.stringify([a.icsQuelleId || "", aufgabenExterneUid(a)]);
+      externeEltern.set(key, externeEltern.has(key) ? null : a);
+    }
     for (const a of aufgaben) {
       const roh = String(a.elternUid || "").trim();
-      const eltern = nachUid.get(roh) || (uidAnzahl.get(roh) === 1 ? nachAltUid.get(roh) : null);
+      const eltern = nachUid.get(roh) || (uidAnzahl.get(roh) === 1 ? nachAltUid.get(roh) : null) ||
+        (a.icsElternUid ? externeEltern.get(JSON.stringify([a.icsElternQuelleId ?? a.icsQuelleId ?? "", a.icsElternUid])) : null);
+      if (eltern && eltern !== a) { a.icsElternUid = aufgabenExterneUid(eltern); a.icsElternQuelleId = eltern.icsQuelleId || ""; }
       a.elternUid = eltern && eltern !== a ? eltern.uid : "";
       const n = Number(a.reihenfolge);
       a.reihenfolge = Number.isSafeInteger(n) && n >= 0 ? n : a.__graphIndex;
@@ -3334,8 +4065,10 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
         position.set(aktuell.uid, pfad.length); pfad.push(aktuell);
         aktuell = aktuell.elternUid ? nachUid.get(aktuell.elternUid) : null;
       }
-      if (aktuell && position.has(aktuell.uid)) pfad.slice(position.get(aktuell.uid))
-        .sort((x, y) => vergleicheTechnischeKennung(x.uid, y.uid))[0].elternUid = "";
+      if (aktuell && position.has(aktuell.uid)) {
+        const pivot = pfad.slice(position.get(aktuell.uid)).sort((x, y) => vergleicheTechnischeKennung(x.uid, y.uid))[0];
+        pivot.elternUid = ""; pivot.icsElternUid = "";
+      }
       pfad.forEach((a) => fertig.add(a.uid));
     }
     const gruppen = new Map();
@@ -3351,7 +4084,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
   const PAPIERKORB_ARTEN = {
     appointment: _("Appointments"), contact: _("Contacts"), task: _("Tasks"),
     note: _("Notes"), notebook: _("Notebooks"), attachment: _("Attachments"),
-    anniversary: _("Anniversaries"), duplicate: _("Duplicates")
+    anniversary: _("Anniversaries"), duplicate: _("Duplicates"), custom: _("Custom")
   };
 
   function papierkorbAnzahl(art, anzahl) {
@@ -3380,7 +4113,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       kontakt: "contact", contact: "contact", aufgabe: "task", task: "task",
       notiz: "note", note: "note", jahrestag: "anniversary",
       notizbuch: "notebook", notebook: "notebook", anhang: "attachment", attachment: "attachment",
-      anniversary: "anniversary", duplikat: "duplicate", duplicate: "duplicate" }, "");
+      anniversary: "anniversary", duplikat: "duplicate", duplicate: "duplicate", custom: "custom" }, "");
     if (!art) return null;
     const stueck = { id: uid(), art: art, name: name || _("(unnamed)"),
       geloescht: Date.now(),
@@ -3404,6 +4137,27 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
 
   /* Ein Stück aus dem Papierkorb zurück ins Buch */
   function ausDemPapierkorb(stueck) {
+    if (stueck.art === "custom") {
+      const modul = kopie(stueck.eintrag);
+      const bestand = DATEN.customOrganizer.modules.find((wert) => wert.id === modul.id);
+      const ids = new Set((modul.items || []).map((item) => item.id));
+      if (bestand && bestand.items.some((item) => ids.has(item.id))) return false;
+      if (bestand) bestand.items.push(...modul.items);
+      else DATEN.customOrganizer.modules.push(modul);
+      DATEN.customOrganizer = normalisiereCustomOrganizer(DATEN.customOrganizer);
+      const textIds = new Set(customTextVerzeichnis().map((wert) => wert.item.id));
+      for (const block of DATEN.customOrganizer.modules) for (const item of block.items || []) {
+        const verweis = (stueck.notiz_zuordnungen || {})[item.id];
+        if (!item.textItemId && textIds.has(verweis)) item.textItemId = verweis;
+        else if (verweis && !textIds.has(verweis)) {
+          const text = DATEN.papierkorb.find(wert => wert.art === "custom" && wert.eintrag.type === "notes" &&
+            wert.eintrag.items.some(seite => seite.id === verweis));
+          if (text) text.notiz_zuordnungen = { ...text.notiz_zuordnungen, [item.id]: verweis };
+        }
+      }
+      DATEN.papierkorb = DATEN.papierkorb.filter((wert) => wert.id !== stueck.id);
+      return true;
+    }
     const listen = { appointment: "termine", contact: "kontakte",
       task: "aufgaben", note: "notizen", anniversary: "jahrestage",
       duplicate: "kontakte", notebook: "notizbuecher" };
@@ -3421,6 +4175,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     if (stueck.art === "task" && eintrag.elternUid &&
         !DATEN.aufgaben.some((x) => x.uid === eintrag.elternUid)) {
       eintrag.elternUid = "";
+      eintrag.icsElternUid = "";
       eintrag.reihenfolge = DATEN.aufgaben.filter((x) => !x.elternUid).length;
     }
     if (DATEN[liste].some((x) => x.id === eintrag.id)) eintrag.id = uid();
@@ -3475,7 +4230,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     const token = uid();
     mutationsAktionen.set(token, aktion);
     nachDauerhaftemSpeichern(() => Bruecke.sende({ cmd: "mutations_snapshot",
-      reason: reason, token: token }));
+      reason: reason, token: token }), () => mutationsAktionen.delete(token));
   }
 
   function raeumeTombstonesAuf() {
@@ -3514,18 +4269,24 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
      Am Anfangsfeld schiebt sich die Endzeit mit: solange Luft bleibt, hält
      sie ihren Abstand; spätestens beim Erreichen des Endes wird dieses
      mitgenommen, damit ein Termin nie endet, bevor er begonnen hat. */
-  function bindeZeitRad(feld, folgeFeld, mindestFeld, ueberMehrereTage) {
+  function bindeZeitRad(feld, folgeFeld, mindestFeld, ueberMehrereTage, leerErlaubt = false) {
     let letzterWert = zeitZuMinuten(feld.value);
     feld.title = _("Use the mouse wheel to change the time in 5-minute steps " +
       "(hold Shift for whole hours)");
     feld.addEventListener("wheel", (ev) => {
+      // Scrolling the page must not edit an unfocused time or consume its wheel event.
+      if (document.activeElement !== feld || feld.disabled || feld.readOnly) return;
+      // WebKit on X11 reports Shift+wheel on the horizontal axis.
+      const delta = ev.deltaY || (ev.shiftKey ? ev.deltaX : 0);
+      if (!delta) return;
       ev.preventDefault();
       /* Wer es andersherum gewohnt ist, dreht die Richtung um. */
       const umgekehrt =
         DATEN.einstellungen.schrift.radRichtung === "up-later";
-      if (feld.disabled) return;
       const alt = zeitZuMinuten(feld.value);
-      const richtung = (ev.deltaY < 0 ? -1 : 1) * (umgekehrt ? -1 : 1);
+      // Optional times must not acquire missing hours/minutes from a wheel gesture.
+      if (leerErlaubt && alt === null) return;
+      const richtung = (delta < 0 ? -1 : 1) * (umgekehrt ? -1 : 1);
       const schritt = richtung * (ev.shiftKey ? 60 : ZEIT_SCHRITT);
       const neu = alt === null
         ? zeitZuMinuten(vorgabeZeiten().zeit)
@@ -3617,6 +4378,16 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     window.webkit.messageHandlers[Bruecke.name]);
 
   let speicherTimer = null;
+  let notizSnapshotTimer = null;
+  let ausstehenderNotizSnapshot = null;
+
+  function sichereNotizSnapshot() {
+    clearTimeout(notizSnapshotTimer);
+    notizSnapshotTimer = null;
+    const snapshot = ausstehenderNotizSnapshot;
+    ausstehenderNotizSnapshot = null;
+    if (snapshot) snapshot();
+  }
 
   let kennwortAn = false;
   let kennwortMeldung = "";
@@ -3631,6 +4402,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
   let wartenderSpeicherText = null;
   let beendenGewuenscht = false;
   let wartendeSpeicherAktionen = [];
+  let speicherAntwortTimer = null;
   let ausstehendeAdressbuchBaseline = null;
   let syncAntwortTimer = null;
   let terminIndexVeraltet = true;
@@ -3657,7 +4429,12 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
   }
 
   function speichereJetzt(beenden = false) {
+    if (!initialisiert || !antwortErhalten) {
+      if (beenden && Bruecke.vorhanden) Bruecke.sende({ cmd: "beenden_bereit" });
+      return;
+    }
     clearTimeout(speicherTimer);
+    speicherTimer = null;
     if (beenden) beendenGewuenscht = true;
     if (gesperrt) {
       if (beendenGewuenscht && Bruecke.vorhanden) {
@@ -3667,12 +4444,14 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     }
     let text;
     try {
+      sichereNotizSnapshot();
+      clearTimeout(speicherTimer); speicherTimer = null;
       text = JSON.stringify(DATEN);
     } catch (e) {
-      App.gespeichert({ ok: false, fehler: String(e || "") });
+      speicherFehlgeschlagen(String(e || ""));
       return;
     }
-    if (text !== letzterSpeicherText) wartenderSpeicherText = text;
+    wartenderSpeicherText = text !== letzterSpeicherText || laufenderSpeicher ? text : null;
     if (Bruecke.vorhanden) {
       pumpeSpeichern();
     } else {
@@ -3682,21 +4461,22 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
         wartenderSpeicherText = null;
         App.gespeichert({ ok: true });
       } catch (e) {
-        App.gespeichert({ ok: false, fehler: String(e || "") });
+        speicherFehlgeschlagen(String(e || ""));
       }
     }
   }
 
   function pumpeSpeichern() {
     if (laufenderSpeicher) return;
+    if (wartenderSpeicherText === letzterSpeicherText) wartenderSpeicherText = null;
     if (wartenderSpeicherText !== null &&
         wartenderSpeicherText !== letzterSpeicherText) {
       const auftrag = { id: naechsteSpeicherId++, text: wartenderSpeicherText };
       wartenderSpeicherText = null;
       laufenderSpeicher = auftrag;
+      const id = auftrag.id;
+      speicherAntwortTimer = setTimeout(() => App.gespeichert({ id: id, ok: false }), 30000);
       if (!Bruecke.sende({ cmd: "speichern", id: auftrag.id, text: auftrag.text })) {
-        wartenderSpeicherText = auftrag.text;
-        laufenderSpeicher = null;
         App.gespeichert({ id: auftrag.id, ok: false, fehler: "" });
       }
       return;
@@ -3704,17 +4484,74 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     if (wartendeSpeicherAktionen.length) {
       const aktionen = wartendeSpeicherAktionen;
       wartendeSpeicherAktionen = [];
-      aktionen.forEach((aktion) => aktion());
+      aktionen.forEach(({ aktion }) => {
+        try { aktion(); } catch (error) { zettel(String(error.message || error)); }
+      });
     }
-    if (beendenGewuenscht && Bruecke.vorhanden) {
+    if (beendenGewuenscht && Bruecke.vorhanden && !laufenderSpeicher && wartenderSpeicherText === null) {
       Bruecke.sende({ cmd: "beenden_bereit" });
     }
   }
 
-  function nachDauerhaftemSpeichern(aktion) {
+  function nachDauerhaftemSpeichern(aktion, beiFehler = () => {}) {
+    if (!initialisiert || !antwortErhalten || gesperrt) {
+      beiFehler(new Error(_("Warning: The data could not be saved."))); return;
+    }
+    // Register before sending: local rejection and browser storage can settle synchronously.
+    wartendeSpeicherAktionen.push({ aktion, beiFehler });
     speichereJetzt();
-    if (!laufenderSpeicher && wartenderSpeicherText === null) aktion();
-    else wartendeSpeicherAktionen.push(aktion);
+  }
+
+  function beendeSpeicherAktionen(fehler) {
+    const aktionen = wartendeSpeicherAktionen;
+    wartendeSpeicherAktionen = [];
+    aktionen.forEach(({ beiFehler }) => {
+      try { beiFehler(new Error(fehler || _("Warning: The data could not be saved."))); }
+      catch (error) { zettel(String(error.message || error)); }
+    });
+  }
+
+  function verwerfeSpeichernNachRestore() {
+    clearTimeout(speicherTimer); clearTimeout(speicherAntwortTimer); clearTimeout(notizSnapshotTimer);
+    speicherTimer = speicherAntwortTimer = notizSnapshotTimer = null;
+    ausstehenderNotizSnapshot = null;
+    laufenderSpeicher = null; wartenderSpeicherText = null;
+    beendenGewuenscht = false; ausstehendeAdressbuchBaseline = null;
+    beendeSpeicherAktionen(_("Restore"));
+  }
+
+  function speicherFehlgeschlagen(fehler, erledigt = null) {
+    clearTimeout(speicherAntwortTimer); clearTimeout(speicherTimer);
+    speicherAntwortTimer = speicherTimer = null;
+    laufenderSpeicher = null;
+    // An error/lost ACK may follow a native commit. Even reverting to the old baseline needs a write.
+    letzterSpeicherText = null;
+    const syncAbgebrochen = syncLaeuft;
+    if (ausstehendeAdressbuchBaseline) {
+      delete DATEN.syncMetadaten.eds.adressbuecher[ausstehendeAdressbuchBaseline];
+      ausstehendeAdressbuchBaseline = null;
+    }
+    // Never replace a newer queued edit with the failed request's older snapshot.
+    try { wartenderSpeicherText = JSON.stringify(DATEN); }
+    catch (_) { if (wartenderSpeicherText === null && erledigt) wartenderSpeicherText = erledigt.text; }
+    if (beendenGewuenscht && Bruecke.vorhanden) Bruecke.sende({ cmd: "beenden_abgebrochen" });
+    beendenGewuenscht = false;
+    setzeSpeicherStatus(_("Saving failed!"), false);
+    if (syncAbgebrochen) zettel(merkeSyncFehler(fehler || _("Warning: The data could not be saved."), false));
+    else zettel(fehler || _("Warning: The data could not be saved."));
+    kontaktAssistentSpeicherFehler(fehler);
+    const kontaktImport = document.querySelector(".kontakt-import-dialog");
+    if (kontaktImport) {
+      kontaktImport.querySelectorAll("button").forEach((button) => { button.disabled = false; });
+      const status = kontaktImport.querySelector(".einst-hinweis");
+      if (status) status.textContent = fehler || _("Warning: The data could not be saved.");
+    }
+    const sicherung = $("#sicherung-bestaetigen");
+    if (sicherung) {
+      sicherung.disabled = false;
+      $("#sicherung-fehler").textContent = fehler || _("Warning: The data could not be saved.");
+    }
+    beendeSpeicherAktionen(fehler);
   }
 
   function setzeSpeicherStatus(text, ok) {
@@ -3738,7 +4575,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       bis: gueltigesISO(String(roh.bis || "")) ? String(roh.bis) : ""
     };
     const intervall = Math.min(3660, Math.max(1, Math.floor(Number(roh.intervall) || 1)));
-    if ((ergebnis.art === "daily" || ergebnis.art === "weekly") && intervall > 1) {
+    if (["daily", "weekly", "monthly", "yearly"].includes(ergebnis.art) && intervall > 1) {
       ergebnis.intervall = intervall;
     }
     if (ergebnis.art === "custom") {
@@ -3848,8 +4685,10 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
 
   function terminStarkeKennungen(termin) {
     const aus = new Set();
+    const quelle = String(termin && (termin.icsQuelleId || termin.syncKalenderUid ||
+      (termin.kalenderQuelle || {}).id) || "");
     for (const wert of [termin && termin.uid, termin && termin.icsSerienUid]) {
-      if (String(wert || "").trim()) aus.add("extern:" + String(wert).trim());
+      if (String(wert || "").trim()) aus.add("extern:" + quelle + "\u0000" + String(wert).trim());
     }
     if (String(termin && termin.id || "").trim()) aus.add("id:" + String(termin.id).trim());
     return aus;
@@ -3857,6 +4696,8 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
 
   function termineStarkIdentisch(links, rechts) {
     if (terminIdentitaet(links) !== terminIdentitaet(rechts)) return false;
+    const quelle = (t) => String(t.icsQuelleId || t.syncKalenderUid || (t.kalenderQuelle || {}).id || "");
+    if (quelle(links) !== quelle(rechts)) return false;
     const rechtsIds = terminStarkeKennungen(rechts);
     return Array.from(terminStarkeKennungen(links)).some((id) => rechtsIds.has(id));
   }
@@ -4187,9 +5028,13 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     return terminText(text, 500).replace(/[\r\n";:]/g, " ").trim();
   }
 
-  function spiegeleTerminInIcs(termin) {
+  function spiegeleTerminInIcs(termin, vorher = null) {
     const alt = (Array.isArray(termin.icsRoundtrip) ? termin.icsRoundtrip : [])
-      .map((x) => terminText(x, 4000));
+      .map(S);
+    const zeitNeu = vorher && !termin.icsKomplex && ["datum", "endDatum", "zeit", "endZeit"]
+      .some((feld) => S(vorher[feld]) !== S(termin[feld]));
+    const serieNeu = vorher && !termin.icsKomplex && kanonischerEntwurf(leseWiederholung(vorher.wiederholung)) !==
+      kanonischerEntwurf(leseWiederholung(termin.wiederholung));
     const aus = [];
     let inAlarm = false, alarmZeilen = [];
     for (const zeile of alt) {
@@ -4210,11 +5055,34 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
         .includes(eig.name);
       const serienFeld = eig && ["RRULE", "RDATE", "EXDATE", "EXRULE", "RECURRENCE-ID"]
         .includes(eig.name);
-      if (strukturFeld || (!termin.icsKomplex && serienFeld)) continue;
+      if (strukturFeld || (serieNeu && serienFeld) || (zeitNeu && eig &&
+          ["DTSTART", "DTEND", "DURATION"].includes(eig.name))) continue;
       aus.push(zeile);
     }
     if (inAlarm) aus.push(...alarmZeilen);
     const neu = [];
+    const zeitZeile = (name, datum, zeit) => zeit
+      ? name + ";TZID=" + icsParameter(organizerZeitzone()) + ":" + datum.replace(/-/g, "") + "T" + zeit.replace(/:/g, "").padEnd(6, "0")
+      : name + ";VALUE=DATE:" + datum.replace(/-/g, "");
+    if (zeitNeu) {
+      neu.push(zeitZeile("DTSTART", termin.datum, termin.zeit));
+      let ende = termin.endDatum || termin.datum;
+      if (!termin.zeit) { const datum = ausISO(ende); datum.setDate(datum.getDate() + 1); ende = isoVon(datum); }
+      neu.push(zeitZeile("DTEND", ende, termin.zeit ? termin.endZeit || termin.zeit : ""));
+    }
+    if (serieNeu) {
+      const w = leseWiederholung(termin.wiederholung);
+      const freq = { daily: "DAILY", weekly: "WEEKLY", monthly: "MONTHLY", yearly: "YEARLY" }[w.art];
+      if (freq) {
+        let regel = "RRULE:FREQ=" + freq;
+        if (w.intervall > 1) regel += ";INTERVAL=" + w.intervall;
+        if (w.ordinal && w.wochentag) regel += ";BYDAY=" + w.ordinal + w.wochentag;
+        if (w.bis) regel += ";UNTIL=" + (termin.zeit
+          ? organizerZeitpunkt(...w.bis.split("-").map(Number), 23, 59, 59).toISOString().replace(/[-:]/g, "").replace(/\.\d{3}Z$/, "Z")
+          : w.bis.replace(/-/g, ""));
+        neu.push(regel);
+      } else if (w.art === "custom") for (const datum of w.daten || []) neu.push(zeitZeile("RDATE", datum, termin.zeit));
+    }
     if (termin.ort) neu.push("LOCATION:" + icsSicher(termin.ort));
     const org = sauberePerson(termin.organisator, 0);
     if (org.uri || org.email) neu.push("ORGANIZER" + (org.name ? ";CN=" + icsParameter(org.name) : "") +
@@ -4237,10 +5105,10 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     let stelle = aus.findIndex((zeile) => /^END:VEVENT\s*$/i.test(zeile));
     if (stelle < 0) stelle = aus.length;
     aus.splice(stelle, 0, ...neu);
-    return aus.slice(0, 512);
+    return aus;
   }
 
-  const CUSTOM_MAX_MODULES = 3;
+  const CUSTOM_MAX_MODULES = 4;
   const CUSTOM_MAX_ITEMS = 500;
 
   function normalisiereCustomOrganizer(roh) {
@@ -4264,7 +5132,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
         type: block.type === "note" ? "notes" : block.type === "checklist" ? "tasks" : "appointments",
         page: index % 2 ? "right" : "left", order: Math.floor(index / 2) }));
     }
-    for (const modul of quelleModule.slice(0, 24)) {
+    for (const modul of quelleModule) {
       if (!modul || !typen[modul.type]) continue;
       const basis = { id: eindeutigeId(modul.id, "custom-module"), type: modul.type,
         title: text(modul.title, 120).trim(), page: modul.page === "right" ? "right" : "left",
@@ -4272,15 +5140,19 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
         reminders: modul.reminders === true, modified_ms: Math.max(0,
           Math.floor(Number(modul.modified_ms) || 0)) };
       if (basis.type === "notes") {
+        if (["on", "off"].includes(modul.lines)) basis.lines = modul.lines;
         basis.items = [];
         const roheItems = Array.isArray(modul.items) ? modul.items :
           ((modul.text || modul.html) ? [{ id: modul.id + "-text", text: modul.text,
             html: modul.html, modified_ms: modul.modified_ms }] : []);
-        for (const item of roheItems.slice(0, CUSTOM_MAX_ITEMS)) {
+        for (const item of roheItems) {
           if (!item) continue;
-          const itemText = text(item.text, 50000);
-          basis.items.push({ id: eindeutigeId(item.id, "custom-text"), text: itemText,
-            html: saeubereHtml(text(item.html, 100000)) || textZuHtml(itemText),
+          const itemText = text(item.text, Infinity);
+          const htmlRoh = text(item.html, Infinity), htmlStand = {};
+          const html = saeubereHtml(htmlRoh, htmlStand);
+          basis.items.push({ id: eindeutigeId(item.id, "custom-text"),
+            title: text(item.title, 300).trim(), text: itemText,
+            html: htmlStand.gekuerzt ? htmlRoh : html || textZuHtml(itemText),
             modified_ms: Math.max(0, Math.floor(Number(item.modified_ms) || 0)) });
         }
       } else {
@@ -4289,11 +5161,11 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
           ? [{ id: modul.id + "-entry", title: modul.title, date: modul.startDate,
             note: [modul.interval, modul.cadence].filter(Boolean).join(" × ") }]
           : (Array.isArray(modul.items) ? modul.items : []);
-        for (const item of roheItems.slice(0, CUSTOM_MAX_ITEMS)) {
+        for (const item of roheItems) {
           if (!item) continue;
           const title = text(item.title === undefined ? item.name : item.title, 300).trim();
           const eintrag = { id: eindeutigeId(item.id, "custom-item"), title: title,
-            note: text(item.note, 5000), remind: item.remind !== false,
+            note: text(item.note, 5000), textItemId: text(item.textItemId, 160).trim(), remind: item.remind !== false,
             modified_ms: Math.max(0, Math.floor(Number(item.modified_ms) || 0)) };
           if (basis.type === "appointments") {
             eintrag.date = gueltigesISO(item.date) ? item.date : "";
@@ -4307,19 +5179,38 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
           basis.items.push(eintrag);
         }
       }
-      const vorhanden = modules.find((wert) => wert.type === basis.type);
+      const vorhanden = modules.find((wert) => wert.type === basis.type &&
+        (basis.type !== "notes" || wert.page === basis.page));
       if (vorhanden) {
-        vorhanden.items = (vorhanden.items || []).concat(basis.items || []).slice(0, CUSTOM_MAX_ITEMS);
+        vorhanden.items = (vorhanden.items || []).concat(basis.items || []);
         vorhanden.reminders = vorhanden.reminders || basis.reminders;
         vorhanden.modified_ms = Math.max(vorhanden.modified_ms, basis.modified_ms);
-      } else modules.push(basis);
+      } else {
+        const seitenAnzahl = (seite) => modules.filter((wert) => wert.page === seite).length;
+        if (seitenAnzahl(basis.page) >= 2) {
+          const andereSeite = basis.page === "left" ? "right" : "left";
+          const darfVerschieben = seitenAnzahl(andereSeite) < 2 &&
+            (basis.type !== "notes" || !modules.some((wert) => wert.type === "notes" && wert.page === andereSeite));
+          if (darfVerschieben) basis.page = andereSeite;
+          else {
+            // Reserve one text slot per page before moving an existing list.
+            const liste = modules.find((wert) => wert.page === basis.page && wert.type !== "notes");
+            if (liste && seitenAnzahl(andereSeite) < 2) liste.page = andereSeite;
+          }
+        }
+        modules.push(basis);
+      }
+    }
+    const textIds = new Set(modules.filter((modul) => modul.type === "notes")
+      .flatMap((modul) => (modul.items || []).map((item) => item.id)));
+    for (const modul of modules) if (modul.type !== "notes") for (const item of modul.items || []) {
+      if (!textIds.has(item.textItemId)) item.textItemId = "";
     }
     return { version: 3, modules: modules };
   }
 
-  function normalisiere(roh) {
-    const d = leereDaten();
-    if (!roh || typeof roh !== "object") return d;
+  function normalisiereTermine(liste, zusammenfassen = true) {
+    const d = { termine: [] }, roh = { termine: liste };
     const Z = (x) => {
       if (typeof x !== "string") return "";
       const kurz = x.slice(0, 5);
@@ -4327,19 +5218,13 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     };
     const N = (x) => { const n = Number(x); return Number.isFinite(n) && n > 0 ? n : 0; };
     const Q = (x) => x && typeof x === "object" ? JSON.parse(JSON.stringify(x)) : {};
-    const importBindungen = (werte) => Array.from(new Set((Array.isArray(werte) ? werte : [])
-      .map((wert) => String(wert || "").trim().toLowerCase())
-      .filter((wert) => /^urn:magnolie:import:android:[0-9a-f]{64}$/.test(wert)))).slice(-32);
-
-    d.customOrganizer = normalisiereCustomOrganizer(roh.customOrganizer);
-
     const termineNachIdentitaet = new Map();
     for (const t of Array.isArray(roh.termine) ? roh.termine : []) {
       if (!t || !gueltigesISO(t.datum)) continue;
       const endDatum = gueltigesISO(t.endDatum) && t.endDatum > t.datum
         ? t.endDatum : "";
       const icsRoundtrip = (Array.isArray(t.icsRoundtrip) ? t.icsRoundtrip : [])
-        .slice(0, 512).map((wert) => terminText(wert, 4000));
+        .map(S);
       const ics = icsProjektion(icsRoundtrip);
       const legacyTage = [1, 2, 3, 4, 5, 6, 7]
         .includes(Number(t.individuelleErinnerungTage))
@@ -4370,7 +5255,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
         icsZusatzTermine.push({ datum: zDatum, zeit: zZeit });
         if (icsZusatzTermine.length >= 256) break;
       }
-      const normalisierterTermin = { id: S(t.id) || uid(), uid: S(t.uid), datum: t.datum,
+      const normalisierterTermin = { ...Q(t), id: S(t.id) || uid(), uid: S(t.uid), datum: t.datum,
         endDatum: endDatum,
         zeit: Z(t.zeit), endZeit: Z(t.endZeit),
         titel: S(t.titel), notiz: S(t.notiz), kategorien: S(t.kategorien),
@@ -4392,11 +5277,15 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       wiederholung: leseWiederholung(t.wiederholung),
       icsKomplex: !!t.icsKomplex, icsSerienUid: S(t.icsSerienUid),
       icsAusnahmen: Array.isArray(t.icsAusnahmen)
-        ? Array.from(new Set(t.icsAusnahmen.map(S).filter(gueltigesISO))).slice(0, 256) : [],
+        ? Array.from(new Set(t.icsAusnahmen.map(S).filter(gueltigesISO))) : [],
       icsZusatzDaten: Array.isArray(t.icsZusatzDaten)
-        ? Array.from(new Set(t.icsZusatzDaten.map(S).filter(gueltigesISO))).slice(0, 256) : [],
+        ? Array.from(new Set(t.icsZusatzDaten.map(S).filter(gueltigesISO))) : [],
       icsZusatzTermine: icsZusatzTermine,
       icsRoundtrip: icsRoundtrip,
+      icsRangeOverrides: kopie(t.icsRangeOverrides || []),
+      icsAusnahmeTermine: kopie(t.icsAusnahmeTermine || []),
+      icsTimezones: kopie(t.icsTimezones || []),
+      icsAnzeigeZeitzone: S(t.icsAnzeigeZeitzone),
       icsSequence: Math.floor(N(t.icsSequence)),
       icsAenderungszeitFehlt: !!t.icsAenderungszeitFehlt,
       icsEndeFehlt: !!t.icsEndeFehlt, icsNullDauer: !!t.icsNullDauer,
@@ -4408,9 +5297,10 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
         kontaktId: S(t.kontaktId), syncKalenderUid: S(t.syncKalenderUid),
         geaendert: N(t.geaendert), sync: !!t.sync, syncQuellen: Q(t.syncQuellen) };
       normalisierterTermin.providerMetadaten = providerMetadaten;
+      if (!zusammenfassen) { d.termine.push(normalisierterTermin); continue; }
       const identitaet = terminIdentitaet(normalisierterTermin);
       const gruppe = termineNachIdentitaet.get(identitaet) || [];
-      const kanonisch = gruppe.find((vorhanden) =>
+      const kanonisch = zusammenfassen && gruppe.find((vorhanden) =>
         termineStarkIdentisch(vorhanden, normalisierterTermin));
       if (kanonisch) vereinigeTerminMetadaten(kanonisch, normalisierterTermin);
       else {
@@ -4419,19 +5309,41 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
         termineNachIdentitaet.set(identitaet, gruppe);
       }
     }
+    return d.termine;
+  }
+
+  function normalisiere(roh) {
+    const d = leereDaten();
+    if (!roh || typeof roh !== "object") return d;
+    const telefonLand = telefonHeimatland(roh);
+    const Z = (x) => typeof x === "string" && /^(?:[01]\d|2[0-3]):[0-5]\d$/.test(x.slice(0, 5)) ? x.slice(0, 5) : "";
+    const N = (x) => { const n = Number(x); return Number.isFinite(n) && n > 0 ? n : 0; };
+    const Q = (x) => x && typeof x === "object" ? JSON.parse(JSON.stringify(x)) : {};
+    const importBindungen = (werte) => Array.from(new Set((Array.isArray(werte) ? werte : [])
+      .map((wert) => String(wert || "").trim().toLowerCase())
+      .filter((wert) => /^urn:magnolie:import:android:[0-9a-f]{64}$/.test(wert)))).slice(-32);
+    d.customOrganizer = normalisiereCustomOrganizer(roh.customOrganizer);
+    d.termine = normalisiereTermine(roh.termine);
     for (const a of Array.isArray(roh.aufgaben) ? roh.aufgaben : []) {
       if (!a) continue;
       let prio = Number(a.prio);
       if (![1, 2, 3].includes(prio)) prio = 2;
       const taskAngelegt = N(a.angelegt) || N(a.geaendert) || Date.now();
       d.aufgaben.push({ id: S(a.id) || uid(), uid: S(a.uid),
+        icsImportUid: S(a.icsImportUid), icsElternUid: typeof a.icsElternUid === "string" ? a.icsElternUid : undefined,
+        icsElternQuelleId: typeof a.icsElternQuelleId === "string" ? a.icsElternQuelleId : undefined,
         elternUid: S(a.elternUid), reihenfolge: Math.max(0, Math.floor(Number(a.reihenfolge) || 0)),
         titel: S(a.titel), prio: prio,
         faellig: gueltigesISO(a.faellig) ? a.faellig : "",
+        startDatum: gueltigesISO(a.startDatum) ? a.startDatum : "",
         startZeit: Z(a.startZeit), faelligZeit: Z(a.faelligZeit),
         erledigt: !!a.erledigt, notiz: S(a.notiz),
         icsRoundtrip: Array.isArray(a.icsRoundtrip) ? a.icsRoundtrip.map(S) : [],
+        icsSerienUid: S(a.icsSerienUid), icsRangeOverrides: kopie(a.icsRangeOverrides || []), icsAnzeigeZeitzone: S(a.icsAnzeigeZeitzone),
+        icsAusnahmeTermine: kopie(a.icsAusnahmeTermine || []), icsAusnahmen: kopie(a.icsAusnahmen || []),
+        icsZusatzTermine: kopie(a.icsZusatzTermine || []), icsTimezones: kopie(a.icsTimezones || []),
         icsQuelleName: S(a.icsQuelleName), icsQuelleId: S(a.icsQuelleId),
+        sync: !!a.sync, syncQuellen: Q(a.syncQuellen), syncKalenderUid: S(a.syncKalenderUid),
         personen: Array.isArray(a.personen) ? a.personen.map(S).filter(Boolean) : [],
         erinnern: !!a.erinnern, angelegt: taskAngelegt,
         vorlaufTage: Math.min(365, Math.max(0, N(a.vorlaufTage))),
@@ -4453,7 +5365,9 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       const kontaktpersonen = kontaktpersonenListe(k);
       const geburtstag = kanonischesJahresdatum(S(k.geburtstag),
         k.geburtstagJahrUnbekannt);
-      const kontakt = { id: S(k.id) || uid(), uid: S(k.uid),
+      const jubilaeum = kanonischesJahresdatum(S(k.jubilaeum),
+        S(k.jubilaeum).startsWith("--"));
+      const kontakt = { ...Q(k), id: S(k.id) || uid(), uid: S(k.uid),
         nachname: S(k.nachname), vorname: S(k.vorname),
         firma: S(k.firma), strasse: S(k.strasse), plz: S(k.plz), ort: S(k.ort),
         telefon: S(k.telefon), mobil: S(k.mobil),
@@ -4465,9 +5379,10 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
         kontaktpersonen: kontaktpersonen,
         foto: sauberesFoto(S(k.foto)),
         geburtstag: geburtstag,
+        jubilaeum: jubilaeum,
         geburtstagJahrUnbekannt: gueltigesTeildatum(geburtstag),
         vcardRoundtrip: Array.isArray(k.vcardRoundtrip)
-          ? k.vcardRoundtrip.map(S).filter(Boolean).slice(0, 256) : [],
+          ? k.vcardRoundtrip.map(S).filter(Boolean) : [],
         vcardParameter: k.vcardParameter && typeof k.vcardParameter === "object"
           ? kopie(k.vcardParameter) : {},
         sozialeMedien: sozialeMedienListe(k),
@@ -4482,13 +5397,15 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
             version: Math.max(0, N(k.baumKontakt.version)),
             quelle: S(k.baumKontakt.quelle).slice(0, 128),
             geaendert: Math.max(0, N(k.baumKontakt.geaendert)),
+            hash: S(k.baumKontakt.hash),
+            fernStand: Q(k.baumKontakt.fernStand),
             staende: Array.isArray(k.baumKontakt.staende)
               ? k.baumKontakt.staende.map(S).filter(Boolean).slice(-100) : [],
             partner: Array.isArray(k.baumKontakt.partner)
               ? Array.from(new Set(k.baumKontakt.partner.map(S).filter(Boolean))) : []
           } : null,
         geaendert: N(k.geaendert), sync: !!k.sync, syncQuellen: Q(k.syncQuellen) };
-      setzeTelefonListe(kontakt, telefonListe(k));
+      setzeTelefonListe(kontakt, telefonListe(k, telefonLand), telefonLand);
       setzeAnschriftListe(kontakt, anschriftListe(k));
       setzeKontaktpersonen(kontakt, kontaktpersonen);
       d.kontakte.push(kontakt);
@@ -4497,15 +5414,16 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     for (const sms of (Array.isArray(roh.smsVerlauf) ? roh.smsVerlauf : []).slice(-5000)) {
       if (!sms || !["eingang", "ausgang"].includes(sms.richtung)) continue;
       const zeit = Number(sms.zeit);
-      const nummer = telefonSchluessel(S(sms.nummer)).split("x", 1)[0].slice(0, 32);
+      const land = sms.land === undefined ? telefonLand : isoLand(sms.land, "");
+      const nummer = telefonSchluessel(S(sms.nummer), land).split("x", 1)[0].slice(0, 32);
       const text = S(sms.text).slice(0, 5000);
       if (!nummer || !text || !Number.isFinite(zeit) || zeit <= 0 || zeit > Date.now() + 86400000) continue;
       let id = S(sms.id).replace(/[\x00-\x1f\x7f]/g, "").slice(0, 180) || uid();
       if (smsIds.has(id)) continue;
       smsIds.add(id);
-      d.smsVerlauf.push({ id: id, kontaktId: S(sms.kontaktId).slice(0, 160), nummer: nummer,
+      d.smsVerlauf.push({ id: id, kontaktId: S(sms.kontaktId).slice(0, 160), nummer: nummer, land: land,
         richtung: sms.richtung, text: text, zeit: Math.floor(zeit),
-        status: ["queued", "submitted", "sent", "delivered", "failed"].includes(sms.status)
+        status: ["queued", "submitted", "sent", "delivered", "failed", "uncertain"].includes(sms.status)
           ? sms.status : "queued",
         gelesen: sms.richtung === "eingang" && sms.gelesen === true,
         clientRef: S(sms.clientRef || sms.client_ref).slice(0, 160),
@@ -4514,15 +5432,17 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     }
     const smsPlanIds = new Set();
     for (const sms of (Array.isArray(roh.smsPlanung) ? roh.smsPlanung : []).slice(-500)) {
-      if (!sms || !["planned", "submitting", "uncertain", "sent", "failed"].includes(sms.status)) continue;
+      if (!sms || !["paused", "planned", "submitting", "queued", "submitted", "uncertain", "sent", "failed"].includes(sms.status)) continue;
       const zeit = Math.floor(Number(sms.zeit));
-      const nummer = telefonSchluessel(S(sms.nummer)).split("x", 1)[0].slice(0, 32);
-      const text = S(sms.text).trim().slice(0, 5000);
+      const land = sms.land === undefined ? telefonLand : isoLand(sms.land, "");
+      const nummer = telefonSchluessel(S(sms.nummer), land).split("x", 1)[0].slice(0, 32);
+      const text = S(sms.text).slice(0, 5000);
       let id = S(sms.id).replace(/[\x00-\x1f\x7f]/g, "").slice(0, 160) || uid();
       if (!nummer || !text || !Number.isFinite(zeit) || zeit <= 0 || smsPlanIds.has(id)) continue;
       smsPlanIds.add(id);
-      d.smsPlanung.push({ id: id, kontaktId: S(sms.kontaktId).slice(0, 160), nummer: nummer,
-        text: text, zeit: zeit, status: sms.status === "submitting" ? "uncertain" : sms.status,
+      d.smsPlanung.push({ id: id, kontaktId: S(sms.kontaktId).slice(0, 160), nummer: nummer, land: land,
+        text: text, ...(typeof sms.originalText === "string" ? { originalText: sms.originalText.slice(0, 5000) } : {}),
+        zeit: zeit, status: sms.status === "submitting" ? "uncertain" : sms.status,
         clientRef: S(sms.clientRef).slice(0, 160), fehler: S(sms.fehler).slice(0, 1000) });
     }
     if (Array.isArray(roh.notizgruppen) && roh.notizgruppen.length) {
@@ -4590,7 +5510,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       const datum = kanonischesJahresdatum(providerJahrUnbekannt
         ? "--" + S(j.datum).slice(5) : S(j.datum), j.jahrUnbekannt || providerJahrUnbekannt);
       if (!datum) continue;
-      const normalisierterJahrestag = { id: S(j.id) || uid(), uid: S(j.uid), name: S(j.name), datum: datum,
+      const normalisierterJahrestag = { ...Q(j), id: S(j.id) || uid(), uid: S(j.uid), name: S(j.name), datum: datum,
         jahrUnbekannt: gueltigesTeildatum(datum), kontaktId: S(j.kontaktId),
         typ: jahrestagTypId(typ) || typ || "other",
         icsSerienUid: S(j.icsSerienUid),
@@ -4847,6 +5767,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     o.regionName = S(or.regionName);
     o.alleRegionen = !!or.alleRegionen;
     o.ferien = or.ferien === undefined ? true : !!or.ferien;
+    o.setupFerienAbruf = or.setupFerienAbruf === true && o.ferien;
     o.abgerufen = N(or.abgerufen);
     o.jahre = (Array.isArray(or.jahre) ? or.jahre : [])
       .map(Number).filter((j) => j >= 1900 && j <= 2200);
@@ -4907,6 +5828,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     za.fotoVoreinstellung = 1;
     za.smsBenachrichtigungDauer = [0, 15, 30, 60, 120].includes(
       Number(ad.smsBenachrichtigungDauer)) ? Number(ad.smsBenachrichtigungDauer) : 60;
+    za.smsSchedulingEnabled = ad.smsSchedulingEnabled === true;
     const kommunikation = ad.kommunikation && typeof ad.kommunikation === "object"
       ? ad.kommunikation : {};
     const kommunikationsWeg = (wert, sms) => {
@@ -4924,6 +5846,8 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
         const hfpAdresse = S(wert.hfpAdresse).toUpperCase();
         ergebnis.hfpAdresse = /^[0-9A-F]{2}(?::[0-9A-F]{2}){5}$/.test(hfpAdresse)
           ? hfpAdresse : "";
+        ergebnis.preferPcAudio = typeof wert.preferPcAudio === "boolean" ? wert.preferPcAudio :
+          Object.prototype.hasOwnProperty.call(wert, "hfpAdresse") ? !!ergebnis.hfpAdresse : true;
         const telefonId = S(wert.telefonId).replace(/[\x00-\x1f\x7f]/g, "").slice(0, 160);
         if (telefonId) ergebnis.telefonId = telefonId;
       }
@@ -5018,13 +5942,14 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     if (["system", "celsius", "fahrenheit"].includes(reg.temperatureUnit)) {
       zr.temperatureUnit = reg.temperatureUnit;
     }
-    zr.homeCountry = isoLand(reg.homeCountry, "DE");
+    zr.homeCountry = telefonLand;
     const zonenwert = S(reg.timeZone);
     if (zonenwert === "system" || (/^[A-Za-z0-9._+-]+(?:\/[A-Za-z0-9._+-]+)+$/.test(zonenwert) &&
         !zonenwert.includes(".."))) zr.timeZone = zonenwert;
     za.briefLayout = enumWert(ad.briefLayout,
-      { kompakt: "compact", compact: "compact", din5008: "din5008" }, "compact");
-    za.briefLayoutVoreinstellung = 2;
+      { kompakt: "compact", compact: "compact", din5008: "din5008",
+        "din5008-a": "din5008-a", "din5008-b": "din5008-b" }, "din5008-b");
+    za.briefLayoutVoreinstellung = 3;
     const si = (e.sicherheit && typeof e.sicherheit === "object")
       ? e.sicherheit : {};
     d.einstellungen.sicherheit.erinnernTrotzKennwort =
@@ -5109,11 +6034,18 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
         kontakt: "contact", contact: "contact", aufgabe: "task", task: "task",
         notiz: "note", note: "note", jahrestag: "anniversary",
         notizbuch: "notebook", notebook: "notebook", anhang: "attachment", attachment: "attachment",
-        anniversary: "anniversary", duplikat: "duplicate", duplicate: "duplicate" }, "");
+        anniversary: "anniversary", duplikat: "duplicate", duplicate: "duplicate", custom: "custom" }, "");
       if (!art) continue;
       const listen = { appointment: "termine", contact: "kontakte", task: "aufgaben",
         note: "notizen", notebook: "notizbuecher", anniversary: "jahrestage", duplicate: "kontakte" };
       const liste = listen[art];
+      if (art === "custom") {
+        if (!["notes", "appointments", "tasks"].includes(s.eintrag.type) || !Array.isArray(s.eintrag.items)) continue;
+        d.papierkorb.push({ id: S(s.id) || uid(), art, name: S(s.name),
+          geloescht: N(s.geloescht) || Date.now(), parent_id: S(s.parent_id),
+          notiz_zuordnungen: Q(s.notiz_zuordnungen), eintrag: Q(s.eintrag) });
+        continue;
+      }
       if (art === "attachment") {
         const a = s.eintrag;
         if (!a || !S(a.id) || !S(s.parent_id)) continue;
@@ -5133,6 +6065,8 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     za.brief = ad.brief === undefined ? true : !!ad.brief;
     za.karte = ad.karte === undefined ? true : !!ad.karte;
     za.route = !!ad.route;
+    za.routeFestgelegt = typeof ad.routeFestgelegt === "boolean" ? ad.routeFestgelegt
+      : Object.prototype.hasOwnProperty.call(ad, "route");
     za.sozialeSymbole = ad.sozialeSymbole === undefined
       ? true : !!ad.sozialeSymbole;
     d.letzterSync = N(roh.letzterSync);
@@ -5226,6 +6160,9 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     const actor = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(S(ps.actor_id))
       ? S(ps.actor_id) : "";
     d.personalSync = { format: 1, actor_id: actor, counter: Math.max(0, Math.floor(N(ps.counter))),
+      custom_revision: Number.isSafeInteger(ps.custom_revision) && ps.custom_revision >= 0 ? ps.custom_revision : 0,
+      custom_entities: ps.custom_entities && typeof ps.custom_entities === "object" && !Array.isArray(ps.custom_entities) ? kopie(ps.custom_entities) : {},
+      custom_auto_hash: S(ps.custom_auto_hash),
       entities: ps.entities && typeof ps.entities === "object" ? kopie(ps.entities) : {},
       last_reports: Array.isArray(ps.last_reports) ? ps.last_reports.slice(-20) : [],
       applied_batches: Array.isArray(ps.applied_batches) ? ps.applied_batches.slice(-500) : [],
@@ -5312,7 +6249,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
   /* Lässt nur schlichte Auszeichnungen stehen; alles andere wird entfernt,
      der reine Text bleibt erhalten. */
   function saeubereHtml(roh, stand) {
-    if (!roh) return "";
+    if (!roh) { if (stand && stand.textErmitteln) stand.text = ""; return ""; }
     const vorlage = document.createElement("template");
     vorlage.innerHTML = String(roh);
     const behaelter = document.createElement("div");
@@ -5359,6 +6296,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       }
     };
     kopieren(vorlage.content, behaelter, 0);
+    if (stand && stand.textErmitteln) stand.text = htmlZuText(behaelter);
     return behaelter.innerHTML;
   }
 
@@ -5664,6 +6602,9 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     const menue = el("div", "vorschlags-menue");
     menue.id = "vorschlags-menue";
     menue.setAttribute("role", "menu");
+    menue.bearbeitungsAuswahl = erfasseBearbeitungsAuswahl(
+      vorschlagsStelle && (vorschlagsStelle.feld || vorschlagsStelle.flaeche));
+    menue.addEventListener("mousedown", (ev) => ev.preventDefault());
     menue.append(el("div", "vm-kopf", wort));
     menue.append(el("div", "vm-laden", _("Searching for suggestions…")));
     document.body.append(menue);
@@ -5721,7 +6662,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       const ziel = vorschlagsStelle && vorschlagsStelle.art === "feld"
         ? vorschlagsStelle.feld : vorschlagsStelle && vorschlagsStelle.flaeche;
       schliesseVorschlaege();
-      ausAblage(ziel);
+      ausAblage(ziel, menue.bearbeitungsAuswahl);
     });
     menue.append(einfuegen);
     const merken = el("button", "vm-eintrag vm-merken", _("Add to dictionary"));
@@ -5757,6 +6698,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       const flaeche = s.flaeche;
       if (flaeche) {
         flaeche.dispatchEvent(new Event("input", { bubbles: true }));
+        sichereNotizSnapshot();
         const bereich = document.createRange();
         const ende = s.von + neuesWort.length;
         bereich.setStart(knoten, Math.min(ende, knoten.length));
@@ -5764,6 +6706,62 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
         markiereBereich(bereich);
       }
     }
+  }
+
+  /* Nur die eigentlichen Schreibblätter erhalten Tabulatoren. Shift+Tab
+     bleibt der normale Rückweg aus dem Feld, auch innerhalb eines Dialogs.
+     Die kurze Bedienhilfe ist für alle 20 Oberflächensprachen ausgeschrieben. */
+  function bindeSchreibTab(feld) {
+    const hinweis = el("small", "schreib-tab-hinweis",
+      _("Tab: insert a tab stop. Shift+Tab: previous field. Ctrl+Tab: next field."));
+    hinweis.id = "schreib-tab-" + uid();
+    feld.setAttribute("aria-describedby", [feld.getAttribute("aria-describedby"), hinweis.id]
+      .filter(Boolean).join(" "));
+    if (feld.tagName !== "TEXTAREA") feld.tabIndex = 0;
+    let komposition = false;
+    feld.addEventListener("compositionstart", () => { komposition = true; });
+    feld.addEventListener("compositionend", () => { komposition = false; });
+    feld.addEventListener("keydown", (ev) => {
+      const taste = String(ev.key).toLowerCase();
+      const historie = (ev.ctrlKey || ev.metaKey) && !ev.altKey &&
+        (taste === "z" || taste === "y")
+        ? (taste === "y" || ev.shiftKey ? "redo" : "undo") : "";
+      const tab = ev.key === "Tab" || ev.code === "Tab";
+      const weiter = tab && ev.ctrlKey && !ev.altKey && !ev.metaKey;
+      if (!historie && !weiter && (!tab || ev.shiftKey || ev.ctrlKey || ev.altKey || ev.metaKey)) return;
+      if (ev.defaultPrevented || ev.isComposing || komposition || ev.keyCode === 229 ||
+          document.activeElement !== feld || feld.disabled || feld.readOnly ||
+          feld.getAttribute("aria-readonly") === "true" || feld.closest("[inert]")) return;
+      if (weiter) {
+        const dialog = modalStapel[modalStapel.length - 1]?.dialog || document.body;
+        const felder = fokussierbareElemente(dialog).filter((element) => element.tabIndex >= 0 &&
+          element.getClientRects().length && !element.closest("[hidden],[inert]") &&
+          getComputedStyle(element).visibility !== "hidden");
+        const index = felder.indexOf(feld);
+        if (index >= 0 && felder.length > 1) {
+          ev.preventDefault();
+          felder[(index + (ev.shiftKey ? -1 : 1) + felder.length) % felder.length].focus();
+        }
+        return;
+      }
+      if (feld.tagName !== "TEXTAREA") {
+        if (!feld.isContentEditable) return;
+        const auswahl = window.getSelection();
+        if (!auswahl || auswahl.rangeCount !== 1) return;
+        const bereich = auswahl.getRangeAt(0);
+        if (!feld.contains(bereich.commonAncestorContainer)) return;
+        for (const knoten of [bereich.startContainer, bereich.endContainer]) {
+          const element = knoten.nodeType === 1 ? knoten : knoten.parentElement;
+          if (!element?.isContentEditable) return;
+        }
+      }
+      ev.preventDefault();
+      // Native Bearbeitung erhält Auswahlersetzung, Undo/Redo und genau ein
+      // input-Ereignis. Keine value-/DOM-Zuweisung und kein zweites Draft-Signal.
+      if (historie) nativeTextBearbeitung(erfasseBearbeitungsAuswahl(feld), historie, null);
+      else document.execCommand("insertText", false, "\t");
+    });
+    return hinweis;
   }
 
   /* Was ist gerade markiert – und wo? */
@@ -5779,82 +6777,176 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       return { text: ziel.value.slice(von, bis), feld: ziel, von: von, bis: bis };
     }
     const auswahl = window.getSelection ? window.getSelection() : null;
-    const text = auswahl ? String(auswahl) : "";
-    return { text: text, feld: null, von: 0, bis: 0 };
+    const bereich = auswahl?.rangeCount === 1 ? auswahl.getRangeAt(0) : null;
+    const flaeche = textBearbeitungsZiel(ziel);
+    const passt = bereich && (!flaeche || flaeche.contains(bereich.commonAncestorContainer));
+    return { text: passt ? String(auswahl) : "", feld: null,
+      bereich: passt ? bereich.cloneRange() : null };
+  }
+
+  function textBearbeitungsZiel(ziel) {
+    if (!ziel) return null;
+    if (ziel.tagName === "TEXTAREA" || istTextEingabe(ziel)) return ziel;
+    if (!ziel.isContentEditable) return null;
+    while (ziel.parentElement?.isContentEditable) ziel = ziel.parentElement;
+    return ziel;
   }
 
   function istBeschreibbar(ziel) {
-    if (!ziel) return false;
-    if (ziel.tagName === "TEXTAREA") return !ziel.disabled;
-    if (istTextEingabe(ziel)) return !ziel.disabled;
-    return !!(ziel.closest && ziel.closest("[contenteditable=true]"));
+    const feld = textBearbeitungsZiel(ziel);
+    return !!(feld?.isConnected && !feld.readOnly && !feld.matches(":disabled") &&
+      !feld.closest('[inert],[hidden],[aria-readonly="true"]'));
   }
 
-  /* Fügt Text an der Schreibmarke ein. */
-  function fuegeEin(text, ziel) {
-    if (!text) return false;
-    if (ziel && (ziel.tagName === "TEXTAREA" || ziel.tagName === "INPUT")) {
-      const von = ziel.selectionStart || 0;
-      const bis = ziel.selectionEnd || 0;
-      ziel.value = ziel.value.slice(0, von) + text + ziel.value.slice(bis);
-      const ende = von + text.length;
-      try { ziel.setSelectionRange(ende, ende); } catch (f) { /* egal */ }
-      ziel.dispatchEvent(new Event("input", { bubbles: true }));
-      return true;
+  let bearbeitungsAuswahl = null;
+  let ablageAuftrag = null;
+  let auswahlWirdHergestellt = false;
+  const textKompositionen = new WeakSet();
+
+  function verwerfeBearbeitungsAuswahl() {
+    if (!bearbeitungsAuswahl) return;
+    bearbeitungsAuswahl.gueltig = false;
+    bearbeitungsAuswahl.beobachter.disconnect();
+    bearbeitungsAuswahl = null;
+  }
+
+  function gleicheBearbeitungsAuswahl(s) {
+    if (s.feld) return s.ziel.selectionStart === s.von && s.ziel.selectionEnd === s.bis;
+    const a = window.getSelection();
+    if (!a || a.rangeCount !== 1) return false;
+    const r = a.getRangeAt(0), b = s.bereich;
+    return r.startContainer === b.startContainer && r.startOffset === b.startOffset &&
+      r.endContainer === b.endContainer && r.endOffset === b.endOffset;
+  }
+
+  function bearbeitungsAuswahlGueltig(s) {
+    if (s?.gueltig && s.beobachter.takeRecords().length) verwerfeBearbeitungsAuswahl();
+    if (!s?.gueltig || !istBeschreibbar(s.ziel) || textKompositionen.has(s.ziel) ||
+        (s.feld ? s.ziel.value : s.ziel.innerHTML) !== s.inhalt) return false;
+    if (s.feld) return true;
+    return [s.bereich.startContainer, s.bereich.endContainer].every(knoten =>
+      textBearbeitungsZiel(knoten.nodeType === 1 ? knoten : knoten.parentElement) === s.ziel);
+  }
+
+  function erfasseBearbeitungsAuswahl(ziel) {
+    verwerfeBearbeitungsAuswahl();
+    ziel = textBearbeitungsZiel(ziel);
+    if (!istBeschreibbar(ziel) || textKompositionen.has(ziel)) return null;
+    const s = markierterText(ziel);
+    if (!s.feld && !s.bereich) return null;
+    s.ziel = ziel;
+    if (s.feld) {
+      s.von = ziel.selectionStart;
+      s.bis = ziel.selectionEnd;
+      s.richtung = ziel.selectionDirection;
+      // email-Felder besitzen keine Selection-API: nur bei bestehendem Fokus.
+      if (s.von === null && document.activeElement !== ziel) return null;
+    } else {
+      const a = window.getSelection();
+      s.anker = [a.anchorNode, a.anchorOffset];
+      s.fokus = [a.focusNode, a.focusOffset];
     }
-    const auswahl = window.getSelection ? window.getSelection() : null;
-    if (!auswahl || !auswahl.rangeCount) return false;
-    const bereich = auswahl.getRangeAt(0);
-    bereich.deleteContents();
-    const knoten = document.createTextNode(text);
-    bereich.insertNode(knoten);
-    bereich.setStartAfter(knoten);
-    bereich.collapse(true);
-    markiereBereich(bereich);
-    const flaeche = knoten.parentNode && knoten.parentNode.closest
-      ? knoten.parentNode.closest("[contenteditable=true]") : null;
-    if (flaeche) flaeche.dispatchEvent(new Event("input", { bubbles: true }));
-    return true;
+    s.inhalt = s.feld ? ziel.value : ziel.innerHTML;
+    s.gueltig = true;
+    s.beobachter = new MutationObserver(verwerfeBearbeitungsAuswahl);
+    s.beobachter.observe(ziel, { childList: true, characterData: true, subtree: true });
+    bearbeitungsAuswahl = s;
+    if (!bearbeitungsAuswahlGueltig(s)) { verwerfeBearbeitungsAuswahl(); return null; }
+    return s;
+  }
+
+  function stelleBearbeitungsAuswahlHer(s) {
+    if (!bearbeitungsAuswahlGueltig(s)) return false;
+    auswahlWirdHergestellt = true;
+    try {
+      s.ziel.focus({ preventScroll: true });
+      if (document.activeElement !== s.ziel) return false;
+      if (s.feld) {
+        if (s.von !== null) s.ziel.setSelectionRange(s.von, s.bis, s.richtung);
+      } else {
+        const a = window.getSelection();
+        a.setBaseAndExtent(...s.anker, ...s.fokus);
+      }
+      return true;
+    } finally { auswahlWirdHergestellt = false; }
+  }
+
+  // Menü und asynchrone Antwort teilen genau dieselbe Auswahl. Schon eine
+  // zwischenzeitliche Eingabe (auch mit Undo zurück) macht den Auftrag ungültig.
+  for (const art of ["beforeinput", "input", "pointerdown", "keydown", "focusin"]) {
+    document.addEventListener(art, (ev) => {
+      if (auswahlWirdHergestellt || !bearbeitungsAuswahl ||
+          ev.target.closest?.("#vorschlags-menue")) return;
+      if (art === "focusin" && ev.target === bearbeitungsAuswahl.ziel) return;
+      verwerfeBearbeitungsAuswahl();
+    }, true);
+  }
+  document.addEventListener("selectionchange", () => {
+    if (!auswahlWirdHergestellt && bearbeitungsAuswahl &&
+        !document.activeElement?.closest("#vorschlags-menue") &&
+        !gleicheBearbeitungsAuswahl(bearbeitungsAuswahl)) verwerfeBearbeitungsAuswahl();
+  });
+  document.addEventListener("compositionstart", (ev) => {
+    const ziel = textBearbeitungsZiel(ev.target);
+    if (ziel) textKompositionen.add(ziel);
+    verwerfeBearbeitungsAuswahl();
+  }, true);
+  document.addEventListener("compositionend", (ev) => {
+    textKompositionen.delete(ev.target);
+    const ziel = textBearbeitungsZiel(ev.target);
+    if (ziel) textKompositionen.delete(ziel);
+  }, true);
+  window.addEventListener("blur", verwerfeBearbeitungsAuswahl);
+
+  function nativeTextBearbeitung(stelle, befehl, text) {
+    if (!stelleBearbeitungsAuswahlHer(stelle)) return false;
+    verwerfeBearbeitungsAuswahl();
+    // Wie Tab: natives Undo und genau ein input; bestehender Draft-/Savepfad.
+    try {
+      if ((befehl === "undo" || befehl === "redo") && !document.queryCommandEnabled(befehl)) return false;
+      return document.execCommand(befehl, false, text);
+    } catch (f) { return false; }
+  }
+
+  function nativeHistorieMoeglich(stelle, befehl) {
+    if (!stelleBearbeitungsAuswahlHer(stelle)) return false;
+    try { return document.queryCommandEnabled(befehl); } catch (f) { return false; }
+  }
+
+  function fuegeEin(text, stelle) {
+    if (!text) return false;
+    text = String(text).replace(/\r\n?/g, "\n");
+    // WebKit zerlegt mehrzeiliges insertText in mehrere input-Ereignisse.
+    // Escapter Klartext mit BR bleibt eine native Paste-Transaktion; vorhandene
+    // Auszeichnungen außerhalb der Auswahl bleiben erhalten.
+    const mehrzeilig = text.includes("\n");
+    return nativeTextBearbeitung(stelle, mehrzeilig ? "insertHTML" : "insertText",
+      mehrzeilig ? textZuHtml(text) : text);
   }
 
   function loescheMarkierung(stelle) {
-    if (stelle.feld) {
-      stelle.feld.value = stelle.feld.value.slice(0, stelle.von) +
-        stelle.feld.value.slice(stelle.bis);
-      try {
-        stelle.feld.setSelectionRange(stelle.von, stelle.von);
-      } catch (f) { /* egal */ }
-      stelle.feld.dispatchEvent(new Event("input", { bubbles: true }));
-      return;
-    }
-    const auswahl = window.getSelection ? window.getSelection() : null;
-    if (!auswahl || !auswahl.rangeCount) return;
-    const bereich = auswahl.getRangeAt(0);
-    const flaeche = bereich.commonAncestorContainer.parentNode &&
-      bereich.commonAncestorContainer.parentNode.closest
-      ? bereich.commonAncestorContainer.parentNode.closest("[contenteditable=true]")
-      : null;
-    bereich.deleteContents();
-    if (flaeche) flaeche.dispatchEvent(new Event("input", { bubbles: true }));
+    return !!stelle?.text && nativeTextBearbeitung(stelle, "delete", null);
   }
-
-  let ablageZiel = null;
 
   function inAblage(text) {
     if (Bruecke.vorhanden) {
-      Bruecke.sende({ cmd: "ablage_kopieren", text: text });
-      return;
+      return Bruecke.sende({ cmd: "ablage_kopieren", text: text });
     }
-    try { document.execCommand("copy"); } catch (f) { /* egal */ }
+    try { return document.execCommand("copy"); } catch (f) { return false; }
   }
 
-  function ausAblage(ziel) {
-    ablageZiel = ziel;
+  function ausAblage(ziel, stelle = erfasseBearbeitungsAuswahl(ziel), ausschneiden = false) {
+    // Native Antworten haben keine Kennung. Bis zur Antwort bleibt der Slot
+    // belegt, selbst wenn die Auswahl inzwischen verworfen wurde.
+    if (ablageAuftrag || !stelleBearbeitungsAuswahlHer(stelle)) return;
+    if (ausschneiden && (!stelle.text || !inAblage(stelle.text))) return;
     if (Bruecke.vorhanden) {
-      Bruecke.sende({ cmd: "ablage_holen" });
+      ablageAuftrag = { stelle, ausschneiden };
+      if (!Bruecke.sende({ cmd: "ablage_holen" })) ablageAuftrag = null;
       return;
     }
-    try { document.execCommand("paste"); } catch (f) { /* egal */ }
+    if (ausschneiden) loescheMarkierung(stelle);
+    else nativeTextBearbeitung(stelle, "paste", null);
   }
 
   /* Menü zum Bearbeiten: Ausschneiden, Kopieren, Einfügen – und im
@@ -5865,8 +6957,10 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     menue.id = "vorschlags-menue";
     menue.setAttribute("role", "menu");
 
-    const beschreibbar = istBeschreibbar(ziel);
+    const auswahl = erfasseBearbeitungsAuswahl(ziel);
+    const beschreibbar = !!auswahl;
     const hatText = !!stelle.text;
+    menue.addEventListener("mousedown", (ev) => ev.preventDefault());
 
     const eintrag = (name, text, aufgabe, moeglich) => {
       const knopfEl = el("button", "vm-eintrag" + (moeglich ? "" : " vm-grau"));
@@ -5882,12 +6976,16 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       menue.append(knopfEl);
     };
 
+    eintrag("", _("Undo"), () => nativeTextBearbeitung(auswahl, "undo", null),
+      nativeHistorieMoeglich(auswahl, "undo"));
+    eintrag("", _("Redo"), () => nativeTextBearbeitung(auswahl, "redo", null),
+      nativeHistorieMoeglich(auswahl, "redo"));
+    menue.append(el("div", "vm-trenner"));
     eintrag("", _("Cut"), () => {
-      inAblage(stelle.text);
-      loescheMarkierung(stelle);
+      ausAblage(ziel, auswahl, true);
     }, hatText && beschreibbar);
     eintrag("", _("Copy"), () => inAblage(stelle.text), hatText);
-    eintrag("", _("Paste"), () => ausAblage(ziel), beschreibbar);
+    eintrag("", _("Paste"), () => ausAblage(ziel, auswahl), beschreibbar);
     if (beschreibbar) {
       eintrag("", _("Select all"), () => {
         if (ziel && ziel.select) {
@@ -5912,12 +7010,13 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
         const b = el("button", "vm-eintrag");
         b.type = "button";
         b.setAttribute("role", "menuitem");
-        b.append(el("span", "vm-zeichen w-" + a.tag.toLowerCase(), a.zeichen),
-          el("span", null, a.name));
+        b.append(el("span", "vm-zeichen w-" + a.tag.toLowerCase(), _(a.zeichen)),
+          el("span", null, _(a.name)));
         b.addEventListener("mousedown", (ev2) => ev2.preventDefault());
         b.addEventListener("click", () => {
           if (zeichneAus(flaeche, a.tag)) {
             flaeche.dispatchEvent(new Event("input", { bubbles: true }));
+            sichereNotizSnapshot();
           }
           menue.remove();
         });
@@ -6031,6 +7130,12 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     const stil = getComputedStyle(feld);
     const zeilenhoehe = Number.parseFloat(stil.lineHeight);
     if (!Number.isFinite(zeilenhoehe) || zeilenhoehe <= 0) return 0;
+    const schrift = `${stil.fontStyle} ${stil.fontWeight} ${stil.fontSize} ${stil.fontFamily}`;
+    // WebKit can finish a later font load without firing FontFaceSet loadingdone.
+    // Never leave the ruler at the provisional fallback font's baseline.
+    if (document.fonts && !document.fonts.check(schrift, "Magnolie")) {
+      document.fonts.load(schrift, "Magnolie").then(planeNotizlinien, () => {});
+    }
     const probe = document.createElement("span");
     probe.setAttribute("aria-hidden", "true");
     Object.assign(probe.style, {
@@ -6066,7 +7171,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
 
   function aktualisiereNotizlinien() {
     notizlinienAufgabe = 0;
-    for (const feld of [$("#notiz-text"), $("#tb-notiz")]) {
+    for (const feld of document.querySelectorAll("#notiz-text, #tb-notiz, .custom-text-editor")) {
       const metrik = notizlinienGrundlinie(feld);
       if (metrik) {
         feld.style.setProperty("--linien-stelle", metrik.grundlinie + "px");
@@ -6153,20 +7258,397 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     return new Date(jahr, monat + 1, 0).getDate();
   }
 
+  // RFC source wall times are synthetic UTC milliseconds, never host-local Dates.
+  function icsExpansion(t, lower, upper, task = false, overlap = false, seek = null) {
+    const DAY = 86400000, units = { SECONDLY: 1000, MINUTELY: 60000, HOURLY: 3600000, DAILY: DAY, WEEKLY: 7 * DAY };
+    const utc = (y, m, d = 1) => { const v = new Date(0); v.setUTCFullYear(y, m, d); v.setUTCHours(0, 0, 0, 0); return +v; };
+    const props = lines => {
+      const out = []; let depth = 0;
+      for (const line of lines || []) {
+        const m = /^((?:[^:"]|"[^"]*")*):(.*)$/.exec(line); if (!m) continue;
+        const header = m[1].split(/;(?=(?:[^"]*"[^"]*")*[^"]*$)/), name = header.shift().toUpperCase();
+        if (["BEGIN", "END"].includes(name)) { if (!["VEVENT", "VTODO"].includes(m[2])) depth = Math.max(0, depth + (name === "BEGIN" ? 1 : -1)); continue; }
+        if (!depth) out.push({ name, value: m[2], params: Object.fromEntries(header.map(p => { const at = p.indexOf("="); return [p.slice(0, at).toUpperCase(), p.slice(at + 1).replace(/^"|"$/g, "")]; })) });
+      }
+      return out;
+    };
+    const p = props(t.icsRoundtrip), get = (name, source = p) => source.find(v => v.name === name);
+    if (!p.some(v => ["DTSTART", "RRULE", "RDATE", "EXRULE", "RECURRENCE-ID", "STATUS"].includes(v.name))) return null;
+    const fail = (code) => { const e = new Error(_("Some recurrence rules cannot be expanded. Their original calendar data was preserved.")); e.code = code;
+      if (icsExpansion.lastError !== code) { icsExpansion.lastError = code; zettel(e.message + " [" + code + "]"); } throw e; };
+    const defined = new Map((t.icsTimezones || []).map(lines => [lines.find(v => /^TZID:/i.test(v))?.slice(5), lines]));
+    if (String(t.icsStatus || get("STATUS")?.value).toUpperCase() === "CANCELLED") return [];
+    if (get("RECURRENCE-ID")?.params.RANGE && get("RECURRENCE-ID").params.RANGE !== "THISANDFUTURE") fail("unsupported-range");
+    const target = organizerZeitzone() || Intl.DateTimeFormat().resolvedOptions().timeZone;
+    const cache = icsExpansion.cache || (icsExpansion.cache = { formats: new Map(), offsets: new Map(), rules: new Map() });
+    const embedded = (zone, year) => {
+      const signature = JSON.stringify(zone.definition), zones = cache.zones || (cache.zones = new Map());
+      let state = zones.get(signature);
+      if (!state) {
+        const offset = text => { const m = /^([+-])(\d{2})(\d{2})(\d{2})?$/.exec(text || ""); if (!m || +m[2] > 23 || +m[3] > 59 || +(m[4] || 0) > 59) fail("invalid-timezone-offset"); return (m[1] === "+" ? 1 : -1) * (+m[2] * 3600 + +m[3] * 60 + +(m[4] || 0)) * 1000; };
+        const observations = [...zone.definition.join("\n").matchAll(/^BEGIN:(STANDARD|DAYLIGHT)\n([\s\S]*?)^END:\1\s*$/gim)].map(m => {
+          const p = props(m[2].split("\n")), get = name => p.find(v => v.name === name)?.value;
+          const start = stamp({ value: get("DTSTART"), params: {} }).wall, before = offset(get("TZOFFSETFROM")), after = offset(get("TZOFFSETTO"));
+          const dates = p.filter(v => v.name === "RDATE").flatMap(v => v.value.split(",").map(value => stamp({ value, params: {} }).wall));
+          const rules = p.filter(v => v.name === "RRULE").map(v => v.value.toUpperCase().replace(/UNTIL=(\d{8}T\d{6}Z)/, (_, value) => "UNTIL=" + new Date(stamp({ value, params: {} }).wall + before).toISOString().slice(0, 19).replace(/[-:]/g, "")));
+          return { start, before, after, dates, rules };
+        });
+        if (!observations.length) fail("missing-timezone-observance");
+        state = { observations, offsets: [...new Set(observations.flatMap(o => [o.before, o.after]))], initial: observations.slice().sort((a, b) => a.start - a.before - b.start + b.before)[0].before, through: 0, transitions: [] };
+        if (zones.size >= 32) zones.delete(zones.keys().next().value); zones.set(signature, state);
+      }
+      if (year > state.through) {
+        const through = Math.min(9999, year + 4), transitions = new Map();
+        for (const o of state.observations) {
+          const dates = new Set([o.start, ...o.dates]);
+          for (const rule of o.rules) {
+            const raw = ["DTSTART:" + new Date(o.start).toISOString().slice(0, 19).replace(/[-:]/g, "") + "Z", "DURATION:PT0S", "RRULE:" + rule];
+            for (const v of icsExpansion({ icsRoundtrip: raw }, o.start, utc(through + 1, 0) - 1000)) dates.add(v.icsStartUtc);
+          }
+          for (const date of dates) {
+            const at = date - o.before, previous = transitions.get(at);
+            if (previous && (previous.before !== o.before || previous.after !== o.after)) fail("conflicting-timezone-transitions");
+            transitions.set(at, { at, before: o.before, after: o.after });
+            if (transitions.size > 100000) fail("timezone-transition-limit");
+          }
+        }
+        state.transitions = [...transitions.values()].sort((a, b) => a.at - b.at); state.through = through;
+      }
+      return state;
+    };
+    const offsetAt = (value, zone) => {
+      const state = embedded(zone, new Date(value).getUTCFullYear()); let low = 0, high = state.transitions.length;
+      while (low < high) { const mid = Math.floor((low + high) / 2); if (state.transitions[mid].at <= value) low = mid + 1; else high = mid; }
+      return low ? state.transitions[low - 1].after : state.initial;
+    };
+    const wall = (instant, zone) => {
+      if (!Number.isFinite(instant)) return instant;
+      if (typeof zone === "object") return instant + offsetAt(instant, zone);
+      if (!zone || zone === "UTC") return instant;
+      let fmt = cache.formats.get(zone);
+      if (!fmt) { try { fmt = new Intl.DateTimeFormat("en-GB-u-ca-gregory-nu-latn", { timeZone: zone, year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit", hourCycle: "h23" }); } catch (_) { fail("unresolved-tzid:" + zone); } cache.formats.set(zone, fmt); }
+      const v = Object.fromEntries(fmt.formatToParts(new Date(instant)).map(x => [x.type, x.value]));
+      return utc(+v.year, +v.month - 1, +v.day) + ((+v.hour % 24) * 3600 + +v.minute * 60 + +v.second) * 1000;
+    };
+    const instant = (value, zone, generated = false) => {
+      if (typeof zone === "object") {
+        const state = embedded(zone, new Date(value).getUTCFullYear());
+        const valid = state.offsets.map(o => value - o).filter(v => wall(v, zone) === value);
+        if (valid.length) return Math.min(...valid);
+        if (generated) return null;
+        const gap = state.transitions.find(t => t.after > t.before && value >= t.at + t.before && value < t.at + t.after);
+        if (!gap) fail("unresolved-timezone-wall"); return value - gap.before;
+      }
+      if (!zone || zone === "UTC") return value;
+      const key = zone + ":" + Math.floor(value / DAY); let offsets = cache.offsets.get(key);
+      if (!offsets) { const noon = Math.floor(value / DAY) * DAY + DAY / 2; offsets = [...new Set([-2, -1, 0, 1, 2].map(d => wall(noon + d * DAY, zone) - noon - d * DAY))]; if (cache.offsets.size >= 2048) cache.offsets.clear(); cache.offsets.set(key, offsets); }
+      const valid = offsets.map(o => value - o).filter(v => wall(v, zone) === value);
+      return valid.length ? Math.min(...valid) : generated ? null : value - Math.min(...offsets);
+    };
+    const stamp = v => {
+      const m = /^(\d{4})(\d{2})(\d{2})(?:T(\d{2})(\d{2})(\d{2})?(Z)?)?$/.exec(v.value); if (!m) fail("invalid-stamp");
+      const value = utc(+m[1], +m[2] - 1, +m[3]) + ((+m[4] || 0) * 3600 + (+m[5] || 0) * 60 + (+m[6] || 0)) * 1000;
+      if (new Date(value).getUTCDate() !== +m[3] || +m[4] > 23 || +m[5] > 59 || +m[6] > 59) fail("invalid-stamp");
+      return { wall: value, date: !m[4] || v.params.VALUE === "DATE", zone: m[7] ? "UTC" : defined.has(v.params.TZID) ? { id: v.params.TZID, definition: defined.get(v.params.TZID) } : v.params.TZID || target };
+    };
+    const fallbackDate = task ? t.startDatum || t.faellig : t.datum, fallbackTime = task ? t.startZeit || t.faelligZeit : t.zeit;
+    const first = get("DTSTART") ? stamp(get("DTSTART")) : { wall: Date.parse(fallbackDate + "T" + (fallbackTime || "00:00") + "Z"), date: !fallbackTime, zone: target };
+    if (!Number.isFinite(first.wall)) fail("missing-dtstart");
+    if (first.date) { lower = wall(lower, target); upper = wall(upper, target); }
+    const key = s => first.date ? s.wall : instant(s.wall, s.zone);
+    const durationEnd = (s, text) => {
+      const m = /^\+?P(?:(\d+)W|(?:(\d+)D)?(?:T(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?)?)$/.exec(text);
+      if (!m || !m.slice(1).some(v => v !== undefined) || first.date && m.slice(3).some(v => +v)) fail("invalid-duration");
+      return key({ ...s, wall: s.wall + ((+m[1] || 0) * 7 + (+m[2] || 0)) * DAY }) + ((+m[3] || 0) * 3600 + (+m[4] || 0) * 60 + (+m[5] || 0)) * 1000;
+    };
+    const info = (source, s, fallback) => {
+      const end = get(task ? "DUE" : "DTEND", source), spec = get("DURATION", source)?.value;
+      if (!end && !spec && fallback) return fallback;
+      const endDate = (task ? t.faellig : t.endDatum) || new Date(s.wall).toISOString().slice(0, 10);
+      const endTime = (task ? t.faelligZeit : t.endZeit) || new Date(s.wall).toISOString().slice(11, 19);
+      const span = end ? key(stamp(end)) - key(s) : spec ? durationEnd(s, spec) - key(s) :
+        key({ ...s, wall: Date.parse(endDate + "T" + endTime + "Z") + (first.date && !task ? DAY : 0) }) - key(s);
+      if (!Number.isFinite(span) || span < 0) fail("invalid-end");
+      return { span, spec: end ? null : spec };
+    };
+    const base = info(p, first), ranges = (t.icsRangeOverrides || []).map(lines => {
+      const r = props(lines), id = get("RECURRENCE-ID", r); if (id?.params.RANGE !== "THISANDFUTURE") fail("invalid-range");
+      const original = stamp(id), replacement = get("DTSTART", r) ? stamp(get("DTSTART", r)) : original;
+      return { cutoff: key(original), shift: (first.date ? replacement.wall - original.wall : wall(key(replacement), first.zone) - wall(key(original), first.zone)), info: info(r, replacement, base), cancelled: get("STATUS", r)?.value === "CANCELLED", properties: r };
+    }).sort((a, b) => a.cutoff - b.cutoff);
+    for (let i = 0; i < ranges.length; i++) if (!get(task ? "DUE" : "DTEND", ranges[i].properties) && !get("DURATION", ranges[i].properties)) ranges[i].info = i ? ranges[i - 1].info : base;
+    const padding = Math.max(0, ...ranges.map(r => Math.abs(r.shift) + 2 * DAY));
+    const durations = [base, ...ranges.map(r => r.info)];
+    const lookback = overlap ? Math.max(...durations.map(v => v.span)) + (!first.date && durations.some(v => /[WD]/.test(v.spec || "")) ? 2 * DAY : 0) : 0;
+    const lo = lower - padding - lookback, hi = upper + padding, values = new Map();
+    if (seek) seek.next = Infinity;
+    const add = (s, duration = base) => { const k = key(s); if (seek && k > hi) seek.next = Math.min(seek.next, k - padding); if ((k >= lo || overlap && (duration.spec ? durationEnd(s, duration.spec) : k + duration.span) > lower) && k <= hi) values.set(k, { s, duration }); if (values.size > 100000) fail("recurrence-output-limit"); };
+    const rule = (text, inclusion = false, ruleLo = lo, ruleHi = hi) => {
+      const lo = ruleLo, hi = ruleHi;
+      const signature = JSON.stringify([text, first]); let state = cache.rules.get(signature);
+      if (!state) {
+        const fields = {}; for (const part of text.toUpperCase().split(";")) { const pair = part.split("="); if (pair.length !== 2 || !pair[1] || fields[pair[0]] !== undefined) fail("invalid-rule"); fields[pair[0]] = pair[1]; }
+        const freq = fields.FREQ, interval = Number(fields.INTERVAL || 1), count = Number(fields.COUNT || Infinity), wkst = ICS_WOCHENTAGE.indexOf(fields.WKST || "MO");
+        const allowed = ["FREQ", "INTERVAL", "COUNT", "UNTIL", "WKST", "BYDAY", "BYMONTH", "BYMONTHDAY", "BYYEARDAY", "BYWEEKNO", "BYSETPOS", "BYHOUR", "BYMINUTE", "BYSECOND"];
+        if (!Object.keys(units).concat(["MONTHLY", "YEARLY"]).includes(freq) || Object.keys(fields).some(k => !allowed.includes(k)) || !Number.isInteger(interval) || interval < 1 || interval > 2147483647 || fields.COUNT && (!Number.isInteger(count) || count < 1 || count > 2147483647 || fields.UNTIL) || wkst < 0) fail("invalid-rule");
+        const n = {};
+        for (const [name, min, max, zero] of [["BYMONTH", 1, 12], ["BYMONTHDAY", -31, 31], ["BYYEARDAY", -366, 366], ["BYWEEKNO", -53, 53], ["BYSETPOS", -366, 366], ["BYHOUR", 0, 23, true], ["BYMINUTE", 0, 59, true], ["BYSECOND", 0, 59, true]]) {
+          n[name] = fields[name] ? [...new Set(fields[name].split(",").map(v => { if (!/^[+-]?\d+$/.test(v) || +v < min || +v > max || !zero && +v === 0) fail("invalid-selector"); return +v; }))].sort((a, b) => a - b) : [];
+        }
+        const days = (fields.BYDAY || "").split(",").filter(Boolean).map(v => { const m = /^([+-]?\d+)?(SU|MO|TU|WE|TH|FR|SA)$/.exec(v); if (!m || m[1] && (!+m[1] || Math.abs(+m[1]) > 53 || !["MONTHLY", "YEARLY"].includes(freq) || n.BYWEEKNO.length)) fail("invalid-byday"); return [+m[1] || 0, ICS_WOCHENTAGE.indexOf(m[2])]; });
+        const sub = ["SECONDLY", "MINUTELY", "HOURLY"].includes(freq);
+        if (first.date && sub || n.BYWEEKNO.length && freq !== "YEARLY" || n.BYYEARDAY.length && ["DAILY", "WEEKLY", "MONTHLY"].includes(freq) || n.BYMONTHDAY.length && freq === "WEEKLY" || n.BYSETPOS.length && !Object.keys(fields).some(k => k.startsWith("BY") && k !== "BYSETPOS")) fail("invalid-selector-combination");
+        const anchor = new Date(first.wall), day = Math.floor(first.wall / DAY) * DAY;
+        const begin = sub ? Math.floor(first.wall / units[freq]) * units[freq] : freq === "WEEKLY" ? day - (anchor.getUTCDay() - wkst + 7) % 7 * DAY : freq === "MONTHLY" ? utc(anchor.getUTCFullYear(), anchor.getUTCMonth()) : freq === "YEARLY" ? utc(anchor.getUTCFullYear(), 0) : day;
+        state = { fields, freq, interval, count, wkst, n, days, sub, anchor, begin, checkpoints: new Map([[0, 0]]) };
+        if (cache.rules.size >= 32) cache.rules.delete(cache.rules.keys().next().value); cache.rules.set(signature, state);
+      }
+      const { fields, freq, interval, count, wkst, n, days, sub, anchor, begin } = state;
+      const weekOne = y => { const fourth = utc(y, 0, 4); return fourth - (new Date(fourth).getUTCDay() - wkst + 7) % 7 * DAY; };
+      const index = v => Math.max(0, units[freq] ? Math.floor((v - begin) / units[freq] / interval) : freq === "MONTHLY" ? Math.floor(((new Date(v).getUTCFullYear() - anchor.getUTCFullYear()) * 12 + new Date(v).getUTCMonth() - anchor.getUTCMonth()) / interval) : Math.floor((new Date(v).getUTCFullYear() - anchor.getUTCFullYear()) / interval));
+      const periodAt = i => units[freq] ? begin + i * interval * units[freq] : freq === "MONTHLY" ? utc(anchor.getUTCFullYear(), anchor.getUTCMonth() + i * interval) : utc(anchor.getUTCFullYear() + i * interval, 0);
+      let work = 0, candidatesWork = 0;
+      const candidates = i => {
+        if (++work > 146097) fail("recurrence-work-limit");
+        if (seek && --seek.periods < 0) fail("recurrence-next-work-limit");
+        const period = units[freq] ? begin + i * interval * units[freq] : freq === "MONTHLY" ? utc(anchor.getUTCFullYear(), anchor.getUTCMonth() + i * interval) : utc(anchor.getUTCFullYear() + i * interval, 0);
+        const d = new Date(period), y = d.getUTCFullYear(), m = d.getUTCMonth(); if (y < 1 || y > 9999 || !Number.isFinite(period)) return [];
+        const from = freq === "YEARLY" && n.BYWEEKNO.length ? weekOne(y) : Math.floor(period / DAY) * DAY;
+        const until = freq === "YEARLY" ? n.BYWEEKNO.length ? weekOne(y + 1) : utc(y + 1, 0) : freq === "MONTHLY" ? utc(y, m + 1) : from + (freq === "WEEKLY" ? 7 : 1) * DAY;
+        const contains = (name, positive, total) => !n[name].length || n[name].some(v => (v > 0 ? v : total + v + 1) === positive);
+        if (sub && n.BYHOUR.length && !n.BYHOUR.includes(d.getUTCHours()) || ["MINUTELY", "SECONDLY"].includes(freq) && n.BYMINUTE.length && !n.BYMINUTE.includes(d.getUTCMinutes()) || freq === "SECONDLY" && n.BYSECOND.length && !n.BYSECOND.includes(d.getUTCSeconds())) return [];
+        const hours = first.date ? [0] : sub ? [d.getUTCHours()] : n.BYHOUR.length ? n.BYHOUR : [anchor.getUTCHours()];
+        const minutes = first.date ? [0] : ["MINUTELY", "SECONDLY"].includes(freq) ? [d.getUTCMinutes()] : n.BYMINUTE.length ? n.BYMINUTE : [anchor.getUTCMinutes()];
+        const seconds = first.date ? [0] : freq === "SECONDLY" ? [d.getUTCSeconds()] : n.BYSECOND.length ? n.BYSECOND : [anchor.getUTCSeconds()];
+        let result = [];
+        for (let date = from; date < until; date += DAY) {
+          const a = new Date(date), ay = a.getUTCFullYear(), am = a.getUTCMonth(), ad = a.getUTCDate(), monthDays = (utc(ay, am + 1) - utc(ay, am)) / DAY, yearDay = (date - utc(ay, 0)) / DAY + 1, yearDays = (utc(ay + 1, 0) - utc(ay, 0)) / DAY;
+          if (!contains("BYMONTH", am + 1, 12) || !contains("BYMONTHDAY", ad, monthDays) || !contains("BYYEARDAY", yearDay, yearDays) || !contains("BYWEEKNO", Math.floor((date - weekOne(y)) / DAY / 7) + 1, (weekOne(y + 1) - weekOne(y)) / DAY / 7)) continue;
+          if (days.length && !days.some(([ordinal, weekday]) => { const pos = freq === "YEARLY" && !n.BYMONTH.length ? yearDay : ad, total = freq === "YEARLY" && !n.BYMONTH.length ? yearDays : monthDays; return weekday === a.getUTCDay() && (!ordinal || (ordinal > 0 ? Math.floor((pos - 1) / 7) + 1 : -Math.floor((total - pos) / 7) - 1) === ordinal); })) continue;
+          const selected = days.length || n.BYMONTHDAY.length || n.BYYEARDAY.length || n.BYWEEKNO.length;
+          if (freq === "WEEKLY" && !days.length && a.getUTCDay() !== anchor.getUTCDay() || ["MONTHLY", "YEARLY"].includes(freq) && !selected && ad !== anchor.getUTCDate() || freq === "YEARLY" && !selected && !n.BYMONTH.length && am !== anchor.getUTCMonth()) continue;
+          for (const h of hours) for (const min of minutes) for (const sec of seconds) {
+            if (++candidatesWork > 2000000 || result.length >= 100000) fail("recurrence-period-limit");
+            if (seek && --seek.candidates < 0) fail("recurrence-next-work-limit");
+            const v = date + (h * 3600 + min * 60 + sec) * 1000;
+            if (first.date || instant(v, first.zone, true) !== null) result.push(v);
+          }
+        }
+        if (n.BYSETPOS.length) result = [...new Set(n.BYSETPOS.map(v => result[v > 0 ? v - 1 : result.length + v]).filter(v => v !== undefined))].sort((a, b) => a - b);
+        return result.filter(v => v >= first.wall);
+      };
+      const sourceLo = first.date ? lo : wall(lo, first.zone), sourceHi = first.date ? hi : wall(hi, first.zone);
+      const offsets = first.date ? [0] : typeof first.zone === "object" ? embedded(first.zone, new Date(sourceHi).getUTCFullYear()).offsets :
+        [...new Set([-2, -1, 0, 1, 2].map(d => wall(hi + d * DAY, first.zone) - hi - d * DAY))];
+      const valid = first.date ? [0] : offsets.filter(offset => wall(sourceHi - offset, first.zone) === sourceHi);
+      const fold = first.date || valid.length < 2 ? 0 : Math.max(...valid) - Math.min(...valid);
+      const startIndex = Math.max(0, index(Math.min(sourceLo, sourceHi)) - 1), endIndex = index(sourceHi + fold) + 1;
+      let seen = 0;
+      if (count !== Infinity && startIndex) {
+        if ((first.date || first.zone === "UTC") && units[freq] && Object.keys(fields).every(k => ["FREQ", "INTERVAL", "COUNT", "WKST"].includes(k))) seen = startIndex;
+        else {
+          let cursor = 0; for (const [i, total] of state.checkpoints) if (i <= startIndex && i >= cursor) { cursor = i; seen = total; }
+          const initial = cursor;
+          try {
+            while (cursor < startIndex && seen < count) { seen += candidates(cursor).length; cursor++; state.checkpoints.set(cursor, seen);
+              if (state.checkpoints.size > 4096) for (const i of [...state.checkpoints.keys()].filter((_, i) => i % 2)) state.checkpoints.delete(i); }
+          } catch (error) { error.retryable = cursor > initial && error.code === "recurrence-work-limit"; throw error; }
+          if (state.checkpoints.size > 4096) for (const i of [...state.checkpoints.keys()].filter((_, i) => i % 2)) state.checkpoints.delete(i);
+        }
+      }
+      const result = [], until = fields.UNTIL ? stamp({ value: fields.UNTIL, params: {} }) : null;
+      for (let i = startIndex; i <= endIndex && seen < count; i++) for (const v of candidates(i)) {
+        const s = { ...first, wall: v }, k = key(s);
+        if (k > hi) continue;
+        if (++seen > count) break;
+        if (until && (until.date ? v >= until.wall + DAY : fields.UNTIL.endsWith("Z") ? k > key(until) : v > until.wall)) return result;
+        if (k >= lo && k <= hi) result.push(s);
+        if (result.length > 100000) fail("recurrence-output-limit");
+      }
+      if (seek && inclusion && seen < count) {
+        const sourceHi = first.date ? hi : wall(hi, first.zone), i = index(sourceHi), period = new Date(periodAt(i));
+        const end = units[freq] ? +period + units[freq] : freq === "MONTHLY" ? utc(period.getUTCFullYear(), period.getUTCMonth() + 1) : utc(period.getUTCFullYear() + 1, 0);
+        const boundary = end > sourceHi ? upper + 1 : first.date ? periodAt(i + 1) - padding : instant(periodAt(i + 1), first.zone) - padding;
+        if (!until || boundary <= (until.date ? until.wall + DAY : key(until))) seek.next = Math.min(seek.next, boundary);
+      }
+      return result;
+    };
+    add(first);
+    if (!get("RECURRENCE-ID")) for (const v of p.filter(v => v.name === "RRULE")) for (const s of rule(v.value, true)) add(s);
+    const rawDates = new Set(), precise = new Set(), dateOf = s => new Date(first.date ? s.wall : wall(key(s), target)).toISOString().slice(0, 10);
+    for (const v of p.filter(v => v.name === "RDATE")) for (const part of v.value.split(",")) {
+      const [start, end] = part.split("/"), s = stamp({ ...v, value: start }); let duration = base;
+      if (end) { const spec = /^\+?P/.test(end) ? end : null, span = (spec ? durationEnd(s, spec) : key(stamp({ ...v, value: end }))) - key(s); if (span <= 0) fail("invalid-period"); duration = { span, spec }; }
+      add(s, duration); rawDates.add(dateOf(s));
+    }
+    const structured = v => ({ wall: Date.parse(v.datum + "T" + (v.zeit || new Date(first.wall).toISOString().slice(11, 19)) + "Z"), zone: target, date: first.date });
+    for (const v of t.icsZusatzTermine || []) if (!rawDates.has(v.datum)) add(structured(v));
+    for (const datum of t.icsZusatzDaten || []) if (!rawDates.has(datum) && !(t.icsZusatzTermine || []).some(v => v.datum === datum)) add(structured({ datum }));
+    for (const v of p.filter(v => v.name === "EXDATE")) for (const part of v.value.split(",")) { const s = stamp({ ...v, value: part }); if (s.date) { for (const [k, value] of values) if (dateOf(value.s) === dateOf(s)) values.delete(k); } else { values.delete(key(s)); precise.add(dateOf(s)); } }
+    const rawPrecise = new Set(precise);
+    for (const v of t.icsAusnahmeTermine || []) if (!rawPrecise.has(v.datum)) { values.delete(key(structured(v))); precise.add(v.datum); }
+    for (const v of p.filter(v => v.name === "EXRULE")) {
+      for (const [identity] of values) {
+        if (identity < lo && rule(v.value, false, identity, identity)
+          .some(s => key(s) === identity)) values.delete(identity);
+      }
+      for (const s of rule(v.value)) values.delete(key(s));
+    }
+    const result = [];
+    for (const [identity, value] of values) {
+      let { s, duration } = value;
+      if ((t.icsAusnahmen || []).includes(dateOf(s)) && !precise.has(dateOf(s))) continue;
+      const range = ranges.filter(r => r.cutoff <= identity).pop(); if (range?.cancelled) continue;
+      const projected = { ...t }, changed = new Map();
+      for (const r of ranges.filter(r => r.cutoff <= identity)) for (const v of r.properties) {
+        if (["DTSTART", "DTEND", "DUE", "DURATION", "RECURRENCE-ID", "RRULE", "RDATE", "EXDATE", "EXRULE", "UID", "DTSTAMP", "SEQUENCE", "LAST-MODIFIED"].includes(v.name)) continue;
+        changed.set(v.name, v);
+        const field = { SUMMARY: "titel", LOCATION: "ort", DESCRIPTION: "notiz", CATEGORIES: "kategorien" }[v.name];
+        if (field) projected[field] = icsWert(v.value);
+      }
+      if (changed.size) projected.icsRoundtrip = (t.icsRoundtrip || []).filter(line => !changed.has(props([line])[0]?.name)).concat([...changed.values()].map(v => v.name + Object.entries(v.params).map(([k, v]) => ";" + k + "=" + v).join("") + ":" + v.value));
+      if (range) { s = { ...s, wall: (first.date ? s.wall : wall(key(s), first.zone)) + range.shift, zone: first.zone }; duration = range.info; }
+      const start = key(s), end = duration.spec ? durationEnd(s, duration.spec) : first.date ? s.wall + duration.span : start + duration.span;
+      if (start > upper || (overlap ? end <= lower && start < lower : start < lower)) continue;
+      const a = new Date(first.date ? s.wall : wall(start, target)).toISOString(), b = new Date((first.date ? end - (task ? 0 : DAY) : wall(end, target))).toISOString();
+      result.push({ ...projected, [task ? "startDatum" : "datum"]: a.slice(0, 10), [task ? "startZeit" : "zeit"]: first.date ? "" : a.slice(11, a.slice(17, 19) === "00" ? 16 : 19), [task ? "faellig" : "endDatum"]: b.slice(0, 10), [task ? "faelligZeit" : "endZeit"]: first.date ? "" : b.slice(11, b.slice(17, 19) === "00" ? 16 : 19), folge: true, icsOccurrence: identity, icsStartUtc: start, icsEndUtc: end });
+    }
+    return result.sort((a, b) => a.icsStartUtc - b.icsStartUtc);
+  }
+
+  function icsBasisExpansion(items, args) {
+    const result = []; let error;
+    for (const item of items) {
+      try {
+        const values = icsExpansion(item, ...args).slice(0, 1);
+        if (values.length && result.length >= 100000) { error = "recurrence-output-limit"; break; }
+        result.push(...values);
+      } catch (failure) { error = error || failure.code || "recurrence-worker-error"; }
+    }
+    // A bad import must not hide valid events; exports still report incompleteness.
+    return { result, error };
+  }
+
   /* Fällt ein bestimmter Tag auf eine Wiederholung dieses Termins? */
+  function icsRuntime(mode, item, args, planerFeiertag = false) {
+    const state = icsRuntime.state || (icsRuntime.state = { jobs: new Map(), worker: null, paint: 0 });
+    const zone = organizerZeitzone(), key = JSON.stringify([mode, item, args, zone]);
+    const warn = code => { icsRuntime.lastError = code; zettel(_("Some recurrence rules cannot be expanded. Their original calendar data was preserved.") + " [" + code + "]"); };
+    const publish = () => {
+      const pending = [...state.jobs.values()].some(v => v.status === "pending");
+      document.body.setAttribute("aria-busy", String(pending));
+      if (state.progress) state.progress.hidden = !pending;
+      document.body.dataset.recurrenceState = pending ? "pending" : [...state.jobs.values()].some(v => v.status === "error") ? "error" : "ready";
+      if (!pending) document.dispatchEvent(new Event("magnolie-recurrence-ready"));
+    };
+    const fail = (code, result) => {
+      state.jobs.set(key, { status: "error", error: code, result });
+      terminIndexVeraltet = true;
+      publish(); warn(code);
+      return result || null;
+    };
+    if (planerFeiertag && state.jobs.has(key)) state.jobs.get(key).planerFeiertag = true;
+    if (state.jobs.has(key)) { const job = state.jobs.get(key); state.jobs.delete(key); state.jobs.set(key, job); if (job.status === "ready") return job.result; icsRuntime.incomplete = (icsRuntime.incomplete || 0) + 1; return mode === "base" && job.result || null; }
+    if (typeof Worker !== "function") {
+      if (mode === "base") {
+        const batch = icsBasisExpansion(item, args);
+        if (batch.error) { icsRuntime.incomplete = (icsRuntime.incomplete || 0) + 1; return fail(batch.error, batch.result); }
+        return batch.result;
+      }
+      try { return mode === "next" ? icsNaechsteAufgabe(item, ...args) : icsExpansion(item, ...args); }
+      catch (error) { icsRuntime.incomplete = (icsRuntime.incomplete || 0) + 1; return fail(error.code || "recurrence-worker-error"); }
+    }
+    icsRuntime.incomplete = (icsRuntime.incomplete || 0) + 1;
+    for (const [id, job] of state.jobs) if (state.jobs.size >= 1024 && job.status !== "pending") state.jobs.delete(id);
+    if (state.jobs.size >= 1024) { if (icsRuntime.lastError !== "recurrence-queue-limit") warn("recurrence-queue-limit"); return null; }
+    if (!state.worker) {
+      // Only fixed product functions become code. Calendar content is structured-cloned data.
+      const source = 'const _ = v => v, zettel = () => {}; const ICS_WOCHENTAGE = ' + JSON.stringify(ICS_WOCHENTAGE) + '; const ZEITZONEN_FORMATIERER = new Map(); let zone; function organizerZeitzone() { return zone; }\n' +
+        [icsWert, organizerDatumzeitTeile, organizerZeitpunkt, icsQuelle, icsExpansion, icsBasisExpansion, icsNaechsteAufgabe].map(fn => fn.toString()).join("\n") +
+        `
+        self.onmessage = ({ data }) => {
+          const started = performance.now(); let turns = 0;
+          const run = () => {
+            zone = data.zone;
+            try {
+              if (data.mode === "base") { self.postMessage({ key: data.key, ...icsBasisExpansion(data.item, data.args) }); return; }
+              const result = data.mode === "next" ? icsNaechsteAufgabe(data.item, ...data.args) : icsExpansion(data.item, ...data.args); self.postMessage({ key: data.key, result });
+            }
+            catch (error) {
+              if (error.retryable && ++turns < 4096 && performance.now() - started < 30000) { setTimeout(run, 0); return; }
+              self.postMessage({ key: data.key, error: error.code || "recurrence-worker-error" });
+            }
+          };
+          run();
+        };`;
+      // WebKit's custom local scheme cannot load blob workers; data workers
+      // retain the same isolated, fixed-code execution without a native bridge.
+      let url;
+      try {
+        url = location.protocol === "magnolie-organizer:" ? "data:text/javascript," + encodeURIComponent(source) : URL.createObjectURL(new Blob([source], { type: "text/javascript" }));
+        state.worker = new Worker(url);
+      } catch (error) { return fail("recurrence-worker-unavailable"); }
+      finally { if (url) window.addEventListener("unload", () => URL.revokeObjectURL(url), { once: true }); }
+      state.worker.onmessage = ({ data }) => {
+        const job = state.jobs.get(data.key); if (!job) return;
+        Object.assign(job, data.error ? { status: "error", error: data.error, result: data.result } : { status: "ready", result: data.result });
+        if (job.index) terminIndexVeraltet = true;
+        if (data.error) warn(data.error);
+        let rows = 0;
+        for (const [id, cached] of [...state.jobs].reverse()) if (cached.status === "ready" || Array.isArray(cached.result)) {
+          rows += Array.isArray(cached.result) ? cached.result.length : 1;
+          if (rows > 200000 && id !== data.key) state.jobs.delete(id);
+        }
+        publish();
+        state.planerPaint = state.planerPaint || job.planerFeiertag;
+        if (!state.paint) state.paint = requestAnimationFrame(() => setTimeout(() => {
+          const planerPaint = state.planerPaint; state.planerPaint = false;
+          state.paint = 0;
+          if ((["kalender", "aufgaben"].includes(zustand.sektion) ||
+            zustand.sektion === "planer" && planerPaint) && !editorIstGeaendert()) zeichneAlles();
+        }, 0));
+      };
+      state.worker.onerror = () => {
+        for (const job of state.jobs.values()) if (job.status === "pending") job.status = "error";
+        state.worker?.terminate(); state.worker = null;
+        terminIndexVeraltet = true; publish(); warn("recurrence-worker-error");
+      };
+      window.addEventListener("unload", () => state.worker?.terminate(), { once: true });
+    }
+    // Only the unbounded single-event expansion contributes to the base index.
+    state.jobs.set(key, { status: "pending", planerFeiertag,
+      index: mode === "base" || mode === "expand" && args[0] === -Infinity && args[1] === Infinity });
+    document.body.setAttribute("aria-busy", "true"); document.body.dataset.recurrenceState = "pending";
+    if (!state.progress) { state.progress = document.createElement("progress"); state.progress.setAttribute("aria-label", _("Calendar")); Object.assign(state.progress.style, { position: "fixed", bottom: "1rem", right: "1rem", width: "10rem", height: "0.4rem", zIndex: "10001", accentColor: "currentColor" }); document.body.append(state.progress); }
+    state.progress.hidden = false;
+    try { state.worker.postMessage({ key, mode, item, args, zone }); }
+    catch (error) { return fail("recurrence-worker-error"); }
+    return null;
+  }
+
+  function icsWiederholungTrifft(t, iso) {
+    if (!(t?.icsRoundtrip || []).some(v => /^RRULE:/i.test(v))) return null;
+    if (iso === null) { icsExpansion(t, Date.parse(t.datum + "T00:00Z"), Date.parse(t.datum + "T23:59:59Z")); return true; }
+    const lower = +organizerZeitpunkt(...iso.split("-").map(Number), 0, 0, 0);
+    return icsExpansion(t, lower, lower + 2 * 86400000).some(v => v.datum === iso);
+  }
+
   function wiederholungTrifft(t, iso, ohneZusatz) {
-    const w = t.wiederholung;
-    if (!w || !w.art || w.art === "none") return false;
     if (Array.isArray(t.icsAusnahmen) && t.icsAusnahmen.includes(iso)) return false;
     if (!ohneZusatz && Array.isArray(t.icsZusatzDaten) &&
       t.icsZusatzDaten.includes(iso)) return true;
     if (iso <= t.datum) return false;      /* der erste steht schon im Buch */
+    const ics = icsWiederholungTrifft(t, iso);
+    if (ics !== null) return ics;
+    const w = t.wiederholung;
+    if (!w || !w.art || w.art === "none") return false;
     if (w.bis && iso > w.bis) return false;
 
     const start = ausISO(t.datum);
     const tag = ausISO(iso);
     const intervall = Math.min(3660, Math.max(1, Math.floor(Number(w.intervall) || 1)));
-    if ((w.art === "monthly" || w.art === "yearly") && intervall !== 1) return false;
+    if (w.art === "monthly" && ((tag.getFullYear() - start.getFullYear()) * 12 + tag.getMonth() - start.getMonth()) % intervall) return false;
+    if (w.art === "yearly" && (tag.getFullYear() - start.getFullYear()) % intervall) return false;
     const tageSeitStart = Math.round((Date.UTC(tag.getFullYear(), tag.getMonth(), tag.getDate()) -
       Date.UTC(start.getFullYear(), start.getMonth(), start.getDate())) / 86400000);
 
@@ -6225,8 +7707,51 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
   }
 
   function istWiederkehrend(t) {
-    return !!(t.wiederholung && t.wiederholung.art &&
-      t.wiederholung.art !== "none");
+    return !!(t.wiederholung && t.wiederholung.art && t.wiederholung.art !== "none") ||
+      (Array.isArray(t.icsRoundtrip) && t.icsRoundtrip.some(zeile => /^(RRULE|RDATE|EXRULE)[;:]/i.test(zeile))) ||
+      !!((t.icsZusatzDaten || []).length || (t.icsZusatzTermine || []).length);
+  }
+
+  function icsQuelle(t) {
+    return (t.icsRoundtrip || []).some(v => /^(DTSTART|RRULE|RDATE|EXRULE|RECURRENCE-ID|STATUS)[;:]/i.test(v));
+  }
+
+  let _aufgabenSerien = new Map();
+  function icsNaechsteAufgabe(a, heute) {
+    if (!icsQuelle(a)) return a;
+    const span = Math.max(0, Date.parse(a.faellig) - Date.parse(a.startDatum)) || 0;
+    const from = +organizerZeitpunkt(...heute.split("-").map(Number), 0, 0, 0);
+    let lower = from - span - 2 * 86400000, days = 1, best = null;
+    const seek = { periods: 146097, candidates: 2000000 };
+    const maximum = Date.parse("9999-12-30T00:00:00Z");
+    for (let queries = 0; lower < maximum; queries++) {
+      if (queries >= 146097) { const error = new Error("recurrence-next-work-limit"); error.code = "recurrence-next-work-limit"; throw error; }
+      const upper = Math.min(maximum, lower + days * 86400000 - 1);
+      const values = icsExpansion(a, lower, upper, true, true, seek).filter(v => v.faellig >= heute);
+      for (const value of values) if (!best || value.icsEndUtc < best.icsEndUtc) best = value;
+      lower = Math.max(upper + 1, seek.next); days = Math.min(32, days * 2);
+      if (best && lower > best.icsEndUtc + 2 * 86400000) return best;
+    }
+    return best;
+  }
+
+  function icsSerienAbstimmen(items) {
+    const key = t => JSON.stringify([t.icsQuelleId || t.syncKalenderUid || "", t.icsSerienUid || t.icsImportUid || t.uid]);
+    const overrides = new Map();
+    for (const t of items) {
+      const id = (t.icsRoundtrip || []).find(v => /^RECURRENCE-ID[;:]/i.test(v));
+      if (id) { if (!overrides.has(key(t))) overrides.set(key(t), []); overrides.get(key(t)).push([id, t.icsRoundtrip]); }
+    }
+    return items.map(t => {
+      const definitions = overrides.get(key(t));
+      if (!definitions || (t.icsRoundtrip || []).some(v => /^RECURRENCE-ID[;:]/i.test(v))) return t;
+      const raw = new Set(t.icsRoundtrip || []), ranges = (t.icsRangeOverrides || []).slice();
+      for (const [id, definition] of definitions) {
+        raw.add(id.replace(/^RECURRENCE-ID/i, "EXDATE").replace(/;RANGE=[^;:]+/i, ""));
+        if (/;RANGE=THISANDFUTURE[;:]/i.test(id) && !ranges.some(r => JSON.stringify(r) === JSON.stringify(definition))) ranges.push(definition);
+      }
+      return { ...t, icsRoundtrip: [...raw], icsRangeOverrides: ranges };
+    });
   }
 
   /* Der ursprüngliche Termin zu einem errechneten Mal */
@@ -6364,10 +7889,10 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     return [f.von, f.bis, ferienArtAusTitel(f.name)].join("|");
   }
 
-  function istSynchronisierterFeiertag(t) {
+  function istSynchronisierterFeiertag(t, serienEinblenden = false) {
     if (!(t && t.sync && !t.zeit && !t.endZeit && gueltigesISO(t.datum)) ||
       (gueltigesISO(t.endDatum) && t.endDatum !== t.datum) ||
-      istWiederkehrend(t) || !titelJahrPasst(t)) return false;
+      (istWiederkehrend(t) && serienEinblenden !== true) || !titelJahrPasst(t)) return false;
     const name = feiertagVergleichsname(t.titel);
     const passtZumAbruf = DATEN.feiertage.some((f) => f.art === "public-holiday" &&
       f.von === t.datum && f.bis === t.datum &&
@@ -6386,8 +7911,8 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     return [f.von, f.bis, feiertagVergleichsname(f.name)].join("|");
   }
 
-  function istSynchronisierterKalendereintrag(t) {
-    return istSynchronisierteFerien(t) || istSynchronisierterFeiertag(t);
+  function istSynchronisierterKalendereintrag(t, serienEinblenden = false) {
+    return istSynchronisierteFerien(t) || istSynchronisierterFeiertag(t, serienEinblenden);
   }
 
   function sortiereTermineNachZeit(a, b) {
@@ -6397,9 +7922,18 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
   }
 
   function terminVerzeichnis() {
-    if (!terminIndexVeraltet && _terminVerzeichnis) return _terminVerzeichnis;
+    if (!terminIndexVeraltet && _terminVerzeichnis) {
+      if (_terminVerzeichnis.icsIncomplete) icsRuntime.incomplete = (icsRuntime.incomplete || 0) + 1;
+      return _terminVerzeichnis;
+    }
+    const incomplete = icsRuntime.incomplete || 0;
     const verz = new Map();
-    for (const t of DATEN.termine) {
+    const sources = icsSerienAbstimmen(DATEN.termine);
+    _wiederkehrende = sources.filter(istWiederkehrend);
+    // One base-index job avoids exhausting the global queue with imported history.
+    const singles = sources.filter(t => icsQuelle(t) && !istWiederkehrend(t));
+    const projected = singles.length ? icsRuntime("base", singles, [-Infinity, Infinity]) || [] : [];
+    for (const t of sources.filter(t => !icsQuelle(t)).concat(projected)) {
       const bis = gueltigesISO(t.endDatum) && t.endDatum > t.datum
         ? t.endDatum : t.datum;
       const tag = ausISO(t.datum);
@@ -6414,18 +7948,31 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     for (const liste of verz.values()) {
       liste.sort(sortiereTermineNachZeit);
     }
-    _wiederkehrende = DATEN.termine.filter(istWiederkehrend);
+    verz.icsIncomplete = (icsRuntime.incomplete || 0) !== incomplete;
     _terminVerzeichnis = verz;
+    // Worker replies invalidate the index; pending jobs cannot change it mid-render.
     terminIndexVeraltet = false;
     return verz;
   }
 
-  function termineAm(iso, vergangeneEinblenden) {
+  function termineAm(iso, vergangeneEinblenden, serienZeitraum) {
     if (!vergangeneEinblenden && vergangenAusgeblendet(iso, "appointment")) return [];
     const verz = terminVerzeichnis();
     const liste = (verz.get(iso) || []).slice();
     if (_wiederkehrende.length) {
       for (const t of _wiederkehrende) {
+        if (icsQuelle(t)) {
+          const [y, m, d] = iso.split("-").map(Number), next = new Date(Date.UTC(y, m - 1, d + 1));
+          const from = +organizerZeitpunkt(y, m, d, 0, 0, 0), through = +organizerZeitpunkt(next.getUTCFullYear(), next.getUTCMonth() + 1, next.getUTCDate(), 0, 0, 0) - 1;
+          const values = icsRuntime("expand", t, serienZeitraum || [from, through, false, true]) || [];
+          liste.push(...(serienZeitraum ? values.filter(v => {
+            // DATE occurrences use wall-date keys, not timezone-adjusted instants.
+            const lower = v.zeit ? from : Date.UTC(y, m - 1, d);
+            const upper = v.zeit ? through : lower + 86400000 - 1;
+            return v.icsStartUtc <= upper && !(v.icsEndUtc <= lower && v.icsStartUtc < lower);
+          }) : values));
+          continue;
+        }
         const dauer = gueltigesISO(t.endDatum) && t.endDatum > t.datum
           ? Math.round((ausISO(t.endDatum) - ausISO(t.datum)) / 86400000) : 0;
         for (let versatz = 0; versatz <= dauer; versatz++) {
@@ -6435,7 +7982,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
           if (Array.isArray(t.icsAusnahmen) && t.icsAusnahmen.includes(startIso)) continue;
           const zusaetze = rdateZeitverschiebungen(t, startIso);
           let regulaer = wiederholungTrifft(t, startIso, true);
-          if (t.wiederholung.art === "custom" && zusaetze.length) regulaer = false;
+          if ((t.wiederholung || {}).art === "custom" && zusaetze.length) regulaer = false;
           if (!regulaer && !zusaetze.length) continue;
           const ende = ausISO(startIso);
           const endDatum = dauer ? isoVon(new Date(ende.getFullYear(), ende.getMonth(),
@@ -6537,20 +8084,43 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     });
   }
 
-  function feiertageAm(iso, vergangeneEinblenden) {
+  function planerFeiertagVerzeichnis(jahr) {
+    const verz = new Map(), von = jahr + "-01-01", bis = jahr + "-12-31";
+    // Classify imported holidays before expansion; ordinary appointments stay out.
+    const quellen = icsSerienAbstimmen(DATEN.termine).filter(t => istSynchronisierterKalendereintrag(t, true));
+    for (const quelle of quellen) {
+      const grenzen = istWiederkehrend(quelle)
+        ? [+organizerZeitpunkt(jahr, 1, 1, 0, 0), +organizerZeitpunkt(jahr + 1, 1, 1, 0, 0) - 1, false, true]
+        : [-Infinity, Infinity];
+      const werte = icsQuelle(quelle) ? icsRuntime("expand", quelle, grenzen, true) || [] : [quelle];
+      for (const termin of werte) {
+        if (!istSynchronisierterKalendereintrag(termin, true) ||
+          !icsQuelle(quelle) && (termin.icsAusnahmen || []).includes(termin.datum)) continue;
+        const ende = gueltigesISO(termin.endDatum) && termin.endDatum > termin.datum ? termin.endDatum : termin.datum;
+        for (let tag = ausISO(termin.datum < von ? von : termin.datum), iso = isoVon(tag);
+          tag.getFullYear() === jahr && iso <= ende && iso <= bis; tag.setDate(tag.getDate() + 1), iso = isoVon(tag)) {
+          if (!verz.has(iso)) verz.set(iso, []);
+          verz.get(iso).push(termin);
+        }
+      }
+    }
+    return verz;
+  }
+
+  function feiertageAm(iso, vergangeneEinblenden, synchronisierte) {
     const liste = (feiertagVerzeichnis().get(iso) || []).slice();
     const ferienVorhanden = new Set(liste.filter((f) => f.art === "school-holiday")
       .map(ferienSchluessel));
     const feiertageVorhanden = new Set(liste.filter((f) => f.art === "public-holiday")
       .map(feiertagSchluessel));
-    for (const t of terminVerzeichnis().get(iso) || []) {
+    for (const t of (synchronisierte || terminVerzeichnis()).get(iso) || []) {
       if (istSynchronisierteFerien(t)) {
         const ferien = ferienAusTermin(t);
         const schluessel = ferienSchluessel(ferien);
         if (ferienVorhanden.has(schluessel)) continue;
         ferienVorhanden.add(schluessel);
         liste.push(ferien);
-      } else if (istSynchronisierterFeiertag(t)) {
+      } else if (istSynchronisierterFeiertag(t, !!synchronisierte)) {
         const feiertag = feiertagAusTermin(t);
         const schluessel = feiertagSchluessel(feiertag);
         if (feiertageVorhanden.has(schluessel)) continue;
@@ -6559,8 +8129,8 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       }
     }
     return ferienTagesweiseZusammenfassen(liste).filter((f) =>
-      vergangeneEinblenden || f.art !== "school-holiday" ||
-      !vergangenAusgeblendet(iso, "school-holiday"));
+      f.art !== "school-holiday" || (DATEN.einstellungen.ort.ferien &&
+        (vergangeneEinblenden || !vergangenAusgeblendet(iso, "school-holiday"))));
   }
 
   function vergangenAusgeblendet(iso, art) {
@@ -6779,8 +8349,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     return streifen;
   }
 
-  function naechsterJahrestag(jt) {
-    const heute = isoHeute();
+  function naechsterJahrestag(jt, heute = isoHeute()) {
     const heuteJahr = Number(heute.slice(0, 4));
     const geburtsjahr = hatBekanntesJahr(jt.datum) ? Number(jt.datum.slice(0, 4)) : null;
     let zielJahr = Math.max(heuteJahr, geburtsjahr || heuteJahr);
@@ -6935,9 +8504,9 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
 
   function schreibeBrief(k) {
     if (!Bruecke.vorhanden) return nurImProgramm();
-    Bruecke.sende({ cmd: "brief", kontakt: k,
+    Bruecke.sende({ cmd: "brief", kontakt: { ...k, anschriften: anschriftListe(k) },
       absender: DATEN.einstellungen.adressen.absender || "",
-      layout: DATEN.einstellungen.adressen.briefLayout || "compact" });
+      layout: DATEN.einstellungen.adressen.briefLayout || "din5008-b" });
     return true;
   }
 
@@ -6979,14 +8548,14 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     if (!Bruecke.vorhanden) return nurImProgramm();
     Bruecke.sende({ cmd: "sozial", dienst: eintrag.dienst, wert: eintrag.wert,
       aktionArt: eintrag.aktionArt || "", aktionZiel: eintrag.aktionZiel || "",
-      land: DATEN.einstellungen.adressen.landCode ||
-        DATEN.einstellungen.adressen.land || "DE" });
+      land: telefonHeimatland() });
     return true;
   }
 
   /* Was auf dieser Seite des Buches gedruckt werden kann. Jede Sektion
      liefert ihre Einträge mit Namen, Vorschau und Druckfassung. */
-  function druckStoff(sektion, vorgewaehlt) {
+  function druckStoff(sektion, vorgewaehlt, kalenderStand) {
+    sichereNotizSnapshot();
     const sicher = (x) => String(x || "")
       .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
@@ -7081,6 +8650,10 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
         vorgewaehlt: liste.map((block) => block.id),
         entfernen: (eintraege) => {
           const ids = new Set(eintraege.map((block) => block.id));
+          const textIds = new Set(eintraege.filter((block) => block.type === "notes")
+            .flatMap((block) => (block.items || []).map((item) => item.id)));
+          for (const block of DATEN.customOrganizer.modules.filter((wert) => ids.has(wert.id))) sichereCustomPapierkorb(block);
+          entferneCustomTextVerweise(textIds);
           DATEN.customOrganizer.modules = DATEN.customOrganizer.modules.filter((block) => !ids.has(block.id));
           return ids.size;
         }, loeschen: { custom: true } };
@@ -7150,19 +8723,33 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     }
 
     /* Kalender und Planer: die Termine des angezeigten Zeitraums */
-    const z = zustand.kalender;
+    const z = kalenderStand || zustand.kalender;
     const imJahr = sektion === "planer";
     const zeitraumVon = imJahr ? zustand.planer.jahr + "-01-01"
       : z.jahr + "-" + pad2(z.monat + 1) + "-01";
     const zeitraumBis = imJahr ? zustand.planer.jahr + "-12-31"
       : isoVon(new Date(z.jahr, z.monat + 1, 0));
-    const liste = DATEN.termine.filter((t) => {
+    const incomplete = icsRuntime.incomplete || 0;
+    const vorkommen = new Map();
+    if (!imJahr) {
+      const naechster = new Date(z.jahr, z.monat + 1, 1);
+      const fenster = [+organizerZeitpunkt(z.jahr, z.monat + 1, 1, 0, 0),
+        +organizerZeitpunkt(naechster.getFullYear(), naechster.getMonth() + 1, 1, 0, 0) - 1, false, true];
+      for (let tag = 1; tag <= Number(zeitraumBis.slice(-2)); tag++) {
+        for (const t of termineAm(zeitraumVon.slice(0, 8) + pad2(tag), true, fenster)) {
+          // A multi-day occurrence is printed once; deletion still addresses its source.
+          const id = JSON.stringify([t.id, t.icsOccurrence ?? null, t.datum, t.zeit || "", t.endDatum || "", t.endZeit || ""]);
+          vorkommen.set(id, { ...t, id, _druckQuelleId: t.id });
+        }
+      }
+    }
+    const liste = (imJahr ? DATEN.termine.filter((t) => {
       if (!gueltigesISO(t.datum)) return false;
       if (istSynchronisierterKalendereintrag(t)) return false;
       const ende = gueltigesISO(t.endDatum) && t.endDatum > t.datum
         ? t.endDatum : t.datum;
       return t.datum <= zeitraumBis && ende >= zeitraumVon;
-    }).sort((a, b) => (a.datum + (a.zeit || "99:99"))
+    }) : [...vorkommen.values()]).sort((a, b) => (a.datum + (a.zeit || "99:99"))
       .localeCompare(b.datum + (b.zeit || "99:99")));
     const zeitraum = imJahr ? String(zustand.planer.jahr)
       : monatsName(z.monat) + " " + z.jahr;
@@ -7213,12 +8800,18 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
         (t.notiz ? '<div class="notiz">' + sicher(t.notiz) + "</div>" : "") +
         "</div>",
       vorgewaehlt: liste.map((t) => t.id),
+      icsIncomplete: (icsRuntime.incomplete || 0) !== incomplete,
+      loeschAuswahl: (eintraege) => {
+        const ids = new Set(eintraege.map(e => e._druckQuelleId || e.id));
+        return DATEN.termine.filter(t => ids.has(t.id));
+      },
       loeschen: { schluessel: "termine", art: "termin" } };
   }
 
   /* Entfernt die im Druckdialog angehakten Einträge auf demselben Weg wie das
      Löschen an der Karte selbst: Grabstein für den Abgleich, dann Papierkorb. */
   function entferneAusDruckwahl(stoff, eintraege) {
+    if (stoff.loeschAuswahl) eintraege = stoff.loeschAuswahl(eintraege);
     if (stoff.entfernen) return stoff.entfernen(eintraege);
     const bereich = stoff.loeschen;
     if (!bereich || !eintraege.length) return 0;
@@ -7343,7 +8936,9 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
   }
 
   function planerKalenderModell(jahr, optionen) {
+    const incomplete = icsRuntime.incomplete || 0;
     const wahl = Object.assign({ feiertage: true, ferien: true, urlaub: true }, optionen || {});
+    const feiertagsIndex = planerFeiertagVerzeichnis(Number(jahr));
     const modell = { jahr: Number(jahr), monate: [], zeilen: [],
       hatFeiertage: false, hatFerien: false, hatUrlaub: false };
     for (let monat = 0; monat < 12; monat += 1) modell.monate.push(monatsName(monat));
@@ -7356,7 +8951,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
           continue;
         }
         const iso = isoVon(datum);
-        const alle = feiertageAm(iso, true);
+        const alle = feiertageAm(iso, true, feiertagsIndex);
         const feiertage = alle.filter((f) => f.art === "public-holiday");
         const ferien = alle.filter((f) => f.art === "school-holiday");
         const urlaube = urlaubeAm(iso);
@@ -7370,14 +8965,20 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       }
       modell.zeilen.push(zeile);
     }
+    modell.icsIncomplete = (icsRuntime.incomplete || 0) !== incomplete;
     return modell;
   }
 
   function planerMonatsModell(jahr, monat, optionen) {
+    const incomplete = icsRuntime.incomplete || 0;
     const wahl = Object.assign({ feiertage: true, ferien: true, termine: true,
       jahrestage: true, schichten: true, zyklus: true, muell: true,
       urlaub: true }, optionen || {});
     const erster = new Date(Number(jahr), Number(monat), 1);
+    const naechster = new Date(Number(jahr), Number(monat) + 1, 1);
+    // All day cells share one bounded worker request per series, not 31 jobs.
+    const serienZeitraum = [+organizerZeitpunkt(erster.getFullYear(), erster.getMonth() + 1, 1, 0, 0),
+      +organizerZeitpunkt(naechster.getFullYear(), naechster.getMonth() + 1, 1, 0, 0) - 1, false, true];
     const versatz = (erster.getDay() - ersterWochentag() + 7) % 7;
     const start = new Date(Number(jahr), Number(monat), 1 - versatz);
     const modell = { art: "month", jahr: Number(jahr), monat: Number(monat),
@@ -7395,7 +8996,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
         const alleFeiertage = imMonat ? feiertageAm(iso, true) : [];
         const feiertage = alleFeiertage.filter((f) => f.art === "public-holiday");
         const ferien = alleFeiertage.filter((f) => f.art === "school-holiday");
-        const termine = imMonat ? termineAm(iso, true) : [];
+        const termine = imMonat ? termineAm(iso, true, serienZeitraum) : [];
         const jahrestage = imMonat ? jahrestageAm(iso, true) : [];
         const marken = imMonat ? tagmarkenAm(iso) : { schicht: null, zyklus: [] };
         const muelltermine = imMonat ? muelltermineAm(iso) : [];
@@ -7440,6 +9041,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       }
       modell.wochen.push(zeile);
     }
+    modell.icsIncomplete = (icsRuntime.incomplete || 0) !== incomplete;
     return modell;
   }
 
@@ -7642,9 +9244,11 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       modell.wochentage.map((tag) => "<th>" + sicher(tag) + "</th>").join("");
     const rumpf = modell.wochen.map((woche) => "<tr><th class='kw'>" + woche.nummer +
       "</th>" + woche.tage.map((tag) => {
+        // Full cells need room for five single-line entries and their summary.
+        const voll = tag.eintraege.length >= 5;
         const klassen = [!tag.imMonat ? "ausserhalb" : "",
           tag.wochentag === 0 ? "sonntag" : "", tag.feiertage.length ? "feiertag" : "",
-          !tag.feiertage.length && tag.ferien.length ? "ferien" : ""].filter(Boolean).join(" ");
+          !tag.feiertage.length && tag.ferien.length ? "ferien" : "", voll ? "voll" : ""].filter(Boolean).join(" ");
         const marker = tag.zyklus.map((m) => "<span class='zyklus' style='color:" +
           sicher(m.farbe) + "'>" + sicher(m.symbol) + "</span>").join("");
         const eintraege = tag.eintraege.slice(0, 5).map((e) =>
@@ -7652,9 +9256,10 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
           sicher(e.farbe) + "'>" + sicher(e.text) + "</span>").join("");
         const mehr = tag.eintraege.length > 5 ? "<span class='eintrag mehr'>+" +
           (tag.eintraege.length - 5) + "</span>" : "";
-        return "<td class='" + klassen + "'><b class='tag'>" +
+        const inhalt = "<b class='tag'>" +
           (tag.imMonat ? tag.tag : "") + "</b>" +
-          marker + eintraege + mehr + "</td>";
+          marker + eintraege + mehr;
+        return "<td class='" + klassen + "'>" + (voll ? "<div class='tag-inhalt'>" + inhalt + "</div>" : inhalt) + "</td>";
       }).join("") + "</tr>").join("");
     const sprache = window.MagnolieI18n ? window.MagnolieI18n.locale() : "en";
     return "<!DOCTYPE html><html lang='" + sicher(sprache) + "'><head><meta charset='utf-8'>" +
@@ -7663,12 +9268,14 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       " – Magnolie Organizer</title><style>@page{size:A4 landscape;margin:8mm}" +
       "body{font:8pt/1.15 'Liberation Sans',Arial,sans-serif;color:#29231a;margin:0}" +
       "h1{text-align:center;background:#5c3f25;color:#fff;padding:2mm;margin:0;font-size:17pt}" +
-      "table{border-collapse:collapse;table-layout:fixed;width:100%;height:174mm}" +
+      "table{border-collapse:collapse;table-layout:fixed;width:100%}" +
       "th{background:#8b6a35;color:#fff;border:1px solid #6d5129;padding:1.5mm}.kw{width:10mm}" +
       "td{border:1px solid #756a59;vertical-align:top;padding:1mm;height:25mm;overflow:hidden}" +
       ".tag{display:inline-block;font-size:10pt}.zyklus{float:right;font-size:11pt;margin-left:1mm}" +
       ".eintrag{display:block;border-left:2.5mm solid #a8823c;background:#f1e7d0;margin-top:.7mm;" +
       "padding:.5mm 1mm;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}" +
+      ".tag-inhalt{height:25mm;overflow:hidden}.voll .tag{line-height:11pt}" +
+      ".voll .eintrag{height:9pt;line-height:9pt;margin-top:.2mm;padding:0 1mm}" +
       ".jahrestag{background:#eadce5}.schicht{background:#e8dfcf}.feiertag{background:#f4c6ca}" +
       ".ferien{background:#eef2c3}.urlaub{background:#d9eee7}.sonntag{background:#f8e8dc}.ausserhalb{background:#e5e5e5;color:#998f80}" +
       ".mehr{border-left-color:#998f80;background:#eee8dc}</style></head><body><h1>" +
@@ -7683,7 +9290,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     blatt.setAttribute("role", "dialog");
     blatt.setAttribute("aria-modal", "true");
     blatt.setAttribute("aria-label", _("Print preview"));
-    const schliessen = () => { beendeModal(schleier); schleier.remove(); };
+    const schliessen = () => { document.removeEventListener("magnolie-recurrence-ready", frischen); beendeModal(schleier); schleier.remove(); };
     const kopf = el("header");
     kopf.append(el("h2", null, uebersetzt("Print · %(title)s", {
       title: uebersetzt("Year planner %(year)s", { year: zustand.planer.jahr }) })));
@@ -7724,6 +9331,8 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       }
       vorschau.textContent = "";
       vorschau.append(planerKalenderVorschau(modell));
+      vorschau.setAttribute("aria-busy", String(!!modell.icsIncomplete));
+      druckKnopf.disabled = odsKnopf.disabled = !!modell.icsIncomplete;
     };
     artWahl.addEventListener("change", () => { wahl.art = artWahl.value; frischen(); });
     monatWahl.addEventListener("change", () => { wahl.monat = Number(monatWahl.value); frischen(); });
@@ -7759,11 +9368,12 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     blatt.append(spalten);
 
     const fuss = el("div", "knopfreihe druck-fuss");
-    fuss.append(bildknopf("drucken", _("Print now"), () => {
+    const druckKnopf = bildknopf("drucken", _("Print now"), () => {
       if (!Bruecke.vorhanden) { nurImProgramm(); return; }
       Bruecke.sende({ cmd: "drucken", html: planerDruckSeite(modell) });
       schliessen();
-    }));
+    });
+    fuss.append(druckKnopf);
     const odsKnopf = bildknopf("tabelle", _("ODS"), () => {
       if (!Bruecke.vorhanden) { nurImProgramm(); return; }
       Bruecke.sende(planerOdsNutzlast(modell));
@@ -7776,6 +9386,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     schleier.addEventListener("click", (ev) => { if (ev.target === schleier) schliessen(); });
     document.body.append(schleier);
     registriereModal(schleier, blatt, { anfang: zu, schliessen: schliessen });
+    document.addEventListener("magnolie-recurrence-ready", frischen);
     frischen();
     return schleier;
   }
@@ -7784,7 +9395,8 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     const druckSektion = sektion || zustand.sektion;
     if (druckSektion === "planer") return oeffnePlanerDruckvorschau();
     if (druckSektion === "gesundheit") return oeffneGesundheitsDruckvorschau();
-    const stoff = druckStoff(druckSektion, vorgewaehlt);
+    const kalenderStand = { ...zustand.kalender };
+    let stoff = druckStoff(druckSektion, vorgewaehlt, kalenderStand);
     const schleier = el("div", "druck-schleier");
     schleier.id = "druck-schleier";
     const blatt = el("div", "druck-blatt");
@@ -7792,6 +9404,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     blatt.setAttribute("aria-modal", "true");
     blatt.setAttribute("aria-label", _("Print preview"));
     const schliessen = () => {
+      document.removeEventListener("magnolie-recurrence-ready", kalenderBereit);
       beendeModal(schleier);
       schleier.remove();
     };
@@ -7807,12 +9420,21 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     blatt.append(kopf);
 
     const gewaehlt = new Set(stoff.vorgewaehlt || []);
+    let neueVorkommenWaehlen = true;
+    let wegKnopf = null;
     const liste = el("div", "druck-auswahl");
     const vorschau = el("div", "druck-vorschau");
     let leereVorlage = false;
 
     const frischen = () => {
       vorschau.textContent = "";
+      vorschau.setAttribute("aria-busy", String(!!stoff.icsIncomplete));
+      druckKnopf.disabled = !!stoff.icsIncomplete;
+      if (wegKnopf) wegKnopf.disabled = !!stoff.icsIncomplete;
+      if (stoff.icsIncomplete && ![...(icsRuntime.state?.jobs.values() || [])].some(job => job.status === "pending")) {
+        vorschau.append(el("p", "leer-hinweis",
+          _("Some recurrence rules cannot be expanded. Their original calendar data was preserved.")));
+      }
       if (leereVorlage) {
         const leerTabelle = el("table", "gesundheit-leervorschau");
         for (let zeile = 0; zeile < 9; zeile++) {
@@ -7825,6 +9447,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       }
       const blaetter = stoff.liste.filter((e) => gewaehlt.has(e.id));
       if (!blaetter.length) {
+        if (stoff.icsIncomplete) return;
         vorschau.append(el("p", "leer-hinweis",
           _("Select what you want to print on the left.")));
         return;
@@ -7845,25 +9468,30 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       _("No suggestions found."));
     keinSuchtreffer.hidden = true;
     const leerHinweis = () => {
-      if (!stoff.liste.length) {
+      if (!stoff.liste.length && !stoff.icsIncomplete) {
         liste.append(el("p", "leer-hinweis", _("There is nothing to print.")));
       }
     };
-    leerHinweis();
-    for (const e of stoff.liste) {
-      const zeile = el("label", "druck-zeile");
-      const hak = document.createElement("input");
-      hak.type = "checkbox";
-      hak.checked = gewaehlt.has(e.id);
-      hak.addEventListener("change", () => {
-        if (hak.checked) gewaehlt.add(e.id); else gewaehlt.delete(e.id);
-        frischen();
-      });
-      zeile.append(hak, el("span", "druck-zeile-text", stoff.name(e)));
-      liste.append(zeile);
-      zeilen.set(e.id, zeile);
-    }
-    liste.append(keinSuchtreffer);
+    const zeichneWahl = () => {
+      liste.textContent = "";
+      zeilen.clear();
+      leerHinweis();
+      for (const e of stoff.liste) {
+        const zeile = el("label", "druck-zeile");
+        const hak = document.createElement("input");
+        hak.type = "checkbox";
+        hak.checked = gewaehlt.has(e.id);
+        hak.addEventListener("change", () => {
+          if (hak.checked) gewaehlt.add(e.id); else gewaehlt.delete(e.id);
+          frischen();
+        });
+        zeile.append(hak, el("span", "druck-zeile-text", stoff.name(e)));
+        liste.append(zeile);
+        zeilen.set(e.id, zeile);
+      }
+      liste.append(keinSuchtreffer);
+    };
+    zeichneWahl();
 
     const suchHuelle = el("label", "druck-suchfeld");
     const suchSymbol = el("span", "druck-suchsymbol");
@@ -7890,11 +9518,13 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
 
     const wahlKopf = el("div", "druck-wahlkopf");
     wahlKopf.append(knopf(_("All"), "klein", () => {
+      neueVorkommenWaehlen = true;
       for (const e of stoff.liste) gewaehlt.add(e.id);
       for (const h of liste.querySelectorAll("input")) h.checked = true;
       frischen();
     }));
     wahlKopf.append(knopf(_("None"), "klein", () => {
+      neueVorkommenWaehlen = false;
       gewaehlt.clear();
       for (const h of liste.querySelectorAll("input")) h.checked = false;
       frischen();
@@ -7903,8 +9533,10 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     /* Was hier angehakt ist, lässt sich auch gleich fortwerfen – der Umweg
        über die einzelne Karte entfällt. */
     if (stoff.loeschen) {
-      const wegKnopf = knopf(_("Delete selection"), "klein rot", () => {
-        const treffer = stoff.liste.filter((e) => gewaehlt.has(e.id));
+      wegKnopf = knopf(_("Delete selection"), "klein rot", () => {
+        if (stoff.icsIncomplete) return;
+        let treffer = stoff.liste.filter((e) => gewaehlt.has(e.id));
+        if (stoff.loeschAuswahl) treffer = stoff.loeschAuswahl(treffer);
         if (!treffer.length) { zettel(_("Select something first.")); return; }
         const nachfrage = stoff.entfernen
           ? uebersetztMehrzahl(
@@ -7923,14 +9555,16 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
           if (!ja) return;
           const loeschen = () => {
             const anzahl = entferneAusDruckwahl(stoff, treffer);
-            for (const e of treffer) {
+            const quellen = new Set(treffer.map(e => e.id));
+            const entfernt = stoff.liste.filter(e => quellen.has(e._druckQuelleId || e.id));
+            for (const e of entfernt) {
               gewaehlt.delete(e.id);
               const zeile = zeilen.get(e.id);
               if (zeile) zeile.remove();
               zeilen.delete(e.id);
               suchtexte.delete(e.id);
             }
-            const weggefallen = new Set(treffer.map((e) => e.id));
+            const weggefallen = new Set(entfernt.map((e) => e.id));
             stoff.liste = stoff.liste.filter((e) => !weggefallen.has(e.id));
             leerHinweis(); filtere(); planeSpeichern(); zeichneAlles(); frischen();
             zettel(uebersetztMehrzahl(
@@ -7984,14 +9618,16 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     blatt.append(spalten);
 
     const fuss = el("div", "knopfreihe druck-fuss");
-    fuss.append(bildknopf("drucken", _("Print now"), () => {
+    const druckKnopf = bildknopf("drucken", _("Print now"), () => {
+      if (stoff.icsIncomplete) return;
       const blaetter = stoff.liste.filter((e) => gewaehlt.has(e.id));
       if (!leereVorlage && !blaetter.length) { zettel(_("Select something first.")); return; }
       if (!Bruecke.vorhanden) { nurImProgramm(); return; }
       Bruecke.sende({ cmd: "drucken",
         html: stoff.druck ? stoff.druck(blaetter, leereVorlage) : druckSeite(blaetter, stoff) });
       schliessen();
-    }));
+    });
+    fuss.append(druckKnopf);
     if (stoff.ods) {
       const odsKnopf = bildknopf("tabelle", _("ODS"), () => {
         const blaetter = stoff.liste.filter((e) => gewaehlt.has(e.id));
@@ -8028,6 +9664,18 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     fuss.append(knopf(_("Cancel"), "", schliessen));
     blatt.append(fuss);
 
+    const kalenderBereit = () => {
+      if (!stoff.icsIncomplete || !schleier.isConnected) return;
+      const bekannteIds = new Set(stoff.liste.map(e => e.id));
+      stoff = druckStoff(druckSektion, vorgewaehlt, kalenderStand);
+      suchtexte.clear();
+      for (const e of stoff.liste) {
+        if (neueVorkommenWaehlen && !bekannteIds.has(e.id)) gewaehlt.add(e.id);
+        suchtexte.set(e.id, suchText([stoff.name(e), e]));
+      }
+      zeichneWahl(); filtere(); frischen();
+    };
+    if (druckSektion === "kalender") document.addEventListener("magnolie-recurrence-ready", kalenderBereit);
     schleier.append(blatt);
     schleier.addEventListener("click", (ev) => {
       if (ev.target === schleier) schliessen();
@@ -8164,15 +9812,15 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       return nachVornamen() ? k.vorname + " " + k.nachname
         : k.nachname + ", " + k.vorname;
     }
-    return k.nachname || k.vorname || k.firma || _("(unnamed)");
+    return k.nachname || k.vorname || k.anzeigename || k.firma || _("(unnamed)");
   }
 
   /* Der Name, nach dem einsortiert wird */
   function ordnungsName(k) {
     if (nachVornamen()) {
-      return (k.vorname || k.nachname || k.firma || "").trim();
+      return (k.vorname || k.nachname || k.anzeigename || k.firma || "").trim();
     }
-    return (k.nachname || k.vorname || k.firma || "").trim();
+    return (k.nachname || k.vorname || k.anzeigename || k.firma || "").trim();
   }
 
   function sortiereKontakte(a, b) {
@@ -8272,7 +9920,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     }
   }
 
-  function suchText(werte) {
+  function suchText(werte, gebiet = formatGebiet()) {
     const teile = [];
     const sammeln = (wert) => {
       if (wert === undefined || wert === null) return;
@@ -8281,7 +9929,10 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       teile.push(String(wert));
     };
     sammeln(werte);
-    return teile.join(" ").toLocaleLowerCase(formatGebiet());
+    const text = teile.join(" ");
+    // ASCII case folding is locale-independent except for Turkish/Azeri I.
+    return gebiet && !/^(tr|az)(?:-|$)/i.test(gebiet) && /^[\x00-\x7f]*$/.test(text)
+      ? text.toLowerCase() : text.toLocaleLowerCase(gebiet);
   }
 
   function suchBegriffe(text) {
@@ -8309,6 +9960,8 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
 
   function kalenderSuchTreffer(kontext, begriffe, grenze) {
     const treffer = [];
+    const gebiet = formatGebiet() || new Intl.DateTimeFormat().resolvedOptions().locale;
+    const hatZiffern = (begriffe || []).some(begriff => /\d/.test(begriff));
     for (const termin of DATEN.termine) {
       if (istSynchronisierterKalendereintrag(termin)) continue;
       const rohText = suchText([termin.titel, termin.notiz, termin.datum, termin.endDatum,
@@ -8317,9 +9970,9 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
           termin.kalenderQuelle.gruppe], termin.organisator,
         (termin.teilnehmer || []).map((person) => [person.name, person.email, person.uri]),
         (termin.kalenderAnhaenge || []).map((anhang) => anhang.name),
-        kontaktSuchName(termin.kontaktId, kontext)]);
-      if (begriffe && !suchPasst(rohText, begriffe) &&
-          !begriffe.some((begriff) => /\d/.test(begriff))) continue;
+        kontaktSuchName(termin.kontaktId, kontext)], gebiet);
+      if (begriffe && !begriffe.every(begriff => rohText.includes(begriff)) &&
+          !hatZiffern) continue;
       const eintrag = {
         titel: termin.titel || _("Appointment"),
         meta: [fmtPunkt(termin.datum), termin.endDatum && termin.endDatum !== termin.datum
@@ -8343,7 +9996,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
           oeffneTerminBlatt(termin, termin.datum, "kalender:heute");
         }
       };
-      if (begriffe && !suchPasst(eintrag.text, begriffe)) continue;
+      if (begriffe && !begriffe.every(begriff => eintrag.text.includes(begriff))) continue;
       treffer.push(eintrag);
       if (treffer.length >= (grenze || Infinity)) break;
     }
@@ -8411,23 +10064,17 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
 
   function planerSuchTreffer(kontext, begriffe, grenze) {
     const jahr = zustand.planer.jahr;
+    const feiertagsIndex = planerFeiertagVerzeichnis(jahr);
     const treffer = [];
     for (let monat = 0; monat < 12; monat++) {
       const tage = new Date(jahr, monat + 1, 0).getDate();
       for (let tag = 1; tag <= tage; tag++) {
         const iso = jahr + "-" + pad2(monat + 1) + "-" + pad2(tag);
         const texte = [];
-        termineAm(iso).filter((termin) => !istSynchronisierterKalendereintrag(termin) &&
-          !vergangenAusgeblendet(iso, "appointment"))
-          .forEach((termin) => texte.push(termin.titel, termin.notiz, termin.kategorien,
-            termin.kunde, termin.kostenstelle, termin.ort, termin.kalenderQuelle,
-            termin.organisator, termin.teilnehmer,
-            (termin.kalenderAnhaenge || []).map((anhang) => anhang.name),
-            kontaktSuchName(termin.kontaktId, kontext)));
         if (!vergangenAusgeblendet(iso, "anniversary")) jahrestageAm(iso)
           .forEach((eintrag) => texte.push(eintrag.name,
             jahrestagTypText(eintrag.typ), kontaktSuchName(eintrag.kontaktId, kontext)));
-        feiertageAm(iso).forEach((eintrag) => texte.push(eintrag.name));
+        feiertageAm(iso, false, feiertagsIndex).forEach((eintrag) => texte.push(eintrag.name));
         urlaubeAm(iso).forEach((eintrag) => texte.push(_("Vacation"), eintrag.name));
         const marken = tagmarkenAm(iso);
         if (marken.schicht) texte.push(marken.schicht.name, schichtZeitText(marken.schicht, iso));
@@ -8493,10 +10140,6 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       }
       for (const eintrag of eintraege) {
         const seite = Math.max(0, Number(eintrag.seite) || 0);
-        const zeilenIndex = entwurf && entwurf.art === art && entwurf.zeilen.includes(eintrag)
-          ? entwurf.zeilen.indexOf(eintrag)
-          : Math.max(0, gesundheitGespeicherteSeite(art, seite)
-            .findIndex((wert) => wert.id === eintrag.id));
         const suchEintrag = {
           titel: art === "medikamente" ? (eintrag.name || _("Medication"))
             : (eintrag.datum ? fmtPunkt(eintrag.datum) : _(art === "vital"
@@ -8504,6 +10147,10 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
           meta: gesundheitsWertText(art, eintrag),
           text: suchText(gesundheitSuchFelder(art, eintrag)),
           oeffnen: () => {
+            const zeilenIndex = entwurf && entwurf.art === art && entwurf.zeilen.includes(eintrag)
+              ? entwurf.zeilen.indexOf(eintrag)
+              : Math.max(0, gesundheitGespeicherteSeite(art, seite)
+                .findIndex((wert) => wert.id === eintrag.id));
             zustand.sektion = "gesundheit";
             zustand.gesundheit.ansicht = art;
             zustand.gesundheit.seiten[art] = seite;
@@ -8553,14 +10200,20 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
   function customSuchTreffer(_kontext, begriffe, grenze) {
     const treffer = [];
     for (const block of DATEN.customOrganizer.modules) {
-      const eintrag = { titel: block.title || customText("Untitled"),
-        meta: customModulTitel(block.type),
-        text: suchText([block.title, block.text,
-          (block.items || []).map((item) => [item.title, item.text, item.note, item.date, item.due, item.time])]),
-        oeffnen: () => { zustand.sektion = "custom"; zeichneAlles(); oeffneCustomDesigner(); } };
-      if (begriffe && !suchPasst(eintrag.text, begriffe)) continue;
-      treffer.push(eintrag);
-      if (treffer.length >= (grenze || Infinity)) break;
+      for (const item of block.items || []) {
+        const eintrag = { titel: item.title || ersteZeile(item.text || item.note || "") || _("Untitled"),
+          meta: block.title || customModulTitel(block.type),
+          text: suchText([block.title, item.title, item.text, item.note, item.date, item.due, item.time]),
+          oeffnen: () => {
+            zustand.sektion = "custom";
+            suchZustand.custom = "";
+            if (block.type === "notes") oeffneVerknuepftenCustomText(item.id);
+            else { zeichneAlles(); oeffneCustomEintrag(block, item); }
+          } };
+        if (begriffe && !suchPasst(eintrag.text, begriffe)) continue;
+        treffer.push(eintrag);
+        if (treffer.length >= (grenze || Infinity)) return treffer;
+      }
     }
     return treffer;
   }
@@ -8748,8 +10401,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
   function zeichneRegister() {
     const links = $("#register-links");
     const rechts = $("#register-rechts");
-    links.textContent = "";
-    rechts.textContent = "";
+    const vorhanden = new Map([...links.children, ...rechts.children].map(b => [b.dataset.fokus, b]));
     const sektionen = sichtbareSektionen();
     const buch = $("#buch");
     buch.dataset.registerAnzahl = String(sektionen.length);
@@ -8757,25 +10409,37 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     links.hidden = ohneRegister;
     rechts.hidden = ohneRegister;
     if (!sektionen.some((sektion) => sektion.id === zustand.sektion)) zustand.sektion = "kalender";
-    if (ohneRegister) return;
+    if (ohneRegister) { links.textContent = ""; rechts.textContent = ""; return; }
     const aktuellerIndex = sektionen.findIndex((s) => s.id === zustand.sektion);
     sektionen.forEach((s, i) => {
       const name = sektionName(s);
-      const b = el("button", "registerknopf" + (i === aktuellerIndex ? " aktiv" : ""));
-      const beschriftung = el("span", "registertext", name);
+      const schluessel = "register:" + s.id;
+      let b = vorhanden.get(schluessel);
+      if (!b) {
+        b = el("button", "registerknopf");
+        b.type = "button";
+        b.append(el("span", "registertext"));
+        fokusMarke(b, schluessel);
+        b.addEventListener("click", () => wechsel(s.id));
+      }
+      vorhanden.delete(schluessel);
+      b.classList.toggle("aktiv", i === aktuellerIndex);
+      const beschriftung = b.firstElementChild;
+      if (beschriftung.textContent !== name) beschriftung.textContent = name;
       const laenge = Array.from(name).length;
       let schrift = laenge > 18 ? 9.5 : (laenge > 15 ? 10 : (laenge > 12 ? 11 : 12));
       beschriftung.style.fontSize = schrift + "px";
-      b.append(beschriftung);
-      b.type = "button";
       b.style.setProperty("--slot", i);
       b.style.setProperty("--tabfarbe", s.farbe);
       b.title = name;
-      fokusMarke(b, "register:" + s.id);
       if (i === aktuellerIndex) b.setAttribute("aria-current", "page");
-      b.addEventListener("click", () => wechsel(s.id));
-      (i < aktuellerIndex ? links : rechts).append(b);
-      requestAnimationFrame(() => {
+      else b.removeAttribute("aria-current");
+      const ziel = i < aktuellerIndex ? links : rechts;
+      const position = i < aktuellerIndex ? i : i - aktuellerIndex;
+      if (ziel.children[position] !== b) ziel.insertBefore(b, ziel.children[position] || null);
+      if (beschriftung._schriftRaf) cancelAnimationFrame(beschriftung._schriftRaf);
+      beschriftung._schriftRaf = requestAnimationFrame(() => {
+        beschriftung._schriftRaf = 0;
         while (beschriftung.clientWidth && beschriftung.clientHeight &&
           (beschriftung.scrollWidth > beschriftung.clientWidth + 1 ||
             beschriftung.scrollHeight > beschriftung.clientHeight + 1) && schrift > 7) {
@@ -8784,22 +10448,24 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
         }
       });
     });
+    for (const b of vorhanden.values()) b.remove();
   }
 
   let blaetterTimer = null;
 
   function wechsel(sektionsId) {
+    if (!initialisiert || gesperrt) return Promise.resolve(false);
     if (sektionsId === zustand.sektion) return;
     const sektionen = sichtbareSektionen();
     if (!sektionen.some((sektion) => sektion.id === sektionsId)) return;
     const alt = sektionen.findIndex((s) => s.id === zustand.sektion);
     const neu = sektionen.findIndex((s) => s.id === sektionsId);
     return navigiereMitGuard(() => {
-      zustand.sektion = sektionsId;
-      zeichneAlles();
       const seiten = $("#seiten");
       seiten.classList.remove("blaettern-vor", "blaettern-zurueck");
-      void seiten.offsetWidth; /* Animation neu anstoßen */
+      void seiten.offsetWidth; /* Restart against the old, already laid-out page. */
+      zustand.sektion = sektionsId;
+      zeichneAlles();
       seiten.classList.add(neu > alt ? "blaettern-vor" : "blaettern-zurueck");
       clearTimeout(blaetterTimer);
       blaetterTimer = setTimeout(() => {
@@ -8809,9 +10475,12 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
   }
 
   function zeichneAlles() {
+    sichereNotizSnapshot();
+    if (aktiverEditor && aktiverEditor.element && editorIstGeaendert()) return;
     beendeGesundheitReserve();
     const vorher = document.activeElement && document.activeElement.dataset
       ? document.activeElement.dataset.fokus || "" : "";
+    if (zustand.sektion === "planer" && vorher.startsWith("planer-tag:") && !naechsterFokus) naechsterFokus = vorher;
     zeichneRegister();
     leereSeiten();
     const zeichner = {
@@ -8835,7 +10504,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
             : _("Choose entries to print, export or delete"));
     }
     zeichneStatusDatum();
-    aktualisiereTrayZaehler();
+    if (zustand.sektion !== "planer") aktualisiereTrayZaehler();
     const ziel = fokusElement(naechsterFokus || vorher);
     naechsterFokus = "";
     if (ziel) ziel.focus();
@@ -8859,7 +10528,8 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
   }
 
   function customBlockText(block) {
-    if (block.type === "notes") return (block.items || []).map((item) => item.text || "").join("\n");
+    if (block.type === "notes") return (block.items || []).map((item) =>
+      [item.title, item.text].filter(Boolean).join("\n")).join("\n");
     return (block.items || []).map((item) => [block.type === "tasks" ? (item.done ? "☑" : "☐") : "",
       item.date || item.due || "", item.time || "", item.title, item.note]
       .filter(Boolean).join(" · ")).join("\n");
@@ -8867,7 +10537,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
 
   function customModulTitel(type) {
     return type === "appointments" ? _("Appointments") :
-      type === "tasks" ? _("Tasks") : _("Text");
+      type === "tasks" ? _("Tasks") : _("Text block");
   }
 
   function customModulGeaendert(modul) {
@@ -8901,109 +10571,339 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     return aufgaben;
   }
 
-  function fuegeCustomEintragHinzu(modul) {
-    if (!Array.isArray(modul.items)) modul.items = [];
-    if (modul.items.length >= CUSTOM_MAX_ITEMS) return;
-    const eintrag = { id: "custom-item-" + uid(), title: "", note: "", remind: true,
-      modified_ms: Date.now(), time: "" };
-    if (modul.type === "appointments") {
-      eintrag.date = isoHeute();
-      eintrag.wiederholung = { art: "none", bis: "" };
+  function customTextVerzeichnis() {
+    const eintraege = [];
+    for (const modul of DATEN.customOrganizer.modules || []) {
+      if (modul.type !== "notes") continue;
+      for (const [index, item] of (modul.items || []).entries()) eintraege.push({ modul: modul, item: item,
+        label: [modul.title || customModulTitel("notes"), item.title || ((index + 1) + " / " + modul.items.length)]
+          .join(" · ") });
     }
-    else { eintrag.due = isoHeute(); eintrag.done = false; }
-    modul.items.unshift(eintrag);
-    customModulGeaendert(modul);
-    zeichneAlles();
+    return eintraege;
   }
 
-  function zeichneCustomModul(modul, ziel, begriffe = []) {
+  function entferneCustomTextVerweise(textIds) {
+    if (!textIds.size) return;
+    const zeit = Date.now();
+    for (const modul of DATEN.customOrganizer.modules || []) {
+      if (modul.type === "notes") continue;
+      let geaendert = false;
+      for (const item of modul.items || []) if (textIds.has(item.textItemId)) {
+        item.textItemId = ""; item.modified_ms = zeit; geaendert = true;
+      }
+      if (geaendert) modul.modified_ms = zeit;
+    }
+  }
+
+  function sichereCustomPapierkorb(modul, item = null) {
+    const ids = new Set(modul.type === "notes" ? (item ? [item.id] : modul.items.map((wert) => wert.id)) : []);
+    const verweise = Object.create(null);
+    for (const block of DATEN.customOrganizer.modules) for (const wert of block.items || [])
+      if (ids.has(wert.textItemId)) verweise[wert.id] = wert.textItemId;
+    for (const wert of item ? [item] : modul.items) if (wert.textItemId) verweise[wert.id] = wert.textItemId;
+    inDenPapierkorb("custom", { ...modul, items: item ? [item] : modul.items },
+      (item && item.title) || modul.title || customModulTitel(modul.type), item ? modul.id : "", verweise);
+    return ids;
+  }
+
+  async function loescheCustom(modul, item = null) {
+    const name = (item && item.title) || modul.title || customModulTitel(modul.type);
+    if (!await frage(_("Remove") + ": " + name + "?", _("Remove"))) return false;
+    if (!DATEN.customOrganizer.modules.includes(modul)) return false;
+    entferneCustomTextVerweise(sichereCustomPapierkorb(modul, item));
+    if (item) modul.items = modul.items.filter((wert) => wert.id !== item.id);
+    else DATEN.customOrganizer.modules = DATEN.customOrganizer.modules.filter((wert) => wert.id !== modul.id);
+    planeSpeichern();
+    return true;
+  }
+
+  function oeffneVerknuepftenCustomText(itemId) {
+    const treffer = customTextVerzeichnis().find((eintrag) => eintrag.item.id === itemId);
+    if (!treffer) return;
+    suchZustand.custom = "";
+    zustand.custom.textItemIds[treffer.modul.id] = treffer.item.id;
+    zeichneAlles();
+    requestAnimationFrame(() => {
+      const editor = Array.from(document.querySelectorAll(".custom-text-editor"))
+        .find((element) => element.dataset.customTextId === treffer.item.id);
+      if (editor) { editor.focus(); editor.scrollIntoView({ block: "nearest" }); }
+    });
+  }
+
+  function oeffneCustomEintrag(modul, bestand = null) {
+    if ($("#custom-eintrag-schleier")) return;
+    if (!bestand && (!Array.isArray(modul.items) || modul.items.length >= CUSTOM_MAX_ITEMS)) return;
+    const istTermin = modul.type === "appointments";
+    const entwurf = bestand ? { ...bestand, wiederholung: bestand.wiederholung ? { ...bestand.wiederholung } : null } : {
+      id: "custom-item-" + uid(), title: "", note: "", textItemId: "", remind: true,
+      modified_ms: Date.now(), time: vorgabeZeiten().zeit,
+      ...(istTermin ? { date: isoHeute(), wiederholung: { art: "none", bis: "" } } :
+        { due: isoHeute(), done: false })
+    };
+    const schleier = el("div", "eingabe-schleier custom-eintrag-schleier");
+    schleier.id = "custom-eintrag-schleier";
+    const dialog = el("section", "eingabe-dialog custom-eintrag-dialog");
+    dialog.setAttribute("role", "dialog"); dialog.setAttribute("aria-modal", "true");
+    dialog.setAttribute("aria-labelledby", "custom-eintrag-titel");
+    const kopf = el("div", "custom-editor-kopf");
+    const dialogTitel = el("h2", null, bestand
+      ? _(istTermin ? "Edit appointment" : "Edit task")
+      : _(istTermin ? "New appointment" : "New task"));
+    dialogTitel.id = "custom-eintrag-titel";
+    let schliessen = () => {};
+    const zu = knopf("✕", "", () => schliessen()); zu.setAttribute("aria-label", _("Close"));
+    kopf.append(dialogTitel, zu);
+    const formular = el("div", "custom-eintrag-formular");
+    const titel = eingabe("text", entwurf.title || ""); titel.maxLength = 300;
+    const titelZeile = formZeile(_("Title"), titel); titelZeile.classList.add("custom-titel-zeile");
+    const datum = eingabe("date", istTermin ? entwurf.date : entwurf.due);
+    const zeit = eingabe("time", entwurf.time || "");
+    bindeZeitRad(zeit, null, null, null, true);
+    const zeitFehler = el("p", "einst-warnung verborgen");
+    zeitFehler.id = "custom-zeit-fehler";
+    zeitFehler.setAttribute("role", "alert");
+    zeit.setAttribute("aria-describedby", zeitFehler.id);
+    zeit.addEventListener("input", () => {
+      if (!zeit.validity.valid) return;
+      zeitFehler.classList.add("verborgen");
+      zeit.removeAttribute("aria-invalid");
+    });
+    const notiz = document.createElement("textarea"); notiz.maxLength = 5000; notiz.value = entwurf.note || "";
+    const notizZeile = formZeile(_("Notes"), notiz); notizZeile.classList.add("custom-notiz-zeile");
+    formular.append(titelZeile, formZeile(_("Date"), datum), formZeile(_("Time"), zeit), notizZeile);
+    const textOptionen = [["", _("None")], ...customTextVerzeichnis()
+      .map((eintrag) => [eintrag.item.id, eintrag.label])];
+    const textVerweis = auswahlFeld(textOptionen, entwurf.textItemId || "");
+    let wiederholung = null;
+    let wiederholungGeaendert = false;
+    if (istTermin) {
+      wiederholung = auswahlFeld(
+        WIEDERHOLUNGEN.filter((wert) => ["none", "daily", "weekly", "monthly", "yearly"].includes(wert[0]))
+          .map((wert) => [wert[0], _(wert[1])]),
+        leseWiederholung(entwurf.wiederholung).art);
+      wiederholung.addEventListener("change", () => { wiederholungGeaendert = true; });
+      formular.append(formZeile(_("Frequency"), wiederholung));
+    }
+    let erledigt = null;
+    if (!istTermin) {
+      erledigt = document.createElement("input"); erledigt.type = "checkbox"; erledigt.checked = !!entwurf.done;
+      const zeile = el("label", "hak"); zeile.append(erledigt, document.createTextNode(" " + _("Done")));
+      formular.append(zeile);
+    }
+    formular.append(formZeile(_("Text block"), textVerweis));
+    let erinnern = null;
+    if (modul.reminders) {
+      erinnern = document.createElement("input"); erinnern.type = "checkbox"; erinnern.checked = entwurf.remind !== false;
+      const zeile = el("label", "hak"); zeile.append(erinnern, document.createTextNode(" " + _("Reminder")));
+      formular.append(zeile);
+    }
+    const aktionen = el("div", "knopfreihe custom-eintrag-aktionen");
+    aktionen.append(knopf(_("Cancel"), "", () => schliessen()));
+    if (bestand) aktionen.append(knopf(_("Remove"), "rot", async () => {
+      if (!await loescheCustom(modul, bestand)) return;
+      aktiverEditor = null;
+      schliessen(); zeichneAlles();
+    }));
+    aktionen.append(knopf(bestand ? _("Save changes") : _("Add"), "haupt", () => {
+      if (!zeit.validity.valid || (zeit.value && !/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(zeit.value))) {
+        zeitFehler.textContent = _("Enter both hours and minutes, or leave the time completely empty.");
+        zeitFehler.classList.remove("verborgen");
+        zeit.setAttribute("aria-invalid", "true");
+        zeit.focus();
+        return;
+      }
+      const aktuell = DATEN.customOrganizer.modules.find(item => item.id === modul.id);
+      const ziel = bestand && aktuell && aktuell.items.find(item => item.id === bestand.id);
+      if (!aktuell || aktuell.type !== modul.type || bestand && (!ziel ||
+          kanonischerEntwurf(ziel) !== kanonischerEntwurf(bestand))) { zettel(_("Conflict")); return; }
+      modul = aktuell;
+      if (bestand) bestand = ziel;
+      entwurf.title = Array.from(titel.value).slice(0, 300).join("");
+      if (istTermin) {
+        entwurf.date = datumswert(datum);
+        if (!bestand || wiederholungGeaendert) entwurf.wiederholung = {
+          art: wiederholung.value, bis: wiederholung.value === "none" ? "" : (entwurf.wiederholung || {}).bis || "" };
+      } else {
+        entwurf.due = datumswert(datum);
+        entwurf.done = !!erledigt.checked;
+      }
+      entwurf.time = zeit.value;
+      entwurf.note = notiz.value.slice(0, 5000);
+      entwurf.textItemId = textVerweis.value;
+      entwurf.remind = erinnern ? erinnern.checked : entwurf.remind !== false;
+      entwurf.modified_ms = Date.now();
+      if (bestand) Object.assign(bestand, entwurf);
+      else {
+        if (!Array.isArray(modul.items)) modul.items = [];
+        modul.items.unshift(entwurf);
+      }
+      aktiverEditor = null;
+      customModulGeaendert(modul); schliessen(); zeichneAlles();
+    }));
+    dialog.append(kopf, formular, zeitFehler, aktionen);
+    schleier.append(dialog); document.body.append(schleier);
+    const entfernen = () => { beendeModal(schleier); schleier.remove(); };
+    schliessen = () => {
+      if (editorIstGeaendert()) return navigiereMitGuard(entfernen);
+      aktiverEditor = null; entfernen();
+    };
+    registriereFormEditor(dialog, () => aktionen.querySelector(".haupt").click(), entfernen);
+    schleier.addEventListener("click", (event) => { if (event.target === schleier) schliessen(); });
+    registriereModal(schleier, dialog, { vorher: document.activeElement, anfang: titel,
+      schliessen: schliessen });
+  }
+
+  function zeichneCustomModul(modul, ziel, begriffe = [], vorschau = false) {
     const sektion = el("section", "custom-modul custom-modul-" + modul.type);
     const kopf = el("div", "custom-modul-kopf");
     kopf.append(el("h2", null, modul.title || customModulTitel(modul.type)));
+    if (vorschau) {
+      const liste = el("div", "custom-modul-liste");
+      if (modul.type === "notes") {
+        const item = (modul.items || []).find(item => item.id === zustand.custom.textItemIds[modul.id]) || (modul.items || [])[0];
+        const karte = el("article", "custom-text-karte");
+        const editor = el("div", "custom-text-editor");
+        editor.dataset.lines = modul.lines || "inherit";
+        if (item) editor.innerHTML = saeubereHtml(item.html) || textZuHtml(item.text || "");
+        karte.append(el("div", "custom-text-titel", item && item.title || ""), editor);
+        liste.append(karte);
+      } else for (const item of modul.items || []) {
+        const eintrag = el("div", "custom-modul-eintrag");
+        eintrag.append(el("strong", "custom-modul-eintrag-titel", item.title || _("Untitled")),
+          el("span", "custom-modul-eintrag-meta", [item.date || item.due, item.time].filter(Boolean).join(" · ")),
+          el("span", "custom-modul-eintrag-notiz", item.note || ""));
+        liste.append(eintrag);
+      }
+      sektion.append(kopf, liste); ziel.append(sektion); return;
+    }
+    const kopfAktionen = el("div", "custom-modul-kopf-aktionen");
+    let aktiverText = null;
+    let sichtbareTexte = [];
+    if (modul.type === "notes") {
+      sichtbareTexte = (modul.items || []).filter((item) =>
+        !begriffe.length || suchPasst(suchText([item.title, item.text]), begriffe));
+      const gemerkteId = zustand.custom.textItemIds[modul.id];
+      aktiverText = sichtbareTexte.find((item) => item.id === gemerkteId) || sichtbareTexte[0] || null;
+      if (aktiverText) zustand.custom.textItemIds[modul.id] = aktiverText.id;
+      const blaettern = (richtung) => {
+        if (sichtbareTexte.length < 2 || !aktiverText) return;
+        const index = sichtbareTexte.findIndex((item) => item.id === aktiverText.id);
+        zustand.custom.textItemIds[modul.id] = sichtbareTexte[
+          (index + richtung + sichtbareTexte.length) % sichtbareTexte.length].id;
+        zeichneAlles();
+      };
+      for (const [zeichen, titel, richtung] of [["‹", _("Previous page"), -1],
+        ["›", _("Next page"), 1]]) {
+        const pfeil = knopf(zeichen, "klein", () => blaettern(richtung));
+        pfeil.title = titel; pfeil.setAttribute("aria-label", titel);
+        pfeil.disabled = sichtbareTexte.length < 2;
+        kopfAktionen.append(pfeil);
+        if (richtung < 0) {
+          const index = aktiverText ? sichtbareTexte.findIndex((item) => item.id === aktiverText.id) + 1 : 0;
+          const position = el("span", "custom-text-position", index + " / " + sichtbareTexte.length);
+          position.setAttribute("aria-live", "polite"); kopfAktionen.append(position);
+        }
+      }
+      const minus = knopf("−", "klein rot", async () => {
+        if (!aktiverText) return;
+        const index = (modul.items || []).findIndex((item) => item.id === aktiverText.id);
+        if (!await loescheCustom(modul, aktiverText)) return;
+        const naechster = modul.items[Math.min(Math.max(index, 0), modul.items.length - 1)];
+        zustand.custom.textItemIds[modul.id] = naechster ? naechster.id : "";
+        customModulGeaendert(modul); zeichneAlles();
+      });
+      minus.title = _("Remove"); minus.setAttribute("aria-label", minus.title);
+      minus.disabled = !aktiverText;
+      kopfAktionen.append(minus);
+    }
     const plus = knopf("+", "klein", () => {
       if (modul.type === "notes") {
         if (!Array.isArray(modul.items)) modul.items = [];
         if (modul.items.length >= CUSTOM_MAX_ITEMS) return;
-        modul.items.unshift({ id: "custom-text-" + uid(), text: "", html: "", modified_ms: Date.now() });
+        const item = { id: "custom-text-" + uid(), title: "", text: "", html: "", modified_ms: Date.now() };
+        modul.items.unshift(item);
+        zustand.custom.textItemIds[modul.id] = item.id;
         customModulGeaendert(modul); zeichneAlles();
-      } else fuegeCustomEintragHinzu(modul);
+      } else oeffneCustomEintrag(modul);
     });
     plus.title = uebersetzt("Add %(type)s", { type: customModulTitel(modul.type) });
     plus.setAttribute("aria-label", plus.title);
-    kopf.append(plus);
+    plus.disabled = modul.type === "notes" && (modul.items || []).length >= CUSTOM_MAX_ITEMS;
+    kopfAktionen.append(plus); kopf.append(kopfAktionen);
     const liste = el("div", "custom-modul-liste");
     let sichtbareEintraege = 0;
-    if (modul.type === "notes") for (const item of modul.items || []) {
-      if (begriffe.length && !suchPasst(suchText([item.text]), begriffe)) continue;
+    if (modul.type === "notes" && aktiverText) {
+      const item = aktiverText;
       sichtbareEintraege++;
       const karte = el("article", "custom-text-karte");
       const werkzeuge = el("div", "custom-text-werkzeuge");
+      const titel = eingabe("text", item.title || "");
+      titel.className = "custom-text-titel"; titel.maxLength = 300;
+      titel.placeholder = _("Title"); titel.setAttribute("aria-label", _("Title"));
+      titel.addEventListener("input", () => {
+        item.title = Array.from(titel.value).slice(0, 300).join("");
+        item.modified_ms = Date.now(); customModulGeaendert(modul);
+      });
       const editor = el("div", "custom-text-editor");
+      editor.dataset.lines = modul.lines || "inherit";
+      editor.dataset.customTextId = item.id;
       editor.contentEditable = "true";
-      editor.innerHTML = saeubereHtml(item.html) || textZuHtml(item.text || "");
+      editor.setAttribute("role", "textbox"); editor.setAttribute("aria-multiline", "true");
+      editor.setAttribute("aria-label", item.title || _("Text block"));
+      const htmlStand = {};
+      editor.innerHTML = saeubereHtml(item.html, htmlStand) || textZuHtml(item.text || "");
+      if (htmlStand.gekuerzt) {
+        editor.contentEditable = "false";
+        karte.append(el("p", "einst-warnung", _("The message is too large.")));
+      }
       for (const [zeichen, befehl] of [["B", "bold"], ["I", "italic"], ["U", "underline"]]) {
-        werkzeuge.append(knopf(zeichen, "klein", () => {
+        const format = knopf(zeichen, "klein", () => {
           editor.focus(); if (typeof document.execCommand === "function") document.execCommand(befehl, false, null);
-        }));
+        });
+        format.title = _({ bold: "Bold", italic: "Italic", underline: "Underline" }[befehl]);
+        format.setAttribute("aria-label", format.title); werkzeuge.append(format);
       }
       editor.addEventListener("input", () => {
-        item.html = saeubereHtml(editor.innerHTML);
-        item.text = String(editor.innerText || editor.textContent || "").slice(0, 50000);
+        if (htmlStand.gekuerzt) return;
+        const stand = { textErmitteln: true }, html = saeubereHtml(editor.innerHTML, stand);
+        if (stand.gekuerzt) { zettel(_("The message is too large.")); return; }
+        item.html = html;
+        item.text = stand.text;
         item.modified_ms = Date.now();
         customModulGeaendert(modul);
       });
-      const minus = knopf("−", "klein rot", () => {
-        modul.items = modul.items.filter((wert) => wert.id !== item.id);
-        customModulGeaendert(modul); zeichneAlles();
-      });
-      minus.title = _("Remove"); minus.setAttribute("aria-label", minus.title);
-      werkzeuge.append(minus);
-      karte.append(werkzeuge, editor); liste.append(karte);
-    } else for (const item of modul.items || []) {
+      karte.append(titel, werkzeuge, editor, bindeSchreibTab(editor)); liste.append(karte);
+    } else {
+      const textVerzeichnis = new Map(customTextVerzeichnis().map((wert) => [wert.item.id, wert]));
+      for (const item of modul.items || []) {
       if (begriffe.length && !suchPasst(suchText(
         [item.title, item.note, item.date, item.due, item.time]), begriffe)) continue;
       sichtbareEintraege++;
-      const karte = el("article", "custom-eintrag-editor");
-      const titel = eingabe("text", item.title); titel.maxLength = 300;
-      const datum = eingabe("date", modul.type === "appointments" ? item.date : item.due);
-      const zeit = eingabe("time", item.time || "");
-      const wiederholung = modul.type === "appointments" ? auswahlFeld(
-        WIEDERHOLUNGEN.filter((wert) => ["none", "daily", "weekly", "monthly", "yearly"].includes(wert[0]))
-          .map((wert) => [wert[0], _(wert[1])]),
-        leseWiederholung(item.wiederholung).art) : null;
-      const notiz = document.createElement("textarea"); notiz.maxLength = 5000; notiz.value = item.note || "";
-      const speichern = () => {
-        item.title = Array.from(titel.value).slice(0, 300).join("");
-        if (modul.type === "appointments") item.date = datumswert(datum);
-        else item.due = datumswert(datum);
-        item.time = /^(?:[01]\d|2[0-3]):[0-5]\d$/.test(zeit.value) ? zeit.value : "";
-        if (wiederholung) item.wiederholung = { art: wiederholung.value, bis: "" };
-        item.note = notiz.value.slice(0, 5000); item.modified_ms = Date.now(); customModulGeaendert(modul);
-      };
-      [titel, datum, zeit, notiz].forEach((feld) => {
-        feld.addEventListener("input", speichern); feld.addEventListener("change", speichern);
-      });
-      if (wiederholung) wiederholung.addEventListener("change", speichern);
+      const karte = el("article", "custom-modul-zeile" + (item.done ? " erledigt" : ""));
       if (modul.type === "tasks") {
         const erledigt = document.createElement("input"); erledigt.type = "checkbox"; erledigt.checked = !!item.done;
-        erledigt.addEventListener("change", () => { item.done = erledigt.checked; speichern(); });
-        const zeile = el("label", "hak"); zeile.append(erledigt, document.createTextNode(" " + _("Done")));
+        erledigt.setAttribute("aria-label", _("Done"));
+        erledigt.addEventListener("change", () => {
+          item.done = erledigt.checked; item.modified_ms = Date.now(); customModulGeaendert(modul); zeichneAlles();
+        });
+        const zeile = el("label", "custom-modul-erledigt"); zeile.append(erledigt);
         karte.append(zeile);
       }
-      karte.append(formZeile(_("Title"), titel), formZeile(_("Date"), datum), formZeile(_("Time"), zeit),
-        formZeile(_("Notes"), notiz));
-      if (wiederholung) karte.append(formZeile(_("Frequency"), wiederholung));
-      if (modul.reminders) {
-        const erinnern = document.createElement("input"); erinnern.type = "checkbox"; erinnern.checked = item.remind !== false;
-        erinnern.addEventListener("change", () => { item.remind = erinnern.checked; speichern(); });
-        const zeile = el("label", "hak"); zeile.append(erinnern, document.createTextNode(" " + _("Reminder")));
-        karte.append(zeile);
+      const eintrag = knopf("", "custom-modul-eintrag", () => oeffneCustomEintrag(modul, item));
+      eintrag.append(el("strong", "custom-modul-eintrag-titel", item.title || _("Untitled")));
+      const meta = [item.date || item.due || "", item.time || ""].filter(Boolean).join(" · ");
+      if (meta) eintrag.append(el("span", "custom-modul-eintrag-meta", meta));
+      if (item.note) eintrag.append(el("span", "custom-modul-eintrag-notiz", item.note));
+      karte.append(eintrag);
+      const textVerweis = textVerzeichnis.get(item.textItemId);
+      if (textVerweis) {
+        const oeffnen = knopf(textVerweis.label, "klein custom-text-verweis", () =>
+          oeffneVerknuepftenCustomText(textVerweis.item.id));
+        oeffnen.title = _("Text block"); oeffnen.setAttribute("aria-label", _("Text block") + ": " + textVerweis.label);
+        karte.append(oeffnen);
       }
-      karte.append(knopf(_("Remove"), "klein rot", () => {
-        modul.items = modul.items.filter((wert) => wert.id !== item.id);
-        customModulGeaendert(modul); zeichneAlles();
-      }));
       liste.append(karte);
+      }
     }
     if (!liste.children.length) liste.append(el("p", "leer-hinweis", _("No entries yet.")));
     if (begriffe.length && !sichtbareEintraege) return;
@@ -9021,18 +10921,28 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     baueKopf("rechts", "", "", []);
     const ziele = { left: $("#inhalt-links"), right: $("#inhalt-rechts") };
     Object.values(ziele).forEach((ziel) => ziel.classList.add("custom-uebersicht"));
+    const modulIds = new Set((DATEN.customOrganizer.modules || []).map((modul) => modul.id));
+    for (const schluessel of Object.keys(zustand.custom.textItemIds)) if (!modulIds.has(schluessel))
+      delete zustand.custom.textItemIds[schluessel];
     const begriffe = suchBegriffe(suchZustand.custom);
     const modules = (DATEN.customOrganizer.modules || []).slice().sort((a, b) =>
       a.page.localeCompare(b.page) || a.order - b.order);
-    for (const seite of ["left", "right"]) {
-      const typen = new Set(modules.filter((modul) => modul.page === seite).map((modul) => modul.type));
-      if (typen.has("appointments") && typen.has("tasks")) {
-        ziele[seite].classList.add("custom-termine-aufgaben-geteilt");
-      }
-    }
     for (const modul of modules) zeichneCustomModul(modul, ziele[modul.page], begriffe);
+    customSeitenLayout(ziele);
     if (!modules.length) ziele.left.append(el("p", "leer-hinweis",
-      _("Choose Appointments, Notes or Tasks in Customize.")));
+      _("Customize") + ": " + [_("Appointments"), _("Text block"), _("Tasks")].join(" · ")));
+  }
+
+  function customSeitenLayout(ziele) {
+    for (const seite of ["left", "right"]) {
+      const sichtbare = Array.from(ziele[seite].querySelectorAll(":scope > .custom-modul"));
+      if (sichtbare.length === 2 && sichtbare.some((modul) => modul.classList.contains("custom-modul-appointments")) &&
+          sichtbare.some((modul) => modul.classList.contains("custom-modul-tasks")))
+        ziele[seite].classList.add("custom-termine-aufgaben-geteilt");
+      if (sichtbare.length === 1 && sichtbare[0].classList.contains("custom-modul-notes"))
+        ziele[seite].classList.add("custom-text-allein");
+    }
+    planeNotizlinien();
   }
 
   function oeffneCustomDesigner() {
@@ -9052,35 +10962,66 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     const typ = auswahlFeld([["appointments", _("Appointments")], ["notes", _("Text block")],
       ["tasks", _("Tasks")]], "appointments");
     const liste = el("div", "custom-designer-liste");
+    const ziele = {};
+    for (const [seite, label] of [["left", "Left page"], ["right", "Right page"]]) {
+      const blatt = el("section", "custom-designer-blatt");
+      blatt.setAttribute("aria-label", _(label));
+      ziele[seite] = el("div", "custom-designer-karten");
+      blatt.append(el("h3", null, _(label)), ziele[seite]); liste.append(blatt);
+    }
     const zeichnen = () => {
-      liste.replaceChildren();
-      for (const modul of DATEN.customOrganizer.modules || []) {
+      Object.values(ziele).forEach((ziel) => ziel.replaceChildren());
+      for (const modul of (DATEN.customOrganizer.modules || []).slice().sort((a, b) => a.order - b.order)) {
         const karte = el("article", "custom-editor-karte");
+        karte.dataset.moduleId = modul.id;
         const name = eingabe("text", modul.title || ""); name.maxLength = 120;
         const seite = auswahlFeld([["left", _("Left page")], ["right", _("Right page")]], modul.page);
         name.addEventListener("input", () => { modul.title = Array.from(name.value).slice(0, 120).join(""); customModulGeaendert(modul); });
-        seite.addEventListener("change", () => { modul.page = seite.value; planeSpeichern(); });
+        seite.addEventListener("change", () => {
+          const ziel = seite.value;
+          const andere = (DATEN.customOrganizer.modules || []).filter((wert) => wert.id !== modul.id);
+          const unzulaessig = andere.filter((wert) => wert.page === ziel).length >= 2 ||
+            (modul.type === "notes" && andere.some((wert) => wert.type === "notes" && wert.page === ziel));
+          if (unzulaessig) { seite.value = modul.page; return; }
+          modul.page = ziel; modul.order = 1 + Math.max(-1, ...andere.filter((wert) => wert.page === ziel).map((wert) => wert.order));
+          customModulGeaendert(modul);
+          ziele[ziel].append(karte); seite.focus();
+        });
         karte.append(el("strong", null, customModulTitel(modul.type)),
           formZeile(_("Title"), name), formZeile(_("Page"), seite));
-        if (modul.type !== "notes") {
+        if (modul.type === "notes") {
+          const linien = auswahlFeld([["inherit", _("Settings")], ["on", _("Yes")], ["off", _("No")]], modul.lines || "inherit");
+          linien.addEventListener("change", () => {
+            if (linien.value === "inherit") delete modul.lines;
+            else modul.lines = linien.value;
+            customModulGeaendert(modul);
+          });
+          karte.append(formZeile(_("Lined paper (lines on the writing sheet)"), linien));
+        } else {
           const erinnern = document.createElement("input"); erinnern.type = "checkbox"; erinnern.checked = !!modul.reminders;
           erinnern.addEventListener("change", () => { modul.reminders = erinnern.checked; customModulGeaendert(modul); });
           const zeile = el("label", "hak"); zeile.append(erinnern,
             document.createTextNode(" " + _("Enable reminders for this block"))); karte.append(zeile);
         }
-        karte.append(knopf(_("Remove"), "klein rot", () => {
-            DATEN.customOrganizer.modules = DATEN.customOrganizer.modules.filter((wert) => wert.id !== modul.id);
-            planeSpeichern(); zeichnen();
+        const aktionen = el("div", "custom-editor-aktionen");
+        aktionen.append(knopf(_("Remove"), "klein rot", async () => {
+            if (await loescheCustom(modul)) { zeichnen(); typ.focus(); }
           }));
-        liste.append(karte);
+        karte.append(aktionen);
+        ziele[modul.page].append(karte);
       }
     };
     werkzeuge.append(formZeile(_("Module"), typ), knopf(_("Add"), "knopf", () => {
       const modules = DATEN.customOrganizer.modules || (DATEN.customOrganizer.modules = []);
-      if (modules.length >= CUSTOM_MAX_MODULES || modules.some((modul) => modul.type === typ.value)) return;
-      const index = modules.length;
+      if (modules.length >= CUSTOM_MAX_MODULES ||
+          (typ.value !== "notes" && modules.some((modul) => modul.type === typ.value))) return;
+      const seiten = (typ.value === "notes" ? ["left", "right"] : ["right", "left"]).filter((seite) =>
+        modules.filter((modul) => modul.page === seite).length < 2 &&
+        (typ.value !== "notes" || !modules.some((modul) => modul.type === "notes" && modul.page === seite)));
+      if (!seiten.length) return;
+      const seite = seiten[0];
       const modul = { id: "custom-module-" + uid(), type: typ.value, title: "",
-        page: index % 2 ? "right" : "left", order: Math.floor(index / 2),
+        page: seite, order: 1 + Math.max(-1, ...modules.filter((wert) => wert.page === seite).map((wert) => wert.order)),
         reminders: false, modified_ms: Date.now() };
       modul.items = [];
       modules.push(modul);
@@ -9250,7 +11191,16 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     inhaltL.append(huelle);
 
     /* Rechte Seite: Übersicht der kommenden Termine */
-    zeichneTerminuebersicht();
+    if (icsRuntime.state?.worker) {
+      const wartet = el("progress", "kalender-uebersicht-laedt");
+      wartet.setAttribute("aria-label", _("Calendar"));
+      $("#inhalt-rechts").append(wartet);
+      requestAnimationFrame(() => setTimeout(() => {
+        if (!wartet.isConnected || zustand.sektion !== "kalender" || z.ansicht !== "month") return;
+        wartet.remove();
+        zeichneTerminuebersicht();
+      }, 0));
+    } else zeichneTerminuebersicht();
 
     setzeEcken(() => schiebeMonat(-1), _("Previous month"),
       () => schiebeMonat(1), _("Next month"));
@@ -9456,6 +11406,12 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
         tage.append(karte);
       }
       kasten.append(tage);
+      if (daten.anbieter === "Open-Meteo") {
+        const quelle = el("a", "wetter-quelle", "Open-Meteo · GeoNames");
+        quelle.href = "https://open-meteo.com/";
+        quelle.target = "_blank"; quelle.rel = "noopener noreferrer";
+        kasten.append(quelle);
+      }
       if (daten.quelle === "ip") {
         kasten.append(el("div", "wetter-quelle",
           _("The weather service estimated the location from your public IP address. " +
@@ -9639,7 +11595,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     return minuten + " " + _("minutes before");
   }
 
-  function oeffneTerminBlatt(termin, datum, vorherFokus) {
+  function oeffneTerminBlatt(termin, datum, vorherFokus, zeiten = null) {
     schliesseVorhandenesModal("termin-schleier");
     /* Ein errechnetes Mal einer Wiederholung führt zum Ursprungstermin –
        geändert wird immer die ganze Reihe. */
@@ -9647,7 +11603,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     termin = urTermin(termin);
     const neu = !termin;
     const tag = datum || (termin && termin.datum) || zustand.kalender.tag;
-    const vorgabe = neu ? vorgabeZeiten() : null;
+    const vorgabe = neu ? zeiten || vorgabeZeiten() : null;
 
     const schleier = el("div", "termin-schleier");
     schleier.id = "termin-schleier";
@@ -9655,9 +11611,10 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     blatt.setAttribute("role", "dialog");
     blatt.setAttribute("aria-modal", "true");
     blatt.setAttribute("aria-label", neu ? _("New appointment") : _("Edit appointment"));
+    const entfernen = () => { beendeModal(schleier); schleier.remove(); };
     const schliessen = () => {
-      beendeModal(schleier);
-      schleier.remove();
+      if (editorIstGeaendert()) return navigiereMitGuard(entfernen);
+      aktiverEditor = null; entfernen();
     };
 
     /* Kopf mit Datum */
@@ -9926,10 +11883,15 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       ["monthly-weekday", monatsWochentagText(
       hatMonatsWochentag ? w.ordinal : 1,
       hatMonatsWochentag ? w.wochentag : ICS_WOCHENTAGE[ausISO(tag).getDay()])]);
-    const wiederAuswahl = hatMonatsWochentag ? "monthly-weekday"
-      : w.art === "daily" && w.intervall === 2 ? "daily-2"
-      : w.art === "daily" && w.intervall === 14 ? "daily-14"
-      : w.art === "weekly" && w.intervall === 3 ? "weekly-3" : w.art;
+    const intervallSuffix = w.intervall > 1 ? "-" + w.intervall : "";
+    const wiederAuswahl = (hatMonatsWochentag ? "monthly-weekday" : w.art) + intervallSuffix;
+    if (intervallSuffix && !wiederWahlen.some(([wert]) => wert === wiederAuswahl)) {
+      const basis = wiederWahlen.find(([wert]) => wert === (hatMonatsWochentag ? "monthly-weekday" : w.art));
+      const text = ["daily", "weekly"].includes(w.art)
+        ? _("Interval in days") + ": " + w.intervall * (w.art === "weekly" ? 7 : 1)
+        : basis[1] + " (" + _("Interval") + ": " + w.intervall + ")";
+      wiederWahlen.splice(wiederWahlen.indexOf(basis) + 1, 0, [wiederAuswahl, text]);
+    }
     const wiederWahl = auswahlFeld(wiederWahlen,
       w.art === "none" ? "weekly" : wiederAuswahl);
     wiederWahl.id = "tb-wiederholung";
@@ -10007,7 +11969,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       const an = wiederHak.checked;
       wiederWahlZeile.style.display = an ? "" : "none";
       monatsWochentagZeile.style.display = an &&
-        wiederWahl.value === "monthly-weekday" ? "" : "none";
+        wiederWahl.value.startsWith("monthly-weekday") ? "" : "none";
       const istEigen = wiederWahl.value === "custom";
       bisZeile.style.display = an && !istEigen ? "" : "none";
       eigeneZeile.style.display = an && istEigen ? "" : "none";
@@ -10029,17 +11991,22 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
           { day: d2.getDate(), month: monatsName(d2.getMonth()) }),
         custom: _("Custom")
       };
-      wiederHinweis.textContent = texte[wiederWahl.value] || "";
-      const monatOption = Array.from(wiederWahl.options)
-        .find((option) => option.value === "monthly-weekday");
-      if (monatOption) monatOption.textContent = monatsWochentagText(
-        Number(ordinalWahl.value), wochentagWahl.value);
+      for (const option of Array.from(wiederWahl.options).filter(option => option.value.startsWith("monthly-weekday"))) {
+        const intervall = Number(option.value.slice("monthly-weekday".length).replace(/^-/, "")) || 1;
+        option.textContent = monatsWochentagText(Number(ordinalWahl.value), wochentagWahl.value) +
+          (intervall > 1 ? " (" + _("Interval") + ": " + intervall + ")" : "");
+      }
+      wiederHinweis.textContent = texte[wiederWahl.value] || wiederWahl.selectedOptions[0]?.textContent || "";
     };
     wiederHak.addEventListener("change", wiederWirkung);
     wiederWahl.addEventListener("change", wiederWirkung);
     ordinalWahl.addEventListener("change", wiederWirkung);
     wochentagWahl.addEventListener("change", wiederWirkung);
     wiederWirkung();
+
+    const wiederholungsEingaben = () => JSON.stringify([wiederHak.checked, wiederWahl.value,
+      datumswert(bisFeld), ordinalWahl.value, wochentagWahl.value, Array.from(eigeneDaten).sort()]);
+    const urspruenglicheWiederholungsEingaben = wiederholungsEingaben();
 
     if (folge) {
       const hinweis = el("p", "einst-warnung",
@@ -10100,7 +12067,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     const kontaktVorschlaege = DATEN.kontakte.map((kontakt) => ({
       name: [kontakt.vorname, kontakt.nachname].filter(Boolean).join(" ").trim() ||
         String(kontakt.firma || "").trim(),
-      emails: emailEintragListe(kontakt).map((eintrag) => eintrag.wert)
+      kontakt: kontakt
     })).filter((kontakt) => kontakt.name);
     const eindeutigeTexte = (werte) => {
       const gesehen = new Set();
@@ -10117,7 +12084,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       const name = orgName.value.trim().toLocaleLowerCase();
       const passend = kontaktVorschlaege.filter((kontakt) =>
         kontakt.name.toLocaleLowerCase() === name);
-      const emails = passend.flatMap((kontakt) => kontakt.emails);
+      const emails = passend.flatMap((vorschlag) => emailEintragListe(vorschlag.kontakt).map((eintrag) => eintrag.wert));
       orgEmailListe.replaceChildren(...eindeutigeTexte(emails).map((wert) => {
         const option = document.createElement("option"); option.value = wert; return option;
       }));
@@ -10285,7 +12252,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
           begriffe.every((begriff) => suchtext(a).includes(begriff)));
         const gefunden = alle.slice().sort((a, b) =>
           String(a.faellig || "9999-99-99").localeCompare(String(b.faellig || "9999-99-99")) ||
-          String(a.titel || "").localeCompare(String(b.titel || ""), formatGebiet()))
+          vergleicheStandardText(String(a.titel || ""), String(b.titel || "")))
           .slice(0, 12);
         trefferStand.textContent = alle.length
           ? (alle.length > gefunden.length
@@ -10366,7 +12333,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     feldNotiz.placeholder = _("Space for anything you want to remember…");
     const notizRahmen = el("div", "tb-notizrahmen");
     notizRahmen.append(feldNotiz);
-    rechts.append(notizRahmen);
+    rechts.append(notizRahmen, bindeSchreibTab(feldNotiz));
 
     /* Das Feld wächst mit dem Text; gerollt wird der Rahmen darum. So
        bleibt die Schrift immer gleich – ein rollendes Textfeld zeichnet
@@ -10423,11 +12390,15 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
         (onlineKalenderIds.has(gewaehlteKalenderId) ||
          gewaehlteKalenderId === bisherigeSyncQuelle) ? gewaehlteKalenderId : "";
       let wiederholung = { art: "none", bis: "" };
-      if (wiederHak.checked) {
-        if (wiederWahl.value === "monthly-weekday") {
+      if (!neu && wiederholungsEingaben() === urspruenglicheWiederholungsEingaben) {
+        wiederholung = kopie(w);
+      } else if (wiederHak.checked) {
+        if (wiederWahl.value.startsWith("monthly-weekday")) {
           wiederholung = { art: "monthly", bis: datumswert(bisFeld),
             ordinal: Number(ordinalWahl.value), wochentag: wochentagWahl.value,
             rruleForm: w.rruleForm === "bysetpos" ? "bysetpos" : "byday" };
+          const intervall = Number(wiederWahl.value.slice("monthly-weekday".length).replace(/^-/, "")) || 1;
+          if (intervall > 1) wiederholung.intervall = intervall;
         } else if (wiederWahl.value === "custom") {
           wiederholung = { art: "custom", bis: "", daten: Array.from(eigeneDaten).sort() };
         } else {
@@ -10470,6 +12441,13 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
         neuerTermin.icsRoundtrip = spiegeleTerminInIcs(neuerTermin);
         DATEN.termine.push(neuerTermin);
       } else {
+        const aktuell = DATEN.termine.find(item => item.id === termin.id);
+        if (!aktuell || aktuell !== termin && Object.keys(werte).some(key => key !== "geaendert" &&
+            kanonischerEntwurf(aktuell[key]) !== kanonischerEntwurf(termin[key]))) {
+          zettel(_("Conflict")); return;
+        }
+        termin = aktuell;
+        const vorher = kopie(termin);
         if (bisherigeSyncQuelle && bisherigeSyncQuelle !== neueSyncQuelle && termin.sync) {
           // Der alte Kalender muss den Eintrag ausdrücklich löschen; bloßes
           // Umhängen darf dort keine verwaiste Kopie zurücklassen.
@@ -10480,10 +12458,11 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
         }
         Object.assign(termin, werte);
         if (bisherigeSyncQuelle !== neueSyncQuelle) termin.sync = false;
-        termin.icsRoundtrip = spiegeleTerminInIcs(termin);
+        termin.icsRoundtrip = spiegeleTerminInIcs(termin, vorher);
       }
       zustand.kalender.bearbeiteId = null;
       planeSpeichern();
+      aktiverEditor = null;
       schliessen();
       zeichneAlles();
     };
@@ -10550,6 +12529,8 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     schleier.append(blatt);
     document.body.append(schleier);
     planeNotizlinien();
+    registriereFormEditor(blatt, speichern, entfernen, () => ({ teilnehmerWerte, anhangWerte, alarmWerte,
+      verknuepft: Array.from(verknuepft), eigeneDaten: Array.from(eigeneDaten) }));
     registriereModal(schleier, blatt, {
       anfang: feldTitel,
       vorherFokus: vorherFokus,
@@ -10932,14 +12913,9 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
   }
 
   function oeffneTerminBlattMitZeit(iso, zeit) {
-    const schleier = oeffneTerminBlatt(null, iso);
-    const von = document.getElementById("tb-zeit");
-    const bis = document.getElementById("tb-endzeit");
-    if (von && bis) {
-      von.value = zeit;
-      bis.value = pad2(Math.min(23, Number(zeit.slice(0, 2)) + 1)) + ":00";
-    }
-    return schleier;
+    return oeffneTerminBlatt(null, iso, "", {
+      zeit, endZeit: pad2(Math.min(23, Number(zeit.slice(0, 2)) + 1)) + ":00"
+    });
   }
 
   function zeichneWoche() {
@@ -11102,7 +13078,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     const za = a.startZeit || a.faelligZeit || "99:99";
     const zb = b.startZeit || b.faelligZeit || "99:99";
     if (za !== zb) return za < zb ? -1 : 1;
-    return a.titel.localeCompare(b.titel, formatGebiet());
+    return vergleicheStandardText(a.titel, b.titel);
   }
 
   function aufgabenNachHierarchie(filterAktiv) {
@@ -11143,7 +13119,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     const kinder = DATEN.aufgaben.filter((a) => a.elternUid === aufgabe.uid)
       .sort((a, b) => a.reihenfolge - b.reihenfolge || vergleicheTechnischeKennung(a.uid, b.uid));
     const basis = Math.max(0, Number(aufgabe.reihenfolge) || 0);
-    kinder.forEach((kind, index) => { kind.elternUid = aufgabe.elternUid; kind.reihenfolge = basis + index; });
+    kinder.forEach((kind, index) => { kind.elternUid = aufgabe.elternUid; kind.icsElternUid = aufgabe.icsElternUid || ""; kind.reihenfolge = basis + index; });
     DATEN.aufgaben = DATEN.aufgaben.filter((a) => a !== aufgabe);
     normalisiereAufgabenGraph(DATEN.aufgaben);
   }
@@ -11395,6 +13371,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
   }
 
   function notizBaumInhalt(notiz, art) {
+    sichereNotizSnapshot();
     return { freigabeId: notiz.baumFreigabe.id, titel: notiz.titel,
       text: notiz.text, html: notiz.html,
       anhaenge: saubereNotizAnhaenge(notiz.anhaenge),
@@ -11412,6 +13389,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
   }
 
   function synchronisiereFreigegebeneNotiz(notiz) {
+    sichereNotizSnapshot();
     if (!notiz || !notiz.baumFreigabe || !notiz.baumFreigabe.id) return;
     const erlaubte = new Set(baumPartnerListe().map((p2) => p2.kennung));
     const partner = (notiz.baumFreigabe.partner || []).filter((id) => erlaubte.has(id));
@@ -11469,11 +13447,11 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     return true;
   }
 
-  function kontaktBaumInhalt(kontakt) {
+  function kontaktBaumInhalt(kontakt, fassung = 2) {
     const meta = kontakt.baumKontakt;
     const art = (eintrag) => String(eintrag.label || telefonArt(eintrag) || "");
     const foto = String(kontakt.foto || "");
-    const nutzlast = { art: "kontakt_sync", fassung: 1, freigabeId: meta.freigabeId,
+    const nutzlast = { art: "kontakt_sync", fassung: fassung, freigabeId: meta.freigabeId,
       version: meta.version, quelle: meta.quelle, geaendert: meta.geaendert,
       kontakt: { vorname: String(kontakt.vorname || ""),
         nachname: String(kontakt.nachname || ""), firma: String(kontakt.firma || ""),
@@ -11489,28 +13467,57 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       "^data:image/(?:jpeg|png|webp);base64,[A-Za-z0-9+/]+={0,2}$");
     if (foto.length <= 2800000 && fotoMuster.test(foto)) {
       nutzlast.kontakt.foto = foto;
+    } else if (foto) throw new Error(_("Not sent."));
+    const namen = (kontakt.vcardRoundtrip || []).filter((s) => /^(?:[A-Za-z0-9-]+\.)?(?:N|FN)[;:]/i.test(s));
+    const anzeigename = String(kontakt.anzeigename || "");
+    const jubilaeum = String(kontakt.jubilaeum || "");
+    if (fassung === 2) Object.assign(nutzlast.kontakt, { anzeigename, jubilaeum, vcardName: namen });
+    else {
+      const esc = (s) => String(s || "").replace(/\\/g, "\\\\").replace(/\r\n|\n/g, "\\n").replace(/;/g, "\\;").replace(/,/g, "\\,");
+      const fn = [kontakt.vorname, kontakt.nachname].filter(Boolean).join(" ");
+      const n = "N:" + esc(kontakt.nachname) + ";" + esc(kontakt.vorname) + ";;;";
+      if (jubilaeum || anzeigename && anzeigename !== fn || namen.some((s) => s !== n && s !== "FN:" + esc(fn)))
+        throw new Error(_("Not sent."));
     }
     return nutzlast;
   }
 
-  function synchronisiereKontakteMit(kennung) {
-    if (!baumPartnerListe().some((p2) => p2.kennung === kennung)) return false;
+  async function synchronisiereKontakteMit(kennung) {
+    const partner = baumPartnerListe().find((p2) => p2.kennung === kennung);
+    if (!partner) return false;
+    const fassung = partner.kontaktFaehigkeiten?.kontakt_sync?.includes(2) ? 2 : 1;
     const quelle = String((baumStand && baumStand.kennung) || "zweig").slice(0, 128);
     const kontakte = DATEN.kontakte.slice();
+    if (fassung === 1) schickeBaumInhalt("kontakt_faehigkeiten", {}, [kennung]);
+    // Preflight the whole snapshot before any contact content is queued.
+    let inhalte, hashes;
+    try {
+      const modern = kontakte.map((k) => kontaktBaumInhalt({ ...k, baumKontakt: k.baumKontakt || {} }));
+      inhalte = fassung === 2 ? modern : kontakte.map((k) => kontaktBaumInhalt({ ...k, baumKontakt: k.baumKontakt || {} }, 1));
+      hashes = await Promise.all(modern.map((n) => personalSyncHash(n.kontakt)));
+    }
+    catch (_fehler) { zettel(_("Not sent.")); return false; }
     DATEN.baumKontaktErfolgreich[kennung] = false;
     baumKontaktLaeufe.set(kennung, { offen: kontakte.length, fehler: false,
       bestand: kontakte.length });
-    for (const kontakt of kontakte) {
+    for (let index = 0; index < kontakte.length; index++) {
+      const kontakt = kontakte[index];
       if (!kontakt.baumKontakt) {
         kontakt.baumKontakt = { freigabeId: (quelle + ":" + kontakt.id).slice(0, 128),
           version: 0, quelle: quelle, geaendert: 0, staende: [], partner: [] };
       }
-      kontakt.baumKontakt.version = Number(kontakt.baumKontakt.version || 0) + 1;
-      kontakt.baumKontakt.quelle = quelle;
-      kontakt.baumKontakt.geaendert = Date.now();
+      if (kontakt.baumKontakt.hash !== hashes[index] || !kontakt.baumKontakt.version) {
+        kontakt.baumKontakt.version = Number(kontakt.baumKontakt.version || 0) + 1;
+        kontakt.baumKontakt.quelle = quelle;
+        kontakt.baumKontakt.geaendert = Date.now();
+        kontakt.baumKontakt.hash = hashes[index];
+      }
       kontakt.baumKontakt.partner = Array.from(new Set(
         (kontakt.baumKontakt.partner || []).concat(kennung)));
-      schickeBaumInhalt("kontakt_sync", kontaktBaumInhalt(kontakt), [kennung]);
+      Object.assign(inhalte[index], { freigabeId: kontakt.baumKontakt.freigabeId,
+        version: kontakt.baumKontakt.version, quelle: kontakt.baumKontakt.quelle,
+        geaendert: kontakt.baumKontakt.geaendert });
+      schickeBaumInhalt("kontakt_sync", inhalte[index], [kennung]);
     }
     if (!kontakte.length) baumKontaktLaeufe.delete(kennung);
     planeSpeichern();
@@ -11603,6 +13610,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
   }
 
   function zeichneAufgaben() {
+    _aufgabenSerien = new Map(icsSerienAbstimmen(DATEN.aufgaben).map(a => [a.id, a]));
     const z = zustand.aufgaben;
     const heute = isoHeute();
     const f = z.filter;
@@ -11612,9 +13620,9 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     const erledigte = hierarchie.filter((x) => x.a.erledigt);
 
     const neuKnopf = knopf(_("New task"), "klein", () => {
-      z.bearbeiteId = null; z.neueElternUid = ""; zeichneAlles();
+      navigiereMitGuard(() => { z.bearbeiteId = null; z.neueElternUid = ""; zeichneAlles(); });
     });
-    const personenKnopf = knopf(_("People"), "klein", oeffnePersonenblatt);
+    const personenKnopf = knopf(_("People"), "klein", () => navigiereMitGuard(oeffnePersonenblatt));
     personenKnopf.id = "aufgaben-personen";
     baueKopf("links", _("Tasks"),
       uebersetzt("%(count)s open", { count: offene.length }) +
@@ -11633,25 +13641,27 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
           DATEN.personen.map((pp) => [pp.id, pp.name])), f.person);
       personWahl.id = "filter-person";
       personWahl.addEventListener("change", () => {
-        f.person = personWahl.value;
-        zeichneAlles();
+        navigiereMitGuard(() => { f.person = personWahl.value; zeichneAlles(); })
+          .then(ok => { if (!ok) personWahl.value = f.person; });
       });
       wahl.append(el("span", "filter-wort", _("Person")), personWahl);
 
       const vonFeld = eingabe("date", f.von);
       vonFeld.id = "filter-von";
-      vonFeld.addEventListener("change", () => { f.von = datumswert(vonFeld); zeichneAlles(); });
+      vonFeld.addEventListener("change", () => navigiereMitGuard(() => { f.von = datumswert(vonFeld); zeichneAlles(); })
+        .then(ok => { if (!ok) setzeDatumswert(vonFeld, f.von); }));
       const bisFeld = eingabe("date", f.bis);
       bisFeld.id = "filter-bis";
-      bisFeld.addEventListener("change", () => { f.bis = datumswert(bisFeld); zeichneAlles(); });
+      bisFeld.addEventListener("change", () => navigiereMitGuard(() => { f.bis = datumswert(bisFeld); zeichneAlles(); })
+        .then(ok => { if (!ok) setzeDatumswert(bisFeld, f.bis); }));
       wahl.append(el("span", "filter-wort", _("due from")), vonFeld,
         el("span", "filter-wort", _("to")), bisFeld);
 
       if (eingeschraenkt) {
-        const wegKnopf = knopf(_("Clear filters"), "klein", () => {
+        const wegKnopf = knopf(_("Clear filters"), "klein", () => navigiereMitGuard(() => {
           z.filter = { person: "", von: "", bis: "" };
           zeichneAlles();
-        });
+        }));
         wegKnopf.id = "filter-weg";
         wahl.append(wegKnopf);
       }
@@ -11672,20 +13682,22 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       const zt = el("div", "zwischentitel");
       zt.append(el("span", null, uebersetzt("Completed (%(count)s)",
         { count: erledigte.length })));
-      zt.append(knopf(_("Clear"), "klein", () => {
+      zt.append(knopf(_("Clear"), "klein", () => navigiereMitGuard(() => {
         frage(uebersetztMehrzahl(
           "Permanently delete %(count)s completed task?",
           "Permanently delete %(count)s completed tasks?", erledigte.length)).then((ja) => {
           if (!ja) return;
-          for (const a of DATEN.aufgaben.filter((x) => x.erledigt)) {
+          const ids = new Set(erledigte.map((x) => x.a.id));
+          const auswahl = DATEN.aufgaben.filter((x) => ids.has(x.id) && x.erledigt);
+          for (const a of auswahl) {
             inDenPapierkorb("aufgabe", a, a.titel);
             merkeGeloescht("aufgaben", a);
           }
-          for (const a of DATEN.aufgaben.filter((x) => x.erledigt)) entferneAufgabe(a);
+          for (const a of auswahl) entferneAufgabe(a);
           planeSpeichern();
           zeichneAlles();
         });
-      }));
+      })));
       inhaltL.append(zt);
       const liste2 = el("ul", "liste");
       inhaltL.append(liste2);
@@ -11694,7 +13706,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     }
 
     /* Rechte Seite: Formular */
-    const bearbeitet = z.bearbeiteId ? DATEN.aufgaben.find((a) => a.id === z.bearbeiteId) : null;
+    let bearbeitet = z.bearbeiteId ? DATEN.aufgaben.find((a) => a.id === z.bearbeiteId) : null;
     baueKopf("rechts", bearbeitet ? _("Edit task") : _("New task"), "", []);
 
     const inhaltR = $("#inhalt-rechts");
@@ -11709,9 +13721,14 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       [[1, _("1 - high")], [2, _("2 - medium")], [3, _("3 - low")]],
       bearbeitet ? bearbeitet.prio : 2);
     const feldFaellig = eingabe("date", bearbeitet ? bearbeitet.faellig : "");
+    const feldStartDatum = eingabe("date", bearbeitet ? bearbeitet.startDatum || bearbeitet.faellig : "");
+    feldStartDatum.id = "aufgabe-startdatum";
+    feldStartDatum.setAttribute("aria-label", _("from") + " / " + _("Date"));
     const feldStartZeit = eingabe("time", bearbeitet ? bearbeitet.startZeit : "");
     const feldFaelligZeit = eingabe("time", bearbeitet ? bearbeitet.faelligZeit : "");
     const feldFensterEnde = eingabe("time", bearbeitet ? bearbeitet.faelligZeit : "");
+    feldStartZeit.setAttribute("aria-label", _("from") + " / " + _("Time"));
+    feldFensterEnde.setAttribute("aria-label", _("Due on") + " / " + _("Time"));
     const feldNotiz = eingabe("textarea", bearbeitet ? bearbeitet.notiz : "");
     feldNotiz.rows = 3;
 
@@ -11736,6 +13753,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       ? [[aktuellesElternteil.uid, aktuellesElternteil.titel]] : []), elternUid);
     const elternSuche = eingabe("search", "");
     elternSuche.id = "aufgabe-eltern-suche";
+    elternSuche.dataset.editorTransient = "true";
     elternSuche.placeholder = _("Search");
     elternSuche.setAttribute("aria-label", _("Parent task") + ": " + _("Search"));
     let elternKandidaten = null;
@@ -11764,7 +13782,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     const einzelZeitZeile = formZeile(_("Due on") + " / " + _("Time"), feldFaelligZeit);
     einzelZeitZeile.id = "aufgabe-faellig-zeit-zeile";
     const zeitfenster = el("div", "aufgabe-zeitfenster");
-    zeitfenster.append(el("span", null, _("from")), feldStartZeit,
+    zeitfenster.append(el("span", null, _("from")), feldStartDatum, feldStartZeit,
       el("span", null, _("to")), feldFensterEnde);
     const zeitfensterZeile = formZeile(_("Time"), zeitfenster);
     zeitfensterZeile.id = "aufgabe-zeitfenster-zeile";
@@ -11886,14 +13904,27 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       formZeile(_("Custom notification"), individuellFeld));
 
     const speichernFn = () => {
+      if (bearbeitet) {
+        const aktuell = DATEN.aufgaben.find(item => item.id === bearbeitet.id);
+        const felder = ["titel", "notiz", "prio", "faellig", "startDatum", "startZeit", "faelligZeit",
+          "elternUid", "personen", "erinnern", "individuelleErinnerungTage", "delegiertAn"];
+        if (!aktuell || aktuell !== bearbeitet && felder.some(key =>
+            kanonischerEntwurf(aktuell[key]) !== kanonischerEntwurf(bearbeitet[key]))) {
+          zettel(_("Conflict")); return;
+        }
+        bearbeitet = aktuell;
+      }
       const titel = feldTitel.value.trim();
       if (!titel) { feldTitel.focus(); zettel(_("Please enter a title.")); return; }
       const faellig = datumswert(feldFaellig);
-      if (zeitModus !== "none" && !gueltigesISO(faellig)) {
+      const startDatum = datumswert(feldStartDatum) || faellig;
+      const nurStart = zeitModus === "window" && !faellig && !feldFensterEnde.value;
+      if (zeitModus !== "none" && !nurStart && !gueltigesISO(faellig)) {
         feldFaellig.focus(); zettel(_("Please select a date.")); return;
       }
-      if (zeitModus === "window" && (!feldStartZeit.value || !feldFensterEnde.value ||
-          feldStartZeit.value >= feldFensterEnde.value)) {
+      if (zeitModus === "window" && (!gueltigesISO(startDatum) || !feldStartZeit.value ||
+          !nurStart && (!feldFensterEnde.value ||
+            startDatum + "T" + feldStartZeit.value >= faellig + "T" + feldFensterEnde.value))) {
         feldStartZeit.focus();
         zettel(_("The end date cannot be before the start date."));
         return;
@@ -11902,17 +13933,21 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       const faelligZeit = zeitModus === "window" ? feldFensterEnde.value
         : zeitModus === "due" ? feldFaelligZeit.value : "";
       if (bearbeitet) {
+        const zeitGeaendert = bearbeitet.faellig !== faellig || (bearbeitet.startDatum || "") !== startDatum || (bearbeitet.startZeit || "") !== startZeit || (bearbeitet.faelligZeit || "") !== faelligZeit;
+        bearbeitet.startDatum = zeitModus === "window" ? startDatum : bearbeitet.startDatum || "";
         bearbeitet.titel = titel;
         bearbeitet.prio = Number(feldPrio.value);
         bearbeitet.faellig = faellig;
         bearbeitet.startZeit = startZeit;
         bearbeitet.faelligZeit = faelligZeit;
-        bearbeitet.icsRoundtrip = (bearbeitet.icsRoundtrip || []).filter((zeile) => {
+        if (zeitGeaendert) bearbeitet.icsRoundtrip = (bearbeitet.icsRoundtrip || []).filter((zeile) => {
           const eig = icsEigenschaft(zeile);
-          return !eig || !["DUE", "DTSTART"].includes(eig.name);
+          return !eig || !["DUE", "DTSTART", "DURATION"].includes(eig.name);
         });
         bearbeitet.notiz = feldNotiz.value;
         bearbeitet.elternUid = elternWahl.value;
+        bearbeitet.icsElternUid = aufgabenExterneUid(DATEN.aufgaben.find(a => a.uid === elternWahl.value) || {});
+        bearbeitet.icsElternQuelleId = DATEN.aufgaben.find(a => a.uid === elternWahl.value)?.icsQuelleId || "";
         bearbeitet.personen = Array.from(gewaehltePersonen);
         bearbeitet.erinnern = erinnerHak.checked;
         bearbeitet.individuelleErinnerungTage =
@@ -11925,7 +13960,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
         DATEN.aufgaben.push({ id: uid(), uid: "", elternUid: elternWahl.value,
           reihenfolge: DATEN.aufgaben.filter((a) => a.elternUid === elternWahl.value).length,
           titel: titel, prio: Number(feldPrio.value),
-          faellig: faellig, startZeit: startZeit, faelligZeit: faelligZeit,
+          faellig: faellig, startDatum: zeitModus === "window" ? startDatum : "", startZeit: startZeit, faelligZeit: faelligZeit,
           erledigt: false, notiz: feldNotiz.value,
           personen: Array.from(gewaehltePersonen),
           erinnern: erinnerHak.checked, vonTermin: "",
@@ -11941,6 +13976,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       normalisiereAufgabenGraph(DATEN.aufgaben);
       z.neueElternUid = "";
       z.bearbeiteId = null;
+      aktiverEditor = null;
       planeSpeichern();
       zeichneAlles();
     };
@@ -11950,11 +13986,13 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     knoepfe.append(knopf(bearbeitet ? _("Save changes") : _("Add"), "", speichernFn));
     if (bearbeitet) {
       knoepfe.append(knopf(_("Cancel"), "", () => {
-        z.bearbeiteId = null; zeichneAlles();
+        navigiereMitGuard(() => { z.bearbeiteId = null; zeichneAlles(); });
       }));
     }
     form.append(knoepfe);
     inhaltR.append(form);
+    registriereFormEditor(form, speichernFn, () => { aktiverEditor = null; zeichneAlles(); },
+      () => ({ zeitModus, personen: Array.from(gewaehltePersonen) }));
 
     inhaltR.append(el("p", "leer-hinweis",
       _("Priority 1 is listed first. Overdue tasks are shown in red.")));
@@ -11964,6 +14002,8 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
 
   function aufgabenZeile(a, istErledigt, heute, tiefe = 1) {
     const z = zustand.aufgaben;
+    const source = _aufgabenSerien.get(a.id) || a;
+    const occurrence = !istErledigt ? icsQuelle(source) ? icsRuntime("next", source, [heute]) : a : null;
     const zeile = el("li", "zeile" + (istErledigt ? " erledigt" : "") +
       (a.id === z.bearbeiteId ? " aktiv" : ""));
     zeile.style.paddingInlineStart = Math.min(12, Math.max(0, tiefe - 1)) * 18 + "px";
@@ -11975,15 +14015,65 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     kasten.setAttribute("aria-label", kasten.title);
     kasten.setAttribute("aria-pressed", istErledigt ? "true" : "false");
     fokusMarke(kasten, "aufgabe-status:" + a.id);
+    kasten.disabled = !istErledigt && istWiederkehrend(source) && !occurrence;
+    let preparedInstanceUid = "";
+    if (!istErledigt && istWiederkehrend(source) && occurrence && Number.isFinite(occurrence.icsOccurrence)) {
+      kasten.disabled = true;
+      const stamp = new Date(occurrence.icsOccurrence).toISOString().replace(/[-:]/g, "").replace(/\.\d{3}Z$/, "Z");
+      const value = occurrence.startZeit ? stamp : stamp.slice(0, 8);
+      personalSyncHash([occurrence.startZeit ? {} : { VALUE: "DATE" }, value]).then(hash => {
+        preparedInstanceUid = a.uid + "-magnolie-instanz-" + hash.slice(0, 16);
+        if (kasten.isConnected) kasten.disabled = false;
+      }).catch(() => zettel(_("Warning: The data could not be saved.")));
+    }
     kasten.addEventListener("click", (ev) => {
       ev.stopPropagation();
-      a.erledigt = !a.erledigt;
+      navigiereMitGuard(() => {
+      if (!DATEN.aufgaben.includes(a)) { zeichneAlles(); return; }
+      if (!a.erledigt && istWiederkehrend(source)) {
+        // Complete a detached instance, not the master and all future dates.
+        if (!preparedInstanceUid) return;
+        if (!occurrence || !Number.isFinite(occurrence.icsOccurrence)) return;
+        const ganztag = !occurrence.startZeit;
+        const stamp = (wert) => new Date(wert).toISOString().replace(/[-:]/g, "").replace(/\.\d{3}Z$/, "Z");
+        const rid = ganztag ? ";VALUE=DATE:" + stamp(occurrence.icsOccurrence).slice(0, 8) : ":" + stamp(occurrence.icsOccurrence);
+        a.icsSerienUid = aufgabenExterneUid(a);
+        const raw = (occurrence.icsRoundtrip || a.icsRoundtrip || []).filter(line =>
+          !/^(?:BEGIN|END):VTODO$/i.test(line) && !/^(?:UID|RRULE|RDATE|EXDATE|EXRULE|RECURRENCE-ID|DTSTART|DUE|DURATION|STATUS|PERCENT-COMPLETE|COMPLETED)[;:]/i.test(line));
+        const ende = raw.findIndex(line => /^END:VTODO$/i.test(line));
+        raw.splice(ende < 0 ? raw.length : ende, 0, "RECURRENCE-ID" + rid,
+          ganztag ? "DTSTART;VALUE=DATE:" + occurrence.startDatum.replace(/-/g, "") : "DTSTART:" + stamp(occurrence.icsStartUtc),
+          ganztag ? "DUE;VALUE=DATE:" + occurrence.faellig.replace(/-/g, "") : "DUE:" + stamp(occurrence.icsEndUtc),
+          "STATUS:COMPLETED", "PERCENT-COMPLETE:100");
+        const id = uid();
+        const suffix = preparedInstanceUid.slice(a.uid.length);
+        DATEN.aufgaben.push({ ...kopie(occurrence), id, uid: preparedInstanceUid,
+          icsSerienUid: a.icsSerienUid, icsImportUid: (a.icsImportUid || a.uid) + suffix,
+          icsRoundtrip: raw, icsAnzeigeZeitzone: organizerZeitzone(),
+          icsRangeOverrides: [], icsAusnahmen: [], icsAusnahmeTermine: [],
+          icsZusatzTermine: [], erledigt: true, erinnern: false, sync: false, syncQuellen: {},
+          geaendert: Date.now(), personalGeaendert: Date.now() });
+        const master = (a.icsRoundtrip || []).slice();
+        const position = master.findIndex(line => /^END:VTODO$/i.test(line));
+        master.splice(position < 0 ? master.length : position, 0, "EXDATE" + rid);
+        a.icsRoundtrip = master;
+      } else {
+        a.erledigt = !a.erledigt;
+        if ((a.icsRoundtrip || []).length) {
+          const raw = a.icsRoundtrip.filter(line => !/^(?:STATUS|PERCENT-COMPLETE|COMPLETED)[;:]/i.test(line));
+          const ende = raw.findIndex(line => /^END:VTODO$/i.test(line));
+          raw.splice(ende < 0 ? raw.length : ende, 0, "STATUS:" + (a.erledigt ? "COMPLETED" : "NEEDS-ACTION"),
+            "PERCENT-COMPLETE:" + (a.erledigt ? "100" : "0"));
+          a.icsRoundtrip = raw;
+        }
+      }
       a.geaendert = Date.now();
       a.personalGeaendert = a.geaendert;
       schickeStandZurueck(a);
       if (z.bearbeiteId === a.id) z.bearbeiteId = null;
       planeSpeichern();
       zeichneAlles();
+      });
     });
     zeile.append(kasten);
 
@@ -11993,8 +14083,8 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     haupt.type = "button";
     fokusMarke(haupt, "aufgabe:" + a.id);
     if (a.id === z.bearbeiteId) haupt.setAttribute("aria-current", "true");
-    haupt.append(el("div", "obm", a.titel));
-    if (a.notiz) haupt.append(el("div", "unt", ersteZeile(a.notiz)));
+    haupt.append(el("div", "obm", occurrence?.titel ?? a.titel));
+    if (occurrence?.notiz ?? a.notiz) haupt.append(el("div", "unt", ersteZeile(occurrence?.notiz ?? a.notiz)));
     zeile.append(haupt);
 
     /* Zuständige Personen als kleine farbige Zeichen */
@@ -12011,20 +14101,19 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       if (leiste.children.length) zeile.append(leiste);
     }
 
-    if (a.faellig && !istErledigt) {
-      const zeit = a.startZeit && a.faelligZeit
-        ? zeitText(a.faellig, a.startZeit) + "–" + zeitText(a.faellig, a.faelligZeit)
-        : a.faelligZeit ? zeitText(a.faellig, a.faelligZeit) : "";
-      const datumText = fmtTagMonat(a.faellig) + (zeit ? " · " + zeit : "");
-      const f = el("span", "faellig" + (a.faellig < heute ? " ueber" : ""),
+    if (occurrence?.faellig && !istErledigt) {
+      const zeit = occurrence.faelligZeit ? zeitText(occurrence.faellig, occurrence.faelligZeit) : "";
+      const datumText = fmtTagMonat(occurrence.faellig) + (zeit ? " · " + zeit : "");
+      const f = el("span", "faellig" + (occurrence.faellig < heute ? " ueber" : ""),
         uebersetzt("due by %(date)s", { date: datumText }));
-      f.title = uebersetzt("Due on %(date)s", { date: fmtPunkt(a.faellig) +
+      f.title = uebersetzt("Due on %(date)s", { date: fmtPunkt(occurrence.faellig) +
         (zeit ? " · " + zeit : "") });
       zeile.append(f);
     }
 
     const struktur = el("span", "aufgaben-struktur");
-    const verschiebe = (delta) => {
+    const verschiebe = (delta) => navigiereMitGuard(() => {
+      if (!DATEN.aufgaben.includes(a)) { zeichneAlles(); return; }
       const geschwister = DATEN.aufgaben.filter((x2) => x2.elternUid === a.elternUid)
         .sort((x2, y2) => x2.reihenfolge - y2.reihenfolge || vergleicheTechnischeKennung(x2.uid, y2.uid));
       const index = geschwister.indexOf(a), ziel = geschwister[index + delta];
@@ -12032,9 +14121,9 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       const alt = a.reihenfolge; a.reihenfolge = ziel.reihenfolge; ziel.reihenfolge = alt;
       a.geaendert = ziel.geaendert = Date.now(); normalisiereAufgabenGraph(DATEN.aufgaben);
       planeSpeichern(); zeichneAlles();
-    };
-    const teil = knopf("+", "klein", (ev) => { ev.stopPropagation(); z.bearbeiteId = null;
-      z.neueElternUid = a.uid; zeichneAlles(); });
+    });
+    const teil = knopf("+", "klein", (ev) => { ev.stopPropagation();
+      navigiereMitGuard(() => { z.bearbeiteId = null; z.neueElternUid = a.uid; zeichneAlles(); }); });
     teil.title = _("Add subtask"); teil.setAttribute("aria-label", teil.title);
     const hoch = knopf("↑", "klein", (ev) => { ev.stopPropagation(); verschiebe(-1); });
     hoch.title = _("Move up"); hoch.setAttribute("aria-label", hoch.title);
@@ -12042,10 +14131,11 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     runter.title = _("Move down"); runter.setAttribute("aria-label", runter.title);
     struktur.append(teil, hoch, runter);
     if (a.elternUid) {
-      const wurzel = knopf("↥", "klein", (ev) => { ev.stopPropagation(); a.elternUid = "";
+      const wurzel = knopf("↥", "klein", (ev) => { ev.stopPropagation(); navigiereMitGuard(() => { a.elternUid = "";
+        a.icsElternUid = "";
         a.reihenfolge = DATEN.aufgaben.filter((x2) => !x2.elternUid).length;
         a.geaendert = Date.now(); normalisiereAufgabenGraph(DATEN.aufgaben);
-        planeSpeichern(); zeichneAlles(); });
+        planeSpeichern(); zeichneAlles(); }); });
       wurzel.title = _("Move to top level"); wurzel.setAttribute("aria-label", wurzel.title);
       struktur.append(wurzel);
     }
@@ -12056,9 +14146,10 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     x.title = _("Delete task");
     x.addEventListener("click", (ev) => {
       ev.stopPropagation();
-      frage(uebersetzt("Delete task “%(title)s”?",
+      navigiereMitGuard(() => frage(uebersetzt("Delete task “%(title)s”?",
         { title: a.titel || _("untitled") })).then((ja) => {
         if (!ja) return;
+        if (!DATEN.aufgaben.includes(a)) { zettel(_("Conflict")); zeichneAlles(); return; }
         inDenPapierkorb("aufgabe", a, a.titel);
         merkeGeloescht("aufgaben", a);
         entferneAufgabe(a);
@@ -12067,12 +14158,12 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
         fokussiereNachZeichnen(naechste ? "aufgabe:" + naechste.id : "register:aufgaben");
         planeSpeichern();
         zeichneAlles();
-      });
+      }));
     });
     zeile.append(x);
     fokusMarke(x, "aufgabe-loeschen:" + a.id);
     x.setAttribute("aria-label", x.title);
-    const bearbeiten = () => { z.bearbeiteId = a.id; zeichneAlles(); };
+    const bearbeiten = () => navigiereMitGuard(() => { z.bearbeiteId = a.id; zeichneAlles(); });
     haupt.addEventListener("click", (ev) => { ev.stopPropagation(); bearbeiten(); });
     zeile.addEventListener("click", bearbeiten);
     return zeile;
@@ -12173,7 +14264,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     if (suche) {
       const telefonSuche = telefonSchluessel(suche);
       liste = DATEN.kontakte.filter((k) => {
-        const text = [k.nachname, k.vorname, k.firma, k.notiz, k.geburtstag,
+        const text = [k.nachname, k.vorname, k.anzeigename, k.firma, k.notiz, k.geburtstag, k.jubilaeum,
           k.geburtstag ? datumAnzeige(k.geburtstag) : "",
           kontaktpersonenListe(k).map((p) => [p.name, p.telefon, p.status].join(" ")).join(" "),
           anschriftListe(k).map((a) => [anschriftBezeichnung(a), a.strasse, a.plz,
@@ -12385,7 +14476,18 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       delete kopie.sync;
       delete kopie.foto;
       return kopie;
-    }, _("Share address"));
+    }, _("Share address"), (kennungen) => {
+      try {
+        for (const id of kennungen) {
+          const peer = baumPartnerListe().find((p) => p.kennung === id);
+          if (!peer?.kontaktFaehigkeiten?.kontakt_sync?.includes(2)) {
+            schickeBaumInhalt("kontakt_faehigkeiten", {}, [id]);
+            kontaktBaumInhalt({ ...k, baumKontakt: k.baumKontakt || {} }, 1);
+          }
+        }
+        return true;
+      } catch (_fehler) { zettel(_("Not sent.")); return false; }
+    });
     if (freigabe) knoepfe.append(freigabe);
     knoepfe.append(knopf(_("Edit"), "", () => {
       zustand.adressen.modus = "bearbeiten";
@@ -13079,7 +15181,14 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
         foto: fotoWert,
         geaendert: Date.now()
       };
-      let ziel = k;
+      let ziel = k ? DATEN.kontakte.find(item => item.id === k.id) : null;
+      const felder = Object.keys(werte).filter(key => key !== "geaendert").concat(
+        ["telefone", "telefon", "mobil", "anschriften", "strasse", "plz", "ort", "land",
+          "kontaktpersonen", "sozialeMedien", "geburtstag", "jubilaeum"]);
+      if (k && (!ziel || ziel !== k && felder.some(key =>
+          kanonischerEntwurf(ziel[key]) !== kanonischerEntwurf(k[key])))) {
+        zettel(_("Conflict")); return false;
+      }
       if (!ziel) {
         ziel = Object.assign({ id: zielId, uid: syncUid(), sync: false }, werte);
         DATEN.kontakte.push(ziel);
@@ -13139,6 +15248,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
 
     const editor = setzeAktivenEditor({
       art: "kontakt",
+      element: form,
       snapshot: leseEntwurf(),
       lesen: leseEntwurf,
       speichern: speichernFn,
@@ -13831,37 +15941,42 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     const htmlStand = {};
     flaeche.innerHTML = saeubereHtml(notiz.html, htmlStand) || textZuHtml(notiz.text);
 
-    const beiEingabe = () => {
-      const neuerHtmlStand = {};
-      const neuesHtml = saeubereHtml(flaeche.innerHTML, neuerHtmlStand);
-      if (neuerHtmlStand.gekuerzt) {
-        zettel(_("The message is too large."));
-        return;
-      }
-      notiz.titel = titel.value;
-      notiz.html = neuesHtml;
-      notiz.text = htmlZuText(flaeche);
+    const geaendert = () => {
       notiz.geaendert = isoHeute();
       notiz.personalGeaendert = Date.now();
       markiereGemeinsameNotiz(notiz);
       if (notizRefs.obm) notizRefs.obm.textContent = notiz.titel || _("Untitled");
       planeSpeichern();
     };
-    titel.addEventListener("input", beiEingabe);
+    const snapshot = () => {
+      const neuerHtmlStand = { textErmitteln: true };
+      const neuesHtml = saeubereHtml(flaeche.innerHTML, neuerHtmlStand);
+      if (neuerHtmlStand.gekuerzt) {
+        zettel(_("The message is too large."));
+        return;
+      }
+      notiz.html = neuesHtml;
+      notiz.text = neuerHtmlStand.text;
+      geaendert();
+    };
+    const beiEingabe = () => {
+      ausstehenderNotizSnapshot = snapshot;
+      clearTimeout(notizSnapshotTimer);
+      notizSnapshotTimer = setTimeout(sichereNotizSnapshot, 80);
+      planeSpeichern();
+    };
+    titel.addEventListener("input", () => { notiz.titel = titel.value; geaendert(); });
     titel.addEventListener("blur", () => synchronisiereFreigegebeneNotiz(notiz));
     flaeche.addEventListener("input", () => { beiEingabe(); zeigeWerkzeugleiste(); });
     const textEinfuegen = (text) => {
       const auswahl = window.getSelection();
-      if (!auswahl || !auswahl.rangeCount || !flaeche.contains(auswahl.anchorNode)) return;
+      if (document.activeElement !== flaeche || !flaeche.isContentEditable ||
+          !auswahl || auswahl.rangeCount !== 1) return;
       const bereich = auswahl.getRangeAt(0);
-      bereich.deleteContents();
-      const knoten = document.createTextNode(String(text || ""));
-      bereich.insertNode(knoten);
-      bereich.setStartAfter(knoten);
-      bereich.collapse(true);
-      auswahl.removeAllRanges();
-      auswahl.addRange(bereich);
-      flaeche.dispatchEvent(new Event("input", { bubbles: true }));
+      if (!flaeche.contains(bereich.commonAncestorContainer)) return;
+      // Plain-text paste/drop belongs to the native Tab/typing undo history.
+      // Its single native input event schedules the existing snapshot/save path.
+      document.execCommand("insertText", false, String(text || ""));
     };
     flaeche.addEventListener("paste", (ereignis) => {
       ereignis.preventDefault();
@@ -13893,7 +16008,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       b.setAttribute("aria-label", _(a.name));
       b.addEventListener("mousedown", (ev) => ev.preventDefault());
       b.addEventListener("click", () => {
-        if (zeichneAus(flaeche, a.tag)) beiEingabe();
+        if (zeichneAus(flaeche, a.tag)) { beiEingabe(); sichereNotizSnapshot(); }
         zeigeAuszeichnungsStand();
       });
       leiste.append(b);
@@ -13969,7 +16084,8 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       for (const taste of [...einfuegen.querySelectorAll("button"),
         ...leiste.querySelectorAll("button")]) taste.disabled = true;
     }
-    editor.append(titel, ...(htmlWarnung ? [htmlWarnung] : []), einfuegen, leiste, rahmen);
+    editor.append(titel, ...(htmlWarnung ? [htmlWarnung] : []), einfuegen, leiste, rahmen,
+      bindeSchreibTab(flaeche));
     if (notiz.anhaenge.length) {
       const anhaenge = el("div", "notiz-anhaenge");
       const teiler = el("button", "notiz-anhang-teiler", "");
@@ -14092,10 +16208,11 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
 
     const inhaltL = $("#inhalt-links");
     inhaltL.classList.add("jahrestage-liste");
+    const heute = isoHeute();
     const sortiert = DATEN.jahrestage
-      .map((jt) => ({ jt: jt, n: naechsterJahrestag(jt) }))
+      .map((jt) => ({ jt: jt, n: naechsterJahrestag(jt, heute) }))
       .sort((a, b) => a.n.inTagen - b.n.inTagen ||
-        a.jt.name.localeCompare(b.jt.name, formatGebiet()));
+        vergleicheStandardText(a.jt.name, b.jt.name));
 
     if (!sortiert.length) {
       inhaltL.append(el("p", "leer-hinweis", _(
@@ -15995,7 +18112,9 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
   }
 
   function zeichnePlaner() {
-    const z = zustand.planer;
+    const z = zustand.planer, jahr = z.jahr;
+    const fokus = naechsterFokus.startsWith("planer-tag:") ? naechsterFokus : "";
+    const feiertagsIndex = planerFeiertagVerzeichnis(jahr);
     const wechsleJahr = (schritt) => {
       const jahr = z.jahr + schritt;
       if (jahr < 1000 || jahr > 9999) return;
@@ -16034,17 +18153,6 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     baueKopf("rechts", String(z.jahr), monatsName(6) + " – " + monatsName(11), []);
 
     const heute = isoHeute();
-
-    const jtTage = new Set();
-    for (const jt of DATEN.jahrestage) {
-      const [gj, gm, gt] = jt.datum.split("-").map(Number);
-      if (z.jahr < gj) continue;
-      let t = gt;
-      if (gm === 2 && t === 29 && !istSchaltjahr(z.jahr)) t = 28;
-      const iso = z.jahr + "-" + pad2(gm) + "-" + pad2(t);
-      if (vergangenAusgeblendet(iso, "anniversary")) continue;
-      jtTage.add(pad2(gm) + "-" + pad2(t));
-    }
 
     const baueHalbjahr = (vonMonat) => {
       const raster = el("div", "planer-raster");
@@ -16088,13 +18196,12 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
           const spalte = (versatz + t - 1) % 7;
           const wochentag = new Date(z.jahr, m, t).getDay();
           if (wochentag === 0 || wochentag === 6) zelle.classList.add("wochenende");
-           if (termineAm(iso).length) zelle.classList.add("hat");
-          if (jtTage.has(pad2(m + 1) + "-" + pad2(t))) zelle.classList.add("jt");
+          if (jahrestageAm(iso).length) zelle.classList.add("jt");
           if (iso === heute) {
             zelle.classList.add("heute");
             zelle.setAttribute("aria-current", "date");
           }
-          const fts = feiertageAm(iso);
+          const fts = feiertageAm(iso, false, feiertagsIndex);
           if (fts.length) {
             if (fts.some((f) => f.art === "public-holiday")) zelle.classList.add("feiertag");
             else zelle.classList.add("ferien");
@@ -16152,8 +18259,31 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       return raster;
     };
 
-    $("#inhalt-links").append(baueHalbjahr(0));
-    $("#inhalt-rechts").append(baueHalbjahr(6));
+    const wartend = ["links", "rechts"].map(seite => {
+      const wartet = el("div", "planer-raster");
+      wartet.setAttribute("aria-busy", "true");
+      const fortschritt = el("progress");
+      fortschritt.setAttribute("aria-label", _("Calendar"));
+      wartet.append(fortschritt);
+      $("#inhalt-" + seite).append(wartet);
+      return wartet;
+    });
+    // Paint and accept input between halves; detached placeholders cancel old work.
+    const fuellen = index => requestAnimationFrame(() => setTimeout(() => {
+      if (!wartend[index].isConnected || zustand.sektion !== "planer" || z.jahr !== jahr) return;
+      wartend[index].replaceWith(baueHalbjahr(index * 6));
+      const aktiv = document.activeElement;
+      const ziel = aktiv?.dataset.fokus?.startsWith("planer-tag:") ? aktiv :
+        aktiv === document.body && fokus ? fokusElement(fokus) : null;
+      if (ziel) {
+        document.querySelectorAll('[data-fokus^="planer-tag:"]').forEach(zelle => {
+          zelle.tabIndex = zelle === ziel ? 0 : -1;
+        });
+        if (aktiv === document.body) ziel.focus();
+      }
+      if (index === 0) fuellen(1);
+    }, 0));
+    fuellen(0);
 
     setzeEcken(() => wechsleJahr(-1), _("Previous year"),
       () => wechsleJahr(1), _("Next year"));
@@ -16363,6 +18493,10 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     const quelle = setupImportWarteschlange.shift();
     if (quelle) {
       setupImportLaeuft = true;
+      if (typeof quelle === "object" && quelle.payload) {
+        App.importErgebnis(quelle.payload);
+        return;
+      }
       starteImport("lokal", false, quelle);
       return;
     }
@@ -16376,8 +18510,11 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     const roh = nutzlast && (nutzlast.setupAbsichten || nutzlast.setupSelections || nutzlast.setupAuswahl);
     if (!roh || typeof roh !== "object" || setupAbsichtenUebernommen) return false;
     setupAbsichtenUebernommen = true;
+    if (roh.setupSkipped === true) return false;
     const allgemein = DATEN.einstellungen.allgemein;
-    setupImportWarteschlange = Array.from(new Set(
+    setupImportWarteschlange = Array.isArray(roh.stagedImports)
+      ? roh.stagedImports.filter((item) => item && typeof item.payload === "object" && item.payload).slice(0, 16)
+      : Array.from(new Set(
       (Array.isArray(roh.oneTimeImports) ? roh.oneTimeImports : [])
         .map(String).filter((wert) => wert === "evolution" || wert === "thunderbird")));
     const kalenderUids = Array.from(new Set((Array.isArray(roh.calendarUids) ? roh.calendarUids : [])
@@ -16411,11 +18548,18 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     if (roh.customOrganizerChanged === true && roh.customOrganizer &&
         typeof roh.customOrganizer === "object") {
       const design = normalisiereCustomOrganizer(roh.customOrganizer);
-      const bestand = new Map((DATEN.customOrganizer.modules || []).map((modul) => [modul.type, modul]));
-      DATEN.customOrganizer = { version: 3, modules: design.modules.map((modul) => {
-        const vorhanden = bestand.get(modul.type);
-        return vorhanden ? { ...vorhanden, page: modul.page, order: modul.order } : modul;
-      }) };
+      const bestand = DATEN.customOrganizer.modules || [];
+      const verwendet = new Set();
+      const gemischt = design.modules.map((modul) => {
+        const vorhanden = bestand.find((wert) => !verwendet.has(wert.id) && wert.type === modul.type &&
+          (modul.type !== "notes" || wert.page === modul.page)) ||
+          bestand.find((wert) => !verwendet.has(wert.id) && wert.type === modul.type);
+        if (!vorhanden) return modul;
+        verwendet.add(vorhanden.id);
+        return { ...vorhanden, page: modul.page, order: modul.order };
+      });
+      const uebrig = bestand.filter((modul) => !verwendet.has(modul.id));
+      DATEN.customOrganizer = normalisiereCustomOrganizer({ version: 3, modules: [...gemischt, ...uebrig] });
     }
     const adresse = roh.address && typeof roh.address === "object" ? roh.address : roh;
     const landText = String(adresse.country || roh.country || "").trim().slice(0, 80);
@@ -16424,23 +18568,35 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     const land = /^[A-Za-z]{2}$/.test(landText) ? landText.toUpperCase() :
       (landNamen[landText.toLocaleLowerCase("de")] || "");
     const region = String(adresse.state || roh.state || "").trim();
-    if (land) {
+    const eigene = DATEN.einstellungen.adressen;
+    const ort = DATEN.einstellungen.ort;
+    const anschriftEingegeben = [adresse.firstName, adresse.lastName, adresse.street,
+      adresse.postalCode, adresse.city].some((wert) => String(wert || "").trim());
+    const ortUebernehmen = roh.addressChanged === true || anschriftEingegeben ||
+      (!eigene.absender && !ort.land);
+    const landEintrag = LAENDER.find((eintrag) => eintrag.code === land);
+    const vergleich = region.toLocaleLowerCase().trim();
+    const aliasCode = land === "DE" && vergleich === "sachsen" ? "DE-SN" : "";
+    const treffer = landEintrag && landEintrag.regionen.find(([code, name]) => code === aliasCode ||
+      [code, name, _(name)].some((wert) => String(wert).toLocaleLowerCase().trim() === vergleich));
+    const ferienZustimmung = roh.schoolHolidays === true && !!treffer &&
+      roh.schoolHolidayRegion === treffer[0];
+    if (land && (ortUebernehmen || ferienZustimmung)) {
+      if (ort.land !== land) { ort.region = ""; ort.regionName = ""; ort.alleRegionen = false; }
       DATEN.einstellungen.ort.land = land;
-      DATEN.einstellungen.regional.homeCountry = land;
-      DATEN.einstellungen.adressen.landCode = land;
-      DATEN.einstellungen.adressen.land = land;
+      if (ortUebernehmen) {
+        DATEN.einstellungen.regional.homeCountry = land;
+        eigene.landCode = land;
+        eigene.land = land;
+      }
     }
-    if (region) {
-      const vergleich = region.toLocaleLowerCase().trim();
-      const aliasCode = land === "DE" && vergleich === "sachsen" ? "DE-SN" : "";
-      const landEintrag = LAENDER.find((eintrag) => eintrag.code === land);
-      const treffer = landEintrag && landEintrag.regionen.find(([code, name]) => code === aliasCode ||
-        [code, name, _(name)].some((wert) => String(wert).toLocaleLowerCase().trim() === vergleich));
-      DATEN.einstellungen.ort.region = treffer ? treffer[0] : region.slice(0, 80);
-      DATEN.einstellungen.ort.regionName = treffer ? _(treffer[1]) : region.slice(0, 80);
+    if (ortUebernehmen || ferienZustimmung) {
+      const fremdesLand = /^[A-Z]{2}-/i.test(region) && !region.toUpperCase().startsWith(land + "-");
+      ort.region = treffer ? treffer[0] : fremdesLand ? "" : region.slice(0, 80);
+      ort.regionName = treffer ? _(treffer[1]) : ort.region;
+      ort.alleRegionen = false;
     }
-    if ([adresse.firstName, adresse.lastName, adresse.street, adresse.postalCode,
-          adresse.city, adresse.country].some((wert) => String(wert || "").trim())) {
+    if (anschriftEingegeben) {
       DATEN.einstellungen.adressen.absender = [
         [adresse.firstName, adresse.lastName].map((wert) => String(wert || "").trim())
           .filter(Boolean).join(" "),
@@ -16449,14 +18605,20 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
           .filter(Boolean).join(" "),
         String(adresse.country || "").trim()
       ].filter(Boolean).join("\n").slice(0, 1000);
+      if (!eigene.routeFestgelegt && [adresse.street, adresse.postalCode].some((wert) => /\d/.test(String(wert || ""))) &&
+          eigeneAnschriftTaugt()) eigene.route = true;
+    }
+    if (typeof roh.schoolHolidays === "boolean") {
+      ort.ferien = ferienZustimmung;
+      ort.setupFerienAbruf = ferienZustimmung;
     }
     DATEN.einstellungen.adressen.sortierung = roh.addressSort === "first-name"
       ? "first-name" : "last-name";
     if (typeof roh.backupPath === "string" && roh.backupPath.trim()) {
       allgemein.sicherungsordner = roh.backupPath.trim().slice(0, 4096);
     }
-    if (["daily", "weekly", "monthly"].includes(roh.backupInterval)) {
-      allgemein.cloudSicherung.intervall = roh.backupInterval === "daily" ? "daily" : "weekly";
+    if (["daily", "weekly"].includes(roh.backupInterval)) {
+      allgemein.cloudSicherung.intervall = roh.backupInterval;
     }
     if (Object.prototype.hasOwnProperty.call(roh, "weather")) allgemein.wetter = roh.weather === true;
     if (Object.prototype.hasOwnProperty.call(roh, "tray") ||
@@ -16690,6 +18852,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
   }
 
   function oeffneEinstellungen() {
+    if (!initialisiert || gesperrt) return;
     journalListeAngefragt = false;
     baueEinstellungen();
     const schleier = $("#einstellungen-schleier");
@@ -16985,7 +19148,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     customFelder.append(formZeile(customText("Tab name"), customName),
       knopf(designerText, "klein", oeffneCustomDesigner),
       el("p", "einst-hinweis",
-        customText("Custom content is saved locally and transferred through complete Magnolie archives only, not Personal Sync.")));
+        _("Only with both devices' explicit consent, Personal Sync shares read-only Custom tasks and appointments, including their own notes. Text blocks, linked text and attachments are excluded. Archives restore copies, not permissions.")));
     customFelder.hidden = !customAn.checked;
     registerGruppe.append(registerAuswahl, customFelder);
     customAn.addEventListener("change", () => {
@@ -17294,8 +19457,8 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     const imp = abschnitt(_("Import once"),
       _("One-time imports are additive. They do not keep a source linked and do not delete contacts."));
     const impReihe = el("div", "knopfreihe");
-    const archivImport = knopf("Magnolie-Gesamtarchiv (.magnolie) …", "", () => {
-      if (!Bruecke.vorhanden) { zettel("Der Gesamtarchiv-Import ist nur in der installierten Anwendung verfügbar."); return; }
+    const archivImport = knopf(_("Magnolie complete archive (.magnolie) …"), "", () => {
+      if (!Bruecke.vorhanden) { zettel(_("Complete archive import is available only in the installed application.")); return; }
       Bruecke.sende({ cmd: "gesamtarchiv_waehlen" });
     });
     archivImport.id = "gesamtarchiv-import";
@@ -17322,7 +19485,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     /* Weitergeben */
     const exp = abschnitt(_("Export"), "");
     const expReihe = el("div", "knopfreihe");
-    const archivExport = knopf("Magnolie-Gesamtarchiv (.magnolie) …", "", zeigeGesamtarchivExport);
+    const archivExport = knopf(_("Magnolie complete archive (.magnolie) …"), "", zeigeGesamtarchivExport);
     archivExport.id = "gesamtarchiv-export";
     expReihe.append(
       archivExport,
@@ -17430,6 +19593,21 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
   ];
 
   let feiertageLaufen = false;
+  let feiertageAnfrage = null;
+
+  function starteSetupFerienAbruf() {
+    const o = DATEN.einstellungen.ort;
+    const land = LAENDER.find((l) => l.code === o.land);
+    if (!o.setupFerienAbruf || !o.ferien || !land ||
+        !land.regionen.some(([code]) => code === o.region)) return;
+    const bestand = DATEN;
+    const region = o.region;
+    nachDauerhaftemSpeichern(() => {
+      if (DATEN !== bestand || !o.setupFerienAbruf || !o.ferien || o.land !== land.code || o.region !== region) return;
+      const jahr = organizerDatumzeitTeile(new Date()).jahr;
+      starteFeiertage([jahr, jahr + 1]);
+    });
+  }
 
   /* ---------------------------------------------------------------------- */
   /* Magnolienbaum: mehrere Organizer im Verbund                             */
@@ -17511,6 +19689,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     const herkunftRoh = Array.isArray(karte.herkuenfte) ? karte.herkuenfte : [];
     if (herkunftRoh.length < 1 || herkunftRoh.length > 16) return null;
     kontakt.importBindungen = [bindung];
+    kontakt.vcardRoundtrip = kontakt.vcardName || [];
     kontakt.importHerkunfte = herkunftRoh.map((wert) =>
       kontaktImportHerkunft(wert, false)).filter(Boolean).map((wert) => wert.text);
     if (kontakt.importHerkunfte.length !== herkunftRoh.length) return null;
@@ -17545,17 +19724,18 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       const anzahl = Math.floor(Number(manifest.anzahl) || 0);
       const karten = (eingang || []).filter((stueck) => stueck.von === manifestStueck.von &&
         ((stueck.inhalt || {}).art || stueck.art) === "kontakt_import_karte" &&
-        Number((stueck.inhalt || {}).fassung) === 1 &&
         String((stueck.inhalt || {}).importId || "") === importId);
       const manifestIndex = (eingang || []).indexOf(manifestStueck);
       const ids = [manifestStueck, ...karten].map((stueck) => String(stueck.id || "")).filter(Boolean);
       const herkunftRoh = Array.isArray(manifest.herkuenfte) ? manifest.herkuenfte : [];
       const kartenBytes = new Blob([JSON.stringify(
         karten.map((stueck) => stueck.inhalt || {}))]).size;
-      if (Number(manifest.fassung) !== 1 || !importId || anzahl < 1 || anzahl > 250 ||
+      if (![1, 2].includes(manifest.fassung) || !importId || anzahl < 1 || anzahl > 250 ||
           karten.length !== anzahl || herkunftRoh.length < 1 || herkunftRoh.length > 64 ||
           ids.length !== karten.length + 1 || new Set(ids).size !== ids.length ||
+          new Set(karten.map((s) => s.inhalt.bindung)).size !== anzahl ||
           kartenBytes > 8388608 || karten.some((stueck) =>
+            (stueck.inhalt || {}).fassung !== manifest.fassung ||
             (eingang || []).indexOf(stueck) <= manifestIndex ||
             !Array.isArray((stueck.inhalt || {}).herkuenfte) ||
             (stueck.inhalt || {}).herkuenfte.length < 1 ||
@@ -17711,7 +19891,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     baueEinstellungen();
   }
 
-  function uebernehmeBaumAngebot(stueck) {
+  function uebernehmeBaumAngebot(stueck, fehler = {}) {
     const inhalt = stueck.inhalt || {};
     const art = inhalt.art || stueck.art || "";
     if (art === "aufgabe") {
@@ -17746,8 +19926,10 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     } else if (art === "kontakt") {
       const kontakt = normalisiere({ kontakte: [Object.assign({}, inhalt,
         { id: uid(), uid: syncUid(), sync: false, foto: "" })] }).kontakte[0];
-      if (!kontakt || (!kontakt.nachname && !kontakt.vorname && !kontakt.firma)) return false;
+      if (!kontakt || (!kontakt.nachname && !kontakt.vorname && !kontakt.anzeigename && !kontakt.firma)) return false;
       DATEN.kontakte.push(kontakt);
+      verknuepfeKontaktGeburtstag(kontakt);
+      verknuepfeKontaktJubilaeum(kontakt);
     } else if (art === "kontakt_sync") {
       const freigabeId = String(inhalt.freigabeId || "");
       const quelle = String(inhalt.quelle || stueck.von || "");
@@ -17755,11 +19937,26 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       const stand = quelle + "\u0000" + version;
       if (!freigabeId || !version || !inhalt.kontakt) return false;
       let kontakt = DATEN.kontakte.find((k) => k.baumKontakt &&
-        k.baumKontakt.freigabeId === freigabeId);
+        k.baumKontakt.freigabeId === freigabeId && (k.baumKontakt.partner || []).includes(stueck.von));
       if (kontakt && (kontakt.baumKontakt.staende || []).includes(stand)) return true;
       const fern = inhalt.kontakt;
+      if (kontakt) {
+        const meta = kontakt.baumKontakt;
+        if (version < meta.version || version === meta.version && quelle <= meta.quelle) return true;
+        for (const feld of ["geburtstag", "jubilaeum", "vorname", "nachname", "anzeigename", "firma"]) {
+          if (fern[feld] && kontakt[feld] && fern[feld] !== kontakt[feld] && meta.fernStand?.[feld] !== kontakt[feld]) {
+            fehler.text = _("Conflict"); zettel(fehler.text); return false;
+          }
+        }
+        const lokaleNamen = (kontakt.vcardRoundtrip || []).filter((s) => /^(?:[A-Za-z0-9-]+\.)?(?:N|FN)[;:]/i.test(s));
+        if (fern.vcardName?.length && lokaleNamen.length && JSON.stringify(fern.vcardName) !== JSON.stringify(lokaleNamen) &&
+            JSON.stringify(meta.fernStand?.vcardName || []) !== JSON.stringify(lokaleNamen)) {
+          fehler.text = _("Conflict"); zettel(fehler.text); return false;
+        }
+      }
       if (!kontakt) {
-        kontakt = normalisiere({ kontakte: [{ vorname: fern.vorname,
+        kontakt = normalisiere({ kontakte: [{ anzeigename: fern.anzeigename,
+          vcardRoundtrip: fern.vcardName || [], jubilaeum: fern.jubilaeum, vorname: fern.vorname,
           nachname: fern.nachname, firma: fern.firma, notiz: fern.notiz,
           geburtstag: fern.geburtstag, telefone: (fern.telefone || []).map((e) =>
             ({ wert: e.wert, label: e.art, typen: telefonTypenAusArt(e.art) })),
@@ -17768,18 +19965,22 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
           anschriften: (fern.anschriften || []).map((e) => ({ strasse: e.strasse,
             plz: e.plz, ort: e.ort, region: e.region, land: e.land,
             label: e.art, typen: [] })) }] }).kontakte[0];
-        if (!kontakt || (!kontakt.nachname && !kontakt.vorname && !kontakt.firma)) return false;
+        if (!kontakt || (!kontakt.nachname && !kontakt.vorname && !kontakt.anzeigename && !kontakt.firma && !kontakt.telefone.length && !kontakt.emailEintraege.length)) return false;
         DATEN.kontakte.push(kontakt);
       } else {
-        for (const feld of ["vorname", "nachname", "firma"]) {
-          if (!kontakt[feld] && fern[feld]) kontakt[feld] = String(fern[feld]);
+        for (const feld of ["vorname", "nachname", "anzeigename", "firma"]) {
+          if (fern[feld] && (!kontakt[feld] || kontakt.baumKontakt.fernStand?.[feld] === kontakt[feld])) kontakt[feld] = String(fern[feld]);
         }
         const fernGeburtstag = kanonischesJahresdatum(String(fern.geburtstag || ""));
-        if (!kontakt.geburtstag && fernGeburtstag) {
+        if (fernGeburtstag) {
           kontakt.geburtstag = fernGeburtstag;
           kontakt.geburtstagJahrUnbekannt = gueltigesTeildatum(fernGeburtstag);
           verknuepfeKontaktGeburtstag(kontakt);
         }
+        const fernJubilaeum = kanonischesJahresdatum(String(fern.jubilaeum || ""));
+        if (fernJubilaeum) kontakt.jubilaeum = fernJubilaeum;
+        if (fern.vcardName?.length) kontakt.vcardRoundtrip =
+          (kontakt.vcardRoundtrip || []).filter((s) => !/^(?:[A-Za-z0-9-]+\.)?(?:N|FN)[;:]/i.test(s)).concat(fern.vcardName);
         if (fern.notiz && !kontakt.notiz) kontakt.notiz = String(fern.notiz);
         else if (fern.notiz && !kontakt.notiz.split("\n\n").includes(String(fern.notiz))) {
           kontakt.notiz += "\n\n" + String(fern.notiz);
@@ -17797,12 +19998,17 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
             ort: e.ort, region: e.region, land: e.land, label: e.art, typen: [] }))));
       }
       kontakt.baumKontakt = { freigabeId: freigabeId, version: version,
+        hash: kontakt.baumKontakt?.hash || "",
+        fernStand: Object.fromEntries(["vorname", "nachname", "anzeigename", "firma", "geburtstag", "jubilaeum", "vcardName"]
+          .filter((feld) => fern[feld] !== undefined).map((feld) => [feld, kopie(fern[feld])])),
         quelle: quelle, geaendert: Number(inhalt.geaendert) || 0,
         staende: Array.from(new Set((kontakt.baumKontakt &&
           kontakt.baumKontakt.staende || []).concat(stand))).slice(-100),
         partner: Array.from(new Set((kontakt.baumKontakt &&
           kontakt.baumKontakt.partner || []).concat(stueck.von))) };
       if (!kontakt.foto && fern.foto) kontakt.foto = String(fern.foto);
+      verknuepfeKontaktGeburtstag(kontakt);
+      verknuepfeKontaktJubilaeum(kontakt);
     } else if (art === "kontakt_loeschen") {
       const kontakt = DATEN.kontakte.find((k) => k.baumKontakt &&
         k.baumKontakt.freigabeId === String(inhalt.freigabeId || "") &&
@@ -18153,8 +20359,9 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
             : uebersetzt("Accept “%(entry)s” into your own collection?",
               { entry: beschreibung });
           frage(frageText, annehmen).then((ja) => {
-            if (ja && !uebernehmeBaumAngebot(stueck)) {
-              zettel(_("The offered entry is incomplete."));
+            const fehler = {};
+            if (ja && !uebernehmeBaumAngebot(stueck, fehler)) {
+              zettel(fehler.text || _("The offered entry is incomplete."));
             }
           });
         }));
@@ -18531,7 +20738,8 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
         _("Only one Magnolie Notes phone can be paired. Remove the existing phone before changing devices.")));
     }
     const liste = el("div", "telefon-liste");
-    const telefone = telefonStand.peers || [];
+    const telefone = (telefonStand.peers || []).filter((phone, index, all) =>
+      !phone.device_id || all.findIndex((other) => other.device_id === phone.device_id) === index);
     if (telefonStand.binding_conflict) liste.append(el("p", "einst-warnung",
       _("Multiple Magnolie Notes phones are stored. Personal sync is blocked; remove all but one phone.")));
     if (!telefone.length) liste.append(el("p", "einst-hinweis", _("No phone paired yet.")));
@@ -18548,7 +20756,8 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       btAn.disabled = !(telefonStand.bluetooth && telefonStand.bluetooth.available);
       const btAdresse = document.createElement("select");
       btAdresse.setAttribute("aria-label", _("System-paired phone Bluetooth address"));
-      const btGeraete = telefonStand.bluetooth && telefonStand.bluetooth.devices || [];
+       const btGeraete = (telefonStand.bluetooth && telefonStand.bluetooth.devices || []).filter((device, index, all) =>
+         !device.address || all.findIndex((other) => String(other.address).toUpperCase() === String(device.address).toUpperCase()) === index);
       if (!btGeraete.length) {
         const option = document.createElement("option");
         option.value = ""; option.textContent = _("No system-paired Bluetooth device found");
@@ -18605,6 +20814,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     kdeBlock.append(el("p", "einst-hinweis", _("The KDE Connect support is built into the Organizer. Only the KDE Connect app on Android is required; no additional KDE Connect desktop program is needed.")));
     kdeBlock.append(el("p", "einst-hinweis", _("Magnolie Notes phones and KDE Connect phones are separate: the Android model name belongs to Magnolie Notes; the KDE peer name comes from KDE Connect.")));
     const neuerKdePeer = kde.unpaired_candidate_count === 1 && kde.unpaired_candidate_id;
+    const nativesKde = kde.backend === "kdeconnect-native";
     if (kde.available) kdeBlock.append(el("p", "baum-zustand gut", _("KDE Connect phone paired.")));
     else if (neuerKdePeer && !kde.paired) {
       const name = kde.unpaired_candidate_name || _("Unknown phone");
@@ -18631,16 +20841,18 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
         }));
       else if (kde.reason === "pairing_mismatch") kdeBlock.append(
         el("p", "einst-warnung", _("The phone is reachable, but its KDE Connect trust no longer matches.")));
-    } else {
+    } else if (!nativesKde) {
       kdeBlock.append(knopf(_("Pair KDE Connect phone"), "", () => {
         Bruecke.sende({ cmd: "kde_pairing_start", kennung: "" });
       }), el("p", "einst-hinweis", _("Open KDE Connect on the phone and start pairing. Compare the eight-character verification key and confirm on both devices.")));
     }
-    const kdeStand = kde.listening ? _("Permanent KDE listener active")
+    const kdeStand = nativesKde
+      ? _("Native KDE Connect is used for SMS on already paired phones. Magnolie does not change KDE permissions.")
+      : kde.listening ? _("Permanent KDE listener active")
       : _("Permanent KDE listener stopped");
     const kdePort = kde.listen_port ? " · " + uebersetzt("KDE Connect port %(port)s",
       { port: kde.listen_port }) : "";
-    kdeBlock.append(el("p", kde.listening ? "baum-zustand gut" : "einst-warnung",
+    kdeBlock.append(el("p", (nativesKde ? kde.service_running : kde.listening) ? "baum-zustand gut" : "einst-warnung",
       kdeStand + kdePort));
     const gruende = {
       pyopenssl_missing: _("The permanent KDE listener cannot start because PyOpenSSL is unavailable."),
@@ -18653,7 +20865,11 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       kdeBlock.append(el("p", "einst-warnung", gruende[kde.reason]));
     }
     const empfang = DATEN.einstellungen.sync.kdeEmpfang;
-    const empfangMoeglich = !!kde.peer_id && kde.reason !== "udp_port_unavailable";
+    const empfangMoeglich = !nativesKde && !!kde.peer_id && kde.reason !== "udp_port_unavailable";
+    if (nativesKde) {
+      kdeBlock.append(el("p", "einst-hinweis", _("Native KDE Connect cannot enforce Magnolie approvals. Clipboard and file reception, incoming SMS/history and new pairing are unavailable. Magnolie Notes WLAN remains separate.")));
+      if (!kde.service_running) kdeBlock.append(el("p", "einst-warnung", _("Native KDE Connect is unavailable. Magnolie will not take over its network port.")));
+    }
     const empfangOption = (text, eigenschaft, automatikEigenschaft = "") => {
       const gruppe = el("div", "kde-empfang-option");
       const an = document.createElement("input"); an.type = "checkbox";
@@ -18732,9 +20948,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     });
     empfangOption(_("Transfer received text to the clipboard"), "zwischenablage",
       "zwischenablageAutomatisch");
-    if (kde.reason === "udp_port_unavailable") kdeBlock.append(el("p", "einst-hinweis",
-      _("A system KDE Connect service is active. Configure file and clipboard sharing there.")));
-    else if (!kde.peer_id) kdeBlock.append(el("p", "einst-hinweis",
+    if (!nativesKde && !kde.peer_id) kdeBlock.append(el("p", "einst-hinweis",
       _("Pair a KDE Connect phone before enabling receive functions.")));
     kdeAb.append(kdeBlock);
     wurzel.append(kdeAb);
@@ -19135,6 +21349,8 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
         "first, followed by local LibreOffice user data. If neither contains a location " +
         "and retrieval without one is allowed, wttr.in estimates the location from your " +
         "internet connection's public IP address.")));
+    wetterGruppe.append(el("p", "einst-hinweis",
+      _("Weather uses HTTPS first, then unencrypted HTTP if necessary. If wttr.in fails and a location is known, Open-Meteo is tried.")));
     ab.append(wetterGruppe);
 
     const definitionsGruppe = (id, titel, aktiv, aktivText) => {
@@ -20091,13 +22307,18 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
   /* Führt eine Gruppe zusammen: Der vollständigste Eintrag bleibt, leere
      Felder werden aus den übrigen ergänzt. */
   function fuehreZusammen(gruppe) {
-    const felder = ["nachname", "vorname", "firma", "email", "notiz", "foto",
+    const felder = ["nachname", "vorname", "anzeigename", "firma", "email", "notiz", "foto", "geburtstag", "jubilaeum",
       "kontaktpersonName", "kontaktpersonTelefon", "kontaktpersonStatus"];
     const gewicht = (k) => felder.filter((f) => (k[f] || "").trim()).length +
       Math.min(telefonListe(k).length, 3) + Math.min(anschriftListe(k).length, 3);
     const sortiert = gruppe.slice().sort((a, b) => gewicht(b) - gewicht(a));
     const bleibt = sortiert[0];
     for (const anderer of sortiert.slice(1)) {
+      for (const [feld, wert] of Object.entries(anderer)) {
+        if (wert !== undefined && bleibt[feld] === undefined) bleibt[feld] = kopie(wert);
+      }
+      bleibt.vcardRoundtrip = Array.from(new Set((bleibt.vcardRoundtrip || []).concat(anderer.vcardRoundtrip || [])));
+      bleibt.vcardParameter = Object.assign({}, anderer.vcardParameter || {}, bleibt.vcardParameter || {});
       for (const f of felder) {
         if (!(bleibt[f] || "").trim() && (anderer[f] || "").trim()) {
           bleibt[f] = anderer[f];
@@ -20183,11 +22404,6 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       planeSpeichern();
     });
     ab.append(formZeile(_("Your address"), absender));
-    ab.append(el("p", "einst-hinweis",
-      _("In the DIN template, these lines appear as a multiline sender block and " +
-        "in small type in the address window. In the compact template, they form " +
-        "one line above the recipient address. No sender is added if this field " +
-        "is empty.")));
 
     const holReihe = el("div", "knopfreihe");
     holReihe.append(knopf(_("Import from LibreOffice"), "", () => {
@@ -20219,15 +22435,18 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     ab.append(briefZeile);
 
     const briefLayout = auswahlFeld([
-      ["compact", _("Compact sender line (default)")],
-      ["din5008", _("DIN 5008 Form B with fold marks")]
-    ], a.briefLayout || "compact");
+      ["din5008-b", _("DIN 5008 Form B (default)")],
+      ["din5008-a", _("DIN 5008 Form A (27 mm letterhead)")],
+      ["compact", _("Compact sender line")],
+      ...(a.briefLayout === "din5008" ? [["din5008", _("DIN 5008 Form B with fold marks")]] : [])
+    ], a.briefLayout || "din5008-b");
     briefLayout.id = "adressen-brief-layout";
     ab.append(formZeile(_("Letter template"), briefLayout));
     ab.append(el("p", "einst-hinweis",
-      _("The DIN template positions the recipient address for a window envelope, " +
-        "shows your address as a multiline sender block, and adds two fold marks " +
-        "and a punch mark.")));
+      _("Form B reserves 45 mm for the letterhead; Form A reserves 27 mm. " +
+        "Both place the return line and recipient in the left-hand address field " +
+        "and add fold and punch marks. Check long addresses and envelope fit in " +
+        "print preview before printing at 100%.")));
 
     const karteHak = document.createElement("input");
     karteHak.type = "checkbox";
@@ -20332,13 +22551,13 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
           "a starting point.");
       routeHinweis.classList.toggle("warnt", !eigeneAnschriftTaugt());
     };
-    routeHak.addEventListener("change", routeWirkung);
+    routeHak.addEventListener("change", () => { a.routeFestgelegt = true; routeWirkung(); });
     absender.addEventListener("input", routeWirkung);
     setTimeout(routeWirkung, 0);
 
     const uebernehmen = () => {
       a.brief = briefHak.checked;
-      a.briefLayout = briefLayout.value === "compact" ? "compact" : "din5008";
+      a.briefLayout = briefLayout.value;
       a.karte = karteHak.checked;
       a.foto = fotoHak.checked;
       a.karten = kartenWahl.value;
@@ -20747,7 +22966,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
         "remain unchanged."));
 
     const artWahl = auswahlFeld([
-      ["regular", _("As usual (print)")],
+      ["regular", _("Regular typeface")],
       ["handwriting", _("Handwriting")]
     ], s.art);
     artWahl.id = "schrift-art";
@@ -20772,8 +22991,8 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     probe.id = "schrift-probe";
     const probeZeile = el("div", "obm", _("Dentist Dr. Hill — Preview of your entries"));
     const probeText = el("div", "notiz-probe");
-    probeText.innerHTML = _("This is how your notes look: " +
-      "<b>bold</b>, <i>italic</i>, <u>underlined</u> and <s>struck through</s>.");
+    probeText.innerHTML = saeubereHtml(_("This is how your notes look: " +
+      "<b>bold</b>, <i>italic</i>, <u>underlined</u> and <s>struck through</s>."));
     probe.append(probeZeile, probeText);
     ab.append(el("p", "einst-hinweis", _("Preview:")), probe);
 
@@ -20917,6 +23136,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       };
       wahl.addEventListener("change", () => {
         o.region = wahl.value;
+        o.setupFerienAbruf = false;
         o.regionName = wahl.options[wahl.selectedIndex].textContent;
         if (!wahl.value) o.regionName = "";
         if (wahl.value) {
@@ -20928,6 +23148,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       });
       alleHak.addEventListener("change", () => {
         o.alleRegionen = alleHak.checked;
+        o.setupFerienAbruf = false;
         wirkung();
         planeSpeichern();
       });
@@ -20945,6 +23166,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     landWahl.addEventListener("change", () => {
       const land = LAENDER.find((l) => l.code === landWahl.value);
       o.land = landWahl.value;
+      o.setupFerienAbruf = false;
       o.landName = land ? _(land.name) : "";
       o.region = "";
       o.regionName = "";
@@ -20978,7 +23200,9 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     ferienHak.checked = !!o.ferien;
     ferienHak.addEventListener("change", () => {
       o.ferien = ferienHak.checked;
+      if (!o.ferien) o.setupFerienAbruf = false;
       planeSpeichern();
+      zeichneAlles();
     });
     const ferienZeile = el("label", "hak");
     ferienZeile.append(ferienHak,
@@ -21062,6 +23286,10 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     }
     if (!o.land) { zettel(_("Select a country first.")); return; }
     const land = LAENDER.find((l) => l.code === o.land);
+    if (!land || (o.region && !land.regionen.some(([code]) => code === o.region))) {
+      zettel(_("School holidays are not available for this region."));
+      return;
+    }
     if (land && land.regionen.length && !o.region && !o.alleRegionen) {
       zettel(land.code === "CH"
         ? _("Select your canton first or enable “All cantons”.")
@@ -21070,6 +23298,8 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     }
     if (feiertageLaufen) return;
     feiertageLaufen = true;
+    feiertageAnfrage = { daten: DATEN, land: o.land, region: o.region, ferien: o.ferien,
+      alleRegionen: o.alleRegionen };
     const knopfFeld = $("#ort-abrufen");
     if (knopfFeld) knopfFeld.disabled = true;
     const stand = $("#ort-stand");
@@ -21173,12 +23403,13 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       ? { cmd: "import_lokal", ...(nurKontakte ? { bereich: "kontakte" } : {}),
         quelle: quelle === "thunderbird" ? "thunderbird" : "evolution" }
       : { cmd: "import", art: art });
-    if (["lokal", "vcf", "claws"].includes(art)) {
+    if (["lokal", "vcf", "claws", "ldif"].includes(art)) {
       mitMutationsSnapshot("pre-contact-import", senden);
     } else senden();
   }
 
   function starteExport(art) {
+    sichereNotizSnapshot();
     if (!Bruecke.vorhanden) {
       zettel(_("Export is available only in the installed application."));
       return;
@@ -21196,7 +23427,71 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     Bruecke.sende({ cmd: "export", art: art, daten: liste });
   }
 
+  function syncSammlungenAbgleichen(nutzlast) {
+    const basis = DATEN.syncAbgleichBasis;
+    if (nutzlast.requestId && (!basis || nutzlast.requestId !== basis.requestId)) return null;
+    if (!basis && nutzlast.transactionId && nutzlast.transactionId ===
+        ((DATEN.syncMetadaten || {}).nextcloud || {}).pendingCommitId) return null;
+    if (!basis) return nutzlast;
+    if (basis.syncEpoch !== DATEN.syncEpoch) return null;
+    for (const feld of ["termine", "aufgaben", "kontakte"]) {
+      const vorher = new Set((basis[feld] || []).map(item => item.uid));
+      const jetzt = new Set((DATEN[feld] || []).map(item => item.uid));
+      for (const item of nutzlast[feld] || []) {
+        if (!item.uid || !vorher.has(item.uid) || jetzt.has(item.uid) || !item.sync) continue;
+        let grab = DATEN.geloescht[feld].find(itemAlt => itemAlt.uid === item.uid);
+        if (!grab) {
+          grab = { uid: item.uid, zeit: Date.now(), syncKalenderUid: item.syncKalenderUid || "", syncQuellen: {} };
+          DATEN.geloescht[feld].push(grab);
+        }
+        // A create may have finished after local deletion. Keep its binding,
+        // but never advance an existing deletion's observed revision.
+        grab.syncQuellen = Object.assign({}, item.syncQuellen || {}, grab.syncQuellen || {});
+        if (!grab.syncKalenderUid && item.syncKalenderUid) grab.syncKalenderUid = item.syncKalenderUid;
+      }
+    }
+    DATEN.syncAbgleichNachweis = JSON.parse(JSON.stringify({
+      transactionId: nutzlast.transactionId || "",
+      termine: DATEN.termine, aufgaben: DATEN.aufgaben, kontakte: DATEN.kontakte,
+      jahrestage: DATEN.jahrestage, geloescht: DATEN.geloescht
+    }));
+    const gleich = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+    const schluessel = (item) => String(item.uid || item.id || "");
+    const abgleichen = (vorher, aktuell, fern) => {
+      const alt = new Map((vorher || []).map(item => [schluessel(item), item]));
+      const jetzt = new Map((aktuell || []).map(item => [schluessel(item), item]));
+      const ergebnis = [];
+      for (const item of fern || []) {
+        const key = schluessel(item), original = alt.get(key), lokal = jetzt.get(key);
+        if (original && !lokal) continue;
+        if (lokal && !gleich(original, lokal)) {
+          const neu = Object.assign({}, item);
+          for (const feld of new Set([...Object.keys(original || {}), ...Object.keys(lokal)])) {
+            if (gleich((original || {})[feld], lokal[feld])) continue;
+            if (Object.prototype.hasOwnProperty.call(lokal, feld)) neu[feld] = lokal[feld];
+            else delete neu[feld];
+          }
+          ergebnis.push(neu);
+        } else ergebnis.push(item);
+        jetzt.delete(key);
+      }
+      for (const [key, item] of jetzt) if (!gleich(alt.get(key), item)) ergebnis.push(item);
+      return ergebnis;
+    };
+    nutzlast = Object.assign({}, nutzlast);
+    for (const feld of ["termine", "aufgaben", "kontakte", "jahrestage"]) {
+      if (Array.isArray(nutzlast[feld])) nutzlast[feld] = abgleichen(basis[feld], DATEN[feld], nutzlast[feld]);
+    }
+    if (nutzlast.geloescht) {
+      nutzlast.geloescht = Object.assign({}, nutzlast.geloescht);
+      for (const feld of ["termine", "aufgaben", "kontakte"]) nutzlast.geloescht[feld] =
+        abgleichen((basis.geloescht || {})[feld], DATEN.geloescht[feld], nutzlast.geloescht[feld]);
+    }
+    return nutzlast;
+  }
+
   function starteSync(stumm) {
+    sichereNotizSnapshot();
     if (!Bruecke.vorhanden || syncLaeuft) return;
     const w = DATEN.einstellungen.sync;
     const kalenderUids = Array.from(new Set(
@@ -21208,19 +23503,25 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       }
       return;
     }
+    DATEN.syncAbgleichBasis = JSON.parse(JSON.stringify({
+      requestId: uid(),
+      termine: DATEN.termine, aufgaben: DATEN.aufgaben, kontakte: DATEN.kontakte,
+      jahrestage: DATEN.jahrestage, geloescht: DATEN.geloescht, syncEpoch: DATEN.syncEpoch
+    }));
     syncLaeuft = true;
     const syncKnopf = $("#sync-jetzt");
     if (syncKnopf) { syncKnopf.disabled = true; syncKnopf.textContent = _("Synchronizing …"); }
     const status = $("#sync-status");
     if (status) status.textContent = _("Synchronizing …");
     nachDauerhaftemSpeichern(() => {
-      const gesendet = Bruecke.sende({ cmd: "sync",
+      const gesendet = Bruecke.sende({ cmd: "sync", requestId: DATEN.syncAbgleichBasis.requestId,
         wahl: { kalenderUid: w.kalenderUid || kalenderUids[0] || "",
           kalenderUids: kalenderUids, adressbuchUid: w.adressbuchUid },
-        daten: { termine: DATEN.termine, aufgaben: DATEN.aufgaben, kontakte: DATEN.kontakte,
-          jahrestage: DATEN.jahrestage, geloescht: DATEN.geloescht,
+        daten: { termine: DATEN.syncAbgleichBasis.termine, aufgaben: DATEN.syncAbgleichBasis.aufgaben, kontakte: DATEN.syncAbgleichBasis.kontakte,
+          jahrestage: DATEN.syncAbgleichBasis.jahrestage, geloescht: DATEN.syncAbgleichBasis.geloescht,
           letzterSync: DATEN.letzterSync, letzteSyncs: DATEN.letzteSyncs,
           syncEpoch: DATEN.syncEpoch, syncMetadaten: DATEN.syncMetadaten,
+          syncNachRestore: DATEN.syncNachRestore,
           einstellungen: { sync: DATEN.einstellungen.sync } } });
       if (!gesendet) merkeSyncFehler(_("The synchronization request could not be sent."));
       else {
@@ -21302,18 +23603,23 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     if (k.uid) {
       const nachUid = indexe.uids.get(k.uid);
       if (nachUid) return nachUid;
+      if (String(k.uid).startsWith("thunderbird:")) return null;
     }
+    const vereinbar = (treffer) => treffer &&
+      !(k.uid && treffer.uid && k.uid !== treffer.uid) &&
+      !["vorname", "nachname"].some((feld) => k[feld] && treffer[feld] &&
+        kanonischerText(k[feld]) !== kanonischerText(treffer[feld]));
     const mailTreffer = new Set(emailListe(k).map(
       (wert) => indexe.mails.get(kanonischerText(wert)))
-      .filter(Boolean));
+      .filter(vereinbar));
     if (mailTreffer.size === 1) return Array.from(mailTreffer)[0];
     const telefonTreffer = new Set(kontaktTelefone(k).map(
-      (wert) => indexe.telefone.get(wert)).filter(Boolean));
+      (wert) => indexe.telefone.get(wert)).filter(vereinbar));
     if (telefonTreffer.size === 1) return Array.from(telefonTreffer)[0];
     return null;
   }
 
-  function mergeTermine(liste) {
+  function mergeTermine(liste, normalisiert = false) {
     const z = { neu: 0, doppelt: 0 };
     const importKennung = (eintrag, wert) => {
       const quelle = String(eintrag.icsQuelleId || "");
@@ -21321,10 +23627,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     };
     const uids = new Map(DATEN.termine.filter((t) => t.uid)
       .map((t) => [importKennung(t, t.uid), t]));
-    for (const rohTermin of liste || []) {
-      if (!rohTermin || !gueltigesISO(rohTermin.datum)) continue;
-      const t = normalisiere({ termine: [rohTermin] }).termine[0];
-      if (!t) continue;
+    for (const t of normalisiert ? liste : normalisiereTermine(liste, false)) {
       const endDatum = gueltigesISO(t.endDatum) && t.endDatum > t.datum
         ? t.endDatum : "";
       const uidTreffer = t.uid ? uids.get(importKennung(t, t.uid)) : null;
@@ -21334,9 +23637,9 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
           Object.assign(uidTreffer, t, { id: id, uid: t.uid,
             endDatum: endDatum, wiederholung: leseWiederholung(t.wiederholung),
             icsKomplex: !!t.icsKomplex, icsSerienUid: String(t.icsSerienUid || ""),
-            icsAusnahmen: Array.isArray(t.icsAusnahmen) ? t.icsAusnahmen.slice(0, 256) : [],
-            icsZusatzDaten: Array.isArray(t.icsZusatzDaten) ? t.icsZusatzDaten.slice(0, 256) : [],
-            icsZusatzTermine: Array.isArray(t.icsZusatzTermine) ? t.icsZusatzTermine.slice(0, 256) : [],
+            icsAusnahmen: Array.isArray(t.icsAusnahmen) ? kopie(t.icsAusnahmen) : [],
+            icsZusatzDaten: Array.isArray(t.icsZusatzDaten) ? kopie(t.icsZusatzDaten) : [],
+            icsZusatzTermine: Array.isArray(t.icsZusatzTermine) ? kopie(t.icsZusatzTermine) : [],
             icsRoundtrip: Array.isArray(t.icsRoundtrip) ? t.icsRoundtrip.slice() : [],
             icsReadOnly: !!t.icsReadOnly,
             icsReadOnlyGrund: String(t.icsReadOnlyGrund || ""),
@@ -21348,7 +23651,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
         } else z.doppelt++;
         continue;
       }
-      DATEN.termine.push({ id: uid(), uid: t.uid || syncUid(), datum: t.datum,
+      DATEN.termine.push({ ...kopie(t), id: uid(), uid: t.uid || syncUid(), datum: t.datum,
         endDatum: endDatum,
         zeit: t.zeit || "", endZeit: t.endZeit || "",
         titel: String(t.titel || _("Untitled appointment")), notiz: String(t.notiz || ""),
@@ -21366,9 +23669,9 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
         wiederholung: leseWiederholung(t.wiederholung),
         icsKomplex: !!t.icsKomplex,
         icsSerienUid: String(t.icsSerienUid || ""),
-        icsAusnahmen: Array.isArray(t.icsAusnahmen) ? t.icsAusnahmen.slice(0, 256) : [],
-        icsZusatzDaten: Array.isArray(t.icsZusatzDaten) ? t.icsZusatzDaten.slice(0, 256) : [],
-        icsZusatzTermine: Array.isArray(t.icsZusatzTermine) ? t.icsZusatzTermine.slice(0, 256) : [],
+        icsAusnahmen: Array.isArray(t.icsAusnahmen) ? kopie(t.icsAusnahmen) : [],
+        icsZusatzDaten: Array.isArray(t.icsZusatzDaten) ? kopie(t.icsZusatzDaten) : [],
+        icsZusatzTermine: Array.isArray(t.icsZusatzTermine) ? kopie(t.icsZusatzTermine) : [],
         icsRoundtrip: Array.isArray(t.icsRoundtrip) ? t.icsRoundtrip.slice() : [],
         icsReadOnly: !!t.icsReadOnly,
         icsReadOnlyGrund: String(t.icsReadOnlyGrund || ""),
@@ -21419,7 +23722,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
         } else z.doppelt++;
         continue;
       }
-      DATEN.jahrestage.push({ id: uid(), uid: j.uid || syncUid(),
+      DATEN.jahrestage.push({ ...kopie(j), id: uid(), uid: j.uid || syncUid(),
         name: String(j.name), datum: datum,
         jahrUnbekannt: gueltigesTeildatum(datum),
         typ: typId, icsSerienUid: String(j.icsSerienUid || ""),
@@ -21436,27 +23739,73 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     return z;
   }
 
+  function aufgabenInstanzEnde(a) {
+    const rid = (a.icsRoundtrip || []).find(line => /^RECURRENCE-ID[;:]/i.test(line));
+    if (!rid) return "";
+    const nativeSuffix = String(a.icsImportUid || a.uid || "").match(/-magnolie-instanz-[0-9a-f]{16}$/);
+    return nativeSuffix ? nativeSuffix[0] : "#" + (icsEigenschaft(rid)?.wert || "");
+  }
+
+  function aufgabenSerienUid(a) {
+    const serie = String(a.icsSerienUid || ""), original = String(a.icsImportUid || "");
+    if (!serie || !original) return serie;
+    const ende = aufgabenInstanzEnde(a);
+    const basis = ende && original.endsWith(ende) ? original.slice(0, -ende.length) : original;
+    const lokal = a.icsQuelleId ? stabileAufgabenUid(a.icsQuelleId + "\u0000" + basis) : basis;
+    const alteInstanz = a.icsQuelleId ? stabileAufgabenUid(a.icsQuelleId + "\u0000" + original) : original;
+    // Repair only the provable pre-release graph/series conflation, never a UID prefix.
+    return [lokal, alteInstanz].includes(serie) && [lokal, lokal + ende, alteInstanz].includes(a.uid)
+      ? basis : serie;
+  }
+
+  function aufgabenExterneUid(a) {
+    return aufgabenSerienUid(a) || String(a.icsImportUid || a.uid || "");
+  }
+
   function mergeAufgaben(liste) {
     const z = { neu: 0, doppelt: 0 };
-    const uids = new Map(DATEN.aufgaben.filter((a) => a.uid).map((a) => [a.uid, a]));
+    // Keep source UIDs for reimports while qualifying the internal task graph.
+    const kennung = (a) => {
+      const rid = icsEigenschaft((a.icsRoundtrip || []).find(line => /^RECURRENCE-ID[;:]/i.test(line)) || "");
+      return JSON.stringify([a.icsQuelleId || "", aufgabenExterneUid(a), rid?.wert || "",
+        rid ? rid.params.VALUE || (rid.wert.length === 8 ? "DATE" : "DATE-TIME") : "", rid?.params.TZID || ""]);
+    };
+    const importUid = (a, wert) => {
+      if (!a.icsQuelleId || !wert) return wert;
+      const ende = aufgabenInstanzEnde(a);
+      return ende && wert.endsWith(ende)
+        ? stabileAufgabenUid(a.icsQuelleId + "\u0000" + wert.slice(0, -ende.length)) + ende
+        : stabileAufgabenUid(a.icsQuelleId + "\u0000" + wert);
+    };
+    const uids = new Map(DATEN.aufgaben.filter((a) => a.uid).map((a) => [kennung(a), a]));
+    const elternUid = (a) => {
+      const raw = String(a.icsElternUid ?? a.elternUid ?? "");
+      if (a.icsImportUid && a.icsElternUid === undefined) return raw;
+      const parent = { uid: raw, icsQuelleId: a.icsElternQuelleId ?? a.icsQuelleId };
+      return uids.get(kennung(parent))?.uid || importUid(parent, raw);
+    };
     const schluessel = new Set(DATEN.aufgaben.map(
       (a) => kanonischerText(a.titel) + "|" + (a.faellig || "")));
     for (const a of liste || []) {
       if (!a || !a.titel) continue;
       const s = kanonischerText(a.titel) + "|" +
         (gueltigesISO(a.faellig) ? a.faellig : "");
-      const uidTreffer = a.uid ? uids.get(a.uid) : null;
+      const uidTreffer = a.uid ? uids.get(kennung(a)) : null;
       if (uidTreffer) {
         if ((Number(a.geaendert) || 0) > (Number(uidTreffer.geaendert) || 0)) {
-          Object.assign(uidTreffer, a, { id: uidTreffer.id, uid: a.uid,
-            elternUid: String(a.elternUid || ""),
+          Object.assign(uidTreffer, a, { id: uidTreffer.id, uid: uidTreffer.uid,
+            icsImportUid: String(a.icsImportUid || a.uid || ""),
+            icsSerienUid: aufgabenSerienUid(a),
+            icsElternUid: a.icsElternUid ?? (a.icsImportUid ? uidTreffer.icsElternUid : String(a.elternUid || "")),
+            icsElternQuelleId: a.icsElternQuelleId ?? a.icsQuelleId ?? "",
+            elternUid: elternUid(a),
             reihenfolge: Math.max(0, Math.floor(Number(a.reihenfolge) || 0)),
             erinnern: !!a.erinnern,
             individuelleErinnerungTage: Number(a.individuelleErinnerungTage) || 0,
             icsRoundtrip: Array.isArray(a.icsRoundtrip) ? a.icsRoundtrip.slice() : [],
             icsQuelleName: String(a.icsQuelleName || ""),
             icsQuelleId: String(a.icsQuelleId || ""),
-            sync: false });
+            sync: a.sync === undefined ? !!uidTreffer.sync : !!a.sync });
           z.neu++;
         } else z.doppelt++;
         continue;
@@ -21464,20 +23813,30 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       if (!a.uid && schluessel.has(s)) { z.doppelt++; continue; }
       let prio = Number(a.prio);
       if (![1, 2, 3].includes(prio)) prio = 2;
-      DATEN.aufgaben.push({ id: uid(), uid: String(a.uid || ""),
-        elternUid: String(a.elternUid || ""),
+      DATEN.aufgaben.push({ ...kopie(a), id: uid(), uid: importUid(a, String(a.icsImportUid || a.uid || "")),
+        icsImportUid: String(a.icsImportUid || a.uid || ""),
+        icsElternUid: a.icsElternUid ?? (a.icsImportUid ? undefined : String(a.elternUid || "")),
+        icsElternQuelleId: a.icsElternQuelleId ?? a.icsQuelleId ?? "",
+        elternUid: elternUid(a),
         reihenfolge: Math.max(0, Math.floor(Number(a.reihenfolge) || 0)),
         titel: String(a.titel), prio: prio,
         faellig: gueltigesISO(a.faellig) ? a.faellig : "",
+        startDatum: gueltigesISO(a.startDatum) ? a.startDatum : "",
+        startZeit: String(a.startZeit || "").slice(0, 5), faelligZeit: String(a.faelligZeit || "").slice(0, 5),
         erledigt: !!a.erledigt, notiz: String(a.notiz || ""),
         erinnern: !!a.erinnern,
         individuelleErinnerungTage: Number(a.individuelleErinnerungTage) || 0,
         icsRoundtrip: Array.isArray(a.icsRoundtrip) ? a.icsRoundtrip.slice() : [],
         icsQuelleName: String(a.icsQuelleName || ""),
         icsQuelleId: String(a.icsQuelleId || ""),
-        geaendert: Number(a.geaendert) || Date.now(), sync: false });
+        syncKalenderUid: String(a.syncKalenderUid || ""),
+        syncQuellen: a.syncQuellen && typeof a.syncQuellen === "object" ? kopie(a.syncQuellen) : {},
+        geaendert: Number(a.geaendert) || Date.now(), sync: !!a.sync,
+        icsSerienUid: aufgabenSerienUid(a), icsRangeOverrides: kopie(a.icsRangeOverrides || []),
+        icsAusnahmeTermine: kopie(a.icsAusnahmeTermine || []), icsAusnahmen: kopie(a.icsAusnahmen || []),
+        icsTimezones: kopie(a.icsTimezones || []) });
       schluessel.add(s);
-      if (a.uid) uids.set(a.uid, DATEN.aufgaben[DATEN.aufgaben.length - 1]);
+      if (a.uid) uids.set(kennung(a), DATEN.aufgaben[DATEN.aufgaben.length - 1]);
       z.neu++;
     }
     normalisiereAufgabenGraph(DATEN.aufgaben);
@@ -21527,18 +23886,33 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
         let geaendert = false;
         const neuereUidFassung = !!k.uid && k.uid === vorhanden.uid &&
           (Number(k.geaendert) || 0) > (Number(vorhanden.geaendert) || 0);
+        const strukturierterName = Array.isArray(k.vcardRoundtrip) && k.vcardRoundtrip.some(zeile => /^(?:[^:;.]+\.)?N[;:]/i.test(zeile));
+        const namensArt = (s) => String(s).match(/^(?:[^:;.]+\.)?(N|FN|ORG)[;:]/i)?.[1].toUpperCase() || "";
+        const ersetzteNamen = new Set(neuereUidFassung ? (k.vcardRoundtrip || []).map(namensArt).filter(Boolean) : []);
         if (foto && (!vorhanden.foto || neuereUidFassung)) {
           vorhanden.foto = foto;
           z.fotos++;
           geaendert = true;
         }
-        for (const feld of ["nachname", "vorname", "firma", "kontaktpersonName",
+        for (const feld of ["nachname", "vorname", "anzeigename", "firma", "kontaktpersonName",
           "kontaktpersonTelefon", "kontaktpersonStatus"]) {
-          if ((!String(vorhanden[feld] || "").trim() || neuereUidFassung) && String(k[feld] || "").trim()) {
+          if (typeof k[feld] === "string" &&
+              ((!String(vorhanden[feld] || "").trim() || neuereUidFassung) && k[feld].trim() ||
+               neuereUidFassung && strukturierterName && ["vorname", "nachname"].includes(feld) ||
+               neuereUidFassung && feld === "anzeigename" && ersetzteNamen.has("FN"))) {
             vorhanden[feld] = String(k[feld]);
             geaendert = true;
           }
         }
+        // Preserve native name/roundtrip fields not editable by this form.
+        for (const [feld, wert] of Object.entries(k)) {
+          if (wert !== undefined && vorhanden[feld] === undefined) { vorhanden[feld] = kopie(wert); geaendert = true; }
+        }
+        const roundtrip = Array.from(new Set((vorhanden.vcardRoundtrip || [])
+          .filter((s) => !ersetzteNamen.has(namensArt(s))).concat(k.vcardRoundtrip || [])));
+        if (JSON.stringify(roundtrip) !== JSON.stringify(vorhanden.vcardRoundtrip || [])) geaendert = true;
+        vorhanden.vcardRoundtrip = roundtrip;
+        vorhanden.vcardParameter = Object.assign({}, vorhanden.vcardParameter || {}, k.vcardParameter || {});
         const neueNotiz = String(k.notiz || "").trim();
         if (neueNotiz && !String(vorhanden.notiz || "").includes(neueNotiz)) {
           vorhanden.notiz = (String(vorhanden.notiz || "").trim() + "\n" + neueNotiz).trim();
@@ -21569,9 +23943,15 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
           geaendert = true;
         }
         if (!vorhanden.sync && k.uid) vorhanden.uid = String(k.uid);
-        if (!vorhanden.geburtstag && importGeburtstag) {
+        if ((!vorhanden.geburtstag || neuereUidFassung) && importGeburtstag) {
           vorhanden.geburtstag = importGeburtstag;
           vorhanden.geburtstagJahrUnbekannt = gueltigesTeildatum(importGeburtstag);
+          geaendert = true;
+        }
+        const importJubilaeum = kanonischesJahresdatum(String(k.jubilaeum || ""),
+          String(k.jubilaeum || "").startsWith("--"));
+        if ((!vorhanden.jubilaeum || neuereUidFassung) && importJubilaeum) {
+          vorhanden.jubilaeum = importJubilaeum;
           geaendert = true;
         }
         vorhanden.importBindungen = Array.from(new Set((vorhanden.importBindungen || [])
@@ -21582,13 +23962,14 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
         if (geaendert) vorhanden.geaendert = Math.max(
           Number(vorhanden.geaendert) || 0, Number(k.geaendert) || Date.now());
         verknuepfeKontaktGeburtstag(vorhanden);
+        verknuepfeKontaktJubilaeum(vorhanden);
         indexiereKontakt(indexe, vorhanden);
         z.doppelt++;
         continue;
       }
       const emailEintraege = emailEintragListe(k);
       const emails = emailEintraege.map((eintrag) => eintrag.wert);
-      const neu = { id: uid(), uid: k.uid || syncUid(),
+      const neu = { ...kopie(k), id: uid(), uid: k.uid || syncUid(),
         nachname: String(k.nachname || ""), vorname: String(k.vorname || ""),
         firma: String(k.firma || ""), strasse: String(k.strasse || ""),
         plz: String(k.plz || ""), ort: String(k.ort || ""),
@@ -21600,6 +23981,8 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
         kontaktpersonStatus: String(k.kontaktpersonStatus || ""),
         foto: sauberesFoto(k.foto),
         geburtstag: importGeburtstag,
+        jubilaeum: kanonischesJahresdatum(String(k.jubilaeum || ""),
+          String(k.jubilaeum || "").startsWith("--")),
         geburtstagJahrUnbekannt: gueltigesTeildatum(importGeburtstag),
         importBindungen: (k.importBindungen || []).slice(-32),
         importHerkunfte: (k.importHerkunfte || []).slice(0, 16),
@@ -21611,6 +23994,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       setzeSozialeMedien(neu, sozialeMedienListe(k));
       DATEN.kontakte.push(neu);
       verknuepfeKontaktGeburtstag(neu);
+      verknuepfeKontaktJubilaeum(neu);
       indexiereKontakt(indexe, neu);
       z.neu++;
     }
@@ -21619,7 +24003,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
 
   function verknuepfeKontaktGeburtstag(kontakt) {
     if (!kontakt || !gueltigesJahresdatum(kontakt.geburtstag)) return;
-    const name = [kontakt.vorname, kontakt.nachname].filter(Boolean).join(" ") || kontakt.firma;
+    const name = kontakt.anzeigename || [kontakt.vorname, kontakt.nachname].filter(Boolean).join(" ") || kontakt.firma;
     let eintrag = DATEN.jahrestage.find((j) => j.kontaktId === kontakt.id &&
       jahrestagTypId(j.typ) === "birthday");
     if (!eintrag) {
@@ -21631,6 +24015,22 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       eintrag.datum = kontakt.geburtstag;
     }
     eintrag.jahrUnbekannt = gueltigesTeildatum(kontakt.geburtstag);
+  }
+
+  function verknuepfeKontaktJubilaeum(kontakt) {
+    if (!kontakt || !gueltigesJahresdatum(kontakt.jubilaeum)) return;
+    const name = kontakt.anzeigename || [kontakt.vorname, kontakt.nachname].filter(Boolean).join(" ") || kontakt.firma;
+    let eintrag = DATEN.jahrestage.find((j) => j.kontaktId === kontakt.id &&
+      jahrestagTypId(j.typ) === "anniversary");
+    if (!eintrag) {
+      eintrag = { id: uid(), uid: "", kontaktId: kontakt.id, name: name,
+        datum: kontakt.jubilaeum, typ: "anniversary" };
+      DATEN.jahrestage.push(eintrag);
+    } else {
+      eintrag.name = name;
+      eintrag.datum = kontakt.jubilaeum;
+    }
+    eintrag.jahrUnbekannt = gueltigesTeildatum(kontakt.jubilaeum);
   }
 
   /* ---------------------------------------------------------------------- */
@@ -21915,6 +24315,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
   /* ---------------------------------------------------------------------- */
 
   function oeffneBuch() {
+    if (!initialisiert || gesperrt) return;
     const buch = $("#buch");
     if (!buch.classList.contains("geschlossen")) return;
     buch.classList.remove("geschlossen");
@@ -22220,11 +24621,25 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       if (window.MagnolieI18n && nutzlast.regional) {
         window.MagnolieI18n.setLocale(nutzlast.regional.language || "de");
       }
+      if (nutzlast.ladeFehler) {
+        gesperrt = true;
+        initialisiert = false;
+        verwerfeSpeichernNachRestore();
+        DATEN = leereDaten();
+        letzterSpeicherText = null;
+        schliesseSperrbildschirm();
+        aktualisiereModalEbenen();
+        setzeSpeicherStatus(String(nutzlast.ladeFehler), false);
+        frage(String(nutzlast.ladeFehler), _("Refresh"), _("Close"))
+          .then((erneut) => Bruecke.sende({ cmd: erneut ? "bereit" : "beenden" }));
+        return;
+      }
       if (nutzlast.gesperrt) {
         /* Verschlüsselte Daten: Erst nach dem Entsperren geht es weiter.
            Auf keinen Fall darf hier ein leeres Buch aufgeschlagen werden –
            es würde beim nächsten Speichern die Daten überschreiben. */
         gesperrt = true;
+        verwerfeSpeichernNachRestore();
         /* Hinter der Sperre bleibt auch im Arbeitsspeicher nichts liegen. */
         DATEN = leereDaten();
         terminIndexVeraltet = true;
@@ -22235,6 +24650,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       }
       gesperrt = false;
       schliesseSperrbildschirm();
+      setzeSpeicherStatus("", true);
       kennwortAn = !!nutzlast.kennwort;
       unterWayland = !!nutzlast.wayland;
       const edsZeigerBereinigt = Array.isArray(nutzlast.daten && nutzlast.daten.kontakte) &&
@@ -22272,6 +24688,8 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
         DATEN.notizen.push(willkommensNotiz());
       }
       initialisiert = true;
+      setTimeout(starteSetupFerienAbruf, 0);
+      aktualisiereModalEbenen();
       if (edsZeigerBereinigt || papierkorbBereinigt) planeSpeichern();
       zustand.kalender.ansicht = DATEN.einstellungen.ansicht;
       wendeSchriftAn();
@@ -22382,6 +24800,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     },
     telefonStand(nutzlast) {
       telefonStand = nutzlast || null;
+      zeichneGeraeteKennungen();
       pruefeSmsPlanung();
       const kdeEmpfang = DATEN.einstellungen.sync.kdeEmpfang;
       const kdePeerId = telefonStand && telefonStand.kdeconnect &&
@@ -22402,6 +24821,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
         const lokal = peer && peer.local_grants && peer.local_grants.grants || {};
         const fern = peer && peer.grants && peer.grants.grants || {};
         const bestaetigt = peer && peer.remote_own_device &&
+          (!peer.custom_sync?.local?.enabled || peer.custom_sync?.remote?.enabled) &&
           ((!lokal.personal_notes_sync || fern.personal_notes_sync) &&
            (!lokal.personal_tasks_sync || fern.personal_tasks_sync));
         if (peer) anzeige.textContent = !bestaetigt ? _("Waiting for consent on the other device.") :
@@ -22410,6 +24830,18 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
             ? _("Deletion proposals are pending manual review.") :
             peer.personal_sync_report && peer.personal_sync_report.state
               ? String(peer.personal_sync_report.state) : _("Deletions are not synchronized yet.");
+      });
+      document.querySelectorAll("[data-personal-custom-peer], [data-personal-custom-note]").forEach((node) => {
+        const id = node.dataset.personalCustomPeer || node.dataset.personalCustomNote;
+        const peer = (telefonStand?.peers || []).find((p) => p.device_id === id);
+        const supported = peer?.capabilities?.items?.personal_tasks_sync?.available === true &&
+          (peer.capabilities.items.personal_tasks_sync.versions || []).includes(4);
+        if (node.dataset.personalCustomPeer) {
+          node.disabled = !supported; node.checked = peer?.custom_sync?.local?.enabled === true;
+          node.parentElement.lastChild.textContent = " " + personalCustomBeschriftung();
+        } else node.textContent = supported
+          ? _("Both devices must opt in. Turning this off pauses reminders and updates from the custom tab but keeps copies. Linked text blocks are not shared.")
+          : _("This device does not support synchronization of the custom tab.");
       });
       const vorhandene = new Set();
       for (const peer of (telefonStand && telefonStand.peers || [])) {
@@ -22464,6 +24896,11 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       if (telefonGeaendert && einstSeite === "baum" &&
           !$("#einstellungen-schleier").classList.contains("verborgen")) baueEinstellungen();
     },
+    personalCustomRequest(nutzlast) {
+      const peer = (telefonStand?.peers || []).find((p) => p.device_id === nutzlast.device_id);
+      if (peer) personalCustomSenden(peer, nutzlast.trigger, true).catch(() => App.personalSyncFehler({}));
+    },
+    personalCustomAck(nutzlast) { personalCustomBestaetigt(nutzlast).catch(() => App.personalSyncFehler({})); },
     personalSync(nutzlast) {
       nutzlast = nutzlast || {};
       const body = nutzlast.body || {}, kind = nutzlast.kind || "";
@@ -22478,7 +24915,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
         if (body.state === "complete" && body.trigger === "auto_wifi") {
           DATEN.personalSync.last_auto_ms = Date.now();
           const vorbereitet = personalSyncAutoHash.get(body.run_id);
-          if (vorbereitet) personalSyncSnapshot(vorbereitet.modules).then(personalSyncHash).then((hash) => {
+          if (vorbereitet) personalSyncSnapshot(vorbereitet.modules, vorbereitet.format, vorbereitet.peerId).then(personalSyncHash).then((hash) => {
             DATEN.personalSync.last_auto_hash = hash; planeSpeichern();
           }).catch(() => {});
           personalSyncAutoHash.delete(body.run_id);
@@ -22521,25 +24958,26 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
         App.personalSyncFehler({ fehler: "Personal-Sync-Request fehlt." }); return;
       }
       if (kind === "personal_sync.batch" && DATEN.personalSync.applied_batches.includes(nutzlast.commit_token)) {
-        Bruecke.sende({ cmd: "telefon_personal_sync_commit", kennung: nutzlast.device_id,
-          messageId: nutzlast.pending_message_id, token: nutzlast.commit_token, erfolgreich: true });
+        nachDauerhaftemSpeichern(() => Bruecke.sende({ cmd: "telefon_personal_sync_commit", kennung: nutzlast.device_id,
+          messageId: nutzlast.pending_message_id, token: nutzlast.commit_token, erfolgreich: true }));
         return;
       }
-      const arbeit = kind === "personal_sync.batch" ? personalSyncAnwenden(body.records || [], body.attachment_data || {})
+      const format = [1, 2, 3].includes(body.format) ? body.format : 1;
+      const arbeit = kind === "personal_sync.batch" ? personalSyncBatchKette.then(() => personalSyncAnwenden(body.records || [], body.attachment_data || {}, format, peer.device_id, modules))
         : Promise.resolve({ conflicts: 0, attachments: 0 });
-      arbeit.then(async (ergebnis) => {
+      const batchArbeit = arbeit.then(async (ergebnis) => {
         const antwort = kind === "personal_sync.batch" && body.reply === false;
-        const format = body.format === 2 ? 2 : 1;
-        const records = antwort ? await personalSyncSnapshot(modules, format) : [];
-        const responseChunks = antwort ? personalSyncPakete(records, body.run_id, true) : [];
-        const aggregate = antwort && format === 2 ? await personalSyncHash(responseChunks.flat()) : "";
+        const records = antwort ? await personalSyncSnapshot(modules, format, peer.device_id) : [];
+        const responseChunks = antwort ? personalSyncPakete(records, body.run_id, true, format) : [];
+        const aggregate = antwort && format >= 2 ? await personalSyncHash(responseChunks.flat()) : "";
         if (kind === "personal_sync.batch") JSON.stringify(DATEN);
-        DATEN.personalSync.applied_batches.push(nutzlast.commit_token);
+        if (!DATEN.personalSync.applied_batches.includes(nutzlast.commit_token)) DATEN.personalSync.applied_batches.push(nutzlast.commit_token);
         DATEN.personalSync.applied_batches = DATEN.personalSync.applied_batches.slice(-500);
         Object.values(DATEN.personalSync.entities).forEach((meta) => {
           if (meta.state !== "deleted") { meta.peer_device_id = peer.device_id; meta.acknowledged_by_peer = true; }
         });
-        nachDauerhaftemSpeichern(() => {
+        await new Promise((resolve, reject) => nachDauerhaftemSpeichern(resolve, reject));
+        {
           const sentRecords = responseChunks.flat();
           const localAttachments = sentRecords.filter((x) => x.kind === "note").reduce((sum, record) => {
             const note = DATEN.notizen.find((x) => x.id === record.id);
@@ -22571,18 +25009,18 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
                   tasks: DATEN.papierkorb.filter((x) => x.art === "task").length,
                   notebooks: DATEN.papierkorb.filter((x) => x.art === "notebook").length,
                   attachments: DATEN.papierkorb.filter((x) => x.art === "attachment").length } },
-              attachments: format === 2 ? { declared: (records.attachmentSources || []).length,
+              attachments: format >= 2 ? { declared: (records.attachmentSources || []).length,
                 requested: Object.keys(body.attachment_data || {}).length, sent: (records.attachmentSources || []).length,
                 received: Object.keys(body.attachment_data || {}).length, reused: 0, preserved: localAttachments,
                 failed: 0, bytes: (records.attachmentSources || []).reduce((sum, item) => {
                   const match = /^data:[^,]+,([A-Za-z0-9+/=]+)$/.exec(item.data); return sum + (match ? Math.floor(match[1].length * 3 / 4) : 0);
                 }, 0) } : undefined };
-          if (antwort && format === 2) {
-            const batches = responseChunks.map((teil, sequence) => ({ format: 2, run_id: body.run_id,
+          if (antwort && format >= 2) {
+            const batches = responseChunks.map((teil, sequence) => ({ format: format, run_id: body.run_id,
               batch_id: crypto.randomUUID(), sequence: sequence, last: sequence === responseChunks.length - 1,
               reply: true, records_hash: aggregate, records: teil }));
             Bruecke.sende({ cmd: "personal_sync_lauf_senden", kennung: peer.device_id,
-              request: { format: 2, run_id: body.run_id,
+              request: { format: format, run_id: body.run_id,
                 trigger: report.trigger, modules: modules }, batches: batches,
               sources: (records.attachmentSources || []).filter((source) => sentRecords.some((record) =>
                 record.kind === "note" && record.value.attachments.some((item) => item.sha256 === source.sha256))),
@@ -22598,9 +25036,11 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
               kennung: nutzlast.device_id, messageId: nutzlast.pending_message_id,
               token: nutzlast.commit_token, erfolgreich: true });
           }
-          zeichneAlles(); zettel(_("Personal synchronization complete. Deletions are not synchronized yet."));
-        });
+          if (!editorIstGeaendert()) zeichneAlles();
+          zettel(_("Personal synchronization complete. Deletions are not synchronized yet."));
+        }
       }).catch((fehler) => App.personalSyncFehler({ fehler: String(fehler.message || fehler) }));
+      if (kind === "personal_sync.batch") personalSyncBatchKette = batchArbeit;
     },
     personalSyncFehler(nutzlast) {
       zettel((nutzlast || {}).fehler || _("Personal synchronization failed."));
@@ -22791,6 +25231,11 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       Bruecke.sende({ cmd: "telefon_meldung_anzeigen", app: app,
         titel: titel, text: String(nutzlast.text || "") });
     },
+    telefonAnrufAudio(nutzlast) {
+      if (telefonStand) telefonStand.call_audio = nutzlast || {};
+      const status = $("#anruf-audio-status");
+      if (status) status.textContent = anrufAudioHinweis(nutzlast, aktiverAnruf);
+    },
     telefonEingehenderAnruf(nutzlast) {
       nutzlast = nutzlast || {};
       const optionen = DATEN.einstellungen.adressen.kommunikation.anruf || {};
@@ -22807,24 +25252,22 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       const local = peer && peer.local_grants && peer.local_grants.grants;
       if (!peer || !capability || !capability.available || !capability.versions ||
           !capability.versions.includes(2) || !local || !local.incoming_call_state) return;
-      if (["ringing", "offhook", "idle"].includes(nutzlast.state)) Bruecke.sende({
-        cmd: "telefon_anruf_bluetooth", callRef: nutzlast.call_ref, state: nutzlast.state,
-        hfpAdresse: optionen.hfpAdresse || "" });
+      if (!neuesAnrufEreignis(nutzlast)) return;
       const nummer = nutzlast.number_status === "available" ? nutzlast.number : "";
       const kontakt = anrufKontakt(nummer, nutzlast.phone_e164 || nutzlast.normalized_number);
       const name = kontakt ? kontaktName(kontakt) : (nummer || _("Unknown caller"));
       if (nutzlast.direction === "incoming" && nutzlast.state === "ringing")
         verwerfeAnrufDialog(nutzlast.call_ref, nutzlast.device_id);
-      if (nutzlast.direction === "incoming" && nutzlast.state === "ringing") Bruecke.sende({ cmd: "telefon_anruf_anzeigen", kennung: nutzlast.device_id,
+      if (nutzlast.direction === "incoming" && nutzlast.state === "ringing" && nutzlast.notify !== false) Bruecke.sende({ cmd: "telefon_anruf_anzeigen", kennung: nutzlast.device_id,
           callRef: nutzlast.call_ref, revision: nutzlast.revision, state: nutzlast.state,
           name: name, nummer: nummer,
           foto: kontakt && new RegExp(
             "^data:image/(?:png|jpeg|webp);base64,[A-Za-z0-9+/=]+$").test(kontakt.foto || "")
-            ? kontakt.foto : "", stil: DATEN.einstellungen.erinnerung.stil, dauer: 60,
-          annehmen: !!optionen.computerTelefonie &&
-            !!(peer.capabilities.items.answer_call && peer.capabilities.items.answer_call.available &&
-               peer.grants && peer.grants.grants && peer.grants.grants.answer_call && local.answer_call),
+            ? kontakt.foto : "", stil: "magnolie", dauer: 60,
+          annehmen: !!optionen.computerTelefonie,
           leiser: !!optionen.klingeltonLeiser });
+      // Incoming ringing uses the native compact alert, including while hidden in the tray.
+      if (nutzlast.direction === "incoming" && nutzlast.state === "ringing") return;
       if (nutzlast.state !== "ringing") Bruecke.sende({ cmd: "telefon_anruf_lautstaerke_wiederherstellen",
         callRef: nutzlast.call_ref });
       if (!ausgehendZugeordnet && nutzlast.control_origin !== "desktop" &&
@@ -22869,7 +25312,8 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
         if (stand) stand.textContent = nutzlast.fehler;
         zettel(nutzlast.fehler);
       } else if (stand) {
-        stand.textContent = erinnerungsStandText();
+        stand.textContent = DATEN.einstellungen.erinnerung.an ? erinnerungsStandText()
+          : _("The organizer is not currently reminding you about appointments.");
       }
       const weck = nutzlast.weckruf;
       if (weck && weck.fehler) zettel(weck.fehler);
@@ -22920,11 +25364,20 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       }
     },
     ablage(nutzlast) {
-      const text = (nutzlast || {}).text || "";
+      const auftrag = ablageAuftrag;
+      ablageAuftrag = null;
+      if (!auftrag || nutzlast?.ok === false || !bearbeitungsAuswahlGueltig(auftrag.stelle) ||
+          document.activeElement !== auftrag.stelle.ziel ||
+          !gleicheBearbeitungsAuswahl(auftrag.stelle)) return;
+      const text = String((nutzlast || {}).text || "");
+      if (auftrag.ausschneiden) {
+        // Kopieren hat kein ACK. Erst der identische Rücklesewert belegt,
+        // dass der ausgewählte Text vor dem Löschen tatsächlich verfügbar ist.
+        if (text === auftrag.stelle.text) loescheMarkierung(auftrag.stelle);
+        return;
+      }
       if (!text) { zettel(_("The clipboard is empty.")); return; }
-      if (ablageZiel && ablageZiel.focus) ablageZiel.focus();
-      fuegeEin(text, ablageZiel);
-      ablageZiel = null;
+      fuegeEin(text, auftrag.stelle);
     },
     loBenutzer(nutzlast) {
       nutzlast = nutzlast || {};
@@ -23008,6 +25461,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     },
     journalWiederhergestellt(nutzlast) {
       if (!(nutzlast || {}).ok) { zettel(nutzlast.fehler || _("Restore failed.")); return; }
+      verwerfeSpeichernNachRestore();
       DATEN = normalisiere(nutzlast.daten); terminIndexVeraltet = true;
       jahrestagIndexVeraltet = true; letzterSpeicherText = JSON.stringify(DATEN);
       zeichneAlles(); setzeSpeicherStatus(_("Saved"), true);
@@ -23052,10 +25506,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
         $("#sicherung-bestaetigen").disabled = false;
         return;
       }
-      clearTimeout(speicherTimer);
-      wartendeSpeicherAktionen = [];
-      laufenderSpeicher = null;
-      wartenderSpeicherText = null;
+      verwerfeSpeichernNachRestore();
       DATEN = normalisiere(nutzlast.daten);
       letzterSpeicherText = JSON.stringify(DATEN);
       kennwortAn = !!nutzlast.kennwort;
@@ -23075,6 +25526,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
         if (nutzlast.brauchtKennwort) $("#sicherung-kennwort").focus();
         return;
       }
+      verwerfeSpeichernNachRestore();
       schliesseSicherungsdialog();
       kennwortAn = !!nutzlast.kennwort;
       DATEN = normalisiere(nutzlast.daten);
@@ -23245,6 +25697,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
           }));
         if (tage.length) {
           wetterStand.daten = { ort: String(nutzlast.ort || ""),
+            anbieter: nutzlast.anbieter === "Open-Meteo" ? "Open-Meteo" : "wttr.in",
             quelle: String(nutzlast.quelle || ""), tage: tage };
           wetterStand.fehler = "";
         } else {
@@ -23260,6 +25713,15 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     feiertageErgebnis(nutzlast) {
       nutzlast = nutzlast || {};
       feiertageLaufen = false;
+      const anfrage = feiertageAnfrage;
+      feiertageAnfrage = null;
+      if (anfrage && (anfrage.daten !== DATEN || ["land", "region", "ferien", "alleRegionen"]
+          .some((key) => anfrage[key] !== DATEN.einstellungen.ort[key]))) {
+        const knopf = $("#ort-abrufen"), stand = $("#ort-stand");
+        if (knopf) knopf.disabled = false;
+        if (stand) stand.textContent = ortStandText();
+        return;
+      }
       if (nutzlast.fehler) {
         const stand = $("#ort-stand");
         if (stand) stand.textContent = _("Retrieval failed.");
@@ -23288,6 +25750,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
           regionName: String(f.regionName || "") });
       }
       o.abgerufen = Date.now();
+      o.setupFerienAbruf = false;
       o.jahre = [...new Set((o.jahre || []).map(Number).concat(jahre))]
         .filter(Number.isInteger).sort((a, b) => a - b);
       planeSpeichern();
@@ -23393,7 +25856,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
         zettel(handbuchFehler);
       }
     },
-    importErgebnis(nutzlast) {
+    importErgebnis(nutzlast, termineNormalisiert = false) {
       nutzlast = nutzlast || {};
       const setupImportBeenden = () => {
         if (!setupImportLaeuft) return;
@@ -23406,22 +25869,48 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
         setupImportBeenden();
         return;
       }
+      if (!termineNormalisiert && Array.isArray(nutzlast.termine) && nutzlast.termine.length > 1000) {
+        const bestand = DATEN;
+        return (async () => {
+          const termine = [];
+          for (let offset = 0; offset < nutzlast.termine.length; offset += 500) {
+            if (DATEN !== bestand || gesperrt) { setupImportBeenden(); return; }
+            termine.push(...normalisiereTermine(nutzlast.termine.slice(offset, offset + 500), false));
+            await new Promise(resolve => setTimeout(resolve, 0));
+          }
+          // Commit against the current collection, never a stale pre-yield copy.
+          if (DATEN !== bestand || gesperrt) { setupImportBeenden(); return; }
+          App.importErgebnis({ ...nutzlast, termine: termine }, true);
+        })().catch(fehler => App.importErgebnis({ fehler: String(fehler.message || fehler) }));
+      }
       const teile = [];
       let doppelt = 0;
+      const kontaktImport = Array.isArray(nutzlast.kontakte) ? nutzlast.kontakte : [];
+      const kontaktUids = new Map(kontaktImport.filter(k => k && k.uid).map(k => [k.uid, k]));
+      const ohneKontaktkopien = (liste, typ) => (liste || []).filter((j) => {
+        if (!j) return false;
+        const k = j.kontaktUid ? kontaktUids.get(j.kontaktUid) :
+          Number.isInteger(j.kontaktIndex) ? kontaktImport[j.kontaktIndex] : null;
+        const art = jahrestagTypId(typ || j.typ);
+        return !k || !["birthday", "anniversary"].includes(art) ||
+          kanonischesJahresdatum(j.datum, j.jahrUnbekannt) !==
+            kanonischesJahresdatum(k[art === "birthday" ? "geburtstag" : "jubilaeum"],
+              art === "birthday" && k.geburtstagJahrUnbekannt);
+      });
       if (Array.isArray(nutzlast.termine) && nutzlast.termine.length) {
-        const z = mergeTermine(nutzlast.termine);
+        const z = mergeTermine(nutzlast.termine, termineNormalisiert);
         doppelt += z.doppelt;
         if (z.neu) teile.push(uebersetztMehrzahl(
           "%(count)s appointment", "%(count)s appointments", z.neu));
       }
       if (Array.isArray(nutzlast.jahrestage) && nutzlast.jahrestage.length) {
-        const z = mergeJahrestage(nutzlast.jahrestage, "");
+        const z = mergeJahrestage(ohneKontaktkopien(nutzlast.jahrestage, ""), "");
         doppelt += z.doppelt;
         if (z.neu) teile.push(uebersetztMehrzahl(
           "%(count)s anniversary", "%(count)s anniversaries", z.neu));
       }
       if (Array.isArray(nutzlast.geburtstage) && nutzlast.geburtstage.length) {
-        const z = mergeJahrestage(nutzlast.geburtstage, "birthday");
+        const z = mergeJahrestage(ohneKontaktkopien(nutzlast.geburtstage, "birthday"), "birthday");
         doppelt += z.doppelt;
         if (z.neu) teile.push(uebersetztMehrzahl(
           "%(count)s birthday", "%(count)s birthdays", z.neu));
@@ -23448,7 +25937,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
         if (z.neu) teile.push(uebersetztMehrzahl(
           "%(count)s note", "%(count)s notes", z.neu));
       }
-      if (teile.length) {
+      if (teile.length || (nutzlast.kontakte || []).length) {
         planeSpeichern();
         zeichneAlles();
       }
@@ -23460,10 +25949,10 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       if (nutzlast.uebersprungen) text += " " + uebersetztMehrzahl(
         "%(count)s unreadable row omitted.", "%(count)s unreadable rows omitted.",
         nutzlast.uebersprungen);
-      if (nutzlast.wiederholend) {
-        text += " " + uebersetztMehrzahl(
-          "%(count)s recurring appointment imported only once.",
-          "%(count)s recurring appointments imported only once.", nutzlast.wiederholend);
+      // Native codecs already count unresolved rules, not all complex rules.
+      const einmalig = Math.max(0, Number(nutzlast.wiederholend || 0));
+      if (einmalig) {
+        text += " " + _("Some recurrence rules cannot be expanded. Their original calendar data was preserved.");
       }
       if (nutzlast.bericht) text += " " + nutzlast.bericht;
       zettel(text);
@@ -23500,7 +25989,10 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       zettel(nutzlast.fehler || _("The file could not be read."));
     },
     syncFertig(nutzlast) {
+      sichereNotizSnapshot();
       nutzlast = nutzlast || {};
+      nutzlast = syncSammlungenAbgleichen(nutzlast);
+      if (!nutzlast) return;
       const erfolgreich = nutzlast.ok !== false;
       const syncFehlertext = String(nutzlast.fehler || nutzlast.bericht || _("unknown error"))
         .replace(/\s+/g, " ").trim().slice(0, 2000);
@@ -23520,12 +26012,18 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
         syncStatus: { letzterVersuch: Date.now(),
           letzterFehler: erfolgreich ? "" : syncFehlertext }
       }));
-      zeichneAlles();
+      delete DATEN.syncAbgleichBasis;
+      if (!editorIstGeaendert()) zeichneAlles();
       const status = $("#sync-status");
       if (status) status.textContent = zeitZeileLetzterSync();
       zettel(erfolgreich ? (nutzlast.bericht || _("Synchronization completed.")) :
         uebersetzt("Synchronization failed: %(error)s", { error: syncFehlertext }));
       const kandidat = nutzlast.adressbuchBaselineKandidat;
+      const transactionId = String(nutzlast.transactionId || "");
+      const bestaetigen = () => {
+        if (erfolgreich && /^[0-9a-f]{64}$/.test(transactionId))
+          nachDauerhaftemSpeichern(() => Bruecke.sende({ cmd: "sync_bestaetigen", transactionId }));
+      };
       if (kandidat && kandidat.sourceUid) {
         nachDauerhaftemSpeichern(() => {
           ausstehendeAdressbuchBaseline = kandidat.sourceUid;
@@ -23536,8 +26034,12 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
             snapshotHash: String(kandidat.snapshotHash || "")
           };
           speichereJetzt();
+          bestaetigen();
         });
-      } else planeSpeichern();
+      } else { planeSpeichern(); bestaetigen(); }
+    },
+    syncBestaetigt(nutzlast) {
+      if (nutzlast && nutzlast.ok === false) zettel(_("Synchronization failed."));
     },
     syncFehler(text) {
       zettel(merkeSyncFehler(text));
@@ -23545,11 +26047,13 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     gespeichert(ergebnis) {
       if (typeof ergebnis === "boolean") ergebnis = { ok: ergebnis };
       ergebnis = ergebnis || {};
-      if (laufenderSpeicher && ergebnis.id !== undefined &&
-          ergebnis.id !== laufenderSpeicher.id) return;
+      if (Bruecke.vorhanden && (!laufenderSpeicher || !Number.isSafeInteger(ergebnis.id) ||
+          ergebnis.id !== laufenderSpeicher.id)) return;
       const erledigt = laufenderSpeicher;
+      clearTimeout(speicherAntwortTimer);
+      speicherAntwortTimer = null;
       laufenderSpeicher = null;
-      if (ergebnis.ok) {
+      if (ergebnis.ok === true) {
         if (ausstehendeAdressbuchBaseline && erledigt &&
           erledigt.text.includes('"adressbuecher"')) {
           ausstehendeAdressbuchBaseline = null;
@@ -23561,31 +26065,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
         }), true);
         pumpeSpeichern();
       } else {
-        const syncAbgebrochen = syncLaeuft;
-        wartendeSpeicherAktionen = [];
-        const baselineFehler = !!ausstehendeAdressbuchBaseline;
-        if (ausstehendeAdressbuchBaseline) {
-          delete DATEN.syncMetadaten.eds.adressbuecher[ausstehendeAdressbuchBaseline];
-          ausstehendeAdressbuchBaseline = null;
-          wartenderSpeicherText = JSON.stringify(DATEN);
-        }
-        if (erledigt && !baselineFehler) wartenderSpeicherText = erledigt.text;
-        if (beendenGewuenscht && Bruecke.vorhanden) {
-          Bruecke.sende({ cmd: "beenden_abgebrochen" });
-        }
-        beendenGewuenscht = false;
-        setzeSpeicherStatus(_("Saving failed!"), false);
-        if (syncAbgebrochen) {
-          zettel(merkeSyncFehler(
-            ergebnis.fehler || _("Warning: The data could not be saved."), false));
-        } else zettel(ergebnis.fehler || _("Warning: The data could not be saved."));
-        kontaktAssistentSpeicherFehler(ergebnis.fehler);
-        const kontaktImport = document.querySelector(".kontakt-import-dialog");
-        if (kontaktImport) {
-          kontaktImport.querySelectorAll("button").forEach((button) => { button.disabled = false; });
-          const status = kontaktImport.querySelector(".einst-hinweis");
-          if (status) status.textContent = ergebnis.fehler || _("Warning: The data could not be saved.");
-        }
+        speicherFehlgeschlagen(ergebnis.fehler, erledigt);
       }
     },
     contributorGeprueft(nutzlast) {
@@ -23674,6 +26154,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     zustand: () => zustand,
     wechsel: wechsel,
     speichereJetzt: speichereJetzt,
+    sichereNotizSnapshot: sichereNotizSnapshot,
     planeSpeichern: planeSpeichern,
     notizlinienGrundlinie: notizlinienGrundlinie,
     aktualisiereNotizlinien: aktualisiereNotizlinien,
@@ -23691,6 +26172,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     oeffnePersonenblatt: oeffnePersonenblatt,
     termineAm: termineAm,
     sortiereTermineNachZeit: sortiereTermineNachZeit,
+    sortiereKontakte: sortiereKontakte,
     jahrestageAm: jahrestageAm,
     feiertageAm: feiertageAm,
     urlaubeAm: urlaubeAm,
@@ -23713,6 +26195,10 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     istSynchronisierteFerien: istSynchronisierteFerien,
     istSynchronisierterFeiertag: istSynchronisierterFeiertag,
     wiederholungTrifft: wiederholungTrifft,
+    icsExpansion: icsExpansion,
+    icsSerienAbstimmen: icsSerienAbstimmen,
+    icsNaechsteAufgabe: icsNaechsteAufgabe,
+    icsRuntime: icsRuntime,
     gueltigesTeildatum: gueltigesTeildatum,
     gueltigesJahresdatum: gueltigesJahresdatum,
     monatTag: monatTag,
@@ -23721,7 +26207,12 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     kanonischesJahresdatum: kanonischesJahresdatum,
     naechsterJahrestag: naechsterJahrestag,
     kontaktBaumInhalt: kontaktBaumInhalt,
+    synchronisiereKontakteMit: synchronisiereKontakteMit,
+    uebernehmeBaumAngebot: uebernehmeBaumAngebot,
+    zeigeKontaktImportAngebot: zeigeKontaktImportAngebot,
     mergeJahrestage: mergeJahrestage,
+    mergeAufgaben: mergeAufgaben,
+    personalSyncSetze: personalSyncSetze,
     mergeTermine: mergeTermine,
     mergeKontakte: mergeKontakte,
     versionsSchluessel: versionsSchluessel,
@@ -23827,6 +26318,14 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     document.addEventListener("keydown", modalTaste, true);
     document.addEventListener("focusin", modalFokus, true);
     $("#deckel").addEventListener("click", oeffneBuch);
+    $("#seiten").addEventListener("animationend", ev => {
+      const seiten = ev.currentTarget;
+      if (ev.target.parentElement !== seiten || !ev.target.classList.contains("seite")) return;
+      if (seiten.getAnimations({ subtree: true }).some(animation => animation.playState === "running" &&
+        animation.effect?.target?.parentElement === seiten)) return;
+      clearTimeout(blaetterTimer); blaetterTimer = null;
+      seiten.classList.remove("blaettern-vor", "blaettern-zurueck");
+    });
     $("#deckel").addEventListener("keydown", (ev) => {
       if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); oeffneBuch(); }
     });
@@ -23897,6 +26396,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       ev.stopPropagation();
       if (zeichneAus(flaeche, a.tag)) flaeche.dispatchEvent(
         new Event("input", { bubbles: true }));
+      sichereNotizSnapshot();
     }, true);
 
     /* Die Werkzeugknöpfe zeigen, was an der Schreibmarke gerade gilt –
@@ -23975,12 +26475,13 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
 
     /* Daten anfordern */
     if (Bruecke.vorhanden) {
+      aktualisiereModalEbenen();
       Bruecke.sende({ cmd: "bereit" });
       setTimeout(() => {
         /* Notbremse, falls der Programmkern gar nicht antwortet – aber
            niemals, solange auf das Kennwort gewartet wird. */
         if (!initialisiert && !antwortErhalten && !gesperrt) {
-          App.init({ daten: null, neu: true, datenPfad: "" });
+          setzeSpeicherStatus(_("Notice: The connection to storage was not confirmed."), false);
           zettel(_("Notice: The connection to storage was not confirmed."));
         }
       }, 2500);

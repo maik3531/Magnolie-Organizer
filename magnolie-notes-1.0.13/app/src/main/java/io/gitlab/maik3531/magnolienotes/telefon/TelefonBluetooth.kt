@@ -16,16 +16,56 @@ import java.util.UUID
 internal interface TelefonRoehre : AutoCloseable {
     val input: InputStream
     val output: OutputStream
+    val expiresAtNanos: Long get() = Long.MAX_VALUE
+    // Optional per-read timeout; pairing also has a transport-independent deadline.
+    fun setReadTimeout(timeoutMs: Int) = Unit
 }
 
-internal class TelefonTcpRoehre(host: String, connectTimeoutMs: Int = 10_000) : TelefonRoehre {
-    private val socket = Socket().apply {
-        connect(InetSocketAddress(host, TelefonParameter.PORT), connectTimeoutMs)
-        soTimeout = 75_000
+internal class TelefonTcpRoehre(host: String, connectTimeoutMs: Int = 10_000,
+    port: Int = TelefonParameter.PORT, localAddress: java.net.InetAddress? = null) : TelefonRoehre {
+    private val socket = Socket().also { socket ->
+        try {
+            if (localAddress != null) socket.bind(InetSocketAddress(localAddress, 0))
+            socket.connect(InetSocketAddress(host, port), connectTimeoutMs)
+            socket.soTimeout = 75_000
+        } catch (error: Exception) {
+            runCatching { socket.close() }
+            throw error
+        }
     }
     override val input: InputStream get() = socket.getInputStream()
     override val output: OutputStream get() = socket.getOutputStream()
+    override fun setReadTimeout(timeoutMs: Int) { socket.soTimeout = timeoutMs }
     override fun close() = socket.close()
+}
+
+// RFCOMM has no read timeout. Closing the owned pipe enforces the same absolute
+// pairing deadline for both transports, including time spent in confirmation UI.
+internal class TelefonPaarungsRoehre(private val pipe: TelefonRoehre,
+    timeoutMs: Long = 120_000, onExpired: () -> Unit = {}) : TelefonRoehre {
+    override val expiresAtNanos = minOf(pipe.expiresAtNanos, System.nanoTime() + java.util.concurrent.TimeUnit.MILLISECONDS.toNanos(timeoutMs))
+    private val closed = java.util.concurrent.atomic.AtomicBoolean(false)
+    private val deadline = timer.schedule({
+        if (closed.compareAndSet(false, true)) {
+            runCatching { pipe.close() }
+            onExpired()
+        }
+    }, maxOf(0, expiresAtNanos - System.nanoTime()), java.util.concurrent.TimeUnit.NANOSECONDS)
+    override val input: InputStream get() = pipe.input
+    override val output: OutputStream get() = pipe.output
+    override fun setReadTimeout(timeoutMs: Int) = pipe.setReadTimeout(timeoutMs)
+    fun disarm() { deadline.cancel(false) }
+    override fun close() {
+        if (closed.compareAndSet(false, true)) {
+            deadline.cancel(false)
+            pipe.close()
+        }
+    }
+    companion object {
+        private val timer = java.util.concurrent.ScheduledThreadPoolExecutor(1) { task ->
+            Thread(task, "magnolie-phone-pair-deadline").apply { isDaemon = true }
+        }.apply { removeOnCancelPolicy = true }
+    }
 }
 
 internal class TelefonBluetooth(private val context: Context) {
@@ -49,13 +89,35 @@ internal class TelefonBluetooth(private val context: Context) {
         }
         @Suppress("MissingPermission")
         val socket = device.createRfcommSocketToServiceRecord(UUID.fromString(TelefonParameter.RFCOMM_UUID))
+        val deadline = TelefonPaarungsRoehre(BluetoothRoehre(socket), 15_000)
         try {
             @Suppress("MissingPermission")
             socket.connect()
+            deadline.disarm()
             return BluetoothRoehre(socket)
         } catch (error: Exception) {
             runCatching { socket.close() }
             throw error
+        } finally { deadline.disarm() }
+    }
+
+    fun listen(): TelefonRfcommListener {
+        if (!erlaubt()) throw SecurityException("Bluetooth permission missing")
+        val adapter = adapter() ?: throw TelefonProtokollFehler("Bluetooth ist nicht verfügbar.")
+        @Suppress("MissingPermission")
+        val server = adapter.listenUsingRfcommWithServiceRecord(context.getString(io.gitlab.maik3531.magnolienotes.R.string.telefon_titel),
+            UUID.fromString(TelefonParameter.RFCOMM_UUID))
+        return object : TelefonRfcommListener {
+            override fun accept(): TelefonBluetoothLink {
+                val socket = server.accept()
+                try {
+                    @Suppress("MissingPermission")
+                    val bonded = socket.remoteDevice.bondState == android.bluetooth.BluetoothDevice.BOND_BONDED
+                    check(erlaubt() && bonded)
+                    return TelefonBluetoothLink(socket.remoteDevice.address.uppercase(), BluetoothRoehre(socket))
+                } catch (error: Exception) { runCatching { socket.close() }; throw error }
+            }
+            override fun close() = server.close()
         }
     }
 

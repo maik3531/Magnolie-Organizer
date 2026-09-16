@@ -8,6 +8,7 @@ import argparse
 import shutil
 import sys
 import re
+import tempfile
 
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -16,26 +17,33 @@ MARKERS = os.path.join(ROOT, "web", "i18n-markers.js")
 
 
 def package_version(root=ROOT):
-    with open(os.path.join(root, "debian", "changelog"), encoding="utf-8") as changelog:
-        match = re.match(r"^[^(]+\(([^)]+)\)", changelog.readline())
-    if not match:
-        raise ValueError("debian/changelog")
-    return match.group(1).strip()
+    with open(os.path.join(root, "web", "version.json"), encoding="utf-8") as source:
+        metadata = json.load(source)
+    version = metadata.get("version") if isinstance(metadata, dict) else None
+    if not isinstance(version, str) or not re.fullmatch(r"\d+\.\d+\.\d+", version):
+        raise ValueError("web/version.json")
+    return version
+
+
+def handbook_data(content=CONTENT):
+    runner = next((shutil.which(name) for name in ("node", "nodejs", "bun") if shutil.which(name)), None)
+    if not runner:
+        raise FileNotFoundError("node/nodejs/bun")
+    result = subprocess.run([runner, os.path.join(ROOT, "werkzeuge", "handbook_data.js"),
+                             os.path.dirname(content)], check=True, capture_output=True, text=True)
+    return json.loads(result.stdout)
 
 
 def handbook_messages(content=CONTENT):
-    with open(content, encoding="utf-8") as content_file:
-        text = content_file.read()
-    pages = json.loads(text[text.index("["):text.index("];") + 1])
-    marker = "window.HANDBUCH_SEITEN.push("
-    if marker in text:
-        start = text.index(marker) + len(marker)
-        end = text.index("\n);", start)
-        pages.extend(json.loads("[" + text[start:end] + "]"))
-    for page in pages:
+    data = handbook_data(content)
+    for page in data["pages"]:
         for key in ("kapitel", "titel", "inhalt"):
             if page.get(key):
                 yield page[key]
+        if page.get("inhaltAnhang") and not page.get("inhaltAnhangNeutral"):
+            yield page["inhaltAnhang"]["en"]
+    for variant in data["variants"].values():
+        yield variant["en"]
 
 
 def marker_erzeugen(content=CONTENT, markers=MARKERS):
@@ -54,13 +62,12 @@ def marker_erzeugen(content=CONTENT, markers=MARKERS):
             marker_file.write("gettext(%s);\n" % json.dumps(message, ensure_ascii=False))
 
 
-def quellen_finden(root=ROOT,
-                   installed_launcher="/usr/bin/magnolie-handbuch"):
+def quellen_finden(root=ROOT, installed_launcher=None):
     web = os.path.join(root, "web")
     start = os.path.join(root, "bin", "magnolie-handbuch")
     quellbaum = os.path.isfile(start)
     if not quellbaum:
-        start = installed_launcher
+        start = installed_launcher or os.path.abspath(os.path.join(root, "..", "..", "bin", "magnolie-handbuch"))
     markers = os.path.join(web, "i18n-markers.js")
     handbuch = os.path.join(web, "handbuch.js")
     fehlend = [pfad for pfad in (markers, handbuch, start)
@@ -74,13 +81,20 @@ def haupt(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", default=os.path.join(
         ROOT, "po", "magnolie-handbuch.pot"))
+    parser.add_argument("--update-markers", action="store_true")
     argumente = parser.parse_args(argv)
     ziel = os.path.abspath(argumente.output)
     if not shutil.which("xgettext"):
         raise FileNotFoundError("xgettext")
     markers, handbuch, start, quellbaum = quellen_finden()
-    if quellbaum:
+    if argumente.update_markers:
+        if not quellbaum:
+            raise ValueError("--update-markers requires a source tree")
         marker_erzeugen()
+    temporary = tempfile.TemporaryDirectory(prefix="magnolie-handbook-pot-")
+    if quellbaum:
+        markers = os.path.join(temporary.name, "i18n-markers.js")
+        marker_erzeugen(markers=markers)
     os.makedirs(os.path.dirname(ziel), exist_ok=True)
     subprocess.run([
         "xgettext", "--language=JavaScript", "--from-code=UTF-8", "--keyword=gettext",
@@ -103,12 +117,13 @@ def haupt(argv=None):
                       '"POT-Creation-Date: YEAR-MO-DA HO:MI+ZONE\\n"', template)
     with open(ziel, "w", encoding="utf-8", newline="\n") as template_file:
         template_file.write(template)
+    temporary.cleanup()
     return 0
 
 
 if __name__ == "__main__":
     try:
         sys.exit(haupt())
-    except (OSError, subprocess.SubprocessError) as fehler:
+    except (OSError, ValueError, subprocess.SubprocessError) as fehler:
         sys.stderr.write(str(fehler) + "\n")
         sys.exit(1)

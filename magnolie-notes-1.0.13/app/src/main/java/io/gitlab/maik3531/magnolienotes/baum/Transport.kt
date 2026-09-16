@@ -18,11 +18,24 @@ import java.util.UUID
  * Ein Weg, auf dem eine Baumnachricht zur Gegenstelle kommt. Die Nachrichten
  * selbst sind bei beiden Wegen dieselben; nur die Röhre ist eine andere.
  */
-interface Transport {
+interface Transport : AutoCloseable {
     val bezeichnung: String
     /** Schickt eine Nutzlast an einen Baumpfad und liefert die Antwort. */
     fun anfrage(pfad: String, nutzlast: JsonObject, zeitgrenzeMs: Int = 6000): JsonObject
     fun schliessen() {}
+    override fun close() = schliessen()
+}
+
+/** Emitted only by the connect stage, never by response parsing or a reset socket. */
+internal class KeineVerbindung(cause: Exception) : java.io.IOException(cause)
+
+internal fun verbindungAbgelehnt(error: java.net.ConnectException): Boolean {
+    val errno = (error.cause as? android.system.ErrnoException)?.errno
+    if (errno != null) return errno == android.system.OsConstants.ECONNREFUSED
+    // Android supplies errno; JVM sockets may expose only the localized OS text.
+    val refused = runCatching { android.system.Os.strerror(android.system.OsConstants.ECONNREFUSED) }.getOrNull()
+    return error.message in setOf("Connection refused", "Verbindungsaufbau abgelehnt") ||
+        (!refused.isNullOrEmpty() && error.message == refused)
 }
 
 /**
@@ -30,9 +43,15 @@ interface Transport {
  * So bleibt Androids HTTP-Klartexterlaubnis für alle anderen Ziele abgeschaltet.
  */
 class WlanTransport(private val host: String, private val port: Int) : Transport {
+    private val sperre = Any()
+    private var beendet = false
+    private var buchse: Socket? = null
 
     companion object {
         const val ANTWORT_MAX = 1024 * 1024
+        private val FRISTEN = java.util.concurrent.ScheduledThreadPoolExecutor(1) { task ->
+            Thread(task, "baum-wlan-frist").apply { isDaemon = true }
+        }.apply { removeOnCancelPolicy = true }
     }
 
     override val bezeichnung: String get() = Netz.hostPortAnzeigen(host, port)
@@ -41,7 +60,22 @@ class WlanTransport(private val host: String, private val port: Int) : Transport
         val roh = Kanonisch.json.encodeToString(JsonObject.serializer(), nutzlast)
             .toByteArray(Charsets.UTF_8)
         return Socket().use { verbindung ->
-            verbindung.connect(InetSocketAddress(host, port), zeitgrenzeMs)
+            synchronized(sperre) {
+                check(!beendet)
+                check(buchse == null)
+                buchse = verbindung
+            }
+            val frist = FRISTEN.schedule({ runCatching { verbindung.close() } },
+                zeitgrenzeMs.coerceAtLeast(1).toLong(), java.util.concurrent.TimeUnit.MILLISECONDS)
+            try {
+            try {
+                verbindung.connect(InetSocketAddress(host, port), zeitgrenzeMs)
+            } catch (error: java.net.UnknownHostException) {
+                throw KeineVerbindung(error)
+            } catch (error: java.net.ConnectException) {
+                if (verbindungAbgelehnt(error)) throw KeineVerbindung(error)
+                throw error
+            }
             verbindung.soTimeout = zeitgrenzeMs
             val hostKopf = if (host.contains(":")) "[$host]:$port" else "$host:$port"
             val kopf = "POST $pfad HTTP/1.1\r\nHost: $hostKopf\r\n" +
@@ -73,6 +107,18 @@ class WlanTransport(private val host: String, private val port: Int) : Transport
             }
             if (antwort.isBlank()) throw BaumFehler("Die Gegenstelle hat nichts geantwortet.")
             Kanonisch.json.parseToJsonElement(antwort).jsonObject
+            } finally {
+                frist.cancel(false)
+                synchronized(sperre) { if (buchse === verbindung) buchse = null }
+            }
+        }
+    }
+
+    override fun schliessen() {
+        synchronized(sperre) {
+            beendet = true
+            runCatching { buchse?.close() }
+            buchse = null
         }
     }
 
@@ -126,6 +172,8 @@ class BluetoothTransport(private val mac: String) : Transport {
     override val bezeichnung: String get() = mac
 
     private var buchse: BluetoothSocket? = null
+    private val sperre = Any()
+    private var beendet = false
 
     override fun anfrage(pfad: String, nutzlast: JsonObject, zeitgrenzeMs: Int): JsonObject {
         val adapter = BluetoothAdapter.getDefaultAdapter()
@@ -136,36 +184,41 @@ class BluetoothTransport(private val mac: String) : Transport {
         } catch (fehler: IllegalArgumentException) {
             throw BaumFehler("Die Bluetooth-Adresse ist ungültig.")
         }
-        val offen = try {
-            @Suppress("MissingPermission")
-            geraet.createRfcommSocketToServiceRecord(DIENST_UUID).also {
-                @Suppress("MissingPermission")
-                it.connect()
-            }
-        } catch (fehler: SecurityException) {
-            throw BaumFehler("Die Bluetooth-Berechtigung fehlt.")
-        } catch (fehler: Exception) {
-            throw BaumFehler("Die Bluetooth-Verbindung kam nicht zustande.")
+        @Suppress("MissingPermission")
+        val offen = geraet.createRfcommSocketToServiceRecord(DIENST_UUID)
+        synchronized(sperre) {
+            if (beendet) { offen.close(); throw java.io.IOException() }
+            buchse = offen
         }
-        buchse = offen
+        val frist = FRISTEN.schedule({ runCatching { offen.close() } },
+            zeitgrenzeMs.coerceAtLeast(1).toLong(), java.util.concurrent.TimeUnit.MILLISECONDS)
         try {
+            @Suppress("MissingPermission")
+            offen.connect()
             val hinaus = DataOutputStream(offen.outputStream)
             val herein = DataInputStream(offen.inputStream)
             schreibeRahmen(hinaus, pfad, nutzlast)
             return lieRahmen(herein)
         } finally {
+            frist.cancel(false)
             runCatching { offen.close() }
-            buchse = null
+            synchronized(sperre) { if (buchse === offen) buchse = null }
         }
     }
 
     override fun schliessen() {
-        runCatching { buchse?.close() }
-        buchse = null
+        synchronized(sperre) {
+            beendet = true
+            runCatching { buchse?.close() }
+            buchse = null
+        }
     }
 
     companion object {
         /** Feste Dienstkennung des Magnolienbaums über RFCOMM. */
+        private val FRISTEN = java.util.concurrent.ScheduledThreadPoolExecutor(1) { runnable ->
+            Thread(runnable, "baum-bluetooth-frist").apply { isDaemon = true }
+        }.apply { removeOnCancelPolicy = true }
         val DIENST_UUID: UUID = UUID.fromString("6d61676e-6f6c-6965-6e62-61756d383733")
         const val RAHMEN_MAX = 40 * 1024 * 1024
 

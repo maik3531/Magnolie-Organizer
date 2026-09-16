@@ -58,6 +58,7 @@ fi
     "${gradle_parameter[@]}" \
     clean testReleaseUnitTest lintRelease \
     assembleDebug assembleRelease assembleReleaseAndroidTest assembleFixture
+./gradlew "${gradle_parameter[@]}" testReleaseUnitTest -PmagnolieCrossTests=true --rerun-tasks
 
 sdk="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-}}"
 apksigner="$(printf '%s\n' "$sdk"/build-tools/*/apksigner | sort -V | tail -n 1)"

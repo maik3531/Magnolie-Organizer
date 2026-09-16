@@ -1,0 +1,18 @@
+{
+  "format": "baum-1-receipt-v1-vectors",
+  "partnerKeyHex": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+  "envelope": {
+    "magnolie": "baum-1", "von": "alpha", "zaehler": 1,
+    "nonce": "AAAAAAAAAAAAAAAA",
+    "daten": "dZ7UrMEOuZ9mx91cYg69u6YmLicKu0JJ6ebH9reafyv3C+shx6HzjDzwCFug5aT8"
+  },
+  "canonicalEnvelope": "{\"daten\":\"dZ7UrMEOuZ9mx91cYg69u6YmLicKu0JJ6ebH9reafyv3C+shx6HzjDzwCFug5aT8\",\"magnolie\":\"baum-1\",\"nonce\":\"AAAAAAAAAAAAAAAA\",\"von\":\"alpha\",\"zaehler\":1}",
+  "canonicalCore": "{\"counter\":1,\"envelopeSha256\":\"28715ab312c5ba4e63d752a7e9d4b2a023b3554351e12ec08fcff83201391e6b\",\"format\":\"baum-1-receipt\",\"recipient\":\"beta\",\"sender\":\"alpha\",\"status\":\"accepted\",\"version\":1}",
+  "receipt": {
+    "format": "baum-1-receipt", "version": 1,
+    "sender": "alpha", "recipient": "beta", "counter": 1,
+    "envelopeSha256": "28715ab312c5ba4e63d752a7e9d4b2a023b3554351e12ec08fcff83201391e6b",
+    "status": "accepted", "mac": "r6xAjumOXRHqF0OhoDUNY413rLqvpjBFxsvt+Z4JbLo="
+  },
+  "rejectMutations": ["wrong-peer-key", "swapped-direction", "counter", "envelope-bytes", "extra-field", "missing-mac", "legacy-http-200"]
+}

@@ -2711,9 +2711,20 @@ textarea::-webkit-scrollbar-track,
 .seiten-inhalt.custom-uebersicht:focus-within::-webkit-scrollbar-thumb {
   background: rgba(152, 123, 69, .58);
 }
+.seiten-inhalt.custom-termine-aufgaben-geteilt {
+  grid-template-rows: repeat(2, minmax(0, 1fr));
+  align-content: stretch;
+  overflow: hidden;
+}
 .custom-termine-aufgaben-geteilt .custom-modul-appointments,
 .custom-termine-aufgaben-geteilt .custom-modul-tasks {
-  max-height: max(220px, calc((100vh - 190px) / 2));
+  display: flex;
+  min-height: 0;
+  margin: 0;
+  flex-direction: column;
+}
+.custom-termine-aufgaben-geteilt .custom-modul-liste {
+  min-height: 0;
   overflow-y: auto;
   scrollbar-width: thin;
   scrollbar-color: transparent transparent;
@@ -2724,12 +2735,29 @@ textarea::-webkit-scrollbar-track,
 .custom-termine-aufgaben-geteilt .custom-modul-tasks:focus-within {
   scrollbar-color: #c0ac7d transparent;
 }
-.custom-termine-aufgaben-geteilt .custom-modul::-webkit-scrollbar { width: 6px; }
-.custom-termine-aufgaben-geteilt .custom-modul::-webkit-scrollbar-thumb { background: transparent; }
-.custom-termine-aufgaben-geteilt .custom-modul:hover::-webkit-scrollbar-thumb,
-.custom-termine-aufgaben-geteilt .custom-modul:focus-within::-webkit-scrollbar-thumb {
+.custom-termine-aufgaben-geteilt .custom-modul-liste::-webkit-scrollbar { width: 6px; }
+.custom-termine-aufgaben-geteilt .custom-modul-liste::-webkit-scrollbar-thumb { background: transparent; }
+.custom-termine-aufgaben-geteilt .custom-modul:hover .custom-modul-liste::-webkit-scrollbar-thumb,
+.custom-termine-aufgaben-geteilt .custom-modul:focus-within .custom-modul-liste::-webkit-scrollbar-thumb {
   background: rgba(152, 123, 69, .58);
 }
+.seiten-inhalt.custom-text-allein {
+  grid-template-rows: minmax(0, 1fr);
+  align-content: stretch;
+  overflow: hidden;
+}
+.custom-text-allein .custom-modul-notes,
+.custom-text-allein .custom-modul-liste,
+.custom-text-allein .custom-text-karte {
+  display: flex;
+  min-height: 0;
+  flex-direction: column;
+}
+.custom-text-allein .custom-modul-notes { margin: 0; }
+.custom-text-allein .custom-modul-liste,
+.custom-text-allein .custom-text-karte,
+.custom-text-allein .custom-text-editor { flex: 1 1 auto; }
+.custom-text-allein .custom-text-editor { overflow-y: auto; }
 
 .custom-modul {
   margin: 0 0 14px;
@@ -2747,11 +2775,32 @@ textarea::-webkit-scrollbar-track,
   border-bottom: 1px solid rgba(116, 87, 48, .3);
 }
 .custom-modul-kopf h2 { margin: 0; font-size: 1.05rem; }
+.custom-modul-kopf-aktionen { display: flex; align-items: center; gap: 6px; }
+.custom-text-position { min-width: 3.5em; text-align: center; color: var(--braun-hell); }
 .custom-modul-liste { display: grid; gap: 5px; padding-top: 8px; }
-.custom-modul-eintrag { width: 100%; text-align: left; }
+.custom-modul-zeile { display: flex; align-items: flex-start; gap: 7px; min-width: 0; }
+.custom-modul-erledigt { padding-top: 9px; }
+.custom-modul-erledigt input { accent-color: var(--braun); }
+.custom-modul-eintrag {
+  display: grid;
+  flex: 1 1 auto;
+  min-width: 0;
+  width: 100%;
+  gap: 2px;
+  text-align: left;
+}
+.custom-modul-eintrag-titel,
+.custom-modul-eintrag-meta,
+.custom-modul-eintrag-notiz { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.custom-modul-eintrag-meta { color: var(--tinte-hell); font-size: .88em; }
+.custom-modul-eintrag-notiz { color: var(--tinte-hell); }
+.custom-modul-zeile.erledigt .custom-modul-eintrag-titel { text-decoration: line-through; opacity: .68; }
+.custom-text-verweis { max-width: 42%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .custom-text-werkzeuge { display: flex; flex-wrap: wrap; gap: 6px; }
 .custom-text-karte { display: grid; gap: 6px; }
+.custom-text-titel { width: 100%; font-weight: 700; }
 .custom-text-editor {
+  white-space: pre-wrap;
   min-height: 180px;
   padding: 10px 12px;
   overflow-wrap: anywhere;
@@ -2759,20 +2808,19 @@ textarea::-webkit-scrollbar-track,
   border-radius: 5px;
   background: rgba(255, 254, 247, .78);
 }
-.custom-eintrag-editor {
+.custom-eintrag-dialog { width: min(760px, 94vw); }
+.custom-eintrag-formular {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(125px, .45fr) minmax(100px, .35fr);
+  grid-template-columns: minmax(0, 1fr) minmax(145px, .45fr);
   gap: 8px;
-  padding: 9px;
-  border: 1px solid rgba(116, 87, 48, .25);
-  border-radius: 5px;
-  background: rgba(255, 255, 255, .28);
+  margin: 14px 0;
 }
-.custom-eintrag-editor .formzeile { min-width: 0; margin: 0; }
-.custom-eintrag-editor textarea { min-height: 68px; resize: vertical; }
-.custom-eintrag-editor .formzeile:nth-of-type(4) { grid-column: 1 / -1; }
-.custom-eintrag-editor > .hak,
-.custom-eintrag-editor > button { justify-self: start; }
+.custom-eintrag-formular .formzeile { min-width: 0; margin: 0; }
+.custom-eintrag-formular textarea { width: 100%; min-height: 140px; resize: vertical; }
+.custom-eintrag-formular .custom-titel-zeile,
+.custom-eintrag-formular .custom-notiz-zeile { grid-column: 1 / -1; width: 100%; }
+.custom-eintrag-formular > .hak { align-self: end; min-height: 34px; }
+.custom-eintrag-aktionen { justify-content: flex-end; }
 
 .custom-block,
 .custom-editor-karte {
@@ -2792,7 +2840,30 @@ textarea::-webkit-scrollbar-track,
 .custom-sync-hinweis { padding: 10px; border: 1px dashed var(--linie-stark); background: rgba(255,255,255,.28); }
 
 .custom-designer-schleier { z-index: 100; }
-.custom-designer { width: min(760px, 94vw); max-height: 88vh; overflow-y: auto; }
+.eingabe-dialog.custom-designer { width: min(1100px, calc(100vw - 32px)); max-height: calc(100vh - 32px); overflow-y: auto; }
+.custom-designer-liste { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.custom-designer-blatt, .custom-designer-karten, .custom-designer .custom-editor-karte { min-width: 0; }
+.custom-designer-blatt > h3 { margin: 0 0 8px; }
+.custom-designer-karten { display: grid; gap: 12px; }
+.custom-designer .formzeile { min-width: 0; }
+.custom-designer .formzeile :is(input, select) { width: 100%; min-width: 0; }
+.custom-editor-aktionen { display: flex; flex-wrap: wrap; margin-top: 12px; }
+.custom-editor-aktionen button { max-width: 100%; overflow-wrap: anywhere; }
+.custom-designer .custom-editor-karte > .hak { display: flex; align-items: flex-start; }
+.custom-designer .custom-editor-karte > .hak input { flex: none; margin-block-start: .2em; }
+.schreib-tab-hinweis {
+  display: none;
+  flex: none;
+  margin-block: 4px;
+  color: var(--tinte-hell);
+  font: 12px/1.4 var(--sans);
+  overflow-wrap: anywhere;
+}
+@media print { .schreib-tab-hinweis { display: none; } }
+@media (max-width: 700px) {
+  .custom-designer-liste { grid-template-columns: minmax(0, 1fr); }
+  .custom-designer-kopf h2 { overflow-wrap: anywhere; }
+}
 .custom-designer-kopf,
 .custom-editor-kopf,
 .custom-designer-werkzeuge { display: flex; align-items: center; gap: 10px; }
@@ -2807,10 +2878,12 @@ textarea::-webkit-scrollbar-track,
 .custom-item-editor input[type="checkbox"] { accent-color: var(--braun); }
 
 @media (max-width: 680px) {
-  .custom-eintrag-editor { grid-template-columns: 1fr; }
-  .custom-eintrag-editor .formzeile:nth-of-type(4) { grid-column: 1; }
+  .custom-eintrag-formular { grid-template-columns: 1fr; }
+  .custom-eintrag-formular .custom-titel-zeile,
+  .custom-eintrag-formular .custom-notiz-zeile { grid-column: 1; }
   .custom-designer { width: 96vw; max-height: 94vh; }
   .custom-designer-werkzeuge { align-items: stretch; flex-direction: column; }
+  .custom-designer-werkzeuge .formzeile { flex-basis: auto; }
   .custom-tab-einstellungen { margin-left: 0; }
 }
 
@@ -3224,6 +3297,9 @@ label.hak.ganztags {
 /* ------------------------- Schriftwahl der Einträge ----------------------- */
 
 /* Nur eigene Einträge – Beschriftungen des Organizers bleiben unberührt. */
+.custom-text-editor, .custom-text-titel, .custom-modul-eintrag { font-family: var(--sans); font-size: 15px; color: var(--tinte); }
+.custom-modul-eintrag-notiz { color: inherit; }
+body[data-schrift="handwriting"] :is(.custom-text-editor, .custom-text-titel, .custom-modul-eintrag),
 body[data-schrift="handwriting"] .obm,
 body[data-schrift="handwriting"] .mini,
 body[data-schrift="handwriting"] .wo-liste li,
@@ -3240,6 +3316,7 @@ body[data-schrift="handwriting"] .feld,
   letter-spacing: 0.01em;
 }
 
+body[data-tinte="blue"] :is(.custom-text-editor, .custom-text-titel, .custom-modul-eintrag, .custom-modul-eintrag-meta),
 body[data-tinte="blue"] .obm,
 body[data-tinte="blue"] .mini,
 body[data-tinte="blue"] .wo-liste li,
@@ -3273,6 +3350,7 @@ body[data-tinte="blue"] .feld,
    ========================================================================== */
 
 /* Mittlere Größe: alles Selbstgeschriebene wird ein wenig größer. */
+body[data-groesse="medium"] :is(.custom-text-editor, .custom-text-titel, .custom-modul-eintrag, .custom-modul-eintrag-meta),
 body[data-groesse="medium"] .haupt .obm,
 body[data-groesse="medium"] .feld,
 body[data-groesse="medium"] .k-wert,
@@ -3289,6 +3367,7 @@ body[data-groesse="medium"] #notiz-titel { font-size: 25px; }
 body[data-groesse="medium"] #notiz-text { font-size: 17px; }
 
 /* Große Größe: gut lesbar auch aus etwas Abstand. */
+body[data-groesse="large"] :is(.custom-text-editor, .custom-text-titel, .custom-modul-eintrag, .custom-modul-eintrag-meta),
 body[data-groesse="large"] .haupt .obm,
 body[data-groesse="large"] .feld,
 body[data-groesse="large"] .k-wert,
@@ -4221,7 +4300,7 @@ textarea,
 .eingabe-dialog { width: min(460px, calc(100vw - 32px)); }
 
 .geraet-dialog { width: min(500px, calc(100vw - 28px)); }
-.geraet-dialog h3 { text-align: center; margin-bottom: 6px; }
+.geraet-dialog h3 { text-align: center; margin-bottom: 6px; overflow-wrap: anywhere; }
 .geraet-telefon {
   position: relative;
   width: 92px;
@@ -4256,6 +4335,7 @@ textarea,
 .geraet-dialog {
   width: min(880px, calc(100vw - 32px));
   max-height: calc(100vh - 32px);
+  margin: 0;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -4291,7 +4371,7 @@ textarea,
 @media (min-width: 760px) {
   .geraet-details {
     grid-template-columns:
-      minmax(105px, auto) minmax(0, 1fr) minmax(105px, auto) minmax(0, 1fr);
+      minmax(0, 0.8fr) minmax(0, 1.2fr) minmax(0, 0.8fr) minmax(0, 1.2fr);
   }
 }
 /* Auf schmalen Fenstern bleibt es untereinander, sonst wird es gequetscht. */
@@ -4299,7 +4379,7 @@ textarea,
   .geraet-koerper { grid-template-columns: minmax(0, 1fr); }
   .geraet-seite { order: -1; }
 }
-.geraet-details dt { color: var(--braun); font-weight: 700; }
+.geraet-details dt { min-width: 0; overflow-wrap: anywhere; color: var(--braun); font-weight: 700; }
 .geraet-details dd { margin: 0; overflow-wrap: anywhere; }
 .geraet-akku-zeile { display: flex; align-items: center; justify-content: center; gap: 10px; }
 .geraet-akku {
@@ -5423,6 +5503,7 @@ body[data-hilfsrahmen="an"] .ods-feldauswahl :focus-visible {
    Systemschriftvergrößerung und Magnolies Schriftwahl in sie eingehen.
    ========================================================================== */
 
+.custom-text-editor,
 #notiz-text,
 #tb-notiz {
   --zeilenhoehe: 1.87em;
@@ -5468,9 +5549,24 @@ body[data-hilfsrahmen="an"] .ods-feldauswahl :focus-visible {
 }
 
 /* Wer lieber ohne Linien schreibt, schaltet sie in den Einstellungen ab. */
+body[data-linien="aus"] .custom-text-editor:not([data-lines="on"]),
+.custom-text-editor[data-lines="off"],
 body[data-linien="aus"] #notiz-text,
 body[data-linien="aus"] #tb-notiz {
   background-image: none;
+}
+
+/* Keep paragraph baselines and the paper together while the editor scrolls. */
+.custom-text-editor { background-attachment: local; }
+.custom-text-editor :is(p, div) { margin: 0; padding: 0; line-height: inherit; }
+.custom-layout-vorschau { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.custom-vorschau-blatt { min-width: 0; padding: 10px; border: 1px solid var(--linie-stark); background: var(--papier); }
+.custom-vorschau-blatt > .custom-uebersicht { height: 300px; overflow: hidden; }
+.custom-vorschau-blatt h3 { margin: 0 0 8px; }
+.custom-layout-vorschau .custom-text-editor { min-height: 0; }
+@media (max-width: 600px) {
+  .custom-layout-vorschau { gap: 4px; }
+  .custom-vorschau-blatt { padding: 4px; }
 }
 
 /* ==========================================================================
@@ -5767,7 +5863,7 @@ body[data-linien="aus"] #tb-notiz {
   height: min(760px, calc(100vh - 32px));
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  overflow-y: auto;
   border: 7px solid var(--leder);
   border-radius: 13px;
   padding: 0;
@@ -5810,6 +5906,7 @@ body[data-linien="aus"] #tb-notiz {
 @media (max-width: 520px) { .anruf-aktiv-dialog { width: calc(100vw - 16px); max-height: calc(100vh - 16px); padding: 16px; } }
 .sms-kopf {
   display: flex;
+  flex-shrink: 0;
   align-items: center;
   gap: 13px;
   min-height: 66px;
@@ -5837,7 +5934,7 @@ body[data-linien="aus"] #tb-notiz {
 .sms-titel { min-width: 0; }
 .sms-titel { flex: 1 1 auto; }
 .sms-titel h3 { margin: 1px 0 0; overflow-wrap: anywhere; }
-.sms-schliessen { padding: 3px 7px; opacity: .72; }
+.sms-schliessen { flex: 0 0 auto; max-width: 40%; overflow-wrap: anywhere; padding: 3px 7px; opacity: .72; }
 .sms-praegung {
   appearance: none;
   border: 0;
@@ -5914,14 +6011,15 @@ body[data-linien="aus"] #tb-notiz {
 .sms-status.failed { color: var(--rot); font-weight: 700; }
 .sms-komponist {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: end;
+  grid-template-columns: minmax(0, 1fr) fit-content(50%);
+  align-items: stretch;
   gap: 8px;
 }
-.sms-komponist-text { min-width: 0; }
+.sms-komponist button { overflow-wrap: anywhere; }
+.sms-komponist-text { min-width: 0; grid-column: 1 / -1; }
 .sms-segmentzaehler { margin: 3px 4px 0; color: #6b6154; font: 11px var(--sans); }
 .sms-segmentzaehler.fehler { color: var(--rot); font-weight: 700; }
-.sms-anpassung { margin-top: 7px; padding: 8px; border: 1px solid rgba(171,148,104,.7); border-radius: 8px; background: #fff8e5; }
+.sms-anpassung { margin-top: 7px; padding: 8px; border: 1px solid rgba(171,148,104,.7); border-radius: 8px; background: #fff8e5; overflow-wrap: anywhere; }
 .sms-anpassung-text { max-height: 100px; margin: 5px 0; overflow: auto; white-space: pre-wrap; font: 13px/1.35 var(--sans); }
 .sms-anpassung .dialog-knoepfe { display: flex; padding: 5px 0 0; border: 0; background: transparent; }
 .sms-dialog textarea.sms-eingabe {
@@ -5968,7 +6066,7 @@ body[data-linien="aus"] #tb-notiz {
   .sms-schreibblatt .formzeile { grid-template-columns: 1fr; gap: 2px; }
   .sms-verlauf { padding-inline: 10px; }
   .sms-blase { max-width: 88%; }
-  .sms-komponist { grid-template-columns: minmax(0, 1fr) auto; padding: 9px; }
+  .sms-komponist { padding: 9px; }
 }
 .telefon-hauptschalter { font-size: 16px; font-weight: 700; margin: 8px 0; }
 .telefon-liste { margin-top: 12px; }

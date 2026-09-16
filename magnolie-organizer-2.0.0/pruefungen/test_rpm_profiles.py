@@ -42,6 +42,8 @@ def test_all_profiles_expand_to_explicit_dependency_sets():
             assert "@MAGNOLIE_DISTRO@" not in expanded
         assert '"%{magnolie_distro}" == "pclinuxos"' in spec
         if root == ROOT:
+            assert "BuildRequires:  /usr/bin/xdg-open" in spec
+            assert "Requires:       /usr/bin/xdg-open" in spec
             for required in ("python3-pyOpenSSL", "typelib-1_0-WebKit2-4_1",
                              "python3-openssl", "python-gobject3", "python3-OpenSSL"):
                 assert required in spec
@@ -54,18 +56,22 @@ def test_fedora_remains_the_release_validated_wrapper():
     assert "libnotify nodejs" in wrapper
     assert "rpm-build webkit2gtk4.1 xdg-utils" in wrapper
     assert "install fakeroot" in wrapper
+    assert "--setenv LANG C.UTF-8" in wrapper
+    assert "--setenv LC_ALL C.UTF-8" in wrapper
+    for variable in ("TMPDIR", "TMP", "TEMP"):
+        assert f"--setenv {variable} /tmp" in wrapper
     assert wrapper.count("/usr/bin/fakeroot /usr/bin/dnf") == 4
     assert wrapper.count("chmod -R u+rwX") == 2
     assert '--bind "$TOPDIR" "$TOPDIR"' in wrapper
     assert '--bind "$HANDBUCH_TOPDIR" "$HANDBUCH_TOPDIR"' in wrapper
     assert '--bind "$AKONADI_TOPDIR" "$AKONADI_TOPDIR"' in wrapper
-    assert 'magnolie-organizer-akonadi-"$AKONADI_VERSION"-*.rpm' in wrapper
+    assert 'magnolie-organizer-kde-"$AKONADI_VERSION"-*.rpm' in wrapper
     assert 'AKONADI_ANTWORT="$AKONADI_TOPDIR/akonadi-response.json"' in wrapper
     assert "rpm -q magnolie-handbuch" in wrapper
     assert "test ! -e /usr/lib/magnolie-handbuch/magnolie_crash.py" in wrapper
     assert 'mkdir -p "$ARBEIT" "$TOPDIR" "$HANDBUCH_TOPDIR" "$AKONADI_TOPDIR"' in wrapper
-    assert "akonadi-rpm/RPMS/*/magnolie-organizer-akonadi-" in release_builder
-    assert "akonadi-rpm/SRPMS/magnolie-organizer-akonadi-" in release_builder
+    assert "akonadi-rpm/RPMS/*/magnolie-organizer-kde-" in release_builder
+    assert "akonadi-rpm/SRPMS/magnolie-organizer-kde-" in release_builder
     for profile in PROFILES[1:]:
         assert f"--distro {profile}" not in wrapper
     assert "/fedora/RPMS/noarch/magnolie-organizer-" in wrapper

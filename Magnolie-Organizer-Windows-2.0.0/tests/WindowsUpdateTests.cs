@@ -47,6 +47,10 @@ internal static class WindowsUpdateTests
         {
             using var updater = new WindowsUpdateService(root, new FixtureHandler(signed, package), false,
                 path => { started = path; return true; }, release);
+            TestAssert.That(updater.IsValidatedReleaseUrl(release.Url) &&
+                            !updater.IsValidatedReleaseUrl(release.Url + "?untrusted=1") &&
+                            !updater.IsValidatedReleaseUrl(release.Url.Replace("9.8.7", "9.8.8", StringComparison.Ordinal)),
+                "Der manuelle Download ist nicht auf die zuvor signaturgeprüfte exakte Release-URL begrenzt.");
             var download = await updater.DownloadAsync();
             TestAssert.That(download.Ok && download.Ready && download.Artifact == "windows", "Verifiziertes Windows-Update wurde nicht vorbereitet.");
             var install = updater.PrepareInstallation();
@@ -68,6 +72,8 @@ internal static class WindowsUpdateTests
             var rejected = updater.PrepareInstallation();
             TestAssert.That(!rejected.Ok && !tamperStarted && !File.Exists(downloaded),
                 "Eine nachträglich manipulierte EXE wurde gestartet oder nicht gelöscht.");
+            TestAssert.That(rejected.Error == NativeLocalization.Gettext("The package could not be opened."),
+                "Der Installationsfehler wurde nicht über den nativen Katalog lokalisiert.");
         }
         finally { try { Directory.Delete(tamperRoot, true); } catch (Exception) { } }
 
@@ -75,12 +81,53 @@ internal static class WindowsUpdateTests
         var redirectRoot = Path.Combine(Path.GetTempPath(), "magnolie-update-test-" + Guid.NewGuid().ToString("N"));
         try
         {
+            NativeLocalization.SetLanguage("de");
             using var updater = new WindowsUpdateService(redirectRoot, redirectHandler, false, _ => true, release);
             var rejected = await updater.DownloadAsync();
             TestAssert.That(!rejected.Ok && !Directory.EnumerateFiles(Path.Combine(redirectRoot, "updates")).Any(),
                 "Ein fremdes Redirectziel wurde angenommen oder die Teildatei blieb liegen.");
+            TestAssert.That(rejected.Error == NativeLocalization.Gettext("The package could not be opened.", "de") &&
+                            !rejected.Error.Contains("redirect", StringComparison.OrdinalIgnoreCase),
+                "Der Downloadfehler wurde nicht lokalisiert oder gab einen technischen Exception-Text weiter.");
         }
-        finally { try { Directory.Delete(redirectRoot, true); } catch (Exception) { } }
+        finally
+        {
+            NativeLocalization.SetLanguage("system");
+            try { Directory.Delete(redirectRoot, true); } catch (Exception) { }
+        }
+
+        var checkRoot = Path.Combine(Path.GetTempPath(), "magnolie-update-test-" + Guid.NewGuid().ToString("N"));
+        try
+        {
+            NativeLocalization.SetLanguage("de");
+            using var updater = new WindowsUpdateService(checkRoot, new FailingHandler(), false);
+            var rejected = await updater.CheckAsync("1.0.0");
+            TestAssert.That(!rejected.Ok &&
+                            rejected.Error == NativeLocalization.Gettext("The update check failed.", "de") &&
+                            !rejected.Error.Contains(FailingHandler.Secret, StringComparison.Ordinal),
+                "Der Prüfungsfehler wurde nicht lokalisiert oder gab Exception.Message an die UI weiter.");
+
+            var bridge = File.ReadAllText("BridgeDispatcher.cs");
+            var manualStart = bridge.IndexOf("private async Task DownloadManualAsync", StringComparison.Ordinal);
+            var manualEnd = bridge.IndexOf("private async Task FetchWeatherAsync", manualStart, StringComparison.Ordinal);
+            var manual = bridge[manualStart..manualEnd];
+            TestAssert.That(manual.Contains("T(\"The manual package could not be opened.\")", StringComparison.Ordinal) &&
+                            !manual.Contains("fehler = error.Message", StringComparison.Ordinal),
+                "Der Handbuch-Updatefehler reicht weiterhin Exception.Message an die UI durch.");
+        }
+        finally
+        {
+            NativeLocalization.SetLanguage("system");
+            try { Directory.Delete(checkRoot, true); } catch (Exception) { }
+        }
+    }
+
+    private sealed class FailingHandler : HttpMessageHandler
+    {
+        internal const string Secret = "raw-transport-detail";
+
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken) =>
+            throw new HttpRequestException(Secret);
     }
 
     private sealed class FixtureHandler(string manifest, byte[] package) : HttpMessageHandler

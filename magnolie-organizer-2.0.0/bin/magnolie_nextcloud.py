@@ -93,7 +93,8 @@ def validate_server(value):
     except ValueError as error:
         raise ValueError("Die Nextcloud-Serverbasis ist ungueltig.") from error
     host = parsed.hostname.encode("idna").decode("ascii").lower()
-    authority = host if port in (None, 443) else "%s:%d" % (host, port)
+    authority_host = "[%s]" % host if ":" in host else host
+    authority = authority_host if port in (None, 443) else "%s:%d" % (authority_host, port)
     path = "/" + parsed.path.strip("/") if parsed.path.strip("/") else ""
     return "https://%s%s" % (authority, path)
 
@@ -334,7 +335,7 @@ class DavHttpClient:
         headers = dict(headers or {})
         token = base64.b64encode((self.user + ":" + self.password).encode("utf-8")).decode("ascii")
         headers["Authorization"] = "Basic " + token
-        headers.setdefault("User-Agent", "Magnolie-Organizer-Linux/2.0.17")
+        headers.setdefault("User-Agent", "Magnolie-Organizer-Linux/2.0.18")
         if body:
             headers.setdefault("Content-Length", str(len(body)))
         started = time.monotonic()
@@ -417,6 +418,9 @@ def _propfind(properties):
 
 def _responses(data, limit=XML_LIMIT, strict=False):
     root = parse_xml(data, limit)
+    if root.tag != DAV + "multistatus":
+        raise NextcloudError("Die DAV-Multistatus-Antwort ist unvollstaendig.",
+                             "partial_multistatus")
     result = []
     for response in root.findall(".//" + DAV + "response")[:LIST_LIMIT + 1]:
         href = response.findtext(DAV + "href") or ""
@@ -541,12 +545,15 @@ class NextcloudDav:
         if kind == "calendar":
             filt = ET.SubElement(root, CALDAV + "filter")
             ET.SubElement(filt, CALDAV + "comp-filter", {"name": "VCALENDAR"})
+        else:
+            ET.SubElement(root, CARDDAV + "filter")
         body = ET.tostring(root, encoding="utf-8", xml_declaration=True)
         _status, _headers, data = self.client.request(
             "REPORT", collection, body, {"Depth": "1", "Content-Type": "application/xml; charset=utf-8"},
             ITEM_LIMIT, {207})
         data_tag = namespace + ("calendar-data" if kind == "calendar" else "address-data")
         result = []
+        collection_url = self.client.same_origin_url(collection).rstrip("/") + "/"
         for href, props in _responses(data, ITEM_LIMIT, strict=True):
             node, etag = props.get(data_tag), props.get(DAV + "getetag")
             if node is None or not (node.text or "").strip():
@@ -555,7 +562,12 @@ class NextcloudDav:
             raw = (node.text or "").encode("utf-8")
             if len(raw) > ITEM_LIMIT:
                 raise NextcloudError("Ein DAV-Eintrag ist zu gross.")
-            result.append({"href": self.client.same_origin_url(href, collection),
+            absolute = self.client.same_origin_url(href, collection)
+            if not absolute.startswith(collection_url):
+                raise NextcloudError(
+                    "Die DAV-REPORT-Antwort enthaelt ein Objekt ausserhalb der Sammlung.",
+                    "report_outside_collection")
+            result.append({"href": absolute,
                            "etag": (etag.text or "") if etag is not None else "",
                            "data": node.text or ""})
         return result
@@ -581,6 +593,10 @@ class NextcloudDav:
         return response_headers.get("etag", "")
 
     def delete(self, href, etag):
+        if not str(etag or "").strip():
+            raise NextcloudError(
+                "Der DAV-Eintrag hat keinen ETag und wird nicht ungeschuetzt geloescht.",
+                "missing_etag")
         status, _headers, _data = self.client.request(
             "DELETE", href, b"", {"If-Match": etag}, XML_LIMIT,
             {200, 204, 404, 412})

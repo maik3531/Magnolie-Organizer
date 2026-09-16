@@ -22,6 +22,10 @@ class BluetoothHorcher(private val server: Server) {
 
     private val laeuft = AtomicBoolean(false)
     private var buchse: BluetoothServerSocket? = null
+    private val verbindungen = java.util.concurrent.ConcurrentHashMap.newKeySet<BluetoothSocket>()
+    private val arbeiter = java.util.concurrent.ThreadPoolExecutor(2, 2, 0,
+        java.util.concurrent.TimeUnit.MILLISECONDS, java.util.concurrent.ArrayBlockingQueue<Runnable>(2))
+    private val fristen = java.util.concurrent.ScheduledThreadPoolExecutor(1).apply { removeOnCancelPolicy = true }
 
     @SuppressLint("MissingPermission")
     fun starten(): Boolean {
@@ -46,6 +50,9 @@ class BluetoothHorcher(private val server: Server) {
         laeuft.set(false)
         runCatching { buchse?.close() }
         buchse = null
+        verbindungen.forEach { runCatching { it.close() } }
+        arbeiter.shutdownNow()
+        fristen.shutdownNow()
     }
 
     private fun horchen() {
@@ -55,7 +62,19 @@ class BluetoothHorcher(private val server: Server) {
             } catch (fehler: Exception) {
                 break
             }
-            thread(isDaemon = true) { bedienen(verbindung) }
+            verbindungen += verbindung
+            var frist: java.util.concurrent.ScheduledFuture<*>? = null
+            try {
+                frist = fristen.schedule({ runCatching { verbindung.close() } }, 10, java.util.concurrent.TimeUnit.SECONDS)
+                arbeiter.execute {
+                    try { bedienen(verbindung) }
+                    finally { frist?.cancel(false); verbindungen.remove(verbindung) }
+                }
+            } catch (_: java.util.concurrent.RejectedExecutionException) {
+                frist?.cancel(false)
+                verbindungen.remove(verbindung)
+                runCatching { verbindung.close() }
+            }
         }
     }
 

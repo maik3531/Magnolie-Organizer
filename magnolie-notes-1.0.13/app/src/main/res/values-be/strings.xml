@@ -1,5 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="baum_postfach_unsicher">Непацверджаныя дастаўкі: %1$d. Паведамленні захоўваюцца і не адпраўляюцца паўторна аўтаматычна. Праверце атрыманне; старыя прылады могуць не падтрымліваць правераныя пацвярджэнні.</string>
+    <string name="telefon_bluetooth_setup">Спалучыць новы Organizer праз Bluetooth</string>
+    <string name="telefon_bluetooth_setup_hinweis">Пакіньце гэты экран адкрытым. Выберыце гэты тэлефон у Organizer, пацвердзіце сістэмнае спалучэнне, затым параўнайце код на абедзвюх прыладах.</string>
     <string name="freigabe_ziel">Захаваць у Magnolie Notes</string>
 
     <string name="blatt_notizen">Нататкі</string>
@@ -349,7 +352,7 @@
     <string name="start_laden">Адкрыццё абароненых даных…</string><string name="start_fehler_titel">Не ўдалося адкрыць абароненыя даныя</string><string name="start_daten_unveraendert">Вашы даныя не выдалены і не перазапісаны. Можна бяспечна паўтарыць спробу.</string><string name="start_erneut">Паўтарыць</string><string name="start_schliessen">Закрыць праграму</string>
     <string name="absturzbericht_teilen">Абагуліць справаздачу аб збоі</string>
     <string name="journal_maximum">Пункты аднаўлення</string>
-    <string name="journal_maximum_hinweis">Пры памяншэнні ліміту найстарэйшыя пункты аднаўлення аўтаматычна выдаляюцца.</string>
+    <string name="journal_maximum_hinweis">Пры памяншэнні ліміту выдаляюцца найстарэйшыя неабароненыя пункты аднаўлення. Абароненыя пункты захоўваюцца.</string>
     <string name="portable_titel">Пераносная рэзервовая копія</string><string name="portable_hinweis">Стварыце або аднавіце асобны абаронены паролем архіў з нататкамі, нататнікамі, задачамі, сметніцай і далучэннямі.</string><string name="portable_export">Стварыць пераносную копію</string><string name="portable_datei_oeffnen">Адкрыць пераносную копію</string><string name="portable_restore">Аднавіць копію</string><string name="portable_passwort">Пароль</string><string name="portable_passwort_hinweis">Увядзіце пароль архіва. Падчас праверкі копіі нічога не змяняецца.</string><string name="portable_pruefen">Праверыць і прагледзець</string><string name="portable_vorschau">Папярэдні прагляд копіі</string><string name="portable_vorschau_text">%1$d нататак · %2$d нататнікаў · %3$d задач · %4$d элементаў у сметніцы</string><string name="portable_restore_warnung">Увесь бягучы асабісты змест будзе заменены. Спачатку ствараецца лакальны страховачны здымак; ідэнтычнасць Magnolienbaum гэтай прылады захоўваецца.</string><string name="portable_fehler">Не ўдалося адкрыць копію. Праверце файл і пароль.</string><string name="portable_exportiert">Пераносная копія створана.</string><string name="portable_wiederhergestellt">Пераносная копія адноўлена.</string>
     <string name="auto_backup_titel">Аўтаматычная копія ў воблачнай папцы</string>
     <string name="auto_backup_hinweis">Пры жаданні захоўвае правераныя пераносныя копіі ў папцы, выбранай праз Android. Пастаўшчык можа сінхранізаваць яе.</string>
@@ -377,4 +380,27 @@
     <string name="aufgabe_zur_wurzel">На верхні ўзровень</string>
     <string name="aufgabe_eltern_waehlen">Выбраць бацькоўскую задачу</string>
     <string name="aufgabe_oberste_ebene">Верхні ўзровень</string>
+    <string name="baum_kontakt_jubilaeum">Гадавіна</string>
+    <string name="baum_kontakt_update">Каб перадаць таксама гадавіны, абнавіце Magnolie на абедзвюх прыладах, адкрыйце абедзве праграмы і паўтарыце спробу. Гэтым разам кантакты не адпраўляліся.</string>
+    <string name="baum_aufgabe_nicht_freigegeben">Гэта заданне не было перададзена гэтай прыладзе.</string>
+    <string name="baum_kontakt_import_nicht_unterstuetzt">Каб адправіць кантакты на гэту прыладу, скарыстайцеся сінхранізацыяй кантактаў.</string>
+    <string name="aufgabe_nach_oben">Перамясціць заданне вышэй</string>
+    <string name="aufgabe_nach_unten">Перамясціць заданне ніжэй</string>
+    <string name="personal_custom_optin">Сінхранізаваць задачы і сустрэчы з карыстальніцкай укладкі</string>
+    <string name="personal_custom_title">Задачы і сустрэчы з карыстальніцкай укладкі (толькі чытанне)</string>
+    <string name="personal_custom_explanation">Абедзве прылады павінны даць згоду. Выключэнне прыпыняе напаміны і абнаўленні з карыстальніцкай укладкі, але захоўвае копіі. Звязаныя тэкставыя блокі не перадаюцца.</string>
+    <string name="personal_custom_unsupported">Гэта прылада не падтрымлівае сінхранізацыю карыстальніцкай укладкі.</string>
+    <string name="personal_custom_delete">Выдалена ў крыніцы: выдаліць гэтую копію з тэлефона ці захаваць? Крыніца на камп’ютары ніколі не змяняецца.</string>
+    <string name="personal_custom_keep">Захаваць копію</string>
+    <string name="personal_custom_privacy">Толькі з відавочнай згоды абедзвюх прылад Personal Sync перадае ўласныя задачы і сустрэчы толькі для чытання, уключаючы іх уласныя нататкі. Тэкставыя блокі, звязаныя тэксты і ўкладанні выключаны. Архівы аднаўляюць копіі, а не дазволы.</string>
+    <string name="device_identifiers_share">Перадаваць ідэнтыфікатары свайго тэлефона</string>
+    <string name="device_identifiers_explanation">Толькі па запыце ўласнага спалучанага камп’ютара, на 60 секунд, без захавання: нумар стандартнай SIM для званкоў і, калі Android дазваляе, серыйны нумар і IMEI. Пачынаючы з Android 10 апаратныя ідэнтыфікатары абмежаваныя для звычайных праграм. Дазвол на нумар неабавязковы; спецыяльныя ролі не запытваюцца.</string>
+    <string name="device_identifiers_phone">Уласны нумар (стандартная SIM для званкоў)</string>
+    <string name="device_identifiers_serial">Серыйны нумар прылады</string>
+    <string name="device_identifiers_imei">IMEI прылады</string>
+    <string name="device_identifiers_off">Перадача ідэнтыфікатараў выключана.</string>
+    <string name="device_identifiers_permission">Няма дазволу на ідэнтыфікатары.</string>
+    <string name="device_identifiers_restricted">Android абмяжоўвае гэты ідэнтыфікатар.</string>
+    <string name="device_identifiers_subscription">Няма стандартнай падпіскі для званкоў.</string>
+    <string name="device_identifiers_unavailable">Гэты ідэнтыфікатар недаступны.</string>
 </resources>

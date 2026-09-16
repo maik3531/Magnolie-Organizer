@@ -135,6 +135,9 @@ object Nutzlast {
         if (inhalt["art"]?.jsonPrimitive?.contentOrNull != "aufgabe") return null
         val titel = inhalt["titel"]?.jsonPrimitive?.contentOrNull.orEmpty().trim()
         if (titel.isEmpty()) return null
+        val ursprung = inhalt["herkunft"]?.jsonPrimitive?.contentOrNull.orEmpty()
+        if (ursprung.isNotEmpty() && ursprung != vonKennung) return null
+        if (inhalt["id"]?.jsonPrimitive?.contentOrNull.isNullOrBlank()) return null
         val prio = inhalt["prio"]?.jsonPrimitive?.contentOrNull?.toIntOrNull() ?: 2
         val faellig = inhalt["faellig"]?.jsonPrimitive?.contentOrNull.orEmpty()
         return EingegangeneAufgabe(
@@ -144,8 +147,7 @@ object Nutzlast {
             faellig = if (ISO_DATUM.matches(faellig)) faellig else "",
             prio = if (prio in 1..3) prio else 2,
             erinnern = inhalt["erinnern"]?.jsonPrimitive?.contentOrNull == "true",
-            herkunft = inhalt["herkunft"]?.jsonPrimitive?.contentOrNull.orEmpty()
-                .ifEmpty { vonKennung },
+            herkunft = vonKennung,
             geaendert = inhalt["geaendert"]?.jsonPrimitive?.longOrNull ?: 0L
         )
     }

@@ -1,6 +1,7 @@
 using System.Net;
 using System.Text;
 using System.Text.Json.Nodes;
+using System.Xml;
 using MagnolieOrganizer.Windows;
 
 namespace MagnolieOrganizer.Windows.Tests;
@@ -14,6 +15,8 @@ internal static class WindowsContactGraphTests
         try
         {
             var store = new WindowsContactStore(root);
+            await TestContactConflicts(root);
+            TestNativeContactFields();
             var contact = new JsonObject { ["vorname"] = "Änne", ["nachname"] = "Beispiel", ["email"] = "a@example.test" };
             var stableOne = WindowsContactStore.StableImportUid("Anna.contact", "");
             var stableTwo = WindowsContactStore.StableImportUid("Anna.contact", "");
@@ -76,8 +79,17 @@ internal static class WindowsContactGraphTests
 
             var oversized = Path.Combine(root, "gross.contact");
             await using (var stream = File.Create(oversized)) stream.SetLength(2 * 1024 * 1024 + 1);
-            TestAssert.That((await store.ReadAsync(CancellationToken.None)).Count == 0,
-                "Windows Contacts las eine übergroße .contact-Datei.");
+            await TestAssert.ThrowsAsync<IOException>(async () => { _ = await store.ReadAsync(CancellationToken.None); },
+                "An oversized Windows contact was treated as an absent contact.");
+            File.Delete(oversized);
+            var unreadable = Path.Combine(root, "person.contact");
+            File.WriteAllText(unreadable, "<broken");
+            var mapped = new JsonArray(new JsonObject { ["id"] = "local", ["uid"] = "person", ["geaendert"] = 1L,
+                ["syncQuellen"] = new JsonObject { ["windows-contacts"] = new JsonObject { ["id"] = "person.contact", ["etag"] = "old" } } });
+            var before = mapped.ToJsonString();
+            await TestAssert.ThrowsAsync<XmlException>(async () => { _ = await new ContactSyncEngine().SyncAsync("windows-contacts", mapped, [], 100, store); },
+                "An incomplete Windows source snapshot deleted a mapped local contact.");
+            TestAssert.That(mapped.ToJsonString() == before && File.ReadAllText(unreadable) == "<broken", "Failed source read mutated contact data.");
 
             var requests = new List<(HttpMethod Method, string Uri, string Authorization, string IfMatch, string Body)>();
             var handler = new RecordingHttpHandler(async request =>
@@ -164,6 +176,81 @@ internal static class WindowsContactGraphTests
     {
         Content = new StringContent(value, Encoding.UTF8, "application/json")
     };
+
+    private static void TestNativeContactFields()
+    {
+        foreach (var date in new[] { "--02-29", "--06-07", "2000-02-29", "1980-06-07" })
+        {
+            var value = new JsonObject { ["vorname"] = "", ["nachname"] = "", ["anzeigename"] = "Van Dame",
+                ["geburtstag"] = date, ["jubilaeum"] = date };
+            for (var round = 0; round < 2; round++) value = WindowsContactStore.Parse(WindowsContactStore.Serialize(value, "native"));
+            TestAssert.That(ContactFields.Text(value, "vorname") == "" && ContactFields.Text(value, "nachname") == "" &&
+                ContactFields.Text(value, "anzeigename") == "Van Dame" && ContactFields.Text(value, "geburtstag") == date &&
+                ContactFields.Text(value, "jubilaeum") == date && value["geburtstagJahrUnbekannt"]!.GetValue<bool>() == date.StartsWith("--", StringComparison.Ordinal),
+                "The native contact extension lost display-only names or full/yearless occasions.");
+        }
+        var unknown = WindowsContactStore.Parse(WindowsContactStore.Serialize(new JsonObject { ["vorname"] = "Anna Maria", ["nachname"] = "",
+            ["geburtstag"] = "1604-02-29", ["geburtstagJahrUnbekannt"] = true,
+            ["jubilaeum"] = "2000-06-07", ["jubilaeumJahrUnbekannt"] = true }, "unknown"));
+        TestAssert.That(ContactFields.Text(unknown, "nachname") == "" && ContactFields.Text(unknown, "geburtstag") == "--02-29" &&
+            ContactFields.Text(unknown, "jubilaeum") == "--06-07", "Explicit unknown-year flags or missing family name were changed.");
+        ContactFields.CopyRemoteFields(unknown, new JsonObject { ["vorname"] = "Anna Maria" });
+        TestAssert.That(ContactFields.Text(unknown, "jubilaeum") == "--06-07" && unknown["jubilaeumJahrUnbekannt"]!.GetValue<bool>(),
+            "A provider without anniversary support erased the local/native occasion.");
+    }
+
+    private static async Task TestContactConflicts(string root)
+    {
+        var remote = new MutableContactRemote();
+        remote.Items["remote"] = new RemoteContact("remote", "v2", 10, new JsonObject { ["uid"] = "person", ["vorname"] = "REMOTE" }, true);
+        JsonArray Local(long modified, bool edited = false)
+        {
+            var contact = new JsonObject { ["id"] = "local", ["uid"] = "person", ["vorname"] = edited ? "BASE" : "LOCAL", ["geaendert"] = modified };
+            ContactFields.SetSource(contact, "cards", new RemoteContact("remote", "v1", 10, contact.DeepClone().AsObject(), true));
+            contact["vorname"] = "LOCAL";
+            return new JsonArray(contact);
+        }
+        var result = await new ContactSyncEngine().SyncAsync("cards", Local(20), [], 30, remote);
+        TestAssert.That(result.Contacts.Count == 1 && ContactFields.Text(result.Contacts[0]!.AsObject(), "vorname") == "REMOTE" && remote.Writes == 0,
+            "A stale REV won over an ETag-only remote edit.");
+        result = await new ContactSyncEngine().SyncAsync("cards", Local(200), [], 100, remote);
+        TestAssert.That(result.Contacts.Count == 1 && ContactFields.Text(result.Contacts[0]!.AsObject(), "vorname") == "REMOTE" && remote.Writes == 0,
+            "An unchanged content baseline was treated as a local edit because of its clock.");
+        var legacy = Local(20);
+        var legacyMapping = ContactFields.Source(legacy[0]!.AsObject(), "cards")!;
+        legacyMapping.Remove("inhaltFormat"); legacyMapping.Remove("inhaltSha256");
+        result = await new ContactSyncEngine().SyncAsync("cards", legacy, [], 100, remote);
+        TestAssert.That(result.Contacts.Count == 2 && remote.Writes == 0 && result.Counts.Errors == 0 &&
+            result.Contacts.OfType<JsonObject>().Select(item => ContactFields.Text(item, "vorname")).Order().SequenceEqual(new[] { "LOCAL", "REMOTE" }),
+            "A changed remote revision without a legacy baseline discarded uncertain local content.");
+        result = await new ContactSyncEngine().SyncAsync("cards", Local(20, edited: true), [], 100, remote);
+        TestAssert.That(result.Contacts.Count == 2 && result.Counts.Errors == 0, "Concurrent contact versions were not preserved as a successful conflict result.");
+        for (var followup = 0; followup < 2; followup++)
+        {
+            var file = Path.Combine(root, "contact-conflict.json");
+            new AtomicStore().WriteRecoverableJson(file, new JsonObject { ["items"] = result.Contacts.DeepClone() }.ToJsonString());
+            var saved = JsonNode.Parse(new AtomicStore().ReadRecoverableJson(file)!)!["items"]!.AsArray();
+            result = await new ContactSyncEngine().SyncAsync("cards", saved, [], 300 + followup, remote);
+            TestAssert.That(result.Contacts.Count == 2 && result.Contacts.OfType<JsonObject>().Select(item => ContactFields.Text(item, "vorname")).Order().SequenceEqual(new[] { "LOCAL", "REMOTE" }) &&
+                result.Contacts.OfType<JsonObject>().Select(item => ContactFields.Source(item, "cards")!["id"]!.GetValue<string>()).Distinct().Count() == 2,
+                "Persisted contact conflict lost LOCAL or reused the remote mapping.");
+        }
+        TestAssert.That(remote.Writes == 1, "Unchanged contact follow-up caused another timestamp-driven upload.");
+    }
+
+    private sealed class MutableContactRemote : IContactRemote
+    {
+        internal readonly Dictionary<string, RemoteContact> Items = new();
+        internal int Writes;
+        public Task<IReadOnlyList<RemoteContact>> ReadAsync(CancellationToken token) => Task.FromResult<IReadOnlyList<RemoteContact>>(Items.Values.ToArray());
+        public Task<RemoteContact> CreateAsync(string uid, JsonObject contact, CancellationToken token)
+        {
+            Writes++; var value = new RemoteContact(uid, "created", contact["geaendert"]!.GetValue<long>(), contact.DeepClone().AsObject(), true);
+            Items[uid] = value; return Task.FromResult(value);
+        }
+        public Task<RemoteContact> UpdateAsync(RemoteContact remote, string uid, JsonObject contact, CancellationToken token) { Writes++; throw new InvalidOperationException("Unexpected update"); }
+        public Task DeleteAsync(RemoteContact remote, string uid, CancellationToken token) => throw new InvalidOperationException("Unexpected delete");
+    }
 
     private sealed class RecordingHttpHandler(Func<HttpRequestMessage, Task<HttpResponseMessage>> response) : HttpMessageHandler
     {

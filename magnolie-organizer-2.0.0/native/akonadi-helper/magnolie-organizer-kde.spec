@@ -1,5 +1,5 @@
-Name:           magnolie-organizer-akonadi
-Version:        1.0.0
+Name:           magnolie-organizer-kde
+Version:        2.0.18
 Release:        1%{?dist}
 Summary:        KDE system-account bridge for Magnolie Organizer
 License:        GPL-3.0-or-later
@@ -14,7 +14,9 @@ BuildRequires:  cmake(KPim6Akonadi)
 BuildRequires:  cmake(KF6CalendarCore)
 BuildRequires:  cmake(KF6Contacts)
 Requires:       akonadi-server
-Requires:       magnolie-organizer >= 2.0.17
+Requires:       magnolie-organizer >= 2.0.18
+Provides:       magnolie-organizer-akonadi = %{version}-%{release}
+Obsoletes:      magnolie-organizer-akonadi < %{version}-%{release}
 Recommends:     kdepim-runtime
 
 %description
@@ -37,5 +39,8 @@ already configured in KDE Akonadi. It never receives account credentials.
 %{_libexecdir}/magnolie-organizer/magnolie-akonadi-helper
 
 %changelog
+* Mon Sep 07 2026 Maik Walter <maik3531@gmail.com> - 2.0.18-1
+- Align the optional KDE bridge version with Magnolie Organizer 2.0.18.
+
 * Tue Sep 01 2026 Maik Walter <maik3531@gmail.com> - 1.0.0-1
 - Initial optional Akonadi calendar and address-book bridge.

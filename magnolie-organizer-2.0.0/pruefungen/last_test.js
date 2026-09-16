@@ -15,8 +15,7 @@ const deJs = fs.readFileSync(path.join(WEB, "i18n", "de.js"), "utf8");
 const ANZAHL = Number(process.env.MAGNOLIE_ANZAHL || 30000);
 let fehler = 0;
 
-function messe(name, arbeit, grenzeMs) {
-  const beginn = process.hrtime.bigint();
+function messe(name, arbeit, grenzeMs, beginn = process.hrtime.bigint()) {
   const ergebnis = arbeit();
   const dauer = Number(process.hrtime.bigint() - beginn) / 1e6;
   const ok = dauer <= grenzeMs;
@@ -25,6 +24,12 @@ function messe(name, arbeit, grenzeMs) {
     name.padEnd(46), dauer.toFixed(0).padStart(6),
     String(grenzeMs).padStart(5), ok ? "ok" : "ZU LANGSAM");
   return ergebnis;
+}
+
+async function messeAsync(name, arbeit, grenzeMs) {
+  const beginn = process.hrtime.bigint();
+  const ergebnis = await arbeit();
+  return messe(name, () => ergebnis, grenzeMs, beginn);
 }
 
 function pruefe(bedingung, text) {
@@ -83,6 +88,9 @@ function baueTermine(anzahl) {
   w.eval(deJs);
   w.MagnolieI18n.setLocale("de");
   w.eval(js);
+  if (d.readyState === "loading") {
+    await new Promise((resolve) => d.addEventListener("DOMContentLoaded", resolve, { once: true }));
+  }
   for (let i = 0; i < 80 && !w.OrganizerTest; i++) {
     await new Promise((r) => setTimeout(r, 10));
   }
@@ -192,6 +200,8 @@ function baueTermine(anzahl) {
   pruefe(elternWahl.options.length <= 252,
     "die Elternauswahl bleibt auf ein Listenhäppchen begrenzt");
   messe("Notizbuch zeichnen", () => T.wechsel("notizen"), 4000);
+  pruefe(T.zustand().sektion === "notizen" && !d.getElementById("aenderungen-schleier"),
+    "die reine Elternsuche erzeugt keine ungespeicherte Aufgabe");
   messe("Jahrestage zeichnen", () => T.wechsel("jahrestage"), 4000);
   T.wechsel("kalender");
 
@@ -240,7 +250,15 @@ function baueTermine(anzahl) {
   const monatUm = Array.from(d.querySelectorAll(".u-knopf"))
     .find((b) => b.textContent === "Monat");
   monatUm.click();
-  messe("Jahresplaner zeichnen", () => T.wechsel("planer"), 3000);
+  await messeAsync("Jahresplaner zeichnen", async () => {
+    T.wechsel("planer");
+    const ende = Date.now() + 15000;
+    while (d.querySelector('.planer-raster[aria-busy="true"]') && Date.now() < ende) {
+      await new Promise(resolve => setTimeout(resolve, 10));
+    }
+    pruefe(d.querySelectorAll(".mini-monat").length === 12,
+      "beide Halbjahre sind vollstaendig gezeichnet");
+  }, 3000);
   messe("Aufgaben, Adressen, Notizen, Jahrestage", () => {
     T.wechsel("aufgaben"); T.wechsel("adressen");
     T.wechsel("notizen"); T.wechsel("jahrestage");
@@ -266,15 +284,15 @@ function baueTermine(anzahl) {
     ...t, id: "n" + i, uid: "lotus-" + i, datum: "2030-0" +
       (1 + (i % 9)) + "-" + String(1 + (i % 28)).padStart(2, "0")
   }));
-  messe("5.000 neue Termine zusammenführen", () => {
-    w.App.importErgebnis({ art: "lotus", abgebrochen: false,
+  await messeAsync("5.000 neue Termine zusammenführen", () => {
+    return w.App.importErgebnis({ art: "lotus", abgebrochen: false,
       termine: nachschub });
   }, 15000);
   const nachErstem = T.daten().termine.length;
   pruefe(nachErstem > ANZAHL + 4000,
     "Bestand deutlich gewachsen (" + nachErstem + ")");
-  messe("dieselben 5.000 noch einmal (alles doppelt)", () => {
-    w.App.importErgebnis({ art: "lotus", abgebrochen: false,
+  await messeAsync("dieselben 5.000 noch einmal (alles doppelt)", () => {
+    return w.App.importErgebnis({ art: "lotus", abgebrochen: false,
       termine: nachschub });
   }, 15000);
   pruefe(T.daten().termine.length === nachErstem,
@@ -283,6 +301,7 @@ function baueTermine(anzahl) {
   console.log("\nWeitergeben (Export) über die Oberfläche");
   /* Die Druckseite ist der aufwendigste Weg aus der Oberfläche heraus */
   const alleKontakte = T.daten().kontakte;
+  pruefe(alleKontakte.length === ANZAHL, "der Drucktest behaelt alle 30.000 Kontakte nach dem asynchronen Import");
   const druckSeite = messe("Druckseite für 30.000 Adressen bauen",
     () => T.druckSeite(alleKontakte), 15000);
   console.log("    Die Druckseite wäre %s MB groß",

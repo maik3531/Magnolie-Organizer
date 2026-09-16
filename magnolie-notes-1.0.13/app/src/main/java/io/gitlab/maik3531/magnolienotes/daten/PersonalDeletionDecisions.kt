@@ -32,6 +32,7 @@ class PersonalDeletionDecisions {
             "attachment\u0000${proposal.parent_id}\u0000${proposal.id}" else "${proposal.kind}\u0000${proposal.id}"
         val meta = input.personalSync.entities[key]
         val unchanged = meta != null && meta.state == "live" && meta.hash == proposal.prior_hash &&
+            PersonalSync.matchesCurrent(input, proposal) &&
             runCatching { PersonalSync.compare(meta.clock, proposal.clock) == "dominated" }.getOrDefault(false)
         if (!unchanged) return PersonalDeletionPrompt.CONFLICT
         return if (remembered(proposal.run_id) != null) PersonalDeletionPrompt.REMEMBERED

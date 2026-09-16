@@ -1,5 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="baum_postfach_unsicher">Ubekræftede leveringer: %1$d. Beskederne er gemt, og automatisk genafsendelse er sat på pause. Kontrollér modtagelsen; ældre enheder understøtter muligvis ikke verificerede kvitteringer.</string>
+    <string name="telefon_bluetooth_setup">Par en ny Organizer via Bluetooth</string>
+    <string name="telefon_bluetooth_setup_hinweis">Hold denne skærm åben. Vælg denne telefon i Organizer, bekræft systemparringen, og sammenlign derefter koden på begge enheder.</string>
     <string name="freigabe_ziel">Gem i Magnolie Notes</string>
     <string name="blatt_notizen">Noter</string>
     <string name="blatt_einfuhr">Import</string>
@@ -320,7 +323,7 @@
     <string name="start_laden">Åbner beskyttede data…</string><string name="start_fehler_titel">Beskyttede data kunne ikke åbnes</string><string name="start_daten_unveraendert">Dine data blev ikke slettet eller overskrevet. Du kan trygt prøve igen.</string><string name="start_erneut">Prøv igen</string><string name="start_schliessen">Luk appen</string>
     <string name="absturzbericht_teilen">Del nedbrudsrapport</string>
     <string name="journal_maximum">Gendannelsespunkter</string>
-    <string name="journal_maximum_hinweis">Når grænsen sænkes, fjernes de ældste gendannelsespunkter automatisk.</string>
+    <string name="journal_maximum_hinweis">Når grænsen sænkes, fjernes de ældste ubeskyttede gendannelsespunkter. Beskyttede punkter bevares.</string>
     <string name="portable_titel">Flytbar sikkerhedskopi</string><string name="portable_hinweis">Opret eller gendan et separat, adgangskodebeskyttet arkiv med noter, notesbøger, opgaver, papirkurv og bilag.</string><string name="portable_export">Opret flytbar sikkerhedskopi</string><string name="portable_datei_oeffnen">Åbn flytbar sikkerhedskopi</string><string name="portable_restore">Gendan sikkerhedskopi</string><string name="portable_passwort">Adgangskode</string><string name="portable_passwort_hinweis">Indtast arkivets adgangskode. Intet ændres, mens sikkerhedskopien kontrolleres.</string><string name="portable_pruefen">Kontrollér og vis eksempel</string><string name="portable_vorschau">Eksempel på sikkerhedskopi</string><string name="portable_vorschau_text">%1$d noter · %2$d notesbøger · %3$d opgaver · %4$d elementer i papirkurven</string><string name="portable_restore_warnung">Dette erstatter alt aktuelt personligt indhold. Først oprettes et lokalt sikkerhedsøjebliksbillede; enhedens Magnolienbaum-identitet bevares.</string><string name="portable_fehler">Sikkerhedskopien kunne ikke åbnes. Kontrollér filen og adgangskoden.</string><string name="portable_exportiert">Flytbar sikkerhedskopi oprettet.</string><string name="portable_wiederhergestellt">Flytbar sikkerhedskopi gendannet.</string>
     <string name="auto_backup_titel">Automatisk sikkerhedskopi i skymappe</string>
     <string name="auto_backup_hinweis">Gemmer valgfrit godkendte portable sikkerhedskopier i en mappe valgt via Android. Udbyderen kan synkronisere mappen.</string>
@@ -348,4 +351,27 @@
     <string name="aufgabe_zur_wurzel">Til øverste niveau</string>
     <string name="aufgabe_eltern_waehlen">Vælg overordnet opgave</string>
     <string name="aufgabe_oberste_ebene">Øverste niveau</string>
+    <string name="baum_kontakt_jubilaeum">Mærkedag</string>
+    <string name="baum_kontakt_update">Opdater Magnolie på begge enheder for også at overføre mærkedage. Åbn begge apps, og prøv igen. Der blev ikke sendt nogen kontakter i dette forsøg.</string>
+    <string name="baum_aufgabe_nicht_freigegeben">Denne opgave er ikke blevet delt med denne enhed.</string>
+    <string name="baum_kontakt_import_nicht_unterstuetzt">Brug kontaktsynkronisering til at sende kontakter til denne enhed.</string>
+    <string name="aufgabe_nach_oben">Flyt opgaven op</string>
+    <string name="aufgabe_nach_unten">Flyt opgaven ned</string>
+    <string name="personal_custom_optin">Synkroniser opgaver og aftaler fra den brugerdefinerede fane</string>
+    <string name="personal_custom_title">Opgaver og aftaler fra den brugerdefinerede fane (skrivebeskyttet)</string>
+    <string name="personal_custom_explanation">Begge enheder skal give samtykke. Deaktivering sætter påmindelser og opdateringer fra den brugerdefinerede fane på pause, men bevarer kopierne. Tilknyttede tekstblokke deles ikke.</string>
+    <string name="personal_custom_unsupported">Denne enhed understøtter ikke synkronisering af den brugerdefinerede fane.</string>
+    <string name="personal_custom_delete">Slettet ved kilden: Slet denne telefonkopi eller behold den? Kilden på computeren ændres aldrig.</string>
+    <string name="personal_custom_keep">Behold kopi</string>
+    <string name="personal_custom_privacy">Kun med begge enheders udtrykkelige samtykke deler Personal Sync egne opgaver og aftaler som skrivebeskyttede kopier, inklusive deres egne noter. Tekstblokke, tilknyttede tekster og vedhæftninger er udelukket. Arkiver gendanner kopier, ikke tilladelser.</string>
+    <string name="device_identifiers_share">Del min telefons identifikatorer</string>
+    <string name="device_identifiers_explanation">Kun efter anmodning fra din egen parrede computer, i 60 sekunder, uden at gemme: nummeret på standard-SIM til opkald og, hvis Android tillader det, serienummer og IMEI. Fra Android 10 er hardwareidentifikatorer begrænset for almindelige apps. Tilladelse til nummeret er valgfri; ingen særlig rolle anmodes.</string>
+    <string name="device_identifiers_phone">Mit nummer (standard-SIM til opkald)</string>
+    <string name="device_identifiers_serial">Enhedens serienummer</string>
+    <string name="device_identifiers_imei">Enhedens IMEI</string>
+    <string name="device_identifiers_off">Deling af enhedsidentifikatorer er slået fra.</string>
+    <string name="device_identifiers_permission">Tilladelse til enhedsidentifikatorer mangler.</string>
+    <string name="device_identifiers_restricted">Android begrænser denne enhedsidentifikator.</string>
+    <string name="device_identifiers_subscription">Intet standardabonnement til opkald er tilgængeligt.</string>
+    <string name="device_identifiers_unavailable">Denne enhedsidentifikator er utilgængelig.</string>
 </resources>

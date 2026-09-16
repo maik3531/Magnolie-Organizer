@@ -1,21 +1,34 @@
 #!/usr/bin/make -f
+export DH_VERBOSE = 1
+export DEB_BUILD_OPTIONS = parallel=2
 
 %:
-	dh $@ --buildsystem=cmake
+	dh $@ --buildsystem=none
 
-override_dh_auto_configure:
-	dh_auto_configure -- -DCMAKE_BUILD_TYPE=Release \
-		-DCMAKE_INSTALL_LIBEXECDIR=libexec \
-		-DCMAKE_DISABLE_FIND_PACKAGE_KPim6Akonadi=ON
+override_dh_auto_build:
+	python3 build.py --payload build/payload
+
+override_dh_auto_test:
+	python3 -m unittest discover -s tests -v
+
+override_dh_auto_install:
+	mkdir -p debian/tmp
+	cp -a build/payload/. debian/tmp/
+
+# Dormant, mutually incompatible backends must NOT become unconditional Depends.
+# build.py runs real dpkg-shlibdeps in EVERY target and retains its full output,
+# package closure and ELF audit. The launcher enforces these before execution.
+override_dh_shlibdeps:
+	test -f build/payload/usr/libexec/magnolie-organizer/kde/debian13/manifest.json
+
+# Already stripped before hashing; do not invalidate the backend manifests.
+override_dh_strip:
+override_dh_dwz:
+
+override_dh_fixperms:
+	dh_fixperms
+	find debian/magnolie-organizer-kde/usr/libexec -type f \( -name '*.json' -o -name '*.tsv' \) -exec chmod 0644 {} +
 
 override_dh_clean:
 	dh_clean
-	rm -rf obj-*
-	rm -f debian/files debian/*.substvars
-
-override_dh_shlibdeps:
-	if test -n "$$MAGNOLIE_SHLIBS_LOCAL"; then \
-		dh_shlibdeps -- -L"$$MAGNOLIE_SHLIBS_LOCAL"; \
-	else \
-		dh_shlibdeps; \
-	fi
+	rm -rf build

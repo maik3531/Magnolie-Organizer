@@ -1,3 +1,12 @@
+magnolie-organizer-kde (2.0.18) unstable; urgency=high
+
+  * Gleicht Paketname und Version verständlich an Magnolie Organizer 2.0.18 an.
+  * Ein optionales KDE-DEB mit drei isoliert gebauten internen Backends.
+  * Behält echte ABI-Anforderungen bei, ohne KDE PIM zwangszuinstallieren.
+  * Der alte Paketname bleibt nur in Provides/Breaks/Replaces erhalten.
+
+ -- Maik Walter <maik3531@gmail.com>  Mon, 07 Sep 2026 09:00:00 +0200
+
 magnolie-organizer-akonadi (1.0.0) stable; urgency=medium
 
   * Initial optional Akonadi calendar and address-book bridge.

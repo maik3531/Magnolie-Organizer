@@ -90,6 +90,41 @@ def match_key(number, country=None):
     return analyze(number, "available", country, "en")["phone_e164"]
 
 
+def normalize(number, country=None):
+    """Normalize dialling syntax, preserving explicit E.164 and unknown numbers."""
+    text = re.sub(r"^tel:", "", str(number or "").strip(), flags=re.I)
+    extension = re.search(r"(?:\b(?:ext|extension|durchwahl)\b|[x#])\s*(\d+)\s*$", text, re.I)
+    suffix = "x" + extension[1] if extension else ""
+    if extension:
+        text = text[:extension.start()]
+    if len(text) > 128 or not re.fullmatch(r"[+0-9()./\s-]+", text):
+        return ""
+    if text.count("+") > 1 or ("+" in text and not text.startswith("+")):
+        return ""
+    # Parenthesized trunk prefixes are presentation syntax, not E.164 digits.
+    if phonenumbers is not None and "(0)" in text:
+        codes = {str(phonenumbers.country_code_for_region(r)) for r in phonenumbers.SUPPORTED_REGIONS
+                 if phonenumbers.PhoneMetadata.metadata_for_region(r).national_prefix == "0"}
+        text = re.sub(r"^\+(\d{1,3})\s*\(0\)",
+                      lambda m: "+" + m[1] if m[1] in codes else m[0], text)
+    digits = re.sub(r"[^0-9]", "", text)
+    if text.startswith("+") or digits.startswith("00"):
+        digits = digits if text.startswith("+") else digits[2:]
+        return "+" + digits + suffix if re.fullmatch(r"[1-9][0-9]{5,14}", digits) else ""
+    if not 1 <= len(digits) <= 15:
+        return ""
+    selected = str(country if country is not None else regional_context()[0]).strip().upper()
+    if phonenumbers is not None and selected in phonenumbers.SUPPORTED_REGIONS:
+        try:
+            parsed = phonenumbers.parse(text, selected)
+            if phonenumbers.is_possible_number(parsed):
+                return phonenumbers.format_number(parsed, phonenumbers.PhoneNumberFormat.E164) + suffix
+        except phonenumbers.NumberParseException:
+            pass
+    # Keep an unrecognized stored number, but never invent a country for it.
+    return digits + suffix if len(digits) >= 6 else ""
+
+
 def enrich_call(payload, country=None, language=None):
     value = dict(payload or {})
     value.update(analyze(value.get("number"), value.get("number_status"),

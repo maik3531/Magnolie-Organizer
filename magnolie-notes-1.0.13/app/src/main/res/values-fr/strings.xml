@@ -1,5 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="baum_postfach_unsicher">Livraisons non vérifiées : %1$d. Les messages sont conservés et le renvoi automatique est suspendu. Vérifiez la réception ; les anciens appareils peuvent ne pas prendre en charge les accusés de réception vérifiés.</string>
+    <string name="telefon_bluetooth_setup">Associer un nouvel Organizer par Bluetooth</string>
+    <string name="telefon_bluetooth_setup_hinweis">Gardez cet écran ouvert. Sélectionnez ce téléphone dans Organizer, confirmez le jumelage système, puis comparez le code sur les deux appareils.</string>
     <string name="freigabe_ziel">Enregistrer dans Magnolie Notes</string>
 
     <string name="blatt_notizen">Notes</string>
@@ -341,7 +344,7 @@
     <string name="start_laden">Ouverture des données protégées…</string><string name="start_fehler_titel">Impossible d’ouvrir les données protégées</string><string name="start_daten_unveraendert">Vos données n’ont été ni supprimées ni remplacées. Vous pouvez réessayer sans risque.</string><string name="start_erneut">Réessayer</string><string name="start_schliessen">Fermer l’application</string>
     <string name="absturzbericht_teilen">Partager le rapport de plantage</string>
     <string name="journal_maximum">Points de restauration</string>
-    <string name="journal_maximum_hinweis">Lorsque la limite est réduite, les points de restauration les plus anciens sont supprimés automatiquement.</string>
+    <string name="journal_maximum_hinweis">Quand vous réduisez la limite, les points de restauration non protégés les plus anciens sont supprimés. Les points protégés sont conservés.</string>
     <string name="portable_titel">Sauvegarde portable</string><string name="portable_hinweis">Créez ou restaurez une archive distincte protégée par mot de passe contenant notes, carnets, tâches, corbeille et pièces jointes.</string><string name="portable_export">Créer une sauvegarde portable</string><string name="portable_datei_oeffnen">Ouvrir une sauvegarde portable</string><string name="portable_restore">Restaurer la sauvegarde</string><string name="portable_passwort">Mot de passe</string><string name="portable_passwort_hinweis">Saisissez le mot de passe de l’archive. Rien ne sera modifié pendant la vérification.</string><string name="portable_pruefen">Vérifier et prévisualiser</string><string name="portable_vorschau">Aperçu de la sauvegarde</string><string name="portable_vorschau_text">%1$d notes · %2$d carnets · %3$d tâches · %4$d éléments dans la corbeille</string><string name="portable_restore_warnung">Cette opération remplace tout le contenu personnel actuel. Un instantané de sécurité local est créé au préalable ; l’identité Magnolienbaum de cet appareil est conservée.</string><string name="portable_fehler">Impossible d’ouvrir la sauvegarde. Vérifiez le fichier et le mot de passe.</string><string name="portable_exportiert">Sauvegarde portable créée.</string><string name="portable_wiederhergestellt">Sauvegarde portable restaurée.</string>
     <string name="auto_backup_titel">Sauvegarde automatique dans un dossier infonuagique</string>
     <string name="auto_backup_hinweis">Enregistre facultativement des sauvegardes portables authentifiées dans un dossier choisi via Android. Le fournisseur peut le synchroniser.</string>
@@ -369,4 +372,27 @@
     <string name="aufgabe_zur_wurzel">Au niveau supérieur</string>
     <string name="aufgabe_eltern_waehlen">Choisir la tâche parente</string>
     <string name="aufgabe_oberste_ebene">Niveau supérieur</string>
+    <string name="baum_kontakt_jubilaeum">Date anniversaire</string>
+    <string name="baum_kontakt_update">Pour inclure les dates anniversaires, mettez Magnolie à jour sur les deux appareils, ouvrez les deux applications et réessayez. Aucun contact n’a été envoyé lors de cette tentative.</string>
+    <string name="baum_aufgabe_nicht_freigegeben">Cette tâche n’a pas été partagée avec cet appareil.</string>
+    <string name="baum_kontakt_import_nicht_unterstuetzt">Utilisez la synchronisation des contacts pour envoyer des contacts à cet appareil.</string>
+    <string name="aufgabe_nach_oben">Monter la tâche</string>
+    <string name="aufgabe_nach_unten">Descendre la tâche</string>
+    <string name="personal_custom_optin">Synchroniser les tâches et rendez-vous de l’onglet personnalisé</string>
+    <string name="personal_custom_title">Tâches et rendez-vous de l’onglet personnalisé (lecture seule)</string>
+    <string name="personal_custom_explanation">Les deux appareils doivent donner leur accord. La désactivation suspend les rappels et mises à jour de l’onglet personnalisé, mais conserve les copies. Les blocs de texte liés ne sont pas partagés.</string>
+    <string name="personal_custom_unsupported">Cet appareil ne prend pas en charge la synchronisation de l’onglet personnalisé.</string>
+    <string name="personal_custom_delete">Suppression à la source : supprimer cette copie du téléphone ou la conserver ? La source sur l’ordinateur n’est jamais modifiée.</string>
+    <string name="personal_custom_keep">Conserver la copie</string>
+    <string name="personal_custom_privacy">Uniquement avec le consentement explicite des deux appareils, Personal Sync partage les tâches et rendez-vous personnalisés en lecture seule, avec leurs propres notes. Les blocs de texte, textes liés et pièces jointes sont exclus. Les archives restaurent les copies, pas les autorisations.</string>
+    <string name="device_identifiers_share">Partager les identifiants de mon téléphone</string>
+    <string name="device_identifiers_explanation">Uniquement sur demande de votre ordinateur associé, pendant 60 secondes, sans enregistrement : le numéro de la SIM vocale par défaut et, si Android le permet, le numéro de série et l’IMEI. Depuis Android 10, les identifiants matériels sont restreints pour les applications ordinaires. L’autorisation du numéro est facultative ; aucun rôle spécial n’est demandé.</string>
+    <string name="device_identifiers_phone">Mon numéro (SIM vocale par défaut)</string>
+    <string name="device_identifiers_serial">Numéro de série de l’appareil</string>
+    <string name="device_identifiers_imei">IMEI de l’appareil</string>
+    <string name="device_identifiers_off">Le partage des identifiants est désactivé.</string>
+    <string name="device_identifiers_permission">L’autorisation des identifiants est manquante.</string>
+    <string name="device_identifiers_restricted">Android restreint cet identifiant.</string>
+    <string name="device_identifiers_subscription">Aucun abonnement vocal par défaut disponible.</string>
+    <string name="device_identifiers_unavailable">Cet identifiant est indisponible.</string>
 </resources>

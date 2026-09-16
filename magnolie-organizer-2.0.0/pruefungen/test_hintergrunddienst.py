@@ -1,4 +1,3 @@
-import importlib.machinery
 import json
 import os
 import runpy
@@ -12,6 +11,8 @@ import types
 from unittest import mock
 
 import pytest
+
+from modul_laden import quellmodul_laden
 
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -124,7 +125,10 @@ def test_sms_reply_intent_is_bounded_expires_and_launches_without_shell():
         "0170 / 123 45 67"
 
 
-def test_headless_cli_dispatches_before_any_gui_import():
+def test_headless_cli_dispatches_before_any_gui_import(tmp_path, monkeypatch):
+    from magnolie_setup_state import write_state
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "config"))
+    write_state("complete")
     fake = types.ModuleType("magnolie_hintergrund")
     calls = []
     fake.daemon_main = mock.Mock(side_effect=lambda _args: calls.append("daemon") or 23)
@@ -145,7 +149,7 @@ def test_headless_cli_dispatches_before_any_gui_import():
         runpy.run_path(PROGRAM, run_name="__main__")
     assert stopped.value.code == 23
     fake_crash.install.assert_called_once_with(
-        "magnolie-organizer", "2.0.17", "background-service")
+        "magnolie-organizer", "2.0.18", "background-service")
     assert calls == ["crash", "daemon"]
     assert fake.daemon_main.called
     assert "gi" not in imported
@@ -353,6 +357,10 @@ def test_gui_subscription_tracks_process_presence_and_window_visibility():
 
 class ImmediateGLib:
     @staticmethod
+    def timeout_add(*arguments):
+        return 1
+
+    @staticmethod
     def idle_add(callback, *arguments):
         callback(*arguments)
         return 1
@@ -481,7 +489,7 @@ def test_actionless_notification_server_still_shows_events_and_rejects_files():
     phone_events = background.PhoneDaemonEvents(lambda: FakePhoneService(), {
         "permissions": {"phone_call_notifications": True}}, notifications,
         ImmediateGLib, lambda *_args: True, lambda: False)
-    phone_events("incoming_call", {"state": "ringing", "number": "+49170"})
+    phone_events("incoming_call", {"direction": "incoming", "state": "ringing", "number": "+49170"})
     assert notifications.items[-1][0] == "Incoming call"
     assert notifications.items[-1][2] == ()
 
@@ -685,8 +693,7 @@ def test_daemon_gettext_uses_persisted_or_cli_language_without_gui_imports():
 
 
 def test_gui_bridge_migrates_legacy_receive_settings_and_keeps_native_decisions():
-    loader = importlib.machinery.SourceFileLoader("magnolie_background_bridge_test", PROGRAM)
-    module = loader.load_module()
+    module = quellmodul_laden("magnolie_background_bridge_test", PROGRAM)
     existing = background.normalize_settings({})
     captured = []
     with mock.patch.object(module, "background_settings_read", return_value=existing), \
@@ -729,14 +736,13 @@ def test_gui_bridge_migrates_legacy_receive_settings_and_keeps_native_decisions(
 
 
 def test_gui_backend_factory_selects_proxy_while_daemon_is_running():
-    loader = importlib.machinery.SourceFileLoader("magnolie_background_proxy_test", PROGRAM)
-    module = loader.load_module()
+    module = quellmodul_laden("magnolie_background_proxy_test", PROGRAM)
     module._KDECONNECT_BACKEND = None
     proxy = mock.Mock()
     proxy.start.return_value = True
     with mock.patch.object(module, "daemon_available", return_value=True), \
          mock.patch.object(module, "KDEConnectProxy", return_value=proxy), \
-         mock.patch.object(module, "KDEConnectSMSBackend") as local_backend, \
+         mock.patch.object(module, "create_backend") as local_backend, \
          mock.patch.object(module, "_hintergrund_bereitschaft_senden") as readiness:
         assert module._kdeconnect_backend() is proxy
     local_backend.assert_not_called()
@@ -744,8 +750,7 @@ def test_gui_backend_factory_selects_proxy_while_daemon_is_running():
 
 
 def test_gui_visibility_helper_skips_thread_for_current_proxy_state():
-    loader = importlib.machinery.SourceFileLoader("magnolie_visibility_test", PROGRAM)
-    module = loader.load_module()
+    module = quellmodul_laden("magnolie_visibility_test", PROGRAM)
     backend = types.SimpleNamespace(_visible=True)
     with mock.patch.object(module.threading, "Thread") as thread:
         module._hintergrund_sichtbarkeit_senden(backend, True, "visibility-test")
@@ -766,8 +771,7 @@ def test_visibility_is_not_sent_again_after_success():
 
 
 def test_readiness_is_coalesced_and_stale_update_cannot_win():
-    loader = importlib.machinery.SourceFileLoader("magnolie_readiness_test", PROGRAM)
-    module = loader.load_module()
+    module = quellmodul_laden("magnolie_readiness_test", PROGRAM)
     entered = threading.Event()
     release = threading.Event()
     finished = threading.Event()
@@ -806,12 +810,22 @@ def test_proxy_readiness_is_not_sent_again_after_success():
 
 
 class FakePhoneService:
+    def call_event_current(self, peer_id, call_ref, revision, state):
+        return True
+
+    def call_is_current(self, peer_id, call_ref, revision):
+        return True
+
+    def call_action_tokens(self, peer_id, call_ref, revision):
+        return {}
+
     def __init__(self):
         self.enabled = True
         self.listening = True
         self.stop_calls = 0
         self.replays = 0
         self.pairing_calls = []
+        self.status_requests = []
         self.lock = threading.RLock()
         self.personal_dispatched = set()
 
@@ -819,8 +833,9 @@ class FakePhoneService:
         return {"possible": True, "enabled": self.enabled,
                 "listening": self.listening, "peers": []}
 
-    def request_status(self, peer_id):
-        return "status:" + peer_id
+    def request_status(self, peer_id, request_id=None):
+        self.status_requests.append((peer_id, request_id))
+        return request_id if request_id is not None else "status:" + peer_id
 
     def replay_personal_sync(self):
         self.replays += 1
@@ -844,6 +859,9 @@ def test_phone_proxy_has_one_listener_owner_forwards_events_and_close_keeps_daem
         try:
             assert proxy.start()
             assert proxy.request_status("peer") == "status:peer"
+            request_id = "22222222-2222-4222-8222-222222222222"
+            assert proxy.request_status("peer", request_id=request_id) == request_id
+            assert phone.status_requests == [("peer", None), ("peer", request_id)]
             assert phone.listening and phone.stop_calls == 0
             ticket_payload = {"event": "selected_notification",
                               "payload": {"title": "Calendar", "text": "Meeting"}}
@@ -866,7 +884,7 @@ def test_closed_gui_phone_notifications_start_only_from_clicked_actions():
     events = background.PhoneDaemonEvents(lambda: phone, settings, notifications,
         ImmediateGLib, lambda *_args: True, lambda: False)
     events("selected_notification", {"event": "posted", "app": "Mail", "text": "Message"})
-    events("incoming_call", {"state": "ringing", "name": "Alice"})
+    events("incoming_call", {"direction": "incoming", "state": "ringing", "name": "Alice"})
     events("sms", {"from": "+49170", "text": "Hello"})
     assert notifications.opened == 0
     assert len(notifications.items) == 3
@@ -874,7 +892,7 @@ def test_closed_gui_phone_notifications_start_only_from_clicked_actions():
     assert notifications.opened == 1
 
 
-def test_phone_notifications_remain_native_with_visible_gui_and_are_forwarded():
+def test_phone_notifications_forward_calls_to_gui_without_duplicate_system_alert():
     phone = FakePhoneService()
     notifications = RecordedNotifications()
     published = []
@@ -884,10 +902,10 @@ def test_phone_notifications_remain_native_with_visible_gui_and_are_forwarded():
     events = background.PhoneDaemonEvents(lambda: phone, settings, notifications,
         ImmediateGLib, lambda *args: published.append(args) or True, lambda: True)
     events("selected_notification", {"event": "posted", "app": "Mail", "text": "Message"})
-    events("incoming_call", {"state": "ringing", "number": "+49170"})
+    events("incoming_call", {"direction": "incoming", "state": "ringing", "number": "+49170"})
     events("sms", {"from": "+49170", "text": "Hello"})
     events("pairing_code", {"attempt_id": "a" * 32, "code": "123 456"})
-    assert len(notifications.items) == 4
+    assert len(notifications.items) == 3
     notifications.items[-1][2][0][2]()
     assert phone.pairing_calls == [("a" * 32, True)]
     assert len(published) == 3
@@ -938,14 +956,16 @@ def test_phone_replays_removed_read_and_old_events_without_native_notifications(
     events("selected_notification", {"event": "removed", "posted_ms": 3000})
     events("selected_notification", {"event": "posted", "posted_ms": 1999,
                                       "app_label": "Mail", "text": "old"})
-    events("incoming_call", {"state": "ringing", "occurred_ms": 1999})
+    events("incoming_call", {"direction": "incoming", "state": "ringing", "occurred_ms": 1999})
     events("sms", {"timestamp_ms": 3000, "read": True, "text": "read"})
     events("selected_notification", {"event": "posted", "posted_ms": 2000,
                                       "app_label": "Mail", "text": "new"})
-    events("incoming_call", {"state": "ringing", "occurred_ms": 2000})
+    events("incoming_call", {"direction": "incoming", "state": "ringing", "occurred_ms": 2000})
     events("sms", {"timestamp_ms": 2000, "read": False, "text": "new"})
-    assert len(notifications.items) == 3
+    assert len(notifications.items) == 2
     assert len(published) == 7
+    assert events.take(published[2][1]["ticket"])["payload"]["notify"] is False
+    assert events.take(published[5][1]["ticket"])["payload"]["notify"] is True
 
 
 def test_background_freshness_survives_restart_without_storing_raw_event_ids():

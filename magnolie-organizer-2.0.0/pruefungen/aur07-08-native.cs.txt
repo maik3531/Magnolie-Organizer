@@ -1,0 +1,60 @@
+using System.Text.Json;
+using System.Text.Json.Nodes;
+using MagnolieOrganizer.Windows;
+
+namespace MagnolieOrganizer.Windows;
+
+internal sealed class BridgeDispatcher
+{
+    private readonly ProbeForm form = new();
+    private static string T(string value) => value;
+    private static string Text(JsonElement value, string key) => value.GetProperty(key).GetString() ?? "";
+    /* IMPORT_METHOD */
+
+    public static async Task Main(string[] args)
+    {
+        var message = JsonDocument.Parse(Console.In.ReadToEnd()).RootElement;
+        if (Text(message, "cmd") == "persist")
+        {
+            var store = new AtomicStore();
+            store.Write(args[0], Text(message, "text"));
+            Console.WriteLine(store.Read(args[0]));
+            return;
+        }
+        OpenFileDialog.ChosenFile = args[0];
+        var dispatcher = new BridgeDispatcher();
+        await dispatcher.ImportAsync(message);
+        Console.WriteLine(JsonSerializer.Serialize(new {
+            dialog = OpenFileDialog.Last, replies = dispatcher.form.Replies
+        }));
+    }
+}
+
+internal sealed class ProbeForm
+{
+    public List<object> Replies { get; } = [];
+    public Task SendAsync(string callback, object payload)
+    {
+        Replies.Add(new { callback, payload });
+        return Task.CompletedTask;
+    }
+}
+
+internal enum DialogResult { OK, Cancel }
+internal sealed class OpenFileDialog : IDisposable
+{
+    public static string ChosenFile = "";
+    public static OpenFileDialog? Last;
+    public string Title { get; set; } = "";
+    public string Filter { get; set; } = "";
+    public bool CheckFileExists { get; set; }
+    public bool Multiselect { get; set; }
+    public string FileName => ChosenFile;
+    public bool Disposed { get; private set; }
+    public DialogResult ShowDialog(ProbeForm owner)
+    {
+        Last = this;
+        return ChosenFile == "cancel" ? DialogResult.Cancel : DialogResult.OK;
+    }
+    public void Dispose() => Disposed = true;
+}

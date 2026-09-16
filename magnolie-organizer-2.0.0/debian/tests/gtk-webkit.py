@@ -35,7 +35,7 @@ erwartet = {
     "magnolie-organizer://app/i18n-start.js",
     "magnolie-organizer://app/anwendung.js",
 }
-zustand = {"bereit": False, "layout": False,
+zustand = {"bereit": False, "layout": False, "phase": "startup",
            "fehler": "Zeitüberschreitung beim WebKit-Start"}
 
 
@@ -91,6 +91,8 @@ class Prueffenster(m.Fenster):
             m.GLib.timeout_add(750, self.navigation_pruefen)
             return
         if nachricht.get("cmd") == "ui_diagnose":
+            if "phase" in nachricht:
+                zustand["phase"] = {key: nachricht.get(key) for key in ("phase", "hidden", "width", "height")}
             if not zustand["bereit"]:
                 zustand["fehler"] = "JavaScript-Diagnose: %r" % nachricht
             return
@@ -104,6 +106,7 @@ class Prueffenster(m.Fenster):
                         sorted(self.angefordert))
             return
         zustand["bereit"] = True
+        zustand["fehler"] = "Zeitueberschreitung bei der WebKit-Layoutpruefung"
         super().bei_nachricht(_inhalte, ergebnis)
         m.GLib.timeout_add(1200, self.layout_pruefen)
 
@@ -114,8 +117,12 @@ class Prueffenster(m.Fenster):
  let aktuelleSprache = "Start";
  try {
   const sprachen = %s;
+  const phase = (wert) => window.webkit.messageHandlers[window.__MAGNOLIE_BRUECKE__].postMessage(
+    JSON.stringify({cmd: "ui_diagnose", phase: wert, hidden: document.hidden,
+      width: window.innerWidth, height: window.innerHeight}));
   for (const sprache of sprachen.filter((wert) =>
       wert !== "en" && wert !== window.__MAGNOLIE_SPRACHE__)) {
+   phase("catalog/" + sprache);
    await new Promise((fertig, fehler) => {
     const script = document.createElement("script");
     script.src = "i18n/" + sprache + ".js";
@@ -144,7 +151,8 @@ class Prueffenster(m.Fenster):
       document.body.dataset.groesse = groesse;
       feld.style.fontSize = "";
       const basisGroesse = parseFloat(getComputedStyle(feld).fontSize);
-      for (const skalierung of [1, 1.25, 1.5]) {
+       for (const skalierung of [1, 1.25, 1.5]) {
+        phase("note-lines/" + art + "/" + groesse + "/" + skalierung);
        feld.style.fontSize = (basisGroesse * skalierung) + "px";
        feld.style.width = "280px";
        feld.innerHTML = "";
@@ -159,8 +167,14 @@ class Prueffenster(m.Fenster):
         feld.append(zeile, document.createElement("br"));
         marken.push(marke);
        }
-       OrganizerTest.aktualisiereNotizlinien();
-       await warten();
+        OrganizerTest.aktualisiereNotizlinien();
+        // Wait for the requested face, but do not manually repair the ruler:
+        // the application must remeasure after a cold handwriting font load.
+        const schrift = getComputedStyle(feld);
+        await document.fonts.load(schrift.fontStyle + " " + schrift.fontWeight + " " +
+          schrift.fontSize + " " + schrift.fontFamily, "Magnolie");
+        await document.fonts.ready;
+        await warten();
        const stil = getComputedStyle(feld);
        const periode = parseFloat(stil.getPropertyValue("--zeilenhoehe"));
        const linie = parseFloat(stil.getPropertyValue("--linien-stelle"));
@@ -181,11 +195,13 @@ class Prueffenster(m.Fenster):
     feld.style.width = "";
    };
   for (const sprache of sprachen) {
+     phase("language/" + sprache);
     aktuelleSprache = sprache;
     App.init({daten: JSON.parse(JSON.stringify(basis)), datenPfad: "/tmp/magnolie-layout",
       regional: {language: sprache, formatLocale: sprache.replace("_", "-")}, neu: false});
     OrganizerTest.oeffneBuch();
    for (const bereich of bereiche) {
+       phase(sprache + "/section/" + bereich);
       OrganizerTest.wechsel(bereich);
       await warten();
       for (const eintrag of OrganizerTest.findeTextUeberlaeufe(document)) {
@@ -228,6 +244,7 @@ class Prueffenster(m.Fenster):
       regional: {language: sprache, formatLocale: sprache.replace("_", "-")}, neu: false});
     OrganizerTest.oeffneEinstellungen();
     for (const id of Array.from(document.querySelectorAll(".einst-reiter-knopf"), (e) => e.id)) {
+       phase(sprache + "/settings/" + id);
       document.getElementById(id)?.click();
       await warten();
       for (const eintrag of OrganizerTest.findeTextUeberlaeufe(document)) {
@@ -266,8 +283,8 @@ fenster.show_all()
 
 def zeit_ist_um():
     if not zustand["bereit"] or not zustand["layout"]:
-        fenster.fertig("%s; URI=%r; angefordert=%r" %
-                       (zustand["fehler"], fenster.ansicht.get_uri(),
+        fenster.fertig("%s; phase=%r; URI=%r; angefordert=%r" %
+                       (zustand["fehler"], zustand["phase"], fenster.ansicht.get_uri(),
                         sorted(fenster.angefordert)))
     return False
 

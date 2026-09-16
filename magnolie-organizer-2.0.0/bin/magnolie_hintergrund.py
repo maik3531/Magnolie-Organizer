@@ -4,6 +4,8 @@
 import base64
 import binascii
 import gettext
+import fcntl
+import errno
 import hashlib
 import json
 import logging
@@ -23,7 +25,7 @@ import unicodedata
 from collections import deque
 from logging.handlers import RotatingFileHandler
 
-from magnolie_kdeconnect import (DEVICE_ID, KDEConnectSMSBackend, ProtocolError,
+from magnolie_kdeconnect import (DEVICE_ID, create_backend, ProtocolError,
                                  local_device_name)
 from magnolie_setup_state import classify_and_adopt, services_allowed
 from magnolie_phone_region import enrich_call
@@ -87,6 +89,36 @@ class AlreadyRunning(IPCError):
     pass
 
 
+class FileLease:
+    """Persistent inode, lifetime flock. Never unlink a lock file on release."""
+    def __init__(self, path):
+        self.fd = None
+        self.pid = os.getpid()
+        os.makedirs(os.path.dirname(path), mode=0o700, exist_ok=True)
+        fd = os.open(path, os.O_RDWR | os.O_CREAT | os.O_CLOEXEC | os.O_NOFOLLOW, 0o600)
+        try:
+            info = os.fstat(fd)
+            if not stat.S_ISREG(info.st_mode) or info.st_uid != os.getuid():
+                raise IPCError("invalid service lease")
+            fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            current = os.lstat(path)
+            if (current.st_dev, current.st_ino) != (info.st_dev, info.st_ino):
+                raise IPCError("service lease inode changed")
+            os.fchmod(fd, 0o600)
+            self.fd = fd
+        except BlockingIOError as error:
+            os.close(fd)
+            raise AlreadyRunning("service lease is already held") from error
+        except BaseException:
+            os.close(fd)
+            raise
+
+    def close(self):
+        if self.fd is not None:
+            os.close(self.fd)
+            self.fd = None
+
+
 def data_directory():
     base = os.environ.get("XDG_DATA_HOME") or os.path.expanduser("~/.local/share")
     path = os.path.join(base, PROGRAM_NAME)
@@ -128,6 +160,8 @@ def normalize_settings(value):
     return {
         "enabled": value.get("enabled") is True,
         "autostart": value.get("autostart") is True,
+        "phone_setup_services": list(dict.fromkeys(t for t in value.get("phone_setup_services", [])
+            if isinstance(t, str) and t in ("wifi", "bluetooth", "kdeconnect"))) if isinstance(value.get("phone_setup_services", []), list) else [],
         "encryption_policy": (policy if policy == "notify_then_unlock"
                               else "notify_then_unlock"),
         "permissions": {name: permissions.get(name) is True for name in PERMISSIONS},
@@ -419,14 +453,22 @@ def start_service(executable=None, language=None, wait=3.0):
     command = [service_executable(executable), "--hintergrunddienst"]
     if language:
         command.extend(("--language", str(language)))
-    subprocess.Popen(command, start_new_session=True, stdin=subprocess.DEVNULL,
-                     stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    process = subprocess.Popen(command, start_new_session=True, stdin=subprocess.DEVNULL,
+                               stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     deadline = time.monotonic() + max(0, float(wait))
     while time.monotonic() < deadline:
         if daemon_available():
             return True
         time.sleep(0.05)
-    return daemon_available()
+    if daemon_available():
+        return True
+    if process.poll() is None:
+        process.terminate()
+        try: process.wait(timeout=2)
+        except subprocess.TimeoutExpired:
+            process.kill()
+            process.wait(timeout=2)
+    return False
 
 
 def receive_configuration(settings):
@@ -471,19 +513,17 @@ class BackgroundFreshness:
         self.path = path or os.path.join(state_directory(), FRESHNESS_NAME)
         now = now_ms if isinstance(now_ms, int) else int(time.time() * 1000)
         self._lock = threading.Lock()
-        previous_cutoff = 0
         seen = []
         try:
             with open(self.path, "r", encoding="ascii") as source:
                 value = json.load(source)
             if isinstance(value, dict) and value.get("version") == 1:
-                previous_cutoff = value.get("notification_cutoff_ms", 0)
                 seen = value.get("seen", [])
         except (OSError, TypeError, ValueError):
             pass
-        if not isinstance(previous_cutoff, int) or isinstance(previous_cutoff, bool):
-            previous_cutoff = 0
-        self.notification_cutoff_ms = max(now, previous_cutoff)
+        self.notification_cutoff_ms = now
+        self._wall_ms = now
+        self._monotonic = time.monotonic()
         minimum = self.notification_cutoff_ms - self.MAX_AGE_MS
         self._seen = {}
         for item in seen if isinstance(seen, list) else ():
@@ -523,18 +563,24 @@ class BackgroundFreshness:
         }, ensure_ascii=True, sort_keys=True, separators=(",", ":")) + "\n")
 
     def is_fresh(self, source, event, payload, *timestamp_fields):
-        dated_fresh = _event_is_fresh(payload, self.notification_cutoff_ms,
-                                      *timestamp_fields)
         digest = self._identity(source, event, payload)
-        if digest is None:
-            return dated_fresh
+        now = int(time.time() * 1000)
         occurred = next((payload.get(field) for field in timestamp_fields
-                         if isinstance(payload.get(field), int)
-                         and not isinstance(payload.get(field), bool)
-                         and payload.get(field) > 0), int(time.time() * 1000))
+                          if isinstance(payload.get(field), int)
+                          and not isinstance(payload.get(field), bool)
+                          and payload.get(field) > 0), None)
         with self._lock:
+            monotonic = time.monotonic()
+            # A new wall-clock epoch starts at correction time, not at old history.
+            if now < self._wall_ms + (monotonic - self._monotonic) * 1000 - 1000:
+                self.notification_cutoff_ms = now
+                self._save()
+            self._wall_ms, self._monotonic = now, monotonic
+            dated_fresh = occurred is None or self.notification_cutoff_ms <= occurred <= now + 60000
+            if digest is None:
+                return dated_fresh
             unseen = digest not in self._seen
-            self._seen[digest] = occurred
+            self._seen[digest] = occurred if occurred is not None else now
             self._trim()
             self._save()
         return dated_fresh and unseen
@@ -687,7 +733,9 @@ def _request_shape(operation, arguments):
         "phone_confirm_pairing": {"attempt_id", "accepted"},
         "phone_remove": {"peer_id"},
         "phone_set_bluetooth": {"peer_id", "enabled", "address"},
-        "phone_request_status": {"peer_id"},
+        "phone_set_call_audio": {"peer_id", "prefer_pc"},
+        "phone_request_status": {"peer_id", "request_id"},
+        "phone_current_identifier_event": {"payload"},
         "phone_set_grant": {"peer_id", "name", "enabled"},
         "phone_set_personal_sync": {"peer_id", "own_device", "auto_wifi"},
         "phone_send_personal_sync": {"peer_id", "kind", "body", "trigger"},
@@ -698,12 +746,36 @@ def _request_shape(operation, arguments):
             "aggregate_hash", "sources"},
         "phone_request_dial": {"peer_id", "destination", "client_ref"},
         "phone_request_answer": {"peer_id", "call_ref", "command_ref"},
+        "phone_call_action_tokens": {"peer_id", "call_ref", "revision"},
+        "phone_call_action": {"token"},
+        "phone_call_is_current": {"peer_id", "call_ref", "revision"},
+        "phone_call_event_current": {"peer_id", "call_ref", "revision", "state"},
+        "phone_call_alert": {"token", "state"},
         "phone_request_end_call": {"peer_id", "call_ref", "revision", "command_ref"},
         "phone_replay_personal_sync": set(), "phone_take_event": {"ticket"},
+        "phone_setup_begin": set(), "phone_setup_list": {"session"},
+        "phone_setup_status": {"session"}, "phone_setup_cancel": {"session"},
+        "phone_setup_connect": {"session", "transport"},
+        "phone_setup_confirm": {"session", "prompt", "answer"},
+        "phone_setup_commit": {"session", "transports"},
     }
     if operation not in allowed or set(arguments) - allowed[operation]:
         raise IPCError("operation is not allowed")
     encoded = json.dumps(arguments, ensure_ascii=False, allow_nan=False)
+    if operation.startswith("phone_setup_"):
+        if set(arguments) != allowed[operation] or len(encoded.encode("utf-8")) > 4096:
+            raise IPCError("invalid phone setup request")
+        if operation != "phone_setup_begin" and (not isinstance(arguments["session"], str) or not re.fullmatch(r"[a-f0-9]{64}", arguments["session"])):
+            raise IPCError("invalid phone setup session")
+        if operation == "phone_setup_connect" and arguments["transport"] not in ("wifi", "bluetooth", "kdeconnect"):
+            raise IPCError("invalid phone setup transport")
+        if operation == "phone_setup_confirm" and (not isinstance(arguments["prompt"], str) or not re.fullmatch(r"[a-f0-9]{32}", arguments["prompt"]) or
+                arguments["answer"] is not None and (not isinstance(arguments["answer"], str) or len(arguments["answer"]) > 256)):
+            raise IPCError("invalid phone setup answer")
+        if operation == "phone_setup_commit":
+            values = arguments["transports"]
+            if not isinstance(values, list) or len(values) > 3 or any(not isinstance(t, str) or t not in ("wifi", "bluetooth", "kdeconnect") for t in values) or len(set(values)) != len(values):
+                raise IPCError("invalid phone setup startup services")
     maximum = (MAX_PHONE_MESSAGE if operation in LARGE_IPC_OPERATIONS else
                MAX_PHONE_ARGUMENTS if operation.startswith("phone_") else 32 * 1024)
     if len(encoded.encode("utf-8")) > maximum:
@@ -760,6 +832,7 @@ class IPCServer:
         self.operation_callback = operation_callback
         self.phone_backend = phone_backend
         self.phone_event_getter = phone_event_getter
+        self.phone_alert_handler = None
         self._events = deque(maxlen=MAX_EVENTS)
         self._event_sequence = 0
         self._event_condition = threading.Condition()
@@ -768,6 +841,22 @@ class IPCServer:
         self._handlers = threading.BoundedSemaphore(MAX_IPC_HANDLERS)
         self._mutation_lock = threading.RLock()
         self.settings_revision = 0
+        self.phone_provider = None
+        self._owner_uid = os.getuid()
+        self._lease = None
+        from magnolie_setup_state import PhoneSetupSessions
+        self.setup_sessions = PhoneSetupSessions(self._setup_phone, lambda: self.backend,
+            data_directory, local_device_name, startup=self._setup_startup)
+
+    def _setup_phone(self, create):
+        if self.phone_provider is not None:
+            return self.phone_provider(create)
+        return self.phone_backend
+
+    def _setup_startup(self, adapter, transports):
+        with self._mutation_lock:
+            adapter._commit_startup_local(transports, self.settings_getter, self.settings_setter, start_service=False)
+            if transports: self.settings_revision += 1
 
     def gui_present(self):
         now = time.monotonic()
@@ -828,22 +917,41 @@ class IPCServer:
             return {"cursor": cursor, "events": events}
 
     def start(self):
+        if self._lease is not None:
+            return self
         os.makedirs(os.path.dirname(self.path), mode=0o700, exist_ok=True)
         os.chmod(os.path.dirname(self.path), 0o700)
+        self._lease = FileLease(self.path + ".lock")
+        try:
+            return self._start_owned()
+        except BaseException:
+            self._lease.close()
+            self._lease = None
+            raise
+
+    def _start_owned(self):
         if os.path.lexists(self.path):
+            details = os.lstat(self.path)
+            if not stat.S_ISSOCK(details.st_mode):
+                raise IPCError("background IPC path is not a socket")
+            probe = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+            probe.settimeout(0.3)
             try:
-                if ipc_request("ping", path=self.path).get("running"):
-                    raise AlreadyRunning("background service is already running")
-            except AlreadyRunning:
-                raise
-            except Exception:
+                probe.connect(self.path)
+            except OSError as error:
+                if error.errno not in (errno.ECONNREFUSED, errno.ENOENT):
+                    raise AlreadyRunning("background socket may still be live") from error
                 try:
-                    details = os.lstat(self.path)
-                    if not stat.S_ISSOCK(details.st_mode):
-                        raise IPCError("background IPC path is not a socket")
+                    current = os.lstat(self.path)
+                    if (current.st_dev, current.st_ino) != (details.st_dev, details.st_ino):
+                        raise IPCError("background socket inode changed")
                     os.unlink(self.path)
                 except FileNotFoundError:
                     pass
+            else:
+                raise AlreadyRunning("background service is already running")
+            finally:
+                probe.close()
         listener = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
         try:
             listener.bind(self.path)
@@ -887,11 +995,12 @@ class IPCServer:
             try:
                 # The private runtime directory, mode 0600 socket and SO_PEERCRED
                 # deliberately define the current same-UID authorization boundary.
+                uid = pid = None
                 if hasattr(socket, "SO_PEERCRED"):
                     credentials = connection.getsockopt(
                         socket.SOL_SOCKET, socket.SO_PEERCRED, struct.calcsize("3i"))
-                    _pid, uid, _gid = struct.unpack("3i", credentials)
-                    if uid != os.getuid():
+                    pid, uid, _gid = struct.unpack("3i", credentials)
+                    if uid != self._owner_uid:
                         raise IPCError("IPC peer has a different user")
                 request = _read_message(connection, MAX_IPC_MESSAGE, dynamic_request=True)
                 if set(request) != {"op", "args"} or not isinstance(request["op"], str):
@@ -899,7 +1008,18 @@ class IPCServer:
                 operation, arguments = request["op"], request["args"]
                 _request_shape(operation, arguments)
                 if operation == "ping":
-                    result = {"running": True, "lifecycle": self.lifecycle}
+                    result = {"running": True, "lifecycle": self.lifecycle, "phone_setup": True}
+                elif operation.startswith("phone_setup_"):
+                    if uid is None or pid is None or self.lifecycle != "ready":
+                        raise IPCError("Phone setup is unavailable in this background service. Restart the background service and try again.")
+                    if operation in ("phone_setup_status", "phone_setup_list"):
+                        result = self.setup_sessions.operation((uid, pid), operation, arguments)
+                    else:
+                        with self._mutation_lock:
+                            result = (self.setup_sessions.begin((uid, pid)) if operation == "phone_setup_begin" else
+                                      self.setup_sessions.operation((uid, pid), operation, arguments))
+                            if operation == "phone_setup_cancel":
+                                result["released"] = self.setup_sessions.wait_closed()
                 elif operation == "get_settings":
                     result = settings_status(self.settings_getter())
                     if isinstance(self.status_extra, dict):
@@ -957,11 +1077,26 @@ class IPCServer:
                         self._gui_subscribers.pop(arguments["subscriber"], None)
                     result = {"subscribed": False}
                 elif operation.startswith("phone_"):
-                    result = self._phone_operation(operation, arguments)
+                    if operation in ("phone_open_pairing", "phone_cancel_pairing", "phone_confirm_pairing", "phone_remove", "phone_set_enabled", "phone_set_bluetooth"):
+                        with self._mutation_lock:
+                            result = self._phone_operation(operation, arguments)
+                    else:
+                        result = self._phone_operation(operation, arguments)
                 else:
                     if operation == "configure_receive":
                         arguments = dict(arguments, file_mode="confirm")
-                    result = getattr(self.backend, operation)(**arguments)
+                    if self.backend is None:
+                        if operation != "status":
+                            raise IPCError(_("KDE Connect is unavailable; other background services remain active."))
+                        result = {"available": False, "listening": False,
+                                  "reason": "transport_unavailable"}
+                    elif operation in ("begin_pairing", "complete_pairing", "confirm_pairing"):
+                        with self._mutation_lock:
+                            if self.setup_sessions.connecting_transport == "kdeconnect":
+                                raise IPCError("Another phone setup session is active.")
+                            result = getattr(self.backend, operation)(**arguments)
+                    else:
+                        result = getattr(self.backend, operation)(**arguments)
                     if self.operation_callback is not None:
                         self.operation_callback(operation, result)
                     if operation == "status" and isinstance(result, dict) and \
@@ -980,6 +1115,17 @@ class IPCServer:
                     pass
 
     def _phone_operation(self, operation, arguments):
+        if operation == "phone_call_event_current":
+            return bool(self.phone_backend and self.phone_backend.call_event_current(**arguments))
+        if operation == "phone_call_alert":
+            return bool(self.phone_alert_handler and self.phone_alert_handler(
+                arguments.get("token"), arguments.get("state")))
+        if (operation in ("phone_call_action", "phone_call_action_tokens") and not self.gui_notification_ready()
+                and not normalize_settings(self.settings_getter())["permissions"]["phone_call_notifications"]):
+            raise IPCError("call notifications are not permitted")
+        if operation in ("phone_open_pairing", "phone_cancel_pairing", "phone_confirm_pairing", "phone_remove", "phone_set_enabled", "phone_set_bluetooth") and \
+                self.setup_sessions.connecting_transport in ("wifi", "bluetooth"):
+            raise IPCError("Another phone setup session is active.")
         if operation == "phone_take_event":
             if self.phone_event_getter is None:
                 raise IPCError("phone event is unavailable")
@@ -987,6 +1133,8 @@ class IPCServer:
         phone = self.phone_backend
         if phone is None:
             raise IPCError("phone service is not owned by the background service")
+        if operation == "phone_request_status":
+            return phone.request_status(arguments["peer_id"], request_id=arguments.get("request_id"))
         calls = {
             "phone_report": ("report", ()),
             "phone_set_enabled": ("set_enabled", ("enabled",)),
@@ -995,7 +1143,8 @@ class IPCServer:
             "phone_confirm_pairing": ("confirm_pairing", ("attempt_id", "accepted")),
             "phone_remove": ("remove", ("peer_id",)),
             "phone_set_bluetooth": ("set_bluetooth", ("peer_id", "enabled", "address")),
-            "phone_request_status": ("request_status", ("peer_id",)),
+            "phone_set_call_audio": ("set_call_audio", ("peer_id", "prefer_pc")),
+            "phone_current_identifier_event": ("current_identifier_event", ("payload",)),
             "phone_set_grant": ("set_grant", ("peer_id", "name", "enabled")),
             "phone_set_personal_sync": ("set_personal_sync", ("peer_id", "own_device", "auto_wifi")),
             "phone_send_personal_sync": ("send_personal_sync", ("peer_id", "kind", "body", "trigger")),
@@ -1007,6 +1156,9 @@ class IPCServer:
                 ("peer_id", "run_id", "reply", "aggregate_hash", "sources")),
             "phone_request_dial": ("request_dial", ("peer_id", "destination", "client_ref")),
             "phone_request_answer": ("request_answer", ("peer_id", "call_ref", "command_ref")),
+            "phone_call_action_tokens": ("call_action_tokens", ("peer_id", "call_ref", "revision")),
+            "phone_call_action": ("call_action", ("token",)),
+            "phone_call_is_current": ("call_is_current", ("peer_id", "call_ref", "revision")),
             "phone_request_end_call": ("request_end_call",
                 ("peer_id", "call_ref", "revision", "command_ref")),
             "phone_replay_personal_sync": ("replay_personal_sync", ()),
@@ -1018,6 +1170,7 @@ class IPCServer:
 
     def close(self):
         self.lifecycle = "stopping"
+        self.setup_sessions.close()
         self.stopped.set()
         with self._event_condition:
             self._event_condition.notify_all()
@@ -1025,14 +1178,20 @@ class IPCServer:
             self.listener.close()
         if self.thread is not None and self.thread is not threading.current_thread():
             self.thread.join(2)
+        self.setup_sessions.wait_closed()
         try:
             details = os.lstat(self.path)
             identity = (details.st_dev, details.st_ino)
-            if stat.S_ISSOCK(details.st_mode) and identity == getattr(
-                    self, "_socket_identity", None):
+            if (self._lease is not None and self._lease.pid == os.getpid()
+                    and stat.S_ISSOCK(details.st_mode) and identity == getattr(
+                    self, "_socket_identity", None)):
                 os.unlink(self.path)
         except FileNotFoundError:
             pass
+        finally:
+            if self._lease is not None:
+                self._lease.close()
+                self._lease = None
 
 
 def ipc_request(operation, arguments=None, path=None, timeout=6):
@@ -1041,6 +1200,12 @@ def ipc_request(operation, arguments=None, path=None, timeout=6):
     connection.settimeout(timeout)
     try:
         connection.connect(path or socket_path())
+        if operation.startswith("phone_setup_"):
+            if not hasattr(socket, "SO_PEERCRED"):
+                raise IPCError("phone setup requires peer credentials")
+            _pid, uid, _gid = struct.unpack("3i", connection.getsockopt(socket.SOL_SOCKET, socket.SO_PEERCRED, struct.calcsize("3i")))
+            if uid != os.getuid():
+                raise IPCError("IPC server has a different user")
         _write_message(connection, {"op": operation, "args": arguments or {}})
         response = _read_message(connection, MAX_PHONE_MESSAGE if operation.startswith("phone_")
                                  else MAX_IPC_MESSAGE)
@@ -1054,12 +1219,21 @@ def ipc_request(operation, arguments=None, path=None, timeout=6):
 
 
 def daemon_status(path=None):
+    path = path or socket_path()
     try:
         result = ipc_request("ping", path=path, timeout=0.3)
         if result.get("running") is True:
             return str(result.get("lifecycle") or "starting")
     except Exception:
         pass
+    if os.path.lexists(path + ".lock"):
+        try:
+            lease = FileLease(path + ".lock")
+        except (AlreadyRunning, OSError, IPCError):
+            # A busy/unresponsive owner is not permission to start local transports.
+            return "starting"
+        else:
+            lease.close()
     return "stopped"
 
 
@@ -1272,6 +1446,22 @@ class PhoneServiceProxy:
         return bool(self.report().get("enabled"))
 
     def report(self): return self._call("report")
+    def call_event_current(self, peer_id, call_ref, revision, state):
+        try:
+            return ipc_request("phone_call_event_current", {"peer_id": peer_id, "call_ref": call_ref,
+                "revision": revision, "state": state}, self.path, timeout=1)
+        except Exception:
+            return False
+    def call_is_current(self, peer_id, call_ref, revision):
+        try:
+            return ipc_request("phone_call_is_current", {"peer_id": peer_id, "call_ref": call_ref, "revision": revision}, self.path, timeout=1)
+        except Exception:
+            return False
+    def call_alert(self, token, state):
+        try:
+            return ipc_request("phone_call_alert", {"token": token, "state": state}, self.path, timeout=1)
+        except Exception:
+            return False
     def set_enabled(self, enabled): return self._call("set_enabled", enabled=bool(enabled))
     def open_pairing(self): return self._call("open_pairing")
     def cancel_pairing(self): return self._call("cancel_pairing")
@@ -1280,7 +1470,12 @@ class PhoneServiceProxy:
     def remove(self, peer_id): return self._call("remove", peer_id=peer_id)
     def set_bluetooth(self, peer_id, enabled, address=""):
         return self._call("set_bluetooth", peer_id=peer_id, enabled=bool(enabled), address=address)
-    def request_status(self, peer_id): return self._call("request_status", peer_id=peer_id)
+    def set_call_audio(self, peer_id, prefer_pc):
+        return self._call("set_call_audio", peer_id=peer_id, prefer_pc=prefer_pc)
+    def request_status(self, peer_id, request_id=None):
+        return self._call("request_status", peer_id=peer_id, request_id=request_id)
+    def current_identifier_event(self, payload):
+        return self._call("current_identifier_event", payload=payload)
     def set_grant(self, peer_id, name, enabled):
         return self._call("set_grant", peer_id=peer_id, name=name, enabled=bool(enabled))
     def set_personal_sync(self, peer_id, own_device, auto_wifi=False):
@@ -1305,10 +1500,115 @@ class PhoneServiceProxy:
                           client_ref=client_ref)
     def request_answer(self, peer_id, call_ref, command_ref):
         return self._call("request_answer", peer_id=peer_id, call_ref=call_ref,
-                          command_ref=command_ref)
+                         command_ref=command_ref)
+
+    def call_action_tokens(self, peer_id, call_ref, revision):
+        return self._call("call_action_tokens", peer_id=peer_id, call_ref=call_ref, revision=revision)
+
+    def call_action(self, token):
+        return self._call("call_action", token=token)
     def request_end_call(self, peer_id, call_ref, revision, command_ref):
         return self._call("request_end_call", peer_id=peer_id, call_ref=call_ref,
             revision=revision, command_ref=command_ref)
+
+
+_NOTIFICATION_ACTIVATION = threading.local()
+
+
+def notification_activation_token():
+    return getattr(_NOTIFICATION_ACTIVATION, 'token', '')
+
+
+def notification_launch_environment():
+    env = dict(os.environ)
+    env.pop('XDG_ACTIVATION_TOKEN', None)
+    env.pop('DESKTOP_STARTUP_ID', None)
+    token = notification_activation_token()
+    if token:
+        env['XDG_ACTIVATION_TOKEN'] = token
+        # GTK3 (including the AppImage baseline) consumes the legacy variable.
+        env['DESKTOP_STARTUP_ID'] = token
+    return env
+
+
+class NotificationActivation:
+    """One-shot compositor token, scoped to the matching server/notification/action."""
+    def __init__(self, notification):
+        self.notification = notification
+        self.proxy = None
+        self.handler = 0
+        self.token = ''
+        self.owner = ''
+        self.server_owner = ''
+        self.invoked = False
+        try:
+            from gi.repository import Gio
+            self.proxy = Gio.DBusProxy.new_for_bus_sync(Gio.BusType.SESSION,
+                Gio.DBusProxyFlags.DO_NOT_AUTO_START | Gio.DBusProxyFlags.DO_NOT_LOAD_PROPERTIES,
+                None, 'org.freedesktop.Notifications', '/org/freedesktop/Notifications',
+                'org.freedesktop.Notifications', None)
+            self.server_owner = self.proxy.get_name_owner()
+            self.handler = self.proxy.connect('g-signal', self._signal)
+            notification.connect('closed', self.close)
+        except Exception:
+            self.close()
+
+    def _signal(self, proxy, sender, signal_name, parameters):
+        if (signal_name != 'ActivationToken' or sender != self.server_owner or
+                sender != proxy.get_name_owner() or
+                parameters.get_type_string() != '(us)'):
+            return
+        ident, token = parameters.unpack()
+        if ident == self.notification.get_property('id') and 0 < len(token) <= 4096 and '\0' not in token:
+            self.token, self.owner = token, sender
+
+    def invoke(self, callback):
+        if self.invoked:
+            return
+        self.invoked = True
+        token = self.token if self.proxy is not None and self.owner == self.server_owner == self.proxy.get_name_owner() else ''
+        # New libnotify exposes its token directly; the subscription also covers
+        # the shipped Jammy libnotify without replacing it with host libraries.
+        getter = getattr(self.notification, 'get_activation_token', None)
+        if getter is not None and self.handler and self.proxy is not None and self.proxy.get_name_owner() == self.server_owner:
+            try:
+                token = getter() or token
+            except Exception:
+                pass
+        if not isinstance(token, str) or len(token) > 4096 or '\0' in token:
+            token = ''
+        self.token = ''
+        previous = notification_activation_token()
+        _NOTIFICATION_ACTIVATION.token = token
+        try:
+            callback()
+        finally:
+            _NOTIFICATION_ACTIVATION.token = previous
+            self.close()
+
+    def close(self, *_unused):
+        if self.proxy is not None and self.handler:
+            self.proxy.disconnect(self.handler)
+        self.handler = 0
+        self.token = ''
+
+
+def call_action_main(arguments):
+    """Consume in the live owner, then launch the GUI without forwarding a call request."""
+    if (len(arguments) != 2 or arguments[0] != "--call-action" or
+            not re.fullmatch(r"[0-9a-f]{64}", arguments[1]) or os.geteuid() == 0):
+        return 2
+    try:
+        if not ipc_request("phone_call_action", {"token": arguments[1]}):
+            return 1
+        # Validate before GUI startup can change ownership/readiness. Never retry
+        # the action on startup or store it for a later/reconnected phone call.
+        subprocess.Popen([service_executable()], env=notification_launch_environment(),
+            start_new_session=True, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL)
+        return 0
+    except Exception:
+        return 1
 
 
 class NativeNotifications:
@@ -1329,15 +1629,21 @@ class NativeNotifications:
             self.actions_supported = "actions" in capabilities
         except Exception:
             self.Notify = None
+            self.available = False
+            self.actions_supported = False
         self.supported = self.actions_supported
 
     def show(self, title, body, actions=(), on_close=None, key=None):
+        """Return service acceptance, never a visibility or delivery guarantee."""
         actions = tuple(actions)[:2]
         if not self.available or actions and not self.actions_supported:
             return False
+        activation = None
         try:
             notification = self.Notify.Notification.new(
                 _safe_text(title, 160), _safe_text(body, 500), PROGRAM_NAME)
+            notification.set_hint('desktop-entry', self.glib.Variant('s',
+                                  'io.gitlab.maik3531.MagnolieOrganizer'))
             self.notifications.add(notification)
             if key:
                 previous = self.keyed_notifications.pop(key, None)
@@ -1345,6 +1651,7 @@ class NativeNotifications:
                     previous.close()
                 self.keyed_notifications[key] = notification
             decided = {"value": False}
+            activation = NotificationActivation(notification)
 
             def close(*_unused):
                 self.notifications.discard(notification)
@@ -1364,15 +1671,20 @@ class NativeNotifications:
                         return
                     decided["value"] = True
                     try:
-                        callback()
+                        activation.invoke(callback)
                     except Exception:
                         pass
                     finally:
                         close()
                 notification.add_action(action_id, _safe_text(label, 60), activate)
-            notification.show()
+            if not notification.show():
+                activation.close()
+                close()
+                return False
             return True
         except Exception:
+            if activation is not None:
+                activation.close()
             return False
 
     def withdraw(self, key):
@@ -1392,7 +1704,7 @@ class NativeNotifications:
             request_path = sms_reply_request_write(reply_intent)
             command.extend(("--sms-reply-file", request_path))
         try:
-            subprocess.Popen(command, start_new_session=True,
+            subprocess.Popen(command, env=notification_launch_environment(), start_new_session=True,
                              stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
                              stderr=subprocess.DEVNULL)
         except Exception:
@@ -1402,6 +1714,13 @@ class NativeNotifications:
                 except OSError:
                     pass
             raise
+
+    def open_call_action(self, token):
+        if not isinstance(token, str) or not re.fullmatch(r"[0-9a-f]{64}", token):
+            return
+        subprocess.Popen([self.executable, "--call-action", token],
+            env=notification_launch_environment(), start_new_session=True,
+            stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
 
 def native_clipboard_set(text):
@@ -1598,19 +1917,22 @@ class PhoneDaemonEvents:
     """Keep phone data opaque, notify natively, and mirror it to an attached GUI."""
     def __init__(self, backend_getter, settings, notifications, glib,
                   event_publisher, gui_present, notification_since_ms=0,
-                  diagnostics=None, freshness=None):
+                  diagnostics=None, freshness=None, call_gui_ready=None):
         self.backend_getter = backend_getter
         self.settings = normalize_settings(settings)
         self.notifications = notifications
         self.glib = glib
         self.event_publisher = event_publisher
         self.gui_present = gui_present
+        self.call_gui_ready = call_gui_ready or gui_present
         self.notification_since_ms = notification_since_ms
         self.diagnostics = diagnostics
         self.freshness = freshness
         self._pending = {}
         self._pending_size = 0
         self._lock = threading.Lock()
+        self._call_generation = 0
+        self._call_alert = None
 
     def _fresh(self, event, payload, *timestamp_fields):
         if self.freshness is not None:
@@ -1619,7 +1941,66 @@ class PhoneDaemonEvents:
         return _event_is_fresh(payload, self.notification_since_ms, *timestamp_fields)
 
     def __call__(self, event, payload):
-        self.glib.idle_add(self._handle, event, dict(payload or {}))
+        if event == "device_status":
+            payload = dict(payload, status={k: v for k, v in payload.get("status", {}).items() if k != "identifiers"})
+        generation = None
+        if event == "incoming_call":
+            with self._lock:
+                backend = self.backend_getter()
+                if not backend or not backend.call_event_current(payload.get("device_id"),
+                        payload.get("call_ref"), payload.get("revision"), payload.get("state")):
+                    return
+                self._call_generation += 1
+                generation = self._call_generation
+                self._call_alert = None
+        self.glib.idle_add(self._handle, event, dict(payload or {}), generation)
+
+    def call_alert(self, token, state):
+        if not isinstance(token, str) or state not in ("claim", "shown", "failed", "current"):
+            return False
+        with self._lock:
+            item = self._call_alert
+            if not item or item["token"] != token or item["deadline"] <= time.monotonic():
+                return False
+            if state == "current":
+                return item["state"] in ("claimed", "shown")
+            if state == "claim" and item["state"] == "pending":
+                item["state"] = "claimed"
+                return True
+            if state in ("shown", "failed") and item["state"] == "claimed":
+                item["state"] = state
+                if state == "shown":
+                    item["deadline"] = time.monotonic() + 60
+                return True
+            return False
+
+    def _call_notice(self, payload, generation):
+        backend = self.backend_getter()
+        if (generation != self._call_generation or not backend or not backend.call_is_current(
+                payload.get("device_id"), payload.get("call_ref"), payload.get("revision"))):
+            return False
+        caller = _safe_text(payload.get("number"), 120) or _("Unknown caller")
+        hint = _safe_text(payload.get("phone_display_hint"), 160)
+        if hint:
+            caller += "\n" + hint
+        tokens = backend.call_action_tokens(payload.get("device_id"), payload.get("call_ref"), payload.get("revision"))
+        actions = tuple((action, _("Answer") if action == "answer" else _("Reject"),
+            lambda token=token: self.notifications.open_call_action(token)) for action, token in tokens.items())
+        if len(tokens) < 2:
+            caller += "\n" + _("Call controls unavailable. Check Android call permission; no dialer role is requested automatically.")
+        if not self.notifications.show(_("Incoming call"), caller, actions, key="phone-call"):
+            self.notifications.show(_("Incoming call"), caller, key="phone-call")
+        deadline = time.monotonic() + 60
+        def withdraw():
+            if generation != self._call_generation:
+                return False
+            if self.settings["permissions"]["phone_call_notifications"] and time.monotonic() < deadline and backend.call_is_current(
+                    payload.get("device_id"), payload.get("call_ref"), payload.get("revision")):
+                return True
+            self.notifications.withdraw("phone-call")
+            return False
+        self.glib.timeout_add(300, withdraw)
+        return False
 
     def take(self, ticket):
         if not isinstance(ticket, str):
@@ -1630,9 +2011,22 @@ class PhoneDaemonEvents:
                 self._pending_size -= item[1]
         if item is None:
             raise IPCError("phone event is no longer available")
-        return item[0]
+        value = item[0]
+        if value.get("event") == "call_audio":
+            backend = self.backend_getter()
+            value = dict(value, payload=backend.call_audio_status() if backend is not None else {
+                "state": "unavailable", "available": False, "active": False,
+                "route": {"state": "inactive", "active": False}})
+        if value.get("event") == "device_status":
+            backend = self.backend_getter()
+            if backend is not None and hasattr(backend, "current_identifier_event"):
+                value = dict(value, payload=backend.current_identifier_event(value["payload"]))
+        return value
 
     def _forward(self, event, payload):
+        if event == "device_status":
+            # The IPC queue retains only a reference; identifiers stay in the consent-fenced map.
+            payload = dict(payload, status={k: v for k, v in payload.get("status", {}).items() if k != "identifiers"})
         value = {"event": event, "payload": _json_safe(payload)}
         size = len(json.dumps(value, ensure_ascii=False, allow_nan=False).encode("utf-8"))
         if size > MAX_PHONE_MESSAGE:
@@ -1655,12 +2049,16 @@ class PhoneDaemonEvents:
     def _open_action(self):
         return (("open", _("Start Organizer"), self.notifications.open_organizer),)
 
-    def _handle(self, event, payload):
+    def _handle(self, event, payload, generation=None):
         if event == "incoming_call":
+            if generation != self._call_generation:
+                return False
+            self.notifications.withdraw("phone-call")
             payload = enrich_call(payload)
         backend = self.backend_getter()
         permissions = self.settings["permissions"]
-        gui_present = self.gui_present()
+        gui_present = (self.call_gui_ready() if event in ("incoming_call", "answer_status", "end_status")
+                       else self.gui_present())
         diagnostic = None
         if event == "selected_notification":
             fresh = self._fresh(event, payload, "posted_ms", "created_ms")
@@ -1669,9 +2067,36 @@ class PhoneDaemonEvents:
             diagnostic = (fresh, notify)
         elif event == "incoming_call":
             fresh = self._fresh(event, payload, "occurred_ms", "started_ms")
-            notify = bool(payload.get("state") == "ringing" and fresh and
+            notify = bool(payload.get("direction") == "incoming" and payload.get("state") == "ringing" and fresh and
                           permissions["phone_call_notifications"])
+            # Foreground/tray consent lives in the GUI call settings, not the background opt-in.
+            payload["notify"] = bool(fresh and payload.get("direction") == "incoming" and
+                payload.get("state") == "ringing" and (gui_present or notify))
+            if not notify:
+                self.notifications.withdraw("phone-call")
             diagnostic = (fresh, notify)
+            if payload["notify"]:
+                if not backend or not backend.call_is_current(payload.get("device_id"), payload.get("call_ref"), payload.get("revision")):
+                    payload["notify"] = notify = False
+                elif gui_present:
+                    token = os.urandom(32).hex()
+                    with self._lock:
+                        self._call_alert = {"token": token, "state": "pending", "deadline": time.monotonic() + 2}
+                    payload["call_delivery"] = token
+                    def fallback():
+                        with self._lock:
+                            item = self._call_alert
+                            if not item or item["token"] != token or item["state"] == "shown":
+                                return False
+                            if not self.settings["permissions"]["phone_call_notifications"]:
+                                item["state"] = "pending"
+                                item["deadline"] = time.monotonic() + 58
+                                return False
+                            item["state"] = "fallback"
+                        if self.settings["permissions"]["phone_call_notifications"]:
+                            self._call_notice(payload, generation)
+                        return False
+                    self.glib.timeout_add(2000, fallback)
         elif event == "sms":
             fresh = self._fresh(event, payload, "timestamp_ms", "occurred_ms",
                                 "created_ms")
@@ -1710,15 +2135,12 @@ class PhoneDaemonEvents:
             body = _safe_text(payload.get("text") or payload.get("body"), 400)
             if not self.notifications.show(title, body, self._open_action()):
                 self.notifications.show(title, body)
-        elif (event == "incoming_call" and payload.get("state") == "ringing" and
-              fresh and
-              permissions["phone_call_notifications"]):
-            caller = _safe_text(payload.get("number"), 120) or _("Unknown caller")
-            hint = _safe_text(payload.get("phone_display_hint"), 160)
-            if hint:
-                caller += "\n" + hint
-            if not self.notifications.show(_("Incoming call"), caller, self._open_action()):
-                self.notifications.show(_("Incoming call"), caller)
+        elif event == "incoming_call" and notify and not gui_present:
+            self._call_notice(payload, generation)
+        elif (event in ("answer_status", "end_status") and payload.get("state") == "failed"
+              and not gui_present and permissions["phone_call_notifications"]):
+            self.notifications.show(_("Phone"),
+                _("Call controls unavailable. Check Android call permission; no dialer role is requested automatically."))
         elif (event == "sms" and not payload.get("read") and fresh and
               permissions["phone_sms_notifications"]):
             sender = _safe_text(payload.get("from"), 80) or _("Phone")
@@ -1737,7 +2159,7 @@ class PhoneDaemonEvents:
         return False
 
 
-def daemon_main(_arguments=None, backend_factory=KDEConnectSMSBackend,
+def daemon_main(_arguments=None, backend_factory=create_backend,
                  glib=None, notifications_factory=NativeNotifications,
                  phone_factory=None):
     """Run without importing Gtk, WebKit, AppIndicator, or creating a window."""
@@ -1755,17 +2177,9 @@ def daemon_main(_arguments=None, backend_factory=KDEConnectSMSBackend,
         except Exception as error:
             sys.stderr.write(_("Magnolie background service requires GLib: %s") % error + "\n")
             return 1
-    holder = {"backend": None, "phone": None, "loop": None}
+    holder = {"backend": None, "phone": None, "loop": None, "kde_error": ""}
     notification_since_ms = int(time.time() * 1000)
-    try:
-        freshness = BackgroundFreshness(now_ms=notification_since_ms)
-        notification_since_ms = freshness.notification_cutoff_ms
-    except OSError:
-        freshness = None
-    try:
-        diagnostics = BackgroundDiagnostics()
-    except OSError:
-        diagnostics = None
+    freshness = diagnostics = None
     notifications = notifications_factory(glib)
     server = None
     loop = glib.MainLoop()
@@ -1776,13 +2190,26 @@ def daemon_main(_arguments=None, backend_factory=KDEConnectSMSBackend,
         if selected is None:
             from magnolie_telefon import PhoneService
             selected = PhoneService
+        def route(event, payload):
+            if not server.setup_sessions.phone_event(event, payload): phone_events(event, payload)
         return selected(os.path.join(data_directory(), "telefon"),
-                        local_device_name(), callback=phone_events)
+                        local_device_name(), callback=route)
+
+    def setup_phone(create):
+        if holder["phone"] is None and create:
+            holder["phone"] = server.phone_backend = make_phone()
+            holder["phone"].personal_sync_available = server.gui_present
+        return holder["phone"]
 
     def apply_settings(value):
         clean = write_settings(value)
+        if not clean["enabled"] or (phone_events.settings["permissions"]["phone_monitor"] and not clean["permissions"]["phone_monitor"]):
+            server.setup_sessions.close()
         events.settings = normalize_settings(clean)
         phone_events.settings = normalize_settings(clean)
+        if holder["phone"] is not None:
+            with holder["phone"].lock:
+                holder["phone"].call_action_tickets.clear()
         receive_error = ""
         if holder["backend"] is not None and clean["enabled"]:
             try:
@@ -1795,7 +2222,10 @@ def daemon_main(_arguments=None, backend_factory=KDEConnectSMSBackend,
             holder["phone"] = server.phone_backend = make_phone()
             holder["phone"].personal_sync_available = server.gui_present
         if holder["phone"] is not None:
-            if clean["enabled"] and clean["permissions"]["phone_monitor"] and \
+            if clean["enabled"] and clean["permissions"]["phone_monitor"] and holder["phone"].store.settings()["enabled"]:
+                holder["phone"].enabled = True
+                server.setup_sessions.adopt_phone_owner()
+            if clean["enabled"] and (clean["permissions"]["phone_monitor"] or server.setup_sessions.phone_lease) and \
                     holder["phone"].enabled:
                 holder["phone"].start()
             else:
@@ -1807,6 +2237,7 @@ def daemon_main(_arguments=None, backend_factory=KDEConnectSMSBackend,
                 getattr(notifications, "actions_supported",
                         getattr(notifications, "supported", False))),
             receive_configuration_error=receive_error,
+            kde_transport_error=holder["kde_error"],
             background_storage=(diagnostics.storage_snapshot(data_directory())
                                 if diagnostics is not None else {}))
         if server is not None:
@@ -1819,6 +2250,7 @@ def daemon_main(_arguments=None, backend_factory=KDEConnectSMSBackend,
     server = IPCServer(None, settings_getter=read_settings,
                        settings_setter=apply_settings,
                        shutdown_callback=lambda: None)
+    server.phone_provider = setup_phone
     server.lifecycle = "starting"
     events = DaemonEvents(lambda: holder["backend"], settings, notifications, glib,
                            server.publish_event, server.gui_present,
@@ -1828,8 +2260,10 @@ def daemon_main(_arguments=None, backend_factory=KDEConnectSMSBackend,
     phone_events = PhoneDaemonEvents(lambda: holder["phone"], settings, notifications,
                                      glib, server.publish_event, server.gui_present,
                                      notification_since_ms=notification_since_ms,
-                                     diagnostics=diagnostics, freshness=freshness)
+                                     diagnostics=diagnostics, freshness=freshness,
+                                     call_gui_ready=server.gui_notification_ready)
     server.phone_event_getter = phone_events.take
+    server.phone_alert_handler = phone_events.call_alert
     server.operation_callback = lambda operation, result: (
         events("pairing", result) if operation in ("begin_pairing", "complete_pairing")
         and isinstance(result, dict) and result.get("state") == "requested" else None)
@@ -1844,6 +2278,16 @@ def daemon_main(_arguments=None, backend_factory=KDEConnectSMSBackend,
     try:
         # Claim ownership before constructing the transport backend.
         server.start()
+        try:
+            freshness = BackgroundFreshness(now_ms=notification_since_ms)
+        except OSError:
+            pass
+        try:
+            diagnostics = BackgroundDiagnostics()
+        except OSError:
+            pass
+        events.freshness = phone_events.freshness = freshness
+        events.diagnostics = phone_events.diagnostics = diagnostics
         if settings["permissions"]["phone_monitor"]:
             phone = make_phone()
             phone.personal_sync_available = server.gui_present
@@ -1854,12 +2298,18 @@ def daemon_main(_arguments=None, backend_factory=KDEConnectSMSBackend,
                     time.sleep(0.05)
                 if not phone.server:
                     raise OSError("Magnolie Notes phone listener is unavailable")
-        backend = backend_factory(os.path.join(data_directory(), "kdeconnect"),
-                                  device_name=local_device_name(), callback=events)
-        holder["backend"] = server.backend = backend
-        if not backend.start():
-            raise ProtocolError("KDE Connect transport is unavailable: %s" %
-                                getattr(backend, "reason", "unknown"))
+        def kde_route(event, payload):
+            if not server.setup_sessions.kde_event(event, payload): events(event, payload)
+        try:
+            backend = backend_factory(os.path.join(data_directory(), "kdeconnect"),
+                                      device_name=local_device_name(), callback=kde_route)
+            holder["backend"] = server.backend = backend
+            if not backend.start():
+                holder["kde_error"] = "transport_unavailable"
+        except Exception:
+            holder["kde_error"] = "transport_unavailable"
+        if holder["kde_error"]:
+            sys.stderr.write(_("KDE Connect is unavailable; other background services remain active.") + "\n")
         current_settings = read_settings()
         apply_settings(current_settings)
         if not current_settings["enabled"]:
@@ -1880,10 +2330,16 @@ def daemon_main(_arguments=None, backend_factory=KDEConnectSMSBackend,
         return 1
     finally:
         server.lifecycle = "stopping"
+        server.setup_sessions.close()
+        server.setup_sessions.wait_closed()
         if holder["backend"] is not None:
             holder["backend"].stop()
+        phone_drained = True
         if holder["phone"] is not None:
-            holder["phone"].stop()
+            phone_drained = holder["phone"].stop() is not False
         server.close()
         if diagnostics is not None:
             diagnostics.close()
+        if not phone_drained:
+            sys.stderr.write(_("The phone service did not finish stopping.") + "\n")
+            return 1

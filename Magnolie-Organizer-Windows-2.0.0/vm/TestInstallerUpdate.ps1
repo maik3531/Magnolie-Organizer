@@ -1,6 +1,30 @@
+param(
+    [string] $CandidateRecord = (Join-Path $PSScriptRoot 'candidate.json'),
+    [switch] $ValidateOnly
+)
 $ErrorActionPreference = "Stop"
+Set-StrictMode -Version Latest
 
-$installer = Join-Path $PSScriptRoot "Magnolie-Organizer-Windows-2.0.16-Setup-x64.exe"
+$candidateBytes = [IO.File]::ReadAllBytes($CandidateRecord)
+$candidate = [Text.Encoding]::UTF8.GetString($candidateBytes).TrimStart([char]0xfeff) | ConvertFrom-Json
+if ($candidate.schema -cne 'magnolie-desktop-candidate-v2' -or
+    $candidate.version -cnotmatch '^\d+\.\d+\.\d+$' -or
+    $candidate.sourceSha256 -cnotmatch '^[0-9a-f]{64}$') { throw 'Invalid candidate identity.' }
+$installerName = "Magnolie-Organizer-Windows-$($candidate.version)-Setup-x64.exe"
+$installer = Join-Path (Split-Path -Parent $CandidateRecord) $installerName
+$installerSha256 = $candidate.artifacts.$installerName.sha256
+$candidateHasher = [Security.Cryptography.SHA256]::Create()
+try { $candidateSha256 = -join ($candidateHasher.ComputeHash($candidateBytes) | ForEach-Object { $_.ToString('x2') }) }
+finally { $candidateHasher.Dispose() }
+function Assert-CandidateInstaller {
+    if ($installerSha256 -cnotmatch '^[0-9a-f]{64}$' -or
+        (Get-FileHash -LiteralPath $installer -Algorithm SHA256).Hash.ToLowerInvariant() -cne $installerSha256) {
+        throw 'Installer does not match the exact desktop candidate.'
+    }
+}
+Assert-CandidateInstaller
+if ($ValidateOnly) { Write-Output 'Candidate installer identity verified; no installation performed.'; exit 0 }
+if ($env:OS -ne 'Windows_NT') { throw 'Native installer tests require Windows.' }
 $install = Join-Path $env:LOCALAPPDATA "Programs\Magnolie Organizer"
 $resultPath = Join-Path $env:TEMP "Magnolie-Installer-Test.json"
 $results = try {
@@ -40,6 +64,7 @@ function Test-Condition([bool] $Condition, [string] $Message) {
 }
 
 function Install-Magnolie {
+    Assert-CandidateInstaller
     $process = Start-Process -FilePath $installer -ArgumentList "/S" -Wait -PassThru
     Test-Condition ($process.ExitCode -eq 0) "Installer beendete sich mit $($process.ExitCode)."
     Test-Condition (Test-Path -LiteralPath (Join-Path $install "Magnolie Organizer.exe") -PathType Leaf) `
@@ -144,7 +169,20 @@ catch {
     $report = [ordered]@{ Passed = $false; Checks = $checks; Error = $_.Exception.ToString() }
 }
 
-$json = $report | ConvertTo-Json -Depth 4
+$report.Schema = 'magnolie-windows-installer-test-v1'
+$report.CandidateSha256 = $candidateSha256
+$report.SourceSha256 = $candidate.sourceSha256
+$report.Installer = $installerName
+$report.InstallerSha256 = $installerSha256
+$json = $report | ConvertTo-Json -Depth 5
+try {
+    $nativeReport = Join-Path $results.Root 'windows-installer.json'
+    $json | Set-Content -LiteralPath $nativeReport -Encoding UTF8
+    Sync-ResultFile $nativeReport
+} catch {
+    Write-InfrastructureFailure 'Candidate-bound native JSON report could not be persisted.'
+    exit 2
+}
 try { $json | Set-Content -LiteralPath $resultPath -Encoding UTF8 } catch { }
 $statusLines = if ($report.Passed) {
     @("SUCCESS", "All installer and UI checks passed.")

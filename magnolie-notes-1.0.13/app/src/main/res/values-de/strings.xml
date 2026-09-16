@@ -1,5 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="baum_postfach_unsicher">Unbestätigte Zustellungen: %1$d. Die Nachrichten bleiben gespeichert und werden nicht automatisch erneut gesendet. Prüfen Sie den Empfang; ältere Geräte unterstützen möglicherweise keine beglaubigten Quittungen.</string>
+    <string name="telefon_bluetooth_setup">Neuen Organizer über Bluetooth koppeln</string>
+    <string name="telefon_bluetooth_setup_hinweis">Diese Ansicht geöffnet lassen. Dieses Telefon im Organizer auswählen, die Systemkopplung bestätigen und danach den Code auf beiden Geräten vergleichen.</string>
     <string name="freigabe_ziel">In Magnolie Notes sichern</string>
 
     <string name="blatt_notizen">Notizen</string>
@@ -387,7 +390,7 @@
     <string name="start_schliessen">Anwendung schließen</string>
     <string name="absturzbericht_teilen">Absturzbericht teilen</string>
     <string name="journal_maximum">Wiederherstellungspunkte</string>
-    <string name="journal_maximum_hinweis">Wenn das Limit verringert wird, werden die ältesten Wiederherstellungspunkte automatisch entfernt.</string>
+    <string name="journal_maximum_hinweis">Wird das Limit verringert, werden die ältesten ungeschützten Wiederherstellungspunkte entfernt. Geschützte Punkte bleiben erhalten.</string>
     <string name="portable_titel">Tragbare Sicherung</string><string name="portable_hinweis">Einen getrennten, passwortverschlüsselten Bestand aus Notizen, Notizbüchern, Aufgaben, Papierkorb und Anhängen anlegen oder wiederherstellen.</string><string name="portable_export">Tragbare Sicherung anlegen</string><string name="portable_datei_oeffnen">Tragbare Sicherung öffnen</string><string name="portable_restore">Sicherung wiederherstellen</string><string name="portable_passwort">Passwort</string><string name="portable_passwort_hinweis">Geben Sie das Archivpasswort ein. Während der Prüfung wird nichts verändert.</string><string name="portable_pruefen">Prüfen und Vorschau zeigen</string><string name="portable_vorschau">Sicherungsvorschau</string><string name="portable_vorschau_text">%1$d Notizen · %2$d Notizbücher · %3$d Aufgaben · %4$d Papierkorbeinträge</string><string name="portable_restore_warnung">Dies ersetzt den gesamten persönlichen Bestand. Zuvor wird ein lokaler Sicherungsstand angelegt; die Magnolienbaum-Identität dieses Geräts bleibt erhalten.</string><string name="portable_fehler">Die Sicherung konnte nicht geöffnet werden. Prüfen Sie Datei und Passwort.</string><string name="portable_exportiert">Tragbare Sicherung angelegt.</string><string name="portable_wiederhergestellt">Tragbare Sicherung wiederhergestellt.</string>
     <string name="auto_backup_titel">Automatische Cloud-Ordnersicherung</string>
     <string name="auto_backup_hinweis">Speichert auf Wunsch authentifizierte portable Sicherungen in einem über Android gewählten Ordner. Der Anbieter kann diesen Ordner synchronisieren.</string>
@@ -411,4 +414,27 @@
     <string name="auto_backup_status_schluessel">Das geschützte Passwort ist nicht verfügbar. Die automatische Sicherung bleibt aus.</string>
     <string name="auto_backup_status_auth">Authentifizierung der Sicherung fehlgeschlagen</string>
     <string name="auto_backup_status_provider">Speicheranbieter vorübergehend nicht verfügbar; neuer Versuch geplant</string>
+    <string name="baum_kontakt_jubilaeum">Jahrestag</string>
+    <string name="baum_kontakt_update">Für die Übertragung von Jahrestagen bitte Magnolie auf beiden Geräten aktualisieren, beide Apps öffnen und erneut versuchen. Bei diesem Versuch wurden keine Kontakte gesendet.</string>
+    <string name="baum_aufgabe_nicht_freigegeben">Diese Aufgabe wurde nicht mit diesem Gerät geteilt.</string>
+    <string name="baum_kontakt_import_nicht_unterstuetzt">Bitte die Kontaktsynchronisation verwenden, um Kontakte an dieses Gerät zu senden.</string>
+    <string name="aufgabe_nach_oben">Aufgabe nach oben verschieben</string>
+    <string name="aufgabe_nach_unten">Aufgabe nach unten verschieben</string>
+    <string name="personal_custom_optin">Aufgaben und Termine aus der benutzerdefinierten Registerkarte synchronisieren</string>
+    <string name="personal_custom_title">Aufgaben und Termine aus der benutzerdefinierten Registerkarte (nur lesen)</string>
+    <string name="personal_custom_explanation">Beide Geräte müssen ausdrücklich zustimmen. Ausschalten pausiert Erinnerungen und Aktualisierungen aus der benutzerdefinierten Registerkarte, behält aber die Kopien. Verknüpfte Textblöcke werden nicht geteilt.</string>
+    <string name="personal_custom_unsupported">Dieses Gerät unterstützt die Synchronisierung der benutzerdefinierten Registerkarte nicht.</string>
+    <string name="personal_custom_delete">An der Quelle gelöscht: Diese Telefonkopie löschen oder behalten? Die Quelle auf dem Rechner wird niemals geändert.</string>
+    <string name="personal_custom_keep">Kopie behalten</string>
+    <string name="personal_custom_privacy">Nur mit ausdrücklicher Zustimmung beider Geräte teilt Personal Sync Aufgaben und Termine aus Eigenes einschließlich ihrer eigenen Notizen als schreibgeschützte Kopien. Textblöcke, verknüpfte Texte und Anhänge sind ausgeschlossen. Archive stellen Kopien wieder her, keine Berechtigungen.</string>
+    <string name="device_identifiers_share">Kennungen des eigenen Telefons teilen</string>
+    <string name="device_identifiers_explanation">Nur auf Anfrage des eigenen gekoppelten Rechners, für 60 Sekunden, ohne Speicherung: die Nummer der Standard-Sprach-SIM und, soweit Android es erlaubt, Seriennummer und IMEI. Ab Android 10 sind Hardwarekennungen für gewöhnliche Apps eingeschränkt. Die Rufnummernberechtigung ist freiwillig; es wird keine Sonderrolle angefordert.</string>
+    <string name="device_identifiers_phone">Eigene Rufnummer (Standard-Sprach-SIM)</string>
+    <string name="device_identifiers_serial">Geräteseriennummer</string>
+    <string name="device_identifiers_imei">Geräte-IMEI</string>
+    <string name="device_identifiers_off">Das Teilen der Gerätekennungen ist ausgeschaltet.</string>
+    <string name="device_identifiers_permission">Die Berechtigung für Gerätekennungen fehlt.</string>
+    <string name="device_identifiers_restricted">Android beschränkt diese Gerätekennung.</string>
+    <string name="device_identifiers_subscription">Keine Standard-Sprach-SIM verfügbar.</string>
+    <string name="device_identifiers_unavailable">Diese Gerätekennung ist nicht verfügbar.</string>
 </resources>

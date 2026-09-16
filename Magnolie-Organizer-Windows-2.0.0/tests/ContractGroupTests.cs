@@ -91,6 +91,7 @@ internal static class ContractGroupTests
 
     internal static Task ExchangeAsync()
     {
+        NativeExchangeRegressions();
         foreach (var valid in new[] { "1604-02-29", "1900-02-28", "2000-02-29", "2024-02-29", "--02-29", "--12-31" })
             TestAssert.That(ExchangeCodec.TryParseCanonicalDate(valid, out _, out _, out _),
                 $"Das kanonische Datum {valid} wurde abgewiesen.");
@@ -104,7 +105,8 @@ internal static class ContractGroupTests
         {
             var exported = ExchangeCodec.WriteVCard(yearlessRestart.RootElement).Text;
             TestAssert.That(yearlessContact.Kontakte[0]!["geburtstag"]!.GetValue<string>() == "--02-29" &&
-                exported.Contains("BDAY:--02-29", StringComparison.Ordinal) &&
+                exported.Contains("VERSION:4.0\r\n", StringComparison.Ordinal) &&
+                exported.Contains("BDAY:--0229\r\n", StringComparison.Ordinal) &&
                 ExchangeCodec.ParseVCard(exported).Kontakte[0]!["geburtstag"]!.GetValue<string>() == "--02-29",
                 "Eine jahrlose vCard-BDAY überstand den Rundlauf nicht kanonisch.");
         }
@@ -119,12 +121,35 @@ internal static class ContractGroupTests
         var markerYears = ExchangeCodec.ParseLdif("dn: cn=Marker Probe\ncn: Marker Probe\nbirthMonth: 2\nbirthDay: 28\nbirthYear: 1604\n\n");
         TestAssert.That(markerYears.Kontakte[0]!["geburtstag"]!.GetValue<string>() == "1604-02-28",
             "Ein vorhandenes LDIF-Jahr wurde als unbekannt interpretiert.");
+        foreach (var (fields, expected) in new[]
+        {
+            ("birthMonth: 2\nbirthDay: 29", "--02-29"),
+            ("birthMonth: 2\nbirthDay: 29\nbirthYear: 0000", "--02-29"),
+            ("mozillaBirthMonth: 2\nmozillaBirthDay: 29", "--02-29"),
+            ("BIRTHMONTH: 2\nBIRTHDAY: 29\nBIRTHYEAR: 2000", "2000-02-29"),
+            ("birthMonth: 2\nbirthDay: 29\nbirthYear: 1604", "1604-02-29"),
+            ("birthday: --02-29", "--02-29"),
+            ("birthday: 1980-04-03", "1980-04-03"),
+            ("dateOfBirth: 1980-04-03\nbirthMonth: 2\nbirthDay: 29", "1980-04-03"),
+            ("birthMonth: 2\nbirthDay: 30", ""),
+            ("birthMonth: 2\nbirthDay: 29\nbirthYear: 2023", "")
+        })
+        {
+            var parsed = ExchangeCodec.ParseLdif("dn: cn=Display Only\nuid: split-date\ncn: Display Only\n" + fields + "\n\n");
+            var contact = parsed.Kontakte.Single()!;
+            TestAssert.That(parsed.Uebersprungen == 0 && contact["uid"]!.GetValue<string>() == "split-date" &&
+                contact["anzeigename"]!.GetValue<string>() == "Display Only" && contact["vorname"]!.GetValue<string>() == "" &&
+                contact["nachname"]!.GetValue<string>() == "" && contact["geburtstag"]!.GetValue<string>() == expected &&
+                (expected.Length == 0 || contact["geburtstagJahrUnbekannt"]!.GetValue<bool>() == expected.StartsWith("--", StringComparison.Ordinal)),
+                "LDIF split-day/full-birthday precedence or canonical date validation failed: " + fields);
+        }
         using (var ldifDates = JsonDocument.Parse("""[{"nachname":"Jahrlos","geburtstag":"--02-29"},{"nachname":"Echt","geburtstag":"2000-02-29"}]"""))
         {
             var exported = ExchangeCodec.WriteLdif(ldifDates.RootElement).Text;
-            TestAssert.That(exported.Split("dateOfBirth:", StringSplitOptions.None).Length - 1 == 1 &&
-                exported.Contains("dateOfBirth: 2000-02-29", StringComparison.Ordinal),
-                "LDIF exportierte ein jahrloses Datum oder verwarf einen echten Geburtstag aus 2000.");
+            var restored = ExchangeCodec.ParseLdif(exported);
+            TestAssert.That(restored.Kontakte[0]!["geburtstag"]!.ToString() == "--02-29" &&
+                restored.Kontakte[1]!["geburtstag"]!.ToString() == "2000-02-29",
+                "LDIF lost a yearless birthday or changed a genuine birth year.");
         }
 
         using (var anniversaryDates = JsonDocument.Parse("""[{"uid":"partial","name":"Jahrlos","datum":"--02-29","typ":"birthday"},{"uid":"full","name":"Echt","datum":"2000-02-29","typ":"birthday"}]"""))
@@ -265,9 +290,9 @@ internal static class ContractGroupTests
             var parsed = ExchangeCodec.ParseIcs(written).Termine[0]!.AsObject();
             using var restart = JsonDocument.Parse(new JsonArray(parsed.DeepClone()).ToJsonString());
             var reparsed = ExchangeCodec.ParseIcs(ExchangeCodec.WriteIcs("ics-termine", restart.RootElement).Text).Termine[0]!;
-            TestAssert.That(parsed["icsAusnahmen"]!.AsArray().Any(value => value?.ToString() == "2026-09-08") &&
+            TestAssert.That(parsed["icsAusnahmeTermine"]!.AsArray().Any(value => value?["datum"]?.ToString() == "2026-09-08" && value?["zeit"]?.ToString() == "09:15") &&
                 parsed["icsZusatzDaten"]!.AsArray().Any(value => value?.ToString() == "2026-09-10") &&
-                JsonNode.DeepEquals(parsed["icsAusnahmen"], reparsed["icsAusnahmen"]) &&
+                JsonNode.DeepEquals(parsed["icsAusnahmeTermine"], reparsed["icsAusnahmeTermine"]) &&
                 JsonNode.DeepEquals(parsed["icsZusatzDaten"], reparsed["icsZusatzDaten"]),
                 "Strukturierte Serienvorkommen überstanden Parse-/Schreib-/Reparse-Rundlauf nicht.");
         }
@@ -345,8 +370,8 @@ internal static class ContractGroupTests
                 END:VCALENDAR
                 """);
             TestAssert.That(guarded.Termine[0]!["icsKomplex"]!.GetValue<bool>() &&
-                guarded.Termine[0]!["wiederholung"]!["art"]!.GetValue<string>() == "none",
-                $"{property} wurde fälschlich als einfache Serie behandelt.");
+                guarded.Termine[0]!["wiederholung"]!["art"]!.GetValue<string>() == "monthly",
+                $"{property} deaktivierte eine strukturell darstellbare Serie.");
             using var guardedRestart = JsonDocument.Parse(guarded.Termine.ToJsonString());
             var guardedRoundtrip = ExchangeCodec.WriteIcs("ics-termine", guardedRestart.RootElement).Text;
             TestAssert.That(guardedRoundtrip.Contains("RRULE:FREQ=MONTHLY;BYDAY=2TH", StringComparison.Ordinal) &&
@@ -442,6 +467,22 @@ internal static class ContractGroupTests
 
     internal static Task OdtAsync()
     {
+        var previousLanguage = NativeLocalization.Language;
+        try
+        {
+            using var namedContact = JsonDocument.Parse("""{"anzeigename":"Van Dame","strasse":"Main 1"}""");
+            foreach (var language in new[] { "en", "de", "fr" })
+            {
+                NativeLocalization.SetLanguage(language);
+                using var letter = new ZipArchive(new MemoryStream(DocumentExportService.CreateLetter(namedContact.RootElement, "Sender", "din5008")));
+                using var reader = new StreamReader(letter.GetEntry("content.xml")!.Open());
+                var xml = XDocument.Parse(reader.ReadToEnd());
+                TestAssert.That(new[] { "Dear Sir or Madam,", "Yours sincerely," }.All(key =>
+                    xml.Descendants().Any(node => node.Value == NativeLocalization.Gettext(key))) && xml.Root!.Value.Contains("Van Dame", StringComparison.Ordinal),
+                    "Letter output did not use the active gettext language and supplied display name.");
+            }
+        }
+        finally { NativeLocalization.SetLanguage(previousLanguage); }
         using var contact = JsonDocument.Parse("""{"vorname":"Mia","nachname":"Muster","strasse":"Gartenweg 1","plz":"10115","ort":"Berlin"}""");
         var bytes = DocumentExportService.CreateLetter(contact.RootElement, "Max Beispiel\nHauptstraße 2", "din5008");
         using var stream = new MemoryStream(bytes);
@@ -457,18 +498,128 @@ internal static class ContractGroupTests
         var manifest = manifestReader.ReadToEnd();
         XNamespace style = "urn:oasis:names:tc:opendocument:xmlns:style:1.0";
         XNamespace fo = "urn:oasis:names:tc:opendocument:xmlns:xsl-fo-compatible:1.0";
-        var senderStyle = styles.Descendants(style + "style").Single(node => (string?)node.Attribute(style + "name") == "SenderDin");
+        var senderStyle = styles.Descendants(style + "style").Single(node => (string?)node.Attribute(style + "name") == "Rueckadresse");
         var page = styles.Descendants(style + "page-layout-properties").Single();
         TestAssert.That(mimeEntry.FullName == "mimetype" && mimeEntry.CompressedLength == mimeEntry.Length &&
                         mime == "application/vnd.oasis.opendocument.text" && zip.GetEntry("styles.xml") is not null,
             "Der Brief ist kein korrekt gepacktes ODT mit erstem, unkomprimiertem Text-Mimetype-Eintrag.");
-        TestAssert.That(content.Contains("Mia Muster") && content.Contains("Gartenweg 1") && content.Contains("SenderDin") &&
+        TestAssert.That(content.Contains("Mia Muster") && content.Contains("Gartenweg 1") && content.Contains("Rueckadresse") &&
                         manifest.Contains("application/vnd.oasis.opendocument.text") &&
-                        (string?)senderStyle.Element(style + "paragraph-properties")?.Attribute(fo + "margin-top") == "2.5cm" &&
+                         (string?)senderStyle.Element(style + "paragraph-properties")?.Attribute(fo + "line-height") == "0.5cm" &&
                         (string?)page.Attribute(fo + "page-width") == "21cm" && (string?)page.Attribute(fo + "margin-left") == "2.5cm" &&
                         DocumentExportService.LetterFileName("Brief.fodt").EndsWith(".odt", StringComparison.OrdinalIgnoreCase),
             "ODT-Inhalt, DIN-5008-Anschrift, Manifest-MIME oder erzwungene .odt-Endung fehlen.");
+        XNamespace draw = "urn:oasis:names:tc:opendocument:xmlns:drawing:1.0";
+        XNamespace svg = "urn:oasis:names:tc:opendocument:xmlns:svg-compatible:1.0";
+        foreach (var layout in new[] { "", "din5008", "din5008-b", "din5008-a" })
+        {
+            using var letter = new ZipArchive(new MemoryStream(layout.Length == 0
+                ? DocumentExportService.CreateLetter(contact.RootElement, "Sender")
+                : DocumentExportService.CreateLetter(contact.RootElement, "Sender", layout)));
+            using var reader = letter.GetEntry("content.xml")!.Open();
+            var xml = XDocument.Load(reader);
+            var address = xml.Descendants(draw + "frame").Single(node => (string?)node.Attribute(draw + "name") == "Anschriftfeld");
+            TestAssert.That((string?)address.Attribute(svg + "x") == "2cm" &&
+                (string?)address.Attribute(svg + "y") == (layout == "din5008-a" ? "2.7cm" : "4.5cm") &&
+                (string?)address.Attribute(svg + "width") == "8.5cm" && (string?)address.Attribute(svg + "height") == "4.5cm" &&
+                xml.Descendants(draw + "frame").Any(node => (string?)node.Attribute(draw + "name") == "Absenderblock") == (layout != "din5008-a"),
+                "Default B, explicit A or left address geometry is incorrect.");
+        }
+        TestAssert.Throws<ArgumentException>(() => DocumentExportService.CreateLetter(contact.RootElement, new string('W', 1000)),
+            "Overlong return addresses must not silently wrap or be clipped.");
         return Task.CompletedTask;
+    }
+
+    private static void NativeExchangeRegressions()
+    {
+        foreach (var name in new[] { "N:Van Dame;;;;\r\nFN:Van Dame", "N:;Anna Maria;;;\r\nFN:Anna Maria",
+            "FN:Van Dame", "N:Smith,Jones;Anna,Maria;Grace;Dr.;Jr.\r\nFN:Different display",
+            "N:Smith\\,Jones;Anna\\,Maria;;;\r\nFN:Literal commas" })
+        {
+            var text = "BEGIN:VCARD\r\nVERSION:3.0\r\nUID:name-test\r\n" + name +
+                "\r\nBDAY;X-APPLE-OMIT-YEAR=1604:1604-02-29\r\nANNIVERSARY:--0607\r\n" +
+                "ADR;TYPE=HOME:Box 4;Suite 2;Main 1;Berlin;Berlin;10115;Germany\r\nTITLE:Engineer\r\nEND:VCARD\r\n";
+            var contact = ExchangeCodec.ParseVCard(text).Kontakte.Single()!;
+            for (var round = 0; round < 2; round++)
+            {
+                using var saved = JsonDocument.Parse(new JsonArray(contact.DeepClone()).ToJsonString());
+                var exported = ExchangeCodec.WriteVCard(saved.RootElement);
+                TestAssert.That(exported.Count == 1 && exported.Skipped == 0 && exported.Text.Contains(name, StringComparison.Ordinal) &&
+                    exported.Text.Contains(";Berlin;Berlin;10115;Germany", StringComparison.Ordinal) &&
+                    exported.Text.Contains("VERSION:4.0\r\n", StringComparison.Ordinal) &&
+                    exported.Text.Contains("ANNIVERSARY:--0607\r\n", StringComparison.Ordinal), "Name structure, display name, region or anniversary changed after save/export.");
+                contact = ExchangeCodec.ParseVCard(exported.Text).Kontakte.Single()!;
+                TestAssert.That(contact["geburtstag"]!.ToString() == "--02-29" && contact["jubilaeum"]!.ToString() == "--06-07",
+                    "Explicitly yearless contact dates did not survive repeated exchange.");
+            }
+            if (name.StartsWith("FN:", StringComparison.Ordinal)) TestAssert.That(contact["vorname"]!.ToString() == "" && contact["nachname"]!.ToString() == "" &&
+                contact["anzeigename"]!.ToString() == "Van Dame", "A display-only contact acquired invented structured names.");
+        }
+        foreach (var year in new[] { "1604", "2000" })
+            TestAssert.That(ExchangeCodec.ParseVCard($"BEGIN:VCARD\nVERSION:3.0\nFN:Real\nBDAY:{year}-02-29\nEND:VCARD\n").Kontakte[0]!["geburtstag"]!.ToString() == year + "-02-29",
+                "A genuine year was globally reinterpreted as a placeholder.");
+        using (var contact = JsonDocument.Parse("""[{"uid":"thunderbird:profile:book:first-only","vorname":"Anna Maria","nachname":"","geburtstag":"--02-29","jubilaeum":"--06-07"}]"""))
+        {
+            var ldif = ExchangeCodec.WriteLdif(contact.RootElement).Text;
+            var restored = ExchangeCodec.ParseLdif(ldif).Kontakte.Single()!;
+            TestAssert.That(!ldif.Split('\n').Any(line => line.StartsWith("sn:", StringComparison.Ordinal)) && restored["nachname"]!.ToString() == "" &&
+                restored["uid"]!.ToString() == "thunderbird:profile:book:first-only" && restored["vorname"]!.ToString() == "Anna Maria" && restored["geburtstag"]!.ToString() == "--02-29" && restored["jubilaeum"]!.ToString() == "--06-07",
+                "LDIF fabricated a surname or lost partial contact dates.");
+        }
+        foreach (var (start, duration, endDate, endTime) in new[] { (";VALUE=DATE:20260907", "P3D", "2026-09-09", ""),
+            (":20260907T233000", "PT2H", "2026-09-08", "01:30") })
+        {
+            var input = $"BEGIN:VCALENDAR\nVERSION:2.0\nBEGIN:VEVENT\nUID:duration\nSUMMARY:Duration\nDTSTART{start}\nDURATION:{duration}\nRRULE:FREQ=WEEKLY\nEND:VEVENT\nEND:VCALENDAR\n";
+            for (var round = 0; round < 2; round++)
+            {
+                var parsed = ExchangeCodec.ParseIcs(input);
+                TestAssert.That(parsed.Termine.Single()!["endDatum"]!.ToString() == endDate && parsed.Termine[0]!["endZeit"]!.ToString() == endTime,
+                    "DURATION did not project its complete day/time span.");
+                using var saved = JsonDocument.Parse(parsed.Termine.ToJsonString());
+                input = ExchangeCodec.WriteIcs("ics-termine", saved.RootElement).Text;
+                TestAssert.That(!(input.Contains("DURATION:", StringComparison.Ordinal) && input.Contains("DTEND", StringComparison.Ordinal)), "VEVENT contains mutually exclusive end representations.");
+            }
+        }
+        const string task = "BEGIN:VCALENDAR\nVERSION:2.0\nBEGIN:VTODO\nUID:independent-start\nSUMMARY:Task\nDTSTART:20260901T090000\nDUE:20260907T170000\nEND:VTODO\nEND:VCALENDAR\n";
+        var parsedTask = ExchangeCodec.ParseIcs(task).Aufgaben;
+        TestAssert.That(parsedTask[0]!["startDatum"]!.ToString() == "2026-09-01", "Task start date was not preserved.");
+        using var savedTask = JsonDocument.Parse(parsedTask.ToJsonString());
+        var taskExport = ExchangeCodec.WriteIcs("ics-aufgaben", savedTask.RootElement).Text;
+        TestAssert.That(taskExport.Contains("DTSTART:20260901T090000", StringComparison.Ordinal) && taskExport.Contains("DUE:20260907T170000", StringComparison.Ordinal),
+            "Task export replaced its independent start with its due date.");
+        parsedTask[0]!["faellig"] = "2026-09-08";
+        using var changedTask = JsonDocument.Parse(parsedTask.ToJsonString());
+        var changedExport = ExchangeCodec.WriteIcs("ics-aufgaben", changedTask.RootElement).Text;
+        var changedAgain = ExchangeCodec.ParseIcs(changedExport).Aufgaben.Single()!;
+        TestAssert.That(changedAgain["faellig"]!.ToString() == "2026-09-08" && changedAgain["faelligZeit"]!.ToString() == "17:00",
+            "Old raw task dates overrode an explicit edit.");
+        var dueOnly = ExchangeCodec.ParseIcs("BEGIN:VTODO\nUID:due-only\nSUMMARY:Task\nDUE:20260907T170000\nEND:VTODO\n").Aufgaben;
+        dueOnly[0]!["faellig"] = "2026-09-09";
+        using var dueOnlySaved = JsonDocument.Parse(dueOnly.ToJsonString());
+        TestAssert.That(ExchangeCodec.ParseIcs(ExchangeCodec.WriteIcs("ics-aufgaben", dueOnlySaved.RootElement).Text).Aufgaben[0]!["faellig"]!.ToString() == "2026-09-09",
+            "A task without DTSTART retained an obsolete raw DUE after editing.");
+        using (var legacy = JsonDocument.Parse("""[{"uid":"legacy-start-time","titel":"Task","faellig":"2026-09-07","startZeit":"09:00"}]"""))
+        {
+            var legacyText = ExchangeCodec.WriteIcs("ics-aufgaben", legacy.RootElement).Text;
+            var restored = ExchangeCodec.ParseIcs(legacyText).Aufgaben.Single()!;
+            TestAssert.That(!legacyText.Contains("DTSTART", StringComparison.Ordinal) && restored["startDatum"]!.ToString() == "" && restored["startZeit"]!.ToString() == "09:00",
+                "A persisted start time without a start date was lost or given a fabricated date.");
+        }
+        var alarmDuration = ExchangeCodec.ParseIcs("BEGIN:VEVENT\nUID:alarm-duration\nDTSTART:20260907T090000\nDTEND:20260907T100000\nBEGIN:VALARM\nACTION:DISPLAY\nTRIGGER:-PT15M\nREPEAT:2\nDURATION:PT5M\nEND:VALARM\nEND:VEVENT\n");
+        using var alarmSaved = JsonDocument.Parse(alarmDuration.Termine.ToJsonString());
+        TestAssert.That(ExchangeCodec.WriteIcs("ics-termine", alarmSaved.RootElement).Text.Contains("DTEND:20260907T100000", StringComparison.Ordinal),
+            "VALARM DURATION removed the parent event's end.");
+        var previousCulture = System.Globalization.CultureInfo.CurrentCulture;
+        try
+        {
+            System.Globalization.CultureInfo.CurrentCulture = System.Globalization.CultureInfo.GetCultureInfo("ar-SA");
+            var parsed = ExchangeCodec.ParseIcs(task);
+            using var saved = JsonDocument.Parse(parsed.Aufgaben.ToJsonString());
+            TestAssert.That(parsed.Aufgaben[0]!["startDatum"]!.ToString() == "2026-09-01" &&
+                ExchangeCodec.WriteIcs("ics-aufgaben", saved.RootElement).Text.Contains("DTSTART:20260901T090000", StringComparison.Ordinal) &&
+                System.Globalization.CultureInfo.CurrentCulture.Name == "ar-SA", "Wire dates depended on the display calendar or changed the caller's culture.");
+        }
+        finally { System.Globalization.CultureInfo.CurrentCulture = previousCulture; }
     }
 
     internal static Task RemindersAsync()

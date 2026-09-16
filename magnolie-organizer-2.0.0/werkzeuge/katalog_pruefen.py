@@ -2,6 +2,7 @@
 """Prüft Syntax, Vollständigkeit und Fuzzy-Freiheit eines PO-Katalogs."""
 
 import subprocess
+import os
 import sys
 
 
@@ -18,6 +19,22 @@ def haupt(argv):
     if len(argv) != 3:
         raise SystemExit("Aufruf: katalog_pruefen.py VORLAGE.pot SPRACHE.po")
     vorlage, katalog = argv[1:]
+    sprache = os.path.splitext(os.path.basename(katalog))[0]
+    with open(katalog, encoding="utf-8") as datei:
+        kopf = datei.read().split("\n\n", 1)[0]
+    pflichtfelder = {
+        "Project-Id-Version": "Magnolie Organizer 2.0.18",
+        "PO-Revision-Date": "2026-09-07 00:00+0200",
+        "Last-Translator": "Magnolie translation team <maik3531@gmail.com>",
+        "Language-Team": sprache,
+        "Language": sprache,
+        "MIME-Version": "1.0",
+        "Content-Type": "text/plain; charset=UTF-8",
+        "Content-Transfer-Encoding": "8bit",
+    }
+    for feld, wert in pflichtfelder.items():
+        if ('"%s: %s\\n"' % (feld, wert)) not in kopf:
+            raise SystemExit("Ungültiger %s-Kopfeintrag: %s" % (sprache, feld))
     subprocess.run(["msgfmt", "--check", "--check-format", "-o", "/dev/null",
                     katalog], check=True)
     subprocess.run(["msgcmp", "--use-fuzzy", katalog, vorlage], check=True)

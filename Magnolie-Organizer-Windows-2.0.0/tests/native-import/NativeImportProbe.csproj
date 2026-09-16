@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType><TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings><Nullable>enable</Nullable>
+    <SourceRoot Condition="'$(SourceRoot)' == ''">$(MSBuildThisFileDirectory)../..</SourceRoot>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="Program.cs.txt" />
+    <Compile Include="$(SourceRoot)/ExchangeCodec.cs" />
+    <Compile Include="$(SourceRoot)/ThunderbirdCalendarImporter.cs" />
+    <Compile Include="$(SourceRoot)/CalendarRecurrence.cs" />
+    <Compile Include="$(SourceRoot)/NativeLocalization.cs" />
+    <Compile Include="$(SourceRoot)/RegionalSettings.cs" />
+    <Compile Include="$(SourceRoot)/WindowsPaths.cs" />
+    <Compile Include="$(SourceRoot)/AtomicStore.cs" />
+    <Compile Include="$(SourceRoot)/PhoneRegionInfo.cs" />
+    <Compile Include="$(SourceRoot)/WindowsContactStore.cs" />
+    <Compile Include="$(SourceRoot)/MagnolienbaumCrypto.cs" />
+    <Compile Include="$(SourceRoot)/GesamtarchivService.cs" />
+    <Compile Include="$(SourceRoot)/EncryptionService.cs" />
+    <Reference Include="$(SourceRoot)/tests/bin/Debug/net8.0/System.Security.Cryptography.ProtectedData.dll" />
+    <Reference Include="$(SourceRoot)/tests/bin/Debug/net8.0/BouncyCastle.Cryptography.dll" />
+    <Reference Include="$(SourceRoot)/tests/bin/Debug/net8.0/Microsoft.Data.Sqlite.dll" />
+    <Reference Include="$(SourceRoot)/tests/bin/Debug/net8.0/SQLitePCLRaw.*.dll" />
+    <Reference Include="$(SourceRoot)/tests/bin/Debug/net8.0/PhoneNumbers.dll" />
+    <None Include="$(SourceRoot)/tests/bin/Debug/net8.0/runtimes/linux-x64/native/libe_sqlite3.so" CopyToOutputDirectory="PreserveNewest" Link="libe_sqlite3.so" />
+  </ItemGroup>
+</Project>

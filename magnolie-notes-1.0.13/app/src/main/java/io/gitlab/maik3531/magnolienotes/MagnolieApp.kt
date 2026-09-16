@@ -46,17 +46,20 @@ internal class StartBarriere<T>(private val fehlerart: (Throwable) -> StartFehle
     ) {
         if (startLaeuft) return
         startLaeuft = true
-        signal = CompletableDeferred()
+        // Providers/instrumentation can arrive before Application.onCreate starts us.
+        // Keep that first pending signal; only a completed attempt needs a new one.
+        if (signal.isCompleted) signal = CompletableDeferred()
+        val attempt = signal
         _zustand.value = StartZustand.Laden
         scope.launch {
             try {
                 val ergebnis = initialisieren()
                 _zustand.value = StartZustand.Bereit
-                signal.complete(Result.success(Unit))
+                attempt.complete(Result.success(Unit))
                 runCatching { nachBereit(ergebnis) }
             } catch (fehler: Throwable) {
                 _zustand.value = StartZustand.Fehler(fehlerart(fehler))
-                signal.complete(Result.failure(fehler))
+                attempt.complete(Result.failure(fehler))
             } finally {
                 startLaeuft = false
             }

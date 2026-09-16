@@ -1,5 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="baum_postfach_unsicher">Doğrulanmamış teslimatlar: %1$d. İletiler saklanır ve otomatik yeniden gönderim duraklatılır. Alındığını kontrol edin; eski cihazlar doğrulanmış alındı bildirimlerini desteklemeyebilir.</string>
+    <string name="telefon_bluetooth_setup">Bluetooth ile yeni bir Organizer eşleştirin</string>
+    <string name="telefon_bluetooth_setup_hinweis">Bu ekranı açık tutun. Organizer uygulamasında bu telefonu seçin, sistem eşleştirmesini onaylayın ve ardından iki cihazdaki kodu karşılaştırın.</string>
     <string name="freigabe_ziel">Magnolie Notes’a kaydet</string>
 
     <string name="blatt_notizen">Notlar</string>
@@ -321,7 +324,7 @@
     <string name="start_laden">Korumalı veriler açılıyor…</string><string name="start_fehler_titel">Korumalı veriler açılamadı</string><string name="start_daten_unveraendert">Verileriniz silinmedi veya üzerine yazılmadı. Güvenle yeniden deneyebilirsiniz.</string><string name="start_erneut">Yeniden dene</string><string name="start_schliessen">Uygulamayı kapat</string>
     <string name="absturzbericht_teilen">Çökme raporunu paylaş</string>
     <string name="journal_maximum">Kurtarma noktaları</string>
-    <string name="journal_maximum_hinweis">Sınır düşürüldüğünde en eski kurtarma noktaları otomatik olarak kaldırılır.</string>
+    <string name="journal_maximum_hinweis">Sınır düşürüldüğünde en eski korumasız kurtarma noktaları kaldırılır. Korunan noktalar saklanır.</string>
     <string name="portable_titel">Taşınabilir yedek</string><string name="portable_hinweis">Notlar, not defterleri, görevler, çöp kutusu ve ekleri içeren ayrı, parola korumalı bir arşiv oluşturun veya geri yükleyin.</string><string name="portable_export">Taşınabilir yedek oluştur</string><string name="portable_datei_oeffnen">Taşınabilir yedeği aç</string><string name="portable_restore">Yedeği geri yükle</string><string name="portable_passwort">Parola</string><string name="portable_passwort_hinweis">Arşiv parolasını girin. Yedek denetlenirken hiçbir şey değiştirilmez.</string><string name="portable_pruefen">Denetle ve önizle</string><string name="portable_vorschau">Yedek önizlemesi</string><string name="portable_vorschau_text">%1$d not · %2$d not defteri · %3$d görev · %4$d çöp kutusu öğesi</string><string name="portable_restore_warnung">Bu işlem mevcut tüm kişisel içeriği değiştirir. Önce yerel bir güvenlik anlık görüntüsü oluşturulur; bu cihazın Magnolienbaum kimliği korunur.</string><string name="portable_fehler">Yedek açılamadı. Dosyayı ve parolayı denetleyin.</string><string name="portable_exportiert">Taşınabilir yedek oluşturuldu.</string><string name="portable_wiederhergestellt">Taşınabilir yedek geri yüklendi.</string>
     <string name="auto_backup_titel">Bulut klasörüne otomatik yedekleme</string>
     <string name="auto_backup_hinweis">İsteğe bağlı olarak doğrulanmış taşınabilir yedekleri Android üzerinden seçilen bir klasöre kaydeder. Sağlayıcı bu klasörü eşitleyebilir.</string>
@@ -349,4 +352,27 @@
     <string name="aufgabe_zur_wurzel">En üst düzeye</string>
     <string name="aufgabe_eltern_waehlen">Üst görevi seç</string>
     <string name="aufgabe_oberste_ebene">En üst düzey</string>
+    <string name="baum_kontakt_jubilaeum">Yıl dönümü</string>
+    <string name="baum_kontakt_update">Yıl dönümlerini de aktarmak için her iki cihazda Magnolie uygulamasını güncelleyin, iki uygulamayı da açıp yeniden deneyin. Bu denemede hiçbir kişi gönderilmedi.</string>
+    <string name="baum_aufgabe_nicht_freigegeben">Bu görev bu cihazla paylaşılmadı.</string>
+    <string name="baum_kontakt_import_nicht_unterstuetzt">Bu cihaza kişi göndermek için kişi eşitlemeyi kullanın.</string>
+    <string name="aufgabe_nach_oben">Görevi yukarı taşı</string>
+    <string name="aufgabe_nach_unten">Görevi aşağı taşı</string>
+    <string name="personal_custom_optin">Özel sekmedeki görevleri ve randevuları eşitle</string>
+    <string name="personal_custom_title">Özel sekmedeki görevler ve randevular (salt okunur)</string>
+    <string name="personal_custom_explanation">Her iki cihaz da onay vermelidir. Kapatıldığında özel sekmedeki hatırlatıcılar ve güncellemeler duraklatılır ancak kopyalar korunur. Bağlantılı metin blokları paylaşılmaz.</string>
+    <string name="personal_custom_unsupported">Bu cihaz özel sekmenin eşitlenmesini desteklemiyor.</string>
+    <string name="personal_custom_delete">Kaynakta silindi: Telefondaki bu kopya silinsin mi, korunsun mu? Bilgisayardaki kaynak hiçbir zaman değiştirilmez.</string>
+    <string name="personal_custom_keep">Kopyayı koru</string>
+    <string name="personal_custom_privacy">Yalnızca her iki cihazın açık onayıyla Personal Sync, özel görevleri ve randevuları kendi notlarıyla birlikte salt okunur olarak paylaşır. Metin blokları, bağlantılı metinler ve ekler kapsam dışıdır. Arşivler kopyaları geri yükler, izinleri değil.</string>
+    <string name="device_identifiers_share">Kendi telefonumun tanımlayıcılarını paylaş</string>
+    <string name="device_identifiers_explanation">Yalnızca kendi eşleştirilmiş bilgisayarınızın isteğiyle, 60 saniye boyunca, kaydetmeden: varsayılan ses SIM numarası ve Android izin verirse seri numarası ile IMEI. Android 10 ve üzeri, normal uygulamalar için donanım tanımlayıcılarını kısıtlar. Numara izni isteğe bağlıdır; özel bir rol istenmez.</string>
+    <string name="device_identifiers_phone">Kendi numaram (varsayılan ses SIM’i)</string>
+    <string name="device_identifiers_serial">Cihaz seri numarası</string>
+    <string name="device_identifiers_imei">Cihaz IMEI’si</string>
+    <string name="device_identifiers_off">Cihaz tanımlayıcısı paylaşımı kapalı.</string>
+    <string name="device_identifiers_permission">Cihaz tanımlayıcısı izni eksik.</string>
+    <string name="device_identifiers_restricted">Android bu cihaz tanımlayıcısını kısıtlıyor.</string>
+    <string name="device_identifiers_subscription">Varsayılan ses aboneliği yok.</string>
+    <string name="device_identifiers_unavailable">Bu cihaz tanımlayıcısı kullanılamıyor.</string>
 </resources>

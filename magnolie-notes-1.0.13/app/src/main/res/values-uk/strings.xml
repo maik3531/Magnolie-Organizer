@@ -1,5 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="baum_postfach_unsicher">Непідтверджені доставки: %1$d. Повідомлення збережено, автоматичне повторне надсилання призупинено. Перевірте отримання: старі пристрої можуть не підтримувати перевірені підтвердження.</string>
+    <string name="telefon_bluetooth_setup">З’єднати новий Organizer через Bluetooth</string>
+    <string name="telefon_bluetooth_setup_hinweis">Залиште цей екран відкритим. Виберіть цей телефон в Organizer, підтвердьте системне сполучення, потім порівняйте код на обох пристроях.</string>
     <string name="freigabe_ziel">Зберегти в Magnolie Notes</string>
 
     <string name="blatt_notizen">Нотатки</string>
@@ -349,7 +352,7 @@
     <string name="start_laden">Відкриття захищених даних…</string><string name="start_fehler_titel">Не вдалося відкрити захищені дані</string><string name="start_daten_unveraendert">Ваші дані не видалено й не перезаписано. Можна безпечно повторити спробу.</string><string name="start_erneut">Повторити</string><string name="start_schliessen">Закрити застосунок</string>
     <string name="absturzbericht_teilen">Поділитися звітом про збій</string>
     <string name="journal_maximum">Точки відновлення</string>
-    <string name="journal_maximum_hinweis">Коли ліміт зменшується, найстаріші точки відновлення автоматично видаляються.</string>
+    <string name="journal_maximum_hinweis">Коли ліміт зменшується, видаляються найстаріші незахищені точки відновлення. Захищені точки зберігаються.</string>
     <string name="portable_titel">Переносна резервна копія</string><string name="portable_hinweis">Створіть або відновіть окремий захищений паролем архів із нотатками, блокнотами, завданнями, кошиком і вкладеннями.</string><string name="portable_export">Створити переносну копію</string><string name="portable_datei_oeffnen">Відкрити переносну копію</string><string name="portable_restore">Відновити копію</string><string name="portable_passwort">Пароль</string><string name="portable_passwort_hinweis">Введіть пароль архіву. Під час перевірки копії нічого не змінюється.</string><string name="portable_pruefen">Перевірити й переглянути</string><string name="portable_vorschau">Попередній перегляд копії</string><string name="portable_vorschau_text">%1$d нотаток · %2$d блокнотів · %3$d завдань · %4$d елементів у кошику</string><string name="portable_restore_warnung">Увесь поточний особистий вміст буде замінено. Спочатку створюється локальний страховий знімок; ідентичність Magnolienbaum цього пристрою зберігається.</string><string name="portable_fehler">Не вдалося відкрити копію. Перевірте файл і пароль.</string><string name="portable_exportiert">Переносну копію створено.</string><string name="portable_wiederhergestellt">Переносну копію відновлено.</string>
     <string name="auto_backup_titel">Автоматична копія в хмарній теці</string>
     <string name="auto_backup_hinweis">За бажанням зберігає перевірені переносні копії в теці, вибраній через Android. Постачальник може синхронізувати її.</string>
@@ -377,4 +380,27 @@
     <string name="aufgabe_zur_wurzel">На верхній рівень</string>
     <string name="aufgabe_eltern_waehlen">Вибрати батьківське завдання</string>
     <string name="aufgabe_oberste_ebene">Верхній рівень</string>
+    <string name="baum_kontakt_jubilaeum">Річниця</string>
+    <string name="baum_kontakt_update">Щоб передати також річниці, оновіть Magnolie на обох пристроях, відкрийте обидва застосунки й повторіть спробу. Цього разу жодного контакту не надіслано.</string>
+    <string name="baum_aufgabe_nicht_freigegeben">Це завдання не було передано цьому пристрою.</string>
+    <string name="baum_kontakt_import_nicht_unterstuetzt">Щоб надіслати контакти на цей пристрій, скористайтеся синхронізацією контактів.</string>
+    <string name="aufgabe_nach_oben">Перемістити завдання вище</string>
+    <string name="aufgabe_nach_unten">Перемістити завдання нижче</string>
+    <string name="personal_custom_optin">Синхронізувати завдання й зустрічі з користувацької вкладки</string>
+    <string name="personal_custom_title">Завдання й зустрічі з користувацької вкладки (лише читання)</string>
+    <string name="personal_custom_explanation">Обидва пристрої мають надати згоду. Вимкнення призупиняє нагадування й оновлення з користувацької вкладки, але зберігає копії. Пов’язані текстові блоки не передаються.</string>
+    <string name="personal_custom_unsupported">Цей пристрій не підтримує синхронізацію користувацької вкладки.</string>
+    <string name="personal_custom_delete">Видалено в джерелі: видалити цю копію з телефона чи зберегти? Джерело на комп’ютері ніколи не змінюється.</string>
+    <string name="personal_custom_keep">Зберегти копію</string>
+    <string name="personal_custom_privacy">Лише за явною згодою обох пристроїв Personal Sync передає власні завдання й зустрічі лише для читання, включно з їхніми власними нотатками. Текстові блоки, пов’язані тексти та вкладення виключено. Архіви відновлюють копії, а не дозволи.</string>
+    <string name="device_identifiers_share">Передавати ідентифікатори свого телефона</string>
+    <string name="device_identifiers_explanation">Лише на запит власного сполученого комп’ютера, на 60 секунд, без збереження: номер типової SIM для дзвінків та, якщо Android дозволяє, серійний номер і IMEI. Від Android 10 апаратні ідентифікатори обмежені для звичайних застосунків. Дозвіл на номер необов’язковий; спеціальні ролі не запитуються.</string>
+    <string name="device_identifiers_phone">Власний номер (типова SIM для дзвінків)</string>
+    <string name="device_identifiers_serial">Серійний номер пристрою</string>
+    <string name="device_identifiers_imei">IMEI пристрою</string>
+    <string name="device_identifiers_off">Передавання ідентифікаторів вимкнено.</string>
+    <string name="device_identifiers_permission">Немає дозволу на ідентифікатори.</string>
+    <string name="device_identifiers_restricted">Android обмежує цей ідентифікатор.</string>
+    <string name="device_identifiers_subscription">Немає типової підписки для дзвінків.</string>
+    <string name="device_identifiers_unavailable">Цей ідентифікатор недоступний.</string>
 </resources>

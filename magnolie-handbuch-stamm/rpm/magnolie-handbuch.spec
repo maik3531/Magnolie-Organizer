@@ -33,7 +33,7 @@
 %endif
 
 Name:           magnolie-handbuch
-Version:        2.0.17
+Version:        2.0.18
 Release:        1%{?dist}
 Summary:        Illustrated user handbook for Magnolie Organizer
 
@@ -50,6 +50,7 @@ BuildRequires:  /usr/bin/python3
 BuildRequires:  %{magnolie_build_deps}
 BuildRequires:  %{magnolie_deps}
 Requires:       /usr/bin/python3
+Requires:       /usr/bin/xgettext
 Requires:       %{magnolie_deps}
 Recommends:     magnolie-organizer >= 2.0.0
 
@@ -73,17 +74,18 @@ while read -r language; do
     /usr/bin/python3 werkzeuge/po_zu_js.py \
         "$language" "po/$language.po" "web/i18n/$language.js"
 done < po/LINGUAS
+/usr/bin/python3 werkzeuge/po_zu_js.py en po/english/protected.po web/i18n/en.js
 
 %check
 set -eu
 /usr/bin/python3 -m py_compile bin/%{name} bin/magnolie_crash.py bin/magnolie_asset.py werkzeuge/*.py pruefungen/*.py
 test "$(find locale -name '%{name}.mo' -type f | wc -l)" -eq 19
-test "$(find web/i18n -name '*.js' -type f | wc -l)" -eq 19
+test "$(find web/i18n -name '*.js' -type f | wc -l)" -eq 20
 for script in web/*.js web/i18n/*.js; do
     node --check "$script"
 done
 /usr/bin/python3 pruefungen/druck_test.py --cli-only
-/usr/bin/python3 -m pytest -q pruefungen/test_asset_container.py
+/usr/bin/python3 -m pytest -q pruefungen/test_asset_container.py pruefungen/test_source_packaging.py
 desktop-file-validate magnolie-handbuch.desktop
 
 %install
@@ -92,13 +94,15 @@ install -Dpm 0644 bin/magnolie_crash.py %{buildroot}%{_prefix}/lib/%{name}/magno
 install -Dpm 0644 bin/magnolie_asset.py %{buildroot}%{_prefix}/lib/%{name}/magnolie_asset.py
 install -d %{buildroot}%{_datadir}/%{name}/web/i18n
 install -pm 0644 web/index.html web/stil.css web/inhalt.js web/platform.js web/handbuch.js \
-    web/i18n.js web/i18n-start.js web/i18n-markers.js \
+    web/i18n.js web/i18n-start.js web/i18n-markers.js web/mobile-downloads.js web/mobile-downloads.json web/version.json \
     web/*.png web/*.jpg web/*.mga web/maik-walter-FOTO-NUTZUNG.txt \
     %{buildroot}%{_datadir}/%{name}/web/
 cp -a web/schriften %{buildroot}%{_datadir}/%{name}/web/
 install -pm 0644 web/i18n/*.js %{buildroot}%{_datadir}/%{name}/web/i18n/
 install -Dpm 0644 werkzeuge/pot_erzeugen.py \
     %{buildroot}%{_datadir}/%{name}/werkzeuge/pot_erzeugen.py
+install -Dpm 0644 werkzeuge/handbook_data.js \
+    %{buildroot}%{_datadir}/%{name}/werkzeuge/handbook_data.js
 while read -r language; do
     test -n "$language" || continue
     install -Dpm 0644 "locale/$language/LC_MESSAGES/%{name}.mo" \
@@ -135,6 +139,10 @@ done < po/LINGUAS
 %{_mandir}/*/man1/magnolie-handbuch.1*
 
 %changelog
+* Mon Sep 07 2026 Maik Walter <maik3531@gmail.com> - 2.0.18-1
+- Update the complete multilingual handbook for Organizer 2.0.18.
+- Keep Magnolie Notes unchanged at 1.0.13.
+
 * Wed Sep 02 2026 Maik Walter <maik3531@gmail.com> - 2.0.17-1
 - Update release and format information for Organizer 2.0.17 and Notes 1.0.13.
 

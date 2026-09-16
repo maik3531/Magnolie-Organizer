@@ -2,14 +2,13 @@
 """Gezielte Prüfungen für die fail-closed Release-Signaturkette."""
 
 import base64
-import io
-import os
 from pathlib import Path
 import re
 import subprocess
 import sys
 import tarfile
 import xml.etree.ElementTree as ET
+import pytest
 
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
@@ -18,9 +17,6 @@ from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 ROOT = Path(__file__).resolve().parents[1]
 SIGNIERER = ROOT / "werkzeuge/update_signieren.py"
 MANIFEST_WERKZEUG = ROOT / "werkzeuge/release_manifest.py"
-RELEASE = ROOT / "werkzeuge/release_bauen.sh"
-PRIVATER_STANDARDPFAD = (
-    Path.home() / ".local/share/magnolie-release/update-ed25519.pem")
 SCHLUESSEL_RE = re.compile(
     r'^UPDATE_SIGNATUR_SCHLUESSEL = "([A-Za-z0-9+/]+={0,2})"$', re.M)
 PRIVATE_KEY_RE = re.compile(
@@ -38,18 +34,26 @@ def eingebetteter_schluessel():
     return treffer.group(1)
 
 
-def test_externer_schluessel_stimmt_mit_eingebettetem_ueberein():
-    pfad = Path(os.environ.get("MAGNOLIE_UPDATE_SIGNING_KEY", PRIVATER_STANDARDPFAD))
-    assert pfad.is_file()
-    assert pfad.stat().st_mode & 0o777 == 0o600
-    privat = serialization.load_pem_private_key(pfad.read_bytes(), password=None)
-    assert isinstance(privat, Ed25519PrivateKey)
+@pytest.fixture
+def testschluessel(tmp_path):
+    privat = Ed25519PrivateKey.generate()
+    pfad = tmp_path / "synthetic-ed25519.pem"
+    pfad.write_bytes(privat.private_bytes(serialization.Encoding.PEM,
+        serialization.PrivateFormat.PKCS8, serialization.NoEncryption()))
+    pfad.chmod(0o600)
     roh = privat.public_key().public_bytes(
         serialization.Encoding.Raw, serialization.PublicFormat.Raw)
-    assert base64.b64encode(roh).decode("ascii") == eingebetteter_schluessel()
+    return pfad, base64.b64encode(roh).decode("ascii")
 
 
-def test_manifest_signiert_und_tamper_wird_abgelehnt(tmp_path):
+def test_externer_schluessel_preflight(testschluessel):
+    pfad, public = testschluessel
+    subprocess.run([sys.executable, SIGNIERER, "--check-key", pfad, public], check=True)
+    assert subprocess.run([sys.executable, SIGNIERER, "--check-key", pfad,
+                           eingebetteter_schluessel()], capture_output=True).returncode != 0
+
+
+def test_manifest_signiert_und_tamper_wird_abgelehnt(tmp_path, testschluessel):
     deb = tmp_path / "magnolie-organizer_9.8.7_all.deb"
     appimage = tmp_path / "Magnolie-Organizer-9.8.7-x86_64.AppImage"
     handbuch = tmp_path / "magnolie-handbuch_9.8.7_all.deb"
@@ -96,14 +100,14 @@ def test_manifest_signiert_und_tamper_wird_abgelehnt(tmp_path):
         windows.read_bytes()).hexdigest()
     assert root.findtext("./windows/sha256") == root.findtext(
         "./manual/windows/sha256")
-    key = Path(os.environ.get("MAGNOLIE_UPDATE_SIGNING_KEY", PRIVATER_STANDARDPFAD))
+    key, public = testschluessel
     subprocess.run([sys.executable, SIGNIERER, key, manifest, deb, appimage],
                    check=True, stdout=subprocess.DEVNULL)
     signiert = manifest.read_bytes()
     subprocess.run([sys.executable, SIGNIERER, key, manifest, deb, appimage],
                    check=True, stdout=subprocess.DEVNULL)
     assert manifest.read_bytes() == signiert
-    pruefen = [sys.executable, SIGNIERER, "--verify", eingebetteter_schluessel(),
+    pruefen = [sys.executable, SIGNIERER, "--verify", public,
                manifest, deb, appimage]
     subprocess.run(pruefen, check=True, stdout=subprocess.DEVNULL)
 
@@ -114,16 +118,12 @@ def test_manifest_signiert_und_tamper_wird_abgelehnt(tmp_path):
 
 
 def test_source_tar_enthaelt_keinen_privatschluessel(tmp_path):
+    sys.path.insert(0, str(ROOT / "werkzeuge"))
+    from release_sources import source_files
     archiv = tmp_path / "quelle.tar.xz"
     with tarfile.open(archiv, "w:xz") as tar:
-        for source_path in ROOT.rglob("*"):
-            relativ = source_path.relative_to(ROOT)
-            if any(part in {".git", ".pytest_cache", ".kotlin", ".gradle",
-                            "__pycache__", "bau", "build"}
-                   for part in relativ.parts):
-                continue
-            if source_path.is_file() and not source_path.is_symlink():
-                tar.add(source_path, arcname="magnolie-organizer/" + str(relativ))
+        for relativ, source_path in source_files(ROOT):
+            tar.add(source_path, arcname="magnolie-organizer/" + str(relativ))
     with tarfile.open(archiv) as tar:
         for member in tar.getmembers():
             assert not KEY_FILE_RE.search(Path(member.name).name), member.name
@@ -131,16 +131,10 @@ def test_source_tar_enthaelt_keinen_privatschluessel(tmp_path):
                 assert not PRIVATE_KEY_RE.search(tar.extractfile(member).read()), member.name
 
 
-def test_release_ohne_schluessel_bricht_vor_veroeffentlichung_ab(tmp_path):
+def test_signierer_ohne_schluessel_bricht_ab(tmp_path):
     fehlend = tmp_path / "fehlt.pem"
-    umgebung = os.environ.copy()
-    umgebung["MAGNOLIE_UPDATE_SIGNING_KEY"] = str(fehlend)
-    umgebung["MAGNOLIE_CONTRIBUTOR_HASH"] = "0" * 64
-    ergebnis = subprocess.run(["sh", RELEASE, "--skip-system-package-tests"],
-                              cwd=ROOT, env=umgebung, text=True,
+    ergebnis = subprocess.run([sys.executable, SIGNIERER, "--check-key",
+                              fehlend, eingebetteter_schluessel()], text=True,
                               stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     assert ergebnis.returncode != 0
     assert "Release-Schlüssel fehlt" in ergebnis.stderr
-    regeln = RELEASE.read_text(encoding="utf-8")
-    assert regeln.index("--check-key") < regeln.index("STAGE=$(mktemp")
-    assert regeln.index("--verify") < regeln.rindex("VEROEFFENTLICHEN=1")

@@ -5,9 +5,16 @@
 #
 msgid ""
 msgstr ""
+"Project-Id-Version: Magnolie Organizer 2.0.18\n"
 "Report-Msgid-Bugs-To: maik3531@gmail.com\n"
 "POT-Creation-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"PO-Revision-Date: 2026-09-07 00:00+0200\n"
+"Last-Translator: Magnolie translation team <maik3531@gmail.com>\n"
+"Language-Team: hsb\n"
+"Language: hsb\n"
+"MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=4; plural=(n%100==1 ? 0 : n%100==2 ? 1 : (n%100==3 || "
 "n%100==4) ? 2 : 3);\n"
 
@@ -242,13 +249,6 @@ msgstr[1] "Ličba swjatych dnjow: %(count)s"
 msgstr[2] "Ličba swjatych dnjow: %(count)s"
 msgstr[3] "Ličba swjatych dnjow: %(count)s"
 
-msgid "%(count)s recurring appointment imported only once."
-msgid_plural "%(count)s recurring appointments imported only once."
-msgstr[0] "Jenož jónkróć importowane wospjetowace so terminy: %(count)s."
-msgstr[1] "Jenož jónkróć importowane wospjetowace so terminy: %(count)s."
-msgstr[2] "Jenož jónkróć importowane wospjetowace so terminy: %(count)s."
-msgstr[3] "Jenož jónkróć importowane wospjetowace so terminy: %(count)s."
-
 msgid "%(count)s second"
 msgid_plural "%(count)s seconds"
 msgstr[0] "Ličba sekundow: %(count)s"
@@ -469,15 +469,18 @@ msgstr ""
 "wotzamknjeny."
 
 msgid "A personal synchronization attachment hash is invalid or duplicated."
-msgstr ""
-"Der Hash eines persönlichen Synchronisierungsanhangs ist ungültig oder "
-"dupliziert."
+msgstr "Haš přiwěška wosobinskeje synchronizacije je njepłaćiwy abo dwójny."
 
 msgid "A personal synchronization attachment source is not an object."
-msgstr "Eine persönliche Synchronisierungsanhangsquelle ist kein Objekt."
+msgstr "Žórło přiwěška wosobinskeje synchronizacije objekt njeje."
 
 msgid "A personal synchronization batch is not an object."
-msgstr "Ein persönlicher Synchronisierungsstapel ist kein Objekt."
+msgstr "Pakćik wosobinskeje synchronizacije objekt njeje."
+
+msgid "A phone is already paired or pairing. Finish that connection first."
+msgstr ""
+"Telefon je hižo skoplowany abo so runje skopluje. Skónčće najprjedy tutón "
+"zwisk."
 
 msgid ""
 "A separate encrypted connection for dial requests, device status and "
@@ -668,6 +671,9 @@ msgstr ""
 "Terminski protyka, adresnik, nadawkowy zešiwk a notatnik w podobje kože "
 "wjazaneho organizatora —"
 
+msgid "Android restricts this device identifier."
+msgstr "Android tutón identifikator wobmjezuje."
+
 msgid "Android version"
 msgstr "Wersija Androida"
 
@@ -681,7 +687,7 @@ msgid "Anniversary"
 msgstr "Róčnica"
 
 msgid "Another phone is already paired. Remove it first."
-msgstr "Ein anderes Telefon ist bereits gekoppelt. Entfernen Sie es zuerst."
+msgstr "Druhi telefon je hižo sparowany. Wotstrońće jón najprjedy."
 
 msgid "Answer"
 msgstr "Wotmołwić"
@@ -706,6 +712,9 @@ msgstr "Appenzell Innerrhoden"
 
 msgid "Application command"
 msgstr "Programowy přikaz"
+
+msgid "Application password"
+msgstr "Hesło za aplikaciju"
 
 msgid ""
 "Applies only to content you enter yourself: appointments, tasks, contacts, "
@@ -765,9 +774,6 @@ msgstr "Hesło archiwa"
 msgid "Are you really sure?"
 msgstr "Sće woprawdźe wěsty?"
 
-msgid "As usual (print)"
-msgstr "Kaž zwjetša (ćišć)"
-
 msgid "Assign SMS action"
 msgstr "SMS-akciju připokazać"
 
@@ -806,6 +812,23 @@ msgstr "Termin pola zarjada"
 
 msgid "Automatic backup failed."
 msgstr "Awtomatiske zawěsćenje je so njeporadźiło."
+
+msgid ""
+"Automatic call audio is unavailable. Keep the call on the phone or select "
+"native audio manually in system settings."
+msgstr ""
+"Awtomatiske přenošowanje zuka zawołanja k dispoziciji njeje. Wostajće "
+"zawołanje na telefonje abo wubjerće natiwny zuk manuelnje w systemowych "
+"nastajenjach."
+
+msgid ""
+"Automatic call audio is unsupported in this Windows build. Package identity "
+"and an approved phoneLineTransportManagement capability are required. Select "
+"native audio manually in system settings."
+msgstr ""
+"Tute Windows-wudaće awtomatiske přenošowanje zuka zawołanja njepodpěruje. "
+"Identita pakćika a schwaleny přistup phoneLineTransportManagement stej "
+"trěbnej. Wubjerće natiwny zuk manuelnje w systemowych nastajenjach."
 
 msgid "Automatic cloud-folder backups"
 msgstr "Awtomatiske zawěsćenja w cloudowym rjadowaku"
@@ -985,7 +1008,24 @@ msgid "Blue (fountain pen)"
 msgstr "Módry (plnjace pjero)"
 
 msgid "Bluetooth data fallback"
-msgstr "Daty Bluetooth fallback"
+msgstr "Narunanske přenjesenje datow přez Bluetooth"
+
+msgid "Bluetooth device for call audio"
+msgstr "Bluetoothowy grat za zynk zawołanjow"
+
+msgid "Bluetooth device unavailable."
+msgstr "Bluetooth-grat k dispoziciji njeje."
+
+msgid "Bluetooth is unavailable in this build."
+msgstr "W tutej wersiji programa Bluetooth k dispoziciji njeje."
+
+msgid "Bluetooth is unavailable. Check the radio and OS permissions."
+msgstr ""
+"Bluetooth k dispoziciji njeje. Přepruwujće, hač je adapter zmóžnjeny a hač "
+"su trěbne prawa w dźěłowym systemje dowolene."
+
+msgid "Bluetooth system pairing was not confirmed."
+msgstr "Skoplowanje přez Bluetooth w systemje njeje so wobkrućiło."
 
 msgid "Bold"
 msgstr "Tučny"
@@ -997,6 +1037,14 @@ msgstr ""
 "Při zwjazowanju pokazujetej wobaj wotrězkej samsny šěsćměstny kod. Wobkrućće "
 "jón jenož, hdyž so woprawdźe kryje; tak zadźěwaće tomu, zo něchtó zwisk "
 "wotposłucha."
+
+msgid ""
+"Both devices must opt in. Turning this off pauses reminders and updates from "
+"the custom tab but keeps copies. Linked text blocks are not shared."
+msgstr ""
+"Obaj grataj dyrbitej přihłosować. Wupinanje zastaji dopomnjenki a "
+"aktualizacije z wužiwarjoweho rajtarka, ale kopije wobchowa. Zwjazane "
+"tekstowe bloki so njedźěla."
 
 msgid "Brandenburg"
 msgstr "Braniborska"
@@ -1016,6 +1064,9 @@ msgstr "Po předmjenje (Hans Müller)"
 msgid "By last name (Müller, Hans)"
 msgstr "Po swójbnym mjenje (Müller, Hans)"
 
+msgid "CSV / Lotus Organizer"
+msgstr "CSV / Lotus Organizer"
+
 msgid "CSV / Lotus Organizer contacts …"
 msgstr "Kontakty CSV / Lotus Organizer …"
 
@@ -1024,6 +1075,9 @@ msgstr "CSV-dataje (*.csv)"
 
 msgid "CW"
 msgstr "KT"
+
+msgid "CalDAV + CardDAV Server"
+msgstr "Serwer CalDAV + CardDAV"
 
 msgid "Calculate the route to this address"
 msgstr "Puć k tutej adresy wuličić"
@@ -1034,6 +1088,9 @@ msgstr "Protyka"
 msgid "Calendar (*.ics)"
 msgstr "Protyka (*.ics)"
 
+msgid "Calendar (ICS)"
+msgstr "Kalendar (ICS)"
+
 msgid "Calendar file (.ics/.vcs/.lcs) …"
 msgstr "Protykowy dataj (.ics/.vcs/.lcs) …"
 
@@ -1042,6 +1099,9 @@ msgstr "Wuhotowanje protyki"
 
 msgid "Calendar week %(number)s"
 msgstr "Protykowy tydźeń %(number)s"
+
+msgid "Calendars"
+msgstr "Kalendry"
 
 msgid "Calendars (multiple selections allowed)"
 msgstr "Protyki (wjacore wuběry móžne)"
@@ -1054,6 +1114,13 @@ msgstr "Zawołać"
 
 msgid "Call assignment"
 msgstr "Rufzuweisung"
+
+msgid ""
+"Call controls unavailable. Check Android call permission; no dialer role is "
+"requested automatically."
+msgstr ""
+"Wodźenje zawołanja k dispoziciji njeje. Přepruwujće prawo za zawołanja w "
+"Androidźe; róla telefonoweje aplikacije so awtomatisce njepožada."
 
 msgid "Call ended"
 msgstr "Zawołanje skónčene"
@@ -1148,9 +1215,6 @@ msgstr "Aktualnu manualnu wersiju přepruwować …"
 msgid "Checking the current version …"
 msgstr "Aktualna wersija so přepruwuje …"
 
-msgid "Choose Appointments, Notes or Tasks in Customize."
-msgstr "Wubjerće Terminy, Notice abo Nadawki w Přiměrić."
-
 msgid ""
 "Choose a backup file. Before restoring it, the organizer automatically "
 "creates a copy of the current data. An encrypted backup requires its "
@@ -1159,6 +1223,11 @@ msgstr ""
 "Wubjerće zawěsćenski dataj. Před wobnowjenjom wutwori Organizator "
 "awtomatisce kopiju aktualnych datow. Zaklučowane zawěsćenje trjeba swoje "
 "hesło."
+
+msgid "Choose a connection. Confirm pairing on the phone and this computer."
+msgstr ""
+"Wubjerće wašnje zwjazanja. Wobkrućće skoplowanje na telefonje a na tutym "
+"ličaku."
 
 msgid "Choose a country first."
 msgstr "Wubjerće najprjedy kraj."
@@ -1200,13 +1269,6 @@ msgstr "Wubjerće znajmjeńša štyri znamješka."
 msgid "Choose entries to print, export or delete"
 msgstr "Zapiski za ćišć, eksport abo zhašenje wubrać"
 
-msgid ""
-"Choose file and Windows contact imports that Magnolie can start directly "
-"after opening."
-msgstr ""
-"Wubjerće importy datajow a kontaktow Windows, kotrež móže Magnolie direktnje "
-"po wočinjenju startować."
-
 msgid "Choose file…"
 msgstr "Dataj wubrać…"
 
@@ -1233,6 +1295,12 @@ msgid "Choose service"
 msgstr "Słužbu wubrać"
 
 msgid ""
+"Choose sources now. Import previews are kept until you finish the assistant."
+msgstr ""
+"Wubjerće nětko žórła. Daty z přehlada importa so přihotuja a hač do "
+"skónčenja asistenta wobchowaja."
+
+msgid ""
 "Choose which sections appear as tabs on the organizer. The calendar always "
 "remains available."
 msgstr ""
@@ -1250,6 +1318,9 @@ msgstr "Město"
 
 msgid "Claws Mail XML (.xml) …"
 msgstr "Claws Mail XML (.xml) …"
+
+msgid "Claws Mail XML / LDIF"
+msgstr "Claws Mail XML / LDIF"
 
 msgid "Claws Mail address book (*.xml)"
 msgstr "Adresnik Claws Mail (*.xml)"
@@ -1313,14 +1384,14 @@ msgstr ""
 msgid "Columns in the ODS table"
 msgstr "Špalty w ODS-tabeli"
 
-msgid "Compact sender line (default)"
-msgstr "Kompaktna sadźba wotpósłarja (standard)"
+msgid "Compact sender line"
+msgstr "Kompaktna linka wotpósłarja"
 
 msgid "Company"
 msgstr "Předewzaće"
 
 msgid "Compare pairing code"
-msgstr "Porowanski dataj so importuje"
+msgstr "Skoplowanski kod přirunać"
 
 msgid ""
 "Compare this fingerprint with the other branch, for example by phone, to "
@@ -1354,17 +1425,33 @@ msgstr "Sparowanje dokónčić"
 msgid "Completed (%(count)s)"
 msgstr "Dokónčene (%(count)s)"
 
+msgid ""
+"Completed pairings are kept if you cancel setup. No additional phone "
+"permissions are granted."
+msgstr ""
+"Dokónčene skoplowanja so wobchowaja, tež hdyž zarjadowanje přetorhnjeće. "
+"Žane přidatne prawa za telefon so njepřizwola."
+
 msgid "Completed task"
 msgstr "Dokónčeny"
 
 msgid "Completing secure pairing…"
-msgstr "Porowanski dataj so wutworja"
+msgstr "Wěste skoplowanje so dokónči…"
+
+msgid "Confirm"
+msgstr "Wobkrućić"
+
+msgid "Confirm SMS plans"
+msgstr "SMS-plany wobkrućić"
 
 msgid ""
 "Confirm only if exactly the same six-digit code is shown on both devices."
 msgstr ""
 "Wobkrućće jenož, hdyž je na woběmaj aparatomaj runje samsny šěsćcyfrowy kod "
 "pokazany."
+
+msgid "Confirm that the code matches on both devices."
+msgstr "Wobkrućće, zo je kod na woběmaj gratomaj samsny."
 
 msgid "Confirm the pairing request on the phone."
 msgstr "Wobkrućće sparowanske naprašowanje na telefonje."
@@ -1381,11 +1468,25 @@ msgstr "Zwjazać"
 msgid "Connect phone via WLAN"
 msgstr "Telefon přez WLAN zwjazać"
 
+msgid "Connect via Bluetooth"
+msgstr "Přez Bluetooth zwjazać"
+
+msgid "Connect via KDE Connect"
+msgstr "Přez KDE Connect zwjazać"
+
 msgid "Connected"
 msgstr "Zwjazany"
 
+msgid "Connection discovery failed. Check the server and credentials."
+msgstr ""
+"Słužby za zwjazanje njedachu so namakać. Přepruwujće serwer a přizjewjenske "
+"daty."
+
+msgid "Connection ready"
+msgstr "Zwisk je přihotowany"
+
 msgid "Consider deletions during manual synchronization"
-msgstr "Synchronizacija kontaktow"
+msgstr "Hašenja při manuelnej synchronizaciji wobkedźbować"
 
 msgid "Contact"
 msgstr "Kontakt"
@@ -1513,13 +1614,6 @@ msgstr "Swójske"
 msgid "Custom application"
 msgstr "Swójske nałoženje"
 
-msgid ""
-"Custom content is saved locally and transferred through complete Magnolie "
-"archives only, not Personal Sync."
-msgstr ""
-"Swójski wobsah so lokalnje składuje a jenož přez dospołne archiwy Magnolie "
-"přenošuje, nic přez Personal Sync."
-
 msgid "Custom notification"
 msgstr "Swójska zdźělenka"
 
@@ -1555,6 +1649,12 @@ msgstr ""
 msgid "Czechia"
 msgstr "Čěska"
 
+msgid "DIN 5008 Form A (27 mm letterhead)"
+msgstr "DIN 5008 Form A (listowa hłowa 27 mm)"
+
+msgid "DIN 5008 Form B (default)"
+msgstr "DIN 5008 Form B (standard)"
+
 msgid "DIN 5008 Form B with fold marks"
 msgstr "DIN 5008 forma B z falcowanskimi znamjenjemi"
 
@@ -1581,6 +1681,9 @@ msgstr "Dnjowe znamjenja"
 
 msgid "Days"
 msgstr "Dny"
+
+msgid "Dear Sir or Madam,"
+msgstr "Česćena knjeni, česćeny knježe,"
 
 msgid "Death anniversary"
 msgstr "Posmjertna róčnica"
@@ -1747,11 +1850,23 @@ msgstr "Zubny lěkar dr. Hill — Přehlad wašich zapiskow"
 msgid "Determining public IP address…"
 msgstr "Zjewna IP-adresa so zwěsća…"
 
+msgid "Device IMEI"
+msgstr "IMEI grata"
+
 msgid "Device code: %(code)s"
 msgstr "Gratowy kod: %(code)s"
 
+msgid "Device identifier permission is missing."
+msgstr "Prawo za identifikatory faluje."
+
+msgid "Device identifier sharing is off."
+msgstr "Dźělenje identifikatorow je wupinjene."
+
+msgid "Device serial number"
+msgstr "Serijowe čisło grata"
+
 msgid "Device status is not permitted or available on the phone."
-msgstr "Der Gerätestatus ist auf dem Telefon nicht zulässig oder verfügbar."
+msgstr "Staw grata na telefonje dowoleny abo k dispoziciji njeje."
 
 msgid "Diabetes"
 msgstr "Diabetes"
@@ -1779,6 +1894,9 @@ msgstr "Změny zaćisnyć"
 
 msgid "Discharging"
 msgstr "Změny zaćisnyć"
+
+msgid "Discover"
+msgstr "Słužby pytać"
 
 msgid "Display"
 msgstr "Wobrazowka"
@@ -1910,6 +2028,9 @@ msgstr "Zmóžnić"
 msgid "Enable Magnolie Notes phone connection"
 msgstr "Telefonowy zwisk Magnolie Notes zmóžnić"
 
+msgid "Enable SMS scheduling"
+msgstr "Planowanje SMS zmóžnić"
+
 msgid "Enable cycle calendar"
 msgstr "Cykusowu protyku zmóžnić"
 
@@ -1933,6 +2054,9 @@ msgstr "Dopomnjenki za tutón blok zmóžnić"
 msgid "Enable shift planner"
 msgstr "Planowak směnow zmóžnić"
 
+msgid "Enable this SMS plan"
+msgstr "Tutón SMS-plan aktiwizować"
+
 msgid "Enable tray applet"
 msgstr "Aplet systemoweho pola zmóžnić"
 
@@ -1941,6 +2065,12 @@ msgstr "Planowak prózdnin zmóžnić"
 
 msgid "Enable waste collection calendar"
 msgstr "Protyku wotwoza wotpadkow zmóžnić"
+
+msgid ""
+"Enabling this plan allows its overdue SMS to be sent while scheduling is on."
+msgstr ""
+"Aktiwizowanje tutoho plana dowola jeho zapózdźenu SMS pósłać, hdyž je "
+"planowanje zapinjene."
 
 msgid "Enjoy getting organized!"
 msgstr "Wjele wjesela při organizowanju!"
@@ -1985,6 +2115,9 @@ msgstr "Zapodajće nałoženski přikaz."
 msgid "Enter at least four characters for the backup password."
 msgstr "Zapodajće znajmjeńša štyri znamješka za hesło zawěsćenja."
 
+msgid "Enter both hours and minutes, or leave the time completely empty."
+msgstr "Zapodajće hodźiny a mjeńšiny abo wostajće čas dospołnje prózdny."
+
 msgid "Enter height and weight to calculate BMI."
 msgstr "Zapodajće wysokosć a wahu, zo byšće BMI wuličili."
 
@@ -2000,6 +2133,9 @@ msgid ""
 msgstr ""
 "Zapodajće horjeka swoju adresu. Žana słužba njemóže puć bjez startoweho "
 "městna wuličić."
+
+msgid "Entries ready to import"
+msgstr "Zapiski přihotowane za import"
 
 msgid "Entry"
 msgstr "Zapisk"
@@ -2032,17 +2168,8 @@ msgstr "Wšitko je hotowe – lisćina je prózdna."
 msgid "Everything is ready"
 msgstr "Wšitko je hotowe"
 
-msgid ""
-"Evolution and Thunderbird are selected explicitly. iPhone contacts require a "
-"vCard export from the iPhone or iCloud. KDE Connect, Bluetooth and PBAP are "
-"not contact sources."
-msgstr ""
-"Evolution a Thunderbird so wuraznje wubjeratej. Kontakty z iPhone trjebaja "
-"eksport vCard z iPhone abo iCloud. KDE Connect, Bluetooth a PBAP žórła "
-"kontaktow njejsu."
-
 msgid "Exactly one Magnolie Notes phone must be paired."
-msgstr "Es muss genau ein Magnolie Notes-Telefon gekoppelt sein."
+msgstr "Runje jedyn telefon Magnolie Notes dyrbi być sparowany."
 
 msgid "Export"
 msgstr "Eksportować"
@@ -2178,6 +2305,18 @@ msgstr "Za: %(people)s"
 
 msgid "Form"
 msgstr "Formular"
+
+msgid ""
+"Form B reserves 45 mm for the letterhead; Form A reserves 27 mm. Both place "
+"the return line and recipient in the left-hand address field and add fold "
+"and punch marks. Check long addresses and envelope fit in print preview "
+"before printing at 100%."
+msgstr ""
+"Forma B 45 mm za listowu hłowu wostaja, forma A 27 mm. Wobě formje "
+"zwróćensku adresu a adresu přijimarja do adresoweho pola nalěwo stajatej a "
+"znamjenja za fałdowanje a dźěrkowanje přidawatej. Přepruwujće do ćisća w "
+"měritku 100% w ćišćowym přehladźe, hač dołhe adresy do pola pasuja a hač so "
+"prawje we woknje wobalki pokazuja."
 
 msgid "Format region"
 msgstr "Formatowy region"
@@ -2401,6 +2540,9 @@ msgstr "Dospołny archiw Magnolie importować"
 msgid "Import contacts additively"
 msgstr "Kontakty přidawajo importować"
 
+msgid "Import failed."
+msgstr "Import njeje so poradźił."
+
 msgid "Import failed: %(error)s"
 msgstr "Import njeje so poradźił: %(error)s"
 
@@ -2415,6 +2557,9 @@ msgstr "Jónu importować"
 
 msgid "Import pairing file …"
 msgstr "Porowanski dataj importować …"
+
+msgid "Import preview"
+msgstr "Přehlad importa"
 
 msgid "Import, export and synchronization"
 msgstr "Import, eksport a synchronizacija"
@@ -2435,16 +2580,6 @@ msgstr ""
 
 msgid "Imported: %(items)s."
 msgstr "Importowane: %(items)s."
-
-msgid ""
-"In the DIN template, these lines appear as a multiline sender block and in "
-"small type in the address window. In the compact template, they form one "
-"line above the recipient address. No sender is added if this field is empty."
-msgstr ""
-"W DIN-předłoze so tute linki jako wjacerjadowy blok wotpósłarja a z małym "
-"pismom w adresowym woknje pokazuja. W kompaktnej předłoze tworja jednu linku "
-"nad adresu přijimarja. Jeli je tute polo prózdne, so žadyn wotpósłar "
-"njepřidawa."
 
 msgid "In the organizer%(selection)s: %(items)s%(years)s."
 msgstr "W Organizatorje%(selection)s: %(items)s%(years)s."
@@ -2519,8 +2654,14 @@ msgstr "Internetowa IP"
 msgid "Internet available"
 msgstr "Internet k dispoziciji"
 
+msgid "Interval"
+msgstr "Interwal"
+
 msgid "Interval in days"
 msgstr "Interwal w dnjach"
+
+msgid "Invalid calendar date."
+msgstr "Njepłaćiwy kalendrowy datum."
 
 msgid "Italic"
 msgstr "Kursiwa"
@@ -2558,6 +2699,9 @@ msgstr "Port KDE Connect %(port)s"
 
 msgid "Keep a troubleshooting log"
 msgstr "Protokol za pytanje zmylkow wobchować"
+
+msgid "LDIF"
+msgstr "LDIF"
 
 msgid "LDIF address book (*.ldif)"
 msgstr "LDIF-adresnik (*.ldif)"
@@ -2716,8 +2860,8 @@ msgstr ""
 msgid ""
 "Magnolie SMS is no longer part of the current Magnolie Notes phone protocol."
 msgstr ""
-"Magnolie SMS ist nicht mehr Teil des aktuellen Magnolie Notes-"
-"Telefonprotokolls."
+"Magnolie SMS wjace k aktualnemu telefonowemu protokolej Magnolie Notes "
+"njesłuša."
 
 msgid "Magnolie backup (*.json)"
 msgstr "Zawěsćenje Magnolie (*.json)"
@@ -2736,16 +2880,10 @@ msgid "Magnolienbaum"
 msgstr "Magnolienbaum"
 
 msgid "Magnolienbaum mailbox"
-msgstr "Magnolienbaum mailbox"
+msgstr "Póstowy kašćik Magnolienbaum"
 
 msgid "Magnolienbaum pairing file (*.magnolie-paarung)"
 msgstr "Porowanski dataj Magnolienbaum (*.magnolie-paarung)"
-
-msgid "Magnolienbaum quarantine:"
-msgstr "Magnolienbaum Quarantäne:"
-
-msgid "Magnolienbaum restart:"
-msgstr "Magnolienbaum Neustart:"
 
 msgid "Male caregiver"
 msgstr "Hladar"
@@ -2824,9 +2962,6 @@ msgstr "Zetkanje"
 msgid "Memorial day"
 msgstr "Spomnjenski dźeń"
 
-msgid "Memory available / total"
-msgstr "Dźěłowy pomjatk k dispoziciji / dohromady"
-
 msgid "Merge"
 msgstr "Zjednoćić"
 
@@ -2846,7 +2981,7 @@ msgid "Metered connection"
 msgstr "Wotličowany zwisk"
 
 msgid "Microsoft Graph has not been configured yet."
-msgstr "Microsoft Graph wurde noch nicht konfiguriert."
+msgstr "Microsoft Graph hišće konfigurowany njeje."
 
 msgid "Microsoft configuration could not be saved: %(error)s"
 msgstr "Konfiguracija Microsoft njeda so składować: %(error)s"
@@ -2887,19 +3022,6 @@ msgstr ""
 "přizjewjenju, kontroluje terminy w pozadku a běži dale tež po začinjenju "
 "organizatora."
 
-msgid ""
-"Misspelled words are marked with a red wavy underline while you type. Right-"
-"clicking a word opens a sheet with suggestions that can be applied with one "
-"click; you can add names to your personal dictionary in the same way. If the "
-"lines or suggestions are missing, install the dictionary with:  sudo apt "
-"install %(package)s"
-msgstr ""
-"Wopak napisane słowa so při pisanju z čerwjenej włočkowanej liniju "
-"podšmórnu. Prawy klik na słowo wočini polo z namjetami, kotrež hodźa so z "
-"jednym klikom přewzać; samsnym wašnjom móžeće mjena do wosobinskeho słownika "
-"přidać. Jeli linije abo namjety faluja, instalujće słownik z:  sudo apt "
-"install %(package)s"
-
 msgid "Mobile"
 msgstr "Mobilny telefon"
 
@@ -2920,9 +3042,6 @@ msgstr "Měsac"
 
 msgid "Month calendar"
 msgstr "Měsačna protyka"
-
-msgid "Monthly"
-msgstr "Měsačnje"
 
 msgid "Monthly view"
 msgstr "Měsačny napohlad"
@@ -3085,6 +3204,9 @@ msgstr "Přichodny tydźeń"
 msgid "Next year"
 msgstr "Přichodne lěto"
 
+msgid "Nextcloud"
+msgstr "Nextcloud"
+
 msgid "Nextcloud is not enabled."
 msgstr "Nextcloud njeje zmóžnjeny."
 
@@ -3101,13 +3223,16 @@ msgid "No"
 msgstr "Ně"
 
 msgid "No Bluetooth address was selected."
-msgstr "Es wurde keine Bluetooth-Adresse ausgewählt."
+msgstr "Žana Bluetooth-adresa njebu wubrana."
 
 msgid "No KDE Connect pairing is awaiting confirmation."
-msgstr "Es wartet keine KDE Connect-Kopplung auf Bestätigung."
+msgstr "Žane porowanje KDE Connect na wobkrućenje nječaka."
 
 msgid "No SMS messages are scheduled."
 msgstr "Žane SMS-powěsće njejsu planowane."
+
+msgid "No Windows dictionary is installed for this language."
+msgstr "Za tutu rěč njeje słownik Windows instalowany."
 
 msgid "No address books found."
 msgstr "Žane adresniki namakane."
@@ -3120,13 +3245,16 @@ msgstr ""
 "Narodniny a swjedźenje so awtomatisce w protyce zjewja."
 
 msgid "No application is registered for the attachment."
-msgstr "Für den Anhang ist kein Antrag registriert."
+msgstr "Za přiwěšk žane nałoženje zregistrowane njeje."
 
 msgid "No appointment is scheduled."
 msgstr "Žadyn termin njeje zaplanowany."
 
 msgid "No calendars found."
 msgstr "Žane protyki namakane."
+
+msgid "No default voice subscription is available."
+msgstr "Žadyn standardny abonement za zawołanja k dispoziciji njeje."
 
 msgid "No due date"
 msgstr "Bjez termina"
@@ -3160,7 +3288,8 @@ msgstr "Žane noticniki"
 
 msgid "No online Magnolie Notes phone has allowed dial requests."
 msgstr ""
-"Žadyn online-telefon Magnolie Notes njeje wólenske naprašowanja dowolił."
+"Žadyn zwjazany telefon z Magnolie Notes njeje naprašowanja za wolenjom čisła "
+"dowolił."
 
 msgid "No other branch was found."
 msgstr "Žadyn druhi hałuz namakany."
@@ -3186,7 +3315,12 @@ msgid "No phone paired yet."
 msgstr "Hišće žadyn nadawk zwjazany."
 
 msgid "No phone pairing is awaiting confirmation."
-msgstr "Es wartet keine Telefonkopplung auf Bestätigung."
+msgstr "Žane porowanje telefona na wobkrućenje nječaka."
+
+msgid "No phone was found. Open the phone app and try again."
+msgstr ""
+"Žadyn telefon njeje so namakał. Wočińće aplikaciju na telefonje a spytajće "
+"hišće raz."
 
 msgid "No photo"
 msgstr "Bjez fota"
@@ -3228,6 +3362,9 @@ msgstr "Žane přepruwowanje spama k dispoziciji"
 
 msgid "No suggestions found."
 msgstr "Žane namjety namakane."
+
+msgid "No supported data was found."
+msgstr "Žane daty w podpěranym formaće njejsu so namakali."
 
 msgid "No system-paired Bluetooth device found"
 msgstr "Žadyn ze systemom skoplowany Bluetooth-aparat namakany"
@@ -3346,8 +3483,17 @@ msgstr "Obwalden"
 msgid "Off"
 msgstr "preč"
 
+msgid ""
+"Off by default. Turning this off pauses pending SMS plans without deleting "
+"them. Enabling resumes them, including overdue plans. Messages already "
+"handed to KDE Connect cannot be recalled."
+msgstr ""
+"Po standardźe wupinjene. Wupinanje zastaji čakace planowane SMS, bjez toho "
+"zo by je zhašało. Zapinanje je pokročuje, tež te z překročenym časom. "
+"Powěsće, kotrež su so hižo KDE Connect přepodali, njedadźa so wróćo wołać."
+
 msgid "Offline"
-msgstr "Offline"
+msgstr "Njezwjazany"
 
 msgid "Ointment"
 msgstr "Masć"
@@ -3404,7 +3550,7 @@ msgstr ""
 "kontakty so njezhašeja."
 
 msgid "Online"
-msgstr "Online"
+msgstr "Zwjazany"
 
 msgid ""
 "Online account integration is not available on this system. Install it "
@@ -3427,7 +3573,7 @@ msgid "Online via WLAN"
 msgstr "Online přez WLAN"
 
 msgid "Only 'Replace completely' is supported."
-msgstr "Es wird nur „Vollständig ersetzen“ unterstützt."
+msgstr "Jenož „Dospołnje narunać“ so podpěruje."
 
 msgid ""
 "Only HTTPS. Create an app password in Nextcloud under Settings, Security. "
@@ -3449,6 +3595,17 @@ msgid ""
 msgstr ""
 "Pod Waylandom je jenož spušćomna systemowa zdźělenka k dispoziciji; "
 "papjerowy stil Magnolie by tam husto njewidźomny wostał."
+
+msgid ""
+"Only with both devices' explicit consent, Personal Sync shares read-only "
+"Custom tasks and appointments, including their own notes. Text blocks, "
+"linked text and attachments are excluded. Archives restore copies, not "
+"permissions."
+msgstr ""
+"Jenož z wuraznej přihłosowanku woběju gratow dźěli Personal Sync swójske "
+"nadawki a terminy jenož za čitanje, inkluziwnje jich swójskich noticow. "
+"Tekstowe bloki, zwjazane teksty a přiwěški su wuzamknjene. Archiwy "
+"wobnowjeja kopije, nic dowolnosće."
 
 msgid "Open"
 msgstr "Wočinić"
@@ -3513,6 +3670,9 @@ msgstr "Wotewrjeny"
 
 msgid "Open the day in the daily view"
 msgstr "Dźeń w dnjowym napohladźe wočinić"
+
+msgid "Open the phone connection screen and try again."
+msgstr "Wočińće napohlad za zwjazanje z telefonom a spytajće hišće raz."
 
 msgid ""
 "Open the verified DEB with your software manager; the organizer never "
@@ -3586,6 +3746,9 @@ msgstr "Owulacija"
 msgid "Own internet IP"
 msgstr "Wosobinska internetowa IP"
 
+msgid "Own phone number (default voice SIM)"
+msgstr "Swójske čisło (standardna SIM za zawołanja)"
+
 msgid "PDF file"
 msgstr "PDF-dataj"
 
@@ -3623,9 +3786,9 @@ msgid ""
 "Pairing was rejected cryptographically. The confirmation code, pairing code, "
 "or phone key does not match. Restart pairing on both devices."
 msgstr ""
-"Das Pairing wurde kryptografisch abgelehnt. Der Bestätigungscode, der "
-"Kopplungscode oder die Telefontaste stimmen nicht überein. Starten Sie die "
-"Kopplung auf beiden Geräten neu."
+"Porowanje bu kryptografisce wotpokazane. Wobkrućenski kod, porowanski kod "
+"abo telefonowy kluč so njekryje. Startujće porowanje na woběmaj gratomaj "
+"znowa."
 
 msgid "Palm tree"
 msgstr "Palma"
@@ -3667,6 +3830,9 @@ msgstr "Zasadźić"
 msgid "Patch"
 msgstr "Pflaster"
 
+msgid "Paused — review required"
+msgstr "Zastajene — přepruwowanje trěbne"
+
 msgid "Pay invoice"
 msgstr "Ličbu zapłaćić"
 
@@ -3683,7 +3849,7 @@ msgid "Period"
 msgstr "Doba"
 
 msgid "Permanent KDE listener active"
-msgstr "Permanenter KDE-Listener aktiv"
+msgstr "Trajny KDE-připosłuchar aktiwny"
 
 msgid "Permanent KDE listener stopped"
 msgstr "Trajny KDE-připosłuchar je so zastajił"
@@ -3733,10 +3899,10 @@ msgstr ""
 "Přiwěški a zhašenja so njesynchronizuja."
 
 msgid "Personal synchronization"
-msgstr "Synchronizacija kontaktow"
+msgstr "Synchronizacija wosobinskich datow"
 
 msgid "Personal synchronization batches are missing."
-msgstr "Persönliche Synchronisierungsstapel fehlen."
+msgstr "Pakćiki wosobinskeje synchronizacije faluja."
 
 msgid "Personal synchronization complete. Deletions are not synchronized yet."
 msgstr ""
@@ -3746,14 +3912,13 @@ msgid "Personal synchronization failed."
 msgstr "Synchronizacija njeje so poradźiła."
 
 msgid "Personal synchronization format 2 was not negotiated."
-msgstr "Persönliches Synchronisationsformat 2 wurde nicht ausgehandelt."
+msgstr "Wosobinski synchronizaciski format 2 njeje so wujednał."
 
 msgid "Personal synchronization format 3 was not negotiated."
 msgstr "Wosobinski synchronizaciski format 3 njeje so wujednał."
 
 msgid "Personal synchronization is not permitted on both devices."
-msgstr ""
-"Eine persönliche Synchronisierung ist auf beiden Geräten nicht zulässig."
+msgstr "Wosobinska synchronizacija na woběmaj gratomaj dowolena njeje."
 
 msgid "Phone"
 msgstr "Telefon"
@@ -3763,6 +3928,15 @@ msgstr "Telefonowa baterija"
 
 msgid "Phone call"
 msgstr "Telefonować"
+
+msgid "Phone connection"
+msgstr "Zwisk z telefonom"
+
+msgid "Phone connection cancelled or timed out."
+msgstr "Zwjazanje z telefonom je so přetorhnyło abo čakanski čas je wotběžał."
+
+msgid "Phone connection failed."
+msgstr "Zwjazanje z telefonom njeje so poradźiło."
 
 msgid "Phone error: %(error)s"
 msgstr "Telefonowy zmylk: %(error)s"
@@ -3871,6 +4045,11 @@ msgstr "Prošk"
 
 msgid "Power source"
 msgstr "Žórło energije"
+
+msgid "Prefer PC speakers and microphone for calls on my own Bluetooth phone"
+msgstr ""
+"Wótřečaki a mikrofon PC za zawołanja na mojim swójskim Bluetooth-telefonje "
+"preferować"
 
 msgid "Preferred backup folder"
 msgstr "Preferowany rjadowak zawěsćenjow"
@@ -3981,7 +4160,7 @@ msgstr[2] "Čakanski rynk: %(open)s %(count)s posrědkowanja čaka na dodawanje.
 msgstr[3] "Čakanski rynk: %(open)s %(count)s posrědkowanja čaka na dodawanje."
 
 msgid "Queued"
-msgstr "Čakany rynk"
+msgstr "W čakanskim rynku"
 
 msgid "Quit"
 msgstr "Skónčić"
@@ -4003,7 +4182,7 @@ msgid "Reason"
 msgstr "Přičina"
 
 msgid "Reconnect"
-msgstr "Wieder verbinden"
+msgstr "Znowa zwjazać"
 
 msgid "Recovery snapshot created."
 msgstr "Stworjeny wotnowjenski wobraz."
@@ -4017,6 +4196,9 @@ msgstr "Wróćowuchowanske momenty"
 msgid "Recycle bin"
 msgstr "Papjerowy koš"
 
+msgid "Redo"
+msgstr "Wospjetować"
+
 msgid "Refresh"
 msgstr "Wokřewić"
 
@@ -4025,6 +4207,9 @@ msgid ""
 msgstr ""
 "Regionalne nastajenja su so składowali. Startujće Organizer znowa, zo bychu "
 "so dospołnje nałožili."
+
+msgid "Regular typeface"
+msgstr "Ćišćerske pismo"
 
 msgid "Reject"
 msgstr "Wotpokazać"
@@ -4040,12 +4225,6 @@ msgstr "Na samsnym dnju hišće raz dopomnić"
 
 msgid "Reminder"
 msgstr "Dopomnjenka"
-
-msgid "Reminder data:"
-msgstr "Erinnerungsdaten:"
-
-msgid "Reminder runtime:"
-msgstr "Erinnerungslaufzeit:"
 
 msgid "Reminders"
 msgstr "Dopomnjeća"
@@ -4189,6 +4368,14 @@ msgstr ""
 "Tutón wokomikny wobraz dospołnje restawrować? Najprjedy nastanje "
 "winowatostny před-restawrowanski snapshot."
 
+msgid ""
+"Restored pending plans stay paused until you review and enable each plan. "
+"Restoring contacts, calendar or notes does not change live SMS plans."
+msgstr ""
+"Wobnowjene čakace plany wostanu zastajene, doniž kóždy plan njepřepruwujeće "
+"a njeaktiwizujeće. Wobnowjenje kontaktow, kalendra abo noticow aktualne SMS-"
+"plany njezměni."
+
 msgid "Restoring backups is available only in the installed application."
 msgstr ""
 "Wobnowjenje zawěsćenjow je jenož w instalowanym nałoženju k dispoziciji."
@@ -4216,6 +4403,12 @@ msgstr "Informacije za manuelne sćehnjenje so wotwołuja …"
 
 msgid "Retrieving weather…"
 msgstr "Wjedro so wotwołuje…"
+
+msgid "Review and enable"
+msgstr "Přepruwować a aktiwizować"
+
+msgid "Review the exact SMS text for every recipient before confirming."
+msgstr "Před wobkrućenjom přepruwće dokładny tekst SMS za kóždeho přijimarja."
 
 msgid "Rhineland-Palatinate"
 msgstr "Porýnska-Pfalca"
@@ -4255,6 +4448,13 @@ msgstr "SMS-historija"
 
 msgid "SMS scheduled."
 msgstr "SMS naplanowana."
+
+msgid ""
+"SMS scheduling is off. Pending plans are paused. Review them in SMS settings "
+"before enabling scheduling."
+msgstr ""
+"Planowanje SMS je wupinjene. Čakace powěsće su zastajene. Přepruwujće je w "
+"nastajenjach SMS, prjedy hač planowanje zapinaće."
 
 msgid "SMS settings"
 msgstr "SMS-nastajenja"
@@ -4301,7 +4501,7 @@ msgstr ""
 "Składowanje wotpokazane: Daty su zaklučowane a hišće njejsu wotzamknjene."
 
 msgid "Save your Microsoft OAuth client ID first."
-msgstr "Speichern Sie zunächst Ihre Microsoft OAuth-Client-ID."
+msgstr "Składujće najprjedy swój klientowy ID Microsoft OAuth."
 
 msgid "Saved"
 msgstr "Składowane"
@@ -4358,6 +4558,9 @@ msgstr "Šema"
 
 msgid "Schleswig-Holstein"
 msgstr "Schleswig-Holstein"
+
+msgid "School holidays are not available for this region."
+msgstr "Za tutón region šulske prózdniny k dispoziciji njejsu."
 
 msgid "Schwyz"
 msgstr "Schwyz"
@@ -4442,6 +4645,9 @@ msgstr "Wubjerće nalěwo, što chceće ćišćeć."
 msgid "Select your canton first or enable “All cantons”."
 msgstr "Wubjerće najprjedy swój kanton abo zmóžńće „Wšě kantony“."
 
+msgid "Select your phone"
+msgstr "Wubjerće swój telefon"
+
 msgid "Select your state first or enable “All states”."
 msgstr "Wubjerće najprjedy swój zwjazkowy kraj abo zmóžńće „Wšě kraje“."
 
@@ -4453,15 +4659,6 @@ msgid ""
 msgstr ""
 "Wubrane stołpiki, kotrež su za kóždy kontakt prózdne, so awtomatisce "
 "wuwostaja."
-
-msgid ""
-"Selected imports are started directly after Magnolie opens. Thunderbird "
-"contacts are not offered because Windows has no Thunderbird address-book "
-"importer."
-msgstr ""
-"Wubrane importy so direktnje po wočinjenju Magnolie startuja. Kontakty "
-"Thunderbird so njeposkićeja, dokelž Windows importer adresnika Thunderbird "
-"nima."
 
 msgid "Selection options"
 msgstr "Wuběranske opcije"
@@ -4480,6 +4677,9 @@ msgstr "Wěste naprašowanje pósłać"
 
 msgid "Sent"
 msgstr "Wotpósłane"
+
+msgid "Server"
+msgstr "Serwer"
 
 msgid "Server address"
 msgstr "Serwerowa adresa"
@@ -4562,6 +4762,9 @@ msgstr "Wjace pokazać"
 msgid "Show preview"
 msgstr "Přehlad pokazać"
 
+msgid "Show school holidays for %(state)s in the calendar?"
+msgstr "Šulske prózdniny za %(state)s w protyce pokazać?"
+
 msgid "Show selected notifications (read only)"
 msgstr "Jenož zdźělenka na wobrazowce"
 
@@ -4599,7 +4802,7 @@ msgid "Sign in to Microsoft"
 msgstr "Pola Microsoft přizjewić"
 
 msgid "Sign in to Microsoft first."
-msgstr "Melden Sie sich zunächst bei Microsoft an."
+msgstr "Přizjewće so najprjedy pola Microsoft."
 
 msgid "Sign out"
 msgstr "Wotzjewić"
@@ -4612,6 +4815,9 @@ msgstr "Pola Microsoft přizjewjeny."
 
 msgid "Signed out from Microsoft."
 msgstr "Wot Microsoft wotzjewjeny."
+
+msgid "Silence this alert"
+msgstr "Tutu zdźělenku zněmić"
 
 msgid "Skip assistant"
 msgstr "Asistent přeskočić"
@@ -4643,10 +4849,17 @@ msgid "Solothurn"
 msgstr "Solothurn"
 
 msgid "Some existing backups could not be decrypted."
-msgstr "Einige vorhandene Backups konnten nicht entschlüsselt werden."
+msgstr "Někotre eksistowace zawěsćenja njehodźachu so dešifrować."
 
 msgid "Some existing backups could not be encrypted."
-msgstr "Einige vorhandene Backups konnten nicht verschlüsselt werden."
+msgstr "Někotre eksistowace zawěsćenja njehodźachu so zaklučować."
+
+msgid ""
+"Some recurrence rules cannot be expanded. Their original calendar data was "
+"preserved."
+msgstr ""
+"Za někotre prawidła wospjetowanja njedadźa so jednotliwe terminy wuličić. "
+"Originalne kalendrowe daty su so wobchowali."
 
 msgid "Son"
 msgstr "Syn"
@@ -4696,6 +4909,9 @@ msgstr "Magnolie z Windows w zdźělenskim wobłuku (tray) startować"
 msgid "Start automatically when signing in"
 msgstr "Při přizjewjenju awtomatisce startować"
 
+msgid "Start required phone background services automatically"
+msgstr "Trěbne pozadkowe słužby za telefon awtomatisce startować"
+
 msgid "Start the organizer in the tray"
 msgstr "Organizator w systemowym polu startować"
 
@@ -4706,10 +4922,7 @@ msgid "State / region"
 msgstr "Formatowy region"
 
 msgid "Status"
-msgstr "Status"
-
-msgid "Storage available / total"
-msgstr "Składowanski rum k dispoziciji / dohromady"
+msgstr "Staw"
 
 msgid "Street / house number"
 msgstr "Dróha / domske čisło"
@@ -4725,6 +4938,9 @@ msgstr "Přešmórnjene"
 
 msgid "Styria"
 msgstr "Štajerska"
+
+msgid "Subject"
+msgstr "Nastupnosć"
 
 msgid "Submitted"
 msgstr "Wotedany"
@@ -4743,6 +4959,9 @@ msgstr "Słónčny symbol"
 
 msgid "Sunday"
 msgstr "Njedźela"
+
+msgid "Supported files"
+msgstr "Podpěrane dataje"
 
 msgid "Suppository"
 msgstr "Čopik"
@@ -4808,6 +5027,12 @@ msgstr "Trajnje synchronizować"
 msgid "Synchronize tasks"
 msgstr "Kontakty synchronizować"
 
+msgid "Synchronize tasks and appointments from the \"%(tab)s\" tab"
+msgstr "Nadawki a terminy z rajtarka „%(tab)s“ synchronizować"
+
+msgid "Synchronize tasks and appointments from the custom tab"
+msgstr "Nadawki a terminy z wužiwarjoweho rajtarka synchronizować"
+
 msgid "Synchronizing …"
 msgstr "Synchronizuje so …"
 
@@ -4831,7 +5056,7 @@ msgstr "Systoliski"
 
 #, csharp-format
 msgid "TCP port {0} could not be opened: {1}"
-msgstr "TCP Port {0} konnte nicht geöffnet werden: {1}"
+msgstr "TCP-port {0} njehodźeše so wočinić: {1}"
 
 msgid "Tab %(letter)s"
 msgstr "Rajtark %(letter)s"
@@ -4841,6 +5066,12 @@ msgstr "Rajtark %(letter)s · %(count)s"
 
 msgid "Tab name"
 msgstr "Mjeno rajtarka"
+
+msgid ""
+"Tab: insert a tab stop. Shift+Tab: previous field. Ctrl+Tab: next field."
+msgstr ""
+"Tab: tabulator zasadźić. Umschalt+Tab: předchadne polo. Strg+Tab: přichodne "
+"polo."
 
 msgid "Tablet"
 msgstr "Tableta"
@@ -4886,9 +5117,6 @@ msgstr "Nětko testować"
 msgid "Testing…"
 msgstr "Testuje so…"
 
-msgid "Text"
-msgstr "Tekst"
-
 msgid "Text block"
 msgstr "Tekstowy blok"
 
@@ -4916,17 +5144,8 @@ msgstr[2] ""
 msgstr[3] ""
 "W nim wobsahuje %(count)s noticowu stronu přepołožimy na „%(notebook)s“."
 
-msgid ""
-"The DIN template positions the recipient address for a window envelope, "
-"shows your address as a multiline sender block, and adds two fold marks and "
-"a punch mark."
-msgstr ""
-"DIN-předłoha pozicionuje adresu přijimarja za wobalku z woknom, pokazuje "
-"wašu adresu jako wjacerjadowy blok wotpósłarja a přidawa dwě składowanske "
-"marce a marku za dyrkowanje."
-
 msgid "The KDE Connect device to renew is missing."
-msgstr "Das zu erneuernde KDE Connect-Gerät fehlt."
+msgstr "Grat KDE Connect za wobnowjenje faluje."
 
 msgid ""
 "The KDE Connect support is built into the Organizer. Only the KDE Connect "
@@ -4947,7 +5166,7 @@ msgstr ""
 "KUNDENNUMMER a VORLAEUFIGZUSAGEN."
 
 msgid "The Magnolie Notes phone connection is switched off."
-msgstr "Die Telefonverbindung Magnolie Notes ist ausgeschaltet."
+msgstr "Telefonowy zwisk Magnolie Notes je wupinjeny."
 
 msgid ""
 "The Magnolie manual is installed. It is best to read it through before you "
@@ -4969,14 +5188,38 @@ msgstr ""
 msgid "The Magnolienbaum is available only in the installed application."
 msgstr "Magnolienbaum je jenož w instalowanym nałoženju k dispoziciji."
 
+msgid "The Nextcloud operation failed."
+msgstr "Akcija w Nextcloud njeje so poradźiła."
+
+msgid "The Nextcloud request timed out."
+msgstr "Čakanski čas za wotmołwu na naprašowanje do Nextcloud je wotběžał."
+
+msgid "The Nextcloud response was incomplete."
+msgstr "Wotmołwa wot Nextcloud njebě dospołna."
+
+msgid "The Nextcloud settings are invalid."
+msgstr "Nastajenja Nextcloud su njepłaćiwe."
+
 msgid "The ODS export is too large."
 msgstr "ODS-eksport je přewulki."
 
 msgid "The Organizer chooses a suitable installed application."
 msgstr "Organizator wubjerje přihódne instalowane nałoženje."
 
+msgid "The SMS submission journal is full. No message was sent."
+msgstr ""
+"Protokol naprašowanjow za pósłanjom SMS je połny. Žana powěsć njeje so "
+"pósłała."
+
 msgid "The address could not be opened."
-msgstr "Die Adresse konnte nicht geöffnet werden."
+msgstr "Adresa njehodźeše so wočinić."
+
+msgid ""
+"The address is too long for the letter's address field. Shorten the return "
+"address or recipient, or choose the compact template."
+msgstr ""
+"Adresa je předołha za adresowe polo lista. Skrótšće zwróćensku adresu abo "
+"podaća wo přijimarju abo wubjerće kompaktnu předłohu."
 
 msgid ""
 "The archive contains the complete application data. The password is "
@@ -5000,7 +5243,7 @@ msgstr ""
 "zwiski, rajtarki organizatora, zawěsćenja a zadźerženje při starće."
 
 msgid "The attachment range is invalid."
-msgstr "Der Anhangsbereich ist ungültig."
+msgstr "Wobłuk přiwěškow je njepłaćiwy."
 
 msgid ""
 "The attachments are too large together. Remove some files; the combined "
@@ -5030,6 +5273,9 @@ msgstr ""
 "Słužba dopominanjow w pozadku smě wotdźělene daty dopominanjow čitać a "
 "funguje tuž tež při začinjenym organizatorje."
 
+msgid "The background settings could not be saved."
+msgstr "Nastajenja za dźěło w pozadku njedachu so składować."
+
 msgid "The backup chooser will open after Magnolie has started."
 msgstr "Wuběr zawěsćenja so wočini, po tym zo je Magnolie startował."
 
@@ -5040,7 +5286,7 @@ msgid "The backup could not be restored."
 msgstr "Zawěsćenje njehodźeše so wobnowić."
 
 msgid "The backup is empty."
-msgstr "Das Backup ist leer."
+msgstr "Zawěsćenje je prózdne."
 
 msgid ""
 "The backup will be stored outside the local data location and is therefore "
@@ -5059,17 +5305,20 @@ msgstr ""
 "Tłóčatko w delnim pasu wočini wuběr za wočinjeny wotrězk. Wottam hodźa so "
 "wotškrtnjene zapiski ćišćeć, eksportować abo do papjeroweho koša přesunyć."
 
+msgid "The call action expired or is no longer permitted."
+msgstr "Akcija zawołanja je spadnyła abo hižo dowolena njeje."
+
 msgid "The call is no longer active or has been updated."
-msgstr "Der Anruf ist nicht mehr aktiv oder wurde aktualisiert."
+msgstr "Zawołanje hižo aktiwne njeje abo je so zaktualizowało."
 
 msgid "The call is no longer active."
-msgstr "Der Anruf ist nicht mehr aktiv."
+msgstr "Zawołanje hižo aktiwne njeje."
 
 msgid "The call is no longer ringing or is outdated."
-msgstr "Der Anruf klingelt nicht mehr oder ist veraltet."
+msgstr "Zawołanje hižo njezwoni abo je zestarjene."
 
 msgid "The call is no longer ringing."
-msgstr "Der Anruf klingelt nicht mehr."
+msgstr "Zawołanje hižo njezwoni."
 
 msgid "The clipboard is empty."
 msgstr "Mjezyskład je prózdny."
@@ -5087,19 +5336,19 @@ msgid "The complete archive could not be verified."
 msgstr "Dospołny archiw njeda so přepruwować."
 
 msgid "The complete archive is empty."
-msgstr "Das komplette Archiv ist leer."
+msgstr "Dospołny archiw je prózdny."
 
 msgid "The complete file is stored in this note (up to 8 megabytes)."
 msgstr "Cyły dataj je w tutej noticy składowany (hač do 8 megabajtow)."
 
 msgid "The connection to the phone was interrupted during pairing."
-msgstr "Die Verbindung zum Telefon wurde während des Pairings unterbrochen."
+msgstr "Zwisk k telefonej bu při porowanju přetorhnjeny."
 
 msgid "The contact is missing."
-msgstr "Der Kontakt fehlt."
+msgstr "Kontakt faluje."
 
 msgid "The content is missing."
-msgstr "Der Inhalt fehlt."
+msgstr "Wobsah faluje."
 
 msgid "The contributor key is invalid."
 msgstr "Sobuskutkowarski kluč je njepłaćiwy."
@@ -5117,22 +5366,22 @@ msgid "The current organizer data is incomplete."
 msgstr "Aktualne daty organizatora njejsu dospołne."
 
 msgid "The data is invalid."
-msgstr "Die Daten sind ungültig."
+msgstr "Daty su njepłaćiwe."
 
 msgid "The data is not a JSON object."
 msgstr "Daty njejsu JSON-objekt."
 
 msgid "The destination could not be opened."
-msgstr "Das Ziel konnte nicht geöffnet werden."
+msgstr "Cil njehodźeše so wočinić."
 
 msgid "The download address is not permitted for this platform."
-msgstr "Die Download-Adresse ist für diese Plattform nicht zulässig."
+msgstr "Sćehnjenska adresa za tutu platformu dowolena njeje."
 
 msgid "The end date cannot be before the start date."
 msgstr "Kónčny datum njemóže před startowym datumom być."
 
 msgid "The export data is missing."
-msgstr "Die Exportdaten fehlen."
+msgstr "Eksportowe daty faluja."
 
 msgid "The file could not be read."
 msgstr "Dataj njehodźeše so čitać."
@@ -5194,16 +5443,16 @@ msgid "The last notebook group cannot be deleted."
 msgstr "Poslednja skupina noticnikow njehodźi so zhašeć."
 
 msgid "The letter was created but could not be opened."
-msgstr "Der Brief wurde erstellt, konnte aber nicht geöffnet werden."
+msgstr "List bu wutworjeny, ale njehodźeše so wočinić."
 
 msgid "The locked data cannot be backed up."
-msgstr "Die gesperrten Daten können nicht gesichert werden."
+msgstr "Zamknjene daty njehodźa so zawěsćić."
 
 msgid "The log could not be opened."
 msgstr "Protokol njehodźeše so wočinić."
 
 msgid "The log folder could not be opened."
-msgstr "Der Protokollordner konnte nicht geöffnet werden."
+msgstr "Protokolowy rjadowak njehodźeše so wočinić."
 
 msgid "The log is available only in the installed application."
 msgstr "Protokol je jenož w instalowanym nałoženju k dispoziciji."
@@ -5270,13 +5519,13 @@ msgid "The pairing file is damaged."
 msgstr "Porowanski dataj je wobškodźeny."
 
 msgid "The pairing file is empty."
-msgstr "Die Pairing-Datei ist leer."
+msgstr "Porowanski dataj je prózdny."
 
 msgid "The pairing file is too large."
 msgstr "Porowanski dataj je přewulki."
 
 msgid "The password must contain at least four characters."
-msgstr "Das Passwort muss mindestens vier Zeichen enthalten."
+msgstr "Hesło dyrbi znajmjeńša štyri znamješka wobsahować."
 
 msgid ""
 "The permanent KDE listener cannot start because PyOpenSSL is unavailable."
@@ -5305,57 +5554,61 @@ msgid "The permanent KDE listener is stopped."
 msgstr "Trajny KDE-připosłuchar so zastaja."
 
 msgid "The permanent personal synchronization commit was rejected."
-msgstr "Der permanente persönliche Synchronisierungs-Commit wurde abgelehnt."
+msgstr "Trajny commit wosobinskeje synchronizacije bu wotpokazany."
 
 msgid "The personal synchronization attachment identity does not match."
-msgstr ""
-"Die Identität des persönlichen Synchronisierungsanhangs stimmt nicht überein."
+msgstr "Identita přiwěška wosobinskeje synchronizacije so njekryje."
 
 msgid "The personal synchronization attachment source is incomplete."
-msgstr ""
-"Die Quelle des persönlichen Synchronisierungsanhangs ist unvollständig."
+msgstr "Žórło přiwěška wosobinskeje synchronizacije je njedospołne."
 
 msgid "The personal synchronization attachment sources are incomplete."
-msgstr ""
-"Die Quellen für persönliche Synchronisierungsanhänge sind unvollständig."
+msgstr "Žórła přiwěškow wosobinskeje synchronizacije su njedospołne."
 
 msgid "The personal synchronization batch was not saved permanently."
-msgstr ""
-"Der persönliche Synchronisierungsstapel wurde nicht dauerhaft gespeichert."
+msgstr "Pakćik wosobinskeje synchronizacije njebu trajnje składowany."
 
 msgid "The personal synchronization commit could not be confirmed."
-msgstr ""
-"Der persönliche Synchronisierungs-Commit konnte nicht bestätigt werden."
+msgstr "Commit wosobinskeje synchronizacije njehodźeše so wobkrućić."
 
 msgid "The personal synchronization commit token is missing."
-msgstr "Das persönliche Synchronisierungs-Commit-Token fehlt."
+msgstr "Token commita wosobinskeje synchronizacije faluje."
 
 msgid "The personal synchronization request is missing."
 msgstr "Naprašowanje za wosobinsku synchronizaciju faluje."
 
 msgid "The personal synchronization result is invalid."
-msgstr "Das persönliche Synchronisierungsergebnis ist ungültig."
+msgstr "Wuslědk wosobinskeje synchronizacije je njepłaćiwy."
 
 msgid "The personal synchronization run does not match."
-msgstr "Der persönliche Synchronisierungslauf stimmt nicht überein."
+msgstr "Běh wosobinskeje synchronizacije so njekryje."
 
 msgid "The personal synchronization run has expired."
-msgstr "Der persönliche Synchronisierungslauf ist abgelaufen."
+msgstr "Běh wosobinskeje synchronizacije je spadnył."
 
 msgid "The phone connection is available only in the installed application."
 msgstr "Wuběr rjadowaka je jenož w instalowanym nałoženju k dispoziciji."
 
+msgid "The phone connection was not authenticated."
+msgstr "Awtentifikacija zwiska z telefonom njeje so poradźiła."
+
 msgid "The phone function is not permitted or available."
-msgstr "Die Telefonfunktion ist nicht erlaubt oder verfügbar."
+msgstr "Telefonowa funkcija dowolena abo k dispoziciji njeje."
+
+msgid "The phone is no longer connected."
+msgstr "Telefon hižo njeje zwjazany."
 
 msgid "The phone is not connected via WLAN."
-msgstr "Das Telefon ist nicht über WLAN verbunden."
+msgstr "Telefon přez WLAN zwjazany njeje."
 
 msgid "The phone is not paired."
-msgstr "Das Telefon ist nicht gekoppelt."
+msgstr "Telefon sparowany njeje."
 
 msgid "The phone is reachable, but its KDE Connect trust no longer matches."
 msgstr "Telefon je docpějomny, ale jeho dowěra KDE Connect hižo njehodźi so."
+
+msgid "The phone listener could not start."
+msgstr "Přijimanje zwiskow wot telefona njedaše so startować."
 
 msgid "The phone operation failed."
 msgstr "Telefonowa operacija je so njeporadźiła."
@@ -5364,14 +5617,17 @@ msgid ""
 "The phone sent a message unknown to this phone protocol. Organizer and "
 "Magnolie Notes must use the same protocol version."
 msgstr ""
-"Das Telefon hat eine diesem Telefonprotokoll unbekannte Nachricht gesendet. "
-"Organizer und Magnolie Notes müssen dieselbe Protokollversion verwenden."
+"Telefon je powěsć pósłał, kotraž tutomu telefonowemu protokolej znata njeje. "
+"Organizer a Magnolie Notes dyrbitej samsnu wersiju protokola wužiwać."
 
 msgid "The phone settings are damaged."
-msgstr "Die Telefoneinstellungen sind beschädigt."
+msgstr "Telefonowe nastajenja su wobškodźene."
+
+msgid "The phone settings could not be read."
+msgstr "Nastajenja telefona njedachu so čitać."
 
 msgid "The phone was not specified."
-msgstr "Das Telefon wurde nicht angegeben."
+msgstr "Telefon njebu podaty."
 
 msgid "The photo could not be read."
 msgstr "Foto njehodźeše so čitać."
@@ -5380,13 +5636,19 @@ msgid "The photo is larger than 8 megabytes."
 msgstr "Foto je wjetše hač 8 megabajtow."
 
 msgid "The port must be between 1 and 65535."
-msgstr "Der Port muss zwischen 1 und 65535 liegen."
+msgstr "Port dyrbi mjez 1 a 65535 być."
+
+msgid ""
+"The profile could not be locked. It may already be open in another session."
+msgstr ""
+"Profil njedaše so přećiwo zdobomnemu wužiwanju zawrěć. Snano je hižo w "
+"druhim posedźenju wočinjeny."
 
 msgid "The public address could not be determined."
 msgstr "Zjawna adresa njehodźeše so zwěsćić."
 
 msgid "The recovery snapshot reason is invalid."
-msgstr "Der Grund für den Wiederherstellungs-Snapshot ist ungültig."
+msgstr "Přičina wobnowjenskeho momentoweho wobraza je njepłaćiwa."
 
 msgid "The recycle bin is empty."
 msgstr "Papjerowy koš je prózdny."
@@ -5436,12 +5698,21 @@ msgstr "Wubrane kontakty za tute stołpiki žane hódnoty njewobsahuja."
 msgid "The selected health records contain no printable values."
 msgstr "Wubrane strowotne zapiski žane ćišćomne hódnoty njewobsahuja."
 
+msgid "The selected phone changed. Try again."
+msgstr "Wubrany telefon je so změnił. Spytajće hišće raz."
+
 msgid ""
 "The server operator can see the account, folder and file names, sizes and "
 "times of your messages."
 msgstr ""
 "Serwerowy wobhospodowar móže konto, mjena rjadowakow a datajow, wulkosće a "
 "časy wašich powěsćow widźeć."
+
+msgid "The server response is too large."
+msgstr "Wotmołwa serwera je přewulka."
+
+msgid "The service returned no entries for this selection."
+msgstr "Słužba za tutón wuběr žane zapiski njewróći."
 
 msgid "The setup state could not be saved."
 msgstr "Staw zarjadowanja njeda so składować."
@@ -5462,13 +5733,13 @@ msgid "The snapshot operation failed."
 msgstr "Operacija momentoweho wobraza zwrěšći."
 
 msgid "The spreadsheet was created but could not be opened."
-msgstr "Die Tabelle wurde erstellt, konnte aber nicht geöffnet werden."
+msgstr "Tabela bu wutworjena, ale njehodźeše so wočinić."
 
 msgid "The start date must not be after the end date."
 msgstr "Startowy datum njesmě za kónčnym datumom być."
 
 msgid "The synchronization data is missing."
-msgstr "Die Synchronisierungsdaten fehlen."
+msgstr "Synchronizaciske daty faluja."
 
 msgid "The system dialer opens on the phone. Confirm the call there."
 msgstr ""
@@ -5538,7 +5809,7 @@ msgid "There are no saved entries on this page."
 msgstr "Na tutej stronje žane składowane zapiski njejsu."
 
 msgid "There are too many personal synchronization attachments."
-msgstr "Es sind zu viele persönliche Synchronisierungsanhänge vorhanden."
+msgstr "Je přewjele přiwěškow wosobinskeje synchronizacije."
 
 msgid "There is no notebook in this group yet."
 msgstr "W tutej skupinje hišće žadyn noticnik njeje."
@@ -5578,7 +5849,7 @@ msgid "This address can be selected and copied."
 msgstr "Tuta adresa hodźi so wubrać a kopěrować."
 
 msgid "This answer request has already been queued."
-msgstr "Diese Antwortanfrage wurde bereits in die Warteschlange gestellt."
+msgstr "Tute naprašowanje za wotmołwu je hižo w čakanskej lince."
 
 msgid "This appointment will appear every %(weekday)s."
 msgstr "Tutón termin so kóždy %(weekday)s zjewi."
@@ -5606,22 +5877,29 @@ msgstr ""
 "Tutón wuběr tež postaja, kak so mjena na kontaktowych kartach pokazuja a pod "
 "kotrym pismikom so w indeksu zarjaduja."
 
+msgid "This contact card has no postal address."
+msgstr "W tutej kontaktnej karće poštowa adresa faluje."
+
+msgid "This device does not support synchronization of the custom tab."
+msgstr "Tutón grat synchronizaciju wužiwarjoweho rajtarka njepodpěruje."
+
+msgid "This device identifier is unavailable."
+msgstr "Tutón identifikator k dispoziciji njeje."
+
 msgid "This dial request has already been queued."
-msgstr "Diese Wählanforderung befindet sich bereits in der Warteschlange."
+msgstr "Tute wólenske naprašowanje je hižo w čakanskej lince."
 
 msgid "This end-call request has already been queued."
-msgstr ""
-"Diese Anfrage zum Beenden des Anrufs befindet sich bereits in der "
-"Warteschlange."
+msgstr "Tute naprašowanje za zakónčenje zawołanja je hižo w čakanskej lince."
 
 msgid "This export format is not yet available on Windows."
-msgstr "Dieses Exportformat ist auf Windows noch nicht verfügbar."
+msgstr "Tutón eksportowy format pod Windowsom hišće k dispoziciji njeje."
 
 msgid "This image format cannot be used."
 msgstr "Tutón wobrazowy format njehodźi so wužiwać."
 
 msgid "This import format is not yet available on Windows."
-msgstr "Dieses Importformat ist auf Windows noch nicht verfügbar."
+msgstr "Tutón importowy format pod Windowsom hišće k dispoziciji njeje."
 
 msgid "This is available only in the installed application."
 msgstr "To je jenož w instalowanym nałoženju k dispoziciji."
@@ -5635,6 +5913,9 @@ msgid ""
 msgstr ""
 "Tak waše notice wupadaja: <b>tučne</b>, <i>kursiwne</i>, <u>podšmórnjene</u> "
 "a <s>přešmórnjene</s>."
+
+msgid "This is my own phone"
+msgstr "To je mój swójski telefon"
 
 msgid ""
 "This is one occurrence of a recurring appointment. Changes apply to all "
@@ -5679,6 +5960,9 @@ msgstr "Tutón zwjazany telefon je mój swójski grat"
 msgid "This person's anniversaries"
 msgstr "Róčnicy tuteje wosoby"
 
+msgid "This phone transport is unavailable."
+msgstr "Tute wašnje zwjazanja z telefonom k dispoziciji njeje."
+
 msgid ""
 "This program is free software: you may redistribute and modify it. It is "
 "published in the hope that it will be useful, but without any warranty."
@@ -5705,6 +5989,12 @@ msgstr "Tutón nadawk přińdźe z „%(branch)s“."
 
 msgid "Through"
 msgstr "Hač do"
+
+msgid "Thunderbird"
+msgstr "Thunderbird"
+
+msgid "Thunderbird profile version"
+msgstr "Wersija profila Thunderbird"
 
 msgid "Thurgau"
 msgstr "Thurgau"
@@ -5757,6 +6047,9 @@ msgstr "Přewjele njeporadźenych pospytow. Čakajće wokomik."
 
 msgid "Too many regions were selected."
 msgstr "Přewjele regionow wubrane."
+
+msgid "Too many unfinished synchronization runs."
+msgstr "Přewjele njedokónčenych synchronizacijow."
 
 msgid "Top level"
 msgstr "Najwyša runina"
@@ -5815,6 +6108,9 @@ msgstr ""
 
 msgid "Underline"
 msgstr "Podšmórnjenje"
+
+msgid "Undo"
+msgstr "Cofnyć"
 
 msgid "Unit"
 msgstr "Jednotka"
@@ -5930,6 +6226,9 @@ msgstr "Papjernik wužiwać"
 msgid "User name"
 msgstr "Wužiwarske mjeno"
 
+msgid "Username"
+msgstr "Wužiwarske mjeno"
+
 msgid ""
 "Uses its own identity and storage and listens only on fixed port %(port)s. "
 "It never uses Magnolienbaum partners, permissions, queues or Bluetooth "
@@ -6018,6 +6317,14 @@ msgstr ""
 msgid "WLAN listener on port %(port)s"
 msgstr "WLAN-připosłuchowak na porće %(port)s"
 
+msgid "Wait for personal synchronization to finish before restoring."
+msgstr ""
+"Čakajće do wobnowjenja, doniž synchronizacija wosobinskich datow njeje "
+"dokónčena."
+
+msgid "Waiting for authenticated phone connection..."
+msgstr "Čaka so na zwisk z telefonom z wobkrućenej identitu..."
+
 msgid "Waiting for consent on the other device."
 msgstr "Čaka so na přizwolenje na druhim graće."
 
@@ -6075,6 +6382,11 @@ msgstr ""
 
 msgid "Weather temperature"
 msgstr "Wjedrowa temperatura"
+
+msgid ""
+"Weather uses HTTPS first, then unencrypted HTTP if necessary. If wttr.in "
+"fails and a location is known, Open-Meteo is tried."
+msgstr "Wjedro so najprjedy přez HTTPS a w razje trjeby přez nješifrowany HTTP wotwoła. Jeli wttr.in k dispoziciji njesteji a městno znate je, so Open-Meteo wupruwuje."
 
 msgid "Weather was not retrieved because no location is available."
 msgstr "Wjedro njebu wotwołane, dokelž městno k dispoziciji njeje."
@@ -6167,6 +6479,26 @@ msgstr "Žona"
 msgid "Windows Contacts folder"
 msgstr "Rjadowak Windows Contacts"
 
+msgid ""
+"Windows marks misspelled words with red wavy lines. Right-click a word for "
+"suggestions or to add it to your personal dictionary. Magnolie requests "
+"German suggestions for a German interface and English suggestions otherwise. "
+"If suggestions are missing, open Windows Settings, Time & language, Language "
+"& region, then the language options for German or English, and install Basic "
+"typing. Dictionary availability depends on the installed Windows language "
+"features."
+msgstr ""
+"Windows woznamjenja wopak napisane słowa z čerwjenymi žołmojtymi linijemi. "
+"Klikńće z prawej tastu myše na słowo, zo byšće namjety widźeli abo słowo do "
+"swojeho wosobinskeho słownika přidali. Magnolie požaduje němske namjety při "
+"němskim powjerchu, hewak jendźelske. Jeli namjety faluja, wočińće nastajenja "
+"Windows, Čas a rěč, Rěč a region, potom rěčne opcije za němčinu abo "
+"jendźelšćinu a instalujće zakładne zapodawanje teksta. Dostupnosć słownikow "
+"wot instalowanych rěčnych funkcijow Windows wotwisuje."
+
+msgid "Windows spell checking is available only on Windows."
+msgstr "Prawopisna kontrola Windows je jenož pod Windows k dispoziciji."
+
 msgid "Wireless"
 msgstr "Bjezdrótowy"
 
@@ -6224,6 +6556,9 @@ msgstr "Tu pisać …"
 msgid "Writing sheet"
 msgstr "Pisanske łopjeno"
 
+msgid "Wrong Bluetooth device."
+msgstr "Wopačny Bluetooth-grat."
+
 msgid "X (formerly Twitter)"
 msgstr "X (prjedy Twitter)"
 
@@ -6267,12 +6602,18 @@ msgstr ""
 msgid "Your data is stored at: %(path)s"
 msgstr "Waše daty su składowane pod: %(path)s"
 
+msgid "Your letter"
+msgstr "Waš list"
+
 msgid ""
 "Your own address is required as the starting point for a route. Enter it "
 "under Settings ▸ Contacts."
 msgstr ""
 "Waša swójska adresa je jako startowy dypk ruty trěbna. Zapodajće ju pod "
 "Nastajenja ▸ Kontakty."
+
+msgid "Yours sincerely,"
+msgstr "Z přećelnym postrowom"
 
 msgid "Zug"
 msgstr "Zug"
@@ -6576,6 +6917,9 @@ msgstr "bjez titula"
 msgid "vCard (.vcf), including iPhone/iCloud export …"
 msgstr "vCard (.vcf), inkluziwnje eksporta z iPhone/iCloud …"
 
+msgid "vCard / iPhone / iCloud"
+msgstr "vCard / iPhone / iCloud"
+
 msgid "vCard file (.vcf), including iPhone/iCloud export …"
 msgstr "Dataja vCard (.vcf), inkluziwnje eksporta z iPhone/iCloud …"
 
@@ -6586,9 +6930,7 @@ msgid ""
 msgstr ""
 "vCard wobchowuje wjace podrobnosćow kontaktow. LDIF je za import do Claws "
 "Mail; nuzowe kontakty, socialne medije, swobodne popisy a nje-JPEG-fota "
-"njehodźa so zapřijeć.vCard preserves more contact details. LDIF is intended "
-"for importing into Claws Mail; emergency contacts, social media, free labels "
-"and non-JPEG photos cannot be included."
+"njehodźa so zapřijeć."
 
 msgid "vital"
 msgstr "vital"
@@ -6668,6 +7010,126 @@ msgstr[3] "… a dale %(count)s zapiskaj, kotrejž so tež ćišćitej."
 
 msgid "＋ Add appointment"
 msgstr "＋ Termin přidać"
+
+#~ msgid "As usual (print)"
+#~ msgstr "Kaž zwjetša (ćišć)"
+
+#~ msgid ""
+#~ "Misspelled words are marked with a red wavy underline while you type. "
+#~ "Right-clicking a word opens a sheet with suggestions that can be applied "
+#~ "with one click; you can add names to your personal dictionary in the same "
+#~ "way. If the lines or suggestions are missing, install the dictionary "
+#~ "with:  sudo apt install %(package)s"
+#~ msgstr ""
+#~ "Wopak napisane słowa so při pisanju z čerwjenej włočkowanej liniju "
+#~ "podšmórnu. Prawy klik na słowo wočini polo z namjetami, kotrež hodźa so z "
+#~ "jednym klikom přewzać; samsnym wašnjom móžeće mjena do wosobinskeho "
+#~ "słownika přidać. Jeli linije abo namjety faluja, instalujće słownik z:  "
+#~ "sudo apt install %(package)s"
+
+#~ msgid "Magnolienbaum restart:"
+#~ msgstr "Nowy start Magnolienbaum:"
+
+#~ msgid "Reminder data:"
+#~ msgstr "Erinnerungsdaten:"
+
+#~ msgid "Reminder runtime:"
+#~ msgstr "Erinnerungslaufzeit:"
+
+#~ msgid ""
+#~ "Both devices must opt in. Turning this off pauses Custom reminders and "
+#~ "updates but keeps copies. Linked text blocks are not shared."
+#~ msgstr ""
+#~ "Obaj grataj dyrbitej přihłosować. Wupinanje zastaji swójske dopomnjenki a "
+#~ "aktualizacije, ale kopije wobchowa. Zwjazane tekstowe bloki so njedźěla."
+
+#~ msgid "Memory available / total"
+#~ msgstr "Dźěłowy pomjatk k dispoziciji / dohromady"
+
+#~ msgid "Storage available / total"
+#~ msgstr "Składowanski rum k dispoziciji / dohromady"
+
+#~ msgid "Synchronize Custom tasks and appointments"
+#~ msgstr "Swójske nadawki a terminy synchronizować"
+
+#~ msgid "This device does not support Custom synchronization."
+#~ msgstr "Tutón grat synchronizaciju swójskeho wobsaha njepodpěruje."
+
+#~ msgid ""
+#~ "Your address forms a single return line above the recipient in the same "
+#~ "left-hand address field. No sender is added if this field is empty."
+#~ msgstr ""
+#~ "Waša adresa so jako jedna zwróćenska linka nad podaćemi wo přijimarju w "
+#~ "samsnym adresowym polu nalěwo pokazuje. Jeli je tute polo prózdne, so "
+#~ "žadyn wotpósłar njepřidawa."
+
+#~ msgid ""
+#~ "Custom content is saved locally and transferred through complete Magnolie "
+#~ "archives only, not Personal Sync."
+#~ msgstr ""
+#~ "Swójski wobsah so lokalnje składuje a jenož přez dospołne archiwy "
+#~ "Magnolie přenošuje, nic přez Personal Sync."
+
+#~ msgid ""
+#~ "Choose file and Windows contact imports that Magnolie can start directly "
+#~ "after opening."
+#~ msgstr ""
+#~ "Wubjerće importy datajow a kontaktow Windows, kotrež móže Magnolie "
+#~ "direktnje po wočinjenju startować."
+
+#~ msgid "Compact sender line (default)"
+#~ msgstr "Kompaktna sadźba wotpósłarja (standard)"
+
+#~ msgid ""
+#~ "In the DIN template, these lines appear as a multiline sender block and "
+#~ "in small type in the address window. In the compact template, they form "
+#~ "one line above the recipient address. No sender is added if this field is "
+#~ "empty."
+#~ msgstr ""
+#~ "W DIN-předłoze so tute linki jako wjacerjadowy blok wotpósłarja a z małym "
+#~ "pismom w adresowym woknje pokazuja. W kompaktnej předłoze tworja jednu "
+#~ "linku nad adresu přijimarja. Jeli je tute polo prózdne, so žadyn "
+#~ "wotpósłar njepřidawa."
+
+#~ msgid "Monthly"
+#~ msgstr "Měsačnje"
+
+#~ msgid ""
+#~ "The DIN template positions the recipient address for a window envelope, "
+#~ "shows your address as a multiline sender block, and adds two fold marks "
+#~ "and a punch mark."
+#~ msgstr ""
+#~ "DIN-předłoha pozicionuje adresu přijimarja za wobalku z woknom, pokazuje "
+#~ "wašu adresu jako wjacerjadowy blok wotpósłarja a přidawa dwě składowanske "
+#~ "marce a marku za dyrkowanje."
+
+#~ msgid "%(count)s recurring appointment imported only once."
+#~ msgid_plural "%(count)s recurring appointments imported only once."
+#~ msgstr[0] "Jenož jónkróć importowane wospjetowace so terminy: %(count)s."
+#~ msgstr[1] "Jenož jónkróć importowane wospjetowace so terminy: %(count)s."
+#~ msgstr[2] "Jenož jónkróć importowane wospjetowace so terminy: %(count)s."
+#~ msgstr[3] "Jenož jónkróć importowane wospjetowace so terminy: %(count)s."
+
+#~ msgid "Magnolienbaum quarantine:"
+#~ msgstr "Kwarantena Magnolienbaum:"
+
+#~ msgid ""
+#~ "Evolution and Thunderbird are selected explicitly. iPhone contacts "
+#~ "require a vCard export from the iPhone or iCloud. KDE Connect, Bluetooth "
+#~ "and PBAP are not contact sources."
+#~ msgstr ""
+#~ "Evolution a Thunderbird so wuraznje wubjeratej. Kontakty z iPhone "
+#~ "trjebaja eksport vCard z iPhone abo iCloud. KDE Connect, Bluetooth a PBAP "
+#~ "žórła kontaktow njejsu."
+
+#~ msgid ""
+#~ "Selected imports are started directly after Magnolie opens. Thunderbird "
+#~ "contacts are not offered because Windows has no Thunderbird address-book "
+#~ "importer."
+#~ msgstr ""
+#~ "Wubrane importy so direktnje po wočinjenju Magnolie startuja. Kontakty "
+#~ "Thunderbird so njeposkićeja, dokelž Windows importer adresnika "
+#~ "Thunderbird nima."
 
 #~ msgid ""
 #~ "Download Magnolie Notes or KDE Connect using the links below. Bluetooth "
@@ -6838,3 +7300,19 @@ msgstr "＋ Termin přidać"
 #~ msgstr ""
 #~ "Hdyž so limit pomjeńši, so najstarše wobnowjenske dypki awtomatisce "
 #~ "wotstronja."
+
+#~ msgid "Share own phone identifiers"
+#~ msgstr "Identifikatory swójskeho telefona dźělić"
+
+#~ msgid ""
+#~ "Only on request from your own paired computer, for 60 seconds, without "
+#~ "saving: the default voice SIM number and, if Android permits, serial "
+#~ "number and IMEI. Android 10 and later restrict hardware identifiers for "
+#~ "ordinary apps. Phone-number permission is optional; no special role is "
+#~ "requested."
+#~ msgstr ""
+#~ "Jenož na naprašowanje swójskeho spřaženeho ličaka, na 60 sekund, bjez "
+#~ "składowanja: čisło standardneje SIM za zawołanja a, jeli Android dowoli, "
+#~ "serijowe čisło a IMEI. Wot Androida 10 su hardwarowe identifikatory za "
+#~ "zwučene aplikacije wobmjezowane. Prawo za čisło je dobrowólne; žana "
+#~ "wosebita róla so njepožada."

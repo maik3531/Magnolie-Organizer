@@ -6,11 +6,13 @@ import hashlib
 import json
 import re
 import uuid
+import datetime
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError, available_timezones
 
 FORMATS = [1, 2, 3]
 FORMAT = 1
 MAX_RECORDS = 32
-MAX_PACKET = 192 * 1024
+MAX_PACKET = 256 * 1024
 MAX_ID = 160
 MAX_TEXT = 128 * 1024
 MAX_TIMESTAMP = 253402300799999
@@ -27,12 +29,206 @@ MIMES = {"image/jpeg": "image", "image/png": "image", "image/webp": "image",
 
 
 def canonical(value):
+    def numbers(item):
+        if isinstance(item, dict):
+            for child in item.values():
+                numbers(child)
+        elif isinstance(item, list):
+            for child in item:
+                numbers(child)
+        elif isinstance(item, float) or type(item) is int and not -(2**63) <= item < 2**63:
+            raise ValueError("invalid canonical integer")
+    numbers(value)
     return json.dumps(value, ensure_ascii=False, sort_keys=True,
                       separators=(",", ":")).encode("utf-8")
 
 
 def projection_hash(value):
     return hashlib.sha256(canonical(value)).hexdigest()
+
+
+def custom_source_id(source_id, item_id):
+    """Custom identity is independent of module placement and display labels."""
+    if (not isinstance(source_id, str) or not UUID4.fullmatch(source_id)
+            or not isinstance(item_id, str) or not item_id
+            or any(ord(char) < 32 or ord(char) == 127 for char in item_id)):
+        raise ValueError("invalid custom source identity")
+    try:
+        if len(item_id.encode("utf-8")) > 640:
+            raise ValueError("invalid custom source identity")
+        material = canonical(["personal-custom-v1", source_id, item_id])
+    except UnicodeError as error:
+        raise ValueError("invalid custom source identity") from error
+    return "custom:" + hashlib.sha256(material).hexdigest()
+
+
+def validate_custom_settings(body):
+    """Separate V4 scope contract; never extend the V1 settings key set."""
+    if (not isinstance(body, dict) or set(body) != {
+            "format", "scope", "enabled", "revision", "epoch"}
+            or type(body.get("format")) is not int or body["format"] != 4
+            or body.get("scope") != "custom" or type(body.get("enabled")) is not bool
+            or type(body.get("revision")) is not int
+            or not 1 <= body["revision"] <= MAX_SAFE_INTEGER
+            or not isinstance(body.get("epoch"), str) or not UUID4.fullmatch(body["epoch"])):
+        raise ValueError("invalid custom sync settings")
+    return body
+
+
+def custom_scope_allowed(local, remote, local_versions, remote_versions,
+                         own_device, remote_own_device, sender_epoch, receiver_epoch,
+                         sender_revision, receiver_revision):
+    """Check a captured run fence against *current* persisted bilateral consent.
+
+    Call under the storage transaction lock, not just when staging a packet.
+    Missing upgrade state is deliberately denied, regardless of ordinary grants.
+    """
+    try:
+        validate_custom_settings(local)
+        validate_custom_settings(remote)
+    except ValueError:
+        return False
+    return (own_device is True and remote_own_device is True
+            and isinstance(local_versions, list) and isinstance(remote_versions, list)
+            and any(type(version) is int and version == 4 for version in local_versions)
+            and any(type(version) is int and version == 4 for version in remote_versions)
+            and local["enabled"] and remote["enabled"]
+            and sender_epoch == remote["epoch"] and receiver_epoch == local["epoch"]
+            and type(sender_revision) is int and sender_revision == remote["revision"]
+            and type(receiver_revision) is int and receiver_revision == local["revision"])
+
+
+def accept_custom_settings(current, incoming):
+    """Reject rollback and same-revision equivocation, including after restart.
+
+    The caller must persist the returned value before acknowledging it. Identical
+    retransmissions are safe; every actual change requires a fresh epoch.
+    """
+    validate_custom_settings(incoming)
+    if current is not None:
+        validate_custom_settings(current)
+        if incoming["revision"] == current["revision"] and incoming == current:
+            return dict(current)
+        if incoming["revision"] <= current["revision"] or incoming["epoch"] == current["epoch"]:
+            raise ValueError("stale custom sync settings")
+    return dict(incoming)
+
+
+CUSTOM_KINDS = {"personal_sync.custom_settings", "personal_sync.custom_request", "personal_sync.custom_batch"}
+CUSTOM_TIMEZONES = frozenset(available_timezones())
+
+
+def validate_custom_body(kind, body):
+    """Separate V4 mirror contract. Absence in a batch never means deletion."""
+    def exact(value, fields):
+        if not isinstance(value, dict) or set(value) != set(fields.split()):
+            raise ValueError("invalid custom fields")
+    def number(value, minimum, maximum):
+        if type(value) is not int or not minimum <= value <= maximum:
+            raise ValueError("invalid custom number")
+    def text(value, maximum):
+        if not isinstance(value, str):
+            raise ValueError("invalid custom text")
+        try:
+            if len(value.encode("utf-8")) > maximum or any(ord(c) < 32 or ord(c) == 127 for c in value if c not in "\n\r\t"):
+                raise ValueError("invalid custom text")
+        except UnicodeError as error:
+            raise ValueError("invalid custom text") from error
+    def date(value):
+        if value == "":
+            return
+        if not isinstance(value, str) or not re.fullmatch(r"[0-9]{4}-[0-9]{2}-[0-9]{2}", value):
+            raise ValueError("invalid custom date")
+        datetime.date.fromisoformat(value)
+    if kind == "personal_sync.custom_settings":
+        return validate_custom_settings(body)
+    fields = "format sender_epoch receiver_epoch sender_revision receiver_revision trigger"
+    if kind == "personal_sync.custom_batch":
+        fields += " source_id revision upserts deletions"
+    elif kind != "personal_sync.custom_request":
+        raise ValueError("unknown custom message")
+    exact(body, fields)
+    number(body["format"], 4, 4)
+    for field in ("sender_revision", "receiver_revision"):
+        number(body[field], 1, MAX_SAFE_INTEGER)
+    for field in ("sender_epoch", "receiver_epoch"):
+        if not isinstance(body[field], str) or not UUID4.fullmatch(body[field]):
+            raise ValueError("invalid custom epoch")
+    if body["trigger"] not in ("manual", "auto_wifi"):
+        raise ValueError("invalid custom trigger")
+    if kind == "personal_sync.custom_request":
+        return body
+    if not isinstance(body["source_id"], str) or not UUID4.fullmatch(body["source_id"]):
+        raise ValueError("invalid custom source")
+    number(body["revision"], 1, MAX_SAFE_INTEGER)
+    if (not isinstance(body["upserts"], list) or not isinstance(body["deletions"], list)
+            or not 1 <= len(body["upserts"]) + len(body["deletions"]) <= 32):
+        raise ValueError("invalid custom batch size")
+    ids = []
+    for record in body["upserts"] + body["deletions"]:
+        deleting = record in body["deletions"]
+        exact(record, "id item_id prior_hash" if deleting else "id item_id kind hash value")
+        if record["id"] != custom_source_id(body["source_id"], record["item_id"]):
+            raise ValueError("invalid custom identity")
+        digest = record["prior_hash" if deleting else "hash"]
+        if not isinstance(digest, str) or not HASH.fullmatch(digest):
+            raise ValueError("invalid custom hash")
+        ids.append(record["id"])
+        if deleting:
+            continue
+        if record["kind"] not in ("task", "appointment"):
+            raise ValueError("invalid custom item kind")
+        value = record["value"]
+        exact(value, "module_id module_title title note date time timezone completed module_reminders item_reminder lead_minutes default_minute recurrence")
+        custom_source_id(body["source_id"], value["module_id"])
+        for key, maximum in (("module_title", 480), ("title", 1200), ("note", 20000), ("timezone", 160)):
+            text(value[key], maximum)
+        date(value["date"])
+        if not isinstance(value["time"], str) or value["time"] and not re.fullmatch(r"(?:[01][0-9]|2[0-3]):[0-5][0-9]", value["time"]):
+            raise ValueError("invalid custom time")
+        try:
+            if (not re.fullmatch(r"[A-Za-z][A-Za-z0-9_+.-]*(?:/[A-Za-z0-9_+.-]+)*", value["timezone"])
+                    or value["timezone"] in {"localtime", "posixrules"}
+                    or value["timezone"].startswith(("posix/", "right/", "SystemV/"))
+                    or value["timezone"] not in CUSTOM_TIMEZONES):
+                raise ValueError("not an IANA timezone")
+            ZoneInfo(value["timezone"])
+        except (ValueError, ZoneInfoNotFoundError) as error:
+            raise ValueError("invalid custom timezone") from error
+        for key in ("completed", "module_reminders", "item_reminder"):
+            if type(value[key]) is not bool:
+                raise ValueError("invalid custom boolean")
+        number(value["lead_minutes"], 0, 525600)
+        number(value["default_minute"], 0, 1439)
+        recurrence = value["recurrence"]
+        exact(recurrence, "frequency interval until dates ordinal weekday")
+        frequency = recurrence["frequency"]
+        if frequency not in ("none", "daily", "weekly", "monthly", "yearly", "custom"):
+            raise ValueError("invalid custom recurrence")
+        number(recurrence["interval"], 1, 3660)
+        number(recurrence["ordinal"], -1, 4)
+        number(recurrence["weekday"], 0, 7)
+        date(recurrence["until"])
+        dates = recurrence["dates"]
+        if not isinstance(dates, list) or len(dates) > 1000:
+            raise ValueError("invalid custom recurrence dates")
+        for day in dates:
+            date(day)
+            if not day:
+                raise ValueError("empty recurrence date")
+        if dates != sorted(set(dates)):
+            raise ValueError("invalid custom recurrence ordering")
+        if ((frequency != "custom" and dates) or (frequency == "custom" and recurrence["until"])
+                or (bool(recurrence["ordinal"]) != bool(recurrence["weekday"]))
+                or (frequency != "monthly" and recurrence["ordinal"])
+                or (record["kind"] == "task" and frequency != "none")
+                or (record["kind"] == "appointment" and value["completed"])):
+            raise ValueError("inconsistent custom recurrence")
+        if projection_hash(value) != digest:
+            raise ValueError("invalid custom projection hash")
+    if len(ids) != len(set(ids)) or len(canonical(body)) > 192 * 1024:
+        raise ValueError("duplicate or oversized custom records")
+    return body
 
 
 def records_hash(records):

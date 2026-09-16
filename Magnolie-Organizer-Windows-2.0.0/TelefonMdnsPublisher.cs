@@ -105,7 +105,7 @@ internal sealed class TelefonMdnsPublisher : IDisposable
     }
 
     /// <summary>Alle betriebsbereiten, multicastfähigen IPv4-Schnittstellen mit ihrer Adresse.</summary>
-    private static List<(int Index, IPAddress Address)> MulticastInterfaces()
+    internal static List<(int Index, IPAddress Address)> MulticastInterfaces()
     {
         var result = new List<(int, IPAddress)>();
         try

@@ -44,7 +44,11 @@ class TelefonProtokollFehler(nachricht: String) : Exception(nachricht)
 object TelefonKanonisch {
     val json = Json { isLenient = false; allowSpecialFloatingPointValues = false }
 
-    fun bytes(wert: JsonElement): ByteArray = text(wert).toByteArray(Charsets.UTF_8)
+    fun bytes(wert: JsonElement): ByteArray {
+        val encoded = Charsets.UTF_8.newEncoder().onMalformedInput(CodingErrorAction.REPORT)
+            .encode(java.nio.CharBuffer.wrap(text(wert)))
+        return ByteArray(encoded.remaining()).also { encoded.get(it) }
+    }
 
     fun text(wert: JsonElement): String = buildString { schreibe(wert, this) }
 
@@ -70,10 +74,10 @@ object TelefonKanonisch {
                 aus.append(']')
             }
             is JsonPrimitive -> if (wert.isString) zeichenkette(wert.content, aus) else {
-                if (wert.booleanOrNull == null && wert.longOrNull == null) {
+                if (wert.booleanOrNull == null && (wert.longOrNull == null || !Regex("-?(0|[1-9][0-9]*)").matches(wert.content))) {
                     throw TelefonProtokollFehler("Bruchzahlen sind in Protokollfassung 1 verboten.")
                 }
-                aus.append(wert.content)
+                aus.append(wert.longOrNull?.toString() ?: wert.content)
             }
         }
     }

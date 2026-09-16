@@ -1,3 +1,12 @@
+magnolie-handbuch (2.0.18) unstable; urgency=high
+
+  * Aktualisiert das vollständige mehrsprachige Handbuch für Magnolie
+    Organizer 2.0.18; Magnolie Notes bleibt unverändert bei 1.0.13.
+  * Beseitigt verbliebene englische Textfragmente und prüft die geschützten
+    QR- und Porträtbilder unter Windows tatsächlich in WebView2.
+
+ -- Maik Walter <maik3531@gmail.com>  Mon, 07 Sep 2026 09:00:00 +0200
+
 magnolie-handbuch (2.0.17) unstable; urgency=high
 
   * Aktualisiert die Veröffentlichungs- und Formatangaben für Magnolie

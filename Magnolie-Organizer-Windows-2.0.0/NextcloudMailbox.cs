@@ -18,6 +18,17 @@ internal sealed record NextcloudMailboxSettings(bool DavActive, bool MailboxActi
 }
 internal sealed record NextcloudMailboxContext(NextcloudMailboxSettings Settings, AuthenticationHeaderValue Authorization);
 
+internal static class NextcloudStatusText
+{
+    internal static string For(Exception error) => NativeLocalization.Gettext(error switch
+    {
+        TaskCanceledException => "The Nextcloud request timed out.",
+        ArgumentException => "The Nextcloud settings are invalid.",
+        InvalidDataException => "The Nextcloud response was incomplete.",
+        _ => "The Nextcloud operation failed."
+    });
+}
+
 internal sealed class NextcloudMailboxSettingsStore
 {
     private readonly string settingsPath;
@@ -351,8 +362,7 @@ internal sealed class NextcloudMailbox : IDisposable
         if (http is not null) this.http = http;
         else
         {
-            this.http = new HttpClient(CreateHandler());
-            this.http.Timeout = TimeSpan.FromSeconds(12);
+            this.http = DeadlineHttp.Create(TimeSpan.FromSeconds(12), CreateHandler(), MaximumDocumentBytes);
             ownsHttp = true;
         }
     }

@@ -6,10 +6,16 @@ import androidx.annotation.StringRes
 /** Übersetzt stabile technische Fehlermeldungen erst am Rand zur Oberfläche. */
 object Fehlertext {
     const val DATEI_OEFFNEN = "file_open"
+    const val KONTAKT_VERSION = "contact_anniversary_capability_required"
+    const val KONTAKT_IMPORT = "contact_import_receiver_required"
+    const val AUFGABE_NICHT_FREIGEGEBEN = "task_not_shared_with_sender"
 
     @StringRes
     fun ressourcenId(nachricht: String?): Int = when (nachricht) {
         DATEI_OEFFNEN, "Die Datei ließ sich nicht öffnen." -> R.string.fehler_datei_oeffnen
+        KONTAKT_VERSION -> R.string.baum_kontakt_update
+        KONTAKT_IMPORT -> R.string.baum_kontakt_import_nicht_unterstuetzt
+        AUFGABE_NICHT_FREIGEGEBEN -> R.string.baum_aufgabe_nicht_freigegeben
         "Die eigene Identität fehlt noch." -> R.string.fehler_identitaet
         "Dieses Gerät hat gerade keine Netzadresse." -> R.string.fehler_keine_netzadresse
         "Nicht erreichbar.", "Die Gegenstelle ist nicht erreichbar." -> R.string.fehler_nicht_erreichbar

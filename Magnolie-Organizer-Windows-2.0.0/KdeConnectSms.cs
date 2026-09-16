@@ -4,9 +4,15 @@ namespace MagnolieOrganizer.Windows;
 
 internal sealed class KdeConnectSms : IDisposable
 {
-    private readonly KdeConnectDirectBackend native;
+    private readonly Lazy<KdeConnectDirectBackend> backend;
+    private KdeConnectDirectBackend native => backend.Value;
+    private readonly SmsSubmissionJournal submissions;
 
-    internal KdeConnectSms(WindowsPaths paths) => native = new KdeConnectDirectBackend(paths);
+    internal KdeConnectSms(WindowsPaths paths)
+    {
+        backend = new(() => new KdeConnectDirectBackend(paths));
+        submissions = new(Path.Combine(paths.KdeConnect, "sms-submissions.json"));
+    }
 
     internal event Action<KdeConnectStatus>? StatusChanged
     { add => native.StatusChanged += value; remove => native.StatusChanged -= value; }
@@ -37,42 +43,26 @@ internal sealed class KdeConnectSms : IDisposable
             reason = devices.Length == 1 ? "" : devices.Length == 0 ? "no_device" : "multiple_devices" };
     }
 
-    internal async Task SendAsync(string number, string text, string country)
+    internal async Task<KdeConnectSendResult> SendWithResultAsync(string number, string text, string country,
+        string clientRef, string expectedDeviceId, string expectedFingerprint, CancellationToken cancellationToken = default)
     {
-        var normalizedText = KdeConnectProtocol.NormalizeSmsText(text);
-        if (string.IsNullOrWhiteSpace(normalizedText.Text) || normalizedText.Text.Length > 5000 ||
-            normalizedText.Segments > KdeConnectProtocol.MaxSmsSegments)
-            throw new InvalidOperationException("SMS-Nachricht ist ungültig oder länger als zehn Segmente.");
-        var direct = await native.StatusAsync();
-        if (native.HasPairedPeers)
+        if (string.IsNullOrEmpty(expectedDeviceId) || string.IsNullOrEmpty(expectedFingerprint))
+            return new(false, "failed", "", "no_unique_device");
+        var previous = submissions.Reserve(clientRef, number, text, country, expectedDeviceId, expectedFingerprint);
+        if (previous is not null) return new(previous == "submitted", previous, "", previous == "uncertain" ? "uncertain" : null);
+        try
         {
-            await native.SendSmsAsync(number, normalizedText.Text, country);
-            return;
+            var result = await native.SendSmsWithResultAsync(number, text, country, expectedDeviceId, expectedFingerprint, cancellationToken);
+            if (result.Ok) submissions.Submitted(clientRef);
+            return result;
         }
-        var executable = FindExecutable() ?? throw new InvalidOperationException("KDE Connect ist nicht installiert.");
-        var normalized = PhoneUri.Normalize(number, country);
-        if (normalized.Length == 0)
-            throw new InvalidOperationException("SMS-Empfänger oder Nachricht ist ungültig.");
-        var discovery = await RunAsync(executable, ["--list-available", "--id-only"], TimeSpan.FromSeconds(3));
-        var devices = discovery.Output.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries)
-            .Select(value => value.Trim()).Where(value => value.Length is >= 4 and <= 200 &&
-                value.All(character => char.IsLetterOrDigit(character) || "._:-".Contains(character)))
-            .Distinct(StringComparer.Ordinal).ToArray();
-        if (discovery.ExitCode != 0 || devices.Length != 1)
-            throw new InvalidOperationException("Genau ein erreichbares KDE-Connect-Telefon ist erforderlich.");
-        var result = await RunAsync(executable, ["--device", devices[0], "--send-sms", normalizedText.Text,
-            "--destination", normalized], TimeSpan.FromSeconds(15));
-        if (result.ExitCode != 0) throw new InvalidOperationException("KDE Connect hat die SMS nicht angenommen.");
+        catch { return new(false, "uncertain", "", "uncertain"); }
     }
-
-    internal Task<KdeConnectSendResult> SendWithResultAsync(string number, string text, string country,
-        CancellationToken cancellationToken = default) =>
-        native.SendSmsWithResultAsync(number, text, country, cancellationToken);
 
     internal Task<KdeConnectPairing> StartPairingAsync() => native.BeginPairingAsync();
     internal Task ConfirmPairingAsync(string deviceId, bool accept) => native.ConfirmPairingAsync(deviceId, accept);
     internal void Remove(string deviceId) => native.Remove(deviceId);
-    public void Dispose() => native.Dispose();
+    public void Dispose() { if (backend.IsValueCreated) backend.Value.Dispose(); }
 
     private static string? FindExecutable()
     {

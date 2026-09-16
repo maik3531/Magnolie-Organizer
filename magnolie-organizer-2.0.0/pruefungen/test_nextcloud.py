@@ -165,6 +165,11 @@ def test_https_only_and_no_credentials_in_server_url(invalid):
         nc.validate_server(invalid)
 
 
+def test_literal_ipv6_server_keeps_brackets():
+    assert nc.validate_server("https://[2001:db8::1]:8443/nc/") == \
+        "https://[2001:db8::1]:8443/nc"
+
+
 def test_secret_service_only_and_atomic_private_config(tmp_path, monkeypatch):
     backend = SecretBackend()
     store = nc.NextcloudSettingsStore(str(tmp_path / "nextcloud.json"),
@@ -336,6 +341,11 @@ def test_discovery_listing_reports_and_stable_source_ids():
                 ("c:calendar-data", html.escape(ics))]),
                 namespaces='xmlns:c="urn:ietf:params:xml:ns:caldav"')
         if method == "REPORT" and url == addressbook:
+            import xml.etree.ElementTree as ET
+            query = ET.fromstring(body)
+            assert query.tag == nc.CARDDAV + "addressbook-query"
+            filters = query.findall(nc.CARDDAV + "filter")
+            assert len(filters) == 1 and len(filters[0]) == 0
             return 207, {}, multistatus(dav_response(addressbook + "contact.vcf", [
                 ("d:getetag", '&quot;card-1&quot;'),
                 ("a:address-data", html.escape(vcf))]),
@@ -357,6 +367,35 @@ def test_discovery_listing_reports_and_stable_source_ids():
     assert len(parsed_contact["telefone"]) == 2 and parsed_contact["foto"].startswith(
         "data:image/jpeg;base64,")
     assert all(record[2]["Authorization"].startswith("Basic ") for record in records)
+
+
+@pytest.mark.parametrize("fields,expected_name,first,last", [
+    ("N:Mustermann;Erika;;;", "Erika Mustermann", "Erika", "Mustermann"),
+    ("N:Van Dame;;;;", "Van Dame", "", "Van Dame"),
+    ("N:;Anna Maria;;;", "Anna Maria", "Anna Maria", ""),
+    ("N:Van Dame;;;;\r\nFN:", "", "", "Van Dame"),
+    ("N:;;;;\r\nTEL;TYPE=CELL:+493012345678", "+493012345678", "", ""),
+])
+def test_sparse_cards_preserve_names_and_export_a_formatted_label(fields, expected_name, first, last):
+    parsed = m.vcf_lesen("BEGIN:VCARD\r\nVERSION:3.0\r\nUID:sparse\r\n" + fields + "\r\nEND:VCARD\r\n")
+    assert parsed["uebersprungen"] == 0 and len(parsed["kontakte"]) == 1
+    contact = parsed["kontakte"][0]
+    assert (contact["vorname"], contact["nachname"], contact["anzeigename"]) == (first, last, "")
+    text = m.vcard_text(contact)
+    assert "\r\nFN:" + expected_name + "\r\n" in text
+    assert contact["anzeigename"] == ""
+    for encoded, reader in ((text, m.vcf_lesen), (m.ldif_schreiben([contact]), m.ldif_lesen)):
+        result = reader(encoded)
+        assert len(result["kontakte"]) == 1
+        reread = result["kontakte"][0]
+        assert (reread["uid"], reread["vorname"], reread["nachname"]) == ("sparse", first, last)
+        if not first and not last:
+            assert reread["mobil"] == "+493012345678"
+
+
+def test_empty_card_is_not_an_authoritative_success():
+    result = m.vcf_lesen("BEGIN:VCARD\r\nVERSION:3.0\r\nUID:empty\r\nEND:VCARD\r\n")
+    assert result["kontakte"] == [] and result["uebersprungen"] == 1
 
 
 def test_generic_baikal_discovery_relative_redirects_and_vtodo_capability():
@@ -467,6 +506,31 @@ def test_dav_put_without_etag_is_rejected_before_network_access():
         dav.put("https://cloud.example/cal/a.ics", "BEGIN:VCALENDAR", "")
     assert raised.value.code == "missing_etag"
     assert records == []
+
+
+def test_dav_delete_without_etag_is_rejected_before_network_access():
+    records = []
+    dav = nc.NextcloudDav(nc.DavHttpClient(
+        "https://cloud.example", "user", "secret",
+        transport=lambda *args: records.append(args)))
+    with pytest.raises(nc.NextcloudError) as raised:
+        dav.delete("https://cloud.example/cal/a.ics", "  ")
+    assert raised.value.code == "missing_etag"
+    assert records == []
+
+
+def test_report_rejects_object_outside_selected_collection():
+    def transport(_method, _url, _headers, _body, _timeout, _limit):
+        return 207, {}, multistatus(dav_response("/calendar-other/a.ics", [
+            ("d:getetag", '&quot;one&quot;'),
+            ("c:calendar-data", "BEGIN:VCALENDAR\r\nEND:VCALENDAR\r\n")]),
+            namespaces='xmlns:c="urn:ietf:params:xml:ns:caldav"')
+
+    dav = nc.NextcloudDav(nc.DavHttpClient(
+        "https://cloud.example", "user", "secret", transport=transport))
+    with pytest.raises(nc.NextcloudError) as raised:
+        dav.report("https://cloud.example/calendar/", "calendar")
+    assert raised.value.code == "report_outside_collection"
 
 
 def test_caldav_put_rejects_local_attachment_before_network_access():
@@ -613,13 +677,13 @@ def test_mailbox_fifo_retry_stable_transport_dedupe_and_ack():
     second = m.baum_einreihen(queued, partner["kennung"], "notiz", {"text": "two"})
     mailbox = FakeMailbox()
     start = m.datetime(2026, 8, 17, 10, 0, 0)
-    report = m.baum_post_zustellen(state, queued, start, mailbox=mailbox)
+    report = m.baum_post_zustellen(state, queued, start, mailbox=mailbox, sichern=lambda: True)
     assert report["versucht"] == 1 and len(mailbox.uploads) == 1 and len(queued) == 2
     stable_id = first["transportId"]
     stable_envelope = json.dumps(first["briefUmschlag"], sort_keys=True)
     mailbox.ack = True
     report = m.baum_post_zustellen(
-        state, queued, start + m.timedelta(minutes=2), mailbox=mailbox)
+        state, queued, start + m.timedelta(minutes=2), mailbox=mailbox, sichern=lambda: True)
     assert report["zugestellt"] == 1 and len(queued) == 1
     assert stable_id == first["transportId"] and stable_envelope == json.dumps(
         first["briefUmschlag"], sort_keys=True)
@@ -643,14 +707,18 @@ def test_outbox_blocks_younger_partner_entries_until_oldest_is_due():
     independent = m.baum_einreihen(queued, other["kennung"], "notiz",
                                    {"text": "other"}, start)
     sent = []
-    sender = lambda url, _envelope: sent.append(url) or True
+    def sender(url, envelope):
+        sent.append(url)
+        selected = other if "127.0.0.2" in url else first_partner
+        key = m._sitzungsschluessel(state["geheim"], selected["oeffentlich"], state["kennung"], selected["kennung"])
+        return m.baum_receipt(key, state["kennung"], selected["kennung"], envelope)
 
-    report = m.baum_post_zustellen(state, queued, start, sender=sender)
+    report = m.baum_post_zustellen(state, queued, start, sender=sender, sichern=lambda: True)
     assert report["zugestellt"] == 1 and len(sent) == 1 and "127.0.0.2" in sent[0]
     assert queued == [oldest, younger] and independent not in queued
 
     report = m.baum_post_zustellen(state, queued, start + m.timedelta(minutes=1),
-                                   sender=sender)
+                                   sender=sender, sichern=lambda: True)
     assert report["zugestellt"] == 1 and len(sent) == 2 and "127.0.0.1" in sent[1]
     assert queued == [younger]
 
@@ -686,9 +754,10 @@ def test_direct_http_rejection_does_not_fallback_to_mailbox():
     def rejected(url, envelope):
         raise urllib.error.HTTPError(url, 503, "unavailable", {}, None)
 
-    assert not m.baum_senden(state, partner, "notiz", {"text": "x"},
-                             sender=rejected, transport_id=base64.b64encode(
-                                 bytes(range(16))).decode(), mailbox=mailbox)
+    queued = []
+    item = m.baum_einreihen(queued, partner["kennung"], "notiz", {"text": "x"})
+    report = m.baum_post_zustellen(state, queued, sender=rejected, mailbox=mailbox, sichern=lambda: True)
+    assert report["zugestellt"] == 0 and item["unsicher"] and queued == [item]
     assert mailbox.uploads == []
 
 
@@ -804,6 +873,24 @@ def test_nextcloud_safe_first_calendar_sync_preserves_local_and_tombstone(monkey
     assert remote["wiederholung"]["ordinal"] == 2
 
 
+def test_nextcloud_imports_two_and_three_week_intervals(monkeypatch):
+    resources = []
+    for interval in (2, 3):
+        uid = "nextcloud-%d-weeks" % interval
+        resources.append({
+            "href": "https://cloud.example/calendar/%s.ics" % uid,
+            "etag": '"%d"' % interval,
+            "data": event_ics(uid=uid, title="Every %d weeks" % interval,
+                              rrule="RRULE:FREQ=WEEKLY;INTERVAL=%d\r\n" % interval)})
+    dav = SyncDav({"calendar": resources, "addressbook": []})
+
+    result = run_sync(monkeypatch, dav, empty_data()).payload
+
+    intervals = {event["uid"]: event["wiederholung"]["intervall"]
+                 for event in result["termine"]}
+    assert intervals == {"nextcloud-2-weeks": 2, "nextcloud-3-weeks": 3}
+
+
 def test_nextcloud_established_delete_and_etag_cursor_commit(monkeypatch):
     href = "https://cloud.example/calendar/remote.ics"
     dav = SyncDav({"calendar": [{"href": href, "etag": '"one"',
@@ -873,6 +960,7 @@ def test_nextcloud_established_remote_delete_removes_only_synced_item(monkeypatc
          "titel": "Keep", "geaendert": 200, "sync": False,
          "syncKalenderUid": uid},
     ]
+    m._dav_syncquelle_setzen(data["termine"][0], uid, "remote-gone.ics", '"old"')
     probe = run_sync(monkeypatch, dav, data)
     assert {item["uid"] for item in probe.payload["termine"]} == {"local-new"}
     assert len(dav.puts) == 1 and dav.puts[0][3] is True
@@ -1145,6 +1233,170 @@ def test_nextcloud_contact_etag_conflict_keeps_cursor_and_metadata(monkeypatch):
     assert probe.payload["kontaktVorschau"]["fehler"] == 1
 
 
+class PersistedDav(SyncDav):
+    """Conditional writes with Nextcloud-style vCard3 REPORT normalization."""
+    def put(self, href, data, etag=None, create=False):
+        rows = self.resources["addressbook" if "/addressbook/" in href else "calendar"]
+        old = next((row for row in rows if row["href"] == href), None)
+        assert (old is None and create) or (not create and old["etag"] == etag)
+        self.puts.append((href, data, etag, create))
+        normalized = data.replace("\r\n", "\n")
+        if normalized.startswith("BEGIN:VCARD"):
+            normalized = normalized.replace("VERSION:4.0", "VERSION:3.0")
+            normalized = re.sub(r"(?m)^ANNIVERSARY:--(\d{2})(\d{2})$",
+                r"X-ANNIVERSARY;X-APPLE-OMIT-YEAR=1604:1604-\1-\2", normalized)
+            normalized = re.sub(r"(?m)^ANNIVERSARY:", "X-ANNIVERSARY:", normalized)
+        row = {"href": href, "etag": '"write-%d"' % len(self.puts), "data": normalized}
+        if old is not None:
+            rows.remove(old)
+        rows.append(row)
+        return row["etag"]
+
+
+@pytest.mark.parametrize("field", ["kontakte", "termine", "aufgaben"])
+@pytest.mark.parametrize("local_changed", [False, True])
+@pytest.mark.parametrize("query_cursor", [0, 9_000_000_000_000])
+def test_dav_etag_conflict_uses_item_baseline_and_survives_saved_followups(
+        monkeypatch, tmp_path, field, local_changed, query_cursor):
+    contact = field == "kontakte"
+    kind = "addressbook" if contact else "calendar"
+    href = "https://cloud.example/%s/synthetic.%s" % (kind, "vcf" if contact else "ics")
+    if contact:
+        text = contact_vcf(uid="synthetic", name="BASE", rev="19700101T000000Z")
+    elif field == "termine":
+        text = event_ics(uid="synthetic", title="BASE", modified="19700101T000000Z", rrule="")
+    else:
+        text = task_ics(uid="synthetic", title="BASE", modified="19700101T000000Z").replace(
+            "END:VTODO", "RELATED-TO;RELTYPE=PARENT:parent\r\nEND:VTODO")
+    resources = {"calendar": [], "addressbook": []}
+    resources[kind].append({"href": href, "etag": '"base"', "data": text})
+    if field == "aufgaben":
+        resources[kind].append({"href": "https://cloud.example/calendar/parent.ics",
+                                "etag": '"parent"', "data": task_ics(uid="parent")})
+    dav = PersistedDav(resources)
+    source = dav.collections(kind)[0]["uid"]
+    state = run_sync(monkeypatch, dav, empty_data(), calendar=not contact, contacts=contact).payload
+    original = next(item for item in state[field] if item["uid"] == "synthetic")
+    if contact:
+        assert original["geaendert"] == original["syncQuellen"][source]["geaendert"] == 0
+    if local_changed:
+        original["notiz" if contact else "titel"] = "LOCAL"
+        original["geaendert"] += 1
+    cursor_group = "adressbuecher" if contact else "kalender"
+    state["letzteSyncs"][cursor_group][source] = query_cursor
+    baseline = state["syncMetadaten"]["nextcloud"][cursor_group][source]
+    baseline["letzterSync"] = query_cursor
+    if field == "aufgaben":
+        baseline["aufgabenLetzterSync"] = query_cursor
+    resources[kind][0].update(etag='"remote"', data=text.replace("BASE", "REMOTE"))
+    persisted = tmp_path / "synthetic-state.json"
+
+    for followup in range(3):
+        persisted.write_text(json.dumps(state))
+        state = run_sync(monkeypatch, dav, json.loads(persisted.read_text()),
+                         calendar=not contact, contacts=contact).payload
+        original = next(item for item in state[field] if item["uid"] == "synthetic")
+        assert original["nachname" if contact else "titel"] == "REMOTE"
+        if contact:
+            assert original["geaendert"] == original["syncQuellen"][source]["geaendert"] == 0
+        assert original["davEtag"] == original["syncQuellen"][source]["etag"] == '"remote"'
+        assert next(row for row in resources[kind] if row["href"] == href)["data"] == text.replace("BASE", "REMOTE")
+        expected = 1 + int(field == "aufgaben") + int(local_changed)
+        assert len(state[field]) == len({item["uid"] for item in state[field]}) == expected
+        if local_changed:
+            clone = next(item for item in state[field] if item.get("notiz" if contact else "titel") == "LOCAL")
+            assert clone["uid"] != original["uid"] and clone["id"] != original.get("id")
+            if field == "aufgaben":
+                assert clone["elternUid"] == original["elternUid"] == "parent"
+            if followup == 0:
+                assert not clone["sync"] and not clone.get("syncQuellen") and not clone.get("davHref")
+            else:
+                row = next(row for row in resources[kind] if row["href"] == clone["davHref"])
+                assert clone["syncQuellen"][source]["etag"] == row["etag"]
+                assert clone["davHref"] != href
+        assert len(dav.puts) == int(local_changed and followup > 0)
+    reimported = run_sync(monkeypatch, dav, empty_data(), calendar=not contact, contacts=contact).payload
+    assert {item["uid"] for item in reimported[field]} == {item["uid"] for item in state[field]}
+    for _ in range(2):
+        persisted.write_text(json.dumps(reimported))
+        reimported = run_sync(monkeypatch, dav, json.loads(persisted.read_text()),
+                              calendar=not contact, contacts=contact).payload
+        assert {item["uid"] for item in reimported[field]} == {item["uid"] for item in state[field]}
+        assert len(dav.puts) == int(local_changed)
+
+
+@pytest.mark.parametrize(("properties", "expected"), [
+    ("X-ANNIVERSARY:20210907", "2021-09-07"),
+    ("X-ANNIVERSARY;X-APPLE-OMIT-YEAR=1604:1604-09-07", "--09-07"),
+    ("X-ANNIVERSARY:16040907", "1604-09-07"),
+    ("X-ANNIVERSARY;X-APPLE-OMIT-YEAR=2000:16040907", "1604-09-07"),
+    ("item1.X-ABDATE:20210907\nitem1.X-ABLABEL:_$!<Anniversary>!$_", "2021-09-07"),
+    ('item1.X-ABDATE;X-APPLE-OMIT-YEAR="1604":16040907\nITEM1.X-ABLABEL:Anniversary', "--09-07"),
+    ("item1.X-ABDATE:16040907\nitem1.X-ABLABEL:_$!<Anniversary>!$_", "1604-09-07"),
+    ("item1.X-ABDATE:20210907\nitem1.X-ABLABEL:Custom date", ""),
+    ("item1.X-ABDATE:20210907\nitem2.X-ABLABEL:Anniversary", ""),
+    ("X-ABDATE:20210907", ""),
+    ("X-ANNIVERSARY:20210907\nANNIVERSARY:--0229", "--02-29"),
+    ("ANNIVERSARY:20000301\nX-ANNIVERSARY:20210907", "2000-03-01"),
+    ("X-ANNIVERSARY:20210907\nANNIVERSARY:invalid", ""),
+])
+def test_nextcloud_anniversary_alias_semantics(properties, expected):
+    text = "BEGIN:VCARD\nVERSION:4.0\nUID:synthetic\nFN:Synthetic\n" + properties + "\nEND:VCARD"
+    parsed = m.vcf_lesen(text)["kontakte"][0]
+    assert parsed["jubilaeum"] == expected
+    if expected:
+        saved = json.loads(json.dumps(parsed))
+        assert m.vcf_lesen(m.vcard_text(saved))["kontakte"][0]["jubilaeum"] == expected
+
+
+def test_nextcloud_converted_anniversaries_import_save_write_reimport_and_followups(monkeypatch, tmp_path):
+    fixture = (FIXTURES / "nextcloud-anniversaries.vcf").read_text()
+    cards = re.findall(r"BEGIN:VCARD.*?END:VCARD", fixture, re.S)
+    dav = PersistedDav({"calendar": [], "addressbook": [
+        {"href": "https://cloud.example/addressbook/%d.vcf" % i, "etag": '"base-%d"' % i, "data": text}
+        for i, text in enumerate(cards)]})
+    state = run_sync(monkeypatch, dav, empty_data(), calendar=False, contacts=True).payload
+    for item in state["kontakte"]:
+        item["notiz"] = "Saved synthetic edit"
+        item["geaendert"] += 1
+    path = tmp_path / "contacts.json"
+    for followup in range(3):
+        path.write_text(json.dumps(state))
+        state = run_sync(monkeypatch, dav, json.loads(path.read_text()), calendar=False, contacts=True).payload
+        dates = {item["uid"]: (item["geburtstag"], item["jubilaeum"]) for item in state["kontakte"]}
+        assert dates == {"synthetic-full-anniversary": ("1980-03-01", "2021-09-07"),
+                         "synthetic-yearless-anniversary": ("--02-29", "--09-07")}
+        assert len(dav.puts) == 2
+    fresh = run_sync(monkeypatch, dav, empty_data(), calendar=False, contacts=True).payload
+    assert {item["uid"]: (item["geburtstag"], item["jubilaeum"]) for item in fresh["kontakte"]} == dates
+    for _ in range(2):
+        path.write_text(json.dumps(fresh))
+        fresh = run_sync(monkeypatch, dav, json.loads(path.read_text()), calendar=False, contacts=True).payload
+        assert {item["uid"]: (item["geburtstag"], item["jubilaeum"]) for item in fresh["kontakte"]} == dates
+        assert len(dav.puts) == 2
+
+
+def test_dav_simultaneous_parent_child_conflicts_keep_both_hierarchy_branches(monkeypatch):
+    resources = {"addressbook": [], "calendar": [
+        {"href": "https://cloud.example/calendar/%s.ics" % uid, "etag": '"base-%s"' % uid,
+         "data": task_ics(uid=uid, title="BASE-" + uid).replace("END:VTODO",
+             ("RELATED-TO;RELTYPE=PARENT:parent\r\n" if uid == "child" else "") + "END:VTODO")}
+        for uid in ("parent", "child")]}
+    dav = PersistedDav(resources)
+    state = run_sync(monkeypatch, dav, empty_data()).payload
+    for item in state["aufgaben"]:
+        item.update(titel="LOCAL-" + item["uid"], geaendert=item["geaendert"] + 1)
+    for row in resources["calendar"]:
+        row.update(etag=row["etag"].replace("base", "remote"), data=row["data"].replace("BASE-", "REMOTE-"))
+    for followup in range(3):
+        state = run_sync(monkeypatch, dav, json.loads(json.dumps(state))).payload
+        tasks = {item["titel"]: item for item in state["aufgaben"]}
+        assert len(tasks) == 4
+        assert tasks["REMOTE-child"]["elternUid"] == tasks["REMOTE-parent"]["uid"] == "parent"
+        assert tasks["LOCAL-child"]["elternUid"] == tasks["LOCAL-parent"]["uid"] != "parent"
+        assert len(dav.puts) == (0 if followup == 0 else 2)
+
+
 def test_legacy_eds_status_additively_reports_nextcloud_sources(monkeypatch):
     calendar = {"uid": "nextcloud-calendar:" + "a" * 64, "name": "Cloud",
                 "href": "https://cloud.example/calendar/", "art": "calendar"}
@@ -1186,10 +1438,95 @@ def test_mixed_provider_resume_journal_is_private_and_removable(monkeypatch, tmp
     monkeypatch.setattr(m, "daten_verzeichnis", lambda: str(tmp_path))
     stand = {"id": "a" * 64, "status": "prepared", "phase": "nextcloud"}
     m.sync_transaktion_schreiben(stand)
-    pfad = tmp_path / "sync-transaktion.aes"
+    pfad = pathlib.Path(m.sync_transaktionsdatei(stand["id"]))
     assert stand["id"].encode() not in pfad.read_bytes()
-    assert m.sync_transaktion_lesen() == stand
+    assert m.sync_transaktion_lesen(stand["id"]) == stand
     assert pfad.stat().st_mode & 0o777 == 0o600
     assert (tmp_path / ".sync-transaktion.key").stat().st_mode & 0o777 == 0o600
-    m.sync_transaktion_abschliessen()
-    assert not pfad.exists()
+    assert not m.sync_transaktion_abschliessen(stand["id"], {})
+    assert pfad.exists()
+
+
+def test_pure_nextcloud_sync_resumes_completed_result_after_delivery_crash(monkeypatch,
+                                                                          tmp_path):
+    monkeypatch.setattr(m, "daten_verzeichnis", lambda: str(tmp_path))
+    calls = []
+    result = {"ok": True, "termine": [{"uid": "remote"}], "bericht": "ok"}
+
+    def synchronize(_self, _message, calendars, book, antworten=True, snapshot=True):
+        calls.append((calendars, book, antworten, snapshot))
+        return result
+
+    monkeypatch.setattr(m.Fenster, "_nextcloud_sync_ausfuehren", synchronize)
+    message = {"wahl": {"kalenderUids": ["nextcloud-calendar:" + "a" * 64],
+                         "adressbuchUid": ""},
+               "daten": {"syncEpoch": "epoch", "termine": []}}
+
+    class CrashAfterDelivery:
+        def _journal_snapshot(self, _reason):
+            pass
+
+        def _nextcloud_sync_ausfuehren(self, message, calendars, book,
+                                       antworten=True, snapshot=True):
+            return synchronize(self, message, calendars, book, antworten, snapshot)
+
+        def antwort(self, _callback, _payload):
+            raise RuntimeError("simulated delivery crash")
+
+    with pytest.raises(RuntimeError, match="delivery crash"):
+        m.Fenster._sync_ausfuehren(CrashAfterDelivery(), message)
+    saved = m.sync_transaktion_lesen(result["transactionId"])
+    assert saved["phase"] == "complete" and saved["zwischenstand"] == result
+
+    class Restarted(CrashAfterDelivery):
+        def antwort(self, callback, payload):
+            self.delivered = (callback, payload)
+
+    restarted = Restarted()
+    assert m.Fenster._sync_ausfuehren(restarted, message) == result
+    assert restarted.delivered == ("App.syncFertig", result)
+    assert len(calls) == 1 and pathlib.Path(m.sync_transaktionsdatei(result["transactionId"])).exists()
+
+
+@pytest.mark.parametrize("provider", ["eds", "akonadi"])
+def test_mixed_native_provider_preserves_dav_tasks_and_tombstones(monkeypatch, tmp_path, provider):
+    monkeypatch.setattr(m, "daten_verzeichnis", lambda: str(tmp_path))
+    dav = SyncDav({"calendar": [{"href": "https://cloud.example/calendar/task.ics",
+        "etag": '"task"', "data": task_ics()}], "addressbook": []})
+    monkeypatch.setattr(m, "NextcloudDav", lambda _client: dav)
+    monkeypatch.setattr(m, "configured_client", lambda _store: object())
+    monkeypatch.setattr(m, "nextcloud_speicher", lambda: object())
+    monkeypatch.setattr(m, "eds_laden", lambda: True)
+    monkeypatch.setattr(m, "eds_registry", lambda: object())
+    monkeypatch.setitem(m._EDS, "buch_ok", True)
+    monkeypatch.setattr(m, "_sync_quellenname", lambda *_: "Test Book")
+    monkeypatch.setattr(m, "eds_buch_client", lambda *_: object())
+    monkeypatch.setattr(m, "eds_kontakte_lesen", lambda *_: {
+        "vollstaendig": True, "kontakte": [], "geburtstage": [], "fehler": [],
+        "remoteGesamt": 0, "gueltigeUids": 0})
+    book = "akonadi-addressbook:test" if provider == "akonadi" else "eds-book"
+    monkeypatch.setattr(m, "akonadi_quellen_status", lambda: {
+        "verfuegbar": True, "fehler": "", "kalender": [], "adressbuecher": [
+            {"uid": book, "name": "Test Book", "generation": 1, "instance": "test",
+             "rights": ["create", "change", "delete"]}]})
+
+    class MixedProbe(SyncProbe):
+        _sync_ausfuehren = m.Fenster._sync_ausfuehren
+        _nextcloud_sync_ausfuehren = m.Fenster._nextcloud_sync_ausfuehren
+
+    probe = MixedProbe()
+    calendar = dav.collections("calendar")[0]["uid"]
+    data = empty_data()
+    tombstone = {"uid": "old-task", "zeit": 123, "syncKalenderUid": calendar}
+    data["geloescht"]["aufgaben"] = [tombstone]
+    result = probe._sync_ausfuehren({"daten": data, "wahl": {
+        "kalenderUids": [calendar], "adressbuchUid": book}})
+    assert result["ok"]
+    assert len(result["aufgaben"]) == 1
+    task = result["aufgaben"][0]
+    assert task["uid"] == "remote-task" and task["id"].startswith("dav-task:")
+    assert task["syncKalenderUid"] == calendar and calendar in task["syncQuellen"]
+    assert result["geloescht"]["aufgaben"] == [tombstone]
+    assert result["syncMetadaten"]["nextcloud"]["kalender"][calendar]["aufgabenInitialisiert"]
+    assert json.loads(json.dumps(probe.payload))["aufgaben"] == [task]
+    assert pathlib.Path(m.sync_transaktionsdatei(result["transactionId"])).exists()

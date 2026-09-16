@@ -1,5 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="baum_postfach_unsicher">Неподтверждённые доставки: %1$d. Сообщения сохранены, автоматическая повторная отправка приостановлена. Проверьте получение: старые устройства могут не поддерживать проверяемые подтверждения.</string>
+    <string name="telefon_bluetooth_setup">Связать новый Organizer по Bluetooth</string>
+    <string name="telefon_bluetooth_setup_hinweis">Оставьте этот экран открытым. Выберите этот телефон в Organizer, подтвердите системное сопряжение, затем сравните код на обоих устройствах.</string>
     <string name="freigabe_ziel">Сохранить в Magnolie Notes</string>
     <string name="blatt_notizen">Заметки</string>
     <string name="blatt_einfuhr">Импорт</string>
@@ -342,7 +345,7 @@
     <string name="start_laden">Открытие защищённых данных…</string><string name="start_fehler_titel">Не удалось открыть защищённые данные</string><string name="start_daten_unveraendert">Ваши данные не удалены и не перезаписаны. Можно безопасно повторить попытку.</string><string name="start_erneut">Повторить</string><string name="start_schliessen">Закрыть приложение</string>
     <string name="absturzbericht_teilen">Поделиться отчётом о сбое</string>
     <string name="journal_maximum">Точки восстановления</string>
-    <string name="journal_maximum_hinweis">При уменьшении лимита самые старые точки восстановления удаляются автоматически.</string>
+    <string name="journal_maximum_hinweis">При уменьшении лимита удаляются самые старые незащищённые точки восстановления. Защищённые точки сохраняются.</string>
     <string name="portable_titel">Переносная резервная копия</string><string name="portable_hinweis">Создайте или восстановите отдельный защищённый паролем архив с заметками, блокнотами, задачами, корзиной и вложениями.</string><string name="portable_export">Создать переносную копию</string><string name="portable_datei_oeffnen">Открыть переносную копию</string><string name="portable_restore">Восстановить копию</string><string name="portable_passwort">Пароль</string><string name="portable_passwort_hinweis">Введите пароль архива. Во время проверки копии ничего не изменяется.</string><string name="portable_pruefen">Проверить и показать содержимое</string><string name="portable_vorschau">Содержимое копии</string><string name="portable_vorschau_text">%1$d заметок · %2$d блокнотов · %3$d задач · %4$d элементов в корзине</string><string name="portable_restore_warnung">Все текущие личные данные будут заменены. Сначала создаётся локальный страховочный снимок; идентификатор Magnolienbaum этого устройства сохраняется.</string><string name="portable_fehler">Не удалось открыть копию. Проверьте файл и пароль.</string><string name="portable_exportiert">Переносная копия создана.</string><string name="portable_wiederhergestellt">Переносная копия восстановлена.</string>
     <string name="auto_backup_titel">Автоматическая копия в облачной папке</string>
     <string name="auto_backup_hinweis">При желании сохраняет проверенные переносимые копии в папке, выбранной через Android. Поставщик может синхронизировать её.</string>
@@ -370,4 +373,27 @@
     <string name="aufgabe_zur_wurzel">На верхний уровень</string>
     <string name="aufgabe_eltern_waehlen">Выбрать родительскую задачу</string>
     <string name="aufgabe_oberste_ebene">Верхний уровень</string>
+    <string name="baum_kontakt_jubilaeum">Годовщина</string>
+    <string name="baum_kontakt_update">Чтобы передать годовщины, обновите Magnolie на обоих устройствах, откройте оба приложения и повторите попытку. В этот раз контакты не отправлялись.</string>
+    <string name="baum_aufgabe_nicht_freigegeben">Эта задача не была передана этому устройству.</string>
+    <string name="baum_kontakt_import_nicht_unterstuetzt">Чтобы передать контакты на это устройство, воспользуйтесь синхронизацией контактов.</string>
+    <string name="aufgabe_nach_oben">Переместить задачу выше</string>
+    <string name="aufgabe_nach_unten">Переместить задачу ниже</string>
+    <string name="personal_custom_optin">Синхронизировать задачи и встречи с пользовательской вкладки</string>
+    <string name="personal_custom_title">Задачи и встречи с пользовательской вкладки (только чтение)</string>
+    <string name="personal_custom_explanation">Оба устройства должны дать согласие. Выключение приостанавливает напоминания и обновления с пользовательской вкладки, но сохраняет копии. Связанные текстовые блоки не передаются.</string>
+    <string name="personal_custom_unsupported">Это устройство не поддерживает синхронизацию пользовательской вкладки.</string>
+    <string name="personal_custom_delete">Удалено в источнике: удалить эту копию с телефона или сохранить? Источник на компьютере никогда не изменяется.</string>
+    <string name="personal_custom_keep">Сохранить копию</string>
+    <string name="personal_custom_privacy">Только с явного согласия обоих устройств Personal Sync передаёт собственные задачи и встречи только для чтения, включая их собственные заметки. Текстовые блоки, связанные тексты и вложения исключены. Архивы восстанавливают копии, а не разрешения.</string>
+    <string name="device_identifiers_share">Передавать идентификаторы своего телефона</string>
+    <string name="device_identifiers_explanation">Только по запросу своего сопряжённого компьютера, на 60 секунд, без сохранения: номер SIM для голосовых вызовов по умолчанию и, если Android разрешает, серийный номер и IMEI. Начиная с Android 10 аппаратные идентификаторы ограничены для обычных приложений. Разрешение на номер необязательно; специальные роли не запрашиваются.</string>
+    <string name="device_identifiers_phone">Свой номер (SIM для звонков по умолчанию)</string>
+    <string name="device_identifiers_serial">Серийный номер устройства</string>
+    <string name="device_identifiers_imei">IMEI устройства</string>
+    <string name="device_identifiers_off">Передача идентификаторов отключена.</string>
+    <string name="device_identifiers_permission">Нет разрешения на идентификаторы.</string>
+    <string name="device_identifiers_restricted">Android ограничивает этот идентификатор.</string>
+    <string name="device_identifiers_subscription">Нет подписки для звонков по умолчанию.</string>
+    <string name="device_identifiers_unavailable">Этот идентификатор недоступен.</string>
 </resources>

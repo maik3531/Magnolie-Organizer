@@ -8,6 +8,7 @@ import android.os.Handler
 import android.os.Looper
 import android.os.PowerManager
 import android.telecom.TelecomManager
+import android.telecom.VideoProfile
 import android.telephony.PhoneStateListener
 import android.telephony.SubscriptionManager
 import android.telephony.TelephonyCallback
@@ -54,6 +55,10 @@ class EingehendeAnrufe(private val context: Context) {
     }
 
     private fun unregister(waitForNoProximity: Boolean) {
+        if (Looper.myLooper() != Looper.getMainLooper()) {
+            handler.post { synchronized(this) { reconcileListening() } }
+            return
+        }
         listenerGeneration++
         val listener = callback
         if (listener != null && Build.VERSION.SDK_INT >= 31)
@@ -97,6 +102,10 @@ class EingehendeAnrufe(private val context: Context) {
     }
 
     private fun reconcileListening() {
+        if (Looper.myLooper() != Looper.getMainLooper()) {
+            handler.post { synchronized(this) { reconcileListening() } }
+            return
+        }
         val permitted = context.checkSelfPermission(Manifest.permission.READ_PHONE_STATE) == PackageManager.PERMISSION_GRANTED
         if (telefonLauscherNoetig(serviceRunning, permitted, incomingListening, active != null)) start()
         else unregister(true)
@@ -134,7 +143,15 @@ class EingehendeAnrufe(private val context: Context) {
         val now = System.currentTimeMillis()
         var call = active
         var created = false
+        // Android RINGING is an incoming OS call, unlike our synthetic outgoing
+        // wire start. Retire an ambiguous outgoing association before it could
+        // authorize endCall against the newly ringing/answered incoming call.
+        if (call?.direction == "outgoing" && value == TelephonyManager.CALL_STATE_RINGING) {
+            finish(call, now)
+            call = null
+        }
         if (call == null && value != TelephonyManager.CALL_STATE_IDLE) {
+            if (!incomingListening) return
             call = TrackedCall(UUID.randomUUID().toString(), 0, value,
                 if (value == TelephonyManager.CALL_STATE_RINGING) "incoming" else "unknown",
                 suppliedNumber, "", now, observedNonIdle = true)
@@ -204,27 +221,30 @@ class EingehendeAnrufe(private val context: Context) {
         const val OUTGOING_START_TIMEOUT_MS = 30_000L
     }
 
-    fun answer(commandRef: String, expectedCallRef: String): Pair<String, String> {
+    @Synchronized fun answer(commandRef: String, expectedCallRef: String): Pair<String, String> {
         synchronized(this) {
             val call = active
-            if (!TelefonAblage.get(context).answerCallsEnabled()) return failedAnswer(expectedCallRef, commandRef, "not_granted")
+            if (!TelefonAblage.get(context).answerCallsEnabled() || !TelefonAblage.get(context).incomingCallsEnabled())
+                return failedAnswer(expectedCallRef, commandRef, "not_granted")
             if (context.checkSelfPermission(Manifest.permission.ANSWER_PHONE_CALLS) != PackageManager.PERMISSION_GRANTED)
                 return failedAnswer(expectedCallRef, commandRef, "permission_missing")
             if (expectedCallRef != call?.callRef) return failedAnswer(expectedCallRef, commandRef, "stale_call")
-            if (call.state != TelephonyManager.CALL_STATE_RINGING) return failedAnswer(expectedCallRef, commandRef, "not_ringing")
-            if (!TelefonEffekte(context).firstEvent("answer:$commandRef")) return "already_answered" to "none"
+            if (call.direction != "incoming" || call.state != TelephonyManager.CALL_STATE_RINGING ||
+                !liveStateMatches(TelephonyManager.CALL_STATE_RINGING))
+                return failedAnswer(expectedCallRef, commandRef, "not_ringing")
+            // An effect marker proves an attempt, not successful OS acceptance.
+            // Durable protocol replies handle known duplicates; an interrupted
+            // effect with no reply must never turn into a fake answer result.
+            if (!TelefonEffekte(context).firstEvent("answer:$commandRef"))
+                return "failed" to "os_restricted"
+            origins.answerSubmitted(expectedCallRef, commandRef, System.currentTimeMillis())
         }
         val error = runCatching {
-            @Suppress("DEPRECATION") context.getSystemService(TelecomManager::class.java)?.acceptRingingCall()
+            @Suppress("DEPRECATION") context.getSystemService(TelecomManager::class.java)?.acceptRingingCall(VideoProfile.STATE_AUDIO_ONLY)
                 ?: return failedAnswer(expectedCallRef, commandRef, "os_restricted")
         }.exceptionOrNull()
         if (error != null) return failedAnswer(expectedCallRef, commandRef,
             if (error is SecurityException) "permission_missing" else "os_restricted")
-        synchronized(this) {
-            val call = active
-            if (call?.callRef == expectedCallRef && call.state == TelephonyManager.CALL_STATE_RINGING)
-                origins.answerSubmitted(expectedCallRef, commandRef, System.currentTimeMillis())
-        }
         return "submitted" to "none"
     }
 
@@ -237,20 +257,36 @@ class EingehendeAnrufe(private val context: Context) {
         origins.answerFailed(callRef, commandRef)
     }
 
-    @Synchronized fun end(commandRef: String, callRef: String, revision: Int): Pair<String, String> {
+    @Synchronized fun end(commandRef: String, callRef: String, revision: Int,
+                          expectedState: String = "offhook", scopedOutgoing: Boolean = false): Pair<String, String> {
         val call = active
-        if (!TelefonAblage.get(context).answerCallsEnabled()) return "failed" to "not_granted"
+        val ownOutgoing = scopedOutgoing && expectedState == "offhook" && call?.direction == "outgoing" &&
+            call.clientRef == callRef && call.callRef == callRef && TelefonAblage.get(context).dialRequestEnabled()
+        if (!ownOutgoing && !TelefonAblage.get(context).answerCallsEnabled()) return "failed" to "not_granted"
+        if (expectedState == "ringing" && !TelefonAblage.get(context).incomingCallsEnabled()) return "failed" to "not_granted"
         if (Build.VERSION.SDK_INT < 28) return "failed" to "unsupported_api"
         if (context.checkSelfPermission(Manifest.permission.ANSWER_PHONE_CALLS) != PackageManager.PERMISSION_GRANTED) return "failed" to "permission_missing"
         if (call == null) return "already_ended" to "none"
         if (call.callRef != callRef || call.revision != revision) return "failed" to "stale_call"
-        if (call.state != TelephonyManager.CALL_STATE_OFFHOOK) return "failed" to "not_active"
-        if (!TelefonEffekte(context).firstEvent("end:$commandRef")) return "submitted" to "none"
+        val expected = when (expectedState) {
+            "ringing" -> TelephonyManager.CALL_STATE_RINGING
+            "offhook" -> TelephonyManager.CALL_STATE_OFFHOOK
+            else -> return "failed" to "not_active"
+        }
+        if (call.state != expected || !liveStateMatches(expected) ||
+            expectedState == "ringing" && call.direction != "incoming") return "failed" to "not_active"
+        if (!TelefonEffekte(context).firstEvent("end:$commandRef")) return "failed" to "os_restricted"
         return runCatching {
             @Suppress("DEPRECATION") val ended = context.getSystemService(TelecomManager::class.java)?.endCall() ?: false
             if (ended) "submitted" to "none" else "failed" to "not_active"
         }.getOrElse { "failed" to if (it is SecurityException) "permission_missing" else "os_restricted" }
     }
+
+    @Suppress("DEPRECATION")
+    private fun liveStateMatches(expected: Int): Boolean = runCatching {
+        context.checkSelfPermission(Manifest.permission.READ_PHONE_STATE) == PackageManager.PERMISSION_GRANTED &&
+            manager?.callState == expected
+    }.getOrDefault(false)
 }
 
 internal fun telefonLauscherNoetig(serviceRunning: Boolean, permitted: Boolean,
@@ -292,7 +328,8 @@ private fun telefonNaeheSperre(context: Context): TelefonNaeheSperre? {
     wakeLock.setReferenceCounted(false)
     return object : TelefonNaeheSperre {
         override val held: Boolean get() = wakeLock.isHeld
-        override fun acquire() = wakeLock.acquire()
+        // A missed terminal callback must not leave the screen blocked indefinitely.
+        override fun acquire() = wakeLock.acquire(4L * 60 * 60 * 1000)
         override fun release(waitForNoProximity: Boolean) {
             if (waitForNoProximity)
                 wakeLock.release(PowerManager.RELEASE_FLAG_WAIT_FOR_NO_PROXIMITY)

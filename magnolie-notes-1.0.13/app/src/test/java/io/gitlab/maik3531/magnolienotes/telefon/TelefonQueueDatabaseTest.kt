@@ -113,6 +113,36 @@ class TelefonQueueDatabaseTest {
         put("modules", JsonArray(listOf(JsonPrimitive("notes"))))
     }
 
+    @Test fun `restore epoch invalidates old encrypted runs and queued payloads`() {
+        var epoch = "before"
+        val scoped = TelefonQueue(context, storage) { epoch }
+        val runId = uuid(600)
+        scoped.rememberPersonalRun("peer", request(runId), System.currentTimeMillis() + 60_000)
+        scoped.queue("peer", "personal_sync.request", request(runId), 60_000)
+        assertEquals(1, scoped.due("peer", TelefonTransportArt.WIFI).size)
+        epoch = "after"
+        assertEquals(null, scoped.personalRun("peer", runId))
+        assertTrue(scoped.due("peer", TelefonTransportArt.WIFI).isEmpty())
+        scoped.rememberPersonalRun("peer", request(uuid(601)), System.currentTimeMillis() + 60_000)
+        assertTrue(scoped.personalRun("peer", uuid(601)) != null)
+    }
+
+    @Test fun `notification revocation removes only disallowed queued packages`() {
+        for (name in listOf("allowed", "revoked")) queue.queue("peer", "selected_notifications_readonly.event",
+            buildJsonObject { put("package", JsonPrimitive(name)) }, 60_000)
+        queue.purgeNotifications(setOf("allowed"))
+        assertEquals(listOf("allowed"), queue.due("peer", TelefonTransportArt.WIFI).map {
+            (it.payload["body"] as kotlinx.serialization.json.JsonObject).string("package") })
+    }
+
+    @Test fun `control replay must match the durable original payload`() {
+        val message = TelefonNachrichten.message("grants.update", TelefonNachrichten.grants(), 60_000)
+        assertEquals("accepted", queue.receive("peer", message).first)
+        assertTrue(queue.receivedMatches("peer", message))
+        assertFalse(queue.receivedMatches("peer", kotlinx.serialization.json.JsonObject(message +
+            ("body" to TelefonNachrichten.grants(2)))))
+    }
+
     private fun decisionBody(index: Int, runId: String = uuid(40 + index)) = buildJsonObject {
         put("format", JsonPrimitive(1)); put("run_id", JsonPrimitive(runId)); put("decision_id", JsonPrimitive(uuid(80 + index)))
         put("decisions", JsonArray(listOf(buildJsonObject {

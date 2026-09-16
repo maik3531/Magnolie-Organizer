@@ -1,5 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="baum_postfach_unsicher">配信未確認：%1$d 件。メッセージは保存され、自動再送は停止されています。受信側で確認してください。古い端末は認証付き受領確認に対応していない場合があります。</string>
+    <string name="telefon_bluetooth_setup">Bluetooth で新しい Organizer とペア設定</string>
+    <string name="telefon_bluetooth_setup_hinweis">この画面を開いたままにしてください。Organizer でこの電話を選び、システムのペア設定を確認してから、両方の端末のコードを比較してください。</string>
     <string name="freigabe_ziel">Magnolie Notes に保存</string>
     <string name="blatt_notizen">ノート</string>
     <string name="blatt_einfuhr">インポート</string>
@@ -300,7 +303,7 @@
     <string name="start_laden">保護されたデータを開いています…</string><string name="start_fehler_titel">保護されたデータを開けませんでした</string><string name="start_daten_unveraendert">データは削除も上書きもされていません。安全に再試行できます。</string><string name="start_erneut">再試行</string><string name="start_schliessen">アプリを閉じる</string>
     <string name="absturzbericht_teilen">クラッシュレポートを共有</string>
     <string name="journal_maximum">復元ポイント</string>
-    <string name="journal_maximum_hinweis">上限を減らすと、最も古い復元ポイントが自動的に削除されます。</string>
+    <string name="journal_maximum_hinweis">上限を減らすと、保護されていない古い復元ポイントから削除されます。保護されたポイントは残ります。</string>
     <string name="portable_titel">ポータブルバックアップ</string><string name="portable_hinweis">メモ、ノートブック、タスク、ゴミ箱、添付ファイルを含む、独立したパスワード保護アーカイブを作成または復元します。</string><string name="portable_export">ポータブルバックアップを作成</string><string name="portable_datei_oeffnen">ポータブルバックアップを開く</string><string name="portable_restore">バックアップを復元</string><string name="portable_passwort">パスワード</string><string name="portable_passwort_hinweis">アーカイブのパスワードを入力してください。バックアップの検証中は何も変更されません。</string><string name="portable_pruefen">検証してプレビュー</string><string name="portable_vorschau">バックアップのプレビュー</string><string name="portable_vorschau_text">メモ %1$d 件 · ノートブック %2$d 件 · タスク %3$d 件 · ゴミ箱 %4$d 件</string><string name="portable_restore_warnung">現在の個人コンテンツがすべて置き換えられます。最初にローカルの安全用スナップショットが作成され、この端末の Magnolienbaum ID は保持されます。</string><string name="portable_fehler">バックアップを開けませんでした。ファイルとパスワードを確認してください。</string><string name="portable_exportiert">ポータブルバックアップを作成しました。</string><string name="portable_wiederhergestellt">ポータブルバックアップを復元しました。</string>
     <string name="auto_backup_titel">クラウドフォルダーへの自動バックアップ</string>
     <string name="auto_backup_hinweis">Android で選択したフォルダーに、認証済みのポータブルバックアップを任意で保存します。プロバイダーはそのフォルダーを同期できます。</string>
@@ -328,4 +331,27 @@
     <string name="aufgabe_zur_wurzel">最上位へ</string>
     <string name="aufgabe_eltern_waehlen">親タスクを選択</string>
     <string name="aufgabe_oberste_ebene">最上位</string>
+    <string name="baum_kontakt_jubilaeum">記念日</string>
+    <string name="baum_kontakt_update">記念日も転送するには、両方の端末で Magnolie を更新し、両方のアプリを開いてからもう一度お試しください。今回は連絡先を送信していません。</string>
+    <string name="baum_aufgabe_nicht_freigegeben">このタスクは、この端末と共有されていません。</string>
+    <string name="baum_kontakt_import_nicht_unterstuetzt">この端末に連絡先を送るには、連絡先の同期機能をお使いください。</string>
+    <string name="aufgabe_nach_oben">タスクを上に移動</string>
+    <string name="aufgabe_nach_unten">タスクを下に移動</string>
+    <string name="personal_custom_optin">カスタムタブのタスクと予定を同期</string>
+    <string name="personal_custom_title">カスタムタブのタスクと予定（読み取り専用）</string>
+    <string name="personal_custom_explanation">両方の端末で同意が必要です。オフにするとカスタムタブのリマインダーと更新が一時停止しますが、コピーは保持されます。リンク先のテキストブロックは共有されません。</string>
+    <string name="personal_custom_unsupported">この端末はカスタムタブの同期に対応していません。</string>
+    <string name="personal_custom_delete">元の項目が削除されました。この電話のコピーを削除しますか、それとも保持しますか？パソコン側の元データは変更されません。</string>
+    <string name="personal_custom_keep">コピーを保持</string>
+    <string name="personal_custom_privacy">両方の端末が明示的に同意した場合にのみ、Personal Sync はカスタムのタスクと予定を、その項目自体のメモを含めて読み取り専用で共有します。テキストブロック、リンク先のテキスト、添付ファイルは対象外です。アーカイブはコピーを復元しますが、権限は復元しません。</string>
+    <string name="device_identifiers_share">自分の電話の識別子を共有</string>
+    <string name="device_identifiers_explanation">自分のペアリング済みパソコンからの要求時のみ、保存せずに 60 秒間表示します。対象は既定の音声 SIM の番号と、Android が許可する場合のシリアル番号および IMEI です。Android 10 以降では一般のアプリによるハードウェア識別子の取得が制限されます。電話番号の権限は任意で、特別な役割は要求しません。</string>
+    <string name="device_identifiers_phone">自分の番号（既定の音声 SIM）</string>
+    <string name="device_identifiers_serial">端末のシリアル番号</string>
+    <string name="device_identifiers_imei">端末の IMEI</string>
+    <string name="device_identifiers_off">端末識別子の共有はオフです。</string>
+    <string name="device_identifiers_permission">端末識別子の権限がありません。</string>
+    <string name="device_identifiers_restricted">Android がこの端末識別子を制限しています。</string>
+    <string name="device_identifiers_subscription">既定の音声契約がありません。</string>
+    <string name="device_identifiers_unavailable">この端末識別子は利用できません。</string>
 </resources>

@@ -22,7 +22,7 @@ internal sealed record KdeConnectStatus(bool Available, int DeviceCount, string 
     string ReplacementPeerId, bool CandidateReachable, int CandidateAgeSeconds,
     int ConnectionGeneration, string ConnectionDirection,
     bool HistoryAvailable, string BootstrapState, int ParseValid, int ParseSkipped, long LastReceiveMs,
-    int PairingMismatchCount, int NextReconnectSeconds);
+    int PairingMismatchCount, int NextReconnectSeconds, string DeviceFingerprint = "");
 
 internal sealed class KdeConnectDirectBackend : IDisposable, IAsyncDisposable
 {
@@ -85,13 +85,22 @@ internal sealed class KdeConnectDirectBackend : IDisposable, IAsyncDisposable
         debugLogPath = Path.Combine(paths.Logs, "kde-connect-debug.log");
         store = new KdeConnectIdentityStore(paths, protector);
         local = store.LoadOrCreate();
-        listener = BindListener();
+        TcpListener? allocatedListener = null;
+        UdpClient? allocatedUdp = null;
+        try
+        {
+        listener = allocatedListener = BindListener();
         ListenerPort = ((IPEndPoint)listener.LocalEndpoint).Port;
-        udp = TryBindUdp(activeDiscovery);
+        udp = allocatedUdp = TryBindUdp(activeDiscovery);
         DebugLog("start", $"device={local.Id} tcp={ListenerPort} udp={DiscoveryPort} discovery={activeDiscovery} " +
             $"os={Environment.OSVersion} runtime={Environment.Version}");
         acceptTask = AcceptLoopAsync(lifetime.Token);
         discoveryTask = DiscoveryLoopAsync(lifetime.Token);
+        }
+        catch
+        {
+            lifetime.Cancel(); allocatedListener?.Stop(); allocatedUdp?.Dispose(); local.Certificate.Dispose(); throw;
+        }
     }
 
     internal event Action<KdeConnectStatus>? StatusChanged;
@@ -115,10 +124,16 @@ internal sealed class KdeConnectDirectBackend : IDisposable, IAsyncDisposable
         Activate(await ConnectAsync(device, requiredPin, cancellationToken).ConfigureAwait(false), "outgoing");
 
     internal async Task<IReadOnlyList<KdeConnectDiscovered>> DiscoverAsync(TimeSpan duration,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default, bool collectForDuration = false)
     {
         ObjectDisposedException.ThrowIf(disposed, this);
         if (activeDiscovery) BroadcastIdentity();
+        if (collectForDuration)
+        {
+            await Task.Delay(duration, cancellationToken).ConfigureAwait(false);
+            ExpireCandidates();
+            return candidates.Values.ToArray();
+        }
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         timeout.CancelAfter(duration);
         try { await candidateSignal.WaitAsync(timeout.Token).ConfigureAwait(false); }
@@ -127,16 +142,30 @@ internal sealed class KdeConnectDirectBackend : IDisposable, IAsyncDisposable
         return candidates.Values.ToArray();
     }
 
-    internal async Task<KdeConnectPairing> BeginPairingAsync(CancellationToken cancellationToken = default)
+    internal Task<KdeConnectPairing> BeginPairingAsync(CancellationToken cancellationToken = default) =>
+        BeginPairingCoreAsync(null, cancellationToken);
+
+    internal Task<KdeConnectPairing> BeginPairingAsync(string deviceId, CancellationToken cancellationToken = default)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(deviceId);
+        return BeginPairingCoreAsync(deviceId, cancellationToken);
+    }
+
+    private async Task<KdeConnectPairing> BeginPairingCoreAsync(string? selectedDeviceId, CancellationToken cancellationToken)
+    {
+        ObjectDisposedException.ThrowIf(disposed, this);
+        cancellationToken.ThrowIfCancellationRequested();
         CleanupPending();
         var waiting = pending.Values.ToArray();
+        // Setup must own its request, not adopt an incoming or replacement operation.
+        if (selectedDeviceId is not null && (HasPairedPeers || waiting.Length != 0))
+            throw new InvalidOperationException(NativeLocalization.Gettext("A phone is already paired or pairing. Finish that connection first."));
         if (waiting.Length == 1) return waiting[0].Description;
         if (waiting.Length > 1) throw new InvalidOperationException("Mehrere KDE-Connect-Paarungen sind aktiv.");
         var pairedIds = store.LoadPeers().Where(peer => peer.Paired).Select(peer => peer.Id).ToHashSet(StringComparer.Ordinal);
         var replacementId = pairedIds.Count == 1 ? pairedIds.Single() : null;
-        var operation = new PairingOperation(replacementId,
-            CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, lifetime.Token));
+        var operation = new PairingOperation(selectedDeviceId is null ? replacementId : null,
+            CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, lifetime.Token), selectedDeviceId is not null);
         if (!pairingOperations.TryAdd(string.Empty, operation))
         { operation.Dispose(); throw new InvalidOperationException("Für dieses Gerät läuft bereits eine Paarung."); }
         pairingState = "connecting"; EmitStatus();
@@ -151,10 +180,13 @@ internal sealed class KdeConnectDirectBackend : IDisposable, IAsyncDisposable
             if (available.Length == 0)
                 available = (await DiscoverAsync(TimeSpan.FromSeconds(5), operation.Token).ConfigureAwait(false))
                     .Where(device => !pairedIds.Contains(device.Identity.DeviceId)).ToArray();
+            if (selectedDeviceId is not null)
+                available = available.Where(device => device.Identity.DeviceId == selectedDeviceId).ToArray();
             operation.Token.ThrowIfCancellationRequested();
             if (available.Length != 1)
                 throw new InvalidOperationException("Genau ein ungepaartes KDE-Connect-Gerät muss erreichbar sein.");
             candidate = available[0];
+            DebugLog("pair.selected", $"device={candidate.Identity.DeviceId} firstOnly={operation.FirstPairOnly}");
             if (!pairingOperations.TryAdd(candidate.Identity.DeviceId, operation))
                 throw new InvalidOperationException("Für dieses Gerät läuft bereits eine Paarung.");
             ownsCandidateOperation = true;
@@ -226,6 +258,13 @@ internal sealed class KdeConnectDirectBackend : IDisposable, IAsyncDisposable
         }
     }
 
+    internal void CancelSetupPairing(KdeConnectPairing request)
+    {
+        if (pending.TryGetValue(request.DeviceId, out var pairing) && pairing.Operation.FirstPairOnly &&
+            pairing.Description == request)
+            AbortPairing(request.DeviceId, pairing, "failed", "cancelled", true);
+    }
+
     internal async Task ConfirmPairingAsync(string deviceId, bool accept, CancellationToken cancellationToken = default)
     {
         if (!pending.TryGetValue(deviceId, out var pairing) || pairing.ExpiresAt <= DateTimeOffset.UtcNow)
@@ -284,12 +323,14 @@ internal sealed class KdeConnectDirectBackend : IDisposable, IAsyncDisposable
     }
 
     internal async Task<KdeConnectSendResult> SendSmsWithResultAsync(string number, string text, string country,
-        CancellationToken cancellationToken = default)
+        string expectedDeviceId, string expectedFingerprint, CancellationToken cancellationToken = default)
     {
         var body = KdeConnectProtocol.SmsBody(PhoneUri.Normalize(number, country), text);
         await EnsureActiveAsync(cancellationToken).ConfigureAwait(false);
         var connections = UsableConnections();
-        if (connections.Count != 1)
+        if (connections.Count != 1 || string.IsNullOrEmpty(expectedDeviceId) || string.IsNullOrEmpty(expectedFingerprint) ||
+            connections[0].Identity.DeviceId != expectedDeviceId ||
+            KdeConnectProtocol.CertificatePin(connections[0].Certificate) != expectedFingerprint)
         {
             SafeInvoke(SendCompleted, new KdeConnectSendResult(false, "failed", "", "no_unique_device"));
             throw new InvalidOperationException("Genau ein gepaartes SMS-fähiges KDE-Connect-Telefon ist erforderlich.");
@@ -311,8 +352,8 @@ internal sealed class KdeConnectDirectBackend : IDisposable, IAsyncDisposable
     }
 
     internal async Task SendSmsAsync(string number, string text, string country,
-        CancellationToken cancellationToken = default) =>
-        _ = await SendSmsWithResultAsync(number, text, country, cancellationToken).ConfigureAwait(false);
+        string expectedDeviceId, string expectedFingerprint, CancellationToken cancellationToken = default) =>
+        _ = await SendSmsWithResultAsync(number, text, country, expectedDeviceId, expectedFingerprint, cancellationToken).ConfigureAwait(false);
 
     private async Task EnsureActiveAsync(CancellationToken cancellationToken)
     {
@@ -969,7 +1010,8 @@ internal sealed class KdeConnectDirectBackend : IDisposable, IAsyncDisposable
                 if (!pairing.MutuallyConfirmed) return;
                 if (!pending.TryGetValue(deviceId, out var current) || !ReferenceEquals(current, pairing) ||
                     !staged.TryGetValue(deviceId, out var currentConnection) || !ReferenceEquals(currentConnection, connection)) return;
-                if (pairing.Operation.ReplacementPeerId is { } oldId)
+                if (pairing.Operation.FirstPairOnly) store.ConfirmFirst(peer);
+                else if (pairing.Operation.ReplacementPeerId is { } oldId)
                 {
                     store.Replace(oldId, peer);
                     active.TryRemove(oldId, out oldConnection);
@@ -1056,7 +1098,8 @@ internal sealed class KdeConnectDirectBackend : IDisposable, IAsyncDisposable
                 usable[0].Identity.IncomingCapabilities.Contains(KdeConnectProtocol.SmsRequestConversation),
             diagnostic?.State.BootstrapState ?? "offline", diagnostic?.State.ParseValid ?? 0,
             diagnostic?.State.ParseSkipped ?? 0, diagnostic?.State.LastReceiveMs ?? 0, mismatch,
-            Math.Max(0, (int)Math.Ceiling((nextReconnect - DateTimeOffset.UtcNow).TotalSeconds)));
+            Math.Max(0, (int)Math.Ceiling((nextReconnect - DateTimeOffset.UtcNow).TotalSeconds)),
+            usable.Count == 1 ? KdeConnectProtocol.CertificatePin(usable[0].Certificate) : "");
     }
 
     private void EmitStatus() => SafeInvoke(StatusChanged, BuildStatus());
@@ -1232,6 +1275,8 @@ internal sealed class KdeConnectDirectBackend : IDisposable, IAsyncDisposable
         internal async Task WriteAsync(byte[] packet, CancellationToken cancellationToken)
         {
             if (Closed) throw new EndOfStreamException("KDE-Connect-Verbindung ist geschlossen.");
+            using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            deadline.CancelAfter(TimeSpan.FromSeconds(10)); cancellationToken = deadline.Token;
             await writes.WaitAsync(cancellationToken).ConfigureAwait(false);
             try { await Stream.WriteAsync(packet, cancellationToken).ConfigureAwait(false); await Stream.FlushAsync(cancellationToken).ConfigureAwait(false); }
             finally { writes.Release(); }
@@ -1306,9 +1351,11 @@ internal sealed class KdeConnectDirectBackend : IDisposable, IAsyncDisposable
         internal KdeConnectPairing Description => new(Connection.Identity.DeviceId, Connection.Identity.DeviceName, Code, ExpiresAt);
     }
 
-    private sealed class PairingOperation(string? replacementPeerId, CancellationTokenSource cancellation) : IDisposable
+    private sealed class PairingOperation(string? replacementPeerId, CancellationTokenSource cancellation,
+        bool firstPairOnly = false) : IDisposable
     {
         private int removed;
+        internal bool FirstPairOnly { get; } = firstPairOnly;
         internal string? ReplacementPeerId { get; } = replacementPeerId;
         internal CancellationToken Token => cancellation.Token;
         internal bool Removed => Volatile.Read(ref removed) != 0;

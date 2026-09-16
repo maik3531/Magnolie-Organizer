@@ -16,7 +16,7 @@ internal sealed partial class BridgeDispatcher : IDisposable
     private readonly WindowsPaths paths;
     private readonly AtomicStore store = new();
     private EncryptionService encryption = new();
-    private readonly HttpClient http = new() { Timeout = TimeSpan.FromSeconds(15) };
+    private readonly HttpClient http = DeadlineHttp.Create(TimeSpan.FromSeconds(15));
     private string currentPlainText = "{}";
     private string currentEnvelope = "";
     private bool currentPlainTextAvailable;
@@ -24,9 +24,6 @@ internal sealed partial class BridgeDispatcher : IDisposable
     private long unlockBlockedUntil;
     private readonly ReminderScheduler reminders;
     private readonly SemaphoreSlim bridgeCommands = new(1, 1);
-    private readonly MagnolienbaumCoordinator baum;
-    private readonly TelefonCoordinator telefon;
-    private readonly KdeConnectSms kdeConnectSms;
     private string pendingTelefonPairingId = "";
     private string pendingKdePairingId = "";
     private readonly RecoveryJournal recovery;
@@ -45,28 +42,46 @@ internal sealed partial class BridgeDispatcher : IDisposable
         this.form = form;
         this.paths = paths;
         this.setupSelections = setupSelections;
-        kdeConnectSms = new KdeConnectSms(paths);
         reminders = new ReminderScheduler(paths.ReminderState, notice =>
             form.ShowReminder(notice.Title, notice.Body, notice.Kind, notice.Style));
         LoadPersistentReminders();
-        baum = new MagnolienbaumCoordinator(paths, form.SendAsync);
-        telefon = new TelefonCoordinator(paths, HandleTelefonEventAsync, KdeStatusForWebAsync,
-            new WindowsBluetoothRadio());
-        kdeConnectSms.StatusChanged += HandleKdeStatusChanged;
-        kdeConnectSms.SmsReceived += HandleKdeSmsReceived;
-        kdeConnectSms.PairingChanged += HandleKdePairingChanged;
-        form.SetTelefonCoordinator(telefon);
         recovery = new RecoveryJournal(paths.RecoveryJournal, paths.RecoverySettings, store);
-        recoveryTimer = new System.Threading.Timer(_ => _ = RunPeriodicSnapshotAsync(), null,
+        recoveryTimer = new System.Threading.Timer(_ => QueueBackground(RunPeriodicSnapshotAsync), null,
             TimeSpan.FromMinutes(1), TimeSpan.FromMinutes(15));
         http.DefaultRequestHeaders.UserAgent.ParseAdd($"Magnolie-Organizer-Windows/{AppVersion}");
         updates = new WindowsUpdateService(paths.Root);
         cloudBackups = new CloudBackupService(paths.CloudBackupPassword);
+        cloudWorker = new CloudBackupWorker(cloudBackups, Path.Combine(paths.Root, "cloud-backup-state.json"), AppVersion, form.SendAsync);
     }
 
     internal async Task HandleAsync(string rawMessage)
     {
-        await bridgeCommands.WaitAsync();
+        if (disposed) return;
+        using (var parsed = BridgeDispatcherContract.Parse(rawMessage))
+        {
+            var command = parsed.RootElement.GetProperty("cmd").GetString()!;
+            if (command is "wetter" or "feiertage" or "update_pruefen" or
+                "update_herunterladen" or "eds_status" or "graph_anmelden" or "baum_suchen" or "baum_paaren" or "baum_briefkasten_pruefen" or "kde_sms_senden" or "cloud_sicherung_test" or
+                "baum_ein" or "baum_teilen" or "baum_delegieren" or "baum_rueckmeldung" or "telefon_ein" or "telefon_verbindung_ein" or
+                "telefon_status_anfordern" or "telefon_waehlen" or "telefon_annehmen" or "telefon_auflegen" or
+                "sync" or "personal_sync_senden" or "personal_sync_lauf_senden" or "handbuch_herunterladen" or "baum_internet_adresse" or
+                "telefon_oeffnen" or "telefon_verbinden" or "telefon_pairing_oeffnen" or "kde_pairing_start" or "kde_pairing_complete" or
+                "kde_paaren" or "kde_pairing_confirm" or "kde_paarung_bestaetigen" or "baum_briefkasten_speichern" or "graph_client_id_speichern")
+            {
+                var owner = command is "sync" or "baum_briefkasten_speichern" or "graph_client_id_speichern" ? "sync" :
+                    command.StartsWith("personal_sync", StringComparison.Ordinal) || command.StartsWith("telefon", StringComparison.Ordinal) ? "phone" :
+                    command.StartsWith("kde", StringComparison.Ordinal) ? "kde" : command.StartsWith("baum", StringComparison.Ordinal) ? "baum" :
+                    command.StartsWith("update", StringComparison.Ordinal) || command == "handbuch_herunterladen" ? "update" : command;
+                var revision = Volatile.Read(ref graphRevision);
+                QueueNetworkCommand(() =>
+                {
+                    if (command != "graph_anmelden") return HandleCoreAsync(rawMessage);
+                    lock (serviceGate) return revision != graphRevision ? Task.CompletedTask : HandleCoreAsync(rawMessage);
+                }, owner);
+                return;
+            }
+        }
+        await bridgeCommands.WaitAsync(backgroundLifetime.Token);
         try { await HandleCoreAsync(rawMessage); }
         finally { bridgeCommands.Release(); }
     }
@@ -120,7 +135,8 @@ internal sealed partial class BridgeDispatcher : IDisposable
                     case "ordner_waehlen": await SelectFolderAsync(); break;
                     case "drucken": form.ShowPrintDialog(Text(message, "html")); break;
                     case "notiz_anhang_datei": await HandleAttachmentFileAsync(message); break;
-                    case "update_oeffnen": await OpenValidatedResultAsync("App.updateGeoeffnet", Text(message, "url"), IsAllowedWindowsUpdateUrl); break;
+                    case "update_oeffnen": await OpenValidatedResultAsync("App.updateGeoeffnet",
+                        Text(message, "url"), updates.IsValidatedReleaseUrl); break;
                     case "handbuch_herunterladen": await DownloadManualAsync(message); break;
                     case "handbuch_oeffnen": await OpenManualAsync(); break;
                     case "protokoll_zeigen": await OpenLogsAsync(); break;
@@ -136,7 +152,7 @@ internal sealed partial class BridgeDispatcher : IDisposable
                     case "regional_einstellungen": await SaveRegionalSettingsAsync(message); break;
                     case "import": await ImportAsync(message); break;
                     case "import_lokal": await ImportLocalAsync(message.TryGetProperty("bereich", out var bereich) &&
-                        bereich.ValueKind == JsonValueKind.String && bereich.GetString() == "kontakte"); break;
+                        bereich.ValueKind == JsonValueKind.String ? bereich.GetString() ?? "" : ""); break;
                     case "export": await ExportAsync(message); break;
                     case "brief": await CreateLetterAsync(message); break;
                     case "adressen_ods": await CreateSpreadsheetAsync(message, "Adressen", "Magnolie-Adressen.ods"); break;
@@ -196,7 +212,7 @@ internal sealed partial class BridgeDispatcher : IDisposable
                     case "telefon_pairing_bestaetigen":
                     case "telefon_paarung_bestaetigen": ConfirmTelefonPairing(message); break;
                     case "telefon_entfernen": await RemoveTelefonAsync(Text(message, "kennung")); break;
-                    case "telefon_status_anfordern": await telefon.RequestDeviceStatusAsync(Text(message, "kennung")); break;
+                    case "telefon_status_anfordern": await telefon.RequestDeviceStatusAsync(Text(message, "kennung"), Text(message, "requestId")); break;
                     case "telefon_oeffnen": await OpenDeviceAsync(Text(message, "kennung")); break;
                     case "telefon_freigabe": await telefon.SetGrantAsync(Text(message, "kennung"), Text(message, "name"), Boolean(message, "an")); break;
                     case "telefon_freigaben": await telefon.SetLocalGrantsAsync(Boolean(message, "smsEmpfangen"), Boolean(message, "benachrichtigungen")); break;
@@ -237,7 +253,7 @@ internal sealed partial class BridgeDispatcher : IDisposable
         }
     }
 
-    internal TelefonPeer[] ConfirmedDevicePartners() => telefon.Enabled ? telefon.Peers : [];
+    internal TelefonPeer[] ConfirmedDevicePartners() => telefonInstance?.Enabled == true ? telefonInstance.Peers : [];
 
     private async Task RemoveTelefonAsync(string id)
     {
@@ -251,7 +267,8 @@ internal sealed partial class BridgeDispatcher : IDisposable
         var clientRef = Text(message, "clientRef");
         try
         {
-            var result = await kdeConnectSms.SendWithResultAsync(Text(message, "nummer"), Text(message, "text"), Text(message, "land"));
+            var result = await kdeConnectSms.SendWithResultAsync(Text(message, "nummer"), Text(message, "text"), Text(message, "land"), clientRef,
+                Text(message, "device_id"), Text(message, "device_fingerprint"), backgroundLifetime.Token);
             await form.SendAsync("App.kdeSmsStatus", new { ok = result.Ok, state = result.State,
                 device_id = result.DeviceId, client_ref = clientRef, error = result.Error ?? "" });
         }
@@ -283,6 +300,7 @@ internal sealed partial class BridgeDispatcher : IDisposable
     {
         var partner = telefon.Peers.FirstOrDefault(item => item.Id == id);
         if (partner is null) return;
+        telefon.ClearDeviceIdentifiers(id);
         var notifications = telefon.RecentNotifications(id);
         foreach (var notification in notifications.OfType<JsonObject>()) ResolveTelefonContact(notification, false);
         await form.SendAsync("App.geraetOeffnen", new
@@ -293,7 +311,6 @@ internal sealed partial class BridgeDispatcher : IDisposable
             grants = telefon.LocalGrants(),
             notifications
         });
-        await telefon.RequestDeviceStatusAsync(id);
     }
 
     private async Task HandleTelefonEventAsync(string function, object payload)
@@ -311,7 +328,8 @@ internal sealed partial class BridgeDispatcher : IDisposable
         }
         if (function == "App.telefonStatus" && message is not null)
         {
-            await form.SendAsync("App.geraetStatus", new { kennung = message["kennung"]?.GetValue<string>() ?? "", status = message });
+            object Current() => new { kennung = message["kennung"]?.GetValue<string>() ?? "", status = telefon.CurrentDeviceStatus(message) };
+            await form.SendAsync("App.geraetStatus", message, Current);
             return;
         }
         if (function == "App.telefonPersonalSync" && message is not null)
@@ -331,11 +349,26 @@ internal sealed partial class BridgeDispatcher : IDisposable
         if (function == "App.telefonWaehlstatus") function = "App.telefonWaehlStatus";
         if (function == "App.telefonAnnehmstatus") function = "App.telefonAnnehmStatus";
         if (function == "App.telefonAuflegestatus") function = "App.telefonAuflegeStatus";
+        if (function is "App.telefonAnnehmStatus" or "App.telefonAuflegeStatus" && message?["state"]?.GetValue<string>() == "failed")
+            form.ShowTelefonNotification(NativeLocalization.Gettext("Phone"), NativeLocalization.Gettext(
+                "Call controls unavailable. Check Android call permission; no dialer role is requested automatically."));
         if (function == "App.telefonEingehenderAnruf" && message is not null)
         {
             message = PhoneRegionInfo.Enrich(message);
             ResolveTelefonContact(message, true, "number");
             form.TrackIncomingCall(message);
+            // Native dispatch works before WebView readiness and while the book is hidden.
+            if (currentPlainTextAvailable && TelefonCallActions.IsRinging(message))
+            {
+                var settings = (JsonNode.Parse(currentPlainText) as JsonObject)?["einstellungen"];
+                var options = settings?["adressen"]?["kommunikation"]?["anruf"];
+                if (options?["art"]?.GetValue<string>() == "magnolie" && options["telefonId"]?.GetValue<string>() == message["device_id"]?.GetValue<string>() &&
+                    (options["eingehendBenachrichtigen"]?.GetValue<bool>() == true || options["computerTelefonie"]?.GetValue<bool>() == true))
+                    form.ShowIncomingCall(JsonSerializer.SerializeToElement(new { kennung = message["device_id"]?.GetValue<string>(),
+                        callRef = message["call_ref"]?.GetValue<string>(), revision = message["revision"]?.GetValue<long>(),
+                        annehmen = options["computerTelefonie"]?.GetValue<bool>() == true,
+                        stil = settings?["erinnerung"]?["stil"]?.GetValue<string>() ?? "system" }));
+            }
         }
         await form.SendAsync(function, message ?? payload);
     }
@@ -369,6 +402,7 @@ internal sealed partial class BridgeDispatcher : IDisposable
     }
     private async Task InitializeAsync()
     {
+        currentPlainTextAvailable = false;
         var text = store.ReadRecoverableJson(paths.Data);
         recovery.ReleaseAbandonedRestoreLeases();
         if (EncryptionService.IsEncrypted(text))
@@ -388,12 +422,12 @@ internal sealed partial class BridgeDispatcher : IDisposable
             return;
         }
         currentPlainText = text ?? "{}";
-        currentPlainTextAvailable = true;
         UpdateReminderRuntime(currentPlainText);
-        await baum.ResumeAsync();
-        await telefon.ResumeAsync();
         await InitializeWithPlainTextAsync(currentPlainText, text is null);
-        await telefon.ReplayPersonalSyncAsync();
+        // Only the real initialization response enables writes, never a UI timeout.
+        currentPlainTextAvailable = true;
+        cloudWorker.UpdateSnapshot(currentPlainText);
+        _ = QueueBackground(ResumeOptionalServicesAsync);
     }
 
     private async Task InitializeWithPlainTextAsync(string text, bool isNew = false)
@@ -425,7 +459,7 @@ internal sealed partial class BridgeDispatcher : IDisposable
             postStartActionHandled = true;
             await SelectBackupAsync();
         }
-        _ = RunPeriodicSnapshotAsync();
+        _ = QueueBackground(RunPeriodicSnapshotAsync);
     }
 
     private static string ManualPath => Path.Combine(AppContext.BaseDirectory, "handbuch", "index.html");
@@ -576,6 +610,12 @@ internal sealed partial class BridgeDispatcher : IDisposable
         var locked = false;
         var id = Integer(message, "id");
         var text = Text(message, "text");
+        if (!currentPlainTextAvailable)
+        {
+            await form.SendAsync("App.gespeichert", new { id, ok = false,
+                fehler = T("The save request is invalid.") });
+            return;
+        }
         if (id < 1 || string.IsNullOrWhiteSpace(text))
         {
             await form.SendAsync("App.gespeichert", new { id, ok = false, fehler = T("The save request is invalid.") });
@@ -591,10 +631,16 @@ internal sealed partial class BridgeDispatcher : IDisposable
         }
         try
         {
+            await RetryRestoreRepairAsync();
+            if (restoreInProgress) throw new InvalidOperationException(T("Synchronization failed."));
             await MutationGate.Global.WaitAsync(); locked = true;
             using var document = JsonDocument.Parse(text);
             if (document.RootElement.ValueKind != JsonValueKind.Object)
                 throw new JsonException(T("The data is not a JSON object."));
+            // The persisted restore epoch fences requests queued before or sent after restore.
+            var epoch = JsonNode.Parse(currentPlainText)?["syncEpoch"]?.GetValue<string>() ?? "";
+            if (epoch.Length != 0 && Text(document.RootElement, "syncEpoch") != epoch)
+                throw new JsonException(T("The save request is invalid."));
             if (currentPlainTextAvailable && !string.Equals(currentPlainText, text, StringComparison.Ordinal))
                 CreateSnapshot(SnapshotReason.PreChange);
 
@@ -614,7 +660,8 @@ internal sealed partial class BridgeDispatcher : IDisposable
         }
         catch (Exception error)
         {
-            await form.SendAsync("App.gespeichert", new { id, ok = false, fehler = error.Message });
+            await ReportErrorAsync("speichern", error.ToString());
+            await form.SendAsync("App.gespeichert", new { id, ok = false, fehler = T("Warning: The data could not be saved.") });
         }
         finally { if (locked) MutationGate.Global.Release(); }
     }
@@ -640,10 +687,9 @@ internal sealed partial class BridgeDispatcher : IDisposable
                 currentEnvelope = encryption.Enable(currentPlainText, password);
                 store.WriteRecoverableJson(paths.Data, currentEnvelope);
             }
-            await baum.ResumeAsync();
-            await telefon.ResumeAsync();
             await InitializeWithPlainTextAsync(currentPlainText);
-            await telefon.ReplayPersonalSyncAsync();
+            cloudWorker.UpdateSnapshot(currentPlainText);
+            _ = QueueBackground(ResumeOptionalServicesAsync);
         }
         catch (CryptographicException error)
         {
@@ -747,7 +793,8 @@ internal sealed partial class BridgeDispatcher : IDisposable
         }
         catch (Exception error)
         {
-            await form.SendAsync("App.sicherungFertig", new { ok = false, pfad = "", fehler = error.Message });
+            await ReportErrorAsync("sicherung", error.ToString());
+            await form.SendAsync("App.sicherungFertig", new { ok = false, pfad = "", fehler = T("The backup could not be created.") });
         }
         finally { if (locked) MutationGate.Global.Release(); }
     }
@@ -766,34 +813,14 @@ internal sealed partial class BridgeDispatcher : IDisposable
 
     private async Task RunCloudBackupTestAsync()
     {
-        var locked = false;
-        try
-        {
-            await MutationGate.Global.WaitAsync(); locked = true;
-            if (!currentPlainTextAvailable) { await SendCloudBackupStatusAsync("locked"); return; }
-            await RunCloudBackupAfterSaveAsync(currentPlainText, force: true);
-        }
-        finally { if (locked) MutationGate.Global.Release(); }
+        if (!currentPlainTextAvailable) { await SendCloudBackupStatusAsync("locked"); return; }
+        await RunCloudBackupAfterSaveAsync(currentPlainText, force: true);
     }
 
     private async Task RunCloudBackupAfterSaveAsync(string plainText, bool force)
     {
-        try
-        {
-            var data = JsonNode.Parse(plainText) as JsonObject ?? throw new InvalidDataException();
-            var settings = CloudBackupService.Settings(data);
-            if (!force && !CloudBackupService.IsDue(settings.Enabled, settings.Interval,
-                    settings.LastSuccess, DateTimeOffset.UtcNow)) return;
-            if (string.IsNullOrWhiteSpace(settings.Folder)) { await SendCloudBackupStatusAsync("folder_missing"); return; }
-            if (!cloudBackups.PasswordAvailable) { await SendCloudBackupStatusAsync("secret_unavailable"); return; }
-            cloudBackups.CreateVerified(data, settings, AppVersion);
-            await form.SendAsync("App.cloudSicherungStand", new
-            {
-                kennwortVorhanden = true, status = "success",
-                letzterErfolg = DateTimeOffset.UtcNow.ToString("O")
-            });
-        }
-        catch { await SendCloudBackupStatusAsync("failed"); }
+        cloudWorker.UpdateSnapshot(plainText);
+        if (force) await cloudWorker.RunNowAsync().ConfigureAwait(false);
     }
 
     private (int Changed, int Failed) RewriteProtectedCopies(JsonElement message, EncryptionService session,
@@ -884,6 +911,7 @@ internal sealed partial class BridgeDispatcher : IDisposable
     private async Task RestoreBackupAsync(JsonElement message)
     {
         var locked = false;
+        var committed = false;
         SnapshotInfo? restorePoint = null;
         try
         {
@@ -893,8 +921,6 @@ internal sealed partial class BridgeDispatcher : IDisposable
                 await PreviewGesamtarchivAsync(source, Text(message, "kennwort"));
                 return;
             }
-            await MutationGate.Global.WaitAsync(); locked = true;
-            restorePoint = CreateRestorePoint();
             var storedText = store.Read(source) ?? throw new IOException(T("The backup is empty."));
             var encrypted = EncryptionService.IsEncrypted(storedText);
             var plainText = storedText;
@@ -908,32 +934,38 @@ internal sealed partial class BridgeDispatcher : IDisposable
             }
             RequireJsonObject(plainText);
             var restoredData = JsonNode.Parse(plainText)!.AsObject();
+            await FencePhoneRestoreAsync();
+            await MutationGate.Global.WaitAsync(); locked = true;
+            restorePoint = CreateRestorePoint();
+            telefon.SetRestoreSnapshot(restoreToken!, restorePoint.Id);
             PrepareRestoredData(restoredData);
             plainText = restoredData.ToJsonString(new JsonSerializerOptions { WriteIndented = true });
             storedText = encrypted ? restoredEncryption.EncryptData(plainText) : plainText;
             if (File.Exists(paths.Data)) store.Backup(paths.Data, paths.Backups);
-            store.WriteRecoverableJson(paths.Data, storedText);
+            await baum.QuarantineOutboxAsync();
+            var commitWarning = CommitRestoredProfile(storedText, plainText);
+            committed = true;
             encryption.Clear();
             encryption = restoredEncryption;
             currentPlainText = plainText;
             currentPlainTextAvailable = true;
             currentEnvelope = encrypted ? storedText : "";
-            var warning = await CompleteRestoreRuntimeAsync(currentPlainText, encrypted, resumeTree: true);
-            await form.SendAsync("App.sicherungWiederhergestellt", new
-            {
-                ok = true, daten = JsonNode.Parse(plainText), kennwort = encrypted, fehler = warning
-            });
+            var warning = commitWarning + await CompleteRestoreRuntimeAsync(currentPlainText, encrypted, resumeTree: true);
+            await SendRestoreResultAsync("App.sicherungWiederhergestellt", warning);
         }
         catch (Exception error)
         {
+            if (committed) { await SendRestoreResultAsync("App.sicherungWiederhergestellt", T("Synchronization failed.")); return; }
+            var warning = await ReleaseRestoreFence();
+            await ReportErrorAsync("restore_backup", error.Message);
             await form.SendAsync("App.sicherungWiederhergestellt", new
             {
-                ok = false, daten = (object?)null, kennwort = false, fehler = error.Message
+                ok = false, daten = (object?)null, kennwort = false, repairPending = restoreInProgress, fehler = T("The backup could not be restored.") + " " + warning
             });
         }
         finally
         {
-            try { if (restorePoint is not null) recovery.ReleaseRestoreLease(restorePoint.Id); }
+            try { if (restorePoint is not null && !restoreInProgress) recovery.ReleaseRestoreLease(restorePoint.Id); }
             finally { if (locked) MutationGate.Global.Release(); }
         }
     }
@@ -976,8 +1008,9 @@ internal sealed partial class BridgeDispatcher : IDisposable
         }
         catch (Exception error)
         {
+            await ReportErrorAsync("gesamtarchiv_auswaehlen", error.ToString());
             await form.SendAsync("App.gesamtarchivAusgewaehlt", new
-                { ok = false, abgebrochen = false, pfad = dialog.FileName, fehler = error.Message });
+                { ok = false, abgebrochen = false, pfad = dialog.FileName, fehler = T("The complete archive could not be verified.") });
         }
     }
 
@@ -991,9 +1024,10 @@ internal sealed partial class BridgeDispatcher : IDisposable
         }
         catch (Exception error)
         {
+            await ReportErrorAsync("gesamtarchiv_pruefen", error.ToString());
             await form.SendAsync("App.gesamtarchivAusgewaehlt", new
                 { ok = false, abgebrochen = false, pfad = path, verschluesselt = true,
-                  brauchtKennwort = true, fehler = error.Message });
+                  brauchtKennwort = true, fehler = T("The complete archive could not be verified.") });
         }
     }
 
@@ -1030,25 +1064,29 @@ internal sealed partial class BridgeDispatcher : IDisposable
         }
         catch (Exception error)
         {
+            await ReportErrorAsync("gesamtarchiv_exportieren", error.ToString());
             await form.SendAsync("App.gesamtarchivExportiert", new
-                { ok = false, abgebrochen = false, fehler = error.Message });
+                { ok = false, abgebrochen = false, fehler = T("Export failed.") });
         }
     }
 
     private async Task ImportGesamtarchivAsync(JsonElement message)
     {
         var locked = false;
+        var committed = false;
         SnapshotInfo? restorePoint = null;
         try
         {
-            await MutationGate.Global.WaitAsync(); locked = true;
-            restorePoint = CreateRestorePoint();
             if (Text(message, "modus") != "vollstaendig-ersetzen")
                 throw new InvalidOperationException(T("Only 'Replace completely' is supported."));
             var source = Text(message, "pfad");
             var text = store.Read(source, AtomicStore.MaxArchiveBytes)
                 ?? throw new IOException(T("The complete archive is empty."));
             var info = GesamtarchivService.Read(text, Text(message, "kennwort"));
+            await FencePhoneRestoreAsync();
+            await MutationGate.Global.WaitAsync(); locked = true;
+            restorePoint = CreateRestorePoint();
+            telefon.SetRestoreSnapshot(restoreToken!, restorePoint.Id);
             var local = JsonNode.Parse(currentPlainText) as JsonObject ?? new JsonObject();
             var imported = GesamtarchivService.PreserveDeviceSettings(info.Daten, local, info.Plattform != "windows");
             PrepareRestoredData(imported);
@@ -1056,22 +1094,26 @@ internal sealed partial class BridgeDispatcher : IDisposable
 
             if (File.Exists(paths.Data)) store.Backup(paths.Data, paths.Backups);
             var stored = encryption.Session is not null ? encryption.EncryptData(plain) : plain;
-            store.WriteRecoverableJson(paths.Data, stored);
+            await baum.QuarantineOutboxAsync();
+            var commitWarning = CommitRestoredProfile(stored, plain);
+            committed = true;
             currentPlainText = plain;
             currentPlainTextAvailable = true;
             currentEnvelope = encryption.Session is not null ? stored : "";
-            var warning = await CompleteRestoreRuntimeAsync(currentPlainText, encryption.Session is not null, resumeTree: false);
-            await form.SendAsync("App.gesamtarchivImportiert", new
-                { ok = true, daten = imported, kennwort = encryption.Session is not null, fehler = warning });
+            var warning = commitWarning + await CompleteRestoreRuntimeAsync(currentPlainText, encryption.Session is not null, resumeTree: false);
+            await SendRestoreResultAsync("App.gesamtarchivImportiert", warning);
         }
         catch (Exception error)
         {
+            if (committed) { await SendRestoreResultAsync("App.gesamtarchivImportiert", T("Synchronization failed.")); return; }
+            var warning = await ReleaseRestoreFence();
+            await ReportErrorAsync("gesamtarchiv_importieren", error.ToString());
             await form.SendAsync("App.gesamtarchivImportiert", new
-                { ok = false, daten = (object?)null, fehler = error.Message });
+                { ok = false, daten = (object?)null, repairPending = restoreInProgress, fehler = T("The complete archive could not be verified.") + " " + warning });
         }
         finally
         {
-            try { if (restorePoint is not null) recovery.ReleaseRestoreLease(restorePoint.Id); }
+            try { if (restorePoint is not null && !restoreInProgress) recovery.ReleaseRestoreLease(restorePoint.Id); }
             finally { if (locked) MutationGate.Global.Release(); }
         }
     }
@@ -1096,6 +1138,7 @@ internal sealed partial class BridgeDispatcher : IDisposable
 
     private async Task RunPeriodicSnapshotAsync()
     {
+        await RetryRestoreRepairAsync();
         if (disposed || !currentPlainTextAvailable || !recovery.IsDue() || !await MutationGate.Global.WaitAsync(0)) return;
         try { CreateSnapshot(SnapshotReason.Periodic); recovery.RecordPeriodicResult(true); }
         catch (Exception error) { recovery.RecordPeriodicResult(false, error.Message); }
@@ -1170,11 +1213,11 @@ internal sealed partial class BridgeDispatcher : IDisposable
 
     private async Task RestoreSnapshotAsync(JsonElement message)
     {
-        await MutationGate.Global.WaitAsync();
+        var locked = false;
+        var committed = false;
         SnapshotInfo? restorePoint = null;
         try
         {
-            restorePoint = CreateRestorePoint();
             var payload = recovery.ReadPayload(SnapshotId(message));
             if (EncryptionService.IsEncrypted(payload)) payload = encryption.DecryptDataWithSession(payload);
             var snapshot = GesamtarchivService.Read(payload).Daten.DeepClone().AsObject();
@@ -1182,51 +1225,95 @@ internal sealed partial class BridgeDispatcher : IDisposable
                 ? areaNode.EnumerateArray().Select(item => item.GetString() ?? "").ToArray() : ["all"];
             var mode = Text(message, "modus");
             if (mode.Length == 0) mode = "replace";
+            await FencePhoneRestoreAsync();
+            await MutationGate.Global.WaitAsync(); locked = true;
+            restorePoint = CreateRestorePoint();
+            telefon.SetRestoreSnapshot(restoreToken!, restorePoint.Id);
             var restored = RestoreSelection.Select(snapshot, JsonNode.Parse(currentPlainText)!.AsObject(), areas, mode);
-            PrepareRestoredData(restored);
+            PrepareRestoredData(restored, restoreSmsPlans: areas.Contains("all"));
             var plain = restored.ToJsonString(new JsonSerializerOptions { WriteIndented = true });
             var stored = encryption.Session is null ? plain : encryption.EncryptData(plain);
-            store.WriteRecoverableJson(paths.Data, stored);
+            await baum.QuarantineOutboxAsync();
+            var commitWarning = CommitRestoredProfile(stored, plain);
+            committed = true;
             currentPlainText = plain; currentPlainTextAvailable = true; currentEnvelope = encryption.Session is null ? "" : stored;
-            var warning = await CompleteRestoreRuntimeAsync(currentPlainText, encryption.Session is not null, resumeTree: false);
-            await form.SendAsync("App.journalWiederhergestellt", new { ok = true, daten = restored, fehler = warning });
+            var warning = commitWarning + await CompleteRestoreRuntimeAsync(currentPlainText, encryption.Session is not null, resumeTree: false);
+            await SendRestoreResultAsync("App.journalWiederhergestellt", warning);
             await SendRecoveryStatusAsync();
         }
-        catch (Exception error) { await form.SendAsync("App.journalWiederhergestellt", new { ok = false, daten = (object?)null, fehler = error.Message }); }
+        catch (Exception error)
+        {
+            if (committed) { await SendRestoreResultAsync("App.journalWiederhergestellt", T("Synchronization failed.")); return; }
+            var warning = await ReleaseRestoreFence();
+            await ReportErrorAsync("restore_snapshot", error.Message);
+            await form.SendAsync("App.journalWiederhergestellt", new { ok = false, daten = (object?)null, repairPending = restoreInProgress, fehler = T("Restore failed.") + " " + warning });
+        }
         finally
         {
-            try { if (restorePoint is not null) recovery.ReleaseRestoreLease(restorePoint.Id); }
-            finally { MutationGate.Global.Release(); }
+            try { if (restorePoint is not null && !restoreInProgress) recovery.ReleaseRestoreLease(restorePoint.Id); }
+            finally { if (locked) MutationGate.Global.Release(); }
         }
     }
 
-    private static void PrepareRestoredData(JsonObject data)
+    private void PrepareRestoredData(JsonObject data, bool restoreSmsPlans = true)
     {
-        RestoreSyncState.Prepare(data);
-    }
-
-    private void QuarantineTreeOutbox()
-    {
-        if (!File.Exists(paths.BaumOutbox)) return;
-        File.Move(paths.BaumOutbox, Path.Combine(paths.Root,
-            $"baum-post-quarantaene-{DateTime.UtcNow:yyyyMMddHHmmss}-{Guid.NewGuid():N}.json"), false);
+        if (!currentPlainTextAvailable) throw new InvalidOperationException(T("The locked data cannot be backed up."));
+        RestoreSyncState.Prepare(data, live: JsonNode.Parse(currentPlainText)!.AsObject(), restoreSmsPlans: restoreSmsPlans);
     }
 
     private async Task<string> CompleteRestoreRuntimeAsync(string plainText, bool encrypted, bool resumeTree)
     {
-        var warnings = new List<string>();
-        try { RefreshReminderData(plainText, encrypted); }
-        catch (Exception error) { warnings.Add(T("Reminder data:") + " " + error.Message); }
-        try { UpdateReminderRuntime(plainText); }
-        catch (Exception error) { warnings.Add(T("Reminder runtime:") + " " + error.Message); }
-        try { QuarantineTreeOutbox(); }
-        catch (Exception error) { warnings.Add(T("Magnolienbaum quarantine:") + " " + error.Message); }
-        if (resumeTree)
+        try
         {
-            try { await baum.ResumeAsync(); }
-            catch (Exception error) { warnings.Add(T("Magnolienbaum restart:") + " " + error.Message); }
+            var epoch = JsonNode.Parse(plainText)!["syncEpoch"]!.GetValue<string>();
+            var stored = store.Read(paths.Data) ?? throw new IOException();
+            var pending = telefon.PendingRestore ?? throw new InvalidDataException();
+            if (TelefonStore.ProfileHash(stored) != pending["after"]?.GetValue<string>()) throw new InvalidDataException();
+            // Repair the mirror from the committed primary, never from a previous UI snapshot.
+            store.WriteRecoverableJson(paths.Data, stored);
+            await telefon.CompleteRestoreAsync(epoch, restoreToken, releaseFence: false).ConfigureAwait(false);
+            cloudWorker.UpdateSnapshot(plainText);
+            RefreshReminderData(plainText, encrypted);
+            UpdateReminderRuntime(plainText);
+            if (resumeTree) await baum.ResumeAsync();
+            if (pending["snapshot"]?.GetValue<string>() is { } snapshot) recovery.ReleaseRestoreLease(snapshot);
+            telefon.ReleaseRestore(restoreToken!);
+            await ReleaseRestoreFence();
+            return "";
         }
-        return string.Join(" ", warnings);
+        catch (Exception error)
+        {
+            await ReportErrorAsync("restore_repair", error.Message);
+            return T("Synchronization failed.");
+        }
+    }
+
+    private string CommitRestoredProfile(string stored, string plain)
+    {
+        var epoch = JsonNode.Parse(plain)!["syncEpoch"]!.GetValue<string>();
+        telefon.PrepareRestoreCommit(restoreToken!, stored, epoch);
+        try { store.WriteRecoverableJson(paths.Data, stored); }
+        catch
+        {
+            // WriteRecoverableJson may fail after the primary rename. Reading a recovery
+            // mirror here would hide the actual commit and could resurrect old content.
+            string? actual;
+            try { actual = store.Read(paths.Data); }
+            catch { currentPlainTextAvailable = false; throw; }
+            if (actual != stored) throw;
+            restoreContentCommitted = true;
+            return T("Synchronization failed.") + " ";
+        }
+        restoreContentCommitted = true;
+        return "";
+    }
+
+    private async Task SendRestoreResultAsync(string callback, string warning)
+    {
+        await form.SendAsync(callback, new { ok = true, daten = JsonNode.Parse(currentPlainText),
+            kennwort = encryption.Session is not null, committed = true, repairPending = restoreInProgress, fehler = warning });
+        // Restore callbacks adopt data on ok=true; their success toast ignores fehler.
+        if (warning.Length != 0) await form.SendAsync("App.syncFehler", T("Saved") + " · " + warning);
     }
 
     private async Task SelectFolderAsync()
@@ -1246,12 +1333,12 @@ internal sealed partial class BridgeDispatcher : IDisposable
         var active = message.TryGetProperty("an", out var enabled) && enabled.ValueKind == JsonValueKind.True;
         reminders.UpdateData(ReminderScheduler.SelectRuntimeData(currentPlainText));
         reminders.Configure(active);
-        form.SetReminderAutostart(active);
+        var autostartError = form.SetReminderAutostart(active);
         var wake = message.TryGetProperty("wecken", out var wakeNode) && wakeNode.ValueKind == JsonValueKind.True;
         await form.SendAsync("App.erinnerungStand", new
         {
-            ok = true,
-            fehler = "",
+            ok = autostartError.Length == 0,
+            fehler = autostartError,
             weckruf = wake ? new { ok = false, fehler = T("This system did not allow waking from suspend. The reminder will appear as soon as the computer is running again.") } : null
         });
     }
@@ -1285,7 +1372,8 @@ internal sealed partial class BridgeDispatcher : IDisposable
         }
         catch (JsonException) { }
         reminders.Configure(active);
-        form.SetReminderAutostart(active);
+        var error = form.SetReminderAutostart(active);
+        if (!string.IsNullOrEmpty(error)) throw new IOException(error);
     }
 
     private void RefreshReminderData(string plainText, bool encrypted)
@@ -1302,27 +1390,28 @@ internal sealed partial class BridgeDispatcher : IDisposable
 
     private void DeleteReminderData()
     {
-        foreach (var path in new[] { paths.ReminderData, AtomicStore.BackupPath(paths.ReminderData) })
-            try { if (File.Exists(path)) File.Delete(path); } catch (IOException) { }
+        foreach (var path in new[] { AtomicStore.BackupPath(paths.ReminderData), paths.ReminderData })
+            File.Delete(path);
     }
 
     internal async Task ShutdownAsync()
     {
-        if (disposed) return;
-        kdeConnectSms.StatusChanged -= HandleKdeStatusChanged;
-        kdeConnectSms.SmsReceived -= HandleKdeSmsReceived;
-        kdeConnectSms.PairingChanged -= HandleKdePairingChanged;
+        lock (serviceGate) { if (disposed) return; disposed = true; }
+        backgroundLifetime.Cancel();
         ClearPersonalSyncRuntime();
-        await baum.ShutdownAsync().ConfigureAwait(false);
-        telefon.Dispose();
-        recoveryTimer.Dispose(); reminders.Dispose(); http.Dispose(); updates.Dispose(); kdeConnectSms.Dispose(); disposed = true;
+        recoveryTimer.Dispose(); http.Dispose(); updates.Dispose();
+        await reminders.ShutdownAsync().ConfigureAwait(false);
+        if (baumInstance is not null) await baumInstance.ShutdownAsync().ConfigureAwait(false);
+        if (telefonInstance is not null) await telefonInstance.ShutdownAsync().ConfigureAwait(false);
+        kdeInstance?.Dispose();
+        await cloudWorker.DisposeAsync().ConfigureAwait(false);
+        while (!backgroundWork.IsEmpty) await Task.WhenAll(backgroundWork.Keys).ConfigureAwait(false);
+        encryption.Clear();
     }
 
     public void Dispose()
     {
-        if (disposed) return;
-        disposed = true; kdeConnectSms.StatusChanged -= HandleKdeStatusChanged; kdeConnectSms.SmsReceived -= HandleKdeSmsReceived;
-        kdeConnectSms.PairingChanged -= HandleKdePairingChanged; ClearPersonalSyncRuntime(); recoveryTimer.Dispose(); baum.Dispose(); telefon.Dispose(); reminders.Dispose(); http.Dispose(); updates.Dispose(); kdeConnectSms.Dispose();
+        _ = ShutdownAsync();
     }
 
     private async Task BaumSendAsync(JsonElement message, string kind, string property)
@@ -1370,7 +1459,7 @@ internal sealed partial class BridgeDispatcher : IDisposable
             var info = new FileInfo(dialog.FileName); if (info.Length > 8192) throw new IOException(T("The pairing file is too large."));
             var text = store.Read(dialog.FileName, 8192) ?? throw new IOException(T("The pairing file is empty."));
             var document = JsonNode.Parse(text) as JsonObject ?? throw new InvalidDataException(T("The pairing file is damaged."));
-            await baum.ImportPairingFileAsync(document);
+            QueueNetworkCommand(() => baum.ImportPairingFileAsync(document));
         }
         catch (Exception error) { await form.SendAsync("App.baumPaarungsdatei", new { ok = false, art = "importiert", fehler = error.Message }); }
     }
@@ -1512,7 +1601,9 @@ internal sealed partial class BridgeDispatcher : IDisposable
         }
         catch (Exception error)
         {
-            await form.SendAsync("App.handbuchDownloadGeoeffnet", new { ok = false, fehler = error.Message });
+            await ReportErrorAsync("handbuch_herunterladen", error.Message);
+            await form.SendAsync("App.handbuchDownloadGeoeffnet", new { ok = false,
+                fehler = T("The manual package could not be opened.") });
         }
     }
 
@@ -1535,13 +1626,7 @@ internal sealed partial class BridgeDispatcher : IDisposable
         {
             var location = weatherLocation.SearchLocation;
             var language = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "de" ? "de" : "en";
-            var path = location.Length == 0 ? "" : Uri.EscapeDataString(location);
-            using var response = await http.GetAsync($"https://wttr.in/{path}?format=j1&lang={language}",
-                HttpCompletionOption.ResponseHeadersRead);
-            response.EnsureSuccessStatusCode();
-            await using var stream = await response.Content.ReadAsStreamAsync();
-            using var document = await JsonDocument.ParseAsync(stream);
-            var root = document.RootElement;
+            var root = await WeatherRequests.FetchAsync(http, location, language);
             var days = new List<object>();
             if (root.TryGetProperty("weather", out var weather) && weather.ValueKind == JsonValueKind.Array)
             {
@@ -1577,6 +1662,7 @@ internal sealed partial class BridgeDispatcher : IDisposable
             {
                 ok = true, ort = place.Length > 0 ? place : location,
                 quelle = weatherLocation.Source,
+                anbieter = root.TryGetProperty("provider", out var provider) ? provider.GetString() : "wttr.in",
                 tage = days, fehler = "", kennung = identifier
             });
         }
@@ -1625,6 +1711,9 @@ internal sealed partial class BridgeDispatcher : IDisposable
             var targets = region.Length > 0
                 ? new[] { new HolidayRegion(region, "") }
                 : regions.Count > 0 ? regions.ToArray() : new[] { new HolidayRegion("", "") };
+            if (country is "DE" or "AT" or "CH" && targets.Any(target => target.Code.Length > 0 &&
+                FirstRunSetupSelectionNormalizer.SchoolHolidayRegion(country, target.Code) != target.Code))
+                throw new ArgumentException(T("School holidays are not available for this region."));
             var entries = new List<HolidayEntry>();
             var downloadedBytes = 0;
             foreach (var year in years)
@@ -1666,9 +1755,7 @@ internal sealed partial class BridgeDispatcher : IDisposable
                     return new HolidayEntry(first.von, first.bis, $"{first.name} ({suffix})", first.art,
                         string.Join(",", codes), suffix);
                 }).OrderBy(item => item.von).ThenBy(item => item.name).ToArray();
-            var publicCount = clean.Count(item => item.art == "public-holiday");
-            var schoolCount = clean.Length - publicCount;
-            var report = $"Abgerufen: {publicCount} Feiertage, {schoolCount} Ferienabschnitte für {string.Join(", ", years)}.";
+            var report = clean.Length == 0 ? T("The service returned no entries for this selection.") : T("The holidays were imported.");
             await form.SendAsync("App.feiertageErgebnis", new { feiertage = clean, bericht = report, jahre = years });
         }
         catch (Exception error)
@@ -1728,6 +1815,7 @@ internal sealed partial class BridgeDispatcher : IDisposable
             "ics" => T("Calendar (*.ics)") + "|*.ics;*.vcs;*.lcs;*.zip|" + T("All files") + " (*.*)|*.*",
             "vcf" => T("Contact cards (*.vcf)") + "|*.vcf;*.csv;*.zip|" + T("All files") + " (*.*)|*.*",
             "lotus" => T("CSV files (*.csv)") + "|*.csv;*.zip|" + T("All files") + " (*.*)|*.*",
+            "ldif" => T("LDIF address book (*.ldif)") + "|*.ldif;*.ldi;*.zip|" + T("All files") + " (*.*)|*.*",
             "claws" => T("Claws Mail address book (*.xml)") + "|*.xml;*.ldif;*.ldi;*.zip|" + T("All files") + " (*.*)|*.*",
             _ => ""
         };
@@ -1747,7 +1835,13 @@ internal sealed partial class BridgeDispatcher : IDisposable
             var info = new FileInfo(dialog.FileName);
             if (info.Length > ExchangeCodec.MaxImportBytes) throw new IOException(T("The import file is larger than 32 megabytes."));
             var bytes = await File.ReadAllBytesAsync(dialog.FileName);
-            var result = ExchangeCodec.ParseImport(bytes, art, dialog.FileName);
+            var result = ExchangeCodec.ParseImport(bytes, art == "ldif" ? "claws" : art, dialog.FileName);
+            if (art == "ldif") foreach (var contact in result.Kontakte.OfType<JsonObject>())
+            {
+                // Match additive merge defaults even for plain LDIF without a vCard.
+                contact["vcardRoundtrip"] ??= new JsonArray();
+                contact["vcardParameter"] ??= new JsonObject();
+            }
             await form.SendAsync("App.importErgebnis", result.ToPayload(art, Path.GetFileName(dialog.FileName)));
         }
         catch (Exception error)
@@ -1756,35 +1850,47 @@ internal sealed partial class BridgeDispatcher : IDisposable
         }
     }
 
-    private async Task ImportLocalAsync(bool contactsOnly = false)
+    private async Task ImportLocalAsync(string area = "")
     {
         try
         {
-            var folder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Contacts");
-            var store = new WindowsContactStore(folder);
-            var contacts = await store.ReadAsync(CancellationToken.None);
-            var payload = contacts.Select(contact =>
+            if (area is not ("" or "kontakte" or "thunderbird")) throw new ArgumentException("Unknown local import source.");
+            var contactsOnly = area == "kontakte";
+            var thunderbirdOnly = area == "thunderbird";
+            var payload = Array.Empty<JsonObject>();
+            if (!thunderbirdOnly)
             {
-                var item = contact.Data.DeepClone().AsObject(); item["uid"] = store.ImportUid(contact);
-                item["geaendert"] = contact.Modified; return item;
-            }).ToArray();
-            var termine = new JsonArray(); var jahrestage = new JsonArray(); var aufgaben = new JsonArray();
-            var skipped = 0; var recurring = 0; var thunderbirdFiles = 0;
-            var profiles = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Thunderbird", "Profiles");
-            if (!contactsOnly && Directory.Exists(profiles))
+                var folder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Contacts");
+                var store = new WindowsContactStore(folder);
+                var contacts = await store.ReadAsync(CancellationToken.None);
+                payload = contacts.Select(contact =>
+                {
+                    var item = contact.Data.DeepClone().AsObject(); item["uid"] = store.ImportUid(contact);
+                    item["geaendert"] = contact.Modified; return item;
+                }).ToArray();
+            }
+            var termine = new JsonArray(); var jahrestage = new JsonArray(); var geburtstage = new JsonArray(); var aufgaben = new JsonArray();
+            var skipped = 0; var recurring = 0; var thunderbirdFiles = 0; var thunderbirdBooks = 0;
+            var root = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Thunderbird");
+            if (!contactsOnly && Directory.Exists(root))
             {
-                var calendars = Directory.EnumerateDirectories(profiles).Take(32)
+                var profileDirectories = ThunderbirdCalendarImporter.DiscoverProfiles(root);
+                var calendars = profileDirectories
                     .Select(profile => Path.Combine(profile, "calendar-data", "local.sqlite"));
                 var parsed = ThunderbirdCalendarImporter.ParseProfiles(calendars, out thunderbirdFiles);
                 foreach (var node in parsed.Termine) termine.Add(node?.DeepClone());
                 foreach (var node in parsed.Jahrestage) jahrestage.Add(node?.DeepClone());
                 foreach (var node in parsed.Aufgaben) aufgaben.Add(node?.DeepClone());
                 skipped += parsed.Uebersprungen; recurring += parsed.Wiederholend;
+                var addressBooks = ThunderbirdCalendarImporter.ParseAddressBooks(profileDirectories, out thunderbirdBooks);
+                payload = addressBooks.Kontakte.OfType<JsonObject>().Select(node => node.DeepClone().AsObject()).ToArray();
+                skipped += addressBooks.Uebersprungen;
             }
             var report = contactsOnly ? $"{T("Windows Contacts folder")}: {payload.Length}" :
-                $"{payload.Length} Kontaktdateien und {thunderbirdFiles} Thunderbird-Kalenderablagen gelesen.";
+                thunderbirdOnly ? $"{thunderbirdBooks} Thunderbird-Adressbücher und {thunderbirdFiles} Kalenderablagen gelesen." :
+                    $"{payload.Length} Kontakte und {thunderbirdFiles} Thunderbird-Kalenderablagen gelesen.";
             await form.SendAsync("App.importErgebnis", new { art = "lokal", abgebrochen = false, kontakte = payload,
-                geburtstage = Array.Empty<object>(), termine, jahrestage, aufgaben, uebersprungen = skipped, wiederholend = recurring,
+                geburtstage, termine, jahrestage, aufgaben, uebersprungen = skipped, wiederholend = recurring,
                 bericht = report });
         }
         catch (Exception error) { await form.SendAsync("App.importErgebnis", new { art = "lokal", abgebrochen = false, fehler = error.Message }); }
@@ -2037,7 +2143,6 @@ internal sealed partial class BridgeDispatcher : IDisposable
 
     private static bool IsAllowedHttpsTarget(string target) => Uri.TryCreate(target, UriKind.Absolute, out var uri) &&
         uri.Scheme == Uri.UriSchemeHttps && uri.Host.Length > 0 && string.IsNullOrEmpty(uri.UserInfo);
-    private static bool IsAllowedWindowsUpdateUrl(string target) => IsAllowedPackageUrl(target, "Magnolie-Organizer-Windows-", "-Setup-x64.exe");
     internal static bool IsAllowedManualUrl(string target, string version) =>
         VersionPattern().IsMatch(version) && IsAllowedPackageUrl(target,
             $"Magnolie-Organizer-Windows-{version}-Setup-x64", ".exe") &&

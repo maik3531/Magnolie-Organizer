@@ -15,12 +15,17 @@ internal sealed class MagnolienbaumCoordinator : IDisposable
     internal const int MaxInboxBytes = 64 * 1024 * 1024;
     private readonly object gate = new();
     private readonly MagnolienbaumStore storage;
+    private readonly string outboxPath;
     private readonly Func<string, object, Task> emit;
     private readonly HttpClient client;
     private readonly NextcloudMailboxSettingsStore mailboxSettings;
     private readonly NextcloudMailbox mailbox;
     private readonly SemaphoreSlim mailboxWorker = new(1, 1);
     private readonly SemaphoreSlim outboxWorker = new(1, 1);
+    private readonly SemaphoreSlim lifecycle = new(1, 1);
+    private CancellationTokenSource outboxCancellation = new();
+    private bool outboxPaused;
+    private bool quarantining;
     private readonly SemaphoreSlim connectionSlots = new(16, 16);
     private JsonObject state;
     private JsonArray outbox;
@@ -44,6 +49,7 @@ internal sealed class MagnolienbaumCoordinator : IDisposable
     internal MagnolienbaumCoordinator(WindowsPaths paths, Func<string, object, Task> emit)
     {
         storage = new MagnolienbaumStore(paths);
+        outboxPath = paths.BaumOutbox;
         this.emit = emit;
         state = storage.LoadOrCreate();
         outbox = storage.LoadOutbox();
@@ -55,8 +61,8 @@ internal sealed class MagnolienbaumCoordinator : IDisposable
             : "";
         inbox = storage.LoadInbox();
         RecoverBaum1Counters();
-        client = new HttpClient(new SocketsHttpHandler { UseProxy = false, ConnectTimeout = TimeSpan.FromSeconds(6) })
-            { Timeout = TimeSpan.FromSeconds(8) };
+        client = DeadlineHttp.Create(TimeSpan.FromSeconds(8),
+            new SocketsHttpHandler { UseProxy = false, AllowAutoRedirect = false, ConnectTimeout = TimeSpan.FromSeconds(6) }, 128 * 1024);
         var version = typeof(MagnolienbaumCoordinator).Assembly.GetName().Version?.ToString(3) ?? "0.0.0";
         client.DefaultRequestHeaders.UserAgent.ParseAdd($"Magnolie-Organizer-Windows/{version}");
         mailboxSettings = new NextcloudMailboxSettingsStore(paths.BaumMailboxSettings, paths.BaumMailboxPassword);
@@ -69,7 +75,7 @@ internal sealed class MagnolienbaumCoordinator : IDisposable
     {
         NextcloudMailboxSettings? settings = null;
         try { settings = mailboxSettings.Load(); }
-        catch (Exception error) { mailboxError = error.Message; mailboxErrorCode = MailboxErrorCode(error); mailboxState = "unvollstaendig"; }
+        catch (Exception error) { mailboxError = NextcloudStatusText.For(error); mailboxErrorCode = MailboxErrorCode(error); mailboxState = "unvollstaendig"; }
         var hasPassword = mailboxSettings.HasApplicationPassword;
         await emit(callback, new { aktiv = settings?.MailboxActive ?? false,
             davAktiv = settings?.DavActive ?? false, briefkastenAktiv = settings?.MailboxActive ?? false,
@@ -107,7 +113,7 @@ internal sealed class MagnolienbaumCoordinator : IDisposable
         }
         catch (Exception error)
         {
-            mailboxError = error.Message; mailboxErrorCode = MailboxErrorCode(error); mailboxState = "fehler";
+            mailboxError = NextcloudStatusText.For(error); mailboxErrorCode = MailboxErrorCode(error); mailboxState = "fehler";
         }
         await ReportMailboxStatusAsync("App.baumBriefkastenGespeichert").ConfigureAwait(false);
     }
@@ -130,7 +136,7 @@ internal sealed class MagnolienbaumCoordinator : IDisposable
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { throw; }
         catch (Exception error)
         {
-            mailboxError = error.Message; mailboxErrorCode = MailboxErrorCode(error); mailboxState = "fehler";
+            mailboxError = NextcloudStatusText.For(error); mailboxErrorCode = MailboxErrorCode(error); mailboxState = "fehler";
         }
         await ReportMailboxStatusAsync("App.baumBriefkastenPruefung").ConfigureAwait(false);
     }
@@ -161,6 +167,7 @@ internal sealed class MagnolienbaumCoordinator : IDisposable
                 fernAdresse = String(partner, "fernAdresse"), fernPort = Number(partner, "fernPort", DefaultPort),
                 bestaetigt = Boolean(partner, "bestaetigt"), wartet = Boolean(partner, "wartet"),
                 kontakte = Boolean(partner, "kontakte"), kontaktLoeschen = Boolean(partner, "kontaktLoeschen") || Boolean(partner, "loeschungen"),
+                kontaktFaehigkeiten = partner["kontaktFaehigkeiten"]?.DeepClone(),
                 protokoll = String(partner, "protokoll", "baum-1"), paarungsart = String(partner, "paarungsart", "lokal-v1"),
                 code = MagnolienbaumCrypto.PairingCode(ownPublic, Convert.FromBase64String(String(partner, "oeffentlich"))),
                 fingerabdruck = MagnolienbaumCrypto.Fingerprint(Convert.FromBase64String(String(partner, "oeffentlich"))),
@@ -170,7 +177,9 @@ internal sealed class MagnolienbaumCoordinator : IDisposable
                 name = String(state, "name"), kennung = String(state, "kennung"),
                 fingerabdruck = MagnolienbaumCrypto.Fingerprint(ownPublic), port = Number(state, "port", DefaultPort),
                 partner = partners, post = outbox.Count, postOffen = outbox.OfType<JsonObject>().Count(item => !Boolean(item, "aufgegeben")),
-                eingang = JsonNode.Parse(inbox.ToJsonString()), fehler = serviceError, migrationHinweis = migrationNotice, windows = true };
+                eingang = JsonNode.Parse(inbox.ToJsonString()), fehler = serviceError.Length > 0 ? serviceError :
+                    outbox.OfType<JsonObject>().Any(item => Boolean(item, "unsicher")) ? NativeLocalization.Gettext("Delivery status uncertain") : "",
+                migrationHinweis = migrationNotice, windows = true };
         }
         await emit("App.baumStand", report);
     }
@@ -193,9 +202,14 @@ internal sealed class MagnolienbaumCoordinator : IDisposable
 
     internal async Task StartAsync()
     {
+        await lifecycle.WaitAsync().ConfigureAwait(false);
+        try
+        {
         lock (gate)
         {
-            if (serviceCancellation is not null || !Boolean(state, "an")) return;
+            if (disposed || quarantining || serviceCancellation is not null || !Boolean(state, "an")) return;
+            if (outboxCancellation.IsCancellationRequested) { outboxCancellation.Dispose(); outboxCancellation = new CancellationTokenSource(); }
+            outboxPaused = false;
             serviceCancellation = new CancellationTokenSource();
             serviceError = "";
         }
@@ -222,13 +236,26 @@ internal sealed class MagnolienbaumCoordinator : IDisposable
             networkTasks.Add(Task.Run(() => UdpLoopAsync(udp, cancellation.Token), CancellationToken.None));
         }
         catch (SocketException) { udp = null; }
-        maintenance = Task.Run(() => MaintenanceLoopAsync(cancellation.Token), CancellationToken.None);
-        await MaintainOutboxAsync(1, cancellation.Token).ConfigureAwait(false);
-        await PollMailboxSafeAsync(cancellation.Token).ConfigureAwait(false);
+        lock (gate) foreach (var partner in state["partner"]!.AsArray().OfType<JsonObject>()) QueueContactCapabilities(partner);
+        maintenance = Task.Run(async () =>
+        {
+            try
+            {
+                await MaintainOutboxAsync(1, cancellation.Token).ConfigureAwait(false);
+                await PollMailboxSafeAsync(cancellation.Token).ConfigureAwait(false);
+                await MaintenanceLoopAsync(cancellation.Token).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException) when (cancellation.IsCancellationRequested) { }
+        }, CancellationToken.None);
+        }
+        finally { lifecycle.Release(); }
     }
 
     internal async Task StopAsync()
     {
+        await lifecycle.WaitAsync().ConfigureAwait(false);
+        try
+        {
         CancellationTokenSource? cancellation;
         lock (gate) { cancellation = serviceCancellation; serviceCancellation = null; }
         if (cancellation is null) return;
@@ -249,6 +276,41 @@ internal sealed class MagnolienbaumCoordinator : IDisposable
         try { await Task.WhenAll(handlers).ConfigureAwait(false); }
         catch (Exception error) when (error is OperationCanceledException or SocketException or ObjectDisposedException or IOException) { }
         maintenance = null; cancellation.Dispose();
+        }
+        finally { lifecycle.Release(); }
+    }
+
+    internal async Task<string?> QuarantineOutboxAsync()
+    {
+        CancellationTokenSource cancel;
+        lock (gate) { quarantining = true; outboxPaused = true; cancel = outboxCancellation; }
+        cancel.Cancel();
+        try
+        {
+            await StopAsync().ConfigureAwait(false);
+            await outboxWorker.WaitAsync().ConfigureAwait(false);
+            try
+            {
+                lock (gate)
+                {
+                    string? quarantine = null;
+                    if (outbox.Count > 0 || File.Exists(outboxPath))
+                    {
+                        storage.SaveOutbox(outbox);
+                        quarantine = Path.Combine(Path.GetDirectoryName(outboxPath)!,
+                            $"baum-post-quarantaene-{DateTime.UtcNow:yyyyMMddHHmmss}-{Guid.NewGuid():N}.json");
+                        File.Move(outboxPath, quarantine, false);
+                    }
+                    // Detach only after the durable rename, with no worker in flight.
+                    outbox = new JsonArray();
+                    outboxCancellation = new CancellationTokenSource();
+                    cancel.Dispose();
+                    return quarantine;
+                }
+            }
+            finally { outboxWorker.Release(); }
+        }
+        finally { lock (gate) quarantining = false; }
     }
 
     internal async Task SearchAsync()
@@ -311,6 +373,7 @@ internal sealed class MagnolienbaumCoordinator : IDisposable
     {
         try
         {
+            document = document.DeepClone().AsObject();
             MagnolienbaumPairing.ValidateFile(document, DateTimeOffset.UtcNow.ToUnixTimeSeconds());
             var request = MagnolienbaumPairing.BuildRequest(state, document);
             var target = document["ziel"]!.AsObject(); JsonObject response;
@@ -320,7 +383,9 @@ internal sealed class MagnolienbaumCoordinator : IDisposable
             JsonObject partner;
             lock (gate)
             {
+                MagnolienbaumPairing.ValidateFile(document, DateTimeOffset.UtcNow.ToUnixTimeSeconds());
                 partner = MagnolienbaumPairing.AddPartner(state, document["einlader"]!.AsObject(), String(target, "adresse"), true);
+                QueueContactCapabilities(partner);
                 storage.SaveState(state);
             }
             await emit("App.baumPaarungsdatei", new { ok = true, art = "importiert", name = String(partner, "name"), fehler = "" });
@@ -335,14 +400,25 @@ internal sealed class MagnolienbaumCoordinator : IDisposable
         {
             var partners = state["partner"]!.AsArray();
             var partner = Partner(id);
-            if (partner is not null && yes) { partner["bestaetigt"] = true; partner["wartet"] = false; }
+            if (partner is not null && yes) { partner["bestaetigt"] = true; partner["wartet"] = false; QueueContactCapabilities(partner); }
             else if (partner is not null) partners.Remove(partner);
             storage.SaveState(state);
         }
         await ReportStatusAsync();
     }
 
-    internal async Task RemoveAsync(string id) { lock (gate) { var partner = Partner(id); if (partner is not null) state["partner"]!.AsArray().Remove(partner); storage.SaveState(state); } await ReportStatusAsync(); }
+    internal async Task RemoveAsync(string id)
+    {
+        lock (gate)
+        {
+            var partner = Partner(id);
+            if (partner is not null) state["partner"]!.AsArray().Remove(partner);
+            var remaining = new JsonArray(outbox.OfType<JsonObject>().Where(item => String(item, "an") != id ||
+                !String(item, "art").StartsWith("kontakt", StringComparison.Ordinal)).Select(item => item.DeepClone()).ToArray());
+            storage.SaveOutbox(remaining); outbox = remaining; storage.SaveState(state);
+        }
+        await ReportStatusAsync();
+    }
 
     internal async Task SetPartnerAsync(string id, bool trusted, bool contacts, bool deletions, string remoteAddress, int remotePort)
     {
@@ -365,8 +441,25 @@ internal sealed class MagnolienbaumCoordinator : IDisposable
 
     internal async Task SendAsync(string id, string kind, JsonNode content)
     {
-        if (kind is not ("aufgabe" or "stand" or "termin" or "kontakt" or "notiz" or "notiz_sync" or "sync_anfrage" or "kontakt_sync" or "kontakt_loeschen" or "kontakt_import_manifest" or "kontakt_import_karte"))
+        if (kind is not ("aufgabe" or "stand" or "termin" or "kontakt" or "notiz" or "notiz_sync" or "sync_anfrage" or "kontakt_sync" or "kontakt_loeschen" or "kontakt_import_manifest" or "kontakt_import_karte" or "kontakt_faehigkeiten"))
         { await emit("App.baumGesendet", new { ok = false, fehler = "Diese Art kann nicht geteilt werden." }); return; }
+        if (kind == "kontakt_faehigkeiten") content = BaumContactSyncContract.Capabilities(false);
+        if (kind is "kontakt" or "kontakt_sync" or "kontakt_import_manifest" or "kontakt_import_karte")
+        {
+            try
+            {
+                lock (gate)
+                {
+                    var target = Partner(id) ?? throw new InvalidDataException(NativeLocalization.Gettext("Not sent."));
+                    if (BaumContactSyncContract.PeerVersion(target, kind is "kontakt" or "kontakt_sync" ? "kontakt_sync" : "kontakt_import") == 1)
+                        QueueContactCapabilities(target);
+                    var payload = content.DeepClone().AsObject(); payload["art"] = kind;
+                    content = BaumContactSyncContract.ForPeer(target, payload);
+                }
+            }
+            catch (Exception error)
+            { await emit("App.baumGesendet", new { ok = false, fehler = error.Message, kennung = id, art = kind }); return; }
+        }
         if (kind is "kontakt_sync" or "kontakt_loeschen")
         {
             try
@@ -388,6 +481,7 @@ internal sealed class MagnolienbaumCoordinator : IDisposable
         var queuedId = MagnolienbaumStore.RandomId(12);
         lock (gate)
         {
+            if (outboxPaused) throw new InvalidOperationException("Der Magnolienbaum ist ausgeschaltet.");
             partner = Partner(id);
             if (partner is null || !Boolean(partner, "bestaetigt") ||
                 kind == "kontakt_loeschen" && (!Boolean(partner, "kontakte") ||
@@ -409,17 +503,28 @@ internal sealed class MagnolienbaumCoordinator : IDisposable
             outbox.OfType<JsonObject>().Any(item => String(item, "id") == queuedId);
         if (deletionOpen)
         {
+            bool uncertain;
             lock (gate)
             {
+                uncertain = outbox.OfType<JsonObject>().Any(item => String(item, "id") == queuedId && Boolean(item, "unsicher"));
+                if (!uncertain)
+                {
                 var candidate = new JsonArray(outbox.OfType<JsonObject>().Where(item => String(item, "id") != queuedId)
                     .Select(item => item.DeepClone()).ToArray());
                 storage.SaveOutbox(candidate);
                 outbox = candidate;
+                }
             }
-            await emit("App.baumGesendet", new { ok = false, fehler = "Der Löschvorschlag wurde nicht zugestellt und nicht vorgemerkt." });
+            await emit("App.baumGesendet", new { ok = false, fehler = uncertain ? NativeLocalization.Gettext("Delivery status uncertain") : "Der Löschvorschlag wurde nicht zugestellt und nicht vorgemerkt." });
             await ReportStatusAsync(); return;
         }
-        await emit("App.baumGesendet", new { ok = true, fehler = "", zugestellt = report.Delivered, offen = report.Open, an = String(partner, "name", id) });
+        var delivered = report.Delivered;
+        if (kind.StartsWith("kontakt", StringComparison.Ordinal))
+            lock (gate) delivered = outbox.OfType<JsonObject>().Any(item => String(item, "id") == queuedId) ? 0 : 1;
+        bool uncertainDelivery;
+        lock (gate) uncertainDelivery = outbox.OfType<JsonObject>().Any(item => String(item, "id") == queuedId && Boolean(item, "unsicher"));
+        await emit("App.baumGesendet", new { ok = !uncertainDelivery, fehler = uncertainDelivery ? NativeLocalization.Gettext("Delivery status uncertain") : "",
+            zugestellt = delivered, offen = report.Open, an = String(partner, "name", id), kennung = id, art = kind });
         await ReportStatusAsync();
     }
 
@@ -434,12 +539,21 @@ internal sealed class MagnolienbaumCoordinator : IDisposable
         await outboxWorker.WaitAsync(cancellation).ConfigureAwait(false);
         try
         {
+            CancellationToken outboxToken;
+            lock (gate)
+            {
+                if (outboxPaused) return new QueueReport(0, outbox.Count);
+                outboxToken = outboxCancellation.Token;
+            }
+            using var delivery = CancellationTokenSource.CreateLinkedTokenSource(cancellation, outboxToken);
+            cancellation = delivery.Token;
             List<JsonObject> due;
             lock (gate)
             {
                 due = outbox.OfType<JsonObject>().Where(item => !Boolean(item, "aufgegeben"))
-                    .GroupBy(item => String(item, "an"), StringComparer.Ordinal).Select(group => group.First())
-                    .Where(IsDue).Take(maximum == 0 ? int.MaxValue : maximum).ToList();
+                    // Advisory probes must not head-of-line block old peers' contact traffic.
+                    .GroupBy(item => (String(item, "an"), String(item, "art") == "kontakt_faehigkeiten")).Select(group => group.First())
+                    .Where(item => !Boolean(item, "unsicher") && IsDue(item)).Take(maximum == 0 ? int.MaxValue : maximum).ToList();
             }
             var delivered = 0;
             foreach (var item in due)
@@ -450,11 +564,21 @@ internal sealed class MagnolienbaumCoordinator : IDisposable
                 var success = false;
                 try { success = await DeliverAsync(partner, item, cancellation).ConfigureAwait(false); }
                 catch (OperationCanceledException) when (cancellation.IsCancellationRequested) { throw; }
-                catch (Exception error) { mailboxState = "fehler"; mailboxError = error.Message; }
+                catch (Exception error) { mailboxState = "fehler"; mailboxError = NextcloudStatusText.For(error); mailboxErrorCode = MailboxErrorCode(error); }
                 lock (gate)
                 {
-                    if (success) { outbox.Remove(item); delivered++; }
-                    else { item["versuche"] = Number(item, "versuche") + 1; item["zuletzt"] = Timestamp(); }
+                    var current = outbox.OfType<JsonObject>().FirstOrDefault(value => String(value, "id") == String(item, "id"));
+                    if (current is null) continue;
+                    if (success) { outbox.Remove(current); delivered++; }
+                    else
+                    {
+                        current["versuche"] = Number(current, "versuche") + 1; current["zuletzt"] = Timestamp();
+                        if (String(item, "art") == "kontakt_faehigkeiten")
+                        {
+                            // A later advisory retry needs a fresh counter after intervening content.
+                            if (!Boolean(current, "unsicher")) { current.Remove("briefUmschlag"); current.Remove("briefZaehler"); }
+                        }
+                    }
                     storage.SaveOutbox(outbox); storage.SaveState(state);
                 }
             }
@@ -465,7 +589,15 @@ internal sealed class MagnolienbaumCoordinator : IDisposable
 
     private async Task<bool> DeliverAsync(JsonObject partner, JsonObject item, CancellationToken cancellation)
     {
-        if (String(partner, "protokoll", "baum-1") == "baum-fs1") return await DeliverFsAsync(partner, item, cancellation).ConfigureAwait(false);
+        if (String(item, "art") is "kontakt" or "kontakt_sync" or "kontakt_import_manifest" or "kontakt_import_karte")
+        {
+            var payload = item["inhalt"]!.AsObject();
+            if (!JsonNode.DeepEquals(payload, BaumContactSyncContract.ForPeer(partner, payload))) return false;
+        }
+        // A reserved legacy envelope may already have reached its peer. Do not turn
+        // an uncertain-delivery retry into a new FS1 message during a file upgrade.
+        if (String(partner, "protokoll", "baum-1") == "baum-fs1" && item["briefUmschlag"] is not JsonObject)
+            return await DeliverFsAsync(partner, item, cancellation).ConfigureAwait(false);
         var transportId = ReadTransportId(item);
         var ownId = String(state, "kennung");
         var partnerId = String(partner, "kennung");
@@ -478,16 +610,47 @@ internal sealed class MagnolienbaumCoordinator : IDisposable
             lock (gate)
             {
                 counter = Long(partner, "zaehler_raus") + 1; partner["zaehler_raus"] = counter;
+                item = outbox.OfType<JsonObject>().FirstOrDefault(value => String(value, "id") == String(item, "id")) ?? item;
                 envelope = MagnolienbaumCrypto.EncryptBaum1(key, ownId, counter, item["inhalt"]!.DeepClone());
                 item["briefUmschlag"] = envelope.DeepClone(); item["briefZaehler"] = counter;
+                item["receiptProtocol"] = 1;
                 storage.SaveOutbox(outbox); storage.SaveState(state);
             }
         }
-        var fallbackAllowed = true;
-        foreach (var endpoint in Endpoints(partner))
-            try { _ = await PostAsync(BuildUri(endpoint.Host, endpoint.Port, "/magnolie/v1/nachricht"), envelope, cancellation).ConfigureAwait(false); return true; }
+        var endpoints = Endpoints(partner).ToArray();
+        foreach (var endpoint in endpoints)
+        {
+            lock (gate)
+            {
+                // Old reserved envelopes and interrupted attempts have an ambiguous effect.
+                item = outbox.OfType<JsonObject>().FirstOrDefault(value => String(value, "id") == String(item, "id")) ?? item;
+                // Persist uncertainty BEFORE sending; never resubmit them automatically.
+                if (Number(item, "receiptProtocol") != 1 || Boolean(item, "receiptAttempted"))
+                { item["unsicher"] = true; storage.SaveOutbox(outbox); return false; }
+                item["receiptAttempted"] = true; item["unsicher"] = true;
+                storage.SaveOutbox(outbox);
+            }
+            try
+            {
+                var receipt = await PostAsync(BuildUri(endpoint.Host, endpoint.Port, "/magnolie/v1/nachricht"), envelope, cancellation).ConfigureAwait(false);
+                if (BaumReceipt.Verify(key, ownId, partnerId, envelope, receipt)) return true;
+            }
+            catch (HttpRequestException failure) when (failure.HttpRequestError == HttpRequestError.NameResolutionError ||
+                failure.InnerException is SocketException { SocketErrorCode: SocketError.ConnectionRefused })
+            {
+                // No connection existed, so no application bytes could have reached a peer.
+                lock (gate)
+                {
+                    var current = outbox.OfType<JsonObject>().FirstOrDefault(value => String(value, "id") == String(item, "id")) ?? item;
+                    current["receiptAttempted"] = false; current["unsicher"] = false; storage.SaveOutbox(outbox);
+                }
+                continue;
+            }
             catch (OperationCanceledException) when (cancellation.IsCancellationRequested) { throw; }
-            catch (Exception error) { fallbackAllowed &= DirectUnavailable(error); }
+            catch (Exception) { }
+            lock (gate) serviceError = NativeLocalization.Gettext("Delivery status uncertain");
+            return false;
+        }
         if (MailboxEnabled())
         {
             if (await mailbox.ReceiptExistsAsync(transportId, partnerId, ownId, key, cancellation).ConfigureAwait(false))
@@ -496,7 +659,7 @@ internal sealed class MagnolienbaumCoordinator : IDisposable
                 try { await mailbox.DeleteReceiptAsync(ownId, transportId, cancellation).ConfigureAwait(false); } catch { }
                 return true;
             }
-            if (fallbackAllowed)
+            if (!Boolean(item, "receiptAttempted"))
             {
                 await mailbox.EnsureHierarchyAsync(partnerId, cancellation).ConfigureAwait(false);
                 _ = await mailbox.UploadAsync(transportId, ownId, partnerId, envelope, key, cancellation).ConfigureAwait(false);
@@ -619,7 +782,10 @@ internal sealed class MagnolienbaumCoordinator : IDisposable
                 }
                 if (path == "/magnolie/v2/paarung")
                 {
+                    var invitationCount = (state["paarungen"] as JsonArray)?.Count ?? 0;
                     var response = MagnolienbaumPairing.AcceptRequest(state, payload, source, DateTimeOffset.UtcNow.ToUnixTimeSeconds()); storage.SaveState(state);
+                    if (((state["paarungen"] as JsonArray)?.Count ?? 0) < invitationCount &&
+                        Partner(String(payload["zweig"]!.AsObject(), "kennung")) is { } paired) QueueContactCapabilities(paired);
                     return new(200, response, true);
                 }
                 if (path == "/magnolie/v2/sitzung")
@@ -642,11 +808,23 @@ internal sealed class MagnolienbaumCoordinator : IDisposable
                 {
                     var partner = Partner(String(payload, "von"));
                     if (partner is null || !Boolean(partner, "bestaetigt")) throw new InvalidOperationException("Dieser Zweig wurde noch nicht bestätigt.");
-                    var content = MagnolienbaumCrypto.DecryptBaum1(PartnerKey(partner), payload, String(partner, "kennung"), Long(partner, "zaehler_rein"), out var counter);
-                    var entry = StoreIncoming(partner, content);
+                    var hash = BaumReceipt.EnvelopeHash(payload);
+                    var receipts = partner["directReceipts"] as JsonArray ?? new JsonArray();
+                    var prior = receipts.OfType<JsonObject>().FirstOrDefault(value => String(value, "envelopeSha256") == hash);
+                    if (prior is not null)
+                    { storage.SaveState(state); return new(200, prior.DeepClone().AsObject()); }
+                    var key = PartnerKey(partner);
+                    var content = MagnolienbaumCrypto.DecryptBaum1(key, payload, String(partner, "kennung"), Long(partner, "zaehler_rein"), out var counter);
+                    if (!inbox.OfType<JsonObject>().Any(value => String(value, "von") == String(partner, "kennung") && String(value, "directEnvelopeHash") == hash))
+                        StoreIncoming(partner, content, directEnvelopeHash: hash);
+                    var receipt = BaumReceipt.Create(key, String(partner, "kennung"), String(state, "kennung"), payload);
+                    receipts.Add(receipt.DeepClone()); while (receipts.Count > 64) receipts.RemoveAt(0);
+                    partner["directReceipts"] = receipts;
+                    var caches = state["partner"]!.AsArray().OfType<JsonObject>().Select(value => value["directReceipts"]).OfType<JsonArray>().ToArray();
+                    while (caches.Sum(value => value.Count) > 256) caches.OrderByDescending(value => value.Count).First().RemoveAt(0);
                     partner["zaehler_rein"] = counter; partner["zuletzt"] = Timestamp();
                     storage.SaveState(state);
-                    return new(200, new JsonObject { ["ok"] = true, ["art"] = entry?["art"]?.GetValue<string>() ?? content["art"]!.GetValue<string>() }, true);
+                    return new(200, receipt, true);
                 }
                 return new(404, Error("Unbekannter Endpunkt."));
             }
@@ -683,15 +861,25 @@ internal sealed class MagnolienbaumCoordinator : IDisposable
         }
     }
 
-    private JsonObject? StoreIncoming(JsonObject partner, JsonNode content, string briefTransportId = "")
+    private JsonObject? StoreIncoming(JsonObject partner, JsonNode content, string briefTransportId = "", string directEnvelopeHash = "")
     {
         var kind = content["art"]?.GetValue<string>() ?? "aufgabe";
+        if (kind == "kontakt_faehigkeiten")
+        {
+            if (!Boolean(partner, "bestaetigt") || !ReferenceEquals(Partner(String(partner, "kennung")), partner))
+                throw new InvalidDataException(NativeLocalization.Gettext("The data is invalid."));
+            BaumContactSyncContract.ValidateCapabilities(content);
+            if (!content["antwort"]!.GetValue<bool>()) QueueContactCapabilities(partner, true);
+            partner["kontaktFaehigkeiten"] = content.DeepClone();
+            return null; // Authentication/replay counters and capabilities are saved together by the caller.
+        }
         if (kind == "kontakt_sync") BaumContactSyncContract.Validate(content);
         if (kind is "kontakt_import_manifest" or "kontakt_import_karte") BaumContactSyncContract.ValidateImport(content, kind);
         if (kind == "kontakt_loeschen")
         {
             BaumContactSyncContract.ValidateDelete(content);
-            if (!Boolean(partner, "kontakte") || !Boolean(partner, "loeschungen"))
+            if (!Boolean(partner, "kontakte") || !(partner.ContainsKey("kontaktLoeschen")
+                    ? Boolean(partner, "kontaktLoeschen") : Boolean(partner, "loeschungen")))
                 throw new InvalidOperationException("Löschvorschläge sind für diesen Partner nicht freigegeben.");
             if (content["quelle"]!.GetValue<string>() != String(partner, "kennung"))
                 throw new InvalidOperationException("Die Quelle des Löschvorschlags stimmt nicht mit dem Partner überein.");
@@ -706,11 +894,27 @@ internal sealed class MagnolienbaumCoordinator : IDisposable
             ["vonName"] = String(partner, "name"), ["art"] = kind,
             ["inhalt"] = content.DeepClone(), ["empfangen"] = Timestamp() };
         if (briefTransportId.Length > 0) entry["briefTransportId"] = briefTransportId;
+        if (directEnvelopeHash.Length > 0) entry["directEnvelopeHash"] = directEnvelopeHash;
         var candidate = inbox.DeepClone().AsArray(); candidate.Add(entry);
         if (Encoding.UTF8.GetByteCount(candidate.ToJsonString()) > MaxInboxBytes)
             throw new InboxFullException("Der Magnolienbaum-Eingang ist zu groß.");
         storage.SaveInbox(candidate); inbox = candidate;
         return entry;
+    }
+
+    private void QueueContactCapabilities(JsonObject partner, bool response = false)
+    {
+        if (!Boolean(partner, "bestaetigt")) return;
+        var id = String(partner, "kennung");
+        var payload = BaumContactSyncContract.Capabilities(response);
+        if (outbox.OfType<JsonObject>().Any(item => String(item, "an") == id && !Boolean(item, "aufgegeben") &&
+            JsonNode.DeepEquals(item["inhalt"], payload))) return;
+        var candidate = outbox.DeepClone().AsArray();
+        candidate.Add(new JsonObject { ["id"] = MagnolienbaumStore.RandomId(12),
+            ["transportId"] = Convert.ToBase64String(RandomNumberGenerator.GetBytes(16)), ["an"] = id,
+            ["art"] = "kontakt_faehigkeiten", ["inhalt"] = payload,
+            ["versuche"] = 0, ["zuletzt"] = "", ["angelegt"] = Timestamp() });
+        storage.SaveOutbox(candidate); outbox = candidate;
     }
 
     private async Task UdpLoopAsync(UdpClient socket, CancellationToken cancellation)
@@ -781,10 +985,11 @@ internal sealed class MagnolienbaumCoordinator : IDisposable
                          .ThenBy(value => Long(value.Envelope, "zaehler")))
                 await AcceptMailboxMessageAsync(ownId, entry.Sender, entry.Id, entry.Envelope, cancellation).ConfigureAwait(false);
             mailboxState = documentError is null ? "bereit" : "unvollstaendig";
-            mailboxError = documentError?.Message ?? "";
+            mailboxError = documentError is null ? "" : NextcloudStatusText.For(documentError);
+            mailboxErrorCode = documentError is null ? "none" : MailboxErrorCode(documentError);
         }
         catch (OperationCanceledException) when (cancellation.IsCancellationRequested) { throw; }
-        catch (Exception error) { mailboxState = "fehler"; mailboxError = error.Message; }
+        catch (Exception error) { mailboxState = "fehler"; mailboxError = NextcloudStatusText.For(error); mailboxErrorCode = MailboxErrorCode(error); }
         finally { mailboxWorker.Release(); }
     }
 
@@ -797,27 +1002,41 @@ internal sealed class MagnolienbaumCoordinator : IDisposable
         lock (gate)
         {
             partner = Partner(sender) ?? throw new InvalidDataException("Der Briefkasten-Absender ist unbekannt.");
+            if (!Boolean(partner, "bestaetigt")) throw new InvalidOperationException("Dieser Zweig wurde noch nicht bestätigt.");
             key = PartnerKey(partner);
             var seen = partner["brief_transport_ids"] as JsonArray;
             var transportText = MagnolienbaumCrypto.Base64Url(transportId);
             duplicate = seen?.Any(value => value?.GetValue<string>() == transportText) == true ||
-                inbox.OfType<JsonObject>().Any(value => String(value, "briefTransportId") == transportText);
+                inbox.OfType<JsonObject>().Any(value => String(value, "von") == sender && String(value, "briefTransportId") == transportText);
             var expectedCounter = checked(Long(partner, "zaehler_rein") + 1);
             if (!duplicate && Long(envelope, "zaehler") == expectedCounter)
             {
                 var plain = MagnolienbaumCrypto.DecryptBaum1(key, envelope, sender,
                     Long(partner, "zaehler_rein"), out var counter);
-                _ = StoreIncoming(partner, plain, transportText) ?? throw new InvalidDataException("Der Briefkasteninhalt ist ungültig.");
+                _ = StoreIncoming(partner, plain, transportText);
                 partner["zaehler_rein"] = counter;
                 seen ??= new JsonArray(); seen.Add(transportText);
                 while (seen.Count > 2048) seen.RemoveAt(0);
-                partner["brief_transport_ids"] = seen; storage.SaveState(state);
+                partner["brief_transport_ids"] = seen;
             }
             else if (duplicate)
             {
-                // Eine bereits dauerhaft angenommene Nachricht darf erneut quittiert werden.
+                // Recover the inbox-before-state crash window without applying content twice.
+                if (Long(envelope, "zaehler") > Long(partner, "zaehler_rein"))
+                {
+                    if (Long(envelope, "zaehler") != expectedCounter) return;
+                    _ = MagnolienbaumCrypto.DecryptBaum1(key, envelope, sender,
+                        Long(partner, "zaehler_rein"), out var counter);
+                    partner["zaehler_rein"] = counter;
+                }
+                seen ??= new JsonArray();
+                if (!seen.Any(value => value?.GetValue<string>() == transportText)) seen.Add(transportText);
+                while (seen.Count > 2048) seen.RemoveAt(0);
+                partner["brief_transport_ids"] = seen;
             }
             else return;
+            // Also retry a failed state write before acknowledging an in-memory duplicate.
+            storage.SaveState(state);
         }
         await mailbox.WriteReceiptAsync(transportId, ownId, sender, key, cancellation).ConfigureAwait(false);
         await mailbox.DeleteIncomingAsync(ownId, transportId, cancellation).ConfigureAwait(false);
@@ -881,7 +1100,7 @@ internal sealed class MagnolienbaumCoordinator : IDisposable
     private bool MailboxEnabled()
     {
         try { return mailboxSettings.Load() is { Active: true } && mailboxSettings.HasApplicationPassword; }
-        catch (Exception error) { mailboxState = "fehler"; mailboxError = error.Message; return false; }
+        catch (Exception error) { mailboxState = "fehler"; mailboxError = NextcloudStatusText.For(error); mailboxErrorCode = MailboxErrorCode(error); return false; }
     }
 
     private void RecoverBaum1Counters()
@@ -995,15 +1214,16 @@ internal sealed class MagnolienbaumCoordinator : IDisposable
 
     internal async Task ShutdownAsync()
     {
-        if (disposed) return;
+        lock (gate) { if (disposed) return; disposed = true; }
+        outboxCancellation.Cancel();
         await StopAsync().ConfigureAwait(false);
-        disposed = true;
         mailbox.Dispose(); client.Dispose();
     }
 
     public void Dispose()
     {
         if (disposed) return; disposed = true;
+        outboxCancellation.Cancel();
         serviceCancellation?.Cancel();
         foreach (var listener in listeners) listener.Stop();
         udp?.Dispose();

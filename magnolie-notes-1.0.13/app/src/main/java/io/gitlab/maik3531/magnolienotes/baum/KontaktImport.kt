@@ -14,10 +14,11 @@ data class KontaktImportVorschau(val id: String, val anzahl: Int, val herkuenfte
 /** Einmaliger read-only Import. Ohne passende Vorschau kann nichts gesendet werden. */
 class KontaktImportAblauf(private val senden: (String, JsonObject) -> Unit) {
     private data class Offen(val vorschau: KontaktImportVorschau, val partner: String,
-                             val geraet: String, val kontakte: List<AndroidKontakt>)
+                             val geraet: String, val kontakte: List<AndroidKontakt>, val fassung: Int)
     private var offen: Offen? = null
 
-    fun vorschau(snapshot: KontaktSnapshot, partner: String, geraet: String): KontaktImportVorschau {
+    fun vorschau(snapshot: KontaktSnapshot, partner: String, geraet: String, fassung: Int = 1): KontaktImportVorschau {
+        require(fassung in 1..2)
         require(snapshot.vollstaendig) { "Kontakte konnten nicht vollständig gelesen werden." }
         require(partner.gueltigeKennung() && geraet.gueltigeKennung())
         require(snapshot.kontakte.size <= MAX_KONTAKTE)
@@ -35,9 +36,12 @@ class KontaktImportAblauf(private val senden: (String, JsonObject) -> Unit) {
             KontaktImportHerkunft(wert.first, wert.second, wert.third, anzahl)
         }.sortedWith(compareBy({ it.kontoName }, { it.kontoTyp }, { it.dataSet }))
         val vorschau = KontaktImportVorschau(UUID.randomUUID().toString(), kontakte.size, herkuenfte)
-        val karten = kontakte.map { karte(vorschau.id, partner, geraet, it) }
+        val karten = kontakte.map {
+            require(KontaktSync.lies(KontaktSync.inhalt(KontaktNachricht("preview", 1, geraet, 0, it.daten, fassung))) != null)
+            karte(vorschau.id, partner, geraet, it, fassung)
+        }
         require(karten.sumOf { Kanonisch.json.encodeToString(JsonObject.serializer(), it).toByteArray().size } <= MAX_NUTZLAST)
-        offen = Offen(vorschau, partner, geraet, kontakte)
+        offen = Offen(vorschau, partner, geraet, kontakte, fassung)
         return vorschau
     }
 
@@ -47,14 +51,14 @@ class KontaktImportAblauf(private val senden: (String, JsonObject) -> Unit) {
         offen = null
         senden("kontakt_import_manifest", manifest(bereit))
         bereit.kontakte.forEach { senden("kontakt_import_karte",
-            karte(bereit.vorschau.id, bereit.partner, bereit.geraet, it)) }
+            karte(bereit.vorschau.id, bereit.partner, bereit.geraet, it, bereit.fassung)) }
         return bereit.kontakte.size
     }
 
     fun abbrechen() { offen = null }
 
     private fun manifest(offen: Offen) = buildJsonObject {
-        put("art", JsonPrimitive("kontakt_import_manifest")); put("fassung", JsonPrimitive(1))
+        put("art", JsonPrimitive("kontakt_import_manifest")); put("fassung", JsonPrimitive(offen.fassung))
         put("importId", JsonPrimitive(offen.vorschau.id)); put("anzahl", JsonPrimitive(offen.vorschau.anzahl))
         put("herkuenfte", buildJsonArray { offen.vorschau.herkuenfte.forEach { h -> add(buildJsonObject {
             put("kontoTyp", JsonPrimitive(h.kontoTyp)); put("kontoName", JsonPrimitive(h.kontoName))
@@ -62,16 +66,16 @@ class KontaktImportAblauf(private val senden: (String, JsonObject) -> Unit) {
         }) } })
     }
 
-    private fun karte(importId: String, partner: String, geraet: String, kontakt: AndroidKontakt): JsonObject {
+    private fun karte(importId: String, partner: String, geraet: String, kontakt: AndroidKontakt, fassung: Int): JsonObject {
         val herkuenfte = kontakt.herkuenfte.ifEmpty { listOf(KontaktHerkunft(lookupKey = kontakt.lookupKey)) }
         return buildJsonObject {
-            put("art", JsonPrimitive("kontakt_import_karte")); put("fassung", JsonPrimitive(1))
+            put("art", JsonPrimitive("kontakt_import_karte")); put("fassung", JsonPrimitive(fassung))
             put("importId", JsonPrimitive(importId)); put("bindung", JsonPrimitive(bindung(partner, geraet, kontakt)))
             put("herkuenfte", buildJsonArray { herkuenfte.take(MAX_KONTAKT_HERKUENFTE).forEach { h -> add(buildJsonObject {
                 put("kontoTyp", JsonPrimitive(h.accountType)); put("kontoName", JsonPrimitive(h.accountName))
                 put("dataSet", JsonPrimitive(h.dataSet))
             }) } })
-            put("kontakt", KontaktSync.inhalt(KontaktNachricht("x", 1, "x", 0, kontakt.daten))["kontakt"]!!.jsonObject)
+            put("kontakt", KontaktSync.kontaktJson(kontakt.daten, fassung))
         }
     }
 

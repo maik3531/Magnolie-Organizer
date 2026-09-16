@@ -34,6 +34,8 @@ internal sealed class TelefonBluetoothTransport : IDisposable
     private StreamSocketListener? listener;
     private bool starting;
     private bool disposed;
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<Task, byte> handlers = new();
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<StreamSocket, byte> sockets = new();
 
     internal TelefonBluetoothTransport(Guid serviceId, Func<Stream, CancellationToken, Task> handler)
     { this.serviceId = serviceId; this.handler = handler; }
@@ -45,32 +47,36 @@ internal sealed class TelefonBluetoothTransport : IDisposable
     /// </summary>
     internal async Task<(string Reason, string Message)> StartAsync()
     {
+        CancellationToken token;
         lock (gate)
         {
             if (disposed) return ("disabled", TelefonBluetoothSupport.DefaultBlocker);
             if (provider is not null) return ("available", "");
             if (starting) return ("disabled", "Der Bluetooth-Dienst wird bereits gestartet.");
             starting = true;
+            token = lifetime.Token;
         }
+        using var deadline = CancellationTokenSource.CreateLinkedTokenSource(token);
+        deadline.CancelAfter(TimeSpan.FromSeconds(10));
         RfcommServiceProvider? created = null;
         StreamSocketListener? socketListener = null;
         try
         {
-            var access = await Radio.RequestAccessAsync();
+            var access = await Radio.RequestAccessAsync().AsTask(deadline.Token);
             if (access != RadioAccessStatus.Allowed)
                 return ("permission_missing",
                     "Windows verweigert dieser Anwendung den Zugriff auf das Bluetooth-Funkgerät. " +
                     "Erlauben Sie ihn in den Windows-Einstellungen unter Datenschutz und Sicherheit.");
-            var radios = await Radio.GetRadiosAsync();
+            var radios = await Radio.GetRadiosAsync().AsTask(deadline.Token);
             var radio = radios.FirstOrDefault(item => item.Kind == RadioKind.Bluetooth);
             if (radio is null) return ("no_hardware", "Dieser Rechner meldet kein Bluetooth-Funkgerät.");
             if (radio.State != RadioState.On) return ("disabled", "Das Bluetooth-Funkgerät ist ausgeschaltet.");
 
-            created = await RfcommServiceProvider.CreateAsync(RfcommServiceId.FromUuid(serviceId));
+            created = await RfcommServiceProvider.CreateAsync(RfcommServiceId.FromUuid(serviceId)).AsTask(deadline.Token);
             socketListener = new StreamSocketListener();
             socketListener.ConnectionReceived += OnConnectionReceived;
             await socketListener.BindServiceNameAsync(created.ServiceId.AsString(),
-                SocketProtectionLevel.BluetoothEncryptionAllowNullAuthentication);
+                SocketProtectionLevel.BluetoothEncryptionAllowNullAuthentication).AsTask(deadline.Token);
             WriteServiceName(created);
             created.StartAdvertising(socketListener, true);
             lock (gate)
@@ -80,6 +86,7 @@ internal sealed class TelefonBluetoothTransport : IDisposable
             }
             return ("available", "");
         }
+        catch (OperationCanceledException) { return ("disabled", TelefonBluetoothSupport.DefaultBlocker); }
         catch (Exception error) when (error is System.Runtime.InteropServices.COMException or
                                           UnauthorizedAccessException or InvalidOperationException or
                                           PlatformNotSupportedException or NotSupportedException or
@@ -129,7 +136,7 @@ internal sealed class TelefonBluetoothTransport : IDisposable
                                           UnauthorizedAccessException or ArgumentException or
                                           PlatformNotSupportedException)
         { }
-        return result;
+        return result.DistinctBy(device => device.Address, StringComparer.OrdinalIgnoreCase).ToArray();
     }
 
     internal static string FormatAddress(ulong address)
@@ -151,26 +158,41 @@ internal sealed class TelefonBluetoothTransport : IDisposable
     private void OnConnectionReceived(StreamSocketListener sender, StreamSocketListenerConnectionReceivedEventArgs args)
     {
         var socket = args.Socket;
-        _ = Task.Run(async () =>
+        lock (gate)
         {
+        if (disposed) { socket.Dispose(); return; }
+        var token = lifetime.Token;
+        sockets.TryAdd(socket, 0);
+        var task = Task.Run(async () =>
+        {
+            try
+            {
             using (socket)
             using (var stream = new TelefonDuplexStream(socket.InputStream.AsStreamForRead(),
                        socket.OutputStream.AsStreamForWrite()))
             {
-                try { await handler(stream, lifetime.Token); }
+                try { await handler(stream, token); }
                 catch (Exception) { }
             }
+            }
+            finally { sockets.TryRemove(socket, out _); }
         });
+        handlers.TryAdd(task, 0);
+        _ = task.ContinueWith(done => { _ = done.Exception; handlers.TryRemove(done, out _); },
+            CancellationToken.None, TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
+        }
     }
 
-    public void Dispose()
+    internal async Task ShutdownAsync()
     {
-        if (disposed) return;
-        disposed = true;
+        lock (gate) { if (disposed) return; disposed = true; }
         Stop();
         lifetime.Cancel();
+        foreach (var socket in sockets.Keys) socket.Dispose();
+        while (!handlers.IsEmpty) try { await Task.WhenAll(handlers.Keys).ConfigureAwait(false); } catch (Exception) { }
         lifetime.Dispose();
     }
+    public void Dispose() { _ = ShutdownAsync(); }
 }
 
 /// <summary>

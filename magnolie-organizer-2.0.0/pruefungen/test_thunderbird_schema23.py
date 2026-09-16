@@ -48,11 +48,16 @@ def schema23_regression_db(tmp_path):
         ("arbeit", "eiermann-serie", native(2026, 1, 3), "Eiermann", "PUBLIC",
          "CONFIRMED", 16, native(2026, 8, 3, 9), "floating",
          native(2026, 8, 3, 10), "floating", None, None),
+        ("arbeit", "dreiwochen-serie", native(2026, 1, 4), "Drei Wochen", "PUBLIC",
+         "CONFIRMED", 16, native(2026, 8, 4, 9), "floating",
+         native(2026, 8, 4, 10), "floating", None, None),
     ))
     db.executemany("INSERT INTO cal_recurrence VALUES (?,?,?,?,?)", (
         ("familie", "gottfried-serie", None, None, "RRULE:FREQ=YEARLY"),
         ("arbeit", "eiermann-serie", None, None,
          "RRULE:FREQ=WEEKLY;INTERVAL=2;BYDAY=MO"),
+        ("arbeit", "dreiwochen-serie", None, None,
+         "RRULE:FREQ=WEEKLY;INTERVAL=3;BYDAY=TU"),
     ))
     db.executemany("INSERT INTO cal_properties VALUES (?,?,?,?,?,?)", (
         ("familie", "gottfried-serie", None, None, "CATEGORIES", "Birthday"),
@@ -78,14 +83,56 @@ def test_schema23_regression_serienidentitaet_und_fehlerzeile(
     m._lokale_kalender_dubletten_bereinigen(nutzlast)
     assert len(nutzlast["jahrestage"]) == 1
 
-    assert len(ergebnis["termine"]) == 1
-    eiermann = ergebnis["termine"][0]
+    assert len(ergebnis["termine"]) == 2
+    eiermann = next(item for item in ergebnis["termine"]
+                    if item["uid"] == "eiermann-serie")
     assert eiermann["titel"] == "Eiermann"
     assert eiermann["wiederholung"]["art"] == "weekly"
     assert eiermann["wiederholung"]["intervall"] == 2
+    dreiwochen = next(item for item in ergebnis["termine"]
+                      if item["uid"] == "dreiwochen-serie")
+    assert dreiwochen["wiederholung"] == {
+        "art": "weekly", "bis": "", "intervall": 3}
 
 
-def test_schema23_serienausnahme_und_zusatztabellen(tmp_path):
+def test_google_14_tage_serie_seit_1998_bleibt_in_zukunft_sichtbar(monkeypatch):
+    monkeypatch.setitem(m._REGIONAL, "timeZone", "Europe/Berlin")
+    text = ("BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\n"
+            "UID:eiermann-1998\r\n"
+            "DTSTART;TZID=Europe/Berlin:19980105T090000\r\n"
+            "DTEND;TZID=Europe/Berlin:19980105T093000\r\n"
+            "RRULE:FREQ=WEEKLY;WKST=MO;INTERVAL=2;BYDAY=MO\r\n"
+            "SUMMARY:Eiermann\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n")
+
+    termin = m.ics_lesen(text)["termine"][0]
+    assert not termin["icsKomplex"]
+    assert termin["wiederholung"] == {
+        "art": "weekly", "bis": "", "intervall": 2}
+    assert m.wiederholung_trifft(termin, datetime(2026, 9, 7))
+    assert not m.wiederholung_trifft(termin, datetime(2026, 9, 14))
+    sichtbar = m.termine_mit_wiederholungen(
+        {"termine": [termin]}, datetime(2026, 9, 7, 8),
+        tage_zurueck=0, tage_vor=1)
+    instanzen = [item for item in sichtbar if item.get("datum") == "2026-09-07"]
+    assert len(instanzen) == 1
+    instanz = instanzen[0]
+    assert (instanz["uid"], instanz["zeit"], instanz["endZeit"], instanz["folge"]) == (
+        "eiermann-1998", "09:00", "09:30", True)
+    kennung, zeitpunkt = instanz["id"].rsplit("@", 1)
+    assert kennung == m._termin_erinnerungskennung(termin)
+    assert datetime.fromisoformat(zeitpunkt).astimezone(timezone.utc) == datetime(
+        2026, 9, 7, 7, tzinfo=timezone.utc)
+    erneut = m.termine_mit_wiederholungen(
+        {"termine": [termin]}, datetime(2026, 9, 7, 8),
+        tage_zurueck=0, tage_vor=1)
+    assert [item["id"] for item in erneut] == [item["id"] for item in sichtbar]
+    assert not m.termine_mit_wiederholungen(
+        {"termine": [termin]}, datetime(2026, 9, 14, 8),
+        tage_zurueck=0, tage_vor=1)
+
+
+def test_schema23_serienausnahme_und_zusatztabellen(tmp_path, monkeypatch):
+    monkeypatch.setitem(m._REGIONAL, "timeZone", "Europe/Berlin")
     pfad = tmp_path / "local.sqlite"
     db = sqlite3.connect(pfad)
     db.execute("""CREATE TABLE cal_events (
@@ -164,12 +211,12 @@ def test_schema23_serienausnahme_und_zusatztabellen(tmp_path):
     assert "ATTACH:file:///tmp/lokal.pdf" in ausnahme_import["icsRoundtrip"]
     assert "TRIGGER:-PT15M" in ausnahme_import["icsRoundtrip"]
     assert "ATTACH;FMTTYPE=application/pdf:https://example.org/a.pdf" in ausnahme_import["icsRoundtrip"]
-    assert ausnahme_import["icsQuelleId"] == "thunderbird:c"
+    assert ausnahme_import["icsQuelleId"] == m._tb_quelle("c", profil=str(tmp_path))[1]
     assert ausnahme_import["icsQuelleName"] == "Thunderbird: c"
 
     export = m.ics_schreiben_termine([master_import, ausnahme_import])
     assert "EXDATE:20260817T090000Z" in export
-    assert "EXDATE;TZID=" in export and ":20260810T090000" in export
+    assert "EXDATE:20260810T090000Z" in export
 
 
 def test_backend_reminders_observe_series_exceptions_and_additions():
@@ -199,12 +246,28 @@ def test_backend_reminders_observe_series_exceptions_and_additions():
         datetime(2026, 8, 17, 8, 45)
 
 
-def test_unsupported_monthly_and_yearly_intervals_fail_closed():
-    for art, start, candidate in (
-            ("monthly", "2026-01-15", datetime(2026, 3, 15)),
-            ("yearly", "2026-06-01", datetime(2028, 6, 1))):
+def test_thunderbird_separate_rdates_become_custom_recurrence():
+    recurrence, complex_series, exceptions, dates, occurrences = \
+        m._tb_wiederholung_lesen([
+            "RDATE;VALUE=DATE:20260922\r\n",
+            "RDATE;VALUE=DATE:20261004\r\n",
+        ], "2026-09-10")
+
+    assert recurrence == {"art": "custom", "bis": "",
+                          "daten": ["2026-09-22", "2026-10-04"]}
+    assert not complex_series and not exceptions
+    assert dates == ["2026-09-22", "2026-10-04"]
+    assert occurrences == [{"datum": "2026-09-22", "zeit": ""},
+                           {"datum": "2026-10-04", "zeit": ""}]
+
+
+def test_monthly_and_yearly_intervals_match_only_their_cycle():
+    for art, start, candidate, off_cycle in (
+            ("monthly", "2026-01-15", datetime(2026, 3, 15), datetime(2026, 2, 15)),
+            ("yearly", "2026-06-01", datetime(2028, 6, 1), datetime(2027, 6, 1))):
         termin = {"datum": start, "wiederholung": {"art": art, "intervall": 2}}
-        assert not m.wiederholung_trifft(termin, candidate)
+        assert m.wiederholung_trifft(termin, candidate)
+        assert not m.wiederholung_trifft(termin, off_cycle)
 
 
 def test_takeout_zip_und_google_csv_werden_begrenzt_gelesen():
@@ -231,9 +294,12 @@ def test_takeout_zip_und_google_csv_werden_begrenzt_gelesen():
     puffer = io.BytesIO()
     with zipfile.ZipFile(puffer, "w", zipfile.ZIP_DEFLATED) as archiv:
         archiv.writestr("Takeout/Contacts/contacts.csv",
-                        "Given Name,Family Name,E-mail 1 - Value,Phone 1 - Value\r\nMia,Muster,mia@example.org,+49170\r\n")
+                        "Given Name,Family Name,E-mail 1 - Value,Phone 1 - Value\r\n"
+                        "Anna,Zander,anna@example.org,+49170\r\n"
+                        "Zoe,Adler,zoe@example.org,+49171\r\n")
     kontakte = m.import_rohdaten_lesen("vcf", puffer.getvalue(), "takeout.zip")["kontakte"]
-    assert kontakte[0]["vorname"] == "Mia" and kontakte[0]["nachname"] == "Muster"
+    assert [(kontakt["vorname"], kontakt["nachname"]) for kontakt in kontakte] == [
+        ("Anna", "Zander"), ("Zoe", "Adler")]
 
     bombe = io.BytesIO()
     with zipfile.ZipFile(bombe, "w", zipfile.ZIP_DEFLATED) as archiv:

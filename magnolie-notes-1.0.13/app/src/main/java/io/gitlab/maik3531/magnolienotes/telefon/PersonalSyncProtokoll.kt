@@ -14,11 +14,123 @@ import java.util.Base64
 /** Strict wire codec for personal data inside magnolie-phone/1 only. */
 object PersonalSyncProtokoll {
     const val CHUNK_RAW = 180_000
+    const val CHUNK_BODY_MAX = 256 * 1024
     private const val MAX_TIMESTAMP = 253_402_300_799_999L
     private const val MAX_SAFE_INTEGER = 9_007_199_254_740_991L
     private val sha = Regex("[0-9a-f]{64}")
     private val kinds = setOf("note", "task", "notebook")
     private val deletionKinds = kinds + "attachment"
+
+    fun customSourceId(sourceId: String, itemId: String): String {
+        TelefonNachrichten.uuid4(sourceId)
+        val encoder = Charsets.UTF_8.newEncoder()
+            .onMalformedInput(java.nio.charset.CodingErrorAction.REPORT)
+        val size = try { encoder.encode(java.nio.CharBuffer.wrap(itemId)).remaining() }
+            catch (_: java.nio.charset.CharacterCodingException) { fail() }
+        if (itemId.isEmpty() || size > 640 ||
+            itemId.any { it.code < 32 || it.code == 127 }) fail()
+        val material = JsonArray(listOf("personal-custom-v1", sourceId, itemId).map(::JsonPrimitive))
+        return "custom:" + java.security.MessageDigest.getInstance("SHA-256")
+            .digest(TelefonKanonisch.bytes(material)).joinToString("") { "%02x".format(it) }
+    }
+
+    // V4 scope consent does not alter ordinary V1 settings.
+    fun validateCustomSettings(body: JsonObject) {
+        TelefonNachrichten.exact(body, setOf("format", "scope", "enabled", "revision", "epoch"))
+        if (body.integer("format") != 4L || body.string("scope") != "custom" ||
+            (body["enabled"] as? JsonPrimitive)?.let { !it.isString && it.booleanOrNull != null } != true ||
+            body.integer("revision") !in 1..MAX_SAFE_INTEGER) fail()
+        TelefonNachrichten.uuid4(body.string("epoch"))
+    }
+
+    fun customScopeAllowed(local: JsonObject?, remote: JsonObject?, localVersions: List<Int>,
+        remoteVersions: List<Int>, ownDevice: Boolean, remoteOwnDevice: Boolean,
+        senderEpoch: String, receiverEpoch: String, senderRevision: Long, receiverRevision: Long): Boolean {
+        if (local == null || remote == null) return false
+        try { validateCustomSettings(local); validateCustomSettings(remote) }
+        catch (_: TelefonProtokollFehler) { return false }
+        return ownDevice && remoteOwnDevice && 4 in localVersions && 4 in remoteVersions &&
+            (local["enabled"] as JsonPrimitive).booleanOrNull == true &&
+            (remote["enabled"] as JsonPrimitive).booleanOrNull == true &&
+            remote.string("epoch") == senderEpoch && local.string("epoch") == receiverEpoch &&
+            remote.integer("revision") == senderRevision && local.integer("revision") == receiverRevision
+    }
+
+    fun acceptCustomSettings(current: JsonObject?, incoming: JsonObject): JsonObject {
+        validateCustomSettings(incoming)
+        if (current != null) {
+            validateCustomSettings(current)
+            if (incoming.integer("revision") == current.integer("revision") && incoming == current) return current
+            if (incoming.integer("revision") <= current.integer("revision") ||
+                incoming.string("epoch") == current.string("epoch")) fail()
+        }
+        return incoming
+    }
+
+    fun validateCustomBody(kind: String, body: JsonObject) {
+        if (kind == "personal_sync.custom_settings") { validateCustomSettings(body); return }
+        var fields = setOf("format", "sender_epoch", "receiver_epoch", "sender_revision", "receiver_revision", "trigger")
+        if (kind == "personal_sync.custom_batch") fields += setOf("source_id", "revision", "upserts", "deletions")
+        else if (kind != "personal_sync.custom_request") fail()
+        TelefonNachrichten.exact(body, fields)
+        if (body.integer("format") != 4L || body.string("trigger") !in setOf("manual", "auto_wifi")) fail()
+        for (name in listOf("sender_epoch", "receiver_epoch")) TelefonNachrichten.uuid4(body.string(name))
+        for (name in listOf("sender_revision", "receiver_revision")) if (body.integer(name) !in 1..MAX_SAFE_INTEGER) fail()
+        if (kind == "personal_sync.custom_request") return
+        val source = body.string("source_id"); TelefonNachrichten.uuid4(source)
+        if (body.integer("revision") !in 1..MAX_SAFE_INTEGER) fail()
+        val upserts = body["upserts"] as? JsonArray ?: fail()
+        val deletions = body["deletions"] as? JsonArray ?: fail()
+        if (upserts.size + deletions.size !in 1..32) fail()
+        val ids = mutableSetOf<String>()
+        for ((array, deleting) in listOf(upserts to false, deletions to true)) for (raw in array) {
+            val record = raw as? JsonObject ?: fail()
+            TelefonNachrichten.exact(record, if (deleting) setOf("id", "item_id", "prior_hash") else setOf("id", "item_id", "kind", "hash", "value"))
+            val id = record.string("id")
+            if (id != customSourceId(source, record.string("item_id")) || !ids.add(id) ||
+                !sha.matches(record.string(if (deleting) "prior_hash" else "hash"))) fail()
+            if (deleting) continue
+            if (record.string("kind") !in setOf("task", "appointment")) fail()
+            val value = record["value"] as? JsonObject ?: fail()
+            TelefonNachrichten.exact(value, setOf("module_id", "module_title", "title", "note", "date", "time", "timezone", "completed", "module_reminders", "item_reminder", "lead_minutes", "default_minute", "recurrence"))
+            customSourceId(source, value.string("module_id"))
+            for ((field, limit) in listOf("module_title" to 480, "title" to 1200, "note" to 20000, "timezone" to 160)) {
+                val text = value.string(field)
+                val size = try { Charsets.UTF_8.newEncoder().encode(java.nio.CharBuffer.wrap(text)).remaining() }
+                    catch (_: java.nio.charset.CharacterCodingException) { fail() }
+                if (size > limit || text.any { (it.code < 32 && it != '\n' && it != '\r' && it != '\t') || it.code == 127 }) fail()
+            }
+            customDate(value.string("date"))
+            if (value.string("time").let { it.isNotEmpty() && !Regex("(?:[01][0-9]|2[0-3]):[0-5][0-9]").matches(it) }) fail()
+            customZone(value.string("timezone"))
+            for (name in listOf("completed", "module_reminders", "item_reminder"))
+                if ((value[name] as? JsonPrimitive)?.let { !it.isString && it.booleanOrNull != null } != true) fail()
+            if (value.integer("lead_minutes") !in 0..525600 || value.integer("default_minute") !in 0..1439) fail()
+            val recurrence = value["recurrence"] as? JsonObject ?: fail()
+            TelefonNachrichten.exact(recurrence, setOf("frequency", "interval", "until", "dates", "ordinal", "weekday"))
+            val frequency = recurrence.string("frequency")
+            val ordinal = (recurrence["ordinal"] as? JsonPrimitive)?.takeIf { !it.isString && Regex("-1|[0-4]").matches(it.content) }?.content?.toLongOrNull() ?: fail()
+            if (frequency !in setOf("none", "daily", "weekly", "monthly", "yearly", "custom") ||
+                recurrence.integer("interval") !in 1..3660 || recurrence.integer("weekday") !in 0..7) fail()
+            customDate(recurrence.string("until"))
+            val days = (recurrence["dates"] as? JsonArray)?.map { (it as? JsonPrimitive)?.takeIf { p -> p.isString }?.content ?: fail() } ?: fail()
+            if (days.size > 1000 || days != days.distinct().sorted()) fail()
+            for (day in days) { if (day.isEmpty()) fail(); customDate(day) }
+            if ((frequency != "custom" && days.isNotEmpty()) || (frequency == "custom" && recurrence.string("until").isNotEmpty()) ||
+                ((ordinal != 0L) != (recurrence.integer("weekday") != 0L)) ||
+                (frequency != "monthly" && ordinal != 0L) ||
+                (record.string("kind") == "task" && frequency != "none") ||
+                (record.string("kind") == "appointment" && (value["completed"] as JsonPrimitive).booleanOrNull == true) ||
+                PersonalSync.hash(value) != record.string("hash")) fail()
+        }
+        if (TelefonKanonisch.bytes(body).size > 192 * 1024) fail()
+    }
+
+    private fun customDate(value: String) {
+        if (value.isEmpty()) return
+        if (!Regex("[0-9]{4}-[0-9]{2}-[0-9]{2}").matches(value) || value.startsWith("0000")) fail()
+        try { java.time.LocalDate.parse(value) } catch (_: java.time.DateTimeException) { fail() }
+    }
 
     fun validate(kind: String, body: JsonObject) {
         when (kind) {
@@ -264,7 +376,7 @@ object PersonalSyncProtokoll {
         if (!sha.matches(body.string("sha256")) || body.integer("index") !in 0..46) fail()
         val encoded = body.string("data")
         val raw = runCatching { Base64.getDecoder().decode(encoded) }.getOrNull() ?: fail()
-        if (raw.size !in 1..CHUNK_RAW || Base64.getEncoder().encodeToString(raw) != encoded || TelefonKanonisch.bytes(body).size > 192 * 1024) fail()
+        if (raw.size !in 1..CHUNK_RAW || Base64.getEncoder().encodeToString(raw) != encoded || TelefonKanonisch.bytes(body).size > CHUNK_BODY_MAX) fail()
     }
 
     private fun validateAttachmentResult(body: JsonObject) {
@@ -272,6 +384,13 @@ object PersonalSyncProtokoll {
         val state = body.string("state"); val error = body.string("error")
         if (!sha.matches(body.string("sha256")) || state !in setOf("complete", "failed") ||
             error !in setOf("none", "not_found", "invalid", "too_large", "save_failed") || (state == "complete") != (error == "none")) fail()
+    }
+
+    internal fun customZone(zone: String): java.time.ZoneId {
+        if (!Regex("[A-Za-z][A-Za-z0-9_+.-]*(?:/[A-Za-z0-9_+.-]+)*").matches(zone) ||
+            zone.startsWith("SystemV/") || zone !in java.time.ZoneId.getAvailableZoneIds() && zone !in setOf("EST", "MST", "HST")) fail()
+        // These three IANA backward aliases are omitted by java.time's zone inventory.
+        return java.time.ZoneId.of(zone, mapOf("EST" to "-05:00", "MST" to "-07:00", "HST" to "-10:00"))
     }
 
     private fun JsonObject.integer(name: String): Long =

@@ -62,7 +62,6 @@ internal sealed class RecoveryJournal
         var now = clock().ToUniversalTime();
         var reasonText = ReasonText(reason);
         var snapshotData = data.DeepClone().AsObject();
-        RemoveAttachments(snapshotData);
         var archive = GesamtarchivService.Create(snapshotData, "windows", appVersion, created: now);
         var sourceHash = Sha256(archive);
         SnapshotInfo? duplicate = null;
@@ -90,6 +89,12 @@ internal sealed class RecoveryJournal
 
         var payload = protect is null ? archive : protect(archive);
         var payloadBytes = Encoding.UTF8.GetBytes(payload);
+        var drive = new DriveInfo(Path.GetPathRoot(root)!);
+        var protectedBytes = List().Where(item => item.Pinned || item.Integrity != "ok").Sum(item => item.Size);
+        if (payloadBytes.LongLength > AtomicStore.MaxArchiveBytes ||
+            protectedBytes + payloadBytes.LongLength > Math.Min(OneGiB, drive.TotalSize / 20) ||
+            drive.AvailableFreeSpace - payloadBytes.LongLength < OneGiB)
+            throw new IOException(NativeLocalization.Gettext("The required recovery snapshot could not be created."));
         var id = Guid.NewGuid().ToString();
         var finalDirectory = Child(id);
         var temporary = Child("." + id + ".tmp");
@@ -115,11 +120,13 @@ internal sealed class RecoveryJournal
             };
             WriteNew(Path.Combine(temporary, "manifest.json"),
                 Encoding.UTF8.GetBytes(manifest.ToJsonString(Indented)));
-            if (restoreLease) WriteRestoreLease(temporary);
+            // Protect the just-created point through pruning, even when all count slots are pinned.
+            WriteRestoreLease(temporary);
             Directory.Move(temporary, finalDirectory);
-            var result = ParseManifest(finalDirectory, verifyPayload: true);
+            _ = ParseManifest(finalDirectory, verifyPayload: true);
             Prune();
-            return result;
+            if (!restoreLease) File.Delete(Path.Combine(finalDirectory, RestoreLeaseFile));
+            return ParseManifest(finalDirectory, verifyPayload: true);
         }
         catch
         {
@@ -128,22 +135,6 @@ internal sealed class RecoveryJournal
                 File.Delete(Path.Combine(finalDirectory, RestoreLeaseFile));
             throw;
         }
-    }
-
-    private static void RemoveAttachments(JsonNode node)
-    {
-        if (node is JsonObject value)
-        {
-            foreach (var pair in value.ToArray())
-            {
-                if ((pair.Key is "daten" or "data") && pair.Value is JsonValue scalar &&
-                    scalar.TryGetValue<string>(out var text) && text.StartsWith("data:", StringComparison.OrdinalIgnoreCase))
-                    value[pair.Key] = "";
-                else if (pair.Value is not null) RemoveAttachments(pair.Value);
-            }
-        }
-        else if (node is JsonArray array)
-            foreach (var item in array) if (item is not null) RemoveAttachments(item);
     }
 
     internal IReadOnlyList<SnapshotInfo> List()
@@ -171,7 +162,12 @@ internal sealed class RecoveryJournal
                 }
                 result.Add(item);
             }
-            catch (Exception error) when (error is IOException or InvalidDataException or JsonException or UnauthorizedAccessException) { }
+            catch (Exception error) when (error is IOException or InvalidDataException or JsonException or UnauthorizedAccessException)
+            {
+                if (Guid.TryParse(Path.GetFileName(directory), out var id))
+                    result.Add(new SnapshotInfo(id.ToString(), DateTimeOffset.MinValue, "", 0, "", "",
+                        new JsonObject(), false, true, "damaged", PayloadFile, directory));
+            }
         }
         return result.OrderByDescending(item => item.CreatedUtc).ToArray();
     }
@@ -245,7 +241,7 @@ internal sealed class RecoveryJournal
         foreach (var previous in Directory.EnumerateDirectories(root, ".*.rewrite-old"))
         {
             var name = Path.GetFileName(previous);
-            RecoverInterruptedRewrite(ValidId(name[1..^12]));
+            if (Guid.TryParse(name[1..^12], out var id)) RecoverInterruptedRewrite(id.ToString());
         }
     }
 
@@ -365,7 +361,7 @@ internal sealed class RecoveryJournal
         _ = CompressOld();
         var all = List().OrderByDescending(item => item.CreatedUtc).ToList();
         var settings = ReadSettings();
-        var protectedItems = all.Where(item => item.Reason == "manual" ||
+        var protectedItems = all.Where(item => item.Integrity != "ok" || item.Reason == "manual" ||
             File.Exists(Path.Combine(item.Directory, RestoreLeaseFile))).ToList();
         var keep = new HashSet<string>(protectedItems.Select(item => item.Id));
         if (Mode(settings) == "days")
@@ -378,6 +374,12 @@ internal sealed class RecoveryJournal
         {
             var freeSlots = Math.Max(0, Maximum(settings) - keep.Count);
             foreach (var item in all.Where(item => !keep.Contains(item.Id)).Take(freeSlots)) keep.Add(item.Id);
+            if (freeSlots == 0 && !all.Any(item => item.Integrity == "ok" &&
+                    item.Reason != "manual" && keep.Contains(item.Id)))
+            {
+                var newestAutomatic = all.FirstOrDefault(item => !keep.Contains(item.Id));
+                if (newestAutomatic is not null) keep.Add(newestAutomatic.Id);
+            }
         }
 
         foreach (var item in all.Where(item => !keep.Contains(item.Id))) Delete(item.Id);
@@ -387,7 +389,7 @@ internal sealed class RecoveryJournal
         var volume = volumeBytes ?? drive.TotalSize;
         var budget = Math.Min(OneGiB, volume / 20);
         var used = all.Sum(item => item.Size);
-        foreach (var item in all.Where(item => item.Reason != "manual" &&
+        foreach (var item in all.Where(item => item.Integrity == "ok" && item.Reason != "manual" &&
                      !File.Exists(Path.Combine(item.Directory, RestoreLeaseFile))))
         {
             if (used <= budget && available >= OneGiB) break;
@@ -446,6 +448,8 @@ internal sealed class RecoveryJournal
 
     private SnapshotInfo ParseManifest(string directory, bool verifyPayload)
     {
+        try
+        {
         EnsureContained(directory);
         RejectReparseTree(directory);
         var manifestText = store.Read(Path.Combine(directory, "manifest.json"), 1024 * 1024)
@@ -480,6 +484,11 @@ internal sealed class RecoveryJournal
             payload["encrypted"]?.GetValue<bool>() ?? false,
             reason == "manual" || File.Exists(Path.Combine(directory, RestoreLeaseFile)),
             verifyPayload ? "ok" : "unchecked", payloadFile, directory);
+        }
+        catch (Exception error) when (error is FormatException or InvalidOperationException or OverflowException)
+        {
+            throw new InvalidDataException("Das Snapshot-Manifest ist ungültig.", error);
+        }
     }
 
     private void EnsureSafeRoot()
@@ -582,7 +591,7 @@ internal sealed class RecoveryJournal
 
     private static void ExtractTarPayload(string workingDirectory, string archive, string output)
     {
-        var start = new ProcessStartInfo("tar") { WorkingDirectory = workingDirectory,
+        var start = new ProcessStartInfo(OperatingSystem.IsWindows() ? Path.Combine(Environment.SystemDirectory, "tar.exe") : "/usr/bin/tar") { WorkingDirectory = workingDirectory,
             UseShellExecute = false, RedirectStandardOutput = true, RedirectStandardError = true, CreateNoWindow = true };
         foreach (var argument in new[] { "-xJOf", archive, "--", PayloadFile }) start.ArgumentList.Add(argument);
         using var process = Process.Start(start) ?? throw new IOException("XZ-Dekomprimierung konnte nicht gestartet werden.");
@@ -611,7 +620,7 @@ internal sealed class RecoveryJournal
 
     private static void RunTar(string workingDirectory, params string[] arguments)
     {
-        var start = new ProcessStartInfo("tar") { WorkingDirectory = workingDirectory,
+        var start = new ProcessStartInfo(OperatingSystem.IsWindows() ? Path.Combine(Environment.SystemDirectory, "tar.exe") : "/usr/bin/tar") { WorkingDirectory = workingDirectory,
             UseShellExecute = false, RedirectStandardError = true, CreateNoWindow = true };
         foreach (var argument in arguments) start.ArgumentList.Add(argument);
         using var process = Process.Start(start) ?? throw new IOException("XZ-Komprimierung konnte nicht gestartet werden.");
@@ -681,17 +690,55 @@ internal static class MutationGate
 
 internal static class RestoreSyncState
 {
-    internal static string Prepare(JsonObject data, DateTimeOffset? now = null)
+    internal static string Prepare(JsonObject data, DateTimeOffset? now = null, JsonObject? live = null,
+        bool restoreSmsPlans = true)
     {
+        if (restoreSmsPlans)
+        {
+            // Outgoing permission is local; archived plans are content, not consent.
+            var settings = data["einstellungen"] as JsonObject ?? new JsonObject();
+            data["einstellungen"] = settings;
+            var addresses = settings["adressen"] as JsonObject ?? new JsonObject();
+            settings["adressen"] = addresses;
+            addresses["smsSchedulingEnabled"] = live?["einstellungen"]?["adressen"]?["smsSchedulingEnabled"] is JsonValue permission &&
+                permission.TryGetValue<bool>(out var enabled) && enabled;
+            foreach (var sms in (data["smsPlanung"] as JsonArray)?.OfType<JsonObject>() ?? [])
+            {
+                if (sms["status"]?.ToString() == "planned") sms["status"] = "paused";
+                else if (sms["status"]?.ToString() == "submitting") sms["status"] = "uncertain";
+            }
+        }
+        // Restore content, never the archive's source identity or protocol baseline.
+        var personal = data["personalSync"] as JsonObject ?? new JsonObject();
+        data["personalSync"] = personal;
+        var current = live?["personalSync"] as JsonObject;
+        personal["actor_id"] = current?["actor_id"]?.DeepClone() ?? JsonValue.Create("");
+        personal["custom_revision"] = current?["custom_revision"]?.DeepClone() ?? JsonValue.Create(0);
+        personal["custom_entities"] = current?["custom_entities"]?.DeepClone() ?? new JsonObject();
+        personal.Remove("custom_auto_hash");
         var epoch = Guid.NewGuid().ToString();
         data["syncEpoch"] = epoch;
+        data.Remove("syncAbgleichBasis");
+        data.Remove("syncAbgleichNachweis");
+        var metadata = data["syncMetadaten"] as JsonObject ?? new JsonObject();
+        data["syncMetadaten"] = metadata;
+        metadata["syncEpoch"] = epoch;
+        metadata["ersteSyncLoeschungsfrei"] = true;
+        if (metadata["nextcloud"] is JsonObject cloud)
+        {
+            cloud.Remove("ausstehendeTransaktion");
+            cloud.Remove("pendingCommitId");
+            cloud["transaktionen"] = new JsonObject();
+        }
         data["syncNachRestore"] = new JsonObject { ["additiv"] = true, ["loeschungsfrei"] = true,
             ["erstelltUtc"] = (now ?? DateTimeOffset.UtcNow).ToUniversalTime().ToString("O") };
-        if (data["geloescht"] is JsonObject deleted)
-        {
-            data["quarantaeneTombstones"] = deleted.DeepClone();
-            data["geloescht"] = new JsonObject { ["termine"] = new JsonArray(), ["kontakte"] = new JsonArray() };
-        }
+        metadata["quarantinedDeletes"] = new JsonObject {
+            ["geloescht"] = data["geloescht"]?.DeepClone() ?? new JsonObject(),
+            ["tombstones"] = data["tombstones"]?.DeepClone() ?? new JsonArray(),
+            ["baumKontaktGeloescht"] = data["baumKontaktGeloescht"]?.DeepClone() ?? new JsonArray() };
+        data["geloescht"] = new JsonObject { ["termine"] = new JsonArray(), ["aufgaben"] = new JsonArray(), ["kontakte"] = new JsonArray() };
+        data["tombstones"] = new JsonArray();
+        data["baumKontaktGeloescht"] = new JsonArray();
         return epoch;
     }
 }

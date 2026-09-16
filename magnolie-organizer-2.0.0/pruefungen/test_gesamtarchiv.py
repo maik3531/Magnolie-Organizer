@@ -3,11 +3,11 @@ import copy
 import json
 import os
 import tempfile
-from importlib.machinery import SourceFileLoader
+from modul_laden import quellmodul_laden
 
 PFAD = os.environ.get("MAGNOLIE_PROGRAMM") or os.path.join(
     os.path.dirname(os.path.abspath(__file__)), "..", "bin", "magnolie-organizer")
-m = SourceFileLoader("magnolie_gesamtarchiv", PFAD).load_module()
+m = quellmodul_laden("magnolie_gesamtarchiv", PFAD)
 
 
 def vollmodell():

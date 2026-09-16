@@ -1,0 +1,22 @@
+BEGIN:VCARD
+VERSION:3.0
+PRODID:-//Sabre//Sabre VObject 4.5.6//EN
+UID:synthetic-full-anniversary
+FN:Synthetic Full Anniversary
+N:Anniversary;Synthetic Full;;;
+BDAY:19800301
+ITEM1.X-ABDATE;VALUE=DATE-AND-OR-TIME:20210907
+ITEM1.X-ABLABEL:_$!<Anniversary>!$_
+X-ANNIVERSARY;VALUE=DATE-AND-OR-TIME:20210907
+END:VCARD
+BEGIN:VCARD
+VERSION:3.0
+PRODID:-//Sabre//Sabre VObject 4.5.6//EN
+UID:synthetic-yearless-anniversary
+FN:Synthetic Yearless Anniversary
+N:Anniversary;Synthetic Yearless;;;
+BDAY;X-APPLE-OMIT-YEAR=1604:1604-02-29
+ITEM1.X-ABDATE;VALUE=DATE-AND-OR-TIME:1604-09-07
+ITEM1.X-ABLABEL:_$!<Anniversary>!$_
+X-ANNIVERSARY;X-APPLE-OMIT-YEAR=1604;VALUE=DATE-AND-OR-TIME:1604-09-07
+END:VCARD

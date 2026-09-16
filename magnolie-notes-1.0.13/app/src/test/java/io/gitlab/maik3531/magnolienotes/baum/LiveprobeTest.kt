@@ -31,7 +31,7 @@ class LiveprobeTest {
 
     private val organizerQuelle = File(
         System.getenv("MAGNOLIE_ORGANIZER_QUELLE")
-            ?: "../../../../Downloads/Magnolie-GPT/magnolie-organizer-1.31.7/bin/magnolie-organizer"
+            ?: "../magnolie-organizer-2.0.0/bin/magnolie-organizer"
     ).absoluteFile.normalize()
     private val treiber = File("werkzeuge/organizer_dienst.py")
 
@@ -116,7 +116,7 @@ class LiveprobeTest {
             override fun partner(kennung: String) =
                 partnerListe.firstOrNull { it.kennung == kennung }
             override fun einladungen(): List<Einladung> = emptyList()
-            override fun paarungFertig(zweig: JsonObject, adresse: String, einladung: Einladung) {}
+            override fun dateiPaarungAnnehmen(eigen: EigeneIdentitaet, anfrage: JsonObject, adresse: String): JsonObject = error("Unused test route")
             override fun codeAnfrage(
                 name: String, kennung: String, oeffentlich: String, adresse: String, port: Int
             ) {}

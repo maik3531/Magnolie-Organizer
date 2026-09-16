@@ -9,7 +9,7 @@ Set-StrictMode -Version Latest
 $root = Split-Path -Parent $PSScriptRoot
 $version = Get-ReleaseVersion $root
 $name = "Magnolie-Organizer-Windows-$version"
-$archive = if ($Destination) { $Destination } else { Join-Path (Split-Path -Parent $root) "$name-Source.zip" }
+$archive = if ($Destination) { $Destination } else { Join-Path $root "$name-Source.zip" }
 $work = Join-Path ([IO.Path]::GetTempPath()) ("magnolie-source-" + [Guid]::NewGuid().ToString("N"))
 $tree = Join-Path $work $name
 $stagedArchive = Join-Path $work "$name-Source.zip"
@@ -35,15 +35,35 @@ try {
     $extract = Join-Path $work "standalone"
     [IO.Compression.ZipFile]::ExtractToDirectory($stagedArchive, $extract)
     $standalone = Join-Path $extract $name
+    $handbookOverrides = @{}
+    foreach ($variable in 'MAGNOLIE_HANDBOOK_WEB', 'MAGNOLIE_HANDBUCH_WEB', 'MAGNOLIE_LINUX_SOURCE', 'MAGNOLIE_TEST_SOURCE_ROOT') {
+        $handbookOverrides[$variable] = [Environment]::GetEnvironmentVariable($variable)
+        [Environment]::SetEnvironmentVariable($variable, $null)
+    }
     Push-Location $standalone
     try {
+        $python = if ($env:MAGNOLIE_PYTHON) { Get-Command $env:MAGNOLIE_PYTHON -ErrorAction Stop } else { Get-Command python3 -ErrorAction SilentlyContinue }
+        if (-not $python) { $python = Get-Command python -ErrorAction Stop }
+        Invoke-NativeCommand $python.Source @('-B', '-m', 'pytest', '-q', '-p', 'no:cacheprovider', 'tests/test_windows_pot_source_coverage.py')
+        Invoke-NativeCommand (Get-Process -Id $PID).Path @('-NoProfile', '-File', 'tests/release-packaging.ps1')
         Invoke-NativeCommand "dotnet" @("restore", "tests/CoreTests.csproj", "--locked-mode")
-        Invoke-NativeCommand "dotnet" @("run", "--project", "tests/CoreTests.csproj", "-c", "Release", "--no-restore")
+        $previousSourceArchiveTest = $env:MAGNOLIE_SOURCE_ARCHIVE_TEST
+        try {
+            $env:MAGNOLIE_SOURCE_ARCHIVE_TEST = "1"
+            Invoke-NativeCommand "dotnet" @("run", "--project", "tests/CoreTests.csproj", "-c", "Release", "--no-restore")
+        } finally {
+            $env:MAGNOLIE_SOURCE_ARCHIVE_TEST = $previousSourceArchiveTest
+        }
         Invoke-NativeCommand "dotnet" @("restore", "MagnolieOrganizer.Windows.csproj", "--locked-mode")
         Invoke-NativeCommand "bun" @("install", "--frozen-lockfile")
         Invoke-NativeCommand "bun" @("run", "test")
         Invoke-NativeCommand "dotnet" @("build", "MagnolieOrganizer.Windows.csproj", "-c", "Release", "--no-restore")
-    } finally { Pop-Location }
+    } finally {
+        Pop-Location
+        foreach ($variable in $handbookOverrides.Keys) {
+            [Environment]::SetEnvironmentVariable($variable, $handbookOverrides[$variable])
+        }
+    }
     if ($Destination) { Move-Item -LiteralPath $stagedArchive -Destination $archive }
     else { Install-StagedPath $stagedArchive $archive }
     Get-FileHash -LiteralPath $archive -Algorithm SHA256

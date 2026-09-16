@@ -16,7 +16,25 @@ assert.ok(python, "MAGNOLIE_PYTHON was not passed by the test runner");
 const protectedTokens = ["Magnolienbaum", "KDE Connect", "Magnolie Notes", "Bluetooth",
   "WebDAV", "CalDAV", "CardDAV", "HTTPS", "JSON", "CSV", "ODS", "PDF",
   "SMS", "UID"];
+const smsTerms = JSON.parse(fs.readFileSync(path.join(__dirname, "resources/sms-localized-terms.json"), "utf8"));
+const linuxSmsTerms = path.resolve(__dirname, "../../magnolie-organizer-2.0.0/pruefungen/sms-localized-terms.json");
+if (fs.existsSync(linuxSmsTerms)) assert.deepStrictEqual(smsTerms, JSON.parse(fs.readFileSync(linuxSmsTerms, "utf8")));
+function preservesToken(value, token, locale, source) {
+  if (value.includes(token)) return true;
+  const index = smsTerms.messages.indexOf(source);
+  return token === "SMS" && index >= 0 && smsTerms.locales[locale]?.[index] === value;
+}
+assert.ok(preservesToken("Sms-plannen bevestigen", "SMS", "nl", "Confirm SMS plans"));
+assert.ok(!preservesToken("Plannen bevestigen", "SMS", "nl", "Confirm SMS plans"));
+assert.ok(!preservesToken("短信", "SMS", "zh_CN", "Unknown SMS message"));
+assert.ok(!preservesToken("蓝牙", "Bluetooth", "zh_CN", "Bluetooth"));
 const englishEqualAllowlist = new Set(protectedTokens);
+// This exact label consists only of a product name and file-format identifiers.
+englishEqualAllowlist.add("Claws Mail XML / LDIF");
+for (const sentence of ["Import Claws Mail XML / LDIF", "Claws Mail XML / LDIF is unavailable.",
+  "Open the Claws Mail address book"]) {
+  assert.ok(!englishEqualAllowlist.has(sentence), "Technical labels must not exempt surrounding English sentences");
+}
 const placeholderPattern = /%\([A-Za-z_][A-Za-z0-9_]*\)[#0 +\-]*\d*(?:\.\d+)?[diouxXeEfFgGcrs]|%(?:\d+\$)?[#0 +\-]*\d*(?:\.\d+)?[diouxXeEfFgGcrs]|\{[A-Za-z_][A-Za-z0-9_]*\}/g;
 const identifierPattern = /https?:\/\/(?:[^\s"'<>…。，、；：！？）】}]*[A-Za-z0-9/#?=&_%~-])?|\.(?:magnolie|json|ics|vcf|ldif|csv|ods|pdf|jpe?g|png|webp|gif|deb|rpm|xml|contact|db)\b/g;
 
@@ -59,13 +77,32 @@ function multiset(text, pattern) {
   return JSON.stringify(Array.from(result).sort(([a], [b]) => a.localeCompare(b)));
 }
 
+function placeholders(text, source = text) {
+  // A source literal such as "100%." stays a percentage in "100% drucken",
+  // not the printf space-flag conversion "% d". Real source conversions remain checked.
+  const conversion = new RegExp("^(?:" + placeholderPattern.source + ")");
+  for (const match of source.matchAll(/\d+(?:[.,]\d+)?%/g)) {
+    const position = match.index + match[0].length - 1;
+    if (conversion.test(source.slice(position))) continue;
+    const literal = match[0].replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    text = text.replace(new RegExp(literal + "(?=$|[\\s.,;:!?])", "g"), value => value.slice(0, -1));
+  }
+  return multiset(text, placeholderPattern);
+}
+assert.strictEqual(placeholders("Mit 100% drucken.", "Print at 100%."), "[]");
+assert.notStrictEqual(placeholders("100%dpx", "Print at 100%."), "[]");
+assert.notStrictEqual(placeholders("100% d"), "[]");
+assert.notStrictEqual(placeholders("%dpx"), "[]");
+assert.notStrictEqual(placeholders("Missing", "%(count)s entries"), placeholders("%(count)s entries"));
+
 function generatedCatalog(locale) {
   let registered;
   vm.runInNewContext(fs.readFileSync(path.join(generatedDir, locale + ".js"), "utf8"), {
     window: { MagnolieI18n: { registerCatalog: (name, catalog) => { registered = { name, catalog }; } } }
   });
   assert.strictEqual(registered.name, locale, `${locale}.js registers the wrong locale`);
-  return registered.catalog.messages;
+  // Catalog payloads are JSON data; compare values, not the VM realm's prototypes.
+  return JSON.parse(JSON.stringify(registered.catalog.messages));
 }
 
 const template = poEntries(fs.readFileSync(path.join(poDir, "magnolie-organizer.pot"), "utf8"));
@@ -75,7 +112,21 @@ assert.deepStrictEqual(fs.readdirSync(poDir).filter((file) => file.endsWith(".po
   .map((file) => path.basename(file, ".po")).sort(), [...locales].sort(), "LINGUAS and PO files differ");
 
 for (const locale of locales) {
-  const entries = poEntries(fs.readFileSync(path.join(poDir, locale + ".po"), "utf8"));
+  const poText = fs.readFileSync(path.join(poDir, locale + ".po"), "utf8");
+  const entries = poEntries(poText);
+  const header = poText.split(/\n\s*\n/, 1)[0];
+  const requiredHeader = {
+    "Project-Id-Version": "Magnolie Organizer 2.0.18",
+    "PO-Revision-Date": "2026-09-07 00:00+0200",
+    "Last-Translator": "Magnolie translation team <maik3531@gmail.com>",
+    "Language-Team": locale,
+    Language: locale,
+    "MIME-Version": "1.0",
+    "Content-Type": "text/plain; charset=UTF-8",
+    "Content-Transfer-Encoding": "8bit"
+  };
+  for (const [field, value] of Object.entries(requiredHeader))
+    assert.ok(header.includes(`"${field}: ${value}\\n"`), `${locale}: invalid or missing ${field} header`);
   assert.deepStrictEqual([...entries.keys()].filter((key) => !dormantKeys.has(key)).sort(),
     [...template.keys()].sort(),
     `${locale}: key set differs from POT`);
@@ -90,16 +141,20 @@ for (const locale of locales) {
     const sourceJoined = sourceTexts.join(" ");
     for (const [index, value] of entry.values.entries()) {
       const sourceForm = sourceTexts[Math.min(index, sourceTexts.length - 1)];
-      assert.strictEqual(multiset(value, placeholderPattern), multiset(sourceForm, placeholderPattern),
+      assert.strictEqual(placeholders(value, sourceForm), placeholders(sourceForm),
         `${locale}: placeholder mismatch: ${source.id}`);
       assert.strictEqual(multiset(value, identifierPattern), multiset(sourceForm, identifierPattern),
         `${locale}: technical identifier mismatch: ${source.id}`);
       for (const token of protectedTokens.filter((item) => sourceJoined.includes(item)))
-        assert.ok(value.includes(token), `${locale}: ${source.id} must preserve ${token}`);
+        assert.ok(preservesToken(value, token, locale, source.id), `${locale}: ${source.id} must preserve ${token}`);
       const words = sourceForm.replace(placeholderPattern, "").replace(identifierPattern, "")
         .match(/[A-Za-z]+(?:'[A-Za-z]+)?/g) || [];
       assert.ok(value !== sourceForm || words.length < 4 || englishEqualAllowlist.has(sourceForm),
         `${locale}: sentence is still English: ${source.id}`);
+      assert.ok(value === sourceForm || words.length < 4 || !value.endsWith(sourceForm),
+        `${locale}: translation appends the English source sentence: ${source.id}`);
+      assert.ok(locale !== "hsb" || !/^(?:Der|Die|Das|Ein|Eine|Es)\s/.test(value),
+        `${locale}: translation is still German: ${source.id}`);
     }
   }
   const delivered = entries.get("Delivered").values[0].toLocaleLowerCase();

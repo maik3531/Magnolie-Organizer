@@ -39,7 +39,7 @@ internal static class MagnolienbaumPairing
             throw new InvalidDataException("Die Paarungsdatei ist ungültig oder abgelaufen.");
         var created = document["erstellt"]?.GetValue<long>() ?? 0;
         var until = document["gueltigBis"]?.GetValue<long>() ?? 0;
-        if (until <= now || until - created > 3600 || document["ziel"] is not JsonObject target ||
+        if (created < 0 || until <= created || until <= now || until - created > 3600 || document["ziel"] is not JsonObject target ||
             document["einlader"] is not JsonObject inviter || target.Count != 2 || inviter.Count != 4)
             throw new InvalidDataException("Die Paarungsdatei ist ungültig oder abgelaufen.");
         var address = target["adresse"]?.GetValue<string>() ?? "";
@@ -60,6 +60,7 @@ internal static class MagnolienbaumPairing
     internal static JsonObject BuildRequest(JsonObject state, JsonObject document, byte[]? nonce = null, long? now = null)
     {
         ValidateFile(document, now ?? DateTimeOffset.UtcNow.ToUnixTimeSeconds());
+        if (nonce is not null && nonce.Length != 32) throw new InvalidDataException("Die Paarungsanfrage ist ungültig.");
         var secret = MagnolienbaumCrypto.ReadBase64Url(document["geheimnis"]!.GetValue<string>(), 32);
         var core = new JsonObject { ["magnolie"] = "baum-paarung-2", ["paarung"] = document["paarung"]!.DeepClone(),
             ["nonce"] = MagnolienbaumCrypto.Base64Url(nonce ?? RandomNumberGenerator.GetBytes(32)), ["zweig"] = Identity(state) };
@@ -75,7 +76,8 @@ internal static class MagnolienbaumPairing
         var requestHash = Convert.ToHexString(SHA256.HashData(MagnolienbaumCrypto.Canonical(request))).ToLowerInvariant();
         var consumed = state["paarungenVerbraucht"] as JsonArray ?? new JsonArray();
         foreach (var old in consumed.OfType<JsonObject>())
-            if (old["paarung"]?.GetValue<string>() == request["paarung"]?.GetValue<string>() && old["anfrageHash"]?.GetValue<string>() == requestHash)
+            if ((old["behaltenBis"]?.GetValue<long>() ?? 0) > now &&
+                old["paarung"]?.GetValue<string>() == request["paarung"]?.GetValue<string>() && old["anfrageHash"]?.GetValue<string>() == requestHash)
                 return old["antwort"]!.DeepClone().AsObject();
         var invitations = state["paarungen"] as JsonArray ?? new JsonArray();
         var invitation = invitations.OfType<JsonObject>().FirstOrDefault(item => item["paarung"]?.GetValue<string>() == request["paarung"]?.GetValue<string>());
@@ -133,6 +135,17 @@ internal static class MagnolienbaumPairing
         var partner = partners.OfType<JsonObject>().FirstOrDefault(item => item["kennung"]?.GetValue<string>() == id);
         if (partner is not null && partner["bestaetigt"]?.GetValue<bool>() == true && partner["oeffentlich"]?.GetValue<string>() != publicKey)
             throw new CryptographicException("Der Schlüssel dieses Zweigs hat sich geändert.");
+        if (partner?["bestaetigt"]?.GetValue<bool>() == true)
+        {
+            // File proof authorizes a protocol upgrade, not renewed consent or identity replacement.
+            // Unauthenticated v1 requests must remain a complete no-op for this record.
+            if (filePairing && (partner["protokoll"]?.GetValue<string>() ?? "baum-1") is "baum-1" or "baum-fs1")
+            {
+                partner["protokoll"] = "baum-fs1";
+                partner["paarungsart"] = "datei-v2";
+            }
+            return partner;
+        }
         if (partner is null)
         {
             if (partners.Count >= 100 || partners.OfType<JsonObject>().Count(item => item["bestaetigt"]?.GetValue<bool>() != true) >= 20)

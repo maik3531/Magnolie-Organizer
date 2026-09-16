@@ -32,11 +32,13 @@ class TelefonTrennungTest {
         assertTrue(database.contains("delete(\"event_dedupe\""))
         val work = File("app/src/main/java/io/gitlab/maik3531/magnolienotes/telefon/TelefonWerk.kt").readText()
         assertTrue(work.contains("queue.deletePeer(it.device_id)"))
-        assertTrue("Entkoppeln meldet sich nicht am authentisierten Organizer ab",
-            work.contains("orderlyClose?.invoke(\"unpaired\")"))
-        assertTrue(work.contains("put(\"reason\", JsonPrimitive(reason))"))
+        val unpair = work.substring(work.indexOf("fun unpair()"), work.indexOf("private fun reconnect()"))
+        assertTrue("Entkoppeln muss die Verbindung vor dem Entfernen schliessen",
+            unpair.indexOf("closeTransport()") in 0 until unpair.indexOf("queue.deletePeer"))
+        assertFalse("Entkoppeln darf nicht im UI auf einen Netzschreibzugriff warten", unpair.contains("orderlyClose?.invoke"))
+        val consentReset = "Ablage.hole(context).personalCustomChange { PersonalCustomState(items = it.items, firedHighWater = it.firedHighWater) }"
+        assertTrue("Entkoppeln muss Custom-Freigaben entfernen und Kopien behalten", unpair.contains(consentReset))
         assertFalse("Entkoppeln darf keine synchronisierten Inhalte löschen",
-            work.substring(work.indexOf("fun unpair()"), work.indexOf("private fun reconnect()"))
-                .contains("Ablage.hole"))
+            unpair.replaceFirst(consentReset, "").contains("Ablage.hole"))
     }
 }

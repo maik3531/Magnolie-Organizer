@@ -8,6 +8,20 @@ import org.junit.Assert.assertThrows
 import org.junit.Test
 
 class AutoSicherungKernTest {
+    @Test fun `generic SAF binary MIME still requires successful encrypted readback`() {
+        val events = mutableListOf<String>()
+        val folder = FakeOrdner(events, reportedMime = "application/octet-stream")
+        assertEquals(SicherungsLaufErgebnis.ERFOLG, AutoSicherungsLauf(folder).ausfuehren(
+            1_700_000_000_000, 2, archiv = { byteArrayOf(4, 2) },
+            authentifizieren = { assertTrue(it.contentEquals(byteArrayOf(4, 2))); events += "auth" },
+            nachErfolg = { events += "erfolg" }))
+        assertTrue(events.indexOf("auth") < events.indexOf("erfolg"))
+        assertThrows(IllegalStateException::class.java) {
+            AutoSicherungsLauf(FakeOrdner(mutableListOf(), "application/octet-stream")).ausfuehren(
+                1_700_000_000_000, 2, { byteArrayOf(0) }, { error("invalid archive") }, { error("must not report success") })
+        }
+    }
+
     @Test fun `Konfiguration begrenzt Aufbewahrung und kennt nur echte Perioden`() {
         assertEquals(2, AutoSicherungsKonfiguration.lesen("TAEGLICH", -5).aufbewahrung)
         assertEquals(AutoSicherungsIntervall.TAEGLICH,
@@ -57,14 +71,41 @@ class AutoSicherungKernTest {
         assertTrue(AutoSicherungsRegeln.zuLoeschen(listOf(alt), alt.name, 2).isEmpty())
     }
 
+    @Test fun `retention authenticates generic binary candidates before deleting them`() {
+        for (validOld in listOf(false, true)) {
+            val deleted = mutableListOf<String>()
+            val read = mutableListOf<String>()
+            val old = eigen("old", 1).copy(mime = "application/octet-stream")
+            val middle = eigen("middle", 2).copy(mime = "application/octet-stream")
+            lateinit var newest: SicherungsDokument
+            var content = byteArrayOf()
+            val folder = object : SicherungsOrdner {
+                override fun anlegen(name: String, mime: String) = SicherungsDokument("new", name, "application/octet-stream", 3)
+                    .also { newest = it }
+                override fun schreiben(dokument: SicherungsDokument, inhalt: ByteArray) { content = inhalt.copyOf() }
+                override fun lesen(dokument: SicherungsDokument, maximum: Long): ByteArray {
+                    read += dokument.kennung
+                    return if (dokument.kennung == "new" || validOld) content.copyOf() else byteArrayOf(0)
+                }
+                override fun auflisten(maximum: Int) = BegrenzteDokumente(listOf(old, middle, newest), false)
+                override fun loeschen(dokument: SicherungsDokument): Boolean { deleted += dokument.kennung; return true }
+            }
+            val result = AutoSicherungsLauf(folder).ausfuehren(1_700_000_000_000, 2, { byteArrayOf(4, 2) },
+                { check(it.contentEquals(byteArrayOf(4, 2))) }, {})
+            assertEquals(listOf("new", "old"), read)
+            assertEquals(if (validOld) listOf("old") else emptyList<String>(), deleted)
+            assertEquals(if (validOld) SicherungsLaufErgebnis.ERFOLG else SicherungsLaufErgebnis.ERFOLG_AUFBEWAHRUNG_FEHLER, result)
+        }
+    }
+
     private fun eigen(id: String, zeit: Long) = SicherungsDokument(id,
         AutoSicherungsRegeln.name(1_700_000_000_000 + zeit, UUID.nameUUIDFromBytes(id.toByteArray())),
         AutoSicherungsRegeln.MIME, zeit)
 
-    private class FakeOrdner(private val ereignisse: MutableList<String>) : SicherungsOrdner {
+    private class FakeOrdner(private val ereignisse: MutableList<String>, private val reportedMime: String? = null) : SicherungsOrdner {
         private lateinit var neu: SicherungsDokument
         private var inhalt = ByteArray(0)
-        override fun anlegen(name: String, mime: String) = SicherungsDokument("neu", name, mime, 100)
+        override fun anlegen(name: String, mime: String) = SicherungsDokument("neu", name, reportedMime ?: mime, 100)
             .also { neu = it; ereignisse += "anlegen" }
         override fun schreiben(dokument: SicherungsDokument, inhalt: ByteArray) {
             this.inhalt = inhalt.copyOf(); ereignisse += "schreiben"

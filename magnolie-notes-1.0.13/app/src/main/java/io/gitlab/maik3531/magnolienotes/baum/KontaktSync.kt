@@ -26,12 +26,16 @@ data class KontaktDaten(
     val notiz: String = "", val geburtstag: String = "", val foto: String = "",
     val telefone: List<KontaktWert> = emptyList(),
     val emailEintraege: List<KontaktWert> = emptyList(),
-    val anschriften: List<KontaktAnschrift> = emptyList()
+    val anschriften: List<KontaktAnschrift> = emptyList(),
+    val jubilaeum: String = "",
+    val anzeigename: String = "",
+    val vcardName: List<String> = emptyList()
 )
 @Serializable
 data class KontaktNachricht(
     val freigabeId: String, val version: Long, val quelle: String,
-    val geaendert: Long, val kontakt: KontaktDaten
+    val geaendert: Long, val kontakt: KontaktDaten,
+    val fassung: Int = 1
 )
 
 /** Interoperabler Vertrag und reine, auf der JVM testbare Kontaktlogik. */
@@ -47,19 +51,26 @@ object KontaktSync {
         "delete", "deleted", "deletion", "tombstone", "loeschen", "löschen", "geloescht", "gelöscht")
 
     fun inhalt(n: KontaktNachricht): JsonObject = buildJsonObject {
+        require(n.fassung in 1..2)
         put("art", JsonPrimitive("kontakt_sync"))
-        put("fassung", JsonPrimitive(1))
+        put("fassung", JsonPrimitive(n.fassung))
         put("freigabeId", JsonPrimitive(n.freigabeId))
         put("version", JsonPrimitive(n.version))
         put("quelle", JsonPrimitive(n.quelle))
         put("geaendert", JsonPrimitive(n.geaendert))
-        put("kontakt", kontaktJson(n.kontakt))
+        put("kontakt", kontaktJson(n.kontakt, n.fassung))
     }
 
-    private fun kontaktJson(k: KontaktDaten) = buildJsonObject {
+    internal fun kontaktJson(k: KontaktDaten, fassung: Int) = buildJsonObject {
+        require(fassung in 1..2 && (fassung == 2 || legacyDarstellbar(k)))
         put("vorname", JsonPrimitive(k.vorname)); put("nachname", JsonPrimitive(k.nachname))
         put("firma", JsonPrimitive(k.firma)); put("notiz", JsonPrimitive(k.notiz))
         put("geburtstag", JsonPrimitive(k.geburtstag))
+        if (fassung == 2) {
+            put("jubilaeum", JsonPrimitive(k.jubilaeum))
+            put("anzeigename", JsonPrimitive(k.anzeigename))
+            put("vcardName", JsonArray(k.vcardName.map(::JsonPrimitive)))
+        }
         if (k.foto.isNotEmpty()) put("foto", JsonPrimitive(k.foto))
         put("telefone", werteJson(k.telefone)); put("emailEintraege", werteJson(k.emailEintraege))
         put("anschriften", buildJsonArray { k.anschriften.forEach { a -> add(buildJsonObject {
@@ -74,8 +85,13 @@ object KontaktSync {
     } }
 
     fun lies(o: JsonObject): KontaktNachricht? = runCatching {
-        if (o.text("art") != "kontakt_sync" || o.long("fassung") != 1L) return null
+        val fassung = o.long("fassung")?.toInt() ?: return null
+        if (o.text("art") != "kontakt_sync" || o["fassung"] !in setOf(JsonPrimitive(1), JsonPrimitive(2))) return null
         if (o.keys != setOf("art", "fassung", "freigabeId", "version", "quelle", "geaendert", "kontakt")) return null
+        if (fassung == 2) {
+            if (listOf("freigabeId", "quelle").any { (o[it] as? JsonPrimitive)?.isString != true }) return null
+            if (listOf("version", "geaendert").any { (o[it] as? JsonPrimitive)?.isString != false }) return null
+        }
         val id = o.text("freigabeId"); val quelle = o.text("quelle")
         val version = o.long("version") ?: return null
         val geaendert = o.long("geaendert") ?: return null
@@ -84,8 +100,10 @@ object KontaktSync {
             version <= 0 || geaendert < 0) return null
         val k = o["kontakt"] as? JsonObject ?: return null
         val pflicht = setOf("vorname", "nachname", "firma", "notiz", "geburtstag",
-            "telefone", "emailEintraege", "anschriften")
+            "telefone", "emailEintraege", "anschriften") + if (fassung == 2) setOf("jubilaeum", "anzeigename", "vcardName") else emptySet()
         if (k.keys != pflicht && k.keys != pflicht + "foto") return null
+        if (k.filterKeys { it !in setOf("telefone", "emailEintraege", "anschriften", "vcardName") }
+                .values.any { it !is JsonPrimitive || !it.isString }) return null
         val geburtstag = k.text("geburtstag")
         val foto = k.text("foto")
         if (foto.isNotEmpty() && fotoBytes(foto) == null) return null
@@ -95,30 +113,81 @@ object KontaktSync {
             firma = k.kurzer("firma") ?: return null,
             notiz = k.text("notiz").takeIf { it.codePointAnzahl() <= NOTIZ_MAX } ?: return null,
             geburtstag = geburtstag.takeIf { it.isEmpty() || datumGueltig(it) } ?: return null,
+            jubilaeum = k.text("jubilaeum").takeIf { it.isEmpty() || datumGueltig(it) } ?: return null,
+            anzeigename = k.kurzer("anzeigename") ?: return null,
+            vcardName = if (fassung == 2) liesNamen(k["vcardName"] as? JsonArray ?: return null) ?: return null else emptyList(),
             foto = foto,
-            telefone = liesWerte(k["telefone"] as? JsonArray ?: return null) ?: return null,
-            emailEintraege = liesWerte(k["emailEintraege"] as? JsonArray ?: return null) ?: return null,
-            anschriften = liesAnschriften(k["anschriften"] as? JsonArray ?: return null) ?: return null
+            telefone = liesWerte(k["telefone"] as? JsonArray ?: return null, fassung == 2) ?: return null,
+            emailEintraege = liesWerte(k["emailEintraege"] as? JsonArray ?: return null, fassung == 2) ?: return null,
+            anschriften = liesAnschriften(k["anschriften"] as? JsonArray ?: return null, fassung == 2) ?: return null
         )
-        KontaktNachricht(id, version, quelle, geaendert, normalisiere(daten))
+        KontaktNachricht(id, version, quelle, geaendert, normalisiere(daten), fassung)
     }.getOrNull()
 
-    private fun liesWerte(a: JsonArray): List<KontaktWert>? {
+    internal fun liesNamen(a: JsonArray): List<String>? {
+        if (a.size > 32) return null
+        return a.map { value ->
+            val line = (value as? JsonPrimitive)?.takeIf { it.isString }?.content ?: return null
+            if (line.codePointAnzahl() > TEXT_MAX || line.any { it.code < 32 || it.code == 127 } ||
+                !Regex("^(?:[A-Za-z0-9-]+\\.)?(?:N|FN)(?:;[^:]*)?:", RegexOption.IGNORE_CASE).containsMatchIn(line)) return null
+            line
+        }
+    }
+
+    internal fun nameEscape(s: String) = s.replace("\\", "\\\\").replace("\r\n", "\\n")
+        .replace("\n", "\\n").replace(";", "\\;").replace(",", "\\,")
+
+    fun legacyDarstellbar(k: KontaktDaten): Boolean {
+        val fn = listOf(k.vorname, k.nachname).filter(String::isNotEmpty).joinToString(" ")
+        val n = "N:" + nameEscape(k.nachname) + ";" + nameEscape(k.vorname) + ";;;"
+        return k.jubilaeum.isEmpty() && (k.anzeigename.isEmpty() || k.anzeigename == fn) &&
+            k.vcardName.all { it == n || it == "FN:" + nameEscape(fn) }
+    }
+
+    /** Only split explicit vCard component delimiters, never a person's display name. */
+    internal fun nameTeile(k: KontaktDaten): List<String> {
+        val line = k.vcardName.firstOrNull { Regex("^(?:[A-Za-z0-9-]+\\.)?N[;:]", RegexOption.IGNORE_CASE).containsMatchIn(it) }
+        var quoted = false
+        var colon = -1
+        for ((index, character) in line.orEmpty().withIndex()) {
+            if (character == '"') quoted = !quoted
+            else if (character == ':' && !quoted) { colon = index; break }
+        }
+        val raw = if (colon >= 0) line!!.substring(colon + 1) else ""
+        val parts = mutableListOf("")
+        var i = 0
+        while (i < raw.length) {
+            val c = raw[i++]
+            when {
+                c == '\\' && i < raw.length -> { val next = raw[i++]; parts[parts.lastIndex] += if (next == 'n' || next == 'N') "\n" else next.toString() }
+                c == ';' -> parts.add("")
+                c == ',' -> parts[parts.lastIndex] += " "
+                else -> parts[parts.lastIndex] += c
+            }
+        }
+        while (parts.size < 5) parts.add("")
+        parts[0] = k.nachname; parts[1] = k.vorname
+        return parts.take(5)
+    }
+
+    private fun liesWerte(a: JsonArray, strict: Boolean): List<KontaktWert>? {
         if (a.size > LISTE_MAX) return null
         return a.map { e ->
             val o = e as? JsonObject ?: return null
             if (o.keys != setOf("art", "wert")) return null
+            if (strict && o.values.any { it !is JsonPrimitive || !it.isString }) return null
             KontaktWert(o.listenText("art", true) ?: return null,
                 o.listenText("wert") ?: return null)
         }
     }
 
-    private fun liesAnschriften(a: JsonArray): List<KontaktAnschrift>? {
+    private fun liesAnschriften(a: JsonArray, strict: Boolean): List<KontaktAnschrift>? {
         if (a.size > LISTE_MAX) return null
         val felder = setOf("art", "strasse", "plz", "ort", "region", "land")
         return a.map { e ->
             val o = e as? JsonObject ?: return null
             if (o.keys != felder) return null
+            if (strict && o.values.any { it !is JsonPrimitive || !it.isString }) return null
             KontaktAnschrift(o.listenText("art", true) ?: return null,
                 o.listenText("strasse") ?: return null, o.listenText("plz") ?: return null,
                 o.listenText("ort") ?: return null, o.listenText("region") ?: return null,
@@ -132,6 +201,9 @@ object KontaktSync {
         nachname = fern.nachname.ifBlank { lokal.nachname },
         firma = fern.firma.ifBlank { lokal.firma }, notiz = fern.notiz.ifBlank { lokal.notiz },
         geburtstag = fern.geburtstag.ifBlank { lokal.geburtstag },
+        jubilaeum = fern.jubilaeum.ifBlank { lokal.jubilaeum },
+        anzeigename = fern.anzeigename.ifBlank { lokal.anzeigename },
+        vcardName = fern.vcardName.ifEmpty { lokal.vcardName },
         foto = lokal.foto.ifBlank { fern.foto },
         telefone = vereinige(lokal.telefone, fern.telefone) { normalWert(it.wert) },
         emailEintraege = vereinige(lokal.emailEintraege, fern.emailEintraege) { it.wert.trim().lowercase() },
@@ -176,7 +248,8 @@ object KontaktSync {
     }
 
     fun hash(k: KontaktDaten): String {
-        val roh = Kanonisch.json.encodeToString(JsonObject.serializer(), kontaktJson(normalisiere(k)))
+        val roh = Kanonisch.json.encodeToString(JsonObject.serializer(),
+            kontaktJson(normalisiere(k), if (legacyDarstellbar(k)) 1 else 2))
         return MessageDigest.getInstance("SHA-256").digest(roh.toByteArray())
             .joinToString("") { "%02x".format(it) }
     }
@@ -201,4 +274,28 @@ object KontaktSync {
         val maximum = when (monat) { 2 -> 29; 4, 6, 9, 11 -> 30; in 1..12 -> 31; else -> return false }
         return tag in 1..maximum
     }
+}
+
+/** Capabilities travel only inside an authenticated tree message, never in discovery or pairing. */
+internal object KontaktFaehigkeiten {
+    fun inhalt(antwort: Boolean) = buildJsonObject {
+        put("art", JsonPrimitive("kontakt_faehigkeiten")); put("fassung", JsonPrimitive(1))
+        put("kontakt_sync", JsonArray(listOf(JsonPrimitive(1), JsonPrimitive(2))))
+        // Notes sends one-time import cards, but has no inbound import-card handler.
+        put("kontakt_import", JsonArray(emptyList()))
+        put("antwort", JsonPrimitive(antwort))
+    }
+
+    fun lesen(o: JsonObject): Pair<List<Int>, List<Int>>? = runCatching {
+        require(o.keys == setOf("art", "fassung", "kontakt_sync", "kontakt_import", "antwort"))
+        require(o["art"] == JsonPrimitive("kontakt_faehigkeiten") && o["fassung"] == JsonPrimitive(1))
+        require(o["antwort"] == JsonPrimitive(true) || o["antwort"] == JsonPrimitive(false))
+        fun versions(name: String): List<Int> {
+            val values = o[name] as JsonArray
+            require((name == "kontakt_import" && values.isEmpty()) || values == JsonArray(listOf(JsonPrimitive(1))) ||
+                values == JsonArray(listOf(JsonPrimitive(1), JsonPrimitive(2))))
+            return values.map { (it as JsonPrimitive).content.toInt() }
+        }
+        versions("kontakt_sync") to versions("kontakt_import")
+    }.getOrNull()
 }

@@ -1,0 +1,62 @@
+global using System.Globalization;
+global using System.Text.Json;
+global using System.Net.Http;
+
+namespace MagnolieOrganizer.Windows;
+
+// The provider methods are inserted verbatim from their Roslyn syntax nodes.
+// Only HTTP and the callback sink are replaced; no network or holiday data is invented.
+public sealed partial class SetupHolidayProviderProbe
+{
+    private readonly HttpClient http;
+    private readonly Callback form = new();
+    private SetupHolidayProviderProbe(HttpMessageHandler handler) => http = new(handler);
+    private static string T(string text) => NativeLocalization.Gettext(text);
+    private sealed class Callback
+    {
+        internal JsonElement Result;
+        internal Task SendAsync(string name, object payload)
+        {
+            if (name != "App.feiertageErgebnis") throw new Exception(name);
+            Result = JsonSerializer.SerializeToElement(payload);
+            return Task.CompletedTask;
+        }
+    }
+    private sealed class OfflineHttp : HttpMessageHandler
+    {
+        internal readonly List<string> Requests = new();
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellation)
+        {
+            Requests.Add(request.RequestUri!.AbsoluteUri);
+            return Task.FromResult(new HttpResponseMessage(System.Net.HttpStatusCode.OK) { Content = new StringContent("[]") });
+        }
+    }
+    public static async Task Run()
+    {
+        NativeLocalization.SetLanguage("en");
+        foreach (var (country, region) in new[] { ("DE", "DE-SN"), ("AT", "AT-9"), ("CH", "CH-ZH") })
+        {
+            using var handler = new OfflineHttp();
+            var provider = new SetupHolidayProviderProbe(handler);
+            using var client = provider.http;
+            foreach (var school in new[] { false, true })
+            {
+                handler.Requests.Clear();
+                await provider.FetchHolidaysAsync(JsonSerializer.SerializeToElement(new { land = country, region, jahre = new[] { 2026 }, ferien = school, regionErforderlich = true }));
+                Tests.TestAssert.That(handler.Requests.Count == (school ? 2 : 1) &&
+                    handler.Requests.All(url => url.StartsWith("https://openholidaysapi.org/", StringComparison.Ordinal) &&
+                        url.Contains("countryIsoCode=" + country) && url.Contains("subdivisionCode=" + region)) &&
+                    handler.Requests.Any(url => url.Contains("/SchoolHolidays?")) == school,
+                    "Windows provider request country/region/opt-in differs from setup.");
+                Tests.TestAssert.That(provider.form.Result.GetProperty("feiertage").GetArrayLength() == 0 &&
+                    provider.form.Result.GetProperty("bericht").GetString() == "The service returned no entries for this selection.",
+                    "Unavailable Windows provider data must remain empty and use the existing availability message.");
+            }
+            handler.Requests.Clear();
+            await provider.FetchHolidaysAsync(JsonSerializer.SerializeToElement(new { land = country, region = "US-XX", jahre = new[] { 2026 }, ferien = true }));
+            Tests.TestAssert.That(handler.Requests.Count == 0 && provider.form.Result.TryGetProperty("fehler", out _),
+                "A mismatched subdivision must be rejected before HTTP.");
+        }
+        Console.WriteLine("Compiled actual Windows OpenHolidays provider: DE-SN, AT-9, CH-ZH, opt-out, empty availability, mismatched state passed offline.");
+    }
+}

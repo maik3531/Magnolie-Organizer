@@ -45,13 +45,18 @@ object TelefonEntdeckung {
                 })
             }
         }
+        var started = false
         return try {
             nsd.discoverServices(TelefonParameter.NSD_TYP, NsdManager.PROTOCOL_DNS_SD, listener)
+            started = true
             done.await(waitMs, TimeUnit.MILLISECONDS)
             var waited = 0
             while (resolving.get() > 0 && waited < 2000) { Thread.sleep(50); waited += 50 }
-            runCatching { nsd.stopServiceDiscovery(listener) }
-            found.distinctBy { it.deviceId }
-        } catch (_: Exception) { found.distinctBy { it.deviceId } }
+            synchronized(found) { found.distinctBy { it.deviceId } }
+        } catch (_: InterruptedException) {
+            Thread.currentThread().interrupt()
+            synchronized(found) { found.distinctBy { it.deviceId } }
+        } catch (_: Exception) { synchronized(found) { found.distinctBy { it.deviceId } } }
+        finally { if (started) runCatching { nsd.stopServiceDiscovery(listener) } }
     }
 }

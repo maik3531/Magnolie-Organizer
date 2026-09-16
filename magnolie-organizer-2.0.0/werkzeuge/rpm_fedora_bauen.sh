@@ -10,7 +10,7 @@ TOPDIR="$ARBEIT/rpm"
 HANDBUCH_TOPDIR="$ARBEIT/handbuch-rpm"
 AKONADI_TOPDIR="$ARBEIT/akonadi-rpm"
 AKONADI_QUELLE="$WURZEL/native/akonadi-helper"
-AKONADI_VERSION=1.0.0
+AKONADI_VERSION=$(dpkg-parsechangelog -l"$AKONADI_QUELLE/debian/changelog" -SVersion)
 BASIS="$ARBEIT/Fedora-WSL-Base-42-1.1.x86_64.tar.xz"
 BASIS_URL=https://download.fedoraproject.org/pub/fedora/linux/releases/42/Container/x86_64/images/Fedora-WSL-Base-42-1.1.x86_64.tar.xz
 BASIS_SHA=99fb3d05d78ca17c6815bb03cf528da8ef82ebc6260407f2b09461e0da8a1b8d
@@ -52,6 +52,15 @@ printf '%s  %s\n' "$BASIS_SHA" "$BASIS" | sha256sum -c -
 fedora() {
     bwrap --unshare-user --uid 0 --gid 0 --bind "$ROOTFS" / \
         --dev /dev --proc /proc --ro-bind /sys /sys --tmpfs /run \
+        --unsetenv GTK_MODULES --unsetenv GTK3_MODULES --unsetenv GTK_PATH \
+        --unsetenv GI_TYPELIB_PATH --unsetenv GSETTINGS_SCHEMA_DIR \
+        --unsetenv PYTHONPATH --unsetenv PYTHONHOME \
+        --unsetenv LD_LIBRARY_PATH --unsetenv LD_PRELOAD \
+        --setenv LANG C.UTF-8 --setenv LC_ALL C.UTF-8 \
+        --setenv TMPDIR /tmp --setenv TMP /tmp --setenv TEMP /tmp \
+        --setenv HOME /root --setenv XDG_CONFIG_HOME /root/.config \
+        --setenv XDG_DATA_HOME /root/.local/share --setenv XDG_CACHE_HOME /root/.cache \
+        --setenv XDG_RUNTIME_DIR /tmp/magnolie-runtime \
         --bind "$ARBEITSBAUM" "$ARBEITSBAUM" \
         --bind "$TOPDIR" "$TOPDIR" --bind "$HANDBUCH_TOPDIR" "$HANDBUCH_TOPDIR" \
         --bind "$AKONADI_TOPDIR" "$AKONADI_TOPDIR" \
@@ -79,12 +88,15 @@ if [ ! -f "$MARKER" ] || [ "$(command cat "$MARKER")" != "$BASIS_STAND" ]; then
     printf '%s\n' "$BASIS_STAND" > "$MARKER"
 fi
 
+mkdir -p "$ROOTFS/tmp/magnolie-runtime"
+chmod 700 "$ROOTFS/tmp/magnolie-runtime"
 fedora /usr/bin/dnf -y --setopt=install_weak_deps=False install fakeroot
 fedora /usr/bin/fakeroot /usr/bin/dnf -y --setopt=install_weak_deps=False install \
     appstream desktop-file-utils dpkg-dev gettext gtk3 libnotify nodejs \
     python3-cryptography python3-devel python3-gobject python3-phonenumbers python3-pyOpenSSL \
     python3-pytest python3-qrcode python3-zeroconf rpm-build webkit2gtk4.1 xdg-utils \
-    cmake gcc-c++ extra-cmake-modules akonadi-server-devel \
+    tzdata cmake gcc-c++ extra-cmake-modules akonadi-server-devel \
+    xorg-x11-server-Xvfb xorg-x11-xauth \
     kf6-kcalendarcore-devel kf6-kcontacts-devel
 
 rm -rf "$TOPDIR" "$HANDBUCH_TOPDIR" "$AKONADI_TOPDIR"
@@ -95,10 +107,10 @@ tar --sort=name --mtime="@$EPOCH" --owner=0 --group=0 --numeric-owner \
     --exclude='./build' --exclude='./bau' --exclude='./obj-*' \
     --exclude='./debian/.debhelper' \
     --exclude='./debian/files' --exclude='./debian/*.substvars' \
-    --transform="s,^\.,magnolie-organizer-akonadi-$AKONADI_VERSION," \
+    --transform="s,^\.,magnolie-organizer-kde-$AKONADI_VERSION," \
     -C "$AKONADI_QUELLE" -cJf \
-    "$AKONADI_TOPDIR/SOURCES/magnolie-organizer-akonadi-$AKONADI_VERSION.tar.xz" .
-cp "$AKONADI_QUELLE/magnolie-organizer-akonadi.spec" "$AKONADI_TOPDIR/SPECS/"
+    "$AKONADI_TOPDIR/SOURCES/magnolie-organizer-kde-$AKONADI_VERSION.tar.xz" .
+cp "$AKONADI_QUELLE/magnolie-organizer-kde.spec" "$AKONADI_TOPDIR/SPECS/"
 fedora /usr/bin/env MAGNOLIE_CONTRIBUTOR_HASH="$CONTRIBUTOR_HASH" \
     SOURCE_DATE_EPOCH="$EPOCH" \
     /bin/sh werkzeuge/rpm_bauen.sh --distro fedora "$TOPDIR"
@@ -106,7 +118,7 @@ fedora /usr/bin/env SOURCE_DATE_EPOCH="$EPOCH" \
     /bin/sh "$HANDBUCH/werkzeuge/rpm_bauen.sh" --distro fedora "$HANDBUCH_TOPDIR"
 fedora /usr/bin/env SOURCE_DATE_EPOCH="$EPOCH" \
     /usr/bin/rpmbuild -ba --define "_topdir $AKONADI_TOPDIR" \
-    "$AKONADI_TOPDIR/SPECS/magnolie-organizer-akonadi.spec"
+    "$AKONADI_TOPDIR/SPECS/magnolie-organizer-kde.spec"
 
 set -- "$TOPDIR"/fedora/RPMS/noarch/magnolie-organizer-*.noarch.rpm
 [ "$#" -eq 1 ] && [ -f "$1" ] || {
@@ -120,7 +132,7 @@ set -- "$HANDBUCH_TOPDIR"/fedora/RPMS/noarch/magnolie-handbuch-*.noarch.rpm
     exit 1
 }
 HANDBUCH_RPM=$1
-set -- "$AKONADI_TOPDIR"/RPMS/*/magnolie-organizer-akonadi-"$AKONADI_VERSION"-*.rpm
+set -- "$AKONADI_TOPDIR"/RPMS/*/magnolie-organizer-kde-"$AKONADI_VERSION"-*.rpm
 [ "$#" -eq 1 ] && [ -f "$1" ] || {
     printf '%s\n' 'Genau ein binaeres Akonadi-Helfer-RPM wurde erwartet.' >&2
     exit 1
@@ -129,7 +141,7 @@ AKONADI_RPM=$1
 test "$(fedora /usr/bin/rpm -qp --qf '%{LICENSE}' "$AKONADI_RPM")" = \
     GPL-3.0-or-later
 fedora /bin/sh -c \
-    "/usr/bin/rpm -qp --requires '$AKONADI_RPM' | /usr/bin/grep -Fx 'magnolie-organizer >= 2.0.17'"
+    "/usr/bin/rpm -qp --requires '$AKONADI_RPM' | /usr/bin/grep -Fx 'magnolie-organizer >= 2.0.18'"
 ORGANIZER_DATEILISTE="$ARBEIT/organizer-rpm-files.txt"
 HANDBUCH_DATEILISTE="$ARBEIT/handbook-rpm-files.txt"
 fedora /usr/bin/rpm -qp --qf '[%{FILENAMES}\t%{FILEMODES}\n]' \
@@ -160,10 +172,10 @@ fedora /usr/bin/fakeroot /usr/bin/dnf -y remove \
     python3-pyOpenSSL python3-qrcode python3-zeroconf webkit2gtk4.1
 fedora /usr/bin/fakeroot /usr/bin/dnf -y --setopt=install_weak_deps=False install \
     "$ORGANIZER_RPM" "$HANDBUCH_RPM" "$AKONADI_RPM"
-fedora /usr/bin/rpm -V magnolie-organizer magnolie-handbuch magnolie-organizer-akonadi
+fedora /usr/bin/rpm -V magnolie-organizer magnolie-handbuch magnolie-organizer-kde
 fedora /usr/bin/rpm -qf /usr/libexec/magnolie-organizer \
     /usr/libexec/magnolie-organizer/magnolie-akonadi-helper \
-    /usr/share/licenses/magnolie-organizer-akonadi/copyright >/dev/null
+    /usr/share/licenses/magnolie-organizer-kde/copyright >/dev/null
 AKONADI_ANTWORT="$AKONADI_TOPDIR/akonadi-response.json"
 if fedora /bin/sh -c \
         "printf '%s' '{\"command\":\"unsupported-smoke\"}' | /usr/libexec/magnolie-organizer/magnolie-akonadi-helper > '$AKONADI_ANTWORT'"; then

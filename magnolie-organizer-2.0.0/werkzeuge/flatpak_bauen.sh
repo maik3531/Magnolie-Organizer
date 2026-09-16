@@ -36,6 +36,10 @@ flatpak info --user org.gnome.Sdk//49 >/dev/null 2>&1 || {
     printf '%s\n' 'Installation: flatpak install --user flathub org.gnome.Sdk//49' >&2
     exit 1
 }
+RUNTIME_LOCATION=$(flatpak info --user --show-location org.gnome.Platform//49)
+test -x "$RUNTIME_LOCATION/files/bin/xgettext" || {
+    printf '%s\n' 'GNOME runtime lacks the installed POT generator dependency xgettext.' >&2; exit 1;
+}
 flatpak info --user org.flatpak.Builder >/dev/null 2>&1 || {
     printf '%s\n' 'Der Flatpak Builder fehlt in der Benutzerinstallation.' >&2
     printf '%s\n' 'Installation: flatpak install --user flathub org.flatpak.Builder' >&2
@@ -58,11 +62,16 @@ if contributor_hash:
         "/app/share/magnolie-organizer/build-config.json" % contributor_hash)
 pathlib.Path(target).write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
 PY
-flatpak run --user --filesystem="$WURZEL" org.flatpak.Builder \
+# Builder's xdg-data permission follows HOME, not an explicit installation path.
+set --
+if [ -n "${FLATPAK_USER_DIR:-}" ]; then
+    set -- "--filesystem=$FLATPAK_USER_DIR:ro"
+fi
+flatpak run --user "$@" --filesystem="$WURZEL" org.flatpak.Builder \
     --user --force-clean --default-branch="$ZWEIG" --override-source-date-epoch="$SOURCE_EPOCH" \
     --state-dir="$ARBEIT/state" \
     --repo="$REPO" "$BAUM" "$BAU_MANIFEST"
-flatpak run --user --filesystem="$WURZEL" org.flatpak.Builder \
+flatpak run --user "$@" --filesystem="$WURZEL" org.flatpak.Builder \
     --run "$BAUM" "$BAU_MANIFEST" \
     magnolie-organizer --language en --help | grep -q 'Usage:'
 rm -f "$AUSGABE"

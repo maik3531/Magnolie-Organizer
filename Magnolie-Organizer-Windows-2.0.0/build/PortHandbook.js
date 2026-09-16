@@ -21,11 +21,16 @@ if (sourceWeb === output) throw new Error("Handbuchquelle und Buildziel müssen 
 
 fs.rmSync(output, { recursive: true, force: true });
 fs.cpSync(sourceWeb, output, { recursive: true });
-for (const name of ["inhalt.js"]) {
+for (const name of ["inhalt.js", ...fs.readdirSync(path.join(output, "i18n"))
+  .filter((name) => name.endsWith(".js")).map((name) => path.join("i18n", name))]) {
   const file = path.join(output, name);
   const content = fs.readFileSync(file, "utf8")
     .replace(/Magnolie-Organizer-Windows-\d+\.\d+\.\d+-Setup-x64\.exe/g, installerName)
-    .replace(/Windows \d+\.\d+\.\d+/g, `Windows ${version}`);
+    .replace(/Windows \d+\.\d+\.\d+/g, `Windows ${version}`)
+    .replace(/src=(['"])kaffee-qr\.png\1/g,
+      "src=$1https://handbuchassets.magnolie.invalid/kaffee-qr.png$1")
+    .replace(/src=(['"])maik-walter\.jpg\1/g,
+      "src=$1https://handbuchassets.magnolie.invalid/maik-walter.jpg$1");
   fs.writeFileSync(file, content, "utf8");
 }
 fs.writeFileSync(path.join(output, "version.json"), `${JSON.stringify({ version })}\n`, "utf8");

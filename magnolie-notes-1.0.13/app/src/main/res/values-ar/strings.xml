@@ -1,5 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="baum_postfach_unsicher">عمليات تسليم غير مؤكدة: %1$d. تبقى الرسائل محفوظة وتتوقف إعادة إرسالها تلقائيًا. تحقق من الاستلام؛ فقد لا تدعم الأجهزة القديمة إيصالات الاستلام الموثقة.</string>
+    <string name="telefon_bluetooth_setup">إقران Organizer جديد عبر Bluetooth</string>
+    <string name="telefon_bluetooth_setup_hinweis">أبقِ هذه الشاشة مفتوحة. اختر هذا الهاتف في Organizer، وأكّد الاقتران في النظام، ثم قارن الرمز على الجهازين.</string>
     <string name="freigabe_ziel">الحفظ في Magnolie Notes</string>
     <string name="blatt_notizen">الملاحظات</string>
     <string name="blatt_einfuhr">الاستيراد</string>
@@ -370,7 +373,7 @@
     <string name="start_laden">جارٍ فتح البيانات المحمية…</string><string name="start_fehler_titel">تعذر فتح البيانات المحمية</string><string name="start_daten_unveraendert">لم تُحذف بياناتك ولم تُستبدل. يمكنك إعادة المحاولة بأمان.</string><string name="start_erneut">إعادة المحاولة</string><string name="start_schliessen">إغلاق التطبيق</string>
     <string name="absturzbericht_teilen">مشاركة تقرير التعطل</string>
     <string name="journal_maximum">نقاط الاستعادة</string>
-    <string name="journal_maximum_hinweis">عند خفض الحد، تُحذف أقدم نقاط الاستعادة تلقائيًا.</string>
+    <string name="journal_maximum_hinweis">عند خفض الحد، تُحذف أقدم نقاط الاستعادة غير المحمية. تبقى النقاط المحمية محفوظة.</string>
     <string name="portable_titel">نسخة احتياطية محمولة</string><string name="portable_hinweis">أنشئ أو استعد أرشيفًا منفصلًا محميًا بكلمة مرور ويحتوي على الملاحظات والدفاتر والمهام والمهملات والمرفقات.</string><string name="portable_export">إنشاء نسخة محمولة</string><string name="portable_datei_oeffnen">فتح نسخة محمولة</string><string name="portable_restore">استعادة النسخة</string><string name="portable_passwort">كلمة المرور</string><string name="portable_passwort_hinweis">أدخل كلمة مرور الأرشيف. لن يتغير أي شيء أثناء فحص النسخة.</string><string name="portable_pruefen">الفحص والمعاينة</string><string name="portable_vorschau">معاينة النسخة</string><string name="portable_vorschau_text">%1$d ملاحظات · %2$d دفاتر · %3$d مهام · %4$d عناصر في المهملات</string><string name="portable_restore_warnung">سيؤدي ذلك إلى استبدال كل المحتوى الشخصي الحالي. ستُنشأ أولًا لقطة أمان محلية؛ وستُحفظ هوية Magnolienbaum لهذا الجهاز.</string><string name="portable_fehler">تعذر فتح النسخة. تحقق من الملف وكلمة المرور.</string><string name="portable_exportiert">تم إنشاء النسخة المحمولة.</string><string name="portable_wiederhergestellt">تمت استعادة النسخة المحمولة.</string>
     <string name="auto_backup_titel">نسخ احتياطي تلقائي في مجلد سحابي</string>
     <string name="auto_backup_hinweis">يحفظ اختياريًا نسخًا محمولة موثقة في مجلد يُختار عبر Android. ويمكن لموفر التخزين مزامنة هذا المجلد.</string>
@@ -398,4 +401,27 @@
     <string name="aufgabe_zur_wurzel">إلى المستوى الأعلى</string>
     <string name="aufgabe_eltern_waehlen">اختر المهمة الأصل</string>
     <string name="aufgabe_oberste_ebene">المستوى الأعلى</string>
+    <string name="baum_kontakt_jubilaeum">ذكرى سنوية</string>
+    <string name="baum_kontakt_update">لنقل الذكريات السنوية أيضًا، حدّث Magnolie على الجهازين وافتح التطبيق على كليهما ثم حاول مجددًا. لم تُرسل أي جهات اتصال في هذه المحاولة.</string>
+    <string name="baum_aufgabe_nicht_freigegeben">لم تتم مشاركة هذه المهمة مع هذا الجهاز.</string>
+    <string name="baum_kontakt_import_nicht_unterstuetzt">استخدم مزامنة جهات الاتصال لإرسال جهات الاتصال إلى هذا الجهاز.</string>
+    <string name="aufgabe_nach_oben">نقل المهمة إلى أعلى</string>
+    <string name="aufgabe_nach_unten">نقل المهمة إلى أسفل</string>
+    <string name="personal_custom_optin">مزامنة المهام والمواعيد من علامة التبويب المخصصة</string>
+    <string name="personal_custom_title">المهام والمواعيد من علامة التبويب المخصصة (للقراءة فقط)</string>
+    <string name="personal_custom_explanation">يجب أن يوافق كلا الجهازين. يؤدي إيقاف هذا الخيار إلى تعليق التذكيرات والتحديثات من علامة التبويب المخصصة مع الاحتفاظ بالنسخ. لا تتم مشاركة كتل النص المرتبطة.</string>
+    <string name="personal_custom_unsupported">لا يدعم هذا الجهاز مزامنة علامة التبويب المخصصة.</string>
+    <string name="personal_custom_delete">حُذف من المصدر: هل تريد حذف هذه النسخة من الهاتف أم الاحتفاظ بها؟ لا يُغيَّر المصدر على الحاسوب مطلقًا.</string>
+    <string name="personal_custom_keep">الاحتفاظ بالنسخة</string>
+    <string name="personal_custom_privacy">بموافقة صريحة من كلا الجهازين فقط، يشارك Personal Sync المهام والمواعيد المخصصة للقراءة فقط، بما في ذلك ملاحظاتها الخاصة. تُستثنى كتل النص والنصوص المرتبطة والمرفقات. تستعيد الأرشيفات النسخ، وليس الأذونات.</string>
+    <string name="device_identifiers_share">مشاركة معرّفات هاتفي</string>
+    <string name="device_identifiers_explanation">فقط بطلب من حاسوبك المقترن، لمدة 60 ثانية، دون حفظ: رقم شريحة المكالمات الافتراضية، والرقم التسلسلي وIMEI إذا سمح Android. منذ Android 10 تُقيَّد معرّفات العتاد للتطبيقات العادية. إذن رقم الهاتف اختياري؛ لا يُطلب أي دور خاص.</string>
+    <string name="device_identifiers_phone">رقمي (شريحة المكالمات الافتراضية)</string>
+    <string name="device_identifiers_serial">الرقم التسلسلي للجهاز</string>
+    <string name="device_identifiers_imei">IMEI الجهاز</string>
+    <string name="device_identifiers_off">مشاركة معرّفات الجهاز متوقفة.</string>
+    <string name="device_identifiers_permission">إذن معرّفات الجهاز غير ممنوح.</string>
+    <string name="device_identifiers_restricted">يقيّد Android معرّف الجهاز هذا.</string>
+    <string name="device_identifiers_subscription">لا يتوفر اشتراك مكالمات افتراضي.</string>
+    <string name="device_identifiers_unavailable">معرّف الجهاز هذا غير متاح.</string>
 </resources>

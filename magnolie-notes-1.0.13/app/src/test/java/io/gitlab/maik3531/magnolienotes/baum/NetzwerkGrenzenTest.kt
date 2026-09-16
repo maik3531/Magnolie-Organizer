@@ -13,6 +13,22 @@ import java.net.Socket
 import kotlin.concurrent.thread
 
 class NetzwerkGrenzenTest {
+    @Test fun `aggregate body reservations reject parallel unauthenticated allocations`() {
+        val server = Server(leereHandlung(), 0)
+        val budget = Server::class.java.getDeclaredField("bodyBudget").apply { isAccessible = true }
+            .get(server) as java.util.concurrent.Semaphore
+        try {
+            check(server.starten())
+            Socket("127.0.0.1", server.port).use { first ->
+                first.getOutputStream().write(("POST /magnolie/v2/nachricht HTTP/1.1\r\nContent-Length: " +
+                    Server.NACHRICHT_MAX + "\r\n\r\n").toByteArray())
+                val end = System.nanoTime() + 2_000_000_000L
+                while (budget.availablePermits() != 0 && System.nanoTime() < end) Thread.sleep(10)
+                assertEquals(0, budget.availablePermits())
+                assertEquals("HTTP/1.1 429 Too Many Requests", anfragen(server.port))
+            }
+        } finally { server.anhalten() }
+    }
 
     @Test
     fun `Server beantwortet Anfragen nach anhalten und erneutem starten`() {
@@ -110,7 +126,7 @@ class NetzwerkGrenzenTest {
         override fun istAn() = false
         override fun partner(kennung: String): Partner? = null
         override fun einladungen(): List<Einladung> = emptyList()
-        override fun paarungFertig(zweig: JsonObject, adresse: String, einladung: Einladung) {}
+        override fun dateiPaarungAnnehmen(eigen: EigeneIdentitaet, anfrage: JsonObject, adresse: String): JsonObject = error("Unused test route")
         override fun codeAnfrage(
             name: String,
             kennung: String,

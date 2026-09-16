@@ -4,7 +4,18 @@
 # FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
 #
 msgid ""
-msgstr "Report-Msgid-Bugs-To: maik3531@gmail.com\nContent-Type: text/plain; charset=UTF-8\nPlural-Forms: nplurals=1; plural=0;\n"
+msgstr ""
+"Project-Id-Version: Magnolie Organizer 2.0.18\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"PO-Revision-Date: 2026-09-07 00:00+0200\n"
+"Last-Translator: Magnolie translation team <maik3531@gmail.com>\n"
+"Language-Team: zh_CN\n"
+"Language: zh_CN\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
 
 msgid " (filtered)"
 msgstr "（已筛选）"
@@ -34,7 +45,9 @@ msgstr " – 在约会时间通知。"
 msgid ""
 "%(appointment)s\n"
 "Click to edit"
-msgstr "%(appointment)s\n点击编辑"
+msgstr ""
+"%(appointment)s\n"
+"点击编辑"
 
 #, python-format
 msgid ""
@@ -479,12 +492,16 @@ msgstr "缺少 Magnolienbaum 所需的组件。"
 msgid ""
 "A component required by the Magnolienbaum is missing. Install it with:  sudo "
 "apt install python3-cryptography"
-msgstr "缺少 Magnolienbaum 所需的组件。请使用以下命令安装：  sudo apt install python3-cryptography"
+msgstr ""
+"缺少 Magnolienbaum 所需的组件。请使用以下命令安装：  sudo apt install "
+"python3-cryptography"
 
 msgid ""
 "A fallback for branch baum-1: when the direct connection cannot be reached, "
 "messages travel through a WebDAV folder on your Nextcloud server."
-msgstr "baum-1 分支的备用通道：直接连接无法到达时，消息将经由您 Nextcloud 服务器上的 WebDAV 文件夹传递。"
+msgstr ""
+"baum-1 分支的备用通道：直接连接无法到达时，消息将经由您 Nextcloud 服务器上的 "
+"WebDAV 文件夹传递。"
 
 msgid "A group with this name already exists."
 msgstr "已存在同名组。"
@@ -510,7 +527,9 @@ msgid ""
 "A numeric code can be entered conveniently using the keypad when opening; "
 "letters work as well. After three failed attempts, the organizer waits five "
 "minutes."
-msgstr "打开时可用数字键盘方便地输入数字代码；也可以使用字母。连续三次输入失败后，Organizer 会等待五分钟。"
+msgstr ""
+"打开时可用数字键盘方便地输入数字代码；也可以使用字母。连续三次输入失败后，"
+"Organizer 会等待五分钟。"
 
 msgid "A one-time import adds contacts only after your selection."
 msgstr "一次性导入只会在您选择后添加联系人。"
@@ -518,13 +537,17 @@ msgstr "一次性导入只会在您选择后添加联系人。"
 msgid ""
 "A pairing file works like a one-time key. Give it only to the person whose "
 "Organizer you want to connect; it expires after 15 minutes."
-msgstr "配对文件相当于一次性密钥。只应将它交给您要连接其 Organizer 的那个人；该文件在 15 分钟后失效。"
+msgstr ""
+"配对文件相当于一次性密钥。只应将它交给您要连接其 Organizer 的那个人；该文件"
+"在 15 分钟后失效。"
 
 msgid ""
 "A password initially locks out the background reminder service. Without the "
 "explicit permission below, notifications work only while the organizer is "
 "open and unlocked."
-msgstr "设置密码后，后台提醒服务最初会被锁定。若未明确授予下方权限，只有在 Organizer 打开且已解锁时通知才会生效。"
+msgstr ""
+"设置密码后，后台提醒服务最初会被锁定。若未明确授予下方权限，只有在 Organizer "
+"打开且已解锁时通知才会生效。"
 
 msgid "A prepared password transaction file is missing or damaged."
 msgstr "准备好的密码事务文件缺失或已损坏。"
@@ -533,11 +556,6 @@ msgid ""
 "A separate encrypted connection for dial requests, device status and "
 "selected notifications."
 msgstr "用于拨号请求、设备状态和选定通知的单独加密连接。"
-
-msgid ""
-"A system KDE Connect service is active. Configure file and clipboard sharing "
-"there."
-msgstr "系统 KDE Connect 服务已启用。请在该服务中配置文件和剪贴板共享。"
 
 msgid "API level"
 msgstr "API 级别"
@@ -571,7 +589,10 @@ msgid ""
 "\n"
 "This consent applies only to this note. Future changes and attachments will "
 "then be applied automatically in both directions."
-msgstr "将“%(entry)s”接受到自己的集合中？\n\n此同意仅适用于这条笔记。今后的更改和附件随后会自动双向应用。"
+msgstr ""
+"将“%(entry)s”接受到自己的集合中？\n"
+"\n"
+"此同意仅适用于这条笔记。今后的更改和附件随后会自动双向应用。"
 
 msgid "Accessibility"
 msgstr "无障碍"
@@ -588,7 +609,9 @@ msgstr "无障碍辅助框已启用"
 msgid ""
 "Accessibility: The helper frame shows the current keyboard focus. It is "
 "disabled by default; press Ctrl+Alt+H at any time to switch it on or off."
-msgstr "无障碍：辅助框显示当前键盘焦点。默认情况下它处于禁用状态；随时按 Ctrl+Alt+H 即可打开或关闭。"
+msgstr ""
+"无障碍：辅助框显示当前键盘焦点。默认情况下它处于禁用状态；随时按 Ctrl+Alt+H "
+"即可打开或关闭。"
 
 msgid "According to format region"
 msgstr "根据格式区域"
@@ -761,15 +784,23 @@ msgstr "将约会日历、通讯录、任务簿和记事本呈现为皮革装订
 msgid "An archive entry is too large."
 msgstr "归档中的一个条目过大。"
 
+msgid "An automatic personal synchronization run is already active."
+msgstr "已有一次自动个人同步正在进行。"
+
 msgid ""
 "An encryption component is missing. Install it with:  sudo apt install "
 "python3-cryptography"
-msgstr "缺少加密组件。请使用以下命令安装：  sudo apt install python3-cryptography"
+msgstr ""
+"缺少加密组件。请使用以下命令安装：  sudo apt install python3-cryptography"
 
 msgid ""
 "An encryption component is missing. Install it with: sudo apt install "
 "python3-cryptography"
-msgstr "缺少加密组件。请使用以下命令安装： sudo apt install python3-cryptography"
+msgstr ""
+"缺少加密组件。请使用以下命令安装： sudo apt install python3-cryptography"
+
+msgid "Android restricts this device identifier."
+msgstr "Android 限制访问此设备标识符。"
 
 msgid "Android version"
 msgstr "安卓版本"
@@ -785,6 +816,9 @@ msgstr "纪念日"
 
 msgid "Another data operation is still running."
 msgstr "另一个数据操作仍在运行。"
+
+msgid "Another phone setup session is active."
+msgstr "另一个手机设置会话正在进行。"
 
 msgid "Answer"
 msgstr "接听"
@@ -819,11 +853,16 @@ msgstr "内阿彭策尔州"
 msgid "Application command"
 msgstr "应用程序命令"
 
+msgid "Application password"
+msgstr "应用专用密码"
+
 msgid ""
 "Applies only to content you enter yourself: appointments, tasks, contacts, "
 "notes and anniversaries. Headings, calendar pages and organizer labels "
 "remain unchanged."
-msgstr "仅适用于您自己输入的内容：约会、任务、联系人、笔记和纪念日。标题、日历页面以及 Organizer 标签保持不变。"
+msgstr ""
+"仅适用于您自己输入的内容：约会、任务、联系人、笔记和纪念日。标题、日历页面以"
+"及 Organizer 标签保持不变。"
 
 msgid ""
 "Applies when scrolling over a time field. Hold Shift to change the time in "
@@ -876,9 +915,6 @@ msgstr "适用于您手机的应用程序"
 msgid "Are you really sure?"
 msgstr "您真的确定吗？"
 
-msgid "As usual (print)"
-msgstr "照常（打印）"
-
 msgid "Assign SMS action"
 msgstr "分配 SMS 操作"
 
@@ -918,6 +954,20 @@ msgstr "办事预约"
 msgid "Automatic backup failed."
 msgstr "自动备份失败。"
 
+msgid ""
+"Automatic call audio is unavailable. Keep the call on the phone or select "
+"native audio manually in system settings."
+msgstr ""
+"自动通话音频不可用。请在手机上继续通话，或在系统设置中手动选择原生音频。"
+
+msgid ""
+"Automatic call audio is unsupported in this Windows build. Package identity "
+"and an approved phoneLineTransportManagement capability are required. Select "
+"native audio manually in system settings."
+msgstr ""
+"此 Windows 版本不支持自动通话音频。需要软件包标识和已获批准的 "
+"phoneLineTransportManagement 功能。请在系统设置中手动选择原生音频。"
+
 msgid "Automatic cloud-folder backups"
 msgstr "云文件夹自动备份"
 
@@ -943,7 +993,9 @@ msgstr "BMI"
 msgid ""
 "BMI\n"
 "kg/m²"
-msgstr "BMI\nkg/m²"
+msgstr ""
+"BMI\n"
+"kg/m²"
 
 msgid "BMI from the latest stored height and weight"
 msgstr "根据最近保存的身高和体重计算的 BMI"
@@ -1101,7 +1153,9 @@ msgstr "血压"
 msgid ""
 "Blood pressure\n"
 "mm/Hg"
-msgstr "血压\nmm/Hg"
+msgstr ""
+"血压\n"
+"mm/Hg"
 
 msgid "Blue (fountain pen)"
 msgstr "蓝色（钢笔）"
@@ -1109,8 +1163,18 @@ msgstr "蓝色（钢笔）"
 msgid "Bluetooth data fallback"
 msgstr "Bluetooth 数据回退"
 
+#, python-format
+msgid "Bluetooth data is unavailable (%s)."
+msgstr "无法通过 Bluetooth 传输数据（%s）。"
+
 msgid "Bluetooth device for call audio"
 msgstr "用于通话音频的 Bluetooth 设备"
+
+msgid "Bluetooth is unavailable. Check the radio and OS permissions."
+msgstr "Bluetooth 不可用。请检查是否已开启，以及操作系统是否已授予权限。"
+
+msgid "Bluetooth system pairing was not confirmed."
+msgstr "尚未确认系统中的 Bluetooth 配对。"
 
 msgid "Bold"
 msgstr "粗体"
@@ -1118,7 +1182,16 @@ msgstr "粗体"
 msgid ""
 "Both branches display the same six-digit code when connecting. Confirm it "
 "only if it matches, preventing anyone from intercepting the connection."
-msgstr "连接时两个分支都会显示相同的六位代码。只有在代码完全一致时才确认，以防他人截获连接。"
+msgstr ""
+"连接时两个分支都会显示相同的六位代码。只有在代码完全一致时才确认，以防他人截"
+"获连接。"
+
+msgid ""
+"Both devices must opt in. Turning this off pauses reminders and updates from "
+"the custom tab but keeps copies. Linked text blocks are not shared."
+msgstr ""
+"两台设备都必须明确同意。关闭此选项会暂停自定义选项卡中的提醒和更新，但保留副"
+"本。关联的文本块不会共享。"
 
 msgid "Brandenburg"
 msgstr "勃兰登堡州"
@@ -1138,6 +1211,9 @@ msgstr "按名字排序（Hans Müller）"
 msgid "By last name (Müller, Hans)"
 msgstr "按姓氏排序（Müller, Hans）"
 
+msgid "CSV / Lotus Organizer"
+msgstr "CSV / Lotus Organizer"
+
 msgid "CSV / Lotus Organizer contacts …"
 msgstr "CSV / Lotus Organizer 联系人 …"
 
@@ -1147,6 +1223,9 @@ msgstr "CSV 文件 (*.csv)"
 msgid "CW"
 msgstr "周"
 
+msgid "CalDAV + CardDAV Server"
+msgstr "CalDAV + CardDAV 服务器"
+
 msgid "Calculate the route to this address"
 msgstr "计算到此地址的路线"
 
@@ -1155,6 +1234,9 @@ msgstr "日历"
 
 msgid "Calendar (*.ics)"
 msgstr "日历 (*.ics)"
+
+msgid "Calendar (ICS)"
+msgstr "日历（ICS）"
 
 #, python-format
 msgid "Calendar entry %(number)d could not be read completely: %(error)s"
@@ -1188,6 +1270,9 @@ msgstr "日历同步已停止，因为完整日历结果忽略了仍然存在的
 msgid "Calendar week %(number)s"
 msgstr "第 %(number)s 日历周"
 
+msgid "Calendars"
+msgstr "日历列表"
+
 msgid "Calendars (multiple selections allowed)"
 msgstr "日历（可多选）"
 
@@ -1199,6 +1284,12 @@ msgstr "呼叫"
 
 msgid "Call assignment"
 msgstr "呼叫分配"
+
+msgid ""
+"Call controls unavailable. Check Android call permission; no dialer role is "
+"requested automatically."
+msgstr ""
+"通话控制不可用。请检查 Android 通话权限；不会自动请求默认电话应用角色。"
 
 msgid "Call ended"
 msgstr "通话已结束"
@@ -1291,7 +1382,8 @@ msgstr "复查预约"
 msgid ""
 "Checked: nothing due (%(appointments)d appointments, lead time %(minutes)s "
 "min)"
-msgstr "检查完成：暂无到期事项（%(appointments)d 个约会，提前 %(minutes)s 分钟）"
+msgstr ""
+"检查完成：暂无到期事项（%(appointments)d 个约会，提前 %(minutes)s 分钟）"
 
 msgid "Checking Contributor Key …"
 msgstr "正在检查 Contributor Key …"
@@ -1308,14 +1400,16 @@ msgstr "正在检查当前手册版本…"
 msgid "Checking the current version …"
 msgstr "正在检查当前版本 …"
 
-msgid "Choose Appointments, Notes or Tasks in Customize."
-msgstr "请在自定义中选择预约、笔记或任务。"
-
 msgid ""
 "Choose a backup file. Before restoring it, the organizer automatically "
 "creates a copy of the current data. An encrypted backup requires its "
 "password."
-msgstr "选择一个备份文件。恢复之前，Organizer 会自动复制当前数据。加密备份需要输入相应密码。"
+msgstr ""
+"选择一个备份文件。恢复之前，Organizer 会自动复制当前数据。加密备份需要输入相"
+"应密码。"
+
+msgid "Choose a connection. Confirm pairing on the phone and this computer."
+msgstr "请选择连接方式，并在手机和这台电脑上分别确认配对。"
 
 msgid "Choose a country first."
 msgstr "请先选择国家/地区。"
@@ -1334,7 +1428,9 @@ msgstr "选择一个电话号码拨打"
 msgid ""
 "Choose a predefined shift or enter a custom one. Assign it to one or more "
 "days in the new appointment sheet. Day markers do not send notifications."
-msgstr "选择预设班次或输入自定义班次。在新建约会页面中将其分配给一天或多天。日期标记不会发送通知。"
+msgstr ""
+"选择预设班次或输入自定义班次。在新建约会页面中将其分配给一天或多天。日期标记"
+"不会发送通知。"
 
 msgid "Choose a value and period to display its development."
 msgstr "请选择要查看其变化趋势的数值和时间段。"
@@ -1342,7 +1438,9 @@ msgstr "请选择要查看其变化趋势的数值和时间段。"
 msgid ""
 "Choose a waste type or enter a custom collection. Set the first collection "
 "and the interval in days; 0 creates a one-time collection."
-msgstr "选择垃圾类型或输入自定义收集项目。设置首次收集日期和间隔天数；设为 0 表示仅收集一次。"
+msgstr ""
+"选择垃圾类型或输入自定义收集项目。设置首次收集日期和间隔天数；设为 0 表示仅收"
+"集一次。"
 
 msgid "Choose at least four characters."
 msgstr "请至少选择四个字符。"
@@ -1374,9 +1472,8 @@ msgid "Choose service"
 msgstr "选择服务"
 
 msgid ""
-"Choose the calendars and address books to keep synchronized and the local "
-"programs to import once."
-msgstr "请选择要保持同步的日历和通讯录，以及要一次性导入的本地程序。"
+"Choose sources now. Import previews are kept until you finish the assistant."
+msgstr "请现在选择数据来源。导入预览会暂时保留，直到您完成设置向导。"
 
 msgid "Choose the save location for each accepted file"
 msgstr "为每个接受的文件选择保存位置"
@@ -1389,14 +1486,17 @@ msgstr "选择要在记事本中显示为标签页的分区。日历始终可用
 msgid "Choose year…"
 msgstr "选择年份…"
 
-msgid "Choose your registers"
-msgstr "请先选择国家/地区。"
+msgid "Choose your organizer tabs"
+msgstr "选择要显示的日程管理标签页"
 
 msgid "City"
 msgstr "城市"
 
 msgid "Claws Mail XML (.xml) …"
 msgstr "Claws Mail XML (.xml) …"
+
+msgid "Claws Mail XML / LDIF"
+msgstr "Claws Mail XML / LDIF"
 
 msgid "Claws Mail address book (*.xml)"
 msgstr "Claws Mail 通讯录 (*.xml)"
@@ -1422,7 +1522,9 @@ msgstr "点击某一天"
 msgid ""
 "Clicking an existing appointment opens it for editing in both cases. This "
 "setting applies only when you click an empty area in the box."
-msgstr "在这两种情况下，点击已有约会都会打开它进行编辑。此设置仅在点击框内空白区域时生效。"
+msgstr ""
+"在这两种情况下，点击已有约会都会打开它进行编辑。此设置仅在点击框内空白区域时"
+"生效。"
 
 msgid "Close"
 msgstr "关闭"
@@ -1448,13 +1550,15 @@ msgstr "颜色"
 msgid ""
 "Colors and matching scheme rows are orientation aids. Enter or adjust the IE "
 "in the table to the amount actually administered."
-msgstr "颜色及对应的方案行仅供参考。请在表格中输入胰岛素单位数，或根据实际给药量进行调整。"
+msgstr ""
+"颜色及对应的方案行仅供参考。请在表格中输入胰岛素单位数，或根据实际给药量进行"
+"调整。"
 
 msgid "Columns in the ODS table"
 msgstr "ODS 表格中的列"
 
-msgid "Compact sender line (default)"
-msgstr "紧凑的发件人行（默认）"
+msgid "Compact sender line"
+msgstr "紧凑式寄件人地址行"
 
 msgid "Company"
 msgstr "公司"
@@ -1473,11 +1577,19 @@ msgstr "完整归档已导出（受密码保护）。"
 msgid "Complete archive exported (unencrypted)."
 msgstr "完整归档已导出（未加密）。"
 
+msgid "Complete archive import is available only in the installed application."
+msgstr "只有安装后的应用才能导入完整归档。"
+
 msgid "Complete pairing"
 msgstr "完成配对"
 
 msgid "Completed (%(count)s)"
 msgstr "已完成 (%(count)s)"
+
+msgid ""
+"Completed pairings are kept if you cancel setup. No additional phone "
+"permissions are granted."
+msgstr "取消设置后，已完成的配对仍会保留。不会额外授予任何手机权限。"
 
 msgid "Completed task"
 msgstr "已完成"
@@ -1494,9 +1606,18 @@ msgstr "配置 Bluetooth 数据"
 msgid "Configuring KDE Connect receive functions"
 msgstr "正在配置 KDE Connect 接收功能"
 
+msgid "Confirm"
+msgstr "确认"
+
+msgid "Confirm SMS plans"
+msgstr "确认短信计划"
+
 msgid ""
 "Confirm only if exactly the same six-digit code is shown on both devices."
 msgstr "只有在两个设备上显示的六位数代码完全相同时才确认。"
+
+msgid "Confirm that the code matches on both devices."
+msgstr "请确认两台设备上的代码一致。"
 
 msgid "Confirm the pairing request on the phone."
 msgstr "请在手机上确认配对请求。"
@@ -1516,11 +1637,23 @@ msgstr "连接"
 msgid "Connect phone via WLAN"
 msgstr "通过无线局域网连接手机"
 
+msgid "Connect via Bluetooth"
+msgstr "通过 Bluetooth 连接"
+
+msgid "Connect via KDE Connect"
+msgstr "通过 KDE Connect 连接"
+
 msgid "Connected"
 msgstr "已连接"
 
 msgid "Connecting to the online accounts"
 msgstr "正在连接在线账户"
+
+msgid "Connection discovery failed. Check the server and credentials."
+msgstr "未能找到可用的连接。请检查服务器和登录信息。"
+
+msgid "Connection ready"
+msgstr "连接已就绪"
 
 msgid "Consider deletions during manual synchronization"
 msgstr "联系人同步"
@@ -1529,16 +1662,16 @@ msgid "Contact"
 msgstr "联系人"
 
 #, python-format
+msgid "Contact %(number)d contains an unreadable vCard: %(error)s"
+msgstr "联系人 %(number)d 包含一个无法读取的 vCard：%(error)s"
+
+#, python-format
+msgid "Contact %(number)d could not be serialized: %(error)s"
+msgstr "无法序列化联系人 %(number)d：%(error)s"
+
+#, python-format
 msgid "Contact %d contains an unreadable vCard."
 msgstr "联系人 %d 包含一个无法读取的 vCard。"
-
-#, python-format
-msgid "Contact %d contains an unreadable vCard: %s"
-msgstr "联系人 %d 包含一个无法读取的 vCard：%s"
-
-#, python-format
-msgid "Contact %d could not be serialized: %s"
-msgstr "无法序列化联系人 %d：%s"
 
 #, python-format
 msgid "Contact %d has no UID."
@@ -1565,7 +1698,9 @@ msgstr "联系人同步"
 msgid ""
 "Contact synchronization preview: %(new)s new, %(changed)s changed, "
 "%(duplicates)s possible duplicates, %(deletions)s deletion proposals."
-msgstr "同步预览：%(new)s 个新增，%(changed)s 个更改，%(duplicates)s 个可能重复项，%(deletions)s 个删除建议。"
+msgstr ""
+"同步预览：%(new)s 个新增，%(changed)s 个更改，%(duplicates)s 个可能重复"
+"项，%(deletions)s 个删除建议。"
 
 msgid ""
 "Contact synchronization was blocked because the bound snapshot is empty."
@@ -1718,11 +1853,6 @@ msgstr "自定义"
 msgid "Custom application"
 msgstr "定制应用程序"
 
-msgid ""
-"Custom content is saved locally and transferred through complete Magnolie "
-"archives only, not Personal Sync."
-msgstr "自定义内容保存在本地，并且只能通过完整的 Magnolie 归档传输，不能通过 Personal Sync 传输。"
-
 msgid "Custom notification"
 msgstr "自定义通知"
 
@@ -1754,6 +1884,12 @@ msgstr "周期标记只保存在本地 Organizer 数据中，不会发送通知�
 
 msgid "Czechia"
 msgstr "捷克"
+
+msgid "DIN 5008 Form A (27 mm letterhead)"
+msgstr "DIN 5008 A 式（信头高度 27 毫米）"
+
+msgid "DIN 5008 Form B (default)"
+msgstr "DIN 5008 B 式（默认）"
 
 msgid "DIN 5008 Form B with fold marks"
 msgstr "带折叠标记的 DIN 5008 表格 B"
@@ -1949,6 +2085,18 @@ msgstr "牙医 Hill 医生 — 您的条目预览"
 msgid "Determining public IP address…"
 msgstr "正在确定公共 IP 地址…"
 
+msgid "Device IMEI"
+msgstr "设备 IMEI"
+
+msgid "Device identifier permission is missing."
+msgstr "缺少设备标识符权限。"
+
+msgid "Device identifier sharing is off."
+msgstr "设备标识符共享已关闭。"
+
+msgid "Device serial number"
+msgstr "设备序列号"
+
 msgid "Diabetes"
 msgstr "糖尿病"
 
@@ -1974,6 +2122,12 @@ msgstr "放弃"
 msgid "Discharging"
 msgstr "放弃"
 
+msgid "Disconnect WLAN on the phone to use Bluetooth fallback."
+msgstr "请断开手机的 WLAN 连接，以使用备用的 Bluetooth 连接。"
+
+msgid "Discover"
+msgstr "查找服务"
+
 msgid "Display"
 msgstr "显示"
 
@@ -1983,9 +2137,6 @@ msgstr "显示：%(display)s"
 
 msgid "Display: none"
 msgstr "显示：无"
-
-msgid "Do not connect Bluetooth call audio automatically"
-msgstr "不要自动连接 Bluetooth 通话音频"
 
 msgid "Do not retrieve weather without a location"
 msgstr "没有位置时不获取天气"
@@ -2000,7 +2151,10 @@ msgid ""
 "Does this eight-character verification key match KDE Connect on %(name)s?\n"
 "\n"
 "%(code)s"
-msgstr "此八字符验证密钥是否与 %(name)s 上的 KDE Connect 相符？\n\n%(code)s"
+msgstr ""
+"此八字符验证密钥是否与 %(name)s 上的 KDE Connect 相符？\n"
+"\n"
+"%(code)s"
 
 msgid "Done"
 msgstr "完成"
@@ -2110,6 +2264,9 @@ msgstr "启用"
 msgid "Enable Magnolie Notes phone connection"
 msgstr "启用 Magnolie Notes 电话连接"
 
+msgid "Enable SMS scheduling"
+msgstr "启用 SMS 定时发送"
+
 msgid "Enable background service"
 msgstr "启用后台服务"
 
@@ -2123,7 +2280,9 @@ msgid ""
 "Enable password protection? Your data will then be stored encrypted. Without "
 "the password, it will be irretrievably lost; keep the password in a safe "
 "place."
-msgstr "启用密码保护？之后您的数据将以加密形式存储。没有密码，数据将无法恢复；请将密码妥善保管。"
+msgstr ""
+"启用密码保护？之后您的数据将以加密形式存储。没有密码，数据将无法恢复；请将密"
+"码妥善保管。"
 
 msgid "Enable reminders"
 msgstr "启用提醒"
@@ -2134,6 +2293,9 @@ msgstr "为此区块启用提醒"
 msgid "Enable shift planner"
 msgstr "启用班次计划器"
 
+msgid "Enable this SMS plan"
+msgstr "启用此短信计划"
+
 msgid "Enable tray applet"
 msgstr "启用系统托盘小程序"
 
@@ -2142,6 +2304,10 @@ msgstr "启用休假计划器"
 
 msgid "Enable waste collection calendar"
 msgstr "启用垃圾收集日历"
+
+msgid ""
+"Enabling this plan allows its overdue SMS to be sent while scheduling is on."
+msgstr "启用此计划后，在短信定时功能开启时，其已过期的短信也可发送。"
 
 msgid "Encrypted archive entries are not supported."
 msgstr "不支持加密的归档条目。"
@@ -2207,6 +2373,9 @@ msgstr "输入应用程序命令。"
 msgid "Enter at least four characters for the backup password."
 msgstr "请输入至少四个字符作为备份密码。"
 
+msgid "Enter both hours and minutes, or leave the time completely empty."
+msgstr "请输入小时和分钟，或将时间完全留空。"
+
 msgid "Enter height and weight to calculate BMI."
 msgstr "请输入身高和体重以计算 BMI。"
 
@@ -2223,6 +2392,9 @@ msgid ""
 "Enter your address above. No service can calculate directions without a "
 "starting point."
 msgstr "请在上方输入您的地址。没有起点，任何服务都无法计算路线。"
+
+msgid "Entries ready to import"
+msgstr "待导入的条目"
 
 msgid "Entry"
 msgstr "条目"
@@ -2261,11 +2433,22 @@ msgstr "全部完成 – 列表为空。"
 msgid "Everything is ready"
 msgstr "一切准备就绪"
 
+msgid "Evolution"
+msgstr "Evolution"
+
 msgid ""
 "Evolution and Thunderbird are selected explicitly. iPhone contacts require a "
 "vCard export from the iPhone or iCloud. KDE Connect, Bluetooth and PBAP are "
 "not contact sources."
-msgstr "Evolution 和 Thunderbird 需明确选择。iPhone 联系人需要从 iPhone 或 iCloud 导出 vCard。KDE Connect、Bluetooth 和 PBAP 不是联系人来源。"
+msgstr ""
+"Evolution 和 Thunderbird 需明确选择。iPhone 联系人需要从 iPhone 或 iCloud 导"
+"出 vCard。KDE Connect、Bluetooth 和 PBAP 不是联系人来源。"
+
+msgid "Exactly one Magnolie Notes phone must be paired."
+msgstr "必须且只能配对一部使用 Magnolie Notes 的手机。"
+
+msgid "Exactly one online paired Magnolie Notes phone must allow dialing."
+msgstr "必须且只能有一部已配对、在线的 Magnolie Notes 手机允许拨号。"
 
 msgid "Export"
 msgstr "导出"
@@ -2327,7 +2510,9 @@ msgid ""
 "Finds contact cards with the same name, email address or phone number. You "
 "are asked twice before merging, and a copy of every removed card is kept in "
 "the recycle bin."
-msgstr "查找姓名、电子邮件地址或电话号码相同的联系人卡片。合并前会再次确认两次，每张被移除的卡片都会在回收站中保留一份副本。"
+msgstr ""
+"查找姓名、电子邮件地址或电话号码相同的联系人卡片。合并前会再次确认两次，每张"
+"被移除的卡片都会在回收站中保留一份副本。"
 
 msgid "Fingerprint"
 msgstr "指纹"
@@ -2360,7 +2545,10 @@ msgid ""
 "First name Last name\n"
 "Street and house number\n"
 "Postal code City"
-msgstr "名字 姓氏\n街道和门牌号\n邮政编码 城市"
+msgstr ""
+"名字 姓氏\n"
+"街道和门牌号\n"
+"邮政编码 城市"
 
 msgid "First select a calendar or address book from the online accounts."
 msgstr "请先从在线账户中选择一个日历或通讯录。"
@@ -2384,19 +2572,33 @@ msgid ""
 "For a direct IPv4 connection, port %(port)s may need to be forwarded by the "
 "router; CGNAT can prevent this. For IPv6, allow the port in the router and "
 "computer firewalls."
-msgstr "对于直接 IPv4 连接，可能需要在路由器中转发端口 %(port)s；CGNAT 可能会阻止这种连接。对于 IPv6，请在路由器和计算机防火墙中允许该端口。"
+msgstr ""
+"对于直接 IPv4 连接，可能需要在路由器中转发端口 %(port)s；CGNAT 可能会阻止这种"
+"连接。对于 IPv6，请在路由器和计算机防火墙中允许该端口。"
 
 msgid ""
 "For this purpose, appointments, tasks, anniversaries and the names of "
 "responsible people are kept unencrypted in a separate file readable only by "
 "you. Contacts and notes are never written to it."
-msgstr "为此，约会、任务、纪念日以及负责人姓名会以未加密方式保存在一个只有您能读取的独立文件中。联系人和笔记从不会写入该文件。"
+msgstr ""
+"为此，约会、任务、纪念日以及负责人姓名会以未加密方式保存在一个只有您能读取的"
+"独立文件中。联系人和笔记从不会写入该文件。"
 
 msgid "For: %(people)s"
 msgstr "适用于：%(people)s"
 
 msgid "Form"
 msgstr "剂型"
+
+msgid ""
+"Form B reserves 45 mm for the letterhead; Form A reserves 27 mm. Both place "
+"the return line and recipient in the left-hand address field and add fold "
+"and punch marks. Check long addresses and envelope fit in print preview "
+"before printing at 100%."
+msgstr ""
+"B 式为信头预留 45 毫米，A 式预留 27 毫米。两者都将寄件人地址行和收件人信息放"
+"在左侧的地址区，并添加折叠和打孔标记。按 100% 比例打印前，请先在打印预览中检"
+"查较长的地址是否完整，以及是否适合信封窗口。"
 
 msgid "Format region"
 msgstr "格式区域"
@@ -2411,7 +2613,12 @@ msgid ""
 "The most complete card in each group is retained, and missing fields are "
 "filled from the others. The remaining cards are moved to the recycle bin as "
 "“Duplicates” and can be restored from there. Continue?"
-msgstr "找到 %(groups)s 个组，共包含 %(cards)s 张卡片，例如：\n%(examples)s%(more)s\n\n每组会保留信息最完整的卡片，并用其他卡片补全缺失字段。其余卡片会作为“重复项”移到回收站，并可从那里恢复。继续吗？"
+msgstr ""
+"找到 %(groups)s 个组，共包含 %(cards)s 张卡片，例如：\n"
+"%(examples)s%(more)s\n"
+"\n"
+"每组会保留信息最完整的卡片，并用其他卡片补全缺失字段。其余卡片会作为“重复"
+"项”移到回收站，并可从那里恢复。继续吗？"
 
 #, python-format, javascript-format
 msgid "Found – %s."
@@ -2522,7 +2729,9 @@ msgstr "健康记录"
 msgid ""
 "Health records stay in your encrypted organizer data. The section documents "
 "measurements and schedules but does not provide medical advice."
-msgstr "健康记录会保存在加密的 Organizer 数据中。本部分用于记录测量值和计划，不提供医疗建议。"
+msgstr ""
+"健康记录会保存在加密的 Organizer 数据中。本部分用于记录测量值和计划，不提供医"
+"疗建议。"
 
 msgid "Health table saved."
 msgstr "健康表格已保存。"
@@ -2597,7 +2806,10 @@ msgid ""
 "If the year is unknown, enter only day and month.\n"
 "No age will then be shown.\n"
 "Anniversaries appear with ✱ in the calendar and planner."
-msgstr "如果年份未知，只输入日期和月份。\n届时不会显示年龄。\n纪念日在日历和计划器中以 ✱ 标记。"
+msgstr ""
+"如果年份未知，只输入日期和月份。\n"
+"届时不会显示年龄。\n"
+"纪念日在日历和计划器中以 ✱ 标记。"
 
 msgid "Image"
 msgstr "图像"
@@ -2623,6 +2835,9 @@ msgstr "导入联系人"
 msgid "Import contacts additively"
 msgstr "增量导入联系人"
 
+msgid "Import failed."
+msgstr "导入失败。"
+
 msgid "Import failed: %(error)s"
 msgstr "导入失败：%(error)s"
 
@@ -2637,6 +2852,9 @@ msgstr "仅导入一次"
 
 msgid "Import pairing file …"
 msgstr "导入配对文件 …"
+
+msgid "Import preview"
+msgstr "导入预览"
 
 msgid "Import, export and synchronization"
 msgstr "导入、导出和同步"
@@ -2665,12 +2883,6 @@ msgstr "导入旧数据失败：%s"
 msgid "Importing the pairing file"
 msgstr "正在导入配对文件"
 
-msgid ""
-"In the DIN template, these lines appear as a multiline sender block and in "
-"small type in the address window. In the compact template, they form one "
-"line above the recipient address. No sender is added if this field is empty."
-msgstr "在 DIN 模板中，这些行会作为多行发件人块显示，并以小号字体出现在地址窗口中。在紧凑模板中，它们会在收件人地址上方组成一行。如果此字段为空，则不会添加发件人。"
-
 msgid "In the organizer%(selection)s: %(items)s%(years)s."
 msgstr "Organizer%(selection)s 中：%(items)s%(years)s。"
 
@@ -2684,7 +2896,13 @@ msgid ""
 "• phone connections\n"
 "• registers and a custom tab\n"
 "• backups, autostart and tray"
-msgstr "您可以在此助手中设置：\n• 用于路线和天气的地址\n• 同步和导入\n• 手机连接\n• 标签页和自定义标签页\n• 备份、自动启动和系统托盘"
+msgstr ""
+"您可以在此助手中设置：\n"
+"• 用于路线和天气的地址\n"
+"• 同步和导入\n"
+"• 手机连接\n"
+"• 标签页和自定义标签页\n"
+"• 备份、自动启动和系统托盘"
 
 msgid "Include anniversaries"
 msgstr "包含纪念日"
@@ -2742,7 +2960,9 @@ msgstr "安装所需软件包，例如："
 msgid ""
 "Install version %(version)s now? All changes will be saved. The Organizer "
 "will close and restart after the installation."
-msgstr "现在安装版本 %(version)s 吗？所有更改都将保存。Organizer 将关闭并在安装后重新启动。"
+msgstr ""
+"现在安装版本 %(version)s 吗？所有更改都将保存。Organizer 将关闭并在安装后重新"
+"启动。"
 
 msgid "Install version %(version)s …"
 msgstr "安装版本 %(version)s …"
@@ -2764,6 +2984,9 @@ msgstr "互联网 IP"
 
 msgid "Internet available"
 msgstr "互联网可用"
+
+msgid "Interval"
+msgstr "间隔"
 
 msgid "Interval in days"
 msgstr "间隔天数"
@@ -2795,6 +3018,9 @@ msgstr "KDE Connect 为 SMS"
 
 msgid "KDE Connect for SMS is available only in the installed application."
 msgstr "SMS 的 KDE Connect 仅在已安装的应用程序中可用。"
+
+msgid "KDE Connect is unavailable; other background services remain active."
+msgstr "KDE Connect 不可用；其他后台服务仍在运行。"
 
 msgid ""
 "KDE Connect is used only for SMS. It does not connect or synchronize the "
@@ -2831,6 +3057,9 @@ msgstr "保留故障排除日志"
 
 msgid "Keep this KDE Connect file in Downloads?"
 msgstr "将此 KDE Connect 文件保留在“下载”中吗？"
+
+msgid "LDIF"
+msgstr "LDIF"
 
 msgid "LDIF address book (*.ldif)"
 msgstr "LDIF 地址簿 (*.ldif)"
@@ -2985,7 +3214,9 @@ msgstr "Magnolie Notes 手机配对决定"
 msgid ""
 "Magnolie Notes phones and KDE Connect phones are separate: the Android model "
 "name belongs to Magnolie Notes; the KDE peer name comes from KDE Connect."
-msgstr "Magnolie Notes 手机与 KDE Connect 手机相互独立：Android 型号名称属于 Magnolie Notes；KDE 对等设备名称来自 KDE Connect。"
+msgstr ""
+"Magnolie Notes 手机与 KDE Connect 手机相互独立：Android 型号名称属于 "
+"Magnolie Notes；KDE 对等设备名称来自 KDE Connect。"
 
 msgid "Magnolie Organizer"
 msgstr "Magnolie Organizer"
@@ -3000,7 +3231,9 @@ msgid ""
 "Magnolie Organizer is open-source software. There are no functional "
 "restrictions. This branding can be removed by supporting the project and "
 "then entering the activation code received by email under Settings → About."
-msgstr "Magnolie Organizer 是开源软件，没有任何功能限制。支持本项目后，在“设置 → 关于”中输入通过电子邮件收到的激活码，即可移除此标记。"
+msgstr ""
+"Magnolie Organizer 是开源软件，没有任何功能限制。支持本项目后，在“设置 → 关"
+"于”中输入通过电子邮件收到的激活码，即可移除此标记。"
 
 msgid "Magnolie Organizer requires GTK 3 and WebKit2GTK."
 msgstr "Magnolie Organizer 需要 GTK 3 和 WebKit2GTK。"
@@ -3032,9 +3265,12 @@ msgid "Magnolie backup (*.json)"
 msgstr "Magnolie 备份 (*.json)"
 
 msgid ""
-"Magnolie can use this address for route planning and local weather. It is "
-"stored with your organizer data and is not sent anywhere by this assistant."
-msgstr "Magnolie 可使用此地址规划路线和获取当地天气。该地址与 Organizer 数据一起保存，此助手不会将其发送到任何地方。"
+"Magnolie can use this information when preparing routes and finding local "
+"weather. You can leave every field empty."
+msgstr "Magnolie 可以利用这些信息规划路线和查询当地天气。所有字段都可以留空。"
+
+msgid "Magnolie complete archive (.magnolie) …"
+msgstr "Magnolie 完整归档（.magnolie）…"
 
 msgid "Magnolie sheet"
 msgstr "Magnolie 纸张"
@@ -3105,7 +3341,9 @@ msgstr "地图"
 msgid ""
 "Map services often cannot find a street without a country. If the country is "
 "already part of the address, it is not added a second time."
-msgstr "地图服务通常无法在缺少国家信息时找到街道。如果国家已经包含在地址中，则不会再次添加。"
+msgstr ""
+"地图服务通常无法在缺少国家信息时找到街道。如果国家已经包含在地址中，则不会再"
+"次添加。"
 
 msgid "Mark as completed"
 msgstr "标记为已完成"
@@ -3136,9 +3374,6 @@ msgstr "会议"
 
 msgid "Memorial day"
 msgstr "纪念日"
-
-msgid "Memory available / total"
-msgstr "可用内存 / 总内存"
 
 msgid "Merge"
 msgstr "合并"
@@ -3180,7 +3415,11 @@ msgid ""
 "are treated as starting at 8 a.m. A small reminder service starts at login "
 "to check appointments in the background and continues running when you close "
 "the organizer."
-msgstr "错过的提醒会在下次启动后显示。如果电脑当时已关机或应用已关闭，登录后不久，Organizer 会报告错过的约会，并提供一个打开该约会的按钮。全天约会按上午 8 点开始处理。登录时会启动一个小型提醒服务，在后台检查约会；即使关闭 Organizer，它仍会继续运行。"
+msgstr ""
+"错过的提醒会在下次启动后显示。如果电脑当时已关机或应用已关闭，登录后不久，"
+"Organizer 会报告错过的约会，并提供一个打开该约会的按钮。全天约会按上午 8 点开"
+"始处理。登录时会启动一个小型提醒服务，在后台检查约会；即使关闭 Organizer，它"
+"仍会继续运行。"
 
 msgid ""
 "Misspelled words are marked with a red wavy underline while you type. Right-"
@@ -3188,7 +3427,10 @@ msgid ""
 "click; you can add names to your personal dictionary in the same way. If the "
 "lines or suggestions are missing, install the dictionary with:  sudo apt "
 "install %(package)s"
-msgstr "输入时，拼写错误的单词会显示红色波浪下划线。右键单击单词可打开建议面板，建议可一键采用；也可以用同样的方法把姓名加入个人词典。如果没有显示下划线或建议，请使用以下命令安装词典：  sudo apt install %(package)s"
+msgstr ""
+"输入时，拼写错误的单词会显示红色波浪下划线。右键单击单词可打开建议面板，建议"
+"可一键采用；也可以用同样的方法把姓名加入个人词典。如果没有显示下划线或建议，"
+"请使用以下命令安装词典：  sudo apt install %(package)s"
 
 msgid "Mobile"
 msgstr "手机"
@@ -3216,9 +3458,6 @@ msgstr "月"
 
 msgid "Month calendar"
 msgstr "月历"
-
-msgid "Monthly"
-msgstr "每月"
 
 msgid "Monthly view"
 msgstr "月视图"
@@ -3289,6 +3528,27 @@ msgstr "自定义标签页名称"
 msgid "Name of this branch"
 msgstr "此分支的名称"
 
+msgid ""
+"Native KDE Connect cannot enforce Magnolie approvals. Clipboard and file "
+"reception, incoming SMS/history and new pairing are unavailable. Magnolie "
+"Notes WLAN remains separate."
+msgstr ""
+"系统原生 KDE Connect 无法强制执行 Magnolie 的确认要求。因此，剪贴板和文件接"
+"收、SMS 短信接收和历史记录以及新配对不可用。Magnolie Notes 的无线局域网连接仍"
+"然独立运行。"
+
+msgid ""
+"Native KDE Connect is unavailable. Magnolie will not take over its network "
+"port."
+msgstr "系统原生 KDE Connect 不可用。Magnolie 不会占用其网络端口。"
+
+msgid ""
+"Native KDE Connect is used for SMS on already paired phones. Magnolie does "
+"not change KDE permissions."
+msgstr ""
+"系统原生 KDE Connect 用于已配对手机的 SMS 短信功能。Magnolie 不会更改 KDE 权"
+"限。"
+
 msgid "Native notifications available"
 msgstr "原生通知可用"
 
@@ -3336,7 +3596,9 @@ msgid ""
 "stored next to the data file. For any other location, the organizer requires "
 "a backup password and encrypts the copy independently of the application's "
 "password protection."
-msgstr "新的备份存储在此文件夹中。该字段为空时，备份存储在数据文件旁边。使用其他位置时，Organizer 会要求输入备份密码，并独立于应用的密码保护对副本进行加密。"
+msgstr ""
+"新的备份存储在此文件夹中。该字段为空时，备份存储在数据文件旁边。使用其他位置"
+"时，Organizer 会要求输入备份密码，并独立于应用的密码保护对副本进行加密。"
 
 msgid "New contact"
 msgstr "新建联系人"
@@ -3389,6 +3651,9 @@ msgstr "下周"
 msgid "Next year"
 msgstr "明年"
 
+msgid "Nextcloud"
+msgstr "Nextcloud"
+
 msgid "Nextcloud denied access to this DAV resource."
 msgstr "Nextcloud 拒绝访问此 DAV 资源。"
 
@@ -3437,7 +3702,9 @@ msgstr "未找到通讯录。"
 msgid ""
 "No anniversaries yet.\n"
 "Birthdays and celebrations will automatically appear in the calendar."
-msgstr "还没有纪念日。\n生日和庆祝日会自动显示在日历中。"
+msgstr ""
+"还没有纪念日。\n"
+"生日和庆祝日会自动显示在日历中。"
 
 msgid "No application was found for the manual package."
 msgstr "未找到用于手动安装包的应用程序。"
@@ -3450,6 +3717,9 @@ msgstr "未找到日历。"
 
 msgid "No data was found."
 msgstr "未找到数据。"
+
+msgid "No default voice subscription is available."
+msgstr "没有可用的默认语音订阅。"
 
 #, python-format
 msgid "No dictionary was found. Install one with:  sudo apt install %s"
@@ -3482,7 +3752,8 @@ msgstr "尚未进行手动更新检查。"
 msgid ""
 "No map service was found. GNOME Maps can be installed with: sudo apt install "
 "gnome-maps"
-msgstr "未找到地图服务。可使用以下命令安装 GNOME Maps：sudo apt install gnome-maps"
+msgstr ""
+"未找到地图服务。可使用以下命令安装 GNOME Maps：sudo apt install gnome-maps"
 
 msgid "No matching open task found."
 msgstr "未找到匹配的未完成任务。"
@@ -3508,7 +3779,9 @@ msgstr "尚未为新版本指定软件包。"
 msgid ""
 "No people have been added yet.\n"
 "Enter a name below."
-msgstr "尚未添加人员。\n请在下方输入姓名。"
+msgstr ""
+"尚未添加人员。\n"
+"请在下方输入姓名。"
 
 msgid ""
 "No people have been added yet. Use the People button above to add people "
@@ -3517,6 +3790,9 @@ msgstr "尚未添加人员。请使用上方的“人员”按钮添加任务负
 
 msgid "No phone paired yet."
 msgstr "尚未关联任务。"
+
+msgid "No phone was found. Open the phone app and try again."
+msgstr "未找到手机。请打开手机上的应用后重试。"
 
 msgid "No photo"
 msgstr "无照片"
@@ -3534,12 +3810,16 @@ msgstr "此电脑上未找到可读取的 Evolution 或 Thunderbird 数据存储
 msgid ""
 "No regional data is retrieved without a selected canton. With “All”, each "
 "entry shows its canton and matching periods are combined."
-msgstr "未选择州（canton）时不会获取区域数据。选择“全部”后，每个条目会显示其所属州，并合并相同的时段。"
+msgstr ""
+"未选择州（canton）时不会获取区域数据。选择“全部”后，每个条目会显示其所属州，"
+"并合并相同的时段。"
 
 msgid ""
 "No regional data is retrieved without a selected state. With “All”, each "
 "entry shows its state and matching periods are combined."
-msgstr "未选择联邦州时不会获取区域数据。选择“全部”后，每个条目会显示其联邦州，并合并相同的时段。"
+msgstr ""
+"未选择联邦州时不会获取区域数据。选择“全部”后，每个条目会显示其联邦州，并合并"
+"相同的时段。"
 
 msgid "No scheme row matches this blood glucose value."
 msgstr "没有与此血糖值匹配的方案行。"
@@ -3561,6 +3841,9 @@ msgstr "未找到建议。"
 
 msgid "No suitable application was found."
 msgstr "未找到合适的应用。"
+
+msgid "No supported data was found."
+msgstr "未找到支持的数据。"
 
 msgid "No system internet accounts were found."
 msgstr "未找到系统互联网账户。"
@@ -3607,7 +3890,9 @@ msgstr "北莱茵-威斯特法伦"
 msgid ""
 "Not all systems allow waking from suspend. If it does not work, the reminder "
 "appears as soon as the computer is running again."
-msgstr "并非所有系统都支持从挂起状态唤醒。如果无法唤醒，电脑重新运行后会立即显示提醒。"
+msgstr ""
+"并非所有系统都支持从挂起状态唤醒。如果无法唤醒，电脑重新运行后会立即显示提"
+"醒。"
 
 msgid "Not charging"
 msgstr "无更改"
@@ -3713,6 +3998,14 @@ msgstr "上瓦尔登"
 msgid "Off"
 msgstr "离开"
 
+msgid ""
+"Off by default. Turning this off pauses pending SMS plans without deleting "
+"them. Enabling resumes them, including overdue plans. Messages already "
+"handed to KDE Connect cannot be recalled."
+msgstr ""
+"默认关闭。关闭后会暂停待发送的 SMS 计划，但不会删除它们。启用后会恢复这些计"
+"划，包括已过预定时间的计划。已交给 KDE Connect 的消息无法撤回。"
+
 msgid "Offer Personal Sync phone changes"
 msgstr "提供 Personal Sync 手机更改"
 
@@ -3766,9 +4059,6 @@ msgstr "一个表格及图表"
 msgid "One year"
 msgstr "一年"
 
-msgid "One-time imports"
-msgstr "一次性导入"
-
 msgid ""
 "One-time imports are additive. They do not keep a source linked and do not "
 "delete contacts."
@@ -3785,7 +4075,10 @@ msgid ""
 "with:  sudo apt install %(packages)s, then restart the application. You can "
 "also import contacts and appointments without this integration using “From "
 "this computer” above."
-msgstr "此系统不支持在线账户集成。请使用以下命令安装：  sudo apt install %(packages)s，然后重新启动应用。即使不使用此集成，也可以通过上方的“从此电脑”导入联系人和约会。"
+msgstr ""
+"此系统不支持在线账户集成。请使用以下命令安装：  sudo apt install "
+"%(packages)s，然后重新启动应用。即使不使用此集成，也可以通过上方的“从此电"
+"脑”导入联系人和约会。"
 
 msgid "Online address book"
 msgstr "在线通讯录"
@@ -3799,12 +4092,15 @@ msgstr "通过 WLAN 在线"
 msgid ""
 "Only HTTPS. Create an app password in Nextcloud under Settings, Security. "
 "Your account password is never used."
-msgstr "仅限 HTTPS。请在 Nextcloud 的“设置”“安全”中创建应用密码。绝不会使用您的账户密码。"
+msgstr ""
+"仅限 HTTPS。请在 Nextcloud 的“设置”“安全”中创建应用密码。绝不会使用您的账户密"
+"码。"
 
 msgid ""
 "Only Notify, then unlock is currently available. Keyring access and pausing "
 "while locked are not yet enforced by the background service."
-msgstr "目前只有“通知，然后解锁”可用。后台服务尚未实施密钥环访问和锁定时暂停功能。"
+msgstr ""
+"目前只有“通知，然后解锁”可用。后台服务尚未实施密钥环访问和锁定时暂停功能。"
 
 msgid ""
 "Only one Magnolie Notes phone can be paired. Remove the existing phone "
@@ -3815,6 +4111,16 @@ msgid ""
 "Only the reliable system notification is available under Wayland; the "
 "Magnolie paper style would often remain invisible there."
 msgstr "Wayland 下仅提供可靠的系统通知；Magnolie 的纸张样式在那里往往不可见。"
+
+msgid ""
+"Only with both devices' explicit consent, Personal Sync shares read-only "
+"Custom tasks and appointments, including their own notes. Text blocks, "
+"linked text and attachments are excluded. Archives restore copies, not "
+"permissions."
+msgstr ""
+"只有两台设备都明确同意，Personal Sync 才会以只读方式共享自定义任务和日程，包"
+"括条目自身的备注。文本块、关联文本和附件不在共享范围内。归档恢复副本，不恢复"
+"权限。"
 
 msgid "Open"
 msgstr "打开"
@@ -3828,7 +4134,9 @@ msgstr "为此联系人打开 %(service)s"
 msgid ""
 "Open KDE Connect on the phone and start pairing. Compare the eight-character "
 "verification key and confirm on both devices."
-msgstr "在手机上打开 KDE Connect 并开始配对。比较八字符验证密钥，然后在两台设备上确认。"
+msgstr ""
+"在手机上打开 KDE Connect 并开始配对。比较八字符验证密钥，然后在两台设备上确"
+"认。"
 
 msgid "Open Magnolie Organizer"
 msgstr "打开 Magnolie Organizer"
@@ -3877,6 +4185,9 @@ msgstr "打开应用"
 
 msgid "Open the day in the daily view"
 msgstr "在日视图中打开此日"
+
+msgid "Open the phone connection screen and try again."
+msgstr "请打开手机连接界面后重试。"
 
 msgid ""
 "Open the verified DEB with your software manager; the organizer never "
@@ -3961,6 +4272,9 @@ msgstr "排卵"
 msgid "Own internet IP"
 msgstr "本机公网 IP"
 
+msgid "Own phone number (default voice SIM)"
+msgstr "本机号码（默认语音 SIM）"
+
 msgid "Own window available: no"
 msgstr "可用独立窗口：否"
 
@@ -3995,8 +4309,14 @@ msgstr "疼痛"
 msgid "Pair KDE Connect phone"
 msgstr "配对 KDE Connect 手机"
 
+msgid "Pair Magnolie over WLAN before using Bluetooth."
+msgstr "使用 Bluetooth 前，请先通过 WLAN 完成 Magnolie 配对。"
+
 msgid "Pair a KDE Connect phone before enabling receive functions."
 msgstr "请先配对一部 KDE Connect 手机，再启用接收功能。"
+
+msgid "Pair your phone in the OS Bluetooth settings first."
+msgstr "请先在操作系统的 Bluetooth 设置中配对手机。"
 
 msgid "Pairing KDE Connect"
 msgstr "配对 KDE Connect"
@@ -4053,6 +4373,9 @@ msgstr "贴剂"
 msgid "Pause while data is locked"
 msgstr "数据锁定时暂停"
 
+msgid "Paused — review required"
+msgstr "已暂停 — 需要审核"
+
 msgid "Pay invoice"
 msgstr "支付账单"
 
@@ -4102,7 +4425,8 @@ msgstr "人员姓名"
 msgid ""
 "Personal data over Magnolie Notes, not Magnolienbaum. Deletions always "
 "require confirmation."
-msgstr "个人数据通过 Magnolie Notes 而非 Magnolienbaum 传输。附件和删除操作不会同步。"
+msgstr ""
+"个人数据通过 Magnolie Notes 而非 Magnolienbaum 传输。附件和删除操作不会同步。"
 
 msgid "Personal synchronization"
 msgstr "联系人同步"
@@ -4113,6 +4437,15 @@ msgstr "个人同步已完成。删除操作尚不同步。"
 msgid "Personal synchronization failed."
 msgstr "同步失败。"
 
+msgid "Personal synchronization format 2 was not negotiated."
+msgstr "两台设备未能协商使用个人同步格式 2。"
+
+msgid "Personal synchronization format 3 was not negotiated."
+msgstr "两台设备未能协商使用个人同步格式 3。"
+
+msgid "Personal synchronization is not permitted on both devices."
+msgstr "个人同步尚未获得两台设备的共同许可。"
+
 msgid "Phone"
 msgstr "电话"
 
@@ -4121,6 +4454,15 @@ msgstr "手机电池"
 
 msgid "Phone call"
 msgstr "电话通话"
+
+msgid "Phone connection"
+msgstr "手机连接"
+
+msgid "Phone connection cancelled or timed out."
+msgstr "手机连接已取消或超时。"
+
+msgid "Phone connection failed."
+msgstr "手机连接失败。"
 
 msgid "Phone notification"
 msgstr "手机通知"
@@ -4133,6 +4475,11 @@ msgstr "电话号码"
 
 msgid "Phone pairing failed."
 msgstr "配对文件"
+
+msgid ""
+"Phone setup is unavailable in this background service. Restart the "
+"background service and try again."
+msgstr "当前后台服务无法进行手机设置。请重启后台服务后重试。"
 
 msgid "Phone “%(name)s” is securely paired."
 msgstr "已恢复“%(name)s”。"
@@ -4233,6 +4580,9 @@ msgstr "粉剂"
 msgid "Power source"
 msgstr "电源"
 
+msgid "Prefer PC speakers and microphone for calls on my own Bluetooth phone"
+msgstr "优先使用电脑扬声器和麦克风接听我自己的 Bluetooth 手机上的通话"
+
 msgid "Preferred backup folder"
 msgstr "首选备份文件夹"
 
@@ -4320,7 +4670,9 @@ msgstr "脉搏"
 msgid ""
 "Pulse\n"
 "S/min"
-msgstr "脉搏\nS/min"
+msgstr ""
+"脉搏\n"
+"S/min"
 
 msgid "QR codes require the python3-qrcode package."
 msgstr "二维码需要 python3-qrcode 包。"
@@ -4365,7 +4717,9 @@ msgstr "就绪。"
 msgid ""
 "Really merge %(cards)s? Review the result carefully afterwards. A copy of "
 "every removed card is kept in the recycle bin."
-msgstr "确实要合并 %(cards)s 吗？之后请仔细检查结果。每张被删除的卡片都会在回收站中保留一份副本。"
+msgstr ""
+"确实要合并 %(cards)s 吗？之后请仔细检查结果。每张被删除的卡片都会在回收站中保"
+"留一份副本。"
 
 msgid "Reason"
 msgstr "原因"
@@ -4379,9 +4733,6 @@ msgstr "通过 KDE Connect 接收"
 msgid "Reconnect"
 msgstr "重新连接"
 
-msgid "Recovering the password transaction"
-msgstr "正在恢复密码事务"
-
 msgid "Recovery snapshot created."
 msgstr "已创建恢复快照。"
 
@@ -4394,12 +4745,18 @@ msgstr "恢复快照"
 msgid "Recycle bin"
 msgstr "回收站"
 
+msgid "Redo"
+msgstr "重做"
+
 msgid "Refresh"
 msgstr "刷新"
 
 msgid ""
 "Regional settings saved. Restart the Organizer to apply them completely."
 msgstr "区域设置已保存。请重启 Organizer 以完全应用这些设置。"
+
+msgid "Regular typeface"
+msgstr "常规字体"
 
 msgid "Reject"
 msgstr "拒绝"
@@ -4519,7 +4876,9 @@ msgstr "移除“%(name)s”？其任务会保留，但将不再分配给任何�
 msgid ""
 "Renew KDE Connect pairing? Only KDE trust for this phone will be removed and "
 "rebuilt. Magnolie Notes, notes and chat history remain unchanged."
-msgstr "要更新 KDE Connect 配对吗？只会移除并重建此手机的 KDE 信任信息。Magnolie Notes、笔记和聊天历史记录不会改变。"
+msgstr ""
+"要更新 KDE Connect 配对吗？只会移除并重建此手机的 KDE 信任信息。Magnolie "
+"Notes、笔记和聊天历史记录不会改变。"
 
 msgid "Renew pairing"
 msgstr "重新配对"
@@ -4577,6 +4936,13 @@ msgid ""
 "created first."
 msgstr "要完全恢复此快照吗？首先会创建一个必需的恢复前快照。"
 
+msgid ""
+"Restored pending plans stay paused until you review and enable each plan. "
+"Restoring contacts, calendar or notes does not change live SMS plans."
+msgstr ""
+"恢复的待发送计划将保持暂停，直到您逐个审核并启用。恢复联系人、日历或笔记不会"
+"改变当前的短信计划。"
+
 msgid "Restoring a recovery snapshot"
 msgstr "恢复恢复快照"
 
@@ -4624,6 +4990,12 @@ msgstr "获取天气失败（%s）。"
 
 msgid "Retrieving weather…"
 msgstr "正在获取天气…"
+
+msgid "Review and enable"
+msgstr "审核并启用"
+
+msgid "Review the exact SMS text for every recipient before confirming."
+msgstr "确认前，请检查每位收件人的确切短信文本。"
 
 msgid "Rhineland-Palatinate"
 msgstr "莱茵兰-普法尔茨"
@@ -4676,6 +5048,12 @@ msgstr "SMS历史"
 
 msgid "SMS scheduled."
 msgstr "SMS 已安排。"
+
+msgid ""
+"SMS scheduling is off. Pending plans are paused. Review them in SMS settings "
+"before enabling scheduling."
+msgstr ""
+"SMS 定时发送已关闭。待发送的计划已暂停。启用前请在 SMS 设置中检查这些计划。"
 
 msgid "SMS settings"
 msgstr "SMS设置"
@@ -4805,13 +5183,18 @@ msgstr "已安排"
 msgid ""
 "Scheduled SMS messages are sent only while Magnolie is running and exactly "
 "one KDE Connect phone is available."
-msgstr "只有在 Magnolie 正在运行且恰好有一部 KDE Connect 手机可用时，才会发送已计划的 SMS。"
+msgstr ""
+"只有在 Magnolie 正在运行且恰好有一部 KDE Connect 手机可用时，才会发送已计划"
+"的 SMS。"
 
 msgid "Scheme"
 msgstr "方案"
 
 msgid "Schleswig-Holstein"
 msgstr "石勒苏益格-荷尔斯泰因"
+
+msgid "School holidays are not available for this region."
+msgstr "暂无此地区的学校假期信息。"
 
 msgid "Schwyz"
 msgstr "施维茨"
@@ -4875,7 +5258,9 @@ msgstr "全选"
 msgid ""
 "Select an entry on the left,\n"
 "or create a contact card with New."
-msgstr "请在左侧选择一个条目，\n或使用“新建”创建联系人卡片。"
+msgstr ""
+"请在左侧选择一个条目，\n"
+"或使用“新建”创建联系人卡片。"
 
 msgid "Select at least one column."
 msgstr "请至少选择一列。"
@@ -4892,16 +5277,14 @@ msgstr "最多选择三年。"
 msgid "Select something first."
 msgstr "请先选择内容。"
 
-msgid ""
-"Select the sections that should appear as tabs. The predefined calendars "
-"remain available independently of these register choices."
-msgstr "选择应显示为标签页的分区。无论如何选择这些标签页，预定义日历始终可用。"
-
 msgid "Select what you want to print on the left."
 msgstr "请在左侧选择要打印的内容。"
 
 msgid "Select your canton first or enable “All cantons”."
 msgstr "请先选择州（canton），或启用“所有州”。"
+
+msgid "Select your phone"
+msgstr "选择您的手机"
 
 msgid "Select your state first or enable “All states”."
 msgstr "请先选择联邦州，或启用“所有联邦州”。"
@@ -4933,6 +5316,9 @@ msgstr "与 KDE Connect 一起发送 SMS"
 
 msgid "Sent"
 msgstr "已发送"
+
+msgid "Server"
+msgstr "服务器"
 
 msgid "Server address"
 msgstr "服务器地址"
@@ -5033,6 +5419,10 @@ msgstr "显示配对二维码"
 msgid "Show preview"
 msgstr "显示预览"
 
+#, python-format
+msgid "Show school holidays for %(state)s in the calendar?"
+msgstr "在日历中显示%(state)s的学校假期？"
+
 msgid "Show selected app notifications"
 msgstr "显示所选应用通知"
 
@@ -5072,6 +5462,9 @@ msgstr "在月视图中显示周数"
 msgid "Show week numbers in the planner"
 msgstr "在计划器中显示周数"
 
+msgid "Silence this alert"
+msgstr "关闭此提醒"
+
 msgid "Skip assistant"
 msgstr "跳过助手"
 
@@ -5097,6 +5490,11 @@ msgstr "社交媒体"
 
 msgid "Solothurn"
 msgstr "索洛图恩"
+
+msgid ""
+"Some recurrence rules cannot be expanded. Their original calendar data was "
+"preserved."
+msgstr "有些重复规则无法计算出各次日程。原始日历数据已保留。"
 
 msgid "Someone"
 msgstr "某人"
@@ -5137,6 +5535,9 @@ msgstr "声音输出方式：未找到输出方式"
 msgid "Sources"
 msgstr "来源"
 
+msgid "Sources and imports"
+msgstr "数据来源与导入"
+
 msgid "Space for anything you want to remember…"
 msgstr "用于记录任何您想记住的事情…"
 
@@ -5176,6 +5577,9 @@ msgstr "登录时启动"
 msgid "Start automatically when signing in"
 msgstr "登录时自动启动"
 
+msgid "Start required phone background services automatically"
+msgstr "自动启动手机连接所需的后台服务"
+
 msgid "Start the organizer in the tray"
 msgstr "启动 Organizer 时进入系统托盘"
 
@@ -5196,9 +5600,6 @@ msgstr "格式区域"
 
 msgid "Status"
 msgstr "地位"
-
-msgid "Storage available / total"
-msgstr "可用存储空间 / 总存储空间"
 
 msgid "Street / house number"
 msgstr "街道 / 门牌号"
@@ -5230,6 +5631,9 @@ msgstr "太阳符号"
 msgid "Sunday"
 msgstr "星期日"
 
+msgid "Supported files"
+msgstr "支持的文件"
+
 msgid "Suppository"
 msgstr "栓剂"
 
@@ -5257,9 +5661,6 @@ msgstr "符号、温度和说明"
 msgid "Synchronization"
 msgstr "同步"
 
-msgid "Synchronization and imports"
-msgstr "同步与一次性导入"
-
 msgid "Synchronization completed."
 msgstr "同步完成。"
 
@@ -5272,7 +5673,9 @@ msgstr "同步失败：%(error)s"
 msgid ""
 "Synchronization state, pending messages and metadata for this connection "
 "will be removed. Contacts already accepted and local data remain."
-msgstr "此连接的同步状态、待处理消息和元数据将被移除。已接受的联系人和本地数据将保留。"
+msgstr ""
+"此连接的同步状态、待处理消息和元数据将被移除。已接受的联系人和本地数据将保"
+"留。"
 
 msgid "Synchronize automatically at startup"
 msgstr "启动时自动同步"
@@ -5295,6 +5698,12 @@ msgstr "永久同步"
 msgid "Synchronize tasks"
 msgstr "同步联系人"
 
+msgid "Synchronize tasks and appointments from the \"%(tab)s\" tab"
+msgstr "同步“%(tab)s”选项卡中的任务和日程"
+
+msgid "Synchronize tasks and appointments from the custom tab"
+msgstr "同步自定义选项卡中的任务和日程"
+
 msgid "Synchronizing …"
 msgstr "正在同步 …"
 
@@ -5312,7 +5721,9 @@ msgid ""
 "System internet accounts are not available on this system. Install the "
 "required components with:\n"
 "sudo apt install %s"
-msgstr "此系统无法使用系统互联网账户。请使用以下命令安装所需组件：\nsudo apt install %s"
+msgstr ""
+"此系统无法使用系统互联网账户。请使用以下命令安装所需组件：\n"
+"sudo apt install %s"
 
 msgid "System keyring and pause modes cannot be enabled yet."
 msgstr "系统密钥环和暂停模式目前还无法启用。"
@@ -5344,6 +5755,10 @@ msgstr "标签页 %(letter)s · %(count)s"
 msgid "Tab name"
 msgstr "标签页名称"
 
+msgid ""
+"Tab: insert a tab stop. Shift+Tab: previous field. Ctrl+Tab: next field."
+msgstr "Tab：插入制表符。Shift+Tab：上一个字段。Ctrl+Tab：下一个字段。"
+
 msgid "Tablet"
 msgstr "片剂"
 
@@ -5368,7 +5783,9 @@ msgstr "任务 (.ics)"
 msgid ""
 "Tasks can be assigned to people. When printing, you can select one person's "
 "tasks for a specific period, for example each family member's weekly tasks."
-msgstr "任务可以分配给人员。打印时，可以选择某个人在指定时间段内的任务，例如每位家庭成员的每周任务。"
+msgstr ""
+"任务可以分配给人员。打印时，可以选择某个人在指定时间段内的任务，例如每位家庭"
+"成员的每周任务。"
 
 msgid "Tasks for this person"
 msgstr "此人的任务"
@@ -5395,9 +5812,6 @@ msgstr "测试提醒并报告实际情况"
 msgid "Testing…"
 msgstr "正在测试…"
 
-msgid "Text"
-msgstr "文本"
-
 msgid "Text block"
 msgstr "文本块"
 
@@ -5421,6 +5835,9 @@ msgid_plural ""
 "The %(count)s note pages it contains will be moved to “%(notebook)s”."
 msgstr[0] "其中的 %(count)s 个便笺页面将移到“%(notebook)s”。"
 
+msgid "The Bluetooth address is invalid."
+msgstr "Bluetooth 地址无效。"
+
 msgid "The CSV columns were not recognized."
 msgstr "无法识别 CSV 列。"
 
@@ -5440,16 +5857,12 @@ msgid "The DAV entry was changed concurrently."
 msgstr "DAV 条目同时被更改。"
 
 msgid ""
-"The DIN template positions the recipient address for a window envelope, "
-"shows your address as a multiline sender block, and adds two fold marks and "
-"a punch mark."
-msgstr "DIN 模板会将收件人地址放置在开窗信封对应位置，把您的地址显示为多行寄件人区块，并添加两个折叠标记和一个打孔标记。"
-
-msgid ""
 "The KDE Connect support is built into the Organizer. Only the KDE Connect "
 "app on Android is required; no additional KDE Connect desktop program is "
 "needed."
-msgstr "KDE Connect 支持内置于管理器中。只需要Android上的KDE Connect应用程序；不需要额外的KDE Connect桌面程序。"
+msgstr ""
+"KDE Connect 支持内置于管理器中。只需要Android上的KDE Connect应用程序；不需要"
+"额外的KDE Connect桌面程序。"
 
 msgid ""
 "The KDE/Akonadi database was replaced. Select the source again in Settings."
@@ -5477,7 +5890,13 @@ msgid ""
 "The Lotus CSV uses the original columns VERTRAULICH, KATEGORIEN, "
 "ANFANGSDATUMZEIT, ENDDATUMZEIT, BESCHREIBUNG, KOSTENSTELLENCODE, "
 "KUNDENNUMMER and VORLAEUFIGZUSAGEN."
-msgstr "Lotus CSV 使用原始列 VERTRAULICH、KATEGORIEN、ANFANGSDATUMZEIT、ENDDATUMZEIT、BESCHREIBUNG、KOSTENSTELLENCODE、KUNDENNUMMER 和 VORLAEUFIGZUSAGEN。"
+msgstr ""
+"Lotus CSV 使用原始列 VERTRAULICH、KATEGORIEN、ANFANGSDATUMZEIT、"
+"ENDDATUMZEIT、BESCHREIBUNG、KOSTENSTELLENCODE、KUNDENNUMMER 和 "
+"VORLAEUFIGZUSAGEN。"
+
+msgid "The Magnolie Notes phone connection is switched off."
+msgstr "Magnolie Notes 手机连接已关闭。"
 
 msgid ""
 "The Magnolie manual is installed. It is best to read it through before you "
@@ -5490,7 +5909,8 @@ msgstr "Magnolie 手册未安装。"
 msgid ""
 "The Magnolie manual is not installed. Version %(version)s can be downloaded "
 "now. Would you like to open the package download?"
-msgstr "Magnolie 手册未安装。现在可以下载 %(version)s 版本。要打开软件包下载页面吗？"
+msgstr ""
+"Magnolie 手册未安装。现在可以下载 %(version)s 版本。要打开软件包下载页面吗？"
 
 msgid "The Magnolienbaum encryption key is unavailable."
 msgstr "Magnolienbaum 加密密钥不可用。"
@@ -5588,9 +6008,17 @@ msgid "The address book could not be read: %s"
 msgstr "无法读取地址簿：%s"
 
 msgid ""
+"The address is too long for the letter's address field. Shorten the return "
+"address or recipient, or choose the compact template."
+msgstr ""
+"地址过长，无法放入信件的地址区。请缩短寄件人地址或收件人信息，或选择紧凑式模"
+"板。"
+
+msgid ""
 "The archive contains all application data. The password is optional; leaving "
 "the field empty explicitly creates an unencrypted archive."
-msgstr "该归档包含全部应用数据。密码为可选项；将此字段留空会明确创建未加密的归档。"
+msgstr ""
+"该归档包含全部应用数据。密码为可选项；将此字段留空会明确创建未加密的归档。"
 
 msgid "The archive contains no supported import files."
 msgstr "归档中没有受支持的导入文件。"
@@ -5627,9 +6055,13 @@ msgstr "后台提醒服务无法读取加密数据，因此在 Organizer 未打�
 msgid ""
 "The background reminder service may read the separate reminder data and "
 "therefore works even when the organizer is closed."
-msgstr "后台提醒服务可以读取单独的提醒数据，因此即使 Organizer 已关闭也能工作。"
+msgstr ""
+"后台提醒服务可以读取单独的提醒数据，因此即使 Organizer 已关闭也能工作。"
 
 msgid "The background service could not be started."
+msgstr "无法启动后台服务。"
+
+msgid "The background service could not start."
 msgstr "无法启动后台服务。"
 
 msgid "The background service is available only in the installed application."
@@ -5666,13 +6098,17 @@ msgid ""
 "The backup will be stored outside the local data location and is therefore "
 "always encrypted. This password will be required to restore it later:\n"
 "%(path)s"
-msgstr "备份将存储在本地数据位置之外，因此始终会加密。以后恢复时需要此密码：\n%(path)s"
+msgstr ""
+"备份将存储在本地数据位置之外，因此始终会加密。以后恢复时需要此密码：\n"
+"%(path)s"
 
 msgid ""
 "The button in the bottom bar opens the selection for the section you have "
 "open. From there the ticked entries can be printed, exported or moved to the "
 "wastebasket."
-msgstr "底部栏中的按钮会打开当前所在部分的选择功能。您可以从那里打印、导出勾选的条目，或将其移到回收站。"
+msgstr ""
+"底部栏中的按钮会打开当前所在部分的选择功能。您可以从那里打印、导出勾选的条"
+"目，或将其移到回收站。"
 
 msgid "The calendar backend could not verify a missing appointment."
 msgstr "日历后端无法验证错过的约会。"
@@ -5691,6 +6127,15 @@ msgstr "日历资源中匹配的约会数量不是一个。"
 msgid "The calendar resource does not contain exactly one matching task."
 msgstr "日历资源中并非恰好包含一个匹配的任务。"
 
+msgid "The call action expired or is no longer permitted."
+msgstr "通话操作已过期或不再获得许可。"
+
+msgid "The call is no longer active or has been updated."
+msgstr "通话已结束，或通话状态已更新。"
+
+msgid "The call is no longer ringing or is outdated."
+msgstr "来电已停止响铃，或来电信息已过时。"
+
 msgid "The clipboard is empty."
 msgstr "剪贴板为空。"
 
@@ -5705,6 +6150,9 @@ msgstr "通信方式不完整。"
 msgid "The complete file is stored in this note (up to 8 megabytes)."
 msgstr "完整文件存储在此便笺中（最大 8 MB）。"
 
+msgid "The connection settings could not be saved."
+msgstr "无法保存连接设置。"
+
 msgid "The contact synchronization message is invalid."
 msgstr "联系人同步消息无效。"
 
@@ -5718,7 +6166,9 @@ msgid ""
 "The current data will be backed up first and then completely replaced with "
 "this file:\n"
 "%(path)s"
-msgstr "将先备份当前数据，然后用此文件完全替换：\n%(path)s"
+msgstr ""
+"将先备份当前数据，然后用此文件完全替换：\n"
+"%(path)s"
 
 msgid "The current organizer data is incomplete."
 msgstr "当前 Organizer 数据不完整。"
@@ -5804,13 +6254,18 @@ msgid ""
 "or OneDrive. Magnolie does not sign in to a provider. Automatic backups run "
 "only while Organizer is open and unlocked, immediately after data was saved "
 "successfully."
-msgstr "该文件夹可由 Nextcloud、Google Drive、Dropbox 或 OneDrive 在本地同步。Magnolie 不会登录任何提供商。自动备份仅在 Organizer 已打开且解锁时运行，并在数据成功保存后立即执行。"
+msgstr ""
+"该文件夹可由 Nextcloud、Google Drive、Dropbox 或 OneDrive 在本地同步。"
+"Magnolie 不会登录任何提供商。自动备份仅在 Organizer 已打开且解锁时运行，并在"
+"数据成功保存后立即执行。"
 
 msgid ""
 "The helper frame marks the control that currently has keyboard focus. This "
 "makes it easier to operate the Organizer with Tab, arrow keys, Enter and "
 "Space. Ctrl+Alt+H switches the frame on or off at any time."
-msgstr "辅助框会标出当前具有键盘焦点的控件，便于使用 Tab、方向键、Enter 和空格键操作 Organizer。可随时按 Ctrl+Alt+H 开关此框。"
+msgstr ""
+"辅助框会标出当前具有键盘焦点的控件，便于使用 Tab、方向键、Enter 和空格键操作 "
+"Organizer。可随时按 Ctrl+Alt+H 开关此框。"
 
 #, python-format
 msgid ""
@@ -5842,7 +6297,9 @@ msgid ""
 "The information is retrieved once from the open directory openholidaysapi."
 "org and then kept in the organizer. The application therefore needs an "
 "internet connection only once."
-msgstr "信息只从开放目录 openholidaysapi.org 获取一次，之后保存在 Organizer 中。因此应用只需要一次互联网连接。"
+msgstr ""
+"信息只从开放目录 openholidaysapi.org 获取一次，之后保存在 Organizer 中。因此"
+"应用只需要一次互联网连接。"
 
 msgid "The internet service did not return a valid IP address."
 msgstr "互联网服务未返回有效的 IP 地址。"
@@ -5868,7 +6325,9 @@ msgid ""
 "The log records when the reminder service checked and what it reported. "
 "Entries older than 30 days are removed automatically, and the log never "
 "exceeds 200 lines."
-msgstr "日志会记录提醒服务何时执行检查以及报告了什么。超过 30 天的记录会自动删除，日志始终不会超过 200 行。"
+msgstr ""
+"日志会记录提醒服务何时执行检查以及报告了什么。超过 30 天的记录会自动删除，日"
+"志始终不会超过 200 行。"
 
 msgid "The mailbox backlog is too large."
 msgstr "邮箱积压太多了。"
@@ -6031,17 +6490,59 @@ msgstr "永久 KDE 侦听器尚未启动。"
 msgid "The permanent KDE listener is stopped."
 msgstr "永久 KDE 侦听器已停止。"
 
+msgid "The personal synchronization commit could not be confirmed."
+msgstr "无法确认个人同步的更改是否已最终保存。"
+
+msgid "The personal synchronization transport policy is invalid."
+msgstr "个人同步的数据传输规则无效。"
+
+msgid "The personal synchronization trigger is inconsistent."
+msgstr "个人同步的触发信息不一致。"
+
 msgid "The phone connection is available only in the installed application."
 msgstr "只有安装版应用程序支持选择文件夹。"
 
 msgid "The phone connection is not available."
 msgstr "Magnolienbaum 不可用。"
 
+msgid "The phone connection was not authenticated."
+msgstr "手机连接未通过身份验证。"
+
+msgid "The phone function is not permitted or available."
+msgstr "此手机功能未获许可或不可用。"
+
+msgid "The phone is no longer connected."
+msgstr "手机连接已断开。"
+
+msgid "The phone is not paired."
+msgstr "手机尚未配对。"
+
 msgid "The phone is reachable, but its KDE Connect trust no longer matches."
 msgstr "可以连接到手机，但其 KDE Connect 信任信息已不再匹配。"
 
+msgid "The phone listener could not start."
+msgstr "无法启动接收手机连接的服务。"
+
 msgid "The phone number is invalid."
 msgstr "电话号码无效。"
+
+msgid "The phone service did not finish stopping."
+msgstr "手机服务尚未完全停止。"
+
+msgid "The phone service has stopped."
+msgstr "手机服务已停止。"
+
+msgid "The phone settings are damaged."
+msgstr "手机设置数据已损坏。"
+
+msgid "The phone setup request is no longer current."
+msgstr "手机设置请求已失效。"
+
+msgid "The phone setup session belongs to another client."
+msgstr "此手机设置会话属于另一个客户端程序。"
+
+msgid "The phone setup session expired. Reopen phone setup and try again."
+msgstr "手机设置会话已过期。请重新打开手机设置后重试。"
 
 msgid "The photo could not be read."
 msgstr "无法读取照片。"
@@ -6120,7 +6621,15 @@ msgid ""
 "Fingerprint: %(fingerprint)s\n"
 "\n"
 "Does the code match?"
-msgstr "两台电脑上必须显示相同的代码：\n\n%(code)s\n\n另一分支：%(branch)s\n指纹：%(fingerprint)s\n\n代码是否一致？"
+msgstr ""
+"两台电脑上必须显示相同的代码：\n"
+"\n"
+"%(code)s\n"
+"\n"
+"另一分支：%(branch)s\n"
+"指纹：%(fingerprint)s\n"
+"\n"
+"代码是否一致？"
 
 msgid "The save request is invalid."
 msgstr "保存请求无效。"
@@ -6184,6 +6693,9 @@ msgstr "所选在线账户来源已禁用。请在设置中选择已启用的来
 msgid "The selected path is not a regular file."
 msgstr "所选路径不是普通文件。"
 
+msgid "The selected phone changed. Try again."
+msgstr "所选手机已发生变化。请重试。"
+
 msgid "The selected source was not found. Select it again in Settings."
 msgstr "未找到所选来源。请在“设置”中重新选择。"
 
@@ -6203,7 +6715,9 @@ msgstr "纸张会出现在屏幕边缘，并伴随 Magnolie 提示音。"
 msgid ""
 "The small uniform icons open an installed application when possible. "
 "Otherwise, a secure web service is used in the browser."
-msgstr "这些小型统一图标会尽可能打开已安装的应用；否则会在浏览器中使用安全的 Web 服务。"
+msgstr ""
+"这些小型统一图标会尽可能打开已安装的应用；否则会在浏览器中使用安全的 Web 服"
+"务。"
 
 msgid "The snapshot operation failed."
 msgstr "快照操作失败。"
@@ -6232,7 +6746,9 @@ msgid ""
 "The traffic-light colors are general reference ranges for adults, not a "
 "diagnosis. Check abnormal readings and discuss them with a doctor; seek "
 "immediate medical help for severe symptoms."
-msgstr "交通信号灯颜色表示成年人的一般参考范围，并非诊断。请检查异常测量值并咨询医生；如有严重症状，请立即就医。"
+msgstr ""
+"交通信号灯颜色表示成年人的一般参考范围，并非诊断。请检查异常测量值并咨询医"
+"生；如有严重症状，请立即就医。"
 
 #, python-format
 msgid "The tray applet could not be started: %s"
@@ -6244,7 +6760,9 @@ msgstr "此系统不提供系统托盘小程序。"
 msgid ""
 "The tray applet requires Ayatana AppIndicator. On plain GNOME, the "
 "AppIndicator extension is also required."
-msgstr "系统托盘小程序需要 Ayatana AppIndicator。在原生 GNOME 上还需要 AppIndicator 扩展。"
+msgstr ""
+"系统托盘小程序需要 Ayatana AppIndicator。在原生 GNOME 上还需要 AppIndicator "
+"扩展。"
 
 msgid "The trust setting is invalid."
 msgstr "信任设置无效。"
@@ -6292,7 +6810,9 @@ msgstr "唤醒提醒"
 msgid ""
 "The weather service estimated the location from your public IP address. Your "
 "own address in Contacts provides a more precise location."
-msgstr "天气服务根据您的公网 IP 地址估算了位置。“联系人”中的本人地址可以提供更精确的位置。"
+msgstr ""
+"天气服务根据您的公网 IP 地址估算了位置。“联系人”中的本人地址可以提供更精确的"
+"位置。"
 
 #, python-format
 msgid ""
@@ -6338,10 +6858,18 @@ msgstr "此分组中还没有笔记本。"
 msgid ""
 "There is nothing scheduled in this period.\n"
 "Click a day on the left to add an appointment."
-msgstr "此时间段没有安排任何内容。\n请单击左侧某一天添加约会。"
+msgstr ""
+"此时间段没有安排任何内容。\n"
+"请单击左侧某一天添加约会。"
 
 msgid "There is nothing to print."
 msgstr "没有可打印的内容。"
+
+msgid ""
+"These are Magnolie's actual tabs. You can show only the sections that fit "
+"your everyday life."
+msgstr ""
+"这些就是 Magnolie 中实际使用的标签页。您可以只显示日常生活中需要的部分。"
 
 msgid ""
 "These choices change how the Organizer displays information. Your entries "
@@ -6351,10 +6879,15 @@ msgstr "这些选项会更改 Organizer 显示信息的方式。您的条目不�
 msgid ""
 "These options require the matching permissions in Magnolie Notes. Call audio "
 "is not sent over the Magnolie data connection."
-msgstr "这些选项需要 Magnolie Notes 中相应的权限。通话音频不会通过 Magnolie 数据连接传输。"
+msgstr ""
+"这些选项需要 Magnolie Notes 中相应的权限。通话音频不会通过 Magnolie 数据连接"
+"传输。"
 
 msgid "This address can be selected and copied."
 msgstr "可以选择并复制此地址。"
+
+msgid "This answer request has already been queued."
+msgstr "此接听请求已加入等待队列。"
 
 msgid "This appointment will appear every %(weekday)s."
 msgstr "此约会将在每个 %(weekday)s 出现。"
@@ -6368,7 +6901,8 @@ msgstr "此约会将在每年 %(month)s %(day)s 出现。"
 msgid ""
 "This appointment will appear on day %(day)s of every month. In shorter "
 "months, it moves to the last day."
-msgstr "此约会将在每月第 %(day)s 天出现。遇到较短的月份时，会移至该月最后一天。"
+msgstr ""
+"此约会将在每月第 %(day)s 天出现。遇到较短的月份时，会移至该月最后一天。"
 
 msgid "This backup cannot be used."
 msgstr "此备份无法使用。"
@@ -6393,6 +6927,18 @@ msgstr "此联系人卡片没有电子邮件地址。"
 msgid "This contact card has no postal address."
 msgstr "此联系人卡片没有邮寄地址。"
 
+msgid "This device does not support synchronization of the custom tab."
+msgstr "此设备不支持同步自定义选项卡。"
+
+msgid "This device identifier is unavailable."
+msgstr "此设备标识符不可用。"
+
+msgid "This dial request has already been queued."
+msgstr "此拨号请求已加入等待队列。"
+
+msgid "This end-call request has already been queued."
+msgstr "此挂断请求已加入等待队列。"
+
 msgid "This image format cannot be used."
 msgstr "不能使用此图像格式。"
 
@@ -6408,7 +6954,11 @@ msgstr "Organizer 会以这种方式提醒您的约会。"
 msgid ""
 "This is how your notes look: <b>bold</b>, <i>italic</i>, <u>underlined</u> "
 "and <s>struck through</s>."
-msgstr "您的便笺会这样显示：<b>粗体</b>、<i>斜体</i>、<u>下划线</u>和<s>删除线</s>。"
+msgstr ""
+"您的便笺会这样显示：<b>粗体</b>、<i>斜体</i>、<u>下划线</u>和<s>删除线</s>。"
+
+msgid "This is my own phone"
+msgstr "这是我本人的手机"
 
 msgid "This is not a Magnolienbaum message."
 msgstr "这不是 Magnolienbaum 消息。"
@@ -6422,14 +6972,18 @@ msgid ""
 "This is only the encrypted Magnolienbaum fallback for baum-1. It does not "
 "synchronize calendars or contacts. Both partners need access to the same "
 "Nextcloud storage."
-msgstr "这只是 baum-1 的加密 Magnolienbaum 后备路径，不会同步日历或联系人。双方都需要访问同一个 Nextcloud 存储空间。"
+msgstr ""
+"这只是 baum-1 的加密 Magnolienbaum 后备路径，不会同步日历或联系人。双方都需要"
+"访问同一个 Nextcloud 存储空间。"
 
 msgid ""
 "This leaves time to get something, followed by another reminder on the day "
 "itself. For example: “Max Mustermann has a birthday tomorrow” and the next "
 "day “Max Mustermann has a birthday today”. Anniversary reminders are shown "
 "in the morning."
-msgstr "这样会留出时间准备所需物品，并在当天再提醒一次。例如：“Max Mustermann 明天生日”，第二天则显示“Max Mustermann 今天生日”。纪念日提醒会在早晨显示。"
+msgstr ""
+"这样会留出时间准备所需物品，并在当天再提醒一次。例如：“Max Mustermann 明天生"
+"日”，第二天则显示“Max Mustermann 今天生日”。纪念日提醒会在早晨显示。"
 
 msgid "This message has already been received."
 msgstr "此消息已经接收过。"
@@ -6448,11 +7002,16 @@ msgstr "这部已配对的手机是我自己的设备"
 msgid "This person's anniversaries"
 msgstr "此人的纪念日"
 
+msgid "This phone transport is unavailable."
+msgstr "此手机连接方式不可用。"
+
 msgid ""
 "This program is free software: you may redistribute and modify it. It is "
 "published in the hope that it will be useful, but without any warranty. The "
 "full license text is available at /usr/share/common-licenses/GPL-3."
-msgstr "本程序是自由软件：您可以重新分发和修改它。发布本程序是希望它能有所帮助，但不提供任何担保。完整许可证文本位于 /usr/share/common-licenses/GPL-3。"
+msgstr ""
+"本程序是自由软件：您可以重新分发和修改它。发布本程序是希望它能有所帮助，但不"
+"提供任何担保。完整许可证文本位于 /usr/share/common-licenses/GPL-3。"
 
 msgid "This secure session already exists."
 msgstr "此安全会话已存在。"
@@ -6479,6 +7038,12 @@ msgstr "此类型无法共享。"
 
 msgid "Through"
 msgstr "截至"
+
+msgid "Thunderbird"
+msgstr "Thunderbird"
+
+msgid "Thunderbird profile version"
+msgstr "Thunderbird 配置文件版本"
 
 msgid "Thurgau"
 msgstr "图尔高"
@@ -6544,6 +7109,9 @@ msgstr "请求过多。"
 msgid "Too many secure sessions are open."
 msgstr "打开的安全会话过多。"
 
+msgid "Too many unfinished synchronization runs."
+msgstr "尚未完成的同步操作过多。"
+
 msgid "Top level"
 msgstr "顶层"
 
@@ -6608,10 +7176,14 @@ msgstr "不可用"
 msgid ""
 "Under Wayland, the compositor determines the exact window position; "
 "centering and maximizing are passed on as requests."
-msgstr "在 Wayland 下，窗口的精确位置由合成器决定；居中和最大化仅作为请求提交。"
+msgstr ""
+"在 Wayland 下，窗口的精确位置由合成器决定；居中和最大化仅作为请求提交。"
 
 msgid "Underline"
 msgstr "下划线"
+
+msgid "Undo"
+msgstr "撤销"
 
 msgid "Unexpected error."
 msgstr "意外错误。"
@@ -6752,11 +7324,16 @@ msgstr "使用回收站"
 msgid "User name"
 msgstr "用户名"
 
+msgid "Username"
+msgstr "用户名"
+
 msgid ""
 "Uses its own identity and storage and listens only on fixed port %(port)s. "
 "It never uses Magnolienbaum partners, permissions, queues or Bluetooth "
 "identity."
-msgstr "使用自己的身份和存储，并且只监听固定端口 %(port)s。它从不使用 Magnolienbaum 合作伙伴、权限、队列或 Bluetooth 身份。"
+msgstr ""
+"使用自己的身份和存储，并且只监听固定端口 %(port)s。它从不使用 Magnolienbaum "
+"合作伙伴、权限、队列或 Bluetooth 身份。"
 
 msgid "Vacation"
 msgstr "休假"
@@ -6781,7 +7358,14 @@ msgid ""
 "\n"
 "The current data will be backed up locally automatically and then completely "
 "replaced."
-msgstr "已验证的归档\n来源：%(source)s\n创建时间：%(created)s\n应用条目：%(entries)s\n照片：%(photos)s，附件：%(attachments)s\n\n当前数据将自动在本地备份，然后被完全替换。"
+msgstr ""
+"已验证的归档\n"
+"来源：%(source)s\n"
+"创建时间：%(created)s\n"
+"应用条目：%(entries)s\n"
+"照片：%(photos)s，附件：%(attachments)s\n"
+"\n"
+"当前数据将自动在本地备份，然后被完全替换。"
 
 msgid "Value"
 msgstr "数值"
@@ -6819,10 +7403,14 @@ msgstr "福拉尔贝格州"
 msgid ""
 "WLAN has priority. Bluetooth data starts only after WLAN failure and carries "
 "the same encrypted phone frames."
-msgstr "WLAN 优先。Bluetooth 数据仅在 WLAN 失败后开始，并携带相同的加密手机帧。"
+msgstr ""
+"WLAN 优先。Bluetooth 数据仅在 WLAN 失败后开始，并携带相同的加密手机帧。"
 
 msgid "WLAN listener on port %(port)s"
 msgstr "WLAN 端口 %(port)s 上的侦听器"
+
+msgid "Waiting for authenticated phone connection..."
+msgstr "正在等待手机连接并完成身份验证..."
 
 msgid "Waiting for consent on the other device."
 msgstr "正在等待另一台设备同意。"
@@ -6878,10 +7466,18 @@ msgid ""
 "first, followed by local LibreOffice user data. If neither contains a "
 "location and retrieval without one is allowed, wttr.in estimates the "
 "location from your internet connection's public IP address."
-msgstr "天气请求会发送到 wttr.in。系统会优先使用“联系人”中的您本人地址，其次使用本地 LibreOffice 用户数据。如果两者都不包含位置，并且允许在无位置的情况下获取数据，wttr.in 会根据互联网连接的公网 IP 地址估算位置。"
+msgstr ""
+"天气请求会发送到 wttr.in。系统会优先使用“联系人”中的您本人地址，其次使用本地 "
+"LibreOffice 用户数据。如果两者都不包含位置，并且允许在无位置的情况下获取数"
+"据，wttr.in 会根据互联网连接的公网 IP 地址估算位置。"
 
 msgid "Weather temperature"
 msgstr "天气温度"
+
+msgid ""
+"Weather uses HTTPS first, then unencrypted HTTP if necessary. If wttr.in "
+"fails and a location is known, Open-Meteo is tried."
+msgstr "天气信息首先通过 HTTPS 获取，必要时改用未加密的 HTTP。如果 wttr.in 不可用且已知地点，则尝试 Open-Meteo。"
 
 msgid "Weather was not retrieved because no location is available."
 msgstr "未获取天气信息，因为没有可用的位置。"
@@ -6946,13 +7542,17 @@ msgid ""
 "preserved during import, export and synchronization with an online address "
 "book. Email addresses on contact cards are always clickable and open your "
 "mail application."
-msgstr "选中后，可以为每个人指定一张照片。嵌入的照片在导入、导出以及与在线通讯录同步时都会保留。联系人卡片上的电子邮件地址始终可点击，并会打开您的邮件应用。"
+msgstr ""
+"选中后，可以为每个人指定一张照片。嵌入的照片在导入、导出以及与在线通讯录同步"
+"时都会保留。联系人卡片上的电子邮件地址始终可点击，并会打开您的邮件应用。"
 
 msgid ""
 "When writing a note, a small toolbar above the sheet provides bold, italic, "
 "underline and strikethrough. The same formatting is available with Ctrl+B, "
 "Ctrl+I, Ctrl+U and Ctrl+D."
-msgstr "撰写笔记时，纸张上方的小工具栏提供粗体、斜体、下划线和删除线。也可使用 Ctrl+B、Ctrl+I、Ctrl+U 和 Ctrl+D 进行相同的格式设置。"
+msgstr ""
+"撰写笔记时，纸张上方的小工具栏提供粗体、斜体、下划线和删除线。也可使用 "
+"Ctrl+B、Ctrl+I、Ctrl+U 和 Ctrl+D 进行相同的格式设置。"
 
 msgid "Where are your contacts now?"
 msgstr "您的联系人目前在哪里？"
@@ -6969,7 +7569,9 @@ msgstr "无线网络"
 msgid ""
 "With a password or numeric code, the organizer asks for it when opening and "
 "stores your data only in encrypted form in your home directory (AES-256)."
-msgstr "设置密码或数字代码后，管理器会在打开时要求输入，并只以加密形式将您的数据存储在主目录中（AES-256）。"
+msgstr ""
+"设置密码或数字代码后，管理器会在打开时要求输入，并只以加密形式将您的数据存储"
+"在主目录中（AES-256）。"
 
 msgid "With photo"
 msgstr "带照片"
@@ -6977,7 +7579,9 @@ msgstr "带照片"
 msgid ""
 "Without a shell; {ziel}, {wert}, and {nummer} can be used as placeholders. "
 "Flatpak and Snap can be selected as flatpak:APP-ID or snap:Name."
-msgstr "不使用 shell；{ziel}、{wert} 和 {nummer} 可用作占位符。Flatpak 和 Snap 可选择为 flatpak:APP-ID 或 snap:Name。"
+msgstr ""
+"不使用 shell；{ziel}、{wert} 和 {nummer} 可用作占位符。Flatpak 和 Snap 可选择"
+"为 flatpak:APP-ID 或 snap:Name。"
 
 msgid ""
 "Without this second selection, the background reminder service does not show "
@@ -7017,6 +7621,9 @@ msgstr "将启动和系统托盘诊断信息写入调试日志"
 msgid "Writing sheet"
 msgstr "书写纸"
 
+msgid "Wrong Bluetooth device."
+msgstr "Bluetooth 设备不匹配。"
+
 msgid "X (formerly Twitter)"
 msgstr "X（原 Twitter）"
 
@@ -7053,13 +7660,12 @@ msgstr "已导入您在“Organizer Klassik”中的数据。"
 msgid ""
 "Your data is stored at:\n"
 "%(path)s"
-msgstr "您的数据存储在：\n%(path)s"
+msgstr ""
+"您的数据存储在：\n"
+"%(path)s"
 
 msgid "Your data is stored at: %(path)s"
 msgstr "您的数据存储在：%(path)s"
-
-msgid "Your home address"
-msgstr "您的地址"
 
 msgid ""
 "Your own address is required as the starting point for a route. Enter it "
@@ -7138,7 +7744,7 @@ msgid "blood-glucose"
 msgstr "blood-glucose"
 
 msgid "browser storage"
-msgstr "browser storage"
+msgstr "浏览器存储"
 
 msgid "confidential"
 msgstr "机密"
@@ -7407,6 +8013,9 @@ msgstr "vCalendar (*.vcs)"
 msgid "vCard (.vcf), including iPhone/iCloud export …"
 msgstr "vCard (.vcf)，包括从 iPhone/iCloud 导出的文件 …"
 
+msgid "vCard / iPhone / iCloud"
+msgstr "vCard / iPhone / iCloud"
+
 msgid "vCard file (.vcf), including iPhone/iCloud export …"
 msgstr "vCard 文件 (.vcf)，包括从 iPhone/iCloud 导出的文件 …"
 
@@ -7414,7 +8023,9 @@ msgid ""
 "vCard preserves more contact details. LDIF is intended for importing into "
 "Claws Mail; emergency contacts, social media, free labels and non-JPEG "
 "photos cannot be included."
-msgstr "vCard 可保留更多联系人详细信息。LDIF 用于导入 Claws Mail；无法包含紧急联系人、社交媒体、自定义标签和非 JPEG 照片。vCard preserves more contact details. LDIF is intended for importing into Claws Mail; emergency contacts, social media, free labels and non-JPEG photos cannot be included."
+msgstr ""
+"vCard 可保留更多联系人详细信息。LDIF 用于导入 Claws Mail；无法包含紧急联系"
+"人、社交媒体、自定义标签和非 JPEG 照片。"
 
 msgid "vital"
 msgstr "vital"
@@ -7438,7 +8049,9 @@ msgstr "– 在日历中，使用顶部控件在月视图和周视图之间切�
 msgid ""
 "– The colored tabs along the edge lead to the sections. Tabs you have "
 "already passed move to the left side, just like in a real ring binder."
-msgstr "– 边缘的彩色标签可进入各个部分。已经翻过的标签会移到左侧，就像真实的活页夹一样。"
+msgstr ""
+"– 边缘的彩色标签可进入各个部分。已经翻过的标签会移到左侧，就像真实的活页夹一"
+"样。"
 
 msgid ""
 "– The folded corners at the bottom turn pages forward and back: by month in "
@@ -7449,14 +8062,19 @@ msgid ""
 "– Turn times in 5-minute increments with the mouse wheel (hold Shift for "
 "whole hours); the end time moves along with it. For appointments without a "
 "fixed time, select “All day”."
-msgstr "– 使用鼠标滚轮以 5 分钟为步长调整时间（按住 Shift 可按整小时调整）；结束时间会随之移动。没有固定时间的约会请选择“全天”。"
+msgstr ""
+"– 使用鼠标滚轮以 5 分钟为步长调整时间（按住 Shift 可按整小时调整）；结束时间"
+"会随之移动。没有固定时间的约会请选择“全天”。"
 
 msgid ""
 "– Under “Settings” at the bottom right, you can import appointments and "
 "addresses from other programs (.ics, .vcf, Lotus CSV), export them, and "
 "connect your system's online accounts. On the “Region & holidays” page, "
 "enter your country and state and import all public and school holidays once."
-msgstr "– 在右下角的“设置”中，可以从其他程序（.ics、.vcf、Lotus CSV）导入约会和地址、将其导出，并连接系统的在线账户。在“地区与节假日”页面输入国家和州/地区，然后一次性导入所有公共节假日和学校假期。"
+msgstr ""
+"– 在右下角的“设置”中，可以从其他程序（.ics、.vcf、Lotus CSV）导入约会和地址、"
+"将其导出，并连接系统的在线账户。在“地区与节假日”页面输入国家和州/地区，然后一"
+"次性导入所有公共节假日和学校假期。"
 
 msgid "— do not link —"
 msgstr "— 不关联 —"
@@ -7479,3 +8097,119 @@ msgstr[0] "… 以及另外 %(count)s 项也将打印。"
 
 msgid "＋ Add appointment"
 msgstr "＋ 添加约会"
+
+#~ msgid "As usual (print)"
+#~ msgstr "照常（打印）"
+
+#~ msgid "Recovering the password transaction"
+#~ msgstr "正在恢复密码事务"
+
+#~ msgid ""
+#~ "Both devices must opt in. Turning this off pauses Custom reminders and "
+#~ "updates but keeps copies. Linked text blocks are not shared."
+#~ msgstr ""
+#~ "两台设备都必须明确同意。关闭此选项会暂停自定义提醒和更新，但保留副本。关联"
+#~ "的文本块不会共享。"
+
+#~ msgid "Do not connect Bluetooth call audio automatically"
+#~ msgstr "不要自动连接 Bluetooth 通话音频"
+
+#~ msgid "Memory available / total"
+#~ msgstr "可用内存 / 总内存"
+
+#~ msgid "Storage available / total"
+#~ msgstr "可用存储空间 / 总存储空间"
+
+#~ msgid "Synchronize Custom tasks and appointments"
+#~ msgstr "同步自定义任务和日程"
+
+#~ msgid "This device does not support Custom synchronization."
+#~ msgstr "此设备不支持自定义内容同步。"
+
+#~ msgid ""
+#~ "Your address forms a single return line above the recipient in the same "
+#~ "left-hand address field. No sender is added if this field is empty."
+#~ msgstr ""
+#~ "您的地址会合并为一行寄件人地址，显示在收件人信息上方，两者都位于左侧的同一"
+#~ "个地址区。此字段留空时，不会添加寄件人信息。"
+
+#~ msgid ""
+#~ "A system KDE Connect service is active. Configure file and clipboard "
+#~ "sharing there."
+#~ msgstr "系统 KDE Connect 服务已启用。请在该服务中配置文件和剪贴板共享。"
+
+#~ msgid ""
+#~ "Custom content is saved locally and transferred through complete Magnolie "
+#~ "archives only, not Personal Sync."
+#~ msgstr ""
+#~ "自定义内容保存在本地，并且只能通过完整的 Magnolie 归档传输，不能通过 "
+#~ "Personal Sync 传输。"
+
+#~ msgid ""
+#~ "Choose the calendars and address books to keep synchronized and the local "
+#~ "programs to import once."
+#~ msgstr "请选择要保持同步的日历和通讯录，以及要一次性导入的本地程序。"
+
+#~ msgid "Compact sender line (default)"
+#~ msgstr "紧凑的发件人行（默认）"
+
+#~ msgid ""
+#~ "In the DIN template, these lines appear as a multiline sender block and "
+#~ "in small type in the address window. In the compact template, they form "
+#~ "one line above the recipient address. No sender is added if this field is "
+#~ "empty."
+#~ msgstr ""
+#~ "在 DIN 模板中，这些行会作为多行发件人块显示，并以小号字体出现在地址窗口"
+#~ "中。在紧凑模板中，它们会在收件人地址上方组成一行。如果此字段为空，则不会添"
+#~ "加发件人。"
+
+#~ msgid "Monthly"
+#~ msgstr "每月"
+
+#~ msgid "One-time imports"
+#~ msgstr "一次性导入"
+
+#~ msgid "Synchronization and imports"
+#~ msgstr "同步与一次性导入"
+
+#~ msgid ""
+#~ "The DIN template positions the recipient address for a window envelope, "
+#~ "shows your address as a multiline sender block, and adds two fold marks "
+#~ "and a punch mark."
+#~ msgstr ""
+#~ "DIN 模板会将收件人地址放置在开窗信封对应位置，把您的地址显示为多行寄件人区"
+#~ "块，并添加两个折叠标记和一个打孔标记。"
+
+#~ msgid "Choose your registers"
+#~ msgstr "请先选择国家/地区。"
+
+#~ msgid ""
+#~ "Magnolie can use this address for route planning and local weather. It is "
+#~ "stored with your organizer data and is not sent anywhere by this "
+#~ "assistant."
+#~ msgstr ""
+#~ "Magnolie 可使用此地址规划路线和获取当地天气。该地址与 Organizer 数据一起保"
+#~ "存，此助手不会将其发送到任何地方。"
+
+#~ msgid ""
+#~ "Select the sections that should appear as tabs. The predefined calendars "
+#~ "remain available independently of these register choices."
+#~ msgstr ""
+#~ "选择应显示为标签页的分区。无论如何选择这些标签页，预定义日历始终可用。"
+
+#~ msgid "Your home address"
+#~ msgstr "您的地址"
+
+#~ msgid "Share own phone identifiers"
+#~ msgstr "共享本机标识符"
+
+#~ msgid ""
+#~ "Only on request from your own paired computer, for 60 seconds, without "
+#~ "saving: the default voice SIM number and, if Android permits, serial "
+#~ "number and IMEI. Android 10 and later restrict hardware identifiers for "
+#~ "ordinary apps. Phone-number permission is optional; no special role is "
+#~ "requested."
+#~ msgstr ""
+#~ "仅应自己已配对电脑的请求显示 60 秒，不保存：默认语音 SIM 的号码，以及 "
+#~ "Android 允许时的序列号和 IMEI。Android 10 及更高版本限制普通应用访问硬件标"
+#~ "识符。电话号码权限为可选项；不会请求特殊角色。"

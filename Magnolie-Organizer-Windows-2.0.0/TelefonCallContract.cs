@@ -29,7 +29,7 @@ internal static partial class TelefonCallContract
                 CallResult(body, new HashSet<string>(StringComparer.Ordinal) { "submitted", "already_answered", "failed" }, AnswerErrors); break;
             case "end_call.command":
                 Exact(body, "command_ref", "call_ref", "expected_revision", "expected_state"); Uuid4(body, "command_ref"); Uuid4(body, "call_ref");
-                Revision(body, "expected_revision"); if (String(body, "expected_state") != "offhook") throw new InvalidDataException("Erwarteter Anrufzustand ungültig."); break;
+                Revision(body, "expected_revision"); Enum(body, "expected_state", "offhook", "ringing"); break;
             case "end_call.result":
                 CallResult(body, new HashSet<string>(StringComparer.Ordinal) { "submitted", "already_ended", "failed" }, EndErrors); break;
             default: throw new InvalidDataException("Unbekannte Anruf-Nachrichtenart.");

@@ -31,15 +31,15 @@ object Magnolie {
     val leder = Color(0xFF55291C)
     val lederHell = Color(0xFF6B3A29)
     val gold = Color(0xFFD8B25C)
-    val goldDunkel = Color(0xFFA8823C)
+    val goldDunkel = Color(0xFF7C5C24)
     val papier = Color(0xFFF6EFDC)
     val papierTief = Color(0xFFECE1C4)
     val linie = Color(0xFFD8C39A)
     val linieStark = Color(0xFFAB9468)
     val tinte = Color(0xFF3A3128)
     val braun = Color(0xFF5A4630)
-    val braunHell = Color(0xFF93805D)
-    val rot = Color(0xFFB5443A)
+    val braunHell = Color(0xFF706040)
+    val rot = Color(0xFFA43C32)
     val filz = Color(0xFF2E3A34)
 
     /** Die Registerfarben des Organizers, für die Notizbücher. */

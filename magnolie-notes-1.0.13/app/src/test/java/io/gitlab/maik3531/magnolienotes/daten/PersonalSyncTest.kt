@@ -12,6 +12,19 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class PersonalSyncTest {
+    @Test fun `F31 format 1 fallback cannot infer an attachment deletion`() {
+        val peer = "33333333-3333-4333-8333-333333333333"
+        val note = Notiz("n", anhaenge = listOf(Anhang("a", "image.png", "image",
+            "data:image/png;base64,iVBORw0KGgo=")))
+        val baseline = PersonalSync.acknowledge(PersonalSync.reconcile(
+            Bestand(notizen = listOf(note)), setOf("notes"), 3, peer).first, peer)
+        val fallback = PersonalSync.reconcile(baseline, setOf("notes"), 1, peer).first
+        assertEquals("live", fallback.personalSync.entities.getValue("attachment\u0000n\u0000a").state)
+        assertTrue(PersonalSync.proposals(fallback, peer).isEmpty())
+        val tasksOnly = PersonalSync.reconcile(baseline, setOf("tasks"), 3, peer).first
+        assertEquals("live", tasksOnly.personalSync.entities.getValue("attachment\u0000n\u0000a").state)
+    }
+
     private val contract by lazy {
         Json.Default.parseToJsonElement(checkNotNull(javaClass.classLoader?.getResource(
             "personal-sync-contract.json")).readText()) as JsonObject
@@ -154,7 +167,7 @@ class PersonalSyncTest {
         val input = Bestand(notizen = listOf(local), personalSync = PersonalSyncState(actor_id = actor, counter = 1,
             entities = mapOf("note\u0000note-1" to PersonalSyncEntity(listOf(PersonalSyncClock(actor, 1)), "0".repeat(64)))))
         val result = PersonalSync.apply(input, listOf(record)).bestand.notizen.single()
-        assertEquals("Test", result.titel)
+        assertEquals("Alt", result.titel)
         assertEquals(1, result.anhaenge.size)
         assertEquals("eigene-lokale-metadaten", result.baumQuelle)
     }

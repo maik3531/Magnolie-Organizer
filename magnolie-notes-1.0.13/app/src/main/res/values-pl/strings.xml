@@ -1,5 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="baum_postfach_unsicher">Niezweryfikowane dostarczenia: %1$d. Wiadomości pozostają zapisane, a automatyczne ponowne wysyłanie jest wstrzymane. Sprawdź odbiór; starsze urządzenia mogą nie obsługiwać zweryfikowanych potwierdzeń.</string>
+    <string name="telefon_bluetooth_setup">Sparuj nowy Organizer przez Bluetooth</string>
+    <string name="telefon_bluetooth_setup_hinweis">Pozostaw ten ekran otwarty. Wybierz ten telefon w Organizer, potwierdź parowanie systemowe, a następnie porównaj kod na obu urządzeniach.</string>
     <string name="freigabe_ziel">Zapisz w Magnolie Notes</string>
     <string name="blatt_notizen">Notatki</string>
     <string name="blatt_einfuhr">Import</string>
@@ -342,7 +345,7 @@
     <string name="start_laden">Otwieranie chronionych danych…</string><string name="start_fehler_titel">Nie udało się otworzyć chronionych danych</string><string name="start_daten_unveraendert">Dane nie zostały usunięte ani zastąpione. Możesz bezpiecznie spróbować ponownie.</string><string name="start_erneut">Spróbuj ponownie</string><string name="start_schliessen">Zamknij aplikację</string>
     <string name="absturzbericht_teilen">Udostępnij raport o awarii</string>
     <string name="journal_maximum">Punkty przywracania</string>
-    <string name="journal_maximum_hinweis">Po zmniejszeniu limitu najstarsze punkty przywracania są automatycznie usuwane.</string>
+    <string name="journal_maximum_hinweis">Po zmniejszeniu limitu usuwane są najstarsze niechronione punkty przywracania. Chronione punkty pozostają zachowane.</string>
     <string name="portable_titel">Przenośna kopia zapasowa</string><string name="portable_hinweis">Utwórz lub przywróć oddzielne archiwum chronione hasłem, zawierające notatki, notesy, zadania, kosz i załączniki.</string><string name="portable_export">Utwórz przenośną kopię</string><string name="portable_datei_oeffnen">Otwórz przenośną kopię</string><string name="portable_restore">Przywróć kopię</string><string name="portable_passwort">Hasło</string><string name="portable_passwort_hinweis">Wprowadź hasło archiwum. Podczas sprawdzania kopii nic nie zostanie zmienione.</string><string name="portable_pruefen">Sprawdź i pokaż podgląd</string><string name="portable_vorschau">Podgląd kopii</string><string name="portable_vorschau_text">%1$d notatek · %2$d notesów · %3$d zadań · %4$d elementów w koszu</string><string name="portable_restore_warnung">Spowoduje to zastąpienie całej bieżącej zawartości osobistej. Najpierw zostanie utworzona lokalna migawka bezpieczeństwa; tożsamość Magnolienbaum tego urządzenia pozostanie zachowana.</string><string name="portable_fehler">Nie udało się otworzyć kopii. Sprawdź plik i hasło.</string><string name="portable_exportiert">Utworzono przenośną kopię.</string><string name="portable_wiederhergestellt">Przywrócono przenośną kopię.</string>
     <string name="auto_backup_titel">Automatyczna kopia w folderze chmurowym</string>
     <string name="auto_backup_hinweis">Opcjonalnie zapisuje uwierzytelnione przenośne kopie w folderze wybranym przez Android. Dostawca może synchronizować ten folder.</string>
@@ -370,4 +373,27 @@
     <string name="aufgabe_zur_wurzel">Na najwyższy poziom</string>
     <string name="aufgabe_eltern_waehlen">Wybierz zadanie nadrzędne</string>
     <string name="aufgabe_oberste_ebene">Najwyższy poziom</string>
+    <string name="baum_kontakt_jubilaeum">Rocznica</string>
+    <string name="baum_kontakt_update">Aby przesłać także rocznice, zaktualizuj Magnolie na obu urządzeniach, otwórz obie aplikacje i spróbuj ponownie. W tej próbie nie wysłano żadnych kontaktów.</string>
+    <string name="baum_aufgabe_nicht_freigegeben">To zadanie nie zostało udostępnione temu urządzeniu.</string>
+    <string name="baum_kontakt_import_nicht_unterstuetzt">Aby wysłać kontakty na to urządzenie, użyj synchronizacji kontaktów.</string>
+    <string name="aufgabe_nach_oben">Przenieś zadanie wyżej</string>
+    <string name="aufgabe_nach_unten">Przenieś zadanie niżej</string>
+    <string name="personal_custom_optin">Synchronizuj zadania i spotkania z niestandardowej karty</string>
+    <string name="personal_custom_title">Zadania i spotkania z niestandardowej karty (tylko do odczytu)</string>
+    <string name="personal_custom_explanation">Oba urządzenia muszą wyrazić zgodę. Wyłączenie wstrzymuje przypomnienia i aktualizacje z niestandardowej karty, ale zachowuje kopie. Powiązane bloki tekstu nie są udostępniane.</string>
+    <string name="personal_custom_unsupported">To urządzenie nie obsługuje synchronizacji niestandardowej karty.</string>
+    <string name="personal_custom_delete">Usunięto u źródła: usunąć tę kopię z telefonu czy ją zachować? Źródło na komputerze nigdy nie jest zmieniane.</string>
+    <string name="personal_custom_keep">Zachowaj kopię</string>
+    <string name="personal_custom_privacy">Tylko za wyraźną zgodą obu urządzeń Personal Sync udostępnia własne zadania i spotkania w trybie tylko do odczytu, wraz z ich własnymi notatkami. Bloki tekstowe, powiązane teksty i załączniki są wykluczone. Archiwa przywracają kopie, nie uprawnienia.</string>
+    <string name="device_identifiers_share">Udostępniaj identyfikatory własnego telefonu</string>
+    <string name="device_identifiers_explanation">Tylko na żądanie własnego sparowanego komputera, przez 60 sekund, bez zapisywania: numer domyślnej karty SIM do rozmów oraz, jeśli Android pozwala, numer seryjny i IMEI. Od Androida 10 identyfikatory sprzętowe są ograniczone dla zwykłych aplikacji. Uprawnienie do numeru jest opcjonalne; specjalne role nie są żądane.</string>
+    <string name="device_identifiers_phone">Własny numer (domyślna karta SIM do rozmów)</string>
+    <string name="device_identifiers_serial">Numer seryjny urządzenia</string>
+    <string name="device_identifiers_imei">IMEI urządzenia</string>
+    <string name="device_identifiers_off">Udostępnianie identyfikatorów jest wyłączone.</string>
+    <string name="device_identifiers_permission">Brak uprawnienia do identyfikatorów.</string>
+    <string name="device_identifiers_restricted">Android ogranicza ten identyfikator.</string>
+    <string name="device_identifiers_subscription">Brak domyślnej subskrypcji do rozmów.</string>
+    <string name="device_identifiers_unavailable">Ten identyfikator jest niedostępny.</string>
 </resources>

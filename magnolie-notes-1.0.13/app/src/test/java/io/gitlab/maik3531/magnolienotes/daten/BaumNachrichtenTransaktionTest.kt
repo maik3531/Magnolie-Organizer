@@ -18,6 +18,34 @@ import javax.crypto.KeyGenerator
 @RunWith(RobolectricTestRunner::class)
 @Config(manifest = Config.NONE)
 class BaumNachrichtenTransaktionTest {
+    @Test fun ioFailureRequiresRecoveryBeforeAnyFurtherCommit() {
+        for (restore in listOf(false, true)) for (step in PaarCommitSchritt.entries) {
+            val dir = Files.createTempDirectory("commit-io-").toFile()
+            try {
+                val context = testContext(dir)
+                val key = KeyGenerator.getInstance("AES").apply { init(256) }.generateKey()
+                Ablage.fuerTest(context) { key }.setzeBaum(Baumzustand(
+                    partner = listOf(Partner("peer", bestaetigt = true))))
+                val store = Ablage.fuerTest(context, { key }) { if (it == step) throw java.io.IOException("synthetic") }
+                org.junit.Assert.assertThrows(java.io.IOException::class.java) {
+                    if (restore) store.journalWiederherstellen(
+                        Ablage.json.encodeToString(Bestand.serializer(), Bestand(notizen = listOf(Notiz(id = "restored", titel = "snapshot")))),
+                        Ablage.json.encodeToString(Baumzustand.serializer(), store.baum.value), "io-restore")
+                    else verarbeite(store, 7, null)
+                }
+                org.junit.Assert.assertThrows(StartFehler::class.java) { store.sichereNotiz(Notiz(id = "later", titel = "must not acknowledge")) }
+                org.junit.Assert.assertThrows(StartFehler::class.java) { store.aendereBaum { it.copy(name = "later") } }
+                org.junit.Assert.assertThrows(StartFehler::class.java) { verarbeite(store, 8, null) }
+                org.junit.Assert.assertThrows(StartFehler::class.java) { store.portableWiederherstellen("{}", "later") }
+                val restarted = Ablage.fuerTest(context) { key }
+                val committed = step >= PaarCommitSchritt.ABSICHT_DAUERHAFT
+                assertEquals(committed, if (restore) restarted.notiz("restored") != null else restarted.aufgaben().isNotEmpty())
+                restarted.sichereNotiz(Notiz(id = "after-recovery", titel = "kept"))
+                assertTrue(Ablage.fuerTest(context) { key }.notiz("after-recovery") != null)
+            } finally { dir.deleteRecursively() }
+        }
+    }
+
     private class Prozessabbruch : Error()
 
     @Test fun `legacy mutation und zaehler bleiben an jeder crashgrenze gemeinsam`() {

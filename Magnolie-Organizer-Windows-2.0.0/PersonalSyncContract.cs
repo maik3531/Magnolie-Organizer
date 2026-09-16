@@ -7,6 +7,7 @@ namespace MagnolieOrganizer.Windows;
 internal static class PersonalSyncContract
 {
     internal const int ChunkRaw = 180_000;
+    internal const int MaxChunkBody = 256 * 1024;
     internal const int MaximumAttachment = 8 * 1024 * 1024;
     private const long MaximumTimestamp = 253402300799999;
     private const long MaximumSafeInteger = 9007199254740991;
@@ -34,6 +35,132 @@ internal static class PersonalSyncContract
     }
 
     internal static string ProjectionHash(JsonObject value) => Convert.ToHexString(SHA256.HashData(TelefonCrypto.Canonical(value))).ToLowerInvariant();
+
+    internal static string CustomSourceId(string sourceId, string itemId)
+    {
+        Uuid4(sourceId);
+        var utf8 = new UTF8Encoding(false, true);
+        try
+        {
+            if (itemId.Length == 0 || utf8.GetByteCount(itemId) > 640 ||
+                itemId.Any(c => c < 32 || c == 127)) throw new InvalidDataException("Invalid custom source identity.");
+        }
+        catch (EncoderFallbackException error) { throw new InvalidDataException("Invalid custom source identity.", error); }
+        var material = new JsonArray("personal-custom-v1", sourceId, itemId);
+        return "custom:" + Convert.ToHexString(SHA256.HashData(TelefonCrypto.Canonical(material))).ToLowerInvariant();
+    }
+
+    // V4 scope consent does not alter the ordinary V1 settings key set.
+    internal static void ValidateCustomSettings(JsonObject body)
+    {
+        Exact(body, "format", "scope", "enabled", "revision", "epoch");
+        Number(body, "format", 4, 4); Enum(body, "scope", "custom"); Bool(body, "enabled");
+        Number(body, "revision", 1, MaximumSafeInteger); Uuid4(String(body, "epoch"));
+    }
+
+    internal static bool CustomScopeAllowed(JsonObject? local, JsonObject? remote,
+        IEnumerable<int> localVersions, IEnumerable<int> remoteVersions, bool ownDevice,
+        bool remoteOwnDevice, string senderEpoch, string receiverEpoch, long senderRevision, long receiverRevision)
+    {
+        if (local is null || remote is null) return false;
+        try { ValidateCustomSettings(local); ValidateCustomSettings(remote); }
+        catch (InvalidDataException) { return false; }
+        return ownDevice && remoteOwnDevice && localVersions.Contains(4) && remoteVersions.Contains(4) &&
+            Bool(local, "enabled") && Bool(remote, "enabled") &&
+            String(remote, "epoch") == senderEpoch && String(local, "epoch") == receiverEpoch &&
+            Number(remote, "revision", 1, MaximumSafeInteger) == senderRevision &&
+            Number(local, "revision", 1, MaximumSafeInteger) == receiverRevision;
+    }
+
+    internal static JsonObject AcceptCustomSettings(JsonObject? current, JsonObject incoming)
+    {
+        ValidateCustomSettings(incoming);
+        if (current is not null)
+        {
+            ValidateCustomSettings(current);
+            var revision = Number(incoming, "revision", 1, MaximumSafeInteger);
+            var previous = Number(current, "revision", 1, MaximumSafeInteger);
+            if (revision == previous && JsonNode.DeepEquals(current, incoming)) return current.DeepClone().AsObject();
+            if (revision <= previous || String(current, "epoch") == String(incoming, "epoch"))
+                throw new InvalidDataException("Stale custom sync settings.");
+        }
+        return incoming.DeepClone().AsObject();
+    }
+
+    internal static void ValidateCustomBody(string kind, JsonObject body)
+    {
+        if (kind == "personal_sync.custom_settings") { ValidateCustomSettings(body); return; }
+        var fields = new[] { "format", "sender_epoch", "receiver_epoch", "sender_revision", "receiver_revision", "trigger" };
+        if (kind == "personal_sync.custom_batch") fields = fields.Concat(["source_id", "revision", "upserts", "deletions"]).ToArray();
+        else if (kind != "personal_sync.custom_request") throw new InvalidDataException("Unknown custom message.");
+        Exact(body, fields); Number(body, "format", 4, 4); Enum(body, "trigger", "manual", "auto_wifi");
+        Uuid4(String(body, "sender_epoch")); Uuid4(String(body, "receiver_epoch"));
+        Number(body, "sender_revision", 1, MaximumSafeInteger); Number(body, "receiver_revision", 1, MaximumSafeInteger);
+        if (kind == "personal_sync.custom_request") return;
+        var source = String(body, "source_id"); Uuid4(source); Number(body, "revision", 1, MaximumSafeInteger);
+        if (body["upserts"] is not JsonArray upserts || body["deletions"] is not JsonArray deletions ||
+            upserts.Count + deletions.Count is < 1 or > 32) throw new InvalidDataException("Invalid custom batch size.");
+        var ids = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var (array, deleting) in new[] { (upserts, false), (deletions, true) }) foreach (var raw in array)
+        {
+            var record = raw as JsonObject ?? throw new InvalidDataException();
+            Exact(record, deleting ? ["id", "item_id", "prior_hash"] : ["id", "item_id", "kind", "hash", "value"]);
+            var id = String(record, "id");
+            if (id != CustomSourceId(source, String(record, "item_id")) || !ids.Add(id) ||
+                !Hash(String(record, deleting ? "prior_hash" : "hash"))) throw new InvalidDataException("Invalid custom identity.");
+            if (deleting) continue;
+            Enum(record, "kind", "task", "appointment");
+            var value = record["value"] as JsonObject ?? throw new InvalidDataException();
+            Exact(value, "module_id", "module_title", "title", "note", "date", "time", "timezone", "completed", "module_reminders", "item_reminder", "lead_minutes", "default_minute", "recurrence");
+            CustomSourceId(source, String(value, "module_id"));
+            foreach (var (field, limit) in new[] { ("module_title", 480), ("title", 1200), ("note", 20000), ("timezone", 160) })
+            {
+                var text = String(value, field);
+                try { if (new UTF8Encoding(false, true).GetByteCount(text) > limit || text.Any(c => (c < 32 && c != '\n' && c != '\r' && c != '\t') || c == 127)) throw new InvalidDataException(); }
+                catch (EncoderFallbackException error) { throw new InvalidDataException("Invalid custom text.", error); }
+            }
+            CustomDate(String(value, "date")); var time = String(value, "time");
+            if (time.Length != 0 && !System.Text.RegularExpressions.Regex.IsMatch(time, "^(?:[01][0-9]|2[0-3]):[0-5][0-9]$")) throw new InvalidDataException();
+            try {
+                var zone = String(value, "timezone");
+                if (!System.Text.RegularExpressions.Regex.IsMatch(zone, @"\A[A-Za-z][A-Za-z0-9_+.-]*(?:/[A-Za-z0-9_+.-]+)*\z") ||
+                    zone is "localtime" or "posixrules" || zone.StartsWith("posix/", StringComparison.Ordinal) ||
+                    zone.StartsWith("right/", StringComparison.Ordinal) || zone.StartsWith("SystemV/", StringComparison.Ordinal))
+                    throw new InvalidDataException("Invalid custom timezone.");
+                // These IANA legacy rule names have no CLDR Windows-ID mapping.
+                // Validation only: the original wire ID is retained for Android's tzdb.
+                if (zone is not ("CET" or "EET" or "MET" or "WET" or "EST5EDT" or "CST6CDT" or "MST7MDT" or "PST8PDT")) {
+                    var resolved = TimeZoneInfo.FindSystemTimeZoneById(zone);
+                    if (resolved.HasIanaId ? resolved.Id != zone : !TimeZoneInfo.TryConvertIanaIdToWindowsId(zone, out _))
+                        throw new InvalidDataException("Invalid custom timezone.");
+                }
+            }
+            catch (Exception error) when (error is TimeZoneNotFoundException or InvalidTimeZoneException) { throw new InvalidDataException("Invalid custom timezone.", error); }
+            Bool(value, "completed"); Bool(value, "module_reminders"); Bool(value, "item_reminder");
+            Number(value, "lead_minutes", 0, 525600); Number(value, "default_minute", 0, 1439);
+            var recurrence = value["recurrence"] as JsonObject ?? throw new InvalidDataException();
+            Exact(recurrence, "frequency", "interval", "until", "dates", "ordinal", "weekday");
+            Enum(recurrence, "frequency", "none", "daily", "weekly", "monthly", "yearly", "custom");
+            Number(recurrence, "interval", 1, 3660); var ordinal = Number(recurrence, "ordinal", -1, 4);
+            var weekday = Number(recurrence, "weekday", 0, 7); CustomDate(String(recurrence, "until"));
+            if (recurrence["dates"] is not JsonArray dates || dates.Count > 1000) throw new InvalidDataException();
+            var days = dates.Select(String).ToArray();
+            foreach (var day in days) { if (day.Length == 0) throw new InvalidDataException(); CustomDate(day); }
+            var frequency = String(recurrence, "frequency");
+            if (!days.SequenceEqual(days.Distinct().OrderBy(x => x, StringComparer.Ordinal)) ||
+                (frequency != "custom" && days.Length != 0) || (frequency == "custom" && String(recurrence, "until").Length != 0) ||
+                ((ordinal != 0) != (weekday != 0)) || (frequency != "monthly" && ordinal != 0) ||
+                (String(record, "kind") == "task" && frequency != "none") || (String(record, "kind") == "appointment" && Bool(value, "completed")) ||
+                ProjectionHash(value) != String(record, "hash")) throw new InvalidDataException("Invalid custom recurrence/hash.");
+        }
+        if (TelefonCrypto.Canonical(body).Length > 192 * 1024) throw new InvalidDataException("Oversized custom batch.");
+    }
+
+    private static void CustomDate(string value)
+    {
+        if (value.Length != 0 && !DateOnly.TryParseExact(value, "yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture,
+            System.Globalization.DateTimeStyles.None, out _)) throw new InvalidDataException("Invalid custom date.");
+    }
 
     internal static string RecordsHash(JsonArray records)
     {
@@ -186,7 +313,7 @@ internal static class PersonalSyncContract
     {
         AttachmentIdentity(body, "format", "run_id", "reply", "records_hash", "sha256", "index", "data"); if (!Hash(String(body, "sha256"))) throw new InvalidDataException(); Number(body, "index", 0, 46);
         var encoded = String(body, "data"); byte[] raw; try { raw = Convert.FromBase64String(encoded); } catch (FormatException error) { throw new InvalidDataException("Chunk-Base64 ungültig.", error); }
-        if (raw.Length is < 1 or > ChunkRaw || Convert.ToBase64String(raw) != encoded || TelefonCrypto.Canonical(body).Length > 192 * 1024) throw new InvalidDataException("Attachment-Chunk ungültig.");
+        if (raw.Length is < 1 or > ChunkRaw || Convert.ToBase64String(raw) != encoded || TelefonCrypto.Canonical(body).Length > MaxChunkBody) throw new InvalidDataException("Attachment-Chunk ungültig.");
     }
 
     private static void ValidateAttachmentResult(JsonObject body)

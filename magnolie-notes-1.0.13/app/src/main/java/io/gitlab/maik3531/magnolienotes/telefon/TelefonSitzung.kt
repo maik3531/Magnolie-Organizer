@@ -70,6 +70,11 @@ object TelefonNachrichten {
         when (message.string("kind")) {
             "device_status.request" -> {
                 if (body.keys == setOf("request_id")) uuid(body.string("request_id"))
+                else if (body.keys == setOf("request_id", "version", "include_identifiers")) {
+                    uuid(body.string("request_id"))
+                    if (body.long("version") != 4L || (body["include_identifiers"] as? JsonPrimitive)?.let {
+                        !it.isString && it.booleanOrNull != null } != true) fail()
+                }
                 else {
                     exact(body, setOf("request_id", "version")); uuid(body.string("request_id"))
                     if (body.long("version") !in 1L..3L) fail()
@@ -86,6 +91,9 @@ object TelefonNachrichten {
             "end_call.result" -> validateEndResult(body, expires - created)
             "capabilities.update" -> { if (expires - created > 86_400_000L) fail(); validateCapabilities(body) }
             "grants.update" -> { if (expires - created > 86_400_000L) fail(); validateGrants(body) }
+            "personal_sync.custom_settings", "personal_sync.custom_request", "personal_sync.custom_batch" -> {
+                if (expires - created > 86_400_000L) fail(); PersonalSyncProtokoll.validateCustomBody(message.string("kind"), body)
+            }
             "personal_sync.settings" -> { if (expires - created > 86_400_000L) fail(); PersonalSyncProtokoll.validate(message.string("kind"), body) }
             "personal_sync.request" -> { if (expires - created > 3_600_000L) fail(); PersonalSyncProtokoll.validate(message.string("kind"), body) }
             "personal_sync.batch", "personal_sync.report", "personal_sync.attachment_request",
@@ -158,7 +166,7 @@ object TelefonNachrichten {
     private fun validateEndCommand(body: JsonObject, ttl: Long) {
         exact(body, setOf("command_ref", "call_ref", "expected_revision", "expected_state"))
         uuid4(body.string("command_ref")); uuid4(body.string("call_ref"))
-        if (ttl > 10_000 || body.long("expected_revision") < 1 || body.string("expected_state") != "offhook") fail()
+        if (ttl > 10_000 || body.long("expected_revision") < 1 || body.string("expected_state") !in setOf("offhook", "ringing")) fail()
     }
 
     private fun validateEndResult(body: JsonObject, ttl: Long) {
@@ -275,7 +283,7 @@ class TelefonSecureChannel(
             cipherText, TelefonKanonisch.bytes(header)) } catch (_: Exception) { throw TelefonProtokollFehler("Authentisierung fehlgeschlagen.") }
         receiveSequence++
         if (clear.size > TelefonParameter.ANWENDUNG_MAX) throw TelefonProtokollFehler("Anwendungsnachricht ist zu groß.")
-        val value = TelefonKanonisch.json.parseToJsonElement(clear.decodeToString()) as? JsonObject
+        val value = TelefonKanonisch.json.parseToJsonElement(clear.decodeToString(throwOnInvalidSequence = true)) as? JsonObject
             ?: throw TelefonProtokollFehler("Sicherer Inhalt ist kein Objekt.")
         if (!MessageDigest.isEqual(clear, TelefonKanonisch.bytes(value)))
             throw TelefonProtokollFehler("Sicherer Inhalt ist nicht kanonisch.")

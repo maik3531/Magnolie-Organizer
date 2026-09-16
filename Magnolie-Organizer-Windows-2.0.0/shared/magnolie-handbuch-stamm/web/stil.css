@@ -621,6 +621,28 @@ kbd {
 
 figure { margin: 12px 0; text-align: center; }
 
+.download-karten {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+.download-karte {
+  margin: 8px 0;
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+.download-karte a { color: inherit; text-decoration: none; }
+
+.download-karte .download-qr {
+  width: calc(var(--buchhoehe) * 0.173);
+  height: calc(var(--buchhoehe) * 0.173);
+  image-rendering: crisp-edges;
+}
+
 .abbildungsreihe {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));

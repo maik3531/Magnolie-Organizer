@@ -1,7 +1,7 @@
 #!/bin/sh
 set -eu
 
-for befehl in bwrap fc-match g-ir-inspect ldd nm timeout xdg-dbus-proxy xvfb-run; do
+for befehl in bwrap g-ir-inspect nm timeout xdg-dbus-proxy xvfb-run; do
     command -v "$befehl" >/dev/null || {
         printf '%s\n' "Fehlendes AppImage-Pruefwerkzeug: $befehl" >&2
         exit 1
@@ -37,6 +37,7 @@ grep -Fq 'export OPENSSL_CONF="$APPDIR/usr/share/magnolie-organizer/openssl/open
 grep -Fq 'export OPENSSL_MODULES="$APPDIR/usr/lib/$MULTIARCH/ossl-modules"' "$APPDIR/AppRun"
 grep -Fq 'export GTK3_MODULES=' "$APPDIR/AppRun"
 grep -Fq 'export GTK_DATA_PREFIX="$APPDIR/usr"' "$APPDIR/AppRun"
+grep -Fq 'export GSETTINGS_SCHEMA_DIR="$APPDIR/usr/share/glib-2.0/schemas"' "$APPDIR/AppRun"
 grep -Fq 'export FONTCONFIG_PATH="$APPDIR/usr/share/magnolie-organizer/fontconfig"' "$APPDIR/AppRun"
 grep -Fq 'export FONTCONFIG_FILE="$FONTCONFIG_PATH/fonts.conf"' "$APPDIR/AppRun"
 if find "$APPDIR" -type f -exec grep -aFl \
@@ -46,6 +47,39 @@ if find "$APPDIR" -type f -exec grep -aFl \
 fi
 test -x "$APPDIR/usr/bin/python3"
 test -x "$APPDIR/usr/bin/magnolie-organizer"
+test -x "$APPDIR/usr/bin/fc-match"
+test -x "$APPDIR/usr/bin/xgettext"
+test -x "$APPDIR/usr/bin/bwrap"
+test -x "$APPDIR/usr/bin/xdg-dbus-proxy"
+test -f "$APPDIR/usr/lib/libnotify.so.4"
+PYTHONHOME="$APPDIR/usr" PYTHONPATH="$APPDIR/usr/lib/python3/dist-packages" \
+LD_LIBRARY_PATH="$APPDIR/usr/lib/x86_64-linux-gnu:$APPDIR/usr/lib" \
+GI_TYPELIB_PATH="$APPDIR/usr/lib/x86_64-linux-gnu/girepository-1.0" \
+    "$APPDIR/usr/bin/python3" - <<'PY'
+import ctypes
+import gi
+gi.require_foreign('cairo')
+gi.require_version('Notify', '0.7')
+from gi.repository import Notify
+ctypes.CDLL('libnotify.so.4')
+assert Notify.init('Magnolie packaging load check')
+Notify.uninit()
+PY
+test -f "$APPDIR/usr/share/magnolie-organizer/werkzeuge/appimage_graphics.py"
+test -f "$APPDIR/usr/share/magnolie-organizer/werkzeuge/appimage_runtime.py"
+python3 - "$APPDIR" <<'PY'
+from pathlib import Path
+import sys
+
+appdir = Path(sys.argv[1])
+for pattern in ('usr/lib/python*/__pycache__/os.*.pyc',
+                'usr/share/magnolie-organizer/werkzeuge/__pycache__/appimage_runtime.*.pyc'):
+    caches = list(appdir.glob(pattern))
+    assert caches, pattern
+    assert all(int.from_bytes(path.read_bytes()[4:8], 'little') == 3 for path in caches), pattern
+PY
+LD_LIBRARY_PATH="$APPDIR/usr/lib/x86_64-linux-gnu:$APPDIR/usr/lib" \
+    "$APPDIR/usr/bin/xgettext" --version >/dev/null
 ! grep -Fq 'HardwareAccelerationPolicy.NEVER' \
     "$APPDIR/usr/bin/magnolie-organizer"
 test -f "$APPDIR/usr/bin/magnolie_telefon.py"
@@ -53,6 +87,9 @@ test -f "$APPDIR/usr/bin/magnolie_personal_sync.py"
 test -f "$APPDIR/usr/bin/magnolie_nextcloud.py"
 test -f "$APPDIR/usr/bin/magnolie_cloud_backup.py"
 test -f "$APPDIR/usr/bin/magnolie_akonadi.py"
+test -f "$APPDIR/usr/bin/magnolie_recurrence.py"
+test -f "$APPDIR/usr/share/zoneinfo/Europe/Berlin"
+test -s "$APPDIR/usr/share/doc/magnolie-organizer/tzdata-copyright"
 test -f "$APPDIR/usr/share/magnolie-organizer/web/index.html"
 test "$(cat "$APPDIR/usr/share/magnolie-organizer/build-config.json")" = \
     "{\"contributorHash\":\"$CONTRIBUTOR_HASH\"}"
@@ -78,6 +115,7 @@ test -f "$FONTCONFIG_DATEI"
 test -d "$APPDIR/usr/lib/x86_64-linux-gnu/ossl-modules"
 test -n "$(find "$APPDIR/usr/lib/x86_64-linux-gnu/ossl-modules" -type f -print -quit)"
 test -f "$APPDIR/usr/share/themes/Adwaita/gtk-3.0/gtk.css"
+test -f "$APPDIR/usr/share/glib-2.0/schemas/gschemas.compiled"
 test -x "$APPDIR/usr/lib/webkit2gtk-4.1/WebKitNetworkProcess"
 test -x "$APPDIR/usr/lib/webkit2gtk-4.1/WebKitWebProcess"
 if test -f "$APPDIR/usr/lib/libecal-2.0.so.3"; then
@@ -104,8 +142,9 @@ nm -D --undefined-only "$APPDIR/usr/lib/$ECAL_SONAME" | \
     grep -q ' i_cal_component_as_ical_string$'
 for bibliothek in "$APPDIR/usr/lib/$ECAL_SONAME" \
     "$APPDIR/usr/lib/$EBOOK_SONAME"; do
-    aufloesung=$(LD_LIBRARY_PATH="$APPDIR/usr/lib/x86_64-linux-gnu:$APPDIR/usr/lib" \
-        ldd "$bibliothek")
+    aufloesung=$(/lib64/ld-linux-x86-64.so.2 --list \
+        --library-path "$APPDIR/usr/lib/x86_64-linux-gnu:$APPDIR/usr/lib" \
+        "$bibliothek")
     ! printf '%s\n' "$aufloesung" | grep -q 'not found'
     ! printf '%s\n' "$aufloesung" | grep -E \
         'lib(ecal|edataserver|ical|camel|ebook|edata-book|ebackend)[^ ]* => /(usr/)?lib/'
@@ -125,13 +164,14 @@ for familie in sans-serif serif monospace; do
     treffer=$(FONTCONFIG_PATH="$(dirname "$FONTCONFIG_DATEI")" \
         FONTCONFIG_FILE="$FONTCONFIG_DATEI" \
         LD_LIBRARY_PATH="$APPDIR/usr/lib/x86_64-linux-gnu:$APPDIR/usr/lib" \
-        fc-match -f '%{file}\n' "$familie")
+        "$APPDIR/usr/bin/fc-match" -f '%{file}\n' "$familie")
     test -n "$treffer"
     test -f "$treffer"
 done
 
 PYTHONHOME="$APPDIR/usr" \
 PYTHONPATH="$APPDIR/usr/bin:$APPDIR/usr/lib/python3/dist-packages" \
+PYTHONTZPATH="$APPDIR/usr/share/zoneinfo" \
 LD_LIBRARY_PATH="$APPDIR/usr/lib/x86_64-linux-gnu:$APPDIR/usr/lib" \
 GI_TYPELIB_PATH="$APPDIR/usr/lib/x86_64-linux-gnu/girepository-1.0" \
 GIO_MODULE_DIR="$APPDIR/usr/lib/x86_64-linux-gnu/gio/modules" \
@@ -147,6 +187,7 @@ import magnolie_phone_region
 import magnolie_personal_sync
 import magnolie_telefon
 import magnolie_cloud_backup
+import magnolie_recurrence
 import phonenumbers
 import qrcode
 import six
@@ -154,6 +195,13 @@ import ssl
 from OpenSSL import SSL
 from cryptography.hazmat.primitives.asymmetric import ec
 from qrcode.image.svg import SvgPathImage
+from datetime import datetime
+from pathlib import Path
+from zoneinfo import ZoneInfo
+
+assert Path(magnolie_recurrence.__file__).parent == Path(magnolie_telefon.__file__).parent
+start = datetime(2026, 9, 1, 9, tzinfo=ZoneInfo("Europe/Berlin"))
+assert [value.day for value in magnolie_recurrence.Rule("FREQ=DAILY;COUNT=2", start).between(start, start.replace(day=4))] == [1, 2]
 
 gi.require_version("Gio", "2.0")
 gi.require_version("Gst", "1.0")
@@ -229,6 +277,8 @@ MAGNOLIE_PROGRAMM="$APPDIR/usr/bin/magnolie-organizer" \
 PYTHONHOME="$APPDIR/usr" PYTHONPATH="$APPDIR/usr/lib/python3/dist-packages" \
 LD_LIBRARY_PATH="$APPDIR/usr/lib/x86_64-linux-gnu:$APPDIR/usr/lib" \
 GI_TYPELIB_PATH="$APPDIR/usr/lib/x86_64-linux-gnu/girepository-1.0" \
+OPENSSL_CONF="$APPDIR/usr/share/magnolie-organizer/openssl/openssl.cnf" \
+OPENSSL_MODULES="$APPDIR/usr/lib/x86_64-linux-gnu/ossl-modules" \
     "$APPDIR/usr/bin/python3" "$WURZEL/pruefungen/test_import_export_vertrag.py"
 DISPLAY= WAYLAND_DISPLAY= XDG_DATA_HOME="$ARBEIT/data" \
 XDG_CONFIG_HOME="$ARBEIT/config" XDG_STATE_HOME="$ARBEIT/state" \
@@ -236,16 +286,18 @@ MAGNOLIE_PROGRAMM="$APPDIR/usr/bin/magnolie-organizer" \
 PYTHONHOME="$APPDIR/usr" PYTHONPATH="$APPDIR/usr/lib/python3/dist-packages" \
 LD_LIBRARY_PATH="$APPDIR/usr/lib/x86_64-linux-gnu:$APPDIR/usr/lib" \
 GI_TYPELIB_PATH="$APPDIR/usr/lib/x86_64-linux-gnu/girepository-1.0" \
+OPENSSL_CONF="$APPDIR/usr/share/magnolie-organizer/openssl/openssl.cnf" \
+OPENSSL_MODULES="$APPDIR/usr/lib/x86_64-linux-gnu/ossl-modules" \
     "$APPDIR/usr/bin/python3" "$WURZEL/pruefungen/test_gesamtarchiv.py"
 
 appimage_gui_start() {
     if command -v dbus-run-session >/dev/null; then
         env -u WEBKIT_DISABLE_SANDBOX_THIS_IS_DANGEROUS \
-            WEBKIT_FORCE_SANDBOX=1 dbus-run-session -- \
+            NO_AT_BRIDGE=1 dbus-run-session -- \
             timeout 5s xvfb-run -a "$APPDIR/AppRun"
     else
         env -u WEBKIT_DISABLE_SANDBOX_THIS_IS_DANGEROUS \
-            WEBKIT_FORCE_SANDBOX=1 timeout 5s xvfb-run -a "$APPDIR/AppRun"
+            NO_AT_BRIDGE=1 timeout 5s xvfb-run -a "$APPDIR/AppRun"
     fi
 }
 set +e
@@ -275,11 +327,11 @@ fi
 appimage_gui_direkt() {
     if command -v dbus-run-session >/dev/null; then
         env -u WEBKIT_DISABLE_SANDBOX_THIS_IS_DANGEROUS \
-            WEBKIT_FORCE_SANDBOX=1 dbus-run-session -- \
+            NO_AT_BRIDGE=1 dbus-run-session -- \
             timeout 5s xvfb-run -a "$APPIMAGE"
     else
         env -u WEBKIT_DISABLE_SANDBOX_THIS_IS_DANGEROUS \
-            WEBKIT_FORCE_SANDBOX=1 timeout 5s xvfb-run -a "$APPIMAGE"
+            NO_AT_BRIDGE=1 timeout 5s xvfb-run -a "$APPIMAGE"
     fi
 }
 set +e
@@ -294,5 +346,25 @@ if [ "$direkt_status" -ne 124 ]; then
     cat "$ARBEIT/direct.log" >&2
     exit 1
 fi
+
+# Reuse the exact packaged environment/graphics selector, changing only the
+# Python entry point in memory. Process survival alone does not prove rendering.
+env -u WEBKIT_DISABLE_SANDBOX_THIS_IS_DANGEROUS -u WEBKIT_FORCE_SANDBOX \
+    NO_AT_BRIDGE=1 dbus-run-session -- timeout 40s xvfb-run -a \
+    python3 - "$APPDIR" "$WURZEL/pruefungen/appimage_render.py" <<'PY'
+import os
+from pathlib import Path
+import subprocess
+import sys
+
+appdir = Path(sys.argv[1])
+launcher = (appdir / "AppRun").read_text()
+old = '"$APPDIR/usr/bin/magnolie-organizer" "$@"'
+assert launcher.count(old) == 1
+launcher = launcher.replace(old, '"$MAGNOLIE_APPIMAGE_RENDER_PROBE"')
+result = subprocess.run(["/bin/sh", "-c", launcher, str(appdir / "AppRun")],
+                        env={**os.environ, "MAGNOLIE_APPIMAGE_RENDER_PROBE": sys.argv[2]})
+sys.exit(result.returncode)
+PY
 
 printf '%s\n' "APPIMAGE-PRUEFUNG BESTANDEN"

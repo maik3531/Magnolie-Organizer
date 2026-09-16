@@ -22,7 +22,7 @@ class AnhangVerkabelungTest {
         assertTrue(editor.contains("R.string.notiz_anhang_oeffnen"))
         assertTrue(editor.contains("R.string.notiz_anhang_speichern"))
         assertTrue(editor.contains("R.string.notiz_anhang_entfernen"))
-        assertTrue(editor.contains("anhaenge = anhaenge.filterNot"))
+        assertTrue(editor.contains("beiAnhaengeAenderung(anhaenge.filterNot"))
         listOf("image/jpeg", "image/png", "image/webp", "image/gif", "application/pdf").forEach {
             assertTrue(activity.contains("\"$it\""))
         }

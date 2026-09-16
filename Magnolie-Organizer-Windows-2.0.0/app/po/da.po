@@ -5,9 +5,16 @@
 #
 msgid ""
 msgstr ""
+"Project-Id-Version: Magnolie Organizer 2.0.18\n"
 "Report-Msgid-Bugs-To: maik3531@gmail.com\n"
 "POT-Creation-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"PO-Revision-Date: 2026-09-07 00:00+0200\n"
+"Last-Translator: Magnolie translation team <maik3531@gmail.com>\n"
+"Language-Team: da\n"
+"Language: da\n"
+"MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
 msgid " (filtered)"
@@ -184,11 +191,6 @@ msgid "%(count)s public holiday"
 msgid_plural "%(count)s public holidays"
 msgstr[0] "%(count)s helligdag"
 msgstr[1] "%(count)s helligdage"
-
-msgid "%(count)s recurring appointment imported only once."
-msgid_plural "%(count)s recurring appointments imported only once."
-msgstr[0] "%(count)s tilbagevendende aftale kun importeret én gang."
-msgstr[1] "%(count)s tilbagevendende aftaler kun importeret én gang."
 
 msgid "%(count)s second"
 msgid_plural "%(count)s seconds"
@@ -411,6 +413,11 @@ msgstr "En personlig synkroniseringsvedhæftningskilde er ikke et objekt."
 msgid "A personal synchronization batch is not an object."
 msgstr "En personlig synkroniseringsbatch er ikke et objekt."
 
+msgid "A phone is already paired or pairing. Finish that connection first."
+msgstr ""
+"En telefon er allerede parret eller ved at blive parret. Gør den forbindelse "
+"færdig først."
+
 msgid ""
 "A separate encrypted connection for dial requests, device status and "
 "selected notifications."
@@ -602,6 +609,9 @@ msgstr ""
 "En aftalekalender, adressebog, opgavebog og notesblok forklædt som en "
 "læderindbundet organizer —"
 
+msgid "Android restricts this device identifier."
+msgstr "Android begrænser denne enhedsidentifikator."
+
 msgid "Android version"
 msgstr "Android-version"
 
@@ -640,6 +650,9 @@ msgstr "Appenzell Innerrhoden"
 
 msgid "Application command"
 msgstr "Programkommando"
+
+msgid "Application password"
+msgstr "Appadgangskode"
 
 msgid ""
 "Applies only to content you enter yourself: appointments, tasks, contacts, "
@@ -698,9 +711,6 @@ msgstr "Arkiv adgangskode"
 msgid "Are you really sure?"
 msgstr "Er du helt sikker?"
 
-msgid "As usual (print)"
-msgstr "Som normalt (udskrivning)"
-
 msgid "Assign SMS action"
 msgstr "Tildel SMS handling"
 
@@ -739,6 +749,22 @@ msgstr "Myndighedsaftale"
 
 msgid "Automatic backup failed."
 msgstr "Automatisk sikkerhedskopiering mislykkedes."
+
+msgid ""
+"Automatic call audio is unavailable. Keep the call on the phone or select "
+"native audio manually in system settings."
+msgstr ""
+"Automatisk opkaldslyd er ikke tilgængelig. Behold opkaldet på telefonen, "
+"eller vælg systemets lyd manuelt i systemindstillingerne."
+
+msgid ""
+"Automatic call audio is unsupported in this Windows build. Package identity "
+"and an approved phoneLineTransportManagement capability are required. Select "
+"native audio manually in system settings."
+msgstr ""
+"Denne Windows-udgave understøtter ikke automatisk opkaldslyd. Pakkeidentitet "
+"og en godkendt phoneLineTransportManagement-funktion er påkrævet. Vælg "
+"systemets lyd manuelt i systemindstillingerne."
 
 msgid "Automatic cloud-folder backups"
 msgstr "Automatiske sikkerhedskopier i en cloudmappe"
@@ -922,6 +948,23 @@ msgstr "Blå (fyldepen)"
 msgid "Bluetooth data fallback"
 msgstr "Bluetooth-data som reserve"
 
+msgid "Bluetooth device for call audio"
+msgstr "Bluetooth-enhed til opkaldslyd"
+
+msgid "Bluetooth device unavailable."
+msgstr "Bluetooth-enheden er ikke tilgængelig."
+
+msgid "Bluetooth is unavailable in this build."
+msgstr "Bluetooth er ikke tilgængelig i denne udgave af programmet."
+
+msgid "Bluetooth is unavailable. Check the radio and OS permissions."
+msgstr ""
+"Bluetooth er ikke tilgængelig. Kontrollér, at den trådløse adapter er slået "
+"til, og at styresystemet giver de nødvendige tilladelser."
+
+msgid "Bluetooth system pairing was not confirmed."
+msgstr "Bluetooth-parringen i systemet blev ikke bekræftet."
+
 msgid "Bold"
 msgstr "Fed"
 
@@ -931,6 +974,14 @@ msgid ""
 msgstr ""
 "Begge grene viser den samme sekscifrede kode, når de forbindes. Bekræft den "
 "kun, hvis den er identisk; det forhindrer andre i at opsnappe forbindelsen."
+
+msgid ""
+"Both devices must opt in. Turning this off pauses reminders and updates from "
+"the custom tab but keeps copies. Linked text blocks are not shared."
+msgstr ""
+"Begge enheder skal give samtykke. Deaktivering sætter påmindelser og "
+"opdateringer fra den brugerdefinerede fane på pause, men bevarer kopierne. "
+"Tilknyttede tekstblokke deles ikke."
 
 msgid "Brandenburg"
 msgstr "Brandenburg"
@@ -950,6 +1001,9 @@ msgstr "Efter fornavn (Hans Müller)"
 msgid "By last name (Müller, Hans)"
 msgstr "Efter efternavn (Müller, Hans)"
 
+msgid "CSV / Lotus Organizer"
+msgstr "CSV / Lotus Organizer"
+
 msgid "CSV / Lotus Organizer contacts …"
 msgstr "CSV-/Lotus Organizer-kontakter …"
 
@@ -958,6 +1012,9 @@ msgstr "CSV-filer (*.csv)"
 
 msgid "CW"
 msgstr "U"
+
+msgid "CalDAV + CardDAV Server"
+msgstr "CalDAV + CardDAV-server"
 
 msgid "Calculate the route to this address"
 msgstr "Beregn ruten til denne adresse"
@@ -968,6 +1025,9 @@ msgstr "Kalender"
 msgid "Calendar (*.ics)"
 msgstr "Kalender (*.ics)"
 
+msgid "Calendar (ICS)"
+msgstr "Kalender (ICS)"
+
 msgid "Calendar file (.ics/.vcs/.lcs) …"
 msgstr "Kalenderfil (.ics/.vcs/.lcs) …"
 
@@ -976,6 +1036,9 @@ msgstr "Kalenderlayout"
 
 msgid "Calendar week %(number)s"
 msgstr "Kalenderuge %(number)s"
+
+msgid "Calendars"
+msgstr "Kalendere"
 
 msgid "Calendars (multiple selections allowed)"
 msgstr "Kalendere (flere valg er tilladt)"
@@ -988,6 +1051,13 @@ msgstr "Ring op"
 
 msgid "Call assignment"
 msgstr "Opkaldsopgave"
+
+msgid ""
+"Call controls unavailable. Check Android call permission; no dialer role is "
+"requested automatically."
+msgstr ""
+"Opkaldsstyring er ikke tilgængelig. Kontrollér Androids opkaldstilladelse; "
+"rollen som telefonapp anmodes ikke automatisk."
 
 msgid "Call ended"
 msgstr "Opkald afsluttet"
@@ -1086,9 +1156,6 @@ msgstr "Kontrollerer den aktuelle manualversion …"
 msgid "Checking the current version …"
 msgstr "Kontrollerer den aktuelle version …"
 
-msgid "Choose Appointments, Notes or Tasks in Customize."
-msgstr "Vælg Aftaler, Noter eller Opgaver under Tilpas."
-
 msgid ""
 "Choose a backup file. Before restoring it, the organizer automatically "
 "creates a copy of the current data. An encrypted backup requires its "
@@ -1097,6 +1164,10 @@ msgstr ""
 "Vælg en sikkerhedskopifil. Før den gendannes, opretter Organizer automatisk "
 "en kopi af de aktuelle data. En krypteret sikkerhedskopi kræver sin "
 "adgangskode."
+
+msgid "Choose a connection. Confirm pairing on the phone and this computer."
+msgstr ""
+"Vælg en forbindelse. Bekræft parringen på telefonen og på denne computer."
 
 msgid "Choose a country first."
 msgstr "Vælg først et land."
@@ -1137,13 +1208,6 @@ msgstr "Vælg mindst fire tegn."
 msgid "Choose entries to print, export or delete"
 msgstr "Vælg poster, der skal udskrives, eksporteres eller slettes"
 
-msgid ""
-"Choose file and Windows contact imports that Magnolie can start directly "
-"after opening."
-msgstr ""
-"Vælg de fil- og Windows-kontaktimporter, som Magnolie kan starte direkte "
-"efter åbning."
-
 msgid "Choose file…"
 msgstr "Vælg fil…"
 
@@ -1170,6 +1234,12 @@ msgid "Choose service"
 msgstr "Vælg tjeneste"
 
 msgid ""
+"Choose sources now. Import previews are kept until you finish the assistant."
+msgstr ""
+"Vælg kilder nu. Forhåndsvisningerne af importen gemmes, indtil du afslutter "
+"guiden."
+
+msgid ""
 "Choose which sections appear as tabs on the organizer. The calendar always "
 "remains available."
 msgstr ""
@@ -1187,6 +1257,9 @@ msgstr "By"
 
 msgid "Claws Mail XML (.xml) …"
 msgstr "Claws Mail XML (.xml) …"
+
+msgid "Claws Mail XML / LDIF"
+msgstr "Claws Mail XML / LDIF"
 
 msgid "Claws Mail address book (*.xml)"
 msgstr "Claws Mail-adressebog (*.xml)"
@@ -1248,8 +1321,8 @@ msgstr ""
 msgid "Columns in the ODS table"
 msgstr "Kolonner i ODS-tabellen"
 
-msgid "Compact sender line (default)"
-msgstr "Kompakt afsenderlinje (standard)"
+msgid "Compact sender line"
+msgstr "Kompakt afsenderlinje"
 
 msgid "Company"
 msgstr "Virksomhed"
@@ -1288,16 +1361,32 @@ msgstr "Fuldfør parring"
 msgid "Completed (%(count)s)"
 msgstr "Fuldført (%(count)s)"
 
+msgid ""
+"Completed pairings are kept if you cancel setup. No additional phone "
+"permissions are granted."
+msgstr ""
+"Gennemførte parringer bevares, hvis du annullerer opsætningen. Der gives "
+"ingen ekstra telefontilladelser."
+
 msgid "Completed task"
 msgstr "Fuldført"
 
 msgid "Completing secure pairing…"
 msgstr "Fuldfører sikker parring…"
 
+msgid "Confirm"
+msgstr "Bekræft"
+
+msgid "Confirm SMS plans"
+msgstr "Bekræft SMS-planer"
+
 msgid ""
 "Confirm only if exactly the same six-digit code is shown on both devices."
 msgstr ""
 "Bekræft kun, hvis nøjagtig den samme sekscifrede kode vises på begge enheder."
+
+msgid "Confirm that the code matches on both devices."
+msgstr "Bekræft, at koden er ens på begge enheder."
 
 msgid "Confirm the pairing request on the phone."
 msgstr "Bekræft parringsanmodningen på telefonen."
@@ -1314,8 +1403,22 @@ msgstr "Forbind"
 msgid "Connect phone via WLAN"
 msgstr "Forbind telefon via WLAN"
 
+msgid "Connect via Bluetooth"
+msgstr "Forbind via Bluetooth"
+
+msgid "Connect via KDE Connect"
+msgstr "Forbind via KDE Connect"
+
 msgid "Connected"
 msgstr "Forbundet"
+
+msgid "Connection discovery failed. Check the server and credentials."
+msgstr ""
+"Søgningen efter tilgængelige forbindelser mislykkedes. Kontrollér serveren "
+"og loginoplysningerne."
+
+msgid "Connection ready"
+msgstr "Forbindelsen er klar"
 
 msgid "Consider deletions during manual synchronization"
 msgstr "Kontaktsynkronisering"
@@ -1447,13 +1550,6 @@ msgstr "Brugerdefineret"
 msgid "Custom application"
 msgstr "Brugerdefineret applikation"
 
-msgid ""
-"Custom content is saved locally and transferred through complete Magnolie "
-"archives only, not Personal Sync."
-msgstr ""
-"Brugerdefineret indhold gemmes lokalt og overføres kun via komplette "
-"Magnolie-arkiver, ikke via Personal Sync."
-
 msgid "Custom notification"
 msgstr "Brugerdefineret meddelelse"
 
@@ -1489,6 +1585,12 @@ msgstr ""
 msgid "Czechia"
 msgstr "Tjekkiet"
 
+msgid "DIN 5008 Form A (27 mm letterhead)"
+msgstr "DIN 5008 Form A (brevhoved på 27 mm)"
+
+msgid "DIN 5008 Form B (default)"
+msgstr "DIN 5008 Form B (standard)"
+
 msgid "DIN 5008 Form B with fold marks"
 msgstr "DIN 5008 formular B med foldemærker"
 
@@ -1515,6 +1617,9 @@ msgstr "Dagmarkører"
 
 msgid "Days"
 msgstr "Dage"
+
+msgid "Dear Sir or Madam,"
+msgstr "Til rette vedkommende"
 
 msgid "Death anniversary"
 msgstr "Dødsdag"
@@ -1668,8 +1773,20 @@ msgstr "Tandlæge dr. Hill — Forhåndsvisning af dine poster"
 msgid "Determining public IP address…"
 msgstr "Finder offentlig IP-adresse…"
 
+msgid "Device IMEI"
+msgstr "Enhedens IMEI"
+
 msgid "Device code: %(code)s"
 msgstr "Enhedskode: %(code)s"
+
+msgid "Device identifier permission is missing."
+msgstr "Tilladelse til enhedsidentifikatorer mangler."
+
+msgid "Device identifier sharing is off."
+msgstr "Deling af enhedsidentifikatorer er slået fra."
+
+msgid "Device serial number"
+msgstr "Enhedens serienummer"
 
 msgid "Device status is not permitted or available on the phone."
 msgstr "Enhedsstatus er ikke tilladt eller tilgængelig på telefonen."
@@ -1700,6 +1817,9 @@ msgstr "Kassér"
 
 msgid "Discharging"
 msgstr "Aflader"
+
+msgid "Discover"
+msgstr "Søg"
 
 msgid "Display"
 msgstr "Skærm"
@@ -1830,6 +1950,9 @@ msgstr "Aktivér"
 msgid "Enable Magnolie Notes phone connection"
 msgstr "Aktiver Magnolie Notes telefonforbindelse"
 
+msgid "Enable SMS scheduling"
+msgstr "Aktivér SMS-planlægning"
+
 msgid "Enable cycle calendar"
 msgstr "Aktivér cykluskalender"
 
@@ -1854,6 +1977,9 @@ msgstr "Aktiver påmindelser for denne blok"
 msgid "Enable shift planner"
 msgstr "Aktivér vagtplan"
 
+msgid "Enable this SMS plan"
+msgstr "Aktivér denne SMS-plan"
+
 msgid "Enable tray applet"
 msgstr "Aktivér panelapplet"
 
@@ -1862,6 +1988,12 @@ msgstr "Aktivér ferieplan"
 
 msgid "Enable waste collection calendar"
 msgstr "Aktivér kalender for affaldsafhentning"
+
+msgid ""
+"Enabling this plan allows its overdue SMS to be sent while scheduling is on."
+msgstr ""
+"Aktivering af denne plan tillader afsendelse af dens forsinkede SMS, når "
+"planlægning er slået til."
 
 msgid "Enjoy getting organized!"
 msgstr "God fornøjelse med at organisere!"
@@ -1907,6 +2039,9 @@ msgstr "Indtast en programkommando."
 msgid "Enter at least four characters for the backup password."
 msgstr "Indtast mindst fire tegn til adgangskoden for sikkerhedskopien."
 
+msgid "Enter both hours and minutes, or leave the time completely empty."
+msgstr "Angiv både timer og minutter, eller lad tidspunktet være helt tomt."
+
 msgid "Enter height and weight to calculate BMI."
 msgstr "Indtast højde og vægt for at beregne BMI."
 
@@ -1922,6 +2057,9 @@ msgid ""
 msgstr ""
 "Indtast din adresse ovenfor. Ingen tjeneste kan beregne en rute uden et "
 "udgangspunkt."
+
+msgid "Entries ready to import"
+msgstr "Poster klar til import"
 
 msgid "Entry"
 msgstr "Post"
@@ -1953,15 +2091,6 @@ msgstr "Alt er klaret – listen er tom."
 
 msgid "Everything is ready"
 msgstr "Alt er klar"
-
-msgid ""
-"Evolution and Thunderbird are selected explicitly. iPhone contacts require a "
-"vCard export from the iPhone or iCloud. KDE Connect, Bluetooth and PBAP are "
-"not contact sources."
-msgstr ""
-"Evolution og Thunderbird vælges eksplicit. iPhone-kontakter kræver en vCard-"
-"eksport fra iPhone eller iCloud. KDE Connect, Bluetooth og PBAP er ikke "
-"kontaktkilder."
 
 msgid "Exactly one Magnolie Notes phone must be paired."
 msgstr "Præcis én Magnolie Notes-telefon skal parres."
@@ -2100,6 +2229,17 @@ msgstr "Til: %(people)s"
 
 msgid "Form"
 msgstr "Formular"
+
+msgid ""
+"Form B reserves 45 mm for the letterhead; Form A reserves 27 mm. Both place "
+"the return line and recipient in the left-hand address field and add fold "
+"and punch marks. Check long addresses and envelope fit in print preview "
+"before printing at 100%."
+msgstr ""
+"Form B afsætter 45 mm til brevhovedet; Form A afsætter 27 mm. Begge placerer "
+"afsenderlinjen og modtageren i adressefeltet til venstre og tilføjer folde- "
+"og hulmærker. Kontrollér lange adresser og placeringen i kuverten i "
+"udskriftsvisningen, før du udskriver i 100%."
 
 msgid "Format region"
 msgstr "Formatområde"
@@ -2322,6 +2462,9 @@ msgstr "Importer Magnolie komplet arkiv"
 msgid "Import contacts additively"
 msgstr "Importér kontakter som supplement"
 
+msgid "Import failed."
+msgstr "Importen mislykkedes."
+
 msgid "Import failed: %(error)s"
 msgstr "Import mislykkedes: %(error)s"
 
@@ -2336,6 +2479,9 @@ msgstr "Importér én gang"
 
 msgid "Import pairing file …"
 msgstr "Importér parringsfil …"
+
+msgid "Import preview"
+msgstr "Forhåndsvisning af import"
 
 msgid "Import, export and synchronization"
 msgstr "Import, eksport og synkronisering"
@@ -2356,16 +2502,6 @@ msgstr ""
 
 msgid "Imported: %(items)s."
 msgstr "Importeret: %(items)s."
-
-msgid ""
-"In the DIN template, these lines appear as a multiline sender block and in "
-"small type in the address window. In the compact template, they form one "
-"line above the recipient address. No sender is added if this field is empty."
-msgstr ""
-"I DIN-skabelonen vises disse linjer som en afsenderblok med flere linjer og "
-"med lille skrift i adressevinduet. I den kompakte skabelon danner de én "
-"linje over modtagerens adresse. Der tilføjes ingen afsender, hvis feltet er "
-"tomt."
 
 msgid "In the organizer%(selection)s: %(items)s%(years)s."
 msgstr "I Organizer%(selection)s: %(items)s%(years)s."
@@ -2440,8 +2576,14 @@ msgstr "Internet-IP"
 msgid "Internet available"
 msgstr "Internet tilgængeligt"
 
+msgid "Interval"
+msgstr "Interval"
+
 msgid "Interval in days"
 msgstr "Interval i dage"
+
+msgid "Invalid calendar date."
+msgstr "Ugyldig kalenderdato."
 
 msgid "Italic"
 msgstr "Kursiv"
@@ -2479,6 +2621,9 @@ msgstr "KDE Connect port %(port)s"
 
 msgid "Keep a troubleshooting log"
 msgstr "Behold en fejlfindingslog"
+
+msgid "LDIF"
+msgstr "LDIF"
 
 msgid "LDIF address book (*.ldif)"
 msgstr "LDIF-adressebog (*.ldif)"
@@ -2657,16 +2802,10 @@ msgid "Magnolienbaum"
 msgstr "Magnolienbaum"
 
 msgid "Magnolienbaum mailbox"
-msgstr "Magnolienbaum mailbox"
+msgstr "Magnolienbaum-postkasse"
 
 msgid "Magnolienbaum pairing file (*.magnolie-paarung)"
 msgstr "Magnolienbaum-parringsfil (*.magnolie-paarung)"
-
-msgid "Magnolienbaum quarantine:"
-msgstr "Magnolienbaum karantæne:"
-
-msgid "Magnolienbaum restart:"
-msgstr "Magnolienbaum genstart:"
 
 msgid "Male caregiver"
 msgstr "Mandlig omsorgsperson"
@@ -2745,9 +2884,6 @@ msgstr "Møde"
 msgid "Memorial day"
 msgstr "Mindedag"
 
-msgid "Memory available / total"
-msgstr "Tilgængelig hukommelse / hukommelse i alt"
-
 msgid "Merge"
 msgstr "Flet"
 
@@ -2808,19 +2944,6 @@ msgstr ""
 "kontrollerer aftaler i baggrunden og fortsætter med at køre, når du lukker "
 "organizeren."
 
-msgid ""
-"Misspelled words are marked with a red wavy underline while you type. Right-"
-"clicking a word opens a sheet with suggestions that can be applied with one "
-"click; you can add names to your personal dictionary in the same way. If the "
-"lines or suggestions are missing, install the dictionary with:  sudo apt "
-"install %(package)s"
-msgstr ""
-"Forkert stavede ord markeres med en rød bølget understregning, mens du "
-"skriver. Højreklik på et ord for at åbne et panel med forslag, som kan "
-"anvendes med ét klik; på samme måde kan du føje navne til din personlige "
-"ordbog. Hvis stregerne eller forslagene mangler, kan du installere ordbogen "
-"med:  sudo apt install %(package)s"
-
 msgid "Mobile"
 msgstr "Mobil"
 
@@ -2841,9 +2964,6 @@ msgstr "Måned"
 
 msgid "Month calendar"
 msgstr "Månedskalender"
-
-msgid "Monthly"
-msgstr "Månedligt"
 
 msgid "Monthly view"
 msgstr "Månedsvisning"
@@ -3007,6 +3127,9 @@ msgstr "Næste uge"
 msgid "Next year"
 msgstr "Næste år"
 
+msgid "Nextcloud"
+msgstr "Nextcloud"
+
 msgid "Nextcloud is not enabled."
 msgstr "Nextcloud er ikke aktiveret."
 
@@ -3031,6 +3154,9 @@ msgstr "Ingen KDE Connect-parring afventer bekræftelse."
 msgid "No SMS messages are scheduled."
 msgstr "Der er ingen planlagte SMS'er."
 
+msgid "No Windows dictionary is installed for this language."
+msgstr "Der er ikke installeret en Windows-ordbog til dette sprog."
+
 msgid "No address books found."
 msgstr "Ingen adressebøger fundet."
 
@@ -3049,6 +3175,9 @@ msgstr "Der er ikke planlagt nogen aftale."
 
 msgid "No calendars found."
 msgstr "Ingen kalendere fundet."
+
+msgid "No default voice subscription is available."
+msgstr "Intet standardabonnement til opkald er tilgængeligt."
 
 msgid "No due date"
 msgstr "Ingen forfaldsdato"
@@ -3110,6 +3239,10 @@ msgstr "Ingen telefon er parret endnu."
 msgid "No phone pairing is awaiting confirmation."
 msgstr "Ingen telefonparring afventer bekræftelse."
 
+msgid "No phone was found. Open the phone app and try again."
+msgstr ""
+"Der blev ikke fundet nogen telefon. Åbn appen på telefonen, og prøv igen."
+
 msgid "No photo"
 msgstr "Intet foto"
 
@@ -3150,6 +3283,9 @@ msgstr "Ingen spamkontrol tilgængelig"
 
 msgid "No suggestions found."
 msgstr "Ingen forslag fundet."
+
+msgid "No supported data was found."
+msgstr "Der blev ikke fundet data, som programmet understøtter."
 
 msgid "No system-paired Bluetooth device found"
 msgstr "Der blev ikke fundet nogen systemparret Bluetooth-enhed"
@@ -3270,6 +3406,16 @@ msgstr "Obwalden"
 msgid "Off"
 msgstr "Fra"
 
+msgid ""
+"Off by default. Turning this off pauses pending SMS plans without deleting "
+"them. Enabling resumes them, including overdue plans. Messages already "
+"handed to KDE Connect cannot be recalled."
+msgstr ""
+"Slået fra som standard. Deaktivering sætter ventende planlagte SMS’er på "
+"pause uden at slette dem. Aktivering genoptager dem, også dem hvis tidspunkt "
+"er overskredet. Beskeder, der allerede er overdraget til KDE Connect, kan "
+"ikke kaldes tilbage."
+
 msgid "Offline"
 msgstr "Offline"
 
@@ -3367,6 +3513,17 @@ msgstr ""
 "Under Wayland er kun den pålidelige systemmeddelelse tilgængelig; Magnolies "
 "papirstil ville ofte forblive usynlig der."
 
+msgid ""
+"Only with both devices' explicit consent, Personal Sync shares read-only "
+"Custom tasks and appointments, including their own notes. Text blocks, "
+"linked text and attachments are excluded. Archives restore copies, not "
+"permissions."
+msgstr ""
+"Kun med begge enheders udtrykkelige samtykke deler Personal Sync egne "
+"opgaver og aftaler som skrivebeskyttede kopier, inklusive deres egne noter. "
+"Tekstblokke, tilknyttede tekster og vedhæftninger er udelukket. Arkiver "
+"gendanner kopier, ikke tilladelser."
+
 msgid "Open"
 msgstr "Åbn"
 
@@ -3430,6 +3587,9 @@ msgstr "Åben"
 
 msgid "Open the day in the daily view"
 msgstr "Åbn dagen i dagsvisningen"
+
+msgid "Open the phone connection screen and try again."
+msgstr "Åbn skærmen til telefonforbindelsen, og prøv igen."
 
 msgid ""
 "Open the verified DEB with your software manager; the organizer never "
@@ -3502,6 +3662,9 @@ msgstr "Ægløsning"
 
 msgid "Own internet IP"
 msgstr "Egen internet-IP"
+
+msgid "Own phone number (default voice SIM)"
+msgstr "Mit nummer (standard-SIM til opkald)"
 
 msgid "PDF file"
 msgstr "PDF-fil"
@@ -3582,6 +3745,9 @@ msgstr "Indsæt"
 
 msgid "Patch"
 msgstr "Plaster"
+
+msgid "Paused — review required"
+msgstr "Sat på pause — kræver kontrol"
 
 msgid "Pay invoice"
 msgstr "Betal faktura"
@@ -3671,6 +3837,16 @@ msgstr "Telefonbatteri"
 
 msgid "Phone call"
 msgstr "Telefonopkald"
+
+msgid "Phone connection"
+msgstr "Telefonforbindelse"
+
+msgid "Phone connection cancelled or timed out."
+msgstr ""
+"Tilslutningen til telefonen blev annulleret, eller ventetiden er udløbet."
+
+msgid "Phone connection failed."
+msgstr "Forbindelsen til telefonen mislykkedes."
 
 msgid "Phone error: %(error)s"
 msgstr "Telefonfejl: %(error)s"
@@ -3779,6 +3955,10 @@ msgstr "Pulver"
 
 msgid "Power source"
 msgstr "Strømkilde"
+
+msgid "Prefer PC speakers and microphone for calls on my own Bluetooth phone"
+msgstr ""
+"Foretræk pc-højttalere og mikrofon til opkald på min egen Bluetooth-telefon"
 
 msgid "Preferred backup folder"
 msgstr "Foretrukken mappe til sikkerhedskopier"
@@ -3918,6 +4098,9 @@ msgstr "Gendannelsesøjebliksbilleder"
 msgid "Recycle bin"
 msgstr "Papirkurv"
 
+msgid "Redo"
+msgstr "Gentag"
+
 msgid "Refresh"
 msgstr "Opdatér"
 
@@ -3926,6 +4109,9 @@ msgid ""
 msgstr ""
 "De regionale indstillinger er gemt. Genstart Organizer for at anvende dem "
 "fuldstændigt."
+
+msgid "Regular typeface"
+msgstr "Trykbogstaver"
 
 msgid "Reject"
 msgstr "Afvis"
@@ -3941,12 +4127,6 @@ msgstr "Påmind mig igen på selve dagen"
 
 msgid "Reminder"
 msgstr "Påmindelse"
-
-msgid "Reminder data:"
-msgstr "Påmindelsesdata:"
-
-msgid "Reminder runtime:"
-msgstr "Påmindelse køretid:"
 
 msgid "Reminders"
 msgstr "Påmindelser"
@@ -4090,6 +4270,14 @@ msgstr ""
 "Gendan dette øjebliksbillede helt? Der oprettes først et obligatorisk "
 "øjebliksbillede før gendannelsen."
 
+msgid ""
+"Restored pending plans stay paused until you review and enable each plan. "
+"Restoring contacts, calendar or notes does not change live SMS plans."
+msgstr ""
+"Gendannede ventende planer forbliver på pause, indtil du kontrollerer og "
+"aktiverer hver plan. Gendannelse af kontakter, kalender eller noter ændrer "
+"ikke de aktuelle SMS-planer."
+
 msgid "Restoring backups is available only in the installed application."
 msgstr ""
 "Gendannelse af sikkerhedskopier er kun tilgængelig i det installerede "
@@ -4118,6 +4306,13 @@ msgstr "Henter oplysninger om manuel download …"
 
 msgid "Retrieving weather…"
 msgstr "Henter vejr…"
+
+msgid "Review and enable"
+msgstr "Kontrollér og aktivér"
+
+msgid "Review the exact SMS text for every recipient before confirming."
+msgstr ""
+"Kontrollér den nøjagtige SMS-tekst for hver modtager, før du bekræfter."
 
 msgid "Rhineland-Palatinate"
 msgstr "Rheinland-Pfalz"
@@ -4157,6 +4352,13 @@ msgstr "SMS historie"
 
 msgid "SMS scheduled."
 msgstr "SMS planlagt."
+
+msgid ""
+"SMS scheduling is off. Pending plans are paused. Review them in SMS settings "
+"before enabling scheduling."
+msgstr ""
+"SMS-planlægning er slået fra. Ventende beskeder er sat på pause. Gennemgå "
+"dem i SMS-indstillingerne, før du aktiverer planlægning."
 
 msgid "SMS settings"
 msgstr "SMS indstillinger"
@@ -4258,6 +4460,9 @@ msgstr "Skema"
 msgid "Schleswig-Holstein"
 msgstr "Schleswig-Holstein"
 
+msgid "School holidays are not available for this region."
+msgstr "Skoleferier er ikke tilgængelige for denne region."
+
 msgid "Schwyz"
 msgstr "Schwyz"
 
@@ -4341,6 +4546,9 @@ msgstr "Vælg til venstre, hvad du vil udskrive."
 msgid "Select your canton first or enable “All cantons”."
 msgstr "Vælg først din kanton, eller aktivér „Alle kantoner“."
 
+msgid "Select your phone"
+msgstr "Vælg din telefon"
+
 msgid "Select your state first or enable “All states”."
 msgstr "Vælg først din delstat, eller aktivér „Alle delstater“."
 
@@ -4350,15 +4558,6 @@ msgstr "Vælg, forhåndsvis, udskriv, eksportér eller slet sundhedsoptegnelser"
 msgid ""
 "Selected columns that are empty for every contact are omitted automatically."
 msgstr "Valgte kolonner, der er tomme for alle kontakter, udelades automatisk."
-
-msgid ""
-"Selected imports are started directly after Magnolie opens. Thunderbird "
-"contacts are not offered because Windows has no Thunderbird address-book "
-"importer."
-msgstr ""
-"Valgte importer startes direkte, efter Magnolie er åbnet. Thunderbird-"
-"kontakter tilbydes ikke, fordi Windows ikke har en importfunktion til "
-"Thunderbirds adressebog."
 
 msgid "Selection options"
 msgstr "Valgmuligheder"
@@ -4377,6 +4576,9 @@ msgstr "Send sikker anmodning"
 
 msgid "Sent"
 msgstr "Sendt"
+
+msgid "Server"
+msgstr "Server"
 
 msgid "Server address"
 msgstr "Serveradresse"
@@ -4460,6 +4662,9 @@ msgstr "Vis mere"
 msgid "Show preview"
 msgstr "Vis forhåndsvisning"
 
+msgid "Show school holidays for %(state)s in the calendar?"
+msgstr "Vis skoleferier for %(state)s i kalenderen?"
+
 msgid "Show selected notifications (read only)"
 msgstr "Vis valgte notifikationer (skrivebeskyttet)"
 
@@ -4511,6 +4716,9 @@ msgstr "Logget på Microsoft."
 msgid "Signed out from Microsoft."
 msgstr "Logget ud fra Microsoft."
 
+msgid "Silence this alert"
+msgstr "Dæmp denne besked"
+
 msgid "Skip assistant"
 msgstr "Spring assistenten over"
 
@@ -4545,6 +4753,13 @@ msgstr "Nogle eksisterende sikkerhedskopier kunne ikke dekrypteres."
 
 msgid "Some existing backups could not be encrypted."
 msgstr "Nogle eksisterende sikkerhedskopier kunne ikke krypteres."
+
+msgid ""
+"Some recurrence rules cannot be expanded. Their original calendar data was "
+"preserved."
+msgstr ""
+"For nogle gentagelsesregler kan de enkelte aftaler ikke beregnes. De "
+"oprindelige kalenderdata er bevaret."
 
 msgid "Son"
 msgstr "Søn"
@@ -4594,6 +4809,9 @@ msgstr "Start Magnolie med Windows i meddelelsesområdet (bakke)"
 msgid "Start automatically when signing in"
 msgstr "Start automatisk ved login"
 
+msgid "Start required phone background services automatically"
+msgstr "Start nødvendige baggrundstjenester til telefonen automatisk"
+
 msgid "Start the organizer in the tray"
 msgstr "Start organizeren i panelet"
 
@@ -4605,9 +4823,6 @@ msgstr "Formatområde"
 
 msgid "Status"
 msgstr "Status"
-
-msgid "Storage available / total"
-msgstr "Tilgængelig lagerplads / lagerplads i alt"
 
 msgid "Street / house number"
 msgstr "Gade / husnummer"
@@ -4623,6 +4838,9 @@ msgstr "Gennemstreget"
 
 msgid "Styria"
 msgstr "Steiermark"
+
+msgid "Subject"
+msgstr "Emne"
 
 msgid "Submitted"
 msgstr "Indsendt"
@@ -4641,6 +4859,9 @@ msgstr "Solsymbol"
 
 msgid "Sunday"
 msgstr "Søndag"
+
+msgid "Supported files"
+msgstr "Understøttede filer"
 
 msgid "Suppository"
 msgstr "Stikpille"
@@ -4706,6 +4927,12 @@ msgstr "Synkroniser permanent"
 msgid "Synchronize tasks"
 msgstr "Synkronisér kontakter"
 
+msgid "Synchronize tasks and appointments from the \"%(tab)s\" tab"
+msgstr "Synkroniser opgaver og aftaler fra fanen »%(tab)s«"
+
+msgid "Synchronize tasks and appointments from the custom tab"
+msgstr "Synkroniser opgaver og aftaler fra den brugerdefinerede fane"
+
 msgid "Synchronizing …"
 msgstr "Synkroniserer …"
 
@@ -4739,6 +4966,11 @@ msgstr "Fane %(letter)s · %(count)s"
 
 msgid "Tab name"
 msgstr "Fanenavn"
+
+msgid ""
+"Tab: insert a tab stop. Shift+Tab: previous field. Ctrl+Tab: next field."
+msgstr ""
+"Tab: indsæt et tabulatortegn. Shift+Tab: forrige felt. Ctrl+Tab: næste felt."
 
 msgid "Tablet"
 msgstr "Tablet"
@@ -4784,9 +5016,6 @@ msgstr "Test nu"
 msgid "Testing…"
 msgstr "Tester…"
 
-msgid "Text"
-msgstr "Tekst"
-
 msgid "Text block"
 msgstr "Tekstblok"
 
@@ -4807,15 +5036,6 @@ msgid_plural ""
 "The %(count)s note pages it contains will be moved to “%(notebook)s”."
 msgstr[0] "Den %(count)s noteside, den indeholder, flyttes til „%(notebook)s“."
 msgstr[1] "De %(count)s notesider, den indeholder, flyttes til „%(notebook)s“."
-
-msgid ""
-"The DIN template positions the recipient address for a window envelope, "
-"shows your address as a multiline sender block, and adds two fold marks and "
-"a punch mark."
-msgstr ""
-"DIN-skabelonen placerer modtageradressen til en rudekuvert, viser din "
-"adresse som en afsenderblok med flere linjer og tilføjer to foldemærker og "
-"et hullemærke."
 
 msgid "The KDE Connect device to renew is missing."
 msgstr "KDE Connect-enheden, der skal fornys, mangler."
@@ -4861,14 +5081,36 @@ msgstr ""
 msgid "The Magnolienbaum is available only in the installed application."
 msgstr "Magnolienbaum er kun tilgængelig i det installerede program."
 
+msgid "The Nextcloud operation failed."
+msgstr "Handlingen i Nextcloud mislykkedes."
+
+msgid "The Nextcloud request timed out."
+msgstr "Ventetiden for Nextcloud-anmodningen er udløbet."
+
+msgid "The Nextcloud response was incomplete."
+msgstr "Svaret fra Nextcloud var ufuldstændigt."
+
+msgid "The Nextcloud settings are invalid."
+msgstr "Nextcloud-indstillingerne er ugyldige."
+
 msgid "The ODS export is too large."
 msgstr "ODS-eksporten er for stor."
 
 msgid "The Organizer chooses a suitable installed application."
 msgstr "Organizeren vælger et egnet installeret program."
 
+msgid "The SMS submission journal is full. No message was sent."
+msgstr "Loggen over SMS-afsendelser er fuld. Ingen besked blev sendt."
+
 msgid "The address could not be opened."
 msgstr "Adressen kunne ikke åbnes."
+
+msgid ""
+"The address is too long for the letter's address field. Shorten the return "
+"address or recipient, or choose the compact template."
+msgstr ""
+"Adressen er for lang til brevets adressefelt. Forkort afsenderadressen eller "
+"modtageroplysningerne, eller vælg den kompakte skabelon."
 
 msgid ""
 "The archive contains the complete application data. The password is "
@@ -4922,6 +5164,9 @@ msgstr ""
 "Påmindelsestjenesten i baggrunden må læse de separate påmindelsesdata og "
 "fungerer derfor, selv når organizeren er lukket."
 
+msgid "The background settings could not be saved."
+msgstr "Indstillingerne for baggrundsaktivitet kunne ikke gemmes."
+
 msgid "The backup chooser will open after Magnolie has started."
 msgstr "Valg af sikkerhedskopi åbnes, når Magnolie er startet."
 
@@ -4951,6 +5196,9 @@ msgstr ""
 "Knappen i den nederste bjælke åbner markeringen for den sektion, du har "
 "åben. Derfra kan de markerede poster udskrives, eksporteres eller flyttes "
 "til papirkurven."
+
+msgid "The call action expired or is no longer permitted."
+msgstr "Opkaldshandlingen er udløbet eller er ikke længere tilladt."
 
 msgid "The call is no longer active or has been updated."
 msgstr "Opkaldet er ikke længere aktivt eller er blevet opdateret."
@@ -5235,8 +5483,14 @@ msgstr "Den personlige synkroniseringskørsel er udløbet."
 msgid "The phone connection is available only in the installed application."
 msgstr "Telefonforbindelsen er kun tilgængelig i det installerede program."
 
+msgid "The phone connection was not authenticated."
+msgstr "Telefonens identitet blev ikke bekræftet for denne forbindelse."
+
 msgid "The phone function is not permitted or available."
 msgstr "Telefonfunktionen er ikke tilladt eller tilgængelig."
+
+msgid "The phone is no longer connected."
+msgstr "Telefonen er ikke længere forbundet."
 
 msgid "The phone is not connected via WLAN."
 msgstr "Telefonen er ikke forbundet via WLAN."
@@ -5247,6 +5501,9 @@ msgstr "Telefonen er ikke parret."
 msgid "The phone is reachable, but its KDE Connect trust no longer matches."
 msgstr ""
 "Telefonen kan nås, men dens KDE Connect-tillid stemmer ikke længere overens."
+
+msgid "The phone listener could not start."
+msgstr "Tjenesten, der modtager forbindelser fra telefonen, kunne ikke starte."
 
 msgid "The phone operation failed."
 msgstr "Telefonhandlingen mislykkedes."
@@ -5261,6 +5518,9 @@ msgstr ""
 msgid "The phone settings are damaged."
 msgstr "Telefonindstillingerne er beskadigede."
 
+msgid "The phone settings could not be read."
+msgstr "Telefonindstillingerne kunne ikke læses."
+
 msgid "The phone was not specified."
 msgstr "Telefonen var ikke angivet."
 
@@ -5272,6 +5532,12 @@ msgstr "Fotoet er større end 8 megabyte."
 
 msgid "The port must be between 1 and 65535."
 msgstr "Porten skal være mellem 1 og 65535."
+
+msgid ""
+"The profile could not be locked. It may already be open in another session."
+msgstr ""
+"Profilen kunne ikke låses til brug her. Den er muligvis allerede åben i en "
+"anden session."
 
 msgid "The public address could not be determined."
 msgstr "Den offentlige adresse kunne ikke bestemmes."
@@ -5328,12 +5594,21 @@ msgid "The selected health records contain no printable values."
 msgstr ""
 "De valgte sundhedsoptegnelser indeholder ingen værdier, der kan udskrives."
 
+msgid "The selected phone changed. Try again."
+msgstr "Den valgte telefon er ændret. Prøv igen."
+
 msgid ""
 "The server operator can see the account, folder and file names, sizes and "
 "times of your messages."
 msgstr ""
 "Serverudbyderen kan se konto, mappe- og filnavne, størrelser og tidspunkter "
 "for dine beskeder."
+
+msgid "The server response is too large."
+msgstr "Svaret fra serveren er for stort."
+
+msgid "The service returned no entries for this selection."
+msgstr "Tjenesten returnerede ingen poster for dette valg."
 
 msgid "The setup state could not be saved."
 msgstr "Opsætningstilstanden kunne ikke gemmes."
@@ -5497,6 +5772,16 @@ msgstr ""
 "Dette valg bestemmer også, hvordan navne vises på kontaktkort, og under "
 "hvilket bogstav de arkiveres i indekset."
 
+msgid "This contact card has no postal address."
+msgstr "Dette kontaktkort har ingen postadresse."
+
+msgid "This device does not support synchronization of the custom tab."
+msgstr ""
+"Denne enhed understøtter ikke synkronisering af den brugerdefinerede fane."
+
+msgid "This device identifier is unavailable."
+msgstr "Denne enhedsidentifikator er utilgængelig."
+
 msgid "This dial request has already been queued."
 msgstr "Denne opkaldsanmodning er allerede sat i kø."
 
@@ -5524,6 +5809,9 @@ msgid ""
 msgstr ""
 "Sådan ser dine noter ud: <b>fed</b>, <i>kursiv</i>, <u>understreget</u> og "
 "<s>gennemstreget</s>."
+
+msgid "This is my own phone"
+msgstr "Dette er min egen telefon"
 
 msgid ""
 "This is one occurrence of a recurring appointment. Changes apply to all "
@@ -5568,6 +5856,9 @@ msgstr "Denne parrede telefon er min egen enhed"
 msgid "This person's anniversaries"
 msgstr "Denne persons mærkedage"
 
+msgid "This phone transport is unavailable."
+msgstr "Denne forbindelsesmåde til telefonen er ikke tilgængelig."
+
 msgid ""
 "This program is free software: you may redistribute and modify it. It is "
 "published in the hope that it will be useful, but without any warranty."
@@ -5593,6 +5884,12 @@ msgstr "Denne opgave kom fra „%(branch)s“."
 
 msgid "Through"
 msgstr "Til og med"
+
+msgid "Thunderbird"
+msgstr "Thunderbird"
+
+msgid "Thunderbird profile version"
+msgstr "Version af Thunderbird-profilen"
 
 msgid "Thurgau"
 msgstr "Thurgau"
@@ -5647,6 +5944,9 @@ msgstr "For mange mislykkede forsøg. Vent et øjeblik."
 
 msgid "Too many regions were selected."
 msgstr "Der blev valgt for mange regioner."
+
+msgid "Too many unfinished synchronization runs."
+msgstr "Der er for mange uafsluttede synkroniseringer."
 
 msgid "Top level"
 msgstr "Øverste niveau"
@@ -5705,6 +6005,9 @@ msgstr ""
 
 msgid "Underline"
 msgstr "Understregning"
+
+msgid "Undo"
+msgstr "Fortryd"
 
 msgid "Unit"
 msgstr "Enhed"
@@ -5819,6 +6122,9 @@ msgstr "Brug papirkurven"
 msgid "User name"
 msgstr "Brugernavn"
 
+msgid "Username"
+msgstr "Brugernavn"
+
 msgid ""
 "Uses its own identity and storage and listens only on fixed port %(port)s. "
 "It never uses Magnolienbaum partners, permissions, queues or Bluetooth "
@@ -5908,6 +6214,12 @@ msgstr ""
 msgid "WLAN listener on port %(port)s"
 msgstr "WLAN lytter på port %(port)s"
 
+msgid "Wait for personal synchronization to finish before restoring."
+msgstr "Vent med at gendanne, til den personlige synkronisering er færdig."
+
+msgid "Waiting for authenticated phone connection..."
+msgstr "Venter på en telefonforbindelse med bekræftet identitet..."
+
 msgid "Waiting for consent on the other device."
 msgstr "Venter på samtykke på den anden enhed."
 
@@ -5965,6 +6277,11 @@ msgstr ""
 
 msgid "Weather temperature"
 msgstr "Vejrtemperatur"
+
+msgid ""
+"Weather uses HTTPS first, then unencrypted HTTP if necessary. If wttr.in "
+"fails and a location is known, Open-Meteo is tried."
+msgstr "Vejret hentes først via HTTPS og om nødvendigt via ukrypteret HTTP. Hvis wttr.in ikke virker, og et sted er kendt, forsøges Open-Meteo."
 
 msgid "Weather was not retrieved because no location is available."
 msgstr ""
@@ -6057,6 +6374,26 @@ msgstr "Hustru"
 msgid "Windows Contacts folder"
 msgstr "Windows Kontakter mappe"
 
+msgid ""
+"Windows marks misspelled words with red wavy lines. Right-click a word for "
+"suggestions or to add it to your personal dictionary. Magnolie requests "
+"German suggestions for a German interface and English suggestions otherwise. "
+"If suggestions are missing, open Windows Settings, Time & language, Language "
+"& region, then the language options for German or English, and install Basic "
+"typing. Dictionary availability depends on the installed Windows language "
+"features."
+msgstr ""
+"Windows markerer forkert stavede ord med røde bølgelinjer. Højreklik på et "
+"ord for at få forslag eller føje det til din personlige ordbog. Magnolie "
+"anmoder om tyske forslag ved tysk brugerflade og ellers engelske forslag. "
+"Hvis forslag mangler, skal du åbne Windows-indstillinger, Tid og sprog, "
+"Sprog og område, derefter sprogindstillingerne for tysk eller engelsk og "
+"installere grundlæggende indtastning. Tilgængelige ordbøger afhænger af de "
+"installerede sprogfunktioner i Windows."
+
+msgid "Windows spell checking is available only on Windows."
+msgstr "Windows-stavekontrol er kun tilgængelig på Windows."
+
 msgid "Wireless"
 msgstr "Trådløst"
 
@@ -6114,6 +6451,9 @@ msgstr "Skriv her …"
 msgid "Writing sheet"
 msgstr "Skriveark"
 
+msgid "Wrong Bluetooth device."
+msgstr "Forkert Bluetooth-enhed."
+
 msgid "X (formerly Twitter)"
 msgstr "X (tidligere Twitter)"
 
@@ -6157,12 +6497,18 @@ msgstr ""
 msgid "Your data is stored at: %(path)s"
 msgstr "Dine data gemmes i: %(path)s"
 
+msgid "Your letter"
+msgstr "Dit brev"
+
 msgid ""
 "Your own address is required as the starting point for a route. Enter it "
 "under Settings ▸ Contacts."
 msgstr ""
 "Din egen adresse er nødvendig som startpunkt for en rute. Indtast den under "
 "Indstillinger ▸ Kontakter."
+
+msgid "Yours sincerely,"
+msgstr "Med venlig hilsen"
 
 msgid "Zug"
 msgstr "Zug"
@@ -6227,7 +6573,7 @@ msgid "blood-glucose"
 msgstr "blood-glucose"
 
 msgid "browser storage"
-msgstr "browser storage"
+msgstr "browserlager"
 
 msgid "confidential"
 msgstr "fortrolig"
@@ -6456,6 +6802,9 @@ msgstr "uden titel"
 msgid "vCard (.vcf), including iPhone/iCloud export …"
 msgstr "vCard (.vcf), inklusive eksport fra iPhone/iCloud …"
 
+msgid "vCard / iPhone / iCloud"
+msgstr "vCard / iPhone / iCloud"
+
 msgid "vCard file (.vcf), including iPhone/iCloud export …"
 msgstr "vCard-fil (.vcf), inklusive eksport fra iPhone/iCloud …"
 
@@ -6545,6 +6894,125 @@ msgstr[1] "… og %(count)s elementer mere, som også bliver udskrevet."
 
 msgid "＋ Add appointment"
 msgstr "＋ Tilføj aftale"
+
+#~ msgid "As usual (print)"
+#~ msgstr "Som normalt (udskrivning)"
+
+#~ msgid ""
+#~ "Misspelled words are marked with a red wavy underline while you type. "
+#~ "Right-clicking a word opens a sheet with suggestions that can be applied "
+#~ "with one click; you can add names to your personal dictionary in the same "
+#~ "way. If the lines or suggestions are missing, install the dictionary "
+#~ "with:  sudo apt install %(package)s"
+#~ msgstr ""
+#~ "Forkert stavede ord markeres med en rød bølget understregning, mens du "
+#~ "skriver. Højreklik på et ord for at åbne et panel med forslag, som kan "
+#~ "anvendes med ét klik; på samme måde kan du føje navne til din personlige "
+#~ "ordbog. Hvis stregerne eller forslagene mangler, kan du installere "
+#~ "ordbogen med:  sudo apt install %(package)s"
+
+#~ msgid "Magnolienbaum restart:"
+#~ msgstr "Magnolienbaum genstart:"
+
+#~ msgid "Reminder data:"
+#~ msgstr "Påmindelsesdata:"
+
+#~ msgid "Reminder runtime:"
+#~ msgstr "Påmindelse køretid:"
+
+#~ msgid ""
+#~ "Both devices must opt in. Turning this off pauses Custom reminders and "
+#~ "updates but keeps copies. Linked text blocks are not shared."
+#~ msgstr ""
+#~ "Begge enheder skal give samtykke. Deaktivering sætter egne påmindelser og "
+#~ "opdateringer på pause, men bevarer kopierne. Tilknyttede tekstblokke "
+#~ "deles ikke."
+
+#~ msgid "Memory available / total"
+#~ msgstr "Tilgængelig hukommelse / hukommelse i alt"
+
+#~ msgid "Storage available / total"
+#~ msgstr "Tilgængelig lagerplads / lagerplads i alt"
+
+#~ msgid "Synchronize Custom tasks and appointments"
+#~ msgstr "Synkroniser egne opgaver og aftaler"
+
+#~ msgid "This device does not support Custom synchronization."
+#~ msgstr "Denne enhed understøtter ikke synkronisering af eget indhold."
+
+#~ msgid ""
+#~ "Your address forms a single return line above the recipient in the same "
+#~ "left-hand address field. No sender is added if this field is empty."
+#~ msgstr ""
+#~ "Din adresse står som én afsenderlinje over modtageren i det samme "
+#~ "adressefelt til venstre. Der tilføjes ingen afsender, hvis dette felt er "
+#~ "tomt."
+
+#~ msgid ""
+#~ "Custom content is saved locally and transferred through complete Magnolie "
+#~ "archives only, not Personal Sync."
+#~ msgstr ""
+#~ "Brugerdefineret indhold gemmes lokalt og overføres kun via komplette "
+#~ "Magnolie-arkiver, ikke via Personal Sync."
+
+#~ msgid ""
+#~ "Choose file and Windows contact imports that Magnolie can start directly "
+#~ "after opening."
+#~ msgstr ""
+#~ "Vælg de fil- og Windows-kontaktimporter, som Magnolie kan starte direkte "
+#~ "efter åbning."
+
+#~ msgid "Compact sender line (default)"
+#~ msgstr "Kompakt afsenderlinje (standard)"
+
+#~ msgid ""
+#~ "In the DIN template, these lines appear as a multiline sender block and "
+#~ "in small type in the address window. In the compact template, they form "
+#~ "one line above the recipient address. No sender is added if this field is "
+#~ "empty."
+#~ msgstr ""
+#~ "I DIN-skabelonen vises disse linjer som en afsenderblok med flere linjer "
+#~ "og med lille skrift i adressevinduet. I den kompakte skabelon danner de "
+#~ "én linje over modtagerens adresse. Der tilføjes ingen afsender, hvis "
+#~ "feltet er tomt."
+
+#~ msgid "Monthly"
+#~ msgstr "Månedligt"
+
+#~ msgid ""
+#~ "The DIN template positions the recipient address for a window envelope, "
+#~ "shows your address as a multiline sender block, and adds two fold marks "
+#~ "and a punch mark."
+#~ msgstr ""
+#~ "DIN-skabelonen placerer modtageradressen til en rudekuvert, viser din "
+#~ "adresse som en afsenderblok med flere linjer og tilføjer to foldemærker "
+#~ "og et hullemærke."
+
+#~ msgid "%(count)s recurring appointment imported only once."
+#~ msgid_plural "%(count)s recurring appointments imported only once."
+#~ msgstr[0] "%(count)s tilbagevendende aftale kun importeret én gang."
+#~ msgstr[1] "%(count)s tilbagevendende aftaler kun importeret én gang."
+
+#~ msgid "Magnolienbaum quarantine:"
+#~ msgstr "Magnolienbaum karantæne:"
+
+#~ msgid ""
+#~ "Evolution and Thunderbird are selected explicitly. iPhone contacts "
+#~ "require a vCard export from the iPhone or iCloud. KDE Connect, Bluetooth "
+#~ "and PBAP are not contact sources."
+#~ msgstr ""
+#~ "Evolution og Thunderbird vælges eksplicit. iPhone-kontakter kræver en "
+#~ "vCard-eksport fra iPhone eller iCloud. KDE Connect, Bluetooth og PBAP er "
+#~ "ikke kontaktkilder."
+
+#~ msgid ""
+#~ "Selected imports are started directly after Magnolie opens. Thunderbird "
+#~ "contacts are not offered because Windows has no Thunderbird address-book "
+#~ "importer."
+#~ msgstr ""
+#~ "Valgte importer startes direkte, efter Magnolie er åbnet. Thunderbird-"
+#~ "kontakter tilbydes ikke, fordi Windows ikke har en importfunktion til "
+#~ "Thunderbirds adressebog."
 
 #~ msgid ""
 #~ "Download Magnolie Notes or KDE Connect using the links below. Bluetooth "
@@ -6712,3 +7180,19 @@ msgstr "＋ Tilføj aftale"
 #~ "automatically."
 #~ msgstr ""
 #~ "Når grænsen sænkes, fjernes de ældste gendannelsespunkter automatisk."
+
+#~ msgid "Share own phone identifiers"
+#~ msgstr "Del min telefons identifikatorer"
+
+#~ msgid ""
+#~ "Only on request from your own paired computer, for 60 seconds, without "
+#~ "saving: the default voice SIM number and, if Android permits, serial "
+#~ "number and IMEI. Android 10 and later restrict hardware identifiers for "
+#~ "ordinary apps. Phone-number permission is optional; no special role is "
+#~ "requested."
+#~ msgstr ""
+#~ "Kun efter anmodning fra din egen parrede computer, i 60 sekunder, uden at "
+#~ "gemme: nummeret på standard-SIM til opkald og, hvis Android tillader det, "
+#~ "serienummer og IMEI. Fra Android 10 er hardwareidentifikatorer begrænset "
+#~ "for almindelige apps. Tilladelse til nummeret er valgfri; ingen særlig "
+#~ "rolle anmodes."

@@ -1,5 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="baum_postfach_unsicher">未验证的投递：%1$d。消息仍已保存，自动重发已暂停。请核实对方是否收到；旧设备可能不支持经过验证的回执。</string>
+    <string name="telefon_bluetooth_setup">通过蓝牙（Bluetooth）配对新的 Organizer</string>
+    <string name="telefon_bluetooth_setup_hinweis">请保持此屏幕打开。在 Organizer 中选择此手机，确认系统配对，然后比较两台设备上的验证码。</string>
     <string name="freigabe_ziel">保存到 Magnolie Notes</string>
     <string name="blatt_notizen">笔记</string>
     <string name="blatt_einfuhr">导入</string>
@@ -300,7 +303,7 @@
     <string name="start_laden">正在打开受保护的数据…</string><string name="start_fehler_titel">无法打开受保护的数据</string><string name="start_daten_unveraendert">您的数据未被删除或覆盖。您可以安全地重试。</string><string name="start_erneut">重试</string><string name="start_schliessen">关闭应用</string>
     <string name="absturzbericht_teilen">分享崩溃报告</string>
     <string name="journal_maximum">恢复点</string>
-    <string name="journal_maximum_hinweis">降低数量限制时，最旧的恢复点会自动删除。</string>
+    <string name="journal_maximum_hinweis">降低数量限制时，会删除最旧的未受保护恢复点。受保护的恢复点会保留。</string>
     <string name="portable_titel">便携式备份</string><string name="portable_hinweis">创建或恢复一个独立的密码保护归档，其中包含笔记、笔记本、任务、回收站和附件。</string><string name="portable_export">创建便携式备份</string><string name="portable_datei_oeffnen">打开便携式备份</string><string name="portable_restore">恢复备份</string><string name="portable_passwort">密码</string><string name="portable_passwort_hinweis">请输入归档密码。检查备份时不会更改任何内容。</string><string name="portable_pruefen">检查并预览</string><string name="portable_vorschau">备份预览</string><string name="portable_vorschau_text">%1$d 条笔记 · %2$d 个笔记本 · %3$d 个任务 · %4$d 个回收站项目</string><string name="portable_restore_warnung">这将替换当前的所有个人内容。系统会先创建本地安全快照；此设备的 Magnolienbaum 身份将保留。</string><string name="portable_fehler">无法打开备份。请检查文件和密码。</string><string name="portable_exportiert">便携式备份已创建。</string><string name="portable_wiederhergestellt">便携式备份已恢复。</string>
     <string name="auto_backup_titel">自动备份到云文件夹</string>
     <string name="auto_backup_hinweis">可选择将经过验证的便携备份保存到通过 Android 选择的文件夹。存储提供方可同步该文件夹。</string>
@@ -328,4 +331,27 @@
     <string name="aufgabe_zur_wurzel">移至顶层</string>
     <string name="aufgabe_eltern_waehlen">选择父任务</string>
     <string name="aufgabe_oberste_ebene">顶层</string>
+    <string name="baum_kontakt_jubilaeum">纪念日</string>
+    <string name="baum_kontakt_update">如需一并传输纪念日，请更新两台设备上的 Magnolie，打开两端应用后重试。本次未发送任何联系人。</string>
+    <string name="baum_aufgabe_nicht_freigegeben">此任务尚未与这台设备共享。</string>
+    <string name="baum_kontakt_import_nicht_unterstuetzt">请使用联系人同步功能将联系人发送到这台设备。</string>
+    <string name="aufgabe_nach_oben">上移任务</string>
+    <string name="aufgabe_nach_unten">下移任务</string>
+    <string name="personal_custom_optin">同步自定义选项卡中的任务和日程</string>
+    <string name="personal_custom_title">自定义选项卡中的任务和日程（只读）</string>
+    <string name="personal_custom_explanation">两台设备都必须明确同意。关闭此选项会暂停自定义选项卡中的提醒和更新，但保留副本。关联的文本块不会共享。</string>
+    <string name="personal_custom_unsupported">此设备不支持同步自定义选项卡。</string>
+    <string name="personal_custom_delete">源项目已删除：删除此手机副本还是保留？电脑上的源数据绝不会被更改。</string>
+    <string name="personal_custom_keep">保留副本</string>
+    <string name="personal_custom_privacy">只有两台设备都明确同意，Personal Sync 才会以只读方式共享自定义任务和日程，包括条目自身的备注。文本块、关联文本和附件不在共享范围内。归档恢复副本，不恢复权限。</string>
+    <string name="device_identifiers_share">共享本机标识符</string>
+    <string name="device_identifiers_explanation">仅应自己已配对电脑的请求显示 60 秒，不保存：默认语音 SIM 的号码，以及 Android 允许时的序列号和 IMEI。Android 10 及更高版本限制普通应用访问硬件标识符。电话号码权限为可选项；不会请求特殊角色。</string>
+    <string name="device_identifiers_phone">本机号码（默认语音 SIM）</string>
+    <string name="device_identifiers_serial">设备序列号</string>
+    <string name="device_identifiers_imei">设备 IMEI</string>
+    <string name="device_identifiers_off">设备标识符共享已关闭。</string>
+    <string name="device_identifiers_permission">缺少设备标识符权限。</string>
+    <string name="device_identifiers_restricted">Android 限制访问此设备标识符。</string>
+    <string name="device_identifiers_subscription">没有可用的默认语音订阅。</string>
+    <string name="device_identifiers_unavailable">此设备标识符不可用。</string>
 </resources>

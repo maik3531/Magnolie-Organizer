@@ -62,7 +62,7 @@ object KontaktPruefung {
     }
 
     fun name(k: KontaktDaten): String = listOf(k.vorname, k.nachname).filter(String::isNotBlank)
-        .joinToString(" ").ifBlank { k.firma.ifBlank { "?" } }
+        .joinToString(" ").ifBlank { k.anzeigename.ifBlank { k.firma.ifBlank { "?" } } }
     private fun telefon(s: String) = s.filter(Char::isDigit).trimStart('0')
     private fun JsonObject.text(n: String) = this[n]?.jsonPrimitive?.contentOrNull.orEmpty()
     private fun JsonObject.long(n: String) = this[n]?.jsonPrimitive?.longOrNull

@@ -1,5 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="baum_postfach_unsicher">Consegne non verificate: %1$d. I messaggi restano salvati e il reinvio automatico è sospeso. Controlla la ricezione; i dispositivi meno recenti potrebbero non supportare le ricevute verificate.</string>
+    <string name="telefon_bluetooth_setup">Associa un nuovo Organizer tramite Bluetooth</string>
+    <string name="telefon_bluetooth_setup_hinweis">Tieni aperta questa schermata. Seleziona questo telefono in Organizer, conferma l’associazione di sistema e confronta il codice sui due dispositivi.</string>
     <string name="freigabe_ziel">Salva in Magnolie Notes</string>
 
     <string name="blatt_notizen">Note</string>
@@ -337,7 +340,7 @@
     <string name="start_laden">Apertura dei dati protetti…</string><string name="start_fehler_titel">Impossibile aprire i dati protetti</string><string name="start_daten_unveraendert">I tuoi dati non sono stati eliminati né sovrascritti. Puoi riprovare in sicurezza.</string><string name="start_erneut">Riprova</string><string name="start_schliessen">Chiudi applicazione</string>
     <string name="absturzbericht_teilen">Condividi rapporto di arresto anomalo</string>
     <string name="journal_maximum">Punti di ripristino</string>
-    <string name="journal_maximum_hinweis">Quando il limite viene ridotto, i punti di ripristino più vecchi vengono rimossi automaticamente.</string>
+    <string name="journal_maximum_hinweis">Riducendo il limite, vengono rimossi i punti di ripristino non protetti più vecchi. Quelli protetti vengono conservati.</string>
     <string name="portable_titel">Backup portatile</string><string name="portable_hinweis">Crea o ripristina un archivio separato protetto da password con note, taccuini, attività, cestino e allegati.</string><string name="portable_export">Crea backup portatile</string><string name="portable_datei_oeffnen">Apri backup portatile</string><string name="portable_restore">Ripristina backup</string><string name="portable_passwort">Password</string><string name="portable_passwort_hinweis">Inserisci la password dell’archivio. Durante la verifica non viene modificato nulla.</string><string name="portable_pruefen">Verifica e mostra anteprima</string><string name="portable_vorschau">Anteprima del backup</string><string name="portable_vorschau_text">%1$d note · %2$d taccuini · %3$d attività · %4$d elementi nel cestino</string><string name="portable_restore_warnung">Questa operazione sostituisce tutti i contenuti personali correnti. Prima viene creata un’istantanea di sicurezza locale; l’identità Magnolienbaum del dispositivo viene conservata.</string><string name="portable_fehler">Impossibile aprire il backup. Controlla il file e la password.</string><string name="portable_exportiert">Backup portatile creato.</string><string name="portable_wiederhergestellt">Backup portatile ripristinato.</string>
     <string name="auto_backup_titel">Backup automatico nella cartella cloud</string>
     <string name="auto_backup_hinweis">Salva facoltativamente backup portatili autenticati in una cartella scelta tramite Android. Il provider può sincronizzarla.</string>
@@ -365,4 +368,27 @@
     <string name="aufgabe_zur_wurzel">Al livello superiore</string>
     <string name="aufgabe_eltern_waehlen">Scegli attività principale</string>
     <string name="aufgabe_oberste_ebene">Livello superiore</string>
+    <string name="baum_kontakt_jubilaeum">Anniversario</string>
+    <string name="baum_kontakt_update">Per includere gli anniversari, aggiorna Magnolie su entrambi i dispositivi, apri entrambe le app e riprova. Nessun contatto è stato inviato in questo tentativo.</string>
+    <string name="baum_aufgabe_nicht_freigegeben">Questa attività non è stata condivisa con questo dispositivo.</string>
+    <string name="baum_kontakt_import_nicht_unterstuetzt">Usa la sincronizzazione dei contatti per inviare contatti a questo dispositivo.</string>
+    <string name="aufgabe_nach_oben">Sposta l’attività in alto</string>
+    <string name="aufgabe_nach_unten">Sposta l’attività in basso</string>
+    <string name="personal_custom_optin">Sincronizza attività e appuntamenti della scheda personalizzata</string>
+    <string name="personal_custom_title">Attività e appuntamenti della scheda personalizzata (sola lettura)</string>
+    <string name="personal_custom_explanation">Entrambi i dispositivi devono acconsentire. Disattivando questa opzione si sospendono promemoria e aggiornamenti della scheda personalizzata, ma si conservano le copie. I blocchi di testo collegati non vengono condivisi.</string>
+    <string name="personal_custom_unsupported">Questo dispositivo non supporta la sincronizzazione della scheda personalizzata.</string>
+    <string name="personal_custom_delete">Eliminato all’origine: eliminare questa copia dal telefono o conservarla? L’origine sul computer non viene mai modificata.</string>
+    <string name="personal_custom_keep">Conserva copia</string>
+    <string name="personal_custom_privacy">Solo con il consenso esplicito di entrambi i dispositivi, Personal Sync condivide attività e appuntamenti personalizzati in sola lettura, incluse le proprie note. Blocchi di testo, testi collegati e allegati sono esclusi. Gli archivi ripristinano copie, non autorizzazioni.</string>
+    <string name="device_identifiers_share">Condividi gli identificativi del mio telefono</string>
+    <string name="device_identifiers_explanation">Solo su richiesta del proprio computer associato, per 60 secondi, senza salvare: il numero della SIM vocale predefinita e, se Android lo consente, numero di serie e IMEI. Da Android 10 gli identificativi hardware sono limitati per le app ordinarie. Il permesso per il numero è facoltativo; non viene richiesto alcun ruolo speciale.</string>
+    <string name="device_identifiers_phone">Il mio numero (SIM vocale predefinita)</string>
+    <string name="device_identifiers_serial">Numero di serie del dispositivo</string>
+    <string name="device_identifiers_imei">IMEI del dispositivo</string>
+    <string name="device_identifiers_off">La condivisione degli identificativi è disattivata.</string>
+    <string name="device_identifiers_permission">Manca il permesso per gli identificativi.</string>
+    <string name="device_identifiers_restricted">Android limita questo identificativo.</string>
+    <string name="device_identifiers_subscription">Nessun abbonamento vocale predefinito disponibile.</string>
+    <string name="device_identifiers_unavailable">Questo identificativo non è disponibile.</string>
 </resources>

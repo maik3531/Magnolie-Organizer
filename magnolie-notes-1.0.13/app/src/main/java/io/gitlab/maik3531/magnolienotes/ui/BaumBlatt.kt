@@ -3,6 +3,9 @@ package io.gitlab.maik3531.magnolienotes.ui
 import androidx.compose.foundation.background
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.focusable
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -23,12 +26,17 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.key
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -55,6 +63,7 @@ import io.gitlab.maik3531.magnolienotes.baum.KontaktImportVorschau
 import io.gitlab.maik3531.magnolienotes.telefon.TelefonUiZustand
 import io.gitlab.maik3531.magnolienotes.telefon.TelefonVerbindungsstatus
 import io.gitlab.maik3531.magnolienotes.telefon.GefundenerDesktop
+import kotlinx.serialization.json.*
 
 /** Alles, was das Baumblatt an Handlungen anbietet. */
 class Baumhandlungen(
@@ -111,18 +120,24 @@ class Telefonhandlungen(
     val beiBenachrichtigungszugriff: () -> Unit,
     val beiBenachrichtigungsApp: (String) -> Unit,
     val beiPersonalEigen: (Boolean) -> Unit,
+    val beiIdentifierSharing: (Boolean) -> Unit,
     val beiPersonalNotizen: (Boolean) -> Unit,
     val beiPersonalAufgaben: (Boolean) -> Unit,
     val beiPersonalAutoWlan: (Boolean) -> Unit,
     val beiPersonalLoeschungen: (Boolean) -> Unit,
     val beiPersonalJetzt: () -> Unit,
-    val beiPersonalEntscheidung: (String, String) -> String
+    val beiPersonalEntscheidung: (String, String) -> String,
+    val beiCustomSync: (Boolean) -> Unit,
+    val beiCustomEntscheidung: (String, Long, Boolean) -> Unit
 )
 
 @Composable
+@OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
 fun BaumBlatt(
     zustand: Baumzustand,
     bestand: Bestand,
+    customFokus: String?,
+    beiCustomFokus: () -> Unit,
     fingerabdruck: String,
     gefunden: List<Gefunden>,
     bluetoothGeraete: List<BluetoothZiel>,
@@ -144,6 +159,24 @@ fun BaumBlatt(
     var personalRemember by remember { mutableStateOf(false) }
     var massDecision by remember { mutableStateOf<Pair<String, List<PersonalDeletionProposal>>?>(null) }
     var changedDelete by remember { mutableStateOf<PersonalDeletionProposal?>(null) }
+    var customDelete by remember { mutableStateOf<Pair<String, Long>?>(null) }
+
+    customDelete?.let { (id, revision) ->
+        AlertDialog(onDismissRequest = { customDelete = null },
+            title = { Text(stringResource(R.string.personal_custom_title)) },
+            text = { Column {
+                Text(stringResource(R.string.personal_custom_delete))
+                bestand.personalCustom.items[id]?.let { item ->
+                    item.record["value"]?.jsonObject?.get("title")?.jsonPrimitive?.content?.let { Text(it) }
+                    if (item.deletion?.get("prior_hash") != item.record["hash"])
+                        Text(stringResource(R.string.personal_sync_geaendert_titel), fontWeight = FontWeight.Bold)
+                }
+            } },
+            confirmButton = { TextButton(onClick = { telefonHandlungen.beiCustomEntscheidung(id, revision, true); customDelete = null }) {
+                Text(stringResource(R.string.loeschen)) } },
+            dismissButton = { TextButton(onClick = { telefonHandlungen.beiCustomEntscheidung(id, revision, false); customDelete = null }) {
+                Text(stringResource(R.string.personal_custom_keep)) } })
+    }
 
     fun applyPersonal(decision: String, proposals: List<PersonalDeletionProposal>) {
         proposals.forEach { telefonHandlungen.beiPersonalEntscheidung(it.proposal_id, decision) }
@@ -188,6 +221,10 @@ fun BaumBlatt(
             }
             Wertzeile(stringResource(R.string.telefon_status), verbindungsstatus)
             if (telefon.enabled && telefon.peer == null) {
+                if (telefon.connection != TelefonVerbindungsstatus.CODE_PENDING)
+                    io.gitlab.maik3531.magnolienotes.telefon.TelefonEinladungsDialog(telefonHandlungen.beiVerbinden)
+                if (telefon.connection != TelefonVerbindungsstatus.CODE_PENDING)
+                    io.gitlab.maik3531.magnolienotes.telefon.TelefonBluetoothSetupDialog()
                 telefon.found.forEach { desktop ->
                     Lederknopf(stringResource(R.string.telefon_verbinden,
                         desktop.name.ifBlank { desktop.deviceId }), modifier = Modifier.fillMaxWidth()) {
@@ -277,10 +314,25 @@ fun BaumBlatt(
                 fontWeight = FontWeight.Bold, color = Magnolie.braun)
             Schalterzeile(stringResource(R.string.personal_sync_eigen), telefon.personalOwnDevice,
                 telefonHandlungen.beiPersonalEigen)
+            if (telefon.personalOwnDevice) {
+                Schalterzeile(stringResource(R.string.device_identifiers_share), telefon.peer?.identifier_sharing_enabled == true,
+                    telefonHandlungen.beiIdentifierSharing)
+                Text(stringResource(R.string.device_identifiers_explanation), fontSize = 12.sp)
+            }
             Schalterzeile(stringResource(R.string.personal_sync_notizen), telefon.personalNotesEnabled,
                 telefonHandlungen.beiPersonalNotizen)
             Schalterzeile(stringResource(R.string.personal_sync_aufgaben), telefon.personalTasksEnabled,
                 telefonHandlungen.beiPersonalAufgaben)
+            val customSupported = telefon.peer?.remote_personal_tasks_sync_available == true && 4 in (telefon.peer?.remote_personal_tasks_sync_versions ?: emptyList()) &&
+                4 in io.gitlab.maik3531.magnolienotes.telefon.TelefonCapabilities.phase1().getValue("personal_tasks_sync").versions
+            if (customSupported) Schalterzeile(stringResource(R.string.personal_custom_optin),
+                bestand.personalCustom.local?.get("enabled")?.jsonPrimitive?.booleanOrNull == true, telefonHandlungen.beiCustomSync)
+            else Text(stringResource(R.string.personal_custom_unsupported), fontSize = 12.sp)
+            Text(stringResource(R.string.personal_custom_explanation), fontSize = 12.sp)
+            Text(stringResource(R.string.personal_custom_privacy), fontSize = 12.sp)
+            if (bestand.personalCustom.local?.get("enabled")?.jsonPrimitive?.booleanOrNull == true &&
+                bestand.personalCustom.remote?.get("enabled")?.jsonPrimitive?.booleanOrNull != true)
+                Text(stringResource(R.string.baum_wartet), fontSize = 12.sp)
             Schalterzeile(stringResource(R.string.personal_sync_auto_wlan), telefon.personalAutoWifi,
                 telefonHandlungen.beiPersonalAutoWlan)
             Schalterzeile(stringResource(R.string.personal_sync_loeschungen), telefon.personalDeletionsEnabled,
@@ -302,6 +354,36 @@ fun BaumBlatt(
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Papierknopf(stringResource(R.string.personal_sync_entscheiden)) {
                         personalRemember = false; personalProposal = proposal }
+                }
+            }
+            Text(stringResource(R.string.personal_custom_title), fontWeight = FontWeight.Bold)
+            bestand.personalCustom.items.forEach { (id, item) ->
+                if (item.status != "deleted") key(id) {
+                    val position = remember { BringIntoViewRequester() }
+                    val fokus = remember { FocusRequester() }
+                    var angeordnet by remember { mutableStateOf(false) }
+                    LaunchedEffect(customFokus, angeordnet, beiCustomFokus) {
+                        if (customFokus == id && angeordnet) {
+                            position.bringIntoView()
+                            fokus.requestFocus()
+                            beiCustomFokus()
+                        }
+                    }
+                    Column(Modifier.fillMaxWidth().bringIntoViewRequester(position)
+                        .focusRequester(fokus).focusable().onGloballyPositioned { angeordnet = true }) {
+                        val value = item.record.getValue("value").jsonObject
+                        Text(stringResource(if (item.record.getValue("kind").jsonPrimitive.content == "task") R.string.art_aufgabe else R.string.art_termin), fontWeight = FontWeight.Bold)
+                        Text(listOf("module_title", "title", "date", "time", "timezone", "note")
+                            .map { value.getValue(it).jsonPrimitive.content }.filter { it.isNotBlank() }.joinToString("\n"), fontSize = 13.sp)
+                        if (value.getValue("completed").jsonPrimitive.boolean) Text(stringResource(R.string.aufgabe_erledigt))
+                        if (item.status == "kept") Text(stringResource(R.string.personal_custom_keep), fontSize = 12.sp)
+                        if (item.status == "pending" && item.owner == bestand.personalCustom.owner &&
+                            item.generation == bestand.personalCustom.generation && bestand.personalCustom.active &&
+                            bestand.personalCustom.local?.get("enabled")?.jsonPrimitive?.booleanOrNull == true &&
+                            bestand.personalCustom.remote?.get("enabled")?.jsonPrimitive?.booleanOrNull == true)
+                            Papierknopf(stringResource(R.string.personal_sync_entscheiden)) { customDelete = id to item.revision }
+                        Zwischenraum(8)
+                    }
                 }
             }
         }
@@ -474,13 +556,20 @@ fun BaumBlatt(
                         gruppe.kontakt.anschriften.forEach { add(stringResource(R.string.baum_kontakt_anschrift) to
                             listOf(it.strasse, it.plz, it.ort, it.region, it.land).filter(String::isNotBlank).joinToString(", ")) }
                         gruppe.kontakt.geburtstag.takeIf(String::isNotBlank)?.let { add(stringResource(R.string.baum_kontakt_geburtstag) to it) }
+                        gruppe.kontakt.jubilaeum.takeIf(String::isNotBlank)?.let { add(stringResource(R.string.baum_kontakt_jubilaeum) to it) }
                         if (gruppe.kontakt.foto.isNotBlank()) add(stringResource(R.string.baum_kontakt_bild) to stringResource(R.string.baum_kontakt_vorhanden))
                         gruppe.kontakt.notiz.takeIf(String::isNotBlank)?.let { add(stringResource(R.string.baum_kontakt_notiz) to it) }
                     }
                     feldzeilen.forEach { (feld, wert) -> Text("$feld: $wert",
                         fontFamily = FontFamily.SansSerif, fontSize = 12.sp, color = Magnolie.tinte) }
                     gruppe.konflikte.forEach { konflikt -> Text(
-                        stringResource(R.string.baum_kontakt_konflikt_zeile, konflikt.feld, konflikt.werte.joinToString(" / ")),
+                        stringResource(R.string.baum_kontakt_konflikt_zeile,
+                            when (konflikt.feld) {
+                                "jubilaeum" -> stringResource(R.string.baum_kontakt_jubilaeum)
+                                "anzeigename", "vcardName" -> stringResource(R.string.art_kontakt)
+                                else -> konflikt.feld
+                            },
+                            konflikt.werte.joinToString(" / ")),
                         fontFamily = FontFamily.SansSerif, fontSize = 12.sp, color = Magnolie.rot) }
                     Text(stringResource(R.string.baum_kontakt_quellen,
                         gruppe.karten.joinToString(", ") { it.freigabeId }),
@@ -772,6 +861,10 @@ fun BaumBlatt(
             )
             Zwischenraum(10)
             val offen = zustand.postfach.count { !it.aufgegeben }
+            val unsicher = zustand.postfach.count { it.brauchtPruefung }
+            val blockiert = zustand.postfach.filter { it.brauchtPruefung }.mapTo(mutableSetOf()) { it.an }
+            if (unsicher > 0) Text(stringResource(R.string.baum_postfach_unsicher, unsicher),
+                fontFamily = FontFamily.SansSerif, fontSize = 12.sp, color = Magnolie.rot)
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     pluralStringResource(R.plurals.baum_postfach, offen, offen),
@@ -782,7 +875,7 @@ fun BaumBlatt(
                 )
                 Papierknopf(
                     stringResource(R.string.baum_senden),
-                    aktiv = offen > 0,
+                    aktiv = zustand.postfach.any { !it.aufgegeben && it.an !in blockiert },
                     beiKlick = handlungen.beiSenden
                 )
             }

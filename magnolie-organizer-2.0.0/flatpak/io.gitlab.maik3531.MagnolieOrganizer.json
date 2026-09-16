@@ -29,9 +29,10 @@
         "mkdir -p web/i18n /app/bin /app/lib/magnolie-organizer /app/share/doc/magnolie-organizer /app/share/magnolie-organizer/web/i18n /app/share/magnolie-organizer/klang /app/share/magnolie-organizer/werkzeuge /app/share/locale /app/share/applications /app/share/metainfo /app/share/icons/hicolor/scalable/apps /app/share/icons/hicolor/256x256/apps",
         "while read -r language; do mkdir -p locale/$language/LC_MESSAGES /app/share/locale/$language/LC_MESSAGES; msgfmt --check --check-format -o locale/$language/LC_MESSAGES/magnolie-organizer.mo po/$language.po; python3 werkzeuge/po_zu_js.py $language po/$language.po web/i18n/$language.js; install -m 0644 locale/$language/LC_MESSAGES/magnolie-organizer.mo /app/share/locale/$language/LC_MESSAGES/magnolie-organizer.mo; done < po/LINGUAS",
         "install -m 0755 bin/magnolie-organizer /app/bin/magnolie-organizer",
-        "install -m 0644 bin/magnolie_telefon.py bin/magnolie_phone_region.py bin/magnolie_kdeconnect.py bin/magnolie_hintergrund.py bin/magnolie_personal_sync.py bin/magnolie_nextcloud.py bin/magnolie_cloud_backup.py bin/magnolie_akonadi.py bin/magnolie_crash.py bin/magnolie_asset.py bin/magnolie_setup_state.py bin/magnolie_setup_ui.py /app/bin/",
+        "install -m 0644 bin/magnolie_telefon.py bin/magnolie_anruf_audio.py bin/magnolie_phone_region.py bin/magnolie_kdeconnect.py bin/magnolie_hintergrund.py bin/magnolie_personal_sync.py bin/magnolie_nextcloud.py bin/magnolie_cloud_backup.py bin/magnolie_akonadi.py bin/magnolie_crash.py bin/magnolie_asset.py bin/magnolie_setup_state.py bin/magnolie_setup_ui.py bin/magnolie_recurrence.py /app/bin/",
         "install -m 0644 bin/magnolie_personal_sync.py /app/lib/magnolie-organizer/magnolie_personal_sync.py",
         "cp -a web/. /app/share/magnolie-organizer/web/",
+        "python3 -c 'import json,re,pathlib; v=re.search(r\"^[^(]+\\(([^)]+)\\)\",pathlib.Path(\"debian/changelog\").read_text()).group(1); pathlib.Path(\"/app/share/magnolie-organizer/version.json\").write_text(json.dumps({\"version\":v})+\"\\n\")'",
         "install -m 0644 klang/erinnerung.wav /app/share/magnolie-organizer/klang/erinnerung.wav",
         "install -m 0644 werkzeuge/pot_erzeugen.py /app/share/magnolie-organizer/werkzeuge/pot_erzeugen.py",
         "install -m 0644 PROTECTED-ASSETS-LICENSE.txt /app/share/doc/magnolie-organizer/PROTECTED-ASSETS-LICENSE.txt",
@@ -39,7 +40,9 @@
         "desktop-file-edit --set-key=Icon --set-value=io.gitlab.maik3531.MagnolieOrganizer /app/share/applications/io.gitlab.maik3531.MagnolieOrganizer.desktop",
         "install -m 0644 io.gitlab.maik3531.MagnolieOrganizer.appdata.xml /app/share/metainfo/io.gitlab.maik3531.MagnolieOrganizer.appdata.xml",
         "install -m 0644 symbole/magnolie-organizer.svg /app/share/icons/hicolor/scalable/apps/io.gitlab.maik3531.MagnolieOrganizer.svg",
-        "install -m 0644 symbole/256x256/magnolie-organizer.png /app/share/icons/hicolor/256x256/apps/io.gitlab.maik3531.MagnolieOrganizer.png"
+        "install -m 0644 symbole/256x256/magnolie-organizer.png /app/share/icons/hicolor/256x256/apps/io.gitlab.maik3531.MagnolieOrganizer.png",
+        "python3 werkzeuge/release_sources.py binary /app/share/magnolie-organizer",
+        "python3 -I -B werkzeuge/runtime_pruefen.py /app/bin"
       ],
       "sources": [
         {
@@ -49,6 +52,11 @@
             ".git",
             ".flatpak-builder",
             ".pytest_cache",
+            ".private-testing",
+            ".claude",
+            "node_modules",
+            "pruefungen",
+            "contracts",
             "bau",
             "flatpak/.io.gitlab.maik3531.MagnolieOrganizer.build.json",
             "debian/.debhelper",

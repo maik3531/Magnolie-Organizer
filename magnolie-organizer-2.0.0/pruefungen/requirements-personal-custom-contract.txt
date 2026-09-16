@@ -1,0 +1,3 @@
+# Test-only schema validation; not an application dependency.
+pytest>=7,<9
+jsonschema>=4.18,<5

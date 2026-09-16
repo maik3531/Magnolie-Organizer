@@ -1,0 +1,123 @@
+using System.Text.Json;
+using System.Text.Json.Nodes;
+using MagnolieOrganizer.Windows;
+
+await Probe.Run(args[0]);
+
+namespace MagnolieOrganizer.Windows
+{
+internal static class NativeLocalization { internal static string Gettext(string text) => text; }
+internal enum SnapshotReason { PreChange }
+internal sealed record SnapshotInfo(string Id);
+internal sealed class EncryptionService
+{
+    internal object? Session => null;
+    internal static bool IsEncrypted(string text) => false;
+    internal string EncryptData(string text) => throw new NotSupportedException();
+    internal string DecryptDataWithSession(string text) => throw new NotSupportedException();
+}
+internal static class GesamtarchivService
+{
+    internal sealed record Archive(JsonObject Daten);
+    internal static Archive Read(string text) => new(JsonNode.Parse(text)!.AsObject());
+}
+internal sealed class Bridge
+{
+    internal readonly List<(string Callback, JsonElement Body)> Responses = [];
+    internal Task SendAsync(string callback, object value)
+    { Responses.Add((callback, JsonSerializer.SerializeToElement(value))); return Task.CompletedTask; }
+}
+internal sealed class Tree { internal Task QuarantineOutboxAsync() => Task.CompletedTask; }
+internal sealed class Journal(string snapshot)
+{
+    internal string ReadPayload(string id) => File.ReadAllText(snapshot);
+    internal void ReleaseRestoreLease(string id) { }
+}
+internal sealed class Paths(string root) { internal string Data => Path.Combine(root, "data.json"); }
+internal sealed class Probe
+{
+    private readonly Bridge form = new();
+    private readonly Paths paths;
+    private readonly AtomicStore store;
+    private readonly EncryptionService encryption = new();
+    private readonly Tree baum = new();
+    private readonly Journal recovery;
+    private string currentPlainText, currentEnvelope = "";
+    private bool currentPlainTextAvailable = true, failWrite;
+    private Probe(string root, string initial)
+    {
+        paths = new(root); recovery = new(Path.Combine(root, "snapshot.json"));
+        currentPlainText = initial;
+        store = new(stage => { if (failWrite && stage == AtomicStore.WriteStage.TemporaryFlushed)
+            throw new IOException("synthetic write failure"); });
+    }
+    private static string T(string text) => text;
+    private static string Text(JsonElement value, string key) => value.TryGetProperty(key, out var field) && field.ValueKind == JsonValueKind.String ? field.GetString()! : "";
+    private static int Integer(JsonElement value, string key) => value.TryGetProperty(key, out var field) && field.TryGetInt32(out var number) ? number : 0;
+    private static string SnapshotId(JsonElement message) => Text(message, "id");
+    private SnapshotInfo CreateSnapshot(SnapshotReason reason) => new("synthetic-pre-change");
+    private SnapshotInfo CreateRestorePoint() => new("synthetic-pre-restore");
+    private void RefreshReminderData(string text, bool encrypted) { }
+    private void UpdateReminderRuntime(string text) { }
+    private Task RunCloudBackupAfterSaveAsync(string text, bool force) => Task.CompletedTask;
+    private Task ReportErrorAsync(string operation, string error) => Task.CompletedTask;
+    private Task FencePhoneRestoreAsync() => Task.CompletedTask;
+    private void ReleaseRestoreFence() { }
+    private Task SendRecoveryStatusAsync() => Task.CompletedTask;
+    private Task<string> CompleteRestoreRuntimeAsync(string text, bool encrypted, bool resumeTree) => Task.FromResult("");
+
+    /* PRODUCTION METHODS */
+
+    private static void Check(bool value, string text) { if (!value) throw new Exception(text); }
+    private JsonElement Result => form.Responses.Last().Body;
+    private Task Save(int id, string text, bool before = false) => before
+        ? SaveBeforeAsync(JsonSerializer.SerializeToElement(new { id, text }))
+        : SaveAsync(JsonSerializer.SerializeToElement(new { id, text }));
+    private Task Restore() => RestoreSnapshotAsync(JsonSerializer.SerializeToElement(new { id = "synthetic", bereiche = new[] { "all" }, modus = "replace" }));
+    internal static async Task Run(string root)
+    {
+        Directory.CreateDirectory(root);
+        var old = """{"syncEpoch":"before","syncMetadaten":{"syncEpoch":"before"},"notizen":[{"id":"note","text":"old","anhaenge":[{"id":"a","daten":"data:text/plain;base64,c3ludGhldGlj"}]}],"smsPlanung":[{"id":"sms","status":"planned"}],"smsVerlauf":[{"text":"synthetic"}],"customOrganizer":{"modules":[{"id":"custom"}]},"kontakte":[{"id":"contact"}],"termine":[{"id":"event"}]}""";
+        var snapshot = old.Replace("\"old\"", "\"restored\"");
+        var probe = new Probe(root, old);
+        probe.store.WriteRecoverableJson(probe.paths.Data, old);
+        probe.store.WriteRecoverableJson(Path.Combine(root, "snapshot.json"), snapshot);
+        probe.failWrite = true;
+        await probe.Save(41, old, before: true);
+        Check(!probe.Result.GetProperty("ok").GetBoolean(), "negative-control save must fail");
+        probe.failWrite = false;
+        await probe.Restore();
+        Check(probe.Result.GetProperty("ok").GetBoolean(), "actual RestoreSnapshotAsync failed");
+        await probe.Save(42, old, before: true);
+        Check(probe.Result.GetProperty("ok").GetBoolean() && probe.store.Read(probe.paths.Data) == old,
+            "before-guard native stale overwrite not reproduced");
+        Console.WriteLine("BEFORE Windows actual SaveAsync minus new guard: stale full-text overwrite reproduced");
+
+        await probe.Restore();
+        var durable = probe.store.ReadRecoverableJson(probe.paths.Data)!;
+        var restored = JsonNode.Parse(durable)!;
+        Check(restored["syncEpoch"]!.GetValue<string>() != "before", "restore epoch unchanged");
+        foreach (var field in new[] { "notizen", "smsPlanung", "smsVerlauf", "customOrganizer", "kontakte", "termine" })
+            Check(JsonNode.DeepEquals(restored[field], JsonNode.Parse(snapshot)![field]), "full snapshot field lost: " + field);
+        await probe.Save(43, old);
+        Check(!probe.Result.GetProperty("ok").GetBoolean() && probe.Result.GetProperty("id").GetInt32() == 43,
+            "actual save must reject old generation with its real serial");
+        Check(probe.store.ReadRecoverableJson(probe.paths.Data) == durable, "rejected save touched primary or backup");
+        var restarted = new Probe(root, durable);
+        await restarted.Save(1, old);
+        Check(!restarted.Result.GetProperty("ok").GetBoolean(), "guard lost on native store reopen");
+        restored["notizen"]![0]!["text"] = "current edit";
+        var edited = restored.ToJsonString();
+        restarted.failWrite = true;
+        await restarted.Save(2, edited);
+        Check(!restarted.Result.GetProperty("ok").GetBoolean(), "current generation failure must ACK error");
+        Check(restarted.store.ReadRecoverableJson(restarted.paths.Data) == durable, "failed save changed durable content");
+        restarted.failWrite = false;
+        await restarted.Save(3, edited);
+        Check(restarted.Result.GetProperty("ok").GetBoolean(), "current-generation retry failed");
+        Check(restarted.store.ReadRecoverableJson(restarted.paths.Data) == edited, "current edit lost after retry/reopen");
+        Check(File.ReadAllText(AtomicStore.BackupPath(restarted.paths.Data)) == edited, "atomic backup not current");
+        Console.WriteLine("AFTER Windows actual SAVE/RESTORE + AtomicStore: stale rejection, serials, full content, failure/retry, primary/backup reopen PASS");
+    }
+}
+}

@@ -51,8 +51,29 @@ const w = dom.window;
 const d = w.document;
 
 function ladeAnwendung(fenster, sprache = "de") {
+  // jsdom has no contenteditable IDL. Supply only the browser's inherited
+  // editability observation; native editing/history is tested in WebKit.
+  if (!("isContentEditable" in fenster.HTMLElement.prototype)) {
+    Object.defineProperty(fenster.HTMLElement.prototype, "isContentEditable", {
+      get() {
+        for (let element = this; element; element = element.parentElement) {
+          const value = element.getAttribute("contenteditable")?.toLowerCase();
+          if (value === "false") return false;
+          if (value === "" || value === "true" || value === "plaintext-only") return true;
+        }
+        return false;
+      }
+    });
+    const parent = fenster.document.createElement("div"), child = fenster.document.createElement("span");
+    parent.setAttribute("contenteditable", "true"); parent.append(child);
+    assert.strictEqual(child.isContentEditable, true);
+    child.setAttribute("contenteditable", "false");
+    assert.strictEqual(child.isContentEditable, false);
+  }
   fenster.TextEncoder ||= globalThis.TextEncoder;
   fenster.TextDecoder ||= globalThis.TextDecoder;
+  if (!fenster.crypto.subtle) Object.defineProperty(fenster, "crypto", {
+    value: require("node:crypto").webcrypto, configurable: true });
   fenster.eval(i18nJs);
   fenster.eval(deJs);
   fenster.MagnolieI18n.setLocale(sprache);
@@ -62,6 +83,10 @@ function ladeAnwendung(fenster, sprache = "de") {
 ladeAnwendung(w);
 
 const tick = () => new Promise((r) => setTimeout(r, 0));
+const warteBis = async (probe, grund) => {
+  const frist = Date.now() + 5000;
+  while (!probe()) { assert.ok(Date.now() < frist, grund); await tick(); }
+};
 const $ = (s) => d.querySelector(s);
 const $$ = (s) => Array.from(d.querySelectorAll(s));
 const T = w.OrganizerTest;
@@ -83,6 +108,27 @@ function knopfMit(text, wurzel) {
 }
 
 (async () => {
+  await tick();
+  w.App.init({ daten: {}, neu: true, echterErststart: true, regional: { language: "de" } });
+
+  const nativeTask = { uid: "uid-only-task", titel: "Task", startDatum: "2026-09-01", startZeit: "09:00",
+    faellig: "2026-09-07", faelligZeit: "17:00", sync: true, syncKalenderUid: "second-calendar",
+    syncQuellen: { "dav:second-calendar": { uid: "uid-only-task" } } };
+  const retainedTask = T.normalisiere({ aufgaben: [nativeTask] }).aufgaben[0];
+  for (const field of ["startDatum", "startZeit", "faelligZeit", "sync", "syncKalenderUid", "syncQuellen"])
+    assert.deepStrictEqual(retainedTask[field], nativeTask[field], "native task field lost: " + field);
+  const namedContact = { uid: "structured-name", vorname: "", nachname: "Van Dame", anzeigename: "Dr Van Dame",
+    vcardRoundtrip: ["N:Van Dame;;;Dr;", "FN:Dr Van Dame", "TITLE:Nurse"], jubilaeum: "--02-29" };
+  const retainedContact = T.normalisiere({ kontakte: [namedContact] }).kontakte[0];
+  for (const field of ["vorname", "nachname", "anzeigename", "vcardRoundtrip", "jubilaeum"])
+    assert.deepStrictEqual(retainedContact[field], namedContact[field], "contact field lost: " + field);
+  const scopedEvent = { uid: "shared-uid", datum: "2026-09-07", titel: "Scoped event" };
+  assert.strictEqual(T.normalisiere({ termine: [{ ...scopedEvent, icsQuelleId: "one" },
+    { ...scopedEvent, icsQuelleId: "two" }] }).termine.length, 2, "normalizer collapses calendar sources");
+  const countedRule = { datum: "2026-01-05", zeit: "10:00", wiederholung: { art: "none" },
+    icsRoundtrip: ["RRULE:FREQ=WEEKLY;BYDAY=MO,WE;COUNT=4"] };
+  assert.strictEqual(T.wiederholungTrifft(countedRule, "2026-01-14"), true);
+  assert.strictEqual(T.wiederholungTrifft(countedRule, "2026-01-19"), false);
 
   const customStandard = T.normalisiere({});
   assert.strictEqual(customStandard.customOrganizer.version, 3);
@@ -100,18 +146,20 @@ function knopfMit(text, wurzel) {
       title: "T".repeat(180), text: "N".repeat(12000), items: vieleItems,
       startDate: "kaputt", cadence: "hourly", interval: 99999 })) });
   assert.strictEqual(customNormalisiert.version, 3);
-  assert.strictEqual(customNormalisiert.modules.length, 3);
+  assert.strictEqual(customNormalisiert.modules.length, 4);
   assert.strictEqual(new Set(customNormalisiert.modules.map((modul) => modul.type)).size, 3);
   assert.ok(customNormalisiert.modules.every((modul) => modul.title.length <= 120));
   assert.ok(customNormalisiert.modules.filter((modul) => modul.type === "tasks")
-    .every((modul) => modul.items.length === 500 &&
-      new Set(modul.items.map((item) => item.id)).size === 500));
+    .every((modul) => modul.items.length === 4800 &&
+      new Set(modul.items.map((item) => item.id)).size === 4800),
+  "migration must preserve every saved task, not truncate to the new-entry limit");
   assert.strictEqual(T.normalisiereCustomOrganizer({ modules: [{ type: "appointments",
     items: Array.from({ length: 150 }, (_, index) => ({ title: "Termin " + index })) }] })
     .modules[0].items.length, 150, "150 eigene Termine werden künstlich abgeschnitten");
   assert.strictEqual(T.customTabName("  Reise\u0000   und   Garten " + "x".repeat(80)).length, 40);
 
   const alteCustomDaten = T.daten().customOrganizer;
+  const alterCustomPapierkorb = T.daten().papierkorb.slice();
   const alteEinstellungen = T.daten().einstellungen;
   T.daten().einstellungen = JSON.parse(JSON.stringify(alteEinstellungen));
   T.daten().customOrganizer = T.normalisiereCustomOrganizer({ modules: [
@@ -120,12 +168,16 @@ function knopfMit(text, wurzel) {
   T.uebernehmeSetupAbsichten({ setupAuswahl: { registers: ["calendar", "tasks", "notes"],
     customTabEnabled: true, customTabName: "  Meine   Dinge  ", customTabDesignRequested: true,
     customTabChanged: true,
+    customOrganizerChanged: true,
+    customOrganizer: { version: 3, modules: [{ id: "setup-text", type: "notes", page: "right", order: 0 }] },
     autostart: true, weather: true, addressSource: "own", address: { firstName: "Ada", lastName: "Lovelace",
       street: "1 Byte Way", postalCode: "10000", city: "Dresden", country: "DE", state: "Sachsen" } } });
   assert.strictEqual(T.daten().einstellungen.allgemein.customTab.name, "Meine Dinge");
   assert.strictEqual(T.daten().einstellungen.allgemein.customTab.designRequested, true);
   assert.strictEqual(T.daten().customOrganizer.modules[0].id, "bestand",
     "Setup ohne übernommene Designeränderung löscht bestehende eigene Blöcke");
+  assert.strictEqual(T.daten().customOrganizer.modules[0].page, "right",
+    "Setup verschiebt einen vorhandenen Textblock nicht datenbewahrend auf die gewählte Seite");
   assert.match(js, /roh\.customTabChanged === true/,
     "Setup ohne ausdrückliche Registeränderung kann Sichtbarkeit oder Namen zurücksetzen");
   assert.strictEqual(T.daten().einstellungen.allgemein.registerkarten.adressen, false);
@@ -136,10 +188,11 @@ function knopfMit(text, wurzel) {
     T.daten().einstellungen.allgemein.tray.startMinimiert], [true, true, true]);
   assert.ok(T.daten().einstellungen.adressen.absender.includes("Ada Lovelace"));
   T.daten().customOrganizer = T.normalisiereCustomOrganizer({ modules: [
-    { id: "block-note", type: "notes", title: "Reiseplan", text: "Oslo Fähre" },
-    { id: "block-list", type: "tasks", title: "Packliste", reminders: true,
-      items: [{ id: "item-pass", title: "Reisepass", done: false, due: "2026-09-04" }] },
-    { id: "block-repeat", type: "appointments", title: "Pflanzen", reminders: true,
+    { id: "block-note", type: "notes", title: "Reiseplan", page: "left", text: "Oslo Fähre" },
+    { id: "block-list", type: "tasks", title: "Packliste", page: "left", reminders: true,
+      items: [{ id: "item-pass", title: "Reisepass", done: false, due: "2026-09-04",
+        textItemId: "block-note-text" }] },
+    { id: "block-repeat", type: "appointments", title: "Pflanzen", page: "right", reminders: true,
       items: [{ id: "item-water", title: "Pflanzen gießen", date: "2026-09-04" }] }
   ] });
   T.wechsel("custom");
@@ -151,43 +204,71 @@ function knopfMit(text, wurzel) {
     "benutzerdefinierte Blöcke fehlen in der Druckauswahl");
   assert.deepStrictEqual(T.daten().customOrganizer.modules.map((modul) =>
     [modul.type, modul.page]), [["notes", "left"], ["tasks", "left"],
-    ["appointments", "left"]]);
-  assert.ok($$(".custom-modul").length === 3 && $$(".custom-modul-kopf button").length === 3 &&
-    $(".custom-text-editor") && $$(".custom-eintrag-editor").length === 2,
-    "unabhängige Text-, Termin- und Aufgabenblöcke fehlen");
-  assert.ok($("#inhalt-links").classList.contains("custom-termine-aufgaben-geteilt") &&
-    $(".custom-suche"), "Termin und Aufgaben teilen die Seite nicht oder die eigene Suche fehlt");
+    ["appointments", "right"]]);
+  assert.ok($$(".custom-modul").length === 3 && $$(".custom-modul-kopf button").length >= 6 &&
+    $(".custom-text-editor") && $$(".custom-modul-eintrag").length === 2 &&
+    !$(".custom-eintrag-editor"),
+    "eigene Termine und Aufgaben erscheinen nicht als kompakte Schaltflächen");
+  assert.ok($(".custom-suche") && !$(".custom-text-suche") && $(".custom-text-position").textContent === "1 / 1",
+    "die gemeinsame Suche oder Textblock-Seitenzahl fehlt beziehungsweise eine zweite Suche wird angezeigt");
+  assert.strictEqual($(".custom-text-position").getAttribute("aria-live"), "polite");
+  assert.ok($(".custom-text-editor").getAttribute("role") === "textbox" &&
+    $(".custom-text-editor").getAttribute("aria-multiline") === "true" &&
+    $$(".custom-text-werkzeuge button").every((button) => button.getAttribute("aria-label")),
+    "Texteditor oder Formatknöpfe sind für Hilfstechniken nicht beschriftet");
   setze($(".custom-suche"), "Reisepass");
   assert.strictEqual($$(".custom-modul").length, 1, "eigene Suche filtert die Blöcke nicht");
   setze($(".custom-suche"), "");
-  $(".custom-modul-notes .custom-modul-kopf button").click();
-  assert.strictEqual($$(".custom-modul-notes .custom-text-editor").length, 2,
-    "Plus fügt kein eigenes Textfeld hinzu");
-  $(".custom-modul-notes .custom-text-werkzeuge .rot").click();
+  const textKopfKnoepfe = $$(".custom-modul-notes .custom-modul-kopf button");
+  textKopfKnoepfe.at(-1).click();
+  assert.strictEqual($$(".custom-modul-notes .custom-text-editor").length, 1,
+    "Mehrere Textblockseiten werden gleichzeitig dargestellt");
+  assert.strictEqual($(".custom-text-position").textContent, "1 / 2", "Seitenzahl wird nach dem Hinzufügen nicht aktualisiert");
+  $(".custom-modul-notes .custom-modul-kopf .rot").click();
+  assert.strictEqual($(".custom-text-position").textContent, "1 / 2",
+    "Textseite wurde vor der Loeschbestaetigung entfernt");
+  $("#dialog-ja").click();
+  await tick();
   assert.strictEqual($$(".custom-modul-notes .custom-text-editor").length, 1,
     "Minus entfernt das Textfeld nicht");
+  assert.ok($(".custom-modul-tasks .custom-text-verweis"), "Aufgabe zeigt ihren verknüpften Textblock nicht an");
+  const terminModul = T.daten().customOrganizer.modules.find((modul) => modul.type === "appointments");
   $(".custom-modul-appointments .custom-modul-kopf button").click();
-  let neueTerminKarte = $$(".custom-modul-appointments .custom-eintrag-editor").at(0);
-  const terminFelder = neueTerminKarte.querySelectorAll("input");
-  setze(terminFelder[0], "Folgetermin");
-  setze(terminFelder[1], "2026-10-03");
-  const terminWiederholung = neueTerminKarte.querySelector("select");
+  let customDialog = $("#custom-eintrag-schleier");
+  assert.ok(customDialog && customDialog.querySelector(".custom-notiz-zeile") &&
+    terminModul.items.length === 1, "eigener Terminentwurf wird vor dem Aufnehmen gespeichert");
+  customDialog.querySelector(".custom-eintrag-aktionen button").click();
+  assert.strictEqual(terminModul.items.length, 1, "Abbrechen speichert einen eigenen Terminentwurf");
+  $(".custom-modul-appointments .custom-modul-kopf button").click();
+  customDialog = $("#custom-eintrag-schleier");
+  setze(customDialog.querySelector('input[type="text"]'), "Folgetermin");
+  setze(customDialog.querySelectorAll("input")[1], "2026-10-03");
+  const terminWiederholung = customDialog.querySelector("select");
   terminWiederholung.value = "yearly";
-  terminWiederholung.dispatchEvent(new w.Event("change", { bubbles: true }));
-  const neuerTermin = T.daten().customOrganizer.modules.find((modul) =>
-    modul.type === "appointments").items.at(0);
-  assert.deepStrictEqual([neuerTermin.title, neuerTermin.date, neuerTermin.wiederholung.art],
-    ["Folgetermin", "2026-10-03", "yearly"],
-    "eigener Termin übernimmt Titel, Datum oder Wiederholung nicht");
+  customDialog.querySelectorAll("select")[1].value = "block-note-text";
+  customDialog.querySelector(".custom-eintrag-aktionen .haupt").click();
+  const neuerTermin = terminModul.items.at(0);
+  assert.deepStrictEqual([neuerTermin.title, neuerTermin.date, neuerTermin.wiederholung.art, neuerTermin.textItemId],
+    ["Folgetermin", "2026-10-03", "yearly", "block-note-text"],
+    "eigener Termin übernimmt Titel, Datum, Wiederholung oder Textblock nicht");
+  assert.strictEqual($$(".custom-modul-appointments .custom-modul-eintrag").length, 2,
+    "aufgenommener eigener Termin erscheint nicht als Schaltfläche");
+  const aufgabenModul = T.daten().customOrganizer.modules.find((modul) => modul.type === "tasks");
   $(".custom-modul-tasks .custom-modul-kopf button").click();
-  const neueAufgabenKarte = $$(".custom-modul-tasks .custom-eintrag-editor").at(0);
-  const aufgabenFelder = neueAufgabenKarte.querySelectorAll('input[type="text"]');
-  setze(aufgabenFelder[0], "Neue Aufgabe");
-  setze(aufgabenFelder[1], "2026-10-04");
-  const neueCustomAufgabe = T.daten().customOrganizer.modules.find((modul) =>
-    modul.type === "tasks").items.at(0);
+  customDialog = $("#custom-eintrag-schleier");
+  setze(customDialog.querySelector('input[type="text"]'), "Neue Aufgabe");
+  setze(customDialog.querySelectorAll("input")[1], "2026-10-04");
+  customDialog.querySelector(".custom-eintrag-aktionen .haupt").click();
+  const neueCustomAufgabe = aufgabenModul.items.at(0);
   assert.deepStrictEqual([neueCustomAufgabe.title, neueCustomAufgabe.due], ["Neue Aufgabe", "2026-10-04"],
     "eigene Aufgabe übernimmt Titel oder Datum nicht");
+  $(".custom-modul-tasks .custom-modul-eintrag").click();
+  customDialog = $("#custom-eintrag-schleier");
+  assert.strictEqual(customDialog.querySelector("#custom-eintrag-titel").textContent, "Aufgabe bearbeiten");
+  setze(customDialog.querySelector('input[type="text"]'), "Geänderte Aufgabe");
+  customDialog.querySelector(".custom-eintrag-aktionen .haupt").click();
+  assert.strictEqual(aufgabenModul.items.at(0).title, "Geänderte Aufgabe",
+    "Anklicken und Bearbeiten einer eigenen Aufgabe speichert nicht");
   const customTerminIds = T.customTermineFuerErinnerung().map((termin) => termin.id);
   assert.ok(customTerminIds.length === 2 && customTerminIds[0].startsWith(
     "custom:block-repeat:custom-item-") && customTerminIds[1] === "custom:block-repeat:item-water",
@@ -201,13 +282,22 @@ function knopfMit(text, wurzel) {
     "separater Designer ist nicht erreichbar");
   assert.ok(Array.from($("#custom-designer-schleier .custom-designer-werkzeuge select").options)
     .some((option) => option.textContent === "Textblock"), "Baukasten bezeichnet Text als Notiz");
+  $("#custom-designer-schleier .custom-designer-werkzeuge select").value = "notes";
   $("#custom-designer-schleier .custom-designer-werkzeuge button").click();
-  assert.strictEqual(T.daten().customOrganizer.modules.length, 3,
-    "Designer fügt einen vorhandenen Blocktyp nicht doppelt hinzu");
+  assert.strictEqual(T.daten().customOrganizer.modules.length, 4,
+    "Designer erlaubt keinen zweiten Textblock auf der anderen Seite");
+  $("#custom-designer-schleier .custom-designer-werkzeuge button").click();
+  assert.strictEqual(T.daten().customOrganizer.modules.length, 4,
+    "Designer erlaubt mehr als einen Textblock je Seite");
   $("#custom-designer-schleier .custom-designer-kopf button").click();
-  T.wechsel("kalender");
+  T.druckStoff("custom").entfernen(T.daten().customOrganizer.modules.filter((modul) => modul.type === "notes"));
+  assert.ok(T.daten().customOrganizer.modules.filter((modul) => modul.type !== "notes")
+    .flatMap((modul) => modul.items).every((item) => !item.textItemId),
+    "Massenlöschung von Textmodulen lässt Verknüpfungen zurück");
   T.daten().customOrganizer = alteCustomDaten;
   T.daten().einstellungen = alteEinstellungen;
+  T.daten().papierkorb = alterCustomPapierkorb;
+  await T.wechsel("kalender");
 
   const kaputterGraph = [
     { id: "ä-1", uid: "doppelt", elternUid: "doppelt", reihenfolge: -1 },
@@ -302,7 +392,26 @@ function knopfMit(text, wurzel) {
   assert.strictEqual(T.normalisiere({ einstellungen: { regional: { homeCountry: "us" } } })
     .einstellungen.regional.homeCountry, "US", "Telefon-Heimatland wird nicht kanonisiert");
   assert.strictEqual(T.normalisiere({ einstellungen: { regional: { homeCountry: "ZZ" } } })
-    .einstellungen.regional.homeCountry, "DE", "ungültiges Telefon-Heimatland bleibt erhalten");
+    .einstellungen.regional.homeCountry, "", "invalid phone country must be cleared, not replaced with DE");
+  for (const [country, national, international] of [
+    ["GB", "07700 900123", "+447700900123"], ["DE", "0170 1234567", "+491701234567"],
+    ["AT", "0664 1234567", "+436641234567"], ["CH", "079 1234567", "+41791234567"]]) {
+    const selected = T.normalisiere({ einstellungen: { regional: { homeCountry: country } },
+      smsPlanung: [{ id: "region", nummer: national, text: "Synthetic", zeit: 1, status: "planned" }] });
+    assert.strictEqual(selected.einstellungen.regional.homeCountry, country, "selected country must survive normalization");
+    assert.strictEqual(selected.smsPlanung[0].nummer, international, country + " national recipient");
+    const nextCountry = country === "GB" ? "AT" : "GB";
+    selected.einstellungen.regional.homeCountry = nextCountry;
+    const reopened = T.normalisiere(JSON.parse(JSON.stringify(selected)));
+    assert.strictEqual(reopened.einstellungen.regional.homeCountry, nextCountry, "new selected country survives reopen");
+    assert.strictEqual(reopened.smsPlanung[0].land, country, "existing plan retains its captured country");
+    assert.strictEqual(reopened.smsPlanung[0].nummer, international, "E.164 recipient must not be rewritten");
+  }
+  const explicitInternational = T.normalisiere({ einstellungen: { regional: { homeCountry: "ZZ" } },
+    smsPlanung: [{ id: "international", nummer: "+447700900123", text: "Synthetic", zeit: 1, status: "planned" }] });
+  assert.strictEqual(explicitInternational.einstellungen.regional.homeCountry, "");
+  assert.strictEqual(explicitInternational.smsPlanung[0].land, "");
+  assert.strictEqual(explicitInternational.smsPlanung[0].nummer, "+447700900123", "E.164 does not require a guessed home country");
   assert.deepStrictEqual(T.anrufHerkunft({ number_status: "available", phone_region: "us",
     phone_country_name: "United States", phone_is_foreign: true }),
   { code: "US", name: "United States", international: true });
@@ -418,7 +527,13 @@ function knopfMit(text, wurzel) {
   w.MagnolieI18n.setLocale("zz");
   assert.strictEqual(w.MagnolieI18n.ngettext("item", "items", 2), "mehr",
     "eine ungültige Pluralregel fällt nicht sicher auf die Standardregel zurück");
+  w.eval(fs.readFileSync(WEB + "/i18n/ar.js", "utf8"));
+  w.MagnolieI18n.setLocale("ar");
+  assert.strictEqual(d.documentElement.dir, "rtl",
+    "die arabische Oberfläche verwendet keine Rechts-nach-links-Richtung");
   w.MagnolieI18n.setLocale("en");
+  assert.strictEqual(d.documentElement.dir, "ltr",
+    "die Schreibrichtung wird nach Arabisch nicht zurückgesetzt");
   assert.strictEqual($("#knopf-einstellungen").textContent, "Settings",
     "englischer Rückfall der Weboberfläche funktioniert nicht");
   w.MagnolieI18n.setLocale("de");
@@ -506,7 +621,7 @@ function knopfMit(text, wurzel) {
   assert.deepStrictEqual(smsNormalisiert.einstellungen.adressen.kommunikation,
     { sms: { art: "program", programm: "app {nummer}" },
       anruf: { art: "magnolie", programm: "ignoriert", eingehendBenachrichtigen: false,
-        computerTelefonie: false, klingeltonLeiser: false, hfpAdresse: "" } },
+        computerTelefonie: false, klingeltonLeiser: false, preferPcAudio: true, hfpAdresse: "" } },
   "Kommunikationsbelegung wird nicht streng nach SMS-/Anrufsemantik normalisiert");
   assert.strictEqual(smsNormalisiert.einstellungen.adressen.smsBenachrichtigungDauer, 60,
     "die SMS-Benachrichtigungsdauer fällt nicht auf 60 Sekunden zurück");
@@ -1228,7 +1343,30 @@ function knopfMit(text, wurzel) {
   "englische Rückmeldung zur Klassik-Übernahme fehlt");
   enDom.window.App.ablage({ text: "" });
   assert.strictEqual(enD.querySelector("#zettel").textContent,
+    "Your data from “Organizer Klassik” has been imported.",
+    "eine unangeforderte Clipboardantwort darf die Oberfläche nicht verändern");
+  // ASR-05: the localized empty reply belongs to an actual pending menu read.
+  // Keep this native-bridge fixture separate from the browser-mode locale/demo tests.
+  const clipDom = new JSDOM(html, { runScripts: "dangerously", url: "https://clipboard-locale.test/", pretendToBeVisual: true });
+  const clipW = clipDom.window, clipD = clipW.document, enBridge = [];
+  clipW.__MAGNOLIE_BRUECKE__ = "locale_clipboard_fixture";
+  clipW.webkit = { messageHandlers: { locale_clipboard_fixture: {
+    postMessage: raw => enBridge.push(JSON.parse(raw))
+  } } };
+  ladeAnwendung(clipW, "en"); await tick();
+  clipW.App.init({ daten: {}, neu: false, regional: { language: "en" } });
+  const clipboardField = clipD.createElement("textarea"); clipD.body.append(clipboardField);
+  clipW.OrganizerTest.daten().einstellungen.schrift.rechtschreibung = false;
+  clipboardField.focus(); clipboardField.setSelectionRange(0, 0);
+  clipboardField.dispatchEvent(new clipW.MouseEvent("contextmenu", { bubbles: true, cancelable: true }));
+  const paste = [...clipD.querySelectorAll("#vorschlags-menue button")].find(b => b.textContent.trim() === "Paste");
+  assert.ok(paste && !paste.disabled, "gültiger Clipboardmenü-Auftrag fehlt");
+  paste.click();
+  assert.ok(enBridge.some(message => message.cmd === "ablage_holen"));
+  clipW.App.ablage({ text: "" });
+  assert.strictEqual(clipD.querySelector("#zettel").textContent,
     "The clipboard is empty.", "englischer Zwischenablagehinweis fehlt");
+  clipDom.window.close();
   enDom.window.App.wortGemerkt({ ok: true, wort: "Duisburg" });
   assert.strictEqual(enD.querySelector("#zettel").textContent,
     "“Duisburg” is now in the dictionary.",
@@ -1284,7 +1422,8 @@ function knopfMit(text, wurzel) {
     "englischer Personenplatzhalter fehlt");
   assert.ok(enButton("Add person", enD.querySelector("#personen-schleier")),
     "englischer Personenknopf fehlt");
-  enD.querySelector("#personen-schleier").remove();
+  enD.querySelector("#personen-schleier header button").click();
+  assert.ok(!enD.querySelector("#personen-schleier"), "Personenblatt wurde nicht ueber seinen Schliessen-Pfad beendet");
   enT.oeffneDruckvorschau(null, "aufgaben");
   assert.strictEqual(enD.querySelector(".druck-blatt h2").textContent, "Print · Tasks",
     "englischer Aufgabendruckkopf fehlt");
@@ -1293,7 +1432,7 @@ function knopfMit(text, wurzel) {
   assert.ok(enD.querySelector(".druck-vorschau").textContent.includes("due 08/03/2026") &&
     enD.querySelector(".druck-vorschau").textContent.includes("high"),
   "englische Aufgabendruckangaben fehlen");
-  enD.querySelector("#druck-schleier").remove();
+  enD.querySelector("#druck-schleier header button").click();
   enT.wechsel("kalender");
   assert.deepStrictEqual(Array.from(enD.querySelectorAll(".registerknopf"),
     (b) => b.textContent),
@@ -1421,7 +1560,7 @@ function knopfMit(text, wurzel) {
   "englische Notfallkontaktbeschriftungen fehlen im Druck");
   assert.ok(enButton("ODS", enD.querySelector("#druck-schleier")),
     "englischer Kontaktdruck bietet ODS an");
-  enD.querySelector("#druck-schleier").remove();
+  enD.querySelector("#druck-schleier header button").click();
 
   const odsNachrichten = [];
   const odsDom = new JSDOM(html, {
@@ -1482,7 +1621,7 @@ function knopfMit(text, wurzel) {
     "ohne ausgewählten Kontakt darf keine ODS-Nachricht gesendet werden");
   assert.strictEqual(odsD.querySelector("#zettel").textContent, "Select something first.",
     "englischer Auswahldialoghinweis fehlt");
-  odsD.querySelector("#druck-schleier").remove();
+  odsD.querySelector("#druck-schleier header button").click();
   odsT.oeffneDruckvorschau(odsKontakt, "adressen");
   Array.from(odsD.querySelectorAll("button"))
     .find((button) => button.textContent.trim() === "ODS").click();
@@ -1535,12 +1674,12 @@ function knopfMit(text, wurzel) {
   assert.ok(Array.from(odsD.querySelectorAll("button"))
     .some((button) => button.textContent.trim() === "ODS"),
   "deutscher ODS-Knopf fehlt bei Kontakten");
-  odsD.querySelector("#druck-schleier").remove();
+  odsD.querySelector("#druck-schleier header button").click();
   odsT.oeffneDruckvorschau(null, "notizen");
   assert.ok(!Array.from(odsD.querySelectorAll("button"))
     .some((button) => button.textContent.trim() === "ODS"),
   "ODS wird im deutschen Notizdruck fälschlich angeboten");
-  odsD.querySelector("#druck-schleier").remove();
+  odsD.querySelector("#druck-schleier header button").click();
   odsW.MagnolieI18n.setLocale("en");
   odsT.zustand().planer.jahr = 2026;
   odsT.zustand().kalender.monat = 0;
@@ -1753,14 +1892,14 @@ function knopfMit(text, wurzel) {
     enButton("Contacts (.vcf)", enD.querySelector("#einstellungen-inhalt")) &&
     enD.querySelector("#einstellungen-inhalt").textContent.includes("VORLAEUFIGZUSAGEN"),
   "englische Exportaktionen oder unveränderte Lotus-Spalten fehlen");
-  enDom.window.App.importErgebnis({ art: "ics", abgebrochen: false,
+  await enDom.window.App.importErgebnis({ art: "ics", abgebrochen: false,
     aufgaben: [{ uid: "english-import-task", titel: "Mülltonne rausstellen",
       faellig: "2026-08-04", prio: 2, erledigt: false }],
     uebersprungen: 1, wiederholend: 2, bericht: "Provider-Bericht." });
   assert.ok(enD.querySelector("#zettel").textContent.includes("Imported: 1 task") &&
     enD.querySelector("#zettel").textContent.includes("1 unreadable row omitted") &&
     enD.querySelector("#zettel").textContent.includes(
-      "2 recurring appointments imported only once") &&
+      "Some recurrence rules cannot be expanded. Their original calendar data was preserved.") &&
     enD.querySelector("#zettel").textContent.includes("Provider-Bericht") &&
     enT.daten().aufgaben.some((a) => a.titel === "Mülltonne rausstellen"),
   "englische Importmeldung oder unveränderte Importdaten fehlen");
@@ -2010,7 +2149,7 @@ function knopfMit(text, wurzel) {
     (option) => option.value), ["last-name", "first-name"],
   "englische Sortierung verändert gespeicherte Werte");
   assert.deepStrictEqual(Array.from(enSD.querySelector("#adressen-brief-layout").options,
-    (option) => option.value), ["compact", "din5008"],
+    (option) => option.value), ["din5008-b", "din5008-a", "compact"],
   "englische Briefvorlage verändert gespeicherte Werte");
   assert.deepStrictEqual(Array.from(enSD.querySelector("#adressen-karten").options,
     (option) => option.value), ["auto", "gnome-maps", "openstreetmap", "google"],
@@ -2286,7 +2425,7 @@ function knopfMit(text, wurzel) {
     "Typography for your entries", "englische Typografieseite fehlt");
   assert.deepStrictEqual(Array.from(enSD.querySelector("#schrift-art").options,
     (option) => [option.value, option.textContent]),
-  [["regular", "As usual (print)"], ["handwriting", "Handwriting"]],
+  [["regular", "Regular typeface"], ["handwriting", "Handwriting"]],
   "englische Schriftarten oder interne Werte fehlen");
   assert.deepStrictEqual(Array.from(enSD.querySelector("#schrift-farbe").options,
     (option) => option.value), ["black", "blue"],
@@ -2627,12 +2766,12 @@ function knopfMit(text, wurzel) {
     enSyncNachrichten.some((nachricht) => nachricht.cmd === "update_pruefen"),
   "englische Über-Seite verändert Handbuch- oder Update-Befehl");
   const enUpdateUrl = "https://gitlab.com/maik3531/mint-forgs/-/raw/main/" +
-    "Magnolie-Organitzer/magnolie-organizer_2.0.18_all.deb";
-  enSW.App.updateErgebnis({ ok: true, aktuell: false, version: "2.0.18",
+    "Magnolie-Organitzer/magnolie-organizer_2.0.19_all.deb";
+  enSW.App.updateErgebnis({ ok: true, aktuell: false, version: "2.0.19",
     url: enUpdateUrl, sha256: "ab".repeat(32), fehler: "" });
   assert.ok(enSD.querySelector("#update-stand").textContent.includes(
-    "New version 2.0.18 is available") &&
-    enSD.querySelector("#update-herunterladen").textContent.includes("2.0.18") &&
+    "New version 2.0.19 is available") &&
+    enSD.querySelector("#update-herunterladen").textContent.includes("2.0.19") &&
     enSD.querySelector(".update-pruefsumme").textContent.includes("ab".repeat(32)) &&
     enSD.querySelector(".update-pruefsumme").textContent.includes("sha256sum"),
   "englischer neuer Update-Stand fehlt");
@@ -2669,11 +2808,11 @@ function knopfMit(text, wurzel) {
   "bestätigtes Update startet keinen parameterlosen geprüften Download: " +
     JSON.stringify(enSyncNachrichten.slice(-8)));
   enSW.App.updateHeruntergeladen({ ok: true, bereit: true,
-    version: "2.0.18", artifact: "deb" });
+    version: "2.0.19", artifact: "deb" });
   assert.ok(enSyncNachrichten.some((nachricht) => nachricht.cmd === "update_installieren"),
     "verifiziertes Update wird nicht zur Installation vorbereitet");
   enSW.App.updateInstallationVorbereitet({ ok: true, bereitZumBeenden: true,
-    version: "2.0.18", artifact: "deb" });
+    version: "2.0.19", artifact: "deb" });
   assert.ok(enSyncNachrichten.some((nachricht) => nachricht.cmd === "beenden"),
     "nach vorbereiteter Installation startet der sichere Beenden- und Neustartablauf nicht");
   enSW.App.updateGeoeffnet({ ok: false, fehler: "" });
@@ -3195,11 +3334,17 @@ function knopfMit(text, wurzel) {
     marke.zyklusIds.includes(enST.daten().zyklusmarker[0].id)),
   "Schicht und Zyklusmarkierung werden nicht dem gesamten Datumsbereich zugewiesen");
   enSD.querySelector("#termin-schleier header button").click();
+  const markerEntwurfVerwerfen = Array.from(enSD.querySelectorAll("#aenderungen-schleier button"))
+    .find(button => button.textContent === "Discard");
+  assert.ok(markerEntwurfVerwerfen, "Geaenderter Terminentwurf wurde ohne Rueckfrage geschlossen");
+  markerEntwurfVerwerfen.click();
+  await tick();
   enST.zustand().kalender.jahr = 2026;
   enST.zustand().kalender.monat = 7;
   enST.zustand().kalender.tag = "2026-08-03";
-  enST.wechsel("aufgaben");
-  enST.wechsel("kalender");
+  enST.zustand().kalender.ansicht = "month";
+  await enST.wechsel("aufgaben");
+  await enST.wechsel("kalender");
   assert.ok(enSD.querySelector(".schicht-marke") &&
     enSD.querySelector(".zyklus-marke") && enSD.querySelector(".urlaub-marke") &&
     enSD.querySelector(".muell-marke .sinnbild") &&
@@ -3252,7 +3397,7 @@ function knopfMit(text, wurzel) {
   assert.ok(enD.querySelector(".druck-vorschau").textContent.includes("Großvater") &&
     enD.querySelector(".druck-vorschau").textContent.includes("Death anniversary"),
   "Jahrestagsdaten fehlen im englischen Druck");
-  enD.querySelector("#druck-schleier").remove();
+  enD.querySelector("#druck-schleier header button").click();
   const enPlanerJahr = enT.zustand().planer.jahr + 1;
   enT.zustand().planer.jahr = enPlanerJahr;
   enT.daten().einstellungen.kalender.vergangeneTermine = true;
@@ -3264,6 +3409,7 @@ function knopfMit(text, wurzel) {
         daten: [enPlanerJahr + "-06-15"] } });
   enT.planeSpeichern();
   enT.wechsel("planer");
+  await warteBis(() => enD.querySelectorAll(".mini-monat").length === 12, "English Planner halves did not finish");
   assert.strictEqual(enD.querySelector("#kopf-links h2").textContent,
     "Year planner " + enPlanerJahr, "englische Planerüberschrift fehlt");
   assert.strictEqual(enD.querySelector("#kopf-links .kopf-neben").textContent,
@@ -3285,8 +3431,8 @@ function knopfMit(text, wurzel) {
   assert.strictEqual(enD.querySelector("#ecke-rechts").title, "Next year");
   for (const iso of [enPlanerJahr + "-02-10", enPlanerJahr + "-02-11",
     enPlanerJahr + "-02-12", enPlanerJahr + "-06-15"]) {
-    assert.ok(enD.querySelector('[data-fokus="planer-tag:' + iso + '"]').classList.contains("hat"),
-      "Jahresplaner markiert Mehrtagstermin oder Serienvorkommen nicht: " + iso);
+    assert.ok(!enD.querySelector('[data-fokus="planer-tag:' + iso + '"]').classList.contains("hat"),
+      "Normaler Jahresplaner darf keine gewoehnlichen Termine markieren: " + iso);
   }
   enButton("Choose year…").click();
   assert.strictEqual(enD.querySelector("#eingabe-titel").textContent,
@@ -3305,6 +3451,7 @@ function knopfMit(text, wurzel) {
     kategorien: "Eigene Kategorie", notiz: "Eigene Notiz" });
   enT.wechsel("kalender");
   enT.wechsel("planer");
+  await warteBis(() => enD.querySelectorAll(".mini-monat").length === 12, "Planner week-number grid did not finish");
   assert.strictEqual(enD.querySelector("#knopf-drucken").textContent, "Print",
     "im Planer heißt die allgemeine Auswahl weiterhin Auswahloptionen");
   assert.strictEqual(enD.querySelector("#knopf-drucken").title,
@@ -3323,7 +3470,7 @@ function knopfMit(text, wurzel) {
   assert.ok(enPlanerHtml.includes("size: A4 landscape") &&
     enPlanerHtml.includes("<table>") && !enPlanerHtml.includes("Untranslated user title"),
   "Planerdruck ist nicht als eigenständiger Jahreskalender im Querformat aufgebaut");
-  enD.querySelector("#druck-schleier").remove();
+  enD.querySelector("#druck-schleier header button").click();
   enT.wechsel("notizen");
   assert.strictEqual(enD.querySelector("#kopf-links h2").textContent, "Notes",
     "englische Notizüberschrift fehlt");
@@ -3400,12 +3547,14 @@ function knopfMit(text, wurzel) {
   assert.ok(enButton("Remove", enD.querySelector(".notiz-anhaenge")),
     "englische Anhangsentfernung fehlt");
   const enTitelFeld = enD.querySelector("#notiz-titel");
+  assert.ok(!enTitelFeld.closest("[inert]"), "geschlossene Druckdialoge müssen ihren Modalzustand freigeben");
+  enTitelFeld.focus();
   enTitelFeld.setSelectionRange(0, enTitelFeld.value.length);
   enTitelFeld.dispatchEvent(new enDom.window.MouseEvent("contextmenu",
     { bubbles: true, cancelable: true, clientX: 80, clientY: 80 }));
   assert.deepStrictEqual(Array.from(enD.querySelectorAll(
     "#vorschlags-menue .vm-eintrag"), (button) => button.textContent),
-  ["Cut", "Copy", "Paste", "Select all"],
+  ["Undo", "Redo", "Cut", "Copy", "Paste", "Select all"],
   "englisches Bearbeitungsmenü ist unvollständig");
   enD.querySelector("#vorschlags-menue").remove();
   enButton("Customize").click();
@@ -3427,7 +3576,7 @@ function knopfMit(text, wurzel) {
   enDom.window.MagnolieI18n.setLocale("de");
   assert.ok(enT.daten().notizen[0].titel.includes("Welcome"),
     "gespeicherte Willkommensnotiz wurde beim Sprachwechsel verändert");
-  enD.querySelector("#druck-schleier").remove();
+  enD.querySelector("#druck-schleier header button").click();
   enDom.window.close();
 
   const enNotbremseDom = new JSDOM(html, {
@@ -3444,8 +3593,15 @@ function knopfMit(text, wurzel) {
     "Notice: The connection to storage was not confirmed.",
   "englische Notbremse bei ausbleibender Speicherantwort fehlt");
   assert.ok(enNotbremseBefehle.some((befehl) => befehl.cmd === "bereit") &&
-    enNotbremseBefehle.some((befehl) => befehl.cmd === "baum_stand"),
-  "Notbremse verändert die Bridge-Befehle");
+    !enNotbremseBefehle.some((befehl) => ["baum_stand", "speichern"].includes(befehl.cmd)),
+  "Notbremse darf vor bestaetigtem Laden keine aktiven Datenbefehle freigeben");
+  assert.ok(enNotbremseDom.window.document.querySelector("#schreibtisch").hasAttribute("inert"));
+  enNotbremseDom.window.OrganizerTest.speichereJetzt();
+  assert.ok(!enNotbremseBefehle.some(befehl => befehl.cmd === "speichern"));
+  enNotbremseDom.window.App.init({ daten: { notizen: [{ id: "existing", titel: "Existing", text: "Keep" }] }, neu: false });
+  assert.ok(enNotbremseBefehle.some(befehl => befehl.cmd === "baum_stand"),
+    "Echte Initialisierung gibt die normalen Bridge-Befehle nicht frei");
+  assert.strictEqual(enNotbremseDom.window.OrganizerTest.daten().notizen[0].text, "Keep");
   enNotbremseDom.window.close();
 
   assert.ok(T.daten().notizen[0].titel.includes("Willkommen") &&
@@ -4050,6 +4206,7 @@ function knopfMit(text, wurzel) {
     "Schreibblatt ist nicht beschreibbar");
   schreibflaeche.innerHTML = "Milch<br>Brot";
   schreibflaeche.dispatchEvent(new w.Event("input", { bubbles: true }));
+  T.sichereNotizSnapshot();
   const neue = T.daten().notizen[1];
   assert.strictEqual(neue.titel, "Einkauf");
   assert.strictEqual(neue.html, "Milch<br>Brot", "Notiztext nicht gespeichert");
@@ -4186,6 +4343,7 @@ function knopfMit(text, wurzel) {
   const htmlVorGrenze = neue.html;
   schreibflaeche.innerHTML = zuGrossesHtml;
   schreibflaeche.dispatchEvent(new w.Event("input", { bubbles: true }));
+  T.sichereNotizSnapshot();
   assert.strictEqual(neue.html, htmlVorGrenze,
     "eine gekürzte übergroße Notiz wurde in den Daten gespeichert");
   schreibflaeche.innerHTML = htmlVorGrenze;
@@ -4517,6 +4675,7 @@ function knopfMit(text, wurzel) {
 
   /* ---- Planer ---- */
   klickeTab("Planer");
+  await warteBis(() => $$(".mini-monat").length === 12, "Planner halves did not finish");
   assert.strictEqual($$(".mini-monat").length, 12, "12 Minimonate erwartet");
   assert.strictEqual($("#kopf-links h2").textContent,
     "Jahresplaner " + T.zustand().planer.jahr, "deutsche Planerüberschrift fehlt");
@@ -4534,7 +4693,7 @@ function knopfMit(text, wurzel) {
   assert.strictEqual(jahrPfeile[1].title, "Nächstes Jahr");
   assert.strictEqual($("#ecke-links").title, "Voriges Jahr");
   assert.strictEqual($("#ecke-rechts").title, "Nächstes Jahr");
-  assert.ok($(".mm-tag.hat"), "Termin-Markierung im Planer fehlt");
+  assert.ok(!$(".mm-tag.hat"), "Gewoehnliche Termine gehoeren nicht in den normalen Jahresplaner");
   assert.ok($(".mm-tag.heute"), "Heute-Markierung im Planer fehlt");
   assert.strictEqual($$(".mm-kw").length, 0,
     "Wochennummern müssen im Planer voreingestellt ausgeblendet sein");
@@ -4551,21 +4710,49 @@ function knopfMit(text, wurzel) {
   T.wechsel("planer");
   const jahrStart = T.zustand().planer.jahr;
   const jahrVor = $$("#kopf-links .pfeil")[1];
-  jahrVor.dispatchEvent(new w.Event("pointerdown", { bubbles: true }));
-  await new Promise((r) => setTimeout(r, 720));
-  w.dispatchEvent(new w.Event("pointerup"));
-  assert.ok(T.zustand().planer.jahr - jahrStart >= 2,
-    "langes Drücken blättert den Jahresplaner nicht schnell weiter");
+  // Check the hold/repeat contract, not jsdom's hardware-dependent year redraw cost.
+  const schnellTimer = new Map();
+  const timerOriginal = { setTimeout: w.setTimeout, clearTimeout: w.clearTimeout,
+    setInterval: w.setInterval, clearInterval: w.clearInterval };
+  for (const [set, clear, delay] of [["setTimeout", "clearTimeout", 450], ["setInterval", "clearInterval", 120]]) {
+    w[set] = (fn, ms, ...args) => {
+      if (ms !== delay) return timerOriginal[set].call(w, fn, ms, ...args);
+      const token = {}; schnellTimer.set(token, { fn, ms, set }); return token;
+    };
+    w[clear] = token => { if (!schnellTimer.delete(token)) timerOriginal[clear].call(w, token); };
+  }
+  try {
+    jahrVor.dispatchEvent(new w.MouseEvent("pointerdown", { button: 0, bubbles: true }));
+    const startTimer = [...schnellTimer.values()].find(timer => timer.set === "setTimeout");
+    assert.ok(startTimer && startTimer.ms === 450, "Halteverzoegerung fehlt");
+    assert.strictEqual(T.zustand().planer.jahr, jahrStart, "Pfeil startet vor der Haltezeit");
+    startTimer.fn();
+    const wiederholung = [...schnellTimer.entries()].find(([, timer]) => timer.set === "setInterval");
+    assert.ok(wiederholung && wiederholung[1].ms === 120, "Schnelllaufintervall fehlt");
+    wiederholung[1].fn();
+    assert.strictEqual(T.zustand().planer.jahr, jahrStart + 2, "Schnelllauf blaettert nicht wiederholt");
+    w.dispatchEvent(new w.Event("pointerup"));
+    assert.ok(!schnellTimer.has(wiederholung[0]), "Loslassen beendet den Schnelllauf nicht");
+    jahrVor.click();
+    assert.strictEqual(T.zustand().planer.jahr, jahrStart + 2, "Loslassen erzeugt einen zusaetzlichen Klick");
+  } finally { Object.assign(w, timerOriginal); }
   T.zustand().planer.jahr = jahrStart;
   T.wechsel("kalender");
   T.wechsel("planer");
+  await warteBis(() => $$(".mini-monat").length === 12, "Planner after repeat navigation did not finish");
   const heuteMini = $(".mm-tag.heute");
   heuteMini.click();
   assert.strictEqual(T.zustand().sektion, "kalender", "Planer-Klick springt nicht zum Kalender");
   T.zustand().planer.jahr = 1800;
   klickeTab("Planer");
-  assert.ok(!$(".mm-tag.jt"),
-    "Jahrestag wird vor seinem Ausgangsjahr im Planer markiert");
+  await warteBis(() => $$(".mini-monat").length === 12, "Historical Planner did not finish");
+  for (const zelle of $$(".mm-tag.jt")) {
+    const tag = zelle.dataset.fokus.slice(-5);
+    assert.ok(T.daten().jahrestage.some(j =>
+      (j.datum.startsWith("--") || Number(j.datum.slice(0, 4)) <= 1800) &&
+      (j.datum.slice(-5) === tag || j.datum.endsWith("02-29") && tag === "02-28")),
+    "Jahrestag wird vor seinem bekannten Ausgangsjahr im Planer markiert");
+  }
   T.zustand().planer.jahr = new Date().getFullYear();
   klickeTab("Kalender");
 
@@ -4697,8 +4884,11 @@ function knopfMit(text, wurzel) {
       "keydown", { key: ziffer, bubbles: true, cancelable: true }));
     await tick();
   };
-  const rad = (elm, dy, shift) => elm.dispatchEvent(new w.WheelEvent("wheel",
-    { deltaY: dy, shiftKey: !!shift, bubbles: true, cancelable: true }));
+  const rad = (elm, dy, shift) => {
+    elm.focus();
+    return elm.dispatchEvent(new w.WheelEvent("wheel",
+      { deltaY: dy, shiftKey: !!shift, bubbles: true, cancelable: true }));
+  };
   T.oeffneTerminBlatt(null, T.zustand().kalender.tag);
   const zeitFelder = [$("#tb-zeit"), $("#tb-endzeit")];
   assert.ok(zeitFelder[0] && zeitFelder[1], "Beginn- und Endzeitfeld erwartet");
@@ -5446,6 +5636,13 @@ function knopfMit(text, wurzel) {
     "Rückmeldung zum Protokoll fehlt");
 
   /* Bei „Nur Ton“ bleibt der Bildschirm ruhig */
+  // Earlier enabling of reminders may legitimately show today's fixture birthdays.
+  for (const blatt of $$(".erinnerungs-blatt")) {
+    const schliessen = knopfMit("Schließen", blatt);
+    assert.ok(schliessen, "Vorherige Erinnerung besitzt keinen Schliessen-Knopf");
+    schliessen.click();
+  }
+  assert.ok(!$(".erinnerungs-blatt"), "Vorherige Erinnerungen liessen sich nicht schliessen");
   $("#erinnerung-stil").value = "magnolie";
   $("#erinnerung-stil").dispatchEvent(new w.Event("change", { bubbles: true }));
   T.meldeErinnerung("Termin steht an", "Nur Ton");
@@ -5600,11 +5797,12 @@ function knopfMit(text, wurzel) {
     geburtstage: [{ uid: "oma-erna", name: "Oma Erna", datum: "1950-03-04" }],
     wiederholend: 1
   };
-  w.App.importErgebnis(nutzlast);
+  await w.App.importErgebnis(nutzlast);
   assert.ok($("#zettel").textContent.includes("1 Termin") &&
     $("#zettel").textContent.includes("1 Aufgabe") &&
     $("#zettel").textContent.includes("1 Geburtstag") &&
-    $("#zettel").textContent.includes("1 wiederkehrender Termin"),
+    $("#zettel").textContent.includes(w.MagnolieI18n.gettext(
+      "Some recurrence rules cannot be expanded. Their original calendar data was preserved.")),
   "deutsche Singularformen der Importmeldung fehlen");
   assert.strictEqual(T.daten().termine.length, vorherT + 1, "Import-Termin fehlt");
   const imp = T.daten().termine.find((t) => t.titel === "Import-Test");
@@ -5982,11 +6180,11 @@ function knopfMit(text, wurzel) {
     "Kontaktfotos müssen voreingestellt sein");
   assert.strictEqual(T.daten().einstellungen.adressen.foto, true,
     "Foto-Voreinstellung nicht gemerkt");
-  assert.strictEqual($("#adressen-brief-layout").value, "compact",
-    "die kompakte Absenderzeile muss die voreingestellte Briefvorlage sein");
+  assert.strictEqual($("#adressen-brief-layout").value, "din5008-b",
+    "DIN 5008 Form B muss die voreingestellte Briefvorlage sein");
   assert.deepStrictEqual(
     Array.from($("#adressen-brief-layout").options).map((o) => o.value),
-    ["compact", "din5008"], "beide eindeutig benannten Briefvorlagen fehlen");
+    ["din5008-b", "din5008-a", "compact"], "die drei aktuellen Briefvorlagen oder ihre Reihenfolge fehlen");
   assert.ok(!$("#adressen-brief-layout").textContent.includes("wie bisher"),
     "die Briefvorlage darf kein Vorwissen voraussetzen");
   w.App.loBenutzer({ ok: true, absender: "Erika Beispiel\nMusterweg 3" });
@@ -6004,6 +6202,17 @@ function knopfMit(text, wurzel) {
   klickeTab("Adressen");
   assert.ok($("#inhalt-links").textContent.includes("Beispiel, Anna"),
     "Name steht nicht in der gewohnten Form");
+  const kontakteVorGoogleSortierung = T.daten().kontakte;
+  T.daten().kontakte = [
+    { id: "google-zander", uid: "google-zander", vorname: "Anna", nachname: "Zander" },
+    { id: "google-adler", uid: "google-adler", vorname: "Zoe", nachname: "Adler" }
+  ];
+  const googleNachnamen = T.daten().kontakte.slice().sort(T.sortiereKontakte)
+    .map((kontakt) => kontakt.id);
+  assert.deepStrictEqual(googleNachnamen, ["google-adler", "google-zander"],
+  "Google-Kontakte werden bei Nachnamensortierung tatsächlich nach Vornamen geordnet: " +
+    JSON.stringify(googleNachnamen));
+  T.daten().kontakte = kontakteVorGoogleSortierung;
   T.oeffneEinstellungen();
   $$(".einst-reiter-knopf").find((b) => b.textContent === "Adressen").click();
   $("#adressen-sortierung").value = "first-name";
@@ -6126,60 +6335,77 @@ function knopfMit(text, wurzel) {
   assert.ok(cardbookZusammen.telefone[0].typen.includes("CELL") &&
     !cardbookZusammen.telefone[0].typen.includes("FAX"),
   "passiver Thunderbird-Typ überschreibt CardBooks Mobil-Kennzeichnung");
+  const tbKontaktStart = T.daten().kontakte.length;
+  const tbAnlassStart = T.daten().jahrestage.length;
+  const tbKarten = ["profil-a-buch-a", "profil-b-buch-a"].map((quelle) => ({
+    uid: `thunderbird:${quelle}:equal-card-id`, nachname: "Van Dame", vorname: "",
+    geburtstag: "1980-04-03", jubilaeum: "2005-06-07",
+    emailEintraege: [{ wert: "same-thunderbird@example.org", typen: ["HOME"] }]
+  }));
+  assert.deepStrictEqual(T.mergeKontakte(tbKarten),
+    { neu: 2, doppelt: 0, fotos: 0, emails: 0 });
+  assert.deepStrictEqual(T.mergeKontakte(tbKarten),
+    { neu: 0, doppelt: 2, fotos: 0, emails: 0 });
+  assert.strictEqual(T.daten().kontakte.length, tbKontaktStart + 2,
+    "gleiche Thunderbird-Karten-IDs aus verschiedenen Büchern wurden verschmolzen");
+  assert.strictEqual(T.daten().jahrestage.length, tbAnlassStart + 4,
+    "zweiter Thunderbird-Import verdoppelt oder verliert verknüpfte Anlässe");
+  const tbIds = new Set(T.daten().kontakte.filter((k) =>
+    String(k.uid || "").startsWith("thunderbird:profil-")).map((k) => k.id));
+  T.daten().kontakte = T.daten().kontakte.filter((k) => !tbIds.has(k.id));
+  T.daten().jahrestage = T.daten().jahrestage.filter((j) => !tbIds.has(j.kontaktId));
   T.daten().kontakte = T.daten().kontakte.filter(
     (k) => k.id !== "d1" && k.id !== "d2");
 
   /* ---- Bearbeiten-Menü beim Rechtsklick ---- */
-  klickeTab("Jahrestage");
-  const textfeld = $("#inhalt-rechts fieldset input[type=text]");
-  setze(textfeld, "Zum Kopieren");
-  textfeld.focus();
-  textfeld.setSelectionRange(0, 4);
-  textfeld.dispatchEvent(new w.MouseEvent("contextmenu",
-    { bubbles: true, cancelable: true, clientX: 100, clientY: 100 }));
-  assert.ok($("#vorschlags-menue"), "Bearbeiten-Menü erscheint nicht");
-  const menueWorte = $$("#vorschlags-menue .vm-eintrag").map((b) => b.textContent);
-  assert.ok(menueWorte.some((x) => x.includes("Kopieren")), "Kopieren fehlt");
-  assert.ok(menueWorte.some((x) => x.includes("Ausschneiden")), "Ausschneiden fehlt");
-  assert.ok(menueWorte.some((x) => x.includes("Einfügen")), "Einfügen fehlt");
-  $$("#vorschlags-menue .vm-eintrag").find(
-    (b) => b.textContent.includes("Ausschneiden")).click();
-  assert.strictEqual(textfeld.value, "Kopieren",
-    "Ausschneiden entfernt den markierten Text nicht: " + textfeld.value);
-  textfeld.focus();
-  textfeld.setSelectionRange(0, 0);
-  textfeld.dispatchEvent(new w.MouseEvent("contextmenu",
-    { bubbles: true, cancelable: true, clientX: 100, clientY: 100 }));
-  $$("#vorschlags-menue .vm-eintrag").find(
-    (b) => b.textContent.includes("Einfügen")).click();
-  w.App.ablage({ text: "Zum " });
-  assert.strictEqual(textfeld.value, "Zum Kopieren",
-    "Einfügen setzt den Text nicht wieder ein: " + textfeld.value);
-  const rechtschreibungVorher = T.daten().einstellungen.schrift.rechtschreibung;
+  // jsdom cannot execute native editing transactions. This fixture captures
+  // their exact delegation and delayed clipboard readback; real text/history
+  // effects are independently required by context_edit_webkit.py.
+  const editDom = new JSDOM(html, { runScripts: "dangerously", url: "https://context-contract.test/", pretendToBeVisual: true });
+  const ew = editDom.window, ed = ew.document, clipboardMessages = [], nativeEdits = [];
+  ew.__MAGNOLIE_BRUECKE__ = "context_fixture";
+  ew.webkit = { messageHandlers: { context_fixture: { postMessage: raw => clipboardMessages.push(JSON.parse(raw)) } } };
+  ed.execCommand = (command, ui, value) => { nativeEdits.push({ command, value, target: ed.activeElement,
+    from: ed.activeElement.selectionStart, to: ed.activeElement.selectionEnd }); return true; };
+  ladeAnwendung(ew); await tick(); ew.App.init({ daten: {}, neu: false, regional: { language: "de" } });
+  ew.OrganizerTest.daten().einstellungen.schrift.rechtschreibung = false;
+  const textfeld = ed.createElement("input"); ed.body.append(textfeld); textfeld.value = "Zum Kopieren";
+  const editMenu = (field, label) => {
+    field.focus(); field.dispatchEvent(new ew.MouseEvent("contextmenu", { bubbles: true, cancelable: true, clientX: 100, clientY: 100 }));
+    const button = [...ed.querySelectorAll("#vorschlags-menue .vm-eintrag")].find(b => b.textContent.includes(label));
+    assert.ok(button && !button.disabled, "Bearbeitungsaktion fehlt: " + label); button.click();
+  };
+  textfeld.setSelectionRange(0, 4); editMenu(textfeld, "Ausschneiden");
+  assert.deepStrictEqual(clipboardMessages.slice(-2).map(m => m.cmd), ["ablage_kopieren", "ablage_holen"]);
+  assert.strictEqual(clipboardMessages.at(-2).text, "Zum ");
+  assert.strictEqual(nativeEdits.length, 0, "Cut must wait for actual copy readback");
+  ew.App.ablage({ text: "wrong copy" }); assert.strictEqual(nativeEdits.length, 0);
+  editMenu(textfeld, "Ausschneiden"); ew.App.ablage({ text: "Zum " });
+  assert.strictEqual(nativeEdits.at(-1).command, "delete");
+  assert.strictEqual(nativeEdits.at(-1).from, 0); assert.strictEqual(nativeEdits.at(-1).to, 4);
+  assert.strictEqual(nativeEdits.at(-1).target, textfeld);
+  assert.strictEqual(textfeld.value, "Zum Kopieren", "Captured native command must not be replaced by a direct JS mutation");
+  textfeld.setSelectionRange(0, 0); editMenu(textfeld, "Einfügen"); ew.App.ablage({ text: "Zum " });
+  assert.strictEqual(nativeEdits.at(-1).command, "insertText"); assert.strictEqual(nativeEdits.at(-1).value, "Zum ");
   for (const [typ, rechtschreibung, inhalt] of [
     ["tel", false, "+49 203 123456"], ["email", true, "post@example.de"]]) {
-    T.daten().einstellungen.schrift.rechtschreibung = rechtschreibung;
-    const feld = d.createElement("input");
+    ew.OrganizerTest.daten().einstellungen.schrift.rechtschreibung = rechtschreibung;
+    const feld = ed.createElement("input");
     feld.type = typ;
-    d.body.append(feld);
+    ed.body.append(feld);
     feld.focus();
     try { feld.setSelectionRange(0, 0); } catch (fehler) { /* nicht jeder Eingabetyp erlaubt es */ }
-    feld.dispatchEvent(new w.MouseEvent("contextmenu",
-      { bubbles: true, cancelable: true, clientX: 120, clientY: 120 }));
-    const einfuegen = $$("#vorschlags-menue .vm-eintrag").find(
-      (b) => b.textContent.includes("Einfügen"));
-    assert.ok(einfuegen && !einfuegen.disabled,
-      "Einfügen fehlt im Rechtsklickmenü für input[type=" + typ + "]");
-    einfuegen.click();
-    w.App.ablage({ text: inhalt });
-    assert.strictEqual(feld.value, inhalt,
-      "Rechtsklick-Einfügen funktioniert nicht für input[type=" + typ + "]");
+    editMenu(feld, "Einfügen"); ew.App.ablage({ text: inhalt });
+    assert.strictEqual(nativeEdits.at(-1).command, "insertText");
+    assert.strictEqual(nativeEdits.at(-1).value, inhalt);
+    assert.strictEqual(nativeEdits.at(-1).target, feld);
     feld.remove();
   }
-  T.daten().einstellungen.schrift.rechtschreibung = rechtschreibungVorher;
-  w.App.ablage({ text: "" });
-  assert.strictEqual($("#zettel").textContent, "Die Zwischenablage ist leer.",
+  ew.OrganizerTest.daten().einstellungen.schrift.rechtschreibung = false;
+  editMenu(textfeld, "Einfügen"); ew.App.ablage({ text: "" });
+  assert.strictEqual(ed.querySelector("#zettel").textContent, "Die Zwischenablage ist leer.",
     "deutscher Zwischenablagehinweis fehlt");
+  editDom.window.close();
   w.App.wortGemerkt({ ok: true, wort: "Duisburg" });
   assert.strictEqual($("#zettel").textContent,
     "„Duisburg“ steht nun im Wörterbuch.",
@@ -6438,6 +6664,7 @@ function knopfMit(text, wurzel) {
   assert.strictEqual(T.daten().einstellungen.kalender.planerWochenNummern, true,
     "Wahl der Planer-Wochennummern wird nicht gemerkt");
   T.wechsel("planer");
+  await warteBis(() => $$(".mini-monat").length === 12, "Planner week numbers did not finish");
   assert.ok($$(".mm-kw").length >= 60 && $$(".mm-kw-kopf").length === 12,
     "der Jahresplaner zeigt keine ISO-Wochennummern für alle Monate");
   assert.strictEqual($(".mm-kw-kopf").textContent, "KW");
@@ -6700,6 +6927,10 @@ function knopfMit(text, wurzel) {
   assert.ok(notizFeld.style.height,
     "das Notizfeld wächst nicht mit dem Text");
   knopfMit("Abbrechen", $("#termin-schleier")).click();
+  assert.ok($("#aenderungen-schleier"), "Bearbeitete Terminnotiz wird ohne Entscheidung verworfen");
+  knopfMit("Verwerfen", $("#aenderungen-schleier")).click();
+  await tick();
+  assert.ok(!$("#termin-schleier"), "Verworfene Terminnotiz bleibt geoeffnet");
 
   /* ---- Wiederkehrende Termine ---- */
   klickeTab("Kalender");
@@ -6746,6 +6977,8 @@ function knopfMit(text, wurzel) {
       wiederholung: { art: "daily", intervall: 14 } },
     { id: "dreiwochen", datum: "2026-08-03", titel: "Drei Wochen",
       wiederholung: { art: "weekly", intervall: 3 } },
+    { id: "eiermann-1998", datum: "1998-01-05", titel: "Eiermann",
+      wiederholung: { art: "weekly", intervall: 2 } },
     { id: "eigene-tage", datum: "2026-08-01", titel: "Eigene Tage",
       wiederholung: { art: "custom", daten: ["2026-09-05", "2026-08-19", "2026-08-19"] } }
   ] }).termine;
@@ -6756,13 +6989,23 @@ function knopfMit(text, wurzel) {
     T.termineAm("2026-08-15").some((t) => t.id === "vierzehn") &&
     T.termineAm("2026-08-24").some((t) => t.id === "dreiwochen") &&
     !T.termineAm("2026-08-17").some((t) => t.id === "dreiwochen") &&
+    T.termineAm("2026-09-07").some((t) => t.id === "eiermann-1998") &&
+    !T.termineAm("2026-09-14").some((t) => t.id === "eiermann-1998") &&
     T.termineAm("2026-08-19").some((t) => t.id === "eigene-tage") &&
     !T.termineAm("2026-08-20").some((t) => t.id === "eigene-tage"),
   "Intervall- oder benutzerdefinierte Terminserie wird falsch expandiert");
-  assert.deepStrictEqual(intervalle[3].wiederholung.daten,
+  const forumSerie = T.normalisiere({ termine: [{ id: "eiermann-forum-2021",
+    datum: "2021-03-01", titel: "Eiermann Forum",
+    wiederholung: { art: "weekly", intervall: 2 } }] }).termine[0];
+  T.daten().termine.push(forumSerie);
+  T.planeSpeichern();
+  assert.ok(T.termineAm("2026-09-07").some((t) => t.id === "eiermann-forum-2021") &&
+    !T.termineAm("2026-09-14").some((t) => t.id === "eiermann-forum-2021"),
+  "Forum-Rekonstruktion der 14-Tage-Serie mit Start 2021-03-01 fehlt");
+  assert.deepStrictEqual(intervalle[4].wiederholung.daten,
     ["2026-08-19", "2026-09-05"], "benutzerdefinierte Tage werden nicht kanonisiert");
   T.daten().termine = T.daten().termine.filter((t) =>
-    !["zweitaeglich", "vierzehn", "dreiwochen", "eigene-tage"].includes(t.id));
+    !["zweitaeglich", "vierzehn", "dreiwochen", "eiermann-1998", "eiermann-forum-2021", "eigene-tage"].includes(t.id));
   T.daten().termine.push(monatsRundlauf.termine[0]);
   T.planeSpeichern();
   assert.ok(T.termineAm("2024-02-08").some((t) => t.id === "monat-2th") &&
@@ -6826,7 +7069,7 @@ function knopfMit(text, wurzel) {
   assert.ok(ueberText.includes("Version 3"), "die Lizenzfassung fehlt");
   assert.ok($(".ueber-fassung").textContent.includes("Fassung"),
     "die Programmfassung fehlt");
-  assert.ok($(".ueber-fassung").textContent.includes("2.0.17"),
+  assert.ok($(".ueber-fassung").textContent.includes("2.0.18"),
     "die neue Programmfassung fehlt");
   assert.ok($(".ueber-blume"), "die Magnolienblüte fehlt");
   const beschreibung = $(".ueber-beschreibung");
@@ -6846,18 +7089,18 @@ function knopfMit(text, wurzel) {
     "neben der gemeinsamen Aktualisierungsprüfung ist ein zweiter Prüfknopf sichtbar");
   assert.ok($("#handbuch-stand").textContent.includes("nicht installiert"),
     "der Handbuchstatus nennt die fehlende Installation nicht");
-  assert.ok(!T.istNeuereFassung("2.0.1") && !T.istNeuereFassung("2.0.17") &&
-    T.istNeuereFassung("2.0.18"),
+  assert.ok(!T.istNeuereFassung("2.0.1") && !T.istNeuereFassung("2.0.18") &&
+    T.istNeuereFassung("2.0.19"),
     "Fassungsvergleich der Oberfläche stimmt nicht");
   assert.ok(T.vergleicheText("Termin 2", "Termin 10") < 0,
     "der regionale Collator sortiert Zahlen weiterhin rein lexikografisch");
-  w.App.updateErgebnis({ ok: true, aktuell: false, version: "2.0.18",
+  w.App.updateErgebnis({ ok: true, aktuell: false, version: "2.0.19",
     url: "https://gitlab.com/maik3531/mint-forgs/-/raw/main/" +
-      "Magnolie-Organitzer/magnolie-organizer_2.0.18_all.deb" });
-  assert.ok($("#update-stand").textContent.includes("2.0.18"),
+      "Magnolie-Organitzer/magnolie-organizer_2.0.19_all.deb" });
+  assert.ok($("#update-stand").textContent.includes("2.0.19"),
     "gefundene Fassung erscheint nicht unter Über");
   assert.ok($("#update-herunterladen"), "Downloadknopf für neue Fassung fehlt");
-  assert.strictEqual(T.daten().einstellungen.update.letzteVersion, "2.0.18",
+  assert.strictEqual(T.daten().einstellungen.update.letzteVersion, "2.0.19",
     "Prüfstand wird nicht gespeichert");
   $("#update-automatisch").checked = false;
   $("#update-automatisch").dispatchEvent(new w.Event("change", { bubbles: true }));
@@ -6895,7 +7138,8 @@ function knopfMit(text, wurzel) {
   assert.ok($$(".person-zeile").length === 2, "beide stehen in der Liste");
   assert.ok($(".person-zeichen").textContent.length <= 3,
     "das Kürzel ist zu lang");
-  personenBlatt.remove();
+  personenBlatt.querySelector("header button").click();
+  assert.ok(!$("#personen-schleier"), "Personenblatt bleibt nach dem Schliessen im Modalstapel");
   T.wechsel("notizen");
 
   /* Aufgabe einer Person zuweisen */
@@ -7016,7 +7260,7 @@ function knopfMit(text, wurzel) {
     /--linien-stelle:\s*0\.76lh/.test(stilText) &&
     !/body\s*\{\s*--zeilenhoehe/.test(stilText) &&
     /function notizlinienGrundlinie\(feld\)/.test(js) &&
-    /\[\$\("#notiz-text"\),\s*\$\("#tb-notiz"\)\]/.test(js) &&
+    /document\.querySelectorAll\("#notiz-text, #tb-notiz, \.custom-text-editor"\)/.test(js) &&
     /const periode = zweite - erste/.test(js) &&
     /setProperty\("--zeilenhoehe",\s*metrik\.zeilenhoehe \+ "px"\)/.test(js),
   "Linienperiode und Grundlinie folgen nicht der effektiven Textfeldschrift");
@@ -7449,7 +7693,8 @@ function knopfMit(text, wurzel) {
   Array.from(bd.querySelectorAll("#baum-partner button"))
     .find((b) => b.textContent === "Kontakte synchronisieren").click();
   bd.querySelector("#dialog-ja").click();
-  await tick();
+  await warteBis(() => baumNachrichten.slice(vorKontaktSync).some(n =>
+    n.cmd === "baum_teilen" && n.art === "kontakt_sync"), "Kontaktabgleich wurde nicht abgeschlossen");
   const kontaktSendung = baumNachrichten.slice(vorKontaktSync)
     .find((n) => n.cmd === "baum_teilen" && n.art === "kontakt_sync");
   assert.ok(kontaktSendung && kontaktSendung.inhalt.fassung === 1 &&
@@ -7461,9 +7706,9 @@ function knopfMit(text, wurzel) {
   assert.ok(kontaktMetadaten.freigabeId && kontaktMetadaten.version === 1 &&
     kontaktMetadaten.partner.includes("b"),
   "stabile Kontaktbindung und Version werden migrationssicher im Webmodell gespeichert");
-  bw.App.baumStand({ moeglich: true, an: true, laeuft: true, name: "Küche",
+  const kontaktUpdate = { moeglich: true, an: true, laeuft: true, name: "Küche",
     kennung: "a", port: 8737, partner: [{ kennung: "b", name: "Werkstatt",
-      bestaetigt: true, vertraut: true, kontakte: true }], post: 0, postOffen: 0,
+    bestaetigt: true, vertraut: true, kontakte: true }], post: 0, postOffen: 0,
     eingang: [{ id: "kontakt-update", von: "b", vonName: "Werkstatt",
       art: "kontakt_sync", inhalt: { art: "kontakt_sync", fassung: 1,
         freigabeId: kontaktMetadaten.freigabeId, version: 2, quelle: "b",
@@ -7472,7 +7717,18 @@ function knopfMit(text, wurzel) {
           foto: "data:image/jpeg;base64,/9j/2Q==",
           telefone: [{ art: "arbeit", wert: "0203 999" }],
           emailEintraege: [{ art: "arbeit", wert: "neu@example.test" }],
-          anschriften: [] } } }] });
+          anschriften: [] } } }] };
+  const kontaktVorKonflikt = JSON.stringify(bw.OrganizerTest.daten().kontakte[0]);
+  bw.App.baumStand(kontaktUpdate);
+  Array.from(bd.querySelectorAll(".baum-eingang button"))
+    .find((b) => b.textContent === "Übernehmen").click();
+  bd.querySelector("#dialog-ja").click();
+  await tick();
+  assert.strictEqual(JSON.stringify(bw.OrganizerTest.daten().kontakte[0]), kontaktVorKonflikt,
+    "ein widersprechender Name darf weder den lokalen Kontakt noch seine Bindung verändern");
+  assert.strictEqual(bd.querySelector("#zettel").textContent, bw.MagnolieI18n.gettext("Conflict"));
+  kontaktUpdate.eingang[0].inhalt.kontakt.vorname = "Anna";
+  bw.App.baumStand(kontaktUpdate);
   Array.from(bd.querySelectorAll(".baum-eingang button"))
     .find((b) => b.textContent === "Übernehmen").click();
   bd.querySelector("#dialog-ja").click();
@@ -8073,6 +8329,7 @@ function knopfMit(text, wurzel) {
     "Pfeil abwärts verschiebt den Fokus nicht zur nächsten Stunde");
 
   fT.wechsel("planer");
+  await warteBis(() => fd.querySelectorAll(".mini-monat").length === 12, "Planner keyboard grid did not finish");
   let planerFokus = fd.querySelector("[data-fokus^='planer-tag:'][tabindex='0']");
   assert.ok(planerFokus && planerFokus.getAttribute("role") === "gridcell",
     "der Jahresplaner besitzt keinen roving Fokus");
@@ -8205,8 +8462,12 @@ function knopfMit(text, wurzel) {
     "Mobilnummer zeigt keine einzelne SMS-Aktion");
   const ersterKontext = new kontaktW.Event("contextmenu", { bubbles: true, cancelable: true });
   kontaktKarte.querySelector(".kontakt-sms").dispatchEvent(ersterKontext);
-  assert.ok(ersterKontext.defaultPrevented && kontaktD.querySelector(".sms-planung-dialog"),
-    "SMS-Rechtsklick verhindert Browsermenü nicht oder öffnet keine SMS-Planung");
+  assert.ok(ersterKontext.defaultPrevented && !kontaktD.querySelector(".sms-planung-dialog"),
+    "SMS context action must not bypass default-off scheduling");
+  kontaktT.daten().einstellungen.adressen.smsSchedulingEnabled = true;
+  kontaktKarte.querySelector(".kontakt-sms").dispatchEvent(
+    new kontaktW.Event("contextmenu", { bubbles: true, cancelable: true }));
+  assert.ok(kontaktD.querySelector(".sms-planung-dialog"), "Explicit opt-in must allow scheduling");
   assert.ok(kontaktD.querySelector('.sms-planung-dialog .datumsfeld') &&
     kontaktD.querySelector('.sms-planung-dialog input[type="time"]') &&
     kontaktD.querySelector(".sms-planung-dialog textarea"),
@@ -8425,10 +8686,17 @@ function knopfMit(text, wurzel) {
     "finales idle eines Telefon-Calls legt eine Notizsitzung an");
   herkunftW.App.telefonEingehenderAnruf(callEvent("ringing", "unknown", 4));
   herkunftW.App.telefonEingehenderAnruf(callEvent("offhook", "desktop", 5, { offhook_ms: 1_005 }));
+  assert.strictEqual(herkunftD.querySelector("#anruf-schleier"), null,
+    "ein beendeter Call darf durch spaete Zustandsmeldungen nicht wiederauferstehen");
+  const desktopCallRef = "123e4567-e89b-42d3-a456-426614174011";
+  herkunftW.App.telefonEingehenderAnruf(callEvent("ringing", "unknown", 1,
+    { call_ref: desktopCallRef, started_ms: 1_004, occurred_ms: 1_004 }));
+  herkunftW.App.telefonEingehenderAnruf(callEvent("offhook", "desktop", 2,
+    { call_ref: desktopCallRef, started_ms: 1_004, offhook_ms: 1_005, occurred_ms: 1_005 }));
   assert.ok(herkunftD.querySelector("#anruf-schleier .anruf-auflegen"),
     "per Desktop angenommener Call oeffnet Dialog und Auflegekontrolle nicht");
-  herkunftW.App.telefonEingehenderAnruf(callEvent("idle", "desktop", 6,
-    { offhook_ms: 1_005, ended_ms: 1_006 }));
+  herkunftW.App.telefonEingehenderAnruf(callEvent("idle", "desktop", 3,
+    { call_ref: desktopCallRef, started_ms: 1_004, offhook_ms: 1_005, ended_ms: 1_006, occurred_ms: 1_006 }));
   anrufHerkunftDom.window.close();
 
   const direktDom = new JSDOM(html, { runScripts: "dangerously",
@@ -8458,8 +8726,8 @@ function knopfMit(text, wurzel) {
   direktD.querySelector(".kontakt-anruf").click();
   const waehlen = direktNachrichten.find((nachricht) => nachricht.cmd === "telefon_waehlen");
   assert.ok(waehlen && uuidV4.test(waehlen.clientRef) && waehlen.kennung === "direkt-telefon" &&
-    waehlen.hfpAdresse === "AA:BB:CC:DD:EE:FF",
-  "direkter Anruf übergibt client_ref, Telefonbindung oder unabhängige HFP-Adresse nicht");
+    !Object.hasOwn(waehlen, "hfpAdresse"),
+  "direkter Anruf verliert client_ref/Telefonbindung oder erlaubt eine beliebige HFP-Adresse");
   let auflegen = direktD.querySelector("#anruf-schleier .anruf-auflegen");
   const pendingStatus = direktD.querySelector(".anruf-status").textContent;
   assert.ok(auflegen && auflegen.disabled && pendingStatus.trim(),
@@ -8597,10 +8865,10 @@ function knopfMit(text, wurzel) {
   kontaktW.App.kdeSmsStatus({ ok: true, state: "queued", client_ref: kdeBefehl.clientRef });
   assert.strictEqual(kontaktT.daten().smsVerlauf.at(-1).status, "queued",
     "lokale KDE-Warteschlange wird fälschlich als Versandbestätigung persistiert");
-  assert.strictEqual(kdeDialog.querySelector("textarea").value, "",
-    "Text wird nach erfolgreicher lokaler Einreihung nicht geleert");
-  assert.ok(!kdeDialog.querySelector(".sms-komponist button").disabled,
-    "Komponist bleibt nach erfolgreicher lokaler Einreihung gesperrt");
+  assert.strictEqual(kdeDialog.querySelector("textarea").value, "KDE Test",
+    "a queued ACK must retain the draft until actual submission");
+  assert.ok(kdeDialog.querySelector(".sms-komponist > .hauptknopf").disabled,
+    "a pending submission must not allow a duplicate send");
   const blase = kdeDialog.querySelector(".sms-blase");
   blase.dispatchEvent(new kontaktW.MouseEvent("contextmenu", { bubbles: true, cancelable: true }));
   const detail = kontaktD.querySelector(".sms-detail-dialog");
@@ -8612,6 +8880,9 @@ function knopfMit(text, wurzel) {
     statusZeichen.getAttribute("aria-label") === statusZeichen.title,
   "lokal eingereihter SMS-Status besitzt keine ehrliche sichtbare und zugängliche Legende");
   detail.querySelector(".dialog-knoepfe button").click();
+  kontaktW.App.kdeSmsStatus({ ok: true, state: "submitted", client_ref: kdeBefehl.clientRef });
+  assert.strictEqual(kdeDialog.querySelector("textarea").value, "",
+    "submission ACK must clear only the unchanged acknowledged draft");
   kontaktW.App.telefonSmsEmpfangen({ device_id: "telefon-1", sms_id: "eingang-1",
     from: "+49 177 444444", text: "Antwort", timestamp_ms: Date.now(), read: false, notify: true });
   kontaktW.App.telefonSmsEmpfangen({ device_id: "telefon-1", sms_id: "eingang-1",
@@ -8655,11 +8926,12 @@ function knopfMit(text, wurzel) {
   kontaktKarte = zeichneKontaktAktionen([{ wert: "0664 1234567", typen: ["CELL"] }], [],
     { peers: [], kdeconnect: { available: true, device_count: 1 } });
   kontaktT.daten().einstellungen.adressen.landCode = "AT";
+  kontaktT.daten().einstellungen.regional.homeCountry = "AT";
   kontaktW.App.telefonSmsEmpfangen({ device_id: "telefon-at", sms_id: "eingang-at",
     from: "0664 1234567", text: "Servus", timestamp_ms: Date.now(), notify: false });
   const smsAt = kontaktT.daten().smsVerlauf.find((x) => x.id === "kde:telefon-at::eingang-at");
   assert.ok(smsAt && smsAt.kontaktId === "kontakt-aktionen" && smsAt.nummer === "+436641234567",
-    "österreichische eingehende SMS wird nicht mit dem Adressland normalisiert oder zugeordnet");
+    "incoming Austrian SMS must use the explicitly selected phone country");
   kontaktW.App.telefonAntwort({ nummer: "0664 1234567", kennung: "a".repeat(32) });
   const antwortAt = kontaktD.querySelector(".sms-dialog");
   assert.ok(antwortAt && antwortAt.querySelector(".sms-nummer").value === "0664 1234567",
@@ -8676,14 +8948,16 @@ function knopfMit(text, wurzel) {
   antwortAt.querySelector(".sms-schliessen").click();
   kontaktT.daten().einstellungen.adressen.landCode = "";
   kontaktT.daten().einstellungen.adressen.land = "Schweiz";
+  kontaktT.daten().einstellungen.regional.homeCountry = "CH";
   kontaktW.App.telefonSmsEmpfangen({ device_id: "telefon-ch", sms_id: "eingang-ch",
     from: "079 123 45 67", text: "Grüezi", timestamp_ms: Date.now(), notify: false });
   const smsCh = kontaktT.daten().smsVerlauf.find((x) => x.id === "kde:telefon-ch::eingang-ch");
   assert.ok(smsCh && smsCh.nummer === "+41791234567" &&
     !kontaktT.daten().smsVerlauf.some((x) => x.nummer === "+49791234567"),
-  "Schweizer nationale SMS wird bei textueller Ländereinstellung als +49 gespeichert");
+  "Swiss national SMS must use the explicitly selected CH phone country, never +49");
 
   kontaktKarte = zeichneKontaktAktionen([{ wert: "0178 555555", typen: ["CELL"] }]);
+  kontaktT.daten().einstellungen.adressen.smsSchedulingEnabled = true;
   kontaktKarte.querySelector(".kontakt-sms").dispatchEvent(
     new kontaktW.Event("contextmenu", { bubbles: true, cancelable: true }));
   const planDialog = kontaktD.querySelector(".sms-planung-dialog");
@@ -8695,8 +8969,21 @@ function knopfMit(text, wurzel) {
   setze(planZeilen[1].querySelector("textarea"), "Zweite geplante SMS");
   Array.from(planDialog.querySelectorAll("button"))
     .find((x) => x.textContent === "SMS planen").click();
+  assert.strictEqual(kontaktT.daten().smsPlanung.length, 0,
+    "SMS-Pläne dürfen vor der ausdrücklichen Vorschau-Bestätigung nicht gespeichert werden");
+  await warteBis(() => planDialog.querySelector(".sms-plan-vorschau:not(.verborgen)"), "SMS-Vorschau fehlt");
+  assert.deepStrictEqual(Array.from(planDialog.querySelectorAll(".sms-plan-vorschau pre"), x => x.textContent),
+    ["Erste geplante SMS", "Zweite geplante SMS"]);
+  Array.from(planDialog.querySelectorAll(".sms-plan-vorschau button"))
+    .find((x) => x.textContent === "SMS-Pläne bestätigen").click();
   assert.strictEqual(kontaktT.daten().smsPlanung.length, 2,
     "mehrere geplante SMS werden nicht gemeinsam persistent übernommen");
+  for (let versuch = 0; versuch < 30 && planDialog.isConnected; versuch++) {
+    for (const save of kontaktAktionenNachrichten.filter(x => x.cmd === "speichern"))
+      kontaktW.App.gespeichert({ id: save.id, ok: true });
+    await tick();
+  }
+  assert.ok(!planDialog.isConnected, "SMS-Planung wartet auf die dauerhafte Save-ACK");
 
   const vielePlaene = Array.from({ length: 505 }, (_, index) => ({ id: "plan-" + index,
     kontaktId: "kontakt-aktionen", nummer: "0178 555555", text: "SMS " + index,
@@ -8710,6 +8997,21 @@ function knopfMit(text, wurzel) {
 
   const befehleVorPlanung = kontaktAktionenNachrichten.filter((x) =>
     x.cmd === "kde_sms_senden" && String(x.clientRef || "").startsWith("plan:")).length;
+  const planSaveQuittungen = new Set();
+  const quittierePlanBisVersand = async (clientRef) => {
+    const gesendet = () => kontaktAktionenNachrichten.some(x => x.cmd === "kde_sms_senden" && x.clientRef === clientRef);
+    assert.ok(!gesendet(), "Geplante SMS wurde vor der dauerhaften Reservierung uebergeben");
+    for (let versuch = 0; versuch < 30 && !gesendet(); versuch++) {
+      const save = kontaktAktionenNachrichten.find(x => x.cmd === "speichern" && !planSaveQuittungen.has(x.id));
+      assert.ok(save, "Speicherauftrag zur SMS-Reservierung fehlt");
+      kontaktW.App.gespeichert({ id: save.id + 1000000, ok: true });
+      assert.ok(!gesendet(), "Fremde Save-ACK gibt SMS frei");
+      planSaveQuittungen.add(save.id);
+      kontaktW.App.gespeichert({ id: save.id, ok: true });
+      await tick();
+    }
+    assert.ok(gesendet(), "Passende Save-ACK gibt die geplante SMS nicht frei");
+  };
   kontaktT.daten().smsPlanung = [{ id: "faellig-1", kontaktId: "kontakt-aktionen",
     nummer: "0178 555555", text: "Fällig", zeit: Date.now() - 1000, status: "planned",
     clientRef: "", fehler: "" }];
@@ -8719,14 +9021,15 @@ function knopfMit(text, wurzel) {
     "eine fällige SMS wird ohne genau ein verfügbares KDE-Gerät verändert");
   kontaktW.App.telefonStand({ kdeconnect: { available: true, device_count: 1,
     device_id: "kde-plan" } });
+  await quittierePlanBisVersand("plan:faellig-1");
   const planBefehl = kontaktAktionenNachrichten.findLast((x) =>
     x.cmd === "kde_sms_senden" && x.clientRef === "plan:faellig-1");
   assert.ok(planBefehl && planBefehl.nummer === "0178 555555" &&
-    planBefehl.deviceId === "kde-plan" && kontaktT.daten().smsPlanung[0].status === "submitting",
-  "eine fällige SMS wird nicht eindeutig als laufender KDE-Auftrag übergeben");
+    planBefehl.deviceId === "kde-plan" && kontaktT.daten().smsPlanung[0].status === "queued",
+  "a handed-off plan must be queued without blocking other plans or claiming delivery");
   kontaktW.App.kdeSmsStatus({ ok: true, state: "queued", client_ref: planBefehl.clientRef });
-  assert.strictEqual(kontaktT.daten().smsPlanung[0].status, "sent",
-    "eine nativ angenommene geplante SMS wird nicht als gesendet abgeschlossen");
+  assert.strictEqual(kontaktT.daten().smsPlanung[0].status, "queued",
+    "lokale Annahme einer geplanten SMS darf keinen Versand vortaeuschen");
   kontaktT.pruefeSmsPlanung();
   assert.strictEqual(kontaktAktionenNachrichten.filter((x) =>
     x.cmd === "kde_sms_senden" && String(x.clientRef || "").startsWith("plan:")).length,
@@ -8735,6 +9038,7 @@ function knopfMit(text, wurzel) {
     nummer: "0178 555555", text: "Fehlerfall", zeit: Date.now() - 500, status: "planned",
     clientRef: "", fehler: "" });
   kontaktT.pruefeSmsPlanung();
+  await quittierePlanBisVersand("plan:faellig-2");
   kontaktW.App.kdeSmsStatus({ ok: false, state: "failed", client_ref: "plan:faellig-2",
     error: "Telefon offline" });
   assert.ok(kontaktT.daten().smsPlanung.find((x) => x.id === "faellig-2").status === "failed" &&
@@ -8752,13 +9056,17 @@ function knopfMit(text, wurzel) {
   assert.ok(kontaktAktionenNachrichten.some((nachricht) => nachricht.cmd === "sozial" &&
     nachricht.dienst === "sms" && nachricht.wert === "0178 555555" && !nachricht.aktionArt),
   "Systembelegung leitet Linksklick nicht ohne Custom-Ziel an die sichere Sozial-Bridge");
+  kontaktW.App.telefonStand({ ...smsTelefonStand,
+    peers: smsTelefonStand.peers.map((peer) => ({ ...peer, own_device: true,
+      bluetooth_address: "AA:BB:CC:DD:EE:FF" })),
+    call_audio: { state: "available", available: true, route: { active: false } } });
   kontaktKarte.querySelector(".kontakt-anruf").dispatchEvent(
     new kontaktW.Event("contextmenu", { bubbles: true, cancelable: true }));
   const anrufBelegung = kontaktD.querySelector(".kommunikation-belegung-dialog");
-  const hfpAuswahl = anrufBelegung.querySelector(".kommunikation-hfp-auswahl");
-  assert.ok(hfpAuswahl && Array.from(hfpAuswahl.options).some((option) =>
-    option.value === "AA:BB:CC:DD:EE:FF" && option.textContent === "Mobiltelefon HFP"),
-  "Anrufzuweisung bietet die systemgekoppelten Bluetooth-HFP-Geräte nicht an");
+  const hfpAnzeige = anrufBelegung.querySelector("output");
+  assert.ok(hfpAnzeige && hfpAnzeige.textContent === "AA:BB:CC:DD:EE:FF" &&
+    !anrufBelegung.querySelector(".kommunikation-hfp-auswahl"),
+  "Anrufzuweisung muss die gebundene Adresse zeigen statt fremde HFP-Geraete anzubieten");
   const anrufBelegungText = anrufBelegung.textContent;
   assert.ok(anrufBelegungText.includes("Programmbefehl") &&
     anrufBelegungText.includes("Der Befehl wird sicher ohne Shell gestartet.") &&
@@ -8773,19 +9081,25 @@ function knopfMit(text, wurzel) {
     (x) => x.textContent === "Voreinstellungen wiederherstellen");
   const anrufOptionen = Array.from(anrufBelegung.querySelectorAll(
     ".kommunikation-anruf-optionen input[type=checkbox]"));
+  assert.strictEqual(anrufOptionen.length, 4);
+  const pcAudio = anrufOptionen[3];
+  assert.ok(pcAudio.checked && !pcAudio.disabled, "Eigenes Telefon bietet die unabhaengige Audio-Voreinstellung nicht an");
   anrufBelegung.querySelector('[value="program"]').click();
   anrufBelegung.querySelector('input[type="text"]').value = "dialer {nummer}";
   for (const feld of anrufOptionen) feld.checked = true;
-  hfpAuswahl.value = "AA:BB:CC:DD:EE:FF";
+  pcAudio.checked = false;
   standardKnopf.click();
   assert.ok(standardKnopf && anrufBelegung.querySelector('[value="magnolie"]').checked &&
     !anrufBelegung.querySelector('input[type="text"]').value &&
-    anrufOptionen.every((feld) => !feld.checked) && !hfpAuswahl.value,
+    anrufOptionen.slice(0, 3).every((feld) => !feld.checked) && pcAudio.checked &&
+    hfpAnzeige.textContent === "AA:BB:CC:DD:EE:FF",
   "Voreinstellungen stellen nicht die vollständige Anrufbelegung wieder her");
-  hfpAuswahl.value = "AA:BB:CC:DD:EE:FF";
+  pcAudio.checked = false;
   Array.from(anrufBelegung.querySelectorAll("button")).find((x) => x.textContent === "Speichern").click();
+  assert.strictEqual(kontaktT.daten().einstellungen.adressen.kommunikation.anruf.preferPcAudio,
+    false, "Explizite Audio-Abwahl wird nicht gespeichert");
   assert.strictEqual(kontaktT.daten().einstellungen.adressen.kommunikation.anruf.hfpAdresse,
-    "AA:BB:CC:DD:EE:FF", "HFP-Auswahl wird nicht unabhängig gespeichert");
+    "", "Audio-Einstellung speichert eine fremde HFP-Auswahl statt der Telefonbindung");
   kontaktKarte.querySelector(".kontakt-anruf").dispatchEvent(
     new kontaktW.Event("contextmenu", { bubbles: true, cancelable: true }));
   const programmBelegung = kontaktD.querySelector(".kommunikation-belegung-dialog");
@@ -8821,6 +9135,9 @@ function knopfMit(text, wurzel) {
   geraetW.App.telefonStand({ peers: [personalPeer] });
   geraetW.App.geraetOeffnen({ kennung: "partner-intern-1", name: "Annas Telefon",
     status: {} });
+  const ersteStatusAnfrage = geraetNachrichten.findLast((nachricht) => nachricht.cmd === "telefon_status_anfordern");
+  assert.ok(ersteStatusAnfrage && uuidV4.test(ersteStatusAnfrage.requestId),
+    "Der geoeffnete Geraetedialog fordert seinen eigenen UUID-gebundenen Status an");
   assert.strictEqual(geraetD.querySelector("#geraet-titel").textContent,
     "Magnolie Notes-Gerätestatus");
   assert.ok(geraetD.querySelector("#geraet-dialog").textContent.includes(
@@ -8847,19 +9164,24 @@ function knopfMit(text, wurzel) {
   "der Gerätestatus bezeichnet die App-Version nicht knapp als Magnolie Notes");
   Array.from(geraetD.querySelectorAll("#geraet-dialog button"))
     .find((button) => button.textContent === "Aktualisieren").click();
-  assert.ok(geraetNachrichten.some((nachricht) =>
-    nachricht.cmd === "telefon_status_anfordern" &&
-    nachricht.kennung === "partner-intern-1"),
-  "Aktualisieren fordert den Status über die native Bridge erneut an");
+  const neueStatusAnfrage = geraetNachrichten.findLast((nachricht) => nachricht.cmd === "telefon_status_anfordern");
+  assert.ok(neueStatusAnfrage.kennung === "partner-intern-1" && uuidV4.test(neueStatusAnfrage.requestId) &&
+    neueStatusAnfrage.requestId !== ersteStatusAnfrage.requestId,
+  "Aktualisieren fordert den Status mit einer neuen Anfragekennung ueber die native Bridge an");
   assert.ok(!geraetD.querySelector("#geraet-dialog").textContent.match(
-    /IMEI|Seriennummer|Telefonnummer|IP|MAC|SSID/i),
-  "der Gerätedialog enthält keine verbotenen Identifikatoren oder Netzdaten");
-  const personalHaken = Array.from(geraetD.querySelectorAll(".telefon-freigaben input"));
+    /IP|MAC|SSID/i),
+  "der Geraetedialog darf weiterhin keine privaten Netzdaten enthalten");
+  const kennungsFelder = Array.from(geraetD.querySelectorAll("[data-identifier]"));
+  assert.deepStrictEqual(kennungsFelder.map((feld) => feld.dataset.identifier).sort(),
+    ["imei", "phone_number", "serial"]);
+  assert.ok(kennungsFelder.every((feld) => feld.hidden && feld.previousElementSibling.hidden),
+    "v4-Kennungen und ihre Beschriftungen muessen ohne Eigentumsfreigabe verborgen bleiben");
   const personalBereich = geraetD.querySelector("details.telefon-personal-sync");
   assert.ok(personalBereich && !personalBereich.open && personalBereich.querySelector("summary"),
     "persönliche Synchronisierung ist nicht standardmäßig eingeklappt");
-  personalHaken.at(-4).click();
-  personalHaken.at(-3).click();
+  const personalHaken = Array.from(personalBereich.querySelectorAll("input"));
+  personalHaken[0].click();
+  personalHaken[1].click();
   const wartenderPersonalStand = geraetD.querySelector("[data-personal-sync-peer]").textContent;
   assert.ok(wartenderPersonalStand,
     "lokale Personal-Sync-Freigabe zeigt nicht den ausstehenden Fernstand");
@@ -8879,16 +9201,31 @@ function knopfMit(text, wurzel) {
   personalWahl[0].click();
   assert.ok(Array.from(personalBereich.querySelectorAll("input")).slice(1, 4)
     .every((haken) => haken.checked), "Alle schaltet nicht alle Sync-Inhalte ein");
+  assert.strictEqual(personalBereich.querySelector("[data-personal-custom-peer]").checked, false,
+    "Alle darf die getrennte Custom-Freigabe nicht einschalten");
   const geraetFuss = geraetD.querySelector(".geraet-dialog-knoepfe");
   assert.ok(geraetFuss && geraetD.querySelector(".geraet-dialog-inhalt"),
     "Geräteinhalt und dauerhaft sichtbare Aktionsleiste sind nicht getrennt");
   Array.from(geraetFuss.querySelectorAll("button"))
     .find((button) => button.textContent === "Jetzt synchronisieren").click();
-  await Promise.resolve();
-  assert.ok(geraetNachrichten.some((nachricht) =>
+  await tick();
+  const personalAngefordert = () => geraetNachrichten.some((nachricht) =>
     (nachricht.cmd === "personal_sync_senden" && nachricht.art === "personal_sync.request") ||
-    (nachricht.cmd === "personal_sync_lauf_senden" && nachricht.request && nachricht.request.format === 2)),
-  "Sync jetzt verwendet trotz aktuellem Peer-Stand weiterhin die veraltete Dialogfreigabe");
+    (nachricht.cmd === "personal_sync_lauf_senden" && nachricht.request && nachricht.request.format === 2));
+  assert.ok(!personalAngefordert(), "personal sync must not start before durable save");
+  const personalSaveQuittungen = new Set();
+  await warteBis(() => {
+    if (personalAngefordert()) return true;
+    const save = geraetNachrichten.find((nachricht) => nachricht.cmd === "speichern" &&
+      !personalSaveQuittungen.has(nachricht.id));
+    if (save) {
+      geraetW.App.gespeichert({ id: save.id + 1000000, ok: true });
+      assert.ok(!personalAngefordert(), "unrelated save ACK must not release personal sync");
+      personalSaveQuittungen.add(save.id);
+      geraetW.App.gespeichert({ id: save.id, ok: true });
+    }
+    return personalAngefordert();
+  }, "current peer grants must start personal sync after its matching durable save ACK");
   geraetW.App.geraetStatus({ kennung: "partner-intern-1", status: { online: false } });
   assert.ok(geraetD.querySelector(".geraet-details").classList.contains("verborgen") &&
     geraetD.querySelector("#geraet-dialog").textContent.includes("Offline"),
@@ -9142,7 +9479,7 @@ function knopfMit(text, wurzel) {
       "Suchdialog wurde mehrfach geöffnet");
     feld.value = sektion === "kalender" ? "Alpha K-17" : sektion === "aufgaben"
       ? "Gamma Erika" : sektion === "jahrestage" ? "Theta Muster"
-        : sektion === "planer" ? "Alpha Beratung" : "Iota 71";
+        : sektion === "planer" ? "Theta Muster" : "Iota 71";
     feld.dispatchEvent(new suchW.Event("input", { bubbles: true }));
     await new Promise((resolve) => setTimeout(resolve, 180));
     assert.ok(suchD.querySelector(".such-treffer-knopf"),

@@ -10,6 +10,7 @@ export SOURCE_DATE_EPOCH
 
 # Kataloge erzeugen und die Python-Syntax prüfen.
 override_dh_auto_build:
+	python3 werkzeuge/release_sources.py contracts .
 	python3 werkzeuge/klang.py klang/erinnerung.wav
 	mkdir -p web/i18n
 	set -e; while read sprache; do \
@@ -17,7 +18,7 @@ override_dh_auto_build:
 		msgfmt --check --check-format -o locale/$$sprache/LC_MESSAGES/magnolie-organizer.mo po/$$sprache.po; \
 		python3 werkzeuge/po_zu_js.py $$sprache po/$$sprache.po web/i18n/$$sprache.js; \
 	done < po/LINGUAS
-	python3 -m py_compile bin/magnolie-organizer bin/magnolie_crash.py bin/magnolie_asset.py bin/magnolie_hintergrund.py bin/magnolie_kdeconnect.py bin/magnolie_telefon.py bin/magnolie_phone_region.py bin/magnolie_personal_sync.py bin/magnolie_nextcloud.py bin/magnolie_cloud_backup.py bin/magnolie_akonadi.py bin/magnolie_setup_state.py bin/magnolie_setup_ui.py
+	python3 -m py_compile bin/magnolie-organizer bin/magnolie_crash.py bin/magnolie_asset.py bin/magnolie_hintergrund.py bin/magnolie_kdeconnect.py bin/magnolie_telefon.py bin/magnolie_phone_region.py bin/magnolie_personal_sync.py bin/magnolie_nextcloud.py bin/magnolie_cloud_backup.py bin/magnolie_akonadi.py bin/magnolie_setup_state.py bin/magnolie_setup_ui.py bin/magnolie_recurrence.py
 
 override_dh_auto_test:
 ifeq (,$(filter nocheck,$(DEB_BUILD_OPTIONS)))
@@ -31,7 +32,10 @@ ifeq (,$(filter nocheck,$(DEB_BUILD_OPTIONS)))
 	TZ=Europe/Berlin python3 pruefungen/test_gesamtarchiv.py
 	TZ=Europe/Berlin python3 pruefungen/test_telefon.py
 	TZ=Europe/Berlin python3 -m pytest -q pruefungen/test_asset_container.py pruefungen/test_kdeconnect.py pruefungen/test_personal_sync.py pruefungen/test_nextcloud.py pruefungen/test_hintergrunddienst.py pruefungen/test_naechster_weckzeitpunkt.py pruefungen/test_eds_adressbuch_sync.py pruefungen/test_chromium_fallback.py pruefungen/test_eds_calendar_dedup.py pruefungen/test_akonadi.py pruefungen/test_akonadi_sync.py pruefungen/test_journal_periodisch.py pruefungen/test_elf_glibc.py pruefungen/test_release_signatur.py pruefungen/test_restkorrekturen.py pruefungen/test_thunderbird_schema23.py pruefungen/test_update_security.py pruefungen/test_ersteinrichtung.py pruefungen/test_optionale_kontaktquellen.py pruefungen/test_phone_region.py
-	python3 -m pytest -q pruefungen/test_crash_reports.py
+	python3 -m pytest -q pruefungen/test_crash_reports.py pruefungen/test_thunderbird_contacts.py pruefungen/test_release_packaging.py pruefungen/test_release_authorization.py pruefungen/test_feature_packaging.py
+	TZ=Europe/Berlin python3 -m pytest -q pruefungen/test_recurrence.py pruefungen/test_recurrence_oracle.py pruefungen/test_recurrence_integration.py pruefungen/test_recurrence_timezones.py pruefungen/test_runtime_packaging.py
+	TZ=Europe/Berlin python3 -B pruefungen/run_background_reliability.py
+	TZ=Europe/Berlin python3 -B -m pytest -q pruefungen/test_letter_layout.py pruefungen/test_pot_source_coverage.py
 	python3 pruefungen/test_paketinhalt.py
 	test -n "$(JS_LAUFER)"
 	TZ=Europe/Berlin $(JS_LAUFER) pruefungen/test.js
@@ -48,6 +52,7 @@ override_dh_install:
 	  hash=$$(printf '%s' "$$hash" | tr A-F a-f); \
 	fi; \
 	dh_install; \
+	python3 -c 'import json,subprocess,pathlib; p=pathlib.Path("debian/magnolie-organizer/usr/share/magnolie-organizer/version.json"); p.write_text(json.dumps({"version":subprocess.check_output(["dpkg-parsechangelog","-SVersion"],text=True).strip()})+"\n")'; \
 	if [ -n "$$hash" ]; then \
 	  ziel=debian/magnolie-organizer/usr/share/magnolie-organizer; \
 	  mkdir -p "$$ziel"; \
@@ -55,8 +60,11 @@ override_dh_install:
 	fi
 
 override_dh_builddeb:
+	python3 -I -B werkzeuge/runtime_pruefen.py debian/magnolie-organizer/usr/bin
+	python3 werkzeuge/release_sources.py binary debian/magnolie-organizer/usr/share/magnolie-organizer
 	find debian/magnolie-organizer -exec touch -h -d "@$(SOURCE_DATE_EPOCH)" {} +
 	dh_builddeb
 
 override_dh_auto_clean:
+	python3 werkzeuge/release_sources.py contracts .
 	rm -rf .flatpak-builder bin/__pycache__ debian/tests/__pycache__ pruefungen/__pycache__ werkzeuge/__pycache__ klang locale web/i18n/*.js debian/test-data debian/test-config bau

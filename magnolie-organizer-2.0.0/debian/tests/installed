@@ -4,6 +4,8 @@ set -eu
 test -x /usr/bin/magnolie-organizer
 test -f /usr/bin/magnolie_kdeconnect.py
 test -f /usr/bin/magnolie_nextcloud.py
+test -f /usr/bin/magnolie_recurrence.py
+python3 -I -B werkzeuge/runtime_pruefen.py /usr/bin
 test -f /usr/lib/magnolie-organizer/magnolie_personal_sync.py
 PYTHONPATH=/usr/lib/magnolie-organizer:/usr/bin python3 - <<'PY'
 import magnolie_personal_sync

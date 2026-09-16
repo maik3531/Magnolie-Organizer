@@ -42,18 +42,17 @@ internal static class WindowsSpellChecker
 
     private static ISpellChecker Create(string language)
     {
-        if (!OperatingSystem.IsWindows()) throw new PlatformNotSupportedException("Die Windows-Rechtschreibprüfung ist nur unter Windows verfügbar.");
+        if (!OperatingSystem.IsWindows()) throw new PlatformNotSupportedException(T("Windows spell checking is available only on Windows."));
         var factory = (ISpellCheckerFactory)(object)new SpellCheckerFactoryCom();
         try
         {
-            foreach (var candidate in LanguageCandidates(language))
+            var candidate = SupportedLanguage(language, candidate =>
             {
                 Throw(factory.IsSupported(candidate, out var supported));
-                if (!supported) continue;
-                Throw(factory.CreateSpellChecker(candidate, out var checker));
-                return checker;
-            }
-            throw new InvalidOperationException("Für diese Sprache ist kein Windows-Wörterbuch installiert.");
+                return supported;
+            });
+            Throw(factory.CreateSpellChecker(candidate, out var checker));
+            return checker;
         }
         finally { Release(factory); }
     }
@@ -66,6 +65,16 @@ internal static class WindowsSpellChecker
         yield return basis == "de" ? "de-DE" : "en-US";
         yield return basis;
     }
+
+    // The same language selection boundary is testable without creating COM objects.
+    internal static string SupportedLanguage(string language, Func<string, bool> isSupported)
+    {
+        foreach (var candidate in LanguageCandidates(language))
+            if (isSupported(candidate)) return candidate;
+        throw new InvalidOperationException(T("No Windows dictionary is installed for this language."));
+    }
+
+    private static string T(string message) => NativeLocalization.Gettext(message);
 
     private static void Throw(int result) { if (result < 0) Marshal.ThrowExceptionForHR(result); }
     private static void Release(object? value) { if (value is not null && Marshal.IsComObject(value)) Marshal.FinalReleaseComObject(value); }

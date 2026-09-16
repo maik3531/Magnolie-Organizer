@@ -186,7 +186,7 @@ class NutzlastTest {
     @Test
     fun `Aufgabennutzlast und Rueckweg passen zueinander`() {
         val inhalt = Nutzlast.aufgabeInhalt(aufgabe, "handy")
-        val gelesen = Nutzlast.liesAufgabe(inhalt, "rechner")
+        val gelesen = Nutzlast.liesAufgabe(inhalt, "handy")
         assertNotNull(gelesen)
         assertEquals("Blumen kaufen", gelesen!!.titel)
         assertEquals("weil Max Mustermann morgen Geburtstag hat", gelesen.notiz)

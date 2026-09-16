@@ -1,52 +1,56 @@
-Magnolie Organizer 2.0.17 / Notes 1.0.13
+Magnolie Organizer 2.0.18 / Notes 1.0.14
 
 Bitte pruefen Sie heruntergeladene Dateien mit PRUEFSUMMEN.sha256.
 Die anwendungsspezifischen Pruefsummen stehen zusaetzlich in
 Magnolie-Organizer-PRUEFSUMMEN.sha256,
-Magnolie-Organizer-Windows-2.0.17-PRUEFSUMMEN.sha256 und
+Magnolie-Organizer-Windows-2.0.18-PRUEFSUMMEN.sha256 und
 Magnolie-Notes-PRUEFSUMMEN.sha256.
 Die optionalen DEB-, DSC-, Quellarchiv-, RPM- und SRPM-Artefakte des nativen
-Akonadi-Helfers sind in Magnolie-Organizer-PRUEFSUMMEN.sha256 aufgeführt.
+KDE-Helfers sind in Magnolie-Organizer-PRUEFSUMMEN.sha256 aufgeführt.
 
-Version 2.0.17 behebt den mindestens seit 2.0.15 vorhandenen Adressbuchhänger
-durch eine begrenzte Speicherbestätigung. Sie ergänzt einen nativen
-Ersteinrichtungsassistenten, Aufgabenhierarchie einschließlich CalDAV-VTODO,
-allgemeines CalDAV/CardDAV (Baïkal ist nur ein Beispiel eines kompatiblen
-Servers), sichere optionale Kontaktimporte und eine vorsichtige Ermittlung der
-Anrufherkunft. Gesamtarchive verwenden Datenschema 3 und internes Datenmodell 7;
-Personal Sync unterstützt die Formate 1 bis 3. Die neuen Texte sind in den 19
-unterstützten Übersetzungen berücksichtigt. Magnolie Notes 1.0.13 übernimmt
-diese Android-Änderungen mit einer erhöhten Paketversion.
+Ein optionales KDE-DEB / One optional KDE DEB (amd64):
+  magnolie-organizer-kde_2.0.18_amd64.deb
+Debian 13, Ubuntu / Kubuntu 24.04 und 26.04, Linux Mint 22.
+Three internal backends retain genuine 23.08/24.12/25.12 ABI requirements;
+the launcher requires a complete existing configured stack. No KDE PIM forced
+installation, no old-name transitional download. One coherent DSC/source tar.
+Fedora stays a separate magnolie-organizer-kde-2.0.18-1.fc42.x86_64.rpm.
+Released old-name 1.0.0 users explicitly install the KDE package; versioned
+Provides/Breaks/Replaces preserves that upgrade. Suffixed 2.0.18 files were
+unreleased test candidates and sort ABOVE 2.0.18 in dpkg. Their replacement
+requires an explicit tester-approved downgrade, never a silent updater action.
+See native/akonadi-helper/DEB-TARGETS.md for requirements and commands.
 
-Am 5. September 2026 bestand der aktuelle Quellstand den vollständigen
-Desktop-Releasebau einschließlich QEMU-autopkgtest, DEB-Upgrade- und
-Installationstests, Fedora-42-RPM-Bau und -Installation, AppImage-Prüfung unter
-Ubuntu 22.04 und Arch Linux sowie Flatpak-Bau und -Prüfung. Das Android-
-Releasegate bestand Unit-, Lint-, Signatur-, Upgrade-, Start- und
-Instrumentationstests in einem dedizierten API-35-AVD. Der Windows-Bau bestand
-Core-, Web-, Paritäts-, Quellarchiv- und Installer-Audits als markierter,
-unsignierter Linux-Cross-Build. Eine native Windows-Laufzeitprüfung und
-Authenticode-Signatur liegen nicht vor. Die Darstellungskorrektur für
-MATE/NVIDIA ist durch Regressionstests abgedeckt, aber auf dem ursprünglich
-betroffenen System noch nicht visuell bestätigt.
+Version 2.0.18 enthält alle Thunderbird-, Nextcloud-, DAV-, Aufgaben-,
+Ersteinrichtungs-, Skalierungs-, AppImage- und Plattformkorrekturen seit 2.0.17.
+Sie behebt außerdem die Auslieferung der geschützten QR- und Porträtbilder in
+Windows-WebView2, vervollständigt die Gettext-Kopfeinträge und entfernt
+verbliebene englische, doppelte oder fremdsprachige Übersetzungsfallbacks.
+Magnolie Notes wird als Produktionskandidat in Version 1.0.14 mitgeliefert.
 
-Version 2.0.17 fixes the address-book hang present since at least 2.0.15 by
-bounding the final persistence acknowledgement. It adds a native first-run
-assistant, task hierarchy including CalDAV VTODO, generic CalDAV/CardDAV
-support (Baïkal is only an example of a compatible server), safe optional
-contact imports, and conservative incoming-call origin reporting. Total
-archives use data schema 3 and internal data model 7; Personal Sync supports
-formats 1 through 3. The new text is covered by the 19 supported translations.
-Magnolie Notes 1.0.13 includes these Android changes with an incremented package
-version.
+Prüfaussagen für 2.0.18 werden erst nach Abschluss des aktuellen vollständigen
+Releasebaus, der Linux- und Windows-Laufzeitmatrizen, der KDE-/Akonadi-Prüfung
+und des Android-AVD-Gates ergaenzt. Die Veroeffentlichung erfordert eine
+persoenliche oder ausdruecklich bedingt delegierte Autorisierung fuer den
+exakten Kandidaten; Delegation ersetzt keine technischen Pruefungen und
+behauptet keine persoenlichen Nutzertests. Ein weiterer externer KI-Review ist
+fuer diesen Auftrag erlassen, nicht die Bearbeitung vorhandener Befunde. Die
+Windows-Artefakte bleiben als Linux-Cross-Build unsigniert und werden eindeutig
+als laufzeitungeprüft markiert, bis genau der veröffentlichte Kandidat nativ auf
+Windows getestet wurde.
 
-On September 5, 2026, the current source passed the complete desktop release
-build, including QEMU autopkgtest, DEB upgrade and installation tests, Fedora
-42 RPM build and installation, AppImage checks on Ubuntu 22.04 and Arch Linux,
-and Flatpak build and validation. The Android release gate passed unit, lint,
-signature, upgrade, launch, and instrumentation tests in a dedicated API 35
-AVD. The Windows build passed core, web, parity, source archive, and installer
-audits as a marked unsigned Linux cross-build. Native Windows runtime validation
-and Authenticode signing remain unavailable. Regression tests cover the
-MATE/NVIDIA rendering correction, but it has not yet been visually confirmed
-on the originally affected system.
+Version 2.0.18 contains all Thunderbird, Nextcloud, DAV, task, native first-run
+assistant, scaling, AppImage, and platform corrections made since 2.0.17. It also fixes
+protected QR-code and portrait delivery in Windows WebView2, completes gettext
+headers, and removes remaining English, duplicated, or wrong-language
+translation fallbacks. Magnolie Notes is included as a production candidate at version 1.0.14.
+
+Validation statements for 2.0.18 will only be added after the current complete
+release build, Linux and Windows runtime matrices, KDE/Akonadi validation,
+and Android AVD gate have completed. Publication requires personal or explicit
+delegated-conditional authorization for the exact candidate; delegation does
+not replace technical validation or claim personal user testing. Further external
+AI review is waived for this assignment, not resolution of existing findings. The
+Windows artifacts remain unsigned Linux cross-builds and are marked as runtime
+unverified until the exact publication candidate has passed native Windows
+testing.

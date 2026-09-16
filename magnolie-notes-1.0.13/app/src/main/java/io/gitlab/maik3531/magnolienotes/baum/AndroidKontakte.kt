@@ -34,12 +34,13 @@ data class KontaktHerkunft(
 data class KontaktSnapshot(val kontakte: List<AndroidKontakt>, val vollstaendig: Boolean)
 interface KontaktSchreiber {
     fun anlegen(k: KontaktDaten): AndroidKontakt
+    fun anlegen(k: KontaktDaten, operationId: String): AndroidKontakt = anlegen(k)
     fun mischen(rawId: Long, fern: KontaktDaten): AndroidKontakt?
     fun fotoErgaenzen(rawId: Long, foto: String): AndroidKontakt?
 }
 
 /** Schmale Android-Grenze; Vertrag, Revision und Merge bleiben in [KontaktSync]. */
-class AndroidKontakte(private val context: Context) : KontaktSchreiber {
+class AndroidKontakte(private val context: Context, private val konto: android.accounts.Account? = null) : KontaktSchreiber {
     private val resolver get() = context.contentResolver
 
     fun snapshot(): KontaktSnapshot {
@@ -48,7 +49,8 @@ class AndroidKontakte(private val context: Context) : KontaktSchreiber {
         val herkunft = mutableMapOf<Long, KontaktHerkunft>()
         resolver.query(RawContacts.CONTENT_URI, arrayOf(RawContacts._ID, RawContacts.CONTACT_ID,
             RawContacts.ACCOUNT_TYPE, RawContacts.ACCOUNT_NAME, RawContacts.DATA_SET, RawContacts.SOURCE_ID),
-            "${RawContacts.DELETED}=0", null, null)?.use { c ->
+            "${RawContacts.DELETED}=0" + if (konto != null) " AND ${RawContacts.ACCOUNT_NAME}=? AND ${RawContacts.ACCOUNT_TYPE}=?" else "",
+            konto?.let { arrayOf(it.name, it.type) }, null)?.use { c ->
             while (c.moveToNext()) {
                 rawZuKontakt[c.getLong(0)] = c.getLong(1)
                 herkunft[c.getLong(0)] = KontaktHerkunft(c.getString(2).orEmpty(), c.getString(3).orEmpty(),
@@ -56,27 +58,42 @@ class AndroidKontakte(private val context: Context) : KontaktSchreiber {
             }
         } ?: return KontaktSnapshot(emptyList(), false)
         val lookup = mutableMapOf<Long, String>()
-        resolver.query(Contacts.CONTENT_URI, arrayOf(Contacts._ID, Contacts.LOOKUP_KEY), null, null, null)?.use { c ->
+        val contactFilter = if (konto == null) null else if (rawZuKontakt.isEmpty()) "0" else
+            "${Contacts._ID} IN (${rawZuKontakt.values.distinct().joinToString(",")})"
+        resolver.query(Contacts.CONTENT_URI, arrayOf(Contacts._ID, Contacts.LOOKUP_KEY), contactFilter, null, null)?.use { c ->
             while (c.moveToNext()) lookup[c.getLong(0)] = c.getString(1).orEmpty()
         } ?: return KontaktSnapshot(emptyList(), false)
         val daten = rawZuKontakt.keys.associateWith { BauKontakt() }.toMutableMap()
         val spalten = arrayOf(Data.RAW_CONTACT_ID, Data.MIMETYPE, Data.DATA1, Data.DATA2,
             Data.DATA3, Data.DATA4, Data.DATA5, Data.DATA6, Data.DATA7, Data.DATA8, Data.DATA9, Data.DATA10,
             Data.DATA15)
-        resolver.query(Data.CONTENT_URI, spalten, null, null, null)?.use { c ->
+        val dataFilter = if (konto == null) null else if (rawZuKontakt.isEmpty()) "0" else
+            "${Data.RAW_CONTACT_ID} IN (${rawZuKontakt.keys.joinToString(",")})"
+        resolver.query(Data.CONTENT_URI, spalten, dataFilter, null, null)?.use { c ->
             while (c.moveToNext()) {
                 val b = daten[c.getLong(0)] ?: continue
                 val mime = c.getString(1)
                 fun s(i: Int) = c.getString(i).orEmpty()
                 when (mime) {
-                    StructuredName.CONTENT_ITEM_TYPE -> { b.vorname = s(3); b.nachname = s(4) }
+                    StructuredName.CONTENT_ITEM_TYPE -> {
+                        b.vorname = s(3); b.nachname = s(4); b.anzeigename = s(2)
+                        b.nameTeile = listOf(s(4), s(3), s(6), s(5), s(7))
+                    }
+                    NAME_MIME -> runCatching {
+                        val saved = Kanonisch.json.parseToJsonElement(s(2)) as kotlinx.serialization.json.JsonObject
+                        b.vcardName = KontaktSync.liesNamen(saved.getValue("vcardName") as kotlinx.serialization.json.JsonArray).orEmpty()
+                        b.sourceDisplay = (saved["anzeigename"] as kotlinx.serialization.json.JsonPrimitive).content
+                    }
                     Organization.CONTENT_ITEM_TYPE -> b.firma = s(2)
                     Note.CONTENT_ITEM_TYPE -> b.notiz = s(2)
-                    Event.CONTENT_ITEM_TYPE -> if (s(3).toIntOrNull() == Event.TYPE_BIRTHDAY) b.geburtstag = s(2)
+                    Event.CONTENT_ITEM_TYPE -> when (s(3).toIntOrNull()) {
+                        Event.TYPE_BIRTHDAY -> b.geburtstag = s(2)
+                        Event.TYPE_ANNIVERSARY -> b.jubilaeum = s(2)
+                    }
                     Phone.CONTENT_ITEM_TYPE -> b.telefone += KontaktWert(art(s(3)), s(2))
-                    Email.CONTENT_ITEM_TYPE -> b.emails += KontaktWert(art(s(3)), s(2))
+                    Email.CONTENT_ITEM_TYPE -> b.emails += KontaktWert(art(s(3), mime), s(2))
                     StructuredPostal.CONTENT_ITEM_TYPE -> b.anschriften += KontaktAnschrift(
-                        art(s(3)), strasse = s(5), plz = s(10), ort = s(8), region = s(9), land = s(11)
+                        art(s(3), mime), strasse = s(5), plz = s(10), ort = s(8), region = s(9), land = s(11)
                     )
                     Photo.CONTENT_ITEM_TYPE -> b.foto = KontaktSync.fotoDataUrl(c.getBlob(12) ?: byteArrayOf())
                 }
@@ -88,7 +105,7 @@ class AndroidKontakte(private val context: Context) : KontaktSchreiber {
             AndroidKontakt(lookupKey, raw, KontaktSync.normalisiere(b.fertig()), kontakt,
                 herkuenfte = listOf((herkunft[raw] ?: KontaktHerkunft()).copy(lookupKey = lookupKey)))
         }.filter { k -> with(k.daten) {
-            vorname.isNotBlank() || nachname.isNotBlank() || firma.isNotBlank() ||
+            vorname.isNotBlank() || nachname.isNotBlank() || anzeigename.isNotBlank() || firma.isNotBlank() ||
                 telefone.isNotEmpty() || emailEintraege.isNotEmpty() || anschriften.isNotEmpty()
         } }
         KontaktSnapshot(aggregiere(roh), true)
@@ -134,16 +151,39 @@ class AndroidKontakte(private val context: Context) : KontaktSchreiber {
                 meta[4] as Int, rows, portable, KontaktSync.hash(portable), action)
         }
 
-    fun geplanterStand(k: KontaktDaten, action: String) = KontaktRohstand(
-        portable = k, beforeHash = KontaktSync.hash(k), action = action, generatedByMagnolie = true)
+    fun geplanterStand(k: KontaktDaten, action: String, operationId: String = "") = KontaktRohstand(
+        portable = k, beforeHash = KontaktSync.hash(k), action = action, generatedByMagnolie = true,
+        operationId = operationId)
 
     enum class RestoreErgebnis { WIEDERHERGESTELLT, KONFLIKT, NICHT_SCHREIBBAR }
 
     /** Stellt nur den im Snapshot gebundenen RawContact wieder her; niemals einen Namensfund. */
-    fun wiederherstellen(stand: KontaktRohstand, konfliktBestaetigt: Boolean): RestoreErgebnis =
-        wiederherstellenMitGrenzen(stand, konfliktBestaetigt,
-            aktuellLesen = { stand.rawContactId.takeIf { it > 0 }?.let(::liesRaw) },
+    fun wiederherstellen(stand: KontaktRohstand, konfliktBestaetigt: Boolean,
+                         operationId: String = ""): RestoreErgebnis = synchronized(PROVIDER_SPERRE) {
+        if (stand.generatedByMagnolie && stand.action == "create") {
+            if (stand.operationId.isBlank()) return@synchronized RestoreErgebnis.NICHT_SCHREIBBAR
+            val raw = operationRaw(stand.operationId) ?: return@synchronized RestoreErgebnis.WIEDERHERGESTELLT
+            val current = liesRaw(raw) ?: return@synchronized RestoreErgebnis.NICHT_SCHREIBBAR
+            if (!konfliktBestaetigt && KontaktSync.hash(current.daten) != stand.beforeHash)
+                return@synchronized RestoreErgebnis.KONFLIKT
+            resolver.applyBatch(ContactsContract.AUTHORITY, arrayListOf(
+                ContentProviderOperation.newDelete(ContentUris.withAppendedId(RawContacts.CONTENT_URI, raw)).build()))
+            return@synchronized RestoreErgebnis.WIEDERHERGESTELLT
+        }
+        val token = "restore:$operationId:${stand.rawContactId}"
+        val actualId = if (operationId.isBlank()) stand.rawContactId else operationRaw(token) ?: stand.rawContactId
+        val restored = stand.copy(rawContactId = actualId, rows = stand.rows +
+            if (operationId.isBlank()) emptyList() else listOf(KontaktZeile(OPERATION_MIME, listOf(token))))
+        wiederherstellenMitGrenzen(restored, konfliktBestaetigt,
+            aktuellLesen = { actualId.takeIf { it > 0 }?.let(::liesRaw) },
             batchAnwenden = { resolver.applyBatch(ContactsContract.AUTHORITY, it) })
+    }
+
+    private fun operationRaw(token: String): Long? = requireNotNull(resolver.query(Data.CONTENT_URI,
+        arrayOf(Data.RAW_CONTACT_ID), "${Data.MIMETYPE}=? AND ${Data.DATA1}=?",
+        arrayOf(OPERATION_MIME, token), null)).use { cursor ->
+        if (!cursor.moveToFirst()) null else cursor.getLong(0).also { check(!cursor.moveToNext()) }
+    }
 
     fun loeschen(rawId: Long, lookupKey: String): Boolean {
         val lokal = runCatching { liesRaw(rawId) }.getOrNull() ?: return false
@@ -174,13 +214,23 @@ class AndroidKontakte(private val context: Context) : KontaktSchreiber {
         return true
     }
 
-    override fun anlegen(k: KontaktDaten): AndroidKontakt {
+    override fun anlegen(k: KontaktDaten): AndroidKontakt = anlegen(k, "")
+
+    override fun anlegen(k: KontaktDaten, operationId: String): AndroidKontakt = synchronized(PROVIDER_SPERRE) {
+        if (operationId.isNotBlank()) operationRaw(operationId)?.let { raw ->
+            return@synchronized requireNotNull(liesRaw(raw))
+        }
         val ops = arrayListOf(ContentProviderOperation.newInsert(RawContacts.CONTENT_URI)
-            .withValue(RawContacts.ACCOUNT_TYPE, null).withValue(RawContacts.ACCOUNT_NAME, null).build())
+            .withValue(RawContacts.ACCOUNT_TYPE, konto?.type).withValue(RawContacts.ACCOUNT_NAME, konto?.name)
+            .withValue(RawContacts.AGGREGATION_MODE, if (konto == null) RawContacts.AGGREGATION_MODE_DEFAULT
+                else RawContacts.AGGREGATION_MODE_DISABLED).build())
         fuegeDatenEin(ops, k, null)
+        if (operationId.isNotBlank()) ops += ContentProviderOperation.newInsert(Data.CONTENT_URI)
+            .withValueBackReference(Data.RAW_CONTACT_ID, 0).withValue(Data.MIMETYPE, OPERATION_MIME)
+            .withValue(Data.DATA1, operationId).build()
         val ergebnis = resolver.applyBatch(ContactsContract.AUTHORITY, ops)
         val rawId = ContentUris.parseId(ergebnis.first().uri!!)
-        return liesRaw(rawId) ?: AndroidKontakt("", rawId, k)
+        liesRaw(rawId) ?: AndroidKontakt("", rawId, k)
     }
 
     override fun mischen(rawId: Long, fern: KontaktDaten): AndroidKontakt? {
@@ -206,21 +256,27 @@ class AndroidKontakte(private val context: Context) : KontaktSchreiber {
 
     private fun aktualisiereSkalare(ops: MutableList<ContentProviderOperation>, raw: Long,
                                     alt: KontaktDaten, neu: KontaktDaten) {
-        if (neu.vorname != alt.vorname || neu.nachname != alt.nachname) {
+        if (neu.vorname != alt.vorname || neu.nachname != alt.nachname || neu.anzeigename != alt.anzeigename || neu.vcardName != alt.vcardName) {
             setzeOderFuege(ops, raw, StructuredName.CONTENT_ITEM_TYPE,
-                mapOf(StructuredName.GIVEN_NAME to neu.vorname, StructuredName.FAMILY_NAME to neu.nachname))
+                nameWerte(neu))
+            setzeOderFuege(ops, raw, NAME_MIME, mapOf(Data.DATA1 to namenJson(neu)))
         }
         if (neu.firma != alt.firma) setzeOderFuege(ops, raw, Organization.CONTENT_ITEM_TYPE,
             mapOf(Organization.COMPANY to neu.firma))
         if (neu.notiz != alt.notiz) setzeOderFuege(ops, raw, Note.CONTENT_ITEM_TYPE, mapOf(Note.NOTE to neu.notiz))
         if (neu.geburtstag != alt.geburtstag) setzeOderFuege(ops, raw, Event.CONTENT_ITEM_TYPE,
             mapOf(Event.START_DATE to neu.geburtstag, Event.TYPE to Event.TYPE_BIRTHDAY))
+        if (neu.jubilaeum != alt.jubilaeum) setzeOderFuege(ops, raw, Event.CONTENT_ITEM_TYPE,
+            mapOf(Event.START_DATE to neu.jubilaeum, Event.TYPE to Event.TYPE_ANNIVERSARY))
     }
 
     private fun setzeOderFuege(ops: MutableList<ContentProviderOperation>, raw: Long, mime: String,
                                werte: Map<String, Any>) {
+        val eventType = werte[Event.TYPE].takeIf { mime == Event.CONTENT_ITEM_TYPE }
         val vorhanden = resolver.query(Data.CONTENT_URI, arrayOf(Data._ID),
-            "${Data.RAW_CONTACT_ID}=? AND ${Data.MIMETYPE}=?", arrayOf(raw.toString(), mime), null)
+            "${Data.RAW_CONTACT_ID}=? AND ${Data.MIMETYPE}=?" +
+                if (eventType != null) " AND ${Event.TYPE}=?" else "",
+            (listOf(raw.toString(), mime) + listOfNotNull(eventType?.toString())).toTypedArray(), null)
             ?.use { if (it.moveToFirst()) it.getLong(0) else null }
         val bau = if (vorhanden != null) ContentProviderOperation.newUpdate(
             ContentUris.withAppendedId(Data.CONTENT_URI, vorhanden)) else ContentProviderOperation.newInsert(Data.CONTENT_URI)
@@ -234,9 +290,9 @@ class AndroidKontakte(private val context: Context) : KontaktSchreiber {
         neu.telefone.drop(alt.telefone.size).forEach { w -> ops += einfuegen(raw, Phone.CONTENT_ITEM_TYPE,
             mapOf(Phone.NUMBER to w.wert, Phone.TYPE to typ(w.art))) }
         neu.emailEintraege.drop(alt.emailEintraege.size).forEach { w -> ops += einfuegen(raw, Email.CONTENT_ITEM_TYPE,
-            mapOf(Email.ADDRESS to w.wert, Email.TYPE to typ(w.art))) }
+            mapOf(Email.ADDRESS to w.wert, Email.TYPE to typ(w.art, Email.CONTENT_ITEM_TYPE))) }
         neu.anschriften.drop(alt.anschriften.size).forEach { a -> ops += einfuegen(raw, StructuredPostal.CONTENT_ITEM_TYPE,
-            mapOf(StructuredPostal.TYPE to typ(a.art), StructuredPostal.STREET to a.strasse,
+            mapOf(StructuredPostal.TYPE to typ(a.art, StructuredPostal.CONTENT_ITEM_TYPE), StructuredPostal.STREET to a.strasse,
                 StructuredPostal.POSTCODE to a.plz, StructuredPostal.CITY to a.ort,
                 StructuredPostal.REGION to a.region, StructuredPostal.COUNTRY to a.land)) }
     }
@@ -247,16 +303,20 @@ class AndroidKontakte(private val context: Context) : KontaktSchreiber {
             b = if (raw == null) b.withValueBackReference(Data.RAW_CONTACT_ID, 0) else b.withValue(Data.RAW_CONTACT_ID, raw)
             b.withValue(Data.MIMETYPE, mime); werte.forEach { (n, v) -> b.withValue(n, v) }; ops += b.build()
         }
-        if (k.vorname.isNotBlank() || k.nachname.isNotBlank()) add(StructuredName.CONTENT_ITEM_TYPE,
-            mapOf(StructuredName.GIVEN_NAME to k.vorname, StructuredName.FAMILY_NAME to k.nachname))
+        if (k.vorname.isNotBlank() || k.nachname.isNotBlank() || k.anzeigename.isNotBlank() || k.vcardName.isNotEmpty()) {
+            add(StructuredName.CONTENT_ITEM_TYPE, nameWerte(k))
+            add(NAME_MIME, mapOf(Data.DATA1 to namenJson(k)))
+        }
         if (k.firma.isNotBlank()) add(Organization.CONTENT_ITEM_TYPE, mapOf(Organization.COMPANY to k.firma))
         if (k.notiz.isNotBlank()) add(Note.CONTENT_ITEM_TYPE, mapOf(Note.NOTE to k.notiz))
         if (k.geburtstag.isNotBlank()) add(Event.CONTENT_ITEM_TYPE,
             mapOf(Event.START_DATE to k.geburtstag, Event.TYPE to Event.TYPE_BIRTHDAY))
+        if (k.jubilaeum.isNotBlank()) add(Event.CONTENT_ITEM_TYPE,
+            mapOf(Event.START_DATE to k.jubilaeum, Event.TYPE to Event.TYPE_ANNIVERSARY))
         k.telefone.forEach { add(Phone.CONTENT_ITEM_TYPE, mapOf(Phone.NUMBER to it.wert, Phone.TYPE to typ(it.art))) }
-        k.emailEintraege.forEach { add(Email.CONTENT_ITEM_TYPE, mapOf(Email.ADDRESS to it.wert, Email.TYPE to typ(it.art))) }
+        k.emailEintraege.forEach { add(Email.CONTENT_ITEM_TYPE, mapOf(Email.ADDRESS to it.wert, Email.TYPE to typ(it.art, Email.CONTENT_ITEM_TYPE))) }
         k.anschriften.forEach { add(StructuredPostal.CONTENT_ITEM_TYPE,
-            mapOf(StructuredPostal.TYPE to typ(it.art), StructuredPostal.STREET to it.strasse,
+            mapOf(StructuredPostal.TYPE to typ(it.art, StructuredPostal.CONTENT_ITEM_TYPE), StructuredPostal.STREET to it.strasse,
                 StructuredPostal.POSTCODE to it.plz, StructuredPostal.CITY to it.ort,
                 StructuredPostal.REGION to it.region, StructuredPostal.COUNTRY to it.land)) }
     }
@@ -268,20 +328,61 @@ class AndroidKontakte(private val context: Context) : KontaktSchreiber {
         return b.build()
     }
 
-    private fun art(typ: String) = when (typ.toIntOrNull()) { 1 -> "privat"; 2 -> "mobil"; 3 -> "arbeit"; else -> "sonstige" }
-    private fun typ(art: String) = when (art.trim().lowercase()) {
-        "privat", "home" -> 1; "mobil", "mobile" -> 2; "arbeit", "work" -> 3; else -> 7
+    private fun art(typ: String, mime: String = Phone.CONTENT_ITEM_TYPE): String = when (mime) {
+        Email.CONTENT_ITEM_TYPE -> when (typ.toIntOrNull()) {
+            Email.TYPE_HOME -> "privat"; Email.TYPE_WORK -> "arbeit"; Email.TYPE_MOBILE -> "mobil"; else -> "sonstige"
+        }
+        StructuredPostal.CONTENT_ITEM_TYPE -> when (typ.toIntOrNull()) {
+            StructuredPostal.TYPE_HOME -> "privat"; StructuredPostal.TYPE_WORK -> "arbeit"; else -> "sonstige"
+        }
+        else -> when (typ.toIntOrNull()) { Phone.TYPE_HOME -> "privat"; Phone.TYPE_MOBILE -> "mobil"; Phone.TYPE_WORK -> "arbeit"; else -> "sonstige" }
+    }
+    private fun typ(art: String, mime: String = Phone.CONTENT_ITEM_TYPE): Int = when (mime) {
+        Email.CONTENT_ITEM_TYPE -> when (art.trim().lowercase()) {
+            "privat", "home" -> Email.TYPE_HOME; "arbeit", "work" -> Email.TYPE_WORK
+            "mobil", "mobile" -> Email.TYPE_MOBILE; else -> Email.TYPE_OTHER
+        }
+        StructuredPostal.CONTENT_ITEM_TYPE -> when (art.trim().lowercase()) {
+            "privat", "home" -> StructuredPostal.TYPE_HOME; "arbeit", "work" -> StructuredPostal.TYPE_WORK; else -> StructuredPostal.TYPE_OTHER
+        }
+        else -> when (art.trim().lowercase()) {
+            "privat", "home" -> Phone.TYPE_HOME; "mobil", "mobile" -> Phone.TYPE_MOBILE; "arbeit", "work" -> Phone.TYPE_WORK; else -> Phone.TYPE_OTHER
+        }
     }
 
     private class BauKontakt {
         var vorname = ""; var nachname = ""; var firma = ""; var notiz = ""; var geburtstag = ""
+        var jubilaeum = ""
         var foto = ""
+        var anzeigename = ""; var nameTeile = listOf("", "", "", "", "")
+        var sourceDisplay: String? = null
+        var vcardName = emptyList<String>()
         val telefone = mutableListOf<KontaktWert>(); val emails = mutableListOf<KontaktWert>()
         val anschriften = mutableListOf<KontaktAnschrift>()
-        fun fertig() = KontaktDaten(vorname, nachname, firma, notiz, geburtstag, foto, telefone, emails, anschriften)
+        fun fertig(): KontaktDaten {
+            val k = KontaktDaten(vorname, nachname, firma, notiz, geburtstag, foto, telefone, emails, anschriften, jubilaeum, anzeigename, vcardName)
+            // Preserve the original N/FN syntax while its provider projection is unchanged.
+            val original = k.copy(vorname = nameTeile[1], nachname = nameTeile[0])
+            val names = if (vcardName.isNotEmpty() && KontaktSync.nameTeile(original) == nameTeile) vcardName
+                else if (nameTeile.drop(2).any(String::isNotEmpty)) listOf("N:" + nameTeile.joinToString(";", transform = KontaktSync::nameEscape)) else emptyList()
+            // A provider-generated display value must not replace an explicitly empty source FN.
+            return k.copy(vcardName = names, anzeigename = if (sourceDisplay == "") "" else anzeigename)
+        }
     }
 
     companion object {
+        private val PROVIDER_SPERRE = Any()
+        private const val OPERATION_MIME = "vnd.android.cursor.item/vnd.magnolie.operation"
+        private const val NAME_MIME = "vnd.android.cursor.item/vnd.magnolie.vcard-name"
+        private fun namenJson(k: KontaktDaten) = kotlinx.serialization.json.JsonObject(mapOf(
+            "anzeigename" to kotlinx.serialization.json.JsonPrimitive(k.anzeigename),
+            "vcardName" to kotlinx.serialization.json.JsonArray(k.vcardName.map { kotlinx.serialization.json.JsonPrimitive(it) }))).toString()
+        private fun nameWerte(k: KontaktDaten): Map<String, Any> {
+            val n = KontaktSync.nameTeile(k)
+            return mapOf(StructuredName.FAMILY_NAME to k.nachname, StructuredName.GIVEN_NAME to k.vorname,
+                StructuredName.MIDDLE_NAME to n[2], StructuredName.PREFIX to n[3], StructuredName.SUFFIX to n[4],
+                StructuredName.DISPLAY_NAME to k.anzeigename)
+        }
         // Deutlich unter dem Binder-Limit bleiben. Ein Aufteilen waere hier nicht atomar.
         internal const val MAX_RESTORE_OPERATIONEN = 400
         internal const val MAX_RESTORE_NUTZLAST = 700 * 1024

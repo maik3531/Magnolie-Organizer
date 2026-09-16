@@ -12,7 +12,7 @@ import kotlinx.serialization.json.jsonObject
 object Versand {
 
     /** Ergebnis eines Zustellversuchs; `zaehler` gilt nur für `baum-1`. */
-    data class Ergebnis(val gelungen: Boolean, val zaehler: Long = 0L, val grund: String = "")
+    data class Ergebnis(val gelungen: Boolean, val zaehler: Long = 0L, val grund: String = "", val unsicher: Boolean = false)
 
     fun zustellen(
         eigen: EigeneIdentitaet,
@@ -20,9 +20,11 @@ object Versand {
         art: String,
         inhalt: JsonObject,
         transportId: String,
-        transport: Transport
+        transport: Transport,
+        legacyUmschlag: JsonObject? = null
     ): Ergebnis {
         if (!partner.bestaetigt) return Ergebnis(false, grund = "Der Zweig ist nicht bestätigt.")
+        if (legacyUmschlag != null) return legacyZustellen(eigen, partner, legacyUmschlag, transport)
         val vollstaendig = buildJsonObject {
             inhalt.forEach { (name, wert) -> put(name, wert) }
             put("art", kotlinx.serialization.json.JsonPrimitive(art))
@@ -76,10 +78,25 @@ object Versand {
     ): Ergebnis = try {
         val zaehler = partner.zaehlerRaus + 1
         val umschlag = Baum1.baue(eigen, partner.kennung, partner.oeffentlich, inhalt, zaehler)
-        transport.anfrage("/magnolie/v1/nachricht", umschlag)
-        Ergebnis(true, zaehler)
+        legacyZustellen(eigen, partner, umschlag, transport)
     } catch (fehler: Exception) {
         Ergebnis(false, grund = fehler.message ?: "Nicht erreichbar.")
+    }
+
+    private fun legacyZustellen(eigen: EigeneIdentitaet, partner: Partner, umschlag: JsonObject, transport: Transport): Ergebnis {
+        var key: ByteArray? = null
+        return try {
+            require(text(umschlag, "von") == eigen.kennung)
+            key = Krypto.partnerschluessel(eigen.geheim, partner.oeffentlich, eigen.kennung, partner.kennung)
+            val receipt = transport.anfrage("/magnolie/v1/nachricht", umschlag)
+            if (!Baum1Quittung.pruefen(key, eigen.kennung, partner.kennung, umschlag, receipt))
+                Ergebnis(false, grund = "Die Gegenstelle hat den Empfang nicht bestätigt.", unsicher = true)
+            else Ergebnis(true, zahl(umschlag, "zaehler") ?: 0)
+        } catch (error: KeineVerbindung) {
+            Ergebnis(false, grund = error.cause?.message ?: "Nicht erreichbar.")
+        } catch (error: Exception) {
+            Ergebnis(false, grund = error.message ?: "Die Gegenstelle hat den Empfang nicht bestätigt.", unsicher = true)
+        } finally { key?.fill(0) }
     }
 
     private fun gueltigeTransportId(text: String): Boolean = try {
@@ -137,6 +154,7 @@ object Versand {
         eigen: EigeneIdentitaet,
         zusaetzlicheWege: List<Paarungsweg> = emptyList()
     ): Partner {
+        Paarung.pruefe(dokument, System.currentTimeMillis() / 1000)
         val ziel = dokument["ziel"]?.jsonObject ?: throw BaumFehler("Die Paarungsdatei ist beschädigt.")
         val einlader = dokument["einlader"]?.jsonObject
             ?: throw BaumFehler("Die Paarungsdatei ist beschädigt.")
@@ -146,6 +164,7 @@ object Versand {
         val wege = listOf(Paarungsweg(WlanTransport(adresse, zielPort))) + zusaetzlicheWege
         val (empfangen, erfolgreicherWeg) = fragePaarung(wege, anfrage)
         Paarung.pruefeAntwort(dokument, anfrage, empfangen)
+        Paarung.pruefe(dokument, System.currentTimeMillis() / 1000)
         return Partner(
             kennung = text(einlader, "kennung"),
             name = text(einlader, "name"),

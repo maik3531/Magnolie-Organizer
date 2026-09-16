@@ -1,0 +1,25 @@
+{
+  "source_id": "11111111-1111-4111-8111-111111111111",
+  "other_source_id": "22222222-2222-4222-8222-222222222222",
+  "identities": [
+    {"item_id": "custom-item-1", "id": "custom:ef5c860c62fed011d0de0a85503c8614079936bd99aad88b8494a501419ceab6"},
+    {"item_id": "a:b", "id": "custom:87bb91c6ce821b68ea3eb4d7fe7b3d33281649998da482b34767f4e23389d1ff"},
+    {"item_id": "a\\\"b", "id": "custom:6573454db6be95e007ace3da34be8d66184238929d836ec83e58f5fc032a609e"}
+  ],
+  "long_identity": {"character": "a", "repeat": 640, "id": "custom:6398d33ae211a44ce10e12597ca45c58a91b75e7e7e6290bb3082c6acfb919bd"},
+  "unicode_identity": {"character": "\ud83c\udf31", "repeat": 160, "id": "custom:7c320cf77dcde0dc793cde7e9aae11f94f5788a451df03031916e041df6599c2"},
+  "local": {"format": 4, "scope": "custom", "enabled": true, "revision": 1, "epoch": "33333333-3333-4333-8333-333333333333"},
+  "remote": {"format": 4, "scope": "custom", "enabled": true, "revision": 1, "epoch": "44444444-4444-4444-8444-444444444444"},
+  "revoked": {"format": 4, "scope": "custom", "enabled": false, "revision": 2, "epoch": "55555555-5555-4555-8555-555555555555"},
+  "reenabled": {"format": 4, "scope": "custom", "enabled": true, "revision": 3, "epoch": "66666666-6666-4666-8666-666666666666"},
+  "invalid_settings": [
+    {"format": 4, "scope": "tasks", "enabled": true, "revision": 1, "epoch": "33333333-3333-4333-8333-333333333333"},
+    {"format": 4, "scope": "custom", "enabled": "true", "revision": 1, "epoch": "33333333-3333-4333-8333-333333333333"},
+    {"format": 4, "scope": "custom", "enabled": true, "revision": true, "epoch": "33333333-3333-4333-8333-333333333333"},
+    {"format": 4, "scope": "custom", "enabled": true, "revision": 0, "epoch": "33333333-3333-4333-8333-333333333333"},
+    {"format": 4, "scope": "custom", "enabled": true, "revision": 9007199254740992, "epoch": "33333333-3333-4333-8333-333333333333"},
+    {"format": 4, "scope": "custom", "enabled": true, "revision": 1, "epoch": "33333333-3333-4333-8333-333333333333", "tasks": true},
+    {"format": 4, "scope": "custom", "enabled": true, "revision": 1},
+    {"format": 3, "scope": "custom", "enabled": true, "revision": 1, "epoch": "33333333-3333-4333-8333-333333333333"}
+  ]
+}

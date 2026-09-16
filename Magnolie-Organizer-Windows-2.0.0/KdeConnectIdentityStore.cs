@@ -212,6 +212,17 @@ internal sealed class KdeConnectIdentityStore
         }
     }
 
+    internal void ConfirmFirst(KdeConnectPeer peer)
+    {
+        lock (gate)
+        {
+            var peers = LoadPeers();
+            if (peers.Any(value => value.Paired))
+                throw new InvalidOperationException(NativeLocalization.Gettext("A phone is already paired or pairing. Finish that connection first."));
+            WritePeers(peers.Where(value => value.Id != peer.Id).Append(peer with { Paired = true }));
+        }
+    }
+
     internal void Confirm(KdeConnectPeer peer, IEnumerable<string> connectedIds)
     {
         lock (gate)

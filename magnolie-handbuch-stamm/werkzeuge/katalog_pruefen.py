@@ -9,6 +9,20 @@ import sys
 from katalog_bereinigen import NO_WORD_SPACES, PROTECTED_MESSAGES, field
 
 
+def entries(text):
+    result = {}
+    for block in re.split(r"\n\s*\n", text):
+        if any(line.startswith("#~") for line in block.splitlines()):
+            continue
+        key, _span = field(block, "msgid")
+        value, _span = field(block, "msgstr")
+        if key:
+            if key in result:
+                raise ValueError("duplicate msgid: " + key[:100])
+            result[key] = value or ""
+    return result
+
+
 def entry_count(text):
     blocks = [block for block in text.split("\n\n") if "msgid " in block]
     return max(0, len(blocks) - 1)
@@ -37,7 +51,7 @@ def main(argv):
         text = catalog_file.read()
     header = text.split("\n\n", 1)[0]
     required = {
-        "Project-Id-Version": "Magnolie Handbook 2.0.17",
+        "Project-Id-Version": "Magnolie Handbook 2.0.18",
         "Language-Team": language,
         "Language": language,
         "MIME-Version": "1.0",
@@ -47,6 +61,18 @@ def main(argv):
     for key, value in required.items():
         if ('"%s: %s\\n"' % (key, value)) not in header:
             raise SystemExit("invalid %s header: %s" % (language, key))
+    with open(template, encoding="utf-8") as source:
+        expected = entries(source.read())
+    actual = entries(text)
+    missing = sorted(expected.keys() - actual.keys())
+    extra = sorted(actual.keys() - expected.keys())
+    empty = sorted(key for key in expected if key in actual and not actual[key].strip())
+    if missing or extra or empty:
+        details = ["%s: missing=%d extra=%d untranslated=%d" %
+                   (language, len(missing), len(extra), len(empty))]
+        details.extend("untranslated: " + key[:120] for key in empty)
+        details.extend("missing: " + key[:120] for key in missing)
+        raise SystemExit("\n".join(details))
     if language not in NO_WORD_SPACES:
         for block in text.split("\n\n"):
             msgid, _span = field(block, "msgid")

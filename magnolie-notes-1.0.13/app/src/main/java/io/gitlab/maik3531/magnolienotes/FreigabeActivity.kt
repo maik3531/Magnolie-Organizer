@@ -54,6 +54,7 @@ class FreigabeActivity : Activity() {
         val betreff = absicht.getStringExtra(Intent.EXTRA_SUBJECT)?.trim().orEmpty()
         val rohnotizen = mutableListOf<Rohnotiz>()
         val anhaenge = mutableListOf<Anhang>()
+        val budget = AnhangLeser.ImportBudget()
 
         when (absicht.action) {
             Intent.ACTION_SEND, Intent.ACTION_PROCESS_TEXT -> {
@@ -66,7 +67,7 @@ class FreigabeActivity : Activity() {
                     rohnotizen += ausText(betreff, text, html, jetzt, absicht)
                 }
                 if (datei != null) {
-                    val ausDatei = ausAnhang(datei, jetzt)
+                    val ausDatei = ausAnhang(datei, jetzt, budget)
                     rohnotizen += ausDatei.first
                     anhaenge += ausDatei.second
                 }
@@ -79,8 +80,9 @@ class FreigabeActivity : Activity() {
                     rohnotizen += ausText("", stueck, "", jetzt, absicht)
                 }
                 val dateien = absicht.getParcelableArrayListExtra<Uri>(Intent.EXTRA_STREAM).orEmpty()
+                check(dateien.size <= AnhangLeser.ImportBudget.DATEIEN_MAX)
                 for (datei in dateien) {
-                    val ausDatei = ausAnhang(datei, jetzt)
+                    val ausDatei = ausAnhang(datei, jetzt, budget)
                     rohnotizen += ausDatei.first
                     anhaenge += ausDatei.second
                 }
@@ -162,17 +164,16 @@ class FreigabeActivity : Activity() {
     }
 
     /** Bilder und PDF werden als Anhang übernommen, Textdateien als Notiz. */
-    private fun ausAnhang(quelle: Uri, wann: Long): Pair<List<Rohnotiz>, List<Anhang>> {
-        val gelesen = AnhangLeser.lies(this, quelle)
+    private fun ausAnhang(quelle: Uri, wann: Long, budget: AnhangLeser.ImportBudget): Pair<List<Rohnotiz>, List<Anhang>> {
+        val name = Einfuhr.dateiname(this, quelle)
+        val gemeldet = contentResolver.getType(quelle).orEmpty().lowercase()
+        val roh = contentResolver.openInputStream(quelle)?.use { budget.lesen(it) }
+            ?: throw java.io.IOException()
+        val gelesen = AnhangLeser.ausBytes(roh, gemeldet, name)
         if (gelesen.anhang != null) return emptyList<Rohnotiz>() to listOf(gelesen.anhang)
-        val gemeldet = runCatching { contentResolver.getType(quelle) }.getOrNull().orEmpty().lowercase()
         if (gemeldet.isBlank() || gemeldet == "application/octet-stream" ||
             gemeldet.startsWith("image/") || gemeldet == "application/pdf"
         ) return emptyList<Rohnotiz>() to emptyList()
-        val name = Einfuhr.dateiname(this, quelle)
-        val roh = runCatching {
-            contentResolver.openInputStream(quelle)?.use { AnhangLeser.begrenztLesen(it) }
-        }.getOrNull() ?: return emptyList<Rohnotiz>() to emptyList()
         return Einfuhr.ausInhalt(roh, name, wann, this) to emptyList()
     }
 

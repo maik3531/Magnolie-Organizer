@@ -19,7 +19,7 @@ TALLOC_SHA=0910059bb0329add8d13b502f5a10d18d5b3c5202fbbbe25ef4f6d58e7edfe6c
 PROOT_WURZEL="$ARBEIT/proot"
 PROOT="$PROOT_WURZEL/usr/bin/proot"
 SNAPSHOT=20260820T000000Z
-BASIS_STAND="$SNAPSHOT-openssl-theme1"
+BASIS_STAND="$SNAPSHOT-openssl-theme1-recurrence-tzdata1-cairo1"
 
 for befehl in curl dpkg-deb dpkg-parsechangelog sha256sum tar timeout; do
     command -v "$befehl" >/dev/null || {
@@ -97,13 +97,13 @@ if [ ! -f "$MARKER" ] || [ "$(cat "$MARKER")" != "$BASIS_STAND" ]; then
         gir1.2-ecal-2.0 gir1.2-ebook-1.2 gir1.2-gstreamer-1.0 gir1.2-gtk-3.0 gir1.2-ical-3.0 \
         gir1.2-notify-0.7 gir1.2-webkit2-4.1 gir1.2-xapp-1.0 gobject-introspection \
         gnome-themes-extra-data libayatana-appindicator3-1 libglib2.0-bin libgtk-3-0 libwebkit2gtk-4.1-0 \
-        libxapp1 xapp python3 python3-cryptography python3-gi \
+        libxapp1 xapp python3 python3-cryptography python3-gi python3-gi-cairo \
         python3-ifaddr python3-openssl python3-phonenumbers \
-        python3-qrcode python3-zeroconf
+        python3-qrcode python3-zeroconf tzdata
     printf '%s\n' "$BASIS_STAND" > "$MARKER"
 fi
 
-"$PROOT" -0 -r "$ROOTFS" -b /dev -b /proc -b "$WURZEL" \
+"$PROOT" -0 -r "$ROOTFS" -b /dev -b /proc -b "$WURZEL" -b "$ARBEIT" \
     -b "$(dirname -- "$AUSGABE")" -w "$WURZEL" \
     /usr/bin/env MAGNOLIE_CONTRIBUTOR_HASH="${MAGNOLIE_CONTRIBUTOR_HASH:-}" \
     SOURCE_DATE_EPOCH="${SOURCE_DATE_EPOCH:-}" APPIMAGE_BUILD_DIR="$BAU/appimage" \

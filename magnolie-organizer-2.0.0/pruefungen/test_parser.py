@@ -204,7 +204,7 @@ mit_ausnahme = m.ics_lesen(
     "DTSTART:20260805T190000\r\nRRULE:FREQ=WEEKLY\r\n"
     "EXDATE:20260812T190000\r\nEND:VEVENT\r\n")
 pruefe(mit_ausnahme["termine"][0]["wiederholung"]["art"] == "none" and
-       mit_ausnahme["wiederholend"] == 1,
+       mit_ausnahme["wiederholend"] == 0,
        "RRULE mit EXDATE wird nicht falsch angenähert und sichtbar gemeldet")
 mit_zusatz = m.ics_lesen(
     "BEGIN:VEVENT\r\nUID:zusatz-1\r\nSUMMARY:Sondertermine\r\n"
@@ -222,7 +222,7 @@ mit_instanz = m.ics_lesen(
 pruefe(len(mit_instanz["termine"]) == 2 and
        all(t["wiederholung"]["art"] == "none" for t in mit_instanz["termine"]) and
        len({t["uid"] for t in mit_instanz["termine"]}) == 2 and
-       mit_instanz["wiederholend"] == 2,
+       mit_instanz["wiederholend"] == 0,
        "RECURRENCE-ID-Komponenten werden ohne falsche Expansion abgeflacht")
 instanz_geaendert = m.ics_lesen(
     "BEGIN:VEVENT\r\nUID:serie-1\r\nRECURRENCE-ID:20260812T190000\r\n"
@@ -239,7 +239,7 @@ schalttag = m.ics_lesen(
     "RRULE:FREQ=YEARLY\r\nEND:VEVENT\r\n")
 pruefe(monatsende["termine"][0]["icsKomplex"] and
        schalttag["termine"][0]["icsKomplex"] and
-       monatsende["wiederholend"] == schalttag["wiederholend"] == 1,
+       monatsende["wiederholend"] == schalttag["wiederholend"] == 0,
        "RFC-Regeln mit ausfallenden Kalendertagen werden nicht verschoben")
 mehrtaegige_serie = m.ics_lesen(
     "BEGIN:VEVENT\r\nSUMMARY:Wochenendkurs\r\nDTSTART;VALUE=DATE:20260801\r\n"
@@ -477,7 +477,7 @@ eigener_jtz = m.ics_lesen(m.ics_schreiben_jahrestage([eigener_jt]))["jahrestage"
 pruefe(eigener_jtz["typ"] == "Familientag",
        "freie Jahrestagsart übersteht die ICS-Rundreise")
 auf = {"titel": "Reifen wechseln", "faellig": "2026-10-15", "prio": 3,
-       "startZeit": "14:00", "faelligZeit": "16:30",
+       "startDatum": "2026-10-14", "startZeit": "14:00", "faelligZeit": "16:30",
        "erledigt": False, "notiz": "", "erinnern": True,
        "individuelleErinnerungTage": 4, "uid": "a-1", "geaendert": 0}
 aufz = m.ics_lesen(m.ics_schreiben_aufgaben([auf]))["aufgaben"][0]
@@ -486,7 +486,8 @@ pruefe(aufz["titel"] == auf["titel"] and aufz["prio"] == 3
        "Aufgaben-Rundreise mit stabiler UID")
 pruefe(aufz["erinnern"] and aufz["individuelleErinnerungTage"] == 4,
        "Aufgabenerinnerungen überstehen die ICS-Rundreise")
-pruefe(aufz["startZeit"] == "14:00" and aufz["faelligZeit"] == "16:30",
+pruefe(aufz["startDatum"] == "2026-10-14" and
+       aufz["startZeit"] == "14:00" and aufz["faelligZeit"] == "16:30",
        "Aufgabenzeitfenster übersteht die ICS-Rundreise")
 kind_aufgabe = dict(auf, uid="kind-1", elternUid="eltern-1", reihenfolge=7,
                     icsRoundtrip=["RELATED-TO;RELTYPE=SIBLING:fremd",
@@ -640,8 +641,8 @@ pruefe(len(feiertage["termine"]) == 2 and not feiertage["jahrestage"] and
 # ------------------------------------------------------------------ vCard
 print("\n[vCard lesen – 3.0, 2.1 mit Quoted-Printable, 4.0]")
 fn_allein = m.vcf_lesen("BEGIN:VCARD\r\nVERSION:3.0\r\nFN:Hans Müller\r\nEND:VCARD\r\n")["kontakte"][0]
-pruefe((fn_allein["vorname"], fn_allein["nachname"]) == ("Hans", "Müller"),
-       "FN-only-vCard behält die bisherige Namenszerlegung")
+pruefe((fn_allein["vorname"], fn_allein["nachname"], fn_allein["anzeigename"]) == ("", "", "Hans Müller"),
+       "FN-only-vCard erfindet keine strukturierten Namensbestandteile")
 vcf = (
     "BEGIN:VCARD\r\n"
     "VERSION:3.0\r\n"
@@ -738,8 +739,9 @@ pruefe(k2["mobil"] == "+49 160 111222", "TYPE=cell kleingeschrieben (4.0)")
 name_only = m.vcf_lesen(
     "BEGIN:VCARD\r\nVERSION:3.0\r\nUID:name-only\r\n"
     "N:;;;;\r\nFN:Meyer Schulze\r\nEND:VCARD\r\n")["kontakte"][0]
-pruefe(name_only["nachname"] == "Schulze" and name_only["vorname"] == "Meyer",
-       "unstrukturierter Anzeigename wird wie ein LDAP-Anzeigename zerlegt")
+pruefe(name_only["nachname"] == "" and name_only["vorname"] == "" and
+       name_only["anzeigename"] == "Meyer Schulze",
+       "unstrukturierter Anzeigename bleibt von leeren Namensfeldern getrennt")
 
 cardbook_vcf = (
     "BEGIN:VCARD\r\nVERSION:3.0\r\nN:CardBook;Clara;;;\r\n"
@@ -765,10 +767,11 @@ pruefe(any(t.get("label") == "Privates Mobiltelefon" and "CELL" in t["typen"]
        any(t.get("label") == "Zuhause" and "HOME" in t["typen"]
            for t in cardbook["telefone"]),
        "freie CardBook-Telefonlabels bleiben erhalten und semantisch zugeordnet")
-geb = {(g_["name"], g_["datum"]) for g_ in vg["geburtstage"]}
+geb = {(g_["anzeigename"], g_["geburtstag"]) for g_ in vg["kontakte"] if g_.get("geburtstag")}
+pruefe(not vg["geburtstage"], "F30: Kontaktgeburtstage werden nicht losgeloest verdoppelt")
 pruefe(("Hans Müller", "1965-03-17") in geb, "Geburtstag aus BDAY")
-pruefe(("Jürgen Schönefeld", "--04-02") in geb and
-       next(k for k in vg["kontakte"] if k["nachname"] == "Schönefeld")["geburtstagJahrUnbekannt"],
+pruefe(k1["geburtstag"] == "--04-02" and k1["geburtstagJahrUnbekannt"] and
+       (k1["vorname"], k1["nachname"], k1["anzeigename"]) == ("Jürgen", "Schönefeld", ""),
        "BDAY ohne Jahr bleibt direkt in kanonischer jahrloser Form erhalten")
 pruefe(all(m._maschinen_datum(wert) == wert for wert in (
            "1815-12-10", "--02-29", "--12-31")) and
@@ -814,17 +817,16 @@ pruefe(claws_ldif["kontakte"][0]["emails"] ==
 ldif_jahrlos = m.ldif_lesen(
     "dn: cn=Jahrlos\ncn: Jahrlos\nsn: Jahrlos\nbirthMonth: 2\nbirthDay: 29\n\n")
 pruefe(ldif_jahrlos["kontakte"][0]["geburtstag"] == "--02-29" and
-       ldif_jahrlos["geburtstage"] == [{"name": "Jahrlos", "datum": "--02-29"}],
+       not ldif_jahrlos["geburtstage"],
        "LDIF-Monat und -Tag ohne Jahr werden kanonisch jahrlos importiert")
-pruefe("dateOfBirth" not in m.ldif_schreiben([
-           {"nachname": "Jahrlos", "geburtstag": "--02-29"}]),
-       "LDIF-Export lässt nicht darstellbare jahrlose Geburtstage aus")
+pruefe(m.ldif_lesen(m.ldif_schreiben([
+           {"nachname": "Jahrlos", "geburtstag": "--02-29"}]))["kontakte"][0]["geburtstag"] == "--02-29",
+       "LDIF-Export bewahrt Monat und Tag ohne erfundenes Jahr")
 pruefe(len(claws_ldif["kontakte"][0]["telefone"]) == 5 and
        len(claws_ldif["kontakte"][0]["anschriften"]) == 2,
        "Claws-LDIF verliert keine wiederholten Rufnummern oder Anschriften")
 pruefe("logischen Zeile" in claws_ldif["kontakte"][0]["notiz"] and
-       claws_ldif["geburtstage"] ==
-       [{"name": "Änne Beispiel", "datum": "1980-04-03"}],
+       claws_ldif["kontakte"][0]["geburtstag"] == "1980-04-03" and not claws_ldif["geburtstage"],
        "Claws-LDIF entfaltet Notizen und übernimmt Geburtstage")
 
 claws_xml = b'''<?xml version="1.0" encoding="UTF-8"?>
@@ -852,8 +854,7 @@ pruefe(len(claws_x["kontakte"]) == 1 and
        claws_x["kontakte"][0]["firma"] == "Schmidt & Sohn" and
        claws_x["kontakte"][0]["strasse"] == "Hauptstraße 5",
        "natives Claws-XML übernimmt Kontaktfelder und verwirft Platzhalter")
-pruefe(claws_x["geburtstage"] ==
-       [{"name": "Jürgen Schmidt", "datum": "1975-12-09"}],
+pruefe(claws_x["kontakte"][0]["geburtstag"] == "1975-12-09" and not claws_x["geburtstage"],
        "natives Claws-XML übernimmt den Geburtstag")
 try:
     m.claws_xml_lesen(b'<?xml version="1.0"?><!DOCTYPE x><address-book/>')
@@ -921,11 +922,13 @@ kontakt = {"nachname": "Schmidt-Rüttgers", "vorname": "Änne", "firma": "Werft 
                    {"dienst": "custom", "wert": "https://irc.example/aenne",
                     "symbol": "irc"}],
               "geburtstag": "1980-06-15", "geburtstagJahrUnbekannt": False,
+              "jubilaeum": "--06-07", "anzeigename": "Anzeigename",
               "foto": "data:image/png;base64,iVBORw0KGgo=",
            "uid": "k-rund@magnolie", "geaendert": 1750000000000}
 kz = m.vcf_lesen(m.vcf_schreiben([kontakt]))["kontakte"][0]
 for feld in m.KONTAKT_FELDER + ["uid"]:
-    pruefe(kz[feld] == kontakt[feld], "Rundreise-Feld %s" % feld)
+    if feld in kontakt:
+        pruefe(kz[feld] == kontakt[feld], "Rundreise-Feld %s" % feld)
 parameter_karte = m.vcf_lesen(
     "BEGIN:VCARD\r\nVERSION:3.0\r\nFN:Parameter\r\n"
     "TEL;TYPE=WORK:+49 30 222222\r\n"
@@ -994,21 +997,24 @@ kde = m.kdeconnect_sms_stand()
 pruefe(kde["available"] and kde["device_id"] == "a" * 32,
        "Direktes KDE Connect meldet genau ein gepaartes SMS-Gerät")
 text = "Test; $(kein Befehl)\nzweite Zeile"
-kde = m.kdeconnect_sms_senden("+49 170 1234567", text, "DE")
-pruefe(kde["ok"] and kde_backend.sms == [("+491701234567", text, None)],
-       "KDE-SMS übergibt Nummer und Text direkt und unverändert an das Backend")
-kde = m.kdeconnect_sms_senden("+49 170 1234567", text, "DE", device_id="a" * 32)
-pruefe(kde["ok"] and kde_backend.sms[-1] == ("+491701234567", text, "a" * 32),
-       "eine SMS-Antwort bleibt an das ursprüngliche KDE-Gerät gebunden")
+with tempfile.TemporaryDirectory() as kde_journal, mock.patch.object(m, "daten_verzeichnis", return_value=kde_journal):
+    kde = m.kdeconnect_sms_senden("+49 170 1234567", text, "DE", client_ref="parser-first")
+    pruefe(kde["ok"] and kde_backend.sms == [("+491701234567", text, None)],
+           "KDE-SMS übergibt Nummer und Text direkt und unverändert an das Backend")
+    kde = m.kdeconnect_sms_senden("+49 170 1234567", text, "DE", device_id="a" * 32,
+                                client_ref="parser-selected")
+    pruefe(kde["ok"] and kde_backend.sms[-1] == ("+491701234567", text, "a" * 32),
+           "eine SMS-Antwort bleibt an das ursprüngliche KDE-Gerät gebunden")
 
 class KdeFensterProbe:
     def __init__(self): self.antworten = []
     def antwort(self, ziel, nutzlast): self.antworten.append((ziel, nutzlast))
 
 kde_fenster = KdeFensterProbe()
-m.Fenster._kde_sms_senden(kde_fenster, "+49 170 1234567", "Client ref", "DE", "ref-4711")
+with tempfile.TemporaryDirectory() as kde_journal, mock.patch.object(m, "daten_verzeichnis", return_value=kde_journal):
+    m.Fenster._kde_sms_senden(kde_fenster, "+49 170 1234567", "Client ref", "DE", "ref-4711")
 pruefe(kde_fenster.antworten == [("App.kdeSmsStatus", {
-    "ok": True, "state": "queued", "backend": "kdeconnect-direct",
+    "ok": True, "state": "submitted", "backend": "kdeconnect-direct",
     "client_ref": "ref-4711"})],
        "KDE-SMS-Antwort reicht client_ref unverändert an den Web-Chat zurück")
 with open(m.__file__, "r", encoding="utf-8") as kde_quelle:
@@ -1550,18 +1556,18 @@ pruefe(any(k["nachname"] == "Vogel" and
 tb_dora = next(k for k in erg["kontakte"] if k["nachname"] == "Vogel")
 pruefe(len(tb_dora["telefone"]) == 7 and len(tb_dora["anschriften"]) == 2 and
        tb_dora["emails"] == ["dora@post.de", "DORA@ARBEIT.EXAMPLE"] and
-       tb_dora["uid"] == "k1",
+       tb_dora["uid"].startswith("thunderbird:") and tb_dora["uid"].endswith(":k1"),
        "Thunderbird übernimmt alle Nummern, Anschriften, E-Mails und die Karten-UID")
 pruefe(any(k["email"] == "info@knoedel.de" and k["ort"] == "Duisburg"
            for k in erg["kontakte"]),
        "Karte nur mit Anzeigename wird samt Ort \u00fcbernommen")
-pruefe(any(k["uid"] == "k3" and k["nachname"] == "Meyer Schulze" and
-           not k["vorname"] for k in erg["kontakte"]),
+pruefe(any(k["uid"].startswith("thunderbird:") and k["uid"].endswith(":k3") and k["nachname"] == "Meyer Schulze" and
+            not k["vorname"] for k in erg["kontakte"]),
        "Thunderbird-_vCard bewahrt den strukturierten mehrteiligen Nachnamen")
-pruefe(len(erg["geburtstage"]) == 2,
-       "Geburtstage aus vCard und Thunderbird-Feldern (%d)" % len(erg["geburtstage"]))
-pruefe(any(g["datum"] == "1980-07-12" for g in erg["geburtstage"]),
-       "Thunderbird-Geburtstag mit Jahr korrekt")
+pruefe(len(erg["geburtstage"]) == 0,
+       "Thunderbird-Geburtstage werden nicht neben dem Kontakt verdoppelt (%d)" % len(erg["geburtstage"]))
+pruefe(tb_dora["geburtstag"] == "1980-07-12",
+       "Thunderbird-Geburtstag mit Jahr bleibt am Kontakt")
 pruefe(len(erg["termine"]) == 6,
        "Termine aus ICS-Datei, altem und aktuellem local.sqlite (%d)"
        % len(erg["termine"]))
@@ -2116,7 +2122,7 @@ except RuntimeError as f:
 
 print()
 print("— Aktualisierungsprüfung —")
-pruefe(m.PROGRAMM_FASSUNG == "2.0.17", "Programmkern trägt die neue Fassung")
+pruefe(m.PROGRAMM_FASSUNG == "2.0.18", "Programmkern trägt die neue Fassung")
 desktop_pfad = os.path.abspath(os.path.join(os.path.dirname(PFAD), "..",
                                              "io.gitlab.maik3531.MagnolieOrganizer.desktop"))
 with open(desktop_pfad, encoding="utf-8") as datei:
@@ -2151,7 +2157,12 @@ pruefe(all(text in release_regeln for text in (
        "pruefungen/test.js", "pruefungen/last_test.py", "pruefungen/last_test.js",
        "werkzeuge/appimage_jammy_bauen.sh", "pruefungen/test_appimage.sh",
        "pruefungen/test_appimage_arch.sh",
-       "werkzeuge/release_manifest.py")),
+       '"$LIVE_SOURCE/werkzeuge/release_gate.py" seal --root "$LIVE_ROOT"',
+       '"$LIVE_SOURCE/werkzeuge/release_gate.py" promote --root "$LIVE_ROOT"',
+       '--approval "$3" --accept-candidate "$4"')) and
+       release_regeln.index("pruefungen/test_appimage_arch.sh") <
+       release_regeln.index('"$LIVE_SOURCE/werkzeuge/release_gate.py" seal') and
+       re.search(r"(?m)^set -[^\n]*e", release_regeln) is not None,
        "der Releasebau sperrt Freigaben ohne alle fachlichen und AppImage-Tests")
 pruefe("LINUXDEPLOY_SHA=" in appimage_regeln and
        "APPIMAGETOOL_SHA=" in appimage_regeln and
@@ -2191,28 +2202,28 @@ update_oeffentlich = m.base64.b64encode(update_privat.public_key().public_bytes(
     update_serialisierung.Encoding.Raw,
     update_serialisierung.PublicFormat.Raw)).decode("ascii")
 update_summe = "ab" * 32
-update_paket = m.UPDATE_BASIS + "magnolie-organizer_2.0.18_all.deb"
+update_paket = m.UPDATE_BASIS + "magnolie-organizer_2.0.19_all.deb"
 update_signatur = m.base64.b64encode(update_privat.sign(
-    m.update_signatur_nachricht("2.0.18", update_paket, update_summe))).decode("ascii")
-update_xml = ("<?xml version='1.0'?><update><version>2.0.18</version>"
+    m.update_signatur_nachricht("2.0.19", update_paket, update_summe))).decode("ascii")
+update_xml = ("<?xml version='1.0'?><update><version>2.0.19</version>"
                "<deb>" + update_paket + "</deb><sha256>" + update_summe +
                "</sha256><signature>" + update_signatur + "</signature></update>")
 version, paket = m.update_info_lesen(update_xml)
-pruefe(version == "2.0.18" and paket.endswith("_2.0.18_all.deb"),
+pruefe(version == "2.0.19" and paket.endswith("_2.0.19_all.deb"),
        "update.xml liefert Fassung und Paketadresse")
 update_neu = m.update_pruefen(lambda _url: update_xml, update_oeffentlich)
 pruefe(update_neu["ok"] and not update_neu["aktuell"] and
-       update_neu["version"] == "2.0.18" and
+       update_neu["version"] == "2.0.19" and
        update_neu["sha256"] == update_summe and update_neu["url"] == update_paket,
        "eine Debian-Installation erhält das signierte Debian-Paket")
-appimage_paket = m.UPDATE_BASIS + "Magnolie-Organizer-2.0.18-x86_64.AppImage"
+appimage_paket = m.UPDATE_BASIS + "Magnolie-Organizer-2.0.19-x86_64.AppImage"
 appimage_summe = "ef" * 32
-appimage_xml = ("<update><version>2.0.18</version><deb>" + update_paket +
+appimage_xml = ("<update><version>2.0.19</version><deb>" + update_paket +
                  "</deb><sha256>" + update_summe + "</sha256><appimage>"
                  "<architecture>x86_64</architecture><url>" + appimage_paket +
                  "</url><sha256>" + appimage_summe + "</sha256></appimage>")
 appimage_signatur = m.base64.b64encode(update_privat.sign(
-    m.update_signatur_nachricht("2.0.18", update_paket, update_summe,
+    m.update_signatur_nachricht("2.0.19", update_paket, update_summe,
                                appimage_paket, appimage_summe))).decode("ascii")
 appimage_xml += "<signature>" + appimage_signatur + "</signature></update>"
 appimage_umgebung = os.environ.get("APPIMAGE")
@@ -2229,13 +2240,13 @@ pruefe(appimage_update["ok"] and not appimage_update["aktuell"] and
        appimage_update["url"] == appimage_paket and
        appimage_update["sha256"] == appimage_summe and not appimage_fehlt["ok"],
        "eine AppImage-Installation erhält nur das passende geprüfte AppImage")
-aarch64_paket = m.UPDATE_BASIS + "Magnolie-Organizer-2.0.18-aarch64.AppImage"
-aarch64_xml = ("<update><version>2.0.18</version><deb>" + update_paket +
+aarch64_paket = m.UPDATE_BASIS + "Magnolie-Organizer-2.0.19-aarch64.AppImage"
+aarch64_xml = ("<update><version>2.0.19</version><deb>" + update_paket +
                "</deb><sha256>" + update_summe + "</sha256><appimage>"
                "<architecture>aarch64</architecture><url>" + aarch64_paket +
                "</url><sha256>" + appimage_summe + "</sha256></appimage>")
 aarch64_signatur = m.base64.b64encode(update_privat.sign(
-    m.update_signatur_nachricht("2.0.18", update_paket, update_summe,
+    m.update_signatur_nachricht("2.0.19", update_paket, update_summe,
                                aarch64_paket, appimage_summe))).decode("ascii")
 aarch64_geprueft = m.update_manifest_pruefen(
     aarch64_xml + "<signature>" + aarch64_signatur + "</signature></update>",
@@ -2321,8 +2332,8 @@ pruefe(not update_ohne_signatur["ok"] and "signatur" in
        update_ohne_signatur["fehler"].lower(),
        "ein Manifest ohne Signatur wird mit gültigem Release-Schlüssel abgewiesen")
 update_veraendert = m.update_pruefen(
-    lambda _url: update_xml.replace("<version>2.0.18</version>",
-                                    "<version>2.0.19</version>"),
+    lambda _url: update_xml.replace("<version>2.0.19</version>",
+                                    "<version>2.0.20</version>"),
     update_oeffentlich)
 pruefe(not update_veraendert["ok"] and any(text in
        update_veraendert["fehler"].lower() for text in
@@ -3032,7 +3043,7 @@ def _blockierend_speichern(text):
         speicher_freigeben.wait(2)
 
 m.speichere_text = _blockierend_speichern
-m.erinnerungsdaten_schreiben = lambda _daten: True
+m.erinnerungsdaten_schreiben = lambda *args, **kwargs: True
 try:
     speicher_probe = _SpeicherProbe()
     speicher_thread = m.threading.Thread(
@@ -3440,6 +3451,8 @@ class _ProbeGio:
     class ApplicationFlags:
         FLAGS_NONE = 0
 gio_echt = m.Gio
+gtk_echt = m.Gtk
+m.Gtk = type("_ProbeGtkApplication", (), {"Application": _ProbeApplication})
 m.Gio = _ProbeGio
 _ProbeApplication.remote = False
 app, schon = m.einzelinstanz_anmelden("io.test.Magnolie", lambda: None)
@@ -3450,6 +3463,7 @@ app, schon = m.einzelinstanz_anmelden("io.test.Magnolie", lambda: None)
 pruefe(schon and app.aktiviert == 1,
        "ein zweiter Organizer-Start aktiviert nur das vorhandene Fenster")
 m.Gio = gio_echt
+m.Gtk = gtk_echt
 
 print()
 print("— Erinnerungen an Termine —")
@@ -3633,7 +3647,7 @@ m._REGIONAL["formatLocale"] = "en-US"
 kopf_en, rumpf_en = m.erinnerungstext({
     "titel": "Zahnarzt", "datum": "2026-07-25", "zeit": "10:00",
     "verpasst": True})
-pruefe(kopf_en == "Missed appointment" and "07/25/2026" in rumpf_en and
+pruefe(kopf_en == "Missed appointment" and "7/25/2026" in rumpf_en and
        "10:00" in rumpf_en,
        "englische Terminerinnerung folgt Sprache und Formatgebiet")
 kopf_en, rumpf_en = m.erinnerungstext(erg["faellig"][0])
@@ -4022,9 +4036,12 @@ hilfe_code_de, hilfe_de = _haupt_ausgabe(["--hilfe"], "de")
 pruefe(hilfe_code_en == 0 and "Usage:" in hilfe_en and
        "Open the application" in hilfe_en and
        "-t, --tray-start" in hilfe_en and "--reminder-check" in hilfe_en and
+       "--wayland-magnolie-probe" in hilfe_en and "EXPERIMENTAL:" in hilfe_en and
        hilfe_code_de == 0 and "Aufruf:" in hilfe_de and
        "Programm öffnen" in hilfe_de and
-       "-t, --tray-start" in hilfe_de and "--erinnerung" in hilfe_de,
+       "-t, --tray-start" in hilfe_de and "--erinnerung" in hilfe_de and
+       "--wayland-magnolie-probe" in hilfe_de and "EXPERIMENTELL:" in hilfe_de and
+       m.befehlszeile_lesen(["--wayland-magnolie-probe"]) == (None, None, None),
         "Befehlsübersicht folgt der Sprache und bewahrt alle Optionen")
 
 hilfe_kurz = _haupt_ausgabe(["-l", "de", "-h"], "en")
@@ -4101,132 +4118,17 @@ def test_anruf_lautstaerke_restores_exact_default_sink_volume():
     assert not duck.restore("call-a")
 
 
-def test_anruf_bluetooth_restores_previous_radio_state():
-    """Nur ausschalten, was der Organizer selbst eingeschaltet hat."""
-    adresse = "AA:BB:CC:DD:EE:FF"
-    def bauen(powered, connected=False):
-        zustand = {"an": powered, "verbunden": connected}
-        calls = []
-        def runner(args, **_kwargs):
-            calls.append(args)
-            ergebnis = type("Result", (), {"returncode": 0, "stdout": ""})()
-            if args[1] == "show":
-                ergebnis.stdout = "Controller AA\n\tPowered: {}\n".format(
-                    "yes" if zustand["an"] else "no")
-            if args[1] == "info":
-                ergebnis.stdout = "Device {}\n\tConnected: {}\n".format(
-                    adresse, "yes" if zustand["verbunden"] else "no")
-            if args[1] == "power":
-                zustand["an"] = args[2] == "on"
-            if args[1] == "connect":
-                zustand["verbunden"] = True
-            if args[1] == "disconnect":
-                zustand["verbunden"] = False
-            return ergebnis
-        schalter = m.AnrufBluetooth(runner=runner,
-            finder=lambda name: "/usr/bin/" + name)
-        return schalter, calls, zustand
-
-    # Funk war aus: einschalten, danach wieder ausschalten.
-    schalter, calls, zustand = bauen(False)
-    assert schalter.ensure("call-a", adresse) and zustand["an"] and zustand["verbunden"]
-    assert schalter.ensure("call-a", adresse) and not schalter.ensure("call-b", adresse)
-    assert not schalter.restore("call-b")
-    assert schalter.restore("call-a") and not zustand["an"] and not zustand["verbunden"]
-    assert ["/usr/bin/bluetoothctl", "power", "on"] in calls
-    assert ["/usr/bin/bluetoothctl", "connect", adresse] in calls
-    assert ["/usr/bin/bluetoothctl", "disconnect", adresse] in calls
-    assert ["/usr/bin/bluetoothctl", "power", "off"] in calls
-
-    # Eine bereits verbundene Freisprecheinrichtung bleibt unangetastet.
-    schalter, calls, zustand = bauen(True, True)
-    assert schalter.ensure("call-a", adresse)
-    assert not schalter.restore("call-a")
-    assert zustand["an"] and zustand["verbunden"]
-    assert not [call for call in calls if "power" in call or "connect" in call or "disconnect" in call]
-
-    # Bei eingeschaltetem Funk nur die selbst aufgebaute Verbindung trennen.
-    schalter, calls, zustand = bauen(True)
-    assert schalter.ensure("call-a", adresse) and zustand["verbunden"]
-    assert schalter.restore("call-a") and zustand["an"] and not zustand["verbunden"]
-    assert not [call for call in calls if "power" in call]
-
-    # Ein vorübergehend fehlgeschlagenes Trennen bleibt für einen zweiten Versuch vorgemerkt.
-    schalter, calls, zustand = bauen(True)
-    assert schalter.ensure("call-a", adresse)
-    normaler_runner = schalter.runner
-    erster_versuch = {"offen": True}
-    def runner_mit_fehler(args, **kwargs):
-        if args[1] == "disconnect" and erster_versuch["offen"]:
-            erster_versuch["offen"] = False
-            return type("Result", (), {"returncode": 1, "stdout": ""})()
-        return normaler_runner(args, **kwargs)
-    schalter.runner = runner_mit_fehler
-    assert not schalter.restore("call-a") and zustand["verbunden"] and schalter.saved
-    assert schalter.restore("call-a") and not zustand["verbunden"] and schalter.saved is None
-
-    # Ein noch veralteter BlueZ-Status nach connect wird auch bei bereits aktivem Funk bereinigt.
-    schalter, calls, zustand = bauen(True)
-    normaler_runner = schalter.runner
-    def runner_mit_verzoegertem_status(args, **kwargs):
-        if args[1] == "info" and any(call[1] == "connect" for call in calls):
-            calls.append(args)
-            return type("Result", (), {"returncode": 0,
-                "stdout": "Device {}\n\tConnected: no\n".format(adresse)})()
-        return normaler_runner(args, **kwargs)
-    schalter.runner = runner_mit_verzoegertem_status
-    assert not schalter.ensure("call-a", adresse) and not zustand["verbunden"]
-    assert ["/usr/bin/bluetoothctl", "disconnect", adresse] in calls
-
-    # Nach einem Timeout während connect bleibt auch ein teilweise geänderter Zustand aufräumbar.
-    schalter, calls, zustand = bauen(False)
-    normaler_runner = schalter.runner
-    def runner_mit_timeout(args, **kwargs):
-        if args[1] == "connect":
-            zustand["verbunden"] = True
-            raise subprocess.TimeoutExpired(args, 12)
-        return normaler_runner(args, **kwargs)
-    schalter.runner = runner_mit_timeout
-    assert not schalter.ensure("call-a", adresse) and schalter.saved
-    schalter.runner = normaler_runner
-    assert schalter.restore("call-a") and not zustand["an"] and not zustand["verbunden"]
-
-    # Der Benutzer schaltet waehrend des Gespraechs selbst aus: dabei bleibt es.
-    schalter, calls, zustand = bauen(False)
-    assert schalter.ensure("call-a", adresse)
-    zustand["an"] = False
-    calls.clear()
-    assert not schalter.restore("call-a")
-    assert not [call for call in calls if "power" in call]
-
-    # Ohne bluetoothctl geschieht nichts und nichts fliegt.
-    ohne = m.AnrufBluetooth(runner=lambda *a, **k: None, finder=lambda name: None)
-    assert not ohne.ensure("call-a", adresse) and not ohne.restore("call-a")
-    schalter, calls, _zustand = bauen(False)
-    assert not schalter.ensure("call-a", "") and calls == []
-
-    # Die Anrufsteuerung verwendet nur die explizite HFP-Adresse und nie den
-    # RFCOMM-Datenfallback eines Telefon-Peers.
-    aufrufe = []
-    original_ensure, original_restore = m._ANRUF_BLUETOOTH.ensure, m._ANRUF_BLUETOOTH.restore
-    try:
-        m._ANRUF_BLUETOOTH.ensure = lambda call_ref, address: aufrufe.append(
-            ("ensure", call_ref, address)) or True
-        m._ANRUF_BLUETOOTH.restore = lambda call_ref: aufrufe.append(
-            ("restore", call_ref)) or True
-        fenster = type("FensterAttrappe", (), {})()
-        m.Fenster._telefon_anruf_bluetooth(fenster, "call-a", "ringing", adresse)
-        m.Fenster._telefon_anruf_bluetooth(fenster, "call-a", "offhook", adresse)
-        m.Fenster._telefon_anruf_bluetooth(fenster, "call-a", "idle", adresse)
-    finally:
-        m._ANRUF_BLUETOOTH.ensure, m._ANRUF_BLUETOOTH.restore = original_ensure, original_restore
-    assert aufrufe == [("ensure", "call-a", adresse), ("ensure", "call-a", adresse),
-        ("restore", "call-a")]
+def test_anruf_bluetooth_is_native_phone_owned():
+    # The full fake BlueZ/Pulse lifecycle lives in test_call_audio.py.
+    from magnolie_anruf_audio import AnrufBluetooth
+    assert m.AnrufBluetooth is AnrufBluetooth
+    assert not hasattr(m, "_ANRUF_BLUETOOTH")
+    assert not hasattr(m.Fenster, "_telefon_anruf_bluetooth")
 
 
 if __name__ == "__main__":
     test_anruf_lautstaerke_restores_exact_default_sink_volume()
-    test_anruf_bluetooth_restores_previous_radio_state()
+    test_anruf_bluetooth_is_native_phone_owned()
 
 
 kommunikation_vertrag = os.path.join(
@@ -5017,13 +4919,31 @@ try:
 except RuntimeError:
     pruefe(True, "der Vertrauenswert wird typstreng geprüft")
 
+def baum_test_senden(zustand, partner, art, inhalt, sender=None):
+    post = []
+    m.baum_einreihen(post, partner["kennung"], art, inhalt)
+    return m.baum_post_zustellen(zustand, post, sender=sender,
+                                sichern=lambda: True)["zugestellt"] == 1
+
+
+def wartung_quittung(adresse, envelope):
+    key = m._sitzungsschluessel(wartung_zustand["geheim"], wartung_partner["oeffentlich"],
+                               wartung_zustand["kennung"], wartung_partner["kennung"])
+    return m.baum_receipt(key, wartung_zustand["kennung"], wartung_partner["kennung"], envelope)
+
+
 fallback_aufrufe = []
 wartung_partner.update({"protokoll": "baum-1", "adresse": "192.0.2.10", "port": 8737,
                          "fernAdresse": "vpn.example", "fernPort": 9443})
-fallback_ok = m.baum_senden(
+def fallback_sender(adresse, envelope):
+    fallback_aufrufe.append(adresse)
+    if not adresse.startswith("http://vpn.example:9443/"):
+        raise ConnectionRefusedError()
+    return wartung_quittung(adresse, envelope)
+
+fallback_ok = baum_test_senden(
     wartung_zustand, wartung_partner, "aufgabe", {"titel": "Direkt"},
-    sender=lambda adresse, _inhalt: fallback_aufrufe.append(adresse) or
-    adresse.startswith("http://vpn.example:9443/"))
+    sender=fallback_sender)
 pruefe(fallback_ok and fallback_aufrufe == [
     "http://192.0.2.10:8737/magnolie/v1/nachricht",
     "http://vpn.example:9443/magnolie/v1/nachricht"],
@@ -5079,9 +4999,13 @@ m.baum_einreihen(wartung_post, wartung_partner["kennung"], "aufgabe",
                   {"titel": "Ohne neue Sendung"}, _dt(2026, 7, 28, 10, 0))
 m.baum_post_schreiben(wartung_post, wartung_pfad)
 wartung_aufrufe = []
+def wartung_refused(adresse, inhalt):
+    wartung_aufrufe.append((adresse, inhalt))
+    raise ConnectionRefusedError()
+
 bericht = m.baum_post_wartung(
     wartung_zustand, wartung_pfad, jetzt=_dt(2026, 7, 28, 10, 0),
-    sender=lambda adresse, inhalt: wartung_aufrufe.append((adresse, inhalt)) or False)
+    sender=wartung_refused)
 neu_gelesen = m.baum_post_lesen(wartung_pfad)
 pruefe(bericht["versucht"] == 1 and len(wartung_aufrufe) == 2 and
        [aufruf[0] for aufruf in wartung_aufrufe] == [
@@ -5102,7 +5026,7 @@ pruefe(not wartung_aufrufe and wartung_vorher == wartung_nachher,
        "vor Ablauf des Backoffs wird weder gesendet noch die Queue neu geschrieben")
 m.baum_post_wartung(
     wartung_zustand, wartung_pfad, jetzt=_dt(2026, 7, 28, 10, 1),
-    sender=lambda *_args: wartung_aufrufe.append(True) or True)
+    sender=lambda adresse, envelope: wartung_aufrufe.append(True) or wartung_quittung(adresse, envelope))
 pruefe(len(wartung_aufrufe) == 1 and not m.baum_post_lesen(wartung_pfad),
        "genau an der Backoff-Grenze wird die alte Sendung zugestellt und entfernt")
 wartung_zustand["an"] = False
@@ -5593,7 +5517,7 @@ try:
 
     # Ohne Bestätigung wird nichts angenommen
     partner_bei_a["bestaetigt"] = True
-    ohne = m.baum_senden(netz_a, partner_bei_a, "aufgabe", {"titel": "Zu früh"})
+    ohne = baum_test_senden(netz_a, partner_bei_a, "aufgabe", {"titel": "Zu früh"})
     _t.sleep(0.3)
     pruefe(not empfangen,
            "solange die Gegenstelle nicht bestätigt hat, nimmt sie nichts an")
@@ -5612,7 +5536,7 @@ try:
         pruefe("Schlüssel" in str(f),
                "ein bestätigter Schlüssel lässt sich nicht unbemerkt ersetzen")
 
-    ok = m.baum_senden(netz_a, partner_bei_a, "aufgabe",
+    ok = baum_test_senden(netz_a, partner_bei_a, "aufgabe",
                        {"titel": "Mülltonne rausstellen",
                         "faellig": "2026-07-29",
                         "herkunft": netz_a["kennung"]})
@@ -6130,6 +6054,7 @@ pruefe("bridge_\" + os.urandom(16).hex()" in quelle and
        "die native Brücke ist zufällig, nur im Topframe und beidseitig URI-gebunden")
 
 alt_wayland = os.environ.get("WAYLAND_DISPLAY")
+alt_wayland_meldung = os.environ.get("MAGNOLIE_WAYLAND_MELDUNG")
 alt_magnolie_meldung = m.magnolie_meldung
 alt_benachrichtigen = m.benachrichtigen
 wege = []
@@ -6139,7 +6064,17 @@ try:
     m.benachrichtigen = lambda *_a, **_k: wege.append("system") or True
     pruefe(m.melden("Probe", "Text", "magnolie") == "system" and
            wege == ["system"],
-           "unter Wayland wird zuverlässig nur die Systemmeldung angeboten")
+           "unter Wayland fällt das nicht platzierbare Magnolie-Meldeblatt auf das System zurück")
+    wege.clear()
+    os.environ["MAGNOLIE_WAYLAND_MELDUNG"] = "1"
+    pruefe(m.melden("Probe", "Text", "magnolie") == "magnolie" and
+           wege == ["magnolie"],
+           "der Wayland-Entwicklerprobe kann das Magnolie-Meldeblatt ausdrücklich freischalten")
+    wege.clear()
+    m.magnolie_meldung = lambda *_a, **_k: wege.append("magnolie") or False
+    pruefe(m.melden("Probe", "Text", "magnolie") == "system" and
+           wege == ["magnolie", "system"],
+           "ein unsichtbares Wayland-Meldeblatt fällt auf die Systemmeldung zurück")
 finally:
     m.magnolie_meldung = alt_magnolie_meldung
     m.benachrichtigen = alt_benachrichtigen
@@ -6147,6 +6082,10 @@ finally:
         os.environ.pop("WAYLAND_DISPLAY", None)
     else:
         os.environ["WAYLAND_DISPLAY"] = alt_wayland
+    if alt_wayland_meldung is None:
+        os.environ.pop("MAGNOLIE_WAYLAND_MELDUNG", None)
+    else:
+        os.environ["MAGNOLIE_WAYLAND_MELDUNG"] = alt_wayland_meldung
 
 class _SmsGLibProbe:
     rueckrufe = []
@@ -6219,7 +6158,7 @@ anruf_system_alt = m.benachrichtigen
 anruf_wayland_alt = os.environ.pop("WAYLAND_DISPLAY", None)
 try:
     _SmsGLibProbe.rueckrufe.clear()
-    m.GLib = _SmsGLibProbe
+    m.GLib = mock.Mock(idle_add=_SmsGLibProbe.idle_add, timeout_add=lambda *_: 1)
     anruf_aufrufe = []
     m.magnolie_meldung = lambda *args, **kwargs: anruf_aufrufe.append(
         ("magnolie", args, kwargs)) or True
@@ -6227,37 +6166,49 @@ try:
         ("system", args, kwargs)) or True
     anruf_fenster = _SmsFensterProbe()
     anruf_fenster._telefon = mock.Mock()
-    m.Fenster._telefon_anruf_anzeigen(anruf_fenster, {
-        "state": "ringing", "callRef": "call-1", "kennung": "telefon-1",
-        "name": "Ada Lovelace", "nummer": "+49170", "annehmen": True,
-        "stil": "magnolie", "dauer": 60,
-        "foto": "data:image/png;base64,iVBORw0KGgo="})
+    anruf_fenster._telefon.call_action_tokens.return_value = {"answer": "a" * 64, "reject": "b" * 64}
+    anruf_fenster._daten_sperre = m.threading.RLock()
+    anruf_fenster._aktuelle_daten = {"kontakte": [{"vorname": "Ada", "nachname": "Lovelace",
+        "telefone": [{"wert": "+491711234567"}], "foto": "data:image/png;base64,iVBORw0KGgo="}]}
+    anruf_fenster._call_system_notifications = mock.Mock()
+    anruf_fenster._call_system_notifications.show.side_effect = lambda *args, **kwargs: anruf_aufrufe.append(
+        ("system", args, kwargs)) or True
+
+    def _anruf_probe_anzeigen(call_ref):
+        anruf_fenster._aktueller_anruf_hinweis = {
+            "state": "ringing", "direction": "incoming", "call_ref": call_ref,
+            "device_id": "telefon-1", "revision": 1, "occurred_ms": int(m.time.time() * 1000),
+            "number": "+491711234567", "number_status": "available"}
+        m.Fenster._telefon_anruf_anzeigen(anruf_fenster, {
+            "state": "ringing", "callRef": call_ref, "kennung": "telefon-1", "revision": 1,
+            "name": "Untrusted remote name", "annehmen": True, "stil": "magnolie", "dauer": 60})
+
+    _anruf_probe_anzeigen("call-1")
     pruefe(not anruf_aufrufe and len(_SmsGLibProbe.rueckrufe) == 1,
            "Anrufmeldungen werden nur in den GLib-Hauptkontext eingeplant")
     _SmsGLibProbe.rueckrufe.pop(0)()
-    anruf_aktion = anruf_aufrufe[0][2]["aktion"]
-    anruf_aktion(); anruf_aktion()
+    anruf_aktion = anruf_aufrufe[0][2]["aktionen"][0][2]
+    anruf_aktion()
+    _anruf_probe_anzeigen("call-1")
     pruefe([aufruf[0] for aufruf in anruf_aufrufe] == ["magnolie"] and
            anruf_aufrufe[0][2]["eigene_schleife"] is False and
            anruf_aufrufe[0][2]["foto"].startswith(b"\x89PNG") and
            anruf_aufrufe[0][2]["initialen"] == "AL" and
-           anruf_fenster._telefon.request_answer.call_count == 1,
-           "eigene Anrufmeldung nutzt Foto/Initialen, keinen Systemduplikat und eine einmalige Aktion")
+           anruf_fenster._telefon.call_action.call_args == mock.call("a" * 64) and
+           anruf_fenster._telefon.call_action.call_count == 1 and not _SmsGLibProbe.rueckrufe and
+           not anruf_fenster._telefon.request_answer.called,
+           "eigene Anrufmeldung nutzt lokale Foto/Initialen, kein Duplikat und das gebundene Aktionsticket")
 
     anruf_aufrufe.clear()
     m.magnolie_meldung = lambda *_a, **_k: False
-    m.Fenster._telefon_anruf_anzeigen(anruf_fenster, {
-        "state": "ringing", "callRef": "call-2", "kennung": "telefon-1",
-        "name": "Ada", "nummer": "+49170", "stil": "magnolie"})
+    _anruf_probe_anzeigen("call-2")
     _SmsGLibProbe.rueckrufe.pop(0)()
     pruefe([aufruf[0] for aufruf in anruf_aufrufe] == ["system"],
            "bei fehlgeschlagener eigener Anrufmeldung erscheint genau eine Systemmeldung")
 
     anruf_aufrufe.clear()
     m.magnolie_meldung = lambda *_a, **_k: (_ for _ in ()).throw(RuntimeError("kaputt"))
-    m.Fenster._telefon_anruf_anzeigen(anruf_fenster, {
-        "state": "ringing", "callRef": "call-3", "kennung": "telefon-1",
-        "name": "Ada", "stil": "magnolie"})
+    _anruf_probe_anzeigen("call-3")
     _SmsGLibProbe.rueckrufe.pop(0)()
     pruefe([aufruf[0] for aufruf in anruf_aufrufe] == ["system"],
            "auch nach einer Ausnahme erscheint genau eine System-Anrufmeldung")
@@ -6266,12 +6217,10 @@ try:
     os.environ["WAYLAND_DISPLAY"] = "wayland-0"
     m.magnolie_meldung = lambda *args, **kwargs: anruf_aufrufe.append(
         ("magnolie", args, kwargs)) or True
-    m.Fenster._telefon_anruf_anzeigen(anruf_fenster, {
-        "state": "ringing", "callRef": "call-4", "kennung": "telefon-1",
-        "name": "Ada", "stil": "magnolie"})
+    _anruf_probe_anzeigen("call-4")
     _SmsGLibProbe.rueckrufe.pop(0)()
-    pruefe([aufruf[0] for aufruf in anruf_aufrufe] == ["system"],
-           "unter Wayland verwendet der Anruf ausschließlich die Systemmeldung")
+    pruefe([aufruf[0] for aufruf in anruf_aufrufe] == ["magnolie"],
+           "unter Wayland darf die kompakte Anrufmeldung ohne Systemduplikat erscheinen")
 finally:
     m.GLib = anruf_glib_alt
     m.magnolie_meldung = anruf_magnolie_alt
@@ -6419,6 +6368,7 @@ with open(migrations_datei, "w", encoding="utf-8") as datei:
     datei.write(huelle)
 
 class _MigrationsFenster:
+    _erinnerungsprojektion_aktualisieren = m.Fenster._erinnerungsprojektion_aktualisieren
     def __init__(self):
         self._daten_sperre = m.threading.RLock()
         self._baum_sperre = m.threading.RLock()
@@ -6436,10 +6386,12 @@ class _MigrationsFenster:
 
 migrations_alt = {
     "daten_datei": m.daten_datei,
+    "erinnerungsdaten_datei": m.erinnerungsdaten_datei,
     "baum_ablagen_vorbereiten": m.baum_ablagen_vorbereiten,
     "kennwort_transaktion_ausfuehren": m.kennwort_transaktion_ausfuehren,
 }
 m.daten_datei = lambda: migrations_datei
+m.erinnerungsdaten_datei = lambda: os.path.join(migrations_ordner, "erinnerungsdaten.json")
 m.baum_ablagen_vorbereiten = lambda *_args, **_kwargs: {
     "dateien": {}, "baum": None}
 def _migration_schreiben(dateien, *_args, **_kwargs):
@@ -6471,6 +6423,7 @@ m._, m.ngettext = security_en.gettext, security_en.ngettext
 
 class _SecurityFenster:
     _kennwort = ""
+    _erinnerungsprojektion_aktualisieren = m.Fenster._erinnerungsprojektion_aktualisieren
 
     def __init__(self):
         self.antworten = []
@@ -6504,7 +6457,7 @@ security_alt = {
 }
 m.daten_datei = lambda: security_datei
 m.speichere_text = lambda _text: True
-m.erinnerungsdaten_schreiben = lambda _daten: True
+m.erinnerungsdaten_schreiben = lambda *args, **kwargs: True
 m.sicherungen_umschluesseln = lambda *_args, **_kwargs: {
     "geschafft": 1, "misslungen": 2}
 m.journal_umschluesseln = lambda *_args, **_kwargs: {
@@ -6562,7 +6515,7 @@ erinner_daten = {
     "aufgaben": [
         {"id": "a", "uid": "aufgabe-uid", "titel": "Brief abgeben",
          "faellig": "2026-08-20", "erledigt": False, "erinnern": True,
-         "startZeit": "09:00", "faelligZeit": "10:00",
+         "startDatum": "2026-08-19", "startZeit": "09:00", "faelligZeit": "10:00",
          "individuelleErinnerungTage": 1, "vertraulich": False,
          "notiz": "Aufgabennotiz", "personen": ["p"], "delegiertAn": "p",
          "links": ["https://example.invalid"], "lotusId": "lotus-aufgabe",
@@ -6676,14 +6629,21 @@ pruefe({a["id"] for a in auswahl["aufgaben"]} ==
 
 erinner_pfad = os.path.join(
     tempfile.mkdtemp(prefix="magnolie-erinnerungsdaten-"), "erinnerungsdaten.json")
-pruefe(m.erinnerungsdaten_schreiben(erinner_daten, erinner_pfad),
+erinner_profil = os.path.join(os.path.dirname(erinner_pfad), "daten.json")
+m.atomar_text_schreiben(erinner_profil, m.daten_huelle_anlegen(
+    _json.dumps(erinner_daten), "synthetic-reminder-password")[0])
+pruefe(m.erinnerungsdaten_schreiben(erinner_daten, erinner_pfad,
+        profil_pfad=erinner_profil, kennwort="synthetic-reminder-password"),
        "der begrenzte Erinnerungsbestand wird geschrieben")
 pruefe((os.stat(erinner_pfad).st_mode & 0o777) == 0o600,
        "nur das eigene Benutzerkonto darf ihn lesen")
-pruefe(m.erinnerungsdaten_lesen(erinner_pfad)["nurErinnerungen"] is True,
+pruefe(m.erinnerungsdaten_lesen(erinner_pfad, profil_pfad=erinner_profil)["nurErinnerungen"] is True,
        "der Wecker erkennt den begrenzten Bestand")
 erinner_daten["einstellungen"]["sicherheit"]["erinnernTrotzKennwort"] = False
-pruefe(not m.erinnerungsdaten_schreiben(erinner_daten, erinner_pfad) and
+m.atomar_text_schreiben(erinner_profil, m.daten_huelle_anlegen(
+    _json.dumps(erinner_daten), "synthetic-reminder-password")[0])
+pruefe(m.erinnerungsdaten_schreiben(erinner_daten, erinner_pfad,
+        profil_pfad=erinner_profil, kennwort="synthetic-reminder-password") and
        not os.path.exists(erinner_pfad),
        "das Abschalten entfernt die unverschlüsselte Erinnerungsdatei")
 
@@ -6902,15 +6862,18 @@ with open(aktuelle_datei, "w", encoding="utf-8") as datei:
     datei.write('{"notizen":[{"titel":"Vorher"}]}')
 antworten = []
 fenster_attrappe = type("FensterAttrappe", (), {})()
+fenster_attrappe._erinnerungsprojektion_aktualisieren = m.Fenster._erinnerungsprojektion_aktualisieren.__get__(fenster_attrappe)
 fenster_attrappe._kennwort = ""
 fenster_attrappe._daten_sperre = m.threading.RLock()
 fenster_attrappe._baum_sperre = m.threading.RLock()
 fenster_attrappe.antwort = lambda funktion, nutzlast: antworten.append(
     (funktion, nutzlast))
 daten_datei_alt = m.daten_datei
+erinnerungsdaten_datei_alt = m.erinnerungsdaten_datei
 baum_vorbereiten_alt = m.baum_ablagen_vorbereiten
 kennwort_transaktion_alt = m.kennwort_transaktion_ausfuehren
 m.daten_datei = lambda: aktuelle_datei
+m.erinnerungsdaten_datei = lambda: os.path.join(backup_probe, "erinnerungsdaten.json")
 m.baum_ablagen_vorbereiten = lambda *_args, **_kwargs: {
     "dateien": {}, "baum": None}
 def _wiederherstellungs_transaktion(dateien, *_args, **_kwargs):
@@ -6921,6 +6884,7 @@ m.kennwort_transaktion_ausfuehren = _wiederherstellungs_transaktion
 m.Fenster._sicherung_wiederherstellen(
     fenster_attrappe, verschluesselte_probe, "Magnolie1896", eigener_ordner)
 m.daten_datei = daten_datei_alt
+m.erinnerungsdaten_datei = erinnerungsdaten_datei_alt
 m.baum_ablagen_vorbereiten = baum_vorbereiten_alt
 m.kennwort_transaktion_ausfuehren = kennwort_transaktion_alt
 with open(aktuelle_datei, encoding="utf-8") as datei:
@@ -6956,22 +6920,23 @@ pruefe(brief.startswith("<?xml") and "office:document" in brief,
        "der Brief ist eine gültige ODF-Datei")
 pruefe("Hauptstraße 12" in brief and "Hans Müller" in brief,
        "die Anschrift steht im Brief")
-pruefe('draw:name="Anschriftfeld"' in brief and 'svg:y="2.5cm"' in brief and
+pruefe('draw:name="Anschriftfeld"' in brief and 'svg:y="4.5cm"' in brief and
        'svg:width="8.5cm"' in brief,
        "das Anschriftfeld sitzt passend für einen Fensterumschlag")
 pruefe('draw:name="Absenderblock"' in brief and
-       brief.count('text:style-name="Absenderblock"') >= 3,
-       "die eigene Anschrift steht als mehrzeiliger Absenderblock")
+       brief.count('text:style-name="Absender"') == 3 and
+       brief.count('text:style-name="Rueckadresse"') == 1,
+       "Form B hat einen mehrzeiligen Absenderkopf und eine Ruecksendezeile")
 pruefe(all(name in brief for name in
            ("Faltmarke-oben", "Lochmarke", "Faltmarke-unten")) and
-       'svg:y1="8.5cm"' in brief and 'svg:y1="19cm"' in brief and
-       'svg:x1="-1cm"' in brief,
+       'svg:y1="10.5cm"' in brief and 'svg:y1="21cm"' in brief and
+       'svg:x1="1.5cm"' in brief,
        "DIN-Falt- und Lochmarken liegen innerhalb des Druckbereichs")
 pruefe("Sehr geehrte Damen und Herren," in brief and
        "Mit freundlichen Grüßen" in brief, "Anrede und Gruß sind vorbereitet")
 ohne = m.fodt_brief(kontakt_probe, "", layout="din5008")
-pruefe("Absender" in ohne and "Musterweg" not in ohne,
-       "ohne eigene Anschrift bleibt der Absenderblock leer")
+pruefe('text:style-name="Rueckadresse"></text:p>' in ohne and "Musterweg" not in ohne,
+       "ohne eigene Anschrift bleibt die Ruecksendezeile leer")
 pruefe("&amp;" in m.fodt_brief({"nachname": "Meier & Sohn"}, ""),
        "Sonderzeichen werden sauber verpackt")
 kompakt = m.fodt_brief(
@@ -6983,8 +6948,8 @@ pruefe("Erika Beispiel · Musterweg 3 · 47051 Duisburg" in kompakt and
 standard = m.fodt_brief(
     kontakt_probe, "Erika Beispiel\nMusterweg 3\n47051 Duisburg")
 pruefe("Erika Beispiel · Musterweg 3 · 47051 Duisburg" in standard and
-       "Faltmarke-oben" not in standard,
-       "die kompakte Absenderzeile ist wieder Standard")
+       "Faltmarke-oben" in standard and 'svg:y="4.5cm"' in standard,
+       "Form B mit linker Ruecksendezeile ist Standard")
 
 adressen_gettext_alt, adressen_ngettext_alt = m._, m.ngettext
 adressen_regional_alt = dict(m._REGIONAL)
@@ -6995,7 +6960,7 @@ brief_en = m.fodt_brief(
     kontakt_probe, "Erika Beispiel\nMusterweg 3\n47051 Duisburg",
     datum=_dt(2026, 7, 25), layout="din5008")
 pruefe("Dear Sir or Madam," in brief_en and "Yours sincerely," in brief_en and
-       "07/25/2026" in brief_en,
+       "7/25/2026" in brief_en,
        "englischer Brief verwendet gettext und das gewählte Formatgebiet")
 pruefe("Hauptstraße 12" in brief_en and "Hans Müller" in brief_en and
        'draw:name="Anschriftfeld"' in brief_en and "Faltmarke-oben" in brief_en,

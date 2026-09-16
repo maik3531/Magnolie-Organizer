@@ -64,7 +64,8 @@ data class KontaktRohstand(
         io.gitlab.maik3531.magnolienotes.baum.KontaktDaten(),
     val beforeHash: String = "",
     val action: String = "",
-    val generatedByMagnolie: Boolean = false
+    val generatedByMagnolie: Boolean = false,
+    val operationId: String = ""
 )
 
 @Serializable
@@ -111,19 +112,26 @@ object JournalRegeln {
     fun due(last: Long?, now: Long, interval: JournalIntervall) =
         interval.millis?.let { last == null || now - last >= it } ?: false
 
+    fun zeitpunkt(entry: SnapshotManifest): Long? =
+        runCatching { Instant.parse(entry.createdUtc).toEpochMilli() }.getOrNull()
+
     fun behalten(entries: List<SnapshotManifest>, now: Long, maximum: Int? = null): Set<String> {
-        val sorted = entries.sortedByDescending { Instant.parse(it.createdUtc).toEpochMilli() }
-        if (maximum != null) return sorted.take(maximum.coerceIn(1, 100)).mapTo(mutableSetOf()) { it.uuid }
-        val keep = sorted.filter { it.pinned }.mapTo(mutableSetOf()) { it.uuid }
+        val dates = entries.associateWith(::zeitpunkt)
+        val sorted = entries.sortedByDescending { dates[it] ?: Long.MIN_VALUE }
+        val protectedEntries = sorted.filter { it.pinned || it.restoreOperationId.isNotEmpty() || dates[it] == null }
+        if (maximum != null) return (sorted.filter { dates[it] != null }.take(maximum.coerceIn(1, 100)) +
+            protectedEntries).mapTo(mutableSetOf()) { it.uuid }
+        val keep = protectedEntries.mapTo(mutableSetOf()) { it.uuid }
         val preRestore = sorted.filter { it.reason == "pre-restore" }
-        keep += preRestore.filter { now - Instant.parse(it.createdUtc).toEpochMilli() <= 30L * 86400_000 }
+        keep += preRestore.filter { (dates[it] ?: Long.MIN_VALUE) >= now - 30L * 86400_000 }
             .take(5).map { it.uuid }
         val short = sorted.filter { it.reason.startsWith("pre-sync") || it.reason.startsWith("contact-") }
-            .filter { now - Instant.parse(it.createdUtc).toEpochMilli() <= 14L * 86400_000 }.take(20)
+            .filter { (dates[it] ?: Long.MIN_VALUE) >= now - 14L * 86400_000 }.take(20)
         keep += short.map { it.uuid }
-        val regular = sorted.filter { it.reason == "scheduled" || it.reason == "manual" }
-        keep += regular.distinctBy { Instant.parse(it.createdUtc).toString().take(10) }.take(8).map { it.uuid }
-        keep += regular.distinctBy { Instant.parse(it.createdUtc).toString().take(7) }.take(6).map { it.uuid }
+        val regular = sorted.filter { dates[it] != null && (it.reason == "scheduled" || it.reason == "manual") }
+        keep += regular.distinctBy { Instant.ofEpochMilli(dates.getValue(it)!!).toString().take(10) }.take(8).map { it.uuid }
+        keep += regular.distinctBy { Instant.ofEpochMilli(dates.getValue(it)!!).toString().take(7) }.take(6).map { it.uuid }
+        sorted.firstOrNull { dates[it] != null }?.let { keep += it.uuid }
         return keep
     }
 

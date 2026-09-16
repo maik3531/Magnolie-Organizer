@@ -54,7 +54,7 @@ for (const sourcePath of nsi.matchAll(/^\s*File\s+[^\r\n]*"(\$\{PUBLISH_DIR\}[^"
 const bundledMakensis = "/tmp/opencode/nsis-root/usr/bin/makensis";
 const bundledNsisDir = "/tmp/opencode/nsis-root/usr/share/nsis";
 if (fs.existsSync(bundledMakensis)) {
-  const auditBase = "/tmp/opencode";
+  const auditBase = os.tmpdir();
   fs.mkdirSync(auditBase, { recursive: true });
   const fixture = fs.mkdtempSync(path.join(auditBase, "magnolie-nsis-audit-"));
   try {
@@ -138,7 +138,8 @@ const shutdown = vmResultTest.indexOf("$shutdownOutput = @(&");
 const shutdownCheck = vmResultTest.indexOf("if ($shutdownExitCode -ne 0)", shutdown);
 if (flush < 0 || persistenceCheck < flush || dismount < persistenceCheck || dismountCheck < dismount || shutdown < dismountCheck || shutdownCheck < shutdown) fail("VM prüft Flush, Persistenz, Aushängen und Herunterfahren nicht in dieser Reihenfolge");
 const build = read("build/Build.ps1");
-for (const token of [".release-staging-", "New-DeterministicZip", "Enter-ReleaseLock", "Sign-Official", "MAGNOLIE_SIGNTOOL", "--packaging-self-test", "Write-ReleaseChecksums", "Assert-SourceArchive", "Assert-BinaryArchiveBuildConfig", "AuditWebPayload.js", '"--publish", $root, $publish', '"--artifact", $publish, $zipAudit', "BuildSource.ps1", "sourceForRelease", "installerName", "TimeStamperCertificate", 'Move-Item -LiteralPath $unsignedSetupStage', "CreateInstallerBuildRecord.js", "installerRecordName", "CrossCompile", "WINDOWS-RUNTIME-UNVERIFIED.txt", "windowsRuntimeVerified=false", "windowsVmValidationRequired=true", "artifactTrust=UNSIGNED", "AuditInstaller.js", "NSISDIR", "/tmp/opencode/nsis-root/usr/bin/makensis", "Binärausgabe benötigt MAGNOLIE_CONTRIBUTOR_HASH"]) if (!build.includes(token)) fail(`Build-Invariante fehlt: ${token}`);
+for (const token of [".release-staging-", "New-DeterministicZip", "Enter-ReleaseLock", "Sign-Official", "MAGNOLIE_SIGNTOOL", "--packaging-self-test", "Write-ReleaseChecksums", "Assert-SourceArchive", "Assert-BinaryArchiveBuildConfig", "AuditWebPayload.js", '"--publish", $buildRoot, $publish', '"--artifact", $publish, $zipAudit', "BuildSource.ps1", "sourceForRelease", "installerName", "TimeStamperCertificate", 'Move-Item -LiteralPath $unsignedSetupStage', "CreateInstallerBuildRecord.js", "installerRecordName", "CrossCompile", "WINDOWS-RUNTIME-UNVERIFIED.txt", "windowsRuntimeVerified=false", "windowsVmValidationRequired=true", "artifactTrust=UNSIGNED", "AuditInstaller.js", "NSISDIR", "/tmp/opencode/nsis-root/usr/bin/makensis", "Binärausgabe benötigt MAGNOLIE_CONTRIBUTOR_HASH"]) if (!build.includes(token)) fail(`Build-Invariante fehlt: ${token}`);
+for (const token of ['ExtractToDirectory($sourceForRelease, $sourceProjection)', 'Push-Location $buildRoot', 'MAGNOLIE_LINUX_SOURCE']) if (!build.includes(token)) fail(`Verified source projection missing: ${token}`);
 if (build.includes(".SignerCertificate.Subject.Contains(")) fail("Build akzeptiert Herausgeber-Teiltreffer");
 if (!/if \(\$CrossCompile\)[\s\S]*?else \{[\s\S]*?--packaging-self-test[\s\S]*?--self-test[\s\S]*?--ui-self-test[\s\S]*?\}/.test(build)) fail("Cross-Bau grenzt Windows-Laufzeittests nicht eindeutig ab");
 if (!/\$installerName = \$canonicalInstallerName/.test(build)) fail("Der Bau verwendet nicht durchgehend den normalen Installernamen");
@@ -156,7 +157,7 @@ for (const token of ["Get-ReleaseSourceFiles", "-Force", "excludedDirectories", 
 for (const token of ["Assert-BinaryArchiveBuildConfig", 'GetFileName($_) -ceq "build-config.json"', "Quellarchiv enthält den Contributor-Hash"]) if (!common.includes(token)) fail(`Branding-Archiv-Invariante fehlt: ${token}`);
 const webAudit = read("build/AuditWebPayload.js");
 for (const token of ["app", "web", "anwendung.js", "oeffneSuche", "nextcloud", "LINGUAS", "native-i18n.json", "handbuch", "artifactPayload"]) if (!webAudit.includes(token)) fail(`Web-Publish-Invariante fehlt: ${token}`);
-const publishCall = build.indexOf('"--publish", $root, $publish');
+const publishCall = build.indexOf('"--publish", $buildRoot, $publish');
 const dotnetPublish = build.indexOf('"dotnet" @("publish"');
 const handbookPort = build.indexOf("build/PortHandbook.js");
 const zipBuild = build.indexOf("New-DeterministicZip $publish");
@@ -195,7 +196,7 @@ try {
   fs.rmSync(webAuditTemp, { recursive: true, force: true });
 }
 for (const token of ["DisplayPath", "IsPathRooted", "GetFullPath((Join-Path (Split-Path -Parent $Destination) $name))", "Prüfsummenpfad zeigt nicht auf das Quellartefakt"]) if (!common.includes(token)) fail(`Prüfsummenpfad-Invariante fehlt: ${token}`);
-if (!build.includes('DisplayPath = "../$sourceName"') || !build.includes('$publicationStage = Join-Path $stage "project"')) fail("Quellarchiv-Prüfsumme bildet die spätere Parent/Projekt-Publikation nicht ab");
+if (!build.includes('DisplayPath = $sourceName') || !build.includes('$sourceStage = Join-Path $publicationStage $sourceName')) fail("Source ZIP and checksums must share the final flat layout");
 const vmMedia = read("vm/Create-TestMedia.sh");
 const vmTest = read("vm/StartTest.ps1");
 const vmCreate = read("vm/Create-VM.sh");
@@ -222,7 +223,7 @@ const certificateStep = workflow.indexOf("- name: Signierzertifikat einrichten")
 if (nsisStep < 0 || certificateStep < 0 || nsisStep > certificateStep ||
     workflow.slice(nsisStep, certificateStep).includes("SIGNING_PFX_BASE64"))
   fail("CI trennt NSIS-Abhängigkeit nicht vom Signierzertifikat");
-for (const token of ['$projectArtifacts = Join-Path $env:ARTIFACT_DIR "project"',
+for (const token of ['$projectArtifacts = $env:ARTIFACT_DIR',
   "Copy-Item -LiteralPath $source -Destination $env:ARTIFACT_DIR",
   "Copy-Item -LiteralPath $file -Destination $projectArtifacts"])
   if (!workflow.includes(token)) fail(`CI bewahrt das Prüfsummenlayout nicht: ${token}`);
@@ -300,6 +301,10 @@ for (const separatelyBackedUp of [".magnolie-core.manifest", ".magnolie-handbook
 if (nsisInstaller.includes('RMDir /r "$INSTDIR"')) fail("NSIS löscht unbekannte Benutzerdateien im Programmordner rekursiv");
 if (!nsisInstaller.includes('Call un.DeleteManagedManifest')) fail("Uninstaller verwendet die Besitzliste nicht");
 const uninstallSection = /Section "Uninstall"([\s\S]*?)SectionEnd/.exec(nsisInstaller)?.[1] || "";
+if (!/ExecWait\s+'"\$INSTDIR\\\$\{PRODUCT_EXE\}" --unregister-call-notifications'\s+\$0/.test(uninstallSection))
+  fail("Uninstaller quotes the notification-cleanup executable incorrectly");
+if (!/Invoke-NativeCommand \$makensis @\("-WX"/.test(buildScriptText))
+  fail("NSIS warnings must fail the installer build");
 if (!uninstallSection.includes('${LEGACY_PRODUCT_MARKER}')) fail("Uninstaller erkennt den alten 2.0.0-Produktmarker nicht");
 if (!uninstallSection.includes("$UninstallCleanupFailed == 1")) fail("Uninstaller ignoriert fehlgeschlagene Dateilöschungen");
 const uninstallManifestCleanup = /Function un\.DeleteManagedManifest([\s\S]*?)FunctionEnd/.exec(nsisInstaller)?.[1] || "";
@@ -428,7 +433,7 @@ try {
   const checksumLayout = path.join(temp, "checksum-layout");
   const checksumProject = path.join(checksumLayout, "project");
   fs.mkdirSync(checksumProject, { recursive: true });
-  const sourceArchive = path.join(checksumLayout, `Magnolie-Organizer-Windows-${version}-Source.zip`);
+  const sourceArchive = path.join(checksumProject, `Magnolie-Organizer-Windows-${version}-Source.zip`);
   const binaryZip = path.join(checksumProject, `Magnolie-Organizer-Windows-${version}-x64.zip`);
   const setup = path.join(checksumProject, `Magnolie-Organizer-Windows-${version}-Setup-x64.exe`);
   const checksum = path.join(checksumProject, `Magnolie-Organizer-Windows-${version}-PRUEFSUMMEN.sha256`);
@@ -436,11 +441,11 @@ try {
   fs.writeFileSync(binaryZip, "zip fixture\n");
   fs.writeFileSync(setup, "setup fixture\n");
   const psQuote = value => value.replace(/'/g, "''");
-  const checksumCommand = `. '${commonPath}'; Write-ReleaseChecksums '${psQuote(root)}' '${version}' '${psQuote(checksum)}' @([pscustomobject]@{ Source='${psQuote(sourceArchive)}'; DisplayPath='../${path.basename(sourceArchive)}' }, [pscustomobject]@{ Source='${psQuote(binaryZip)}'; DisplayPath='${path.basename(binaryZip)}' }, [pscustomobject]@{ Source='${psQuote(setup)}'; DisplayPath='${path.basename(setup)}' })`;
+  const checksumCommand = `. '${commonPath}'; Write-ReleaseChecksums '${psQuote(root)}' '${version}' '${psQuote(checksum)}' @([pscustomobject]@{ Source='${psQuote(sourceArchive)}'; DisplayPath='${path.basename(sourceArchive)}' }, [pscustomobject]@{ Source='${psQuote(binaryZip)}'; DisplayPath='${path.basename(binaryZip)}' }, [pscustomobject]@{ Source='${psQuote(setup)}'; DisplayPath='${path.basename(setup)}' })`;
   const checksumResult = runPwsh(["-NoProfile", "-Command", checksumCommand], { encoding: "utf8" });
   if (checksumResult.status !== 0) fail(`Prüfsummen-Verhaltenstest fehlgeschlagen: ${checksumResult.stderr || checksumResult.stdout}`);
   const checksumText = fs.readFileSync(checksum, "utf8");
-  if (!checksumText.includes(`  ../${path.basename(sourceArchive)}`) || !checksumText.includes(`  ${path.basename(binaryZip)}`) || !checksumText.includes(`  ${path.basename(setup)}`)) fail("Prüfsummendatei enthält nicht die veröffentlichten relativen Pfade");
+  if (!checksumText.includes(`  ${path.basename(sourceArchive)}`) || !checksumText.includes(`  ${path.basename(binaryZip)}`) || !checksumText.includes(`  ${path.basename(setup)}`)) fail("Prüfsummendatei enthält nicht die veröffentlichten relativen Pfade");
   if (checksumText.includes("Setup-x64-UNSIGNED.exe")) fail("Prüfsummendatei enthält einen nichtkanonischen Installernamen");
   const sha256sum = spawnSync("sha256sum", ["--version"], { encoding: "utf8" });
   if (!sha256sum.error && sha256sum.status === 0) {

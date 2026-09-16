@@ -212,6 +212,7 @@
     sprache = sprachCode(wert);
     katalog = katalogFuer(sprache);
     document.documentElement.lang = katalog ? sprache : "en";
+    document.documentElement.dir = document.documentElement.lang === "ar" ? "rtl" : "ltr";
     uebersetzeDokument(document);
     return document.documentElement.lang;
   }

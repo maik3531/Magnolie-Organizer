@@ -16,7 +16,6 @@ import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
 import java.nio.file.Files
-import java.nio.file.StandardOpenOption
 import java.nio.file.StandardCopyOption
 import java.security.MessageDigest
 import java.security.KeyStore
@@ -176,10 +175,7 @@ internal class WiederherstellungsPaarCommit(
     }
 
     private fun ordnerSynchronisieren() {
-        // Android/Linux erlauben in der Regel fsync auf dem Verzeichnis; manche JVM-Dateisysteme nicht.
-        runCatching { Files.newByteChannel(ordner.toPath(), StandardOpenOption.READ).use { kanal ->
-            (kanal as? java.nio.channels.FileChannel)?.force(true)
-        } }
+        synchronisiereOrdner(ordner)
     }
 
     private fun aufraeumen() {
@@ -211,12 +207,35 @@ class Ablage private constructor(
 
     private val notizDatei = File(ordner, "notizen.json")
     private val baumDatei = File(ordner, "baum.json")
+    private val entwurfDatei = File(ordner, "entwurf.json")
+    private val entwurfSchreibsperre = Any()
+    private val _entwurf = MutableStateFlow(EditorEntwurf())
+    val entwurf: StateFlow<EditorEntwurf> = _entwurf.asStateFlow()
+    private var gesicherterEntwurf = EditorEntwurf()
     private val dateiKrypto = DatenDateiKrypto(datenKey)
     private val wiederherstellung = WiederherstellungsPaarCommit(ordner,
         kodieren = { name, bytes -> dateiKrypto.verschluesseln(bytes, name) },
         nachSchritt = nachCommitSchritt)
     private val sperre = SCHREIBSPERRE
+    private val baumTransporte = mutableSetOf<AutoCloseable>()
+    private var baumTransportGeneration = 0L
     private var baumNachrichtenTransaktion = false
+    @Volatile private var recoveryErforderlich = false
+
+    private fun schreibbar() {
+        if (recoveryErforderlich) throw StartFehler(StartFehlerArt.RECOVERY)
+    }
+
+    private fun paarCommit(notizen: String, baum: String, operationId: String) {
+        schreibbar()
+        try { wiederherstellung.commit(notizen, baum, operationId) }
+        catch (fehler: Throwable) {
+            // Even a failed directory sync may have published the durable intent.
+            recoveryErforderlich = true
+            baumTransporteAbbrechen()
+            throw fehler
+        }
+    }
 
     private val _bestand = MutableStateFlow(Bestand())
     val bestand: StateFlow<Bestand> = _bestand.asStateFlow()
@@ -238,7 +257,13 @@ class Ablage private constructor(
                 sauber.copy(notizbuecher = listOf(Notizbuch(STANDARD_BUCH, standardBuchName)))
             } else sauber
         }
-        _baum.value = baumStand.wert
+        _baum.value = io.gitlab.maik3531.magnolienotes.baum.Paarung.bereinigen(baumStand.wert)
+        val entwurfStand = lesen(entwurfDatei, EditorEntwurf())
+        require(entwurfStand.wert.notiz == null || entwurfStand.wert.aufgabe == null)
+        _entwurf.value = entwurfStand.wert
+        gesicherterEntwurf = entwurfStand.wert
+        if (entwurfStand.klartext) schreiben(entwurfDatei,
+            json.encodeToString(EditorEntwurf.serializer(), entwurfStand.wert))
         if (notizStand.klartext || baumStand.klartext) {
             wiederherstellung.commit(
                 json.encodeToString(Bestand.serializer(), _bestand.value),
@@ -248,9 +273,35 @@ class Ablage private constructor(
         } else if (notizDatei.exists()) {
             schreibeBestand(_bestand.value)
         }
+        if (_baum.value != baumStand.wert) setzeBaum(_baum.value)
     }
 
     // ---------------------------------------------------------------- Notizen
+
+    fun setzeNotizEntwurf(notiz: Notiz?) = synchronized(sperre) {
+        schreibbar(); _entwurf.value = EditorEntwurf(notiz = notiz)
+    }
+
+    fun setzeAufgabenEntwurf(aufgabe: Aufgabe?) = synchronized(sperre) {
+        schreibbar(); _entwurf.value = EditorEntwurf(aufgabe = aufgabe)
+    }
+
+    /** Debounced on IO while typing; flushed at the Activity lifecycle boundary. No Binder payload. */
+    fun sichereEntwurf() = synchronized(entwurfSchreibsperre) {
+        val aktuell = _entwurf.value
+        if (aktuell != gesicherterEntwurf) {
+            schreiben(entwurfDatei, json.encodeToString(EditorEntwurf.serializer(), aktuell))
+            gesicherterEntwurf = aktuell
+        }
+    }
+
+    fun beendeEntwurf(erwartet: EditorEntwurf): Boolean = synchronized(entwurfSchreibsperre) {
+        if (_entwurf.value != erwartet) return@synchronized false
+        val leer = EditorEntwurf()
+        schreiben(entwurfDatei, json.encodeToString(EditorEntwurf.serializer(), leer))
+        gesicherterEntwurf = leer
+        _entwurf.compareAndSet(erwartet, leer)
+    }
 
     fun notizen(): List<Notiz> = _bestand.value.notizen
 
@@ -350,6 +401,11 @@ class Ablage private constructor(
 
     fun aufgaben(): List<Aufgabe> = _bestand.value.aufgaben
 
+    fun personalCustomChange(change: (PersonalCustomState) -> PersonalCustomState) = synchronized(sperre) {
+        val next = change(_bestand.value.personalCustom)
+        if (next != _bestand.value.personalCustom) schreibeBestand(_bestand.value.copy(personalCustom = next))
+    }
+
     fun aufgabe(id: String): Aufgabe? = _bestand.value.aufgaben.firstOrNull { it.id == id }
 
     fun sichereAufgabe(aufgabe: Aufgabe): Aufgabe = synchronized(sperre) {
@@ -433,11 +489,17 @@ class Ablage private constructor(
             previous.single().decision == decision) "applied" else "conflict" }
         val proposal = _bestand.value.personalSync.pending_proposals.firstOrNull {
             it.proposal_id == proposalId } ?: return@synchronized "missing"
+        if (proposal.source_device != peerId) return@synchronized "conflict"
+        val reconciled = PersonalSync.reconcile(_bestand.value,
+            setOf(if (proposal.kind == "task") "tasks" else "notes"),
+            _bestand.value.personalSync.format).first
+        if (reconciled != _bestand.value) schreibeBestand(reconciled)
         val key = if (proposal.kind == "attachment")
             "attachment\u0000${proposal.parent_id}\u0000${proposal.id}" else "${proposal.kind}\u0000${proposal.id}"
         val meta = _bestand.value.personalSync.entities[key]
         if (decision == "delete" && !allowChanged &&
             (meta == null || meta.hash != proposal.prior_hash || meta.state != "live" ||
+             !PersonalSync.matchesCurrent(_bestand.value, proposal) ||
              runCatching { PersonalSync.compare(meta.clock, proposal.clock) != "dominated" }.getOrDefault(true)))
             return@synchronized "conflict"
         var next = _bestand.value
@@ -539,7 +601,7 @@ class Ablage private constructor(
     /** Findet eine Aufgabe über die Kennung des Ursprungs. */
     fun aufgabeNachFremdId(fremdId: String, herkunft: String): Aufgabe? =
         _bestand.value.aufgaben.firstOrNull {
-            (it.fremdId == fremdId && it.herkunft == herkunft) || it.id == fremdId
+            it.fremdId == fremdId && it.herkunft == herkunft
         }
 
     fun notizbuecher(): List<Notizbuch> = _bestand.value.notizbuecher
@@ -579,25 +641,23 @@ class Ablage private constructor(
     }
 
     fun personalSyncApply(records: List<PersonalSyncRecord>): PersonalSyncResult = synchronized(sperre) {
-        val result = PersonalSync.apply(_bestand.value, records)
+        val modules = records.map { if (it.kind == "task") "tasks" else "notes" }.toSet()
+        val local = PersonalSync.reconcile(_bestand.value, modules, 1).first
+        val result = PersonalSync.apply(local, records)
         schreibeBestand(result.bestand)
         result
     }
 
-    fun personalSyncApplyOnce(records: List<PersonalSyncRecord>, batchKey: String): PersonalSyncResult? = synchronized(sperre) {
-        if (batchKey in _bestand.value.personalSync.applied_batches) return@synchronized null
-        val result = PersonalSync.apply(_bestand.value, records)
-        val applied = (result.bestand.personalSync.applied_batches + batchKey).takeLast(500)
-        val durable = result.copy(bestand = result.bestand.copy(
-            personalSync = result.bestand.personalSync.copy(applied_batches = applied)))
-        schreibeBestand(durable.bestand)
-        durable
-    }
+    fun personalSyncApplyOnce(records: List<PersonalSyncRecord>, batchKey: String): PersonalSyncResult? =
+        personalSyncApplyOnce(records, emptyMap(), batchKey,
+            records.map { if (it.kind == "task") "tasks" else "notes" }.toSet(), 1)
 
     fun personalSyncApplyOnce(records: List<PersonalSyncRecord>, attachments: Map<String, Anhang>,
-                              batchKey: String): PersonalSyncResult? = synchronized(sperre) {
+                              batchKey: String, modules: Set<String>, format: Int): PersonalSyncResult? = synchronized(sperre) {
         if (batchKey in _bestand.value.personalSync.applied_batches) return@synchronized null
-        val result = PersonalSync.apply(_bestand.value, records, attachments)
+        // Content, clocks, incoming changes and replay protection share one durable write.
+        val local = PersonalSync.reconcile(_bestand.value, modules, format).first
+        val result = PersonalSync.apply(local, records, attachments)
         val applied = (result.bestand.personalSync.applied_batches + batchKey).takeLast(500)
         val durable = result.copy(bestand = result.bestand.copy(
             personalSync = result.bestand.personalSync.copy(applied_batches = applied)))
@@ -606,6 +666,7 @@ class Ablage private constructor(
     }
 
     private fun schreibeBestand(neu: Bestand) {
+        schreibbar()
         if (baumNachrichtenTransaktion) {
             merkeBestandInTransaktion(neu)
             return
@@ -621,10 +682,11 @@ class Ablage private constructor(
     // ------------------------------------------------------------------- Baum
 
     fun setzeBaum(neu: Baumzustand) = synchronized(sperre) {
-        _baum.value = neu
+        schreibbar()
         if (!baumNachrichtenTransaktion) {
             schreiben(baumDatei, json.encodeToString(Baumzustand.serializer(), neu))
         }
+        _baum.value = neu
     }
 
     /** Konsistenter Rohstand beider Domänen-Dateien unter derselben Schreibsperre. */
@@ -636,9 +698,12 @@ class Ablage private constructor(
     /** Ersetzt beide Bestände als eine Operation und trennt alte Netzmutation ab. */
     fun journalWiederherstellen(notizenJson: String, baumJson: String, operationId: String): Boolean =
         synchronized(sperre) {
+            schreibbar()
             if (wiederherstellung.istAbgeschlossen(operationId)) return@synchronized false
             val neuBestand = json.decodeFromString(Bestand.serializer(), notizenJson).let {
-                it.copy(aufgaben = AufgabenHierarchie.normalisieren(it.aufgaben))
+                it.copy(aufgaben = AufgabenHierarchie.normalisieren(it.aufgaben),
+                    personalCustom = PersonalCustom.restore(_bestand.value.personalCustom, it.personalCustom),
+                    personalSync = it.personalSync.copy(pending_proposals = emptyList(), pending_decisions = emptyList()))
             }
             val altBaum = _baum.value
             val gelesen = json.decodeFromString(Baumzustand.serializer(), baumJson)
@@ -650,7 +715,10 @@ class Ablage private constructor(
                 kontaktLoeschStaende = emptyList(),
                 quarantiniertesPostfach = (altBaum.quarantiniertesPostfach + altBaum.postfach).takeLast(500)
             )
-            wiederherstellung.commit(
+            // Closing a registered transport also forbids its next handshake/payload request.
+            // No network IO or waiting for a sender is allowed while holding the data lock.
+            baumTransporteAbbrechen()
+            paarCommit(
                 json.encodeToString(Bestand.serializer(), neuBestand),
                 json.encodeToString(Baumzustand.serializer(), neuBaum),
                 operationId
@@ -660,17 +728,36 @@ class Ablage private constructor(
             true
         }
 
+    internal fun baumVersandGeneration(): Long = synchronized(sperre) { baumTransportGeneration }
+
+    internal fun baumTransportAnmelden(epoch: String, generation: Long, transport: AutoCloseable): Boolean = synchronized(sperre) {
+        if (epoch != _baum.value.syncEpoch || generation != baumTransportGeneration) { transport.close(); false }
+        else { baumTransporte += transport; true }
+    }
+
+    internal fun baumTransportAbmelden(transport: AutoCloseable) {
+        transport.close()
+        synchronized(sperre) { baumTransporte -= transport }
+    }
+
+    internal fun baumTransporteAbbrechen() = synchronized(sperre) {
+        baumTransportGeneration++
+        baumTransporte.forEach { runCatching { it.close() } }
+        baumTransporte.clear()
+    }
+
     /** Setzt nur den portablen Bestand ein; die aktuelle Baumidentitaet bleibt erhalten. */
     fun portableWiederherstellen(bestandJson: String, operationId: String): Boolean =
         journalWiederherstellen(bestandJson,
             json.encodeToString(Baumzustand.serializer(), _baum.value), operationId)
 
     fun aendereBaum(block: (Baumzustand) -> Baumzustand) = synchronized(sperre) {
+        schreibbar()
         val neu = block(_baum.value)
-        _baum.value = neu
-        if (!baumNachrichtenTransaktion) {
+        if (neu != _baum.value && !baumNachrichtenTransaktion) {
             schreiben(baumDatei, json.encodeToString(Baumzustand.serializer(), neu))
         }
+        _baum.value = neu
         neu
     }
 
@@ -683,8 +770,11 @@ class Ablage private constructor(
         vonKennung: String,
         zaehler: Long? = null,
         transportId: String? = null,
+        umschlagHash: String? = null,
+        receipt: String? = null,
         mutation: () -> Unit
     ): Boolean = synchronized(sperre) {
+        schreibbar()
         require((zaehler == null) != (transportId == null))
         check(!baumNachrichtenTransaktion)
         val partner = _baum.value.partner.firstOrNull { it.kennung == vonKennung }
@@ -695,18 +785,35 @@ class Ablage private constructor(
         val altBestand = _bestand.value
         val altBaum = _baum.value
         baumNachrichtenTransaktion = true
+        var commitBegonnen = false
         try {
             mutation()
             val jetzt = System.currentTimeMillis()
             _baum.value = _baum.value.copy(partner = _baum.value.partner.map {
                 if (it.kennung != vonKennung) it else if (zaehler != null) {
-                    it.copy(zaehlerRein = zaehler, zuletzt = jetzt)
+                    it.copy(zaehlerRein = zaehler, zuletzt = jetzt,
+                        baum1Belege = if (umschlagHash == null) it.baum1Belege else
+                            (it.baum1Belege + Baum1Beleg(zaehler, umschlagHash, receipt.orEmpty())).takeLast(64))
                 } else {
                     it.copy(gesehen = (it.gesehen + transportId!!).takeLast(256), zuletzt = jetzt)
                 }
             })
+            if (receipt != null) {
+                val alteEingaenge = altBaum.eingang.mapTo(mutableSetOf()) { it.id }
+                _baum.value = _baum.value.copy(eingang = _baum.value.eingang.map {
+                    if (it.id in alteEingaenge) it else it.copy(envelopeSha256 = umschlagHash.orEmpty())
+                })
+                val peers = _baum.value.partner.map { it.copy(baum1Belege = it.baum1Belege.takeLast(64)) }.toMutableList()
+                while (peers.sumOf { it.baum1Belege.size } > 256) {
+                    val index = peers.indices.maxBy { peers[it].baum1Belege.size }
+                    val peer = peers[index]
+                    peers[index] = peer.copy(baum1Belege = peer.baum1Belege.drop(1))
+                }
+                _baum.value = _baum.value.copy(partner = peers)
+            }
             val operationId = "baum-nachricht-${UUID.randomUUID()}"
-            wiederherstellung.commit(
+            commitBegonnen = true
+            paarCommit(
                 json.encodeToString(Bestand.serializer(), _bestand.value),
                 json.encodeToString(Baumzustand.serializer(), _baum.value),
                 operationId
@@ -714,6 +821,7 @@ class Ablage private constructor(
             wiederherstellung.vergesseErfolge(operationId)
             true
         } catch (abbruch: Throwable) {
+            if (commitBegonnen) recoveryErforderlich = true
             _bestand.value = altBestand
             _baum.value = altBaum
             throw abbruch
@@ -757,7 +865,8 @@ class Ablage private constructor(
         return false
     }
 
-    private fun schreiben(datei: File, inhalt: String) {
+    private fun schreiben(datei: File, inhalt: String) = synchronized(sperre) {
+        schreibbar()
         val neben = File(datei.parentFile, datei.name + ".neu")
         val klar = inhalt.toByteArray(Charsets.UTF_8)
         val geheim = try { dateiKrypto.verschluesseln(klar, datei.name) } finally { klar.fill(0) }
@@ -769,7 +878,8 @@ class Ablage private constructor(
         runCatching { neben.setReadable(false, false); neben.setReadable(true, true) }
         Files.move(neben.toPath(), datei.toPath(), StandardCopyOption.ATOMIC_MOVE,
             StandardCopyOption.REPLACE_EXISTING)
-        runCatching { FileOutputStream(datei.parentFile).use { it.fd.sync() } }
+        try { synchronisiereOrdner(requireNotNull(datei.parentFile)) }
+        catch (fehler: Throwable) { recoveryErforderlich = true; throw fehler }
     }
 
     companion object {

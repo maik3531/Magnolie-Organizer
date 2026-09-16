@@ -42,7 +42,7 @@ internal static class CloudBackupTests
 
     private static void SourceRoutingAndSecretSafety()
     {
-        var root = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", ".."));
+        var root = TestSource.Root("MagnolieOrganizer.Windows.csproj");
         var dispatcher = File.ReadAllText(Path.Combine(root, "BridgeDispatcher.cs"));
         var service = File.ReadAllText(Path.Combine(root, "CloudBackupService.cs"));
         TestAssert.That(dispatcher.Contains("RunCloudBackupAfterSaveAsync(document.RootElement.GetRawText(), force: false)"),

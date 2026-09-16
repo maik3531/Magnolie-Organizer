@@ -43,11 +43,11 @@ internal static class TelefonProtocolContract
 
     internal static JsonObject DesktopCapabilities() => new() { ["revision"] = 1, ["items"] = new JsonObject
     {
-        ["answer_call"] = Capability(true, "available", 1), ["device_status"] = Capability(true, "available", 1, 2, 3),
-        ["dial_request"] = Capability(true, "available", 1), ["end_call"] = Capability(true, "available", 1),
+        ["answer_call"] = Capability(true, "available", 1), ["device_status"] = Capability(true, "available", 1, 2, 3, 4),
+        ["dial_request"] = Capability(true, "available", 1, 2), ["end_call"] = Capability(true, "available", 1),
         ["incoming_call_number"] = Capability(true, "available", 1), ["incoming_call_state"] = Capability(true, "available", 2),
         ["personal_deletions_sync"] = Capability(true, "available", 1), ["personal_notes_sync"] = Capability(true, "available", 1, 2, 3),
-        ["personal_tasks_sync"] = Capability(true, "available", 1, 2, 3), ["selected_notifications_readonly"] = Capability(false, "not_implemented", 1),
+        ["personal_tasks_sync"] = Capability(true, "available", 1, 2, 3, 4), ["selected_notifications_readonly"] = Capability(false, "not_implemented", 1),
         ["transport.bluetooth_rfcomm"] = Capability(TelefonBluetoothSupport.Available, TelefonBluetoothSupport.Reason, 1)
     }};
 
@@ -101,7 +101,8 @@ internal static class TelefonProtocolContract
 internal static class TelefonMessageContract
 {
     private static readonly HashSet<string> Kinds = new(StringComparer.Ordinal) { "capabilities.update", "grants.update", "device_status.request", "device_status.report",
-        "dial_request.command", "dial_request.result", "selected_notifications_readonly.event", "incoming_call_state.event", "answer_call.command", "answer_call.result", "end_call.command", "end_call.result" };
+        "dial_request.command", "dial_request.result", "selected_notifications_readonly.event", "incoming_call_state.event", "answer_call.command", "answer_call.result", "end_call.command", "end_call.result",
+        "personal_sync.custom_settings", "personal_sync.custom_request", "personal_sync.custom_batch" };
     internal static void ValidateMessage(JsonObject message, long now, bool receiving)
     {
         var id = "00000000-0000-0000-0000-000000000000";
@@ -120,6 +121,7 @@ internal static class TelefonMessageContract
             else if (kind == "device_status.request") { Maximum(ttl, 60_000); TelefonDeviceStatusContract.ValidateRequest(body); }
             else if (kind == "device_status.report") { Maximum(ttl, 300_000); TelefonDeviceStatusContract.ValidateReport(body); }
             else if (kind == "selected_notifications_readonly.event") { Maximum(ttl, 86_400_000); TelefonMessagingContract.Validate(kind, body); }
+            else if (kind.StartsWith("personal_sync.custom_", StringComparison.Ordinal)) { Maximum(ttl, 86_400_000); PersonalSyncContract.ValidateCustomBody(kind, body); }
             else if (TelefonProtocolContract.PersonalKinds.Contains(kind)) { Maximum(ttl, kind == "personal_sync.request" ? 3_600_000 : 86_400_000); PersonalSyncContract.ValidateBody(kind, body); }
             else { Maximum(ttl, kind is "answer_call.command" or "end_call.command" ? 10_000 : 60_000); TelefonCallContract.Validate(kind, body); }
             if (TelefonCrypto.Canonical(message).Length > 262_144) throw new TelefonMessageException(id, "too_large");

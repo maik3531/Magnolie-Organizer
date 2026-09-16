@@ -8,6 +8,7 @@ import re
 import queue
 import select
 import socket
+import sqlite3
 import stat
 import struct
 import tempfile
@@ -16,6 +17,7 @@ import time
 import unicodedata
 import uuid
 from collections import deque
+from contextlib import closing
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from hashlib import sha256
@@ -88,6 +90,221 @@ def local_device_name(hostname=None):
 
 class ProtocolError(RuntimeError):
     pass
+
+
+class SmsSubmissionJournal:
+    """Non-restorable, digest-only reservations; a crash never permits a replay."""
+
+    def __init__(self, path):
+        self.path = path
+
+    def submit(self, client_ref, number, text, country, device_id, send):
+        if not isinstance(client_ref, str) or not 1 <= len(client_ref) <= 160:
+            raise ValueError("invalid SMS submission identity")
+        identity = sha256(client_ref.encode("utf-8")).hexdigest()
+        payload = sha256(json.dumps([number, text, country, device_id],
+            ensure_ascii=True, separators=(",", ":")).encode("utf-8")).hexdigest()
+        directory = os.path.dirname(self.path)
+        os.makedirs(directory, mode=0o700, exist_ok=True)
+        # Set private permissions before SQLite writes any data; never truncate.
+        fd = os.open(self.path, os.O_CREAT | os.O_WRONLY, 0o600)
+        os.fchmod(fd, 0o600)
+        os.close(fd)
+        with closing(sqlite3.connect(self.path, timeout=10)) as db:
+            db.execute("PRAGMA synchronous=EXTRA")
+            db.execute("BEGIN IMMEDIATE")
+            db.execute("CREATE TABLE IF NOT EXISTS submissions (id TEXT PRIMARY KEY, payload TEXT NOT NULL, state TEXT NOT NULL)")
+            old = db.execute("SELECT payload, state FROM submissions WHERE id=?", (identity,)).fetchone()
+            if old is not None:
+                if old[0] != payload:
+                    raise ValueError("SMS submission payload mismatch")
+                state = "submitted" if old[1] == "submitted" else "uncertain"
+                return {"ok": state == "submitted", "state": state}
+            # Never evict an identity: an old content archive can replay it later.
+            if db.execute("SELECT COUNT(*) FROM submissions").fetchone()[0] >= 10000:
+                raise ValueError("SMS submission journal full")
+            db.execute("INSERT INTO submissions VALUES (?, ?, 'uncertain')", (identity, payload))
+            db.commit()
+            # Persist the containing directory before allowing an external effect.
+            parent = os.open(directory, os.O_RDONLY | os.O_DIRECTORY)
+            try:
+                os.fsync(parent)
+            finally:
+                os.close(parent)
+            try:
+                result = send()
+                if result.get("ok") is True:
+                    db.execute("UPDATE submissions SET state='submitted' WHERE id=?", (identity,))
+                    db.commit()
+                    return dict(result, state="submitted")
+            except Exception:
+                pass
+            return {"ok": False, "state": "uncertain"}
+
+
+NATIVE_KDE_NOTICE = "Native KDE Connect is used for SMS on already paired phones. Magnolie does not change KDE permissions."
+NATIVE_KDE_LIMIT = "Native KDE Connect cannot enforce Magnolie approvals. Clipboard and file reception, incoming SMS/history and new pairing are unavailable. Magnolie Notes WLAN remains separate."
+NATIVE_KDE_UNAVAILABLE = "Native KDE Connect is unavailable. Magnolie will not take over its network port."
+
+
+def create_backend(directory, device_name=None, callback=None):
+    """Prefer the session's native owner; never start it or change its plugins."""
+    try:
+        from gi.repository import Gio, GLib
+        bus = Gio.bus_get_sync(Gio.BusType.SESSION, None)
+        native = KDEConnectNativeBackend(bus, Gio, GLib, callback=callback)
+        running = native._call('org.freedesktop.DBus', '/org/freedesktop/DBus',
+                              'org.freedesktop.DBus', 'NameHasOwner', '(s)',
+                              ('org.kde.kdeconnect',), '(b)')[0]
+        activatable = native._call('org.freedesktop.DBus', '/org/freedesktop/DBus',
+                                  'org.freedesktop.DBus', 'ListActivatableNames', None, (), '(as)')[0]
+        if running or 'org.kde.kdeconnect' in activatable:
+            return native
+        # A filtered sandbox bus can hide the native daemon. Check the shared
+        # network namespace before constructing any direct transport/identity.
+        for table in ('/proc/net/udp', '/proc/net/udp6'):
+            if table.endswith('udp6') and not os.path.exists(table):
+                continue
+            with open(table, encoding='ascii') as source:
+                if any(int(line.split()[1].rsplit(':', 1)[1], 16) == UDP_PORT
+                       for line in list(source)[1:] if line.strip()):
+                    return native
+    except Exception:
+        # An inaccessible bus is not proof that nobody owns the desktop port.
+        return KDEConnectNativeBackend(None, None, None, callback=callback)
+    return KDEConnectSMSBackend(directory, device_name=device_name, callback=callback)
+
+
+class KDEConnectNativeBackend:
+    """Read-only native discovery and explicit SMS submission, no inbound channels."""
+    native = True
+
+    def __init__(self, bus, gio, glib, callback=None):
+        self.bus, self.gio, self.glib = bus, gio, glib
+        self.callback = callback
+        self.pairing = None
+        self.listening = False
+
+    def _call(self, owner, path, interface, method, signature=None, args=(), reply=None, deadline=None):
+        if self.bus is None:
+            raise ProtocolError(NATIVE_KDE_UNAVAILABLE)
+        timeout = 1500 if deadline is None else min(1500, int((deadline - time.monotonic()) * 1000))
+        if timeout <= 0:
+            raise TimeoutError(NATIVE_KDE_UNAVAILABLE)
+        return self.bus.call_sync(owner, path, interface, method,
+            self.glib.Variant(signature, args) if signature else None,
+            self.glib.VariantType.new(reply) if reply else None,
+            self.gio.DBusCallFlags.NO_AUTO_START, timeout, None).unpack()
+
+    def _owner(self, deadline=None):
+        return self._call('org.freedesktop.DBus', '/org/freedesktop/DBus',
+                          'org.freedesktop.DBus', 'GetNameOwner', '(s)',
+                          ('org.kde.kdeconnect',), '(s)', deadline=deadline)[0]
+
+    def _devices(self, owner):
+        deadline = time.monotonic() + 1.5
+        ids = self._call(owner, '/modules/kdeconnect', 'org.kde.kdeconnect.daemon',
+                         'devices', '(bb)', (False, True), '(as)', deadline=deadline)[0]
+        if not isinstance(ids, (list, tuple)) or len(ids) > 64:
+            raise ProtocolError('invalid native KDE Connect device list')
+        devices = []
+        for device_id in dict.fromkeys(i for i in ids if isinstance(i, str) and DEVICE_ID.fullmatch(i)):
+            path = '/modules/kdeconnect/devices/' + device_id
+            props = self._call(owner, path, 'org.freedesktop.DBus.Properties',
+                               'GetAll', '(s)', ('org.kde.kdeconnect.device',), '(a{sv})', deadline=deadline)[0]
+            if props.get('isPaired') is not True or props.get('type') not in ('phone', 'tablet'):
+                continue
+            reachable = props.get('isReachable') is True
+            sms = reachable and self._call(owner, path, 'org.kde.kdeconnect.device',
+                'hasPlugin', '(s)', ('kdeconnect_sms',), '(b)', deadline=deadline)[0] is True
+            name = props.get('name')
+            devices.append({'device_id': device_id,
+                'device_name': ''.join(c for c in name if c.isprintable())[:128] if isinstance(name, str) else device_id,
+                'paired': True, 'reachable': reachable, 'sms_send': sms})
+        if self._owner(deadline=deadline) != owner:
+            raise ProtocolError(NATIVE_KDE_UNAVAILABLE)
+        return devices
+
+    def start(self):
+        # This adapter has no transport to bind. A dormant native service is not
+        # a failure of the independent Notes/background services.
+        return True
+
+    def stop(self):
+        return None
+
+    def status(self, timeout=0.25):
+        running, reason, devices = False, '', []
+        try:
+            devices = self._devices(self._owner())
+            running = True
+        except Exception:
+            reason = 'native_service_unavailable'
+        capable = [d for d in devices if d['sms_send']]
+        selected = capable[0] if len(capable) == 1 else None
+        return {'backend': 'kdeconnect-native', 'native': True, 'service_running': running,
+            'available': selected is not None, 'reason': reason or ('no_device' if not capable else
+                'multiple_devices' if len(capable) > 1 else ''),
+            'device_count': len(capable), 'devices': devices,
+            'device_id': selected['device_id'] if selected else '',
+            'peer_id': selected['device_id'] if selected else '',
+            'peer_name': selected['device_name'] if selected else '',
+            'paired': len(devices), 'paired_count': len(devices),
+            'listening': False, 'listen_port': None, 'pairing_state': 'idle',
+            'unpaired_candidates': [], 'unpaired_candidate_count': 0,
+            'history_available': False, 'capabilities': {'sms_send': bool(capable),
+                'clipboard_receive': False, 'file_receive': False, 'sms_receive': False, 'sms_history': False, 'pairing': False},
+            'capability_explanation': NATIVE_KDE_LIMIT,
+            'receive': dict(self.configure_receive(), pending_count=0, proposals=[])}
+
+    def discover(self, timeout=0.7):
+        # Do not broadcast or activate native discovery as a background side effect.
+        return self.status(timeout)['devices']
+
+    def configure_receive(self, *, clipboard_enabled=False, file_enabled=False,
+                          device_id=None, clipboard_mode='confirm', file_mode='confirm',
+                          download_directory=None):
+        if clipboard_enabled or file_enabled:
+            raise ProtocolError(NATIVE_KDE_LIMIT)
+        return {'clipboard_enabled': False, 'file_enabled': False, 'device_id': '',
+                'clipboard_mode': 'confirm', 'file_mode': 'confirm', 'download_directory': ''}
+
+    def accept_receive(self, receive_id, directory=None):
+        raise ProtocolError(NATIVE_KDE_LIMIT)
+
+    def reject_receive(self, receive_id):
+        # There are no native proposals or subscriptions to apply or acknowledge.
+        return False
+
+    def begin_pairing(self, device_id=None, replace_stored=False):
+        raise ProtocolError(NATIVE_KDE_LIMIT)
+
+    def complete_pairing(self, device_id):
+        raise ProtocolError(NATIVE_KDE_LIMIT)
+
+    def confirm_pairing(self, code_matches):
+        raise ProtocolError(NATIVE_KDE_LIMIT)
+
+    def send_sms(self, destination, message, device_id=None):
+        if not isinstance(destination, str) or not re.fullmatch(r'\+[1-9][0-9]{5,19}', destination):
+            raise ValueError('invalid SMS destination')
+        normalized = normalize_sms_text(message)
+        text = normalized['text']
+        if not text.strip() or len(text) > 5000 or normalized['segments'] > SMS_MAX_SEGMENTS:
+            raise ValueError('invalid SMS text')
+        owner = self._owner()
+        devices = [d for d in self._devices(owner) if d['sms_send'] and
+                   (device_id is None or d['device_id'] == device_id)]
+        if len(devices) != 1:
+            raise ProtocolError('exactly one paired KDE Connect phone must be reachable')
+        selected = devices[0]['device_id']
+        # ConversationAddress is a variant containing the D-Bus struct (s).
+        # Empty attachments cannot initiate any file read or transfer. No retry:
+        # a D-Bus timeout can mean submission occurred, not safe failure to resend.
+        self._call(owner, '/modules/kdeconnect/devices/' + selected + '/sms',
+            'org.kde.kdeconnect.device.sms', 'sendSms', '(avsavx)',
+            ([self.glib.Variant('(s)', (destination,))], text, [], -1), '()')
+        return {'ok': True, 'state': 'queued', 'backend': 'kdeconnect-native', 'device_id': selected}
 
 
 def normalize_sms_text(value):

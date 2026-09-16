@@ -2,8 +2,11 @@ package io.gitlab.maik3531.magnolienotes.daten
 
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.booleanOrNull
+import kotlinx.serialization.json.longOrNull
 import java.security.MessageDigest
 import java.util.UUID
 import kotlinx.serialization.json.buildJsonObject
@@ -102,15 +105,26 @@ data class PersonalSyncResult(
 object PersonalSync {
     private val uuid4 = Regex("[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}")
 
-    fun canonical(value: kotlinx.serialization.json.JsonElement): ByteArray =
-        canonicalText(value).toByteArray(Charsets.UTF_8)
+    fun canonical(value: kotlinx.serialization.json.JsonElement): ByteArray {
+        val encoded = Charsets.UTF_8.newEncoder().onMalformedInput(java.nio.charset.CodingErrorAction.REPORT)
+            .encode(java.nio.CharBuffer.wrap(canonicalText(value)))
+        return ByteArray(encoded.remaining()).also { encoded.get(it) }
+    }
 
     private fun canonicalText(value: kotlinx.serialization.json.JsonElement): String = when (value) {
         is JsonObject -> value.keys.sortedWith { a, b -> compareUtf8(a, b) }.joinToString(",", "{", "}") {
-            JsonPrimitive(it).toString() + ":" + canonicalText(value.getValue(it))
+            canonicalText(JsonPrimitive(it)) + ":" + canonicalText(value.getValue(it))
         }
         is JsonArray -> value.joinToString(",", "[", "]", transform = ::canonicalText)
-        else -> value.toString()
+        is JsonPrimitive -> if (value.isString) {
+            Charsets.UTF_8.newEncoder().onMalformedInput(java.nio.charset.CodingErrorAction.REPORT)
+                .encode(java.nio.CharBuffer.wrap(value.content))
+            value.toString()
+        } else if (value == JsonNull || value.booleanOrNull != null) value.toString()
+        else {
+            require(Regex("-?(0|[1-9][0-9]*)").matches(value.content))
+            (value.longOrNull ?: error("Invalid canonical integer")).toString()
+        }
     }
 
     fun hash(value: JsonObject): String = MessageDigest.getInstance("SHA-256")
@@ -296,13 +310,21 @@ object PersonalSync {
             entities.replaceAll { _, value -> value.copy(acknowledged_by_peer = false) }
         }
         val eligibleKinds = buildSet { if ("notes" in modules) addAll(listOf("note", "notebook")); if ("tasks" in modules) add("task") }
+        val present = buildSet {
+            input.notizen.forEach { note ->
+                add("note\u0000${note.id}")
+                note.anhaenge.forEach { add("attachment\u0000${note.id}\u0000${it.id}") }
+            }
+            input.aufgaben.forEach { add("task\u0000${it.id}") }
+            input.notizbuecher.forEach { add("notebook\u0000${it.id}") }
+        }
         for ((key, old) in entities.toMap()) {
             val kind = key.substringBefore('\u0000')
-            val attachmentGone = kind == "attachment" && key !in projectedAttachments
+            val attachmentGone = kind == "attachment" && format >= 2 && "notes" in modules && key !in projectedAttachments
             val parentGone = kind == "attachment" && key.split('\u0000').getOrElse(1) { "" }.let { parent ->
                 "note\u0000$parent" !in projected
             }
-            if ((kind in eligibleKinds && key !in projected || attachmentGone) && !parentGone &&
+            if ((kind in eligibleKinds && key !in projected || attachmentGone) && key !in present && !parentGone &&
                 old.state == "live" && old.acknowledged_by_peer && old.peer_device_id == peerId) {
                 counter++
                 val clock = mergeOptional(old.clock, PersonalSyncClock(actor, counter))
@@ -339,7 +361,7 @@ object PersonalSync {
                 entities[key] = PersonalSyncEntity(clock, digest, value.longValue("modified_ms"), label = label)
             }
         }
-        state = state.copy(actor_id = actor, counter = counter, entities = entities)
+        state = state.copy(format = format, actor_id = actor, counter = counter, entities = entities)
         val records = projected.mapNotNull { (key, value) ->
             val meta = entities[key]?.takeIf { it.state == "live" } ?: return@mapNotNull null
             val split = key.split('\u0000', limit = 2)
@@ -381,12 +403,23 @@ object PersonalSync {
             validateClock(remote.clock)
             require(hash(remote.value) == remote.hash && remote.modifiedMs == remote.value.longValue("modified_ms"))
             val key = "${remote.kind}\u0000${remote.id}"
+            if (remote.kind == "note" && notes.any { it.id == remote.id && it.baumQuelle.isNotBlank() } ||
+                remote.kind == "task" && tasks.any { it.id == remote.id &&
+                    (it.vonZweig.isNotBlank() || it.fremdId.isNotBlank() || it.delegiertAn.isNotBlank() || it.herkunft.isNotBlank()) }) {
+                conflicts++
+                continue
+            }
             val localMeta = entities[key]
             if (localMeta?.state == "deleted") {
                 // Stale records are restoration candidates only. They never recreate deleted content.
                 continue
             }
             if (localMeta == null) {
+                require(when (remote.kind) {
+                    "note" -> notes.none { it.id == remote.id }
+                    "task" -> tasks.none { it.id == remote.id }
+                    else -> books.none { it.id == remote.id }
+                }) { "Existing personal object requires reconciliation" }
                 when (remote.kind) {
                     "note" -> notes = notes + remoteNote(remote, null, attachments)
                     "task" -> tasks = tasks + remoteTask(remote, null)
@@ -451,6 +484,24 @@ object PersonalSync {
         return PersonalSyncResult(input.copy(notizen = notes,
             aufgaben = AufgabenHierarchie.normalisieren(tasks), notizbuecher = books,
             personalSync = input.personalSync.copy(entities = entities)), conflicts, received, omitted)
+    }
+
+    fun matchesCurrent(input: Bestand, proposal: PersonalDeletionProposal): Boolean {
+        if (proposal.kind == "attachment") {
+            val note = input.notizen.firstOrNull { it.id == proposal.parent_id && it.baumQuelle.isBlank() }
+            val attachment = note?.anhaenge?.firstOrNull { it.id == proposal.id } ?: return false
+            return attachmentDescriptor(attachment)?.let { hash(it.descriptor) == proposal.prior_hash } == true
+        }
+        return (1..3).any { format ->
+            val value = when (proposal.kind) {
+                "note" -> input.notizen.firstOrNull { it.id == proposal.id && it.baumQuelle.isBlank() }
+                    ?.let { noteValue(it, format) }
+                "notebook" -> input.notizbuecher.firstOrNull { it.id == proposal.id }?.let(::notebookValue)
+                "task" -> projections(input, setOf("tasks"), format)["task\u0000${proposal.id}"]
+                else -> null
+            }
+            value?.let { hash(it) == proposal.prior_hash } == true
+        }
     }
 
     private fun noteValue(value: Notiz, format: Int) = JsonObject(linkedMapOf(

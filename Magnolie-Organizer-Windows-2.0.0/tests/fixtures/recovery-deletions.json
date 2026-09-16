@@ -1,0 +1,14 @@
+{
+  "linux": {
+    "geloescht": {"termine": [{"uid": "linux-event", "zeit": 1}], "aufgaben": [], "kontakte": []},
+    "tombstones": [{"uid": "linux-note", "zeit": 1}],
+    "baumKontaktGeloescht": [{"freigabeId": "linux-contact"}],
+    "syncMetadaten": {"nextcloud": {"pendingCommitId": "old", "ausstehendeTransaktion": {}, "transaktionen": {"old": true}}}
+  },
+  "windows": {
+    "geloescht": {"termine": [], "aufgaben": [{"uid": "windows-task", "zeit": 1}], "kontakte": [{"uid": "windows-contact", "zeit": 1}]},
+    "tombstones": [{"uid": "imported-note", "zeit": 1}],
+    "baumKontaktGeloescht": [{"freigabeId": "imported-contact"}],
+    "quarantaeneTombstones": {"kontakte": [{"uid": "already-inert"}]}
+  }
+}

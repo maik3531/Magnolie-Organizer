@@ -10,12 +10,31 @@ namespace MagnolieOrganizer.Windows.Tests;
 
 internal static class PortableRegressionTests
 {
+private static List<(string Name, string Value)> DecodeLdif(string text)
+{
+    var lines = new List<string>();
+    foreach (var line in text.ReplaceLineEndings("\n").Split('\n'))
+        if (line.StartsWith(' ')) lines[^1] += line[1..]; else lines.Add(line);
+    return lines.Where(line => line.Length > 0).Select(line =>
+    {
+        var colon = line.IndexOf(':');
+        TestAssert.That(colon > 0, "LDIF attribute has no name separator.");
+        var binary = line[(colon + 1)..].StartsWith(':');
+        var value = line[(colon + (binary ? 2 : 1))..].TrimStart(' ');
+        return (line[..colon], binary
+            ? line[..colon] == "jpegPhoto" ? Convert.ToHexString(Convert.FromBase64String(value))
+                : new System.Text.UTF8Encoding(false, true).GetString(Convert.FromBase64String(value))
+            : value);
+    }).ToList();
+}
+
 internal static async Task RunAsync()
 {
 var root = Path.Combine(Path.GetTempPath(), $"magnolie-core-test-{Guid.NewGuid():N}");
 try
 {
     var store = new AtomicStore();
+    await MagnolienbaumPairingTests.RunAsync(Path.Combine(root, "pairing-upgrade"));
     var paths = new WindowsPaths(root);
     paths.EnsureDirectories();
     Check(PhoneUri.Build("phone", "0203 123456", "DE", false) ==
@@ -33,7 +52,7 @@ try
     Check(store.Read(paths.Data) == first, "atomarer Erstdurchlauf");
     store.Write(paths.Data, second);
     Check(store.Read(paths.Data) == second, "atomarer Ersatz");
-    var backup = store.Backup(paths.Data, paths.Backups);
+    var backup = store.Backup(paths.Data, Path.Combine(root, "backups"));
     Check(store.Read(backup) == second, "Sicherung");
 
     var alicePrivate = Convert.FromHexString("77076d0a7318a57d3c16c17251b26645df4c2f87ebc0992ab177fba51db92c2a");
@@ -208,6 +227,17 @@ try
             "Bridge-nahe v1-Paarung über echten TCP-HTTP-Listener: " + pairEvent.ToJsonString());
         var idA = networkStateA["kennung"]!.GetValue<string>(); var idB = networkStateB["kennung"]!.GetValue<string>();
         await coordinatorA.ConfirmAsync(idB, true); await coordinatorB.ConfirmAsync(idA, true);
+        var maintainMethod = typeof(MagnolienbaumCoordinator).GetMethod("MaintainOutboxAsync",
+            System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!;
+        // Complete capability requests and replies before asserting exact application-message counts.
+        for (var round = 0; round < 2; round++)
+        {
+            await (Task)maintainMethod.Invoke(coordinatorA, new object[] { 0, CancellationToken.None })!;
+            await (Task)maintainMethod.Invoke(coordinatorB, new object[] { 0, CancellationToken.None })!;
+        }
+        Check(networkStoreA.LoadOutbox().Count == 0 && networkStoreB.LoadOutbox().Count == 0 &&
+              networkStoreA.LoadInbox().Count == 0 && networkStoreB.LoadInbox().Count == 0,
+            "Fähigkeitsaustausch ist abgeschlossen und erzeugt keine Benutzer-Inboxeinträge");
         await coordinatorA.SendAsync(idB, "geraete_status", new JsonObject());
         Check(!eventsA.Last(item => item.Name == "App.baumGesendet").Payload["ok"]!.GetValue<bool>(),
             "Gerätestatusarten sind aus dem Magnolienbaum entfernt");
@@ -227,8 +257,6 @@ try
         liveOutbox.Add(new JsonObject { ["id"] = "parallel-1", ["transportId"] = Convert.ToBase64String(RandomNumberGenerator.GetBytes(16)),
             ["an"] = idB, ["art"] = "aufgabe", ["inhalt"] = new JsonObject { ["art"] = "aufgabe", ["id"] = "parallel-1", ["titel"] = "Nur einmal" },
             ["versuche"] = 0, ["zuletzt"] = "", ["angelegt"] = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") });
-        var maintainMethod = typeof(MagnolienbaumCoordinator).GetMethod("MaintainOutboxAsync",
-            System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!;
         var parallelFirst = (Task)maintainMethod.Invoke(coordinatorA, new object[] { 0, CancellationToken.None })!;
         var parallelSecond = (Task)maintainMethod.Invoke(coordinatorA, new object[] { 0, CancellationToken.None })!;
         await Task.WhenAll(parallelFirst, parallelSecond);
@@ -288,7 +316,8 @@ try
               fsStatusB["partner"]![0]!["protokoll"]!.GetValue<string>() == "baum-fs1" &&
               fsStatusA["eingang"]!.AsArray().Any(item => item!["inhalt"]!["titel"]!.GetValue<string>() == "FS von B") &&
               fsStatusB["eingang"]!.AsArray().Any(item => item!["inhalt"]!["titel"]!.GetValue<string>() == "FS von A"),
-            "baum-fs1 sendet in echten Zwei-Instanzen-Tests bidirektional");
+            "baum-fs1 sendet in echten Zwei-Instanzen-Tests bidirektional: " +
+            "A=" + fsStatusA["partner"]![0]!["protokoll"] + ", B=" + fsStatusB["partner"]![0]!["protokoll"]);
 
         var liveStateA = networkStoreA.LoadOrCreate(); var liveStateB = networkStoreB.LoadOrCreate();
         var livePartnerB = liveStateA["partner"]!.AsArray().OfType<JsonObject>().Single(item => item["kennung"]!.GetValue<string>() == idB);
@@ -480,15 +509,66 @@ try
     var intervalImport = ExchangeCodec.ParseIcs(calendar.Replace("RRULE:FREQ=WEEKLY", "RRULE:FREQ=WEEKLY;INTERVAL=3"));
     Check(intervalImport.Termine[0]?["wiederholung"]?["intervall"]?.GetValue<int>() == 3,
         "ICS übernimmt Drei-Wochen-Intervalle");
+    var localZone = TimeZoneInfo.Local.Id;
+    if (TimeZoneInfo.TryConvertWindowsIdToIanaId(localZone, out var localIanaZone)) localZone = localIanaZone;
+    var googleCalendar = ExchangeCodec.ParseIcs($$"""
+        BEGIN:VCALENDAR
+        VERSION:2.0
+        BEGIN:VEVENT
+        UID:eiermann-1998
+        DTSTART;TZID={{localZone}}:19980105T090000
+        DTEND;TZID={{localZone}}:19980105T093000
+        SUMMARY:Eiermann
+        RRULE:FREQ=WEEKLY;WKST=MO;INTERVAL=2;BYDAY=MO
+        END:VEVENT
+        END:VCALENDAR
+        """);
+    Check(googleCalendar.Termine[0]?["icsKomplex"]?.GetValue<bool>() == false &&
+          googleCalendar.Termine[0]?["wiederholung"]?["art"]?.ToString() == "weekly" &&
+          googleCalendar.Termine[0]?["wiederholung"]?["intervall"]?.GetValue<int>() == 2,
+        "Google-ICS übernimmt lokale 14-Tage-Serie auch mit Start 1998");
+    var forumCalendar = ExchangeCodec.ParseIcs($$"""
+        BEGIN:VCALENDAR
+        VERSION:2.0
+        BEGIN:VEVENT
+        UID:eiermann-forum-2021
+        DTSTART;TZID={{localZone}}:20210301T090000
+        DTEND;TZID={{localZone}}:20210301T093000
+        SUMMARY:Eiermann Forum
+        RRULE:FREQ=WEEKLY;WKST=MO;INTERVAL=2;BYDAY=MO
+        END:VEVENT
+        END:VCALENDAR
+        """);
+    Check(forumCalendar.Termine[0]?["datum"]?.ToString() == "2021-03-01" &&
+          forumCalendar.Termine[0]?["wiederholung"]?["intervall"]?.GetValue<int>() == 2,
+        "Forum-Rekonstruktion übernimmt lokale 14-Tage-Serie mit Start 2021-03-01");
     var customImport = ExchangeCodec.ParseIcs(calendar.Replace("RRULE:FREQ=WEEKLY",
         "RDATE:20260819T093000,20260909T093000"));
     Check(customImport.Termine[0]?["wiederholung"]?["art"]?.ToString() == "custom" &&
           customImport.Termine[0]?["wiederholung"]?["daten"]?.AsArray().Count == 2,
         "ICS übernimmt ausgewählte RDATE-Tage");
+    var structuredSeries = ExchangeCodec.ParseIcs(calendar.Replace("RRULE:FREQ=WEEKLY",
+        "RRULE:FREQ=WEEKLY\nEXDATE:20260819T093000\nRDATE:20260820T150000,20260820T180000"));
+    var structuredAppointment = structuredSeries.Termine[0]!.AsObject();
+    Check(structuredAppointment["icsKomplex"]!.GetValue<bool>() &&
+          structuredAppointment["wiederholung"]!["art"]!.GetValue<string>() == "weekly" &&
+           structuredAppointment["icsAusnahmeTermine"]!.AsArray().Single()!["datum"]!.GetValue<string>() == "2026-08-19" &&
+          structuredAppointment["icsZusatzTermine"]!.AsArray().Select(node => node!["zeit"]!.GetValue<string>()).SequenceEqual(["15:00", "18:00"]),
+        "Regelmäßige ICS-Serie bewahrt strukturierte EXDATE und zeitgebundene RDATE");
+    structuredAppointment.Remove("icsRoundtrip");
+    using (var structuredRestart = JsonDocument.Parse(new JsonArray(structuredAppointment.DeepClone()).ToJsonString()))
+    {
+        var structuredExport = ExchangeCodec.WriteIcs("ics-termine", structuredRestart.RootElement).Text;
+        Check(structuredExport.Contains("RRULE:FREQ=WEEKLY", StringComparison.Ordinal) &&
+              structuredExport.Contains("EXDATE:20260819T093000", StringComparison.Ordinal) &&
+              structuredExport.Contains("RDATE:20260820T150000,20260820T180000", StringComparison.Ordinal),
+            "Strukturierte EXDATE/RDATE überstehen Export ohne opake Hilfszeilen");
+    }
     var complexCalendar = ExchangeCodec.ParseIcs(calendar.Replace("RRULE:FREQ=WEEKLY", "RRULE:FREQ=WEEKLY;BYDAY=MO,WE"));
-    Check(complexCalendar.Wiederholend == 1 && complexCalendar.Termine[0]?["icsKomplex"]?.GetValue<bool>() == true &&
-          complexCalendar.Termine[0]?["wiederholung"]?["art"]?.ToString() == "none",
-        "Komplexe ICS-Serie wird nicht falsch vereinfacht");
+    using (var multiWeekday = JsonDocument.Parse(complexCalendar.Termine[0]!.ToJsonString()))
+        Check(complexCalendar.Wiederholend == 0 && complexCalendar.Termine[0]?["icsKomplex"]?.GetValue<bool>() == true &&
+            CalendarRecurrence.Expand(multiWeekday.RootElement, new DateTime(2026,8,24), new DateTime(2026,8,27), TimeZoneInfo.Local).Count == 2,
+            "Mehrere Wochentage werden aus der unverkuerzten RRULE expandiert");
     using var appointmentDocument = JsonDocument.Parse("""
         [{"uid":"probe-2","datum":"2026-08-14","zeit":"14:15","titel":"Exportprobe","wiederholung":{"art":"none","bis":""}}]
         """);
@@ -542,8 +622,10 @@ try
         END:VCARD
         """;
     var contactImport = ExchangeCodec.ParseVCard(vcard);
-    Check(contactImport.Kontakte.Count == 1 && contactImport.Geburtstage.Count == 1,
-        "VCF importiert Kontakt und Geburtstag");
+    Check(contactImport.Kontakte.Count == 1 && contactImport.Geburtstage.Count == 0 &&
+          contactImport.Kontakte[0]?["geburtstag"]?.ToString() == "1990-04-02" &&
+          contactImport.Kontakte[0]?["geburtstagJahrUnbekannt"]?.GetValue<bool>() == false,
+        "VCF bewahrt den Kontaktgeburtstag ohne redundanten separaten Geburtstag");
     Check(contactImport.Kontakte[0]?["nachname"]?.ToString() == "Muster" &&
           contactImport.Kontakte[0]?["mobil"]?.ToString() == "+49170123456", "VCF-Feldabbildung");
     var nameOnly = ExchangeCodec.ParseVCard("""
@@ -555,9 +637,9 @@ try
         ORG:;Vertrieb
         END:VCARD
         """);
-    Check(nameOnly.Kontakte[0]?["nachname"]?.ToString() == "Schulze" &&
-          nameOnly.Kontakte[0]?["vorname"]?.ToString() == "Meyer",
-        "Unstrukturierter VCF-Anzeigename wird plattformgleich zerlegt");
+    Check(nameOnly.Kontakte[0]?["nachname"]?.ToString() == "" &&
+           nameOnly.Kontakte[0]?["vorname"]?.ToString() == "" && nameOnly.Kontakte[0]?["anzeigename"]?.ToString() == "Meyer Schulze",
+         "Unstrukturierter VCF-Anzeigename erfindet keine Namensbestandteile");
     var escapedAddress = ExchangeCodec.ParseVCard(vcard.Replace("Gartenweg 1;Berlin", "Gartenweg 1\\; Hinterhaus;Berlin"));
     Check(escapedAddress.Kontakte[0]?["strasse"]?.ToString() == "Gartenweg 1; Hinterhaus" &&
           escapedAddress.Kontakte[0]?["ort"]?.ToString() == "Berlin", "VCF-Strukturwerte beachten Escapes");
@@ -634,18 +716,44 @@ try
         mail: name-only@example.test
 
         """);
-    Check(displayOnlyLdif.Kontakte[0]?["nachname"]?.ToString() == "Schulze" &&
-          displayOnlyLdif.Kontakte[0]?["vorname"]?.ToString() == "Meyer",
-        "Unstrukturierter LDIF-Anzeigename wird plattformgleich zerlegt");
+    Check(displayOnlyLdif.Kontakte.Count == 1 && displayOnlyLdif.Kontakte[0]?["nachname"]?.ToString() == "" &&
+          displayOnlyLdif.Kontakte[0]?["vorname"]?.ToString() == "" &&
+          displayOnlyLdif.Kontakte[0]?["anzeigename"]?.ToString() == "Meyer Schulze",
+        "Unstrukturierter LDIF-Anzeigename erfindet keine Namensbestandteile");
     using (var ldifDocument = JsonDocument.Parse("""
         [{"uid":"kontakt,sonder","vorname":"Änne","nachname":"Bei,spiel","firma":"Muster GmbH","emailEintraege":[{"wert":"aenne@example.org","typen":["HOME"]},{"wert":"buero@example.org","typen":["WORK"]}],"telefone":[{"wert":"0203 1","typen":["VOICE"]},{"wert":"0171 2","typen":["CELL"]},{"wert":"0203 3","typen":["HOME"]},{"wert":"0203 4","typen":["WORK"]},{"wert":"0203 5","typen":["FAX"]},{"wert":"0203 6","typen":["PAGER"]}],"anschriften":[{"strasse":"A$B Straße 1","plz":"47051","ort":"Duisburg","land":"Deutschland"},{"strasse":"Büro 2","plz":"10115","ort":"Berlin","land":"Deutschland"}],"notiz":"Erste Zeile\nZweite Zeile mit Unicode Ä und einer ausreichend langen Beschreibung für eine sichere Faltung über mehrere physische LDIF-Zeilen.","geburtstag":"1980-04-03","foto":"data:image/jpeg;base64,/9j/2Q=="}]
         """))
     {
         var ldifExport = ExchangeCodec.WriteLdif(ldifDocument.RootElement);
-        var goldenLdif = File.ReadAllText(Path.Combine("tests", "fixtures", "golden-kontakt.ldif")).ReplaceLineEndings("\r\n");
+        var goldenLdif = File.ReadAllText(Path.Combine(TestSource.Root("MagnolieOrganizer.Windows.csproj"), "tests", "fixtures", "golden-kontakt.ldif"));
         var roundtripLdif = ExchangeCodec.ParseLdif(ldifExport.Text);
-        Check(ldifExport.Text == goldenLdif && ldifExport.Text.Split("\r\n").All(line => System.Text.Encoding.UTF8.GetByteCount(line) <= 76),
-            "LDIF-Ausgabe entspricht Python-Golden und Faltungsgrenze");
+        var legacy = ExchangeCodec.ParseLdif(goldenLdif);
+        var attributes = DecodeLdif(ldifExport.Text);
+        var goldenAttributes = DecodeLdif(goldenLdif);
+        Check(ldifExport.Count == 1 && ldifExport.Skipped == 0 && ldifExport.PhotoOmitted == 0 &&
+              ldifExport.Text.Split("\r\n").All(line => System.Text.Encoding.UTF8.GetByteCount(line) <= 76) &&
+              goldenAttributes.Where(attribute => attribute.Name != "objectClass")
+                  .SequenceEqual(attributes.Where(attribute => attribute.Name is not ("objectClass" or "magnolieVCard"))) &&
+              attributes.Where(attribute => attribute.Name == "objectClass").Select(attribute => attribute.Value)
+                  .SequenceEqual(["top", "inetOrgPerson", "extensibleObject"]),
+            "LDIF bewahrt dekodierte Legacy-Attribute und Faltungsgrenze mit expliziter Erweiterungsklasse");
+        var embedded = ExchangeCodec.ParseVCard(attributes.Single(attribute => attribute.Name == "magnolieVCard").Value);
+        // ParseLdif counts the single terminal empty line as skipped, not as a lost contact.
+        Check(legacy.Kontakte.Count == 1 && legacy.Uebersprungen == 1 &&
+              legacy.Kontakte[0]?["uid"]?.ToString() == goldenAttributes.Single(attribute => attribute.Name == "uid").Value &&
+              roundtripLdif.Kontakte.Count == 1 && roundtripLdif.Uebersprungen == 1 &&
+              embedded.Kontakte.Count == 1 && embedded.Uebersprungen == 0 &&
+              JsonNode.DeepEquals(embedded.Kontakte, roundtripLdif.Kontakte),
+            $"Legacy/native LDIF: contacts={legacy.Kontakte.Count}/{roundtripLdif.Kontakte.Count}/{embedded.Kontakte.Count}, " +
+            $"skipped={legacy.Uebersprungen}/{roundtripLdif.Uebersprungen}/{embedded.Uebersprungen}, " +
+            $"embeddedEqual={JsonNode.DeepEquals(embedded.Kontakte, roundtripLdif.Kontakte)}");
+        foreach (var field in new[] { "vorname", "nachname", "firma", "notiz", "geburtstag", "foto" })
+            Check(legacy.Kontakte[0]?[field]?.ToString() == ldifDocument.RootElement[0].GetProperty(field).GetString() &&
+                  roundtripLdif.Kontakte[0]?[field]?.ToString() == ldifDocument.RootElement[0].GetProperty(field).GetString(),
+                "Legacy/native LDIF bewahrt " + field + " bytegleich");
+        Check(roundtripLdif.Kontakte[0]?["uid"]?.ToString() == "kontakt,sonder" &&
+              roundtripLdif.Geburtstage.Count == 0 && embedded.Geburtstage.Count == 0,
+            "Native LDIF-vCard bewahrt Original-UID und vermeidet doppelte Kontaktgeburtstage");
         Check(roundtripLdif.Kontakte[0]?["emails"]?.AsArray().Count == 2 && roundtripLdif.Kontakte[0]?["telefone"]?.AsArray().Count == 6 &&
               roundtripLdif.Kontakte[0]?["anschriften"]?.AsArray().Count == 2 && roundtripLdif.Kontakte[0]?["anschriften"]?.AsArray()[0]?["strasse"]?.ToString() == "A$B Straße 1" &&
               roundtripLdif.Kontakte[0]?["foto"]?.ToString() == "data:image/jpeg;base64,/9j/2Q==" && roundtripLdif.Kontakte[0]?["geburtstag"]?.ToString() == "1980-04-03",
@@ -656,13 +764,32 @@ try
         """))
     {
         var safe = ExchangeCodec.WriteLdif(unsafeLdifDocument.RootElement);
-        Check(!safe.Text.Contains("\r\nmail: injected@example.org") && safe.Count == 4 && safe.Skipped == 1 && safe.PhotoOmitted == 1 &&
-              safe.Text.Split("\r\n").Where(line => line.StartsWith("uid: ")).Distinct().Count() == 4 && !safe.Text.Contains("iVBOR"),
-            "LDIF maskiert Injektionen, erzeugt eindeutige UIDs und verwirft PNG");
+        var attributes = DecodeLdif(safe.Text);
+        var restored = ExchangeCodec.ParseLdif(safe.Text);
+        Check(!safe.Text.Contains("\r\nmail: injected@example.org") && safe.Count == 4 && safe.Skipped == 1 && safe.PhotoOmitted == 0 &&
+              attributes.Where(attribute => attribute.Name == "uid").Select(attribute => attribute.Value).Distinct().Count() == 4 &&
+              attributes.Where(attribute => attribute.Name == "mail").Select(attribute => attribute.Value).SequenceEqual(["sicher@example.org"]) &&
+              attributes.Count(attribute => attribute.Name == "magnolieVCard") == 4 &&
+              !attributes.Any(attribute => attribute.Name == "jpegPhoto") &&
+              safe.Text.Split("\r\n").All(line => System.Text.Encoding.UTF8.GetByteCount(line) <= 76) &&
+              restored.Kontakte.Count == 4 && restored.Uebersprungen == 1 &&
+              restored.Kontakte[0]?["uid"]?.ToString() == unsafeLdifDocument.RootElement[0].GetProperty("uid").GetString() &&
+              restored.Kontakte[0]?["nachname"]?.ToString() == "Name\nmail: injected@example.org" &&
+              restored.Kontakte[1]?["foto"]?.ToString() == "data:image/png;base64,iVBORw0KGgo=" &&
+              restored.Kontakte.Skip(2).All(contact => contact?["uid"]?.ToString() == "gleich"),
+            "LDIF maskiert Injektionen, trennt eindeutige Transport-UIDs von Original-UIDs und bewahrt PNG in der vCard");
     }
     using (var dnDocument = JsonDocument.Parse("""[{"uid":" #Komma,+Gleich=\\Ende ","nachname":"DN"}]"""))
         Check(ExchangeCodec.WriteLdif(dnDocument.RootElement).Text.Contains("dn: uid=magnolie-"),
-            "LDIF ersetzt eine unsichere stabile UID vor der DN-Bildung deterministisch");
+             "LDIF ersetzt eine unsichere stabile UID vor der DN-Bildung deterministisch");
+    using (var invalidPhotoDocument = JsonDocument.Parse("""[{"uid":"invalid-photo","nachname":"Invalid","foto":"data:image/png;base64,not-base64!"}]"""))
+    {
+        var exported = ExchangeCodec.WriteLdif(invalidPhotoDocument.RootElement);
+        var restored = ExchangeCodec.ParseLdif(exported.Text);
+        Check(exported.Count == 1 && exported.Skipped == 0 && exported.PhotoOmitted == 1 &&
+              restored.Kontakte.Count == 1 && restored.Kontakte[0]?["foto"]?.ToString() == "",
+            "LDIF meldet ein ungueltiges Foto weiterhin als ausgelassen statt es zu persistieren");
+    }
     var clawsImport = ExchangeCodec.ParseClawsXml("""
         <?xml version="1.0"?><address-book><person uid="claws-17" first-name="Clara" last-name="Kralle" cn="Clara Kralle"><address-list><address email="clara@example.org" remarks="privat"/></address-list><attribute-list><attribute name="mobile">01722</attribute><attribute name="birthday">1988-05-04</attribute><attribute name="jpegPhoto">data:image/jpeg;base64,/9j/2Q==</attribute></attribute-list></person></address-book>
         """);
@@ -926,6 +1053,17 @@ try
         XNamespace drawNs = "urn:oasis:names:tc:opendocument:xmlns:drawing:1.0";
         XNamespace xlinkNs = "http://www.w3.org/1999/xlink";
         var automaticStyles = content.Root!.Element(officeNs + "automatic-styles")!;
+        var monthBodyStyles = automaticStyles.Elements(styleNs + "style").Where(node =>
+            ((string?)node.Attribute(styleNs + "name")) is { } name && name.StartsWith("ceMonth", StringComparison.Ordinal) &&
+            name is not ("ceMonthTitle" or "ceMonthHeading")).ToArray();
+        Check(monthBodyStyles.Length > 1 && monthBodyStyles.All(node =>
+            (string?)node.Element(styleNs + "table-cell-properties")?.Attribute(foNs + "wrap-option") == "no-wrap" &&
+            (string?)node.Element(styleNs + "paragraph-properties")?.Attribute(foNs + "line-height") == "100%"),
+            "Dichte Monatszellen behalten Eintraege und Mehr-Hinweis auf eigenen Zeilen ohne zusaetzlichen Umbruch");
+        Check(automaticStyles.Elements(styleNs + "style").Where(node =>
+            (string?)node.Attribute(styleNs + "name") is "cePlanHoliday" or "ceAddress").All(node =>
+            (string?)node.Element(styleNs + "table-cell-properties")?.Attribute(foNs + "wrap-option") == "wrap"),
+            "Jahres- und Adresstabellen behalten ihren bisherigen Textumbruch");
         Check(automaticStyles.Elements(styleNs + "style").Any(node =>
                   (string?)node.Attribute(styleNs + "family") == "table-column" &&
                   node.Descendants(styleNs + "table-column-properties").Any(properties => properties.Attribute(styleNs + "column-width") is not null)) &&

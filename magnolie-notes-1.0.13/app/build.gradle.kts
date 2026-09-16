@@ -2,6 +2,9 @@ import java.util.Properties
 import java.security.KeyStore
 import java.security.cert.X509Certificate
 import javax.naming.ldap.LdapName
+import org.gradle.api.tasks.testing.TestDescriptor
+import org.gradle.api.tasks.testing.TestListener
+import org.gradle.api.tasks.testing.TestResult
 
 plugins {
     alias(libs.plugins.android.application)
@@ -55,8 +58,8 @@ android {
         applicationId = "io.gitlab.maik3531.magnolienotes"
         minSdk = 26
         targetSdk = 35
-        versionCode = 13
-        versionName = "1.0.13"
+        versionCode = 14
+        versionName = "1.0.14"
         testInstrumentationRunner = "io.gitlab.maik3531.magnolienotes.MagnolieTestRunner"
         resourceConfigurations += listOf(
             "ar", "be", "cs", "da", "de", "en", "es", "fr", "hi", "hsb",
@@ -110,6 +113,7 @@ android {
 
     testOptions {
         unitTests.isReturnDefaultValues = true
+        unitTests.isIncludeAndroidResources = true
     }
 
     packaging {
@@ -153,6 +157,18 @@ val pruefeReleaseSigningKonfiguration = tasks.register("pruefeReleaseSigningKonf
 }
 
 tasks.configureEach {
+    if (name.startsWith("generate") && name.endsWith("UnitTestConfig")) {
+        // AGP 8 emits paths relative to app/, while the documented tests run from rootDir.
+        doLast {
+            outputs.files.asFileTree.matching { include("**/test_config.properties") }.forEach { config ->
+                val values = Properties().apply { config.inputStream().use(::load) }
+                listOf("android_merged_assets", "android_resource_apk", "android_merged_manifest").forEach { key ->
+                    values.getProperty(key)?.let { values.setProperty(key, project.file(it).absolutePath) }
+                }
+                config.outputStream().use { values.store(it, "Absolute Android test resource paths") }
+            }
+        }
+    }
     if (name in setOf("preReleaseBuild", "assembleRelease", "bundleRelease", "packageRelease")) {
         dependsOn(pruefeReleaseSigningKonfiguration)
     }
@@ -162,6 +178,26 @@ tasks.configureEach {
 // dafür laufen die Einheitstests im Projektstammverzeichnis.
 tasks.withType<Test>().configureEach {
     workingDir = rootDir
+    val cross = providers.gradleProperty("magnolieCrossTests").orNull == "true"
+    val crossClasses = listOf("*.TelefonWlanInvitationTest", "*.TelefonBluetoothSetupTest",
+        "*.BaumReceiptInteropTest", "*.LiveprobeTest", "*.PersonalCustomTransportTest")
+    filter {
+        crossClasses.forEach { if (cross) includeTestsMatching(it) else excludeTestsMatching(it) }
+    }
+    doFirst {
+        logger.lifecycle(if (cross) "Explicit cross-platform test gate: prerequisites are mandatory."
+            else "Public unit gate; cross-platform classes run separately with -PmagnolieCrossTests=true: $crossClasses")
+    }
+    addTestListener(object : TestListener {
+        override fun beforeSuite(suite: TestDescriptor) {}
+        override fun beforeTest(testDescriptor: TestDescriptor) {}
+        override fun afterTest(testDescriptor: TestDescriptor, result: TestResult) {}
+        override fun afterSuite(suite: TestDescriptor, result: TestResult) {
+            if (suite.parent == null && (result.skippedTestCount > 0 || result.testCount == 0L)) {
+                throw GradleException("Declared test gate must run without skips and cannot be empty.")
+            }
+        }
+    })
     testLogging {
         events("passed", "skipped", "failed")
         showStandardStreams = false

@@ -148,7 +148,7 @@ class TelefonAblage private constructor(context: Context) : TelefonPayloadStorag
         FileOutputStream(temp).use { it.write(bytes); it.flush(); it.fd.sync() }
         Files.move(temp.toPath(), target.toPath(), StandardCopyOption.ATOMIC_MOVE,
             StandardCopyOption.REPLACE_EXISTING)
-        runCatching { FileOutputStream(target.parentFile).use { it.fd.sync() } }
+        io.gitlab.maik3531.magnolienotes.daten.synchronisiereOrdner(requireNotNull(target.parentFile))
     }
 
     companion object {

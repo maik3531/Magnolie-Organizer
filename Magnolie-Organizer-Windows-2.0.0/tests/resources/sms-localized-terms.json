@@ -1,0 +1,33 @@
+{
+  "description": "Exact manually authored ASR SMS labels using ordinary localized message terminology; not a general technical-token exemption.",
+  "messages": [
+    "Confirm SMS plans",
+    "Enable this SMS plan",
+    "Enabling this plan allows its overdue SMS to be sent while scheduling is on.",
+    "Restored pending plans stay paused until you review and enable each plan. Restoring contacts, calendar or notes does not change live SMS plans.",
+    "Review the exact SMS text for every recipient before confirming."
+  ],
+  "locales": {
+    "nl": [
+      "Sms-plannen bevestigen",
+      "Dit sms-plan inschakelen",
+      "Als u dit plan inschakelt, kan de achterstallige sms worden verzonden terwijl sms-planning is ingeschakeld.",
+      "Herstelde wachtende plannen blijven gepauzeerd totdat u elk plan controleert en inschakelt. Het herstellen van contacten, agenda of notities verandert de huidige sms-plannen niet.",
+      "Controleer vóór bevestiging de exacte sms-tekst voor elke ontvanger."
+    ],
+    "zh_CN": [
+      "确认短信计划",
+      "启用此短信计划",
+      "启用此计划后，在短信定时功能开启时，其已过期的短信也可发送。",
+      "恢复的待发送计划将保持暂停，直到您逐个审核并启用。恢复联系人、日历或笔记不会改变当前的短信计划。",
+      "确认前，请检查每位收件人的确切短信文本。"
+    ],
+    "ar": [
+      "تأكيد خطط الرسائل",
+      "تفعيل خطة الرسالة هذه",
+      "يسمح تفعيل هذه الخطة بإرسال رسالتها المتأخرة ما دامت الجدولة مفعّلة.",
+      "تبقى الخطط المعلّقة المستعادة متوقفة مؤقتًا حتى تراجع كل خطة وتفعّلها. لا تغيّر استعادة جهات الاتصال أو التقويم أو الملاحظات خطط الرسائل الحالية.",
+      "راجع نص الرسالة القصيرة الدقيق لكل مستلم قبل التأكيد."
+    ]
+  }
+}

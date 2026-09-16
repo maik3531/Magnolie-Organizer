@@ -35,28 +35,19 @@ TOPDIR="$TOPBASE/$DISTRO"
 ARCHIV="$TOPDIR/SOURCES/$NAME-$FASSUNG.tar.xz"
 EPOCH=${SOURCE_DATE_EPOCH:-1786320000}
 
+QUELLLISTE=$(mktemp)
+trap 'rm -f "$QUELLLISTE"' EXIT
+trap 'exit 1' HUP INT TERM
+python3 "$WURZEL/werkzeuge/source_selection.py" "$WURZEL" > "$QUELLLISTE"
 mkdir -p "$TOPDIR/BUILD" "$TOPDIR/BUILDROOT" "$TOPDIR/RPMS" \
     "$TOPDIR/SOURCES" "$TOPDIR/SPECS" "$TOPDIR/SRPMS"
 tar --sort=name --mtime="@$EPOCH" --clamp-mtime \
     --owner=0 --group=0 --numeric-owner --mode='u+rwX,go+rX,go-w' \
     --pax-option=delete=atime,delete=ctime \
-    --exclude="$QUELLNAME/.git" \
-    --exclude="$QUELLNAME/bau" \
-    --exclude="$QUELLNAME/.pytest_cache" \
-    --exclude="$QUELLNAME/**/.pytest_cache" \
-    --exclude="$QUELLNAME/**/__pycache__" \
-    --exclude="$QUELLNAME/**/*.pyc" \
-    --exclude="$QUELLNAME/locale" \
-    --exclude="$QUELLNAME/web/i18n/*.js" \
-    --exclude="$QUELLNAME/debian/.debhelper" \
-    --exclude="$QUELLNAME/debian/$NAME" \
-    --exclude="$QUELLNAME/debian/files" \
-    --exclude="$QUELLNAME/debian/*.substvars" \
-    --exclude="$QUELLNAME/*.tar.*" \
-    --exclude="$QUELLNAME/*.rpm" \
-    --exclude="$QUELLNAME/*.deb" \
-    --transform="s,^$QUELLNAME,$NAME-$FASSUNG," \
-    -C "$(dirname "$WURZEL")" -cJf "$ARCHIV" "$QUELLNAME"
+    --exclude='web/i18n/*.js' \
+    --transform="s,^,$NAME-$FASSUNG/," \
+    -C "$WURZEL" --null --verbatim-files-from --no-recursion \
+    -cJf "$ARCHIV" --files-from="$QUELLLISTE"
 
 sed "s/@MAGNOLIE_DISTRO@/$DISTRO/g" "$WURZEL/rpm/$NAME.spec" \
     > "$TOPDIR/SPECS/$NAME.spec"

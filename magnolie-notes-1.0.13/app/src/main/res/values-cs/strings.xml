@@ -1,5 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="baum_postfach_unsicher">Neověřená doručení: %1$d. Zprávy zůstávají uložené a automatické opětovné odesílání je pozastaveno. Ověřte příjem; starší zařízení nemusí podporovat ověřená potvrzení.</string>
+    <string name="telefon_bluetooth_setup">Spárovat nový Organizer přes Bluetooth</string>
+    <string name="telefon_bluetooth_setup_hinweis">Nechte tuto obrazovku otevřenou. Vyberte tento telefon v aplikaci Organizer, potvrďte systémové párování a poté porovnejte kód na obou zařízeních.</string>
     <string name="freigabe_ziel">Uložit do Magnolie Notes</string>
     <string name="blatt_notizen">Poznámky</string>
     <string name="blatt_einfuhr">Import</string>
@@ -342,7 +345,7 @@
     <string name="start_laden">Otevírání chráněných dat…</string><string name="start_fehler_titel">Chráněná data se nepodařilo otevřít</string><string name="start_daten_unveraendert">Vaše data nebyla odstraněna ani přepsána. Můžete to bezpečně zkusit znovu.</string><string name="start_erneut">Zkusit znovu</string><string name="start_schliessen">Zavřít aplikaci</string>
     <string name="absturzbericht_teilen">Sdílet zprávu o pádu</string>
     <string name="journal_maximum">Body obnovení</string>
-    <string name="journal_maximum_hinweis">Při snížení limitu se nejstarší body obnovení automaticky odstraní.</string>
+    <string name="journal_maximum_hinweis">Při snížení limitu se odstraní nejstarší nechráněné body obnovení. Chráněné body zůstanou zachovány.</string>
     <string name="portable_titel">Přenosná záloha</string><string name="portable_hinweis">Vytvořte nebo obnovte samostatný archiv chráněný heslem, který obsahuje poznámky, zápisníky, úkoly, koš a přílohy.</string><string name="portable_export">Vytvořit přenosnou zálohu</string><string name="portable_datei_oeffnen">Otevřít přenosnou zálohu</string><string name="portable_restore">Obnovit zálohu</string><string name="portable_passwort">Heslo</string><string name="portable_passwort_hinweis">Zadejte heslo archivu. Během kontroly zálohy se nic nezmění.</string><string name="portable_pruefen">Zkontrolovat a zobrazit náhled</string><string name="portable_vorschau">Náhled zálohy</string><string name="portable_vorschau_text">%1$d poznámek · %2$d zápisníků · %3$d úkolů · %4$d položek v koši</string><string name="portable_restore_warnung">Tím se nahradí veškerý současný osobní obsah. Nejprve se vytvoří místní bezpečnostní snímek; identita Magnolienbaum tohoto zařízení zůstane zachována.</string><string name="portable_fehler">Zálohu se nepodařilo otevřít. Zkontrolujte soubor a heslo.</string><string name="portable_exportiert">Přenosná záloha byla vytvořena.</string><string name="portable_wiederhergestellt">Přenosná záloha byla obnovena.</string>
     <string name="auto_backup_titel">Automatická záloha do cloudové složky</string>
     <string name="auto_backup_hinweis">Volitelně ukládá ověřené přenosné zálohy do složky vybrané přes Android. Poskytovatel ji může synchronizovat.</string>
@@ -370,4 +373,27 @@
     <string name="aufgabe_zur_wurzel">Na nejvyšší úroveň</string>
     <string name="aufgabe_eltern_waehlen">Vybrat nadřazený úkol</string>
     <string name="aufgabe_oberste_ebene">Nejvyšší úroveň</string>
+    <string name="baum_kontakt_jubilaeum">Výročí</string>
+    <string name="baum_kontakt_update">Chcete-li přenést i výročí, aktualizujte Magnolie na obou zařízeních, otevřete obě aplikace a zkuste to znovu. Při tomto pokusu nebyly odeslány žádné kontakty.</string>
+    <string name="baum_aufgabe_nicht_freigegeben">Tento úkol nebyl s tímto zařízením sdílen.</string>
+    <string name="baum_kontakt_import_nicht_unterstuetzt">K odeslání kontaktů do tohoto zařízení použijte synchronizaci kontaktů.</string>
+    <string name="aufgabe_nach_oben">Posunout úkol nahoru</string>
+    <string name="aufgabe_nach_unten">Posunout úkol dolů</string>
+    <string name="personal_custom_optin">Synchronizovat úkoly a schůzky z vlastní karty</string>
+    <string name="personal_custom_title">Úkoly a schůzky z vlastní karty (jen pro čtení)</string>
+    <string name="personal_custom_explanation">Obě zařízení musí výslovně souhlasit. Vypnutí pozastaví připomínky a aktualizace z vlastní karty, ale zachová kopie. Propojené textové bloky se nesdílejí.</string>
+    <string name="personal_custom_unsupported">Toto zařízení nepodporuje synchronizaci vlastní karty.</string>
+    <string name="personal_custom_delete">Smazáno u zdroje: Smazat tuto kopii z telefonu, nebo ji ponechat? Zdroj v počítači se nikdy nemění.</string>
+    <string name="personal_custom_keep">Ponechat kopii</string>
+    <string name="personal_custom_privacy">Pouze s výslovným souhlasem obou zařízení sdílí Personal Sync vlastní úkoly a schůzky jen pro čtení, včetně jejich vlastních poznámek. Textové bloky, propojené texty a přílohy jsou vyloučeny. Archivy obnovují kopie, nikoli oprávnění.</string>
+    <string name="device_identifiers_share">Sdílet identifikátory vlastního telefonu</string>
+    <string name="device_identifiers_explanation">Pouze na žádost vlastního spárovaného počítače, na 60 sekund, bez uložení: číslo výchozí hlasové SIM a, pokud Android dovolí, sériové číslo a IMEI. Od Androidu 10 jsou hardwarové identifikátory pro běžné aplikace omezené. Oprávnění k číslu je volitelné; žádná zvláštní role se nevyžaduje.</string>
+    <string name="device_identifiers_phone">Vlastní číslo (výchozí hlasová SIM)</string>
+    <string name="device_identifiers_serial">Sériové číslo zařízení</string>
+    <string name="device_identifiers_imei">IMEI zařízení</string>
+    <string name="device_identifiers_off">Sdílení identifikátorů je vypnuté.</string>
+    <string name="device_identifiers_permission">Chybí oprávnění k identifikátorům.</string>
+    <string name="device_identifiers_restricted">Android omezuje tento identifikátor.</string>
+    <string name="device_identifiers_subscription">Není dostupný výchozí hlasový tarif.</string>
+    <string name="device_identifiers_unavailable">Tento identifikátor není dostupný.</string>
 </resources>

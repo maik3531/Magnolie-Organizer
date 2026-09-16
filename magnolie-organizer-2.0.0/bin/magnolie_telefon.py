@@ -14,6 +14,7 @@ import struct
 import subprocess
 import tempfile
 import threading
+from magnolie_personal_sync import CUSTOM_KINDS, validate_custom_body, accept_custom_settings, custom_scope_allowed
 import time
 import unicodedata
 import uuid
@@ -49,7 +50,7 @@ LEGACY_GRANT_NAMES = GRANT_NAMES | {"sms_send", "sms_received", "call_control"}
 CAPABILITY_REASONS = {"available", "not_implemented", "no_hardware", "disabled",
                       "permission_missing", "os_restricted"}
 ACK_ERRORS = {"none", "expired", "invalid_schema", "unsupported", "not_granted",
-              "too_large", "permanent_failure", "restore_unavailable", "conflict"}
+              "too_large", "temporary_failure", "permanent_failure", "restore_unavailable", "conflict"}
 RETRY_MS = (1000, 2000, 5000, 10000, 30000, 60000)
 BLUETOOTH_FALLBACK_SECONDS = 15
 BLUETOOTH_RETRY_SECONDS = 60
@@ -79,7 +80,9 @@ def desktop_capabilities(revision=1, bluetooth_available=False,
                        "reason": "available" if available else (
                            bluetooth_reason if name == "transport.bluetooth_rfcomm"
                            else "not_implemented"),
-                         "versions": [1, 2, 3] if name in {"device_status", "personal_notes_sync", "personal_tasks_sync"} else
+                         "versions": [1, 2, 3, 4] if name == "personal_tasks_sync" else
+                                      [1, 2, 3, 4] if name == "device_status" else
+                                      [1, 2, 3] if name == "personal_notes_sync" else
                                      [2] if name == "incoming_call_state" else [1]}
     return {"revision": revision, "items": items}
 
@@ -95,7 +98,7 @@ def canonical(value):
     def check(item):
         if item is None or isinstance(item, (str, bool)):
             return
-        if isinstance(item, int) and not isinstance(item, bool):
+        if isinstance(item, int) and not isinstance(item, bool) and -(2**63) <= item < 2**63:
             return
         if isinstance(item, list):
             for child in item:
@@ -413,6 +416,18 @@ class PhoneStore:
         common = {"device_id", "display_name", "static_public", "state", "grants",
                   "local_grants", "capabilities", "last_contact_ms", "bluetooth",
                   "personal_sync"}
+        if isinstance(peer, dict) and "call_audio" in peer:
+            common.add("call_audio")
+            if (not isinstance(peer["call_audio"], dict) or set(peer["call_audio"]) != {"prefer_pc"}
+                    or not isinstance(peer["call_audio"]["prefer_pc"], bool)):
+                raise RuntimeError("Telefon-Gegenstellenliste ist beschaedigt.")
+        if isinstance(peer, dict) and "custom_sync" in peer:
+            common.add("custom_sync")
+            custom = peer["custom_sync"]
+            if not isinstance(custom, dict) or not set(custom) <= {"local", "remote"}:
+                raise RuntimeError("Telefon-Gegenstellenliste ist beschaedigt.")
+            for settings in custom.values():
+                validate_custom_body("personal_sync.custom_settings", settings)
         pending = {"pending_transcript", "pending_phone_finish_proof",
                    "pending_desktop_finish_proof", "pending_expires_ms"}
         if (not isinstance(peer, dict) or peer.get("state") not in {
@@ -557,6 +572,7 @@ class PhoneStore:
                 os.chmod(self.database_path + suffix, 0o600)
 
     def cache_status(self, peer_id, status):
+        status = without_device_identifiers(status)
         encrypted = self._encrypt(canonical({"cached_ms": now_ms(), "status": status}),
                                   "device_status", peer_id)
         with sqlite3.connect(self.database_path) as db:
@@ -596,6 +612,8 @@ class PhoneStore:
         return status
 
     def queue(self, peer_id, kind, body, ttl_ms, transport_policy="any"):
+        if kind.startswith("device_status.") and ("identifiers" in body or body.get("version") == 4):
+            raise ValueError("device identifiers cannot enter a persistent queue")
         now = now_ms()
         if not isinstance(ttl_ms, int) or not 0 < ttl_ms <= 30 * DAY_MS:
             raise ValueError("invalid message lifetime")
@@ -675,7 +693,7 @@ class PhoneStore:
         with sqlite3.connect(self.database_path) as db:
             rows = db.execute("SELECT message_id,payload FROM outbox WHERE peer_id=? AND "
                               "expires_ms>? AND next_attempt_ms<=? AND (transport_policy='any' OR ?='wifi') "
-                              "ORDER BY created_ms LIMIT 32", (peer_id, now, now, transport)).fetchall()
+                              "ORDER BY CASE WHEN kind='personal_sync.custom_settings' THEN 0 ELSE 1 END,created_ms LIMIT 32", (peer_id, now, now, transport)).fetchall()
         return [strict_json(self._decrypt(payload, "outbox", message_id))
                 for message_id, payload in rows]
 
@@ -699,10 +717,14 @@ class PhoneStore:
                        (attempts, now_ms() + int(base * jitter), "missing_ack",
                         peer_id, message_id))
 
-    def acknowledge(self, peer_id, message_id):
+    def acknowledge(self, peer_id, message_id, custom_accepted=None):
         with sqlite3.connect(self.database_path) as db:
             row = db.execute("SELECT kind,payload FROM outbox WHERE peer_id=? AND message_id=?",
-                             (peer_id, message_id)).fetchone()
+                              (peer_id, message_id)).fetchone()
+            if row and row[0] == "personal_sync.custom_batch" and custom_accepted is not None:
+                body = strict_json(self._decrypt(row[1], "outbox", message_id))["body"]
+                if body["deletions"]:
+                    custom_accepted({key: body[key] for key in ("source_id", "revision", "deletions")})
             db.execute("DELETE FROM outbox WHERE peer_id=? AND message_id=?",
                         (peer_id, message_id))
         if row and row[0] == "personal_sync.deletion_decision":
@@ -748,6 +770,11 @@ class PhoneStore:
     def remove_kind(self, peer_id, kind):
         with sqlite3.connect(self.database_path) as db:
             db.execute("DELETE FROM outbox WHERE peer_id=? AND kind=?", (peer_id, kind))
+
+    def has_kind(self, peer_id, kind):
+        with sqlite3.connect(self.database_path) as db:
+            return db.execute("SELECT 1 FROM outbox WHERE peer_id=? AND kind=? AND expires_ms>? LIMIT 1",
+                              (peer_id, kind, now_ms())).fetchone() is not None
 
     def queue_deletion_decision(self, peer_id, body, ttl_ms, transport_policy):
         with sqlite3.connect(self.database_path) as db:
@@ -832,6 +859,9 @@ class PhoneStore:
         now = now_ms()
         with sqlite3.connect(self.database_path) as db:
             db.execute("BEGIN IMMEDIATE")
+            if db.execute("SELECT 1 FROM meta WHERE key=?", (
+                    "personal_applied:%s:%s:%d" % (peer_id, body["run_id"], body["reply"]),)).fetchone():
+                raise ValueError("personal batch already committed")
             if not 0 <= body["sequence"] < 4096:
                 raise ValueError("invalid personal batch sequence")
             old = db.execute("SELECT batch_id,message_id,payload,last FROM personal_batch WHERE peer_id=? AND run_id=? AND reply=? AND sequence=?",
@@ -881,16 +911,19 @@ class PhoneStore:
         for sequence, _batch_id, _message_id, payload, _last in rows:
             item_primary = "%s:%s:%d:%d" % (peer_id, body["run_id"], body["reply"], sequence)
             item = strict_json(self._decrypt(payload, "personal_batch", item_primary))
+            if item["body"].get("format", 1) != body.get("format", 1):
+                raise ValueError("conflicting personal sync format")
             messages.append(item)
             records.extend(item["body"]["records"])
             total += len(payload)
-        if body.get("format") == 2:
+        if body.get("format", 1) >= 2:
             advertised = {item["body"]["records_hash"] for item in messages}
             if len(advertised) != 1 or records_hash(records) != body["records_hash"]:
                 raise ValueError("invalid aggregate records hash")
         if len(records) > 100000 or total > 50 * 1024 * 1024:
             raise ValueError("personal run too large")
-        return {"commit_token": token, "run_id": body["run_id"], "reply": body["reply"],
+        return {"format": body.get("format", 1), "commit_token": token,
+                "run_id": body["run_id"], "reply": body["reply"],
                 "message_id": messages[-1]["message_id"], "records": records, "messages": messages}
 
     def stage_personal_domain(self, peer_id, message):
@@ -1289,7 +1322,10 @@ class PhoneStore:
         for sequence, payload in rows:
             primary = "%s:%s:%d:%d" % (peer_id, run_id, reply, sequence)
             messages.append(strict_json(self._decrypt(payload, "personal_batch", primary)))
-        if not messages:
+        if (not messages or [row[0] for row in rows] != list(range(len(rows))) or
+                not messages[-1]["body"]["last"] or messages[-1]["message_id"] != message_id or
+                any(item["body"]["last"] for item in messages[:-1]) or
+                any(item["expires_ms"] <= now_ms() for item in messages)):
             return peer_id, []
         with sqlite3.connect(self.database_path) as db:
             db.execute("BEGIN IMMEDIATE")
@@ -1345,12 +1381,20 @@ class PhoneStore:
                              (peer_id, message_id)).fetchone()
         return tuple(row) if row else None
 
+    def received_matches(self, peer_id, message):
+        with sqlite3.connect(self.database_path) as db:
+            row = db.execute("SELECT payload FROM inbox WHERE peer_id=? AND message_id=?",
+                             (peer_id, message["message_id"])).fetchone()
+        return bool(row and strict_json(self._decrypt(row[0], "inbox", message["message_id"])) == message)
+
     def remember_result(self, peer_id, message_id, result, error):
         with sqlite3.connect(self.database_path) as db:
             db.execute("INSERT OR REPLACE INTO dedupe VALUES(?,?,?,?,?)",
                         (message_id, peer_id, result, error, int(time.time() * 1000)))
 
     def remember_message(self, peer_id, message, result, error):
+        if message.get("kind") == "device_status.report":
+            message = dict(message, body=without_device_identifiers(message["body"]))
         seen = now_ms()
         encrypted = self._encrypt(canonical(message), "inbox", message["message_id"])
         with sqlite3.connect(self.database_path) as db:
@@ -1416,12 +1460,15 @@ class PhoneStore:
             run = self.personal_run(peer_id, run_id)
             trigger = run.get("trigger", "manual")
             counts = {"notes": 0, "tasks": 0, "notebooks": 0}
-            report = {"format": 1, "run_id": run_id, "state": "partial", "trigger": trigger,
+            report = {"format": run.get("format", 1), "run_id": run_id, "state": "partial", "trigger": trigger,
                 "transport": "wifi", "sent": counts, "received": dict(counts), "conflicts": 0,
                 "attachments_omitted": 0, "oversized_skipped": 0, "started_ms": now,
                 "finished_ms": now, "error": "protocol", "deletions": {
                     "pending": 0, "deleted": 0, "restored": 0, "conflicts": 0, "blocked": 0,
                     "trash": {"notes": 0, "tasks": 0, "notebooks": 0, "attachments": 0}}}
+            if report["format"] >= 2:
+                report["attachments"] = dict.fromkeys(("declared", "requested", "sent", "received",
+                                                       "reused", "preserved", "failed", "bytes"), 0)
             shaped = bytearray(hashlib.sha256(("magnolie-expiry:%s:%s" % (peer_id, run_id)).encode()).digest()[:16])
             shaped[6] = (shaped[6] & 0x0f) | 0x40
             shaped[8] = (shaped[8] & 0x3f) | 0x80
@@ -1513,8 +1560,58 @@ class SecureChannel:
         return value
 
 
+def discover_setup_phones(timeout=4):
+    """Untrusted NSD candidates, bounded to 16 resolutions and IPv4 LAN addresses."""
+    import ipaddress
+    from zeroconf import IPVersion, ServiceBrowser, Zeroconf
+    found, seen = {}, set()
+    lock = threading.Lock()
+    service_type = "_magnolie-invite._tcp.local."
+
+    class Listener:
+        def add_service(self, zc, kind, name):
+            with lock:
+                if name in seen or len(seen) >= 16:
+                    return
+                seen.add(name)
+            info = zc.get_service_info(kind, name, timeout=250)
+            if not info or not 1024 <= info.port <= 65535:
+                return
+            try:
+                fields = {key.decode("ascii"): value.decode("utf-8") for key, value in info.properties.items()}
+                if set(fields) != {"v", "id", "name", "nonce"} or fields["v"] != "1" or not valid_uuid(fields["id"]):
+                    return
+                unb64(fields["nonce"], 16)
+                display = fields["name"]
+                if not 1 <= len(display) <= 60 or any(ord(c) < 32 or unicodedata.category(c) == "Cf" for c in display):
+                    return
+                for raw in info.addresses:
+                    address = ipaddress.ip_address(raw)
+                    if address.version == 4 and (address in ipaddress.ip_network("10.0.0.0/8") or
+                            address in ipaddress.ip_network("172.16.0.0/12") or address in ipaddress.ip_network("192.168.0.0/16") or
+                            address in ipaddress.ip_network("169.254.0.0/16")):
+                        with lock:
+                            found.setdefault(fields["id"], {"uid": fields["id"], "name": display,
+                                "address": str(address), "port": info.port, "nonce": fields["nonce"]})
+                        break
+            except (ValueError, UnicodeError, AttributeError):
+                return
+        update_service = add_service
+        def remove_service(self, *_args):
+            pass
+
+    with Zeroconf(ip_version=IPVersion.V4Only) as zc:
+        browser = ServiceBrowser(zc, service_type, Listener())
+        try:
+            time.sleep(min(5, max(0, timeout)))
+        finally:
+            browser.cancel()
+    with lock:
+        return list(found.values())
+
+
 class BlueZBluetoothBackend:
-    """Optional BlueZ/PyBluez adapter for outgoing phone RFCOMM sockets."""
+    """Native BlueZ pairing and selected-device RFCOMM client profiles."""
 
     @staticmethod
     def _bluetoothctl(*arguments):
@@ -1554,37 +1651,261 @@ class BlueZBluetoothBackend:
                 continue
             address, name = match.groups()
             name = "".join(char for char in name if ord(char) >= 32).strip()[:60]
-            devices.append({"address": address.upper(), "name": name or address.upper()})
+            if not any(device["address"] == address.upper() for device in devices):
+                devices.append({"address": address.upper(), "name": name or address.upper()})
         return devices
 
-    def connect(self, address, service_uuid):
-        if service_uuid != BLUETOOTH_UUID or not self.paired(address):
-            raise PermissionError("Bluetooth device is not system-paired")
+    @staticmethod
+    def _bluez():
+        from gi.repository import Gio
+        bus = Gio.bus_get_sync(Gio.BusType.SYSTEM, None)
+        objects = bus.call_sync("org.bluez", "/", "org.freedesktop.DBus.ObjectManager", "GetManagedObjects",
+            None, None, Gio.DBusCallFlags.NONE, 3000, None).unpack()[0]
+        return bus, objects
+
+    @staticmethod
+    def _register_bluez_object(bus, path, xml, callback):
+        from gi.repository import Gio, GLib
+        context = GLib.MainContext.new()
+        context.push_thread_default()
         try:
-            import bluetooth
-            services = bluetooth.find_service(uuid=service_uuid, address=address)
-            channels = [item.get("port") for item in services
-                        if str(item.get("service-id", service_uuid)).lower() == service_uuid]
-            if not channels:
-                raise OSError("Magnolie Telefon RFCOMM service not found")
-            sock = bluetooth.BluetoothSocket(bluetooth.RFCOMM)
-        except ImportError:
-            # Resolve SDP first; never guess a fixed channel belonging to another profile.
-            try:
-                result = subprocess.run(
-                    ["sdptool", "search", "--bdaddr", address, service_uuid],
-                    stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
-                    stderr=subprocess.DEVNULL, timeout=8, check=False, text=True)
-            except (OSError, subprocess.SubprocessError) as error:
-                raise OSError("RFCOMM service discovery is unavailable") from error
-            matches = re.findall(r"Channel:\s*([1-9]|[12][0-9]|30)\b", result.stdout)
-            if result.returncode or len(matches) != 1:
-                raise OSError("Magnolie Telefon RFCOMM service not found") from None
-            channels = [int(matches[0])]
-            sock = socket.socket(socket.AF_BLUETOOTH, socket.SOCK_STREAM,
-                                 socket.BTPROTO_RFCOMM)
-        sock.connect((address, int(channels[0])))
-        return sock
+            registration = bus.register_object(path, Gio.DBusNodeInfo.new_for_xml(xml).interfaces[0], callback, None, None)
+        finally:
+            context.pop_thread_default()
+        loop = GLib.MainLoop.new(context, False)
+        ready = threading.Event()
+        def started(*_args):
+            ready.set()
+            return False
+        source = GLib.idle_source_new()
+        source.set_callback(started)
+        source.attach(context)
+        threading.Thread(target=loop.run, name="magnolie-phone-bluez", daemon=True).start()
+        if not ready.wait(2):
+            bus.unregister_object(registration)
+            loop.quit()
+            raise TimeoutError("BlueZ callback loop did not start")
+        return registration, loop
+
+    def discover_devices(self, cancelled):
+        from gi.repository import Gio
+        bus, objects = self._bluez()
+        adapter = next((path for path, interfaces in sorted(objects.items())
+                        if interfaces.get("org.bluez.Adapter1", {}).get("Powered")), None)
+        if not adapter:
+            return []
+        owned = False
+        try:
+            bus.call_sync("org.bluez", adapter, "org.bluez.Adapter1", "StartDiscovery", None, None,
+                          Gio.DBusCallFlags.NONE, 3000, None)
+            owned = True
+            cancelled.wait(8)
+            if cancelled.is_set():
+                raise InterruptedError("Bluetooth discovery cancelled")
+            _bus, objects = self._bluez()
+            result = []
+            for path, interfaces in objects.items():
+                device = interfaces.get("org.bluez.Device1", {})
+                address = str(device.get("Address", "")).upper()
+                if device.get("Adapter") != adapter or not BLUETOOTH_ADDRESS.fullmatch(address) or device.get("Blocked") or any(item["address"] == address for item in result):
+                    continue
+                name = str(device.get("Alias", device.get("Name", address)))
+                name = "".join(c for c in name if not unicodedata.category(c).startswith("C"))[:60] or address
+                result.append({"id": path, "address": address, "name": name, "paired": bool(device.get("Paired"))})
+                if len(result) == 32:
+                    break
+            return result
+        finally:
+            if owned:
+                try:
+                    bus.call_sync("org.bluez", adapter, "org.bluez.Adapter1", "StopDiscovery", None, None,
+                                  Gio.DBusCallFlags.NONE, 3000, None)
+                except Exception:
+                    pass
+
+    def pair_device(self, selected, prompt, cancelled):
+        from gi.repository import Gio, GLib
+        bus, objects = self._bluez()
+        path = selected["id"]
+        owner = bus.call_sync("org.freedesktop.DBus", "/org/freedesktop/DBus", "org.freedesktop.DBus", "GetNameOwner",
+            GLib.Variant("(s)", ("org.bluez",)), None, Gio.DBusCallFlags.NONE, 3000, None).unpack()[0]
+        device = objects.get(path, {}).get("org.bluez.Device1", {})
+        if str(device.get("Address", "")).upper() != selected["address"]:
+            raise ValueError("Wrong Bluetooth device.")
+        if device.get("Paired"):
+            return
+        agent_path = "/io/gitlab/magnolie/phone_setup_" + uuid.uuid4().hex
+        xml = """<node><interface name='org.bluez.Agent1'>
+          <method name='Release'/><method name='Cancel'/>
+          <method name='RequestConfirmation'><arg type='o' direction='in'/><arg type='u' direction='in'/></method>
+          <method name='RequestAuthorization'><arg type='o' direction='in'/></method>
+          <method name='AuthorizeService'><arg type='o' direction='in'/><arg type='s' direction='in'/></method>
+          <method name='RequestPinCode'><arg type='o' direction='in'/><arg type='s' direction='out'/></method>
+          <method name='RequestPasskey'><arg type='o' direction='in'/><arg type='u' direction='out'/></method>
+        </interface></node>"""
+        finished = threading.Event()
+        prompting = threading.Event()
+        operation = Gio.Cancellable()
+        def call(_bus, _sender, _path, _interface, method, parameters, invocation):
+            args = parameters.unpack()
+            if _sender != owner:
+                invocation.return_dbus_error("org.bluez.Error.Rejected", "Unexpected agent caller")
+                return
+            if method in ("Cancel", "Release"):
+                operation.cancel()
+                invocation.return_value(None)
+                return
+            if method not in ("RequestConfirmation", "RequestAuthorization") or not args or args[0] != path or prompting.is_set():
+                invocation.return_dbus_error("org.bluez.Error.Rejected", "Unexpected pairing request")
+                return
+            prompting.set()
+            def confirm():
+                try:
+                    answer = prompt({"kind": "confirm", "devices": [{"uid": selected["address"], "name": selected["name"]}],
+                                     "code": "%06d" % args[1] if method == "RequestConfirmation" else ""})
+                    if answer != "accept" or cancelled.is_set() or finished.is_set() or operation.is_cancelled():
+                        raise PermissionError()
+                    invocation.return_value(None)
+                except Exception:
+                    invocation.return_dbus_error("org.bluez.Error.Rejected", "Pairing not confirmed")
+                finally:
+                    prompting.clear()
+            threading.Thread(target=confirm, daemon=True).start()
+        registration, loop = self._register_bluez_object(bus, agent_path, xml, call)
+        registered = False
+        def watch():
+            until = time.monotonic() + 60
+            while not finished.wait(.2):
+                if cancelled.is_set() or time.monotonic() >= until:
+                    operation.cancel()
+                    return
+        threading.Thread(target=watch, daemon=True).start()
+        try:
+            registered = True
+            bus.call_sync("org.bluez", "/org/bluez", "org.bluez.AgentManager1", "RegisterAgent",
+                          GLib.Variant("(os)", (agent_path, "DisplayYesNo")), None, Gio.DBusCallFlags.NONE, 3000, None)
+            bus.call_sync("org.bluez", path, "org.bluez.Device1", "Pair", None, None, Gio.DBusCallFlags.NONE, 60000, operation)
+            if cancelled.is_set() or not self.paired(selected["address"]):
+                raise PermissionError("Bluetooth system pairing was not confirmed.")
+        finally:
+            finished.set()
+            if operation.is_cancelled():
+                try:
+                    bus.call_sync("org.bluez", path, "org.bluez.Device1", "CancelPairing", None, None, Gio.DBusCallFlags.NONE, 2000, None)
+                except Exception:
+                    pass
+            if registered:
+                try:
+                    bus.call_sync("org.bluez", "/org/bluez", "org.bluez.AgentManager1", "UnregisterAgent",
+                                  GLib.Variant("(o)", (agent_path,)), None, Gio.DBusCallFlags.NONE, 2000, None)
+                except Exception:
+                    pass
+            bus.unregister_object(registration)
+            loop.quit()
+
+    def connect(self, address, service_uuid, cancelled=None):
+        if not BLUETOOTH_ADDRESS.fullmatch(address) or service_uuid != BLUETOOTH_UUID or not self.paired(address):
+            raise PermissionError("Bluetooth device is not system-paired")
+        from gi.repository import Gio, GLib
+        bus, objects = self._bluez()
+        paths = [path for path, interfaces in objects.items() if
+                 str(interfaces.get("org.bluez.Device1", {}).get("Address", "")).upper() == address and
+                 interfaces.get("org.bluez.Device1", {}).get("Paired")]
+        if len(paths) != 1:
+            raise ValueError("Wrong Bluetooth device.")
+        device_path = paths[0]
+        owner = bus.call_sync("org.freedesktop.DBus", "/org/freedesktop/DBus", "org.freedesktop.DBus", "GetNameOwner",
+            GLib.Variant("(s)", ("org.bluez",)), None, Gio.DBusCallFlags.NONE, 3000, None).unpack()[0]
+        profile_path = "/io/gitlab/magnolie/phone_rfcomm_" + uuid.uuid4().hex
+        xml = """<node><interface name='org.bluez.Profile1'>
+          <method name='Release'/>
+          <method name='NewConnection'><arg type='o' direction='in'/><arg type='h' direction='in'/><arg type='a{sv}' direction='in'/></method>
+          <method name='RequestDisconnection'><arg type='o' direction='in'/></method>
+        </interface></node>"""
+        received = [None]
+        closed = threading.Event()
+        ownership = threading.Lock()
+        registered = [False]
+        def call(_bus, sender, _path, _interface, method, parameters, invocation):
+            args = parameters.unpack()
+            if sender != owner or method != "Release" and (not args or args[0] != device_path):
+                invocation.return_dbus_error("org.bluez.Error.Rejected", "Wrong Bluetooth device")
+                return
+            if method == "NewConnection":
+                ownership.acquire()
+                if received[0] is not None or closed.is_set():
+                    ownership.release()
+                    invocation.return_dbus_error("org.bluez.Error.Rejected", "Unexpected RFCOMM connection")
+                    return
+                fd = None
+                raw = None
+                try:
+                    fd = invocation.get_message().get_unix_fd_list().get(args[1])
+                    raw = socket.socket(fileno=fd)
+                    if str(raw.getpeername()[0]).upper() != address:
+                        raw.close()
+                        raise ValueError("Wrong Bluetooth device")
+                    received[0] = raw
+                    invocation.return_value(None)
+                except Exception:
+                    if raw is not None:
+                        raw.close()
+                    elif fd is not None:
+                        os.close(fd)
+                    invocation.return_dbus_error("org.bluez.Error.Rejected", "Invalid RFCOMM stream")
+                finally:
+                    ownership.release()
+            elif method in ("Release", "RequestDisconnection"):
+                if received[0] is not None:
+                    received[0].close()
+                invocation.return_value(None)
+            else:
+                invocation.return_dbus_error("org.bluez.Error.Rejected", "Unexpected RFCOMM connection")
+        registration, loop = self._register_bluez_object(bus, profile_path, xml, call)
+        class ProfileSocket:
+            def __getattr__(self, name): return getattr(received[0], name)
+            def close(self):
+                with ownership:
+                    if closed.is_set(): return
+                    closed.set()
+                    if received[0] is not None: received[0].close()
+                if registered[0]:
+                    try:
+                        bus.call_sync("org.bluez", "/org/bluez", "org.bluez.ProfileManager1", "UnregisterProfile",
+                            GLib.Variant("(o)", (profile_path,)), None, Gio.DBusCallFlags.NONE, 2000, None)
+                    except Exception:
+                        pass
+                bus.unregister_object(registration)
+                loop.quit()
+        stream = ProfileSocket()
+        operation = Gio.Cancellable()
+        connected = threading.Event()
+        def cancel_connect():
+            while not connected.wait(.1):
+                if cancelled.is_set():
+                    operation.cancel()
+                    return
+        if cancelled is not None:
+            threading.Thread(target=cancel_connect, daemon=True).start()
+        try:
+            options = {"Role": GLib.Variant("s", "client"), "RequireAuthentication": GLib.Variant("b", True),
+                       "AutoConnect": GLib.Variant("b", False)}
+            registered[0] = True
+            bus.call_sync("org.bluez", "/org/bluez", "org.bluez.ProfileManager1", "RegisterProfile",
+                GLib.Variant("(osa{sv})", (profile_path, service_uuid, options)), None, Gio.DBusCallFlags.NONE, 3000, operation)
+            # BlueZ resolves the 128-bit SDP UUID and hands over its connected fd.
+            bus.call_sync("org.bluez", device_path, "org.bluez.Device1", "ConnectProfile",
+                GLib.Variant("(s)", (service_uuid,)), None, Gio.DBusCallFlags.NONE, 10000, operation)
+            if cancelled is not None and cancelled.is_set():
+                raise InterruptedError("Bluetooth connection cancelled")
+            if received[0] is None:
+                raise OSError("Open the phone connection screen and try again.")
+            return stream
+        except Exception:
+            stream.close()
+            raise
+        finally:
+            connected.set()
 
 
 def send_frame(sock, value):
@@ -1613,7 +1934,7 @@ def receive_frame(sock, maximum):
 class PhoneService:
     """Own listener, pairing state, status cache and phone sessions."""
 
-    def __init__(self, root, display_name, callback=None, bluetooth_backend=None):
+    def __init__(self, root, display_name, callback=None, bluetooth_backend=None, call_audio=None):
         self.store = PhoneStore(root, display_name)
         self.callback = callback or (lambda _event, _payload: None)
         self.enabled = self.store.settings()["enabled"]
@@ -1625,7 +1946,13 @@ class PhoneService:
         self.pairing_attempt_active = False
         self.connections = {}
         self.status_requests = {}
+        self.identifier_requests = {}
+        self.transient_identifiers = {}
         self.lock = threading.RLock()
+        self._lifecycle_lock = threading.RLock()
+        self._workers = set()
+        self._sockets = set()
+        self._generation = 0
         self.active_by_ip = {}
         self.connection_transports = {}
         self.connection_errors = {}
@@ -1634,6 +1961,16 @@ class PhoneService:
         self.wifi_missing_since = {}
         self.bluetooth_retry_at = {}
         self.incoming_calls = {}
+        self.incoming_call_channels = {}
+        from magnolie_anruf_audio import AnrufBluetooth
+        self.call_audio = call_audio or AnrufBluetooth()
+        self.audio_thread = None
+        self.audio_observations = {}
+        self.audio_retired_calls = deque(maxlen=128)
+        self.audio_capability = self.call_audio.snapshot("unavailable", "not_probed")
+        self.audio_capability_at = 0
+        self.audio_capability_address = ""
+        self.call_action_tickets = {}
         self.personal_commit_events = {}
         self.personal_dispatched = set()
         self.personal_sync_available = lambda: True
@@ -1641,6 +1978,13 @@ class PhoneService:
         self.personal_offer_keys = set()
 
     def report(self):
+        with self.lock:
+            for peer_id, value in list(self.transient_identifiers.items()):
+                if value[1] <= now_ms() or value[5] <= time.monotonic():
+                    self._purge_identifiers(peer_id)
+            for peer_id, request in list(self.identifier_requests.items()):
+                if request[3] <= time.monotonic():
+                    self._purge_identifiers(peer_id)
         bluetooth_available, bluetooth_reason = self.bluetooth_backend.availability()
         bluetooth_devices = (self.bluetooth_backend.paired_devices()
                              if bluetooth_available else [])
@@ -1663,7 +2007,9 @@ class PhoneService:
                             "grants": peer.get("grants", {}),
                             "local_grants": peer.get("local_grants", {}),
                            "bluetooth_enabled": bluetooth["enabled"],
-                           "bluetooth_address": bluetooth["address"],
+                            "bluetooth_address": bluetooth["address"],
+                            "call_audio": dict(peer.get("call_audio", {})),
+                            "custom_sync": peer.get("custom_sync", {}),
                             "own_device": personal["own_device"] and not binding_conflict,
                            "remote_own_device": personal["remote_own_device"],
                            "auto_wifi": personal["auto_wifi"],
@@ -1677,7 +2023,8 @@ class PhoneService:
                 "fingerprint": fingerprint(unb64(self.store.identity["static_public"], 32)),
                  "pairing": bool(self.pairing_token and time.monotonic() < self.pairing_until),
                  "binding_conflict": binding_conflict,
-                 "peers": peers, "bluetooth": {"available": bluetooth_available,
+                  "call_audio": self.call_audio_status(),
+                  "peers": peers, "bluetooth": {"available": bluetooth_available,
                     "reason": bluetooth_reason, "uuid": BLUETOOTH_UUID,
                     "devices": bluetooth_devices}}
 
@@ -1690,10 +2037,100 @@ class PhoneService:
             self.stop()
         self.callback("status", self.report())
 
+    def set_call_audio(self, peer_id, prefer_pc):
+        if not isinstance(prefer_pc, bool):
+            raise ValueError("Invalid call audio preference")
+        with self.lock:
+            peer = self.store.sole_peer(peer_id)
+            if not peer or peer.get("state") != "paired":
+                raise RuntimeError("Das Telefon ist nicht gekoppelt.")
+            # A routing preference never grants call monitoring, answering or hanging up.
+            peer["call_audio"] = {"prefer_pc": prefer_pc}
+            self.store.save_peers()
+        if not prefer_pc:
+            self.call_audio.restore()
+
+    def call_audio_status(self):
+        with self.lock:
+            peers = [peer for peer in self.store.peers if peer.get("state") == "paired"]
+            address = (peers[0].get("bluetooth", {}).get("address", "") if len(peers) == 1
+                       and peers[0].get("personal_sync", {}).get("own_device") else "")
+            capability = (self.audio_capability if address == self.audio_capability_address else
+                          self.call_audio.snapshot("unavailable", "not_probed"))
+            route = dict(self.call_audio.state)
+            if route.get("active"):
+                context = self._call_audio_context()
+                if not context or context != self.call_audio.active_context:
+                    route = self.call_audio.snapshot("inactive", "call_changed")
+            return dict(capability, route=route)
+
+    def _call_audio_context(self):
+        with self.lock:
+            if not self.enabled or self.stop_event.is_set() or not self.server:
+                return None
+            peers = [peer for peer in self.store.peers if peer.get("state") == "paired"]
+            if len(peers) != 1 or self.store.binding_conflict():
+                return None
+            peer = peers[0]
+            peer_id = peer["device_id"]
+            call = self.incoming_calls.get(peer_id, {})
+            observation = self.audio_observations.get(peer_id)
+            local, remote = peer.get("local_grants", {}), peer.get("grants", {})
+            capability = peer.get("capabilities", {}).get("items", {}).get("incoming_call_state", {})
+            if (not peer.get("personal_sync", {}).get("own_device")
+                    or peer.get("call_audio", {}).get("prefer_pc") is not True
+                    or not local.get("grants", {}).get("incoming_call_state")
+                    or not remote.get("grants", {}).get("incoming_call_state")
+                    or not capability.get("available") or 2 not in capability.get("versions", [])
+                    or call.get("state") != "offhook" or not call.get("offhook_ms")
+                    or not observation or observation[:2] != (call.get("call_ref"), call.get("revision"))
+                    or observation[2] is not self.connections.get(peer_id)
+                    or observation[3:] != (local.get("revision"), remote.get("revision"))):
+                return None
+            address = peer.get("bluetooth", {}).get("address", "")
+            if not BLUETOOTH_ADDRESS.fullmatch(address):
+                return None
+            return dict(device_id=peer_id, identity=peer["static_public"], session=id(observation[2]),
+                        call_ref=call["call_ref"], revision=call["revision"], address=address,
+                        consent=(local.get("revision"), remote.get("revision"), self._generation))
+
+    def _call_audio_loop(self):
+        try:
+            while not self.stop_event.is_set():
+                previous = self.call_audio_status()
+                self.call_audio.update(self._call_audio_context)
+                with self.lock:
+                    peers = [peer for peer in self.store.peers if peer.get("state") == "paired"]
+                    address = (peers[0].get("bluetooth", {}).get("address", "") if len(peers) == 1
+                               and peers[0].get("personal_sync", {}).get("own_device") else "")
+                if self.call_audio.state.get("active"):
+                    self.audio_capability = self.call_audio.snapshot("available", "ready")
+                    self.audio_capability_address = address
+                elif (not self.call_audio.modules_pending and not self.call_audio.profile_hold
+                      and (time.monotonic() >= self.audio_capability_at or address != self.audio_capability_address)):
+                    self.audio_capability = self.call_audio.probe(address)
+                    self.audio_capability_address = address
+                    self.audio_capability_at = time.monotonic() + 10
+                if previous != self.call_audio_status():
+                    self.callback("call_audio", self.call_audio_status())
+                self.stop_event.wait(.5)
+        finally:
+            self.call_audio.restore()
+
     def start(self):
+        with self._lifecycle_lock:
+            return self._start_owned()
+
+    def _start_owned(self):
         if not self.enabled or self.server:
             return bool(self.server)
-        self.stop_event.clear()
+        with self.lock:
+            if any(worker.is_alive() for worker in self._workers) or any(
+                    worker is not None and worker.is_alive()
+                    for worker in (self.thread, self.bluetooth_thread, self.audio_thread)):
+                return False
+            self._generation += 1
+            self.stop_event = threading.Event()
         server = socket.socket(socket.AF_INET6, socket.SOCK_STREAM)
         server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         try:
@@ -1710,6 +2147,8 @@ class PhoneService:
         self.server = server
         self.thread = threading.Thread(target=self._accept, daemon=True)
         self.thread.start()
+        self.audio_thread = threading.Thread(target=self._call_audio_loop, name="magnolie-call-audio", daemon=True)
+        self.audio_thread.start()
         self._ensure_pairing_available()
         self._publish()
         if not self.bluetooth_thread or not self.bluetooth_thread.is_alive():
@@ -1718,26 +2157,54 @@ class PhoneService:
         return True
 
     def stop(self):
-        self.cancel_pairing()
+        with self._lifecycle_lock:
+            return self._stop_owned()
+
+    def _stop_owned(self):
         self.stop_event.set()
-        if self.server:
+        with self.lock:
+            listener, self.server = self.server, None
+            sockets = list(self._sockets) + [channel.sock for channel in self.connections.values()]
+        for sock in sockets + ([listener] if listener is not None else []):
             try:
-                self.server.close()
+                sock.shutdown(socket.SHUT_RDWR)
             except OSError:
                 pass
-            self.server = None
-        for channel in list(self.connections.values()):
-            try:
-                channel.send({"type": "close", "reason": "shutdown"})
-            except Exception:  # noqa: S110 - Shutdown continues when a close frame cannot be sent.
-                pass
-            try:
-                channel.sock.close()
-            except OSError:
-                pass
-        self.connections.clear()
-        self.connection_transports.clear()
+            sock.close()
+        setup = getattr(self, "setup_pairing", None)
+        if setup:
+            self.end_setup_pairing(b64(setup["token"]))
+            self.setup_pairing = None
+        self.cancel_pairing()
         self._unpublish()
+        deadline = time.monotonic() + 15
+        with self.lock:
+            workers = list(self._workers) + [self.thread, self.bluetooth_thread, self.audio_thread]
+        for worker in workers:
+            if worker is not None and worker is not threading.current_thread():
+                worker.join(max(0, deadline - time.monotonic()))
+        with self.lock:
+            drained = not any(worker is not None and worker.is_alive() for worker in workers)
+        if drained:
+            drained = self.call_audio.restore()
+        with self.lock:
+            if drained:
+                self.connections.clear()
+                self.connection_transports.clear()
+                self.audio_observations.clear()
+            return drained
+
+    def _start_handler(self, sock, ip, transport):
+        with self.lock:
+            if self.stop_event.is_set():
+                sock.close()
+                return False
+            worker = threading.Thread(target=self._handle,
+                args=(sock, ip, transport, self._generation), daemon=True)
+            self._workers.add(worker)
+            self._sockets.add(sock)
+            worker.start()
+            return True
 
     def open_pairing(self):
         if not self.enabled:
@@ -1745,6 +2212,10 @@ class PhoneService:
         if self.store.peers:
             raise RuntimeError("Only one Magnolie Notes phone can be paired. Remove the existing phone before changing devices.")
         self.start()
+        setup = getattr(self, "setup_pairing", None)
+        if setup:
+            self.end_setup_pairing(b64(setup["token"]))
+        self.setup_pairing = None
         self.pairing_token = os.urandom(16)
         self.pairing_until = float("inf")
         self._publish()
@@ -1752,6 +2223,50 @@ class PhoneService:
         self.callback("pairing_open", {"token": token, "seconds": PAIRING_SECONDS,
                       "port": PORT, "display_name": self.store.identity["display_name"]})
         return token
+
+    def open_setup_pairing(self, target, address, transport="wifi"):
+        import ipaddress
+        if not valid_uuid(target) or target == self.store.identity["device_id"] or transport not in ("wifi", "bluetooth"):
+            raise ValueError("invalid setup target")
+        if transport == "bluetooth":
+            if not BLUETOOTH_ADDRESS.fullmatch(address):
+                raise ValueError("invalid setup target")
+            address = "bluetooth:" + address
+        elif ipaddress.ip_address(address).version != 4:
+            raise ValueError("invalid setup target")
+        with self.lock:
+            if self.store.peers or self.pairing_attempt_active:
+                raise ValueError("phone binding already exists or pairing is active")
+            token = os.urandom(16)
+            self.pairing_token = token
+            self.pairing_until = time.monotonic() + 120
+            self.setup_pairing = {"target": target, "address": address, "token": token, "socket": None}
+            timer = threading.Timer(120, self.end_setup_pairing, args=(b64(token),))
+            timer.daemon = True
+            self.setup_pairing["timer"] = timer
+            timer.start()
+        if transport == "wifi":
+            self._publish()
+        return {"device_id": self.store.identity["device_id"], "name": self.store.identity["display_name"], "token": b64(token)}
+
+    def end_setup_pairing(self, token):
+        sock = None
+        with self.lock:
+            setup = getattr(self, "setup_pairing", None)
+            if setup and b64(setup["token"]) == token:
+                self.pairing_until = 0
+                setup["timer"].cancel()
+                sock = setup["socket"]
+                for context in list(self.pairings.values()):
+                    context["decision"] = False
+                    context["event"].set()
+        if sock:
+            try:
+                sock.shutdown(socket.SHUT_RDWR)
+            except OSError:
+                pass
+        if not setup or not setup["address"].startswith("bluetooth:"):
+            self._publish()
 
     def cancel_pairing(self):
         self.pairing_token = None
@@ -1771,6 +2286,8 @@ class PhoneService:
             context["event"].set()
 
     def remove(self, peer_id):
+        with self.lock:
+            self._purge_identifiers(peer_id)
         channel = self.connections.pop(peer_id, None)
         if channel:
             try:
@@ -1800,9 +2317,16 @@ class PhoneService:
         self.connection_transports.pop(peer_id, None)
         self.connection_errors.pop(peer_id, None)
         self.status_requests.pop(peer_id, None)
+        self._purge_identifiers(peer_id)
         self.incoming_calls.pop(peer_id, None)
+        self.incoming_call_channels.pop(peer_id, None)
         self.wifi_missing_since.pop(peer_id, None)
         self.bluetooth_retry_at.pop(peer_id, None)
+        if not self.store.peers:
+            setup = getattr(self, "setup_pairing", None)
+            if setup:
+                setup["timer"].cancel()
+                self.setup_pairing = None
         self._ensure_pairing_available()
         self._publish()
         self.callback("status", self.report())
@@ -1829,7 +2353,11 @@ class PhoneService:
         self.bluetooth_retry_at.pop(peer_id, None)
         self.callback("status", self.report())
 
-    def request_status(self, peer_id):
+    def request_status(self, peer_id, include_identifiers=True, request_id=None):
+        if type(include_identifiers) is not bool:
+            raise ValueError("invalid identifier request")
+        if request_id is not None and not valid_uuid(request_id, 4):
+            raise ValueError("invalid identifier request")
         peer = self.store.peer(peer_id)
         if not peer or peer.get("state") != "paired":
             raise RuntimeError("Das Telefon ist nicht gekoppelt.")
@@ -1838,8 +2366,22 @@ class PhoneService:
         if (not capability.get("available") or 1 not in versions
                 or not peer.get("grants", {}).get("grants", {}).get("device_status")):
             raise RuntimeError("Der Gerätestatus ist nicht freigegeben oder nicht verfügbar.")
-        request_id = str(uuid.uuid4())
+        request_id = request_id if request_id is not None else str(uuid.uuid4())
         body = {"request_id": request_id}
+        with self.lock:
+            channel = self.connections.get(peer_id)
+            if channel and self._identifiers_allowed(peer):
+                self._purge_identifiers(peer_id)
+                body.update(version=4, include_identifiers=include_identifiers)
+                created = now_ms()
+                self.identifier_requests[peer_id] = (request_id, channel, peer["static_public"], time.monotonic() + 60, include_identifiers)
+                try:
+                    channel.send({"type": "message", "v": 1, "message_id": str(uuid.uuid4()),
+                        "kind": "device_status.request", "created_ms": created, "expires_ms": created + 60000, "body": body})
+                except Exception:
+                    self._purge_identifiers(peer_id)
+                    raise
+                return request_id
         if 3 in versions:
             body["version"] = 3
         elif 2 in versions:
@@ -1852,6 +2394,75 @@ class PhoneService:
             self._send_message(channel, peer_id, message)
         return request_id
 
+    def _identifiers_allowed(self, peer):
+        current = self.store.sole_peer(peer["device_id"])
+        personal = peer.get("personal_sync", {})
+        cap = peer.get("capabilities", {}).get("items", {}).get("device_status", {})
+        return (current is not None and current.get("static_public") == peer.get("static_public") and peer.get("state") == "paired"
+                and personal.get("own_device") is True and personal.get("remote_own_device") is True
+                and cap.get("available") is True and 4 in cap.get("versions", [])
+                and peer.get("grants", {}).get("grants", {}).get("device_status") is True
+                and peer.get("local_grants", desktop_grants()).get("grants", {}).get("device_status") is True)
+
+    def _purge_identifiers(self, peer_id):
+        self.identifier_requests.pop(peer_id, None)
+        self.transient_identifiers.pop(peer_id, None)
+
+    def current_identifier_event(self, payload):
+        with self.lock:
+            peer_id = payload.get("device_id", "")
+            peer = self.store.peer(peer_id)
+            current = self.transient_identifiers.get(peer_id)
+            status = payload.get("status", {})
+            if (not peer or not current or peer_id not in self.connections or not self._identifiers_allowed(peer)
+                    or current[1] <= now_ms() or current[5] <= time.monotonic() or current[3] != peer["static_public"]
+                    or current[4] is not self.connections.get(peer_id)):
+                self.transient_identifiers.pop(peer_id, None)
+                return dict(payload, status=without_device_identifiers(status))
+            if current[1] != status.get("identifiers_expires_ms") or current[2] != status.get("request_id"):
+                return dict(payload, status=without_device_identifiers(status))
+            return dict(payload, status=dict(status, identifiers=current[0]))
+
+    def _receive_identifiers(self, peer, channel, payload):
+        with self.lock:
+            peer_id = peer["device_id"]
+            current = self.store.peer(peer_id)
+            request = self.identifier_requests.get(peer_id)
+            error = "not_granted"
+            try:
+                report = validate_device_status(payload["body"])
+                if (not current or current["static_public"] != peer["static_public"] or not self._identifiers_allowed(current)
+                        or not request or request[:3] != (report["request_id"], channel, peer["static_public"])
+                        or self.connections.get(peer_id) is not channel):
+                    raise PermissionError
+                error = "expired"
+                if time.monotonic() >= request[3] or now_ms() >= payload["expires_ms"]:
+                    raise PermissionError
+                error = "invalid_schema"
+                if payload["expires_ms"] - payload["created_ms"] > 60000 or report.get("version") != 4:
+                    raise PermissionError
+                if not request[4] and any(field["status"] != "not_shared" for field in report["identifiers"].values()):
+                    raise PermissionError
+                self.identifier_requests.pop(peer_id, None)
+                expiry = min(payload["expires_ms"], now_ms() + 60000)
+                self.transient_identifiers[peer_id] = (report["identifiers"], expiry, report["request_id"], peer["static_public"], channel,
+                    time.monotonic() + max(0, expiry - now_ms()) / 1000)
+                self.store.cache_status(peer_id, report)
+                self.callback("device_status", {"device_id": peer_id, "display_name": peer["display_name"],
+                    "status": dict(report, identifiers_expires_ms=expiry,
+                        identifiers_peer_fingerprint=fingerprint(unb64(peer["static_public"], 32)))})
+                channel.send({"type": "ack", "message_id": payload["message_id"], "status": "accepted", "error": "none"})
+                return
+            except ValueError:
+                error = "invalid_schema"
+            except PermissionError:
+                pass
+            # An old reply must not cancel a newer pending request or accepted result.
+            if (request and isinstance(payload.get("body"), dict) and
+                    request[:3] == (payload["body"].get("request_id"), channel, peer["static_public"])):
+                self._purge_identifiers(peer_id)
+            channel.send({"type": "ack", "message_id": payload["message_id"], "status": "rejected", "error": error})
+
     def set_grant(self, peer_id, name, enabled):
         if name not in {"selected_notifications_readonly", "incoming_call_state",
                         "incoming_call_number", "answer_call", "end_call",
@@ -1863,6 +2474,8 @@ class PhoneService:
         grants = peer.setdefault("local_grants", desktop_grants())
         if grants["grants"][name] == bool(enabled):
             return
+        with self.lock:
+            self.call_action_tickets.clear()
         if name in {"personal_notes_sync", "personal_tasks_sync"} and not enabled:
             self.store.purge_personal_modules(peer_id, {
                 "notes" if name == "personal_notes_sync" else "tasks"})
@@ -1877,14 +2490,109 @@ class PhoneService:
             self._send_message(channel, peer_id, message)
         self.callback("status", self.report())
 
+    def _custom_supported(self, peer):
+        return (4 in desktop_capabilities()["items"]["personal_tasks_sync"]["versions"]
+                and peer.get("capabilities", {}).get("items", {}).get("personal_tasks_sync", {}).get("available") is True
+                and 4 in peer.get("capabilities", {}).get("items", {}).get("personal_tasks_sync", {}).get("versions", []))
+
+    @staticmethod
+    def _custom_settings(enabled, revision):
+        value = {"format": 4, "scope": "custom", "enabled": enabled,
+                 "revision": revision, "epoch": str(uuid.uuid4())}
+        validate_custom_body("personal_sync.custom_settings", value)
+        return value
+
+    def _custom_allowed(self, peer_id, kind, body, outgoing=False):
+        if peer_id in getattr(self, "custom_save_failed", set()):
+            return False
+        peer = self.store.sole_peer(peer_id)
+        if not peer or not self._custom_supported(peer):
+            return False
+        custom = peer.get("custom_sync", {})
+        if kind == "personal_sync.custom_settings":
+            return not outgoing or body == custom.get("local")
+        personal = peer.get("personal_sync", {})
+        return custom_scope_allowed(custom.get("remote" if outgoing else "local"),
+            custom.get("local" if outgoing else "remote"), [4], [4],
+            personal.get("own_device"), personal.get("remote_own_device"),
+            body.get("sender_epoch"), body.get("receiver_epoch"),
+            body.get("sender_revision"), body.get("receiver_revision"))
+
+    def _save_custom(self, peer, custom):
+        previous = peer.get("custom_sync")
+        recovering = peer["device_id"] in getattr(self, "custom_save_failed", set())
+        peer["custom_sync"] = custom
+        try:
+            self.store.save_peers()
+        except Exception:
+            safe = dict(previous or {})
+            for side in ("local", "remote"):
+                if custom.get(side) and not custom[side]["enabled"]:
+                    safe[side] = custom[side]
+            peer["custom_sync"] = safe
+            self.custom_save_failed = getattr(self, "custom_save_failed", set()) | {peer["device_id"]}
+            raise
+        if recovering and custom.get("local") and self._custom_supported(peer):
+            self.store.remove_kind(peer["device_id"], "personal_sync.custom_settings")
+            self.store.queue(peer["device_id"], "personal_sync.custom_settings", custom["local"], DAY_MS)
+        self.custom_save_failed = getattr(self, "custom_save_failed", set()) - {peer["device_id"]}
+
+    def _pause_custom(self, peer_id):
+        with self.lock:
+            peer = self.store.peer(peer_id)
+            if not peer:
+                return
+            custom = dict(peer.get("custom_sync", {}))
+            if custom.get("local"):
+                custom["local"] = self._custom_settings(False, custom["local"]["revision"] + 1)
+                self._save_custom(peer, custom)
+                self.store.remove_kind(peer_id, "personal_sync.custom_batch")
+                self.store.remove_kind(peer_id, "personal_sync.custom_settings")
+                if self._custom_supported(peer):
+                    self.store.queue(peer_id, "personal_sync.custom_settings", custom["local"], DAY_MS)
+
+    def send_custom_sync(self, peer_id, kind, body):
+        validate_custom_body(kind, body)
+        with self.lock:
+            peer = self.store.sole_peer(peer_id)
+            if not peer or not self._custom_supported(peer) or kind == "personal_sync.custom_request":
+                raise RuntimeError("Custom synchronization is not supported.")
+            if kind == "personal_sync.custom_settings":
+                custom = dict(peer.get("custom_sync", {}))
+                changed = custom.get("local") != body
+                custom["local"] = accept_custom_settings(custom.get("local"), body)
+                self._save_custom(peer, custom)
+                if changed or not body["enabled"]:
+                    self.store.remove_kind(peer_id, "personal_sync.custom_batch")
+                self.store.remove_kind(peer_id, kind)
+            elif not self._custom_allowed(peer_id, kind, body, outgoing=True):
+                raise RuntimeError("Custom synchronization is not permitted.")
+            policy = "wifi_only" if body.get("trigger") == "auto_wifi" else "any"
+            message = self.store.queue(peer_id, kind, body, DAY_MS, policy)
+            channel = self.connections.get(peer_id)
+            if channel:
+                self._send_message(channel, peer_id, message)
+        self.callback("status", self.report())
+        return message["message_id"]
+
     def set_personal_sync(self, peer_id, own_device, auto_wifi=False):
+        with self.lock:
+            return self._set_personal_sync(peer_id, own_device, auto_wifi)
+
+    def _set_personal_sync(self, peer_id, own_device, auto_wifi=False):
         peer = self.store.peer(peer_id)
         if not peer or peer.get("state") != "paired":
             raise RuntimeError("Das Telefon ist nicht gekoppelt.")
         if self.store.sole_peer(peer_id) is None:
             raise RuntimeError("Mehrere Magnolie-Notes-Telefone sind gespeichert. Entfernen Sie alle bis auf eines.")
         previous = peer.get("personal_sync", {})
+        if own_device and not previous.get("own_device"):
+            # Only a new own-phone confirmation gets the new default. Existing
+            # installations wait for the GUI's explicit legacy preference migration.
+            peer.setdefault("call_audio", {"prefer_pc": True})
         if not own_device:
+            self._purge_identifiers(peer_id)
+            self._pause_custom(peer_id)
             self.store.purge_personal(peer_id)
         peer["personal_sync"] = {"own_device": bool(own_device),
             "remote_own_device": previous.get("remote_own_device", False),
@@ -1897,6 +2605,8 @@ class PhoneService:
         self.callback("status", self.report())
 
     def send_personal_sync(self, peer_id, kind, body, trigger="manual"):
+        if kind in CUSTOM_KINDS:
+            return self.send_custom_sync(peer_id, kind, body)
         if kind not in PERSONAL_DATA_KINDS:
             raise ValueError("invalid personal sync kind")
         body = dict(body)
@@ -1927,6 +2637,8 @@ class PhoneService:
             self.store.remember_personal_run(peer_id, body)
         else:
             run = self.store.personal_run(peer_id, body["run_id"])
+            if kind in {"personal_sync.batch", "personal_sync.report"} and format != run.get("format", 1):
+                raise ValueError("conflicting personal sync format")
             if run.get("trigger") not in {"manual", "auto_wifi"}:
                 raise RuntimeError("Unbekannte Personal-Sync-Transportpolicy.")
             trigger = run["trigger"]
@@ -1957,7 +2669,7 @@ class PhoneService:
                     body["records_hash"], descriptor["sha256"], mime, raw, policy,
                     now_ms() + DAY_MS, descriptor["attachment_id"])
                 seen.add(source["sha256"])
-        if kind == "personal_sync.report" and body.get("format") == 2 and self.store.has_outgoing_attachments(
+        if kind == "personal_sync.report" and body.get("format", 1) >= 2 and self.store.has_outgoing_attachments(
                 peer_id, body["run_id"]):
             self.store.hold_personal_report(peer_id, body)
             return ""
@@ -1976,18 +2688,20 @@ class PhoneService:
         return message["message_id"]
 
     def send_personal_sync_run(self, peer_id, request, batches, sources, trigger="manual", report=None):
-        """Validate and durably stage one complete V2 direction before queueing it."""
+        """Validate and durably stage one complete attachment-capable direction."""
         validate_personal_sync_body("personal_sync.request", request)
-        if request["format"] != 2 or not isinstance(batches, list) or not batches:
+        format = request["format"]
+        if format not in (2, 3) or not isinstance(batches, list) or not batches:
             raise ValueError("invalid format 2 run")
         for body in batches:
             validate_personal_sync_body("personal_sync.batch", body)
         if report is not None:
             validate_personal_sync_body("personal_sync.report", report)
-            if report["format"] != 2 or report["run_id"] != request["run_id"]:
+            if report["format"] != format or report["run_id"] != request["run_id"]:
                 raise ValueError("inconsistent format 2 report")
         records = [record for body in batches for record in body["records"]]
-        if (any(body["format"] != 2 or body["run_id"] != request["run_id"] for body in batches)
+        if (any(body["format"] != format or body["run_id"] != request["run_id"] or
+                body["reply"] != batches[-1]["reply"] for body in batches)
                 or [body["sequence"] for body in batches] != list(range(len(batches)))
                 or not batches[-1]["last"] or any(body["last"] for body in batches[:-1])
                 or len({body["records_hash"] for body in batches}) != 1
@@ -2001,7 +2715,9 @@ class PhoneService:
                 or not peer.get("personal_sync", {}).get("own_device")
                 or not peer.get("personal_sync", {}).get("remote_own_device")
                 or any(not local.get(name) or not remote.get(name) for name in needed)
-                or negotiated_personal_notes_format(peer) != 2):
+                or ("personal_notes_sync" in needed and negotiated_personal_notes_format(peer) < 2)
+                or (format == 3 and any(not supports_personal_format(peer, name, 3)
+                                       for name in needed))):
             raise RuntimeError("Persoenlicher Sync ist nicht beidseitig freigegeben.")
         descriptors = {item["sha256"]: item for record in records if record["kind"] == "note"
                        for item in record["value"]["attachments"]}
@@ -2022,6 +2738,8 @@ class PhoneService:
             raise RuntimeError("Ein automatischer Personal-Sync-Lauf ist bereits aktiv.")
         if not reply:
             self.store.remember_personal_run(peer_id, request)
+        elif self.store.personal_run(peer_id, request["run_id"]) != request:
+            raise ValueError("conflicting personal sync reply")
         policy = "wifi_only" if trigger == "auto_wifi" else "any"
         messages = ([] if reply else [("personal_sync.request", request, 60 * 60 * 1000)]) + [
             ("personal_sync.batch", body, DAY_MS) for body in batches]
@@ -2070,13 +2788,14 @@ class PhoneService:
         peer = self.store.peer(peer_id)
         capability = (peer or {}).get("capabilities", {}).get("items", {}).get(
             "answer_call", {})
-        if (not peer or peer_id not in self.connections or not capability.get("available")
+        if (not peer or peer.get("state") != "paired" or peer_id not in self.connections or not capability.get("available")
                 or 1 not in capability.get("versions", [])
                 or not peer.get("grants", {}).get("grants", {}).get("answer_call")
                 or not peer.get("local_grants", {}).get("grants", {}).get("answer_call")):
             raise RuntimeError("Das Annehmen von Anrufen ist nicht freigegeben oder nicht verfügbar.")
         current = self.incoming_calls.get(peer_id, {})
-        if current.get("call_ref") != call_ref or current.get("state") != "ringing":
+        if (current.get("call_ref") != call_ref or current.get("state") != "ringing"
+                or current.get("direction") != "incoming"):
             raise RuntimeError("Der Anruf klingelt nicht mehr oder ist veraltet.")
         body = validate_answer_command({"command_ref": command_ref, "call_ref": call_ref,
                                         "expected_state": "ringing"})
@@ -2090,17 +2809,20 @@ class PhoneService:
     def request_end_call(self, peer_id, call_ref, revision, command_ref):
         peer = self.store.peer(peer_id)
         capability = (peer or {}).get("capabilities", {}).get("items", {}).get("end_call", {})
-        if (not peer or peer_id not in self.connections or not capability.get("available")
+        if (not peer or peer.get("state") != "paired" or peer_id not in self.connections or not capability.get("available")
                 or 1 not in capability.get("versions", [])
                 or not peer.get("grants", {}).get("grants", {}).get("end_call")
                 or not peer.get("local_grants", {}).get("grants", {}).get("end_call")):
             raise RuntimeError("Das Beenden von Anrufen ist nicht freigegeben oder nicht verfügbar.")
         current = self.incoming_calls.get(peer_id, {})
-        if (current.get("call_ref") != call_ref or current.get("state") != "offhook"
+        rejecting = current.get("state") == "ringing" and current.get("direction") == "incoming"
+        if (current.get("call_ref") != call_ref or (current.get("state") != "offhook" and not rejecting)
+                or rejecting and 2 not in capability.get("versions", [])
+                or rejecting and not peer.get("local_grants", {}).get("grants", {}).get("answer_call")
                 or current.get("revision") != revision):
             raise RuntimeError("Der Anruf ist nicht mehr aktiv oder wurde aktualisiert.")
         body = validate_end_command({"command_ref": command_ref, "call_ref": call_ref,
-            "expected_revision": revision, "expected_state": "offhook"})
+            "expected_revision": revision, "expected_state": current["state"]})
         if self.store.command_state(command_ref):
             raise RuntimeError("Dieser Auflegeauftrag wurde bereits eingereiht.")
         self.store.remember_command(peer_id, command_ref, "queued")
@@ -2108,10 +2830,97 @@ class PhoneService:
         self._send_message(self.connections[peer_id], peer_id, message)
         return command_ref
 
+    def call_event_current(self, peer_id, call_ref, revision, state):
+        with self.lock:
+            current = self.incoming_calls.get(peer_id, {})
+            return bool(peer_id in self.connections
+                and self.incoming_call_channels.get(peer_id) is self.connections[peer_id]
+                and current.get("call_ref") == call_ref and current.get("revision") == revision
+                and current.get("state") == state)
+
+    def call_is_current(self, peer_id, call_ref, revision):
+        with self.lock:
+            peer = self.store.peer(peer_id) or {}
+            current = self.incoming_calls.get(peer_id, {})
+            capability = peer.get("capabilities", {}).get("items", {}).get("incoming_call_state", {})
+            return bool(peer.get("state") == "paired" and peer_id in self.connections
+                and self.call_event_current(peer_id, call_ref, revision, "ringing")
+                and 0 <= now_ms() - current.get("occurred_ms", 0) <= 60000
+                and current.get("call_ref") == call_ref and current.get("revision") == revision
+                and current.get("state") == "ringing" and current.get("direction") == "incoming"
+                and peer.get("local_grants", {}).get("grants", {}).get("incoming_call_state")
+                and peer.get("grants", {}).get("grants", {}).get("incoming_call_state")
+                and capability.get("available") and 2 in capability.get("versions", []))
+
+    def call_action_tokens(self, peer_id, call_ref, revision):
+        """Ephemeral capabilities, never phone numbers or durable launch requests."""
+        with self.lock:
+            now = time.monotonic()
+            self.call_action_tickets = {key: value for key, value in self.call_action_tickets.items()
+                                        if value[-1] > now}
+            peer = self.store.peer(peer_id) or {}
+            current = self.incoming_calls.get(peer_id, {})
+            local = peer.get("local_grants", {}).get("grants", {})
+            remote = peer.get("grants", {}).get("grants", {})
+            if (peer.get("state") != "paired" or peer_id not in self.connections
+                    or not self.call_is_current(peer_id, call_ref, revision)
+                    or not peer.get("static_public") or current.get("call_ref") != call_ref
+                    or current.get("revision") != revision or current.get("direction") != "incoming"
+                    or current.get("state") != "ringing" or not local.get("incoming_call_state")
+                    or not remote.get("incoming_call_state") or not local.get("answer_call")):
+                return {}
+            result = {}
+            for action, capability, version in (("answer", "answer_call", 1), ("reject", "end_call", 2)):
+                item = peer.get("capabilities", {}).get("items", {}).get(capability, {})
+                if not (local.get(capability) and remote.get(capability) and item.get("available")
+                        and version in item.get("versions", [])):
+                    continue
+                token = os.urandom(32).hex()
+                self.call_action_tickets[token] = (peer_id, peer["static_public"],
+                    self.connections[peer_id], call_ref, revision, action, now + 60)
+                result[action] = token
+            while len(self.call_action_tickets) > 64:
+                self.call_action_tickets.pop(next(iter(self.call_action_tickets)))
+            return result
+
+    def call_action(self, token):
+        with self.lock:
+            item = self.call_action_tickets.pop(token, None) if isinstance(token, str) else None
+            if item is None:
+                return False
+            peer_id, identity, connection, call_ref, revision, action, expires = item
+            peer = self.store.peer(peer_id) or {}
+            current = self.incoming_calls.get(peer_id, {})
+            if (time.monotonic() >= expires or peer.get("static_public") != identity
+                    or self.connections.get(peer_id) is not connection
+                    or current.get("revision") != revision
+                    or not self.call_action_tokens(peer_id, call_ref, revision).get(action)):
+                return False
+            # Consume sibling actions too: one alert cannot both answer and reject.
+            self.call_action_tickets = {key: value for key, value in self.call_action_tickets.items()
+                if (value[0], value[3]) != (peer_id, call_ref)}
+            command_ref = str(uuid.uuid4())
+            if action == "answer":
+                self.request_answer(peer_id, call_ref, command_ref)
+            else:
+                self.request_end_call(peer_id, call_ref, revision, command_ref)
+            return True
+
     def _send_message(self, channel, peer_id, message):
         policy = self.store.outbox_policy(peer_id, message.get("message_id", ""))
         if policy == "invalid" or policy == "wifi_only" and self.connection_transports.get(peer_id) != "wifi":
             return False
+        if message.get("kind") in CUSTOM_KINDS:
+            with self.lock:
+                if message["kind"] == "personal_sync.custom_batch" and (
+                        not self.personal_sync_available() or self.store.has_kind(peer_id, "personal_sync.custom_settings")):
+                    return False
+                if not self._custom_allowed(peer_id, message["kind"], message["body"], outgoing=True):
+                    self.store.acknowledge(peer_id, message["message_id"])
+                    return False
+                channel.send(message)
+                self.store.mark_attempt(peer_id, message["message_id"])
+                return True
         if (message.get("kind", "").startswith("personal_sync.")
                 and message.get("kind") != "personal_sync.settings"
                 and not self.personal_sync_available()):
@@ -2204,7 +3013,7 @@ class PhoneService:
     def _prepare_format2_aggregate(self, peer_id, aggregate, transport):
         messages = aggregate.get("messages", [])
         body = messages[-1]["body"] if messages else {}
-        if body.get("format") != 2:
+        if body.get("format", 1) < 2:
             return True
         run = self.store.personal_run(peer_id, aggregate["run_id"])
         policy = "wifi_only" if run.get("trigger") == "auto_wifi" else "any"
@@ -2299,22 +3108,34 @@ class PhoneService:
             revision = revisions[kind] if kind in revisions else self.store.next_revision(kind)
             body = factory(revision)
             self.store.queue(peer_id, kind, body, DAY_MS)
+        with self.lock:
+            custom = peer.get("custom_sync", {})
+            if self._custom_supported(peer) and custom.get("local"):
+                self.store.remove_kind(peer_id, "personal_sync.custom_settings")
+                self.store.queue(peer_id, "personal_sync.custom_settings", custom["local"], DAY_MS)
 
     def _accept(self):
-        while not self.stop_event.is_set() and self.server:
+        listener, stopped = self.server, self.stop_event
+        while not stopped.is_set() and listener:
             try:
-                client, address = self.server.accept()
+                client, address = listener.accept()
             except socket.timeout:
                 continue
             except OSError:
                 break
             ip = address[0]
             with self.lock:
+                if stopped.is_set():
+                    client.close()
+                    break
                 if sum(self.active_by_ip.values()) >= 8 or self.active_by_ip.get(ip, 0) >= 2:
                     client.close()
                     continue
                 self.active_by_ip[ip] = self.active_by_ip.get(ip, 0) + 1
-            threading.Thread(target=self._handle, args=(client, ip, "wifi"), daemon=True).start()
+                if not self._start_handler(client, ip, "wifi"):
+                    count = self.active_by_ip[ip] - 1
+                    if count: self.active_by_ip[ip] = count
+                    else: self.active_by_ip.pop(ip, None)
 
     def _claim_pairing_attempt(self):
         with self.lock:
@@ -2327,9 +3148,16 @@ class PhoneService:
         with self.lock:
             self.pairing_attempt_active = False
 
-    def _handle(self, sock, ip, transport="wifi"):
-        sock.settimeout(10)
+    def _handle(self, sock, ip, transport="wifi", generation=None):
+        worker = threading.current_thread()
+        with self.lock:
+            self._workers.add(worker)
+            self._sockets.add(sock)
+            current_generation = generation is None or generation == self._generation
         try:
+            if self.stop_event.is_set() or not current_generation:
+                return
+            sock.settimeout(10)
             first = receive_frame(sock, PAIR_FRAME_MAX)
             if first.get("p") != PROTOCOL:
                 raise ValueError("wrong protocol")
@@ -2337,7 +3165,7 @@ class PhoneService:
                 if not self._claim_pairing_attempt():
                     raise ValueError("pairing attempt already active")
                 try:
-                    self._pair(sock, first)
+                    self._pair(sock, first, ip)
                 finally:
                     self._release_pairing_attempt()
             elif first.get("type") == "pair_finish":
@@ -2354,13 +3182,16 @@ class PhoneService:
                 sock.close()
             except OSError:
                 pass
-            if transport == "wifi":
+            if transport == "wifi" and current_generation:
                 with self.lock:
                     count = self.active_by_ip.get(ip, 1) - 1
                     if count:
                         self.active_by_ip[ip] = count
                     else:
                         self.active_by_ip.pop(ip, None)
+            with self.lock:
+                self._sockets.discard(sock)
+                self._workers.discard(worker)
 
     @staticmethod
     def _validate_pair_init(value):
@@ -2382,10 +3213,20 @@ class PhoneService:
         unb64(value["ephemeral_public"], 32)
         unb64(value["nonce"], 32)
 
-    def _pair(self, sock, pair_init):
+    def _pair(self, sock, pair_init, source=None):
         from cryptography.hazmat.primitives.asymmetric.x25519 import X25519PrivateKey
         from cryptography.hazmat.primitives.serialization import Encoding, PublicFormat
         self._validate_pair_init(pair_init)
+        setup = getattr(self, "setup_pairing", None)
+        if setup:
+            if not setup["address"].startswith("bluetooth:"):
+                import ipaddress
+                address = ipaddress.ip_address(source)
+                source = str(getattr(address, "ipv4_mapped", None) or address)
+            with self.lock:
+                if setup["target"] != pair_init["device_id"] or setup["address"] != source:
+                    raise ValueError("wrong setup target")
+                setup["socket"] = sock
         if (not self.pairing_token or time.monotonic() >= self.pairing_until
                 or not hmac.compare_digest(unb64(pair_init["pairing_token"], 16),
                                            self.pairing_token)):
@@ -2426,10 +3267,11 @@ class PhoneService:
             peer.update({"device_id": pair_init["device_id"],
                          "display_name": pair_init["display_name"],
                          "static_public": pair_init["static_public"],
-                         "state": "pair_commit_pending", "grants": desktop_grants(),
+                          "state": "pair_commit_pending", "grants": {"revision": 0, "grants": {name: False for name in GRANT_NAMES}},
                          "local_grants": desktop_grants(),
                          "capabilities": {}, "last_contact_ms": 0,
-                         "bluetooth": {"enabled": False, "address": ""},
+                          "bluetooth": {"enabled": bool(setup and setup["address"].startswith("bluetooth:")),
+                                        "address": setup["address"][10:] if setup and setup["address"].startswith("bluetooth:") else ""},
                          "personal_sync": {"own_device": False, "remote_own_device": False,
                                            "auto_wifi": False,
                                            "last_report": {}},
@@ -2439,8 +3281,11 @@ class PhoneService:
                          "pending_desktop_finish_proof": b64(proof(
                              key, b"magnolie-phone-pair-v1/finish\0", "desktop", transcript)),
                          "pending_expires_ms": expires})
-            self.store.peers.append(peer)
-            self.store.save_peers()
+            with self.lock:
+                if setup and (self.setup_pairing is not setup or time.monotonic() >= self.pairing_until):
+                    raise ValueError("setup invitation expired")
+                self.store.peers.append(peer)
+                self.store.save_peers()
             send_frame(sock, {"p": PROTOCOL, "type": "pair_confirm", "side": "desktop",
                 "transcript": b64(transcript), "proof": b64(proof(
                     key, b"magnolie-phone-pair-v1/confirm\0", "desktop", transcript))})
@@ -2590,7 +3435,7 @@ class PhoneService:
             self.callback("status", self.report())
             sock.settimeout(1)
             last_incoming = time.monotonic()
-            while self.enabled:
+            while self.enabled and not self.stop_event.is_set():
                 try:
                     payload = channel.receive()
                     last_incoming = time.monotonic()
@@ -2612,6 +3457,7 @@ class PhoneService:
                         self._send_message(channel, peer["device_id"], message)
         finally:
             if activated and self.connections.get(peer_id) is channel:
+                self._purge_identifiers(peer_id)
                 self.connections.pop(peer_id, None)
                 self.connection_transports.pop(peer_id, None)
             try:
@@ -2625,11 +3471,22 @@ class PhoneService:
 
     def _activate_connection(self, peer_id, channel, transport):
         with self.lock:
+            if self.stop_event.is_set():
+                raise OSError("phone service stopped")
             current = self.connections.get(peer_id)
             current_transport = self.connection_transports.get(peer_id)
             if transport == "bluetooth" and current_transport == "wifi":
                 channel.send({"type": "close", "reason": "better_transport"})
                 raise OSError("WLAN is already active")
+            self._purge_identifiers(peer_id)
+            # A fresh authenticated session must observe its own current call.
+            # Retained ringing state must not mint tickets for the new transport.
+            pending_call = self.incoming_calls.get(peer_id) if self.incoming_call_channels.get(peer_id) is channel else None
+            if pending_call is None:
+                self.incoming_calls.pop(peer_id, None)
+                self.incoming_call_channels.pop(peer_id, None)
+            self.call_action_tickets = {key: value for key, value in self.call_action_tickets.items()
+                if value[0] != peer_id}
             self.connections[peer_id] = channel
             self.connection_transports[peer_id] = transport
         if current and current is not channel:
@@ -2642,7 +3499,15 @@ class PhoneService:
             except OSError:
                 pass
 
+        # A call can arrive during the authenticated control-message handshake.
+        # Re-present only that exact channel's observation once it is activated.
+        if pending_call is not None:
+            peer = self.store.peer(peer_id) or {}
+            self.callback("incoming_call", enrich_call(dict(pending_call,
+                device_id=peer_id, display_name=peer.get("display_name", ""))))
+
     def _close_connection(self, peer_id, reason):
+        self._purge_identifiers(peer_id)
         channel = self.connections.get(peer_id)
         if not channel:
             return
@@ -2660,9 +3525,13 @@ class PhoneService:
             self._bluetooth_tick()
 
     def _bluetooth_tick(self, now=None):
+        if self.pairing_attempt_active:
+            return
         now = time.monotonic() if now is None else now
         for peer in list(self.store.peers):
             peer_id = peer["device_id"]
+            if peer.get("state") == "pair_commit_pending" and peer.get("pending_expires_ms", 0) <= now_ms():
+                continue
             config = peer.get("bluetooth", {})
             transport = self.connection_transports.get(peer_id)
             if transport == "wifi":
@@ -2678,12 +3547,14 @@ class PhoneService:
             if not self.bluetooth_backend.paired(config["address"]):
                 continue
             try:
-                sock = self.bluetooth_backend.connect(config["address"], BLUETOOTH_UUID)
+                sock = self.bluetooth_backend.connect(config["address"], BLUETOOTH_UUID, self.stop_event)
                 sock.settimeout(10)
+                if self.stop_event.is_set() or not self.enabled:
+                    sock.close()
+                    continue
             except Exception:  # noqa: S112 - Bluetooth fallback retries after its backoff.
                 continue
-            threading.Thread(target=self._handle,
-                args=(sock, "bluetooth:" + peer_id, "bluetooth"), daemon=True).start()
+            self._start_handler(sock, "bluetooth:" + peer_id, "bluetooth")
 
     def _payload(self, peer, channel, payload):
         if payload.get("type") in ("ping", "pong") and set(payload) == {
@@ -2709,7 +3580,11 @@ class PhoneService:
             if (ack_policy == "invalid" or ack_policy == "wifi_only"
                     and self.connection_transports.get(peer["device_id"]) != "wifi"):
                 raise ValueError("wifi-only acknowledgement received on bluetooth")
-            decision_id = self.store.acknowledge(peer["device_id"], payload["message_id"])
+            if payload["status"] == "rejected" and payload["error"] == "temporary_failure":
+                return
+            decision_id = self.store.acknowledge(peer["device_id"], payload["message_id"],
+                (lambda body: self.callback("personal_custom_ack", {"device_id": peer["device_id"], "body": body}))
+                if payload["status"] in {"accepted", "duplicate"} else None)
             if decision_id and payload["status"] in {"accepted", "duplicate"}:
                 self.callback("personal_decision_accepted", {"device_id": peer["device_id"],
                               "decision_id": decision_id})
@@ -2727,6 +3602,44 @@ class PhoneService:
                 or payload["created_ms"] > received + CLOCK_SKEW_MS):
             raise ValueError("invalid message")
         kind = payload["kind"]
+        if kind in CUSTOM_KINDS:
+            status, error = "accepted", "none"
+            try:
+                validate_custom_body(kind, payload["body"])
+                if payload["expires_ms"] <= received or payload["expires_ms"] - payload["created_ms"] > DAY_MS:
+                    raise ValueError("expired custom message")
+                with self.lock:
+                    current = self.store.sole_peer(peer["device_id"])
+                    if not current or not self._custom_supported(current):
+                        raise PermissionError
+                    value = payload["body"]
+                    if self.store.dedupe_result(peer["device_id"], payload["message_id"]) and not self.store.received_matches(peer["device_id"], payload):
+                        raise ValueError("conflicting custom message identity")
+                    if kind == "personal_sync.custom_settings":
+                        custom = dict(current.get("custom_sync", {}))
+                        changed = custom.get("remote") != value
+                        custom["remote"] = accept_custom_settings(custom.get("remote"), value)
+                        self._save_custom(current, custom)
+                        if changed:
+                            self.store.remove_kind(peer["device_id"], "personal_sync.custom_batch")
+                        if not custom.get("local"):
+                            self.send_custom_sync(peer["device_id"], kind, self._custom_settings(False, 1))
+                    elif kind == "personal_sync.custom_request" and self._custom_allowed(peer["device_id"], kind, value):
+                        if value["trigger"] == "auto_wifi" and self.connection_transports.get(peer["device_id"]) != "wifi":
+                            raise PermissionError
+                        self.callback("personal_custom_request", {"device_id": peer["device_id"], "trigger": value["trigger"]})
+                    else:
+                        raise PermissionError
+                    self.store.remember_message(peer["device_id"], payload, status, error)
+            except PermissionError:
+                status, error = "rejected", "not_granted"
+            except ValueError:
+                status, error = "rejected", "invalid_schema"
+            except OSError:
+                status, error = "rejected", "temporary_failure"
+            channel.send({"type": "ack", "message_id": payload["message_id"], "status": status, "error": error})
+            self.callback("status", self.report())
+            return
         if kind in PERSONAL_DATA_KINDS:
             value = validate_personal_sync_body(kind, payload["body"])
             if payload["expires_ms"] <= received:
@@ -2760,8 +3673,14 @@ class PhoneService:
                             "status": "rejected", "error": "restore_unavailable"})
                         return
                     raise ValueError("personal sync request missing")
+                if kind in {"personal_sync.batch", "personal_sync.report"} and value.get("format", 1) != self.store.personal_run(
+                        peer["device_id"], value["run_id"]).get("format", 1):
+                    raise ValueError("conflicting personal sync format")
             if policy == "wifi_only" and self.connection_transports.get(peer["device_id"]) != "wifi":
                 raise ValueError("wifi-only run received on bluetooth")
+        if kind == "device_status.report" and ("identifiers" in payload["body"] or "version" in payload["body"]):
+            self._receive_identifiers(peer, channel, payload)
+            return
         previous = self.store.dedupe_result(peer["device_id"], payload["message_id"])
         if previous:
             if kind.startswith("personal_sync.") and kind != "personal_sync.settings":
@@ -2840,6 +3759,9 @@ class PhoneService:
             except ValueError:
                 status, error = "rejected", "invalid_schema"
         elif kind == "capabilities.update":
+            with self.lock:
+                self._purge_identifiers(peer["device_id"])
+                self.call_action_tickets.clear()
             try:
                 value = validate_capabilities(payload["body"])
                 old = peer.get("capabilities") or {"revision": 0}
@@ -2850,6 +3772,9 @@ class PhoneService:
             except ValueError:
                 status, error = "rejected", "invalid_schema"
         elif kind == "grants.update":
+            with self.lock:
+                self._purge_identifiers(peer["device_id"])
+                self.call_action_tickets.clear()
             try:
                 value = validate_grants(payload["body"])
                 old = peer.get("grants") or {"revision": 0}
@@ -2901,11 +3826,31 @@ class PhoneService:
                     status, error = "rejected", "not_granted"
                     raise PermissionError
                 value = validate_incoming_call_state(payload["body"])
-                previous_call = self.incoming_calls.get(peer["device_id"])
-                if (previous_call and previous_call["call_ref"] == value["call_ref"]
-                        and value["revision"] <= previous_call["revision"]):
-                    raise ValueError("stale call revision")
-                self.incoming_calls[peer["device_id"]] = value
+                with self.lock:
+                    if self.connections.get(peer["device_id"]) not in (None, channel):
+                        raise ValueError("stale call connection")
+                    previous_call = self.incoming_calls.get(peer["device_id"])
+                    if previous_call and (value["occurred_ms"] < previous_call["occurred_ms"] or
+                            previous_call["call_ref"] == value["call_ref"] and (
+                                previous_call["direction"] != value["direction"] or
+                                previous_call["state"] == "idle" and value["state"] != "idle")):
+                        raise ValueError("stale call lifecycle")
+                    if (previous_call and previous_call["call_ref"] == value["call_ref"]
+                            and value["revision"] <= previous_call["revision"]):
+                        raise ValueError("stale call revision")
+                    self.incoming_calls[peer["device_id"]] = value
+                    self.incoming_call_channels[peer["device_id"]] = channel
+                    if previous_call and previous_call["call_ref"] != value["call_ref"]:
+                        self.audio_retired_calls.append((peer["device_id"], previous_call["call_ref"]))
+                    if value["state"] == "idle":
+                        self.audio_retired_calls.append((peer["device_id"], value["call_ref"]))
+                    if (0 <= now_ms() - value["occurred_ms"] <= 15000
+                            and (peer["device_id"], value["call_ref"]) not in self.audio_retired_calls
+                            and self.connections.get(peer["device_id"]) is channel):
+                        self.audio_observations[peer["device_id"]] = (value["call_ref"], value["revision"], channel,
+                            peer["local_grants"].get("revision"), peer["grants"].get("revision"))
+                    else:
+                        self.audio_observations.pop(peer["device_id"], None)
                 self.callback("incoming_call", enrich_call(dict(value,
                     device_id=peer["device_id"], display_name=peer["display_name"])))
             except PermissionError:
@@ -2939,6 +3884,8 @@ class PhoneService:
                         status, error = "rejected", "not_granted"
                         raise PermissionError
                     if not value["own_device"]:
+                        self._purge_identifiers(peer["device_id"])
+                        self._pause_custom(peer["device_id"])
                         self.store.purge_personal(peer["device_id"])
                     personal["remote_own_device"] = value["own_device"]
                     self.store.save_peers()
@@ -3141,11 +4088,12 @@ class PhoneService:
             return
         try:
             from zeroconf import IPVersion, ServiceInfo, Zeroconf
+            pairing_active = self.pairing_token and time.monotonic() < self.pairing_until
             properties = {"v": "1", "role": "desktop",
                           "id": self.store.identity["device_id"],
                           "name": self.store.identity["display_name"],
-                          "pair": "1" if self.pairing_token else "0"}
-            if self.pairing_token:
+                          "pair": "1" if pairing_active else "0"}
+            if pairing_active:
                 properties["token"] = b64(self.pairing_token)
             route = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
             try:
@@ -3188,8 +4136,9 @@ def validate_device_status(body):
                        "memory_total_bytes", "memory_available_bytes", "uptime_ms",
                        "network_transport", "network_validated", "network_metered"}
     version3_fields = base_fields | extended_fields | {"app_version"}
+    version4_fields = version3_fields | {"version", "identifiers"}
     if (not isinstance(body, dict) or set(body) not in (base_fields, base_fields | extended_fields,
-                                                        version3_fields)
+                                                        version3_fields, version4_fields)
             or not valid_uuid(body["request_id"])):
         raise ValueError("invalid device status")
     limits = {"model": (0, 80), "manufacturer": (0, 80), "os_name": (1, 20),
@@ -3199,7 +4148,7 @@ def validate_device_status(body):
         if (not isinstance(value, str) or not minimum <= len(value) <= maximum
                 or any(ord(char) < 32 for char in value)):
             raise ValueError("invalid device status")
-    if set(body) == version3_fields:
+    if set(body) in (version3_fields, version4_fields):
         value = body["app_version"]
         if (not isinstance(value, str) or not 1 <= len(value) <= 80
                 or any(unicodedata.category(char) == "Cc" for char in value)):
@@ -3213,7 +4162,7 @@ def validate_device_status(body):
             or isinstance(captured, bool) or not isinstance(captured, int)
             or not 0 <= captured <= 253402300799999):
         raise ValueError("invalid device status")
-    if set(body) in (base_fields | extended_fields, version3_fields):
+    if set(body) in (base_fields | extended_fields, version3_fields, version4_fields):
         integer_ranges = {
             "sdk_int": (1, 1000), "battery_temperature_deci_c": (-1, 2000),
             "storage_total_bytes": (-1, 1 << 60), "storage_available_bytes": (-1, 1 << 60),
@@ -3233,7 +4182,31 @@ def validate_device_status(body):
                 or not isinstance(body["network_validated"], bool)
                 or not isinstance(body["network_metered"], bool)):
             raise ValueError("invalid device status")
+    if set(body) == version4_fields:
+        identifiers = body["identifiers"]
+        if type(body["version"]) is not int or body["version"] != 4 or not isinstance(identifiers, dict) or set(identifiers) != {"phone_number", "serial", "imei"}:
+            raise ValueError("invalid device identifiers")
+        for name, maximum in (("phone_number", 64), ("serial", 128), ("imei", 32)):
+            field = identifiers[name]
+            if not isinstance(field, dict) or set(field) != {"status", "value"}:
+                raise ValueError("invalid device identifiers")
+            state, value = field["status"], field["value"]
+            if (state not in ("available", "not_shared", "permission_missing", "os_restricted", "no_subscription", "unavailable")
+                    or not isinstance(value, str) or len(value) > maximum
+                    or (state == "available") != bool(value)
+                    or any(unicodedata.category(c) == "Cc" for c in value)
+                    or name == "imei" and value and not re.fullmatch(r"[0-9]+", value)):
+                raise ValueError("invalid device identifiers")
     return body
+
+
+def without_device_identifiers(body):
+    return {key: value for key, value in body.items()
+            if key in {"request_id", "model", "manufacturer", "os_name", "os_version", "battery_percent",
+                "charging", "captured_ms", "sdk_int", "battery_temperature_deci_c", "power_source",
+                "storage_total_bytes", "storage_available_bytes", "memory_total_bytes", "memory_available_bytes",
+                "uptime_ms", "network_transport", "network_validated", "network_metered", "app_version",
+                "online", "last_contact_ms", "cached_ms", "kennung", "name", "letzterKontakt"}}
 
 
 def validate_dial_request(body):
@@ -3336,7 +4309,7 @@ def validate_end_command(body):
     if (not isinstance(body, dict) or set(body) != {"command_ref", "call_ref",
             "expected_revision", "expected_state"} or not valid_uuid(body["command_ref"], 4)
             or not valid_uuid(body["call_ref"], 4) or not _validate_revision(body["expected_revision"])
-            or body["expected_state"] != "offhook"):
+            or body["expected_state"] not in {"offhook", "ringing"}):
         raise ValueError("invalid end command")
     return body
 

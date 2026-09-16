@@ -18,6 +18,38 @@ import magnolie_setup_state as setup
 import magnolie_setup_ui as setup_ui
 
 
+@pytest.mark.parametrize("work_height,default_height,minimum_height", [
+    (1040, 780, 680), (520, 472, 472),
+])
+def test_native_setup_height_fits_workarea(tmp_path, monkeypatch, work_height,
+                                          default_height, minimum_height):
+    import types
+    gi = pytest.importorskip("gi")
+    gi.require_version("Gtk", "3.0")
+    from gi.repository import Gtk, Gdk
+    if not Gtk.init_check()[0]:
+        pytest.skip("Native GTK display required")
+    for key in ("HOME", "XDG_CONFIG_HOME", "XDG_DATA_HOME", "XDG_CACHE_HOME"):
+        monkeypatch.setenv(key, str(tmp_path))
+    monkeypatch.setattr(setup_ui, "_play_welcome_chime", lambda *_: None)
+    monitor = types.SimpleNamespace(get_workarea=lambda: types.SimpleNamespace(height=work_height))
+    display = types.SimpleNamespace(get_primary_monitor=lambda: monitor)
+    gdk = types.SimpleNamespace(Display=types.SimpleNamespace(get_default=lambda: display),
+                                Screen=Gdk.Screen)
+    checked = []
+
+    def cancel(dialog):
+        assert tuple(dialog.get_default_size()) == (960, default_height)
+        assert tuple(dialog.get_size_request()) == (820, minimum_height)
+        checked.append(True)
+        return Gtk.ResponseType.CANCEL
+
+    monkeypatch.setattr(Gtk.Dialog, "run", cancel)
+    assert setup_ui.run_setup(Gtk, gdk, lambda text: text,
+                              lambda *_: pytest.fail("Cancellation must not save"), BIN) is None
+    assert checked == [True]
+
+
 def test_state_classification_distinguishes_fresh_existing_pending_and_damage(tmp_path):
     marker = tmp_path / "config" / "magnolie-organizer" / setup.MARKER_NAME
     evidence = (tmp_path / "data" / "magnolie-organizer", marker.parent)
@@ -53,19 +85,23 @@ def test_marker_replacement_is_atomic_and_private(tmp_path, monkeypatch):
                 if name.startswith(".setup-")]
 
 
-def test_setup_defaults_match_the_shared_selection_contract(tmp_path, monkeypatch):
+@pytest.mark.parametrize("regional,country", [
+    ("de_DE.UTF-8", "DE"), ("en_US.UTF-8", "US"), ("C.UTF-8", ""),
+])
+def test_setup_defaults_match_the_shared_selection_contract(tmp_path, monkeypatch, regional, country):
     monkeypatch.setenv("XDG_DATA_HOME", str(tmp_path / "data"))
+    monkeypatch.setenv("LC_ALL", regional)
     selections = setup_ui._default_selections("de")
     assert list(selections) == [
-        "language", "address", "addressSource", "addressSort", "calendarUids",
-        "addressBookUid", "oneTimeImports", "phoneActions", "registers", "customTabEnabled",
+        "language", "address", "addressSource", "addressChanged", "schoolHolidays", "schoolHolidayRegion", "addressSort", "calendarUids",
+        "addressBookUid", "oneTimeImports", "stagedImports", "phoneActions", "phoneBackgroundServices", "registers", "customTabEnabled",
         "customTabName", "customTabDesignRequested", "customTabChanged", "customOrganizerChanged", "customOrganizer", "autostart", "tray", "weather", "restoreRequest",
         "openHandbook", "backupPath", "backupInterval",
     ]
     assert selections["language"] == "de"
     assert selections["address"] == {
         "firstName": "", "lastName": "", "street": "", "postalCode": "",
-        "city": "", "country": "DE", "state": ""}
+        "city": "", "country": country, "state": ""}
     assert selections["addressSource"] == "own"
     assert selections["registers"] == [
         "tasks", "addresses", "notes", "anniversaries", "planner",
@@ -86,14 +122,28 @@ def test_setup_defaults_match_the_shared_selection_contract(tmp_path, monkeypatc
     assert selections["backupInterval"] == "manual"
 
 
-def test_setup_opens_downloads_without_bluetooth_and_stores_custom_designer_modules():
+def test_installed_setup_prefers_png_without_optional_svg_loader(tmp_path):
+    script_directory = tmp_path / "usr" / "bin"
+    icons = tmp_path / "usr" / "share" / "icons" / "hicolor"
+    png = icons / "256x256" / "apps" / "magnolie-organizer.png"
+    svg = icons / "scalable" / "apps" / "magnolie-organizer.svg"
+    script_directory.mkdir(parents=True)
+    png.parent.mkdir(parents=True)
+    svg.parent.mkdir(parents=True)
+    png.write_bytes(b"png")
+    svg.write_text("<svg/>", encoding="ascii")
+
+    assert setup_ui._logo_path(str(script_directory)) == str(png)
+
+
+def test_setup_downloads_and_native_phone_callbacks_store_custom_designer_modules():
     source = open(setup_ui.__file__, encoding="utf-8").read()
     assert "KDE_CONNECT_URL" in source and "MAGNOLIE_NOTES_URL" in source
     assert "qrcode.make(url)" in source
     assert '"customOrganizer": {"version": 3, "modules": list(custom_modules)}' in source
     assert "phone_actions_selected" not in source
     assert 'notes_connect' not in source and 'kde_connect' not in source
-    assert "bluetooth_button" not in source and "open_bluetooth" not in source
+    assert 'Connect via Bluetooth' in source and 'phone_services.connect' in source
     assert '"tray": autostart.get_active()' in source
     assert 'weather = check("Show weather for the next three days")' in source
     assert 'for module in custom_modules:' in source
@@ -121,13 +171,16 @@ def test_legacy_data_and_diagnostic_logs_do_not_suppress_fresh_setup(tmp_path, m
     assert setup.classify() == "fresh"
 
 
-def test_skip_disables_handbook_and_result_returns_saved_selections():
+def test_skip_disables_handbook_and_result_returns_saved_selections(monkeypatch):
     writes = []
+    languages = []
+    monkeypatch.setattr(setup_ui, "_persist_language", languages.append)
     skipped = setup_ui._skipped_selections("de")
-    result = setup_ui._store_result(
+    result = setup_ui._finish_result(
         lambda status, value: writes.append((status, value)), "skipped", skipped)
     assert result is skipped
     assert writes == [("skipped", skipped)]
+    assert languages == ["de"]
     assert skipped["openHandbook"] is False
     assert skipped["restoreRequest"] is False
 
@@ -155,8 +208,8 @@ def test_welcome_chime_plays_packaged_sound_once_with_direct_argv(tmp_path, monk
 
 def test_linux_setup_has_seven_pages_automatic_chime_and_navigation_contract():
     source = open(setup_ui.__file__, encoding="utf-8").read()
-    assert "dialog.set_default_size(900, 680)" in source
-    assert "dialog.set_size_request(760, 600)" in source
+    assert "dialog.set_default_size(960, 780)" in source
+    assert "dialog.set_size_request(820, 680)" in source
     assert "Play a short welcome chime" not in source
     assert "_play_welcome_chime(script_directory)" in source
     assert 'skip_button = bind(Gtk.Button(), "Skip assistant")' in source
@@ -164,7 +217,7 @@ def test_linux_setup_has_seven_pages_automatic_chime_and_navigation_contract():
     assert "pages = (welcome, address, sources, phone, registers, backup, finish)" in source
     assert 'next_button.set_label(tr("Start Magnolie") if index == 6 else tr("Next"))' in source
     assert 'progress_accessible.set_description' in source
-    assert "GdkPixbuf.Pixbuf.new_from_file_at_scale(logo, 82, 82, True)" in source
+    assert "GdkPixbuf.Pixbuf.new_from_file_at_scale(logo, 58, 58, True)" in source
     assert "image.set_pixel_size" not in source
 
 
@@ -180,6 +233,10 @@ def test_setup_language_is_validated_and_persisted_without_losing_settings(tmp_p
     assert stat.S_IMODE(path.stat().st_mode) == 0o600
     with pytest.raises(ValueError):
         setup_ui._persist_language("invalid", str(path))
+
+
+def test_setup_links_do_not_force_a_store_language():
+    assert "hl=" not in setup_ui.KDE_CONNECT_URL
 
 
 def test_setup_translation_honors_packaged_locale_directories(tmp_path, monkeypatch):
@@ -208,17 +265,23 @@ def test_setup_translation_honors_packaged_locale_directories(tmp_path, monkeypa
 def test_linux_setup_declares_all_specified_option_ids():
     source = open(setup_ui.__file__, encoding="utf-8").read()
     for option in (
-            "evolution", "thunderbird",
+            "evolution", "thunderbird", "ics", "vcard", "ldif", "claws", "csv-lotus",
             "tasks", "addresses", "notes", "anniversaries",
-            "planner", "health", "manual", "daily", "weekly", "monthly",
+            "planner", "health", "manual", "daily", "weekly",
             "last-name", "first-name"):
         assert repr(option) in source or ('"%s"' % option) in source
+    assert [code for code, _name in setup_ui.COUNTRY_CHOICES] == [
+        "DE", "AT", "CH", "LI", "LU", "BE", "NL", "FR", "IT", "PL", "CZ", "ES"]
+    assert len(setup_ui.AUSTRIAN_REGIONS) == 9
+    assert len(setup_ui.SWISS_REGIONS) == 26
+    assert 'rhythm.set_active_id("weekly")' in source
+    assert 'block_type != "notes"' in source and 'page_available' in source
 
 
 def test_setup_stores_stable_german_region_codes():
     assert [code for code, _name in setup_ui.GERMAN_REGIONS] == [
-        "DE-BW", "DE-BY", "DE-BE", "DE-BB", "DE-HB", "DE-HH", "DE-HE", "DE-NI",
-        "DE-MV", "DE-NW", "DE-RP", "DE-SL", "DE-SN", "DE-ST", "DE-SH", "DE-TH"]
+        "DE-BW", "DE-BY", "DE-BE", "DE-BB", "DE-HB", "DE-HH", "DE-HE", "DE-MV",
+        "DE-NI", "DE-NW", "DE-RP", "DE-SL", "DE-SN", "DE-ST", "DE-SH", "DE-TH"]
     source = open(setup_ui.__file__, encoding="utf-8").read()
     assert "state.get_active_id()" in source
 
@@ -403,11 +466,19 @@ def test_setup_language_reaches_gettext_regional_state_and_web_window_same_sessi
         def zeige_wenn_bereit(self, nach_anzeigen=None):
             observed["after_show"] = nach_anzeigen
 
+        def set_application(self, application):
+            assert isinstance(application, FakeApplication)
+            observed["application_set"] = True
+
+        def set_startup_id(self, token):
+            observed["startup_token"] = token
+
     def run_setup(*_args, **_kwargs):
         events.append("setup")
         return {"language": "fr", "openHandbook": False}
 
     monkeypatch.setattr(launcher.sys, "argv", ["magnolie-organizer"])
+    monkeypatch.setenv("XDG_ACTIVATION_TOKEN", "synthetic-startup-token")
     monkeypatch.setattr(launcher, "setup_classify_and_adopt", lambda: "fresh")
     monkeypatch.setattr(launcher, "GTK_OK", True)
     monkeypatch.setattr(launcher, "WEBKIT_OK", True)
@@ -423,6 +494,8 @@ def test_setup_language_reaches_gettext_regional_state_and_web_window_same_sessi
     monkeypatch.setattr(launcher, "Fenster", FakeWindow)
 
     launcher.haupt()
+    assert observed["application_set"] is True
+    assert observed["startup_token"] == "synthetic-startup-token"
 
     assert events[:3] == ["setup", "cleanup", "window"]
     assert observed["language"] == "fr"

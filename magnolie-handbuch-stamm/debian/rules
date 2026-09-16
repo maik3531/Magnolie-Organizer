@@ -8,7 +8,9 @@ JS_LAUFER := $(shell command -v node 2>/dev/null || command -v nodejs 2>/dev/nul
 
 override_dh_auto_build:
 	rm -rf debian/magnolie-handbuch debian/.debhelper debian/files debian/*.substvars
+	python3 werkzeuge/mobile_downloads_erzeugen.py
 	mkdir -p web/i18n
+	python3 werkzeuge/po_zu_js.py en po/english/protected.po web/i18n/en.js
 	set -e; while read sprache; do \
 		mkdir -p locale/$$sprache/LC_MESSAGES; \
 		python3 werkzeuge/katalog_pruefen.py po/magnolie-handbuch.pot po/$$sprache.po; \
@@ -26,7 +28,7 @@ ifeq (,$(filter nocheck,$(DEB_BUILD_OPTIONS)))
 	test -n "$(JS_LAUFER)"
 	TZ=Europe/Berlin $(JS_LAUFER) pruefungen/handbuch_test.js
 	python3 pruefungen/druck_test.py --cli-only
-	python3 -m pytest -q pruefungen/test_asset_container.py
+	python3 -m pytest -q pruefungen/test_asset_container.py pruefungen/test_source_packaging.py
 	@if { [ -n "$${DISPLAY:-}" ] || [ -n "$${WAYLAND_DISPLAY:-}" ]; } && \
 		command -v pdfinfo >/dev/null && command -v pdftotext >/dev/null && \
 		python3 -c 'import gi; gi.require_version("Gtk", "3.0"); gi.require_version("WebKit2", "4.1")' 2>/dev/null; then \

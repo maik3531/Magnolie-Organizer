@@ -78,6 +78,22 @@ internal inline fun <T> SQLiteDatabase.inTransaction(block: SQLiteDatabase.() ->
     return try { block().also { setTransactionSuccessful() } } finally { endTransaction() }
 }
 
+// Reject new work rather than evicting live replay proofs or pending mutations.
+internal fun SQLiteDatabase.phoneCapacity(table: String, bytes: Int = 0, rows: Int = 8192) {
+    val payload = when (table) {
+        "outbox", "inbox", "personal_batch", "personal_run" -> "COALESCE(SUM(length(payload)),0)"
+        "personal_attachment_transfer" -> "COALESCE(SUM(length(metadata)),0)"
+        "meta" -> "COALESCE(SUM(length(value)),0)"
+        "event_dedupe" -> "COALESCE(SUM(length(CAST(event_key AS BLOB))),0)"
+        else -> "0"
+    }
+    rawQuery("SELECT COUNT(*),$payload FROM $table", null).use {
+        it.moveToFirst()
+        if (it.getLong(0) >= rows || it.getLong(1) + bytes > 50L * 1024 * 1024)
+            throw TelefonProtokollFehler("Telefon-Warteschlange ist voll.")
+    }
+}
+
 data class TelefonOutboxEintrag(val messageId: String, val payload: JsonObject)
 
 internal data class DeletionDecisionAck(val decisionId: String, val state: String)
@@ -124,7 +140,8 @@ internal object PersonalRunAuthentication {
     }
 }
 
-class TelefonQueue internal constructor(context: Context, private val storage: TelefonPayloadStorage) {
+class TelefonQueue internal constructor(context: Context, private val storage: TelefonPayloadStorage,
+                                       private val restoreEpoch: () -> String = { "" }) {
     private val helper = TelefonDatenbank(context.applicationContext)
 
     fun queue(peerId: String, kind: String, body: JsonObject, ttlMs: Long, now: Long = System.currentTimeMillis(),
@@ -141,13 +158,14 @@ class TelefonQueue internal constructor(context: Context, private val storage: T
     }
 
     private fun writableInsert(peerId: String, message: JsonObject, db: SQLiteDatabase = helper.writableDatabase,
-                               transportPolicy: String = "any") {
+                                transportPolicy: String = "any") {
+        val statusBody = message["body"] as? JsonObject
+        require(!message.string("kind").startsWith("device_status.") ||
+            statusBody?.containsKey("identifiers") != true && statusBody?.get("version") != JsonPrimitive(4))
+        db.inTransaction {
         val id = message.string("message_id")
         val payload = storage.encryptPayload(TelefonKanonisch.bytes(message), "outbox", id)
-        val used = db.rawQuery("SELECT COALESCE(SUM(length(payload)),0) FROM outbox", null).use {
-            if (it.moveToFirst()) it.getLong(0) else 0L
-        }
-        if (used + payload.size > 50L * 1024 * 1024) throw TelefonProtokollFehler("Telefon-Warteschlange ist voll.")
+        db.phoneCapacity("outbox", payload.size)
         val values = ContentValues().apply {
             put("message_id", id); put("peer_id", peerId); put("kind", message.string("kind"))
             put("created_ms", message.long("created_ms")); put("expires_ms", message.long("expires_ms"))
@@ -156,6 +174,7 @@ class TelefonQueue internal constructor(context: Context, private val storage: T
             put("transport_policy", transportPolicy)
         }
         db.insertOrThrow("outbox", null, values)
+        }
     }
 
     internal fun due(peerId: String, transport: TelefonTransportArt, now: Long = System.currentTimeMillis()): List<TelefonOutboxEintrag> {
@@ -163,8 +182,10 @@ class TelefonQueue internal constructor(context: Context, private val storage: T
         helper.writableDatabase.inTransaction {
             val stale = mutableListOf<String>()
             query("outbox", arrayOf("message_id", "peer_id", "kind", "created_ms", "expires_ms",
-                "transport_policy", "payload"), "peer_id=? AND next_attempt_ms<=?",
-                arrayOf(peerId, now.toString()), null, null, "created_ms,message_id", "32").use { cursor ->
+                "transport_policy", "payload"), "peer_id=? AND next_attempt_ms<=?" +
+                    if (transport == TelefonTransportArt.BLUETOOTH) " AND transport_policy='any'" else "",
+                arrayOf(peerId, now.toString()), null, null,
+                "CASE WHEN kind='personal_sync.custom_settings' THEN 0 ELSE 1 END,created_ms,message_id", "32").use { cursor ->
                 while (cursor.moveToNext()) {
                     val id = cursor.getString(0)
                     var clear: ByteArray? = null
@@ -262,6 +283,22 @@ class TelefonQueue internal constructor(context: Context, private val storage: T
             if (cursor.moveToFirst()) TelefonNachrichten.duplicateAck(cursor.getString(0), cursor.getString(1)) else null
         }
 
+    fun receivedMatches(peerId: String, message: JsonObject): Boolean = helper.readableDatabase.query(
+        "inbox", arrayOf("payload"), "peer_id=? AND message_id=?", arrayOf(peerId, message.string("message_id")),
+        null, null, null).use { cursor ->
+        if (!cursor.moveToFirst()) false else {
+            val clear = storage.decryptPayload(cursor.getBlob(0), "inbox", message.string("message_id"))
+            try { TelefonKanonisch.json.parseToJsonElement(clear.decodeToString()) == message }
+            finally { clear.fill(0) }
+        }
+    }
+
+    fun controlApplied(peerId: String, messageId: String) {
+        helper.writableDatabase.update("inbox", ContentValues().apply { put("state", "applied") },
+            "peer_id=? AND message_id=? AND kind IN ('capabilities.update','grants.update')",
+            arrayOf(peerId, messageId))
+    }
+
     fun receive(peerId: String, message: JsonObject, response: JsonObject? = null,
                 now: Long = System.currentTimeMillis(), validateExtra: () -> Unit = {}): Pair<String, String> = helper.writableDatabase.inTransaction {
         val id = message.string("message_id")
@@ -271,6 +308,7 @@ class TelefonQueue internal constructor(context: Context, private val storage: T
         }
         val result = runCatching { TelefonNachrichten.validate(message, now); validateExtra() }
             .fold({ "accepted" to "none" }, { "rejected" to "invalid_schema" })
+        phoneCapacity("dedupe", rows = 100_000)
         if (result.first == "accepted" && response != null) writableInsert(peerId, response, this)
         writableInbox(peerId, message, result.first, now, this)
         val values = ContentValues().apply {
@@ -291,6 +329,7 @@ class TelefonQueue internal constructor(context: Context, private val storage: T
             val values = ContentValues().apply {
                 put("message_id", id); put("peer_id", peerId); put("result", "rejected"); put("error", error); put("seen_ms", now)
             }
+            phoneCapacity("dedupe", rows = 100_000)
             writableInbox(peerId, message, "rejected", now, this)
             insertOrThrow("dedupe", null, values)
             "rejected" to error
@@ -299,7 +338,11 @@ class TelefonQueue internal constructor(context: Context, private val storage: T
     private fun writableInbox(peerId: String, message: JsonObject, state: String, now: Long,
                               db: SQLiteDatabase) {
         val id = message.string("message_id")
-        val encrypted = storage.encryptPayload(TelefonKanonisch.bytes(message), "inbox", id)
+        val stored = if (message.string("kind").startsWith("device_status.") && message["body"] is JsonObject)
+            JsonObject(message + ("body" to JsonObject((message["body"] as JsonObject).filterKeys {
+                message.string("kind") == "device_status.request" && it in setOf("request_id", "version", "include_identifiers") }))) else message
+        val encrypted = storage.encryptPayload(TelefonKanonisch.bytes(stored), "inbox", id)
+        db.phoneCapacity("inbox", encrypted.size)
         val values = ContentValues().apply {
             put("message_id", id); put("peer_id", peerId); put("kind", message.string("kind"))
             put("received_ms", now); put("expires_ms", message.long("expires_ms"))
@@ -315,6 +358,30 @@ class TelefonQueue internal constructor(context: Context, private val storage: T
 
     fun removeKind(peerId: String, kind: String) {
         helper.writableDatabase.delete("outbox", "peer_id=? AND kind=?", arrayOf(peerId, kind))
+    }
+
+    fun removeCallEvents() {
+        helper.writableDatabase.delete("outbox", "kind=?", arrayOf("incoming_call_state.event"))
+    }
+
+    fun purgeNotifications(allowedPackages: Set<String>) = helper.writableDatabase.inTransaction {
+        if (allowedPackages.isEmpty()) {
+            delete("outbox", "kind=?", arrayOf("selected_notifications_readonly.event"))
+            return@inTransaction
+        }
+        val removed = mutableListOf<String>()
+        query("outbox", arrayOf("message_id", "payload"), "kind=?",
+            arrayOf("selected_notifications_readonly.event"), null, null, null).use { cursor ->
+            while (cursor.moveToNext()) {
+                val id = cursor.getString(0)
+                val clear = storage.decryptPayload(cursor.getBlob(1), "outbox", id)
+                try {
+                    val message = TelefonKanonisch.json.parseToJsonElement(clear.decodeToString()) as JsonObject
+                    if ((message["body"] as JsonObject).string("package") !in allowedPackages) removed += id
+                } finally { clear.fill(0) }
+            }
+        }
+        removed.forEach { delete("outbox", "message_id=?", arrayOf(it)) }
     }
 
     fun purgePersonal(peerId: String) {
@@ -341,7 +408,7 @@ class TelefonQueue internal constructor(context: Context, private val storage: T
             arrayOf(peerId), null, null, null).use { cursor -> while (cursor.moveToNext()) {
             val runId = cursor.getString(0)
             val body = authenticatedRun(peerId, runId)?.second
-                ?: throw TelefonProtokollFehler("Personal-Sync-Lauf fehlt.")
+            if (body == null) { runIds += runId; continue }
             val modules = (body["modules"] as? JsonArray).orEmpty().map { (it as JsonPrimitive).content }.toSet()
             if (modules.any(revoked::contains)) runIds += runId
         } }
@@ -496,6 +563,7 @@ class TelefonQueue internal constructor(context: Context, private val storage: T
         }
         helper.writableDatabase.inTransaction {
             val authenticated = authenticatedTransfer(peerId, runId, reply, recordsHash, hash, "incoming")
+            if (authenticated == null) phoneCapacity("personal_attachment_transfer", values.getAsByteArray("metadata").size, 4096)
             if (authenticated != null && (authenticated.long("size") != size.toLong() ||
                 authenticated.string("mime") != mime || authenticated.string("transport_policy") != transportPolicy))
                 throw TelefonProtokollFehler("Widersprüchliches Attachment-Manifest.")
@@ -533,6 +601,7 @@ class TelefonQueue internal constructor(context: Context, private val storage: T
             fun scalar(sql: String, args: Array<String> = emptyArray()): Long = rawQuery(sql, args).use { it.moveToFirst(); it.getLong(0) }
             val transferExists = scalar("SELECT COUNT(*) FROM personal_attachment_transfer WHERE peer_id=? AND run_id=? AND reply=? AND records_hash=? AND sha256=? AND direction=?",
                 arrayOf(peerId, runId, if (reply) "1" else "0", recordsHash, hash, direction)) > 0
+            if (!transferExists) phoneCapacity("personal_attachment_transfer", rows = 4096)
             if (transferExists) {
                 val authenticated = authenticatedTransfer(peerId, runId, reply, recordsHash, hash, direction)
                     ?: throw TelefonProtokollFehler("Nicht authentifizierte Attachment-Metadaten.")
@@ -663,6 +732,14 @@ class TelefonQueue internal constructor(context: Context, private val storage: T
         val primary = "$peerId:$runId:$reply:$sequence"
         val encrypted = storage.encryptPayload(TelefonKanonisch.bytes(message), "personal_batch", primary)
         val rows = helper.writableDatabase.inTransaction {
+            val exists = query("personal_batch", arrayOf("message_id"),
+                "peer_id=? AND run_id=? AND reply=? AND sequence=?", arrayOf(peerId, runId, reply.toString(), sequence.toString()),
+                null, null, null).use { it.moveToFirst() }
+            if (!exists) {
+                phoneCapacity("personal_batch", encrypted.size, 4096)
+                phoneCapacity("inbox", encrypted.size)
+                phoneCapacity("dedupe", rows = 100_000)
+            }
             query("personal_batch", arrayOf("batch_id", "message_id", "payload", "last"),
                 "peer_id=? AND run_id=? AND reply=? AND sequence=?", arrayOf(peerId, runId, reply.toString(), sequence.toString()),
                 null, null, null).use { cursor ->
@@ -777,8 +854,9 @@ class TelefonQueue internal constructor(context: Context, private val storage: T
             }
             val index = PersonalRunIndex(peerId, runId, trigger, if (trigger == "auto_wifi") "wifi_only" else "any",
                 now, PersonalRunAuthentication.effectiveExpiry(wireExpiresMs, now))
-            val encrypted = storage.encryptPayload(TelefonKanonisch.bytes(PersonalRunAuthentication.envelope(index, body)),
+            val encrypted = storage.encryptPayload(TelefonKanonisch.bytes(runEnvelope(index, body)),
                 "personal_run", key)
+            phoneCapacity("personal_run", encrypted.size, 1024)
             val values = ContentValues().apply {
                 put("peer_id", peerId); put("run_id", runId); put("trigger", trigger)
                 put("transport_policy", index.transportPolicy); put("payload", encrypted)
@@ -801,7 +879,9 @@ class TelefonQueue internal constructor(context: Context, private val storage: T
             val clear = storage.decryptPayload(cursor.getBlob(10), "personal_run", key)
             try {
                 val envelope = TelefonKanonisch.json.parseToJsonElement(clear.decodeToString()) as JsonObject
-                index to PersonalRunAuthentication.authenticate(envelope, index)
+                val epoch = (envelope["restore_epoch"] as? JsonPrimitive)?.content.orEmpty()
+                if (epoch != restoreEpoch()) return@use null
+                index to PersonalRunAuthentication.authenticate(JsonObject(envelope - "restore_epoch"), index)
             } finally { clear.fill(0) }
         }
     }
@@ -827,7 +907,7 @@ class TelefonQueue internal constructor(context: Context, private val storage: T
         if (!allowExpired && old.expiresMs <= System.currentTimeMillis())
             throw TelefonProtokollFehler("Personal-Sync-Lauf ist abgelaufen.")
         val next = transform(old)
-        val encrypted = storage.encryptPayload(TelefonKanonisch.bytes(PersonalRunAuthentication.envelope(next, request)),
+        val encrypted = storage.encryptPayload(TelefonKanonisch.bytes(runEnvelope(next, request)),
             "personal_run", "personal_run:$peerId:$runId")
         val values = ContentValues().apply {
             put("trigger", next.trigger); put("transport_policy", next.transportPolicy); put("created_ms", next.createdMs)
@@ -838,6 +918,9 @@ class TelefonQueue internal constructor(context: Context, private val storage: T
         if (db.update("personal_run", values, "peer_id=? AND run_id=?", arrayOf(peerId, runId)) != 1)
             throw TelefonProtokollFehler("Personal-Sync-Lauf fehlt.")
     }
+
+    private fun runEnvelope(index: PersonalRunIndex, request: JsonObject) = JsonObject(
+        PersonalRunAuthentication.envelope(index, request) + ("restore_epoch" to JsonPrimitive(restoreEpoch())))
 
     fun markPersonalDirectionApplied(peerId: String, runId: String, reply: Boolean) {
         helper.writableDatabase.inTransaction { updatePersonalRun(this, peerId, runId) {
@@ -886,6 +969,7 @@ class TelefonQueue internal constructor(context: Context, private val storage: T
             if (format2Pending) {
                 val key = "personal_report:$peerId:$runId"
                 val encrypted = storage.encryptPayload(TelefonKanonisch.bytes(report), "personal_report", key)
+                phoneCapacity("meta", encrypted.size, 1024)
                 insertWithOnConflict("meta", null, ContentValues().apply { put("key", key); put("value", encrypted) },
                     SQLiteDatabase.CONFLICT_REPLACE)
             } else writableInsert(peerId, TelefonNachrichten.message("personal_sync.report", report, 86_400_000), this, transportPolicy)
@@ -923,14 +1007,18 @@ class TelefonQueue internal constructor(context: Context, private val storage: T
         active
     }
 
-    fun cleanup(now: Long = System.currentTimeMillis()) {
+    fun cleanup(now: Long = System.currentTimeMillis(), protectedRuns: Set<Pair<String, String>> = emptySet()) {
         helper.writableDatabase.inTransaction {
             val partial = mutableSetOf<Pair<String, String>>()
             query(true, "personal_batch", arrayOf("peer_id", "run_id"), "expires_ms<=?", arrayOf(now.toString()),
                 null, null, null, null).use { cursor -> while (cursor.moveToNext()) partial += cursor.getString(0) to cursor.getString(1) }
             delete("outbox", "expires_ms<=?", arrayOf(now.toString()))
-            delete("inbox", "expires_ms<=?", arrayOf(now.toString()))
-            delete("dedupe", "seen_ms<?", arrayOf((now - RETENTION_MS).toString()))
+            // An accepted control may still need its peer-file effect replayed after a crash.
+            delete("inbox", "expires_ms<=? AND NOT (state='accepted' AND kind IN ('capabilities.update','grants.update'))",
+                arrayOf(now.toString()))
+            delete("dedupe", "seen_ms<? AND NOT EXISTS (SELECT 1 FROM inbox i WHERE i.peer_id=dedupe.peer_id AND " +
+                "i.message_id=dedupe.message_id AND i.state='accepted' AND i.kind IN ('capabilities.update','grants.update'))",
+                arrayOf((now - RETENTION_MS).toString()))
             delete("event_dedupe", "seen_ms<?", arrayOf((now - RETENTION_MS).toString()))
             delete("personal_batch", "expires_ms<=? OR received_ms<?", arrayOf(now.toString(), (now - 86_400_000L).toString()))
             execSQL("DELETE FROM personal_attachment_chunk WHERE EXISTS (SELECT 1 FROM personal_attachment_transfer t WHERE t.peer_id=personal_attachment_chunk.peer_id AND t.run_id=personal_attachment_chunk.run_id AND t.reply=personal_attachment_chunk.reply AND t.records_hash=personal_attachment_chunk.records_hash AND t.sha256=personal_attachment_chunk.sha256 AND t.direction=personal_attachment_chunk.direction AND t.expires_ms<=?)", arrayOf(now))
@@ -962,6 +1050,20 @@ class TelefonQueue internal constructor(context: Context, private val storage: T
                 }
                 updatePersonalRun(this, peerId, runId, allowExpired = true) { it.copy(reported = true) }
             }
+            val expired = mutableListOf<Pair<String, String>>()
+            query("personal_run", arrayOf("peer_id", "run_id"), "expires_ms<=?", arrayOf(now.toString()),
+                null, null, null).use { cursor -> while (cursor.moveToNext()) {
+                val key = cursor.getString(0) to cursor.getString(1)
+                if (key !in protectedRuns) expired += key
+            } }
+            expired.groupBy({ it.first }, { it.second }).forEach { (peerId, runs) ->
+                purgeWireRuns(peerId, runs.toSet())
+                runs.forEach { runId ->
+                    for (table in listOf("personal_run", "personal_batch", "personal_attachment_transfer", "personal_attachment_chunk"))
+                        delete(table, "peer_id=? AND run_id=?", arrayOf(peerId, runId))
+                    delete("meta", "key=?", arrayOf("personal_report:$peerId:$runId"))
+                }
+            }
         }
     }
 
@@ -973,6 +1075,11 @@ class TelefonEffekte(context: Context) {
 
     fun firstEvent(key: String, now: Long = System.currentTimeMillis()): Boolean {
         val values = ContentValues().apply { put("event_key", key); put("seen_ms", now) }
-        return helper.writableDatabase.insertWithOnConflict("event_dedupe", null, values, SQLiteDatabase.CONFLICT_IGNORE) != -1L
+        return helper.use { it.writableDatabase.inTransaction {
+            if (query("event_dedupe", arrayOf("event_key"), "event_key=?", arrayOf(key), null, null, null)
+                    .use { cursor -> cursor.moveToFirst() }) return@inTransaction false
+            phoneCapacity("event_dedupe", key.toByteArray(Charsets.UTF_8).size, rows = 100_000)
+            insertOrThrow("event_dedupe", null, values) != -1L
+        } }
     }
 }

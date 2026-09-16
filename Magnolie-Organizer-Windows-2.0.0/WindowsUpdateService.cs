@@ -37,14 +37,16 @@ internal sealed partial class WindowsUpdateService : IDisposable
         this.requireWindowsOwnership = requireWindowsOwnership;
         this.startInstaller = startInstaller ?? StartLocalInstaller;
         lastRelease = initialReleaseForTests;
-        http = new HttpClient(handler ?? new HttpClientHandler { AllowAutoRedirect = false }, true)
-        {
-            Timeout = TimeSpan.FromSeconds(30)
-        };
+        http = DeadlineHttp.Create(TimeSpan.FromSeconds(30), handler, MaximumPackageBytes);
         http.DefaultRequestHeaders.UserAgent.ParseAdd("Magnolie-Organizer-Windows/2");
     }
 
     internal ValidatedManualRelease? LastManualRelease { get; private set; }
+
+    internal bool IsValidatedReleaseUrl(string target) => lastRelease is not null &&
+        string.Equals(lastRelease.Url, target, StringComparison.Ordinal) &&
+        IsExactPackageUrl(target,
+            $"Magnolie-Organizer-Windows-{lastRelease.Version}-Setup-x64.exe");
 
     internal async Task<UpdateCheckResult> CheckAsync(string installedVersion)
     {
@@ -60,12 +62,11 @@ internal sealed partial class WindowsUpdateService : IDisposable
             if (!current) lastRelease = manifest.Windows;
             return new UpdateCheckResult(true, current, manifest.Windows, manifest.Manual, "");
         }
-        catch (Exception error)
+        catch (Exception)
         {
             ClearOrganizerState(deletePrepared: true);
             LastManualRelease = null;
-            return new UpdateCheckResult(false, false, null, null,
-                error.Message.Length == 0 ? "The update check failed." : error.Message);
+            return new UpdateCheckResult(false, false, null, null, T("The update check failed."));
         }
     }
 
@@ -75,7 +76,7 @@ internal sealed partial class WindowsUpdateService : IDisposable
         preparedRelease = null;
         var release = lastRelease;
         if (release is null)
-            return new UpdateDownloadResult(false, "There is no validated update to download.", "", "windows", false);
+            return new UpdateDownloadResult(false, T("The package could not be opened."), "", "windows", false);
         try
         {
             EnsurePrivateDirectory();
@@ -90,11 +91,11 @@ internal sealed partial class WindowsUpdateService : IDisposable
             preparedPath = path;
             return new UpdateDownloadResult(true, "", release.Version, "windows", true);
         }
-        catch (Exception error)
+        catch (Exception)
         {
             DeletePreparedFile();
             preparedRelease = null;
-            return new UpdateDownloadResult(false, error.Message, release.Version, "windows", false);
+            return new UpdateDownloadResult(false, T("The package could not be opened."), release.Version, "windows", false);
         }
     }
 
@@ -103,7 +104,7 @@ internal sealed partial class WindowsUpdateService : IDisposable
         var release = preparedRelease;
         var path = preparedPath;
         if (release is null || release != lastRelease || string.IsNullOrEmpty(path))
-            return new UpdateInstallResult(false, "The prepared update is no longer valid.", release?.Version ?? "", "windows", false);
+            return new UpdateInstallResult(false, T("The package could not be opened."), release?.Version ?? "", "windows", false);
         try
         {
             EnsureSafePreparedFile(path);
@@ -112,11 +113,11 @@ internal sealed partial class WindowsUpdateService : IDisposable
             preparedRelease = null;
             return new UpdateInstallResult(true, "", release.Version, "windows", true);
         }
-        catch (Exception error)
+        catch (Exception)
         {
             DeletePreparedFile();
             preparedRelease = null;
-            return new UpdateInstallResult(false, error.Message, release.Version, "windows", false);
+            return new UpdateInstallResult(false, T("The package could not be opened."), release.Version, "windows", false);
         }
     }
 
@@ -298,8 +299,8 @@ internal sealed partial class WindowsUpdateService : IDisposable
                 current = next.AbsoluteUri;
                 continue;
             }
-            response.EnsureSuccessStatusCode();
-            return response;
+            try { response.EnsureSuccessStatusCode(); return response; }
+            catch { response.Dispose(); throw; }
         }
         throw new HttpRequestException("The update service returned too many redirects.");
     }
@@ -440,6 +441,8 @@ internal sealed partial class WindowsUpdateService : IDisposable
         }
         catch (Exception) { return false; }
     }
+
+    private static string T(string message) => NativeLocalization.Gettext(message);
 
     private void ClearOrganizerState(bool deletePrepared)
     {

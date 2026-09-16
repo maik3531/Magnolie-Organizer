@@ -1,3 +1,14 @@
+magnolie-organizer (2.0.18) unstable; urgency=high
+
+  * Behebt geschützte QR- und Porträtbilder in Windows-WebView2 und ergänzt
+    echte native Bild-Decodierungsprüfungen.
+  * Vervollständigt PO-Metadaten und beseitigt englische sowie fremdsprachige
+    Übersetzungsfallbacks in Organizer und Handbuch.
+  * Enthält alle seit 2.0.17 ergänzten Thunderbird-, Nextcloud-, DAV-,
+    Aufgaben-, Ersteinrichtungs- und Plattformkorrekturen.
+
+ -- Maik Walter <maik3531@gmail.com>  Mon, 07 Sep 2026 09:00:00 +0200
+
 magnolie-organizer (2.0.17) unstable; urgency=high
 
   * Behebt den alten Adressbuchhänger durch eine begrenzte Speicherbestätigung.

@@ -12,16 +12,21 @@ class MagnolieTestRunner : Instrumentation() {
     override fun onCreate(arguments: Bundle?) {
         super.onCreate(arguments)
         testContext = targetContext
+        expectUpgradeSentinel = arguments?.getString("expect_upgrade_sentinel") == "true"
         start()
     }
 
     override fun onStart() {
         instrumentation = this
-        val ergebnis = JUnitCore.runClasses(
+        val classes = arrayOf(
             StartupRecoveryInstrumentationTest::class.java,
             UpgradeMigrationInstrumentationTest::class.java,
             AndroidKeyStoreDatenTest::class.java
         )
+        val expected = classes.sumOf { type -> type.methods.count { it.isAnnotationPresent(org.junit.Test::class.java) } }
+        val ergebnis = JUnitCore.runClasses(*classes)
+        val complete = ergebnis.wasSuccessful() && ergebnis.runCount == expected && expected > 0 &&
+            ergebnis.ignoreCount == 0 && ergebnis.assumptionFailureCount == 0
         val fehlertext = StringBuilder()
         ergebnis.failures.forEach {
             if (fehlertext.isNotEmpty()) fehlertext.append('\n')
@@ -30,12 +35,15 @@ class MagnolieTestRunner : Instrumentation() {
         val meldung = Bundle().apply {
             putString("stream", fehlertext.toString())
             putInt("numtests", ergebnis.runCount)
-            putInt("failures", ergebnis.failureCount)
+            putInt("failures", if (complete) 0 else maxOf(1, ergebnis.failureCount))
+            putInt("declaredtests", expected)
         }
-        finish(if (ergebnis.wasSuccessful()) Activity.RESULT_OK else Activity.RESULT_CANCELED, meldung)
+        finish(if (complete) Activity.RESULT_OK else Activity.RESULT_CANCELED, meldung)
     }
 
     companion object {
+        var expectUpgradeSentinel: Boolean = false
+            private set
         lateinit var testContext: Context
             private set
         lateinit var instrumentation: Instrumentation

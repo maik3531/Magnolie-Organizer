@@ -9,6 +9,7 @@ internal sealed class HandbookForm : Form
 {
     internal static string WindowTitle => "Magnolie Organizer - " + T("Manual");
     private const string VirtualHost = "handbuch.magnolie.invalid";
+    private const string ProtectedAssetHost = "handbuchassets.magnolie.invalid";
     private readonly string handbookRoot;
     private readonly WindowsPaths paths;
     private readonly WebView2 webView = new() { Dock = DockStyle.Fill, DefaultBackgroundColor = Color.FromArgb(46, 58, 52) };
@@ -43,7 +44,7 @@ internal sealed class HandbookForm : Form
             await webView.EnsureCoreWebView2Async(environment);
             var core = webView.CoreWebView2;
             core.SetVirtualHostNameToFolderMapping(VirtualHost, handbookRoot, CoreWebView2HostResourceAccessKind.DenyCors);
-            ProtectedAssetReader.Register(core, VirtualHost, handbookRoot, HandbookAssets());
+            ProtectedAssetReader.Register(core, ProtectedAssetHost, handbookRoot, HandbookAssets(), WriteDiagnostic);
             core.Settings.AreDevToolsEnabled = false;
             core.Settings.AreDefaultContextMenusEnabled = false;
             core.Settings.AreBrowserAcceleratorKeysEnabled = false;
@@ -181,6 +182,7 @@ internal sealed class HandbookForm : Form
 internal sealed class HtmlPrintForm : Form
 {
     private const string VirtualHost = "handbuch.magnolie.invalid";
+    private const string ProtectedAssetHost = "handbuchassets.magnolie.invalid";
     private readonly string html;
     private readonly WindowsPaths paths;
     private readonly WebView2 webView = new() { Dock = DockStyle.Fill };
@@ -212,12 +214,12 @@ internal sealed class HtmlPrintForm : Form
             {
                 webView.CoreWebView2.SetVirtualHostNameToFolderMapping(VirtualHost,
                     handbookRoot, CoreWebView2HostResourceAccessKind.DenyCors);
-                ProtectedAssetReader.Register(webView.CoreWebView2, VirtualHost, handbookRoot,
+                ProtectedAssetReader.Register(webView.CoreWebView2, ProtectedAssetHost, handbookRoot,
                     new Dictionary<string, (string, byte, byte, string)>
                     {
                         ["/kaffee-qr.png"] = ("kaffee-qr.mga", 1, 1, "image/png"),
                         ["/maik-walter.jpg"] = ("maik-walter.mga", 2, 2, "image/jpeg")
-                    });
+                    }, WriteDiagnostic);
             }
             webView.CoreWebView2.Settings.AreDevToolsEnabled = false;
             webView.CoreWebView2.Settings.AreDefaultContextMenusEnabled = false;

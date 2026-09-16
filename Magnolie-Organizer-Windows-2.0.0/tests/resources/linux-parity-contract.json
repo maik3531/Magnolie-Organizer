@@ -1,8 +1,8 @@
 {
   "schema": "magnolie-linux-parity-v1",
   "sources": {
-    "web/anwendung.js": "01d4b417e27d7d55a96ce2334e24e6002102d5e4ce17068be387d0a65ce19b48",
-    "bin/magnolie-organizer": "9430b366c1aab0bb05d01a3dbc05d0dc5aa238aa3a8744a1edf9dbd7c24d3221"
+    "web/anwendung.js": "6cc5fef6f56bb70ab4bcb6508a7d00d0553a62eb69d3fe36db4c0f625427802d",
+    "bin/magnolie-organizer": "7140d6a4c7944fd04a7f5c0bf082663f70ac4d4792950218204276e8da3a0b30"
   },
   "commands": [
     "ablage_holen",
@@ -82,8 +82,10 @@
     "sozial",
     "speichern",
     "sync",
+    "sync_bestaetigen",
     "telefon_annehmen",
     "telefon_anruf_anzeigen",
+    "telefon_anruf_audio_einstellung",
     "telefon_anruf_lautstaerke_wiederherstellen",
     "telefon_auflegen",
     "telefon_bluetooth_schalten",
@@ -139,6 +141,8 @@
     "kennwortStand",
     "mutationsSnapshot",
     "notizAnhangDateiErgebnis",
+    "personalCustomAck",
+    "personalCustomRequest",
     "personalSync",
     "personalSyncFehler",
     "protokollStand",
@@ -150,6 +154,7 @@
     "syncFehler",
     "syncFertig",
     "telefonAnnehmStatus",
+    "telefonAnrufAudio",
     "telefonAuflegeStatus",
     "telefonGekoppelt",
     "telefonPairingCode",
@@ -157,6 +162,7 @@
     "telefonPairingOffen",
     "telefonStand",
     "telefonWaehlStatus",
+    "trayStand",
     "updateErgebnis",
     "vorschlaege",
     "wetterErgebnis",
@@ -196,6 +202,24 @@
       [
         "inhalt",
         "{ format: 1, run_id: offen.run_id, decision_id: offen.decision_id, decisions: [{ proposal_id: offen.proposal_id, decision: offen.decision, expected_clock: offen.expected_clock }] }"
+      ]
+    ],
+    [
+      [
+        "cmd",
+        "\"personal_sync_senden\""
+      ],
+      [
+        "kennung",
+        "peer.device_id"
+      ],
+      [
+        "art",
+        "\"personal_sync.custom_batch\""
+      ],
+      [
+        "inhalt",
+        "inhalt"
       ]
     ],
     [
@@ -277,6 +301,24 @@
     [
       [
         "cmd",
+        "\"personal_sync_senden\""
+      ],
+      [
+        "kennung",
+        "kennung"
+      ],
+      [
+        "art",
+        "\"personal_sync.custom_settings\""
+      ],
+      [
+        "inhalt",
+        "customLocal"
+      ]
+    ],
+    [
+      [
+        "cmd",
         "\"personal_sync_lauf_senden\""
       ],
       [
@@ -285,7 +327,7 @@
       ],
       [
         "request",
-        "{ format: 2, run_id: body.run_id, trigger: report.trigger, modules: modules }"
+        "{ format: format, run_id: body.run_id, trigger: report.trigger, modules: modules }"
       ],
       [
         "batches",
@@ -341,5 +383,5 @@
       ]
     ]
   ],
-  "contractSha256": "08fcbfab8f4a0f50e0f0cb8070ce75a9b551a810ce57270fa7676da1043fdcef"
+  "contractSha256": "904156811f5427f3456b98748aebb1f3c0df81245c0f803792f5a86770cb13cd"
 }

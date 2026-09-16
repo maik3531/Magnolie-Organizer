@@ -9,11 +9,16 @@ function Get-ReleaseVersion([string] $Root) {
 }
 
 function Get-SharedHandbookWeb([string] $Root) {
-    $candidates = @(
-        [Environment]::GetEnvironmentVariable("MAGNOLIE_HANDBOOK_WEB"),
-        (Join-Path (Split-Path -Parent $Root) "magnolie-handbuch-stamm/web"),
-        (Join-Path $Root "shared/magnolie-handbuch-stamm/web")
-    ) | Where-Object { $_ }
+    $canonical = Join-Path (Split-Path -Parent $Root) 'magnolie-handbuch-stamm/web'
+    if (-not (Test-Path -LiteralPath $canonical -PathType Container)) {
+        $canonical = Join-Path $Root 'shared/magnolie-handbuch-stamm/web'
+    }
+    $configured = [Environment]::GetEnvironmentVariable('MAGNOLIE_HANDBOOK_WEB')
+    $comparison = if ([Runtime.InteropServices.RuntimeInformation]::IsOSPlatform([Runtime.InteropServices.OSPlatform]::Windows)) { [StringComparison]::OrdinalIgnoreCase } else { [StringComparison]::Ordinal }
+    if ($configured -and -not [string]::Equals([IO.Path]::GetFullPath($configured), [IO.Path]::GetFullPath($canonical), $comparison)) {
+        throw 'Handbook build override must refer to the canonical source, not another projection.'
+    }
+    $candidates = @($canonical)
     foreach ($candidate in $candidates) {
         $full = [IO.Path]::GetFullPath($candidate)
         if ((Test-Path -LiteralPath (Join-Path $full "index.html") -PathType Leaf) -and
@@ -23,8 +28,28 @@ function Get-SharedHandbookWeb([string] $Root) {
     throw "Gemeinsame Handbuchquelle magnolie-handbuch-stamm/web fehlt."
 }
 
+function Test-PrivateReleasePath([string] $Relative) {
+    $parts = $Relative.Replace('\', '/') -split '/'
+    return [bool]($parts | Where-Object {
+        $_ -match '^(?i)(?:\.private(?:-.*)?|\.claude|\.idea|\.vscode|\.ssh|\.aws|\.azure|\.config|\.local|\.cache|\.pytest_cache|an-claude\.md|\.env(?:\..*)?|settings\.local\.json|local\.properties|schluessel\.properties)$' -or
+        $_ -match '(?i)\.(?:pem|key|pfx|p12|jks|keystore|secret|token)$'
+    })
+}
+
+function Assert-SourceFileSafe([IO.FileInfo] $File) {
+    if (($File.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0) { throw 'Source symlinks are not permitted.' }
+    for ($directory = $File.Directory; $null -ne $directory; $directory = $directory.Parent) {
+        if (($directory.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0) { throw 'Source directory links are not permitted.' }
+    }
+    $text = [Text.Encoding]::ASCII.GetString([IO.File]::ReadAllBytes($File.FullName))
+    if ($text -match '-----BEGIN (?:[A-Z0-9]+ )*PRIVATE KEY-----\r?\n') { throw 'Private key material in source input.' }
+    $branding = [Environment]::GetEnvironmentVariable('MAGNOLIE_CONTRIBUTOR_HASH')
+    if ($branding -match '^[0-9a-fA-F]{64}$' -and $branding -ne ('0' * 64) -and
+        $text.IndexOf($branding, [StringComparison]::OrdinalIgnoreCase) -ge 0) { throw 'Private branding in source input.' }
+}
+
 function Get-ReleaseSourceFiles([string] $Root) {
-    $excludedDirectories = @(".git", ".claude", ".idea", ".vscode", "__pycache__", "Ausgabe", "bin", "handbook-windows-i18n", "handbuch", "node_modules", "obj", "shared")
+    $excludedDirectories = @(".git", ".private-testing", ".claude", ".idea", ".vscode", "__pycache__", "Ausgabe", "bin", "handbook-windows-i18n", "handbuch", "node_modules", "obj", "shared", "contracts")
     $internalNotePattern = '(?i)(REVIEW|ENTWURF|OFFENE[-_ ]?PUNKTE|ANALYSE|PLAN|AUDIT).*\.md$'
     $generatedReleasePattern = '(?i)^(?:Magnolie-Organizer-Windows-.*-Setup-.*\.exe(?:\.build\.json)?|.*-x64\.zip|.*-Source\.zip|.*-PRUEFSUMMEN\.sha256)$'
     Get-ChildItem -LiteralPath $Root -Recurse -File -Force | Where-Object {
@@ -35,18 +60,23 @@ function Get-ReleaseSourceFiles([string] $Root) {
             -not ($parts | Where-Object { $_ -like '.release-staging-*' }) -and
             $_.Name -notmatch $internalNotePattern -and
             $_.Name -notlike "*~" -and
+            -not (Test-PrivateReleasePath $relative) -and
             $_.Extension -ine ".pyc" -and
             $_.Extension -notin @(".iso", ".qcow2", ".vdi", ".vhd", ".vhdx", ".img", ".raw", ".ppm", ".pdb") -and
             $_.Extension -notin @(".pfx", ".p12", ".pem", ".key") -and
             $_.Name -notmatch '(?i)^(?:\.env(?:\..*)?|settings\.local\.json)$' -and
             -not ($parts[0] -ieq "vm" -and $_.Extension -ieq ".png") -and
             $_.Name -notmatch $generatedReleasePattern -and
-            $_.Name -ine ".magnolie-windows-release.lock"
+            $_.Name -ine ".magnolie-windows-release.lock" -and
+            $_.Name -notlike '*-provenance.json'
     } | Sort-Object { [IO.Path]::GetRelativePath($Root, $_.FullName).Replace('\', '/') }
 }
 
 function Get-ReleaseArchiveSources([string] $Root) {
+    $oracleRelative = 'tests/fixtures/recurrence-rfc-oracle.json'
     foreach ($file in Get-ReleaseSourceFiles $Root) {
+        if ([IO.Path]::GetRelativePath($Root, $file.FullName).Replace('\', '/') -ceq $oracleRelative) { continue }
+        Assert-SourceFileSafe $file
         [pscustomobject]@{
             Source = $file.FullName
             Relative = [IO.Path]::GetRelativePath($Root, $file.FullName).Replace('\', '/')
@@ -55,19 +85,36 @@ function Get-ReleaseArchiveSources([string] $Root) {
     $handbookWeb = Get-SharedHandbookWeb $Root
     foreach ($file in Get-ChildItem -LiteralPath $handbookWeb -Recurse -File -Force |
         Sort-Object { [IO.Path]::GetRelativePath($handbookWeb, $_.FullName).Replace('\', '/') }) {
+        $relative = [IO.Path]::GetRelativePath($handbookWeb, $file.FullName).Replace('\', '/')
+        if (Test-PrivateReleasePath $relative) { continue }
+        if (($relative -split '/') | Where-Object { $_ -in @('.git', 'node_modules', '__pycache__') }) { continue }
+        Assert-SourceFileSafe $file
         [pscustomobject]@{
             Source = $file.FullName
             Relative = "shared/magnolie-handbuch-stamm/web/$([IO.Path]::GetRelativePath($handbookWeb, $file.FullName).Replace('\', '/'))"
         }
     }
-    $contactContract = Join-Path (Split-Path -Parent $Root) "contracts/kontakt-sync-contract.json"
-    if (-not (Test-Path -LiteralPath $contactContract -PathType Leaf)) {
-        throw "Gemeinsamer Kontakt-Sync-Vertrag fehlt: $contactContract"
+    $contracts = Join-Path (Split-Path -Parent $Root) 'contracts'
+    if (-not (Test-Path -LiteralPath $contracts -PathType Container)) { $contracts = Join-Path $Root 'contracts' }
+    foreach ($required in 'kontakt-sync-contract.json', 'kontakt-import-contract.json', 'phone-region-vectors.json', 'thunderbird-addressbook-fixture.json', 'recurrence-integration.json', 'recurrence-timezones.json', 'baum-1-receipt-v1-vectors.json', 'baum-1-receipt-v1.md', 'phone-bluetooth-first-pair.md', 'phone-setup-daemon-lifecycle.md', 'phone-wlan-invitation.md') {
+        if (-not (Test-Path -LiteralPath (Join-Path $contracts $required) -PathType Leaf)) { throw "Shared contract missing: $required" }
     }
-    [pscustomobject]@{
-        Source = $contactContract
-        Relative = "contracts/kontakt-sync-contract.json"
+    foreach ($file in Get-ChildItem -LiteralPath $contracts -Recurse -File -Force | Sort-Object FullName) {
+        $relative = [IO.Path]::GetRelativePath($contracts, $file.FullName).Replace('\', '/')
+        if (Test-PrivateReleasePath $relative) { continue }
+        if ($file.Extension -cnotin @('.json', '.md')) { throw 'Only reviewed JSON/Markdown contracts may enter source archives.' }
+        Assert-SourceFileSafe $file
+        $content = [IO.File]::ReadAllText($file.FullName)
+        if ($file.Extension -ceq '.json') { [void]($content | ConvertFrom-Json) }
+        elseif (-not $content.Trim()) { throw 'Empty contract documentation.' }
+        [pscustomobject]@{ Source = $file.FullName; Relative = "contracts/$relative" }
     }
+    $oracle = Join-Path (Split-Path -Parent $Root) 'magnolie-organizer-2.0.0/pruefungen/fixtures/recurrence-rfc-oracle.json'
+    if (-not (Test-Path -LiteralPath $oracle -PathType Leaf)) { $oracle = Join-Path $Root $oracleRelative }
+    $oracleFile = Get-Item -LiteralPath $oracle
+    Assert-SourceFileSafe $oracleFile
+    [void]([IO.File]::ReadAllText($oracleFile.FullName) | ConvertFrom-Json)
+    [pscustomobject]@{ Source = $oracleFile.FullName; Relative = $oracleRelative }
 }
 
 function Invoke-NativeCommand([string] $FilePath, [object[]] $ArgumentList = @()) {
@@ -156,6 +203,7 @@ function Install-StagedPaths([object[]] $Changes, [scriptblock] $Validate = $nul
     $backedUp = [Collections.Generic.List[object]]::new()
     $installed = [Collections.Generic.List[object]]::new()
     $cleanupCopies = [Collections.Generic.List[object]]::new()
+    $committed = $false
     try {
         foreach ($change in $Changes) {
             if (Test-Path -LiteralPath $change[1]) {
@@ -174,11 +222,16 @@ function Install-StagedPaths([object[]] $Changes, [scriptblock] $Validate = $nul
             Copy-Item -LiteralPath "$($change[1]).rollback" -Destination $copy -Recurse
             $cleanupCopies.Add(@($copy, $change))
         }
+        # Cleanup may fail, but must never roll back after deleting a recovery copy.
+        $committed = $true
         foreach ($change in $backedUp) {
             Remove-Item -LiteralPath "$($change[1]).rollback" -Recurse -Force
         }
         foreach ($copy in $cleanupCopies) { Remove-Item -LiteralPath $copy[0] -Recurse -Force }
     } catch {
+        if ($committed) {
+            throw "Publication committed; cleanup failed. Keep remaining rollback/recovery files: $($_.Exception.Message)"
+        }
         for ($index = $installed.Count - 1; $index -ge 0; $index--) {
             $change = $installed[$index]
             if (Test-Path -LiteralPath $change[1]) { Remove-Item -LiteralPath $change[1] -Recurse -Force }
@@ -210,6 +263,9 @@ function Assert-SourceArchive([string] $Archive, [string] $Root, [string] $Versi
         "app/symbole/128x128/magnolie-organizer.png",
         "app/symbole/256x256/magnolie-organizer.png",
         "contracts/kontakt-sync-contract.json",
+        "contracts/recurrence-integration.json",
+        "contracts/recurrence-timezones.json",
+        "tests/fixtures/recurrence-rfc-oracle.json",
         "tests/resources/personal-sync-contract.json",
         "tests/resources/telefon-control-contract.json",
         "tests/resources/linux-parity-contract.json",
@@ -217,6 +273,7 @@ function Assert-SourceArchive([string] $Archive, [string] $Root, [string] $Versi
         "tests/generate-linux-parity-fixture.js",
         "shared/magnolie-handbuch-stamm/web/index.html",
         "shared/magnolie-handbuch-stamm/web/inhalt.js",
+        "shared/magnolie-handbuch-stamm/web/i18n/en.js",
         "shared/magnolie-handbuch-stamm/web/kaffee-qr.mga",
         "shared/magnolie-handbuch-stamm/web/maik-walter.mga"
     )
@@ -230,6 +287,9 @@ function Assert-SourceArchive([string] $Archive, [string] $Root, [string] $Versi
             throw "Quellarchiv hat nicht ausschließlich den erwarteten Hauptordner $expectedTop."
         }
         if ($names | Group-Object | Where-Object { $_.Count -gt 1 }) { throw "Quellarchiv enthält doppelte Dateipfade." }
+        if (@($names | Where-Object { Test-PrivateReleasePath $_ }).Count) { throw 'Private path in source archive.' }
+        if ($files.Count -gt 10000 -or @($files | Where-Object Length -GT 134217728).Count -or
+            ($files | Measure-Object Length -Sum).Sum -gt 1073741824) { throw 'Source archive exceeds validation limits.' }
         if (@($names | Where-Object { [IO.Path]::GetFileName($_) -ceq "build-config.json" }).Count) {
             throw "Quellarchiv enthält build-config.json."
         }
@@ -254,10 +314,14 @@ function Assert-SourceArchive([string] $Archive, [string] $Root, [string] $Versi
             $relative = $file.FullName.Replace('\', '/').Substring($expectedTop.Length + 1)
             $parts = $relative -split '/'
             $extension = [IO.Path]::GetExtension($file.Name)
-            if (($parts | Where-Object { $forbiddenDirectories -contains $_ }) -or
+            if ((Test-PrivateReleasePath $relative) -or ($parts -contains '..') -or
+                ($parts -contains '.') -or $relative.StartsWith('/') -or $relative.Contains(':') -or
+                (($file.ExternalAttributes -shr 16) -band 0xf000) -eq 0xa000 -or
+                ($parts | Where-Object { $forbiddenDirectories -contains $_ }) -or
                 ($parts | Where-Object { $_ -like '.release-staging-*' }) -or
                 $file.Name -like "*~" -or
-                $file.Name -match $internalNotePattern -or
+                ($file.Name -match $internalNotePattern -and
+                    $relative -cne 'contracts/sms-plan-review-v1.md') -or
                 $file.Name -imatch $generatedReleasePattern -or
                 $file.Name -ieq ".magnolie-windows-release.lock" -or
                 $forbiddenExtensions -contains $extension -or
@@ -270,6 +334,9 @@ function Assert-SourceArchive([string] $Archive, [string] $Root, [string] $Versi
                 $second = $entryStream.ReadByte()
             } finally { $entryStream.Dispose() }
             if ($first -eq 0x4d -and $second -eq 0x5a) { throw "Quellarchiv enthält PE-Datei: $relative" }
+            $reader = [IO.StreamReader]::new($file.Open(), [Text.Encoding]::ASCII)
+            try { $content = $reader.ReadToEnd() } finally { $reader.Dispose() }
+            if ($content -match '-----BEGIN (?:[A-Z0-9]+ )*PRIVATE KEY-----\r?\n') { throw 'Private key material in source archive.' }
         }
         foreach ($relative in $required) {
             if (-not $zip.GetEntry("$expectedTop/$relative")) { throw "Quellarchiv-Pflichtdatei fehlt: $relative" }
@@ -302,7 +369,7 @@ function Write-ReleaseChecksums([string] $Root, [string] $Version, [string] $Des
         $source = [string]$artifact.Source
         $displayPath = [string]$artifact.DisplayPath
         if (-not (Test-Path -LiteralPath $source -PathType Leaf)) { throw "Pflichtartefakt für Prüfsumme fehlt: $source" }
-        if (-not $displayPath -or [IO.Path]::IsPathRooted($displayPath) -or $displayPath -match '[\r\n]') {
+        if (-not $displayPath -or [IO.Path]::IsPathRooted($displayPath) -or $displayPath -match '[\\/:\r\n]' -or $displayPath -in @('.', '..')) {
             throw "Ungültiger relativer Prüfsummenpfad: $displayPath"
         }
         [pscustomobject]@{ Source = [IO.Path]::GetFullPath($source); DisplayPath = $displayPath.Replace('\', '/') }
@@ -321,4 +388,44 @@ function Write-ReleaseChecksums([string] $Root, [string] $Version, [string] $Des
         if (-not [string]::Equals($path, $entry.Source, $comparison)) { throw "Prüfsummenpfad zeigt nicht auf das Quellartefakt: $name" }
         if ((Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash.ToLowerInvariant() -cne $hash) { throw "Prüfsummen-Selbsttest fehlgeschlagen: $name" }
     }
+}
+
+function Assert-BinaryPayloadFiles([string] $Publish) {
+    foreach ($file in Get-ChildItem -LiteralPath $Publish -Recurse -File -Force) {
+        $relative = [IO.Path]::GetRelativePath($Publish, $file.FullName).Replace('\', '/')
+        if ((Test-PrivateReleasePath $relative) -or
+            (($relative -split '/') | Where-Object { $_ -in @('tests', 'pruefungen', 'fixtures', 'contracts', '.git', 'node_modules') }) -or
+            ($file.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0) {
+            throw "Non-product/private file in binary payload: $relative"
+        }
+    }
+}
+
+function Write-WindowsCandidateRecord([string] $Root, [string] $Directory, [string] $Version) {
+    Assert-SourceArchive (Join-Path $Directory "Magnolie-Organizer-Windows-$Version-Source.zip") $Root $Version
+    $artifacts = [ordered]@{}
+    foreach ($suffix in 'Source.zip', 'x64.zip', 'Setup-x64.exe', 'Setup-x64.exe.build.json') {
+        $name = "Magnolie-Organizer-Windows-$Version-$suffix"
+        $path = Join-Path $Directory $name
+        $artifacts[$name] = (Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash.ToLowerInvariant()
+    }
+    $record = [ordered]@{ schema = 'magnolie-windows-candidate-v1'; version = $Version; artifacts = $artifacts }
+    $path = Join-Path $Directory "Magnolie-Organizer-Windows-$Version-provenance.json"
+    [IO.File]::WriteAllText($path, ($record | ConvertTo-Json -Depth 5 -Compress) + "`n", [Text.UTF8Encoding]::new($false))
+}
+
+function Assert-WindowsCandidate([string] $Root, [string] $Directory, [string] $Version) {
+    $record = Get-Content -LiteralPath (Join-Path $Directory "Magnolie-Organizer-Windows-$Version-provenance.json") -Raw | ConvertFrom-Json
+    if ($record.schema -cne 'magnolie-windows-candidate-v1' -or $record.version -cne $Version -or
+        @($record.artifacts.PSObject.Properties).Count -ne 4) { throw 'Invalid Windows candidate provenance.' }
+    foreach ($suffix in 'Source.zip', 'x64.zip', 'Setup-x64.exe', 'Setup-x64.exe.build.json') {
+        $name = "Magnolie-Organizer-Windows-$Version-$suffix"
+        $expected = $record.artifacts.$name
+        $path = Join-Path $Directory $name
+        if ($expected -cnotmatch '^[0-9a-f]{64}$' -or
+            (Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash.ToLowerInvariant() -cne $expected) {
+            throw "Windows candidate artifact changed: $name"
+        }
+    }
+    Assert-SourceArchive (Join-Path $Directory "Magnolie-Organizer-Windows-$Version-Source.zip") $Root $Version
 }

@@ -2,14 +2,14 @@
 
 Das Benutzerhandbuch zum Magnolie Organizer, gestaltet wie das Programm
 selbst: ein aufgeschlagenes Buch im Querformat. Diese Fassung ist das
-Handbuch 2.0.17 für Magnolie Organizer 2.0.17.
+Handbuch 2.0.18 für Magnolie Organizer 2.0.18.
 
 ## Aufbau
 
     bin/         Anzeigeprogramm (Python, GTK 3, WebKit2GTK)
     web/         Das Buch: index.html, stil.css, handbuch.js
                  und inhalt.js – darin steht der englische Ausgangstext
-    po/          Gettext-Vorlage und vollständiger deutscher Katalog
+    po/          Gettext-Vorlage und 19 manuell gepflegte Zielkataloge
     werkzeuge/   Katalogprüfung sowie Erzeugung von POT und Web-Katalog
     symbole/     Programmsymbol als SVG und in vier PNG-Größen
     pruefungen/  Selbsttest des Buches
@@ -25,9 +25,26 @@ Wer eine Seite ergänzt,
 setzt `imInhalt: true`, damit sie im Inhaltsverzeichnis erscheint; mit
 `imInhalt: "haupt"` wird der Eintrag hervorgehoben.
 
-Nach Textänderungen erzeugt `python3 werkzeuge/pot_erzeugen.py` die Vorlage und
-die Extraktionsmarken neu. `web/i18n/de.js` und die MO-Datei entstehen erst beim
-Paketbau und gehören nicht in das Quellarchiv.
+Nach Textänderungen erzeugt `python3 werkzeuge/pot_erzeugen.py --update-markers`
+die Vorlage und die Extraktionsmarken neu. Erfasst werden die Quellseiten,
+tatsächlichen Ersetzungen und Anhänge sowie die verwendeten Windows-Varianten.
+`--output DATEI` allein verändert keine Extraktionsmarken im Quellbaum.
+
+`python3 werkzeuge/katalog_erweitern.py` übernimmt ausschließlich bereits
+vorhandene, von Hand gepflegte Übersetzungen aus den bisherigen Inline-Karten.
+Es übersetzt nichts und rät nicht: neue Felder bleiben leer, bis sie in allen
+19 PO-Dateien von Hand übersetzt wurden. `katalog_pruefen.py` lehnt fehlende und
+leere Übersetzungen ab. Insbesondere die früher nur englischen Anhänge sind
+noch nicht vollständig übersetzt; ein erfolgreicher Lauf der reinen
+Kataloggeneratoren ist keine Vollständigkeits- oder Freigabezusage.
+
+`python3 werkzeuge/kataloge_bauen.py` erzeugt die MO- und JS-Laufzeitkataloge.
+`python3 werkzeuge/windows_quelle.py` aktualisiert anschließend ausschließlich
+die gemeinsame Windows-Quellprojektion. Der spätere Windows-Port passt beim
+Bau die Ressourcenadressen an; Quellprojektion und Buildausgabe sind getrennt.
+`web/version.json` wird unter DEB und RPM mitinstalliert, damit die
+POT-Erzeugung auch unter einem anderen Installationspräfix ohne Debian-Quellen
+funktioniert. Generierte MO-Dateien gehören nicht in das Quellarchiv.
 
 Die Seitenzahl ist nicht fest vorgegeben. Ausführlichkeit und Vollständigkeit
 gehen vor einer bestimmten Blattzahl. Die Druckprüfung achtet darauf, dass kein
@@ -38,7 +55,7 @@ Text abgeschnitten wird und keine leeren PDF-Seiten entstehen.
     sudo apt install build-essential debhelper gettext nodejs node-jsdom \
       python3-gi gir1.2-gtk-3.0 gir1.2-webkit2-4.1 poppler-utils
     dpkg-buildpackage -us -uc -b
-    sudo apt install ../magnolie-handbuch_2.0.17_all.deb
+    sudo apt install ../magnolie-handbuch_2.0.18_all.deb
 
 Für RPM-Systeme muss das Ziel ausdrücklich gewählt werden:
 
@@ -53,12 +70,13 @@ festgeschriebenen Stand seines rollenden Repositorys geprüft werden.
 
 ## Prüfen
 
-    python3 werkzeuge/pot_erzeugen.py
+    python3 werkzeuge/pot_erzeugen.py --update-markers
     while read sprache; do python3 werkzeuge/katalog_pruefen.py \
       po/magnolie-handbuch.pot po/$sprache.po; done < po/LINGUAS
     NODE_PATH=/pfad/zum/vorhandenen/node_modules bun pruefungen/handbuch_test.js
+    python3 -m pytest -q pruefungen/katalog_test.py
     python3 pruefungen/druck_test.py
-    node pruefungen/paket_inhalt_test.js ../magnolie-handbuch_2.0.17_all.deb
+    node pruefungen/paket_inhalt_test.js ../magnolie-handbuch_2.0.18_all.deb
 
 `npm install` ist weder ein Quell- noch ein Prüfschritt. Unter Debian liefert
 `node-jsdom` die Testabhängigkeit. Ist sie bereits in einem anderen Projekt

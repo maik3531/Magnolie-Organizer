@@ -70,10 +70,34 @@ class Probe:
         self.snapshots.append(grund)
 
 
+def test_addressbook_connect_wait_is_shorter_than_outer_timeout(monkeypatch):
+    calls = []
+
+    class Source:
+        def get_enabled(self): return True
+
+    class Registry:
+        def ref_source(self, _uid): return Source()
+
+    class Connected:
+        def is_online(self): return True
+
+    book = type("BookClient", (), {"connect_sync": staticmethod(
+        lambda *args: calls.append(args) or Connected())})
+    monkeypatch.setitem(m._EDS, "EBook", type("EBook", (), {"BookClient": book}))
+
+    client = m.eds_buch_client(Registry(), "local")
+
+    assert isinstance(client, Connected)
+    assert calls[0][1] == 5 and calls[0][1] < m.EDS_OPERATION_TIMEOUT
+
+
 @pytest.fixture(autouse=True)
 def econtact_format(monkeypatch):
     klasse = type("EBookContacts", (), {
-        "VCardFormat": type("VCardFormat", (), {"VCARD_30": 1})})
+        "VCardFormat": type("VCardFormat", (), {"VCARD_30": 1}),
+        "Contact": type("Contact", (), {
+            "new_from_vcard": staticmethod(lambda value: value)})})
     monkeypatch.setitem(m._EDS, "EBookContacts", klasse)
     monkeypatch.setitem(m._EDS, "buch_ok", True)
 
@@ -309,6 +333,22 @@ def test_lesender_eds_aufruf_wird_einmal_wiederholt(monkeypatch):
 
     assert m._eds_mit_frist(instabil, 0.1, schritt="probe") == "ok"
     assert len(aufrufe) == 2
+
+
+def test_schreibende_eds_aufrufe_werden_nicht_wiederholt(monkeypatch):
+    aufrufe = []
+
+    def mit_frist(_aufruf, **optionen):
+        aufrufe.append(optionen)
+
+    monkeypatch.setattr(m, "_eds_mit_frist", mit_frist)
+    client = object()
+    m.eds_kontakt_anlegen(client, vcard())
+    m.eds_kontakt_aendern(client, vcard())
+    m.eds_kontakt_loeschen(client, "uid")
+    assert [optionen["versuche"] for optionen in aufrufe] == [1, 1, 1]
+    assert [optionen["schritt"] for optionen in aufrufe] == [
+        "addressbook-write", "addressbook-write", "addressbook-delete"]
 
 
 def test_erster_sync_retry_erzeugt_keine_dubletten(monkeypatch):

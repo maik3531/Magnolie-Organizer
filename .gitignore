@@ -55,3 +55,5 @@ Magnolie-Organizer-Windows-2.0.0/vm/*.ppm
 # Local tool configuration and release locks
 **/.claude/settings.local.json
 **/.magnolie-*-release.lock
+/an-claude.md
+/.private-testing/

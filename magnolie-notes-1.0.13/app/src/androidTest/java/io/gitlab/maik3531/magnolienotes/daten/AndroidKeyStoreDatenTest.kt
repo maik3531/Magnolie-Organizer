@@ -19,6 +19,16 @@ import javax.crypto.Cipher
 import javax.crypto.spec.GCMParameterSpec
 
 class AndroidKeyStoreDatenTest {
+    @Test fun directorySyncUsesReadableDescriptorAndPropagatesErrors() {
+        val directory = File(MagnolieTestRunner.testContext.filesDir, "fsync-${System.nanoTime()}")
+        check(directory.mkdir())
+        try {
+            org.junit.Assert.assertThrows(java.io.IOException::class.java) { java.io.FileOutputStream(directory).close() }
+            synchronisiereOrdner(directory)
+            org.junit.Assert.assertThrows(java.io.IOException::class.java) { synchronisiereOrdner(File(directory, "missing")) }
+        } finally { directory.deleteRecursively() }
+    }
+
     private val alias = "magnolie-instrumentation-${System.nanoTime()}"
     private lateinit var ordner: File
 
@@ -41,6 +51,11 @@ class AndroidKeyStoreDatenTest {
         assertFalse(eins.contentEquals(zwei))
         Log.i("MagnolieNachherProbe", "AndroidKeyStore provider IV accepted; ciphertext IVs differ")
         assertTrue(crypto.entschluesseln(eins, "notizen.json").contentEquals(klar))
+        val password = "automatic backup test".toCharArray()
+        val wrapped = io.gitlab.maik3531.magnolienotes.sicherung.PasswortHuelle.verschluesseln(password, key())
+        assertTrue(password.contentEquals(
+            io.gitlab.maik3531.magnolienotes.sicherung.PasswortHuelle.entschluesseln(wrapped, key())))
+        password.fill('\u0000'); wrapped.fill(0)
         val manipuliert = eins.copyOf().also { it[it.lastIndex] = (it.last().toInt() xor 1).toByte() }
         try {
             crypto.entschluesseln(manipuliert, "notizen.json")

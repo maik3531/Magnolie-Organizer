@@ -17,6 +17,7 @@ internal sealed class PersonalSyncStore(TelefonStore store)
 
     internal void RememberRun(string peerId, JsonObject request, long now, long? claimedExpiresMs = null)
     {
+        if (store.RestoreFenced) throw new InvalidOperationException("restore_unavailable");
         PersonalSyncContract.ValidateBody("personal_sync.request", request); var runId = request["run_id"]!.GetValue<string>();
         var expires = Math.Min(checked(now + RunLifetimeMs), claimedExpiresMs ?? long.MaxValue);
         if (expires <= now) throw new InvalidDataException("Personal-Sync-Lauf ist abgelaufen.");
@@ -74,13 +75,22 @@ internal sealed class PersonalSyncStore(TelefonStore store)
 
     internal PersonalSyncStagedBatch? StageBatch(string peerId, JsonObject message, string transport, long now)
     {
+        if (store.RestoreFenced) throw new InvalidOperationException("restore_unavailable");
         TelefonMessageContract.ValidateMessage(message, now, true); if (message["kind"]?.GetValue<string>() != "personal_sync.batch") throw new InvalidDataException("Kein Personal-Sync-Batch.");
         var body = message["body"]!.AsObject(); var runId = body["run_id"]!.GetValue<string>(); var run = LoadRun(peerId, runId, now) ?? throw new InvalidDataException("Personal-Sync-Request fehlt.");
+        if (body["format"]!.GetValue<int>() != run.Request["format"]!.GetValue<int>()) throw new InvalidDataException("Widersprüchlicher Personal-Sync-Lauf.");
         if (run.Expired || run.Policy == "wifi_only" && transport != "wifi") throw new InvalidDataException("Personal-Sync-Transportpolicy verletzt.");
         var reply = body["reply"]!.GetValue<bool>(); var sequence = checked((int)TelefonProtocolContract.Integer(body["sequence"])); if (sequence >= 4096) throw new InvalidDataException("Zu viele Personal-Sync-Batches.");
         var primary = BatchPrimary(peerId, runId, reply, sequence); var payload = store.Seal("personal_batch", primary, TelefonCrypto.Canonical(message));
         using var connection = store.OpenDatabase(); connection.Open(); using var transaction = connection.BeginTransaction();
         string token;
+        using (var applied = connection.CreateCommand())
+        {
+            applied.Transaction = transaction;
+            applied.CommandText = "SELECT COUNT(*) FROM meta WHERE key=$key";
+            applied.Parameters.AddWithValue("$key", $"personal_applied:{peerId}:{runId}:{(reply ? 1 : 0)}");
+            if (Convert.ToInt64(applied.ExecuteScalar()) != 0) throw new InvalidDataException("Widersprüchliche Batch-Sequenz.");
+        }
         using (var old = connection.CreateCommand())
         {
             old.Transaction = transaction; old.CommandText = "SELECT batch_id,message_id,payload,last,commit_token FROM personal_batch WHERE peer_id=$peer AND run_id=$run AND reply=$reply AND sequence=$sequence";
@@ -117,9 +127,21 @@ internal sealed class PersonalSyncStore(TelefonStore store)
 
     internal bool CommitBatch(string peerId, string pendingMessageId, string token, long now, out IReadOnlyList<string> messageIds)
     {
+        if (store.RestoreFenced) { messageIds = []; return false; }
         using var connection = store.OpenDatabase(); connection.Open(); using var transaction = connection.BeginTransaction();
         string runId; bool reply;
         using (var identity = connection.CreateCommand()) { identity.Transaction = transaction; identity.CommandText = "SELECT run_id,reply FROM personal_batch WHERE peer_id=$peer AND message_id=$message AND commit_token=$token"; identity.Parameters.AddWithValue("$peer", peerId); identity.Parameters.AddWithValue("$message", pendingMessageId); identity.Parameters.AddWithValue("$token", token); using var reader = identity.ExecuteReader(); if (!reader.Read()) { messageIds = []; return false; } runId = reader.GetString(0); reply = reader.GetBoolean(1); }
+        var complete = CompleteBatch(connection, peerId, runId, reply, token);
+        if (string.IsNullOrEmpty(token) || complete is null || complete.PendingMessageId != pendingMessageId ||
+            LoadRun(peerId, runId, now) is not { Expired: false })
+        { messageIds = []; return false; }
+        using (var expired = connection.CreateCommand())
+        {
+            expired.Transaction = transaction;
+            expired.CommandText = "SELECT COUNT(*) FROM personal_batch WHERE peer_id=$peer AND run_id=$run AND reply=$reply AND expires_ms<=$now";
+            Parameters(expired, peerId, runId, reply); expired.Parameters.AddWithValue("$now", now);
+            if (Convert.ToInt64(expired.ExecuteScalar()) != 0) { messageIds = []; return false; }
+        }
         var ids = new List<string>(); using (var read = connection.CreateCommand()) { read.Transaction = transaction; read.CommandText = "SELECT message_id FROM personal_batch WHERE peer_id=$peer AND run_id=$run AND reply=$reply AND commit_token=$token ORDER BY sequence"; Parameters(read, peerId, runId, reply); read.Parameters.AddWithValue("$token", token); using var reader = read.ExecuteReader(); while (reader.Read()) ids.Add(reader.GetString(0)); }
         foreach (var id in ids)
         {
@@ -135,6 +157,7 @@ internal sealed class PersonalSyncStore(TelefonStore store)
 
     internal PersonalSyncDecisionIntent StageDecisionIntent(string peerId, JsonObject message, string transport, long now)
     {
+        if (store.RestoreFenced) throw new InvalidOperationException("restore_unavailable");
         TelefonMessageContract.ValidateMessage(message, now, true); var kind = message["kind"]!.GetValue<string>(); if (kind is not ("personal_sync.deletion_proposals" or "personal_sync.deletion_decision")) throw new InvalidDataException("Kein Löschintent.");
         var body = message["body"]!.AsObject(); var run = LoadRun(peerId, body["run_id"]!.GetValue<string>(), now) ?? throw new InvalidDataException("Personal-Sync-Request fehlt.");
         if (run.Expired || run.Policy == "wifi_only" && transport != "wifi") throw new InvalidDataException("Personal-Sync-Transportpolicy verletzt.");
@@ -147,6 +170,7 @@ internal sealed class PersonalSyncStore(TelefonStore store)
 
     internal bool CommitDecisionIntent(string peerId, string messageId, string token, string outcome, long now)
     {
+        if (store.RestoreFenced) return false;
         if (outcome == "temporary") return false;
         var error = outcome switch { "applied" => "none", "conflict" => "conflict", "restore_unavailable" => "restore_unavailable", "invalid" => "invalid_schema", "timeout" => "permanent_failure", _ => throw new InvalidDataException("Ungültiges Löschresultat.") };
         using var connection = store.OpenDatabase(); connection.Open(); using var transaction = connection.BeginTransaction();
@@ -187,6 +211,9 @@ internal sealed class PersonalSyncStore(TelefonStore store)
     internal void StageReport(string peerId, JsonObject body)
     {
         PersonalSyncContract.ValidateBody("personal_sync.report", body); var runId = body["run_id"]!.GetValue<string>(); var key = $"personal_report:{peerId}:{runId}";
+        var request = ReadMeta(RunKey(peerId, runId), "personal_run")?["body"] as JsonObject ?? throw new InvalidDataException("Personal-Sync-Request fehlt.");
+        if (body["format"]!.GetValue<int>() != request["format"]!.GetValue<int>() || body["trigger"]!.GetValue<string>() != request["trigger"]!.GetValue<string>())
+            throw new InvalidDataException("Widersprüchlicher Personal-Sync-Lauf.");
         var prior = ReadMeta(key, "personal_report"); if (prior is not null && !JsonNode.DeepEquals(prior, body)) throw new InvalidDataException("Widersprüchlicher Personal-Sync-Bericht.");
         WriteMeta(key, "personal_report", body.DeepClone().AsObject(), false);
     }
@@ -221,7 +248,7 @@ internal sealed class PersonalSyncStore(TelefonStore store)
     {
         if (direction is not ("incoming" or "outgoing") || policy is not ("any" or "wifi_only")) throw new InvalidDataException("Attachment-Metadaten ungültig.");
         PersonalSyncContract.ValidateAttachmentDescriptor(descriptor);
-        var hash = descriptor["sha256"]?.GetValue<string>() ?? throw new InvalidDataException(); var size = descriptor["size"]?.GetValue<long>() ?? throw new InvalidDataException(); var mime = descriptor["mime"]?.GetValue<string>() ?? throw new InvalidDataException(); var attachmentId = descriptor["attachment_id"]?.GetValue<string>() ?? throw new InvalidDataException();
+        var hash = descriptor["sha256"]?.GetValue<string>() ?? throw new InvalidDataException(); var size = TelefonProtocolContract.Integer(descriptor["size"]); var mime = descriptor["mime"]?.GetValue<string>() ?? throw new InvalidDataException(); var attachmentId = descriptor["attachment_id"]?.GetValue<string>() ?? throw new InvalidDataException();
         if (size is < 1 or > MaximumAttachmentBytes || expiresMs <= 0) throw new InvalidDataException("Attachment-Metadaten ungültig.");
         var indexed = chunks.Select(item => (item.Index, Data: item.Data.ToArray())).ToArray();
         var totalChunks = checked((int)((size + PersonalSyncContract.ChunkRaw - 1) / PersonalSyncContract.ChunkRaw));
@@ -341,9 +368,24 @@ internal sealed class PersonalSyncStore(TelefonStore store)
         var finals = rows.Where(row => row.Last).ToArray(); if (finals.Length > 1 || finals.Length == 1 && rows.Any(row => row.Sequence > finals[0].Sequence)) throw new InvalidDataException("Widersprüchliches Batch-Ende.");
         if (finals.Length != 1 || !rows.Select(row => row.Sequence).SequenceEqual(Enumerable.Range(0, finals[0].Sequence + 1))) return null;
         var records = new JsonArray(); string? advertised = null;
-        foreach (var row in rows) { var message = JsonNode.Parse(store.Open("personal_batch", BatchPrimary(peerId, runId, reply, row.Sequence), row.Payload))!.AsObject(); var body = message["body"]!.AsObject(); if (body["records_hash"] is JsonValue hash) { var current = hash.GetValue<string>(); if (advertised is not null && advertised != current) throw new InvalidDataException("Widersprüchlicher records_hash."); advertised = current; } foreach (var record in body["records"]!.AsArray()) records.Add(record!.DeepClone()); }
+        var request = ReadMeta(RunKey(peerId, runId), "personal_run")?["body"] as JsonObject ?? throw new InvalidDataException("Personal-Sync-Request fehlt.");
+        var format = request["format"]!.GetValue<int>();
+        foreach (var row in rows)
+        {
+            var message = JsonNode.Parse(store.Open("personal_batch", BatchPrimary(peerId, runId, reply, row.Sequence), row.Payload))!.AsObject();
+            var body = message["body"]!.AsObject();
+            PersonalSyncContract.ValidateBody("personal_sync.batch", body);
+            if (body["format"]!.GetValue<int>() != format) throw new InvalidDataException("Widersprüchlicher Personal-Sync-Lauf.");
+            if (body["records_hash"] is JsonValue hash)
+            {
+                var current = hash.GetValue<string>();
+                if (advertised is not null && advertised != current) throw new InvalidDataException("Widersprüchlicher records_hash.");
+                advertised = current;
+            }
+            foreach (var record in body["records"]!.AsArray()) records.Add(record!.DeepClone());
+        }
         if (advertised is not null && PersonalSyncContract.RecordsHash(records) != advertised) throw new InvalidDataException("Aggregierter records_hash ungültig.");
-        return new PersonalSyncStagedBatch(peerId, runId, reply, finals[0].MessageId, token, records, advertised ?? "");
+        return new PersonalSyncStagedBatch(peerId, runId, reply, finals[0].MessageId, token, records, advertised ?? "", format);
     }
 
     private JsonObject? ReadMeta(string key, string type) { using var connection = store.OpenDatabase(); connection.Open(); using var command = connection.CreateCommand(); command.CommandText = "SELECT value FROM meta WHERE key=$key"; command.Parameters.AddWithValue("$key", key); return command.ExecuteScalar() is byte[] encrypted ? JsonNode.Parse(store.Open(type, key, encrypted))!.AsObject() : null; }
@@ -381,5 +423,5 @@ internal sealed class PersonalSyncStore(TelefonStore store)
 }
 
 internal sealed record PersonalSyncRun(string RunId, string Policy, long ExpiresMs, bool Expired, JsonObject Request);
-internal sealed record PersonalSyncStagedBatch(string PeerId, string RunId, bool Reply, string PendingMessageId, string CommitToken, JsonArray Records, string RecordsHash);
+internal sealed record PersonalSyncStagedBatch(string PeerId, string RunId, bool Reply, string PendingMessageId, string CommitToken, JsonArray Records, string RecordsHash, int Format);
 internal sealed record PersonalSyncDecisionIntent(string PeerId, string PendingMessageId, string CommitToken, string Kind, JsonObject Body);

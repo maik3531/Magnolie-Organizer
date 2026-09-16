@@ -1,0 +1,22 @@
+global using System.Drawing;
+global using System.Windows.Forms;
+
+// Compile-only adapters. Never used to claim native WinForms execution on Linux.
+namespace MagnolieOrganizer.Windows
+{
+    internal static class NativeMethods
+    {
+        internal static void ApplySystemTitleBarTheme(IntPtr handle) => throw new NotSupportedException();
+        internal static void PlaySoundFile(string path) => throw new NotSupportedException();
+    }
+    internal static class ShellLauncher
+    {
+        internal static void OpenWebUri(string uri) => throw new NotSupportedException();
+    }
+    internal static class FirstRunPhoneFinish
+    {
+        internal static Task<FirstRunSetupSelections> CompleteAsync(FirstRunSetupState state, FirstRunSetupSelections selections,
+            bool skipped, IFirstRunSetupPhoneServices? phones, CancellationToken cancellation) => throw new NotSupportedException();
+    }
+    internal static class ApplicationConfiguration { internal static void Initialize() => throw new NotSupportedException(); }
+}

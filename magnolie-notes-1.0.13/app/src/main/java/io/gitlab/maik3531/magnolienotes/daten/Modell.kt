@@ -99,7 +99,9 @@ data class Aufgabe(
     /** Stable cross-platform hierarchy identity; legacy rows are normalized on load. */
     val uid: String = "",
     val elternUid: String = "",
-    val reihenfolge: Int = 0
+    val reihenfolge: Int = 0,
+    /** Explicit recipients, including full-sync copies. Legacy delegiertAn remains authoritative. */
+    val standPartner: List<String> = emptyList()
 ) {
     /** Eine fremde Aufgabe darf nur den Erledigt-Stand zurückmelden. */
     val istFremd: Boolean get() = fremdId.isNotEmpty() && herkunft.isNotEmpty()
@@ -136,6 +138,7 @@ data class Partner(
     val kontaktLoeschSync: Boolean = false,
     /** Wartet auf die Bestätigung des Menschen (kurzer Codeweg). */
     val wartet: Boolean = false,
+    val paarungGueltigBis: Long = 0L,
     /** Der beim kurzen Weg zu vergleichende sechsstellige Code. */
     val code: String = "",
     val protokoll: String = "baum-fs1",
@@ -144,8 +147,15 @@ data class Partner(
     val zaehlerRaus: Long = 0L,
     val zaehlerRein: Long = 0L,
     /** Zuletzt gesehene Transportkennungen, gegen doppelte Zustellung. */
-    val gesehen: List<String> = emptyList()
+    val gesehen: List<String> = emptyList(),
+    /** Only authenticated kontakt_faehigkeiten messages can change these versions. */
+    val kontaktSyncFassungen: List<Int> = listOf(1),
+    val kontaktImportFassungen: List<Int> = listOf(1),
+    val baum1Belege: List<Baum1Beleg> = emptyList()
 )
+
+@Serializable
+data class Baum1Beleg(val zaehler: Long, val umschlagHash: String, val receipt: String = "")
 
 /** Ein Eintrag im Postfach – gespeichert, bevor der erste Netzversuch läuft. */
 @Serializable
@@ -159,8 +169,16 @@ data class Sendung(
     val naechsterVersuch: Long = 0L,
     val angelegt: Long = 0L,
     val aufgegeben: Boolean = false,
-    val syncEpoch: String = ""
-)
+    val syncEpoch: String = "",
+    val protokoll: String = "",
+    val baum1Umschlag: String = "",
+    val receiptProtocol: Int = 0,
+    val receiptAttempted: Boolean = false,
+    val unsicher: Boolean = false
+) {
+    val brauchtPruefung: Boolean get() = unsicher || receiptAttempted ||
+        (baum1Umschlag.isNotEmpty() && receiptProtocol != 1)
+}
 
 /** Ein empfangenes Angebot, das noch angenommen oder abgelehnt werden will. */
 @Serializable
@@ -171,7 +189,8 @@ data class Eingangsstueck(
     val art: String = "",
     /** Der vollständige Inhalt als JSON, damit nichts verlorengeht. */
     val inhalt: String = "",
-    val empfangen: Long = 0L
+    val empfangen: Long = 0L,
+    val envelopeSha256: String = ""
 )
 
 /** Die eigene, dauerhafte Baumidentität. */
@@ -203,7 +222,9 @@ data class Baumzustand(
     /** Trennt vor einer Wiederherstellung erzeugte Lösch-/Outbox-Stände sicher ab. */
     val syncEpoch: String = "",
     val additiveBaselineAusstehend: Boolean = false,
-    val quarantiniertesPostfach: List<Sendung> = emptyList()
+    val quarantiniertesPostfach: List<Sendung> = emptyList(),
+    val dateiPaarungsBelege: List<io.gitlab.maik3531.magnolienotes.baum.DateiPaarungsBeleg> = emptyList(),
+    val dateiPaarungsAusgang: List<io.gitlab.maik3531.magnolienotes.baum.DateiPaarungsAusgang> = emptyList()
 )
 
 @Serializable
@@ -294,8 +315,13 @@ data class Bestand(
     val aufgaben: List<Aufgabe> = emptyList(),
     val papierkorb: List<PapierkorbEintrag> = emptyList(),
     val papierkorbEinstellungen: PapierkorbEinstellungen = PapierkorbEinstellungen(),
-    val personalSync: PersonalSyncState = PersonalSyncState()
+    val personalSync: PersonalSyncState = PersonalSyncState(),
+    val personalCustom: PersonalCustomState = PersonalCustomState()
 )
+
+/** A single active editor, stored separately so typing never rewrites the whole Bestand. */
+@Serializable
+data class EditorEntwurf(val notiz: Notiz? = null, val aufgabe: Aufgabe? = null)
 
 /** Die Sinnbilder, mit denen eine Notiz in der Liste steht. */
 object Symbol {

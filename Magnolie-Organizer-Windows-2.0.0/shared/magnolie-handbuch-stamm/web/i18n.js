@@ -8,8 +8,9 @@
   let catalog = null;
 
   function localeCode(value) {
-    const raw = String(value || "").trim().replace(/_/g, "-");
+    const raw = String(value || "").trim().split(/[.@]/, 1)[0].replace(/_/g, "-");
     if (!raw || raw === "system") return "en";
+    if (/^zh(?:-|$)/i.test(raw)) return "zh-cn";
     return /^[A-Za-z]{2,3}(?:-[A-Za-z0-9]{2,8})*$/.test(raw)
       ? raw.toLowerCase() : "en";
   }
@@ -64,7 +65,8 @@
           `<div[^>]*data-image-manifest=['"]${escaped}['"][^>]*>[\\s\\S]*?<\\/div>`), "");
       }
       if (page.inhaltAnhang) {
-        const localized = page.inhaltAnhang[locale] || page.inhaltAnhang.en || "";
+        const source = page.inhaltAnhang.en || "";
+        const localized = page.inhaltAnhangNeutral ? source : gettext(source);
         page.inhalt = page.inhaltAnhangErsetzt ? localized : page.inhalt + localized;
       }
     }
@@ -80,7 +82,7 @@
     locale = localeCode(value);
     catalog = catalogFor(locale);
     document.documentElement.lang = catalog ? locale : "en";
-    document.documentElement.dir = document.documentElement.lang === "ar" ? "rtl" : "ltr";
+    document.documentElement.dir = document.documentElement.lang.split("-")[0] === "ar" ? "rtl" : "ltr";
     books.forEach(translateBook);
     translateDocument(document);
     document.dispatchEvent(new CustomEvent("magnolie-locale-changed"));

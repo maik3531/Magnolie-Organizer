@@ -57,7 +57,7 @@ internal static class TelefonCrypto
     {
         var builder = new StringBuilder();
         WriteCanonical(builder, node);
-        return Encoding.UTF8.GetBytes(builder.ToString());
+        return new UTF8Encoding(false, true).GetBytes(builder.ToString());
     }
 
     internal static PairingSecrets Pairing(byte[] ownEphemeralPrivate, byte[] peerEphemeralPublic,
@@ -129,13 +129,20 @@ internal static class TelefonCrypto
         { WriteString(builder, text); return; }
         using var document = JsonDocument.Parse(node.ToJsonString());
         var element = document.RootElement;
-        if (element.ValueKind == JsonValueKind.Number && !element.TryGetInt64(out _))
-            throw new InvalidDataException("Bruchzahlen sind im Telefonprotokoll nicht erlaubt.");
+        if (element.ValueKind == JsonValueKind.Number)
+        {
+            if (!element.TryGetInt64(out var integer))
+                throw new InvalidDataException("Bruchzahlen sind im Telefonprotokoll nicht erlaubt.");
+            builder.Append(integer.ToString(System.Globalization.CultureInfo.InvariantCulture));
+            return;
+        }
         builder.Append(element.GetRawText());
     }
 
     private static void WriteString(StringBuilder builder, string value)
     {
+        // EnumerateRunes otherwise silently replaces unpaired UTF-16 surrogates.
+        _ = new UTF8Encoding(false, true).GetByteCount(value);
         builder.Append('"');
         foreach (var rune in value.EnumerateRunes())
         {

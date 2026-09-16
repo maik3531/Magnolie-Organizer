@@ -56,7 +56,9 @@ object Waehlauftrag {
         val clientRef = body.string("client_ref")
         val number = body.string("to")
         if (!Regex("\\+[0-9]{3,15}").matches(number)) return "failed" to "invalid_destination"
-        if (!TelefonEffekte(context).firstEvent("dial:$clientRef")) return "submitted" to "none"
+        // The marker proves only an attempt. Known replies are replayed by the
+        // protocol; an interrupted attempt without a reply must not claim success.
+        if (!TelefonEffekte(context).firstEvent("dial:$clientRef")) return "failed" to "os_restricted"
         // For direct calls, call_ref is canonically the dial command's client_ref.
         return TelefonWerk.get(context).placeOutgoing(number, clientRef)
     }
@@ -74,15 +76,18 @@ class AusgewaehlteBenachrichtigungen : NotificationListenerService() {
     }
 
     private fun nachStartup(sbn: StatusBarNotification, event: String) {
+        if (!TelefonAblage.get(this).enabled()) return
         startupScope.launch {
-            if ((application as io.gitlab.maik3531.magnolienotes.MagnolieApp).awaitReady()) publish(sbn, event)
+            if ((application as io.gitlab.maik3531.magnolienotes.MagnolieApp).awaitReady()) {
+                runCatching { publish(sbn, event) }
+            }
         }
     }
 
     private fun publish(sbn: StatusBarNotification, event: String) {
         val storage = TelefonAblage.get(this)
         val notification = sbn.notification
-        if (!TelefonModulStatus.notifications(this, storage) || sbn.packageName !in storage.selectedPackages() ||
+        if (!storage.enabled() || !TelefonModulStatus.notifications(this, storage) || sbn.packageName !in storage.selectedPackages() ||
             notification.category != Notification.CATEGORY_MESSAGE || notification.flags and
             (Notification.FLAG_GROUP_SUMMARY or Notification.FLAG_ONGOING_EVENT) != 0) return
         val messages = NotificationCompat.MessagingStyle.extractMessagingStyleFromNotification(notification)?.messages ?: return

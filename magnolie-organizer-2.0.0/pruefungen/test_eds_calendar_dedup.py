@@ -26,6 +26,30 @@ class Probe:
         self.nutzlast = nutzlast
 
 
+def test_calendar_connect_wait_is_shorter_than_outer_timeout(monkeypatch):
+    calls = []
+
+    class Source:
+        def get_enabled(self): return True
+
+    class LocalRegistry:
+        def ref_source(self, _uid): return Source()
+
+    class Connected:
+        def is_online(self): return True
+
+    class ECal:
+        ClientSourceType = type("ClientSourceType", (), {"EVENTS": 1})
+        Client = type("Client", (), {"connect_sync": staticmethod(
+            lambda *args: calls.append(args) or Connected())})
+
+    monkeypatch.setitem(m._EDS, "ECal", ECal)
+    client = m.eds_kalender_client(LocalRegistry(), "local")
+
+    assert isinstance(client, Connected)
+    assert calls[0][2] == 5 and calls[0][2] < m.EDS_OPERATION_TIMEOUT
+
+
 def sync(monkeypatch, lokale_termine, remote_ics, mutations=None,
          client="google-calendar", tombstones=None, fail_operation="", last_sync=0,
          lokale_jahrestage=None):
@@ -196,6 +220,24 @@ def test_google_birthday_stays_calendar_event_during_eds_sync(monkeypatch):
     assert event["wiederholung"]["art"] == "yearly"
     assert event["syncKalenderUid"] == "google-calendar"
     assert "eds:google-calendar" in event["syncQuellen"]
+
+
+def test_eds_imports_two_and_three_week_intervals(monkeypatch):
+    remote = (
+        "BEGIN:VCALENDAR\r\nVERSION:2.0\r\n"
+        "BEGIN:VEVENT\r\nUID:eds-14\r\nDTSTART:20260907T090000\r\n"
+        "DTEND:20260907T100000\r\nRRULE:FREQ=WEEKLY;INTERVAL=2;BYDAY=MO\r\n"
+        "SUMMARY:14 days\r\n"
+        "END:VEVENT\r\nBEGIN:VEVENT\r\nUID:eds-21\r\n"
+        "DTSTART:20260908T090000\r\nDTEND:20260908T100000\r\n"
+        "RRULE:FREQ=WEEKLY;INTERVAL=3;BYDAY=TU\r\n"
+        "SUMMARY:21 days\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n")
+
+    result = sync(monkeypatch, [], remote)
+
+    intervals = {event["uid"]: event["wiederholung"]["intervall"]
+                 for event in result["termine"]}
+    assert intervals == {"eds-14": 2, "eds-21": 3}
 
 
 def test_unassigned_local_import_is_not_uploaded_to_selected_google_calendar(monkeypatch):
@@ -428,6 +470,45 @@ def test_contact_tombstones_survive_success_and_keep_failed_remote_deletions():
     assert {item["uid"] for item in result} == {
         "already-absent", "deleted", "failed"}
     assert next(item for item in result if item["uid"] == "failed")["zeit"] == now - 3_000
+
+
+def test_remote_calendar_update_replaces_complete_scheduling_metadata():
+    local = {"uid": "metadata", "datum": "2026-09-01", "zeit": "10:00", "titel": "Old",
+             "geaendert": 1000, "sync": True, "icsTimezones": [["TZID:Old"]],
+             "icsRangeOverrides": [["SUMMARY:Old override"]], "ort": "Old room"}
+    remote = {"uid": "metadata", "datum": "2026-09-01", "zeit": "10:00", "titel": "Updated",
+              "geaendert": 3000, "icsTimezones": [["TZID:New"]],
+              "icsAnzeigeZeitzone": "UTC", "icsRoundtrip": ["LOCATION:New room"]}
+    merged, creates, updates, deletes, _counts = m.sync_merge(
+        [local], {"metadata": remote}, [], 2000, m.TERMIN_FELDER)
+    assert not creates and not updates and not deletes
+    assert merged[0]["icsTimezones"] == remote["icsTimezones"]
+    assert merged[0]["icsAnzeigeZeitzone"] == "UTC"
+    assert "icsRangeOverrides" not in merged[0] and "ort" not in merged[0]
+    changed_zone = dict(remote, icsTimezones=[["TZID:Changed"]])
+    assert m._sync_inhalt_hash(remote, m.TERMIN_FELDER) != m._sync_inhalt_hash(changed_zone, m.TERMIN_FELDER)
+    assert m._sync_inhalt_format(m.TERMIN_FELDER) != m._sync_inhalt_format(m.AUFGABE_FELDER)
+
+
+def test_complex_duplicate_retains_combined_source_label():
+    first = {"uid": "same", "datum": "2026-09-01", "titel": "Same", "icsQuelleId": "a", "icsQuelleName": "A"}
+    second = dict(first, icsQuelleId="b", icsQuelleName="B", icsKomplex=True)
+    result = m._lokale_kalender_dubletten_bereinigen({"termine": [first, second]})
+    assert len(result["termine"]) == 1
+    assert result["termine"][0]["icsQuelleName"] == "A + B"
+    assert set(result["termine"][0]["syncQuellen"]) == {"a", "b"}
+
+
+def test_local_duplicate_cleanup_does_not_discard_different_details():
+    first = {"uid": "same", "datum": "2026-09-01", "titel": "Same",
+             "icsQuelleId": "a", "icsQuelleName": "A", "notiz": "Source A"}
+    second = dict(first, icsQuelleId="b", icsQuelleName="B", notiz="Source B", icsKomplex=True)
+    result = m._lokale_kalender_dubletten_bereinigen({"termine": [first, second]})
+    assert [item["notiz"] for item in result["termine"]] == ["Source A", "Source B"]
+    compatible = dict(second)
+    compatible.pop("notiz")
+    result = m._lokale_kalender_dubletten_bereinigen({"termine": [dict(first), compatible]})
+    assert len(result["termine"]) == 1 and result["termine"][0]["notiz"] == "Source A"
 
 
 def test_equal_timestamp_conflict_preserves_both_versions_and_converges():

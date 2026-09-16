@@ -1,0 +1,9 @@
+// Execute only the command-line-selected call fixtures, even with warm compiler caches.
+allprojects {
+    tasks.withType(Test).configureEach {
+        outputs.upToDateWhen { false }
+        maxHeapSize = '768m'
+        maxParallelForks = 1
+        jvmArgs '-XX:ActiveProcessorCount=2', '-XX:MaxMetaspaceSize=256m', '-XX:ReservedCodeCacheSize=64m'
+    }
+}

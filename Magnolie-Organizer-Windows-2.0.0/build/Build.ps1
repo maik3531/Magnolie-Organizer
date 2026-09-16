@@ -1,6 +1,7 @@
 param(
     [switch] $BuildInstaller,
-    [switch] $CrossCompile
+    [switch] $CrossCompile,
+    [string] $Destination
 )
 $ErrorActionPreference = "Stop"
 $ProgressPreference = "SilentlyContinue"
@@ -8,6 +9,31 @@ Set-StrictMode -Version Latest
 . (Join-Path $PSScriptRoot "Release.Common.ps1")
 
 $root = Split-Path -Parent $PSScriptRoot
+$outputRoot = $root
+if ($Destination) {
+    $outputRoot = [IO.Path]::GetFullPath($Destination)
+    $canonical = [IO.Path]::GetFullPath((Split-Path -Parent $root)).TrimEnd([IO.Path]::DirectorySeparatorChar)
+    if ($outputRoot.Equals($canonical, [StringComparison]::OrdinalIgnoreCase) -or
+        $outputRoot.StartsWith($canonical + [IO.Path]::DirectorySeparatorChar, [StringComparison]::OrdinalIgnoreCase)) {
+        throw 'Private candidate destination must be outside canonical source.'
+    }
+    if (Test-Path -LiteralPath $outputRoot) {
+        if (-not (Test-Path -LiteralPath $outputRoot -PathType Container) -or @(Get-ChildItem -LiteralPath $outputRoot -Force).Count) {
+            throw 'Private candidate destination must be an empty directory.'
+        }
+    } else { [void][IO.Directory]::CreateDirectory($outputRoot) }
+    for ($directory = Get-Item -LiteralPath $outputRoot; $null -ne $directory; $directory = $directory.Parent) {
+        if (($directory.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0) { throw 'Private destination cannot use directory links.' }
+    }
+    if ([Runtime.InteropServices.RuntimeInformation]::IsOSPlatform([Runtime.InteropServices.OSPlatform]::Windows)) {
+        $acl = [Security.AccessControl.DirectorySecurity]::new()
+        $sid = [Security.Principal.WindowsIdentity]::GetCurrent().User
+        $acl.SetOwner($sid)
+        $acl.SetAccessRuleProtection($true, $false)
+        $acl.AddAccessRule([Security.AccessControl.FileSystemAccessRule]::new($sid, 'FullControl', 'ContainerInherit,ObjectInherit', 'None', 'Allow'))
+        Set-Acl -LiteralPath $outputRoot -AclObject $acl
+    } else { [IO.File]::SetUnixFileMode($outputRoot, [IO.UnixFileMode]::UserRead -bor [IO.UnixFileMode]::UserWrite -bor [IO.UnixFileMode]::UserExecute) }
+}
 $version = Get-ReleaseVersion $root
 $official = $env:MAGNOLIE_OFFICIAL_RELEASE -eq "1"
 $hash = $env:MAGNOLIE_CONTRIBUTOR_HASH
@@ -43,8 +69,8 @@ $installerRecordName = "$canonicalInstallerName.build.json"
 $installerRecordStage = Join-Path $publicationStage $installerRecordName
 $unsignedSetupStage = if ($official) { Join-Path $publicationStage (".unsigned-" + $canonicalInstallerName) } else { $setupStage }
 $sourceName = "Magnolie-Organizer-Windows-$version-Source.zip"
-$sourceLive = Join-Path (Split-Path -Parent $root) $sourceName
-$sourceStage = Join-Path $stage $sourceName
+$sourceLive = Join-Path $root $sourceName
+$sourceStage = Join-Path $publicationStage $sourceName
 $sourceForRelease = $sourceLive
 $installSource = $false
 $installerName = $canonicalInstallerName
@@ -100,7 +126,7 @@ try {
     if ($hash -notmatch '^[0-9a-fA-F]{64}$') { throw "Binärausgabe benötigt MAGNOLIE_CONTRIBUTOR_HASH als SHA-256-Hexfolge." }
     $hash = $hash.ToLowerInvariant()
     $env:MAGNOLIE_CONTRIBUTOR_HASH = $hash
-    $python = Get-Command "python3" -ErrorAction SilentlyContinue
+    $python = if ($env:MAGNOLIE_PYTHON) { Get-Command $env:MAGNOLIE_PYTHON -ErrorAction Stop } else { Get-Command "python3" -ErrorAction SilentlyContinue }
     if (-not $python) { $python = Get-Command "python" -ErrorAction SilentlyContinue }
     if (-not $python) { throw "Der Bau benötigt Python 3 für Lokalisierungstests und Kataloggeneratoren." }
     $msgfmt = Get-Command "msgfmt" -ErrorAction SilentlyContinue
@@ -122,17 +148,43 @@ try {
         $sourceForRelease = $sourceStage
         $installSource = $true
     }
-    Push-Location $root
+    $sourceProjection = Join-Path $stage 'source'
+    [IO.Compression.ZipFile]::ExtractToDirectory($sourceForRelease, $sourceProjection)
+    $buildRoot = Join-Path $sourceProjection "Magnolie-Organizer-Windows-$version"
+    $handbookWeb = Join-Path $buildRoot 'shared/magnolie-handbuch-stamm/web'
+    $testEnvironment = @{}
+    foreach ($variable in 'MAGNOLIE_HANDBOOK_WEB', 'MAGNOLIE_HANDBUCH_WEB', 'MAGNOLIE_LINUX_SOURCE', 'MAGNOLIE_TEST_SOURCE_ROOT') {
+        $testEnvironment[$variable] = [Environment]::GetEnvironmentVariable($variable)
+    }
+    $env:MAGNOLIE_HANDBOOK_WEB = $handbookWeb
+    $env:MAGNOLIE_HANDBUCH_WEB = $handbookWeb
+    $env:MAGNOLIE_TEST_SOURCE_ROOT = $buildRoot
+    $linuxSource = Join-Path (Split-Path -Parent $root) 'magnolie-organizer-2.0.0'
+    $env:MAGNOLIE_LINUX_SOURCE = if (Test-Path -LiteralPath $linuxSource -PathType Container) { $linuxSource } else { $null }
+    Push-Location $buildRoot
     try {
+        Invoke-NativeCommand (Get-Process -Id $PID).Path @('-NoProfile', '-File', 'tests/release-packaging.ps1')
+        Invoke-NativeCommand $python.Source @('-B', '-m', 'pytest', '-q', '-p', 'no:cacheprovider', 'tests/test_windows_pot_source_coverage.py')
         Invoke-NativeCommand "dotnet" @("restore", "MagnolieOrganizer.Windows.csproj", "--locked-mode")
         Invoke-NativeCommand "dotnet" @("restore", "tests/CoreTests.csproj", "--locked-mode")
-        Invoke-NativeCommand "dotnet" @("run", "--project", "tests/CoreTests.csproj", "-c", "Release", "--no-restore")
+        $previousReleaseBuildTest = $env:MAGNOLIE_RELEASE_BUILD_TEST
+        try {
+            $env:MAGNOLIE_RELEASE_BUILD_TEST = "1"
+            Invoke-NativeCommand "dotnet" @("run", "--project", "tests/CoreTests.csproj", "-c", "Release", "--no-restore")
+        } finally {
+            $env:MAGNOLIE_RELEASE_BUILD_TEST = $previousReleaseBuildTest
+        }
         Invoke-NativeCommand "bun" @("install", "--frozen-lockfile")
         Invoke-NativeCommand "bun" @("run", "test")
         Invoke-NativeCommand "dotnet" @("publish", "MagnolieOrganizer.Windows.csproj", "-c", "Release", "-r", "win-x64", "--self-contained", "true", "--no-restore", "-p:Version=$version", "-o", $publish)
-        Invoke-NativeCommand "bun" @((Join-Path $root "build/PortHandbook.js"), $handbookWeb, $version, $installerName, (Join-Path $publish "handbuch"))
-        Invoke-NativeCommand "bun" @((Join-Path $root "build/AuditWebPayload.js"), "--publish", $root, $publish)
-    } finally { Pop-Location }
+        Invoke-NativeCommand "bun" @((Join-Path $buildRoot "build/PortHandbook.js"), $handbookWeb, $version, $installerName, (Join-Path $publish "handbuch"))
+        Invoke-NativeCommand "bun" @((Join-Path $buildRoot "build/AuditWebPayload.js"), "--publish", $buildRoot, $publish)
+    } finally {
+        Pop-Location
+        foreach ($variable in $testEnvironment.Keys) {
+            [Environment]::SetEnvironmentVariable($variable, $testEnvironment[$variable])
+        }
+    }
 
     $config = [ordered]@{ contributorHash = $hash }
     if ($env:MAGNOLIE_GRAPH_CLIENT_ID) {
@@ -141,7 +193,7 @@ try {
         $config.graphClientId = $id.ToString()
     }
     [IO.File]::WriteAllText((Join-Path $publish "build-config.json"), ($config | ConvertTo-Json -Compress), [Text.Encoding]::ASCII)
-    Invoke-NativeCommand "bun" @((Join-Path $root "installer/VerifyBuildConfig.js"), (Join-Path $publish "build-config.json"))
+    Invoke-NativeCommand "bun" @((Join-Path $buildRoot "installer/VerifyBuildConfig.js"), (Join-Path $publish "build-config.json"))
 
     $app = Join-Path $publish "Magnolie Organizer.exe"
     Sign-Official $app
@@ -159,11 +211,12 @@ try {
         Invoke-NativeCommand $app @("--self-test")
         Invoke-NativeCommand $app @("--ui-self-test")
     }
+    Assert-BinaryPayloadFiles $publish
     New-DeterministicZip $publish $zipStage
     Assert-BinaryArchiveBuildConfig $zipStage $hash
     $zipAudit = Join-Path $stage "zip-audit"
     [IO.Compression.ZipFile]::ExtractToDirectory($zipStage, $zipAudit)
-    Invoke-NativeCommand "bun" @((Join-Path $root "build/AuditWebPayload.js"), "--artifact", $publish, $zipAudit)
+    Invoke-NativeCommand "bun" @((Join-Path $buildRoot "build/AuditWebPayload.js"), "--artifact", $publish, $zipAudit)
 
     if ($BuildInstaller -or $official -or $CrossCompile) {
         $makensisCommand = if ($CrossCompile) { Get-Command makensis -ErrorAction SilentlyContinue } else { Get-Command makensis.exe -ErrorAction SilentlyContinue }
@@ -178,44 +231,50 @@ try {
         }
         if (-not $makensis) { throw "Installer angefordert, aber makensis beziehungsweise makensis.exe fehlt." }
         $installerManifestDir = Join-Path $stage "installer-manifests"
-        Invoke-NativeCommand "bun" @((Join-Path $root "installer/GenerateInstallManifests.js"), $publish, $installerManifestDir)
-        Invoke-NativeCommand $makensis @("-DPRODUCT_VERSION=$version", "-DPUBLISH_DIR=$publish", "-DCORE_MANIFEST=$(Join-Path $installerManifestDir 'core.manifest')", "-DHANDBOOK_MANIFEST=$(Join-Path $installerManifestDir 'handbook.manifest')", "-DOUTPUT_FILE=$unsignedSetupStage", "-DINSTALLER_FILENAME=$canonicalInstallerName", (Join-Path $root "installer/MagnolieOrganizer.nsi"))
+        Invoke-NativeCommand "bun" @((Join-Path $buildRoot "installer/GenerateInstallManifests.js"), $publish, $installerManifestDir)
+        Invoke-NativeCommand $makensis @("-WX", "-DPRODUCT_VERSION=$version", "-DPUBLISH_DIR=$publish", "-DCORE_MANIFEST=$(Join-Path $installerManifestDir 'core.manifest')", "-DHANDBOOK_MANIFEST=$(Join-Path $installerManifestDir 'handbook.manifest')", "-DOUTPUT_FILE=$unsignedSetupStage", "-DINSTALLER_FILENAME=$canonicalInstallerName", (Join-Path $buildRoot "installer/MagnolieOrganizer.nsi"))
         if (-not (Test-Path $unsignedSetupStage -PathType Leaf)) { throw "NSIS-Bau erzeugte keinen Installer." }
         Sign-Official $unsignedSetupStage
         if ($official) { Move-Item -LiteralPath $unsignedSetupStage -Destination $setupStage }
-        Invoke-NativeCommand "bun" @((Join-Path $root "installer/CreateInstallerBuildRecord.js"), $setupStage, $installerRecordStage, $canonicalInstallerName)
-        Invoke-NativeCommand "bun" @((Join-Path $root "installer/AuditInstaller.js"), $setupStage, $publish, $canonicalInstallerName, $installerRecordStage)
+        Invoke-NativeCommand "bun" @((Join-Path $buildRoot "installer/CreateInstallerBuildRecord.js"), $setupStage, $installerRecordStage, $canonicalInstallerName)
+        Invoke-NativeCommand "bun" @((Join-Path $buildRoot "installer/AuditInstaller.js"), $setupStage, $publish, $canonicalInstallerName, $installerRecordStage)
+        Write-WindowsCandidateRecord $root $publicationStage $version
     }
 
     $checksumArtifacts = @(
-        [pscustomobject]@{ Source = $sourceForRelease; DisplayPath = "../$sourceName" }
+        [pscustomobject]@{ Source = $sourceForRelease; DisplayPath = $sourceName }
         [pscustomobject]@{ Source = $zipStage; DisplayPath = (Split-Path $zipStage -Leaf) }
     )
     if ($BuildInstaller -or $official -or $CrossCompile) {
         $checksumArtifacts += [pscustomobject]@{ Source = $setupStage; DisplayPath = (Split-Path $setupStage -Leaf) }
         $checksumArtifacts += [pscustomobject]@{ Source = $installerRecordStage; DisplayPath = $installerRecordName }
+        $provenanceName = "Magnolie-Organizer-Windows-$version-provenance.json"
+        $checksumArtifacts += [pscustomobject]@{ Source = (Join-Path $publicationStage $provenanceName); DisplayPath = $provenanceName }
     }
     Write-ReleaseChecksums $root $version $checksumStage $checksumArtifacts
     $changes = @(
-        ,@($publish, (Join-Path $root "Ausgabe"))
-        ,@($zipStage, (Join-Path $root "Magnolie-Organizer-Windows-$version-x64.zip"))
+        ,@($publish, (Join-Path $outputRoot "Ausgabe"))
+        ,@($zipStage, (Join-Path $outputRoot "Magnolie-Organizer-Windows-$version-x64.zip"))
     )
-    if ($installSource) { $changes += ,@($sourceStage, $sourceLive) }
-    if (Test-Path $setupStage) { $changes += ,@($setupStage, (Join-Path $root $canonicalInstallerName)) }
-    if (Test-Path $installerRecordStage) { $changes += ,@($installerRecordStage, (Join-Path $root $installerRecordName)) }
-    $changes += ,@($checksumStage, (Join-Path $root $checksumName))
-    foreach ($stale in Get-ChildItem -LiteralPath $root -File -Force | Where-Object {
+    if ($installSource -or $Destination) { $changes += ,@($sourceStage, (Join-Path $outputRoot $sourceName)) }
+    if (Test-Path $setupStage) { $changes += ,@($setupStage, (Join-Path $outputRoot $canonicalInstallerName)) }
+    if (Test-Path $installerRecordStage) { $changes += ,@($installerRecordStage, (Join-Path $outputRoot $installerRecordName)) }
+    if ($BuildInstaller -or $official -or $CrossCompile) {
+        $changes += ,@((Join-Path $publicationStage $provenanceName), (Join-Path $outputRoot $provenanceName))
+    }
+    $changes += ,@($checksumStage, (Join-Path $outputRoot $checksumName))
+    foreach ($stale in Get-ChildItem -LiteralPath $outputRoot -File -Force | Where-Object {
         $_.Name -match '(?i)^Magnolie-Organizer-Windows-\d+\.\d+\.\d+-Setup-x64-UNSIGNED\.exe$'
     }) {
         $changes += ,@($null, $stale.FullName)
     }
     Install-StagedPaths $changes {
         if ($CrossCompile) {
-            Invoke-NativeCommand "bun" @((Join-Path $root "installer/AuditInstaller.js"), (Join-Path $root $canonicalInstallerName), (Join-Path $root "Ausgabe"), $canonicalInstallerName, (Join-Path $root $installerRecordName))
+            Invoke-NativeCommand "bun" @((Join-Path $buildRoot "installer/AuditInstaller.js"), (Join-Path $outputRoot $canonicalInstallerName), (Join-Path $outputRoot "Ausgabe"), $canonicalInstallerName, (Join-Path $outputRoot $installerRecordName))
         }
     }
-    if ($official) { Write-Host "Offizielle signierte Ausgabe $version erstellt." }
-    else { Write-Host "UNSIGNIERTER lokaler Build $version erstellt; nicht als offizielle Ausgabe veröffentlichen." }
+    if ($official) { Write-Host "Signed Windows transport candidate $version created; native/user acceptance and promotion are still required." }
+    else { Write-Host "Unsigned Windows transport candidate $version created; native/user acceptance and promotion are still required." }
 } finally {
     if ($lock) { $lock.Dispose() }
     if (Test-Path $stage) { Remove-Item $stage -Recurse -Force }

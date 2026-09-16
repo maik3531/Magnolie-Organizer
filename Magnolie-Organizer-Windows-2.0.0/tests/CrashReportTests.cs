@@ -110,8 +110,12 @@ internal static class CrashReportTests
             var writerSource = File.ReadAllText("CrashReportWriter.cs");
             var mainSource = File.ReadAllText("MainForm.cs");
             var handbookSource = File.ReadAllText("HandbookForm.cs");
-            TestAssert.That(programSource.IndexOf("CrashReporter.RegisterHandlers();", StringComparison.Ordinal) <
-                            programSource.IndexOf("args.Contains", StringComparison.Ordinal) &&
+            var handlers = programSource.IndexOf("CrashReporter.RegisterHandlers();", StringComparison.Ordinal);
+            var coldAction = programSource.IndexOf("if (args.Contains(\"--call-action\", StringComparer.Ordinal))", StringComparison.Ordinal);
+            TestAssert.That(coldAction >= 0 && handlers > coldAction &&
+                            programSource[coldAction..handlers].Contains("WindowsCallNotifications.Activate(args[1])", StringComparison.Ordinal) &&
+                            programSource[coldAction..handlers].Contains("return;", StringComparison.Ordinal) &&
+                            handlers < programSource.IndexOf("var trayStart = args.Contains", StringComparison.Ordinal) &&
                             reporterSource.Contains("SetUnhandledExceptionMode(UnhandledExceptionMode.ThrowException)", StringComparison.Ordinal) &&
                             !reporterSource.Contains("Application.ThreadException +=", StringComparison.Ordinal) &&
                             reporterSource.Contains("AppDomain.CurrentDomain.UnhandledException +=", StringComparison.Ordinal) &&

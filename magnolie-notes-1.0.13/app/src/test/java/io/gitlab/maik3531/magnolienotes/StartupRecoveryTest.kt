@@ -13,12 +13,23 @@ import javax.crypto.spec.SecretKeySpec
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.yield
+import kotlinx.coroutines.async
+import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.withTimeout
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class StartupRecoveryTest {
+    @Test fun `early system entry cannot wait forever on a replaced startup signal`() = runBlocking {
+        val barrier = StartBarriere<Unit> { StartFehlerArt.UNBEKANNTES_FORMAT }
+        val early = async(start = CoroutineStart.UNDISPATCHED) { barrier.awaitReady() }
+        try {
+            barrier.starten(this, initialisieren = { Unit })
+            assertTrue(withTimeout(1000) { early.await() })
+        } finally { early.cancel() }
+    }
     @Test fun `bereit folgt erst auf vollstaendige Initialisierung und awaitReady`() = runBlocking {
         val weiter = CompletableDeferred<Unit>()
         val barriere = StartBarriere<Unit> { StartFehlerArt.UNBEKANNTES_FORMAT }

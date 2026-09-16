@@ -117,7 +117,7 @@ object KontaktEingangslogik {
         require(karten.isNotEmpty() && karten.map { it.partner }.distinct().size == 1)
         val kontakt = vereinige(karten.map { it.kontakt })
         var lokal = gebundeneRawId?.let { schreiber.mischen(it, kontakt.copy(foto = "")) }
-            ?: schreiber.anlegen(kontakt.copy(foto = ""))
+            ?: schreiber.anlegen(kontakt.copy(foto = ""), importOperation(karten))
         if (kontakt.foto.isNotEmpty()) lokal = schreiber.fotoErgaenzen(lokal.rawContactId, kontakt.foto) ?: lokal
         val spuren = karten.map { karte -> KontaktSpur(
             lokal.lookupKey, lokal.rawContactId, karte.freigabeId, karte.version, karte.quelle,
@@ -125,6 +125,11 @@ object KontaktEingangslogik {
         ) }
         return KontaktImportErgebnis(lokal, spuren)
     }
+
+    fun importOperation(karten: List<KontaktEingang>): String = "import:" + gruppenId(
+        karten.first().partner, karten.map { Kanonisch.text(kotlinx.serialization.json.JsonArray(listOf(
+            kotlinx.serialization.json.JsonPrimitive(it.freigabeId), kotlinx.serialization.json.JsonPrimitive(it.version),
+            kotlinx.serialization.json.JsonPrimitive(it.quelle)))) })
 
     fun bereinigePartner(zustand: Baumzustand, partner: String): Baumzustand = zustand.copy(
         partner = zustand.partner.filterNot { it.kennung == partner },
@@ -146,6 +151,9 @@ object KontaktEingangslogik {
         return KontaktSync.normalisiere(KontaktDaten(
             vorname = eindeutig { it.vorname }, nachname = eindeutig { it.nachname },
             firma = eindeutig { it.firma }, geburtstag = eindeutig { it.geburtstag },
+            jubilaeum = eindeutig { it.jubilaeum },
+            anzeigename = eindeutig { it.anzeigename },
+            vcardName = kontakte.map { it.vcardName }.filter { it.isNotEmpty() }.distinct().singleOrNull().orEmpty(),
             notiz = notizen.singleOrNull().orEmpty(),
             foto = kontakte.map { it.foto }.filter(String::isNotBlank).distinct().singleOrNull().orEmpty(),
             telefone = kontakte.flatMap { it.telefone }.distinctBy { telefon(it.wert) },
@@ -164,13 +172,16 @@ object KontaktEingangslogik {
         return listOfNotNull(
             werte("Vorname") { it.vorname }, werte("Nachname") { it.nachname },
             werte("Firma") { it.firma }, werte("Geburtstag") { it.geburtstag },
+            werte("jubilaeum") { it.jubilaeum },
+            werte("anzeigename") { it.anzeigename },
+            werte("vcardName", { it }) { it.vcardName.joinToString("\n") },
             werte("Bild", { it }) { it.foto }, werte("Notiz", { it.trim() }) { it.notiz }
         )
     }
 
     private fun fragmentarisch(k: KontaktDaten): Boolean {
         val klassen = listOf(k.telefone.isNotEmpty(), k.emailEintraege.isNotEmpty(),
-            k.anschriften.isNotEmpty(), k.firma.isNotBlank(), k.geburtstag.isNotBlank(),
+            k.anschriften.isNotEmpty(), k.firma.isNotBlank(), k.geburtstag.isNotBlank(), k.jubilaeum.isNotBlank(),
             k.foto.isNotBlank(), k.notiz.isNotBlank()).count { it }
         return name(k).isNotBlank() && klassen <= 1
     }

@@ -18,6 +18,22 @@ import org.junit.Test
 import java.security.MessageDigest
 
 class PersonalSyncFormat2Test {
+    @Test fun `F18 full raw attachment chunks fit the agreed JSON body limit`() {
+        fun chunk(size: Int) = buildJsonObject {
+            put("format", JsonPrimitive(2)); put("run_id", JsonPrimitive(run)); put("reply", JsonPrimitive(false))
+            put("records_hash", JsonPrimitive(recordsHash)); put("sha256", JsonPrimitive(hash))
+            put("index", JsonPrimitive(0)); put("data", JsonPrimitive(Base64.getEncoder().encodeToString(ByteArray(size))))
+        }
+        for (size in listOf(1, 147_456, 179_999, 180_000)) {
+            val body = chunk(size)
+            PersonalSyncProtokoll.validate("personal_sync.attachment_chunk", body)
+            assertEquals(true, TelefonKanonisch.bytes(body).size <= 256 * 1024)
+        }
+        assertThrows(TelefonProtokollFehler::class.java) {
+            PersonalSyncProtokoll.validate("personal_sync.attachment_chunk", chunk(180_001))
+        }
+    }
+
     private val run = "11111111-1111-4111-8111-111111111111"
     private val recordsHash = "a".repeat(64)
     private val hash = "b".repeat(64)

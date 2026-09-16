@@ -3,17 +3,18 @@
 """Fester Releasevertrag fuer alle dateibasierten Im- und Exporte."""
 
 import io
+import base64
 import os
 import sys
 import stat
 import tempfile
 import zipfile
-from importlib.machinery import SourceFileLoader
+from modul_laden import quellmodul_laden
 
 
 PFAD = os.environ.get("MAGNOLIE_PROGRAMM") or os.path.join(
     os.path.dirname(os.path.abspath(__file__)), "..", "bin", "magnolie-organizer")
-m = SourceFileLoader("magnolie_import_export_vertrag", PFAD).load_module()
+m = quellmodul_laden("magnolie_import_export_vertrag", PFAD)
 fehler = 0
 
 
@@ -22,6 +23,30 @@ def pruefe(bedingung, text):
     if not bedingung:
         fehler += 1
     print("  %s - %s" % ("ok  " if bedingung else "FEHLT", text))
+
+
+def ldif_attribute(text):
+    """Decode RFC 2849 attributes independently of the contact importer."""
+    zeilen = []
+    for zeile in text.splitlines():
+        if zeile.startswith(" "):
+            zeilen[-1] += zeile[1:]
+        else:
+            zeilen.append(zeile)
+    aus = []
+    for block in "\n".join(zeilen).split("\n\n"):
+        felder = {}
+        for zeile in block.splitlines():
+            if not zeile or zeile.startswith("#"):
+                continue
+            name, trenner, wert = zeile.partition(":")
+            assert trenner, zeile
+            roh = (base64.b64decode(wert[1:].lstrip(" "), validate=True) if wert.startswith(":")
+                   else wert.removeprefix(" ").encode("utf-8"))
+            felder.setdefault(name.lower(), []).append(roh)
+        if "dn" in felder:
+            aus.append(felder)
+    return aus
 
 
 lange_notiz = "\n".join("Zeile %03d: Import und Export" % nr for nr in range(1, 92))
@@ -106,6 +131,12 @@ pruefe(kontakt_zurueck["foto"] == kontakt["foto"] and
        len(kontakt_zurueck["emailEintraege"]) == 2 and
        kontakt_zurueck["anschriften"][0]["land"] == "Deutschland",
        "VCF bewahrt Foto bytegleich, jahrlose BDAY, Typen und Land")
+vcf_text = m.vcf_schreiben([kontakt])
+pruefe("VERSION:4.0\r\n" in vcf_text and "BDAY:--0229\r\n" in vcf_text and
+       "PHOTO:data:image/jpeg;base64,/9j/2Q==\r\n" in vcf_text and
+       "ENCODING=b" not in vcf_text and "TEL;VALUE=text" in vcf_text and
+       "VERSION:3.0\r\n" in m.vcf_schreiben([dict(kontakt, geburtstag="1980-02-29")]),
+       "jahrlose VCF nutzt RFC 6350 mit legalem Datum, URI-Foto und Text-Telefon; volle BDAY bleibt v3-kompatibel")
 
 jahrlose_ics = m.ics_schreiben_jahrestage([
     {"uid": "vertrag-jahrlos", "name": "Jahrlos", "datum": "--02-29",
@@ -149,9 +180,21 @@ pruefe("dateOfBirth" not in m.ldif_schreiben([
 with open(os.path.join(os.path.dirname(__file__), "fixtures", "golden-kontakt.ldif"),
           encoding="utf-8", newline="") as datei:
     golden_ldif = datei.read()
-pruefe(ldif_text == golden_ldif and
+alt_attribute = ldif_attribute(golden_ldif)[0]
+neu_attribute = ldif_attribute(ldif_text)[0]
+erweiterung = neu_attribute.pop("magnolievcard")
+alt_attribute["objectclass"].append(b"extensibleObject")
+voll = m.vcf_lesen(erweiterung[0].decode("utf-8"))["kontakte"][0]
+pruefe(neu_attribute == alt_attribute and len(erweiterung) == 1 and
+       voll["uid"] == ldif_kontakt["uid"] and voll["nachname"] == ldif_kontakt["nachname"] and
+       voll["notiz"] == ldif_kontakt["notiz"] and voll["foto"] == ldif_kontakt["foto"] and
        max(len(zeile.encode("utf-8")) for zeile in ldif_text.splitlines()) <= 76,
-       "LDIF-Ausgabe entspricht dem plattformgleichen Golden und der Faltungsgrenze")
+       "LDIF bewahrt alle Attribute des Alt-Goldens, Original-UID und volle vCard-Erweiterung bei korrekter Faltung")
+alt_kontakt = m.ldif_lesen(golden_ldif)["kontakte"][0]
+pruefe(alt_kontakt["vorname"] == "Änne" and alt_kontakt["nachname"] == "Bei,spiel" and
+       alt_kontakt["notiz"] == ldif_kontakt["notiz"] and alt_kontakt["foto"] == ldif_kontakt["foto"] and
+       len(alt_kontakt["telefone"]) == 6 and len(alt_kontakt["anschriften"]) == 2,
+       "unveraendertes altes LDIF-Golden bleibt vollstaendig lesbar")
 pruefe(m._ldif_dn_wert(" #Komma,+Gleich=\\Ende ") ==
        "\\ #Komma\\,\\+Gleich\\=\\\\Ende\\ ",
        "LDIF-DN maskiert führende und abschließende Leerzeichen und Sonderzeichen")
@@ -160,11 +203,31 @@ angriff = {"uid": " #,+=\\\"<>; ", "nachname": "Name\r\nmail: injected@example.o
 png = {"nachname": "PNG", "foto": "data:image/png;base64,iVBORw0KGgo="}
 sicher_text, sicher_weg, foto_weg = m._ldif_export(
     [angriff, png, {}, dict(ldif_kontakt), dict(ldif_kontakt)])
+gelesen_sicher = m.ldif_lesen(sicher_text)["kontakte"]
+sichere_attribute = ldif_attribute(sicher_text)
 pruefe(sicher_text.count("\r\nmail: injected@example.org") == 0 and
        sicher_text.count("objectClass: inetOrgPerson") == 4 and
        len(set(zeile for zeile in sicher_text.splitlines() if zeile.startswith("uid: "))) == 4 and
-       sicher_weg == 1 and foto_weg == 1 and "iVBOR" not in sicher_text,
-       "LDIF maskiert Injektionen, erzeugt eindeutige UIDs und verwirft unbrauchbare Daten")
+       sicher_weg == 1 and foto_weg == 0 and len(gelesen_sicher) == 4 and
+       gelesen_sicher[0]["emails"] == ["sicher@example.org"] and
+       gelesen_sicher[1]["foto"] == png["foto"] and "jpegphoto" not in sichere_attribute[1] and
+       all(len(a["magnolievcard"]) == 1 for a in sichere_attribute) and
+       all(k["uid"] == ldif_kontakt["uid"] for k in gelesen_sicher[2:]),
+       "LDIF verhindert Injektionen, vergibt eindeutige LDAP-UIDs und bewahrt PNG sowie Original-UIDs verlustlos")
+for nr, namen in enumerate(({"vorname": "Anna Maria"}, {"nachname": "Van Dame"},
+                           {"anzeigename": "Independent display"})):
+    quelle = dict(namen, uid="urn:magnolie:name-test:%d" % nr,
+                  geburtstag="--02-29", jubilaeum="--06-07")
+    ausgabe = m.ldif_schreiben([quelle])
+    attribute = ldif_attribute(ausgabe)[0]
+    karte = m.ldif_lesen(ausgabe)["kontakte"][0]
+    pruefe(all(karte.get(feld, "") == quelle.get(feld, "") for feld in ("vorname", "nachname")) and
+           karte["uid"] == quelle["uid"] and karte["geburtstag"] == "--02-29" and
+           karte["jubilaeum"] == "--06-07" and
+           (bool(namen.get("nachname")) == (b"inetOrgPerson" in attribute["objectclass"])) and
+           (bool(namen.get("nachname")) == ("sn" in attribute)) and
+           (bool(namen.get("nachname")) or b"organizationalRole" in attribute["objectclass"]),
+           "LDIF-Teilname %d behaelt Originalfelder und waehlt die Klasse ohne erfundenen Nachnamen" % nr)
 ldif_ziel = os.path.join(tempfile.mkdtemp(prefix="magnolie-ldif-"), "adressen.ldif")
 m.atomar_text_schreiben(ldif_ziel, ldif_text, modus=0o600)
 pruefe(open(ldif_ziel, "rb").read() == ldif_text.encode("utf-8") and

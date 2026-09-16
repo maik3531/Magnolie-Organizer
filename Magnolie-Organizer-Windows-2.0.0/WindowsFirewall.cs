@@ -112,6 +112,7 @@ internal static class WindowsFirewall
             {
                 UseShellExecute = true,
                 Verb = "runas",
+                WorkingDirectory = Environment.SystemDirectory,
                 WindowStyle = ProcessWindowStyle.Hidden
             };
             start.ArgumentList.Add(ElevationArgument);
@@ -199,8 +200,9 @@ internal static class WindowsFirewall
         if (!OperatingSystem.IsWindows()) return false;
         try
         {
-            var start = new ProcessStartInfo("netsh")
+            var start = new ProcessStartInfo(Path.Combine(Environment.SystemDirectory, "netsh.exe"))
             {
+                WorkingDirectory = Environment.SystemDirectory,
                 UseShellExecute = false,
                 CreateNoWindow = true,
                 RedirectStandardOutput = true,
@@ -209,12 +211,14 @@ internal static class WindowsFirewall
             foreach (var argument in arguments) start.ArgumentList.Add(argument);
             using var process = Process.Start(start);
             if (process is null) return false;
-            output = process.StandardOutput.ReadToEnd() + process.StandardError.ReadToEnd();
+            var stdout = process.StandardOutput.ReadToEndAsync();
+            var stderr = process.StandardError.ReadToEndAsync();
             if (!process.WaitForExit(30_000)) { try { process.Kill(true); } catch (Exception) { } return false; }
+            output = stdout.WaitAsync(TimeSpan.FromSeconds(3)).GetAwaiter().GetResult() + stderr.WaitAsync(TimeSpan.FromSeconds(3)).GetAwaiter().GetResult();
             return process.ExitCode == 0;
         }
         catch (Exception error) when (error is System.ComponentModel.Win32Exception or InvalidOperationException
-                                          or PlatformNotSupportedException or IOException)
+                                          or PlatformNotSupportedException or IOException or TimeoutException)
         {
             return false;
         }

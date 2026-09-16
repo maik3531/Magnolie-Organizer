@@ -1,0 +1,357 @@
+// ASR-02 source-linked fixture; optional OS/transport boundaries are recorders.
+using System.Text.Json;
+using System.Text.Json.Nodes;
+using System.Security.Cryptography;
+using Microsoft.Data.Sqlite;
+
+await MagnolieOrganizer.Windows.BridgeDispatcher.ProbeAsync(args[0]);
+
+namespace MagnolieOrganizer.Windows
+{
+internal sealed class FixturePaths(string root)
+{
+    internal string Data => Path.Combine(root, "daten.json");
+    internal string Backups => Path.Combine(root, "backups");
+    internal string Telefon => Path.Combine(root, "Telefon");
+    internal string ReminderData => Path.Combine(root, "erinnerungsdaten.json");
+    internal string Logs => Path.Combine(root, "Logs");
+}
+internal sealed class FixtureUi
+{
+    internal readonly List<(string Name, JsonElement Body)> Responses = [];
+    internal string Failure = "";
+    internal Task SendAsync(string name, object value)
+    { lock (Responses) Responses.Add((name, JsonSerializer.SerializeToElement(value))); return Task.CompletedTask; }
+    internal string SetReminderAutostart(bool active) => Failure;
+}
+// Optional transport/OS boundaries are recorders, never substitute data stores.
+internal sealed class FixtureTree
+{
+    internal string Failure = "";
+    internal Task QuarantineOutboxAsync() => Failure == "tree" ? Task.FromException(new IOException("fixture tree")) : Task.CompletedTask;
+    internal Task ResumeAsync() => Task.CompletedTask;
+}
+internal sealed class FixtureCloud
+{
+    internal bool Fail;
+    internal void UpdateSnapshot(string text) { if (Fail) throw new IOException("fixture cloud snapshot"); }
+}
+internal sealed class BridgeDispatcher : IDisposable
+{
+    private readonly FixturePaths paths;
+    private readonly WindowsPaths phonePaths;
+    private readonly FixtureUi form = new();
+    private readonly FixtureTree baum = new();
+    private readonly FixtureCloud cloudWorker = new();
+    private readonly AtomicStore store;
+    private readonly RecoveryJournal recovery;
+    private readonly ReminderScheduler reminders;
+    private readonly TelefonStore phoneStore;
+    private readonly TelefonCoordinator telefon;
+    private EncryptionService encryption = new();
+    private string currentPlainText = Old, currentEnvelope = "";
+    private bool currentPlainTextAvailable = true;
+    private const string Old = """{"syncEpoch":"before","notizen":[{"id":"note","text":"old"}],"einstellungen":{"sicherheit":{"erinnernTrotzKennwort":true},"erinnerung":{"an":false}}}""";
+    private const string New = """{"syncEpoch":"archive","notizen":[{"id":"note","text":"new"}],"einstellungen":{"sicherheit":{"erinnernTrotzKennwort":true},"erinnerung":{"an":false}}}""";
+    private readonly byte[] fixtureKey = Enumerable.Range(0, 32).Select(i => (byte)i).ToArray();
+    private readonly object serviceGate = new(), personalSyncGate = new();
+    private readonly CancellationTokenSource backgroundLifetime = new();
+    private CancellationTokenSource restoreLifetime = new();
+    private readonly SemaphoreSlim bridgeCommands = new(1, 1);
+    private readonly Dictionary<string, Task> networkTails = new(StringComparer.Ordinal);
+    private readonly HashSet<string> personalUiPending = [];
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<Task, byte> backgroundWork = new();
+    private int networkGeneration;
+    private bool disposed;
+    private volatile bool restoreInProgress;
+    private string? restoreToken;
+    private bool restoreContentCommitted;
+    private string fault = "";
+    private int fenceWrites;
+    private readonly string peer = Guid.NewGuid().ToString("D");
+    private readonly string command = Guid.NewGuid().ToString("D");
+    private string snapshot = "";
+    private readonly string root;
+    private BridgeDispatcher(string root, bool encrypted = false, bool reopen = false)
+    {
+        this.root = root; Directory.CreateDirectory(root); paths = new(root); phonePaths = new(root);
+        store = new(stage =>
+        {
+            if (fault == "profile-temp" && stage == AtomicStore.WriteStage.TemporaryFlushed) throw new IOException("fixture primary fsync/rename boundary");
+            if (fault == "profile-primary" && stage == AtomicStore.WriteStage.PrimaryReplaced) throw new IOException("fixture primary committed mirror pending");
+            if (fault == "profile-backup" && stage == AtomicStore.WriteStage.BackupReplaced) throw new IOException("fixture backup committed");
+        });
+        if (reopen)
+        {
+            var persisted = File.ReadAllText(paths.Data);
+            if (EncryptionService.IsEncrypted(persisted)) { currentEnvelope = persisted; currentPlainText = "{}"; currentPlainTextAvailable = false; }
+            else currentPlainText = persisted;
+        }
+        else if (encrypted) { currentEnvelope = encryption.Enable(Old, "fixture-password"); store.WriteRecoverableJson(paths.Data, currentEnvelope); }
+        else store.WriteRecoverableJson(paths.Data, Old);
+        recovery = new(Path.Combine(root, "journal"), Path.Combine(root, "journal-settings.json"), new AtomicStore(stage =>
+        { if (fault == "snapshot" && stage == AtomicStore.WriteStage.TemporaryFlushed) throw new IOException("fixture snapshot fsync"); }));
+        reminders = new(Path.Combine(root, "reminder-state.json"), _ => throw new Exception("No native reminder permitted"));
+        var phoneFiles = new AtomicStore(stage =>
+        {
+            if (stage == AtomicStore.WriteStage.PrimaryReplaced) fenceWrites++;
+            if (fault == "fence-temp" && stage == AtomicStore.WriteStage.TemporaryFlushed) throw new IOException("fixture fence temp");
+            if (fault == "fence-primary" && stage == AtomicStore.WriteStage.PrimaryReplaced) throw new IOException("fixture fence primary");
+            if (fault == "prepare-fence" && fenceWrites >= 3 && stage == AtomicStore.WriteStage.PrimaryReplaced) throw new IOException("fixture intent mirror");
+        });
+        phoneStore = new(phonePaths, fixtureKey, phoneFiles, stage =>
+        { if (fault == stage) throw new IOException("fixture " + stage); });
+        telefon = new(phonePaths, form.SendAsync, dataStore: phoneStore, localOnly: true);
+        if (reopen) return;
+        phoneStore.RememberCommand(peer, command, DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
+        phoneStore.Enqueue(peer, "dial_request.command", new JsonObject { ["to"] = "+49123456789", ["client_ref"] = command }, 60000, DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
+        snapshot = recovery.Create(JsonNode.Parse(New)!.AsObject(), SnapshotReason.Manual, "fixture").Id;
+        File.WriteAllText(Path.Combine(root, "backup.json"), New);
+        File.WriteAllText(Path.Combine(root, "archive.magnolie"), GesamtarchivService.Create(JsonNode.Parse(New)!.AsObject(), "windows", "fixture"));
+    }
+    private string AppVersion => "fixture";
+    private static string T(string text) => NativeLocalization.Gettext(text);
+    private static string Text(JsonElement message, string name) => message.TryGetProperty(name, out var value) && value.ValueKind == JsonValueKind.String ? value.GetString()! : "";
+    private static int Integer(JsonElement message, string name) => message.TryGetProperty(name, out var value) && value.TryGetInt32(out var result) ? result : 0;
+    private void ClearPersonalSyncRuntime() { }
+    private Task ReportErrorAsync(string cmd, string detail) => Task.CompletedTask;
+    private Task SendRecoveryStatusAsync() => Task.CompletedTask;
+    private Task RunCloudBackupAfterSaveAsync(string text, bool force) => Task.CompletedTask;
+    private Task PreviewGesamtarchivAsync(string path, string password) => throw new NotSupportedException("preview is outside fixture");
+
+    /* METHODS */
+
+    private static void Check(bool condition, string description) { if (!condition) throw new Exception(description); }
+    private JsonElement Result => form.Responses.Last(item => item.Name is "App.sicherungWiederhergestellt" or "App.gesamtarchivImportiert" or "App.journalWiederhergestellt").Body;
+    private int Queued => Count("outbox");
+    private int Count(string table)
+    {
+        using var db = phoneStore.OpenDatabase(); db.Open(); using var q = db.CreateCommand();
+        q.CommandText = "SELECT count(*) FROM " + table; return Convert.ToInt32(q.ExecuteScalar());
+    }
+    private Task Restore(string route) => route switch
+    {
+        "backup" => RestoreBackupAsync(JsonSerializer.SerializeToElement(new { pfad = Path.Combine(root, "backup.json"), kennwort = "fixture-password" })),
+        "archive" => ImportGesamtarchivAsync(JsonSerializer.SerializeToElement(new { pfad = Path.Combine(root, "archive.magnolie"), kennwort = "fixture-password", modus = "vollstaendig-ersetzen" })),
+        _ => RestoreSnapshotAsync(JsonSerializer.SerializeToElement(new { snapshotId = snapshot, bereiche = new[] { "all" }, modus = "replace" }))
+    };
+    private string DiskPlain => EncryptionService.IsEncrypted(File.ReadAllText(paths.Data)) ? encryption.DecryptDataWithSession(File.ReadAllText(paths.Data)) : File.ReadAllText(paths.Data);
+    private void AssertOld(bool fence = false)
+    {
+        Check(DiskPlain == Old && currentPlainText == Old && !Result.GetProperty("ok").GetBoolean(), "precommit must retain old disk/UI");
+        Check(phoneStore.RestoreFenced == fence && restoreInProgress == fence, "incorrect abort fence state");
+    }
+    private void AssertNew(bool pending)
+    {
+        Check(Result.GetProperty("ok").GetBoolean() && Result.GetProperty("committed").GetBoolean(), "committed restore reported failure");
+        Check(Result.GetProperty("daten").GetProperty("notizen")[0].GetProperty("text").GetString() == "new", "old UI payload after commit");
+        Check(JsonNode.Parse(DiskPlain)!["notizen"]![0]!["text"]!.GetValue<string>() == "new" && DiskPlain == currentPlainText, "disk/native divergence");
+        Check(Result.GetProperty("repairPending").GetBoolean() == pending && phoneStore.RestoreFenced == pending, "false complete/pending fence");
+        if (pending) Check(form.Responses.Any(item => item.Name == "App.syncFehler"), "warning hidden from existing UI");
+    }
+    internal static async Task ProbeAsync(string root)
+    {
+        NativeLocalization.SetLanguage("en");
+        int cases = 0;
+        var failures = new List<string>();
+        foreach (var route in new[] { "backup", "archive", "snapshot" })
+        {
+            foreach (var phase in new[] { "", "snapshot", "profile-temp", "fence-temp", "fence-primary", "prepare-fence", "tree", "profile-primary", "profile-backup", "before-quarantine", "after-quarantine", "before-phone-commit", "after-phone-commit", "before-fence-mirror-delete", "before-fence-primary-delete", "runtime", "cloud", "reminder-delete" })
+            {
+                try
+                {
+                using var p = new BridgeDispatcher(Path.Combine(root, route + "-" + (phase.Length == 0 ? "success" : phase)), encrypted: route != "backup");
+                p.fault = phase; p.baum.Failure = phase; p.form.Failure = phase == "runtime" ? "fixture autostart failure" : ""; p.cloudWorker.Fail = phase == "cloud";
+                // RecoveryJournal.Create uses its direct WriteNew path, not its
+                // settings AtomicStore. Obstruct its actual validated root instead.
+                var snapshotObstruction = Path.Combine(p.root, "journal", ".fixture-obstruction");
+                if (phase == "snapshot") File.CreateSymbolicLink(snapshotObstruction, p.paths.Data);
+                if (phase == "reminder-delete") Directory.CreateDirectory(p.paths.ReminderData);
+                await p.Restore(route);
+                bool pre = new[] { "snapshot", "profile-temp", "fence-temp", "fence-primary", "prepare-fence", "tree" }.Contains(phase);
+                if (pre)
+                {
+                    p.AssertOld();
+                    if (phase != "fence-temp") Check(p.Queued == 0 && p.phoneStore.HasCommand(p.peer, p.command), "abort resurrected queued command or forgot effect marker");
+                }
+                else
+                {
+                    p.AssertNew(phase.Length != 0);
+                    if (phase.Length != 0)
+                    {
+                        using var reopened = new TelefonCoordinator(p.phonePaths, p.form.SendAsync,
+                            dataStore: new TelefonStore(p.phonePaths, p.fixtureKey), localOnly: true);
+                        Check(reopened.PendingRestore is not null, "restart lost durable pending epoch");
+                        await p.SaveAsync(JsonSerializer.SerializeToElement(new { id = 1, text = Old }));
+                        Check(!p.form.Responses.Last(item => item.Name == "App.gespeichert").Body.GetProperty("ok").GetBoolean(), "pending repair admitted old save");
+                    }
+                }
+                p.fault = ""; p.baum.Failure = ""; p.form.Failure = ""; p.cloudWorker.Fail = false;
+                if (phase == "snapshot") File.Delete(snapshotObstruction);
+                if (phase == "reminder-delete") Directory.Delete(p.paths.ReminderData);
+                await p.RetryRestoreRepairAsync();
+                Check(!p.phoneStore.RestoreFenced && !p.restoreInProgress, "retry did not clear repair barrier");
+                if (!pre)
+                {
+                    Check(p.Queued == 0, "committed restore kept unsafe queue");
+                    Check(File.ReadAllText(p.paths.Data) == File.ReadAllText(AtomicStore.BackupPath(p.paths.Data)), "retry failed mirror coherence");
+                }
+                cases++;
+                Console.WriteLine($"PASS {route}/{phase}: committed={!pre}, fence=false after retry, queued={p.Queued}");
+                }
+                catch (Exception error)
+                { failures.Add(route + "/" + phase + ": " + error.Message); Console.WriteLine("FAIL " + failures.Last()); }
+            }
+        }
+        using (var p = new BridgeDispatcher(Path.Combine(root, "wrong-password")))
+        {
+            var encrypted = new EncryptionService().Enable(New, "other-fixture-password");
+            File.WriteAllText(Path.Combine(p.root, "backup.json"), encrypted);
+            await p.Restore("backup"); p.AssertOld();
+            Check(p.Queued == 1 && p.fenceWrites == 0, "password validation altered live phone work"); cases++;
+        }
+        using (var p = new BridgeDispatcher(Path.Combine(root, "owned-token")))
+        {
+            var token = Guid.NewGuid().ToString("D"); p.phoneStore.BeginRestore(token);
+            try { p.phoneStore.AbortRestore(Guid.NewGuid().ToString("D")); throw new Exception("foreign token removed fence"); }
+            catch (InvalidOperationException) { }
+            Check(p.phoneStore.RestoreFenced, "foreign abort removed fence");
+            p.phoneStore.AbortRestore(token); Check(p.Queued == 0, "owned abort resurrected work"); cases++;
+        }
+        using (var p = new BridgeDispatcher(Path.Combine(root, "abort-delete-failure")))
+        {
+            await p.FencePhoneRestoreAsync(); p.fault = "before-fence-primary-delete";
+            Check((await p.ReleaseRestoreFence()).Length > 0 && p.phoneStore.RestoreFenced && p.Queued == 0, "abort deletion failure was silent/unfenced");
+            p.fault = ""; await p.RetryRestoreRepairAsync();
+            Check(!p.phoneStore.RestoreFenced && p.phoneStore.HasCommand(p.peer, p.command), "restart abort failed or lost effect marker"); cases++;
+        }
+        using (var p = new BridgeDispatcher(Path.Combine(root, "idempotent-epoch")))
+        {
+            p.fault = "before-fence-primary-delete"; await p.Restore("snapshot"); p.AssertNew(true);
+            // A retry must not run destructive cleanup again after the SQLite epoch committed.
+            using (var db = p.phoneStore.OpenDatabase())
+            {
+                db.Open(); using var q = db.CreateCommand();
+                q.CommandText = "CREATE TRIGGER forbid_second_cleanup BEFORE DELETE ON meta BEGIN SELECT RAISE(ABORT,'repeat cleanup'); END;"; q.ExecuteNonQuery();
+            }
+            p.fault = ""; await p.RetryRestoreRepairAsync();
+            Check(!p.phoneStore.RestoreFenced, "same durable epoch repeated destructive cleanup"); cases++;
+        }
+        using (var p = new BridgeDispatcher(Path.Combine(root, "sqlite-transaction")))
+        {
+            using (var db = p.phoneStore.OpenDatabase())
+            {
+                db.Open(); using var q = db.CreateCommand();
+                q.CommandText = "CREATE TRIGGER fail_commit BEFORE DELETE ON outbox BEGIN SELECT RAISE(ABORT,'fixture locked SQLite mutation'); END;"; q.ExecuteNonQuery();
+            }
+            await p.Restore("snapshot"); p.AssertNew(true); Check(p.Queued == 1, "SQLite failure did not roll back phone transaction");
+            using (var db = p.phoneStore.OpenDatabase()) { db.Open(); using var q = db.CreateCommand(); q.CommandText = "DROP TRIGGER fail_commit"; q.ExecuteNonQuery(); }
+            await p.RetryRestoreRepairAsync(); Check(!p.phoneStore.RestoreFenced && p.Queued == 0, "SQLite repair failed"); cases++;
+        }
+        using (var p = new BridgeDispatcher(Path.Combine(root, "queued-dispatcher-work")))
+        {
+            var predecessor = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var attempted = 0;
+            p.networkTails["phone"] = predecessor.Task;
+            p.QueueNetworkCommand(() => { Interlocked.Increment(ref attempted); return Task.CompletedTask; }, "phone");
+            var fencing = p.FencePhoneRestoreAsync();
+            predecessor.SetResult(true);
+            await fencing.WaitAsync(TimeSpan.FromSeconds(5));
+            await p.ReleaseRestoreFence();
+            Check(attempted == 0 && p.Queued == 0 && !p.phoneStore.RestoreFenced, "abort resurrected queued network work"); cases++;
+        }
+        var restartRoot = Path.Combine(root, "locked-restart-repair");
+        using (var p = new BridgeDispatcher(restartRoot, encrypted: true))
+        {
+            p.fault = "before-fence-primary-delete"; await p.Restore("snapshot"); p.AssertNew(true);
+        }
+        using (var restarted = new BridgeDispatcher(restartRoot, reopen: true))
+        {
+            await restarted.RetryRestoreRepairAsync();
+            Check(restarted.phoneStore.RestoreFenced && restarted.restoreInProgress && !restarted.currentPlainTextAvailable,
+                "locked restart falsely completed repair without committed plaintext");
+            restarted.currentPlainText = restarted.encryption.Unlock(restarted.currentEnvelope, "fixture-password");
+            restarted.currentPlainTextAvailable = true;
+            await restarted.RetryRestoreRepairAsync();
+            Check(!restarted.phoneStore.RestoreFenced && restarted.Queued == 0 &&
+                JsonNode.Parse(restarted.DiskPlain)!["notizen"]![0]!["text"]!.GetValue<string>() == "new", "unlocked restart failed durable repair"); cases++;
+        }
+        var corruptRoot = Path.Combine(root, "corrupt-durable-fence");
+        using (var p = new BridgeDispatcher(corruptRoot))
+        {
+            p.fault = "before-fence-primary-delete"; await p.Restore("backup"); p.AssertNew(true);
+            var fence = Path.Combine(p.paths.Telefon, "restore-fence.json");
+            File.WriteAllText(fence, "corrupt fixture marker");
+            File.WriteAllText(AtomicStore.BackupPath(fence), "corrupt fixture mirror");
+        }
+        using (var restarted = new BridgeDispatcher(corruptRoot, reopen: true))
+        {
+            var committed = File.ReadAllText(restarted.paths.Data);
+            await restarted.RetryRestoreRepairAsync();
+            Check(restarted.restoreInProgress && restarted.phoneStore.RestoreFenced, "corrupt fence falsely unfenced dispatcher");
+            await restarted.Restore("backup");
+            Check(!restarted.Result.GetProperty("ok").GetBoolean() && restarted.Result.GetProperty("repairPending").GetBoolean(),
+                "new restore hid a corrupt existing barrier");
+            await restarted.SaveAsync(JsonSerializer.SerializeToElement(new { id = 5, text = committed.Replace("\"new\"", "\"unsafe edit\"") }));
+            Check(!restarted.form.Responses.Last(item => item.Name == "App.gespeichert").Body.GetProperty("ok").GetBoolean() &&
+                File.ReadAllText(restarted.paths.Data) == committed, "corrupt persistent fence admitted a save"); cases++;
+        }
+        await ProbeSaveEpochAsync(Path.Combine(root, "save-epoch-boundary")); cases++;
+        Check(failures.Count == 0, string.Join("\n", failures));
+        Console.WriteLine($"ASR02 PASS: {cases} actual source/store cases; native Windows GUI/NTFS/DPAPI/transports not executed.");
+    }
+    private static async Task ProbeSaveEpochAsync(string root)
+    {
+        var old = JsonNode.Parse(Old)!.AsObject();
+        old["smsPlanung"] = new JsonArray { new JsonObject { ["id"] = "sms", ["status"] = "planned", ["text"] = "synthetic", ["originalText"] = "original" } };
+        old["smsVerlauf"] = new JsonArray { new JsonObject { ["text"] = "history" } };
+        old["kontakte"] = new JsonArray { new JsonObject { ["id"] = "contact" } };
+        old["termine"] = new JsonArray { new JsonObject { ["id"] = "event" } };
+        old["customOrganizer"] = new JsonObject { ["modules"] = new JsonArray() };
+        var oldText = old.ToJsonString();
+        var archived = old.DeepClone().AsObject(); archived["notizen"]![0]!["text"] = "restored";
+        string durable;
+        using (var p = new BridgeDispatcher(root))
+        {
+            p.currentPlainText = oldText; p.store.WriteRecoverableJson(p.paths.Data, oldText);
+            p.snapshot = p.recovery.Create(archived, SnapshotReason.Manual, "save fixture").Id;
+            p.fault = "profile-temp";
+            await p.SaveAsync(JsonSerializer.SerializeToElement(new { id = 41, text = oldText.Replace("\"old\"", "\"failed draft\"") }));
+            Check(!p.form.Responses.Last(r => r.Name == "App.gespeichert").Body.GetProperty("ok").GetBoolean(), "save fixture did not fail before commit");
+            p.fault = ""; await p.Restore("snapshot");
+            Check(p.Result.GetProperty("ok").GetBoolean(), "actual restore failed");
+            await p.SaveBeforeAsync(JsonSerializer.SerializeToElement(new { id = 42, text = oldText }));
+            Check(File.ReadAllText(p.paths.Data) == oldText, "negative control no longer demonstrates old-epoch overwrite");
+            await p.Restore("snapshot"); durable = File.ReadAllText(p.paths.Data);
+            var restored = JsonNode.Parse(durable)!.AsObject();
+            foreach (var field in new[] { "notizen", "smsVerlauf", "customOrganizer", "kontakte", "termine" })
+                Check(JsonNode.DeepEquals(restored[field], archived[field]), "restore lost complete field " + field);
+            Check(restored["smsPlanung"]![0]!["status"]!.ToString() == "paused" &&
+                restored["smsPlanung"]![0]!["id"]!.ToString() == "sms" &&
+                restored["smsPlanung"]![0]!["originalText"]!.ToString() == "original", "safe SMS restore lost content/identity");
+            await p.SaveAsync(JsonSerializer.SerializeToElement(new { id = 43, text = oldText }));
+            var ack = p.form.Responses.Last(r => r.Name == "App.gespeichert").Body;
+            Check(!ack.GetProperty("ok").GetBoolean() && ack.GetProperty("id").GetInt32() == 43 && File.ReadAllText(p.paths.Data) == durable, "old save crossed epoch fence");
+        }
+        using (var p = new BridgeDispatcher(root, reopen: true))
+        {
+            await p.SaveAsync(JsonSerializer.SerializeToElement(new { id = 1, text = oldText }));
+            Check(!p.form.Responses.Last(r => r.Name == "App.gespeichert").Body.GetProperty("ok").GetBoolean(), "reopen lost epoch fence");
+            var changed = JsonNode.Parse(durable)!.AsObject(); changed["notizen"]![0]!["text"] = "current edit";
+            var text = changed.ToJsonString(); p.fault = "profile-temp";
+            await p.SaveAsync(JsonSerializer.SerializeToElement(new { id = 2, text }));
+            Check(!p.form.Responses.Last(r => r.Name == "App.gespeichert").Body.GetProperty("ok").GetBoolean() && File.ReadAllText(p.paths.Data) == durable, "failed current save changed primary");
+            p.fault = ""; await p.SaveAsync(JsonSerializer.SerializeToElement(new { id = 3, text }));
+            Check(p.form.Responses.Last(r => r.Name == "App.gespeichert").Body.GetProperty("ok").GetBoolean() &&
+                File.ReadAllText(p.paths.Data) == text && File.ReadAllText(AtomicStore.BackupPath(p.paths.Data)) == text, "current save retry/reopen lost data");
+        }
+        Console.WriteLine("AUR SAVE EPOCH PASS: actual current restore/save/store, negative control, full content, serials, restart and failure/retry");
+    }
+    public void Dispose()
+    {
+        disposed = true; backgroundLifetime.Cancel();
+        Task.WhenAll(backgroundWork.Keys).GetAwaiter().GetResult();
+        telefon.Dispose(); reminders.Dispose(); encryption.Clear();
+    }
+}
+}

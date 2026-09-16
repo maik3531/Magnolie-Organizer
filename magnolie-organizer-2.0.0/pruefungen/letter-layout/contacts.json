@@ -1,0 +1,56 @@
+[
+  {
+    "id": "company-only", "culture": "de-DE",
+    "contact": {"anzeigename": "Beispielwerke GmbH", "firma": "Beispielwerke GmbH", "anschriften": [{"strasse": "Pr\u00fcfweg 12", "plz": "12345", "ort": "Teststadt"}]},
+    "sender": "Erika Muster\nMusterweg 3\n54321 Musterstadt",
+    "expected": ["Beispielwerke GmbH", "Pr\u00fcfweg 12", "12345 Teststadt"]
+  },
+  {
+    "id": "missing-first-name", "culture": "de-DE",
+    "contact": {"nachname": "Pr\u00fcfmann", "strasse": "Pr\u00fcfweg 12", "plz": "12345", "ort": "Teststadt"},
+    "sender": "Erika Muster\nMusterweg 3\n54321 Musterstadt",
+    "expected": ["Pr\u00fcfmann", "Pr\u00fcfweg 12", "12345 Teststadt"]
+  },
+  {
+    "id": "multiline-company", "culture": "de-DE",
+    "contact": {"firma": "Beispielverbund\r\nAbteilung Beitr\u00e4ge\nTeam Pr\u00fcfung", "strasse": "Pr\u00fcfweg 12\nHaus B", "plz": "12345", "ort": "Teststadt"},
+    "sender": "Erika Muster\nMusterweg 3\n54321 Musterstadt",
+    "expected": ["Beispielverbund", "Abteilung Beitr\u00e4ge", "Team Pr\u00fcfung", "Pr\u00fcfweg 12", "Haus B", "12345 Teststadt"]
+  },
+  {
+    "id": "imported-name-postal", "culture": "de-DE",
+    "contact": {"vorname": "Zo\u00eb", "nachname": "Pr\u00fcfer", "anzeigename": "Dr. Zo\u00eb Ren\u00e9e Pr\u00fcfer, MSc", "vcardRoundtrip": ["N:Pr\u00fcfer;Zo\u00eb;Ren\u00e9e;Dr.;MSc", "FN:Dr. Zo\u00eb Ren\u00e9e Pr\u00fcfer\\, MSc"], "anschriften": [{"zusatz": "c/o Labor & <Partner>", "strasse": "Pr\u00fcfweg 12", "plz": "12345", "ort": "Teststadt", "region": "Testregion", "land": "\u00d6sterreich"}]},
+    "sender": "Erika Muster\nMusterweg 3\n54321 Musterstadt",
+    "expected": ["Dr. Zo\u00eb Ren\u00e9e Pr\u00fcfer, MSc", "c/o Labor & <Partner>", "Pr\u00fcfweg 12", "12345 Teststadt", "Testregion", "\u00d6sterreich"]
+  },
+  {
+    "id": "imported-n-org", "culture": "de-DE",
+    "contact": {"vorname": "Zo\u00eb", "nachname": "Pr\u00fcfer", "firma": "Pr\u00fcfverbund", "vcardRoundtrip": ["N:Pr\u00fcfer;Zo\u00eb;Ren\u00e9e,Alex;Dr.;MSc", "ORG:Pr\u00fcfverbund;Abteilung\\; B;Team\\, C"], "anschriften": [{"strasse": "Pr\u00fcfweg 12", "plz": "12345", "ort": "Teststadt"}]},
+    "sender": "Erika Muster\nMusterweg 3\n54321 Musterstadt",
+    "expected": ["Dr. Zo\u00eb Ren\u00e9e Alex Pr\u00fcfer MSc", "Pr\u00fcfverbund", "Abteilung; B", "Team, C", "Pr\u00fcfweg 12", "12345 Teststadt"]
+  },
+  {
+    "id": "post-box", "culture": "de-DE",
+    "contact": {"firma": "Postfachdienst", "anschriften": [{"zusatz": "Abteilung Pr\u00fcfung", "postfach": "Postfach 1234", "plz": "12345", "ort": "Teststadt", "land": "Deutschland"}]},
+    "sender": "Erika Muster\nMusterweg 3\n54321 Musterstadt",
+    "expected": ["Postfachdienst", "Abteilung Pr\u00fcfung", "Postfach 1234", "12345 Teststadt", "Deutschland"]
+  },
+  {
+    "id": "long-six-lines", "culture": "de-DE",
+    "contact": {"anzeigename": "Alexandra Katharina von Beispiel & Partner Forschungsrat", "firma": "Beispielverbund\nAbteilung Beitr\u00e4ge\nTeam Pr\u00fcfung", "strasse": "Pr\u00fcfweg 12", "plz": "12345", "ort": "Teststadt"},
+    "sender": "Erika Muster\nMusterweg 3\n54321 Musterstadt",
+    "expected": ["Alexandra Katharina von Beispiel & Partner Forschungsrat", "Beispielverbund", "Abteilung Beitr\u00e4ge", "Team Pr\u00fcfung", "Pr\u00fcfweg 12", "12345 Teststadt"]
+  },
+  {
+    "id": "no-name-no-sender", "culture": "fr-FR",
+    "contact": {"anschriften": [{"strasse": "Pr\u00fcfweg 12", "plz": "12345", "ort": "Teststadt"}]},
+    "sender": "",
+    "expected": ["Pr\u00fcfweg 12", "12345 Teststadt"]
+  },
+  {
+    "id": "edited-imported-name", "culture": "de-DE",
+    "contact": {"vorname": "Neu", "nachname": "Bearbeitet", "firma": "Neuer Betrieb", "vcardName": ["N:Alt;Alt;Mitte;Dr.;MSc", "ORG:Alter Betrieb;Alte Abteilung"], "strasse": "Pr\u00fcfweg 12", "plz": "12345", "ort": "Teststadt"},
+    "sender": "Erika Muster\nMusterweg 3\n54321 Musterstadt",
+    "expected": ["Neu Bearbeitet", "Neuer Betrieb", "Pr\u00fcfweg 12", "12345 Teststadt"]
+  }
+]

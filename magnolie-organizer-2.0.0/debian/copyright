@@ -10,6 +10,24 @@ Files: io.gitlab.maik3531.MagnolieOrganizer.appdata.xml
 Copyright: 2026 Maik Walter <maik3531@gmail.com>
 License: CC0-1.0
 
+Files: web/anwendung.js
+Copyright: 2026 Maik Walter <maik3531@gmail.com>
+ 2009-2017 The Libphonenumber Authors
+ 2011-2017 David Drysdale <drysdale@google.com>
+ 2014 Artem Nezvigin <artem@artnez.com>
+ 2013, 2017 Google Inc.
+License: GPL-3+ and Apache-2.0
+Comment: The generated telephone numbering metadata block is derived from
+ python-phonenumbers 8.12.57 under Apache-2.0. The surrounding application
+ code is GPL-3+. See web/phone-metadata-NOTICE.txt and werkzeuge/phone_metadata.py.
+
+Files: web/phone-metadata-LICENSE.txt web/phone-metadata-NOTICE.txt
+Copyright: 2009-2017 The Libphonenumber Authors
+ 2011-2017 David Drysdale <drysdale@google.com>
+ 2014 Artem Nezvigin <artem@artnez.com>
+ 2013, 2017 Google Inc.
+License: Apache-2.0
+
 Files: web/kaffee-qr.mga
 Copyright: 2026 Maik Walter <maik3531@gmail.com>
 License: Magnolie-protected-assets
@@ -42,3 +60,19 @@ License: CC0-1.0
  Soweit gesetzlich möglich, hat der Urheber alle Urheber- und verwandten
  Schutzrechte an diesen Metadaten weltweit aufgegeben. Die vollständigen
  Bedingungen stehen unter <https://creativecommons.org/publicdomain/zero/1.0/>.
+
+License: Apache-2.0
+ Licensed under the Apache License, Version 2.0 (the "License");
+ you may not use this file except in compliance with the License.
+ You may obtain a copy of the License at
+ .
+ https://www.apache.org/licenses/LICENSE-2.0
+ .
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an "AS IS" BASIS,
+ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ See the License for the specific language governing permissions and
+ limitations under the License.
+ .
+ The full text is provided in web/phone-metadata-LICENSE.txt and on Debian
+ systems in /usr/share/common-licenses/Apache-2.0.

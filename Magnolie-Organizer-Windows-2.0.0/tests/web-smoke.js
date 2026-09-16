@@ -80,7 +80,7 @@ assert.match(css, /@supports\s*\(height:\s*1lh\)[\s\S]*?--linien-stelle:\s*0\.76
   "notebook line fallback is not tied to the actual line box");
 assert.match(application, /function notizlinienGrundlinie\(feld\)[\s\S]*?const periode = zweite - erste[\s\S]*?setProperty\("--zeilenhoehe",\s*metrik\.zeilenhoehe \+ "px"\)/,
   "Windows does not measure the effective editor baseline");
-assert.match(application, /\[\$\("#notiz-text"\),\s*\$\("#tb-notiz"\)\]/,
+assert.match(application, /querySelectorAll\("#notiz-text, #tb-notiz, \.custom-text-editor"\)/,
   "Windows baseline update does not select the note editors");
 assert.doesNotMatch(css, /body\s*\{\s*--zeilenhoehe/,
   "notebook line height is inherited from the unrelated body font");
@@ -90,6 +90,9 @@ assert.doesNotMatch(css, /\.einst-reiter-knopf(?:\s*\{|:hover\s*\{)[^}]*backgrou
   "transparent settings tabs can expose stale compositor surfaces");
 assert.match(html, /font-src 'self'/,
   "Windows CSP blocks the bundled Linux UI font");
+assert.deepStrictEqual(html.match(/img-src ([^;]+)/)[1].trim().split(/\s+/),
+  ["'self'", "data:", "https://appassets.magnolie.invalid"],
+  "protected QR host must be explicitly allowed without opening arbitrary image origins");
 assert.doesNotMatch(html, /font-src 'none'/,
   "Windows CSP still disables all bundled fonts");
 for (const font of ["DejaVuSans.ttf", "DejaVuSans-Bold.ttf", "DejaVu-LIZENZ.txt",
@@ -135,7 +138,9 @@ for (const file of [path.join(web, "anwendung.js"),
 }
 const messages = [];
 
-const dom = new JSDOM(html, {
+let dom;
+(async () => {
+dom = new JSDOM(html, {
   runScripts: "outside-only",
   url: "https://app.magnolie.invalid/index.html",
   pretendToBeVisual: true
@@ -151,7 +156,8 @@ for (const catalog of catalogs) {
   window.eval(fs.readFileSync(path.join(web, "i18n", catalog), "utf8"));
 }
 window.eval(application);
-window.document.dispatchEvent(new window.Event("DOMContentLoaded", { bubbles: true }));
+await new Promise(resolve => window.document.readyState === "loading"
+  ? window.document.addEventListener("DOMContentLoaded", resolve, { once: true }) : resolve());
 
 assert.ok(messages.some((message) => message.cmd === "bereit"),
   "randomized WebView bridge does not receive ready");
@@ -166,7 +172,7 @@ const releaseNotesSource = application.match(/const NEU_IN_DIESER_FASSUNG = (\{[
 const releaseNotes = Function(`"use strict"; return (${releaseNotesSource});`)();
 assert.strictEqual(Object.keys(releaseNotes).length, 20, "What's New does not cover every locale");
 assert.ok(Object.values(releaseNotes).every((items) => items.length === 4),
-  "What's New locales do not contain the complete 2.0.17 bullet set");
+  "What's New locales do not contain the complete 2.0.18 bullet set");
 assert.ok(application.includes("Windows first-run setup assistant") &&
   application.includes("CalDAV VTODO tasks on generic DAV servers") &&
   application.includes("safe contact imports") &&
@@ -209,14 +215,15 @@ const customNormalized = T.normalisiereCustomOrganizer({ version: 42,
     items: Array.from({ length: 110 }, (_item, itemIndex) => ({ id: "duplicate",
       name: "Item " + itemIndex + "x".repeat(320), checked: true })) })) });
 assert.strictEqual(customNormalized.version, 3);
-assert.strictEqual(customNormalized.modules.length, 3);
+assert.strictEqual(customNormalized.modules.length, 4);
 assert.ok(customNormalized.modules.every((module) =>
   ["appointments", "notes", "tasks"].includes(module.type) &&
   ["left", "right"].includes(module.page) && Number.isInteger(module.order)));
 assert.strictEqual(new Set(customNormalized.modules.map((module) => module.type)).size, 3);
 assert.ok(customNormalized.modules.every((module) => module.title.length <= 120));
 assert.ok(customNormalized.modules.filter((module) => module.type === "tasks")
-  .every((module) => module.items.length === 500));
+  .every((module) => module.items.length === 4070),
+  "migration must preserve all 37 legacy lists of 110 items");
 assert.strictEqual(T.normalisiereCustomOrganizer({ modules: [{ type: "appointments",
   items: Array.from({ length: 150 }, (_, index) => ({ title: "Termin " + index })) }] })
   .modules[0].items.length, 150, "150 custom appointments are truncated");
@@ -254,6 +261,7 @@ assert.deepStrictEqual(appointmentBoundaries.map((appointment) => appointment.id
   ["base", "other-end", "other-time", "other-case", "all-day", "midnight"],
   "distinct appointment identities are merged at visible field boundaries");
 const previousCustom = T.daten().customOrganizer;
+const previousCustomTrash = T.daten().papierkorb.slice();
 const previousSettings = T.daten().einstellungen;
 T.daten().einstellungen = JSON.parse(JSON.stringify(previousSettings));
 T.daten().customOrganizer = T.normalisiereCustomOrganizer({ modules: [
@@ -262,14 +270,14 @@ T.daten().customOrganizer = T.normalisiereCustomOrganizer({ modules: [
   ] }
 ] });
 T.uebernehmeSetupAbsichten({ setupSelections: { registers: ["calendar", "tasks", "notes"],
-  oneTimeImports: ["claws", "vcard", "ldif", "csv-lotus", "windows-contacts"],
+  oneTimeImports: ["thunderbird", "claws", "vcard", "ldif", "csv-lotus", "windows-contacts"],
   calendarUids: ["calendar-a", "calendar-b", "calendar-a"], addressBookUid: "address-a",
   addressSort: "first-name", autostart: true, weather: true,
   customRegisters: ["  My   Projects  "], designRequest: true, addressSource: "own",
   customTabChanged: true,
   customOrganizerChanged: true,
-  customOrganizer: { version: 1, blocks: [
-    { id: "setup-0", type: "note", title: "Setup ideas", text: "" }
+  customOrganizer: { version: 3, modules: [
+    { id: "setup-0", type: "notes", title: "Setup ideas", page: "right", order: 0, items: [] }
   ] },
   firstName: "Ada", lastName: "Lovelace", street: "1 Byte Way", postalCode: "10000",
   city: "Dresden", country: "DE", state: "Sachsen" } });
@@ -280,6 +288,8 @@ assert.strictEqual(T.daten().customOrganizer.modules[0].title, "Existing",
   "an explicit setup design discards content of a retained module type");
 assert.strictEqual(T.daten().customOrganizer.modules[0].items[0].text, "Keep this",
   "an explicit setup design discards existing custom items");
+assert.strictEqual(T.daten().customOrganizer.modules[0].page, "right",
+  "an explicit setup design cannot move an existing text module without losing it");
 assert.strictEqual(T.daten().customOrganizer.version, 3);
 assert.deepStrictEqual(T.daten().customOrganizer.modules.map((module) => module.type), ["notes"],
   "legacy custom blocks are not migrated to the version 2 module layout");
@@ -300,14 +310,18 @@ assert.deepStrictEqual([T.daten().einstellungen.allgemein.tray.aktiv,
 assert.strictEqual(T.daten().einstellungen.allgemein.kontaktErsteinrichtungVersion, 1);
 assert.ok(!Object.prototype.hasOwnProperty.call(T.daten().einstellungen.allgemein,
   "ausstehendeSetupAktionen"), "setup actions are persisted instead of executed directly");
-assert.match(application, /setupImportWarteschlange\.shift\(\)[\s\S]*?setupImportLaeuft = true;[\s\S]*?quelle === "windows-contacts" \? "lokal"[\s\S]*?quelle === "vcard" \? "vcf"[\s\S]*?quelle === "claws" \|\| quelle === "ldif"[\s\S]*?starteImport\(art, false\)[\s\S]*?setupImportBeenden[\s\S]*?starteNaechstenSetupImport/,
+assert.match(application, /setupImportWarteschlange\.shift\(\)[\s\S]*?setupImportLaeuft = true;[\s\S]*?quelle === "windows-contacts" \? "lokal"[\s\S]*?quelle === "thunderbird" \? "thunderbird"[\s\S]*?quelle === "vcard" \? "vcf"[\s\S]*?quelle === "claws" \|\| quelle === "ldif"[\s\S]*?starteImport\(art, quelle === "windows-contacts"\)[\s\S]*?setupImportBeenden[\s\S]*?starteNaechstenSetupImport/,
   "Windows setup imports are not mapped and serialized as complete imports");
+assert.ok(application.includes("update.letzterFehler") && application.includes('manuell.id = "update-manuell"') &&
+  application.includes('cmd: "update_oeffnen", url: update.letzteUrl'),
+"a failed verified update does not offer a separate manual EXE download");
 T.daten().customOrganizer = T.normalisiereCustomOrganizer({ version: 3, modules: [
-  { id: "appointments", type: "appointments", title: "Termine", page: "left", order: 1,
+  { id: "appointments", type: "appointments", title: "Termine", page: "right", order: 1,
     items: [{ id: "appointment-one", title: "Eigener Termin", date: "2026-09-05" }] },
   { id: "notes", type: "notes", title: "Text", text: "Retained", page: "right", order: 0 },
   { id: "tasks", type: "tasks", title: "Aufgaben", page: "left", order: 0, reminders: true,
-    items: [{ id: "task-one", title: "Eigene Aufgabe", due: "2026-09-05", remind: true }] }
+    items: [{ id: "task-one", title: "Eigene Aufgabe", due: "2026-09-05", remind: true,
+      textItemId: "notes-text" }] }
 ] });
 T.wechsel("custom");
 assert.ok(Array.from(window.document.querySelectorAll(".registerknopf"))
@@ -315,13 +329,21 @@ assert.ok(Array.from(window.document.querySelectorAll(".registerknopf"))
 assert.deepStrictEqual(Array.from(window.document.querySelectorAll(".custom-modul h2"),
   (heading) => heading.textContent).sort(), ["Aufgaben", "Termine", "Text"],
   "version 3 custom modules do not render block-owned data");
-assert.ok(window.document.querySelectorAll(".custom-modul-kopf button").length === 3 &&
+assert.ok(window.document.querySelectorAll(".custom-modul-kopf button").length >= 6 &&
   window.document.querySelector(".custom-text-editor") &&
-  window.document.querySelectorAll(".custom-eintrag-editor").length === 2,
-  "independent text, appointment and task editors are missing");
-assert.ok(window.document.querySelector("#inhalt-links").classList.contains(
-  "custom-termine-aufgaben-geteilt") && window.document.querySelector(".custom-suche"),
-  "appointments and tasks do not split the page or custom search is missing");
+  window.document.querySelectorAll(".custom-modul-eintrag").length === 2 &&
+  !window.document.querySelector(".custom-eintrag-editor"),
+  "custom appointments and tasks are not rendered as compact buttons");
+assert.ok(window.document.querySelector(".custom-suche") && !window.document.querySelector(".custom-text-suche") &&
+  window.document.querySelector(".custom-text-position").textContent === "1 / 1" &&
+  css.includes("grid-template-rows: repeat(2, minmax(0, 1fr))"),
+  "custom search, text-page search/count, or exact split layout is missing");
+assert.strictEqual(window.document.querySelector(".custom-text-position").getAttribute("aria-live"), "polite");
+assert.ok(window.document.querySelector(".custom-text-editor").getAttribute("role") === "textbox" &&
+  window.document.querySelector(".custom-text-editor").getAttribute("aria-multiline") === "true" &&
+  Array.from(window.document.querySelectorAll(".custom-text-werkzeuge button"))
+    .every((button) => button.getAttribute("aria-label")),
+"custom text editor controls are not accessible");
 let customSearch = window.document.querySelector(".custom-suche");
 customSearch.value = "Eigene Aufgabe";
 customSearch.dispatchEvent(new window.Event("input", { bubbles: true }));
@@ -330,40 +352,60 @@ assert.strictEqual(window.document.querySelectorAll(".custom-modul").length, 1,
 customSearch = window.document.querySelector(".custom-suche");
 customSearch.value = "";
 customSearch.dispatchEvent(new window.Event("input", { bubbles: true }));
-window.document.querySelector(".custom-modul-notes .custom-modul-kopf button").click();
-assert.strictEqual(window.document.querySelectorAll(".custom-modul-notes .custom-text-editor").length, 2,
-  "text field plus does not add an editor");
-window.document.querySelector(".custom-modul-notes .custom-text-werkzeuge .rot").click();
+Array.from(window.document.querySelectorAll(".custom-modul-notes .custom-modul-kopf button")).at(-1).click();
+assert.strictEqual(window.document.querySelectorAll(".custom-modul-notes .custom-text-editor").length, 1,
+  "multiple text pages are visible at once");
+assert.strictEqual(window.document.querySelector(".custom-text-position").textContent, "1 / 2",
+  "text page count is not updated");
+window.document.querySelector(".custom-modul-notes .custom-modul-kopf .rot").click();
 assert.strictEqual(window.document.querySelectorAll(".custom-modul-notes .custom-text-editor").length, 1,
   "text field minus does not remove an editor");
+assert.ok(window.document.querySelector(".custom-modul-tasks .custom-text-verweis"),
+  "task does not show its linked text page");
+const appointmentModule = T.daten().customOrganizer.modules.find((module) => module.type === "appointments");
 window.document.querySelector(".custom-modul-appointments .custom-modul-kopf button").click();
-const newAppointmentCard = Array.from(window.document.querySelectorAll(
-  ".custom-modul-appointments .custom-eintrag-editor")).at(0);
-const appointmentFields = newAppointmentCard.querySelectorAll("input");
-appointmentFields[0].value = "Folgetermin";
-appointmentFields[0].dispatchEvent(new window.Event("input", { bubbles: true }));
-appointmentFields[1].value = "2026-10-03";
-appointmentFields[1].dispatchEvent(new window.Event("input", { bubbles: true }));
-const repeatField = newAppointmentCard.querySelector("select");
+let customDialog = window.document.querySelector("#custom-eintrag-schleier");
+assert.ok(customDialog && customDialog.querySelector(".custom-notiz-zeile") &&
+  appointmentModule.items.length === 1, "custom appointment draft is persisted before confirmation");
+customDialog.querySelector(".custom-eintrag-aktionen button").click();
+assert.strictEqual(appointmentModule.items.length, 1, "cancel persists a custom appointment draft");
+window.document.querySelector(".custom-modul-appointments .custom-modul-kopf button").click();
+customDialog = window.document.querySelector("#custom-eintrag-schleier");
+const appointmentTitle = customDialog.querySelector('input[type="text"]');
+const appointmentDate = customDialog.querySelectorAll("input")[1];
+appointmentTitle.value = "Folgetermin";
+appointmentDate.value = "2026-10-03";
+appointmentDate.dispatchEvent(new window.Event("input", { bubbles: true }));
+const repeatField = customDialog.querySelector("select");
 repeatField.value = "yearly";
-repeatField.dispatchEvent(new window.Event("change", { bubbles: true }));
-const newAppointment = T.daten().customOrganizer.modules.find((module) =>
-  module.type === "appointments").items.at(0);
-assert.deepStrictEqual([newAppointment.title, newAppointment.date, newAppointment.wiederholung.art],
-  ["Folgetermin", "2026-10-03", "yearly"], "custom appointment creation loses fields");
+customDialog.querySelectorAll("select")[1].value = "notes-text";
+customDialog.querySelector(".custom-eintrag-aktionen .haupt").click();
+const newAppointment = appointmentModule.items.at(0);
+assert.deepStrictEqual([newAppointment.title, newAppointment.date, newAppointment.wiederholung.art,
+  newAppointment.textItemId], ["Folgetermin", "2026-10-03", "yearly", "notes-text"],
+"custom appointment creation loses fields or its text-page link");
+assert.ok(window.document.querySelectorAll(".custom-modul-appointments .custom-modul-eintrag").length === 2,
+  "saved custom appointment is not rendered as a button");
+const taskModule = T.daten().customOrganizer.modules.find((module) => module.type === "tasks");
 window.document.querySelector(".custom-modul-tasks .custom-modul-kopf button").click();
-const newTaskCard = Array.from(window.document.querySelectorAll(
-  ".custom-modul-tasks .custom-eintrag-editor")).at(0);
-const taskTextFields = newTaskCard.querySelectorAll('input[type="text"]');
-const taskTitle = taskTextFields[0];
-const taskDate = taskTextFields[1];
+customDialog = window.document.querySelector("#custom-eintrag-schleier");
+const taskTitle = customDialog.querySelector('input[type="text"]');
+const taskDate = customDialog.querySelectorAll("input")[1];
 taskTitle.value = "Neue Aufgabe";
-taskTitle.dispatchEvent(new window.Event("input", { bubbles: true }));
 taskDate.value = "2026-10-04";
 taskDate.dispatchEvent(new window.Event("input", { bubbles: true }));
-const newTask = T.daten().customOrganizer.modules.find((module) => module.type === "tasks").items.at(0);
+customDialog.querySelector(".custom-eintrag-aktionen .haupt").click();
+const newTask = taskModule.items.at(0);
 assert.deepStrictEqual([newTask.title, newTask.due], ["Neue Aufgabe", "2026-10-04"],
   "custom task creation loses fields");
+window.document.querySelector(".custom-modul-tasks .custom-modul-eintrag").click();
+customDialog = window.document.querySelector("#custom-eintrag-schleier");
+assert.strictEqual(customDialog.querySelector("#custom-eintrag-titel").textContent, "Aufgabe bearbeiten");
+const editedTaskTitle = customDialog.querySelector('input[type="text"]');
+editedTaskTitle.value = "Geänderte Aufgabe";
+customDialog.querySelector(".custom-eintrag-aktionen .haupt").click();
+assert.strictEqual(taskModule.items.at(0).title, "Geänderte Aufgabe",
+  "click-to-edit does not save a custom task");
 const customTaskIds = T.customAufgabenFuerErinnerung().map((task) => task.id);
 assert.ok(customTaskIds.length === 2 && customTaskIds[0].startsWith("custom:tasks:custom-item-") &&
   customTaskIds[1] === "custom:tasks:task-one", "custom task reminder has no separate identity");
@@ -377,13 +419,22 @@ assert.ok(Array.from(window.document.querySelector(
 assert.ok(window.document.querySelector("#custom-designer-schleier [role='dialog'][aria-modal='true']") &&
   window.document.querySelector("#custom-designer-schleier [aria-label='Schließen']"),
 "custom designer is not translated and accessible");
+window.document.querySelector("#custom-designer-schleier .custom-designer-werkzeuge select").value = "notes";
 window.document.querySelector("#custom-designer-schleier .custom-designer-werkzeuge button").click();
-assert.strictEqual(T.daten().customOrganizer.modules.length, 3,
-  "designer adds a duplicate module type");
+assert.strictEqual(T.daten().customOrganizer.modules.length, 4,
+  "designer does not allow a second text module on the other page");
+window.document.querySelector("#custom-designer-schleier .custom-designer-werkzeuge button").click();
+assert.strictEqual(T.daten().customOrganizer.modules.length, 4,
+  "designer allows more than one text module per page");
 window.document.querySelector("#custom-designer-schleier .custom-designer-kopf button").click();
-T.wechsel("kalender");
+T.druckStoff("custom").entfernen(T.daten().customOrganizer.modules.filter((module) => module.type === "notes"));
+assert.ok(T.daten().customOrganizer.modules.filter((module) => module.type !== "notes")
+  .flatMap((module) => module.items).every((item) => !item.textItemId),
+"bulk text-module deletion leaves dangling links");
 T.daten().customOrganizer = previousCustom;
 T.daten().einstellungen = previousSettings;
+T.daten().papierkorb = previousCustomTrash;
+await T.wechsel("kalender");
 const persistedPlans = Array.from({ length: 505 }, (_, index) => ({ id: "plan-" + index,
   kontaktId: "kontakt", nummer: "+491701234567", text: "SMS " + index,
   zeit: Date.now() + index + 1, status: index === 504 ? "submitting" : "planned",
@@ -395,6 +446,7 @@ assert.strictEqual(normalizedPlans.at(-1).status, "uncertain",
   "an interrupted scheduled SMS would be retried after restart");
 const scheduledBefore = messages.filter((message) => message.cmd === "kde_sms_senden" &&
   String(message.clientRef || "").startsWith("plan:")).length;
+T.daten().einstellungen.adressen.smsSchedulingEnabled = true;
 T.daten().smsPlanung = [{ id: "due", kontaktId: "kontakt", nummer: "+491701234567",
   text: "Due SMS", zeit: Date.now() - 1000, status: "planned", clientRef: "", fehler: "" }];
 window.App.telefonStand({ kdeconnect: { available: false, device_count: 2 } });
@@ -402,13 +454,26 @@ assert.strictEqual(T.daten().smsPlanung[0].status, "planned",
   "scheduled SMS is changed when no unique KDE Connect phone is available");
 window.App.telefonStand({ kdeconnect: { available: true, device_count: 1,
   device_id: "windows-kde" } });
+const dueDispatches = () => messages.filter(message => message.cmd === "kde_sms_senden" && message.clientRef === "plan:due");
+assert.strictEqual(dueDispatches().length, 0, "scheduled SMS was dispatched before durable reservation");
+assert.strictEqual(T.daten().smsPlanung[0].status, "submitting");
+const acknowledgedSaves = new Set();
+for (let attempt = 0; attempt < 20 && !dueDispatches().length; attempt++) {
+  const save = messages.find(message => message.cmd === "speichern" && !acknowledgedSaves.has(message.id));
+  assert.ok(save, "scheduled SMS has no pending save reservation");
+  window.App.gespeichert({ id: save.id + 1000000, ok: true });
+  assert.strictEqual(dueDispatches().length, 0, "an unrelated save ACK released the SMS");
+  acknowledgedSaves.add(save.id);
+  window.App.gespeichert({ id: save.id, ok: true });
+  await new Promise(resolve => setImmediate(resolve));
+}
 const scheduledCommand = messages.findLast((message) => message.cmd === "kde_sms_senden" &&
   message.clientRef === "plan:due");
-assert.ok(scheduledCommand && T.daten().smsPlanung[0].status === "submitting",
-  "due scheduled SMS is not handed to the Windows KDE Connect bridge");
+assert.ok(scheduledCommand && T.daten().smsPlanung[0].status === "queued",
+  "a locally handed-off plan must be queued without blocking other plans or claiming delivery");
 window.App.kdeSmsStatus({ ok: true, state: "queued", client_ref: "plan:due" });
-assert.strictEqual(T.daten().smsPlanung[0].status, "sent",
-  "accepted scheduled SMS does not reach its terminal state");
+assert.strictEqual(T.daten().smsPlanung[0].status, "queued",
+  "queue acceptance must not be presented as sent or delivered");
 T.pruefeSmsPlanung();
 assert.strictEqual(messages.filter((message) => message.cmd === "kde_sms_senden" &&
   String(message.clientRef || "").startsWith("plan:")).length, scheduledBefore + 1,
@@ -470,7 +535,26 @@ assert.strictEqual(defaults.einstellungen.regional.homeCountry, "DE",
 assert.strictEqual(T.normalisiere({ einstellungen: { regional: { homeCountry: "us" } } })
   .einstellungen.regional.homeCountry, "US", "phone home country is not canonicalized");
 assert.strictEqual(T.normalisiere({ einstellungen: { regional: { homeCountry: "ZZ" } } })
-  .einstellungen.regional.homeCountry, "DE", "invalid phone home country survives normalization");
+  .einstellungen.regional.homeCountry, "", "invalid phone country must be cleared, not replaced with DE");
+for (const [country, national, international] of [
+  ["GB", "07700 900123", "+447700900123"], ["DE", "0170 1234567", "+491701234567"],
+  ["AT", "0664 1234567", "+436641234567"], ["CH", "079 1234567", "+41791234567"]]) {
+  const selected = T.normalisiere({ einstellungen: { regional: { homeCountry: country } },
+    smsPlanung: [{ id: "region", nummer: national, text: "Synthetic", zeit: 1, status: "planned" }] });
+  assert.strictEqual(selected.einstellungen.regional.homeCountry, country, "selected country must survive normalization");
+  assert.strictEqual(selected.smsPlanung[0].nummer, international, country + " national recipient");
+  const nextCountry = country === "GB" ? "AT" : "GB";
+  selected.einstellungen.regional.homeCountry = nextCountry;
+  const reopened = T.normalisiere(JSON.parse(JSON.stringify(selected)));
+  assert.strictEqual(reopened.einstellungen.regional.homeCountry, nextCountry, "new selected country survives reopen");
+  assert.strictEqual(reopened.smsPlanung[0].land, country, "existing plan retains its captured country");
+  assert.strictEqual(reopened.smsPlanung[0].nummer, international, "E.164 recipient must not be rewritten");
+}
+const explicitInternational = T.normalisiere({ einstellungen: { regional: { homeCountry: "ZZ" } },
+  smsPlanung: [{ id: "international", nummer: "+447700900123", text: "Synthetic", zeit: 1, status: "planned" }] });
+assert.strictEqual(explicitInternational.einstellungen.regional.homeCountry, "");
+assert.strictEqual(explicitInternational.smsPlanung[0].land, "");
+assert.strictEqual(explicitInternational.smsPlanung[0].nummer, "+447700900123", "E.164 does not require a guessed home country");
 assert.deepStrictEqual(T.anrufHerkunft({ number_status: "available", origin_country_code: "us",
   origin_country_name: "United States", is_international: true }),
 { code: "US", name: "United States", international: true });
@@ -536,6 +620,33 @@ assert.deepStrictEqual(recurrenceAndTask.termine[0].wiederholung,
 assert.deepStrictEqual(recurrenceAndTask.termine[1].wiederholung,
   { art: "custom", bis: "", daten: ["2026-08-19", "2026-09-05"] },
   "custom recurrence dates are not canonicalized");
+const oldGoogleSeries = T.normalisiere({ termine: [{ id: "eiermann-1998",
+  datum: "1998-01-05", titel: "Eiermann",
+  wiederholung: { art: "weekly", intervall: 2 } }] }).termine[0];
+assert.deepStrictEqual(["2026-09-07", "2026-09-14"].map((date) =>
+  T.wiederholungTrifft(oldGoogleSeries, date)), [true, false],
+"14-day Google series with a start in 1998 is missing from the current month");
+const forumSeries = T.normalisiere({ termine: [{ id: "eiermann-forum-2021",
+  datum: "2021-03-01", titel: "Eiermann Forum",
+  wiederholung: { art: "weekly", intervall: 2 } }] }).termine[0];
+assert.deepStrictEqual(["2026-09-07", "2026-09-14"].map((date) =>
+  T.wiederholungTrifft(forumSeries, date)), [true, false],
+"14-day forum reconstruction with start 2021-03-01 is missing");
+const contactStart = T.daten().kontakte.length;
+const occasionStart = T.daten().jahrestage.length;
+const thunderbirdCards = ["book-a", "book-b"].map((book) => ({
+  uid: `thunderbird:${book}:equal-card-id`, nachname: "Van Dame", vorname: "",
+  geburtstag: "1980-04-03", jubilaeum: "2005-06-07",
+  emailEintraege: [{ wert: "same@example.org", typen: ["HOME"] }]
+}));
+assert.deepStrictEqual(T.mergeKontakte(thunderbirdCards),
+  { neu: 2, doppelt: 0, fotos: 0, emails: 0 });
+assert.deepStrictEqual(T.mergeKontakte(thunderbirdCards),
+  { neu: 0, doppelt: 2, fotos: 0, emails: 0 });
+assert.strictEqual(T.daten().kontakte.length, contactStart + 2,
+  "equal raw Thunderbird card IDs from distinct books merged");
+assert.strictEqual(T.daten().jahrestage.length, occasionStart + 4,
+  "repeated Thunderbird import duplicated or omitted linked birthday/anniversary occasions");
 assert.strictEqual(recurrenceAndTask.aufgaben[0].startZeit, "09:00");
 assert.strictEqual(recurrenceAndTask.aufgaben[0].faelligZeit, "10:30");
 T.daten().gesundheit.vitalwerte.push(
@@ -640,8 +751,8 @@ assert.deepStrictEqual(anniversaryRoundtrip.icsRoundtrip,
 assert.strictEqual(anniversaryRoundtrip.syncKalenderUid, "cal-23",
   "anniversary calendar source is lost during web normalization/restart");
 assert.deepStrictEqual(["2024-02-08", "2024-03-14", "2024-04-11"].map((date) =>
-  T.wiederholungTrifft(ordinal, date)), [true, true, true],
-"second-Thursday occurrences are missing after normalization/restart");
+  T.wiederholungTrifft(ordinal, date)), [false, true, true],
+"second-Thursday series must retain its excluded February occurrence after restart");
 assert.deepStrictEqual(["2024-02-01", "2024-02-15", "2024-03-07", "2024-04-12"].map((date) =>
   T.wiederholungTrifft(ordinal, date)), [false, false, false, false],
 "non-second Thursdays or other weekdays match the ordinal series");
@@ -846,11 +957,11 @@ assert.ok(!window.document.querySelector("#kontakt-sync-oeffnen") &&
     .some((button) => button.textContent.includes("Windows")),
 "Windows Contacts import is missing or synchronization route remains");
 const importButtons = Array.from(window.document.querySelectorAll("#einstellungen-inhalt button"));
-assert.ok(importButtons.some((button) => button.textContent === "Evolution") &&
+assert.ok(!importButtons.some((button) => button.textContent === "Evolution") &&
   importButtons.some((button) => button.textContent === "Thunderbird") &&
-  /knopf\("Evolution", "", \(\) => starteImport\("lokal", false\)\)/.test(application) &&
-  /knopf\("Thunderbird", "", \(\) => starteImport\("lokal", false\)\)/.test(application),
-"Evolution or Thunderbird import is missing or limited to contacts");
+  /knopf\("Thunderbird", "", \(\) => starteImport\("thunderbird"\)\)/.test(application) &&
+  /knopf\("Thunderbird", "kontakt-assistent-knopf", \(\) =>[\s\S]*?starteImport\("thunderbird"\)/.test(application),
+"Thunderbird import is missing, uses the wrong source, or Evolution remains on Windows");
 window.document.querySelector("#einst-tab-sync").click();
 window.App.edsStatus({ windows: true, verfuegbar: true, buchOk: true,
   kalender: [{ uid: "generic-calendar:privat", name: "Baïkal Termine",
@@ -1155,6 +1266,8 @@ for (const locale of ["de-DE", "en-US", "fr-FR", "ar-EG"]) {
   if (language === "fr" || language === "ar") window.eval(
     fs.readFileSync(path.join(web, "i18n", language + ".js"), "utf8"));
   window.MagnolieI18n.setLocale(language);
+  assert.strictEqual(window.document.documentElement.dir, language === "ar" ? "rtl" : "ltr",
+    `document direction is wrong for ${locale}`);
   T.daten().einstellungen.regional.formatLocale = locale;
   const indexed = T.suchTrefferFuer("gesundheit")[0].text;
   const date = new Intl.DateTimeFormat(locale,
@@ -1194,7 +1307,7 @@ for (const section of ["kalender", "aufgaben", "jahrestage", "planer", "gesundhe
   pressFind();
   assert.ok(field && window.document.activeElement === field, `search modal missing for ${section}`);
   field.value = section === "gesundheit" ? "Iota 71" : section === "planer"
-    ? "Alpha meeting" : section === "kalender" ? "Alpha K-17"
+    ? "Theta" : section === "kalender" ? "Alpha K-17"
       : section === "aufgaben" ? "Gamma Delta" : "Theta";
   field.dispatchEvent(new window.Event("input", { bubbles: true }));
   flushSearch();
@@ -1288,6 +1401,16 @@ const loadMatches = T.suchTrefferFuer("kalender", ["needlecore"], 101);
 const searchDuration = performance.now() - searchStart;
 assert.strictEqual(loadMatches.length, 1, "10,000-record core search loses its match");
 assert.ok(searchDuration < 150, `10,000-record core search took ${searchDuration.toFixed(1)} ms`);
+console.log(`10,000-record core search: ${searchDuration.toFixed(1)} ms (limit 150 ms)`);
+const oldFormatLocale = T.daten().einstellungen.regional.formatLocale;
+T.daten().einstellungen.regional.formatLocale = "system";
+const systemSearchStart = performance.now();
+const systemLoadMatches = T.suchTrefferFuer("kalender", ["needlecore"], 101);
+const systemSearchDuration = performance.now() - systemSearchStart;
+assert.strictEqual(systemLoadMatches.length, 1);
+assert.ok(systemSearchDuration < 150, `10,000-record system-locale search took ${systemSearchDuration.toFixed(1)} ms`);
+console.log(`10,000-record system-locale search: ${systemSearchDuration.toFixed(1)} ms (limit 150 ms)`);
+T.daten().einstellungen.regional.formatLocale = oldFormatLocale;
 T.daten().termine = oldEvents;
 T.daten().kontakte = oldContacts;
 
@@ -1328,16 +1451,24 @@ const extraction = spawnSync("xgettext", ["--language=JavaScript", "--from-code=
   path.join(web, "anwendung.js")], { encoding: "utf8" });
 assert.strictEqual(extraction.status, 0, extraction.stderr || "xgettext failed");
 const extracted = poEntries(extraction.stdout);
-assert.ok(extracted.has("Enable reminders for this block") && extracted.has("Text"),
+assert.ok(extracted.has("Enable reminders for this block") && extracted.has("Text block"),
   "custom organizer messages are not extracted for gettext catalogs");
-const nativeSources = fs.readdirSync(root).filter((name) => name.endsWith(".cs")).sort()
-  .map((name) => path.join(root, name))
-  .filter((name) => /^BridgeDispatcher(?:\.|$)/.test(path.basename(name)) ||
-    fs.readFileSync(name, "utf8").includes("NativeLocalization.Gettext"));
-const nativeExtraction = spawnSync("xgettext", ["--language=C#", "--from-code=UTF-8",
-  "--keyword=T", "--keyword=Gettext", "--output=-", ...nativeSources], { encoding: "utf8" });
-assert.strictEqual(nativeExtraction.status, 0, nativeExtraction.stderr || "native xgettext failed");
-for (const [key, entry] of poEntries(nativeExtraction.stdout)) extracted.set(key, entry);
+const python = process.env.MAGNOLIE_PYTHON;
+assert.ok(python, "MAGNOLIE_PYTHON was not passed by the test runner");
+const sourcePotDirectory = fs.mkdtempSync(path.join(os.tmpdir(), "magnolie-source-pot-"));
+try {
+  const target = path.join(sourcePotDirectory, "source.pot");
+  const result = spawnSync(python, [path.join(root, "werkzeuge", "pot_erzeugen.py"), "--output", target], { encoding: "utf8" });
+  assert.strictEqual(result.status, 0, result.stderr || "canonical source extraction failed");
+  const complete = poEntries(fs.readFileSync(target, "utf8"));
+  for (const key of extracted.keys()) assert.ok(complete.has(key), "canonical extraction lost web msgid: " + key);
+  for (const label of ["Claws Mail XML / LDIF", "Select your phone", "Confirm that the code matches on both devices.",
+    "CalDAV + CardDAV Server", "Bluetooth is unavailable in this build."])
+    assert.ok(complete.has(label), "deferred native label is missing: " + label);
+  for (const identifier of ["select", "nextcloud"]) assert.ok(!complete.has(identifier),
+    "a condition's protocol identifier was extracted as a translated label: " + identifier);
+  for (const [key, entry] of complete) extracted.set(key, entry);
+} finally { fs.rmSync(sourcePotDirectory, { recursive: true, force: true }); }
 const template = poEntries(fs.readFileSync(path.join(poDir, "magnolie-organizer.pot"), "utf8"));
 assert.deepStrictEqual(Array.from(template.keys()).sort(), Array.from(extracted.keys()).sort(),
   "POT does not match the web source extraction");
@@ -1366,8 +1497,6 @@ for (const locale of fs.readFileSync(path.join(poDir, "LINGUAS"), "utf8").trim()
   }
 }
 
-const python = process.env.MAGNOLIE_PYTHON;
-assert.ok(python, "MAGNOLIE_PYTHON was not passed by the test runner");
 const catalogTool = path.join(root, "werkzeuge", "po_zu_js.py");
 const generated = fs.mkdtempSync(path.join(os.tmpdir(), "magnolie-i18n-check-"));
 try {
@@ -1383,3 +1512,4 @@ try {
   fs.rmSync(generated, { recursive: true, force: true });
 }
 console.log("WEB SMOKE TEST PASSED");
+})().catch(error => { console.error(error); process.exitCode = 1; }).finally(() => dom?.window.close());

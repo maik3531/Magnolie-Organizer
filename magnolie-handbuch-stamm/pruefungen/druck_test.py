@@ -63,12 +63,16 @@ def cli_pruefen():
     assert "Für diesen Aufruf de, en oder system verwenden" in deutsch[1]
     assert "-h / --hilfe" in deutsch[1] and "-l SPRACHE / --sprache SPRACHE" in deutsch[1]
 
-    fehlt = cli_aufruf(handbuch, ["--sprache"], fehler=True)
+    fehlt = cli_aufruf(handbuch, ["--language", "de", "--sprache"], fehler=True)
     franzoesisch = cli_aufruf(handbuch, ["--language", "fr", "--help"])
-    falsch = cli_aufruf(handbuch, ["--language", "xx"], fehler=True)
+    falsch = cli_aufruf(handbuch, ["--language", "de", "--language", "xx"], fehler=True)
     assert fehlt[0] == 2 and "benötigt eine Sprache" in fehlt[1]
     assert franzoesisch[0] == 0
     assert falsch[0] == 2 and "Ungültige Sprache: xx" in falsch[1]
+    fehlt_en = cli_aufruf(handbuch, ["--language", "en", "--sprache"], fehler=True)
+    falsch_en = cli_aufruf(handbuch, ["--language", "en", "--language", "xx"], fehler=True)
+    assert fehlt_en[0] == 2 and "requires a language" in fehlt_en[1]
+    assert falsch_en[0] == 2 and "Invalid language: xx" in falsch_en[1]
     kurz = cli_aufruf(handbuch, ["-l", "de", "-h"])
     version = cli_aufruf(handbuch, ["-V"])
     unbekannt = cli_aufruf(
@@ -171,6 +175,9 @@ def haupt():
             check=True,
         )
         info = subprocess.check_output(["pdfinfo", pdf], text=True)
+        papier = re.search(r"^Page size:\s+([\d.]+) x ([\d.]+) pts", info, re.MULTILINE)
+        if not papier or abs(float(papier[1]) - 842) > 2 or abs(float(papier[2]) - 595) > 2:
+            raise AssertionError("Handbuch muss auf A4 quer ausgegeben werden")
         treffer = re.search(r"^Pages:\s+(\d+)$", info, re.MULTILINE)
         if not treffer:
             raise AssertionError("PDF-Seitenzahl konnte nicht gelesen werden")
@@ -196,6 +203,11 @@ def haupt():
         if len(fussnummern) < 59:
             raise AssertionError("Nicht alle Handbuchseiten wurden gedruckt")
 
+        # Layout extraction interleaves the left and right columns when a
+        # sentence wraps. Keep it for footer geometry, not sentence coverage.
+        lesetext = subprocess.check_output(
+            ["pdftotext", "-raw", pdf, "-"], text=True)
+
         for textstelle in (
             "240.000 Runden",
             "alle Startarten",
@@ -215,13 +227,13 @@ def haupt():
             "Personal Sync",
             "restore_unavailable",
             "Plattform- und Sicherheitsmatrix",
-            "magnolie-organizer-2.0.17-",
+            "magnolie-organizer-2.0.18-",
             "Die Locale beeinflusst den Diagnosetext",
             "Technische Datei- und Mengengrenzen",
             "keine Speicherobergrenze",
             "Terminserien und ICS-Rundwege",
             "525.600 Minuten",
-            "Schreibweise des Manifests",
+            "Unmittelbar vor der Übergabe an Windows",
             "AppImage-Erkennung verhindert",
             "keine entsprechende Begrenzung der Antwortgröße",
             "Glossar: A–M",
@@ -231,7 +243,7 @@ def haupt():
         ):
             # Der Doppelseitensatz bricht Zeilen anders um als frueher der
             # einspaltige Druck. Verglichen wird deshalb ohne Leerraum.
-            if flach(textstelle) not in flach(text):
+            if flach(textstelle) not in flach(lesetext):
                 raise AssertionError("Druckinhalt abgeschnitten: " + textstelle)
 
     print("PDF-DRUCKPRÜFUNG BESTANDEN (%d PDF-Seiten, keine Leerblätter)" % anzahl)

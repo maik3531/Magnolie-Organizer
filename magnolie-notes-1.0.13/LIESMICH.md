@@ -1,5 +1,53 @@
 # Magnolie Notes – Notizen für Android
 
+## Entwicklungsstand 1.0.14
+
+Die App-Version ist jetzt **1.0.14**, der Android-Versionscode **14**. Der
+Quellordner behält seinen bisherigen Namen. Historische APKs werden nicht
+ersetzt oder als neu geprüfte Veröffentlichung ausgegeben.
+
+Diese Fassung korrigiert die erneute Kopplung bekannter Zweige, die
+Konflikterkennung vor eingehendem Personal Sync, die Aufgabenzuordnung bei
+Statusmeldungen, fehlgeschlagene Speichervorgänge und die Anhangsgrenzen.
+Automatische Sicherungen verwenden den vom AndroidKeyStore erzeugten IV.
+
+Notiz- und Aufgabenentwürfe liegen in einer eigenen verschlüsselten Datei.
+Beim Tippen wird sie auf einem Hintergrundfaden zusammengefasst geschrieben;
+beim Verlassen der Activity wird der letzte Stand zusätzlich gesichert.
+Android-Zurück und der Zurückknopf im Editor benutzen denselben Speicherweg.
+Ein Schreibfehler lässt den Entwurf offen. Große Anhänge werden nicht in den
+Android-Zustandsbundle geschrieben. Rotation, echte Hintergrundbeendigung und
+die Bedienung mit TalkBack müssen zusätzlich auf Testgeräten abgenommen werden.
+
+Jahrestage benötigen den getrennten, ausgehandelten Kontaktvertrag in
+[`KONTAKT-PROTOKOLL.md`](KONTAKT-PROTOKOLL.md). Der ausgelieferte Vertrag 1
+bleibt strikt. Ohne bestätigte Unterstützung werden Jahrestage nicht einfach
+aus einer Übertragung entfernt. Die Desktop-Ausgaben müssen die dokumentierte
+Erweiterung ebenfalls umsetzen. Fehlende Namensbestandteile und Daten ohne
+Jahr wie `--02-29` bleiben unverändert.
+
+### Aktuell prüfen
+
+Mit vorhandenem SDK 35, JDK 17 und vollständig verfügbaren Abhängigkeiten:
+
+```sh
+./gradlew --offline --no-daemon --dependency-verification strict --no-build-cache :app:testDebugUnitTest --rerun-tasks
+./gradlew --offline --no-daemon --dependency-verification strict :app:assembleDebug :app:lintDebug
+```
+
+Die JVM-Tests verwenden Android-Ressourcen und ein festgelegtes Robolectric-API
+35. Provider-Prüfungen benutzen ausschließlich künstliche Kontakte. Der
+optionale Livetest braucht `MAGNOLIE_ORGANIZER_QUELLE`, gesetzt auf eine aktuelle
+Organizer-Quelle, und eine isolierte HOME-/XDG-Umgebung. Ohne passende Quelle
+wird dieser einzelne Test übersprungen, nicht als bestanden gezählt.
+
+Die Debug-APK ist unoptimiert, debuggable und ausschließlich ein interner
+Testkandidat, keine Veröffentlichung. Das Instrumentation-Ziel bleibt `release`;
+Produktionssignierung, R8 und die installierten Releasegates bleiben unverändert
+verpflichtend. Die obigen Befehle installieren nichts und ersetzen kein natives
+Releasegate. Die folgenden älteren Testzahlen und Gerätedurchgänge beschreiben
+historische Prüfungen, keine Abnahme von 1.0.14.
+
 Ein Notizbuch fürs Handy im Stil des Magnolie Organizers: Leder und Gold außen,
 Papier mit Linienspiegel innen. Jede Notiz trägt Tag und Uhrzeit und ein
 Sinnbild, und über den **Magnolienbaum** geht sie unmittelbar zum Organizer am

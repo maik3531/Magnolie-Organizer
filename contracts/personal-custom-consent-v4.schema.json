@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Personal custom scope consent V4",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["format", "scope", "enabled", "revision", "epoch"],
+  "properties": {
+    "format": {"type": "integer", "const": 4},
+    "scope": {"type": "string", "const": "custom"},
+    "enabled": {"type": "boolean"},
+    "revision": {"type": "integer", "minimum": 1, "maximum": 9007199254740991},
+    "epoch": {"type": "string", "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"}
+  }
+}

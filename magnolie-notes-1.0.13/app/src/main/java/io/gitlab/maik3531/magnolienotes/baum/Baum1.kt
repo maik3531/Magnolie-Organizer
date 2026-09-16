@@ -10,7 +10,7 @@ import kotlinx.serialization.json.longOrNull
 
 /**
  * Der ältere Umschlag `baum-1` für Zweige, die über den kurzen Codeweg gepaart
- * wurden. Er hat keine Forward Secrecy und keine kryptografische Quittung –
+ * wurden. Er hat keine Forward Secrecy; Quittungen verwendet [Baum1Quittung].
  * `baum-fs1` ist immer vorzuziehen. Er bleibt hier, weil der Organizer ihn für
  * codegepaarte Partner verwendet.
  *

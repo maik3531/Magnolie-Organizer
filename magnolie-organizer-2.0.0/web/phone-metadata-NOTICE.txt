@@ -1,0 +1,19 @@
+Offline telephone numbering metadata
+
+Derived from Google libphonenumber via python-phonenumbers 8.12.57.
+Upstream sources:
+https://github.com/google/libphonenumber
+https://github.com/daviddrysdale/python-phonenumbers
+
+Copyright 2009-2017 The Libphonenumber Authors
+Copyright 2011-2017 David Drysdale <drysdale@google.com>
+Copyright 2014 Artem Nezvigin <artem@artnez.com>
+Copyright 2013, 2017 Google Inc.
+
+Licensed under Apache License 2.0; the complete license is distributed in
+phone-metadata-LICENSE.txt alongside this notice.
+
+Magnolie extracts a subset of region metadata into the generated phone metadata
+block in anwendung.js using werkzeuge/phone_metadata.py. The browser normalizer
+is Magnolie code, not a vendored full libphonenumber JavaScript library. Metadata
+and notices are local package assets; no CDN or runtime download is required.

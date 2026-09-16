@@ -22,7 +22,7 @@ import locale
 import subprocess
 
 PROGRAMM_NAME = "magnolie-handbuch"
-PROGRAMM_FASSUNG = "2.0.17"
+PROGRAMM_FASSUNG = "2.0.18"
 TEXT_DOMAIN = "magnolie-handbuch"
 UNTERSTUETZTE_SPRACHEN = (
     "ar", "be", "cs", "da", "de", "es", "fr", "hi", "hsb", "it",
@@ -65,10 +65,12 @@ from magnolie_asset import read_handbook_request
 
 
 def normalisiere_sprache(wert, system_erlaubt=True):
-    roh = str(wert or "").strip().replace("-", "_")
+    roh = str(wert or "").strip().split(".", 1)[0].split("@", 1)[0].replace("-", "_")
     if system_erlaubt and roh == "system":
         return "system"
     klein = roh.lower()
+    if klein == "zh" or klein.startswith("zh_"):
+        return "zh_CN"
     if klein == "en" or klein.startswith("en_"):
         return "en"
     for sprache in UNTERSTUETZTE_SPRACHEN:
@@ -334,6 +336,12 @@ class Fenster(_FENSTER_BASIS):
                     return
                 fertig["getan"] = True
                 auftrag = WebKit2.PrintOperation.new(_a)
+                seite = Gtk.PageSetup()
+                seite.set_paper_size(Gtk.PaperSize.new("iso_a4"))
+                seite.set_orientation(Gtk.PageOrientation.LANDSCAPE)
+                for rand in ("top", "bottom", "left", "right"):
+                    getattr(seite, "set_" + rand + "_margin")(0, Gtk.Unit.MM)
+                auftrag.set_page_setup(seite)
                 auftrag.run_dialog(self)
 
             ansicht.connect("load-changed", bei_fertig)
@@ -423,6 +431,7 @@ def pot_erzeugen(ziel):
     skript = os.path.dirname(os.path.realpath(__file__))
     kandidaten = [
         os.path.join(skript, "..", "werkzeuge", "pot_erzeugen.py"),
+        os.path.join(skript, "..", "share", "magnolie-handbuch", "werkzeuge", "pot_erzeugen.py"),
         "/usr/share/magnolie-handbuch/werkzeuge/pot_erzeugen.py",
     ]
     werkzeug = next((os.path.abspath(pfad) for pfad in kandidaten

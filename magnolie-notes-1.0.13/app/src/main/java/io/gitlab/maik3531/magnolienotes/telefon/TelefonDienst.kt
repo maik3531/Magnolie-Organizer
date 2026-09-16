@@ -23,11 +23,16 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.withContext
 
 class TelefonDienst : Service() {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private var connectivity: ConnectivityManager? = null
     private var werk: TelefonWerk? = null
+    private var startJob: Job? = null
     private val wifiListener = object : ConnectivityManager.NetworkCallback() {
         override fun onAvailable(network: Network) { TelefonWerk.get(this@TelefonDienst).wifiChanged(true) }
         override fun onLost(network: Network) { TelefonWerk.get(this@TelefonDienst).wifiChanged(hasWifi()) }
@@ -37,9 +42,15 @@ class TelefonDienst : Service() {
         super.onCreate(); channel()
     }
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        if (intent?.action == STOP) { TelefonAblage.get(this).setEnabled(false); stopForeground(STOP_FOREGROUND_REMOVE); stopSelf(); return START_NOT_STICKY }
+        if (intent?.action == STOP) {
+            startJob?.cancel()
+            TelefonAblage.get(this).setEnabled(false)
+            TelefonWerk.get(this).serviceStopped()
+            stopForeground(STOP_FOREGROUND_REMOVE); stopSelf(); return START_NOT_STICKY
+        }
         foreground()
-        scope.launch {
+        if (startJob?.isActive == true) return START_STICKY
+        startJob = scope.launch {
             if (!(application as MagnolieApp).awaitReady()) {
                 stopForeground(STOP_FOREGROUND_REMOVE)
                 stopSelf(startId)
@@ -48,18 +59,27 @@ class TelefonDienst : Service() {
             TelefonAblage.get(this@TelefonDienst).setEnabled(true)
             val current = TelefonWerk.get(this@TelefonDienst)
             werk = current
-            current.serviceStarted()
+            val started = runCatching { withContext(Dispatchers.IO) { current.serviceStarted() } }
+            if (started.isFailure) {
+                stopForeground(STOP_FOREGROUND_REMOVE); stopSelf(); return@launch
+            }
             listenForWifi()
+            launch(Dispatchers.IO) {
+                while (isActive) {
+                    delay(60_000)
+                    runCatching { current.maintenance() }
+                }
+            }
             current.state.collectLatest { foreground(it) }
         }
         return START_STICKY
     }
     override fun onDestroy() {
+        scope.cancel()
         connectivity?.let { runCatching { it.unregisterNetworkCallback(wifiListener) } }
         connectivity = null
         werk?.serviceStopped()
         werk = null
-        scope.cancel()
         super.onDestroy()
     }
 

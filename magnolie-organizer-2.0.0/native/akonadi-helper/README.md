@@ -1,4 +1,4 @@
-# Magnolie Akonadi helper
+# Magnolie Organizer KDE integration
 
 Optional native bridge for KDE Plasma installations. It reads exactly one JSON
 object (maximum 16 MiB) from stdin and writes exactly one JSON object (maximum
@@ -26,12 +26,19 @@ cmake --build build/akonadi-helper
 cmake --install build/akonadi-helper --prefix /usr
 ```
 
-Build and install the standalone Debian native package with:
+Build the single DEB with all three internal backends using the isolated builder:
 
 ```sh
-(cd native/akonadi-helper && dpkg-buildpackage -us -uc)
-sudo apt install ../native/magnolie-organizer-akonadi_1.0.0_$(dpkg --print-architecture).deb
+python3 werkzeuge/kde_deb_bauen.py /tmp/opencode/kde-component
 ```
+
+Install `magnolie-organizer-kde_2.0.18_amd64.deb` on Debian, Ubuntu, Kubuntu or
+Linux Mint. The optional launcher selects only a complete, configured native KDE
+ABI from the installed dpkg database. It never installs KDE PIM. Missing native
+requirements return errors rather than empty data. There is no old-name download.
+See [the single-DEB recipe](DEB-TARGETS.md) for genuine per-backend dependency
+audits, one coherent DSC/source tar, separate same-artifact runtime gates and the
+explicit downgrade policy for previously distributed suffixed test candidates.
 
 `werkzeuge/rpm_fedora_bauen.sh` creates and tests the matching RPM and SRPM in
 its pinned Fedora 42 environment.
@@ -39,6 +46,6 @@ its pinned Fedora 42 environment.
 CMake prefers Qt 6 with `KPim6Akonadi`, `KF6CalendarCore`, and `KF6Contacts`,
 then falls back to the corresponding Qt 5/KF5 development packages. Packaging
 should place `magnolie-akonadi-helper` in `libexec` and make the package an
-optional/recommended dependency only on KDE-capable distributions. Runtime
+optional suggested dependency only on KDE-capable distributions. Runtime
 requires a configured, running Akonadi session bus service and its calendar or
 contacts serializer plugins.

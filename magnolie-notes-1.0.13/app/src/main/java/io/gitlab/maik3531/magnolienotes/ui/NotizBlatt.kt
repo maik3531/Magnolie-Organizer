@@ -26,12 +26,17 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.IconButton
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.activity.compose.BackHandler
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
@@ -39,6 +44,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -221,10 +228,13 @@ private fun Notizzeile(notiz: Notiz, buchname: String, beiKlick: () -> Unit) {
  * und der Weg zum Magnolienbaum.
  */
 @Composable
+@OptIn(ExperimentalLayoutApi::class)
 fun NotizEditor(
     notiz: Notiz,
     partnernamen: List<Pair<String, String>>,
     beiSichern: (Notiz) -> Unit,
+    beiEntwurf: (Notiz) -> Unit,
+    speichert: Boolean,
     beiLoeschen: () -> Unit,
     beiTeilen: (List<String>) -> Unit,
     beiAnhangOeffnen: (Anhang) -> Unit,
@@ -233,13 +243,12 @@ fun NotizEditor(
     anhangEreignis: AnhangEreignis?,
     beiAnhangEreignisVerbraucht: () -> Unit,
     beiAnhaengeAenderung: (List<Anhang>) -> Unit,
-    beiZurueck: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    var titel by remember(notiz.id) { mutableStateOf(notiz.titel) }
-    var text by remember(notiz.id) { mutableStateOf(notiz.text) }
-    var symbol by remember(notiz.id) { mutableStateOf(notiz.symbol) }
-    var anhaenge by remember(notiz.id) { mutableStateOf(notiz.anhaenge) }
+    val titel = notiz.titel
+    val text = notiz.text
+    val symbol = notiz.symbol
+    val anhaenge = notiz.anhaenge
     var fragtLoeschen by remember { mutableStateOf(false) }
     var fragtTeilen by remember { mutableStateOf(false) }
     var anhangAktion by remember { mutableStateOf<Anhang?>(null) }
@@ -247,27 +256,19 @@ fun NotizEditor(
     LaunchedEffect(anhangEreignis) {
         val ereignis = anhangEreignis ?: return@LaunchedEffect
         if (ereignis.notizId == notiz.id && anhaenge.none { it.id == ereignis.anhang.id }) {
-            anhaenge = anhaenge + ereignis.anhang
-            beiAnhaengeAenderung(anhaenge)
+            beiAnhaengeAenderung(anhaenge + ereignis.anhang)
         }
         beiAnhangEreignisVerbraucht()
     }
 
-    // Der Organizer stellt Notizen als HTML dar; aus dem Wortlaut wird darum
-    // dasselbe schlichte HTML erzeugt, das auch sein eigener Filter erlaubt.
-    fun aktuell() = notiz.copy(
-        titel = titel,
-        text = text,
-        symbol = symbol,
-        anhaenge = anhaenge,
-        html = io.gitlab.maik3531.magnolienotes.baum.Nutzlast.textZuHtml(text)
-    )
+    fun sichern() { if (!speichert) beiSichern(notiz) }
+    BackHandler { sichern() }
 
     Column(modifier.fillMaxSize().background(Magnolie.papier)) {
         Einband(titel.ifBlank { stringResource(R.string.notiz_neu) }) {
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 Rundknopf("‹", beschreibung = stringResource(R.string.zurueck)) {
-                    beiSichern(aktuell()); beiZurueck()
+                    sichern()
                 }
             }
         }
@@ -295,7 +296,8 @@ fun NotizEditor(
             Schreibfeld(
                 wert = titel,
                 beschriftung = stringResource(R.string.notiz_titel),
-                beiAenderung = { titel = it },
+                beiAenderung = { beiEntwurf(notiz.copy(titel = it)) },
+                aktiv = !speichert,
                 serifen = true
             )
 
@@ -314,9 +316,8 @@ fun NotizEditor(
                             Papierknopf(anhang.name.ifBlank {
                                 stringResource(if (anhang.art == "pdf") R.string.notiz_pdf else R.string.notiz_bild)
                             }) { anhangAktion = anhang }
-                            TextButton(onClick = {
-                                anhaenge = anhaenge.filterNot { it.id == anhang.id }
-                                beiAnhaengeAenderung(anhaenge)
+                            TextButton(enabled = !speichert, onClick = {
+                                beiAnhaengeAenderung(anhaenge.filterNot { it.id == anhang.id })
                             }) {
                                 Text(stringResource(R.string.notiz_anhang_entfernen), color = Magnolie.rot)
                             }
@@ -324,11 +325,13 @@ fun NotizEditor(
                     }
                 }
             }
-            Papierknopf(stringResource(R.string.notiz_anhang_hinzufuegen), beiKlick = beiAnhangHinzufuegen)
+            Papierknopf(stringResource(R.string.notiz_anhang_hinzufuegen), aktiv = !speichert, beiKlick = beiAnhangHinzufuegen)
                 Schreibfeld(
                     wert = text,
                     beschriftung = stringResource(R.string.notiz_text),
-                    beiAenderung = { text = it },
+                    beiAenderung = { beiEntwurf(notiz.copy(text = it,
+                        html = io.gitlab.maik3531.magnolienotes.baum.Nutzlast.textZuHtml(it))) },
+                    aktiv = !speichert,
                     einzeilig = false,
                     serifen = true,
                     modifier = if (kompakt) {
@@ -348,7 +351,7 @@ fun NotizEditor(
                 color = Magnolie.braunHell
             )
             LazyRow(
-                Modifier.height(46.dp),
+                Modifier.height(52.dp),
                 horizontalArrangement = Arrangement.spacedBy(6.dp)
             ) {
                 items(io.gitlab.maik3531.magnolienotes.daten.Symbol.alle) { art ->
@@ -356,18 +359,20 @@ fun NotizEditor(
                     val symbolBeschreibung = if (art == symbol) {
                         stringResource(R.string.semantik_ausgewaehlt, symbolName)
                     } else symbolName
-                    Box(
-                        Modifier
+                    IconButton(
+                        onClick = { beiEntwurf(notiz.copy(symbol = art)) },
+                        enabled = !speichert,
+                        modifier = Modifier.size(48.dp)
                             .background(
                                 if (art == symbol) Magnolie.gold.copy(alpha = 0.35f)
                                 else androidx.compose.ui.graphics.Color.Transparent,
                                 RoundedCornerShape(20.dp)
                             )
-                            .clearAndSetSemantics { contentDescription = symbolBeschreibung }
-                            .clickable { symbol = art }
-                            .padding(3.dp)
                     ) {
-                        Sinnbild(art, groesse = 34.dp)
+                        Sinnbild(art, groesse = 34.dp, modifier = Modifier.clearAndSetSemantics {
+                                contentDescription = symbolBeschreibung
+                                selected = art == symbol
+                            })
                     }
                 }
             }
@@ -385,14 +390,15 @@ fun NotizEditor(
                 color = Magnolie.braunHell
             )
 
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Lederknopf(stringResource(R.string.sichern)) { beiSichern(aktuell()); beiZurueck() }
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Lederknopf(stringResource(R.string.sichern), aktiv = !speichert) { sichern() }
                     Papierknopf(
                         stringResource(R.string.notiz_teilen),
-                        aktiv = partnernamen.isNotEmpty()
-                    ) { beiSichern(aktuell()); fragtTeilen = true }
-                    Papierknopf(stringResource(R.string.loeschen)) { fragtLoeschen = true }
+                        aktiv = partnernamen.isNotEmpty() && !speichert
+                    ) { fragtTeilen = true }
+                    Papierknopf(stringResource(R.string.loeschen), aktiv = !speichert) { fragtLoeschen = true }
                 }
+                if (speichert) androidx.compose.material3.LinearProgressIndicator(Modifier.fillMaxWidth())
             }
         }
     }
@@ -434,7 +440,7 @@ fun NotizEditor(
             title = { Text(stringResource(R.string.notiz_loeschen), fontFamily = FontFamily.Serif) },
             text = { Text(stringResource(R.string.wirklich_loeschen)) },
             confirmButton = {
-                TextButton(onClick = { fragtLoeschen = false; beiLoeschen(); beiZurueck() }) {
+                TextButton(onClick = { fragtLoeschen = false; beiLoeschen() }) {
                     Text(stringResource(R.string.loeschen), color = Magnolie.rot)
                 }
             },

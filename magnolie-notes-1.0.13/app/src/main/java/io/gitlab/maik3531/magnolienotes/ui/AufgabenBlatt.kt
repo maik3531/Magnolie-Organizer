@@ -3,6 +3,9 @@ package io.gitlab.maik3531.magnolienotes.ui
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.selection.toggleable
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -26,17 +29,21 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.activity.compose.BackHandler
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
@@ -67,19 +74,7 @@ private fun fachVon(aufgabe: Aufgabe): Fach {
 }
 
 private fun tageBis(isoDatum: String): Int? {
-    val tag = runCatching {
-        SimpleDateFormat("yyyy-MM-dd", Locale.ROOT).parse(isoDatum)
-    }.getOrNull() ?: return null
-    val ziel = Calendar.getInstance().apply {
-        time = tag
-        set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0)
-        set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0)
-    }
-    val heute = Calendar.getInstance().apply {
-        set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0)
-        set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0)
-    }
-    return ((ziel.timeInMillis - heute.timeInMillis) / 86_400_000L).toInt()
+    return io.gitlab.maik3531.magnolienotes.aufgaben.Kalendertage.bis(isoDatum)
 }
 
 /**
@@ -134,6 +129,7 @@ fun AufgabenBlatt(
                 )
                 Box(Modifier.padding(top = 8.dp)) {
                     Papierknopf(stringResource(R.string.aufgabe_wecker_erlauben)) {
+                        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
                         runCatching {
                             zusammenhang.startActivity(
                                 android.content.Intent(
@@ -142,6 +138,7 @@ fun AufgabenBlatt(
                                     android.net.Uri.parse("package:" + zusammenhang.packageName)
                                 ).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
                             )
+                        }
                         }
                     }
                 }
@@ -171,6 +168,7 @@ fun AufgabenBlatt(
 }
 
 @Composable
+@OptIn(ExperimentalLayoutApi::class)
 private fun Aufgabenzeile(
     aufgabe: Aufgabe,
     fach: Fach,
@@ -249,12 +247,14 @@ private fun Aufgabenzeile(
                     )
                 }
             }
-            Row(Modifier.padding(top = 5.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+            FlowRow(Modifier.padding(top = 5.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                 TextButton(onClick = { beiTeilaufgabe(aufgabe) }) {
                     Text(stringResource(R.string.aufgabe_teilaufgabe), fontSize = 11.sp)
                 }
-                TextButton(onClick = { beiVerschieben(aufgabe, -1) }) { Text("↑") }
-                TextButton(onClick = { beiVerschieben(aufgabe, 1) }) { Text("↓") }
+                val nachOben = stringResource(R.string.aufgabe_nach_oben)
+                val nachUnten = stringResource(R.string.aufgabe_nach_unten)
+                TextButton(onClick = { beiVerschieben(aufgabe, -1) }, modifier = Modifier.semantics { contentDescription = nachOben }) { Text("↑") }
+                TextButton(onClick = { beiVerschieben(aufgabe, 1) }, modifier = Modifier.semantics { contentDescription = nachUnten }) { Text("↓") }
                 if (aufgabe.elternUid.isNotEmpty()) TextButton(onClick = { beiWurzel(aufgabe) }) {
                     Text(stringResource(R.string.aufgabe_zur_wurzel), fontSize = 11.sp)
                 }
@@ -274,19 +274,15 @@ private fun Haekchen(gesetzt: Boolean, beiKlick: () -> Unit) {
         if (gesetzt) R.string.aufgabe_als_offen_markieren
         else R.string.aufgabe_als_erledigt_markieren
     )
-    Box(
-        Modifier
-            .size(28.dp)
-            .border(1.5.dp, if (gesetzt) Magnolie.goldDunkel else Magnolie.linieStark, RoundedCornerShape(3.dp))
-            .background(if (gesetzt) Magnolie.gold.copy(alpha = 0.25f) else Magnolie.papier)
-            .semantics { contentDescription = beschreibung }
-            .clickable(onClick = beiKlick),
-        contentAlignment = Alignment.Center
-    ) {
-        if (gesetzt) {
-            Text("✓", fontSize = 17.sp, color = Magnolie.braun, fontWeight = FontWeight.Bold)
-        }
-    }
+    Checkbox(
+        checked = gesetzt,
+        onCheckedChange = { beiKlick() },
+        modifier = Modifier
+            .size(48.dp)
+            .semantics { contentDescription = beschreibung },
+        colors = CheckboxDefaults.colors(checkedColor = Magnolie.gold,
+            uncheckedColor = Magnolie.linieStark, checkmarkColor = Magnolie.braun)
+    )
 }
 
 /**
@@ -294,38 +290,38 @@ private fun Haekchen(gesetzt: Boolean, beiKlick: () -> Unit) {
  * lassen sich nur abhaken; alles andere gehört dem Ursprung.
  */
 @Composable
+@OptIn(ExperimentalLayoutApi::class)
 fun AufgabenEditor(
     aufgabe: Aufgabe,
     alleAufgaben: List<Aufgabe>,
     partnernamen: List<Pair<String, String>>,
     beiSichern: (Aufgabe) -> Unit,
+    beiEntwurf: (Aufgabe) -> Unit,
+    speichert: Boolean,
     beiLoeschen: () -> Unit,
     beiWeitergeben: (List<String>) -> Unit,
-    beiZurueck: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    var titel by remember(aufgabe.id) { mutableStateOf(aufgabe.titel) }
-    var notiz by remember(aufgabe.id) { mutableStateOf(aufgabe.notiz) }
-    var faellig by remember(aufgabe.id) { mutableStateOf(aufgabe.faellig) }
-    var prio by remember(aufgabe.id) { mutableStateOf(aufgabe.prio) }
-    var erinnern by remember(aufgabe.id) { mutableStateOf(aufgabe.erinnern) }
-    var vorlauf by remember(aufgabe.id) { mutableStateOf(aufgabe.vorlaufTage) }
-    var stunde by remember(aufgabe.id) { mutableStateOf(aufgabe.erinnerungsMinute / 60) }
-    var elternUid by remember(aufgabe.id) { mutableStateOf(aufgabe.elternUid) }
+    val titel = aufgabe.titel
+    val notiz = aufgabe.notiz
+    val faellig = aufgabe.faellig
+    val prio = aufgabe.prio
+    val erinnern = aufgabe.erinnern
+    val vorlauf = aufgabe.vorlaufTage
+    val stunde = aufgabe.erinnerungsMinute / 60
+    val elternUid = aufgabe.elternUid
     var fragtLoeschen by remember { mutableStateOf(false) }
     var fragtGeben by remember { mutableStateOf(false) }
     var fragtEltern by remember { mutableStateOf(false) }
 
-    fun aktuell() = aufgabe.copy(
-        titel = titel, notiz = notiz, faellig = faellig, prio = prio,
-        erinnern = erinnern, vorlaufTage = vorlauf, erinnerungsMinute = stunde * 60,
-        elternUid = elternUid
-    )
+    fun aendern(neu: Aufgabe) { if (!speichert) beiEntwurf(neu) }
+    fun sichern() { if (!speichert) beiSichern(aufgabe) }
+    BackHandler { sichern() }
 
     Column(modifier.fillMaxSize().background(Magnolie.papier)) {
         Einband(titel.ifBlank { stringResource(R.string.aufgabe_neu) }) {
             Rundknopf("‹", beschreibung = stringResource(R.string.zurueck)) {
-                beiSichern(aktuell()); beiZurueck()
+                sichern()
             }
         }
         Column(
@@ -345,18 +341,20 @@ fun AufgabenEditor(
             Schreibfeld(
                 wert = titel,
                 beschriftung = stringResource(R.string.aufgabe_titel),
-                beiAenderung = { titel = it },
+                beiAenderung = { aendern(aufgabe.copy(titel = it)) },
+                aktiv = !speichert,
                 serifen = true
             )
             Schreibfeld(
                 wert = notiz,
                 beschriftung = stringResource(R.string.aufgabe_notiz),
-                beiAenderung = { notiz = it },
+                beiAenderung = { aendern(aufgabe.copy(notiz = it)) },
+                aktiv = !speichert,
                 einzeilig = false,
                 serifen = true
             )
-            Datumfeld(faellig) { faellig = it }
-            Papierknopf(stringResource(R.string.aufgabe_eltern_waehlen)) { fragtEltern = true }
+            Datumfeld(faellig) { aendern(aufgabe.copy(faellig = it)) }
+            Papierknopf(stringResource(R.string.aufgabe_eltern_waehlen), aktiv = !speichert) { fragtEltern = true }
             Text(
                 alleAufgaben.firstOrNull { it.uid == elternUid }?.anzeigeTitel
                     ?: stringResource(R.string.aufgabe_oberste_ebene),
@@ -367,7 +365,7 @@ fun AufgabenEditor(
                 stringResource(R.string.aufgabe_prio),
                 fontFamily = FontFamily.SansSerif, fontSize = 12.sp, color = Magnolie.braunHell
             )
-            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 listOf(
                     1 to stringResource(R.string.aufgabe_prio1),
                     2 to stringResource(R.string.aufgabe_prio2),
@@ -385,7 +383,7 @@ fun AufgabenEditor(
                                 if (prio == wert) Magnolie.goldDunkel else Magnolie.linie,
                                 RoundedCornerShape(3.dp)
                             )
-                            .clickable { prio = wert }
+                            .clickable(enabled = !speichert) { aendern(aufgabe.copy(prio = wert)) }
                             .padding(horizontal = 12.dp, vertical = 8.dp)
                     ) {
                         Text(
@@ -407,7 +405,8 @@ fun AufgabenEditor(
                 )
                 Switch(
                     checked = erinnern,
-                    onCheckedChange = { erinnern = it },
+                    onCheckedChange = { aendern(aufgabe.copy(erinnern = it)) },
+                    enabled = !speichert,
                     modifier = Modifier.semantics {
                         contentDescription = erinnerungBeschreibung
                     },
@@ -432,30 +431,35 @@ fun AufgabenEditor(
                     )
                     Rundknopf(
                         "−", beschreibung = stringResource(R.string.aufgabe_vorlauf_verringern)
-                    ) { if (vorlauf > 0) vorlauf-- }
+                    ) { if (vorlauf > 0) aendern(aufgabe.copy(vorlaufTage = vorlauf - 1)) }
                     Text(
                         vorlauf.toString(),
                         fontFamily = FontFamily.Monospace, fontSize = 15.sp, color = Magnolie.tinte
                     )
                     Rundknopf(
                         "+", beschreibung = stringResource(R.string.aufgabe_vorlauf_erhoehen)
-                    ) { if (vorlauf < 14) vorlauf++ }
+                    ) { if (vorlauf < 14) aendern(aufgabe.copy(vorlaufTage = vorlauf + 1)) }
+                }
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
                     Text(
                         stringResource(R.string.aufgabe_uhrzeit),
                         fontFamily = FontFamily.SansSerif, fontSize = 12.sp,
                         color = Magnolie.braunHell,
-                        modifier = Modifier.padding(start = 8.dp)
+                        modifier = Modifier.weight(1f)
                     )
                     Rundknopf(
                         "−", beschreibung = stringResource(R.string.aufgabe_stunde_verringern)
-                    ) { if (stunde > 0) stunde-- }
+                    ) { if (stunde > 0) aendern(aufgabe.copy(erinnerungsMinute = aufgabe.erinnerungsMinute - 60)) }
                     Text(
                         erinnerungsUhrzeit(stunde),
                         fontFamily = FontFamily.Monospace, fontSize = 15.sp, color = Magnolie.tinte
                     )
                     Rundknopf(
                         "+", beschreibung = stringResource(R.string.aufgabe_stunde_erhoehen)
-                    ) { if (stunde < 23) stunde++ }
+                    ) { if (stunde < 23) aendern(aufgabe.copy(erinnerungsMinute = aufgabe.erinnerungsMinute + 60)) }
                 }
                 if (faellig.isBlank()) {
                     Text(
@@ -465,14 +469,15 @@ fun AufgabenEditor(
                 }
             }
 
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Lederknopf(stringResource(R.string.sichern)) { beiSichern(aktuell()); beiZurueck() }
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Lederknopf(stringResource(R.string.sichern), aktiv = !speichert) { sichern() }
                 Papierknopf(
                     stringResource(R.string.aufgabe_weitergeben),
-                    aktiv = partnernamen.isNotEmpty() && !aufgabe.istFremd
-                ) { beiSichern(aktuell()); fragtGeben = true }
-                Papierknopf(stringResource(R.string.loeschen)) { fragtLoeschen = true }
+                    aktiv = partnernamen.isNotEmpty() && !aufgabe.istFremd && !speichert
+                ) { fragtGeben = true }
+                Papierknopf(stringResource(R.string.loeschen), aktiv = !speichert) { fragtLoeschen = true }
             }
+            if (speichert) androidx.compose.material3.LinearProgressIndicator(Modifier.fillMaxWidth())
         }
     }
 
@@ -483,7 +488,7 @@ fun AufgabenEditor(
             title = { Text(stringResource(R.string.aufgabe_loeschen), fontFamily = FontFamily.Serif) },
             text = { Text(stringResource(R.string.wirklich_loeschen)) },
             confirmButton = {
-                TextButton(onClick = { fragtLoeschen = false; beiLoeschen(); beiZurueck() }) {
+                TextButton(onClick = { fragtLoeschen = false; beiLoeschen() }) {
                     Text(stringResource(R.string.loeschen), color = Magnolie.rot)
                 }
             },
@@ -535,7 +540,7 @@ fun AufgabenEditor(
                     (listOf<Aufgabe?>(null) + alleAufgaben.filter { it.uid !in verboten }).forEach { parent ->
                         Text(parent?.anzeigeTitel ?: stringResource(R.string.aufgabe_oberste_ebene),
                             Modifier.fillMaxWidth().clickable {
-                                elternUid = parent?.uid.orEmpty(); fragtEltern = false
+                                aendern(aufgabe.copy(elternUid = parent?.uid.orEmpty())); fragtEltern = false
                             }.padding(vertical = 10.dp), color = Magnolie.tinte)
                     }
                 }
@@ -552,6 +557,7 @@ fun AufgabenEditor(
  * `JJJJ-MM-TT`. Das reicht für Aufgaben und bleibt beim Papierbild.
  */
 @Composable
+@OptIn(ExperimentalLayoutApi::class)
 private fun Datumfeld(wert: String, beiAenderung: (String) -> Unit) {
     val form = remember { SimpleDateFormat("yyyy-MM-dd", Locale.ROOT) }
     fun inTagen(tage: Int): String {
@@ -564,7 +570,7 @@ private fun Datumfeld(wert: String, beiAenderung: (String) -> Unit) {
             beschriftung = stringResource(R.string.aufgabe_faellig),
             beiAenderung = beiAenderung
         )
-        Row(
+        FlowRow(
             Modifier.padding(top = 6.dp),
             horizontalArrangement = Arrangement.spacedBy(6.dp)
         ) {

@@ -135,8 +135,10 @@ object Entdeckung {
             override fun onServiceLost(dienst: NsdServiceInfo?) {}
         }
 
+        var gestartet = false
         return try {
             nsd.discoverServices(ART, NsdManager.PROTOCOL_DNS_SD, suche)
+            gestartet = true
             fertig.await(wartezeitMs, TimeUnit.MILLISECONDS)
             // Den Auflösungen noch einen Moment geben.
             var warten = 0
@@ -144,10 +146,12 @@ object Entdeckung {
                 Thread.sleep(100)
                 warten += 100
             }
-            runCatching { nsd.stopServiceDiscovery(suche) }
-            gefunden.toList()
+            synchronized(gefunden) { gefunden.toList() }
+        } catch (_: InterruptedException) {
+            Thread.currentThread().interrupt()
+            synchronized(gefunden) { gefunden.toList() }
         } catch (fehler: Exception) {
-            gefunden.toList()
-        }
+            synchronized(gefunden) { gefunden.toList() }
+        } finally { if (gestartet) runCatching { nsd.stopServiceDiscovery(suche) } }
     }
 }

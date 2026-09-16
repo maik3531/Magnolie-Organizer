@@ -29,12 +29,12 @@ import io.gitlab.maik3531.magnolienotes.R
 import io.gitlab.maik3531.magnolienotes.daten.Bestand
 import io.gitlab.maik3531.magnolienotes.daten.PortableVorschau
 import io.gitlab.maik3531.magnolienotes.journal.JournalIntervall
+import io.gitlab.maik3531.magnolienotes.journal.JournalRegeln
 import io.gitlab.maik3531.magnolienotes.journal.JournalZustand
 import io.gitlab.maik3531.magnolienotes.journal.SnapshotManifest
 import io.gitlab.maik3531.magnolienotes.sicherung.AutoSicherungsIntervall
 import io.gitlab.maik3531.magnolienotes.sicherung.AutoSicherungsStatus
 import io.gitlab.maik3531.magnolienotes.sicherung.AutoSicherungsZustand
-import java.time.Instant
 import java.util.UUID
 
 class JournalHandlungen(
@@ -211,7 +211,8 @@ fun JournalBlatt(zustand: JournalZustand, bestand: Bestand, handlungen: JournalH
                     val domaene = lokalisierterText(TechnischeWerteLokalisierung.journalDomaene(entry.domain))
                     val zusammenfassung = lokalisierterText(
                         TechnischeWerteLokalisierung.journalZusammenfassung(entry.summary))
-                    Text(Zeit.tagUndUhrzeit(Instant.parse(entry.createdUtc).toEpochMilli()),
+                    Text(JournalRegeln.zeitpunkt(entry)?.let(Zeit::tagUndUhrzeit)
+                        ?: stringResource(R.string.aufgabe_kein_datum),
                         fontFamily = FontFamily.Serif, fontWeight = FontWeight.Bold, color = Magnolie.tinte)
                     Text("$grund · $domaene · ${groesse(entry.payload.size)} · ${stringResource(R.string.journal_integritaet)}",
                         fontFamily = FontFamily.SansSerif, fontSize = 11.sp, color = Magnolie.braunHell)

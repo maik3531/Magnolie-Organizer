@@ -1,0 +1,22 @@
+{
+  "en": "Weather uses HTTPS first, then unencrypted HTTP if necessary. If wttr.in fails and a location is known, Open-Meteo is tried.",
+  "de": "Das Wetter wird zuerst über HTTPS und bei Bedarf über unverschlüsseltes HTTP abgerufen. Ist wttr.in nicht verfügbar und ein Ort bekannt, wird Open-Meteo versucht.",
+  "fr": "La météo est d’abord récupérée par HTTPS, puis par HTTP non chiffré si nécessaire. Si wttr.in ne répond pas et qu’un lieu est connu, Open-Meteo est essayé.",
+  "es": "El tiempo se consulta primero por HTTPS y, si hace falta, por HTTP sin cifrar. Si wttr.in falla y se conoce la ubicación, se prueba Open-Meteo.",
+  "it": "Il meteo viene richiesto prima tramite HTTPS e, se necessario, tramite HTTP non cifrato. Se wttr.in non funziona e la località è nota, viene provato Open-Meteo.",
+  "nl": "Het weer wordt eerst via HTTPS opgehaald en zo nodig via onversleuteld HTTP. Als wttr.in niet werkt en er een plaats bekend is, wordt Open-Meteo geprobeerd.",
+  "pt": "O tempo é consultado primeiro por HTTPS e, se necessário, por HTTP sem encriptação. Se wttr.in falhar e a localidade for conhecida, tenta-se o Open-Meteo.",
+  "ru": "Погода сначала запрашивается по HTTPS, а при необходимости — по незашифрованному HTTP. Если wttr.in недоступен и населённый пункт известен, выполняется запрос к Open-Meteo.",
+  "cs": "Počasí se nejprve načítá přes HTTPS, případně přes nešifrované HTTP. Pokud wttr.in nefunguje a místo je známé, zkusí se Open-Meteo.",
+  "pl": "Pogoda jest pobierana najpierw przez HTTPS, a w razie potrzeby przez nieszyfrowane HTTP. Jeśli wttr.in nie działa i miejscowość jest znana, następuje próba pobrania danych z Open-Meteo.",
+  "hsb": "Wjedro so najprjedy přez HTTPS a w razje trjeby přez nješifrowany HTTP wotwoła. Jeli wttr.in k dispoziciji njesteji a městno znate je, so Open-Meteo wupruwuje.",
+  "da": "Vejret hentes først via HTTPS og om nødvendigt via ukrypteret HTTP. Hvis wttr.in ikke virker, og et sted er kendt, forsøges Open-Meteo.",
+  "nb": "Været hentes først via HTTPS og ved behov via ukryptert HTTP. Hvis wttr.in ikke virker og stedet er kjent, prøves Open-Meteo.",
+  "hi": "मौसम की जानकारी पहले HTTPS से और ज़रूरत पड़ने पर बिना एन्क्रिप्शन वाले HTTP से ली जाती है। अगर wttr.in उपलब्ध नहीं है और स्थान पता है, तो Open-Meteo को आज़माया जाता है।",
+  "zh_CN": "天气信息首先通过 HTTPS 获取，必要时改用未加密的 HTTP。如果 wttr.in 不可用且已知地点，则尝试 Open-Meteo。",
+  "ja": "天気情報はまず HTTPS で取得し、必要に応じて暗号化されていない HTTP を使用します。wttr.in が利用できず、場所が分かっている場合は Open-Meteo を試します。",
+  "ar": "تُجلب بيانات الطقس أولًا عبر HTTPS، ثم عبر HTTP غير المشفّر عند الحاجة. إذا تعذّر الوصول إلى wttr.in وكان الموقع معروفًا، تُجرَّب خدمة Open-Meteo.",
+  "uk": "Погода спочатку запитується через HTTPS, а за потреби — через незашифрований HTTP. Якщо wttr.in недоступний і населений пункт відомий, виконується запит до Open-Meteo.",
+  "be": "Надвор’е спачатку запытваецца праз HTTPS, а пры неабходнасці — праз незашыфраваны HTTP. Калі wttr.in недаступны і населены пункт вядомы, робіцца запыт да Open-Meteo.",
+  "tr": "Hava durumu önce HTTPS üzerinden, gerekirse şifrelenmemiş HTTP üzerinden alınır. wttr.in çalışmazsa ve konum biliniyorsa Open-Meteo denenir."
+}

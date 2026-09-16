@@ -20,6 +20,9 @@
 
 #include <QCoreApplication>
 #include <QDateTime>
+#include <QDBusConnection>
+#include <QDBusConnectionInterface>
+#include <QDBusReply>
 #include <QFile>
 #include <QJsonArray>
 #include <QJsonDocument>
@@ -123,6 +126,18 @@ void verifyServerBinding(const QJsonObject &object)
 {
     const qint64 generation = integerValue(object, "generation", 0, MaxExactJsonInteger);
     const QString instance = stringValue(object, "instance", true);
+    if (instance != Akonadi::ServerManager::instanceIdentifier()) {
+        throw ProtocolError(QStringLiteral("Akonadi instance changed; select the source again"));
+    }
+    // The generation cache is populated by the first server handshake, not by
+    // ServerManager::generation() itself. Every protocol request is a new process.
+    if (Akonadi::ServerManager::generation() == 0) {
+        auto job = std::make_unique<Akonadi::CollectionFetchJob>(Akonadi::Collection::root(), Akonadi::CollectionFetchJob::FirstLevel);
+        job->setAutoDelete(false);
+        if (!job->exec()) {
+            throw ProtocolError(QStringLiteral("Akonadi session initialization failed: %1").arg(job->errorString()));
+        }
+    }
     if (generation != static_cast<qint64>(Akonadi::ServerManager::generation())
         || instance != Akonadi::ServerManager::instanceIdentifier()) {
         throw ProtocolError(QStringLiteral("Akonadi instance changed; select the source again"));
@@ -591,6 +606,17 @@ QJsonObject dispatch(const QJsonObject &request)
         throw ProtocolError(QStringLiteral("'command' must be a non-empty string"));
     }
     const QString command = commandValue.toString();
+    if (QStringList{QStringLiteral("status"), QStringLiteral("snapshot"), QStringLiteral("create"),
+                    QStringLiteral("modify"), QStringLiteral("delete"), QStringLiteral("exists")}.contains(command)) {
+        // Query the bus daemon only. Creating the first KDE job can start a
+        // missing server, so never create a job without an existing service.
+        auto bus = QDBusConnection::sessionBus().interface();
+        for (const auto service : {Akonadi::ServerManager::Server, Akonadi::ServerManager::Control}) {
+            if (!bus || !bus->isServiceRegistered(Akonadi::ServerManager::serviceName(service)).value()) {
+                throw ProtocolError(QStringLiteral("KDE service is not running; open your configured KDE application first"));
+            }
+        }
+    }
     if (command == QLatin1String("status")) {
         requireKeys(request, {"command"});
         return statusCommand();
@@ -661,6 +687,11 @@ int main(int argc, char **argv)
     QCoreApplication::setApplicationName(QStringLiteral("magnolie-akonadi-helper"));
 
     try {
+        if (application.arguments() == QStringList{application.arguments().first(), QStringLiteral("--self-check")}) {
+            // No session, bus lookup, resource enumeration or account setup.
+            writeResponse({{QStringLiteral("ok"), true}, {QStringLiteral("selfCheck"), true}});
+            return 0;
+        }
         const QByteArray input = readRequest();
         QJsonParseError parseError;
         const QJsonDocument document = QJsonDocument::fromJson(input, &parseError);

@@ -84,7 +84,7 @@ instrumentiere() {
     "$adb" -s "$serial" uninstall "$paket.test" >/dev/null 2>&1 || true
     "$adb" -s "$serial" install -r "$test_apk" >/dev/null
     "$adb" -s "$serial" logcat -c
-    "$adb" -s "$serial" shell am instrument -r -w \
+    "$adb" -s "$serial" shell am instrument -r -w -e expect_upgrade_sentinel true \
         "$paket.test/$paket.MagnolieTestRunner" >"$tmp/$name-instrumentation.txt"
     "$adb" -s "$serial" logcat -d >"$tmp/$name-instrumentation-logcat.txt"
     grep -Fq 'INSTRUMENTATION_RESULT: failures=0' "$tmp/$name-instrumentation.txt"

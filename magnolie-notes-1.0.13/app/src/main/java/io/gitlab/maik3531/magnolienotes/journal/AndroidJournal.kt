@@ -268,17 +268,36 @@ class AndroidJournal private constructor(private val context: Context) {
     }
 
     fun restoreApp(id: String, operationId: String): Boolean = synchronized(Ablage.SCHREIBSPERRE) {
-        val m = store.read(id).first; require(m.domain == "android-app-data")
-        appSnapshot("pre-restore")
+        val (m, encrypted) = store.read(id); require(m.domain == "android-app-data")
         val p = json.decodeFromString<AppDatenNutzlast>(payload(id).decodeToString())
-        Ablage.hole(context).journalWiederherstellen(p.notizen, p.baum, operationId).also { refresh() }
+        // Persist protection before retention can remove the selected restore point.
+        store.write(m.copy(restoreOperationId = operationId), encrypted)
+        appSnapshot("pre-restore")
+        val alteIds = Ablage.hole(context).aufgaben().map { it.id }
+        val customIds = Ablage.hole(context).bestand.value.personalCustom.items.keys.toList()
+        Ablage.hole(context).journalWiederherstellen(p.notizen, p.baum, operationId).also {
+            store.write(m.copy(restoreOperationId = ""), encrypted)
+            if (it) erinnerungenErneuern(alteIds, customIds)
+            refresh()
+        }
     }
 
     fun restorePortable(archiv: GeprueftesPortableArchiv, operationId: String): Boolean =
         synchronized(Ablage.SCHREIBSPERRE) {
             appSnapshot("pre-restore")
-            Ablage.hole(context).portableWiederherstellen(archiv.bestandJson, operationId).also { refresh() }
+            val alteIds = Ablage.hole(context).aufgaben().map { it.id }
+            val customIds = Ablage.hole(context).bestand.value.personalCustom.items.keys.toList()
+            Ablage.hole(context).portableWiederherstellen(archiv.bestandJson, operationId).also {
+                if (it) erinnerungenErneuern(alteIds, customIds)
+                refresh()
+            }
         }
+
+    private fun erinnerungenErneuern(alteIds: List<String>, customIds: List<String>) {
+        io.gitlab.maik3531.magnolienotes.aufgaben.Erinnerung.customAbbestellen(context, customIds)
+        alteIds.forEach { io.gitlab.maik3531.magnolienotes.aufgaben.Erinnerung.abbestellen(context, it) }
+        io.gitlab.maik3531.magnolienotes.aufgaben.Erinnerung.allesNeuStellen(context)
+    }
 
     /** Selektiver Kontakt-Restore mit stabiler Operation und expliziter Konfliktstufe. */
     fun restoreContacts(id: String, operationId: String, conflictsConfirmed: Boolean = false): AndroidKontakte.RestoreErgebnis {
@@ -287,7 +306,7 @@ class AndroidJournal private constructor(private val context: Context) {
         val manifest = store.read(id).first; require(manifest.domain == "android-system-contacts")
         val payload = json.decodeFromString<KontaktNutzlast>(payload(id).decodeToString())
         val adapter = AndroidKontakte(context)
-        val results = payload.contacts.map { adapter.wiederherstellen(it, conflictsConfirmed) }
+        val results = payload.contacts.map { adapter.wiederherstellen(it, conflictsConfirmed, operationId) }
         if (AndroidKontakte.RestoreErgebnis.KONFLIKT in results) return AndroidKontakte.RestoreErgebnis.KONFLIKT
         if (AndroidKontakte.RestoreErgebnis.NICHT_SCHREIBBAR in results) return AndroidKontakte.RestoreErgebnis.NICHT_SCHREIBBAR
         marker.writeText(id); refresh(); return AndroidKontakte.RestoreErgebnis.WIEDERHERGESTELLT
@@ -307,7 +326,9 @@ class AndroidJournal private constructor(private val context: Context) {
         val keep = JournalRegeln.behalten(entries, System.currentTimeMillis(), maximum())
         entries.filterNot { it.uuid in keep }.forEach { store.delete(it.uuid) }
         val budget = JournalRegeln.budget(context.filesDir.totalSpace)
-        store.list().sortedBy { it.createdUtc }.filterNot { it.pinned }.forEach {
+        store.list().sortedBy { it.createdUtc }.filterNot {
+            it.pinned || it.restoreOperationId.isNotEmpty() || JournalRegeln.zeitpunkt(it) == null
+        }.forEach {
             if (store.bytes() > budget || context.filesDir.usableSpace < JournalRegeln.RESERVE_BYTES) store.delete(it.uuid)
         }
     }
@@ -321,8 +342,14 @@ class AndroidJournal private constructor(private val context: Context) {
         fun hole(context: Context) = instance ?: synchronized(this) { instance ?:
             AndroidJournal(context.applicationContext).also { instance = it } }
         fun planen(context: Context) {
+            val work = WorkManager.getInstance(context)
+            if (context.getSharedPreferences("wiederherstellungsjournal", Context.MODE_PRIVATE)
+                    .getString("interval", null) == JournalIntervall.AUS.name) {
+                work.cancelUniqueWork("magnolie-journal-due")
+                return
+            }
             val request = PeriodicWorkRequestBuilder<JournalWorker>(15, TimeUnit.MINUTES).build()
-            WorkManager.getInstance(context).enqueueUniquePeriodicWork("magnolie-journal-due",
+            work.enqueueUniquePeriodicWork("magnolie-journal-due",
                 ExistingPeriodicWorkPolicy.UPDATE, request)
         }
     }

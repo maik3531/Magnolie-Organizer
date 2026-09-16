@@ -8,18 +8,22 @@ internal static class UiSelfTest
     internal static int Run()
     {
         if (!OperatingSystem.IsWindows()) return 0;
-        var originalLocalAppData = Environment.GetEnvironmentVariable("LOCALAPPDATA");
         var root = Path.Combine(Path.GetTempPath(), $"magnolie-ui-self-test-{Guid.NewGuid():N}");
         Exception? failure = null;
         try
         {
-            Environment.SetEnvironmentVariable("LOCALAPPDATA", root);
-            var paths = new WindowsPaths();
+            var paths = new WindowsPaths(root);
             paths.EnsureDirectories();
+            Test(ProtectedAssetReader.Read(Path.Combine(AppContext.BaseDirectory, "web", "kaffee-qr.mga"), 1, 1).Length > 0,
+                "Der geschützte QR-Code der Organizeroberfläche konnte nicht direkt entschlüsselt werden.");
+            Test(ProtectedAssetReader.Read(Path.Combine(AppContext.BaseDirectory, "handbuch", "kaffee-qr.mga"), 1, 1).Length > 0,
+                "Der geschützte QR-Code des Handbuchs konnte nicht direkt entschlüsselt werden.");
+            Test(ProtectedAssetReader.Read(Path.Combine(AppContext.BaseDirectory, "handbuch", "maik-walter.mga"), 2, 2).Length > 0,
+                "Das geschützte Porträt des Handbuchs konnte nicht direkt entschlüsselt werden.");
             new TraySettingsService(paths.TraySettings).Save(new TraySettings(true, true, true, true, false, false, "centered"));
 
             ApplicationConfiguration.Initialize();
-            using var form = new MainForm(true);
+            using var form = new MainForm(true, paths: paths);
             Test(form.ClientSize.Width >= 1200 && form.ClientSize.Height >= 700,
                 $"Unerwartete normale Startgröße: {form.ClientSize.Width}x{form.ClientSize.Height}.");
             var originalHandle = nint.Zero;
@@ -83,6 +87,13 @@ internal static class UiSelfTest
                         face.GetProperty("status").GetString() == "loaded");
                     Test(fontChecked && fontLoaded && serifChecked && serifLoaded,
                         "Die eingebettete DejaVu-Sans-Schrift wurde nicht geladen: " + fontDiagnostic);
+                    await coreWebView.ExecuteScriptAsync(
+                        "document.querySelector('#knopf-einstellungen')?.click(); " +
+                        "document.querySelector('#einst-tab-ueber')?.click();");
+                    await TestImageAsync(coreWebView, ".kaffee-qr", 266, 266,
+                        "QR-Code unter Einstellungen > Über", "https://appassets.magnolie.invalid/kaffee-qr.png");
+                    Console.WriteLine("WINDOWS-ORGANIZER-SETTINGS-ABOUT-QR-OK");
+                    await coreWebView.ExecuteScriptAsync("document.querySelector('#einstellungen-zu')?.click();");
                     await coreWebView.ExecuteScriptAsync("window.OrganizerTest.wechsel('gesundheit')");
                     await Task.Delay(300);
                     var layoutDiagnosticResult = await coreWebView.ExecuteScriptAsync("""
@@ -145,6 +156,20 @@ internal static class UiSelfTest
                     Test(await form.OpenHandbookAsync(manualPath), "Das eigene Handbuchfenster konnte nicht geöffnet werden.");
                     Test(form.OwnedForms.Count(owned => owned is HandbookForm) == 1,
                         "Das Handbuch wurde nicht in genau einem eigenen Fenster geöffnet.");
+                    var handbook = (HandbookForm)form.OwnedForms.Single(owned => owned is HandbookForm);
+                    var handbookWebView = (Microsoft.Web.WebView2.WinForms.WebView2)typeof(HandbookForm)
+                        .GetField("webView", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(handbook)!;
+                    var handbookCore = handbookWebView.CoreWebView2
+                        ?? throw new InvalidOperationException("Die Handbuch-WebView2 war nicht bereit.");
+                    await handbookCore.ExecuteScriptAsync(
+                        "Handbuch.oeffneBuch(); Handbuch.blaettereZuId('support-with-a-coffee');");
+                    await TestImageAsync(handbookCore, "#seiten .kaffee-qr", 266, 266,
+                        "QR-Code im Handbuch", "https://handbuchassets.magnolie.invalid/kaffee-qr.png");
+                    Console.WriteLine("WINDOWS-HANDBOOK-QR-OK");
+                    await handbookCore.ExecuteScriptAsync("Handbuch.blaettereZuId('about-maik-walter');");
+                    await TestImageAsync(handbookCore, "#seiten .autorenfoto", 1080, 1074,
+                        "Porträt im Handbuch", "https://handbuchassets.magnolie.invalid/maik-walter.jpg");
+                    Console.WriteLine("WINDOWS-HANDBOOK-PORTRAIT-OK");
                     Test(await form.OpenHandbookAsync(manualPath) && form.OwnedForms.Count(owned => owned is HandbookForm) == 1,
                         "Erneutes Öffnen erzeugte ein zweites Handbuchfenster.");
                     form.Dispose();
@@ -170,12 +195,13 @@ internal static class UiSelfTest
         }
         catch (Exception error)
         {
+            var log = Path.Combine(root, "Logs", "webview.log");
+            if (File.Exists(log)) Console.Error.WriteLine(File.ReadAllText(log));
             Console.Error.WriteLine("Windows-UI-Selbsttest fehlgeschlagen: " + error);
             return 1;
         }
         finally
         {
-            Environment.SetEnvironmentVariable("LOCALAPPDATA", originalLocalAppData);
             try { if (Directory.Exists(root)) Directory.Delete(root, true); } catch (Exception) { }
         }
     }
@@ -183,5 +209,49 @@ internal static class UiSelfTest
     private static void Test(bool condition, string message)
     {
         if (!condition) throw new InvalidOperationException(message);
+    }
+
+    private static async Task TestImageAsync(Microsoft.Web.WebView2.Core.CoreWebView2 core,
+        string selector, int expectedWidth, int expectedHeight, string label, string expectedSource)
+    {
+        var diagnostic = "{}";
+        for (var attempt = 0; attempt < 100; attempt++)
+        {
+            var result = await core.ExecuteScriptAsync($$"""
+                (() => {
+                  try {
+                    const image = document.querySelector({{JsonSerializer.Serialize(selector)}});
+                    const csp = document.querySelector('meta[http-equiv="Content-Security-Policy"]')?.content || '';
+                    if (!image) return JSON.stringify({ error: 'Bildelement fehlt.', href: location.href, csp });
+                    image.scrollIntoView({ block: 'center', inline: 'nearest' });
+                    const rect = image.getBoundingClientRect();
+                    const visible = image.isConnected && rect.width > 0 && rect.height > 0 &&
+                      image.checkVisibility({ checkOpacity: true, checkVisibilityCSS: true }) &&
+                      document.elementFromPoint(rect.x + rect.width / 2, rect.y + rect.height / 2) === image;
+                    return JSON.stringify({ complete: image.complete, width: image.naturalWidth,
+                      height: image.naturalHeight, source: image.currentSrc, visible,
+                      box: { x: rect.x, y: rect.y, width: rect.width, height: rect.height },
+                      href: location.href, csp });
+                  } catch (error) { return JSON.stringify({ error: String(error) }); }
+                })()
+                """);
+            diagnostic = result.StartsWith('"')
+                ? JsonSerializer.Deserialize<string>(result) ?? "{}"
+                : result;
+            using var document = JsonDocument.Parse(diagnostic);
+            var root = document.RootElement;
+            if (!root.TryGetProperty("error", out _) &&
+                root.TryGetProperty("complete", out var complete) && complete.GetBoolean() &&
+                root.TryGetProperty("width", out var width) && width.GetInt32() == expectedWidth &&
+                root.TryGetProperty("height", out var height) && height.GetInt32() == expectedHeight &&
+                root.TryGetProperty("source", out var source) && source.GetString() == expectedSource &&
+                root.TryGetProperty("visible", out var visible) && visible.GetBoolean())
+            {
+                Console.WriteLine($"WINDOWS-ASSET-DISPLAY {diagnostic}");
+                return;
+            }
+            await Task.Delay(100);
+        }
+        Test(false, $"{label} wurde nicht vollständig entschlüsselt und dargestellt: {diagnostic}");
     }
 }

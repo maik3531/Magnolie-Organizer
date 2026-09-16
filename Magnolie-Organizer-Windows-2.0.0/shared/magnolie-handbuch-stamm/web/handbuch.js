@@ -138,9 +138,10 @@
       .filter(Boolean).map((seite) => quellSeitenIndex(seite.quellId || seite.id) + 1);
     const von = Math.min(...sichtbareQuellnummern);
     const bis = Math.max(...sichtbareQuellnummern);
-    const bereich = von === bis ? String(von) : von + " " + _("and") + " " + bis;
-    $("#stand").textContent = _("Page") + " " + bereich + " " + _("of") +
-      " " + SEITEN.length;
+    const muster = von === bis
+      ? _("Page {first} of {total}") : _("Pages {first} and {last} of {total}");
+    $("#stand").textContent = muster.replace(/\{(first|last|total)\}/g,
+      (_treffer, name) => String({ first: von, last: bis, total: SEITEN.length }[name]));
     $("#inhalt-links").scrollTop = 0;
     $("#inhalt-rechts").scrollTop = 0;
   }
@@ -586,6 +587,7 @@
 
   function druckHuelle(koerper) {
     return "<!DOCTYPE html><html lang='" + document.documentElement.lang +
+      "' dir='" + (document.documentElement.dir === "rtl" ? "rtl" : "ltr") +
       "'><head><meta charset='utf-8'><title>" +
       _("Magnolie Organizer - Handbook") + "</title><style>" + druckStil() +
       "</style></head><body>" + koerper + "</body></html>";

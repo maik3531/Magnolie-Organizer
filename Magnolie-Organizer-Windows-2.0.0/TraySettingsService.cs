@@ -77,8 +77,11 @@ internal sealed class TraySettingsService
         }
     }
 
-    internal void Save(TraySettings settings) =>
+    internal void Save(TraySettings settings)
+    {
         store.Write(path, JsonSerializer.Serialize(settings, SerializerOptions));
+        LoadFailed = false;
+    }
 
     private TraySettings? LoadLegacy(string? dataPath)
     {
@@ -97,6 +100,22 @@ internal sealed class TraySettingsService
 
     internal static string BackgroundAutostartCommand(string executablePath) =>
         $"\"{executablePath}\" --tray-start --reminder-start";
+
+    internal static TrayAutostartEntry? CaptureAutostart()
+    {
+        if (!OperatingSystem.IsWindows()) return null;
+        using var key = Registry.CurrentUser.OpenSubKey(RunKey);
+        var value = key?.GetValue(RunValue, null, RegistryValueOptions.DoNotExpandEnvironmentNames);
+        return value is null ? null : new(value, key!.GetValueKind(RunValue));
+    }
+
+    internal static void RestoreAutostart(TrayAutostartEntry? entry)
+    {
+        if (!OperatingSystem.IsWindows()) return;
+        using var key = Registry.CurrentUser.CreateSubKey(RunKey, writable: true) ?? throw new UnauthorizedAccessException();
+        if (entry is null) key.DeleteValue(RunValue, throwOnMissingValue: false);
+        else key.SetValue(RunValue, entry.Value, entry.Kind);
+    }
 
     internal static string ConfigureAutostart(bool enabled, string executablePath, bool reminderStart = false)
     {

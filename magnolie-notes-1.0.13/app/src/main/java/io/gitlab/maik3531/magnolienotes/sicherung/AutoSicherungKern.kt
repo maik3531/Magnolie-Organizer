@@ -56,11 +56,14 @@ object PasswortHuelle {
             .onUnmappableCharacter(CodingErrorAction.REPORT).encode(CharBuffer.wrap(passwort))
         val klar = ByteArray(kodiert.remaining()).also(kodiert::get)
         require(klar.size in 1..MAX_PASSWORT_BYTES)
-        val nonce = ByteArray(NONCE_BYTES).also(zufall::nextBytes)
         val kopf = kopf(klar.size + TAG_BYTES)
         return try {
             val cipher = Cipher.getInstance("AES/GCM/NoPadding")
-            cipher.init(Cipher.ENCRYPT_MODE, key, GCMParameterSpec(128, nonce))
+            // Keystore keys require the provider to choose the encryption IV.
+            if (key.format == null) cipher.init(Cipher.ENCRYPT_MODE, key)
+            else cipher.init(Cipher.ENCRYPT_MODE, key, zufall)
+            val nonce = requireNotNull(cipher.iv)
+            require(nonce.size == NONCE_BYTES)
             cipher.updateAAD(kopf)
             kopf + nonce + cipher.doFinal(klar)
         } finally {
@@ -136,7 +139,9 @@ object AutoSicherungsRegeln {
     fun name(zeit: Long, uuid: UUID = UUID.randomUUID()) =
         "magnolie-notes-auto-${FORMAT.format(Instant.ofEpochMilli(zeit))}-${uuid.toString().replace("-", "")}.magnolie"
 
-    fun istEigen(dokument: SicherungsDokument) = dokument.mime == MIME && NAME.matches(dokument.name)
+    // ExternalStorageProvider derives unknown extensions as generic binary MIME.
+    // The filename is only a candidate filter; authenticated readback remains mandatory.
+    fun istEigen(dokument: SicherungsDokument) = dokument.mime in setOf(MIME, "application/octet-stream") && NAME.matches(dokument.name)
 
     fun zuLoeschen(dokumente: List<SicherungsDokument>, bestaetigterName: String,
                    aufbewahrung: Int): List<SicherungsDokument> {
@@ -162,11 +167,12 @@ class AutoSicherungsLauf(private val ordner: SicherungsOrdner) {
         val name = AutoSicherungsRegeln.name(zeit)
         val dokument = ordner.anlegen(name, AutoSicherungsRegeln.MIME)
         try {
-            check(dokument.name == name && dokument.mime == AutoSicherungsRegeln.MIME)
+            check(dokument.name == name && AutoSicherungsRegeln.istEigen(dokument))
             val bytes = archiv()
+            val erwartet = io.gitlab.maik3531.magnolienotes.daten.ArchivIdentitaet(bytes)
             try { ordner.schreiben(dokument, bytes) } finally { bytes.fill(0) }
             val gelesen = ordner.lesen(dokument, io.gitlab.maik3531.magnolienotes.daten.PortableArchiv.MAX_ARCHIV_BYTES)
-            try { authentifizieren(gelesen) } finally { gelesen.fill(0) }
+            try { erwartet.pruefen(gelesen); authentifizieren(gelesen) } finally { gelesen.fill(0) }
         } catch (fehler: Throwable) {
             runCatching { ordner.loeschen(dokument) }
             throw fehler
@@ -176,7 +182,11 @@ class AutoSicherungsLauf(private val ordner: SicherungsOrdner) {
             val liste = ordner.auflisten(AutoSicherungsRegeln.LISTEN_GRENZE)
             if (liste.abgeschnitten) return SicherungsLaufErgebnis.ERFOLG_AUFBEWAHRUNG_FEHLER
             AutoSicherungsRegeln.zuLoeschen(liste.dokumente, dokument.name, aufbewahrung)
-                .forEach { check(ordner.loeschen(it)) }
+                .forEach { alt ->
+                    val bytes = ordner.lesen(alt, io.gitlab.maik3531.magnolienotes.daten.PortableArchiv.MAX_ARCHIV_BYTES)
+                    try { authentifizieren(bytes) } finally { bytes.fill(0) }
+                    check(ordner.loeschen(alt))
+                }
             SicherungsLaufErgebnis.ERFOLG
         } catch (_: Exception) { SicherungsLaufErgebnis.ERFOLG_AUFBEWAHRUNG_FEHLER }
     }

@@ -129,6 +129,7 @@ class AndroidAutoSicherung private constructor(private val context: Context) {
     private val prefs = context.getSharedPreferences("automatische_portable_sicherung", Context.MODE_PRIVATE)
     private val geheimPrefs = context.getSharedPreferences("automatische_portable_sicherung_geheim", Context.MODE_PRIVATE)
     private val schluessel = AndroidAutoSchluessel()
+    private val laufSperre = Any()
     private val _zustand = MutableStateFlow(liesZustand())
     val zustand = _zustand.asStateFlow()
 
@@ -200,7 +201,7 @@ class AndroidAutoSicherung private constructor(private val context: Context) {
             OneTimeWorkRequestBuilder<AutoSicherungsWorker>().setConstraints(constraints()).build())
     }
 
-    internal fun ausfuehren(): ListenableWorker.Result {
+    internal fun ausfuehren(): ListenableWorker.Result = synchronized(laufSperre) {
         if (!prefs.getBoolean(KEY_AKTIV, false)) return ListenableWorker.Result.success()
         val uri = ordnerUri() ?: return endgueltig(AutoSicherungsStatus.ORDNER_FEHLT, deaktivieren = true)
         if (!freigabeVorhanden(uri)) return endgueltig(AutoSicherungsStatus.FREIGABE_FEHLT, deaktivieren = true)
@@ -214,17 +215,16 @@ class AndroidAutoSicherung private constructor(private val context: Context) {
         status(AutoSicherungsStatus.LAEUFT)
         return try {
             val config = konfiguration()
-            val ergebnis = synchronized(Ablage.SCHREIBSPERRE) {
-                AutoSicherungsLauf(SafSicherungsOrdner(context, uri)).ausfuehren(
+            val snapshot = synchronized(Ablage.SCHREIBSPERRE) { Ablage.hole(context).bestand.value }
+            val ergebnis = AutoSicherungsLauf(SafSicherungsOrdner(context, uri)).ausfuehren(
                     System.currentTimeMillis(), config.aufbewahrung,
-                    archiv = { PortableArchiv.erstellen(Ablage.hole(context).bestand.value, passwort) },
+                    archiv = { PortableArchiv.erstellen(snapshot, passwort) },
                     authentifizieren = { PortableArchiv.pruefen(it, passwort) },
                     nachErfolg = {
                         prefs.edit().putLong(KEY_LETZTER_ERFOLG, System.currentTimeMillis())
                             .putString(KEY_STATUS, AutoSicherungsStatus.ERFOLG.name).apply()
                     },
                 )
-            }
             status(if (ergebnis == SicherungsLaufErgebnis.ERFOLG) AutoSicherungsStatus.ERFOLG
                 else AutoSicherungsStatus.ERFOLG_AUFBEWAHRUNG_FEHLER)
             ListenableWorker.Result.success()

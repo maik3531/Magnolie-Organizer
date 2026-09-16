@@ -1,5 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="baum_postfach_unsicher">Unverified deliveries: %1$d. Messages are retained and automatic resending is paused. Check the recipient; older devices may not support verified receipts.</string>
+    <string name="telefon_bluetooth_setup">Pair a new Organizer over Bluetooth</string>
+    <string name="telefon_bluetooth_setup_hinweis">Keep this screen open. Select this phone in Organizer, confirm system pairing, then compare the code on both devices.</string>
     <string name="app_name" translatable="false">Magnolie Notes</string>
     <string name="freigabe_ziel">Save to Magnolie Notes</string>
 
@@ -419,7 +422,7 @@
     <string name="start_schliessen">Close app</string>
     <string name="absturzbericht_teilen">Share crash report</string>
     <string name="journal_maximum">Recovery points</string>
-    <string name="journal_maximum_hinweis">When the limit is lowered, the oldest recovery snapshots are removed automatically.</string>
+    <string name="journal_maximum_hinweis">When the limit is lowered, the oldest unprotected recovery snapshots are removed. Protected snapshots are kept.</string>
     <string name="portable_titel">Portable backup</string><string name="portable_hinweis">Create or restore a separate password-encrypted archive of notes, notebooks, tasks, trash and attachments.</string><string name="portable_export">Create portable backup</string><string name="portable_datei_oeffnen">Open portable backup</string><string name="portable_restore">Restore backup</string><string name="portable_passwort">Password</string><string name="portable_passwort_hinweis">Enter the archive password. Nothing is changed while the backup is checked.</string><string name="portable_pruefen">Check and preview</string><string name="portable_vorschau">Backup preview</string><string name="portable_vorschau_text">%1$d notes · %2$d notebooks · %3$d tasks · %4$d trash items</string><string name="portable_restore_warnung">This replaces all current personal content. A local safety snapshot is created first; this device’s Magnolienbaum identity is preserved.</string><string name="portable_fehler">The backup could not be opened. Check the file and password.</string><string name="portable_exportiert">Portable backup created.</string><string name="portable_wiederhergestellt">Portable backup restored.</string>
     <string name="auto_backup_titel">Automatic cloud-folder backup</string>
     <string name="auto_backup_hinweis">Optionally saves authenticated portable backups in a folder selected through Android. The provider can synchronize that folder.</string>
@@ -443,4 +446,27 @@
     <string name="auto_backup_status_schluessel">Protected password is unavailable. Automatic backup remains disabled.</string>
     <string name="auto_backup_status_auth">Backup authentication failed</string>
     <string name="auto_backup_status_provider">Storage provider temporarily unavailable; retry scheduled</string>
+    <string name="baum_kontakt_jubilaeum">Anniversary</string>
+    <string name="baum_kontakt_update">To include anniversaries, update Magnolie on both devices, open both apps and try again. No contacts were sent in this transfer.</string>
+    <string name="baum_aufgabe_nicht_freigegeben">This task has not been shared with this device.</string>
+    <string name="baum_kontakt_import_nicht_unterstuetzt">Use contact synchronization to send contacts to this device.</string>
+    <string name="aufgabe_nach_oben">Move task up</string>
+    <string name="aufgabe_nach_unten">Move task down</string>
+    <string name="personal_custom_optin">Synchronize tasks and appointments from the custom tab</string>
+    <string name="personal_custom_title">Tasks and appointments from the custom tab (read-only)</string>
+    <string name="personal_custom_explanation">Both devices must opt in. Turning this off pauses reminders and updates from the custom tab but keeps copies. Linked text blocks are not shared.</string>
+    <string name="personal_custom_unsupported">This device does not support synchronization of the custom tab.</string>
+    <string name="personal_custom_delete">Source deletion: delete this phone copy or keep it? The desktop source is never changed.</string>
+    <string name="personal_custom_keep">Keep copy</string>
+    <string name="personal_custom_privacy">Only with both devices\' explicit consent, Personal Sync shares read-only Custom tasks and appointments, including their own notes. Text blocks, linked text and attachments are excluded. Archives restore copies, not permissions.</string>
+    <string name="device_identifiers_share">Share own phone identifiers</string>
+    <string name="device_identifiers_explanation">Only on request from your own paired computer, for 60 seconds, without saving: the default voice SIM number and, if Android permits, serial number and IMEI. Android 10 and later restrict hardware identifiers for ordinary apps. Phone-number permission is optional; no special role is requested.</string>
+    <string name="device_identifiers_phone">Own phone number (default voice SIM)</string>
+    <string name="device_identifiers_serial">Device serial number</string>
+    <string name="device_identifiers_imei">Device IMEI</string>
+    <string name="device_identifiers_off">Device identifier sharing is off.</string>
+    <string name="device_identifiers_permission">Device identifier permission is missing.</string>
+    <string name="device_identifiers_restricted">Android restricts this device identifier.</string>
+    <string name="device_identifiers_subscription">No default voice subscription is available.</string>
+    <string name="device_identifiers_unavailable">This device identifier is unavailable.</string>
 </resources>

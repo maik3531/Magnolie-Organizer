@@ -121,11 +121,16 @@ internal sealed class AtomicStore
         if (Encoding.UTF8.GetByteCount(content) > maxBytes) throw new IOException("Die Datei ist zu groß.");
     }
 
-    private static object Gate(string path) => Gates.GetOrAdd(Path.GetFullPath(path), _ => new object());
+    private static object Gate(string path)
+    {
+        var fullPath = Path.GetFullPath(path);
+        var directory = Path.GetDirectoryName(fullPath) ?? fullPath;
+        return Gates.GetOrAdd(directory, _ => new object());
+    }
 
     internal string Backup(string source, string directory)
     {
-        var text = Read(source) ?? throw new IOException("Es sind noch keine Daten gespeichert.");
+        var text = ReadRecoverableJson(source) ?? throw new IOException("Es sind noch keine Daten gespeichert.");
         Directory.CreateDirectory(directory);
         var target = Path.Combine(directory,
             $"magnolie-sicherung-{DateTime.UtcNow:yyyyMMdd-HHmmss-fff}-{RandomNumberGenerator.GetHexString(4).ToLowerInvariant()}.json");

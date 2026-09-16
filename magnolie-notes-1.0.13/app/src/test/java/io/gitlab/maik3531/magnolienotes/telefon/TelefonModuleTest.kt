@@ -111,7 +111,7 @@ class TelefonModuleTest {
     @Test fun `Produktcode hat keine native SMS Implementierung`() {
         val forbidden = listOf("android.permission.SEND_SMS", "android.permission.RECEIVE_SMS",
             "SmsManager", "SmsEingang", "SmsStatus", "android.permission.RECORD_AUDIO",
-            "android.permission.MODIFY_PHONE_STATE", "android.permission.READ_PHONE_NUMBERS",
+            "android.permission.MODIFY_PHONE_STATE", "READ_PRIVILEGED_PHONE_STATE", "ROLE_DIALER", "ROLE_SMS",
             "android.provider.Telephony.SMS_RECEIVED")
         val activeFiles = main.walkTopDown().filter(File::isFile).filterNot {
             it.name == "TelefonAblage.kt" || it.name == "TelefonDatenbank.kt"
@@ -119,6 +119,16 @@ class TelefonModuleTest {
         forbidden.forEach { term ->
             assertFalse("$term ist noch im Produktcode", activeFiles.any { it.readText().contains(term) })
         }
+        // v4 permits the number permission only for the separate owned-device opt-in.
+        assertEquals(setOf("AndroidManifest.xml", "MainActivity.kt", "DeviceIdentifiers.kt"),
+            activeFiles.filter { it.readText().contains("READ_PHONE_NUMBERS") }.map { it.name }.toSet())
+        val activity = File(main, "java/io/gitlab/maik3531/magnolienotes/MainActivity.kt").readText()
+        val identifiers = activity.substringAfter("beiIdentifierSharing = { enabled ->")
+            .substringBefore("beiPersonalEigen =")
+        assertTrue(identifiers.contains("telefonWerk.beginIdentifierPermission()?.let"))
+        val launch = "identifierPermission.launch(Manifest.permission.READ_PHONE_NUMBERS)"
+        assertTrue(identifiers.contains(launch))
+        assertEquals(1, activity.split(launch).size - 1)
         val module = File(main, "java/io/gitlab/maik3531/magnolienotes/telefon/TelefonModule.kt").readText()
         assertFalse(module.contains("Intent.ACTION_DIAL"))
         assertTrue(activeFiles.any { it.readText().contains("placeCall") })
@@ -140,11 +150,11 @@ class TelefonModuleTest {
         assertTrue("Generierte Manifeste fehlen", manifests.all(File::isFile))
         manifests.forEach { file ->
             val manifest = file.readText()
-            listOf("SEND_SMS", "RECEIVE_SMS", "READ_PHONE_NUMBERS", "RECORD_AUDIO",
-                "MODIFY_PHONE_STATE", "SmsEingang", "SmsStatus", "SMS_RECEIVED")
+            listOf("SEND_SMS", "RECEIVE_SMS", "READ_PRIVILEGED_PHONE_STATE", "RECORD_AUDIO",
+                "MODIFY_PHONE_STATE", "ROLE_DIALER", "ROLE_SMS", "SmsEingang", "SmsStatus", "SMS_RECEIVED")
                 .forEach { assertFalse("$it in ${file.path}", manifest.contains(it)) }
             assertFalse("ACTION_DIAL in ${file.path}", manifest.contains("android.intent.action.DIAL"))
-            listOf("CALL_PHONE", "READ_PHONE_STATE", "ANSWER_PHONE_CALLS", "READ_CALL_LOG", "WAKE_LOCK")
+            listOf("CALL_PHONE", "READ_PHONE_STATE", "READ_PHONE_NUMBERS", "ANSWER_PHONE_CALLS", "READ_CALL_LOG", "WAKE_LOCK")
                 .forEach { assertTrue("$it fehlt in ${file.path}", manifest.contains(it)) }
             assertTrue("NotificationListener fehlt in ${file.path}", manifest.contains("NotificationListenerService"))
         }
@@ -184,8 +194,9 @@ class TelefonModuleTest {
         assertTrue(source.contains("DROP TABLE IF EXISTS sms_effect"))
         assertTrue(source.contains("sms_send.command"))
         assertTrue(source.contains("sms_received.event"))
-        assertFalse(Regex("delete\\([^\\n]+dial_request").containsMatchIn(source))
-        assertFalse(Regex("delete\\([^\\n]+selected_notifications").containsMatchIn(source))
+        val migration = source.substringAfter("override fun onUpgrade").substringBefore("private fun createAttachmentTables")
+        assertFalse(Regex("delete\\([^\\n]+dial_request").containsMatchIn(migration))
+        assertFalse(Regex("delete\\([^\\n]+selected_notifications").containsMatchIn(migration))
         assertFalse(source.contains("CREATE TABLE sms_effect"))
     }
 

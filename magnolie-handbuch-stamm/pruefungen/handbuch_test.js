@@ -20,6 +20,7 @@ const sources = {
   i18n: fs.readFileSync(path.join(WEB, "i18n.js"), "utf8"),
   i18nStart: fs.readFileSync(path.join(WEB, "i18n-start.js"), "utf8"),
   catalog: fs.readFileSync(catalogJs, "utf8"),
+  mobileDownloads: fs.readFileSync(path.join(WEB, "mobile-downloads.js"), "utf8"),
   content: fs.readFileSync(path.join(WEB, "inhalt.js"), "utf8"),
   handbook: fs.readFileSync(path.join(WEB, "handbuch.js"), "utf8"),
   css: fs.readFileSync(path.join(WEB, "stil.css"), "utf8"),
@@ -70,9 +71,28 @@ assert.ok(catalogData && Object.keys(catalogData.messages).length >= 140,
 const contentDom = new JSDOM("<!doctype html><html><body></body></html>",
   { runScripts: "outside-only" });
 contentDom.window.MagnolieI18n = { registerBook() {}, locale: () => "en" };
+contentDom.window.eval(sources.mobileDownloads);
 contentDom.window.eval(sources.content);
 const rawSourcePages = contentDom.window.HANDBUCH_SEITEN;
 const sourcePages = JSON.parse(JSON.stringify(contentDom.window.HANDBUCH_SEITEN));
+const mobileMetadata = contentDom.window.MAGNOLIE_MOBILE_DOWNLOADS;
+const mobilePage = rawSourcePages.find((page) => page.id === "android-apk-transfer");
+assert.strictEqual(mobileMetadata.notes.filename, "Magnolie-Notes.apk");
+assert.ok(!("version" in mobileMetadata.notes));
+assert.ok(mobileMetadata.notes.url.endsWith("/Magnolie-Notes.apk") &&
+  mobileMetadata.kdeConnect.url ===
+    "https://play.google.com/store/apps/details?id=org.kde.kdeconnect_tp");
+assert.ok([mobileMetadata.notes, mobileMetadata.kdeConnect].every((download) =>
+  download.qr.startsWith("data:image/svg+xml;base64,")));
+assert.ok(mobilePage.inhaltAnhang.en.includes(mobileMetadata.notes.url) &&
+  mobilePage.inhaltAnhang.en.includes(mobileMetadata.kdeConnect.url) &&
+  (mobilePage.inhaltAnhang.en.match(/class='download-qr'/g) || []).length === 2,
+"APK handbook page must expose both linked QR downloads");
+const generatedMobile = path.join(temporary, "mobile-downloads.js");
+childProcess.execFileSync("python3", [path.join(ROOT, "werkzeuge", "mobile_downloads_erzeugen.py"),
+  path.join(WEB, "mobile-downloads.json"), generatedMobile]);
+assert.strictEqual(fs.readFileSync(generatedMobile, "utf8"), sources.mobileDownloads,
+  "mobile download QR metadata is not deterministic or current");
 const replacementIds = ["sms-getting-started", "sms-mobile-only", "sms-sheet"];
 const replacementAttachments = replacementIds.map((id) =>
   rawSourcePages.find((page) => page.id === id).inhaltAnhang);
@@ -210,14 +230,15 @@ const englishPageText = (id) => {
   const appendix = page.inhaltAnhang?.en || "";
   return page.inhaltAnhangErsetzt ? appendix : page.inhalt + appendix;
 };
-assert.ok(englishPageText("welcome").includes("Handbook 2.0.17") &&
-  englishPageText("welcome").includes("For Magnolie Organizer 2.0.17"),
-"the rendered English title page must identify release 2.0.17");
+assert.ok(englishPageText("welcome").includes("Handbook 2.0.18") &&
+  englishPageText("welcome").includes("For Magnolie Organizer 2.0.18"),
+"the rendered English title page must identify release 2.0.18");
 const firstRunText = ["starting-for-the-first-time", "first-run-assistant",
   "first-run-saved-intentions"].map(englishPageText).join("\n");
-for (const claim of ["seven-page", "Skip the entire setup", "restore a Magnolie backup",
-  "permanent synchronization sources separately", "one-time imports", "not</b> import, restore, synchronize",
-  "does <b>not</b> install an APK", "saved intention", "own later step and confirmation"]) {
+for (const claim of ["seven-page", "skip the entire setup", "restore a Magnolie backup",
+  "file chooser opens immediately", "Thunderbird first looks for a local profile",
+  "first secure pairing over Bluetooth is not guaranteed", "Calendar stays available",
+  "not merely a checklist", "Only Linux additionally offers", "does not enable automatic cloud backup"]) {
   assert.ok(firstRunText.includes(claim), `first-run documentation missing: ${claim}`);
 }
 assert.ok(!englishPageText("starting-for-the-first-time")
@@ -278,31 +299,8 @@ const newPageIds = new Set([
   "technical-update-trust", "technical-update-platforms", "technical-weather-privacy",
   "glossary-a-m", "glossary-n-z"
 ]);
-/* Every shipped language is complete; English fallback is no longer allowed. */
-const pendingBodyIds = new Set([
-  "settings-pages-overview", "settings-language-format-region", "settings-time-week-region"
-]);
-const pendingPageIds = new Set([
-  "settings-pages-overview", "settings-language-format-region"
-]);
-const release2017PageIds = new Set([
-  "first-run-assistant", "first-run-saved-intentions",
-  "task-hierarchy-basics", "task-hierarchy-safety-sync",
-  "android-one-time-contact-import", "dav-server-setup", "dav-tasks-etags-limits",
-  "phone-number-origin"
-]);
-const pendingMessages = (language) => {
-  const offen = new Set();
-  for (const page of sourcePages) {
-    if (release2017PageIds.has(page.id) || language !== "de" && pendingPageIds.has(page.id)) {
-      for (const key of ["titel", "inhalt"]) if (page[key]) offen.add(page[key]);
-    } else if (language !== "de" && pendingBodyIds.has(page.id) && page.inhalt) {
-      offen.add(page.inhalt);
-    }
-  }
-  return offen;
-};
-const germanPending = pendingMessages("de");
+/* No pending-translation exceptions: effective appendices are checked below. */
+const germanPending = new Set();
 const catalogCurrent = sourcePages.every((page) => ["kapitel", "titel", "inhalt"]
   .filter((key) => page[key])
   .every((key) => germanPending.has(page[key]) ||
@@ -397,7 +395,7 @@ assert.ok(route16Text["technical-file-limits"].includes("200:1") &&
   route16Text["technical-recurring-series"].includes("No native recurring tasks") &&
   route16Text["technical-reminder-time-limits"].includes("525,600 minutes") &&
   route16Text["technical-reminder-time-limits"].includes("once per minute") &&
-  route16Text["technical-update-trust"].includes("does <b>not</b> currently verify") &&
+  route16Text["technical-update-trust"].includes("checks the file again immediately") &&
   route16Text["technical-update-platforms"].includes("128 MiB") &&
   route16Text["technical-update-platforms"].includes("512 MiB") &&
   route16Text["technical-weather-privacy"].includes("format=j1") &&
@@ -491,7 +489,7 @@ const protectedCatalogDigests = {
   zh_CN: "123b8b3e0187563e6f08ff7bc973e87892c7601cb12c0a46a817812f50d3855c",
   ja: "3bdbddeffeaa32be3da03b1c4ffd3015d5d080039bfb6cbf94bf24a23d83ff33",
   ar: "e1fa46c4712cb50ff4c39c1aed55f489a35b76ad46852f95710b3bf0d501ab20",
-  uk: "a7400edfa04b78bf868e166fce2be68bbb3e87d831de502edbe3a2d049c23ba9",
+  uk: "2909c521d28eb87365793e098c5a4fcc05c375280f765a148fd35ebb9c68f92a",
   be: "fc9547945078f0a44c69db81012dc84152c83a8fa4b2a5642f6566026ea5df88",
   tr: "70cdfc9a3a329b742b19345d509a2901ac9cb9353b4857733b96744514385300",
 };
@@ -503,7 +501,6 @@ for (const language of languages) {
   const dom = new JSDOM("<!doctype html><html><body></body></html>", { runScripts: "outside-only" });
   dom.window.MagnolieI18n = { registerCatalog: (_code, value) => { data = value; } };
   dom.window.eval(fs.readFileSync(generated, "utf8"));
-  const allowedPending = pendingMessages(language);
   assert.strictEqual(fs.readFileSync(generated, "utf8"),
     fs.readFileSync(path.join(WEB, "i18n", `${language}.js`), "utf8"),
     `${language}: checked-in JS catalog differs from PO output`);
@@ -512,15 +509,32 @@ for (const language of languages) {
   assert.ok(protectedTranslationText.includes("No valid coffee allowance") &&
     !protectedTranslationText.includes("No valid subscription"),
   `${language}: contributor branding was translated or is stale`);
+  if (language === "uk") {
+    const coffeeSource = sourcePages.find((page) => page.id === "support-with-a-coffee").inhalt;
+    const coffee = data.messages[coffeeSource];
+    const localizedAlt = "alt='QR-код для добровільної підтримки кавою'";
+    assert.strictEqual(coffee.split(localizedAlt).length, 2,
+      "uk: the approved coffee QR alt translation must occur exactly once");
+    const figure = dom.window.document.createElement("div");
+    figure.innerHTML = coffee;
+    const images = figure.querySelectorAll("img.kaffee-qr");
+    assert.strictEqual(images.length, 1);
+    assert.strictEqual(images[0].getAttribute("alt"), "QR-код для добровільної підтримки кавою");
+    assert.strictEqual(images[0].getAttribute("src"), "kaffee-qr.png");
+    // Reverse only the reviewed alt attribute. The historical pin still locks
+    // every other byte of the license, branding, author and closing content.
+    const prior = protectedSource.map((message) => message === coffeeSource
+      ? coffee.replace(localizedAlt, "alt='QR code for voluntary coffee support'")
+      : data.messages[message]);
+    assert.strictEqual(digest(prior),
+      "a7400edfa04b78bf868e166fce2be68bbb3e87d831de502edbe3a2d049c23ba9",
+      "uk: protected content changed beyond the approved coffee QR alt translation");
+  }
   assert.strictEqual(digest(protectedTranslations), protectedCatalogDigests[language],
     `${language}: protected license/closing/coffee/author translation changed`);
   for (const page of sourcePages) {
     for (const key of ["kapitel", "titel", "inhalt"]) {
       if (!page[key]) continue;
-      if (allowedPending.has(page[key]) &&
-          !Object.prototype.hasOwnProperty.call(data.messages, page[key])) {
-        continue;
-      }
       assert.ok(Object.prototype.hasOwnProperty.call(data.messages, page[key]),
         `${language}: catalog lacks ${key} ${page.titel}`);
       assert.ok(data.messages[page[key]], `${language}: empty translation for ${page.titel}`);
@@ -562,8 +576,8 @@ for (const language of languages) {
             assert.ok(digits.includes(value),
               `${language}: synchronization limit ${value} changed on ${page.titel}`);
           }
-          assert.ok(data.messages[page[key]].includes("2.0.17") &&
-            data.messages[page[key]].includes("1.0.11"),
+          assert.ok(data.messages[page[key]].includes("2.0.18") &&
+            data.messages[page[key]].includes("1.0.13"),
           `${language}: supported version changed on ${page.titel}`);
         }
         const protectedByPage = {
@@ -617,8 +631,10 @@ function createBook(locale) {
     pretendToBeVisual: true, runScripts: "outside-only" });
   const w = dom.window;
   w.eval(sources.i18n);
+  w.eval(fs.readFileSync(path.join(WEB, "i18n/en.js"), "utf8"));
   w.eval(sources.catalog);
   w.MagnolieI18n.setLocale(locale);
+  w.eval(sources.mobileDownloads);
   w.eval(sources.content);
   w.eval(sources.handbook);
   if (!w.Handbuch) w.document.dispatchEvent(new w.Event("DOMContentLoaded"));
@@ -792,13 +808,14 @@ function checkLocale(locale, expected) {
   H.blaettereZu(H.anzeige().length - 1);
   const renderedPages = H.anzeige();
   assert.ok($("#ecke-rechts").classList.contains("aus"));
-  assert.ok($("#stand").textContent.startsWith(expected.page));
+  assert.match($("#stand").textContent, locale === "en"
+    ? /^Pages? \d+(?: and \d+)? of \d+$/ : /^Seiten? \d+(?: und \d+)? von \d+$/);
   assert.ok($("#stand").textContent.includes(String(pages.length)),
     `${locale}: unexpected final page status: ${$("#stand").textContent}`);
 
   const print = H.druckFassung();
   assert.ok(print.startsWith("<!DOCTYPE html"));
-  assert.ok(print.includes(`<html lang='${locale}'>`));
+  assert.ok(print.includes(`<html lang='${locale}' dir='${locale === "ar" ? "rtl" : "ltr"}'>`));
   assert.ok(print.includes(`<title>${expected.printTitle}</title>`));
   const gedruckteSeiten = H.anzeige().length;
   assert.strictEqual((print.match(/class="blatt(?: kompakt)?"/g) || []).length,
@@ -822,9 +839,9 @@ function checkLocale(locale, expected) {
   for (const text of expected.completeText) {
     assert.ok(print.includes(text), `${locale}: missing complete-book marker: ${text}`);
   }
-  for (const preserved of ["backing-up-and-restoring", "magnolie-organizer_2.0.17_all.deb",
-    "sudo apt install ./magnolie-organizer_2.0.17_all.deb", "wttr.in",
-    "maik3531@gmail.com", "2.0.17"]) {
+  for (const preserved of ["backing-up-and-restoring", "magnolie-organizer_2.0.18_all.deb",
+    "sudo apt install ./magnolie-organizer_2.0.18_all.deb", "wttr.in",
+    "maik3531@gmail.com", "2.0.18"]) {
     assert.ok(print.includes(preserved), `${locale}: technical value changed: ${preserved}`);
   }
   assert.ok(!print.includes("1.28.0") && !print.includes("1.31.37") &&
@@ -844,7 +861,7 @@ function checkLocaleTransition() {
     .some((heading) => heading.textContent === "Appointment reminders"));
   assert.ok([...d.querySelectorAll("#inhalt-links, #inhalt-rechts")]
     .some((content) => content.textContent.includes("notify you before an appointment begins")));
-  assert.ok($("#stand").textContent.startsWith("Page "));
+  assert.match($("#stand").textContent, /^Pages? \d+(?: and \d+)? of \d+$/);
 
   w.MagnolieI18n.setLocale("de");
   assert.strictEqual(d.documentElement.lang, "de");
@@ -853,23 +870,23 @@ function checkLocaleTransition() {
     .some((heading) => heading.textContent === "An Termine erinnern lassen"));
   assert.ok([...d.querySelectorAll("#inhalt-links, #inhalt-rechts")]
     .some((content) => content.textContent.includes("bevor ein Termin beginnt")));
-  assert.ok($("#stand").textContent.startsWith("Seite "));
+  assert.match($("#stand").textContent, /^Seiten? \d+(?: und \d+)? von \d+$/);
   assert.strictEqual($("#knopf-inhalt").textContent, "Inhalt");
   H.blaettereZu(1);
   assert.ok($(".inhalt-eintrag").textContent.includes("Was der Organizer für Sie tut"));
   let print = H.druckFassung();
-  assert.ok(print.includes("<html lang='de'>"));
+  assert.ok(print.includes("<html lang='de' dir='ltr'>"));
   assert.ok(print.includes("<title>Magnolie Organizer – Handbuch</title>"));
   assert.ok(print.includes("Magnolie Organizer · Handbuch"));
 
   w.MagnolieI18n.setLocale("en");
   assert.strictEqual(d.documentElement.lang, "en");
   assert.strictEqual(d.title, "Magnolie Organizer - Handbook");
-  assert.ok($("#stand").textContent.startsWith("Page "));
+  assert.match($("#stand").textContent, /^Pages? \d+(?: and \d+)? of \d+$/);
   assert.strictEqual($("#knopf-inhalt").textContent, "Contents");
   assert.ok($(".inhalt-eintrag").textContent.includes("What the Organizer can do for you"));
   print = H.druckFassung();
-  assert.ok(print.includes("<html lang='en'>"));
+  assert.ok(print.includes("<html lang='en' dir='ltr'>"));
   assert.ok(print.includes("<title>Magnolie Organizer - Handbook</title>"));
   assert.ok(print.includes("Magnolie Organizer · Handbook"));
   dom.window.close();
@@ -927,8 +944,9 @@ try {
     const dom = new JSDOM("<!doctype html><html><body></body></html>",
       { runScripts: "outside-only" });
     dom.window.eval(sources.i18n);
-    dom.window.MagnolieI18n.registerCatalog("zh_CN", { messages: {} });
-    assert.strictEqual(dom.window.MagnolieI18n.setLocale("zh_CN"), "zh-cn");
+    dom.window.eval(fs.readFileSync(path.join(WEB, "i18n", "zh_CN.js"), "utf8"));
+    assert.strictEqual(dom.window.MagnolieI18n.setLocale("zh_CN.UTF-8"), "zh-cn");
+    dom.window.eval(sources.mobileDownloads);
     dom.window.eval(sources.content);
     assert.ok(dom.window.HANDBUCH_SEITEN.find((page) => page.id === "sms-sheet").inhalt
       .includes("当前短信行为"), "zh_CN must render the zh-cn SMS replacement");
@@ -1059,9 +1077,9 @@ try {
   assert.ok(english.H.blaettereZuId("kde-sms") &&
     english.H.seiten()[english.H.seiten().findIndex((page) => page.id === "kde-sms")].titel,
   "slug navigation failed");
-  assert.ok(englishText.includes("sudo dnf install ./magnolie-organizer-2.0.17-1.noarch.rpm"));
-  assert.ok(englishText.includes("rpmbuild --rebuild magnolie-organizer-2.0.17-1.src.rpm"));
-  assert.ok(englishText.includes("sudo dnf upgrade ./magnolie-organizer-2.0.17-1.noarch.rpm"));
+  assert.ok(englishText.includes("sudo dnf install ./magnolie-organizer-2.0.18-1.noarch.rpm"));
+  assert.ok(englishText.includes("rpmbuild --rebuild magnolie-organizer-2.0.18-1.src.rpm"));
+  assert.ok(englishText.includes("sudo dnf upgrade ./magnolie-organizer-2.0.18-1.noarch.rpm"));
   assert.ok(englishText.includes("Only one <i>Magnolie Organizer</i> entry remains"));
   assert.ok(englishText.includes("Update manual …") &&
     englishText.includes("verifies SHA-256") && englishText.includes("never runs sudo or dpkg"));
@@ -1101,13 +1119,13 @@ try {
   "superseded backup or recovery-snapshot pages remain in the handbook");
   for (const phrase of ["not by a continuously running countdown", "at most 3,000 entries",
     "Settings ▸ Security ▸ Backups", "Windows writes a password-encrypted",
-    "The preview does not list individual names", "checks again every 15 minutes",
-    "re-encrypted when that password is changed", "up to eight weekly points"])
+    "not a list of individual entries", "Saved changes are protected automatically",
+    "retaining newer existing data", "removes data added there later"])
     assert.ok(englishText.includes(phrase), `English recovery documentation missing: ${phrase}`);
   for (const phrase of ["nicht durch einen ständig laufenden Countdown", "höchstens 3.000 Einträge",
     "Einstellungen ▸ Sicherheit ▸ Sicherungen", "Windows schreibt bei jedem ausdrücklich",
-    "Einzelne Namen oder Einträge", "alle 15 Minuten", "neu verschlüsselt",
-    "bis zu acht Wochenpunkte"])
+    "keine einzelnen Einträge", "Gespeicherte Änderungen werden automatisch geschützt",
+    "behält neuere vorhandene Daten", "später hinzugefügte Daten"])
     assert.ok(germanText.includes(phrase), `German recovery documentation missing: ${phrase}`);
   const holidayIds = ["country-region-holiday-display", "fetching-public-and-school-holidays"];
   assert.strictEqual(sourcePages.filter((page) => holidayIds.includes(page.id)).length, 2,
@@ -1135,10 +1153,10 @@ try {
     "android-notes-edit-save-delete", "android-tasks-reminders", "android-note-symbols-formatting"];
   assert.strictEqual(sourcePages.filter((page) => androidNotesIds.includes(page.id)).length, 5,
     "the Magnolie Notes route must contain exactly five pages");
-  for (const phrase of ["five tabs along the bottom", "Loose Notes", "system Back action does not save",
+  for (const phrase of ["five tabs along the bottom", "Loose Notes", "Do not use Back to discard changes",
     "zero through fourteen", "no bold, italic, underline, list, heading, Markdown or rich-text toolbar"])
     assert.ok(englishText.includes(phrase), `English Magnolie Notes documentation missing: ${phrase}`);
-  for (const phrase of ["fünf Reitern am unteren Rand", "Lose Notizen", "System-Zurück-Aktion speichert nicht",
+  for (const phrase of ["fünf Reitern am unteren Rand", "Lose Notizen", "Verwenden Sie Zurück nicht zum Verwerfen",
     "null bis vierzehn", "keine Werkzeugleiste für Fett, Kursiv, Unterstreichen, Listen, Überschriften, Markdown oder Rich Text"])
     assert.ok(germanText.includes(phrase), `German Magnolie Notes documentation missing: ${phrase}`);
   const androidImportIds = ["android-import-files-folders", "android-import-formats",
@@ -1195,20 +1213,27 @@ try {
   const python = fs.readFileSync(path.join(ROOT, "bin", "magnolie-handbuch"), "utf8");
   assert.ok(python.includes("gettext.translation") && python.includes("/usr/share/locale"));
   assert.ok(python.includes("window.MAGNOLIE_LOCALE") && python.includes("get_is_remote"));
-  assert.ok(python.includes('PROGRAMM_FASSUNG = "2.0.17"') && python.includes('"--version"'));
+  assert.ok(python.includes('PROGRAMM_FASSUNG = "2.0.18"') && python.includes('"--version"'));
   const changelog = fs.readFileSync(path.join(ROOT, "debian", "changelog"), "utf8");
   const pot = fs.readFileSync(path.join(ROOT, "po", "magnolie-handbuch.pot"), "utf8");
-  assert.ok(changelog.startsWith("magnolie-handbuch (2.0.17)"));
-  assert.ok(pot.includes('"Project-Id-Version: Magnolie Handbook 2.0.17'));
+  assert.ok(changelog.startsWith("magnolie-handbuch (2.0.18)"));
+  assert.ok(pot.includes('"Project-Id-Version: Magnolie Handbook 2.0.18'));
   for (const relative of ["man/magnolie-handbuch.1",
     ...languages.map(language => `man/${language}/magnolie-handbuch.1`)]) {
     assert.ok(fs.readFileSync(path.join(ROOT, relative), "utf8").split("\n", 1)[0]
-      .includes("2.0.17"), `${relative}: stale manual version`);
+      .includes("2.0.18"), `${relative}: stale manual version`);
   }
   assert.ok(!sources.i18n.includes("pageReferenceUpdates") &&
     !sources.content.includes("data-seite="), "brittle page-number migration remains");
   const pageCount = english.H.seiten().length;
-  const catalogStatus = catalogCurrent ? "current German catalog" : "German catalog update pending";
+  // The old suite checked only base pages; replacements and appendices must
+  // also be translated before this suite may report success.
+  for (const language of languages) {
+    childProcess.execFileSync("python3", [path.join(ROOT, "werkzeuge", "katalog_pruefen.py"),
+      path.join(ROOT, "po", "magnolie-handbuch.pot"), path.join(ROOT, "po", `${language}.po`)]);
+  }
+  require("./editorial_test");
+  const catalogStatus = "complete source and rendered-text catalogs";
   console.log(`ALL HANDBOOK CHECKS PASSED (${pageCount} English + ${pageCount} German pages; ${catalogStatus})`);
 } finally {
   fs.rmSync(temporary, { recursive: true, force: true });

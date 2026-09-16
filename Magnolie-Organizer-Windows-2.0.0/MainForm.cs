@@ -9,7 +9,7 @@ internal sealed class MainForm : Form
 {
     private const string VirtualHost = "app.magnolie.invalid";
     private readonly WebView2 webView = new() { Dock = DockStyle.Fill, DefaultBackgroundColor = Color.FromArgb(46, 58, 52) };
-    private readonly WindowsPaths paths = new();
+    private readonly WindowsPaths paths;
     private readonly string bridgeName = $"bridge_{Guid.NewGuid():N}";
     private readonly NotifyIcon trayIcon;
     private readonly TraySettingsService traySettingsService;
@@ -30,18 +30,26 @@ internal sealed class MainForm : Form
     private Rectangle fullscreenRestoreBounds;
     private Size fullscreenRestoreClientSize;
     private bool shutdownStarted;
+    private readonly CancellationTokenSource closing = new();
     private bool reminderAutostart;
     private TelefonCoordinator? telefonCoordinator;
     private JsonObject? pendingTelefonSms;
     private JsonObject? currentIncomingCall;
+    private long incomingCallGeneration;
+    private readonly object incomingCallGate = new();
+    private Form? callAlert;
+    private string shownCallAlert = "";
+    private readonly WindowsCallNotifications callNotifications;
     private HandbookForm? handbookForm;
     private readonly FirstRunSetupSelections? setupSelections;
 
     internal void SetTelefonCoordinator(TelefonCoordinator coordinator) => telefonCoordinator = coordinator;
 
     internal MainForm(bool trayStart = false, bool reminderStart = false,
-        FirstRunSetupSelections? setupSelections = null)
+        FirstRunSetupSelections? setupSelections = null, WindowsPaths? paths = null,
+        WindowsCallNotifications? notifications = null)
     {
+        this.paths = paths ?? new WindowsPaths();
         this.setupSelections = setupSelections;
         Text = "Magnolie Organizer";
         BackColor = Color.FromArgb(46, 58, 52);
@@ -50,10 +58,16 @@ internal sealed class MainForm : Form
         ClientSize = new Size(1440, 890);
         var iconPath = Path.Combine(AppContext.BaseDirectory, "magnolie-organizer.ico");
         if (File.Exists(iconPath)) Icon = new Icon(iconPath);
-        traySettingsService = new TraySettingsService(paths.TraySettings);
-        traySettings = traySettingsService.Load(paths.Data);
+        traySettingsService = new TraySettingsService(this.paths.TraySettings);
+        traySettings = traySettingsService.Load(this.paths.Data);
         reminderAutostart = reminderStart;
         trayIcon = CreateTrayIcon(Icon ?? SystemIcons.Application);
+        callNotifications = notifications ?? new WindowsCallNotifications(async token =>
+        {
+            var accepted = telefonCoordinator is not null && await telefonCoordinator.ExecuteCallActionAsync(token);
+            if (accepted && !IsDisposed && !Disposing) BeginInvoke(RestoreFromTray);
+            return accepted;
+        });
         Controls.Add(webView);
         HandleCreated += (_, _) => NativeMethods.ApplySystemTitleBarTheme(Handle);
         Load += async (_, _) => await InitializeWebViewAsync();
@@ -63,7 +77,7 @@ internal sealed class MainForm : Form
             await OpenHandbookAsync(manual);
         };
         FormClosing += OnFormClosing;
-        FormClosed += (_, _) => { handbookForm?.Close(); dispatcher?.Dispose(); SaveWindowState(); trayIcon.Dispose(); };
+        FormClosed += (_, _) => { closing.Cancel(); callAlert?.Close(); callNotifications.Dispose(); handbookForm?.Close(); dispatcher?.Dispose(); SaveWindowState(); trayIcon.Dispose(); };
         Resize += (_, _) =>
         {
             if (!fullscreen && !fullscreenTransition && WindowState != FormWindowState.Minimized)
@@ -85,9 +99,9 @@ internal sealed class MainForm : Form
     internal async Task ApplyTraySettingsAsync(JsonElement settings)
     {
         var previousEnabled = trayEnabled;
-        traySettings = TraySettings.FromJson(settings);
+        var requested = TraySettings.FromJson(settings);
         var error = "";
-        try { traySettingsService.Save(traySettings); }
+        try { traySettingsService.Save(requested); traySettings = requested; }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
         {
             error = T("Warning: The data could not be saved.") + " " + exception.Message;
@@ -106,14 +120,14 @@ internal sealed class MainForm : Form
 
     internal TraySettings CurrentTraySettings => traySettings;
 
-    internal void SetReminderAutostart(bool active)
+    internal string SetReminderAutostart(bool active)
     {
         reminderAutostart = active;
-        _ = ConfigureAutostart();
+        return traySettingsService.LoadFailed ? T("The background settings could not be saved.") : ConfigureAutostart();
     }
 
     private string ConfigureAutostart() => TraySettingsService.ConfigureAutostart(
-        reminderAutostart || traySettings.Aktiv && traySettings.Autostart,
+        traySettings.Aktiv && traySettings.Autostart,
         Application.ExecutablePath, reminderAutostart);
 
     internal void UpdateTrayCounter(int count)
@@ -142,31 +156,105 @@ internal sealed class MainForm : Form
 
     internal void TrackIncomingCall(JsonObject payload)
     {
-        if (InvokeRequired) { BeginInvoke(() => TrackIncomingCall(payload)); return; }
-        var state = payload["state"]?.GetValue<string>() ?? "";
-        if (state == "idle")
+        // Invalidate queued presentation before entering the UI queue.
+        long generation;
+        lock (incomingCallGate)
         {
-            if (currentIncomingCall?["call_ref"]?.GetValue<string>() == payload["call_ref"]?.GetValue<string>())
-                currentIncomingCall = null;
-            return;
+            if (telefonCoordinator?.CallEventCurrent(payload) != true) return;
+            generation = Interlocked.Increment(ref incomingCallGeneration);
+            Volatile.Write(ref currentIncomingCall, TelefonCallActions.IsRinging(payload) ? payload.DeepClone().AsObject() : null);
         }
-        if (payload["direction"]?.GetValue<string>() == "incoming") currentIncomingCall = payload.DeepClone().AsObject();
+        void Withdraw()
+        {
+            if (generation != Volatile.Read(ref incomingCallGeneration)) return;
+            callAlert?.Close(); callNotifications.Withdraw();
+        }
+        if (InvokeRequired) BeginInvoke(Withdraw); else Withdraw();
     }
 
     internal void ShowIncomingCall(JsonElement payload)
     {
-        if (InvokeRequired) { BeginInvoke(() => ShowIncomingCall(payload)); return; }
-        var name = payload.TryGetProperty("name", out var nameNode) ? nameNode.GetString() ?? "" : "";
-        var number = payload.TryGetProperty("nummer", out var numberNode) ? numberNode.GetString() ?? "" : "";
+        var generation = Volatile.Read(ref incomingCallGeneration);
+        if (InvokeRequired) { BeginInvoke(() => { if (generation == Volatile.Read(ref incomingCallGeneration)) ShowIncomingCall(payload); }); return; }
         var callRef = payload.TryGetProperty("callRef", out var callNode) ? callNode.GetString() ?? "" : "";
-        var current = currentIncomingCall?["call_ref"]?.GetValue<string>() == callRef ? currentIncomingCall : null;
-        name = current?["kontaktName"]?.GetValue<string>() is { Length: > 0 } contactName ? contactName : name;
-        var origin = PhoneRegionInfo.Analyze(number, number.Length > 0 ? "available" : "unavailable");
-        var caller = string.IsNullOrWhiteSpace(name) ? number : name;
-        if (origin.DisplayHint.Length > 0) caller += "\n" + origin.DisplayHint;
-        trayIcon.Visible = true;
-        ShowNotification(T("Incoming call"), caller);
-        HideTemporaryTrayIcon();
+        var id = payload.TryGetProperty("kennung", out var peerNode) ? peerNode.GetString() ?? "" : "";
+        var revision = payload.TryGetProperty("revision", out var revNode) && revNode.TryGetInt64(out var rev) ? rev : 0;
+        var current = Volatile.Read(ref currentIncomingCall);
+        bool Current() => generation == Volatile.Read(ref incomingCallGeneration) &&
+            telefonCoordinator?.IncomingCallCurrent(id, callRef, revision) == true;
+        if (current is null || current["call_ref"]?.GetValue<string>() != callRef || current["device_id"]?.GetValue<string>() != id ||
+            current["revision"]?.GetValue<long>() != revision || !TelefonCallActions.IsRinging(current) ||
+            DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() - (current["occurred_ms"]?.GetValue<long>() ?? 0) is < 0 or > 60_000 ||
+            !Current() || shownCallAlert == id + ":" + callRef + ":" + revision) return;
+        shownCallAlert = id + ":" + callRef + ":" + revision;
+        var number = current["number_status"]?.GetValue<string>() == "available" ? current["number"]?.GetValue<string>() ?? "" : "";
+        var name = current["kontaktName"]?.GetValue<string>() ?? "";
+        var caller = name.Length > 0 ? name : number.Length > 0 ? number : T("Unknown caller");
+        var tokens = payload.TryGetProperty("annehmen", out var answer) && answer.ValueKind == JsonValueKind.True
+            ? telefonCoordinator?.CallActionTokens(id, callRef, revision) ?? [] : new Dictionary<string, string>();
+        if (tokens.Count < 2) caller += "\n" + T("Call controls unavailable. Check Android call permission; no dialer role is requested automatically.");
+        async Task Run(string token)
+        {
+            if (!Current()) return;
+            callAlert?.Close(); callNotifications.Withdraw();
+            try { if (telefonCoordinator is null || !await telefonCoordinator.ExecuteCallActionAsync(token)) throw new InvalidOperationException(); }
+            catch (Exception) { if (generation == Volatile.Read(ref incomingCallGeneration)) ShowNotification(T("Incoming call"), T("The call action expired or is no longer permitted.")); }
+        }
+        var monitor = new System.Windows.Forms.Timer { Interval = 300 };
+        monitor.Tick += (_, _) =>
+        {
+            if (Current()) return;
+            monitor.Dispose();
+            if (generation == Volatile.Read(ref incomingCallGeneration)) { callAlert?.Close(); callNotifications.Withdraw(); }
+        };
+        monitor.Start();
+        void Present()
+        {
+            // A small native surface, never restoring or opening the organizer book.
+            var area = Screen.FromControl(this).WorkingArea;
+            var panel = new Form { Text = T("Incoming call"), AccessibleName = T("Incoming call"), AccessibleRole = AccessibleRole.Alert,
+                BackColor = Color.FromArgb(246, 239, 220), ForeColor = Color.FromArgb(58, 49, 40),
+                AutoScaleMode = AutoScaleMode.Dpi, ClientSize = new Size(390, 210), Padding = new Padding(16),
+                FormBorderStyle = FormBorderStyle.FixedToolWindow, ShowInTaskbar = false, TopMost = true, StartPosition = FormStartPosition.Manual, Icon = Icon };
+            callAlert = panel;
+            panel.Location = new Point(Math.Max(area.Left, area.Right - panel.Width - 20), Math.Max(area.Top, area.Bottom - panel.Height - 30));
+            var actions = new FlowLayoutPanel { Dock = DockStyle.Bottom, Height = 48, FlowDirection = FlowDirection.LeftToRight };
+            foreach (var action in new[] { "answer", "reject" })
+            {
+                var label = T(action == "answer" ? "Answer" : "Reject");
+                var supported = tokens.TryGetValue(action, out var token);
+                var button = new Button { Text = action == "answer" ? "\u260e" : "\u2715", AccessibleName = label, Enabled = supported,
+                    AccessibleDescription = label, Width = 64, Height = 38, BackColor = Color.FromArgb(230, 222, 199) };
+                button.Click += async (_, _) => { if (token is not null) await Run(token); }; actions.Controls.Add(button);
+            }
+            var mute = new Button { Text = "\U0001f515", AccessibleName = T("Silence this alert"), AccessibleDescription = T("Silence this alert"), Width = 64, Height = 38 };
+            mute.Click += (_, _) => panel.Close(); actions.Controls.Add(mute);
+            var text = new Label { Text = caller, Dock = DockStyle.Fill, AutoSize = false, UseMnemonic = false };
+            panel.Controls.Add(text); panel.Controls.Add(actions);
+            if (current["kontaktFoto"]?.GetValue<string>() is { Length: > 0 and <= 2097152 } photo && photo.StartsWith("data:image/", StringComparison.Ordinal))
+            {
+                try
+                {
+                    using var stream = new MemoryStream(Convert.FromBase64String(photo[(photo.IndexOf(',') + 1)..]));
+                    using var source = Image.FromStream(stream);
+                    var image = new Bitmap(source, new Size(56, 56));
+                    var picture = new PictureBox { Image = image, Dock = DockStyle.Left, Width = 68, SizeMode = PictureBoxSizeMode.CenterImage };
+                    panel.Controls.Add(picture); panel.FormClosed += (_, _) => image.Dispose();
+                }
+                catch (Exception error) when (error is ArgumentException or FormatException or OutOfMemoryException) { }
+            }
+            var expiry = new System.Windows.Forms.Timer { Interval = 60_000 };
+            expiry.Tick += (_, _) => panel.Close();
+            panel.FormClosed += (_, _) => { expiry.Dispose(); if (callAlert == panel) callAlert = null; };
+            expiry.Start(); panel.Show();
+            if (!panel.Visible) throw new InvalidOperationException("Call surface unavailable");
+        }
+        try { Present(); }
+        catch (Exception error) when (error is InvalidOperationException or System.ComponentModel.Win32Exception or System.Runtime.InteropServices.COMException)
+        {
+            callAlert?.Close(); callAlert = null;
+            if (Current()) callNotifications.Show(T("Incoming call"), caller, tokens);
+        }
     }
 
     internal void ShowTelefonNotification(string title, string message)
@@ -186,11 +274,87 @@ internal sealed class MainForm : Form
 
     internal void ShowReminder(string title, string message, string kind, string style)
     {
+        if (IsDisposed || Disposing || shutdownStarted) return;
         if (InvokeRequired) { BeginInvoke(() => ShowReminder(title, message, kind, style)); return; }
         kind = kind is "notification" or "sound" or "both" ? kind : "both";
         if (kind is "sound" or "both")
             NativeMethods.PlaySoundFile(Path.Combine(AppContext.BaseDirectory, "erinnerung.wav"));
         if (kind is not ("notification" or "both")) return;
+
+        if (style == "magnolie")
+        {
+            var area = Screen.FromControl(this).WorkingArea;
+            var bodyFont = new Font("Segoe UI", 11);
+            var headingFont = new Font("Georgia", 15, FontStyle.Bold);
+            var paper = new Form
+            {
+                Text = string.IsNullOrWhiteSpace(title) ? "Magnolie Organizer" : title,
+                AccessibleName = title, AccessibleDescription = message, AccessibleRole = AccessibleRole.Alert,
+                AutoScaleDimensions = new SizeF(96, 96), AutoScaleMode = AutoScaleMode.Dpi,
+                BackColor = Color.FromArgb(85, 41, 28), ForeColor = Color.FromArgb(58, 49, 40),
+                Font = bodyFont, FormBorderStyle = FormBorderStyle.None,
+                StartPosition = FormStartPosition.Manual, ShowInTaskbar = false, TopMost = true,
+                ClientSize = new Size(Math.Min(380, area.Width - 56), Math.Min(250, area.Height - 88)),
+                Padding = new Padding(3), Icon = Icon
+            };
+            var content = new Panel { Dock = DockStyle.Fill, BackColor = Color.FromArgb(246, 239, 220),
+                Padding = new Padding(18, 14, 18, 15) };
+            content.Paint += (_, eventArgs) =>
+            {
+                using var pen = new Pen(Color.FromArgb(165, 145, 106));
+                eventArgs.Graphics.DrawRectangle(pen, 0, 0, content.Width - 1, content.Height - 1);
+            };
+            var close = new Button { Text = T("Close"), Dock = DockStyle.Right, FlatStyle = FlatStyle.Flat,
+                AutoSize = true, MinimumSize = new Size(90, 34), DialogResult = DialogResult.Cancel,
+                BackColor = Color.FromArgb(230, 222, 199) };
+            close.FlatAppearance.BorderColor = Color.FromArgb(171, 148, 104);
+            var actions = new Panel { Dock = DockStyle.Bottom, Height = 44, Padding = new Padding(0, 7, 0, 0) };
+            actions.Controls.Add(close);
+            var heading = new Label { Text = title, AutoSize = true, Dock = DockStyle.Top,
+                Font = headingFont, Padding = new Padding(0, 0, 0, 7), UseMnemonic = false };
+            var gold = new Panel { Dock = DockStyle.Top, Height = 2, BackColor = Color.FromArgb(216, 178, 92) };
+            var textArea = new Panel { Dock = DockStyle.Fill, Padding = new Padding(0, 7, 0, 0) };
+            var body = new TextBox { Text = message, Dock = DockStyle.Fill, Multiline = true,
+                ReadOnly = true, BorderStyle = BorderStyle.None, ScrollBars = ScrollBars.Vertical,
+                BackColor = content.BackColor, ForeColor = Color.FromArgb(90, 70, 48), AccessibleName = title };
+            textArea.Controls.Add(body);
+            content.Controls.Add(textArea); content.Controls.Add(gold);
+            content.Controls.Add(heading); content.Controls.Add(actions);
+            content.SizeChanged += (_, _) =>
+            {
+                heading.MaximumSize = new Size(Math.Max(80, content.ClientSize.Width - content.Padding.Horizontal), 0);
+            };
+            paper.Controls.Add(content);
+            paper.AcceptButton = close; paper.CancelButton = close;
+            close.Click += (_, _) => paper.Close();
+            Action position = () =>
+            {
+                var work = Screen.FromControl(this).WorkingArea;
+                var size = new Size(Math.Min(paper.Width, Math.Max(120, work.Width - 56)),
+                    Math.Min(paper.Height, Math.Max(120, work.Height - 88)));
+                if (paper.Size != size) paper.Size = size;
+                paper.Location = new Point(Math.Max(work.Left, work.Right - paper.Width - 28),
+                    Math.Max(work.Top, Math.Min(work.Top + 44, work.Bottom - paper.Height)));
+            };
+            paper.SizeChanged += (_, _) => position();
+            paper.Shown += (_, _) =>
+            {
+                position();
+                close.Focus();
+            };
+            var dismiss = new System.Windows.Forms.Timer { Interval = 45_000 };
+            dismiss.Tick += (_, _) =>
+            {
+                if (!paper.ContainsFocus && !paper.Bounds.Contains(Cursor.Position)) paper.Close();
+            };
+            paper.FormClosed += (_, _) =>
+            {
+                dismiss.Stop(); dismiss.Dispose(); paper.Dispose();
+                headingFont.Dispose(); bodyFont.Dispose();
+            };
+            paper.Show(); dismiss.Start();
+            return;
+        }
 
         trayIcon.Visible = true;
         ShowNotification(title, message);
@@ -204,7 +368,9 @@ internal sealed class MainForm : Form
         hideTimer.Start();
     }
 
-    internal async Task SendAsync(string function, object payload)
+    internal Task SendAsync(string function, object payload) => SendAsync(function, payload, null);
+
+    internal async Task SendAsync(string function, object payload, Func<object>? currentPayload)
     {
         if (IsDisposed || Disposing || shutdownStarted) return;
         if (InvokeRequired)
@@ -212,15 +378,16 @@ internal sealed class MainForm : Form
             var completion = new TaskCompletionSource();
             try { BeginInvoke(async () =>
             {
-                try { await SendAsync(function, payload); completion.SetResult(); }
+                try { await SendAsync(function, payload, currentPayload); completion.SetResult(); }
                 catch (Exception error) { completion.SetException(error); }
             }); }
             catch (InvalidOperationException) { completion.SetResult(); }
-            await completion.Task;
+            await completion.Task.WaitAsync(TimeSpan.FromSeconds(5), closing.Token);
             return;
         }
 
         if (webView.CoreWebView2 is null) return;
+        if (currentPayload is not null) payload = currentPayload();
         var json = JsonSerializer.Serialize(payload, JsonOptions.Default);
         var argument = JsonSerializer.Serialize(json);
         var callback = JsonSerializer.Serialize(function);
@@ -232,7 +399,7 @@ internal sealed class MainForm : Form
               const handler = owner && owner[path[path.length - 1]];
               if (typeof handler === "function") handler.call(owner, JSON.parse({{argument}}));
             })();
-            """);
+            """).WaitAsync(TimeSpan.FromSeconds(5), closing.Token);
     }
 
     internal async void CloseAfterSave()
@@ -240,18 +407,18 @@ internal sealed class MainForm : Form
         if (InvokeRequired) { BeginInvoke(CloseAfterSave); return; }
         if (shutdownStarted) return;
         shutdownStarted = true;
+        closing.Cancel();
         try
         {
-            if (dispatcher is not null) await dispatcher.ShutdownAsync();
+            if (dispatcher is not null) await dispatcher.ShutdownAsync().WaitAsync(TimeSpan.FromSeconds(10));
+        }
+        catch (TimeoutException error)
+        {
+            WriteWebViewDiagnostic($"Shutdown deadline: {error.Message}");
         }
         catch (Exception error)
         {
             WriteWebViewDiagnostic($"Fehler beim Beenden: {error}");
-            shutdownStarted = false;
-            closeRequested = false;
-            exitFromTray = false;
-            ShowSaveWarning();
-            return;
         }
         allowClose = true;
         Close();
@@ -311,6 +478,11 @@ internal sealed class MainForm : Form
 
     protected override void WndProc(ref Message message)
     {
+        if ((uint)message.Msg == NativeMethods.ExitMessage)
+        {
+            BeginInvoke(RequestClose);
+            return;
+        }
         if ((uint)message.Msg == NativeMethods.ActivationMessage)
         {
             RestoreFromTray();
@@ -384,11 +556,11 @@ internal sealed class MainForm : Form
 
         core.SetVirtualHostNameToFolderMapping(VirtualHost, webRoot,
             CoreWebView2HostResourceAccessKind.DenyCors);
-        ProtectedAssetReader.Register(core, VirtualHost, webRoot,
+        ProtectedAssetReader.Register(core, "appassets.magnolie.invalid", webRoot,
             new Dictionary<string, (string, byte, byte, string)>
             {
                 ["/kaffee-qr.png"] = ("kaffee-qr.mga", 1, 1, "image/png")
-            });
+            }, WriteWebViewDiagnostic);
         core.Settings.AreDevToolsEnabled = false;
         core.Settings.AreDefaultContextMenusEnabled = false;
         core.Settings.AreBrowserAcceleratorKeysEnabled = false;
@@ -446,7 +618,16 @@ internal sealed class MainForm : Form
     private async void OnFormClosing(object? sender, FormClosingEventArgs eventArgs)
     {
         if (allowClose || webView.CoreWebView2 is null) return;
-        if (trayEnabled && closeToTray && !exitFromTray)
+        if (eventArgs.CloseReason is CloseReason.WindowsShutDown or CloseReason.TaskManagerClosing)
+        {
+            shutdownStarted = true;
+            closing.Cancel();
+            try { dispatcher?.ShutdownAsync().Wait(TimeSpan.FromSeconds(3)); }
+            catch (Exception error) { WriteWebViewDiagnostic(error.Message); }
+            allowClose = true;
+            return;
+        }
+        if (eventArgs.CloseReason == CloseReason.UserClosing && trayEnabled && closeToTray && !exitFromTray)
         {
             eventArgs.Cancel = true;
             HideToTray();
@@ -457,7 +638,7 @@ internal sealed class MainForm : Form
         closeRequested = true;
         try
         {
-            await webView.CoreWebView2.ExecuteScriptAsync("App.vorBeenden();");
+            await webView.CoreWebView2.ExecuteScriptAsync("App.vorBeenden();").WaitAsync(TimeSpan.FromSeconds(5));
         }
         catch (Exception error)
         {

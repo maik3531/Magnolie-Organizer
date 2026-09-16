@@ -109,7 +109,7 @@ const protectedDigests = {
   zh_CN: "123b8b3e0187563e6f08ff7bc973e87892c7601cb12c0a46a817812f50d3855c",
   ja: "3bdbddeffeaa32be3da03b1c4ffd3015d5d080039bfb6cbf94bf24a23d83ff33",
   ar: "e1fa46c4712cb50ff4c39c1aed55f489a35b76ad46852f95710b3bf0d501ab20",
-  uk: "a7400edfa04b78bf868e166fce2be68bbb3e87d831de502edbe3a2d049c23ba9",
+  uk: "2909c521d28eb87365793e098c5a4fcc05c375280f765a148fd35ebb9c68f92a",
   be: "fc9547945078f0a44c69db81012dc84152c83a8fa4b2a5642f6566026ea5df88",
   tr: "70cdfc9a3a329b742b19345d509a2901ac9cb9353b4857733b96744514385300"
 };
@@ -207,6 +207,26 @@ for (const [locale, expectedDigest] of Object.entries(protectedDigests)) {
     assert.ok(protectedText.includes("No valid coffee allowance") &&
       !protectedText.includes("No valid subscription"),
     `${name}/${locale}: Contributor-Branding wurde übersetzt oder ist veraltet`);
+    if (locale === "uk") {
+      const coffeeSource = source(books[name].find((page) => page.id === "support-with-a-coffee")).inhalt;
+      const coffee = messages[coffeeSource];
+      const localizedAlt = "alt='QR-код для добровільної підтримки кавою'";
+      assert.strictEqual(coffee.split(localizedAlt).length, 2,
+        `${name}/uk: approved coffee QR alt translation must occur exactly once`);
+      assert.ok(coffee.includes("<img class='kaffee-qr' src='kaffee-qr.png' " + localizedAlt + ">"),
+        `${name}/uk: translated alt must belong to the unchanged coffee QR image`);
+      // Do not normalize other text or attributes: the old pin independently
+      // protects the complete license, branding, author and closing content.
+      const prior = books[name].filter((page) => protectedIds.includes(page.id)).flatMap((page) => {
+        const original = source(page);
+        return [messages[original.titel], page.id === "support-with-a-coffee"
+          ? coffee.replace(localizedAlt, "alt='QR code for voluntary coffee support'")
+          : messages[original.inhalt]];
+      });
+      assert.strictEqual(digest(JSON.stringify(prior)),
+        "a7400edfa04b78bf868e166fce2be68bbb3e87d831de502edbe3a2d049c23ba9",
+        `${name}/uk: protected content changed beyond the approved coffee QR alt translation`);
+    }
     assert.strictEqual(digest(JSON.stringify(values)), expectedDigest,
       `${name}/${locale}: geschützte Seiten wurden verändert`);
   }
@@ -256,7 +276,26 @@ for (const [locale] of Object.entries(protectedDigests)) {
   }
 }
 
+let englishOverride;
+vm.runInNewContext(fs.readFileSync(path.join(handbook, "i18n/en.js"), "utf8"), {
+  window: { MagnolieI18n: { registerCatalog(locale, data) {
+    assert.strictEqual(locale, "en"); englishOverride = data.messages;
+  } } }
+});
+const englishOverrideKeys = new Set(reference.filter(page =>
+  ["support-with-a-coffee", "about-maik-walter"].includes(page.id))
+  .flatMap(page => [source(page).kapitel, source(page).titel, source(page).inhalt]));
+assert.deepStrictEqual(Object.keys(englishOverride).sort(), [...englishOverrideKeys].sort(),
+  "English override must be limited to the two unchanged German source pages");
+const englishOverridePin = "66e5db776bd4ae0ae9c1340fc089957f44bcb951352adcfa4c57d0f66cb08ae4";
+assert.strictEqual(digest(JSON.stringify(Object.entries(englishOverride))), englishOverridePin,
+  "Approved English author/coffee rendering changed");
+
 if (process.argv.includes("--negative-probe")) {
+  const key = Object.keys(englishOverride)[0];
+  const changedEnglish = { ...englishOverride, [key]: englishOverride[key] + " changed" };
+  assert.throws(() => assert.strictEqual(digest(JSON.stringify(Object.entries(changedEnglish))), englishOverridePin),
+    "English override mutation must fail its own pin, independently of original source pins");
   const protectedSource = reference.filter((page) => protectedIds.includes(page.id))
     .flatMap((page) => [source(page).titel, source(page).inhalt]);
   protectedSource[0] += " veraendert";

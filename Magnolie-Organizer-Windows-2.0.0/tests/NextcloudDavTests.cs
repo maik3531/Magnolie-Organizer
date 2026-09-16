@@ -12,6 +12,26 @@ internal static class NextcloudDavTests
 {
     internal static async Task RunAsync()
     {
+        foreach (var (fields, display, first, last) in new[] {
+            ("N:Mustermann;Erika;;;", "Erika Mustermann", "Erika", "Mustermann"),
+            ("N:Van Dame;;;;", "Van Dame", "", "Van Dame"),
+            ("N:;Anna Maria;;;", "Anna Maria", "Anna Maria", ""),
+            ("N:Van Dame;;;;\r\nFN:", "", "", "Van Dame"),
+            ("N:;;;;\r\nTEL;TYPE=CELL:+493012345678", "+493012345678", "", "") })
+        {
+            var parsed = ExchangeCodec.ParseVCard("BEGIN:VCARD\r\nVERSION:3.0\r\nUID:sparse\r\n" + fields + "\r\nEND:VCARD\r\n");
+            TestAssert.That(parsed.Kontakte.Count == 1, "Sparse contact was discarded.");
+            using var document = JsonDocument.Parse(parsed.Kontakte.ToJsonString());
+            var card = ExchangeCodec.WriteVCard(document.RootElement);
+            TestAssert.That(card.Count == 1 && card.Text.Contains("\r\nFN:" + display + "\r\n", StringComparison.Ordinal),
+                "Missing FN was not formatted, or an explicitly empty FN was overwritten.");
+            TestAssert.That(parsed.Kontakte[0]!["anzeigename"]!.ToString() == "", "Export mutated the stored display name.");
+            foreach (var result in new[] { ExchangeCodec.ParseVCard(card.Text),
+                ExchangeCodec.ParseLdif(ExchangeCodec.WriteLdif(document.RootElement).Text) })
+                TestAssert.That(result.Kontakte.Count == 1 && result.Kontakte[0]!["uid"]!.ToString() == "sparse" &&
+                    result.Kontakte[0]!["vorname"]!.ToString() == first && result.Kontakte[0]!["nachname"]!.ToString() == last,
+                    "Sparse contact roundtrip invented name components or lost its identity.");
+        }
         var calendar = "nextcloud-calendar:" + new string('a', 64);
         var addressBook = "nextcloud-addressbook:" + new string('b', 64);
         TestAssert.That(NextcloudDavSelection.IsSupported("", [calendar]),
@@ -66,6 +86,10 @@ internal static class NextcloudDavTests
             var sources = await client.ListSourcesAsync(CancellationToken.None);
             TestAssert.That(sources.Calendars.Count == 1 && sources.AddressBooks.Count == 1 && sources.Calendars[0].Uid.StartsWith("nextcloud-calendar:", StringComparison.Ordinal) && sources.AddressBooks[0].Uid.StartsWith("nextcloud-addressbook:", StringComparison.Ordinal), "DAV-Discovery lieferte keine stabilen Quellen-IDs.");
             var contacts = await new NextcloudCardDavRemote(client, sources.AddressBooks[0]).ReadAsync(CancellationToken.None);
+            var contactQuery = System.Xml.Linq.XDocument.Parse(requests.Last(request => request.Method == "REPORT").Body);
+            var contactFilters = contactQuery.Root!.Elements(System.Xml.Linq.XName.Get("filter", "urn:ietf:params:xml:ns:carddav")).ToArray();
+            TestAssert.That(contactFilters.Length == 1 && !contactFilters[0].Elements().Any(),
+                "CardDAV must request the complete address book, including cards without FN.");
             var calendarObjects = await client.ReadCalendarAsync(sources.Calendars[0], CancellationToken.None);
             TestAssert.That(contacts.Count == 1 && contacts[0].ETag == "\"v1\"" && contacts[0].Data["mobil"]?.GetValue<string>() == "+49123", "CardDAV REPORT verlor ETag oder Mehrfachwerte.");
             TestAssert.That(calendarObjects.Count == 1 && calendarObjects[0].ETag == "\"c1\"" && calendarObjects[0].Text.Contains("BYDAY=-1MO", StringComparison.Ordinal), "CalDAV REPORT verlor ETag oder ordinale Monatsregel.");
@@ -81,12 +105,218 @@ internal static class NextcloudDavTests
             await TestHostileServers(settings);
             await TestGenericBaikalDiscovery(root);
             await TestGenericConfiguredBaseDiscovery(root);
+            await TestMissingUpdateEtags(settings);
+            await TestSafeFirstRunsAndConflictIdentity(settings);
+            await TestPersistedConflicts(settings, root);
+            await TestLostCreateResponse(settings, root);
             await TestTaskTwoRunSafety(settings);
+            await TestCrossResourceTaskHierarchy(settings);
+            await TestNextcloudAnniversaries(settings, root);
             TestRoundtrips();
             TestDispatcherTaskStateAndBudget();
             TestSyncJournal(root);
         }
         finally { try { Directory.Delete(root, true); } catch (Exception) { } }
+    }
+
+    private static async Task TestMissingUpdateEtags(NextcloudMailboxSettingsStore settings)
+    {
+        var calls = 0;
+        using var http = new HttpClient(new Handler(_ =>
+        {
+            calls++; return Task.FromResult(new HttpResponseMessage(HttpStatusCode.NoContent));
+        }));
+        using var client = new NextcloudDavClient(settings, http);
+        await TestAssert.ThrowsAsync<InvalidOperationException>(() => client.UpdateAsync(
+            new Uri("https://cloud.example/nc/calendar/a.ics"), " ", "text/calendar",
+            "BEGIN:VCALENDAR\r\nEND:VCALENDAR\r\n", CancellationToken.None),
+            "CalDAV-Update ohne ETag erreichte das Netzwerk.");
+        await TestAssert.ThrowsAsync<InvalidOperationException>(() => client.UpdateAsync(
+            new Uri("https://cloud.example/nc/tasks/a.ics"), "", "text/calendar",
+            "BEGIN:VCALENDAR\r\nBEGIN:VTODO\r\nUID:a\r\nEND:VTODO\r\nEND:VCALENDAR\r\n", CancellationToken.None),
+            "Aufgaben-Update ohne ETag erreichte das Netzwerk.");
+        TestAssert.That(calls == 0, "Ein DAV-Update ohne ETag wurde vor der Validierung gesendet.");
+    }
+
+    private static async Task TestPersistedConflicts(NextcloudMailboxSettingsStore settings, string root)
+    {
+        foreach (var task in new[] { false, true })
+        {
+            using var handler = new MemoryDavHandler(); using var http = new HttpClient(handler);
+            var source = new NextcloudDavSource("nextcloud-calendar:conflict", "conflict", "calendar", new Uri("https://cloud.example/nc/conflict/"));
+            var originalHref = source.Href.AbsoluteUri + "original.ics";
+            string Ics(string title) => "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:" + (task ? "VTODO" : "VEVENT") +
+                "\r\nUID:original\r\nDTSTART;VALUE=DATE:20260907\r\nSUMMARY:" + title + "\r\nEND:" + (task ? "VTODO" : "VEVENT") + "\r\nEND:VCALENDAR\r\n";
+            handler.Seed(originalHref, Ics("BASE"));
+            var cursor = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+            JsonArray values;
+            using (var client = new NextcloudDavClient(settings, http))
+            {
+                values = task ? (await new NextcloudTaskSync(client).SyncAsync(source, [], [], 0, true, default)).Tasks
+                    : (await new NextcloudCalendarSync(client).SyncAsync(source, [], [], [], 0, true, default)).Termine;
+                values[0]!["titel"] = "LOCAL"; values[0]!["geaendert"] = cursor + 1;
+                handler.Seed(originalHref, Ics("REMOTE"));
+                values = task ? (await new NextcloudTaskSync(client).SyncAsync(source, values, [], cursor, false, default)).Tasks
+                    : (await new NextcloudCalendarSync(client).SyncAsync(source, values, [], [], cursor, false, default)).Termine;
+            }
+            TestAssert.That(values.Count == 2 && values.OfType<JsonObject>().Single(item => ContactFields.Text(item, "titel") == "LOCAL")["sync"]?.GetValue<bool>() == false,
+                "The LOCAL conflict copy was not detached from the remote object.");
+            var file = Path.Combine(root, task ? "task-conflict.json" : "event-conflict.json");
+            for (var followup = 0; followup < 2; followup++)
+            {
+                new AtomicStore().WriteRecoverableJson(file, new JsonObject { ["items"] = values.DeepClone(), ["cursor"] = cursor + 1000 + followup }.ToJsonString());
+                var persisted = JsonNode.Parse(new AtomicStore().ReadRecoverableJson(file)!)!.AsObject();
+                using var restarted = new NextcloudDavClient(settings, http);
+                values = task ? (await new NextcloudTaskSync(restarted).SyncAsync(source, persisted["items"]!.AsArray(), [], persisted["cursor"]!.GetValue<long>(), false, default)).Tasks
+                    : (await new NextcloudCalendarSync(restarted).SyncAsync(source, persisted["items"]!.AsArray(), [], [], persisted["cursor"]!.GetValue<long>(), false, default)).Termine;
+                var items = values.OfType<JsonObject>().ToArray();
+                TestAssert.That(items.Length == 2 && items.Select(item => ContactFields.Text(item, "titel")).Order().SequenceEqual(new[] { "LOCAL", "REMOTE" }) &&
+                    items.Select(item => ContactFields.Text(item, "uid")).Distinct().Count() == 2 &&
+                    items.Select(item => ContactFields.Source(item, source.Uid)?["id"]?.GetValue<string>()).Distinct().Count() == 2 &&
+                    ContactFields.Text(items.Single(item => ContactFields.Text(item, "uid") == "original"), "titel") == "REMOTE",
+                    "A persisted conflict lost LOCAL content or shared its remote mapping on a follow-up sync.");
+                TestAssert.That(items.All(item =>
+                {
+                    var mapping = ContactFields.Source(item, source.Uid)!;
+                    return handler.Resources[mapping["id"]!.GetValue<string>().Split('#')[0]].ETag == mapping["etag"]!.GetValue<string>();
+                }), "Conflict follow-up stored a stale ETag for a preserved version.");
+            }
+            TestAssert.That(handler.Puts == 1, "Conflict follow-up repeatedly uploaded unchanged copies.");
+        }
+    }
+
+    private static async Task TestLostCreateResponse(NextcloudMailboxSettingsStore settings, string root)
+    {
+        foreach (var task in new[] { false, true })
+        {
+            using var handler = new MemoryDavHandler { LoseNextPutResponse = true }; using var http = new HttpClient(handler);
+            var source = new NextcloudDavSource("nextcloud-calendar:resume", "resume", "calendar", new Uri("https://cloud.example/nc/resume/"));
+            var path = Path.Combine(root, task ? "task-resume" : "event-resume"); var id = new string('e', 64);
+            var journal = new NextcloudSyncJournal(path, new Protector());
+            var values = new JsonArray(new JsonObject { ["id"] = "local", ["uid"] = "new", ["titel"] = "LOCAL", ["datum"] = "2026-09-07", ["geaendert"] = 20L });
+            async Task<JsonArray> Sync(NextcloudDavClient client) => task
+                ? (await new NextcloudTaskSync(client).SyncAsync(source, values, [], 10, false, default)).Tasks
+                : (await new NextcloudCalendarSync(client).SyncAsync(source, values, [], [], 10, false, default)).Termine;
+            using (var client = new NextcloudDavClient(settings, http, journal, id))
+                await TestAssert.ThrowsAsync<HttpRequestException>(async () => { _ = await Sync(client); }, "Lost successful create response was not simulated.");
+            var original = handler.Resources.Single().Value.Text;
+            TestAssert.That(File.Exists(path + ".creates") && !File.ReadAllText(path + ".creates").Contains("LOCAL", StringComparison.Ordinal), "Create payload was not protected before sending.");
+            await Task.Delay(1100);
+            using var current = JsonDocument.Parse(values.ToJsonString());
+            TestAssert.That(ExchangeCodec.WriteIcs(task ? "ics-aufgaben" : "ics-termine", current.RootElement).Text != original,
+                "The retry test did not cross a real DTSTAMP change.");
+            using (var restarted = new NextcloudDavClient(settings, http, new NextcloudSyncJournal(path, new Protector()), id))
+                TestAssert.That((await Sync(restarted)).Count == 1, "Recovered create was duplicated locally.");
+            TestAssert.That(handler.LastPut == original && handler.Resources.Count == 1 && handler.Gets == 1,
+                "Response-loss recovery did not replay the exact durable payload with conditional verification.");
+            var href = handler.Resources.Single().Key;
+            var putsBeforeChangedDraft = handler.Puts;
+            values[0]!["titel"] = "NEW LOCAL EDIT";
+            using (var restarted = new NextcloudDavClient(settings, http, new NextcloudSyncJournal(path, new Protector()), id))
+                await TestAssert.ThrowsAsync<InvalidOperationException>(async () => { _ = await Sync(restarted); }, "An obsolete pending payload was acknowledged as a changed local draft.");
+            TestAssert.That(handler.Puts == putsBeforeChangedDraft, "Changed local content reused a stale transaction payload.");
+            values[0]!["titel"] = "LOCAL";
+            handler.Seed(href, original.Replace("SUMMARY:LOCAL", "SUMMARY:FOREIGN", StringComparison.Ordinal));
+            using (var restarted = new NextcloudDavClient(settings, http, new NextcloudSyncJournal(path, new Protector()), id))
+                await TestAssert.ThrowsAsync<InvalidOperationException>(async () => { _ = await Sync(restarted); }, "A foreign edit was accepted as a recovered 412.");
+            TestAssert.That(handler.Resources[href].Text.Contains("SUMMARY:FOREIGN", StringComparison.Ordinal), "Recovery overwrote a foreign edit.");
+            journal.Save(id, "calendar:" + source.Uid, new JsonObject()); journal.Commit(id);
+            TestAssert.That(!File.Exists(path + ".creates"), "Committed creates retained stale replay payloads.");
+        }
+    }
+
+    private sealed class MemoryDavHandler : HttpMessageHandler
+    {
+        internal readonly Dictionary<string, (string ETag, string Text)> Resources = new(StringComparer.Ordinal);
+        internal bool LoseNextPutResponse;
+        internal int Puts, Gets;
+        internal string LastPut = "";
+        private int revision;
+        internal void Seed(string href, string text) => Resources[href] = ($"\"v{++revision}\"", text);
+        protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            var href = request.RequestUri!.AbsoluteUri;
+            if (request.Method.Method == "REPORT")
+                return Xml("<d:multistatus xmlns:d=\"DAV:\" xmlns:c=\"urn:ietf:params:xml:ns:caldav\">" + string.Concat(Resources.Select(item =>
+                    $"<d:response><d:href>{System.Security.SecurityElement.Escape(item.Key)}</d:href><d:propstat><d:prop><d:getetag>{System.Security.SecurityElement.Escape(item.Value.ETag)}</d:getetag><c:calendar-data>{System.Security.SecurityElement.Escape(item.Value.Text)}</c:calendar-data></d:prop><d:status>HTTP/1.1 200 OK</d:status></d:propstat></d:response>")) + "</d:multistatus>");
+            if (request.Method == HttpMethod.Get)
+            {
+                Gets++;
+                return Resources.TryGetValue(href, out var item) ? new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(item.Text), Headers = { ETag = new System.Net.Http.Headers.EntityTagHeaderValue(item.ETag) } } : new HttpResponseMessage(HttpStatusCode.NotFound);
+            }
+            if (request.Method == HttpMethod.Put)
+            {
+                Puts++; LastPut = await request.Content!.ReadAsStringAsync(cancellationToken);
+                if (Resources.TryGetValue(href, out var old) && (request.Headers.Contains("If-None-Match") ||
+                    !request.Headers.TryGetValues("If-Match", out var matches) || matches.Single() != old.ETag)) return new HttpResponseMessage(HttpStatusCode.PreconditionFailed);
+                Seed(href, LastPut);
+                if (LoseNextPutResponse) { LoseNextPutResponse = false; throw new HttpRequestException("synthetic lost PUT response"); }
+                return new HttpResponseMessage(HttpStatusCode.Created) { Headers = { ETag = new System.Net.Http.Headers.EntityTagHeaderValue(Resources[href].ETag) } };
+            }
+            throw new InvalidOperationException("Unexpected method: " + request.Method);
+        }
+    }
+
+    private static async Task TestSafeFirstRunsAndConflictIdentity(NextcloudMailboxSettingsStore settings)
+    {
+        const string remoteIcs = "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\nUID:same\r\nDTSTART;VALUE=DATE:20260817\r\nLAST-MODIFIED:20260817T100000Z\r\nSUMMARY:Remote\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n";
+        var writes = 0;
+        using var http = new HttpClient(new Handler(request =>
+        {
+            if (request.Method == HttpMethod.Put || request.Method == HttpMethod.Delete) writes++;
+            return Task.FromResult(Xml($"<d:multistatus xmlns:d=\"DAV:\" xmlns:c=\"urn:ietf:params:xml:ns:caldav\"><d:response><d:href>/nc/calendar/remote.ics</d:href><d:propstat><d:prop><d:getetag>&quot;new&quot;</d:getetag><c:calendar-data>{remoteIcs}</c:calendar-data></d:prop><d:status>HTTP/1.1 200 OK</d:status></d:propstat></d:response></d:multistatus>"));
+        }));
+        using var client = new NextcloudDavClient(settings, http);
+        var source = new NextcloudDavSource("nextcloud-calendar:first", "first", "calendar",
+            new Uri("https://cloud.example/nc/calendar/"));
+        var first = await new NextcloudCalendarSync(client).SyncAsync(source,
+            new JsonArray(new JsonObject { ["id"] = "local", ["uid"] = "same", ["titel"] = "Local", ["geaendert"] = 1L }),
+            new JsonArray(), new JsonArray(), 0, true, CancellationToken.None);
+        TestAssert.That(writes == 0 && first.Exported == 0 && first.Termine.Count == 1 &&
+            ContactFields.Source(first.Termine[0]!.AsObject(), source.Uid) is not null,
+            "Erster CalDAV-Lauf schrieb remote oder duplizierte eine UID-Kollision.");
+
+        var contactRemote = new CountingContactRemote(new RemoteContact("remote-card", "\"v1\"", 10,
+            new JsonObject { ["uid"] = "same-card", ["vorname"] = "Remote", ["geaendert"] = 10L }, true));
+        var contactFirst = await new ContactSyncEngine().SyncAsync("nextcloud-addressbook:first",
+            new JsonArray(new JsonObject { ["uid"] = "same-card", ["vorname"] = "Local", ["geaendert"] = 1L }),
+            new JsonArray(), 0, contactRemote, CancellationToken.None, true);
+        TestAssert.That(contactRemote.Writes == 0 && contactFirst.Contacts.Count == 1 &&
+            ContactFields.Source(contactFirst.Contacts[0]!.AsObject(), "nextcloud-addressbook:first") is not null,
+            "Erster CardDAV-Lauf schrieb remote oder duplizierte eine UID-Kollision.");
+
+        var remoteKey = "https://cloud.example/nc/calendar/remote.ics#" +
+            Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes("same"))).ToLowerInvariant();
+        var local = new JsonObject { ["id"] = "local-conflict", ["uid"] = "same", ["titel"] = "Local changed",
+            ["geaendert"] = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(), ["sync"] = true,
+            ["syncQuellen"] = new JsonObject { [source.Uid] = new JsonObject { ["id"] = remoteKey, ["etag"] = "\"old\"" } } };
+        var conflict = await new NextcloudCalendarSync(client).SyncAsync(source,
+            new JsonArray(local), new JsonArray(), new JsonArray(), 1, false, CancellationToken.None);
+        var conflictItems = conflict.Termine.OfType<JsonObject>().ToArray();
+        TestAssert.That(conflict.Conflicts == 1 && conflictItems.Select(item => ContactFields.Text(item, "uid")).Distinct().Count() == 2 &&
+            conflictItems.Count(item => ContactFields.Source(item, source.Uid) is not null) == 1 &&
+            conflictItems.Single(item => ContactFields.Source(item, source.Uid) is null)["sync"]?.GetValue<bool>() == false && writes == 0,
+            "CalDAV-Konfliktkopie teilte UID oder Remote-Quellenidentität mit dem Original.");
+
+        var failing = new CountingContactRemote(new RemoteContact("remote-fail", "\"v1\"", 1,
+            new JsonObject { ["uid"] = "fail", ["geaendert"] = 1L }, true)) { FailWrites = true };
+        var failed = await new ContactSyncEngine().SyncAsync("nextcloud-addressbook:failed",
+            new JsonArray(new JsonObject { ["uid"] = "fail", ["geaendert"] = 20L, ["vorname"] = "Local edit",
+                ["syncQuellen"] = new JsonObject { ["nextcloud-addressbook:failed"] = new JsonObject
+                    { ["id"] = "remote-fail", ["etag"] = "\"v1\"" } } }),
+            new JsonArray(), 10, failing);
+        TestAssert.That(failed.Counts.Errors == 1, "CardDAV-Schreibfehler wurde als Erfolg gezählt.");
+        var dispatcher = File.ReadAllText("BridgeDispatcher.Sync.cs");
+        var errorGuard = dispatcher.IndexOf("result.Counts.Errors > 0", StringComparison.Ordinal);
+        var progress = dispatcher.IndexOf("SaveProgress(\"contacts:\" + source)", StringComparison.Ordinal);
+        var cursor = dispatcher.IndexOf("addressCursors[source] = now", StringComparison.Ordinal);
+        TestAssert.That(errorGuard >= 0 && errorGuard < progress && progress < cursor,
+            "CardDAV-Schreibfehler kann weiterhin Journalphase oder Cursor als erfolgreich fortschreiben.");
+
+        var raw = "backend intern deutsch credential=secret";
+        TestAssert.That(NextcloudStatusText.For(new IOException(raw)) != raw &&
+            NextcloudStatusText.For(new TaskCanceledException(raw)) == NativeLocalization.Gettext("The Nextcloud request timed out."),
+            "Nextcloud-Status gibt rohe Backend-/Fehlertexte statt lokalisierter Meldungen aus.");
     }
 
     private static async Task TestGenericBaikalDiscovery(string root)
@@ -210,6 +440,23 @@ internal static class NextcloudDavTests
         }
     }
 
+    private static async Task TestCrossResourceTaskHierarchy(NextcloudMailboxSettingsStore settings)
+    {
+        const string parent = "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VTODO\r\nUID:parent\r\nSUMMARY:Parent\r\nEND:VTODO\r\nEND:VCALENDAR\r\n";
+        const string child = "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VTODO\r\nUID:child\r\nSUMMARY:Child\r\nRELATED-TO;RELTYPE=PARENT:parent\r\nX-MAGNOLIE-REIHENFOLGE:0\r\nEND:VTODO\r\nEND:VCALENDAR\r\n";
+        using var http = new HttpClient(new Handler(_ => Task.FromResult(Xml(
+            $"<d:multistatus xmlns:d=\"DAV:\" xmlns:c=\"urn:ietf:params:xml:ns:caldav\">" +
+            $"<d:response><d:href>/nc/tasks/parent.ics</d:href><d:propstat><d:prop><d:getetag>&quot;p1&quot;</d:getetag><c:calendar-data>{parent}</c:calendar-data></d:prop><d:status>HTTP/1.1 200 OK</d:status></d:propstat></d:response>" +
+            $"<d:response><d:href>/nc/tasks/child.ics</d:href><d:propstat><d:prop><d:getetag>&quot;c1&quot;</d:getetag><c:calendar-data>{child}</c:calendar-data></d:prop><d:status>HTTP/1.1 200 OK</d:status></d:propstat></d:response></d:multistatus>"))));
+        using var client = new NextcloudDavClient(settings, http);
+        var source = new NextcloudDavSource("nextcloud-calendar:tree", "tree", "calendar", new Uri("https://cloud.example/nc/tasks/"));
+        var imported = await new NextcloudTaskSync(client).SyncAsync(source, new JsonArray(),
+            new JsonArray(), 0, true, CancellationToken.None);
+        var tasks = imported.Tasks.OfType<JsonObject>().ToDictionary(item => ContactFields.Text(item, "uid"), StringComparer.Ordinal);
+        TestAssert.That(tasks.Count == 2 && ContactFields.Text(tasks["child"], "elternUid") == "parent",
+            "Eine Teilaufgabe in einer eigenen CalDAV-Ressource verlor ihre Hauptaufgabe.");
+    }
+
     private static async Task TestHostileServers(NextcloudMailboxSettingsStore settings)
     {
         var calls = 0;
@@ -324,8 +571,8 @@ internal static class NextcloudDavTests
                 ["uid"] = deletedUid, ["syncKalenderUid"] = first.Uid,
                 ["syncQuellen"] = new JsonObject
                 {
-                    [first.Uid] = new JsonObject { ["id"] = "https://cloud.example/nc/calendar/first/item.ics" + suffix },
-                    [second.Uid] = new JsonObject { ["id"] = "https://cloud.example/nc/calendar/second/item.ics" + suffix }
+                    [first.Uid] = new JsonObject { ["id"] = "https://cloud.example/nc/calendar/first/item.ics" + suffix, ["etag"] = "\"d1\"" },
+                    [second.Uid] = new JsonObject { ["id"] = "https://cloud.example/nc/calendar/second/item.ics" + suffix, ["etag"] = "\"d1\"" }
                 }
             });
             var afterFirst = await new NextcloudCalendarSync(client).SyncAsync(first,
@@ -487,6 +734,89 @@ internal static class NextcloudDavTests
             "vCard 2.1/3.0/4.0 verlor Anbieterfelder, Parameter oder Original-UIDs.");
     }
 
+    private static async Task TestNextcloudAnniversaries(NextcloudMailboxSettingsStore settings, string root)
+    {
+        var cases = new (string Properties, string Expected)[]
+        {
+            ("X-ANNIVERSARY:20210907", "2021-09-07"),
+            ("X-ANNIVERSARY;X-APPLE-OMIT-YEAR=1604:1604-09-07", "--09-07"),
+            ("X-ANNIVERSARY:16040907", "1604-09-07"),
+            ("X-ANNIVERSARY;X-APPLE-OMIT-YEAR=2000:16040907", "1604-09-07"),
+            ("item1.X-ABDATE:20210907\nitem1.X-ABLABEL:_$!<Anniversary>!$_", "2021-09-07"),
+            ("item1.X-ABDATE;X-APPLE-OMIT-YEAR=\"1604\":16040907\nITEM1.X-ABLABEL:Anniversary", "--09-07"),
+            ("item1.X-ABDATE:16040907\nitem1.X-ABLABEL:_$!<Anniversary>!$_", "1604-09-07"),
+            ("item1.X-ABDATE:20210907\nitem1.X-ABLABEL:Custom date", ""),
+            ("item1.X-ABDATE:20210907\nitem2.X-ABLABEL:Anniversary", ""),
+            ("X-ABDATE:20210907", ""),
+            ("X-ANNIVERSARY:20210907\nANNIVERSARY:--0229", "--02-29"),
+            ("ANNIVERSARY:20000301\nX-ANNIVERSARY:20210907", "2000-03-01"),
+            ("X-ANNIVERSARY:20210907\nANNIVERSARY:invalid", "")
+        };
+        foreach (var (properties, expected) in cases)
+        {
+            var parsed = ExchangeCodec.ParseVCard("BEGIN:VCARD\nVERSION:4.0\nUID:synthetic\nFN:Synthetic\n" + properties + "\nEND:VCARD");
+            TestAssert.That(ContactFields.Text(parsed.Kontakte[0]!.AsObject(), "jubilaeum") == expected,
+                "Anniversary alias precedence, semantic label, or explicit omitted-year metadata was lost.");
+            if (expected.Length == 0) continue;
+            using var saved = JsonDocument.Parse(parsed.Kontakte.ToJsonString());
+            var again = ExchangeCodec.ParseVCard(ExchangeCodec.WriteVCard(saved.RootElement).Text);
+            TestAssert.That(ContactFields.Text(again.Kontakte[0]!.AsObject(), "jubilaeum") == expected, "Anniversary changed on save/export/reimport.");
+        }
+
+        var fixture = File.ReadAllText(Path.Combine("tests", "fixtures", "nextcloud-anniversaries.vcf"));
+        var rows = Regex.Matches(fixture, "BEGIN:VCARD.*?END:VCARD", RegexOptions.Singleline)
+            .Select((match, index) => (Href: "https://cloud.example/nc/addressbooks/" + index + ".vcf", Text: match.Value, ETag: "\"base-" + index + "\""))
+            .ToDictionary(row => row.Href, row => (row.Text, row.ETag));
+        var writes = 0;
+        using var http = new HttpClient(new Handler(async request =>
+        {
+            if (request.Method.Method == "REPORT") return Xml("<d:multistatus xmlns:d=\"DAV:\" xmlns:c=\"urn:ietf:params:xml:ns:carddav\">" +
+                string.Concat(rows.Select(row => "<d:response><d:href>" + row.Key + "</d:href><d:propstat><d:prop><d:getetag>" + WebUtility.HtmlEncode(row.Value.ETag) +
+                    "</d:getetag><c:address-data>" + WebUtility.HtmlEncode(row.Value.Text) + "</c:address-data></d:prop><d:status>HTTP/1.1 200 OK</d:status></d:propstat></d:response>")) + "</d:multistatus>");
+            TestAssert.That(request.Method == HttpMethod.Put && rows.TryGetValue(request.RequestUri!.AbsoluteUri, out var prior) &&
+                request.Headers.GetValues("If-Match").Single() == prior.ETag, "Anniversary update used the wrong source ETag.");
+            var text = (await request.Content!.ReadAsStringAsync()).Replace("\r\n", "\n", StringComparison.Ordinal).Replace("VERSION:4.0", "VERSION:3.0", StringComparison.Ordinal);
+            text = Regex.Replace(text, @"(?m)^ANNIVERSARY:--(\d{2})(\d{2})$", "X-ANNIVERSARY;X-APPLE-OMIT-YEAR=1604:1604-$1-$2");
+            text = Regex.Replace(text, @"(?m)^ANNIVERSARY:", "X-ANNIVERSARY:");
+            var etag = "\"write-" + ++writes + "\"";
+            rows[request.RequestUri!.AbsoluteUri] = (text, etag);
+            return new HttpResponseMessage(HttpStatusCode.NoContent) { Headers = { ETag = new System.Net.Http.Headers.EntityTagHeaderValue(etag) } };
+        }));
+        using var client = new NextcloudDavClient(settings, http);
+        var source = new NextcloudDavSource("nextcloud-addressbook:anniversary", "Synthetic", "addressbook", new Uri("https://cloud.example/nc/addressbooks/"));
+        var remote = new NextcloudCardDavRemote(client, source);
+        var engine = new ContactSyncEngine();
+        var state = await engine.SyncAsync(source.Uid, [], [], 0, remote, additiveOnly: true);
+        foreach (var item in state.Contacts.OfType<JsonObject>()) { item["notiz"] = "Saved synthetic edit"; item["geaendert"] = 100L; }
+        var path = Path.Combine(root, "anniversary-state.json");
+        for (var followup = 0; followup < 3; followup++)
+        {
+            new AtomicStore().Write(path, state.Contacts.ToJsonString());
+            var saved = JsonNode.Parse(new AtomicStore().Read(path)!)!.AsArray();
+            state = await engine.SyncAsync(source.Uid, saved, [], followup == 0 ? 0 : 1000, remote);
+            CheckDates(state.Contacts);
+            TestAssert.That(writes == 2 && state.Counts.Errors == 0, "Normalized anniversary produced repeated updates or failed writes.");
+        }
+        var fresh = await engine.SyncAsync(source.Uid, [], [], 0, remote, additiveOnly: true);
+        CheckDates(fresh.Contacts);
+        for (var followup = 0; followup < 2; followup++)
+        {
+            new AtomicStore().Write(path, fresh.Contacts.ToJsonString());
+            fresh = await engine.SyncAsync(source.Uid, JsonNode.Parse(new AtomicStore().Read(path)!)!.AsArray(), [], 1000, remote);
+            CheckDates(fresh.Contacts);
+            TestAssert.That(writes == 2 && fresh.Counts.Errors == 0, "Fresh import/save/followup changed normalized anniversary resources.");
+        }
+
+        static void CheckDates(JsonArray contacts)
+        {
+            var values = contacts.OfType<JsonObject>().ToDictionary(value => ContactFields.Text(value, "uid"));
+            TestAssert.That(values.Count == 2 && ContactFields.Text(values["synthetic-full-anniversary"], "geburtstag") == "1980-03-01" &&
+                ContactFields.Text(values["synthetic-full-anniversary"], "jubilaeum") == "2021-09-07" &&
+                ContactFields.Text(values["synthetic-yearless-anniversary"], "geburtstag") == "--02-29" &&
+                ContactFields.Text(values["synthetic-yearless-anniversary"], "jubilaeum") == "--09-07", "Converted Nextcloud anniversary dates were lost.");
+        }
+    }
+
     private static int Count(this string text, string value) =>
         Regex.Matches(text, Regex.Escape(value), RegexOptions.CultureInvariant).Count;
 
@@ -536,10 +866,15 @@ internal static class NextcloudDavTests
             source.Contains("[\"aufgabenInitialisiert\"] = true", StringComparison.Ordinal) &&
             source.Contains("taskCursors[calendarId] = now", StringComparison.Ordinal),
             "Aufgaben besitzen keinen separat persistierten Initialisierungscursor.");
-        var taskTimeout = source.IndexOf("using var taskTimeout = new CancellationTokenSource(TimeSpan.FromSeconds(12));", StringComparison.Ordinal);
+        var taskTimeout = source.IndexOf("using var taskTimeout = CancellationTokenSource.CreateLinkedTokenSource(operation.Token); taskTimeout.CancelAfter(TimeSpan.FromSeconds(12));", StringComparison.Ordinal);
         var taskCall = source.IndexOf("additiveOnly || firstTaskRun, taskTimeout.Token", StringComparison.Ordinal);
         TestAssert.That(taskTimeout >= 0 && taskCall > taskTimeout && !source.Contains("additiveOnly || firstTaskRun, calendarTimeout.Token", StringComparison.Ordinal),
             "Aufgabensync teilt weiterhin das 12-Sekunden-Budget des Terminsyncs.");
+        var catchPosition = source.IndexOf("catch (Exception error)", StringComparison.Ordinal);
+        var disposePosition = source.IndexOf("davClient?.Dispose()", catchPosition, StringComparison.Ordinal);
+        TestAssert.That(catchPosition >= 0 && disposePosition > catchPosition &&
+                        !source.Contains("App.syncFehler\", error.Message", StringComparison.Ordinal),
+            "Der DAV-Client bleibt auf Fehlerpfaden offen oder technische Syncfehler gelangen in die Oberfläche.");
     }
 
     private static string Collections(string type, string ns, string href, string name) => $"<d:multistatus xmlns:d=\"DAV:\" xmlns:x=\"{ns}\"><d:response><d:href>{href}</d:href><d:propstat><d:prop><d:displayname>{name}</d:displayname><d:resourcetype><d:collection/><x:{type}/></d:resourcetype></d:prop><d:status>HTTP/1.1 200 OK</d:status></d:propstat></d:response></d:multistatus>";
@@ -549,4 +884,14 @@ internal static class NextcloudDavTests
     private sealed class Handler(Func<HttpRequestMessage, Task<HttpResponseMessage>> response) : HttpMessageHandler { protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken) => response(request); }
     private sealed class CancellableHandler : HttpMessageHandler { protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken) { await Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken); return new HttpResponseMessage(HttpStatusCode.OK); } }
     private sealed class Protector : ISecretProtector { public byte[] Protect(byte[] plain) => plain.Select(value => (byte)(value ^ 0x5a)).Prepend((byte)1).ToArray(); public byte[] Unprotect(byte[] encrypted) => encrypted.Skip(1).Select(value => (byte)(value ^ 0x5a)).ToArray(); }
+    private sealed class CountingContactRemote(params RemoteContact[] contacts) : IContactRemote
+    {
+        internal int Writes { get; private set; }
+        internal bool FailWrites { get; init; }
+        public Task<IReadOnlyList<RemoteContact>> ReadAsync(CancellationToken cancellationToken) => Task.FromResult<IReadOnlyList<RemoteContact>>(contacts);
+        public Task<RemoteContact> CreateAsync(string uid, JsonObject contact, CancellationToken cancellationToken) => Write(contacts.FirstOrDefault() ?? new RemoteContact(uid, "", 0, contact, true));
+        public Task<RemoteContact> UpdateAsync(RemoteContact remote, string uid, JsonObject contact, CancellationToken cancellationToken) => Write(remote);
+        public Task DeleteAsync(RemoteContact remote, string uid, CancellationToken cancellationToken) { Writes++; return FailWrites ? Task.FromException(new IOException("write failed")) : Task.CompletedTask; }
+        private Task<RemoteContact> Write(RemoteContact value) { Writes++; return FailWrites ? Task.FromException<RemoteContact>(new IOException("write failed")) : Task.FromResult(value); }
+    }
 }

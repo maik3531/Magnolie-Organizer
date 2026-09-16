@@ -39,8 +39,11 @@ for (const [name, source] of [["Linux", linuxUi], ["Windows", windowsUi]]) {
     `${name}: generische Quellen werden nicht neutral beschriftet`);
   assert.match(source, /supportsVtodo === false[\s\S]{0,180}Appointments remain available/,
     `${name}: VTODO-Fähigkeitshinweis fehlt`);
-  assert.match(source, /setupImportWarteschlange = Array\.from/,
-    `${name}: direkte Assistentenimporte fehlen`);
+  assert.ok(/setupImportWarteschlange = Array\.isArray\(roh\.stagedImports\)/.test(source) &&
+    /roh\.stagedImports\.filter\([\s\S]*?roh\.oneTimeImports/.test(source),
+    `${name}: gepruefte Assistentenimporte oder der explizite Altformat-Pfad fehlen`);
+  assert.ok(/typeof quelle === "object" && quelle\.payload[\s\S]*?App\.importErgebnis\(quelle\.payload\)/.test(source),
+    `${name}: vorbereitete Importe werden nicht an die normale Importentscheidung uebergeben`);
   assert.doesNotMatch(source, /setupTelefonAktionen/,
     `${name}: veraltete automatische Telefonkopplung ist noch aktiv`);
   assert.match(source, /setTimeout\(starteNaechstenSetupImport, 0\)/,

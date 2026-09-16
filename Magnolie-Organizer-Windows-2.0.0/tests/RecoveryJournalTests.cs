@@ -5,12 +5,13 @@ namespace MagnolieOrganizer.Windows.Tests;
 
 internal static class RecoveryJournalTests
 {
-    internal static Task RunAsync()
+    internal static async Task RunAsync()
     {
         var root = Path.Combine(Path.GetTempPath(), $"magnolie-journal-{Guid.NewGuid():N}");
         var now = new DateTimeOffset(2026, 8, 12, 10, 0, 0, TimeSpan.Zero);
         try
         {
+            await TestLoadedOutboxQuarantine(root);
             var migrationRoot = Path.Combine(root, "migration");
             var migrationPaths = new WindowsPaths(migrationRoot);
             Directory.CreateDirectory(migrationPaths.RecoveryJournal);
@@ -28,6 +29,8 @@ internal static class RecoveryJournalTests
 
             var journal = new RecoveryJournal(Path.Combine(root, "wiederherstellungsstaende"),
                 Path.Combine(root, "journal.json"), clock: () => now);
+            TestAssert.That(journal.Schedule() is { Mode: "days", Maximum: 20, Days: 3650 },
+                "Recovery defaults diverged from the desktop settings contract.");
             var data = new JsonObject { ["termine"] = new JsonArray(new JsonObject { ["id"] = "t1" }),
                 ["kontakte"] = new JsonArray(), ["notizen"] = new JsonArray(new JsonObject { ["id"] = "n1",
                     ["anhaenge"] = new JsonArray(new JsonObject { ["name"] = "a.pdf", ["sha256"] = new string('a', 64),
@@ -41,9 +44,31 @@ internal static class RecoveryJournalTests
                 "Snapshot-Manifest verletzt Format, UUID, Plattform oder Sync-Epoche.");
             TestAssert.That(GesamtarchivService.Read(journal.ReadPayload(first.Id)).Daten["termine"]!.AsArray().Count == 1,
                 "Journal verwendet nicht den vorhandenen Gesamtarchiv-Payload.");
-            TestAssert.That(GesamtarchivService.Read(journal.ReadPayload(first.Id)).Anhaenge == 0 &&
+            TestAssert.That(GesamtarchivService.Read(journal.ReadPayload(first.Id)).Anhaenge == 1 &&
                 data["notizen"]![0]!["anhaenge"]![0]!["daten"]!.ToString().StartsWith("data:", StringComparison.Ordinal),
-                "Das Journal speichert Anhangdaten oder verändert den aktiven Datenbestand.");
+                "Snapshot lost attachment bytes or mutated live data.");
+            var archivedData = GesamtarchivService.Read(journal.ReadPayload(first.Id)).Daten;
+            TestAssert.That(JsonNode.DeepEquals(RestoreSelection.Select(archivedData, new JsonObject(),
+                ["all"], "replace")["notizen"], data["notizen"]), "Deleted attachment was not recovered from snapshot bytes.");
+            foreach (var field in new[] { "sha256", "attachment_id", "id" })
+            {
+                var legacyAttachment = new JsonObject { [field] = "unique", ["name"] = "same.pdf", ["daten"] = "" };
+                var liveAttachment = legacyAttachment.DeepClone().AsObject();
+                liveAttachment["daten"] = "data:application/pdf;base64,JVBERg==";
+                var legacyData = new JsonObject { ["anhaenge"] = new JsonArray(legacyAttachment) };
+                var liveData = new JsonObject { ["anhaenge"] = new JsonArray(liveAttachment) };
+                TestAssert.That(RestoreSelection.Select(legacyData, liveData, ["all"], "replace")["anhaenge"]![0]!["daten"]!
+                    .ToString().StartsWith("data:"), "Unique legacy attachment was not recovered.");
+                liveData["anhaenge"]!.AsArray().Add(liveAttachment.DeepClone());
+                try { RestoreSelection.Select(legacyData, liveData, ["all"], "replace"); throw new Exception("Ambiguous identity accepted."); }
+                catch (InvalidDataException) { }
+                try { RestoreSelection.Select(legacyData, new JsonObject(), ["all"], "replace"); throw new Exception("Missing bytes accepted."); }
+                catch (InvalidDataException) { }
+            }
+            var filenameOnly = JsonNode.Parse("{\"anhaenge\":[{\"name\":\"same.pdf\",\"daten\":\"\"}]}")!.AsObject();
+            var sameFilename = JsonNode.Parse("{\"anhaenge\":[{\"name\":\"same.pdf\",\"daten\":\"data:application/pdf;base64,JVBERg==\"}]}")!.AsObject();
+            try { RestoreSelection.Select(filenameOnly, sameFilename, ["all"], "replace"); throw new Exception("Filename-only identity accepted."); }
+            catch (InvalidDataException) { }
             var duplicate = journal.Create(data, SnapshotReason.Periodic, "2.0.2");
             TestAssert.That(duplicate.Id == first.Id && journal.List().Count == 1, "15-Minuten-Deduplizierung greift nicht.");
 
@@ -102,6 +127,26 @@ internal static class RecoveryJournalTests
                 "Die tagebasierte Aufbewahrung entfernt junge oder angeheftete Stände nicht korrekt.");
             TestAssert.That(journal.SetMaximum(2) is { Mode: "count", Maximum: 2, Days: 2 },
                 "Der alte journal_anzahl-Vertrag schaltet nicht kompatibel auf Anzahl zurück.");
+
+            var protectedMaximumRoot = Path.Combine(root, "protected-maximum");
+            var protectedMaximum = new RecoveryJournal(protectedMaximumRoot,
+                Path.Combine(root, "protected-maximum.json"), clock: () => now);
+            protectedMaximum.SetRetention("count", 2, 1);
+            var pinnedOne = protectedMaximum.Create(new JsonObject { ["id"] = "manual-1" }, SnapshotReason.Manual, "2.0.2");
+            now = now.AddSeconds(1);
+            var pinnedTwo = protectedMaximum.Create(new JsonObject { ["id"] = "manual-2" }, SnapshotReason.Manual, "2.0.2");
+            now = now.AddSeconds(1);
+            var newest = protectedMaximum.Create(new JsonObject { ["id"] = "automatic" }, SnapshotReason.Periodic, "2.0.2");
+            TestAssert.That(protectedMaximum.List().Any(item => item.Id == pinnedOne.Id) &&
+                protectedMaximum.List().Any(item => item.Id == pinnedTwo.Id) &&
+                protectedMaximum.List().Any(item => item.Id == newest.Id),
+                "Ein neuer automatischer Stand wurde gelöscht, obwohl bereits alle Zählplätze geschützt waren.");
+            now = now.AddSeconds(1);
+            var nextAutomatic = protectedMaximum.Create(new JsonObject { ["id"] = "next-automatic" }, SnapshotReason.Periodic, "2.0.2");
+            TestAssert.That(protectedMaximum.List().Count == 3 &&
+                protectedMaximum.List().Any(item => item.Id == nextAutomatic.Id) &&
+                protectedMaximum.List().All(item => item.Id != newest.Id),
+                "The temporary creation lease retained an extra old automatic point.");
 
             var compressionRoot = Path.Combine(root, "compression");
             var compressionNow = new DateTimeOffset(2024, 1, 1, 10, 0, 0, TimeSpan.Zero);
@@ -206,14 +251,94 @@ internal static class RecoveryJournalTests
                 "Ein Restore-Fehler gab den Pre-Restore-Lease nicht sauber frei.");
 
             var restored = new JsonObject { ["syncEpoch"] = "old", ["geloescht"] = new JsonObject
-                { ["kontakte"] = new JsonArray(new JsonObject { ["uid"] = "dead" }), ["termine"] = new JsonArray() } };
+                { ["kontakte"] = new JsonArray(new JsonObject { ["uid"] = "dead" }), ["termine"] = new JsonArray(),
+                    ["aufgaben"] = new JsonArray(new JsonObject { ["uid"] = "dead-task" }) } };
             var newEpoch = RestoreSyncState.Prepare(restored, now);
             TestAssert.That(newEpoch != "old" && restored["syncNachRestore"]?["additiv"]?.GetValue<bool>() == true &&
                 restored["geloescht"]?["kontakte"]?.AsArray().Count == 0 &&
-                restored["quarantaeneTombstones"]?["kontakte"]?.AsArray().Count == 1,
+                restored["geloescht"]?["aufgaben"]?.AsArray().Count == 0 &&
+                restored["syncMetadaten"]?["quarantinedDeletes"]?["geloescht"]?["kontakte"]?.AsArray().Count == 1 &&
+                restored["syncMetadaten"]?["quarantinedDeletes"]?["geloescht"]?["aufgaben"]?.AsArray().Count == 1,
                 "Restore erneuert die Epoche oder quarantänisiert alte Tombstones nicht.");
+            var crossPlatform = JsonNode.Parse(File.ReadAllText("tests/fixtures/recovery-deletions.json"))!.AsObject();
+            foreach (var platform in new[] { "linux", "windows" })
+            {
+                var fixture = crossPlatform[platform]!.DeepClone().AsObject();
+                RestoreSyncState.Prepare(fixture, now);
+                foreach (var field in new[] { "geloescht", "tombstones", "baumKontaktGeloescht" })
+                    TestAssert.That(JsonNode.DeepEquals(fixture["syncMetadaten"]!["quarantinedDeletes"]![field],
+                        crossPlatform[platform]![field]), "Cross-platform deletion quarantine lost " + field);
+                TestAssert.That(fixture["tombstones"]!.AsArray().Count == 0 && fixture["baumKontaktGeloescht"]!.AsArray().Count == 0,
+                    "Archived deletion authority remains active.");
+            }
+            var liveCustom = new JsonObject { ["personalSync"] = new JsonObject {
+                ["actor_id"] = "live-actor", ["custom_revision"] = 100,
+                ["custom_entities"] = new JsonObject { ["retained"] = new JsonObject { ["item_id"] = "removed-item", ["hash"] = "prior" } } } };
+            foreach (var archive in new[] { new JsonObject(), new JsonObject { ["personalSync"] = new JsonObject {
+                ["actor_id"] = "archive-actor", ["custom_revision"] = 10, ["custom_auto_hash"] = "old-proof" } } })
+            {
+                RestoreSyncState.Prepare(archive, now, liveCustom);
+                TestAssert.That(archive["personalSync"]?["actor_id"]?.GetValue<string>() == "live-actor" &&
+                    archive["personalSync"]?["custom_revision"]?.GetValue<int>() == 100 &&
+                    JsonNode.DeepEquals(archive["personalSync"]?["custom_entities"], liveCustom["personalSync"]?["custom_entities"]) &&
+                    archive["personalSync"]?["custom_auto_hash"] is null, "Restore imported archive protocol authority or lost deletion baseline.");
+            }
         }
         finally { try { Directory.Delete(root, true); } catch { } }
-        return Task.CompletedTask;
+    }
+
+    private static async Task TestLoadedOutboxQuarantine(string root)
+    {
+        var paths = new WindowsPaths(Path.Combine(root, "loaded-tree"));
+        var storage = new MagnolienbaumStore(paths); var state = storage.LoadOrCreate();
+        state["partner"] = new JsonArray(new JsonObject { ["kennung"] = "peer", ["name"] = "Peer", ["bestaetigt"] = true,
+            ["oeffentlich"] = Convert.ToBase64String(MagnolienbaumCrypto.GenerateX25519().Public),
+            ["adresse"] = "192.0.2.1", ["port"] = 8737, ["protokoll"] = "baum-1" });
+        storage.SaveState(state);
+        storage.SaveOutbox(new JsonArray(new JsonObject { ["id"] = "before-restore", ["transportId"] = Convert.ToBase64String(new byte[16]),
+            ["an"] = "peer", ["art"] = "notiz", ["inhalt"] = new JsonObject { ["art"] = "notiz", ["text"] = "OLD" },
+            ["versuche"] = 0, ["angelegt"] = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"), ["zuletzt"] = "" }));
+        using var coordinator = new MagnolienbaumCoordinator(paths, (_, _) => Task.CompletedTask);
+        using var handler = new WaitingOutboxHandler();
+        var flags = System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance;
+        var clientField = typeof(MagnolienbaumCoordinator).GetField("client", flags)!;
+        ((HttpClient)clientField.GetValue(coordinator)!).Dispose(); clientField.SetValue(coordinator, new HttpClient(handler));
+        var maintain = typeof(MagnolienbaumCoordinator).GetMethod("MaintainOutboxAsync", flags)!;
+        var inFlight = (Task)maintain.Invoke(coordinator, [1, CancellationToken.None])!;
+        await handler.Started.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        var quarantine = await coordinator.QuarantineOutboxAsync().WaitAsync(TimeSpan.FromSeconds(5));
+        await TestAssert.ThrowsAsync<OperationCanceledException>(() => inFlight, "Restore did not cancel the old in-flight delivery.");
+        TestAssert.That(quarantine is not null && File.Exists(quarantine) && JsonNode.Parse(File.ReadAllText(quarantine))!.AsArray().Count == 1 &&
+            new MagnolienbaumStore(paths).LoadOutbox().Count == 0, "Restore did not durably quarantine the loaded queue.");
+        await (Task)maintain.Invoke(coordinator, [1, CancellationToken.None])!;
+        TestAssert.That(handler.Calls == 1 && !File.Exists(paths.BaumOutbox), "Quarantined memory state sent or recreated the old live queue.");
+        var dispatcher = File.ReadAllText("BridgeDispatcher.cs");
+        foreach (var method in new[] { "RestoreBackupAsync", "ImportGesamtarchivAsync", "RestoreSnapshotAsync" })
+        {
+            var start = dispatcher.IndexOf("private async Task " + method, StringComparison.Ordinal);
+            var end = dispatcher.IndexOf("\n    private ", start + 1, StringComparison.Ordinal);
+            var body = dispatcher[start..end];
+            var quarantineAt = body.IndexOf("await baum.QuarantineOutboxAsync();", StringComparison.Ordinal);
+            var writeAt = body.IndexOf("CommitRestoredProfile(", StringComparison.Ordinal);
+            TestAssert.That(quarantineAt >= 0 && writeAt > quarantineAt, "Restore replaced data before quiescing and quarantining the live outbox.");
+        }
+        var commitStart = dispatcher.IndexOf("private string CommitRestoredProfile(", StringComparison.Ordinal);
+        var commitEnd = dispatcher.IndexOf("\n    private ", commitStart + 1, StringComparison.Ordinal);
+        var commit = dispatcher[commitStart..commitEnd];
+        var intentAt = commit.IndexOf("telefon.PrepareRestoreCommit(", StringComparison.Ordinal);
+        TestAssert.That(intentAt >= 0 && intentAt < commit.IndexOf("store.WriteRecoverableJson(paths.Data,", StringComparison.Ordinal),
+            "Profile replacement lost its durable restore intent.");
+    }
+
+    private sealed class WaitingOutboxHandler : HttpMessageHandler
+    {
+        internal readonly TaskCompletionSource<bool> Started = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        internal int Calls;
+        protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            Calls++; Started.TrySetResult(true);
+            await Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken);
+            throw new InvalidOperationException("Old delivery unexpectedly completed.");
+        }
     }
 }

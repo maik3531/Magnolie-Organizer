@@ -10,22 +10,6 @@ internal static class ProtectedAssetReader
     private const int MaxContainer = 2 * 1024 * 1024;
     private const int MaxPlaintext = 1024 * 1024;
 
-    private sealed class ClearingMemoryStream : MemoryStream
-    {
-        private readonly byte[] data;
-
-        internal ClearingMemoryStream(byte[] data) : base(data, writable: false)
-        {
-            this.data = data;
-        }
-
-        protected override void Dispose(bool disposing)
-        {
-            if (disposing) CryptographicOperations.ZeroMemory(data);
-            base.Dispose(disposing);
-        }
-    }
-
     internal static byte[] Read(string path, byte expectedId, byte expectedMime)
     {
         if (!((expectedId == 1 && expectedMime == 1) ||
@@ -77,29 +61,40 @@ internal static class ProtectedAssetReader
     }
 
     internal static void Register(CoreWebView2 core, string host, string root,
-        IReadOnlyDictionary<string, (string Container, byte Id, byte Mime, string ContentType)> assets)
+        IReadOnlyDictionary<string, (string Container, byte Id, byte Mime, string ContentType)> assets,
+        Action<string>? diagnostic = null)
     {
-        foreach (var logicalPath in assets.Keys)
-            core.AddWebResourceRequestedFilter($"https://{host}{logicalPath}", CoreWebView2WebResourceContext.Image);
+        var allowedPaths = assets.Keys.ToHashSet(StringComparer.Ordinal);
+        core.AddWebResourceRequestedFilter($"https://{host}/*", CoreWebView2WebResourceContext.All);
+        diagnostic?.Invoke($"Protected asset host registered: {host}; WebView2={core.Environment.BrowserVersionString}");
+        if (diagnostic is not null)
+            core.WebResourceResponseReceived += (_, eventArgs) =>
+            {
+                if (!ProtectedAssetPolicy.TryGetAllowedPath(eventArgs.Request.Uri, host, allowedPaths,
+                        out var absolutePath)) return;
+                diagnostic($"Protected asset response received: {host}{absolutePath}; " +
+                    $"status={eventArgs.Response.StatusCode}");
+            };
         core.WebResourceRequested += (_, eventArgs) =>
         {
-            if (!Uri.TryCreate(eventArgs.Request.Uri, UriKind.Absolute, out var uri) ||
-                !uri.Scheme.Equals("https", StringComparison.OrdinalIgnoreCase) ||
-                !uri.Host.Equals(host, StringComparison.OrdinalIgnoreCase) ||
-                !string.IsNullOrEmpty(uri.Query) || !string.IsNullOrEmpty(uri.Fragment) ||
-                !assets.TryGetValue(uri.AbsolutePath, out var asset) ||
-                !eventArgs.Request.Uri.Equals($"https://{host}{uri.AbsolutePath}", StringComparison.Ordinal)) return;
+            if (!ProtectedAssetPolicy.TryGetAllowedPath(eventArgs.Request.Uri, host, allowedPaths,
+                    out var absolutePath) || !assets.TryGetValue(absolutePath, out var asset)) return;
             try
             {
                 var data = Read(Path.Combine(root, asset.Container), asset.Id, asset.Mime);
+                // WebView2 reads the response after this callback; do not dispose or clear its stream here.
                 eventArgs.Response = core.Environment.CreateWebResourceResponse(
-                    new ClearingMemoryStream(data), 200, "OK",
-                    $"Content-Type: {asset.ContentType}\r\nCache-Control: no-store");
+                    new MemoryStream(data, writable: false), 200, "OK",
+                    ProtectedAssetPolicy.ResponseHeaders(asset.ContentType, data.Length));
+                diagnostic?.Invoke($"Geschütztes Asset {absolutePath} wurde mit {data.Length} Bytes bereitgestellt.");
             }
-            catch (Exception error) when (error is IOException or UnauthorizedAccessException or CryptographicException)
+            catch (Exception error) when (error is IOException or UnauthorizedAccessException or
+                                          CryptographicException or InvalidDataException)
             {
+                diagnostic?.Invoke($"Geschütztes Asset {absolutePath} konnte nicht geladen werden: " +
+                    $"{error.GetType().Name}: {error.Message}");
                 eventArgs.Response = core.Environment.CreateWebResourceResponse(
-                    Stream.Null, 404, "Not Found", "Cache-Control: no-store");
+                    Stream.Null, 404, "Not Found", ProtectedAssetPolicy.EmptyResponseHeaders);
             }
         };
     }

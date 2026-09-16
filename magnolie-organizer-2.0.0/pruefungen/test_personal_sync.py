@@ -783,3 +783,84 @@ def test_report_deletion_counters_are_exact():
     assert sync.validate_body("personal_sync.report", body)
     with __import__("pytest").raises(ValueError):
         sync.validate_body("personal_sync.report", dict(body, deletions=dict(body["deletions"], extra=0)))
+
+
+def test_full_attachment_chunk_fits_body_limit_and_retains_offsets(tmp_path):
+    assert sync.CHUNK_RAW == 180000 and sync.MAX_PACKET == 256 * 1024
+    peer, run = str(uuid.uuid4()), str(uuid.uuid4())
+    raw = b"\x89PNG\r\n\x1a\n" + b"x" * (sync.CHUNK_RAW * 2 - 7)
+    digest, aggregate = hashlib.sha256(raw).hexdigest(), "a" * 64
+    store = phone.PhoneStore(str(tmp_path / "chunks"), "Test")
+    store.stage_outgoing_attachment(peer, run, False, aggregate, digest, "image/png", raw,
+                                   "any", phone.now_ms() + 60000)
+    reopened = phone.PhoneStore(str(tmp_path / "chunks"), "Test")
+    chunks = reopened.requested_attachment_chunks(peer, run, False, aggregate,
+        [{"sha256": digest, "ranges": [[0, 3]]}], "wifi")
+    chunks = [{"format": 2, "run_id": run, "reply": False, "records_hash": aggregate,
+               "sha256": sha, "index": index, "data": base64.b64encode(data).decode()}
+              for sha, index, data in chunks]
+    assert [len(base64.b64decode(chunk["data"])) for chunk in chunks] == [180000, 180000, 1]
+    for chunk in chunks:
+        assert sync.validate_body("personal_sync.attachment_chunk", chunk)
+    assert len(sync.canonical(chunks[0])) > 192 * 1024
+    assert b"".join(base64.b64decode(chunk["data"]) for chunk in chunks) == raw
+    with __import__("pytest").raises(ValueError):
+        sync.validate_body("personal_sync.attachment_chunk", dict(chunks[0], data=base64.b64encode(b"x" * 180001).decode()))
+    with mock.patch.object(sync, "MAX_PACKET", len(sync.canonical(chunks[0])) - 1):
+        with __import__("pytest").raises(ValueError):
+            sync.validate_body("personal_sync.attachment_chunk", chunks[0])
+
+
+def test_format3_run_staging_reply_restart_commit_and_hash_validation(tmp_path):
+    delivered = []
+    service, peer = _personal_service(tmp_path, lambda event, body: delivered.append((event, body)))
+    remote = service.store.peer(peer)
+    remote["capabilities"] = phone.desktop_capabilities()
+    for name in ("grants", "local_grants"):
+        remote[name]["grants"]["personal_tasks_sync"] = True
+    service.store.save_peers()
+    request = {"format": 3, "run_id": str(uuid.uuid4()), "trigger": "manual", "modules": ["tasks"]}
+    value = {"title": "Child", "note": "", "due": "", "priority": 2, "completed": False,
+        "remind": False, "lead_days": 0, "reminder_minute": 0, "created_ms": 1, "modified_ms": 2,
+        "uid": "child", "parent_uid": "parent", "order": 7}
+    record = {"kind": "task", "id": "child", "state": "live", "clock": contract()["clock"]["left"],
+        "hash": sync.projection_hash(value), "modified_ms": 2, "value": value}
+    batch = {"format": 3, "run_id": request["run_id"], "batch_id": str(uuid.uuid4()),
+        "sequence": 0, "last": True, "reply": False, "records": [record], "records_hash": sync.records_hash([record])}
+    service.send_personal_sync_run(peer, request, [batch], [])
+    queued = service.store.pending(peer)
+    assert [item["body"]["format"] for item in queued] == [3, 3]
+    reply = dict(batch, batch_id=str(uuid.uuid4()), reply=True)
+    service.send_personal_sync_run(peer, request, [reply], [])
+    with __import__("pytest").raises(ValueError):
+        service.send_personal_sync_run(peer, dict(request, format=2), [dict(reply, format=2)], [])
+    now = phone.now_ms()
+    message = {"type": "message", "v": 1, "message_id": str(uuid.uuid4()), "kind": "personal_sync.batch",
+        "created_ms": now, "expires_ms": now + 60000, "body": reply}
+    aggregate = service.store.stage_personal_batch(peer, message)
+    assert aggregate["format"] == 3 and aggregate["records"][0]["value"]["parent_uid"] == "parent"
+    restarted = phone.PhoneService(str(tmp_path / "phone"), "Test", callback=lambda event, body: delivered.append((event, body)))
+    restarted.replay_personal_sync()
+    result = next(body for event, body in delivered if event == "personal_sync")
+    assert result["body"]["format"] == 3 and result["body"]["records"] == [record]
+    assert restarted.commit_personal_sync(peer, result["pending_message_id"], result["commit_token"], True)
+    assert restarted.store.ready_personal_batches() == []
+    bad = copy.deepcopy(message)
+    bad["message_id"] = str(uuid.uuid4())
+    bad["body"].update(run_id=str(uuid.uuid4()), records_hash="f" * 64)
+    with __import__("pytest").raises(ValueError, match="aggregate records hash"):
+        restarted.store.stage_personal_batch(peer, bad)
+
+
+def test_format3_attachments_block_dispatch_until_received(tmp_path):
+    service, peer = _personal_service(tmp_path, lambda *_: None)
+    descriptor = contract()["format2"]["descriptor"]
+    value = dict(contract()["format2"]["value"], attachments=[descriptor])
+    record = {"kind": "note", "id": "note", "state": "live", "clock": contract()["clock"]["left"],
+        "hash": sync.projection_hash(value), "modified_ms": value["modified_ms"], "value": value}
+    run = str(uuid.uuid4())
+    service.store.remember_personal_run(peer, {"format": 3, "run_id": run, "trigger": "manual", "modules": ["notes"]})
+    aggregate = {"run_id": run, "reply": True, "records": [record], "messages": [{"body": {
+        "format": 3, "records_hash": sync.records_hash([record])}}]}
+    assert not service._prepare_format2_aggregate(peer, aggregate, "wifi")
+    assert not aggregate.get("attachment_data")

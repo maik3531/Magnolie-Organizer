@@ -1,6 +1,7 @@
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json.Nodes;
+using System.Text.RegularExpressions;
 
 namespace MagnolieOrganizer.Windows;
 
@@ -67,7 +68,35 @@ internal sealed class NextcloudSyncJournal
         }
     }
 
-    internal void Delete() { if (File.Exists(path)) File.Delete(path); }
+    internal string PrepareCreate(string transactionId, Uri href, string mediaType, string text)
+    {
+        if (transactionId.Length != 64 || transactionId.Any(value => !Uri.IsHexDigit(value))) throw new InvalidDataException("Das Synchronisationsjournal ist beschädigt.");
+        var creates = new NextcloudSyncJournal(path + ".creates", protector);
+        var saved = creates.Load();
+        var payload = saved?.Id == transactionId ? saved.Value.Payload : new JsonObject();
+        if (payload[href.AbsoluteUri] is JsonObject prior)
+        {
+            if (prior["mediaType"]?.GetValue<string>() != mediaType || prior["text"] is not JsonValue value || !value.TryGetValue<string>(out var original))
+                throw new InvalidDataException("Das Synchronisationsjournal ist beschädigt.");
+            if (Regex.Replace(original, @"(?m)^DTSTAMP:[^\r\n]*", "") != Regex.Replace(text, @"(?m)^DTSTAMP:[^\r\n]*", ""))
+                throw new InvalidOperationException("Das DAV-Objekt wurde gleichzeitig geändert.");
+            return original;
+        }
+        payload[href.AbsoluteUri] = new JsonObject { ["mediaType"] = mediaType, ["text"] = text };
+        // The exact request survives both a lost response and a later phase failure.
+        creates.Save(transactionId, "creates", payload);
+        return text;
+    }
+
+    internal bool HasPendingCreate(string transactionId, Uri href) =>
+        new NextcloudSyncJournal(path + ".creates", protector).Load() is { } saved &&
+        saved.Id == transactionId && saved.Payload[href.AbsoluteUri] is JsonObject;
+
+    internal void Delete()
+    {
+        if (File.Exists(path)) File.Delete(path);
+        if (File.Exists(path + ".creates")) File.Delete(path + ".creates");
+    }
 
     internal (string Id, string Phase, JsonObject Payload)? LoadFor(string transactionId,
         IReadOnlyCollection<string> resumablePhases)

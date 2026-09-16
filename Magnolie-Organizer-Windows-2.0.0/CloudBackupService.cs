@@ -103,8 +103,9 @@ internal sealed partial class CloudBackupService
     }
 
     internal string CreateVerified(JsonObject data, CloudBackupSettings settings,
-        string appVersion, DateTimeOffset? now = null)
+        string appVersion, DateTimeOffset? now = null, CancellationToken cancellation = default)
     {
+        cancellation.ThrowIfCancellationRequested();
         if (string.IsNullOrWhiteSpace(settings.Folder)) throw new InvalidOperationException("folder_missing");
         var password = secrets.Lookup() ?? throw new InvalidOperationException("secret_unavailable");
         var instant = (now ?? DateTimeOffset.UtcNow).ToUniversalTime();
@@ -115,6 +116,7 @@ internal sealed partial class CloudBackupService
         {
             files.Write(target, GesamtarchivService.Create(data, "windows", appVersion, password),
                 AtomicStore.MaxArchiveBytes);
+            cancellation.ThrowIfCancellationRequested();
             var stored = files.Read(target, AtomicStore.MaxArchiveBytes)
                 ?? throw new IOException("automatic_backup_verification_failed");
             _ = GesamtarchivService.Read(stored, password);

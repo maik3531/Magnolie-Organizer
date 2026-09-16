@@ -36,14 +36,59 @@ internal static class DocumentExportService
             ["outside"] = ("#e5e5e5", "#998f80"), ["week-number"] = ("#5c3f25", "#ffffff")
         };
 
-    internal static byte[] CreateLetter(JsonElement contact, string sender, string layout)
+    internal static byte[] CreateLetter(JsonElement contact, string sender = "", string layout = "din5008-b")
     {
+        string Field(JsonElement item, string name) => Value(item, name).Trim();
+        string[] Parts(string property)
+        {
+            var raw = StringArray(contact, "vcardRoundtrip");
+            if (raw.Length == 0) raw = StringArray(contact, "vcardName");
+            foreach (var line in raw)
+            {
+                var colon = line.IndexOf(':');
+                if (colon < 0 || !line[..colon].Split(';')[0].Split('.').Last().Equals(property, StringComparison.OrdinalIgnoreCase)) continue;
+                var parts = new List<string>();
+                var part = new StringBuilder();
+                var escaped = false;
+                foreach (var character in line[(colon + 1)..])
+                {
+                    if (escaped) { part.Append(character is 'n' or 'N' ? '\n' : character); escaped = false; }
+                    else if (character == '\\') escaped = true;
+                    else if (character == ';') { parts.Add(part.ToString().Trim()); part.Clear(); }
+                    else part.Append(property == "N" && character == ',' ? ' ' : character);
+                }
+                if (escaped) part.Append('\\');
+                parts.Add(part.ToString().Trim());
+                return parts.ToArray();
+            }
+            return [];
+        }
+        var first = Field(contact, "vorname");
+        var last = Field(contact, "nachname");
+        var display = Field(contact, "anzeigename");
+        var recipientName = display.Length > 0 ? display : $"{first} {last}".Trim();
+        var components = Parts("N").Concat(Enumerable.Repeat("", 5)).Take(5).ToArray();
+        // Retain imported components only while the editable name still matches.
+        if (display.Length == 0 && components[1] == first && components[0] == last)
+        {
+            var full = string.Join(" ", new[] { 3, 1, 2, 0, 4 }.Select(index => components[index]).Where(value => value.Length > 0));
+            if (full.Length > 0) recipientName = full;
+        }
+        var company = Field(contact, "firma");
+        var organization = Parts("ORG");
+        if (organization.Length > 0 && organization[0] == company) company = string.Join("\n", organization);
+        if (recipientName == company || (company.Length > 0 && recipientName == company.ReplaceLineEndings("\n").Split('\n')[0])) recipientName = "";
+        var address = contact;
+        if (contact.TryGetProperty("anschriften", out var addresses) && addresses.ValueKind == JsonValueKind.Array)
+            foreach (var candidate in addresses.EnumerateArray())
+                if (new[] { "postfach", "zusatz", "strasse", "plz", "ort", "region", "land" }.Any(key => Field(candidate, key).Length > 0))
+                { address = candidate; break; }
         var recipient = new[]
         {
-            $"{Value(contact, "vorname")} {Value(contact, "nachname")}".Trim(), Value(contact, "firma"),
-            Value(contact, "strasse"), $"{Value(contact, "plz")} {Value(contact, "ort")}".Trim()
-        }.Where(line => line.Length > 0).ToArray();
-        if (recipient.Length == 0) throw new ArgumentException("Diese Kontaktkarte hat keine Postanschrift.");
+            recipientName, company, Field(address, "zusatz"), Field(address, "postfach"), Field(address, "strasse"),
+            $"{Field(address, "plz")} {Field(address, "ort")}".Trim(), Field(address, "region"), Field(address, "land")
+        }.SelectMany(value => value.ReplaceLineEndings("\n").Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)).ToArray();
+        if (recipient.Length == 0) throw new ArgumentException(NativeLocalization.Gettext("This contact card has no postal address."));
         var senderLines = sender.ReplaceLineEndings("\n").Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
         var content = new XDocument(new XDeclaration("1.0", "UTF-8", null),
             new XElement(Office + "document-content", NamespaceAttributes(), new XAttribute(Office + "version", "1.2"),
@@ -52,10 +97,10 @@ internal static class DocumentExportService
                         string.Join(" · ", senderLines)),
                     recipient.Select(line => new XElement(Text + "p", new XAttribute(Text + "style-name", "Recipient"), line)),
                     new XElement(Text + "p", new XAttribute(Text + "style-name", "Date"), DateTime.Today.ToString("d")),
-                    new XElement(Text + "p", new XAttribute(Text + "style-name", "Subject"), layout == "din5008" ? "Betreff" : "Ihr Schreiben"),
-                    new XElement(Text + "p", new XAttribute(Text + "style-name", "Body"), "Sehr geehrte Damen und Herren,"),
+                    new XElement(Text + "p", new XAttribute(Text + "style-name", "Subject"), layout == "din5008" ? NativeLocalization.Gettext("Subject") : NativeLocalization.Gettext("Your letter")),
+                    new XElement(Text + "p", new XAttribute(Text + "style-name", "Body"), NativeLocalization.Gettext("Dear Sir or Madam,")),
                     new XElement(Text + "p", new XAttribute(Text + "style-name", "Body"), ""),
-                    new XElement(Text + "p", new XAttribute(Text + "style-name", "Body"), "Mit freundlichen Grüßen")))));
+                    new XElement(Text + "p", new XAttribute(Text + "style-name", "Body"), NativeLocalization.Gettext("Yours sincerely,"))))));
         var styles = new XDocument(new XDeclaration("1.0", "UTF-8", null),
             new XElement(Office + "document-styles", NamespaceAttributes(), new XAttribute(Office + "version", "1.2"),
                 new XElement(Office + "styles",
@@ -73,6 +118,121 @@ internal static class DocumentExportService
                             new XAttribute(Fo + "margin-right", "2cm")))),
                 new XElement(Office + "master-styles", new XElement(Style + "master-page", new XAttribute(Style + "name", "Standard"),
                     new XAttribute(Style + "page-layout-name", "A4Letter")))));
+        if (layout is not ("compact" or "kompakt"))
+        {
+            // The shipped din5008 ID means Form B, never Form A.
+            var formA = layout == "din5008-a";
+            var returnAddress = string.Join(" · ", senderLines);
+            // Liberation Sans/Arial advance widths; unknown glyphs reserve one em.
+            int[] widths = [
+                278,278,355,556,556,889,667,191,333,333,389,584,278,333,278,278,
+                556,556,556,556,556,556,556,556,556,556,278,278,584,584,584,556,
+                1015,667,667,722,722,667,611,778,722,278,500,667,556,833,722,778,
+                667,778,722,667,611,722,667,944,667,667,611,278,278,278,469,556,
+                333,556,556,500,556,556,278,556,556,222,222,500,222,833,556,556,
+                556,556,333,500,278,556,500,722,500,500,500,334,260,334,584];
+            double Width(string value, int points) => value.EnumerateRunes().Sum(rune =>
+                rune.Value is >= 32 and <= 126 ? widths[rune.Value - 32] : rune.Value == 183 ? 278 : 1000) * points / 1000.0;
+            const double available = 83.5 * 72 / 25.4;
+            var returnPoints = new[] { 8, 7, 6 }.FirstOrDefault(points => Width(returnAddress, points) <= available);
+            int FontSize(IEnumerable<string> contentLines, int maximum)
+            {
+                foreach (var points in new[] { 10, 8 })
+                {
+                    var lines = 0;
+                    var fits = true;
+                    foreach (var line in contentLines)
+                    {
+                        lines++;
+                        double used = 0;
+                        foreach (var word in line.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries))
+                        {
+                            var width = Width(word, points);
+                            if (width > available) fits = false;
+                            var space = used > 0 ? Width(" ", points) : 0;
+                            if (used + space + width > available) { lines++; used = width; }
+                            else used += space + width;
+                        }
+                    }
+                    if (fits && lines <= maximum) return points;
+                }
+                return 0;
+            }
+            var recipientPoints = FontSize(recipient, 6);
+            var senderPoints = formA ? 10 : FontSize(senderLines, 5);
+            if (returnPoints == 0 || recipientPoints == 0 || senderPoints == 0)
+                throw new ArgumentException(NativeLocalization.Gettext("The address is too long for the letter's address field. Shorten the return address or recipient, or choose the compact template."));
+            XElement P(string name, string value = "") => new(Text + "p", new XAttribute(Text + "style-name", name), value);
+            XElement LetterStyle(string name, string size, params XAttribute[] properties) =>
+                new(Style + "style", new XAttribute(Style + "name", name), new XAttribute(Style + "family", "paragraph"),
+                    new XElement(Style + "paragraph-properties", properties),
+                    new XElement(Style + "text-properties", new XAttribute(Style + "font-name", "Liberation Sans"),
+                        new XAttribute(Fo + "font-family", "Liberation Sans"), new XAttribute(Fo + "font-size", size)));
+            XElement Frame(string name, string x, string y, string width, string height, params object[] paragraphs) =>
+                new(Draw + "frame", new XAttribute(Draw + "style-name", name == "Anschriftfeld" ? "Rahmen" : "DatumRahmen"), new XAttribute(Draw + "name", name),
+                    new XAttribute(Text + "anchor-type", "page"), new XAttribute(Text + "anchor-page-number", "1"),
+                    new XAttribute(Svg + "x", x), new XAttribute(Svg + "y", y), new XAttribute(Svg + "width", width),
+                    new XAttribute(Svg + "height", height), new XElement(Draw + "text-box", paragraphs));
+            XElement Mark(string name, string y, string end) => new(Draw + "line",
+                new XAttribute(Draw + "style-name", "Marke"), new XAttribute(Draw + "name", name),
+                new XAttribute(Text + "anchor-type", "page"), new XAttribute(Text + "anchor-page-number", "1"), new XAttribute(Svg + "x1", "1.5cm"),
+                new XAttribute(Svg + "x2", end), new XAttribute(Svg + "y1", y), new XAttribute(Svg + "y2", y));
+            var objects = P("Objekte");
+            if (!formA && senderLines.Length > 0)
+                objects.Add(Frame("Absenderblock", "2cm", "2cm", "8.5cm", "2.5cm", senderLines.Select(line => P("Absender", line))));
+            objects.Add(Frame("Anschriftfeld", "2cm", formA ? "2.7cm" : "4.5cm", "8.5cm", "4.5cm",
+                P("Rueckadresse", returnAddress), recipient.Select(line => P("Anschrift", line))));
+            var city = senderLines.Reverse().Select(line => System.Text.RegularExpressions.Regex.Match(line, @"^(?:[A-Z]{1,2}-)?[0-9]{4,6}\s+(.+)$"))
+                .FirstOrDefault(match => match.Success)?.Groups[1].Value ?? "";
+            objects.Add(Frame("Datum", "12.5cm", formA ? "7.55cm" : "2cm", "6.5cm", formA ? "0.65cm" : "2.5cm",
+                P("Datum", (!formA && city.Length > 0 ? city + ", " : "") + DateTime.Today.ToString("d"))));
+            objects.Add(Mark("Faltmarke-oben", formA ? "8.7cm" : "10.5cm", "2.2cm"),
+                Mark("Lochmarke", "14.85cm", "2.5cm"), Mark("Faltmarke-unten", formA ? "18.5cm" : "21cm", "2.2cm"));
+            content.Root!.Element(Office + "body")!.ReplaceNodes(new XElement(Office + "text", objects,
+                P("Briefbeginn"), P("Standard", NativeLocalization.Gettext("Dear Sir or Madam,")),
+                P("Standard"), P("Standard"), P("Standard", NativeLocalization.Gettext("Yours sincerely,"))));
+            var returnStyle = LetterStyle("Rueckadresse", $"{returnPoints}pt",
+                new XAttribute(Fo + "margin-top", "0cm"), new XAttribute(Fo + "margin-bottom", "0cm"),
+                new XAttribute(Fo + "line-height", "0.5cm"));
+            returnStyle.Element(Style + "text-properties")!.Add(new XAttribute(Style + "text-underline-style", "solid"),
+                new XAttribute(Style + "text-underline-width", "auto"));
+            styles.Root!.Element(Office + "styles")!.ReplaceNodes(
+                new XElement(Style + "style", new XAttribute(Style + "name", "Frame"), new XAttribute(Style + "family", "graphic")),
+                new XElement(Style + "default-style", new XAttribute(Style + "family", "paragraph"),
+                    new XElement(Style + "paragraph-properties", new XAttribute(Fo + "margin-top", "0cm"),
+                        new XAttribute(Fo + "margin-bottom", "0cm"), new XAttribute(Fo + "line-height", "100%")),
+                    new XElement(Style + "text-properties", new XAttribute(Style + "font-name", "Liberation Sans"),
+                        new XAttribute(Fo + "font-family", "Liberation Sans"), new XAttribute(Fo + "font-size", "11pt"),
+                        new XAttribute(Style + "letter-kerning", "true"))),
+                LetterStyle("Standard", "11pt", new XAttribute(Fo + "margin-bottom", "0.42cm"), new XAttribute(Fo + "line-height", "120%")),
+                LetterStyle("Objekte", "1pt", new XAttribute(Fo + "margin", "0cm"), new XAttribute(Fo + "line-height", "1%")),
+                new XElement(Style + "style", new XAttribute(Style + "name", "Briefbeginn"), new XAttribute(Style + "family", "paragraph"),
+                    new XAttribute(Style + "parent-style-name", "Standard"), new XElement(Style + "paragraph-properties",
+                        new XAttribute(Fo + "margin-top", formA ? "6.75cm" : "8.55cm"), new XAttribute(Fo + "margin-bottom", "0.42cm"))),
+                returnStyle,
+                LetterStyle("Anschrift", $"{recipientPoints}pt",
+                    new XAttribute(Fo + "margin-bottom", "0cm"), new XAttribute(Fo + "line-height", "0.455cm")),
+                LetterStyle("Absender", $"{senderPoints}pt",
+                    new XAttribute(Fo + "margin-bottom", "0cm"), new XAttribute(Fo + "line-height", "0.455cm")),
+                LetterStyle("Datum", "10pt", new XAttribute(Fo + "text-align", "end")));
+            var automatic = new XElement(Office + "automatic-styles");
+            content.Root.AddFirst(automatic);
+            foreach (var root in new[] { content.Root, styles.Root })
+                root.AddFirst(new XElement(Office + "font-face-decls", new XElement(Style + "font-face",
+                    new XAttribute(Style + "name", "Liberation Sans"), new XAttribute(Svg + "font-family", "Liberation Sans"))));
+            foreach (var name in new[] { "Rahmen", "DatumRahmen", "Marke" })
+            {
+                var graphic = new XElement(Style + "graphic-properties", new XAttribute(Draw + "stroke", name == "Marke" ? "solid" : "none"),
+                    new XAttribute(Draw + "fill", "none"), new XAttribute(Style + "horizontal-pos", "from-left"),
+                    new XAttribute(Style + "horizontal-rel", "page"), new XAttribute(Style + "vertical-pos", "from-top"),
+                    new XAttribute(Style + "vertical-rel", "page"));
+                if (name != "Marke") graphic.Add(new XAttribute(Style + "wrap", "run-through"), new XAttribute(Fo + "border", "none"), new XAttribute(Fo + "padding", "0cm"));
+                else graphic.Add(new XAttribute(Svg + "stroke-color", "#555555"), new XAttribute(Svg + "stroke-width", "0.02cm"));
+                if (name == "Rahmen") graphic.Add(new XAttribute(Fo + "padding-top", "1.27cm"));
+                automatic.Add(new XElement(Style + "style", new XAttribute(Style + "name", name), new XAttribute(Style + "family", "graphic"),
+                    name != "Marke" ? new XAttribute(Style + "parent-style-name", "Frame") : null, graphic));
+            }
+        }
         var manifest = new XDocument(new XDeclaration("1.0", "UTF-8", null),
             new XElement(Manifest + "manifest", new XAttribute(XNamespace.Xmlns + "manifest", Manifest), new XAttribute(Manifest + "version", "1.2"),
                 new XElement(Manifest + "file-entry", new XAttribute(Manifest + "full-path", "/"),
@@ -327,13 +487,13 @@ internal static class DocumentExportService
             CellStyleElement("ceGroup", "#f0e4ec", "#4c2740", "0.03cm solid #9b6386", "9pt", true, "left", "middle"),
             CellStyleElement("ceData", "#ffffff", "#29231d", "0.03cm solid #9b6386", "7pt", false, "left", "top"),
             CellStyleElement("ceAddress", "#ffffff", "#29231d", "0.02cm solid #8d8579", "8pt", false, "left", "top"),
-            CellStyleElement("ceMonth", "#ffffff", "#29231d", "0.02cm solid #756a59", "8pt", false, "left", "top"),
+            CellStyleElement("ceMonth", "#ffffff", "#29231d", "0.02cm solid #756a59", "8pt", false, "left", "top", wrap: false),
             CellStyleElement("ceSpacer", "#ffffff", "#ffffff", "none", "7pt", false, "left", "top"));
         foreach (var (key, colors) in PlannerColors)
         {
             styles.Add(CellStyleElement("cePlan" + StyleSuffix(key), colors.Fill, colors.Text, "0.02cm solid #625b50", "7pt", false, "left", "top"));
             if (key.Length > 0) styles.Add(CellStyleElement("ceMonth" + StyleSuffix(key), colors.Fill, colors.Text,
-                "0.02cm solid #756a59", "8pt", key == "week-number", key == "week-number" ? "center" : "left", "top"));
+                "0.02cm solid #756a59", "8pt", key == "week-number", key == "week-number" ? "center" : "left", "top", wrap: false));
         }
         var textColors = sheets.Where(sheet => sheet.TextColors is not null).SelectMany(sheet => sheet.TextColors!)
             .SelectMany(row => row).SelectMany(cell => cell).Select(SafeColor).Where(color => color is not null).Distinct(StringComparer.Ordinal);
@@ -353,11 +513,12 @@ internal static class DocumentExportService
     }
 
     private static XElement CellStyleElement(string name, string fill, string text, string border, string size,
-        bool bold, string align, string vertical, string font = "Liberation Sans") =>
+        bool bold, string align, string vertical, string font = "Liberation Sans", bool wrap = true) =>
         new(Style + "style", new XAttribute(Style + "name", name), new XAttribute(Style + "family", "table-cell"),
             new XElement(Style + "table-cell-properties", new XAttribute(Fo + "background-color", fill), new XAttribute(Fo + "border", border),
-                new XAttribute(Fo + "padding", "0.1cm"), new XAttribute(Style + "vertical-align", vertical), new XAttribute(Fo + "wrap-option", "wrap")),
-            new XElement(Style + "paragraph-properties", new XAttribute(Fo + "text-align", align)),
+                new XAttribute(Fo + "padding", "0.1cm"), new XAttribute(Style + "vertical-align", vertical), new XAttribute(Fo + "wrap-option", wrap ? "wrap" : "no-wrap")),
+            new XElement(Style + "paragraph-properties", new XAttribute(Fo + "text-align", align),
+                wrap ? null : new XAttribute(Fo + "line-height", "100%")),
             new XElement(Style + "text-properties", new XAttribute(Fo + "font-family", font), new XAttribute(Fo + "font-size", size),
                 new XAttribute(Fo + "color", text), bold ? new XAttribute(Fo + "font-weight", "bold") : null));
 

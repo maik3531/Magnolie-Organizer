@@ -1,5 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="baum_postfach_unsicher">Ubekreftede leveringer: %1$d. Meldingene beholdes, og automatisk sending på nytt er satt på pause. Kontroller mottaket; eldre enheter støtter kanskje ikke verifiserte kvitteringer.</string>
+    <string name="telefon_bluetooth_setup">Koble en ny Organizer via Bluetooth</string>
+    <string name="telefon_bluetooth_setup_hinweis">Hold denne skjermen åpen. Velg denne telefonen i Organizer, bekreft systemets sammenkobling, og sammenlign deretter koden på begge enhetene.</string>
     <string name="freigabe_ziel">Lagre i Magnolie Notes</string>
     <string name="blatt_notizen">Notater</string>
     <string name="blatt_einfuhr">Importer</string>
@@ -320,7 +323,7 @@
     <string name="start_laden">Åpner beskyttede data…</string><string name="start_fehler_titel">Beskyttede data kunne ikke åpnes</string><string name="start_daten_unveraendert">Dataene dine ble ikke slettet eller overskrevet. Du kan trygt prøve igjen.</string><string name="start_erneut">Prøv igjen</string><string name="start_schliessen">Lukk appen</string>
     <string name="absturzbericht_teilen">Del krasjrapport</string>
     <string name="journal_maximum">Gjenopprettingspunkter</string>
-    <string name="journal_maximum_hinweis">Når grensen reduseres, fjernes de eldste gjenopprettingspunktene automatisk.</string>
+    <string name="journal_maximum_hinweis">Når grensen reduseres, fjernes de eldste ubeskyttede gjenopprettingspunktene. Beskyttede punkter beholdes.</string>
     <string name="portable_titel">Flyttbar sikkerhetskopi</string><string name="portable_hinweis">Opprett eller gjenopprett et separat, passordbeskyttet arkiv med notater, notatbøker, oppgaver, papirkurv og vedlegg.</string><string name="portable_export">Opprett flyttbar sikkerhetskopi</string><string name="portable_datei_oeffnen">Åpne flyttbar sikkerhetskopi</string><string name="portable_restore">Gjenopprett sikkerhetskopi</string><string name="portable_passwort">Passord</string><string name="portable_passwort_hinweis">Skriv inn arkivpassordet. Ingenting endres mens sikkerhetskopien kontrolleres.</string><string name="portable_pruefen">Kontroller og forhåndsvis</string><string name="portable_vorschau">Forhåndsvisning av sikkerhetskopi</string><string name="portable_vorschau_text">%1$d notater · %2$d notatbøker · %3$d oppgaver · %4$d elementer i papirkurven</string><string name="portable_restore_warnung">Dette erstatter alt gjeldende personlig innhold. Et lokalt sikkerhetsøyeblikksbilde opprettes først; enhetens Magnolienbaum-identitet bevares.</string><string name="portable_fehler">Sikkerhetskopien kunne ikke åpnes. Kontroller filen og passordet.</string><string name="portable_exportiert">Flyttbar sikkerhetskopi opprettet.</string><string name="portable_wiederhergestellt">Flyttbar sikkerhetskopi gjenopprettet.</string>
     <string name="auto_backup_titel">Automatisk sikkerhetskopi i skymappe</string>
     <string name="auto_backup_hinweis">Lagrer valgfritt godkjente portable sikkerhetskopier i en mappe valgt via Android. Leverandøren kan synkronisere mappen.</string>
@@ -348,4 +351,27 @@
     <string name="aufgabe_zur_wurzel">Til øverste nivå</string>
     <string name="aufgabe_eltern_waehlen">Velg overordnet oppgave</string>
     <string name="aufgabe_oberste_ebene">Øverste nivå</string>
+    <string name="baum_kontakt_jubilaeum">Merkedag</string>
+    <string name="baum_kontakt_update">Oppdater Magnolie på begge enhetene for å ta med merkedager. Åpne begge appene og prøv igjen. Ingen kontakter ble sendt i dette forsøket.</string>
+    <string name="baum_aufgabe_nicht_freigegeben">Denne oppgaven er ikke delt med denne enheten.</string>
+    <string name="baum_kontakt_import_nicht_unterstuetzt">Bruk kontaktsynkronisering for å sende kontakter til denne enheten.</string>
+    <string name="aufgabe_nach_oben">Flytt oppgaven opp</string>
+    <string name="aufgabe_nach_unten">Flytt oppgaven ned</string>
+    <string name="personal_custom_optin">Synkroniser oppgaver og avtaler fra den egendefinerte fanen</string>
+    <string name="personal_custom_title">Oppgaver og avtaler fra den egendefinerte fanen (skrivebeskyttet)</string>
+    <string name="personal_custom_explanation">Begge enhetene må gi samtykke. Deaktivering setter påminnelser og oppdateringer fra den egendefinerte fanen på pause, men beholder kopiene. Tilknyttede tekstblokker deles ikke.</string>
+    <string name="personal_custom_unsupported">Denne enheten støtter ikke synkronisering av den egendefinerte fanen.</string>
+    <string name="personal_custom_delete">Slettet ved kilden: Slett denne telefonkopien eller behold den? Kilden på datamaskinen endres aldri.</string>
+    <string name="personal_custom_keep">Behold kopi</string>
+    <string name="personal_custom_privacy">Bare med uttrykkelig samtykke fra begge enhetene deler Personal Sync egne oppgaver og avtaler som skrivebeskyttede kopier, inkludert deres egne notater. Tekstblokker, tilknyttede tekster og vedlegg er utelatt. Arkiver gjenoppretter kopier, ikke tillatelser.</string>
+    <string name="device_identifiers_share">Del identifikatorene til min telefon</string>
+    <string name="device_identifiers_explanation">Bare på forespørsel fra din egen parede datamaskin, i 60 sekunder, uten lagring: nummeret til standard-SIM for anrop og, hvis Android tillater det, serienummer og IMEI. Fra Android 10 er maskinvareidentifikatorer begrenset for vanlige apper. Tillatelse til nummeret er valgfri; ingen særskilt rolle forespørres.</string>
+    <string name="device_identifiers_phone">Mitt nummer (standard-SIM for anrop)</string>
+    <string name="device_identifiers_serial">Enhetens serienummer</string>
+    <string name="device_identifiers_imei">Enhetens IMEI</string>
+    <string name="device_identifiers_off">Deling av enhetsidentifikatorer er slått av.</string>
+    <string name="device_identifiers_permission">Tillatelse til enhetsidentifikatorer mangler.</string>
+    <string name="device_identifiers_restricted">Android begrenser denne enhetsidentifikatoren.</string>
+    <string name="device_identifiers_subscription">Intet standardabonnement for anrop er tilgjengelig.</string>
+    <string name="device_identifiers_unavailable">Denne enhetsidentifikatoren er utilgjengelig.</string>
 </resources>

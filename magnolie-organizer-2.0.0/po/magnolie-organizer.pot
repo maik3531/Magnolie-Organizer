@@ -1,13 +1,13 @@
 # SOME DESCRIPTIVE TITLE.
 # Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
-# This file is distributed under the same license as the Magnolie Organizer package.
+# This file is distributed under the same license as the PACKAGE package.
 # FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
 #
 #, fuzzy
 msgid ""
 msgstr ""
-"Project-Id-Version: Magnolie Organizer 2.0.17\n"
-"Report-Msgid-Bugs-To: maik3531@gmail.com\n"
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
@@ -588,11 +588,6 @@ msgid ""
 "selected notifications."
 msgstr ""
 
-msgid ""
-"A system KDE Connect service is active. Configure file and clipboard sharing "
-"there."
-msgstr ""
-
 msgid "API level"
 msgstr ""
 
@@ -815,6 +810,9 @@ msgstr ""
 msgid "An archive entry is too large."
 msgstr ""
 
+msgid "An automatic personal synchronization run is already active."
+msgstr ""
+
 msgid ""
 "An encryption component is missing. Install it with:  sudo apt install "
 "python3-cryptography"
@@ -823,6 +821,9 @@ msgstr ""
 msgid ""
 "An encryption component is missing. Install it with: sudo apt install "
 "python3-cryptography"
+msgstr ""
+
+msgid "Android restricts this device identifier."
 msgstr ""
 
 msgid "Android version"
@@ -838,6 +839,9 @@ msgid "Anniversary"
 msgstr ""
 
 msgid "Another data operation is still running."
+msgstr ""
+
+msgid "Another phone setup session is active."
 msgstr ""
 
 msgid "Answer"
@@ -871,6 +875,9 @@ msgid "Appenzell Innerrhoden"
 msgstr ""
 
 msgid "Application command"
+msgstr ""
+
+msgid "Application password"
 msgstr ""
 
 msgid ""
@@ -930,9 +937,6 @@ msgstr ""
 msgid "Are you really sure?"
 msgstr ""
 
-msgid "As usual (print)"
-msgstr ""
-
 msgid "Assign SMS action"
 msgstr ""
 
@@ -970,6 +974,17 @@ msgid "Authority appointment"
 msgstr ""
 
 msgid "Automatic backup failed."
+msgstr ""
+
+msgid ""
+"Automatic call audio is unavailable. Keep the call on the phone or select "
+"native audio manually in system settings."
+msgstr ""
+
+msgid ""
+"Automatic call audio is unsupported in this Windows build. Package identity "
+"and an approved phoneLineTransportManagement capability are required. Select "
+"native audio manually in system settings."
 msgstr ""
 
 msgid "Automatic cloud-folder backups"
@@ -1163,7 +1178,17 @@ msgstr ""
 msgid "Bluetooth data fallback"
 msgstr ""
 
+#, python-format
+msgid "Bluetooth data is unavailable (%s)."
+msgstr ""
+
 msgid "Bluetooth device for call audio"
+msgstr ""
+
+msgid "Bluetooth is unavailable. Check the radio and OS permissions."
+msgstr ""
+
+msgid "Bluetooth system pairing was not confirmed."
 msgstr ""
 
 msgid "Bold"
@@ -1172,6 +1197,11 @@ msgstr ""
 msgid ""
 "Both branches display the same six-digit code when connecting. Confirm it "
 "only if it matches, preventing anyone from intercepting the connection."
+msgstr ""
+
+msgid ""
+"Both devices must opt in. Turning this off pauses reminders and updates from "
+"the custom tab but keeps copies. Linked text blocks are not shared."
 msgstr ""
 
 msgid "Brandenburg"
@@ -1192,6 +1222,9 @@ msgstr ""
 msgid "By last name (Müller, Hans)"
 msgstr ""
 
+msgid "CSV / Lotus Organizer"
+msgstr ""
+
 msgid "CSV / Lotus Organizer contacts …"
 msgstr ""
 
@@ -1201,6 +1234,9 @@ msgstr ""
 msgid "CW"
 msgstr ""
 
+msgid "CalDAV + CardDAV Server"
+msgstr ""
+
 msgid "Calculate the route to this address"
 msgstr ""
 
@@ -1208,6 +1244,9 @@ msgid "Calendar"
 msgstr ""
 
 msgid "Calendar (*.ics)"
+msgstr ""
+
+msgid "Calendar (ICS)"
 msgstr ""
 
 #, python-format
@@ -1242,6 +1281,9 @@ msgstr ""
 msgid "Calendar week %(number)s"
 msgstr ""
 
+msgid "Calendars"
+msgstr ""
+
 msgid "Calendars (multiple selections allowed)"
 msgstr ""
 
@@ -1252,6 +1294,11 @@ msgid "Call"
 msgstr ""
 
 msgid "Call assignment"
+msgstr ""
+
+msgid ""
+"Call controls unavailable. Check Android call permission; no dialer role is "
+"requested automatically."
 msgstr ""
 
 msgid "Call ended"
@@ -1362,13 +1409,13 @@ msgstr ""
 msgid "Checking the current version …"
 msgstr ""
 
-msgid "Choose Appointments, Notes or Tasks in Customize."
-msgstr ""
-
 msgid ""
 "Choose a backup file. Before restoring it, the organizer automatically "
 "creates a copy of the current data. An encrypted backup requires its "
 "password."
+msgstr ""
+
+msgid "Choose a connection. Confirm pairing on the phone and this computer."
 msgstr ""
 
 msgid "Choose a country first."
@@ -1428,8 +1475,7 @@ msgid "Choose service"
 msgstr ""
 
 msgid ""
-"Choose the calendars and address books to keep synchronized and the local "
-"programs to import once."
+"Choose sources now. Import previews are kept until you finish the assistant."
 msgstr ""
 
 msgid "Choose the save location for each accepted file"
@@ -1443,13 +1489,16 @@ msgstr ""
 msgid "Choose year…"
 msgstr ""
 
-msgid "Choose your registers"
+msgid "Choose your organizer tabs"
 msgstr ""
 
 msgid "City"
 msgstr ""
 
 msgid "Claws Mail XML (.xml) …"
+msgstr ""
+
+msgid "Claws Mail XML / LDIF"
 msgstr ""
 
 msgid "Claws Mail address book (*.xml)"
@@ -1507,7 +1556,7 @@ msgstr ""
 msgid "Columns in the ODS table"
 msgstr ""
 
-msgid "Compact sender line (default)"
+msgid "Compact sender line"
 msgstr ""
 
 msgid "Company"
@@ -1527,10 +1576,18 @@ msgstr ""
 msgid "Complete archive exported (unencrypted)."
 msgstr ""
 
+msgid "Complete archive import is available only in the installed application."
+msgstr ""
+
 msgid "Complete pairing"
 msgstr ""
 
 msgid "Completed (%(count)s)"
+msgstr ""
+
+msgid ""
+"Completed pairings are kept if you cancel setup. No additional phone "
+"permissions are granted."
 msgstr ""
 
 msgid "Completed task"
@@ -1548,8 +1605,17 @@ msgstr ""
 msgid "Configuring KDE Connect receive functions"
 msgstr ""
 
+msgid "Confirm"
+msgstr ""
+
+msgid "Confirm SMS plans"
+msgstr ""
+
 msgid ""
 "Confirm only if exactly the same six-digit code is shown on both devices."
+msgstr ""
+
+msgid "Confirm that the code matches on both devices."
 msgstr ""
 
 msgid "Confirm the pairing request on the phone."
@@ -1570,10 +1636,22 @@ msgstr ""
 msgid "Connect phone via WLAN"
 msgstr ""
 
+msgid "Connect via Bluetooth"
+msgstr ""
+
+msgid "Connect via KDE Connect"
+msgstr ""
+
 msgid "Connected"
 msgstr ""
 
 msgid "Connecting to the online accounts"
+msgstr ""
+
+msgid "Connection discovery failed. Check the server and credentials."
+msgstr ""
+
+msgid "Connection ready"
 msgstr ""
 
 msgid "Consider deletions during manual synchronization"
@@ -1583,15 +1661,15 @@ msgid "Contact"
 msgstr ""
 
 #, python-format
+msgid "Contact %(number)d contains an unreadable vCard: %(error)s"
+msgstr ""
+
+#, python-format
+msgid "Contact %(number)d could not be serialized: %(error)s"
+msgstr ""
+
+#, python-format
 msgid "Contact %d contains an unreadable vCard."
-msgstr ""
-
-#, python-format
-msgid "Contact %d contains an unreadable vCard: %s"
-msgstr ""
-
-#, python-format
-msgid "Contact %d could not be serialized: %s"
 msgstr ""
 
 #, python-format
@@ -1772,11 +1850,6 @@ msgstr ""
 msgid "Custom application"
 msgstr ""
 
-msgid ""
-"Custom content is saved locally and transferred through complete Magnolie "
-"archives only, not Personal Sync."
-msgstr ""
-
 msgid "Custom notification"
 msgstr ""
 
@@ -1807,6 +1880,12 @@ msgid ""
 msgstr ""
 
 msgid "Czechia"
+msgstr ""
+
+msgid "DIN 5008 Form A (27 mm letterhead)"
+msgstr ""
+
+msgid "DIN 5008 Form B (default)"
 msgstr ""
 
 msgid "DIN 5008 Form B with fold marks"
@@ -2005,6 +2084,18 @@ msgstr ""
 msgid "Determining public IP address…"
 msgstr ""
 
+msgid "Device IMEI"
+msgstr ""
+
+msgid "Device identifier permission is missing."
+msgstr ""
+
+msgid "Device identifier sharing is off."
+msgstr ""
+
+msgid "Device serial number"
+msgstr ""
+
 msgid "Diabetes"
 msgstr ""
 
@@ -2030,6 +2121,12 @@ msgstr ""
 msgid "Discharging"
 msgstr ""
 
+msgid "Disconnect WLAN on the phone to use Bluetooth fallback."
+msgstr ""
+
+msgid "Discover"
+msgstr ""
+
 msgid "Display"
 msgstr ""
 
@@ -2038,9 +2135,6 @@ msgid "Display: %(display)s"
 msgstr ""
 
 msgid "Display: none"
-msgstr ""
-
-msgid "Do not connect Bluetooth call audio automatically"
 msgstr ""
 
 msgid "Do not retrieve weather without a location"
@@ -2166,6 +2260,9 @@ msgstr ""
 msgid "Enable Magnolie Notes phone connection"
 msgstr ""
 
+msgid "Enable SMS scheduling"
+msgstr ""
+
 msgid "Enable background service"
 msgstr ""
 
@@ -2190,6 +2287,9 @@ msgstr ""
 msgid "Enable shift planner"
 msgstr ""
 
+msgid "Enable this SMS plan"
+msgstr ""
+
 msgid "Enable tray applet"
 msgstr ""
 
@@ -2197,6 +2297,10 @@ msgid "Enable vacation planner"
 msgstr ""
 
 msgid "Enable waste collection calendar"
+msgstr ""
+
+msgid ""
+"Enabling this plan allows its overdue SMS to be sent while scheduling is on."
 msgstr ""
 
 msgid "Encrypted archive entries are not supported."
@@ -2263,6 +2367,9 @@ msgstr ""
 msgid "Enter at least four characters for the backup password."
 msgstr ""
 
+msgid "Enter both hours and minutes, or leave the time completely empty."
+msgstr ""
+
 msgid "Enter height and weight to calculate BMI."
 msgstr ""
 
@@ -2278,6 +2385,9 @@ msgstr ""
 msgid ""
 "Enter your address above. No service can calculate directions without a "
 "starting point."
+msgstr ""
+
+msgid "Entries ready to import"
 msgstr ""
 
 msgid "Entry"
@@ -2317,10 +2427,19 @@ msgstr ""
 msgid "Everything is ready"
 msgstr ""
 
+msgid "Evolution"
+msgstr ""
+
 msgid ""
 "Evolution and Thunderbird are selected explicitly. iPhone contacts require a "
 "vCard export from the iPhone or iCloud. KDE Connect, Bluetooth and PBAP are "
 "not contact sources."
+msgstr ""
+
+msgid "Exactly one Magnolie Notes phone must be paired."
+msgstr ""
+
+msgid "Exactly one online paired Magnolie Notes phone must allow dialing."
 msgstr ""
 
 msgid "Export"
@@ -2452,6 +2571,13 @@ msgid "For: %(people)s"
 msgstr ""
 
 msgid "Form"
+msgstr ""
+
+msgid ""
+"Form B reserves 45 mm for the letterhead; Form A reserves 27 mm. Both place "
+"the return line and recipient in the left-hand address field and add fold "
+"and punch marks. Check long addresses and envelope fit in print preview "
+"before printing at 100%."
 msgstr ""
 
 msgid "Format region"
@@ -2679,6 +2805,9 @@ msgstr ""
 msgid "Import contacts additively"
 msgstr ""
 
+msgid "Import failed."
+msgstr ""
+
 msgid "Import failed: %(error)s"
 msgstr ""
 
@@ -2692,6 +2821,9 @@ msgid "Import once"
 msgstr ""
 
 msgid "Import pairing file …"
+msgstr ""
+
+msgid "Import preview"
 msgstr ""
 
 msgid "Import, export and synchronization"
@@ -2719,12 +2851,6 @@ msgid "Importing the old data failed: %s"
 msgstr ""
 
 msgid "Importing the pairing file"
-msgstr ""
-
-msgid ""
-"In the DIN template, these lines appear as a multiline sender block and in "
-"small type in the address window. In the compact template, they form one "
-"line above the recipient address. No sender is added if this field is empty."
 msgstr ""
 
 msgid "In the organizer%(selection)s: %(items)s%(years)s."
@@ -2821,6 +2947,9 @@ msgstr ""
 msgid "Internet available"
 msgstr ""
 
+msgid "Interval"
+msgstr ""
+
 msgid "Interval in days"
 msgstr ""
 
@@ -2850,6 +2979,9 @@ msgid "KDE Connect for SMS"
 msgstr ""
 
 msgid "KDE Connect for SMS is available only in the installed application."
+msgstr ""
+
+msgid "KDE Connect is unavailable; other background services remain active."
 msgstr ""
 
 msgid ""
@@ -2886,6 +3018,9 @@ msgid "Keep a troubleshooting log"
 msgstr ""
 
 msgid "Keep this KDE Connect file in Downloads?"
+msgstr ""
+
+msgid "LDIF"
 msgstr ""
 
 msgid "LDIF address book (*.ldif)"
@@ -3088,8 +3223,11 @@ msgid "Magnolie backup (*.json)"
 msgstr ""
 
 msgid ""
-"Magnolie can use this address for route planning and local weather. It is "
-"stored with your organizer data and is not sent anywhere by this assistant."
+"Magnolie can use this information when preparing routes and finding local "
+"weather. You can leave every field empty."
+msgstr ""
+
+msgid "Magnolie complete archive (.magnolie) …"
 msgstr ""
 
 msgid "Magnolie sheet"
@@ -3193,9 +3331,6 @@ msgstr ""
 msgid "Memorial day"
 msgstr ""
 
-msgid "Memory available / total"
-msgstr ""
-
 msgid "Merge"
 msgstr ""
 
@@ -3273,9 +3408,6 @@ msgstr ""
 msgid "Month calendar"
 msgstr ""
 
-msgid "Monthly"
-msgstr ""
-
 msgid "Monthly view"
 msgstr ""
 
@@ -3343,6 +3475,22 @@ msgid "Name of the custom tab"
 msgstr ""
 
 msgid "Name of this branch"
+msgstr ""
+
+msgid ""
+"Native KDE Connect cannot enforce Magnolie approvals. Clipboard and file "
+"reception, incoming SMS/history and new pairing are unavailable. Magnolie "
+"Notes WLAN remains separate."
+msgstr ""
+
+msgid ""
+"Native KDE Connect is unavailable. Magnolie will not take over its network "
+"port."
+msgstr ""
+
+msgid ""
+"Native KDE Connect is used for SMS on already paired phones. Magnolie does "
+"not change KDE permissions."
 msgstr ""
 
 msgid "Native notifications available"
@@ -3445,6 +3593,9 @@ msgstr ""
 msgid "Next year"
 msgstr ""
 
+msgid "Nextcloud"
+msgstr ""
+
 msgid "Nextcloud denied access to this DAV resource."
 msgstr ""
 
@@ -3505,6 +3656,9 @@ msgid "No calendars found."
 msgstr ""
 
 msgid "No data was found."
+msgstr ""
+
+msgid "No default voice subscription is available."
 msgstr ""
 
 #, python-format
@@ -3574,6 +3728,9 @@ msgstr ""
 msgid "No phone paired yet."
 msgstr ""
 
+msgid "No phone was found. Open the phone app and try again."
+msgstr ""
+
 msgid "No photo"
 msgstr ""
 
@@ -3616,6 +3773,9 @@ msgid "No suggestions found."
 msgstr ""
 
 msgid "No suitable application was found."
+msgstr ""
+
+msgid "No supported data was found."
 msgstr ""
 
 msgid "No system internet accounts were found."
@@ -3769,6 +3929,12 @@ msgstr ""
 msgid "Off"
 msgstr ""
 
+msgid ""
+"Off by default. Turning this off pauses pending SMS plans without deleting "
+"them. Enabling resumes them, including overdue plans. Messages already "
+"handed to KDE Connect cannot be recalled."
+msgstr ""
+
 msgid "Offer Personal Sync phone changes"
 msgstr ""
 
@@ -3828,9 +3994,6 @@ msgstr ""
 msgid "One year"
 msgstr ""
 
-msgid "One-time imports"
-msgstr ""
-
 msgid ""
 "One-time imports are additive. They do not keep a source linked and do not "
 "delete contacts."
@@ -3876,6 +4039,13 @@ msgstr ""
 msgid ""
 "Only the reliable system notification is available under Wayland; the "
 "Magnolie paper style would often remain invisible there."
+msgstr ""
+
+msgid ""
+"Only with both devices' explicit consent, Personal Sync shares read-only "
+"Custom tasks and appointments, including their own notes. Text blocks, "
+"linked text and attachments are excluded. Archives restore copies, not "
+"permissions."
 msgstr ""
 
 msgid "Open"
@@ -3938,6 +4108,9 @@ msgid "Open the application"
 msgstr ""
 
 msgid "Open the day in the daily view"
+msgstr ""
+
+msgid "Open the phone connection screen and try again."
 msgstr ""
 
 msgid ""
@@ -4023,6 +4196,9 @@ msgstr ""
 msgid "Own internet IP"
 msgstr ""
 
+msgid "Own phone number (default voice SIM)"
+msgstr ""
+
 msgid "Own window available: no"
 msgstr ""
 
@@ -4057,7 +4233,13 @@ msgstr ""
 msgid "Pair KDE Connect phone"
 msgstr ""
 
+msgid "Pair Magnolie over WLAN before using Bluetooth."
+msgstr ""
+
 msgid "Pair a KDE Connect phone before enabling receive functions."
+msgstr ""
+
+msgid "Pair your phone in the OS Bluetooth settings first."
 msgstr ""
 
 msgid "Pairing KDE Connect"
@@ -4113,6 +4295,9 @@ msgid "Patch"
 msgstr ""
 
 msgid "Pause while data is locked"
+msgstr ""
+
+msgid "Paused — review required"
 msgstr ""
 
 msgid "Pay invoice"
@@ -4178,6 +4363,15 @@ msgstr ""
 msgid "Personal synchronization failed."
 msgstr ""
 
+msgid "Personal synchronization format 2 was not negotiated."
+msgstr ""
+
+msgid "Personal synchronization format 3 was not negotiated."
+msgstr ""
+
+msgid "Personal synchronization is not permitted on both devices."
+msgstr ""
+
 msgid "Phone"
 msgstr ""
 
@@ -4185,6 +4379,15 @@ msgid "Phone battery"
 msgstr ""
 
 msgid "Phone call"
+msgstr ""
+
+msgid "Phone connection"
+msgstr ""
+
+msgid "Phone connection cancelled or timed out."
+msgstr ""
+
+msgid "Phone connection failed."
 msgstr ""
 
 msgid "Phone notification"
@@ -4197,6 +4400,11 @@ msgid "Phone numbers"
 msgstr ""
 
 msgid "Phone pairing failed."
+msgstr ""
+
+msgid ""
+"Phone setup is unavailable in this background service. Restart the "
+"background service and try again."
 msgstr ""
 
 msgid "Phone “%(name)s” is securely paired."
@@ -4296,6 +4504,9 @@ msgid "Powder"
 msgstr ""
 
 msgid "Power source"
+msgstr ""
+
+msgid "Prefer PC speakers and microphone for calls on my own Bluetooth phone"
 msgstr ""
 
 msgid "Preferred backup folder"
@@ -4446,9 +4657,6 @@ msgstr ""
 msgid "Reconnect"
 msgstr ""
 
-msgid "Recovering the password transaction"
-msgstr ""
-
 msgid "Recovery snapshot created."
 msgstr ""
 
@@ -4461,11 +4669,17 @@ msgstr ""
 msgid "Recycle bin"
 msgstr ""
 
+msgid "Redo"
+msgstr ""
+
 msgid "Refresh"
 msgstr ""
 
 msgid ""
 "Regional settings saved. Restart the Organizer to apply them completely."
+msgstr ""
+
+msgid "Regular typeface"
 msgstr ""
 
 msgid "Reject"
@@ -4644,6 +4858,11 @@ msgid ""
 "created first."
 msgstr ""
 
+msgid ""
+"Restored pending plans stay paused until you review and enable each plan. "
+"Restoring contacts, calendar or notes does not change live SMS plans."
+msgstr ""
+
 msgid "Restoring a recovery snapshot"
 msgstr ""
 
@@ -4690,6 +4909,12 @@ msgid "Retrieving weather failed (%s)."
 msgstr ""
 
 msgid "Retrieving weather…"
+msgstr ""
+
+msgid "Review and enable"
+msgstr ""
+
+msgid "Review the exact SMS text for every recipient before confirming."
 msgstr ""
 
 msgid "Rhineland-Palatinate"
@@ -4742,6 +4967,11 @@ msgid "SMS history"
 msgstr ""
 
 msgid "SMS scheduled."
+msgstr ""
+
+msgid ""
+"SMS scheduling is off. Pending plans are paused. Review them in SMS settings "
+"before enabling scheduling."
 msgstr ""
 
 msgid "SMS settings"
@@ -4881,6 +5111,9 @@ msgstr ""
 msgid "Schleswig-Holstein"
 msgstr ""
 
+msgid "School holidays are not available for this region."
+msgstr ""
+
 msgid "Schwyz"
 msgstr ""
 
@@ -4960,15 +5193,13 @@ msgstr ""
 msgid "Select something first."
 msgstr ""
 
-msgid ""
-"Select the sections that should appear as tabs. The predefined calendars "
-"remain available independently of these register choices."
-msgstr ""
-
 msgid "Select what you want to print on the left."
 msgstr ""
 
 msgid "Select your canton first or enable “All cantons”."
+msgstr ""
+
+msgid "Select your phone"
 msgstr ""
 
 msgid "Select your state first or enable “All states”."
@@ -5000,6 +5231,9 @@ msgid "Sending SMS with KDE Connect"
 msgstr ""
 
 msgid "Sent"
+msgstr ""
+
+msgid "Server"
 msgstr ""
 
 msgid "Server address"
@@ -5101,6 +5335,10 @@ msgstr ""
 msgid "Show preview"
 msgstr ""
 
+#, python-format
+msgid "Show school holidays for %(state)s in the calendar?"
+msgstr ""
+
 msgid "Show selected app notifications"
 msgstr ""
 
@@ -5140,6 +5378,9 @@ msgstr ""
 msgid "Show week numbers in the planner"
 msgstr ""
 
+msgid "Silence this alert"
+msgstr ""
+
 msgid "Skip assistant"
 msgstr ""
 
@@ -5164,6 +5405,11 @@ msgid "Social medium"
 msgstr ""
 
 msgid "Solothurn"
+msgstr ""
+
+msgid ""
+"Some recurrence rules cannot be expanded. Their original calendar data was "
+"preserved."
 msgstr ""
 
 msgid "Someone"
@@ -5205,6 +5451,9 @@ msgstr ""
 msgid "Sources"
 msgstr ""
 
+msgid "Sources and imports"
+msgstr ""
+
 msgid "Space for anything you want to remember…"
 msgstr ""
 
@@ -5244,6 +5493,9 @@ msgstr ""
 msgid "Start automatically when signing in"
 msgstr ""
 
+msgid "Start required phone background services automatically"
+msgstr ""
+
 msgid "Start the organizer in the tray"
 msgstr ""
 
@@ -5263,9 +5515,6 @@ msgid "State / region"
 msgstr ""
 
 msgid "Status"
-msgstr ""
-
-msgid "Storage available / total"
 msgstr ""
 
 msgid "Street / house number"
@@ -5298,6 +5547,9 @@ msgstr ""
 msgid "Sunday"
 msgstr ""
 
+msgid "Supported files"
+msgstr ""
+
 msgid "Suppository"
 msgstr ""
 
@@ -5323,9 +5575,6 @@ msgid "Symbols, temperatures and description"
 msgstr ""
 
 msgid "Synchronization"
-msgstr ""
-
-msgid "Synchronization and imports"
 msgstr ""
 
 msgid "Synchronization completed."
@@ -5361,6 +5610,12 @@ msgid "Synchronize permanently"
 msgstr ""
 
 msgid "Synchronize tasks"
+msgstr ""
+
+msgid "Synchronize tasks and appointments from the \"%(tab)s\" tab"
+msgstr ""
+
+msgid "Synchronize tasks and appointments from the custom tab"
 msgstr ""
 
 msgid "Synchronizing …"
@@ -5410,6 +5665,10 @@ msgid "Tab %(letter)s · %(count)s"
 msgstr ""
 
 msgid "Tab name"
+msgstr ""
+
+msgid ""
+"Tab: insert a tab stop. Shift+Tab: previous field. Ctrl+Tab: next field."
 msgstr ""
 
 msgid "Tablet"
@@ -5463,9 +5722,6 @@ msgstr ""
 msgid "Testing…"
 msgstr ""
 
-msgid "Text"
-msgstr ""
-
 msgid "Text block"
 msgstr ""
 
@@ -5490,6 +5746,9 @@ msgid_plural ""
 msgstr[0] ""
 msgstr[1] ""
 
+msgid "The Bluetooth address is invalid."
+msgstr ""
+
 msgid "The CSV columns were not recognized."
 msgstr ""
 
@@ -5506,12 +5765,6 @@ msgid "The DAV ETag is missing."
 msgstr ""
 
 msgid "The DAV entry was changed concurrently."
-msgstr ""
-
-msgid ""
-"The DIN template positions the recipient address for a window envelope, "
-"shows your address as a multiline sender block, and adds two fold marks and "
-"a punch mark."
 msgstr ""
 
 msgid ""
@@ -5546,6 +5799,9 @@ msgid ""
 "The Lotus CSV uses the original columns VERTRAULICH, KATEGORIEN, "
 "ANFANGSDATUMZEIT, ENDDATUMZEIT, BESCHREIBUNG, KOSTENSTELLENCODE, "
 "KUNDENNUMMER and VORLAEUFIGZUSAGEN."
+msgstr ""
+
+msgid "The Magnolie Notes phone connection is switched off."
 msgstr ""
 
 msgid ""
@@ -5657,6 +5913,11 @@ msgid "The address book could not be read: %s"
 msgstr ""
 
 msgid ""
+"The address is too long for the letter's address field. Shorten the return "
+"address or recipient, or choose the compact template."
+msgstr ""
+
+msgid ""
 "The archive contains all application data. The password is optional; leaving "
 "the field empty explicitly creates an unencrypted archive."
 msgstr ""
@@ -5699,6 +5960,9 @@ msgid ""
 msgstr ""
 
 msgid "The background service could not be started."
+msgstr ""
+
+msgid "The background service could not start."
 msgstr ""
 
 msgid "The background service is available only in the installed application."
@@ -5760,6 +6024,15 @@ msgstr ""
 msgid "The calendar resource does not contain exactly one matching task."
 msgstr ""
 
+msgid "The call action expired or is no longer permitted."
+msgstr ""
+
+msgid "The call is no longer active or has been updated."
+msgstr ""
+
+msgid "The call is no longer ringing or is outdated."
+msgstr ""
+
 msgid "The clipboard is empty."
 msgstr ""
 
@@ -5772,6 +6045,9 @@ msgid "The communication method is incomplete."
 msgstr ""
 
 msgid "The complete file is stored in this note (up to 8 megabytes)."
+msgstr ""
+
+msgid "The connection settings could not be saved."
 msgstr ""
 
 msgid "The contact synchronization message is invalid."
@@ -6100,16 +6376,58 @@ msgstr ""
 msgid "The permanent KDE listener is stopped."
 msgstr ""
 
+msgid "The personal synchronization commit could not be confirmed."
+msgstr ""
+
+msgid "The personal synchronization transport policy is invalid."
+msgstr ""
+
+msgid "The personal synchronization trigger is inconsistent."
+msgstr ""
+
 msgid "The phone connection is available only in the installed application."
 msgstr ""
 
 msgid "The phone connection is not available."
 msgstr ""
 
+msgid "The phone connection was not authenticated."
+msgstr ""
+
+msgid "The phone function is not permitted or available."
+msgstr ""
+
+msgid "The phone is no longer connected."
+msgstr ""
+
+msgid "The phone is not paired."
+msgstr ""
+
 msgid "The phone is reachable, but its KDE Connect trust no longer matches."
 msgstr ""
 
+msgid "The phone listener could not start."
+msgstr ""
+
 msgid "The phone number is invalid."
+msgstr ""
+
+msgid "The phone service did not finish stopping."
+msgstr ""
+
+msgid "The phone service has stopped."
+msgstr ""
+
+msgid "The phone settings are damaged."
+msgstr ""
+
+msgid "The phone setup request is no longer current."
+msgstr ""
+
+msgid "The phone setup session belongs to another client."
+msgstr ""
+
+msgid "The phone setup session expired. Reopen phone setup and try again."
 msgstr ""
 
 msgid "The photo could not be read."
@@ -6251,6 +6569,9 @@ msgid ""
 msgstr ""
 
 msgid "The selected path is not a regular file."
+msgstr ""
+
+msgid "The selected phone changed. Try again."
 msgstr ""
 
 msgid "The selected source was not found. Select it again in Settings."
@@ -6413,6 +6734,11 @@ msgid "There is nothing to print."
 msgstr ""
 
 msgid ""
+"These are Magnolie's actual tabs. You can show only the sections that fit "
+"your everyday life."
+msgstr ""
+
+msgid ""
 "These choices change how the Organizer displays information. Your entries "
 "are not converted or moved."
 msgstr ""
@@ -6423,6 +6749,9 @@ msgid ""
 msgstr ""
 
 msgid "This address can be selected and copied."
+msgstr ""
+
+msgid "This answer request has already been queued."
 msgstr ""
 
 msgid "This appointment will appear every %(weekday)s."
@@ -6462,6 +6791,18 @@ msgstr ""
 msgid "This contact card has no postal address."
 msgstr ""
 
+msgid "This device does not support synchronization of the custom tab."
+msgstr ""
+
+msgid "This device identifier is unavailable."
+msgstr ""
+
+msgid "This dial request has already been queued."
+msgstr ""
+
+msgid "This end-call request has already been queued."
+msgstr ""
+
 msgid "This image format cannot be used."
 msgstr ""
 
@@ -6477,6 +6818,9 @@ msgstr ""
 msgid ""
 "This is how your notes look: <b>bold</b>, <i>italic</i>, <u>underlined</u> "
 "and <s>struck through</s>."
+msgstr ""
+
+msgid "This is my own phone"
 msgstr ""
 
 msgid "This is not a Magnolienbaum message."
@@ -6517,6 +6861,9 @@ msgstr ""
 msgid "This person's anniversaries"
 msgstr ""
 
+msgid "This phone transport is unavailable."
+msgstr ""
+
 msgid ""
 "This program is free software: you may redistribute and modify it. It is "
 "published in the hope that it will be useful, but without any warranty. The "
@@ -6547,6 +6894,12 @@ msgid "This type cannot be shared."
 msgstr ""
 
 msgid "Through"
+msgstr ""
+
+msgid "Thunderbird"
+msgstr ""
+
+msgid "Thunderbird profile version"
 msgstr ""
 
 msgid "Thurgau"
@@ -6611,6 +6964,9 @@ msgid "Too many requests."
 msgstr ""
 
 msgid "Too many secure sessions are open."
+msgstr ""
+
+msgid "Too many unfinished synchronization runs."
 msgstr ""
 
 msgid "Top level"
@@ -6680,6 +7036,9 @@ msgid ""
 msgstr ""
 
 msgid "Underline"
+msgstr ""
+
+msgid "Undo"
 msgstr ""
 
 msgid "Unexpected error."
@@ -6821,6 +7180,9 @@ msgstr ""
 msgid "User name"
 msgstr ""
 
+msgid "Username"
+msgstr ""
+
 msgid ""
 "Uses its own identity and storage and listens only on fixed port %(port)s. "
 "It never uses Magnolienbaum partners, permissions, queues or Bluetooth "
@@ -6893,6 +7255,9 @@ msgstr ""
 msgid "WLAN listener on port %(port)s"
 msgstr ""
 
+msgid "Waiting for authenticated phone connection..."
+msgstr ""
+
 msgid "Waiting for consent on the other device."
 msgstr ""
 
@@ -6950,6 +7315,11 @@ msgid ""
 msgstr ""
 
 msgid "Weather temperature"
+msgstr ""
+
+msgid ""
+"Weather uses HTTPS first, then unencrypted HTTP if necessary. If wttr.in "
+"fails and a location is known, Open-Meteo is tried."
 msgstr ""
 
 msgid "Weather was not retrieved because no location is available."
@@ -7086,6 +7456,9 @@ msgstr ""
 msgid "Writing sheet"
 msgstr ""
 
+msgid "Wrong Bluetooth device."
+msgstr ""
+
 msgid "X (formerly Twitter)"
 msgstr ""
 
@@ -7125,9 +7498,6 @@ msgid ""
 msgstr ""
 
 msgid "Your data is stored at: %(path)s"
-msgstr ""
-
-msgid "Your home address"
 msgstr ""
 
 msgid ""
@@ -7482,6 +7852,9 @@ msgid "vCalendar (*.vcs)"
 msgstr ""
 
 msgid "vCard (.vcf), including iPhone/iCloud export …"
+msgstr ""
+
+msgid "vCard / iPhone / iCloud"
 msgstr ""
 
 msgid "vCard file (.vcf), including iPhone/iCloud export …"

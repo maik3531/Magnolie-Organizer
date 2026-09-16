@@ -49,6 +49,7 @@ internal sealed class BluetoothRadioSwitch
     internal static readonly TimeSpan DialHold = TimeSpan.FromSeconds(60);
 
     private readonly object gate = new();
+    private readonly SemaphoreSlim operations = new(1, 1);
     private readonly Dictionary<string, long> holds = new(StringComparer.Ordinal);
     private readonly IBluetoothRadio radio;
     private readonly Func<long> clock;
@@ -67,7 +68,7 @@ internal sealed class BluetoothRadioSwitch
     internal bool HoldsRadio { get { lock (gate) return switchedOn; } }
 
     /// <summary>Anzahl der Vorgänge, die den Funk derzeit beanspruchen.</summary>
-    internal int ActiveHolds { get { lock (gate) { Expire(); return holds.Count; } } }
+    internal int ActiveHolds { get { lock (gate) return holds.Count(item => item.Value > clock()); } }
 
     /// <summary>
     /// Meldet einen Vorgang an, der den Funk braucht. Beim ersten Vorgang wird
@@ -75,7 +76,11 @@ internal sealed class BluetoothRadioSwitch
     /// </summary>
     internal async Task RequestAsync(string key, bool temporary = false)
     {
-        bool first; long expires;
+        long expires;
+        await operations.WaitAsync().ConfigureAwait(false);
+        try
+        {
+        bool first;
         lock (gate)
         {
             Expire();
@@ -88,6 +93,8 @@ internal sealed class BluetoothRadioSwitch
             var ok = await radio.SetAsync(true).ConfigureAwait(false);
             lock (gate) switchedOn = ok;
         }
+        }
+        finally { operations.Release(); }
         if (temporary) _ = ExpireAfterAsync(key, expires);
     }
 
@@ -97,6 +104,9 @@ internal sealed class BluetoothRadioSwitch
     /// </summary>
     internal async Task ReleaseAsync(string key)
     {
+        await operations.WaitAsync().ConfigureAwait(false);
+        try
+        {
         bool restore;
         lock (gate)
         {
@@ -109,6 +119,21 @@ internal sealed class BluetoothRadioSwitch
            bleibt es dabei. */
         if (await radio.IsOnAsync().ConfigureAwait(false) != true) return;
         await radio.SetAsync(false).ConfigureAwait(false);
+        }
+        finally { operations.Release(); }
+    }
+
+    internal async Task ReleaseAllAsync()
+    {
+        await operations.WaitAsync().ConfigureAwait(false);
+        try
+        {
+            bool restore;
+            lock (gate) { holds.Clear(); restore = switchedOn; switchedOn = false; }
+            if (restore && await radio.IsOnAsync().ConfigureAwait(false) == true)
+                await radio.SetAsync(false).ConfigureAwait(false);
+        }
+        finally { operations.Release(); }
     }
 
     /// <summary>Gibt alle Vorgänge eines Telefons frei, etwa am Gesprächsende.</summary>
@@ -131,6 +156,9 @@ internal sealed class BluetoothRadioSwitch
     private async Task ExpireAfterAsync(string key, long expectedExpiry)
     {
         await delay(DialHold).ConfigureAwait(false);
+        await operations.WaitAsync().ConfigureAwait(false);
+        try
+        {
         bool restore;
         lock (gate)
         {
@@ -141,5 +169,7 @@ internal sealed class BluetoothRadioSwitch
         }
         if (restore && await radio.IsOnAsync().ConfigureAwait(false) == true)
             await radio.SetAsync(false).ConfigureAwait(false);
+        }
+        finally { operations.Release(); }
     }
 }

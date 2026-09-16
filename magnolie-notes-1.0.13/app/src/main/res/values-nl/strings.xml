@@ -1,5 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="baum_postfach_unsicher">Onbevestigde afleveringen: %1$d. De berichten blijven bewaard en automatisch opnieuw verzenden is gepauzeerd. Controleer de ontvangst; oudere apparaten ondersteunen mogelijk geen geverifieerde ontvangstbewijzen.</string>
+    <string name="telefon_bluetooth_setup">Een nieuwe Organizer via Bluetooth koppelen</string>
+    <string name="telefon_bluetooth_setup_hinweis">Houd dit scherm geopend. Selecteer deze telefoon in Organizer, bevestig de systeemkoppeling en vergelijk daarna de code op beide apparaten.</string>
     <string name="freigabe_ziel">Opslaan in Magnolie Notes</string>
     <string name="blatt_notizen">Notities</string>
     <string name="blatt_einfuhr">Importeren</string>
@@ -314,7 +317,7 @@
     <string name="start_laden">Beveiligde gegevens openen…</string><string name="start_fehler_titel">Beveiligde gegevens konden niet worden geopend</string><string name="start_daten_unveraendert">Je gegevens zijn niet verwijderd of overschreven. Je kunt het veilig opnieuw proberen.</string><string name="start_erneut">Opnieuw proberen</string><string name="start_schliessen">App sluiten</string>
     <string name="absturzbericht_teilen">Crashrapport delen</string>
     <string name="journal_maximum">Herstelpunten</string>
-    <string name="journal_maximum_hinweis">Wanneer de limiet wordt verlaagd, worden de oudste herstelpunten automatisch verwijderd.</string>
+    <string name="journal_maximum_hinweis">Als u de limiet verlaagt, worden de oudste onbeveiligde herstelpunten verwijderd. Beschermde herstelpunten blijven behouden.</string>
     <string name="portable_titel">Draagbare back-up</string><string name="portable_hinweis">Maak of herstel een afzonderlijk, met een wachtwoord versleuteld archief met notities, notitieboeken, taken, prullenbak en bijlagen.</string><string name="portable_export">Draagbare back-up maken</string><string name="portable_datei_oeffnen">Draagbare back-up openen</string><string name="portable_restore">Back-up herstellen</string><string name="portable_passwort">Wachtwoord</string><string name="portable_passwort_hinweis">Voer het archiefwachtwoord in. Tijdens de controle wordt niets gewijzigd.</string><string name="portable_pruefen">Controleren en voorbeeld tonen</string><string name="portable_vorschau">Voorbeeld van back-up</string><string name="portable_vorschau_text">%1$d notities · %2$d notitieboeken · %3$d taken · %4$d prullenbakitems</string><string name="portable_restore_warnung">Dit vervangt alle huidige persoonlijke inhoud. Eerst wordt een lokale veiligheidskopie gemaakt; de Magnolienbaum-identiteit van dit apparaat blijft behouden.</string><string name="portable_fehler">De back-up kon niet worden geopend. Controleer het bestand en wachtwoord.</string><string name="portable_exportiert">Draagbare back-up gemaakt.</string><string name="portable_wiederhergestellt">Draagbare back-up hersteld.</string>
     <string name="auto_backup_titel">Automatische back-up in cloudmap</string>
     <string name="auto_backup_hinweis">Slaat optioneel geverifieerde draagbare back-ups op in een via Android gekozen map. De provider kan deze map synchroniseren.</string>
@@ -342,4 +345,27 @@
     <string name="aufgabe_zur_wurzel">Naar hoogste niveau</string>
     <string name="aufgabe_eltern_waehlen">Bovenliggende taak kiezen</string>
     <string name="aufgabe_oberste_ebene">Hoogste niveau</string>
+    <string name="baum_kontakt_jubilaeum">Jubileum</string>
+    <string name="baum_kontakt_update">Werk Magnolie op beide apparaten bij om jubilea mee te sturen. Open beide apps en probeer het opnieuw. Bij deze poging zijn geen contacten verstuurd.</string>
+    <string name="baum_aufgabe_nicht_freigegeben">Deze taak is niet met dit apparaat gedeeld.</string>
+    <string name="baum_kontakt_import_nicht_unterstuetzt">Gebruik contactsynchronisatie om contacten naar dit apparaat te sturen.</string>
+    <string name="aufgabe_nach_oben">Taak omhoog verplaatsen</string>
+    <string name="aufgabe_nach_unten">Taak omlaag verplaatsen</string>
+    <string name="personal_custom_optin">Taken en afspraken van het aangepaste tabblad synchroniseren</string>
+    <string name="personal_custom_title">Taken en afspraken van het aangepaste tabblad (alleen-lezen)</string>
+    <string name="personal_custom_explanation">Beide apparaten moeten toestemming geven. Uitschakelen pauzeert herinneringen en updates van het aangepaste tabblad, maar bewaart de kopieën. Gekoppelde tekstblokken worden niet gedeeld.</string>
+    <string name="personal_custom_unsupported">Dit apparaat ondersteunt synchronisatie van het aangepaste tabblad niet.</string>
+    <string name="personal_custom_delete">Verwijderd bij de bron: deze telefoonkopie verwijderen of bewaren? De bron op de computer wordt nooit gewijzigd.</string>
+    <string name="personal_custom_keep">Kopie bewaren</string>
+    <string name="personal_custom_privacy">Alleen met uitdrukkelijke toestemming van beide apparaten deelt Personal Sync eigen taken en afspraken als alleen-lezen kopieën, inclusief hun eigen notities. Tekstblokken, gekoppelde teksten en bijlagen zijn uitgesloten. Archieven herstellen kopieën, geen toestemmingen.</string>
+    <string name="device_identifiers_share">Identificatiegegevens van mijn telefoon delen</string>
+    <string name="device_identifiers_explanation">Alleen op verzoek van uw eigen gekoppelde computer, gedurende 60 seconden, zonder opslaan: het nummer van de standaard spraak-sim en, als Android het toestaat, serienummer en IMEI. Vanaf Android 10 zijn hardware-identificatiegegevens beperkt voor gewone apps. De nummermachtiging is optioneel; er wordt geen speciale rol aangevraagd.</string>
+    <string name="device_identifiers_phone">Mijn nummer (standaard spraak-sim)</string>
+    <string name="device_identifiers_serial">Serienummer van apparaat</string>
+    <string name="device_identifiers_imei">IMEI van apparaat</string>
+    <string name="device_identifiers_off">Het delen van apparaatidentificatie is uitgeschakeld.</string>
+    <string name="device_identifiers_permission">De machtiging voor apparaatidentificatie ontbreekt.</string>
+    <string name="device_identifiers_restricted">Android beperkt deze apparaatidentificatie.</string>
+    <string name="device_identifiers_subscription">Geen standaard spraakabonnement beschikbaar.</string>
+    <string name="device_identifiers_unavailable">Deze apparaatidentificatie is niet beschikbaar.</string>
 </resources>

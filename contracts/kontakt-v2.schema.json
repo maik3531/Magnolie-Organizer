@@ -1,0 +1,72 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://magnolie.invalid/contracts/kontakt-v2.schema.json",
+  "title": "Magnolie contact v2 and authenticated capabilities v1",
+  "oneOf": [
+    {"$ref": "#/$defs/capabilities"},
+    {"$ref": "#/$defs/sync"},
+    {"$ref": "#/$defs/manifest"},
+    {"$ref": "#/$defs/card"}
+  ],
+  "$defs": {
+    "text": {"type": "string", "maxLength": 2048},
+    "id": {"type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[^\\u0000-\\u001f]+$"},
+    "date": {"type": "string", "anyOf": [{"const": ""}, {"pattern": "^(?!0000)[0-9]{4}-[0-9]{2}-[0-9]{2}$", "format": "date"}, {"pattern": "^--(?:(?:01|03|05|07|08|10|12)-(?:0[1-9]|[12][0-9]|3[01])|(?:04|06|09|11)-(?:0[1-9]|[12][0-9]|30)|02-(?:0[1-9]|1[0-9]|2[0-9]))$"}], "$comment": "Enable the Gregorian date format checker; yearless February 29 is valid."},
+    "versions": {"enum": [[1], [1, 2]]},
+    "capabilities": {
+      "type": "object", "additionalProperties": false,
+      "required": ["art", "fassung", "kontakt_sync", "kontakt_import", "antwort"],
+      "properties": {
+        "art": {"const": "kontakt_faehigkeiten"}, "fassung": {"type": "integer", "const": 1},
+        "kontakt_sync": {"$ref": "#/$defs/versions"},
+        "kontakt_import": {"enum": [[], [1], [1, 2]]}, "antwort": {"type": "boolean"}
+      }
+    },
+    "value": {
+      "type": "object", "additionalProperties": false, "required": ["art", "wert"],
+      "properties": {"art": {"$ref": "#/$defs/text"}, "wert": {"$ref": "#/$defs/text"}},
+      "$comment": "Both strings retain the v1 data: prefix and deletion-marker restrictions."
+    },
+    "address": {
+      "type": "object", "additionalProperties": false,
+      "required": ["art", "strasse", "plz", "ort", "region", "land"],
+      "properties": {"art": {"$ref": "#/$defs/text"}, "strasse": {"$ref": "#/$defs/text"}, "plz": {"$ref": "#/$defs/text"}, "ort": {"$ref": "#/$defs/text"}, "region": {"$ref": "#/$defs/text"}, "land": {"$ref": "#/$defs/text"}}
+    },
+    "contact": {
+      "type": "object", "additionalProperties": false,
+      "required": ["vorname", "nachname", "firma", "notiz", "geburtstag", "jubilaeum", "anzeigename", "vcardName", "telefone", "emailEintraege", "anschriften"],
+      "properties": {
+        "vorname": {"$ref": "#/$defs/text"}, "nachname": {"$ref": "#/$defs/text"}, "firma": {"$ref": "#/$defs/text"},
+        "notiz": {"type": "string", "maxLength": 20000},
+        "geburtstag": {"$ref": "#/$defs/date"}, "jubilaeum": {"$ref": "#/$defs/date"},
+        "anzeigename": {"$ref": "#/$defs/text"},
+        "vcardName": {"type": "array", "maxItems": 32, "items": {"type": "string", "maxLength": 2048, "pattern": "^(?:[A-Za-z0-9-]+\\.)?(?:[Nn]|[Ff][Nn])(?:;[^\\u0000-\\u001f\\u007f:]*)?:[^\\u0000-\\u001f\\u007f]*$", "$comment": "Preserve escaped delimiters, lists, all five N components and extra N/FN instances. Do not split FN into components."}},
+        "foto": {"type": "string", "maxLength": 2800000, "pattern": "^(?:|data:image/(?:jpeg|png|webp);base64,[A-Za-z0-9+/]+={0,2})$", "$comment": "Additionally require canonical RFC 4648 base64, as in v1."},
+        "telefone": {"type": "array", "maxItems": 100, "items": {"$ref": "#/$defs/value"}},
+        "emailEintraege": {"type": "array", "maxItems": 100, "items": {"$ref": "#/$defs/value"}},
+        "anschriften": {"type": "array", "maxItems": 100, "items": {"$ref": "#/$defs/address"}}
+      }
+    },
+    "sync": {
+      "type": "object", "additionalProperties": false,
+      "required": ["art", "fassung", "freigabeId", "version", "quelle", "geaendert", "kontakt"],
+      "properties": {"art": {"const": "kontakt_sync"}, "fassung": {"type": "integer", "const": 2}, "freigabeId": {"$ref": "#/$defs/id"}, "version": {"type": "integer", "minimum": 1}, "quelle": {"$ref": "#/$defs/id"}, "geaendert": {"type": "integer", "minimum": 0}, "kontakt": {"$ref": "#/$defs/contact"}}
+    },
+    "origin": {
+      "type": "object", "additionalProperties": false, "required": ["kontoTyp", "kontoName", "dataSet"],
+      "properties": {"kontoTyp": {"type": "string", "maxLength": 128}, "kontoName": {"type": "string", "maxLength": 128}, "dataSet": {"type": "string", "maxLength": 128}}
+    },
+    "originCount": {
+      "type": "object", "additionalProperties": false, "required": ["kontoTyp", "kontoName", "dataSet", "anzahl"],
+      "properties": {"kontoTyp": {"type": "string", "maxLength": 128}, "kontoName": {"type": "string", "maxLength": 128}, "dataSet": {"type": "string", "maxLength": 128}, "anzahl": {"type": "integer", "minimum": 1, "maximum": 250}}
+    },
+    "manifest": {
+      "type": "object", "additionalProperties": false, "required": ["art", "fassung", "importId", "anzahl", "herkuenfte"],
+      "properties": {"art": {"const": "kontakt_import_manifest"}, "fassung": {"type": "integer", "const": 2}, "importId": {"$ref": "#/$defs/id"}, "anzahl": {"type": "integer", "minimum": 1, "maximum": 250}, "herkuenfte": {"type": "array", "minItems": 1, "maxItems": 64, "items": {"$ref": "#/$defs/originCount"}}}
+    },
+    "card": {
+      "type": "object", "additionalProperties": false, "required": ["art", "fassung", "importId", "bindung", "herkuenfte", "kontakt"],
+      "properties": {"art": {"const": "kontakt_import_karte"}, "fassung": {"type": "integer", "const": 2}, "importId": {"$ref": "#/$defs/id"}, "bindung": {"type": "string", "pattern": "^urn:magnolie:import:android:[0-9a-f]{64}$"}, "herkuenfte": {"type": "array", "minItems": 1, "maxItems": 16, "items": {"$ref": "#/$defs/origin"}}, "kontakt": {"$ref": "#/$defs/contact"}}
+    }
+  }
+}

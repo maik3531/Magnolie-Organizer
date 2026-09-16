@@ -4,6 +4,7 @@
 import os
 import sys
 import gettext
+import json
 
 import gi
 
@@ -23,7 +24,9 @@ def haupt():
         sys.stderr.write("Aufruf: druck_pdf.py ZIEL.pdf\n")
         return 2
 
+    nur_layout = sys.argv[1] == "--layout-only"
     ziel = os.path.abspath(sys.argv[1])
+    sprache = os.environ.get("MAGNOLIE_HANDBUCH_TEST_LANGUAGE", "de")
     web = os.environ.get(
         "MAGNOLIE_HANDBUCH_WEB",
         os.path.realpath(os.path.join(os.path.dirname(__file__), "..", "web")),
@@ -37,7 +40,7 @@ def haupt():
     status = {"code": 1}
     # The process-local context owns the Python URI callback and can be torn
     # down with the two views instead of surviving into interpreter shutdown.
-    kontext = WebKit2.WebContext.new()
+    kontext = WebKit2.WebContext.new_ephemeral()
     def ressource(anfrage):
         try:
             antwort = read_handbook_request(anfrage.get_uri(), web)
@@ -68,10 +71,37 @@ def haupt():
     def bei_druckende(_auftrag):
         beenden(0)
 
+    def layout_geprueft(_ansicht, ergebnis, _daten):
+        try:
+            werte = json.loads(_ansicht.evaluate_javascript_finish(ergebnis).to_string())
+            erwartet = "rtl" if sprache.split("-")[0] == "ar" else "ltr"
+            assert werte["dir"] == erwartet and werte["paragraph"] == erwartet, werte
+            assert werte["pages"] >= 164, werte
+            if nur_layout:
+                print(json.dumps(werte, ensure_ascii=True))
+                beenden(0)
+                return
+        except Exception as fehler:
+            beenden(1, "Print layout check failed: " + str(fehler))
+            return
+        druckauftrag(_ansicht)
+
     def drucken(_ansicht, ereignis):
         if ereignis != WebKit2.LoadEvent.FINISHED:
             return
+        _ansicht.evaluate_javascript("JSON.stringify({dir:document.documentElement.dir,"
+            "paragraph:getComputedStyle(document.querySelector('p')).direction,"
+            "pages:document.querySelectorAll('.blatt').length})", -1, None, None, None,
+            layout_geprueft, None)
+
+    def druckauftrag(_ansicht):
         auftrag = WebKit2.PrintOperation.new(_ansicht)
+        seite = Gtk.PageSetup()
+        seite.set_paper_size(Gtk.PaperSize.new("iso_a4"))
+        seite.set_orientation(Gtk.PageOrientation.LANDSCAPE)
+        for rand in ("top", "bottom", "left", "right"):
+            getattr(seite, "set_" + rand + "_margin")(0, Gtk.Unit.MM)
+        auftrag.set_page_setup(seite)
         einstellung = Gtk.PrintSettings()
         einstellung.set_printer(gettext.dgettext("gtk30", "Print to File"))
         einstellung.set(Gtk.PRINT_SETTINGS_OUTPUT_FILE_FORMAT, "pdf")
@@ -96,7 +126,7 @@ def haupt():
         if ereignis != WebKit2.LoadEvent.FINISHED:
             return
         _ansicht.evaluate_javascript(
-            "Handbuch.druckFassung()", -1, None, None, None,
+            "MagnolieI18n.setLocale(%s); Handbuch.druckFassung()" % json.dumps(sprache), -1, None, None, None,
             bei_druckfassung, None)
 
     ansicht.connect("load-changed", bei_ladewechsel)

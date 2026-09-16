@@ -1,0 +1,8 @@
+<Project>
+  <Target Name="ContactInteropEntryPoint" BeforeTargets="CoreCompile">
+    <ItemGroup>
+      <Compile Remove="Program.cs;obj/**/*.cs;bin/**/*.cs" />
+      <Compile Include="$(MSBuildThisFileDirectory)windows.cs" />
+    </ItemGroup>
+  </Target>
+</Project>

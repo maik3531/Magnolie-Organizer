@@ -15,6 +15,7 @@ class UpgradeMigrationInstrumentationTest {
         val baumDatei = context.filesDir.resolve("baum.json")
         val ablage = Ablage.hole(context)
         val sentinel = ablage.notiz("fixture-notiz") ?: run {
+            assertFalse("Upgrade sentinel must survive migration", MagnolieTestRunner.expectUpgradeSentinel)
             Log.i("MagnolieR8Probe", "Fresh release instrumentation reached production storage")
             return
         }

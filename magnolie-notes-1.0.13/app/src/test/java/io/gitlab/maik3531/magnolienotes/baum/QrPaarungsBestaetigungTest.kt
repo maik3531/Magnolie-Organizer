@@ -23,6 +23,9 @@ class QrPaarungsBestaetigungTest {
         assertTrue(source.contains("if (absicht?.dataString != null)"))
         assertFalse(source.contains("paareMitDatei(qrText)"))
         assertTrue(baumwerk.contains("@Synchronized\n    fun paareMitDatei"))
-        assertTrue(baumwerk.contains("abgeschlosseneDateipaarungen[einladung]?.let { return it }"))
+        assertTrue(baumwerk.contains("dateiPaarungsAusgang.firstOrNull"))
+        assertTrue(baumwerk.indexOf("Paarung.pruefeDatei(text, jetzt())") <
+            baumwerk.indexOf("ausgang?.abgeschlossen == true"))
+        assertTrue(baumwerk.contains("Paarung.pruefeAntwort(dokument, anfrage, antwort)"))
     }
 }

@@ -5,9 +5,16 @@
 #
 msgid ""
 msgstr ""
+"Project-Id-Version: Magnolie Organizer 2.0.18\n"
 "Report-Msgid-Bugs-To: maik3531@gmail.com\n"
 "POT-Creation-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"PO-Revision-Date: 2026-09-07 00:00+0200\n"
+"Last-Translator: Magnolie translation team <maik3531@gmail.com>\n"
+"Language-Team: hi\n"
+"Language: hi\n"
+"MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
 msgid " (filtered)"
@@ -185,11 +192,6 @@ msgid "%(count)s public holiday"
 msgid_plural "%(count)s public holidays"
 msgstr[0] "%(count)s सार्वजनिक अवकाश"
 msgstr[1] "%(count)s सार्वजनिक अवकाश"
-
-msgid "%(count)s recurring appointment imported only once."
-msgid_plural "%(count)s recurring appointments imported only once."
-msgstr[0] "%(count)s आवर्ती अपॉइंटमेंट केवल एक बार आयात किया गया।"
-msgstr[1] "%(count)s आवर्ती अपॉइंटमेंट केवल एक बार आयात किए गए।"
 
 msgid "%(count)s second"
 msgid_plural "%(count)s seconds"
@@ -409,6 +411,9 @@ msgstr "व्यक्तिगत सिंक्रोनाइज़ेश�
 msgid "A personal synchronization batch is not an object."
 msgstr "व्यक्तिगत सिंक्रोनाइज़ेशन बैच कोई वस्तु नहीं है।"
 
+msgid "A phone is already paired or pairing. Finish that connection first."
+msgstr "किसी फ़ोन की जोड़ी पहले से बनी है या बन रही है। पहले उस कनेक्शन का काम पूरा करें।"
+
 msgid ""
 "A separate encrypted connection for dial requests, device status and "
 "selected notifications."
@@ -594,6 +599,9 @@ msgid ""
 "a leather-bound organizer —"
 msgstr "चमड़े से बँधे आयोजक के रूप में अपॉइंटमेंट कैलेंडर, पता पुस्तिका, कार्य पुस्तिका और नोटपैड —"
 
+msgid "Android restricts this device identifier."
+msgstr "Android इस डिवाइस पहचानकर्ता को प्रतिबंधित करता है।"
+
 msgid "Android version"
 msgstr "एंड्रॉइड संस्करण"
 
@@ -632,6 +640,9 @@ msgstr "अपेन्ज़ेल इनररोडेन"
 
 msgid "Application command"
 msgstr "ऐप्लिकेशन कमांड"
+
+msgid "Application password"
+msgstr "ऐप के लिए अलग पासवर्ड"
 
 msgid ""
 "Applies only to content you enter yourself: appointments, tasks, contacts, "
@@ -690,9 +701,6 @@ msgstr "पुरालेख पासवर्ड"
 msgid "Are you really sure?"
 msgstr "क्या आप वाकई सुनिश्चित हैं?"
 
-msgid "As usual (print)"
-msgstr "सामान्य रूप से (प्रिंट)"
-
 msgid "Assign SMS action"
 msgstr "SMS कार्रवाई असाइन करें"
 
@@ -731,6 +739,22 @@ msgstr "सरकारी कार्यालय का अपॉइंटम
 
 msgid "Automatic backup failed."
 msgstr "स्वचालित बैकअप विफल रहा।"
+
+msgid ""
+"Automatic call audio is unavailable. Keep the call on the phone or select "
+"native audio manually in system settings."
+msgstr ""
+"कॉल का ऑडियो अपने-आप भेजना उपलब्ध नहीं है। कॉल फ़ोन पर रखें या सिस्टम सेटिंग में मूल ऑडियो "
+"विकल्प स्वयं चुनें।"
+
+msgid ""
+"Automatic call audio is unsupported in this Windows build. Package identity "
+"and an approved phoneLineTransportManagement capability are required. Select "
+"native audio manually in system settings."
+msgstr ""
+"इस Windows संस्करण में कॉल का ऑडियो अपने-आप भेजना समर्थित नहीं है। पैकेज पहचान और स्वीकृत "
+"phoneLineTransportManagement क्षमता आवश्यक हैं। सिस्टम सेटिंग में मूल ऑडियो विकल्प स्वयं "
+"चुनें।"
 
 msgid "Automatic cloud-folder backups"
 msgstr "क्लाउड फ़ोल्डर में स्वचालित बैकअप"
@@ -910,6 +934,22 @@ msgstr "नीला (फ़ाउंटेन पेन)"
 msgid "Bluetooth data fallback"
 msgstr "Bluetooth डेटा फ़ॉलबैक"
 
+msgid "Bluetooth device for call audio"
+msgstr "कॉल ऑडियो के लिए Bluetooth डिवाइस"
+
+msgid "Bluetooth device unavailable."
+msgstr "Bluetooth उपकरण उपलब्ध नहीं है।"
+
+msgid "Bluetooth is unavailable in this build."
+msgstr "कार्यक्रम के इस संस्करण में Bluetooth उपलब्ध नहीं है।"
+
+msgid "Bluetooth is unavailable. Check the radio and OS permissions."
+msgstr ""
+"Bluetooth उपलब्ध नहीं है। जाँचें कि वह चालू है और संचालन प्रणाली में ज़रूरी अनुमतियाँ मिली हैं।"
+
+msgid "Bluetooth system pairing was not confirmed."
+msgstr "प्रणाली में Bluetooth की जोड़ी बनाने की पुष्टि नहीं हुई।"
+
 msgid "Bold"
 msgstr "मोटा"
 
@@ -919,6 +959,13 @@ msgid ""
 msgstr ""
 "कनेक्ट करते समय दोनों शाखाएँ वही छह अंकों का कोड दिखाती हैं। केवल तभी पुष्टि करें जब दोनों "
 "कोड समान हों; इससे कोई तीसरा व्यक्ति कनेक्शन को बीच में रोक नहीं सकता।"
+
+msgid ""
+"Both devices must opt in. Turning this off pauses reminders and updates from "
+"the custom tab but keeps copies. Linked text blocks are not shared."
+msgstr ""
+"दोनों उपकरणों की सहमति ज़रूरी है। इसे बंद करने पर कस्टम टैब के अनुस्मारक और अपडेट रुक जाते "
+"हैं, लेकिन प्रतियाँ बनी रहती हैं। जुड़े हुए टेक्स्ट ब्लॉक साझा नहीं किए जाते।"
 
 msgid "Brandenburg"
 msgstr "ब्रांडेनबुर्ग"
@@ -938,6 +985,9 @@ msgstr "पहले नाम के अनुसार (Hans Müller)"
 msgid "By last name (Müller, Hans)"
 msgstr "उपनाम के अनुसार (Müller, Hans)"
 
+msgid "CSV / Lotus Organizer"
+msgstr "CSV / Lotus Organizer"
+
 msgid "CSV / Lotus Organizer contacts …"
 msgstr "CSV / Lotus Organizer संपर्क …"
 
@@ -946,6 +996,9 @@ msgstr "CSV फ़ाइलें (*.csv)"
 
 msgid "CW"
 msgstr "सप्ताह"
+
+msgid "CalDAV + CardDAV Server"
+msgstr "CalDAV + CardDAV सर्वर"
 
 msgid "Calculate the route to this address"
 msgstr "इस पते तक मार्ग निकालें"
@@ -956,6 +1009,9 @@ msgstr "कैलेंडर"
 msgid "Calendar (*.ics)"
 msgstr "कैलेंडर (*.ics)"
 
+msgid "Calendar (ICS)"
+msgstr "कैलेंडर (ICS)"
+
 msgid "Calendar file (.ics/.vcs/.lcs) …"
 msgstr "कैलेंडर फ़ाइल (.ics/.vcs/.lcs) …"
 
@@ -964,6 +1020,9 @@ msgstr "कैलेंडर लेआउट"
 
 msgid "Calendar week %(number)s"
 msgstr "कैलेंडर सप्ताह %(number)s"
+
+msgid "Calendars"
+msgstr "कैलेंडर सूची"
 
 msgid "Calendars (multiple selections allowed)"
 msgstr "कैलेंडर (एक से अधिक चुने जा सकते हैं)"
@@ -976,6 +1035,13 @@ msgstr "कॉल करें"
 
 msgid "Call assignment"
 msgstr "असाइनमेंट को कॉल करें"
+
+msgid ""
+"Call controls unavailable. Check Android call permission; no dialer role is "
+"requested automatically."
+msgstr ""
+"कॉल नियंत्रण उपलब्ध नहीं हैं। Android की कॉल अनुमति जाँचें; डिफ़ॉल्ट फ़ोन ऐप की भूमिका अपने-"
+"आप नहीं माँगी जाती।"
 
 msgid "Call ended"
 msgstr "कॉल समाप्त हुई"
@@ -1070,9 +1136,6 @@ msgstr "वर्तमान मैनुअल संस्करण की �
 msgid "Checking the current version …"
 msgstr "वर्तमान संस्करण की जाँच हो रही है …"
 
-msgid "Choose Appointments, Notes or Tasks in Customize."
-msgstr "कस्टमाइज़ में अपॉइंटमेंट, नोट्स या कार्य चुनें।"
-
 msgid ""
 "Choose a backup file. Before restoring it, the organizer automatically "
 "creates a copy of the current data. An encrypted backup requires its "
@@ -1080,6 +1143,9 @@ msgid ""
 msgstr ""
 "बैकअप फ़ाइल चुनें। उसे पुनर्स्थापित करने से पहले Organizer मौजूदा डेटा की एक प्रति अपने-आप "
 "बना देता है। एन्क्रिप्टेड बैकअप के लिए उसका पासवर्ड चाहिए।"
+
+msgid "Choose a connection. Confirm pairing on the phone and this computer."
+msgstr "जुड़ने का तरीका चुनें। फ़ोन और इस कंप्यूटर, दोनों पर जोड़ी बनाने की पुष्टि करें।"
 
 msgid "Choose a country first."
 msgstr "पहले देश चुनें।"
@@ -1119,12 +1185,6 @@ msgstr "कम से कम चार अक्षर चुनें।"
 msgid "Choose entries to print, export or delete"
 msgstr "प्रिंट, निर्यात या हटाने के लिए प्रविष्टियाँ चुनें"
 
-msgid ""
-"Choose file and Windows contact imports that Magnolie can start directly "
-"after opening."
-msgstr ""
-"वे फ़ाइल और Windows संपर्क आयात चुनें जिन्हें Magnolie खुलने के तुरंत बाद शुरू कर सकता है।"
-
 msgid "Choose file…"
 msgstr "फ़ाइल चुनें…"
 
@@ -1150,6 +1210,12 @@ msgid "Choose service"
 msgstr "सेवा चुनें"
 
 msgid ""
+"Choose sources now. Import previews are kept until you finish the assistant."
+msgstr ""
+"अभी डेटा के स्रोत चुनें। आयात की झलकियाँ तब तक अस्थायी रूप से रखी जाएँगी, जब तक आप "
+"तैयारी सहायक के सभी चरण पूरे नहीं कर लेते।"
+
+msgid ""
 "Choose which sections appear as tabs on the organizer. The calendar always "
 "remains available."
 msgstr ""
@@ -1166,6 +1232,9 @@ msgstr "शहर"
 
 msgid "Claws Mail XML (.xml) …"
 msgstr "Claws Mail XML (.xml) …"
+
+msgid "Claws Mail XML / LDIF"
+msgstr "Claws Mail XML / LDIF"
 
 msgid "Claws Mail address book (*.xml)"
 msgstr "Claws Mail पता पुस्तिका (*.xml)"
@@ -1226,8 +1295,8 @@ msgstr ""
 msgid "Columns in the ODS table"
 msgstr "ODS तालिका के कॉलम"
 
-msgid "Compact sender line (default)"
-msgstr "संक्षिप्त प्रेषक पंक्ति (डिफ़ॉल्ट)"
+msgid "Compact sender line"
+msgstr "भेजने वाले के पते की संक्षिप्त पंक्ति"
 
 msgid "Company"
 msgstr "कंपनी"
@@ -1264,15 +1333,31 @@ msgstr "पेयरिंग पूरी करें"
 msgid "Completed (%(count)s)"
 msgstr "पूर्ण (%(count)s)"
 
+msgid ""
+"Completed pairings are kept if you cancel setup. No additional phone "
+"permissions are granted."
+msgstr ""
+"तैयारी रद्द करने पर भी पहले से बनी जोड़ियाँ बनी रहती हैं। फ़ोन की कोई अतिरिक्त अनुमति "
+"नहीं दी जाती।"
+
 msgid "Completed task"
 msgstr "पूर्ण"
 
 msgid "Completing secure pairing…"
 msgstr "पेयरिंग फ़ाइल बनाई जा रही है"
 
+msgid "Confirm"
+msgstr "पुष्टि करें"
+
+msgid "Confirm SMS plans"
+msgstr "SMS योजनाओं की पुष्टि करें"
+
 msgid ""
 "Confirm only if exactly the same six-digit code is shown on both devices."
 msgstr "केवल तभी पुष्टि करें यदि दोनों उपकरणों पर बिल्कुल वही छह-अंकों का कोड दिख रहा हो।"
+
+msgid "Confirm that the code matches on both devices."
+msgstr "पुष्टि करें कि दोनों उपकरणों पर एक ही कोड दिख रहा है।"
 
 msgid "Confirm the pairing request on the phone."
 msgstr "फ़ोन पर पेयरिंग अनुरोध की पुष्टि करें।"
@@ -1289,8 +1374,20 @@ msgstr "कनेक्ट करें"
 msgid "Connect phone via WLAN"
 msgstr "फोन को WLAN के माध्यम से कनेक्ट करें"
 
+msgid "Connect via Bluetooth"
+msgstr "Bluetooth से जुड़ें"
+
+msgid "Connect via KDE Connect"
+msgstr "KDE Connect से जुड़ें"
+
 msgid "Connected"
 msgstr "कनेक्टेड"
+
+msgid "Connection discovery failed. Check the server and credentials."
+msgstr "जुड़ने के लिए सेवा नहीं मिल सकी। सर्वर और प्रवेश के लिए दिए गए विवरण जाँचें।"
+
+msgid "Connection ready"
+msgstr "कनेक्शन तैयार है"
 
 msgid "Consider deletions during manual synchronization"
 msgstr "संपर्क सिंक्रनाइज़ेशन"
@@ -1420,13 +1517,6 @@ msgstr "कस्टम"
 msgid "Custom application"
 msgstr "कस्टम अनुप्रयोग"
 
-msgid ""
-"Custom content is saved locally and transferred through complete Magnolie "
-"archives only, not Personal Sync."
-msgstr ""
-"कस्टम सामग्री स्थानीय रूप से सहेजी जाती है और केवल संपूर्ण Magnolie आर्काइव के माध्यम से "
-"स्थानांतरित होती है, Personal Sync से नहीं।"
-
 msgid "Custom notification"
 msgstr "कस्टम सूचना"
 
@@ -1459,6 +1549,12 @@ msgstr "चक्र चिह्न केवल आपके स्थान�
 msgid "Czechia"
 msgstr "चेकिया"
 
+msgid "DIN 5008 Form A (27 mm letterhead)"
+msgstr "DIN 5008 प्रारूप A (पत्र का शीर्ष भाग 27 मिमी)"
+
+msgid "DIN 5008 Form B (default)"
+msgstr "DIN 5008 प्रारूप B (पहले से चुना हुआ)"
+
 msgid "DIN 5008 Form B with fold marks"
 msgstr "फोल्ड चिह्नों वाला DIN 5008 फ़ॉर्म B"
 
@@ -1485,6 +1581,9 @@ msgstr "दिन चिह्न"
 
 msgid "Days"
 msgstr "दिन"
+
+msgid "Dear Sir or Madam,"
+msgstr "आदरणीय महोदय/महोदया,"
 
 msgid "Death anniversary"
 msgstr "पुण्यतिथि"
@@ -1638,8 +1737,20 @@ msgstr "दंत चिकित्सक डॉ. Hill — आपकी प्�
 msgid "Determining public IP address…"
 msgstr "सार्वजनिक IP पता पता लगाया जा रहा है…"
 
+msgid "Device IMEI"
+msgstr "डिवाइस का IMEI"
+
 msgid "Device code: %(code)s"
 msgstr "डिवाइस कोड: %(code)s"
+
+msgid "Device identifier permission is missing."
+msgstr "डिवाइस पहचानकर्ता की अनुमति नहीं है।"
+
+msgid "Device identifier sharing is off."
+msgstr "डिवाइस पहचानकर्ता साझा करना बंद है।"
+
+msgid "Device serial number"
+msgstr "डिवाइस का सीरियल नंबर"
 
 msgid "Device status is not permitted or available on the phone."
 msgstr "डिवाइस की स्थिति की अनुमति नहीं है या फ़ोन पर उपलब्ध नहीं है।"
@@ -1668,6 +1779,9 @@ msgstr "त्यागें"
 
 msgid "Discharging"
 msgstr "त्यागें"
+
+msgid "Discover"
+msgstr "सेवाएँ खोजें"
 
 msgid "Display"
 msgstr "डिस्प्ले"
@@ -1798,6 +1912,9 @@ msgstr "सक्षम करें"
 msgid "Enable Magnolie Notes phone connection"
 msgstr "Magnolie Notes फ़ोन कनेक्शन सक्षम करें"
 
+msgid "Enable SMS scheduling"
+msgstr "SMS शेड्यूलिंग चालू करें"
+
 msgid "Enable cycle calendar"
 msgstr "चक्र कैलेंडर सक्षम करें"
 
@@ -1821,6 +1938,9 @@ msgstr "इस ब्लॉक के लिए रिमाइंडर सक�
 msgid "Enable shift planner"
 msgstr "शिफ़्ट प्लानर सक्षम करें"
 
+msgid "Enable this SMS plan"
+msgstr "यह SMS योजना चालू करें"
+
 msgid "Enable tray applet"
 msgstr "सिस्टम ट्रे एप्लेट सक्षम करें"
 
@@ -1829,6 +1949,11 @@ msgstr "अवकाश प्लानर सक्षम करें"
 
 msgid "Enable waste collection calendar"
 msgstr "कचरा संग्रह कैलेंडर सक्षम करें"
+
+msgid ""
+"Enabling this plan allows its overdue SMS to be sent while scheduling is on."
+msgstr ""
+"इस योजना को चालू करने पर, शेड्यूलिंग चालू रहने के दौरान इसका विलंबित SMS भेजा जा सकता है।"
 
 msgid "Enjoy getting organized!"
 msgstr "व्यवस्थित रहने का आनंद लें!"
@@ -1872,6 +1997,9 @@ msgstr "एक एप्लिकेशन कमांड दर्ज कर�
 msgid "Enter at least four characters for the backup password."
 msgstr "बैकअप पासवर्ड के लिए कम से कम चार अक्षर दर्ज करें।"
 
+msgid "Enter both hours and minutes, or leave the time completely empty."
+msgstr "घंटे और मिनट दोनों दर्ज करें, या समय पूरी तरह खाली छोड़ दें।"
+
 msgid "Enter height and weight to calculate BMI."
 msgstr "बीएमआई की गणना के लिए लंबाई और वज़न दर्ज करें।"
 
@@ -1885,6 +2013,9 @@ msgid ""
 "Enter your address above. No service can calculate directions without a "
 "starting point."
 msgstr "ऊपर अपना पता दर्ज करें। प्रारंभ बिंदु के बिना कोई सेवा दिशा-निर्देश नहीं बना सकती।"
+
+msgid "Entries ready to import"
+msgstr "आयात के लिए तैयार प्रविष्टियाँ"
 
 msgid "Entry"
 msgstr "प्रविष्टि"
@@ -1915,15 +2046,6 @@ msgstr "सब पूरा हो गया – सूची खाली ह�
 
 msgid "Everything is ready"
 msgstr "सब कुछ तैयार है"
-
-msgid ""
-"Evolution and Thunderbird are selected explicitly. iPhone contacts require a "
-"vCard export from the iPhone or iCloud. KDE Connect, Bluetooth and PBAP are "
-"not contact sources."
-msgstr ""
-"Evolution और Thunderbird को स्पष्ट रूप से चुना जाता है। iPhone संपर्कों के लिए iPhone "
-"या iCloud से vCard निर्यात आवश्यक है। KDE Connect, Bluetooth और PBAP संपर्क स्रोत "
-"नहीं हैं।"
 
 msgid "Exactly one Magnolie Notes phone must be paired."
 msgstr "बिल्कुल एक Magnolie Notes फ़ोन जोड़ा जाना चाहिए।"
@@ -2060,6 +2182,17 @@ msgstr "के लिए: %(people)s"
 
 msgid "Form"
 msgstr "फ़ॉर्म"
+
+msgid ""
+"Form B reserves 45 mm for the letterhead; Form A reserves 27 mm. Both place "
+"the return line and recipient in the left-hand address field and add fold "
+"and punch marks. Check long addresses and envelope fit in print preview "
+"before printing at 100%."
+msgstr ""
+"प्रारूप B में पत्र के शीर्ष भाग के लिए 45 मिमी और प्रारूप A में 27 मिमी जगह रखी जाती है। "
+"दोनों में भेजने वाले के पते की पंक्ति और प्राप्तकर्ता का विवरण बाईं ओर के पता-क्षेत्र में रखा "
+"जाता है। मोड़ने और छेद करने के निशान भी जुड़ते हैं। 100% आकार पर छापने से पहले छपाई की झलक "
+"में जाँचें कि लंबे पते पूरे आ रहे हैं और लिफ़ाफ़े की खिड़की में ठीक बैठते हैं।"
 
 msgid "Format region"
 msgstr "प्रारूप क्षेत्र"
@@ -2282,6 +2415,9 @@ msgstr "मैग्नोली संपूर्ण संग्रह आय
 msgid "Import contacts additively"
 msgstr "संपर्कों को जोड़ते हुए आयात करें"
 
+msgid "Import failed."
+msgstr "आयात नहीं हो सका।"
+
 msgid "Import failed: %(error)s"
 msgstr "आयात विफल रहा: %(error)s"
 
@@ -2296,6 +2432,9 @@ msgstr "एक बार आयात करें"
 
 msgid "Import pairing file …"
 msgstr "पेयरिंग फ़ाइल आयात करें …"
+
+msgid "Import preview"
+msgstr "आयात की झलक"
 
 msgid "Import, export and synchronization"
 msgstr "आयात, निर्यात और सिंक्रनाइज़ेशन"
@@ -2314,15 +2453,6 @@ msgstr ""
 
 msgid "Imported: %(items)s."
 msgstr "आयात किया गया: %(items)s।"
-
-msgid ""
-"In the DIN template, these lines appear as a multiline sender block and in "
-"small type in the address window. In the compact template, they form one "
-"line above the recipient address. No sender is added if this field is empty."
-msgstr ""
-"DIN टेम्पलेट में ये पंक्तियाँ बहुपंक्ति प्रेषक ब्लॉक के रूप में और पता विंडो में छोटे अक्षरों में दिखाई "
-"देती हैं। कॉम्पैक्ट टेम्पलेट में वे प्राप्तकर्ता के पते के ऊपर एक पंक्ति बनाती हैं। यह फ़ील्ड खाली "
-"हो तो प्रेषक नहीं जोड़ा जाता।"
 
 msgid "In the organizer%(selection)s: %(items)s%(years)s."
 msgstr "Organizer%(selection)s में: %(items)s%(years)s।"
@@ -2397,8 +2527,14 @@ msgstr "इंटरनेट IP"
 msgid "Internet available"
 msgstr "इंटरनेट उपलब्ध"
 
+msgid "Interval"
+msgstr "अंतराल"
+
 msgid "Interval in days"
 msgstr "दिनों में अंतराल"
+
+msgid "Invalid calendar date."
+msgstr "कैलेंडर की तारीख सही नहीं है।"
 
 msgid "Italic"
 msgstr "इटैलिक"
@@ -2436,6 +2572,9 @@ msgstr "KDE Connect पोर्ट %(port)s"
 
 msgid "Keep a troubleshooting log"
 msgstr "समस्या निवारण लॉग रखें"
+
+msgid "LDIF"
+msgstr "LDIF"
 
 msgid "LDIF address book (*.ldif)"
 msgstr "LDIF पता पुस्तिका (*.ldif)"
@@ -2615,12 +2754,6 @@ msgstr "Magnolienbaum मेलबॉक्स"
 msgid "Magnolienbaum pairing file (*.magnolie-paarung)"
 msgstr "Magnolienbaum पेयरिंग फ़ाइल (*.magnolie-paarung)"
 
-msgid "Magnolienbaum quarantine:"
-msgstr "Magnolienbaum संगरोध:"
-
-msgid "Magnolienbaum restart:"
-msgstr "Magnolienbaum पुनरारंभ करें:"
-
 msgid "Male caregiver"
 msgstr "पुरुष देखभालकर्ता"
 
@@ -2698,9 +2831,6 @@ msgstr "बैठक"
 msgid "Memorial day"
 msgstr "स्मृति दिवस"
 
-msgid "Memory available / total"
-msgstr "उपलब्ध / कुल मेमोरी"
-
 msgid "Merge"
 msgstr "मिलाएँ"
 
@@ -2760,18 +2890,6 @@ msgstr ""
 "लॉगिन पर एक छोटी रिमाइंडर सेवा शुरू होती है, जो पृष्ठभूमि में अपॉइंटमेंट जाँचती है और "
 "ऑर्गनाइज़र बंद करने के बाद भी चलती रहती है।"
 
-msgid ""
-"Misspelled words are marked with a red wavy underline while you type. Right-"
-"clicking a word opens a sheet with suggestions that can be applied with one "
-"click; you can add names to your personal dictionary in the same way. If the "
-"lines or suggestions are missing, install the dictionary with:  sudo apt "
-"install %(package)s"
-msgstr ""
-"टाइप करते समय गलत वर्तनी वाले शब्द लाल लहरदार रेखा से चिह्नित होते हैं। किसी शब्द पर "
-"दायाँ-क्लिक करने से सुझावों वाला पैनल खुलता है, जिन्हें एक क्लिक से लागू किया जा सकता है; "
-"इसी तरह आप अपने निजी शब्दकोश में नाम जोड़ सकते हैं। यदि रेखाएँ या सुझाव दिखाई न दें, तो "
-"शब्दकोश इस कमांड से स्थापित करें:  sudo apt install %(package)s"
-
 msgid "Mobile"
 msgstr "मोबाइल"
 
@@ -2792,9 +2910,6 @@ msgstr "महीना"
 
 msgid "Month calendar"
 msgstr "मासिक कैलेंडर"
-
-msgid "Monthly"
-msgstr "मासिक"
 
 msgid "Monthly view"
 msgstr "मासिक दृश्य"
@@ -2955,6 +3070,9 @@ msgstr "अगला सप्ताह"
 msgid "Next year"
 msgstr "अगला वर्ष"
 
+msgid "Nextcloud"
+msgstr "Nextcloud"
+
 msgid "Nextcloud is not enabled."
 msgstr "नेक्स्टक्लाउड सक्षम नहीं है।"
 
@@ -2979,6 +3097,9 @@ msgstr "कोई भी KDE Connect युग्मन पुष्टि क�
 msgid "No SMS messages are scheduled."
 msgstr "कोई SMS निर्धारित नहीं है।"
 
+msgid "No Windows dictionary is installed for this language."
+msgstr "इस भाषा के लिए Windows शब्दकोश स्थापित नहीं है।"
+
 msgid "No address books found."
 msgstr "कोई पता पुस्तिका नहीं मिली।"
 
@@ -2997,6 +3118,9 @@ msgstr "कोई अपॉइंटमेंट निर्धारित न
 
 msgid "No calendars found."
 msgstr "कोई कैलेंडर नहीं मिला।"
+
+msgid "No default voice subscription is available."
+msgstr "कोई डिफ़ॉल्ट वॉइस सदस्यता उपलब्ध नहीं है।"
 
 msgid "No due date"
 msgstr "कोई नियत तारीख नहीं"
@@ -3057,6 +3181,9 @@ msgstr "अभी कोई कार्य लिंक नहीं है।"
 msgid "No phone pairing is awaiting confirmation."
 msgstr "कोई भी फ़ोन पेयरिंग पुष्टिकरण की प्रतीक्षा में नहीं है।"
 
+msgid "No phone was found. Open the phone app and try again."
+msgstr "कोई फ़ोन नहीं मिला। फ़ोन पर ऐप खोलें और फिर कोशिश करें।"
+
 msgid "No photo"
 msgstr "कोई फ़ोटो नहीं"
 
@@ -3097,6 +3224,9 @@ msgstr "स्पैम जाँच उपलब्ध नहीं है"
 
 msgid "No suggestions found."
 msgstr "कोई सुझाव नहीं मिला।"
+
+msgid "No supported data was found."
+msgstr "ऐसा कोई डेटा नहीं मिला जिसे यह ऐप पढ़ सके।"
 
 msgid "No system-paired Bluetooth device found"
 msgstr "कोई सिस्टम-युग्मित Bluetooth डिवाइस नहीं मिला"
@@ -3215,6 +3345,15 @@ msgstr "ओबवाल्डेन"
 msgid "Off"
 msgstr "बंद"
 
+msgid ""
+"Off by default. Turning this off pauses pending SMS plans without deleting "
+"them. Enabling resumes them, including overdue plans. Messages already "
+"handed to KDE Connect cannot be recalled."
+msgstr ""
+"डिफ़ॉल्ट रूप से बंद है। बंद करने पर लंबित शेड्यूल किए गए SMS बिना मिटाए रुक जाते हैं। चालू "
+"करने पर वे फिर शुरू होते हैं, वे भी जिनका समय बीत चुका है। KDE Connect को पहले ही सौंपे "
+"गए संदेश वापस नहीं लिए जा सकते।"
+
 msgid "Offline"
 msgstr "ऑफ़लाइन"
 
@@ -3310,6 +3449,16 @@ msgstr ""
 "Wayland में केवल विश्वसनीय सिस्टम सूचना उपलब्ध है; Magnolie की कागज़ी शैली वहाँ अक्सर "
 "दिखाई नहीं देगी।"
 
+msgid ""
+"Only with both devices' explicit consent, Personal Sync shares read-only "
+"Custom tasks and appointments, including their own notes. Text blocks, "
+"linked text and attachments are excluded. Archives restore copies, not "
+"permissions."
+msgstr ""
+"केवल दोनों उपकरणों की स्पष्ट सहमति से Personal Sync कस्टम कार्य और मुलाकातें, उनके अपने "
+"नोट सहित, केवल पढ़ने योग्य रूप में साझा करता है। टेक्स्ट ब्लॉक, जुड़े हुए टेक्स्ट और संलग्नक "
+"शामिल नहीं हैं। अभिलेख प्रतियाँ बहाल करते हैं, अनुमतियाँ नहीं।"
+
 msgid "Open"
 msgstr "खोलें"
 
@@ -3373,6 +3522,9 @@ msgstr "खुला"
 
 msgid "Open the day in the daily view"
 msgstr "दिन को दैनिक दृश्य में खोलें"
+
+msgid "Open the phone connection screen and try again."
+msgstr "फ़ोन से जुड़ने वाली स्क्रीन खोलें और फिर कोशिश करें।"
 
 msgid ""
 "Open the verified DEB with your software manager; the organizer never "
@@ -3444,6 +3596,9 @@ msgstr "अंडोत्सर्ग"
 
 msgid "Own internet IP"
 msgstr "अपना इंटरनेट IP"
+
+msgid "Own phone number (default voice SIM)"
+msgstr "अपना नंबर (डिफ़ॉल्ट वॉइस SIM)"
 
 msgid "PDF file"
 msgstr "PDF फ़ाइल"
@@ -3524,6 +3679,9 @@ msgstr "चिपकाएँ"
 
 msgid "Patch"
 msgstr "पैच"
+
+msgid "Paused — review required"
+msgstr "रुका हुआ — समीक्षा ज़रूरी है"
 
 msgid "Pay invoice"
 msgstr "चालान का भुगतान करें"
@@ -3613,6 +3771,15 @@ msgstr "फ़ोन की बैटरी"
 
 msgid "Phone call"
 msgstr "फ़ोन कॉल"
+
+msgid "Phone connection"
+msgstr "फ़ोन से जुड़ना"
+
+msgid "Phone connection cancelled or timed out."
+msgstr "फ़ोन से जुड़ना रद्द कर दिया गया या तय समय बीत गया।"
+
+msgid "Phone connection failed."
+msgstr "फ़ोन से जुड़ नहीं सके।"
 
 msgid "Phone error: %(error)s"
 msgstr "फ़ोन त्रुटि: %(error)s"
@@ -3721,6 +3888,10 @@ msgstr "पाउडर"
 
 msgid "Power source"
 msgstr "ऊर्जा स्रोत"
+
+msgid "Prefer PC speakers and microphone for calls on my own Bluetooth phone"
+msgstr ""
+"मेरे अपने Bluetooth फ़ोन की कॉल के लिए PC के स्पीकर और माइक्रोफ़ोन को प्राथमिकता दें"
 
 msgid "Preferred backup folder"
 msgstr "पसंदीदा बैकअप फ़ोल्डर"
@@ -3862,6 +4033,9 @@ msgstr "रिकवरी स्नैपशॉट"
 msgid "Recycle bin"
 msgstr "कूड़ेदान"
 
+msgid "Redo"
+msgstr "फिर से करें"
+
 msgid "Refresh"
 msgstr "रीफ़्रेश"
 
@@ -3869,6 +4043,9 @@ msgid ""
 "Regional settings saved. Restart the Organizer to apply them completely."
 msgstr ""
 "क्षेत्रीय सेटिंग सहेज दी गई हैं। उन्हें पूरी तरह लागू करने के लिए Organizer को पुनः आरंभ करें।"
+
+msgid "Regular typeface"
+msgstr "सामान्य टाइपफ़ेस"
 
 msgid "Reject"
 msgstr "अस्वीकार करें"
@@ -3884,12 +4061,6 @@ msgstr "उसी दिन फिर याद दिलाएँ"
 
 msgid "Reminder"
 msgstr "रिमाइंडर"
-
-msgid "Reminder data:"
-msgstr "अनुस्मारक डेटा:"
-
-msgid "Reminder runtime:"
-msgstr "अनुस्मारक रनटाइम:"
 
 msgid "Reminders"
 msgstr "अनुस्मारक"
@@ -4030,6 +4201,13 @@ msgstr ""
 "क्या इस स्नैपशॉट को पूरी तरह से पुनर्स्थापित करना है? पहले एक अनिवार्य पूर्व-पुनर्स्थापना "
 "स्नैपशॉट बनाया जाता है।"
 
+msgid ""
+"Restored pending plans stay paused until you review and enable each plan. "
+"Restoring contacts, calendar or notes does not change live SMS plans."
+msgstr ""
+"बहाल की गई लंबित योजनाएँ तब तक रुकी रहती हैं जब तक आप हर योजना की समीक्षा करके उसे "
+"चालू नहीं करते। संपर्क, कैलेंडर या नोट बहाल करने से वर्तमान SMS योजनाएँ नहीं बदलतीं।"
+
 msgid "Restoring backups is available only in the installed application."
 msgstr "बैकअप पुनर्स्थापित करना केवल स्थापित अनुप्रयोग में उपलब्ध है।"
 
@@ -4056,6 +4234,12 @@ msgstr "मैन्युअल डाउनलोड जानकारी प
 
 msgid "Retrieving weather…"
 msgstr "मौसम प्राप्त किया जा रहा है…"
+
+msgid "Review and enable"
+msgstr "जाँचें और चालू करें"
+
+msgid "Review the exact SMS text for every recipient before confirming."
+msgstr "पुष्टि करने से पहले हर प्राप्तकर्ता के लिए SMS का सटीक पाठ जाँचें।"
 
 msgid "Rhineland-Palatinate"
 msgstr "राइनलैंड-पैलेटिनेट"
@@ -4095,6 +4279,13 @@ msgstr "SMS इतिहास"
 
 msgid "SMS scheduled."
 msgstr "SMS निर्धारित है।"
+
+msgid ""
+"SMS scheduling is off. Pending plans are paused. Review them in SMS settings "
+"before enabling scheduling."
+msgstr ""
+"SMS शेड्यूलिंग बंद है। लंबित संदेश रुके हुए हैं। शेड्यूलिंग चालू करने से पहले SMS सेटिंग में उनकी जाँच "
+"करें।"
 
 msgid "SMS settings"
 msgstr "SMS सेटिंग्स"
@@ -4196,6 +4387,9 @@ msgstr "योजना"
 msgid "Schleswig-Holstein"
 msgstr "श्लेस्विग-होल्स्टीन"
 
+msgid "School holidays are not available for this region."
+msgstr "इस क्षेत्र के लिए स्कूल की छुट्टियों की जानकारी उपलब्ध नहीं है।"
+
 msgid "Schwyz"
 msgstr "श्वीत्स"
 
@@ -4278,6 +4472,9 @@ msgstr "बाईं ओर चुनें कि क्या प्रिं�
 msgid "Select your canton first or enable “All cantons”."
 msgstr "पहले अपना कैंटन चुनें या “सभी कैंटन” चालू करें।"
 
+msgid "Select your phone"
+msgstr "अपना फ़ोन चुनें"
+
 msgid "Select your state first or enable “All states”."
 msgstr "पहले अपना राज्य चुनें या “सभी राज्य” चालू करें।"
 
@@ -4287,14 +4484,6 @@ msgstr "स्वास्थ्य रिकॉर्ड चुनें, प�
 msgid ""
 "Selected columns that are empty for every contact are omitted automatically."
 msgstr "चुने गए ऐसे कॉलम जो हर संपर्क के लिए खाली हैं, अपने-आप छोड़ दिए जाते हैं।"
-
-msgid ""
-"Selected imports are started directly after Magnolie opens. Thunderbird "
-"contacts are not offered because Windows has no Thunderbird address-book "
-"importer."
-msgstr ""
-"चुने गए आयात Magnolie खुलने के तुरंत बाद शुरू होते हैं। Thunderbird संपर्क उपलब्ध नहीं हैं "
-"क्योंकि Windows में Thunderbird पता-पुस्तिका आयातक नहीं है।"
 
 msgid "Selection options"
 msgstr "चयन विकल्प"
@@ -4313,6 +4502,9 @@ msgstr "सुरक्षित अनुरोध भेजें"
 
 msgid "Sent"
 msgstr "भेजा गया"
+
+msgid "Server"
+msgstr "सर्वर"
 
 msgid "Server address"
 msgstr "सर्वर पता"
@@ -4395,6 +4587,9 @@ msgstr "और दिखाएँ"
 msgid "Show preview"
 msgstr "पूर्वावलोकन दिखाएँ"
 
+msgid "Show school holidays for %(state)s in the calendar?"
+msgstr "कैलेंडर में %(state)s की स्कूल की छुट्टियाँ दिखाएँ?"
+
 msgid "Show selected notifications (read only)"
 msgstr "केवल स्क्रीन सूचना"
 
@@ -4446,6 +4641,9 @@ msgstr "माइक्रोसॉफ्ट में साइन इन क�
 msgid "Signed out from Microsoft."
 msgstr "माइक्रोसॉफ्ट से साइन आउट हो गया."
 
+msgid "Silence this alert"
+msgstr "यह सूचना शांत करें"
+
 msgid "Skip assistant"
 msgstr "सहायक छोड़ें"
 
@@ -4479,6 +4677,13 @@ msgstr "कुछ मौजूदा बैकअप डिक्रिप्ट
 
 msgid "Some existing backups could not be encrypted."
 msgstr "कुछ मौजूदा बैकअप एन्क्रिप्ट नहीं किए जा सके."
+
+msgid ""
+"Some recurrence rules cannot be expanded. Their original calendar data was "
+"preserved."
+msgstr ""
+"दोहराव के कुछ नियमों से हर बार की तारीखें नहीं निकाली जा सकीं। कैलेंडर का मूल डेटा सुरक्षित "
+"रखा गया है।"
 
 msgid "Son"
 msgstr "बेटा"
@@ -4528,6 +4733,9 @@ msgstr "अधिसूचना क्षेत्र (ट्रे) में 
 msgid "Start automatically when signing in"
 msgstr "साइन इन करते समय अपने-आप शुरू करें"
 
+msgid "Start required phone background services automatically"
+msgstr "फ़ोन के लिए ज़रूरी पृष्ठभूमि सेवाएँ अपने आप शुरू करें"
+
 msgid "Start the organizer in the tray"
 msgstr "ऑर्गनाइज़र को सिस्टम ट्रे में शुरू करें"
 
@@ -4539,9 +4747,6 @@ msgstr "प्रारूप क्षेत्र"
 
 msgid "Status"
 msgstr "स्थिति"
-
-msgid "Storage available / total"
-msgstr "उपलब्ध / कुल स्टोरेज"
 
 msgid "Street / house number"
 msgstr "सड़क / मकान नंबर"
@@ -4557,6 +4762,9 @@ msgstr "स्ट्राइकथ्रू"
 
 msgid "Styria"
 msgstr "स्टायरिया"
+
+msgid "Subject"
+msgstr "विषय"
 
 msgid "Submitted"
 msgstr "प्रस्तुत"
@@ -4575,6 +4783,9 @@ msgstr "सूर्य का प्रतीक"
 
 msgid "Sunday"
 msgstr "रविवार"
+
+msgid "Supported files"
+msgstr "पढ़ी जा सकने वाली फ़ाइलें"
 
 msgid "Suppository"
 msgstr "सपोसिटरी"
@@ -4640,6 +4851,12 @@ msgstr "स्थायी रूप से सिंक्रनाइज़ �
 msgid "Synchronize tasks"
 msgstr "संपर्क सिंक्रनाइज़ करें"
 
+msgid "Synchronize tasks and appointments from the \"%(tab)s\" tab"
+msgstr "“%(tab)s” टैब के कार्य और मुलाकातें सिंक करें"
+
+msgid "Synchronize tasks and appointments from the custom tab"
+msgstr "कस्टम टैब के कार्य और मुलाकातें सिंक करें"
+
 msgid "Synchronizing …"
 msgstr "सिंक्रोनाइज़ किया जा रहा है …"
 
@@ -4673,6 +4890,10 @@ msgstr "टैब %(letter)s · %(count)s"
 
 msgid "Tab name"
 msgstr "टैब का नाम"
+
+msgid ""
+"Tab: insert a tab stop. Shift+Tab: previous field. Ctrl+Tab: next field."
+msgstr "Tab: टैब जोड़ें। Shift+Tab: पिछला फ़ील्ड। Ctrl+Tab: अगला फ़ील्ड।"
 
 msgid "Tablet"
 msgstr "टैबलेट"
@@ -4717,9 +4938,6 @@ msgstr "अभी जाँचें"
 msgid "Testing…"
 msgstr "जाँच की जा रही है…"
 
-msgid "Text"
-msgstr "पाठ"
-
 msgid "Text block"
 msgstr "टेक्स्ट ब्लॉक"
 
@@ -4740,14 +4958,6 @@ msgid_plural ""
 "The %(count)s note pages it contains will be moved to “%(notebook)s”."
 msgstr[0] "इसमें मौजूद %(count)s नोट पृष्ठ “%(notebook)s” में ले जाया जाएगा।"
 msgstr[1] "इसमें मौजूद %(count)s नोट पृष्ठ “%(notebook)s” में ले जाए जाएँगे।"
-
-msgid ""
-"The DIN template positions the recipient address for a window envelope, "
-"shows your address as a multiline sender block, and adds two fold marks and "
-"a punch mark."
-msgstr ""
-"DIN टेम्पलेट विंडो लिफ़ाफ़े के लिए प्राप्तकर्ता का पता सही जगह रखता है, आपका पता बहु-पंक्ति "
-"प्रेषक ब्लॉक के रूप में दिखाता है और मोड़ने के दो निशान तथा पंच का एक निशान जोड़ता है।"
 
 msgid "The KDE Connect device to renew is missing."
 msgstr "नवीनीकृत करने के लिए KDE Connect डिवाइस गायब है।"
@@ -4792,14 +5002,36 @@ msgstr ""
 msgid "The Magnolienbaum is available only in the installed application."
 msgstr "Magnolienbaum केवल स्थापित अनुप्रयोग में उपलब्ध है।"
 
+msgid "The Nextcloud operation failed."
+msgstr "Nextcloud में काम पूरा नहीं हो सका।"
+
+msgid "The Nextcloud request timed out."
+msgstr "Nextcloud के अनुरोध की समय-सीमा बीत गई।"
+
+msgid "The Nextcloud response was incomplete."
+msgstr "Nextcloud से अधूरा जवाब मिला।"
+
+msgid "The Nextcloud settings are invalid."
+msgstr "Nextcloud की सेटिंग्स सही नहीं हैं।"
+
 msgid "The ODS export is too large."
 msgstr "ODS निर्यात बहुत बड़ा है।"
 
 msgid "The Organizer chooses a suitable installed application."
 msgstr "ऑर्गनाइज़र कोई उपयुक्त स्थापित अनुप्रयोग चुनता है।"
 
+msgid "The SMS submission journal is full. No message was sent."
+msgstr "SMS भेजने के अनुरोधों का अभिलेख भर गया है। कोई संदेश नहीं भेजा गया।"
+
 msgid "The address could not be opened."
 msgstr "पता नहीं खुल सका."
+
+msgid ""
+"The address is too long for the letter's address field. Shorten the return "
+"address or recipient, or choose the compact template."
+msgstr ""
+"पता इतना लंबा है कि पत्र में उसके लिए बनी जगह में नहीं समा रहा। भेजने वाले का पता या "
+"प्राप्तकर्ता का विवरण छोटा करें, या संक्षिप्त नमूना चुनें।"
 
 msgid ""
 "The archive contains the complete application data. The password is "
@@ -4850,6 +5082,9 @@ msgstr ""
 "पृष्ठभूमि रिमाइंडर सेवा अलग रिमाइंडर डेटा पढ़ सकती है, इसलिए ऑर्गनाइज़र बंद होने पर भी "
 "काम करती है।"
 
+msgid "The background settings could not be saved."
+msgstr "पृष्ठभूमि में काम करने की सेटिंग्स सहेजी नहीं जा सकीं।"
+
 msgid "The backup chooser will open after Magnolie has started."
 msgstr "Magnolie शुरू होने के बाद बैकअप चयनकर्ता खुलेगा।"
 
@@ -4878,6 +5113,9 @@ msgid ""
 msgstr ""
 "नीचे की पट्टी वाला बटन खुले हुए अनुभाग के लिए चयन खोलता है। वहाँ से चिह्नित प्रविष्टियाँ "
 "प्रिंट, निर्यात या कूड़ेदान में भेजी जा सकती हैं।"
+
+msgid "The call action expired or is no longer permitted."
+msgstr "कॉल कार्रवाई की समय-सीमा समाप्त हो गई है या अब इसकी अनुमति नहीं है।"
 
 msgid "The call is no longer active or has been updated."
 msgstr "कॉल अब सक्रिय नहीं है या अपडेट कर दी गई है."
@@ -5154,8 +5392,14 @@ msgstr "व्यक्तिगत सिंक्रनाइज़ेशन �
 msgid "The phone connection is available only in the installed application."
 msgstr "फ़ोल्डर चयन केवल स्थापित एप्लिकेशन में उपलब्ध है।"
 
+msgid "The phone connection was not authenticated."
+msgstr "कनेक्शन में फ़ोन की पहचान की पुष्टि नहीं हुई।"
+
 msgid "The phone function is not permitted or available."
 msgstr "फ़ोन फ़ंक्शन की अनुमति नहीं है या उपलब्ध नहीं है।"
+
+msgid "The phone is no longer connected."
+msgstr "फ़ोन अब जुड़ा हुआ नहीं है।"
 
 msgid "The phone is not connected via WLAN."
 msgstr "फ़ोन WLAN के माध्यम से कनेक्ट नहीं है।"
@@ -5165,6 +5409,9 @@ msgstr "फ़ोन युग्मित नहीं है."
 
 msgid "The phone is reachable, but its KDE Connect trust no longer matches."
 msgstr "फ़ोन उपलब्ध है, लेकिन उसका KDE Connect भरोसा अब मेल नहीं खाता।"
+
+msgid "The phone listener could not start."
+msgstr "फ़ोन से जुड़ने के अनुरोध लेने वाली सेवा शुरू नहीं हो सकी।"
 
 msgid "The phone operation failed."
 msgstr "फ़ोन ऑपरेशन विफल रहा."
@@ -5179,6 +5426,9 @@ msgstr ""
 msgid "The phone settings are damaged."
 msgstr "फ़ोन सेटिंग ख़राब हो गई हैं."
 
+msgid "The phone settings could not be read."
+msgstr "फ़ोन की सेटिंग्स पढ़ी नहीं जा सकीं।"
+
 msgid "The phone was not specified."
 msgstr "फ़ोन निर्दिष्ट नहीं था."
 
@@ -5190,6 +5440,12 @@ msgstr "फ़ोटो 8 मेगाबाइट से बड़ी है।
 
 msgid "The port must be between 1 and 65535."
 msgstr "पोर्ट 1 और 65535 के बीच होना चाहिए।"
+
+msgid ""
+"The profile could not be locked. It may already be open in another session."
+msgstr ""
+"प्रोफ़ाइल को केवल इस सत्र के उपयोग के लिए सुरक्षित नहीं किया जा सका। हो सकता है कि वह "
+"दूसरे सत्र में पहले से खुली हो।"
 
 msgid "The public address could not be determined."
 msgstr "सार्वजनिक पता निर्धारित नहीं किया जा सका।"
@@ -5245,10 +5501,19 @@ msgstr "चयनित संपर्कों में इन कॉलम�
 msgid "The selected health records contain no printable values."
 msgstr "चुने गए स्वास्थ्य रिकॉर्ड में प्रिंट करने योग्य कोई मान नहीं है।"
 
+msgid "The selected phone changed. Try again."
+msgstr "चुना हुआ फ़ोन बदल गया है। फिर कोशिश करें।"
+
 msgid ""
 "The server operator can see the account, folder and file names, sizes and "
 "times of your messages."
 msgstr "सर्वर संचालक खाता, फ़ोल्डर और फ़ाइल नाम, आकार तथा आपके संदेशों के समय देख सकता है।"
+
+msgid "The server response is too large."
+msgstr "सर्वर से आए जवाब का आकार बहुत बड़ा है।"
+
+msgid "The service returned no entries for this selection."
+msgstr "इस चयन के लिए सेवा ने कोई प्रविष्टि नहीं लौटाई।"
 
 msgid "The setup state could not be saved."
 msgstr "सेटअप की स्थिति सहेजी नहीं जा सकी।"
@@ -5410,6 +5675,15 @@ msgstr ""
 "यह चयन यह भी तय करता है कि संपर्क कार्ड पर नाम कैसे दिखें और अनुक्रमणिका में किस अक्षर के "
 "अंतर्गत रखे जाएँ।"
 
+msgid "This contact card has no postal address."
+msgstr "इस संपर्क कार्ड में डाक का पता नहीं है।"
+
+msgid "This device does not support synchronization of the custom tab."
+msgstr "यह उपकरण कस्टम टैब के सिंक का समर्थन नहीं करता।"
+
+msgid "This device identifier is unavailable."
+msgstr "यह डिवाइस पहचानकर्ता उपलब्ध नहीं है।"
+
 msgid "This dial request has already been queued."
 msgstr "यह डायल अनुरोध पहले ही कतारबद्ध किया जा चुका है."
 
@@ -5436,6 +5710,9 @@ msgid ""
 "and <s>struck through</s>."
 msgstr ""
 "आपके नोट ऐसे दिखते हैं: <b>बोल्ड</b>, <i>इटैलिक</i>, <u>रेखांकित</u> और <s>कटा हुआ</s>।"
+
+msgid "This is my own phone"
+msgstr "यह मेरा अपना फ़ोन है"
 
 msgid ""
 "This is one occurrence of a recurring appointment. Changes apply to all "
@@ -5478,6 +5755,9 @@ msgstr "यह जोड़ा गया फ़ोन मेरा अपना 
 msgid "This person's anniversaries"
 msgstr "इस व्यक्ति की वर्षगाँठ"
 
+msgid "This phone transport is unavailable."
+msgstr "फ़ोन से जुड़ने का यह तरीका उपलब्ध नहीं है।"
+
 msgid ""
 "This program is free software: you may redistribute and modify it. It is "
 "published in the hope that it will be useful, but without any warranty."
@@ -5503,6 +5783,12 @@ msgstr "यह कार्य “%(branch)s” से आया है।"
 
 msgid "Through"
 msgstr "तक"
+
+msgid "Thunderbird"
+msgstr "Thunderbird"
+
+msgid "Thunderbird profile version"
+msgstr "Thunderbird प्रोफ़ाइल का संस्करण"
 
 msgid "Thurgau"
 msgstr "थुर्गाउ"
@@ -5555,6 +5841,9 @@ msgstr "बहुत अधिक विफल प्रयास। थोड�
 
 msgid "Too many regions were selected."
 msgstr "बहुत अधिक क्षेत्र चुने गए।"
+
+msgid "Too many unfinished synchronization runs."
+msgstr "समन्वयन की बहुत अधिक प्रक्रियाएँ अधूरी हैं।"
 
 msgid "Top level"
 msgstr "मुख्य स्तर"
@@ -5613,6 +5902,9 @@ msgstr ""
 
 msgid "Underline"
 msgstr "रेखांकन"
+
+msgid "Undo"
+msgstr "पूर्ववत करें"
 
 msgid "Unit"
 msgstr "इकाई"
@@ -5725,6 +6017,9 @@ msgstr "रीसायकल बिन का उपयोग करें"
 msgid "User name"
 msgstr "उपयोगकर्ता नाम"
 
+msgid "Username"
+msgstr "उपयोगकर्ता नाम"
+
 msgid ""
 "Uses its own identity and storage and listens only on fixed port %(port)s. "
 "It never uses Magnolienbaum partners, permissions, queues or Bluetooth "
@@ -5814,6 +6109,12 @@ msgstr ""
 msgid "WLAN listener on port %(port)s"
 msgstr "पोर्ट %(port)s पर WLAN श्रोता"
 
+msgid "Wait for personal synchronization to finish before restoring."
+msgstr "डेटा बहाल करने से पहले व्यक्तिगत समन्वयन पूरा होने दें।"
+
+msgid "Waiting for authenticated phone connection..."
+msgstr "फ़ोन के जुड़ने और उसकी पहचान की पुष्टि होने की प्रतीक्षा है..."
+
 msgid "Waiting for consent on the other device."
 msgstr "दूसरे डिवाइस पर सहमति की प्रतीक्षा है।"
 
@@ -5871,6 +6172,11 @@ msgstr ""
 
 msgid "Weather temperature"
 msgstr "मौसम का तापमान"
+
+msgid ""
+"Weather uses HTTPS first, then unencrypted HTTP if necessary. If wttr.in "
+"fails and a location is known, Open-Meteo is tried."
+msgstr "मौसम की जानकारी पहले HTTPS से और ज़रूरत पड़ने पर बिना एन्क्रिप्शन वाले HTTP से ली जाती है। अगर wttr.in उपलब्ध नहीं है और स्थान पता है, तो Open-Meteo को आज़माया जाता है।"
 
 msgid "Weather was not retrieved because no location is available."
 msgstr "मौसम की जानकारी नहीं ली गई क्योंकि कोई स्थान उपलब्ध नहीं है।"
@@ -5961,6 +6267,25 @@ msgstr "पत्नी"
 msgid "Windows Contacts folder"
 msgstr "विंडोज़ संपर्क फ़ोल्डर"
 
+msgid ""
+"Windows marks misspelled words with red wavy lines. Right-click a word for "
+"suggestions or to add it to your personal dictionary. Magnolie requests "
+"German suggestions for a German interface and English suggestions otherwise. "
+"If suggestions are missing, open Windows Settings, Time & language, Language "
+"& region, then the language options for German or English, and install Basic "
+"typing. Dictionary availability depends on the installed Windows language "
+"features."
+msgstr ""
+"Windows गलत वर्तनी वाले शब्दों को लाल लहरदार रेखाओं से चिह्नित करता है। सुझाव देखने या "
+"किसी शब्द को अपने निजी शब्दकोश में जोड़ने के लिए उस पर दायाँ क्लिक करें। जर्मन इंटरफ़ेस होने "
+"पर Magnolie जर्मन सुझाव माँगता है, अन्यथा अंग्रेज़ी सुझाव। यदि सुझाव नहीं मिलते, तो "
+"Windows सेटिंग्स में समय और भाषा, फिर भाषा और क्षेत्र खोलें, जर्मन या अंग्रेज़ी के भाषा "
+"विकल्प खोलें और मूल टाइपिंग स्थापित करें। शब्दकोशों की उपलब्धता Windows में स्थापित भाषा "
+"सुविधाओं पर निर्भर करती है।"
+
+msgid "Windows spell checking is available only on Windows."
+msgstr "Windows की वर्तनी जाँच केवल Windows पर उपलब्ध है।"
+
 msgid "Wireless"
 msgstr "वायरलेस"
 
@@ -6017,6 +6342,9 @@ msgstr "यहाँ लिखें …"
 msgid "Writing sheet"
 msgstr "लेखन शीट"
 
+msgid "Wrong Bluetooth device."
+msgstr "Bluetooth उपकरण सही नहीं है।"
+
 msgid "X (formerly Twitter)"
 msgstr "X (पहले Twitter)"
 
@@ -6060,10 +6388,16 @@ msgstr ""
 msgid "Your data is stored at: %(path)s"
 msgstr "आपका डेटा यहाँ संग्रहीत है: %(path)s"
 
+msgid "Your letter"
+msgstr "आपका पत्र"
+
 msgid ""
 "Your own address is required as the starting point for a route. Enter it "
 "under Settings ▸ Contacts."
 msgstr "रूट के शुरुआती बिंदु के लिए आपका अपना पता आवश्यक है। इसे सेटिंग्स ▸ संपर्क में दर्ज करें।"
+
+msgid "Yours sincerely,"
+msgstr "सादर,"
 
 msgid "Zug"
 msgstr "ज़ुग"
@@ -6128,7 +6462,7 @@ msgid "blood-glucose"
 msgstr "blood-glucose"
 
 msgid "browser storage"
-msgstr "browser storage"
+msgstr "ब्राउज़र संग्रहण"
 
 msgid "confidential"
 msgstr "गोपनीय"
@@ -6357,6 +6691,9 @@ msgstr "बिना शीर्षक"
 msgid "vCard (.vcf), including iPhone/iCloud export …"
 msgstr "vCard (.vcf), जिसमें iPhone/iCloud निर्यात शामिल है …"
 
+msgid "vCard / iPhone / iCloud"
+msgstr "vCard / iPhone / iCloud"
+
 msgid "vCard file (.vcf), including iPhone/iCloud export …"
 msgstr "vCard फ़ाइल (.vcf), जिसमें iPhone/iCloud निर्यात शामिल है …"
 
@@ -6367,9 +6704,6 @@ msgid ""
 msgstr ""
 "vCard अधिक संपर्क विवरण सुरक्षित रखता है। LDIF, Claws Mail में आयात के लिए है; "
 "आपातकालीन संपर्क, सोशल मीडिया, स्वतंत्र लेबल और गैर-JPEG फ़ोटो शामिल नहीं किए जा सकते।"
-"vCard preserves more contact details. LDIF is intended for importing into "
-"Claws Mail; emergency contacts, social media, free labels and non-JPEG "
-"photos cannot be included."
 
 msgid "vital"
 msgstr "vital"
@@ -6444,6 +6778,120 @@ msgstr[1] "… और %(count)s अतिरिक्त आइटम, जो �
 
 msgid "＋ Add appointment"
 msgstr "＋ अपॉइंटमेंट जोड़ें"
+
+#~ msgid "As usual (print)"
+#~ msgstr "सामान्य रूप से (प्रिंट)"
+
+#~ msgid ""
+#~ "Misspelled words are marked with a red wavy underline while you type. "
+#~ "Right-clicking a word opens a sheet with suggestions that can be applied "
+#~ "with one click; you can add names to your personal dictionary in the same "
+#~ "way. If the lines or suggestions are missing, install the dictionary "
+#~ "with:  sudo apt install %(package)s"
+#~ msgstr ""
+#~ "टाइप करते समय गलत वर्तनी वाले शब्द लाल लहरदार रेखा से चिह्नित होते हैं। किसी शब्द पर "
+#~ "दायाँ-क्लिक करने से सुझावों वाला पैनल खुलता है, जिन्हें एक क्लिक से लागू किया जा सकता है; "
+#~ "इसी तरह आप अपने निजी शब्दकोश में नाम जोड़ सकते हैं। यदि रेखाएँ या सुझाव दिखाई न दें, "
+#~ "तो शब्दकोश इस कमांड से स्थापित करें:  sudo apt install %(package)s"
+
+#~ msgid "Magnolienbaum restart:"
+#~ msgstr "Magnolienbaum पुनरारंभ करें:"
+
+#~ msgid "Reminder data:"
+#~ msgstr "अनुस्मारक डेटा:"
+
+#~ msgid "Reminder runtime:"
+#~ msgstr "अनुस्मारक रनटाइम:"
+
+#~ msgid ""
+#~ "Both devices must opt in. Turning this off pauses Custom reminders and "
+#~ "updates but keeps copies. Linked text blocks are not shared."
+#~ msgstr ""
+#~ "दोनों उपकरणों की सहमति ज़रूरी है। इसे बंद करने पर कस्टम अनुस्मारक और अपडेट रुक जाते हैं, "
+#~ "लेकिन प्रतियाँ बनी रहती हैं। जुड़े हुए टेक्स्ट ब्लॉक साझा नहीं किए जाते।"
+
+#~ msgid "Memory available / total"
+#~ msgstr "उपलब्ध / कुल मेमोरी"
+
+#~ msgid "Storage available / total"
+#~ msgstr "उपलब्ध / कुल स्टोरेज"
+
+#~ msgid "Synchronize Custom tasks and appointments"
+#~ msgstr "कस्टम कार्य और मुलाकातें सिंक करें"
+
+#~ msgid "This device does not support Custom synchronization."
+#~ msgstr "यह उपकरण कस्टम सामग्री के सिंक का समर्थन नहीं करता।"
+
+#~ msgid ""
+#~ "Your address forms a single return line above the recipient in the same "
+#~ "left-hand address field. No sender is added if this field is empty."
+#~ msgstr ""
+#~ "आपका पता भेजने वाले के पते के रूप में एक पंक्ति में, प्राप्तकर्ता के ऊपर दिखाई देता है। दोनों "
+#~ "बाईं ओर के एक ही पता-क्षेत्र में रहते हैं। यह खाना खाली छोड़ने पर भेजने वाले का विवरण "
+#~ "नहीं जोड़ा जाता।"
+
+#~ msgid ""
+#~ "Custom content is saved locally and transferred through complete Magnolie "
+#~ "archives only, not Personal Sync."
+#~ msgstr ""
+#~ "कस्टम सामग्री स्थानीय रूप से सहेजी जाती है और केवल संपूर्ण Magnolie आर्काइव के माध्यम से "
+#~ "स्थानांतरित होती है, Personal Sync से नहीं।"
+
+#~ msgid ""
+#~ "Choose file and Windows contact imports that Magnolie can start directly "
+#~ "after opening."
+#~ msgstr ""
+#~ "वे फ़ाइल और Windows संपर्क आयात चुनें जिन्हें Magnolie खुलने के तुरंत बाद शुरू कर सकता है।"
+
+#~ msgid "Compact sender line (default)"
+#~ msgstr "संक्षिप्त प्रेषक पंक्ति (डिफ़ॉल्ट)"
+
+#~ msgid ""
+#~ "In the DIN template, these lines appear as a multiline sender block and "
+#~ "in small type in the address window. In the compact template, they form "
+#~ "one line above the recipient address. No sender is added if this field is "
+#~ "empty."
+#~ msgstr ""
+#~ "DIN टेम्पलेट में ये पंक्तियाँ बहुपंक्ति प्रेषक ब्लॉक के रूप में और पता विंडो में छोटे अक्षरों में "
+#~ "दिखाई देती हैं। कॉम्पैक्ट टेम्पलेट में वे प्राप्तकर्ता के पते के ऊपर एक पंक्ति बनाती हैं। यह "
+#~ "फ़ील्ड खाली हो तो प्रेषक नहीं जोड़ा जाता।"
+
+#~ msgid "Monthly"
+#~ msgstr "मासिक"
+
+#~ msgid ""
+#~ "The DIN template positions the recipient address for a window envelope, "
+#~ "shows your address as a multiline sender block, and adds two fold marks "
+#~ "and a punch mark."
+#~ msgstr ""
+#~ "DIN टेम्पलेट विंडो लिफ़ाफ़े के लिए प्राप्तकर्ता का पता सही जगह रखता है, आपका पता बहु-"
+#~ "पंक्ति प्रेषक ब्लॉक के रूप में दिखाता है और मोड़ने के दो निशान तथा पंच का एक निशान "
+#~ "जोड़ता है।"
+
+#~ msgid "%(count)s recurring appointment imported only once."
+#~ msgid_plural "%(count)s recurring appointments imported only once."
+#~ msgstr[0] "%(count)s आवर्ती अपॉइंटमेंट केवल एक बार आयात किया गया।"
+#~ msgstr[1] "%(count)s आवर्ती अपॉइंटमेंट केवल एक बार आयात किए गए।"
+
+#~ msgid "Magnolienbaum quarantine:"
+#~ msgstr "Magnolienbaum संगरोध:"
+
+#~ msgid ""
+#~ "Evolution and Thunderbird are selected explicitly. iPhone contacts "
+#~ "require a vCard export from the iPhone or iCloud. KDE Connect, Bluetooth "
+#~ "and PBAP are not contact sources."
+#~ msgstr ""
+#~ "Evolution और Thunderbird को स्पष्ट रूप से चुना जाता है। iPhone संपर्कों के लिए "
+#~ "iPhone या iCloud से vCard निर्यात आवश्यक है। KDE Connect, Bluetooth और PBAP "
+#~ "संपर्क स्रोत नहीं हैं।"
+
+#~ msgid ""
+#~ "Selected imports are started directly after Magnolie opens. Thunderbird "
+#~ "contacts are not offered because Windows has no Thunderbird address-book "
+#~ "importer."
+#~ msgstr ""
+#~ "चुने गए आयात Magnolie खुलने के तुरंत बाद शुरू होते हैं। Thunderbird संपर्क उपलब्ध नहीं हैं "
+#~ "क्योंकि Windows में Thunderbird पता-पुस्तिका आयातक नहीं है।"
 
 #~ msgid ""
 #~ "Download Magnolie Notes or KDE Connect using the links below. Bluetooth "
@@ -6604,3 +7052,18 @@ msgstr "＋ अपॉइंटमेंट जोड़ें"
 #~ "When the limit is lowered, the oldest recovery snapshots are removed "
 #~ "automatically."
 #~ msgstr "सीमा घटाने पर सबसे पुराने पुनर्प्राप्ति बिंदु अपने आप हटा दिए जाते हैं।"
+
+#~ msgid "Share own phone identifiers"
+#~ msgstr "अपने फ़ोन के पहचानकर्ता साझा करें"
+
+#~ msgid ""
+#~ "Only on request from your own paired computer, for 60 seconds, without "
+#~ "saving: the default voice SIM number and, if Android permits, serial "
+#~ "number and IMEI. Android 10 and later restrict hardware identifiers for "
+#~ "ordinary apps. Phone-number permission is optional; no special role is "
+#~ "requested."
+#~ msgstr ""
+#~ "केवल अपने जुड़े कंप्यूटर के अनुरोध पर, 60 सेकंड के लिए, बिना सहेजे: डिफ़ॉल्ट वॉइस SIM का "
+#~ "नंबर और, Android अनुमति दे तो, सीरियल नंबर और IMEI। Android 10 से सामान्य ऐप के "
+#~ "लिए हार्डवेयर पहचानकर्ताओं पर प्रतिबंध हैं। नंबर की अनुमति वैकल्पिक है; कोई विशेष भूमिका "
+#~ "नहीं माँगी जाती।"

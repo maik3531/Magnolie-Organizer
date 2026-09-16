@@ -5,13 +5,17 @@ const path = require("node:path");
 
 const root = path.resolve(__dirname, "..");
 const reader = fs.readFileSync(path.join(root, "ProtectedAssetReader.cs"), "utf8");
+const policy = fs.readFileSync(path.join(root, "ProtectedAssetPolicy.cs"), "utf8");
 const handbook = fs.readFileSync(path.join(root, "HandbookForm.cs"), "utf8");
 const main = fs.readFileSync(path.join(root, "MainForm.cs"), "utf8");
 for (const token of ["MGA1", "AesGcm", "ReadExactly", "MaxContainer", "ciphertextLength",
   "CryptographicOperations.ZeroMemory", "AddWebResourceRequestedFilter", "Cache-Control: no-store"]) {
-  assert.ok(reader.includes(token), `C#-Schutzinvariante fehlt: ${token}`);
+  assert.ok((reader + policy).includes(token), `C#-Schutzinvariante fehlt: ${token}`);
 }
 assert.ok(main.includes('["/kaffee-qr.png"] = ("kaffee-qr.mga", 1, 1, "image/png")'));
+assert.ok(reader.includes("new MemoryStream(data, writable: false)") &&
+  !reader.includes("ClearingMemoryStream") && reader.includes("diagnostic?.Invoke"),
+"WebView2-Antwort hält entschlüsselte Bildbytes nicht stabil oder protokolliert Fehler nicht");
 assert.ok(handbook.includes('["/maik-walter.jpg"] = ("maik-walter.mga", 2, 2, "image/jpeg")') &&
   handbook.includes("AddHandbookBase") &&
   handbook.includes("SetVirtualHostNameToFolderMapping(VirtualHost") &&

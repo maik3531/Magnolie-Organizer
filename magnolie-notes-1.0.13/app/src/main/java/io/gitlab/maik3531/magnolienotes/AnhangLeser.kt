@@ -13,21 +13,48 @@ import java.util.Base64
 object AnhangLeser {
     const val ROH_MAX = 8 * 1024 * 1024
 
+    /** Budget counts input before decoding/encoding, including unsupported files. */
+    internal class ImportBudget {
+        companion object { const val DATEIEN_MAX = 64 }
+        private var rest = io.gitlab.maik3531.magnolienotes.baum.Nutzlast.ANHANG_GESAMT_MAX
+        private var anzahl = 0
+        fun lesen(strom: InputStream): ByteArray {
+            check(++anzahl <= DATEIEN_MAX)
+            val max = minOf(ROH_MAX, ((rest - 64).coerceAtLeast(0) / 4) * 3)
+            val roh = begrenztLesen(strom, max) ?: throw java.io.IOException()
+            rest -= 64 + ((roh.size + 2) / 3) * 4
+            return roh
+        }
+    }
+
     enum class Fehler { LESEN, LEER, ZU_GROSS, UNGUELTIG }
     data class Ergebnis(val anhang: Anhang? = null, val fehler: Fehler? = null)
 
     fun lies(context: Context, quelle: Uri): Ergebnis {
-        val mime = runCatching { context.contentResolver.getType(quelle) }.getOrNull()
-        val name = runCatching { io.gitlab.maik3531.magnolienotes.einfuhr.Einfuhr.dateiname(context, quelle) }
-            .getOrDefault("")
-        val strom = runCatching { context.contentResolver.openInputStream(quelle) }.getOrNull()
-            ?: return Ergebnis(fehler = Fehler.LESEN)
-        return strom.use { lies(it, mime, name) }
+        return try {
+            val mime = context.contentResolver.getType(quelle)
+            val name = io.gitlab.maik3531.magnolienotes.einfuhr.Einfuhr.dateiname(context, quelle)
+            val strom = context.contentResolver.openInputStream(quelle) ?: return Ergebnis(fehler = Fehler.LESEN)
+            liesUndSchliesse(strom, mime, name)
+        }
+        catch (abbruch: java.util.concurrent.CancellationException) { throw abbruch }
+        catch (_: Exception) { Ergebnis(fehler = Fehler.LESEN) }
     }
 
+    internal fun liesUndSchliesse(strom: InputStream, mime: String?, name: String): Ergebnis =
+        try { strom.use { lies(it, mime, name) } }
+        catch (abbruch: java.util.concurrent.CancellationException) { throw abbruch }
+        catch (_: Exception) { Ergebnis(fehler = Fehler.LESEN) }
+
     fun lies(strom: InputStream, gemeldeterMime: String?, angezeigterName: String): Ergebnis {
-        val roh = begrenztLesen(strom)
+        val roh = try { begrenztLesen(strom) }
+        catch (abbruch: java.util.concurrent.CancellationException) { throw abbruch }
+        catch (_: Exception) { return Ergebnis(fehler = Fehler.LESEN) }
         if (roh == null) return Ergebnis(fehler = Fehler.ZU_GROSS)
+        return ausBytes(roh, gemeldeterMime, angezeigterName)
+    }
+
+    internal fun ausBytes(roh: ByteArray, gemeldeterMime: String?, angezeigterName: String): Ergebnis {
         if (roh.isEmpty()) return Ergebnis(fehler = Fehler.LEER)
         val erkannt = mimeAusSignatur(roh) ?: return Ergebnis(fehler = Fehler.UNGUELTIG)
         val gemeldet = gemeldeterMime.orEmpty().trim().lowercase().substringBefore(';')

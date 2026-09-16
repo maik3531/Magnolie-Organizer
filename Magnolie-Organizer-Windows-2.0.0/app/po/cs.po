@@ -5,9 +5,16 @@
 #
 msgid ""
 msgstr ""
+"Project-Id-Version: Magnolie Organizer 2.0.18\n"
 "Report-Msgid-Bugs-To: maik3531@gmail.com\n"
 "POT-Creation-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"PO-Revision-Date: 2026-09-07 00:00+0200\n"
+"Last-Translator: Magnolie translation team <maik3531@gmail.com>\n"
+"Language-Team: cs\n"
+"Language: cs\n"
+"MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=3; plural=((n==1) ? 0 : (n>=2 && n<=4) ? 1 : 2);\n"
 
 msgid " (filtered)"
@@ -212,12 +219,6 @@ msgid_plural "%(count)s public holidays"
 msgstr[0] "%(count)s státní svátek"
 msgstr[1] "%(count)s státní svátky"
 msgstr[2] "%(count)s státní svátky"
-
-msgid "%(count)s recurring appointment imported only once."
-msgid_plural "%(count)s recurring appointments imported only once."
-msgstr[0] "%(count)s opakovaná schůzka importována pouze jednou."
-msgstr[1] "%(count)s opakované schůzky importovány pouze jednou."
-msgstr[2] "%(count)s opakované schůzky importovány pouze jednou."
 
 msgid "%(count)s second"
 msgid_plural "%(count)s seconds"
@@ -442,6 +443,11 @@ msgstr "Zdroj osobní synchronizační přílohy není objekt."
 msgid "A personal synchronization batch is not an object."
 msgstr "Osobní synchronizační dávka není objekt."
 
+msgid "A phone is already paired or pairing. Finish that connection first."
+msgstr ""
+"Telefon už je spárován nebo právě probíhá párování. Nejprve dokončete toto "
+"připojení."
+
 msgid ""
 "A separate encrypted connection for dial requests, device status and "
 "selected notifications."
@@ -631,6 +637,9 @@ msgstr ""
 "Kalendář schůzek, adresář, kniha úkolů a poznámkový blok v podobě koženého "
 "diáře —"
 
+msgid "Android restricts this device identifier."
+msgstr "Android omezuje tento identifikátor."
+
 msgid "Android version"
 msgstr "Verze pro Android"
 
@@ -669,6 +678,9 @@ msgstr "Appenzell Innerrhoden"
 
 msgid "Application command"
 msgstr "Příkaz aplikace"
+
+msgid "Application password"
+msgstr "Heslo aplikace"
 
 msgid ""
 "Applies only to content you enter yourself: appointments, tasks, contacts, "
@@ -728,9 +740,6 @@ msgstr "Heslo archivu"
 msgid "Are you really sure?"
 msgstr "Opravdu jste si jisti?"
 
-msgid "As usual (print)"
-msgstr "Jako obvykle (tisk)"
-
 msgid "Assign SMS action"
 msgstr "Přiřadit akci SMS"
 
@@ -769,6 +778,22 @@ msgstr "Úřední schůzka"
 
 msgid "Automatic backup failed."
 msgstr "Automatická záloha selhala."
+
+msgid ""
+"Automatic call audio is unavailable. Keep the call on the phone or select "
+"native audio manually in system settings."
+msgstr ""
+"Automatické směrování zvuku hovoru není dostupné. Ponechte hovor na telefonu "
+"nebo ručně vyberte nativní zvuk v nastavení systému."
+
+msgid ""
+"Automatic call audio is unsupported in this Windows build. Package identity "
+"and an approved phoneLineTransportManagement capability are required. Select "
+"native audio manually in system settings."
+msgstr ""
+"Toto sestavení pro Windows nepodporuje automatické směrování zvuku hovoru. "
+"Je vyžadována identita balíčku a schválená funkce "
+"phoneLineTransportManagement. Ručně vyberte nativní zvuk v nastavení systému."
 
 msgid "Automatic cloud-folder backups"
 msgstr "Automatické zálohy ve cloudové složce"
@@ -948,6 +973,23 @@ msgstr "Modrá (plnicí pero)"
 msgid "Bluetooth data fallback"
 msgstr "Záložní data Bluetooth"
 
+msgid "Bluetooth device for call audio"
+msgstr "Zařízení Bluetooth pro zvuk hovoru"
+
+msgid "Bluetooth device unavailable."
+msgstr "Zařízení Bluetooth není dostupné."
+
+msgid "Bluetooth is unavailable in this build."
+msgstr "Bluetooth není v tomto sestavení programu dostupný."
+
+msgid "Bluetooth is unavailable. Check the radio and OS permissions."
+msgstr ""
+"Bluetooth není dostupný. Zkontrolujte, zda je bezdrátový adaptér zapnutý a "
+"zda má potřebná oprávnění v operačním systému."
+
+msgid "Bluetooth system pairing was not confirmed."
+msgstr "Párování Bluetooth v systému nebylo potvrzeno."
+
 msgid "Bold"
 msgstr "Tučné"
 
@@ -957,6 +999,14 @@ msgid ""
 msgstr ""
 "Při připojování zobrazí obě větve stejný šestimístný kód. Potvrďte jej pouze "
 "tehdy, když se shoduje; tím zabráníte zachycení spojení cizí osobou."
+
+msgid ""
+"Both devices must opt in. Turning this off pauses reminders and updates from "
+"the custom tab but keeps copies. Linked text blocks are not shared."
+msgstr ""
+"Obě zařízení musí výslovně souhlasit. Vypnutí pozastaví připomínky a "
+"aktualizace z vlastní karty, ale zachová kopie. Propojené textové bloky se "
+"nesdílejí."
 
 msgid "Brandenburg"
 msgstr "Braniborsko"
@@ -976,6 +1026,9 @@ msgstr "Podle jména (Hans Müller)"
 msgid "By last name (Müller, Hans)"
 msgstr "Podle příjmení (Müller, Hans)"
 
+msgid "CSV / Lotus Organizer"
+msgstr "CSV / Lotus Organizer"
+
 msgid "CSV / Lotus Organizer contacts …"
 msgstr "Kontakty CSV / Lotus Organizer…"
 
@@ -984,6 +1037,9 @@ msgstr "Soubory CSV (*.csv)"
 
 msgid "CW"
 msgstr "KT"
+
+msgid "CalDAV + CardDAV Server"
+msgstr "Server CalDAV + CardDAV"
 
 msgid "Calculate the route to this address"
 msgstr "Vypočítat trasu na tuto adresu"
@@ -994,6 +1050,9 @@ msgstr "Kalendář"
 msgid "Calendar (*.ics)"
 msgstr "Kalendář (*.ics)"
 
+msgid "Calendar (ICS)"
+msgstr "Kalendář (ICS)"
+
 msgid "Calendar file (.ics/.vcs/.lcs) …"
 msgstr "Soubor kalendáře (.ics/.vcs/.lcs) …"
 
@@ -1002,6 +1061,9 @@ msgstr "Rozvržení kalendáře"
 
 msgid "Calendar week %(number)s"
 msgstr "Kalendářní týden %(number)s"
+
+msgid "Calendars"
+msgstr "Kalendáře"
 
 msgid "Calendars (multiple selections allowed)"
 msgstr "Kalendáře (lze vybrat více položek)"
@@ -1014,6 +1076,13 @@ msgstr "Volat"
 
 msgid "Call assignment"
 msgstr "Přiřazení hovoru"
+
+msgid ""
+"Call controls unavailable. Check Android call permission; no dialer role is "
+"requested automatically."
+msgstr ""
+"Ovládání hovoru není dostupné. Zkontrolujte oprávnění k hovorům v Androidu; "
+"role telefonní aplikace se nevyžaduje automaticky."
 
 msgid "Call ended"
 msgstr "Hovor ukončen"
@@ -1109,9 +1178,6 @@ msgstr "Kontrola aktuální verze manuálu…"
 msgid "Checking the current version …"
 msgstr "Kontrola aktuální verze …"
 
-msgid "Choose Appointments, Notes or Tasks in Customize."
-msgstr "V části Přizpůsobit vyberte Schůzky, Poznámky nebo Úkoly."
-
 msgid ""
 "Choose a backup file. Before restoring it, the organizer automatically "
 "creates a copy of the current data. An encrypted backup requires its "
@@ -1119,6 +1185,9 @@ msgid ""
 msgstr ""
 "Vyberte soubor zálohy. Před obnovením Organizér automaticky vytvoří kopii "
 "současných dat. Zašifrovaná záloha vyžaduje své heslo."
+
+msgid "Choose a connection. Confirm pairing on the phone and this computer."
+msgstr "Vyberte připojení. Potvrďte párování na telefonu i na tomto počítači."
 
 msgid "Choose a country first."
 msgstr "Nejprve vyberte zemi."
@@ -1159,13 +1228,6 @@ msgstr "Zvolte alespoň čtyři znaky."
 msgid "Choose entries to print, export or delete"
 msgstr "Vyberte záznamy k tisku, exportu nebo odstranění"
 
-msgid ""
-"Choose file and Windows contact imports that Magnolie can start directly "
-"after opening."
-msgstr ""
-"Vyberte importy souborů a kontaktů Windows, které může Magnolie spustit "
-"ihned po otevření."
-
 msgid "Choose file…"
 msgstr "Vybrat soubor…"
 
@@ -1192,6 +1254,12 @@ msgid "Choose service"
 msgstr "Vybrat službu"
 
 msgid ""
+"Choose sources now. Import previews are kept until you finish the assistant."
+msgstr ""
+"Nyní vyberte zdroje. Náhledy importu zůstanou připravené, dokud průvodce "
+"nedokončíte."
+
+msgid ""
 "Choose which sections appear as tabs on the organizer. The calendar always "
 "remains available."
 msgstr ""
@@ -1209,6 +1277,9 @@ msgstr "Město"
 
 msgid "Claws Mail XML (.xml) …"
 msgstr "Claws Mail XML (.xml)…"
+
+msgid "Claws Mail XML / LDIF"
+msgstr "Claws Mail XML / LDIF"
 
 msgid "Claws Mail address book (*.xml)"
 msgstr "Adresář Claws Mail (*.xml)"
@@ -1271,8 +1342,8 @@ msgstr ""
 msgid "Columns in the ODS table"
 msgstr "Sloupce v tabulce ODS"
 
-msgid "Compact sender line (default)"
-msgstr "Kompaktní řádek odesílatele (výchozí)"
+msgid "Compact sender line"
+msgstr "Kompaktní řádek odesílatele"
 
 msgid "Company"
 msgstr "Společnost"
@@ -1310,17 +1381,33 @@ msgstr "Dokončit párování"
 msgid "Completed (%(count)s)"
 msgstr "Dokončeno (%(count)s)"
 
+msgid ""
+"Completed pairings are kept if you cancel setup. No additional phone "
+"permissions are granted."
+msgstr ""
+"Dokončená párování zůstanou zachována i po zrušení nastavení. Žádná další "
+"oprávnění pro telefon se neudělují."
+
 msgid "Completed task"
 msgstr "Dokončeno"
 
 msgid "Completing secure pairing…"
 msgstr "Vytváření párovacího souboru"
 
+msgid "Confirm"
+msgstr "Potvrdit"
+
+msgid "Confirm SMS plans"
+msgstr "Potvrdit plány SMS"
+
 msgid ""
 "Confirm only if exactly the same six-digit code is shown on both devices."
 msgstr ""
 "Potvrďte, pouze pokud je na obou zařízeních zobrazen přesně stejný "
 "šestimístný kód."
+
+msgid "Confirm that the code matches on both devices."
+msgstr "Potvrďte, že je kód na obou zařízeních stejný."
 
 msgid "Confirm the pairing request on the phone."
 msgstr "Potvrďte žádost o párování v telefonu."
@@ -1337,8 +1424,22 @@ msgstr "Připojit"
 msgid "Connect phone via WLAN"
 msgstr "Připojte telefon přes WLAN"
 
+msgid "Connect via Bluetooth"
+msgstr "Připojit přes Bluetooth"
+
+msgid "Connect via KDE Connect"
+msgstr "Připojit přes KDE Connect"
+
 msgid "Connected"
 msgstr "Připojeno"
+
+msgid "Connection discovery failed. Check the server and credentials."
+msgstr ""
+"Vyhledání dostupných připojení se nezdařilo. Zkontrolujte server a "
+"přihlašovací údaje."
+
+msgid "Connection ready"
+msgstr "Připojení je připravené"
 
 msgid "Consider deletions during manual synchronization"
 msgstr "Synchronizace kontaktů"
@@ -1468,13 +1569,6 @@ msgstr "Vlastní"
 msgid "Custom application"
 msgstr "Vlastní aplikace"
 
-msgid ""
-"Custom content is saved locally and transferred through complete Magnolie "
-"archives only, not Personal Sync."
-msgstr ""
-"Vlastní obsah se ukládá místně a přenáší se pouze prostřednictvím úplných "
-"archivů Magnolie, nikoli přes Personal Sync."
-
 msgid "Custom notification"
 msgstr "Vlastní oznámení"
 
@@ -1510,6 +1604,12 @@ msgstr ""
 msgid "Czechia"
 msgstr "Česko"
 
+msgid "DIN 5008 Form A (27 mm letterhead)"
+msgstr "DIN 5008 Form A (záhlaví 27 mm)"
+
+msgid "DIN 5008 Form B (default)"
+msgstr "DIN 5008 Form B (výchozí)"
+
 msgid "DIN 5008 Form B with fold marks"
 msgstr "DIN 5008 formulář B se značkami přehybu"
 
@@ -1536,6 +1636,9 @@ msgstr "Značky dnů"
 
 msgid "Days"
 msgstr "Dny"
+
+msgid "Dear Sir or Madam,"
+msgstr "Vážená paní, vážený pane,"
 
 msgid "Death anniversary"
 msgstr "Výročí úmrtí"
@@ -1694,8 +1797,20 @@ msgstr "Zubař MUDr. Hill — Náhled vašich záznamů"
 msgid "Determining public IP address…"
 msgstr "Zjišťování veřejné IP adresy…"
 
+msgid "Device IMEI"
+msgstr "IMEI zařízení"
+
 msgid "Device code: %(code)s"
 msgstr "Kód zařízení: %(code)s"
+
+msgid "Device identifier permission is missing."
+msgstr "Chybí oprávnění k identifikátorům."
+
+msgid "Device identifier sharing is off."
+msgstr "Sdílení identifikátorů je vypnuté."
+
+msgid "Device serial number"
+msgstr "Sériové číslo zařízení"
 
 msgid "Device status is not permitted or available on the phone."
 msgstr "Stav zařízení není v telefonu povolen ani dostupný."
@@ -1726,6 +1841,9 @@ msgstr "Zahodit změny"
 
 msgid "Discharging"
 msgstr "Zahodit změny"
+
+msgid "Discover"
+msgstr "Vyhledat"
 
 msgid "Display"
 msgstr "Zobrazení"
@@ -1856,6 +1974,9 @@ msgstr "Povolit"
 msgid "Enable Magnolie Notes phone connection"
 msgstr "Povolte připojení telefonu Magnolie Notes"
 
+msgid "Enable SMS scheduling"
+msgstr "Povolit plánování SMS"
+
 msgid "Enable cycle calendar"
 msgstr "Povolit kalendář cyklu"
 
@@ -1879,6 +2000,9 @@ msgstr "Povolit připomenutí pro tento blok"
 msgid "Enable shift planner"
 msgstr "Povolit plánovač směn"
 
+msgid "Enable this SMS plan"
+msgstr "Povolit tento plán SMS"
+
 msgid "Enable tray applet"
 msgstr "Povolit aplet oznamovací oblasti"
 
@@ -1887,6 +2011,12 @@ msgstr "Povolit plánovač dovolených"
 
 msgid "Enable waste collection calendar"
 msgstr "Povolit kalendář svozu odpadu"
+
+msgid ""
+"Enabling this plan allows its overdue SMS to be sent while scheduling is on."
+msgstr ""
+"Povolením tohoto plánu umožníte odeslání jeho zpožděné SMS, když je "
+"plánování zapnuté."
 
 msgid "Enjoy getting organized!"
 msgstr "Ať se vám dobře organizuje!"
@@ -1931,6 +2061,9 @@ msgstr "Zadejte příkaz aplikace."
 msgid "Enter at least four characters for the backup password."
 msgstr "Zadejte pro heslo zálohy alespoň čtyři znaky."
 
+msgid "Enter both hours and minutes, or leave the time completely empty."
+msgstr "Zadejte hodiny i minuty, nebo ponechte čas zcela prázdný."
+
 msgid "Enter height and weight to calculate BMI."
 msgstr "Pro výpočet BMI zadejte výšku a hmotnost."
 
@@ -1946,6 +2079,9 @@ msgid ""
 msgstr ""
 "Zadejte výše svou adresu. Bez výchozího bodu žádná služba nedokáže vypočítat "
 "trasu."
+
+msgid "Entries ready to import"
+msgstr "Záznamy připravené k importu"
 
 msgid "Entry"
 msgstr "Záznam"
@@ -1977,16 +2113,6 @@ msgstr "Všechno je hotové – seznam je prázdný."
 
 msgid "Everything is ready"
 msgstr "Vše je připraveno"
-
-msgid ""
-"Evolution and Thunderbird are selected explicitly. iPhone contacts require a "
-"vCard export from the iPhone or iCloud. KDE Connect, Bluetooth and PBAP are "
-"not contact sources."
-msgstr ""
-"Evolution a Thunderbird se vybírají výslovně. Kontakty z iPhonu vyžadují "
-"export vCard z iPhonu nebo iCloudu. KDE Connect, Bluetooth a PBAP nejsou "
-"zdroje kontaktů.Kontakty z iPhonu vyžadují export vCard z iPhonu nebo "
-"iCloudu. KDE Connect, Bluetooth a PBAP nejsou zdroje kontaktů."
 
 msgid "Exactly one Magnolie Notes phone must be paired."
 msgstr "Musí být spárován přesně jeden telefon Magnolie Notes."
@@ -2125,6 +2251,17 @@ msgstr "Pro: %(people)s"
 
 msgid "Form"
 msgstr "Formulář"
+
+msgid ""
+"Form B reserves 45 mm for the letterhead; Form A reserves 27 mm. Both place "
+"the return line and recipient in the left-hand address field and add fold "
+"and punch marks. Check long addresses and envelope fit in print preview "
+"before printing at 100%."
+msgstr ""
+"Form B vyhrazuje pro záhlaví 45 mm, Form A 27 mm. Obě varianty umístí řádek "
+"odesílatele a příjemce do adresního pole vlevo a přidají značky pro přehnutí "
+"a děrování. Před tiskem v měřítku 100% zkontrolujte v náhledu dlouhé adresy "
+"a zda jejich umístění odpovídá obálce."
 
 msgid "Format region"
 msgstr "Oblast formátu"
@@ -2347,6 +2484,9 @@ msgstr "Importujte kompletní archiv Magnolie"
 msgid "Import contacts additively"
 msgstr "Importovat kontakty bez nahrazení stávajících"
 
+msgid "Import failed."
+msgstr "Import se nezdařil."
+
 msgid "Import failed: %(error)s"
 msgstr "Import selhal: %(error)s"
 
@@ -2361,6 +2501,9 @@ msgstr "Importovat jednorázově"
 
 msgid "Import pairing file …"
 msgstr "Importovat párovací soubor …"
+
+msgid "Import preview"
+msgstr "Náhled importu"
 
 msgid "Import, export and synchronization"
 msgstr "Import, export a synchronizace"
@@ -2380,15 +2523,6 @@ msgstr ""
 
 msgid "Imported: %(items)s."
 msgstr "Importováno: %(items)s."
-
-msgid ""
-"In the DIN template, these lines appear as a multiline sender block and in "
-"small type in the address window. In the compact template, they form one "
-"line above the recipient address. No sender is added if this field is empty."
-msgstr ""
-"V šabloně DIN se tyto řádky zobrazí jako víceřádkový blok odesílatele a "
-"malým písmem v adresním okénku. V kompaktní šabloně tvoří jeden řádek nad "
-"adresou příjemce. Je-li toto pole prázdné, odesílatel se nepřidá."
 
 msgid "In the organizer%(selection)s: %(items)s%(years)s."
 msgstr "V Organizéru%(selection)s: %(items)s%(years)s."
@@ -2463,8 +2597,14 @@ msgstr "Internetová IP"
 msgid "Internet available"
 msgstr "Internet je dostupný"
 
+msgid "Interval"
+msgstr "Interval"
+
 msgid "Interval in days"
 msgstr "Interval ve dnech"
+
+msgid "Invalid calendar date."
+msgstr "Neplatné kalendářní datum."
 
 msgid "Italic"
 msgstr "Kurzíva"
@@ -2502,6 +2642,9 @@ msgstr "Port KDE Connect %(port)s"
 
 msgid "Keep a troubleshooting log"
 msgstr "Uchovávat protokol pro řešení potíží"
+
+msgid "LDIF"
+msgstr "LDIF"
 
 msgid "LDIF address book (*.ldif)"
 msgstr "Adresář LDIF (*.ldif)"
@@ -2684,12 +2827,6 @@ msgstr "Poštovní schránka Magnolienbaum"
 msgid "Magnolienbaum pairing file (*.magnolie-paarung)"
 msgstr "Párovací soubor Magnolienbaum (*.magnolie-paarung)"
 
-msgid "Magnolienbaum quarantine:"
-msgstr "Karanténa Magnolienbaum:"
-
-msgid "Magnolienbaum restart:"
-msgstr "Restartování Magnolienbaum:"
-
 msgid "Male caregiver"
 msgstr "Pečovatel"
 
@@ -2767,9 +2904,6 @@ msgstr "Schůzka"
 msgid "Memorial day"
 msgstr "Pamětní den"
 
-msgid "Memory available / total"
-msgstr "Dostupná paměť / celkem"
-
 msgid "Merge"
 msgstr "Sloučit"
 
@@ -2830,19 +2964,6 @@ msgstr ""
 "připomínek, která kontroluje schůzky na pozadí a zůstává spuštěná i po "
 "zavření organizéru."
 
-msgid ""
-"Misspelled words are marked with a red wavy underline while you type. Right-"
-"clicking a word opens a sheet with suggestions that can be applied with one "
-"click; you can add names to your personal dictionary in the same way. If the "
-"lines or suggestions are missing, install the dictionary with:  sudo apt "
-"install %(package)s"
-msgstr ""
-"Při psaní jsou chybně napsaná slova označena červeným vlnovkovým podtržením. "
-"Kliknutím pravým tlačítkem na slovo se otevře panel s návrhy, které lze "
-"použít jedním kliknutím; stejným způsobem můžete do osobního slovníku přidat "
-"jména. Pokud podtržení nebo návrhy chybí, nainstalujte slovník pomocí:  sudo "
-"apt install %(package)s"
-
 msgid "Mobile"
 msgstr "Mobil"
 
@@ -2863,9 +2984,6 @@ msgstr "Měsíc"
 
 msgid "Month calendar"
 msgstr "Měsíční kalendář"
-
-msgid "Monthly"
-msgstr "Měsíčně"
 
 msgid "Monthly view"
 msgstr "Měsíční zobrazení"
@@ -3028,6 +3146,9 @@ msgstr "Další týden"
 msgid "Next year"
 msgstr "Další rok"
 
+msgid "Nextcloud"
+msgstr "Nextcloud"
+
 msgid "Nextcloud is not enabled."
 msgstr "Nextcloud není povolen."
 
@@ -3052,6 +3173,9 @@ msgstr "Žádné párování KDE Connect nečeká na potvrzení."
 msgid "No SMS messages are scheduled."
 msgstr "Nejsou naplánovány žádné SMS."
 
+msgid "No Windows dictionary is installed for this language."
+msgstr "Pro tento jazyk není nainstalován slovník Windows."
+
 msgid "No address books found."
 msgstr "Nebyly nalezeny žádné adresáře."
 
@@ -3070,6 +3194,9 @@ msgstr "Není naplánována žádná schůzka."
 
 msgid "No calendars found."
 msgstr "Nebyly nalezeny žádné kalendáře."
+
+msgid "No default voice subscription is available."
+msgstr "Není dostupný výchozí hlasový tarif."
 
 msgid "No due date"
 msgstr "Bez termínu"
@@ -3130,6 +3257,10 @@ msgstr "Zatím není připojen žádný úkol."
 msgid "No phone pairing is awaiting confirmation."
 msgstr "Žádné spárování telefonu nečeká na potvrzení."
 
+msgid "No phone was found. Open the phone app and try again."
+msgstr ""
+"Nebyl nalezen žádný telefon. Otevřete aplikaci na telefonu a zkuste to znovu."
+
 msgid "No photo"
 msgstr "Bez fotografie"
 
@@ -3170,6 +3301,9 @@ msgstr "Kontrola spamu není k dispozici"
 
 msgid "No suggestions found."
 msgstr "Nebyly nalezeny žádné návrhy."
+
+msgid "No supported data was found."
+msgstr "Nebyla nalezena žádná podporovaná data."
 
 msgid "No system-paired Bluetooth device found"
 msgstr "Nebylo nalezeno žádné zařízení Bluetooth spárované se systémem"
@@ -3288,6 +3422,15 @@ msgstr "Obwalden"
 msgid "Off"
 msgstr "Vypnuto"
 
+msgid ""
+"Off by default. Turning this off pauses pending SMS plans without deleting "
+"them. Enabling resumes them, including overdue plans. Messages already "
+"handed to KDE Connect cannot be recalled."
+msgstr ""
+"Ve výchozím stavu vypnuto. Vypnutí pozastaví čekající naplánované SMS, aniž "
+"by je smazalo. Zapnutí je obnoví, včetně těch po plánovaném čase. Zprávy již "
+"předané KDE Connect nelze odvolat."
+
 msgid "Offline"
 msgstr "Bez připojení"
 
@@ -3388,6 +3531,17 @@ msgstr ""
 "V prostředí Wayland je k dispozici pouze spolehlivé systémové oznámení; "
 "papírový styl Magnolie by tam často zůstal neviditelný."
 
+msgid ""
+"Only with both devices' explicit consent, Personal Sync shares read-only "
+"Custom tasks and appointments, including their own notes. Text blocks, "
+"linked text and attachments are excluded. Archives restore copies, not "
+"permissions."
+msgstr ""
+"Pouze s výslovným souhlasem obou zařízení sdílí Personal Sync vlastní úkoly "
+"a schůzky jen pro čtení, včetně jejich vlastních poznámek. Textové bloky, "
+"propojené texty a přílohy jsou vyloučeny. Archivy obnovují kopie, nikoli "
+"oprávnění."
+
 msgid "Open"
 msgstr "Otevřít"
 
@@ -3451,6 +3605,9 @@ msgstr "Otevřeno"
 
 msgid "Open the day in the daily view"
 msgstr "Otevřít den v denním zobrazení"
+
+msgid "Open the phone connection screen and try again."
+msgstr "Otevřete obrazovku připojení telefonu a zkuste to znovu."
 
 msgid ""
 "Open the verified DEB with your software manager; the organizer never "
@@ -3523,6 +3680,9 @@ msgstr "Ovulace"
 
 msgid "Own internet IP"
 msgstr "Vlastní internetová IP"
+
+msgid "Own phone number (default voice SIM)"
+msgstr "Vlastní číslo (výchozí hlasová SIM)"
 
 msgid "PDF file"
 msgstr "Soubor PDF"
@@ -3603,6 +3763,9 @@ msgstr "Vložit"
 
 msgid "Patch"
 msgstr "Náplast"
+
+msgid "Paused — review required"
+msgstr "Pozastaveno — vyžaduje kontrolu"
 
 msgid "Pay invoice"
 msgstr "Zaplatit fakturu"
@@ -3693,6 +3856,15 @@ msgstr "Baterie telefonu"
 
 msgid "Phone call"
 msgstr "Telefonní hovor"
+
+msgid "Phone connection"
+msgstr "Připojení telefonu"
+
+msgid "Phone connection cancelled or timed out."
+msgstr "Připojování telefonu bylo zrušeno nebo vypršela čekací doba."
+
+msgid "Phone connection failed."
+msgstr "Připojení telefonu se nezdařilo."
 
 msgid "Phone error: %(error)s"
 msgstr "Chyba telefonu: %(error)s"
@@ -3801,6 +3973,11 @@ msgstr "Prášek"
 
 msgid "Power source"
 msgstr "Zdroj napájení"
+
+msgid "Prefer PC speakers and microphone for calls on my own Bluetooth phone"
+msgstr ""
+"Upřednostnit reproduktory a mikrofon počítače pro hovory na mém vlastním "
+"telefonu Bluetooth"
 
 msgid "Preferred backup folder"
 msgstr "Upřednostňovaná složka pro zálohy"
@@ -3942,6 +4119,9 @@ msgstr "Snímky obnovy"
 msgid "Recycle bin"
 msgstr "Koš"
 
+msgid "Redo"
+msgstr "Znovu"
+
 msgid "Refresh"
 msgstr "Obnovit"
 
@@ -3950,6 +4130,9 @@ msgid ""
 msgstr ""
 "Místní nastavení byla uložena. Restartujte Organizer, aby se použila v plném "
 "rozsahu."
+
+msgid "Regular typeface"
+msgstr "Tiskací písmo"
 
 msgid "Reject"
 msgstr "Odmítnout"
@@ -3965,12 +4148,6 @@ msgstr "Připomenout znovu v daný den"
 
 msgid "Reminder"
 msgstr "Připomenutí"
-
-msgid "Reminder data:"
-msgstr "Údaje připomenutí:"
-
-msgid "Reminder runtime:"
-msgstr "Doba běhu připomenutí:"
 
 msgid "Reminders"
 msgstr "Připomenutí"
@@ -4112,6 +4289,14 @@ msgid ""
 msgstr ""
 "Obnovit tento snímek úplně? Nejprve se vytvoří povinný snímek před obnovením."
 
+msgid ""
+"Restored pending plans stay paused until you review and enable each plan. "
+"Restoring contacts, calendar or notes does not change live SMS plans."
+msgstr ""
+"Obnovené čekající plány zůstanou pozastavené, dokud každý plán "
+"nezkontrolujete a nepovolíte. Obnovení kontaktů, kalendáře nebo poznámek "
+"nemění aktuální plány SMS."
+
 msgid "Restoring backups is available only in the installed application."
 msgstr "Obnova záloh je k dispozici pouze v nainstalované aplikaci."
 
@@ -4138,6 +4323,12 @@ msgstr "Načítání informací pro ruční stažení …"
 
 msgid "Retrieving weather…"
 msgstr "Načítání počasí…"
+
+msgid "Review and enable"
+msgstr "Zkontrolovat a povolit"
+
+msgid "Review the exact SMS text for every recipient before confirming."
+msgstr "Před potvrzením zkontrolujte přesný text SMS pro každého příjemce."
 
 msgid "Rhineland-Palatinate"
 msgstr "Porýní-Falc"
@@ -4177,6 +4368,13 @@ msgstr "Historie SMS"
 
 msgid "SMS scheduled."
 msgstr "SMS naplánována."
+
+msgid ""
+"SMS scheduling is off. Pending plans are paused. Review them in SMS settings "
+"before enabling scheduling."
+msgstr ""
+"Plánování SMS je vypnuto. Čekající zprávy jsou pozastaveny. Před zapnutím "
+"plánování je zkontrolujte v nastavení SMS."
 
 msgid "SMS settings"
 msgstr "Nastavení SMS"
@@ -4279,6 +4477,9 @@ msgstr "Schéma"
 msgid "Schleswig-Holstein"
 msgstr "Šlesvicko-Holštýnsko"
 
+msgid "School holidays are not available for this region."
+msgstr "Pro tuto oblast nejsou školní prázdniny k dispozici."
+
 msgid "Schwyz"
 msgstr "Schwyz"
 
@@ -4362,6 +4563,9 @@ msgstr "Vlevo vyberte, co chcete vytisknout."
 msgid "Select your canton first or enable “All cantons”."
 msgstr "Nejprve vyberte kanton nebo zapněte „Všechny kantony“."
 
+msgid "Select your phone"
+msgstr "Vyberte svůj telefon"
+
 msgid "Select your state first or enable “All states”."
 msgstr "Nejprve vyberte spolkovou zemi nebo zapněte „Všechny země“."
 
@@ -4375,14 +4579,6 @@ msgid ""
 msgstr ""
 "Vybrané sloupce, které jsou prázdné u všech kontaktů, se automaticky "
 "vynechají."
-
-msgid ""
-"Selected imports are started directly after Magnolie opens. Thunderbird "
-"contacts are not offered because Windows has no Thunderbird address-book "
-"importer."
-msgstr ""
-"Vybrané importy se spustí ihned po otevření Magnolie. Kontakty Thunderbirdu "
-"nejsou nabízeny, protože Windows nemá importér adresáře Thunderbirdu."
 
 msgid "Selection options"
 msgstr "Možnosti výběru"
@@ -4401,6 +4597,9 @@ msgstr "Odeslat zabezpečený požadavek"
 
 msgid "Sent"
 msgstr "Odesláno"
+
+msgid "Server"
+msgstr "Server"
 
 msgid "Server address"
 msgstr "Adresa serveru"
@@ -4484,6 +4683,9 @@ msgstr "Zobrazit více"
 msgid "Show preview"
 msgstr "Zobrazit náhled"
 
+msgid "Show school holidays for %(state)s in the calendar?"
+msgstr "Zobrazit školní prázdniny pro oblast %(state)s v kalendáři?"
+
 msgid "Show selected notifications (read only)"
 msgstr "Pouze oznámení na obrazovce"
 
@@ -4535,6 +4737,9 @@ msgstr "Přihlášeni k Microsoftu."
 msgid "Signed out from Microsoft."
 msgstr "Odhlášen z Microsoftu."
 
+msgid "Silence this alert"
+msgstr "Ztišit toto upozornění"
+
 msgid "Skip assistant"
 msgstr "Přeskočit průvodce"
 
@@ -4568,6 +4773,13 @@ msgstr "Některé existující zálohy se nepodařilo dešifrovat."
 
 msgid "Some existing backups could not be encrypted."
 msgstr "Některé existující zálohy se nepodařilo zašifrovat."
+
+msgid ""
+"Some recurrence rules cannot be expanded. Their original calendar data was "
+"preserved."
+msgstr ""
+"U některých pravidel opakování nelze vypočítat jednotlivé výskyty událostí. "
+"Původní kalendářová data zůstala zachována."
 
 msgid "Son"
 msgstr "Syn"
@@ -4617,6 +4829,9 @@ msgstr "Spusťte Magnolie s Windows v oznamovací oblasti (zásobník)"
 msgid "Start automatically when signing in"
 msgstr "Spouštět automaticky při přihlášení"
 
+msgid "Start required phone background services automatically"
+msgstr "Automaticky spouštět potřebné služby telefonu na pozadí"
+
 msgid "Start the organizer in the tray"
 msgstr "Spouštět organizér v oznamovací oblasti"
 
@@ -4628,9 +4843,6 @@ msgstr "Oblast formátu"
 
 msgid "Status"
 msgstr "Postavení"
-
-msgid "Storage available / total"
-msgstr "Dostupné úložiště / celkem"
 
 msgid "Street / house number"
 msgstr "Ulice / číslo domu"
@@ -4646,6 +4858,9 @@ msgstr "Přeškrtnuté"
 
 msgid "Styria"
 msgstr "Štýrsko"
+
+msgid "Subject"
+msgstr "Věc"
 
 msgid "Submitted"
 msgstr "Odesláno"
@@ -4664,6 +4879,9 @@ msgstr "Symbol slunce"
 
 msgid "Sunday"
 msgstr "Neděle"
+
+msgid "Supported files"
+msgstr "Podporované soubory"
 
 msgid "Suppository"
 msgstr "Čípek"
@@ -4729,6 +4947,12 @@ msgstr "Synchronizovat trvale"
 msgid "Synchronize tasks"
 msgstr "Synchronizovat kontakty"
 
+msgid "Synchronize tasks and appointments from the \"%(tab)s\" tab"
+msgstr "Synchronizovat úkoly a schůzky z karty „%(tab)s“"
+
+msgid "Synchronize tasks and appointments from the custom tab"
+msgstr "Synchronizovat úkoly a schůzky z vlastní karty"
+
 msgid "Synchronizing …"
 msgstr "Synchronizace …"
 
@@ -4762,6 +4986,11 @@ msgstr "Karta %(letter)s · %(count)s"
 
 msgid "Tab name"
 msgstr "Název karty"
+
+msgid ""
+"Tab: insert a tab stop. Shift+Tab: previous field. Ctrl+Tab: next field."
+msgstr ""
+"Tab: vložit tabulátor. Shift+Tab: předchozí pole. Ctrl+Tab: další pole."
 
 msgid "Tablet"
 msgstr "Tableta"
@@ -4806,9 +5035,6 @@ msgstr "Vyzkoušet nyní"
 msgid "Testing…"
 msgstr "Testování…"
 
-msgid "Text"
-msgstr "Text"
-
 msgid "Text block"
 msgstr "Textový blok"
 
@@ -4834,15 +5060,6 @@ msgstr[1] ""
 msgstr[2] ""
 "Stránky poznámek %(count)s, které obsahuje, budou přesunuty do "
 "„%(notebook)s“."
-
-msgid ""
-"The DIN template positions the recipient address for a window envelope, "
-"shows your address as a multiline sender block, and adds two fold marks and "
-"a punch mark."
-msgstr ""
-"Šablona DIN umístí adresu příjemce pro obálku s okénkem, zobrazí vaši adresu "
-"jako víceřádkový blok odesílatele a přidá dvě značky přehybu a značku pro "
-"děrování."
 
 msgid "The KDE Connect device to renew is missing."
 msgstr "Chybí zařízení KDE Connect k obnovení."
@@ -4888,14 +5105,36 @@ msgstr ""
 msgid "The Magnolienbaum is available only in the installed application."
 msgstr "Magnolienbaum je k dispozici pouze v nainstalované aplikaci."
 
+msgid "The Nextcloud operation failed."
+msgstr "Operace v Nextcloudu se nezdařila."
+
+msgid "The Nextcloud request timed out."
+msgstr "Vypršela čekací doba požadavku na Nextcloud."
+
+msgid "The Nextcloud response was incomplete."
+msgstr "Odpověď Nextcloudu byla neúplná."
+
+msgid "The Nextcloud settings are invalid."
+msgstr "Nastavení Nextcloud je neplatné."
+
 msgid "The ODS export is too large."
 msgstr "Export ODS je příliš velký."
 
 msgid "The Organizer chooses a suitable installed application."
 msgstr "Organizér vybere vhodnou nainstalovanou aplikaci."
 
+msgid "The SMS submission journal is full. No message was sent."
+msgstr "Protokol odesílání SMS je plný. Žádná zpráva nebyla odeslána."
+
 msgid "The address could not be opened."
 msgstr "Adresu nelze otevřít."
+
+msgid ""
+"The address is too long for the letter's address field. Shorten the return "
+"address or recipient, or choose the compact template."
+msgstr ""
+"Adresa je příliš dlouhá pro adresní pole dopisu. Zkraťte adresu odesílatele "
+"nebo údaje příjemce, případně zvolte kompaktní šablonu."
 
 msgid ""
 "The archive contains the complete application data. The password is "
@@ -4948,6 +5187,9 @@ msgstr ""
 "Služba připomínek na pozadí smí číst oddělená data připomínek, a funguje "
 "proto i se zavřeným organizérem."
 
+msgid "The background settings could not be saved."
+msgstr "Nastavení činnosti na pozadí se nepodařilo uložit."
+
 msgid "The backup chooser will open after Magnolie has started."
 msgstr "Výběr zálohy se otevře po spuštění Magnolie."
 
@@ -4976,6 +5218,9 @@ msgid ""
 msgstr ""
 "Tlačítko ve spodní liště otevře výběr pro právě otevřenou část. Odtud lze "
 "zaškrtnuté položky tisknout, exportovat nebo přesunout do koše."
+
+msgid "The call action expired or is no longer permitted."
+msgstr "Platnost akce hovoru vypršela nebo již není povolena."
 
 msgid "The call is no longer active or has been updated."
 msgstr "Hovor již není aktivní nebo byl aktualizován."
@@ -5256,8 +5501,14 @@ msgstr "Osobní synchronizace vypršela."
 msgid "The phone connection is available only in the installed application."
 msgstr "Výběr složky je dostupný pouze v nainstalované aplikaci."
 
+msgid "The phone connection was not authenticated."
+msgstr "Pro toto připojení nebyla ověřena totožnost telefonu."
+
 msgid "The phone function is not permitted or available."
 msgstr "Funkce telefonu není povolena ani dostupná."
+
+msgid "The phone is no longer connected."
+msgstr "Telefon už není připojen."
 
 msgid "The phone is not connected via WLAN."
 msgstr "Telefon není připojen přes WLAN."
@@ -5267,6 +5518,9 @@ msgstr "Telefon není spárovaný."
 
 msgid "The phone is reachable, but its KDE Connect trust no longer matches."
 msgstr "Telefon je dostupný, ale jeho důvěra KDE Connect již neodpovídá."
+
+msgid "The phone listener could not start."
+msgstr "Službu přijímající připojení z telefonu se nepodařilo spustit."
 
 msgid "The phone operation failed."
 msgstr "Operace telefonu se nezdařila."
@@ -5281,6 +5535,9 @@ msgstr ""
 msgid "The phone settings are damaged."
 msgstr "Nastavení telefonu je poškozeno."
 
+msgid "The phone settings could not be read."
+msgstr "Nastavení telefonu se nepodařilo načíst."
+
 msgid "The phone was not specified."
 msgstr "Telefon nebyl specifikován."
 
@@ -5292,6 +5549,12 @@ msgstr "Fotografie je větší než 8 megabajtů."
 
 msgid "The port must be between 1 and 65535."
 msgstr "Port musí být mezi 1 a 65535."
+
+msgid ""
+"The profile could not be locked. It may already be open in another session."
+msgstr ""
+"Profil se nepodařilo uzamknout pro výhradní použití. Možná už je otevřený v "
+"jiné relaci."
 
 msgid "The public address could not be determined."
 msgstr "Veřejnou adresu se nepodařilo zjistit."
@@ -5347,12 +5610,21 @@ msgstr "Vybrané kontakty neobsahují pro tyto sloupce žádné hodnoty."
 msgid "The selected health records contain no printable values."
 msgstr "Vybrané zdravotní záznamy neobsahují žádné hodnoty vhodné k tisku."
 
+msgid "The selected phone changed. Try again."
+msgstr "Vybraný telefon se změnil. Zkuste to znovu."
+
 msgid ""
 "The server operator can see the account, folder and file names, sizes and "
 "times of your messages."
 msgstr ""
 "Provozovatel serveru vidí účet, názvy složek a souborů, velikosti a časy "
 "vašich zpráv."
+
+msgid "The server response is too large."
+msgstr "Odpověď serveru je příliš velká."
+
+msgid "The service returned no entries for this selection."
+msgstr "Služba pro tento výběr nevrátila žádné položky."
 
 msgid "The setup state could not be saved."
 msgstr "Stav nastavení se nepodařilo uložit."
@@ -5516,6 +5788,15 @@ msgstr ""
 "Tato volba také určuje, jak se jména zobrazují na kartách kontaktů a pod "
 "kterým písmenem se řadí v rejstříku."
 
+msgid "This contact card has no postal address."
+msgstr "Tato karta kontaktu nemá poštovní adresu."
+
+msgid "This device does not support synchronization of the custom tab."
+msgstr "Toto zařízení nepodporuje synchronizaci vlastní karty."
+
+msgid "This device identifier is unavailable."
+msgstr "Tento identifikátor není dostupný."
+
 msgid "This dial request has already been queued."
 msgstr "Tento požadavek na vytáčení již byl zařazen do fronty."
 
@@ -5543,6 +5824,9 @@ msgid ""
 msgstr ""
 "Takto vypadají vaše poznámky: <b>tučně</b>, <i>kurzívou</i>, <u>podtrženě</"
 "u> a <s>přeškrtnutě</s>."
+
+msgid "This is my own phone"
+msgstr "Toto je můj vlastní telefon"
 
 msgid ""
 "This is one occurrence of a recurring appointment. Changes apply to all "
@@ -5586,6 +5870,9 @@ msgstr "Tento spárovaný telefon je moje vlastní zařízení"
 msgid "This person's anniversaries"
 msgstr "Výročí této osoby"
 
+msgid "This phone transport is unavailable."
+msgstr "Tento způsob připojení telefonu není dostupný."
+
 msgid ""
 "This program is free software: you may redistribute and modify it. It is "
 "published in the hope that it will be useful, but without any warranty."
@@ -5612,6 +5899,12 @@ msgstr "Tento úkol pochází z „%(branch)s“."
 
 msgid "Through"
 msgstr "Do"
+
+msgid "Thunderbird"
+msgstr "Thunderbird"
+
+msgid "Thunderbird profile version"
+msgstr "Verze profilu Thunderbird"
 
 msgid "Thurgau"
 msgstr "Thurgau"
@@ -5665,6 +5958,9 @@ msgstr "Příliš mnoho neúspěšných pokusů. Chvíli počkejte."
 
 msgid "Too many regions were selected."
 msgstr "Bylo vybráno příliš mnoho regionů."
+
+msgid "Too many unfinished synchronization runs."
+msgstr "Příliš mnoho nedokončených synchronizací."
 
 msgid "Top level"
 msgstr "Nejvyšší úroveň"
@@ -5723,6 +6019,9 @@ msgstr ""
 
 msgid "Underline"
 msgstr "Podtržení"
+
+msgid "Undo"
+msgstr "Zpět"
 
 msgid "Unit"
 msgstr "Jednotka"
@@ -5834,6 +6133,9 @@ msgstr "Používat koš"
 msgid "User name"
 msgstr "Uživatelské jméno"
 
+msgid "Username"
+msgstr "Uživatelské jméno"
+
 msgid ""
 "Uses its own identity and storage and listens only on fixed port %(port)s. "
 "It never uses Magnolienbaum partners, permissions, queues or Bluetooth "
@@ -5922,6 +6224,12 @@ msgstr ""
 msgid "WLAN listener on port %(port)s"
 msgstr "Posluchač WLAN na portu %(port)s"
 
+msgid "Wait for personal synchronization to finish before restoring."
+msgstr "Před obnovením počkejte na dokončení osobní synchronizace."
+
+msgid "Waiting for authenticated phone connection..."
+msgstr "Čeká se na připojení telefonu s ověřenou totožností..."
+
 msgid "Waiting for consent on the other device."
 msgstr "Čeká se na souhlas na druhém zařízení."
 
@@ -5979,6 +6287,11 @@ msgstr ""
 
 msgid "Weather temperature"
 msgstr "Teplota počasí"
+
+msgid ""
+"Weather uses HTTPS first, then unencrypted HTTP if necessary. If wttr.in "
+"fails and a location is known, Open-Meteo is tried."
+msgstr "Počasí se nejprve načítá přes HTTPS, případně přes nešifrované HTTP. Pokud wttr.in nefunguje a místo je známé, zkusí se Open-Meteo."
 
 msgid "Weather was not retrieved because no location is available."
 msgstr "Počasí nebylo načteno, protože není k dispozici poloha."
@@ -6071,6 +6384,25 @@ msgstr "Manželka"
 msgid "Windows Contacts folder"
 msgstr "složka Windows Contacts"
 
+msgid ""
+"Windows marks misspelled words with red wavy lines. Right-click a word for "
+"suggestions or to add it to your personal dictionary. Magnolie requests "
+"German suggestions for a German interface and English suggestions otherwise. "
+"If suggestions are missing, open Windows Settings, Time & language, Language "
+"& region, then the language options for German or English, and install Basic "
+"typing. Dictionary availability depends on the installed Windows language "
+"features."
+msgstr ""
+"Windows označuje chybně napsaná slova červenou vlnovkou. Kliknutím pravým "
+"tlačítkem na slovo zobrazíte návrhy nebo je přidáte do osobního slovníku. "
+"Pro německé rozhraní Magnolie žádá německé návrhy, jinak anglické. Pokud "
+"návrhy chybí, otevřete Nastavení Windows, Čas a jazyk, Jazyk a oblast, poté "
+"možnosti němčiny nebo angličtiny a nainstalujte základní psaní. Dostupnost "
+"slovníků závisí na nainstalovaných jazykových funkcích Windows."
+
+msgid "Windows spell checking is available only on Windows."
+msgstr "Kontrola pravopisu Windows je dostupná pouze ve Windows."
+
 msgid "Wireless"
 msgstr "Bezdrátová síť"
 
@@ -6128,6 +6460,9 @@ msgstr "Pište sem …"
 msgid "Writing sheet"
 msgstr "Psací list"
 
+msgid "Wrong Bluetooth device."
+msgstr "Nesprávné zařízení Bluetooth."
+
 msgid "X (formerly Twitter)"
 msgstr "X (dříve Twitter)"
 
@@ -6171,12 +6506,18 @@ msgstr ""
 msgid "Your data is stored at: %(path)s"
 msgstr "Vaše data jsou uložena v: %(path)s"
 
+msgid "Your letter"
+msgstr "Váš dopis"
+
 msgid ""
 "Your own address is required as the starting point for a route. Enter it "
 "under Settings ▸ Contacts."
 msgstr ""
 "Vaše vlastní adresa je nutná jako výchozí bod trasy. Zadejte ji v Nastavení "
 "▸ Kontakty."
+
+msgid "Yours sincerely,"
+msgstr "S pozdravem"
 
 msgid "Zug"
 msgstr "Zug"
@@ -6475,6 +6816,9 @@ msgstr "bez názvu"
 msgid "vCard (.vcf), including iPhone/iCloud export …"
 msgstr "vCard (.vcf), včetně exportu z iPhonu/iCloudu…"
 
+msgid "vCard / iPhone / iCloud"
+msgstr "vCard / iPhone / iCloud"
+
 msgid "vCard file (.vcf), including iPhone/iCloud export …"
 msgstr "Soubor vCard (.vcf), včetně exportu z iPhonu/iCloudu…"
 
@@ -6485,9 +6829,7 @@ msgid ""
 msgstr ""
 "vCard zachová více údajů kontaktu. LDIF je určen pro import do Claws Mail; "
 "nouzové kontakty, sociální sítě, vlastní popisky a fotografie jiné než JPEG "
-"nelze zahrnout.vCard preserves more contact details. LDIF is intended for "
-"importing into Claws Mail; emergency contacts, social media, free labels and "
-"non-JPEG photos cannot be included."
+"nelze zahrnout."
 
 msgid "vital"
 msgstr "vital"
@@ -6567,6 +6909,125 @@ msgstr[2] "… a ještě %(count)s další položky, které se rovněž vytiskno
 
 msgid "＋ Add appointment"
 msgstr "＋ Přidat schůzku"
+
+#~ msgid "As usual (print)"
+#~ msgstr "Jako obvykle (tisk)"
+
+#~ msgid ""
+#~ "Misspelled words are marked with a red wavy underline while you type. "
+#~ "Right-clicking a word opens a sheet with suggestions that can be applied "
+#~ "with one click; you can add names to your personal dictionary in the same "
+#~ "way. If the lines or suggestions are missing, install the dictionary "
+#~ "with:  sudo apt install %(package)s"
+#~ msgstr ""
+#~ "Při psaní jsou chybně napsaná slova označena červeným vlnovkovým "
+#~ "podtržením. Kliknutím pravým tlačítkem na slovo se otevře panel s návrhy, "
+#~ "které lze použít jedním kliknutím; stejným způsobem můžete do osobního "
+#~ "slovníku přidat jména. Pokud podtržení nebo návrhy chybí, nainstalujte "
+#~ "slovník pomocí:  sudo apt install %(package)s"
+
+#~ msgid "Magnolienbaum restart:"
+#~ msgstr "Restartování Magnolienbaum:"
+
+#~ msgid "Reminder data:"
+#~ msgstr "Údaje připomenutí:"
+
+#~ msgid "Reminder runtime:"
+#~ msgstr "Doba běhu připomenutí:"
+
+#~ msgid ""
+#~ "Both devices must opt in. Turning this off pauses Custom reminders and "
+#~ "updates but keeps copies. Linked text blocks are not shared."
+#~ msgstr ""
+#~ "Obě zařízení musí výslovně souhlasit. Vypnutí pozastaví vlastní "
+#~ "připomínky a aktualizace, ale zachová kopie. Propojené textové bloky se "
+#~ "nesdílejí."
+
+#~ msgid "Memory available / total"
+#~ msgstr "Dostupná paměť / celkem"
+
+#~ msgid "Storage available / total"
+#~ msgstr "Dostupné úložiště / celkem"
+
+#~ msgid "Synchronize Custom tasks and appointments"
+#~ msgstr "Synchronizovat vlastní úkoly a schůzky"
+
+#~ msgid "This device does not support Custom synchronization."
+#~ msgstr "Toto zařízení nepodporuje synchronizaci vlastního obsahu."
+
+#~ msgid ""
+#~ "Your address forms a single return line above the recipient in the same "
+#~ "left-hand address field. No sender is added if this field is empty."
+#~ msgstr ""
+#~ "Vaše adresa vytvoří jediný řádek odesílatele nad příjemcem ve stejném "
+#~ "adresním poli vlevo. Pokud je toto pole prázdné, odesílatel se nepřidá."
+
+#~ msgid ""
+#~ "Custom content is saved locally and transferred through complete Magnolie "
+#~ "archives only, not Personal Sync."
+#~ msgstr ""
+#~ "Vlastní obsah se ukládá místně a přenáší se pouze prostřednictvím úplných "
+#~ "archivů Magnolie, nikoli přes Personal Sync."
+
+#~ msgid ""
+#~ "Choose file and Windows contact imports that Magnolie can start directly "
+#~ "after opening."
+#~ msgstr ""
+#~ "Vyberte importy souborů a kontaktů Windows, které může Magnolie spustit "
+#~ "ihned po otevření."
+
+#~ msgid "Compact sender line (default)"
+#~ msgstr "Kompaktní řádek odesílatele (výchozí)"
+
+#~ msgid ""
+#~ "In the DIN template, these lines appear as a multiline sender block and "
+#~ "in small type in the address window. In the compact template, they form "
+#~ "one line above the recipient address. No sender is added if this field is "
+#~ "empty."
+#~ msgstr ""
+#~ "V šabloně DIN se tyto řádky zobrazí jako víceřádkový blok odesílatele a "
+#~ "malým písmem v adresním okénku. V kompaktní šabloně tvoří jeden řádek nad "
+#~ "adresou příjemce. Je-li toto pole prázdné, odesílatel se nepřidá."
+
+#~ msgid "Monthly"
+#~ msgstr "Měsíčně"
+
+#~ msgid ""
+#~ "The DIN template positions the recipient address for a window envelope, "
+#~ "shows your address as a multiline sender block, and adds two fold marks "
+#~ "and a punch mark."
+#~ msgstr ""
+#~ "Šablona DIN umístí adresu příjemce pro obálku s okénkem, zobrazí vaši "
+#~ "adresu jako víceřádkový blok odesílatele a přidá dvě značky přehybu a "
+#~ "značku pro děrování."
+
+#~ msgid "%(count)s recurring appointment imported only once."
+#~ msgid_plural "%(count)s recurring appointments imported only once."
+#~ msgstr[0] "%(count)s opakovaná schůzka importována pouze jednou."
+#~ msgstr[1] "%(count)s opakované schůzky importovány pouze jednou."
+#~ msgstr[2] "%(count)s opakované schůzky importovány pouze jednou."
+
+#~ msgid "Magnolienbaum quarantine:"
+#~ msgstr "Karanténa Magnolienbaum:"
+
+#~ msgid ""
+#~ "Evolution and Thunderbird are selected explicitly. iPhone contacts "
+#~ "require a vCard export from the iPhone or iCloud. KDE Connect, Bluetooth "
+#~ "and PBAP are not contact sources."
+#~ msgstr ""
+#~ "Evolution a Thunderbird se vybírají výslovně. Kontakty z iPhonu vyžadují "
+#~ "export vCard z iPhonu nebo iCloudu. KDE Connect, Bluetooth a PBAP nejsou "
+#~ "zdroje kontaktů.Kontakty z iPhonu vyžadují export vCard z iPhonu nebo "
+#~ "iCloudu. KDE Connect, Bluetooth a PBAP nejsou zdroje kontaktů."
+
+#~ msgid ""
+#~ "Selected imports are started directly after Magnolie opens. Thunderbird "
+#~ "contacts are not offered because Windows has no Thunderbird address-book "
+#~ "importer."
+#~ msgstr ""
+#~ "Vybrané importy se spustí ihned po otevření Magnolie. Kontakty "
+#~ "Thunderbirdu nejsou nabízeny, protože Windows nemá importér adresáře "
+#~ "Thunderbirdu."
 
 #~ msgid ""
 #~ "Download Magnolie Notes or KDE Connect using the links below. Bluetooth "
@@ -6732,3 +7193,19 @@ msgstr "＋ Přidat schůzku"
 #~ "When the limit is lowered, the oldest recovery snapshots are removed "
 #~ "automatically."
 #~ msgstr "Při snížení limitu se nejstarší body obnovení automaticky odstraní."
+
+#~ msgid "Share own phone identifiers"
+#~ msgstr "Sdílet identifikátory vlastního telefonu"
+
+#~ msgid ""
+#~ "Only on request from your own paired computer, for 60 seconds, without "
+#~ "saving: the default voice SIM number and, if Android permits, serial "
+#~ "number and IMEI. Android 10 and later restrict hardware identifiers for "
+#~ "ordinary apps. Phone-number permission is optional; no special role is "
+#~ "requested."
+#~ msgstr ""
+#~ "Pouze na žádost vlastního spárovaného počítače, na 60 sekund, bez "
+#~ "uložení: číslo výchozí hlasové SIM a, pokud Android dovolí, sériové číslo "
+#~ "a IMEI. Od Androidu 10 jsou hardwarové identifikátory pro běžné aplikace "
+#~ "omezené. Oprávnění k číslu je volitelné; žádná zvláštní role se "
+#~ "nevyžaduje."

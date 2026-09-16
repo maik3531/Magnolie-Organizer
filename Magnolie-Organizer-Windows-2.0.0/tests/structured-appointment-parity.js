@@ -38,6 +38,52 @@ const ics = ["BEGIN:VEVENT", "X-PROVIDER-SAFE:keep", "LOCATION:Raum 7",
 const normalisierte = [];
 for (const [name, app] of apps) {
   const { T, window } = app;
+  const recurrenceCases = [
+    ["2026-01-01", "FREQ=DAILY;INTERVAL=2;COUNT=3", ["2026-01-03", "2026-01-05"], ["2026-01-02", "2026-01-07"]],
+    ["2026-01-05", "FREQ=WEEKLY;BYDAY=MO,WE;COUNT=4", ["2026-01-07", "2026-01-12", "2026-01-14"], ["2026-01-06", "2026-01-19"]],
+    ["2026-01-31", "FREQ=MONTHLY;COUNT=3", ["2026-03-31", "2026-05-31"], ["2026-02-28", "2026-04-30", "2026-07-31"]],
+    ["2026-01-01", "FREQ=MONTHLY;INTERVAL=2;BYDAY=MO,TU,WE,TH,FR;BYSETPOS=-1;COUNT=3", ["2026-01-30", "2026-03-31", "2026-05-29"], ["2026-02-27", "2026-07-31"]],
+    ["2026-01-12", "FREQ=MONTHLY;BYDAY=2MO;UNTIL=20260309", ["2026-02-09", "2026-03-09"], ["2026-03-16", "2026-04-13"]],
+    ["2024-02-29", "FREQ=YEARLY;INTERVAL=2;COUNT=3", ["2028-02-29", "2032-02-29"], ["2026-02-28", "2036-02-29"]],
+    ["2026-01-01", "FREQ=YEARLY;BYMONTH=3,10;BYDAY=-1SU", ["2026-03-29", "2026-10-25"], ["2026-03-22", "2026-09-27"]],
+    ["2026-01-01", "FREQ=YEARLY;BYYEARDAY=-1", ["2026-12-31", "2028-12-31"], ["2026-12-30"]],
+    ["1998-01-05", "FREQ=WEEKLY;INTERVAL=2;BYDAY=MO", ["2026-09-07"], ["2026-09-14"]],
+    ["1997-08-05", "FREQ=WEEKLY;INTERVAL=2;BYDAY=TU,SU;WKST=MO;COUNT=4", ["1997-08-10", "1997-08-19", "1997-08-24"], ["1997-08-17", "1997-09-02"]],
+    ["1997-08-05", "FREQ=WEEKLY;INTERVAL=2;BYDAY=TU,SU;WKST=SU;COUNT=4", ["1997-08-17", "1997-08-19", "1997-08-31"], ["1997-08-10", "1997-09-02"]]
+  ];
+  for (const [datum, rule, yes, no] of recurrenceCases) {
+    const event = { id: rule, datum, zeit: "10:00", titel: "RFC series", wiederholung: { art: "none", bis: "" },
+      icsKomplex: true, icsReadOnly: true, icsRoundtrip: ["RRULE:" + rule] };
+    for (const day of yes) assert.equal(T.wiederholungTrifft(event, day), true, `${name}: ${rule} missing ${day}`);
+    for (const day of no) assert.equal(T.wiederholungTrifft(event, day), false, `${name}: ${rule} extra ${day}`);
+    T.daten().termine = [T.normalisiere({ termine: [event] }).termine[0]];
+    T.planeSpeichern();
+    assert.ok(T.termineAm(yes[0], true).some(t => t.id === rule), `${name}: raw series not in calendar index`);
+    assert.ok(T.daten().termine[0].icsRoundtrip.includes("RRULE:" + rule));
+  }
+  const excludedCount = { datum: "2026-01-05", zeit: "10:00", wiederholung: { art: "none" },
+    icsRoundtrip: ["RRULE:FREQ=DAILY;COUNT=3"], icsAusnahmen: ["2026-01-06"] };
+  assert.equal(T.wiederholungTrifft(excludedCount, "2026-01-06"), false);
+  assert.equal(T.wiederholungTrifft(excludedCount, "2026-01-07"), true);
+  assert.equal(T.wiederholungTrifft(excludedCount, "2026-01-08"), false, "EXDATE must not extend COUNT");
+  const previousZone = T.daten().einstellungen.regional.timeZone;
+  T.daten().einstellungen.regional.timeZone = "UTC";
+  for (const [exrule, count] of [["FREQ=DAILY", 0],
+    ["FREQ=WEEKLY;BYDAY=MO", 1], ["FREQ=DAILY;COUNT=1", 1]]) {
+    const overlappingPeriod = { icsRoundtrip: ["DTSTART:20210101T090000Z",
+      "DURATION:PT1H", "RDATE;VALUE=PERIOD:20260801T090000Z/PT960H",
+      "EXRULE:" + exrule] };
+    const occurrences = T.icsExpansion(overlappingPeriod,
+      Date.parse("2026-09-08T00:00Z"), Date.parse("2026-09-09T00:00Z"), false, true);
+    assert.equal(occurrences.length, count,
+      `${name}: EXRULE membership must include the original start of an overlapping PERIOD`);
+  }
+  const until = { datum: "2026-01-05", zeit: "10:00", icsRoundtrip: ["RRULE:FREQ=DAILY;UNTIL=20260107T095959Z"] };
+  assert.equal(T.wiederholungTrifft(until, "2026-01-06"), true);
+  assert.equal(T.wiederholungTrifft(until, "2026-01-07"), false);
+  T.daten().einstellungen.regional.timeZone = previousZone;
+  T.daten().termine = [];
+  T.planeSpeichern();
   const termin = T.normalisiere(window.JSON.parse(JSON.stringify({ termine: [{ id: "event", uid: "event@example.test",
     datum: "2026-08-20", zeit: "10:00", endZeit: "11:00", titel: "Planung",
     wiederholung: { art: "monthly", bis: "", ordinal: 2, wochentag: "TU" },
@@ -46,7 +92,7 @@ for (const [name, app] of apps) {
       anbieter: "Nextcloud" }, providerMetadaten: { google: { eventId: "42", accessToken: "weg" },
       bad_token: { value: "weg" } } }] }))).termine[0];
   assert.strictEqual(termin.ort, "Raum 7", `${name}: LOCATION fehlt`);
-  assert.deepStrictEqual(termin.alarme.filter(alarm => alarm.bearbeitbar)
+  assert.deepStrictEqual(Array.from(termin.alarme).filter(alarm => alarm.bearbeitbar)
     .map(alarm => alarm.offsetMinuten).sort((a, b) => a - b), [15, 120, 4320],
   `${name}: relative Alarme oder Legacy-Deduplizierung falsch`);
   assert.ok(termin.alarme.some(alarm => !alarm.bearbeitbar &&
@@ -109,13 +155,16 @@ for (const [name, app] of apps) {
     "RECURRENCE-ID:20260915T100000"];
   const komplexeSerie = Object.assign({}, termin, { icsKomplex: true,
     wiederholung: { art: "none", bis: "" }, icsRoundtrip: serienZeilen });
-  assert.deepStrictEqual(T.spiegeleTerminInIcs(komplexeSerie).filter(line =>
+  assert.deepStrictEqual(Array.from(T.spiegeleTerminInIcs(komplexeSerie)).filter(line =>
     serienZeilen.includes(line)), serienZeilen,
   `${name}: Speichern zerstört die Struktur einer komplexen importierten Serie`);
   const einfacheSerie = Object.assign({}, komplexeSerie, { icsKomplex: false });
   assert.strictEqual(T.spiegeleTerminInIcs(einfacheSerie).filter(line =>
-    serienZeilen.includes(line)).length, 0,
-  `${name}: intern erzeugte Serien behalten veraltete rohe Serienfelder`);
+    serienZeilen.includes(line)).length, serienZeilen.length,
+  `${name}: reine Metadatenbearbeitung verliert rohe Serienfelder`);
+  assert.strictEqual(T.spiegeleTerminInIcs(einfacheSerie, Object.assign({}, einfacheSerie,
+    { wiederholung: { art: "weekly", bis: "" } })).filter(line => serienZeilen.includes(line)).length, 0,
+  `${name}: ausdrueckliches Abschalten der Serie behaelt rohe Serienfelder`);
 
   assert.deepStrictEqual([
     T.anbieterAusUri("https://drive.google.com/file/d/1"),
@@ -128,6 +177,8 @@ for (const [name, app] of apps) {
   `${name}: Provider-Matrix falsch`);
 
   T.daten().termine = [termin];
+  T.zustand().kalender.jahr = 2026;
+  T.zustand().kalender.monat = 7;
   for (const begriff of ["Raum", "Arbeit", "Team", "Alex", "Bea", "Plan.pdf"]) {
     assert.strictEqual(T.suchTrefferFuer("kalender", [begriff.toLowerCase()]).length, 1,
       `${name}: Suche findet ${begriff} nicht`);
@@ -151,7 +202,7 @@ for (const [name, app] of apps) {
     icsRoundtrip: ["X-ACCESS-TOKEN:secret", "X-SAFE:keep"],
     kalenderAnhaenge: [{ uri: "https://example.test/a?access_token=secret", name: "privat" }]
   }));
-  assert.deepStrictEqual(baumGeheim.icsRoundtrip, ["X-SAFE:keep"],
+  assert.deepStrictEqual(Array.from(baumGeheim.icsRoundtrip), ["X-SAFE:keep"],
     `${name}: Baum-ICS enthält ein Token`);
   assert.strictEqual(baumGeheim.kalenderAnhaenge.length, 0,
     `${name}: Baum-Anhang enthält eine signierte URI`);

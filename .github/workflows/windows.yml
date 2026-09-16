@@ -11,6 +11,10 @@ on:
   push:
     paths:
       - "Magnolie-Organizer-Windows-2.0.0/**"
+      - "magnolie-handbuch-stamm/**"
+      - "contracts/**"
+      - "magnolie-organizer-2.0.0/pruefungen/fixtures/recurrence-rfc-oracle.json"
+      - "magnolie-organizer-2.0.0/bin/magnolie_recurrence.py"
       - ".github/workflows/windows.yml"
 
 permissions:
@@ -33,6 +37,15 @@ jobs:
       - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
         with:
           bun-version: "1.2.20"
+      - name: Python-Pakettests isoliert einrichten
+        shell: pwsh
+        run: |
+          python -m venv "$env:RUNNER_TEMP\magnolie-python"
+          if ($LASTEXITCODE -ne 0) { throw 'Python test environment failed.' }
+          & "$env:RUNNER_TEMP\magnolie-python\Scripts\python.exe" -m pip install --disable-pip-version-check pytest==8.3.5
+          if ($LASTEXITCODE -ne 0) { throw 'Pinned pytest installation failed.' }
+          "$env:RUNNER_TEMP\magnolie-python\Scripts" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+          "MAGNOLIE_PYTHON=$env:RUNNER_TEMP\magnolie-python\Scripts\python.exe" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
       - name: Standalone-Quellarchiv bauen und aus dem Archiv testen
         shell: pwsh
         run: ./build/BuildSource.ps1
@@ -76,16 +89,25 @@ jobs:
         run: |
           $version = [regex]::Match([IO.File]::ReadAllText("Directory.Build.props"), '<Version>([^<]+)</Version>').Groups[1].Value
           if ($version -notmatch '^\d+\.\d+\.\d+$') { throw "Kanonische Version fehlt." }
-          $projectArtifacts = Join-Path $env:ARTIFACT_DIR "project"
+          $projectArtifacts = $env:ARTIFACT_DIR
           New-Item -ItemType Directory -Path $projectArtifacts -Force | Out-Null
-          $source = "../Magnolie-Organizer-Windows-$version-Source.zip"
+          $source = "Magnolie-Organizer-Windows-$version-Source.zip"
           if (-not (Test-Path -LiteralPath $source -PathType Leaf)) { throw "Erwartetes Laufartefakt fehlt: $source" }
           Copy-Item -LiteralPath $source -Destination $env:ARTIFACT_DIR
           $files = @("Magnolie-Organizer-Windows-$version-x64.zip", "Magnolie-Organizer-Windows-$version-PRUEFSUMMEN.sha256")
-          if ($env:OFFICIAL_RELEASE -eq 'true') { $files += "Magnolie-Organizer-Windows-$version-Setup-x64.exe" }
+          if ($env:OFFICIAL_RELEASE -eq 'true') {
+            $files += "Magnolie-Organizer-Windows-$version-Setup-x64.exe",
+              "Magnolie-Organizer-Windows-$version-Setup-x64.exe.build.json",
+              "Magnolie-Organizer-Windows-$version-provenance.json"
+          }
           foreach ($file in $files) {
             if (-not (Test-Path -LiteralPath $file -PathType Leaf)) { throw "Erwartetes Laufartefakt fehlt: $file" }
             Copy-Item -LiteralPath $file -Destination $projectArtifacts
+          }
+          foreach ($line in Get-Content (Join-Path $projectArtifacts "Magnolie-Organizer-Windows-$version-PRUEFSUMMEN.sha256")) {
+            if ($line -cnotmatch '^([0-9a-f]{64})  ([^/\\:]+)$') { throw 'Invalid flat checksum entry.' }
+            $expected = $Matches[1]; $name = $Matches[2]
+            if ((Get-FileHash -LiteralPath (Join-Path $projectArtifacts $name)).Hash.ToLowerInvariant() -cne $expected) { throw 'Uploaded candidate checksum mismatch.' }
           }
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:

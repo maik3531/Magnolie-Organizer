@@ -166,6 +166,8 @@ internal static class KdeConnectTests
         await IncomingReplacementLoopbackAsync();
         await TransactionalPairingReplacementLoopbackAsync();
         await PersistentCandidateLoopbackAsync();
+        await SelectedSetupPairingLoopbackAsync();
+        await CancelSelectedSetupPairingLoopbackAsync();
 
         var backendSource = File.ReadAllText(Path.Combine("KdeConnectDirectBackend.cs"));
         var adapterSource = File.ReadAllText(Path.Combine("KdeConnectSms.cs"));
@@ -234,7 +236,7 @@ internal static class KdeConnectTests
             var status = await backend.StatusAsync();
             TestAssert.That(status.Available && status.DeviceCount == 1,
                 "Ausgehende gepinnte TLS-Verbindung wurde vom Status nicht bevorzugt.");
-            await backend.SendSmsAsync("+491701234567", "Ausgehend", "DE");
+            await backend.SendSmsAsync("+491701234567", "Ausgehend", "DE", phoneId, KdeConnectProtocol.CertificatePin(phoneCertificate));
             await phone.WaitAsync(TimeSpan.FromSeconds(10));
         }
         finally { phoneListener.Stop(); }
@@ -299,8 +301,8 @@ internal static class KdeConnectTests
             var status = await WaitForDeviceAsync(backend, phoneId);
             TestAssert.That(status.DeviceCount == 1,
                 "Übernommene SMS-fähige Pairing-Verbindung ist nicht aktiv.");
-            await backend.SendSmsAsync("+491701234567", "Erste", "DE");
-            await backend.SendSmsAsync("+491701234567", "Zweite", "DE");
+            await backend.SendSmsAsync("+491701234567", "Erste", "DE", status.DeviceId, status.DeviceFingerprint);
+            await backend.SendSmsAsync("+491701234567", "Zweite", "DE", status.DeviceId, status.DeviceFingerprint);
             await phone.WaitAsync(TimeSpan.FromSeconds(10));
         }
         finally { if (Directory.Exists(root)) Directory.Delete(root, true); }
@@ -565,6 +567,101 @@ internal static class KdeConnectTests
             acceptedPhone.Stream.Dispose(); acceptedPhone.Client.Dispose();
             removedPhone.Stream.Dispose(); removedPhone.Client.Dispose();
             oldPhone.Stream.Dispose(); oldPhone.Client.Dispose();
+        }
+        finally { if (Directory.Exists(root)) Directory.Delete(root, true); }
+    }
+
+    private static async Task SelectedSetupPairingLoopbackAsync()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "magnolie-kde-setup-" + Guid.NewGuid().ToString("N"));
+        try
+        {
+            var paths = new WindowsPaths(root); var protector = new TestProtector();
+            await using var backend = new KdeConnectDirectBackend(paths, protector, activeDiscovery: false);
+            using var selectedCertificate = Certificate("phone_selected");
+            using var neighbourCertificate = Certificate("phone_neighbour");
+            var selected = await ConnectIncomingPhoneAsync(backend, "phone_selected", selectedCertificate);
+            using var selectedClient = selected.Client; using var selectedStream = selected.Stream;
+            var neighbour = await ConnectIncomingPhoneAsync(backend, "phone_neighbour", neighbourCertificate);
+            using var neighbourClient = neighbour.Client; using var neighbourStream = neighbour.Stream;
+            await WaitForStatusAsync(backend, status => status.UnpairedCandidateCount == 2);
+            using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+            var pairing = await backend.BeginPairingAsync("phone_selected", timeout.Token);
+            var request = await KdeConnectProtocol.ReadAsync(selectedStream, timeout.Token);
+            TestAssert.That(pairing.DeviceId == "phone_selected" && request.Type == "kdeconnect.pair" &&
+                request.Body["pair"]!.GetValue<bool>() && !backend.HasPairedPeers,
+                "Selected setup request did not reach the chosen phone before trust was stored.");
+            var store = new KdeConnectIdentityStore(paths, protector);
+            await backend.ConfirmPairingAsync(pairing.DeviceId, true, timeout.Token);
+            TestAssert.That(store.LoadPeers().Count == 0, "Local approval alone authenticated the phone.");
+            var paired = PairingBarrier(backend, pairing.DeviceId, "paired");
+            await RequestPairingAsync(selectedStream);
+            await paired;
+            var before = store.LoadPeers().ToArray();
+            TestAssert.That(before.Length == 1 && before[0].Id == pairing.DeviceId &&
+                before[0].CertificatePin == KdeConnectProtocol.CertificatePin(selectedCertificate),
+                "Selected setup pairing pinned the wrong certificate.");
+            backend.CancelSetupPairing(pairing);
+            try
+            {
+                await backend.BeginPairingAsync("phone_neighbour", timeout.Token);
+                throw new Exception("Setup replaced a confirmed phone.");
+            }
+            catch (InvalidOperationException) { }
+            TestAssert.That(store.LoadPeers().SequenceEqual(before), "Setup cancellation/replacement changed established trust.");
+            TestAssert.Throws<InvalidOperationException>(() => store.ConfirmFirst(new KdeConnectPeer(
+                "phone_neighbour", "Pixel", KdeConnectProtocol.CertificatePin(neighbourCertificate), 1)),
+                "First-pair commit replaced a phone that became paired while setup was waiting.");
+            TestAssert.That(store.LoadPeers().SequenceEqual(before), "First-pair commit guard changed stored trust.");
+        }
+        finally { if (Directory.Exists(root)) Directory.Delete(root, true); }
+    }
+
+    private static async Task CancelSelectedSetupPairingLoopbackAsync()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "magnolie-kde-setup-cancel-" + Guid.NewGuid().ToString("N"));
+        try
+        {
+            var paths = new WindowsPaths(root); var protector = new TestProtector();
+            await using var backend = new KdeConnectDirectBackend(paths, protector, activeDiscovery: false);
+            using var certificate = Certificate("phone_cancel");
+            var phone = await ConnectIncomingPhoneAsync(backend, "phone_cancel", certificate);
+            using var client = phone.Client; using var stream = phone.Stream;
+            await WaitForStatusAsync(backend, status => status.CandidateReachable);
+            using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+            try
+            {
+                await backend.BeginPairingAsync("phone_absent", timeout.Token);
+                throw new Exception("Missing selection was substituted with a discovered neighbour.");
+            }
+            catch (InvalidOperationException) { }
+            var pairing = await backend.BeginPairingAsync("phone_cancel", timeout.Token);
+            _ = await KdeConnectProtocol.ReadAsync(stream, timeout.Token);
+            backend.CancelSetupPairing(pairing with { ExpiresAt = pairing.ExpiresAt.AddSeconds(-1) });
+            TestAssert.That((await backend.GetStatusAsync()).CandidateReachable,
+                "Cleanup for a different selection closed this request.");
+            var cancelled = PairingBarrier(backend, "phone_cancel", "failed");
+            backend.CancelSetupPairing(pairing);
+            await cancelled;
+            await AssertClosedAsync(stream, "Setup cancellation left its TLS listener connection open.");
+            TestAssert.That(!backend.HasPairedPeers && (await backend.GetStatusAsync()).Listening,
+                "Cancelling setup trusted a phone or stopped the pre-existing backend listener.");
+
+            var incoming = await ConnectIncomingPhoneAsync(backend, "phone_cancel", certificate);
+            using var incomingClient = incoming.Client; using var incomingStream = incoming.Stream;
+            var requested = PairingBarrier(backend, "phone_cancel", "requested");
+            await RequestPairingAsync(incomingStream);
+            await requested;
+            backend.CancelSetupPairing(pairing);
+            TestAssert.That((await backend.GetStatusAsync()).CandidateReachable,
+                "Setup cleanup cancelled an incoming operation it did not own.");
+            try
+            {
+                await backend.BeginPairingAsync("phone_cancel", timeout.Token);
+                throw new Exception("Setup adopted an incoming request.");
+            }
+            catch (InvalidOperationException) { }
+            await backend.ConfirmPairingAsync("phone_cancel", false, timeout.Token);
         }
         finally { if (Directory.Exists(root)) Directory.Delete(root, true); }
     }

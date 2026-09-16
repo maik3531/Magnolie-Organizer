@@ -55,3 +55,19 @@ internal static class TestAssert
         throw new InvalidOperationException(message);
     }
 }
+
+internal static class TestSource
+{
+    // An explicit canonical checkout takes precedence over CWD and build-output ancestry.
+    internal static string Root(string marker)
+    {
+        var canonical = Environment.GetEnvironmentVariable("MAGNOLIE_TEST_SOURCE_ROOT");
+        var starts = string.IsNullOrWhiteSpace(canonical)
+            ? new[] { Directory.GetCurrentDirectory(), AppContext.BaseDirectory }
+            : new[] { canonical };
+        foreach (var start in starts)
+            for (DirectoryInfo? directory = new(Path.GetFullPath(start)); directory is not null; directory = directory.Parent)
+                if (File.Exists(Path.Combine(directory.FullName, marker))) return directory.FullName;
+        throw new DirectoryNotFoundException($"Test source root containing '{marker}' not found from {string.Join(", ", starts)}.");
+    }
+}

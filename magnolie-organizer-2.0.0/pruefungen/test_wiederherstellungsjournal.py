@@ -8,12 +8,12 @@ import uuid
 from pathlib import Path
 from collections import namedtuple
 from datetime import datetime, timedelta, timezone
-from importlib.machinery import SourceFileLoader
+from modul_laden import quellmodul_laden
 
 
 PFAD = os.environ.get("MAGNOLIE_PROGRAMM") or os.path.join(
     os.path.dirname(os.path.abspath(__file__)), "..", "bin", "magnolie-organizer")
-m = SourceFileLoader("magnolie_journal", PFAD).load_module()
+m = quellmodul_laden("magnolie_journal", PFAD)
 Disk = namedtuple("Disk", "total used free")
 
 
@@ -65,7 +65,7 @@ with tempfile.TemporaryDirectory() as tmp:
                                          jetzt=zeit, disk_usage=disk)
     assert stand["format"] == "magnolie-snapshot"
     assert stand["formatVersion"] == 1 and stand["platform"] == "linux"
-    assert stand["appVersion"] == "2.0.17" and stand["integrity"] == "ok"
+    assert stand["appVersion"] == "2.0.18" and stand["integrity"] == "ok"
     assert stand["payload"]["schema"] == 1 and stand["summary"]["termine"] == 1
     assert os.stat(m.journal_verzeichnis(tmp)).st_mode & 0o777 == 0o700
     assert os.stat(os.path.join(stand["path"], "manifest.json")).st_mode & 0o777 == 0o600
@@ -422,15 +422,17 @@ with tempfile.TemporaryDirectory() as tmp:
 
 # Restore rotiert die Epoch, quarantänisiert Löschungen und ist für alte Peers additiv.
 alt = daten()
+alt["geloescht"]["aufgaben"] = [{"uid": "a-tot"}]
 neu = m.journal_restore_daten(alt)
 assert neu["syncEpoch"] != alt.get("syncEpoch")
 assert neu["syncMetadaten"]["ersteSyncLoeschungsfrei"] is True
 assert neu["syncMetadaten"]["quarantinedDeletes"]["geloescht"] == alt["geloescht"]
-assert neu["geloescht"] == {"termine": [], "kontakte": []}
+assert neu["syncMetadaten"]["quarantinedDeletes"]["geloescht"]["aufgaben"] == [{"uid": "a-tot"}]
+assert neu["geloescht"] == {"termine": [], "aufgaben": [], "kontakte": []}
 assert neu["tombstones"] == [] and neu["baumKontaktGeloescht"] == []
 assert neu["einstellungen"]["sync"]["syncEpoch"] == neu["syncEpoch"]
 
-# Automatische Punkte enthalten keine Anhang-Nutzdaten.
+# Automatic snapshots retain attachment bytes without mutating live data.
 with tempfile.TemporaryDirectory() as tmp:
     mit_anhang = daten()
     mit_anhang["notizen"] = [{"id": "n1", "anhaenge": [{"name": "a.pdf",
@@ -438,8 +440,9 @@ with tempfile.TemporaryDirectory() as tmp:
     stand = m.journal_snapshot_erzeugen(
         mit_anhang, "pre-change", basis=tmp, disk_usage=disk)
     _manifest, gelesen = m.journal_snapshot_lesen(stand["snapshotId"], basis=tmp)
-    assert gelesen["anhaenge"] == 0
-    assert gelesen["daten"]["notizen"][0]["anhaenge"][0]["daten"] == ""
+    assert gelesen["anhaenge"] == 1
+    assert gelesen["daten"]["notizen"] == mit_anhang["notizen"]
+    assert m.journal_restore_daten(gelesen["daten"], daten())["notizen"] == mit_anhang["notizen"]
     assert mit_anhang["notizen"][0]["anhaenge"][0]["daten"].startswith("data:")
 
 # Teilrestore kann Fehlendes ergänzen oder den ausgewählten Bereich ersetzen.

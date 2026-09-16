@@ -29,7 +29,8 @@ import kotlin.concurrent.thread
  * `Transfer-Encoding` und `Expect` werden abgewiesen, Bodys sind begrenzt,
  * jede Antwort schließt die Verbindung.
  */
-class Server(private val handlung: Handlung, private val wunschPort: Int = Netz.PORT) {
+class Server(private val handlung: Handlung, private val wunschPort: Int = Netz.PORT,
+             private val requestTimeoutMs: Long = 10_000) {
 
     /** Was der Dienst an die Anwendung zurückmeldet. */
     interface Handlung {
@@ -38,7 +39,7 @@ class Server(private val handlung: Handlung, private val wunschPort: Int = Netz.
         fun partner(kennung: String): io.gitlab.maik3531.magnolienotes.daten.Partner?
         fun einladungen(): List<Einladung>
         /** Eine erfolgreiche Paarung nach Datei; der Partner gilt als bestätigt. */
-        fun paarungFertig(zweig: JsonObject, adresse: String, einladung: Einladung)
+        fun dateiPaarungAnnehmen(eigen: EigeneIdentitaet, anfrage: JsonObject, adresse: String): JsonObject
         /** Der kurze Codeweg: der Partner wartet auf die Bestätigung des Menschen. */
         fun codeAnfrage(name: String, kennung: String, oeffentlich: String, adresse: String, port: Int)
         /** Eine geöffnete Nachricht eines bestätigten Partners. */
@@ -51,7 +52,8 @@ class Server(private val handlung: Handlung, private val wunschPort: Int = Netz.
             vonKennung: String,
             inhalt: JsonObject,
             zaehler: Long? = null,
-            transportId: String? = null
+            transportId: String? = null,
+            umschlagHash: String? = null
         ): Boolean {
             if (transportId != null && schonGesehen(vonKennung, transportId)) return false
             nachricht(vonKennung, inhalt)
@@ -60,6 +62,9 @@ class Server(private val handlung: Handlung, private val wunschPort: Int = Netz.
             return true
         }
         fun adresseGesehen(vonKennung: String, adresse: String)
+        /** Only a handler with atomic durable acceptance may issue a legacy receipt. */
+        fun legacyNachricht(umschlag: JsonObject, quelle: String): JsonObject =
+            throw BaumFehler("Die Gegenstelle hat den Empfang nicht bestätigt.")
     }
 
     companion object {
@@ -84,9 +89,13 @@ class Server(private val handlung: Handlung, private val wunschPort: Int = Netz.
         val aktiv = AtomicBoolean(true)
         val rufBuchse = AtomicReference<java.net.DatagramSocket?>()
         val verbindungen = ConcurrentHashMap.newKeySet<Socket>()
+        val fristen = java.util.concurrent.ScheduledThreadPoolExecutor(1) { task ->
+            Thread(task, "baum-http-frist").apply { isDaemon = true }
+        }.apply { removeOnCancelPolicy = true }
     }
 
     private val sitzungen = ConcurrentHashMap<String, OffeneSitzung>()
+    private val bodyBudget = java.util.concurrent.Semaphore(NACHRICHT_MAX)
     @Volatile private var lauf: Lauf? = null
 
     val port: Int get() = lauf?.buchse?.localPort ?: wunschPort
@@ -120,6 +129,7 @@ class Server(private val handlung: Handlung, private val wunschPort: Int = Netz.
         runCatching { alterLauf.rufBuchse.getAndSet(null)?.close() }
         alterLauf.verbindungen.forEach { runCatching { it.close() } }
         alterLauf.arbeiter.shutdownNow()
+        alterLauf.fristen.shutdownNow()
         sitzungen.values.forEach { it.sitzung.loeschen() }
         sitzungen.clear()
     }
@@ -148,19 +158,25 @@ class Server(private val handlung: Handlung, private val wunschPort: Int = Netz.
                 break
             }
             lauf.verbindungen += verbindung
+            var frist: java.util.concurrent.ScheduledFuture<*>? = null
             try {
                 verbindung.soTimeout = INAKTIV_MS
+                frist = lauf.fristen.schedule({ runCatching { verbindung.close() } },
+                    requestTimeoutMs, TimeUnit.MILLISECONDS)
                 lauf.arbeiter.execute {
                     try {
                         bedienen(verbindung)
                     } finally {
+                        frist?.cancel(false)
                         lauf.verbindungen.remove(verbindung)
                     }
                 }
             } catch (abgewiesen: RejectedExecutionException) {
+                frist?.cancel(false)
                 lauf.verbindungen.remove(verbindung)
                 runCatching { verbindung.close() }
             } catch (fehler: Exception) {
+                frist?.cancel(false)
                 lauf.verbindungen.remove(verbindung)
                 runCatching { verbindung.close() }
             }
@@ -168,6 +184,7 @@ class Server(private val handlung: Handlung, private val wunschPort: Int = Netz.
     }
 
     private fun bedienen(verbindung: Socket) {
+        var reserviert = 0
         try {
             val herein = BufferedInputStream(verbindung.getInputStream())
             val hinaus = verbindung.getOutputStream()
@@ -192,6 +209,10 @@ class Server(private val handlung: Handlung, private val wunschPort: Int = Netz.
             } else PAARUNG_MAX
             if (laenge > grenze) return antworten(hinaus, 413, fehlerAntwort("Die Nachricht ist zu groß."))
 
+            if (!bodyBudget.tryAcquire(laenge)) {
+                return antworten(hinaus, 429, fehlerAntwort("Zu viele Anfragen – kurz warten."))
+            }
+            reserviert = laenge
             val roh = ByteArray(laenge)
             var gelesen = 0
             while (gelesen < laenge) {
@@ -210,6 +231,7 @@ class Server(private val handlung: Handlung, private val wunschPort: Int = Netz.
         } catch (fehler: Exception) {
             // Eine abgebrochene Verbindung ist kein Grund für Aufregung.
         } finally {
+            if (reserviert > 0) bodyBudget.release(reserviert)
             runCatching { verbindung.close() }
         }
     }
@@ -260,26 +282,11 @@ class Server(private val handlung: Handlung, private val wunschPort: Int = Netz.
     }
 
     private fun dateiPaarung(eigen: EigeneIdentitaet, anfrage: JsonObject, quelle: String): JsonObject {
-        val (antwort, zweig, einladung) = Paarung.nimmAnfrageAn(
-            eigen, handlung.einladungen(), anfrage
-        )
-        handlung.paarungFertig(zweig, quelle, einladung)
-        return antwort
+        return handlung.dateiPaarungAnnehmen(eigen, anfrage, quelle)
     }
 
     private fun alteNachricht(eigen: EigeneIdentitaet, umschlag: JsonObject, quelle: String): JsonObject {
-        val von = text(umschlag, "von")
-        val partner = handlung.partner(von) ?: throw BaumFehler("Dieser Zweig ist unbekannt.")
-        if (!partner.bestaetigt) throw BaumFehler("Dieser Zweig ist noch nicht bestätigt.")
-        val (inhalt, zaehler) = Baum1.oeffne(
-            eigen, partner.kennung, partner.oeffentlich, umschlag, letzterZaehler(partner)
-        )
-        handlung.verarbeiteNachricht(von, inhalt, zaehler = zaehler)
-        handlung.adresseGesehen(von, quelle)
-        return buildJsonObject {
-            put("ok", JsonPrimitive(true))
-            put("art", inhalt["art"] ?: JsonPrimitive(""))
-        }
+        return handlung.legacyNachricht(umschlag, quelle)
     }
 
     private fun sitzungAufbauen(eigen: EigeneIdentitaet, start: JsonObject, quelle: String): JsonObject {
@@ -440,9 +447,13 @@ class Server(private val handlung: Handlung, private val wunschPort: Int = Netz.
         val teile = zeile.split(" ")
         if (teile.size < 2) return null
         val kopf = mutableMapOf<String, String>()
+        var zeilen = 0
+        var bytes = zeile.toByteArray(Charsets.UTF_8).size + 2
         while (true) {
             val weitere = liesZeile(herein) ?: return null
             if (weitere.isEmpty()) break
+            bytes += weitere.toByteArray(Charsets.UTF_8).size + 2
+            if (++zeilen > 64 || bytes > 64 * 1024) return null
             val trenn = weitere.indexOf(':')
             if (trenn <= 0) continue
             kopf[weitere.substring(0, trenn).trim().lowercase()] = weitere.substring(trenn + 1).trim()

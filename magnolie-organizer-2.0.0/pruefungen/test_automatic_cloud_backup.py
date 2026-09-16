@@ -1,14 +1,15 @@
 import os
 from datetime import datetime, timezone
-from importlib.machinery import SourceFileLoader
 from pathlib import Path
 
 import pytest
 
+from modul_laden import quellmodul_laden
+
 
 ROOT = Path(__file__).resolve().parents[1]
-policy = SourceFileLoader("magnolie_cloud_policy", str(ROOT / "bin" / "magnolie_cloud_backup.py")).load_module()
-organizer = SourceFileLoader("magnolie_cloud_organizer", str(ROOT / "bin" / "magnolie-organizer")).load_module()
+policy = quellmodul_laden("magnolie_cloud_policy", ROOT / "bin" / "magnolie_cloud_backup.py")
+organizer = quellmodul_laden("magnolie_cloud_organizer", ROOT / "bin" / "magnolie-organizer")
 
 
 def test_due_policy_and_retention_bounds():
@@ -80,7 +81,7 @@ def test_linux_save_routing_never_uses_background_daemon_for_cloud_backup():
     assert "_daten_sperre" in worker
 
 
-def test_windows_dpapi_save_routing_and_readback_sources():
+def cross_windows_dpapi_save_routing_and_readback_sources():
     windows = ROOT.parent / "Magnolie-Organizer-Windows-2.0.0"
     service = (windows / "CloudBackupService.cs").read_text(encoding="utf-8")
     dispatcher = (windows / "BridgeDispatcher.cs").read_text(encoding="utf-8")

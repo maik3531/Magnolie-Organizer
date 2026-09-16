@@ -23,6 +23,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Job
 
 /**
  * Hält den Empfangsdienst am Leben, solange er eingeschaltet ist, und stößt
@@ -35,6 +36,8 @@ class BaumDienst : Service() {
     private val takt = Executors.newSingleThreadScheduledExecutor()
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private var taktGestartet = false
+    private var startJob: Job? = null
+    private var bluetoothAnfordern = false
 
     override fun onBind(absicht: Intent?): IBinder? = null
 
@@ -45,18 +48,36 @@ class BaumDienst : Service() {
 
     override fun onStartCommand(absicht: Intent?, flaggen: Int, kennung: Int): Int {
         if (absicht?.action == ANHALTEN) {
+            startJob?.cancel()
             beenden()
             return START_NOT_STICKY
         }
         vordergrund()
-        scope.launch {
+        bluetoothAnfordern = bluetoothAnfordern || absicht?.getBooleanExtra("bluetooth", false) == true
+        if (taktGestartet) {
+            val werk = Baumwerk.hole(this)
+            if (!werk.zustand.value.dienstAn && !werk.dienstStarten(this)) {
+                beenden(); return START_NOT_STICKY
+            }
+            if (bluetoothAnfordern) {
+                bluetoothAnfordern = false
+                scope.launch(Dispatchers.IO) { runCatching { Baumwerk.hole(this@BaumDienst).bluetoothStarten() } }
+            }
+            return START_STICKY
+        }
+        if (startJob?.isActive == true) return START_STICKY
+        startJob = scope.launch {
             if (!(application as MagnolieApp).awaitReady()) {
                 beenden()
                 return@launch
             }
             val werk = Baumwerk.hole(this@BaumDienst)
             runCatching { AndroidJournal.hole(this@BaumDienst).faelligSichern() }
-            werk.dienstStarten(this@BaumDienst)
+            if (!werk.dienstStarten(this@BaumDienst)) { beenden(); return@launch }
+            if (bluetoothAnfordern) {
+                bluetoothAnfordern = false
+                runCatching { werk.bluetoothStarten() }
+            }
             if (!taktGestartet) {
                 taktGestartet = true
                 takt.scheduleWithFixedDelay({
@@ -71,11 +92,11 @@ class BaumDienst : Service() {
     }
 
     override fun onDestroy() {
+        scope.cancel()
         takt.shutdownNow()
         if ((application as MagnolieApp).startZustand.value == io.gitlab.maik3531.magnolienotes.StartZustand.Bereit) {
             Baumwerk.hole(this).dienstAnhalten()
         }
-        scope.cancel()
         super.onDestroy()
     }
 
@@ -125,8 +146,8 @@ class BaumDienst : Service() {
         private const val HINWEIS_ID = 8737
         const val ANHALTEN = "io.gitlab.maik3531.magnolienotes.ANHALTEN"
 
-        fun starten(zusammenhang: Context) {
-            val absicht = Intent(zusammenhang, BaumDienst::class.java)
+        fun starten(zusammenhang: Context, bluetooth: Boolean = false) {
+            val absicht = Intent(zusammenhang, BaumDienst::class.java).putExtra("bluetooth", bluetooth)
             zusammenhang.startForegroundService(absicht)
         }
 

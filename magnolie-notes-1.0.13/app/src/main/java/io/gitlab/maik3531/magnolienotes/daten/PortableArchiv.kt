@@ -32,6 +32,17 @@ class GeprueftesPortableArchiv internal constructor(
     val vorschau: PortableVorschau,
 )
 
+/** Authentication alone also accepts an older archive protected by the same password. */
+internal class ArchivIdentitaet(bytes: ByteArray) {
+    private val laenge = bytes.size
+    private val hash = java.security.MessageDigest.getInstance("SHA-256").digest(bytes)
+
+    fun pruefen(bytes: ByteArray) {
+        check(bytes.size == laenge && java.security.MessageDigest.isEqual(hash,
+            java.security.MessageDigest.getInstance("SHA-256").digest(bytes)))
+    }
+}
+
 /** Eigenstaendiges, passwortgeschuetztes Archiv ohne Baum- oder Keystore-Material. */
 object PortableArchiv {
     const val ITERATIONEN = 240_000
@@ -120,7 +131,8 @@ object PortableArchiv {
 
     internal fun migrieren(version: Int, bestand: Bestand): Bestand {
         require(version in 1..2)
-        return bestand.copy(aufgaben = AufgabenHierarchie.normalisieren(bestand.aufgaben))
+        return bestand.copy(aufgaben = AufgabenHierarchie.normalisieren(bestand.aufgaben),
+            personalCustom = PersonalCustom.restore(PersonalCustomState(), bestand.personalCustom))
     }
 
     private fun portable(bestand: Bestand, normalisiereAufgaben: Boolean = true): Bestand = bestand.copy(
@@ -131,13 +143,14 @@ object PortableArchiv {
         papierkorb = bestand.papierkorb.map { it.copy(
             notiz = it.notiz?.let(::portable), aufgabe = it.aufgabe?.let(::portable)) },
         personalSync = PersonalSyncState(),
+        personalCustom = PersonalCustom.restore(PersonalCustomState(), bestand.personalCustom),
     )
 
     private fun portable(notiz: Notiz) = notiz.copy(baumFreigabe = null, baumGeaendert = 0,
         baumVersion = 0, baumQuelle = "")
 
     private fun portable(aufgabe: Aufgabe) = aufgabe.copy(herkunft = "", vonZweig = "",
-        fremdId = "", delegiertAn = "")
+        fremdId = "", delegiertAn = "", standPartner = emptyList())
 
     private fun kopf(salz: ByteArray, nonce: ByteArray, geheimLaenge: Int, version: Int): ByteArray {
         val aus = ByteArrayOutputStream()

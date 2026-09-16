@@ -54,6 +54,15 @@ internal static class AtomicStoreTests
             TestAssert.That(firstBackup != secondBackup && File.Exists(firstBackup) && File.Exists(secondBackup),
                 "Zwei Sicherungen in derselben Sekunde überschrieben einander.");
 
+            var backupSource = Path.Combine(root, "backup-source.json");
+            store.WriteRecoverableJson(backupSource, "{\"generation\":1}");
+            store.WriteRecoverableJson(backupSource, "{\"generation\":2}");
+            File.WriteAllText(backupSource, "{beschaedigt");
+            var recoveredBackup = store.Backup(backupSource, backupDirectory);
+            TestAssert.That(File.ReadAllText(recoveredBackup) == "{\"generation\":2}" &&
+                            File.ReadAllText(backupSource) == "{\"generation\":2}",
+                "Die Sicherung verwendete nicht die letzte gültige Ersatzkopie.");
+
             var directoryLink = Path.Combine(root, "linked");
             Directory.CreateSymbolicLink(directoryLink, root);
             await TestAssert.ThrowsAsync<IOException>(() => Task.Run(() => store.Write(Path.Combine(directoryLink, "escape.json"), "x")),
