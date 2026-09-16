@@ -1,20 +1,20 @@
 # Changelog / Änderungen
 
-## 2.0.18 / Notes 1.0.13 — 2026-09-07
+## 2.0.18 / Notes 1.0.14 — 2026-09-16
 
 ### English
 
 - Fixes protected QR-code and portrait delivery in Windows WebView2 by keeping response bytes valid for the complete browser-consumption lifetime and adds native image decoding and dimension checks.
 - Completes gettext metadata and removes remaining English, duplicated, or wrong-language fallbacks across all 19 Organizer and handbook translations.
 - Includes all Thunderbird schema-23 and recurrence-import corrections, generic Nextcloud/CalDAV/CardDAV synchronization hardening, task hierarchy, setup-assistant, scaling, AppImage, and platform fixes developed after 2.0.17.
-- Includes the Magnolie Notes 1.0.14 production candidate.
+- Includes Magnolie Notes 1.0.14.
 
 ### Deutsch
 
 - Behebt die Auslieferung geschützter QR- und Porträtbilder in Windows-WebView2, indem die Antwortbytes während der vollständigen Browserverarbeitung gültig bleiben, und ergänzt native Decodierungs- und Dimensionsprüfungen.
 - Vervollständigt die Gettext-Metadaten und entfernt verbliebene englische, doppelte oder fremdsprachige Fallbacks in allen 19 Organizer- und Handbuchübersetzungen.
 - Enthält alle nach 2.0.17 entwickelten Korrekturen für Thunderbird-Schema 23 und Serienimport, allgemeinen Nextcloud-/CalDAV-/CardDAV-Abgleich, Aufgabenhierarchie, Ersteinrichtung, Skalierung, AppImage und Plattformen.
-- Enthält den Produktionskandidaten Magnolie Notes 1.0.14.
+- Enthält Magnolie Notes 1.0.14.
 
 ## 2.0.17 / Notes 1.0.13 — 2026-09-02
 
