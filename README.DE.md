@@ -57,12 +57,6 @@ Downgrade-Entscheidung des Testers. Siehe [KDE-Anforderungen und Upgrade-Regeln]
 SHA-256-Prüfsummen und Quellarchive liegen in der
 [aktuellen Freigabe](https://github.com/maik3531/Magnolie-Organizer/releases/latest).
 
-> [!IMPORTANT]
-> Die Windows-Artefakte 2.0.18 sind unsignierte Linux-Cross-Builds. Quellen-, Web-,
-> Paket- und 30.000er-Coretests bestehen. Native Kompilierung, Laufzeitprüfung
-> unter Windows und Authenticode-Signierung bleiben nicht verfügbar. Bitte vor
-> der Nutzung die Freigabehinweise lesen.
-
 ## Einblick
 
 <table>
@@ -90,8 +84,8 @@ SHA-256-Prüfsummen und Quellarchive liegen in der
 | Magnolie Notes für Android | Kotlin, Jetpack Compose | [`magnolie-notes-1.0.13`](magnolie-notes-1.0.13/) |
 | Magnolie-Handbuch | Python, GTK, HTML/CSS/JavaScript | [`magnolie-handbuch-stamm`](magnolie-handbuch-stamm/) |
 
-Jeder Ordner enthält eigene Bau- und Prüfanweisungen. Das Repository enthält
-die veröffentlichten Quellen für Organizer 2.0.18 und Notes 1.0.13. Fertige
+Das Repository enthält die veröffentlichten Quellen für Organizer 2.0.18
+und Notes 1.0.14. Fertige
 Pakete bleiben auf der Releases-Seite und belasten nicht die Git-Historie.
 
 ## Sicherheit und Datenschutz

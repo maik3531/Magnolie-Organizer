@@ -63,12 +63,6 @@ downgrade decision. See [KDE requirements and upgrade policy](magnolie-organizer
 SHA-256 checksums and source archives are attached to the
 [latest release](https://github.com/maik3531/Magnolie-Organizer/releases/latest).
 
-> [!IMPORTANT]
-> The Windows 2.0.18 artifacts are unsigned Linux cross-builds. Source, web,
-> package-content and 30,000-item core tests pass. Native compilation,
-> runtime validation on Windows and Authenticode signing remain unavailable.
-> Review the release notes before use.
-
 ## A look inside
 
 <table>
@@ -96,8 +90,7 @@ SHA-256 checksums and source archives are attached to the
 | Magnolie Notes for Android | Kotlin, Jetpack Compose | [`magnolie-notes-1.0.13`](magnolie-notes-1.0.13/) |
 | Magnolie Handbook | Python, GTK, HTML/CSS/JavaScript | [`magnolie-handbuch-stamm`](magnolie-handbuch-stamm/) |
 
-Each directory contains its own build and test instructions. The repository
-contains the candidate sources for release 2.0.18 / Notes 1.0.14; generated
+The repository contains the sources for release 2.0.18 / Notes 1.0.14; generated
 packages are kept on the Releases page rather than in Git history.
 
 ## Security and privacy
