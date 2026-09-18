@@ -52,6 +52,8 @@ override_dh_install:
 	  hash=$$(printf '%s' "$$hash" | tr A-F a-f); \
 	fi; \
 	dh_install; \
+	install -Dm 0644 magnolie-organizer.desktop debian/magnolie-organizer/usr/share/applications/io.gitlab.maik3531.MagnolieOrganizer.desktop; \
+	install -Dm 0644 magnolie-organizer.appdata.xml debian/magnolie-organizer/usr/share/metainfo/io.gitlab.maik3531.MagnolieOrganizer.appdata.xml; \
 	python3 -c 'import json,subprocess,pathlib; p=pathlib.Path("debian/magnolie-organizer/usr/share/magnolie-organizer/version.json"); p.write_text(json.dumps({"version":subprocess.check_output(["dpkg-parsechangelog","-SVersion"],text=True).strip()})+"\n")'; \
 	if [ -n "$$hash" ]; then \
 	  ziel=debian/magnolie-organizer/usr/share/magnolie-organizer; \

@@ -2126,7 +2126,7 @@ with open(os.path.join(os.path.dirname(PFAD), "..", "debian", "changelog"), enco
     paket_fassung = re.match(r"magnolie-organizer \(([^)]+)\)", datei.readline()).group(1)
 pruefe(m.PROGRAMM_FASSUNG == paket_fassung, "Programmkern trägt die neue Fassung")
 desktop_pfad = os.path.abspath(os.path.join(os.path.dirname(PFAD), "..",
-                                             "io.gitlab.maik3531.MagnolieOrganizer.desktop"))
+                                             "magnolie-organizer.desktop"))
 with open(desktop_pfad, encoding="utf-8") as datei:
     desktop_inhalt = datei.read()
 pruefe("Actions=StartDebug;" in desktop_inhalt and

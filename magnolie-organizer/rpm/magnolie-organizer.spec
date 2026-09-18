@@ -126,9 +126,9 @@ export XDG_CACHE_HOME="$test_root/cache"
 /usr/bin/python3 -B pruefungen/run_background_reliability.py
 /usr/bin/python3 -B -m pytest -q pruefungen/test_letter_layout.py pruefungen/test_pot_source_coverage.py
 
-desktop-file-validate io.gitlab.maik3531.MagnolieOrganizer.desktop
+desktop-file-validate magnolie-organizer.desktop
 appstreamcli validate --no-net \
-    io.gitlab.maik3531.MagnolieOrganizer.appdata.xml
+    magnolie-organizer.appdata.xml
 
 for script in web/*.js web/i18n/*.js; do
     node --check "$script"
@@ -181,9 +181,9 @@ while read -r language; do
         "%{buildroot}%{_datadir}/locale/$language/LC_MESSAGES/%{name}.mo"
 done < po/LINGUAS
 
-install -Dpm 0644 io.gitlab.maik3531.MagnolieOrganizer.desktop \
+install -Dpm 0644 magnolie-organizer.desktop \
     %{buildroot}%{_datadir}/applications/io.gitlab.maik3531.MagnolieOrganizer.desktop
-install -Dpm 0644 io.gitlab.maik3531.MagnolieOrganizer.appdata.xml \
+install -Dpm 0644 magnolie-organizer.appdata.xml \
     %{buildroot}%{_datadir}/metainfo/io.gitlab.maik3531.MagnolieOrganizer.metainfo.xml
 install -Dpm 0644 symbole/magnolie-organizer.svg \
     %{buildroot}%{_datadir}/icons/hicolor/scalable/apps/magnolie-organizer.svg

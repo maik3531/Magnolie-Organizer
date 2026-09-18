@@ -276,9 +276,9 @@ install -m 0644 "$WURZEL/symbole/magnolie-organizer.svg" \
     "$APPDIR/usr/share/icons/hicolor/scalable/apps/magnolie-organizer.svg"
 install -m 0644 "$WURZEL/symbole/256x256/magnolie-organizer.png" \
     "$APPDIR/usr/share/icons/hicolor/256x256/apps/magnolie-organizer.png"
-install -m 0644 "$WURZEL/io.gitlab.maik3531.MagnolieOrganizer.desktop" \
+install -m 0644 "$WURZEL/magnolie-organizer.desktop" \
     "$APPDIR/usr/share/applications/io.gitlab.maik3531.MagnolieOrganizer.desktop"
-install -m 0644 "$WURZEL/io.gitlab.maik3531.MagnolieOrganizer.appdata.xml" \
+install -m 0644 "$WURZEL/magnolie-organizer.appdata.xml" \
     "$APPDIR/usr/share/metainfo/io.gitlab.maik3531.MagnolieOrganizer.appdata.xml"
 install -m 0644 "$WURZEL/debian/copyright" \
     "$APPDIR/usr/share/doc/magnolie-organizer/copyright"

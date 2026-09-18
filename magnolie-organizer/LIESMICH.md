@@ -11,6 +11,18 @@ ersatzweise ein installiertes Chromium oder Google Chrome; GTK 3 bleibt dabei
 erforderlich. Das AppImage verwendet ausschließlich sein gebündeltes WebKit und
 greift nie auf einen Browser des Wirts zurück.
 
+## Startmenü und Programminformationen
+
+`magnolie-organizer.desktop` beschreibt den Startmenüeintrag.
+`magnolie-organizer.appdata.xml` enthält die AppStream-Programminformationen für
+die Softwareverwaltung. Beide sind allgemeine Produktdateien, keine Dateien
+mit persönlichen Nutzerdaten.
+
+Beim Paketbau werden sie den bestehenden technischen Anwendungskennungen
+zugeordnet. Die Kennung `io.gitlab.maik3531.MagnolieOrganizer` bleibt dabei für
+die Zuordnung vorhandener Installationen, Startmenüeinträge und Flatpak erhalten.
+Die neutralen Quelldateinamen sind von dieser Installationskennung getrennt.
+
 ## Tastatur und Hilfsrahmen
 
 Die kalender- und listenübergreifende Option **Barrierefreiheit: Hilfsrahmen**

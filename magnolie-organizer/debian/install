@@ -48,8 +48,6 @@ locale/tr/LC_MESSAGES/magnolie-organizer.mo usr/share/locale/tr/LC_MESSAGES
 locale/uk/LC_MESSAGES/magnolie-organizer.mo usr/share/locale/uk/LC_MESSAGES
 locale/zh_CN/LC_MESSAGES/magnolie-organizer.mo usr/share/locale/zh_CN/LC_MESSAGES
 klang/erinnerung.wav                  usr/share/magnolie-organizer/klang
-io.gitlab.maik3531.MagnolieOrganizer.desktop usr/share/applications
-io.gitlab.maik3531.MagnolieOrganizer.appdata.xml usr/share/metainfo
 symbole/magnolie-organizer.svg        usr/share/icons/hicolor/scalable/apps
 symbole/48x48/magnolie-organizer.png  usr/share/icons/hicolor/48x48/apps
 symbole/64x64/magnolie-organizer.png  usr/share/icons/hicolor/64x64/apps
