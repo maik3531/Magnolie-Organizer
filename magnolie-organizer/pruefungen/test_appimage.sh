@@ -173,6 +173,7 @@ done
 mkdir -p "$ARBEIT/fontcheck-home" "$ARBEIT/fontcheck-data"
 bwrap --ro-bind / / --dev /dev --proc /proc \
     --tmpfs /usr/share/fonts --tmpfs /usr/local/share/fonts \
+    --chdir "$APPDIR" \
     --setenv HOME "$ARBEIT/fontcheck-home" --setenv XDG_DATA_HOME "$ARBEIT/fontcheck-data" \
     --setenv FONTCONFIG_PATH "$(dirname "$FONTCONFIG_DATEI")" \
     --setenv FONTCONFIG_FILE "$FONTCONFIG_DATEI" \
