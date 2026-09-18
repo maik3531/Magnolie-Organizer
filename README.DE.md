@@ -1,5 +1,5 @@
 <p align="center">
-  <img src=".github/assets/magnolie-preview.png" alt="Magnolie Organizer unter Linux, Windows und Android" width="100%">
+  <img src=".github/assets/magnolie-preview.png" alt="Magnolie Organizer mit seinem ledernen Bucheinband" width="100%">
 </p>
 
 <p align="center">
