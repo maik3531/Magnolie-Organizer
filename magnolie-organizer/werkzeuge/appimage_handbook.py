@@ -7,6 +7,46 @@ import subprocess
 import sys
 
 
+LAUNCHER = '''#!/usr/bin/env python3
+import os
+from pathlib import Path
+import sys
+
+appdir = Path(os.environ.get("APPDIR") or Path(__file__).resolve().parents[2])
+image = os.environ.get("APPIMAGE", "")
+target = image if os.path.isfile(image) and os.access(image, os.X_OK) else str(appdir / "AppRun")
+environment = dict(os.environ)
+# The host shell must not load the parent's bundled readline/GTK libraries.
+# AppRun constructs a fresh environment for the independently mounted handbook.
+for name in ("LD_LIBRARY_PATH", "LD_PRELOAD", "PYTHONHOME", "PYTHONPATH", "PYTHONTZPATH",
+             "GI_TYPELIB_PATH", "GIO_MODULE_DIR", "GTK_PATH", "GTK_DATA_PREFIX",
+             "GSETTINGS_SCHEMA_DIR", "FONTCONFIG_PATH", "FONTCONFIG_FILE",
+             "OPENSSL_CONF", "OPENSSL_MODULES", "GST_PLUGIN_PATH_1_0",
+             "GST_PLUGIN_SYSTEM_PATH_1_0", "GST_PLUGIN_SCANNER",
+             "WEBKIT_EXEC_PATH", "WEBKIT_INJECTED_BUNDLE_PATH"):
+    environment.pop(name, None)
+prefix = str(appdir).rstrip("/")
+for name in ("PATH", "XDG_DATA_DIRS"):
+    if name in environment:
+        parts = [part for part in environment[name].split(os.pathsep)
+                 if part != prefix and not part.startswith(prefix + "/")]
+        if any(parts):
+            environment[name] = os.pathsep.join(parts)
+        elif name == "PATH":
+            environment[name] = os.defpath
+        else:
+            environment.pop(name, None)
+if environment.get("SSL_CERT_FILE", "").startswith(prefix + "/"):
+    environment.pop("SSL_CERT_FILE", None)
+os.execve(target, [target, "--handbook", *sys.argv[1:]], environment)
+'''
+
+
+def write_launcher(path):
+    path.write_text(LAUNCHER)
+    path.chmod(0o755)
+
+
 def bundle(appdir, source, version):
     appdir, source = Path(appdir), Path(source)
     if json.loads((source / 'web/version.json').read_text())['version'] != version:
@@ -48,15 +88,7 @@ def bundle(appdir, source, version):
     shutil.copy2(source / 'symbole/256x256/magnolie-handbuch.png', icon)
     launcher = appdir / 'usr/bin/magnolie-handbuch'
     launcher.parent.mkdir(parents=True, exist_ok=True)
-    launcher.write_text('''#!/bin/sh
-set -eu
-if [ -n "${APPIMAGE:-}" ] && [ -x "$APPIMAGE" ]; then
-    exec "$APPIMAGE" --handbook "$@"
-fi
-APPDIR=${APPDIR:-$(CDPATH= cd -- "$(dirname -- "$0")/../.." && pwd)}
-exec "$APPDIR/AppRun" --handbook "$@"
-''')
-    launcher.chmod(0o755)
+    write_launcher(launcher)
 
 
 if __name__ == '__main__':
