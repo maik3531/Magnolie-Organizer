@@ -41,7 +41,7 @@ def test_generated_outputs_and_entrypoints():
     url = values["notes"]["url"]
     assert values["notes"]["filename"] == "Magnolie-Notes.apk"
     assert "version" not in values["notes"]
-    linux = ROOT / "magnolie-organizer-2.0.0/bin/magnolie_setup_ui.py"
+    linux = ROOT / "magnolie-organizer/bin/magnolie_setup_ui.py"
     constants = {node.targets[0].id: ast.literal_eval(node.value) for node in ast.parse(linux.read_text()).body
                  if isinstance(node, ast.Assign) and isinstance(node.targets[0], ast.Name)
                  and node.targets[0].id in {"MAGNOLIE_NOTES_URL", "KDE_CONNECT_URL"}}

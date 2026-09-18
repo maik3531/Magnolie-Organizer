@@ -98,9 +98,9 @@ permission handling and actual physical-device transport remain hardware checks.
 
 - Linux protocol, identifier, background-daemon and 20-language resource checks:
   93 passed with `python3 -m pytest -q tools/test_device_identifier_locales.py
-  magnolie-organizer-2.0.0/pruefungen/test_device_identifiers.py
-  magnolie-organizer-2.0.0/pruefungen/test_telefon.py
-  magnolie-organizer-2.0.0/pruefungen/test_hintergrunddienst.py`.
+  magnolie-organizer/pruefungen/test_device_identifiers.py
+  magnolie-organizer/pruefungen/test_telefon.py
+  magnolie-organizer/pruefungen/test_hintergrunddienst.py`.
 - Android: 39 tests, zero failures/skips. `:app:testDebugUnitTest` selected
   `*DeviceIdentifier*Test`, `*TelefonProtokollTest`, `*TelefonSitzungTest`,
   `*TelefonQueueDatabaseTest`, and `*TelefonTrennungTest`. Nine consent-flow
@@ -111,7 +111,7 @@ permission handling and actual physical-device transport remain hardware checks.
   including `DeviceIdentifierTests`, existing crypto/pairing/contracts and the
   group's personal-sync regressions. This is not an installed Windows GUI test.
 - Both actual frontend rendering functions passed
-  `Magnolie-Organizer-Windows-2.0.0/tests/device-identifiers.js` using Bun's Node
+  `magnolie-organizer-windows/tests/device-identifiers.js` using Bun's Node
   compatibility, including changed peer keys, false ownership, expired results,
   capability changes and leading-zero strings. This is a synthetic DOM test,
   not an installed WebView/WebKit screenshot test.

@@ -4,7 +4,7 @@ import sys
 
 import pytest
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "magnolie-organizer-2.0.0/pruefungen"))
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "magnolie-organizer/pruefungen"))
 from test_release_packaging import candidate, gate, sources
 import prepare_notes_alias as tool
 

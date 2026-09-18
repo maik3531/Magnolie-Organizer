@@ -7,7 +7,7 @@ from pathlib import Path
 import sys
 
 BETA = Path(__file__).resolve().parents[1]
-SOURCE = BETA.parent / "magnolie-organizer-2.0.0/bin/magnolie-organizer"
+SOURCE = BETA.parent / "magnolie-organizer/bin/magnolie-organizer"
 OUTPUT = BETA / "Tests/BetaCoreTests/Fixtures/desktop-envelopes.json"
 FUNCTIONS = {"_schluessel_ableiten", "verschluesseln", "_daten_huelle_felder", "_daten_dek_umschlag",
              "daten_verschluesseln", "daten_entschluesseln"}

@@ -5,8 +5,8 @@ const vm = require('node:vm');
 const { createHash } = require('node:crypto');
 const root = path.resolve(__dirname, '..');
 const parent = path.dirname(root);
-const desktop = path.join(parent, 'magnolie-organizer-2.0.0/web');
-const windowsWeb = path.join(parent, 'Magnolie-Organizer-Windows-2.0.0/app/web');
+const desktop = path.join(parent, 'magnolie-organizer/web');
+const windowsWeb = path.join(parent, 'magnolie-organizer-windows/app/web');
 const out = path.join(root, 'app/build/generated/projection');
 const sha = b => createHash('sha256').update(b).digest('hex');
 function walk(dir) {
@@ -19,13 +19,13 @@ const inputs = [...walk(desktop), ...walk(path.join(windowsWeb,'schriften')), pa
   path.join(windowsWeb,'anwendung.js'), ...walk(path.join(windowsWeb,'i18n')),
   ...walk(path.join(root, 'app/src')), ...walk(path.join(root, 'tests')),
   ...walk(path.join(root, 'tools')), ...walk(path.join(parent, 'contracts')),
-  path.join(parent,'Magnolie-Organizer-Windows-2.0.0/tests/personal-custom-consent.js'),
-  path.join(parent,'Magnolie-Organizer-Windows-2.0.0/tests/setup-holidays.js'),
-  path.join(parent,'Magnolie-Organizer-Windows-2.0.0/app/native-i18n.json'),
+  path.join(parent,'magnolie-organizer-windows/tests/personal-custom-consent.js'),
+  path.join(parent,'magnolie-organizer-windows/tests/setup-holidays.js'),
+  path.join(parent,'magnolie-organizer-windows/app/native-i18n.json'),
   ...['gradlew','gradle/wrapper/gradle-wrapper.jar','gradle/wrapper/gradle-wrapper.properties']
-    .map(f=>path.join(parent,'magnolie-notes-1.0.13',f)),
+    .map(f=>path.join(parent,'magnolie-notes',f)),
   ...['DatenDateiKrypto.kt','DateiDauerhaft.kt'].map(f => path.join(parent,
-    'magnolie-notes-1.0.13/app/src/main/java/io/gitlab/maik3531/magnolienotes/daten', f)),
+    'magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes/daten', f)),
   ...['app/build.gradle.kts','build.gradle.kts','settings.gradle.kts','gradle.properties','package.json','bun.lock'].map(f => path.join(root,f))];
 const buffers = new Map(inputs.map(p => [p, fs.readFileSync(p)]));
 const hashes = Object.fromEntries([...buffers].map(([p,b]) => [path.relative(parent,p),sha(b)]).sort(([a],[b])=>a.localeCompare(b,'en')));

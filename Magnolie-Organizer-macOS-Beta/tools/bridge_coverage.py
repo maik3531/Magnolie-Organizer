@@ -28,7 +28,7 @@ SCOPES = {
 
 def report(snapshot):
     frontend_path = str(LINUX.relative_to(REPO)) + "/web/anwendung.js"
-    windows_path = "Magnolie-Organizer-Windows-2.0.0/BridgeDispatcherContract.cs"
+    windows_path = "magnolie-organizer-windows/BridgeDispatcherContract.cs"
     frontend = set(re.findall(r'\bcmd\s*:\s*["\']([a-z][a-z0-9_]+)["\']', snapshot[frontend_path].decode()))
     windows = set(re.findall(r'\["([a-z][a-z0-9_]+)"\]\s*=\s*S\(', snapshot[windows_path].decode()))
     native = set(commands(snapshot))

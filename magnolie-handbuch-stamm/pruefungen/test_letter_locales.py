@@ -5,7 +5,7 @@ from pathlib import Path
 from types import SimpleNamespace
 import xml.etree.ElementTree as ET
 
-SOURCE = Path(__file__).resolve().parents[2] / "magnolie-organizer-2.0.0/bin/magnolie-organizer"
+SOURCE = Path(__file__).resolve().parents[2] / "magnolie-organizer/bin/magnolie-organizer"
 
 
 def functions(region="system", system="fr_FR", environment=None):

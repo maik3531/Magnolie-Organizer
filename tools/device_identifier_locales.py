@@ -35,10 +35,10 @@ TEXT = {
 
 def main():
     assert len(TEXT) == 20 and all(len(v) == len(IDS) for v in TEXT.values())
-    spec = importlib.util.spec_from_file_location("catalog", ROOT / "magnolie-organizer-2.0.0/werkzeuge/desktop_pot_merge.py")
+    spec = importlib.util.spec_from_file_location("catalog", ROOT / "magnolie-organizer/werkzeuge/desktop_pot_merge.py")
     parser = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(parser)
-    for directory in (ROOT / "magnolie-organizer-2.0.0/po", ROOT / "Magnolie-Organizer-Windows-2.0.0/app/po"):
+    for directory in (ROOT / "magnolie-organizer/po", ROOT / "magnolie-organizer-windows/app/po"):
         for path in [*directory.glob("*.po"), directory / "magnolie-organizer.pot"]:
             old = path.read_text(encoding="utf-8")
             entries = {e["msgid"]: e for e in parser.catalog(path) if not e["obsolete"]}
@@ -50,10 +50,10 @@ def main():
                 else:
                     old += '\n#. Device identifiers; manually translated.\nmsgid ' + json.dumps(key, ensure_ascii=False) + '\nmsgstr ' + json.dumps(value, ensure_ascii=False) + '\n'
             path.write_text(old, encoding="utf-8")
-            mo = ROOT / "magnolie-organizer-2.0.0/locale" / path.stem / "LC_MESSAGES/magnolie-organizer.mo"
-            if directory == ROOT / "magnolie-organizer-2.0.0/po" and path.suffix == ".po" and mo.parent.is_dir():
+            mo = ROOT / "magnolie-organizer/locale" / path.stem / "LC_MESSAGES/magnolie-organizer.mo"
+            if directory == ROOT / "magnolie-organizer/po" and path.suffix == ".po" and mo.parent.is_dir():
                 subprocess.run(["msgfmt", "--check", "--check-format", "-o", str(mo), str(path)], check=True)
-    native = ROOT / "Magnolie-Organizer-Windows-2.0.0/app/native-i18n.json"
+    native = ROOT / "magnolie-organizer-windows/app/native-i18n.json"
     catalog = json.loads(native.read_text(encoding="utf-8"))
     for locale, values in TEXT.items():
         if locale != "en":
@@ -61,14 +61,14 @@ def main():
             for key in TEXT["en"][:2]:
                 catalog["locales"][locale].pop(key, None)
         suffix = "" if locale == "en" else "-" + ("zh-rCN" if locale == "zh_CN" else locale)
-        path = ROOT / f"magnolie-notes-1.0.13/app/src/main/res/values{suffix}/strings.xml"
+        path = ROOT / f"magnolie-notes/app/src/main/res/values{suffix}/strings.xml"
         content = path.read_text(encoding="utf-8")
         for name, value in zip(IDS, values):
             key = "device_identifiers_" + name
             if f'name="{key}"' not in content:
                 content = content.replace("</resources>", f'    <string name="{key}">' + escape(value).replace("'", "\\'") + '</string>\n</resources>')
         path.write_text(content, encoding="utf-8")
-        for root in ("magnolie-organizer-2.0.0/web", "Magnolie-Organizer-Windows-2.0.0/app/web"):
+        for root in ("magnolie-organizer/web", "magnolie-organizer-windows/app/web"):
             path = ROOT / root / "i18n" / (locale + ".js")
             if not path.exists():
                 continue

@@ -116,11 +116,11 @@ TEXT = {
 def main():
     check = "--check" in sys.argv
     assert len(TEXT) == 20 and all(len(row) == 7 for row in TEXT.values())
-    spec = importlib.util.spec_from_file_location("catalog", ROOT / "magnolie-organizer-2.0.0/werkzeuge/desktop_pot_merge.py")
+    spec = importlib.util.spec_from_file_location("catalog", ROOT / "magnolie-organizer/werkzeuge/desktop_pot_merge.py")
     parser = importlib.util.module_from_spec(spec); spec.loader.exec_module(parser)
-    native_path = ROOT / "Magnolie-Organizer-Windows-2.0.0/app/native-i18n.json"
+    native_path = ROOT / "magnolie-organizer-windows/app/native-i18n.json"
     native = json.loads(native_path.read_text())
-    for base in (ROOT / "magnolie-organizer-2.0.0", ROOT / "Magnolie-Organizer-Windows-2.0.0/app"):
+    for base in (ROOT / "magnolie-organizer", ROOT / "magnolie-organizer-windows/app"):
         for po in [*sorted((base / "po").glob("*.po")), base / "po/magnolie-organizer.pot"]:
             old = po.read_text(); entries = {e["msgid"]: e for e in parser.catalog(po) if not e["obsolete"]}
             values = TEXT[po.stem] if po.suffix == ".po" else ("",) * 7
@@ -130,7 +130,7 @@ def main():
                     assert not check, ("missing translation", po, key)
                     old += '\n#. ASR SMS contract; manually translated.\nmsgid ' + json.dumps(key, ensure_ascii=False) + '\nmsgstr ' + json.dumps(value, ensure_ascii=False) + '\n'
             if not check and old != po.read_text(): po.write_text(old)
-            if po.suffix == ".po" and base.name == "magnolie-organizer-2.0.0":
+            if po.suffix == ".po" and base.name == "magnolie-organizer":
                 mo = base / "locale" / po.stem / "LC_MESSAGES/magnolie-organizer.mo"
                 assert mo.parent.is_dir(), mo.parent
                 if not check: subprocess.run(["msgfmt", "--check", "--check-format", "-o", str(mo), str(po)], check=True)

@@ -137,7 +137,7 @@ class ProjectionTests(unittest.TestCase):
             runtime = str(candidate) if candidate.is_file() else None
         if not runtime:
             self.skipTest("Node/Deno unavailable; UI host test NOT run")
-        jsdom = Path(os.environ.get("MACOS_BETA_JSDOM", str(BETA.parent / "Magnolie-Organizer-Windows-2.0.0/node_modules/jsdom/lib/api.js")))
+        jsdom = Path(os.environ.get("MACOS_BETA_JSDOM", str(BETA.parent / "magnolie-organizer-windows/node_modules/jsdom/lib/api.js")))
         if not jsdom.is_file():
             self.skipTest("Existing desktop jsdom dependency unavailable; no stable dependency installation performed")
         return runtime

@@ -4,7 +4,7 @@ from pathlib import Path
 import shutil
 
 ROOT = Path(__file__).resolve().parents[1]
-TARGET = ROOT.parent / "Magnolie-Organizer-Windows-2.0.0/shared/magnolie-handbuch-stamm/web"
+TARGET = ROOT.parent / "magnolie-organizer-windows/shared/magnolie-handbuch-stamm/web"
 
 
 def main():

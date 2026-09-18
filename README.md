@@ -58,7 +58,7 @@ install KDE PIM. There is no transitional-package download. Users of the former
 package explicitly install `magnolie-organizer-kde`; versioned package relations
 preserve upgrades from released 1.0.0. The suffixed 2.0.18 files were unreleased test
 candidates and sort above 2.0.18 in dpkg: replacing them requires an explicit tester
-downgrade decision. See [KDE requirements and upgrade policy](magnolie-organizer-2.0.0/native/akonadi-helper/DEB-TARGETS.md).
+downgrade decision. See [KDE requirements and upgrade policy](magnolie-organizer/native/akonadi-helper/DEB-TARGETS.md).
 
 SHA-256 checksums and source archives are attached to the
 [latest release](https://github.com/maik3531/Magnolie-Organizer/releases/latest).
@@ -85,9 +85,9 @@ SHA-256 checksums and source archives are attached to the
 
 | Component | Technology | Source |
 |---|---|---|
-| Magnolie Organizer for Linux | Python 3, GTK 3, WebKit2GTK | [`magnolie-organizer-2.0.0`](magnolie-organizer-2.0.0/) |
-| Magnolie Organizer for Windows | C#, .NET 8, WinForms, WebView2 | [`Magnolie-Organizer-Windows-2.0.0`](Magnolie-Organizer-Windows-2.0.0/) |
-| Magnolie Notes for Android | Kotlin, Jetpack Compose | [`magnolie-notes-1.0.13`](magnolie-notes-1.0.13/) |
+| Magnolie Organizer for Linux | Python 3, GTK 3, WebKit2GTK | [`magnolie-organizer`](magnolie-organizer/) |
+| Magnolie Organizer for Windows | C#, .NET 8, WinForms, WebView2 | [`magnolie-organizer-windows`](magnolie-organizer-windows/) |
+| Magnolie Notes for Android | Kotlin, Jetpack Compose | [`magnolie-notes`](magnolie-notes/) |
 | Magnolie Handbook | Python, GTK, HTML/CSS/JavaScript | [`magnolie-handbuch-stamm`](magnolie-handbuch-stamm/) |
 
 The repository contains the sources for release 2.0.18 / Notes 1.0.14; generated

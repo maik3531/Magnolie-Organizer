@@ -177,17 +177,17 @@ and generic error strings are reused.
 ## Contract Checks
 
 Run from the canonical release root. Python test-only dependencies are listed
-in `magnolie-organizer-2.0.0/pruefungen/requirements-personal-custom-contract.txt`.
+in `magnolie-organizer/pruefungen/requirements-personal-custom-contract.txt`.
 
 ```sh
-python3 -m pytest -q magnolie-organizer-2.0.0/pruefungen/test_personal_custom_consent.py magnolie-organizer-2.0.0/pruefungen/test_personal_custom_runtime.py magnolie-organizer-2.0.0/pruefungen/test_personal_sync.py magnolie-organizer-2.0.0/pruefungen/test_telefon.py
-bun Magnolie-Organizer-Windows-2.0.0/tests/personal-custom-consent.js
-bun Magnolie-Organizer-Windows-2.0.0/tests/personal-custom-snapshot.js
-dotnet run --project Magnolie-Organizer-Windows-2.0.0/tests/CoreTests.csproj --no-restore -- Telefonverbindung
+python3 -m pytest -q magnolie-organizer/pruefungen/test_personal_custom_consent.py magnolie-organizer/pruefungen/test_personal_custom_runtime.py magnolie-organizer/pruefungen/test_personal_sync.py magnolie-organizer/pruefungen/test_telefon.py
+bun magnolie-organizer-windows/tests/personal-custom-consent.js
+bun magnolie-organizer-windows/tests/personal-custom-snapshot.js
+dotnet run --project magnolie-organizer-windows/tests/CoreTests.csproj --no-restore -- Telefonverbindung
 ```
 
 The JavaScript test also runs with Node.js. The Android repository-local unit
-selection (from `magnolie-notes-1.0.13`) is:
+selection (from `magnolie-notes`) is:
 
 ```sh
 ./gradlew :app:testDebugUnitTest --offline --tests '*.PersonalCustom*' --tests '*.PersonalSyncFormat2Test' --tests '*.PersonalSyncRevocationTest' --tests '*.TelefonQueueDatabaseTest'

@@ -50,8 +50,8 @@ schluessel.properties
 # Local virtual machines, installation media and generated VM screenshots
 *.qcow2
 *.iso
-Magnolie-Organizer-Windows-2.0.0/vm/*.png
-Magnolie-Organizer-Windows-2.0.0/vm/*.ppm
+magnolie-organizer-windows/vm/*.png
+magnolie-organizer-windows/vm/*.ppm
 
 # Local tool configuration and release locks
 **/.claude/settings.local.json

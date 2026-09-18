@@ -77,15 +77,15 @@ boundary. `queued`/`submitted` mean handoff, never proof of delivery.
 
 ## Reproducible source tests
 
-- `python3 -B magnolie-organizer-2.0.0/pruefungen/asr_sms_restore.py`: real Python
+- `python3 -B magnolie-organizer/pruefungen/asr_sms_restore.py`: real Python
   restore function and small offline .NET host containing current Windows restore,
   selection, submission and journal sources; feeds native results through all
   three restore callbacks of both complete jsdom frontends. Approved Unicode
   captures then traverse both native submission/journal paths with captured effects.
-- `bun Magnolie-Organizer-Windows-2.0.0/tests/asr-sms-regressions.js`: complete
+- `bun magnolie-organizer-windows/tests/asr-sms-regressions.js`: complete
   frontend DOM interactions, delayed ACKs, original drafts, batch/stale approval,
   partial/full restore fixtures and per-plan enable.
-- `bun Magnolie-Organizer-Windows-2.0.0/tests/planned-sms-save-regressions.js`:
+- `bun magnolie-organizer-windows/tests/planned-sms-save-regressions.js`:
   pre/post-save failures, stale ACKs, lock/restore and default-off lifecycle.
 - `python3 -B tools/asr_sms_locales.py --check`: seven manually authored messages
   in all 20 UI languages; both PO/POT/JS sets, Linux MO and Windows native catalog.

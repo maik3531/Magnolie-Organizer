@@ -48,7 +48,7 @@ def main():
                                      ([runtime, 'tests/touch-channel.test.cjs'], 30),
                                      ([runtime, 'tools/project-web.cjs'], 60),
                                       ([runtime, 'tests/web.test.cjs'], 120),
-                                      ([runtime, str(ROOT.parent / 'Magnolie-Organizer-Windows-2.0.0/tests/setup-holidays.js')], 120),
+                                      ([runtime, str(ROOT.parent / 'magnolie-organizer-windows/tests/setup-holidays.js')], 120),
                                       ([runtime, 'tests/reminders.test.cjs'], 120)]:
                 owner.record('check', command=command)
                 output = owner.command(command, timeout=timeout, env=env)
@@ -64,12 +64,12 @@ def main():
                         raise RuntimeError('Missing setup-holiday test count')
                     owner.record('setup-tests-passed', setupHolidayCases=int(count[1]), setupLocales=int(count[2]))
             if opts.jvm or opts.build:
-                command = ['bash', str(ROOT.parent / 'magnolie-notes-1.0.13/gradlew'), '-p', str(ROOT),
+                command = ['bash', str(ROOT.parent / 'magnolie-notes/gradlew'), '-p', str(ROOT),
                            '--offline', '--console=plain', '--no-daemon', '--max-workers=1', '--rerun-tasks', ':app:testDebugUnitTest']
                 owner.record('offline-jvm', command=command)
                 print(owner.command(command, timeout=300, env=env), flush=True)
             if opts.build:
-                command = ['bash', str(ROOT.parent / 'magnolie-notes-1.0.13/gradlew'), '-p', str(ROOT),
+                command = ['bash', str(ROOT.parent / 'magnolie-notes/gradlew'), '-p', str(ROOT),
                            '--offline', '--console=plain', '--no-daemon', '--max-workers=1',
                            ':app:assembleDebug', ':app:assembleDebugAndroidTest']
                 owner.record('offline-debug-build', command=command)

@@ -45,8 +45,8 @@ def pack(source, destination, asset_id, mime_id, expected_digest):
 def main():
     if sys.argv[1:] != ["--from-reviewed-plaintext"]:
         raise SystemExit("usage: pack_personal_assets.py --from-reviewed-plaintext")
-    organizer = os.path.join(ROOT, "magnolie-organizer-2.0.0", "web")
-    windows = os.path.join(ROOT, "Magnolie-Organizer-Windows-2.0.0")
+    organizer = os.path.join(ROOT, "magnolie-organizer", "web")
+    windows = os.path.join(ROOT, "magnolie-organizer-windows")
     handbook = os.path.join(ROOT, "magnolie-handbuch-stamm", "web")
     shared = os.path.join(windows, "shared", "magnolie-handbuch-stamm", "web")
     jobs = [

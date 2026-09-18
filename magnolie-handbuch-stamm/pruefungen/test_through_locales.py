@@ -15,8 +15,8 @@ def test_temporal_endpoint_is_not_a_route_or_means():
         "hsb": "Hač do", "da": "Til og med", "nb": "Til og med", "hi": "तक",
         "zh_CN": "截至", "ja": "まで", "ar": "حتى", "uk": "До", "be": "Да", "tr": "Bitiş",
     }
-    linux = ROOT / "magnolie-organizer-2.0.0"
-    windows = ROOT / "Magnolie-Organizer-Windows-2.0.0/app"
+    linux = ROOT / "magnolie-organizer"
+    windows = ROOT / "magnolie-organizer-windows/app"
     native = json.loads((windows / "native-i18n.json").read_text())["locales"]
     for language, value in expected.items():
         for base in (linux, windows):

@@ -10,11 +10,11 @@ on:
         default: false
   push:
     paths:
-      - "Magnolie-Organizer-Windows-2.0.0/**"
+      - "magnolie-organizer-windows/**"
       - "magnolie-handbuch-stamm/**"
       - "contracts/**"
-      - "magnolie-organizer-2.0.0/pruefungen/fixtures/recurrence-rfc-oracle.json"
-      - "magnolie-organizer-2.0.0/bin/magnolie_recurrence.py"
+      - "magnolie-organizer/pruefungen/fixtures/recurrence-rfc-oracle.json"
+      - "magnolie-organizer/bin/magnolie_recurrence.py"
       - ".github/workflows/windows.yml"
 
 permissions:
@@ -22,7 +22,7 @@ permissions:
 
 defaults:
   run:
-    working-directory: Magnolie-Organizer-Windows-2.0.0
+    working-directory: magnolie-organizer-windows
 
 jobs:
   build:

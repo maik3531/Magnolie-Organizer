@@ -11,7 +11,7 @@ import tempfile
 
 BETA = Path(__file__).resolve().parents[1]
 REPO = BETA.parent
-LINUX = REPO / "magnolie-organizer-2.0.0"
+LINUX = REPO / "magnolie-organizer"
 FREEZE = BETA / "SourceFreeze.json"
 GENERATED = BETA / "Generated"
 
@@ -32,9 +32,9 @@ def inputs():
             if file.is_file():
                 files.append(file)
     files += [LINUX / "bin/magnolie-organizer", REPO / "LICENSE.md", REPO / "PROTECTED-ASSETS-LICENSE.txt",
-              REPO / "Magnolie-Organizer-Windows-2.0.0/LICENSE",
-              REPO / "Magnolie-Organizer-Windows-2.0.0/BridgeDispatcherContract.cs",
-              REPO / "Magnolie-Organizer-Windows-2.0.0/EncryptionService.cs",
+              REPO / "magnolie-organizer-windows/LICENSE",
+              REPO / "magnolie-organizer-windows/BridgeDispatcherContract.cs",
+              REPO / "magnolie-organizer-windows/EncryptionService.cs",
               REPO / "magnolie-handbuch-stamm/web/mobile-downloads.json",
               BETA / "Package.swift", BETA / "tools/build_dev.py", Path(__file__).resolve()]
     return {str(file.relative_to(REPO)): file.read_bytes() for file in sorted(set(files))}
@@ -222,7 +222,7 @@ def project(snapshot, target):
     licenses = target / "Licenses"
     licenses.mkdir()
     for source, name in [("LICENSE.md", "LICENSE.md"), ("PROTECTED-ASSETS-LICENSE.txt", "PROTECTED-ASSETS-LICENSE.txt"),
-                         ("Magnolie-Organizer-Windows-2.0.0/LICENSE", "GPL-3.0.txt")]:
+                         ("magnolie-organizer-windows/LICENSE", "GPL-3.0.txt")]:
         (licenses / name).write_bytes(snapshot[source])
 
 

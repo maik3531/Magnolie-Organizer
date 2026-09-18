@@ -23,7 +23,7 @@ Notes, desktop, Windows, or the shared contracts is edited by the tablet build.
   application sandbox are separate from the phone Notes profile.
 - Minimum Android 8/API 26; compile/target API 35; JDK 17.
 
-`tools/project-web.cjs` reads the **current** `../magnolie-organizer-2.0.0/web`
+`tools/project-web.cjs` reads the **current** `../magnolie-organizer/web`
 tree on every build. It generates assets under `app/build/generated/projection`,
 never a manually maintained desktop fork. Its only core transformation exposes
 the existing editor guard and durable-action queue as `MagnolieTabletActions`.

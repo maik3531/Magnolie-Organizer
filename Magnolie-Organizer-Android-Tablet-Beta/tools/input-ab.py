@@ -72,7 +72,7 @@ def build(owner):
         env = dict(os.environ, JAVA_HOME='/usr/lib/jvm/java-17-openjdk-amd64',
                    ANDROID_HOME=str(session.SDK), ANDROID_SDK_ROOT=str(session.SDK),
                    JAVA_TOOL_OPTIONS='-Djava.io.tmpdir='+temporary, TMPDIR=temporary)
-        command = ['bash', str(ROOT.parent / 'magnolie-notes-1.0.13/gradlew'), '-p', str(ROOT),
+        command = ['bash', str(ROOT.parent / 'magnolie-notes/gradlew'), '-p', str(ROOT),
                    '--offline', '--console=plain', '--no-daemon', '--max-workers=1',
                    ':app:testDebugUnitTest', ':app:assembleDebugAndroidTest', '-x', ':app:projectDesktop']
         print(owner.command(command, timeout=480, env=env), flush=True)

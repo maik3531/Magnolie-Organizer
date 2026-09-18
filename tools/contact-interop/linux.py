@@ -12,7 +12,7 @@ sys.dont_write_bytecode = True
 repo = Path(__file__).resolve().parents[2]
 root = Path(os.environ["CONTACT_INTEROP_HOME"])
 assert str(root.resolve()).startswith("/tmp/opencode/")
-loader = importlib.machinery.SourceFileLoader("contact_interop", str(repo / "magnolie-organizer-2.0.0/bin/magnolie-organizer"))
+loader = importlib.machinery.SourceFileLoader("contact_interop", str(repo / "magnolie-organizer/bin/magnolie-organizer"))
 spec = importlib.util.spec_from_loader(loader.name, loader)
 m = importlib.util.module_from_spec(spec)
 sys.modules[loader.name] = m

@@ -92,8 +92,8 @@ def generate_handbook():
 def generate():
     if not UI_ONLY:
         generate_handbook()
-    for component, web, po in (("magnolie-organizer-2.0.0", "web", "po"),
-                               ("Magnolie-Organizer-Windows-2.0.0", "app/web", "app/po")):
+    for component, web, po in (("magnolie-organizer", "web", "po"),
+                               ("magnolie-organizer-windows", "app/web", "app/po")):
         base = ROOT / component
         for locale, values in TRANSLATIONS.items():
             if locale == "en":
@@ -112,7 +112,7 @@ def generate():
             js = base / web / "i18n" / (locale + ".js")
             subprocess.run([sys.executable, str(base / "werkzeuge/po_zu_js.py"), locale, str(catalog), str(js)], check=True)
             mo = base / "locale" / locale / "LC_MESSAGES/magnolie-organizer.mo"
-            if component == "magnolie-organizer-2.0.0" and mo.parent.is_dir():
+            if component == "magnolie-organizer" and mo.parent.is_dir():
                 subprocess.run(["msgfmt", "--check", "--check-format", "-o", str(mo), str(catalog)], check=True)
         pot = base / po / "magnolie-organizer.pot"
         content = retire_ui(pot.read_text(encoding="utf-8"))
@@ -124,13 +124,13 @@ def generate():
                 continue
             content = merge_entry(content, text, "")
         pot.write_text(content, encoding="utf-8")
-    native = ROOT / "Magnolie-Organizer-Windows-2.0.0/app/native-i18n.json"
-    arguments = [sys.executable, str(ROOT / "Magnolie-Organizer-Windows-2.0.0/werkzeuge/po_zu_native.py"), str(native)]
+    native = ROOT / "magnolie-organizer-windows/app/native-i18n.json"
+    arguments = [sys.executable, str(ROOT / "magnolie-organizer-windows/werkzeuge/po_zu_native.py"), str(native)]
     for locale in TRANSLATIONS:
         if locale != "en":
-            arguments.extend([locale, str(ROOT / "Magnolie-Organizer-Windows-2.0.0/app/po" / (locale + ".po"))])
+            arguments.extend([locale, str(ROOT / "magnolie-organizer-windows/app/po" / (locale + ".po"))])
     subprocess.run(arguments, check=True)
-    resources = ROOT / "magnolie-notes-1.0.13/app/src/main/res"
+    resources = ROOT / "magnolie-notes/app/src/main/res"
     for locale, values in TRANSLATIONS.items():
         folder = "values" if locale == "en" else "values-" + ("zh-rCN" if locale == "zh_CN" else locale)
         target = resources / folder / "strings.xml"

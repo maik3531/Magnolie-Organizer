@@ -46,7 +46,7 @@ kotlin {
     sourceSets.getByName("test").kotlin.srcDir(rootProject.file("tests/input"))
     // Kotlin has its own source filter; Android's Java filter does not constrain it.
     sourceSets.getByName("main").kotlin.apply {
-        srcDir(rootProject.file("../magnolie-notes-1.0.13/app/src/main/java"))
+        srcDir(rootProject.file("../magnolie-notes/app/src/main/java"))
         include("io/gitlab/maik3531/magnolietabletbeta/**",
             "io/gitlab/maik3531/magnolienotes/daten/DatenDateiKrypto.kt",
             "io/gitlab/maik3531/magnolienotes/daten/DateiDauerhaft.kt")

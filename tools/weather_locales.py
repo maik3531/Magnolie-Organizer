@@ -7,8 +7,8 @@ import subprocess
 import sys
 
 ROOT = Path(__file__).resolve().parents[1]
-LINUX = ROOT / 'magnolie-organizer-2.0.0'
-WINDOWS = ROOT / 'Magnolie-Organizer-Windows-2.0.0'
+LINUX = ROOT / 'magnolie-organizer'
+WINDOWS = ROOT / 'magnolie-organizer-windows'
 messages = json.loads(Path(__file__).with_suffix('.json').read_text())
 assert len(messages) == 20 and all(messages.values())
 spec = importlib.util.spec_from_file_location('editor_locale_helpers', ROOT / 'tools/editor_locales.py')

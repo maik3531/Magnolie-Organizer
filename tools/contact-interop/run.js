@@ -4,7 +4,7 @@ const {spawn} = require('node:child_process');
 const {createInterface} = require('node:readline');
 const assert = require('node:assert/strict');
 const repo = path.resolve(__dirname, '../..');
-const {JSDOM} = require(repo + '/Magnolie-Organizer-Windows-2.0.0/node_modules/jsdom');
+const {JSDOM} = require(repo + '/magnolie-organizer-windows/node_modules/jsdom');
 const root = process.env.CONTACT_INTEROP_HOME;
 assert.ok(root?.startsWith('/tmp/opencode/'));
 const clone = x => JSON.parse(JSON.stringify(x));
@@ -38,7 +38,7 @@ async function transfer(from, to, content, expected = 200) {
   return envelope;
 }
 function web(platform, bridge = false) {
-  const dir = repo + (platform === 'Linux' ? '/magnolie-organizer-2.0.0/web' : '/Magnolie-Organizer-Windows-2.0.0/app/web');
+  const dir = repo + (platform === 'Linux' ? '/magnolie-organizer/web' : '/magnolie-organizer-windows/app/web');
   const dom = new JSDOM(fs.readFileSync(dir + '/index.html', 'utf8'), {runScripts: 'outside-only', url: 'https://contact-interop.invalid', pretendToBeVisual: true});
   const w = dom.window; w.TextEncoder = TextEncoder; w.TextDecoder = TextDecoder;
   Object.defineProperty(w.crypto, 'subtle', {value: require('node:crypto').webcrypto.subtle});
@@ -77,7 +77,7 @@ const base = {art: 'kontakt_sync', fassung: 2, freigabeId: 'synthetic', version:
 (async () => {
   const schema = JSON.parse(fs.readFileSync(repo + '/contracts/kontakt-v2.schema.json', 'utf8'));
   check(JSON.stringify([...schema.$defs.contact.required].sort()) === JSON.stringify(Object.keys(base.kontakt).sort()), 'shared schema exact v2 field set');
-  const locales = JSON.parse(fs.readFileSync(repo + '/Magnolie-Organizer-Windows-2.0.0/app/native-i18n.json', 'utf8')).locales;
+  const locales = JSON.parse(fs.readFileSync(repo + '/magnolie-organizer-windows/app/native-i18n.json', 'utf8')).locales;
   for (const [language, messages] of Object.entries(locales)) for (const id of [
     'Not sent.', 'The data is invalid.', 'Conflict'])
     check(typeof messages[id] === 'string' && messages[id].length > 0, 'existing translated error ' + language + ': ' + id);

@@ -8,7 +8,7 @@ import subprocess
 import sys
 
 ROOT = Path(__file__).resolve().parents[1]
-WINDOWS = ROOT.parent / "Magnolie-Organizer-Windows-2.0.0"
+WINDOWS = ROOT.parent / "magnolie-organizer-windows"
 sys.path.insert(0, str(ROOT / "werkzeuge"))
 from katalog_pruefen import entries
 from pot_erzeugen import handbook_data, package_version

@@ -1,7 +1,7 @@
 # Desktop setup: route defaults and school-holiday consent
 
-Canonical implementations: `magnolie-organizer-2.0.0` (GTK/Python) and
-`Magnolie-Organizer-Windows-2.0.0` (WinForms/C#), with their existing desktop JavaScript.
+Canonical implementations: `magnolie-organizer` (GTK/Python) and
+`magnolie-organizer-windows` (WinForms/C#), with their existing desktop JavaScript.
 
 ## Before → after
 
@@ -54,11 +54,11 @@ All runs are serial, pinned to two CPUs, with a 6 GiB address-space ceiling.
 Fixtures and compiled outputs live under `/tmp/opencode`; desktop services,
 phones, VMs, emulators, and real user profiles are not test inputs.
 
-- `Magnolie-Organizer-Windows-2.0.0/tests/setup-holidays.js`: 88 cases against
+- `magnolie-organizer-windows/tests/setup-holidays.js`: 88 cases against
   both actual desktop scripts, including all 20 languages, explicit map preferences,
   invalid/partial addresses, bound consent, durable save failure, retry after
   restart, cache/view settings persistence, deduplication, and stale responses.
-- `magnolie-organizer-2.0.0/pruefungen/test_setup_holidays.py`: actual GTK dialog
+- `magnolie-organizer/pruefungen/test_setup_holidays.py`: actual GTK dialog
   and event loop; Finish/Cancel/Skip in all 20 languages (60 runs), region changes,
   unsupported input, language switching, PO/MO/web/native catalog parity, and
   actual Python provider URL tests.

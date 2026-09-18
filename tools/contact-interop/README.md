@@ -45,8 +45,8 @@ bash /tmp/opencode/android-fixes-20260907/gradle.sh :app:testDebugUnitTest \
   --tests '*KontaktSyncTest' --tests '*KontaktImportTest' --tests '*KontaktEingangslogikTest'
 ```
 
-Run that command in `magnolie-notes-1.0.13`. Build the Windows core with .NET
-8.0.408 and the harness entry point, in `Magnolie-Organizer-Windows-2.0.0`:
+Run that command in `magnolie-notes`. Build the Windows core with .NET
+8.0.408 and the harness entry point, in `magnolie-organizer-windows`:
 
 ```sh
 CONTACT_INTEROP_HOME=/tmp/opencode/contact-integration-20260907 bash ../tools/contact-interop/sandbox.sh \
@@ -80,8 +80,8 @@ synthetic contacts and emitted protocol objects.
 Run the complete Linux script suites, without pytest collection or selections:
 
 ```sh
-bash tools/contact-interop/sandbox.sh /usr/bin/python3 magnolie-organizer-2.0.0/pruefungen/test_parser.py
-bash tools/contact-interop/sandbox.sh /usr/bin/python3 magnolie-organizer-2.0.0/pruefungen/test_import_export_vertrag.py
+bash tools/contact-interop/sandbox.sh /usr/bin/python3 magnolie-organizer/pruefungen/test_parser.py
+bash tools/contact-interop/sandbox.sh /usr/bin/python3 magnolie-organizer/pruefungen/test_import_export_vertrag.py
 ```
 
 Thunderbird runs with private Xvfb/DBus, software OpenGL and a minimal keyboard
@@ -114,15 +114,15 @@ specific to actual anniversaries.
 
 ## Implementation Files
 
-Under `Magnolie-Organizer-Windows-2.0.0`: `BaumContactSyncContract.cs`,
+Under `magnolie-organizer-windows`: `BaumContactSyncContract.cs`,
 `MagnolienbaumCoordinator.cs`, `MagnolienbaumPairing.cs`, `ExchangeCodec.cs`,
 and `app/web/anwendung.js`.
 
-Under `magnolie-organizer-2.0.0`: `bin/magnolie-organizer`,
+Under `magnolie-organizer`: `bin/magnolie-organizer`,
 `web/anwendung.js`, and the contact assertions in `pruefungen/test_parser.py`
 and `pruefungen/test_native_import_regressions.py`.
 
-Under `magnolie-notes-1.0.13/app/src/main/java/io/gitlab/maik3531/magnolienotes`:
+Under `magnolie-notes/app/src/main/java/io/gitlab/maik3531/magnolienotes`:
 `baum/KontaktSync.kt`, `baum/KontaktImport.kt`, `baum/KontaktEingang.kt`,
 `baum/KontaktPruefung.kt`, `baum/AndroidKontakte.kt`, contact-related paths in
 `baum/Baumwerk.kt`, and existing-resource selection for contact conflicts in
@@ -130,5 +130,5 @@ Under `magnolie-notes-1.0.13/app/src/main/java/io/gitlab/maik3531/magnolienotes`
 `KontaktProviderRegressionTest.kt` in the corresponding `src/test/.../baum` tree.
 
 The shared contract is `contracts/kontakt-v2.schema.json`; protocol coordination
-is recorded in `magnolie-notes-1.0.13/KONTAKT-PROTOKOLL.md`. The remaining files
+is recorded in `magnolie-notes/KONTAKT-PROTOKOLL.md`. The remaining files
 in this directory are test adapters and the interop runner, not application code.

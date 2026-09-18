@@ -1,0 +1,13 @@
+{
+  "status": "UNVEROEFFENTLICHT",
+  "version": "2.0.7",
+  "claimedWindowsSha256": null,
+  "manifests": [
+    "../update.xml",
+    "../magnolie-organizer/update.xml"
+  ],
+  "embeddedSignaturePresent": false,
+  "manifestMutationPerformed": false,
+  "reason": "Für 2.0.7 wurde noch kein offiziell veröffentlichter und signierter Installer belegt; Hash und Signatur werden erst durch den Releaseprozess ergänzt.",
+  "verificationTool": "build/AuditUpdateManifest.ps1"
+}

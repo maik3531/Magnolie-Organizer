@@ -24,8 +24,8 @@ owned process. Application source hashes matched before and after the run.
 Reproduce from the canonical root:
 
 ```sh
-python3 -B magnolie-notes-1.0.13/werkzeuge/call_fixture_gate.py
-python3 -B magnolie-notes-1.0.13/werkzeuge/test_call_fixture_gate.py
+python3 -B magnolie-notes/werkzeuge/call_fixture_gate.py
+python3 -B magnolie-notes/werkzeuge/test_call_fixture_gate.py
 ```
 
 The first command uses existing offline dependencies only. The second has four
@@ -60,7 +60,7 @@ protocol tests, five phone-daemon compatibility tests, 95 C# capture assertions,
 both frontend traces, all 20 existing call/audio translations, and isolated
 GTK/WebKit checks for both web trees.
 
-The actual `Magnolie-Organizer-Windows-2.0.0/MagnolieOrganizer.Windows.csproj`
+The actual `magnolie-organizer-windows/MagnolieOrganizer.Windows.csproj`
 also passed its complete **Debug `Compile` target** in **8.819 seconds**, retaining
 the project's warnings-as-errors policy. This compiles the actual Windows source
 set, including native form/notification code, rather than only extracted test

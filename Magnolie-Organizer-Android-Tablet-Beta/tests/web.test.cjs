@@ -14,7 +14,7 @@ const ok = (condition,label) => {assert.ok(condition,label); passed++; console.l
 (async()=>{
   const beta=JSON.parse(fs.readFileSync(path.join(root,'web/beta-i18n.json')));
   ok(Object.keys(beta).length===20 && Object.values(beta).every(x=>x.length===2 && x.every(Boolean)), '20 manual beta locales');
-  const canonical=fs.readFileSync(path.join(root,'../magnolie-organizer-2.0.0/web/anwendung.js'),'utf8');
+  const canonical=fs.readFileSync(path.join(root,'../magnolie-organizer/web/anwendung.js'),'utf8');
   const projected=read('anwendung.js');
   ok(projected.replace('  window.MagnolieTabletActions = { afterSave: action => navigiereMitGuard(() => nachDauerhaftemSpeichern(action)) };\n','')===canonical,
     'generated core differs only by explicit guarded-action API');
@@ -24,7 +24,7 @@ const ok = (condition,label) => {assert.ok(condition,label); passed++; console.l
     assert.ok(fontCss.includes('font-family: "'+family+'"'),family+' must be bundled');
   for (const match of fontCss.matchAll(/url\("([^"]+)"\)/g)) {
     assert.deepEqual(fs.readFileSync(path.join(web,match[1])),
-      fs.readFileSync(path.join(root,'../Magnolie-Organizer-Windows-2.0.0/app/web',match[1])));
+      fs.readFileSync(path.join(root,'../magnolie-organizer-windows/app/web',match[1])));
   }
   for (const license of ['DejaVu-LIZENZ.txt','Noto-LIZENZ.txt','Z003-LIZENZ.txt'])
     assert.ok(read('schriften/'+license).length>100);
@@ -166,7 +166,7 @@ const ok = (condition,label) => {assert.ok(condition,label); passed++; console.l
   assert.equal(browserErrors.length,0,browserErrors.map(e=>String(e)).join('\n'));
   ok(true,'no uncaught browser errors, including teardown');
   // Read-only execution of the existing cross-platform shared contract vectors.
-  execFileSync(process.execPath,[path.join(root,'../Magnolie-Organizer-Windows-2.0.0/tests/personal-custom-consent.js')],{stdio:'inherit'});
+  execFileSync(process.execPath,[path.join(root,'../magnolie-organizer-windows/tests/personal-custom-consent.js')],{stdio:'inherit'});
   passed++;
   const vectors=JSON.parse(fs.readFileSync(path.join(root,'../contracts/personal-custom-consent-v4-vectors.json')));
   const start=projected.indexOf('  function personalSyncKanonisch(');

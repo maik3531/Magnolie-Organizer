@@ -52,7 +52,7 @@ Beim alten Paketnamen wird `magnolie-organizer-kde` ausdrücklich installiert;
 versionierte Paketbeziehungen erhalten das Upgrade von der freigegebenen 1.0.0.
 Die suffixierten 2.0.18-Dateien waren unveröffentlichte Testkandidaten und werden
 von dpkg höher als 2.0.18 einsortiert: Ihr Ersatz braucht eine ausdrückliche
-Downgrade-Entscheidung des Testers. Siehe [KDE-Anforderungen und Upgrade-Regeln](magnolie-organizer-2.0.0/native/akonadi-helper/DEB-TARGETS.md).
+Downgrade-Entscheidung des Testers. Siehe [KDE-Anforderungen und Upgrade-Regeln](magnolie-organizer/native/akonadi-helper/DEB-TARGETS.md).
 
 SHA-256-Prüfsummen und Quellarchive liegen in der
 [aktuellen Freigabe](https://github.com/maik3531/Magnolie-Organizer/releases/latest).
@@ -79,9 +79,9 @@ SHA-256-Prüfsummen und Quellarchive liegen in der
 
 | Bestandteil | Technik | Quellen |
 |---|---|---|
-| Magnolie Organizer für Linux | Python 3, GTK 3, WebKit2GTK | [`magnolie-organizer-2.0.0`](magnolie-organizer-2.0.0/) |
-| Magnolie Organizer für Windows | C#, .NET 8, WinForms, WebView2 | [`Magnolie-Organizer-Windows-2.0.0`](Magnolie-Organizer-Windows-2.0.0/) |
-| Magnolie Notes für Android | Kotlin, Jetpack Compose | [`magnolie-notes-1.0.13`](magnolie-notes-1.0.13/) |
+| Magnolie Organizer für Linux | Python 3, GTK 3, WebKit2GTK | [`magnolie-organizer`](magnolie-organizer/) |
+| Magnolie Organizer für Windows | C#, .NET 8, WinForms, WebView2 | [`magnolie-organizer-windows`](magnolie-organizer-windows/) |
+| Magnolie Notes für Android | Kotlin, Jetpack Compose | [`magnolie-notes`](magnolie-notes/) |
 | Magnolie-Handbuch | Python, GTK, HTML/CSS/JavaScript | [`magnolie-handbuch-stamm`](magnolie-handbuch-stamm/) |
 
 Das Repository enthält die veröffentlichten Quellen für Organizer 2.0.18

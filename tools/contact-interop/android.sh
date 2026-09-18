@@ -3,7 +3,7 @@ set -euo pipefail
 : "${CONTACT_INTEROP_HOME:?isolated scratch directory required}"
 : "${CONTACT_REPO:?canonical repository required}"
 cache=/home/maik3531/.gradle/caches/modules-2/files-2.1
-classes="$CONTACT_REPO/magnolie-notes-1.0.13/app/build/tmp/kotlin-classes/debug"
+classes="$CONTACT_REPO/magnolie-notes/app/build/tmp/kotlin-classes/debug"
 jars=("$cache"/org.jetbrains.kotlin/kotlin-compiler-embeddable/2.0.21/*/*.jar
   "$cache"/org.jetbrains.kotlin/kotlin-stdlib/2.0.21/*/kotlin-stdlib-2.0.21.jar
   "$cache"/org.jetbrains.kotlin/kotlin-reflect/1.6.10/*/*.jar

@@ -35,11 +35,11 @@ TRANSLATIONS = {
 
 
 def main():
-    spec = importlib.util.spec_from_file_location("catalog", ROOT / "magnolie-organizer-2.0.0/werkzeuge/desktop_pot_merge.py")
+    spec = importlib.util.spec_from_file_location("catalog", ROOT / "magnolie-organizer/werkzeuge/desktop_pot_merge.py")
     parser = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(parser)
     assert len(TRANSLATIONS) == 20 and all(len(values) == len(KEYS) for values in TRANSLATIONS.values())
-    for directory in (ROOT / "magnolie-organizer-2.0.0/po", ROOT / "Magnolie-Organizer-Windows-2.0.0/app/po"):
+    for directory in (ROOT / "magnolie-organizer/po", ROOT / "magnolie-organizer-windows/app/po"):
         for path in [*directory.glob("*.po"), directory / "magnolie-organizer.pot"]:
             old = path.read_text(encoding="utf-8")
             entries = {entry["msgid"]: entry for entry in parser.catalog(path) if not entry["obsolete"]}
@@ -52,7 +52,7 @@ def main():
                 extra += "\n#. Call-state alerts; manually translated.\nmsgid " + json.dumps(key, ensure_ascii=False) + "\nmsgstr " + json.dumps(value, ensure_ascii=False) + "\n"
             if extra:
                 path.write_text(old + extra, encoding="utf-8")
-    path = ROOT / "Magnolie-Organizer-Windows-2.0.0/app/native-i18n.json"
+    path = ROOT / "magnolie-organizer-windows/app/native-i18n.json"
     catalog = json.loads(path.read_text(encoding="utf-8"))
     for locale, values in TRANSLATIONS.items():
         if locale == "en":

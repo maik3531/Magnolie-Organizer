@@ -4,19 +4,19 @@
 
 The source review covered these existing contracts, without editing them:
 
-- `../magnolie-organizer-2.0.0/web/anwendung.js`: `Bruecke.sende`, `App.init`,
+- `../magnolie-organizer/web/anwendung.js`: `Bruecke.sende`, `App.init`,
   `normalisiere`, acknowledged `speichern`, `App.gespeichert`, `vorBeenden`,
   `mutations_snapshot`, `edsStatus`, `pruefeErinnerungen` and export dispatch.
-- `../magnolie-organizer-2.0.0/web/index.html`, `stil.css`, `i18n.js`, catalogs
+- `../magnolie-organizer/web/index.html`, `stil.css`, `i18n.js`, catalogs
   and fonts: canonical visual implementation and restrictive CSP.
-- `../magnolie-organizer-2.0.0/bin/magnolie-organizer`: full-document storage,
+- `../magnolie-organizer/bin/magnolie-organizer`: full-document storage,
   `verschluesseln`, `daten_verschluesseln`, `daten_entschluesseln`, ICS codecs.
-- `../Magnolie-Organizer-Windows-2.0.0/BridgeDispatcherContract.cs`: typed
+- `../magnolie-organizer-windows/BridgeDispatcherContract.cs`: typed
   command envelope, duplicate rejection and 384 MiB upper bound.
-- `../Magnolie-Organizer-Windows-2.0.0/BridgeDispatcher.cs`: initialization,
+- `../magnolie-organizer-windows/BridgeDispatcher.cs`: initialization,
   encrypted save gating, correlated save acknowledgements, unlock and native
   callback shapes. Windows is a separate projection, not the UI source copied here.
-- `../Magnolie-Organizer-Windows-2.0.0/EncryptionService.cs`: v1/v2 envelope
+- `../magnolie-organizer-windows/EncryptionService.cs`: v1/v2 envelope
   markers, algorithms, salt/nonce/key lengths, AAD and PBKDF2 bounds.
 - `../contracts/`: hashed shared contract context; no phone/contact/custom sync
   implementation is claimed merely because these contracts exist.

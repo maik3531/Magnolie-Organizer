@@ -14,8 +14,8 @@ import sys
 import tempfile
 
 ROOT = Path(__file__).resolve().parents[1]
-LINUX = ROOT / 'magnolie-organizer-2.0.0'
-WINDOWS = ROOT / 'Magnolie-Organizer-Windows-2.0.0'
+LINUX = ROOT / 'magnolie-organizer'
+WINDOWS = ROOT / 'magnolie-organizer-windows'
 TEXT = json.loads(Path(__file__).with_suffix('.json').read_text())
 
 

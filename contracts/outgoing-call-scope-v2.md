@@ -78,8 +78,8 @@ not call-audio implementation.
 From the canonical root, using existing offline caches/toolchains:
 
 ```sh
-python3 -B magnolie-notes-1.0.13/werkzeuge/call_fixture_gate.py --variant release --output /tmp/opencode/asr04-final-android
-python3 -B Magnolie-Organizer-Windows-2.0.0/tests/callstate/outgoing.py --trace /tmp/opencode/asr04-final-android/trace/scoped-wire-messages.json
+python3 -B magnolie-notes/werkzeuge/call_fixture_gate.py --variant release --output /tmp/opencode/asr04-final-android
+python3 -B magnolie-organizer-windows/tests/callstate/outgoing.py --trace /tmp/opencode/asr04-final-android/trace/scoped-wire-messages.json
 ```
 
 The Android fixture executes the tracker, protocol receiver, encrypted queue,

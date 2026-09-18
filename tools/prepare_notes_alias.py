@@ -15,7 +15,7 @@ from urllib.request import urlopen
 from urllib.parse import urlsplit
 
 ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT / "magnolie-organizer-2.0.0/werkzeuge"))
+sys.path.insert(0, str(ROOT / "magnolie-organizer/werkzeuge"))
 from release_gate import artifact_map, regular, require, stage_notes_alias, verify
 
 

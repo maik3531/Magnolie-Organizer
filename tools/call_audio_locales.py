@@ -93,21 +93,21 @@ TRANSLATIONS = {
 
 
 def main():
-    spec = importlib.util.spec_from_file_location("audio_catalog", catalogs.ROOT / "magnolie-organizer-2.0.0/werkzeuge/desktop_pot_merge.py")
+    spec = importlib.util.spec_from_file_location("audio_catalog", catalogs.ROOT / "magnolie-organizer/werkzeuge/desktop_pot_merge.py")
     parser = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(parser)
     reused = "Bluetooth device for call audio"
     translations = {}
     for locale, values in TRANSLATIONS.items():
         existing = ({entry["msgid"]: entry.get("msgstr") for entry in parser.catalog(
-            catalogs.ROOT / "magnolie-organizer-2.0.0/po" / (locale + ".po")) if not entry["obsolete"]}
+            catalogs.ROOT / "magnolie-organizer/po" / (locale + ".po")) if not entry["obsolete"]}
             if locale != "en" else {reused: reused})
         translations[locale] = (*values, existing[reused])
     keys = (*KEYS, reused)
     catalogs.KEYS, catalogs.TRANSLATIONS = keys, translations
     catalogs.main()
-    for directory in (catalogs.ROOT / "magnolie-organizer-2.0.0/web/i18n",
-                      catalogs.ROOT / "Magnolie-Organizer-Windows-2.0.0/app/web/i18n"):
+    for directory in (catalogs.ROOT / "magnolie-organizer/web/i18n",
+                      catalogs.ROOT / "magnolie-organizer-windows/app/web/i18n"):
         for locale, values in translations.items():
             if locale == "en":
                 continue

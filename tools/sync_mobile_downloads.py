@@ -15,7 +15,7 @@ from PIL import Image
 
 ROOT = Path(__file__).resolve().parents[1]
 HANDBOOK = ROOT / "magnolie-handbuch-stamm"
-WINDOWS = ROOT / "Magnolie-Organizer-Windows-2.0.0"
+WINDOWS = ROOT / "magnolie-organizer-windows"
 sys.path.insert(0, str(HANDBOOK / "werkzeuge"))
 from mobile_downloads_erzeugen import render
 
@@ -32,7 +32,7 @@ def outputs():
         result[web / "mobile-downloads.js"] = render(values).encode()
     # Inline generated constants preserve standalone source/package layouts.
     for path, entries in (
-        (ROOT / "magnolie-organizer-2.0.0/bin/magnolie_setup_ui.py", (
+        (ROOT / "magnolie-organizer/bin/magnolie_setup_ui.py", (
             (r'^MAGNOLIE_NOTES_URL = .*?(?=\nKDE_CONNECT_URL)', 'MAGNOLIE_NOTES_URL = ' + json.dumps(notes["url"])),
             (r'^KDE_CONNECT_URL = .*?(?=\n\n)', 'KDE_CONNECT_URL = ' + json.dumps(values["kdeConnect"]["url"])))),
         (WINDOWS / "FirstRunSetupForm.cs", (

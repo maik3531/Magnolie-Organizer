@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <DefaultItemExcludes>$(DefaultItemExcludes);**/bin/**;**/obj/**</DefaultItemExcludes>
+    <WindowsSource>$(MSBuildThisFileDirectory)../../../magnolie-organizer-windows</WindowsSource>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="$(WindowsSource)/MagnolienbaumCrypto.cs" Link="MagnolienbaumCrypto.cs" />
+    <Compile Include="$(WindowsSource)/BaumReceipt.cs" Link="BaumReceipt.cs" />
+    <Reference Include="BouncyCastle.Cryptography"><HintPath>$(BouncyCastlePath)</HintPath></Reference>
+  </ItemGroup>
+</Project>

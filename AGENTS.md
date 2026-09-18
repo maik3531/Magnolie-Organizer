@@ -8,6 +8,11 @@ entpackte Pakete und Test-VMs sind keine zusätzlichen Entwicklungsstände.
 Ein dort gefundener Fehler wird in der zugehörigen Quelle dieses Repositorys
 behoben.
 
+Die dauerhaften Quellordner heißen `magnolie-organizer`,
+`magnolie-organizer-windows` und `magnolie-notes`. Sie erhalten bei einem Release
+keine neue Versionsnummer im Verzeichnisnamen. Versionsnummern bleiben in den
+Programmdaten, Tags und Downloadpaketen.
+
 ## Jede Änderung gehört zu einem GitHub-Issue
 
 1. Vor einer Änderung ein vorhandenes Issue zuordnen oder ein neues anlegen.

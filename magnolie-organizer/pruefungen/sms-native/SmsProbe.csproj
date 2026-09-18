@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="Program.cs" />
+    <Compile Include="../../../magnolie-organizer-windows/SmsSubmissionJournal.cs" />
+    <Compile Include="../../../magnolie-organizer-windows/AtomicStore.cs" />
+    <Compile Include="../../../magnolie-organizer-windows/PhoneUri.cs" />
+    <Reference Include="PhoneNumbers"><HintPath>$(PhoneNumbersPath)</HintPath></Reference>
+  </ItemGroup>
+</Project>

@@ -5,7 +5,7 @@ General Public License, version 3 or (at your option) any later version, followi
 the parent repository's [licensing notice](../LICENSE.md).
 
 The complete GPL-3.0 text is available in the shared workspace at
-[`../Magnolie-Organizer-Windows-2.0.0/LICENSE`](../Magnolie-Organizer-Windows-2.0.0/LICENSE).
+[`../magnolie-organizer-windows/LICENSE`](../magnolie-organizer-windows/LICENSE).
 The UI generator copies that text into each generated application payload as
 `Licenses/GPL-3.0.txt` together with the repository notices.
 

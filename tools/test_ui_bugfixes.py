@@ -25,7 +25,7 @@ class UiBugfixTranslations(unittest.TestCase):
             self.assertIn("KDE Connect", values[1], locale)
 
     def test_android_uses_generic_tab_not_a_desktop_name(self):
-        resources = ROOT / "magnolie-notes-1.0.13/app/src/main/res"
+        resources = ROOT / "magnolie-notes/app/src/main/res"
         for locale, values in generator.UI["translations"].items():
             folder = "values" if locale == "en" else "values-" + ("zh-rCN" if locale == "zh_CN" else locale)
             strings = {entry.attrib["name"]: entry.text for entry in ET.parse(resources / folder / "strings.xml").getroot() if entry.tag == "string"}
@@ -47,7 +47,7 @@ class UiBugfixTranslations(unittest.TestCase):
 
     def test_both_catalogs_contain_new_messages_once(self):
         pattern = r'(?m)^msgid ("[^\n]*"\n(?:"[^\n]*"\n)*)msgstr "[^\n]*"\n(?:"[^\n]*"\n)*'
-        for relative in ("magnolie-organizer-2.0.0/po", "Magnolie-Organizer-Windows-2.0.0/app/po"):
+        for relative in ("magnolie-organizer/po", "magnolie-organizer-windows/app/po"):
             for path in (ROOT / relative).glob("*.po"):
                 ids = ["".join(json.loads(line) for line in m[1].splitlines()) for m in re.finditer(pattern, path.read_text())]
                 for index in (0, 1, 2, 3, 5, 6, 7):

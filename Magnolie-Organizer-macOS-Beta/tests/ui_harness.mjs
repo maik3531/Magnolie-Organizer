@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
 import { createRequire } from "node:module";
-const { JSDOM } = createRequire(import.meta.url)(process.env.MACOS_BETA_JSDOM || "../../Magnolie-Organizer-Windows-2.0.0/node_modules/jsdom/lib/api.js");
+const { JSDOM } = createRequire(import.meta.url)(process.env.MACOS_BETA_JSDOM || "../../magnolie-organizer-windows/node_modules/jsdom/lib/api.js");
 
 export const tick = () => new Promise(resolve => setTimeout(resolve, 1));
 export async function boot(root, instant = Date.now()) {
