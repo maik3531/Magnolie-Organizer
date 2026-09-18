@@ -26,9 +26,9 @@ try {
         'tests/resources/personal-sync-contract.json', 'tests/resources/telefon-control-contract.json',
         'tests/resources/linux-parity-contract.json', 'tests/linux-parity-fixture.js',
         'tests/generate-linux-parity-fixture.js', 'tests/fixtures/new-schema.sql',
-        'shared/magnolie-handbuch-stamm/web/index.html', 'shared/magnolie-handbuch-stamm/web/inhalt.js',
-        'shared/magnolie-handbuch-stamm/web/i18n/de.js', 'shared/magnolie-handbuch-stamm/web/i18n/en.js', 'shared/magnolie-handbuch-stamm/web/kaffee-qr.mga',
-        'shared/magnolie-handbuch-stamm/web/maik-walter.mga')) {
+        'shared/magnolie-handbuch/web/index.html', 'shared/magnolie-handbuch/web/inhalt.js',
+        'shared/magnolie-handbuch/web/i18n/de.js', 'shared/magnolie-handbuch/web/i18n/en.js', 'shared/magnolie-handbuch/web/kaffee-qr.mga',
+        'shared/magnolie-handbuch/web/maik-walter.mga')) {
         Write-Fixture (Join-Path $root $relative)
     }
     Write-Fixture (Join-Path $root 'Directory.Build.props') "<Project><PropertyGroup><Version>$version</Version></PropertyGroup></Project>"
@@ -46,8 +46,8 @@ try {
         Write-Fixture (Join-Path $root "contracts/$name") '# Synthetic public contract documentation'
     }
     foreach ($relative in 'local.token', 'local.secret', 'local.pem', '.private-testing/personal.json',
-        'an-claude.md', 'shared/magnolie-handbuch-stamm/web/.private-testing/personal.json',
-        'shared/magnolie-handbuch-stamm/web/local.token') {
+        'an-claude.md', 'shared/magnolie-handbuch/web/.private-testing/personal.json',
+        'shared/magnolie-handbuch/web/local.token') {
         Write-Fixture (Join-Path $root $relative)
     }
     $files = @(Get-ReleaseArchiveSources $root)
@@ -58,7 +58,7 @@ try {
         'contracts/device-status-v4.md', 'contracts/native-call-audio.md', 'contracts/call-alert-actions-v2.md',
         'contracts/sms-plan-review-v1.md',
         'contracts/baum-1-receipt-v1-vectors.json', 'contracts/phone-setup-daemon-lifecycle.md',
-        'shared/magnolie-handbuch-stamm/web/i18n/en.js') {
+        'shared/magnolie-handbuch/web/i18n/en.js') {
         if ($names -notcontains $name) { throw "Current feature source missing from standalone archive: $name" }
     }
     if ($names -notcontains 'contracts/thunderbird-addressbook-fixture.json' -or

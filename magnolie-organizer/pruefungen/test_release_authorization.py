@@ -281,15 +281,15 @@ def test_valid_delegation_cannot_bypass_source_inventory(authorization, tmp_path
     directory, path, record, identity, groups = authorization
     root = tmp_path / "canonical"
     root.mkdir()
-    for component in (gate.LINUX, gate.WINDOWS, "magnolie-handbuch-stamm", "contracts", ".github", "tools", "magnolie-notes-stamm"):
+    for component in (gate.LINUX, gate.WINDOWS, "magnolie-handbuch", "contracts", ".github", "tools", "magnolie-notes"):
         (root / component).mkdir()
     (root / gate.LINUX / "debian").mkdir()
-    (root / "magnolie-handbuch-stamm/debian").mkdir()
-    (root / "magnolie-notes-stamm/app").mkdir()
+    (root / "magnolie-handbuch/debian").mkdir()
+    (root / "magnolie-notes/app").mkdir()
     (root / gate.LINUX / "debian/changelog").write_text("magnolie-organizer (9.8.7) unstable; urgency=medium\n")
-    (root / "magnolie-handbuch-stamm/debian/changelog").write_text("magnolie-handbuch (9.8.7) unstable; urgency=medium\n")
+    (root / "magnolie-handbuch/debian/changelog").write_text("magnolie-handbuch (9.8.7) unstable; urgency=medium\n")
     (root / gate.WINDOWS / "Directory.Build.props").write_text("<Project><PropertyGroup><Version>9.8.7</Version></PropertyGroup></Project>")
-    (root / "magnolie-notes-stamm/app/build.gradle.kts").write_text('versionName = "9.8.6"')
+    (root / "magnolie-notes/app/build.gradle.kts").write_text('versionName = "9.8.6"')
     bootstrap = (Path(gate.__file__).resolve().parents[1] / "update.xml").read_bytes()
     for target in (root / "update.xml", root / gate.LINUX / "update.xml"):
         target.write_bytes(bootstrap)

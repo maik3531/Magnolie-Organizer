@@ -117,7 +117,7 @@ def release_versions(root):
     version = re.search(r"^magnolie-organizer \((\d+\.\d+\.\d+)\)", changelog).group(1)
     require(ET.parse(root / WINDOWS / "Directory.Build.props").findtext("./PropertyGroup/Version") == version,
             "Desktop versions disagree")
-    handbook = (root / "magnolie-handbuch-stamm/debian/changelog").read_text(encoding="utf-8")
+    handbook = (root / "magnolie-handbuch/debian/changelog").read_text(encoding="utf-8")
     require(handbook.startswith(f"magnolie-handbuch ({version})"), "Handbook version disagrees")
     notes = list(root.glob("magnolie-notes*/app/build.gradle.kts"))
     require(len(notes) == 1, "Exactly one current Notes source is required")
@@ -529,7 +529,7 @@ def promote(root, directory, approval, accepted_id):
 
 
 def stage_notes_alias(root, stage, record):
-    notes = json_read(root / "magnolie-handbuch-stamm/web/mobile-downloads.json")["notes"]
+    notes = json_read(root / "magnolie-handbuch/web/mobile-downloads.json")["notes"]
     alias = notes["filename"]
     require(alias == "Magnolie-Notes.apk" and notes["url"].endswith("/" + alias), "Invalid stable Notes alias")
     versioned = f"Magnolie-Notes-{record['notesVersion']}.apk"

@@ -217,9 +217,9 @@ def report(root, sdk=None, notes=None, windows_input=None):
     result["templates"] = {}
     for name, path in (("linux", linux / "po/magnolie-organizer.pot"),
                        ("windows", windows / "app/po/magnolie-organizer.pot"),
-                       ("handbook", root / "magnolie-handbuch-stamm/po/magnolie-handbuch.pot")):
+                       ("handbook", root / "magnolie-handbuch/po/magnolie-handbuch.pot")):
         result["templates"][name] = max(0, len(re.findall(r'^msgid ', path.read_text(), re.M)) - 1)
-    handbook = root / 'magnolie-handbuch-stamm'
+    handbook = root / 'magnolie-handbuch'
     result['handbookCatalogs'] = {
         'languages': len((handbook / 'po/LINGUAS').read_text().split()),
         'runtimeJs': len(list((handbook / 'web/i18n').glob('*.js'))),

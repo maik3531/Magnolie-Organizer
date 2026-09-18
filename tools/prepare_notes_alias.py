@@ -36,7 +36,7 @@ def prepare(candidate, approval, identity, destination):
     record, identity, _ = verify(ROOT, candidate, approval, identity)
     name = f"Magnolie-Notes-{record['notesVersion']}.apk"
     expected = record["artifacts"][name]
-    metadata = json.loads((ROOT / "magnolie-handbuch-stamm/web/mobile-downloads.json").read_text())["notes"]
+    metadata = json.loads((ROOT / "magnolie-handbuch/web/mobile-downloads.json").read_text())["notes"]
     remote_hash(metadata["url"].rsplit("/", 1)[0] + "/" + name, expected)
     # Fresh output only: never replace a public tree or previously prepared set.
     require(destination.parent.is_dir() and not destination.exists() and not destination.is_symlink(), "Fresh private destination required")

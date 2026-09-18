@@ -97,7 +97,7 @@ def test_final_boundaries_reject_internally_rehashed_notes(candidate, monkeypatc
                                   'stale-output', 'no-tests', 'skipped-tests'])
 def test_canonical_runner_measures_inputs_and_owns_fresh_output(tmp_path, monkeypatch, damage):
     root = tmp_path / 'canonical'
-    source = root / 'magnolie-notes-stamm'
+    source = root / 'magnolie-notes'
     write(source / 'app/build.gradle.kts', 'versionCode = 14\nversionName = "1.0.14"')
     write(root / 'contracts/synthetic.json', '{}')
     tool = tmp_path / 'synthetic-gradle'

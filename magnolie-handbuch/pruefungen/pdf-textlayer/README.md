@@ -27,7 +27,7 @@ replacement implementation of the handbook layout.
 
 ## Reproduction
 
-From `magnolie-handbuch-stamm`, with existing fonts and native GTK/WebKit:
+From `magnolie-handbuch`, with existing fonts and native GTK/WebKit:
 
 ```sh
 xvfb-run -a python3 -B pruefungen/pdf_textlayer_probe.py /tmp/opencode/pdf-textlayer-repro

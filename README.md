@@ -67,8 +67,8 @@ SHA-256 checksums and source archives are attached to the
 
 <table>
   <tr>
-    <td width="50%"><img src="magnolie-handbuch-stamm/web/02-woche.png" alt="Weekly calendar view"></td>
-    <td width="50%"><img src="magnolie-handbuch-stamm/web/03-aufgaben.png" alt="Task list"></td>
+    <td width="50%"><img src="magnolie-handbuch/web/02-woche.png" alt="Weekly calendar view"></td>
+    <td width="50%"><img src="magnolie-handbuch/web/03-aufgaben.png" alt="Task list"></td>
   </tr>
   <tr>
     <td align="center"><strong>Week at a glance</strong></td>
@@ -77,7 +77,7 @@ SHA-256 checksums and source archives are attached to the
 </table>
 
 <p align="center">
-  <img src="magnolie-handbuch-stamm/web/14-karteikarte.png" alt="Magnolie contact card" width="70%"><br>
+  <img src="magnolie-handbuch/web/14-karteikarte.png" alt="Magnolie contact card" width="70%"><br>
   <strong>Contacts presented as familiar index cards</strong>
 </p>
 
@@ -88,7 +88,7 @@ SHA-256 checksums and source archives are attached to the
 | Magnolie Organizer for Linux | Python 3, GTK 3, WebKit2GTK | [`magnolie-organizer`](magnolie-organizer/) |
 | Magnolie Organizer for Windows | C#, .NET 8, WinForms, WebView2 | [`magnolie-organizer-windows`](magnolie-organizer-windows/) |
 | Magnolie Notes for Android | Kotlin, Jetpack Compose | [`magnolie-notes`](magnolie-notes/) |
-| Magnolie Handbook | Python, GTK, HTML/CSS/JavaScript | [`magnolie-handbuch-stamm`](magnolie-handbuch-stamm/) |
+| Magnolie Handbook | Python, GTK, HTML/CSS/JavaScript | [`magnolie-handbuch`](magnolie-handbuch/) |
 
 The repository contains the sources for release 2.0.18 / Notes 1.0.14; generated
 packages are kept on the Releases page rather than in Git history.

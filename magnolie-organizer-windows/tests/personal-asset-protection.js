@@ -23,7 +23,7 @@ assert.ok(handbook.includes('["/maik-walter.jpg"] = ("maik-walter.mga", 2, 2, "i
   handbook.includes("Task.Delay(100)") &&
   !handbook.includes("Convert.ToBase64String"));
 for (const directory of [path.join(root, "app", "web"),
-  path.join(root, "shared", "magnolie-handbuch-stamm", "web")]) {
+  path.join(root, "shared", "magnolie-handbuch", "web")]) {
   for (const file of fs.readdirSync(directory).filter(name => /\.(?:js|html)$/i.test(name))) {
     const text = fs.readFileSync(path.join(directory, file), "utf8");
     assert.ok(!/MGA1|MGA-v1-nonce|native-personal-assets|kaffee-qr\.mga|maik-walter\.mga/.test(text),

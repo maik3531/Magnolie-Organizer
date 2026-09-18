@@ -54,7 +54,7 @@ def test_generated_outputs_and_entrypoints():
     qrcode.make(constants["MAGNOLIE_NOTES_URL"]).save(output, format="PNG")
     assert decode(output.getvalue()) == url
     assert decode((sync.WINDOWS / "app/symbole/phone-notes-qr.png").read_bytes()) == url
-    for web in (sync.HANDBOOK / "web", sync.WINDOWS / "shared/magnolie-handbuch-stamm/web"):
+    for web in (sync.HANDBOOK / "web", sync.WINDOWS / "shared/magnolie-handbuch/web"):
         source = (web / "mobile-downloads.js").read_text()
         downloads = json.loads(source.split("Object.freeze(", 1)[1][:-3])
         svg = base64.b64decode(downloads["notes"]["qr"].split(",", 1)[1])

@@ -5,6 +5,7 @@ import json
 import hashlib
 import hmac
 import os
+import re
 import sqlite3
 import socket
 import sys
@@ -359,7 +360,7 @@ def test_control_contract_matches_android_golden():
     path = os.path.join(ROOT, "pruefungen", "telefon-control-contract.json")
     with open(path, encoding="utf-8") as source:
         golden = json.load(source)
-    android_path = os.path.join(ROOT, "..", "Magnolie-Notes", "magnolie-notes-stamm",
+    android_path = os.path.join(ROOT, "..", "magnolie-notes",
         "app", "src", "test", "resources", "telefon-control-contract.json")
     if os.path.isfile(android_path):
         with open(path, "rb") as desktop, open(android_path, "rb") as android:
@@ -570,12 +571,17 @@ def test_end_call_contract_is_exact_and_destructive_commands_are_not_retried():
 
 
 def test_android_telephone_source_has_no_display_wake_or_call_log_fallback():
-    root = os.path.join(ROOT, "..", "Magnolie-Notes", "magnolie-notes-stamm", "app", "src", "main")
+    root = os.path.join(ROOT, "..", "magnolie-notes", "app", "src", "main")
     if not os.path.isdir(root):
         return
     sources = "\n".join(open(os.path.join(folder, name), encoding="utf-8").read()
         for folder, _dirs, names in os.walk(root) for name in names if name.endswith((".kt", ".xml")))
-    assert "KEEP_SCREEN_ON" not in sources and "setTurnScreenOn" not in sources and "newWakeLock" not in sources
+    assert "KEEP_SCREEN_ON" not in sources and "setTurnScreenOn" not in sources
+    # A proximity lock turns the screen OFF during a call; it must not be
+    # confused with locks/flags that wake or keep the display on.
+    for flags in re.findall(r"newWakeLock\s*\(([^,]+),", sources):
+        assert flags.strip() == "PowerManager.PROXIMITY_SCREEN_OFF_WAKE_LOCK"
+    assert "ACQUIRE_CAUSES_WAKEUP" not in sources
     assert "CallLog.Calls" not in sources
 
 

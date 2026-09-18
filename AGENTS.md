@@ -9,7 +9,7 @@ Ein dort gefundener Fehler wird in der zugehörigen Quelle dieses Repositorys
 behoben.
 
 Die dauerhaften Quellordner heißen `magnolie-organizer`,
-`magnolie-organizer-windows` und `magnolie-notes`. Sie erhalten bei einem Release
+`magnolie-organizer-windows`, `magnolie-notes` und `magnolie-handbuch`. Sie erhalten bei einem Release
 keine neue Versionsnummer im Verzeichnisnamen. Versionsnummern bleiben in den
 Programmdaten, Tags und Downloadpaketen.
 

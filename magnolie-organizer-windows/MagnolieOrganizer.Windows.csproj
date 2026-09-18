@@ -19,8 +19,8 @@
     <PublishReadyToRun>true</PublishReadyToRun>
     <InvariantGlobalization>false</InvariantGlobalization>
     <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
-    <MagnolieHandbookWeb Condition="'$(MagnolieHandbookWeb)' == '' and Exists('..\magnolie-handbuch-stamm\web\index.html')">..\magnolie-handbuch-stamm\web</MagnolieHandbookWeb>
-    <MagnolieHandbookWeb Condition="'$(MagnolieHandbookWeb)' == '' and Exists('shared\magnolie-handbuch-stamm\web\index.html')">shared\magnolie-handbuch-stamm\web</MagnolieHandbookWeb>
+    <MagnolieHandbookWeb Condition="'$(MagnolieHandbookWeb)' == '' and Exists('..\magnolie-handbuch\web\index.html')">..\magnolie-handbuch\web</MagnolieHandbookWeb>
+    <MagnolieHandbookWeb Condition="'$(MagnolieHandbookWeb)' == '' and Exists('shared\magnolie-handbuch\web\index.html')">shared\magnolie-handbuch\web</MagnolieHandbookWeb>
   </PropertyGroup>
 
   <ItemGroup>

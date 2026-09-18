@@ -36,11 +36,11 @@ def inputs(tmp_path, monkeypatch):
                  'magnolie-organizer/werkzeuge/source_selection.py',
                  'magnolie-organizer-windows/tests/Program.cs',
                  'magnolie-organizer-windows/app/po/magnolie-organizer.pot',
-                 'magnolie-handbuch-stamm/po/magnolie-handbuch.pot',
-                 'magnolie-handbuch-stamm/po/LINGUAS',
-                 'magnolie-handbuch-stamm/po/english/protected.po',
-                 'magnolie-handbuch-stamm/werkzeuge/source_selection.py',
-                 'magnolie-notes-stamm/app/build.gradle.kts'):
+                 'magnolie-handbuch/po/magnolie-handbuch.pot',
+                 'magnolie-handbuch/po/LINGUAS',
+                 'magnolie-handbuch/po/english/protected.po',
+                 'magnolie-handbuch/werkzeuge/source_selection.py',
+                 'magnolie-notes/app/build.gradle.kts'):
         path = root / name
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text('Synthetic source metadata')

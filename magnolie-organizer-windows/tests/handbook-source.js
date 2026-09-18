@@ -19,8 +19,8 @@ function sourceFiles(directory, relative = "") {
 
 function selectHandbookWeb(root, requiredFiles) {
   const configured = process.env.MAGNOLIE_HANDBOOK_WEB;
-  const canonical = path.resolve(root, "..", "magnolie-handbuch-stamm", "web");
-  const bundled = path.join(root, "shared", "magnolie-handbuch-stamm", "web");
+  const canonical = path.resolve(root, "..", "magnolie-handbuch", "web");
+  const bundled = path.join(root, "shared", "magnolie-handbuch", "web");
   if (configured) {
     const selected = path.resolve(configured);
     assert.ok(hasFiles(selected, requiredFiles),

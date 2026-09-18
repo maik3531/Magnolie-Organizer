@@ -36,7 +36,7 @@ def test_aggregate_kde_recipe_receives_fresh_component_output(tmp_path):
     source = stage / "magnolie-organizer-2.0.18"
     tools = source / "werkzeuge"
     tools.mkdir(parents=True)
-    (stage / "magnolie-handbuch-stamm").mkdir()
+    (stage / "magnolie-handbuch").mkdir()
     names = artifacts("2.0.18")
     (tools / "kde_deb_bauen.py").write_text(
         "import pathlib, sys\n"
@@ -47,12 +47,12 @@ def test_aggregate_kde_recipe_receives_fresh_component_output(tmp_path):
         "    (output / name).write_text(name)\n")
     builder = (ROOT / "werkzeuge/release_bauen.sh").read_text()
     commands = builder.split('rm -rf "$PAKET_TEST"\n', 1)[1].split(
-        'cd "$STAGE/magnolie-handbuch-stamm"', 1)[0]
+        'cd "$STAGE/magnolie-handbuch"', 1)[0]
     result = subprocess.run(["sh", "-eu", "-c", commands],
         env=dict(os.environ, STAGE=str(stage), WURZEL=str(source)), capture_output=True, text=True, timeout=10)
     assert result.returncode == 0, result.stdout + result.stderr
     assert all((stage / name).read_text() == name for name in names)
-    assert source.is_dir() and (stage / "magnolie-handbuch-stamm").is_dir()
+    assert source.is_dir() and (stage / "magnolie-handbuch").is_dir()
 
 
 @pytest.fixture
@@ -63,11 +63,11 @@ def candidate(tmp_path, monkeypatch):
     version, notes = "9.8.7", "1.0.14"
     write(root / gate.LINUX / "debian/changelog", f"magnolie-organizer ({version}) unstable; urgency=medium\n")
     write(root / gate.WINDOWS / "Directory.Build.props", f"<Project><PropertyGroup><Version>{version}</Version></PropertyGroup></Project>")
-    write(root / "magnolie-handbuch-stamm/debian/changelog", f"magnolie-handbuch ({version}) unstable; urgency=medium\n")
-    write(root / "magnolie-handbuch-stamm/web/mobile-downloads.json", {"notes": {
+    write(root / "magnolie-handbuch/debian/changelog", f"magnolie-handbuch ({version}) unstable; urgency=medium\n")
+    write(root / "magnolie-handbuch/web/mobile-downloads.json", {"notes": {
         "filename": "Magnolie-Notes.apk",
         "url": "https://gitlab.com/maik3531/mint-forgs/-/raw/main/Magnolie-Organitzer/Magnolie-Notes.apk"}})
-    write(root / "magnolie-notes-stamm/app/build.gradle.kts", f'versionName = "{notes}"\nversionCode = 14')
+    write(root / "magnolie-notes/app/build.gradle.kts", f'versionName = "{notes}"\nversionCode = 14')
     write(root / "contracts/new-contract.json", {"synthetic": True})
     write(root / ".github/workflows/test.yml", "synthetic workflow")
     write(root / "tools/synthetic.py", "# synthetic tool")
@@ -628,7 +628,7 @@ bwrap() {
 def test_shared_selector_is_shipped_and_identical_when_handbook_present():
     local = ROOT / "werkzeuge/source_selection.py"
     assert local.is_file()
-    handbook = ROOT.parent / "magnolie-handbuch-stamm/werkzeuge/source_selection.py"
+    handbook = ROOT.parent / "magnolie-handbuch/werkzeuge/source_selection.py"
     if handbook.exists():
         assert local.read_bytes() == handbook.read_bytes()
 

@@ -9,9 +9,9 @@ function Get-ReleaseVersion([string] $Root) {
 }
 
 function Get-SharedHandbookWeb([string] $Root) {
-    $canonical = Join-Path (Split-Path -Parent $Root) 'magnolie-handbuch-stamm/web'
+    $canonical = Join-Path (Split-Path -Parent $Root) 'magnolie-handbuch/web'
     if (-not (Test-Path -LiteralPath $canonical -PathType Container)) {
-        $canonical = Join-Path $Root 'shared/magnolie-handbuch-stamm/web'
+        $canonical = Join-Path $Root 'shared/magnolie-handbuch/web'
     }
     $configured = [Environment]::GetEnvironmentVariable('MAGNOLIE_HANDBOOK_WEB')
     $comparison = if ([Runtime.InteropServices.RuntimeInformation]::IsOSPlatform([Runtime.InteropServices.OSPlatform]::Windows)) { [StringComparison]::OrdinalIgnoreCase } else { [StringComparison]::Ordinal }
@@ -25,7 +25,7 @@ function Get-SharedHandbookWeb([string] $Root) {
             (Test-Path -LiteralPath (Join-Path $full "inhalt.js") -PathType Leaf) -and
             (Test-Path -LiteralPath (Join-Path $full "i18n/de.js") -PathType Leaf)) { return $full }
     }
-    throw "Gemeinsame Handbuchquelle magnolie-handbuch-stamm/web fehlt."
+    throw "Gemeinsame Handbuchquelle magnolie-handbuch/web fehlt."
 }
 
 function Test-PrivateReleasePath([string] $Relative) {
@@ -91,7 +91,7 @@ function Get-ReleaseArchiveSources([string] $Root) {
         Assert-SourceFileSafe $file
         [pscustomobject]@{
             Source = $file.FullName
-            Relative = "shared/magnolie-handbuch-stamm/web/$([IO.Path]::GetRelativePath($handbookWeb, $file.FullName).Replace('\', '/'))"
+            Relative = "shared/magnolie-handbuch/web/$([IO.Path]::GetRelativePath($handbookWeb, $file.FullName).Replace('\', '/'))"
         }
     }
     $contracts = Join-Path (Split-Path -Parent $Root) 'contracts'
@@ -271,11 +271,11 @@ function Assert-SourceArchive([string] $Archive, [string] $Root, [string] $Versi
         "tests/resources/linux-parity-contract.json",
         "tests/linux-parity-fixture.js",
         "tests/generate-linux-parity-fixture.js",
-        "shared/magnolie-handbuch-stamm/web/index.html",
-        "shared/magnolie-handbuch-stamm/web/inhalt.js",
-        "shared/magnolie-handbuch-stamm/web/i18n/en.js",
-        "shared/magnolie-handbuch-stamm/web/kaffee-qr.mga",
-        "shared/magnolie-handbuch-stamm/web/maik-walter.mga"
+        "shared/magnolie-handbuch/web/index.html",
+        "shared/magnolie-handbuch/web/inhalt.js",
+        "shared/magnolie-handbuch/web/i18n/en.js",
+        "shared/magnolie-handbuch/web/kaffee-qr.mga",
+        "shared/magnolie-handbuch/web/maik-walter.mga"
     )
     $stream = [IO.File]::OpenRead($Archive)
     $zip = [IO.Compression.ZipArchive]::new($stream, [IO.Compression.ZipArchiveMode]::Read)
@@ -341,7 +341,7 @@ function Assert-SourceArchive([string] $Archive, [string] $Root, [string] $Versi
         foreach ($relative in $required) {
             if (-not $zip.GetEntry("$expectedTop/$relative")) { throw "Quellarchiv-Pflichtdatei fehlt: $relative" }
         }
-        foreach ($forbidden in "app/web/kaffee-qr.png", "shared/magnolie-handbuch-stamm/web/kaffee-qr.png", "shared/magnolie-handbuch-stamm/web/maik-walter.jpg") {
+        foreach ($forbidden in "app/web/kaffee-qr.png", "shared/magnolie-handbuch/web/kaffee-qr.png", "shared/magnolie-handbuch/web/maik-walter.jpg") {
             if ($zip.GetEntry("$expectedTop/$forbidden")) { throw "Quellarchiv enthält Klartext-Personenasset: $forbidden" }
         }
         $currentFiles = @(Get-ReleaseArchiveSources $Root)

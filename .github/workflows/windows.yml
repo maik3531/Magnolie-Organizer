@@ -11,7 +11,7 @@ on:
   push:
     paths:
       - "magnolie-organizer-windows/**"
-      - "magnolie-handbuch-stamm/**"
+      - "magnolie-handbuch/**"
       - "contracts/**"
       - "magnolie-organizer/pruefungen/fixtures/recurrence-rfc-oracle.json"
       - "magnolie-organizer/bin/magnolie_recurrence.py"

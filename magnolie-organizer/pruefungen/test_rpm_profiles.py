@@ -2,7 +2,7 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-HANDBOOK = ROOT.parent / "magnolie-handbuch-stamm"
+HANDBOOK = ROOT.parent / "magnolie-handbuch"
 PROFILES = ("fedora", "opensuse", "mageia", "openmandriva", "pclinuxos", "rosa")
 
 

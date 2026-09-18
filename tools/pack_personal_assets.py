@@ -47,8 +47,8 @@ def main():
         raise SystemExit("usage: pack_personal_assets.py --from-reviewed-plaintext")
     organizer = os.path.join(ROOT, "magnolie-organizer", "web")
     windows = os.path.join(ROOT, "magnolie-organizer-windows")
-    handbook = os.path.join(ROOT, "magnolie-handbuch-stamm", "web")
-    shared = os.path.join(windows, "shared", "magnolie-handbuch-stamm", "web")
+    handbook = os.path.join(ROOT, "magnolie-handbuch", "web")
+    shared = os.path.join(windows, "shared", "magnolie-handbuch", "web")
     jobs = [
         (os.path.join(organizer, "kaffee-qr.png"), os.path.join(organizer, "kaffee-qr.mga"), 1, 1, EXPECTED["coffee"]),
         (os.path.join(windows, "app", "web", "kaffee-qr.png"), os.path.join(windows, "app", "web", "kaffee-qr.mga"), 1, 1, EXPECTED["coffee"]),

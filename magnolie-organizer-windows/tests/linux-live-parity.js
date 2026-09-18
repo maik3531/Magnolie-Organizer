@@ -11,7 +11,7 @@ const parent = path.dirname(root);
 const configured = process.env.MAGNOLIE_LINUX_SOURCE;
 const candidates = configured ? [path.resolve(configured)] : fs.readdirSync(parent, { withFileTypes: true })
   .filter(entry => entry.isDirectory() &&
-    (entry.name === "magnolie-organizer" || /^magnolie-organizer-\d/.test(entry.name) || entry.name === "magnolie-organizer-stamm") &&
+    (entry.name === "magnolie-organizer" || /^magnolie-organizer-\d/.test(entry.name)) &&
     entry.name !== path.basename(root))
   .map(entry => path.join(parent, entry.name));
 const linuxRoot = candidates.find(candidate =>

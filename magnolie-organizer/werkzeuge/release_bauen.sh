@@ -18,7 +18,7 @@ case "${1:-}" in
     *) printf 'Aufruf: %s [--skip-autopkgtest|--skip-system-package-tests]\n' "$0" >&2; exit 2 ;;
 esac
 
-LIVE_HANDBUCH="$LIVE_ROOT/magnolie-handbuch-stamm"
+LIVE_HANDBUCH="$LIVE_ROOT/magnolie-handbuch"
 python3 "$LIVE_SOURCE/werkzeuge/release_gate.py" bootstrap --root "$LIVE_ROOT"
 python3 -B -m pytest -q "$LIVE_ROOT/tools/test_prepare_notes_alias.py"
 [ -z "${MAGNOLIE_SHLIBS_LOCAL:-}" ] || {
@@ -113,7 +113,7 @@ cleanup() {
 trap cleanup EXIT
 trap 'exit 1' HUP INT TERM
 
-mkdir -p "$WURZEL" "$STAGE/magnolie-handbuch-stamm" "$STAGE/windows-release"
+mkdir -p "$WURZEL" "$STAGE/magnolie-handbuch" "$STAGE/windows-release"
 python3 "$LIVE_SOURCE/werkzeuge/release_sources.py" inventory "$LIVE_ROOT" > "$STAGE/source-record.json"
 cp "$WINDOWS_INSTALLER" "$WINDOWS_BUILDRECORD" "$WINDOWS_ZIP" "$WINDOWS_PRUEFSUMMEN" "$WINDOWS_SOURCE" "$WINDOWS_PROVENANCE" \
     "$STAGE/windows-release/"
@@ -125,12 +125,12 @@ WINDOWS_SOURCE="$STAGE/windows-release/$(basename "$WINDOWS_SOURCE")"
 WINDOWS_PROVENANCE="$STAGE/windows-release/$(basename "$WINDOWS_PROVENANCE")"
 (cd "$STAGE/windows-release" && sha256sum -c "$(basename "$WINDOWS_PRUEFSUMMEN")")
 python3 "$LIVE_SOURCE/werkzeuge/release_sources.py" copy "$LIVE_SOURCE" "$WURZEL"
-python3 "$LIVE_SOURCE/werkzeuge/release_sources.py" copy "$LIVE_HANDBUCH" "$STAGE/magnolie-handbuch-stamm"
+python3 "$LIVE_SOURCE/werkzeuge/release_sources.py" copy "$LIVE_HANDBUCH" "$STAGE/magnolie-handbuch"
 python3 "$LIVE_SOURCE/werkzeuge/release_sources.py" copy "$LIVE_ROOT/contracts" "$STAGE/contracts"
 python3 "$WURZEL/werkzeuge/release_sources.py" contracts "$WURZEL"
 python3 "$LIVE_SOURCE/werkzeuge/release_sources.py" verify-copy "$STAGE/source-record.json" "$STAGE/contracts" --component contracts
 python3 "$LIVE_SOURCE/werkzeuge/release_sources.py" verify-copy "$STAGE/source-record.json" "$WURZEL" --component magnolie-organizer
-python3 "$LIVE_SOURCE/werkzeuge/release_sources.py" verify-copy "$STAGE/source-record.json" "$STAGE/magnolie-handbuch-stamm" --component magnolie-handbuch-stamm
+python3 "$LIVE_SOURCE/werkzeuge/release_sources.py" verify-copy "$STAGE/source-record.json" "$STAGE/magnolie-handbuch" --component magnolie-handbuch
 MAGNOLIE_LINUX_SOURCE="$WURZEL" "$LAEUFER" "$LIVE_WINDOWS/tests/linux-live-parity.js"
 cp "$LIVE_ROOT/update.xml" "$STAGE/update.xml"
 cp "$LIVE_ROOT/.gitignore" "$STAGE/"
@@ -138,13 +138,13 @@ rm -rf "$WURZEL/.git" "$WURZEL/.flatpak-builder" "$WURZEL/bau" "$WURZEL/.pytest_
     "$WURZEL/.gradle" "$WURZEL/build" \
     "$WURZEL/debian/.debhelper" "$WURZEL/debian/debhelper-build-stamp" \
     "$WURZEL/debian/files" "$WURZEL"/debian/*.substvars \
-    "$STAGE/magnolie-handbuch-stamm/.git" \
-    "$STAGE/magnolie-handbuch-stamm/bau" \
-    "$STAGE/magnolie-handbuch-stamm/.pytest_cache" \
-    "$STAGE/magnolie-handbuch-stamm/debian/.debhelper" \
-    "$STAGE/magnolie-handbuch-stamm/debian/debhelper-build-stamp" \
-    "$STAGE/magnolie-handbuch-stamm/debian/files" \
-    "$STAGE/magnolie-handbuch-stamm"/debian/*.substvars
+    "$STAGE/magnolie-handbuch/.git" \
+    "$STAGE/magnolie-handbuch/bau" \
+    "$STAGE/magnolie-handbuch/.pytest_cache" \
+    "$STAGE/magnolie-handbuch/debian/.debhelper" \
+    "$STAGE/magnolie-handbuch/debian/debhelper-build-stamp" \
+    "$STAGE/magnolie-handbuch/debian/files" \
+    "$STAGE/magnolie-handbuch"/debian/*.substvars
 find "$WURZEL" -type d \( -name __pycache__ -o -name .pytest_cache \
     -o -name .kotlin -o -name .gradle \) -prune -exec rm -rf {} +
 find "$WURZEL/native/akonadi-helper" -type d \
@@ -228,7 +228,7 @@ KDE_STAGE="$STAGE/kde-component"
 python3 "$WURZEL/werkzeuge/kde_deb_bauen.py" "$KDE_STAGE"
 cp "$KDE_STAGE/"* "$STAGE/"
 
-cd "$STAGE/magnolie-handbuch-stamm"
+cd "$STAGE/magnolie-handbuch"
 handbuch_epoch=$(dpkg-parsechangelog -STimestamp)
 debian/rules clean
 find . -exec touch -h -d "@$handbuch_epoch" {} +
@@ -375,7 +375,7 @@ pruefe_quellarchiv "$SOURCE_TAR" "$SOURCE_NAME"
 pruefe_quellarchiv "$STAGE/magnolie-organizer-kde_${AKONADI_VERSION}.tar.xz" \
     "akonadi-helper" \
     "CMakeLists.txt main.cpp serialization-test.cpp build.py profiles.py launcher.py tests/test_launcher.py debian/rules debian/control debian/source/format magnolie-organizer-kde.spec"
-pruefe_quellarchiv "$HANDBUCH_SOURCE_TAR" "magnolie-handbuch-stamm" \
+pruefe_quellarchiv "$HANDBUCH_SOURCE_TAR" "magnolie-handbuch" \
     "bin/magnolie-handbuch web/handbuch.js debian/control"
 
 RPM_PAKET=
@@ -399,7 +399,7 @@ else
 fi
 
 if [ "$FEDORA_TESTS" -eq 1 ]; then
-    test "$(dpkg-parsechangelog -l"$STAGE/magnolie-handbuch-stamm/debian/changelog" -SVersion)" = \
+    test "$(dpkg-parsechangelog -l"$STAGE/magnolie-handbuch/debian/changelog" -SVersion)" = \
         "$FASSUNG" || {
         printf '%s\n' 'Organizer und Handbuch haben unterschiedliche Versionen.' >&2
         exit 1
@@ -429,14 +429,14 @@ if [ "$FEDORA_TESTS" -eq 1 ]; then
     [ "$#" -eq 1 ] && [ -f "$1" ] || {
         printf '%s\n' 'Genau ein binaeres Handbuch-RPM wurde erwartet.' >&2; exit 1;
     }
-    HANDBUCH_RPM_PAKET="$STAGE/magnolie-handbuch-stamm/bau/rpm/fedora/RPMS/noarch/$(basename "$1")"
+    HANDBUCH_RPM_PAKET="$STAGE/magnolie-handbuch/bau/rpm/fedora/RPMS/noarch/$(basename "$1")"
     mkdir -p "$(dirname "$HANDBUCH_RPM_PAKET")"
     cp "$1" "$HANDBUCH_RPM_PAKET"
     set -- "$RPM_FEDORA_ARBEIT"/handbuch-rpm/fedora/SRPMS/magnolie-handbuch-"$FASSUNG"-*.src.rpm
     [ "$#" -eq 1 ] && [ -f "$1" ] || {
         printf '%s\n' 'Genau ein Handbuch-SRPM wurde erwartet.' >&2; exit 1;
     }
-    HANDBUCH_RPM_QUELLE="$STAGE/magnolie-handbuch-stamm/bau/rpm/fedora/SRPMS/$(basename "$1")"
+    HANDBUCH_RPM_QUELLE="$STAGE/magnolie-handbuch/bau/rpm/fedora/SRPMS/$(basename "$1")"
     mkdir -p "$(dirname "$HANDBUCH_RPM_QUELLE")"
     cp "$1" "$HANDBUCH_RPM_QUELLE"
     pruefe_quellarchiv \

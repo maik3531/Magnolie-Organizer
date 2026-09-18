@@ -2,7 +2,7 @@
 set -eu
 
 WURZEL=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
-HANDBUCH=${MAGNOLIE_HANDBUCH_SOURCE:-"$(dirname "$WURZEL")/magnolie-handbuch-stamm"}
+HANDBUCH=${MAGNOLIE_HANDBUCH_SOURCE:-"$(dirname "$WURZEL")/magnolie-handbuch"}
 FASSUNG=$(dpkg-parsechangelog -l"$WURZEL/debian/changelog" -SVersion)
 AUSGABE=${1:-"$WURZEL/../Magnolie-Organizer-$FASSUNG-x86_64.AppImage"}
 ARBEIT=${APPIMAGE_JAMMY_DIR:-"$WURZEL/bau/appimage-jammy"}

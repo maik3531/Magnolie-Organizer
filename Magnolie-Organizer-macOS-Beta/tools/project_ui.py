@@ -35,7 +35,7 @@ def inputs():
               REPO / "magnolie-organizer-windows/LICENSE",
               REPO / "magnolie-organizer-windows/BridgeDispatcherContract.cs",
               REPO / "magnolie-organizer-windows/EncryptionService.cs",
-              REPO / "magnolie-handbuch-stamm/web/mobile-downloads.json",
+              REPO / "magnolie-handbuch/web/mobile-downloads.json",
               BETA / "Package.swift", BETA / "tools/build_dev.py", Path(__file__).resolve()]
     return {str(file.relative_to(REPO)): file.read_bytes() for file in sorted(set(files))}
 
@@ -214,7 +214,7 @@ def project(snapshot, target):
         native[locale].update(extras.get(locale, {}))
     (target / "native-i18n.json").write_text(json.dumps(native, ensure_ascii=False, sort_keys=True) + "\n")
     (target / "BetaIdentity.json").write_text(json.dumps(identity, sort_keys=True) + "\n")
-    mobile = snapshot["magnolie-handbuch-stamm/web/mobile-downloads.json"]
+    mobile = snapshot["magnolie-handbuch/web/mobile-downloads.json"]
     notes = json.loads(mobile)["notes"]
     if notes["filename"] != "Magnolie-Notes.apk" or not notes["url"].endswith("/Magnolie-Notes.apk"):
         raise ValueError("Canonical Notes download must use the version-independent MobileAlias.")

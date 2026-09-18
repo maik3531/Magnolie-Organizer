@@ -151,7 +151,7 @@ try {
     $sourceProjection = Join-Path $stage 'source'
     [IO.Compression.ZipFile]::ExtractToDirectory($sourceForRelease, $sourceProjection)
     $buildRoot = Join-Path $sourceProjection "Magnolie-Organizer-Windows-$version"
-    $handbookWeb = Join-Path $buildRoot 'shared/magnolie-handbuch-stamm/web'
+    $handbookWeb = Join-Path $buildRoot 'shared/magnolie-handbuch/web'
     $testEnvironment = @{}
     foreach ($variable in 'MAGNOLIE_HANDBOOK_WEB', 'MAGNOLIE_HANDBUCH_WEB', 'MAGNOLIE_LINUX_SOURCE', 'MAGNOLIE_TEST_SOURCE_ROOT') {
         $testEnvironment[$variable] = [Environment]::GetEnvironmentVariable($variable)

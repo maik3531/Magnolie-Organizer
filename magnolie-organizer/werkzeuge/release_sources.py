@@ -68,7 +68,7 @@ def inventory(root):
     root = Path(root).resolve()
     result = {}
     components = ["magnolie-organizer", "magnolie-organizer-windows",
-                  "magnolie-handbuch-stamm", "contracts", ".github", "tools"]
+                  "magnolie-handbuch", "contracts", ".github", "tools"]
     components += sorted(path.name for path in root.glob("magnolie-notes*") if path.is_dir())
     for component in components:
         folder = root / component

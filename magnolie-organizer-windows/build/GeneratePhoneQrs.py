@@ -8,9 +8,9 @@ import qrcode
 
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-SOURCE = os.path.join(ROOT, "..", "magnolie-handbuch-stamm", "web", "mobile-downloads.json")
+SOURCE = os.path.join(ROOT, "..", "magnolie-handbuch", "web", "mobile-downloads.json")
 if not os.path.isfile(SOURCE):
-    SOURCE = os.path.join(ROOT, "shared", "magnolie-handbuch-stamm", "web", "mobile-downloads.json")
+    SOURCE = os.path.join(ROOT, "shared", "magnolie-handbuch", "web", "mobile-downloads.json")
 TARGET = os.path.join(ROOT, "app", "symbole")
 
 

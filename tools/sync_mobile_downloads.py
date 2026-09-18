@@ -14,7 +14,7 @@ import qrcode
 from PIL import Image
 
 ROOT = Path(__file__).resolve().parents[1]
-HANDBOOK = ROOT / "magnolie-handbuch-stamm"
+HANDBOOK = ROOT / "magnolie-handbuch"
 WINDOWS = ROOT / "magnolie-organizer-windows"
 sys.path.insert(0, str(HANDBOOK / "werkzeuge"))
 from mobile_downloads_erzeugen import render
@@ -26,7 +26,7 @@ def outputs():
     notes = values["notes"]
     if set(notes) != {"filename", "url"} or notes["filename"] != "Magnolie-Notes.apk" or not notes["url"].endswith("/" + notes["filename"]):
         raise ValueError("Notes must use the version-independent APK alias")
-    shared = WINDOWS / "shared/magnolie-handbuch-stamm/web"
+    shared = WINDOWS / "shared/magnolie-handbuch/web"
     result = {shared / source.name: source.read_bytes()}
     for web in (HANDBOOK / "web", shared):
         result[web / "mobile-downloads.js"] = render(values).encode()

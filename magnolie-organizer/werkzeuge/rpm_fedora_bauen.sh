@@ -3,7 +3,7 @@ set -eu
 
 WURZEL=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 ARBEITSBAUM=$(dirname "$WURZEL")
-HANDBUCH="$ARBEITSBAUM/magnolie-handbuch-stamm"
+HANDBUCH="$ARBEITSBAUM/magnolie-handbuch"
 ARBEIT=${RPM_FEDORA_DIR:-"$WURZEL/bau/rpm-fedora"}
 ROOTFS="$ARBEIT/rootfs"
 TOPDIR="$ARBEIT/rpm"

@@ -13,7 +13,7 @@ import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 BIN = ROOT / "bin"
-HANDBOOK = ROOT.parent / "magnolie-handbuch-stamm"
+HANDBOOK = ROOT.parent / "magnolie-handbuch"
 sys.path.insert(0, str(BIN))
 import magnolie_crash as crash
 
@@ -217,8 +217,8 @@ def test_reporter_copy_and_organizer_package_manifests():
 def test_handbook_reporter_and_package_manifests(tmp_path):
     if not HANDBOOK.exists():
         if os.environ.get("MAGNOLIE_VOLLPRUEFUNG") == "1":
-            pytest.fail("magnolie-handbuch-stamm fehlt bei verlangter Vollpruefung")
-        pytest.skip("magnolie-handbuch-stamm liegt nicht daneben (Distributionsbau)")
+            pytest.fail("magnolie-handbuch fehlt bei verlangter Vollpruefung")
+        pytest.skip("magnolie-handbuch liegt nicht daneben (Distributionsbau)")
 
     handbook_reporter = HANDBOOK / "bin" / "magnolie_crash.py"
     assert handbook_reporter.read_bytes() == (BIN / "magnolie_crash.py").read_bytes()

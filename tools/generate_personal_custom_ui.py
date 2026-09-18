@@ -61,12 +61,12 @@ def retire_ui(content):
 
 
 def generate_handbook():
-    handbook = ROOT / "magnolie-handbuch-stamm/web/inhalt.js"
+    handbook = ROOT / "magnolie-handbuch/web/inhalt.js"
     content = handbook.read_text(encoding="utf-8")
     start, end = "// BEGIN GENERATED CUSTOM PRIVACY", "// END GENERATED CUSTOM PRIVACY"
     entries = {"zh-cn" if locale == "zh_CN" else locale: "<p>" + escape(text) + "</p>" for locale, text in PRIVACY.items()}
     original = json.loads(re.search(r'"personal-sync": \{\s*en: ("[^\n]+")\s*\}', content)[1])
-    spec = importlib.util.spec_from_file_location("handbook_po", ROOT / "magnolie-handbuch-stamm/werkzeuge/po_zu_js.py")
+    spec = importlib.util.spec_from_file_location("handbook_po", ROOT / "magnolie-handbuch/werkzeuge/po_zu_js.py")
     catalog_reader = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(catalog_reader)
     prior = {"en": original}
@@ -75,7 +75,7 @@ def generate_handbook():
         prior = json.loads(previous[1])
     for locale in PRIVACY:
         if locale != "en" and not previous:
-            messages = catalog_reader.read_catalog(ROOT / "magnolie-handbuch-stamm/po" / (locale + ".po"))["messages"]
+            messages = catalog_reader.read_catalog(ROOT / "magnolie-handbuch/po" / (locale + ".po"))["messages"]
             prior["zh-cn" if locale == "zh_CN" else locale] = messages[original]
     block = start + "\nconst CUSTOM_PRIVACY = " + json.dumps(entries, ensure_ascii=False, indent=2) + ";\n"
     block += 'const CUSTOM_PRIVACY_PRIOR = ' + json.dumps(prior, ensure_ascii=False, indent=2) + ';\n'

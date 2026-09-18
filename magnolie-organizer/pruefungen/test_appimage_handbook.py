@@ -12,7 +12,7 @@ spec.loader.exec_module(packer)
 
 
 def test_bundled_handbook_has_own_program_assets_and_all_locales(tmp_path):
-    source = ROOT.parent / 'magnolie-handbuch-stamm'
+    source = ROOT.parent / 'magnolie-handbuch'
     appdir = tmp_path / 'AppDir'
     packer.bundle(appdir, source, '2.0.19')
     program = appdir / 'usr/lib/magnolie-handbuch/magnolie-handbuch'

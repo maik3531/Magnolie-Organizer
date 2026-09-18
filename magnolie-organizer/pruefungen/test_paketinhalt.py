@@ -15,7 +15,7 @@ WORKSPACE = ROOT.parent
 sys.path.insert(0, str(ROOT / "werkzeuge"))
 from png_pruefen import pruefen as png_pruefen
 WINDOWS = WORKSPACE / "magnolie-organizer-windows"
-HANDBOOK = WORKSPACE / "magnolie-handbuch-stamm"
+HANDBOOK = WORKSPACE / "magnolie-handbuch"
 NOTES = WORKSPACE / "magnolie-notes"
 VERSION = re.match(r"magnolie-organizer \(([^)]+)\)",
                    (ROOT / "debian/changelog").read_text(encoding="utf-8")).group(1)

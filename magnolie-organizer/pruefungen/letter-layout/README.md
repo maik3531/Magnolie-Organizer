@@ -72,7 +72,7 @@ Run from the canonical release root, sequentially with other heavy native work:
 
 ```sh
 python3 -m pytest -q -p no:cacheprovider magnolie-organizer/pruefungen/test_letter_layout.py
-NODE_PATH="$PWD/magnolie-handbuch-stamm/node_modules" bun magnolie-organizer/pruefungen/letter-layout/web.js
+NODE_PATH="$PWD/magnolie-handbuch/node_modules" bun magnolie-organizer/pruefungen/letter-layout/web.js
 systemd-run --user --scope -p CPUQuota=100% -p MemoryMax=2G env LETTER_DOTNET=/tmp/opencode/fivefixnative/dotnet/dotnet python3 -m pytest -q -s -p no:cacheprovider magnolie-organizer/pruefungen/letter_cross_platform.py
 ```
 

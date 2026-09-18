@@ -61,8 +61,8 @@ SHA-256-Prüfsummen und Quellarchive liegen in der
 
 <table>
   <tr>
-    <td width="50%"><img src="magnolie-handbuch-stamm/web/02-woche.png" alt="Wochenansicht des Kalenders"></td>
-    <td width="50%"><img src="magnolie-handbuch-stamm/web/03-aufgaben.png" alt="Aufgabenliste"></td>
+    <td width="50%"><img src="magnolie-handbuch/web/02-woche.png" alt="Wochenansicht des Kalenders"></td>
+    <td width="50%"><img src="magnolie-handbuch/web/03-aufgaben.png" alt="Aufgabenliste"></td>
   </tr>
   <tr>
     <td align="center"><strong>Die Woche auf einen Blick</strong></td>
@@ -71,7 +71,7 @@ SHA-256-Prüfsummen und Quellarchive liegen in der
 </table>
 
 <p align="center">
-  <img src="magnolie-handbuch-stamm/web/14-karteikarte.png" alt="Magnolie-Karteikarte" width="70%"><br>
+  <img src="magnolie-handbuch/web/14-karteikarte.png" alt="Magnolie-Karteikarte" width="70%"><br>
   <strong>Kontakte wie vertraute Karteikarten</strong>
 </p>
 
@@ -82,7 +82,7 @@ SHA-256-Prüfsummen und Quellarchive liegen in der
 | Magnolie Organizer für Linux | Python 3, GTK 3, WebKit2GTK | [`magnolie-organizer`](magnolie-organizer/) |
 | Magnolie Organizer für Windows | C#, .NET 8, WinForms, WebView2 | [`magnolie-organizer-windows`](magnolie-organizer-windows/) |
 | Magnolie Notes für Android | Kotlin, Jetpack Compose | [`magnolie-notes`](magnolie-notes/) |
-| Magnolie-Handbuch | Python, GTK, HTML/CSS/JavaScript | [`magnolie-handbuch-stamm`](magnolie-handbuch-stamm/) |
+| Magnolie-Handbuch | Python, GTK, HTML/CSS/JavaScript | [`magnolie-handbuch`](magnolie-handbuch/) |
 
 Das Repository enthält die veröffentlichten Quellen für Organizer 2.0.18
 und Notes 1.0.14. Fertige

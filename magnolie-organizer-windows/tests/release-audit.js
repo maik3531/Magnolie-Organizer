@@ -8,8 +8,8 @@ const root = path.resolve(__dirname, "..");
 const read = p => fs.readFileSync(path.join(root, p), "utf8");
 const fail = message => { throw new Error(`Release-Audit: ${message}`); };
 const handbook = [process.env.MAGNOLIE_HANDBUCH_WEB,
-  path.resolve(root, "..", "magnolie-handbuch-stamm", "web"),
-  path.join(root, "shared", "magnolie-handbuch-stamm", "web")]
+  path.resolve(root, "..", "magnolie-handbuch", "web"),
+  path.join(root, "shared", "magnolie-handbuch", "web")]
   .filter(Boolean).find((candidate) => fs.existsSync(path.join(candidate, "inhalt.js")) &&
     fs.existsSync(path.join(candidate, "i18n", "de.js")));
 if (!handbook) fail("Gemeinsame Handbuchquelle fehlt");
@@ -125,8 +125,8 @@ if (fs.existsSync(bundledMakensis)) {
 }
 const source = read("build/BuildSource.ps1");
 if (source.includes('".png"')) fail("Quellbau schließt PNG aus");
-for (const file of ["app/magnolie-organizer.ico", "app/web/kaffee-qr.mga", "app/symbole/48x48/magnolie-organizer.png", "app/symbole/64x64/magnolie-organizer.png", "app/symbole/128x128/magnolie-organizer.png", "app/symbole/256x256/magnolie-organizer.png", "shared/magnolie-handbuch-stamm/web/kaffee-qr.mga", "shared/magnolie-handbuch-stamm/web/maik-walter.mga", "tests/resources/personal-sync-contract.json", "tests/resources/telefon-control-contract.json", "tests/resources/linux-parity-contract.json", "tests/linux-parity-fixture.js", "tests/generate-linux-parity-fixture.js", "LICENSE"]) if (!fs.existsSync(path.join(root, file))) fail(`Pflichtdatei fehlt: ${file}`);
-for (const file of ["app/web/kaffee-qr.png", "shared/magnolie-handbuch-stamm/web/kaffee-qr.png", "shared/magnolie-handbuch-stamm/web/maik-walter.jpg"]) if (fs.existsSync(path.join(root, file))) fail(`Klartext-Personenasset vorhanden: ${file}`);
+for (const file of ["app/magnolie-organizer.ico", "app/web/kaffee-qr.mga", "app/symbole/48x48/magnolie-organizer.png", "app/symbole/64x64/magnolie-organizer.png", "app/symbole/128x128/magnolie-organizer.png", "app/symbole/256x256/magnolie-organizer.png", "shared/magnolie-handbuch/web/kaffee-qr.mga", "shared/magnolie-handbuch/web/maik-walter.mga", "tests/resources/personal-sync-contract.json", "tests/resources/telefon-control-contract.json", "tests/resources/linux-parity-contract.json", "tests/linux-parity-fixture.js", "tests/generate-linux-parity-fixture.js", "LICENSE"]) if (!fs.existsSync(path.join(root, file))) fail(`Pflichtdatei fehlt: ${file}`);
+for (const file of ["app/web/kaffee-qr.png", "shared/magnolie-handbuch/web/kaffee-qr.png", "shared/magnolie-handbuch/web/maik-walter.jpg"]) if (fs.existsSync(path.join(root, file))) fail(`Klartext-Personenasset vorhanden: ${file}`);
 for (const file of ["tests/PersonalSyncTests.cs", "tests/TelefonProtocolTests.cs"]) if (/magnolie-organizer-1\.31\.7|\.\.\\.*pruefungen/.test(read(file))) fail(`${file} benötigt Geschwisterquelle`);
 const vmResultTest = read("vm/TestInstallerUpdate.ps1");
 for (const token of ["$transcriptStarted", "$resultWritten", "$resultPersisted", "$logPersisted", "Remove-Item -LiteralPath $path -Force", "if (-not $results)", "VM bleibt zur Diagnose aktiv", "function Sync-ResultFile", "foreach ($attempt in 1..10)", "FileShare]::ReadWrite", "FileShare]::Delete", "function Write-InfrastructureFailure", "INFRASTRUCTURE FAILURE", "Ergebnisdateien konnten nicht dauerhaft geschrieben werden", "$stream.Flush($true)", "$mountExitCode", "$shutdownExitCode", "mountvol.exe", "shutdown.exe", "if (-not $report.Passed) { exit 1 }", "exit 0"]) if (!vmResultTest.includes(token)) fail(`VM-Ergebniskanal fehlt: ${token}`);
