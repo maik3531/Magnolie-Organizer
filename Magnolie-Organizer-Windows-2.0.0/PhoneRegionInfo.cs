@@ -36,7 +36,7 @@ internal static class PhoneRegionInfo
     private static PhoneOrigin AnalyzeWithLibrary(string number, string homeCountry, string language)
     {
         var utility = PhoneNumberUtil.GetInstance();
-        var parsed = utility.Parse(number, homeCountry);
+        var parsed = utility.Parse(System.Text.RegularExpressions.Regex.Replace(number.Trim(), @"^\+{2,}(?=\d)", "+"), homeCountry);
         if (!utility.IsValidNumber(parsed)) return PhoneOrigin.Unknown;
         var region = utility.GetRegionCodeForNumber(parsed);
         if (region is null || !IsoCountries.Contains(region)) return PhoneOrigin.Unknown;

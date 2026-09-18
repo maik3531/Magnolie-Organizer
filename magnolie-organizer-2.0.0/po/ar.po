@@ -7442,9 +7442,6 @@ msgstr ""
 "لا يضيف هذا الاستيراد لمرة واحدة إلا جهات الاتصال أو معلومات إليها. وهو لا "
 "يزامن جهات الاتصال ولا يحذفها."
 
-msgid "This paired phone is my own device"
-msgstr "هذا الهاتف المقترن هو جهازي الخاص"
-
 msgid "This person's anniversaries"
 msgstr "المناسبات السنوية لهذا الشخص"
 
@@ -8620,6 +8617,9 @@ msgstr[5] "… وعناصر إضافية ستُطبع أيضًا؛ العدد: %
 
 msgid "＋ Add appointment"
 msgstr "＋ إضافة موعد"
+
+#~ msgid "This paired phone is my own device"
+#~ msgstr "هذا الهاتف المقترن هو جهازي الخاص"
 
 #~ msgid "As usual (print)"
 #~ msgstr "كالمعتاد (طباعة)"

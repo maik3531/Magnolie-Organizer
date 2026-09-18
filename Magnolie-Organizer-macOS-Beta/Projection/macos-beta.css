@@ -1,0 +1,12 @@
+#macos-beta-capabilities {
+  position: fixed; top: 6px; left: 12px; z-index: 10000;
+  max-width: min(600px, calc(100vw - 24px)); padding: 6px 12px;
+  color: #382f23; background: #f6eedc; border: 1px solid #a08764;
+  border-radius: 4px; font: 13px/1.5 system-ui, sans-serif;
+  box-shadow: 0 2px 8px #0002;
+}
+#macos-beta-capabilities summary { cursor: pointer; font-weight: 600; }
+#macos-beta-capabilities summary:focus-visible { outline: 3px solid #382f23; outline-offset: 3px; }
+#macos-beta-capabilities p { margin: 8px 0; }
+#macos-beta-status { border-top: 1px solid #a08764; padding-top: 6px; }
+@media print { #macos-beta-capabilities { display: none; } }

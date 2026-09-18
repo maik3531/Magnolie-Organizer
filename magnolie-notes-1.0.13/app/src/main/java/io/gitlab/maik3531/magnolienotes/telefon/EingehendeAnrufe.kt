@@ -11,7 +11,6 @@ import android.telecom.TelecomManager
 import android.telecom.VideoProfile
 import android.telephony.PhoneStateListener
 import android.telephony.SubscriptionManager
-import android.telephony.TelephonyCallback
 import android.telephony.TelephonyManager
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
@@ -37,19 +36,15 @@ class EingehendeAnrufe(private val context: Context) {
     private fun start() {
         if (callback != null || context.checkSelfPermission(Manifest.permission.READ_PHONE_STATE) != PackageManager.PERMISSION_GRANTED) return
         val generation = ++listenerGeneration
-        if (Build.VERSION.SDK_INT >= 31) {
-            val listener = object : TelephonyCallback(), TelephonyCallback.CallStateListener {
-                override fun onCallStateChanged(value: Int) = changed(value, "", generation)
-            }
-            callback = listener; manager?.registerTelephonyCallback(context.mainExecutor, listener)
-        } else {
-            @Suppress("DEPRECATION") val listener = object : PhoneStateListener() {
-                @Deprecated("Legacy API for Android 8-11")
-                override fun onCallStateChanged(value: Int, number: String?) =
-                    changed(value, number.orEmpty(), generation)
-            }
-            callback = listener; @Suppress("DEPRECATION") manager?.listen(listener, PhoneStateListener.LISTEN_CALL_STATE)
+        // CallStateListener deliberately omits the caller number on Android 12+.
+        // The supported legacy listener still supplies it when READ_CALL_LOG is
+        // granted. Sharing remains subject to both devices' existing grants.
+        @Suppress("DEPRECATION") val listener = object : PhoneStateListener() {
+            @Deprecated("Caller-number callback retained for Android telephony compatibility")
+            override fun onCallStateChanged(value: Int, number: String?) =
+                changed(value, number.orEmpty(), generation)
         }
+        callback = listener; @Suppress("DEPRECATION") manager?.listen(listener, PhoneStateListener.LISTEN_CALL_STATE)
         @Suppress("DEPRECATION")
         changed(manager?.callState ?: TelephonyManager.CALL_STATE_IDLE, "", generation)
     }
@@ -61,9 +56,7 @@ class EingehendeAnrufe(private val context: Context) {
         }
         listenerGeneration++
         val listener = callback
-        if (listener != null && Build.VERSION.SDK_INT >= 31)
-            manager?.unregisterTelephonyCallback(listener as TelephonyCallback)
-        else if (listener != null) {
+        if (listener != null) {
             @Suppress("DEPRECATION")
             manager?.listen(listener as PhoneStateListener, PhoneStateListener.LISTEN_NONE)
         }
@@ -165,9 +158,10 @@ class EingehendeAnrufe(private val context: Context) {
             tracked.observedNonIdle = true
             handler.removeCallbacks(outgoingTimeout)
         }
-        if (!created && tracked.state == value) return
+        val numberUpdated = tracked.number.isBlank() && suppliedNumber.isNotBlank()
+        if (numberUpdated) tracked.number = suppliedNumber
+        if (!created && tracked.state == value && !numberUpdated) return
         tracked.state = value
-        if (tracked.number.isBlank() && Build.VERSION.SDK_INT <= 30) tracked.number = suppliedNumber
         if (value == TelephonyManager.CALL_STATE_OFFHOOK && tracked.offhookMs == 0L) {
             tracked.offhookMs = now
             origins.offhook(tracked.callRef, now)
@@ -201,7 +195,7 @@ class EingehendeAnrufe(private val context: Context) {
             runCatching { manager?.isNetworkRoaming ?: true }.getOrDefault(true))
         val normalized = TelefonNummern.e164(call.number, land)
         val numberStatus = TelefonNummern.status(shared, localNumber, permission, call.number, normalized,
-            call.direction == "incoming" && Build.VERSION.SDK_INT <= 30)
+            call.direction == "incoming")
         val batteryAllowed = peer?.device_status_granted == true && peer.remote_device_status_granted
         val battery = if (batteryAllowed) DeviceStatusCollector.collect(context, call.callRef, occurred).batteryPercent else -1
         TelefonWerk.get(context).publish("incoming_call_state.event", buildJsonObject {

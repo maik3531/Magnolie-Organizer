@@ -5921,9 +5921,6 @@ msgstr ""
 "Deze eenmalige import voegt alleen contacten toe of vult ze aan. Contacten "
 "worden niet gesynchroniseerd of verwijderd."
 
-msgid "This paired phone is my own device"
-msgstr "Deze gekoppelde telefoon is mijn eigen apparaat"
-
 msgid "This person's anniversaries"
 msgstr "Jaardagen van deze persoon"
 
@@ -6975,6 +6972,9 @@ msgstr[1] "… en %(count)s extra items die ook worden afgedrukt."
 
 msgid "＋ Add appointment"
 msgstr "＋ Afspraak toevoegen"
+
+#~ msgid "This paired phone is my own device"
+#~ msgstr "Deze gekoppelde telefoon is mijn eigen apparaat"
 
 #~ msgid "As usual (print)"
 #~ msgstr "Zoals gebruikelijk (drukschrift)"

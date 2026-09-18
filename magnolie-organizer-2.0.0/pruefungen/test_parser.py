@@ -2122,7 +2122,9 @@ except RuntimeError as f:
 
 print()
 print("— Aktualisierungsprüfung —")
-pruefe(m.PROGRAMM_FASSUNG == "2.0.18", "Programmkern trägt die neue Fassung")
+with open(os.path.join(os.path.dirname(PFAD), "..", "debian", "changelog"), encoding="utf-8") as datei:
+    paket_fassung = re.match(r"magnolie-organizer \(([^)]+)\)", datei.readline()).group(1)
+pruefe(m.PROGRAMM_FASSUNG == paket_fassung, "Programmkern trägt die neue Fassung")
 desktop_pfad = os.path.abspath(os.path.join(os.path.dirname(PFAD), "..",
                                              "io.gitlab.maik3531.MagnolieOrganizer.desktop"))
 with open(desktop_pfad, encoding="utf-8") as datei:
@@ -2202,6 +2204,11 @@ update_oeffentlich = m.base64.b64encode(update_privat.public_key().public_bytes(
     update_serialisierung.Encoding.Raw,
     update_serialisierung.PublicFormat.Raw)).decode("ascii")
 update_summe = "ab" * 32
+# The signed fixtures exercise an installed 2.0.18 upgrading to 2.0.19,
+# independently of the current source release checked above.
+from unittest.mock import patch as update_patch
+update_installierte_fassung = update_patch.object(m, "PROGRAMM_FASSUNG", "2.0.18")
+update_installierte_fassung.start()
 update_paket = m.UPDATE_BASIS + "magnolie-organizer_2.0.19_all.deb"
 update_signatur = m.base64.b64encode(update_privat.sign(
     m.update_signatur_nachricht("2.0.19", update_paket, update_summe))).decode("ascii")
@@ -2461,6 +2468,7 @@ finally:
     m.shutil.which = welcher_handbuch
 
 print()
+update_installierte_fassung.stop()
 print("— Rechtschreibprüfung: Sprachen —")
 
 pruefe(m.rechtschreib_sprachen("de") == ["de_DE", "de"],

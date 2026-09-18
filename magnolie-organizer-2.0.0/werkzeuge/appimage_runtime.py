@@ -36,7 +36,8 @@ def relocate(data, old, new):
 def launch(appdir, args):
     # Informational CLI modes never create a WebView. Do not load Mesa/WebKit
     # twice or copy its library before printing help/version on headless hosts.
-    if args and args[0] == str(appdir / "usr/bin/magnolie-organizer") and any(
+    if args and args[0] in {str(appdir / "usr/bin/magnolie-organizer"),
+                            str(appdir / "usr/lib/magnolie-handbuch/magnolie-handbuch")} and any(
             arg in {"--help", "--hilfe", "-h", "--version", "-V"} for arg in args[1:]):
         os.execv(str(appdir / "usr/bin/python3"), [str(appdir / "usr/bin/python3"), *args])
     env = dict(os.environ)

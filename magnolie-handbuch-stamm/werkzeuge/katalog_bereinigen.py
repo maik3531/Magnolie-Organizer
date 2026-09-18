@@ -33,7 +33,7 @@ for _page in _pages:
         PROTECTED_MESSAGES.update(_page.get(key) for key in ("titel", "inhalt"))
 NO_WORD_SPACES = {"ar", "ja", "zh_CN"}
 HEADER_FIELDS = (
-    ("Project-Id-Version", "Magnolie Handbook 2.0.18"),
+    ("Project-Id-Version", "Magnolie Handbook 2.0.19"),
     ("Report-Msgid-Bugs-To", "maik3531@gmail.com"),
     ("POT-Creation-Date", "YEAR-MO-DA HO:MI+ZONE"),
     ("PO-Revision-Date", "2026-09-07 00:00+0200"),

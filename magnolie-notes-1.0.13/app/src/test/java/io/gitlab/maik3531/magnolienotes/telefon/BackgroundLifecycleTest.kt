@@ -283,10 +283,21 @@ class BackgroundLifecycleTest {
         }
     }
 
-    @Test fun api35NeverAdvertisesUnavailableIncomingNumberCapture() = fixture { storage, work, queue ->
+    @Test fun api35AdvertisesPermittedIncomingNumberCapture() = fixture { storage, work, queue ->
         val peer = TelefonPeer(UUID.randomUUID().toString(), "Fixture", TelefonKrypto.b64(ByteArray(32)))
         storage.savePeer(peer); storage.setIncomingCallsEnabled(true); storage.setIncomingNumberEnabled(true)
         Shadows.shadowOf(context as Application).grantPermissions(android.Manifest.permission.READ_PHONE_STATE, android.Manifest.permission.READ_CALL_LOG)
+        TelefonWerk::class.java.getDeclaredMethod("ensureControlMessages", TelefonPeer::class.java).apply { isAccessible = true }.invoke(work, peer)
+        val body = queue.due(peer.device_id, TelefonTransportArt.WIFI).first { it.payload.string("kind") == "capabilities.update" }.payload["body"] as JsonObject
+        val capability = (body["items"] as JsonObject)["incoming_call_number"] as JsonObject
+        assertEquals(JsonPrimitive(true), capability["available"])
+    }
+
+    @Test fun api35CallerNumberStillRequiresCallLogPermission() = fixture { storage, work, queue ->
+        val peer = TelefonPeer(UUID.randomUUID().toString(), "Fixture", TelefonKrypto.b64(ByteArray(32)))
+        storage.savePeer(peer); storage.setIncomingCallsEnabled(true); storage.setIncomingNumberEnabled(true)
+        Shadows.shadowOf(context as Application).grantPermissions(android.Manifest.permission.READ_PHONE_STATE)
+        Shadows.shadowOf(context as Application).denyPermissions(android.Manifest.permission.READ_CALL_LOG)
         TelefonWerk::class.java.getDeclaredMethod("ensureControlMessages", TelefonPeer::class.java).apply { isAccessible = true }.invoke(work, peer)
         val body = queue.due(peer.device_id, TelefonTransportArt.WIFI).first { it.payload.string("kind") == "capabilities.update" }.payload["body"] as JsonObject
         val capability = (body["items"] as JsonObject)["incoming_call_number"] as JsonObject

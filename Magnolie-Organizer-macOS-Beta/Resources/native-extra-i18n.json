@@ -1,0 +1,97 @@
+{
+  "ar": {
+    "Undo": "تراجع",
+    "Redo": "إعادة",
+    "Clipboard write failed.": "تعذّرت الكتابة إلى الحافظة."
+  },
+  "be": {
+    "Undo": "Адмяніць",
+    "Redo": "Паўтарыць",
+    "Clipboard write failed.": "Не ўдалося запісаць у буфер абмену."
+  },
+  "cs": {
+    "Undo": "Zpět",
+    "Redo": "Znovu",
+    "Clipboard write failed.": "Zápis do schránky se nezdařil."
+  },
+  "da": {
+    "Undo": "Fortryd",
+    "Redo": "Gentag",
+    "Clipboard write failed.": "Kunne ikke skrive til udklipsholderen."
+  },
+  "de": {
+    "Undo": "Rückgängig",
+    "Redo": "Wiederholen",
+    "Clipboard write failed.": "Schreiben in die Zwischenablage fehlgeschlagen."
+  },
+  "es": {
+    "Undo": "Deshacer",
+    "Redo": "Rehacer",
+    "Clipboard write failed.": "No se pudo escribir en el portapapeles."
+  },
+  "fr": {
+    "Undo": "Annuler",
+    "Redo": "Rétablir",
+    "Clipboard write failed.": "L’écriture dans le presse-papiers a échoué."
+  },
+  "hi": {
+    "Undo": "पूर्ववत करें",
+    "Redo": "फिर से करें",
+    "Clipboard write failed.": "क्लिपबोर्ड में लिखना विफल रहा।"
+  },
+  "hsb": {
+    "Undo": "Cofnyć",
+    "Redo": "Wospjetować",
+    "Clipboard write failed.": "Pisanje do mjezyskłada njeje so poradźiło."
+  },
+  "it": {
+    "Undo": "Annulla",
+    "Redo": "Ripristina",
+    "Clipboard write failed.": "Scrittura negli appunti non riuscita."
+  },
+  "ja": {
+    "Undo": "取り消す",
+    "Redo": "やり直す",
+    "Clipboard write failed.": "クリップボードへの書き込みに失敗しました。"
+  },
+  "nb": {
+    "Undo": "Angre",
+    "Redo": "Gjør om",
+    "Clipboard write failed.": "Kunne ikke skrive til utklippstavlen."
+  },
+  "nl": {
+    "Undo": "Ongedaan maken",
+    "Redo": "Opnieuw",
+    "Clipboard write failed.": "Schrijven naar het klembord is mislukt."
+  },
+  "pl": {
+    "Undo": "Cofnij",
+    "Redo": "Ponów",
+    "Clipboard write failed.": "Nie udało się zapisać do schowka."
+  },
+  "pt": {
+    "Undo": "Desfazer",
+    "Redo": "Refazer",
+    "Clipboard write failed.": "Falha ao escrever na área de transferência."
+  },
+  "ru": {
+    "Undo": "Отменить",
+    "Redo": "Повторить",
+    "Clipboard write failed.": "Не удалось записать в буфер обмена."
+  },
+  "tr": {
+    "Undo": "Geri al",
+    "Redo": "Yinele",
+    "Clipboard write failed.": "Panoya yazılamadı."
+  },
+  "uk": {
+    "Undo": "Скасувати",
+    "Redo": "Повторити",
+    "Clipboard write failed.": "Не вдалося записати до буфера обміну."
+  },
+  "zh-cn": {
+    "Undo": "撤销",
+    "Redo": "重做",
+    "Clipboard write failed.": "写入剪贴板失败。"
+  }
+}

@@ -28,9 +28,15 @@ const probe = fs.readFileSync(path.join(__dirname, "ui-bugfix-probe.js"), "utf8"
         }
       }
       assert.equal(b.messages.filter(m => m.cmd === "kde_sms_senden").length, 0, "UI checks must never dispatch SMS");
-      assert.equal(b.messages.filter(m => (m.cmd === "telefon_freigabe" && m.an === true) ||
+       assert.equal(b.messages.filter(m => (m.cmd === "telefon_freigabe" && m.an === true &&
+         m.name !== "selected_notifications_readonly") ||
         (m.cmd === "personal_sync_senden" && m.art === "personal_sync.custom_settings" && m.inhalt.enabled === true)).length, 0,
-        "Scheduling preference must never grant transport or personal-sync permissions");
+         "Scheduling preference must never grant transport or personal-sync permissions");
+       const notifications = b.messages.filter(m => m.cmd === "telefon_freigabe" &&
+         m.name === "selected_notifications_readonly");
+       assert.equal(notifications.length, 1, "Repeated status rendering must deduplicate the paired-phone notification default");
+       assert.equal(notifications[0].kennung, "a".repeat(32));
+       assert.equal(notifications[0].an, true);
       console.log("PASS " + relative + ": 20 locales, toggle/review/designer/live tab label");
     } finally { b.close(); }
   }

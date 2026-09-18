@@ -65,7 +65,7 @@ def analyze(number, number_status="available", country=None, language=None):
     if phonenumbers is None or geocoder is None or len(number) > 128:
         return origin
     try:
-        parsed = phonenumbers.parse(number, selected_country)
+        parsed = phonenumbers.parse(re.sub(r"^\+{2,}(?=\d)", "+", number.strip()), selected_country)
         if not phonenumbers.is_valid_number(parsed):
             return origin
         region = phonenumbers.region_code_for_number(parsed)
@@ -93,6 +93,7 @@ def match_key(number, country=None):
 def normalize(number, country=None):
     """Normalize dialling syntax, preserving explicit E.164 and unknown numbers."""
     text = re.sub(r"^tel:", "", str(number or "").strip(), flags=re.I)
+    text = re.sub(r"^\+{2,}(?=\d)", "+", text)
     extension = re.search(r"(?:\b(?:ext|extension|durchwahl)\b|[x#])\s*(\d+)\s*$", text, re.I)
     suffix = "x" + extension[1] if extension else ""
     if extension:

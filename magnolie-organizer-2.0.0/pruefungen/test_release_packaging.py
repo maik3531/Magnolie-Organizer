@@ -72,7 +72,7 @@ def candidate(tmp_path, monkeypatch):
     write(root / ".github/workflows/test.yml", "synthetic workflow")
     write(root / "tools/synthetic.py", "# synthetic tool")
     write(root / gate.LINUX / "native/akonadi-helper/main.cpp", "// SYNTHETIC TEST ONLY")
-    for name in ("FREIGABE.md", "HINWEIS.txt", "README.md", "README.DE.md", "CHANGELOG.md"):
+    for name in ("README.md", "README.DE.md", "CHANGELOG.md"):
         write(root / name, "SYNTHETIC TEST DATA, NOT RELEASE APPROVAL")
     manifest = (ROOT / "update.xml").read_text(encoding="utf-8")
     write(root / "update.xml", manifest)
@@ -80,7 +80,6 @@ def candidate(tmp_path, monkeypatch):
     groups = gate.artifact_groups(version, notes, "amd64")
     for name in sum(groups.values(), []):
         write(directory / name, "SYNTHETIC ARTIFACT: " + name)
-    write(directory / "HINWEIS.txt", (root / "HINWEIS.txt").read_text())
     # Only SDK process responses are synthetic; archive, build binding and final
     # gate validation run unchanged. No production key or SDK is accessed.
     monkeypatch.setenv('MAGNOLIE_RELEASE_CERT_SHA256', 'a' * 64)
@@ -163,7 +162,9 @@ def test_complete_synthetic_approval_and_flat_checksums(candidate):
     root, directory, approval, identity = candidate
     record, actual, groups = gate.verify(root, directory, approval, identity)
     assert actual == identity
-    assert len(sum(groups.values(), [])) == 29
+    assert len(sum(groups.values(), [])) == 28
+    assert "HINWEIS.txt" not in record["artifacts"]
+    assert "FREIGABE.md" not in record["artifacts"]
     gate.checksums(directory, "synthetic.sha256", list(record["artifacts"]))
     for line in (directory / "synthetic.sha256").read_text().splitlines():
         checksum, name = line.split("  ")
@@ -663,9 +664,13 @@ def test_promotion_boundaries_reject_drift_without_real_signer(candidate, monkey
 
 def test_real_public_bootstrap_signature_rejects_tamper():
     data = (ROOT / "update.xml").read_bytes()
-    gate.signed_manifest(data)
+    manifest = gate.signed_manifest(data)
+    version = manifest.findtext("version")
+    tampered = data.replace(f"<version>{version}</version>".encode(),
+                            f"<version>{version}.1</version>".encode(), 1)
+    assert tampered != data
     with pytest.raises(ValueError, match="public signature"):
-        gate.signed_manifest(data.replace(b"<version>2.0.17</version>", b"<version>2.0.18</version>", 1))
+        gate.signed_manifest(tampered)
 
 
 @pytest.mark.parametrize("schema,mode", [("magnolie-desktop-candidate-v1", 0o644),

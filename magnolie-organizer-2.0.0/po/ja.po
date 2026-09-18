@@ -7265,9 +7265,6 @@ msgstr ""
 "この1回限りのインポートでは、連絡先の追加または情報の補完のみを行います。連絡"
 "先の同期や削除は行いません。"
 
-msgid "This paired phone is my own device"
-msgstr "このペアリング済み電話は自分のデバイスです"
-
 msgid "This person's anniversaries"
 msgstr "この人の記念日"
 
@@ -8409,6 +8406,9 @@ msgstr[0] "… ほか %(count)s 件も印刷されます。"
 
 msgid "＋ Add appointment"
 msgstr "＋ 予定を追加"
+
+#~ msgid "This paired phone is my own device"
+#~ msgstr "このペアリング済み電話は自分のデバイスです"
 
 #~ msgid "As usual (print)"
 #~ msgstr "通常どおり（印刷）"

@@ -312,8 +312,10 @@ fun BaumBlatt(
         ) {
             Text(stringResource(R.string.personal_sync_nicht_baum), fontFamily = FontFamily.SansSerif,
                 fontWeight = FontWeight.Bold, color = Magnolie.braun)
-            Schalterzeile(stringResource(R.string.personal_sync_eigen), telefon.personalOwnDevice,
-                telefonHandlungen.beiPersonalEigen)
+            LaunchedEffect(telefon.peer?.device_id, telefon.personalOwnDevice) {
+                if (telefon.peer?.state == "paired" && !telefon.personalOwnDevice)
+                    telefonHandlungen.beiPersonalEigen(true)
+            }
             if (telefon.personalOwnDevice) {
                 Schalterzeile(stringResource(R.string.device_identifiers_share), telefon.peer?.identifier_sharing_enabled == true,
                     telefonHandlungen.beiIdentifierSharing)

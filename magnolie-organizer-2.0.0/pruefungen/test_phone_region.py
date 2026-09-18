@@ -22,6 +22,14 @@ def test_shared_phone_region_vectors():
             assert result["phone_country_name"]
 
 
+def test_repeated_leading_plus_is_tolerated_for_dialling_and_contact_matching():
+    for value in ("++4930123456", "+++4930123456", "  ++49 30 123456  "):
+        assert region.normalize(value, "DE") == "+4930123456"
+        assert region.match_key(value, "DE") == region.match_key("+4930123456", "DE")
+    for value in ("+49+30123456", "30++123456", "++", "++49"):
+        assert region.normalize(value, "DE") == ""
+
+
 def test_missing_library_and_sensitive_statuses_never_guess(monkeypatch):
     monkeypatch.setattr(region, "phonenumbers", None)
     monkeypatch.setattr(region, "geocoder", None)

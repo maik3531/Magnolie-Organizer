@@ -133,8 +133,7 @@ python3 "$LIVE_SOURCE/werkzeuge/release_sources.py" verify-copy "$STAGE/source-r
 python3 "$LIVE_SOURCE/werkzeuge/release_sources.py" verify-copy "$STAGE/source-record.json" "$STAGE/magnolie-handbuch-stamm" --component magnolie-handbuch-stamm
 MAGNOLIE_LINUX_SOURCE="$WURZEL" "$LAEUFER" "$LIVE_WINDOWS/tests/linux-live-parity.js"
 cp "$LIVE_ROOT/update.xml" "$STAGE/update.xml"
-cp "$LIVE_ROOT/.gitignore" "$LIVE_ROOT/HINWEIS.txt" \
-    "$LIVE_ROOT/FREIGABE.md" "$STAGE/"
+cp "$LIVE_ROOT/.gitignore" "$STAGE/"
 rm -rf "$WURZEL/.git" "$WURZEL/.flatpak-builder" "$WURZEL/bau" "$WURZEL/.pytest_cache" "$WURZEL/.kotlin" \
     "$WURZEL/.gradle" "$WURZEL/build" \
     "$WURZEL/debian/.debhelper" "$WURZEL/debian/debhelper-build-stamp" \
@@ -482,7 +481,7 @@ cp "$DEB" "$DSC" "$SOURCE_TAR" "$APPIMAGE" "$FLATPAK" \
     "$RPM_PAKET" "$RPM_QUELLE" "$HANDBUCH_RPM_PAKET" "$HANDBUCH_RPM_QUELLE" \
     "$AKONADI_RPM_PAKET" "$AKONADI_RPM_QUELLE" \
     "$WINDOWS_INSTALLER" "$WINDOWS_BUILDRECORD" "$WINDOWS_ZIP" "$WINDOWS_PRUEFSUMMEN" \
-    "$WINDOWS_SOURCE" "$WINDOWS_PROVENANCE" "$STAGE/HINWEIS.txt" "$CANDIDATE/"
+    "$WINDOWS_SOURCE" "$WINDOWS_PROVENANCE" "$CANDIDATE/"
 python3 - "$LIVE_ROOT" "$CANDIDATE" "$LIVE_SOURCE/werkzeuge" "$NOTES_INPUT" <<'PY'
 import pathlib
 import shutil

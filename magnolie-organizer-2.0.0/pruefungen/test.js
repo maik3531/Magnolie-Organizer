@@ -2728,8 +2728,8 @@ function knopfMit(text, wurzel) {
   const enNeu = enUeber.querySelector(".ueber-werkzeugspalte .ueber-neu");
   const neuQuellblock = js.match(
     /const NEU_IN_DIESER_FASSUNG = \{([\s\S]*?)\n\};/)?.[1] || "";
-  const neuGebiete = Array.from(neuQuellblock.matchAll(
-    /^\s*(?:"zh-cn"|[a-z]+):\s*\[/gm));
+  const neuInhalte = Function('"use strict"; return ({' + neuQuellblock + '});')();
+  const neuGebiete = Object.keys(neuInhalte);
   assert.ok(enNeu && enNeu.tagName === "SECTION" &&
     neuGebiete.length === 20 &&
     !neuQuellblock.includes("Wayland/AppImage") &&
@@ -2737,10 +2737,8 @@ function knopfMit(text, wurzel) {
     enNeu.querySelector("h4")?.textContent === "What's new in this version" &&
     enNeu.querySelector(".ueber-neu-fassung")?.textContent === webFassung &&
     enNeu.querySelectorAll("ul > li").length === 3 &&
-    enNeu.textContent.includes("First-run setup assistant") &&
-    enNeu.textContent.includes("CalDAV VTODO tasks on generic DAV servers") &&
-    enNeu.textContent.includes("safe contact imports") &&
-    enNeu.textContent.includes("safer complete archives with recovery") &&
+    neuInhalte.en.slice(1).every(text => enNeu.textContent.includes(text)) &&
+    neuInhalte.en.join(" ").includes("Magnolie Notes 1.0.15") &&
     js.includes('const NEU_IN_DIESER_FASSUNG_FASSUNG = "' + webFassung + '";') &&
     js.includes("NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG"),
   "kompakte englische Versionshinweise fehlen oder sind nicht semantisch gegliedert");
@@ -2766,12 +2764,12 @@ function knopfMit(text, wurzel) {
     enSyncNachrichten.some((nachricht) => nachricht.cmd === "update_pruefen"),
   "englische Über-Seite verändert Handbuch- oder Update-Befehl");
   const enUpdateUrl = "https://gitlab.com/maik3531/mint-forgs/-/raw/main/" +
-    "Magnolie-Organitzer/magnolie-organizer_2.0.19_all.deb";
-  enSW.App.updateErgebnis({ ok: true, aktuell: false, version: "2.0.19",
+    "Magnolie-Organitzer/magnolie-organizer_2.0.20_all.deb";
+  enSW.App.updateErgebnis({ ok: true, aktuell: false, version: "2.0.20",
     url: enUpdateUrl, sha256: "ab".repeat(32), fehler: "" });
   assert.ok(enSD.querySelector("#update-stand").textContent.includes(
-    "New version 2.0.19 is available") &&
-    enSD.querySelector("#update-herunterladen").textContent.includes("2.0.19") &&
+    "New version 2.0.20 is available") &&
+    enSD.querySelector("#update-herunterladen").textContent.includes("2.0.20") &&
     enSD.querySelector(".update-pruefsumme").textContent.includes("ab".repeat(32)) &&
     enSD.querySelector(".update-pruefsumme").textContent.includes("sha256sum"),
   "englischer neuer Update-Stand fehlt");
@@ -2808,11 +2806,11 @@ function knopfMit(text, wurzel) {
   "bestätigtes Update startet keinen parameterlosen geprüften Download: " +
     JSON.stringify(enSyncNachrichten.slice(-8)));
   enSW.App.updateHeruntergeladen({ ok: true, bereit: true,
-    version: "2.0.19", artifact: "deb" });
+    version: "2.0.20", artifact: "deb" });
   assert.ok(enSyncNachrichten.some((nachricht) => nachricht.cmd === "update_installieren"),
     "verifiziertes Update wird nicht zur Installation vorbereitet");
   enSW.App.updateInstallationVorbereitet({ ok: true, bereitZumBeenden: true,
-    version: "2.0.19", artifact: "deb" });
+    version: "2.0.20", artifact: "deb" });
   assert.ok(enSyncNachrichten.some((nachricht) => nachricht.cmd === "beenden"),
     "nach vorbereiteter Installation startet der sichere Beenden- und Neustartablauf nicht");
   enSW.App.updateGeoeffnet({ ok: false, fehler: "" });
@@ -6605,10 +6603,10 @@ function knopfMit(text, wurzel) {
   assert.strictEqual(abstand, 2, "das Eselsohr blättert nicht zwei Tage");
   knopfMit("Heute").click();
 
-  /* Klick auf eine freie Stunde legt einen Termin mit dieser Zeit an */
+  /* Belegungsmarkierungen sperren den Stundenhintergrund nicht für neue Termine. */
   const freieStunde = $$("#inhalt-links .stunden-feld").find(
-    (f2) => !f2.children.length);
-  assert.ok(freieStunde, "keine freie Stunde gefunden");
+    (f2) => !f2.querySelector("button"));
+  assert.ok(freieStunde, "kein Stundenhintergrund ohne Terminknopf gefunden");
   freieStunde.click();
   assert.ok($("#termin-schleier"), "Klick auf freie Stunde öffnet kein Blatt");
   assert.ok(/^\d{2}:00$/.test($("#tb-zeit").value),
@@ -7069,7 +7067,7 @@ function knopfMit(text, wurzel) {
   assert.ok(ueberText.includes("Version 3"), "die Lizenzfassung fehlt");
   assert.ok($(".ueber-fassung").textContent.includes("Fassung"),
     "die Programmfassung fehlt");
-  assert.ok($(".ueber-fassung").textContent.includes("2.0.18"),
+  assert.ok($(".ueber-fassung").textContent.includes("2.0.19"),
     "die neue Programmfassung fehlt");
   assert.ok($(".ueber-blume"), "die Magnolienblüte fehlt");
   const beschreibung = $(".ueber-beschreibung");
@@ -7089,18 +7087,18 @@ function knopfMit(text, wurzel) {
     "neben der gemeinsamen Aktualisierungsprüfung ist ein zweiter Prüfknopf sichtbar");
   assert.ok($("#handbuch-stand").textContent.includes("nicht installiert"),
     "der Handbuchstatus nennt die fehlende Installation nicht");
-  assert.ok(!T.istNeuereFassung("2.0.1") && !T.istNeuereFassung("2.0.18") &&
-    T.istNeuereFassung("2.0.19"),
+  assert.ok(!T.istNeuereFassung("2.0.1") && !T.istNeuereFassung("2.0.19") &&
+    T.istNeuereFassung("2.0.20"),
     "Fassungsvergleich der Oberfläche stimmt nicht");
   assert.ok(T.vergleicheText("Termin 2", "Termin 10") < 0,
     "der regionale Collator sortiert Zahlen weiterhin rein lexikografisch");
-  w.App.updateErgebnis({ ok: true, aktuell: false, version: "2.0.19",
+  w.App.updateErgebnis({ ok: true, aktuell: false, version: "2.0.20",
     url: "https://gitlab.com/maik3531/mint-forgs/-/raw/main/" +
-      "Magnolie-Organitzer/magnolie-organizer_2.0.19_all.deb" });
-  assert.ok($("#update-stand").textContent.includes("2.0.19"),
+      "Magnolie-Organitzer/magnolie-organizer_2.0.20_all.deb" });
+  assert.ok($("#update-stand").textContent.includes("2.0.20"),
     "gefundene Fassung erscheint nicht unter Über");
   assert.ok($("#update-herunterladen"), "Downloadknopf für neue Fassung fehlt");
-  assert.strictEqual(T.daten().einstellungen.update.letzteVersion, "2.0.19",
+  assert.strictEqual(T.daten().einstellungen.update.letzteVersion, "2.0.20",
     "Prüfstand wird nicht gespeichert");
   $("#update-automatisch").checked = false;
   $("#update-automatisch").dispatchEvent(new w.Event("change", { bubbles: true }));
@@ -8566,6 +8564,7 @@ function knopfMit(text, wurzel) {
   grantDom.window.App.telefonStand({ peers: [grantPeer] });
   const grantBefehle = grantNachrichten.filter((nachricht) => nachricht.cmd === "telefon_freigabe");
   assert.deepStrictEqual(grantBefehle.map((nachricht) => [nachricht.kennung, nachricht.name, nachricht.an]), [
+    ["telefon-grants", "selected_notifications_readonly", true],
     ["telefon-grants", "incoming_call_state", true],
     ["telefon-grants", "incoming_call_number", true],
     ["telefon-grants", "answer_call", true],
@@ -8574,7 +8573,7 @@ function knopfMit(text, wurzel) {
   assert.strictEqual(grantDom.window.OrganizerTest.daten().einstellungen.adressen.kommunikation.anruf.telefonId,
     "telefon-grants", "alte Anrufoptionen werden nicht sicher an das vorhandene Telefon gebunden");
   grantDom.window.App.telefonStand({ peers: [grantPeer] });
-  assert.strictEqual(grantNachrichten.filter((nachricht) => nachricht.cmd === "telefon_freigabe").length, 4,
+  assert.strictEqual(grantNachrichten.filter((nachricht) => nachricht.cmd === "telefon_freigabe").length, 5,
     "unveränderter Telefonstand erzeugt eine Freigabeschleife");
   grantDom.window.App.telefonStand({ peers: [Object.assign({}, grantPeer, {
     device_id: "anderes-telefon", local_grants: { grants: {
@@ -9169,7 +9168,7 @@ function knopfMit(text, wurzel) {
     neueStatusAnfrage.requestId !== ersteStatusAnfrage.requestId,
   "Aktualisieren fordert den Status mit einer neuen Anfragekennung ueber die native Bridge an");
   assert.ok(!geraetD.querySelector("#geraet-dialog").textContent.match(
-    /IP|MAC|SSID/i),
+    /\b(?:IP|MAC|SSID)\b/i),
   "der Geraetedialog darf weiterhin keine privaten Netzdaten enthalten");
   const kennungsFelder = Array.from(geraetD.querySelectorAll("[data-identifier]"));
   assert.deepStrictEqual(kennungsFelder.map((feld) => feld.dataset.identifier).sort(),
@@ -9180,6 +9179,9 @@ function knopfMit(text, wurzel) {
   assert.ok(personalBereich && !personalBereich.open && personalBereich.querySelector("summary"),
     "persönliche Synchronisierung ist nicht standardmäßig eingeklappt");
   const personalHaken = Array.from(personalBereich.querySelectorAll("input"));
+  assert.ok(!personalBereich.textContent.includes("This paired phone is my own device") &&
+    geraetNachrichten.some(n => n.cmd === "personal_sync_einstellungen" && n.eigen === true),
+    "Die bestehende Kopplung ersetzt die zusätzliche Eigentumscheckbox");
   personalHaken[0].click();
   personalHaken[1].click();
   const wartenderPersonalStand = geraetD.querySelector("[data-personal-sync-peer]").textContent;
@@ -9196,10 +9198,10 @@ function knopfMit(text, wurzel) {
   assert.deepStrictEqual(personalWahl.map((button) => button.textContent), ["Alle", "Keine"],
     "Personal Sync bietet beim Aufklappen keine Alle-/Keine-Auswahl");
   personalWahl[1].click();
-  assert.ok(Array.from(personalBereich.querySelectorAll("input")).slice(1, 4)
+  assert.ok(Array.from(personalBereich.querySelectorAll("input")).slice(0, 3)
     .every((haken) => !haken.checked), "Keine schaltet nicht alle Sync-Inhalte ab");
   personalWahl[0].click();
-  assert.ok(Array.from(personalBereich.querySelectorAll("input")).slice(1, 4)
+  assert.ok(Array.from(personalBereich.querySelectorAll("input")).slice(0, 3)
     .every((haken) => haken.checked), "Alle schaltet nicht alle Sync-Inhalte ein");
   assert.strictEqual(personalBereich.querySelector("[data-personal-custom-peer]").checked, false,
     "Alle darf die getrennte Custom-Freigabe nicht einschalten");

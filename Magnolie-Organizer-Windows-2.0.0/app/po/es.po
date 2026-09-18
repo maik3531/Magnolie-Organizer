@@ -5934,9 +5934,6 @@ msgstr ""
 "Esta importación puntual solo añade o completa contactos. No sincroniza ni "
 "elimina contactos."
 
-msgid "This paired phone is my own device"
-msgstr "Este teléfono emparejado es mi propio dispositivo"
-
 msgid "This person's anniversaries"
 msgstr "Aniversarios de esta persona"
 
@@ -6986,6 +6983,9 @@ msgstr[1] "… y %(count)s elementos más que también se imprimirán."
 
 msgid "＋ Add appointment"
 msgstr "＋ Añadir cita"
+
+#~ msgid "This paired phone is my own device"
+#~ msgstr "Este teléfono emparejado es mi propio dispositivo"
 
 #~ msgid "As usual (print)"
 #~ msgstr "Como siempre (imprimir)"

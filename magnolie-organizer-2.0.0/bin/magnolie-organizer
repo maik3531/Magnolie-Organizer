@@ -112,7 +112,7 @@ if __name__ == "__main__":
     _crash_component = ("background-service" if any(argument in (
         "--hintergrunddienst", "--background-service") for argument in sys.argv[1:])
         else "organizer")
-    _crash_reporting_install("magnolie-organizer", "2.0.18", _crash_component)
+    _crash_reporting_install("magnolie-organizer", "2.0.19", _crash_component)
 if any(argument in ("--hintergrunddienst", "--background-service")
        for argument in sys.argv[1:]):
     from magnolie_hintergrund import daemon_main
@@ -247,7 +247,7 @@ def tray_system_verfuegbar(desktop=None, aktivierte_erweiterungen=None):
 PROGRAMM_NAME = "magnolie-organizer"
 HANDBUCH_NAME = "magnolie-handbuch"
 FENSTER_TITEL = "Magnolie Organizer"
-PROGRAMM_FASSUNG = "2.0.18"
+PROGRAMM_FASSUNG = "2.0.19"
 ALTER_NAME = "organizer-klassik"
 I18N_DOMAIN = "magnolie-organizer"
 
@@ -633,9 +633,10 @@ def finde_web_verzeichnis():
         kandidaten.append(aus_umgebung)
     skript = os.path.dirname(os.path.realpath(__file__))
     kandidaten += [
-        "/usr/share/magnolie-organizer/web",
         os.path.join(skript, "..", "share", "magnolie-organizer", "web"),
+        os.path.join(skript, "..", "web"),
         os.path.join(skript, "web"),
+        "/usr/share/magnolie-organizer/web",
     ]
     for pfad in kandidaten:
         pfad = os.path.abspath(pfad)
@@ -8191,7 +8192,11 @@ def handbuch_version(befehls_laeufer=None):
         befehle.append(["dpkg-query", "-W", "-f=${Version}", HANDBUCH_NAME])
     starter = shutil.which(HANDBUCH_NAME)
     if starter:
-        befehle.append([starter, "--version"])
+        if os.environ.get("APPDIR") and os.path.commonpath((
+                os.path.realpath(starter), os.path.realpath(os.environ["APPDIR"]))) == os.path.realpath(os.environ["APPDIR"]):
+            befehle.insert(0, [starter, "--version"])
+        else:
+            befehle.append([starter, "--version"])
     for befehl in befehle:
         try:
             text = laeufer(befehl, stderr=subprocess.DEVNULL, timeout=3,
@@ -8439,7 +8444,8 @@ def _meldung_platzieren(fenster):
 
 def magnolie_meldung(kopf, rumpf, wartezeit=60, mit_aktion=True,
                      eigene_schleife=True, aktionsname=None, aktion=None,
-                     foto=None, initialen="", aktionen=(), gueltig=None, bei_ausbleiben=None, bei_anzeigen=None):
+                     foto=None, initialen="", aktionen=(), gueltig=None, bei_ausbleiben=None, bei_anzeigen=None,
+                     bei_schliessen=None):
     """Zeigt die Erinnerung als kleines Papierblatt im Stil des Organizers –
     auch dann, wenn das Programm selbst gar nicht läuft.
 
@@ -8458,6 +8464,8 @@ def magnolie_meldung(kopf, rumpf, wartezeit=60, mit_aktion=True,
             return False
 
         fenster = Gtk.Window(type=Gtk.WindowType.TOPLEVEL)
+        if bei_schliessen is not None:
+            fenster.connect("destroy", lambda *_egal: bei_schliessen())
         fenster.get_style_context().add_class("magnolie-meldung")
         fenster.set_title(FENSTER_TITEL)
         fenster.set_decorated(False)
@@ -8528,7 +8536,7 @@ def magnolie_meldung(kopf, rumpf, wartezeit=60, mit_aktion=True,
         knoepfe = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=7)
         knoepfe.set_halign(Gtk.Align.END)
         for symbol, beschriftung, ausfuehren in aktionen:
-            taste = Gtk.Button(label=symbol)
+            taste = Gtk.Button(label=(symbol + " " + beschriftung) if symbol in ("\u260e", "\u2715") else symbol)
             taste.set_tooltip_text(beschriftung)
             taste.get_accessible().set_name(beschriftung)
             taste.get_style_context().add_class("papier")
@@ -21071,6 +21079,9 @@ class Fenster(_FENSTER_BASIS):
                 self._aktueller_anruf_hinweis = dict(nutzlast)
             if nutzlast.get("state") != "ringing":
                 _ANRUF_LAUTSTAERKE.restore(_anruf_ruf)
+                stoppen = getattr(self, "_anruf_hinweiston_stoppen", None)
+                if stoppen:
+                    stoppen(_anruf_ruf)
             if not self._gesperrt:
                 with self._daten_sperre:
                     settings = (self._aktuelle_daten or {}).get("einstellungen", {})
@@ -21627,6 +21638,52 @@ class Fenster(_FENSTER_BASIS):
         delivery = current.get("call_delivery")
         claimed = False
         deadline = time.monotonic() + 60
+        ton_stop = threading.Event()
+        ton_lock = threading.Lock()
+        ton_prozess = {"kind": None, "started": False}
+        def ton_stoppen(ref=None):
+            if ref is not None and ref != call_ref:
+                return
+            ton_stop.set()
+            with ton_lock:
+                prozess = ton_prozess["kind"]
+                if prozess is not None and prozess.poll() is None:
+                    try:
+                        prozess.terminate()
+                    except OSError:
+                        pass
+        def ton_starten():
+            if ton_prozess["started"] or ton_stop.is_set() or not gueltig():
+                return
+            ton_prozess["started"] = True
+            vorher = getattr(self, "_anruf_hinweiston_stoppen", None)
+            if vorher:
+                vorher()
+            self._anruf_hinweiston_stoppen = ton_stoppen
+            def starter(argumente):
+                if not gueltig():
+                    raise OSError("call alert ended")
+                with ton_lock:
+                    if ton_stop.is_set():
+                        raise OSError("call alert ended")
+                    prozess = subprocess.Popen(argumente, stdin=subprocess.DEVNULL,
+                        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                    ton_prozess["kind"] = prozess
+                    return prozess
+            def spielen():
+                try:
+                    ton_abspielen(starter=starter, eigener=True)
+                    prozess = ton_prozess["kind"]
+                    if prozess is not None:
+                        try:
+                            prozess.wait(timeout=15)
+                        except subprocess.TimeoutExpired:
+                            prozess.kill()
+                            prozess.wait()
+                except Exception:
+                    ton_stoppen()
+            threading.Thread(target=spielen, daemon=True,
+                name="magnolie-call-chime").start()
         def gueltig():
             latest = getattr(self, "_aktueller_anruf_hinweis", {})
             return (latest.get("device_id") == kennung and latest.get("call_ref") == call_ref
@@ -21639,6 +21696,7 @@ class Fenster(_FENSTER_BASIS):
             try:
                 if not gueltig() or not self._telefon or not self._telefon.call_action(token):
                     raise RuntimeError("stale call action")
+                ton_stoppen()
                 if aus_system:
                     self._tray_zeigen()
             except Exception:
@@ -21661,7 +21719,7 @@ class Fenster(_FENSTER_BASIS):
                 _("Answer") if action == "answer" else _("Reject"),
                 (lambda token=tokens[action]: ausfuehren(token)) if action in tokens else None)
                 for action in ("answer", "reject")]
-            actions.append(("\U0001f515", _("Silence this alert"), lambda: None))
+            actions.append(("\U0001f515", _("Silence this alert"), ton_stoppen))
             def system():
                 if not gueltig() or delivery and not self._telefon.call_alert(delivery, "current"):
                     return
@@ -21676,22 +21734,31 @@ class Fenster(_FENSTER_BASIS):
                 self._call_system_key = notification_key
                 native_actions = tuple((action, _("Answer") if action == "answer" else _("Reject"),
                     lambda token=token: ausfuehren(token, True)) for action, token in tokens.items())
-                shown = notifications.show(titel, text, native_actions, key=notification_key)
+                shown = notifications.show(titel, text, native_actions, key=notification_key,
+                    on_close=ton_stoppen)
                 if not shown:
                     shown = notifications.show(titel, text, key=notification_key)
                 if delivery:
                     self._telefon.call_alert(delivery, "shown" if shown else "failed")
+                if shown:
+                    ton_starten()
                 def withdraw():
                     if gueltig():
                         return True
                     notifications.withdraw(notification_key)
+                    ton_stoppen()
                     return False
                 GLib.timeout_add(300, withdraw)
+            def gezeigt():
+                if delivery and not self._telefon.call_alert(delivery, "shown"):
+                    return False
+                ton_starten()
+                return True
             try:
                 if magnolie_meldung(titel, text, dauer, False,
                         eigene_schleife=False, foto=foto, initialen=initialen,
                         aktionen=actions, gueltig=gueltig, bei_ausbleiben=system,
-                        bei_anzeigen=lambda: not delivery or self._telefon.call_alert(delivery, "shown")):
+                        bei_anzeigen=gezeigt, bei_schliessen=ton_stoppen):
                     return False
             except Exception:
                 pass

@@ -2,6 +2,12 @@
 
 <!-- What does this change and why? / Was wird warum geändert? -->
 
+## Linked issue / Zugehöriges Issue
+
+Refs #
+
+<!-- Use Closes #N only when all completion criteria are met. / Closes #N nur bei vollständig erfüllten Abschlusskriterien. -->
+
 ## Component / Bestandteil
 
 <!-- Linux, Windows, Android, handbook / Handbuch, shared / gemeinsam -->

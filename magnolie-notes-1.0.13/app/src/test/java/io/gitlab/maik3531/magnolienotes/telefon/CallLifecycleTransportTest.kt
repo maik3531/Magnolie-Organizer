@@ -101,14 +101,15 @@ class CallLifecycleTransportTest {
     }
     @After fun cleanup() {
         work.serviceStopped()
+        (field(TelefonQueue::class.java, "helper").get(queue) as TelefonDatenbank).close()
         field(TelefonWerk::class.java, "instance").set(null, null)
         field(TelefonAblage::class.java, "instance").set(null, null)
         Security.removeProvider(provider.name)
     }
-    private fun state(value: Int, generation: Int? = null) {
+    private fun state(value: Int, generation: Int? = null, number: String = "") {
         Shadows.shadowOf(context.getSystemService(TelephonyManager::class.java)).setCallState(value)
         EingehendeAnrufe::class.java.getDeclaredMethod("changed", Int::class.javaPrimitiveType,
-            String::class.java, Int::class.javaPrimitiveType).apply { isAccessible = true }.invoke(calls, value, "",
+            String::class.java, Int::class.javaPrimitiveType).apply { isAccessible = true }.invoke(calls, value, number,
             generation ?: field(EingehendeAnrufe::class.java, "listenerGeneration").getInt(calls))
     }
     private fun events() = queue.due(peerId, TelefonTransportArt.WIFI).map { it.payload }
@@ -143,6 +144,40 @@ class CallLifecycleTransportTest {
             add(TelefonKanonisch.json.parseToJsonElement(clear.decodeToString()).jsonObject)
         } }
     }
+    @Test fun modernAndroidPublishesPermittedCallerNumberArrivingAfterRinging() {
+        storage.setIncomingNumberEnabled(true)
+        storage.savePeer(storage.peers().peer!!.copy(remote_incoming_call_number_granted = true))
+        Shadows.shadowOf(context as Application).grantPermissions(Manifest.permission.READ_CALL_LOG)
+        state(TelephonyManager.CALL_STATE_RINGING)
+        val initial = current()
+        state(TelephonyManager.CALL_STATE_RINGING, number = "+12025550123")
+        val updated = current()
+        assertEquals(initial.string("call_ref"), updated.string("call_ref"))
+        assertTrue(updated.long("revision") > initial.long("revision"))
+        assertEquals("available", updated.string("number_status"))
+        assertEquals("+12025550123", updated.string("number"))
+    }
+
+    @Test fun modernAndroidDoesNotShareCallerNumberWithoutRemoteGrant() {
+        storage.setIncomingNumberEnabled(true)
+        Shadows.shadowOf(context as Application).grantPermissions(Manifest.permission.READ_CALL_LOG)
+        state(TelephonyManager.CALL_STATE_RINGING, number = "+12025550123")
+        assertEquals("", current().string("number"))
+        assertNotEquals("available", current().string("number_status"))
+    }
+
+    @Test fun modernAndroidRegisteredListenerReceivesCallerNumber() {
+        storage.setIncomingNumberEnabled(true)
+        storage.savePeer(storage.peers().peer!!.copy(remote_incoming_call_number_granted = true))
+        Shadows.shadowOf(context as Application).grantPermissions(Manifest.permission.READ_CALL_LOG)
+        calls.serviceStarted(true)
+        Shadows.shadowOf(context.getSystemService(TelephonyManager::class.java))
+            .setCallState(TelephonyManager.CALL_STATE_RINGING, "+12025550123")
+        Shadows.shadowOf(android.os.Looper.getMainLooper()).idle()
+        assertEquals("available", current().string("number_status"))
+        assertEquals("+12025550123", current().string("number"))
+    }
+
     @Test fun outgoingKeepsDirectionAndIdAcrossInitialIdleWireStartOffhookIdle() {
         Shadows.shadowOf(context as Application).grantPermissions(Manifest.permission.CALL_PHONE)
         Shadows.shadowOf(context.packageManager).setSystemFeature(PackageManager.FEATURE_TELEPHONY, true)

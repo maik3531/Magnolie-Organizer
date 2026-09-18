@@ -39,8 +39,15 @@ class BlueZ(audio.NativeBlueZAudio):
     def objects(self): return copy.deepcopy(self.values)
 
     def connect_profile(self, path):
+        already_connected = self.values[path]["org.bluez.Device1"]["Connected"]
+        self.values[path]["org.bluez.Device1"]["Connected"] = True
         self.calls.append((path, "ConnectProfile", audio.AG))
         self.change()
+        return not already_connected
+
+    def disconnect_profile(self, path):
+        self.calls.append((path, "DisconnectProfile", audio.AG))
+        self.values[path]["org.bluez.Device1"]["Connected"] = False
 
 
 class Pulse:
@@ -136,7 +143,7 @@ def test_native_full_sequence_correct_roles_owned_duplex_and_cleanup(route):
     assert pulse.values["info"]["default_sink_name"] == "pc_speaker"
 
 
-@pytest.mark.parametrize("failure", ["rfcomm", "a2dp", "wrong_local_role", "untrusted", "unpaired", "off", "disconnected", "wrong_address", "ambiguous_address"])
+@pytest.mark.parametrize("failure", ["rfcomm", "a2dp", "wrong_local_role", "untrusted", "unpaired", "off", "wrong_address", "ambiguous_address"])
 def test_bluez_requires_actual_bound_connected_peer_and_hf_role(route, failure):
     router, bluez, pulse, context = route
     device = bluez.values[PATH]["org.bluez.Device1"]
@@ -146,12 +153,61 @@ def test_bluez_requires_actual_bound_connected_peer_and_hf_role(route, failure):
     elif failure == "off": bluez.values["/org/bluez/hci2"]["org.bluez.Adapter1"]["Powered"] = False
     elif failure == "untrusted": device["Trusted"] = False
     elif failure == "unpaired": device["Paired"] = False
-    elif failure == "disconnected": device["Connected"] = False
     elif failure == "wrong_address": device["Address"] = "11:22:33:44:55:66"
     elif failure == "ambiguous_address": bluez.values[PATH + "_duplicate"] = copy.deepcopy(bluez.values[PATH])
     assert not router.probe(ADDRESS)["available"]
     assert not router.update(lambda: context.copy())["active"]
     assert not bluez.calls and not pulse.commands
+
+
+def test_disconnected_trusted_phone_connects_on_call_and_disconnects_on_end(route):
+    router, bluez, pulse, context = route
+    bluez.values[PATH]["org.bluez.Device1"]["Connected"] = False
+    assert router.probe(ADDRESS)["reason"] == "connection_required"
+    assert not bluez.calls
+    assert router.update(lambda: context.copy())["active"]
+    assert router.connection_hold
+    assert router.update(lambda: None)["state"] == "inactive"
+    assert bluez.calls == [(PATH, "ConnectProfile", audio.AG), (PATH, "DisconnectProfile", audio.AG)]
+    assert not router.connection_hold
+
+
+@pytest.mark.parametrize("already_connected", [False, True])
+def test_pipewire_native_gateway_streams_are_not_duplicated(route, already_connected):
+    router, bluez, pulse, context = route
+    bluez.values[PATH]["org.bluez.Device1"]["Connected"] = already_connected
+    pulse.values["cards"] = []
+    pulse.values["sources"] = [pulse.values["sources"][1]]
+    pulse.values["sinks"] = [pulse.values["sinks"][1]]
+    common = {"api.bluez5.address": ADDRESS, "api.bluez5.profile": "headset-audio-gateway"}
+    pulse.values["sink-inputs"] = [dict(sink=24, corked=False, mute=False, owner_module=None,
+        properties=dict(common, **{"factory.name": "api.bluez5.sco.source"}))]
+    pulse.values["source-outputs"] = [dict(source=51, corked=False, mute=False, owner_module=None,
+        properties=dict(common, **{"factory.name": "api.bluez5.sco.sink"}))]
+    assert router.update(lambda: context.copy())["reason"] == "native_duplex_route_observed"
+    assert router.update(lambda: context.copy())["active"]
+    assert not any(command[0] == "load-module" for command in pulse.commands)
+    assert router.update(lambda: None)["state"] == "inactive"
+    assert bluez.calls == ([] if already_connected else
+        [(PATH, "ConnectProfile", audio.AG), (PATH, "DisconnectProfile", audio.AG)])
+
+
+def test_call_ending_during_automatic_connection_releases_only_created_profile(route):
+    router, bluez, pulse, context = route
+    bluez.values[PATH]["org.bluez.Device1"]["Connected"] = False
+    bluez.change = context.clear
+    assert not router.update(lambda: context.copy() or None)["active"]
+    assert bluez.calls == [(PATH, "ConnectProfile", audio.AG), (PATH, "DisconnectProfile", audio.AG)]
+    assert not any(command[0] == "load-module" for command in pulse.commands)
+
+
+def test_bluez_restart_does_not_disconnect_a_replacement_connection(route):
+    router, bluez, pulse, context = route
+    bluez.values[PATH]["org.bluez.Device1"]["Connected"] = False
+    assert router.update(lambda: context.copy())["active"]
+    bluez.owner = ":1.999"
+    assert router.restore()
+    assert bluez.calls == [(PATH, "ConnectProfile", audio.AG)]
 
 
 @pytest.mark.parametrize("change", ["revision", "call_ref", "identity", "address", "session", "consent", "idle"])
@@ -202,7 +258,9 @@ def test_pulse_actual_properties_fail_closed(route, failure, monkeypatch):
     elif failure == "large_json": router.pulse.runner = lambda _: " " * (1024 * 1024 + 1)
     assert not router.update(lambda: context.copy())["active"]
     assert not [cmd for cmd in pulse.commands if cmd[0] == "load-module"]
-    if failure in ("wrong_card", "wrong_role", "missing_tools", "bad_json", "large_json", "monitor", "wrong_default", "muted"):
+    if failure in ("wrong_card", "wrong_role"):
+        assert bluez.calls == [(PATH, "ConnectProfile", audio.AG)]
+    if failure in ("missing_tools", "bad_json", "large_json", "monitor", "wrong_default", "muted"):
         assert not bluez.calls
 
 
@@ -404,7 +462,8 @@ def test_native_source_and_packaging_boundaries():
     assert "--socket=system-bus" not in manifest["finish-args"]
     native = (BIN / "magnolie_anruf_audio.py").read_text()
     assert "bluetoothctl" not in native and "set-default-" not in native and '"move-' not in native
-    assert '"Disconnect"' not in native and '"DisconnectProfile"' not in native
+    assert '"Disconnect"' not in native
+    assert '"DisconnectProfile", GLib.Variant("(s)", (AG,))' in native
     assert '"Pair"' not in native and '"Set"' not in native
 
 

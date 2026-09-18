@@ -1,0 +1,11 @@
+.gradle/
+**/build/
+artifacts/
+local.properties
+*.jks
+node_modules/
+.debug-signing/
+
+# Private working reports, not product source
+/*VERIFICATION*.md
+/*20260914.md

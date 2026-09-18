@@ -340,7 +340,8 @@ def test_native_alert_uses_only_local_bound_contact_and_real_action_tokens(servi
                    telefone=[{"wert": "+12025550123"}])
     owner = SimpleNamespace(_aktueller_anruf_hinweis=current, _telefon=service,
         _daten_sperre=threading.Lock(), _aktuelle_daten={"kontakte": [contact]}, _tray_zeigen=lambda: None)
-    namespace = dict(re=re, base64=base64, binascii=binascii, time=SimpleNamespace(time=lambda: 1, monotonic=lambda: 1),
+    namespace = dict(re=re, base64=base64, binascii=binascii, threading=threading,
+        ton_abspielen=lambda **kwargs: None, time=SimpleNamespace(time=lambda: 1, monotonic=lambda: 1),
         _=lambda text: text, _REGIONAL={"homeCountry": "US", "language": "en"},
         telefon_schluessel=lambda value, country: value, _telefon_liste=lambda value: value["telefone"],
         telefon_anreichern=lambda *args: {"phone_display_hint": ""},
@@ -459,7 +460,8 @@ def test_native_gui_before_app_init_claims_actual_ipc_delivery(service, supporte
         panels.append(kwargs)
         if supported: assert kwargs["bei_anzeigen"]()
         return supported
-    namespace = dict(re=re, base64=base64, binascii=binascii, time=SimpleNamespace(time=lambda: 1, monotonic=lambda: 1),
+    namespace = dict(re=re, base64=base64, binascii=binascii, threading=threading,
+        ton_abspielen=lambda **kwargs: None, time=SimpleNamespace(time=lambda: 1, monotonic=lambda: 1),
         _=lambda text: text, _REGIONAL={"homeCountry": "US", "language": "en"},
         telefon_schluessel=lambda *args: "", telefon_anreichern=lambda payload, *args: dict(payload, phone_display_hint=""),
         GLib=glib, magnolie_meldung=popup)

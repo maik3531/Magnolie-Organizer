@@ -40,6 +40,7 @@ AUTOSTART_NAME = "io.gitlab.maik3531.MagnolieOrganizer.Background.desktop"
 MAX_IPC_MESSAGE = 64 * 1024
 MAX_PHONE_ARGUMENTS = 2 * 1024 * 1024
 MAX_PHONE_MESSAGE = 72 * 1024 * 1024
+MAX_CONTACT_MESSAGE = 8 * 1024 * 1024
 MAX_EVENTS = 256
 MAX_IPC_HANDLERS = 8
 SMS_REPLY_LIFETIME_MS = 10 * 60 * 1000
@@ -624,6 +625,8 @@ class BackgroundDiagnostics:
             "device": self._device(payload),
             "items": 1,
             "payload_text_bytes": text_bytes,
+            "notify_requested": payload.get("notify") is True,
+            "read": payload.get("read") is True,
         }
         self.logger.info(json.dumps(value, ensure_ascii=True, sort_keys=True,
                                     separators=(",", ":")))
@@ -723,6 +726,7 @@ def _request_shape(operation, arguments):
         "gui_visibility": {"subscriber", "visible"},
         "gui_readiness": {"subscriber", "ready"},
         "send_sms": {"destination", "message", "device_id"},
+        "contact_uids": {"device_id"}, "contact_vcards": {"uids", "device_id"},
         "begin_pairing": {"device_id", "replace_stored"},
         "complete_pairing": {"device_id"}, "confirm_pairing": {"code_matches"},
         "configure_receive": {"clipboard_enabled", "file_enabled", "device_id",
@@ -1025,7 +1029,9 @@ class IPCServer:
                     if isinstance(self.status_extra, dict):
                         result.update(self.status_extra)
                     result.update(lifecycle=self.lifecycle,
-                                  settings_revision=self.settings_revision)
+                                  settings_revision=self.settings_revision,
+                                  gui_connected=self.gui_connected(),
+                                  gui_notification_ready=self.gui_notification_ready())
                 elif operation == "set_settings":
                     with self._mutation_lock:
                         result = self.settings_setter(arguments["settings"])
@@ -1105,7 +1111,8 @@ class IPCServer:
                         background.update(lifecycle=self.lifecycle,
                                           settings_revision=self.settings_revision)
                         result = dict(result, background=background)
-                maximum = MAX_PHONE_MESSAGE if operation.startswith("phone_") else MAX_IPC_MESSAGE
+                maximum = (MAX_PHONE_MESSAGE if operation.startswith("phone_") else
+                    MAX_CONTACT_MESSAGE if operation in ("contact_uids", "contact_vcards") else MAX_IPC_MESSAGE)
                 _write_message(connection, {"ok": True, "result": _json_safe(result)}, maximum)
             except Exception as error:
                 try:
@@ -1208,6 +1215,7 @@ def ipc_request(operation, arguments=None, path=None, timeout=6):
                 raise IPCError("IPC server has a different user")
         _write_message(connection, {"op": operation, "args": arguments or {}})
         response = _read_message(connection, MAX_PHONE_MESSAGE if operation.startswith("phone_")
+                                 else MAX_CONTACT_MESSAGE if operation in ("contact_uids", "contact_vcards")
                                  else MAX_IPC_MESSAGE)
     finally:
         connection.close()
@@ -1270,6 +1278,7 @@ class KDEConnectProxy:
                 {"subscriber": self._subscriber}, self.path)
             self._cursor = max(0, int(subscription.get("cursor", 0)))
             self._visible = None
+            self._ready = None
             self._event_stop.clear()
             self._event_thread = threading.Thread(target=self._event_loop, daemon=True,
                                                   name="magnolie-background-events")
@@ -1321,7 +1330,16 @@ class KDEConnectProxy:
                 result = ipc_request("poll_events", {"after": cursor, "timeout": 1,
                                      "subscriber": self._subscriber},
                                      self.path, timeout=2)
-                cursor = max(cursor, int(result.get("cursor", cursor)))
+                # A restarted service begins a new sequence and loses the GUI
+                # readiness lease. Refresh it even when the local value did not
+                # change; a cached acknowledgement belongs to the old service.
+                cursor = max(0, int(result.get("cursor", cursor)))
+                for operation, field, value in (
+                        ("gui_visibility", "visible", self._visible),
+                        ("gui_readiness", "ready", self._ready)):
+                    if value is not None:
+                        ipc_request(operation, {"subscriber": self._subscriber,
+                            field: value}, self.path, timeout=1)
                 for item in result.get("events", ()):
                     callback = self.callback
                     if callback is not None:
@@ -1350,6 +1368,12 @@ class KDEConnectProxy:
         if device_id is not None:
             arguments["device_id"] = device_id
         return self._call("send_sms", **arguments)
+
+    def contact_uids(self, device_id=None):
+        return ipc_request("contact_uids", {"device_id": device_id}, self.path, timeout=8)
+
+    def contact_vcards(self, uids, device_id=None):
+        return ipc_request("contact_vcards", {"uids": uids, "device_id": device_id}, self.path, timeout=8)
 
     def begin_pairing(self, device_id=None, replace_stored=False):
         return self._call("begin_pairing", device_id=device_id,
@@ -1903,12 +1927,15 @@ class DaemonEvents:
             if self.diagnostics is not None:
                 self.diagnostics.record("kde_connect", "sms", payload,
                     "fresh" if fresh else "historical",
-                    "notified" if notify else "suppressed")
+                    "notified" if notify else "forwarded" if gui_connected and payload.get("notify") and fresh else "suppressed")
         if forward_decision or event not in ("pairing", "file_proposal", "clipboard_proposal"):
             forwarded = dict(payload)
             if event == "sms":
+                # A connected Organizer (including tray mode) owns its alerts.
+                # The separate background opt-in governs daemon-only alerts;
+                # enabling the service must not disable the Organizer's SMS UI.
                 forwarded["notify"] = bool(gui_connected and payload.get("notify") and
-                    fresh and permissions["sms_phone_notifications"])
+                    fresh)
             self.event_publisher(event, forwarded)
         return False
 

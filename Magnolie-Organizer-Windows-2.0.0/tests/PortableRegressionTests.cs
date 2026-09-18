@@ -42,7 +42,8 @@ try
     Check(PhoneUri.Build("teams-call", "+49 170 1234567", "DE", true) ==
           "msteams:/l/call/0/0?users=4%3A%2B491701234567", "Teams-Anruf-URI");
     Check(PhoneUri.Build("teams-call", "+49 170 1234567", "DE", false) == "" &&
-          PhoneUri.Build("phone", "++49 170 1234567", "DE", false) == "" &&
+          PhoneUri.Build("phone", "++49 170 1234567", "DE", false) == "tel:+491701234567" &&
+          PhoneUri.Build("phone", "+49+1701234567", "DE", false) == "" &&
           PhoneUri.Build("phone", "0203;calc", "DE", false) == "" &&
           PhoneUri.Build("phone", "+1234567890123456", "DE", false) == "",
         "Teams-Verfügbarkeit und Rufnummerngrenzen");

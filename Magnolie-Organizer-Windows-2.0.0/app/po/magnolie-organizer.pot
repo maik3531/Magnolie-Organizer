@@ -6,7 +6,7 @@
 #, fuzzy
 msgid ""
 msgstr ""
-"Project-Id-Version: Magnolie Organizer 2.0.18\n"
+"Project-Id-Version: Magnolie Organizer 2.0.19\n"
 "Report-Msgid-Bugs-To: maik3531@gmail.com\n"
 "POT-Creation-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
@@ -5452,9 +5452,6 @@ msgstr ""
 msgid ""
 "This one-time import only adds or enriches contacts. It does not synchronize "
 "or delete contacts."
-msgstr ""
-
-msgid "This paired phone is my own device"
 msgstr ""
 
 msgid "This person's anniversaries"

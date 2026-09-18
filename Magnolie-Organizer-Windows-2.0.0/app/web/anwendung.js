@@ -15,31 +15,131 @@
 (function () {
 
   /* Die Fassung erscheint auf der Seite „Über". */
-const FASSUNG = "2.0.18";
+const FASSUNG = "2.0.19";
 const S = (x) => (x === undefined || x === null) ? "" : String(x);
-const NEU_IN_DIESER_FASSUNG_VERSION = "2.0.18";
+const NEU_IN_DIESER_FASSUNG_VERSION = "2.0.19";
 
 const NEU_IN_DIESER_FASSUNG = {
-  ar: ["ما الجديد في هذا الإصدار", "مساعد إعداد Windows أولي وتسلسل هرمي واضح للمهام والمهام الفرعية", "مهام CalDAV VTODO مع خوادم DAV عامة، واستيراد آمن لجهات الاتصال وتحديد موثوق لمصدر المكالمة", "تقوية المزامنة ومعالجة التعارضات والحذف، وأرشيفات كاملة أكثر أمانا مع الاسترداد"],
-  be: ["Што новага ў гэтай версіі", "Памочнік першапачатковай наладкі Windows і выразная іерархія задач і падзадач", "Задачы CalDAV VTODO на звычайных DAV-серверах, бяспечны імпарт кантактаў і надзейнае вызначэнне крыніцы выкліку", "Узмоцненая сінхранізацыя, апрацоўка канфліктаў і выдаленняў, а таксама бяспечнейшыя поўныя архівы з аднаўленнем"],
-  cs: ["Co je nového v této verzi", "Průvodce prvním nastavením Windows a přehledná hierarchie úkolů a podúkolů", "Úkoly CalDAV VTODO na obecných serverech DAV, bezpečný import kontaktů a spolehlivé určení původu hovoru", "Odolnější synchronizace, řešení konfliktů a mazání a bezpečnější úplné archivy s obnovou"],
-  da: ["Nyt i denne version", "Windows-førstegangsassistent og tydeligt hierarki for opgaver og underopgaver", "CalDAV VTODO-opgaver på generiske DAV-servere, sikker kontaktimport og pålidelig registrering af opkaldets oprindelse", "Hærdet synkronisering, konflikt- og slettehåndtering samt sikrere komplette arkiver med gendannelse"],
-  de: ["Neu in dieser Version", "Windows-Ersteinrichtungsassistent und klare Hierarchie für Aufgaben und Unteraufgaben", "CalDAV-VTODO-Aufgaben mit allgemeinen DAV-Servern, sichere Kontaktimporte und verlässliche Anrufherkunft", "Gehärteter Abgleich samt Konflikt- und Löschbehandlung und sicherere Gesamtarchive mit Wiederherstellung"],
-  en: ["What's new in this version", "Windows first-run setup assistant and clear task and subtask hierarchy", "CalDAV VTODO tasks on generic DAV servers, safe contact imports, and reliable call-origin attribution", "Hardened sync, conflict and deletion handling, and safer complete archives with recovery"],
-  es: ["Novedades de esta versión", "Asistente de configuración inicial de Windows y jerarquía clara de tareas y subtareas", "Tareas CalDAV VTODO en servidores DAV genéricos, importación segura de contactos y origen fiable de llamadas", "Sincronización y gestión de conflictos y eliminaciones reforzadas, y archivos completos más seguros con recuperación"],
-  fr: ["Nouveautés de cette version", "Assistant de première configuration Windows et hiérarchie claire des tâches et sous-tâches", "Tâches CalDAV VTODO sur des serveurs DAV génériques, importation sûre des contacts et origine fiable des appels", "Synchronisation et gestion des conflits et suppressions renforcées, avec des archives complètes et une restauration plus sûres"],
-  hi: ["इस संस्करण में नया", "Windows पहली बार सेटअप सहायक और कार्यों व उपकार्यों का स्पष्ट पदानुक्रम", "सामान्य DAV सर्वरों पर CalDAV VTODO कार्य, सुरक्षित संपर्क आयात और कॉल के स्रोत की विश्वसनीय पहचान", "मजबूत सिंक, टकराव और विलोपन प्रबंधन तथा पुनर्प्राप्ति सहित अधिक सुरक्षित पूर्ण अभिलेख"],
-  hsb: ["Nowe w tutej wersiji", "Asistent prěnjeho zarjadowanja Windows a jasna hierarchija nadawkow a podnadawkow", "CalDAV VTODO-nadawki na powšitkownych DAV-serwerach, wěsty import kontaktow a spušćomne připokazanje pochada zawołanja", "Wotwjerdźeny wotrjad, wobchadźenje z konfliktami a zhašenjemi kaž tež wěsćiše dospołne archiwy z wobnowjenjom"],
-  it: ["Novità di questa versione", "Assistente alla prima configurazione di Windows e gerarchia chiara di attività e sottoattività", "Attività CalDAV VTODO su server DAV generici, importazione sicura dei contatti e origine affidabile delle chiamate", "Sincronizzazione e gestione di conflitti ed eliminazioni rafforzate, con archivi completi e ripristino più sicuri"],
-  ja: ["このバージョンの新機能", "Windows 初回セットアップアシスタントと、タスク・サブタスクの明確な階層", "一般的な DAV サーバーでの CalDAV VTODO タスク、安全な連絡先インポート、確実な着信元判定", "同期、競合・削除処理を強化し、復旧可能な完全アーカイブをより安全に"],
-  nb: ["Nytt i denne versjonen", "Windows-førstegangsassistent og tydelig hierarki for oppgaver og deloppgaver", "CalDAV VTODO-oppgaver på generelle DAV-servere, trygg kontaktimport og pålitelig registrering av anropsopprinnelse", "Styrket synkronisering, konflikt- og slettehåndtering samt sikrere komplette arkiver med gjenoppretting"],
-  nl: ["Nieuw in deze versie", "Windows-assistent voor de eerste configuratie en een duidelijke hiërarchie van taken en subtaken", "CalDAV VTODO-taken op algemene DAV-servers, veilige contactimport en betrouwbare herkomst van oproepen", "Versterkte synchronisatie, conflict- en verwijderingsafhandeling en veiligere volledige archieven met herstel"],
-  pl: ["Nowości w tej wersji", "Asystent pierwszej konfiguracji Windows i przejrzysta hierarchia zadań oraz podzadań", "Zadania CalDAV VTODO na ogólnych serwerach DAV, bezpieczny import kontaktów i wiarygodne ustalanie pochodzenia połączeń", "Wzmocniona synchronizacja, obsługa konfliktów i usuwania oraz bezpieczniejsze pełne archiwa z odzyskiwaniem"],
-  pt: ["Novidades desta versão", "Assistente de configuração inicial do Windows e hierarquia clara de tarefas e subtarefas", "Tarefas CalDAV VTODO em servidores DAV genéricos, importação segura de contactos e origem fiável das chamadas", "Sincronização e tratamento de conflitos e eliminações reforçados, com arquivos completos e recuperação mais seguros"],
-  ru: ["Новое в этой версии", "Помощник первоначальной настройки Windows и наглядная иерархия задач и подзадач", "Задачи CalDAV VTODO на обычных DAV-серверах, безопасный импорт контактов и надёжное определение источника вызова", "Усиленная синхронизация, обработка конфликтов и удалений, а также более безопасные полные архивы с восстановлением"],
-  tr: ["Bu sürümdeki yenilikler", "Windows ilk kurulum yardımcısı ve açık görev-alt görev hiyerarşisi", "Genel DAV sunucularında CalDAV VTODO görevleri, güvenli kişi içe aktarma ve güvenilir arama kaynağı belirleme", "Güçlendirilmiş eşitleme, çakışma ve silme yönetimi ile kurtarmalı daha güvenli tam arşivler"],
-  uk: ["Нове в цій версії", "Помічник першого налаштування Windows та чітка ієрархія завдань і підзавдань", "Завдання CalDAV VTODO на звичайних DAV-серверах, безпечний імпорт контактів і надійне визначення походження виклику", "Посилена синхронізація, обробка конфліктів і видалень та безпечніші повні архіви з відновленням"],
-  "zh-cn": ["此版本的新功能", "Windows 首次运行设置助手，以及清晰的任务和子任务层级", "通用 DAV 服务器上的 CalDAV VTODO 任务、安全的联系人导入和可靠的来电来源识别", "强化同步、冲突和删除处理，并提供可恢复的更安全完整归档"]
+  "de": [
+    "Neu in dieser Version",
+    "Keine zusätzliche Eigentumsbestätigung für das gekoppelte Telefon erforderlich",
+    "Verbesserte Anrufmeldungen und Anruferkennung mit Magnolie Notes 1.0.15",
+    "Einfachere Geräteeinrichtung und tolerante Behandlung mehrfach führender Pluszeichen in Telefonnummern"
+  ],
+  "en": [
+    "What's new in this version",
+    "No additional ownership confirmation required for the paired phone",
+    "Improved call alerts and caller identification with Magnolie Notes 1.0.15",
+    "Simpler device setup and tolerant handling of repeated leading plus signs in phone numbers"
+  ],
+  "fr": [
+    "Nouveautés de cette version",
+    "Aucune confirmation de propriété supplémentaire pour le téléphone associé",
+    "Alertes d’appel et identification de l’appelant améliorées avec Magnolie Notes 1.0.15",
+    "Configuration des appareils simplifiée et prise en charge des signes plus répétés au début des numéros"
+  ],
+  "es": [
+    "Novedades de esta versión",
+    "El teléfono vinculado ya no requiere una confirmación adicional de propiedad",
+    "Mejoras en los avisos de llamadas y la identificación del llamante con Magnolie Notes 1.0.15",
+    "Configuración de dispositivos más sencilla y tolerancia a signos más repetidos al inicio de los números"
+  ],
+  "it": [
+    "Novità di questa versione",
+    "Non è più necessaria un’ulteriore conferma di proprietà per il telefono associato",
+    "Avvisi di chiamata e identificazione del chiamante migliorati con Magnolie Notes 1.0.15",
+    "Configurazione dei dispositivi semplificata e gestione dei segni più ripetuti all’inizio dei numeri"
+  ],
+  "nl": [
+    "Nieuw in deze versie",
+    "Geen extra eigendomsbevestiging nodig voor de gekoppelde telefoon",
+    "Verbeterde oproepmeldingen en nummerherkenning met Magnolie Notes 1.0.15",
+    "Eenvoudigere apparaatinstellingen en ondersteuning voor herhaalde plustekens aan het begin van telefoonnummers"
+  ],
+  "pt": [
+    "Novidades desta versão",
+    "O telefone emparelhado já não exige uma confirmação adicional de propriedade",
+    "Alertas de chamadas e identificação do chamador melhorados com Magnolie Notes 1.0.15",
+    "Configuração de dispositivos simplificada e tratamento de sinais mais repetidos no início dos números"
+  ],
+  "ru": [
+    "Новое в этой версии",
+    "Для сопряжённого телефона больше не требуется дополнительное подтверждение владения",
+    "Улучшены уведомления о звонках и определение звонящего с Magnolie Notes 1.0.15",
+    "Упрощена настройка устройств; повторяющиеся знаки плюса в начале телефонного номера обрабатываются корректно"
+  ],
+  "cs": [
+    "Co je nového v této verzi",
+    "Spárovaný telefon již nevyžaduje další potvrzení vlastnictví",
+    "Vylepšená upozornění na hovory a identifikace volajícího s Magnolie Notes 1.0.15",
+    "Jednodušší nastavení zařízení a podpora opakovaných znamének plus na začátku telefonních čísel"
+  ],
+  "pl": [
+    "Nowości w tej wersji",
+    "Sparowany telefon nie wymaga już dodatkowego potwierdzenia własności",
+    "Ulepszono powiadomienia o połączeniach i identyfikację rozmówcy z Magnolie Notes 1.0.15",
+    "Uproszczono konfigurację urządzeń i obsługę powtarzających się znaków plus na początku numerów"
+  ],
+  "hsb": [
+    "Nowe w tutej wersiji",
+    "Za spřaženy telefon dalše wobkrućenje wobsydstwa trěbne njeje",
+    "Z powěsćenkami wo zawołanjach a spóznaćom zawołarja pomha Magnolie Notes 1.0.15 lěpje",
+    "Jednoriše zarjadowanje gratow a podpěra wospjetowanych znamješkow plus na spočatku telefonowych čisłow"
+  ],
+  "da": [
+    "Nyt i denne version",
+    "Ingen ekstra bekræftelse af ejerskab kræves for den parrede telefon",
+    "Forbedrede opkaldsbeskeder og identifikation af den, der ringer, med Magnolie Notes 1.0.15",
+    "Enklere enhedsopsætning og håndtering af gentagne plustegn i begyndelsen af telefonnumre"
+  ],
+  "nb": [
+    "Nytt i denne versjonen",
+    "Ingen ekstra bekreftelse på eierskap kreves for den parede telefonen",
+    "Forbedrede anropsvarsler og identifisering av innringer med Magnolie Notes 1.0.15",
+    "Enklere enhetsoppsett og håndtering av gjentatte plusstegn i starten av telefonnumre"
+  ],
+  "hi": [
+    "इस संस्करण में नया",
+    "जोड़े गए फ़ोन के स्वामित्व की अतिरिक्त पुष्टि अब आवश्यक नहीं है",
+    "Magnolie Notes 1.0.15 के साथ कॉल सूचनाओं और कॉल करने वाले की पहचान में सुधार",
+    "डिवाइस सेटअप आसान बनाया गया और फ़ोन नंबर की शुरुआत में दोहराए गए प्लस चिह्नों को संभाला जाता है"
+  ],
+  "zh-cn": [
+    "此版本的新功能",
+    "已配对的手机不再需要额外确认所有权",
+    "通过 Magnolie Notes 1.0.15 改进来电通知和来电者识别",
+    "简化设备设置，并兼容电话号码开头重复的加号"
+  ],
+  "ja": [
+    "このバージョンの新機能",
+    "ペアリング済みの電話で所有者の追加確認が不要になりました",
+    "Magnolie Notes 1.0.15 で着信通知と発信者の識別を改善",
+    "デバイス設定を簡素化し、電話番号の先頭で重複したプラス記号に対応"
+  ],
+  "ar": [
+    "ما الجديد في هذا الإصدار",
+    "لم يعد الهاتف المقترن يتطلب تأكيدًا إضافيًا للملكية",
+    "تحسين تنبيهات المكالمات والتعرّف على المتصل مع Magnolie Notes 1.0.15",
+    "تبسيط إعداد الأجهزة والتعامل مع علامات الجمع المكررة في بداية أرقام الهاتف"
+  ],
+  "uk": [
+    "Нове в цій версії",
+    "Для сполученого телефона більше не потрібне додаткове підтвердження володіння",
+    "Покращено сповіщення про дзвінки та визначення абонента з Magnolie Notes 1.0.15",
+    "Спрощено налаштування пристроїв і обробку повторних знаків плюса на початку телефонних номерів"
+  ],
+  "be": [
+    "Што новага ў гэтай версіі",
+    "Для спалучанага тэлефона больш не патрабуецца дадатковае пацвярджэнне валодання",
+    "Палепшаны апавяшчэнні пра званкі і вызначэнне абанента з Magnolie Notes 1.0.15",
+    "Спрошчана наладка прылад і апрацоўка паўторных знакаў плюса ў пачатку тэлефонных нумароў"
+  ],
+  "tr": [
+    "Bu sürümdeki yenilikler",
+    "Eşleştirilen telefon için ek sahiplik onayı artık gerekli değil",
+    "Magnolie Notes 1.0.15 ile arama bildirimleri ve arayan kimliği iyileştirildi",
+    "Cihaz kurulumu kolaylaştırıldı ve telefon numaralarının başındaki tekrarlanan artı işaretleri destekleniyor"
+  ]
 };
 if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes version mismatch");
   const CONTRIBUTOR_BRANDING = "No valid coffee allowance";
@@ -1306,6 +1406,23 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
 
   const geraeteKennungen = new Map();
   const geraeteKennungenAnfragen = new Map();
+  const telefonStandardAnfragen = new Map();
+  function telefonStandardsAnwenden() {
+    const peers = telefonStand?.peers || [];
+    if (peers.length !== 1 || telefonStand.binding_conflict) return;
+    const peer = peers[0];
+    const senden = (name, vorhanden, nachricht) => {
+      const key = peer.device_id + "\u0000" + (peer.fingerprint || "") + "\u0000" + name;
+      if (vorhanden) { telefonStandardAnfragen.delete(key); return; }
+      if ((telefonStandardAnfragen.get(key) || 0) > performance.now()) return;
+      if (Bruecke.sende(nachricht)) telefonStandardAnfragen.set(key, performance.now() + 10000);
+    };
+    senden("own", peer.own_device, { cmd: "personal_sync_einstellungen",
+      kennung: peer.device_id, eigen: true, autoWlan: !!peer.auto_wifi });
+    senden("notifications", peer.local_grants?.grants?.selected_notifications_readonly,
+      { cmd: "telefon_freigabe", kennung: peer.device_id,
+        name: "selected_notifications_readonly", an: true });
+  }
   function zeichneGeraeteKennungen() {
     const dialog = $("#geraet-dialog");
     const peer = (telefonStand?.peers || []).find(p => p.device_id === offenesGeraet);
@@ -1319,12 +1436,14 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     for (const name of ["phone_number", "serial", "imei"]) {
       const field = dialog?.querySelector('[data-identifier="' + name + '"]');
       if (!field) continue;
-      field.hidden = !own; field.previousElementSibling.hidden = !own;
       const value = geraeteKennungen.get(offenesGeraet)?.values?.[name];
+      const supported = value && ["available", "permission_missing", "not_shared", "no_subscription"].includes(value.status);
+      field.hidden = !own || !supported;
+      field.previousElementSibling.hidden = field.hidden;
       const reasons = { not_shared: _("Device identifier sharing is off."), permission_missing: _("Device identifier permission is missing."),
         os_restricted: _("Android restricts this device identifier."), no_subscription: _("No default voice subscription is available."),
         unavailable: _("This device identifier is unavailable.") };
-      field.textContent = own && value?.status === "available" ? value.value : reasons[value?.status] || reasons.unavailable;
+      field.textContent = field.hidden ? "" : value?.status === "available" ? value.value : reasons[value?.status] || reasons.unavailable;
     }
   }
 
@@ -1458,18 +1577,6 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     const knoepfe = el("div", "dialog-knoepfe geraet-dialog-knoepfe");
     const peer = (telefonStand && telefonStand.peers || []).find((p) => p.device_id === kennung);
     const freigaben = el("div", "telefon-freigaben geraet-online-details");
-    if (peer) for (const [name, text] of [
-      ["selected_notifications_readonly", _("Show selected notifications (read only)")]]) {
-      const hak = document.createElement("input");
-      hak.type = "checkbox";
-      hak.checked = !!(peer.local_grants && peer.local_grants.grants &&
-        peer.local_grants.grants[name]);
-      hak.addEventListener("change", () => Bruecke.sende({ cmd: "telefon_freigabe",
-        kennung: kennung, name: name, an: hak.checked }));
-      const label = el("label", "hak");
-      label.append(hak, document.createTextNode(" " + text));
-      freigaben.append(label);
-    }
     const personal = el("details", "telefon-freigaben einst-gruppe telefon-personal-sync");
     personal.open = false;
     personal.append(el("summary", null, _("Personal synchronization")),
@@ -1481,7 +1588,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     };
     let personalSyncKnopf = null;
     if (peer) {
-      let eigen = !!peer.own_device, auto = !!peer.auto_wifi;
+      let eigen = true, auto = !!peer.auto_wifi;
       const personalStand = el("p", "einst-hinweis");
       personalStand.dataset.personalSyncPeer = kennung;
       const zeigePersonalStand = (aktuell) => {
@@ -1496,13 +1603,6 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
             ? String(aktuell.personal_sync_report.state) : _("Deletions are not synchronized yet.");
       };
       zeigePersonalStand(peer);
-      personalHak(_("This paired phone is my own device"), eigen, (an) => {
-        eigen = an; peer.own_device = an;
-        geraeteKennungen.delete(kennung); geraeteKennungenAnfragen.delete(kennung); zeichneGeraeteKennungen();
-        zeigePersonalStand(peer);
-        Bruecke.sende({ cmd: "personal_sync_einstellungen", kennung: kennung, eigen: an, autoWlan: an && auto });
-        Bruecke.sende({ cmd: "telefon_stand" });
-      });
       const inhaltHaken = [];
       for (const [name, text] of [["personal_notes_sync", _("Synchronize notes and notebooks")],
         ["personal_tasks_sync", _("Synchronize tasks")],
@@ -2303,6 +2403,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
 
   function telefonSchluessel(wert, land = telefonHeimatland()) {
     let text = String(wert || "").trim().replace(/^tel:/i, "");
+    text = text.replace(/^\+{2,}(?=\d)/, "+");
     let erweiterung = "";
     const ext = text.match(/(?:\b(?:ext|extension|durchwahl)\b|[x#])\s*(\d+)\s*$/i);
     if (ext) { erweiterung = "x" + ext[1]; text = text.slice(0, ext.index); }
@@ -12516,6 +12617,41 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
 
   const TAG_VON = 6;          /* erste angezeigte Stunde */
   const TAG_BIS = 22;         /* letzte angezeigte Stunde */
+  function stundenBelegungen(termine, iso, stunde) {
+    const bereiche = [];
+    for (const termin of termine) {
+      const endeTag = termin.endDatum || termin.datum;
+      if (!termin.zeit || iso < termin.datum || iso > endeTag) continue;
+      const anfang = termin.datum < iso ? 0 : zeitZuMinuten(termin.zeit);
+      if (anfang === null) continue;
+      let ende = endeTag > iso ? 1440 : zeitZuMinuten(termin.endZeit);
+      if (ende === null) ende = Math.min(1440, anfang + 60);
+      if (ende <= anfang) {
+        if (termin.datum !== iso) continue;
+        ende = Math.min(1440, anfang + 1);
+      }
+      const von = Math.max(anfang, stunde * 60) - stunde * 60;
+      const bis = Math.min(ende, (stunde + 1) * 60) - stunde * 60;
+      if (bis > von) bereiche.push([von, bis]);
+    }
+    const grenzen = new Map();
+    for (const [von, bis] of bereiche) {
+      grenzen.set(von, (grenzen.get(von) || 0) + 1);
+      grenzen.set(bis, (grenzen.get(bis) || 0) - 1);
+    }
+    const vereinigt = [];
+    let anzahl = 0, vorher = null;
+    for (const [minute, delta] of [...grenzen].sort((a, b) => a[0] - b[0])) {
+      if (vorher !== null && minute > vorher && anzahl > 0) {
+        const letzter = vereinigt[vereinigt.length - 1];
+        if (letzter && letzter[1] === vorher && letzter[2] === anzahl) letzter[1] = minute;
+        else vereinigt.push([vorher, minute, anzahl]);
+      }
+      anzahl += delta;
+      vorher = minute;
+    }
+    return vereinigt;
+  }
   let tagesResizeBeobachter = null;
   let tagesAusrichtungRaf = 0;
   let tagesScrollKopplung = false;
@@ -12693,6 +12829,14 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       reihe.append(el("div", "stunden-marke",
         zeitText(iso, pad2(stunde) + ":00")));
       const feld = el("div", "stunden-feld");
+      for (const [von, bis, anzahl] of stundenBelegungen(mitZeit, iso, stunde)) {
+        const belegung = el("span", "stunden-belegung" + (anzahl > 1 ? " ueberlappung" : ""));
+        belegung.dataset.anzahl = String(anzahl);
+        belegung.setAttribute("aria-hidden", "true");
+        belegung.style.top = (von / 60 * 100) + "%";
+        belegung.style.height = ((bis - von) / 60 * 100) + "%";
+        feld.append(belegung);
+      }
       feld.title = _("Click here to add an appointment");
       feld.setAttribute("role", "gridcell");
       feld.setAttribute("aria-label", _("Add appointment") + " · " +
@@ -24334,6 +24478,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     },
     telefonStand(nutzlast) {
       telefonStand = nutzlast || null;
+      telefonStandardsAnwenden();
       zeichneGeraeteKennungen();
       pruefeSmsPlanung();
       document.querySelectorAll("[data-personal-sync-peer]").forEach((anzeige) => {

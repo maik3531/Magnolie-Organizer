@@ -17,8 +17,9 @@ from png_pruefen import pruefen as png_pruefen
 WINDOWS = WORKSPACE / "Magnolie-Organizer-Windows-2.0.0"
 HANDBOOK = WORKSPACE / "magnolie-handbuch-stamm"
 NOTES = WORKSPACE / "magnolie-notes-1.0.13"
-VERSION = "2.0.18"
-PUBLISHED_VERSION = "2.0.17"
+VERSION = re.match(r"magnolie-organizer \(([^)]+)\)",
+                   (ROOT / "debian/changelog").read_text(encoding="utf-8")).group(1)
+from release_gate import BOOTSTRAP_VERSION as PUBLISHED_VERSION
 INTERNAL_NOTE = re.compile(
     r"(REVIEW|ENTWURF|OFFENE[-_ ]?PUNKTE|ANALYSE|PLAN|AUDIT).*\.md$", re.I)
 PRIVATE_KEY = re.compile(
@@ -98,17 +99,20 @@ for readme_name in ("README.md", "README.DE.md"):
     readme_path = WORKSPACE / readme_name
     if readme_path.exists():
         readme = text(readme_path)
-        assert f"/Magnolie-Organizer-{VERSION}-x86_64.flatpak" in readme
-        assert f"/Magnolie-Organizer-{VERSION}-x86_64.AppImage" in readme
-        assert f"/magnolie-organizer_{VERSION}_all.deb" in readme
-        assert f"/Magnolie-Organizer-Windows-{VERSION}-Setup-x64.exe" in readme
-        assert f"/Magnolie-Organizer-Windows-{VERSION}-x64.zip" in readme
-        assert f"/magnolie-handbuch_{VERSION}_all.deb" in readme
+        # Public download links continue to name the published release until promotion.
+        readme_version = re.search(r"/Magnolie-Organizer-(\d+\.\d+\.\d+)-x86_64\.flatpak", readme).group(1)
+        assert readme_version in {PUBLISHED_VERSION, VERSION}
+        assert f"/Magnolie-Organizer-{readme_version}-x86_64.flatpak" in readme
+        assert f"/Magnolie-Organizer-{readme_version}-x86_64.AppImage" in readme
+        assert f"/magnolie-organizer_{readme_version}_all.deb" in readme
+        assert f"/Magnolie-Organizer-Windows-{readme_version}-Setup-x64.exe" in readme
+        assert f"/Magnolie-Organizer-Windows-{readme_version}-x64.zip" in readme
+        assert f"/magnolie-handbuch_{readme_version}_all.deb" in readme
         desktop_download_versions = re.findall(
             r"/Magnolie-Organizer(?:-Windows)?-(\d+\.\d+\.\d+)-"
             r"|/magnolie-(?:organizer|handbuch)_(\d+\.\d+\.\d+)_", readme)
         assert desktop_download_versions
-        assert all(VERSION in match for match in desktop_download_versions)
+        assert all(readme_version in match for match in desktop_download_versions)
 if HANDBOOK.exists():
     handbook_rules = text(HANDBOOK / "debian/rules")
     assert "override_dh_auto_test:" in handbook_rules
@@ -415,13 +419,8 @@ assert f"sudo apt install ../native/magnolie-organizer-kde_{VERSION}_" not in re
 if (WORKSPACE / ".gitignore").is_file():
     workspace_ignore = text(WORKSPACE / ".gitignore")
     assert "*.buildinfo" in workspace_ignore and "*.changes" in workspace_ignore
-    release_notes = text(WORKSPACE / "HINWEIS.txt")
-    assert "KDE-Helfers" in release_notes
-    assert f"magnolie-organizer-kde_{VERSION}_amd64.deb" in release_notes
-    assert "native first-run" in release_notes and "assistant" in release_notes
-    release_guide = text(WORKSPACE / "FREIGABE.md")
-    assert "Keine lokalen Shlibs-Overrides" in release_guide
-    assert "dpkg-checkbuilddeps" in release_guide and "dpkg-shlibdeps" in release_guide
+    assert not (WORKSPACE / "HINWEIS.txt").exists()
+    assert not (WORKSPACE / "FREIGABE.md").exists()
 
 for source_root in (ROOT, WINDOWS, HANDBOOK):
     for path in source_root.glob("*.md"):
@@ -446,4 +445,4 @@ def test_statische_paketpruefung():
     assert True
 
 
-print("Paketinhalt und Linux-Version 2.0.18: ok")
+print(f"Paketinhalt und Linux-Version {VERSION}: ok")

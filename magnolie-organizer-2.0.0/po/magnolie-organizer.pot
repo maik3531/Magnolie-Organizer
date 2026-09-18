@@ -6855,9 +6855,6 @@ msgid ""
 "or delete contacts."
 msgstr ""
 
-msgid "This paired phone is my own device"
-msgstr ""
-
 msgid "This person's anniversaries"
 msgstr ""
 

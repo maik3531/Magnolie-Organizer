@@ -1827,7 +1827,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
             val incomingCalls = storage.incomingCallsEnabled() && context.checkSelfPermission(
                 android.Manifest.permission.READ_PHONE_STATE) == android.content.pm.PackageManager.PERMISSION_GRANTED
             val callState = incomingCalls || dialRequest
-            val incomingNumber = Build.VERSION.SDK_INT <= 30 && incomingCalls && storage.incomingNumberEnabled() && context.checkSelfPermission(
+            val incomingNumber = incomingCalls && storage.incomingNumberEnabled() && context.checkSelfPermission(
                 android.Manifest.permission.READ_CALL_LOG) == android.content.pm.PackageManager.PERMISSION_GRANTED
             val answerCalls = incomingCalls && storage.answerCallsEnabled() && context.checkSelfPermission(
                 android.Manifest.permission.ANSWER_PHONE_CALLS) == android.content.pm.PackageManager.PERMISSION_GRANTED &&

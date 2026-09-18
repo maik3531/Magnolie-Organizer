@@ -7426,9 +7426,6 @@ msgstr ""
 "Ten jednorazowy import tylko dodaje lub uzupełnia kontakty. Nie "
 "synchronizuje ich ani nie usuwa."
 
-msgid "This paired phone is my own device"
-msgstr "Ten sparowany telefon jest moim własnym urządzeniem"
-
 msgid "This person's anniversaries"
 msgstr "Rocznice tej osoby"
 
@@ -8596,6 +8593,9 @@ msgstr[2] "… i jeszcze %(count)s elementy, które również zostaną wydrukowa
 
 msgid "＋ Add appointment"
 msgstr "＋ Dodaj spotkanie"
+
+#~ msgid "This paired phone is my own device"
+#~ msgstr "Ten sparowany telefon jest moim własnym urządzeniem"
 
 #~ msgid "As usual (print)"
 #~ msgstr "Jak zwykle (druk)"

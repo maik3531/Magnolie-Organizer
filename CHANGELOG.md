@@ -1,5 +1,25 @@
 # Changelog / Änderungen
 
+## 2.0.19 / Notes 1.0.15 — Unveröffentlicht / Unreleased
+
+### English
+
+- Restores SMS notifications while the Organizer is running or in the tray, independently of the separate daemon-only notification setting.
+- Restores notification readiness and event delivery after a background-service restart.
+- Adds readable call-action labels and the Magnolie chime for incoming-call alerts.
+- Corrects caller-number delivery on newer Android versions, including numbers reported after the initial ringing event.
+- Tolerates repeated leading plus signs such as `++49` when dialing and matching contacts.
+- Removes the redundant own-device checkbox from paired-device settings.
+
+### Deutsch
+
+- Behebt unterdrückte SMS-Meldungen bei laufendem Organizer und im Tray, unabhängig von der gesonderten Einstellung für Meldungen bei beendetem Organizer.
+- Stellt Benachrichtigungsbereitschaft und Ereignisempfang nach einem Neustart des Hintergrunddienstes wieder her.
+- Ergänzt lesbare Anrufschaltflächen und das Magnolie-Glockenspiel bei eingehenden Anrufen.
+- Korrigiert die Rufnummernübermittlung unter neueren Android-Versionen, auch wenn die Nummer erst nach Beginn des Klingelns gemeldet wird.
+- Toleriert mehrfach führende Pluszeichen wie `++49` beim Wählen und beim Kontaktabgleich.
+- Entfernt die zusätzliche Bestätigung als eigenes Gerät aus den Einstellungen gekoppelter Geräte.
+
 ## 2.0.18 / Notes 1.0.14 — 2026-09-16
 
 ### English

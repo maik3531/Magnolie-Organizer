@@ -1,0 +1,47 @@
+/* Responsive binder projection: preserve the canonical paper, leather, rings and tabs. */
+body { display: flex; flex-direction: column; }
+#tablet-bar { flex: none; display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
+  padding: 5px 12px; color: #f6efdc; background: #26372e; font: 12px/1.4 var(--sans); z-index: 3; }
+#tablet-bar strong { margin-inline-end: auto; }
+#tablet-bar details { max-width: 100%; }
+#tablet-bar summary { cursor: pointer; padding: 10px; }
+#tablet-status, #tablet-limits { max-width: 80ch; white-space: normal; }
+#tablet-status { flex-basis: 100%; font-size: 11px; }
+#tablet-status:empty { display: none; }
+#schreibtisch { flex: 1; min-height: 0; height: auto; padding: 10px 132px 0; }
+#buch { width: 100%; height: auto; flex: 1; min-height: 340px; max-height: none; }
+#statusleiste { flex: none; flex-wrap: wrap; height: auto; min-height: 44px; }
+.steg { width: 36px; }
+.ring { width: 30px; height: 30px; }
+.seite.links { padding-inline: 12px 22px; }
+.seite.rechts { padding-inline: 22px 12px; }
+.seiten-kopf { flex-wrap: wrap; gap: 5px; }
+body :focus-visible { outline: 3px solid #ac5b8c; outline-offset: 2px; }
+button, summary, select, input:not([type=checkbox]):not([type=radio]) { min-height: 44px; }
+button, summary { touch-action: manipulation; }
+input, textarea, [contenteditable=true] { font-size: max(16px,1em); }
+button:disabled { opacity: .5; cursor: not-allowed; }
+.seiten-inhalt { overscroll-behavior: contain; }
+@media (max-width: 850px), (orientation: portrait) {
+  #schreibtisch { overflow-y: auto; display: block; padding: 12px 132px; }
+  #buch { min-height: 1300px; height: auto; }
+  #seiten { position: relative; inset: auto; margin: 10px; display: flex; flex-direction: column; gap: 10px; }
+  #seiten > .seite { flex: none; min-height: 600px; height: 72dvh; padding: 14px 18px 48px; }
+  #seiten > .steg { display: none; }
+  .loecher { display: none; }
+  #deckel { min-height: 620px; }
+  #statusleiste, .status-rechts { display: flex; flex-wrap: wrap; justify-content: center; }
+  #einstellungen-blatt, [role=dialog] { max-width: 96vw; max-height: 90dvh; overflow: auto; }
+  .kontakt-form-inhalt { overflow: auto; }
+}
+@media (max-width: 520px) {
+  #schreibtisch { padding-inline: 40px; }
+  #tablet-bar { gap: 4px; }
+  #tablet-bar strong { width: 100%; }
+  #seiten { margin: 6px; }
+  .seiten-kopf h2 { white-space: normal; font-size: 19px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+}
+@media print { #tablet-bar { display: none; } }

@@ -5589,9 +5589,6 @@ msgid ""
 "or delete contacts."
 msgstr "此次一次性导入只会添加或补充联系人信息，不会同步或删除联系人。"
 
-msgid "This paired phone is my own device"
-msgstr "这部已配对的手机是我自己的设备"
-
 msgid "This person's anniversaries"
 msgstr "此人的纪念日"
 
@@ -6582,6 +6579,9 @@ msgstr[0] "… 以及另外 %(count)s 项也将打印。"
 
 msgid "＋ Add appointment"
 msgstr "＋ 添加约会"
+
+#~ msgid "This paired phone is my own device"
+#~ msgstr "这部已配对的手机是我自己的设备"
 
 #~ msgid "As usual (print)"
 #~ msgstr "照常（打印）"

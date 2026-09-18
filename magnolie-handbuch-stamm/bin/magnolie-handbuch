@@ -22,7 +22,7 @@ import locale
 import subprocess
 
 PROGRAMM_NAME = "magnolie-handbuch"
-PROGRAMM_FASSUNG = "2.0.18"
+PROGRAMM_FASSUNG = "2.0.19"
 TEXT_DOMAIN = "magnolie-handbuch"
 UNTERSTUETZTE_SPRACHEN = (
     "ar", "be", "cs", "da", "de", "es", "fr", "hi", "hsb", "it",
@@ -82,7 +82,8 @@ def normalisiere_sprache(wert, system_erlaubt=True):
 def lade_uebersetzung(sprache=None):
     """Load translations from an installation or the adjacent source tree."""
     source_locale = os.path.realpath(os.path.join(os.path.dirname(__file__), "..", "locale"))
-    for directory in (source_locale, "/usr/share/locale"):
+    for directory in (os.environ.get("MAGNOLIE_HANDBUCH_LOCALE") or source_locale,
+                      source_locale, "/usr/share/locale"):
         try:
             languages = None if not sprache or sprache == "system" else [sprache.replace("-", "_")]
             return gettext.translation(TEXT_DOMAIN, localedir=directory,

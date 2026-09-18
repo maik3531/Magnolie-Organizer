@@ -26,8 +26,8 @@ import xml.etree.ElementTree as ET
 from release_sources import SECRET, digest, file_stamp, inventory, inventory_digest, source_identity
 
 PUBLIC_KEY = "8eJWsygSF9wsF22cuf+sChUUV5RtXEZt38Ngcugn/1Y="
-BOOTSTRAP_VERSION = "2.0.17"
-BOOTSTRAP_SHA256 = "fd9efeac6b410be0c5d72240a9242fe896c5c0273e80e5ce23580f915f515128"
+BOOTSTRAP_VERSION = "2.0.18"
+BOOTSTRAP_SHA256 = "4c282f9db08d049c76114264e7be9fcd5684ad33aec60643006589e90ac6203d"
 LINUX = "magnolie-organizer-2.0.0"
 WINDOWS = "Magnolie-Organizer-Windows-2.0.0"
 ACCEPTANCE = "I explicitly approve publication of this exact candidate after testing it on Linux and Windows."
@@ -140,7 +140,7 @@ def artifact_groups(version, notes, arch):
                ("Source.zip", "x64.zip", "Setup-x64.exe", "Setup-x64.exe.build.json", "provenance.json", "PRUEFSUMMEN.sha256")]
     android = [f"Magnolie-Notes-{notes}.apk", f"magnolie-notes_{notes}.tar.xz", "Magnolie-Notes-PRUEFSUMMEN.sha256",
                f"Magnolie-Notes-{notes}-provenance.json"]
-    return {"linux": linux, "windows": windows, "notes": android, "metadata": ["HINWEIS.txt"]}
+    return {"linux": linux, "windows": windows, "notes": android, "metadata": []}
 
 
 def kde_binding(directory, version, source_record, artifact_record):
@@ -239,8 +239,6 @@ def candidate_check(root, directory):
     names = sum(groups.values(), [])
     require(set(record["artifacts"]) == set(names), "Incomplete or unexpected candidate artifact inventory")
     require(record["artifacts"] == artifact_map(directory, names), "Candidate artifact changed")
-    require(record["artifacts"]["HINWEIS.txt"]["sha256"] == record["sources"]["HINWEIS.txt"]["sha256"],
-            "Candidate release notes differ from reviewed source metadata")
     require(set(record["gates"]) == {"fedora", "autopkgtest"} and record["gates"]["fedora"] == "passed" and
             record["gates"]["autopkgtest"] in {"passed", "unavailable"}, "Incomplete system package gates")
     windows_binding(directory, record["version"], record["artifacts"])
@@ -348,9 +346,8 @@ def approval_check(directory, approval_path, record, identity, groups, bindings)
         require(bool(quote_data.decode("utf-8-sig").strip()), "Original user instruction quote is missing")
     if record["gates"]["autopkgtest"] != "passed":
         reason = approval["qemuException"]
-        require(isinstance(reason, str) and len(reason.strip()) >= 20 and
-                reason in (directory / "HINWEIS.txt").read_text(encoding="utf-8"),
-                "QEMU unavailability needs an explicit reason in the approved release notes")
+        require(isinstance(reason, str) and len(reason.strip()) >= 20,
+                "QEMU unavailability needs an explicit reason in the private approval record")
     else:
         require(approval["qemuException"] is None, "Unexpected QEMU exception")
 
@@ -506,7 +503,7 @@ def promote(root, directory, approval, accepted_id):
                 os.chmod(stage / name, 0o755 if name.endswith(".AppImage") else 0o644)
             require(artifact_map(stage, record["artifacts"]) == record["artifacts"], "Approved staged artifact changed")
             after_sources = dict(record["sources"])
-            for name in ("update.xml", f"{LINUX}/update.xml", "HINWEIS.txt"):
+            for name in ("update.xml", f"{LINUX}/update.xml"):
                 after_sources[name] = source_identity(stage / name)
 
             def precondition():

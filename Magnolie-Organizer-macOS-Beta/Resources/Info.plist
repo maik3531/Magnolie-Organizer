@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+  <key>CFBundleIdentifier</key><string>io.gitlab.maik3531.MagnolieOrganizer.macOSBeta</string>
+  <key>CFBundleName</key><string>Magnolie Organizer macOS Beta</string>
+  <key>CFBundleDisplayName</key><string>Magnolie Organizer macOS Beta</string>
+  <key>CFBundleExecutable</key><string>Magnolie Organizer macOS Beta</string>
+  <key>CFBundlePackageType</key><string>APPL</string>
+  <key>CFBundleShortVersionString</key><string>2.0.18</string>
+  <key>CFBundleVersion</key><string>2018.1</string>
+  <key>MagnolieBetaVersion</key><string>2.0.18-beta.1</string>
+  <key>LSMinimumSystemVersion</key><string>13.0</string>
+  <key>NSHighResolutionCapable</key><true/>
+  <key>NSCalendarsUsageDescription</key><string>Optional read-only listing of macOS calendar names. No synchronization or changes.</string>
+  <key>NSRemindersUsageDescription</key><string>Optional read-only listing of macOS reminder lists. No synchronization or changes.</string>
+  <key>NSCalendarsFullAccessUsageDescription</key><string>Optional read-only listing of macOS calendar names. No synchronization or changes.</string>
+  <key>NSRemindersFullAccessUsageDescription</key><string>Optional read-only listing of macOS reminder lists. No synchronization or changes.</string>
+</dict></plist>

@@ -7195,9 +7195,6 @@ msgstr ""
 "यह एक बार का आयात केवल संपर्कों को जोड़ता या बेहतर करता है। यह संपर्कों को सिंक्रनाइज़ या "
 "हटाता नहीं है।"
 
-msgid "This paired phone is my own device"
-msgstr "यह जोड़ा गया फ़ोन मेरा अपना उपकरण है"
-
 msgid "This person's anniversaries"
 msgstr "इस व्यक्ति की वर्षगाँठ"
 
@@ -8333,6 +8330,9 @@ msgstr[1] "… और %(count)s अतिरिक्त आइटम, जो �
 
 msgid "＋ Add appointment"
 msgstr "＋ अपॉइंटमेंट जोड़ें"
+
+#~ msgid "This paired phone is my own device"
+#~ msgstr "यह जोड़ा गया फ़ोन मेरा अपना उपकरण है"
 
 #~ msgid "As usual (print)"
 #~ msgstr "सामान्य रूप से (प्रिंट)"

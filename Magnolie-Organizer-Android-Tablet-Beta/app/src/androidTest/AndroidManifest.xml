@@ -1,0 +1,11 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application android:label="Tablet Beta 2.0.18Beta Synthetic Test Documents" android:testOnly="true">
+        <receiver android:name="io.gitlab.maik3531.magnolietabletbeta.SyntheticDocumentControl" android:exported="true" />
+        <provider android:name="io.gitlab.maik3531.magnolietabletbeta.SyntheticDocuments"
+            android:authorities="io.gitlab.maik3531.magnolieorganizer.tablet.beta.test.documents"
+            android:exported="true" android:grantUriPermissions="true"
+            android:permission="android.permission.MANAGE_DOCUMENTS">
+            <intent-filter><action android:name="android.content.action.DOCUMENTS_PROVIDER" /></intent-filter>
+        </provider>
+    </application>
+</manifest>

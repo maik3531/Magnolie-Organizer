@@ -50,6 +50,11 @@ SMS_REQUEST_TYPE = "kdeconnect.sms.request"
 SMS_REQUEST_CONVERSATIONS_TYPE = "kdeconnect.sms.request_conversations"
 SMS_REQUEST_CONVERSATION_TYPE = "kdeconnect.sms.request_conversation"
 SMS_MESSAGES_TYPE = "kdeconnect.sms.messages"
+CONTACT_UIDS_REQUEST = "kdeconnect.contacts.request_all_uids_timestamps"
+CONTACT_UIDS_RESPONSE = "kdeconnect.contacts.response_uids_timestamps"
+CONTACT_VCARDS_REQUEST = "kdeconnect.contacts.request_vcards_by_uid"
+CONTACT_VCARDS_RESPONSE = "kdeconnect.contacts.response_vcards"
+MAX_CONTACT_PACKET = 4 * 1024 * 1024
 SMS_TYPE = SMS_REQUEST_TYPE
 CLIPBOARD_TYPE = "kdeconnect.clipboard"
 CLIPBOARD_CONNECT_TYPE = "kdeconnect.clipboard.connect"
@@ -383,14 +388,24 @@ def decode_packet(raw, limit=MAX_PACKET):
     return value
 
 
-def read_packet(stream, limit=MAX_PACKET):
-    data = bytearray()
-    while len(data) <= limit:
-        part = stream.recv(1)
+def read_packet(stream, limit=MAX_PACKET, buffer=None):
+    data = bytearray() if buffer is None else buffer
+    while True:
+        end = data.find(b"\n")
+        if end >= 0:
+            raw = bytes(data[:end + 1])
+            del data[:end + 1]
+            result = decode_packet(raw, limit)
+            if len(raw) > MAX_PACKET and result.get("type") not in (CONTACT_UIDS_RESPONSE, CONTACT_VCARDS_RESPONSE):
+                raise ProtocolError("packet exceeds size limit")
+            return result
+        if len(data) > limit:
+            raise ProtocolError("packet exceeds size limit")
+        part = stream.recv(1 if buffer is None else min(8192, limit + 1 - len(data)))
         if not part:
             raise ProtocolError("connection closed before packet terminator")
         data += part
-        if part == b"\n":
+        if buffer is None and part == b"\n":
             return decode_packet(bytes(data), limit)
     raise ProtocolError("packet exceeds size limit")
 
@@ -1022,6 +1037,10 @@ class _ConnectionWorker:
         self.seen = set()
         self.seen_order = deque()
         self.sms_read_states = {}
+        self.read_buffer = bytearray()
+        self.contacts_lock = threading.Lock()
+        self.contacts_condition = threading.Condition()
+        self.contacts_pending = None
         self.diagnostics = {"last_packet_type": "", "parse_valid": 0,
             "parse_skipped": 0, "last_receive_ms": 0, "bootstrap_state": "idle"}
         self.thread = threading.Thread(target=self._run, daemon=True,
@@ -1058,6 +1077,8 @@ class _ConnectionWorker:
 
     def close(self, join=False):
         self.stopped.set()
+        with self.contacts_condition:
+            self.contacts_condition.notify_all()
         self.connection.close()
         if (join and self.thread is not threading.current_thread()
                 and self.thread.is_alive()):
@@ -1072,11 +1093,22 @@ class _ConnectionWorker:
                     except queue.Empty:
                         break
                     self.connection.sendall(encode_packet(packet))
-                readable = select.select([self.connection.connection], [], [], 0.25)[0]
+                pending = getattr(self.connection.connection, "pending", lambda: 0)()
+                readable = (b"\n" in self.read_buffer or pending or
+                    select.select([self.connection.connection], [], [], 0.25)[0])
                 if not readable:
                     self._check_bootstrap_deadline()
                     continue
-                packet = read_packet(self.connection)
+                limit = MAX_CONTACT_PACKET if self.backend._is_confirmed(self.identity["deviceId"]) else MAX_PACKET
+                packet = read_packet(self.connection, limit, self.read_buffer)
+                if packet.get("type") in (CONTACT_UIDS_RESPONSE, CONTACT_VCARDS_RESPONSE):
+                    with self.contacts_condition:
+                        pending_contact = self.contacts_pending
+                        if pending_contact and pending_contact["type"] == packet.get("type"):
+                            pending_contact["body"] = packet.get("body")
+                            self.contacts_condition.notify_all()
+                    self._check_bootstrap_deadline()
+                    continue
                 if packet.get("type") == "kdeconnect.pair":
                     self.backend._pair_packet(self, packet)
                     continue
@@ -1091,7 +1123,37 @@ class _ConnectionWorker:
             pass
         finally:
             self.stopped.set()
+            with self.contacts_condition:
+                self.contacts_condition.notify_all()
             self.backend._worker_died(self.identity["deviceId"], self)
+
+    def contact_request(self, kind, body, response_type, timeout=5):
+        """One bounded, read-only contact request; the TLS loop stays responsive."""
+        if (kind not in self.identity["incomingCapabilities"] or
+                response_type not in self.identity["outgoingCapabilities"]):
+            raise ProtocolError("Contact export is unavailable on the paired phone")
+        with self.contacts_lock:
+            if self.stopped.is_set() or not self.backend._is_confirmed(self.identity["deviceId"]):
+                raise ProtocolError("Contact source is no longer paired")
+            pending = {"type": response_type}
+            deadline = time.monotonic() + timeout
+            with self.contacts_condition:
+                self.contacts_pending = pending
+                try:
+                    self.send(network_packet(kind, body))
+                    while "body" not in pending and not self.stopped.is_set():
+                        remaining = deadline - time.monotonic()
+                        if remaining <= 0:
+                            raise ProtocolError("Contact export timed out; check contact access on the phone")
+                        self.contacts_condition.wait(remaining)
+                    if self.stopped.is_set() or not self.backend._is_confirmed(self.identity["deviceId"]):
+                        raise ProtocolError("Contact source disconnected")
+                    result = pending.get("body")
+                    if not isinstance(result, dict):
+                        raise ProtocolError("Invalid contact export response")
+                    return result
+                finally:
+                    self.contacts_pending = None
 
     def _check_bootstrap_deadline(self, now=None):
         if not self.bootstrap or not self.bootstrap_started:
@@ -2045,7 +2107,71 @@ class KDEConnectSMSBackend:
                     if self._is_confirmed(key)
                     and (device_id is None or key == device_id)
                     and not entry["worker"].stopped.is_set()
-                    and SMS_REQUEST_TYPE in entry["identity"]["incomingCapabilities"]]
+                     and SMS_REQUEST_TYPE in entry["identity"]["incomingCapabilities"]]
+
+    def _contact_connections(self, device_id=None):
+        with self._connection_lock:
+            return [entry for key, entry in self._connections.items()
+                if self._is_confirmed(key) and (device_id is None or key == device_id)
+                and not entry["worker"].stopped.is_set()
+                and {CONTACT_UIDS_REQUEST, CONTACT_VCARDS_REQUEST} <= set(entry["identity"]["incomingCapabilities"])
+                and {CONTACT_UIDS_RESPONSE, CONTACT_VCARDS_RESPONSE} <= set(entry["identity"]["outgoingCapabilities"])]
+
+    def _contact_query(self, device_id, kind, body, response):
+        connections = self._contact_connections(device_id)
+        if len(connections) != 1:
+            raise ProtocolError("contacts_unavailable")
+        entry = connections[0]
+        certificate = entry.get("certificate")
+        if certificate is None:
+            raise ProtocolError("contacts_unavailable")
+        from cryptography import x509
+        from cryptography.hazmat.primitives import hashes
+        identity = certificate.fingerprint(hashes.SHA256()).hex()
+        peer_id = entry["identity"]["deviceId"]
+        expected = x509.load_pem_x509_certificate(self.store.peers[peer_id]["certificate"].encode("ascii"))
+        if expected.fingerprint(hashes.SHA256()).hex() != identity:
+            raise ProtocolError("contact_source_changed")
+        result = entry["worker"].contact_request(kind, body, response)
+        if not any(current is entry for current in self._contact_connections(peer_id)):
+            raise ProtocolError("contact_source_changed")
+        current = x509.load_pem_x509_certificate(self.store.peers[peer_id]["certificate"].encode("ascii"))
+        if current.fingerprint(hashes.SHA256()).hex() != identity:
+            raise ProtocolError("contact_source_changed")
+        return peer_id, identity, result
+
+    @staticmethod
+    def _contact_uids(value):
+        if (not isinstance(value, list) or len(value) > 20000
+                or any(not isinstance(uid, str) or not 1 <= len(uid) <= 1024
+                       or any(ord(char) < 32 for char in uid) for uid in value)
+                or len(set(value)) != len(value)):
+            raise ProtocolError("invalid_contact_uids")
+        return value
+
+    def contact_uids(self, device_id=None):
+        peer, identity, body = self._contact_query(device_id, CONTACT_UIDS_REQUEST, {}, CONTACT_UIDS_RESPONSE)
+        values = []
+        for uid in self._contact_uids(body.get("uids")):
+            timestamp = body.get(uid)
+            if type(timestamp) is not int or not 0 <= timestamp <= 2**53 - 1:
+                raise ProtocolError("invalid_contact_timestamp")
+            values.append({"uid": uid, "modified_ms": timestamp})
+        return {"device_id": peer, "fingerprint": identity, "contacts": values}
+
+    def contact_vcards(self, uids, device_id=None):
+        requested = self._contact_uids(uids)
+        if not 1 <= len(requested) <= 5:
+            raise ProtocolError("invalid_contact_batch")
+        peer, identity, body = self._contact_query(device_id, CONTACT_VCARDS_REQUEST,
+            {"uids": requested}, CONTACT_VCARDS_RESPONSE)
+        result = []
+        for uid in self._contact_uids(body.get("uids")):
+            card = body.get(uid)
+            if uid not in requested or not isinstance(card, str) or len(card.encode("utf-8")) > MAX_CONTACT_PACKET:
+                raise ProtocolError("invalid_contact_vcard")
+            result.append({"uid": uid, "vcard": card})
+        return {"device_id": peer, "fingerprint": identity, "contacts": result}
 
     def _is_confirmed(self, device_id):
         return self.store.peers.get(device_id, {}).get("paired") is True
@@ -2166,7 +2292,7 @@ class KDEConnectSMSBackend:
         return result
 
     def identity_packet(self, target=None, tcp_port=None):
-        incoming = [SMS_MESSAGES_TYPE]
+        incoming = [SMS_MESSAGES_TYPE, CONTACT_UIDS_RESPONSE, CONTACT_VCARDS_RESPONSE]
         with self._state_lock:
             if self._receive_settings["clipboard_enabled"]:
                 incoming.extend((CLIPBOARD_TYPE, CLIPBOARD_CONNECT_TYPE))
@@ -2176,7 +2302,8 @@ class KDEConnectSMSBackend:
                 "deviceType": "desktop", "protocolVersion": 8,
                 "incomingCapabilities": incoming,
                 "outgoingCapabilities": [SMS_REQUEST_TYPE,
-                    SMS_REQUEST_CONVERSATIONS_TYPE, SMS_REQUEST_CONVERSATION_TYPE]}
+                    SMS_REQUEST_CONVERSATIONS_TYPE, SMS_REQUEST_CONVERSATION_TYPE,
+                    CONTACT_UIDS_REQUEST, CONTACT_VCARDS_REQUEST]}
         if tcp_port is not None:
             body["tcpPort"] = tcp_port
         if target:
@@ -2352,6 +2479,9 @@ class KDEConnectSMSBackend:
                 reachable[0] if len(reachable) == 1 else None)
             result["connection_generation"] = diagnostic.get("generation", 0) if diagnostic else 0
             result["connection_direction"] = diagnostic.get("direction", "") if diagnostic else ""
+            contacts = self._contact_connections()
+            result["contacts_available"] = len(contacts) == 1
+            result["contacts_device_id"] = contacts[0]["identity"]["deviceId"] if len(contacts) == 1 else ""
             if capable:
                 capabilities = capable[0]["identity"]["incomingCapabilities"]
                 result["history_available"] = (SMS_REQUEST_CONVERSATIONS_TYPE in capabilities

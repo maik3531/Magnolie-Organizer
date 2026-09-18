@@ -7382,9 +7382,6 @@ msgstr ""
 "Гэты аднаразовы імпарт толькі дадае або дапаўняе кантакты. Ён не сінхранізуе "
 "і не выдаляе іх."
 
-msgid "This paired phone is my own device"
-msgstr "Гэты спараны тэлефон з'яўляецца маёй уласнай прыладай"
-
 msgid "This person's anniversaries"
 msgstr "Гадавіны гэтага чалавека"
 
@@ -8551,6 +8548,9 @@ msgstr[2] "… і яшчэ %(count)s элементы, якія таксама �
 
 msgid "＋ Add appointment"
 msgstr "＋ Дадаць сустрэчу"
+
+#~ msgid "This paired phone is my own device"
+#~ msgstr "Гэты спараны тэлефон з'яўляецца маёй уласнай прыладай"
 
 #~ msgid "As usual (print)"
 #~ msgstr "Як звычайна (друк)"

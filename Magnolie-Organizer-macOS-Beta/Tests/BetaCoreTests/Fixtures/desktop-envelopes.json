@@ -1,0 +1,7 @@
+{
+  "notice": "PUBLIC SYNTHETIC TEST VECTORS. No production secrets. Not evidence of a Swift/macOS run.",
+  "password": "macOS Beta public fixture \u00e4\ud83c\udf38",
+  "plain": "{ \"termine\": [], \"aufgaben\": [], \"kontakte\": [], \"notizen\": [], \"future\": {\"opaque\":[1,true,null,\"\\u00e4\"]}, \"format\": 7 }\n",
+  "v1": "{\n \"magnolie\": \"magnolie-verschluesselt\",\n \"fassung\": 1,\n \"verfahren\": \"AES-256-GCM/PBKDF2-SHA256\",\n \"runden\": 240000,\n \"salz\": \"AAECAwQFBgcICQoLDA0ODw==\",\n \"nonce\": \"AAECAwQFBgcICQoL\",\n \"daten\": \"c6HAoegI07qT6OgmiRIdqhiQ4LL562rrHgxbo8qgRjCdpUHTU5VJm+9cpYfz1Csbk4SL6Pel+VoOZJhBB55syCP2EEPS0qlZSoc91Oc5+CUj4/xjXZtkZe7L60cfhAn4z1c7rURsaCKlbXqw38NrQ2uA3GHMGqGdp+YRca25MIjtfEAL+oO0/RtbeA==\"\n}",
+  "v2": "{\"magnolie\": \"magnolie-verschluesselt\", \"fassung\": 2, \"verfahren\": \"AES-256-GCM+DEK/PBKDF2-SHA256\", \"dekKennung\": \"AAECAwQFBgcICQoLDA0ODw==\", \"datenNonce\": \"HB0eHyAhIiMkJSYn\", \"daten\": \"OR1/E1ViTkTEr+5t6VYz7oQ+j9/fPMF45PcTHjSCV6FBzhqr4u9qxMyET3/6WHG1gCJsC2th9jbWwMUGSvz6HKY+DZ8Rc6cKuKfqIoBOajjuSFPi31oyXxKe/bDEY1zJFNkUCgvD83l2CCjQMJWqAXNcn77fk/Y8ws6+J2fFaaXeL2qjEuPR2IKklA==\", \"runden\": 240000, \"salz\": \"AAECAwQFBgcICQoLDA0ODw==\", \"dekNonce\": \"EBESExQVFhcYGRob\", \"dekDaten\": \"Xp95JH2lPLvdytDqsPIl2hPKKV9cS+YDtJYkleYYHXVuDhfPPpVMFMTLACgwQw0m\", \"futureEnvelope\": {\"preserve\": [1, true, null]}}"
+}

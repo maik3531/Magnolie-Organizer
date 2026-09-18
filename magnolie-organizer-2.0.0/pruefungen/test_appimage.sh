@@ -169,6 +169,22 @@ for familie in sans-serif serif monospace; do
     test -f "$treffer"
 done
 
+# The native setup dialog must remain readable without host desktop fonts.
+mkdir -p "$ARBEIT/fontcheck-home" "$ARBEIT/fontcheck-data"
+bwrap --ro-bind / / --dev /dev --proc /proc \
+    --tmpfs /usr/share/fonts --tmpfs /usr/local/share/fonts \
+    --setenv HOME "$ARBEIT/fontcheck-home" --setenv XDG_DATA_HOME "$ARBEIT/fontcheck-data" \
+    --setenv FONTCONFIG_PATH "$(dirname "$FONTCONFIG_DATEI")" \
+    --setenv FONTCONFIG_FILE "$FONTCONFIG_DATEI" \
+    --setenv LD_LIBRARY_PATH "$APPDIR/usr/lib/x86_64-linux-gnu:$APPDIR/usr/lib" \
+    "$APPDIR/usr/bin/fc-match" -f '%{file}\n' sans-serif > "$ARBEIT/bundled-font.txt"
+IFS= read -r bundled_font < "$ARBEIT/bundled-font.txt"
+bundled_font=$(readlink -f "$bundled_font")
+case "$bundled_font" in
+    "$APPDIR/usr/share/magnolie-handbuch/web/schriften/"*) test -s "$bundled_font" ;;
+    *) printf '%s\n' 'Native GTK-Schrift fehlt ohne Wirtsschriften.' >&2; exit 1 ;;
+esac
+
 PYTHONHOME="$APPDIR/usr" \
 PYTHONPATH="$APPDIR/usr/bin:$APPDIR/usr/lib/python3/dist-packages" \
 PYTHONTZPATH="$APPDIR/usr/share/zoneinfo" \
@@ -359,9 +375,9 @@ import sys
 
 appdir = Path(sys.argv[1])
 launcher = (appdir / "AppRun").read_text()
-old = '"$APPDIR/usr/bin/magnolie-organizer" "$@"'
+old = 'PROGRAM="$APPDIR/usr/bin/magnolie-organizer"'
 assert launcher.count(old) == 1
-launcher = launcher.replace(old, '"$MAGNOLIE_APPIMAGE_RENDER_PROBE"')
+launcher = launcher.replace(old, 'PROGRAM="$MAGNOLIE_APPIMAGE_RENDER_PROBE"')
 result = subprocess.run(["/bin/sh", "-c", launcher, str(appdir / "AppRun")],
                         env={**os.environ, "MAGNOLIE_APPIMAGE_RENDER_PROBE": sys.argv[2]})
 sys.exit(result.returncode)

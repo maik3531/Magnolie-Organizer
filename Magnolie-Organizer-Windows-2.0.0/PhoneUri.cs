@@ -9,6 +9,7 @@ internal static class PhoneUri
     {
         var candidate = value.Trim();
         if (candidate.StartsWith("tel:", StringComparison.OrdinalIgnoreCase)) candidate = candidate[4..];
+        candidate = Regex.Replace(candidate, @"^\+{2,}(?=\d)", "+");
         if (candidate.Length is 0 or > 64 || !Regex.IsMatch(candidate, @"^[0-9+()./\s-]+$")) return "";
         if (candidate.Count(character => character == '+') > 1 ||
             (candidate.Contains('+') && !candidate.TrimStart().StartsWith('+'))) return "";

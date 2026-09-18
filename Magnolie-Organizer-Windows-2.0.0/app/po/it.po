@@ -5938,9 +5938,6 @@ msgstr ""
 "Questa importazione una tantum aggiunge o completa soltanto i contatti. Non "
 "sincronizza né elimina contatti."
 
-msgid "This paired phone is my own device"
-msgstr "Questo telefono associato è un mio dispositivo"
-
 msgid "This person's anniversaries"
 msgstr "Ricorrenze di questa persona"
 
@@ -6993,6 +6990,9 @@ msgstr[1] "… e %(count)s altri elementi che verranno anch’essi stampati."
 
 msgid "＋ Add appointment"
 msgstr "＋ Aggiungi appuntamento"
+
+#~ msgid "This paired phone is my own device"
+#~ msgstr "Questo telefono associato è un mio dispositivo"
 
 #~ msgid "As usual (print)"
 #~ msgstr "Come di consueto (stampa)"

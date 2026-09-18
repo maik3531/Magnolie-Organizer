@@ -231,9 +231,11 @@ def test_observed_android_identity_normalizes_only_canonical_target_version():
 def test_sms_capabilities_and_request_packet_goldens():
     with tempfile.TemporaryDirectory() as root:
         packet = kde.KDEConnectSMSBackend(root).identity_packet()
-    assert packet["body"]["incomingCapabilities"] == [kde.SMS_MESSAGES_TYPE]
+    assert packet["body"]["incomingCapabilities"] == [kde.SMS_MESSAGES_TYPE,
+        kde.CONTACT_UIDS_RESPONSE, kde.CONTACT_VCARDS_RESPONSE]
     assert packet["body"]["outgoingCapabilities"] == [kde.SMS_REQUEST_TYPE,
-        kde.SMS_REQUEST_CONVERSATIONS_TYPE, kde.SMS_REQUEST_CONVERSATION_TYPE]
+        kde.SMS_REQUEST_CONVERSATIONS_TYPE, kde.SMS_REQUEST_CONVERSATION_TYPE,
+        kde.CONTACT_UIDS_REQUEST, kde.CONTACT_VCARDS_REQUEST]
     conversations = kde.request_conversations_packet()
     assert {"type": conversations["type"], "body": conversations["body"]} == {
         "type": "kdeconnect.sms.request_conversations", "body": {}}
@@ -1159,16 +1161,16 @@ def receive_worker(backend, device_id="a" * 32):
 def test_receive_capabilities_are_independent_opt_in_and_settings_are_strict():
     with tempfile.TemporaryDirectory() as root, tempfile.TemporaryDirectory() as downloads:
         backend = paired_backend(root)
-        assert backend.identity_packet()["body"]["incomingCapabilities"] == [kde.SMS_MESSAGES_TYPE]
+        base = [kde.SMS_MESSAGES_TYPE, kde.CONTACT_UIDS_RESPONSE, kde.CONTACT_VCARDS_RESPONSE]
+        assert backend.identity_packet()["body"]["incomingCapabilities"] == base
         configured = backend.configure_receive(clipboard_enabled=True,
             device_id="a" * 32, clipboard_mode="automatic")
         assert configured["clipboard_enabled"] and not configured["file_enabled"]
-        assert backend.identity_packet()["body"]["incomingCapabilities"] == [
-            kde.SMS_MESSAGES_TYPE, kde.CLIPBOARD_TYPE, kde.CLIPBOARD_CONNECT_TYPE]
+        assert backend.identity_packet()["body"]["incomingCapabilities"] == base + [
+            kde.CLIPBOARD_TYPE, kde.CLIPBOARD_CONNECT_TYPE]
         backend.configure_receive(file_enabled=True, device_id="a" * 32,
             file_mode="confirm", download_directory=downloads)
-        assert backend.identity_packet()["body"]["incomingCapabilities"] == [
-            kde.SMS_MESSAGES_TYPE, kde.SHARE_TYPE]
+        assert backend.identity_packet()["body"]["incomingCapabilities"] == base + [kde.SHARE_TYPE]
         with pytest.raises(ValueError):
             backend.configure_receive(clipboard_enabled=1, device_id="a" * 32)
         with pytest.raises(ValueError):
@@ -1178,7 +1180,7 @@ def test_receive_capabilities_are_independent_opt_in_and_settings_are_strict():
             backend.configure_receive(file_enabled=True, device_id="a" * 32,
                 download_directory="relative")
         backend.configure_receive()
-        assert backend.identity_packet()["body"]["incomingCapabilities"] == [kde.SMS_MESSAGES_TYPE]
+        assert backend.identity_packet()["body"]["incomingCapabilities"] == base
 
 
 def test_clipboard_parser_utf8_limit_and_strict_connect_timestamp():

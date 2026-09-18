@@ -149,7 +149,7 @@ def test_headless_cli_dispatches_before_any_gui_import(tmp_path, monkeypatch):
         runpy.run_path(PROGRAM, run_name="__main__")
     assert stopped.value.code == 23
     fake_crash.install.assert_called_once_with(
-        "magnolie-organizer", "2.0.18", "background-service")
+        "magnolie-organizer", "2.0.19", "background-service")
     assert calls == ["crash", "daemon"]
     assert fake.daemon_main.called
     assert "gi" not in imported
@@ -474,6 +474,64 @@ def test_connected_gui_owns_sms_notification_even_when_visibility_differs():
         "sms", "clipboard_apply", "file_ready", "receive_error"]
     assert published[0][1]["notify"] is True
     assert copied == ["Desktop text"]
+
+
+@pytest.mark.parametrize("gui_visible", [False, True])
+@pytest.mark.parametrize("background_permission", [False, True])
+def test_connected_organizer_sms_alert_does_not_require_daemon_only_permission(gui_visible, background_permission):
+    notifications = RecordedNotifications()
+    published = []
+    events = background.DaemonEvents(lambda: FakeBackend(),
+        {"permissions": {"sms_phone_notifications": background_permission}},
+        notifications, ImmediateGLib,
+        lambda event, payload: published.append((event, payload)),
+        gui_present=lambda: gui_visible, gui_connected=lambda: True)
+    events("sms", {"notify": True, "from": "+491701234567", "text": "Test"})
+    assert published[-1][1]["notify"] is True
+    assert notifications.items == []
+    # Historical/suppressed backend events must still remain silent.
+    events("sms", {"notify": False, "from": "+491701234567", "text": "History"})
+    assert published[-1][1]["notify"] is False
+
+
+def test_disconnected_organizer_still_requires_daemon_sms_permission():
+    notifications = RecordedNotifications()
+    published = []
+    events = background.DaemonEvents(lambda: FakeBackend(),
+        {"permissions": {"sms_phone_notifications": False}}, notifications,
+        ImmediateGLib, lambda event, payload: published.append((event, payload)),
+        gui_present=lambda: False, gui_connected=lambda: False)
+    events("sms", {"notify": True, "from": "+491701234567", "text": "Test"})
+    assert notifications.items == []
+    assert published[-1][1]["notify"] is False
+
+
+def test_proxy_restores_tray_readiness_and_cursor_after_service_restart():
+    delivered = []
+    proxy = background.KDEConnectProxy(path="unused-test-socket",
+        callback=lambda event, payload: delivered.append(event))
+    proxy._cursor = 99
+    proxy._visible = False
+    proxy._ready = True
+    calls = []
+    polls = []
+
+    def request(operation, arguments, path, timeout):
+        calls.append((operation, dict(arguments)))
+        if operation == "poll_events":
+            polls.append(arguments["after"])
+            if len(polls) == 1:
+                return {"cursor": 1, "events": []}
+            proxy._event_stop.set()
+            return {"cursor": 2, "events": [{"event": "sms", "payload": {}}]}
+        return {}
+
+    with mock.patch.object(background, "ipc_request", side_effect=request):
+        proxy._event_loop()
+    assert polls == [99, 1]
+    assert delivered == ["sms"]
+    assert sum(op == "gui_readiness" and data["ready"] is True for op, data in calls) == 2
+    assert sum(op == "gui_visibility" and data["visible"] is False for op, data in calls) == 2
 
 
 def test_actionless_notification_server_still_shows_events_and_rejects_files():

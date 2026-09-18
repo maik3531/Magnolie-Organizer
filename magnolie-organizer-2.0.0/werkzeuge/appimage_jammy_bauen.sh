@@ -2,6 +2,7 @@
 set -eu
 
 WURZEL=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+HANDBUCH=${MAGNOLIE_HANDBUCH_SOURCE:-"$(dirname "$WURZEL")/magnolie-handbuch-stamm"}
 FASSUNG=$(dpkg-parsechangelog -l"$WURZEL/debian/changelog" -SVersion)
 AUSGABE=${1:-"$WURZEL/../Magnolie-Organizer-$FASSUNG-x86_64.AppImage"}
 ARBEIT=${APPIMAGE_JAMMY_DIR:-"$WURZEL/bau/appimage-jammy"}
@@ -103,7 +104,7 @@ if [ ! -f "$MARKER" ] || [ "$(cat "$MARKER")" != "$BASIS_STAND" ]; then
     printf '%s\n' "$BASIS_STAND" > "$MARKER"
 fi
 
-"$PROOT" -0 -r "$ROOTFS" -b /dev -b /proc -b "$WURZEL" -b "$ARBEIT" \
+"$PROOT" -0 -r "$ROOTFS" -b /dev -b /proc -b "$WURZEL" -b "$HANDBUCH" -b "$ARBEIT" \
     -b "$(dirname -- "$AUSGABE")" -w "$WURZEL" \
     /usr/bin/env MAGNOLIE_CONTRIBUTOR_HASH="${MAGNOLIE_CONTRIBUTOR_HASH:-}" \
     SOURCE_DATE_EPOCH="${SOURCE_DATE_EPOCH:-}" APPIMAGE_BUILD_DIR="$BAU/appimage" \

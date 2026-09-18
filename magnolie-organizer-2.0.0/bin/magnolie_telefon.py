@@ -2107,6 +2107,7 @@ class PhoneService:
                     self.audio_capability = self.call_audio.snapshot("available", "ready")
                     self.audio_capability_address = address
                 elif (not self.call_audio.modules_pending and not self.call_audio.profile_hold
+                       and not getattr(self.call_audio, "connection_hold", None)
                       and (time.monotonic() >= self.audio_capability_at or address != self.audio_capability_address)):
                     self.audio_capability = self.call_audio.probe(address)
                     self.audio_capability_address = address

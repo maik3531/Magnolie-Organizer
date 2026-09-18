@@ -7424,9 +7424,6 @@ msgstr ""
 "Этот однократный импорт только добавляет или дополняет контакты. Он не "
 "синхронизирует и не удаляет их."
 
-msgid "This paired phone is my own device"
-msgstr "Этот сопряжённый телефон является моим устройством"
-
 msgid "This person's anniversaries"
 msgstr "Памятные даты этого человека"
 
@@ -8595,6 +8592,9 @@ msgstr[2] "… и ещё %(count)s записи, которые также бу�
 
 msgid "＋ Add appointment"
 msgstr "＋ Добавить встречу"
+
+#~ msgid "This paired phone is my own device"
+#~ msgstr "Этот сопряжённый телефон является моим устройством"
 
 #~ msgid "As usual (print)"
 #~ msgstr "Как обычно (печатный шрифт)"

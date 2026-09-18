@@ -255,6 +255,8 @@ EOF
     cp -a /usr/lib/$MULTIARCH/webkit2gtk-4.1 "$APPDIR/usr/lib/"
 
 cp -a "$WURZEL/web/." "$APPDIR/usr/share/magnolie-organizer/web/"
+HANDBUCH=${MAGNOLIE_HANDBUCH_SOURCE:-"$(dirname "$WURZEL")/magnolie-handbuch-stamm"}
+python3 "$WURZEL/werkzeuge/appimage_handbook.py" "$APPDIR" "$HANDBUCH" "$FASSUNG"
 printf '{"version":"%s"}\n' "$FASSUNG" > "$APPDIR/usr/share/magnolie-organizer/version.json"
 if [ -n "$CONTRIBUTOR_HASH" ]; then
     printf '{"contributorHash":"%s"}\n' "$CONTRIBUTOR_HASH" > \
@@ -441,12 +443,19 @@ export WEBKIT_EXEC_PATH="$APPDIR/usr/lib/webkit2gtk-4.1"
 export WEBKIT_INJECTED_BUNDLE_PATH="$APPDIR/usr/lib/webkit2gtk-4.1/injected-bundle"
 export XDG_DATA_DIRS="$APPDIR/usr/share:${XDG_DATA_DIRS:-/usr/local/share:/usr/share}"
 export MAGNOLIE_ORGANIZER_WEB="$APPDIR/usr/share/magnolie-organizer/web"
+export MAGNOLIE_HANDBUCH_WEB="$APPDIR/usr/share/magnolie-handbuch/web"
+export MAGNOLIE_HANDBUCH_LOCALE="$APPDIR/usr/share/locale"
 export MAGNOLIE_LOCALE_DIR="$APPDIR/usr/share/locale"
 export MAGNOLIE_ORGANIZER_KLANG="$APPDIR/usr/share/magnolie-organizer/klang/erinnerung.wav"
 cd "$APPDIR"
+PROGRAM="$APPDIR/usr/bin/magnolie-organizer"
+if [ "${1:-}" = "--handbook" ]; then
+    PROGRAM="$APPDIR/usr/lib/magnolie-handbuch/magnolie-handbuch"
+    shift
+fi
 exec "$APPDIR/usr/bin/python3" -S \
     "$APPDIR/usr/share/magnolie-organizer/werkzeuge/appimage_runtime.py" \
-    "$APPDIR" "$APPDIR/usr/bin/magnolie-organizer" "$@"
+    "$APPDIR" "$PROGRAM" "$@"
 EOF
 chmod 0755 "$APPDIR/AppRun"
 ln -sf usr/share/applications/io.gitlab.maik3531.MagnolieOrganizer.desktop \
@@ -456,6 +465,7 @@ ln -sf usr/share/icons/hicolor/256x256/apps/magnolie-organizer.png \
 
 epoch=${SOURCE_DATE_EPOCH:-$(dpkg-parsechangelog -l"$WURZEL/debian/changelog" -STimestamp)}
 python3 "$WURZEL/werkzeuge/release_sources.py" binary "$APPDIR/usr/share/magnolie-organizer"
+python3 "$WURZEL/werkzeuge/release_sources.py" binary "$APPDIR/usr/share/magnolie-handbuch"
 python3 -I -B "$WURZEL/werkzeuge/runtime_pruefen.py" "$APPDIR/usr/bin" --tzpath "$APPDIR/usr/share/zoneinfo"
 image_epoch=$((epoch - epoch % 86400))
 sitecustomize="$APPDIR/usr/lib/python$PYTHON_VERSION/sitecustomize.py"

@@ -255,7 +255,7 @@ def test_new_records_participate_in_final_file_bindings(authorization, name, dam
 
 
 @pytest.mark.parametrize("qemu", [None, "short", "SYNTHETIC QEMU unavailable for a documented reason"])
-def test_qemu_exception_is_not_implicit_in_either_path(authorization, qemu):
+def test_qemu_exception_requires_explicit_private_reason_in_either_path(authorization, qemu):
     directory, path, record, identity, groups = authorization
     record = copy.deepcopy(record)
     record["gates"]["autopkgtest"] = "unavailable"
@@ -268,8 +268,12 @@ def test_qemu_exception_is_not_implicit_in_either_path(authorization, qemu):
         write(operator_path, operator)
         approval["authorization"]["operatorRecord"] = reference(operator_path)
     write(path, approval)
-    with pytest.raises(ValueError, match="QEMU"):
+    if qemu is None or qemu == "short":
+        with pytest.raises(ValueError, match="QEMU"):
+            gate.approval_check(directory, path, record, identity, groups, {})
+    else:
         gate.approval_check(directory, path, record, identity, groups, {})
+        assert not (directory / "HINWEIS.txt").exists()
 
 
 @pytest.mark.parametrize("authorization", [2], indirect=True)

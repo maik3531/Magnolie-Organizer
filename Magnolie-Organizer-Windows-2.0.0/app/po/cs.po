@@ -5864,9 +5864,6 @@ msgstr ""
 "Tento jednorázový import kontakty pouze přidá nebo doplní. Nesynchronizuje "
 "je ani nemaže."
 
-msgid "This paired phone is my own device"
-msgstr "Tento spárovaný telefon je moje vlastní zařízení"
-
 msgid "This person's anniversaries"
 msgstr "Výročí této osoby"
 
@@ -6909,6 +6906,9 @@ msgstr[2] "… a ještě %(count)s další položky, které se rovněž vytiskno
 
 msgid "＋ Add appointment"
 msgstr "＋ Přidat schůzku"
+
+#~ msgid "This paired phone is my own device"
+#~ msgstr "Tento spárovaný telefon je moje vlastní zařízení"
 
 #~ msgid "As usual (print)"
 #~ msgstr "Jako obvykle (tisk)"

@@ -7326,9 +7326,6 @@ msgstr ""
 "Bu tek seferlik içe aktarma yalnızca kişi ekler veya mevcut kişilerin "
 "bilgilerini tamamlar. Kişileri eşzamanlamaz veya silmez."
 
-msgid "This paired phone is my own device"
-msgstr "Bu eşleştirilmiş telefon kendi cihazımdır"
-
 msgid "This person's anniversaries"
 msgstr "Bu kişinin yıldönümleri"
 
@@ -8484,6 +8481,9 @@ msgstr[1] "… ayrıca yazdırılacak %(count)s öğe daha."
 
 msgid "＋ Add appointment"
 msgstr "＋ Randevu ekle"
+
+#~ msgid "This paired phone is my own device"
+#~ msgstr "Bu eşleştirilmiş telefon kendi cihazımdır"
 
 #~ msgid "As usual (print)"
 #~ msgstr "Her zamanki gibi (yazdır)"

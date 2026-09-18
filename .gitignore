@@ -11,6 +11,7 @@
 .env.*
 local.properties
 schluessel.properties
+**/build-config.json
 
 # Release packages belong on the GitHub Releases page
 *.apk

@@ -5954,9 +5954,6 @@ msgstr ""
 "Tutón jónkróćny import kontakty jenož přidawa abo wudospołnja. Kontakty "
 "njesynchronizuje ani njezhaša."
 
-msgid "This paired phone is my own device"
-msgstr "Tutón zwjazany telefon je mój swójski grat"
-
 msgid "This person's anniversaries"
 msgstr "Róčnicy tuteje wosoby"
 
@@ -7010,6 +7007,9 @@ msgstr[3] "… a dale %(count)s zapiskaj, kotrejž so tež ćišćitej."
 
 msgid "＋ Add appointment"
 msgstr "＋ Termin přidać"
+
+#~ msgid "This paired phone is my own device"
+#~ msgstr "Tutón zwjazany telefon je mój swójski grat"
 
 #~ msgid "As usual (print)"
 #~ msgstr "Kaž zwjetša (ćišć)"

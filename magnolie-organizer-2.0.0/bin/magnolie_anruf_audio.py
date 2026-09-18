@@ -30,7 +30,7 @@ class AudioUnavailable(Exception):
 def bounded_command(arguments):
     """Bound time and bytes while reading, not just after communicate()."""
     with subprocess.Popen(arguments, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
-                          stderr=subprocess.DEVNULL, env=dict(os.environ, LC_ALL="C")) as process:
+                           stderr=subprocess.DEVNULL, env=dict(os.environ, LC_ALL="C.UTF-8")) as process:
         try:
             data = bytearray()
             until = time.monotonic() + 3
@@ -71,7 +71,7 @@ class NativeBlueZAudio:
         return self.bus.call_sync(self.owner, "/", "org.freedesktop.DBus.ObjectManager",
             "GetManagedObjects", None, None, Gio.DBusCallFlags.NONE, 3000, None).unpack()[0]
 
-    def device(self, address):
+    def device(self, address, require_connected=True):
         objects = self.objects()
         matches = [(path, interfaces["org.bluez.Device1"]) for path, interfaces in objects.items()
                    if str(interfaces.get("org.bluez.Device1", {}).get("Address", "")).upper() == address]
@@ -80,12 +80,13 @@ class NativeBlueZAudio:
         path, device = matches[0]
         adapter = objects.get(device.get("Adapter"), {}).get("org.bluez.Adapter1", {})
         if (not device.get("Paired") or not device.get("Trusted") or device.get("Blocked")
-                or not device.get("Connected") or not adapter.get("Powered")):
+                or require_connected and not device.get("Connected") or not adapter.get("Powered")):
             raise AudioUnavailable("existing_connected_trusted_bond_required")
         if AG not in [str(value).lower() for value in device.get("UUIDs", [])]:
             raise AudioUnavailable("remote_hfp_ag_unavailable")
         if HF not in [str(value).lower() for value in adapter.get("UUIDs", [])]:
             raise AudioUnavailable("local_hfp_hf_unavailable")
+        self.last_connected = bool(device.get("Connected"))
         return path
 
     def connect_profile(self, path):
@@ -96,10 +97,28 @@ class NativeBlueZAudio:
             self.bus.call_sync(self.owner, path, "org.bluez.Device1",
                 "ConnectProfile", GLib.Variant("(s)", (AG,)),
                 None, Gio.DBusCallFlags.NONE, 3000, None)
+            return True
         except GLib.Error as error:
             if Gio.DBusError.get_remote_error(error) == "org.bluez.Error.AlreadyConnected":
-                return
+                return False
             raise
+
+    def disconnect_profile(self, path):
+        from gi.repository import Gio, GLib
+        try:
+            self.bus.call_sync(self.owner, path, "org.bluez.Device1",
+                "DisconnectProfile", GLib.Variant("(s)", (AG,)),
+                None, Gio.DBusCallFlags.NONE, 3000, None)
+        except GLib.Error as error:
+            if Gio.DBusError.get_remote_error(error) not in (
+                    "org.bluez.Error.NotConnected", "org.freedesktop.DBus.Error.UnknownObject"):
+                raise
+
+    def release_profile(self, address, path, owner):
+        objects = self.objects()
+        device = objects.get(path, {}).get("org.bluez.Device1", {})
+        if self.owner == owner and str(device.get("Address", "")).upper() == address and device.get("Connected"):
+            self.disconnect_profile(path)
 
 
 class NativePulseAudio:
@@ -224,6 +243,22 @@ class NativePulseAudio:
                 return True
         return False
 
+    def native_gateway(self, address):
+        """Observe PipeWire's native AG streams without creating duplicate loops."""
+        local_source, local_sink = self.local_endpoints()
+        for kind, field, endpoint, factory in (
+                ("sink-inputs", "sink", local_sink, "api.bluez5.sco.source"),
+                ("source-outputs", "source", local_source, "api.bluez5.sco.sink")):
+            matches = [item for item in self.data(kind) if self.address(item) == address
+                       and item.get("properties", {}).get("api.bluez5.profile") in AG_NODE_PROFILES
+                       and item.get("properties", {}).get("factory.name") == factory]
+            if (len(matches) != 1 or matches[0].get("corked") is not False
+                    or matches[0].get("mute") is not False
+                    or str(matches[0].get(field)) != str(endpoint["index"])
+                    or endpoint.get("state") != "RUNNING"):
+                return False
+        return True
+
 
 class AnrufBluetooth:
     """One cancellable, resource-owned route; only the phone service may drive it."""
@@ -235,6 +270,8 @@ class AnrufBluetooth:
         self.modules = {}
         self.modules_pending = False
         self.profile_hold = None
+        self.connection_hold = None
+        self.native_gateway_active = False
         self.key = None
         self.active_context = None
         self.retry_key, self.retry_at = None, 0
@@ -250,9 +287,12 @@ class AnrufBluetooth:
         try:
             if not ADDRESS.fullmatch(address):
                 raise AudioUnavailable("bound_device_unavailable")
-            self.bluez.device(address)
-            self.pulse.card(address)
+            self.bluez.device(address, require_connected=False)
             self.pulse.local_endpoints()
+            if not self.bluez.last_connected:
+                return self.snapshot("available", "connection_required")
+            if not self.pulse.native_gateway(address):
+                self.pulse.card(address)
             return self.snapshot("available", "ready")
         except Exception as error:
             return self.snapshot("unavailable", str(error) if isinstance(error, AudioUnavailable) else "native_access_unavailable")
@@ -260,12 +300,12 @@ class AnrufBluetooth:
     def _check(self, context, refresh):
         if not context or refresh() != context:
             raise AudioUnavailable("call_changed")
-        self.bluez.device(context["address"])
+        self.bluez.device(context["address"], require_connected=False)
         if refresh() != context:
             raise AudioUnavailable("call_changed")
 
-    def _wait(self, action, context, refresh):
-        until = time.monotonic() + 2
+    def _wait(self, action, context, refresh, timeout=2):
+        until = time.monotonic() + timeout
         while True:
             self._check(context, refresh)
             try:
@@ -302,26 +342,56 @@ class AnrufBluetooth:
                     raise AudioUnavailable("call_changed")
             self.bluez.guard = self.pulse.guard = current
             try:
-                if self.modules_pending or self.profile_hold:
+                if self.modules_pending or self.profile_hold or self.connection_hold or self.native_gateway_active:
                     if self.state["active"] and self._observed(context, refresh):
                         return dict(self.state)
                     self.restore()
-                    if self.modules_pending or self.profile_hold:
+                    if self.modules_pending or self.profile_hold or self.connection_hold:
                         raise AudioUnavailable("cleanup_pending")
                     self.key = key
                 self._check(context, refresh)
-                path = self.bluez.device(context["address"])
+                path = self.bluez.device(context["address"], require_connected=False)
+                was_connected = self.bluez.last_connected
                 self.pulse.local_endpoints()
                 if self.pulse.foreign_streams(context["address"], set()):
                     raise AudioUnavailable("phone_audio_in_use")
-                card, profile = self.pulse.card(context["address"])
-                # Ask the existing native HF stack for AG only. BlueZ offers no
-                # exclusive connection lease, so this OS-owned link is never disconnected here.
+                # Own only the profile requested for this authorized conversation.
+                # Keep enough identity to release it even after a lost RPC reply.
+                def connect():
+                    previous = self.connection_hold
+                    hold = (context["address"], path, self.bluez.owner)
+                    if not was_connected:
+                        self.connection_hold = hold
+                    created = self.bluez.connect_profile(path)
+                    if created is True:
+                        self.connection_hold = hold
+                    elif created is False:
+                        self.connection_hold = previous
+                def ready_route():
+                    self.bluez.device(context["address"])
+                    if self.pulse.native_gateway(context["address"]):
+                        return ("native", None)
+                    legacy = self.pulse.card(context["address"])
+                    self.pulse.endpoints(context["address"], legacy[0])
+                    return ("legacy", legacy)
+                try:
+                    mode, legacy = ready_route()
+                except AudioUnavailable:
+                    connect()
+                    mode, legacy = self._wait(ready_route, context, refresh, timeout=6)
+                if mode == "native":
+                    self.native_gateway_active = True
+                    self._check(context, refresh)
+                    self.active_context = context
+                    self.state = self.snapshot("active", "native_duplex_route_observed", device_id=context["device_id"],
+                        call_ref=context["call_ref"], revision=context["revision"])
+                    return dict(self.state)
+                card, profile = legacy
                 try:
                     self.pulse.endpoints(context["address"], card)
                 except AudioUnavailable:
                     self._check(context, refresh)
-                    self.bluez.connect_profile(path)
+                    connect()
                 self._check(context, refresh)
                 card, profile = self.pulse.card(context["address"])
                 old = self.pulse.profile_name(card)
@@ -377,6 +447,9 @@ class AnrufBluetooth:
 
     def _observed(self, context, refresh):
         self._check(context, refresh)
+        self.bluez.device(context["address"])
+        if self.native_gateway_active:
+            return self.pulse.native_gateway(context["address"])
         card, _ = self.pulse.card(context["address"])
         if self.pulse.profile_name(card) not in AG_PROFILES:
             return False
@@ -400,10 +473,11 @@ class AnrufBluetooth:
 
     def restore(self):
         with self.lock:
-            pending = bool(self.modules_pending or self.profile_hold)
+            pending = bool(self.modules_pending or self.profile_hold or self.connection_hold)
             self.state = self.snapshot("unavailable" if pending else "inactive",
                                        "cleanup_pending" if pending else "released")
             self.active_context = None
+            self.native_gateway_active = False
             self.key = None
             bluez_guard, pulse_guard = self.bluez.guard, self.pulse.guard
             self.bluez.guard = self.pulse.guard = None
@@ -423,6 +497,7 @@ class AnrufBluetooth:
                         if self.pulse.foreign_streams(address, set()):
                             # Someone else adopted the profile. It no longer belongs to us.
                             self.profile_hold = None
+                            self.connection_hold = None
                             self.state = self.snapshot("inactive", "released")
                             return True
                         if old:
@@ -431,6 +506,11 @@ class AnrufBluetooth:
                             if any(item.get("name") == name and self.pulse.profile_name(item) == selected for item in cards):
                                 return False
                     self.profile_hold = None
+                if self.connection_hold:
+                    address, path, owner = self.connection_hold
+                    if not self.pulse.foreign_streams(address, set()):
+                        self.bluez.release_profile(address, path, owner)
+                    self.connection_hold = None
                 self.state = self.snapshot("inactive", "released")
                 return True
             except Exception:

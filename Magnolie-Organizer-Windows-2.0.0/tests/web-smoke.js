@@ -172,11 +172,10 @@ const releaseNotesSource = application.match(/const NEU_IN_DIESER_FASSUNG = (\{[
 const releaseNotes = Function(`"use strict"; return (${releaseNotesSource});`)();
 assert.strictEqual(Object.keys(releaseNotes).length, 20, "What's New does not cover every locale");
 assert.ok(Object.values(releaseNotes).every((items) => items.length === 4),
-  "What's New locales do not contain the complete 2.0.18 bullet set");
-assert.ok(application.includes("Windows first-run setup assistant") &&
-  application.includes("CalDAV VTODO tasks on generic DAV servers") &&
-  application.includes("safe contact imports") &&
-  application.includes("safer complete archives with recovery") &&
+  "What's New locales do not contain the complete 2.0.19 bullet set");
+assert.ok(application.includes("No additional ownership confirmation required for the paired phone") &&
+  application.includes("caller identification with Magnolie Notes 1.0.15") &&
+  application.includes("repeated leading plus signs") &&
   !application.includes("Faster native Wayland/AppImage graphics"),
 "Windows What's New content is stale or describes Linux-only changes");
 assert.match(fs.readFileSync(path.join(root, "LIESMICH.md"), "utf8"),
@@ -928,10 +927,7 @@ assert.ok(newInVersion && newInVersion.tagName === "SECTION" &&
   newInVersion.querySelector("h4")?.textContent === "Neu in dieser Version" &&
   newInVersion.querySelector(".ueber-neu-fassung")?.textContent === webVersion &&
   newInVersion.querySelectorAll("ul > li").length === 3 &&
-  newInVersion.textContent.includes("Windows-Ersteinrichtungsassistent") &&
-  newInVersion.textContent.includes("CalDAV-VTODO-Aufgaben") &&
-  newInVersion.textContent.includes("sichere Kontaktimporte") &&
-  newInVersion.textContent.includes("sicherere Gesamtarchive"),
+   releaseNotes.de.slice(1).every(text => newInVersion.textContent.includes(text)),
 "Windows-Versionshinweise fehlen oder sind nicht semantisch gegliedert");
 assert.ok(window.document.querySelector(
   "#einstellungen-inhalt .ueber-programmspalte > .ueber-rechtliches"),

@@ -1,0 +1,6 @@
+{
+  "name": "magnolie-organizer-android-tablet-beta",
+  "private": true,
+  "version": "2.0.18-beta",
+  "devDependencies": { "jsdom": "26.1.0" }
+}

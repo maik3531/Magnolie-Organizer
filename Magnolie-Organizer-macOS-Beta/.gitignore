@@ -1,0 +1,12 @@
+.build/
+Generated/
+SourceFreeze.json
+Output/
+__pycache__/
+*.pyc
+.ci-js/
+.ci-python/
+
+# Private working reports, not product source
+/HANDOFF.md
+/VALIDATION.md

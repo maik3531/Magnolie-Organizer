@@ -28,7 +28,9 @@ for (const relative of frontends) {
   assert(!fields.imei.textContent.startsWith('0'), 'Unrequested rendering');
   vm.runInContext(request + 'zeichneGeraeteStatus(report)', context);
   assert(fields.imei.textContent.startsWith('0'), 'Lost string leading zero');
-  assert.equal(fields.serial.textContent, 'Android restricts this device identifier.');
+  assert.equal(fields.serial.textContent, '');
+  assert(fields.serial.hidden && fields.serial.previousElementSibling.hidden, 'Unavailable identifier row must be hidden');
+  assert(!fields.imei.hidden && !fields.imei.previousElementSibling.hidden, 'Available identifier row must remain visible');
   peer.fingerprint = 'changed-key';
   vm.runInContext('zeichneGeraeteKennungen();' + request + 'zeichneGeraeteStatus(report)', context);
   assert(!fields.imei.textContent.startsWith('0'), 'Changed peer rendered stale identifiers');

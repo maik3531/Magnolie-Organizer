@@ -31,6 +31,12 @@ internal static class PhoneRegionInfoTests
         TestAssert.That(PhoneRegionInfo.HomeCountry(null) == "DE" &&
             PhoneRegionInfo.HomeCountry("us") == "US" && PhoneRegionInfo.HomeCountry("ZZ") == "DE",
             "homeCountry-Migration oder ISO-Validierung ist falsch.");
+        foreach (var number in new[] { "++4930123456", "+++4930123456", "  ++49 30 123456  " })
+            TestAssert.That(PhoneUri.Normalize(number, "DE") == "+4930123456" &&
+                PhoneRegionInfo.MatchKey(number, "DE") == PhoneRegionInfo.MatchKey("+4930123456", "DE"),
+                "Mehrfach führende Pluszeichen verhindern Wählen oder Kontaktzuordnung.");
+        foreach (var number in new[] { "+49+30123456", "30++123456", "++", "++49" })
+            TestAssert.That(PhoneUri.Normalize(number, "DE") == "", "Eine mehrdeutige Nummer wurde umgedeutet.");
         return Task.CompletedTask;
     }
 }

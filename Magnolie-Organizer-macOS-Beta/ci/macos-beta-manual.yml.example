@@ -1,0 +1,49 @@
+# INACTIVE TEMPLATE. This file is intentionally outside every .github/workflows directory.
+# Install only with separate explicit approval. No upload/release jobs.
+name: Magnolie Organizer macOS Beta Development
+on:
+  workflow_dispatch:
+    inputs:
+      desktop_source_frozen:
+        description: "I confirm the desktop sources on this ref are frozen for a macOS Beta development build"
+        required: true
+        type: boolean
+        default: false
+permissions:
+  contents: read
+jobs:
+  macos-beta:
+    if: ${{ inputs.desktop_source_frozen == true }}
+    runs-on: macos-14
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: Magnolie-Organizer-macOS-Beta
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Isolated host-test dependencies (only on the approved runner)
+        run: |
+          python3 -m venv .ci-python
+          .ci-python/bin/pip install cryptography==41.0.7
+          npm install --prefix .ci-js --ignore-scripts --no-audit --no-fund --save-exact jsdom@26.1.0
+      - name: Record explicit source freeze
+        run: python3 tools/project_ui.py freeze --confirm-desktop-frozen
+      - name: Generate and verify current canonical UI
+        run: python3 tools/project_ui.py generate
+      - name: Current projection, portable core and Apple crypto tests
+        run: |
+          export MACOS_BETA_JSDOM="$PWD/.ci-js/node_modules/jsdom/lib/api.js"
+          export MACOS_BETA_SWIFT="$(command -v swift)"
+          export MACOS_BETA_UI_PATH="$PWD/Generated"
+          .ci-python/bin/python tests/test_host.py
+      - name: Test and build local debug app only
+        run: python3 tools/build_dev.py
+      # No artifact upload. Interactive Host, permission and hardware acceptance remains separate.

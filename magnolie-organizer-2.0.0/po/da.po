@@ -7333,9 +7333,6 @@ msgstr ""
 "Denne engangsimport tilføjer eller supplerer kun kontakter. Den "
 "synkroniserer eller sletter ikke kontakter."
 
-msgid "This paired phone is my own device"
-msgstr "Denne parrede telefon er min egen enhed"
-
 msgid "This person's anniversaries"
 msgstr "Denne persons mærkedage"
 
@@ -8490,6 +8487,9 @@ msgstr[1] "… og %(count)s elementer mere, som også bliver udskrevet."
 
 msgid "＋ Add appointment"
 msgstr "＋ Tilføj aftale"
+
+#~ msgid "This paired phone is my own device"
+#~ msgstr "Denne parrede telefon er min egen enhed"
 
 #~ msgid "As usual (print)"
 #~ msgstr "Som normalt (udskrivning)"
