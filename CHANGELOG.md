@@ -4,6 +4,7 @@
 
 ### English
 
+- Fixes repeated recurrence calculations and redraws in the monthly calendar by sharing a bounded date range between the calendar grid and appointment overview.
 - Restores SMS notifications while the Organizer is running or in the tray, independently of the separate daemon-only notification setting.
 - Restores notification readiness and event delivery after a background-service restart.
 - Adds readable call-action labels and the Magnolie chime for incoming-call alerts.
@@ -13,6 +14,7 @@
 
 ### Deutsch
 
+- Behebt wiederholte Serienberechnungen und Neuzeichnungen in der Monatsansicht durch einen gemeinsamen begrenzten Zeitraum für Kalenderblatt und Terminübersicht.
 - Behebt unterdrückte SMS-Meldungen bei laufendem Organizer und im Tray, unabhängig von der gesonderten Einstellung für Meldungen bei beendetem Organizer.
 - Stellt Benachrichtigungsbereitschaft und Ereignisempfang nach einem Neustart des Hintergrunddienstes wieder her.
 - Ergänzt lesbare Anrufschaltflächen und das Magnolie-Glockenspiel bei eingehenden Anrufen.

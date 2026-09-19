@@ -28,6 +28,7 @@ parser.add_argument("--cycles", type=int, default=10)
 parser.add_argument("--timeout", type=int, default=90)
 parser.add_argument("--gate", action="store_true")
 parser.add_argument("--checks", action="store_true", help="Run Planner semantic regressions instead of timing")
+parser.add_argument("--month-stability", action="store_true", help="Check recurring month entries and native tab navigation")
 parser.add_argument("--software-compositor", action="store_true", help="Use launcher-default compositing with Mesa llvmpipe only")
 parser.add_argument("--http", action="store_true", help="Use loopback HTTP for the Windows blob-only worker CSP")
 parser.add_argument("--paint-controls", action="store_true", help="Measure animation-only and identical raster texture controls")
@@ -97,6 +98,9 @@ for relative, expected in before.items():
     assert identity(original / relative) == identity(web / relative) == expected, "Assets changed during snapshot"
     (web / relative).chmod(0o444)
 script_name = "planner_regressions.js" if args.checks else "planner_webkit_probe.js"
+if args.month_stability:
+    assert not args.legacy and not args.css_benchmark and not args.profile
+    script_name = "month_recurrence_webkit.js"
 if args.legacy:
     script_name = "planner_legacy_regressions.js" if args.checks else "planner_legacy_probe.js"
 script_path = Path(__file__).with_name("planner_css_benchmark.js" if args.css_benchmark else script_name)
@@ -113,6 +117,7 @@ shutil.copy2(Path(__file__), workspace / "driver.py")
 # Source/deb probes must not depend on or inspect an unrelated host installation.
 installed_context = not args.deb and original == Path("/usr/share/magnolie-organizer/web")
 manifest = {"source": str(original), "assets": before, "profile": args.profile,
+            "month_stability": args.month_stability,
             "scenario": args.scenario, "cycles": args.cycles,
             "software_compositor": args.software_compositor,
             "gpu_devices_hidden": True, "http": args.http,

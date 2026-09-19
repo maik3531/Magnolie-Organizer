@@ -11187,6 +11187,14 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     const start = new Date(z.jahr, z.monat, 1 - versatz);
     const heute = isoHeute();
 
+    // Share one bounded recurrence job per source across the grid and overview.
+    // Per-day jobs can evict still-visible results and trigger endless redraws.
+    const ende = new Date(start.getFullYear(), start.getMonth(), start.getDate() + 42);
+    const serienZeitraum = typeof Worker === "function" ? [
+      +organizerZeitpunkt(start.getFullYear(), start.getMonth() + 1, start.getDate(), 0, 0, 0),
+      +organizerZeitpunkt(ende.getFullYear(), ende.getMonth() + 1, ende.getDate(), 0, 0, 0) - 1,
+      false, true] : undefined;
+
     for (let i = 0; i < 42; i++) {
       const d = new Date(start.getFullYear(), start.getMonth(), start.getDate() + i);
       const iso = isoVon(d);
@@ -11241,7 +11249,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       const tagmarken = tagmarkenStreifen(iso, true);
       if (tagmarken) zelle.append(tagmarken);
 
-      const tt = termineAm(iso);
+      const tt = termineAm(iso, false, serienZeitraum);
       tt.slice(0, 2).forEach((t) => {
         const m = el("button", "mini mini-termin");
         m.type = "button";
@@ -11299,9 +11307,9 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       requestAnimationFrame(() => setTimeout(() => {
         if (!wartet.isConnected || zustand.sektion !== "kalender" || z.ansicht !== "month") return;
         wartet.remove();
-        zeichneTerminuebersicht();
+        zeichneTerminuebersicht(serienZeitraum);
       }, 0));
-    } else zeichneTerminuebersicht();
+    } else zeichneTerminuebersicht(serienZeitraum);
 
     setzeEcken(() => schiebeMonat(-1), _("Previous month"),
       () => schiebeMonat(1), _("Next month"));
@@ -11547,7 +11555,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     return wetter;
   }
 
-  function zeichneTerminuebersicht() {
+  function zeichneTerminuebersicht(serienZeitraum) {
     const z = zustand.kalender;
     const ersterImMonat = isoVon(new Date(z.jahr, z.monat, 1));
     const letzterTag = new Date(z.jahr, z.monat + 1, 0).getDate();
@@ -11574,7 +11582,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     for (let tag = 1; tag <= letzterTag; tag++) {
       const iso = isoVon(new Date(z.jahr, z.monat, tag));
       if (iso < von) continue;
-      const tt = termineAm(iso);
+      const tt = termineAm(iso, false, serienZeitraum);
       const jt = jahrestageAm(iso);
       const ft = feiertageAm(iso);
       if (tt.length || jt.length || ft.length) {
