@@ -1,10 +1,12 @@
 # Changelog / Änderungen
 
-## 2.0.19 / Notes 1.0.15 — Unveröffentlicht / Unreleased
+## 2.0.19 / Notes 1.0.15 — 2026-09-19
 
 ### English
 
 - Fixes repeated recurrence calculations and redraws in the monthly calendar by sharing a bounded date range between the calendar grid and appointment overview.
+- Bundles the handbook and fallback fonts in the AppImage, and fixes opening the handbook from the setup assistant.
+- Marks actual appointment durations and overlapping intervals in the daily calendar without blocking new entries in occupied hours.
 - Restores SMS notifications while the Organizer is running or in the tray, independently of the separate daemon-only notification setting.
 - Restores notification readiness and event delivery after a background-service restart.
 - Adds readable call-action labels and the Magnolie chime for incoming-call alerts.
@@ -15,6 +17,8 @@
 ### Deutsch
 
 - Behebt wiederholte Serienberechnungen und Neuzeichnungen in der Monatsansicht durch einen gemeinsamen begrenzten Zeitraum für Kalenderblatt und Terminübersicht.
+- Bündelt Handbuch und Ersatzschriften im AppImage und korrigiert den Handbuchstart aus der Ersteinrichtung.
+- Markiert tatsächliche Termindauern und Überschneidungen im Tageskalender, ohne neue Einträge in belegten Stunden zu sperren.
 - Behebt unterdrückte SMS-Meldungen bei laufendem Organizer und im Tray, unabhängig von der gesonderten Einstellung für Meldungen bei beendetem Organizer.
 - Stellt Benachrichtigungsbereitschaft und Ereignisempfang nach einem Neustart des Hintergrunddienstes wieder her.
 - Ergänzt lesbare Anrufschaltflächen und das Magnolie-Glockenspiel bei eingehenden Anrufen.

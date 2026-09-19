@@ -15,6 +15,19 @@ Programmdaten, Tags und Downloadpaketen.
 
 ## Jede Änderung gehört zu einem GitHub-Issue
 
+## Wiederholbare Veröffentlichungen
+
+Für Veröffentlichungen den vorhandenen dokumentierten Bauablauf wiederverwenden.
+Keine neuen Bauverzeichnisse, Werkzeugvarianten oder Wechsel zwischen Host,
+Container und VM auf Verdacht einführen. Vorhandene Werkzeuge, Abhängigkeiten
+und geeignete bereits geprüfte Ergebnisse verwenden. Eine notwendige Abweichung
+auf einen konkreten Fehler begrenzen und im privaten Betriebsprotokoll festhalten.
+Interne Befehle, Signierkonfiguration und Freigabenachweise werden dort gepflegt,
+nicht in öffentlichen Release-Hinweisen. Der lokale Ablauf ist in
+`.private-testing/RELEASE-VERFAHREN.md` festgehalten.
+
+## Issue-Bearbeitung
+
 1. Vor einer Änderung ein vorhandenes Issue zuordnen oder ein neues anlegen.
    Ziel, betroffene Komponenten und überprüfbare Abschlusskriterien festhalten.
 2. Eine Aufgabe nach der anderen abschließen. Neue Befunde als eigene Issues
