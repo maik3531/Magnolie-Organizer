@@ -5590,7 +5590,10 @@ def _lotus_kontakte(zeilen, kopf):
             continue
         telefone = [{"wert": zeile[i].strip(), "typen": typen}
                     for i, typen in telefon_spalten if i < len(zeile) and zeile[i].strip()]
-        _telefone_setzen(eintrag, _telefon_liste(eintrag) + telefone)
+        # Preserve legacy-column precedence without normalizing every number twice.
+        alt = [{"wert": eintrag.get("telefon", ""), "typen": ["VOICE"]},
+               {"wert": eintrag.get("mobil", ""), "typen": ["CELL"]}]
+        _telefone_setzen(eintrag, alt + telefone)
         for telefon in eintrag["telefone"]:
             if not telefon.get("vcardParameter"):
                 telefon.pop("vcardParameter", None)
