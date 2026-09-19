@@ -99,7 +99,7 @@ flock -n 9 || {
     printf '%s\n' 'Eine Desktop-Freigabe laeuft bereits; Freigabe abgebrochen.' >&2
     exit 1
 }
-STAGE=$(mktemp -d /tmp/opencode/magnolie-desktop-build.XXXXXX)
+STAGE=$(mktemp -d "${MAGNOLIE_BUILD_SCRATCH:-/tmp/opencode}/magnolie-desktop-build.XXXXXX")
 WURZEL="$STAGE/$SOURCE_NAME"
 LASTDATEI="$STAGE/lotus-gross.csv"
 
@@ -107,7 +107,11 @@ cleanup() {
     status=$?
     trap - EXIT
     trap '' HUP INT TERM
-    rm -rf "$STAGE"
+    if [ "$status" -eq 0 ]; then
+        rm -rf "$STAGE"
+    else
+        printf 'Bauverzeichnis zur gezielten Fortsetzung erhalten: %s\n' "$STAGE" >&2
+    fi
     exit "$status"
 }
 trap cleanup EXIT
@@ -471,7 +475,7 @@ if [ "$FEDORA_TESTS" -ne 1 ]; then
     printf '%s\n' 'Diagnostic build completed without Fedora; no release candidate can be approved.' >&2
     exit 1
 fi
-CANDIDATE=$(mktemp -d /tmp/opencode/magnolie-desktop-candidate.XXXXXX)
+CANDIDATE=$(mktemp -d "${MAGNOLIE_BUILD_SCRATCH:-/tmp/opencode}/magnolie-desktop-candidate.XXXXXX")
 cp "$DEB" "$DSC" "$SOURCE_TAR" "$APPIMAGE" "$FLATPAK" \
     "$HANDBUCH_DEB" "$HANDBUCH_DSC" "$HANDBUCH_SOURCE_TAR" \
     "$STAGE"/magnolie-organizer-kde_"${AKONADI_VERSION}"_amd64.deb \
