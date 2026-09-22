@@ -601,7 +601,9 @@ assert.ok(!window.document.querySelector(".kontakt-import-dialog") && messages.s
   message.ids.includes("import-card")), "rejected Android import is not acknowledged without mutation");
 assert.strictEqual(defaults.einstellungen.kalender.gesundheitPlanung.vital.zeit, "",
   "health planning fabricates a default time");
-assert.strictEqual(defaults.einstellungen.sync.adressbuchUid, "windows-contacts");
+assert.strictEqual(defaults.einstellungen.sync.adressbuchUid, "");
+assert.strictEqual(T.normalisiere({ einstellungen: { sync: { adressbuchUid: "windows-contacts" } } })
+  .einstellungen.sync.adressbuchUid, "windows-contacts", "an explicit local source selection is lost");
 assert.strictEqual(T.normalisiere({ einstellungen: { sync: { adressbuchUid: "" } } })
   .einstellungen.sync.adressbuchUid, "", "calendar-only selection is replaced by Windows Contacts");
 const recurrenceAndTask = T.normalisiere({
@@ -971,6 +973,8 @@ window.App.edsStatus({ windows: true, verfuegbar: true, buchOk: true,
   graph: { eingerichtet: true, angemeldet: false },
   nextcloud: { eingerichtet: true, erreichbar: false, fehler: "DAV authentication unavailable" } });
 assert.ok(window.document.querySelector("#sync-windows-quelle"));
+assert.strictEqual(window.document.querySelector("#sync-windows-quelle").value, "",
+  "An unconfigured profile silently selects the local Windows folder as its sync provider");
 assert.strictEqual(window.document.querySelector("#dav-quellen-fehler")?.textContent,
   "DAV authentication unavailable", "DAV discovery errors are hidden behind the local Windows contact source");
 assert.ok(Array.from(window.document.querySelectorAll("button"))

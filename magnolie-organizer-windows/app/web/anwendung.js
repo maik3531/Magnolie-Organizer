@@ -5774,8 +5774,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     if (!d.einstellungen.sync.kalenderUid && d.einstellungen.sync.kalenderUids.length) {
       d.einstellungen.sync.kalenderUid = d.einstellungen.sync.kalenderUids[0];
     }
-    d.einstellungen.sync.adressbuchUid = sy.adressbuchUid === undefined
-      ? "windows-contacts" : S(sy.adressbuchUid);
+    d.einstellungen.sync.adressbuchUid = S(sy.adressbuchUid);
     d.einstellungen.sync.beimStart = !!sy.beimStart;
     const or = (e.ort && typeof e.ort === "object") ? e.ort : {};
     const o = d.einstellungen.ort;
