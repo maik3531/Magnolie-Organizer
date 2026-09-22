@@ -442,6 +442,9 @@ msgstr "根据格式区域"
 msgid "According to language"
 msgstr "根据语言"
 
+msgid "Account sign-in could not be started. Please try again."
+msgstr "无法启动账户登录。请重试。"
+
 msgid "Account type"
 msgstr "账户类型"
 
@@ -1961,6 +1964,9 @@ msgid ""
 "starting point."
 msgstr "请在上方输入您的地址。没有起点，任何服务都无法计算路线。"
 
+msgid "Enter your email address."
+msgstr "请输入您的邮箱地址。"
+
 msgid "Entries ready to import"
 msgstr "待导入的条目"
 
@@ -2213,9 +2219,8 @@ msgstr "转到日历"
 msgid "Google Maps in the browser"
 msgstr "浏览器中的 Google Maps"
 
-msgid ""
-"Google requires browser sign-in. Use Thunderbird to manage this account."
-msgstr "Google 需要在浏览器中登录。请使用 Thunderbird 管理此账户。"
+msgid "Google requires browser sign-in. Use Internet accounts in Settings."
+msgstr "Google 需要在浏览器中登录。请使用设置中的“互联网账户”。"
 
 msgid "Grisons"
 msgstr "格劳宾登州"
@@ -2476,6 +2481,9 @@ msgstr "国际电话"
 msgid "Internet IP"
 msgstr "互联网 IP"
 
+msgid "Internet accounts"
+msgstr "互联网账户"
+
 msgid "Internet available"
 msgstr "互联网可用"
 
@@ -2688,6 +2696,9 @@ msgstr "Magnolie 可使用这些信息规划路线和查询当地天气。所有
 
 msgid "Magnolie complete archive (.magnolie) …"
 msgstr "Magnolie 完整档案 (.magnolie) …"
+
+msgid "Magnolie manages the account connection in the background."
+msgstr "Magnolie 在后台管理账户连接。"
 
 msgid "Magnolienbaum"
 msgstr "Magnolienbaum"
@@ -3819,6 +3830,9 @@ msgstr "首选备份文件夹"
 msgid "Preparing Microsoft sign-in …"
 msgstr "正在准备 Microsoft 登录..."
 
+msgid "Preparing account sign-in …"
+msgstr "正在准备账户登录…"
+
 msgid "Preview"
 msgstr "预览"
 
@@ -4422,9 +4436,6 @@ msgstr "设置或更改密码"
 
 msgid "Set up Magnolie Organizer"
 msgstr "设置 Magnolie Organizer"
-
-msgid "Set up Thunderbird connection"
-msgstr "设置 Thunderbird 连接"
 
 msgid "Set up contacts"
 msgstr "设置联系人"
@@ -5665,11 +5676,6 @@ msgstr "Thunderbird"
 msgid ""
 "Thunderbird could not complete the request. Check the account in Thunderbird."
 msgstr "Thunderbird 无法完成请求。请在 Thunderbird 中检查账户。"
-
-msgid ""
-"Thunderbird manages Google sign-in. Select its calendars and address books "
-"above."
-msgstr "Thunderbird 负责 Google 登录。请在上方选择其日历和通讯录。"
 
 msgid "Thunderbird profile version"
 msgstr "Thunderbird 配置文件版本"

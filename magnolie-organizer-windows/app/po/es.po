@@ -490,6 +490,9 @@ msgstr "Según la región de formato"
 msgid "According to language"
 msgstr "Según el idioma"
 
+msgid "Account sign-in could not be started. Please try again."
+msgstr "No se pudo iniciar el acceso a la cuenta. Inténtelo de nuevo."
+
 msgid "Account type"
 msgstr "Tipo de cuenta"
 
@@ -2097,6 +2100,9 @@ msgstr ""
 "Introduce tu dirección arriba. Ningún servicio puede calcular una ruta sin "
 "un punto de partida."
 
+msgid "Enter your email address."
+msgstr "Introduzca su dirección de correo electrónico."
+
 msgid "Entries ready to import"
 msgstr "Entradas listas para importar"
 
@@ -2359,11 +2365,10 @@ msgstr "Ir al calendario"
 msgid "Google Maps in the browser"
 msgstr "Google Maps en el navegador"
 
-msgid ""
-"Google requires browser sign-in. Use Thunderbird to manage this account."
+msgid "Google requires browser sign-in. Use Internet accounts in Settings."
 msgstr ""
-"Google requiere iniciar sesión en el navegador. Gestione esta cuenta con "
-"Thunderbird."
+"Google requiere iniciar sesión en el navegador. Utilice Cuentas de Internet "
+"en los ajustes."
 
 msgid "Grisons"
 msgstr "Grisones"
@@ -2632,6 +2637,9 @@ msgstr "Llamada internacional"
 msgid "Internet IP"
 msgstr "IP de Internet"
 
+msgid "Internet accounts"
+msgstr "Cuentas de Internet"
+
 msgid "Internet available"
 msgstr "Internet disponible"
 
@@ -2857,6 +2865,9 @@ msgstr ""
 
 msgid "Magnolie complete archive (.magnolie) …"
 msgstr "Archivo completo de Magnolie (.magnolie)…"
+
+msgid "Magnolie manages the account connection in the background."
+msgstr "Magnolie gestiona la conexión de la cuenta en segundo plano."
 
 msgid "Magnolienbaum"
 msgstr "Magnolienbaum"
@@ -4039,6 +4050,9 @@ msgstr "Carpeta preferida para las copias de seguridad"
 msgid "Preparing Microsoft sign-in …"
 msgstr "Preparando el inicio de sesión de Microsoft..."
 
+msgid "Preparing account sign-in …"
+msgstr "Preparando el inicio de sesión…"
+
 msgid "Preview"
 msgstr "Vista previa"
 
@@ -4676,9 +4690,6 @@ msgstr "Establecer o cambiar la contraseña"
 
 msgid "Set up Magnolie Organizer"
 msgstr "Configurar Magnolie Organizer"
-
-msgid "Set up Thunderbird connection"
-msgstr "Configurar la conexión con Thunderbird"
 
 msgid "Set up contacts"
 msgstr "Configurar contactos"
@@ -6020,13 +6031,6 @@ msgid ""
 msgstr ""
 "Thunderbird no pudo completar la solicitud. Compruebe la cuenta en "
 "Thunderbird."
-
-msgid ""
-"Thunderbird manages Google sign-in. Select its calendars and address books "
-"above."
-msgstr ""
-"Thunderbird gestiona el inicio de sesión de Google. Seleccione sus "
-"calendarios y libretas de direcciones arriba."
 
 msgid "Thunderbird profile version"
 msgstr "Versión del perfil de Thunderbird"

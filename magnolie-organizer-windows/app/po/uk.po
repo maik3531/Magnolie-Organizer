@@ -514,6 +514,9 @@ msgstr "Відповідно до регіону формату"
 msgid "According to language"
 msgstr "Відповідно до мови"
 
+msgid "Account sign-in could not be started. Please try again."
+msgstr "Не вдалося розпочати вхід до облікового запису. Спробуйте ще раз."
+
 msgid "Account type"
 msgstr "Тип облікового запису"
 
@@ -2094,6 +2097,9 @@ msgstr ""
 "Введіть вище свою адресу. Жодна служба не може побудувати маршрут без "
 "початкової точки."
 
+msgid "Enter your email address."
+msgstr "Введіть свою адресу електронної пошти."
+
 msgid "Entries ready to import"
 msgstr "Записи, підготовлені до імпорту"
 
@@ -2354,11 +2360,10 @@ msgstr "Перейти до календаря"
 msgid "Google Maps in the browser"
 msgstr "Google Maps у браузері"
 
-msgid ""
-"Google requires browser sign-in. Use Thunderbird to manage this account."
+msgid "Google requires browser sign-in. Use Internet accounts in Settings."
 msgstr ""
-"Google потребує входу через браузер. Керуйте цим обліковим записом через "
-"Thunderbird."
+"Google потребує входу через браузер. Використовуйте Інтернет-облікові записи "
+"в налаштуваннях."
 
 msgid "Grisons"
 msgstr "Граубюнден"
@@ -2621,6 +2626,9 @@ msgstr "Міжнародний виклик"
 msgid "Internet IP"
 msgstr "Інтернет-IP"
 
+msgid "Internet accounts"
+msgstr "Інтернет-облікові записи"
+
 msgid "Internet available"
 msgstr "Інтернет доступний"
 
@@ -2845,6 +2853,9 @@ msgstr ""
 
 msgid "Magnolie complete archive (.magnolie) …"
 msgstr "Повний архів Magnolie (.magnolie) …"
+
+msgid "Magnolie manages the account connection in the background."
+msgstr "Magnolie керує підключенням до облікового запису у фоновому режимі."
 
 msgid "Magnolienbaum"
 msgstr "Magnolienbaum"
@@ -4023,6 +4034,9 @@ msgstr "Бажана папка резервних копій"
 msgid "Preparing Microsoft sign-in …"
 msgstr "Підготовка до входу в Microsoft…"
 
+msgid "Preparing account sign-in …"
+msgstr "Підготовка входу до облікового запису…"
+
 msgid "Preview"
 msgstr "Попередній перегляд"
 
@@ -4654,9 +4668,6 @@ msgstr "Установити або змінити пароль"
 
 msgid "Set up Magnolie Organizer"
 msgstr "Налаштувати Magnolie Organizer"
-
-msgid "Set up Thunderbird connection"
-msgstr "Налаштувати підключення до Thunderbird"
 
 msgid "Set up contacts"
 msgstr "Налаштувати контакти"
@@ -5978,13 +5989,6 @@ msgid ""
 "Thunderbird could not complete the request. Check the account in Thunderbird."
 msgstr ""
 "Thunderbird не зміг виконати запит. Перевірте обліковий запис у Thunderbird."
-
-msgid ""
-"Thunderbird manages Google sign-in. Select its calendars and address books "
-"above."
-msgstr ""
-"Thunderbird керує входом у Google. Виберіть його календарі й адресні книги "
-"вище."
 
 msgid "Thunderbird profile version"
 msgstr "Версія профілю Thunderbird"

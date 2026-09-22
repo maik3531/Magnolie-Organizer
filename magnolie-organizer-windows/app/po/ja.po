@@ -452,6 +452,9 @@ msgstr "書式の地域に従う"
 msgid "According to language"
 msgstr "言語に応じて"
 
+msgid "Account sign-in could not be started. Please try again."
+msgstr "アカウントへのログインを開始できませんでした。もう一度お試しください。"
+
 msgid "Account type"
 msgstr "アカウントの種類"
 
@@ -2026,6 +2029,9 @@ msgid ""
 "starting point."
 msgstr "上に住所を入力してください。出発地点がなければ経路を計算できません。"
 
+msgid "Enter your email address."
+msgstr "メールアドレスを入力してください。"
+
 msgid "Entries ready to import"
 msgstr "取り込みを待っている項目"
 
@@ -2284,11 +2290,10 @@ msgstr "カレンダーへ移動"
 msgid "Google Maps in the browser"
 msgstr "ブラウザーで Google Maps"
 
-msgid ""
-"Google requires browser sign-in. Use Thunderbird to manage this account."
+msgid "Google requires browser sign-in. Use Internet accounts in Settings."
 msgstr ""
-"Google にはブラウザーでのログインが必要です。このアカウントは Thunderbird で"
-"管理してください。"
+"Google にはブラウザーでのログインが必要です。設定の「インターネットアカウン"
+"ト」を使用してください。"
 
 msgid "Grisons"
 msgstr "グラウビュンデン州"
@@ -2554,6 +2559,9 @@ msgstr "国際電話"
 msgid "Internet IP"
 msgstr "インターネット IP"
 
+msgid "Internet accounts"
+msgstr "インターネットアカウント"
+
 msgid "Internet available"
 msgstr "インターネット利用可能"
 
@@ -2778,6 +2786,9 @@ msgstr ""
 
 msgid "Magnolie complete archive (.magnolie) …"
 msgstr "Magnolie 完全アーカイブ (.magnolie) …"
+
+msgid "Magnolie manages the account connection in the background."
+msgstr "Magnolie がバックグラウンドでアカウント接続を管理します。"
 
 msgid "Magnolienbaum"
 msgstr "Magnolienbaum"
@@ -3938,6 +3949,9 @@ msgstr "優先するバックアップフォルダー"
 msgid "Preparing Microsoft sign-in …"
 msgstr "Microsoft サインインを準備しています…"
 
+msgid "Preparing account sign-in …"
+msgstr "アカウントへのログインを準備中…"
+
 msgid "Preview"
 msgstr "プレビュー"
 
@@ -4557,9 +4571,6 @@ msgstr "パスワードを設定または変更"
 
 msgid "Set up Magnolie Organizer"
 msgstr "Magnolie Organizerをセットアップ"
-
-msgid "Set up Thunderbird connection"
-msgstr "Thunderbird 接続を設定"
 
 msgid "Set up contacts"
 msgstr "連絡先を設定"
@@ -5861,13 +5872,6 @@ msgid ""
 msgstr ""
 "Thunderbird は要求を完了できませんでした。Thunderbird でアカウントを確認して"
 "ください。"
-
-msgid ""
-"Thunderbird manages Google sign-in. Select its calendars and address books "
-"above."
-msgstr ""
-"Thunderbird が Google へのログインを管理します。上でカレンダーとアドレス帳を"
-"選択してください。"
 
 msgid "Thunderbird profile version"
 msgstr "Thunderbird プロファイルのバージョン"

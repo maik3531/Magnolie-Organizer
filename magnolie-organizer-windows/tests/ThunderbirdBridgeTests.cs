@@ -10,6 +10,7 @@ internal static class ThunderbirdBridgeTests
 {
     internal static async Task RunAsync()
     {
+        await SynchronousStandardInputAsync();
         using var frame = new MemoryStream();
         await ThunderbirdBridge.WriteFrameAsync(frame, Encoding.UTF8.GetBytes("{\"ok\":true}"), 1024, default);
         frame.Position = 0;
@@ -38,6 +39,45 @@ internal static class ThunderbirdBridgeTests
             TestAssert.That(local["uid"]?.GetValue<string>() == "local-uid", "The local contact identity was replaced by a provider UID.");
         }
         finally { Directory.Delete(directory, true); }
+    }
+    private static async Task SynchronousStandardInputAsync()
+    {
+        var reply = Encoding.UTF8.GetBytes("{\"ok\":true}");
+        using var framed = new MemoryStream();
+        await ThunderbirdBridge.WriteFrameAsync(framed, reply, 1024, default);
+        using var input = new BlockingInput(framed.ToArray());
+        using var output = new ReplyTrigger(input);
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(3));
+        var name = "magnolie-stdin-test-" + Guid.NewGuid().ToString("N");
+        var host = ThunderbirdBridge.RunHostAsync(input, output, timeout.Token, testPipeName: name);
+        using var pipe = new System.IO.Pipes.NamedPipeClientStream(".", name, System.IO.Pipes.PipeDirection.InOut,
+            System.IO.Pipes.PipeOptions.Asynchronous);
+        await pipe.ConnectAsync(1500, timeout.Token);
+        await ThunderbirdBridge.WriteFrameAsync(pipe, Encoding.UTF8.GetBytes("{\"op\":\"status\"}"), 1024, timeout.Token);
+        TestAssert.That((await ThunderbirdBridge.ReadFrameAsync(pipe, 1024, timeout.Token)).SequenceEqual(reply),
+            "A blocking Windows-style stdin read prevented forwarding the request that produces the reply.");
+        timeout.Cancel();
+        await host;
+    }
+    private sealed class BlockingInput(byte[] bytes) : MemoryStream(bytes)
+    {
+        internal readonly ManualResetEventSlim Ready = new(false);
+        public override ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken token = default)
+        {
+            Ready.Wait(token);
+            return ValueTask.FromResult(Read(buffer.Span));
+        }
+        protected override void Dispose(bool disposing) { if (disposing) Ready.Dispose(); base.Dispose(disposing); }
+    }
+    private sealed class ReplyTrigger(BlockingInput input) : MemoryStream
+    {
+        private int writes;
+        public override ValueTask WriteAsync(ReadOnlyMemory<byte> bytes, CancellationToken token = default)
+        {
+            Write(bytes.Span);
+            if (++writes == 2) input.Ready.Set();
+            return ValueTask.CompletedTask;
+        }
     }
     private sealed class RelocatingHandler : HttpMessageHandler
     {

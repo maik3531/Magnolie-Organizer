@@ -28,7 +28,7 @@ async function main() {
     "calUtils.sys.mjs": { cal: { manager: { getCalendars: () => [] } } },
     "CalDavRequest.sys.mjs": { CalDavGenericRequest: class {} }
   };
-  const context = vm.createContext({ URL, TextEncoder, Services: { prefs: { getStringPref: () => "profile-one" } },
+  const context = vm.createContext({ URL, TextEncoder, Services: { prefs: { getStringPref: () => "profile-one", getBoolPref: () => false } },
     Ci: { nsIAbManager: { CARDDAV_DIRECTORY_TYPE: 102 } }, ChromeUtils: {
       importESModule: uri => modules[uri.split("/").at(-1)], importGlobalProperties() {}
     } });

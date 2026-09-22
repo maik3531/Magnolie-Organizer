@@ -11,6 +11,22 @@ var { CalDavGenericRequest } = ChromeUtils.importESModule("resource:///modules/c
 
 const D = "DAV:", A = "urn:ietf:params:xml:ns:carddav";
 const limit = 16 * 1024 * 1024;
+const managed = () => Services.prefs.getBoolPref("extensions.magnolie.managed", false);
+let googleLogin = { pending: false, error: false };
+async function signInGoogle(email) {
+  const { CardDAVUtils } = ChromeUtils.importESModule("resource:///modules/CardDAVUtils.sys.mjs");
+  const discoveredBooks = await CardDAVUtils.detectAddressBooks(email, "", "https://www.googleapis.com/.well-known/carddav", false, false);
+  const existingBooks = Array.from(MailServices.ab.directories).filter(book => book.dirType === Ci.nsIAbManager.CARDDAV_DIRECTORY_TYPE)
+    .map(book => book.getStringValue("carddav.url", ""));
+  for (const book of discoveredBooks) if (!existingBooks.includes(String(book.url))) book.create();
+  const calendars = await cal.provider.caldav.detectCalendars(email, "", "https://apidata.googleusercontent.com", false);
+  const existingCalendars = cal.manager.getCalendars().map(calendar => calendar.uri?.spec);
+  for (const calendar of calendars) if (!existingCalendars.includes(calendar.uri.spec)) {
+    calendar.setProperty("suppressAlarms", true);
+    cal.manager.registerCalendar(calendar);
+  }
+  Services.prefs.savePrefFile(null);
+}
 function bounded(text) {
   if (typeof text !== "string" || new TextEncoder().encode(text).length > limit) throw new Error("size");
   return text;
@@ -59,12 +75,13 @@ function sources() {
     Services.prefs.setStringPref(pref, profile);
     Services.prefs.savePrefFile(null);
   }
+  const owner = managed() ? "managed:" + profile : profile;
   const result = [];
   for (const directory of MailServices.ab.directories) {
     if (directory.dirType !== Ci.nsIAbManager.CARDDAV_DIRECTORY_TYPE || directory.readOnly) continue;
     const book = CardDAVDirectory.forFile(directory.fileName);
     if (!book || !book._serverURL?.startsWith("https://")) continue;
-    result.push({ uid: `thunderbird-addressbook:${profile}:${directory.UID}`, kind: "addressbook",
+    result.push({ uid: `thunderbird-addressbook:${owner}:${directory.UID}`, kind: "addressbook",
       name: directory.dirName, url: book._serverURL, tasks: false, book });
   }
   for (const calendar of cal.manager.getCalendars()) {
@@ -72,7 +89,7 @@ function sources() {
     const object = calendar.wrappedJSObject;
     const provider = object?.mUncachedCalendar?.wrappedJSObject || object;
     if (!provider?.session || !calendar.uri?.spec.startsWith("https://")) continue;
-    result.push({ uid: `thunderbird-calendar:${profile}:${calendar.id}`, kind: "calendar",
+    result.push({ uid: `thunderbird-calendar:${owner}:${calendar.id}`, kind: "calendar",
       name: calendar.name, url: calendar.uri.spec, tasks: calendar.getProperty("capabilities.tasks.supported") !== false,
       calendar: provider });
   }
@@ -144,6 +161,40 @@ var magnolie = class extends ExtensionCommon.ExtensionAPI {
   getAPI() {
     return { magnolie: { request: async message => {
       if (message.version !== 1 || !/^[a-f0-9]{32}$/.test(message.id || "")) throw new Error("protocol");
+      if (message.op === "environment") { return { managed: managed(), profile: PathUtils.profileDir, pid: Services.appinfo.processID,
+        mailWindows: managed() ? Array.from(Services.wm.getEnumerator("mail:3pane"))
+          .map(window => window.docShell.treeOwner.QueryInterface(Ci.nsIBaseWindow).nativeHandle) : [],
+        probe: Services.env.get("MAGNOLIE_ACCOUNT_PROBE_TRACE") === PathUtils.profileDir }; }
+      if (message.op === "probe-phase" && managed() && Services.env.get("MAGNOLIE_ACCOUNT_PROBE_TRACE") === PathUtils.profileDir) {
+        if (!["received", "native-api-done", "tb-status-start", "tb-status-done", "reply-sent"].includes(message.phase)) throw new Error("phase");
+        const path = PathUtils.join(PathUtils.profileDir, "browser-transport.log");
+        await IOUtils.writeUTF8(path, message.phase + "\n", { mode: await IOUtils.exists(path) ? "append" : "create" });
+        return {};
+      }
+      if (message.op === "status") {
+        const names = new Set();
+        for (const book of MailServices.ab.directories) {
+          if (book.dirType === Ci.nsIAbManager.CARDDAV_DIRECTORY_TYPE &&
+              book.getStringValue("carddav.url", "").startsWith("https://www.googleapis.com/"))
+            names.add(book.getStringValue("carddav.username", "Google"));
+        }
+        return { google: { ...googleLogin, accounts: Array.from(names) } };
+      }
+      if (message.op === "shutdown" && managed()) {
+        const { setTimeout } = ChromeUtils.importESModule("resource://gre/modules/Timer.sys.mjs");
+        setTimeout(() => {
+          Services.startup.quit(Ci.nsIAppStartup.eAttemptQuit);
+        }, 200);
+        return {};
+      }
+      if (message.op === "login-google" && managed()) {
+        if (typeof message.email !== "string" || message.email.length > 254 || !message.email.includes("@") || /[\r\n]/.test(message.email)) throw new Error("email");
+        if (!googleLogin.pending) {
+          googleLogin = { pending: true, error: false };
+          signInGoogle(message.email).catch(() => { googleLogin.error = true; }).finally(() => { googleLogin.pending = false; });
+        }
+        return { opened: true };
+      }
       const available = sources();
       if (message.op === "sources") return { sources: available.map(({ book, calendar, ...publicFields }) => publicFields) };
       if (message.op !== "http") throw new Error("operation");

@@ -519,6 +519,9 @@ msgstr "В соответствии с регионом формата"
 msgid "According to language"
 msgstr "В соответствии с языком"
 
+msgid "Account sign-in could not be started. Please try again."
+msgstr "Не удалось начать вход в аккаунт. Повторите попытку."
+
 msgid "Account type"
 msgstr "Тип учётной записи"
 
@@ -2106,6 +2109,9 @@ msgstr ""
 "Введите свой адрес выше. Без начальной точки ни одна служба не сможет "
 "рассчитать маршрут."
 
+msgid "Enter your email address."
+msgstr "Введите адрес электронной почты."
+
 msgid "Entries ready to import"
 msgstr "Записи, подготовленные к импорту"
 
@@ -2366,11 +2372,9 @@ msgstr "Перейти к календарю"
 msgid "Google Maps in the browser"
 msgstr "Google Maps в браузере"
 
-msgid ""
-"Google requires browser sign-in. Use Thunderbird to manage this account."
+msgid "Google requires browser sign-in. Use Internet accounts in Settings."
 msgstr ""
-"Google требует входа через браузер. Управляйте этой учётной записью через "
-"Thunderbird."
+"Google требует входа через браузер. Откройте Интернет-аккаунты в настройках."
 
 msgid "Grisons"
 msgstr "Граубюнден"
@@ -2636,6 +2640,9 @@ msgstr "Международный звонок"
 msgid "Internet IP"
 msgstr "Интернет-IP"
 
+msgid "Internet accounts"
+msgstr "Интернет-аккаунты"
+
 msgid "Internet available"
 msgstr "Интернет доступен"
 
@@ -2860,6 +2867,9 @@ msgstr ""
 
 msgid "Magnolie complete archive (.magnolie) …"
 msgstr "Полный архив Магнолии (.magnolie)…"
+
+msgid "Magnolie manages the account connection in the background."
+msgstr "Magnolie управляет подключением к аккаунту в фоновом режиме."
 
 msgid "Magnolienbaum"
 msgstr "Magnolienbaum"
@@ -4039,6 +4049,9 @@ msgstr "Предпочтительная папка для резервных к
 msgid "Preparing Microsoft sign-in …"
 msgstr "Подготовка входа в Microsoft…"
 
+msgid "Preparing account sign-in …"
+msgstr "Подготовка входа в аккаунт…"
+
 msgid "Preview"
 msgstr "Предварительный просмотр"
 
@@ -4671,9 +4684,6 @@ msgstr "Задать или изменить пароль"
 
 msgid "Set up Magnolie Organizer"
 msgstr "Настройка Magnolie Organizer"
-
-msgid "Set up Thunderbird connection"
-msgstr "Настроить подключение к Thunderbird"
 
 msgid "Set up contacts"
 msgstr "Настроить контакты"
@@ -5997,13 +6007,6 @@ msgid ""
 "Thunderbird could not complete the request. Check the account in Thunderbird."
 msgstr ""
 "Thunderbird не смог выполнить запрос. Проверьте учётную запись в Thunderbird."
-
-msgid ""
-"Thunderbird manages Google sign-in. Select its calendars and address books "
-"above."
-msgstr ""
-"Thunderbird управляет входом в Google. Выберите его календари и адресные "
-"книги выше."
 
 msgid "Thunderbird profile version"
 msgstr "Версия профиля Thunderbird"

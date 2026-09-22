@@ -1,7 +1,7 @@
 {
   "manifest_version": 2,
   "name": "Magnolie Thunderbird Bridge",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Connect configured Thunderbird DAV calendars and address books to Magnolie Organizer.",
   "browser_specific_settings": {"gecko": {"id": "magnolie-bridge@magnolie-organizer.org", "strict_min_version": "140.0"}},
   "permissions": ["nativeMessaging"],

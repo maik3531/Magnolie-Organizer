@@ -14,6 +14,58 @@ internal sealed partial class BridgeDispatcher
     private GraphTokenStore GraphTokens => new(Path.Combine(paths.Root, "graph-token.dat"), new DpapiCurrentUserProtector());
     private NextcloudMailboxSettingsStore NextcloudSettings => new(paths.BaumMailboxSettings, paths.BaumMailboxPassword);
 
+    private async Task SignInInternetAccountAsync(JsonElement message)
+    {
+        try
+        {
+            using var timeout = NetworkDeadline(TimeSpan.FromSeconds(60));
+            await ManagedInternetAccounts.BeginSignInAsync(Text(message, "anbieter"), Text(message, "email").Trim(), timeout.Token);
+            await form.SendAsync("App.internetKontoAnmeldung", new { ok = true });
+        }
+        catch (Exception error)
+        {
+            await ReportErrorAsync("internet_konto_anmelden", error.ToString());
+            await form.SendAsync("App.internetKontoAnmeldung", new { ok = false, fehler = T("Account sign-in could not be started. Please try again.") });
+        }
+    }
+
+    private async Task InternetAccountStatusAsync()
+    {
+        if (!ManagedInternetAccounts.Enabled)
+        {
+            await form.SendAsync("App.internetKontenStatus", new { bereit = false });
+            return;
+        }
+        try
+        {
+            using var timeout = NetworkDeadline(TimeSpan.FromSeconds(60));
+            await ManagedInternetAccounts.EnsureStartedAsync(timeout.Token);
+            var status = await ThunderbirdBridge.CallAsync(new JsonObject { ["op"] = "status" }, timeout.Token, managed: true);
+            status["bereit"] = true;
+            await form.SendAsync("App.internetKontenStatus", status);
+        }
+        catch (Exception error)
+        {
+            await ReportErrorAsync("internet_konten_status", error.ToString());
+            await form.SendAsync("App.internetKontenStatus", new { bereit = false, fehler = T("Account sign-in could not be started. Please try again.") });
+        }
+    }
+
+    private async Task<IReadOnlyList<NextcloudDavSource>> SelectedThunderbirdSourcesAsync(string addressBook,
+        IReadOnlyList<string> calendars, CancellationToken token)
+    {
+        var selected = calendars.Append(addressBook).Where(ThunderbirdBridge.IsSource).ToArray();
+        var result = new List<NextcloudDavSource>();
+        if (selected.Any(ThunderbirdBridge.IsManagedSource))
+        {
+            await ManagedInternetAccounts.EnsureStartedAsync(token);
+            result.AddRange(await ThunderbirdBridge.SourcesAsync(token, managed: true));
+        }
+        if (selected.Any(id => !ThunderbirdBridge.IsManagedSource(id)))
+            result.AddRange(await ThunderbirdBridge.SourcesAsync(token));
+        return result;
+    }
+
     private async Task ContactSourcesAsync()
     {
         var clientId = GraphConfig.ClientId; var signedIn = false;
@@ -43,6 +95,16 @@ internal sealed partial class BridgeDispatcher
             }
             catch (Exception error) when (error is IOException or TimeoutException or OperationCanceledException)
             { /* A closed Thunderbird is unavailable, never an empty sync result. */ }
+        }
+        if (ManagedInternetAccounts.Enabled)
+        {
+            try
+            {
+                using var timeout = NetworkDeadline(TimeSpan.FromSeconds(60));
+                await ManagedInternetAccounts.EnsureStartedAsync(timeout.Token);
+                thunderbirdSources = thunderbirdSources.Concat(await ThunderbirdBridge.SourcesAsync(timeout.Token, managed: true)).ToArray();
+            }
+            catch (Exception error) { await ReportErrorAsync("internet_konten_status", error.ToString()); }
         }
         var addressBooks = new List<object> { new { uid = "windows-contacts", name = T("Windows Contacts folder"), art = "lokal", eingerichtet = true } };
         if (clientId.Length > 0 && signedIn) addressBooks.Add(new { uid = "microsoft-graph", name = "Outlook.com / Microsoft 365", art = "graph", eingerichtet = true });
@@ -143,8 +205,7 @@ internal sealed partial class BridgeDispatcher
                 await form.SendAsync("App.syncFertig", completedRun.Payload);
                 return;
             }
-            var thunderbirdSources = ThunderbirdBridge.IsSource(source) || calendarIds.Any(ThunderbirdBridge.IsSource)
-                ? await ThunderbirdBridge.SourcesAsync(operation.Token) : [];
+            var thunderbirdSources = await SelectedThunderbirdSourcesAsync(source, calendarIds, operation.Token);
             if (resumed is { } saved)
             {
                 using var resumeDocument = JsonDocument.Parse(saved.Payload.ToJsonString());

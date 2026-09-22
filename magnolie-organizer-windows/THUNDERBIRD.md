@@ -1,49 +1,59 @@
-# Thunderbird-Anbindung
+# Verwaltete Internetkonten unter Windows
 
-Die Windows-Ausgabe kann die in Thunderbird eingerichteten, beschreibbaren
-CalDAV-Kalender und CardDAV-Adressbücher als Synchronisationsquellen verwenden.
-Thunderbird übernimmt deren Authentisierung. Magnolie erhält weder Kennwörter
-noch OAuth-Tokens. Eine eigene Google-OAuth-Registrierung für Magnolie ist für
-diesen Weg nicht erforderlich.
+## Bedienungsziel
 
-## Einrichtung
+Die Kontoeinrichtung erfolgt direkt in Magnolie unter **Einstellungen →
+Synchronisation → Internetkonten**: E-Mail-Adresse eingeben, Google,
+Outlook.com/Hotmail oder Microsoft 365 wählen und die normale Anbieteranmeldung
+durchführen. Eine zusätzliche Thunderbird-/Add-on-Installation durch den Nutzer
+ist nicht vorgesehen. Magnolie benötigt keine eigene Anbieterregistrierung.
 
-1. Thunderbird **140 oder neuer** installieren und das gewünschte Google-Konto
-   beziehungsweise den DAV-Kalender und das CardDAV-Adressbuch dort einrichten.
-   Die Anmeldung und der Abgleich müssen in Thunderbird funktionieren.
-2. In Magnolie **Einstellungen → Synchronisation → Thunderbird-Verbindung
-   einrichten** wählen. Der Explorer markiert `Magnolie-Thunderbird.xpi`.
-3. In Thunderbird unter **Add-ons und Themes** im Zahnradmenü **Add-on aus Datei
-   installieren** wählen und diese Datei installieren.
-4. Thunderbird geöffnet lassen. In Magnolie die Quellen aktualisieren und die
-   gewünschten Kalender bzw. das Adressbuch mit Anbieter **Thunderbird** wählen.
-   Den bisherigen direkten Google-DAV-Kennwortzugang deaktivieren; der
-   ausgewählte Thunderbird-Zugang ersetzt diesen Versuch.
+## Hintergrundbaustein
 
-Magnolie erzeugt die Erweiterung aus den mitgelieferten Quellen. Die
-Native-Messaging-Registrierung gilt nur für den aktuellen Windows-Benutzer.
-Die portable Ausgabe muss am gleichen Ort bleiben; nach einem Umzug wird die
-Registrierung durch erneutes Einrichten aktualisiert.
+Der Windows-Paketbau führt eine festgelegte Thunderbird-Laufzeit und angepasste
+TbSync-/EAS-Komponenten mit. Die OAuth-Implementierungen und die tatsächlich beim
+Anbieter verwendeten Anwendungsidentitäten dieser Komponenten bleiben erhalten.
+Der Nutzer sieht im Berechtigungsdialog den tatsächlichen Anmeldeanbieter.
 
-## Grenzen
+Magnolie bereitet ein eigenes Profil unter
+`%LOCALAPPDATA%\Magnolie Internet Accounts\profile` vor. Private Thunderbird-
+Profile werden nicht umkonfiguriert. Die Kontenablage liegt außerhalb des
+Organizer-Datenverzeichnisses und gehört nicht in dessen Datenarchive.
 
-- Die Erweiterung benötigt ein geöffnetes Thunderbird-Profil. Ein Profilwechsel
-  führt nicht dazu, dass fehlende Quellen als leere Bestände behandelt werden.
-- Die Anbindung verwendet Thunderbird-interne DAV-Anbieterschnittstellen. Bei
-  größeren Thunderbird-Änderungen muss die Kompatibilität geprüft werden.
-- Es werden nur eingerichtete HTTPS-DAV-Quellen angeboten. Eine Outlook-Mail-
-  Anmeldung allein stellt keinen CalDAV-/CardDAV-Zugang bereit. Für echte
-  Microsoft-Kontakte und Kalender wird in Issue #29 ein Zugang ohne eigene
-  App-Registrierung untersucht.
-- Eine bestätigte lokale Übertragung ersetzt keine Google-Kontoprüfung. Der
-  reale Google-Abgleich bleibt in Issue #17 bis zu dessen Bestätigung offen.
+Die lokale Native-Messaging-Verbindung ist auf den aktuellen Windows-Benutzer
+und die Magnolie-Erweiterung begrenzt. Kontenstatusmeldungen enthalten keine
+Kennwörter oder OAuth-Tokens. Persönliche und verwaltete Thunderbird-Quellen
+verwenden getrennte Verbindungen und Quellenkennungen.
 
-## Entwicklung
+## Implementierungsstand
 
-`tests/thunderbird-bridge.js` prüft Quellenbindung, vollständige CardDAV-
-Momentaufnahmen, bedingte Schreibzugriffe und die Begrenzung der Schnittstelle.
-Die CoreTests-Gruppe `Thunderbird bridge` prüft Nachrichtenrahmen und
-anbieterabhängige Kontaktkennungen. Der explizite Prüfbefehl `--thunderbird-live`
-verwendet ein isoliertes `magnolie-test-*`-Konto und eigens angelegte
-`MagnolieProbe`-Kalender/-Adressbücher; er ist kein automatischer Zugriff auf
-persönliche Konten.
+- Automatische Profil-/Erweiterungsvorbereitung und Kontoeinrichtungs-Schaltflächen
+  sind im Entwicklungsstand vorhanden; die Texte sind in allen 20 Sprachen
+  verfügbar.
+- Google verwendet die in der Hintergrundlaufzeit vorhandene DAV-Erkennung und
+  Anbieteranmeldung. Der echte Google-Abgleich bleibt bis zur Bestätigung in
+  Issue #17 offen.
+- Der Microsoft-Einrichtungsadapter delegiert die Anmeldung an den EAS-Anbieter
+  und verbindet das angelegte Konto. **Die EAS-Datenübergabe zwischen Microsoft
+  und Magnolie ist noch nicht fertig.** Anmeldung und Ordnererkennung sind kein
+  bestätigter Zweiwege-Abgleich; Issue #29 bleibt offen.
+- Es wurde noch kein neues Release mit dieser Integration veröffentlicht.
+
+## Paketbau und Quellen
+
+`werkzeuge/account_runtime.py` verwendet festgelegte Downloadadressen und
+SHA-256-Prüfsummen und bereitet die Laufzeit direkt im Windows-Ausgabeverzeichnis
+vor. Der bestehende `build/Build.ps1`-Ablauf ruft dieses Werkzeug auf.
+7-Zip wird nur auf dem Baurechner benötigt (`MAGNOLIE_7Z`), nicht beim Nutzer.
+Heruntergeladene Originalpakete werden wiederverwendet.
+
+Mozilla Thunderbird wird unverändert übernommen. Die Anpassungen an den
+TbSync-/EAS-Komponenten sind unter `app/account-bridge` einsehbar, als Varianten
+gekennzeichnet und unter MPL-2.0 verfügbar. Sie ergänzen die eingeschränkte
+Kontrollschnittstelle und den direkten Anmeldeeinstieg; die Originaldatei
+`oauth.mjs` wird nicht verändert. Herkunft und Lizenzhinweise liegen der Laufzeit
+und den Erweiterungen bei.
+
+Die Tests prüfen Profiltrennung, Nachrichtenrahmen, Quellenbindung, bedingte
+Schreibzugriffe, anbieterabhängige Kontaktkennungen und die Beschränkung der
+öffentlichen Statusdaten. Native Tests verwenden eigene Prüfprofile.

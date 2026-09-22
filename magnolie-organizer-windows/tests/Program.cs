@@ -2,6 +2,8 @@ using MagnolieOrganizer.Windows.Tests;
 
 if (args.FirstOrDefault() == "--dav-live") return await NextcloudDavLiveTests.RunAsync();
 if (args.FirstOrDefault() == "--thunderbird-live") return await NextcloudDavLiveTests.RunAsync(thunderbird: true);
+if (args.FirstOrDefault() == "--managed-account-host" && args.Length == 4)
+    return await ManagedInternetAccountsTests.ProbeAsync(args[1], args[2], args[3]);
 
 if (args.FirstOrDefault() == "--scoped-call-host") return await OutgoingDialTests.RunAsync(args.ElementAtOrDefault(1), args.ElementAtOrDefault(2));
 
@@ -51,6 +53,7 @@ runner.Add("Magnolienbaum Crypto / Pairing / FS1 / Replay / Queues / Netzwerk", 
 runner.Add("Magnolienbaum Nextcloud / WebDAV / Authentisierung", NextcloudMailboxTests.RunAsync);
 runner.Add("Nextcloud CalDAV / CardDAV / Discovery / ETag / Sicherheit", NextcloudDavTests.RunAsync);
 runner.Add("Thunderbird bridge / framing / provider identity", ThunderbirdBridgeTests.RunAsync);
+runner.Add("Managed internet accounts / isolated profiles", ManagedInternetAccountsTests.RunAsync);
 runner.Add("Magnolienbaum Kontakte / Fotos / manuelle Löschvorschläge", ContractGroupTests.TreeContactsAsync);
 runner.Add("Telefonverbindung / Crypto / Pairingcode / Rahmen / Verträge", TelefonProtocolTests.RunAsync);
 runner.Add("Telefon WLAN invitations / bounded discovery", TelefonInvitationTests.RunAsync);

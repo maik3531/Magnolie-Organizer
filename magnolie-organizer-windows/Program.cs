@@ -12,16 +12,21 @@ internal static class Program
     private static void Main(string[] args)
     {
         if (args.Length == 2 && args[1] == ThunderbirdBridge.ExtensionId &&
-            string.Equals(Path.GetFullPath(args[0]), ThunderbirdBridge.ManifestPath, StringComparison.OrdinalIgnoreCase))
+            (string.Equals(Path.GetFullPath(args[0]), ThunderbirdBridge.ManifestPath, StringComparison.OrdinalIgnoreCase) ||
+             string.Equals(Path.GetFullPath(args[0]), ThunderbirdBridge.ManagedManifestPath, StringComparison.OrdinalIgnoreCase)))
         {
+            Action<string>? trace = null;
+            var traceDirectory = Environment.GetEnvironmentVariable("MAGNOLIE_ACCOUNT_PROBE_TRACE");
+            if (traceDirectory is not null && File.Exists(Path.Combine(traceDirectory, "magnolie-managed.json")))
+                trace = phase => { try { File.AppendAllText(Path.Combine(traceDirectory, "native-transport.log"), phase + "\n"); } catch (IOException) { } };
             Environment.ExitCode = ThunderbirdBridge.RunHostAsync(Console.OpenStandardInput(), Console.OpenStandardOutput(),
-                CancellationToken.None).GetAwaiter().GetResult();
+                CancellationToken.None, string.Equals(Path.GetFullPath(args[0]), ThunderbirdBridge.ManagedManifestPath, StringComparison.OrdinalIgnoreCase), trace: trace).GetAwaiter().GetResult();
             return;
         }
         if (args.Length == 1 && args[0] == "--unregister-call-notifications")
         {
             using var notifications = new WindowsCallNotifications(_ => Task.FromResult(false), listen: false);
-            try { ThunderbirdBridge.UnregisterHost(); Environment.ExitCode = notifications.Unregister() ? 0 : 1; }
+            try { ManagedInternetAccounts.StopAsync().GetAwaiter().GetResult(); ThunderbirdBridge.UnregisterHost(); Environment.ExitCode = notifications.Unregister() ? 0 : 1; }
             catch (Exception error) when (error is IOException or UnauthorizedAccessException or
                 System.Runtime.InteropServices.COMException or System.Security.SecurityException or ArgumentException)
             { Environment.ExitCode = 1; }
@@ -136,5 +141,6 @@ internal static class Program
         }
 
         Application.Run(new MainForm(trayStart, reminderStart, setupSelections));
+        ManagedInternetAccounts.StopAsync().GetAwaiter().GetResult();
     }
 }

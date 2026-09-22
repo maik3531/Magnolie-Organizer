@@ -18465,6 +18465,10 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
   /* ---------------------------------------------------------------------- */
 
   let letzterEdsStatus = null;
+  let internetKontenStand = null;
+  let internetKontoTimer = null;
+  let internetKontoAnmeldung = false;
+  let internetKontoStartet = false;
   let edsAngefragt = false;
   let syncLaeuft = false;
   let updateLaeuft = false;
@@ -19561,18 +19565,55 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       status.textContent = _("Checking online accounts …");
     }
     baueNextcloudKonto(wurzel);
-    const thunderbird = abschnitt("Thunderbird",
-      _("Thunderbird manages Google sign-in. Select its calendars and address books above."));
-    const thunderbirdStatus = el("p", "sync-status", letzterEdsStatus?.thunderbird?.verbunden
-      ? _("Connected") : _("Unavailable"));
-    thunderbirdStatus.id = "thunderbird-status";
-    thunderbird.append(thunderbirdStatus);
-    thunderbird.append(knopf(_("Set up Thunderbird connection"), "", () =>
-      Bruecke.sende({ cmd: "thunderbird_einrichten" })));
-    thunderbird.append(knopf(_("Refresh"), "", () => Bruecke.sende({ cmd: "eds_status" })));
-    if (!Bruecke.vorhanden) thunderbird.querySelectorAll("button").forEach(button => { button.disabled = true; });
-    wurzel.append(thunderbird);
+    baueInternetKonten(wurzel);
     baueBriefkasten(wurzel);
+  }
+
+  function internetKontenZeigen() {
+    const status = $("#internet-konten-status");
+    const liste = $("#internet-konten-liste");
+    if (!status || !liste) return;
+    const s = internetKontenStand || {};
+    status.textContent = s.fehler || (s.google?.error || s.microsoft?.login?.error
+      ? _("Account sign-in could not be started. Please try again.")
+      : internetKontoAnmeldung ? _("Preparing account sign-in …") : "");
+    liste.textContent = "";
+    for (const name of s.google?.accounts || []) liste.append(el("p", null, "Google · " + name));
+    for (const konto of s.microsoft?.accounts || []) {
+      liste.append(el("p", konto.error ? "einst-warnung" : "sync-status",
+        "Microsoft · " + konto.name + " — " + (konto.enabled && !konto.error ? _("Connected") : _("Unavailable"))));
+    }
+    $("#internet-konten")?.querySelectorAll("button").forEach(button => {
+      button.disabled = !Bruecke.vorhanden || internetKontoAnmeldung;
+    });
+  }
+
+  function baueInternetKonten(wurzel) {
+    const ab = abschnitt(_("Internet accounts"), _("Magnolie manages the account connection in the background."));
+    ab.id = "internet-konten";
+    const email = eingabe("email", ""); email.id = "internet-konto-email";
+    ab.append(formZeile(_("Email"), email));
+    const anmelden = anbieter => {
+      if (internetKontoAnmeldung) return;
+      if (!email.value.trim().includes("@")) { zettel(_("Enter your email address.")); email.focus(); return; }
+      internetKontoAnmeldung = true;
+      internetKontoStartet = true;
+      internetKontenStand = null;
+      internetKontenZeigen();
+      Bruecke.sende({ cmd: "internet_konto_anmelden", anbieter, email: email.value.trim() });
+    };
+    const reihe = el("div", "knopfreihe");
+    reihe.append(knopf("Google", "", () => anmelden("google")),
+      knopf("Outlook.com / Hotmail", "", () => anmelden("personal-ms")),
+      knopf("Microsoft 365", "", () => anmelden("office365")));
+    ab.append(reihe);
+    const status = el("p", "sync-status"); status.id = "internet-konten-status";
+    const liste = el("div"); liste.id = "internet-konten-liste";
+    ab.append(status, liste);
+    wurzel.append(ab);
+    internetKontenZeigen();
+    if (Bruecke.vorhanden && !internetKontenStand && !internetKontoAnmeldung)
+      Bruecke.sende({ cmd: "internet_konten_status" });
   }
 
   /* Länder und Regionen des Feiertagsdienstes. Für den deutschsprachigen
@@ -24473,9 +24514,28 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       edsAngefragt = false;
       letzterEdsStatus = nutzlast || { verfuegbar: false };
       fuelleEdsAuswahl(letzterEdsStatus);
-      const thunderbirdStatus = $("#thunderbird-status");
-      if (thunderbirdStatus) thunderbirdStatus.textContent = nutzlast?.thunderbird?.verbunden ? _("Connected") : _("Unavailable");
       if (kontaktAssistentQuellenSeite) kontaktAssistentQuellenSeite();
+    },
+    internetKontoAnmeldung(nutzlast) {
+      internetKontoStartet = false;
+      if (!nutzlast?.ok) {
+        internetKontoAnmeldung = false;
+        internetKontenStand = nutzlast || {};
+        internetKontenZeigen();
+        zettel(nutzlast?.fehler || _("Account sign-in could not be started. Please try again."));
+        return;
+      }
+      Bruecke.sende({ cmd: "internet_konten_status" });
+    },
+    internetKontenStatus(nutzlast) {
+      if (internetKontoStartet) return;
+      clearTimeout(internetKontoTimer);
+      const vorher = internetKontoAnmeldung;
+      internetKontenStand = nutzlast || {};
+      internetKontoAnmeldung = !!(nutzlast?.google?.pending || nutzlast?.microsoft?.login?.pending);
+      internetKontenZeigen();
+      if (internetKontoAnmeldung) internetKontoTimer = setTimeout(() => Bruecke.sende({ cmd: "internet_konten_status" }), 1500);
+      else if (vorher) Bruecke.sende({ cmd: "eds_status" });
     },
     thunderbirdEinrichtung(nutzlast) {
       if (nutzlast?.fehler) { zettel(nutzlast.fehler); return; }

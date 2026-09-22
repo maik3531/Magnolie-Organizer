@@ -66,7 +66,8 @@ internal sealed partial class BridgeDispatcher : IDisposable
                 "telefon_status_anfordern" or "telefon_waehlen" or "telefon_annehmen" or "telefon_auflegen" or
                 "sync" or "personal_sync_senden" or "personal_sync_lauf_senden" or "handbuch_herunterladen" or "baum_internet_adresse" or
                 "telefon_oeffnen" or "telefon_verbinden" or "telefon_pairing_oeffnen" or "kde_pairing_start" or "kde_pairing_complete" or
-                "kde_paaren" or "kde_pairing_confirm" or "kde_paarung_bestaetigen" or "baum_briefkasten_speichern" or "graph_client_id_speichern")
+                "kde_paaren" or "kde_pairing_confirm" or "kde_paarung_bestaetigen" or "baum_briefkasten_speichern" or "graph_client_id_speichern" or
+                "internet_konto_anmelden" or "internet_konten_status")
             {
                 var owner = command is "sync" or "baum_briefkasten_speichern" or "graph_client_id_speichern" ? "sync" :
                     command.StartsWith("personal_sync", StringComparison.Ordinal) || command.StartsWith("telefon", StringComparison.Ordinal) ? "phone" :
@@ -159,6 +160,8 @@ internal sealed partial class BridgeDispatcher : IDisposable
                     case "planer_ods": await CreateSpreadsheetAsync(message, "Planer", "Magnolie-Planer.ods"); break;
                     case "gesundheit_ods": await CreateHealthSpreadsheetAsync(message); break;
                     case "eds_status": await ContactSourcesAsync(); break;
+                    case "internet_konto_anmelden": await SignInInternetAccountAsync(message); break;
+                    case "internet_konten_status": await InternetAccountStatusAsync(); break;
                     case "thunderbird_einrichten":
                         try
                         {

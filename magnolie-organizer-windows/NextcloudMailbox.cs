@@ -22,7 +22,7 @@ internal static class NextcloudStatusText
 {
     internal static string For(Exception error) => NativeLocalization.Gettext(error switch
     {
-        GoogleDavAuthenticationException => "Google requires browser sign-in. Use Thunderbird to manage this account.",
+        GoogleDavAuthenticationException => "Google requires browser sign-in. Use Internet accounts in Settings.",
         ThunderbirdBridgeException => "Thunderbird could not complete the request. Check the account in Thunderbird.",
         HttpRequestException { StatusCode: HttpStatusCode.Unauthorized } => "Sign-in failed. Check the account and authentication method required by your provider.",
         HttpRequestException { StatusCode: HttpStatusCode.Forbidden } => "The server denied access. Check this account's permissions.",

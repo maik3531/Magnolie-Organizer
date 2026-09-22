@@ -485,6 +485,9 @@ msgstr "Biçim bölgesine göre"
 msgid "According to language"
 msgstr "Dile göre"
 
+msgid "Account sign-in could not be started. Please try again."
+msgstr "Hesap oturumu başlatılamadı. Lütfen tekrar deneyin."
+
 msgid "Account type"
 msgstr "Hesap türü"
 
@@ -2066,6 +2069,9 @@ msgstr ""
 "Yukarıya adresinizi girin. Başlangıç noktası olmadan hiçbir hizmet yol "
 "tarifi hesaplayamaz."
 
+msgid "Enter your email address."
+msgstr "E-posta adresinizi girin."
+
 msgid "Entries ready to import"
 msgstr "İçe aktarılmaya hazır kayıtlar"
 
@@ -2326,11 +2332,10 @@ msgstr "Takvime git"
 msgid "Google Maps in the browser"
 msgstr "Tarayıcıda Google Maps"
 
-msgid ""
-"Google requires browser sign-in. Use Thunderbird to manage this account."
+msgid "Google requires browser sign-in. Use Internet accounts in Settings."
 msgstr ""
-"Google, tarayıcıda oturum açılmasını gerektirir. Bu hesabı Thunderbird "
-"üzerinden yönetin."
+"Google, tarayıcıda oturum açılmasını gerektirir. Ayarlardaki İnternet "
+"hesaplarını kullanın."
 
 msgid "Grisons"
 msgstr "Graubünden"
@@ -2596,6 +2601,9 @@ msgstr "Uluslararası arama"
 msgid "Internet IP"
 msgstr "İnternet IP’si"
 
+msgid "Internet accounts"
+msgstr "İnternet hesapları"
+
 msgid "Internet available"
 msgstr "İnternet kullanılabilir"
 
@@ -2818,6 +2826,9 @@ msgstr ""
 
 msgid "Magnolie complete archive (.magnolie) …"
 msgstr "Manolya arşivinin tamamı (.magnolie) …"
+
+msgid "Magnolie manages the account connection in the background."
+msgstr "Magnolie hesap bağlantısını arka planda yönetir."
 
 msgid "Magnolienbaum"
 msgstr "Magnolienbaum"
@@ -3985,6 +3996,9 @@ msgstr "Tercih edilen yedekleme klasörü"
 msgid "Preparing Microsoft sign-in …"
 msgstr "Microsoft oturum açma işlemi hazırlanıyor…"
 
+msgid "Preparing account sign-in …"
+msgstr "Hesap oturumu hazırlanıyor…"
+
 msgid "Preview"
 msgstr "Önizleme"
 
@@ -4616,9 +4630,6 @@ msgstr "Parola belirle veya değiştir"
 
 msgid "Set up Magnolie Organizer"
 msgstr "Magnolie Organizer'ı kur"
-
-msgid "Set up Thunderbird connection"
-msgstr "Thunderbird bağlantısını ayarla"
 
 msgid "Set up contacts"
 msgstr "Kişileri ayarla"
@@ -5930,13 +5941,6 @@ msgid ""
 "Thunderbird could not complete the request. Check the account in Thunderbird."
 msgstr ""
 "Thunderbird isteği tamamlayamadı. Thunderbird içindeki hesabı kontrol edin."
-
-msgid ""
-"Thunderbird manages Google sign-in. Select its calendars and address books "
-"above."
-msgstr ""
-"Google oturum açma işlemini Thunderbird yönetir. Yukarıdan takvimlerini ve "
-"adres defterlerini seçin."
 
 msgid "Thunderbird profile version"
 msgstr "Thunderbird profil sürümü"

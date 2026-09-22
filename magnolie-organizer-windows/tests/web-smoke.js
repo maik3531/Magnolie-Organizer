@@ -980,12 +980,22 @@ assert.strictEqual(window.document.querySelector("#sync-windows-quelle").value, 
   "An unconfigured profile silently selects the local Windows folder as its sync provider");
 assert.strictEqual(window.document.querySelector("#dav-quellen-fehler")?.textContent,
   "DAV authentication unavailable", "DAV discovery errors are hidden behind the local Windows contact source");
-assert.equal(window.document.querySelector("#thunderbird-status")?.textContent, window.MagnolieI18n.gettext("Connected"));
 assert.ok(window.document.querySelector("#sync-wahl").textContent.includes("TB Calendar — Thunderbird") &&
   window.document.querySelector("#sync-wahl").textContent.includes("TB Contacts — Thunderbird"));
-Array.from(window.document.querySelectorAll("button")).find(button =>
-  button.textContent === window.MagnolieI18n.gettext("Set up Thunderbird connection")).click();
-assert.ok(messages.some(message => message.cmd === "thunderbird_einrichten"));
+const internetAccounts = window.document.querySelector("#internet-konten");
+assert.ok(internetAccounts && !internetAccounts.textContent.includes("Add-on"));
+const microsoftSignIn = Array.from(internetAccounts.querySelectorAll("button")).find(button => button.textContent === "Outlook.com / Hotmail");
+window.document.querySelector("#internet-konto-email").value = "account@example.invalid";
+microsoftSignIn.click();
+assert.ok(messages.some(message => message.cmd === "internet_konto_anmelden" && message.anbieter === "personal-ms"));
+window.App.internetKontenStatus({ bereit: false });
+assert.equal(microsoftSignIn.disabled, true, "a stale status reply re-enables sign-in during startup");
+window.App.internetKontoAnmeldung({ ok: true });
+window.App.internetKontenStatus({ bereit: true, google: { pending: false, accounts: [] }, microsoft: { login: { pending: true }, accounts: [] } });
+assert.equal(microsoftSignIn.disabled, true);
+window.App.internetKontenStatus({ bereit: true, google: { pending: false, accounts: [] }, microsoft: { login: { pending: false }, accounts: [{ name: "Microsoft test", enabled: true }] } });
+assert.equal(microsoftSignIn.disabled, false);
+assert.ok(internetAccounts.textContent.includes("Microsoft test"));
 assert.ok(Array.from(window.document.querySelectorAll("button"))
   .some((button) => button.textContent === window.MagnolieI18n.gettext("Sign in to Microsoft")));
 assert.ok(!window.document.body.textContent.includes("Client-ID") &&

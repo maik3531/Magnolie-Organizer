@@ -483,6 +483,9 @@ msgstr "I henhold til formatområdet"
 msgid "According to language"
 msgstr "Efter sprog"
 
+msgid "Account sign-in could not be started. Please try again."
+msgstr "Login til kontoen kunne ikke startes. Prøv igen."
+
 msgid "Account type"
 msgstr "Kontotype"
 
@@ -2064,6 +2067,9 @@ msgstr ""
 "Indtast din adresse ovenfor. Ingen tjeneste kan beregne en rute uden et "
 "udgangspunkt."
 
+msgid "Enter your email address."
+msgstr "Indtast din mailadresse."
+
 msgid "Entries ready to import"
 msgstr "Poster klar til import"
 
@@ -2323,11 +2329,8 @@ msgstr "Gå til kalender"
 msgid "Google Maps in the browser"
 msgstr "Google Maps i browseren"
 
-msgid ""
-"Google requires browser sign-in. Use Thunderbird to manage this account."
-msgstr ""
-"Google kræver login i browseren. Brug Thunderbird til at administrere denne "
-"konto."
+msgid "Google requires browser sign-in. Use Internet accounts in Settings."
+msgstr "Google kræver login i browseren. Brug Internetkonti i indstillingerne."
 
 msgid "Grisons"
 msgstr "Graubünden"
@@ -2592,6 +2595,9 @@ msgstr "Internationalt opkald"
 msgid "Internet IP"
 msgstr "Internet-IP"
 
+msgid "Internet accounts"
+msgstr "Internetkonti"
+
 msgid "Internet available"
 msgstr "Internet tilgængeligt"
 
@@ -2816,6 +2822,9 @@ msgstr ""
 
 msgid "Magnolie complete archive (.magnolie) …"
 msgstr "Magnolie komplet arkiv (.magnolie) …"
+
+msgid "Magnolie manages the account connection in the background."
+msgstr "Magnolie håndterer kontoforbindelsen i baggrunden."
 
 msgid "Magnolienbaum"
 msgstr "Magnolienbaum"
@@ -3988,6 +3997,9 @@ msgstr "Foretrukken mappe til sikkerhedskopier"
 msgid "Preparing Microsoft sign-in …"
 msgstr "Forbereder Microsoft-logon..."
 
+msgid "Preparing account sign-in …"
+msgstr "Forbereder login til kontoen …"
+
 msgid "Preview"
 msgstr "Eksempel"
 
@@ -4616,9 +4628,6 @@ msgstr "Angiv eller skift adgangskode"
 
 msgid "Set up Magnolie Organizer"
 msgstr "Opsæt Magnolie Organizer"
-
-msgid "Set up Thunderbird connection"
-msgstr "Opsæt Thunderbird-forbindelse"
 
 msgid "Set up contacts"
 msgstr "Konfigurer kontakter"
@@ -5934,13 +5943,6 @@ msgid ""
 msgstr ""
 "Thunderbird kunne ikke fuldføre anmodningen. Kontrollér kontoen i "
 "Thunderbird."
-
-msgid ""
-"Thunderbird manages Google sign-in. Select its calendars and address books "
-"above."
-msgstr ""
-"Thunderbird håndterer Google-login. Vælg dets kalendere og adressebøger "
-"ovenfor."
 
 msgid "Thunderbird profile version"
 msgstr "Version af Thunderbird-profilen"

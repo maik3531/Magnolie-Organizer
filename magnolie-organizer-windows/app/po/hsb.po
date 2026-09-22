@@ -546,6 +546,9 @@ msgstr "Po formatowym regionje"
 msgid "According to language"
 msgstr "Po rěči"
 
+msgid "Account sign-in could not be started. Please try again."
+msgstr "Přizjewjenje pola konta njeda so startować. Spytajće prošu hišće raz."
+
 msgid "Account type"
 msgstr "Kontowy typ"
 
@@ -2140,6 +2143,9 @@ msgstr ""
 "Zapodajće horjeka swoju adresu. Žana słužba njemóže puć bjez startoweho "
 "městna wuličić."
 
+msgid "Enter your email address."
+msgstr "Zapodajće swoju e-mejlowu adresu."
+
 msgid "Entries ready to import"
 msgstr "Zapiski přihotowane za import"
 
@@ -2400,11 +2406,10 @@ msgstr "K protyce"
 msgid "Google Maps in the browser"
 msgstr "Google Maps we wobhladowaku"
 
-msgid ""
-"Google requires browser sign-in. Use Thunderbird to manage this account."
+msgid "Google requires browser sign-in. Use Internet accounts in Settings."
 msgstr ""
-"Google sej přizjewjenje we wobhladowaku žada. Zarjadujće tute konto přez "
-"Thunderbird."
+"Google sej přizjewjenje we wobhladowaku žada. Wužiwajće Internetne konta w "
+"nastajenjach."
 
 msgid "Grisons"
 msgstr "Graubünden"
@@ -2670,6 +2675,9 @@ msgstr "Mjezynarodne zawołanje"
 msgid "Internet IP"
 msgstr "Internetowa IP"
 
+msgid "Internet accounts"
+msgstr "Internetne konta"
+
 msgid "Internet available"
 msgstr "Internet k dispoziciji"
 
@@ -2894,6 +2902,9 @@ msgstr ""
 
 msgid "Magnolie complete archive (.magnolie) …"
 msgstr "Dospołny archiw Magnolie (.magnolie) …"
+
+msgid "Magnolie manages the account connection in the background."
+msgstr "Magnolie zwisk z kontom w pozadku rjaduje."
 
 msgid "Magnolienbaum"
 msgstr "Magnolienbaum"
@@ -4079,6 +4090,9 @@ msgstr "Preferowany rjadowak zawěsćenjow"
 msgid "Preparing Microsoft sign-in …"
 msgstr "Přizjewjenje pola Microsoft so přihotuje…"
 
+msgid "Preparing account sign-in …"
+msgstr "Přizjewjenje pola konta so přihotuje …"
+
 msgid "Preview"
 msgstr "Přehlad"
 
@@ -4717,9 +4731,6 @@ msgstr "Hesło nastajić abo změnić"
 
 msgid "Set up Magnolie Organizer"
 msgstr "Magnolie Organizer zarjadować"
-
-msgid "Set up Thunderbird connection"
-msgstr "Zwisk z Thunderbird zarjadować"
 
 msgid "Set up contacts"
 msgstr "Kontakty přirjadować"
@@ -6038,13 +6049,6 @@ msgid ""
 "Thunderbird could not complete the request. Check the account in Thunderbird."
 msgstr ""
 "Thunderbird njemóžeše naprašowanje dokónčić. Přepruwujće konto w Thunderbird."
-
-msgid ""
-"Thunderbird manages Google sign-in. Select its calendars and address books "
-"above."
-msgstr ""
-"Thunderbird přizjewjenje pola Google přewozmje. Wubjerće horjeka jeho "
-"protyki a adresniki."
 
 msgid "Thunderbird profile version"
 msgstr "Wersija profila Thunderbird"

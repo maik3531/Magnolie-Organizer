@@ -488,6 +488,9 @@ msgstr "Volgens de notatieregio"
 msgid "According to language"
 msgstr "Volgens taal"
 
+msgid "Account sign-in could not be started. Please try again."
+msgstr "De accountaanmelding kon niet worden gestart. Probeer het opnieuw."
+
 msgid "Account type"
 msgstr "Accounttype"
 
@@ -2092,6 +2095,9 @@ msgstr ""
 "Voer hierboven uw adres in. Zonder vertrekpunt kan geen enkele service een "
 "route berekenen."
 
+msgid "Enter your email address."
+msgstr "Voer uw e-mailadres in."
+
 msgid "Entries ready to import"
 msgstr "Gegevens klaar voor import"
 
@@ -2354,10 +2360,10 @@ msgstr "Naar kalender"
 msgid "Google Maps in the browser"
 msgstr "Google Maps in de browser"
 
-msgid ""
-"Google requires browser sign-in. Use Thunderbird to manage this account."
+msgid "Google requires browser sign-in. Use Internet accounts in Settings."
 msgstr ""
-"Google vereist aanmelding in de browser. Beheer dit account via Thunderbird."
+"Google vereist aanmelding in de browser. Gebruik Internetaccounts in de "
+"instellingen."
 
 msgid "Grisons"
 msgstr "Graubünden"
@@ -2623,6 +2629,9 @@ msgstr "Internationaal gesprek"
 msgid "Internet IP"
 msgstr "Internet-IP"
 
+msgid "Internet accounts"
+msgstr "Internetaccounts"
+
 msgid "Internet available"
 msgstr "Internet beschikbaar"
 
@@ -2849,6 +2858,9 @@ msgstr ""
 
 msgid "Magnolie complete archive (.magnolie) …"
 msgstr "Magnolie compleet archief (.magnolie) …"
+
+msgid "Magnolie manages the account connection in the background."
+msgstr "Magnolie beheert de accountverbinding op de achtergrond."
 
 msgid "Magnolienbaum"
 msgstr "Magnolienbaum"
@@ -4032,6 +4044,9 @@ msgstr "Voorkeursmap voor back-ups"
 msgid "Preparing Microsoft sign-in …"
 msgstr "Aanmelden bij Microsoft voorbereiden…"
 
+msgid "Preparing account sign-in …"
+msgstr "Accountaanmelding voorbereiden …"
+
 msgid "Preview"
 msgstr "Voorbeeld"
 
@@ -4666,9 +4681,6 @@ msgstr "Wachtwoord instellen of wijzigen"
 
 msgid "Set up Magnolie Organizer"
 msgstr "Magnolie Organizer configureren"
-
-msgid "Set up Thunderbird connection"
-msgstr "Thunderbird-verbinding instellen"
 
 msgid "Set up contacts"
 msgstr "Contacten instellen"
@@ -6009,13 +6021,6 @@ msgid ""
 msgstr ""
 "Thunderbird kon het verzoek niet voltooien. Controleer het account in "
 "Thunderbird."
-
-msgid ""
-"Thunderbird manages Google sign-in. Select its calendars and address books "
-"above."
-msgstr ""
-"Thunderbird verzorgt de Google-aanmelding. Selecteer hierboven de agenda’s "
-"en adresboeken."
 
 msgid "Thunderbird profile version"
 msgstr "Versie van het Thunderbird-profiel"

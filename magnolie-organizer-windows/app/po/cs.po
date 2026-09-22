@@ -512,6 +512,9 @@ msgstr "Podle oblasti formátu"
 msgid "According to language"
 msgstr "Podle jazyka"
 
+msgid "Account sign-in could not be started. Please try again."
+msgstr "Přihlášení k účtu se nepodařilo spustit. Zkuste to znovu."
+
 msgid "Account type"
 msgstr "Typ účtu"
 
@@ -2086,6 +2089,9 @@ msgstr ""
 "Zadejte výše svou adresu. Bez výchozího bodu žádná služba nedokáže vypočítat "
 "trasu."
 
+msgid "Enter your email address."
+msgstr "Zadejte svou e-mailovou adresu."
+
 msgid "Entries ready to import"
 msgstr "Záznamy připravené k importu"
 
@@ -2345,10 +2351,10 @@ msgstr "Přejít do kalendáře"
 msgid "Google Maps in the browser"
 msgstr "Mapy Google v prohlížeči"
 
-msgid ""
-"Google requires browser sign-in. Use Thunderbird to manage this account."
+msgid "Google requires browser sign-in. Use Internet accounts in Settings."
 msgstr ""
-"Google vyžaduje přihlášení v prohlížeči. Spravujte tento účet v Thunderbirdu."
+"Google vyžaduje přihlášení v prohlížeči. Použijte Internetové účty v "
+"nastavení."
 
 msgid "Grisons"
 msgstr "Graubünden"
@@ -2612,6 +2618,9 @@ msgstr "Mezinárodní hovor"
 msgid "Internet IP"
 msgstr "Internetová IP"
 
+msgid "Internet accounts"
+msgstr "Internetové účty"
+
 msgid "Internet available"
 msgstr "Internet je dostupný"
 
@@ -2835,6 +2844,9 @@ msgstr ""
 
 msgid "Magnolie complete archive (.magnolie) …"
 msgstr "Kompletní archiv Magnolie (.magnolie) …"
+
+msgid "Magnolie manages the account connection in the background."
+msgstr "Magnolie spravuje připojení k účtu na pozadí."
 
 msgid "Magnolienbaum"
 msgstr "Magnolienbaum"
@@ -4006,6 +4018,9 @@ msgstr "Upřednostňovaná složka pro zálohy"
 msgid "Preparing Microsoft sign-in …"
 msgstr "Příprava přihlášení k Microsoftu…"
 
+msgid "Preparing account sign-in …"
+msgstr "Příprava přihlášení k účtu…"
+
 msgid "Preview"
 msgstr "Náhled"
 
@@ -4636,9 +4651,6 @@ msgstr "Nastavit nebo změnit heslo"
 
 msgid "Set up Magnolie Organizer"
 msgstr "Nastavit Magnolie Organizer"
-
-msgid "Set up Thunderbird connection"
-msgstr "Nastavit připojení k Thunderbirdu"
 
 msgid "Set up contacts"
 msgstr "Nastavit kontakty"
@@ -5947,13 +5959,6 @@ msgid ""
 "Thunderbird could not complete the request. Check the account in Thunderbird."
 msgstr ""
 "Thunderbird nemohl dokončit požadavek. Zkontrolujte účet v Thunderbirdu."
-
-msgid ""
-"Thunderbird manages Google sign-in. Select its calendars and address books "
-"above."
-msgstr ""
-"Thunderbird zajišťuje přihlášení ke Googlu. Výše vyberte jeho kalendáře a "
-"adresáře."
 
 msgid "Thunderbird profile version"
 msgstr "Verze profilu Thunderbird"

@@ -476,6 +476,9 @@ msgstr "प्रारूप क्षेत्र के अनुसार"
 msgid "According to language"
 msgstr "भाषा के अनुसार"
 
+msgid "Account sign-in could not be started. Please try again."
+msgstr "खाते में साइन इन शुरू नहीं हो सका। कृपया फिर से प्रयास करें।"
+
 msgid "Account type"
 msgstr "खाते का प्रकार"
 
@@ -2020,6 +2023,9 @@ msgid ""
 "starting point."
 msgstr "ऊपर अपना पता दर्ज करें। प्रारंभ बिंदु के बिना कोई सेवा दिशा-निर्देश नहीं बना सकती।"
 
+msgid "Enter your email address."
+msgstr "अपना ईमेल पता दर्ज करें।"
+
 msgid "Entries ready to import"
 msgstr "आयात के लिए तैयार प्रविष्टियाँ"
 
@@ -2276,11 +2282,9 @@ msgstr "कैलेंडर पर जाएँ"
 msgid "Google Maps in the browser"
 msgstr "ब्राउज़र में Google Maps"
 
-msgid ""
-"Google requires browser sign-in. Use Thunderbird to manage this account."
+msgid "Google requires browser sign-in. Use Internet accounts in Settings."
 msgstr ""
-"Google के लिए ब्राउज़र में साइन इन करना आवश्यक है। इस खाते को Thunderbird में प्रबंधित "
-"करें।"
+"Google के लिए ब्राउज़र में साइन इन करना आवश्यक है। सेटिंग्स में इंटरनेट खाते उपयोग करें।"
 
 msgid "Grisons"
 msgstr "ग्राउब्युंडेन"
@@ -2543,6 +2547,9 @@ msgstr "अंतरराष्ट्रीय कॉल"
 msgid "Internet IP"
 msgstr "इंटरनेट IP"
 
+msgid "Internet accounts"
+msgstr "इंटरनेट खाते"
+
 msgid "Internet available"
 msgstr "इंटरनेट उपलब्ध"
 
@@ -2763,6 +2770,9 @@ msgstr ""
 
 msgid "Magnolie complete archive (.magnolie) …"
 msgstr "संपूर्ण Magnolie संग्रह (.magnolie) …"
+
+msgid "Magnolie manages the account connection in the background."
+msgstr "Magnolie पृष्ठभूमि में खाते का कनेक्शन संभालता है।"
 
 msgid "Magnolienbaum"
 msgstr "Magnolienbaum"
@@ -3921,6 +3931,9 @@ msgstr "पसंदीदा बैकअप फ़ोल्डर"
 msgid "Preparing Microsoft sign-in …"
 msgstr "माइक्रोसॉफ्ट साइन-इन तैयार किया जा रहा है..."
 
+msgid "Preparing account sign-in …"
+msgstr "खाते में साइन इन करने की तैयारी…"
+
 msgid "Preview"
 msgstr "पूर्वावलोकन"
 
@@ -4542,9 +4555,6 @@ msgstr "पासवर्ड निर्धारित करें या �
 
 msgid "Set up Magnolie Organizer"
 msgstr "Magnolie Organizer सेट अप करें"
-
-msgid "Set up Thunderbird connection"
-msgstr "Thunderbird कनेक्शन सेट करें"
 
 msgid "Set up contacts"
 msgstr "संपर्क सेट अप करें"
@@ -5829,11 +5839,6 @@ msgstr "Thunderbird"
 msgid ""
 "Thunderbird could not complete the request. Check the account in Thunderbird."
 msgstr "Thunderbird अनुरोध पूरा नहीं कर सका। Thunderbird में खाता जाँचें।"
-
-msgid ""
-"Thunderbird manages Google sign-in. Select its calendars and address books "
-"above."
-msgstr "Thunderbird Google साइन-इन संभालता है। ऊपर उसके कैलेंडर और पता पुस्तिकाएँ चुनें।"
 
 msgid "Thunderbird profile version"
 msgstr "Thunderbird प्रोफ़ाइल का संस्करण"

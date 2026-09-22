@@ -604,6 +604,9 @@ msgstr "وفقًا لمنطقة التنسيق"
 msgid "According to language"
 msgstr "وفقًا للغة"
 
+msgid "Account sign-in could not be started. Please try again."
+msgstr "تعذر بدء تسجيل الدخول إلى الحساب. يُرجى المحاولة مجددًا."
+
 msgid "Account type"
 msgstr "نوع الحساب"
 
@@ -2160,6 +2163,9 @@ msgid ""
 "starting point."
 msgstr "أدخل عنوانك أعلاه. لا يمكن لأي خدمة حساب الاتجاهات من دون نقطة انطلاق."
 
+msgid "Enter your email address."
+msgstr "أدخل عنوان بريدك الإلكتروني."
+
 msgid "Entries ready to import"
 msgstr "إدخالات جاهزة للاستيراد"
 
@@ -2417,10 +2423,9 @@ msgstr "الانتقال إلى التقويم"
 msgid "Google Maps in the browser"
 msgstr "Google Maps في المتصفح"
 
-msgid ""
-"Google requires browser sign-in. Use Thunderbird to manage this account."
+msgid "Google requires browser sign-in. Use Internet accounts in Settings."
 msgstr ""
-"يتطلب Google تسجيل الدخول في المتصفح. استخدم Thunderbird لإدارة هذا الحساب."
+"يتطلب Google تسجيل الدخول في المتصفح. استخدم حسابات الإنترنت في الإعدادات."
 
 msgid "Grisons"
 msgstr "غراوبوندن"
@@ -2683,6 +2688,9 @@ msgstr "مكالمة دولية"
 msgid "Internet IP"
 msgstr "عنوان IP للإنترنت"
 
+msgid "Internet accounts"
+msgstr "حسابات الإنترنت"
+
 msgid "Internet available"
 msgstr "الإنترنت متاح"
 
@@ -2901,6 +2909,9 @@ msgstr ""
 
 msgid "Magnolie complete archive (.magnolie) …"
 msgstr "أرشيف ماجنولي الكامل (.magnolie) …"
+
+msgid "Magnolie manages the account connection in the background."
+msgstr "يدير Magnolie اتصال الحساب في الخلفية."
 
 msgid "Magnolienbaum"
 msgstr "Magnolienbaum"
@@ -4091,6 +4102,9 @@ msgstr "مجلد النسخ الاحتياطي المفضّل"
 msgid "Preparing Microsoft sign-in …"
 msgstr "جارٍ تحضير تسجيل الدخول إلى Microsoft..."
 
+msgid "Preparing account sign-in …"
+msgstr "جارٍ تحضير تسجيل الدخول إلى الحساب…"
+
 msgid "Preview"
 msgstr "معاينة"
 
@@ -4718,9 +4732,6 @@ msgstr "تعيين كلمة المرور أو تغييرها"
 
 msgid "Set up Magnolie Organizer"
 msgstr "إعداد Magnolie Organizer"
-
-msgid "Set up Thunderbird connection"
-msgstr "إعداد الاتصال بـ Thunderbird"
 
 msgid "Set up contacts"
 msgstr "إعداد جهات الاتصال"
@@ -6017,12 +6028,6 @@ msgstr "Thunderbird"
 msgid ""
 "Thunderbird could not complete the request. Check the account in Thunderbird."
 msgstr "تعذر على Thunderbird إكمال الطلب. تحقق من الحساب في Thunderbird."
-
-msgid ""
-"Thunderbird manages Google sign-in. Select its calendars and address books "
-"above."
-msgstr ""
-"يتولى Thunderbird تسجيل الدخول إلى Google. اختر تقاويمه ودفاتر عناوينه أعلاه."
 
 msgid "Thunderbird profile version"
 msgstr "إصدار ملف تعريف Thunderbird"

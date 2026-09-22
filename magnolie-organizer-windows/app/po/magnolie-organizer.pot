@@ -460,6 +460,9 @@ msgstr ""
 msgid "According to language"
 msgstr ""
 
+msgid "Account sign-in could not be started. Please try again."
+msgstr ""
+
 msgid "Account type"
 msgstr ""
 
@@ -1948,6 +1951,9 @@ msgid ""
 "starting point."
 msgstr ""
 
+msgid "Enter your email address."
+msgstr ""
+
 msgid "Entries ready to import"
 msgstr ""
 
@@ -2183,8 +2189,7 @@ msgstr ""
 msgid "Google Maps in the browser"
 msgstr ""
 
-msgid ""
-"Google requires browser sign-in. Use Thunderbird to manage this account."
+msgid "Google requires browser sign-in. Use Internet accounts in Settings."
 msgstr ""
 
 msgid "Grisons"
@@ -2437,6 +2442,9 @@ msgstr ""
 msgid "Internet IP"
 msgstr ""
 
+msgid "Internet accounts"
+msgstr ""
+
 msgid "Internet available"
 msgstr ""
 
@@ -2644,6 +2652,9 @@ msgid ""
 msgstr ""
 
 msgid "Magnolie complete archive (.magnolie) …"
+msgstr ""
+
+msgid "Magnolie manages the account connection in the background."
 msgstr ""
 
 msgid "Magnolienbaum"
@@ -3751,6 +3762,9 @@ msgstr ""
 msgid "Preparing Microsoft sign-in …"
 msgstr ""
 
+msgid "Preparing account sign-in …"
+msgstr ""
+
 msgid "Preview"
 msgstr ""
 
@@ -4341,9 +4355,6 @@ msgid "Set or change password"
 msgstr ""
 
 msgid "Set up Magnolie Organizer"
-msgstr ""
-
-msgid "Set up Thunderbird connection"
 msgstr ""
 
 msgid "Set up contacts"
@@ -5525,11 +5536,6 @@ msgstr ""
 
 msgid ""
 "Thunderbird could not complete the request. Check the account in Thunderbird."
-msgstr ""
-
-msgid ""
-"Thunderbird manages Google sign-in. Select its calendars and address books "
-"above."
 msgstr ""
 
 msgid "Thunderbird profile version"

@@ -21,12 +21,16 @@ internal static class ThunderbirdBridge
 {
     internal const string ExtensionId = "magnolie-bridge@magnolie-organizer.org";
     internal const string HostName = "org.magnolie.thunderbird";
+    internal const string ManagedHostName = "org.magnolie.accounts";
     internal const int MaximumRequestBytes = 1024 * 1024;
     internal const int MaximumResponseBytes = 16 * 1024 * 1024;
     internal static string PipeName => "magnolie-thunderbird-" + Convert.ToHexString(SHA256.HashData(
         Encoding.UTF8.GetBytes(Environment.UserDomainName + "\\" + Environment.UserName)))[..24];
     internal static string ManifestPath => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
         "Magnolie Organizer", "thunderbird", "host.json");
+    internal static string ManagedManifestPath => Path.Combine(Path.GetDirectoryName(ManifestPath)!, "accounts-host.json");
+    internal static bool IsManagedSource(string id) => id.StartsWith("thunderbird-calendar:managed:", StringComparison.Ordinal) ||
+        id.StartsWith("thunderbird-addressbook:managed:", StringComparison.Ordinal);
     internal static bool IsSource(string id) => id.StartsWith("thunderbird-calendar:", StringComparison.Ordinal) ||
         id.StartsWith("thunderbird-addressbook:", StringComparison.Ordinal);
 
@@ -50,7 +54,7 @@ internal static class ThunderbirdBridge
         await stream.FlushAsync(token).ConfigureAwait(false);
     }
 
-    internal static async Task<int> RunHostAsync(Stream input, Stream output, CancellationToken token)
+    internal static async Task<int> RunHostAsync(Stream input, Stream output, CancellationToken token, bool managed = false, string? testPipeName = null, Action<string>? trace = null)
     {
         // One active Thunderbird profile owns the bridge. Source IDs include a
         // persistent profile identity, so switching profiles cannot reinterpret
@@ -59,9 +63,13 @@ internal static class ThunderbirdBridge
         {
             while (!token.IsCancellationRequested)
             {
-                using var pipe = new NamedPipeServerStream(PipeName, PipeDirection.InOut, 1,
+                using var pipe = new NamedPipeServerStream(testPipeName ?? PipeName + (managed ? "-accounts" : ""), PipeDirection.InOut, 1,
                     PipeTransmissionMode.Byte, PipeOptions.Asynchronous | PipeOptions.CurrentUserOnly);
-                var incoming = ReadFrameAsync(input, MaximumResponseBytes, token);
+                // Console stdin can perform a synchronous read even through
+                // ReadAsync on Windows. Never let that block accepting the
+                // organizer connection whose request produces this response.
+                var incoming = Task.Run(() => ReadFrameAsync(input, MaximumResponseBytes, token), token);
+                trace?.Invoke("await-client");
                 var connected = pipe.WaitForConnectionAsync(token);
                 if (await Task.WhenAny(incoming, connected).ConfigureAwait(false) == incoming)
                 {
@@ -69,11 +77,15 @@ internal static class ThunderbirdBridge
                     return 1; // Unsolicited response: protocol violation.
                 }
                 await connected.ConfigureAwait(false);
+                trace?.Invoke("client-connected");
                 using var deadline = CancellationTokenSource.CreateLinkedTokenSource(token);
                 deadline.CancelAfter(TimeSpan.FromMinutes(2));
                 var request = await ReadFrameAsync(pipe, MaximumRequestBytes, deadline.Token).ConfigureAwait(false);
+                trace?.Invoke("request-read");
                 await WriteFrameAsync(output, request, MaximumRequestBytes, deadline.Token).ConfigureAwait(false);
+                trace?.Invoke("request-forwarded");
                 var response = await incoming.WaitAsync(deadline.Token).ConfigureAwait(false);
+                trace?.Invoke("browser-replied");
                 try { await WriteFrameAsync(pipe, response, MaximumResponseBytes, deadline.Token).ConfigureAwait(false); }
                 catch (IOException) { /* Client cancelled; the response has been drained. */ }
             }
@@ -83,10 +95,10 @@ internal static class ThunderbirdBridge
         { return 1; } // Never send diagnostics to stdout: it is a framed channel.
     }
 
-    internal static async Task<JsonObject> CallAsync(JsonObject request, CancellationToken token, int connectTimeout = 1500)
+    internal static async Task<JsonObject> CallAsync(JsonObject request, CancellationToken token, int connectTimeout = 1500, bool managed = false)
     {
         var id = Guid.NewGuid().ToString("N"); request["id"] = id; request["version"] = 1;
-        using var pipe = new NamedPipeClientStream(".", PipeName, PipeDirection.InOut,
+        using var pipe = new NamedPipeClientStream(".", PipeName + (managed ? "-accounts" : ""), PipeDirection.InOut,
             PipeOptions.Asynchronous | PipeOptions.CurrentUserOnly);
         await pipe.ConnectAsync(connectTimeout, token).ConfigureAwait(false);
         await WriteFrameAsync(pipe, JsonSerializer.SerializeToUtf8Bytes(request), MaximumRequestBytes, token).ConfigureAwait(false);
@@ -99,10 +111,10 @@ internal static class ThunderbirdBridge
         return response;
     }
 
-    internal static async Task<IReadOnlyList<NextcloudDavSource>> SourcesAsync(CancellationToken token)
+    internal static async Task<IReadOnlyList<NextcloudDavSource>> SourcesAsync(CancellationToken token, bool managed = false)
     {
         JsonObject response;
-        try { response = await CallAsync(new JsonObject { ["op"] = "sources" }, token).ConfigureAwait(false); }
+        try { response = await CallAsync(new JsonObject { ["op"] = "sources" }, token, managed: managed).ConfigureAwait(false); }
         catch (Exception error) when (error is IOException or TimeoutException) { throw new ThunderbirdBridgeException(error); }
         if (response["sources"] is not JsonArray values || values.Count > 1000) throw new InvalidDataException();
         var result = new List<NextcloudDavSource>();
@@ -128,18 +140,20 @@ internal static class ThunderbirdBridge
             { Timeout = TimeSpan.FromSeconds(90) }, journal, transactionId);
     }
 
-    internal static string InstallHost()
+    internal static string InstallHost(bool managed = false, string? executable = null)
     {
         if (!OperatingSystem.IsWindows()) throw new PlatformNotSupportedException();
-        var executable = Environment.ProcessPath ?? throw new InvalidOperationException();
-        var directory = Path.GetDirectoryName(ManifestPath)!; Directory.CreateDirectory(directory);
-        new AtomicStore().Write(ManifestPath, JsonSerializer.Serialize(new
+        executable ??= Environment.ProcessPath ?? throw new InvalidOperationException();
+        var manifestPath = managed ? ManagedManifestPath : ManifestPath;
+        var hostName = managed ? ManagedHostName : HostName;
+        var directory = Path.GetDirectoryName(manifestPath)!; Directory.CreateDirectory(directory);
+        new AtomicStore().Write(manifestPath, JsonSerializer.Serialize(new
         {
-            name = HostName, description = "Magnolie Thunderbird bridge", path = executable,
+            name = hostName, description = "Magnolie account bridge", path = executable,
             type = "stdio", allowed_extensions = new[] { ExtensionId }
         }));
-        using var key = Registry.CurrentUser.CreateSubKey(@"Software\Mozilla\NativeMessagingHosts\" + HostName);
-        key.SetValue("", ManifestPath);
+        using var key = Registry.CurrentUser.CreateSubKey(@"Software\Mozilla\NativeMessagingHosts\" + hostName);
+        key.SetValue("", manifestPath);
         var xpi = Path.Combine(directory, "Magnolie-Thunderbird.xpi");
         using var memory = new MemoryStream();
         using (var zip = new ZipArchive(memory, ZipArchiveMode.Create, true))
@@ -156,19 +170,26 @@ internal static class ThunderbirdBridge
 
     internal static void UnregisterHost()
     {
-        if (!OperatingSystem.IsWindows() || !File.Exists(ManifestPath)) return;
-        var text = new AtomicStore().Read(ManifestPath, 64 * 1024);
+        if (!OperatingSystem.IsWindows()) return;
+        UnregisterHost(ManifestPath, HostName);
+        UnregisterHost(ManagedManifestPath, ManagedHostName);
+    }
+
+    private static void UnregisterHost(string manifestPath, string hostName)
+    {
+        if (!OperatingSystem.IsWindows() || !File.Exists(manifestPath)) return;
+        var text = new AtomicStore().Read(manifestPath, 64 * 1024);
         if (text is null) return;
         JsonNode? manifest;
         try { manifest = JsonNode.Parse(text); }
         catch (JsonException) { return; }
         if (manifest is not JsonObject entry || entry["path"] is not JsonValue value || !value.TryGetValue<string>(out var executable) ||
             !string.Equals(executable, Environment.ProcessPath, StringComparison.OrdinalIgnoreCase)) return;
-        const string registryPath = @"Software\Mozilla\NativeMessagingHosts\org.magnolie.thunderbird";
+        var registryPath = @"Software\Mozilla\NativeMessagingHosts\" + hostName;
         using (var key = Registry.CurrentUser.OpenSubKey(registryPath))
-            if (!string.Equals(key?.GetValue("") as string, ManifestPath, StringComparison.OrdinalIgnoreCase)) return;
+            if (!string.Equals(key?.GetValue("") as string, manifestPath, StringComparison.OrdinalIgnoreCase)) return;
         Registry.CurrentUser.DeleteSubKey(registryPath, false);
-        File.Delete(ManifestPath);
+        File.Delete(manifestPath);
     }
 
     private sealed class ThunderbirdHttpHandler(NextcloudDavSource source) : HttpMessageHandler
@@ -184,7 +205,7 @@ internal static class ThunderbirdBridge
                 ["method"] = request.Method.Method, ["headers"] = headers,
                 ["body"] = request.Content is null ? "" : await request.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false),
                 ["contentType"] = request.Content?.Headers.ContentType?.MediaType ?? "application/xml"
-            }, cancellationToken).ConfigureAwait(false);
+            }, cancellationToken, managed: IsManagedSource(source.Uid)).ConfigureAwait(false);
             var status = response["status"]!.GetValue<int>();
             if (status is < 200 or > 599) throw new InvalidDataException();
             var result = new HttpResponseMessage((HttpStatusCode)status)
