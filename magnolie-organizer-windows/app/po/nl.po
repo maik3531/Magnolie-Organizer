@@ -4742,6 +4742,9 @@ msgstr "Geselecteerde meldingen weergeven (alleen-lezen)"
 msgid "Show social media and communication icons"
 msgstr "Pictogrammen voor sociale media en communicatie tonen"
 
+msgid "Show successful synchronization notifications (errors are always shown)"
+msgstr "Geslaagde synchronisaties melden (fouten worden altijd getoond)"
+
 msgid "Show symbol in calendar"
 msgstr "Symbool in kalender weergeven"
 

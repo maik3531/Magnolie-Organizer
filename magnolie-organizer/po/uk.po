@@ -8574,6 +8574,9 @@ msgstr "Потрібен обліковий запис Nextcloud."
 msgid "This calendar does not support tasks (VTODO)."
 msgstr "Цей календар не підтримує завдання (VTODO)."
 
+msgid "Show successful synchronization notifications (errors are always shown)"
+msgstr "Сповіщати про успішну синхронізацію (помилки показуються завжди)"
+
 #~ msgid "This paired phone is my own device"
 #~ msgstr "Цей спарений телефон є моїм власним пристроєм"
 

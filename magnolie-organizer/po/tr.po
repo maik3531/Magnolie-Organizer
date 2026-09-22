@@ -8500,6 +8500,9 @@ msgstr "Nextcloud hesabı gerektirir."
 msgid "This calendar does not support tasks (VTODO)."
 msgstr "Bu takvim görevleri (VTODO) desteklemiyor."
 
+msgid "Show successful synchronization notifications (errors are always shown)"
+msgstr "Başarılı eşitlemeleri bildir (hatalar her zaman gösterilir)"
+
 #~ msgid "This paired phone is my own device"
 #~ msgstr "Bu eşleştirilmiş telefon kendi cihazımdır"
 

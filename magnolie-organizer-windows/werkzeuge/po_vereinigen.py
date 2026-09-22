@@ -10,6 +10,27 @@ import sys
 import tempfile
 
 ERGÄNZUNGEN = {
+    "Show successful synchronization notifications (errors are always shown)": {
+        "de": "Erfolgreichen Abgleich melden (Fehler werden immer angezeigt)",
+        "fr": "Signaler les synchronisations réussies (les erreurs sont toujours affichées)",
+        "es": "Notificar las sincronizaciones correctas (los errores siempre se muestran)",
+        "it": "Notificare le sincronizzazioni riuscite (gli errori vengono sempre mostrati)",
+        "nl": "Geslaagde synchronisaties melden (fouten worden altijd getoond)",
+        "pt": "Notificar sincronizações bem-sucedidas (os erros são sempre apresentados)",
+        "ru": "Уведомлять об успешной синхронизации (ошибки показываются всегда)",
+        "cs": "Oznamovat úspěšnou synchronizaci (chyby se zobrazují vždy)",
+        "pl": "Powiadamiaj o udanej synchronizacji (błędy są zawsze wyświetlane)",
+        "hsb": "Wuspěšnu synchronizaciju zdźělić (zmylki so přeco pokazuja)",
+        "da": "Vis beskeder om vellykket synkronisering (fejl vises altid)",
+        "nb": "Vis meldinger om vellykket synkronisering (feil vises alltid)",
+        "hi": "सफल सिंक्रनाइज़ेशन की सूचनाएँ दिखाएँ (त्रुटियाँ हमेशा दिखाई जाती हैं)",
+        "zh_CN": "显示同步成功通知（始终显示错误）",
+        "ja": "同期成功の通知を表示する（エラーは常に表示）",
+        "ar": "إظهار إشعارات نجاح المزامنة (تظهر الأخطاء دائمًا)",
+        "uk": "Сповіщати про успішну синхронізацію (помилки показуються завжди)",
+        "be": "Паведамляць пра паспяховую сінхранізацыю (памылкі паказваюцца заўсёды)",
+        "tr": "Başarılı eşitlemeleri bildir (hatalar her zaman gösterilir)",
+    },
     "DAV account": {
         "de": "DAV-Konto", "fr": "Compte DAV", "es": "Cuenta DAV", "it": "Account DAV",
         "nl": "DAV-account", "pt": "Conta DAV", "ru": "Учётная запись DAV", "cs": "Účet DAV",

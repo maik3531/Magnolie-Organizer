@@ -4629,6 +4629,9 @@ msgstr "画面通知のみ"
 msgid "Show social media and communication icons"
 msgstr "ソーシャルメディアと通信のアイコンを表示"
 
+msgid "Show successful synchronization notifications (errors are always shown)"
+msgstr "同期成功の通知を表示する（エラーは常に表示）"
+
 msgid "Show symbol in calendar"
 msgstr "カレンダーに記号を表示"
 

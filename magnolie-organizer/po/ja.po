@@ -8425,6 +8425,9 @@ msgstr "Nextcloud アカウントが必要です。"
 msgid "This calendar does not support tasks (VTODO)."
 msgstr "このカレンダーはタスク（VTODO）に対応していません。"
 
+msgid "Show successful synchronization notifications (errors are always shown)"
+msgstr "同期成功の通知を表示する（エラーは常に表示）"
+
 #~ msgid "This paired phone is my own device"
 #~ msgstr "このペアリング済み電話は自分のデバイスです"
 

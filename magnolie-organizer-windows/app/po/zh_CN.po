@@ -4497,6 +4497,9 @@ msgstr "仅屏幕通知"
 msgid "Show social media and communication icons"
 msgstr "显示社交媒体和通信图标"
 
+msgid "Show successful synchronization notifications (errors are always shown)"
+msgstr "显示同步成功通知（始终显示错误）"
+
 msgid "Show symbol in calendar"
 msgstr "在日历中显示符号"
 

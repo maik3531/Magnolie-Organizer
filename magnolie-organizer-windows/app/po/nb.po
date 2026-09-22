@@ -4697,6 +4697,9 @@ msgstr "Vis valgte varsler (skrivebeskyttet)"
 msgid "Show social media and communication icons"
 msgstr "Vis ikoner for sosiale medier og kommunikasjon"
 
+msgid "Show successful synchronization notifications (errors are always shown)"
+msgstr "Vis meldinger om vellykket synkronisering (feil vises alltid)"
+
 msgid "Show symbol in calendar"
 msgstr "Vis symbol i kalenderen"
 

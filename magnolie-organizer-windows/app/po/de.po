@@ -4747,6 +4747,9 @@ msgstr "Ausgewählte Meldungen anzeigen (nur lesen)"
 msgid "Show social media and communication icons"
 msgstr "Symbole für soziale Medien und Kommunikation zeigen"
 
+msgid "Show successful synchronization notifications (errors are always shown)"
+msgstr "Erfolgreichen Abgleich melden (Fehler werden immer angezeigt)"
+
 msgid "Show symbol in calendar"
 msgstr "Symbol im Kalender anzeigen"
 

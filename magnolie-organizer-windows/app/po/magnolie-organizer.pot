@@ -4417,6 +4417,9 @@ msgstr ""
 msgid "Show social media and communication icons"
 msgstr ""
 
+msgid "Show successful synchronization notifications (errors are always shown)"
+msgstr ""
+
 msgid "Show symbol in calendar"
 msgstr ""
 

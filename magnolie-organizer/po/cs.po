@@ -8532,6 +8532,9 @@ msgstr "Vyžaduje účet Nextcloud."
 msgid "This calendar does not support tasks (VTODO)."
 msgstr "Tento kalendář nepodporuje úkoly (VTODO)."
 
+msgid "Show successful synchronization notifications (errors are always shown)"
+msgstr "Oznamovat úspěšnou synchronizaci (chyby se zobrazují vždy)"
+
 #~ msgid "This paired phone is my own device"
 #~ msgstr "Tento spárovaný telefon je moje vlastní zařízení"
 

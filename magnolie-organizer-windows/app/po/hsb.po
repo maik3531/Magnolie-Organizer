@@ -4791,6 +4791,9 @@ msgstr "Jenož zdźělenka na wobrazowce"
 msgid "Show social media and communication icons"
 msgstr "Ikony socialnych medijow a komunikacije pokazać"
 
+msgid "Show successful synchronization notifications (errors are always shown)"
+msgstr "Wuspěšnu synchronizaciju zdźělić (zmylki so přeco pokazuja)"
+
 msgid "Show symbol in calendar"
 msgstr "Symbol w protyce pokazać"
 

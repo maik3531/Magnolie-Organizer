@@ -4711,6 +4711,9 @@ msgstr "Pouze oznámení na obrazovce"
 msgid "Show social media and communication icons"
 msgstr "Zobrazovat ikony sociálních sítí a komunikace"
 
+msgid "Show successful synchronization notifications (errors are always shown)"
+msgstr "Oznamovat úspěšnou synchronizaci (chyby se zobrazují vždy)"
+
 msgid "Show symbol in calendar"
 msgstr "Zobrazit symbol v kalendáři"
 

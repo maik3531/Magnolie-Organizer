@@ -8506,6 +8506,9 @@ msgstr "Kræver en Nextcloud-konto."
 msgid "This calendar does not support tasks (VTODO)."
 msgstr "Denne kalender understøtter ikke opgaver (VTODO)."
 
+msgid "Show successful synchronization notifications (errors are always shown)"
+msgstr "Vis beskeder om vellykket synkronisering (fejl vises altid)"
+
 #~ msgid "This paired phone is my own device"
 #~ msgstr "Denne parrede telefon er min egen enhed"
 

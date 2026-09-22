@@ -4615,6 +4615,9 @@ msgstr "केवल स्क्रीन सूचना"
 msgid "Show social media and communication icons"
 msgstr "सोशल मीडिया और संचार आइकन दिखाएँ"
 
+msgid "Show successful synchronization notifications (errors are always shown)"
+msgstr "सफल सिंक्रनाइज़ेशन की सूचनाएँ दिखाएँ (त्रुटियाँ हमेशा दिखाई जाती हैं)"
+
 msgid "Show symbol in calendar"
 msgstr "कैलेंडर में चिह्न दिखाएँ"
 

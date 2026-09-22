@@ -4729,6 +4729,9 @@ msgstr "Лише екранне сповіщення"
 msgid "Show social media and communication icons"
 msgstr "Показувати піктограми соцмереж і зв’язку"
 
+msgid "Show successful synchronization notifications (errors are always shown)"
+msgstr "Сповіщати про успішну синхронізацію (помилки показуються завжди)"
+
 msgid "Show symbol in calendar"
 msgstr "Показувати символ у календарі"
 

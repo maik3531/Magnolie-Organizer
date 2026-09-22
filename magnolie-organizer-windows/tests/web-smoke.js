@@ -1417,6 +1417,20 @@ T.daten().einstellungen.regional.formatLocale = oldFormatLocale;
 T.daten().termine = oldEvents;
 T.daten().kontakte = oldContacts;
 
+window.App.init({ daten: {}, neu: true, kennwort: false, gesperrt: false, regional: { language: "de" } });
+assert.strictEqual(T.daten().einstellungen.sync.erfolgsmeldungen, false);
+const syncToast = window.document.querySelector("#zettel");
+syncToast.textContent = "UNCHANGED";
+window.App.syncFertig({ ok: true, bericht: "SUCCESS-SENTINEL" });
+assert.strictEqual(syncToast.textContent, "UNCHANGED", "successful sync interrupts users by default");
+T.daten().einstellungen.sync.erfolgsmeldungen = true;
+window.App.syncFertig({ ok: true, bericht: "SUCCESS-SENTINEL" });
+assert.strictEqual(syncToast.textContent, "SUCCESS-SENTINEL", "explicit success notifications are ignored");
+T.daten().einstellungen.sync.erfolgsmeldungen = false;
+window.App.syncFertig({ ok: false, fehler: "ERROR-SENTINEL" });
+assert.ok(syncToast.textContent.includes("ERROR-SENTINEL"), "hiding success also hides failures");
+window.App.syncFehler("DIRECT-ERROR-SENTINEL");
+assert.ok(syncToast.textContent.includes("DIRECT-ERROR-SENTINEL"), "native sync errors are hidden");
 window.close();
 
 function poValue(block, field) {

@@ -5850,6 +5850,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     }
     d.einstellungen.sync.adressbuchUid = S(sy.adressbuchUid);
     d.einstellungen.sync.beimStart = !!sy.beimStart;
+    d.einstellungen.sync.erfolgsmeldungen = sy.erfolgsmeldungen === true;
     const kdeEmpfang = sy.kdeEmpfang && typeof sy.kdeEmpfang === "object"
       ? sy.kdeEmpfang : {};
     d.einstellungen.sync.kdeEmpfang = {
@@ -19686,6 +19687,18 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       document.createTextNode(" " + _("Synchronize automatically at startup")));
     sy.append(startZeile);
 
+    const meldungsHak = document.createElement("input");
+    meldungsHak.type = "checkbox"; meldungsHak.id = "sync-erfolgsmeldungen";
+    meldungsHak.checked = DATEN.einstellungen.sync.erfolgsmeldungen === true;
+    meldungsHak.addEventListener("change", () => {
+      DATEN.einstellungen.sync.erfolgsmeldungen = meldungsHak.checked;
+      planeSpeichern();
+    });
+    const meldungsZeile = el("label", "hak");
+    meldungsZeile.append(meldungsHak, document.createTextNode(" " +
+      _("Show successful synchronization notifications (errors are always shown)")));
+    sy.append(meldungsZeile);
+
     const syncKnopf = knopf(_("Synchronize now"), "", () => starteSync(false));
     syncKnopf.id = "sync-jetzt";
     const syncReihe = el("div", "knopfreihe");
@@ -26168,8 +26181,10 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       if (!editorIstGeaendert()) zeichneAlles();
       const status = $("#sync-status");
       if (status) status.textContent = zeitZeileLetzterSync();
-      zettel(erfolgreich ? (nutzlast.bericht || _("Synchronization completed.")) :
-        uebersetzt("Synchronization failed: %(error)s", { error: syncFehlertext }));
+      if (!erfolgreich || DATEN.einstellungen.sync.erfolgsmeldungen) {
+        zettel(erfolgreich ? (nutzlast.bericht || _("Synchronization completed.")) :
+          uebersetzt("Synchronization failed: %(error)s", { error: syncFehlertext }));
+      }
       const kandidat = nutzlast.adressbuchBaselineKandidat;
       const transactionId = String(nutzlast.transactionId || "");
       const bestaetigen = () => {

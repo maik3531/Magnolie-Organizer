@@ -8113,6 +8113,9 @@ msgstr "需要 Nextcloud 账户。"
 msgid "This calendar does not support tasks (VTODO)."
 msgstr "此日历不支持任务（VTODO）。"
 
+msgid "Show successful synchronization notifications (errors are always shown)"
+msgstr "显示同步成功通知（始终显示错误）"
+
 #~ msgid "This paired phone is my own device"
 #~ msgstr "这部已配对的手机是我自己的设备"
 

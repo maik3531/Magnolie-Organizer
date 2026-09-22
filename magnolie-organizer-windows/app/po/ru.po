@@ -4746,6 +4746,9 @@ msgstr "Только уведомление на экране"
 msgid "Show social media and communication icons"
 msgstr "Показывать значки социальных сетей и связи"
 
+msgid "Show successful synchronization notifications (errors are always shown)"
+msgstr "Уведомлять об успешной синхронизации (ошибки показываются всегда)"
+
 msgid "Show symbol in calendar"
 msgstr "Показывать символ в календаре"
 

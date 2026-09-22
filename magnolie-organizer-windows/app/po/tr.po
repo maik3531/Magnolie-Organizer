@@ -4691,6 +4691,9 @@ msgstr "Seçili bildirimleri göster (salt okunur)"
 msgid "Show social media and communication icons"
 msgstr "Sosyal medya ve iletişim simgelerini göster"
 
+msgid "Show successful synchronization notifications (errors are always shown)"
+msgstr "Başarılı eşitlemeleri bildir (hatalar her zaman gösterilir)"
+
 msgid "Show symbol in calendar"
 msgstr "Takvimde simgeyi göster"
 

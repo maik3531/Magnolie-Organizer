@@ -4754,6 +4754,10 @@ msgstr "Mostra le notifiche selezionate (sola lettura)"
 msgid "Show social media and communication icons"
 msgstr "Mostra icone dei social media e della comunicazione"
 
+msgid "Show successful synchronization notifications (errors are always shown)"
+msgstr ""
+"Notificare le sincronizzazioni riuscite (gli errori vengono sempre mostrati)"
+
 msgid "Show symbol in calendar"
 msgstr "Mostra il simbolo nel calendario"
 

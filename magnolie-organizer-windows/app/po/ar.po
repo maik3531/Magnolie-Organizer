@@ -4793,6 +4793,9 @@ msgstr "إشعار على الشاشة فقط"
 msgid "Show social media and communication icons"
 msgstr "إظهار أيقونات التواصل الاجتماعي والاتصال"
 
+msgid "Show successful synchronization notifications (errors are always shown)"
+msgstr "إظهار إشعارات نجاح المزامنة (تظهر الأخطاء دائمًا)"
+
 msgid "Show symbol in calendar"
 msgstr "إظهار الرمز في التقويم"
 

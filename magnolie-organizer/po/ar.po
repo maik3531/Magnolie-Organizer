@@ -8636,6 +8636,9 @@ msgstr "يتطلب حساب Nextcloud."
 msgid "This calendar does not support tasks (VTODO)."
 msgstr "هذا التقويم لا يدعم المهام (VTODO)."
 
+msgid "Show successful synchronization notifications (errors are always shown)"
+msgstr "إظهار إشعارات نجاح المزامنة (تظهر الأخطاء دائمًا)"
+
 #~ msgid "This paired phone is my own device"
 #~ msgstr "هذا الهاتف المقترن هو جهازي الخاص"
 
