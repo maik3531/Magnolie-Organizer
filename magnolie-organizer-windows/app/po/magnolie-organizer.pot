@@ -2184,8 +2184,7 @@ msgid "Google Maps in the browser"
 msgstr ""
 
 msgid ""
-"Google requires browser sign-in. Google synchronization is not yet available "
-"in this Windows version; a DAV password cannot enable it."
+"Google requires browser sign-in. Use Thunderbird to manage this account."
 msgstr ""
 
 msgid "Grisons"
@@ -2408,6 +2407,11 @@ msgid "Input"
 msgstr ""
 
 msgid "Insert link"
+msgstr ""
+
+msgid ""
+"Install the highlighted extension in Thunderbird via Add-ons and Themes → "
+"Install Add-on From File. Keep Thunderbird open."
 msgstr ""
 
 msgid ""
@@ -4339,6 +4343,9 @@ msgstr ""
 msgid "Set up Magnolie Organizer"
 msgstr ""
 
+msgid "Set up Thunderbird connection"
+msgstr ""
+
 msgid "Set up contacts"
 msgstr ""
 
@@ -5514,6 +5521,15 @@ msgid "Through"
 msgstr ""
 
 msgid "Thunderbird"
+msgstr ""
+
+msgid ""
+"Thunderbird could not complete the request. Check the account in Thunderbird."
+msgstr ""
+
+msgid ""
+"Thunderbird manages Google sign-in. Select its calendars and address books "
+"above."
 msgstr ""
 
 msgid "Thunderbird profile version"

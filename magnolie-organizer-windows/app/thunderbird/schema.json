@@ -1,0 +1,10 @@
+[
+  {
+    "namespace": "magnolie",
+    "functions": [{
+      "name": "request", "type": "function", "async": true,
+      "returns": {"type": "object", "additionalProperties": true},
+      "parameters": [{"name": "message", "type": "object", "additionalProperties": true}]
+    }]
+  }
+]

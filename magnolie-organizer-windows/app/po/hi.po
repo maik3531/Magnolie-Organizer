@@ -2277,11 +2277,10 @@ msgid "Google Maps in the browser"
 msgstr "ब्राउज़र में Google Maps"
 
 msgid ""
-"Google requires browser sign-in. Google synchronization is not yet available "
-"in this Windows version; a DAV password cannot enable it."
+"Google requires browser sign-in. Use Thunderbird to manage this account."
 msgstr ""
-"Google के लिए ब्राउज़र में साइन इन करना आवश्यक है। इस Windows संस्करण में Google "
-"सिंक्रनाइज़ेशन अभी उपलब्ध नहीं है; DAV पासवर्ड इसे सक्षम नहीं कर सकता।"
+"Google के लिए ब्राउज़र में साइन इन करना आवश्यक है। इस खाते को Thunderbird में प्रबंधित "
+"करें।"
 
 msgid "Grisons"
 msgstr "ग्राउब्युंडेन"
@@ -2511,6 +2510,13 @@ msgstr "इनपुट"
 
 msgid "Insert link"
 msgstr "लिंक डालें"
+
+msgid ""
+"Install the highlighted extension in Thunderbird via Add-ons and Themes → "
+"Install Add-on From File. Keep Thunderbird open."
+msgstr ""
+"Thunderbird में ऐड-ऑन और थीम → फ़ाइल से ऐड-ऑन स्थापित करें द्वारा चुना गया एक्सटेंशन "
+"स्थापित करें। Thunderbird खुला रखें।"
 
 msgid ""
 "Install version %(version)s now? All changes will be saved. The Organizer "
@@ -4537,6 +4543,9 @@ msgstr "पासवर्ड निर्धारित करें या �
 msgid "Set up Magnolie Organizer"
 msgstr "Magnolie Organizer सेट अप करें"
 
+msgid "Set up Thunderbird connection"
+msgstr "Thunderbird कनेक्शन सेट करें"
+
 msgid "Set up contacts"
 msgstr "संपर्क सेट अप करें"
 
@@ -5816,6 +5825,15 @@ msgstr "तक"
 
 msgid "Thunderbird"
 msgstr "Thunderbird"
+
+msgid ""
+"Thunderbird could not complete the request. Check the account in Thunderbird."
+msgstr "Thunderbird अनुरोध पूरा नहीं कर सका। Thunderbird में खाता जाँचें।"
+
+msgid ""
+"Thunderbird manages Google sign-in. Select its calendars and address books "
+"above."
+msgstr "Thunderbird Google साइन-इन संभालता है। ऊपर उसके कैलेंडर और पता पुस्तिकाएँ चुनें।"
 
 msgid "Thunderbird profile version"
 msgstr "Thunderbird प्रोफ़ाइल का संस्करण"

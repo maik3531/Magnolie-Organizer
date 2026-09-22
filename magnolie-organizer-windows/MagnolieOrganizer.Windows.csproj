@@ -38,6 +38,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Content Include="app\thunderbird\*">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Link>thunderbird\%(Filename)%(Extension)</Link>
+    </Content>
     <Content Include="app\web\**\*">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <Link>web\%(RecursiveDir)%(Filename)%(Extension)</Link>

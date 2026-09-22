@@ -19561,6 +19561,17 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       status.textContent = _("Checking online accounts …");
     }
     baueNextcloudKonto(wurzel);
+    const thunderbird = abschnitt("Thunderbird",
+      _("Thunderbird manages Google sign-in. Select its calendars and address books above."));
+    const thunderbirdStatus = el("p", "sync-status", letzterEdsStatus?.thunderbird?.verbunden
+      ? _("Connected") : _("Unavailable"));
+    thunderbirdStatus.id = "thunderbird-status";
+    thunderbird.append(thunderbirdStatus);
+    thunderbird.append(knopf(_("Set up Thunderbird connection"), "", () =>
+      Bruecke.sende({ cmd: "thunderbird_einrichten" })));
+    thunderbird.append(knopf(_("Refresh"), "", () => Bruecke.sende({ cmd: "eds_status" })));
+    if (!Bruecke.vorhanden) thunderbird.querySelectorAll("button").forEach(button => { button.disabled = true; });
+    wurzel.append(thunderbird);
     baueBriefkasten(wurzel);
   }
 
@@ -23109,6 +23120,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     const kalender = nutzlast.alleKalender || nutzlast.kalender || [];
     const adressbuecher = nutzlast.alleAdressbuecher || nutzlast.adressbuecher || [];
     const anbieter = (quelle, davName) =>
+      quelle.art === "thunderbird" ? "Thunderbird" :
       String(quelle.art || quelle.quelle || "").startsWith("generic-") ? davName :
       quelle.quelle === "nextcloud" || String(quelle.art || "").startsWith("nextcloud-") ||
       String(quelle.uid || "").startsWith("nextcloud-") ? "Nextcloud" :
@@ -24461,7 +24473,14 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       edsAngefragt = false;
       letzterEdsStatus = nutzlast || { verfuegbar: false };
       fuelleEdsAuswahl(letzterEdsStatus);
+      const thunderbirdStatus = $("#thunderbird-status");
+      if (thunderbirdStatus) thunderbirdStatus.textContent = nutzlast?.thunderbird?.verbunden ? _("Connected") : _("Unavailable");
       if (kontaktAssistentQuellenSeite) kontaktAssistentQuellenSeite();
+    },
+    thunderbirdEinrichtung(nutzlast) {
+      if (nutzlast?.fehler) { zettel(nutzlast.fehler); return; }
+      frage(_("Install the highlighted extension in Thunderbird via Add-ons and Themes → Install Add-on From File. Keep Thunderbird open.") +
+        "\n\n" + String(nutzlast && nutzlast.pfad || ""), _("OK"));
     },
     graphKonfiguration(nutzlast) {
       nutzlast = nutzlast || {};

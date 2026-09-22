@@ -159,6 +159,20 @@ internal sealed partial class BridgeDispatcher : IDisposable
                     case "planer_ods": await CreateSpreadsheetAsync(message, "Planer", "Magnolie-Planer.ods"); break;
                     case "gesundheit_ods": await CreateHealthSpreadsheetAsync(message); break;
                     case "eds_status": await ContactSourcesAsync(); break;
+                    case "thunderbird_einrichten":
+                        try
+                        {
+                            var extensionPath = ThunderbirdBridge.InstallHost();
+                            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("explorer.exe")
+                            { ArgumentList = { "/select,", extensionPath }, UseShellExecute = false });
+                            await form.SendAsync("App.thunderbirdEinrichtung", new { pfad = extensionPath });
+                        }
+                        catch (Exception error)
+                        {
+                            await ReportErrorAsync(command, error.ToString());
+                            await form.SendAsync("App.thunderbirdEinrichtung", new { fehler = T("That did not work.") });
+                        }
+                        break;
                     case "sync": await SynchronizeContactsAsync(message); break;
                     case "sync_commit": CommitSynchronization(Text(message, "transactionId")); break;
                     case "graph_client_id_speichern": await SaveGraphConfigurationAsync(message); break;

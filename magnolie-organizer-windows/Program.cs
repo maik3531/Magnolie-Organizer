@@ -11,10 +11,17 @@ internal static class Program
     [STAThread]
     private static void Main(string[] args)
     {
+        if (args.Length == 2 && args[1] == ThunderbirdBridge.ExtensionId &&
+            string.Equals(Path.GetFullPath(args[0]), ThunderbirdBridge.ManifestPath, StringComparison.OrdinalIgnoreCase))
+        {
+            Environment.ExitCode = ThunderbirdBridge.RunHostAsync(Console.OpenStandardInput(), Console.OpenStandardOutput(),
+                CancellationToken.None).GetAwaiter().GetResult();
+            return;
+        }
         if (args.Length == 1 && args[0] == "--unregister-call-notifications")
         {
             using var notifications = new WindowsCallNotifications(_ => Task.FromResult(false), listen: false);
-            try { Environment.ExitCode = notifications.Unregister() ? 0 : 1; }
+            try { ThunderbirdBridge.UnregisterHost(); Environment.ExitCode = notifications.Unregister() ? 0 : 1; }
             catch (Exception error) when (error is IOException or UnauthorizedAccessException or
                 System.Runtime.InteropServices.COMException or System.Security.SecurityException or ArgumentException)
             { Environment.ExitCode = 1; }

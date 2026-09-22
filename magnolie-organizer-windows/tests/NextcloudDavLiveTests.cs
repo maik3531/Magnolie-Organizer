@@ -6,7 +6,7 @@ namespace MagnolieOrganizer.Windows.Tests;
 // Opt-in integration probe. Use a disposable Nextcloud account only.
 internal static class NextcloudDavLiveTests
 {
-    internal static async Task<int> RunAsync()
+    internal static async Task<int> RunAsync(bool thunderbird = false)
     {
         var server = Environment.GetEnvironmentVariable("MAGNOLIE_DAV_TEST_SERVER");
         var user = Environment.GetEnvironmentVariable("MAGNOLIE_DAV_TEST_USER");
@@ -21,23 +21,29 @@ internal static class NextcloudDavLiveTests
             var settings = new NextcloudMailboxSettingsStore(Path.Combine(root, "settings.json"), Path.Combine(root, "password.dat"));
             settings.SaveConfiguration(new NextcloudMailboxSettings(true, false, server, user), password, false);
             using var timeout = new CancellationTokenSource(TimeSpan.FromMinutes(2));
-            using var client = new NextcloudDavClient(settings);
-            var sources = await client.ListSourcesAsync(timeout.Token);
+            using var discovery = new NextcloudDavClient(settings);
+            var tbSources = thunderbird ? await ThunderbirdBridge.SourcesAsync(timeout.Token) : [];
+            var sources = thunderbird ? new NextcloudDavSources(tbSources.Where(item => item.Kind == "calendar").ToArray(),
+                tbSources.Where(item => item.Kind == "addressbook").ToArray()) : await discovery.ListSourcesAsync(timeout.Token);
             TestAssert.That(sources.Calendars.Count > 0 && sources.AddressBooks.Count > 0 && sources.Error == "", "Nextcloud discovery failed.");
             // Never write fixtures into the server-generated system address
             // book. Provision these two collections on the disposable account.
             var calendar = sources.Calendars.Single(source => source.Href.AbsolutePath.TrimEnd('/').EndsWith("/MagnolieProbe", StringComparison.Ordinal));
             var book = sources.AddressBooks.Single(source => source.Href.AbsolutePath.TrimEnd('/').EndsWith("/MagnolieProbe", StringComparison.Ordinal));
+            var journal = new NextcloudSyncJournal(Path.Combine(root, "journal"));
+            var transaction = new string('a', 64);
+            using var client = thunderbird ? ThunderbirdBridge.CreateClient(calendar, journal, transaction) : new NextcloudDavClient(settings);
+            using var bookClient = thunderbird ? ThunderbirdBridge.CreateClient(book, journal, transaction) : new NextcloudDavClient(settings);
             var uid = "magnolie-probe-" + Guid.NewGuid().ToString("N");
             var eventText = $"BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\nUID:{uid}\r\nDTSTAMP:20260922T080000Z\r\nDTSTART:20261001T090000Z\r\nDTEND:20261001T100000Z\r\nSUMMARY:Magnolie DAV probe\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n";
             NextcloudDavObject? eventObject = null, contactObject = null;
             try
             {
                 eventObject = await client.CreateAsync(calendar, uid, ".ics", "text/calendar", eventText, timeout.Token);
-                contactObject = await client.CreateAsync(book, uid, ".vcf", "text/vcard",
+                contactObject = await bookClient.CreateAsync(book, uid, ".vcf", "text/vcard",
                     $"BEGIN:VCARD\r\nVERSION:3.0\r\nUID:{uid}\r\nFN:Magnolie DAV probe\r\nN:Probe;Magnolie;;;\r\nEND:VCARD\r\n", timeout.Token);
                 var contacts = new ContactSyncEngine();
-                var remote = new NextcloudCardDavRemote(client, book);
+                var remote = new NextcloudCardDavRemote(bookClient, book);
                 var first = await contacts.SyncAsync(book.Uid, [], [], 0, remote, timeout.Token, true);
                 var card = first.Contacts.OfType<JsonObject>().Single(item => item["uid"]?.GetValue<string>() == uid);
                 card["vorname"] = "Changed"; card["geaendert"] = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() + 1;
@@ -54,7 +60,7 @@ internal static class NextcloudDavLiveTests
                 TestAssert.That(repeat.Termine.Count == changed.Termine.Count, "CalDAV repeat duplicated appointments.");
                 TestAssert.That((await client.ReadCalendarAsync(calendar, timeout.Token)).Any(item => item.Text.Contains("Changed DAV probe")), "CalDAV edit did not reach the server.");
                 TestAssert.That((await remote.ReadAsync(timeout.Token)).Any(item => item.Data["vorname"]?.GetValue<string>() == "Changed"), "CardDAV edit did not reach the server.");
-                Console.WriteLine("Live DAV: discovery, CalDAV/CardDAV import, local edits, server readback and repeat without duplicates passed.");
+                Console.WriteLine((thunderbird ? "Thunderbird bridge" : "Live DAV") + ": discovery, CalDAV/CardDAV import, local edits, server readback and repeat without duplicates passed.");
             }
             finally
             {
@@ -63,8 +69,8 @@ internal static class NextcloudDavLiveTests
                     foreach (var item in (await client.ReadCalendarAsync(calendar, timeout.Token)).Where(item => item.Href == eventObject.Href))
                         await client.DeleteAsync(item.Href, item.ETag, timeout.Token);
                 if (contactObject is not null)
-                    foreach (var item in (await client.ReadAddressBookAsync(book, timeout.Token)).Where(item => item.Href == contactObject.Href))
-                        await client.DeleteAsync(item.Href, item.ETag, timeout.Token);
+                    foreach (var item in (await bookClient.ReadAddressBookAsync(book, timeout.Token)).Where(item => item.Href == contactObject.Href))
+                        await bookClient.DeleteAsync(item.Href, item.ETag, timeout.Token);
             }
             return 0;
         }

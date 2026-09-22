@@ -16,13 +16,14 @@ internal sealed record NextcloudMailboxSettings(bool DavActive, bool MailboxActi
     internal bool Active => MailboxActive;
     internal string AccountType { get; init; } = "nextcloud";
 }
-internal sealed record NextcloudMailboxContext(NextcloudMailboxSettings Settings, AuthenticationHeaderValue Authorization);
+internal sealed record NextcloudMailboxContext(NextcloudMailboxSettings Settings, AuthenticationHeaderValue? Authorization);
 
 internal static class NextcloudStatusText
 {
     internal static string For(Exception error) => NativeLocalization.Gettext(error switch
     {
-        GoogleDavAuthenticationException => "Google requires browser sign-in. Google synchronization is not yet available in this Windows version; a DAV password cannot enable it.",
+        GoogleDavAuthenticationException => "Google requires browser sign-in. Use Thunderbird to manage this account.",
+        ThunderbirdBridgeException => "Thunderbird could not complete the request. Check the account in Thunderbird.",
         HttpRequestException { StatusCode: HttpStatusCode.Unauthorized } => "Sign-in failed. Check the account and authentication method required by your provider.",
         HttpRequestException { StatusCode: HttpStatusCode.Forbidden } => "The server denied access. Check this account's permissions.",
         OperationCanceledException => "The Nextcloud request timed out.",

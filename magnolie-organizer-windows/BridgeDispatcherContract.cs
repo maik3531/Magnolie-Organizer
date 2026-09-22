@@ -36,6 +36,7 @@ internal static class BridgeDispatcherContract
         ["planer_ods"] = S(T("layout"), N("jahr"), O("monat", JsonValueKind.Number), T("titel"), A("spalten"), A("zeilen"), A("stile"), A("inhalte")),
         ["gesundheit_ods"] = S(A("tabellen")),
         ["eds_status"] = S(), ["sync"] = S(T("transactionId"), J("wahl"), J("daten")), ["sync_commit"] = S(T("transactionId")), ["graph_client_id_speichern"] = S(T("clientId")), ["graph_anmelden"] = S(), ["graph_abmelden"] = S(),
+        ["thunderbird_einrichten"] = S(),
         ["lo_benutzer"] = S(), ["tray_einstellungen"] = S(J("einstellungen")), ["tray_zaehler"] = S(N("anzahl")),
         ["rechtschreibung"] = S(B("an"), O("sprache", JsonValueKind.String)), ["vorschlaege"] = S(T("wort"), T("kennung"), O("sprache", JsonValueKind.String)), ["wort_merken"] = S(T("wort"), O("sprache", JsonValueKind.String)),
         ["baum_stand"] = S(), ["baum_ein"] = S(B("an"), T("name")), ["baum_suchen"] = S(), ["baum_paaren"] = S(T("adresse"), O("port", JsonValueKind.Number, JsonValueKind.String), O("fingerabdruck", JsonValueKind.String)),

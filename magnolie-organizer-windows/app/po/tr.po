@@ -2327,11 +2327,10 @@ msgid "Google Maps in the browser"
 msgstr "Tarayıcıda Google Maps"
 
 msgid ""
-"Google requires browser sign-in. Google synchronization is not yet available "
-"in this Windows version; a DAV password cannot enable it."
+"Google requires browser sign-in. Use Thunderbird to manage this account."
 msgstr ""
-"Google, tarayıcıda oturum açılmasını gerektirir. Bu Windows sürümünde Google "
-"eşitlemesi henüz kullanılamıyor; DAV parolası bunu etkinleştiremez."
+"Google, tarayıcıda oturum açılmasını gerektirir. Bu hesabı Thunderbird "
+"üzerinden yönetin."
 
 msgid "Grisons"
 msgstr "Graubünden"
@@ -2564,6 +2563,13 @@ msgstr "Girdi"
 
 msgid "Insert link"
 msgstr "Bağlantı ekle"
+
+msgid ""
+"Install the highlighted extension in Thunderbird via Add-ons and Themes → "
+"Install Add-on From File. Keep Thunderbird open."
+msgstr ""
+"Seçili uzantıyı Thunderbird’de Eklentiler ve Temalar → Dosyadan Eklenti "
+"Yükle yoluyla yükleyin. Thunderbird’ü açık tutun."
 
 msgid ""
 "Install version %(version)s now? All changes will be saved. The Organizer "
@@ -4611,6 +4617,9 @@ msgstr "Parola belirle veya değiştir"
 msgid "Set up Magnolie Organizer"
 msgstr "Magnolie Organizer'ı kur"
 
+msgid "Set up Thunderbird connection"
+msgstr "Thunderbird bağlantısını ayarla"
+
 msgid "Set up contacts"
 msgstr "Kişileri ayarla"
 
@@ -5916,6 +5925,18 @@ msgstr "Bitiş"
 
 msgid "Thunderbird"
 msgstr "Thunderbird"
+
+msgid ""
+"Thunderbird could not complete the request. Check the account in Thunderbird."
+msgstr ""
+"Thunderbird isteği tamamlayamadı. Thunderbird içindeki hesabı kontrol edin."
+
+msgid ""
+"Thunderbird manages Google sign-in. Select its calendars and address books "
+"above."
+msgstr ""
+"Google oturum açma işlemini Thunderbird yönetir. Yukarıdan takvimlerini ve "
+"adres defterlerini seçin."
 
 msgid "Thunderbird profile version"
 msgstr "Thunderbird profil sürümü"

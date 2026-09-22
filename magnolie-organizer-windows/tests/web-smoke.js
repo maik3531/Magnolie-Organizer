@@ -965,18 +965,27 @@ window.App.edsStatus({ windows: true, verfuegbar: true, buchOk: true,
   kalender: [{ uid: "generic-calendar:privat", name: "Baïkal Termine",
     art: "generic-caldav", supportsVtodo: false },
     { uid: "nextcloud-calendar:team", name: "Cloud Team", art: "nextcloud-caldav" },
-    { uid: "eds-calendar:work", name: "Work", art: "eds" }],
+    { uid: "eds-calendar:work", name: "Work", art: "eds" },
+    { uid: "thunderbird-calendar:profile:calendar", name: "TB Calendar", art: "thunderbird" }],
   adressbuecher: [{ uid: "windows-contacts", name: "Windows-Kontakteordner" },
     { uid: "microsoft-graph", name: "Outlook.com / Microsoft 365" },
     { uid: "generic-addressbook:privat", name: "Baïkal Kontakte", art: "generic-carddav" },
-    { uid: "nextcloud-addressbook:team", name: "Cloud Kontakte", art: "nextcloud-carddav" }],
+    { uid: "nextcloud-addressbook:team", name: "Cloud Kontakte", art: "nextcloud-carddav" },
+    { uid: "thunderbird-addressbook:profile:book", name: "TB Contacts", art: "thunderbird" }],
   graph: { eingerichtet: true, angemeldet: false },
-  nextcloud: { eingerichtet: true, erreichbar: false, fehler: "DAV authentication unavailable" } });
+  nextcloud: { eingerichtet: true, erreichbar: false, fehler: "DAV authentication unavailable" },
+  thunderbird: { verbunden: true } });
 assert.ok(window.document.querySelector("#sync-windows-quelle"));
 assert.strictEqual(window.document.querySelector("#sync-windows-quelle").value, "",
   "An unconfigured profile silently selects the local Windows folder as its sync provider");
 assert.strictEqual(window.document.querySelector("#dav-quellen-fehler")?.textContent,
   "DAV authentication unavailable", "DAV discovery errors are hidden behind the local Windows contact source");
+assert.equal(window.document.querySelector("#thunderbird-status")?.textContent, window.MagnolieI18n.gettext("Connected"));
+assert.ok(window.document.querySelector("#sync-wahl").textContent.includes("TB Calendar — Thunderbird") &&
+  window.document.querySelector("#sync-wahl").textContent.includes("TB Contacts — Thunderbird"));
+Array.from(window.document.querySelectorAll("button")).find(button =>
+  button.textContent === window.MagnolieI18n.gettext("Set up Thunderbird connection")).click();
+assert.ok(messages.some(message => message.cmd === "thunderbird_einrichten"));
 assert.ok(Array.from(window.document.querySelectorAll("button"))
   .some((button) => button.textContent === window.MagnolieI18n.gettext("Sign in to Microsoft")));
 assert.ok(!window.document.body.textContent.includes("Client-ID") &&

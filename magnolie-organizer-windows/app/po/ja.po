@@ -2285,11 +2285,10 @@ msgid "Google Maps in the browser"
 msgstr "ブラウザーで Google Maps"
 
 msgid ""
-"Google requires browser sign-in. Google synchronization is not yet available "
-"in this Windows version; a DAV password cannot enable it."
+"Google requires browser sign-in. Use Thunderbird to manage this account."
 msgstr ""
-"Google にはブラウザーでのログインが必要です。この Windows 版では Google 同期"
-"はまだ利用できません。DAV パスワードでは有効にできません。"
+"Google にはブラウザーでのログインが必要です。このアカウントは Thunderbird で"
+"管理してください。"
 
 msgid "Grisons"
 msgstr "グラウビュンデン州"
@@ -2521,6 +2520,14 @@ msgstr "入力"
 
 msgid "Insert link"
 msgstr "リンクを挿入"
+
+msgid ""
+"Install the highlighted extension in Thunderbird via Add-ons and Themes → "
+"Install Add-on From File. Keep Thunderbird open."
+msgstr ""
+"Thunderbird の「アドオンとテーマ → ファイルからアドオンをインストール」で選択"
+"された拡張機能をインストールしてください。Thunderbird は開いたままにしてくだ"
+"さい。"
 
 msgid ""
 "Install version %(version)s now? All changes will be saved. The Organizer "
@@ -4551,6 +4558,9 @@ msgstr "パスワードを設定または変更"
 msgid "Set up Magnolie Organizer"
 msgstr "Magnolie Organizerをセットアップ"
 
+msgid "Set up Thunderbird connection"
+msgstr "Thunderbird 接続を設定"
+
 msgid "Set up contacts"
 msgstr "連絡先を設定"
 
@@ -5845,6 +5855,19 @@ msgstr "まで"
 
 msgid "Thunderbird"
 msgstr "Thunderbird"
+
+msgid ""
+"Thunderbird could not complete the request. Check the account in Thunderbird."
+msgstr ""
+"Thunderbird は要求を完了できませんでした。Thunderbird でアカウントを確認して"
+"ください。"
+
+msgid ""
+"Thunderbird manages Google sign-in. Select its calendars and address books "
+"above."
+msgstr ""
+"Thunderbird が Google へのログインを管理します。上でカレンダーとアドレス帳を"
+"選択してください。"
 
 msgid "Thunderbird profile version"
 msgstr "Thunderbird プロファイルのバージョン"

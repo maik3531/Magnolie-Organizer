@@ -73,7 +73,7 @@ internal static class NextcloudMailboxTests
             store.Save(new NextcloudMailboxSettings(true, "https://other.example", "other"));
             store.SetApplicationPassword("other-password");
             TestAssert.That(context.Settings.ServerBase == "https://cloud.example/nextcloud" &&
-                Encoding.UTF8.GetString(Convert.FromBase64String(context.Authorization.Parameter!)) == "ä user:app-secret-cleartext",
+                context.Authorization is not null && Encoding.UTF8.GetString(Convert.FromBase64String(context.Authorization.Parameter!)) == "ä user:app-secret-cleartext",
                 "WebDAV-Ziel und Basic Auth stammen nicht aus demselben atomaren Einstellungssnapshot.");
             store.Save(new NextcloudMailboxSettings(true, "https://cloud.example/nextcloud", "ä user"));
             store.SetApplicationPassword("app-secret-cleartext");

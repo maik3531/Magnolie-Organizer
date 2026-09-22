@@ -12,9 +12,9 @@ namespace MagnolieOrganizer.Windows;
 internal static class NextcloudDavSelection
 {
     internal static bool IsCalendar(string value) => value.StartsWith("nextcloud-calendar:", StringComparison.Ordinal) ||
-        value.StartsWith("generic-dav-calendar:", StringComparison.Ordinal);
+        value.StartsWith("generic-dav-calendar:", StringComparison.Ordinal) || value.StartsWith("thunderbird-calendar:", StringComparison.Ordinal);
     internal static bool IsAddressBook(string value) => value.StartsWith("nextcloud-addressbook:", StringComparison.Ordinal) ||
-        value.StartsWith("generic-dav-addressbook:", StringComparison.Ordinal);
+        value.StartsWith("generic-dav-addressbook:", StringComparison.Ordinal) || value.StartsWith("thunderbird-addressbook:", StringComparison.Ordinal);
 
     internal static bool IsSupported(string addressBook, IReadOnlyList<string> calendarIds) =>
         (addressBook.Length == 0 || addressBook is "windows-contacts" or "microsoft-graph" ||
@@ -72,7 +72,9 @@ internal sealed class NextcloudDavClient : IDisposable
     private const long MaximumObjectBytes = 4L * 1024 * 1024;
     private static readonly HttpMethod PropFind = new("PROPFIND");
     private static readonly HttpMethod Report = new("REPORT");
-    private readonly NextcloudMailboxSettingsStore settingsStore;
+    private readonly NextcloudMailboxSettingsStore? settingsStore;
+    private readonly NextcloudMailboxContext? bridgeContext;
+    private NextcloudMailboxContext Context() => bridgeContext ?? settingsStore!.Context(false);
     private readonly HttpClient http;
     private readonly bool ownsHttp;
     private readonly NextcloudSyncJournal? journal;
@@ -93,14 +95,21 @@ internal sealed class NextcloudDavClient : IDisposable
         }
     }
 
+    internal NextcloudDavClient(NextcloudMailboxContext context, HttpClient http,
+        NextcloudSyncJournal journal, string transactionId)
+    {
+        bridgeContext = context; this.http = http; ownsHttp = true;
+        this.journal = journal; this.transactionId = transactionId;
+    }
+
     internal async Task<NextcloudDavSources> ListSourcesAsync(CancellationToken cancellationToken,
         bool calendars = true, bool addressBooks = true)
     {
-        var settings = settingsStore.Load();
+        var settings = settingsStore?.Load();
         if (settings is not null && NextcloudMailbox.ValidateServer(settings.ServerBase).IdnHost
             is "www.googleapis.com" or "apidata.googleusercontent.com" or "calendar.google.com")
             throw new GoogleDavAuthenticationException();
-        var context = settingsStore.Context(false);
+        var context = Context();
         IReadOnlyList<NextcloudDavSource> calendarSources = [], addressSources = [];
         Exception? firstError = null;
         async Task<IReadOnlyList<NextcloudDavSource>> Discover(string kind)
@@ -152,7 +161,7 @@ internal sealed class NextcloudDavClient : IDisposable
     internal async Task DeleteAsync(Uri href, string etag, CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(etag)) throw new InvalidOperationException("Der DAV-ETag fehlt; das Objekt wird nicht ungeschützt gelöscht.");
-        var context = settingsStore.Context(false);
+        var context = Context();
         EnsureAllowed(context, href);
         using var request = Request(HttpMethod.Delete, href, context);
         if (etag.Length > 0) request.Headers.TryAddWithoutValidation("If-Match", etag);
@@ -250,7 +259,7 @@ internal sealed class NextcloudDavClient : IDisposable
     private async Task<IReadOnlyList<NextcloudDavObject>> ReportAsync(NextcloudDavSource source, string dataName,
         string dataNamespace, string body, CancellationToken cancellationToken)
     {
-        var context = settingsStore.Context(false); EnsureAllowed(context, source.Href);
+        var context = Context(); EnsureAllowed(context, source.Href);
         using var request = Request(Report, source.Href, context);
         request.Headers.TryAddWithoutValidation("Depth", "1");
         request.Content = XmlContent(body);
@@ -282,7 +291,7 @@ internal sealed class NextcloudDavClient : IDisposable
         if (Encoding.UTF8.GetByteCount(text) > MaximumObjectBytes) throw new InvalidDataException("Ein DAV-Objekt ist zu groß.");
         if (mediaType.Equals("text/calendar", StringComparison.OrdinalIgnoreCase))
             ExchangeCodec.RejectLocalIcsAttachments(text);
-        var context = settingsStore.Context(false); EnsureAllowed(context, href);
+        var context = Context(); EnsureAllowed(context, href);
         using var request = Request(HttpMethod.Put, href, context);
         request.Headers.TryAddWithoutValidation(etag is null ? "If-None-Match" : "If-Match", etag ?? "*");
         request.Content = new StringContent(text, new UTF8Encoding(false), mediaType);
@@ -300,6 +309,13 @@ internal sealed class NextcloudDavClient : IDisposable
             throw new InvalidOperationException("Das DAV-Objekt wurde gleichzeitig geändert.");
         }
         EnsureSuccess(response);
+        if (bridgeContext is not null && mediaType == "text/vcard" && response.Content.Headers.ContentLocation is { } location)
+        {
+            EnsureAllowed(context, location);
+            if (!IsCollectionChild(new Uri(href, "."), location)) throw new InvalidDataException("DAV resource moved outside its collection.");
+            var bytes = await ReadLimitedAsync(response, MaximumObjectBytes, cancellationToken).ConfigureAwait(false);
+            return new NextcloudDavObject(location, response.Headers.ETag?.ToString() ?? "", Encoding.UTF8.GetString(bytes));
+        }
         return new NextcloudDavObject(href, response.Headers.ETag?.ToString() ?? "", text);
     }
 
@@ -466,7 +482,12 @@ internal sealed class NextcloudCardDavRemote(NextcloudDavClient client, Nextclou
     public async Task<RemoteContact> UpdateAsync(RemoteContact remote, string uid, JsonObject contact, CancellationToken cancellationToken)
     {
         if (remote.ETag.Length == 0) throw new InvalidOperationException("Der CardDAV-ETag fehlt; das Objekt wird nicht ungeschützt überschrieben.");
-        var changed = await client.UpdateAsync(new Uri(remote.Id), remote.ETag, "text/vcard", Write(contact), cancellationToken).ConfigureAwait(false);
+        var outgoing = contact.DeepClone().AsObject();
+        // Google may assign its own UID. Keep the local identity, but retain
+        // the provider's UID inside the existing remote resource.
+        if (source.Uid.StartsWith("thunderbird-", StringComparison.Ordinal) && ContactFields.Text(remote.Data, "uid") is { Length: > 0 } remoteUid)
+            outgoing["uid"] = remoteUid;
+        var changed = await client.UpdateAsync(new Uri(remote.Id), remote.ETag, "text/vcard", Write(outgoing), cancellationToken).ConfigureAwait(false);
         return new RemoteContact(changed.Href.AbsoluteUri, changed.ETag, contact["geaendert"]?.GetValue<long>() ?? 0, contact.DeepClone().AsObject(), true);
     }
 

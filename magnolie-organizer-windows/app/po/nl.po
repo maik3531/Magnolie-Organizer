@@ -2355,12 +2355,9 @@ msgid "Google Maps in the browser"
 msgstr "Google Maps in de browser"
 
 msgid ""
-"Google requires browser sign-in. Google synchronization is not yet available "
-"in this Windows version; a DAV password cannot enable it."
+"Google requires browser sign-in. Use Thunderbird to manage this account."
 msgstr ""
-"Google vereist aanmelding in de browser. Google-synchronisatie is nog niet "
-"beschikbaar in deze Windows-versie; een DAV-wachtwoord kan deze niet "
-"inschakelen."
+"Google vereist aanmelding in de browser. Beheer dit account via Thunderbird."
 
 msgid "Grisons"
 msgstr "Graubünden"
@@ -2593,6 +2590,13 @@ msgstr "Invoer"
 
 msgid "Insert link"
 msgstr "Koppeling invoegen"
+
+msgid ""
+"Install the highlighted extension in Thunderbird via Add-ons and Themes → "
+"Install Add-on From File. Keep Thunderbird open."
+msgstr ""
+"Installeer de geselecteerde extensie in Thunderbird via Add-ons en thema’s → "
+"Add-on installeren via bestand. Laat Thunderbird open."
 
 msgid ""
 "Install version %(version)s now? All changes will be saved. The Organizer "
@@ -4663,6 +4667,9 @@ msgstr "Wachtwoord instellen of wijzigen"
 msgid "Set up Magnolie Organizer"
 msgstr "Magnolie Organizer configureren"
 
+msgid "Set up Thunderbird connection"
+msgstr "Thunderbird-verbinding instellen"
+
 msgid "Set up contacts"
 msgstr "Contacten instellen"
 
@@ -5996,6 +6003,19 @@ msgstr "Tot en met"
 
 msgid "Thunderbird"
 msgstr "Thunderbird"
+
+msgid ""
+"Thunderbird could not complete the request. Check the account in Thunderbird."
+msgstr ""
+"Thunderbird kon het verzoek niet voltooien. Controleer het account in "
+"Thunderbird."
+
+msgid ""
+"Thunderbird manages Google sign-in. Select its calendars and address books "
+"above."
+msgstr ""
+"Thunderbird verzorgt de Google-aanmelding. Selecteer hierboven de agenda’s "
+"en adresboeken."
 
 msgid "Thunderbird profile version"
 msgstr "Versie van het Thunderbird-profiel"

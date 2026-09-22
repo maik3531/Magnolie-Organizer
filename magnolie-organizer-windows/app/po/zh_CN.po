@@ -2214,11 +2214,8 @@ msgid "Google Maps in the browser"
 msgstr "浏览器中的 Google Maps"
 
 msgid ""
-"Google requires browser sign-in. Google synchronization is not yet available "
-"in this Windows version; a DAV password cannot enable it."
-msgstr ""
-"Google 需要在浏览器中登录。此 Windows 版本尚不支持 Google 同步；DAV 密码无法"
-"启用此功能。"
+"Google requires browser sign-in. Use Thunderbird to manage this account."
+msgstr "Google 需要在浏览器中登录。请使用 Thunderbird 管理此账户。"
 
 msgid "Grisons"
 msgstr "格劳宾登州"
@@ -2446,6 +2443,13 @@ msgstr "输入"
 
 msgid "Insert link"
 msgstr "插入链接"
+
+msgid ""
+"Install the highlighted extension in Thunderbird via Add-ons and Themes → "
+"Install Add-on From File. Keep Thunderbird open."
+msgstr ""
+"在 Thunderbird 中通过“附加组件和主题 → 从文件安装附加组件”安装选中的扩展。请"
+"保持 Thunderbird 运行。"
 
 msgid ""
 "Install version %(version)s now? All changes will be saved. The Organizer "
@@ -4419,6 +4423,9 @@ msgstr "设置或更改密码"
 msgid "Set up Magnolie Organizer"
 msgstr "设置 Magnolie Organizer"
 
+msgid "Set up Thunderbird connection"
+msgstr "设置 Thunderbird 连接"
+
 msgid "Set up contacts"
 msgstr "设置联系人"
 
@@ -5654,6 +5661,15 @@ msgstr "截至"
 
 msgid "Thunderbird"
 msgstr "Thunderbird"
+
+msgid ""
+"Thunderbird could not complete the request. Check the account in Thunderbird."
+msgstr "Thunderbird 无法完成请求。请在 Thunderbird 中检查账户。"
+
+msgid ""
+"Thunderbird manages Google sign-in. Select its calendars and address books "
+"above."
+msgstr "Thunderbird 负责 Google 登录。请在上方选择其日历和通讯录。"
 
 msgid "Thunderbird profile version"
 msgstr "Thunderbird 配置文件版本"

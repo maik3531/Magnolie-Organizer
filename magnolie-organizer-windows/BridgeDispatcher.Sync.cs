@@ -31,15 +31,32 @@ internal sealed partial class BridgeDispatcher
             }
         }
         catch (Exception error) { nextcloudError = NextcloudStatusText.For(error); }
+        IReadOnlyList<NextcloudDavSource> thunderbirdSources = [];
+        var thunderbirdConnected = false;
+        if (File.Exists(ThunderbirdBridge.ManifestPath))
+        {
+            try
+            {
+                using var timeout = NetworkDeadline(TimeSpan.FromSeconds(10));
+                thunderbirdSources = await ThunderbirdBridge.SourcesAsync(timeout.Token);
+                thunderbirdConnected = true;
+            }
+            catch (Exception error) when (error is IOException or TimeoutException or OperationCanceledException)
+            { /* A closed Thunderbird is unavailable, never an empty sync result. */ }
+        }
         var addressBooks = new List<object> { new { uid = "windows-contacts", name = T("Windows Contacts folder"), art = "lokal", eingerichtet = true } };
         if (clientId.Length > 0 && signedIn) addressBooks.Add(new { uid = "microsoft-graph", name = "Outlook.com / Microsoft 365", art = "graph", eingerichtet = true });
         addressBooks.AddRange(dav.AddressBooks.Select(source => (object)new { uid = source.Uid, name = source.Name, art = accountType == "generic-dav" ? "generic-carddav" : "nextcloud-carddav", eingerichtet = true }));
+        addressBooks.AddRange(thunderbirdSources.Where(source => source.Kind == "addressbook")
+            .Select(source => (object)new { uid = source.Uid, name = source.Name, art = "thunderbird", eingerichtet = true }));
         await form.SendAsync("App.edsStatus", new
         {
             verfuegbar = true, buchOk = nextcloudError.Length == 0, windows = true,
-            kalender = dav.Calendars.Select(source => new { uid = source.Uid, name = source.Name, art = accountType == "generic-dav" ? "generic-caldav" : "nextcloud-caldav", supportsVtodo = source.SupportsVTodo, eingerichtet = true }).ToArray(),
+            kalender = dav.Calendars.Concat(thunderbirdSources.Where(source => source.Kind == "calendar"))
+                .Select(source => new { uid = source.Uid, name = source.Name, art = ThunderbirdBridge.IsSource(source.Uid) ? "thunderbird" : accountType == "generic-dav" ? "generic-caldav" : "nextcloud-caldav", supportsVtodo = source.SupportsVTodo, eingerichtet = true }).ToArray(),
             adressbuecher = addressBooks.ToArray(),
             graph = new { eingerichtet = clientId.Length > 0, angemeldet = signedIn },
+            thunderbird = new { verbunden = thunderbirdConnected },
             nextcloud = new { eingerichtet = nextcloudConfigured, erreichbar = nextcloudConfigured && nextcloudError.Length == 0, kontoArt = accountType, fehler = nextcloudError }
         });
     }
@@ -92,6 +109,7 @@ internal sealed partial class BridgeDispatcher
         using var operation = NetworkDeadline(TimeSpan.FromMinutes(10));
         var locked = false;
         NextcloudDavClient? davClient = null;
+        var thunderbirdClients = new List<NextcloudDavClient>();
         try
         {
             await MutationGate.Global.WaitAsync(operation.Token); locked = true;
@@ -125,6 +143,8 @@ internal sealed partial class BridgeDispatcher
                 await form.SendAsync("App.syncFertig", completedRun.Payload);
                 return;
             }
+            var thunderbirdSources = ThunderbirdBridge.IsSource(source) || calendarIds.Any(ThunderbirdBridge.IsSource)
+                ? await ThunderbirdBridge.SourcesAsync(operation.Token) : [];
             if (resumed is { } saved)
             {
                 using var resumeDocument = JsonDocument.Parse(saved.Payload.ToJsonString());
@@ -192,6 +212,14 @@ internal sealed partial class BridgeDispatcher
                     if (token.RefreshToken.Length > 0) GraphTokens.Save(token.RefreshToken);
                     remote = new GraphApiClient(http, token.AccessToken);
                 }
+                else if (ThunderbirdBridge.IsSource(source))
+                {
+                    var addressBook = thunderbirdSources.SingleOrDefault(item => item.Uid == source) ??
+                        throw new InvalidOperationException(T("Address book"));
+                    var bridgeClient = ThunderbirdBridge.CreateClient(addressBook, syncJournal, transactionId);
+                    thunderbirdClients.Add(bridgeClient);
+                    remote = new NextcloudCardDavRemote(bridgeClient, addressBook);
+                }
                 else
                 {
                     davClient = new NextcloudDavClient(NextcloudSettings, journal: syncJournal, transactionId: transactionId);
@@ -213,13 +241,23 @@ internal sealed partial class BridgeDispatcher
             }
             if (calendarIds.Count > 0)
             {
-                davClient ??= new NextcloudDavClient(NextcloudSettings, journal: syncJournal, transactionId: transactionId);
-                var sources = await davClient.ListSourcesAsync(operation.Token, addressBooks: false);
-                var selected = calendarIds.Select(id => sources.Calendars.SingleOrDefault(item => item.Uid == id) ??
+                IReadOnlyList<NextcloudDavSource> davCalendars = [];
+                if (calendarIds.Any(id => !ThunderbirdBridge.IsSource(id)))
+                {
+                    davClient ??= new NextcloudDavClient(NextcloudSettings, journal: syncJournal, transactionId: transactionId);
+                    davCalendars = (await davClient.ListSourcesAsync(operation.Token, addressBooks: false)).Calendars;
+                }
+                var selected = calendarIds.Select(id => davCalendars.Concat(thunderbirdSources).SingleOrDefault(item => item.Uid == id) ??
                     throw new InvalidOperationException(T("No calendars found."))).ToArray();
                 foreach (var calendar in selected.Where(item => item.SupportsVTodo)) taskCalendars.Add(calendar.Uid);
                 foreach (var calendar in selected)
                 {
+                    var calendarClient = davClient;
+                    if (ThunderbirdBridge.IsSource(calendar.Uid))
+                    {
+                        calendarClient = ThunderbirdBridge.CreateClient(calendar, syncJournal, transactionId);
+                        thunderbirdClients.Add(calendarClient);
+                    }
                     var phase = "calendar:" + calendar.Uid;
                     if (resumedIndex >= phases.IndexOf(phase)) continue;
                     var calendarCursor = Cursor(calendarCursors, calendar.Uid);
@@ -238,7 +276,7 @@ internal sealed partial class BridgeDispatcher
                     var (calendarTaskTombstones, remainingTaskTombstones) = NextcloudDavSelection.SplitCalendarTombstones(
                         taskTombstones, calendar.Uid, isDefaultCalendar);
                     using var calendarTimeout = CancellationTokenSource.CreateLinkedTokenSource(operation.Token); calendarTimeout.CancelAfter(TimeSpan.FromSeconds(12));
-                    var calendarResult = await new NextcloudCalendarSync(davClient).SyncAsync(calendar,
+                    var calendarResult = await new NextcloudCalendarSync(calendarClient!).SyncAsync(calendar,
                         calendarTerms, calendarAnniversaries, calendarTombstones, calendarCursor,
                         additiveOnly || firstCalendarRun, calendarTimeout.Token);
                     foreach (var item in calendarResult.Termine) remainingTerms.Add(item?.DeepClone());
@@ -249,7 +287,7 @@ internal sealed partial class BridgeDispatcher
                     if (calendar.SupportsVTodo)
                     {
                         using var taskTimeout = CancellationTokenSource.CreateLinkedTokenSource(operation.Token); taskTimeout.CancelAfter(TimeSpan.FromSeconds(12));
-                        taskResult = await new NextcloudTaskSync(davClient).SyncAsync(calendar,
+                        taskResult = await new NextcloudTaskSync(calendarClient!).SyncAsync(calendar,
                             calendarTasks, calendarTaskTombstones, taskCursor,
                             additiveOnly || firstTaskRun, taskTimeout.Token);
                     }
@@ -316,7 +354,7 @@ internal sealed partial class BridgeDispatcher
         finally
         {
             lock (serviceGate) if (ReferenceEquals(activeSync, operation)) { activeSync = null; graphSync = false; }
-            try { davClient?.Dispose(); }
+            try { davClient?.Dispose(); foreach (var client in thunderbirdClients) client.Dispose(); }
             finally { if (locked) MutationGate.Global.Release(); }
         }
     }

@@ -2401,12 +2401,10 @@ msgid "Google Maps in the browser"
 msgstr "Google Maps we wobhladowaku"
 
 msgid ""
-"Google requires browser sign-in. Google synchronization is not yet available "
-"in this Windows version; a DAV password cannot enable it."
+"Google requires browser sign-in. Use Thunderbird to manage this account."
 msgstr ""
-"Google sej přizjewjenje we wobhladowaku žada. Synchronizacija z Google w "
-"tutej Windows-wersiji hišće k dispoziciji njeje; hesło DAV ju njemóže "
-"zmóžnić."
+"Google sej přizjewjenje we wobhladowaku žada. Zarjadujće tute konto přez "
+"Thunderbird."
 
 msgid "Grisons"
 msgstr "Graubünden"
@@ -2639,6 +2637,13 @@ msgstr "Zapodaće"
 
 msgid "Insert link"
 msgstr "Wotkaz zasadźić"
+
+msgid ""
+"Install the highlighted extension in Thunderbird via Add-ons and Themes → "
+"Install Add-on From File. Keep Thunderbird open."
+msgstr ""
+"Instalujće markěrowane rozšěrjenje w Thunderbird přez Přidatki a drasty → "
+"Přidatk z dataje instalować. Wostajće Thunderbird wočinjeny."
 
 msgid ""
 "Install version %(version)s now? All changes will be saved. The Organizer "
@@ -4713,6 +4718,9 @@ msgstr "Hesło nastajić abo změnić"
 msgid "Set up Magnolie Organizer"
 msgstr "Magnolie Organizer zarjadować"
 
+msgid "Set up Thunderbird connection"
+msgstr "Zwisk z Thunderbird zarjadować"
+
 msgid "Set up contacts"
 msgstr "Kontakty přirjadować"
 
@@ -6025,6 +6033,18 @@ msgstr "Hač do"
 
 msgid "Thunderbird"
 msgstr "Thunderbird"
+
+msgid ""
+"Thunderbird could not complete the request. Check the account in Thunderbird."
+msgstr ""
+"Thunderbird njemóžeše naprašowanje dokónčić. Přepruwujće konto w Thunderbird."
+
+msgid ""
+"Thunderbird manages Google sign-in. Select its calendars and address books "
+"above."
+msgstr ""
+"Thunderbird přizjewjenje pola Google přewozmje. Wubjerće horjeka jeho "
+"protyki a adresniki."
 
 msgid "Thunderbird profile version"
 msgstr "Wersija profila Thunderbird"

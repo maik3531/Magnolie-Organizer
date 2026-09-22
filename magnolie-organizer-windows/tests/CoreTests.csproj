@@ -52,6 +52,7 @@
     <Compile Include="..\MagnolienbaumCrypto.cs" Link="MagnolienbaumCrypto.cs" />
     <Compile Include="..\NextcloudMailbox.cs" Link="NextcloudMailbox.cs" />
     <Compile Include="..\NextcloudDav.cs" Link="NextcloudDav.cs" />
+    <Compile Include="..\ThunderbirdBridge.cs" Link="ThunderbirdBridge.cs" />
     <Compile Include="..\NextcloudSyncJournal.cs" Link="NextcloudSyncJournal.cs" />
     <Compile Include="..\MagnolienbaumStore.cs" Link="MagnolienbaumStore.cs" />
     <Compile Include="..\MagnolienbaumPairing.cs" Link="MagnolienbaumPairing.cs" />
