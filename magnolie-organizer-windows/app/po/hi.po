@@ -476,6 +476,9 @@ msgstr "प्रारूप क्षेत्र के अनुसार"
 msgid "According to language"
 msgstr "भाषा के अनुसार"
 
+msgid "Account type"
+msgstr "खाते का प्रकार"
+
 msgid "Active call"
 msgstr "सक्रिय कॉल"
 
@@ -1548,6 +1551,9 @@ msgstr "चक्र चिह्न केवल आपके स्थान�
 
 msgid "Czechia"
 msgstr "चेकिया"
+
+msgid "DAV account"
+msgstr "DAV खाता"
 
 msgid "DIN 5008 Form A (27 mm letterhead)"
 msgstr "DIN 5008 प्रारूप A (पत्र का शीर्ष भाग 27 मिमी)"
@@ -3442,6 +3448,9 @@ msgstr ""
 "केवल HTTPS। Nextcloud में सेटिंग्स, सुरक्षा के अंतर्गत ऐप पासवर्ड बनाएँ। आपके खाते का "
 "पासवर्ड कभी उपयोग नहीं होता।"
 
+msgid "Only HTTPS. The password is stored securely on this computer."
+msgstr "केवल HTTPS। पासवर्ड इस कंप्यूटर पर सुरक्षित रूप से सहेजा जाता है।"
+
 msgid ""
 "Only one Magnolie Notes phone can be paired. Remove the existing phone "
 "before changing devices."
@@ -4162,6 +4171,9 @@ msgstr "पुष्टि के लिए फिर दर्ज करें"
 
 msgid "Replace completely"
 msgstr "पूरी तरह से बदलें"
+
+msgid "Requires a Nextcloud account."
+msgstr "Nextcloud खाता आवश्यक है।"
 
 msgid ""
 "Requires existing pairing in Windows Settings under Bluetooth & devices. "
@@ -5683,6 +5695,9 @@ msgstr ""
 msgid "This backup cannot be used."
 msgstr "यह बैकअप उपयोग नहीं किया जा सकता।"
 
+msgid "This calendar does not support tasks (VTODO)."
+msgstr "यह कैलेंडर कार्यों (VTODO) का समर्थन नहीं करता।"
+
 msgid ""
 "This choice also determines how names appear on contact cards and under "
 "which letter they are filed in the index."
@@ -6005,6 +6020,9 @@ msgstr "न्यूमेरिक कीपैड का उपयोग क�
 msgid ""
 "Use only schedules prescribed or confirmed by a healthcare professional."
 msgstr "केवल स्वास्थ्य पेशेवर द्वारा निर्धारित या पुष्टि की गई समय-सारिणियों का उपयोग करें।"
+
+msgid "Use the DAV address provided by your service."
+msgstr "अपने सेवा प्रदाता द्वारा दिया गया DAV पता उपयोग करें।"
 
 msgid ""
 "Use the arrows to arrange groups and notebooks, or use the selection to move "

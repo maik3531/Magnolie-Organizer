@@ -8549,6 +8549,24 @@ msgstr[2] "… і яшчэ %(count)s элементы, якія таксама �
 msgid "＋ Add appointment"
 msgstr "＋ Дадаць сустрэчу"
 
+msgid "DAV account"
+msgstr "Уліковы запіс DAV"
+
+msgid "Account type"
+msgstr "Тып уліковага запісу"
+
+msgid "Use the DAV address provided by your service."
+msgstr "Выкарыстоўвайце адрас DAV, прадастаўлены вашым пастаўшчыком."
+
+msgid "Only HTTPS. The password is stored securely on this computer."
+msgstr "Толькі HTTPS. Пароль бяспечна захоўваецца на гэтым камп’ютары."
+
+msgid "Requires a Nextcloud account."
+msgstr "Патрабуецца ўліковы запіс Nextcloud."
+
+msgid "This calendar does not support tasks (VTODO)."
+msgstr "Гэты каляндар не падтрымлівае задачы (VTODO)."
+
 #~ msgid "This paired phone is my own device"
 #~ msgstr "Гэты спараны тэлефон з'яўляецца маёй уласнай прыладай"
 

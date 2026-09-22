@@ -8482,6 +8482,24 @@ msgstr[1] "… ayrıca yazdırılacak %(count)s öğe daha."
 msgid "＋ Add appointment"
 msgstr "＋ Randevu ekle"
 
+msgid "DAV account"
+msgstr "DAV hesabı"
+
+msgid "Account type"
+msgstr "Hesap türü"
+
+msgid "Use the DAV address provided by your service."
+msgstr "Hizmet sağlayıcınızın verdiği DAV adresini kullanın."
+
+msgid "Only HTTPS. The password is stored securely on this computer."
+msgstr "Yalnızca HTTPS. Parola bu bilgisayarda güvenli bir şekilde saklanır."
+
+msgid "Requires a Nextcloud account."
+msgstr "Nextcloud hesabı gerektirir."
+
+msgid "This calendar does not support tasks (VTODO)."
+msgstr "Bu takvim görevleri (VTODO) desteklemiyor."
+
 #~ msgid "This paired phone is my own device"
 #~ msgstr "Bu eşleştirilmiş telefon kendi cihazımdır"
 

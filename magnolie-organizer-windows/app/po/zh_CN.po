@@ -442,6 +442,9 @@ msgstr "根据格式区域"
 msgid "According to language"
 msgstr "根据语言"
 
+msgid "Account type"
+msgstr "账户类型"
+
 msgid "Active call"
 msgstr "当前通话"
 
@@ -1499,6 +1502,9 @@ msgstr "周期标记只保存在本地 Organizer 数据中，不会发送通知�
 
 msgid "Czechia"
 msgstr "捷克"
+
+msgid "DAV account"
+msgstr "DAV 账户"
 
 msgid "DIN 5008 Form A (27 mm letterhead)"
 msgstr "DIN 5008 A 式（信头高度 27 毫米）"
@@ -3356,6 +3362,9 @@ msgstr ""
 "仅限 HTTPS。请在 Nextcloud 的“设置”“安全”中创建应用密码。绝不会使用您的账户密"
 "码。"
 
+msgid "Only HTTPS. The password is stored securely on this computer."
+msgstr "仅限 HTTPS。密码将安全地存储在此计算机上。"
+
 msgid ""
 "Only one Magnolie Notes phone can be paired. Remove the existing phone "
 "before changing devices."
@@ -4053,6 +4062,9 @@ msgstr "再次输入以确认"
 
 msgid "Replace completely"
 msgstr "完全更换"
+
+msgid "Requires a Nextcloud account."
+msgstr "需要 Nextcloud 账户。"
 
 msgid ""
 "Requires existing pairing in Windows Settings under Bluetooth & devices. "
@@ -5530,6 +5542,9 @@ msgstr ""
 msgid "This backup cannot be used."
 msgstr "此备份无法使用。"
 
+msgid "This calendar does not support tasks (VTODO)."
+msgstr "此日历不支持任务（VTODO）。"
+
 msgid ""
 "This choice also determines how names appear on contact cards and under "
 "which letter they are filed in the index."
@@ -5842,6 +5857,9 @@ msgstr "使用数字小键盘"
 msgid ""
 "Use only schedules prescribed or confirmed by a healthcare professional."
 msgstr "请仅使用由医疗专业人员开具或确认的用药计划。"
+
+msgid "Use the DAV address provided by your service."
+msgstr "请使用服务商提供的 DAV 地址。"
 
 msgid ""
 "Use the arrows to arrange groups and notebooks, or use the selection to move "

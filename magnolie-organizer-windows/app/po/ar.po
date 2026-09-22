@@ -604,6 +604,9 @@ msgstr "وفقًا لمنطقة التنسيق"
 msgid "According to language"
 msgstr "وفقًا للغة"
 
+msgid "Account type"
+msgstr "نوع الحساب"
+
 msgid "Active call"
 msgstr "مكالمة نشطة"
 
@@ -1680,6 +1683,9 @@ msgstr "تُحفظ علامات الدورة فقط في بيانات Organizer 
 
 msgid "Czechia"
 msgstr "التشيك"
+
+msgid "DAV account"
+msgstr "حساب DAV"
 
 msgid "DIN 5008 Form A (27 mm letterhead)"
 msgstr "DIN 5008 النموذج A (ترويسة بارتفاع 27 ملم)"
@@ -3598,6 +3604,9 @@ msgstr ""
 "HTTPS فقط. أنشئ كلمة مرور تطبيق في Nextcloud ضمن الإعدادات، الأمان. لا "
 "تُستخدم كلمة مرور حسابك أبدًا."
 
+msgid "Only HTTPS. The password is stored securely on this computer."
+msgstr "HTTPS فقط. تُحفظ كلمة المرور بأمان على هذا الحاسوب."
+
 msgid ""
 "Only one Magnolie Notes phone can be paired. Remove the existing phone "
 "before changing devices."
@@ -4336,6 +4345,9 @@ msgstr "أعد الإدخال للتأكيد"
 
 msgid "Replace completely"
 msgstr "استبدال تماما"
+
+msgid "Requires a Nextcloud account."
+msgstr "يتطلب حساب Nextcloud."
 
 msgid ""
 "Requires existing pairing in Windows Settings under Bluetooth & devices. "
@@ -5871,6 +5883,9 @@ msgstr ""
 msgid "This backup cannot be used."
 msgstr "لا يمكن استخدام هذه النسخة الاحتياطية."
 
+msgid "This calendar does not support tasks (VTODO)."
+msgstr "هذا التقويم لا يدعم المهام (VTODO)."
+
 msgid ""
 "This choice also determines how names appear on contact cards and under "
 "which letter they are filed in the index."
@@ -6194,6 +6209,9 @@ msgstr "استخدام لوحة الأرقام"
 msgid ""
 "Use only schedules prescribed or confirmed by a healthcare professional."
 msgstr "استخدم فقط الجداول العلاجية التي يصفها أو يؤكدها اختصاصي رعاية صحية."
+
+msgid "Use the DAV address provided by your service."
+msgstr "استخدم عنوان DAV الذي يقدمه مزود الخدمة."
 
 msgid ""
 "Use the arrows to arrange groups and notebooks, or use the selection to move "

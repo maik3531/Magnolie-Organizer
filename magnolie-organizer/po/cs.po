@@ -8514,6 +8514,24 @@ msgstr[2] "… a ještě %(count)s další položky, které se rovněž vytiskno
 msgid "＋ Add appointment"
 msgstr "＋ Přidat schůzku"
 
+msgid "DAV account"
+msgstr "Účet DAV"
+
+msgid "Account type"
+msgstr "Typ účtu"
+
+msgid "Use the DAV address provided by your service."
+msgstr "Použijte adresu DAV od svého poskytovatele."
+
+msgid "Only HTTPS. The password is stored securely on this computer."
+msgstr "Pouze HTTPS. Heslo se bezpečně ukládá na tomto počítači."
+
+msgid "Requires a Nextcloud account."
+msgstr "Vyžaduje účet Nextcloud."
+
+msgid "This calendar does not support tasks (VTODO)."
+msgstr "Tento kalendář nepodporuje úkoly (VTODO)."
+
 #~ msgid "This paired phone is my own device"
 #~ msgstr "Tento spárovaný telefon je moje vlastní zařízení"
 

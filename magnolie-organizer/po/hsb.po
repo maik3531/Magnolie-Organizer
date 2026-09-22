@@ -8648,6 +8648,24 @@ msgstr[3] "… a dale %(count)s zapiskaj, kotrejž so tež ćišćitej."
 msgid "＋ Add appointment"
 msgstr "＋ Termin přidać"
 
+msgid "DAV account"
+msgstr "DAV-konto"
+
+msgid "Account type"
+msgstr "Kontowy typ"
+
+msgid "Use the DAV address provided by your service."
+msgstr "Wužiwajće DAV-adresu swojeho poskićowarja."
+
+msgid "Only HTTPS. The password is stored securely on this computer."
+msgstr "Jenož HTTPS. Hesło so škitane na tutym ličaku składuje."
+
+msgid "Requires a Nextcloud account."
+msgstr "Trjeba Nextcloud-konto."
+
+msgid "This calendar does not support tasks (VTODO)."
+msgstr "Tutón protyka nadawki (VTODO) njepodpěruje."
+
 #~ msgid "This paired phone is my own device"
 #~ msgstr "Tutón zwjazany telefon je mój swójski grat"
 

@@ -8331,6 +8331,24 @@ msgstr[1] "… और %(count)s अतिरिक्त आइटम, जो �
 msgid "＋ Add appointment"
 msgstr "＋ अपॉइंटमेंट जोड़ें"
 
+msgid "DAV account"
+msgstr "DAV खाता"
+
+msgid "Account type"
+msgstr "खाते का प्रकार"
+
+msgid "Use the DAV address provided by your service."
+msgstr "अपने सेवा प्रदाता द्वारा दिया गया DAV पता उपयोग करें।"
+
+msgid "Only HTTPS. The password is stored securely on this computer."
+msgstr "केवल HTTPS। पासवर्ड इस कंप्यूटर पर सुरक्षित रूप से सहेजा जाता है।"
+
+msgid "Requires a Nextcloud account."
+msgstr "Nextcloud खाता आवश्यक है।"
+
+msgid "This calendar does not support tasks (VTODO)."
+msgstr "यह कैलेंडर कार्यों (VTODO) का समर्थन नहीं करता।"
+
 #~ msgid "This paired phone is my own device"
 #~ msgstr "यह जोड़ा गया फ़ोन मेरा अपना उपकरण है"
 

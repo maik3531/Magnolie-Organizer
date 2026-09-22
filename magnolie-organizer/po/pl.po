@@ -8594,6 +8594,24 @@ msgstr[2] "… i jeszcze %(count)s elementy, które również zostaną wydrukowa
 msgid "＋ Add appointment"
 msgstr "＋ Dodaj spotkanie"
 
+msgid "DAV account"
+msgstr "Konto DAV"
+
+msgid "Account type"
+msgstr "Typ konta"
+
+msgid "Use the DAV address provided by your service."
+msgstr "Użyj adresu DAV podanego przez dostawcę usługi."
+
+msgid "Only HTTPS. The password is stored securely on this computer."
+msgstr "Tylko HTTPS. Hasło jest bezpiecznie przechowywane na tym komputerze."
+
+msgid "Requires a Nextcloud account."
+msgstr "Wymaga konta Nextcloud."
+
+msgid "This calendar does not support tasks (VTODO)."
+msgstr "Ten kalendarz nie obsługuje zadań (VTODO)."
+
 #~ msgid "This paired phone is my own device"
 #~ msgstr "Ten sparowany telefon jest moim własnym urządzeniem"
 

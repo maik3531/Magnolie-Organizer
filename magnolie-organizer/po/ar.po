@@ -8618,6 +8618,24 @@ msgstr[5] "… وعناصر إضافية ستُطبع أيضًا؛ العدد: %
 msgid "＋ Add appointment"
 msgstr "＋ إضافة موعد"
 
+msgid "DAV account"
+msgstr "حساب DAV"
+
+msgid "Account type"
+msgstr "نوع الحساب"
+
+msgid "Use the DAV address provided by your service."
+msgstr "استخدم عنوان DAV الذي يقدمه مزود الخدمة."
+
+msgid "Only HTTPS. The password is stored securely on this computer."
+msgstr "HTTPS فقط. تُحفظ كلمة المرور بأمان على هذا الحاسوب."
+
+msgid "Requires a Nextcloud account."
+msgstr "يتطلب حساب Nextcloud."
+
+msgid "This calendar does not support tasks (VTODO)."
+msgstr "هذا التقويم لا يدعم المهام (VTODO)."
+
 #~ msgid "This paired phone is my own device"
 #~ msgstr "هذا الهاتف المقترن هو جهازي الخاص"
 

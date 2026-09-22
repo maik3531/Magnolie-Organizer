@@ -645,6 +645,9 @@ msgstr ""
 msgid "According to language"
 msgstr ""
 
+msgid "Account type"
+msgstr ""
+
 msgid "Active call"
 msgstr ""
 
@@ -1880,6 +1883,9 @@ msgid ""
 msgstr ""
 
 msgid "Czechia"
+msgstr ""
+
+msgid "DAV account"
 msgstr ""
 
 msgid "DIN 5008 Form A (27 mm letterhead)"
@@ -4026,6 +4032,9 @@ msgid ""
 "Your account password is never used."
 msgstr ""
 
+msgid "Only HTTPS. The password is stored securely on this computer."
+msgstr ""
+
 msgid ""
 "Only Notify, then unlock is currently available. Keyring access and pausing "
 "while locked are not yet enforced by the background service."
@@ -4816,6 +4825,9 @@ msgid "Reported (%(method)s): %(title)s – %(body)s"
 msgstr ""
 
 msgid "Requesting the device status"
+msgstr ""
+
+msgid "Requires a Nextcloud account."
 msgstr ""
 
 msgid "Requires existing BlueZ system pairing. Data only, no HFP audio."
@@ -6780,6 +6792,9 @@ msgstr ""
 msgid "This branch is not known."
 msgstr ""
 
+msgid "This calendar does not support tasks (VTODO)."
+msgstr ""
+
 msgid ""
 "This choice also determines how names appear on contact cards and under "
 "which letter they are filed in the index."
@@ -7156,6 +7171,9 @@ msgid ""
 msgstr ""
 
 msgid "Use system keyring"
+msgstr ""
+
+msgid "Use the DAV address provided by your service."
 msgstr ""
 
 msgid ""

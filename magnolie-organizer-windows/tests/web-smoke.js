@@ -1013,7 +1013,7 @@ assert.ok(window.document.querySelector("#sync-wahl").textContent.includes("Baï
   window.document.querySelector("#sync-wahl").textContent.includes(
     "Work — " + window.MagnolieI18n.gettext("System internet accounts")) &&
   !window.document.querySelector("#sync-wahl").textContent.includes("Evolution Data Server") &&
-  window.document.querySelector(".sync-vtodo-hinweis")?.textContent.includes("Appointments remain available"),
+   window.document.querySelector(".sync-vtodo-hinweis")?.textContent === window.MagnolieI18n.gettext("This calendar does not support tasks (VTODO)."),
 "DAV source labels or factual VTODO notice are missing");
 window.document.querySelector("#nextcloud-dav-an").checked = true;
 window.document.querySelector("#nextcloud-dav-an").dispatchEvent(new window.Event("change"));
@@ -1066,7 +1066,7 @@ assert.ok(messages.some((message) => message.cmd === "baum_briefkasten_pruefen")
 const accountType = window.document.querySelector("#dav-konto-art");
 accountType.value = "generic-dav";
 accountType.dispatchEvent(new window.Event("change", { bubbles: true }));
-assert.ok(window.document.querySelector(".dav-server-hinweis")?.textContent.includes("/remote.php/dav") &&
+assert.ok(window.document.querySelector(".dav-server-hinweis")?.textContent === window.MagnolieI18n.gettext("Use the DAV address provided by your service.") &&
   window.document.querySelector("#briefkasten-an").disabled &&
   !window.document.querySelector("#briefkasten-an").checked &&
   window.document.querySelector(".dav-briefkasten-hinweis"),

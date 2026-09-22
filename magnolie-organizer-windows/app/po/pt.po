@@ -487,6 +487,9 @@ msgstr "De acordo com a região de formato"
 msgid "According to language"
 msgstr "De acordo com o idioma"
 
+msgid "Account type"
+msgstr "Tipo de conta"
+
 msgid "Active call"
 msgstr "Chamada ativa"
 
@@ -1602,6 +1605,9 @@ msgstr ""
 
 msgid "Czechia"
 msgstr "Chéquia"
+
+msgid "DAV account"
+msgstr "Conta DAV"
 
 msgid "DIN 5008 Form A (27 mm letterhead)"
 msgstr "DIN 5008, modelo A (cabeçalho de 27 mm)"
@@ -3543,6 +3549,10 @@ msgstr ""
 "Apenas HTTPS. Crie uma palavra-passe de aplicação no Nextcloud em "
 "Definições, Segurança. A palavra-passe da sua conta nunca é usada."
 
+msgid "Only HTTPS. The password is stored securely on this computer."
+msgstr ""
+"Apenas HTTPS. A palavra-passe é guardada de forma segura neste computador."
+
 msgid ""
 "Only one Magnolie Notes phone can be paired. Remove the existing phone "
 "before changing devices."
@@ -4280,6 +4290,9 @@ msgstr "Repetir para confirmar"
 
 msgid "Replace completely"
 msgstr "Substitua completamente"
+
+msgid "Requires a Nextcloud account."
+msgstr "Requer uma conta Nextcloud."
 
 msgid ""
 "Requires existing pairing in Windows Settings under Bluetooth & devices. "
@@ -5849,6 +5862,9 @@ msgstr ""
 msgid "This backup cannot be used."
 msgstr "Esta cópia de segurança não pode ser utilizada."
 
+msgid "This calendar does not support tasks (VTODO)."
+msgstr "Este calendário não suporta tarefas (VTODO)."
+
 msgid ""
 "This choice also determines how names appear on contact cards and under "
 "which letter they are filed in the index."
@@ -6182,6 +6198,9 @@ msgid ""
 msgstr ""
 "Utilize apenas esquemas prescritos ou confirmados por um profissional de "
 "saúde."
+
+msgid "Use the DAV address provided by your service."
+msgstr "Utilize o endereço DAV fornecido pelo seu serviço."
 
 msgid ""
 "Use the arrows to arrange groups and notebooks, or use the selection to move "

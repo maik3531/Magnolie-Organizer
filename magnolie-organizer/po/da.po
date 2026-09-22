@@ -8488,6 +8488,24 @@ msgstr[1] "… og %(count)s elementer mere, som også bliver udskrevet."
 msgid "＋ Add appointment"
 msgstr "＋ Tilføj aftale"
 
+msgid "DAV account"
+msgstr "DAV-konto"
+
+msgid "Account type"
+msgstr "Kontotype"
+
+msgid "Use the DAV address provided by your service."
+msgstr "Brug DAV-adressen fra din udbyder."
+
+msgid "Only HTTPS. The password is stored securely on this computer."
+msgstr "Kun HTTPS. Adgangskoden gemmes sikkert på denne computer."
+
+msgid "Requires a Nextcloud account."
+msgstr "Kræver en Nextcloud-konto."
+
+msgid "This calendar does not support tasks (VTODO)."
+msgstr "Denne kalender understøtter ikke opgaver (VTODO)."
+
 #~ msgid "This paired phone is my own device"
 #~ msgstr "Denne parrede telefon er min egen enhed"
 

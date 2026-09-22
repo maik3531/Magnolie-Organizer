@@ -20487,7 +20487,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
      Abschnitt richtet nur den Briefkasten ein, ueber den Nachrichten laufen,
      wenn der Zweig nicht erreichbar ist. */
   function baueNextcloudKonto(wurzel) {
-    const ab = abschnitt("DAV account", _("Shared credentials") + ": CalDAV / CardDAV");
+    const ab = abschnitt(_("DAV account"), _("Shared credentials") + ": CalDAV / CardDAV");
     ab.id = "nextcloud-konto";
     if (!Bruecke.vorhanden) {
       ab.append(el("p", "einst-hinweis", _("This is available only in the installed application.")));
@@ -20519,7 +20519,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       nextcloudEntwurfGeaendert = true;
       baueEinstellungen();
     });
-    ab.append(formZeile("Account type", kontoArtFeld));
+    ab.append(formZeile(_("Account type"), kontoArtFeld));
     const generisch = nextcloudEntwurf.kontoArt === "generic-dav";
     const anHak = document.createElement("input");
     anHak.type = "checkbox";
@@ -20543,8 +20543,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     });
     ab.append(formZeile(_("Server address"), urlFeld));
     if (generisch) ab.append(el("p", "einst-hinweis dav-server-hinweis",
-      "Enter the CalDAV/CardDAV server address supplied by your provider. " +
-      "Do not append Nextcloud paths such as /remote.php/dav."));
+      _("Use the DAV address provided by your service.")));
 
     const benutzerFeld = eingabe("text", nextcloudEntwurf.benutzer);
     benutzerFeld.id = "briefkasten-benutzer";
@@ -20559,11 +20558,11 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     kennwortFeld.autocomplete = "new-password";
     kennwortFeld.placeholder = briefkastenStand.kennwortVorhanden
       ? _("stored \u2013 leave empty to keep")
-      : (generisch ? "DAV password" : _("app password from Nextcloud"));
-    ab.append(formZeile(generisch ? "Password" : _("App password"), kennwortFeld));
+      : (generisch ? _("Password") + " (DAV)" : _("app password from Nextcloud"));
+    ab.append(formZeile(generisch ? _("Password") : _("App password"), kennwortFeld));
 
     ab.append(el("p", "einst-hinweis", generisch
-      ? "Only HTTPS. The password is stored in the application's native secret storage."
+      ? _("Only HTTPS. The password is stored securely on this computer.")
       : _("Only HTTPS. Create an app password in Nextcloud under Settings, Security. " +
         "Your account password is never used.")));
 
@@ -20653,7 +20652,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       _("Use the mailbox as a fallback for branch baum-1")));
     ab.append(zeile);
     if (generisch) ab.append(el("p", "einst-hinweis dav-briefkasten-hinweis",
-      "The Magnolienbaum mailbox is available only with a Nextcloud account."));
+      _("Requires a Nextcloud account.")));
     wurzel.append(ab);
   }
 
@@ -23122,7 +23121,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       kalListe.append(zeile);
       if (quelle.supportsVtodo === false) kalListe.append(el("p",
         "einst-hinweis sync-vtodo-hinweis",
-        "This calendar does not support tasks (VTODO). Appointments remain available."));
+        _("This calendar does not support tasks (VTODO).")));
     }
     if (!kalender.length) {
       kalListe.append(el("p", "einst-hinweis", _("No calendars found.")));
