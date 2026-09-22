@@ -2278,6 +2278,13 @@ msgstr "カレンダーへ移動"
 msgid "Google Maps in the browser"
 msgstr "ブラウザーで Google Maps"
 
+msgid ""
+"Google requires browser sign-in. Google synchronization is not yet available "
+"in this Windows version; a DAV password cannot enable it."
+msgstr ""
+"Google にはブラウザーでのログインが必要です。この Windows 版では Google 同期"
+"はまだ利用できません。DAV パスワードでは有効にできません。"
+
 msgid "Grisons"
 msgstr "グラウビュンデン州"
 
@@ -4649,6 +4656,13 @@ msgstr "サインアウト"
 msgid "Sign-in URL: %(url)s"
 msgstr "サインイン URL: %(url)s"
 
+msgid ""
+"Sign-in failed. Check the account and authentication method required by your "
+"provider."
+msgstr ""
+"ログインに失敗しました。アカウントとプロバイダーが要求する認証方法を確認して"
+"ください。"
+
 msgid "Signed in to Microsoft."
 msgstr "Microsoft にサインインしました。"
 
@@ -5523,6 +5537,10 @@ msgstr "選択した健康記録には印刷可能な値がありません。"
 
 msgid "The selected phone changed. Try again."
 msgstr "選択した携帯電話が変わりました。もう一度お試しください。"
+
+msgid "The server denied access. Check this account's permissions."
+msgstr ""
+"サーバーがアクセスを拒否しました。このアカウントの権限を確認してください。"
 
 msgid ""
 "The server operator can see the account, folder and file names, sizes and "

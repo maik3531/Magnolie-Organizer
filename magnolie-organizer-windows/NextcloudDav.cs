@@ -64,6 +64,7 @@ internal sealed record NextcloudDavSource(string Uid, string Name, string Kind, 
 internal sealed record NextcloudDavSources(IReadOnlyList<NextcloudDavSource> Calendars,
     IReadOnlyList<NextcloudDavSource> AddressBooks, string Error = "");
 internal sealed record NextcloudDavObject(Uri Href, string ETag, string Text);
+internal sealed class DavServiceUnavailableException : IOException { }
 
 internal sealed class NextcloudDavClient : IDisposable
 {
@@ -92,14 +93,38 @@ internal sealed class NextcloudDavClient : IDisposable
         }
     }
 
-    internal async Task<NextcloudDavSources> ListSourcesAsync(CancellationToken cancellationToken)
+    internal async Task<NextcloudDavSources> ListSourcesAsync(CancellationToken cancellationToken,
+        bool calendars = true, bool addressBooks = true)
     {
+        var settings = settingsStore.Load();
+        if (settings is not null && NextcloudMailbox.ValidateServer(settings.ServerBase).IdnHost
+            is "www.googleapis.com" or "apidata.googleusercontent.com" or "calendar.google.com")
+            throw new GoogleDavAuthenticationException();
         var context = settingsStore.Context(false);
-        var calendarHome = await DiscoverHomeAsync(context, "calendar", cancellationToken).ConfigureAwait(false);
-        var addressHome = await DiscoverHomeAsync(context, "addressbook", cancellationToken).ConfigureAwait(false);
-        var calendars = await ListCollectionsAsync(context, calendarHome, "calendar", cancellationToken).ConfigureAwait(false);
-        var addressBooks = await ListCollectionsAsync(context, addressHome, "addressbook", cancellationToken).ConfigureAwait(false);
-        return new NextcloudDavSources(calendars, addressBooks);
+        IReadOnlyList<NextcloudDavSource> calendarSources = [], addressSources = [];
+        Exception? firstError = null;
+        async Task<IReadOnlyList<NextcloudDavSource>> Discover(string kind)
+        {
+            try
+            {
+                var home = await DiscoverHomeAsync(context, kind, cancellationToken).ConfigureAwait(false);
+                return await ListCollectionsAsync(context, home, kind, cancellationToken).ConfigureAwait(false);
+            }
+            catch (Exception error) when (error is DavServiceUnavailableException ||
+                error is HttpRequestException { StatusCode: HttpStatusCode.NotFound or HttpStatusCode.MethodNotAllowed })
+            {
+                firstError ??= error;
+                return [];
+            }
+        }
+        if (calendars) calendarSources = await Discover("calendar").ConfigureAwait(false);
+        if (addressBooks) addressSources = await Discover("addressbook").ConfigureAwait(false);
+        // CardDAV-only and CalDAV-only providers are valid. Keep the available
+        // sources even when discovery of the other service fails.
+        if (firstError is not null && calendarSources.Count + addressSources.Count == 0)
+            System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(firstError).Throw();
+        return new NextcloudDavSources(calendarSources, addressSources,
+            firstError is null ? "" : NextcloudStatusText.For(firstError));
     }
 
     internal async Task<IReadOnlyList<NextcloudDavObject>> ReadCalendarAsync(NextcloudDavSource source,
@@ -153,16 +178,28 @@ internal sealed class NextcloudDavClient : IDisposable
         var homeName = isCalendar ? "calendar-home-set" : "addressbook-home-set";
         var homeNamespace = isCalendar ? "urn:ietf:params:xml:ns:caldav" : "urn:ietf:params:xml:ns:carddav";
         var endpoints = context.Settings.AccountType == "generic-dav"
-            ? new[] { endpoint, new Uri(NextcloudMailbox.ValidateServer(context.Settings.ServerBase).AbsoluteUri.TrimEnd('/') + "/") }.Distinct().ToArray()
+            ? new[] { endpoint, new Uri(NextcloudMailbox.ValidateServer(context.Settings.ServerBase).AbsoluteUri.TrimEnd('/') + "/"),
+                NextcloudMailbox.ValidateServer(context.Settings.ServerBase) }.Distinct().ToArray()
             : new[] { endpoint };
         foreach (var candidate in endpoints)
         {
             try
             {
                 var xml = await PropFindAsync(context, candidate, "0",
-                    $"<d:propfind xmlns:d=\"DAV:\" xmlns:x=\"{homeNamespace}\"><d:prop><d:current-user-principal/><x:{homeName}/></d:prop></d:propfind>", cancellationToken).ConfigureAwait(false);
+                    $"<d:propfind xmlns:d=\"DAV:\" xmlns:x=\"{homeNamespace}\"><d:prop><d:resourcetype/><d:current-user-principal/><x:{homeName}/></d:prop></d:propfind>", cancellationToken).ConfigureAwait(false);
                 var direct = PropertyHref(xml, homeName, homeNamespace);
                 var responseBase = lastPropFindUri ?? candidate;
+                // A user may supply the address book/calendar URL itself.
+                // Such a resource need not expose a home-set or principal.
+                foreach (var response in Responses(xml).Where(Successful))
+                {
+                    var rawHref = DirectHref(response);
+                    if (rawHref is null) continue;
+                    var href = ResolveDavHref(context, responseBase, rawHref);
+                    if (href.AbsoluteUri.TrimEnd('/') == responseBase.AbsoluteUri.TrimEnd('/') &&
+                        SuccessfulProperties(response).Where(p => p.Name == XName.Get("resourcetype", "DAV:"))
+                            .Any(p => p.Elements(XName.Get(kind, homeNamespace)).Any())) return href;
+                }
                 if (direct is not null) return ResolveDavHref(context, responseBase, direct);
                 var principalHref = PropertyHref(xml, "current-user-principal", "DAV:");
                 if (principalHref is not null)
@@ -171,7 +208,7 @@ internal sealed class NextcloudDavClient : IDisposable
                     var homes = await PropFindAsync(context, principal, "0",
                         $"<d:propfind xmlns:d=\"DAV:\" xmlns:x=\"{homeNamespace}\"><d:prop><x:{homeName}/></d:prop></d:propfind>", cancellationToken).ConfigureAwait(false);
                     var home = PropertyHref(homes, homeName, homeNamespace);
-                    if (home is not null) return ResolveDavHref(context, principal, home);
+                    if (home is not null) return ResolveDavHref(context, lastPropFindUri ?? principal, home);
                 }
             }
             catch (HttpRequestException error) when (error.StatusCode is HttpStatusCode.NotFound or HttpStatusCode.MethodNotAllowed) { }
@@ -180,7 +217,7 @@ internal sealed class NextcloudDavClient : IDisposable
             return ServerUri(context, isCalendar
                 ? "/remote.php/dav/calendars/" + Uri.EscapeDataString(context.Settings.User) + "/"
                 : "/remote.php/dav/addressbooks/users/" + Uri.EscapeDataString(context.Settings.User) + "/");
-        throw new InvalidDataException("Der DAV-Server hat kein Home-Set bekannt gegeben.");
+        throw new DavServiceUnavailableException();
     }
 
     private async Task<IReadOnlyList<NextcloudDavSource>> ListCollectionsAsync(NextcloudMailboxContext context,
@@ -192,13 +229,14 @@ internal sealed class NextcloudDavClient : IDisposable
         var xml = await PropFindAsync(context, home, "1",
             $"<d:propfind xmlns:d=\"DAV:\" xmlns:c=\"urn:ietf:params:xml:ns:caldav\"><d:prop><d:displayname/><d:resourcetype/>{componentProperty}</d:prop></d:propfind>", cancellationToken).ConfigureAwait(false);
         ValidateMultiStatus(xml, false);
+        var responseBase = lastPropFindUri ?? home;
         var result = new Dictionary<string, NextcloudDavSource>(StringComparer.Ordinal);
         foreach (var response in Responses(xml))
         {
             var properties = SuccessfulProperties(response).ToArray();
             if (!Successful(response) || !properties.SelectMany(element => element.DescendantsAndSelf()).Any(element => element.Name.LocalName == typeName && element.Name.NamespaceName == typeNamespace)) continue;
             var rawHref = DirectHref(response); if (rawHref is null) continue;
-            var href = ResolveDavHref(context, home, rawHref);
+            var href = ResolveDavHref(context, responseBase, rawHref);
             var displayName = properties.SelectMany(element => element.DescendantsAndSelf()).FirstOrDefault(element => element.Name.LocalName == "displayname")?.Value.Trim();
             var uid = StableSourceId(kind, href, context.Settings.AccountType);
             var components = properties.SelectMany(element => element.DescendantsAndSelf()).FirstOrDefault(element => element.Name.LocalName == "supported-calendar-component-set" && element.Name.NamespaceName == "urn:ietf:params:xml:ns:caldav");

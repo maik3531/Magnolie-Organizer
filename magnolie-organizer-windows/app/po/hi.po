@@ -2270,6 +2270,13 @@ msgstr "कैलेंडर पर जाएँ"
 msgid "Google Maps in the browser"
 msgstr "ब्राउज़र में Google Maps"
 
+msgid ""
+"Google requires browser sign-in. Google synchronization is not yet available "
+"in this Windows version; a DAV password cannot enable it."
+msgstr ""
+"Google के लिए ब्राउज़र में साइन इन करना आवश्यक है। इस Windows संस्करण में Google "
+"सिंक्रनाइज़ेशन अभी उपलब्ध नहीं है; DAV पासवर्ड इसे सक्षम नहीं कर सकता।"
+
 msgid "Grisons"
 msgstr "ग्राउब्युंडेन"
 
@@ -4635,6 +4642,11 @@ msgstr "साइन आउट"
 msgid "Sign-in URL: %(url)s"
 msgstr "साइन-इन URL: %(url)s"
 
+msgid ""
+"Sign-in failed. Check the account and authentication method required by your "
+"provider."
+msgstr "साइन इन विफल रहा। खाते और प्रदाता द्वारा आवश्यक प्रमाणीकरण विधि की जाँच करें।"
+
 msgid "Signed in to Microsoft."
 msgstr "माइक्रोसॉफ्ट में साइन इन किया गया."
 
@@ -5503,6 +5515,9 @@ msgstr "चुने गए स्वास्थ्य रिकॉर्ड �
 
 msgid "The selected phone changed. Try again."
 msgstr "चुना हुआ फ़ोन बदल गया है। फिर कोशिश करें।"
+
+msgid "The server denied access. Check this account's permissions."
+msgstr "सर्वर ने पहुँच अस्वीकार कर दी। इस खाते की अनुमतियाँ जाँचें।"
 
 msgid ""
 "The server operator can see the account, folder and file names, sizes and "

@@ -319,7 +319,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
           langzeitRegeln: [], kurzzeitInsulin: "", kurzzeitModus: "fixed",
           kurzzeitFestEinheiten: 0, kurzzeitRegeln: [], hinweis: "" } },
       einstellungen: { sync: { kalenderUid: "", kalenderUids: [],
-          adressbuchUid: "windows-contacts", beimStart: false },
+          adressbuchUid: "", beimStart: false },
         ort: { land: "", landName: "", region: "", regionName: "",
           alleRegionen: false, ferien: true, abgerufen: 0, jahre: [] },
         allgemein: { drucken: true, hilfsrahmen: false, kalenderAuswahl: false,
@@ -23085,6 +23085,12 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       ? uebersetzt("Synchronization failed: %(error)s", { error: nutzlast.fehler })
       : zeitZeileLetzterSync();
     const sw = DATEN.einstellungen.sync;
+
+    if (nutzlast.nextcloud && nutzlast.nextcloud.fehler) {
+      const hinweis = el("p", "einst-warnung", nutzlast.nextcloud.fehler);
+      hinweis.id = "dav-quellen-fehler";
+      wahl.append(hinweis);
+    }
 
     const kalListe = el("fieldset", "sync-kalender-liste");
     kalListe.append(el("legend", null, _("Calendars (multiple selections allowed)")));

@@ -105,6 +105,7 @@ internal static class NextcloudDavTests
             await TestHostileServers(settings);
             await TestGenericBaikalDiscovery(root);
             await TestGenericConfiguredBaseDiscovery(root);
+            await TestSingleServiceDiscovery(root);
             await TestMissingUpdateEtags(settings);
             await TestSafeFirstRunsAndConflictIdentity(settings);
             await TestPersistedConflicts(settings, root);
@@ -338,7 +339,7 @@ internal static class NextcloudDavTests
             if (path == "/.well-known/carddav") return Task.FromResult(Xml("<d:multistatus xmlns:d=\"DAV:\" xmlns:a=\"urn:ietf:params:xml:ns:carddav\"><d:response><d:href>.</d:href><d:propstat><d:prop><a:addressbook-home-set><d:href>/dav.php/addressbooks/alice/</d:href></a:addressbook-home-set></d:prop><d:status>HTTP/1.1 200 OK</d:status></d:propstat></d:response></d:multistatus>"));
             if (path == "/dav.php/calendars/alice/") return Task.FromResult(Xml("<d:multistatus xmlns:d=\"DAV:\" xmlns:c=\"urn:ietf:params:xml:ns:caldav\"><d:response><d:href>work/</d:href><d:propstat><d:prop><d:displayname>Work</d:displayname><d:resourcetype><d:collection/><c:calendar/></d:resourcetype><c:supported-calendar-component-set><c:comp name=\"VEVENT\"/></c:supported-calendar-component-set></d:prop><d:status>HTTP/1.1 200 OK</d:status></d:propstat></d:response></d:multistatus>"));
             if (path == "/dav.php/addressbooks/alice/") return Task.FromResult(Xml(Collections("addressbook", "urn:ietf:params:xml:ns:carddav", "contacts/", "Contacts")));
-            throw new InvalidOperationException("Unexpected DAV request: " + path);
+            throw new InvalidOperationException("Unexpected DAV request: " + path + "; sequence: " + string.Join(", ", requests));
         }));
         using var client = new NextcloudDavClient(settings, http);
         var sources = await client.ListSourcesAsync(CancellationToken.None);
@@ -373,6 +374,45 @@ internal static class NextcloudDavTests
         TestAssert.That(sources.Calendars.Count == 1 && sources.AddressBooks.Count == 1 &&
             requests.Count(path => path == "/baikal/dav.php/") == 2 && requests.All(path => path.StartsWith("/baikal/", StringComparison.Ordinal) || path.StartsWith("/.well-known/", StringComparison.Ordinal)),
             "Generische DAV-Discovery versuchte nach fehlendem Origin-Well-known nicht sicher die konfigurierte Basis-URL.");
+    }
+
+    private static async Task TestSingleServiceDiscovery(string root)
+    {
+        foreach (var kind in new[] { "calendar", "addressbook" })
+        {
+            var ns = kind == "calendar" ? "urn:ietf:params:xml:ns:caldav" : "urn:ietf:params:xml:ns:carddav";
+            var settings = new NextcloudMailboxSettingsStore(Path.Combine(root, kind + ".json"), Path.Combine(root, kind + ".secret"), new Protector());
+            settings.Save(new NextcloudMailboxSettings(true, false, "https://dav.example/direct", "alice") { AccountType = "generic-dav" });
+            settings.SetApplicationPassword("secret");
+            var requests = new List<string>();
+            using var http = new HttpClient(new Handler(async request =>
+            {
+                var path = request.RequestUri!.AbsolutePath;
+                requests.Add(path);
+                if (path == "/direct") return Xml(Collections(kind, ns, "/direct", "Direct collection"));
+                // No well-known, principal or home-set. The exact collection
+                // URL supplied by the user is the only valid endpoint.
+                await Task.CompletedTask;
+                return new HttpResponseMessage(HttpStatusCode.NotFound);
+            }));
+            using var client = new NextcloudDavClient(settings, http);
+            var sources = await client.ListSourcesAsync(default);
+            var selected = kind == "calendar" ? sources.Calendars : sources.AddressBooks;
+            TestAssert.That(selected.Count == 1 && selected[0].Href.AbsoluteUri == "https://dav.example/direct" &&
+                sources.Error.Length > 0, "A single-service DAV collection was lost when discovery of the other service failed.");
+            requests.Clear();
+            var targeted = await client.ListSourcesAsync(default, calendars: kind == "calendar", addressBooks: kind == "addressbook");
+            TestAssert.That(targeted.Error == "" && !requests.Contains(kind == "calendar" ? "/.well-known/carddav" : "/.well-known/caldav"),
+                "Synchronization of one service unnecessarily discovered the other service.");
+        }
+
+        var google = new NextcloudMailboxSettingsStore(Path.Combine(root, "google.json"), Path.Combine(root, "google.secret"), new Protector());
+        google.Save(new NextcloudMailboxSettings(true, false, "https://www.googleapis.com/carddav/v1/principals/test@example.test/lists/default", "test@example.test") { AccountType = "generic-dav" });
+        google.SetApplicationPassword("must-not-be-sent");
+        using var noNetwork = new HttpClient(new Handler(_ => throw new InvalidOperationException("Google DAV must not receive Basic credentials.")));
+        using var googleClient = new NextcloudDavClient(google, noNetwork);
+        await TestAssert.ThrowsAsync<GoogleDavAuthenticationException>(() => googleClient.ListSourcesAsync(default),
+            "Unsupported Google authentication was reported as a working password-based DAV account.");
     }
 
     private static async Task TestTaskTwoRunSafety(NextcloudMailboxSettingsStore settings)

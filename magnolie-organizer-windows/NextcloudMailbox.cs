@@ -22,12 +22,17 @@ internal static class NextcloudStatusText
 {
     internal static string For(Exception error) => NativeLocalization.Gettext(error switch
     {
-        TaskCanceledException => "The Nextcloud request timed out.",
+        GoogleDavAuthenticationException => "Google requires browser sign-in. Google synchronization is not yet available in this Windows version; a DAV password cannot enable it.",
+        HttpRequestException { StatusCode: HttpStatusCode.Unauthorized } => "Sign-in failed. Check the account and authentication method required by your provider.",
+        HttpRequestException { StatusCode: HttpStatusCode.Forbidden } => "The server denied access. Check this account's permissions.",
+        OperationCanceledException => "The Nextcloud request timed out.",
         ArgumentException => "The Nextcloud settings are invalid.",
         InvalidDataException => "The Nextcloud response was incomplete.",
         _ => "The Nextcloud operation failed."
     });
 }
+
+internal sealed class GoogleDavAuthenticationException : InvalidOperationException { }
 
 internal sealed class NextcloudMailboxSettingsStore
 {

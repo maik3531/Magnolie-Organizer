@@ -2394,6 +2394,14 @@ msgstr "K protyce"
 msgid "Google Maps in the browser"
 msgstr "Google Maps we wobhladowaku"
 
+msgid ""
+"Google requires browser sign-in. Google synchronization is not yet available "
+"in this Windows version; a DAV password cannot enable it."
+msgstr ""
+"Google sej přizjewjenje we wobhladowaku žada. Synchronizacija z Google w "
+"tutej Windows-wersiji hišće k dispoziciji njeje; hesło DAV ju njemóže "
+"zmóžnić."
+
 msgid "Grisons"
 msgstr "Graubünden"
 
@@ -4810,6 +4818,13 @@ msgstr "Wotzjewić"
 msgid "Sign-in URL: %(url)s"
 msgstr "Přizjewjenski URL: %(url)s"
 
+msgid ""
+"Sign-in failed. Check the account and authentication method required by your "
+"provider."
+msgstr ""
+"Přizjewjenje je so njeporadźiło. Přepruwujće konto a wot poskićowarja "
+"požadane přizjewjenske jednanje."
+
 msgid "Signed in to Microsoft."
 msgstr "Pola Microsoft přizjewjeny."
 
@@ -5700,6 +5715,9 @@ msgstr "Wubrane strowotne zapiski žane ćišćomne hódnoty njewobsahuja."
 
 msgid "The selected phone changed. Try again."
 msgstr "Wubrany telefon je so změnił. Spytajće hišće raz."
+
+msgid "The server denied access. Check this account's permissions."
+msgstr "Serwer je přistup wotpokazał. Přepruwujće prawa tutoho konta."
 
 msgid ""
 "The server operator can see the account, folder and file names, sizes and "

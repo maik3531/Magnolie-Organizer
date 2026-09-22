@@ -2339,6 +2339,13 @@ msgstr "Přejít do kalendáře"
 msgid "Google Maps in the browser"
 msgstr "Mapy Google v prohlížeči"
 
+msgid ""
+"Google requires browser sign-in. Google synchronization is not yet available "
+"in this Windows version; a DAV password cannot enable it."
+msgstr ""
+"Google vyžaduje přihlášení v prohlížeči. Synchronizace s Googlem v této "
+"verzi pro Windows zatím není dostupná; heslo DAV ji nemůže zapnout."
+
 msgid "Grisons"
 msgstr "Graubünden"
 
@@ -4731,6 +4738,13 @@ msgstr "Odhlaste se"
 msgid "Sign-in URL: %(url)s"
 msgstr "Přihlašovací adresa URL: %(url)s"
 
+msgid ""
+"Sign-in failed. Check the account and authentication method required by your "
+"provider."
+msgstr ""
+"Přihlášení se nezdařilo. Zkontrolujte účet a způsob ověření požadovaný "
+"poskytovatelem."
+
 msgid "Signed in to Microsoft."
 msgstr "Přihlášeni k Microsoftu."
 
@@ -5612,6 +5626,9 @@ msgstr "Vybrané zdravotní záznamy neobsahují žádné hodnoty vhodné k tisk
 
 msgid "The selected phone changed. Try again."
 msgstr "Vybraný telefon se změnil. Zkuste to znovu."
+
+msgid "The server denied access. Check this account's permissions."
+msgstr "Server odepřel přístup. Zkontrolujte oprávnění tohoto účtu."
 
 msgid ""
 "The server operator can see the account, folder and file names, sizes and "

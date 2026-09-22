@@ -968,8 +968,11 @@ window.App.edsStatus({ windows: true, verfuegbar: true, buchOk: true,
     { uid: "microsoft-graph", name: "Outlook.com / Microsoft 365" },
     { uid: "generic-addressbook:privat", name: "Baïkal Kontakte", art: "generic-carddav" },
     { uid: "nextcloud-addressbook:team", name: "Cloud Kontakte", art: "nextcloud-carddav" }],
-  graph: { eingerichtet: true, angemeldet: false } });
+  graph: { eingerichtet: true, angemeldet: false },
+  nextcloud: { eingerichtet: true, erreichbar: false, fehler: "DAV authentication unavailable" } });
 assert.ok(window.document.querySelector("#sync-windows-quelle"));
+assert.strictEqual(window.document.querySelector("#dav-quellen-fehler")?.textContent,
+  "DAV authentication unavailable", "DAV discovery errors are hidden behind the local Windows contact source");
 assert.ok(Array.from(window.document.querySelectorAll("button"))
   .some((button) => button.textContent === window.MagnolieI18n.gettext("Sign in to Microsoft")));
 assert.ok(!window.document.body.textContent.includes("Client-ID") &&

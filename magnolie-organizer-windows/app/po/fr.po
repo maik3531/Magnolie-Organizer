@@ -2369,6 +2369,14 @@ msgstr "Aller au calendrier"
 msgid "Google Maps in the browser"
 msgstr "Google Maps dans le navigateur"
 
+msgid ""
+"Google requires browser sign-in. Google synchronization is not yet available "
+"in this Windows version; a DAV password cannot enable it."
+msgstr ""
+"Google exige une connexion dans le navigateur. La synchronisation Google "
+"n’est pas encore disponible dans cette version Windows ; un mot de passe DAV "
+"ne peut pas l’activer."
+
 msgid "Grisons"
 msgstr "Grisons"
 
@@ -4820,6 +4828,13 @@ msgstr "se déconnecter"
 msgid "Sign-in URL: %(url)s"
 msgstr "URL de connexion : %(url)s"
 
+msgid ""
+"Sign-in failed. Check the account and authentication method required by your "
+"provider."
+msgstr ""
+"Échec de la connexion. Vérifiez le compte et la méthode d’authentification "
+"exigée par votre fournisseur."
+
 msgid "Signed in to Microsoft."
 msgstr "Connectez-vous à Microsoft."
 
@@ -5738,6 +5753,9 @@ msgstr ""
 
 msgid "The selected phone changed. Try again."
 msgstr "Le téléphone sélectionné a changé. Réessayez."
+
+msgid "The server denied access. Check this account's permissions."
+msgstr "Le serveur a refusé l’accès. Vérifiez les autorisations de ce compte."
 
 msgid ""
 "The server operator can see the account, folder and file names, sizes and "

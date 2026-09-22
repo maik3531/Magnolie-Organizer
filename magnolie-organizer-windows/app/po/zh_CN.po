@@ -2207,6 +2207,13 @@ msgstr "转到日历"
 msgid "Google Maps in the browser"
 msgstr "浏览器中的 Google Maps"
 
+msgid ""
+"Google requires browser sign-in. Google synchronization is not yet available "
+"in this Windows version; a DAV password cannot enable it."
+msgstr ""
+"Google 需要在浏览器中登录。此 Windows 版本尚不支持 Google 同步；DAV 密码无法"
+"启用此功能。"
+
 msgid "Grisons"
 msgstr "格劳宾登州"
 
@@ -4517,6 +4524,11 @@ msgstr "登出"
 msgid "Sign-in URL: %(url)s"
 msgstr "登录网址：%(url)s"
 
+msgid ""
+"Sign-in failed. Check the account and authentication method required by your "
+"provider."
+msgstr "登录失败。请检查账户及提供商要求的身份验证方式。"
+
 msgid "Signed in to Microsoft."
 msgstr "已登录 Microsoft。"
 
@@ -5358,6 +5370,9 @@ msgstr "所选健康记录中没有可打印的值。"
 
 msgid "The selected phone changed. Try again."
 msgstr "所选手机已发生变化。请重试。"
+
+msgid "The server denied access. Check this account's permissions."
+msgstr "服务器拒绝访问。请检查此账户的权限。"
 
 msgid ""
 "The server operator can see the account, folder and file names, sizes and "

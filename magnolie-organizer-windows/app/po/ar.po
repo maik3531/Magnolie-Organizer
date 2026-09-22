@@ -2411,6 +2411,13 @@ msgstr "الانتقال إلى التقويم"
 msgid "Google Maps in the browser"
 msgstr "Google Maps في المتصفح"
 
+msgid ""
+"Google requires browser sign-in. Google synchronization is not yet available "
+"in this Windows version; a DAV password cannot enable it."
+msgstr ""
+"يتطلب Google تسجيل الدخول في المتصفح. مزامنة Google غير متاحة بعد في إصدار "
+"Windows هذا؛ لا يمكن تفعيلها بكلمة مرور DAV."
+
 msgid "Grisons"
 msgstr "غراوبوندن"
 
@@ -4813,6 +4820,12 @@ msgstr "تسجيل الخروج"
 msgid "Sign-in URL: %(url)s"
 msgstr "عنوان URL لتسجيل الدخول: %(url)s"
 
+msgid ""
+"Sign-in failed. Check the account and authentication method required by your "
+"provider."
+msgstr ""
+"فشل تسجيل الدخول. تحقق من الحساب وطريقة المصادقة التي يتطلبها مزود الخدمة."
+
 msgid "Signed in to Microsoft."
 msgstr "تم تسجيل الدخول إلى مايكروسوفت."
 
@@ -5687,6 +5700,9 @@ msgstr "لا تحتوي السجلات الصحية المحددة على أي �
 
 msgid "The selected phone changed. Try again."
 msgstr "تغيّر الهاتف المحدد. حاول مرة أخرى."
+
+msgid "The server denied access. Check this account's permissions."
+msgstr "رفض الخادم الوصول. تحقق من أذونات هذا الحساب."
 
 msgid ""
 "The server operator can see the account, folder and file names, sizes and "

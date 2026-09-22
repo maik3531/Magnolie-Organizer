@@ -25,8 +25,9 @@ internal sealed partial class BridgeDispatcher
             nextcloudConfigured = loaded?.DavActive == true && settings.HasApplicationPassword;
             if (nextcloudConfigured)
             {
-                using var davClient = new NextcloudDavClient(settings); using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(12));
+                using var davClient = new NextcloudDavClient(settings); using var timeout = NetworkDeadline(TimeSpan.FromSeconds(60));
                 dav = await davClient.ListSourcesAsync(timeout.Token);
+                nextcloudError = dav.Error;
             }
         }
         catch (Exception error) { nextcloudError = NextcloudStatusText.For(error); }
@@ -194,12 +195,10 @@ internal sealed partial class BridgeDispatcher
                 else
                 {
                     davClient = new NextcloudDavClient(NextcloudSettings, journal: syncJournal, transactionId: transactionId);
-                    using var discoveryTimeout = CancellationTokenSource.CreateLinkedTokenSource(operation.Token); discoveryTimeout.CancelAfter(TimeSpan.FromSeconds(12));
-                    var sources = await davClient.ListSourcesAsync(discoveryTimeout.Token);
+                    var sources = await davClient.ListSourcesAsync(operation.Token, calendars: false);
                     var addressBook = sources.AddressBooks.SingleOrDefault(item => item.Uid == source) ?? throw new InvalidOperationException(T("Address book"));
                     remote = new NextcloudCardDavRemote(davClient, addressBook);
                 }
-                using var syncTimeout = CancellationTokenSource.CreateLinkedTokenSource(operation.Token); syncTimeout.CancelAfter(TimeSpan.FromSeconds(12));
                 var contactCursor = Cursor(addressCursors, source);
                 var initialized = !NextcloudDavSelection.IsAddressBook(source) ||
                     nextcloudAddressBooks[source]?["initialisiert"]?.GetValue<bool>() == true;
@@ -207,7 +206,7 @@ internal sealed partial class BridgeDispatcher
                     (contactCursor <= 0 || !contacts.Concat(tombstones).OfType<JsonObject>()
                         .Any(item => ContactFields.Source(item, source) is not null));
                 result = await new ContactSyncEngine().SyncAsync(source, contacts, tombstones, contactCursor, remote,
-                    syncTimeout.Token, additiveOnly || firstContactRun);
+                    operation.Token, additiveOnly || firstContactRun);
                 if (result.Counts.Errors > 0)
                     throw new InvalidOperationException(T("The Nextcloud operation failed."));
                 SaveProgress("contacts:" + source);
@@ -215,8 +214,7 @@ internal sealed partial class BridgeDispatcher
             if (calendarIds.Count > 0)
             {
                 davClient ??= new NextcloudDavClient(NextcloudSettings, journal: syncJournal, transactionId: transactionId);
-                using var discoveryTimeout = CancellationTokenSource.CreateLinkedTokenSource(operation.Token); discoveryTimeout.CancelAfter(TimeSpan.FromSeconds(12));
-                var sources = await davClient.ListSourcesAsync(discoveryTimeout.Token);
+                var sources = await davClient.ListSourcesAsync(operation.Token, addressBooks: false);
                 var selected = calendarIds.Select(id => sources.Calendars.SingleOrDefault(item => item.Uid == id) ??
                     throw new InvalidOperationException(T("No calendars found."))).ToArray();
                 foreach (var calendar in selected.Where(item => item.SupportsVTodo)) taskCalendars.Add(calendar.Uid);
@@ -304,14 +302,16 @@ internal sealed partial class BridgeDispatcher
                 letzteSyncs = sourceCursors,
                 syncMetadaten = syncMetadata,
                 syncEpoch = data.TryGetProperty("syncEpoch", out var epoch) ? epoch.GetString() : null,
-                syncNachRestore = (object?)null, bericht = T("Synchronization completed.") };
+                syncNachRestore = (object?)null, bericht = source == "windows-contacts" && calendarIds.Count == 0
+                    ? T("Windows Contacts folder") + ": " + T("Synchronization completed.")
+                    : T("Synchronization completed.") };
             syncJournal.Save(transactionId, "complete", JsonSerializer.SerializeToNode(completed)!.AsObject());
             await form.SendAsync("App.syncFertig", completed);
         }
         catch (Exception error)
         {
             await ReportErrorAsync("sync", error.ToString());
-            await form.SendAsync("App.syncFehler", T("Synchronization failed."));
+            await form.SendAsync("App.syncFehler", NextcloudStatusText.For(error));
         }
         finally
         {

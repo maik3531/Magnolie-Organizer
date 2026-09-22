@@ -2317,6 +2317,14 @@ msgstr "Gå til kalender"
 msgid "Google Maps in the browser"
 msgstr "Google Maps i browseren"
 
+msgid ""
+"Google requires browser sign-in. Google synchronization is not yet available "
+"in this Windows version; a DAV password cannot enable it."
+msgstr ""
+"Google kræver login i browseren. Google-synkronisering er endnu ikke "
+"tilgængelig i denne Windows-version; en DAV-adgangskode kan ikke aktivere "
+"den."
+
 msgid "Grisons"
 msgstr "Graubünden"
 
@@ -4710,6 +4718,13 @@ msgstr "Log ud"
 msgid "Sign-in URL: %(url)s"
 msgstr "Login-URL: %(url)s"
 
+msgid ""
+"Sign-in failed. Check the account and authentication method required by your "
+"provider."
+msgstr ""
+"Login mislykkedes. Kontrollér kontoen og den godkendelsesmetode, som din "
+"udbyder kræver."
+
 msgid "Signed in to Microsoft."
 msgstr "Logget på Microsoft."
 
@@ -5596,6 +5611,9 @@ msgstr ""
 
 msgid "The selected phone changed. Try again."
 msgstr "Den valgte telefon er ændret. Prøv igen."
+
+msgid "The server denied access. Check this account's permissions."
+msgstr "Serveren nægtede adgang. Kontrollér denne kontos tilladelser."
 
 msgid ""
 "The server operator can see the account, folder and file names, sizes and "

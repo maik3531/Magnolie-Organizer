@@ -1,5 +1,7 @@
 using MagnolieOrganizer.Windows.Tests;
 
+if (args.FirstOrDefault() == "--dav-live") return await NextcloudDavLiveTests.RunAsync();
+
 if (args.FirstOrDefault() == "--scoped-call-host") return await OutgoingDialTests.RunAsync(args.ElementAtOrDefault(1), args.ElementAtOrDefault(2));
 
 if (args.FirstOrDefault() == "--personal-custom-host") return await PersonalCustomTransportTests.HostAsync();

@@ -2177,6 +2177,11 @@ msgstr ""
 msgid "Google Maps in the browser"
 msgstr ""
 
+msgid ""
+"Google requires browser sign-in. Google synchronization is not yet available "
+"in this Windows version; a DAV password cannot enable it."
+msgstr ""
+
 msgid "Grisons"
 msgstr ""
 
@@ -4439,6 +4444,11 @@ msgstr ""
 msgid "Sign-in URL: %(url)s"
 msgstr ""
 
+msgid ""
+"Sign-in failed. Check the account and authentication method required by your "
+"provider."
+msgstr ""
+
 msgid "Signed in to Microsoft."
 msgstr ""
 
@@ -5238,6 +5248,9 @@ msgid "The selected health records contain no printable values."
 msgstr ""
 
 msgid "The selected phone changed. Try again."
+msgstr ""
+
+msgid "The server denied access. Check this account's permissions."
 msgstr ""
 
 msgid ""

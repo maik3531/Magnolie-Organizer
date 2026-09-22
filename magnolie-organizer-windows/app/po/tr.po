@@ -2320,6 +2320,13 @@ msgstr "Takvime git"
 msgid "Google Maps in the browser"
 msgstr "Tarayıcıda Google Maps"
 
+msgid ""
+"Google requires browser sign-in. Google synchronization is not yet available "
+"in this Windows version; a DAV password cannot enable it."
+msgstr ""
+"Google, tarayıcıda oturum açılmasını gerektirir. Bu Windows sürümünde Google "
+"eşitlemesi henüz kullanılamıyor; DAV parolası bunu etkinleştiremez."
+
 msgid "Grisons"
 msgstr "Graubünden"
 
@@ -4711,6 +4718,13 @@ msgstr "oturumu Kapat"
 msgid "Sign-in URL: %(url)s"
 msgstr "Oturum açma URL'si: %(url)s"
 
+msgid ""
+"Sign-in failed. Check the account and authentication method required by your "
+"provider."
+msgstr ""
+"Oturum açılamadı. Hesabı ve sağlayıcınızın gerektirdiği kimlik doğrulama "
+"yöntemini kontrol edin."
+
 msgid "Signed in to Microsoft."
 msgstr "Microsoft'ta oturum açıldı."
 
@@ -5594,6 +5608,9 @@ msgstr "Seçili sağlık kayıtlarında yazdırılabilir değer yok."
 
 msgid "The selected phone changed. Try again."
 msgstr "Seçili telefon değişti. Yeniden deneyin."
+
+msgid "The server denied access. Check this account's permissions."
+msgstr "Sunucu erişimi reddetti. Bu hesabın izinlerini kontrol edin."
 
 msgid ""
 "The server operator can see the account, folder and file names, sizes and "
