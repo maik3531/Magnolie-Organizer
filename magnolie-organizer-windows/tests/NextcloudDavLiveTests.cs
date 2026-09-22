@@ -24,7 +24,10 @@ internal static class NextcloudDavLiveTests
             using var client = new NextcloudDavClient(settings);
             var sources = await client.ListSourcesAsync(timeout.Token);
             TestAssert.That(sources.Calendars.Count > 0 && sources.AddressBooks.Count > 0 && sources.Error == "", "Nextcloud discovery failed.");
-            var calendar = sources.Calendars[0]; var book = sources.AddressBooks[0];
+            // Never write fixtures into the server-generated system address
+            // book. Provision these two collections on the disposable account.
+            var calendar = sources.Calendars.Single(source => source.Href.AbsolutePath.TrimEnd('/').EndsWith("/MagnolieProbe", StringComparison.Ordinal));
+            var book = sources.AddressBooks.Single(source => source.Href.AbsolutePath.TrimEnd('/').EndsWith("/MagnolieProbe", StringComparison.Ordinal));
             var uid = "magnolie-probe-" + Guid.NewGuid().ToString("N");
             var eventText = $"BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\nUID:{uid}\r\nDTSTAMP:20260922T080000Z\r\nDTSTART:20261001T090000Z\r\nDTEND:20261001T100000Z\r\nSUMMARY:Magnolie DAV probe\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n";
             NextcloudDavObject? eventObject = null, contactObject = null;
