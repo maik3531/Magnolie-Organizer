@@ -15,130 +15,110 @@
 (function () {
 
   /* Die Fassung erscheint auf der Seite „Über". */
-const FASSUNG = "2.0.19";
+const FASSUNG = "2.0.20";
 const S = (x) => (x === undefined || x === null) ? "" : String(x);
-const NEU_IN_DIESER_FASSUNG_VERSION = "2.0.19";
+const NEU_IN_DIESER_FASSUNG_VERSION = "2.0.20";
 
 const NEU_IN_DIESER_FASSUNG = {
   "de": [
     "Neu in dieser Version",
-    "Keine zusätzliche Eigentumsbestätigung für das gekoppelte Telefon erforderlich",
-    "Verbesserte Anrufmeldungen und Anruferkennung mit Magnolie Notes 1.0.15",
-    "Einfachere Geräteeinrichtung und tolerante Behandlung mehrfach führender Pluszeichen in Telefonnummern"
+    "DAV-Korrekturen und optionale Erfolgsmeldungen beim Abgleich",
+    "Windows-Kontenhilfe vorbereitet; vollständiger Microsoft-Abgleich bleibt in Entwicklung"
   ],
   "en": [
     "What's new in this version",
-    "No additional ownership confirmation required for the paired phone",
-    "Improved call alerts and caller identification with Magnolie Notes 1.0.15",
-    "Simpler device setup and tolerant handling of repeated leading plus signs in phone numbers"
+    "DAV corrections and optional synchronization success messages",
+    "Windows account helper prepared; complete Microsoft synchronization remains under development"
   ],
   "fr": [
     "Nouveautés de cette version",
-    "Aucune confirmation de propriété supplémentaire pour le téléphone associé",
-    "Alertes d’appel et identification de l’appelant améliorées avec Magnolie Notes 1.0.15",
-    "Configuration des appareils simplifiée et prise en charge des signes plus répétés au début des numéros"
+    "Corrections DAV et notifications de synchronisation réussie facultatives",
+    "Préparation de l’assistant de comptes Windows ; la synchronisation Microsoft complète reste en développement"
   ],
   "es": [
     "Novedades de esta versión",
-    "El teléfono vinculado ya no requiere una confirmación adicional de propiedad",
-    "Mejoras en los avisos de llamadas y la identificación del llamante con Magnolie Notes 1.0.15",
-    "Configuración de dispositivos más sencilla y tolerancia a signos más repetidos al inicio de los números"
+    "Correcciones DAV y avisos opcionales de sincronización correcta",
+    "Preparado el asistente de cuentas de Windows; la sincronización completa con Microsoft sigue en desarrollo"
   ],
   "it": [
     "Novità di questa versione",
-    "Non è più necessaria un’ulteriore conferma di proprietà per il telefono associato",
-    "Avvisi di chiamata e identificazione del chiamante migliorati con Magnolie Notes 1.0.15",
-    "Configurazione dei dispositivi semplificata e gestione dei segni più ripetuti all’inizio dei numeri"
+    "Correzioni DAV e notifiche facoltative di sincronizzazione riuscita",
+    "Preparato l’assistente account Windows; la sincronizzazione Microsoft completa è ancora in sviluppo"
   ],
   "nl": [
     "Nieuw in deze versie",
-    "Geen extra eigendomsbevestiging nodig voor de gekoppelde telefoon",
-    "Verbeterde oproepmeldingen en nummerherkenning met Magnolie Notes 1.0.15",
-    "Eenvoudigere apparaatinstellingen en ondersteuning voor herhaalde plustekens aan het begin van telefoonnummers"
+    "DAV-correcties en optionele meldingen van geslaagde synchronisatie",
+    "Windows-accounthulp voorbereid; volledige Microsoft-synchronisatie is nog in ontwikkeling"
   ],
   "pt": [
     "Novidades desta versão",
-    "O telefone emparelhado já não exige uma confirmação adicional de propriedade",
-    "Alertas de chamadas e identificação do chamador melhorados com Magnolie Notes 1.0.15",
-    "Configuração de dispositivos simplificada e tratamento de sinais mais repetidos no início dos números"
+    "Correções DAV e notificações opcionais de sincronização bem-sucedida",
+    "Assistente de contas Windows preparado; a sincronização Microsoft completa continua em desenvolvimento"
   ],
   "ru": [
     "Новое в этой версии",
-    "Для сопряжённого телефона больше не требуется дополнительное подтверждение владения",
-    "Улучшены уведомления о звонках и определение звонящего с Magnolie Notes 1.0.15",
-    "Упрощена настройка устройств; повторяющиеся знаки плюса в начале телефонного номера обрабатываются корректно"
+    "Исправления DAV и необязательные уведомления об успешной синхронизации",
+    "Подготовлен помощник аккаунтов Windows; полная синхронизация с Microsoft ещё разрабатывается"
   ],
   "cs": [
     "Co je nového v této verzi",
-    "Spárovaný telefon již nevyžaduje další potvrzení vlastnictví",
-    "Vylepšená upozornění na hovory a identifikace volajícího s Magnolie Notes 1.0.15",
-    "Jednodušší nastavení zařízení a podpora opakovaných znamének plus na začátku telefonních čísel"
+    "Opravy DAV a volitelná oznámení úspěšné synchronizace",
+    "Připraven pomocník účtů Windows; úplná synchronizace s Microsoftem se stále vyvíjí"
   ],
   "pl": [
     "Nowości w tej wersji",
-    "Sparowany telefon nie wymaga już dodatkowego potwierdzenia własności",
-    "Ulepszono powiadomienia o połączeniach i identyfikację rozmówcy z Magnolie Notes 1.0.15",
-    "Uproszczono konfigurację urządzeń i obsługę powtarzających się znaków plus na początku numerów"
+    "Poprawki DAV i opcjonalne powiadomienia o udanej synchronizacji",
+    "Przygotowano pomocnika kont Windows; pełna synchronizacja z Microsoft jest nadal rozwijana"
   ],
   "hsb": [
     "Nowe w tutej wersiji",
-    "Za spřaženy telefon dalše wobkrućenje wobsydstwa trěbne njeje",
-    "Z powěsćenkami wo zawołanjach a spóznaćom zawołarja pomha Magnolie Notes 1.0.15 lěpje",
-    "Jednoriše zarjadowanje gratow a podpěra wospjetowanych znamješkow plus na spočatku telefonowych čisłow"
+    "Porjedźenja DAV a opcionalne powěsćenki wo wuspěšnej synchronizaciji",
+    "Pomocnik kontow za Windows přihotowany; dospołna synchronizacija z Microsoft so hišće wuwiwa"
   ],
   "da": [
     "Nyt i denne version",
-    "Ingen ekstra bekræftelse af ejerskab kræves for den parrede telefon",
-    "Forbedrede opkaldsbeskeder og identifikation af den, der ringer, med Magnolie Notes 1.0.15",
-    "Enklere enhedsopsætning og håndtering af gentagne plustegn i begyndelsen af telefonnumre"
+    "DAV-rettelser og valgfrie beskeder om vellykket synkronisering",
+    "Windows-kontohjælper forberedt; fuld Microsoft-synkronisering er stadig under udvikling"
   ],
   "nb": [
     "Nytt i denne versjonen",
-    "Ingen ekstra bekreftelse på eierskap kreves for den parede telefonen",
-    "Forbedrede anropsvarsler og identifisering av innringer med Magnolie Notes 1.0.15",
-    "Enklere enhetsoppsett og håndtering av gjentatte plusstegn i starten av telefonnumre"
+    "DAV-rettelser og valgfrie meldinger om vellykket synkronisering",
+    "Windows-kontohjelper klargjort; full Microsoft-synkronisering er fortsatt under utvikling"
   ],
   "hi": [
     "इस संस्करण में नया",
-    "जोड़े गए फ़ोन के स्वामित्व की अतिरिक्त पुष्टि अब आवश्यक नहीं है",
-    "Magnolie Notes 1.0.15 के साथ कॉल सूचनाओं और कॉल करने वाले की पहचान में सुधार",
-    "डिवाइस सेटअप आसान बनाया गया और फ़ोन नंबर की शुरुआत में दोहराए गए प्लस चिह्नों को संभाला जाता है"
+    "DAV सुधार और सफल सिंक्रनाइज़ेशन की वैकल्पिक सूचनाएँ",
+    "Windows खाता सहायक तैयार; पूर्ण Microsoft सिंक्रनाइज़ेशन अभी विकासाधीन है"
   ],
   "zh-cn": [
     "此版本的新功能",
-    "已配对的手机不再需要额外确认所有权",
-    "通过 Magnolie Notes 1.0.15 改进来电通知和来电者识别",
-    "简化设备设置，并兼容电话号码开头重复的加号"
+    "修复 DAV，并可选择显示同步成功通知",
+    "已准备 Windows 账户助手；完整的 Microsoft 同步仍在开发中"
   ],
   "ja": [
     "このバージョンの新機能",
-    "ペアリング済みの電話で所有者の追加確認が不要になりました",
-    "Magnolie Notes 1.0.15 で着信通知と発信者の識別を改善",
-    "デバイス設定を簡素化し、電話番号の先頭で重複したプラス記号に対応"
+    "DAV の修正と同期成功通知の選択設定",
+    "Windows アカウント補助機能を準備。完全な Microsoft 同期は開発中です"
   ],
   "ar": [
     "ما الجديد في هذا الإصدار",
-    "لم يعد الهاتف المقترن يتطلب تأكيدًا إضافيًا للملكية",
-    "تحسين تنبيهات المكالمات والتعرّف على المتصل مع Magnolie Notes 1.0.15",
-    "تبسيط إعداد الأجهزة والتعامل مع علامات الجمع المكررة في بداية أرقام الهاتف"
+    "إصلاحات DAV وإشعارات اختيارية لنجاح المزامنة",
+    "تم إعداد مساعد حسابات Windows؛ المزامنة الكاملة مع Microsoft لا تزال قيد التطوير"
   ],
   "uk": [
     "Нове в цій версії",
-    "Для сполученого телефона більше не потрібне додаткове підтвердження володіння",
-    "Покращено сповіщення про дзвінки та визначення абонента з Magnolie Notes 1.0.15",
-    "Спрощено налаштування пристроїв і обробку повторних знаків плюса на початку телефонних номерів"
+    "Виправлення DAV та необов’язкові сповіщення про успішну синхронізацію",
+    "Підготовлено помічник облікових записів Windows; повна синхронізація з Microsoft ще розробляється"
   ],
   "be": [
     "Што новага ў гэтай версіі",
-    "Для спалучанага тэлефона больш не патрабуецца дадатковае пацвярджэнне валодання",
-    "Палепшаны апавяшчэнні пра званкі і вызначэнне абанента з Magnolie Notes 1.0.15",
-    "Спрошчана наладка прылад і апрацоўка паўторных знакаў плюса ў пачатку тэлефонных нумароў"
+    "Выпраўленні DAV і неабавязковыя паведамленні пра паспяховую сінхранізацыю",
+    "Падрыхтаваны памочнік уліковых запісаў Windows; поўная сінхранізацыя з Microsoft яшчэ распрацоўваецца"
   ],
   "tr": [
     "Bu sürümdeki yenilikler",
-    "Eşleştirilen telefon için ek sahiplik onayı artık gerekli değil",
-    "Magnolie Notes 1.0.15 ile arama bildirimleri ve arayan kimliği iyileştirildi",
-    "Cihaz kurulumu kolaylaştırıldı ve telefon numaralarının başındaki tekrarlanan artı işaretleri destekleniyor"
+    "DAV düzeltmeleri ve isteğe bağlı başarılı eşitleme bildirimleri",
+    "Windows hesap yardımcısı hazırlandı; tam Microsoft eşitlemesi hâlâ geliştirme aşamasında"
   ]
 };
 if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes version mismatch");

@@ -1,5 +1,23 @@
 # Changelog / Änderungen
 
+## 2.0.20 / Notes 1.0.15 — 2026-09-23
+
+### English
+
+- Improves Windows DAV discovery for separate calendar/address-book services and direct collection addresses, and makes authentication failures visible.
+- Keeps the local Windows Contacts folder unselected until explicitly chosen.
+- Completes DAV settings translations and makes successful calendar/contact synchronization notifications optional, off by default; errors remain visible.
+- Adds the application-managed Windows account helper and account sign-in controls. **The complete sign-in workflow in the managed profile and Microsoft EAS data synchronization remain under development; these are not yet confirmed end-to-end features.**
+- Includes the unchanged Magnolie Notes 1.0.15.
+
+### Deutsch
+
+- Verbessert die Windows-DAV-Erkennung für getrennte Kalender-/Adressbuchdienste und direkte Sammlungsadressen und zeigt Anmeldefehler an.
+- Wählt den lokalen Windows-Kontaktordner erst nach ausdrücklicher Auswahl als Abgleichsquelle.
+- Vervollständigt die Übersetzungen der DAV-Einstellungen. Erfolgsmeldungen beim Kalender-/Kontaktabgleich sind optional und standardmäßig aus; Fehler bleiben sichtbar.
+- Ergänzt die von Magnolie verwaltete Windows-Kontenhilfe und Schaltflächen für die Kontoanmeldung. **Der vollständige Anmeldedurchlauf im verwalteten Profil und die Microsoft-EAS-Datenübertragung bleiben in Entwicklung und sind noch nicht durchgängig bestätigt.**
+- Enthält die unveränderte Magnolie Notes 1.0.15.
+
 ## 2.0.19 / Notes 1.0.15 — 2026-09-19
 
 ### English
