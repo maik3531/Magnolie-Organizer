@@ -23,102 +23,122 @@ const NEU_IN_DIESER_FASSUNG = {
   "de": [
     "Neu in dieser Version",
     "DAV-Korrekturen und optionale Erfolgsmeldungen beim Abgleich",
-    "Windows-Kontenhilfe vorbereitet; vollständiger Microsoft-Abgleich bleibt in Entwicklung"
+    "Windows-Kontenhilfe vorbereitet; vollständiger Microsoft-Abgleich bleibt in Entwicklung",
+    "Magnolie Notes 1.0.15 — unverändert"
   ],
   "en": [
     "What's new in this version",
     "DAV corrections and optional synchronization success messages",
-    "Windows account helper prepared; complete Microsoft synchronization remains under development"
+    "Windows account helper prepared; complete Microsoft synchronization remains under development",
+    "Magnolie Notes 1.0.15 — unchanged"
   ],
   "fr": [
     "Nouveautés de cette version",
     "Corrections DAV et notifications de synchronisation réussie facultatives",
-    "Préparation de l’assistant de comptes Windows ; la synchronisation Microsoft complète reste en développement"
+    "Préparation de l’assistant de comptes Windows ; la synchronisation Microsoft complète reste en développement",
+    "Magnolie Notes 1.0.15 — inchangé"
   ],
   "es": [
     "Novedades de esta versión",
     "Correcciones DAV y avisos opcionales de sincronización correcta",
-    "Preparado el asistente de cuentas de Windows; la sincronización completa con Microsoft sigue en desarrollo"
+    "Preparado el asistente de cuentas de Windows; la sincronización completa con Microsoft sigue en desarrollo",
+    "Magnolie Notes 1.0.15 — sin cambios"
   ],
   "it": [
     "Novità di questa versione",
     "Correzioni DAV e notifiche facoltative di sincronizzazione riuscita",
-    "Preparato l’assistente account Windows; la sincronizzazione Microsoft completa è ancora in sviluppo"
+    "Preparato l’assistente account Windows; la sincronizzazione Microsoft completa è ancora in sviluppo",
+    "Magnolie Notes 1.0.15 — invariato"
   ],
   "nl": [
     "Nieuw in deze versie",
     "DAV-correcties en optionele meldingen van geslaagde synchronisatie",
-    "Windows-accounthulp voorbereid; volledige Microsoft-synchronisatie is nog in ontwikkeling"
+    "Windows-accounthulp voorbereid; volledige Microsoft-synchronisatie is nog in ontwikkeling",
+    "Magnolie Notes 1.0.15 — ongewijzigd"
   ],
   "pt": [
     "Novidades desta versão",
     "Correções DAV e notificações opcionais de sincronização bem-sucedida",
-    "Assistente de contas Windows preparado; a sincronização Microsoft completa continua em desenvolvimento"
+    "Assistente de contas Windows preparado; a sincronização Microsoft completa continua em desenvolvimento",
+    "Magnolie Notes 1.0.15 — sem alterações"
   ],
   "ru": [
     "Новое в этой версии",
     "Исправления DAV и необязательные уведомления об успешной синхронизации",
-    "Подготовлен помощник аккаунтов Windows; полная синхронизация с Microsoft ещё разрабатывается"
+    "Подготовлен помощник аккаунтов Windows; полная синхронизация с Microsoft ещё разрабатывается",
+    "Magnolie Notes 1.0.15 — без изменений"
   ],
   "cs": [
     "Co je nového v této verzi",
     "Opravy DAV a volitelná oznámení úspěšné synchronizace",
-    "Připraven pomocník účtů Windows; úplná synchronizace s Microsoftem se stále vyvíjí"
+    "Připraven pomocník účtů Windows; úplná synchronizace s Microsoftem se stále vyvíjí",
+    "Magnolie Notes 1.0.15 — beze změn"
   ],
   "pl": [
     "Nowości w tej wersji",
     "Poprawki DAV i opcjonalne powiadomienia o udanej synchronizacji",
-    "Przygotowano pomocnika kont Windows; pełna synchronizacja z Microsoft jest nadal rozwijana"
+    "Przygotowano pomocnika kont Windows; pełna synchronizacja z Microsoft jest nadal rozwijana",
+    "Magnolie Notes 1.0.15 — bez zmian"
   ],
   "hsb": [
     "Nowe w tutej wersiji",
     "Porjedźenja DAV a opcionalne powěsćenki wo wuspěšnej synchronizaciji",
-    "Pomocnik kontow za Windows přihotowany; dospołna synchronizacija z Microsoft so hišće wuwiwa"
+    "Pomocnik kontow za Windows přihotowany; dospołna synchronizacija z Microsoft so hišće wuwiwa",
+    "Magnolie Notes 1.0.15 — njezměnjeny"
   ],
   "da": [
     "Nyt i denne version",
     "DAV-rettelser og valgfrie beskeder om vellykket synkronisering",
-    "Windows-kontohjælper forberedt; fuld Microsoft-synkronisering er stadig under udvikling"
+    "Windows-kontohjælper forberedt; fuld Microsoft-synkronisering er stadig under udvikling",
+    "Magnolie Notes 1.0.15 — uændret"
   ],
   "nb": [
     "Nytt i denne versjonen",
     "DAV-rettelser og valgfrie meldinger om vellykket synkronisering",
-    "Windows-kontohjelper klargjort; full Microsoft-synkronisering er fortsatt under utvikling"
+    "Windows-kontohjelper klargjort; full Microsoft-synkronisering er fortsatt under utvikling",
+    "Magnolie Notes 1.0.15 — uendret"
   ],
   "hi": [
     "इस संस्करण में नया",
     "DAV सुधार और सफल सिंक्रनाइज़ेशन की वैकल्पिक सूचनाएँ",
-    "Windows खाता सहायक तैयार; पूर्ण Microsoft सिंक्रनाइज़ेशन अभी विकासाधीन है"
+    "Windows खाता सहायक तैयार; पूर्ण Microsoft सिंक्रनाइज़ेशन अभी विकासाधीन है",
+    "Magnolie Notes 1.0.15 — अपरिवर्तित"
   ],
   "zh-cn": [
     "此版本的新功能",
     "修复 DAV，并可选择显示同步成功通知",
-    "已准备 Windows 账户助手；完整的 Microsoft 同步仍在开发中"
+    "已准备 Windows 账户助手；完整的 Microsoft 同步仍在开发中",
+    "Magnolie Notes 1.0.15 — 未更改"
   ],
   "ja": [
     "このバージョンの新機能",
     "DAV の修正と同期成功通知の選択設定",
-    "Windows アカウント補助機能を準備。完全な Microsoft 同期は開発中です"
+    "Windows アカウント補助機能を準備。完全な Microsoft 同期は開発中です",
+    "Magnolie Notes 1.0.15 — 変更なし"
   ],
   "ar": [
     "ما الجديد في هذا الإصدار",
     "إصلاحات DAV وإشعارات اختيارية لنجاح المزامنة",
-    "تم إعداد مساعد حسابات Windows؛ المزامنة الكاملة مع Microsoft لا تزال قيد التطوير"
+    "تم إعداد مساعد حسابات Windows؛ المزامنة الكاملة مع Microsoft لا تزال قيد التطوير",
+    "Magnolie Notes 1.0.15 — دون تغيير"
   ],
   "uk": [
     "Нове в цій версії",
     "Виправлення DAV та необов’язкові сповіщення про успішну синхронізацію",
-    "Підготовлено помічник облікових записів Windows; повна синхронізація з Microsoft ще розробляється"
+    "Підготовлено помічник облікових записів Windows; повна синхронізація з Microsoft ще розробляється",
+    "Magnolie Notes 1.0.15 — без змін"
   ],
   "be": [
     "Што новага ў гэтай версіі",
     "Выпраўленні DAV і неабавязковыя паведамленні пра паспяховую сінхранізацыю",
-    "Падрыхтаваны памочнік уліковых запісаў Windows; поўная сінхранізацыя з Microsoft яшчэ распрацоўваецца"
+    "Падрыхтаваны памочнік уліковых запісаў Windows; поўная сінхранізацыя з Microsoft яшчэ распрацоўваецца",
+    "Magnolie Notes 1.0.15 — без змен"
   ],
   "tr": [
     "Bu sürümdeki yenilikler",
     "DAV düzeltmeleri ve isteğe bağlı başarılı eşitleme bildirimleri",
-    "Windows hesap yardımcısı hazırlandı; tam Microsoft eşitlemesi hâlâ geliştirme aşamasında"
+    "Windows hesap yardımcısı hazırlandı; tam Microsoft eşitlemesi hâlâ geliştirme aşamasında",
+    "Magnolie Notes 1.0.15 — değişmedi"
   ]
 };
 if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {

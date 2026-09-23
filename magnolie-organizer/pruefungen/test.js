@@ -40,6 +40,9 @@ const i18nJs = fs.readFileSync(WEB + "/i18n.js", "utf8");
 const deJs = fs.readFileSync(WEB + "/i18n/de.js", "utf8");
 const css = fs.readFileSync(WEB + "/stil.css", "utf8");
 const webFassung = js.match(/const FASSUNG = "([^"]+)"/)[1];
+const naechsteTeile = webFassung.split(".").map(Number);
+naechsteTeile[naechsteTeile.length - 1]++;
+const naechsteFassung = naechsteTeile.join(".");
 const liesmich = fs.readFileSync(path.resolve(__dirname, "..", "LIESMICH.md"), "utf8");
 
 const dom = new JSDOM(html, {
@@ -2026,12 +2029,12 @@ function knopfMit(text, wurzel) {
   assert.ok(enSD.querySelector("#sync-wahl").textContent.includes("Baïkal Termine — CalDAV") &&
     enSD.querySelector("#sync-wahl").textContent.includes("Baïkal Kontakte — CardDAV") &&
     enSD.querySelector("#sync-wahl").textContent.includes("Cloud Team — Nextcloud") &&
-    enSD.querySelector(".sync-vtodo-hinweis")?.textContent.includes("Appointments remain available"),
+    enSD.querySelector(".sync-vtodo-hinweis")?.textContent === "This calendar does not support tasks (VTODO).",
   "DAV-Quellen oder der sachliche VTODO-Hinweis sind falsch beschriftet");
   const kontoArt = enSD.querySelector("#dav-konto-art");
   kontoArt.value = "generic-dav";
   kontoArt.dispatchEvent(new enSW.Event("change", { bubbles: true }));
-  assert.ok(enSD.querySelector(".dav-server-hinweis")?.textContent.includes("/remote.php/dav") &&
+  assert.ok(enSD.querySelector(".dav-server-hinweis")?.textContent === "Use the DAV address provided by your service." &&
     enSD.querySelector("#briefkasten-an").disabled && !enSD.querySelector("#briefkasten-an").checked &&
     enSD.querySelector(".dav-briefkasten-hinweis"),
   "generisches DAV deaktiviert den Nextcloud-Briefkasten nicht sichtbar");
@@ -2076,12 +2079,16 @@ function knopfMit(text, wurzel) {
     kalenderUid: "google-privat", kalenderUids: ["google-privat", "arbeit-uid"],
     adressbuchUid: "buch-privat"
   }, "englische Oberfläche verändert den EDS-Quellenvertrag");
+  assert.strictEqual(enST.daten().einstellungen.sync.erfolgsmeldungen, false,
+    "Erfolgsmeldungen sind nicht standardmäßig ausgeschaltet");
+  enST.daten().einstellungen.sync.erfolgsmeldungen = true;
   enSW.App.syncFertig({ termine: [], kontakte: [], jahrestage: [],
     geloescht: { termine: [], kontakte: [] }, letzterSync: Date.now(),
     letzteSyncs: { kalender: { "google-privat": 1, "arbeit-uid": 2 } },
     bericht: "Provider-Bericht unverändert." });
   assert.strictEqual(enSD.querySelector("#zettel").textContent,
     "Provider-Bericht unverändert.", "Backendbericht wurde im Web verändert");
+  enST.daten().einstellungen.sync.erfolgsmeldungen = false;
   enSyncNachrichten.length = 0;
   enSW.App.syncFertig({ termine: [], kontakte: [{ uid: "remote-1",
       nachname: "Remote", sync: true }], jahrestage: [],
@@ -2764,12 +2771,12 @@ function knopfMit(text, wurzel) {
     enSyncNachrichten.some((nachricht) => nachricht.cmd === "update_pruefen"),
   "englische Über-Seite verändert Handbuch- oder Update-Befehl");
   const enUpdateUrl = "https://gitlab.com/maik3531/mint-forgs/-/raw/main/" +
-    "Magnolie-Organitzer/magnolie-organizer_2.0.20_all.deb";
-  enSW.App.updateErgebnis({ ok: true, aktuell: false, version: "2.0.20",
+    "Magnolie-Organitzer/magnolie-organizer_" + naechsteFassung + "_all.deb";
+  enSW.App.updateErgebnis({ ok: true, aktuell: false, version: naechsteFassung,
     url: enUpdateUrl, sha256: "ab".repeat(32), fehler: "" });
   assert.ok(enSD.querySelector("#update-stand").textContent.includes(
-    "New version 2.0.20 is available") &&
-    enSD.querySelector("#update-herunterladen").textContent.includes("2.0.20") &&
+    "New version " + naechsteFassung + " is available") &&
+    enSD.querySelector("#update-herunterladen").textContent.includes(naechsteFassung) &&
     enSD.querySelector(".update-pruefsumme").textContent.includes("ab".repeat(32)) &&
     enSD.querySelector(".update-pruefsumme").textContent.includes("sha256sum"),
   "englischer neuer Update-Stand fehlt");
@@ -2806,11 +2813,11 @@ function knopfMit(text, wurzel) {
   "bestätigtes Update startet keinen parameterlosen geprüften Download: " +
     JSON.stringify(enSyncNachrichten.slice(-8)));
   enSW.App.updateHeruntergeladen({ ok: true, bereit: true,
-    version: "2.0.20", artifact: "deb" });
+    version: naechsteFassung, artifact: "deb" });
   assert.ok(enSyncNachrichten.some((nachricht) => nachricht.cmd === "update_installieren"),
     "verifiziertes Update wird nicht zur Installation vorbereitet");
   enSW.App.updateInstallationVorbereitet({ ok: true, bereitZumBeenden: true,
-    version: "2.0.20", artifact: "deb" });
+    version: naechsteFassung, artifact: "deb" });
   assert.ok(enSyncNachrichten.some((nachricht) => nachricht.cmd === "beenden"),
     "nach vorbereiteter Installation startet der sichere Beenden- und Neustartablauf nicht");
   enSW.App.updateGeoeffnet({ ok: false, fehler: "" });
@@ -7067,7 +7074,7 @@ function knopfMit(text, wurzel) {
   assert.ok(ueberText.includes("Version 3"), "die Lizenzfassung fehlt");
   assert.ok($(".ueber-fassung").textContent.includes("Fassung"),
     "die Programmfassung fehlt");
-  assert.ok($(".ueber-fassung").textContent.includes("2.0.19"),
+  assert.ok($(".ueber-fassung").textContent.includes(webFassung),
     "die neue Programmfassung fehlt");
   assert.ok($(".ueber-blume"), "die Magnolienblüte fehlt");
   const beschreibung = $(".ueber-beschreibung");
@@ -7087,18 +7094,18 @@ function knopfMit(text, wurzel) {
     "neben der gemeinsamen Aktualisierungsprüfung ist ein zweiter Prüfknopf sichtbar");
   assert.ok($("#handbuch-stand").textContent.includes("nicht installiert"),
     "der Handbuchstatus nennt die fehlende Installation nicht");
-  assert.ok(!T.istNeuereFassung("2.0.1") && !T.istNeuereFassung("2.0.19") &&
-    T.istNeuereFassung("2.0.20"),
+  assert.ok(!T.istNeuereFassung("2.0.1") && !T.istNeuereFassung(webFassung) &&
+    T.istNeuereFassung(naechsteFassung),
     "Fassungsvergleich der Oberfläche stimmt nicht");
   assert.ok(T.vergleicheText("Termin 2", "Termin 10") < 0,
     "der regionale Collator sortiert Zahlen weiterhin rein lexikografisch");
-  w.App.updateErgebnis({ ok: true, aktuell: false, version: "2.0.20",
+  w.App.updateErgebnis({ ok: true, aktuell: false, version: naechsteFassung,
     url: "https://gitlab.com/maik3531/mint-forgs/-/raw/main/" +
-      "Magnolie-Organitzer/magnolie-organizer_2.0.20_all.deb" });
-  assert.ok($("#update-stand").textContent.includes("2.0.20"),
+      "Magnolie-Organitzer/magnolie-organizer_" + naechsteFassung + "_all.deb" });
+  assert.ok($("#update-stand").textContent.includes(naechsteFassung),
     "gefundene Fassung erscheint nicht unter Über");
   assert.ok($("#update-herunterladen"), "Downloadknopf für neue Fassung fehlt");
-  assert.strictEqual(T.daten().einstellungen.update.letzteVersion, "2.0.20",
+  assert.strictEqual(T.daten().einstellungen.update.letzteVersion, naechsteFassung,
     "Prüfstand wird nicht gespeichert");
   $("#update-automatisch").checked = false;
   $("#update-automatisch").dispatchEvent(new w.Event("change", { bubbles: true }));

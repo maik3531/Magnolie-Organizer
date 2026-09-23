@@ -171,11 +171,10 @@ assert.strictEqual(releaseNotesVersion, webVersion, "What's New content is stale
 const releaseNotesSource = application.match(/const NEU_IN_DIESER_FASSUNG = (\{[\s\S]*?\n\});/)[1];
 const releaseNotes = Function(`"use strict"; return (${releaseNotesSource});`)();
 assert.strictEqual(Object.keys(releaseNotes).length, 20, "What's New does not cover every locale");
-assert.ok(Object.values(releaseNotes).every((items) => items.length === 4),
-  "What's New locales do not contain the complete 2.0.19 bullet set");
-assert.ok(application.includes("No additional ownership confirmation required for the paired phone") &&
-  application.includes("caller identification with Magnolie Notes 1.0.15") &&
-  application.includes("repeated leading plus signs") &&
+assert.ok(Object.values(releaseNotes).every((items) => items.length === 4 && items.every(text => typeof text === "string" && text.length > 0)),
+   "What's New locales do not contain the complete 2.0.20 bullet set");
+assert.ok(application.includes("DAV corrections and optional synchronization success messages") &&
+  application.includes("complete Microsoft synchronization remains under development") &&
   !application.includes("Faster native Wayland/AppImage graphics"),
 "Windows What's New content is stale or describes Linux-only changes");
 assert.match(fs.readFileSync(path.join(root, "LIESMICH.md"), "utf8"),
@@ -928,7 +927,7 @@ const newInVersion = window.document.querySelector(
 assert.ok(newInVersion && newInVersion.tagName === "SECTION" &&
   newInVersion.querySelector("h4")?.textContent === "Neu in dieser Version" &&
   newInVersion.querySelector(".ueber-neu-fassung")?.textContent === webVersion &&
-  newInVersion.querySelectorAll("ul > li").length === 3 &&
+   newInVersion.querySelectorAll("ul > li").length === releaseNotes.de.length - 1 &&
    releaseNotes.de.slice(1).every(text => newInVersion.textContent.includes(text)),
 "Windows-Versionshinweise fehlen oder sind nicht semantisch gegliedert");
 assert.ok(window.document.querySelector(
