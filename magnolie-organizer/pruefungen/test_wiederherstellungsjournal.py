@@ -57,6 +57,34 @@ del geloescht["kontakte"]
 assert m.journal_inhalt_geaendert(vorher, geloescht)
 
 
+with tempfile.TemporaryDirectory() as tmp:
+    punkte = [m.journal_snapshot_erzeugen(daten(n), "manual", basis=tmp, disk_usage=disk)
+              for n in (1, 2, 3)]
+    ids = [punkt["snapshotId"] for punkt in punkte]
+    for ungueltig in ([], [ids[0], "../outside"]):
+        try:
+            m.journal_snapshots_loeschen(ungueltig, basis=tmp)
+            raise AssertionError("Ungültige Mehrfachauswahl akzeptiert")
+        except (ValueError, RuntimeError):
+            pass
+    assert len(m.journal_liste(basis=tmp)) == 3
+    fremd = os.path.join(tmp, "unrelated")
+    os.mkdir(fremd)
+    link_id = str(uuid.uuid4())
+    link = os.path.join(m.journal_verzeichnis(tmp), link_id)
+    os.symlink(fremd, link)
+    try:
+        m.journal_snapshots_loeschen([ids[0], link_id], basis=tmp)
+        raise AssertionError("Verknüpfung als Wiederherstellungspunkt akzeptiert")
+    except OSError:
+        pass
+    assert os.path.isdir(os.path.join(m.journal_verzeichnis(tmp), ids[0]))
+    os.unlink(link)
+    assert m.journal_snapshots_loeschen([ids[0], ids[1], ids[0]], basis=tmp) == 2
+    assert [s["snapshotId"] for s in m.journal_liste(basis=tmp)] == [ids[2]]
+    assert m.journal_snapshots_loeschen([ids[0]], basis=tmp) == 0
+
+
 # Auch nach der ersten Migration von einer alten Version neu angelegte Punkte
 # werden einzeln nachgezogen, ohne einen vorhandenen Zielpunkt zu überschreiben.
 with tempfile.TemporaryDirectory() as tmp:

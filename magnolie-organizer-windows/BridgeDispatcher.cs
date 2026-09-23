@@ -126,7 +126,7 @@ internal sealed partial class BridgeDispatcher : IDisposable
                     case "journal_intervall": recovery.SetInterval(Text(message, "intervall")); await SendRecoveryStatusAsync(); break;
                     case "journal_anzahl": recovery.SetMaximum(Integer(message, "maximum")); await SendRecoveryStatusAsync(); break;
                     case "journal_aufbewahrung": recovery.SetRetention(Text(message, "modus"), Integer(message, "maximum"), Integer(message, "tage")); await SendRecoveryStatusAsync(); break;
-                    case "journal_loeschen": recovery.Delete(SnapshotId(message)); await form.SendAsync("App.journalErgebnis", new { ok = true, deleted = true, fehler = "" }); await SendRecoveryStatusAsync(); break;
+                    case "journal_loeschen": await DeleteSnapshotsAsync(message); break;
                     case "journal_wiederherstellen": await RestoreSnapshotAsync(message); break;
                     case "mutations_snapshot": await CreateMutationSnapshotAsync(message); break;
                     case "gesamtarchiv_waehlen": await SelectGesamtarchivAsync(); break;
@@ -1228,6 +1228,23 @@ internal sealed partial class BridgeDispatcher : IDisposable
     {
         var id = Text(message, "snapshotId");
         return id.Length == 0 ? Text(message, "id") : id;
+    }
+
+    private async Task DeleteSnapshotsAsync(JsonElement message)
+    {
+        var bulk = message.TryGetProperty("snapshotIds", out var selected);
+        try
+        {
+            var ids = bulk ? selected.EnumerateArray().Select(item => item.GetString() ?? "").ToArray()
+                : new[] { SnapshotId(message) };
+            var count = recovery.DeleteMany(ids);
+            await form.SendAsync("App.journalErgebnis", new { ok = true, deleted = true, bulk, anzahl = count, fehler = "" });
+        }
+        catch (Exception error)
+        {
+            await form.SendAsync("App.journalErgebnis", new { ok = false, bulk, fehler = error.Message });
+        }
+        finally { await SendRecoveryStatusAsync(); }
     }
 
     private async Task RestoreSnapshotAsync(JsonElement message)

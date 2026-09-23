@@ -1420,6 +1420,29 @@ def journal_komprimieren(basis=None, jetzt=None):
 
 
 @_journal_exklusiv
+def journal_snapshots_loeschen(snapshot_ids, basis=None):
+    if not isinstance(snapshot_ids, list) or not snapshot_ids:
+        raise ValueError(_("Select something first."))
+    kennungen = list(dict.fromkeys(_journal_uuid(wert) for wert in snapshot_ids))
+    wurzel = journal_verzeichnis(basis)
+    ziele = [os.path.join(wurzel, kennung) for kennung in kennungen]
+    for ziel in ziele:
+        if os.path.islink(ziel):
+            raise OSError(_("The recovery snapshot was not found."))
+    geloescht = 0
+    try:
+        for ziel in ziele:
+            if not os.path.isdir(ziel):
+                continue
+            shutil.rmtree(ziel)
+            geloescht += 1
+    finally:
+        if geloescht:
+            _verzeichnis_sync(wurzel)
+    return geloescht
+
+
+@_journal_exklusiv
 def journal_snapshot_erzeugen(daten, grund, kennwort="", basis=None, jetzt=None,
                                pinned=None, disk_usage=None, haken=None,
                                maximum=None, tage=None):
@@ -19447,16 +19470,14 @@ class Fenster(_FENSTER_BASIS):
                     "fehler": fehler_deutsch(fehler, _("Previewing a recovery snapshot"))})
 
         elif befehl == "journal_loeschen":
+            mehrfach = "snapshotIds" in nachricht
             try:
-                snapshot_id = _journal_uuid(nachricht.get("snapshotId"))
-                ziel = os.path.join(journal_verzeichnis(), snapshot_id)
-                if os.path.islink(ziel) or not os.path.isdir(ziel):
-                    raise OSError(_("The recovery snapshot was not found."))
-                shutil.rmtree(ziel)
-                _verzeichnis_sync(journal_verzeichnis())
-                self.antwort("App.journalErgebnis", {"ok": True, "deleted": True})
+                kennungen = nachricht["snapshotIds"] if mehrfach else [nachricht.get("snapshotId")]
+                anzahl = journal_snapshots_loeschen(kennungen)
+                self.antwort("App.journalErgebnis", {"ok": True, "deleted": True,
+                    "bulk": mehrfach, "anzahl": anzahl})
             except Exception as fehler:
-                self.antwort("App.journalErgebnis", {"ok": False,
+                self.antwort("App.journalErgebnis", {"ok": False, "bulk": mehrfach,
                     "fehler": fehler_deutsch(fehler, _("Deleting a recovery snapshot"))})
             self._journal_stand_melden()
 

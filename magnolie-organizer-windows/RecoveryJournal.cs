@@ -284,12 +284,26 @@ internal sealed class RecoveryJournal
 
     internal void Delete(string id)
     {
+        DeleteMany([id]);
+    }
+
+    internal int DeleteMany(IEnumerable<string> ids)
+    {
         lock (gate)
         {
-            var directory = Child(ValidId(id));
-            if (!Directory.Exists(directory)) return;
-            RejectReparseTree(directory);
-            Directory.Delete(directory, true);
+            var directories = ids.Select(ValidId).Distinct(StringComparer.Ordinal).Select(Child).ToArray();
+            if (directories.Length == 0) throw new InvalidDataException(NativeLocalization.Gettext("Select something first."));
+            // Validate the entire selection before deleting its first entry.
+            foreach (var directory in directories)
+                if (Directory.Exists(directory)) RejectReparseTree(directory);
+            var deleted = 0;
+            foreach (var directory in directories)
+            {
+                if (!Directory.Exists(directory)) continue;
+                Directory.Delete(directory, true);
+                deleted++;
+            }
+            return deleted;
         }
     }
 

@@ -252,6 +252,9 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
      erneut an, die Antwort baut die Seite erneut auf und der Reiter flackert
      endlos. Die Signatur verhindert zusätzlich Neuaufbauten ohne Änderung. */
   let journalListeAngefragt = false;
+  const journalAuswahl = new Set();
+  let journalLoeschenLaeuft = false;
+  let journalDatumsfilter = "";
   let journalStandSignatur = "";
   const mutationsAktionen = new Map();
 
@@ -19428,27 +19431,68 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     if (journalStand.status && !["ok", "off", "due", "scheduled"].includes(journalStand.status)) {
       abs.append(el("p", "einst-warnung", journalStand.status));
     }
-    const datumFilter = eingabe("date", "");
+    const datumFilter = eingabe("date", journalDatumsfilter);
     datumFilter.id = "journal-datum-filter";
+    datumFilter.disabled = journalLoeschenLaeuft;
     abs.append(formZeile(_("Date"), datumFilter));
     const liste = el("div", "journal-liste");
     liste.tabIndex = 0;
     liste.setAttribute("role", "region");
     liste.setAttribute("aria-label", _("Recovery snapshots"));
+    let sichtbareIds = new Set();
+    const aktualisiereAuswahl = () => {
+      for (const feld of liste.querySelectorAll(".journal-auswahl")) feld.checked = journalAuswahl.has(feld.dataset.snapshotId);
+      alle.disabled = journalLoeschenLaeuft || !sichtbareIds.size;
+      keine.disabled = journalLoeschenLaeuft || !journalAuswahl.size;
+      mehrereLoeschen.disabled = journalLoeschenLaeuft || !journalAuswahl.size || !Bruecke.vorhanden;
+      mehrereLoeschen.textContent = _("Delete") + " (" + journalAuswahl.size + ")";
+    };
+    const alle = knopf(_("Select all"), "klein", () => {
+      for (const id of sichtbareIds) journalAuswahl.add(id);
+      aktualisiereAuswahl();
+    });
+    alle.id = "journal-alle";
+    const keine = knopf(_("None"), "klein", () => { journalAuswahl.clear(); aktualisiereAuswahl(); });
+    keine.id = "journal-keine";
+    const mehrereLoeschen = knopf(_("Delete"), "klein rot", () => {
+      const ids = [...journalAuswahl].filter(id => sichtbareIds.has(id));
+      if (journalLoeschenLaeuft || !ids.length) return;
+      frage(_("Recovery snapshots") + ": " + ids.length + "\n\n" + _("Are you really sure?"), _("Delete")).then(ja => {
+        if (!ja || journalLoeschenLaeuft) return;
+        journalLoeschenLaeuft = true;
+        if (!Bruecke.sende({ cmd: "journal_loeschen", snapshotIds: ids })) {
+          journalLoeschenLaeuft = false; zettel(_("The snapshot operation failed."));
+        }
+        baueEinstellungen();
+      });
+    });
+    mehrereLoeschen.id = "journal-auswahl-loeschen";
+    const auswahlAktionen = el("div", "knopfreihe");
+    auswahlAktionen.append(alle, keine, mehrereLoeschen); abs.append(auswahlAktionen);
     const listeZeichnen = () => {
       liste.replaceChildren();
+      sichtbareIds = new Set();
       for (const stand of journalStand.snapshots || []) {
       const zeit = new Date(stand.createdAt);
       const lokal = Number.isNaN(zeit.getTime()) ? "" : [zeit.getFullYear(),
         String(zeit.getMonth() + 1).padStart(2, "0"),
         String(zeit.getDate()).padStart(2, "0")].join("-");
       if (datumFilter.value && lokal !== datumFilter.value) continue;
+      sichtbareIds.add(stand.snapshotId);
       const eintrag = el("div", "journal-eintrag");
       const groesse = Math.round(Number(stand.payload && stand.payload.size || 0) / 1024);
       const summe = stand.summary || {};
         const kopf = el("div", "journal-kopf");
-        kopf.append(el("strong", null, journalDatum(stand.createdAt) + " · " +
-          journalGrund(stand.reason)), el("span", "einst-hinweis",
+        const auswahl = document.createElement("input"); auswahl.type = "checkbox";
+        auswahl.className = "journal-auswahl"; auswahl.dataset.snapshotId = stand.snapshotId;
+        auswahl.disabled = journalLoeschenLaeuft;
+        auswahl.addEventListener("change", () => {
+          if (auswahl.checked) journalAuswahl.add(stand.snapshotId); else journalAuswahl.delete(stand.snapshotId);
+          aktualisiereAuswahl();
+        });
+        const auswahlZeile = el("label", "hak");
+        auswahlZeile.append(auswahl, el("strong", null, journalDatum(stand.createdAt) + " · " + journalGrund(stand.reason)));
+        kopf.append(auswahlZeile, el("span", "einst-hinweis",
           groesse + " KiB · " + _("Integrity") + ": " +
           (stand.integrity === "ok" ? _("OK") : _("Damaged")) + " · " +
           _("Objects") + ": " + Object.values(summe).reduce((a, b) => a + Number(b || 0), 0)));
@@ -19482,16 +19526,20 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
           _("Restore")).then((ja) => { if (ja) Bruecke.sende({ cmd: "journal_wiederherstellen",
             snapshotId: stand.snapshotId, bereiche: bereiche, modus: verfahren.value }); });
       });
-      restore.disabled = stand.integrity !== "ok";
-      aktionen.append(restore, knopf(_("Delete"), "klein rot", () => frage(
+      restore.disabled = journalLoeschenLaeuft || stand.integrity !== "ok";
+      const loeschen = knopf(_("Delete"), "klein rot", () => frage(
         _("Delete this recovery snapshot permanently?"), _("Delete")).then((ja) => {
           if (ja) Bruecke.sende({ cmd: "journal_loeschen", snapshotId: stand.snapshotId });
-        })));
+        }));
+      loeschen.disabled = journalLoeschenLaeuft;
+      aktionen.append(restore, loeschen);
       eintrag.append(aktionen); liste.append(eintrag);
       }
       if (!liste.children.length) liste.append(el("p", "einst-hinweis", _("No snapshots yet.")));
+      for (const id of journalAuswahl) if (!sichtbareIds.has(id)) journalAuswahl.delete(id);
+      aktualisiereAuswahl();
     };
-    datumFilter.addEventListener("change", listeZeichnen);
+    datumFilter.addEventListener("change", () => { journalDatumsfilter = datumFilter.value; listeZeichnen(); });
     listeZeichnen();
     abs.append(liste); wurzel.append(abs);
     if (Bruecke.vorhanden && !journalListeAngefragt) {
@@ -25217,7 +25265,14 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
           !$("#einstellungen-schleier").classList.contains("verborgen")) baueEinstellungen();
     },
     journalErgebnis(nutzlast) {
+      nutzlast = nutzlast || {};
+      if (nutzlast.bulk) {
+        journalLoeschenLaeuft = false;
+        if (nutzlast.ok) journalAuswahl.clear();
+        if (einstSeite === "sicherheit" && !$("#einstellungen-schleier").classList.contains("verborgen")) baueEinstellungen();
+      }
       if (!(nutzlast || {}).ok) zettel(nutzlast.fehler || _("The snapshot operation failed."));
+      else if (nutzlast.bulk) zettel(uebersetztMehrzahl("%(count)s entry deleted.", "%(count)s entries deleted.", Number(nutzlast.anzahl) || 0));
       else zettel(nutzlast.deleted ? _("Recovery snapshot deleted.") : _("Recovery snapshot created."));
     },
     journalVorschau(nutzlast) {

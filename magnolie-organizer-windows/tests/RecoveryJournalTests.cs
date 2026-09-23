@@ -12,6 +12,19 @@ internal static class RecoveryJournalTests
         try
         {
             await TestLoadedOutboxQuarantine(root);
+            var batchJournal = new RecoveryJournal(Path.Combine(root, "batch"), Path.Combine(root, "batch-settings.json"));
+            var batchPoints = Enumerable.Range(0, 3).Select(index => batchJournal.Create(
+                new JsonObject { ["notizen"] = new JsonArray(new JsonObject { ["id"] = "n", ["text"] = "point-" + index }) },
+                SnapshotReason.Manual, "2.0.20")).ToArray();
+            try { batchJournal.DeleteMany([batchPoints[0].Id, "../outside"]); throw new Exception("Invalid batch selection accepted."); }
+            catch (InvalidDataException) { }
+            TestAssert.That(batchJournal.List().Count == 3, "Invalid batch removed a valid point before rejecting the selection.");
+            try { batchJournal.DeleteMany([]); throw new Exception("Empty batch selection accepted."); }
+            catch (InvalidDataException) { }
+            TestAssert.That(batchJournal.DeleteMany([batchPoints[0].Id, batchPoints[1].Id, batchPoints[0].Id]) == 2,
+                "Batch deletion did not remove exactly the two unique selected points.");
+            TestAssert.That(batchJournal.List().Single().Id == batchPoints[2].Id && batchJournal.DeleteMany([batchPoints[0].Id]) == 0,
+                "Unselected point was removed or a repeated request was not idempotent.");
             var migrationRoot = Path.Combine(root, "migration");
             var migrationPaths = new WindowsPaths(migrationRoot);
             Directory.CreateDirectory(migrationPaths.RecoveryJournal);
