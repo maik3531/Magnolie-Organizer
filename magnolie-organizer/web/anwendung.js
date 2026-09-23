@@ -4825,6 +4825,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
 
   function jahrestageStarkIdentisch(links, rechts) {
     if (jahrestagIdentitaet(links) !== jahrestagIdentitaet(rechts)) return false;
+    if (istGeburtstagTyp(links.typ) && geburtstagsInhalt(links) !== geburtstagsInhalt(rechts)) return false;
     const rechtsIds = jahrestagStarkeKennungen(rechts);
     return Array.from(jahrestagStarkeKennungen(links)).some((id) => rechtsIds.has(id));
   }
@@ -8104,12 +8105,61 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     return liste.filter((t) => !istSynchronisierterKalendereintrag(t));
   }
 
+  function geburtstagsInhalt(jahrestag) {
+    if (!istGeburtstagTyp(jahrestag.typ) || !jahrestag.name || !gueltigesJahresdatum(jahrestag.datum)) return "";
+    const inhalt = { ...jahrestag };
+    for (const feld of ["id", "uid", "kontaktId", "geaendert", "jahrUnbekannt", "sync",
+      "syncKalenderUid", "syncQuellen", "icsSerienUid", "icsQuelleId", "icsQuelleName",
+      "icsRoundtrip", "providerMetadaten", "icsReadOnly", "icsReadOnlyGrund",
+      "icsAenderungszeitFehlt", "icsSequence", "_providerJahrUnbekannt"]) delete inhalt[feld];
+    inhalt.name = terminIdentitaetsText(jahrestag.name).toLowerCase().replace(/\s+/g, " ");
+    inhalt.datum = kanonischesJahresdatum(jahrestag.datum, jahrestag.jahrUnbekannt);
+    inhalt.typ = "birthday";
+    inhalt.notiz = terminIdentitaetsText(jahrestag.notiz);
+    return kanonischerEntwurf(inhalt);
+  }
+
+  function sichtbareJahrestage() {
+    const behalten = new Set(), nachInhalt = new Map();
+    for (const jahrestag of DATEN.jahrestage) {
+      const inhalt = geburtstagsInhalt(jahrestag);
+      if (!inhalt) { behalten.add(jahrestag); continue; }
+      if (!nachInhalt.has(inhalt)) nachInhalt.set(inhalt, []);
+      nachInhalt.get(inhalt).push(jahrestag);
+    }
+    const kontakte = new Map(DATEN.kontakte.map(kontakt => [kontakt.id, kontakt]));
+    for (const eintraege of nachInhalt.values()) {
+      let personen = [];
+      const unverknuepft = [];
+      for (const jahrestag of eintraege) {
+        if (!jahrestag.kontaktId) { unverknuepft.push(jahrestag); continue; }
+        const kontakt = kontakte.get(jahrestag.kontaktId);
+        const kennungen = new Set(["id:" + jahrestag.kontaktId, ...(kontakt
+          ? dublettenSchluessel(kontakt).filter(key => !key.startsWith("n:")) : [])]);
+        const treffer = personen.filter(person => [...kennungen].some(key => person.kennungen.has(key)));
+        if (!treffer.length) { personen.push({ jahrestag, kennungen }); continue; }
+        const bleibt = treffer[0];
+        for (const key of kennungen) bleibt.kennungen.add(key);
+        for (const andere of treffer.slice(1)) {
+          for (const key of andere.kennungen) bleibt.kennungen.add(key);
+          personen = personen.filter(person => person !== andere);
+        }
+      }
+      for (const person of personen) behalten.add(person.jahrestag);
+      // An unlinked import may represent the one matching person, but must not
+      // be assigned arbitrarily when distinct contacts share a name and birthday.
+      if (unverknuepft.length && personen.length !== 1) behalten.add(unverknuepft[0]);
+    }
+    // Presentation only: all provider records and synchronization mappings survive.
+    return DATEN.jahrestage.filter(jahrestag => behalten.has(jahrestag));
+  }
+
   function jahrestageAm(iso, vergangeneEinblenden) {
     if (!vergangeneEinblenden && vergangenAusgeblendet(iso, "anniversary")) return [];
     const [j, m, t] = iso.split("-").map(Number);
     if (jahrestagIndexVeraltet || !_jahrestagVerzeichnis) {
       _jahrestagVerzeichnis = new Map();
-      for (const jt of DATEN.jahrestage) {
+      for (const jt of sichtbareJahrestage()) {
         if (!gueltigesJahresdatum(jt.datum)) continue;
         const schluessel = monatTag(jt.datum);
         if (!_jahrestagVerzeichnis.has(schluessel)) {
@@ -8762,7 +8812,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     }
 
     if (sektion === "jahrestage") {
-      const liste = DATEN.jahrestage.slice().sort(
+      const liste = sichtbareJahrestage().sort(
         (a, b) => monatTag(a.datum).localeCompare(monatTag(b.datum)));
       return { titel: _("Anniversaries"), wort: _("Anniversaries"), liste: liste,
         anzahl: (wert) => uebersetztMehrzahl(
@@ -10141,7 +10191,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
 
   function jahrestageSuchTreffer(kontext, begriffe, grenze) {
     const treffer = [];
-    for (const jahrestag of DATEN.jahrestage) {
+    for (const jahrestag of sichtbareJahrestage()) {
       const eintrag = {
       titel: jahrestag.name || _("Anniversary"),
       meta: [jahrestagDatumText(jahrestag), jahrestagTypText(jahrestag.typ)]
@@ -16351,18 +16401,19 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
 
   function zeichneJahrestage() {
     const z = zustand.jahrestage;
+    const sichtbar = sichtbareJahrestage();
 
     const neuKnopf = knopf(_("New anniversary"), "klein", () => {
       z.bearbeiteId = null; zeichneAlles();
     });
     baueKopf("links", _("Anniversaries"), uebersetztMehrzahl(
       "%(count)s anniversary entered", "%(count)s anniversaries entered",
-      DATEN.jahrestage.length), [neuKnopf]);
+      sichtbar.length), [neuKnopf]);
 
     const inhaltL = $("#inhalt-links");
     inhaltL.classList.add("jahrestage-liste");
     const heute = isoHeute();
-    const sortiert = DATEN.jahrestage
+    const sortiert = sichtbar
       .map((jt) => ({ jt: jt, n: naechsterJahrestag(jt, heute) }))
       .sort((a, b) => a.n.inTagen - b.n.inTagen ||
         vergleicheStandardText(a.jt.name, b.jt.name));
