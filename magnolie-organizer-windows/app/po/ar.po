@@ -591,13 +591,6 @@ msgstr "إطار مساعد لإمكانية الوصول معطّل"
 msgid "Accessibility helper frame enabled"
 msgstr "إطار مساعد لإمكانية الوصول مفعّل"
 
-msgid ""
-"Accessibility: The helper frame shows the current keyboard focus. It is "
-"disabled by default; press Ctrl+Alt+H at any time to switch it on or off."
-msgstr ""
-"إمكانية الوصول: يعرض الإطار المساعد موضع تركيز لوحة المفاتيح الحالي. وهو "
-"معطّل افتراضيًا؛ اضغط Ctrl+Alt+H في أي وقت لتشغيله أو إيقافه."
-
 msgid "According to format region"
 msgstr "وفقًا لمنطقة التنسيق"
 
@@ -1267,9 +1260,6 @@ msgstr "جارٍ التحقق من مفتاح المساهم..."
 
 msgid "Checking online accounts …"
 msgstr "جارٍ التحقق من الحسابات عبر الإنترنت …"
-
-msgid "Checking the current manual version …"
-msgstr "جارٍ التحقق من إصدار الدليل الحالي …"
 
 msgid "Checking the current version …"
 msgstr "جارٍ التحقق من الإصدار الحالي …"
@@ -1960,12 +1950,6 @@ msgstr "تم"
 
 msgid "Dose type"
 msgstr "نوع الجرعة"
-
-msgid "Download manual"
-msgstr "تنزيل الدليل"
-
-msgid "Download manual version %(version)s"
-msgstr "تنزيل الدليل، الإصدار %(version)s"
 
 msgid "Downloads"
 msgstr "ﺕﻼ﻿ﻳﺰﻨﺘﻟﺍ"
@@ -2953,9 +2937,6 @@ msgstr "مخصص"
 msgid "Manual only"
 msgstr "يدوي فقط"
 
-msgid "Manual version %(version)s is available."
-msgstr "الإصدار اليدوي %(version)s متاح."
-
 msgid "Manufacturer"
 msgstr "الشركة المصنعة"
 
@@ -3309,9 +3290,6 @@ msgstr "بدون مخططات للسجل الصحي"
 
 msgid "No insulin dose is calculated automatically."
 msgstr "لا تُحسب أي جرعة إنسولين تلقائيًا."
-
-msgid "No manual update check has been performed yet."
-msgstr "لم يتم بعد إجراء فحص التحديث اليدوي."
 
 msgid "No matching open task found."
 msgstr "لم يُعثر على مهمة مفتوحة مطابقة."
@@ -3712,13 +3690,6 @@ msgstr "فتح اليوم في العرض اليومي"
 
 msgid "Open the phone connection screen and try again."
 msgstr "افتح شاشة اتصال الهاتف وحاول مرة أخرى."
-
-msgid ""
-"Open the verified DEB with your software manager; the organizer never "
-"installs it automatically."
-msgstr ""
-"افتح ملف DEB الذي تم التحقق منه باستخدام مدير البرامج الخاص بك؛ المنظم لا "
-"يثبته تلقائيًا أبدًا."
 
 msgid "Open this address as a letter in LibreOffice"
 msgstr "فتح هذا العنوان كرسالة في LibreOffice"
@@ -4441,9 +4412,6 @@ msgstr "تم الاسترجاع في %(date)s."
 msgid "Retrieving holidays …"
 msgstr "جارٍ استرجاع العطل …"
 
-msgid "Retrieving manual download information …"
-msgstr "جارٍ استرجاع معلومات التنزيل اليدوي …"
-
 msgid "Retrieving weather…"
 msgstr "جارٍ استرجاع الطقس…"
 
@@ -4464,10 +4432,6 @@ msgstr "المسار"
 
 msgid "Route: calculate directions immediately"
 msgstr "المسار: حساب الاتجاهات فورًا"
-
-msgid ""
-"Run the downloaded installer visibly and keep the Manual component selected."
-msgstr "قم بتشغيل المثبت الذي تم تنزيله بشكل مرئي واحتفظ بمكون اليدوي محددًا."
 
 msgid "S"
 msgstr "S"
@@ -5218,21 +5182,8 @@ msgstr ""
 msgid "The Magnolie Notes phone connection is switched off."
 msgstr "تم إيقاف اتصال الهاتف Magnolie Notes."
 
-msgid ""
-"The Magnolie manual is installed. It is best to read it through before you "
-"begin. Would you like to open it now?"
-msgstr ""
-"دليل Magnolie مثبّت. من الأفضل قراءته كاملًا قبل البدء. هل تريد فتحه الآن؟"
-
 msgid "The Magnolie manual is not installed."
 msgstr "دليل Magnolie غير مثبّت."
-
-msgid ""
-"The Magnolie manual is not installed. Version %(version)s can be downloaded "
-"now. Would you like to open the package download?"
-msgstr ""
-"دليل Magnolie غير مثبّت. يمكن تنزيل الإصدار %(version)s الآن. هل تريد فتح "
-"تنزيل الحزمة؟"
 
 msgid "The Magnolienbaum is available only in the installed application."
 msgstr "Magnolienbaum متاح فقط في التطبيق المثبّت."
@@ -5257,6 +5208,9 @@ msgstr "يختار المنظّم تطبيقًا مثبّتًا مناسبًا."
 
 msgid "The SMS submission journal is full. No message was sent."
 msgstr "سجل طلبات إرسال SMS ممتلئ. لم تُرسَل أي رسالة."
+
+msgid "The Windows installer includes the manual."
+msgstr "يتضمن برنامج تثبيت Windows الدليل."
 
 msgid "The address could not be opened."
 msgstr "لا يمكن فتح العنوان."
@@ -5512,17 +5466,11 @@ msgstr "يمكن الوصول إلى صندوق البريد."
 msgid "The manual could not be opened."
 msgstr "تعذر فتح الدليل."
 
-msgid "The manual download is available only in the installed application."
-msgstr "تنزيل الدليل متاح فقط في التطبيق المثبّت."
-
 msgid "The manual download request is no longer valid."
 msgstr "طلب التحميل اليدوي لم يعد صالحًا."
 
 msgid "The manual is installed; its version is unknown."
 msgstr "تم تثبيت الدليل؛ نسخته غير معروفة."
-
-msgid "The manual is up to date."
-msgstr "الدليل محدث."
 
 msgid "The manual package could not be opened."
 msgstr "تعذر فتح حزمة الدليل."

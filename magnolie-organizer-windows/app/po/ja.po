@@ -439,13 +439,6 @@ msgstr "アクセシビリティ補助枠を無効化"
 msgid "Accessibility helper frame enabled"
 msgstr "アクセシビリティ補助枠を有効化"
 
-msgid ""
-"Accessibility: The helper frame shows the current keyboard focus. It is "
-"disabled by default; press Ctrl+Alt+H at any time to switch it on or off."
-msgstr ""
-"アクセシビリティ: 補助枠は現在のキーボードフォーカスを表示します。既定では無"
-"効です。Ctrl+Alt+H を押すといつでもオン/オフを切り替えられます。"
-
 msgid "According to format region"
 msgstr "書式の地域に従う"
 
@@ -1118,9 +1111,6 @@ msgstr "投稿者キーを確認しています…"
 
 msgid "Checking online accounts …"
 msgstr "オンラインアカウントを確認しています …"
-
-msgid "Checking the current manual version …"
-msgstr "現在のマニュアルのバージョンを確認しています…"
 
 msgid "Checking the current version …"
 msgstr "現在のバージョンを確認しています …"
@@ -1822,12 +1812,6 @@ msgstr "完了"
 
 msgid "Dose type"
 msgstr "投与量の種類"
-
-msgid "Download manual"
-msgstr "マニュアルをダウンロード"
-
-msgid "Download manual version %(version)s"
-msgstr "マニュアル バージョン %(version)s をダウンロード"
 
 msgid "Downloads"
 msgstr "ダウンロード"
@@ -2830,9 +2814,6 @@ msgstr "カスタム"
 msgid "Manual only"
 msgstr "手動のみ"
 
-msgid "Manual version %(version)s is available."
-msgstr "マニュアル版 %(version)s が利用可能です。"
-
 msgid "Manufacturer"
 msgstr "製造業者"
 
@@ -3187,9 +3168,6 @@ msgstr "推移グラフなし"
 
 msgid "No insulin dose is calculated automatically."
 msgstr "インスリン投与量は自動計算されません。"
-
-msgid "No manual update check has been performed yet."
-msgstr "まだ手動での更新確認は実行されていません。"
 
 msgid "No matching open task found."
 msgstr "一致する未完了タスクが見つかりませんでした。"
@@ -3580,13 +3558,6 @@ msgstr "日表示でこの日を開く"
 
 msgid "Open the phone connection screen and try again."
 msgstr "電話接続の画面を開き、もう一度お試しください。"
-
-msgid ""
-"Open the verified DEB with your software manager; the organizer never "
-"installs it automatically."
-msgstr ""
-"検証済みのDEBをソフトウェアマネージャで開いてください；オーガナイザーは自動で"
-"インストールすることはありません。"
 
 msgid "Open this address as a letter in LibreOffice"
 msgstr "この住所を LibreOffice で手紙として開く"
@@ -4282,9 +4253,6 @@ msgstr "%(date)s に取得。"
 msgid "Retrieving holidays …"
 msgstr "祝日を取得しています …"
 
-msgid "Retrieving manual download information …"
-msgstr "手動ダウンロード情報を取得しています …"
-
 msgid "Retrieving weather…"
 msgstr "天気を取得しています…"
 
@@ -4305,12 +4273,6 @@ msgstr "経路"
 
 msgid "Route: calculate directions immediately"
 msgstr "経路：すぐに道順を計算"
-
-msgid ""
-"Run the downloaded installer visibly and keep the Manual component selected."
-msgstr ""
-"ダウンロードしたインストーラーを目に見えるように実行し、マニュアルコンポーネ"
-"ントを選択したままにします。"
 
 msgid "S"
 msgstr "S"
@@ -5046,22 +5008,8 @@ msgstr ""
 msgid "The Magnolie Notes phone connection is switched off."
 msgstr "Magnolie Notes 電話接続がオフになっています。"
 
-msgid ""
-"The Magnolie manual is installed. It is best to read it through before you "
-"begin. Would you like to open it now?"
-msgstr ""
-"Magnolie マニュアルはインストールされています。使い始める前に一度通して読むこ"
-"とをおすすめします。今すぐ開きますか？"
-
 msgid "The Magnolie manual is not installed."
 msgstr "Magnolie マニュアルはインストールされていません。"
-
-msgid ""
-"The Magnolie manual is not installed. Version %(version)s can be downloaded "
-"now. Would you like to open the package download?"
-msgstr ""
-"Magnolie マニュアルはインストールされていません。バージョン %(version)s を今"
-"すぐダウンロードできます。パッケージのダウンロードを開きますか？"
 
 msgid "The Magnolienbaum is available only in the installed application."
 msgstr "Magnolienbaum はインストール済みアプリでのみ利用できます。"
@@ -5086,6 +5034,9 @@ msgstr "Organizer が適切なインストール済みアプリを選びます�
 
 msgid "The SMS submission journal is full. No message was sent."
 msgstr "SMS の送信要求記録がいっぱいです。メッセージは送信されていません。"
+
+msgid "The Windows installer includes the manual."
+msgstr "Windows インストーラーにはマニュアルが含まれています。"
 
 msgid "The address could not be opened."
 msgstr "アドレスを開けませんでした。"
@@ -5348,17 +5299,11 @@ msgstr "メールボックスに到達できます。"
 msgid "The manual could not be opened."
 msgstr "マニュアルを開けませんでした。"
 
-msgid "The manual download is available only in the installed application."
-msgstr "マニュアルのダウンロードはインストール済みアプリでのみ利用できます。"
-
 msgid "The manual download request is no longer valid."
 msgstr "手動ダウンロードのリクエストはもはや有効ではありません。"
 
 msgid "The manual is installed; its version is unknown."
 msgstr "マニュアルはインストールされていますが、そのバージョンは不明です。"
-
-msgid "The manual is up to date."
-msgstr "マニュアルは最新です。"
 
 msgid "The manual package could not be opened."
 msgstr "マニュアルパッケージを開けませんでした。"

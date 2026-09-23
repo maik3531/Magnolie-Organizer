@@ -463,13 +463,6 @@ msgstr "सुलभता सहायक फ़्रेम बंद"
 msgid "Accessibility helper frame enabled"
 msgstr "सुलभता सहायक फ़्रेम चालू"
 
-msgid ""
-"Accessibility: The helper frame shows the current keyboard focus. It is "
-"disabled by default; press Ctrl+Alt+H at any time to switch it on or off."
-msgstr ""
-"सुलभता: सहायक फ़्रेम वर्तमान कीबोर्ड फ़ोकस दिखाता है। यह डिफ़ॉल्ट रूप से बंद है; इसे कभी भी "
-"चालू या बंद करने के लिए Ctrl+Alt+H दबाएँ।"
-
 msgid "According to format region"
 msgstr "प्रारूप क्षेत्र के अनुसार"
 
@@ -1135,9 +1128,6 @@ msgstr "योगदानकर्ता कुंजी की जाँच �
 
 msgid "Checking online accounts …"
 msgstr "ऑनलाइन खातों की जाँच हो रही है …"
-
-msgid "Checking the current manual version …"
-msgstr "वर्तमान मैनुअल संस्करण की जाँच की जा रही है …"
 
 msgid "Checking the current version …"
 msgstr "वर्तमान संस्करण की जाँच हो रही है …"
@@ -1818,12 +1808,6 @@ msgstr "पूर्ण"
 
 msgid "Dose type"
 msgstr "खुराक का प्रकार"
-
-msgid "Download manual"
-msgstr "हैंडबुक डाउनलोड करें"
-
-msgid "Download manual version %(version)s"
-msgstr "हैंडबुक संस्करण %(version)s डाउनलोड करें"
 
 msgid "Downloads"
 msgstr "डाउनलोड"
@@ -2814,9 +2798,6 @@ msgstr "कस्टम"
 msgid "Manual only"
 msgstr "केवल मैन्युअल"
 
-msgid "Manual version %(version)s is available."
-msgstr "मैनुअल संस्करण %(version)s उपलब्ध है।"
-
 msgid "Manufacturer"
 msgstr "निर्माता"
 
@@ -3168,9 +3149,6 @@ msgstr "इतिहास का कोई चार्ट नहीं"
 
 msgid "No insulin dose is calculated automatically."
 msgstr "इंसुलिन की कोई खुराक अपने आप नहीं गणना की जाती।"
-
-msgid "No manual update check has been performed yet."
-msgstr "कोई मैनुअल अद्यतन जाँच अभी तक नहीं की गई है।"
 
 msgid "No matching open task found."
 msgstr "कोई मेल खाता खुला कार्य नहीं मिला।"
@@ -3557,12 +3535,6 @@ msgstr "दिन को दैनिक दृश्य में खोले�
 
 msgid "Open the phone connection screen and try again."
 msgstr "फ़ोन से जुड़ने वाली स्क्रीन खोलें और फिर कोशिश करें।"
-
-msgid ""
-"Open the verified DEB with your software manager; the organizer never "
-"installs it automatically."
-msgstr ""
-"अपने सॉफ़्टवेयर प्रबंधक के साथ सत्यापित DEB खोलें; आयोजक इसे कभी भी स्वतः इंस्टॉल नहीं करता।"
 
 msgid "Open this address as a letter in LibreOffice"
 msgstr "इस पते को LibreOffice में पत्र के रूप में खोलें"
@@ -4267,9 +4239,6 @@ msgstr "%(date)s को प्राप्त किया गया।"
 msgid "Retrieving holidays …"
 msgstr "छुट्टियाँ प्राप्त की जा रही हैं …"
 
-msgid "Retrieving manual download information …"
-msgstr "मैन्युअल डाउनलोड जानकारी प्राप्त की जा रही है …"
-
 msgid "Retrieving weather…"
 msgstr "मौसम प्राप्त किया जा रहा है…"
 
@@ -4290,12 +4259,6 @@ msgstr "मार्ग"
 
 msgid "Route: calculate directions immediately"
 msgstr "मार्ग: दिशा-निर्देश तुरंत निकालें"
-
-msgid ""
-"Run the downloaded installer visibly and keep the Manual component selected."
-msgstr ""
-"डाउनलोड किए गए इंस्टॉलर को दिखाई देने वाले तरीके से चलाएँ और मैन्युअल कम्पोनेंट का चयन "
-"बनाए रखें।"
 
 msgid "S"
 msgstr "S"
@@ -5028,22 +4991,8 @@ msgstr ""
 msgid "The Magnolie Notes phone connection is switched off."
 msgstr "Magnolie Notes फ़ोन कनेक्शन बंद है।"
 
-msgid ""
-"The Magnolie manual is installed. It is best to read it through before you "
-"begin. Would you like to open it now?"
-msgstr ""
-"Magnolie हैंडबुक स्थापित है। शुरू करने से पहले इसे पढ़ लेना बेहतर है। क्या आप इसे अभी खोलना "
-"चाहेंगे?"
-
 msgid "The Magnolie manual is not installed."
 msgstr "Magnolie हैंडबुक स्थापित नहीं है।"
-
-msgid ""
-"The Magnolie manual is not installed. Version %(version)s can be downloaded "
-"now. Would you like to open the package download?"
-msgstr ""
-"Magnolie हैंडबुक स्थापित नहीं है। संस्करण %(version)s अभी डाउनलोड किया जा सकता है। "
-"क्या आप पैकेज डाउनलोड खोलना चाहेंगे?"
 
 msgid "The Magnolienbaum is available only in the installed application."
 msgstr "Magnolienbaum केवल स्थापित अनुप्रयोग में उपलब्ध है।"
@@ -5068,6 +5017,9 @@ msgstr "ऑर्गनाइज़र कोई उपयुक्त स्थ
 
 msgid "The SMS submission journal is full. No message was sent."
 msgstr "SMS भेजने के अनुरोधों का अभिलेख भर गया है। कोई संदेश नहीं भेजा गया।"
+
+msgid "The Windows installer includes the manual."
+msgstr "Windows इंस्टॉलर में पुस्तिका शामिल है।"
 
 msgid "The address could not be opened."
 msgstr "पता नहीं खुल सका."
@@ -5325,17 +5277,11 @@ msgstr "मेलबॉक्स तक पहुँचा जा सकता �
 msgid "The manual could not be opened."
 msgstr "हैंडबुक खोली नहीं जा सकी।"
 
-msgid "The manual download is available only in the installed application."
-msgstr "हैंडबुक डाउनलोड केवल स्थापित अनुप्रयोग में उपलब्ध है।"
-
 msgid "The manual download request is no longer valid."
 msgstr "मैनुअल डाउनलोड अनुरोध अब मान्य नहीं है।"
 
 msgid "The manual is installed; its version is unknown."
 msgstr "मैनुअल स्थापित किया गया है; इसका संस्करण अज्ञात है।"
-
-msgid "The manual is up to date."
-msgstr "मैन्युअल अद्यतनित है।"
 
 msgid "The manual package could not be opened."
 msgstr "हैंडबुक पैकेज खोला नहीं जा सका।"

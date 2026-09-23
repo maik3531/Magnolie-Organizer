@@ -10,6 +10,27 @@ import sys
 import tempfile
 
 ERGÄNZUNGEN = {
+    "The Windows installer includes the manual.": {
+        "de": "Das Handbuch ist im Windows-Installationsprogramm enthalten.",
+        "fr": "Le programme d’installation Windows inclut le manuel.",
+        "es": "El instalador de Windows incluye el manual.",
+        "it": "Il programma di installazione per Windows include il manuale.",
+        "nl": "Het Windows-installatieprogramma bevat de handleiding.",
+        "pt": "O instalador do Windows inclui o manual.",
+        "ru": "Руководство входит в установщик для Windows.",
+        "cs": "Instalační program pro Windows obsahuje příručku.",
+        "pl": "Instalator systemu Windows zawiera podręcznik.",
+        "hsb": "Instalaciski program za Windows wobsahuje přiručku.",
+        "da": "Installationsprogrammet til Windows indeholder vejledningen.",
+        "nb": "Installasjonsprogrammet for Windows inneholder håndboken.",
+        "hi": "Windows इंस्टॉलर में पुस्तिका शामिल है।",
+        "zh_CN": "Windows 安装程序包含用户手册。",
+        "ja": "Windows インストーラーにはマニュアルが含まれています。",
+        "ar": "يتضمن برنامج تثبيت Windows الدليل.",
+        "uk": "Посібник входить до інсталятора для Windows.",
+        "be": "Дапаможнік уваходзіць ва ўсталёўшчык для Windows.",
+        "tr": "Windows yükleyicisi kılavuzu içerir.",
+    },
     "Google requires browser sign-in. Use Internet accounts in Settings.": {
         "de": "Google benötigt eine Anmeldung im Browser. Verwenden Sie Internetkonten in den Einstellungen.",
         "fr": "Google exige une connexion dans le navigateur. Utilisez Comptes en ligne dans les paramètres.",
@@ -491,7 +512,9 @@ def haupt(argv):
             continue
         if msgid == "":
             kopf = aktuelle.get("", "")
-            ausgabe.append(re.sub(r'^msgstr ""(?:\n".*")*', lambda _: quoted("msgstr", kopf),
+            kopf_zeilen = 'msgstr ""\n' + "\n".join(
+                json.dumps(zeile + "\n", ensure_ascii=False) for zeile in kopf.splitlines())
+            ausgabe.append(re.sub(r'^msgstr ""(?:\n".*")*', lambda _: kopf_zeilen,
                                   block.replace("#, fuzzy\n", ""), count=1, flags=re.MULTILINE))
             continue
         context = feld(block, "msgctxt")

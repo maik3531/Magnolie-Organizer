@@ -499,13 +499,6 @@ msgstr "Pomocný rámeček zpřístupnění vypnut"
 msgid "Accessibility helper frame enabled"
 msgstr "Pomocný rámeček zpřístupnění zapnut"
 
-msgid ""
-"Accessibility: The helper frame shows the current keyboard focus. It is "
-"disabled by default; press Ctrl+Alt+H at any time to switch it on or off."
-msgstr ""
-"Zpřístupnění: Pomocný rámeček ukazuje aktuální fokus klávesnice. Ve výchozím "
-"nastavení je vypnutý; kdykoli jej zapnete nebo vypnete stiskem Ctrl+Alt+H."
-
 msgid "According to format region"
 msgstr "Podle oblasti formátu"
 
@@ -1177,9 +1170,6 @@ msgstr "Kontrola klíče přispěvatele…"
 
 msgid "Checking online accounts …"
 msgstr "Kontrola online účtů …"
-
-msgid "Checking the current manual version …"
-msgstr "Kontrola aktuální verze manuálu…"
 
 msgid "Checking the current version …"
 msgstr "Kontrola aktuální verze …"
@@ -1880,12 +1870,6 @@ msgstr "Hotovo"
 
 msgid "Dose type"
 msgstr "Typ dávky"
-
-msgid "Download manual"
-msgstr "Stáhnout příručku"
-
-msgid "Download manual version %(version)s"
-msgstr "Stáhnout příručku verze %(version)s"
 
 msgid "Downloads"
 msgstr "Stahování"
@@ -2888,9 +2872,6 @@ msgstr "Vlastní"
 msgid "Manual only"
 msgstr "Pouze ručně"
 
-msgid "Manual version %(version)s is available."
-msgstr "K dispozici je manuální verze %(version)s."
-
 msgid "Manufacturer"
 msgstr "Výrobce"
 
@@ -3245,9 +3226,6 @@ msgstr "Bez grafů historie"
 
 msgid "No insulin dose is calculated automatically."
 msgstr "Dávka inzulínu se nepočítá automaticky."
-
-msgid "No manual update check has been performed yet."
-msgstr "Dosud nebyla provedena žádná ruční kontrola aktualizací."
 
 msgid "No matching open task found."
 msgstr "Nebyl nalezen žádný odpovídající otevřený úkol."
@@ -3641,13 +3619,6 @@ msgstr "Otevřít den v denním zobrazení"
 
 msgid "Open the phone connection screen and try again."
 msgstr "Otevřete obrazovku připojení telefonu a zkuste to znovu."
-
-msgid ""
-"Open the verified DEB with your software manager; the organizer never "
-"installs it automatically."
-msgstr ""
-"Otevřete ověřený DEB pomocí správce softwaru; organizátor jej nikdy "
-"nenainstaluje automaticky."
 
 msgid "Open this address as a letter in LibreOffice"
 msgstr "Otevřít tuto adresu jako dopis v LibreOffice"
@@ -4357,9 +4328,6 @@ msgstr "Načteno dne %(date)s."
 msgid "Retrieving holidays …"
 msgstr "Načítání svátků …"
 
-msgid "Retrieving manual download information …"
-msgstr "Načítání informací pro ruční stažení …"
-
 msgid "Retrieving weather…"
 msgstr "Načítání počasí…"
 
@@ -4380,12 +4348,6 @@ msgstr "Trasa"
 
 msgid "Route: calculate directions immediately"
 msgstr "Trasa: ihned vypočítat pokyny"
-
-msgid ""
-"Run the downloaded installer visibly and keep the Manual component selected."
-msgstr ""
-"Spusťte stažený instalační program viditelně a ponechte vybranou komponentu "
-"Manual."
 
 msgid "S"
 msgstr "S"
@@ -5134,22 +5096,8 @@ msgstr ""
 msgid "The Magnolie Notes phone connection is switched off."
 msgstr "Telefonní spojení Magnolie Notes je vypnuto."
 
-msgid ""
-"The Magnolie manual is installed. It is best to read it through before you "
-"begin. Would you like to open it now?"
-msgstr ""
-"Příručka Magnolie je nainstalována. Nejlepší je přečíst si ji před začátkem. "
-"Chcete ji nyní otevřít?"
-
 msgid "The Magnolie manual is not installed."
 msgstr "Příručka Magnolie není nainstalována."
-
-msgid ""
-"The Magnolie manual is not installed. Version %(version)s can be downloaded "
-"now. Would you like to open the package download?"
-msgstr ""
-"Příručka Magnolie není nainstalována. Verzi %(version)s lze nyní stáhnout. "
-"Chcete otevřít stažení balíčku?"
 
 msgid "The Magnolienbaum is available only in the installed application."
 msgstr "Magnolienbaum je k dispozici pouze v nainstalované aplikaci."
@@ -5174,6 +5122,9 @@ msgstr "Organizér vybere vhodnou nainstalovanou aplikaci."
 
 msgid "The SMS submission journal is full. No message was sent."
 msgstr "Protokol odesílání SMS je plný. Žádná zpráva nebyla odeslána."
+
+msgid "The Windows installer includes the manual."
+msgstr "Instalační program pro Windows obsahuje příručku."
 
 msgid "The address could not be opened."
 msgstr "Adresu nelze otevřít."
@@ -5435,17 +5386,11 @@ msgstr "Schránka je dostupná."
 msgid "The manual could not be opened."
 msgstr "Příručku se nepodařilo otevřít."
 
-msgid "The manual download is available only in the installed application."
-msgstr "Stažení příručky je k dispozici pouze v nainstalované aplikaci."
-
 msgid "The manual download request is no longer valid."
 msgstr "Požadavek na ruční stažení již není platný."
 
 msgid "The manual is installed; its version is unknown."
 msgstr "Manuál je nainstalován; jeho verze není známa."
-
-msgid "The manual is up to date."
-msgstr "Manuál je aktuální."
 
 msgid "The manual package could not be opened."
 msgstr "Balíček příručky se nepodařilo otevřít."

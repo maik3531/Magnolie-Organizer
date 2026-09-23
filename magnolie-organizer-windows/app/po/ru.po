@@ -505,14 +505,6 @@ msgstr "Вспомогательная рамка доступности отк�
 msgid "Accessibility helper frame enabled"
 msgstr "Вспомогательная рамка доступности включена"
 
-msgid ""
-"Accessibility: The helper frame shows the current keyboard focus. It is "
-"disabled by default; press Ctrl+Alt+H at any time to switch it on or off."
-msgstr ""
-"Специальные возможности: вспомогательная рамка показывает текущий фокус "
-"клавиатуры. По умолчанию она отключена; в любой момент нажмите Ctrl+Alt+H, "
-"чтобы включить или выключить её."
-
 msgid "According to format region"
 msgstr "В соответствии с регионом формата"
 
@@ -1193,9 +1185,6 @@ msgstr "Проверка ключа участника…"
 
 msgid "Checking online accounts …"
 msgstr "Проверка онлайн-учётных записей …"
-
-msgid "Checking the current manual version …"
-msgstr "Проверка текущей версии руководства…"
 
 msgid "Checking the current version …"
 msgstr "Проверка текущей версии …"
@@ -1899,12 +1888,6 @@ msgstr "Готово"
 
 msgid "Dose type"
 msgstr "Тип дозы"
-
-msgid "Download manual"
-msgstr "Скачать руководство"
-
-msgid "Download manual version %(version)s"
-msgstr "Скачать руководство версии %(version)s"
 
 msgid "Downloads"
 msgstr "Загрузки"
@@ -2911,9 +2894,6 @@ msgstr "Пользовательский"
 msgid "Manual only"
 msgstr "Только вручную"
 
-msgid "Manual version %(version)s is available."
-msgstr "Руководство версии %(version)s доступно."
-
 msgid "Manufacturer"
 msgstr "Производитель"
 
@@ -3269,9 +3249,6 @@ msgstr "Без графиков истории"
 
 msgid "No insulin dose is calculated automatically."
 msgstr "Доза инсулина не рассчитывается автоматически."
-
-msgid "No manual update check has been performed yet."
-msgstr "Ручная проверка обновлений еще не выполнялась."
 
 msgid "No matching open task found."
 msgstr "Подходящая открытая задача не найдена."
@@ -3668,13 +3645,6 @@ msgstr "Открыть этот день в дневном виде"
 
 msgid "Open the phone connection screen and try again."
 msgstr "Откройте экран соединения с телефоном и попробуйте ещё раз."
-
-msgid ""
-"Open the verified DEB with your software manager; the organizer never "
-"installs it automatically."
-msgstr ""
-"Откройте проверенный DEB с помощью своего менеджера программного "
-"обеспечения; органайзер никогда не устанавливает его автоматически."
 
 msgid "Open this address as a letter in LibreOffice"
 msgstr "Открыть этот адрес как письмо в LibreOffice"
@@ -4391,9 +4361,6 @@ msgstr "Получено %(date)s."
 msgid "Retrieving holidays …"
 msgstr "Получение праздников …"
 
-msgid "Retrieving manual download information …"
-msgstr "Получение сведений о загрузке руководства …"
-
 msgid "Retrieving weather…"
 msgstr "Получение погоды…"
 
@@ -4415,11 +4382,6 @@ msgstr "Маршрут"
 
 msgid "Route: calculate directions immediately"
 msgstr "Маршрут: сразу рассчитать путь"
-
-msgid ""
-"Run the downloaded installer visibly and keep the Manual component selected."
-msgstr ""
-"Запустите загруженный установщик и оставьте выбранным компонент «Вручную»."
 
 msgid "S"
 msgstr "З"
@@ -5168,22 +5130,8 @@ msgstr ""
 msgid "The Magnolie Notes phone connection is switched off."
 msgstr "Телефонное соединение Magnolie Notes отключено."
 
-msgid ""
-"The Magnolie manual is installed. It is best to read it through before you "
-"begin. Would you like to open it now?"
-msgstr ""
-"Руководство Magnolie установлено. Лучше прочитать его целиком перед началом "
-"работы. Открыть его сейчас?"
-
 msgid "The Magnolie manual is not installed."
 msgstr "Руководство Magnolie не установлено."
-
-msgid ""
-"The Magnolie manual is not installed. Version %(version)s can be downloaded "
-"now. Would you like to open the package download?"
-msgstr ""
-"Руководство Magnolie не установлено. Версию %(version)s можно скачать "
-"сейчас. Открыть страницу загрузки пакета?"
 
 msgid "The Magnolienbaum is available only in the installed application."
 msgstr "Magnolienbaum доступен только в установленном приложении."
@@ -5208,6 +5156,9 @@ msgstr "Органайзер выбирает подходящее устано�
 
 msgid "The SMS submission journal is full. No message was sent."
 msgstr "Журнал запросов на отправку SMS заполнен. Сообщение не отправлено."
+
+msgid "The Windows installer includes the manual."
+msgstr "Руководство входит в установщик для Windows."
 
 msgid "The address could not be opened."
 msgstr "Адрес открыть не удалось."
@@ -5474,17 +5425,11 @@ msgstr "Почтовый ящик доступен."
 msgid "The manual could not be opened."
 msgstr "Не удалось открыть руководство."
 
-msgid "The manual download is available only in the installed application."
-msgstr "Загрузка руководства доступна только в установленном приложении."
-
 msgid "The manual download request is no longer valid."
 msgstr "Запрос на загрузку вручную больше не действителен."
 
 msgid "The manual is installed; its version is unknown."
 msgstr "Мануал установлен; его версия неизвестна."
-
-msgid "The manual is up to date."
-msgstr "Руководство актуальное."
 
 msgid "The manual package could not be opened."
 msgstr "Не удалось открыть пакет руководства."

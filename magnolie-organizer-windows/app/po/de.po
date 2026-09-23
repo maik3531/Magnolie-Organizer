@@ -473,14 +473,6 @@ msgstr "Barrierefreiheits-Hilfsrahmen ausgeschaltet"
 msgid "Accessibility helper frame enabled"
 msgstr "Barrierefreiheits-Hilfsrahmen eingeschaltet"
 
-msgid ""
-"Accessibility: The helper frame shows the current keyboard focus. It is "
-"disabled by default; press Ctrl+Alt+H at any time to switch it on or off."
-msgstr ""
-"Barrierefreiheit: Der Hilfsrahmen zeigt den aktuellen Tastaturfokus. Er ist "
-"voreingestellt ausgeschaltet; mit Strg+Alt+H können Sie ihn jederzeit ein- "
-"oder ausschalten."
-
 msgid "According to format region"
 msgstr "Gemäß Formatregion"
 
@@ -1167,9 +1159,6 @@ msgstr "Mitwirkendenschlüssel wird überprüft …"
 
 msgid "Checking online accounts …"
 msgstr "Frage die Online-Konten ab …"
-
-msgid "Checking the current manual version …"
-msgstr "Die aktuelle Handbuchfassung wird geprüft …"
 
 msgid "Checking the current version …"
 msgstr "Die aktuelle Fassung wird geprüft …"
@@ -1883,12 +1872,6 @@ msgstr "Fertig"
 
 msgid "Dose type"
 msgstr "Dosisart"
-
-msgid "Download manual"
-msgstr "Handbuch herunterladen"
-
-msgid "Download manual version %(version)s"
-msgstr "Handbuchfassung %(version)s herunterladen"
 
 msgid "Downloads"
 msgstr "Downloads"
@@ -2901,9 +2884,6 @@ msgstr "Benutzerdefiniert"
 msgid "Manual only"
 msgstr "Nur manuell"
 
-msgid "Manual version %(version)s is available."
-msgstr "Handbuchfassung %(version)s ist verfügbar."
-
 msgid "Manufacturer"
 msgstr "Hersteller"
 
@@ -3259,9 +3239,6 @@ msgstr "Keine Verlaufsdiagramme"
 
 msgid "No insulin dose is calculated automatically."
 msgstr "Es wird keine Insulindosis automatisch berechnet."
-
-msgid "No manual update check has been performed yet."
-msgstr "Es wurde noch nicht nach einer neuen Handbuchfassung gesucht."
 
 msgid "No matching open task found."
 msgstr "Keine passende offene Aufgabe gefunden."
@@ -3663,13 +3640,6 @@ msgstr "Den Tag in der Tagesansicht aufschlagen"
 msgid "Open the phone connection screen and try again."
 msgstr ""
 "Öffnen Sie die Ansicht für die Telefonverbindung und versuchen Sie es erneut."
-
-msgid ""
-"Open the verified DEB with your software manager; the organizer never "
-"installs it automatically."
-msgstr ""
-"Öffnen Sie das geprüfte DEB-Paket mit Ihrer Softwareverwaltung; der "
-"Organizer installiert es niemals automatisch."
 
 msgid "Open this address as a letter in LibreOffice"
 msgstr "Diese Anschrift als Brief in LibreOffice öffnen"
@@ -4392,9 +4362,6 @@ msgstr "Abgerufen am %(date)s."
 msgid "Retrieving holidays …"
 msgstr "Rufe die Feiertage ab …"
 
-msgid "Retrieving manual download information …"
-msgstr "Rufe die Handbuch-Downloadinformationen ab …"
-
 msgid "Retrieving weather…"
 msgstr "Wetter wird abgerufen …"
 
@@ -4416,12 +4383,6 @@ msgstr "Route"
 
 msgid "Route: calculate directions immediately"
 msgstr "Als Route: gleich den Weg dorthin berechnen"
-
-msgid ""
-"Run the downloaded installer visibly and keep the Manual component selected."
-msgstr ""
-"Führen Sie das heruntergeladene Installationsprogramm sichtbar aus und "
-"lassen Sie die Komponente „Handbuch“ ausgewählt."
 
 msgid "S"
 msgstr "D"
@@ -5175,22 +5136,8 @@ msgstr ""
 msgid "The Magnolie Notes phone connection is switched off."
 msgstr "Die Telefonverbindung Magnolie Notes ist ausgeschaltet."
 
-msgid ""
-"The Magnolie manual is installed. It is best to read it through before you "
-"begin. Would you like to open it now?"
-msgstr ""
-"Das Magnolie-Handbuch ist installiert. Lesen Sie es am besten einmal in Ruhe "
-"durch, bevor Sie beginnen. Möchten Sie es jetzt öffnen?"
-
 msgid "The Magnolie manual is not installed."
 msgstr "Das Magnolie-Handbuch ist nicht installiert."
-
-msgid ""
-"The Magnolie manual is not installed. Version %(version)s can be downloaded "
-"now. Would you like to open the package download?"
-msgstr ""
-"Das Magnolie-Handbuch ist nicht installiert. Die Fassung %(version)s kann "
-"jetzt heruntergeladen werden. Möchten Sie den Paketdownload öffnen?"
 
 msgid "The Magnolienbaum is available only in the installed application."
 msgstr "Der Magnolienbaum steht nur im installierten Programm bereit."
@@ -5217,6 +5164,9 @@ msgid "The SMS submission journal is full. No message was sent."
 msgstr ""
 "Das Protokoll für SMS-Versandaufträge ist voll. Es wurde keine Nachricht "
 "gesendet."
+
+msgid "The Windows installer includes the manual."
+msgstr "Das Handbuch ist im Windows-Installationsprogramm enthalten."
 
 msgid "The address could not be opened."
 msgstr "Die Adresse konnte nicht geöffnet werden."
@@ -5490,17 +5440,11 @@ msgstr "Der Briefkasten ist erreichbar."
 msgid "The manual could not be opened."
 msgstr "Das Handbuch ließ sich nicht öffnen."
 
-msgid "The manual download is available only in the installed application."
-msgstr "Den Handbuchdownload gibt es nur im installierten Programm."
-
 msgid "The manual download request is no longer valid."
 msgstr "Die Anfrage zum Herunterladen des Handbuchs ist nicht mehr gültig."
 
 msgid "The manual is installed; its version is unknown."
 msgstr "Das Handbuch ist installiert; seine Version ist unbekannt."
-
-msgid "The manual is up to date."
-msgstr "Das Handbuch ist aktuell."
 
 msgid "The manual package could not be opened."
 msgstr "Das Handbuchpaket ließ sich nicht öffnen."

@@ -474,14 +474,6 @@ msgstr "Hulpkader voor toegankelijkheid uitgeschakeld"
 msgid "Accessibility helper frame enabled"
 msgstr "Hulpkader voor toegankelijkheid ingeschakeld"
 
-msgid ""
-"Accessibility: The helper frame shows the current keyboard focus. It is "
-"disabled by default; press Ctrl+Alt+H at any time to switch it on or off."
-msgstr ""
-"Toegankelijkheid: het hulpkader toont de huidige toetsenbordfocus. Het is "
-"standaard uitgeschakeld; druk op elk gewenst moment op Ctrl+Alt+H om het in "
-"of uit te schakelen."
-
 msgid "According to format region"
 msgstr "Volgens de notatieregio"
 
@@ -1161,9 +1153,6 @@ msgstr "Sleutel van bijdrager controleren…"
 
 msgid "Checking online accounts …"
 msgstr "Online-accounts controleren …"
-
-msgid "Checking the current manual version …"
-msgstr "De huidige versie van de handleiding wordt gecontroleerd …"
 
 msgid "Checking the current version …"
 msgstr "Huidige versie controleren …"
@@ -1884,12 +1873,6 @@ msgstr "Gereed"
 
 msgid "Dose type"
 msgstr "Dosistype"
-
-msgid "Download manual"
-msgstr "Handboek downloaden"
-
-msgid "Download manual version %(version)s"
-msgstr "Handboekversie %(version)s downloaden"
 
 msgid "Downloads"
 msgstr "Downloads"
@@ -2902,9 +2885,6 @@ msgstr "Aangepast"
 msgid "Manual only"
 msgstr "Alleen handmatig"
 
-msgid "Manual version %(version)s is available."
-msgstr "Versie %(version)s van de handleiding is beschikbaar."
-
 msgid "Manufacturer"
 msgstr "Fabrikant"
 
@@ -3260,9 +3240,6 @@ msgstr "Geen verloopgrafieken"
 
 msgid "No insulin dose is calculated automatically."
 msgstr "Er wordt niet automatisch een insulinedosis berekend."
-
-msgid "No manual update check has been performed yet."
-msgstr "Er is nog niet gecontroleerd op updates voor de handleiding."
 
 msgid "No matching open task found."
 msgstr "Geen passende open taak gevonden."
@@ -3660,13 +3637,6 @@ msgstr "Deze dag openen in de dagweergave"
 
 msgid "Open the phone connection screen and try again."
 msgstr "Open het scherm voor de telefoonverbinding en probeer het opnieuw."
-
-msgid ""
-"Open the verified DEB with your software manager; the organizer never "
-"installs it automatically."
-msgstr ""
-"Open het geverifieerde DEB-pakket met uw softwarebeheerder; de Organizer "
-"installeert het nooit automatisch."
 
 msgid "Open this address as a letter in LibreOffice"
 msgstr "Dit adres als brief openen in LibreOffice"
@@ -4387,9 +4357,6 @@ msgstr "Opgehaald op %(date)s."
 msgid "Retrieving holidays …"
 msgstr "Feestdagen ophalen …"
 
-msgid "Retrieving manual download information …"
-msgstr "Downloadinformatie van het handboek ophalen …"
-
 msgid "Retrieving weather…"
 msgstr "Weer ophalen…"
 
@@ -4410,12 +4377,6 @@ msgstr "Route"
 
 msgid "Route: calculate directions immediately"
 msgstr "Route: routebeschrijving direct berekenen"
-
-msgid ""
-"Run the downloaded installer visibly and keep the Manual component selected."
-msgstr ""
-"Voer het gedownloade installatieprogramma zichtbaar uit en laat het "
-"onderdeel Handleiding geselecteerd."
 
 msgid "S"
 msgstr "D"
@@ -5166,22 +5127,8 @@ msgstr ""
 msgid "The Magnolie Notes phone connection is switched off."
 msgstr "De telefoonverbinding Magnolie Notes is uitgeschakeld."
 
-msgid ""
-"The Magnolie manual is installed. It is best to read it through before you "
-"begin. Would you like to open it now?"
-msgstr ""
-"Het Magnolie-handboek is geïnstalleerd. U kunt het het beste helemaal "
-"doorlezen voordat u begint. Wilt u het nu openen?"
-
 msgid "The Magnolie manual is not installed."
 msgstr "Het Magnolie-handboek is niet geïnstalleerd."
-
-msgid ""
-"The Magnolie manual is not installed. Version %(version)s can be downloaded "
-"now. Would you like to open the package download?"
-msgstr ""
-"Het Magnolie-handboek is niet geïnstalleerd. Versie %(version)s kan nu "
-"worden gedownload. Wilt u de pakketdownload openen?"
 
 msgid "The Magnolienbaum is available only in the installed application."
 msgstr "Magnolienbaum is alleen beschikbaar in de geïnstalleerde toepassing."
@@ -5207,6 +5154,9 @@ msgstr "De Organizer kiest een geschikte geïnstalleerde toepassing."
 msgid "The SMS submission journal is full. No message was sent."
 msgstr ""
 "Het logboek voor SMS-verzendverzoeken is vol. Er is geen bericht verzonden."
+
+msgid "The Windows installer includes the manual."
+msgstr "Het Windows-installatieprogramma bevat de handleiding."
 
 msgid "The address could not be opened."
 msgstr "Het adres kon niet worden geopend."
@@ -5477,19 +5427,11 @@ msgstr "De brievenbus is bereikbaar."
 msgid "The manual could not be opened."
 msgstr "Het handboek kon niet worden geopend."
 
-msgid "The manual download is available only in the installed application."
-msgstr ""
-"Het handboek downloaden is alleen beschikbaar in de geïnstalleerde "
-"toepassing."
-
 msgid "The manual download request is no longer valid."
 msgstr "Het verzoek om de handleiding te downloaden is niet meer geldig."
 
 msgid "The manual is installed; its version is unknown."
 msgstr "De handleiding is geïnstalleerd; de versie is onbekend."
-
-msgid "The manual is up to date."
-msgstr "De handleiding is bijgewerkt."
 
 msgid "The manual package could not be opened."
 msgstr "Het handboekpakket kon niet worden geopend."

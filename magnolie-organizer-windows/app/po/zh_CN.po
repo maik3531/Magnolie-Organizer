@@ -429,13 +429,6 @@ msgstr "无障碍辅助框已禁用"
 msgid "Accessibility helper frame enabled"
 msgstr "无障碍辅助框已启用"
 
-msgid ""
-"Accessibility: The helper frame shows the current keyboard focus. It is "
-"disabled by default; press Ctrl+Alt+H at any time to switch it on or off."
-msgstr ""
-"无障碍：辅助框显示当前键盘焦点。默认情况下它处于禁用状态；随时按 Ctrl+Alt+H "
-"即可打开或关闭。"
-
 msgid "According to format region"
 msgstr "根据格式区域"
 
@@ -1095,9 +1088,6 @@ msgstr "检查贡献者密钥..."
 
 msgid "Checking online accounts …"
 msgstr "正在检查在线账户 …"
-
-msgid "Checking the current manual version …"
-msgstr "正在检查当前手册版本…"
 
 msgid "Checking the current version …"
 msgstr "正在检查当前版本 …"
@@ -1761,12 +1751,6 @@ msgstr "完成"
 
 msgid "Dose type"
 msgstr "剂量类型"
-
-msgid "Download manual"
-msgstr "下载手册"
-
-msgid "Download manual version %(version)s"
-msgstr "下载手册版本 %(version)s"
 
 msgid "Downloads"
 msgstr "下载"
@@ -2740,9 +2724,6 @@ msgstr "自定义"
 msgid "Manual only"
 msgstr "仅手动"
 
-msgid "Manual version %(version)s is available."
-msgstr "手动版本 %(version)s 可用。"
-
 msgid "Manufacturer"
 msgstr "制造商"
 
@@ -3090,9 +3071,6 @@ msgstr "不包含历史图表"
 
 msgid "No insulin dose is calculated automatically."
 msgstr "不会自动计算胰岛素剂量。"
-
-msgid "No manual update check has been performed yet."
-msgstr "尚未进行手动更新检查。"
 
 msgid "No matching open task found."
 msgstr "未找到匹配的未完成任务。"
@@ -3466,11 +3444,6 @@ msgstr "在日视图中打开此日"
 
 msgid "Open the phone connection screen and try again."
 msgstr "请打开手机连接界面后重试。"
-
-msgid ""
-"Open the verified DEB with your software manager; the organizer never "
-"installs it automatically."
-msgstr "用你的软件管理器打开已验证的 DEB；组织者从不自动安装它。"
 
 msgid "Open this address as a letter in LibreOffice"
 msgstr "在 LibreOffice 中将此地址作为信件打开"
@@ -4153,9 +4126,6 @@ msgstr "获取于 %(date)s。"
 msgid "Retrieving holidays …"
 msgstr "正在获取节假日 …"
 
-msgid "Retrieving manual download information …"
-msgstr "正在获取手动下载信息 …"
-
 msgid "Retrieving weather…"
 msgstr "正在获取天气…"
 
@@ -4176,10 +4146,6 @@ msgstr "路线"
 
 msgid "Route: calculate directions immediately"
 msgstr "路线：立即计算导航"
-
-msgid ""
-"Run the downloaded installer visibly and keep the Manual component selected."
-msgstr "以可见方式运行下载的安装程序，并保持手动组件处于选中状态。"
 
 msgid "S"
 msgstr "S"
@@ -4904,19 +4870,8 @@ msgstr ""
 msgid "The Magnolie Notes phone connection is switched off."
 msgstr "Magnolie Notes 电话连接已关闭。"
 
-msgid ""
-"The Magnolie manual is installed. It is best to read it through before you "
-"begin. Would you like to open it now?"
-msgstr "Magnolie 手册已安装。最好在开始使用前通读一遍。现在要打开吗？"
-
 msgid "The Magnolie manual is not installed."
 msgstr "Magnolie 手册未安装。"
-
-msgid ""
-"The Magnolie manual is not installed. Version %(version)s can be downloaded "
-"now. Would you like to open the package download?"
-msgstr ""
-"Magnolie 手册未安装。现在可以下载 %(version)s 版本。要打开软件包下载页面吗？"
 
 msgid "The Magnolienbaum is available only in the installed application."
 msgstr "Magnolienbaum 仅在已安装的应用中可用。"
@@ -4941,6 +4896,9 @@ msgstr "Organizer 会选择合适的已安装应用。"
 
 msgid "The SMS submission journal is full. No message was sent."
 msgstr "SMS 提交日志已满。没有发送任何消息。"
+
+msgid "The Windows installer includes the manual."
+msgstr "Windows 安装程序包含用户手册。"
 
 msgid "The address could not be opened."
 msgstr "该地址无法打开。"
@@ -5187,17 +5145,11 @@ msgstr "信箱可以访问。"
 msgid "The manual could not be opened."
 msgstr "无法打开手册。"
 
-msgid "The manual download is available only in the installed application."
-msgstr "手册下载仅在已安装的应用中可用。"
-
 msgid "The manual download request is no longer valid."
 msgstr "手动下载请求不再有效。"
 
 msgid "The manual is installed; its version is unknown."
 msgstr "手册已安装；其版本未知。"
-
-msgid "The manual is up to date."
-msgstr "手册是最新的。"
 
 msgid "The manual package could not be opened."
 msgstr "无法打开手册软件包。"

@@ -533,13 +533,6 @@ msgstr "Pomocny wobłuk bjezbarjernstwa znjemóžnjeny"
 msgid "Accessibility helper frame enabled"
 msgstr "Pomocny wobłuk bjezbarjernstwa zmóžnjeny"
 
-msgid ""
-"Accessibility: The helper frame shows the current keyboard focus. It is "
-"disabled by default; press Ctrl+Alt+H at any time to switch it on or off."
-msgstr ""
-"Bjezbarjernosć: Pomocny wobłuk pokazuje aktualny tastaturowy fokus. "
-"Standardnje je znjemóžnjeny; z Ctrl+Alt+H móžeće jón kóždy čas přešaltować."
-
 msgid "According to format region"
 msgstr "Po formatowym regionje"
 
@@ -1214,9 +1207,6 @@ msgstr "Sobuskutkowarski kluč so přepruwuje…"
 
 msgid "Checking online accounts …"
 msgstr "Online-konta so přepruwuja …"
-
-msgid "Checking the current manual version …"
-msgstr "Aktualnu manualnu wersiju přepruwować …"
 
 msgid "Checking the current version …"
 msgstr "Aktualna wersija so přepruwuje …"
@@ -1934,12 +1924,6 @@ msgstr "Hotowo"
 
 msgid "Dose type"
 msgstr "Družina dozy"
-
-msgid "Download manual"
-msgstr "Přiručku sćahnyć"
-
-msgid "Download manual version %(version)s"
-msgstr "Přiručku wersije %(version)s sćahnyć"
 
 msgid "Downloads"
 msgstr "Sćehnjenja"
@@ -2946,9 +2930,6 @@ msgstr "Swójske"
 msgid "Manual only"
 msgstr "Jenož manuelnje"
 
-msgid "Manual version %(version)s is available."
-msgstr "Manuelna wersija %(version)s je k dispoziciji."
-
 msgid "Manufacturer"
 msgstr "Zhotowjer"
 
@@ -3303,9 +3284,6 @@ msgstr "Žane diagramy stawiznow"
 
 msgid "No insulin dose is calculated automatically."
 msgstr "Insulinowa doza so awtomatisce njewuliča."
-
-msgid "No manual update check has been performed yet."
-msgstr "Manuelna kontrola aktualizacije njeje so hišće přewjedła."
 
 msgid "No matching open task found."
 msgstr "Žadyn hodźacy so wočinjenny nadawk namakany."
@@ -3706,13 +3684,6 @@ msgstr "Dźeń w dnjowym napohladźe wočinić"
 
 msgid "Open the phone connection screen and try again."
 msgstr "Wočińće napohlad za zwjazanje z telefonom a spytajće hišće raz."
-
-msgid ""
-"Open the verified DEB with your software manager; the organizer never "
-"installs it automatically."
-msgstr ""
-"Wočińće pruwowany DEB ze swojim softwaremanagerom; Zarjadowar je ženje "
-"awtomatisce njeinstaluje."
 
 msgid "Open this address as a letter in LibreOffice"
 msgstr "Tutu adresu jako list w LibreOffice wočinić"
@@ -4437,9 +4408,6 @@ msgstr "Wotwołane dnja %(date)s."
 msgid "Retrieving holidays …"
 msgstr "Swjate dny so wotwołuja …"
 
-msgid "Retrieving manual download information …"
-msgstr "Informacije za manuelne sćehnjenje so wotwołuja …"
-
 msgid "Retrieving weather…"
 msgstr "Wjedro so wotwołuje…"
 
@@ -4460,12 +4428,6 @@ msgstr "Rota"
 
 msgid "Route: calculate directions immediately"
 msgstr "Rota: pućnik hnydom wobličić"
-
-msgid ""
-"Run the downloaded installer visibly and keep the Manual component selected."
-msgstr ""
-"Startuj sćehnjeny instalowanski program widźomnje a wostań manuelny "
-"komponent wubrany."
 
 msgid "S"
 msgstr "S"
@@ -5217,22 +5179,8 @@ msgstr ""
 msgid "The Magnolie Notes phone connection is switched off."
 msgstr "Telefonowy zwisk Magnolie Notes je wupinjeny."
 
-msgid ""
-"The Magnolie manual is installed. It is best to read it through before you "
-"begin. Would you like to open it now?"
-msgstr ""
-"Přiručka Magnolie je instalowana. Najlěpje je ju přečitać, prjedy hač "
-"započnjeće. Chceće ju nětko wočinić?"
-
 msgid "The Magnolie manual is not installed."
 msgstr "Přiručka Magnolie njeje instalowana."
-
-msgid ""
-"The Magnolie manual is not installed. Version %(version)s can be downloaded "
-"now. Would you like to open the package download?"
-msgstr ""
-"Přiručka Magnolie njeje instalowana. Wersija %(version)s hodźi so nětko "
-"sćahnyć. Chceće sćehnjenje paketa wočinić?"
 
 msgid "The Magnolienbaum is available only in the installed application."
 msgstr "Magnolienbaum je jenož w instalowanym nałoženju k dispoziciji."
@@ -5259,6 +5207,9 @@ msgid "The SMS submission journal is full. No message was sent."
 msgstr ""
 "Protokol naprašowanjow za pósłanjom SMS je połny. Žana powěsć njeje so "
 "pósłała."
+
+msgid "The Windows installer includes the manual."
+msgstr "Instalaciski program za Windows wobsahuje přiručku."
 
 msgid "The address could not be opened."
 msgstr "Adresa njehodźeše so wočinić."
@@ -5521,17 +5472,11 @@ msgstr "Póstowy kašćik je docpějomny."
 msgid "The manual could not be opened."
 msgstr "Přiručka njehodźeše so wočinić."
 
-msgid "The manual download is available only in the installed application."
-msgstr "Sćehnjenje přiručki je jenož w instalowanym nałoženju k dispoziciji."
-
 msgid "The manual download request is no longer valid."
 msgstr "Manuelne naprašowanje za downloadom njeje wjace płaćiwe."
 
 msgid "The manual is installed; its version is unknown."
 msgstr "Přiručka je instalowana; Jeho wersija njeje znata."
-
-msgid "The manual is up to date."
-msgstr "Přiručka je na najnowšim stawje."
 
 msgid "The manual package could not be opened."
 msgstr "Paket přiručki njehodźeše so wočinić."

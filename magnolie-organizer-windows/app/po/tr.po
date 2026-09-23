@@ -471,14 +471,6 @@ msgstr "Erişilebilirlik yardımcı çerçevesi devre dışı"
 msgid "Accessibility helper frame enabled"
 msgstr "Erişilebilirlik yardımcı çerçevesi etkin"
 
-msgid ""
-"Accessibility: The helper frame shows the current keyboard focus. It is "
-"disabled by default; press Ctrl+Alt+H at any time to switch it on or off."
-msgstr ""
-"Erişilebilirlik: Yardımcı çerçeve geçerli klavye odağını gösterir. "
-"Varsayılan olarak devre dışıdır; açıp kapatmak için istediğiniz zaman "
-"Ctrl+Alt+H tuşlarına basın."
-
 msgid "According to format region"
 msgstr "Biçim bölgesine göre"
 
@@ -1156,9 +1148,6 @@ msgstr "Katkıda bulunan anahtarı kontrol ediliyor…"
 
 msgid "Checking online accounts …"
 msgstr "Çevrimiçi hesaplar denetleniyor …"
-
-msgid "Checking the current manual version …"
-msgstr "Geçerli kılavuz sürümü denetleniyor …"
 
 msgid "Checking the current version …"
 msgstr "Geçerli sürüm denetleniyor …"
@@ -1859,12 +1848,6 @@ msgstr "Bitti"
 
 msgid "Dose type"
 msgstr "Doz türü"
-
-msgid "Download manual"
-msgstr "Kılavuzu indir"
-
-msgid "Download manual version %(version)s"
-msgstr "Kılavuzun %(version)s sürümünü indir"
 
 msgid "Downloads"
 msgstr "İndirilenler"
@@ -2870,9 +2853,6 @@ msgstr "Özel"
 msgid "Manual only"
 msgstr "Yalnızca elle"
 
-msgid "Manual version %(version)s is available."
-msgstr "Kılavuzun %(version)s sürümü kullanılabilir."
-
 msgid "Manufacturer"
 msgstr "Üretici"
 
@@ -3227,9 +3207,6 @@ msgstr "Geçmiş grafiği yok"
 
 msgid "No insulin dose is calculated automatically."
 msgstr "Hiçbir insülin dozu otomatik olarak hesaplanmaz."
-
-msgid "No manual update check has been performed yet."
-msgstr "Henüz kılavuz güncellemesi denetlenmedi."
 
 msgid "No matching open task found."
 msgstr "Eşleşen açık görev bulunamadı."
@@ -3621,13 +3598,6 @@ msgstr "Günü günlük görünümde aç"
 
 msgid "Open the phone connection screen and try again."
 msgstr "Telefon bağlantısı ekranını açıp yeniden deneyin."
-
-msgid ""
-"Open the verified DEB with your software manager; the organizer never "
-"installs it automatically."
-msgstr ""
-"Doğrulanmış DEB paketini yazılım yöneticinizle açın; Organizer paketi hiçbir "
-"zaman otomatik olarak kurmaz."
 
 msgid "Open this address as a letter in LibreOffice"
 msgstr "Bu adresi LibreOffice’te mektup olarak aç"
@@ -4341,9 +4311,6 @@ msgstr "%(date)s tarihinde alındı."
 msgid "Retrieving holidays …"
 msgstr "Tatiller alınıyor …"
 
-msgid "Retrieving manual download information …"
-msgstr "Elle indirme bilgileri alınıyor …"
-
 msgid "Retrieving weather…"
 msgstr "Hava durumu alınıyor…"
 
@@ -4364,12 +4331,6 @@ msgstr "Rota"
 
 msgid "Route: calculate directions immediately"
 msgstr "Rota: yol tarifini hemen hesapla"
-
-msgid ""
-"Run the downloaded installer visibly and keep the Manual component selected."
-msgstr ""
-"İndirilen kurucuyu görünür şekilde çalıştırın ve Kılavuz bileşenini seçili "
-"bırakın."
 
 msgid "S"
 msgstr "S"
@@ -5112,22 +5073,8 @@ msgstr ""
 msgid "The Magnolie Notes phone connection is switched off."
 msgstr "Magnolie Notes telefon bağlantısı kapatıldı."
 
-msgid ""
-"The Magnolie manual is installed. It is best to read it through before you "
-"begin. Would you like to open it now?"
-msgstr ""
-"Magnolie kılavuzu kurulu. Başlamadan önce baştan sona okumanız en iyisidir. "
-"Şimdi açılsın mı?"
-
 msgid "The Magnolie manual is not installed."
 msgstr "Magnolie kılavuzu kurulu değil."
-
-msgid ""
-"The Magnolie manual is not installed. Version %(version)s can be downloaded "
-"now. Would you like to open the package download?"
-msgstr ""
-"Magnolie kılavuzu kurulu değil. %(version)s sürümü şimdi indirilebilir. "
-"Paket indirmesi açılsın mı?"
 
 msgid "The Magnolienbaum is available only in the installed application."
 msgstr "Magnolienbaum yalnızca kurulu uygulamada kullanılabilir."
@@ -5152,6 +5099,9 @@ msgstr "Organizer uygun bir kurulu uygulama seçer."
 
 msgid "The SMS submission journal is full. No message was sent."
 msgstr "SMS gönderim isteklerinin günlüğü dolu. Hiçbir mesaj gönderilmedi."
+
+msgid "The Windows installer includes the manual."
+msgstr "Windows yükleyicisi kılavuzu içerir."
 
 msgid "The address could not be opened."
 msgstr "Adres açılamadı."
@@ -5417,17 +5367,11 @@ msgstr "Posta kutusuna ulaşılabiliyor."
 msgid "The manual could not be opened."
 msgstr "Kılavuz açılamadı."
 
-msgid "The manual download is available only in the installed application."
-msgstr "Kılavuzu indirme yalnızca kurulu uygulamada kullanılabilir."
-
 msgid "The manual download request is no longer valid."
 msgstr "Kılavuz indirme isteği artık geçerli değil."
 
 msgid "The manual is installed; its version is unknown."
 msgstr "Kılavuz yüklü; sürümü bilinmiyor."
-
-msgid "The manual is up to date."
-msgstr "Kılavuz güncel."
 
 msgid "The manual package could not be opened."
 msgstr "Kılavuz paketi açılamadı."

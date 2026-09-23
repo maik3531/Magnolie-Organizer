@@ -18824,41 +18824,17 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
   }
 
   function oeffneHandbuchDownload() {
-    if (!Bruecke.vorhanden) {
-      zettel(_("The manual download is available only in the installed application."));
-      return false;
-    }
-    if (!handbuchDownload.url) {
-      starteUpdatePruefung(true);
-      zettel(_("Retrieving manual download information …"));
-      return false;
-    }
-    return Bruecke.sende({ cmd: "handbuch_herunterladen",
-      url: handbuchDownload.url, version: handbuchDownload.version,
-      sha256: handbuchDownload.sha256, platform: handbuchDownload.platform });
+    einstSeite = "ueber";
+    oeffneEinstellungen();
+    return starteUpdatePruefung(true);
   }
 
   function zeigeHandbuchHinweis() {
     if (!handbuchHinweisAusstehend) return false;
-    const installiert = handbuchInstalliert;
-    if (!installiert && !handbuchDownload.url) return false;
     handbuchHinweisAusstehend = false;
     DATEN.einstellungen.allgemein.handbuchHinweisGezeigt = true;
-    speichereJetzt();
-    frage(installiert
-      ? _("The Magnolie manual is installed. It is best to read it through " +
-        "before you begin. Would you like to open it now?")
-      : uebersetzt("The Magnolie manual is not installed. Version %(version)s " +
-        "can be downloaded now. Would you like to open the package download?",
-      { version: handbuchDownload.version }),
-    installiert ? _("Open manual") : _("Download manual"), _("Not now"),
-    _("Accessibility: The helper frame shows the current keyboard focus. " +
-      "It is disabled by default; press Ctrl+Alt+H at any time to switch it on " +
-      "or off.")).then((oeffnen) => {
-      if (oeffnen) (installiert ? oeffneHandbuch() : oeffneHandbuchDownload());
-      setTimeout(zeigeKontaktAssistent, 0);
-    });
-    return true;
+    planeSpeichern();
+    return false;
   }
 
   function versionsSchluessel(fassung) {
@@ -21097,33 +21073,13 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       ? (handbuchVersion ? uebersetzt("Installed manual version: %(version)s.",
         { version: handbuchVersion }) : _("The manual is installed; its version is unknown."))
       : _("The Magnolie manual is not installed.");
-    let pruefText = _("No manual update check has been performed yet.");
-    if (handbuchStatus === "laeuft") pruefText = _("Checking the current manual version …");
-    else if (handbuchStatus === "aktuell") pruefText = _("The manual is up to date.");
-    else if (handbuchStatus === "neu") pruefText = uebersetzt(
-      "Manual version %(version)s is available.", { version: handbuchDownload.version });
-    else if (handbuchStatus === "fehler") pruefText = handbuchFehler ||
-      _("The manual update check failed.");
-    handbuchStand.textContent = installiertText + " " + pruefText;
-    if (handbuchStatus === "neu" || handbuchStatus === "fehler") handbuchStand.classList.add("warnt");
+    handbuchStand.textContent = installiertText + " " + _("The Windows installer includes the manual.");
     handbuchKasten.append(handbuchStand);
     const handbuchReihe = el("div", "knopfreihe");
     const handbuchKnopf = knopf(_("Open manual"), "", oeffneHandbuch);
     handbuchKnopf.id = "handbuch-oeffnen";
     handbuchKnopf.disabled = !Bruecke.vorhanden || !handbuchInstalliert;
     handbuchReihe.append(handbuchKnopf);
-    if (handbuchStatus === "neu" && handbuchDownload.url) {
-      const handbuchHolen = knopf(uebersetzt("Download manual version %(version)s",
-        { version: handbuchDownload.version }), "haupt", oeffneHandbuchDownload);
-      handbuchHolen.id = "handbuch-herunterladen";
-      handbuchReihe.append(handbuchHolen);
-      const summe = el("div", "update-pruefsumme");
-      summe.append(el("code", "", "SHA-256: " + handbuchDownload.sha256));
-      summe.append(el("span", "", handbuchDownload.platform === "windows"
-        ? _("Run the downloaded installer visibly and keep the Manual component selected.")
-        : _("Open the verified DEB with your software manager; the organizer never installs it automatically.")));
-      handbuchKasten.append(summe);
-    }
     handbuchKasten.append(handbuchReihe);
     rechts.append(handbuchKasten);
 
@@ -24253,9 +24209,8 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     deckel.addEventListener("transitionend", wegDamit, { once: true });
     setTimeout(wegDamit, 1400);
     if (handbuchHinweisAusstehend) setTimeout(() => {
-      if (!zeigeHandbuchHinweis() && !handbuchInstalliert && Bruecke.vorhanden) {
-        starteUpdatePruefung(true);
-      }
+      zeigeHandbuchHinweis();
+      zeigeKontaktAssistent();
     }, 450);
     else if (kontaktAssistentAusstehend) setTimeout(zeigeKontaktAssistent, 450);
   }

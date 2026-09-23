@@ -449,11 +449,6 @@ msgstr ""
 msgid "Accessibility helper frame enabled"
 msgstr ""
 
-msgid ""
-"Accessibility: The helper frame shows the current keyboard focus. It is "
-"disabled by default; press Ctrl+Alt+H at any time to switch it on or off."
-msgstr ""
-
 msgid "According to format region"
 msgstr ""
 
@@ -1098,9 +1093,6 @@ msgid "Checking contributor key …"
 msgstr ""
 
 msgid "Checking online accounts …"
-msgstr ""
-
-msgid "Checking the current manual version …"
 msgstr ""
 
 msgid "Checking the current version …"
@@ -1751,12 +1743,6 @@ msgid "Done"
 msgstr ""
 
 msgid "Dose type"
-msgstr ""
-
-msgid "Download manual"
-msgstr ""
-
-msgid "Download manual version %(version)s"
 msgstr ""
 
 msgid "Downloads"
@@ -2697,9 +2683,6 @@ msgstr ""
 msgid "Manual only"
 msgstr ""
 
-msgid "Manual version %(version)s is available."
-msgstr ""
-
 msgid "Manufacturer"
 msgstr ""
 
@@ -3036,9 +3019,6 @@ msgid "No history charts"
 msgstr ""
 
 msgid "No insulin dose is calculated automatically."
-msgstr ""
-
-msgid "No manual update check has been performed yet."
 msgstr ""
 
 msgid "No matching open task found."
@@ -3396,11 +3376,6 @@ msgid "Open the day in the daily view"
 msgstr ""
 
 msgid "Open the phone connection screen and try again."
-msgstr ""
-
-msgid ""
-"Open the verified DEB with your software manager; the organizer never "
-"installs it automatically."
 msgstr ""
 
 msgid "Open this address as a letter in LibreOffice"
@@ -4077,9 +4052,6 @@ msgstr ""
 msgid "Retrieving holidays …"
 msgstr ""
 
-msgid "Retrieving manual download information …"
-msgstr ""
-
 msgid "Retrieving weather…"
 msgstr ""
 
@@ -4099,10 +4071,6 @@ msgid "Route"
 msgstr ""
 
 msgid "Route: calculate directions immediately"
-msgstr ""
-
-msgid ""
-"Run the downloaded installer visibly and keep the Manual component selected."
 msgstr ""
 
 msgid "S"
@@ -4816,17 +4784,7 @@ msgstr ""
 msgid "The Magnolie Notes phone connection is switched off."
 msgstr ""
 
-msgid ""
-"The Magnolie manual is installed. It is best to read it through before you "
-"begin. Would you like to open it now?"
-msgstr ""
-
 msgid "The Magnolie manual is not installed."
-msgstr ""
-
-msgid ""
-"The Magnolie manual is not installed. Version %(version)s can be downloaded "
-"now. Would you like to open the package download?"
 msgstr ""
 
 msgid "The Magnolienbaum is available only in the installed application."
@@ -4851,6 +4809,9 @@ msgid "The Organizer chooses a suitable installed application."
 msgstr ""
 
 msgid "The SMS submission journal is full. No message was sent."
+msgstr ""
+
+msgid "The Windows installer includes the manual."
 msgstr ""
 
 msgid "The address could not be opened."
@@ -5076,16 +5037,10 @@ msgstr ""
 msgid "The manual could not be opened."
 msgstr ""
 
-msgid "The manual download is available only in the installed application."
-msgstr ""
-
 msgid "The manual download request is no longer valid."
 msgstr ""
 
 msgid "The manual is installed; its version is unknown."
-msgstr ""
-
-msgid "The manual is up to date."
 msgstr ""
 
 msgid "The manual package could not be opened."
