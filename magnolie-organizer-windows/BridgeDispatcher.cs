@@ -655,10 +655,12 @@ internal sealed partial class BridgeDispatcher : IDisposable
             if (document.RootElement.ValueKind != JsonValueKind.Object)
                 throw new JsonException(T("The data is not a JSON object."));
             // The persisted restore epoch fences requests queued before or sent after restore.
-            var epoch = JsonNode.Parse(currentPlainText)?["syncEpoch"]?.GetValue<string>() ?? "";
+            var previousData = JsonNode.Parse(currentPlainText) as JsonObject;
+            var epoch = previousData?["syncEpoch"]?.GetValue<string>() ?? "";
             if (epoch.Length != 0 && Text(document.RootElement, "syncEpoch") != epoch)
                 throw new JsonException(T("The save request is invalid."));
-            if (currentPlainTextAvailable && !string.Equals(currentPlainText, text, StringComparison.Ordinal))
+            if (previousData is not null && RecoveryJournal.HasRecoverableChanges(
+                    previousData, JsonNode.Parse(text)!.AsObject()))
                 CreateSnapshot(SnapshotReason.PreChange);
 
             if (encryption.Session is not null)

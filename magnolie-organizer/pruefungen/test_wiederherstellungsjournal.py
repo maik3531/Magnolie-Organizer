@@ -42,6 +42,21 @@ def disk(_pfad):
     return Disk(100 * 1024 ** 3, 0, 10 * 1024 ** 3)
 
 
+vorher = daten()
+einstellungen = copy.deepcopy(vorher)
+einstellungen["einstellungen"]["ansicht"] = "month"
+einstellungen["letzterSync"] = 123
+einstellungen["syncMetadaten"] = {"nextcloud": {"ausstehendeTransaktion": "test"}}
+assert not m.journal_inhalt_geaendert(vorher, einstellungen)
+for feld in ("termine", "kontakte", "notizen", "customOrganizer", "gesundheit", "smsPlanung", "futureContent"):
+    geaendert = copy.deepcopy(einstellungen)
+    geaendert[feld] = [{"id": "changed"}]
+    assert m.journal_inhalt_geaendert(vorher, geaendert), feld
+geloescht = copy.deepcopy(vorher)
+del geloescht["kontakte"]
+assert m.journal_inhalt_geaendert(vorher, geloescht)
+
+
 # Auch nach der ersten Migration von einer alten Version neu angelegte Punkte
 # werden einzeln nachgezogen, ohne einen vorhandenen Zielpunkt zu überschreiben.
 with tempfile.TemporaryDirectory() as tmp:

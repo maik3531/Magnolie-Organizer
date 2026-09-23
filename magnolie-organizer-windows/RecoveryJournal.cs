@@ -49,6 +49,19 @@ internal sealed class RecoveryJournal
         lock (gate) return Create(data, reason, appVersion, protect, syncEpoch, restoreLease: false);
     }
 
+    internal static bool HasRecoverableChanges(JsonObject previous, JsonObject proposed)
+    {
+        // Full snapshots still retain settings and sync state. Only the automatic
+        // pre-change trigger ignores bookkeeping that does not change user content.
+        foreach (var name in previous.Select(item => item.Key).Union(proposed.Select(item => item.Key)))
+        {
+            if (name is "einstellungen" or "letzterSync" or "letzteSyncs" or "syncStatus" or
+                "syncMetadaten" or "syncEpoch" or "syncNachRestore" or "syncAbgleichBasis") continue;
+            if (!JsonNode.DeepEquals(previous[name], proposed[name])) return true;
+        }
+        return false;
+    }
+
     internal SnapshotInfo CreateRestorePoint(JsonObject data, string appVersion,
         Func<string, string>? protect = null, string? syncEpoch = null)
     {
@@ -63,7 +76,8 @@ internal sealed class RecoveryJournal
         var reasonText = ReasonText(reason);
         var snapshotData = data.DeepClone().AsObject();
         var archive = GesamtarchivService.Create(snapshotData, "windows", appVersion, created: now);
-        var sourceHash = Sha256(archive);
+        // Hash the normalized content, not the archive envelope's changing timestamp.
+        var sourceHash = JsonNode.Parse(archive)!["sha256"]!.GetValue<string>();
         SnapshotInfo? duplicate = null;
         foreach (var item in List().Where(item => item.Reason == reasonText &&
                      now - item.CreatedUtc <= TimeSpan.FromMinutes(15) && SourceHash(item.Directory) == sourceHash))

@@ -35,6 +35,20 @@ internal static class RecoveryJournalTests
                 ["kontakte"] = new JsonArray(), ["notizen"] = new JsonArray(new JsonObject { ["id"] = "n1",
                     ["anhaenge"] = new JsonArray(new JsonObject { ["name"] = "a.pdf", ["sha256"] = new string('a', 64),
                         ["daten"] = "data:application/pdf;base64,JVBERg==" }) }), ["syncEpoch"] = "epoch-1" };
+            var preferences = data.DeepClone().AsObject();
+            preferences["einstellungen"] = JsonNode.Parse("{\"ansicht\":\"month\",\"schrift\":{\"groesse\":\"large\"}}");
+            preferences["letzterSync"] = 123;
+            preferences["syncMetadaten"] = JsonNode.Parse("{\"nextcloud\":{\"ausstehendeTransaktion\":\"test\"}}");
+            TestAssert.That(!RecoveryJournal.HasRecoverableChanges(data, preferences),
+                "Einstellungen und Sync-Buchhaltung erzeugen unnötige Vorher-Stände.");
+            foreach (var field in new[] { "termine", "kontakte", "notizen", "customOrganizer", "gesundheit", "smsPlanung", "futureContent" })
+            {
+                var changed = preferences.DeepClone().AsObject();
+                changed[field] = JsonNode.Parse("[{\"id\":\"changed\"}]");
+                TestAssert.That(RecoveryJournal.HasRecoverableChanges(data, changed), "Inhaltsänderung wurde übersehen: " + field);
+            }
+            var deleted = data.DeepClone().AsObject(); deleted.Remove("notizen");
+            TestAssert.That(RecoveryJournal.HasRecoverableChanges(data, deleted), "Gelöschte Inhalte wurden übersehen.");
             var first = journal.Create(data, SnapshotReason.Periodic, "2.0.2");
             var manifest = JsonNode.Parse(File.ReadAllText(Path.Combine(first.Directory, "manifest.json")))!.AsObject();
             TestAssert.That(manifest["format"]?.GetValue<string>() == "magnolie-snapshot" &&
@@ -69,6 +83,7 @@ internal static class RecoveryJournalTests
             var sameFilename = JsonNode.Parse("{\"anhaenge\":[{\"name\":\"same.pdf\",\"daten\":\"data:application/pdf;base64,JVBERg==\"}]}")!.AsObject();
             try { RestoreSelection.Select(filenameOnly, sameFilename, ["all"], "replace"); throw new Exception("Filename-only identity accepted."); }
             catch (InvalidDataException) { }
+            now = now.AddMinutes(1);
             var duplicate = journal.Create(data, SnapshotReason.Periodic, "2.0.2");
             TestAssert.That(duplicate.Id == first.Id && journal.List().Count == 1, "15-Minuten-Deduplizierung greift nicht.");
 

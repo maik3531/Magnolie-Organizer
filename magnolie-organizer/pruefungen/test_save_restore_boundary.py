@@ -102,6 +102,26 @@ def test_native_queued_save_checks_generation_at_execution(native):
     assert Path(m.daten_datei()).read_text() == durable
 
 
+def test_settings_saves_do_not_flood_journal_but_content_edits_keep_previous_data(native):
+    m = native
+    initial = fixture_data("preserve this note")
+    probe = Probe(m, initial)
+    for index in range(20):
+        changed = copy.deepcopy(probe._aktuelle_daten)
+        changed["einstellungen"]["allgemein"]["notizAnhangHoehe"] = 200 + index
+        changed["letzterSync"] = index
+        assert probe.save(index + 1, changed)["ok"]
+    assert m.journal_liste(basis=m.daten_verzeichnis()) == []
+    changed = copy.deepcopy(probe._aktuelle_daten)
+    changed["notizen"][0]["text"] = "edited note"
+    assert probe.save(21, changed)["ok"]
+    snapshots = m.journal_liste(basis=m.daten_verzeichnis())
+    assert len(snapshots) == 1
+    _manifest, saved = m.journal_snapshot_lesen(snapshots[0]["snapshotId"], basis=m.daten_verzeichnis())
+    assert saved["daten"]["notizen"][0]["text"] == "preserve this note"
+    assert saved["daten"]["einstellungen"]["allgemein"]["notizAnhangHoehe"] == 219
+
+
 def test_native_archive_restore_publishes_generation_before_next_save(native):
     m = native
     old = fixture_data("old")

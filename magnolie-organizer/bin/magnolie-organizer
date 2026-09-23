@@ -790,6 +790,14 @@ def _gesamtarchiv_kanonisch(wert):
                       separators=(",", ":"), allow_nan=False).encode("utf-8")
 
 
+def journal_inhalt_geaendert(vorher, nachher):
+    """Nur Inhaltsänderungen lösen einen automatischen Vorher-Stand aus."""
+    betriebsfelder = {"einstellungen", "letzterSync", "letzteSyncs", "syncStatus",
+                     "syncMetadaten", "syncEpoch", "syncNachRestore", "syncAbgleichBasis"}
+    return any(vorher.get(name) != nachher.get(name)
+               for name in (vorher.keys() | nachher.keys()) - betriebsfelder)
+
+
 def _gesamtarchiv_tokens_pruefen(wert):
     if isinstance(wert, dict):
         for name, inhalt in wert.items():
@@ -20226,7 +20234,8 @@ class Fenster(_FENSTER_BASIS):
                     epoch = (self._aktuelle_daten or {}).get("syncEpoch")
                     if epoch and daten.get("syncEpoch") != epoch:
                         raise ValueError(_("The save request is invalid."))
-                    if isinstance(self._aktuelle_daten, dict) and daten != self._aktuelle_daten:
+                    if (isinstance(self._aktuelle_daten, dict) and
+                            journal_inhalt_geaendert(self._aktuelle_daten, daten)):
                         self._journal_snapshot("pre-change")
                     gespeichert = self._vielleicht_verschluesseln(klartext)
                     try:
