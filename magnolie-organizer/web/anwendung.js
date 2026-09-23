@@ -2886,7 +2886,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       }
       return neu;
     };
-    const speichern = knopf(_("Schedule SMS"), "hauptknopf", () => vorschau.anzeigen(leseBatch, (batch) => {
+    const plaeneSpeichern = (batch) => {
       const neu = batch.map(sms => ({ ...sms, id: uid(), status: "planned", clientRef: "", fehler: "" }));
       if (DATEN.smsPlanung.length + neu.length > 500) { zettel(_("Failed")); return; }
       DATEN.smsPlanung.push(...neu); speichernd = true; speichern.disabled = true;
@@ -2902,7 +2902,14 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
         bedienung.forEach(feld => feld.disabled = false);
         speichernd = false; speichern.disabled = false;
       });
-    }));
+    };
+    const speichern = knopf(_("Schedule SMS"), "hauptknopf", () => {
+      const batch = leseBatch();
+      if (!batch || !batch.length) return;
+      if (batch.some(sms => smsTextAnpassen(sms.originalText).geaendert)) {
+        vorschau.anzeigen(leseBatch, plaeneSpeichern);
+      } else plaeneSpeichern(batch);
+    });
     const knoepfe = el("div", "dialog-knoepfe");
     const belegung = knopf(_("SMS app settings"), "sms-planung-einstellungen", () => {
       schliessen(); oeffneKommunikationsBelegung("sms");
@@ -2912,8 +2919,9 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     if (anlegen) knoepfe.append(speichern);
     dialog.append(el("h3", null, anlegen ? _("Schedule SMS") : _("Pending SMS messages")),
       el("p", "einst-hinweis", _("Scheduled SMS messages are sent only while Magnolie is running and exactly one KDE Connect phone is available.")),
-      el("p", "einst-hinweis", _("Restored pending plans stay paused until you review and enable each plan. Restoring contacts, calendar or notes does not change live SMS plans.")),
       zeilen, vorschau.box, el("h4", null, _("Pending SMS messages")), gespeichert, knoepfe);
+    if (DATEN.smsPlanung.some(sms => sms.status === "paused"))
+      dialog.insertBefore(el("p", "einst-hinweis", _("Restored pending plans stay paused until you review and enable each plan. Restoring contacts, calendar or notes does not change live SMS plans.")), zeilen);
     if (DATEN.einstellungen.adressen.smsSchedulingEnabled !== true)
       dialog.insertBefore(el("p", "einst-warnung", _("SMS scheduling is off. Pending plans are paused. Review them in SMS settings before enabling scheduling.")), gespeichert);
     schleier.append(dialog); document.body.append(schleier);

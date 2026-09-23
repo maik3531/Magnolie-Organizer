@@ -62,14 +62,42 @@ async function before(b, label) {
 }
 
 const cases = [
+  ["one click schedules unchanged text; failed saves preserve the draft", async b => {
+    configure(b);
+    const sample = "A normal scheduled SMS", dialog = open(b, sample);
+    const schedule = button(dialog, "Schedule SMS");
+    schedule.click();
+    assert.equal(b.t.daten().smsPlanung.length, 1);
+    assert.ok(!dialog.querySelector(".sms-plan-vorschau:not(.verborgen)"), "Unchanged text must not need a second confirmation.");
+    schedule.click();
+    assert.equal(b.t.daten().smsPlanung.length, 1, "Double click queued a duplicate plan.");
+    assert.equal(smsCalls(b).length, 0);
+    b.ack(undefined, false);
+    assert.equal(b.t.daten().smsPlanung.length, 0);
+    assert.equal(dialog.querySelector("textarea").value, sample);
+    assert.ok(dialog.isConnected && !schedule.disabled);
+    schedule.click(); b.ack();
+    assert.equal(dialog.isConnected, false);
+    const plan = b.t.daten().smsPlanung[0];
+    assert.equal(plan.status, "planned");
+    assert.equal(plan.text, sample);
+    plan.zeit = 1; b.t.pruefeSmsPlanung();
+    assert.equal(smsCalls(b).length, 0);
+    b.ack();
+    assert.equal(smsCalls(b).length, 1);
+    assert.equal(smsCalls(b)[0].text, sample);
+  }],
   ["Unicode actual batch previews, cancel keeps draft and metadata, exact delayed dispatch", async b => {
     configure(b);
     for (const sample of samples) {
       const initial = b.t.daten().smsPlanung.length, dialog = open(b, sample);
       const row = dialog.querySelector(".sms-planung-zeile"), original = plain({ text: row._werte.text.value,
         nummer: row._werte.nummer.value, datum: row._werte.datum.value, uhrzeit: row._werte.uhrzeit.value });
-      let p = await preview(b, dialog); assert.ok(p, "explicit preview before durable insertion");
       const expected = b.t.smsTextAnpassen(sample).text.trim();
+      const changed = b.t.smsTextAnpassen(sample).geaendert;
+      let p;
+      if (changed) {
+      p = await preview(b, dialog); assert.ok(p, "explicit preview before storing converted text");
       assert.equal(p.querySelector("pre").textContent, expected);
       assert.equal(b.t.daten().smsPlanung.length, initial);
       const staleConfirm = button(p, "Confirm SMS plans");
@@ -80,6 +108,10 @@ const cases = [
       p = await preview(b, dialog); staleConfirm.click(); await tick();
       assert.equal(b.t.daten().smsPlanung.length, initial, "cancelled button cannot approve a later identical preview");
       p = await preview(b, dialog); button(p, "Confirm SMS plans").click(); await tick();
+      } else {
+        button(dialog, "Schedule SMS").click();
+        assert.ok(!dialog.querySelector(".sms-plan-vorschau:not(.verborgen)"));
+      }
       assert.equal(b.t.daten().smsPlanung.length, initial + 1);
       const plan = b.t.daten().smsPlanung.at(-1);
       assert.equal(plan.text, expected); assert.equal(plan.originalText, sample); assert.equal(plan.land, "GB");
