@@ -2956,7 +2956,7 @@ body[data-hilfsrahmen="an"] .journal-liste:focus-visible {
   font: 600 12px var(--serif);
 }
 
-.sync-kalender { display: block; margin: 5px 0; }
+label.hak.sync-kalender { display: flex; margin: 5px 0; }
 
 .einst-fuss {
   margin-top: 13px;
