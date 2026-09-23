@@ -37,7 +37,7 @@ verwenden getrennte Verbindungen und Quellenkennungen.
   und verbindet das angelegte Konto. **Die EAS-Datenübergabe zwischen Microsoft
   und Magnolie ist noch nicht fertig.** Anmeldung und Ordnererkennung sind kein
   bestätigter Zweiwege-Abgleich; Issue #29 bleibt offen.
-- Es wurde noch kein neues Release mit dieser Integration veröffentlicht.
+- Version 2.0.20 enthält diese Grundlagen; die vollständige Kontenanbindung bleibt in Entwicklung.
 
 ## Paketbau und Quellen
 
