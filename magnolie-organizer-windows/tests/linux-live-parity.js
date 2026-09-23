@@ -37,7 +37,7 @@ for (const [name, source] of [["Linux", linuxUi], ["Windows", windowsUi]]) {
     `${name}: generisches DAV sperrt den Briefkasten nicht`);
   assert.match(source, /startsWith\("generic-"\) \? davName/,
     `${name}: generische Quellen werden nicht neutral beschriftet`);
-  assert.match(source, /supportsVtodo === false[\s\S]{0,180}Appointments remain available/,
+  assert.match(source, /supportsVtodo === false[\s\S]{0,180}_\("This calendar does not support tasks \(VTODO\)\."\)/,
     `${name}: VTODO-Fähigkeitshinweis fehlt`);
   assert.ok(/setupImportWarteschlange = Array\.isArray\(roh\.stagedImports\)/.test(source) &&
     /roh\.stagedImports\.filter\([\s\S]*?roh\.oneTimeImports/.test(source),
