@@ -269,9 +269,16 @@ FunctionEnd
 
 Function PrepareManagedUpgrade
   Call CleanManagedInstall
-  GetTempFileName $BackupDir
+  ; The per-user installer must not inherit a restricted system TEMP directory
+  ; from its launcher. Use the same user's local temporary directory explicitly.
+  CreateDirectory "$LOCALAPPDATA\Temp"
+  ClearErrors
+  GetTempFileName $BackupDir "$LOCALAPPDATA\Temp"
+  IfErrors backup_failed
   Delete "$BackupDir"
+  IfErrors backup_failed
   CreateDirectory "$BackupDir"
+  IfErrors backup_failed
   IfFileExists "$INSTDIR\.magnolie-installer" 0 marker_ready
     ClearErrors
     CopyFiles /SILENT "$INSTDIR\.magnolie-installer" "$BackupDir"
