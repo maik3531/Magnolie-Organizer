@@ -71,7 +71,7 @@ Organizer-Aktualisierungen enthalten zusätzlich das passende AppImage:
 
     <appimage>
       <architecture>x86_64</architecture>
-      <url>https://…/Magnolie-Organizer-2.0.19-x86_64.AppImage</url>
+      <url>https://…/Magnolie-Organizer-2.0.20-x86_64.AppImage</url>
       <sha256>64 hexadezimale Zeichen</sha256>
     </appimage>
 
@@ -107,14 +107,14 @@ erhalten.
 
 Das fertige Paket liegt danach eine Ebene höher und wird installiert mit:
 
-    sudo apt install ../magnolie-organizer_2.0.19_all.deb
+    sudo apt install ../magnolie-organizer_2.0.20_all.deb
 
 Die optionale KDE-Integration ist ein separates natives Paket. Der kanonische
 Bauer erzeugt ein gemeinsames DEB mit drei getrennten nativen Backends:
 
     python3 werkzeuge/kde_deb_bauen.py /tmp/opencode/kde-component
 
-Das Paket `magnolie-organizer-kde_2.0.19_amd64.deb` ist identisch auf:
+Das Paket `magnolie-organizer-kde_2.0.20_amd64.deb` ist identisch auf:
 
 - Ubuntu 24.04 / Linux Mint 22 (Qt5/KF5)
 - Debian 13 (Qt6/KF6)
@@ -136,7 +136,7 @@ Quellpaket, Source0 oder SRPM.
 ### RPM und SRPM
 
 Das Bauwerkzeug verlangt ein ausdrückliches Distributionsprofil, erzeugt ein normalisiertes
-`magnolie-organizer-2.0.19.tar.xz` mit dem gleichnamigen obersten Verzeichnis
+`magnolie-organizer-2.0.20.tar.xz` mit dem gleichnamigen obersten Verzeichnis
 und baut daraus RPM und SRPM. Bereits vorhandene Debian-Bauverzeichnisse,
 generierte Kataloge und die generierte WAV-Datei gelangen nicht in Source0:
 
@@ -166,15 +166,15 @@ beispielsweise mit (die Fedora-Version bei Bedarf anpassen):
     sudo dnf install mock rpmlint
     sudo usermod -a -G mock "$USER"
     mock -r fedora-42-x86_64 --rebuild \
-        bau/rpm/fedora/SRPMS/magnolie-organizer-2.0.19-1.fc42.src.rpm
+        bau/rpm/fedora/SRPMS/magnolie-organizer-2.0.20-1.fc42.src.rpm
     rpmlint bau/rpm/fedora/SPECS/magnolie-organizer.spec \
-        bau/rpm/fedora/SRPMS/magnolie-organizer-2.0.19-1.fc42.src.rpm \
-        bau/rpm/fedora/RPMS/noarch/magnolie-organizer-2.0.19-1.fc42.noarch.rpm
+        bau/rpm/fedora/SRPMS/magnolie-organizer-2.0.20-1.fc42.src.rpm \
+        bau/rpm/fedora/RPMS/noarch/magnolie-organizer-2.0.20-1.fc42.noarch.rpm
 
 Das lokale RPM kann mit DNF installiert und wieder entfernt werden, ohne dass
 die Paket-Scriptlets Firewallregeln öffnen oder Benutzerdaten verändern:
 
-    sudo dnf install bau/rpm/fedora/RPMS/noarch/magnolie-organizer-2.0.19-1.fc42.noarch.rpm
+    sudo dnf install bau/rpm/fedora/RPMS/noarch/magnolie-organizer-2.0.20-1.fc42.noarch.rpm
     sudo dnf remove magnolie-organizer
 
 Die mitgelieferte firewalld-Servicebeschreibung ist nur eine Vorlage. Falls
@@ -193,14 +193,14 @@ von `linuxdeploy` und `appimagetool` sind mitsamt SHA-256-Prüfsummen im Bauplan
 festgeschrieben. Gebaut und gegen den gepackten Programmkern geprüft wird mit:
 
     werkzeuge/appimage_bauen.sh
-    pruefungen/test_appimage.sh ../Magnolie-Organizer-2.0.19-x86_64.AppImage
+    pruefungen/test_appimage.sh ../Magnolie-Organizer-2.0.20-x86_64.AppImage
 
 Unter Wayland verwendet das AppImage standardmäßig den nativen Grafikpfad mit
 DMA-BUF. Falls ein bestimmter Grafiktreiber damit ein leeres Fenster oder einen
 WebKit-Absturz verursacht, startet `MAGNOLIE_GRAPHICS_COMPAT=1` den konservativen
 XWayland-Fallback. Das gilt für AppImage, DEB und RPM; beim AppImage lautet der
 Aufruf beispielsweise
-`MAGNOLIE_GRAPHICS_COMPAT=1 ./Magnolie-Organizer-2.0.19-x86_64.AppImage`. Der
+`MAGNOLIE_GRAPHICS_COMPAT=1 ./Magnolie-Organizer-2.0.20-x86_64.AppImage`. Der
 Fallback ist wegen zusätzlicher Bildkopien nicht für den normalen Betrieb
 vorgesehen.
 
@@ -213,9 +213,9 @@ Audiosocket funktioniert sowohl mit PulseAudio als auch mit `pipewire-pulse`.
 
     flatpak install --user flathub org.gnome.Sdk//49 org.flatpak.Builder
     werkzeuge/flatpak_bauen.sh
-    flatpak install --user ../Magnolie-Organizer-2.0.19-x86_64.flatpak
+    flatpak install --user ../Magnolie-Organizer-2.0.20-x86_64.flatpak
 
-Das Ergebnis liegt als `Magnolie-Organizer-2.0.19-x86_64.flatpak` eine Ebene
+Das Ergebnis liegt als `Magnolie-Organizer-2.0.20-x86_64.flatpak` eine Ebene
 oberhalb des Quellordners. `pruefungen/test_flatpak.py` prüft Manifest,
 Abhängigkeitshashes, Sandboxrechte und auf Wunsch das fertige Bündel.
 
@@ -255,7 +255,7 @@ in das System. Die echten User-systemd- und UFW-Lebenszyklen sind mit
 `isolation-machine` gekennzeichnet und dürfen nur in einem wegwerfbaren
 Maschinen-Testbed ausgeführt werden:
 
-    autopkgtest ../magnolie-organizer_2.0.19.dsc -- qemu TESTABBILD
+    autopkgtest ../magnolie-organizer_2.0.20.dsc -- qemu TESTABBILD
 
 Für den Umstieg von Lotus Organizer gibt es zusätzlich Belastungstests
 mit je 30.000 Terminen, Adressen, Aufgaben, Jahrestagen und Notizen:
