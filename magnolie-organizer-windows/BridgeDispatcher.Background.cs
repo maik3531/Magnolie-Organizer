@@ -56,7 +56,8 @@ internal sealed partial class BridgeDispatcher
             }
         }
     }
-    private Task QueueBackground(Func<Task> action, Task? predecessor = null, int? generation = null)
+    private Task QueueBackground(Func<Task> action, Task? predecessor = null, int? generation = null,
+        bool ownsBridgeLane = false)
     {
         lock (serviceGate)
         {
@@ -65,10 +66,11 @@ internal sealed partial class BridgeDispatcher
             {
                 try
                 {
-                    // A worker may emit commands requiring this lane. Never await it while holding the lane.
+                    // Ordinary workers may emit commands requiring this lane. A
+                    // save worker instead executes on behalf of its lane owner.
                     if (predecessor is not null) await predecessor.WaitAsync(backgroundLifetime.Token).ConfigureAwait(false);
                     if (generation is not null && generation != Volatile.Read(ref networkGeneration)) return;
-                    if (generation is null)
+                    if (generation is null && !ownsBridgeLane)
                     { await bridgeCommands.WaitAsync(backgroundLifetime.Token).ConfigureAwait(false); bridgeCommands.Release(); }
                     backgroundLifetime.Token.ThrowIfCancellationRequested(); await action().ConfigureAwait(false);
                 }

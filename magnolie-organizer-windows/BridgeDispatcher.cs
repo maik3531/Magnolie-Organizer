@@ -57,10 +57,19 @@ internal sealed partial class BridgeDispatcher : IDisposable
     internal async Task HandleAsync(string rawMessage)
     {
         if (disposed) return;
+        if (BridgeDispatcherContract.IsCompactSaveEnvelope(rawMessage))
+        {
+            // Preserve command order, but do not parse/copy/hash large profiles
+            // on the WinForms thread. HandleCoreAsync performs full validation.
+            await bridgeCommands.WaitAsync(backgroundLifetime.Token);
+            try { await QueueBackground(() => HandleCoreAsync(rawMessage), ownsBridgeLane: true); }
+            finally { bridgeCommands.Release(); }
+            return;
+        }
         using (var parsed = BridgeDispatcherContract.Parse(rawMessage))
         {
             var command = parsed.RootElement.GetProperty("cmd").GetString()!;
-            if (command is "wetter" or "feiertage" or "update_pruefen" or
+            if (command is "wetter" or "feiertage" or "update_pruefen" or "journal_liste" or
                 "update_herunterladen" or "eds_status" or "graph_anmelden" or "baum_suchen" or "baum_paaren" or "baum_briefkasten_pruefen" or "kde_sms_senden" or "cloud_sicherung_test" or
                 "baum_ein" or "baum_teilen" or "baum_delegieren" or "baum_rueckmeldung" or "telefon_ein" or "telefon_verbindung_ein" or
                 "telefon_status_anfordern" or "telefon_waehlen" or "telefon_annehmen" or "telefon_auflegen" or

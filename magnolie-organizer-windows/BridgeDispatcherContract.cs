@@ -102,6 +102,11 @@ internal static class BridgeDispatcherContract
         catch { document.Dispose(); throw; }
     }
 
+    // Routing hint for JSON.stringify's save envelope, not validation. The worker
+    // must still call Parse before it reads or changes any profile state.
+    internal static bool IsCompactSaveEnvelope(string raw) =>
+        raw.StartsWith("{\"cmd\":\"speichern\",", StringComparison.Ordinal);
+
     internal static void ValidateSize(int characters, int utf8Bytes)
     {
         if (characters < 0 || utf8Bytes < 0 || characters > MaximumCharacters || utf8Bytes > MaximumUtf8Bytes) throw new InvalidDataException("Bridge-Nachricht ist zu groß.");

@@ -12,6 +12,14 @@ internal static class BackgroundLifecycleTests
 {
     internal static async Task RunAsync()
     {
+        var compactSave = "{\"cmd\":\"speichern\",\"id\":1,\"text\":\"{}\"}";
+        TestAssert.That(BridgeDispatcherContract.IsCompactSaveEnvelope(compactSave), "Compact save did not select the worker lane.");
+        using (var parsedSave = BridgeDispatcherContract.Parse(compactSave))
+            TestAssert.That(parsedSave.RootElement.GetProperty("cmd").GetString() == "speichern", "Save envelope validation changed.");
+        TestAssert.That(!BridgeDispatcherContract.IsCompactSaveEnvelope("{\"cmd\":\"beenden\"}"), "UI command selected the save worker lane.");
+        var duplicateCommand = "{\"cmd\":\"speichern\",\"cmd\":\"beenden\",\"id\":1,\"text\":\"{}\"}";
+        TestAssert.That(BridgeDispatcherContract.IsCompactSaveEnvelope(duplicateCommand), "Routing hint unexpectedly replaced validation.");
+        TestAssert.Throws<InvalidDataException>(() => BridgeDispatcherContract.Parse(duplicateCommand), "Worker validation accepted a forged duplicate command.");
         const string raw = """{"einstellungen":{"regional":{"timeZone":"UTC"},"erinnerung":{"an":true}},"aufgaben":[{"id":"a","startDatum":"2026-09-09","startZeit":"10:00","faellig":"2026-09-09","faelligZeit":"11:00","erinnern":false,"alarme":[{"offsetMinuten":60,"aktiviert":true,"related":"END","aktion":"display"}]}]}""";
         using var data = JsonDocument.Parse(ReminderScheduler.SelectRuntimeData(raw));
         TestAssert.That(ReminderScheduler.DueTasks(data.RootElement, data.RootElement.GetProperty("einstellungen").GetProperty("erinnerung"),
