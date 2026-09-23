@@ -1,5 +1,23 @@
 # Changelog / Änderungen
 
+## 2.0.21 / Notes 1.0.15 — 2026-09-23
+
+### English
+
+- Shows identical birthdays from multiple sources once in the calendar, anniversary list, search and print selection. Different years or additional information remain separate; source associations are preserved.
+- Avoids automatic recovery snapshots for settings-only and synchronization-bookkeeping changes. Fixes Windows snapshot deduplication across different creation times.
+- Adds individual selection, Select all, None and batch deletion of recovery snapshots, respecting the date filter.
+- Places calendar checkboxes on separate rows with clear spacing.
+- Includes the unchanged Magnolie Notes 1.0.15. The complete managed Google/Microsoft sign-in workflow and Microsoft EAS synchronization remain under development.
+
+### Deutsch
+
+- Zeigt gleiche Geburtstage aus mehreren Quellen in Kalender, Jahrestagsliste, Suche und Druckauswahl einmal an. Unterschiedliche Jahre oder Zusatzangaben bleiben getrennt; Quellzuordnungen bleiben erhalten.
+- Vermeidet automatische Wiederherstellungspunkte bei reinen Einstellungs- und Sync-Buchhaltungsänderungen. Korrigiert die Windows-Deduplizierung bei unterschiedlichen Erstellungszeiten.
+- Ergänzt Einzelauswahl, Alles auswählen, Keine und gemeinsames Löschen von Wiederherstellungspunkten unter Berücksichtigung des Datumsfilters.
+- Ordnet Kalender-Checkboxen mit klaren Abständen in eigenen Zeilen an.
+- Enthält unveränderte Magnolie Notes 1.0.15. Der vollständige verwaltete Google-/Microsoft-Anmeldedurchlauf und der Microsoft-EAS-Abgleich bleiben in Entwicklung.
+
 ## 2.0.20 / Notes 1.0.15 — 2026-09-23
 
 ### English

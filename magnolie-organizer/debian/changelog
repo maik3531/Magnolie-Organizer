@@ -1,3 +1,12 @@
+magnolie-organizer (2.0.21) unstable; urgency=medium
+
+  * Zeigt inhaltlich gleiche Geburtstage aus mehreren Quellen einmal an.
+  * Vermeidet Wiederherstellungspunkte bei reinen Einstellungsänderungen.
+  * Ermöglicht Mehrfachauswahl und gemeinsames Löschen von Wiederherstellungspunkten.
+  * Verbessert die Zeilenanordnung der Kalenderauswahl.
+
+ -- Maik Walter <maik3531@gmail.com>  Wed, 23 Sep 2026 20:00:00 +0200
+
 magnolie-organizer (2.0.20) unstable; urgency=medium
 
   * Verbessert DAV-Erkennung und Fehlermeldungen unter Windows.

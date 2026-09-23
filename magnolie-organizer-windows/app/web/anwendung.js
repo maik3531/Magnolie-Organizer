@@ -15,129 +15,129 @@
 (function () {
 
   /* Die Fassung erscheint auf der Seite „Über". */
-const FASSUNG = "2.0.20";
+const FASSUNG = "2.0.21";
 const S = (x) => (x === undefined || x === null) ? "" : String(x);
-const NEU_IN_DIESER_FASSUNG_VERSION = "2.0.20";
+const NEU_IN_DIESER_FASSUNG_VERSION = "2.0.21";
 
 const NEU_IN_DIESER_FASSUNG = {
   "de": [
     "Neu in dieser Version",
-    "DAV-Korrekturen und optionale Erfolgsmeldungen beim Abgleich",
-    "Windows-Kontenhilfe vorbereitet; vollständiger Microsoft-Abgleich bleibt in Entwicklung",
+    "Gleiche Geburtstage aus mehreren Quellen werden nur einmal angezeigt",
+    "Weniger Wiederherstellungspunkte, Sammellöschen und übersichtlichere Kalenderauswahl",
     "Magnolie Notes 1.0.15 — unverändert"
   ],
   "en": [
     "What's new in this version",
-    "DAV corrections and optional synchronization success messages",
-    "Windows account helper prepared; complete Microsoft synchronization remains under development",
+    "Identical birthdays from multiple sources are shown once",
+    "Fewer recovery snapshots, batch deletion and clearer calendar selection",
     "Magnolie Notes 1.0.15 — unchanged"
   ],
   "fr": [
     "Nouveautés de cette version",
-    "Corrections DAV et notifications de synchronisation réussie facultatives",
-    "Préparation de l’assistant de comptes Windows ; la synchronisation Microsoft complète reste en développement",
+    "Les anniversaires identiques provenant de plusieurs sources ne sont affichés qu’une fois",
+    "Moins de points de restauration, suppression groupée et sélection des calendriers plus claire",
     "Magnolie Notes 1.0.15 — inchangé"
   ],
   "es": [
     "Novedades de esta versión",
-    "Correcciones DAV y avisos opcionales de sincronización correcta",
-    "Preparado el asistente de cuentas de Windows; la sincronización completa con Microsoft sigue en desarrollo",
+    "Los cumpleaños idénticos de varias fuentes se muestran una sola vez",
+    "Menos puntos de restauración, eliminación en grupo y selección de calendarios más clara",
     "Magnolie Notes 1.0.15 — sin cambios"
   ],
   "it": [
     "Novità di questa versione",
-    "Correzioni DAV e notifiche facoltative di sincronizzazione riuscita",
-    "Preparato l’assistente account Windows; la sincronizzazione Microsoft completa è ancora in sviluppo",
+    "I compleanni identici provenienti da più fonti vengono mostrati una sola volta",
+    "Meno punti di ripristino, eliminazione multipla e selezione dei calendari più chiara",
     "Magnolie Notes 1.0.15 — invariato"
   ],
   "nl": [
     "Nieuw in deze versie",
-    "DAV-correcties en optionele meldingen van geslaagde synchronisatie",
-    "Windows-accounthulp voorbereid; volledige Microsoft-synchronisatie is nog in ontwikkeling",
+    "Gelijke verjaardagen uit meerdere bronnen worden maar één keer getoond",
+    "Minder herstelpunten, gezamenlijk verwijderen en duidelijkere kalenderselectie",
     "Magnolie Notes 1.0.15 — ongewijzigd"
   ],
   "pt": [
     "Novidades desta versão",
-    "Correções DAV e notificações opcionais de sincronização bem-sucedida",
-    "Assistente de contas Windows preparado; a sincronização Microsoft completa continua em desenvolvimento",
+    "Os aniversários idênticos de várias fontes são apresentados apenas uma vez",
+    "Menos pontos de restauro, eliminação em grupo e seleção de calendários mais clara",
     "Magnolie Notes 1.0.15 — sem alterações"
   ],
   "ru": [
     "Новое в этой версии",
-    "Исправления DAV и необязательные уведомления об успешной синхронизации",
-    "Подготовлен помощник аккаунтов Windows; полная синхронизация с Microsoft ещё разрабатывается",
+    "Одинаковые дни рождения из нескольких источников отображаются один раз",
+    "Меньше точек восстановления, групповое удаление и более удобный выбор календарей",
     "Magnolie Notes 1.0.15 — без изменений"
   ],
   "cs": [
     "Co je nového v této verzi",
-    "Opravy DAV a volitelná oznámení úspěšné synchronizace",
-    "Připraven pomocník účtů Windows; úplná synchronizace s Microsoftem se stále vyvíjí",
+    "Stejné narozeniny z více zdrojů se zobrazují pouze jednou",
+    "Méně bodů obnovení, hromadné mazání a přehlednější výběr kalendářů",
     "Magnolie Notes 1.0.15 — beze změn"
   ],
   "pl": [
     "Nowości w tej wersji",
-    "Poprawki DAV i opcjonalne powiadomienia o udanej synchronizacji",
-    "Przygotowano pomocnika kont Windows; pełna synchronizacja z Microsoft jest nadal rozwijana",
+    "Identyczne urodziny z wielu źródeł są wyświetlane tylko raz",
+    "Mniej punktów przywracania, zbiorcze usuwanie i czytelniejszy wybór kalendarzy",
     "Magnolie Notes 1.0.15 — bez zmian"
   ],
   "hsb": [
     "Nowe w tutej wersiji",
-    "Porjedźenja DAV a opcionalne powěsćenki wo wuspěšnej synchronizaciji",
-    "Pomocnik kontow za Windows přihotowany; dospołna synchronizacija z Microsoft so hišće wuwiwa",
+    "Jenake narodniny z wjacorych žórłow so jenož jónu pokazuja",
+    "Mjenje wobnowjenskich dypkow, zhromadne zhašenje a přehladniši wuběr protykow",
     "Magnolie Notes 1.0.15 — njezměnjeny"
   ],
   "da": [
     "Nyt i denne version",
-    "DAV-rettelser og valgfrie beskeder om vellykket synkronisering",
-    "Windows-kontohjælper forberedt; fuld Microsoft-synkronisering er stadig under udvikling",
+    "Ens fødselsdage fra flere kilder vises kun én gang",
+    "Færre gendannelsespunkter, samlet sletning og tydeligere kalendervalg",
     "Magnolie Notes 1.0.15 — uændret"
   ],
   "nb": [
     "Nytt i denne versjonen",
-    "DAV-rettelser og valgfrie meldinger om vellykket synkronisering",
-    "Windows-kontohjelper klargjort; full Microsoft-synkronisering er fortsatt under utvikling",
+    "Like fødselsdager fra flere kilder vises bare én gang",
+    "Færre gjenopprettingspunkter, samlet sletting og tydeligere kalendervalg",
     "Magnolie Notes 1.0.15 — uendret"
   ],
   "hi": [
     "इस संस्करण में नया",
-    "DAV सुधार और सफल सिंक्रनाइज़ेशन की वैकल्पिक सूचनाएँ",
-    "Windows खाता सहायक तैयार; पूर्ण Microsoft सिंक्रनाइज़ेशन अभी विकासाधीन है",
+    "कई स्रोतों से आए समान जन्मदिन केवल एक बार दिखाए जाते हैं",
+    "कम पुनर्स्थापना बिंदु, एक साथ हटाने की सुविधा और अधिक स्पष्ट कैलेंडर चयन",
     "Magnolie Notes 1.0.15 — अपरिवर्तित"
   ],
   "zh-cn": [
     "此版本的新功能",
-    "修复 DAV，并可选择显示同步成功通知",
-    "已准备 Windows 账户助手；完整的 Microsoft 同步仍在开发中",
+    "来自多个来源的相同生日只显示一次",
+    "减少恢复点，支持批量删除，并改善日历选择的布局",
     "Magnolie Notes 1.0.15 — 未更改"
   ],
   "ja": [
     "このバージョンの新機能",
-    "DAV の修正と同期成功通知の選択設定",
-    "Windows アカウント補助機能を準備。完全な Microsoft 同期は開発中です",
+    "複数の取得元にある同一の誕生日を一度だけ表示",
+    "復元ポイントの作成を抑制し、一括削除と見やすいカレンダー選択に対応",
     "Magnolie Notes 1.0.15 — 変更なし"
   ],
   "ar": [
     "ما الجديد في هذا الإصدار",
-    "إصلاحات DAV وإشعارات اختيارية لنجاح المزامنة",
-    "تم إعداد مساعد حسابات Windows؛ المزامنة الكاملة مع Microsoft لا تزال قيد التطوير",
+    "تُعرض أعياد الميلاد المتطابقة من مصادر متعددة مرة واحدة فقط",
+    "نقاط استعادة أقل وحذف جماعي واختيار أوضح للتقويمات",
     "Magnolie Notes 1.0.15 — دون تغيير"
   ],
   "uk": [
     "Нове в цій версії",
-    "Виправлення DAV та необов’язкові сповіщення про успішну синхронізацію",
-    "Підготовлено помічник облікових записів Windows; повна синхронізація з Microsoft ще розробляється",
+    "Однакові дні народження з кількох джерел відображаються лише раз",
+    "Менше точок відновлення, групове видалення та зручніший вибір календарів",
     "Magnolie Notes 1.0.15 — без змін"
   ],
   "be": [
     "Што новага ў гэтай версіі",
-    "Выпраўленні DAV і неабавязковыя паведамленні пра паспяховую сінхранізацыю",
-    "Падрыхтаваны памочнік уліковых запісаў Windows; поўная сінхранізацыя з Microsoft яшчэ распрацоўваецца",
+    "Аднолькавыя дні нараджэння з некалькіх крыніц паказваюцца толькі адзін раз",
+    "Менш пунктаў аднаўлення, групавое выдаленне і больш зразумелы выбар календароў",
     "Magnolie Notes 1.0.15 — без змен"
   ],
   "tr": [
     "Bu sürümdeki yenilikler",
-    "DAV düzeltmeleri ve isteğe bağlı başarılı eşitleme bildirimleri",
-    "Windows hesap yardımcısı hazırlandı; tam Microsoft eşitlemesi hâlâ geliştirme aşamasında",
+    "Birden fazla kaynaktaki aynı doğum günleri yalnızca bir kez gösterilir",
+    "Daha az geri yükleme noktası, toplu silme ve daha anlaşılır takvim seçimi",
     "Magnolie Notes 1.0.15 — değişmedi"
   ]
 };

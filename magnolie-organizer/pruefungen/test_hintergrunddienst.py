@@ -149,7 +149,7 @@ def test_headless_cli_dispatches_before_any_gui_import(tmp_path, monkeypatch):
         runpy.run_path(PROGRAM, run_name="__main__")
     assert stopped.value.code == 23
     fake_crash.install.assert_called_once_with(
-        "magnolie-organizer", "2.0.20", "background-service")
+        "magnolie-organizer", "2.0.21", "background-service")
     assert calls == ["crash", "daemon"]
     assert fake.daemon_main.called
     assert "gi" not in imported
