@@ -19,7 +19,7 @@ let failed = false;
 const results = [];
 for (const test of ["ui-bugfixes.js", "aur-sms-regressions.js", "planner-sms-regressions.js", "phone-settings-regressions.js", "device-identifiers.js", "call-audio-regressions.js", "background-sms.js", "background-receipt-vectors.js", "personal-asset-protection.js", "handbook-protection.js", "localization-completeness.js", "web-smoke.js",
   "oversized-note-safety.js", "desktop-state-regressions.js", "save-custom-regressions.js", "custom-time-regressions.js", "planned-sms-save-regressions.js", "asr-sms-regressions.js", "desktop-data-regressions.js", "frontend-integrity.js", "recurrence-worker.js", "recurrence-golden.js",
-  "month-recurrence-stability.js", "birthday-display.js", "baum-contact-batch.js", "baum-contact-review.js", "baum-note-identity.js", "journal-selection.js", "bundled-handbook-update.js", "structured-appointment-parity.js", "handbook-smoke.js", "handbook-windows-variants.js",
+  "month-recurrence-stability.js", "birthday-display.js", "baum-contact-batch.js", "baum-contact-review.js", "baum-note-identity.js", "personal-note-dates.js", "journal-selection.js", "bundled-handbook-update.js", "structured-appointment-parity.js", "handbook-smoke.js", "handbook-windows-variants.js",
   "native-integration-smoke.js", "full-parity-contract.js", "linux-live-parity.js",
   "nsis-installer-fixture.js", "installer-publication.js", "manifest-policy.js", "release-audit.js"]) {
   const result = spawnSync(process.execPath, [path.join(__dirname, test),

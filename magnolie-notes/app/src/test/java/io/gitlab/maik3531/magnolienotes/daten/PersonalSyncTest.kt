@@ -12,6 +12,38 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class PersonalSyncTest {
+    @Test fun `note timestamps alone converge without conflict copies`() {
+        val actor = "11111111-1111-4111-8111-111111111111"
+        val remoteActor = "22222222-2222-4222-8222-222222222222"
+        val file = Anhang("attachment", "image.png", "image", ((contract["format2"] as JsonObject)["data_url"] as JsonPrimitive).content)
+        for (format in listOf(1, 2, 3)) for (remoteWins in listOf(false, true)) {
+            val note = Notiz("same-note", titel = "Welcome", text = "Same content", html = "Same content",
+                angelegt = 1, geaendert = 10, anhaenge = listOf(file))
+            val baseline = PersonalSync.reconcile(Bestand(notizen = listOf(note),
+                personalSync = PersonalSyncState(actor_id = actor)), setOf("notes"), format)
+            val local = baseline.second.single { it.kind == "note" }
+            val remote = (0..100).map { index ->
+                val value = JsonObject(local.value + mapOf("created_ms" to JsonPrimitive(100L + index),
+                    "modified_ms" to JsonPrimitive(200L + index)))
+                local.copy(value = value, hash = PersonalSync.hash(value), modifiedMs = 200L + index,
+                    clock = listOf(PersonalSyncClock(remoteActor, 1)))
+            }.first { (it.hash < local.hash) == remoteWins }
+            val attachments = if (format >= 2) mapOf((PersonalSync.attachmentDescriptor(file)!!.descriptor["sha256"] as JsonPrimitive).content to file) else emptyMap()
+            val result = PersonalSync.apply(baseline.first, listOf(remote), attachments)
+            assertEquals(0, result.conflicts); assertEquals(1, result.bestand.notizen.size)
+            assertEquals(1, result.bestand.notizen.single().anhaenge.size)
+            val next = PersonalSync.reconcile(result.bestand, setOf("notes"), format)
+            assertEquals(if (remoteWins) remote.hash else local.hash, next.second.single { it.kind == "note" }.hash)
+            val repeated = PersonalSync.apply(next.first, listOf(remote), attachments)
+            assertEquals(0, repeated.conflicts); assertEquals(1, repeated.bestand.notizen.size)
+            val changedValue = JsonObject(remote.value + ("html" to JsonPrimitive("<b>Same content</b>")))
+            val changed = remote.copy(value = changedValue, hash = PersonalSync.hash(changedValue),
+                clock = listOf(PersonalSyncClock(remoteActor, 2)))
+            val conflict = PersonalSync.apply(next.first, listOf(changed), attachments)
+            assertEquals(1, conflict.conflicts); assertEquals(2, conflict.bestand.notizen.size)
+        }
+    }
+
     @Test fun `F31 format 1 fallback cannot infer an attachment deletion`() {
         val peer = "33333333-3333-4333-8333-333333333333"
         val note = Notiz("n", anhaenge = listOf(Anhang("a", "image.png", "image",

@@ -842,7 +842,8 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
           throw new Error(_("Personal synchronization failed."));
       }
     }
-    await personalSyncSnapshot(modules, format, peerId);
+    const eigeneRecords = await personalSyncSnapshot(modules, format, peerId);
+    const eigeneWerte = new Map(eigeneRecords.map(record => [record.kind + "\u0000" + record.id, record.value]));
     let konflikte = 0, anlagen = 0;
     for (const record of records) {
       const key = record.kind + "\u0000" + record.id, lokal = DATEN.personalSync.entities[key];
@@ -861,6 +862,18 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
         personalSyncSetze(record, record.id, false, attachmentData);
         DATEN.personalSync.entities[key] = { clock: record.clock, hash: record.hash,
           modified_ms: record.modified_ms, conflict: false }; continue;
+      }
+      if (record.kind === "note" && eigeneWerte.has(key)) {
+        const inhalt = value => personalSyncKanonisch(Object.fromEntries(Object.entries(value)
+          .filter(([feld]) => !["created_ms", "modified_ms"].includes(feld))));
+        if (inhalt(eigeneWerte.get(key)) === inhalt(record.value)) {
+          const remoteWins = record.hash < lokal.hash;
+          if (remoteWins) personalSyncSetze(record, record.id, false, attachmentData);
+          DATEN.personalSync.entities[key] = { ...lokal, clock: personalSyncVereinige(lokal.clock, record.clock),
+            hash: remoteWins ? record.hash : lokal.hash,
+            modified_ms: remoteWins ? record.modified_ms : lokal.modified_ms, conflict: false };
+          continue;
+        }
       }
       const merged = personalSyncVereinige(lokal.clock, record.clock), remoteWins = record.hash < lokal.hash;
       const loser = remoteWins ? lokal.hash : record.hash, konfliktId = await personalSyncKonfliktId(record.kind, record.id, loser);

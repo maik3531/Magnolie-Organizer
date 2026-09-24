@@ -449,6 +449,22 @@ object PersonalSync {
                         continue
                     }
                     val remoteWins = remote.hash < localMeta.hash
+                    if (remote.kind == "note") {
+                        val local = notes.firstOrNull { it.id == remote.id }
+                        val format = if ("attachments" in remote.value) 2 else 1
+                        fun content(value: JsonObject) = JsonObject(value.filterKeys { it !in setOf("created_ms", "modified_ms") })
+                        if (local != null && content(noteValue(local, format)) == content(remote.value)) {
+                            // Keep wire hashes and clocks exact; only the conflict
+                            // decision ignores timestamps. Preserve local
+                            // attachments not represented by this wire value.
+                            if (remoteWins) notes = notes.filterNot { it.id == remote.id } +
+                                remoteNote(remote, local, attachments, additive = true)
+                            entities[key] = localMeta.copy(clock = merged,
+                                hash = if (remoteWins) remote.hash else localMeta.hash,
+                                modified_ms = if (remoteWins) remote.modifiedMs else localMeta.modified_ms, conflict = false)
+                            continue
+                        }
+                    }
                     val loserHash = if (remoteWins) localMeta.hash else remote.hash
                     val conflictId = conflictId(remote.kind, remote.id, loserHash)
                     val conflictKey = "${remote.kind}\u0000$conflictId"
