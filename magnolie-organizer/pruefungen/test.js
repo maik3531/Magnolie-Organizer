@@ -8975,13 +8975,8 @@ function knopfMit(text, wurzel) {
   setze(planZeilen[1].querySelector("textarea"), "Zweite geplante SMS");
   Array.from(planDialog.querySelectorAll("button"))
     .find((x) => x.textContent === "SMS planen").click();
-  assert.strictEqual(kontaktT.daten().smsPlanung.length, 0,
-    "SMS-Pläne dürfen vor der ausdrücklichen Vorschau-Bestätigung nicht gespeichert werden");
-  await warteBis(() => planDialog.querySelector(".sms-plan-vorschau:not(.verborgen)"), "SMS-Vorschau fehlt");
-  assert.deepStrictEqual(Array.from(planDialog.querySelectorAll(".sms-plan-vorschau pre"), x => x.textContent),
-    ["Erste geplante SMS", "Zweite geplante SMS"]);
-  Array.from(planDialog.querySelectorAll(".sms-plan-vorschau button"))
-    .find((x) => x.textContent === "SMS-Pläne bestätigen").click();
+  assert.strictEqual(planDialog.querySelector(".sms-plan-vorschau:not(.verborgen)"), null,
+    "Unveränderte SMS-Texte dürfen keinen zweiten Bestätigungsklick verlangen");
   assert.strictEqual(kontaktT.daten().smsPlanung.length, 2,
     "mehrere geplante SMS werden nicht gemeinsam persistent übernommen");
   for (let versuch = 0; versuch < 30 && planDialog.isConnected; versuch++) {
