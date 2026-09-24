@@ -6,6 +6,63 @@ namespace MagnolieOrganizer.Windows.Tests;
 // Opt-in integration probe. Use a disposable Nextcloud account only.
 internal static class NextcloudDavLiveTests
 {
+    // Explicit diagnostic for already connected accounts. Never synchronize,
+    // upload, delete, or print account identifiers or remote object contents.
+    internal static async Task<int> ReadOnlyAsync(bool managed = false)
+    {
+        using var timeout = new CancellationTokenSource(TimeSpan.FromMinutes(2));
+        var root = Path.Combine(Path.GetTempPath(), "magnolie-readonly-dav-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        try
+        {
+            var sources = await ThunderbirdBridge.SourcesAsync(timeout.Token, managed);
+            Console.WriteLine($"Read-only bridge discovery: {sources.Count} sources.");
+            var failed = false;
+            foreach (var source in sources)
+            {
+                try
+                {
+                    using var client = ThunderbirdBridge.CreateClient(source, new NextcloudSyncJournal(Path.Combine(root, "journal")), new string('a', 64));
+                    if (source.Kind == "addressbook")
+                    {
+                        var contacts = await new NextcloudCardDavRemote(client, source).ReadAsync(timeout.Token);
+                        Console.WriteLine($"Read-only addressbook: {contacts.Count} contacts; response, vCards and identities accepted.");
+                    }
+                    else
+                    {
+                        var objects = await client.ReadCalendarAsync(source, timeout.Token);
+                        var parsed = objects.Select(item => ExchangeCodec.ParseIcs(item.Text)).ToArray();
+                        var events = parsed.SelectMany(item => item.Termine.Concat(item.Jahrestage)).OfType<JsonObject>().ToArray();
+                        var tasks = parsed.SelectMany(item => item.Aufgaben).OfType<JsonObject>().ToArray();
+                        var malformedEvents = parsed.Sum(item => item.FehlerhafteTermine);
+                        var malformedTasks = parsed.Sum(item => item.FehlerhafteAufgaben);
+                        var invalidIdentities = new[] { events, tasks }.Sum(items => items.Count(item => ContactFields.Text(item, "uid").Length == 0) +
+                            items.GroupBy(item => ContactFields.Text(item, "uid"), StringComparer.Ordinal).Sum(group => group.Count() - 1));
+                        failed |= malformedEvents + malformedTasks + invalidIdentities > 0;
+                        Console.WriteLine($"Read-only calendar: {objects.Count} objects; {events.Length} events; {tasks.Length} tasks; " +
+                            $"malformed events={malformedEvents}, malformed tasks={malformedTasks}, invalid identities={invalidIdentities}.");
+                    }
+                }
+                catch (Exception error)
+                {
+                    failed = true;
+                    var frames = new System.Diagnostics.StackTrace(error, true).GetFrames()
+                        .Select(frame => $"{frame.GetMethod()?.DeclaringType?.Name}.{frame.GetMethod()?.Name}:{frame.GetFileLineNumber()}");
+                    Console.WriteLine($"Read-only {source.Kind}: {error.GetType().Name}; {string.Join(" > ", frames)}");
+                }
+            }
+            return sources.Count == 0 || failed ? 1 : 0;
+        }
+        catch (Exception error)
+        {
+            var frames = new System.Diagnostics.StackTrace(error, true).GetFrames()
+                .Select(frame => $"{frame.GetMethod()?.DeclaringType?.Name}.{frame.GetMethod()?.Name}:{frame.GetFileLineNumber()}");
+            Console.WriteLine($"Read-only discovery failed: {error.GetType().Name}; {string.Join(" > ", frames)}");
+            return 1;
+        }
+        finally { Directory.Delete(root, true); }
+    }
+
     internal static async Task<int> RunAsync(bool thunderbird = false)
     {
         var server = Environment.GetEnvironmentVariable("MAGNOLIE_DAV_TEST_SERVER");
@@ -36,7 +93,7 @@ internal static class NextcloudDavLiveTests
             using var bookClient = thunderbird ? ThunderbirdBridge.CreateClient(book, journal, transaction) : new NextcloudDavClient(settings);
             var uid = "magnolie-probe-" + Guid.NewGuid().ToString("N");
             var eventText = $"BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\nUID:{uid}\r\nDTSTAMP:20260922T080000Z\r\nDTSTART:20261001T090000Z\r\nDTEND:20261001T100000Z\r\nSUMMARY:Magnolie DAV probe\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n";
-            NextcloudDavObject? eventObject = null, contactObject = null;
+            NextcloudDavObject? eventObject = null, contactObject = null, taskObject = null;
             try
             {
                 eventObject = await client.CreateAsync(calendar, uid, ".ics", "text/calendar", eventText, timeout.Token);
@@ -60,13 +117,33 @@ internal static class NextcloudDavLiveTests
                 TestAssert.That(repeat.Termine.Count == changed.Termine.Count, "CalDAV repeat duplicated appointments.");
                 TestAssert.That((await client.ReadCalendarAsync(calendar, timeout.Token)).Any(item => item.Text.Contains("Changed DAV probe")), "CalDAV edit did not reach the server.");
                 TestAssert.That((await remote.ReadAsync(timeout.Token)).Any(item => item.Data["vorname"]?.GetValue<string>() == "Changed"), "CardDAV edit did not reach the server.");
-                Console.WriteLine((thunderbird ? "Thunderbird bridge" : "Live DAV") + ": discovery, CalDAV/CardDAV import, local edits, server readback and repeat without duplicates passed.");
+                TestAssert.That(calendar.SupportsVTodo, "The disposable test calendar must support VTODO.");
+                var taskUid = uid + "-task";
+                taskObject = await client.CreateAsync(calendar, taskUid, ".ics", "text/calendar",
+                    $"BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VTODO\r\nUID:{taskUid}\r\nDTSTAMP:20260922T080000Z\r\nDUE;VALUE=DATE:20261002\r\nSUMMARY:Magnolie DAV task probe\r\nSTATUS:NEEDS-ACTION\r\nEND:VTODO\r\nEND:VCALENDAR\r\n", timeout.Token);
+                var taskSync = new NextcloudTaskSync(client);
+                var importedTasks = await taskSync.SyncAsync(calendar, [], [], 0, true, timeout.Token);
+                var task = importedTasks.Tasks.OfType<JsonObject>().Single(item => item["uid"]?.GetValue<string>() == taskUid);
+                task["titel"] = "Changed DAV task probe"; task["erledigt"] = true;
+                task["geaendert"] = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() + 1;
+                var changedTasks = await taskSync.SyncAsync(calendar, importedTasks.Tasks, importedTasks.Tombstones, 1, false, timeout.Token);
+                var repeatedTasks = await taskSync.SyncAsync(calendar, changedTasks.Tasks, changedTasks.Tombstones, 1, false, timeout.Token);
+                TestAssert.That(repeatedTasks.Tasks.Count == changedTasks.Tasks.Count && repeatedTasks.Tasks.OfType<JsonObject>()
+                    .Single(item => item["uid"]?.GetValue<string>() == taskUid)["erledigt"]?.GetValue<bool>() == true,
+                    "VTODO repeat duplicated tasks or lost completion.");
+                TestAssert.That((await client.ReadCalendarAsync(calendar, timeout.Token)).Any(item => item.Href == taskObject.Href &&
+                    item.Text.Contains("Changed DAV task probe", StringComparison.Ordinal) && item.Text.Contains("STATUS:COMPLETED", StringComparison.Ordinal)),
+                    "VTODO edit did not reach the server.");
+                Console.WriteLine((thunderbird ? "Thunderbird bridge" : "Live DAV") + ": discovery, CalDAV/CardDAV/VTODO import, local edits, server readback and repeat without duplicates passed.");
             }
             finally
             {
                 // Read the current ETag; never delete a fixture unconditionally.
                 if (eventObject is not null)
                     foreach (var item in (await client.ReadCalendarAsync(calendar, timeout.Token)).Where(item => item.Href == eventObject.Href))
+                        await client.DeleteAsync(item.Href, item.ETag, timeout.Token);
+                if (taskObject is not null)
+                    foreach (var item in (await client.ReadCalendarAsync(calendar, timeout.Token)).Where(item => item.Href == taskObject.Href))
                         await client.DeleteAsync(item.Href, item.ETag, timeout.Token);
                 if (contactObject is not null)
                     foreach (var item in (await bookClient.ReadAddressBookAsync(book, timeout.Token)).Where(item => item.Href == contactObject.Href))

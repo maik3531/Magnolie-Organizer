@@ -2,6 +2,8 @@ using MagnolieOrganizer.Windows.Tests;
 
 if (args.FirstOrDefault() == "--dav-live") return await NextcloudDavLiveTests.RunAsync();
 if (args.FirstOrDefault() == "--thunderbird-live") return await NextcloudDavLiveTests.RunAsync(thunderbird: true);
+if (args.FirstOrDefault() == "--thunderbird-readonly") return await NextcloudDavLiveTests.ReadOnlyAsync();
+if (args.FirstOrDefault() == "--managed-accounts-readonly") return await NextcloudDavLiveTests.ReadOnlyAsync(managed: true);
 if (args.FirstOrDefault() == "--managed-account-host" && args.Length == 4)
     return await ManagedInternetAccountsTests.ProbeAsync(args[1], args[2], args[3]);
 
