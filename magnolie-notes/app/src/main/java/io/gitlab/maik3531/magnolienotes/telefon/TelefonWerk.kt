@@ -312,14 +312,14 @@ class TelefonWerk private constructor(private val context: Context, private val 
         else if (peer != null) queue.purgePersonalModules(peer.device_id,
             buildSet { if (!notes) add("notes"); if (!tasks) add("tasks") })
         if (own) Ablage.hole(context).personalSyncRevokeModules(
-            buildSet { if (!notes) add("notes"); if (!tasks) add("tasks") })
+            buildSet { if (!notes) add("notes"); if (!tasks) add("tasks") }, peer?.device_id)
         else {
-            Ablage.hole(context).personalSyncRevokeModules(setOf("notes", "tasks"))
-            Ablage.hole(context).personalSyncRevokeDeletions()
+            Ablage.hole(context).personalSyncRevokeModules(setOf("notes", "tasks"), peer?.device_id)
+            Ablage.hole(context).personalSyncRevokeDeletions(peer?.device_id)
         }
         if (peer != null && !deletions) {
             queue.purgePersonalDeletionWire(peer.device_id)
-            Ablage.hole(context).personalSyncRevokeDeletions()
+            Ablage.hole(context).personalSyncRevokeDeletions(peer.device_id)
         }
         storage.setPersonalSync(own, notes, tasks, autoWifi, deletions)
         if (peer != null) {
@@ -853,7 +853,10 @@ class TelefonWerk private constructor(private val context: Context, private val 
         pairing.set(false)
         synchronized(captureLock) {
             outgoingScope = null
-            safePeer()?.let { queue.deletePeer(it.device_id) }; storage.savePeer(null)
+            safePeer()?.let {
+                Ablage.hole(context).personalSyncRevokeDeletions(it.device_id)
+                queue.deletePeer(it.device_id)
+            }; storage.savePeer(null)
             storage.setPersonalSync(false, false, false, false)
         }
         _state.value = _state.value.copy(peer = null, pairedComputers = savedComputers(), connection = TelefonVerbindungsstatus.OFFLINE)
@@ -1537,11 +1540,11 @@ class TelefonWerk private constructor(private val context: Context, private val 
                     if (!updated.remote_personal_tasks_sync_granted) add("tasks")
                 }
                 queue.purgePersonalModules(peer.device_id, revoked)
-                Ablage.hole(context).personalSyncRevokeModules(revoked)
+                Ablage.hole(context).personalSyncRevokeModules(revoked, peer.device_id)
             }
             if (kind == "grants.update" && !updated.remote_personal_deletions_sync_granted)
                 queue.purgePersonalDeletionWire(peer.device_id).also {
-                    Ablage.hole(context).personalSyncRevokeDeletions()
+                    Ablage.hole(context).personalSyncRevokeDeletions(peer.device_id)
                 }
             synchronized(captureLock) {
                 if (!updated.remote_dial_request_granted || !updated.remote_dial_request_available ||

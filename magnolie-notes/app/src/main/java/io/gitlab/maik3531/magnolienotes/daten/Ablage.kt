@@ -547,28 +547,21 @@ class Ablage private constructor(
         _bestand.value.personalSync.pending_decisions
     }
 
-    fun personalSyncRevokeModules(modules: Set<String>) = synchronized(sperre) {
+    fun personalSyncRevokeModules(modules: Set<String>, peerId: String?) = synchronized(sperre) {
         val revokedKinds = buildSet {
             if ("notes" in modules) addAll(listOf("note", "notebook", "attachment"))
             if ("tasks" in modules) add("task")
         }
         if (revokedKinds.isEmpty()) return@synchronized
-        val removed = _bestand.value.personalSync.pending_proposals.filter { it.kind in revokedKinds }
-            .mapTo(mutableSetOf()) { it.proposal_id }
-        _bestand.value.personalSync.entities.forEach { (key, value) ->
-            if (key.substringBefore('\u0000') in revokedKinds && value.proposal_id.isNotEmpty()) removed += value.proposal_id
-        }
         val state = _bestand.value.personalSync
-        schreibeBestand(_bestand.value.copy(personalSync = state.copy(
-            pending_proposals = state.pending_proposals.filterNot { it.kind in revokedKinds },
-            pending_decisions = state.pending_decisions.filterNot { it.proposal_id in removed })))
+        val next = PersonalSync.revokeDeletionConsent(state, peerId, revokedKinds)
+        if (next != state) schreibeBestand(_bestand.value.copy(personalSync = next))
     }
 
-    fun personalSyncRevokeDeletions() = synchronized(sperre) {
+    fun personalSyncRevokeDeletions(peerId: String?) = synchronized(sperre) {
         val state = _bestand.value.personalSync
-        if (state.pending_proposals.isNotEmpty() || state.pending_decisions.isNotEmpty())
-            schreibeBestand(_bestand.value.copy(personalSync = state.copy(
-                pending_proposals = emptyList(), pending_decisions = emptyList())))
+        val next = PersonalSync.revokeDeletionConsent(state, peerId)
+        if (next != state) schreibeBestand(_bestand.value.copy(personalSync = next))
     }
 
     fun personalSyncDecisionAccepted(decisionId: String) = synchronized(sperre) {

@@ -39,6 +39,6 @@ class TelefonTrennungTest {
         val consentReset = "Ablage.hole(context).personalCustomChange { PersonalCustomState(items = it.items, firedHighWater = it.firedHighWater) }"
         assertTrue("Entkoppeln muss Custom-Freigaben entfernen und Kopien behalten", unpair.contains(consentReset))
         assertFalse("Entkoppeln darf keine synchronisierten Inhalte löschen",
-            unpair.replaceFirst(consentReset, "").contains("Ablage.hole"))
+            unpair.replaceFirst(consentReset, "").replace("Ablage.hole(context).personalSyncRevokeDeletions(it.device_id)", "").contains("Ablage.hole"))
     }
 }

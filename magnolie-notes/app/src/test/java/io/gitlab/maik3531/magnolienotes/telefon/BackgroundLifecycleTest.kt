@@ -130,7 +130,15 @@ class BackgroundLifecycleTest {
         assertEquals(storage.peers(), reloaded.peers())
         work.selectComputer(office.device_id)
         assertTrue(storage.personalTasksEnabled()); assertFalse(storage.personalNotesEnabled()); assertFalse(storage.personalAutoWifi())
+        val notes = io.gitlab.maik3531.magnolienotes.daten.Ablage.hole(context)
+        notes.sichereNotiz(io.gitlab.maik3531.magnolienotes.daten.Notiz("retained-note", text = "Keep this content"))
+        for (computer in listOf(home, office)) notes.personalSyncStageProposals(UUID.randomUUID().toString(), computer.device_id,
+            listOf(io.gitlab.maik3531.magnolienotes.daten.PersonalDeletionProposal("", UUID.randomUUID().toString(), "note", "retained-note",
+                clock = emptyList(), prior_hash = "a".repeat(64), deleted_ms = 1)))
+        val beforeUnpair = notes.notizen()
         work.unpair()
+        assertEquals(beforeUnpair, notes.notizen())
+        assertEquals(listOf(home.device_id), notes.bestand.value.personalSync.pending_proposals.map { it.source_device })
         assertEquals(listOf(home.device_id), storage.peers().all().map { it.device_id })
         assertFalse(queue.hasKind(office.device_id, "capabilities.update"))
         assertTrue(queue.hasKind(home.device_id, "capabilities.update"))

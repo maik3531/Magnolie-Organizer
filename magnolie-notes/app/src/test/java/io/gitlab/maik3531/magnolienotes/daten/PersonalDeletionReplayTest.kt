@@ -4,6 +4,25 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 
 class PersonalDeletionReplayTest {
+    @Test fun `revoking one computer preserves other computer and module decisions`() {
+        fun proposal(peer: String, kind: String) = PersonalDeletionProposal("run-$peer", "$peer-$kind", kind, "same-object",
+            clock = emptyList(), prior_hash = "hash", deleted_ms = 1, source_device = peer)
+        val proposals = listOf(proposal("home", "note"), proposal("home", "task"), proposal("office", "note"))
+        val decisions = proposals.map { PendingPersonalDecision(it.source_device, it.run_id, "decision-${it.proposal_id}",
+            it.proposal_id, "restore", emptyList()) }
+        val state = PersonalSyncState(pending_proposals = proposals, pending_decisions = decisions)
+        val scoped = PersonalSync.revokeDeletionConsent(state, "home", setOf("note", "notebook", "attachment"))
+        assertEquals(proposals.drop(1), scoped.pending_proposals)
+        assertEquals(decisions.drop(1), scoped.pending_decisions)
+        val allHome = PersonalSync.revokeDeletionConsent(state, "home")
+        assertEquals(listOf(proposals.last()), allHome.pending_proposals)
+        assertEquals(listOf(decisions.last()), allHome.pending_decisions)
+        assertEquals(state, PersonalSync.revokeDeletionConsent(state, null))
+        val committed = state.copy(pending_proposals = emptyList(), entities = mapOf(
+            "note\u0000same-object" to PersonalSyncEntity(peer_device_id = "home", proposal_id = "home-note")))
+        assertEquals(decisions.drop(1), PersonalSync.revokeDeletionConsent(committed, "home", setOf("note")).pending_decisions)
+    }
+
     @Test fun `restore aliased note ignores later trash of another kind with the same wire ID`() {
         val actor = "11111111-1111-4111-8111-111111111111"
         val peer = "22222222-2222-4222-8222-222222222222"

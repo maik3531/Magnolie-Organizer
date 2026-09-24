@@ -105,6 +105,19 @@ data class PersonalSyncResult(
 
 /** Personal data only. This file deliberately has no phone or tree dependencies. */
 object PersonalSync {
+    internal fun revokeDeletionConsent(state: PersonalSyncState, peerId: String?, kinds: Set<String>? = null): PersonalSyncState {
+        if (peerId.isNullOrBlank()) return state
+        val removed = state.pending_proposals.filter { it.source_device == peerId && (kinds == null || it.kind in kinds) }
+            .mapTo(mutableSetOf()) { it.proposal_id }
+        state.entities.forEach { (key, value) ->
+            if (value.peer_device_id == peerId && (kinds == null || key.substringBefore('\u0000') in kinds) && value.proposal_id.isNotEmpty())
+                removed += value.proposal_id
+        }
+        return state.copy(
+            pending_proposals = state.pending_proposals.filterNot { it.source_device == peerId && (kinds == null || it.kind in kinds) },
+            pending_decisions = state.pending_decisions.filterNot { it.peer_device_id == peerId && (kinds == null || it.proposal_id in removed) })
+    }
+
     private val uuid4 = Regex("[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}")
 
     private fun validNoteId(id: String) = id.isNotEmpty() && id == id.trim() && '\u0000' !in id && id.toByteArray(Charsets.UTF_8).size <= 160
