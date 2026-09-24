@@ -41,6 +41,32 @@ async function check(web) {
       assert.equal((await T.personalSyncAnwenden([changed], attachments, format, "peer", ["notes"])).conflicts, 1);
       assert.equal(T.daten().notizen.length, 2, "a real formatting conflict was discarded");
     }
+    for (const format of [1, 2, 3]) for (const scenario of ["local-wins", "remote-wins", "dominated"]) {
+      w.App.init({ daten: { personalSync: { actor_id: actor }, notizen: [],
+        notizbuecher: [{ id: "book", name: "Notebook" }] }, neu: false });
+      const baseline = (await T.personalSyncSnapshot(["notes"], format, "peer")).find(r => r.id === "book");
+      let remote;
+      for (let date = 1; date <= 1000; date++) {
+        const value = { ...clean(baseline.value), modified_ms: date }, hash = await T.personalSyncHash(value);
+        if (scenario === "dominated" || (hash < baseline.hash) === (scenario === "remote-wins")) {
+          remote = { ...clean(baseline), value, hash, modified_ms: date,
+            clock: [...(scenario === "dominated" ? clean(baseline.clock) : []), { actor_id: remoteActor, counter: 1 }] };
+          break;
+        }
+      }
+      assert.ok(remote, "legacy notebook fixture: " + scenario);
+      const count = T.daten().notizbuecher.length;
+      assert.equal((await T.personalSyncAnwenden([remote], {}, format, "peer", ["notes"])).conflicts, 0);
+      const normalized = (await T.personalSyncSnapshot(["notes"], format, "peer")).find(r => r.id === "book");
+      assert.equal(normalized.value.modified_ms, 0); assert.equal(normalized.hash, baseline.hash);
+      w.App.init({ daten: clean(T.daten()), neu: false });
+      for (let replay = 0; replay < 3; replay++) {
+        assert.equal((await T.personalSyncAnwenden([remote], {}, format, "peer", ["notes"])).conflicts, 0);
+        assert.equal(T.daten().notizbuecher.length, count);
+        const next = (await T.personalSyncSnapshot(["notes"], format, "peer")).find(r => r.id === "book");
+        assert.deepEqual(clean(next), clean(normalized), "legacy replay changed notebook hash or clock");
+      }
+    }
     console.log("PERSONAL NOTE TIMESTAMPS PASSED: " + web);
   } finally { w.close(); }
 }

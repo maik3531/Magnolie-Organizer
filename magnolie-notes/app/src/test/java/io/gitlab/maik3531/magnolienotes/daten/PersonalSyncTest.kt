@@ -14,6 +14,33 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class PersonalSyncTest {
+    @Test fun `legacy notebook timestamps normalize once and remain stable after replay and reload`() {
+        val actor = "11111111-1111-4111-8111-111111111111"
+        val peer = "22222222-2222-4222-8222-222222222222"
+        for (format in listOf(1, 2, 3)) for (scenario in listOf("local-wins", "remote-wins", "dominated")) {
+            val initial = PersonalSync.reconcile(Bestand(notizbuecher = listOf(Notizbuch("book", "Notebook")),
+                personalSync = PersonalSyncState(actor_id = actor)), setOf("notes"), format, peer)
+            val baseline = initial.second.single { it.id == "book" }
+            val remote = (1L..1000L).map { date ->
+                val value = JsonObject(baseline.value + ("modified_ms" to JsonPrimitive(date)))
+                baseline.copy(value = value, hash = PersonalSync.hash(value), modifiedMs = date,
+                    clock = (if (scenario == "dominated") baseline.clock else emptyList()) + PersonalSyncClock(peer, 1))
+            }.first { scenario == "dominated" || (it.hash < baseline.hash) == (scenario == "remote-wins") }
+            val result = PersonalSync.apply(initial.first, listOf(remote))
+            assertEquals(0, result.conflicts)
+            val normalized = PersonalSync.reconcile(result.bestand, setOf("notes"), format, peer)
+            val expected = normalized.second.single { it.id == "book" }
+            assertEquals(0L, expected.modifiedMs); assertEquals(baseline.hash, expected.hash)
+            var state = Json.Default.decodeFromString<Bestand>(Json.Default.encodeToString(normalized.first))
+            repeat(3) {
+                val replay = PersonalSync.apply(state, listOf(remote))
+                assertEquals(0, replay.conflicts); assertEquals(1, replay.bestand.notizbuecher.size)
+                val next = PersonalSync.reconcile(replay.bestand, setOf("notes"), format, peer)
+                assertEquals(expected, next.second.single { it.id == "book" }); state = next.first
+            }
+        }
+    }
+
     @Test fun `independent plain note identities keep local IDs and converge on one wire ID`() {
         val peer = "33333333-3333-4333-8333-333333333333"
         for (format in listOf(1, 2, 3)) {
