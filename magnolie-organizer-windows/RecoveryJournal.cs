@@ -74,7 +74,7 @@ internal sealed class RecoveryJournal
             return left.Select(item => item.Key).Union(right.Select(item => item.Key)).All(field =>
                 field is "uid" or "geaendert" or "angelegt" or "personalGeaendert" or "sync" or "syncQuellen" or
                     "syncKalenderUid" or "davHref" or "davEtag" or "baumKontakt" or "baumFreigabe" or
-                    "baumVersion" or "baumQuelle" or "baumGeaendert" or "importBindungen" or "importHerkunfte" or
+                    "baumVersion" or "baumQuelle" or "baumGeaendert" or "baumInhaltVersion" or "importBindungen" or "importHerkunfte" or
                     "importKonflikt" or "icsSequence" or "icsAenderungszeitFehlt" || JsonNode.DeepEquals(left[field], right[field]));
         }
     }

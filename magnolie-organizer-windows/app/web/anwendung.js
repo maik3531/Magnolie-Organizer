@@ -801,6 +801,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
           }
         }
       } else if (nurFern) neu.anhaenge = [];
+      if (alt?.baumFreigabe && notizInhaltsKennung(alt) !== notizInhaltsKennung(neu)) markiereGemeinsameNotiz(neu);
       if (alt) DATEN.notizen[DATEN.notizen.indexOf(alt)] = neu; else DATEN.notizen.push(neu);
     } else if (record.kind === "task") {
       const alt = DATEN.aufgaben.find((x) => x.id === id);
@@ -858,8 +859,12 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       if (remoteWins) {
         const liste = record.kind === "note" ? DATEN.notizen : record.kind === "task" ? DATEN.aufgaben : DATEN.notizbuecher;
         const original = liste.find((x) => x.id === record.id);
-        if (original && !liste.some((x) => x.id === konfliktId)) liste.push(Object.assign({}, original,
-          { id: konfliktId, uid: record.kind === "task" ? stabileAufgabenUid(konfliktId) : original.uid }));
+        if (original && !liste.some((x) => x.id === konfliktId)) {
+          const kopie = Object.assign({}, original,
+            { id: konfliktId, uid: record.kind === "task" ? stabileAufgabenUid(konfliktId) : original.uid });
+          if (record.kind === "note") { kopie.baumFreigabe = null; kopie.baumVersion = 0; kopie.baumQuelle = ""; kopie.baumGeaendert = 0; kopie.baumInhaltVersion = 0; }
+          liste.push(kopie);
+        }
         personalSyncSetze(record, record.id, record.kind === "note", attachmentData);
       } else {
         personalSyncSetze(record, konfliktId, true, attachmentData);
@@ -5530,7 +5535,10 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
           Array.isArray(n.baumFreigabe.partner)
             ? n.baumFreigabe.partner.map(S).filter(Boolean) : [],
           anhangPartner: Array.isArray(n.baumFreigabe.anhangPartner)
-            ? n.baumFreigabe.anhangPartner.map(S).filter(Boolean) : [] }
+            ? n.baumFreigabe.anhangPartner.map(S).filter(Boolean) : [],
+          quellen: (Array.isArray(n.baumFreigabe.quellen) ? n.baumFreigabe.quellen : [])
+            .filter(q => q && S(q.partner) && S(q.id)).map(q => ({ partner: S(q.partner), id: S(q.id),
+              version: N(q.version), quelle: S(q.quelle), stand: N(q.stand) })) }
         : null;
       d.notizen.push({ id: S(n.id) || uid(), titel: S(n.titel), text: S(n.text),
         html: htmlStand.gekuerzt ? htmlRoh : sicheresHtml,
@@ -5540,7 +5548,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
         geaendert: notizDatum, angelegt: notizAngelegt, symbol: S(n.symbol) || "notiz",
         personalGeaendert: N(n.personalGeaendert) || notizAngelegt,
         baumFreigabe: freigabe && freigabe.id ? freigabe : null,
-        baumGeaendert: N(n.baumGeaendert),
+        baumGeaendert: N(n.baumGeaendert), baumInhaltVersion: N(n.baumInhaltVersion),
         baumVersion: N(n.baumVersion), baumQuelle: S(n.baumQuelle) });
     }
     const jahrestageNachIdentitaet = new Map();
@@ -13443,7 +13451,10 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       frage(frageText, _("Share")).then((ja) => {
         if (!ja) return;
         if (vorSenden && vorSenden(kennungen) === false) return;
-        schickeBaumInhalt(art, inhaltFn(), kennungen);
+        const inhalt = inhaltFn();
+        const notiz = art === "notiz" ? DATEN.notizen.find(n => n.baumFreigabe?.id === inhalt.freigabeId) : null;
+        if (notiz) for (const kennung of kennungen) sendeBaumNotiz(notiz, art, kennung);
+        else schickeBaumInhalt(art, inhalt, kennungen);
       });
     });
     reihe.append(wahl, senden);
@@ -13461,10 +13472,117 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       art: art };
   }
 
-  function markiereGemeinsameNotiz(notiz) {
+  function notizInhaltsKennung(notiz) {
+    const stand = {}, text = String(notiz.text || "").replace(/\r\n?/g, "\n");
+    let html = saeubereHtml(String(notiz.html || ""), stand) || textZuHtml(text);
+    const anhaenge = saubereNotizAnhaenge(notiz.anhaenge);
+    if (stand.gekuerzt || Array.isArray(notiz.anhaenge) && anhaenge.length !== notiz.anhaenge.length) return null;
+    const flaeche = document.createElement("div"); flaeche.innerHTML = html;
+    if ([...flaeche.querySelectorAll("*")].every(e => ["DIV", "P", "SPAN", "BR"].includes(e.tagName) && !e.attributes.length) &&
+        htmlZuText(flaeche).replace(/\r\n?/g, "\n") === text) html = textZuHtml(text);
+    return kanonischerEntwurf({ titel: String(notiz.titel || ""), text, html,
+      anhaenge: anhaenge.map(a => kanonischerEntwurf({ name: a.name, art: a.art, daten: a.daten })).sort() });
+  }
+
+  function baumNotizQuelle(notiz, partner, id) {
+    const meta = notiz.baumFreigabe;
+    return meta?.quellen?.find(q => q.partner === partner && q.id === id) ||
+      (meta?.id === id && (meta.partner || []).includes(partner)
+        ? { partner, id, version: Number(notiz.baumVersion) || 0, quelle: notiz.baumQuelle || "", stand: -1 } : null);
+  }
+
+  function merkeBaumNotizQuelle(notiz, stueck, anhaengeErlauben = true) {
+    const inhalt = stueck.inhalt, id = String(inhalt.freigabeId), partner = stueck.von;
+    const meta = notiz.baumFreigabe ||= { id, partner: [], anhangPartner: [], quellen: [] };
+    meta.partner = Array.from(new Set((meta.partner || []).concat(partner)));
+    if (anhaengeErlauben) meta.anhangPartner = Array.from(new Set((meta.anhangPartner || []).concat(partner)));
+    meta.quellen ||= [];
+    let quelle = meta.quellen.find(q => q.partner === partner && q.id === id);
+    if (!quelle) { quelle = { partner, id }; meta.quellen.push(quelle); }
+    Object.assign(quelle, { version: Number(inhalt.version) || 1, quelle: String(inhalt.quelle || partner || ""),
+      stand: Number(notiz.baumInhaltVersion) || 0 });
+    notiz.baumVersion = Math.max(Number(notiz.baumVersion) || 0, quelle.version);
+    notiz.baumQuelle = quelle.quelle;
+  }
+
+  function sendeBaumNotiz(notiz, art, partner) {
+    const ids = new Set((notiz.baumFreigabe?.quellen || []).filter(q => q.partner === partner).map(q => q.id));
+    if (!ids.size) ids.add(notiz.baumFreigabe.id);
+    for (const id of ids) schickeBaumInhalt(art, { ...notizBaumInhalt(notiz, art), freigabeId: id }, [partner]);
+  }
+
+  function indexiereBaumNotiz(index, notiz, entfernen = false) {
+    const inhalt = notizInhaltsKennung(notiz), meta = notiz.baumFreigabe;
+    const keys = inhalt === null ? [] : ["inhalt:" + inhalt];
+    for (const partner of meta?.partner || []) keys.push("quelle:" + partner + "\u0000" + meta.id);
+    for (const q of meta?.quellen || []) keys.push("quelle:" + q.partner + "\u0000" + q.id);
+    for (const key of keys) {
+      if (entfernen) { index.get(key)?.delete(notiz); continue; }
+      if (!index.has(key)) index.set(key, new Set());
+      index.get(key).add(notiz);
+    }
+  }
+
+  function uebernehmeBaumNotiz(stueck, automatisch = false, index = null) {
+    const inhalt = stueck.inhalt || {}, id = String(inhalt.freigabeId || "");
+    const htmlStand = {}, html = saeubereHtml(String(inhalt.html || ""), htmlStand);
+    const werte = { titel: String(inhalt.titel || ""), text: String(inhalt.text || ""), html,
+      anhaenge: saubereNotizAnhaenge(inhalt.anhaenge) };
+    if (!id || htmlStand.gekuerzt || Array.isArray(inhalt.anhaenge) && werte.anhaenge.length !== inhalt.anhaenge.length)
+      return { ok: false };
+    if (!index) { index = new Map(); DATEN.notizen.forEach(n => indexiereBaumNotiz(index, n)); }
+    const gebunden = [...(index.get("quelle:" + stueck.von + "\u0000" + id) || [])];
+    if (gebunden.length > 1) return { ok: false, konflikt: true };
+    let notiz = gebunden[0];
+    if (!notiz && automatisch && (inhalt.art || stueck.art) === "notiz_sync") return { ok: false };
+    let geaendert = false;
+    if (notiz) {
+      const quelle = baumNotizQuelle(notiz, stueck.von, id);
+      const version = Number(inhalt.version) || 0, ursprung = String(inhalt.quelle || stueck.von || "");
+      if (automatisch && !(notiz.baumFreigabe.anhangPartner || []).includes(stueck.von)) werte.anhaenge = notiz.anhaenge || [];
+      geaendert = notizInhaltsKennung(notiz) !== notizInhaltsKennung(werte);
+      if (version < quelle.version || version === quelle.version && ursprung <= quelle.quelle) {
+        if (!geaendert && !(notiz.baumFreigabe.quellen || []).some(q => q.partner === stueck.von && q.id === id)) {
+          merkeBaumNotizQuelle(notiz, { ...stueck, inhalt: { ...inhalt, version: quelle.version, quelle: quelle.quelle } }, false);
+          indexiereBaumNotiz(index, notiz);
+        }
+        return { ok: true, geaendert: false };
+      }
+      if (automatisch && geaendert && quelle.stand !== (Number(notiz.baumInhaltVersion) || 0))
+        return { ok: false, konflikt: true };
+      indexiereBaumNotiz(index, notiz, true);
+      if (geaendert) {
+        const bisher = saubereNotizAnhaenge(notiz.anhaenge), benutzt = new Set();
+        werte.anhaenge = werte.anhaenge.map(a => {
+          const gleich = bisher.find(b => !benutzt.has(b.id) && b.name === a.name && b.art === a.art && b.daten === a.daten);
+          if (!gleich) return a;
+          benutzt.add(gleich.id); return { ...a, id: gleich.id };
+        });
+        Object.assign(notiz, werte); notiz.geaendert = isoHeute();
+        notiz.baumInhaltVersion = (Number(notiz.baumInhaltVersion) || 0) + 1;
+        notiz.baumVersion = Math.max(Number(notiz.baumVersion) || 0, version) + 1;
+      }
+    } else {
+      const gleich = index.get("inhalt:" + notizInhaltsKennung(werte));
+      notiz = gleich?.values().next().value;
+      if (notiz) indexiereBaumNotiz(index, notiz, true);
+      else {
+        notiz = { ...werte, id: uid(), notizbuchId: DATEN.notizbuecher[0].id,
+          geaendert: isoHeute(), baumInhaltVersion: 0 };
+        DATEN.notizen.push(notiz); geaendert = true;
+      }
+    }
+    merkeBaumNotizQuelle(notiz, stueck, !automatisch || (inhalt.art || stueck.art) === "notiz");
+    notiz.baumGeaendert = Number(inhalt.geaendert) || 0;
+    indexiereBaumNotiz(index, notiz);
+    return { ok: true, geaendert };
+  }
+
+  function markiereGemeinsameNotiz(notiz, inhaltGeaendert = true) {
     if (!notiz.baumFreigabe) return;
     notiz.baumGeaendert = Date.now();
     notiz.baumVersion = Number(notiz.baumVersion || 0) + 1;
+    if (inhaltGeaendert) notiz.baumInhaltVersion = Number(notiz.baumInhaltVersion || 0) + 1;
     notiz.baumQuelle = String((baumStand && baumStand.kennung) || "");
   }
 
@@ -13479,7 +13597,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       return;
     }
     if (partner.length) {
-      schickeBaumInhalt("notiz_sync", notizBaumInhalt(notiz, "notiz_sync"), partner);
+      for (const kennung of partner) sendeBaumNotiz(notiz, "notiz_sync", kennung);
     }
   }
 
@@ -13508,13 +13626,13 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       }
       const schonFreigegeben = (notiz.baumFreigabe.partner || []).includes(kennung);
       if (schonFreigegeben) {
-        schickeBaumInhalt("notiz_sync", notizBaumInhalt(notiz, "notiz_sync"), [kennung]);
+        sendeBaumNotiz(notiz, "notiz_sync", kennung);
       } else {
         notiz.baumFreigabe.partner = Array.from(new Set(
           (notiz.baumFreigabe.partner || []).concat(kennung)));
         notiz.baumFreigabe.anhangPartner = Array.from(new Set(
           (notiz.baumFreigabe.anhangPartner || []).concat(kennung)));
-        schickeBaumInhalt("notiz", notizBaumInhalt(notiz, "notiz"), [kennung]);
+        sendeBaumNotiz(notiz, "notiz", kennung);
         datenGeaendert = true;
       }
     }
@@ -16127,7 +16245,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
           (notiz.baumFreigabe.partner || []).concat(kennungen)));
         notiz.baumFreigabe.anhangPartner = Array.from(new Set(
           (notiz.baumFreigabe.anhangPartner || []).concat(kennungen)));
-        markiereGemeinsameNotiz(notiz);
+        markiereGemeinsameNotiz(notiz, false);
         planeSpeichern();
         return true;
       });
@@ -19898,11 +20016,29 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
 
   /* Verarbeitet technische Updates sowie Angebote ausdrücklich vertrauter
      Partner automatisch. Andere neue Angebote warten auf eine Bestätigung. */
+  let baumPostSpeicherStand = null;
+  function meldeBaumNotizKonflikt(stueck, ergebnis) {
+    if (!ergebnis.konflikt || baumGemeldeteAngebote.has(stueck.id)) return;
+    baumGemeldeteAngebote.add(stueck.id);
+    zettel(_("Conflict") + ": " + String(stueck.inhalt?.titel || _("Untitled")));
+  }
   function nimmBaumpostAn(eingang) {
+    if (!initialisiert || !antwortErhalten || gesperrt) return;
+    sichereNotizSnapshot();
+    const bestand = DATEN;
+    if (baumPostSpeicherStand?.daten !== bestand) baumPostSpeicherStand = { daten: bestand, ids: new Set() };
+    const ausstehend = baumPostSpeicherStand.ids;
+    let notizIndex = null;
+    const holeNotizIndex = () => {
+      if (!notizIndex) { notizIndex = new Map(); DATEN.notizen.forEach(n => indexiereBaumNotiz(notizIndex, n)); }
+      return notizIndex;
+    };
     const erledigteIds = [];
     let rueckmeldungen = 0;
     let notizAenderungen = 0;
+    let aufgabenAngebote = false;
     for (const stueck of eingang) {
+      if (ausstehend.has(stueck.id)) continue;
       const inhalt = stueck.inhalt || {};
       const art = inhalt.art || stueck.art || "";
       const partner = (baumStand && baumStand.partner || []).find(
@@ -19916,7 +20052,14 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
         continue;
       }
       if (vertraut && (art === "aufgabe" || art === "notiz")) {
-        if (uebernehmeBaumAngebot(stueck)) erledigteIds.push(stueck.id);
+        const ergebnis = {};
+        if (uebernehmeBaumAngebot(stueck, {}, { aufschieben: true, automatisch: true,
+            notizIndex: art === "notiz" ? holeNotizIndex() : null, notizErgebnis: ergebnis })) {
+          erledigteIds.push(stueck.id);
+          if (art === "aufgabe") aufgabenAngebote = true;
+          if (ergebnis.geaendert) notizAenderungen++;
+        }
+        meldeBaumNotizKonflikt(stueck, ergebnis);
         continue;
       }
       if (art === "kontakt_loeschen") {
@@ -19935,63 +20078,42 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
           const dortGeaendert = Number(inhalt.geaendert) || 0;
           const hierGeaendert = Number(aufgabe.geaendert) || 0;
           if (!dortGeaendert || dortGeaendert >= hierGeaendert) {
+            if (aufgabe.erledigt !== !!inhalt.erledigt) rueckmeldungen++;
             aufgabe.erledigt = !!inhalt.erledigt;
             aufgabe.geaendert = dortGeaendert || Date.now();
-            rueckmeldungen++;
           }
         }
         erledigteIds.push(stueck.id);
         continue;
       }
       if (art === "notiz_sync") {
-        const htmlStand = {};
-        const sicheresHtml = saeubereHtml(String(inhalt.html || ""), htmlStand);
-        if (htmlStand.gekuerzt) {
-          zettel(_("The message is too large."));
-          continue;
-        }
-        const freigabeId = String(inhalt.freigabeId || "");
-        const notiz = DATEN.notizen.find((n) => n.baumFreigabe &&
-          n.baumFreigabe.id === freigabeId &&
-          (n.baumFreigabe.partner || []).includes(stueck.von));
-        const dortVersion = Number(inhalt.version) || 0;
-        const hierVersion = Number(notiz && notiz.baumVersion) || 0;
-        const dortQuelle = String(inhalt.quelle || stueck.von || "");
-        const hierQuelle = String(notiz && notiz.baumQuelle || "");
-        const neuer = dortVersion > hierVersion ||
-          (dortVersion === hierVersion && dortQuelle > hierQuelle);
-        if (notiz && neuer) {
-          notiz.titel = String(inhalt.titel || "");
-          notiz.text = String(inhalt.text || "");
-          notiz.html = sicheresHtml;
-          if ((notiz.baumFreigabe.anhangPartner || []).includes(stueck.von)) {
-            notiz.anhaenge = saubereNotizAnhaenge(inhalt.anhaenge);
-          }
-          notiz.baumGeaendert = Number(inhalt.geaendert);
-          notiz.baumVersion = dortVersion;
-          notiz.baumQuelle = dortQuelle;
-          notiz.geaendert = isoHeute();
-          notizAenderungen++;
-        }
+        if (!partner?.bestaetigt) continue;
+        const ergebnis = uebernehmeBaumNotiz(stueck, true, holeNotizIndex());
+        if (!ergebnis.ok) { meldeBaumNotizKonflikt(stueck, ergebnis); continue; }
+        if (ergebnis.geaendert) notizAenderungen++;
         erledigteIds.push(stueck.id);
         continue;
       }
     }
-    if (erledigteIds.length) {
-      Bruecke.sende({ cmd: "baum_eingang_geleert", ids: erledigteIds });
+    if (rueckmeldungen || notizAenderungen || aufgabenAngebote) {
+      planeSpeichern(); zeichneAlles();
     }
-    if (rueckmeldungen || notizAenderungen) {
-      planeSpeichern();
-      zeichneAlles();
-      if (rueckmeldungen) {
-        zettel(uebersetztMehrzahl(
-          "One completion update was received from the Magnolienbaum.",
-          "%(count)s completion updates were received from the Magnolienbaum.",
-          rueckmeldungen));
-      } else {
-        zettel(uebersetztMehrzahl("One shared note was updated.",
-          "%(count)s shared notes were updated.", notizAenderungen));
-      }
+    if (erledigteIds.length) {
+      const ids = [...new Set(erledigteIds)]; ids.forEach(id => ausstehend.add(id));
+      const freigeben = () => ids.forEach(id => ausstehend.delete(id));
+      nachDauerhaftemSpeichern(() => {
+        freigeben();
+        if (DATEN !== bestand || gesperrt) return;
+        if (baumStand) baumStand.eingang = (baumStand.eingang || []).filter(s => !ids.includes(s.id));
+        for (let i = 0; i < ids.length; i += 250) Bruecke.sende({ cmd: "baum_eingang_geleert", ids: ids.slice(i, i + 250) });
+        baueEinstellungen();
+        if (rueckmeldungen && DATEN.einstellungen.sync.erfolgsmeldungen) {
+          zettel(uebersetztMehrzahl("One completion update was received from the Magnolienbaum.",
+            "%(count)s completion updates were received from the Magnolienbaum.", rueckmeldungen));
+        } else if (notizAenderungen && DATEN.einstellungen.sync.erfolgsmeldungen) {
+          zettel(uebersetztMehrzahl("One shared note was updated.", "%(count)s shared notes were updated.", notizAenderungen));
+        }
+      }, freigeben);
     }
   }
 
@@ -20611,46 +20733,18 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       DATEN.jahrestage = DATEN.jahrestage.filter((j) => j.kontaktId !== kontakt.id);
       DATEN.baumKontaktLoeschStaende = Array.from(new Set(
         (DATEN.baumKontaktLoeschStaende || []).concat(stand))).slice(-500);
-    } else if (art === "notiz") {
-      const htmlStand = {};
-      const sicheresHtml = saeubereHtml(String(inhalt.html || ""), htmlStand);
-      if (htmlStand.gekuerzt) {
-        zettel(_("The message is too large."));
-        return false;
-      }
-      const freigabeId = String(inhalt.freigabeId || "");
-      if (!freigabeId) return false;
-      let notiz = DATEN.notizen.find((n) => n.baumFreigabe &&
-        n.baumFreigabe.id === freigabeId);
-      if (!notiz) {
-        notiz = { id: uid(), titel: String(inhalt.titel || ""),
-          text: String(inhalt.text || ""), html: sicheresHtml,
-          anhaenge: saubereNotizAnhaenge(inhalt.anhaenge),
-          notizbuchId: DATEN.notizbuecher[0].id,
-          geaendert: isoHeute(), baumFreigabe: { id: freigabeId,
-            partner: [stueck.von], anhangPartner: [stueck.von] },
-          baumGeaendert: Number(inhalt.geaendert) || Date.now(),
-          baumVersion: Number(inhalt.version) || 1,
-          baumQuelle: String(inhalt.quelle || stueck.von || "") };
-        DATEN.notizen.push(notiz);
-      } else {
-        if (!(notiz.baumFreigabe.partner || []).includes(stueck.von)) {
-          notiz.baumFreigabe.partner.push(stueck.von);
-        }
-        notiz.baumFreigabe.anhangPartner = Array.from(new Set(
-          (notiz.baumFreigabe.anhangPartner || []).concat(stueck.von)));
-        notiz.titel = String(inhalt.titel || "");
-        notiz.text = String(inhalt.text || "");
-        notiz.html = sicheresHtml;
-        notiz.anhaenge = saubereNotizAnhaenge(inhalt.anhaenge);
-        notiz.baumVersion = Number(inhalt.version) || notiz.baumVersion || 1;
-        notiz.baumQuelle = String(inhalt.quelle || stueck.von || "");
-      }
+    } else if (art === "notiz" || art === "notiz_sync") {
+      const ergebnis = uebernehmeBaumNotiz(stueck, !!optionen.automatisch, optionen.notizIndex);
+      if (optionen.notizErgebnis) Object.assign(optionen.notizErgebnis, ergebnis);
+      if (!ergebnis.ok) { fehler.text = _("Conflict"); return false; }
     } else return false;
     if (!optionen.aufschieben) {
       planeSpeichern();
       zeichneAlles();
-      baumEingangEntfernen(stueck);
+      if (art === "notiz" || art === "notiz_sync") {
+        const bestand = DATEN;
+        nachDauerhaftemSpeichern(() => { if (DATEN === bestand && !gesperrt) baumEingangEntfernen(stueck); });
+      } else baumEingangEntfernen(stueck);
     }
     return true;
   }
@@ -20661,7 +20755,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     const artName = { aufgabe: _("Task"), termin: _("Appointment"),
       kontakt: _("Address"), kontakt_sync: _("Contact synchronization"),
       kontakt_loeschen: _("Address"),
-      notiz: _("Shared note") }[art] || _("Entry");
+      notiz: _("Shared note"), notiz_sync: _("Shared note") }[art] || _("Entry");
     const gebundenerKontakt = art === "kontakt_loeschen" ? DATEN.kontakte.find((k) =>
       k.baumKontakt && k.baumKontakt.freigabeId === String(inhalt.freigabeId || "") &&
       (k.baumKontakt.partner || []).includes(stueck.von)) : null;
@@ -20892,7 +20986,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
         const partner = (baumStand.partner || []).find((p2) => p2.kennung === stueck.von);
         return !!(partner && partner.bestaetigt && partner.kontaktLoeschen);
       }
-      return ["aufgabe", "termin", "kontakt", "kontakt_sync", "notiz"].includes(art);
+      return ["aufgabe", "termin", "kontakt", "kontakt_sync", "notiz", "notiz_sync"].includes(art);
     });
     if (angebote.length) {
       ab.append(el("h4", "baum-zwischenkopf", uebersetztMehrzahl(
@@ -20920,7 +21014,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
         beschriftung.append(el("small", null, uebersetzt(" from %(branch)s",
           { branch: stueck.vonName || stueck.von || _("unknown") })));
         zeile.append(beschriftung);
-        const istNotiz = angebotArt === "notiz";
+        const istNotiz = angebotArt === "notiz" || angebotArt === "notiz_sync";
         const istLoeschung = angebotArt === "kontakt_loeschen";
         const annehmen = istNotiz ? _("Accept and remember") :
           (istLoeschung ? _("Delete") : _("Accept"));
@@ -26532,6 +26626,9 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     kontaktBaumInhalt: kontaktBaumInhalt,
     synchronisiereKontakteMit: synchronisiereKontakteMit,
     uebernehmeBaumAngebot: uebernehmeBaumAngebot,
+    notizInhaltsKennung: notizInhaltsKennung,
+    markiereGemeinsameNotiz: markiereGemeinsameNotiz,
+    synchronisiereFreigegebeneNotiz: synchronisiereFreigegebeneNotiz,
     baumKontaktPruefung: baumKontaktPruefung,
     uebernehmeBaumKontakte: uebernehmeBaumKontakte,
     baumKontaktEntwurf: baumKontaktEntwurf,
