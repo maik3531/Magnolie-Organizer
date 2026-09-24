@@ -113,6 +113,15 @@ internal static class ThunderbirdSchema23Tests
             CreateAddressBook(Path.Combine(customProfile, "abook-2.sqlite"), fixture);
             File.WriteAllText(Path.Combine(thunderbirdRoot, "profiles.ini"),
                 "[Profile0]\nIsRelative=1\nPath=Profiles/relative.default\n[Profile1]\nIsRelative=0\nPath=" + customProfile + "\n");
+            var orphanProfile = Path.Combine(thunderbirdRoot, "Profiles", "unregistered-backup");
+            CreateAddressBook(Path.Combine(orphanProfile, "abook.sqlite"), fixture);
+            using (var emptyBook = new SqliteConnection("Data Source=" + Path.Combine(relativeProfile, "abook-empty.sqlite")))
+            {
+                emptyBook.Open();
+                using var schema = emptyBook.CreateCommand();
+                schema.CommandText = "CREATE TABLE properties (card TEXT, name TEXT, value TEXT)";
+                schema.ExecuteNonQuery();
+            }
             var discovered = ThunderbirdCalendarImporter.DiscoverProfiles(thunderbirdRoot);
             var contacts = ThunderbirdCalendarImporter.ParseAddressBooks(discovered, out var books);
             var expected = fixture["expected"]!.AsObject();
@@ -120,6 +129,17 @@ internal static class ThunderbirdSchema23Tests
                 books == 2 && contacts.Kontakte.Count == 2 && contacts.Uebersprungen == 0 &&
                 contacts.Kontakte.Select(node => node!["uid"]!.GetValue<string>()).Distinct().Count() == 2,
                 "Relative/absolute profiles, history.sqlite or namespaced card identity was lost.");
+            var calendarFolder = Path.Combine(relativeProfile, "calendar-data");
+            Directory.CreateDirectory(calendarFolder);
+            var cache = Path.Combine(calendarFolder, "cache.sqlite");
+            File.Copy(path, cache);
+            var calendarStores = ThunderbirdCalendarImporter.DiscoverCalendarStores(discovered);
+            var cachedCalendar = ThunderbirdCalendarImporter.ParseProfiles(calendarStores, out var cachedRead);
+            TestAssert.That(calendarStores.SequenceEqual(new[] { cache }) && cachedRead == 1 && cachedCalendar.Termine.Count == 3,
+                "Cached online calendars were omitted when local.sqlite was absent.");
+            File.Copy(path, Path.Combine(calendarFolder, "local.sqlite"));
+            TestAssert.That(ThunderbirdCalendarImporter.DiscoverCalendarStores(discovered).Count == 2,
+                "Local and cached calendar stores must both be discovered.");
             // The native payload carries BDAY on each contact; the web importer creates its linked birthday.
             TestAssert.That(contacts.Geburtstage.Count == 0, "Contact birthdays must not also be emitted as standalone birthdays.");
             foreach (var book in new[] { Path.Combine(relativeProfile, "history.sqlite"), Path.Combine(customProfile, "abook-2.sqlite") })

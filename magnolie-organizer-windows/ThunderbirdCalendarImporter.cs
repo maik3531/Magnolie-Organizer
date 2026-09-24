@@ -47,10 +47,17 @@ internal static class ThunderbirdCalendarImporter
         }
         catch (Exception error) when (error is IOException or UnauthorizedAccessException) { }
         var standard = Path.Combine(thunderbirdRoot, "Profiles");
-        try { if (Directory.Exists(standard)) foreach (var directory in Directory.EnumerateDirectories(standard).Take(32)) Add(directory); }
+        try { if (profiles.Count == 0 && Directory.Exists(standard)) foreach (var directory in Directory.EnumerateDirectories(standard).Take(32)) Add(directory); }
         catch (Exception error) when (error is IOException or UnauthorizedAccessException) { }
         return profiles;
     }
+
+    internal static IReadOnlyList<string> DiscoverCalendarStores(IEnumerable<string> profiles) =>
+        profiles.Take(32).SelectMany(profile => new[]
+        {
+            Path.Combine(profile, "calendar-data", "local.sqlite"),
+            Path.Combine(profile, "calendar-data", "cache.sqlite")
+        }).Where(File.Exists).Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
 
     internal static ExchangeImportResult ParseAddressBooks(IEnumerable<string> profiles, out int read)
     {
@@ -68,7 +75,8 @@ internal static class ThunderbirdCalendarImporter
                 try
                 {
                     if (new FileInfo(book).Length > 512L * 1024 * 1024) continue;
-                    var parsed = ParseAddressBook(book); read++;
+                    var parsed = ParseAddressBook(book);
+                    if (parsed.Kontakte.Count > 0) read++;
                     Append(result.Kontakte, parsed.Kontakte); Append(result.Geburtstage, parsed.Geburtstage);
                     result = result with { Uebersprungen = result.Uebersprungen + parsed.Uebersprungen };
                 }
@@ -124,7 +132,7 @@ internal static class ThunderbirdCalendarImporter
             lines.Add($"UID:thunderbird:{source}:{Escape(card)}");
             text.Append(ExchangeCodec.SupplementVCard(string.Join("\r\n", Values("_vCard")), lines, reference => ContactPhoto(path, reference)));
         }
-        return ExchangeCodec.ParseVCard(text.ToString());
+        return text.Length == 0 ? Empty() : ExchangeCodec.ParseVCard(text.ToString());
     }
 
     private static ExchangeImportResult Parse(string path, string profile)

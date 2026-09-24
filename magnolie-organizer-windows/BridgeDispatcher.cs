@@ -69,7 +69,7 @@ internal sealed partial class BridgeDispatcher : IDisposable
         using (var parsed = BridgeDispatcherContract.Parse(rawMessage))
         {
             var command = parsed.RootElement.GetProperty("cmd").GetString()!;
-            if (command is "wetter" or "feiertage" or "update_pruefen" or "journal_liste" or
+            if (command is "wetter" or "feiertage" or "update_pruefen" or "journal_liste" or "import_lokal" or
                 "update_herunterladen" or "eds_status" or "graph_anmelden" or "baum_suchen" or "baum_paaren" or "baum_briefkasten_pruefen" or "kde_sms_senden" or "cloud_sicherung_test" or
                 "baum_ein" or "baum_teilen" or "baum_delegieren" or "baum_rueckmeldung" or "telefon_ein" or "telefon_verbindung_ein" or
                 "telefon_status_anfordern" or "telefon_waehlen" or "telefon_annehmen" or "telefon_auflegen" or
@@ -1920,8 +1920,7 @@ internal sealed partial class BridgeDispatcher : IDisposable
             if (!contactsOnly && Directory.Exists(root))
             {
                 var profileDirectories = ThunderbirdCalendarImporter.DiscoverProfiles(root);
-                var calendars = profileDirectories
-                    .Select(profile => Path.Combine(profile, "calendar-data", "local.sqlite"));
+                var calendars = ThunderbirdCalendarImporter.DiscoverCalendarStores(profileDirectories);
                 var parsed = ThunderbirdCalendarImporter.ParseProfiles(calendars, out thunderbirdFiles);
                 foreach (var node in parsed.Termine) termine.Add(node?.DeepClone());
                 foreach (var node in parsed.Jahrestage) jahrestage.Add(node?.DeepClone());
