@@ -5,6 +5,8 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.decodeFromString
 import io.gitlab.maik3531.magnolienotes.telefon.PersonalSyncProtokoll
 import io.gitlab.maik3531.magnolienotes.telefon.TelefonProtokollFehler
 import org.junit.Assert.assertEquals
@@ -12,6 +14,66 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class PersonalSyncTest {
+    @Test fun `independent plain note identities keep local IDs and converge on one wire ID`() {
+        val peer = "33333333-3333-4333-8333-333333333333"
+        for (format in listOf(1, 2, 3)) {
+            fun initial(id: String, actor: String, time: Long) = PersonalSync.reconcile(
+                Bestand(notizen = listOf(Notiz(id, titel = "Welcome", text = "Same", html = "Same", angelegt = time, geaendert = time)),
+                    personalSync = PersonalSyncState(actor_id = actor)), setOf("notes"), format, peer)
+            val a = initial("z-local", "11111111-1111-4111-8111-111111111111", 1)
+            val b = initial("a-local", "22222222-2222-4222-8222-222222222222", 2)
+            val mergedA = PersonalSync.apply(a.first, b.second)
+            val mergedB = PersonalSync.apply(b.first, a.second)
+            assertEquals(0, mergedA.conflicts); assertEquals(0, mergedB.conflicts)
+            assertEquals("z-local", mergedA.bestand.notizen.single().id)
+            assertEquals("a-local", mergedB.bestand.notizen.single().id)
+            val nextA = PersonalSync.reconcile(mergedA.bestand, setOf("notes"), format, peer)
+            val nextB = PersonalSync.reconcile(mergedB.bestand, setOf("notes"), format, peer)
+            assertEquals("a-local", nextA.second.single { it.kind == "note" }.id)
+            assertEquals(nextA.second.single { it.kind == "note" }.hash, nextB.second.single { it.kind == "note" }.hash)
+            val loaded = Json.Default.decodeFromString<Bestand>(Json.Default.encodeToString(nextA.first))
+            if (format >= 2) {
+                val file = Anhang("file", "image.png", "image", ((contract["format2"] as JsonObject)["data_url"] as JsonPrimitive).content)
+                val attached = PersonalSync.reconcile(loaded.copy(notizen = loaded.notizen.map { it.copy(anhaenge = listOf(file)) }),
+                    setOf("notes"), format, peer).first
+                val child = attached.personalSync.entities.getValue("attachment\u0000a-local\u0000file")
+                val proposal = PersonalDeletionProposal("", "test", "attachment", "file", "a-local", child.clock, child.hash, 1000, "file")
+                assertTrue(PersonalSync.matchesCurrent(attached, proposal))
+                assertTrue(!PersonalSync.matchesCurrent(attached, proposal.copy(parent_id = "z-local")))
+                val acknowledgedFiles = PersonalSync.acknowledge(attached, peer)
+                val removedFile = PapierkorbLogik.loescheAnhang(acknowledgedFiles, "z-local", "file", 2000)
+                val deletion = PersonalSync.reconcile(removedFile, setOf("notes"), format, peer, 2000).first
+                assertEquals("a-local", PersonalSync.proposals(deletion, peer).single { it.kind == "attachment" }.parent_id)
+                val restoredFile = PapierkorbLogik.wiederherstellen(deletion, deletion.papierkorb.single { it.art == "attachment" }.id)!!
+                assertEquals(1, restoredFile.notizen.single().anhaenge.size)
+                assertEquals("live", restoredFile.personalSync.entities.getValue("attachment\u0000a-local\u0000file").state)
+            }
+            val edited = loaded.copy(notizen = loaded.notizen.map { it.copy(text = "Edited", html = "Edited", geaendert = 1000) })
+            val outgoing = PersonalSync.reconcile(edited, setOf("notes"), format, peer)
+            val changedB = PersonalSync.apply(nextB.first, outgoing.second).bestand
+            assertEquals("Edited", changedB.notizen.single().text)
+            assertEquals("a-local", changedB.notizen.single().id)
+            val replay = PersonalSync.apply(changedB, a.second).bestand
+            assertEquals("Edited", replay.notizen.single().text)
+            val acknowledged = PersonalSync.acknowledge(outgoing.first, peer)
+            assertTrue(PersonalSync.proposals(PersonalSync.reconcile(acknowledged, setOf("notes"), format, peer).first, peer).isEmpty())
+            val removed = PapierkorbLogik.loescheNotiz(acknowledged, "z-local", 2000)
+            val deleted = PersonalSync.reconcile(removed, setOf("notes"), format, peer, 2000).first
+            assertEquals(listOf("a-local"), PersonalSync.proposals(deleted, peer).filter { it.kind == "note" }.map { it.id })
+            assertTrue(PersonalSync.apply(deleted, a.second).bestand.notizen.isEmpty())
+            val restored = PapierkorbLogik.wiederherstellen(deleted, deleted.papierkorb.single { it.art == "note" }.id)!!
+            assertEquals("z-local", restored.notizen.single().id)
+            assertEquals("live", restored.personalSync.entities.getValue("note\u0000a-local").state)
+            assertTrue("note\u0000a-local" in restored.personalSync.restoration_requests)
+        }
+    }
+
+    @Test fun `malformed note identity maps fail closed`() {
+        val cyclic = PersonalSyncState(note_ids = mapOf("local" to "a"), note_aliases = mapOf("a" to "b", "b" to "a"))
+        assertTrue(runCatching { PersonalSync.noteWireId(cyclic, "local") }.isFailure)
+        assertTrue(runCatching { PersonalSync.noteWireId(PersonalSyncState(note_ids = mapOf("local" to "")), "local") }.isFailure)
+    }
+
     @Test fun `note timestamps alone converge without conflict copies`() {
         val actor = "11111111-1111-4111-8111-111111111111"
         val remoteActor = "22222222-2222-4222-8222-222222222222"

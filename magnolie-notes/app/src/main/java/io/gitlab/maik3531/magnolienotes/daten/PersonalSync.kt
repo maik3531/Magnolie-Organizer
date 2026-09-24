@@ -44,7 +44,9 @@ data class PersonalSyncState(
     val pending_proposals: List<PersonalDeletionProposal> = emptyList(),
     val applied_decisions: List<String> = emptyList(),
     val applied_decision_proofs: List<AppliedPersonalDecision> = emptyList(),
-    val pending_decisions: List<PendingPersonalDecision> = emptyList()
+    val pending_decisions: List<PendingPersonalDecision> = emptyList(),
+    val note_ids: Map<String, String> = emptyMap(),
+    val note_aliases: Map<String, String> = emptyMap()
 )
 
 @Serializable
@@ -104,6 +106,33 @@ data class PersonalSyncResult(
 /** Personal data only. This file deliberately has no phone or tree dependencies. */
 object PersonalSync {
     private val uuid4 = Regex("[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}")
+
+    private fun validNoteId(id: String) = id.isNotEmpty() && id == id.trim() && '\u0000' !in id && id.toByteArray(Charsets.UTF_8).size <= 160
+
+    fun noteId(state: PersonalSyncState, value: String): String {
+        var id = value
+        val seen = mutableSetOf<String>()
+        while (id in state.note_aliases) {
+            val next = state.note_aliases.getValue(id)
+            require(seen.add(id) && validNoteId(next) && compareUtf8(next, id) < 0) { "Invalid note identity mapping" }
+            id = next
+        }
+        return id
+    }
+
+    fun noteWireId(state: PersonalSyncState, localId: String): String {
+        val mapped = state.note_ids[localId]
+        require(mapped == null || validNoteId(mapped)) { "Invalid note identity mapping" }
+        return noteId(state, mapped ?: localId)
+    }
+
+    fun noteLocalId(input: Bestand, wireId: String): String {
+        val canonical = noteId(input.personalSync, wireId)
+        return input.notizen.firstOrNull { noteWireId(input.personalSync, it.id) == canonical }?.id
+            ?: input.personalSync.note_ids.keys.firstOrNull { noteWireId(input.personalSync, it) == canonical } ?: canonical
+    }
+
+    private fun noteContent(value: JsonObject) = JsonObject(value.filterKeys { it !in setOf("created_ms", "modified_ms") })
 
     fun canonical(value: kotlinx.serialization.json.JsonElement): ByteArray {
         val encoded = Charsets.UTF_8.newEncoder().onMalformedInput(java.nio.charset.CodingErrorAction.REPORT)
@@ -255,10 +284,10 @@ object PersonalSync {
             if (decision.decision == "restore") {
                 val entityId = found.key.substringAfterLast('\u0000')
                 val trash = next.papierkorb.lastOrNull { item -> when (item.art) {
-                    "note" -> item.notiz?.id == entityId
+                    "note" -> item.notiz?.id == noteLocalId(next, entityId)
                     "task" -> item.aufgabe?.id == entityId
                     "notebook" -> item.notizbuch?.id == entityId
-                    "attachment" -> item.anhang?.id == entityId && item.parent_id == found.value.parent_id
+                    "attachment" -> item.anhang?.id == entityId && item.parent_id == noteLocalId(next, found.value.parent_id)
                     else -> false
                 } } ?: return input to "restore_unavailable"
                 next = PapierkorbLogik.wiederherstellen(next, trash.id)
@@ -301,7 +330,7 @@ object PersonalSync {
         val projectedAttachments = if (format >= 2 && "notes" in modules) input.notizen
             .filter { it.baumQuelle.isBlank() }.flatMap { note -> note.anhaenge.mapNotNull { attachment ->
                 attachmentDescriptor(attachment)?.let { snapshot ->
-                    "attachment\u0000${note.id}\u0000${attachment.id}" to Triple(note, attachment, snapshot)
+                    "attachment\u0000${noteWireId(state, note.id)}\u0000${attachment.id}" to Triple(note, attachment, snapshot)
                 }
             } }.toMap() else emptyMap()
         if (peerId.isNotEmpty() && peerId != state.peer_device_id) {
@@ -312,8 +341,8 @@ object PersonalSync {
         val eligibleKinds = buildSet { if ("notes" in modules) addAll(listOf("note", "notebook")); if ("tasks" in modules) add("task") }
         val present = buildSet {
             input.notizen.forEach { note ->
-                add("note\u0000${note.id}")
-                note.anhaenge.forEach { add("attachment\u0000${note.id}\u0000${it.id}") }
+                add("note\u0000${noteWireId(state, note.id)}")
+                note.anhaenge.forEach { add("attachment\u0000${noteWireId(state, note.id)}\u0000${it.id}") }
             }
             input.aufgaben.forEach { add("task\u0000${it.id}") }
             input.notizbuecher.forEach { add("notebook\u0000${it.id}") }
@@ -344,7 +373,7 @@ object PersonalSync {
                 counter++
                 entities[key] = PersonalSyncEntity(mergeOptional(old?.clock.orEmpty(),
                     PersonalSyncClock(actor, counter)), digest, triple.first.geaendert,
-                    label = triple.second.name, parent_id = triple.first.id)
+                    label = triple.second.name, parent_id = noteWireId(state, triple.first.id))
             }
         }
         for ((key, value) in projected) {
@@ -378,7 +407,7 @@ object PersonalSync {
         val result = linkedMapOf<String, JsonObject>()
         if ("notes" in modules) {
             input.notizbuecher.forEach { result["notebook\u0000${it.id}"] = notebookValue(it) }
-            input.notizen.filter { it.baumQuelle.isBlank() }.forEach { result["note\u0000${it.id}"] = noteValue(it, format) }
+            input.notizen.filter { it.baumQuelle.isBlank() }.forEach { result["note\u0000${noteWireId(input.personalSync, it.id)}"] = noteValue(it, format) }
         }
         if ("tasks" in modules) AufgabenHierarchie.normalisieren(input.aufgaben.filter {
             it.vonZweig.isBlank() && it.fremdId.isBlank() && it.delegiertAn.isBlank() && it.herkunft.isBlank()
@@ -393,17 +422,55 @@ object PersonalSync {
         var notes = input.notizen
         var tasks = input.aufgaben
         var books = input.notizbuecher
+        var identities = input.personalSync
         val entities = input.personalSync.entities.toMutableMap()
         var conflicts = 0
         var received = 0
         var omitted = 0
-        for (remote in records.sortedWith { a, b -> compareUtf8(a.kind, b.kind).takeIf { it != 0 } ?: compareUtf8(a.id, b.id) }) {
+        fun localId(wire: String) = noteLocalId(input.copy(notizen = notes, personalSync = identities), wire)
+        for (incoming in records.sortedWith { a, b -> compareUtf8(a.kind, b.kind).takeIf { it != 0 } ?: compareUtf8(a.id, b.id) }) {
+            var remote = incoming
             require(remote.kind in setOf("note", "task", "notebook") && remote.id.isNotEmpty() && remote.id == remote.id.trim() &&
                 remote.id.toByteArray(Charsets.UTF_8).size <= 160 && '\u0000' !in remote.id)
             validateClock(remote.clock)
             require(hash(remote.value) == remote.hash && remote.modifiedMs == remote.value.longValue("modified_ms"))
+            if (remote.kind == "note" && notes.any { it.baumQuelle.isNotBlank() &&
+                (it.id == remote.id || noteWireId(identities, it.id) == noteId(identities, remote.id)) }) {
+                conflicts++; continue
+            }
+            if (remote.kind == "note") {
+                var id = noteId(identities, remote.id)
+                if (entities["note\u0000$id"] == null && (remote.value["attachments"] as? JsonArray).orEmpty().isEmpty()) {
+                    val format = if ("attachments" in remote.value) 2 else 1
+                    val candidate = notes.filter { note ->
+                        val meta = entities["note\u0000${noteWireId(identities, note.id)}"]
+                        val wire = noteWireId(identities, note.id)
+                        validNoteId(wire) && note.baumFreigabe == null && note.baumQuelle.isBlank() && note.anhaenge.isEmpty() &&
+                            meta != null && meta.state == "live" && !meta.conflict && noteContent(noteValue(note, format)) == noteContent(remote.value) &&
+                            entities.none { (key, value) -> key.startsWith("attachment\u0000$wire\u0000") && value.state == "deleted" && value.status != "resolved" } &&
+                            identities.pending_proposals.none { it.kind == "note" && it.id == wire || it.kind == "attachment" && it.parent_id == wire } &&
+                            identities.restoration_requests.none { it == "note\u0000$wire" || it.startsWith("attachment\u0000$wire\u0000") } &&
+                            identities.pending_decisions.isEmpty()
+                    }.minWithOrNull { a, b -> compareUtf8(noteWireId(identities, a.id), noteWireId(identities, b.id)) }
+                    if (candidate != null) {
+                        val previous = noteWireId(identities, candidate.id)
+                        val canonical = if (compareUtf8(previous, id) <= 0) previous else id
+                        val aliases = identities.note_aliases.toMutableMap()
+                        if (previous != canonical) {
+                            aliases[previous] = canonical
+                            entities["note\u0000$canonical"] = entities.getValue("note\u0000$previous").copy(acknowledged_by_peer = false)
+                            entities.remove("note\u0000$previous")
+                        }
+                        if (id != canonical) aliases[id] = canonical
+                        identities = identities.copy(note_ids = identities.note_ids + (candidate.id to canonical), note_aliases = aliases)
+                        id = canonical
+                    }
+                }
+                remote = remote.copy(id = id)
+            }
             val key = "${remote.kind}\u0000${remote.id}"
-            if (remote.kind == "note" && notes.any { it.id == remote.id && it.baumQuelle.isNotBlank() } ||
+            val localNoteId = if (remote.kind == "note") localId(remote.id) else remote.id
+            if (remote.kind == "note" && notes.any { it.id == localNoteId && it.baumQuelle.isNotBlank() } ||
                 remote.kind == "task" && tasks.any { it.id == remote.id &&
                     (it.vonZweig.isNotBlank() || it.fremdId.isNotBlank() || it.delegiertAn.isNotBlank() || it.herkunft.isNotBlank()) }) {
                 conflicts++
@@ -416,12 +483,12 @@ object PersonalSync {
             }
             if (localMeta == null) {
                 require(when (remote.kind) {
-                    "note" -> notes.none { it.id == remote.id }
+                    "note" -> notes.none { it.id == localNoteId }
                     "task" -> tasks.none { it.id == remote.id }
                     else -> books.none { it.id == remote.id }
                 }) { "Existing personal object requires reconciliation" }
                 when (remote.kind) {
-                    "note" -> notes = notes + remoteNote(remote, null, attachments)
+                    "note" -> notes = notes + remoteNote(remote.copy(id = localNoteId), null, attachments)
                     "task" -> tasks = tasks + remoteTask(remote, null)
                     else -> books = books + remoteBook(remote)
                 }
@@ -434,8 +501,8 @@ object PersonalSync {
                 "equal" -> require(localMeta.hash == remote.hash)
                 "dominated" -> {
                     when (remote.kind) {
-                        "note" -> { val old = notes.firstOrNull { it.id == remote.id }
-                            notes = notes.filterNot { it.id == remote.id } + remoteNote(remote, old, attachments) }
+                        "note" -> { val id = localId(remote.id); val old = notes.firstOrNull { it.id == id }
+                            notes = notes.filterNot { it.id == id } + remoteNote(remote.copy(id = id), old, attachments) }
                         "task" -> { val old = tasks.firstOrNull { it.id == remote.id }; tasks = tasks.filterNot { it.id == remote.id } + remoteTask(remote, old) }
                         else -> books = books.filterNot { it.id == remote.id } + remoteBook(remote)
                     }
@@ -449,16 +516,26 @@ object PersonalSync {
                         continue
                     }
                     val remoteWins = remote.hash < localMeta.hash
+                    if (remote.kind == "notebook") {
+                        val local = books.firstOrNull { it.id == remote.id }
+                        if (local != null && noteContent(notebookValue(local)) == noteContent(remote.value)) {
+                            entities[key] = localMeta.copy(clock = merged,
+                                hash = if (remoteWins) remote.hash else localMeta.hash,
+                                modified_ms = if (remoteWins) remote.modifiedMs else localMeta.modified_ms, conflict = false)
+                            continue
+                        }
+                    }
                     if (remote.kind == "note") {
-                        val local = notes.firstOrNull { it.id == remote.id }
+                        val id = localId(remote.id)
+                        val local = notes.firstOrNull { it.id == id }
                         val format = if ("attachments" in remote.value) 2 else 1
                         fun content(value: JsonObject) = JsonObject(value.filterKeys { it !in setOf("created_ms", "modified_ms") })
                         if (local != null && content(noteValue(local, format)) == content(remote.value)) {
                             // Keep wire hashes and clocks exact; only the conflict
                             // decision ignores timestamps. Preserve local
                             // attachments not represented by this wire value.
-                            if (remoteWins) notes = notes.filterNot { it.id == remote.id } +
-                                remoteNote(remote, local, attachments, additive = true)
+                            if (remoteWins) notes = notes.filterNot { it.id == id } +
+                                remoteNote(remote.copy(id = id), local, attachments, additive = true)
                             entities[key] = localMeta.copy(clock = merged,
                                 hash = if (remoteWins) remote.hash else localMeta.hash,
                                 modified_ms = if (remoteWins) remote.modifiedMs else localMeta.modified_ms, conflict = false)
@@ -469,10 +546,11 @@ object PersonalSync {
                     val conflictId = conflictId(remote.kind, remote.id, loserHash)
                     val conflictKey = "${remote.kind}\u0000$conflictId"
                     if (remote.kind == "note") {
-                        val local = notes.firstOrNull { it.id == remote.id }
+                        val id = localId(remote.id)
+                        val local = notes.firstOrNull { it.id == id }
                         if (remoteWins) {
                             if (local != null && notes.none { it.id == conflictId }) notes = notes + local.copy(id = conflictId)
-                            notes = notes.filterNot { it.id == remote.id } + remoteNote(remote, local, attachments, additive = false)
+                            notes = notes.filterNot { it.id == id } + remoteNote(remote.copy(id = id), local, attachments, additive = false)
                         } else if (notes.none { it.id == conflictId }) notes = notes + remoteNote(remote.copy(id = conflictId), null, attachments, additive = false)
                     } else if (remote.kind == "task") {
                         val local = tasks.firstOrNull { it.id == remote.id }
@@ -499,18 +577,22 @@ object PersonalSync {
         }
         return PersonalSyncResult(input.copy(notizen = notes,
             aufgaben = AufgabenHierarchie.normalisieren(tasks), notizbuecher = books,
-            personalSync = input.personalSync.copy(entities = entities)), conflicts, received, omitted)
+            personalSync = identities.copy(entities = entities)), conflicts, received, omitted)
     }
 
     fun matchesCurrent(input: Bestand, proposal: PersonalDeletionProposal): Boolean {
+        if (proposal.kind == "note" && noteId(input.personalSync, proposal.id) != proposal.id ||
+            proposal.kind == "attachment" && noteId(input.personalSync, proposal.parent_id) != proposal.parent_id) return false
         if (proposal.kind == "attachment") {
-            val note = input.notizen.firstOrNull { it.id == proposal.parent_id && it.baumQuelle.isBlank() }
+            val parent = noteLocalId(input, proposal.parent_id)
+            val note = input.notizen.firstOrNull { it.id == parent && it.baumQuelle.isBlank() }
             val attachment = note?.anhaenge?.firstOrNull { it.id == proposal.id } ?: return false
             return attachmentDescriptor(attachment)?.let { hash(it.descriptor) == proposal.prior_hash } == true
         }
+        val local = if (proposal.kind == "note") noteLocalId(input, proposal.id) else proposal.id
         return (1..3).any { format ->
             val value = when (proposal.kind) {
-                "note" -> input.notizen.firstOrNull { it.id == proposal.id && it.baumQuelle.isBlank() }
+                "note" -> input.notizen.firstOrNull { it.id == local && it.baumQuelle.isBlank() }
                     ?.let { noteValue(it, format) }
                 "notebook" -> input.notizbuecher.firstOrNull { it.id == proposal.id }?.let(::notebookValue)
                 "task" -> projections(input, setOf("tasks"), format)["task\u0000${proposal.id}"]
