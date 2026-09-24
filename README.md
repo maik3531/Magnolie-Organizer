@@ -40,17 +40,17 @@ sharing first.
 
 | Platform | Recommended package | Alternative |
 |---|---|---|
-| Linux | [Flatpak x86_64](https://github.com/maik3531/Magnolie-Organizer/releases/latest/download/Magnolie-Organizer-2.0.21-x86_64.flatpak) | [AppImage](https://github.com/maik3531/Magnolie-Organizer/releases/latest/download/Magnolie-Organizer-2.0.21-x86_64.AppImage) · [Debian package](https://github.com/maik3531/Magnolie-Organizer/releases/latest/download/magnolie-organizer_2.0.21_all.deb) |
-| Windows 10/11 x64 | [Setup](https://github.com/maik3531/Magnolie-Organizer/releases/latest/download/Magnolie-Organizer-Windows-2.0.21-Setup-x64.exe) | [Portable ZIP](https://github.com/maik3531/Magnolie-Organizer/releases/latest/download/Magnolie-Organizer-Windows-2.0.21-x64.zip) |
+| Linux | [Flatpak x86_64](https://github.com/maik3531/Magnolie-Organizer/releases/latest/download/Magnolie-Organizer-2.0.22-x86_64.flatpak) | [AppImage](https://github.com/maik3531/Magnolie-Organizer/releases/latest/download/Magnolie-Organizer-2.0.22-x86_64.AppImage) · [Debian package](https://github.com/maik3531/Magnolie-Organizer/releases/latest/download/magnolie-organizer_2.0.22_all.deb) |
+| Windows 10/11 x64 | [Setup](https://github.com/maik3531/Magnolie-Organizer/releases/latest/download/Magnolie-Organizer-Windows-2.0.22-Setup-x64.exe) | [Portable ZIP](https://github.com/maik3531/Magnolie-Organizer/releases/latest/download/Magnolie-Organizer-Windows-2.0.22-x64.zip) |
 | Android | [Magnolie Notes APK](https://github.com/maik3531/Magnolie-Organizer/releases/latest/download/Magnolie-Notes-1.0.15.apk) | Android 8.0 or newer |
-| Handbook | [Debian package](https://github.com/maik3531/Magnolie-Organizer/releases/latest/download/magnolie-handbuch_2.0.21_all.deb) | Included as an optional Windows component |
+| Handbook | [Debian package](https://github.com/maik3531/Magnolie-Organizer/releases/latest/download/magnolie-handbuch_2.0.22_all.deb) | Included as an optional Windows component |
 
 Optional KDE integration for the native Linux package:
 
 | Distribution | KDE package (amd64 / x86_64) |
 |---|---|
-| Debian 13, Ubuntu / Kubuntu 24.04 and 26.04, Linux Mint 22 | [One KDE DEB](https://github.com/maik3531/Magnolie-Organizer/releases/latest/download/magnolie-organizer-kde_2.0.21_amd64.deb) |
-| Fedora 42 | [KDE RPM](https://github.com/maik3531/Magnolie-Organizer/releases/latest/download/magnolie-organizer-kde-2.0.21-1.fc42.x86_64.rpm) |
+| Debian 13, Ubuntu / Kubuntu 24.04 and 26.04, Linux Mint 22 | [One KDE DEB](https://github.com/maik3531/Magnolie-Organizer/releases/latest/download/magnolie-organizer-kde_2.0.22_amd64.deb) |
+| Fedora 42 | [KDE RPM](https://github.com/maik3531/Magnolie-Organizer/releases/latest/download/magnolie-organizer-kde-2.0.22-1.fc42.x86_64.rpm) |
 
 The optional KDE DEB selects one of three internal native backends from the
 existing, configured KDE packages and their complete ABI dependencies. It does not
@@ -90,7 +90,7 @@ SHA-256 checksums and source archives are attached to the
 | Magnolie Notes for Android | Kotlin, Jetpack Compose | [`magnolie-notes`](magnolie-notes/) |
 | Magnolie Handbook | Python, GTK, HTML/CSS/JavaScript | [`magnolie-handbuch`](magnolie-handbuch/) |
 
-The repository contains the sources for release 2.0.21 / Notes 1.0.15; generated
+The repository contains the sources for release 2.0.22 / Notes 1.0.15; generated
 packages are kept on the Releases page rather than in Git history.
 
 ## Security and privacy
