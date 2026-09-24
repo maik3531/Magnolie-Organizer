@@ -13606,22 +13606,25 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
   function baumKontaktDubletten(kennung) {
     const gebunden = DATEN.kontakte.filter((k) => k.baumKontakt &&
       (k.baumKontakt.partner || []).includes(kennung));
-    const paare = [];
+    const index = new Map(), paare = [];
     for (let i = 0; i < gebunden.length; i++) {
-      for (let j = i + 1; j < gebunden.length; j++) {
-        const a = gebunden[i], b = gebunden[j];
-        const emailA = new Set(emailListe(a).map(kanonischerText).filter(Boolean));
-        const telefonA = new Set(telefonListe(a).map((e) => telefonSchluessel(e.wert)).filter(Boolean));
-        const gleicheKommunikation = emailListe(b).some((e) => emailA.has(kanonischerText(e))) ||
-          telefonListe(b).some((e) => telefonA.has(telefonSchluessel(e.wert)));
-        const gleicherNameFirma = kanonischerText(a.vorname) &&
-          kanonischerText(a.vorname) === kanonischerText(b.vorname) &&
-          kanonischerText(a.nachname) === kanonischerText(b.nachname) &&
-          kanonischerText(a.firma) && kanonischerText(a.firma) === kanonischerText(b.firma);
-        if (gleicheKommunikation || gleicherNameFirma) paare.push([a, b]);
+      const kontakt = gebunden[i];
+      const keys = new Set(emailListe(kontakt).map(kanonischerText).filter(Boolean).map(s => "e:" + s));
+      for (const e of telefonListe(kontakt)) {
+        const nummer = telefonSchluessel(e.wert);
+        if (nummer) keys.add("t:" + nummer);
+      }
+      const vorname = kanonischerText(kontakt.vorname), firma = kanonischerText(kontakt.firma);
+      if (vorname && firma) keys.add("n:" + JSON.stringify([vorname, kanonischerText(kontakt.nachname), firma]));
+      const treffer = new Set();
+      for (const key of keys) for (const vorher of index.get(key) || []) treffer.add(vorher);
+      for (const vorher of treffer) paare.push([vorher, i]);
+      for (const key of keys) {
+        if (!index.has(key)) index.set(key, []);
+        index.get(key).push(i);
       }
     }
-    return paare;
+    return paare.sort((a, b) => a[0] - b[0] || a[1] - b[1]).map(([a, b]) => [gebunden[a], gebunden[b]]);
   }
 
   function kontaktLoeschVorschlaege(kennung, partner) {
@@ -20000,7 +20003,131 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     baueEinstellungen();
   }
 
-  function uebernehmeBaumAngebot(stueck, fehler = {}) {
+  function baumKontaktKarte(stueck) {
+    const inhalt = stueck.inhalt || {}, art = inhalt.art || stueck.art;
+    if (art === "kontakt") return normalisiere({ kontakte: [{ ...inhalt,
+      id: uid(), uid: syncUid(), sync: false, foto: "" }] }).kontakte[0];
+    if (art !== "kontakt_sync" || !inhalt.kontakt || !inhalt.freigabeId || !(Number(inhalt.version) > 0)) return null;
+    const fern = inhalt.kontakt;
+    return normalisiere({ kontakte: [{ ...fern, id: uid(), uid: syncUid(), sync: false,
+      vcardRoundtrip: fern.vcardName || [],
+      telefone: (fern.telefone || []).map(e => ({ wert: e.wert, label: e.art, typen: telefonTypenAusArt(e.art) })),
+      emailEintraege: (fern.emailEintraege || []).map(e => ({ wert: e.wert, label: e.art, typen: [] })),
+      anschriften: (fern.anschriften || []).map(e => ({ ...e, label: e.art, typen: [] }))
+    }] }).kontakte[0];
+  }
+
+  function baumKontaktVergleich(kontakt) {
+    const werte = {};
+    for (const feld of ["vorname", "nachname", "anzeigename", "firma", "notiz", "foto", "jubilaeum"])
+      werte[feld] = String(kontakt[feld] || "").trim();
+    werte.geburtstag = kanonischesGeburtsdatum(String(kontakt.geburtstag || ""), kontakt.geburtstagJahrUnbekannt);
+    const art = e => String(e.label || telefonArt(e) || "");
+    const sortiert = liste => liste.map(kanonischerEntwurf).sort();
+    werte.telefone = sortiert(telefonListe(kontakt).map(e => [telefonSchluessel(e.wert), art(e)]));
+    werte.emails = sortiert(emailEintragListe(kontakt).map(e => [kanonischerText(e.wert), art(e)]));
+    werte.anschriften = sortiert(anschriftListe(kontakt).map(e =>
+      [art(e), ...["strasse", "plz", "ort", "region", "land"].map(f => String(e[f] || "").trim())]));
+    werte.namen = (kontakt.vcardRoundtrip || []).filter(s => /^(?:[A-Za-z0-9-]+\.)?(?:N|FN)[;:]/i.test(s)).slice().sort();
+    return kanonischerEntwurf(werte);
+  }
+
+  function baumKontaktIndexiere(index, kontakt) {
+    const keys = dublettenSchluessel(kontakt);
+    if (!kontakt.vorname && !kontakt.nachname) {
+      if (kontakt.anzeigename) keys.push("a:" + kanonischerText(kontakt.anzeigename));
+      if (kontakt.firma) keys.push("f:" + kanonischerText(kontakt.firma));
+    }
+    for (const partner of kontakt.baumKontakt?.partner || [])
+      keys.push("b:" + partner + "\u0000" + kontakt.baumKontakt.freigabeId);
+    for (const key of keys) {
+      if (!index.has(key)) index.set(key, new Set());
+      index.get(key).add(kontakt);
+    }
+  }
+
+  function baumKontaktPruefung(stueck, index = null) {
+    const karte = baumKontaktKarte(stueck);
+    if (!karte || (!karte.vorname && !karte.nachname && !karte.anzeigename && !karte.firma &&
+        !telefonListe(karte).length && !emailListe(karte).length)) return { art: "ungueltig" };
+    if (!index) { index = new Map(); DATEN.kontakte.forEach(k => baumKontaktIndexiere(index, k)); }
+    const inhalt = stueck.inhalt || {};
+    const art = inhalt.art || stueck.art;
+    const bindung = art === "kontakt_sync" ? index.get("b:" + stueck.von + "\u0000" + inhalt.freigabeId) : null;
+    const schluessel = new Map(); baumKontaktIndexiere(schluessel, karte);
+    const kandidaten = bindung?.size ? [...bindung] : [...new Set([...schluessel.keys()].flatMap(key => [...(index.get(key) || [])]))];
+    if (!kandidaten.length) return { art: "neu" };
+    if (kandidaten.length !== 1) return { art: "konflikt", kandidaten };
+    const ziel = kandidaten[0], meta = ziel.baumKontakt;
+    if (bindung?.size === 1 && ((meta.staende || []).includes(String(inhalt.quelle || stueck.von || "") + "\u0000" + Number(inhalt.version)) ||
+        Number(inhalt.version) < meta.version)) return { art: "gleich", ziel };
+    const starkeKennung = !!bindung?.size || [...schluessel.keys()].some(key =>
+      (key.startsWith("e:") || key.startsWith("t:")) && index.get(key)?.has(ziel));
+    if (starkeKennung && baumKontaktVergleich(ziel) === baumKontaktVergleich(karte) &&
+        (!meta || art !== "kontakt_sync" || meta.freigabeId === inhalt.freigabeId)) return { art: "gleich", ziel };
+    return { art: "konflikt", kandidaten };
+  }
+
+  let baumKontaktSammelLaeuft = false;
+  async function uebernehmeBaumKontakte(ids = null) {
+    if (baumKontaktSammelLaeuft || gesperrt || !baumStand) return null;
+    const bestand = DATEN, angenommen = [], ergebnis = { angenommen: 0, konflikte: 0, ungueltig: 0, gespeichert: false };
+    let index = new Map(); DATEN.kontakte.forEach(k => baumKontaktIndexiere(index, k));
+    const auswahl = ids ? new Set(ids) : null;
+    const angebote = (baumStand.eingang || []).filter(s => (!auswahl || auswahl.has(s.id)) &&
+      ["kontakt", "kontakt_sync"].includes(s.inhalt?.art || s.art));
+    baumKontaktSammelLaeuft = true;
+    document.querySelectorAll(".baum-eingang button").forEach(button => { button.disabled = true; });
+    const fortschritt = $("#baum-kontakte-annehmen");
+    if (fortschritt) fortschritt.textContent = _("One moment…");
+    try {
+      for (let nummer = 0; nummer < angebote.length; nummer++) {
+        if (nummer > 0 && nummer % 25 === 0) {
+          await new Promise(resolve => setTimeout(resolve, 0));
+          index = new Map(); DATEN.kontakte.forEach(k => baumKontaktIndexiere(index, k));
+        }
+        if (DATEN !== bestand || gesperrt) return ergebnis;
+        const stueck = angebote[nummer];
+        if (!(baumStand?.partner || []).some(p => p.kennung === stueck.von && p.bestaetigt)) continue;
+        const plan = baumKontaktPruefung(stueck, index);
+        if (plan.art === "konflikt") { ergebnis.konflikte++; continue; }
+        if (plan.art === "ungueltig") { ergebnis.ungueltig++; continue; }
+        const vorher = DATEN.kontakte.length;
+        if (!uebernehmeBaumAngebot(stueck, {}, { aufschieben: true, kontakt: plan.ziel })) {
+          ergebnis.ungueltig++; continue;
+        }
+        angenommen.push(stueck.id); ergebnis.angenommen++;
+        if (plan.ziel) baumKontaktIndexiere(index, plan.ziel);
+        for (const kontakt of DATEN.kontakte.slice(vorher)) baumKontaktIndexiere(index, kontakt);
+      }
+      if (angenommen.length && DATEN === bestand && !gesperrt) {
+        zeichneAlles();
+        ergebnis.gespeichert = await new Promise(resolve => nachDauerhaftemSpeichern(() => {
+          if (DATEN !== bestand || gesperrt) { resolve(false); return; }
+          const erledigt = new Set(angenommen);
+          if (baumStand) baumStand.eingang = (baumStand.eingang || []).filter(s => !erledigt.has(s.id));
+          for (let i = 0; i < angenommen.length; i += 250)
+            Bruecke.sende({ cmd: "baum_eingang_geleert", ids: angenommen.slice(i, i + 250) });
+          resolve(true);
+        }, () => resolve(false)));
+      }
+      return ergebnis;
+    } finally { baumKontaktSammelLaeuft = false; baueEinstellungen(); }
+  }
+
+  function starteBaumKontaktUebernahme(ids) {
+    if (baumKontaktSammelLaeuft || gesperrt) return;
+    const bestand = DATEN;
+    mitMutationsSnapshot("pre-contact-import", () => {
+      if (DATEN !== bestand || gesperrt) return;
+      uebernehmeBaumKontakte(ids).then(ergebnis => {
+        if (ergebnis?.konflikte) zettel(_("Conflict") + ": " + ergebnis.konflikte);
+        if (ergebnis?.ungueltig) zettel(_("The offered entry is incomplete.") + " (" + ergebnis.ungueltig + ")");
+      }).catch(error => zettel(String(error.message || error)));
+    });
+  }
+
+  function uebernehmeBaumAngebot(stueck, fehler = {}, optionen = {}) {
     const inhalt = stueck.inhalt || {};
     const art = inhalt.art || stueck.art || "";
     if (art === "aufgabe") {
@@ -20033,6 +20160,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       if (!termin || !termin.titel) return false;
       DATEN.termine.push(termin);
     } else if (art === "kontakt") {
+      if (optionen.kontakt && DATEN.kontakte.includes(optionen.kontakt)) return true;
       const kontakt = normalisiere({ kontakte: [Object.assign({}, inhalt,
         { id: uid(), uid: syncUid(), sync: false, foto: "" })] }).kontakte[0];
       if (!kontakt || (!kontakt.nachname && !kontakt.vorname && !kontakt.anzeigename && !kontakt.firma)) return false;
@@ -20047,6 +20175,11 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       if (!freigabeId || !version || !inhalt.kontakt) return false;
       let kontakt = DATEN.kontakte.find((k) => k.baumKontakt &&
         k.baumKontakt.freigabeId === freigabeId && (k.baumKontakt.partner || []).includes(stueck.von));
+      if (!kontakt && optionen.kontakt && DATEN.kontakte.includes(optionen.kontakt)) {
+        kontakt = optionen.kontakt;
+        kontakt.baumKontakt ||= { freigabeId, version: 0, quelle: "", partner: [], staende: [], fernStand: {} };
+        kontakt.baumKontakt.partner = Array.from(new Set((kontakt.baumKontakt.partner || []).concat(stueck.von)));
+      }
       if (kontakt && (kontakt.baumKontakt.staende || []).includes(stand)) return true;
       const fern = { ...inhalt.kontakt,
         geburtstag: kanonischesGeburtsdatum(String(inhalt.kontakt.geburtstag || "")) };
@@ -20167,9 +20300,11 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
         notiz.baumQuelle = String(inhalt.quelle || stueck.von || "");
       }
     } else return false;
-    planeSpeichern();
-    zeichneAlles();
-    baumEingangEntfernen(stueck);
+    if (!optionen.aufschieben) {
+      planeSpeichern();
+      zeichneAlles();
+      baumEingangEntfernen(stueck);
+    }
     return true;
   }
 
@@ -20416,6 +20551,14 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       ab.append(el("h4", "baum-zwischenkopf", uebersetztMehrzahl(
         "%(count)s incoming offer", "%(count)s incoming offers", angebote.length)));
       const eingang = el("div", "baum-eingang");
+      const kontaktAngebote = angebote.filter(s => ["kontakt", "kontakt_sync"].includes(s.inhalt?.art || s.art));
+      if (kontaktAngebote.length) {
+        const alleKontakte = knopf(_("Accept") + " · " + uebersetztMehrzahl("%(count)s contact", "%(count)s contacts", kontaktAngebote.length), "hauptknopf",
+          () => starteBaumKontaktUebernahme(kontaktAngebote.map(s => s.id)));
+        alleKontakte.id = "baum-kontakte-annehmen";
+        alleKontakte.disabled = baumKontaktSammelLaeuft;
+        eingang.append(alleKontakte);
+      }
       for (const stueck of angebote) {
         const angebotArt = (stueck.inhalt || {}).art || stueck.art;
         if (angebotArt === "kontakt_loeschen") {
@@ -20435,6 +20578,9 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
         const annehmen = istNotiz ? _("Accept and remember") :
           (istLoeschung ? _("Delete") : _("Accept"));
         zeile.append(knopf(annehmen, "klein", () => {
+          if (["kontakt", "kontakt_sync"].includes(angebotArt) && baumKontaktPruefung(stueck).art !== "konflikt") {
+            starteBaumKontaktUebernahme([stueck.id]); return;
+          }
           const beschreibung = baumAngebotBeschreibung(stueck);
           const frageText = istLoeschung
             ? uebersetzt("Delete contact card “%(name)s”?", { name: beschreibung })
@@ -20459,6 +20605,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
         }));
         eingang.append(zeile);
       }
+      if (baumKontaktSammelLaeuft) eingang.querySelectorAll("button").forEach(button => { button.disabled = true; });
       ab.append(eingang);
     }
 
@@ -26037,6 +26184,8 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     kontaktBaumInhalt: kontaktBaumInhalt,
     synchronisiereKontakteMit: synchronisiereKontakteMit,
     uebernehmeBaumAngebot: uebernehmeBaumAngebot,
+    baumKontaktPruefung: baumKontaktPruefung,
+    uebernehmeBaumKontakte: uebernehmeBaumKontakte,
     zeigeKontaktImportAngebot: zeigeKontaktImportAngebot,
     mergeJahrestage: mergeJahrestage,
     mergeAufgaben: mergeAufgaben,
