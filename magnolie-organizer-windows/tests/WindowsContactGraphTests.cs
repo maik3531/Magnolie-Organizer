@@ -8,6 +8,57 @@ namespace MagnolieOrganizer.Windows.Tests;
 
 internal static class WindowsContactGraphTests
 {
+    private sealed class YearlessUnsupportedRemote(RemoteContact contact) : IContactRemote
+    {
+        public bool SupportsYearlessBirthdays => false;
+        public Task<IReadOnlyList<RemoteContact>> ReadAsync(CancellationToken token) =>
+            Task.FromResult<IReadOnlyList<RemoteContact>>([contact]);
+        public Task<RemoteContact> CreateAsync(string uid, JsonObject data, CancellationToken token) => throw new InvalidOperationException();
+        public Task<RemoteContact> UpdateAsync(RemoteContact old, string uid, JsonObject data, CancellationToken token) => throw new InvalidOperationException();
+        public Task DeleteAsync(RemoteContact old, string uid, CancellationToken token) => throw new InvalidOperationException();
+    }
+
+    private static async Task TestPlaceholderBirthday(string root)
+    {
+        var store = new WindowsContactStore(Path.Combine(root, "birthday-placeholder"));
+        var original = new JsonObject { ["id"] = "local", ["uid"] = "birthday-placeholder",
+            ["vorname"] = "Mia", ["nachname"] = "Muster", ["geburtstag"] = "1604-02-29",
+            ["geburtstagJahrUnbekannt"] = false, ["notiz"] = "Preserve this note" };
+        var remote = await store.CreateAsync("birthday-placeholder", original, CancellationToken.None);
+        var local = original.DeepClone().AsObject();
+        ContactFields.SetSource(local, "windows-contacts", remote);
+        var engine = new ContactSyncEngine();
+        var result = await engine.SyncAsync("windows-contacts", new JsonArray(local), [], 0, store);
+        TestAssert.That(result.Contacts.Count == 1 && result.Counts.Errors == 0 && result.Counts.Updated == 1 &&
+            result.Contacts[0]!["geburtstag"]!.GetValue<string>() == "--02-29",
+            "The mapped placeholder birthday was duplicated or not repaired.");
+        var saved = (await store.ReadAsync(CancellationToken.None)).Single();
+        TestAssert.That(ContactFields.Text(saved.Data, "geburtstag") == "--02-29" &&
+            ContactFields.Text(saved.Data, "notiz") == "Preserve this note",
+            "Birthday repair did not reach the source or discarded unrelated content.");
+        var again = await engine.SyncAsync("windows-contacts", result.Contacts, result.Tombstones, 0, store);
+        TestAssert.That(again.Contacts.Count == 1 && again.Counts == new ContactSyncCounts(0, 0, 0, 0, 0),
+            "Repeating the birthday repair was not idempotent.");
+        TestAssert.That(ContactFields.Text(original, "geburtstag") == "1604-02-29",
+            "Synchronization mutated its input.");
+        var importStore = new WindowsContactStore(Path.Combine(root, "birthday-import"));
+        await importStore.CreateAsync("birthday-placeholder", original, CancellationToken.None);
+        var additive = await engine.SyncAsync("windows-contacts", [], [], 0, importStore, additiveOnly: true);
+        TestAssert.That(additive.Contacts[0]!["geburtstag"]!.GetValue<string>() == "--02-29" &&
+            ContactFields.Text((await importStore.ReadAsync(CancellationToken.None)).Single().Data, "geburtstag") == "1604-02-29",
+            "Additive import either leaked the placeholder or wrote to its source.");
+        var imported = await engine.SyncAsync("windows-contacts", [], [], 0, importStore);
+        TestAssert.That(imported.Contacts.Count == 1 && imported.Counts.Imported == 1 && imported.Counts.Updated == 1 &&
+            imported.Counts.Errors == 0 && ContactFields.Text((await importStore.ReadAsync(CancellationToken.None)).Single().Data, "geburtstag") == "--02-29",
+            "First bidirectional import did not repair the remote placeholder.");
+        var unsupported = new YearlessUnsupportedRemote(remote);
+        var projected = await engine.SyncAsync("microsoft-graph", [], [], 0, unsupported);
+        var repeated = await engine.SyncAsync("microsoft-graph", projected.Contacts, [], 0, unsupported);
+        TestAssert.That(projected.Counts.Errors == 0 && repeated.Counts == new ContactSyncCounts(0, 0, 0, 0, 0) &&
+            repeated.Contacts[0]!["geburtstag"]!.GetValue<string>() == "--02-29",
+            "A provider without yearless dates triggered repeated ineffective repair writes.");
+    }
+
     internal static async Task RunAsync()
     {
         var root = Path.Combine(Path.GetTempPath(), $"magnolie-contacts-{Guid.NewGuid():N}");
@@ -16,6 +67,7 @@ internal static class WindowsContactGraphTests
         {
             var store = new WindowsContactStore(root);
             await TestContactConflicts(root);
+            await TestPlaceholderBirthday(root);
             TestNativeContactFields();
             var contact = new JsonObject { ["vorname"] = "Änne", ["nachname"] = "Beispiel", ["email"] = "a@example.test" };
             var stableOne = WindowsContactStore.StableImportUid("Anna.contact", "");
@@ -103,6 +155,7 @@ internal static class WindowsContactGraphTests
             });
             using var http = new HttpClient(handler);
             var graph = new GraphApiClient(http, "access-test");
+            TestAssert.That(!graph.SupportsYearlessBirthdays, "Graph advertised unsupported yearless birthday writes.");
             var made = await graph.CreateAsync("uid", contact, CancellationToken.None);
             await graph.UpdateAsync(made with { ETag = "\"old\"" }, "uid", contact, CancellationToken.None);
             await graph.DeleteAsync(made with { ETag = "\"next\"" }, "uid", CancellationToken.None);

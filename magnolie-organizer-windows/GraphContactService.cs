@@ -151,6 +151,9 @@ internal sealed class MicrosoftOAuthClient
 
 internal sealed class GraphApiClient : IContactRemote
 {
+    // Graph's birthday property requires a complete date; its serializer
+    // deliberately omits yearless values instead of inventing a year.
+    public bool SupportsYearlessBirthdays => false;
     private readonly HttpClient http; private readonly string accessToken;
     internal GraphApiClient(HttpClient http, string accessToken) { this.http = http; this.accessToken = accessToken; }
 

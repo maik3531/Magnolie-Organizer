@@ -3859,6 +3859,10 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     return legacyJahrUnbekannt === true ? "--" + s.slice(5) : s;
   }
 
+  function kanonischesGeburtsdatum(s, jahrUnbekannt) {
+    return kanonischesJahresdatum(s, jahrUnbekannt === true || /^1604-\d{2}-\d{2}$/.test(s));
+  }
+
   function formatGebiet() {
     const regional = DATEN && DATEN.einstellungen && DATEN.einstellungen.regional;
     const gebiet = regional && regional.formatLocale;
@@ -5404,7 +5408,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       const emailEintraege = emailEintragListe(k);
       const emails = emailEintraege.map((eintrag) => eintrag.wert);
       const kontaktpersonen = kontaktpersonenListe(k);
-      const geburtstag = kanonischesJahresdatum(S(k.geburtstag),
+      const geburtstag = kanonischesGeburtsdatum(S(k.geburtstag),
         k.geburtstagJahrUnbekannt);
       const jubilaeum = kanonischesJahresdatum(S(k.jubilaeum),
         S(k.jubilaeum).startsWith("--"));
@@ -5542,9 +5546,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     for (const j of Array.isArray(roh.jahrestage) ? roh.jahrestage : []) {
       if (!j) continue;
       const typ = S(j.typ).trim().slice(0, 80);
-      const edsQuelle = j.syncQuellen && typeof j.syncQuellen === "object" &&
-        Object.keys(j.syncQuellen).some((key) => key.startsWith("eds:"));
-      const providerJahrUnbekannt = istGeburtstagTyp(typ) && /^1604-\d{2}-\d{2}$/.test(S(j.datum)) && edsQuelle;
+      const providerJahrUnbekannt = istGeburtstagTyp(typ) && /^1604-\d{2}-\d{2}$/.test(S(j.datum));
       const datum = kanonischesJahresdatum(providerJahrUnbekannt
         ? "--" + S(j.datum).slice(5) : S(j.datum), j.jahrUnbekannt || providerJahrUnbekannt);
       if (!datum) continue;
@@ -13533,7 +13535,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       kontakt: { vorname: String(kontakt.vorname || ""),
         nachname: String(kontakt.nachname || ""), firma: String(kontakt.firma || ""),
         notiz: String(kontakt.notiz || ""),
-        geburtstag: gueltigesJahresdatum(kontakt.geburtstag) ? kontakt.geburtstag : "",
+        geburtstag: kanonischesGeburtsdatum(String(kontakt.geburtstag || ""), kontakt.geburtstagJahrUnbekannt),
         telefone: telefonListe(kontakt).map((e) => ({ art: art(e), wert: e.wert })),
         emailEintraege: emailEintragListe(kontakt).map((e) =>
           ({ art: art(e), wert: e.wert })),
@@ -20046,7 +20048,8 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       let kontakt = DATEN.kontakte.find((k) => k.baumKontakt &&
         k.baumKontakt.freigabeId === freigabeId && (k.baumKontakt.partner || []).includes(stueck.von));
       if (kontakt && (kontakt.baumKontakt.staende || []).includes(stand)) return true;
-      const fern = inhalt.kontakt;
+      const fern = { ...inhalt.kontakt,
+        geburtstag: kanonischesGeburtsdatum(String(inhalt.kontakt.geburtstag || "")) };
       if (kontakt) {
         const meta = kontakt.baumKontakt;
         if (version < meta.version || version === meta.version && quelle <= meta.quelle) return true;
@@ -20078,7 +20081,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
         for (const feld of ["vorname", "nachname", "anzeigename", "firma"]) {
           if (fern[feld] && (!kontakt[feld] || kontakt.baumKontakt.fernStand?.[feld] === kontakt[feld])) kontakt[feld] = String(fern[feld]);
         }
-        const fernGeburtstag = kanonischesJahresdatum(String(fern.geburtstag || ""));
+        const fernGeburtstag = kanonischesGeburtsdatum(String(fern.geburtstag || ""));
         if (fernGeburtstag) {
           kontakt.geburtstag = fernGeburtstag;
           kontakt.geburtstagJahrUnbekannt = gueltigesTeildatum(fernGeburtstag);
@@ -23582,9 +23585,9 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
         .map((wert) => [importKennung(j, wert), j])));
     for (const j of liste || []) {
       if (!j || !j.name) continue;
-      const datum = kanonischesJahresdatum(String(j.datum || ""), j.jahrUnbekannt);
-      if (!datum) continue;
       const typ = erzwungenerTyp || j.typ;
+      const datum = (istGeburtstagTyp(typ) ? kanonischesGeburtsdatum : kanonischesJahresdatum)(String(j.datum || ""), j.jahrUnbekannt);
+      if (!datum) continue;
       const typId = jahrestagTypId(typ) || String(typ || "").trim().slice(0, 80) || "other";
       const serienUid = String(j.icsSerienUid || "");
       const uidTreffer = (j.uid && uids.get(importKennung(j, j.uid))) ||
@@ -23762,7 +23765,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     for (const kontakt of DATEN.kontakte) indexiereKontakt(indexe, kontakt);
     for (const k of liste || []) {
       if (!k) continue;
-      const importGeburtstag = kanonischesJahresdatum(String(k.geburtstag || ""),
+      const importGeburtstag = kanonischesGeburtsdatum(String(k.geburtstag || ""),
         k.geburtstagJahrUnbekannt);
       const vorhanden = findeImportKontakt(k, indexe);
       if (vorhanden) {

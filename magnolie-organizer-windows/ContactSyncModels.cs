@@ -15,6 +15,7 @@ internal sealed record ContactSyncResult(JsonArray Contacts, JsonArray Tombstone
 
 internal interface IContactRemote
 {
+    bool SupportsYearlessBirthdays => true;
     Task<IReadOnlyList<RemoteContact>> ReadAsync(CancellationToken cancellationToken);
     Task<RemoteContact> CreateAsync(string uid, JsonObject contact, CancellationToken cancellationToken);
     Task<RemoteContact> UpdateAsync(RemoteContact remote, string uid, JsonObject contact, CancellationToken cancellationToken);
@@ -23,6 +24,18 @@ internal interface IContactRemote
 
 internal static class ContactFields
 {
+    internal static bool NormalizeBirthday(JsonObject contact)
+    {
+        // Some contact providers use the leap year 1604 when only month/day
+        // are known. This is a birthday rule, not a general date conversion.
+        var value = Text(contact, "geburtstag");
+        if (!ExchangeCodec.TryParseCanonicalDate(value, out var date, out _, out _) || date is null ||
+            (date.Value.Year != 1604 && contact["geburtstagJahrUnbekannt"]?.GetValue<bool>() != true)) return false;
+        contact["geburtstag"] = "--" + value[5..];
+        contact["geburtstagJahrUnbekannt"] = true;
+        return true;
+    }
+
     internal static readonly string[] Names =
     {
         "nachname", "vorname", "anzeigename", "firma", "strasse", "plz", "ort", "land", "telefon", "mobil",
@@ -46,6 +59,7 @@ internal static class ContactFields
             if (name == "anzeigename" && !source.ContainsKey(name)) continue;
             target[name] = source[name]?.DeepClone();
         }
+        NormalizeBirthday(target);
         return target;
     }
 
@@ -177,8 +191,18 @@ internal sealed class ContactSyncEngine
     {
         var local = new JsonArray(contacts.Select(item => item?.DeepClone()).ToArray());
         var dead = new JsonArray(tombstones.Select(item => item?.DeepClone()).ToArray());
-        var remote = await remoteStore.ReadAsync(cancellationToken).ConfigureAwait(false);
-        if (remote.Any(item => string.IsNullOrWhiteSpace(item.Id)) || remote.Select(item => item.Id).Distinct(StringComparer.Ordinal).Count() != remote.Count)
+        var received = await remoteStore.ReadAsync(cancellationToken).ConfigureAwait(false);
+        var birthdayRepairs = new HashSet<string>(StringComparer.Ordinal);
+        // Remember the uncorrected wire state separately: a normalized content
+        // baseline must not hide a repair still owed to the remote source.
+        var remote = received.Select(item =>
+        {
+            var data = item.Data.DeepClone().AsObject();
+            if (ContactFields.NormalizeBirthday(data) && remoteStore.SupportsYearlessBirthdays) birthdayRepairs.Add(item.Id);
+            return item with { Data = data };
+        }).ToArray();
+        foreach (var item in local.OfType<JsonObject>()) ContactFields.NormalizeBirthday(item);
+        if (remote.Any(item => string.IsNullOrWhiteSpace(item.Id)) || remote.Select(item => item.Id).Distinct(StringComparer.Ordinal).Count() != remote.Length)
             throw new InvalidDataException(NativeLocalization.Gettext("The Nextcloud response was incomplete."));
         var remoteById = remote.ToDictionary(item => item.Id, StringComparer.Ordinal);
         if (!additiveOnly && NextcloudDavSelection.IsAddressBook(source))
@@ -229,8 +253,11 @@ internal sealed class ContactSyncEngine
                 var remoteChanged = priorEtag.Length > 0 || other.ETag.Length > 0
                     ? priorEtag != other.ETag : (mapping?["geaendert"]?.GetValue<long>() ?? lastSync) != other.Modified;
                 var localChanged = SyncBaseline.Dirty(item, mapping, ContactFields.Names, remoteChanged ? null : other.Data);
-                var repairBirthday = ContactFields.Text(item, "geburtstag").Length > 0 &&
-                    ContactFields.Text(other.Data, "geburtstag").Length == 0;
+                var conflictingChanges = remoteChanged && localChanged &&
+                    SyncBaseline.Hash(item, ContactFields.Names) != SyncBaseline.Hash(other.Data, ContactFields.Names);
+                var repairBirthday = birthdayRepairs.Contains(other.Id) ||
+                    ContactFields.Text(item, "geburtstag").Length > 0 && ContactFields.Text(other.Data, "geburtstag").Length == 0 &&
+                    (remoteStore.SupportsYearlessBirthdays || !ContactFields.Text(item, "geburtstag").StartsWith("--", StringComparison.Ordinal));
                 var wroteRemote = false;
                 if (additiveOnly)
                 {
@@ -240,7 +267,7 @@ internal sealed class ContactSyncEngine
                     }
                     ContactFields.SetSource(item, source, other, remoteBaseline: true);
                 }
-                else if (remoteChanged && localChanged)
+                else if (conflictingChanges)
                 {
                     var conflict = item.DeepClone().AsObject();
                     conflict["id"] = Guid.NewGuid().ToString("N");
@@ -261,7 +288,7 @@ internal sealed class ContactSyncEngine
                     catch { errors++; }
                 }
                 else ContactFields.SetSource(item, source, other);
-                if (!additiveOnly && repairBirthday && !wroteRemote && !(remoteChanged && localChanged))
+                if (!additiveOnly && repairBirthday && !wroteRemote && !conflictingChanges)
                 {
                     try { var changed = await remoteStore.UpdateAsync(other, uid, item, cancellationToken); ContactFields.SetSource(item, source, changed); updated++; }
                     catch { errors++; }
@@ -301,7 +328,13 @@ internal sealed class ContactSyncEngine
             if (ContactFields.Text(item, "uid").Length == 0)
                 item["uid"] = $"mag-{Guid.NewGuid():N}@magnolie-organizer";
             item["geaendert"] = other.Modified;
-            ContactFields.SetSource(item, source, other);
+            var importedRemote = other;
+            if (!additiveOnly && birthdayRepairs.Contains(other.Id))
+            {
+                try { importedRemote = await remoteStore.UpdateAsync(other, ContactFields.Text(item, "uid"), item, cancellationToken); updated++; }
+                catch { errors++; }
+            }
+            ContactFields.SetSource(item, source, importedRemote);
             local.Add(item); imported++;
         }
 
