@@ -552,14 +552,15 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     if (record.kind !== "note") return record;
     const ps = DATEN.personalSync;
     let id = personalSyncNotizId(record.id), key = "note\u0000" + id;
-    if (!ps.entities[key] && !(record.value.attachments || []).length) {
+    if (!ps.entities[key] && !Object.keys(ps.entities).some(k => k.startsWith("attachment\u0000" + id + "\u0000"))) {
       const inhalt = personalSyncNotizInhalt(record.value);
       const kandidaten = [...eigeneWerte].filter(([k, value]) => k.startsWith("note\u0000") &&
         ps.entities[k]?.state !== "deleted" && !ps.entities[k]?.conflict && personalSyncNotizInhalt(value) === inhalt)
         .map(([k]) => ({ wire: k.slice(5), notiz: DATEN.notizen.find(n => personalSyncNotizWireId(n.id) === k.slice(5)) }))
-        .filter(k => personalSyncNotizIdGueltig(k.wire) && k.notiz && !k.notiz.baumFreigabe && !(k.notiz.anhaenge || []).length)
+        .filter(k => personalSyncNotizIdGueltig(k.wire) && k.notiz && !k.notiz.baumFreigabe &&
+          (k.notiz.anhaenge || []).length === (record.value.attachments || []).length)
         .filter(k => !Object.entries(ps.entities).some(([key, meta]) => key.startsWith("attachment\u0000" + k.wire + "\u0000") &&
-          meta.state === "deleted" && meta.status !== "resolved") &&
+          meta.state === "deleted") &&
           !(ps.pending_proposals || []).some(p => p.kind === "note" && p.id === k.wire || p.kind === "attachment" && p.parent_id === k.wire) &&
           !(ps.restoration_requests || []).some(key => key === "note\u0000" + k.wire || key.startsWith("attachment\u0000" + k.wire + "\u0000")) &&
           !(ps.pending_decisions || []).length)
@@ -573,6 +574,12 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
           ps.note_aliases[vorher] = canonical;
           ps.entities["note\u0000" + canonical] = { ...ps.entities["note\u0000" + vorher], acknowledged_by_peer: false };
           delete ps.entities["note\u0000" + vorher];
+          const prefix = "attachment\u0000" + vorher + "\u0000";
+          for (const [childKey, meta] of Object.entries(ps.entities)) if (childKey.startsWith(prefix)) {
+            ps.entities["attachment\u0000" + canonical + "\u0000" + childKey.slice(prefix.length)] = {
+              ...meta, parent_id: canonical, acknowledged_by_peer: false };
+            delete ps.entities[childKey];
+          }
           eigeneWerte.set("note\u0000" + canonical, eigeneWerte.get("note\u0000" + vorher));
           eigeneWerte.delete("note\u0000" + vorher);
         }

@@ -14,6 +14,57 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class PersonalSyncTest {
+    @Test fun `matching attached notes rekeys attachment parents and preserves deletion history`() {
+        val actor = "11111111-1111-4111-8111-111111111111"
+        val peer = "22222222-2222-4222-8222-222222222222"
+        val file = Anhang("file", "image.png", "image", ((contract["format2"] as JsonObject)["data_url"] as JsonPrimitive).content)
+        for (format in listOf(1, 2, 3)) for (variant in listOf("same", "different-id", "different-name", "deleted-history", "occupied-parent")) {
+            val remoteFile = when (variant) { "different-id" -> file.copy(id = "other-file")
+                "different-name" -> file.copy(name = "other.png"); else -> file }
+            fun initial(id: String, device: String, attachment: Anhang) = PersonalSync.reconcile(
+                Bestand(notizen = listOf(Notiz(id, titel = "Same", text = "Same", html = "Same", angelegt = 1, geaendert = 1,
+                    anhaenge = listOf(attachment))), personalSync = PersonalSyncState(actor_id = device)), setOf("notes"), format, peer)
+            val a = initial("z-local", actor, file); val b = initial("a-local", peer, remoteFile)
+            var input = a.first
+            val child = input.personalSync.entities["attachment\u0000z-local\u0000file"]
+            if (format >= 2 && variant in listOf("deleted-history", "occupied-parent")) {
+                val parent = if (variant == "occupied-parent") "a-local" else "z-local"
+                val key = "attachment\u0000$parent\u0000old-file"
+                input = input.copy(personalSync = input.personalSync.copy(entities = input.personalSync.entities +
+                    (key to child!!.copy(parent_id = parent, state = "deleted", status = "resolved"))))
+            }
+            val digest = (PersonalSync.attachmentDescriptor(remoteFile)!!.descriptor["sha256"] as JsonPrimitive).content
+            val result = PersonalSync.apply(input, b.second, mapOf(digest to remoteFile))
+            if (format == 1 || variant != "same") {
+                assertEquals("$format/$variant", 2, result.bestand.notizen.size)
+                assertEquals(file, result.bestand.notizen.first { it.id == "z-local" }.anhaenge.single())
+                continue
+            }
+            val reverse = PersonalSync.apply(b.first, a.second, mapOf(digest to file))
+            assertEquals(0, result.conflicts); assertEquals(0, reverse.conflicts)
+            assertEquals(file, result.bestand.notizen.single().anhaenge.single())
+            val moved = result.bestand.personalSync.entities.getValue("attachment\u0000a-local\u0000file")
+            assertEquals(child!!.hash, moved.hash); assertEquals("a-local", moved.parent_id)
+            assertTrue(!moved.acknowledged_by_peer)
+            assertTrue("attachment\u0000z-local\u0000file" !in result.bestand.personalSync.entities)
+            val loaded = Json.Default.decodeFromString<Bestand>(Json.Default.encodeToString(result.bestand))
+            val next = PersonalSync.reconcile(loaded, setOf("notes"), format, peer)
+            val other = PersonalSync.reconcile(reverse.bestand, setOf("notes"), format, peer)
+            assertEquals(next.second.single { it.kind == "note" }.hash, other.second.single { it.kind == "note" }.hash)
+            assertTrue(next.first.personalSync.entities.values.none { it.state == "deleted" })
+            val acknowledged = PersonalSync.acknowledge(next.first, peer)
+            val removed = PapierkorbLogik.loescheAnhang(acknowledged, "z-local", "file", 2000)
+            val deleted = PersonalSync.reconcile(removed, setOf("notes"), format, peer, 2000).first
+            val proposal = PersonalSync.proposals(deleted, peer).single { it.kind == "attachment" }
+            assertEquals("a-local", proposal.parent_id)
+            val restored = PersonalSync.applyDeletionDecisions(deleted, listOf(
+                AppliedPersonalDecision(proposal.proposal_id, "restore", proposal.clock)))
+            assertEquals("applied", restored.second)
+            assertEquals(file, restored.first.notizen.single().anhaenge.single())
+            assertEquals("live", restored.first.personalSync.entities.getValue("attachment\u0000a-local\u0000file").state)
+        }
+    }
+
     @Test fun `legacy notebook timestamps normalize once and remain stable after replay and reload`() {
         val actor = "11111111-1111-4111-8111-111111111111"
         val peer = "22222222-2222-4222-8222-222222222222"

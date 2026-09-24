@@ -440,14 +440,15 @@ object PersonalSync {
             }
             if (remote.kind == "note") {
                 var id = noteId(identities, remote.id)
-                if (entities["note\u0000$id"] == null && (remote.value["attachments"] as? JsonArray).orEmpty().isEmpty()) {
+                if (entities["note\u0000$id"] == null && entities.keys.none { it.startsWith("attachment\u0000$id\u0000") }) {
                     val format = if ("attachments" in remote.value) 2 else 1
                     val candidate = notes.filter { note ->
                         val meta = entities["note\u0000${noteWireId(identities, note.id)}"]
                         val wire = noteWireId(identities, note.id)
-                        validNoteId(wire) && note.baumFreigabe == null && note.baumQuelle.isBlank() && note.anhaenge.isEmpty() &&
+                        validNoteId(wire) && note.baumFreigabe == null && note.baumQuelle.isBlank() &&
+                            note.anhaenge.size == (remote.value["attachments"] as? JsonArray).orEmpty().size &&
                             meta != null && meta.state == "live" && !meta.conflict && noteContent(noteValue(note, format)) == noteContent(remote.value) &&
-                            entities.none { (key, value) -> key.startsWith("attachment\u0000$wire\u0000") && value.state == "deleted" && value.status != "resolved" } &&
+                            entities.none { (key, value) -> key.startsWith("attachment\u0000$wire\u0000") && value.state == "deleted" } &&
                             identities.pending_proposals.none { it.kind == "note" && it.id == wire || it.kind == "attachment" && it.parent_id == wire } &&
                             identities.restoration_requests.none { it == "note\u0000$wire" || it.startsWith("attachment\u0000$wire\u0000") } &&
                             identities.pending_decisions.isEmpty()
@@ -460,6 +461,12 @@ object PersonalSync {
                             aliases[previous] = canonical
                             entities["note\u0000$canonical"] = entities.getValue("note\u0000$previous").copy(acknowledged_by_peer = false)
                             entities.remove("note\u0000$previous")
+                            val prefix = "attachment\u0000$previous\u0000"
+                            for ((childKey, meta) in entities.toMap()) if (childKey.startsWith(prefix)) {
+                                entities["attachment\u0000$canonical\u0000${childKey.removePrefix(prefix)}"] =
+                                    meta.copy(parent_id = canonical, acknowledged_by_peer = false)
+                                entities.remove(childKey)
+                            }
                         }
                         if (id != canonical) aliases[id] = canonical
                         identities = identities.copy(note_ids = identities.note_ids + (candidate.id to canonical), note_aliases = aliases)

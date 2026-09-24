@@ -16,6 +16,60 @@ function client(web, id, actor, date) {
   return { dom, w, t: w.OrganizerTest };
 }
 async function check(web) {
+  for (const variant of ["same", "same-format2", "attachment-id", "attachment-name", "attachment-content", "format1", "deleted-history", "occupied-parent"]) {
+    const a = client(web, "z-local", "11111111-1111-4111-8111-111111111111", 1);
+    const b = client(web, "a-local", "22222222-2222-4222-8222-222222222222", 2);
+    try {
+      const format = variant === "format1" ? 1 : variant === "same-format2" ? 2 : 3;
+      const file = { id: "file", name: "image.png", art: "image", daten: "data:image/png;base64,AQID" };
+      for (const c of [a, b]) c.t.daten().notizen[0].anhaenge = [{ ...file }];
+      if (variant === "attachment-id") b.t.daten().notizen[0].anhaenge[0].id = "other-file";
+      if (variant === "attachment-name") b.t.daten().notizen[0].anhaenge[0].name = "other.png";
+      if (variant === "attachment-content") b.t.daten().notizen[0].anhaenge[0].daten = "data:image/png;base64,BAUG";
+      const snapshot = c => c.t.personalSyncSnapshot(["notes"], format, peer);
+      const firstA = await snapshot(a), firstB = await snapshot(b);
+      const meta = a.t.daten().personalSync.entities["attachment\0z-local\0file"];
+      if (variant === "deleted-history") a.t.daten().personalSync.entities["attachment\0z-local\0old-file"] = {
+        ...meta, state: "deleted", status: "resolved" };
+      if (variant === "occupied-parent") a.t.daten().personalSync.entities["attachment\0a-local\0file"] = {
+        ...meta, parent_id: "a-local", state: "deleted" };
+      const apply = (c, records, data) => {
+        const descriptor = records.find(r => r.kind === "note").value.attachments?.[0];
+        return c.t.personalSyncAnwenden(JSON.parse(JSON.stringify(records)), descriptor ? { [descriptor.sha256]: data } : {}, format, peer, ["notes"]);
+      };
+      await apply(a, firstB, b.t.daten().notizen[0].anhaenge[0].daten);
+      if (!["same", "same-format2"].includes(variant)) {
+        assert.equal(a.t.daten().notizen.length, 2, variant + " must prevent attachment identity merging");
+        assert.equal(a.t.daten().notizen[0].anhaenge[0].daten, file.daten);
+        continue;
+      }
+      await apply(b, firstA, file.daten);
+      for (const c of [a, b]) {
+        assert.equal(c.t.daten().notizen.length, 1); assert.equal(c.t.daten().notizen[0].anhaenge.length, 1);
+      }
+      const moved = a.t.daten().personalSync.entities["attachment\0a-local\0file"];
+      assert.equal(moved.parent_id, "a-local"); assert.equal(moved.hash, meta.hash);
+      assert.equal(moved.acknowledged_by_peer, false);
+      assert.equal(a.t.daten().personalSync.entities["attachment\0z-local\0file"], undefined);
+      a.w.App.init({ daten: JSON.parse(JSON.stringify(a.t.daten())), neu: false });
+      const nextA = (await snapshot(a)).find(r => r.kind === "note"), nextB = (await snapshot(b)).find(r => r.kind === "note");
+      assert.equal(nextA.hash, nextB.hash); assert.equal(nextA.id, nextB.id);
+      assert.equal(a.t.daten().notizen[0].id, "z-local");
+      assert.ok(!Object.values(a.t.daten().personalSync.entities).some(m => m.state === "deleted"));
+      b.t.daten().notizen[0].text = "Edited with attachment"; b.t.daten().notizen[0].html = "Edited with attachment";
+      await apply(a, await snapshot(b), file.daten);
+      await apply(a, firstB, file.daten);
+      assert.equal(a.t.daten().notizen.length, 1); assert.equal(a.t.daten().notizen[0].text, "Edited with attachment");
+      assert.equal(a.t.daten().notizen[0].anhaenge.length, 1);
+      const proposal = { kind: "attachment", id: "file", parent_id: "a-local", prior_hash: moved.hash,
+        clock: moved.clock, source_device: peer, proposal_id: "matched-attachment", deleted_ms: 1 };
+      assert.equal(a.t.personalSyncEntscheidungAnwenden(proposal, "delete"), "applied");
+      const trash = a.t.daten().papierkorb.find(p => p.art === "attachment");
+      assert.equal(trash.parent_id, "z-local"); assert.equal(a.t.ausDemPapierkorb(trash), true);
+      assert.equal(a.t.daten().notizen[0].anhaenge[0].daten, file.daten);
+      assert.equal(a.t.daten().personalSync.entities["attachment\0a-local\0file"].state, "live");
+    } finally { a.w.close(); b.w.close(); }
+  }
   for (const format of [1, 2, 3]) {
     const a = client(web, "z-local", "11111111-1111-4111-8111-111111111111", 1);
     const b = client(web, "a-local", "22222222-2222-4222-8222-222222222222", 2);
