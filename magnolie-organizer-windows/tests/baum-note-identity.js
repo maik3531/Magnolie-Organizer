@@ -94,6 +94,18 @@ async function check(web) {
     stand([afterPhone]); await tick();
     assert.equal(T.daten().notizen[0].text, "Phone edit"); assert.ok(!receipts().includes(afterPhone.id));
 
+    await reset([{ id: "phone-attachment", titel: "Welcome", text: "Same content", html: "Same content",
+      baumFreigabe: { id: "shared-attachment", partner: ["a"], anhangPartner: ["a"] } }]);
+    const prior = T.daten().notizen[0];
+    T.personalSyncSetze({ kind: "note", value: { title: prior.titel, text: prior.text, html: prior.html,
+      notebook_id: prior.notizbuchId, symbol: prior.symbol, created_ms: prior.angelegt, modified_ms: 100,
+      attachments: [{ attachment_id: "phone-file", name: "a.pdf", kind: "pdf", sha256: "fixture" }] } },
+      prior.id, false, { fixture: pdf });
+    assert.equal(prior.anhaenge.length, 0, "phone import mutated the old attachment array before comparing content");
+    assert.equal(T.daten().notizen[0].anhaenge.length, 1);
+    assert.ok(T.daten().notizen[0].baumInhaltVersion > prior.baumInhaltVersion,
+      "an attachment-only phone edit bypassed the tree conflict baseline");
+
     await reset([]); autoSave = false;
     const first = offer("a", "pending"); stand([first], true);
     assert.equal(T.daten().notizen.length, 1); assert.equal(receipts().length, 0, "note was acknowledged before saving");

@@ -786,6 +786,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
         baumVersion: 0, baumQuelle: "", geaendert: isoHeute() }, { id: id, titel: v.title,
         text: v.text, html: sicheresHtml, notizbuchId: v.notebook_id, symbol: v.symbol,
         angelegt: v.created_ms, personalGeaendert: v.modified_ms });
+      neu.anhaenge = (alt?.anhaenge || []).map(anhang => ({ ...anhang }));
       if (Array.isArray(v.attachments)) {
         const fern = v.attachments.map((x) => ({ id: x.attachment_id, name: x.name, art: x.kind,
           daten: attachmentData[x.sha256] })).filter((x) => typeof x.daten === "string");
