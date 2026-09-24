@@ -283,7 +283,7 @@ object PersonalSync {
             if (found.value.clock != decision.expected_clock) return input to "conflict"
             if (decision.decision == "restore") {
                 val entityId = found.key.substringAfterLast('\u0000')
-                val trash = next.papierkorb.lastOrNull { item -> when (item.art) {
+                val trash = next.papierkorb.lastOrNull { item -> item.art == found.key.substringBefore('\u0000') && when (item.art) {
                     "note" -> item.notiz?.id == noteLocalId(next, entityId)
                     "task" -> item.aufgabe?.id == entityId
                     "notebook" -> item.notizbuch?.id == entityId

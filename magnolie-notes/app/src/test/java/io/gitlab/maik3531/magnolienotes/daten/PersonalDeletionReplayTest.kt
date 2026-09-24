@@ -4,6 +4,31 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 
 class PersonalDeletionReplayTest {
+    @Test fun `restore aliased note ignores later trash of another kind with the same wire ID`() {
+        val actor = "11111111-1111-4111-8111-111111111111"
+        val peer = "22222222-2222-4222-8222-222222222222"
+        val initial = Bestand(notizen = listOf(Notiz("z-local", titel = "Retained note")),
+            aufgaben = listOf(Aufgabe("a-wire", titel = "Unrelated task")),
+            personalSync = PersonalSyncState(actor_id = actor,
+                note_ids = mapOf("z-local" to "a-wire"), note_aliases = mapOf("z-local" to "a-wire")))
+        val live = PersonalSync.acknowledge(PersonalSync.reconcile(initial, setOf("notes"), 3, peer).first, peer)
+        val removed = PapierkorbLogik.loescheNotiz(live, "z-local", 2000)
+        val deleted = PersonalSync.reconcile(removed, setOf("notes"), 3, peer, 2000).first
+        val mixedTrash = PapierkorbLogik.loescheAufgabe(deleted, "a-wire", 3000)
+        val proposal = PersonalSync.proposals(mixedTrash, peer).single { it.kind == "note" }
+        val decision = AppliedPersonalDecision(proposal.proposal_id, "restore", proposal.clock)
+        val (restored, status) = PersonalSync.applyDeletionDecisions(mixedTrash, listOf(decision))
+        assertEquals("applied", status)
+        assertEquals(listOf("z-local"), restored.notizen.map { it.id })
+        assertEquals(emptyList<Aufgabe>(), restored.aufgaben)
+        assertEquals(listOf("task"), restored.papierkorb.map { it.art })
+        assertEquals("live", restored.personalSync.entities.getValue("note\u0000a-wire").state)
+        assertEquals(restored to "applied", PersonalSync.applyDeletionDecisions(restored, listOf(decision)))
+
+        val missing = mixedTrash.copy(papierkorb = mixedTrash.papierkorb.filter { it.art != "note" })
+        assertEquals(missing to "restore_unavailable", PersonalSync.applyDeletionDecisions(missing, listOf(decision)))
+    }
+
     private val clock = listOf(PersonalSyncClock("11111111-1111-4111-8111-111111111111", 2))
     private val first = AppliedPersonalDecision("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", "delete", clock)
     private val second = AppliedPersonalDecision("bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb", "delete", clock)

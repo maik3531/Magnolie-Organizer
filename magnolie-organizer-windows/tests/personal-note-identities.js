@@ -115,6 +115,32 @@ async function check(web) {
     await different.t.personalSyncAnwenden(JSON.parse(JSON.stringify(await remote.t.personalSyncSnapshot(["notes"], 3, peer))), {}, 3, peer, ["notes"]);
     assert.equal(different.t.daten().notizen.length, 2, "a matching title swallowed different note content");
   } finally { different.w.close(); remote.w.close(); }
+  const restoring = client(web, "z-local", "11111111-1111-4111-8111-111111111111", 1);
+  try {
+    const T = restoring.t;
+    T.daten().personalSync.note_ids = { "z-local": "a-wire" };
+    T.daten().personalSync.note_aliases = { "z-local": "a-wire" };
+    await T.personalSyncSnapshot(["notes"], 3, peer);
+    const live = T.daten().personalSync.entities["note\0a-wire"];
+    live.acknowledged_by_peer = true; live.peer_device_id = peer;
+    T.inDenPapierkorb("note", T.daten().notizen[0], "Welcome");
+    T.daten().notizen = [];
+    await T.personalSyncSnapshot(["notes"], 3, peer);
+    const proposal = T.daten().personalSync.entities["note\0a-wire"];
+    T.daten().papierkorb.push({ id: "unrelated-trash", art: "task", eintrag: { id: "a-wire", titel: "Unrelated task" } });
+    const decision = { proposal_id: proposal.proposal_id, decision: "restore", expected_clock: proposal.clock };
+    const before = JSON.parse(JSON.stringify(T.daten()));
+    T.daten().papierkorb = T.daten().papierkorb.filter(p => p.art !== "note");
+    assert.equal(T.personalSyncEingehendeEntscheidungen([decision]), "restore_unavailable");
+    assert.equal(T.daten().notizen.length, 0); assert.equal(T.daten().aufgaben.length, 0);
+    T.daten().papierkorb = before.papierkorb;
+    assert.equal(T.personalSyncEingehendeEntscheidungen([decision]), "applied");
+    assert.equal(T.daten().notizen[0].id, "z-local"); assert.equal(T.daten().aufgaben.length, 0);
+    assert.equal(T.daten().papierkorb.length, 1); assert.equal(T.daten().papierkorb[0].art, "task");
+    assert.equal(T.personalSyncEingehendeEntscheidungen([decision]), "applied");
+    assert.equal(T.daten().notizen.length, 1);
+  } finally { restoring.w.close(); }
+
   for (const variant of ["formatting", "notebook", "attachment", "pending-deletion"]) {
     const local = client(web, "z-local", "11111111-1111-4111-8111-111111111111", 1);
     const other = client(web, "a-local", "22222222-2222-4222-8222-222222222222", 2);

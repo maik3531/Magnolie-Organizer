@@ -517,7 +517,7 @@ class Ablage private constructor(
         if (decision == "restore") {
             val deleted = meta?.takeIf { it.state == "deleted" }
             if (deleted != null) {
-                val trash = next.papierkorb.lastOrNull { item -> when (item.art) {
+                val trash = next.papierkorb.lastOrNull { item -> item.art == proposal.kind && when (item.art) {
                     "note" -> item.notiz?.id == PersonalSync.noteLocalId(next, proposal.id)
                     "task" -> item.aufgabe?.id == proposal.id
                     "notebook" -> item.notizbuch?.id == proposal.id
