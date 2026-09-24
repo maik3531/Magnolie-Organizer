@@ -396,4 +396,6 @@
     <string name="device_identifiers_restricted">Android ogranicza ten identyfikator.</string>
     <string name="device_identifiers_subscription">Brak domyślnej subskrypcji do rozmów.</string>
     <string name="device_identifiers_unavailable">Ten identyfikator jest niedostępny.</string>
+    <string name="telefon_rechner_hinzufuegen">Dodaj komputer</string>
+    <string name="telefon_mehrere_rechner">Sparowane komputery pozostają zapisane. Wybierz komputer, którego chcesz teraz używać.</string>
 </resources>

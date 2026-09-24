@@ -354,4 +354,6 @@
     <string name="device_identifiers_restricted">Android 限制访问此设备标识符。</string>
     <string name="device_identifiers_subscription">没有可用的默认语音订阅。</string>
     <string name="device_identifiers_unavailable">此设备标识符不可用。</string>
+    <string name="telefon_rechner_hinzufuegen">添加电脑</string>
+    <string name="telefon_mehrere_rechner">已配对的电脑会保持保存。请选择现在要使用的电脑。</string>
 </resources>

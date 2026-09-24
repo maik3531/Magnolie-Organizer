@@ -66,7 +66,10 @@ class TelefonBluetoothSetupTest {
         listOf("deny", "wrong-device", "decline", "code-decline").forEach { live("windows", it) }
     }
 
-    private fun live(platform: String, mode: String = "accept") {
+    @Test fun `adding a Windows computer keeps the previous pairing through secure reconnect`() = live("windows", savedComputer = true)
+    @Test fun `adding a Linux computer keeps the previous pairing through secure reconnect`() = live("linux", savedComputer = true)
+
+    private fun live(platform: String, mode: String = "accept", savedComputer: Boolean = false) {
         org.junit.Assume.assumeTrue(System.getenv("MAGNOLIE_BLUETOOTH_INTEGRATION") == "1")
         val context = ApplicationProvider.getApplicationContext<Context>()
         context.getSharedPreferences("magnolie_phone_settings", Context.MODE_PRIVATE).edit().clear().commit()
@@ -80,6 +83,15 @@ class TelefonBluetoothSetupTest {
         storage.setEnabled(true)
         val work = TelefonWerk::class.java.getDeclaredConstructor(Context::class.java, TelefonAblage::class.java)
             .apply { isAccessible = true }.newInstance(context, storage)
+        val previous = if (savedComputer) TelefonPeer(java.util.UUID.randomUUID().toString(), "Previous computer",
+            TelefonKrypto.b64(ByteArray(32) { 7 })) else null
+        if (previous != null) {
+            storage.identity("Fixture phone").second.fill(0)
+            storage.savePeer(previous)
+            work.selectComputer(null)
+            assertNull(storage.peers().peer)
+            assertEquals(previous.static_public, storage.peers().all().single().static_public)
+        }
         TelefonWerk::class.java.getDeclaredField("serviceRunning").apply { isAccessible = true }.setBoolean(work, true)
         if (mode == "wifi-present") TelefonWerk::class.java.getDeclaredField("wifiAvailable").apply { isAccessible = true }.setBoolean(work, true)
         val port = AtomicInteger()
@@ -160,6 +172,10 @@ class TelefonBluetoothSetupTest {
             assertEquals(peer.static_public, storage.peers().peer!!.static_public)
             assertEquals(pc, storage.peers().peer!!.bluetooth_address)
             assertTrue(storage.peers().peer!!.bluetooth_inbound)
+            if (previous != null) {
+                assertEquals(2, storage.peers().all().size)
+                assertEquals(previous.static_public, storage.peers().all().single { it.device_id == previous.device_id }.static_public)
+            }
             work.serviceStopped(); command("STOP")
             assertTrue(process.waitFor(8, TimeUnit.SECONDS)); assertEquals(0, process.exitValue())
         } finally {

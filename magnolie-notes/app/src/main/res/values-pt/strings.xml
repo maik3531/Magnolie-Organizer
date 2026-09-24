@@ -382,4 +382,6 @@
     <string name="device_identifiers_restricted">O Android restringe este identificador.</string>
     <string name="device_identifiers_subscription">Nenhuma subscrição de voz predefinida disponível.</string>
     <string name="device_identifiers_unavailable">Este identificador está indisponível.</string>
+    <string name="telefon_rechner_hinzufuegen">Adicionar computador</string>
+    <string name="telefon_mehrere_rechner">Os computadores emparelhados permanecem guardados. Selecione o que pretende utilizar agora.</string>
 </resources>

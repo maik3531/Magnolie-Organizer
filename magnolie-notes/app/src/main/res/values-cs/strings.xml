@@ -396,4 +396,6 @@
     <string name="device_identifiers_restricted">Android omezuje tento identifikátor.</string>
     <string name="device_identifiers_subscription">Není dostupný výchozí hlasový tarif.</string>
     <string name="device_identifiers_unavailable">Tento identifikátor není dostupný.</string>
+    <string name="telefon_rechner_hinzufuegen">Přidat počítač</string>
+    <string name="telefon_mehrere_rechner">Spárované počítače zůstanou uložené. Vyberte počítač, který chcete nyní používat.</string>
 </resources>

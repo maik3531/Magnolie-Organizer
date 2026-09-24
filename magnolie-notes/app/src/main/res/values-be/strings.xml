@@ -403,4 +403,6 @@
     <string name="device_identifiers_restricted">Android абмяжоўвае гэты ідэнтыфікатар.</string>
     <string name="device_identifiers_subscription">Няма стандартнай падпіскі для званкоў.</string>
     <string name="device_identifiers_unavailable">Гэты ідэнтыфікатар недаступны.</string>
+    <string name="telefon_rechner_hinzufuegen">Дадаць камп’ютар</string>
+    <string name="telefon_mehrere_rechner">Спалучаныя камп’ютары застаюцца захаванымі. Выберыце камп’ютар, які хочаце выкарыстоўваць цяпер.</string>
 </resources>

@@ -35,6 +35,12 @@ class TelefonAblage private constructor(context: Context) : TelefonPayloadStorag
             settings.edit().remove("sms_send_enabled").remove("sms_receive_enabled")
                 .remove("sms_subscription_id").putBoolean("native_messaging_removed", true).commit()
         }
+        if (settings.contains("pending_computer_selection")) {
+            val selected = peers().peer
+            if (selected?.device_id.orEmpty() == settings.getString("pending_computer_selection", ""))
+                restoreComputerSettings(selected)
+            else check(settings.edit().remove("pending_computer_selection").commit())
+        }
     }
 
     fun enabled(): Boolean = settings.getBoolean("enabled", false)
@@ -98,15 +104,38 @@ class TelefonAblage private constructor(context: Context) : TelefonPayloadStorag
         val clear = decrypt(peersFile.readText(), "peers", "v1")
         try {
             val (sanitized, migrated) = sanitizeLegacyPeer(TelefonKanonisch.json.parseToJsonElement(clear.decodeToString()) as JsonObject)
-            json.decodeFromJsonElement(TelefonBestand.serializer(), sanitized).also {
-                if (migrated) savePeer(it.peer)
+            json.decodeFromJsonElement(TelefonBestand.serializer(), sanitized).validated().also {
+                if (migrated) savePeers(it)
             }
         } finally { clear.fill(0) }
     }
 
     @Synchronized
     fun savePeer(peer: TelefonPeer?) {
-        val clear = json.encodeToString(TelefonBestand.serializer(), TelefonBestand(peer = peer)).toByteArray()
+        savePeers(peers().remember(peer))
+    }
+
+    @Synchronized
+    fun selectPeer(id: String?) {
+        val selected = peers().select(id)
+        check(settings.edit().putString("pending_computer_selection", id.orEmpty()).commit())
+        savePeers(selected)
+        restoreComputerSettings(selected.peer)
+    }
+
+    private fun restoreComputerSettings(peer: TelefonPeer?) {
+        check(settings.edit().putBoolean("personal_sync_own_device", peer?.own_device == true)
+            .putBoolean("personal_sync_notes", peer?.own_device == true && peer.personal_notes_sync_granted)
+            .putBoolean("personal_sync_tasks", peer?.own_device == true && peer.personal_tasks_sync_granted)
+            .putBoolean("personal_sync_deletions", peer?.own_device == true && peer.personal_deletions_sync_granted)
+            .putBoolean("personal_sync_auto_wifi", peer?.own_device == true && peer.saved_auto_wifi)
+            .putBoolean("bluetooth_enabled", peer?.saved_bluetooth == true)
+            .putLong("personal_sync_last_auto", 0).putLong("personal_sync_last_counter", -1)
+            .putString("personal_sync_report", "").remove("pending_computer_selection").commit())
+    }
+
+    private fun savePeers(value: TelefonBestand) {
+        val clear = json.encodeToString(TelefonBestand.serializer(), value.validated()).toByteArray()
         try { atomic(peersFile, encrypt(clear, "peers", "v1").toByteArray()) } finally { clear.fill(0) }
     }
 
@@ -162,8 +191,20 @@ class TelefonAblage private constructor(context: Context) : TelefonPayloadStorag
 
 @OptIn(kotlinx.serialization.ExperimentalSerializationApi::class)
 internal fun sanitizeLegacyPeer(value: JsonObject): Pair<JsonObject, Boolean> {
-    val topFields = setOf("storage_version", "peer")
-    if (value.keys != topFields) throw TelefonProtokollFehler("Unbekanntes Feld in der Telefonablage.")
+    val topFields = setOf("storage_version", "peer", "other_peers")
+    if (!value.keys.containsAll(setOf("storage_version", "peer")) || (value.keys - topFields).isNotEmpty())
+        throw TelefonProtokollFehler("Unbekanntes Feld in der Telefonablage.")
+    if ("other_peers" in value) {
+        val others = value["other_peers"] as? kotlinx.serialization.json.JsonArray
+            ?: throw TelefonProtokollFehler("Ungültige Rechnerliste.")
+        val active = sanitizeLegacyPeer(JsonObject(value - "other_peers"))
+        val normalized = others.map { other ->
+            if (other !is JsonObject) throw TelefonProtokollFehler("Ungültige Rechnerliste.")
+            sanitizeLegacyPeer(JsonObject(mapOf("storage_version" to value.getValue("storage_version"), "peer" to other)))
+        }
+        return JsonObject(active.first + ("other_peers" to kotlinx.serialization.json.JsonArray(normalized.map { it.first.getValue("peer") }))) to
+            (active.second || normalized.any { it.second })
+    }
     val peer = value["peer"] as? JsonObject ?: return value to false
     val descriptor = TelefonPeer.serializer().descriptor
     val current = (0 until descriptor.elementsCount).map(descriptor::getElementName).toSet()

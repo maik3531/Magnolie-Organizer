@@ -424,4 +424,6 @@
     <string name="device_identifiers_restricted">يقيّد Android معرّف الجهاز هذا.</string>
     <string name="device_identifiers_subscription">لا يتوفر اشتراك مكالمات افتراضي.</string>
     <string name="device_identifiers_unavailable">معرّف الجهاز هذا غير متاح.</string>
+    <string name="telefon_rechner_hinzufuegen">إضافة حاسوب</string>
+    <string name="telefon_mehrere_rechner">تبقى الحواسيب المقترنة محفوظة. اختر الحاسوب الذي تريد استخدامه الآن.</string>
 </resources>

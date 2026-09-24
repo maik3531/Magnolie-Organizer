@@ -374,4 +374,6 @@
     <string name="device_identifiers_restricted">Android इस डिवाइस पहचानकर्ता को प्रतिबंधित करता है।</string>
     <string name="device_identifiers_subscription">कोई डिफ़ॉल्ट वॉइस सदस्यता उपलब्ध नहीं है।</string>
     <string name="device_identifiers_unavailable">यह डिवाइस पहचानकर्ता उपलब्ध नहीं है।</string>
+    <string name="telefon_rechner_hinzufuegen">कंप्यूटर जोड़ें</string>
+    <string name="telefon_mehrere_rechner">पेयर किए गए कंप्यूटर सहेजे रहते हैं। अभी उपयोग करने के लिए कंप्यूटर चुनें।</string>
 </resources>

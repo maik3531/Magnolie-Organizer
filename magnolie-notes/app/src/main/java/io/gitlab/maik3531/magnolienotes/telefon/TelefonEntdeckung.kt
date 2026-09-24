@@ -10,7 +10,8 @@ import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
 
 object TelefonEntdeckung {
-    fun suchen(context: Context, waitMs: Long = 3000, peerId: String? = null): List<GefundenerDesktop> {
+    fun suchen(context: Context, waitMs: Long = 3000, peerId: String? = null,
+               pairedIds: Set<String> = emptySet()): List<GefundenerDesktop> {
         val nsd = context.applicationContext.getSystemService(Context.NSD_SERVICE) as? NsdManager ?: return emptyList()
         val found = Collections.synchronizedList(mutableListOf<GefundenerDesktop>())
         val done = CountDownLatch(1)
@@ -33,9 +34,9 @@ object TelefonEntdeckung {
                         fun attribute(name: String) = resolved.attributes?.get(name)?.toString(Charsets.UTF_8).orEmpty()
                         val id = attribute("id")
                         val token = attribute("token")
-                        val pairing = peerId == null
+                        val pairing = peerId == null && pairedIds.isEmpty()
                         if (attribute("v") != "1" || attribute("role") != "desktop" ||
-                            (pairing && attribute("pair") != "1") || (!pairing && id != peerId) ||
+                            (pairing && attribute("pair") != "1") || (!pairing && id != peerId && id !in pairedIds) ||
                             runCatching { UUID.fromString(id) }.isFailure || (pairing && runCatching { TelefonKrypto.b64(token, 16) }.isFailure) ||
                             resolved.port != TelefonParameter.PORT) return
                         found += GefundenerDesktop(id.lowercase(), attribute("name").take(60),

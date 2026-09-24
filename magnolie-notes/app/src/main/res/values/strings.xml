@@ -469,4 +469,6 @@
     <string name="device_identifiers_restricted">Android restricts this device identifier.</string>
     <string name="device_identifiers_subscription">No default voice subscription is available.</string>
     <string name="device_identifiers_unavailable">This device identifier is unavailable.</string>
+    <string name="telefon_rechner_hinzufuegen">Add computer</string>
+    <string name="telefon_mehrere_rechner">Paired computers stay saved. Select the computer to use now.</string>
 </resources>

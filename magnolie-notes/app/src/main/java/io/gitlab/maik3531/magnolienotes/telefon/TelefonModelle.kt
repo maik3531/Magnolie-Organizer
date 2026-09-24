@@ -55,11 +55,34 @@ data class TelefonPeer(
     val bluetooth_address: String = "",
     val bluetooth_inbound: Boolean = false,
     val pending_finish: String = "",
-    val pending_finish_expires_ms: Long = 0
+    val pending_finish_expires_ms: Long = 0,
+    val saved_auto_wifi: Boolean = false,
+    val saved_bluetooth: Boolean = false
 )
 
 @Serializable
-data class TelefonBestand(val storage_version: Int = 1, val peer: TelefonPeer? = null)
+data class TelefonBestand(val storage_version: Int = 1, val peer: TelefonPeer? = null,
+                         val other_peers: List<TelefonPeer> = emptyList()) {
+    fun all(): List<TelefonPeer> = listOfNotNull(peer) + other_peers
+
+    fun validated(): TelefonBestand = also {
+        require(storage_version == 1 && all().map { it.device_id }.distinct().size == all().size)
+    }
+
+    fun remember(value: TelefonPeer?): TelefonBestand {
+        validated()
+        val previous = value?.let { next -> all().firstOrNull { it.device_id == next.device_id } }
+        require(previous == null || previous.static_public == value?.static_public)
+        return copy(peer = value, other_peers = if (value == null) other_peers
+            else all().filterNot { it.device_id == value.device_id }).validated()
+    }
+
+    fun select(id: String?): TelefonBestand {
+        validated()
+        val selected = id?.let { wanted -> all().first { it.device_id == wanted } }
+        return copy(peer = selected, other_peers = all().filterNot { it.device_id == id }).validated()
+    }
+}
 
 data class GefundenerDesktop(
     val deviceId: String,
@@ -82,6 +105,7 @@ data class TelefonUiZustand(
     val bluetoothEnabled: Boolean = false,
     val connection: TelefonVerbindungsstatus = TelefonVerbindungsstatus.STOPPED,
     val peer: TelefonPeer? = null,
+    val pairedComputers: List<TelefonPeer> = emptyList(),
     val found: List<GefundenerDesktop> = emptyList(),
     val pairingCode: String = "",
     val pairingFingerprint: String = "",

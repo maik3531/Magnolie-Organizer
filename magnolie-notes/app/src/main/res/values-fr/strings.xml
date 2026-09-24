@@ -395,4 +395,6 @@
     <string name="device_identifiers_restricted">Android restreint cet identifiant.</string>
     <string name="device_identifiers_subscription">Aucun abonnement vocal par défaut disponible.</string>
     <string name="device_identifiers_unavailable">Cet identifiant est indisponible.</string>
+    <string name="telefon_rechner_hinzufuegen">Ajouter un ordinateur</string>
+    <string name="telefon_mehrere_rechner">Les ordinateurs associés restent enregistrés. Sélectionnez celui à utiliser maintenant.</string>
 </resources>

@@ -354,4 +354,6 @@
     <string name="device_identifiers_restricted">Android がこの端末識別子を制限しています。</string>
     <string name="device_identifiers_subscription">既定の音声契約がありません。</string>
     <string name="device_identifiers_unavailable">この端末識別子は利用できません。</string>
+    <string name="telefon_rechner_hinzufuegen">コンピューターを追加</string>
+    <string name="telefon_mehrere_rechner">ペアリング済みのコンピューターは保存されます。今使うコンピューターを選んでください。</string>
 </resources>

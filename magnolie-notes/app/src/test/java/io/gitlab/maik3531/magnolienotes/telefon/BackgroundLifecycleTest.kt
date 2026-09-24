@@ -102,6 +102,65 @@ class BackgroundLifecycleTest {
         }
     }
 
+    @Test fun switchingComputersPreservesPairingsQueuesAndPerComputerPreferences() = fixture { storage, work, queue ->
+        val home = TelefonPeer(UUID.randomUUID().toString(), "Same name", TelefonKrypto.b64(ByteArray(32) { 1 }),
+            own_device = true, personal_notes_sync_granted = true)
+        val office = TelefonPeer(UUID.randomUUID().toString(), "Same name", TelefonKrypto.b64(ByteArray(32) { 2 }),
+            own_device = true, personal_tasks_sync_granted = true)
+        storage.savePeer(home)
+        storage.setPersonalSync(true, true, false, true)
+        queue.queue(home.device_id, "capabilities.update", TelefonNachrichten.capabilities(), 60_000)
+        val oldGeneration = field(work, "pairingGeneration").getLong(work)
+        work.selectComputer(null)
+        assertNull(storage.peers().peer)
+        assertEquals(listOf(home.device_id), storage.peers().all().map { it.device_id })
+        assertTrue(queue.hasKind(home.device_id, "capabilities.update"))
+        storage.savePeer(office)
+        storage.setPersonalSync(true, false, true, false)
+        queue.queue(office.device_id, "capabilities.update", TelefonNachrichten.capabilities(), 60_000)
+        work.selectComputer(home.device_id)
+        assertEquals(home.static_public, storage.peers().peer!!.static_public)
+        assertTrue(storage.personalAutoWifi()); assertTrue(storage.personalNotesEnabled()); assertFalse(storage.personalTasksEnabled())
+        assertEquals(2, work.state.value.pairedComputers.size)
+        assertThrows(TelefonProtokollFehler::class.java) { work.peerEffect(home, oldGeneration) { error("stale session") } }
+        assertTrue(queue.hasKind(office.device_id, "capabilities.update"))
+
+        val reloaded = TelefonAblage::class.java.getDeclaredConstructor(Context::class.java)
+            .apply { isAccessible = true }.newInstance(context)
+        assertEquals(storage.peers(), reloaded.peers())
+        work.selectComputer(office.device_id)
+        assertTrue(storage.personalTasksEnabled()); assertFalse(storage.personalNotesEnabled()); assertFalse(storage.personalAutoWifi())
+        work.unpair()
+        assertEquals(listOf(home.device_id), storage.peers().all().map { it.device_id })
+        assertFalse(queue.hasKind(office.device_id, "capabilities.update"))
+        assertTrue(queue.hasKind(home.device_id, "capabilities.update"))
+        work.selectComputer(home.device_id)
+        assertEquals(home.static_public, storage.peers().peer!!.static_public)
+        assertThrows(IllegalArgumentException::class.java) { storage.savePeer(home.copy(static_public = office.static_public)) }
+        assertEquals(home.static_public, storage.peers().peer!!.static_public)
+    }
+
+    @Test fun interruptedComputerSelectionRestoresOnlyThePersistedComputerPreferences() = fixture { storage, _, _ ->
+        val first = TelefonPeer(UUID.randomUUID().toString(), "First", TelefonKrypto.b64(ByteArray(32) { 1 }),
+            own_device = true, personal_notes_sync_granted = true, saved_auto_wifi = true)
+        val second = TelefonPeer(UUID.randomUUID().toString(), "Second", TelefonKrypto.b64(ByteArray(32) { 2 }),
+            own_device = true, personal_tasks_sync_granted = true)
+        storage.savePeer(first); storage.setPersonalSync(true, true, false, true)
+        val prefs = context.getSharedPreferences("magnolie_phone_settings", Context.MODE_PRIVATE)
+        fun reopen() = TelefonAblage::class.java.getDeclaredConstructor(Context::class.java)
+            .apply { isAccessible = true }.newInstance(context)
+        prefs.edit().putString("pending_computer_selection", second.device_id).commit()
+        assertEquals(first, reopen().peers().peer)
+        assertTrue(storage.personalNotesEnabled()); assertFalse(storage.personalTasksEnabled())
+        prefs.edit().putString("pending_computer_selection", second.device_id).commit()
+        storage.savePeer(second)
+        val recovered = reopen()
+        assertEquals(second, recovered.peers().peer)
+        assertFalse(recovered.personalNotesEnabled()); assertTrue(recovered.personalTasksEnabled())
+        assertFalse(recovered.personalAutoWifi()); assertFalse(prefs.contains("pending_computer_selection"))
+        assertEquals(2, recovered.peers().all().size)
+    }
+
     @Test fun interruptedDiscoveryAlwaysUnregisters() {
         for (phone in listOf(true, false)) {
             LifecycleNsdShadow.starts = 0; LifecycleNsdShadow.stops = 0

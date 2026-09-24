@@ -58,7 +58,9 @@ class DeviceIdentifierConsentTest {
     @Test fun delayedPermissionCannotEnableDifferentPeerOrRevokedConsent() {
         val token = work.beginIdentifierPermission()!!
         Shadows.shadowOf(context as Application).grantPermissions(Manifest.permission.READ_PHONE_NUMBERS)
-        storage.savePeer(storage.peers().peer!!.copy(static_public = TelefonKrypto.b64(ByteArray(32) { 1 })))
+        val replacement = storage.peers().peer!!.copy(static_public = TelefonKrypto.b64(ByteArray(32) { 1 }))
+        storage.savePeer(null)
+        storage.savePeer(replacement)
         work.completeIdentifierPermission(token, true)
         assertFalse(storage.peers().peer!!.identifier_sharing_enabled)
         val revoked = work.beginIdentifierPermission()!!

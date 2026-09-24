@@ -375,4 +375,6 @@
     <string name="device_identifiers_restricted">Android bu cihaz tanımlayıcısını kısıtlıyor.</string>
     <string name="device_identifiers_subscription">Varsayılan ses aboneliği yok.</string>
     <string name="device_identifiers_unavailable">Bu cihaz tanımlayıcısı kullanılamıyor.</string>
+    <string name="telefon_rechner_hinzufuegen">Bilgisayar ekle</string>
+    <string name="telefon_mehrere_rechner">Eşleştirilmiş bilgisayarlar kayıtlı kalır. Şimdi kullanmak istediğiniz bilgisayarı seçin.</string>
 </resources>

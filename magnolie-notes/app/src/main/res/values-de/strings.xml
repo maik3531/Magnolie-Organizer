@@ -437,4 +437,6 @@
     <string name="device_identifiers_restricted">Android beschränkt diese Gerätekennung.</string>
     <string name="device_identifiers_subscription">Keine Standard-Sprach-SIM verfügbar.</string>
     <string name="device_identifiers_unavailable">Diese Gerätekennung ist nicht verfügbar.</string>
+    <string name="telefon_rechner_hinzufuegen">Rechner hinzufügen</string>
+    <string name="telefon_mehrere_rechner">Gekoppelte Rechner bleiben gespeichert. Wählen Sie den Rechner, den Sie jetzt verwenden möchten.</string>
 </resources>

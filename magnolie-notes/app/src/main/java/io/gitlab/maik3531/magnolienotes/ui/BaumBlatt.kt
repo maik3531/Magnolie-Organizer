@@ -109,6 +109,7 @@ class Telefonhandlungen(
     val beiVerbinden: (GefundenerDesktop) -> Unit,
     val beiCode: (Boolean) -> Unit,
     val beiEntkoppeln: () -> Unit,
+    val beiRechner: (String?) -> Unit,
     val beiBluetooth: (Boolean) -> Unit,
     val beiBluetoothEinstellungen: () -> Unit,
     val beiBluetoothGeraete: () -> Unit,
@@ -220,6 +221,16 @@ fun BaumBlatt(
                 else -> stringResource(R.string.telefon_status_getrennt)
             }
             Wertzeile(stringResource(R.string.telefon_status), verbindungsstatus)
+            if (telefon.enabled && telefon.connection != TelefonVerbindungsstatus.CODE_PENDING) {
+                telefon.pairedComputers.filter { it.device_id != telefon.peer?.device_id }.forEach { computer ->
+                    Papierknopf(stringResource(R.string.telefon_verbinden, computer.display_name), modifier = Modifier.fillMaxWidth()) {
+                        telefonHandlungen.beiRechner(computer.device_id)
+                    }
+                }
+                if (telefon.peer != null) Papierknopf(stringResource(R.string.telefon_rechner_hinzufuegen), modifier = Modifier.fillMaxWidth()) {
+                    telefonHandlungen.beiRechner(null)
+                }
+            }
             if (telefon.enabled && telefon.peer == null) {
                 if (telefon.connection != TelefonVerbindungsstatus.CODE_PENDING)
                     io.gitlab.maik3531.magnolienotes.telefon.TelefonEinladungsDialog(telefonHandlungen.beiVerbinden)
@@ -249,7 +260,7 @@ fun BaumBlatt(
                 Wertzeile(stringResource(R.string.telefon_geraetestatus),
                     if (peer.device_status_granted) stringResource(R.string.telefon_freigegeben)
                     else stringResource(R.string.telefon_nicht_freigegeben))
-                Text(stringResource(R.string.telefon_eins_zu_eins), fontFamily = FontFamily.SansSerif,
+                Text(stringResource(R.string.telefon_mehrere_rechner), fontFamily = FontFamily.SansSerif,
                     fontSize = 11.sp, lineHeight = 16.sp, color = Magnolie.braunHell)
                 Papierknopf(stringResource(R.string.telefon_entkoppeln), modifier = Modifier.fillMaxWidth(),
                     beiKlick = { telefonEntfernenWarnung = true })

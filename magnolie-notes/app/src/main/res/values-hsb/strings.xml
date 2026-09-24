@@ -396,4 +396,6 @@
     <string name="device_identifiers_restricted">Android tutón identifikator wobmjezuje.</string>
     <string name="device_identifiers_subscription">Žadyn standardny abonement za zawołanja k dispoziciji njeje.</string>
     <string name="device_identifiers_unavailable">Tutón identifikator k dispoziciji njeje.</string>
+    <string name="telefon_rechner_hinzufuegen">Ličak přidać</string>
+    <string name="telefon_mehrere_rechner">Sparowane ličaki wostanu składowane. Wubjerće ličak, kotryž chceće nětko wužiwać.</string>
 </resources>

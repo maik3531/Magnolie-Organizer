@@ -368,4 +368,6 @@
     <string name="device_identifiers_restricted">Android beperkt deze apparaatidentificatie.</string>
     <string name="device_identifiers_subscription">Geen standaard spraakabonnement beschikbaar.</string>
     <string name="device_identifiers_unavailable">Deze apparaatidentificatie is niet beschikbaar.</string>
+    <string name="telefon_rechner_hinzufuegen">Computer toevoegen</string>
+    <string name="telefon_mehrere_rechner">Gekoppelde computers blijven opgeslagen. Kies de computer die u nu wilt gebruiken.</string>
 </resources>

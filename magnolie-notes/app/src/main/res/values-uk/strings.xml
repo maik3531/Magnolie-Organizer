@@ -403,4 +403,6 @@
     <string name="device_identifiers_restricted">Android обмежує цей ідентифікатор.</string>
     <string name="device_identifiers_subscription">Немає типової підписки для дзвінків.</string>
     <string name="device_identifiers_unavailable">Цей ідентифікатор недоступний.</string>
+    <string name="telefon_rechner_hinzufuegen">Додати комп’ютер</string>
+    <string name="telefon_mehrere_rechner">Спарені комп’ютери залишаються збереженими. Виберіть комп’ютер, який бажаєте використовувати зараз.</string>
 </resources>

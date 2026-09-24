@@ -82,6 +82,11 @@ internal fun <T> replayPendingPersonalDeletions(
 internal fun organizerPairingAllowed(current: TelefonPeer?, deviceId: String): Boolean =
     current == null || current.device_id == deviceId
 
+internal fun knownReconnectTarget(current: TelefonPeer, saved: List<TelefonPeer>, found: List<GefundenerDesktop>): GefundenerDesktop? {
+    val known = found.filter { desktop -> saved.any { it.device_id == desktop.deviceId && it.state == "paired" } }
+    return known.firstOrNull { it.deviceId == current.device_id } ?: known.firstOrNull()
+}
+
 internal fun negotiatedPersonalNotesFormat(peer: TelefonPeer): Int =
     when { 3 in peer.remote_personal_notes_sync_versions -> 3
         2 in peer.remote_personal_notes_sync_versions -> 2
@@ -115,7 +120,7 @@ internal fun shouldStartPersonalSyncOnSecureWifi(
 
 class TelefonWerk private constructor(private val context: Context, private val storage: TelefonAblage) {
     private val _state = MutableStateFlow(TelefonUiZustand(enabled = storage.enabled(),
-        bluetoothEnabled = storage.bluetoothEnabled(), peer = safePeer(),
+        bluetoothEnabled = storage.bluetoothEnabled(), peer = safePeer(), pairedComputers = savedComputers(),
         dialRequestEnabled = storage.dialRequestEnabled(), dialAvailable = TelefonModulStatus.dialResolvable(context),
         notificationsEnabled = storage.notificationsEnabled(), selectedPackages = storage.selectedPackages(),
         notificationAccess = TelefonModulStatus.notificationAccess(context),
@@ -238,7 +243,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
             .distinctBy { it.activityInfo.packageName }
             .map { TelefonApp(it.activityInfo.packageName, it.loadLabel(context.packageManager).toString()) }
             .sortedBy { it.label.lowercase() } }.getOrDefault(emptyList())
-        _state.value = _state.value.copy(peer = safePeer(), dialRequestEnabled = storage.dialRequestEnabled(),
+        _state.value = _state.value.copy(peer = safePeer(), pairedComputers = savedComputers(), dialRequestEnabled = storage.dialRequestEnabled(),
             dialAvailable = TelefonModulStatus.dialResolvable(context), notificationsEnabled = storage.notificationsEnabled(),
             selectedPackages = storage.selectedPackages(), notificationApps = apps,
             notificationAccess = TelefonModulStatus.notificationAccess(context),
@@ -693,6 +698,10 @@ class TelefonWerk private constructor(private val context: Context, private val 
     }
 
     fun beginPairing(desktop: GefundenerDesktop) {
+        if (savedComputers().any { it.device_id == desktop.deviceId }) {
+            selectComputer(desktop.deviceId)
+            return
+        }
         beginPairing(desktop) { TelefonTcpRoehre(desktop.host, localAddress = desktop.localAddress) }
     }
 
@@ -701,7 +710,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
         check(storage.enabled())
         val current = safePeer()
         if (!organizerPairingAllowed(current, desktop.deviceId))
-            throw TelefonProtokollFehler("Only one Organizer can be paired. Remove the existing Organizer before changing devices.")
+            throw TelefonProtokollFehler(context.getString(io.gitlab.maik3531.magnolienotes.R.string.telefon_rechner_hinzufuegen))
         if (current != null)
             throw TelefonProtokollFehler("Dieser Organizer ist bereits kryptografisch gekoppelt.")
         if (!pairing.compareAndSet(false, true)) return false
@@ -767,8 +776,10 @@ class TelefonWerk private constructor(private val context: Context, private val 
             return true
         } catch (error: Exception) {
             runCatching { socket?.close() }; staticPrivate?.fill(0); ephemeralPrivate?.fill(0)
-            pairing.set(false)
-            _state.value = _state.value.copy(connection = TelefonVerbindungsstatus.ERROR, error = error.message.orEmpty())
+            if (generation == pairingGeneration) {
+                pairing.set(false)
+                _state.value = _state.value.copy(connection = TelefonVerbindungsstatus.ERROR, error = error.message.orEmpty())
+            }
             throw error
         }
     }
@@ -812,11 +823,12 @@ class TelefonWerk private constructor(private val context: Context, private val 
                     bluetoothFirstSessionUntil = System.nanoTime() + 120_000_000_000L
                 }
                 val withControls = ensureControlMessages(complete)
-                _state.value = _state.value.copy(connection = TelefonVerbindungsstatus.PAIRED, peer = withControls, bluetoothEnabled = storage.bluetoothEnabled(),
+                _state.value = _state.value.copy(connection = TelefonVerbindungsstatus.PAIRED, peer = withControls, pairedComputers = savedComputers(), bluetoothEnabled = storage.bluetoothEnabled(),
                     pairingCode = "", pairingFingerprint = "", pairingName = "", error = "")
             }
         } catch (error: Exception) {
-            _state.value = _state.value.copy(connection = TelefonVerbindungsstatus.ERROR, error = error.message.orEmpty())
+            if (pair.generation == pairingGeneration)
+                _state.value = _state.value.copy(connection = TelefonVerbindungsstatus.ERROR, error = error.message.orEmpty())
             throw error
         } finally {
             pair.close()
@@ -844,7 +856,33 @@ class TelefonWerk private constructor(private val context: Context, private val 
             safePeer()?.let { queue.deletePeer(it.device_id) }; storage.savePeer(null)
             storage.setPersonalSync(false, false, false, false)
         }
-        _state.value = _state.value.copy(peer = null, connection = TelefonVerbindungsstatus.OFFLINE)
+        _state.value = _state.value.copy(peer = null, pairedComputers = savedComputers(), connection = TelefonVerbindungsstatus.OFFLINE)
+    }
+
+    @Synchronized fun selectComputer(id: String?) {
+        val target = id?.let { wanted -> storage.peers().all().first { it.device_id == wanted } }
+        val current = safePeer()
+        if (current?.device_id == id && pending.get() == null) return
+        pairingGeneration++; lifecycleGeneration++; identifierEpoch++
+        identifierPermissionTicket = null; identifierRequests.clear()
+        bluetoothBindingAddress = ""; bluetoothBindingUntil = 0; bluetoothFirstSessionUntil = 0
+        stopBluetoothSetup()
+        pending.getAndSet(null)?.close(); runCatching { confirmingPairing?.socket?.close() }
+        closeTransport(); pairing.set(false)
+        runCatching { bluetoothListener?.close() }; bluetoothListener = null
+        synchronized(captureLock) {
+            outgoingScope = null
+            current?.let { storage.savePeer(it.copy(saved_auto_wifi = storage.personalAutoWifi(),
+                saved_bluetooth = storage.bluetoothEnabled())) }
+            storage.selectPeer(id)
+        }
+        _state.value = _state.value.copy(peer = target, pairedComputers = savedComputers(),
+            connection = TelefonVerbindungsstatus.OFFLINE, bluetoothEnabled = storage.bluetoothEnabled(),
+            pairingCode = "", pairingFingerprint = "", pairingName = "", found = emptyList(),
+            bluetoothSelecting = false, bluetoothDevices = emptyList(), error = "")
+        refreshModules()
+        runCatching { ensureBluetoothListener() }
+        reconnect()
     }
 
     private fun reconnect() {
@@ -862,7 +900,9 @@ class TelefonWerk private constructor(private val context: Context, private val 
             return
         }
         if (!serviceRunning || !storage.enabled() || !connecting.compareAndSet(false, true)) return
+        val generation = pairingGeneration
         thread(name = "magnolie-phone-reconnect", isDaemon = true) {
+            var authenticated = false
             try {
                 var peer = safePeer() ?: return@thread
                 runCatching { ensureBluetoothListener() }
@@ -877,17 +917,35 @@ class TelefonWerk private constructor(private val context: Context, private val 
                 var direct: TelefonRoehre? = null
                 if (wifiAvailable && host.isNotBlank()) direct = runCatching { TelefonTcpRoehre(host, 1_200) }.getOrNull()
                 if (direct == null && wifiAvailable) {
-                    _state.value = _state.value.copy(connection = TelefonVerbindungsstatus.DISCOVERING, error = "")
-                    host = TelefonEntdeckung.suchen(context, peerId = peer.device_id).firstOrNull()?.host.orEmpty()
+                    val saved = if (peer.state == "paired") savedComputers() else listOf(peer)
+                    val found = TelefonEntdeckung.suchen(context, peerId = peer.device_id,
+                        pairedIds = saved.filter { it.state == "paired" }.map { it.device_id }.toSet())
+                    val target = knownReconnectTarget(peer, saved, found)
+                        ?: found.firstOrNull { it.deviceId == peer.device_id }
+                    if (target != null && target.deviceId != peer.device_id) {
+                        synchronized(this) {
+                            if (generation == pairingGeneration && safePeer()?.device_id == peer.device_id)
+                                selectComputer(target.deviceId)
+                        }
+                        return@thread
+                    }
+                    host = target?.host.orEmpty()
                 }
+                if (generation != pairingGeneration) { direct?.close(); return@thread }
                 val selected = if (direct != null) TelefonTransportArt.WIFI to direct else
                     TelefonTransportwahl.oeffnen(wifiAvailable && host.isNotBlank(), peer.bluetooth_address,
                         !peer.bluetooth_inbound && storage.bluetoothEnabled() && bluetooth.erlaubt(),
                         wifi = { TelefonTcpRoehre(host) }, bluetooth = bluetooth::verbinden)
                 session(peer, selected.first, selected.second,
-                    wifiHost = if (selected.first == TelefonTransportArt.WIFI) host else "")
+                    wifiHost = if (selected.first == TelefonTransportArt.WIFI) host else "",
+                    authenticated = { authenticated = true })
             } catch (error: Exception) {
-                if (serviceRunning && storage.enabled()) _state.value = _state.value.copy(connection = TelefonVerbindungsstatus.OFFLINE, error = error.message.orEmpty())
+                synchronized(this) {
+                    if (!authenticated && generation == pairingGeneration && activeTransport?.first == TelefonTransportArt.WIFI)
+                        safePeer()?.takeIf { it.device_id == passive?.device_id && it.last_host.isNotBlank() }
+                            ?.let { storage.savePeer(it.copy(last_host = "")) }
+                }
+                if (generation == pairingGeneration && serviceRunning && storage.enabled()) _state.value = _state.value.copy(connection = TelefonVerbindungsstatus.OFFLINE, error = error.message.orEmpty())
             } finally {
                 activeTransport = null; connecting.set(false)
                 if (serviceRunning && storage.enabled() && safePeer() != null) {
@@ -1029,7 +1087,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
         } finally {
             authenticationDeadline?.close()
             staticPrivate.fill(0); runCatching { pipe.close() }
-            if (serviceRunning && storage.enabled()) _state.value = _state.value.copy(connection = TelefonVerbindungsstatus.OFFLINE)
+            if (generation == pairingGeneration && serviceRunning && storage.enabled()) _state.value = _state.value.copy(connection = TelefonVerbindungsstatus.OFFLINE)
         }
     }
 
@@ -1042,7 +1100,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
                 bluetooth_inbound = if (bluetoothAddress.isNotBlank()) bluetoothInbound else current.bluetooth_inbound)
             if (bluetoothAddress.isNotBlank()) { bluetoothBindingAddress = ""; bluetoothBindingUntil = 0 }
             storage.savePeer(peer)
-            _state.value = _state.value.copy(peer = peer, bluetoothSelecting = false, bluetoothEnabled = storage.bluetoothEnabled(),
+            _state.value = _state.value.copy(peer = peer, pairedComputers = savedComputers(), bluetoothSelecting = false, bluetoothEnabled = storage.bluetoothEnabled(),
                 bluetoothDevices = emptyList(), error = "", connection = if (transport == TelefonTransportArt.WIFI)
                     TelefonVerbindungsstatus.ONLINE_WIFI else TelefonVerbindungsstatus.ONLINE_BLUETOOTH)
             peer
@@ -1974,6 +2032,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
     private fun JsonObject.number(name: String) = (getValue(name) as? JsonPrimitive)?.takeIf { !it.isString }?.content?.toIntOrNull()
         ?: throw TelefonProtokollFehler("Falscher Feldtyp: $name")
     private fun safePeer() = runCatching { storage.peers().peer }.getOrNull()
+    private fun savedComputers() = runCatching { storage.peers().all() }.getOrDefault(emptyList())
 
     private data class PendingPairing(val socket: TelefonRoehre, val response: JsonObject, val material: PaarungsMaterial,
         val staticPrivate: ByteArray, val ephemeralPrivate: ByteArray, val host: String, val bluetoothAddress: String = "",

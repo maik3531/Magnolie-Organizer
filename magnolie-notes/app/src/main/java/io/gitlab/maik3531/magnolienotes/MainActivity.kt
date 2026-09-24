@@ -897,6 +897,7 @@ private fun Hauptblatt(gewuenschteAufgabe: androidx.compose.runtime.MutableState
                         beiVerbinden = { desktop -> faden.launch(Dispatchers.IO) { runCatching { telefonWerk.beginPairing(desktop) } } },
                         beiCode = { matches -> faden.launch(Dispatchers.IO) { runCatching { telefonWerk.confirmPairing(matches) } } },
                         beiEntkoppeln = telefonWerk::unpair,
+                        beiRechner = telefonWerk::selectComputer,
                         beiBluetooth = { enabled ->
                             if (enabled && !bluetoothErlaubt() && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S)
                                 telefonBluetoothFreigabe.launch(Manifest.permission.BLUETOOTH_CONNECT)

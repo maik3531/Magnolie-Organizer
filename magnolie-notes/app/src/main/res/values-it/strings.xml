@@ -391,4 +391,6 @@
     <string name="device_identifiers_restricted">Android limita questo identificativo.</string>
     <string name="device_identifiers_subscription">Nessun abbonamento vocale predefinito disponibile.</string>
     <string name="device_identifiers_unavailable">Questo identificativo non è disponibile.</string>
+    <string name="telefon_rechner_hinzufuegen">Aggiungi computer</string>
+    <string name="telefon_mehrere_rechner">I computer associati restano salvati. Seleziona quello da usare ora.</string>
 </resources>
