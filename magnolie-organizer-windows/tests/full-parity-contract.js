@@ -36,7 +36,11 @@ assert.ok(fixture.commands.includes("mutations_snapshot") &&
 "Linux fixture must expose automatic mutation snapshots without manual journal controls");
 
 const windowsCommands = new Set(Array.from(windowsUi.matchAll(/cmd:\s*"([a-z0-9_]+)"/g), match => match[1]));
-const commandAliases = { sync_bestaetigen: "sync_commit" };
+const commandAliases = { sync_bestaetigen: "sync_commit", handbuch_herunterladen: "update_herunterladen" };
+// Windows ships the manual in the Organizer installer; Linux has a separate DEB.
+assert.ok(!windowsCommands.has("handbuch_herunterladen"));
+assert.ok(windowsCommands.has("update_herunterladen") && windowsCommands.has("update_installieren"));
+assert.ok(!windowsUi.includes('handbuchHolen.id = "handbuch-herunterladen"'));
 // Native HFP routing belongs only to the Linux host. The Win32 deployment must
 // explicitly remain unsupported, not add dummy routing commands for parity.
 const linuxAudioCommand = "telefon_anruf_audio_einstellung";
