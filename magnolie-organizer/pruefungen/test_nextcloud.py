@@ -170,6 +170,137 @@ def test_literal_ipv6_server_keeps_brackets():
         "https://[2001:db8::1]:8443/nc"
 
 
+@pytest.mark.parametrize("operation", ["store", "lookup", "clear"])
+def test_native_secret_service_errors_have_stable_code(operation):
+    from gi.repository import GLib
+
+    class NativeSecret:
+        COLLECTION_DEFAULT = "default"
+
+        @staticmethod
+        def fail(*_args):
+            raise GLib.Error("org.freedesktop.DBus.Error.ServiceUnknown: private-detail")
+
+        password_store_sync = password_lookup_sync = password_clear_sync = fail
+
+    store = nc.SecretServiceStore((NativeSecret, object()))
+    with pytest.raises(nc.NextcloudError) as raised:
+        getattr(store, operation)("account", "test-password") if operation == "store" else getattr(store, operation)("account")
+    assert nc.error_code(raised.value) == "secret_service_unavailable"
+    assert "private-detail" not in str(raised.value)
+    assert "test-password" not in str(raised.value)
+
+
+def test_native_secret_store_false_remains_store_failure():
+    class NativeSecret:
+        COLLECTION_DEFAULT = "default"
+        password_store_sync = staticmethod(lambda *_args: False)
+
+    with pytest.raises(nc.NextcloudError) as raised:
+        nc.SecretServiceStore((NativeSecret, object())).store("account", "test-password")
+    assert raised.value.code == "secret_store_failed"
+
+
+@pytest.mark.parametrize("kind", ["calendar", "addressbook"])
+@pytest.mark.parametrize("reference", ["redirect", "principal", "home"])
+def test_rejected_discovery_origin_uses_next_candidate(kind, reference):
+    calls = []
+    tag = "c:calendar-home-set" if kind == "calendar" else "a:addressbook-home-set"
+    home = "https://cloud.example/nc/discovered/"
+
+    def transport(method, url, headers, *_args):
+        calls.append((url, headers["Authorization"]))
+        if "/.well-known/" in url:
+            if reference == "redirect":
+                return 301, {"Location": "https://vpn.example/private/"}, b""
+            prop = "d:current-user-principal" if reference == "principal" else tag
+            return 207, {}, multistatus(dav_response(url, [(prop, "<d:href>https://vpn.example/private/</d:href>")]),
+                namespaces='xmlns:c="urn:ietf:params:xml:ns:caldav" xmlns:a="urn:ietf:params:xml:ns:carddav"')
+        return 207, {}, multistatus(dav_response(url, [(tag, "<d:href>%s</d:href>" % home)]),
+            namespaces='xmlns:c="urn:ietf:params:xml:ns:caldav" xmlns:a="urn:ietf:params:xml:ns:carddav"')
+
+    client = nc.DavHttpClient("https://cloud.example/nc", "user", "test-password", transport=transport)
+    assert nc.NextcloudDav(client)._home(kind) == home
+    assert len(calls) == 2
+    assert all(urllib.parse.urlsplit(url).hostname == "cloud.example" for url, _auth in calls)
+
+
+def test_rejected_discovery_origin_can_reach_nextcloud_standard_path():
+    def transport(_method, url, *_args):
+        assert urllib.parse.urlsplit(url).hostname == "cloud.example"
+        return (302, {"Location": "https://vpn.example/"}, b"") if "/.well-known/" in url else (404, {}, b"")
+
+    client = nc.DavHttpClient("https://cloud.example/nc", "a user", "test-password", transport=transport)
+    assert nc.NextcloudDav(client)._home("calendar") == "https://cloud.example/nc/remote.php/dav/calendars/a%20user/"
+
+
+@pytest.mark.parametrize("status, body", [(401, b""), (403, b""), (500, b""), (207, b"broken XML")])
+def test_discovery_does_not_hide_authentication_or_protocol_errors(status, body):
+    calls = []
+
+    def transport(_method, url, *_args):
+        calls.append(url)
+        return status, {}, body
+
+    client = nc.DavHttpClient("https://cloud.example", "user", "test-password", transport=transport)
+    with pytest.raises(nc.NextcloudError):
+        nc.NextcloudDav(client)._home("calendar")
+    assert len(calls) == 1
+
+
+def test_request_deadline_and_message_use_instance_timeout(monkeypatch):
+    assert nc.TIMEOUT == 60.0
+    def transport(_method, _url, _headers, _body, timeout, _limit):
+        assert timeout == 60
+        return 200, {}, b"ok"
+
+    clock = iter([0.0, 13.0])
+    monkeypatch.setattr(nc.time, "monotonic", lambda: next(clock))
+    client = nc.DavHttpClient("https://cloud.example", "user", "test-password", transport=transport)
+    assert client.request("GET", "/")[2] == b"ok"
+    clock = iter([0.0, 8.0])
+    client = nc.DavHttpClient("https://cloud.example", "user", "test-password", timeout=7,
+                             transport=lambda *_args: (200, {}, b"ok"))
+    with pytest.raises(TimeoutError, match="7-Sekunden-Frist"):
+        client.request("GET", "/")
+
+
+def test_streaming_deadline_uses_instance_timeout_and_closes_connection(monkeypatch):
+    class Response:
+        status = 200
+
+        def getheaders(self):
+            return []
+
+        def getheader(self, _name):
+            return None
+
+        def read(self, _size):
+            return b"chunk"
+
+    class Connection:
+        sock = None
+        closed = False
+
+        def request(self, *_args, **_kwargs):
+            pass
+
+        def getresponse(self):
+            return Response()
+
+        def close(self):
+            self.closed = True
+
+    connection = Connection()
+    monkeypatch.setattr(nc.http.client, "HTTPSConnection", lambda *_args, **_kwargs: connection)
+    clock = iter([0.0, 2.0, 9.0])
+    monkeypatch.setattr(nc.time, "monotonic", lambda: next(clock))
+    client = nc.DavHttpClient("https://cloud.example", "user", "test-password", timeout=7)
+    with pytest.raises(TimeoutError, match="7-Sekunden-Frist"):
+        client.request("GET", "/")
+    assert connection.closed
+
+
 def test_secret_service_only_and_atomic_private_config(tmp_path, monkeypatch):
     backend = SecretBackend()
     store = nc.NextcloudSettingsStore(str(tmp_path / "nextcloud.json"),

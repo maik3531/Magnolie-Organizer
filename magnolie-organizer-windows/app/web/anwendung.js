@@ -23200,12 +23200,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     wahl.textContent = "";
     const syncKnopf = $("#sync-jetzt");
     if (!nutzlast.verfuegbar) {
-      status.textContent = uebersetzt(
-        "Online account integration is not available on this system. Install it with:  " +
-        "sudo apt install %(packages)s, then restart the application. You can also import " +
-        "contacts and appointments without this integration using “From this computer” above.",
-        { packages: nutzlast.pakete ||
-          "gir1.2-ecal-2.0 gir1.2-ebook-1.2 gir1.2-edataserver-1.2" });
+      status.textContent = _("System internet accounts") + ": " + _("Unavailable");
       if (syncKnopf) syncKnopf.disabled = true;
       return;
     }

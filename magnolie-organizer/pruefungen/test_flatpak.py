@@ -19,7 +19,7 @@ assert manifest["sdk"] == "org.gnome.Sdk"
 assert manifest["command"] == "magnolie-organizer"
 permissions = set(manifest["finish-args"])
 for required in ("--share=network", "--socket=wayland", "--socket=fallback-x11",
-                 "--socket=pulseaudio"):
+                 "--socket=pulseaudio", "--talk-name=org.freedesktop.secrets"):
     assert required in permissions
 assert not any(value.startswith("--filesystem=home") or value == "--device=dri"
                for value in permissions)

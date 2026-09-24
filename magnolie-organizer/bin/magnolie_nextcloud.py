@@ -15,7 +15,7 @@ import urllib.parse
 import xml.etree.ElementTree as ET
 
 
-TIMEOUT = 12.0
+TIMEOUT = 60.0
 XML_LIMIT = 2 * 1024 * 1024
 ITEM_LIMIT = 42 * 1024 * 1024
 LIST_LIMIT = 10000
@@ -173,9 +173,14 @@ class SecretServiceStore:
                                      "secret_store_failed")
             return
         Secret, schema = backend
-        if not Secret.password_store_sync(schema, {"account": account},
-                                          Secret.COLLECTION_DEFAULT,
-                                          "Magnolie Organizer Nextcloud", password, None):
+        try:
+            stored = Secret.password_store_sync(schema, {"account": account},
+                                                 Secret.COLLECTION_DEFAULT,
+                                                 "Magnolie Organizer Nextcloud", password, None)
+        except Exception as error:
+            raise NextcloudError("Der Linux Secret Service ist nicht verfuegbar.",
+                                 "secret_service_unavailable") from error
+        if not stored:
             raise NextcloudError("Der Linux Secret Service hat das App-Kennwort nicht gespeichert.",
                                  "secret_store_failed")
 
@@ -188,7 +193,11 @@ class SecretServiceStore:
                 raise NextcloudError("Der Linux Secret Service ist nicht verfuegbar.",
                                      "secret_service_unavailable") from error
         Secret, schema = backend
-        return Secret.password_lookup_sync(schema, {"account": account}, None)
+        try:
+            return Secret.password_lookup_sync(schema, {"account": account}, None)
+        except Exception as error:
+            raise NextcloudError("Der Linux Secret Service ist nicht verfuegbar.",
+                                 "secret_service_unavailable") from error
 
     def clear(self, account):
         backend = self._secret()
@@ -199,7 +208,11 @@ class SecretServiceStore:
                 raise NextcloudError("Der Linux Secret Service ist nicht verfuegbar.",
                                      "secret_service_unavailable") from error
         Secret, schema = backend
-        return Secret.password_clear_sync(schema, {"account": account}, None)
+        try:
+            return Secret.password_clear_sync(schema, {"account": account}, None)
+        except Exception as error:
+            raise NextcloudError("Der Linux Secret Service ist nicht verfuegbar.",
+                                 "secret_service_unavailable") from error
 
 
 class NextcloudSettingsStore:
@@ -325,7 +338,8 @@ class DavHttpClient:
             raise NextcloudError("Die DAV-Antwort enthaelt eine ungueltige Adresse.") from error
         if (origin != self.origin or parsed.username is not None or parsed.password is not None
                 or parsed.query or parsed.fragment):
-            raise NextcloudError("Die DAV-Antwort verweist auf einen anderen Origin.")
+            raise NextcloudError("Die DAV-Antwort verweist auf einen anderen Origin.",
+                                 "dav_origin_rejected")
         configured = urllib.parse.urlsplit(self.server)
         return urllib.parse.urlunsplit(("https", configured.netloc, parsed.path, "", ""))
 
@@ -362,7 +376,7 @@ class DavHttpClient:
                 while True:
                     remaining = self.timeout - (time.monotonic() - started)
                     if remaining <= 0:
-                        raise TimeoutError("Der Nextcloud-Aufruf hat die 12-Sekunden-Frist ueberschritten.")
+                        raise TimeoutError("Der Nextcloud-Aufruf hat die %g-Sekunden-Frist ueberschritten." % self.timeout)
                     if connection.sock is not None:
                         connection.sock.settimeout(remaining)
                     chunk = response.read(min(65536, limit + 1 - size))
@@ -380,7 +394,7 @@ class DavHttpClient:
             finally:
                 connection.close()
         if time.monotonic() - started > self.timeout:
-            raise TimeoutError("Der Nextcloud-Aufruf hat die 12-Sekunden-Frist ueberschritten.")
+            raise TimeoutError("Der Nextcloud-Aufruf hat die %g-Sekunden-Frist ueberschritten." % self.timeout)
         if len(data) > limit:
             raise NextcloudError("Die WebDAV-Antwort ist zu gross.")
         if 300 <= status < 400:
@@ -504,6 +518,11 @@ class NextcloudDav:
                             return self.client.same_origin_url(href, principal_url)
             except HttpStatusError as error:
                 if error.status not in (301, 302, 303, 307, 308, 404, 405):
+                    raise
+            except NextcloudError as error:
+                # A rejected discovery reference must not prevent trying our
+                # configured origin. Malformed/incomplete responses still fail.
+                if error.code != "dav_origin_rejected":
                     raise
         if account_type == "nextcloud":
             suffix = "/remote.php/dav/calendars/" if kind == "calendar" else "/remote.php/dav/addressbooks/users/"

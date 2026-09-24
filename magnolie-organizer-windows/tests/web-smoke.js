@@ -960,6 +960,10 @@ assert.ok(!importButtons.some((button) => button.textContent === "Evolution") &&
   /knopf\("Thunderbird", "kontakt-assistent-knopf", \(\) =>[\s\S]*?starteImport\("thunderbird"\)/.test(application),
 "Thunderbird import is missing, uses the wrong source, or Evolution remains on Windows");
 window.document.querySelector("#einst-tab-sync").click();
+window.App.edsStatus({ verfuegbar: false, kalender: [], adressbuecher: [] });
+assert.strictEqual(window.document.querySelector("#sync-status").textContent,
+  window.MagnolieI18n.gettext("System internet accounts") + ": " + window.MagnolieI18n.gettext("Unavailable"),
+  "Unavailable system accounts must not suggest host apt packages inside Flatpak or on another platform");
 window.App.edsStatus({ windows: true, verfuegbar: true, buchOk: true,
   kalender: [{ uid: "generic-calendar:privat", name: "Baïkal Termine",
     art: "generic-caldav", supportsVtodo: false },

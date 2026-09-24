@@ -4011,13 +4011,6 @@ msgstr ""
 msgid "Online"
 msgstr ""
 
-msgid ""
-"Online account integration is not available on this system. Install it "
-"with:  sudo apt install %(packages)s, then restart the application. You can "
-"also import contacts and appointments without this integration using “From "
-"this computer” above."
-msgstr ""
-
 msgid "Online address book"
 msgstr ""
 
@@ -5643,13 +5636,6 @@ msgid "System default"
 msgstr ""
 
 msgid "System internet accounts"
-msgstr ""
-
-#, python-format
-msgid ""
-"System internet accounts are not available on this system. Install the "
-"required components with:\n"
-"sudo apt install %s"
 msgstr ""
 
 msgid "System keyring and pause modes cannot be enabled yet."

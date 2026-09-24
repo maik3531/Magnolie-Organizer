@@ -3269,13 +3269,6 @@ msgstr ""
 msgid "Online"
 msgstr ""
 
-msgid ""
-"Online account integration is not available on this system. Install it "
-"with:  sudo apt install %(packages)s, then restart the application. You can "
-"also import contacts and appointments without this integration using “From "
-"this computer” above."
-msgstr ""
-
 msgid "Online address book"
 msgstr ""
 

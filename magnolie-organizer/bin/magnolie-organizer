@@ -23291,8 +23291,7 @@ class Fenster(_FENSTER_BASIS):
             return ergebnis
         if eds_gewaehlt and not eds_laden():
             raise RuntimeError(
-                _("System internet accounts are not available "
-                  "on this system. Install the required components with:\nsudo apt install %s") % EDS_PAKETE)
+                _("System internet accounts") + ": " + _("Unavailable"))
 
         termine = list(daten.get("termine") or [])
         kontakte = list(daten.get("kontakte") or [])

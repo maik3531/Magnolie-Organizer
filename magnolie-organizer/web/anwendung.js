@@ -23607,12 +23607,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     const kalender = nutzlast.alleKalender || nutzlast.kalender || [];
     const adressbuecher = nutzlast.alleAdressbuecher || nutzlast.adressbuecher || [];
     if (!nutzlast.verfuegbar && !kalender.length && !adressbuecher.length) {
-      status.textContent = uebersetzt(
-        "Online account integration is not available on this system. Install it with:  " +
-        "sudo apt install %(packages)s, then restart the application. You can also import " +
-        "contacts and appointments without this integration using “From this computer” above.",
-        { packages: nutzlast.pakete ||
-          "gir1.2-ecal-2.0 gir1.2-ebook-1.2 gir1.2-edataserver-1.2" });
+      status.textContent = _("System internet accounts") + ": " + _("Unavailable");
       if (syncKnopf) syncKnopf.disabled = true;
       return;
     }
