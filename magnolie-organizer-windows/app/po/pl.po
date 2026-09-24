@@ -707,6 +707,9 @@ msgstr ""
 msgid "Apply"
 msgstr "Zastosuj"
 
+msgid "Apply to the remaining conflicts"
+msgstr "Zastosuj do pozostałych konfliktów"
+
 msgid "Appointment"
 msgstr "Spotkanie"
 
@@ -1501,6 +1504,11 @@ msgstr "Kontakty są łączone addytywnie. Usunięcia nie są przesyłane."
 
 msgid "Contacts for Claws Mail (.ldif)"
 msgstr "Kontakty dla Claws Mail (.ldif)"
+
+msgid ""
+"Contacts with different information were found. How would you like to "
+"proceed?"
+msgstr "Znaleziono kontakty z różnymi danymi. Jak chcesz postąpić?"
 
 msgid "Content"
 msgstr "Zawartość"
@@ -2678,6 +2686,9 @@ msgstr "Port KDE Connect %(port)s"
 msgid "Keep a troubleshooting log"
 msgstr "Zachowuj dziennik rozwiązywania problemów"
 
+msgid "Keep existing"
+msgstr "Zachowaj obecne dane"
+
 msgid "LDIF"
 msgstr "LDIF"
 
@@ -3524,17 +3535,6 @@ msgstr ""
 
 msgid "Online"
 msgstr "Online"
-
-msgid ""
-"Online account integration is not available on this system. Install it "
-"with:  sudo apt install %(packages)s, then restart the application. You can "
-"also import contacts and appointments without this integration using “From "
-"this computer” above."
-msgstr ""
-"Integracja kont internetowych nie jest dostępna w tym systemie. Zainstaluj "
-"ją poleceniem:  sudo apt install %(packages)s, a następnie uruchom aplikację "
-"ponownie. Kontakty i spotkania można też importować bez tej integracji za "
-"pomocą opcji „Z tego komputera” powyżej."
 
 msgid "Online address book"
 msgstr "Internetowa książka adresowa"
@@ -6358,7 +6358,10 @@ msgstr "Temperatura pogody"
 msgid ""
 "Weather uses HTTPS first, then unencrypted HTTP if necessary. If wttr.in "
 "fails and a location is known, Open-Meteo is tried."
-msgstr "Pogoda jest pobierana najpierw przez HTTPS, a w razie potrzeby przez nieszyfrowane HTTP. Jeśli wttr.in nie działa i miejscowość jest znana, następuje próba pobrania danych z Open-Meteo."
+msgstr ""
+"Pogoda jest pobierana najpierw przez HTTPS, a w razie potrzeby przez "
+"nieszyfrowane HTTP. Jeśli wttr.in nie działa i miejscowość jest znana, "
+"następuje próba pobrania danych z Open-Meteo."
 
 msgid "Weather was not retrieved because no location is available."
 msgstr "Nie pobrano pogody, ponieważ lokalizacja jest niedostępna."
@@ -6979,6 +6982,17 @@ msgstr[2] "… i jeszcze %(count)s elementy, które również zostaną wydrukowa
 
 msgid "＋ Add appointment"
 msgstr "＋ Dodaj spotkanie"
+
+#~ msgid ""
+#~ "Online account integration is not available on this system. Install it "
+#~ "with:  sudo apt install %(packages)s, then restart the application. You "
+#~ "can also import contacts and appointments without this integration using "
+#~ "“From this computer” above."
+#~ msgstr ""
+#~ "Integracja kont internetowych nie jest dostępna w tym systemie. "
+#~ "Zainstaluj ją poleceniem:  sudo apt install %(packages)s, a następnie "
+#~ "uruchom aplikację ponownie. Kontakty i spotkania można też importować bez "
+#~ "tej integracji za pomocą opcji „Z tego komputera” powyżej."
 
 #~ msgid "This paired phone is my own device"
 #~ msgstr "Ten sparowany telefon jest moim własnym urządzeniem"

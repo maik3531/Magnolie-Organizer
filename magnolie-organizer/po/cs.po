@@ -714,6 +714,9 @@ msgstr "Podle oblasti formátu"
 msgid "According to language"
 msgstr "Podle jazyka"
 
+msgid "Account type"
+msgstr "Typ účtu"
+
 msgid "Active call"
 msgstr "Aktivní hovor"
 
@@ -974,6 +977,9 @@ msgstr ""
 
 msgid "Apply"
 msgstr "Použít"
+
+msgid "Apply to the remaining conflicts"
+msgstr "Použít pro zbývající konflikty"
 
 msgid "Appointment"
 msgstr "Schůzka"
@@ -1861,6 +1867,11 @@ msgstr "Kontakty se slučují doplněním. Odstranění se nepřenášejí."
 msgid "Contacts for Claws Mail (.ldif)"
 msgstr "Kontakty pro Claws Mail (.ldif)"
 
+msgid ""
+"Contacts with different information were found. How would you like to "
+"proceed?"
+msgstr "Byly nalezeny kontakty s různými údaji. Jak chcete pokračovat?"
+
 msgid "Contacts: component gir1.2-ebook-1.2 is missing; skipped."
 msgstr "Kontakty: chybí komponenta gir1.2-ebook-1.2; přeskočeno."
 
@@ -2024,6 +2035,9 @@ msgstr ""
 
 msgid "Czechia"
 msgstr "Česko"
+
+msgid "DAV account"
+msgstr "Účet DAV"
 
 msgid "DIN 5008 Form A (27 mm letterhead)"
 msgstr "DIN 5008 Form A (záhlaví 27 mm)"
@@ -3237,6 +3251,9 @@ msgstr "Integrace KDE/Akonadi není dostupná."
 msgid "Keep a troubleshooting log"
 msgstr "Uchovávat protokol pro řešení potíží"
 
+msgid "Keep existing"
+msgstr "Zachovat stávající údaje"
+
 msgid "Keep this KDE Connect file in Downloads?"
 msgstr "Ponechat tento soubor z KDE Connect ve složce Stažené?"
 
@@ -4294,17 +4311,6 @@ msgstr "Jednorázový párovací QR kód"
 msgid "Online"
 msgstr "Online"
 
-msgid ""
-"Online account integration is not available on this system. Install it "
-"with:  sudo apt install %(packages)s, then restart the application. You can "
-"also import contacts and appointments without this integration using “From "
-"this computer” above."
-msgstr ""
-"Integrace online účtů není v tomto systému k dispozici. Nainstalujte ji "
-"pomocí:  sudo apt install %(packages)s a potom aplikaci restartujte. "
-"Kontakty a schůzky můžete importovat i bez této integrace pomocí volby „Z "
-"tohoto počítače“ výše."
-
 msgid "Online address book"
 msgstr "Online adresář"
 
@@ -4320,6 +4326,9 @@ msgid ""
 msgstr ""
 "Pouze HTTPS. Vytvořte heslo aplikace v Nextcloudu v Nastavení, Zabezpečení. "
 "Heslo vašeho účtu se nikdy nepoužívá."
+
+msgid "Only HTTPS. The password is stored securely on this computer."
+msgstr "Pouze HTTPS. Heslo se bezpečně ukládá na tomto počítači."
 
 msgid ""
 "Only Notify, then unlock is currently available. Keyring access and pausing "
@@ -5150,6 +5159,9 @@ msgstr "Obnovit párování"
 msgid "Repeat for confirmation"
 msgstr "Zopakujte pro potvrzení"
 
+msgid "Replace completely"
+msgstr "Vyměňte úplně"
+
 msgid "Reply"
 msgstr "Odpověď"
 
@@ -5159,6 +5171,9 @@ msgstr "Nahlášeno (%(method)s): %(title)s – %(body)s"
 
 msgid "Requesting the device status"
 msgstr "Požadavek na stav zařízení"
+
+msgid "Requires a Nextcloud account."
+msgstr "Vyžaduje účet Nextcloud."
 
 msgid "Requires existing BlueZ system pairing. Data only, no HFP audio."
 msgstr "Vyžaduje spárování se systémem BlueZ. Pouze data, žádný zvuk HFP."
@@ -5714,6 +5729,9 @@ msgstr "Pouze oznámení na obrazovce"
 msgid "Show social media and communication icons"
 msgstr "Zobrazovat ikony sociálních sítí a komunikace"
 
+msgid "Show successful synchronization notifications (errors are always shown)"
+msgstr "Oznamovat úspěšnou synchronizaci (chyby se zobrazují vždy)"
+
 msgid "Show symbol in calendar"
 msgstr "Zobrazit symbol v kalendáři"
 
@@ -6001,16 +6019,6 @@ msgstr "Výchozí nastavení systému"
 
 msgid "System internet accounts"
 msgstr "Systémové internetové účty"
-
-#, python-format
-msgid ""
-"System internet accounts are not available on this system. Install the "
-"required components with:\n"
-"sudo apt install %s"
-msgstr ""
-"Systémové internetové účty nejsou v tomto systému k dispozici. Nainstalujte "
-"požadované součásti pomocí:\n"
-"sudo apt install %s"
 
 msgid "System keyring and pause modes cannot be enabled yet."
 msgstr "Systémovou klíčenku a režimy pozastavení zatím nelze povolit."
@@ -7263,6 +7271,9 @@ msgstr "Tato větev zatím nebyla potvrzena."
 msgid "This branch is not known."
 msgstr "Tato větev není známá."
 
+msgid "This calendar does not support tasks (VTODO)."
+msgstr "Tento kalendář nepodporuje úkoly (VTODO)."
+
 msgid ""
 "This choice also determines how names appear on contact cards and under "
 "which letter they are filed in the index."
@@ -7666,6 +7677,9 @@ msgstr ""
 msgid "Use system keyring"
 msgstr "Použít systémovou klíčenku"
 
+msgid "Use the DAV address provided by your service."
+msgstr "Použijte adresu DAV od svého poskytovatele."
+
 msgid ""
 "Use the arrows to arrange groups and notebooks, or use the selection to move "
 "a notebook to another group."
@@ -7851,7 +7865,9 @@ msgstr "Teplota počasí"
 msgid ""
 "Weather uses HTTPS first, then unencrypted HTTP if necessary. If wttr.in "
 "fails and a location is known, Open-Meteo is tried."
-msgstr "Počasí se nejprve načítá přes HTTPS, případně přes nešifrované HTTP. Pokud wttr.in nefunguje a místo je známé, zkusí se Open-Meteo."
+msgstr ""
+"Počasí se nejprve načítá přes HTTPS, případně přes nešifrované HTTP. Pokud "
+"wttr.in nefunguje a místo je známé, zkusí se Open-Meteo."
 
 msgid "Weather was not retrieved because no location is available."
 msgstr "Počasí nebylo načteno, protože není k dispozici poloha."
@@ -8514,26 +8530,26 @@ msgstr[2] "… a ještě %(count)s další položky, které se rovněž vytiskno
 msgid "＋ Add appointment"
 msgstr "＋ Přidat schůzku"
 
-msgid "DAV account"
-msgstr "Účet DAV"
+#~ msgid ""
+#~ "Online account integration is not available on this system. Install it "
+#~ "with:  sudo apt install %(packages)s, then restart the application. You "
+#~ "can also import contacts and appointments without this integration using "
+#~ "“From this computer” above."
+#~ msgstr ""
+#~ "Integrace online účtů není v tomto systému k dispozici. Nainstalujte ji "
+#~ "pomocí:  sudo apt install %(packages)s a potom aplikaci restartujte. "
+#~ "Kontakty a schůzky můžete importovat i bez této integrace pomocí volby „Z "
+#~ "tohoto počítače“ výše."
 
-msgid "Account type"
-msgstr "Typ účtu"
-
-msgid "Use the DAV address provided by your service."
-msgstr "Použijte adresu DAV od svého poskytovatele."
-
-msgid "Only HTTPS. The password is stored securely on this computer."
-msgstr "Pouze HTTPS. Heslo se bezpečně ukládá na tomto počítači."
-
-msgid "Requires a Nextcloud account."
-msgstr "Vyžaduje účet Nextcloud."
-
-msgid "This calendar does not support tasks (VTODO)."
-msgstr "Tento kalendář nepodporuje úkoly (VTODO)."
-
-msgid "Show successful synchronization notifications (errors are always shown)"
-msgstr "Oznamovat úspěšnou synchronizaci (chyby se zobrazují vždy)"
+#, python-format
+#~ msgid ""
+#~ "System internet accounts are not available on this system. Install the "
+#~ "required components with:\n"
+#~ "sudo apt install %s"
+#~ msgstr ""
+#~ "Systémové internetové účty nejsou v tomto systému k dispozici. "
+#~ "Nainstalujte požadované součásti pomocí:\n"
+#~ "sudo apt install %s"
 
 #~ msgid "This paired phone is my own device"
 #~ msgstr "Tento spárovaný telefon je moje vlastní zařízení"

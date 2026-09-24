@@ -700,6 +700,9 @@ msgstr ""
 msgid "Apply"
 msgstr "Použít"
 
+msgid "Apply to the remaining conflicts"
+msgstr "Použít pro zbývající konflikty"
+
 msgid "Appointment"
 msgstr "Schůzka"
 
@@ -1483,6 +1486,11 @@ msgstr "Kontakty se slučují doplněním. Odstranění se nepřenášejí."
 
 msgid "Contacts for Claws Mail (.ldif)"
 msgstr "Kontakty pro Claws Mail (.ldif)"
+
+msgid ""
+"Contacts with different information were found. How would you like to "
+"proceed?"
+msgstr "Byly nalezeny kontakty s různými údaji. Jak chcete pokračovat?"
 
 msgid "Content"
 msgstr "Obsah"
@@ -2654,6 +2662,9 @@ msgstr "Port KDE Connect %(port)s"
 msgid "Keep a troubleshooting log"
 msgstr "Uchovávat protokol pro řešení potíží"
 
+msgid "Keep existing"
+msgstr "Zachovat stávající údaje"
+
 msgid "LDIF"
 msgstr "LDIF"
 
@@ -3494,17 +3505,6 @@ msgstr ""
 
 msgid "Online"
 msgstr "Online"
-
-msgid ""
-"Online account integration is not available on this system. Install it "
-"with:  sudo apt install %(packages)s, then restart the application. You can "
-"also import contacts and appointments without this integration using “From "
-"this computer” above."
-msgstr ""
-"Integrace online účtů není v tomto systému k dispozici. Nainstalujte ji "
-"pomocí:  sudo apt install %(packages)s a potom aplikaci restartujte. "
-"Kontakty a schůzky můžete importovat i bez této integrace pomocí volby „Z "
-"tohoto počítače“ výše."
 
 msgid "Online address book"
 msgstr "Online adresář"
@@ -6296,7 +6296,9 @@ msgstr "Teplota počasí"
 msgid ""
 "Weather uses HTTPS first, then unencrypted HTTP if necessary. If wttr.in "
 "fails and a location is known, Open-Meteo is tried."
-msgstr "Počasí se nejprve načítá přes HTTPS, případně přes nešifrované HTTP. Pokud wttr.in nefunguje a místo je známé, zkusí se Open-Meteo."
+msgstr ""
+"Počasí se nejprve načítá přes HTTPS, případně přes nešifrované HTTP. Pokud "
+"wttr.in nefunguje a místo je známé, zkusí se Open-Meteo."
 
 msgid "Weather was not retrieved because no location is available."
 msgstr "Počasí nebylo načteno, protože není k dispozici poloha."
@@ -6914,6 +6916,17 @@ msgstr[2] "… a ještě %(count)s další položky, které se rovněž vytiskno
 
 msgid "＋ Add appointment"
 msgstr "＋ Přidat schůzku"
+
+#~ msgid ""
+#~ "Online account integration is not available on this system. Install it "
+#~ "with:  sudo apt install %(packages)s, then restart the application. You "
+#~ "can also import contacts and appointments without this integration using "
+#~ "“From this computer” above."
+#~ msgstr ""
+#~ "Integrace online účtů není v tomto systému k dispozici. Nainstalujte ji "
+#~ "pomocí:  sudo apt install %(packages)s a potom aplikaci restartujte. "
+#~ "Kontakty a schůzky můžete importovat i bez této integrace pomocí volby „Z "
+#~ "tohoto počítače“ výše."
 
 #~ msgid "This paired phone is my own device"
 #~ msgstr "Tento spárovaný telefon je moje vlastní zařízení"

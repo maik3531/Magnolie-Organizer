@@ -671,6 +671,9 @@ msgstr "प्रारूप क्षेत्र के अनुसार"
 msgid "According to language"
 msgstr "भाषा के अनुसार"
 
+msgid "Account type"
+msgstr "खाते का प्रकार"
+
 msgid "Active call"
 msgstr "सक्रिय कॉल"
 
@@ -927,6 +930,9 @@ msgstr ""
 
 msgid "Apply"
 msgstr "लागू करें"
+
+msgid "Apply to the remaining conflicts"
+msgstr "बाकी विरोधों पर लागू करें"
 
 msgid "Appointment"
 msgstr "अपॉइंटमेंट"
@@ -1797,6 +1803,11 @@ msgstr "संपर्क जोड़कर मिलाए जाते ह�
 msgid "Contacts for Claws Mail (.ldif)"
 msgstr "Claws Mail के लिए संपर्क (.ldif)"
 
+msgid ""
+"Contacts with different information were found. How would you like to "
+"proceed?"
+msgstr "अलग-अलग जानकारी वाले संपर्क मिले हैं। आप कैसे आगे बढ़ना चाहेंगे?"
+
 msgid "Contacts: component gir1.2-ebook-1.2 is missing; skipped."
 msgstr "संपर्क: gir1.2-ebook-1.2 घटक उपलब्ध नहीं है; छोड़ दिया गया।"
 
@@ -1957,6 +1968,9 @@ msgstr "चक्र चिह्न केवल आपके स्थान�
 
 msgid "Czechia"
 msgstr "चेकिया"
+
+msgid "DAV account"
+msgstr "DAV खाता"
 
 msgid "DIN 5008 Form A (27 mm letterhead)"
 msgstr "DIN 5008 प्रारूप A (पत्र का शीर्ष भाग 27 मिमी)"
@@ -3151,6 +3165,9 @@ msgstr "KDE/Akonadi एकीकरण उपलब्ध नहीं है।
 msgid "Keep a troubleshooting log"
 msgstr "समस्या निवारण लॉग रखें"
 
+msgid "Keep existing"
+msgstr "मौजूदा जानकारी रखें"
+
 msgid "Keep this KDE Connect file in Downloads?"
 msgstr "क्या KDE Connect की यह फ़ाइल डाउनलोड में रखनी है?"
 
@@ -4191,16 +4208,6 @@ msgstr "वन-टाइम पेयरिंग क्यूआर कोड"
 msgid "Online"
 msgstr "ऑनलाइन"
 
-msgid ""
-"Online account integration is not available on this system. Install it "
-"with:  sudo apt install %(packages)s, then restart the application. You can "
-"also import contacts and appointments without this integration using “From "
-"this computer” above."
-msgstr ""
-"ऑनलाइन खाता एकीकरण इस सिस्टम पर उपलब्ध नहीं है। इसे इस कमांड से स्थापित करें:  sudo "
-"apt install %(packages)s, फिर अनुप्रयोग को पुनः आरंभ करें। आप इस एकीकरण के बिना भी "
-"ऊपर दिए “इस कंप्यूटर से” विकल्प से संपर्क और अपॉइंटमेंट आयात कर सकते हैं।"
-
 msgid "Online address book"
 msgstr "ऑनलाइन पता पुस्तिका"
 
@@ -4216,6 +4223,9 @@ msgid ""
 msgstr ""
 "केवल HTTPS। Nextcloud में सेटिंग्स, सुरक्षा के अंतर्गत ऐप पासवर्ड बनाएँ। आपके खाते का "
 "पासवर्ड कभी उपयोग नहीं होता।"
+
+msgid "Only HTTPS. The password is stored securely on this computer."
+msgstr "केवल HTTPS। पासवर्ड इस कंप्यूटर पर सुरक्षित रूप से सहेजा जाता है।"
 
 msgid ""
 "Only Notify, then unlock is currently available. Keyring access and pausing "
@@ -5032,6 +5042,9 @@ msgstr "पेयरिंग नवीनीकृत करें"
 msgid "Repeat for confirmation"
 msgstr "पुष्टि के लिए फिर दर्ज करें"
 
+msgid "Replace completely"
+msgstr "पूरी तरह से बदलें"
+
 msgid "Reply"
 msgstr "उत्तर दें"
 
@@ -5041,6 +5054,9 @@ msgstr "रिपोर्ट किया गया (%(method)s): %(title)s –
 
 msgid "Requesting the device status"
 msgstr "डिवाइस की स्थिति का अनुरोध कर रहा हूँ"
+
+msgid "Requires a Nextcloud account."
+msgstr "Nextcloud खाता आवश्यक है।"
 
 msgid "Requires existing BlueZ system pairing. Data only, no HFP audio."
 msgstr "मौजूदा BlueZ सिस्टम पेयरिंग की आवश्यकता है। केवल डेटा, कोई HFP ऑडियो नहीं।"
@@ -5588,6 +5604,9 @@ msgstr "केवल स्क्रीन सूचना"
 msgid "Show social media and communication icons"
 msgstr "सोशल मीडिया और संचार आइकन दिखाएँ"
 
+msgid "Show successful synchronization notifications (errors are always shown)"
+msgstr "सफल सिंक्रनाइज़ेशन की सूचनाएँ दिखाएँ (त्रुटियाँ हमेशा दिखाई जाती हैं)"
+
 msgid "Show symbol in calendar"
 msgstr "कैलेंडर में चिह्न दिखाएँ"
 
@@ -5875,15 +5894,6 @@ msgstr "प्रणालीगत चूक"
 
 msgid "System internet accounts"
 msgstr "सिस्टम इंटरनेट खाते"
-
-#, python-format
-msgid ""
-"System internet accounts are not available on this system. Install the "
-"required components with:\n"
-"sudo apt install %s"
-msgstr ""
-"इस सिस्टम पर सिस्टम इंटरनेट खाते उपलब्ध नहीं हैं। आवश्यक घटक इस कमांड से इंस्टॉल करें:\n"
-"sudo apt install %s"
 
 msgid "System keyring and pause modes cannot be enabled yet."
 msgstr "सिस्टम कीरिंग और रोकने के मोड अभी सक्षम नहीं किए जा सकते।"
@@ -7108,6 +7118,9 @@ msgstr "इस शाखा की अभी पुष्टि नहीं ह
 msgid "This branch is not known."
 msgstr "यह शाखा ज्ञात नहीं है।"
 
+msgid "This calendar does not support tasks (VTODO)."
+msgstr "यह कैलेंडर कार्यों (VTODO) का समर्थन नहीं करता।"
+
 msgid ""
 "This choice also determines how names appear on contact cards and under "
 "which letter they are filed in the index."
@@ -7505,6 +7518,9 @@ msgstr "केवल स्वास्थ्य पेशेवर द्वा
 msgid "Use system keyring"
 msgstr "सिस्टम कीरिंग का उपयोग करें"
 
+msgid "Use the DAV address provided by your service."
+msgstr "अपने सेवा प्रदाता द्वारा दिया गया DAV पता उपयोग करें।"
+
 msgid ""
 "Use the arrows to arrange groups and notebooks, or use the selection to move "
 "a notebook to another group."
@@ -7690,7 +7706,9 @@ msgstr "मौसम का तापमान"
 msgid ""
 "Weather uses HTTPS first, then unencrypted HTTP if necessary. If wttr.in "
 "fails and a location is known, Open-Meteo is tried."
-msgstr "मौसम की जानकारी पहले HTTPS से और ज़रूरत पड़ने पर बिना एन्क्रिप्शन वाले HTTP से ली जाती है। अगर wttr.in उपलब्ध नहीं है और स्थान पता है, तो Open-Meteo को आज़माया जाता है।"
+msgstr ""
+"मौसम की जानकारी पहले HTTPS से और ज़रूरत पड़ने पर बिना एन्क्रिप्शन वाले HTTP से ली जाती "
+"है। अगर wttr.in उपलब्ध नहीं है और स्थान पता है, तो Open-Meteo को आज़माया जाता है।"
 
 msgid "Weather was not retrieved because no location is available."
 msgstr "मौसम की जानकारी नहीं ली गई क्योंकि कोई स्थान उपलब्ध नहीं है।"
@@ -8331,26 +8349,24 @@ msgstr[1] "… और %(count)s अतिरिक्त आइटम, जो �
 msgid "＋ Add appointment"
 msgstr "＋ अपॉइंटमेंट जोड़ें"
 
-msgid "DAV account"
-msgstr "DAV खाता"
+#~ msgid ""
+#~ "Online account integration is not available on this system. Install it "
+#~ "with:  sudo apt install %(packages)s, then restart the application. You "
+#~ "can also import contacts and appointments without this integration using "
+#~ "“From this computer” above."
+#~ msgstr ""
+#~ "ऑनलाइन खाता एकीकरण इस सिस्टम पर उपलब्ध नहीं है। इसे इस कमांड से स्थापित करें:  sudo "
+#~ "apt install %(packages)s, फिर अनुप्रयोग को पुनः आरंभ करें। आप इस एकीकरण के बिना "
+#~ "भी ऊपर दिए “इस कंप्यूटर से” विकल्प से संपर्क और अपॉइंटमेंट आयात कर सकते हैं।"
 
-msgid "Account type"
-msgstr "खाते का प्रकार"
-
-msgid "Use the DAV address provided by your service."
-msgstr "अपने सेवा प्रदाता द्वारा दिया गया DAV पता उपयोग करें।"
-
-msgid "Only HTTPS. The password is stored securely on this computer."
-msgstr "केवल HTTPS। पासवर्ड इस कंप्यूटर पर सुरक्षित रूप से सहेजा जाता है।"
-
-msgid "Requires a Nextcloud account."
-msgstr "Nextcloud खाता आवश्यक है।"
-
-msgid "This calendar does not support tasks (VTODO)."
-msgstr "यह कैलेंडर कार्यों (VTODO) का समर्थन नहीं करता।"
-
-msgid "Show successful synchronization notifications (errors are always shown)"
-msgstr "सफल सिंक्रनाइज़ेशन की सूचनाएँ दिखाएँ (त्रुटियाँ हमेशा दिखाई जाती हैं)"
+#, python-format
+#~ msgid ""
+#~ "System internet accounts are not available on this system. Install the "
+#~ "required components with:\n"
+#~ "sudo apt install %s"
+#~ msgstr ""
+#~ "इस सिस्टम पर सिस्टम इंटरनेट खाते उपलब्ध नहीं हैं। आवश्यक घटक इस कमांड से इंस्टॉल करें:\n"
+#~ "sudo apt install %s"
 
 #~ msgid "This paired phone is my own device"
 #~ msgstr "यह जोड़ा गया फ़ोन मेरा अपना उपकरण है"

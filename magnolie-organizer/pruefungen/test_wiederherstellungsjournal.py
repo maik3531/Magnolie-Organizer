@@ -42,12 +42,33 @@ def disk(_pfad):
     return Disk(100 * 1024 ** 3, 0, 10 * 1024 ** 3)
 
 
+with tempfile.TemporaryDirectory(prefix="magnolie-sync-snapshot-") as basis:
+    original = daten()
+    explicit = m.journal_snapshot_erzeugen(original, "pre-contact-import", basis=basis, disk_usage=disk)
+    automatic = m.journal_snapshot_erzeugen(original, "pre-change", basis=basis, disk_usage=disk)
+    assert explicit["snapshotId"] == automatic["snapshotId"]
+    assert len(m.journal_liste(basis)) == 1
+    changed = copy.deepcopy(original)
+    changed["kontakte"][0]["vorname"] = "Changed"
+    distinct = m.journal_snapshot_erzeugen(changed, "pre-change", basis=basis, disk_usage=disk)
+    assert distinct["snapshotId"] != explicit["snapshotId"]
+    assert len(m.journal_liste(basis)) == 2
+
+
 vorher = daten()
 einstellungen = copy.deepcopy(vorher)
 einstellungen["einstellungen"]["ansicht"] = "month"
 einstellungen["letzterSync"] = 123
 einstellungen["syncMetadaten"] = {"nextcloud": {"ausstehendeTransaktion": "test"}}
 assert not m.journal_inhalt_geaendert(vorher, einstellungen)
+notiz_vorher = {"notizen": [{"id": "same", "titel": "Welcome", "text": "Content"}]}
+notiz_nachher = copy.deepcopy(notiz_vorher)
+notiz_nachher["notizen"][0].update(uid="other-source", angelegt=123, geaendert=456,
+                                  baumFreigabe={"id": "share", "partner": ["peer"]})
+notiz_nachher["personalSync"] = {"revision": 2}
+assert not m.journal_inhalt_geaendert(notiz_vorher, notiz_nachher)
+notiz_nachher["notizen"][0]["text"] = "Actual edit"
+assert m.journal_inhalt_geaendert(notiz_vorher, notiz_nachher)
 for feld in ("termine", "kontakte", "notizen", "customOrganizer", "gesundheit", "smsPlanung", "futureContent"):
     geaendert = copy.deepcopy(einstellungen)
     geaendert[feld] = [{"id": "changed"}]

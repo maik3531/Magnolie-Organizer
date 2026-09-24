@@ -681,6 +681,9 @@ msgstr "Biçim bölgesine göre"
 msgid "According to language"
 msgstr "Dile göre"
 
+msgid "Account type"
+msgstr "Hesap türü"
+
 msgid "Active call"
 msgstr "Etkin arama"
 
@@ -942,6 +945,9 @@ msgstr ""
 
 msgid "Apply"
 msgstr "Uygula"
+
+msgid "Apply to the remaining conflicts"
+msgstr "Kalan çakışmalara uygula"
 
 msgid "Appointment"
 msgstr "Randevu"
@@ -1834,6 +1840,11 @@ msgstr "Kişiler eklemeli olarak birleştirilir. Silmeler aktarılmaz."
 msgid "Contacts for Claws Mail (.ldif)"
 msgstr "Claws Mail için kişiler (.ldif)"
 
+msgid ""
+"Contacts with different information were found. How would you like to "
+"proceed?"
+msgstr "Farklı bilgiler içeren kişiler bulundu. Nasıl devam etmek istersiniz?"
+
 msgid "Contacts: component gir1.2-ebook-1.2 is missing; skipped."
 msgstr "Kişiler: gir1.2-ebook-1.2 bileşeni eksik; atlandı."
 
@@ -1998,6 +2009,9 @@ msgstr ""
 
 msgid "Czechia"
 msgstr "Çekya"
+
+msgid "DAV account"
+msgstr "DAV hesabı"
 
 msgid "DIN 5008 Form A (27 mm letterhead)"
 msgstr "DIN 5008 A biçimi (27 mm antet alanı)"
@@ -3213,6 +3227,9 @@ msgstr "KDE/Akonadi tümleştirmesi kullanılamıyor."
 msgid "Keep a troubleshooting log"
 msgstr "Sorun giderme günlüğü tut"
 
+msgid "Keep existing"
+msgstr "Mevcut bilgileri koru"
+
 msgid "Keep this KDE Connect file in Downloads?"
 msgstr "Bu KDE Connect dosyası İndirilenler'de tutulsun mu?"
 
@@ -4262,17 +4279,6 @@ msgstr "Tek seferlik eşleştirme QR kodu"
 msgid "Online"
 msgstr "Çevrimiçi"
 
-msgid ""
-"Online account integration is not available on this system. Install it "
-"with:  sudo apt install %(packages)s, then restart the application. You can "
-"also import contacts and appointments without this integration using “From "
-"this computer” above."
-msgstr ""
-"Çevrimiçi hesap bütünleştirmesi bu sistemde kullanılamıyor. Şu komutla "
-"kurun:  sudo apt install %(packages)s, ardından uygulamayı yeniden başlatın. "
-"Bu bütünleştirme olmadan da yukarıdaki “Bu bilgisayardan” seçeneğiyle "
-"kişileri ve randevuları içe aktarabilirsiniz."
-
 msgid "Online address book"
 msgstr "Çevrimiçi adres defteri"
 
@@ -4288,6 +4294,9 @@ msgid ""
 msgstr ""
 "Yalnızca HTTPS. Nextcloud’da Ayarlar, Güvenlik altından bir uygulama "
 "parolası oluşturun. Hesap parolanız hiçbir zaman kullanılmaz."
+
+msgid "Only HTTPS. The password is stored securely on this computer."
+msgstr "Yalnızca HTTPS. Parola bu bilgisayarda güvenli bir şekilde saklanır."
 
 msgid ""
 "Only Notify, then unlock is currently available. Keyring access and pausing "
@@ -5125,6 +5134,9 @@ msgstr "Eşleştirmeyi yenile"
 msgid "Repeat for confirmation"
 msgstr "Onaylamak için yineleyin"
 
+msgid "Replace completely"
+msgstr "Tamamen değiştirin"
+
 msgid "Reply"
 msgstr "Yanıtla"
 
@@ -5134,6 +5146,9 @@ msgstr "Bildirildi (%(method)s): %(title)s – %(body)s"
 
 msgid "Requesting the device status"
 msgstr "Cihaz durumu isteniyor"
+
+msgid "Requires a Nextcloud account."
+msgstr "Nextcloud hesabı gerektirir."
 
 msgid "Requires existing BlueZ system pairing. Data only, no HFP audio."
 msgstr ""
@@ -5688,6 +5703,9 @@ msgstr "Seçili bildirimleri göster (salt okunur)"
 msgid "Show social media and communication icons"
 msgstr "Sosyal medya ve iletişim simgelerini göster"
 
+msgid "Show successful synchronization notifications (errors are always shown)"
+msgstr "Başarılı eşitlemeleri bildir (hatalar her zaman gösterilir)"
+
 msgid "Show symbol in calendar"
 msgstr "Takvimde simgeyi göster"
 
@@ -5977,16 +5995,6 @@ msgstr "Sistem varsayılanı"
 
 msgid "System internet accounts"
 msgstr "Sistem internet hesapları"
-
-#, python-format
-msgid ""
-"System internet accounts are not available on this system. Install the "
-"required components with:\n"
-"sudo apt install %s"
-msgstr ""
-"Sistem internet hesapları bu sistemde kullanılamıyor. Gerekli bileşenleri şu "
-"komutla kurun:\n"
-"sudo apt install %s"
 
 msgid "System keyring and pause modes cannot be enabled yet."
 msgstr "Sistem anahtarlığı ve duraklatma kipleri henüz etkinleştirilemez."
@@ -7237,6 +7245,9 @@ msgstr "Bu dal henüz doğrulanmadı."
 msgid "This branch is not known."
 msgstr "Bu dal bilinmiyor."
 
+msgid "This calendar does not support tasks (VTODO)."
+msgstr "Bu takvim görevleri (VTODO) desteklemiyor."
+
 msgid ""
 "This choice also determines how names appear on contact cards and under "
 "which letter they are filed in the index."
@@ -7641,6 +7652,9 @@ msgstr ""
 msgid "Use system keyring"
 msgstr "Sistem anahtar zincirini kullan"
 
+msgid "Use the DAV address provided by your service."
+msgstr "Hizmet sağlayıcınızın verdiği DAV adresini kullanın."
+
 msgid ""
 "Use the arrows to arrange groups and notebooks, or use the selection to move "
 "a notebook to another group."
@@ -7829,7 +7843,9 @@ msgstr "Hava sıcaklığı"
 msgid ""
 "Weather uses HTTPS first, then unencrypted HTTP if necessary. If wttr.in "
 "fails and a location is known, Open-Meteo is tried."
-msgstr "Hava durumu önce HTTPS üzerinden, gerekirse şifrelenmemiş HTTP üzerinden alınır. wttr.in çalışmazsa ve konum biliniyorsa Open-Meteo denenir."
+msgstr ""
+"Hava durumu önce HTTPS üzerinden, gerekirse şifrelenmemiş HTTP üzerinden "
+"alınır. wttr.in çalışmazsa ve konum biliniyorsa Open-Meteo denenir."
 
 msgid "Weather was not retrieved because no location is available."
 msgstr "Konum bulunmadığı için hava durumu alınmadı."
@@ -8482,26 +8498,26 @@ msgstr[1] "… ayrıca yazdırılacak %(count)s öğe daha."
 msgid "＋ Add appointment"
 msgstr "＋ Randevu ekle"
 
-msgid "DAV account"
-msgstr "DAV hesabı"
+#~ msgid ""
+#~ "Online account integration is not available on this system. Install it "
+#~ "with:  sudo apt install %(packages)s, then restart the application. You "
+#~ "can also import contacts and appointments without this integration using "
+#~ "“From this computer” above."
+#~ msgstr ""
+#~ "Çevrimiçi hesap bütünleştirmesi bu sistemde kullanılamıyor. Şu komutla "
+#~ "kurun:  sudo apt install %(packages)s, ardından uygulamayı yeniden "
+#~ "başlatın. Bu bütünleştirme olmadan da yukarıdaki “Bu bilgisayardan” "
+#~ "seçeneğiyle kişileri ve randevuları içe aktarabilirsiniz."
 
-msgid "Account type"
-msgstr "Hesap türü"
-
-msgid "Use the DAV address provided by your service."
-msgstr "Hizmet sağlayıcınızın verdiği DAV adresini kullanın."
-
-msgid "Only HTTPS. The password is stored securely on this computer."
-msgstr "Yalnızca HTTPS. Parola bu bilgisayarda güvenli bir şekilde saklanır."
-
-msgid "Requires a Nextcloud account."
-msgstr "Nextcloud hesabı gerektirir."
-
-msgid "This calendar does not support tasks (VTODO)."
-msgstr "Bu takvim görevleri (VTODO) desteklemiyor."
-
-msgid "Show successful synchronization notifications (errors are always shown)"
-msgstr "Başarılı eşitlemeleri bildir (hatalar her zaman gösterilir)"
+#, python-format
+#~ msgid ""
+#~ "System internet accounts are not available on this system. Install the "
+#~ "required components with:\n"
+#~ "sudo apt install %s"
+#~ msgstr ""
+#~ "Sistem internet hesapları bu sistemde kullanılamıyor. Gerekli bileşenleri "
+#~ "şu komutla kurun:\n"
+#~ "sudo apt install %s"
 
 #~ msgid "This paired phone is my own device"
 #~ msgstr "Bu eşleştirilmiş telefon kendi cihazımdır"

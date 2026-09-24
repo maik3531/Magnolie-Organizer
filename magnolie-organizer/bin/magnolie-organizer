@@ -793,8 +793,20 @@ def _gesamtarchiv_kanonisch(wert):
 def journal_inhalt_geaendert(vorher, nachher):
     """Nur Inhaltsänderungen lösen einen automatischen Vorher-Stand aus."""
     betriebsfelder = {"einstellungen", "letzterSync", "letzteSyncs", "syncStatus",
-                     "syncMetadaten", "syncEpoch", "syncNachRestore", "syncAbgleichBasis"}
-    return any(vorher.get(name) != nachher.get(name)
+                     "syncMetadaten", "syncEpoch", "syncNachRestore", "syncAbgleichBasis",
+                     "personalSync", "baumKontaktBestand", "baumKontaktErfolgreich", "baumKontaktLoeschStaende"}
+    metadaten = {"uid", "geaendert", "angelegt", "personalGeaendert", "sync", "syncQuellen",
+                 "syncKalenderUid", "davHref", "davEtag", "baumKontakt", "baumFreigabe",
+                 "baumVersion", "baumQuelle", "baumGeaendert", "importBindungen", "importHerkunfte",
+                 "importKonflikt", "icsSequence", "icsAenderungszeitFehlt"}
+
+    def inhalt(name, wert):
+        if name in {"kontakte", "jahrestage", "notizen", "aufgaben", "termine"} and isinstance(wert, list):
+            return [{key: value for key, value in item.items() if key not in metadaten}
+                    if isinstance(item, dict) else item for item in wert]
+        return wert
+
+    return any(inhalt(name, vorher.get(name)) != inhalt(name, nachher.get(name))
                for name in (vorher.keys() | nachher.keys()) - betriebsfelder)
 
 
@@ -1453,7 +1465,8 @@ def journal_snapshot_erzeugen(daten, grund, kennwort="", basis=None, jetzt=None,
     erstellt = zeit.isoformat(timespec="microseconds").replace("+00:00", "Z")
     quellhash = hashlib.sha256(_gesamtarchiv_kanonisch(archiv_daten)).hexdigest()
     for alt in journal_liste(basis):
-        if (alt.get("reason") == grund and
+        if ((alt.get("reason") == grund or grund == "pre-change" and
+             alt.get("reason") in {"pre-sync", "pre-contact", "pre-contact-import", "pre-contact-merge", "pre-contact-delete"}) and
                 alt.get("integrity") == "ok" and
                 alt.get("payload", {}).get("sourceSha256") == quellhash):
             try:

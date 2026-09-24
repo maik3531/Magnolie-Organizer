@@ -791,6 +791,9 @@ msgstr ""
 msgid "Apply"
 msgstr "تطبيق"
 
+msgid "Apply to the remaining conflicts"
+msgstr "تطبيق على التعارضات المتبقية"
+
 msgid "Appointment"
 msgstr "موعد"
 
@@ -1563,6 +1566,11 @@ msgstr "تُدمج جهات الاتصال بشكل إضافي. لا تُنقل 
 
 msgid "Contacts for Claws Mail (.ldif)"
 msgstr "جهات اتصال Claws Mail (.ldif)"
+
+msgid ""
+"Contacts with different information were found. How would you like to "
+"proceed?"
+msgstr "تم العثور على جهات اتصال بمعلومات مختلفة. كيف تريد المتابعة؟"
 
 msgid "Content"
 msgstr "المحتوى"
@@ -2723,6 +2731,9 @@ msgstr "منفذ KDE Connect %(port)s"
 msgid "Keep a troubleshooting log"
 msgstr "الاحتفاظ بسجل لاستكشاف الأخطاء وإصلاحها"
 
+msgid "Keep existing"
+msgstr "الاحتفاظ بالمعلومات الحالية"
+
 msgid "LDIF"
 msgstr "LDIF"
 
@@ -3568,16 +3579,6 @@ msgstr ""
 
 msgid "Online"
 msgstr "عبر الإنترنت"
-
-msgid ""
-"Online account integration is not available on this system. Install it "
-"with:  sudo apt install %(packages)s, then restart the application. You can "
-"also import contacts and appointments without this integration using “From "
-"this computer” above."
-msgstr ""
-"تكامل الحسابات عبر الإنترنت غير متاح على هذا النظام. ثبّته بالأمر:  sudo apt "
-"install %(packages)s، ثم أعد تشغيل التطبيق. ويمكنك أيضًا استيراد جهات الاتصال "
-"والمواعيد من دون هذا التكامل باستخدام «من هذا الحاسوب» أعلاه."
 
 msgid "Online address book"
 msgstr "دفتر عناوين عبر الإنترنت"
@@ -6366,7 +6367,9 @@ msgstr "درجة حرارة الطقس"
 msgid ""
 "Weather uses HTTPS first, then unencrypted HTTP if necessary. If wttr.in "
 "fails and a location is known, Open-Meteo is tried."
-msgstr "تُجلب بيانات الطقس أولًا عبر HTTPS، ثم عبر HTTP غير المشفّر عند الحاجة. إذا تعذّر الوصول إلى wttr.in وكان الموقع معروفًا، تُجرَّب خدمة Open-Meteo."
+msgstr ""
+"تُجلب بيانات الطقس أولًا عبر HTTPS، ثم عبر HTTP غير المشفّر عند الحاجة. إذا "
+"تعذّر الوصول إلى wttr.in وكان الموقع معروفًا، تُجرَّب خدمة Open-Meteo."
 
 msgid "Weather was not retrieved because no location is available."
 msgstr "لم يتم جلب الطقس لعدم توفر موقع."
@@ -6997,6 +7000,16 @@ msgstr[5] "… وعناصر إضافية ستُطبع أيضًا؛ العدد: %
 
 msgid "＋ Add appointment"
 msgstr "＋ إضافة موعد"
+
+#~ msgid ""
+#~ "Online account integration is not available on this system. Install it "
+#~ "with:  sudo apt install %(packages)s, then restart the application. You "
+#~ "can also import contacts and appointments without this integration using "
+#~ "“From this computer” above."
+#~ msgstr ""
+#~ "تكامل الحسابات عبر الإنترنت غير متاح على هذا النظام. ثبّته بالأمر:  sudo "
+#~ "apt install %(packages)s، ثم أعد تشغيل التطبيق. ويمكنك أيضًا استيراد جهات "
+#~ "الاتصال والمواعيد من دون هذا التكامل باستخدام «من هذا الحاسوب» أعلاه."
 
 #~ msgid "This paired phone is my own device"
 #~ msgstr "هذا الهاتف المقترن هو جهازي الخاص"

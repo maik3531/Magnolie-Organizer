@@ -672,6 +672,9 @@ msgstr "I henhold til formatområdet"
 msgid "According to language"
 msgstr "Efter sprog"
 
+msgid "Account type"
+msgstr "Kontotype"
+
 msgid "Active call"
 msgstr "Aktivt opkald"
 
@@ -932,6 +935,9 @@ msgstr ""
 
 msgid "Apply"
 msgstr "Anvend"
+
+msgid "Apply to the remaining conflicts"
+msgstr "Anvend på de resterende konflikter"
 
 msgid "Appointment"
 msgstr "Aftale"
@@ -1828,6 +1834,13 @@ msgstr "Kontakter flettes additivt. Sletninger overføres ikke."
 msgid "Contacts for Claws Mail (.ldif)"
 msgstr "Kontakter til Claws Mail (.ldif)"
 
+msgid ""
+"Contacts with different information were found. How would you like to "
+"proceed?"
+msgstr ""
+"Der blev fundet kontakter med forskellige oplysninger. Hvordan vil du "
+"fortsætte?"
+
 msgid "Contacts: component gir1.2-ebook-1.2 is missing; skipped."
 msgstr "Kontakter: komponenten gir1.2-ebook-1.2 mangler; sprunget over."
 
@@ -1991,6 +2004,9 @@ msgstr ""
 
 msgid "Czechia"
 msgstr "Tjekkiet"
+
+msgid "DAV account"
+msgstr "DAV-konto"
 
 msgid "DIN 5008 Form A (27 mm letterhead)"
 msgstr "DIN 5008 Form A (brevhoved på 27 mm)"
@@ -3203,6 +3219,9 @@ msgstr "KDE/Akonadi-integrationen er ikke tilgængelig."
 msgid "Keep a troubleshooting log"
 msgstr "Behold en fejlfindingslog"
 
+msgid "Keep existing"
+msgstr "Behold eksisterende oplysninger"
+
 msgid "Keep this KDE Connect file in Downloads?"
 msgstr "Behold denne fil fra KDE Connect i Hentede filer?"
 
@@ -4260,17 +4279,6 @@ msgstr "QR-kode til engangsparring"
 msgid "Online"
 msgstr "Online"
 
-msgid ""
-"Online account integration is not available on this system. Install it "
-"with:  sudo apt install %(packages)s, then restart the application. You can "
-"also import contacts and appointments without this integration using “From "
-"this computer” above."
-msgstr ""
-"Integration af onlinekonti er ikke tilgængelig på dette system. Installer "
-"den med:  sudo apt install %(packages)s, og genstart derefter programmet. Du "
-"kan også importere kontakter og aftaler uden denne integration ved at bruge "
-"„Fra denne computer“ ovenfor."
-
 msgid "Online address book"
 msgstr "Onlineadressebog"
 
@@ -4286,6 +4294,9 @@ msgid ""
 msgstr ""
 "Kun HTTPS. Opret en app-adgangskode i Nextcloud under Indstillinger, "
 "Sikkerhed. Din kontoadgangskode bruges aldrig."
+
+msgid "Only HTTPS. The password is stored securely on this computer."
+msgstr "Kun HTTPS. Adgangskoden gemmes sikkert på denne computer."
 
 msgid ""
 "Only Notify, then unlock is currently available. Keyring access and pausing "
@@ -5117,6 +5128,9 @@ msgstr "Forny parring"
 msgid "Repeat for confirmation"
 msgstr "Gentag for at bekræfte"
 
+msgid "Replace completely"
+msgstr "Udskift helt"
+
 msgid "Reply"
 msgstr "Besvar"
 
@@ -5126,6 +5140,9 @@ msgstr "Rapporteret (%(method)s): %(title)s – %(body)s"
 
 msgid "Requesting the device status"
 msgstr "Anmoder om enhedsstatus"
+
+msgid "Requires a Nextcloud account."
+msgstr "Kræver en Nextcloud-konto."
 
 msgid "Requires existing BlueZ system pairing. Data only, no HFP audio."
 msgstr "Kræver en eksisterende BlueZ-systemparring. Kun data, ingen HFP-lyd."
@@ -5680,6 +5697,9 @@ msgstr "Vis valgte notifikationer (skrivebeskyttet)"
 msgid "Show social media and communication icons"
 msgstr "Vis ikoner for sociale medier og kommunikation"
 
+msgid "Show successful synchronization notifications (errors are always shown)"
+msgstr "Vis beskeder om vellykket synkronisering (fejl vises altid)"
+
 msgid "Show symbol in calendar"
 msgstr "Vis symbol i kalenderen"
 
@@ -5968,16 +5988,6 @@ msgstr "System standard"
 
 msgid "System internet accounts"
 msgstr "Systemets internetkonti"
-
-#, python-format
-msgid ""
-"System internet accounts are not available on this system. Install the "
-"required components with:\n"
-"sudo apt install %s"
-msgstr ""
-"Systemets internetkonti er ikke tilgængelige på dette system. Installer de "
-"nødvendige komponenter med:\n"
-"sudo apt install %s"
 
 msgid "System keyring and pause modes cannot be enabled yet."
 msgstr "Systemets nøglering og pausetilstande kan endnu ikke aktiveres."
@@ -7242,6 +7252,9 @@ msgstr "Denne gren er endnu ikke blevet bekræftet."
 msgid "This branch is not known."
 msgstr "Denne gren er ukendt."
 
+msgid "This calendar does not support tasks (VTODO)."
+msgstr "Denne kalender understøtter ikke opgaver (VTODO)."
+
 msgid ""
 "This choice also determines how names appear on contact cards and under "
 "which letter they are filed in the index."
@@ -7647,6 +7660,9 @@ msgstr ""
 msgid "Use system keyring"
 msgstr "Brug systemets nøglering"
 
+msgid "Use the DAV address provided by your service."
+msgstr "Brug DAV-adressen fra din udbyder."
+
 msgid ""
 "Use the arrows to arrange groups and notebooks, or use the selection to move "
 "a notebook to another group."
@@ -7835,7 +7851,9 @@ msgstr "Vejrtemperatur"
 msgid ""
 "Weather uses HTTPS first, then unencrypted HTTP if necessary. If wttr.in "
 "fails and a location is known, Open-Meteo is tried."
-msgstr "Vejret hentes først via HTTPS og om nødvendigt via ukrypteret HTTP. Hvis wttr.in ikke virker, og et sted er kendt, forsøges Open-Meteo."
+msgstr ""
+"Vejret hentes først via HTTPS og om nødvendigt via ukrypteret HTTP. Hvis "
+"wttr.in ikke virker, og et sted er kendt, forsøges Open-Meteo."
 
 msgid "Weather was not retrieved because no location is available."
 msgstr ""
@@ -8488,26 +8506,26 @@ msgstr[1] "… og %(count)s elementer mere, som også bliver udskrevet."
 msgid "＋ Add appointment"
 msgstr "＋ Tilføj aftale"
 
-msgid "DAV account"
-msgstr "DAV-konto"
+#~ msgid ""
+#~ "Online account integration is not available on this system. Install it "
+#~ "with:  sudo apt install %(packages)s, then restart the application. You "
+#~ "can also import contacts and appointments without this integration using "
+#~ "“From this computer” above."
+#~ msgstr ""
+#~ "Integration af onlinekonti er ikke tilgængelig på dette system. Installer "
+#~ "den med:  sudo apt install %(packages)s, og genstart derefter programmet. "
+#~ "Du kan også importere kontakter og aftaler uden denne integration ved at "
+#~ "bruge „Fra denne computer“ ovenfor."
 
-msgid "Account type"
-msgstr "Kontotype"
-
-msgid "Use the DAV address provided by your service."
-msgstr "Brug DAV-adressen fra din udbyder."
-
-msgid "Only HTTPS. The password is stored securely on this computer."
-msgstr "Kun HTTPS. Adgangskoden gemmes sikkert på denne computer."
-
-msgid "Requires a Nextcloud account."
-msgstr "Kræver en Nextcloud-konto."
-
-msgid "This calendar does not support tasks (VTODO)."
-msgstr "Denne kalender understøtter ikke opgaver (VTODO)."
-
-msgid "Show successful synchronization notifications (errors are always shown)"
-msgstr "Vis beskeder om vellykket synkronisering (fejl vises altid)"
+#, python-format
+#~ msgid ""
+#~ "System internet accounts are not available on this system. Install the "
+#~ "required components with:\n"
+#~ "sudo apt install %s"
+#~ msgstr ""
+#~ "Systemets internetkonti er ikke tilgængelige på dette system. Installer "
+#~ "de nødvendige komponenter med:\n"
+#~ "sudo apt install %s"
 
 #~ msgid "This paired phone is my own device"
 #~ msgstr "Denne parrede telefon er min egen enhed"

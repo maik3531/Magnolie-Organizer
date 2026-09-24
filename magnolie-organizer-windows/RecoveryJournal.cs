@@ -56,10 +56,27 @@ internal sealed class RecoveryJournal
         foreach (var name in previous.Select(item => item.Key).Union(proposed.Select(item => item.Key)))
         {
             if (name is "einstellungen" or "letzterSync" or "letzteSyncs" or "syncStatus" or
-                "syncMetadaten" or "syncEpoch" or "syncNachRestore" or "syncAbgleichBasis") continue;
+                "syncMetadaten" or "syncEpoch" or "syncNachRestore" or "syncAbgleichBasis" or
+                "personalSync" or "baumKontaktBestand" or "baumKontaktErfolgreich" or "baumKontaktLoeschStaende") continue;
+            if (name is "kontakte" or "jahrestage" or "notizen" or "aufgaben" or "termine" &&
+                previous[name] is JsonArray before && proposed[name] is JsonArray after)
+            {
+                if (before.Count != after.Count || !before.Zip(after).All(pair => SameContent(pair.First, pair.Second))) return true;
+                continue;
+            }
             if (!JsonNode.DeepEquals(previous[name], proposed[name])) return true;
         }
         return false;
+
+        static bool SameContent(JsonNode? before, JsonNode? after)
+        {
+            if (before is not JsonObject left || after is not JsonObject right) return JsonNode.DeepEquals(before, after);
+            return left.Select(item => item.Key).Union(right.Select(item => item.Key)).All(field =>
+                field is "uid" or "geaendert" or "angelegt" or "personalGeaendert" or "sync" or "syncQuellen" or
+                    "syncKalenderUid" or "davHref" or "davEtag" or "baumKontakt" or "baumFreigabe" or
+                    "baumVersion" or "baumQuelle" or "baumGeaendert" or "importBindungen" or "importHerkunfte" or
+                    "importKonflikt" or "icsSequence" or "icsAenderungszeitFehlt" || JsonNode.DeepEquals(left[field], right[field]));
+        }
     }
 
     internal SnapshotInfo CreateRestorePoint(JsonObject data, string appVersion,
@@ -79,7 +96,8 @@ internal sealed class RecoveryJournal
         // Hash the normalized content, not the archive envelope's changing timestamp.
         var sourceHash = JsonNode.Parse(archive)!["sha256"]!.GetValue<string>();
         SnapshotInfo? duplicate = null;
-        foreach (var item in List().Where(item => item.Reason == reasonText &&
+        foreach (var item in List().Where(item => (item.Reason == reasonText ||
+                     reason == SnapshotReason.PreChange && item.Reason is "pre-sync" or "pre-contact" or "pre-contact-import" or "pre-contact-merge" or "pre-contact-delete") &&
                      now - item.CreatedUtc <= TimeSpan.FromMinutes(15) && SourceHash(item.Directory) == sourceHash))
         {
             try { duplicate = Verify(item.Id); break; }

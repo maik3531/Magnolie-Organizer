@@ -702,6 +702,9 @@ msgstr ""
 msgid "Apply"
 msgstr "Застосувати"
 
+msgid "Apply to the remaining conflicts"
+msgstr "Застосувати до решти конфліктів"
+
 msgid "Appointment"
 msgstr "Зустріч"
 
@@ -1492,6 +1495,11 @@ msgstr "Контакти об’єднуються з доповненням. В
 
 msgid "Contacts for Claws Mail (.ldif)"
 msgstr "Контакти для Claws Mail (.ldif)"
+
+msgid ""
+"Contacts with different information were found. How would you like to "
+"proceed?"
+msgstr "Знайдено контакти з різними даними. Як продовжити?"
 
 msgid "Content"
 msgstr "Вміст"
@@ -2662,6 +2670,9 @@ msgstr "KDE Connect порт %(port)s"
 msgid "Keep a troubleshooting log"
 msgstr "Зберігати журнал усунення несправностей"
 
+msgid "Keep existing"
+msgstr "Зберегти поточні дані"
+
 msgid "LDIF"
 msgstr "LDIF"
 
@@ -3507,17 +3518,6 @@ msgstr ""
 
 msgid "Online"
 msgstr "В Інтернеті"
-
-msgid ""
-"Online account integration is not available on this system. Install it "
-"with:  sudo apt install %(packages)s, then restart the application. You can "
-"also import contacts and appointments without this integration using “From "
-"this computer” above."
-msgstr ""
-"Інтеграція онлайн-облікових записів недоступна в цій системі. Установіть її "
-"командою:  sudo apt install %(packages)s, а потім перезапустіть програму. "
-"Контакти та зустрічі можна імпортувати й без цієї інтеграції за допомогою «З "
-"цього комп’ютера» вище."
 
 msgid "Online address book"
 msgstr "Онлайн-адресна книга"
@@ -6331,7 +6331,10 @@ msgstr "Температура повітря"
 msgid ""
 "Weather uses HTTPS first, then unencrypted HTTP if necessary. If wttr.in "
 "fails and a location is known, Open-Meteo is tried."
-msgstr "Погода спочатку запитується через HTTPS, а за потреби — через незашифрований HTTP. Якщо wttr.in недоступний і населений пункт відомий, виконується запит до Open-Meteo."
+msgstr ""
+"Погода спочатку запитується через HTTPS, а за потреби — через незашифрований "
+"HTTP. Якщо wttr.in недоступний і населений пункт відомий, виконується запит "
+"до Open-Meteo."
 
 msgid "Weather was not retrieved because no location is available."
 msgstr "Погоду не отримано, оскільки місце розташування недоступне."
@@ -6950,6 +6953,17 @@ msgstr[2] "… і ще %(count)s елементи, які також буде н
 
 msgid "＋ Add appointment"
 msgstr "＋ Додати зустріч"
+
+#~ msgid ""
+#~ "Online account integration is not available on this system. Install it "
+#~ "with:  sudo apt install %(packages)s, then restart the application. You "
+#~ "can also import contacts and appointments without this integration using "
+#~ "“From this computer” above."
+#~ msgstr ""
+#~ "Інтеграція онлайн-облікових записів недоступна в цій системі. Установіть "
+#~ "її командою:  sudo apt install %(packages)s, а потім перезапустіть "
+#~ "програму. Контакти та зустрічі можна імпортувати й без цієї інтеграції за "
+#~ "допомогою «З цього комп’ютера» вище."
 
 #~ msgid "This paired phone is my own device"
 #~ msgstr "Цей спарений телефон є моїм власним пристроєм"

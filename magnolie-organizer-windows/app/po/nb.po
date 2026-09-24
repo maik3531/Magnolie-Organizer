@@ -671,6 +671,9 @@ msgstr ""
 msgid "Apply"
 msgstr "Bruk"
 
+msgid "Apply to the remaining conflicts"
+msgstr "Bruk for de resterende konfliktene"
+
 msgid "Appointment"
 msgstr "Avtale"
 
@@ -1467,6 +1470,11 @@ msgstr "Kontakter slås sammen additivt. Slettinger overføres ikke."
 
 msgid "Contacts for Claws Mail (.ldif)"
 msgstr "Kontakter for Claws Mail (.ldif)"
+
+msgid ""
+"Contacts with different information were found. How would you like to "
+"proceed?"
+msgstr "Kontakter med ulike opplysninger ble funnet. Hvordan vil du fortsette?"
 
 msgid "Content"
 msgstr "Innhold"
@@ -2640,6 +2648,9 @@ msgstr "KDE Connect-port %(port)s"
 msgid "Keep a troubleshooting log"
 msgstr "Behold en feilsøkingslogg"
 
+msgid "Keep existing"
+msgstr "Behold eksisterende opplysninger"
+
 msgid "LDIF"
 msgstr "LDIF"
 
@@ -3480,17 +3491,6 @@ msgstr ""
 
 msgid "Online"
 msgstr "På nett"
-
-msgid ""
-"Online account integration is not available on this system. Install it "
-"with:  sudo apt install %(packages)s, then restart the application. You can "
-"also import contacts and appointments without this integration using “From "
-"this computer” above."
-msgstr ""
-"Integrasjon av nettkontoer er ikke tilgjengelig på dette systemet. Installer "
-"den med:  sudo apt install %(packages)s, og start deretter programmet på "
-"nytt. Du kan også importere kontakter og avtaler uten denne integrasjonen "
-"ved å bruke «Fra denne datamaskinen» ovenfor."
 
 msgid "Online address book"
 msgstr "Nettbasert adressebok"
@@ -6291,7 +6291,9 @@ msgstr "Værtemperatur"
 msgid ""
 "Weather uses HTTPS first, then unencrypted HTTP if necessary. If wttr.in "
 "fails and a location is known, Open-Meteo is tried."
-msgstr "Været hentes først via HTTPS og ved behov via ukryptert HTTP. Hvis wttr.in ikke virker og stedet er kjent, prøves Open-Meteo."
+msgstr ""
+"Været hentes først via HTTPS og ved behov via ukryptert HTTP. Hvis wttr.in "
+"ikke virker og stedet er kjent, prøves Open-Meteo."
 
 msgid "Weather was not retrieved because no location is available."
 msgstr "Været ble ikke hentet fordi ingen plassering er tilgjengelig."
@@ -6904,6 +6906,17 @@ msgstr[1] "… og %(count)s elementer til som også blir skrevet ut."
 
 msgid "＋ Add appointment"
 msgstr "＋ Legg til avtale"
+
+#~ msgid ""
+#~ "Online account integration is not available on this system. Install it "
+#~ "with:  sudo apt install %(packages)s, then restart the application. You "
+#~ "can also import contacts and appointments without this integration using "
+#~ "“From this computer” above."
+#~ msgstr ""
+#~ "Integrasjon av nettkontoer er ikke tilgjengelig på dette systemet. "
+#~ "Installer den med:  sudo apt install %(packages)s, og start deretter "
+#~ "programmet på nytt. Du kan også importere kontakter og avtaler uten denne "
+#~ "integrasjonen ved å bruke «Fra denne datamaskinen» ovenfor."
 
 #~ msgid "This paired phone is my own device"
 #~ msgstr "Denne parede telefonen er min egen enhet"

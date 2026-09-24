@@ -643,6 +643,9 @@ msgstr ""
 msgid "Apply"
 msgstr ""
 
+msgid "Apply to the remaining conflicts"
+msgstr ""
+
 msgid "Appointment"
 msgstr ""
 
@@ -1375,6 +1378,11 @@ msgid "Contacts are merged additively. No deletions are transmitted."
 msgstr ""
 
 msgid "Contacts for Claws Mail (.ldif)"
+msgstr ""
+
+msgid ""
+"Contacts with different information were found. How would you like to "
+"proceed?"
 msgstr ""
 
 msgid "Content"
@@ -2476,6 +2484,9 @@ msgid "KDE Connect port %(port)s"
 msgstr ""
 
 msgid "Keep a troubleshooting log"
+msgstr ""
+
+msgid "Keep existing"
 msgstr ""
 
 msgid "LDIF"

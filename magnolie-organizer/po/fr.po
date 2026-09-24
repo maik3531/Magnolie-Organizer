@@ -692,6 +692,9 @@ msgstr "Selon la région de format"
 msgid "According to language"
 msgstr "Selon la langue"
 
+msgid "Account type"
+msgstr "Type de compte"
+
 msgid "Active call"
 msgstr "Appel en cours"
 
@@ -958,6 +961,9 @@ msgstr ""
 
 msgid "Apply"
 msgstr "Appliquer"
+
+msgid "Apply to the remaining conflicts"
+msgstr "Appliquer aux conflits restants"
 
 msgid "Appointment"
 msgstr "Rendez-vous"
@@ -1875,6 +1881,13 @@ msgstr ""
 msgid "Contacts for Claws Mail (.ldif)"
 msgstr "Contacts pour Claws Mail (.ldif)"
 
+msgid ""
+"Contacts with different information were found. How would you like to "
+"proceed?"
+msgstr ""
+"Des contacts contenant des informations différentes ont été trouvés. Comment "
+"souhaitez-vous procéder ?"
+
 msgid "Contacts: component gir1.2-ebook-1.2 is missing; skipped."
 msgstr ""
 "Contacts : le composant gir1.2-ebook-1.2 est manquant ; opération ignorée."
@@ -2040,6 +2053,9 @@ msgstr ""
 
 msgid "Czechia"
 msgstr "Tchéquie"
+
+msgid "DAV account"
+msgstr "Compte DAV"
 
 msgid "DIN 5008 Form A (27 mm letterhead)"
 msgstr "DIN 5008, modèle A (en-tête de 27 mm)"
@@ -3284,6 +3300,9 @@ msgstr "L’intégration KDE/Akonadi n’est pas disponible."
 msgid "Keep a troubleshooting log"
 msgstr "Conserver un journal de dépannage"
 
+msgid "Keep existing"
+msgstr "Conserver les informations actuelles"
+
 msgid "Keep this KDE Connect file in Downloads?"
 msgstr "Conserver ce fichier de KDE Connect dans Téléchargements ?"
 
@@ -4357,17 +4376,6 @@ msgstr "Code QR d'appairage unique"
 msgid "Online"
 msgstr "En ligne"
 
-msgid ""
-"Online account integration is not available on this system. Install it "
-"with:  sudo apt install %(packages)s, then restart the application. You can "
-"also import contacts and appointments without this integration using “From "
-"this computer” above."
-msgstr ""
-"L’intégration des comptes en ligne n’est pas disponible sur ce système. "
-"Installez-la avec :  sudo apt install %(packages)s, puis redémarrez "
-"l’application. Vous pouvez également importer des contacts et des rendez-"
-"vous sans cette intégration en utilisant « Depuis cet ordinateur » ci-dessus."
-
 msgid "Online address book"
 msgstr "Carnet d’adresses en ligne"
 
@@ -4383,6 +4391,11 @@ msgid ""
 msgstr ""
 "HTTPS uniquement. Créez un mot de passe d’application dans Nextcloud sous "
 "Paramètres, Sécurité. Le mot de passe de votre compte n’est jamais utilisé."
+
+msgid "Only HTTPS. The password is stored securely on this computer."
+msgstr ""
+"HTTPS uniquement. Le mot de passe est conservé de manière sécurisée sur cet "
+"ordinateur."
 
 msgid ""
 "Only Notify, then unlock is currently available. Keyring access and pausing "
@@ -5249,6 +5262,9 @@ msgstr "Renouveler l’appairage"
 msgid "Repeat for confirmation"
 msgstr "Répéter pour confirmer"
 
+msgid "Replace completely"
+msgstr "Remplacer complètement"
+
 msgid "Reply"
 msgstr "Répondre"
 
@@ -5258,6 +5274,9 @@ msgstr "Signalé (%(method)s) : %(title)s – %(body)s"
 
 msgid "Requesting the device status"
 msgstr "Demande de l’état de l’appareil"
+
+msgid "Requires a Nextcloud account."
+msgstr "Nécessite un compte Nextcloud."
 
 msgid "Requires existing BlueZ system pairing. Data only, no HFP audio."
 msgstr ""
@@ -5823,6 +5842,10 @@ msgstr "Afficher les notifications sélectionnées (lecture seule)"
 msgid "Show social media and communication icons"
 msgstr "Afficher les icônes des réseaux sociaux et de communication"
 
+msgid "Show successful synchronization notifications (errors are always shown)"
+msgstr ""
+"Signaler les synchronisations réussies (les erreurs sont toujours affichées)"
+
 msgid "Show symbol in calendar"
 msgstr "Afficher le symbole dans le calendrier"
 
@@ -6119,16 +6142,6 @@ msgstr "Valeur par défaut du système"
 
 msgid "System internet accounts"
 msgstr "Comptes Internet système"
-
-#, python-format
-msgid ""
-"System internet accounts are not available on this system. Install the "
-"required components with:\n"
-"sudo apt install %s"
-msgstr ""
-"Les comptes Internet système ne sont pas disponibles sur ce système. "
-"Installez les composants requis avec :\n"
-"sudo apt install %s"
 
 msgid "System keyring and pause modes cannot be enabled yet."
 msgstr ""
@@ -7456,6 +7469,9 @@ msgstr "Cette branche n’a pas encore été confirmée."
 msgid "This branch is not known."
 msgstr "Cette branche n’est pas connue."
 
+msgid "This calendar does not support tasks (VTODO)."
+msgstr "Ce calendrier ne prend pas en charge les tâches (VTODO)."
+
 msgid ""
 "This choice also determines how names appear on contact cards and under "
 "which letter they are filed in the index."
@@ -7872,6 +7888,9 @@ msgstr ""
 msgid "Use system keyring"
 msgstr "Utiliser le trousseau de clés du système"
 
+msgid "Use the DAV address provided by your service."
+msgstr "Utilisez l’adresse DAV fournie par votre service."
+
 msgid ""
 "Use the arrows to arrange groups and notebooks, or use the selection to move "
 "a notebook to another group."
@@ -8062,7 +8081,10 @@ msgstr "Température météo"
 msgid ""
 "Weather uses HTTPS first, then unencrypted HTTP if necessary. If wttr.in "
 "fails and a location is known, Open-Meteo is tried."
-msgstr "La météo est d’abord récupérée par HTTPS, puis par HTTP non chiffré si nécessaire. Si wttr.in ne répond pas et qu’un lieu est connu, Open-Meteo est essayé."
+msgstr ""
+"La météo est d’abord récupérée par HTTPS, puis par HTTP non chiffré si "
+"nécessaire. Si wttr.in ne répond pas et qu’un lieu est connu, Open-Meteo est "
+"essayé."
 
 msgid "Weather was not retrieved because no location is available."
 msgstr ""
@@ -8728,26 +8750,27 @@ msgstr[1] "… et %(count)s autres éléments qui seront également imprimés."
 msgid "＋ Add appointment"
 msgstr "＋ Ajouter un rendez-vous"
 
-msgid "DAV account"
-msgstr "Compte DAV"
+#~ msgid ""
+#~ "Online account integration is not available on this system. Install it "
+#~ "with:  sudo apt install %(packages)s, then restart the application. You "
+#~ "can also import contacts and appointments without this integration using "
+#~ "“From this computer” above."
+#~ msgstr ""
+#~ "L’intégration des comptes en ligne n’est pas disponible sur ce système. "
+#~ "Installez-la avec :  sudo apt install %(packages)s, puis redémarrez "
+#~ "l’application. Vous pouvez également importer des contacts et des rendez-"
+#~ "vous sans cette intégration en utilisant « Depuis cet ordinateur » ci-"
+#~ "dessus."
 
-msgid "Account type"
-msgstr "Type de compte"
-
-msgid "Use the DAV address provided by your service."
-msgstr "Utilisez l’adresse DAV fournie par votre service."
-
-msgid "Only HTTPS. The password is stored securely on this computer."
-msgstr "HTTPS uniquement. Le mot de passe est conservé de manière sécurisée sur cet ordinateur."
-
-msgid "Requires a Nextcloud account."
-msgstr "Nécessite un compte Nextcloud."
-
-msgid "This calendar does not support tasks (VTODO)."
-msgstr "Ce calendrier ne prend pas en charge les tâches (VTODO)."
-
-msgid "Show successful synchronization notifications (errors are always shown)"
-msgstr "Signaler les synchronisations réussies (les erreurs sont toujours affichées)"
+#, python-format
+#~ msgid ""
+#~ "System internet accounts are not available on this system. Install the "
+#~ "required components with:\n"
+#~ "sudo apt install %s"
+#~ msgstr ""
+#~ "Les comptes Internet système ne sont pas disponibles sur ce système. "
+#~ "Installez les composants requis avec :\n"
+#~ "sudo apt install %s"
 
 #~ msgid "This paired phone is my own device"
 #~ msgstr "Ce téléphone associé est mon propre appareil"

@@ -12,6 +12,16 @@ internal static class RecoveryJournalTests
         try
         {
             await TestLoadedOutboxQuarantine(root);
+            var syncJournal = new RecoveryJournal(Path.Combine(root, "sync-once"), Path.Combine(root, "sync-once.json"));
+            var beforeSync = new JsonObject { ["kontakte"] = new JsonArray(new JsonObject { ["id"] = "before" }) };
+            var explicitBefore = syncJournal.Create(beforeSync, SnapshotReason.PreContactImport, "2.0.22");
+            var automaticBefore = syncJournal.Create(beforeSync, SnapshotReason.PreChange, "2.0.22");
+            TestAssert.That(explicitBefore.Id == automaticBefore.Id && syncJournal.List().Count == 1,
+                "Explicit synchronization protection and its following save created duplicate snapshots.");
+            var changedState = beforeSync.DeepClone().AsObject(); changedState["kontakte"]![0]!["vorname"] = "Changed";
+            var distinctBefore = syncJournal.Create(changedState, SnapshotReason.PreChange, "2.0.22");
+            TestAssert.That(distinctBefore.Id != explicitBefore.Id && syncJournal.List().Count == 2,
+                "A genuinely different recoverable state was discarded by snapshot deduplication.");
             var batchJournal = new RecoveryJournal(Path.Combine(root, "batch"), Path.Combine(root, "batch-settings.json"));
             var batchPoints = Enumerable.Range(0, 3).Select(index => batchJournal.Create(
                 new JsonObject { ["notizen"] = new JsonArray(new JsonObject { ["id"] = "n", ["text"] = "point-" + index }) },
@@ -54,6 +64,16 @@ internal static class RecoveryJournalTests
             preferences["syncMetadaten"] = JsonNode.Parse("{\"nextcloud\":{\"ausstehendeTransaktion\":\"test\"}}");
             TestAssert.That(!RecoveryJournal.HasRecoverableChanges(data, preferences),
                 "Einstellungen und Sync-Buchhaltung erzeugen unnötige Vorher-Stände.");
+            var bookkeeping = data.DeepClone().AsObject();
+            bookkeeping["notizen"]![0]!["uid"] = "other-source";
+            bookkeeping["notizen"]![0]!["angelegt"] = 123;
+            bookkeeping["notizen"]![0]!["geaendert"] = 456;
+            bookkeeping["notizen"]![0]!["baumFreigabe"] = JsonNode.Parse("{\"id\":\"shared\",\"partner\":[\"peer\"]}");
+            bookkeeping["personalSync"] = JsonNode.Parse("{\"revision\":2}");
+            TestAssert.That(!RecoveryJournal.HasRecoverableChanges(data, bookkeeping),
+                "Note timestamps or source associations created a content snapshot.");
+            bookkeeping["notizen"]![0]!["text"] = "Actual edit";
+            TestAssert.That(RecoveryJournal.HasRecoverableChanges(data, bookkeeping), "Actual note content was treated as bookkeeping.");
             foreach (var field in new[] { "termine", "kontakte", "notizen", "customOrganizer", "gesundheit", "smsPlanung", "futureContent" })
             {
                 var changed = preferences.DeepClone().AsObject();

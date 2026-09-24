@@ -619,6 +619,9 @@ msgstr "根据格式区域"
 msgid "According to language"
 msgstr "根据语言"
 
+msgid "Account type"
+msgstr "账户类型"
+
 msgid "Active call"
 msgstr "当前通话"
 
@@ -871,6 +874,9 @@ msgstr "在时间字段上滚动时生效。按住 Shift 可按整小时更改�
 
 msgid "Apply"
 msgstr "应用"
+
+msgid "Apply to the remaining conflicts"
+msgstr "应用于其余冲突"
 
 msgid "Appointment"
 msgstr "约会"
@@ -1724,6 +1730,11 @@ msgstr "联系人以增量方式合并，不传输删除操作。"
 msgid "Contacts for Claws Mail (.ldif)"
 msgstr "Claws Mail 联系人 (.ldif)"
 
+msgid ""
+"Contacts with different information were found. How would you like to "
+"proceed?"
+msgstr "发现信息不同的联系人。您希望如何处理？"
+
 msgid "Contacts: component gir1.2-ebook-1.2 is missing; skipped."
 msgstr "联系人：缺少组件 gir1.2-ebook-1.2；已跳过。"
 
@@ -1884,6 +1895,9 @@ msgstr "周期标记只保存在本地 Organizer 数据中，不会发送通知�
 
 msgid "Czechia"
 msgstr "捷克"
+
+msgid "DAV account"
+msgstr "DAV 账户"
 
 msgid "DIN 5008 Form A (27 mm letterhead)"
 msgstr "DIN 5008 A 式（信头高度 27 毫米）"
@@ -3055,6 +3069,9 @@ msgstr "KDE/Akonadi 集成不可用。"
 msgid "Keep a troubleshooting log"
 msgstr "保留故障排除日志"
 
+msgid "Keep existing"
+msgstr "保留现有信息"
+
 msgid "Keep this KDE Connect file in Downloads?"
 msgstr "将此 KDE Connect 文件保留在“下载”中吗？"
 
@@ -4070,16 +4087,6 @@ msgstr "一次性配对二维码"
 msgid "Online"
 msgstr "在线"
 
-msgid ""
-"Online account integration is not available on this system. Install it "
-"with:  sudo apt install %(packages)s, then restart the application. You can "
-"also import contacts and appointments without this integration using “From "
-"this computer” above."
-msgstr ""
-"此系统不支持在线账户集成。请使用以下命令安装：  sudo apt install "
-"%(packages)s，然后重新启动应用。即使不使用此集成，也可以通过上方的“从此电"
-"脑”导入联系人和约会。"
-
 msgid "Online address book"
 msgstr "在线通讯录"
 
@@ -4095,6 +4102,9 @@ msgid ""
 msgstr ""
 "仅限 HTTPS。请在 Nextcloud 的“设置”“安全”中创建应用密码。绝不会使用您的账户密"
 "码。"
+
+msgid "Only HTTPS. The password is stored securely on this computer."
+msgstr "仅限 HTTPS。密码将安全地存储在此计算机上。"
 
 msgid ""
 "Only Notify, then unlock is currently available. Keyring access and pausing "
@@ -4886,6 +4896,9 @@ msgstr "重新配对"
 msgid "Repeat for confirmation"
 msgstr "再次输入以确认"
 
+msgid "Replace completely"
+msgstr "完全更换"
+
 msgid "Reply"
 msgstr "回复"
 
@@ -4895,6 +4908,9 @@ msgstr "已报告（%(method)s）：%(title)s – %(body)s"
 
 msgid "Requesting the device status"
 msgstr "请求设备状态"
+
+msgid "Requires a Nextcloud account."
+msgstr "需要 Nextcloud 账户。"
 
 msgid "Requires existing BlueZ system pairing. Data only, no HFP audio."
 msgstr "需要现有的 BlueZ 系统配对。仅限数据，不支持 HFP 音频。"
@@ -5432,6 +5448,9 @@ msgstr "仅屏幕通知"
 msgid "Show social media and communication icons"
 msgstr "显示社交媒体和通信图标"
 
+msgid "Show successful synchronization notifications (errors are always shown)"
+msgstr "显示同步成功通知（始终显示错误）"
+
 msgid "Show symbol in calendar"
 msgstr "在日历中显示符号"
 
@@ -5715,15 +5734,6 @@ msgstr "系统默认"
 
 msgid "System internet accounts"
 msgstr "系统互联网账户"
-
-#, python-format
-msgid ""
-"System internet accounts are not available on this system. Install the "
-"required components with:\n"
-"sudo apt install %s"
-msgstr ""
-"此系统无法使用系统互联网账户。请使用以下命令安装所需组件：\n"
-"sudo apt install %s"
 
 msgid "System keyring and pause modes cannot be enabled yet."
 msgstr "系统密钥环和暂停模式目前还无法启用。"
@@ -6916,6 +6926,9 @@ msgstr "此分支还没有得到确认。"
 msgid "This branch is not known."
 msgstr "此分支未知。"
 
+msgid "This calendar does not support tasks (VTODO)."
+msgstr "此日历不支持任务（VTODO）。"
+
 msgid ""
 "This choice also determines how names appear on contact cards and under "
 "which letter they are filed in the index."
@@ -7302,6 +7315,9 @@ msgstr "请仅使用由医疗专业人员开具或确认的用药计划。"
 msgid "Use system keyring"
 msgstr "使用系统密钥环"
 
+msgid "Use the DAV address provided by your service."
+msgstr "请使用服务商提供的 DAV 地址。"
+
 msgid ""
 "Use the arrows to arrange groups and notebooks, or use the selection to move "
 "a notebook to another group."
@@ -7474,7 +7490,9 @@ msgstr "天气温度"
 msgid ""
 "Weather uses HTTPS first, then unencrypted HTTP if necessary. If wttr.in "
 "fails and a location is known, Open-Meteo is tried."
-msgstr "天气信息首先通过 HTTPS 获取，必要时改用未加密的 HTTP。如果 wttr.in 不可用且已知地点，则尝试 Open-Meteo。"
+msgstr ""
+"天气信息首先通过 HTTPS 获取，必要时改用未加密的 HTTP。如果 wttr.in 不可用且已"
+"知地点，则尝试 Open-Meteo。"
 
 msgid "Weather was not retrieved because no location is available."
 msgstr "未获取天气信息，因为没有可用的位置。"
@@ -8095,26 +8113,24 @@ msgstr[0] "… 以及另外 %(count)s 项也将打印。"
 msgid "＋ Add appointment"
 msgstr "＋ 添加约会"
 
-msgid "DAV account"
-msgstr "DAV 账户"
+#~ msgid ""
+#~ "Online account integration is not available on this system. Install it "
+#~ "with:  sudo apt install %(packages)s, then restart the application. You "
+#~ "can also import contacts and appointments without this integration using "
+#~ "“From this computer” above."
+#~ msgstr ""
+#~ "此系统不支持在线账户集成。请使用以下命令安装：  sudo apt install "
+#~ "%(packages)s，然后重新启动应用。即使不使用此集成，也可以通过上方的“从此电"
+#~ "脑”导入联系人和约会。"
 
-msgid "Account type"
-msgstr "账户类型"
-
-msgid "Use the DAV address provided by your service."
-msgstr "请使用服务商提供的 DAV 地址。"
-
-msgid "Only HTTPS. The password is stored securely on this computer."
-msgstr "仅限 HTTPS。密码将安全地存储在此计算机上。"
-
-msgid "Requires a Nextcloud account."
-msgstr "需要 Nextcloud 账户。"
-
-msgid "This calendar does not support tasks (VTODO)."
-msgstr "此日历不支持任务（VTODO）。"
-
-msgid "Show successful synchronization notifications (errors are always shown)"
-msgstr "显示同步成功通知（始终显示错误）"
+#, python-format
+#~ msgid ""
+#~ "System internet accounts are not available on this system. Install the "
+#~ "required components with:\n"
+#~ "sudo apt install %s"
+#~ msgstr ""
+#~ "此系统无法使用系统互联网账户。请使用以下命令安装所需组件：\n"
+#~ "sudo apt install %s"
 
 #~ msgid "This paired phone is my own device"
 #~ msgstr "这部已配对的手机是我自己的设备"

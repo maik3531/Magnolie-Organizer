@@ -897,6 +897,9 @@ msgstr ""
 msgid "Apply"
 msgstr ""
 
+msgid "Apply to the remaining conflicts"
+msgstr ""
+
 msgid "Appointment"
 msgstr ""
 
@@ -1722,6 +1725,11 @@ msgid "Contacts are merged additively. No deletions are transmitted."
 msgstr ""
 
 msgid "Contacts for Claws Mail (.ldif)"
+msgstr ""
+
+msgid ""
+"Contacts with different information were found. How would you like to "
+"proceed?"
 msgstr ""
 
 msgid "Contacts: component gir1.2-ebook-1.2 is missing; skipped."
@@ -3021,6 +3029,9 @@ msgid "KDE/Akonadi integration is not available."
 msgstr ""
 
 msgid "Keep a troubleshooting log"
+msgstr ""
+
+msgid "Keep existing"
 msgstr ""
 
 msgid "Keep this KDE Connect file in Downloads?"
@@ -4808,6 +4819,9 @@ msgid "Renew pairing"
 msgstr ""
 
 msgid "Repeat for confirmation"
+msgstr ""
+
+msgid "Replace completely"
 msgstr ""
 
 msgid "Reply"

@@ -833,6 +833,9 @@ msgstr "وفقًا لمنطقة التنسيق"
 msgid "According to language"
 msgstr "وفقًا للغة"
 
+msgid "Account type"
+msgstr "نوع الحساب"
+
 msgid "Active call"
 msgstr "مكالمة نشطة"
 
@@ -1089,6 +1092,9 @@ msgstr ""
 
 msgid "Apply"
 msgstr "تطبيق"
+
+msgid "Apply to the remaining conflicts"
+msgstr "تطبيق على التعارضات المتبقية"
 
 msgid "Appointment"
 msgstr "موعد"
@@ -1963,6 +1969,11 @@ msgstr "تُدمج جهات الاتصال بشكل إضافي. لا تُنقل 
 msgid "Contacts for Claws Mail (.ldif)"
 msgstr "جهات اتصال Claws Mail (.ldif)"
 
+msgid ""
+"Contacts with different information were found. How would you like to "
+"proceed?"
+msgstr "تم العثور على جهات اتصال بمعلومات مختلفة. كيف تريد المتابعة؟"
+
 msgid "Contacts: component gir1.2-ebook-1.2 is missing; skipped."
 msgstr "جهات الاتصال: المكوّن gir1.2-ebook-1.2 مفقود؛ تم التخطي."
 
@@ -2123,6 +2134,9 @@ msgstr "تُحفظ علامات الدورة فقط في بيانات Organizer 
 
 msgid "Czechia"
 msgstr "التشيك"
+
+msgid "DAV account"
+msgstr "حساب DAV"
 
 msgid "DIN 5008 Form A (27 mm letterhead)"
 msgstr "DIN 5008 النموذج A (ترويسة بارتفاع 27 ملم)"
@@ -3325,6 +3339,9 @@ msgstr "تكامل KDE/Akonadi غير متاح."
 msgid "Keep a troubleshooting log"
 msgstr "الاحتفاظ بسجل لاستكشاف الأخطاء وإصلاحها"
 
+msgid "Keep existing"
+msgstr "الاحتفاظ بالمعلومات الحالية"
+
 msgid "Keep this KDE Connect file in Downloads?"
 msgstr "هل تريد الاحتفاظ بملف KDE Connect هذا في التنزيلات؟"
 
@@ -4396,16 +4413,6 @@ msgstr "ﺔﻌﻳﺮﺴﻟﺍ ﺔﺑﺎﺠﺘﺳﻻ﻿ﺍ ﺰﻣﺭ ﻥﺍﺮﻗ
 msgid "Online"
 msgstr "عبر الإنترنت"
 
-msgid ""
-"Online account integration is not available on this system. Install it "
-"with:  sudo apt install %(packages)s, then restart the application. You can "
-"also import contacts and appointments without this integration using “From "
-"this computer” above."
-msgstr ""
-"تكامل الحسابات عبر الإنترنت غير متاح على هذا النظام. ثبّته بالأمر:  sudo apt "
-"install %(packages)s، ثم أعد تشغيل التطبيق. ويمكنك أيضًا استيراد جهات الاتصال "
-"والمواعيد من دون هذا التكامل باستخدام «من هذا الحاسوب» أعلاه."
-
 msgid "Online address book"
 msgstr "دفتر عناوين عبر الإنترنت"
 
@@ -4421,6 +4428,9 @@ msgid ""
 msgstr ""
 "HTTPS فقط. أنشئ كلمة مرور تطبيق في Nextcloud ضمن الإعدادات، الأمان. لا "
 "تُستخدم كلمة مرور حسابك أبدًا."
+
+msgid "Only HTTPS. The password is stored securely on this computer."
+msgstr "HTTPS فقط. تُحفظ كلمة المرور بأمان على هذا الحاسوب."
 
 msgid ""
 "Only Notify, then unlock is currently available. Keyring access and pausing "
@@ -5257,6 +5267,9 @@ msgstr "تجديد الاقتران"
 msgid "Repeat for confirmation"
 msgstr "أعد الإدخال للتأكيد"
 
+msgid "Replace completely"
+msgstr "استبدال تماما"
+
 msgid "Reply"
 msgstr "رد"
 
@@ -5266,6 +5279,9 @@ msgstr "تم الإبلاغ (%(method)s): %(title)s – %(body)s"
 
 msgid "Requesting the device status"
 msgstr "طلب حالة الجهاز"
+
+msgid "Requires a Nextcloud account."
+msgstr "يتطلب حساب Nextcloud."
 
 msgid "Requires existing BlueZ system pairing. Data only, no HFP audio."
 msgstr "يتطلب الاقتران بنظام BlueZ الحالي. البيانات فقط، لا يوجد صوت HFP."
@@ -5818,6 +5834,9 @@ msgstr "إشعار على الشاشة فقط"
 msgid "Show social media and communication icons"
 msgstr "إظهار أيقونات التواصل الاجتماعي والاتصال"
 
+msgid "Show successful synchronization notifications (errors are always shown)"
+msgstr "إظهار إشعارات نجاح المزامنة (تظهر الأخطاء دائمًا)"
+
 msgid "Show symbol in calendar"
 msgstr "إظهار الرمز في التقويم"
 
@@ -6105,16 +6124,6 @@ msgstr "الافتراضي للنظام"
 
 msgid "System internet accounts"
 msgstr "حسابات إنترنت النظام"
-
-#, python-format
-msgid ""
-"System internet accounts are not available on this system. Install the "
-"required components with:\n"
-"sudo apt install %s"
-msgstr ""
-"حسابات إنترنت النظام غير متاحة على هذا النظام. ثبّت المكونات المطلوبة "
-"باستخدام:\n"
-"sudo apt install %s"
 
 msgid "System keyring and pause modes cannot be enabled yet."
 msgstr "لا يمكن تمكين حلقة مفاتيح النظام وأوضاع الإيقاف المؤقت بعد."
@@ -7354,6 +7363,9 @@ msgstr "لم يتم تأكيد هذا الفرع بعد."
 msgid "This branch is not known."
 msgstr "هذا الفرع غير معروف."
 
+msgid "This calendar does not support tasks (VTODO)."
+msgstr "هذا التقويم لا يدعم المهام (VTODO)."
+
 msgid ""
 "This choice also determines how names appear on contact cards and under "
 "which letter they are filed in the index."
@@ -7752,6 +7764,9 @@ msgstr "استخدم فقط الجداول العلاجية التي يصفها 
 msgid "Use system keyring"
 msgstr "استخدام حلقة مفاتيح النظام"
 
+msgid "Use the DAV address provided by your service."
+msgstr "استخدم عنوان DAV الذي يقدمه مزود الخدمة."
+
 msgid ""
 "Use the arrows to arrange groups and notebooks, or use the selection to move "
 "a notebook to another group."
@@ -7936,7 +7951,9 @@ msgstr "درجة حرارة الطقس"
 msgid ""
 "Weather uses HTTPS first, then unencrypted HTTP if necessary. If wttr.in "
 "fails and a location is known, Open-Meteo is tried."
-msgstr "تُجلب بيانات الطقس أولًا عبر HTTPS، ثم عبر HTTP غير المشفّر عند الحاجة. إذا تعذّر الوصول إلى wttr.in وكان الموقع معروفًا، تُجرَّب خدمة Open-Meteo."
+msgstr ""
+"تُجلب بيانات الطقس أولًا عبر HTTPS، ثم عبر HTTP غير المشفّر عند الحاجة. إذا "
+"تعذّر الوصول إلى wttr.in وكان الموقع معروفًا، تُجرَّب خدمة Open-Meteo."
 
 msgid "Weather was not retrieved because no location is available."
 msgstr "لم يتم جلب الطقس لعدم توفر موقع."
@@ -8618,26 +8635,25 @@ msgstr[5] "… وعناصر إضافية ستُطبع أيضًا؛ العدد: %
 msgid "＋ Add appointment"
 msgstr "＋ إضافة موعد"
 
-msgid "DAV account"
-msgstr "حساب DAV"
+#~ msgid ""
+#~ "Online account integration is not available on this system. Install it "
+#~ "with:  sudo apt install %(packages)s, then restart the application. You "
+#~ "can also import contacts and appointments without this integration using "
+#~ "“From this computer” above."
+#~ msgstr ""
+#~ "تكامل الحسابات عبر الإنترنت غير متاح على هذا النظام. ثبّته بالأمر:  sudo "
+#~ "apt install %(packages)s، ثم أعد تشغيل التطبيق. ويمكنك أيضًا استيراد جهات "
+#~ "الاتصال والمواعيد من دون هذا التكامل باستخدام «من هذا الحاسوب» أعلاه."
 
-msgid "Account type"
-msgstr "نوع الحساب"
-
-msgid "Use the DAV address provided by your service."
-msgstr "استخدم عنوان DAV الذي يقدمه مزود الخدمة."
-
-msgid "Only HTTPS. The password is stored securely on this computer."
-msgstr "HTTPS فقط. تُحفظ كلمة المرور بأمان على هذا الحاسوب."
-
-msgid "Requires a Nextcloud account."
-msgstr "يتطلب حساب Nextcloud."
-
-msgid "This calendar does not support tasks (VTODO)."
-msgstr "هذا التقويم لا يدعم المهام (VTODO)."
-
-msgid "Show successful synchronization notifications (errors are always shown)"
-msgstr "إظهار إشعارات نجاح المزامنة (تظهر الأخطاء دائمًا)"
+#, python-format
+#~ msgid ""
+#~ "System internet accounts are not available on this system. Install the "
+#~ "required components with:\n"
+#~ "sudo apt install %s"
+#~ msgstr ""
+#~ "حسابات إنترنت النظام غير متاحة على هذا النظام. ثبّت المكونات المطلوبة "
+#~ "باستخدام:\n"
+#~ "sudo apt install %s"
 
 #~ msgid "This paired phone is my own device"
 #~ msgstr "هذا الهاتف المقترن هو جهازي الخاص"

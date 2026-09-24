@@ -675,6 +675,9 @@ msgstr ""
 msgid "Apply"
 msgstr "Aplicar"
 
+msgid "Apply to the remaining conflicts"
+msgstr "Aplicar aos conflitos restantes"
+
 msgid "Appointment"
 msgstr "Compromisso"
 
@@ -1482,6 +1485,13 @@ msgstr ""
 
 msgid "Contacts for Claws Mail (.ldif)"
 msgstr "Contactos para o Claws Mail (.ldif)"
+
+msgid ""
+"Contacts with different information were found. How would you like to "
+"proceed?"
+msgstr ""
+"Foram encontrados contactos com informações diferentes. Como pretende "
+"prosseguir?"
 
 msgid "Content"
 msgstr "Conteúdo"
@@ -2663,6 +2673,9 @@ msgstr "Porta KDE Connect %(port)s"
 msgid "Keep a troubleshooting log"
 msgstr "Manter um registo para resolução de problemas"
 
+msgid "Keep existing"
+msgstr "Manter os dados existentes"
+
 msgid "LDIF"
 msgstr "LDIF"
 
@@ -3511,17 +3524,6 @@ msgstr ""
 
 msgid "Online"
 msgstr "Online"
-
-msgid ""
-"Online account integration is not available on this system. Install it "
-"with:  sudo apt install %(packages)s, then restart the application. You can "
-"also import contacts and appointments without this integration using “From "
-"this computer” above."
-msgstr ""
-"A integração de contas online não está disponível neste sistema. Instale-a "
-"com:  sudo apt install %(packages)s e reinicie a aplicação. Também pode "
-"importar contactos e compromissos sem esta integração através de «Deste "
-"computador», acima."
 
 msgid "Online address book"
 msgstr "Livro de endereços online"
@@ -6356,7 +6358,10 @@ msgstr "Temperatura meteorológica"
 msgid ""
 "Weather uses HTTPS first, then unencrypted HTTP if necessary. If wttr.in "
 "fails and a location is known, Open-Meteo is tried."
-msgstr "O tempo é consultado primeiro por HTTPS e, se necessário, por HTTP sem encriptação. Se wttr.in falhar e a localidade for conhecida, tenta-se o Open-Meteo."
+msgstr ""
+"O tempo é consultado primeiro por HTTPS e, se necessário, por HTTP sem "
+"encriptação. Se wttr.in falhar e a localidade for conhecida, tenta-se o Open-"
+"Meteo."
 
 msgid "Weather was not retrieved because no location is available."
 msgstr ""
@@ -6972,6 +6977,17 @@ msgstr[1] "… e mais %(count)s entradas que também serão impressas."
 
 msgid "＋ Add appointment"
 msgstr "＋ Adicionar compromisso"
+
+#~ msgid ""
+#~ "Online account integration is not available on this system. Install it "
+#~ "with:  sudo apt install %(packages)s, then restart the application. You "
+#~ "can also import contacts and appointments without this integration using "
+#~ "“From this computer” above."
+#~ msgstr ""
+#~ "A integração de contas online não está disponível neste sistema. Instale-"
+#~ "a com:  sudo apt install %(packages)s e reinicie a aplicação. Também pode "
+#~ "importar contactos e compromissos sem esta integração através de «Deste "
+#~ "computador», acima."
 
 #~ msgid "This paired phone is my own device"
 #~ msgstr "Este telefone emparelhado é o meu próprio dispositivo"

@@ -661,6 +661,9 @@ msgstr ""
 msgid "Apply"
 msgstr "लागू करें"
 
+msgid "Apply to the remaining conflicts"
+msgstr "बाकी विरोधों पर लागू करें"
+
 msgid "Appointment"
 msgstr "अपॉइंटमेंट"
 
@@ -1431,6 +1434,11 @@ msgstr "संपर्क जोड़कर मिलाए जाते ह�
 
 msgid "Contacts for Claws Mail (.ldif)"
 msgstr "Claws Mail के लिए संपर्क (.ldif)"
+
+msgid ""
+"Contacts with different information were found. How would you like to "
+"proceed?"
+msgstr "अलग-अलग जानकारी वाले संपर्क मिले हैं। आप कैसे आगे बढ़ना चाहेंगे?"
 
 msgid "Content"
 msgstr "सामग्री"
@@ -2583,6 +2591,9 @@ msgstr "KDE Connect पोर्ट %(port)s"
 msgid "Keep a troubleshooting log"
 msgstr "समस्या निवारण लॉग रखें"
 
+msgid "Keep existing"
+msgstr "मौजूदा जानकारी रखें"
+
 msgid "LDIF"
 msgstr "LDIF"
 
@@ -3412,16 +3423,6 @@ msgstr ""
 
 msgid "Online"
 msgstr "ऑनलाइन"
-
-msgid ""
-"Online account integration is not available on this system. Install it "
-"with:  sudo apt install %(packages)s, then restart the application. You can "
-"also import contacts and appointments without this integration using “From "
-"this computer” above."
-msgstr ""
-"ऑनलाइन खाता एकीकरण इस सिस्टम पर उपलब्ध नहीं है। इसे इस कमांड से स्थापित करें:  sudo "
-"apt install %(packages)s, फिर अनुप्रयोग को पुनः आरंभ करें। आप इस एकीकरण के बिना भी "
-"ऊपर दिए “इस कंप्यूटर से” विकल्प से संपर्क और अपॉइंटमेंट आयात कर सकते हैं।"
 
 msgid "Online address book"
 msgstr "ऑनलाइन पता पुस्तिका"
@@ -6178,7 +6179,9 @@ msgstr "मौसम का तापमान"
 msgid ""
 "Weather uses HTTPS first, then unencrypted HTTP if necessary. If wttr.in "
 "fails and a location is known, Open-Meteo is tried."
-msgstr "मौसम की जानकारी पहले HTTPS से और ज़रूरत पड़ने पर बिना एन्क्रिप्शन वाले HTTP से ली जाती है। अगर wttr.in उपलब्ध नहीं है और स्थान पता है, तो Open-Meteo को आज़माया जाता है।"
+msgstr ""
+"मौसम की जानकारी पहले HTTPS से और ज़रूरत पड़ने पर बिना एन्क्रिप्शन वाले HTTP से ली जाती "
+"है। अगर wttr.in उपलब्ध नहीं है और स्थान पता है, तो Open-Meteo को आज़माया जाता है।"
 
 msgid "Weather was not retrieved because no location is available."
 msgstr "मौसम की जानकारी नहीं ली गई क्योंकि कोई स्थान उपलब्ध नहीं है।"
@@ -6780,6 +6783,16 @@ msgstr[1] "… और %(count)s अतिरिक्त आइटम, जो �
 
 msgid "＋ Add appointment"
 msgstr "＋ अपॉइंटमेंट जोड़ें"
+
+#~ msgid ""
+#~ "Online account integration is not available on this system. Install it "
+#~ "with:  sudo apt install %(packages)s, then restart the application. You "
+#~ "can also import contacts and appointments without this integration using "
+#~ "“From this computer” above."
+#~ msgstr ""
+#~ "ऑनलाइन खाता एकीकरण इस सिस्टम पर उपलब्ध नहीं है। इसे इस कमांड से स्थापित करें:  sudo "
+#~ "apt install %(packages)s, फिर अनुप्रयोग को पुनः आरंभ करें। आप इस एकीकरण के बिना "
+#~ "भी ऊपर दिए “इस कंप्यूटर से” विकल्प से संपर्क और अपॉइंटमेंट आयात कर सकते हैं।"
 
 #~ msgid "This paired phone is my own device"
 #~ msgstr "यह जोड़ा गया फ़ोन मेरा अपना उपकरण है"

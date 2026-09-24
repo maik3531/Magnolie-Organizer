@@ -625,6 +625,9 @@ msgstr "在时间字段上滚动时生效。按住 Shift 可按整小时更改�
 msgid "Apply"
 msgstr "应用"
 
+msgid "Apply to the remaining conflicts"
+msgstr "应用于其余冲突"
+
 msgid "Appointment"
 msgstr "约会"
 
@@ -1382,6 +1385,11 @@ msgstr "联系人以增量方式合并，不传输删除操作。"
 
 msgid "Contacts for Claws Mail (.ldif)"
 msgstr "Claws Mail 联系人 (.ldif)"
+
+msgid ""
+"Contacts with different information were found. How would you like to "
+"proceed?"
+msgstr "发现信息不同的联系人。您希望如何处理？"
 
 msgid "Content"
 msgstr "内容"
@@ -2515,6 +2523,9 @@ msgstr "KDE Connect 端口 %(port)s"
 msgid "Keep a troubleshooting log"
 msgstr "保留故障排除日志"
 
+msgid "Keep existing"
+msgstr "保留现有信息"
+
 msgid "LDIF"
 msgstr "LDIF"
 
@@ -3325,16 +3336,6 @@ msgstr "一次性导入只会增添数据，不会保持来源链接，也不会
 
 msgid "Online"
 msgstr "在线"
-
-msgid ""
-"Online account integration is not available on this system. Install it "
-"with:  sudo apt install %(packages)s, then restart the application. You can "
-"also import contacts and appointments without this integration using “From "
-"this computer” above."
-msgstr ""
-"此系统不支持在线账户集成。请使用以下命令安装：  sudo apt install "
-"%(packages)s，然后重新启动应用。即使不使用此集成，也可以通过上方的“从此电"
-"脑”导入联系人和约会。"
 
 msgid "Online address book"
 msgstr "在线通讯录"
@@ -6006,7 +6007,9 @@ msgstr "天气温度"
 msgid ""
 "Weather uses HTTPS first, then unencrypted HTTP if necessary. If wttr.in "
 "fails and a location is known, Open-Meteo is tried."
-msgstr "天气信息首先通过 HTTPS 获取，必要时改用未加密的 HTTP。如果 wttr.in 不可用且已知地点，则尝试 Open-Meteo。"
+msgstr ""
+"天气信息首先通过 HTTPS 获取，必要时改用未加密的 HTTP。如果 wttr.in 不可用且已"
+"知地点，则尝试 Open-Meteo。"
 
 msgid "Weather was not retrieved because no location is available."
 msgstr "未获取天气信息，因为没有可用的位置。"
@@ -6589,6 +6592,16 @@ msgstr[0] "… 以及另外 %(count)s 项也将打印。"
 
 msgid "＋ Add appointment"
 msgstr "＋ 添加约会"
+
+#~ msgid ""
+#~ "Online account integration is not available on this system. Install it "
+#~ "with:  sudo apt install %(packages)s, then restart the application. You "
+#~ "can also import contacts and appointments without this integration using "
+#~ "“From this computer” above."
+#~ msgstr ""
+#~ "此系统不支持在线账户集成。请使用以下命令安装：  sudo apt install "
+#~ "%(packages)s，然后重新启动应用。即使不使用此集成，也可以通过上方的“从此电"
+#~ "脑”导入联系人和约会。"
 
 #~ msgid "This paired phone is my own device"
 #~ msgstr "这部已配对的手机是我自己的设备"

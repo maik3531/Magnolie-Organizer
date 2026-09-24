@@ -637,6 +637,9 @@ msgstr ""
 msgid "Apply"
 msgstr "適用"
 
+msgid "Apply to the remaining conflicts"
+msgstr "残りの競合にも適用する"
+
 msgid "Appointment"
 msgstr "予定"
 
@@ -1429,6 +1432,11 @@ msgstr "連絡先は追加方式で統合されます。削除は送信されま
 
 msgid "Contacts for Claws Mail (.ldif)"
 msgstr "Claws Mail 用連絡先 (.ldif)"
+
+msgid ""
+"Contacts with different information were found. How would you like to "
+"proceed?"
+msgstr "情報が異なる連絡先が見つかりました。どのように処理しますか？"
 
 msgid "Content"
 msgstr "内容"
@@ -2596,6 +2604,9 @@ msgstr "KDE Connectポート %(port)s"
 msgid "Keep a troubleshooting log"
 msgstr "トラブルシューティングログを保存"
 
+msgid "Keep existing"
+msgstr "現在の情報を保持"
+
 msgid "LDIF"
 msgstr "LDIF"
 
@@ -3433,17 +3444,6 @@ msgstr ""
 
 msgid "Online"
 msgstr "オンライン"
-
-msgid ""
-"Online account integration is not available on this system. Install it "
-"with:  sudo apt install %(packages)s, then restart the application. You can "
-"also import contacts and appointments without this integration using “From "
-"this computer” above."
-msgstr ""
-"オンラインアカウント統合はこのシステムでは利用できません。次のコマンドでイン"
-"ストールしてください：  sudo apt install %(packages)s。その後、アプリを再起動"
-"してください。この統合を使わなくても、上の「このコンピューターから」で連絡先"
-"や予定をインポートできます。"
 
 msgid "Online address book"
 msgstr "オンラインアドレス帳"
@@ -6210,7 +6210,9 @@ msgstr "気温"
 msgid ""
 "Weather uses HTTPS first, then unencrypted HTTP if necessary. If wttr.in "
 "fails and a location is known, Open-Meteo is tried."
-msgstr "天気情報はまず HTTPS で取得し、必要に応じて暗号化されていない HTTP を使用します。wttr.in が利用できず、場所が分かっている場合は Open-Meteo を試します。"
+msgstr ""
+"天気情報はまず HTTPS で取得し、必要に応じて暗号化されていない HTTP を使用しま"
+"す。wttr.in が利用できず、場所が分かっている場合は Open-Meteo を試します。"
 
 msgid "Weather was not retrieved because no location is available."
 msgstr "利用できる場所がないため、天気を取得しませんでした。"
@@ -6812,6 +6814,17 @@ msgstr[0] "… ほか %(count)s 件も印刷されます。"
 
 msgid "＋ Add appointment"
 msgstr "＋ 予定を追加"
+
+#~ msgid ""
+#~ "Online account integration is not available on this system. Install it "
+#~ "with:  sudo apt install %(packages)s, then restart the application. You "
+#~ "can also import contacts and appointments without this integration using "
+#~ "“From this computer” above."
+#~ msgstr ""
+#~ "オンラインアカウント統合はこのシステムでは利用できません。次のコマンドでイ"
+#~ "ンストールしてください：  sudo apt install %(packages)s。その後、アプリを"
+#~ "再起動してください。この統合を使わなくても、上の「このコンピューターから」"
+#~ "で連絡先や予定をインポートできます。"
 
 #~ msgid "This paired phone is my own device"
 #~ msgstr "このペアリング済み電話は自分のデバイスです"

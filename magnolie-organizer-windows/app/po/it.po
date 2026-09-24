@@ -675,6 +675,9 @@ msgstr ""
 msgid "Apply"
 msgstr "Applica"
 
+msgid "Apply to the remaining conflicts"
+msgstr "Applica ai conflitti rimanenti"
+
 msgid "Appointment"
 msgstr "Appuntamento"
 
@@ -1484,6 +1487,13 @@ msgstr ""
 
 msgid "Contacts for Claws Mail (.ldif)"
 msgstr "Contatti per Claws Mail (.ldif)"
+
+msgid ""
+"Contacts with different information were found. How would you like to "
+"proceed?"
+msgstr ""
+"Sono stati trovati contatti con informazioni diverse. Come desideri "
+"procedere?"
 
 msgid "Content"
 msgstr "Contenuto"
@@ -2666,6 +2676,9 @@ msgstr "KDE Connect porta %(port)s"
 msgid "Keep a troubleshooting log"
 msgstr "Conserva un registro per la risoluzione dei problemi"
 
+msgid "Keep existing"
+msgstr "Mantieni i dati esistenti"
+
 msgid "LDIF"
 msgstr "LDIF"
 
@@ -3514,17 +3527,6 @@ msgstr ""
 
 msgid "Online"
 msgstr "Online"
-
-msgid ""
-"Online account integration is not available on this system. Install it "
-"with:  sudo apt install %(packages)s, then restart the application. You can "
-"also import contacts and appointments without this integration using “From "
-"this computer” above."
-msgstr ""
-"L’integrazione degli account online non è disponibile su questo sistema. "
-"Installala con:  sudo apt install %(packages)s, quindi riavvia "
-"l’applicazione. Puoi anche importare contatti e appuntamenti senza questa "
-"integrazione usando «Da questo computer» qui sopra."
 
 msgid "Online address book"
 msgstr "Rubrica online"
@@ -6383,7 +6385,10 @@ msgstr "Temperatura meteorologica"
 msgid ""
 "Weather uses HTTPS first, then unencrypted HTTP if necessary. If wttr.in "
 "fails and a location is known, Open-Meteo is tried."
-msgstr "Il meteo viene richiesto prima tramite HTTPS e, se necessario, tramite HTTP non cifrato. Se wttr.in non funziona e la località è nota, viene provato Open-Meteo."
+msgstr ""
+"Il meteo viene richiesto prima tramite HTTPS e, se necessario, tramite HTTP "
+"non cifrato. Se wttr.in non funziona e la località è nota, viene provato "
+"Open-Meteo."
 
 msgid "Weather was not retrieved because no location is available."
 msgstr ""
@@ -6999,6 +7004,17 @@ msgstr[1] "… e %(count)s altri elementi che verranno anch’essi stampati."
 
 msgid "＋ Add appointment"
 msgstr "＋ Aggiungi appuntamento"
+
+#~ msgid ""
+#~ "Online account integration is not available on this system. Install it "
+#~ "with:  sudo apt install %(packages)s, then restart the application. You "
+#~ "can also import contacts and appointments without this integration using "
+#~ "“From this computer” above."
+#~ msgstr ""
+#~ "L’integrazione degli account online non è disponibile su questo sistema. "
+#~ "Installala con:  sudo apt install %(packages)s, quindi riavvia "
+#~ "l’applicazione. Puoi anche importare contatti e appuntamenti senza questa "
+#~ "integrazione usando «Da questo computer» qui sopra."
 
 #~ msgid "This paired phone is my own device"
 #~ msgstr "Questo telefono associato è un mio dispositivo"

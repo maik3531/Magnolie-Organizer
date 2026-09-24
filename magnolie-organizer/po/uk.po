@@ -718,6 +718,9 @@ msgstr "Відповідно до регіону формату"
 msgid "According to language"
 msgstr "Відповідно до мови"
 
+msgid "Account type"
+msgstr "Тип облікового запису"
+
 msgid "Active call"
 msgstr "Активний виклик"
 
@@ -978,6 +981,9 @@ msgstr ""
 
 msgid "Apply"
 msgstr "Застосувати"
+
+msgid "Apply to the remaining conflicts"
+msgstr "Застосувати до решти конфліктів"
 
 msgid "Appointment"
 msgstr "Зустріч"
@@ -1871,6 +1877,11 @@ msgstr "Контакти об’єднуються з доповненням. В
 msgid "Contacts for Claws Mail (.ldif)"
 msgstr "Контакти для Claws Mail (.ldif)"
 
+msgid ""
+"Contacts with different information were found. How would you like to "
+"proceed?"
+msgstr "Знайдено контакти з різними даними. Як продовжити?"
+
 msgid "Contacts: component gir1.2-ebook-1.2 is missing; skipped."
 msgstr "Контакти: відсутній компонент gir1.2-ebook-1.2; пропущено."
 
@@ -2034,6 +2045,9 @@ msgstr ""
 
 msgid "Czechia"
 msgstr "Чехія"
+
+msgid "DAV account"
+msgstr "Обліковий запис DAV"
 
 msgid "DIN 5008 Form A (27 mm letterhead)"
 msgstr "DIN 5008 Form A (шапка листа 27 mm)"
@@ -3249,6 +3263,9 @@ msgstr "Інтеграція KDE/Akonadi недоступна."
 msgid "Keep a troubleshooting log"
 msgstr "Зберігати журнал усунення несправностей"
 
+msgid "Keep existing"
+msgstr "Зберегти поточні дані"
+
 msgid "Keep this KDE Connect file in Downloads?"
 msgstr "Зберегти цей файл із KDE Connect у «Завантаженнях»?"
 
@@ -4312,17 +4329,6 @@ msgstr "Одноразовий QR-код підключення"
 msgid "Online"
 msgstr "В Інтернеті"
 
-msgid ""
-"Online account integration is not available on this system. Install it "
-"with:  sudo apt install %(packages)s, then restart the application. You can "
-"also import contacts and appointments without this integration using “From "
-"this computer” above."
-msgstr ""
-"Інтеграція онлайн-облікових записів недоступна в цій системі. Установіть її "
-"командою:  sudo apt install %(packages)s, а потім перезапустіть програму. "
-"Контакти та зустрічі можна імпортувати й без цієї інтеграції за допомогою «З "
-"цього комп’ютера» вище."
-
 msgid "Online address book"
 msgstr "Онлайн-адресна книга"
 
@@ -4338,6 +4344,9 @@ msgid ""
 msgstr ""
 "Лише HTTPS. Створіть пароль застосунку в Nextcloud у розділі «Налаштування», "
 "«Безпека». Пароль вашого облікового запису не використовується."
+
+msgid "Only HTTPS. The password is stored securely on this computer."
+msgstr "Лише HTTPS. Пароль захищено зберігається на цьому комп’ютері."
 
 msgid ""
 "Only Notify, then unlock is currently available. Keyring access and pausing "
@@ -5177,6 +5186,9 @@ msgstr "Оновити сполучення"
 msgid "Repeat for confirmation"
 msgstr "Повторіть для підтвердження"
 
+msgid "Replace completely"
+msgstr "Замініть повністю"
+
 msgid "Reply"
 msgstr "Відповісти"
 
@@ -5186,6 +5198,9 @@ msgstr "Повідомлено (%(method)s): %(title)s – %(body)s"
 
 msgid "Requesting the device status"
 msgstr "Запит стану пристрою"
+
+msgid "Requires a Nextcloud account."
+msgstr "Потрібен обліковий запис Nextcloud."
 
 msgid "Requires existing BlueZ system pairing. Data only, no HFP audio."
 msgstr "Потрібне сполучення існуючої системи BlueZ. Лише дані, без аудіо HFP."
@@ -5742,6 +5757,9 @@ msgstr "Лише екранне сповіщення"
 msgid "Show social media and communication icons"
 msgstr "Показувати піктограми соцмереж і зв’язку"
 
+msgid "Show successful synchronization notifications (errors are always shown)"
+msgstr "Сповіщати про успішну синхронізацію (помилки показуються завжди)"
+
 msgid "Show symbol in calendar"
 msgstr "Показувати символ у календарі"
 
@@ -6030,16 +6048,6 @@ msgstr "Система за умовчанням"
 
 msgid "System internet accounts"
 msgstr "Системні інтернет-облікові записи"
-
-#, python-format
-msgid ""
-"System internet accounts are not available on this system. Install the "
-"required components with:\n"
-"sudo apt install %s"
-msgstr ""
-"Системні інтернет-облікові записи недоступні в цій системі. Установіть "
-"необхідні компоненти командою:\n"
-"sudo apt install %s"
 
 msgid "System keyring and pause modes cannot be enabled yet."
 msgstr ""
@@ -7299,6 +7307,9 @@ msgstr "Цю гілку ще не підтверджено."
 msgid "This branch is not known."
 msgstr "Ця гілка невідома."
 
+msgid "This calendar does not support tasks (VTODO)."
+msgstr "Цей календар не підтримує завдання (VTODO)."
+
 msgid ""
 "This choice also determines how names appear on contact cards and under "
 "which letter they are filed in the index."
@@ -7707,6 +7718,9 @@ msgstr ""
 msgid "Use system keyring"
 msgstr "Використовувати системне сховище ключів"
 
+msgid "Use the DAV address provided by your service."
+msgstr "Використовуйте адресу DAV, надану вашим постачальником."
+
 msgid ""
 "Use the arrows to arrange groups and notebooks, or use the selection to move "
 "a notebook to another group."
@@ -7893,7 +7907,10 @@ msgstr "Температура повітря"
 msgid ""
 "Weather uses HTTPS first, then unencrypted HTTP if necessary. If wttr.in "
 "fails and a location is known, Open-Meteo is tried."
-msgstr "Погода спочатку запитується через HTTPS, а за потреби — через незашифрований HTTP. Якщо wttr.in недоступний і населений пункт відомий, виконується запит до Open-Meteo."
+msgstr ""
+"Погода спочатку запитується через HTTPS, а за потреби — через незашифрований "
+"HTTP. Якщо wttr.in недоступний і населений пункт відомий, виконується запит "
+"до Open-Meteo."
 
 msgid "Weather was not retrieved because no location is available."
 msgstr "Погоду не отримано, оскільки місце розташування недоступне."
@@ -8556,26 +8573,26 @@ msgstr[2] "… і ще %(count)s елементи, які також буде н
 msgid "＋ Add appointment"
 msgstr "＋ Додати зустріч"
 
-msgid "DAV account"
-msgstr "Обліковий запис DAV"
+#~ msgid ""
+#~ "Online account integration is not available on this system. Install it "
+#~ "with:  sudo apt install %(packages)s, then restart the application. You "
+#~ "can also import contacts and appointments without this integration using "
+#~ "“From this computer” above."
+#~ msgstr ""
+#~ "Інтеграція онлайн-облікових записів недоступна в цій системі. Установіть "
+#~ "її командою:  sudo apt install %(packages)s, а потім перезапустіть "
+#~ "програму. Контакти та зустрічі можна імпортувати й без цієї інтеграції за "
+#~ "допомогою «З цього комп’ютера» вище."
 
-msgid "Account type"
-msgstr "Тип облікового запису"
-
-msgid "Use the DAV address provided by your service."
-msgstr "Використовуйте адресу DAV, надану вашим постачальником."
-
-msgid "Only HTTPS. The password is stored securely on this computer."
-msgstr "Лише HTTPS. Пароль захищено зберігається на цьому комп’ютері."
-
-msgid "Requires a Nextcloud account."
-msgstr "Потрібен обліковий запис Nextcloud."
-
-msgid "This calendar does not support tasks (VTODO)."
-msgstr "Цей календар не підтримує завдання (VTODO)."
-
-msgid "Show successful synchronization notifications (errors are always shown)"
-msgstr "Сповіщати про успішну синхронізацію (помилки показуються завжди)"
+#, python-format
+#~ msgid ""
+#~ "System internet accounts are not available on this system. Install the "
+#~ "required components with:\n"
+#~ "sudo apt install %s"
+#~ msgstr ""
+#~ "Системні інтернет-облікові записи недоступні в цій системі. Установіть "
+#~ "необхідні компоненти командою:\n"
+#~ "sudo apt install %s"
 
 #~ msgid "This paired phone is my own device"
 #~ msgstr "Цей спарений телефон є моїм власним пристроєм"

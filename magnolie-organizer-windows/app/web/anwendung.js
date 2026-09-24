@@ -4267,12 +4267,12 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     }
   }
 
-  function mitMutationsSnapshot(reason, aktion) {
+  function mitMutationsSnapshot(reason, aktion, beiFehler = () => {}) {
     if (!Bruecke.vorhanden) { aktion(); return; }
     const token = uid();
-    mutationsAktionen.set(token, aktion);
+    mutationsAktionen.set(token, { aktion, beiFehler });
     nachDauerhaftemSpeichern(() => Bruecke.sende({ cmd: "mutations_snapshot",
-      reason: reason, token: token }), () => mutationsAktionen.delete(token));
+      reason: reason, token: token }), fehler => { mutationsAktionen.delete(token); beiFehler(fehler); });
   }
 
   function raeumeTombstonesAuf() {
@@ -5441,6 +5441,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
             quelle: S(k.baumKontakt.quelle).slice(0, 128),
             geaendert: Math.max(0, N(k.baumKontakt.geaendert)),
             hash: S(k.baumKontakt.hash),
+            entscheidungHash: /^[a-f0-9]{64}$/.test(S(k.baumKontakt.entscheidungHash)) ? S(k.baumKontakt.entscheidungHash) : "",
             fernStand: Q(k.baumKontakt.fernStand),
             staende: Array.isArray(k.baumKontakt.staende)
               ? k.baumKontakt.staende.map(S).filter(Boolean).slice(-100) : [],
@@ -20046,6 +20047,15 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     }
   }
 
+  function baumKontaktNurErgaenzungen(ziel, karte) {
+    const bisher = JSON.parse(baumKontaktVergleich(ziel)), eingang = JSON.parse(baumKontaktVergleich(karte));
+    for (const feld of ["telefone", "emails"]) {
+      if (!bisher[feld].every(wert => eingang[feld].includes(wert))) return false;
+      bisher[feld] = eingang[feld];
+    }
+    return kanonischerEntwurf(bisher) === kanonischerEntwurf(eingang);
+  }
+
   function baumKontaktPruefung(stueck, index = null) {
     const karte = baumKontaktKarte(stueck);
     if (!karte || (!karte.vorname && !karte.nachname && !karte.anzeigename && !karte.firma &&
@@ -20065,14 +20075,81 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       (key.startsWith("e:") || key.startsWith("t:")) && index.get(key)?.has(ziel));
     if (starkeKennung && baumKontaktVergleich(ziel) === baumKontaktVergleich(karte) &&
         (!meta || art !== "kontakt_sync" || meta.freigabeId === inhalt.freigabeId)) return { art: "gleich", ziel };
+    if (starkeKennung && baumKontaktNurErgaenzungen(ziel, karte) &&
+        (!meta || art !== "kontakt_sync" || meta.freigabeId === inhalt.freigabeId)) return { art: "ergaenzung", ziel };
     return { art: "konflikt", kandidaten };
   }
 
   let baumKontaktSammelLaeuft = false;
+  function mitBaumKontaktEntwurf(daten, aktion) {
+    // Only synchronous domain operations belong here. Never retain the draft
+    // as the global model while awaiting a dialog, hash or native response.
+    const bestand = DATEN;
+    try { DATEN = daten; return aktion(); }
+    finally { DATEN = bestand; }
+  }
+
+  function baumKontaktBereiche(daten) {
+    return kanonischerEntwurf({ kontakte: daten.kontakte, jahrestage: daten.jahrestage });
+  }
+
+  function neuerBaumKontaktLauf() {
+    return { bestand: DATEN, basis: baumKontaktBereiche(DATEN),
+      daten: { ...DATEN, kontakte: kopie(DATEN.kontakte), jahrestage: kopie(DATEN.jahrestage) },
+      angenommen: [], offen: [], nachrichten: new Map(), beendet: false };
+  }
+
+  async function baumKontaktPlan(stueck, index = null, daten = DATEN) {
+    const plan = mitBaumKontaktEntwurf(daten, () => baumKontaktPruefung(stueck, index)), inhalt = stueck.inhalt || {};
+    const ziel = plan.kandidaten?.length === 1 ? plan.kandidaten[0] : null;
+    const meta = ziel?.baumKontakt;
+    if (plan.art === "konflikt" && meta?.entscheidungHash && meta.freigabeId === inhalt.freigabeId &&
+        (meta.partner || []).includes(stueck.von)) {
+      const hash = await personalSyncHash(baumKontaktVergleich(baumKontaktKarte(stueck)));
+      if (daten.kontakte.includes(ziel) && ziel.baumKontakt === meta && meta.entscheidungHash === hash)
+        return { art: "gleich", ziel, behalten: true };
+    }
+    return plan;
+  }
+
+  async function beendeBaumKontaktLauf(lauf) {
+    const gueltig = () => !lauf.beendet && DATEN === lauf.bestand && !gesperrt &&
+      baumKontaktBereiche(DATEN) === lauf.basis && lauf.angenommen.every(id => {
+        const stueck = (baumStand?.eingang || []).find(s => s.id === id);
+        return stueck && lauf.nachrichten.get(id) === kanonischerEntwurf(stueck) &&
+          (baumStand.partner || []).some(p => p.kennung === stueck.von && p.bestaetigt);
+      });
+    if (!gueltig() || lauf.offen.length) throw new Error(_("Conflict"));
+    if (!lauf.angenommen.length) { lauf.beendet = true; return false; }
+    const inhalt = daten => kanonischerEntwurf({
+      kontakte: daten.kontakte.map(k => [k.id, baumKontaktVergleich(k)]),
+      jahrestage: daten.jahrestage.map(j => [j.id, j.kontaktId, j.name, j.typ, j.datum, j.notiz || ""])
+    });
+    const aenderung = inhalt(lauf.bestand) !== inhalt(lauf.daten);
+    return await new Promise((resolve, reject) => {
+      const anwenden = () => {
+        if (!gueltig()) { reject(new Error(_("Conflict"))); return; }
+        lauf.beendet = true;
+        DATEN.kontakte = lauf.daten.kontakte; DATEN.jahrestage = lauf.daten.jahrestage;
+        planeSpeichern();
+        zeichneAlles();
+        nachDauerhaftemSpeichern(() => {
+          if (DATEN !== lauf.bestand || gesperrt) { resolve(false); return; }
+          const ids = [...new Set(lauf.angenommen)], erledigt = new Set(ids);
+          if (baumStand) baumStand.eingang = (baumStand.eingang || []).filter(s => !erledigt.has(s.id));
+          for (let i = 0; i < ids.length; i += 250) Bruecke.sende({ cmd: "baum_eingang_geleert", ids: ids.slice(i, i + 250) });
+          resolve(true);
+        }, () => resolve(false));
+      };
+      if (aenderung) mitMutationsSnapshot("pre-sync", anwenden, reject); else anwenden();
+    });
+  }
+
   async function uebernehmeBaumKontakte(ids = null) {
     if (baumKontaktSammelLaeuft || gesperrt || !baumStand) return null;
-    const bestand = DATEN, angenommen = [], ergebnis = { angenommen: 0, konflikte: 0, ungueltig: 0, gespeichert: false };
-    let index = new Map(); DATEN.kontakte.forEach(k => baumKontaktIndexiere(index, k));
+    const lauf = neuerBaumKontaktLauf(), bestand = DATEN;
+    const ergebnis = { angenommen: 0, konflikte: 0, ungueltig: 0, gespeichert: false, lauf };
+    let index = new Map(); lauf.daten.kontakte.forEach(k => baumKontaktIndexiere(index, k));
     const auswahl = ids ? new Set(ids) : null;
     const angebote = (baumStand.eingang || []).filter(s => (!auswahl || auswahl.has(s.id)) &&
       ["kontakt", "kontakt_sync"].includes(s.inhalt?.art || s.art));
@@ -20084,33 +20161,26 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       for (let nummer = 0; nummer < angebote.length; nummer++) {
         if (nummer > 0 && nummer % 25 === 0) {
           await new Promise(resolve => setTimeout(resolve, 0));
-          index = new Map(); DATEN.kontakte.forEach(k => baumKontaktIndexiere(index, k));
+          index = new Map(); lauf.daten.kontakte.forEach(k => baumKontaktIndexiere(index, k));
         }
         if (DATEN !== bestand || gesperrt) return ergebnis;
         const stueck = angebote[nummer];
         if (!(baumStand?.partner || []).some(p => p.kennung === stueck.von && p.bestaetigt)) continue;
-        const plan = baumKontaktPruefung(stueck, index);
-        if (plan.art === "konflikt") { ergebnis.konflikte++; continue; }
+        lauf.nachrichten.set(stueck.id, kanonischerEntwurf(stueck));
+        const plan = await baumKontaktPlan(stueck, index, lauf.daten);
+        if (DATEN !== bestand || gesperrt) return ergebnis;
+        if (plan.art === "konflikt") { ergebnis.konflikte++; lauf.offen.push(stueck.id); continue; }
         if (plan.art === "ungueltig") { ergebnis.ungueltig++; continue; }
-        const vorher = DATEN.kontakte.length;
-        if (!uebernehmeBaumAngebot(stueck, {}, { aufschieben: true, kontakt: plan.ziel })) {
+        const vorher = lauf.daten.kontakte.length;
+        if (!mitBaumKontaktEntwurf(lauf.daten, () => uebernehmeBaumAngebot(stueck, {}, { aufschieben: true, kontakt: plan.ziel, behalten: plan.behalten,
+            ergaenzen: plan.art === "ergaenzung" }))) {
           ergebnis.ungueltig++; continue;
         }
-        angenommen.push(stueck.id); ergebnis.angenommen++;
+        lauf.angenommen.push(stueck.id); ergebnis.angenommen++;
         if (plan.ziel) baumKontaktIndexiere(index, plan.ziel);
-        for (const kontakt of DATEN.kontakte.slice(vorher)) baumKontaktIndexiere(index, kontakt);
+        for (const kontakt of lauf.daten.kontakte.slice(vorher)) baumKontaktIndexiere(index, kontakt);
       }
-      if (angenommen.length && DATEN === bestand && !gesperrt) {
-        zeichneAlles();
-        ergebnis.gespeichert = await new Promise(resolve => nachDauerhaftemSpeichern(() => {
-          if (DATEN !== bestand || gesperrt) { resolve(false); return; }
-          const erledigt = new Set(angenommen);
-          if (baumStand) baumStand.eingang = (baumStand.eingang || []).filter(s => !erledigt.has(s.id));
-          for (let i = 0; i < angenommen.length; i += 250)
-            Bruecke.sende({ cmd: "baum_eingang_geleert", ids: angenommen.slice(i, i + 250) });
-          resolve(true);
-        }, () => resolve(false)));
-      }
+      if (!lauf.offen.length && DATEN === bestand && !gesperrt) ergebnis.gespeichert = await beendeBaumKontaktLauf(lauf);
       return ergebnis;
     } finally { baumKontaktSammelLaeuft = false; baueEinstellungen(); }
   }
@@ -20118,13 +20188,277 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
   function starteBaumKontaktUebernahme(ids) {
     if (baumKontaktSammelLaeuft || gesperrt) return;
     const bestand = DATEN;
-    mitMutationsSnapshot("pre-contact-import", () => {
+    const aktion = () => {
       if (DATEN !== bestand || gesperrt) return;
       uebernehmeBaumKontakte(ids).then(ergebnis => {
-        if (ergebnis?.konflikte) zettel(_("Conflict") + ": " + ergebnis.konflikte);
+        if (ergebnis?.konflikte) {
+          const offen = (baumStand?.eingang || []).filter(s => ergebnis.lauf.offen.includes(s.id));
+          if (offen.length) oeffneBaumKontakt(offen[0], offen.slice(1).map(s => s.id), ergebnis.lauf).catch(error => zettel(String(error.message || error)));
+        }
         if (ergebnis?.ungueltig) zettel(_("The offered entry is incomplete.") + " (" + ergebnis.ungueltig + ")");
       }).catch(error => zettel(String(error.message || error)));
-    });
+    };
+    aktion();
+  }
+
+  const BAUM_KONTAKT_FELDER = ["vorname", "nachname", "anzeigename", "firma", "geburtstag", "jubilaeum", "notiz", "foto"];
+  const BAUM_KONTAKT_LISTEN = {
+    telefone: { lesen: telefonListe, setzen: setzeTelefonListe },
+    emailEintraege: { lesen: emailEintragListe, setzen: setzeEmailListe },
+    anschriften: { lesen: anschriftListe, setzen: setzeAnschriftListe }
+  };
+
+  function baumKontaktEntwurf(ziel, karte, auswahl = {}, modus = "merge") {
+    const entwurf = kopie(ziel);
+    if (modus === "keep") return entwurf;
+    for (const feld of BAUM_KONTAKT_FELDER) {
+      // An absent provider date is not a request to delete a known birthday.
+      if (["geburtstag", "jubilaeum"].includes(feld) && !karte[feld]) continue;
+      if (modus === "replace" || auswahl.felder?.[feld] === "incoming" ||
+          (!String(ziel[feld] || "") && auswahl.felder?.[feld] !== "keep")) entwurf[feld] = karte[feld] || "";
+    }
+    entwurf.geburtstagJahrUnbekannt = gueltigesTeildatum(entwurf.geburtstag);
+    for (const [feld, regel] of Object.entries(BAUM_KONTAKT_LISTEN)) {
+      const alt = regel.lesen(ziel), neu = regel.lesen(karte);
+      if (modus === "replace" || auswahl.leeren?.[feld]) { regel.setzen(entwurf, neu); continue; }
+      const werte = kopie(alt), ersetzt = new Set();
+      neu.forEach((eintrag, i) => {
+        if (alt.some(wert => kanonischerEntwurf(wert) === kanonischerEntwurf(eintrag))) return;
+        const entscheidung = auswahl.listen?.[feld]?.[i] || "add";
+        if (entscheidung === "keep") return;
+        if (entscheidung === "add") { werte.push(kopie(eintrag)); return; }
+        const index = Number(String(entscheidung).replace(/^replace:/, ""));
+        if (!String(entscheidung).startsWith("replace:") || !Number.isInteger(index) || index < 0 ||
+            index >= alt.length || ersetzt.has(index)) throw new Error(_("Conflict"));
+        ersetzt.add(index); werte[index] = kopie(eintrag);
+      });
+      regel.setzen(entwurf, werte);
+    }
+    if (modus === "replace" && karte.vcardRoundtrip?.length) entwurf.vcardRoundtrip =
+      (ziel.vcardRoundtrip || []).filter(s => !/^(?:[A-Za-z0-9-]+\.)?(?:N|FN)[;:]/i.test(s)).concat(karte.vcardRoundtrip);
+    return entwurf;
+  }
+
+  async function entscheideBaumKontakt(stueck, zielId, auswahl, modus, revision, bestand, lauf) {
+    if (!lauf || lauf.beendet || baumKontaktSammelLaeuft || gesperrt || DATEN !== bestand) throw new Error(_("Conflict"));
+    const daten = lauf.daten;
+    const ziel = daten.kontakte.find(k => k.id === zielId), inhalt = stueck.inhalt || {};
+    const art = inhalt.art || stueck.art, karte = baumKontaktKarte(stueck);
+    if (!karte || !["merge", "replace", "keep", "new"].includes(modus) ||
+        !(baumStand?.partner || []).some(p => p.kennung === stueck.von && p.bestaetigt)) throw new Error(_("Conflict"));
+    if (modus !== "new" && (!ziel || art === "kontakt_sync" && ziel.baumKontakt &&
+        ziel.baumKontakt.freigabeId !== inhalt.freigabeId)) throw new Error(_("Conflict"));
+    const vorher = ziel ? kanonischerEntwurf(ziel) : "";
+    if (revision !== null && revision !== vorher) throw new Error(_("Conflict"));
+    const entwurf = modus === "new" ? null : baumKontaktEntwurf(ziel, karte, auswahl, modus);
+    baumKontaktSammelLaeuft = true;
+    try {
+      const hash = await personalSyncHash(baumKontaktVergleich(karte));
+      if (DATEN !== bestand || gesperrt || ziel && (!daten.kontakte.includes(ziel) || kanonischerEntwurf(ziel) !== vorher) ||
+          !(baumStand?.partner || []).some(p => p.kennung === stueck.von && p.bestaetigt)) throw new Error(_("Conflict"));
+      if (modus === "new") {
+        const alteBindungen = daten.kontakte.filter(k => art === "kontakt_sync" && k.baumKontakt?.freigabeId === inhalt.freigabeId &&
+          (k.baumKontakt.partner || []).includes(stueck.von));
+        if (!mitBaumKontaktEntwurf(daten, () => uebernehmeBaumAngebot(stueck, {}, { aufschieben: true, neu: true }))) throw new Error(_("The offered entry is incomplete."));
+        for (const kontakt of alteBindungen) {
+          kontakt.baumKontakt.partner = kontakt.baumKontakt.partner.filter(p => p !== stueck.von);
+          if (!kontakt.baumKontakt.partner.length) kontakt.baumKontakt = null;
+        }
+      } else {
+        for (const feld of BAUM_KONTAKT_FELDER.concat(["geburtstagJahrUnbekannt", "vcardRoundtrip"]))
+          if (entwurf[feld] !== undefined) ziel[feld] = kopie(entwurf[feld]);
+        for (const regel of Object.values(BAUM_KONTAKT_LISTEN)) regel.setzen(ziel, regel.lesen(entwurf));
+        ziel.geaendert = Date.now();
+        if (art === "kontakt_sync") {
+          const meta = ziel.baumKontakt || {};
+          const quelle = String(inhalt.quelle || stueck.von || ""), version = Number(inhalt.version);
+          ziel.baumKontakt = { ...meta, freigabeId: inhalt.freigabeId, version: Math.max(meta.version || 0, version),
+            quelle, hash: "", entscheidungHash: hash, geaendert: Number(inhalt.geaendert) || 0,
+            fernStand: Object.fromEntries(["vorname", "nachname", "anzeigename", "firma", "geburtstag", "jubilaeum", "vcardName"]
+              .filter(f => inhalt.kontakt[f] !== undefined).map(f => [f, kopie(inhalt.kontakt[f])])),
+            partner: Array.from(new Set((meta.partner || []).concat(stueck.von))),
+            staende: Array.from(new Set((meta.staende || []).concat(quelle + "\u0000" + version))).slice(-100) };
+        }
+        mitBaumKontaktEntwurf(daten, () => { verknuepfeKontaktGeburtstag(ziel); verknuepfeKontaktJubilaeum(ziel); });
+      }
+      return true;
+    } finally { baumKontaktSammelLaeuft = false; }
+  }
+
+  function baumKontaktAuswahlFuerRest(alt, neu, auswahl, ziel, karte) {
+    const uebertragen = { felder: kopie(auswahl.felder || {}), leeren: kopie(auswahl.leeren || {}), listen: {} };
+    const rolle = e => kanonischerText(e.label || telefonArt(e) || "");
+    for (const [feld, regel] of Object.entries(BAUM_KONTAKT_LISTEN)) {
+      const vorher = regel.lesen(alt), incoming = regel.lesen(neu), bestand = regel.lesen(ziel), andere = regel.lesen(karte);
+      if (uebertragen.leeren[feld]) continue;
+      const neuIndizes = liste => liste.map((e, i) => [e, i]);
+      const erste = neuIndizes(incoming).filter(([e]) => !vorher.some(v => kanonischerEntwurf(v) === kanonischerEntwurf(e)));
+      const weitere = neuIndizes(andere).filter(([e]) => !bestand.some(v => kanonischerEntwurf(v) === kanonischerEntwurf(e)));
+      if (!erste.length && weitere.length) return null;
+      const entscheidungen = erste.map(([, i]) => auswahl.listen?.[feld]?.[i] || "add");
+      const einheitlich = entscheidungen.length && entscheidungen.every(e => e === entscheidungen[0]) && ["keep", "add"].includes(entscheidungen[0]);
+      uebertragen.listen[feld] = {};
+      const verwendeteZiele = new Set();
+      for (const [eintrag, index] of weitere) {
+        if (einheitlich) { uebertragen.listen[feld][index] = entscheidungen[0]; continue; }
+        const passend = erste.filter(([e]) => rolle(e) === rolle(eintrag));
+        if (passend.length !== 1) return null;
+        const aktion = auswahl.listen?.[feld]?.[passend[0][1]] || "add";
+        if (!aktion.startsWith("replace:")) { uebertragen.listen[feld][index] = aktion; continue; }
+        const ersetzt = vorher[Number(aktion.slice(8))];
+        if (!ersetzt) return null;
+        const ziele = bestand.map((e, i) => [e, i]).filter(([e]) => rolle(e) === rolle(ersetzt));
+        if (ziele.length !== 1 || verwendeteZiele.has(ziele[0][1])) return null;
+        verwendeteZiele.add(ziele[0][1]);
+        uebertragen.listen[feld][index] = "replace:" + ziele[0][1];
+      }
+    }
+    return uebertragen;
+  }
+
+  async function baumKontaktKonflikteAnwenden(stueck, zielId, auswahl, modus, revision, bestand, rest, lauf) {
+    const erstesZiel = modus === "merge" ? kopie(lauf.daten.kontakte.find(k => k.id === zielId)) : null;
+    const ersteKarte = modus === "merge" ? baumKontaktKarte(stueck) : null;
+    for (const [nummer, id] of [stueck.id, ...rest].entries()) {
+      if (DATEN !== bestand || gesperrt || lauf.beendet) throw new Error(_("Conflict"));
+      const angebot = nummer === 0 ? stueck : (baumStand?.eingang || []).find(s => s.id === id);
+      if (!angebot || !(baumStand.partner || []).some(p => p.kennung === angebot.von && p.bestaetigt)) throw new Error(_("Conflict"));
+      if (modus !== "skip") {
+        const plan = await baumKontaktPlan(angebot, null, lauf.daten);
+        if (modus === "auto") {
+          if (plan.art === "konflikt" || plan.art === "ungueltig") continue;
+          mitBaumKontaktEntwurf(lauf.daten, () => uebernehmeBaumAngebot(angebot, {}, {
+            aufschieben: true, kontakt: plan.ziel, behalten: plan.behalten, ergaenzen: plan.art === "ergaenzung" }));
+        } else {
+          const ziel = nummer === 0 ? lauf.daten.kontakte.find(k => k.id === zielId) :
+            plan.ziel || (plan.kandidaten?.length === 1 ? plan.kandidaten[0] : null);
+          if (nummer > 0 && modus !== "new" && (!ziel || ziel.baumKontakt && ziel.baumKontakt.freigabeId !== angebot.inhalt?.freigabeId)) continue;
+          const weitereAuswahl = nummer > 0 && modus === "merge" ? baumKontaktAuswahlFuerRest(erstesZiel, ersteKarte, auswahl, ziel, baumKontaktKarte(angebot)) : {};
+          if (weitereAuswahl === null) continue;
+          await entscheideBaumKontakt(angebot, ziel?.id, nummer === 0 ? auswahl : weitereAuswahl, modus,
+            nummer === 0 ? revision : ziel ? kanonischerEntwurf(ziel) : null, bestand, lauf);
+        }
+      }
+      lauf.angenommen.push(id); lauf.offen = lauf.offen.filter(wert => wert !== id);
+      if (nummer % 25 === 24) await new Promise(resolve => setTimeout(resolve, 0));
+    }
+    if (!lauf.offen.length) {
+      baumKontaktSammelLaeuft = true;
+      try { await beendeBaumKontaktLauf(lauf); }
+      finally { baumKontaktSammelLaeuft = false; baueEinstellungen(); }
+    }
+    return lauf.offen.slice();
+  }
+
+  async function oeffneBaumKontakt(stueck, rest = [], lauf = null) {
+    if (!lauf) {
+      lauf = neuerBaumKontaktLauf(); lauf.offen = [stueck.id, ...rest];
+      for (const nachricht of [stueck, ...(baumStand?.eingang || []).filter(s => rest.includes(s.id))])
+        lauf.nachrichten.set(nachricht.id, kanonischerEntwurf(nachricht));
+    }
+    const bestand = lauf.bestand, plan = await baumKontaktPlan(stueck, null, lauf.daten);
+    if (DATEN !== bestand || gesperrt || baumKontaktSammelLaeuft) return;
+    if (plan.art !== "konflikt") {
+      const offen = await baumKontaktKonflikteAnwenden(stueck, null, {}, "auto", null, bestand, [], lauf);
+      const naechstes = (baumStand?.eingang || []).find(s => offen.includes(s.id));
+      if (naechstes && naechstes.id !== stueck.id) await oeffneBaumKontakt(naechstes, offen.filter(id => id !== naechstes.id), lauf);
+      return;
+    }
+    if (document.querySelector(".baum-kontakt-konflikt")) return;
+    const karte = baumKontaktKarte(stueck), schleier = el("div", "eingabe-schleier baum-kontakt-konflikt");
+    const dialog = el("section", "eingabe-dialog"), felder = el("div"), fehler = el("p", "einst-warnung");
+    dialog.setAttribute("role", "dialog"); dialog.setAttribute("aria-modal", "true");
+    const schliessen = () => { beendeModal(schleier); schleier.remove(); };
+    const abbrechen = () => { lauf.beendet = true; schliessen(); };
+    const zielWahl = auswahlFeld(plan.kandidaten.map(k => [k.id, kontaktName(k) + " · " +
+      (emailListe(k)[0] || telefonListe(k)[0]?.wert || k.firma || "")]), plan.kandidaten[0].id);
+    zielWahl.dataset.kontaktZiel = "true";
+    let ziel, revision, auswahl;
+    const alle = document.createElement("input"); alle.type = "checkbox"; alle.dataset.kontaktRest = "true";
+    const umfang = () => {
+      alle.disabled = !rest.length;
+      if (alle.disabled) alle.checked = false;
+    };
+    const titel = { vorname: _("First name"), nachname: _("Last name"), anzeigename: _("Name"), firma: _("Company"),
+      geburtstag: _("Birthday"), jubilaeum: _("Anniversary"), notiz: _("Note"), foto: _("Photo"),
+      telefone: _("Phone numbers"), emailEintraege: _("Email addresses"), anschriften: _("Address") };
+    const beschreibe = wert => typeof wert === "string" ? wert :
+      wert.wert || [wert.strasse, wert.plz, wert.ort, wert.region, wert.land].filter(Boolean).join(", ");
+    function zeichnen() {
+      ziel = lauf.daten.kontakte.find(k => k.id === zielWahl.value); revision = kanonischerEntwurf(ziel);
+      fehler.textContent = "";
+      auswahl = { felder: {}, listen: {}, leeren: {} }; felder.textContent = "";
+      for (const feld of BAUM_KONTAKT_FELDER) {
+        if (String(ziel[feld] || "") === String(karte[feld] || "")) continue;
+        if (["geburtstag", "jubilaeum"].includes(feld) && !karte[feld]) continue;
+        const text = wert => feld === "foto" ? (wert ? _("Photo available") : _("No photo selected")) : String(wert || "—");
+        const wahl = auswahlFeld([["keep", _("Keep existing") + ": " + text(ziel[feld])],
+          ["incoming", _("Incoming") + ": " + text(karte[feld])]], ziel[feld] ? "keep" : "incoming");
+        wahl.dataset.kontaktFeld = feld; auswahl.felder[feld] = wahl.value;
+        wahl.addEventListener("change", () => { auswahl.felder[feld] = wahl.value; umfang(); });
+        felder.append(formZeile(titel[feld], wahl));
+        if (feld === "foto") for (const [name, foto] of [[_("Saved"), ziel.foto], [_("Incoming"), karte.foto]]) {
+          if (foto) { const bild = document.createElement("img"); bild.src = foto; bild.alt = name;
+            bild.style.maxWidth = "96px"; bild.style.maxHeight = "96px"; felder.append(bild); }
+        }
+      }
+      for (const [feld, regel] of Object.entries(BAUM_KONTAKT_LISTEN)) {
+        const alt = regel.lesen(ziel), neu = regel.lesen(karte); auswahl.listen[feld] = {};
+        if (alt.length && !neu.length) {
+          const wahl = auswahlFeld([["keep", _("Keep existing") + ": " + alt.map(beschreibe).join(", ")],
+            ["incoming", _("Incoming") + ": —"]], "keep");
+          wahl.dataset.kontaktListe = feld;
+          wahl.addEventListener("change", () => { auswahl.leeren[feld] = wahl.value === "incoming"; umfang(); });
+          felder.append(formZeile(titel[feld], wahl));
+        }
+        neu.forEach((eintrag, i) => {
+          if (alt.some(wert => kanonischerEntwurf(wert) === kanonischerEntwurf(eintrag))) return;
+          const wahl = auswahlFeld([["keep", _("Keep existing")], ["add", _("Add")],
+            ...alt.map((wert, index) => ["replace:" + index, _("Replace completely") + ": " + beschreibe(wert)])], "add");
+          wahl.dataset.kontaktListe = feld; wahl.dataset.kontaktIndex = String(i);
+          auswahl.listen[feld][i] = "add";
+          wahl.addEventListener("change", () => { auswahl.listen[feld][i] = wahl.value; umfang(); });
+          felder.append(formZeile(titel[feld] + " · " + beschreibe(eintrag), wahl));
+        });
+      }
+      umfang();
+    }
+    zielWahl.addEventListener("change", zeichnen); zeichnen();
+    const knoepfe = el("div", "dialog-knoepfe");
+    for (const [modus, label] of [["skip", _("Reject")], ["keep", _("Keep existing")], ["merge", _("Merge")],
+      ["replace", _("Replace completely")], ["new", _("Create contact")]]) {
+      const button = knopf(label, modus === "merge" ? "hauptknopf" : "", () => {
+        try {
+          if (!["new", "skip"].includes(modus)) {
+            if ((stueck.inhalt?.art || stueck.art) === "kontakt_sync" && ziel.baumKontakt &&
+                ziel.baumKontakt.freigabeId !== stueck.inhalt.freigabeId) throw new Error(_("Conflict"));
+            baumKontaktEntwurf(ziel, karte, auswahl, modus);
+          }
+        }
+        catch (error) { fehler.textContent = String(error.message || error); return; }
+        const id = ziel.id, auswahlStand = kopie(auswahl), revisionStand = revision;
+        const weitere = alle.checked ? rest.slice() : [];
+        schliessen();
+        const aktion = () => {
+          if (DATEN !== bestand || gesperrt) return;
+          baumKontaktKonflikteAnwenden(stueck, id, auswahlStand, modus, revisionStand, bestand, weitere, lauf).then(offen => {
+            const verbleibend = alle.checked ? offen : rest;
+            const naechstes = (baumStand?.eingang || []).find(s => verbleibend.includes(s.id));
+            if (naechstes) oeffneBaumKontakt(naechstes, verbleibend.filter(wert => wert !== naechstes.id), lauf).catch(error => zettel(String(error.message || error)));
+          }).catch(error => zettel(String(error.message || error)));
+        };
+        aktion();
+      });
+      button.dataset.kontaktEntscheidung = modus; knoepfe.append(button);
+    }
+    knoepfe.append(knopf(_("Cancel"), "", abbrechen));
+    const restZeile = el("label", "hak");
+    restZeile.append(alle, document.createTextNode(" " + _("Apply to the remaining conflicts") + " (" + rest.length + ")"));
+    dialog.append(el("h2", null, _("Conflict") + " · " + kontaktName(karte)),
+      el("p", null, _("Contacts with different information were found. How would you like to proceed?")),
+      formZeile(_("Address"), zielWahl), felder, restZeile, fehler, knoepfe);
+    schleier.append(dialog); document.body.append(schleier);
+    registriereModal(schleier, dialog, { anfang: zielWahl, schliessen: abbrechen });
   }
 
   function uebernehmeBaumAngebot(stueck, fehler = {}, optionen = {}) {
@@ -20160,7 +20494,15 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       if (!termin || !termin.titel) return false;
       DATEN.termine.push(termin);
     } else if (art === "kontakt") {
-      if (optionen.kontakt && DATEN.kontakte.includes(optionen.kontakt)) return true;
+      if (optionen.kontakt && DATEN.kontakte.includes(optionen.kontakt)) {
+        if (optionen.ergaenzen) {
+          const karte = baumKontaktKarte(stueck), ziel = optionen.kontakt;
+          setzeTelefonListe(ziel, telefonListe(ziel).concat(telefonListe(karte)));
+          setzeEmailListe(ziel, emailEintragListe(ziel).concat(emailEintragListe(karte)));
+          ziel.geaendert = Date.now();
+        }
+        return true;
+      }
       const kontakt = normalisiere({ kontakte: [Object.assign({}, inhalt,
         { id: uid(), uid: syncUid(), sync: false, foto: "" })] }).kontakte[0];
       if (!kontakt || (!kontakt.nachname && !kontakt.vorname && !kontakt.anzeigename && !kontakt.firma)) return false;
@@ -20173,7 +20515,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       const version = Number(inhalt.version) || 0;
       const stand = quelle + "\u0000" + version;
       if (!freigabeId || !version || !inhalt.kontakt) return false;
-      let kontakt = DATEN.kontakte.find((k) => k.baumKontakt &&
+      let kontakt = optionen.neu ? null : DATEN.kontakte.find((k) => k.baumKontakt &&
         k.baumKontakt.freigabeId === freigabeId && (k.baumKontakt.partner || []).includes(stueck.von));
       if (!kontakt && optionen.kontakt && DATEN.kontakte.includes(optionen.kontakt)) {
         kontakt = optionen.kontakt;
@@ -20181,6 +20523,11 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
         kontakt.baumKontakt.partner = Array.from(new Set((kontakt.baumKontakt.partner || []).concat(stueck.von)));
       }
       if (kontakt && (kontakt.baumKontakt.staende || []).includes(stand)) return true;
+      if (kontakt && optionen.behalten) {
+        kontakt.baumKontakt.version = Math.max(kontakt.baumKontakt.version || 0, version);
+        kontakt.baumKontakt.staende = Array.from(new Set((kontakt.baumKontakt.staende || []).concat(stand))).slice(-100);
+        return true;
+      }
       const fern = { ...inhalt.kontakt,
         geburtstag: kanonischesGeburtsdatum(String(inhalt.kontakt.geburtstag || "")) };
       if (kontakt) {
@@ -20578,8 +20925,8 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
         const annehmen = istNotiz ? _("Accept and remember") :
           (istLoeschung ? _("Delete") : _("Accept"));
         zeile.append(knopf(annehmen, "klein", () => {
-          if (["kontakt", "kontakt_sync"].includes(angebotArt) && baumKontaktPruefung(stueck).art !== "konflikt") {
-            starteBaumKontaktUebernahme([stueck.id]); return;
+          if (["kontakt", "kontakt_sync"].includes(angebotArt)) {
+            oeffneBaumKontakt(stueck).catch(error => zettel(String(error.message || error))); return;
           }
           const beschreibung = baumAngebotBeschreibung(stueck);
           const frageText = istLoeschung
@@ -25400,12 +25747,13 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     },
     mutationsSnapshot(nutzlast) {
       const token = String((nutzlast || {}).token || "");
-      const aktion = mutationsAktionen.get(token); mutationsAktionen.delete(token);
+      const eintrag = mutationsAktionen.get(token); mutationsAktionen.delete(token);
       if (!(nutzlast || {}).ok) {
         zettel(nutzlast.fehler || _("The required recovery snapshot could not be created."));
+        eintrag?.beiFehler(new Error(nutzlast.fehler || _("The required recovery snapshot could not be created.")));
         return;
       }
-      if (aktion) aktion();
+      if (eintrag) eintrag.aktion();
     },
     sicherungAusgewaehlt(nutzlast) {
       zeigeSicherungsdialog(nutzlast);
@@ -26186,6 +26534,9 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     uebernehmeBaumAngebot: uebernehmeBaumAngebot,
     baumKontaktPruefung: baumKontaktPruefung,
     uebernehmeBaumKontakte: uebernehmeBaumKontakte,
+    baumKontaktEntwurf: baumKontaktEntwurf,
+    entscheideBaumKontakt: entscheideBaumKontakt,
+    oeffneBaumKontakt: oeffneBaumKontakt,
     zeigeKontaktImportAngebot: zeigeKontaktImportAngebot,
     mergeJahrestage: mergeJahrestage,
     mergeAufgaben: mergeAufgaben,

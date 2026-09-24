@@ -48,21 +48,38 @@ async function check(web) {
     for (const changed of [
       { nachname: "Married name" },
       { emailEintraege: [{ wert: "new@example.test", art: "HOME" }] },
-      { telefone: [{ wert: "+49301234567", art: "CELL" }] },
       { anschriften: [{ strasse: "New street", plz: "12345", ort: "Town", art: "HOME" }] }
     ]) assert.equal(T.baumKontaktPruefung(offer("changed", changed)).art, "konflikt");
+    assert.equal(T.baumKontaktPruefung(offer("added-phone", { telefone: [{ wert: "+49301234567", art: "CELL" }] })).art, "ergaenzung");
+    assert.equal(T.baumKontaktPruefung(offer("added-mail", { emailEintraege: [
+      { wert: "mia@example.test", art: "HOME" }, { wert: "new@example.test", art: "HOME" }
+    ] })).art, "ergaenzung");
     const same = offer("same"), changed = offer("changed", { nachname: "Married name" });
     const fresh = offer("fresh", { vorname: "Other", emailEintraege: [{ wert: "other@example.test", art: "HOME" }] });
     inbox([same, changed, fresh]);
+    const staged = await T.uebernehmeBaumKontakte();
+    assert.equal(staged.konflikte, 1); assert.equal(staged.gespeichert, false);
+    assert.equal(T.daten().kontakte.length, 1, "mixed run wrote new contacts before reviewing its conflicts");
+    assert.equal(receipts().length, 0);
+    staged.lauf.beendet = true;
+    inbox([same, fresh]);
     autoSave = false;
     const pending = T.uebernehmeBaumKontakte();
+    const flushed = new Set();
+    let write;
+    for (let i = 0; i < 1000 && !write; i++) {
+      for (const m of messages.filter(m => m.cmd === "speichern" && !flushed.has(m.id))) {
+        if (JSON.parse(m.text).kontakte.length === 2) { write = m; break; }
+        flushed.add(m.id); w.App.gespeichert({ id: m.id, ok: true });
+      }
+      if (!write) await pause();
+    }
     assert.equal(T.daten().kontakte.length, 2, "an identical incoming contact became a second card");
     assert.equal(receipts().length, 0, "inbox was acknowledged before durable saving");
-    const write = messages.filter(m => m.cmd === "speichern").at(-1);
     assert.ok(write, "batch did not request persistence");
     w.App.gespeichert({ id: write.id, ok: true });
     const result = await pending;
-    assert.equal(result.angenommen, 2); assert.equal(result.konflikte, 1); assert.equal(result.gespeichert, true);
+    assert.equal(result.angenommen, 2); assert.equal(result.konflikte, 0); assert.equal(result.gespeichert, true);
     assert.deepEqual(receipts().sort(), [same.id, fresh.id].sort());
     assert.equal(T.daten().kontakte.find(k => k.id === "existing").geburtstag, "--02-29");
     assert.equal(T.daten().kontakte.find(k => k.id === "existing").baumKontakt.freigabeId, "contact-same");
@@ -99,7 +116,7 @@ async function check(web) {
       [["a", "b"], ["c", "d"]], "indexed duplicate candidates changed order or repeated the same pair");
 
     await reset(); inbox([fresh]); saveOk = false;
-    const failed = await T.uebernehmeBaumKontakte();
+    const failed = await T.uebernehmeBaumKontakte().catch(() => ({ gespeichert: false }));
     assert.equal(failed.gespeichert, false); assert.equal(receipts().length, 0, "failed save removed the pending offer");
     saveOk = true;
     const retried = await T.uebernehmeBaumKontakte();
@@ -152,7 +169,7 @@ async function check(web) {
     const bulk = await T.uebernehmeBaumKontakte(); clearInterval(clock);
     assert.equal(bulk.angenommen, 500); assert.equal(bulk.konflikte, 0);
     assert.equal(T.daten().kontakte.length, 500); assert.equal(new Set(receipts()).size, 500);
-    assert.equal(messages.filter(m => m.cmd === "speichern").length, 1, "batch saved each contact separately");
+    assert.equal(messages.filter(m => m.cmd === "speichern" && JSON.parse(m.text).kontakte.length === 500).length, 1, "batch saved each contact separately");
     assert.ok(ticks > 0, "batch blocked the event loop for the whole import");
     assert.equal(w.document.querySelectorAll(".eingabe-schleier").length, 0, "conflict-free contacts opened confirmation dialogs");
     console.log("BAUM CONTACT BATCH PASSED: 500 contacts in " + (Date.now() - started) + " ms: " + web);

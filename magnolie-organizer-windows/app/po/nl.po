@@ -676,6 +676,9 @@ msgstr ""
 msgid "Apply"
 msgstr "Toepassen"
 
+msgid "Apply to the remaining conflicts"
+msgstr "Toepassen op de resterende conflicten"
+
 msgid "Appointment"
 msgstr "Afspraak"
 
@@ -1483,6 +1486,12 @@ msgstr ""
 
 msgid "Contacts for Claws Mail (.ldif)"
 msgstr "Contacten voor Claws Mail (.ldif)"
+
+msgid ""
+"Contacts with different information were found. How would you like to "
+"proceed?"
+msgstr ""
+"Er zijn contacten met verschillende gegevens gevonden. Hoe wilt u verdergaan?"
 
 msgid "Content"
 msgstr "Inhoud"
@@ -2665,6 +2674,9 @@ msgstr "KDE Connect-poort %(port)s"
 msgid "Keep a troubleshooting log"
 msgstr "Logboek voor probleemoplossing bijhouden"
 
+msgid "Keep existing"
+msgstr "Bestaande gegevens behouden"
+
 msgid "LDIF"
 msgstr "LDIF"
 
@@ -3511,17 +3523,6 @@ msgstr ""
 
 msgid "Online"
 msgstr "Online"
-
-msgid ""
-"Online account integration is not available on this system. Install it "
-"with:  sudo apt install %(packages)s, then restart the application. You can "
-"also import contacts and appointments without this integration using “From "
-"this computer” above."
-msgstr ""
-"Integratie van online-accounts is niet beschikbaar op dit systeem. "
-"Installeer deze met:  sudo apt install %(packages)s en start daarna de "
-"toepassing opnieuw. U kunt contacten en afspraken ook zonder deze integratie "
-"importeren via ‘Van deze computer’ hierboven."
 
 msgid "Online address book"
 msgstr "Onlineadresboek"
@@ -6363,7 +6364,10 @@ msgstr "Weertemperatuur"
 msgid ""
 "Weather uses HTTPS first, then unencrypted HTTP if necessary. If wttr.in "
 "fails and a location is known, Open-Meteo is tried."
-msgstr "Het weer wordt eerst via HTTPS opgehaald en zo nodig via onversleuteld HTTP. Als wttr.in niet werkt en er een plaats bekend is, wordt Open-Meteo geprobeerd."
+msgstr ""
+"Het weer wordt eerst via HTTPS opgehaald en zo nodig via onversleuteld HTTP. "
+"Als wttr.in niet werkt en er een plaats bekend is, wordt Open-Meteo "
+"geprobeerd."
 
 msgid "Weather was not retrieved because no location is available."
 msgstr "Het weer is niet opgehaald omdat er geen locatie beschikbaar is."
@@ -6980,6 +6984,17 @@ msgstr[1] "… en %(count)s extra items die ook worden afgedrukt."
 
 msgid "＋ Add appointment"
 msgstr "＋ Afspraak toevoegen"
+
+#~ msgid ""
+#~ "Online account integration is not available on this system. Install it "
+#~ "with:  sudo apt install %(packages)s, then restart the application. You "
+#~ "can also import contacts and appointments without this integration using "
+#~ "“From this computer” above."
+#~ msgstr ""
+#~ "Integratie van online-accounts is niet beschikbaar op dit systeem. "
+#~ "Installeer deze met:  sudo apt install %(packages)s en start daarna de "
+#~ "toepassing opnieuw. U kunt contacten en afspraken ook zonder deze "
+#~ "integratie importeren via ‘Van deze computer’ hierboven."
 
 #~ msgid "This paired phone is my own device"
 #~ msgstr "Deze gekoppelde telefoon is mijn eigen apparaat"

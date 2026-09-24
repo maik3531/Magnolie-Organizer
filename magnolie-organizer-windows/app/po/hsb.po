@@ -734,6 +734,9 @@ msgstr ""
 msgid "Apply"
 msgstr "Nałožić"
 
+msgid "Apply to the remaining conflicts"
+msgstr "Na zbytk konfliktow nałožić"
+
 msgid "Appointment"
 msgstr "Termin"
 
@@ -1528,6 +1531,12 @@ msgstr "Kontakty so přidawajo zjednoćeja. Zhašenja so njepřenjesu."
 
 msgid "Contacts for Claws Mail (.ldif)"
 msgstr "Kontakty za Claws Mail (.ldif)"
+
+msgid ""
+"Contacts with different information were found. How would you like to "
+"proceed?"
+msgstr ""
+"Kontakty z rozdźělnymi informacijemi su so namakali. Kak chceće pokročować?"
 
 msgid "Content"
 msgstr "Wobsah"
@@ -2711,6 +2720,9 @@ msgstr "Port KDE Connect %(port)s"
 msgid "Keep a troubleshooting log"
 msgstr "Protokol za pytanje zmylkow wobchować"
 
+msgid "Keep existing"
+msgstr "Dotalne podaća wobchować"
+
 msgid "LDIF"
 msgstr "LDIF"
 
@@ -3559,17 +3571,6 @@ msgstr ""
 
 msgid "Online"
 msgstr "Zwjazany"
-
-msgid ""
-"Online account integration is not available on this system. Install it "
-"with:  sudo apt install %(packages)s, then restart the application. You can "
-"also import contacts and appointments without this integration using “From "
-"this computer” above."
-msgstr ""
-"Integracija online-kontow na tutym systemje k dispoziciji njeje. Instalujće "
-"ju z:  sudo apt install %(packages)s a startujće potom nałoženje znowa. "
-"Kontakty a terminy móžeće tež bjez tuteje integracije z „Z tutoho ličaka“ "
-"horjeka importować."
 
 msgid "Online address book"
 msgstr "Online-adresnik"
@@ -6391,7 +6392,10 @@ msgstr "Wjedrowa temperatura"
 msgid ""
 "Weather uses HTTPS first, then unencrypted HTTP if necessary. If wttr.in "
 "fails and a location is known, Open-Meteo is tried."
-msgstr "Wjedro so najprjedy přez HTTPS a w razje trjeby přez nješifrowany HTTP wotwoła. Jeli wttr.in k dispoziciji njesteji a městno znate je, so Open-Meteo wupruwuje."
+msgstr ""
+"Wjedro so najprjedy přez HTTPS a w razje trjeby přez nješifrowany HTTP "
+"wotwoła. Jeli wttr.in k dispoziciji njesteji a městno znate je, so Open-"
+"Meteo wupruwuje."
 
 msgid "Weather was not retrieved because no location is available."
 msgstr "Wjedro njebu wotwołane, dokelž městno k dispoziciji njeje."
@@ -7015,6 +7019,17 @@ msgstr[3] "… a dale %(count)s zapiskaj, kotrejž so tež ćišćitej."
 
 msgid "＋ Add appointment"
 msgstr "＋ Termin přidać"
+
+#~ msgid ""
+#~ "Online account integration is not available on this system. Install it "
+#~ "with:  sudo apt install %(packages)s, then restart the application. You "
+#~ "can also import contacts and appointments without this integration using "
+#~ "“From this computer” above."
+#~ msgstr ""
+#~ "Integracija online-kontow na tutym systemje k dispoziciji njeje. "
+#~ "Instalujće ju z:  sudo apt install %(packages)s a startujće potom "
+#~ "nałoženje znowa. Kontakty a terminy móžeće tež bjez tuteje integracije z "
+#~ "„Z tutoho ličaka“ horjeka importować."
 
 #~ msgid "This paired phone is my own device"
 #~ msgstr "Tutón zwjazany telefon je mój swójski grat"
