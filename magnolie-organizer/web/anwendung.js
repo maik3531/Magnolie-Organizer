@@ -15,129 +15,129 @@
 (function () {
 
   /* Die Fassung erscheint auf der Seite „Über". */
-const FASSUNG = "2.0.21";
+const FASSUNG = "2.0.22";
 const S = (x) => (x === undefined || x === null) ? "" : String(x);
 
-const NEU_IN_DIESER_FASSUNG_FASSUNG = "2.0.21";
+const NEU_IN_DIESER_FASSUNG_FASSUNG = "2.0.22";
 const NEU_IN_DIESER_FASSUNG = {
   "de": [
     "Neu in dieser Version",
-    "Gleiche Geburtstage aus mehreren Quellen werden nur einmal angezeigt",
-    "Weniger Wiederherstellungspunkte, Sammellöschen und übersichtlichere Kalenderauswahl",
+    "SMS mit einem Klick planen; gemeinsamer Windows-Installer für Organizer und Handbuch",
+    "Flüssigeres Speichern unter Windows, zuverlässige Updatesicherung und verbesserter Thunderbird-Import",
     "Magnolie Notes 1.0.15 — unverändert"
   ],
   "en": [
     "What's new in this version",
-    "Identical birthdays from multiple sources are shown once",
-    "Fewer recovery snapshots, batch deletion and clearer calendar selection",
+    "Schedule SMS with one click; one Windows installer for Organizer and manual",
+    "More responsive Windows saves, reliable upgrade backups and improved Thunderbird import",
     "Magnolie Notes 1.0.15 — unchanged"
   ],
   "fr": [
     "Nouveautés de cette version",
-    "Les anniversaires identiques provenant de plusieurs sources ne sont affichés qu’une fois",
-    "Moins de points de restauration, suppression groupée et sélection des calendriers plus claire",
+    "Programmer les SMS en un clic ; un seul installateur Windows pour l’organiseur et le manuel",
+    "Enregistrement Windows plus réactif, sauvegarde de mise à niveau fiable et import Thunderbird amélioré",
     "Magnolie Notes 1.0.15 — inchangé"
   ],
   "es": [
     "Novedades de esta versión",
-    "Los cumpleaños idénticos de varias fuentes se muestran una sola vez",
-    "Menos puntos de restauración, eliminación en grupo y selección de calendarios más clara",
+    "Programar SMS con un clic; un solo instalador de Windows para el organizador y el manual",
+    "Guardado más ágil en Windows, copia de actualización fiable e importación de Thunderbird mejorada",
     "Magnolie Notes 1.0.15 — sin cambios"
   ],
   "it": [
     "Novità di questa versione",
-    "I compleanni identici provenienti da più fonti vengono mostrati una sola volta",
-    "Meno punti di ripristino, eliminazione multipla e selezione dei calendari più chiara",
+    "Programmazione SMS con un clic; un unico installer Windows per Organizer e manuale",
+    "Salvataggi Windows più fluidi, backup di aggiornamento affidabile e importazione Thunderbird migliorata",
     "Magnolie Notes 1.0.15 — invariato"
   ],
   "nl": [
     "Nieuw in deze versie",
-    "Gelijke verjaardagen uit meerdere bronnen worden maar één keer getoond",
-    "Minder herstelpunten, gezamenlijk verwijderen en duidelijkere kalenderselectie",
+    "SMS met één klik plannen; één Windows-installatieprogramma voor Organizer en handleiding",
+    "Vlotter opslaan in Windows, betrouwbare updateback-up en verbeterde Thunderbird-import",
     "Magnolie Notes 1.0.15 — ongewijzigd"
   ],
   "pt": [
     "Novidades desta versão",
-    "Os aniversários idênticos de várias fontes são apresentados apenas uma vez",
-    "Menos pontos de restauro, eliminação em grupo e seleção de calendários mais clara",
+    "Agendar SMS com um clique; um único instalador Windows para o organizador e o manual",
+    "Gravação mais fluida no Windows, cópia de atualização fiável e importação Thunderbird melhorada",
     "Magnolie Notes 1.0.15 — sem alterações"
   ],
   "ru": [
     "Новое в этой версии",
-    "Одинаковые дни рождения из нескольких источников отображаются один раз",
-    "Меньше точек восстановления, групповое удаление и более удобный выбор календарей",
+    "Планирование SMS одним нажатием; единый установщик Windows для органайзера и руководства",
+    "Более отзывчивое сохранение в Windows, надёжное резервирование при обновлении и улучшенный импорт Thunderbird",
     "Magnolie Notes 1.0.15 — без изменений"
   ],
   "cs": [
     "Co je nového v této verzi",
-    "Stejné narozeniny z více zdrojů se zobrazují pouze jednou",
-    "Méně bodů obnovení, hromadné mazání a přehlednější výběr kalendářů",
+    "Plánování SMS jedním kliknutím; jeden instalátor Windows pro organizér a příručku",
+    "Plynulejší ukládání ve Windows, spolehlivé zálohování při aktualizaci a lepší import Thunderbird",
     "Magnolie Notes 1.0.15 — beze změn"
   ],
   "pl": [
     "Nowości w tej wersji",
-    "Identyczne urodziny z wielu źródeł są wyświetlane tylko raz",
-    "Mniej punktów przywracania, zbiorcze usuwanie i czytelniejszy wybór kalendarzy",
+    "Planowanie SMS jednym kliknięciem; wspólny instalator Windows dla organizera i podręcznika",
+    "Sprawniejsze zapisywanie w Windows, niezawodne kopie przy aktualizacji i poprawiony import Thunderbird",
     "Magnolie Notes 1.0.15 — bez zmian"
   ],
   "hsb": [
     "Nowe w tutej wersiji",
-    "Jenake narodniny z wjacorych žórłow so jenož jónu pokazuja",
-    "Mjenje wobnowjenskich dypkow, zhromadne zhašenje a přehladniši wuběr protykow",
+    "SMS z jednym kliknjenjom planować; zhromadny instalaciski program Windows za organizator a přiručku",
+    "Lěpše składowanje pod Windows, spušćomna aktualizaciska zawěsćenka a polěpšeny import Thunderbird",
     "Magnolie Notes 1.0.15 — njezměnjeny"
   ],
   "da": [
     "Nyt i denne version",
-    "Ens fødselsdage fra flere kilder vises kun én gang",
-    "Færre gendannelsespunkter, samlet sletning og tydeligere kalendervalg",
+    "Planlæg SMS med ét klik; ét Windows-installationsprogram til Organizer og vejledning",
+    "Mere flydende lagring i Windows, pålidelig sikkerhedskopi ved opdatering og forbedret Thunderbird-import",
     "Magnolie Notes 1.0.15 — uændret"
   ],
   "nb": [
     "Nytt i denne versjonen",
-    "Like fødselsdager fra flere kilder vises bare én gang",
-    "Færre gjenopprettingspunkter, samlet sletting og tydeligere kalendervalg",
+    "Planlegg SMS med ett klikk; ett Windows-installasjonsprogram for Organizer og håndbok",
+    "Smidigere lagring i Windows, pålitelig sikkerhetskopi ved oppdatering og forbedret Thunderbird-import",
     "Magnolie Notes 1.0.15 — uendret"
   ],
   "hi": [
     "इस संस्करण में नया",
-    "कई स्रोतों से आए समान जन्मदिन केवल एक बार दिखाए जाते हैं",
-    "कम पुनर्स्थापना बिंदु, एक साथ हटाने की सुविधा और अधिक स्पष्ट कैलेंडर चयन",
+    "एक क्लिक में SMS शेड्यूल करें; Organizer और पुस्तिका के लिए एक ही Windows इंस्टॉलर",
+    "Windows में अधिक सुचारु सहेजना, भरोसेमंद अपडेट बैकअप और बेहतर Thunderbird आयात",
     "Magnolie Notes 1.0.15 — अपरिवर्तित"
   ],
   "zh-cn": [
     "此版本的新功能",
-    "来自多个来源的相同生日只显示一次",
-    "减少恢复点，支持批量删除，并改善日历选择的布局",
+    "一键安排短信；Organizer 与手册使用同一个 Windows 安装程序",
+    "改善 Windows 保存时的响应，修复更新备份并改进 Thunderbird 导入",
     "Magnolie Notes 1.0.15 — 未更改"
   ],
   "ja": [
     "このバージョンの新機能",
-    "複数の取得元にある同一の誕生日を一度だけ表示",
-    "復元ポイントの作成を抑制し、一括削除と見やすいカレンダー選択に対応",
+    "ワンクリックで SMS を予約。Organizer とマニュアルは共通の Windows インストーラーを使用",
+    "Windows の保存時の応答性、更新時のバックアップ、Thunderbird の取り込みを改善",
     "Magnolie Notes 1.0.15 — 変更なし"
   ],
   "ar": [
     "ما الجديد في هذا الإصدار",
-    "تُعرض أعياد الميلاد المتطابقة من مصادر متعددة مرة واحدة فقط",
-    "نقاط استعادة أقل وحذف جماعي واختيار أوضح للتقويمات",
+    "جدولة SMS بنقرة واحدة؛ برنامج تثبيت Windows واحد للمنظّم والدليل",
+    "حفظ أكثر سلاسة في Windows ونسخ احتياطي موثوق عند التحديث وتحسين استيراد Thunderbird",
     "Magnolie Notes 1.0.15 — دون تغيير"
   ],
   "uk": [
     "Нове в цій версії",
-    "Однакові дні народження з кількох джерел відображаються лише раз",
-    "Менше точок відновлення, групове видалення та зручніший вибір календарів",
+    "Планування SMS одним натисканням; спільний інсталятор Windows для органайзера й посібника",
+    "Плавніше збереження у Windows, надійне резервування під час оновлення та поліпшений імпорт Thunderbird",
     "Magnolie Notes 1.0.15 — без змін"
   ],
   "be": [
     "Што новага ў гэтай версіі",
-    "Аднолькавыя дні нараджэння з некалькіх крыніц паказваюцца толькі адзін раз",
-    "Менш пунктаў аднаўлення, групавое выдаленне і больш зразумелы выбар календароў",
+    "Планаванне SMS адным націсканнем; агульны ўсталёўшчык Windows для арганайзера і дапаможніка",
+    "Больш плаўнае захаванне ў Windows, надзейнае рэзерваванне пры абнаўленні і палепшаны імпарт Thunderbird",
     "Magnolie Notes 1.0.15 — без змен"
   ],
   "tr": [
     "Bu sürümdeki yenilikler",
-    "Birden fazla kaynaktaki aynı doğum günleri yalnızca bir kez gösterilir",
-    "Daha az geri yükleme noktası, toplu silme ve daha anlaşılır takvim seçimi",
+    "Tek tıkla SMS planlama; Organizer ve kılavuz için tek Windows yükleyicisi",
+    "Windows’ta daha akıcı kaydetme, güvenilir güncelleme yedeği ve geliştirilmiş Thunderbird içe aktarımı",
     "Magnolie Notes 1.0.15 — değişmedi"
   ]
 };

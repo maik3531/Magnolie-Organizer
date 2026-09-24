@@ -1,3 +1,11 @@
+magnolie-organizer (2.0.22) unstable; urgency=medium
+
+  * Plant unveränderte SMS-Texte mit einem Klick ohne zusätzliche Bestätigung.
+  * Zeigt Wiederherstellungshinweise nur bei tatsächlich pausierten SMS-Plänen.
+  * Aktualisiert Versions- und Paketverweise.
+
+ -- Maik Walter <maik3531@gmail.com>  Thu, 24 Sep 2026 02:00:00 +0200
+
 magnolie-organizer (2.0.21) unstable; urgency=medium
 
   * Zeigt inhaltlich gleiche Geburtstage aus mehreren Quellen einmal an.

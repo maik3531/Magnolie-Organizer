@@ -112,7 +112,7 @@ if __name__ == "__main__":
     _crash_component = ("background-service" if any(argument in (
         "--hintergrunddienst", "--background-service") for argument in sys.argv[1:])
         else "organizer")
-    _crash_reporting_install("magnolie-organizer", "2.0.21", _crash_component)
+    _crash_reporting_install("magnolie-organizer", "2.0.22", _crash_component)
 if any(argument in ("--hintergrunddienst", "--background-service")
        for argument in sys.argv[1:]):
     from magnolie_hintergrund import daemon_main
@@ -247,7 +247,7 @@ def tray_system_verfuegbar(desktop=None, aktivierte_erweiterungen=None):
 PROGRAMM_NAME = "magnolie-organizer"
 HANDBUCH_NAME = "magnolie-handbuch"
 FENSTER_TITEL = "Magnolie Organizer"
-PROGRAMM_FASSUNG = "2.0.21"
+PROGRAMM_FASSUNG = "2.0.22"
 ALTER_NAME = "organizer-klassik"
 I18N_DOMAIN = "magnolie-organizer"
 

@@ -476,6 +476,7 @@ if [ "$FEDORA_TESTS" -ne 1 ]; then
     exit 1
 fi
 CANDIDATE=$(mktemp -d "${MAGNOLIE_BUILD_SCRATCH:-/tmp/opencode}/magnolie-desktop-candidate.XXXXXX")
+CANDIDATE=$(realpath "$CANDIDATE")
 cp "$DEB" "$DSC" "$SOURCE_TAR" "$APPIMAGE" "$FLATPAK" \
     "$HANDBUCH_DEB" "$HANDBUCH_DSC" "$HANDBUCH_SOURCE_TAR" \
     "$STAGE"/magnolie-organizer-kde_"${AKONADI_VERSION}"_amd64.deb \
@@ -502,5 +503,5 @@ PY
 qemu_result=passed
 [ "$AUTOPKGTESTS" -eq 1 ] || qemu_result=unavailable
 python3 "$LIVE_SOURCE/werkzeuge/release_gate.py" seal --root "$LIVE_ROOT" \
-    --candidate "$CANDIDATE" --source-record "$STAGE/source-record.json" --autopkgtest "$qemu_result"
+    --candidate "$CANDIDATE" --source-record "$(realpath "$STAGE/source-record.json")" --autopkgtest "$qemu_result"
 printf 'Private candidate: %s\nNo signing, manifest promotion or release-root replacement performed.\n' "$CANDIDATE"

@@ -2,7 +2,7 @@
 
 Das Benutzerhandbuch zum Magnolie Organizer, gestaltet wie das Programm
 selbst: ein aufgeschlagenes Buch im Querformat. Diese Fassung ist das
-Handbuch 2.0.21 für Magnolie Organizer 2.0.21.
+Handbuch 2.0.22 für Magnolie Organizer 2.0.22.
 
 ## Aufbau
 
@@ -55,7 +55,7 @@ Text abgeschnitten wird und keine leeren PDF-Seiten entstehen.
     sudo apt install build-essential debhelper gettext nodejs node-jsdom \
       python3-gi gir1.2-gtk-3.0 gir1.2-webkit2-4.1 poppler-utils
     dpkg-buildpackage -us -uc -b
-    sudo apt install ../magnolie-handbuch_2.0.21_all.deb
+    sudo apt install ../magnolie-handbuch_2.0.22_all.deb
 
 Für RPM-Systeme muss das Ziel ausdrücklich gewählt werden:
 
@@ -76,7 +76,7 @@ festgeschriebenen Stand seines rollenden Repositorys geprüft werden.
     NODE_PATH=/pfad/zum/vorhandenen/node_modules bun pruefungen/handbuch_test.js
     python3 -m pytest -q pruefungen/katalog_test.py
     python3 pruefungen/druck_test.py
-    node pruefungen/paket_inhalt_test.js ../magnolie-handbuch_2.0.21_all.deb
+    node pruefungen/paket_inhalt_test.js ../magnolie-handbuch_2.0.22_all.deb
 
 `npm install` ist weder ein Quell- noch ein Prüfschritt. Unter Debian liefert
 `node-jsdom` die Testabhängigkeit. Ist sie bereits in einem anderen Projekt

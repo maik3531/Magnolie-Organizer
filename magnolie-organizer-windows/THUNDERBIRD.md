@@ -27,6 +27,8 @@ verwenden getrennte Verbindungen und Quellenkennungen.
 
 ## Implementierungsstand
 
+- Die Google- und Microsoft-Anmeldung unter Windows wurde vom Nutzer erfolgreich
+  durchgeführt und bestätigt.
 - Automatische Profil-/Erweiterungsvorbereitung und Kontoeinrichtungs-Schaltflächen
   sind im Entwicklungsstand vorhanden; die Texte sind in allen 20 Sprachen
   verfügbar.

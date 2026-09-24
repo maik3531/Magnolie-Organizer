@@ -1,5 +1,27 @@
 # Changelog / Änderungen
 
+## 2.0.22 / Notes 1.0.15 — 2026-09-24
+
+### English
+
+- Schedules unchanged SMS text with one click. A preview remains when the text needs conversion; unrelated restore hints are hidden unless paused plans exist.
+- Fixes Windows upgrade backups when the installer inherits a restricted system temporary directory.
+- Uses one Windows installer/update path for Organizer and the bundled manual, without a separate manual download prompt.
+- Moves large Windows profile saves and recovery-journal reads off the UI thread while preserving command ordering and validation.
+- Imports Thunderbird cached online calendars as well as local calendars; ignores empty address books in the count and avoids unregistered profile copies when registered profiles exist.
+- Google and Microsoft sign-in on Windows has been confirmed by the user. This does not claim complete Microsoft EAS two-way synchronization.
+- Magnolie Notes remains unchanged at 1.0.15.
+
+### Deutsch
+
+- Plant unveränderte SMS-Texte mit einem Klick. Eine Vorschau erscheint bei erforderlicher Textumwandlung; Wiederherstellungshinweise nur bei vorhandenen pausierten Plänen.
+- Behebt die Windows-Updatesicherung bei einem vom aufrufenden Programm übernommenen, eingeschränkten System-Temp-Verzeichnis.
+- Verwendet einen gemeinsamen Windows-Installer-/Updateweg für Organizer und Handbuch ohne zusätzlichen Handbuch-Downloaddialog.
+- Verlegt das Speichern großer Windows-Datenbestände und das Lesen des Wiederherstellungsjournals in den Hintergrund; Befehlsreihenfolge und Prüfung bleiben erhalten.
+- Berücksichtigt beim Thunderbird-Import auch zwischengespeicherte Online-Kalender. Leere Adressbücher werden nicht mitgezählt; bei vorhandener Profilregistrierung werden keine unregistrierten Profilkopien zusätzlich durchsucht.
+- Die Google- und Microsoft-Anmeldung unter Windows wurde vom Nutzer bestätigt. Ein vollständiger Microsoft-EAS-Zweiwege-Abgleich wird damit nicht behauptet.
+- Magnolie Notes bleibt unverändert bei 1.0.15.
+
 ## 2.0.21 / Notes 1.0.15 — 2026-09-23
 
 ### English
