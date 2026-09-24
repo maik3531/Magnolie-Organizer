@@ -10,6 +10,45 @@ namespace MagnolieOrganizer.Windows.Tests;
 
 internal static class NextcloudDavTests
 {
+    private static async Task TestBirthdayRepair(NextcloudMailboxSettingsStore settings)
+    {
+        var calendar = "BEGIN:VCALENDAR\r\nVERSION:2.0\r\n" +
+            "BEGIN:VEVENT\r\nUID:first\r\nDTSTART;VALUE=DATE:16040403\r\nRRULE:FREQ=YEARLY\r\nX-MAGNOLIE-TYPE-ID:birthday\r\nSUMMARY:First\r\nEND:VEVENT\r\n" +
+            "BEGIN:VEVENT\r\nUID:second\r\nDTSTART;VALUE=DATE:16040229\r\nRRULE:FREQ=YEARLY\r\nX-MAGNOLIE-TYPE-ID:birthday\r\nSUMMARY:Second\r\nEND:VEVENT\r\n" +
+            "BEGIN:VEVENT\r\nUID:other\r\nDTSTART;VALUE=DATE:20260924\r\nSUMMARY:Keep\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n";
+        var originalCalendar = calendar;
+        var writes = 0; var etag = "\"v1\"";
+        using var http = new HttpClient(new Handler(async request =>
+        {
+            if (request.Method.Method == "REPORT") return Xml("<d:multistatus xmlns:d=\"DAV:\" xmlns:c=\"urn:ietf:params:xml:ns:caldav\"><d:response><d:href>/nc/calendars/test/birthdays.ics</d:href><d:propstat><d:prop><d:getetag>" +
+                System.Security.SecurityElement.Escape(etag) + "</d:getetag><c:calendar-data>" + System.Security.SecurityElement.Escape(calendar) +
+                "</c:calendar-data></d:prop><d:status>HTTP/1.1 200 OK</d:status></d:propstat></d:response></d:multistatus>");
+            TestAssert.That(request.Method == HttpMethod.Put && request.Headers.IfMatch.Single().Tag == etag,
+                "Birthday repair lost the current ETag of a shared calendar resource.");
+            calendar = await request.Content!.ReadAsStringAsync();
+            writes++; etag = "\"v" + (writes + 1) + "\"";
+            return new HttpResponseMessage(HttpStatusCode.NoContent) { Headers = { ETag = new System.Net.Http.Headers.EntityTagHeaderValue(etag) } };
+        }));
+        using var client = new NextcloudDavClient(settings, http);
+        var source = new NextcloudDavSource("nextcloud-calendar:" + new string('d', 64), "Birthdays", "calendar",
+            new Uri("https://cloud.example/nc/calendars/test/"), false);
+        var engine = new NextcloudCalendarSync(client);
+        var additive = await engine.SyncAsync(source, [], [], [], 0, true, CancellationToken.None);
+        TestAssert.That(writes == 0 && additive.Jahrestage.Count == 2 && additive.Jahrestage.OfType<JsonObject>().All(item =>
+            ContactFields.Text(item, "datum").StartsWith("--", StringComparison.Ordinal)), "Additive birthday import wrote to its source or leaked 1604.");
+        var imported = await engine.SyncAsync(source, [], [], [], 0, false, CancellationToken.None);
+        TestAssert.That(writes == 2 && !calendar.Contains("1604", StringComparison.Ordinal) && calendar.Contains("UID:other", StringComparison.Ordinal),
+            "First CalDAV import did not repair both birthdays while preserving the adjacent event.");
+        var again = await engine.SyncAsync(source, imported.Termine, imported.Jahrestage, imported.Tombstones, 0, false, CancellationToken.None);
+        TestAssert.That(writes == 2 && again.Jahrestage.Count == 2 && again.Termine.Count == 1 && again.Conflicts == 0,
+            "Repeated CalDAV birthday synchronization rewrote or duplicated corrected events.");
+        calendar = originalCalendar; etag = "\"reset\""; writes = 0;
+        var repairedAgain = await engine.SyncAsync(source, again.Termine, again.Jahrestage, again.Tombstones, 0, false, CancellationToken.None);
+        TestAssert.That(writes == 2 && repairedAgain.Conflicts == 0 && repairedAgain.Jahrestage.Count == 2 &&
+            !calendar.Contains("1604", StringComparison.Ordinal),
+            "An already mapped source reintroducing 1604 was not repaired or created conflict copies.");
+    }
+
     internal static async Task RunAsync()
     {
         foreach (var (fields, display, first, last) in new[] {
@@ -103,6 +142,7 @@ internal static class NextcloudDavTests
                 unprotected, "u1", CancellationToken.None), "CardDAV-Löschung ohne ETag wurde ungeschützt gesendet.");
 
             await TestHostileServers(settings);
+            await TestBirthdayRepair(settings);
             await TestGenericBaikalDiscovery(root);
             await TestGenericConfiguredBaseDiscovery(root);
             await TestSingleServiceDiscovery(root);
@@ -741,6 +781,15 @@ internal static class NextcloudDavTests
 
         const string anniversaryResource = "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\nUID:birthday\r\nDTSTART;VALUE=DATE:19800403\r\nRRULE:FREQ=YEARLY\r\nCATEGORIES:Geburtstag\r\nX-MAGNOLIE-TYPE-ID:birthday\r\nSUMMARY:Alt\r\nEND:VEVENT\r\nBEGIN:VEVENT\r\nUID:other\r\nDTSTART;VALUE=DATE:20260904\r\nSUMMARY:Unberührt\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n";
         var anniversary = ExchangeCodec.ParseIcs(anniversaryResource).Jahrestage.Single()!.AsObject();
+        var placeholderResource = anniversaryResource.Replace("19800403", "16040403", StringComparison.Ordinal);
+        var placeholder = ExchangeCodec.ParseIcs(placeholderResource).Jahrestage.Single()!.AsObject();
+        TestAssert.That(ContactFields.Text(placeholder, "datum") == "--04-03",
+            "Native ICS birthday data disagreed with the yearless frontend synchronization baseline.");
+        var repairedResource = ExchangeCodec.ReplaceCalendarAnniversary(placeholderResource, placeholder);
+        TestAssert.That(!repairedResource.Contains("16040403", StringComparison.Ordinal) &&
+            ContactFields.Text(ExchangeCodec.ParseIcs(repairedResource).Jahrestage.Single()!.AsObject(), "datum") == "--04-03" &&
+            repairedResource.Contains("UID:other", StringComparison.Ordinal),
+            "Writing the corrected ICS birthday lost its yearless date or a neighboring event.");
         anniversary["name"] = "Neu";
         var changedAnniversary = ExchangeCodec.ReplaceCalendarAnniversary(anniversaryResource, anniversary);
         TestAssert.That(changedAnniversary.Count("BEGIN:VEVENT") == 2 && changedAnniversary.Contains("SUMMARY:Neu", StringComparison.Ordinal) &&

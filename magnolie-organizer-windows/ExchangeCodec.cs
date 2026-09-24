@@ -22,6 +22,7 @@ internal sealed record ExchangeImportResult(
     int FehlerhafteTermine = 0,
     int FehlerhafteAufgaben = 0)
 {
+    internal HashSet<string> BirthdayRepairs { get; init; } = new(StringComparer.Ordinal);
     internal JsonObject ToPayload(string art, string fileName) => new()
     {
         ["art"] = art,
@@ -135,6 +136,7 @@ internal static partial class ExchangeCodec
 
         var appointments = new JsonArray();
         var anniversaries = new JsonArray();
+        var birthdayRepairs = new HashSet<string>(StringComparer.Ordinal);
         var tasks = new JsonArray();
         var skipped = 0;
         var complex = 0;
@@ -178,7 +180,7 @@ internal static partial class ExchangeCodec
                     {
                         if (component == "VEVENT")
                         {
-                            var result = ParseEvent(properties, timeZone, zones);
+                            var result = ParseEvent(properties, timeZone, zones, birthdayRepairs);
                             if (result.Anniversary) anniversaries.Add(result.Value);
                             else appointments.Add(result.Value);
                             if (result.Complex && !CalendarRecurrence.SupportsRules(properties.Select(value => value.Raw))) complex++;
@@ -240,7 +242,7 @@ internal static partial class ExchangeCodec
         return new ExchangeImportResult(appointments, anniversaries, new JsonArray(), tasks,
             new JsonArray(), skipped, complex,
             complex > 0 ? NativeLocalization.Gettext("Some recurrence rules cannot be expanded. Their original calendar data was preserved.") : "",
-            FehlerhafteTermine: invalidEvents, FehlerhafteAufgaben: invalidTasks);
+            FehlerhafteTermine: invalidEvents, FehlerhafteAufgaben: invalidTasks) { BirthdayRepairs = birthdayRepairs };
     }
 
     internal static ExchangeExportResult WriteIcs(string art, JsonElement data)
@@ -734,7 +736,7 @@ internal static partial class ExchangeCodec
         return new ExchangeExportResult(output.ToString(), count, skipped, report.Trim());
     }
 
-    private static (JsonObject Value, bool Anniversary, bool Complex) ParseEvent(List<IcsProperty> values, TimeZoneInfo? timeZone = null, IReadOnlyDictionary<string, CalendarRecurrence.SourceZone>? zones = null)
+    private static (JsonObject Value, bool Anniversary, bool Complex) ParseEvent(List<IcsProperty> values, TimeZoneInfo? timeZone = null, IReadOnlyDictionary<string, CalendarRecurrence.SourceZone>? zones = null, ISet<string>? birthdayRepairs = null)
     {
         var roundtripValues = values;
         values = TopLevelProperties(values);
@@ -814,6 +816,15 @@ internal static partial class ExchangeCodec
             var magnolieDate = First(values, "X-MAGNOLIE-DATE")?.Value.Trim() ?? "";
             if (TryParseCanonicalDate(magnolieDate, out var fullDate, out _, out _) && fullDate is null)
                 date = magnolieDate;
+            // Keep native synchronization baselines consistent with the web
+            // birthday normalization, including legacy exported type names.
+            if (date.StartsWith("1604-", StringComparison.Ordinal) &&
+                (anniversaryType.Equals("birthday", StringComparison.OrdinalIgnoreCase) ||
+                 anniversaryType.Equals("Geburtstag", StringComparison.OrdinalIgnoreCase)))
+            {
+                date = "--" + date[5..];
+                birthdayRepairs?.Add(IcsText(First(values, "UID")?.Value ?? ""));
+            }
             return (new JsonObject { ["uid"] = IcsText(First(values, "UID")?.Value ?? ""), ["name"] = title,
                 ["datum"] = date, ["typ"] = anniversaryType,
                 ["notiz"] = IcsText(First(values, "DESCRIPTION")?.Value ?? ""),

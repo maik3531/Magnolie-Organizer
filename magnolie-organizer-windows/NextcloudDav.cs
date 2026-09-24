@@ -518,6 +518,7 @@ internal sealed class NextcloudCalendarSync(NextcloudDavClient client)
         var localAnniversaries = new JsonArray(anniversaries.Select(value => value?.DeepClone()).ToArray());
         var dead = new JsonArray(tombstones.Select(value => value?.DeepClone()).ToArray());
         var remote = new Dictionary<string, (NextcloudDavObject Object, JsonObject Data, bool Anniversary)>(StringComparer.Ordinal);
+        var birthdayRepairs = new HashSet<string>(StringComparer.Ordinal);
         var uids = new HashSet<string>(StringComparer.Ordinal);
         foreach (var item in await client.ReadCalendarAsync(source, cancellationToken).ConfigureAwait(false))
         {
@@ -534,6 +535,7 @@ internal sealed class NextcloudCalendarSync(NextcloudDavClient client)
                 if (uid.Length == 0 || !uids.Add(uid))
                     throw new InvalidDataException("Der CalDAV-Kalender enthält fehlende oder doppelte UIDs.");
                 remote.Add(RemoteKey(item.Href, value.Value), (item, value.Value, value.Anniversary));
+                if (value.Anniversary && parsed.BirthdayRepairs.Contains(uid)) birthdayRepairs.Add(RemoteKey(item.Href, value.Value));
             }
         }
         var observedEtags = remote.Values.GroupBy(item => item.Object.Href)
@@ -571,9 +573,18 @@ internal sealed class NextcloudCalendarSync(NextcloudDavClient client)
                 tombstone["syncKalenderUid"] = sources.FirstOrDefault(item =>
                     NextcloudDavSelection.IsCalendar(item.Key)).Key ?? "";
         }
-        foreach (var other in remote.Values)
+        foreach (var key in remote.Keys.ToArray())
         {
+            var other = remote[key];
             var value = other.Data.DeepClone().AsObject(); value["id"] = Guid.NewGuid().ToString("N"); value["geaendert"] = Math.Max(value["geaendert"]?.GetValue<long>() ?? 0, DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
+            if (!additiveOnly && birthdayRepairs.Contains(key))
+            {
+                var changed = await WriteAsync(value, true, other.Object, cancellationToken).ConfigureAwait(false);
+                foreach (var sibling in remote.Keys.ToArray())
+                    if (remote[sibling].Object.Href == changed.Href)
+                        remote[sibling] = (changed, remote[sibling].Data, remote[sibling].Anniversary);
+                other = remote[key]; updated++;
+            }
             SetSource(value, source.Uid, RemoteKey(other.Object.Href, value), other.Object.ETag);
             (other.Anniversary ? localAnniversaries : localAppointments).Add(value); imported++;
         }
@@ -610,7 +621,7 @@ internal sealed class NextcloudCalendarSync(NextcloudDavClient client)
                         SetSource(value, source.Uid, id, other.Object.ETag, other.Data);
                         continue;
                     }
-                    if (localChanged && remoteChanged)
+                    if (localChanged && remoteChanged && SyncBaseline.Hash(value, Fields) != SyncBaseline.Hash(other.Data, Fields))
                     {
                         var clone = value.DeepClone().AsObject(); clone["id"] = Guid.NewGuid().ToString("N");
                         clone["uid"] = $"mag-{Guid.NewGuid():N}@magnolie-organizer";
@@ -621,7 +632,7 @@ internal sealed class NextcloudCalendarSync(NextcloudDavClient client)
                         conflicts++; continue;
                     }
                     if (remoteChanged) { CopyCalendar(value, other.Data); SetSource(value, source.Uid, id, other.Object.ETag); updated++; }
-                    else if (localChanged)
+                    if ((!remoteChanged && localChanged) || birthdayRepairs.Contains(id))
                     {
                         var changed = await WriteAsync(value, anniversary, other.Object, cancellationToken).ConfigureAwait(false);
                         foreach (var key in remote.Keys.ToArray())
@@ -629,7 +640,7 @@ internal sealed class NextcloudCalendarSync(NextcloudDavClient client)
                                 remote[key] = (changed, remote[key].Data, remote[key].Anniversary);
                         SetSource(value, source.Uid, RemoteKey(changed.Href, value), changed.ETag); updated++;
                     }
-                    else SetSource(value, source.Uid, id, other.Object.ETag);
+                    else if (!remoteChanged) SetSource(value, source.Uid, id, other.Object.ETag);
                     continue;
                 }
                 if (additiveOnly) { (value["syncQuellen"] as JsonObject)?.Remove(source.Uid); continue; }
