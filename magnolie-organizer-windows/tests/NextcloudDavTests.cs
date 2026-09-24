@@ -132,7 +132,12 @@ internal static class NextcloudDavTests
             var calendarObjects = await client.ReadCalendarAsync(sources.Calendars[0], CancellationToken.None);
             TestAssert.That(contacts.Count == 1 && contacts[0].ETag == "\"v1\"" && contacts[0].Data["mobil"]?.GetValue<string>() == "+49123", "CardDAV REPORT verlor ETag oder Mehrfachwerte.");
             TestAssert.That(calendarObjects.Count == 1 && calendarObjects[0].ETag == "\"c1\"" && calendarObjects[0].Text.Contains("BYDAY=-1MO", StringComparison.Ordinal), "CalDAV REPORT verlor ETag oder ordinale Monatsregel.");
-            var changed = await new NextcloudCardDavRemote(client, sources.AddressBooks[0]).UpdateAsync(contacts[0], "u1", contacts[0].Data, CancellationToken.None);
+            var outgoingContact = contacts[0].Data.DeepClone().AsObject(); outgoingContact["uid"] = "local-cross-provider-id";
+            var changed = await new NextcloudCardDavRemote(client, sources.AddressBooks[0]).UpdateAsync(contacts[0], "local-cross-provider-id", outgoingContact, CancellationToken.None);
+            TestAssert.That(requests.Last().Body.Contains("UID:u1\r\n", StringComparison.Ordinal) &&
+                !requests.Last().Body.Contains("local-cross-provider-id", StringComparison.Ordinal) &&
+                ContactFields.Text(changed.Data, "uid") == "local-cross-provider-id",
+                "CardDAV source matching replaced the provider UID or the local contact identity.");
             TestAssert.That(changed.ETag == "\"v2\"" && requests.Last().IfMatch == "\"v1\"" && requests.All(value => value.Authorization == Basic("a user", "app-secret")) && requests.All(value => !value.Uri.Contains("app-secret", StringComparison.Ordinal)), "CardDAV-Update verlor If-Match oder sichere Basic Auth.");
             TestAssert.That(requests.Where(value => value.Method == "PROPFIND").Any(value => value.Depth == "1") && requests.Any(value => value.Method == "REPORT" && value.Depth == "1"), "DAV-Quellenliste/REPORT verwendete keine begrenzte Tiefe.");
             var unprotected = contacts[0] with { ETag = "" };

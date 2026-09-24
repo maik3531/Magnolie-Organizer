@@ -215,6 +215,11 @@ internal sealed class ContactSyncEngine
         var mappedIds = local.OfType<JsonObject>().Select(item => ContactFields.Source(item, source)?["id"]?.GetValue<string>())
             .Where(id => !string.IsNullOrWhiteSpace(id)).GroupBy(id => id!, StringComparer.Ordinal)
             .Where(group => group.Count() == 1).ToDictionary(group => group.Key, _ => true, StringComparer.Ordinal);
+        var reservedIds = local.Concat(dead).OfType<JsonObject>()
+            .Select(item => ContactFields.Source(item, source)?["id"]?.GetValue<string>())
+            .Where(id => !string.IsNullOrWhiteSpace(id)).ToHashSet(StringComparer.Ordinal);
+        var sameContent = remote.GroupBy(item => SyncBaseline.Hash(item.Data, ContactFields.Names), StringComparer.Ordinal)
+            .ToDictionary(group => group.Key, group => group.ToArray(), StringComparer.Ordinal);
         var imported = 0; var exported = 0; var updated = 0; var deleted = 0; var errors = 0;
 
         foreach (var item in local.OfType<JsonObject>().ToArray())
@@ -224,6 +229,27 @@ internal sealed class ContactSyncEngine
             if (uid.Length == 0) { uid = $"mag-{Guid.NewGuid():N}@magnolie-organizer"; item["uid"] = uid; }
             var mapping = ContactFields.Source(item, source);
             var remoteId = mapping?["id"]?.GetValue<string>() ?? "";
+            if (remoteId.Length == 0 && sameContent.TryGetValue(SyncBaseline.Hash(item, ContactFields.Names), out var equal))
+            {
+                // A different provider UID does not make otherwise identical
+                // contact data a new person. Names alone remain ambiguous.
+                var hasContactDetails = new[] { "email", "telefon", "mobil" }.Any(field => ContactFields.Text(item, field).Length > 0) ||
+                    new[] { "emails", "emailEintraege", "telefone" }.Any(field => item[field] is JsonArray entries && entries.Any(entry =>
+                        entry is JsonValue text && text.TryGetValue<string>(out var value) && !string.IsNullOrWhiteSpace(value) ||
+                        entry is JsonObject detail && ContactFields.Text(detail, "wert").Length > 0));
+                var available = equal.Where(other => remoteById.ContainsKey(other.Id) && !reservedIds.Contains(other.Id)).ToArray();
+                var sameUid = available.Where(other => ContactFields.Text(other.Data, "uid") == uid).Take(2).ToArray();
+                // Windows .contact deletion ownership is tied to its embedded
+                // Magnolie UID; do not infer a different identity there.
+                var candidates = sameUid.Length > 0 ? sameUid : source != "windows-contacts" && hasContactDetails ? available.Take(2).ToArray() : [];
+                if (candidates.Length == 1)
+                {
+                    var same = candidates[0];
+                    ContactFields.SetSource(item, source, same);
+                    mapping = ContactFields.Source(item, source); remoteId = same.Id;
+                    mappedIds[remoteId] = true; reservedIds.Add(remoteId);
+                }
+            }
             if (additiveOnly && remoteId.Length == 0)
             {
                 var matches = remoteById.Values.Where(value => ContactFields.Text(value.Data, "uid") == uid).ToArray();

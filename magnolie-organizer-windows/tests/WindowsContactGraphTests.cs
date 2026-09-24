@@ -8,11 +8,11 @@ namespace MagnolieOrganizer.Windows.Tests;
 
 internal static class WindowsContactGraphTests
 {
-    private sealed class YearlessUnsupportedRemote(RemoteContact contact) : IContactRemote
+    private sealed class YearlessUnsupportedRemote(params RemoteContact[] contacts) : IContactRemote
     {
         public bool SupportsYearlessBirthdays => false;
         public Task<IReadOnlyList<RemoteContact>> ReadAsync(CancellationToken token) =>
-            Task.FromResult<IReadOnlyList<RemoteContact>>([contact]);
+            Task.FromResult<IReadOnlyList<RemoteContact>>(contacts);
         public Task<RemoteContact> CreateAsync(string uid, JsonObject data, CancellationToken token) => throw new InvalidOperationException();
         public Task<RemoteContact> UpdateAsync(RemoteContact old, string uid, JsonObject data, CancellationToken token) => throw new InvalidOperationException();
         public Task DeleteAsync(RemoteContact old, string uid, CancellationToken token) => throw new InvalidOperationException();
@@ -59,6 +59,62 @@ internal static class WindowsContactGraphTests
             "A provider without yearless dates triggered repeated ineffective repair writes.");
     }
 
+    private static async Task TestIdenticalContactBinding()
+    {
+        var source = "nextcloud-addressbook:" + new string('c', 64);
+        var local = new JsonObject { ["id"] = "local", ["uid"] = "local-person",
+            ["vorname"] = "Mia", ["nachname"] = "Muster", ["email"] = "mia@example.test" };
+        var remoteData = local.DeepClone().AsObject(); remoteData["uid"] = "provider-person";
+        var remote = new RemoteContact("card", "\"v1\"", 1, remoteData, true);
+        // Every write throws, so success proves that an existing identical
+        // provider record was bound rather than exported as another contact.
+        var store = new YearlessUnsupportedRemote(remote);
+        var engine = new ContactSyncEngine();
+        var result = await engine.SyncAsync(source, new JsonArray(local), [], 0, store);
+        TestAssert.That(result.Contacts.Count == 1 && result.Counts == new ContactSyncCounts(0, 0, 0, 0, 0) &&
+            ContactFields.Source(result.Contacts[0]!.AsObject(), source)?["id"]?.GetValue<string>() == "card" &&
+            ContactFields.Text(result.Contacts[0]!.AsObject(), "uid") == "local-person",
+            "An identical cross-provider contact was duplicated or lost its local identity.");
+        var again = await engine.SyncAsync(source, result.Contacts, [], 0, store);
+        TestAssert.That(again.Contacts.Count == 1 && again.Counts == new ContactSyncCounts(0, 0, 0, 0, 0),
+            "The confirmed source binding did not survive the next synchronization.");
+        TestAssert.That(ContactFields.Source(local, source) is null && ContactFields.Text(remoteData, "uid") == "provider-person",
+            "Source matching mutated the caller's input.");
+        var ambiguous = remote with { Id = "second-card", Data = remoteData.DeepClone().AsObject() };
+        ambiguous.Data["uid"] = "second-provider-person";
+        var undecided = await engine.SyncAsync(source, new JsonArray(local.DeepClone()), [], 0,
+            new YearlessUnsupportedRemote(remote, ambiguous));
+        TestAssert.That(ContactFields.Source(undecided.Contacts[0]!.AsObject(), source) is null,
+            "Ambiguous provider matches were silently assigned to one person.");
+        var knownUid = local.DeepClone().AsObject(); knownUid["uid"] = "provider-person";
+        var identified = await engine.SyncAsync(source, new JsonArray(knownUid), [], 0,
+            new YearlessUnsupportedRemote(remote, ambiguous));
+        TestAssert.That(identified.Counts.Errors == 0 && identified.Counts.Exported == 0 &&
+            ContactFields.Source(identified.Contacts[0]!.AsObject(), source)?["id"]?.GetValue<string>() == "card",
+            "A stable provider UID did not take precedence over another content-identical record.");
+        var namedOnly = new JsonObject { ["id"] = "named", ["uid"] = "local-name", ["vorname"] = "Mia", ["emails"] = new JsonArray("") };
+        var namedRemote = namedOnly.DeepClone().AsObject(); namedRemote["uid"] = "remote-name";
+        var sameName = await engine.SyncAsync(source, new JsonArray(namedOnly), [], 0,
+            new YearlessUnsupportedRemote(new RemoteContact("named-card", "\"n1\"", 1, namedRemote, true)));
+        TestAssert.That(ContactFields.Source(sameName.Contacts[0]!.AsObject(), source) is null,
+            "Names alone or empty contact-detail lists silently identified a person.");
+        var batch = new JsonArray(); var batchRemote = new List<RemoteContact>();
+        for (var index = 0; index < 1000; index++)
+        {
+            var contact = new JsonObject { ["id"] = "local-" + index, ["uid"] = "local-uid-" + index,
+                ["vorname"] = "Contact " + index, ["email"] = "contact" + index + "@example.test" };
+            batch.Add(contact);
+            var counterpart = contact.DeepClone().AsObject(); counterpart["uid"] = "provider-uid-" + index;
+            batchRemote.Add(new RemoteContact("remote-" + index, "\"v1\"", 1, counterpart, true));
+        }
+        var timer = System.Diagnostics.Stopwatch.StartNew();
+        var bulk = await engine.SyncAsync(source, batch, [], 0, new YearlessUnsupportedRemote(batchRemote.ToArray()));
+        TestAssert.That(bulk.Contacts.Count == 1000 && bulk.Counts == new ContactSyncCounts(0, 0, 0, 0, 0) &&
+            bulk.Contacts.OfType<JsonObject>().All(item => ContactFields.Source(item, source) is not null),
+            "Bulk matching duplicated contacts, omitted source bindings, or attempted a source write.");
+        Console.WriteLine($"  Identical cross-provider contacts: 1000 bound in {timer.ElapsedMilliseconds} ms, no source writes.");
+    }
+
     internal static async Task RunAsync()
     {
         var root = Path.Combine(Path.GetTempPath(), $"magnolie-contacts-{Guid.NewGuid():N}");
@@ -68,6 +124,7 @@ internal static class WindowsContactGraphTests
             var store = new WindowsContactStore(root);
             await TestContactConflicts(root);
             await TestPlaceholderBirthday(root);
+            await TestIdenticalContactBinding();
             TestNativeContactFields();
             var contact = new JsonObject { ["vorname"] = "Änne", ["nachname"] = "Beispiel", ["email"] = "a@example.test" };
             var stableOne = WindowsContactStore.StableImportUid("Anna.contact", "");

@@ -483,9 +483,9 @@ internal sealed class NextcloudCardDavRemote(NextcloudDavClient client, Nextclou
     {
         if (remote.ETag.Length == 0) throw new InvalidOperationException("Der CardDAV-ETag fehlt; das Objekt wird nicht ungeschützt überschrieben.");
         var outgoing = contact.DeepClone().AsObject();
-        // Google may assign its own UID. Keep the local identity, but retain
-        // the provider's UID inside the existing remote resource.
-        if (source.Uid.StartsWith("thunderbird-", StringComparison.Ordinal) && ContactFields.Text(remote.Data, "uid") is { Length: > 0 } remoteUid)
+        // Matching an existing contact across providers must not replace its
+        // remote UID with the local identity (Google also assigns its own UID).
+        if (ContactFields.Text(remote.Data, "uid") is { Length: > 0 } remoteUid)
             outgoing["uid"] = remoteUid;
         var changed = await client.UpdateAsync(new Uri(remote.Id), remote.ETag, "text/vcard", Write(outgoing), cancellationToken).ConfigureAwait(false);
         return new RemoteContact(changed.Href.AbsoluteUri, changed.ETag, contact["geaendert"]?.GetValue<long>() ?? 0, contact.DeepClone().AsObject(), true);
