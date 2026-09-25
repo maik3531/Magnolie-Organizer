@@ -3834,7 +3834,8 @@ class PhoneService:
                     # never bridge a real permission or session change.
                     if (old.get("grants") == value["grants"] and observation
                             and observation[2] is channel
-                            and self.connections.get(peer["device_id"]) is channel
+                            and (self.connections.get(peer["device_id"]) is None
+                                 or self.connections.get(peer["device_id"]) is channel)
                             and observation[3:] == (peer["local_grants"].get("revision"), old["revision"])):
                         self.audio_observations[peer["device_id"]] = (*observation[:4], value["revision"])
                     peer["grants"] = value
@@ -3895,7 +3896,11 @@ class PhoneService:
                         self.audio_retired_calls.append((peer["device_id"], value["call_ref"]))
                     if (0 <= now_ms() - value["occurred_ms"] <= 15000
                             and (peer["device_id"], value["call_ref"]) not in self.audio_retired_calls
-                            and self.connections.get(peer["device_id"]) is channel):
+                            and (self.connections.get(peer["device_id"]) is None
+                                 or self.connections.get(peer["device_id"]) is channel)):
+                        # Authenticated call events can precede the control ACK.
+                        # Keep that observation, but _call_audio_context still
+                        # requires this exact channel to be activated first.
                         self.audio_observations[peer["device_id"]] = (value["call_ref"], value["revision"], channel,
                             peer["local_grants"].get("revision"), peer["grants"].get("revision"))
                     else:

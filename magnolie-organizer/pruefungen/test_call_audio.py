@@ -511,6 +511,27 @@ def test_reannounced_identical_phone_grants_keep_fresh_call_authorized(service):
     assert not service.call_audio.state["active"]
 
 
+def test_fresh_call_during_authenticated_handshake_starts_audio_only_after_activation(service):
+    value = event(service, "ringing", 1)
+    service.connections.pop(PEER)
+    channel = SimpleNamespace(send=lambda value: None)
+    now = phone.now_ms()
+    value = dict(value, revision=2, state="offhook", occurred_ms=now, offhook_ms=now)
+    peer = service.store.peer(PEER)
+    service._payload(peer, channel, dict(type="message", v=1, message_id=str(uuid.uuid4()),
+        kind="incoming_call_state.event", created_ms=now, expires_ms=now + 60000, body=value))
+    assert service._call_audio_context() is None, "Control ACK must precede audio authorization"
+    grants = copy.deepcopy(peer["grants"])
+    grants["revision"] += 1
+    service._payload(peer, channel, dict(type="message", v=1, message_id=str(uuid.uuid4()),
+        kind="grants.update", created_ms=now, expires_ms=now + 60000, body=grants))
+    assert service._call_audio_context() is None
+    service._activate_connection(PEER, channel, "wifi")
+    assert service._call_audio_context(), "The same session's fresh pending call must survive control activation"
+    assert service.call_audio.update(service._call_audio_context)["active"]
+    service.call_audio.restore()
+
+
 def test_revoked_then_restored_phone_grants_need_a_new_call_observation(service):
     event(service)
     peer = service.store.peer(PEER)
