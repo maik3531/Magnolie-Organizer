@@ -495,6 +495,38 @@ def test_old_call_and_old_session_replay_never_open_microphone(service):
     assert service._call_audio_context() is None
 
 
+def test_reannounced_identical_phone_grants_keep_fresh_call_authorized(service):
+    event(service)
+    peer = service.store.peer(PEER)
+    body = copy.deepcopy(peer["grants"])
+    body["revision"] += 1
+    now = phone.now_ms()
+    service._payload(peer, service.connections[PEER], dict(
+        type="message", v=1, message_id=str(uuid.uuid4()), kind="grants.update",
+        created_ms=now, expires_ms=now + 60000, body=body))
+    assert service._call_audio_context(), "Repeated unchanged grants must not cancel the fresh call observation"
+    assert service.call_audio.update(service._call_audio_context)["active"]
+    event(service, "idle", 3)
+    service.call_audio.update(service._call_audio_context)
+    assert not service.call_audio.state["active"]
+
+
+def test_revoked_then_restored_phone_grants_need_a_new_call_observation(service):
+    event(service)
+    peer = service.store.peer(PEER)
+    for granted in (False, True, True):
+        body = copy.deepcopy(peer["grants"])
+        body["revision"] += 1
+        body["grants"]["incoming_call_state"] = granted
+        now = phone.now_ms()
+        service._payload(peer, service.connections[PEER], dict(
+            type="message", v=1, message_id=str(uuid.uuid4()), kind="grants.update",
+            created_ms=now, expires_ms=now + 60000, body=body))
+        assert service._call_audio_context() is None
+    event(service, revision=3)
+    assert service._call_audio_context()
+
+
 def test_own_confirmation_default_and_explicit_false_survive_reload(service):
     peer = service.store.peer(PEER)
     peer.pop("call_audio")

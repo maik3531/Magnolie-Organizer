@@ -3825,7 +3825,18 @@ class PhoneService:
                 self.store.purge_personal_modules(peer["device_id"], revoked)
                 if not value["grants"].get("personal_deletions_sync"):
                     self.store.purge_personal_deletion_wire(peer["device_id"])
-                peer["grants"] = value
+                with self.lock:
+                    observation = self.audio_observations.get(peer["device_id"])
+                    # Notes reannounces grants after reconnecting to deliver a
+                    # queued call event. An unchanged announcement is not a
+                    # revocation. Rebase only the still-current observation;
+                    # never bridge a real permission or session change.
+                    if (old.get("grants") == value["grants"] and observation
+                            and observation[2] is channel
+                            and self.connections.get(peer["device_id"]) is channel
+                            and observation[3:] == (peer["local_grants"].get("revision"), old["revision"])):
+                        self.audio_observations[peer["device_id"]] = (*observation[:4], value["revision"])
+                    peer["grants"] = value
                 self.store.save_peers()
             except ValueError:
                 status, error = "rejected", "invalid_schema"
