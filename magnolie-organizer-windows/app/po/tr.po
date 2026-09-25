@@ -630,9 +630,6 @@ msgstr "Başka bir telefon zaten eşleştirilmiş. Önce onu kaldırın."
 msgid "Answer"
 msgstr "Yanıtla"
 
-msgid "Answer calls on the computer and talk"
-msgstr "Aramaları bilgisayarda yanıtla ve konuş"
-
 msgid "App password"
 msgstr "Uygulama parolası"
 
@@ -3406,9 +3403,6 @@ msgstr ""
 "Bildirimler yalnızca görüntülenebilir; yanıtlama ve uzaktan işlemler "
 "kullanılamaz."
 
-msgid "Notify me about incoming calls"
-msgstr "Gelen aramalarda beni bilgilendir"
-
 msgid "ODS"
 msgstr "ODS"
 
@@ -5631,9 +5625,6 @@ msgstr "Başlangıç tarihi bitiş tarihinden sonra olamaz."
 msgid "The synchronization data is missing."
 msgstr "Senkronizasyon verileri eksik."
 
-msgid "The system dialer opens on the phone. Confirm the call there."
-msgstr "Telefonda sistem çevirici açılır. Aramayı orada onaylayın."
-
 msgid ""
 "The task will be sent to the selected branch. It will also remain here so "
 "you can keep track of it."
@@ -5858,9 +5849,6 @@ msgstr ""
 msgid "This setting applies when you restore the window from the tray menu."
 msgstr ""
 "Bu ayar, pencereyi sistem tepsisi menüsünden geri yüklediğinizde uygulanır."
-
-msgid "This status comes from Magnolie Notes, not KDE Connect."
-msgstr "Bu durum KDE Connect'ten değil, Magnolie Notes'tan geliyor."
 
 msgid ""
 "This system did not allow waking from suspend. The reminder will appear as "
@@ -6893,6 +6881,18 @@ msgstr[1] "… ayrıca yazdırılacak %(count)s öğe daha."
 
 msgid "＋ Add appointment"
 msgstr "＋ Randevu ekle"
+
+#~ msgid "Answer calls on the computer and talk"
+#~ msgstr "Aramaları bilgisayarda yanıtla ve konuş"
+
+#~ msgid "Notify me about incoming calls"
+#~ msgstr "Gelen aramalarda beni bilgilendir"
+
+#~ msgid "The system dialer opens on the phone. Confirm the call there."
+#~ msgstr "Telefonda sistem çevirici açılır. Aramayı orada onaylayın."
+
+#~ msgid "This status comes from Magnolie Notes, not KDE Connect."
+#~ msgstr "Bu durum KDE Connect'ten değil, Magnolie Notes'tan geliyor."
 
 #~ msgid "This is my own phone"
 #~ msgstr "Bu benim kendi telefonum"

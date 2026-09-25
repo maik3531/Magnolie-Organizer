@@ -585,9 +585,6 @@ msgstr "另一部手机已配对。首先将其删除。"
 msgid "Answer"
 msgstr "接听"
 
-msgid "Answer calls on the computer and talk"
-msgstr "在电脑上接听并通话"
-
 msgid "App password"
 msgstr "应用密码"
 
@@ -3265,9 +3262,6 @@ msgid ""
 "available."
 msgstr "通知仅在已安装的应用中可用。"
 
-msgid "Notify me about incoming calls"
-msgstr "有来电时通知我"
-
 msgid "ODS"
 msgstr "ODS"
 
@@ -5398,9 +5392,6 @@ msgstr "开始日期不得晚于结束日期。"
 msgid "The synchronization data is missing."
 msgstr "同步数据丢失。"
 
-msgid "The system dialer opens on the phone. Confirm the call there."
-msgstr "系统拨号器在电话上打开。在那里确认通话。"
-
 msgid ""
 "The task will be sent to the selected branch. It will also remain here so "
 "you can keep track of it."
@@ -5605,9 +5596,6 @@ msgstr ""
 
 msgid "This setting applies when you restore the window from the tray menu."
 msgstr "从系统托盘菜单恢复窗口时会应用此设置。"
-
-msgid "This status comes from Magnolie Notes, not KDE Connect."
-msgstr "此状态来自 Magnolie Notes，而非 KDE Connect。"
 
 msgid ""
 "This system did not allow waking from suspend. The reminder will appear as "
@@ -6589,6 +6577,18 @@ msgstr[0] "… 以及另外 %(count)s 项也将打印。"
 
 msgid "＋ Add appointment"
 msgstr "＋ 添加约会"
+
+#~ msgid "Answer calls on the computer and talk"
+#~ msgstr "在电脑上接听并通话"
+
+#~ msgid "Notify me about incoming calls"
+#~ msgstr "有来电时通知我"
+
+#~ msgid "The system dialer opens on the phone. Confirm the call there."
+#~ msgstr "系统拨号器在电话上打开。在那里确认通话。"
+
+#~ msgid "This status comes from Magnolie Notes, not KDE Connect."
+#~ msgstr "此状态来自 Magnolie Notes，而非 KDE Connect。"
 
 #~ msgid "This is my own phone"
 #~ msgstr "这是我本人的手机"

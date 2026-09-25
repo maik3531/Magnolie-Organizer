@@ -24,6 +24,13 @@ import kotlinx.coroutines.launch
 import java.util.UUID
 
 object TelefonModulStatus {
+    val callPermissions = arrayOf(Manifest.permission.CALL_PHONE, Manifest.permission.READ_PHONE_STATE,
+        Manifest.permission.READ_CALL_LOG, Manifest.permission.ANSWER_PHONE_CALLS)
+
+    fun missingCallPermissions(context: Context) = callPermissions.filter {
+        context.checkSelfPermission(it) != PackageManager.PERMISSION_GRANTED
+    }
+
     fun telephony(context: Context): Boolean = context.packageManager.hasSystemFeature(PackageManager.FEATURE_TELEPHONY)
     fun dialResolvable(context: Context): Boolean = telephony(context) &&
         context.getSystemService(TelecomManager::class.java) != null

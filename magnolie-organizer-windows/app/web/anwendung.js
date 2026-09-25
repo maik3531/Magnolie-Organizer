@@ -1533,6 +1533,10 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     }
     senden("own", peer.own_device, { cmd: "personal_sync_einstellungen",
       kennung: peer.device_id, eigen: true, autoWlan: true });
+    const anrufe = DATEN.einstellungen.adressen.kommunikation.anruf.art === "magnolie";
+    for (const name of ["incoming_call_state", "incoming_call_number", "answer_call", "end_call"])
+      senden("calls:" + name, (peer.local_grants?.grants?.[name] === true) === anrufe, {
+        cmd: "telefon_freigabe", kennung: peer.device_id, name: name, an: anrufe });
   }
   function personalSyncBereit(peer) {
     if (!peer?.own_device || !peer.remote_own_device) return false;
@@ -1786,8 +1790,6 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     knoepfe.append(aktualisieren, zu);
     const inhalt = el("div", "geraet-dialog-inhalt");
     inhalt.append(
-      el("p", "einst-hinweis", _("This status comes from Magnolie Notes, not KDE Connect.")),
-      el("p", "einst-hinweis", String(nutzlast.name || _("Unknown phone"))),
       online, koerper, freigaben, personal,
       el("p", "einst-hinweis", _("Notifications are display-only; replying and remote actions are not available.")));
     dialog.append(titel, inhalt, knoepfe);
@@ -3244,11 +3246,14 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     const schliessen = () => { beendeModal(schleier); schleier.remove(); };
     const knoepfe = el("div", "dialog-knoepfe");
     knoepfe.append(knopf(_("Close"), "", schliessen));
+    const online = (telefonStand?.peers || []).filter(p => ["online_wifi", "online_bluetooth"].includes(p.state));
     dialog.append(el("h3", null, _("Phone call")),
       el("p", "einst-warnung", telefone.length
         ? _("More than one Magnolie Notes phone is online. Disconnect all but one phone.")
+        : !online.length ? _("Offline")
+        : !online.some(p => p.capabilities?.items?.dial_request?.available) ? _("Unavailable")
+        : online.some(p => p.grants?.grants?.dial_request) ? _("Select your phone")
         : _("No online Magnolie Notes phone has allowed dial requests.")),
-      el("p", "einst-hinweis", _("The system dialer opens on the phone. Confirm the call there.")),
       knoepfe);
     schleier.append(dialog); document.body.append(schleier);
     registriereModal(schleier, dialog, { anfang: dialog.querySelector("button"), schliessen: schliessen });
@@ -3563,8 +3568,6 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       const label = el("label", "hak"); label.append(input, document.createTextNode(" " + text));
       optionen.append(label); return input;
     };
-    const eingehend = sms ? null : option(_("Notify me about incoming calls"), "eingehendBenachrichtigen");
-    const computer = sms ? null : option(_("Answer calls on the computer and talk"), "computerTelefonie");
     const leiser = sms ? null : option(_("Lower other sounds while ringing"), "klingeltonLeiser");
     const audioCapability = telefonStand && telefonStand.call_audio || {};
     const pcAudio = sms ? null : option(
@@ -3576,38 +3579,35 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     const heimatland = sms ? null : auswahlFeld(telefonLaenderOptionen(), telefonHeimatland());
     if (heimatland) heimatland.id = "anruf-heimatland";
     const optionenAktualisieren = () => {
-      if (computer && computer.checked) eingehend.checked = true;
-      if (leiser) { leiser.disabled = !eingehend.checked || computer.checked; if (leiser.disabled) leiser.checked = false; }
+      if (leiser) { leiser.disabled = auswahl.querySelector("input:checked")?.value !== "magnolie"; if (leiser.disabled) leiser.checked = false; }
     };
-    if (!sms) { eingehend.addEventListener("change", optionenAktualisieren); computer.addEventListener("change", optionenAktualisieren); optionenAktualisieren(); }
+    if (!sms) { auswahl.addEventListener("change", optionenAktualisieren); optionenAktualisieren(); }
     const speichern = knopf(_("Save"), "hauptknopf", () => {
       const art = auswahl.querySelector("input:checked").value;
       const ziel = programm.value.trim().slice(0, 500);
       if (art === "program" && !ziel) { fehler.textContent = _("Enter an application command."); return; }
       DATEN.einstellungen.adressen.kommunikation[typ] = { art: art, programm: ziel };
       if (!sms) Object.assign(DATEN.einstellungen.adressen.kommunikation[typ], {
-        eingehendBenachrichtigen: eingehend.checked || computer.checked,
-        computerTelefonie: computer.checked, klingeltonLeiser: leiser.checked,
+        eingehendBenachrichtigen: art === "magnolie",
+        computerTelefonie: art === "magnolie", klingeltonLeiser: leiser.checked,
         preferPcAudio: pcAudio.checked, hfpAdresse: aktuell.hfpAdresse || "" });
       if (!sms) Bruecke.sende({ cmd: "regional_einstellungen",
         regional: regionaleEinstellungenNutzlast(heimatland.value) });
       if (!sms && art === "magnolie") for (const peer of (telefonStand && telefonStand.peers || [])) {
         Bruecke.sende({ cmd: "telefon_freigabe", kennung: peer.device_id,
-          name: "incoming_call_state", an: eingehend.checked || computer.checked });
+          name: "incoming_call_state", an: true });
         Bruecke.sende({ cmd: "telefon_freigabe", kennung: peer.device_id,
-          name: "incoming_call_number", an: eingehend.checked || computer.checked });
+          name: "incoming_call_number", an: true });
         Bruecke.sende({ cmd: "telefon_freigabe", kennung: peer.device_id,
-          name: "answer_call", an: computer.checked });
+          name: "answer_call", an: true });
         Bruecke.sende({ cmd: "telefon_freigabe", kennung: peer.device_id,
-          name: "end_call", an: computer.checked });
+          name: "end_call", an: true });
       }
       planeSpeichern(); schliessen(); zeichneAlles();
     });
     const zurueck = knopf(_("Restore defaults"), "", () => {
       auswahl.querySelector('[value="' + (sms ? "kde" : "magnolie") + '"]').checked = true;
       programm.value = "";
-      if (eingehend) eingehend.checked = false;
-      if (computer) computer.checked = false;
       if (leiser) leiser.checked = false;
       if (pcAudio && !pcAudio.disabled) pcAudio.checked = true;
       optionenAktualisieren();
@@ -6003,8 +6003,8 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       const programm = S(wert.programm).trim().slice(0, 500);
       const ergebnis = { art: art === "program" && !programm ? standard : art, programm: programm };
       if (!sms) {
-        ergebnis.eingehendBenachrichtigen = wert.eingehendBenachrichtigen === true;
-        ergebnis.computerTelefonie = wert.computerTelefonie === true;
+        ergebnis.eingehendBenachrichtigen = ergebnis.art === "magnolie";
+        ergebnis.computerTelefonie = ergebnis.art === "magnolie";
         ergebnis.klingeltonLeiser = wert.klingeltonLeiser === true;
         const hfpAdresse = S(wert.hfpAdresse).toUpperCase();
         ergebnis.hfpAdresse = /^[0-9A-F]{2}(?::[0-9A-F]{2}){5}$/.test(hfpAdresse) ? hfpAdresse : "";

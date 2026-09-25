@@ -657,9 +657,6 @@ msgstr "Jiný telefon je již spárován. Nejprve jej odstraňte."
 msgid "Answer"
 msgstr "Přijmout"
 
-msgid "Answer calls on the computer and talk"
-msgstr "Přijímat hovory na počítači a mluvit"
-
 msgid "App password"
 msgstr "Heslo aplikace"
 
@@ -3423,9 +3420,6 @@ msgid ""
 "available."
 msgstr "Oznámení jsou k dispozici pouze v nainstalované aplikaci."
 
-msgid "Notify me about incoming calls"
-msgstr "Upozorňovat na příchozí hovory"
-
 msgid "ODS"
 msgstr "ODS"
 
@@ -5650,9 +5644,6 @@ msgstr "Počáteční datum nesmí být pozdější než koncové datum."
 msgid "The synchronization data is missing."
 msgstr "Chybí synchronizační data."
 
-msgid "The system dialer opens on the phone. Confirm the call there."
-msgstr "Na telefonu se otevře systémový číselník. Potvrďte hovor tam."
-
 msgid ""
 "The task will be sent to the selected branch. It will also remain here so "
 "you can keep track of it."
@@ -5877,9 +5868,6 @@ msgstr ""
 msgid "This setting applies when you restore the window from the tray menu."
 msgstr ""
 "Toto nastavení se použije při obnovení okna z nabídky oznamovací oblasti."
-
-msgid "This status comes from Magnolie Notes, not KDE Connect."
-msgstr "Tento stav pochází z Magnolie Notes, nikoli z KDE Connect."
 
 msgid ""
 "This system did not allow waking from suspend. The reminder will appear as "
@@ -6913,6 +6901,18 @@ msgstr[2] "… a ještě %(count)s další položky, které se rovněž vytiskno
 
 msgid "＋ Add appointment"
 msgstr "＋ Přidat schůzku"
+
+#~ msgid "Answer calls on the computer and talk"
+#~ msgstr "Přijímat hovory na počítači a mluvit"
+
+#~ msgid "Notify me about incoming calls"
+#~ msgstr "Upozorňovat na příchozí hovory"
+
+#~ msgid "The system dialer opens on the phone. Confirm the call there."
+#~ msgstr "Na telefonu se otevře systémový číselník. Potvrďte hovor tam."
+
+#~ msgid "This status comes from Magnolie Notes, not KDE Connect."
+#~ msgstr "Tento stav pochází z Magnolie Notes, nikoli z KDE Connect."
 
 #~ msgid "This is my own phone"
 #~ msgstr "Toto je můj vlastní telefon"

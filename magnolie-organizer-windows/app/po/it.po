@@ -632,9 +632,6 @@ msgstr "Un altro telefono è già accoppiato. Rimuovilo prima."
 msgid "Answer"
 msgstr "Rispondi"
 
-msgid "Answer calls on the computer and talk"
-msgstr "Rispondi alle chiamate sul computer e parla"
-
 msgid "App password"
 msgstr "Password dell’app"
 
@@ -3445,9 +3442,6 @@ msgstr ""
 "Le notifiche sono di sola visualizzazione; le risposte e le azioni remote "
 "non sono disponibili."
 
-msgid "Notify me about incoming calls"
-msgstr "Avvisami delle chiamate in arrivo"
-
 msgid "ODS"
 msgstr "ODS"
 
@@ -5721,9 +5715,6 @@ msgstr "La data di inizio non deve essere successiva alla data di fine."
 msgid "The synchronization data is missing."
 msgstr "Mancano i dati di sincronizzazione."
 
-msgid "The system dialer opens on the phone. Confirm the call there."
-msgstr "Sul telefono si apre la tastiera di sistema. Conferma la chiamata lì."
-
 msgid ""
 "The task will be sent to the selected branch. It will also remain here so "
 "you can keep track of it."
@@ -5955,9 +5946,6 @@ msgid "This setting applies when you restore the window from the tray menu."
 msgstr ""
 "Questa impostazione si applica quando ripristini la finestra dal menu "
 "dell’area di notifica."
-
-msgid "This status comes from Magnolie Notes, not KDE Connect."
-msgstr "Questo stato proviene da Magnolie Notes, non da KDE Connect."
 
 msgid ""
 "This system did not allow waking from suspend. The reminder will appear as "
@@ -7001,6 +6989,19 @@ msgstr[1] "… e %(count)s altri elementi che verranno anch’essi stampati."
 
 msgid "＋ Add appointment"
 msgstr "＋ Aggiungi appuntamento"
+
+#~ msgid "Answer calls on the computer and talk"
+#~ msgstr "Rispondi alle chiamate sul computer e parla"
+
+#~ msgid "Notify me about incoming calls"
+#~ msgstr "Avvisami delle chiamate in arrivo"
+
+#~ msgid "The system dialer opens on the phone. Confirm the call there."
+#~ msgstr ""
+#~ "Sul telefono si apre la tastiera di sistema. Conferma la chiamata lì."
+
+#~ msgid "This status comes from Magnolie Notes, not KDE Connect."
+#~ msgstr "Questo stato proviene da Magnolie Notes, non da KDE Connect."
 
 #~ msgid "This is my own phone"
 #~ msgstr "Questo è il mio telefono personale"

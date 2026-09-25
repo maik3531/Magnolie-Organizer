@@ -29,8 +29,9 @@ for (const file of files) {
   const start = source.indexOf('  function telefonStandardsAnwenden() {');
   const end = source.indexOf('  function zeichneGeraeteKennungen()', start);
   assert.ok(start >= 0 && end > start);
-  const defaults = new Function('telefonStand', 'Bruecke', 'telefonStandardAnfragen', 'performance',
+  const runDefaults = new Function('telefonStand', 'Bruecke', 'telefonStandardAnfragen', 'performance', 'DATEN',
     source.slice(start, end) + '\ntelefonStandardsAnwenden();');
+  const defaults = (...args) => runDefaults(...args, { einstellungen: { adressen: { kommunikation: { anruf: { art: 'system' } } } } });
   const messages = [], waiting = new Map(), bridge = { sende(message) { messages.push(message); return true; } };
   const peer = { device_id: 'phone', fingerprint: 'pin', state: 'offline', own_device: false,
     auto_wifi: false, local_grants: { grants: {} } };
@@ -51,6 +52,14 @@ for (const file of files) {
   defaults({ peers: [peer, { ...peer, device_id: 'other' }] }, bridge, waiting, { now: () => 20000 });
   defaults({ peers: [peer], binding_conflict: true }, bridge, waiting, { now: () => 20000 });
   assert.equal(messages.length, 0, 'ambiguous phone bindings must not receive defaults');
+  if (file === files[0]) {
+    runDefaults({ peers: [configured] }, bridge, new Map(), { now: () => 20000 }, {
+      einstellungen: { adressen: { kommunikation: { anruf: { art: 'magnolie' } } } } });
+    assert.deepEqual(messages.filter(m => m.cmd === 'telefon_freigabe').map(m => [m.name, m.an]),
+      [['incoming_call_state', true], ['incoming_call_number', true], ['answer_call', true], ['end_call', true]],
+      'the selected Notes call route must include all call controls');
+    messages.length = 0;
+  }
   const readyStart = source.indexOf('  function personalSyncBereit(peer) {');
   const ready = new Function('peer', source.slice(readyStart, end) + '\nreturn personalSyncBereit(peer);');
   assert.equal(ready(null), false);

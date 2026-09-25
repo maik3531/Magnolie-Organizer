@@ -61,7 +61,9 @@ class TelefonModuleTest {
         assertTrue(work.contains("if (!serviceRunning || !storage.enabled()"))
         assertTrue(work.contains("while (serviceRunning && storage.enabled())"))
         assertTrue(work.contains("body.string(\"direction\") == \"outgoing\""))
-        assertTrue(activity.contains("Manifest.permission.CALL_PHONE, Manifest.permission.READ_PHONE_STATE"))
+        assertTrue(activity.contains("TelefonModulStatus.missingCallPermissions(zusammenhang)"))
+        assertTrue(TelefonModulStatus.callPermissions.toList().containsAll(listOf(android.Manifest.permission.CALL_PHONE,
+            android.Manifest.permission.READ_PHONE_STATE, android.Manifest.permission.READ_CALL_LOG, android.Manifest.permission.ANSWER_PHONE_CALLS)))
         assertTrue(activity.contains("runCatching { TelefonWerk.get(this).runtimePermissionsChanged() }"))
         val service = File("app/src/main/java/io/gitlab/maik3531/magnolienotes/telefon/TelefonDienst.kt").readText()
         assertTrue(service.substring(service.indexOf("fun stop(context: Context)"))

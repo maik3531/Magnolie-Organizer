@@ -623,8 +623,8 @@ function knopfMit(text, wurzel) {
   "SMS-Verlauf wird nicht streng begrenzt und normalisiert");
   assert.deepStrictEqual(smsNormalisiert.einstellungen.adressen.kommunikation,
     { sms: { art: "program", programm: "app {nummer}" },
-      anruf: { art: "magnolie", programm: "ignoriert", eingehendBenachrichtigen: false,
-        computerTelefonie: false, klingeltonLeiser: false, preferPcAudio: true, hfpAdresse: "" } },
+      anruf: { art: "magnolie", programm: "ignoriert", eingehendBenachrichtigen: true,
+        computerTelefonie: true, klingeltonLeiser: false, preferPcAudio: true, hfpAdresse: "" } },
   "Kommunikationsbelegung wird nicht streng nach SMS-/Anrufsemantik normalisiert");
   assert.strictEqual(smsNormalisiert.einstellungen.adressen.smsBenachrichtigungDauer, 60,
     "die SMS-Benachrichtigungsdauer fällt nicht auf 60 Sekunden zurück");
@@ -9103,8 +9103,8 @@ function knopfMit(text, wurzel) {
   const anrufBelegungText = anrufBelegung.textContent;
   assert.ok(anrufBelegungText.includes("Programmbefehl") &&
     anrufBelegungText.includes("Der Befehl wird sicher ohne Shell gestartet.") &&
-    anrufBelegungText.includes("Über eingehende Anrufe benachrichtigen") &&
-    anrufBelegungText.includes("Anrufe am Computer annehmen und sprechen") &&
+    !anrufBelegungText.includes("Über eingehende Anrufe benachrichtigen") &&
+    !anrufBelegungText.includes("Anrufe am Computer annehmen und sprechen") &&
     anrufBelegungText.includes("Andere Töne während des Klingelns leiser stellen") &&
     anrufBelegungText.includes("entsprechenden Berechtigungen in Magnolie Notes") &&
     !/Application command|Notify me|Answer calls|Lower other sounds|matching permissions/.test(
@@ -9114,8 +9114,8 @@ function knopfMit(text, wurzel) {
     (x) => x.textContent === "Voreinstellungen wiederherstellen");
   const anrufOptionen = Array.from(anrufBelegung.querySelectorAll(
     ".kommunikation-anruf-optionen input[type=checkbox]"));
-  assert.strictEqual(anrufOptionen.length, 4);
-  const pcAudio = anrufOptionen[3];
+  assert.strictEqual(anrufOptionen.length, 2);
+  const pcAudio = anrufOptionen[1];
   assert.ok(pcAudio.checked && !pcAudio.disabled, "Eigenes Telefon bietet die unabhaengige Audio-Voreinstellung nicht an");
   anrufBelegung.querySelector('[value="program"]').click();
   anrufBelegung.querySelector('input[type="text"]').value = "dialer {nummer}";
@@ -9124,7 +9124,7 @@ function knopfMit(text, wurzel) {
   standardKnopf.click();
   assert.ok(standardKnopf && anrufBelegung.querySelector('[value="magnolie"]').checked &&
     !anrufBelegung.querySelector('input[type="text"]').value &&
-    anrufOptionen.slice(0, 3).every((feld) => !feld.checked) && pcAudio.checked &&
+    !anrufOptionen[0].checked && pcAudio.checked &&
     hfpAnzeige.textContent === "AA:BB:CC:DD:EE:FF",
   "Voreinstellungen stellen nicht die vollständige Anrufbelegung wieder her");
   pcAudio.checked = false;
@@ -9173,7 +9173,7 @@ function knopfMit(text, wurzel) {
     "Der geoeffnete Geraetedialog fordert seinen eigenen UUID-gebundenen Status an");
   assert.strictEqual(geraetD.querySelector("#geraet-titel").textContent,
     "Magnolie Notes-Gerätestatus");
-  assert.ok(geraetD.querySelector("#geraet-dialog").textContent.includes(
+  assert.ok(!geraetD.querySelector("#geraet-dialog").textContent.includes(
     "Dieser Status stammt aus Magnolie Notes, nicht aus KDE Connect."));
   assert.ok(!geraetD.querySelector("#geraet-dialog").textContent.includes("partner-intern-1") &&
     geraetD.querySelector(".geraet-telefon") && geraetD.querySelector(".geraet-akku"),

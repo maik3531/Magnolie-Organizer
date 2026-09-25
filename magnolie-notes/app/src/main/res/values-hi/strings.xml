@@ -376,4 +376,6 @@
     <string name="device_identifiers_unavailable">यह डिवाइस पहचानकर्ता उपलब्ध नहीं है।</string>
     <string name="telefon_rechner_hinzufuegen">कंप्यूटर जोड़ें</string>
     <string name="telefon_mehrere_rechner">पेयर किए गए कंप्यूटर सहेजे रहते हैं। अभी उपयोग करने के लिए कंप्यूटर चुनें।</string>
+    <string name="telefon_anrufe_erlauben">कॉल की अनुमति दें</string>
+    <string name="telefon_anruf_berechtigungen">Android अनुमतियाँ चालू करें</string>
 </resources>

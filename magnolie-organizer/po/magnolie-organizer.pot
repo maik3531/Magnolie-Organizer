@@ -850,9 +850,6 @@ msgstr ""
 msgid "Answer"
 msgstr ""
 
-msgid "Answer calls on the computer and talk"
-msgstr ""
-
 msgid "Answering the call"
 msgstr ""
 
@@ -3925,9 +3922,6 @@ msgid ""
 "available."
 msgstr ""
 
-msgid "Notify me about incoming calls"
-msgstr ""
-
 msgid "Notify, then unlock (recommended)"
 msgstr ""
 
@@ -6622,9 +6616,6 @@ msgstr ""
 msgid "The synchronization resume journal is damaged."
 msgstr ""
 
-msgid "The system dialer opens on the phone. Confirm the call there."
-msgstr ""
-
 msgid "The task is missing from the update."
 msgstr ""
 
@@ -6889,9 +6880,6 @@ msgid "This selection is independent of the Bluetooth data fallback."
 msgstr ""
 
 msgid "This setting applies when you restore the window from the tray menu."
-msgstr ""
-
-msgid "This status comes from Magnolie Notes, not KDE Connect."
 msgstr ""
 
 msgid ""

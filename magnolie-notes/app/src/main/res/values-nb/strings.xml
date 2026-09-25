@@ -376,4 +376,6 @@
     <string name="device_identifiers_unavailable">Denne enhetsidentifikatoren er utilgjengelig.</string>
     <string name="telefon_rechner_hinzufuegen">Legg til datamaskin</string>
     <string name="telefon_mehrere_rechner">Parede datamaskiner forblir lagret. Velg datamaskinen du vil bruke nå.</string>
+    <string name="telefon_anrufe_erlauben">Tillat anrop</string>
+    <string name="telefon_anruf_berechtigungen">Aktiver Android-tillatelser</string>
 </resources>

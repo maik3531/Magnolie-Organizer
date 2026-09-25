@@ -17,8 +17,11 @@ for (const file of frontends) {
   assert.equal(migrate({hfpAdresse: 'arbitrary-friendly-name'}, false).preferPcAudio, false);
   assert.equal(migrate({preferPcAudio: false, hfpAdresse: 'AA:BB:CC:DD:EE:FF'}, false).preferPcAudio, false);
   assert.equal(migrate({preferPcAudio: true, hfpAdresse: ''}, false).preferPcAudio, true);
-  assert.equal(migrate({}, false).computerTelefonie, false);
-  assert.equal(migrate({}, false).eingehendBenachrichtigen, false);
+  assert.equal(migrate({}, false).computerTelefonie, true);
+  assert.equal(migrate({}, false).eingehendBenachrichtigen, true);
+  assert.equal(migrate({art: 'magnolie', computerTelefonie: false, eingehendBenachrichtigen: false}, false).computerTelefonie, true);
+  assert.equal(migrate({art: 'system'}, false).computerTelefonie, false);
+  assert.equal(migrate({art: 'program', programm: 'dialer'}, false).eingehendBenachrichtigen, false);
   assert.equal(migrate({}, true).preferPcAudio, undefined);
   const hintSource = source.match(/function anrufAudioHinweis\([\s\S]*?\n  \}/)[0];
   const hint = new Function('_', hintSource + '; return anrufAudioHinweis;')((text) => text);
@@ -45,7 +48,9 @@ for (const file of frontends) {
         data, {peers: [peer]}, null, new Map(), {sende: message => sent.push(message) && true}, () => {});
     sync(peer);
     assert.equal(options.preferPcAudio, false);
-    assert.deepEqual(sent, []);
+    assert.deepEqual(sent.map(m => [m.name, m.an]), [['incoming_call_state', true], ['incoming_call_number', true], ['answer_call', true], ['end_call', true]]);
+    assert.equal(options.eingehendBenachrichtigen, true); assert.equal(options.computerTelefonie, true);
+    sent.length = 0;
     options.preferPcAudio = true;
     sync(peer, true);
     assert.deepEqual(sent, [{cmd: 'telefon_anruf_audio_einstellung', kennung: 'own-phone', preferPc: true}]);

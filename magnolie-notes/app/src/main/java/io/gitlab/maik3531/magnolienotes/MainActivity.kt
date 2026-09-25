@@ -473,6 +473,7 @@ private fun Hauptblatt(gewuenschteAufgabe: androidx.compose.runtime.MutableState
         else sage(zusammenhang.getString(R.string.telefon_bluetooth_berechtigung))
     }
     var telefonFreigabeZiel by remember { mutableStateOf("") }
+    var callPermissionRequestMade by rememberSaveable { mutableStateOf(false) }
     var identifierPermissionToken by remember { mutableStateOf("") }
     val identifierPermission = androidx.activity.compose.rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()) { granted ->
@@ -482,7 +483,9 @@ private fun Hauptblatt(gewuenschteAufgabe: androidx.compose.runtime.MutableState
     val telefonFreigabe = androidx.activity.compose.rememberLauncherForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()) { ergebnis ->
         val erlaubt = ergebnis.values.all { it }
-        if (erlaubt) when (telefonFreigabeZiel) {
+        if (telefonFreigabeZiel == "calls") {
+            telefonWerk.setCallsEnabled(true)
+        } else if (erlaubt) when (telefonFreigabeZiel) {
             "dial" -> telefonWerk.setDialRequestEnabled(true)
             "incoming" -> telefonWerk.setIncomingCallsEnabled(true)
             "number" -> telefonWerk.setIncomingNumberEnabled(true)
@@ -912,12 +915,23 @@ private fun Hauptblatt(gewuenschteAufgabe: androidx.compose.runtime.MutableState
                         },
                         beiBluetoothZiel = telefonWerk::assignBluetooth,
                         beiWaehlauftrag = { enabled ->
-                            if (enabled && !TelefonModulStatus.dialPermissions(zusammenhang)) {
+                            telefonWerk.setCallsEnabled(enabled)
+                            val missing = TelefonModulStatus.missingCallPermissions(zusammenhang)
+                            if (enabled && missing.isNotEmpty()) {
                                 if (identifierPermissionToken.isEmpty() && telefonFreigabeZiel.isEmpty()) {
-                                    telefonFreigabeZiel = "dial"; telefonFreigabe.launch(arrayOf(
-                                        Manifest.permission.CALL_PHONE, Manifest.permission.READ_PHONE_STATE))
+                                    callPermissionRequestMade = true
+                                    telefonFreigabeZiel = "calls"; telefonFreigabe.launch(missing.toTypedArray())
                                 }
-                            } else telefonWerk.setDialRequestEnabled(enabled)
+                            }
+                        },
+                        beiAnrufBerechtigungen = {
+                            val missing = TelefonModulStatus.missingCallPermissions(zusammenhang)
+                            if (!callPermissionRequestMade && missing.isNotEmpty() &&
+                                identifierPermissionToken.isEmpty() && telefonFreigabeZiel.isEmpty()) {
+                                callPermissionRequestMade = true; telefonFreigabeZiel = "calls"
+                                telefonFreigabe.launch(missing.toTypedArray())
+                            } else zusammenhang.startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                                android.net.Uri.fromParts("package", zusammenhang.packageName, null)))
                         },
                         beiEingehendenAnrufen = { enabled ->
                             if (enabled && zusammenhang.checkSelfPermission(Manifest.permission.READ_PHONE_STATE) != PackageManager.PERMISSION_GRANTED) {

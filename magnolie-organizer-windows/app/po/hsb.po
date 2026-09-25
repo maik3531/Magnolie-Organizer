@@ -691,9 +691,6 @@ msgstr "Druhi telefon je hižo sparowany. Wotstrońće jón najprjedy."
 msgid "Answer"
 msgstr "Wotmołwić"
 
-msgid "Answer calls on the computer and talk"
-msgstr "Zawołanja na ličaku přiwzać a rěčeć"
-
 msgid "App password"
 msgstr "Aplikaciske hesło"
 
@@ -3485,9 +3482,6 @@ msgid ""
 "available."
 msgstr "Zdźělenki su jenož w instalowanym nałoženju k dispoziciji."
 
-msgid "Notify me about incoming calls"
-msgstr "Wo dochadźacych zawołanjach informować"
-
 msgid "ODS"
 msgstr "ODS"
 
@@ -5739,10 +5733,6 @@ msgstr "Startowy datum njesmě za kónčnym datumom być."
 msgid "The synchronization data is missing."
 msgstr "Synchronizaciske daty faluja."
 
-msgid "The system dialer opens on the phone. Confirm the call there."
-msgstr ""
-"Systemowe wólenske nałoženje so na telefonje wočini. Wobkrućće tam zawołanje."
-
 msgid ""
 "The task will be sent to the selected branch. It will also remain here so "
 "you can keep track of it."
@@ -5968,9 +5958,6 @@ msgstr ""
 msgid "This setting applies when you restore the window from the tray menu."
 msgstr ""
 "Tute nastajenje płaći, hdyž wokno z menija systemoweho pola wobnowjeće."
-
-msgid "This status comes from Magnolie Notes, not KDE Connect."
-msgstr "Tutón staw pochadźa z Magnolie Notes, nic z KDE Connect."
 
 msgid ""
 "This system did not allow waking from suspend. The reminder will appear as "
@@ -7016,6 +7003,20 @@ msgstr[3] "… a dale %(count)s zapiskaj, kotrejž so tež ćišćitej."
 
 msgid "＋ Add appointment"
 msgstr "＋ Termin přidać"
+
+#~ msgid "Answer calls on the computer and talk"
+#~ msgstr "Zawołanja na ličaku přiwzać a rěčeć"
+
+#~ msgid "Notify me about incoming calls"
+#~ msgstr "Wo dochadźacych zawołanjach informować"
+
+#~ msgid "The system dialer opens on the phone. Confirm the call there."
+#~ msgstr ""
+#~ "Systemowe wólenske nałoženje so na telefonje wočini. Wobkrućće tam "
+#~ "zawołanje."
+
+#~ msgid "This status comes from Magnolie Notes, not KDE Connect."
+#~ msgstr "Tutón staw pochadźa z Magnolie Notes, nic z KDE Connect."
 
 #~ msgid "This is my own phone"
 #~ msgstr "To je mój swójski telefon"

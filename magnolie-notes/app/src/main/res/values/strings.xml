@@ -471,4 +471,6 @@
     <string name="device_identifiers_unavailable">This device identifier is unavailable.</string>
     <string name="telefon_rechner_hinzufuegen">Add computer</string>
     <string name="telefon_mehrere_rechner">Paired computers stay saved. Select the computer to use now.</string>
+    <string name="telefon_anrufe_erlauben">Allow calls</string>
+    <string name="telefon_anruf_berechtigungen">Enable Android permissions</string>
 </resources>

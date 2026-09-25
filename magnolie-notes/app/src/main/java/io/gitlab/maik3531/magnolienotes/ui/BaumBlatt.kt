@@ -115,6 +115,7 @@ class Telefonhandlungen(
     val beiBluetoothGeraete: () -> Unit,
     val beiBluetoothZiel: (String) -> Unit,
     val beiWaehlauftrag: (Boolean) -> Unit,
+    val beiAnrufBerechtigungen: () -> Unit,
     val beiEingehendenAnrufen: (Boolean) -> Unit,
     val beiAnrufernummer: (Boolean) -> Unit,
     val beiAnnehmen: (Boolean) -> Unit,
@@ -303,21 +304,14 @@ fun BaumBlatt(
             Text(stringResource(R.string.telefon_benachrichtigungen_hinweis), fontFamily = FontFamily.SansSerif,
                 fontSize = 11.sp, lineHeight = 16.sp, color = Magnolie.braunHell)
 
-            Text(stringResource(R.string.telefon_eingehend_titel), fontFamily = FontFamily.SansSerif,
-                fontWeight = FontWeight.Bold, color = Magnolie.braun)
-            Schalterzeile(stringResource(R.string.telefon_waehlen_schalter), telefon.dialRequestEnabled,
-                telefonHandlungen.beiWaehlauftrag)
-            Text(stringResource(if (telefon.dialAvailable) R.string.telefon_waehlen_hinweis
-                else R.string.telefon_waehlen_nicht_verfuegbar), fontFamily = FontFamily.SansSerif,
-                fontSize = 11.sp, lineHeight = 16.sp, color = Magnolie.braunHell)
-            Schalterzeile(stringResource(R.string.telefon_eingehend_schalter), telefon.incomingCallsEnabled,
-                telefonHandlungen.beiEingehendenAnrufen)
-            Schalterzeile(stringResource(R.string.telefon_nummer_schalter), telefon.incomingNumberEnabled,
-                telefonHandlungen.beiAnrufernummer)
-            Schalterzeile(stringResource(R.string.telefon_annehmen_schalter), telefon.answerCallsEnabled,
-                telefonHandlungen.beiAnnehmen)
-            Text(stringResource(R.string.telefon_eingehend_hinweis), fontFamily = FontFamily.SansSerif,
-                fontSize = 11.sp, lineHeight = 16.sp, color = Magnolie.braunHell)
+            if (telefon.dialAvailable) {
+                Schalterzeile(stringResource(R.string.telefon_anrufe_erlauben), telefon.callsEnabled,
+                    telefonHandlungen.beiWaehlauftrag)
+                if (telefon.callsEnabled && telefon.callPermissionsMissing)
+                    Papierknopf(stringResource(R.string.telefon_anruf_berechtigungen), modifier = Modifier.fillMaxWidth(),
+                        beiKlick = telefonHandlungen.beiAnrufBerechtigungen)
+            } else Text(stringResource(R.string.telefon_waehlen_nicht_verfuegbar),
+                fontFamily = FontFamily.SansSerif, fontSize = 11.sp, color = Magnolie.braunHell)
         }
         Abschnitt(
             ueberschrift = stringResource(R.string.personal_sync_titel),

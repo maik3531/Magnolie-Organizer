@@ -376,4 +376,6 @@
     <string name="device_identifiers_unavailable">Denne enhedsidentifikator er utilgængelig.</string>
     <string name="telefon_rechner_hinzufuegen">Tilføj computer</string>
     <string name="telefon_mehrere_rechner">Parrede computere forbliver gemt. Vælg den computer, du vil bruge nu.</string>
+    <string name="telefon_anrufe_erlauben">Tillad opkald</string>
+    <string name="telefon_anruf_berechtigungen">Aktivér Android-tilladelser</string>
 </resources>

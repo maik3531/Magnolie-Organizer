@@ -926,9 +926,6 @@ msgstr "Už probíhá jiné nastavování telefonu."
 msgid "Answer"
 msgstr "Přijmout"
 
-msgid "Answer calls on the computer and talk"
-msgstr "Přijímat hovory na počítači a mluvit"
-
 msgid "Answering the call"
 msgstr "Přijímání hovoru"
 
@@ -4200,9 +4197,6 @@ msgid ""
 "available."
 msgstr "Oznámení jsou k dispozici pouze v nainstalované aplikaci."
 
-msgid "Notify me about incoming calls"
-msgstr "Upozorňovat na příchozí hovory"
-
 msgid "Notify, then unlock (recommended)"
 msgstr "Oznámit, potom odemknout (doporučeno)"
 
@@ -7077,9 +7071,6 @@ msgstr "Požadavek na synchronizaci se nepodařilo odeslat."
 msgid "The synchronization resume journal is damaged."
 msgstr "Deník obnovení synchronizace je poškozený."
 
-msgid "The system dialer opens on the phone. Confirm the call there."
-msgstr "Na telefonu se otevře systémový číselník. Potvrďte hovor tam."
-
 msgid "The task is missing from the update."
 msgstr "V aktualizaci chybí úkol."
 
@@ -7384,9 +7375,6 @@ msgstr "Tento výběr je nezávislý na záložním datovém připojení přes B
 msgid "This setting applies when you restore the window from the tray menu."
 msgstr ""
 "Toto nastavení se použije při obnovení okna z nabídky oznamovací oblasti."
-
-msgid "This status comes from Magnolie Notes, not KDE Connect."
-msgstr "Tento stav pochází z Magnolie Notes, nikoli z KDE Connect."
 
 msgid ""
 "This system did not allow waking from suspend. The reminder will appear as "
@@ -8526,6 +8514,18 @@ msgstr[2] "… a ještě %(count)s další položky, které se rovněž vytiskno
 
 msgid "＋ Add appointment"
 msgstr "＋ Přidat schůzku"
+
+#~ msgid "Answer calls on the computer and talk"
+#~ msgstr "Přijímat hovory na počítači a mluvit"
+
+#~ msgid "Notify me about incoming calls"
+#~ msgstr "Upozorňovat na příchozí hovory"
+
+#~ msgid "The system dialer opens on the phone. Confirm the call there."
+#~ msgstr "Na telefonu se otevře systémový číselník. Potvrďte hovor tam."
+
+#~ msgid "This status comes from Magnolie Notes, not KDE Connect."
+#~ msgstr "Tento stav pochází z Magnolie Notes, nikoli z KDE Connect."
 
 #~ msgid "This is my own phone"
 #~ msgstr "Toto je můj vlastní telefon"

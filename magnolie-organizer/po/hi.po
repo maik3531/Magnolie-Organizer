@@ -880,9 +880,6 @@ msgstr "फ़ोन की तैयारी का काम किसी द
 msgid "Answer"
 msgstr "उत्तर दें"
 
-msgid "Answer calls on the computer and talk"
-msgstr "कंप्यूटर पर कॉल का उत्तर दें और बात करें"
-
 msgid "Answering the call"
 msgstr "कॉल का उत्तर दिया जा रहा है"
 
@@ -4106,9 +4103,6 @@ msgid ""
 "available."
 msgstr "सूचनाएँ केवल स्थापित अनुप्रयोग में उपलब्ध हैं।"
 
-msgid "Notify me about incoming calls"
-msgstr "इनकमिंग कॉल की सूचना दें"
-
 msgid "Notify, then unlock (recommended)"
 msgstr "सूचना दें, फिर अनलॉक करें (अनुशंसित)"
 
@@ -6926,9 +6920,6 @@ msgstr "सिंक्रनाइज़ेशन अनुरोध भेज�
 msgid "The synchronization resume journal is damaged."
 msgstr "सिंक्रनाइज़ेशन फिर से शुरू करने का जर्नल क्षतिग्रस्त है।"
 
-msgid "The system dialer opens on the phone. Confirm the call there."
-msgstr "फ़ोन पर सिस्टम डायलर खुलता है. वहां कॉल कन्फर्म करें."
-
 msgid "The task is missing from the update."
 msgstr "अपडेट में कार्य मौजूद नहीं है।"
 
@@ -7228,9 +7219,6 @@ msgstr "यह चयन Bluetooth डेटा के वैकल्पिक 
 
 msgid "This setting applies when you restore the window from the tray menu."
 msgstr "यह सेटिंग तब लागू होती है जब आप सिस्टम ट्रे मेनू से विंडो को पुनः खोलते हैं।"
-
-msgid "This status comes from Magnolie Notes, not KDE Connect."
-msgstr "यह स्थिति Magnolie Notes से आती है, KDE Connect से नहीं।"
 
 msgid ""
 "This system did not allow waking from suspend. The reminder will appear as "
@@ -8345,6 +8333,18 @@ msgstr[1] "… और %(count)s अतिरिक्त आइटम, जो �
 
 msgid "＋ Add appointment"
 msgstr "＋ अपॉइंटमेंट जोड़ें"
+
+#~ msgid "Answer calls on the computer and talk"
+#~ msgstr "कंप्यूटर पर कॉल का उत्तर दें और बात करें"
+
+#~ msgid "Notify me about incoming calls"
+#~ msgstr "इनकमिंग कॉल की सूचना दें"
+
+#~ msgid "The system dialer opens on the phone. Confirm the call there."
+#~ msgstr "फ़ोन पर सिस्टम डायलर खुलता है. वहां कॉल कन्फर्म करें."
+
+#~ msgid "This status comes from Magnolie Notes, not KDE Connect."
+#~ msgstr "यह स्थिति Magnolie Notes से आती है, KDE Connect से नहीं।"
 
 #~ msgid "This is my own phone"
 #~ msgstr "यह मेरा अपना फ़ोन है"

@@ -356,4 +356,6 @@
     <string name="device_identifiers_unavailable">この端末識別子は利用できません。</string>
     <string name="telefon_rechner_hinzufuegen">コンピューターを追加</string>
     <string name="telefon_mehrere_rechner">ペアリング済みのコンピューターは保存されます。今使うコンピューターを選んでください。</string>
+    <string name="telefon_anrufe_erlauben">通話を許可</string>
+    <string name="telefon_anruf_berechtigungen">Android の権限を有効にする</string>
 </resources>

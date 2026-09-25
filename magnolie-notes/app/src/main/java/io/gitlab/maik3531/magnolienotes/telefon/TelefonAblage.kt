@@ -41,6 +41,12 @@ class TelefonAblage private constructor(context: Context) : TelefonPayloadStorag
                 restoreComputerSettings(selected)
             else check(settings.edit().remove("pending_computer_selection").commit())
         }
+        if (!settings.contains("calls_enabled")) {
+            val configured = listOf("dial_request_enabled", "incoming_calls_enabled", "incoming_number_enabled", "answer_calls_enabled")
+                .any(settings::contains)
+            setCallsEnabled(TelefonModulStatus.dialResolvable(app) &&
+                (dialRequestEnabled() || incomingCallsEnabled() || incomingNumberEnabled() || answerCallsEnabled() || !configured))
+        }
     }
 
     fun enabled(): Boolean = settings.getBoolean("enabled", false)
@@ -52,6 +58,12 @@ class TelefonAblage private constructor(context: Context) : TelefonPayloadStorag
     fun incomingCallsEnabled(): Boolean = settings.getBoolean("incoming_calls_enabled", false)
     fun incomingNumberEnabled(): Boolean = settings.getBoolean("incoming_number_enabled", false)
     fun answerCallsEnabled(): Boolean = settings.getBoolean("answer_calls_enabled", false)
+    fun callsEnabled(): Boolean = settings.getBoolean("calls_enabled", false)
+    fun setCallsEnabled(value: Boolean) {
+        check(settings.edit().putBoolean("calls_enabled", value)
+            .putBoolean("dial_request_enabled", value).putBoolean("incoming_calls_enabled", value)
+            .putBoolean("incoming_number_enabled", value).putBoolean("answer_calls_enabled", value).commit())
+    }
     fun selectedPackages(): Set<String> = settings.getStringSet("notification_packages", emptySet())?.toSet().orEmpty()
     fun setDialRequestEnabled(value: Boolean) { settings.edit().putBoolean("dial_request_enabled", value).commit() }
     fun setNotificationsEnabled(value: Boolean) { settings.edit().putBoolean("notifications_enabled", value).commit() }

@@ -901,9 +901,6 @@ msgstr "Já está aberta outra sessão de configuração do telefone."
 msgid "Answer"
 msgstr "Atender"
 
-msgid "Answer calls on the computer and talk"
-msgstr "Atender chamadas no computador e falar"
-
 msgid "Answering the call"
 msgstr "A atender a chamada"
 
@@ -4233,9 +4230,6 @@ msgstr ""
 "As notificações são apenas para visualização; não é possível responder nem "
 "executar ações remotas."
 
-msgid "Notify me about incoming calls"
-msgstr "Notificar-me de chamadas recebidas"
-
 msgid "Notify, then unlock (recommended)"
 msgstr "Notificar e depois desbloquear (recomendado)"
 
@@ -7185,9 +7179,6 @@ msgstr "Não foi possível enviar o pedido de sincronização."
 msgid "The synchronization resume journal is damaged."
 msgstr "O diário de retoma da sincronização está danificado."
 
-msgid "The system dialer opens on the phone. Confirm the call there."
-msgstr "O discador do sistema é aberto no telefone. Confirme a ligação lá."
-
 msgid "The task is missing from the update."
 msgstr "Falta a tarefa na atualização."
 
@@ -7501,9 +7492,6 @@ msgid "This setting applies when you restore the window from the tray menu."
 msgstr ""
 "Esta definição aplica-se quando restaura a janela a partir do menu da área "
 "de notificação."
-
-msgid "This status comes from Magnolie Notes, not KDE Connect."
-msgstr "Este estado vem do Magnolie Notes, não do KDE Connect."
 
 msgid ""
 "This system did not allow waking from suspend. The reminder will appear as "
@@ -8644,6 +8632,18 @@ msgstr[1] "… e mais %(count)s entradas que também serão impressas."
 
 msgid "＋ Add appointment"
 msgstr "＋ Adicionar compromisso"
+
+#~ msgid "Answer calls on the computer and talk"
+#~ msgstr "Atender chamadas no computador e falar"
+
+#~ msgid "Notify me about incoming calls"
+#~ msgstr "Notificar-me de chamadas recebidas"
+
+#~ msgid "The system dialer opens on the phone. Confirm the call there."
+#~ msgstr "O discador do sistema é aberto no telefone. Confirme a ligação lá."
+
+#~ msgid "This status comes from Magnolie Notes, not KDE Connect."
+#~ msgstr "Este estado vem do Magnolie Notes, não do KDE Connect."
 
 #~ msgid "This is my own phone"
 #~ msgstr "Este é o meu próprio telefone"

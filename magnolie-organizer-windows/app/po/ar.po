@@ -748,9 +748,6 @@ msgstr "تم بالفعل إقران هاتف آخر. قم بإزالته أول
 msgid "Answer"
 msgstr "رد"
 
-msgid "Answer calls on the computer and talk"
-msgstr "الرد على المكالمات والتحدث عبر الكمبيوتر"
-
 msgid "App password"
 msgstr "كلمة مرور التطبيق"
 
@@ -3485,9 +3482,6 @@ msgid ""
 "available."
 msgstr "الإشعارات متاحة فقط في التطبيق المثبّت."
 
-msgid "Notify me about incoming calls"
-msgstr "إعلامي بالمكالمات الواردة"
-
 msgid "ODS"
 msgstr "ODS"
 
@@ -5727,9 +5721,6 @@ msgstr "يجب ألا يكون تاريخ البدء بعد تاريخ الان�
 msgid "The synchronization data is missing."
 msgstr "بيانات المزامنة مفقودة."
 
-msgid "The system dialer opens on the phone. Confirm the call there."
-msgstr "يتم فتح طالب النظام على الهاتف. قم بتأكيد المكالمة هناك."
-
 msgid ""
 "The task will be sent to the selected branch. It will also remain here so "
 "you can keep track of it."
@@ -5951,9 +5942,6 @@ msgstr ""
 
 msgid "This setting applies when you restore the window from the tray menu."
 msgstr "ينطبق هذا الإعداد عندما تستعيد النافذة من قائمة منطقة النظام."
-
-msgid "This status comes from Magnolie Notes, not KDE Connect."
-msgstr "تأتي هذه الحالة من Magnolie Notes، وليس من KDE Connect."
 
 msgid ""
 "This system did not allow waking from suspend. The reminder will appear as "
@@ -6997,6 +6985,18 @@ msgstr[5] "… وعناصر إضافية ستُطبع أيضًا؛ العدد: %
 
 msgid "＋ Add appointment"
 msgstr "＋ إضافة موعد"
+
+#~ msgid "Answer calls on the computer and talk"
+#~ msgstr "الرد على المكالمات والتحدث عبر الكمبيوتر"
+
+#~ msgid "Notify me about incoming calls"
+#~ msgstr "إعلامي بالمكالمات الواردة"
+
+#~ msgid "The system dialer opens on the phone. Confirm the call there."
+#~ msgstr "يتم فتح طالب النظام على الهاتف. قم بتأكيد المكالمة هناك."
+
+#~ msgid "This status comes from Magnolie Notes, not KDE Connect."
+#~ msgstr "تأتي هذه الحالة من Magnolie Notes، وليس من KDE Connect."
 
 #~ msgid "This is my own phone"
 #~ msgstr "هذا هاتفي الشخصي"

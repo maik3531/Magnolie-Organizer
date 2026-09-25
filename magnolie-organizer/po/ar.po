@@ -1041,9 +1041,6 @@ msgstr "هناك جلسة أخرى لإعداد الهاتف قيد التشغي
 msgid "Answer"
 msgstr "رد"
 
-msgid "Answer calls on the computer and talk"
-msgstr "الرد على المكالمات والتحدث عبر الكمبيوتر"
-
 msgid "Answering the call"
 msgstr "جارٍ الرد على المكالمة"
 
@@ -4282,9 +4279,6 @@ msgid ""
 "available."
 msgstr "الإشعارات متاحة فقط في التطبيق المثبّت."
 
-msgid "Notify me about incoming calls"
-msgstr "إعلامي بالمكالمات الواردة"
-
 msgid "Notify, then unlock (recommended)"
 msgstr "إرسال إشعار، ثم فتح القفل (موصى به)"
 
@@ -7170,9 +7164,6 @@ msgstr "تعذّر إرسال طلب المزامنة."
 msgid "The synchronization resume journal is damaged."
 msgstr "سجل استئناف المزامنة تالف."
 
-msgid "The system dialer opens on the phone. Confirm the call there."
-msgstr "يتم فتح طالب النظام على الهاتف. قم بتأكيد المكالمة هناك."
-
 msgid "The task is missing from the update."
 msgstr "المهمة مفقودة من التحديث."
 
@@ -7474,9 +7465,6 @@ msgstr "هذا الاختيار مستقل عن اتصال بيانات Bluetoot
 
 msgid "This setting applies when you restore the window from the tray menu."
 msgstr "ينطبق هذا الإعداد عندما تستعيد النافذة من قائمة منطقة النظام."
-
-msgid "This status comes from Magnolie Notes, not KDE Connect."
-msgstr "تأتي هذه الحالة من Magnolie Notes، وليس من KDE Connect."
 
 msgid ""
 "This system did not allow waking from suspend. The reminder will appear as "
@@ -8631,6 +8619,18 @@ msgstr[5] "… وعناصر إضافية ستُطبع أيضًا؛ العدد: %
 
 msgid "＋ Add appointment"
 msgstr "＋ إضافة موعد"
+
+#~ msgid "Answer calls on the computer and talk"
+#~ msgstr "الرد على المكالمات والتحدث عبر الكمبيوتر"
+
+#~ msgid "Notify me about incoming calls"
+#~ msgstr "إعلامي بالمكالمات الواردة"
+
+#~ msgid "The system dialer opens on the phone. Confirm the call there."
+#~ msgstr "يتم فتح طالب النظام على الهاتف. قم بتأكيد المكالمة هناك."
+
+#~ msgid "This status comes from Magnolie Notes, not KDE Connect."
+#~ msgstr "تأتي هذه الحالة من Magnolie Notes، وليس من KDE Connect."
 
 #~ msgid "This is my own phone"
 #~ msgstr "هذا هاتفي الشخصي"

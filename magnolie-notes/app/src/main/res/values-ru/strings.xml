@@ -398,4 +398,6 @@
     <string name="device_identifiers_unavailable">Этот идентификатор недоступен.</string>
     <string name="telefon_rechner_hinzufuegen">Добавить компьютер</string>
     <string name="telefon_mehrere_rechner">Сопряжённые компьютеры сохраняются. Выберите компьютер, который хотите использовать сейчас.</string>
+    <string name="telefon_anrufe_erlauben">Разрешить звонки</string>
+    <string name="telefon_anruf_berechtigungen">Включить разрешения Android</string>
 </resources>

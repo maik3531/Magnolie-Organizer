@@ -19,11 +19,8 @@ class TelefonLayoutTest {
             "R.string.telefon_benachrichtigungen_titel",
             "R.string.telefon_systemzugriff_erteilt",
             "R.string.telefon_apps_titel",
-            "R.string.telefon_eingehend_titel",
-            "R.string.telefon_waehlen_schalter",
-            "R.string.telefon_eingehend_schalter",
-            "R.string.telefon_nummer_schalter",
-            "R.string.telefon_annehmen_schalter"
+            "R.string.telefon_anrufe_erlauben",
+            "R.string.telefon_anruf_berechtigungen"
         )
         val positions = markers.map(source::indexOf)
         assertTrue("Telefonabschnitte fehlen", positions.all { it >= 0 })
@@ -31,6 +28,8 @@ class TelefonLayoutTest {
         assertTrue(source.indexOf("telefon.peer?.let") < source.indexOf("R.string.telefon_entkoppeln"))
         assertFalse(source.contains("telefon_benachrichtigungen_schalter"))
         assertFalse(source.contains("beiBenachrichtigungen"))
+        for (removed in listOf("telefon_waehlen_schalter", "telefon_eingehend_schalter", "telefon_nummer_schalter", "telefon_annehmen_schalter"))
+            assertFalse(source.contains("R.string.$removed"))
     }
 
     @Test fun `Trenner und Papierkorb liegen im richtigen Blatt`() {

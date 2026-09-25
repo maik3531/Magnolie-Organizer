@@ -605,9 +605,6 @@ msgstr ""
 msgid "Answer"
 msgstr ""
 
-msgid "Answer calls on the computer and talk"
-msgstr ""
-
 msgid "App password"
 msgstr ""
 
@@ -3206,9 +3203,6 @@ msgid ""
 "available."
 msgstr ""
 
-msgid "Notify me about incoming calls"
-msgstr ""
-
 msgid "ODS"
 msgstr ""
 
@@ -5281,9 +5275,6 @@ msgstr ""
 msgid "The synchronization data is missing."
 msgstr ""
 
-msgid "The system dialer opens on the phone. Confirm the call there."
-msgstr ""
-
 msgid ""
 "The task will be sent to the selected branch. It will also remain here so "
 "you can keep track of it."
@@ -5471,9 +5462,6 @@ msgid ""
 msgstr ""
 
 msgid "This setting applies when you restore the window from the tray menu."
-msgstr ""
-
-msgid "This status comes from Magnolie Notes, not KDE Connect."
 msgstr ""
 
 msgid ""

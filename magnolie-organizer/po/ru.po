@@ -937,9 +937,6 @@ msgstr "Настройка телефона уже открыта в друго�
 msgid "Answer"
 msgstr "Ответить"
 
-msgid "Answer calls on the computer and talk"
-msgstr "Принимать звонки и разговаривать на компьютере"
-
 msgid "Answering the call"
 msgstr "Ответ на звонок"
 
@@ -4235,9 +4232,6 @@ msgid ""
 "available."
 msgstr "Уведомления доступны только в установленном приложении."
 
-msgid "Notify me about incoming calls"
-msgstr "Уведомлять о входящих звонках"
-
 msgid "Notify, then unlock (recommended)"
 msgstr "Уведомить, затем разблокировать (рекомендуется)"
 
@@ -7144,10 +7138,6 @@ msgstr "Не удалось отправить запрос на синхрон�
 msgid "The synchronization resume journal is damaged."
 msgstr "Журнал возобновления синхронизации повреждён."
 
-msgid "The system dialer opens on the phone. Confirm the call there."
-msgstr ""
-"На телефоне открывается системный номеронабиратель. Подтвердите звонок там."
-
 msgid "The task is missing from the update."
 msgstr "В обновлении отсутствует задача."
 
@@ -7459,9 +7449,6 @@ msgstr ""
 msgid "This setting applies when you restore the window from the tray menu."
 msgstr ""
 "Эта настройка действует при восстановлении окна из меню области уведомлений."
-
-msgid "This status comes from Magnolie Notes, not KDE Connect."
-msgstr "Это состояние поступает из Magnolie Notes, а не из KDE Connect."
 
 msgid ""
 "This system did not allow waking from suspend. The reminder will appear as "
@@ -8606,6 +8593,20 @@ msgstr[2] "… и ещё %(count)s записи, которые также бу�
 
 msgid "＋ Add appointment"
 msgstr "＋ Добавить встречу"
+
+#~ msgid "Answer calls on the computer and talk"
+#~ msgstr "Принимать звонки и разговаривать на компьютере"
+
+#~ msgid "Notify me about incoming calls"
+#~ msgstr "Уведомлять о входящих звонках"
+
+#~ msgid "The system dialer opens on the phone. Confirm the call there."
+#~ msgstr ""
+#~ "На телефоне открывается системный номеронабиратель. Подтвердите звонок "
+#~ "там."
+
+#~ msgid "This status comes from Magnolie Notes, not KDE Connect."
+#~ msgstr "Это состояние поступает из Magnolie Notes, а не из KDE Connect."
 
 #~ msgid "This is my own phone"
 #~ msgstr "Это мой личный телефон"

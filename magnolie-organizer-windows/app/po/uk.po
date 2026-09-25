@@ -659,9 +659,6 @@ msgstr "Інший телефон уже підключено. Спочатку 
 msgid "Answer"
 msgstr "Відповісти"
 
-msgid "Answer calls on the computer and talk"
-msgstr "Приймати дзвінки й розмовляти на комп’ютері"
-
 msgid "App password"
 msgstr "Пароль програми"
 
@@ -3436,9 +3433,6 @@ msgid ""
 "available."
 msgstr "Сповіщення доступні лише у встановленій програмі."
 
-msgid "Notify me about incoming calls"
-msgstr "Сповіщати про вхідні дзвінки"
-
 msgid "ODS"
 msgstr "ODS"
 
@@ -5677,10 +5671,6 @@ msgstr "Початкова дата не може бути пізнішою за
 msgid "The synchronization data is missing."
 msgstr "Відсутні дані синхронізації."
 
-msgid "The system dialer opens on the phone. Confirm the call there."
-msgstr ""
-"На телефоні відкривається системний номеронабирач. Підтвердіть дзвінок там."
-
 msgid ""
 "The task will be sent to the selected branch. It will also remain here so "
 "you can keep track of it."
@@ -5908,9 +5898,6 @@ msgid "This setting applies when you restore the window from the tray menu."
 msgstr ""
 "Цей параметр застосовується, коли ви відновлюєте вікно з меню системного "
 "лотка."
-
-msgid "This status comes from Magnolie Notes, not KDE Connect."
-msgstr "Цей стан надходить із Magnolie Notes, а не з KDE Connect."
 
 msgid ""
 "This system did not allow waking from suspend. The reminder will appear as "
@@ -6950,6 +6937,20 @@ msgstr[2] "… і ще %(count)s елементи, які також буде н
 
 msgid "＋ Add appointment"
 msgstr "＋ Додати зустріч"
+
+#~ msgid "Answer calls on the computer and talk"
+#~ msgstr "Приймати дзвінки й розмовляти на комп’ютері"
+
+#~ msgid "Notify me about incoming calls"
+#~ msgstr "Сповіщати про вхідні дзвінки"
+
+#~ msgid "The system dialer opens on the phone. Confirm the call there."
+#~ msgstr ""
+#~ "На телефоні відкривається системний номеронабирач. Підтвердіть дзвінок "
+#~ "там."
+
+#~ msgid "This status comes from Magnolie Notes, not KDE Connect."
+#~ msgstr "Цей стан надходить із Magnolie Notes, а не з KDE Connect."
 
 #~ msgid "This is my own phone"
 #~ msgstr "Це мій особистий телефон"

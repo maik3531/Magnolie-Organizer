@@ -356,4 +356,6 @@
     <string name="device_identifiers_unavailable">此设备标识符不可用。</string>
     <string name="telefon_rechner_hinzufuegen">添加电脑</string>
     <string name="telefon_mehrere_rechner">已配对的电脑会保持保存。请选择现在要使用的电脑。</string>
+    <string name="telefon_anrufe_erlauben">允许通话</string>
+    <string name="telefon_anruf_berechtigungen">启用 Android 权限</string>
 </resources>

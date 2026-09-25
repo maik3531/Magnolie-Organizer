@@ -398,4 +398,6 @@
     <string name="device_identifiers_unavailable">Tutón identifikator k dispoziciji njeje.</string>
     <string name="telefon_rechner_hinzufuegen">Ličak přidać</string>
     <string name="telefon_mehrere_rechner">Sparowane ličaki wostanu składowane. Wubjerće ličak, kotryž chceće nětko wužiwać.</string>
+    <string name="telefon_anrufe_erlauben">Wołanja dowolić</string>
+    <string name="telefon_anruf_berechtigungen">Dowolnosće Android zmóžnić</string>
 </resources>

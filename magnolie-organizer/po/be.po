@@ -930,9 +930,6 @@ msgstr "Наладжванне тэлефона ўжо адкрытае ў ін�
 msgid "Answer"
 msgstr "Адказаць"
 
-msgid "Answer calls on the computer and talk"
-msgstr "Адказваць на званкі і размаўляць праз камп'ютар"
-
 msgid "Answering the call"
 msgstr "Адказ на званок"
 
@@ -4218,9 +4215,6 @@ msgid ""
 "available."
 msgstr "Апавяшчэнні даступныя толькі ва ўсталяванай праграме."
 
-msgid "Notify me about incoming calls"
-msgstr "Паведамляць пра ўваходныя званкі"
-
 msgid "Notify, then unlock (recommended)"
 msgstr "Апавясціць, затым разблакіраваць (рэкамендуецца)"
 
@@ -7103,9 +7097,6 @@ msgstr "Не ўдалося адправіць запыт на сінхрані�
 msgid "The synchronization resume journal is damaged."
 msgstr "Журнал узнаўлення сінхранізацыі пашкоджаны."
 
-msgid "The system dialer opens on the phone. Confirm the call there."
-msgstr "На тэлефоне адкрываецца сістэмны дазвон. Пацвердзіце званок там."
-
 msgid "The task is missing from the update."
 msgstr "У абнаўленні адсутнічае задача."
 
@@ -7417,9 +7408,6 @@ msgstr ""
 msgid "This setting applies when you restore the window from the tray menu."
 msgstr ""
 "Гэты параметр прымяняецца, калі вы аднаўляеце акно з меню сістэмнага трэя."
-
-msgid "This status comes from Magnolie Notes, not KDE Connect."
-msgstr "Гэты стан паходзіць з Magnolie Notes, а не з KDE Connect."
 
 msgid ""
 "This system did not allow waking from suspend. The reminder will appear as "
@@ -8562,6 +8550,18 @@ msgstr[2] "… і яшчэ %(count)s элементы, якія таксама �
 
 msgid "＋ Add appointment"
 msgstr "＋ Дадаць сустрэчу"
+
+#~ msgid "Answer calls on the computer and talk"
+#~ msgstr "Адказваць на званкі і размаўляць праз камп'ютар"
+
+#~ msgid "Notify me about incoming calls"
+#~ msgstr "Паведамляць пра ўваходныя званкі"
+
+#~ msgid "The system dialer opens on the phone. Confirm the call there."
+#~ msgstr "На тэлефоне адкрываецца сістэмны дазвон. Пацвердзіце званок там."
+
+#~ msgid "This status comes from Magnolie Notes, not KDE Connect."
+#~ msgstr "Гэты стан паходзіць з Magnolie Notes, а не з KDE Connect."
 
 #~ msgid "This is my own phone"
 #~ msgstr "Гэта мой асабісты тэлефон"

@@ -122,6 +122,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
     private val _state = MutableStateFlow(TelefonUiZustand(enabled = storage.enabled(),
         bluetoothEnabled = storage.bluetoothEnabled(), peer = safePeer(), pairedComputers = savedComputers(),
         dialRequestEnabled = storage.dialRequestEnabled(), dialAvailable = TelefonModulStatus.dialResolvable(context),
+        callsEnabled = storage.callsEnabled(), callPermissionsMissing = TelefonModulStatus.missingCallPermissions(context).isNotEmpty(),
         notificationsEnabled = storage.notificationsEnabled(), selectedPackages = storage.selectedPackages(),
         notificationAccess = TelefonModulStatus.notificationAccess(context),
         incomingCallsEnabled = storage.incomingCallsEnabled(), incomingNumberEnabled = storage.incomingNumberEnabled(),
@@ -149,6 +150,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
     @Volatile private var activeTransport: Pair<TelefonTransportArt, TelefonRoehre>? = null
     @Volatile private var wifiAvailable = false
     @Volatile private var serviceRunning = false
+    private var callPermissionSnapshot = TelefonModulStatus.missingCallPermissions(context).toSet()
     @Volatile private var lifecycleGeneration = 0L
     private val captureLock = Any()
     // Runtime only. dial_request v2 reuses client_ref as the exact outgoing call token.
@@ -244,6 +246,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
             .map { TelefonApp(it.activityInfo.packageName, it.loadLabel(context.packageManager).toString()) }
             .sortedBy { it.label.lowercase() } }.getOrDefault(emptyList())
         _state.value = _state.value.copy(peer = safePeer(), pairedComputers = savedComputers(), dialRequestEnabled = storage.dialRequestEnabled(),
+            callsEnabled = storage.callsEnabled(), callPermissionsMissing = TelefonModulStatus.missingCallPermissions(context).isNotEmpty(),
             dialAvailable = TelefonModulStatus.dialResolvable(context), notificationsEnabled = storage.notificationsEnabled(),
             selectedPackages = storage.selectedPackages(), notificationApps = apps,
             notificationAccess = TelefonModulStatus.notificationAccess(context),
@@ -255,6 +258,9 @@ class TelefonWerk private constructor(private val context: Context, private val 
     }
 
     @Synchronized fun runtimePermissionsChanged() {
+        val callPermissions = TelefonModulStatus.missingCallPermissions(context).toSet()
+        val callsChanged = callPermissions != callPermissionSnapshot
+        callPermissionSnapshot = callPermissions
         if (!TelefonModulStatus.dialPermissions(context)) synchronized(captureLock) { outgoingScope = null }
         val permissions = identifierPermissionMask()
         if (safePeer()?.identifier_sharing_enabled == true && identifierPermissions and permissions != identifierPermissions)
@@ -273,7 +279,18 @@ class TelefonWerk private constructor(private val context: Context, private val 
         val current = TelefonModulStatus.notifications(
             _state.value.selectedPackages, _state.value.notificationAccess)
         if (!_state.value.notificationAccess) queue.purgeNotifications(emptySet())
-        if (previous != current) controlStateChanged()
+        if (previous != current || callsChanged) controlStateChanged()
+    }
+
+    @Synchronized fun setCallsEnabled(value: Boolean) {
+        val enabled = value && TelefonModulStatus.dialResolvable(context)
+        if (!enabled) closeTransport()
+        synchronized(captureLock) {
+            storage.setCallsEnabled(enabled)
+            if (!enabled) { outgoingScope = null; queue.removeCallEvents() }
+        }
+        incoming.setIncomingListening(enabled)
+        modulesChanged()
     }
 
     @Synchronized fun setDialRequestEnabled(value: Boolean) {
@@ -1902,7 +1919,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
             val notifications = TelefonModulStatus.notifications(context)
             val dialRequest = TelefonModulStatus.dialRequest(context)
             val dialPermission = TelefonModulStatus.dialPermissions(context)
-            val incomingCalls = storage.incomingCallsEnabled() && context.checkSelfPermission(
+            val incomingCalls = TelefonModulStatus.dialResolvable(context) && storage.incomingCallsEnabled() && context.checkSelfPermission(
                 android.Manifest.permission.READ_PHONE_STATE) == android.content.pm.PackageManager.PERMISSION_GRANTED
             val callState = incomingCalls || dialRequest
             val incomingNumber = incomingCalls && storage.incomingNumberEnabled() && context.checkSelfPermission(

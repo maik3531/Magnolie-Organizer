@@ -189,6 +189,26 @@ class BackgroundLifecycleTest {
         assertFalse(storage.personalNotesEnabled()); assertFalse(storage.personalTasksEnabled()); assertFalse(storage.personalAutoWifi())
     }
 
+    @Test fun oneCallChoiceControlsAllFeaturesButCannotGrantAndroidPermissions() = fixture { storage, work, _ ->
+        Shadows.shadowOf(context.packageManager).setSystemFeature(android.content.pm.PackageManager.FEATURE_TELEPHONY, true)
+        Shadows.shadowOf(context as Application).denyPermissions(*TelefonModulStatus.callPermissions)
+        work.setCallsEnabled(true)
+        assertTrue(storage.callsEnabled()); assertTrue(storage.dialRequestEnabled())
+        assertTrue(storage.incomingCallsEnabled()); assertTrue(storage.incomingNumberEnabled()); assertTrue(storage.answerCallsEnabled())
+        assertFalse(TelefonModulStatus.dialRequest(context, storage))
+        assertTrue(work.state.value.callPermissionsMissing)
+        Shadows.shadowOf(context as Application).grantPermissions(*TelefonModulStatus.callPermissions)
+        work.runtimePermissionsChanged()
+        assertFalse(work.state.value.callPermissionsMissing)
+        assertTrue(TelefonModulStatus.dialRequest(context, storage))
+        work.setCallsEnabled(false)
+        assertFalse(storage.callsEnabled()); assertFalse(storage.dialRequestEnabled())
+        assertFalse(storage.incomingCallsEnabled()); assertFalse(storage.incomingNumberEnabled()); assertFalse(storage.answerCallsEnabled())
+        Shadows.shadowOf(context.packageManager).setSystemFeature(android.content.pm.PackageManager.FEATURE_TELEPHONY, false)
+        work.setCallsEnabled(true)
+        assertFalse(storage.callsEnabled())
+    }
+
     @Test fun interruptedDiscoveryAlwaysUnregisters() {
         for (phone in listOf(true, false)) {
             LifecycleNsdShadow.starts = 0; LifecycleNsdShadow.stops = 0
@@ -371,6 +391,7 @@ class BackgroundLifecycleTest {
     }
 
     @Test fun api35AdvertisesPermittedIncomingNumberCapture() = fixture { storage, work, queue ->
+        Shadows.shadowOf(context.packageManager).setSystemFeature(android.content.pm.PackageManager.FEATURE_TELEPHONY, true)
         val peer = TelefonPeer(UUID.randomUUID().toString(), "Fixture", TelefonKrypto.b64(ByteArray(32)))
         storage.savePeer(peer); storage.setIncomingCallsEnabled(true); storage.setIncomingNumberEnabled(true)
         Shadows.shadowOf(context as Application).grantPermissions(android.Manifest.permission.READ_PHONE_STATE, android.Manifest.permission.READ_CALL_LOG)
@@ -381,6 +402,7 @@ class BackgroundLifecycleTest {
     }
 
     @Test fun api35CallerNumberStillRequiresCallLogPermission() = fixture { storage, work, queue ->
+        Shadows.shadowOf(context.packageManager).setSystemFeature(android.content.pm.PackageManager.FEATURE_TELEPHONY, true)
         val peer = TelefonPeer(UUID.randomUUID().toString(), "Fixture", TelefonKrypto.b64(ByteArray(32)))
         storage.savePeer(peer); storage.setIncomingCallsEnabled(true); storage.setIncomingNumberEnabled(true)
         Shadows.shadowOf(context as Application).grantPermissions(android.Manifest.permission.READ_PHONE_STATE)

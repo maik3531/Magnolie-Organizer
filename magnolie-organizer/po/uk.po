@@ -930,9 +930,6 @@ msgstr "Налаштування телефона вже відкрито в і�
 msgid "Answer"
 msgstr "Відповісти"
 
-msgid "Answer calls on the computer and talk"
-msgstr "Приймати дзвінки й розмовляти на комп’ютері"
-
 msgid "Answering the call"
 msgstr "Відповідь на дзвінок"
 
@@ -4216,9 +4213,6 @@ msgid ""
 "available."
 msgstr "Сповіщення доступні лише у встановленій програмі."
 
-msgid "Notify me about incoming calls"
-msgstr "Сповіщати про вхідні дзвінки"
-
 msgid "Notify, then unlock (recommended)"
 msgstr "Сповістити, потім розблокувати (рекомендовано)"
 
@@ -7112,10 +7106,6 @@ msgstr "Не вдалося надіслати запит на синхроні�
 msgid "The synchronization resume journal is damaged."
 msgstr "Журнал поновлення синхронізації пошкоджено."
 
-msgid "The system dialer opens on the phone. Confirm the call there."
-msgstr ""
-"На телефоні відкривається системний номеронабирач. Підтвердіть дзвінок там."
-
 msgid "The task is missing from the update."
 msgstr "В оновленні бракує завдання."
 
@@ -7425,9 +7415,6 @@ msgid "This setting applies when you restore the window from the tray menu."
 msgstr ""
 "Цей параметр застосовується, коли ви відновлюєте вікно з меню системного "
 "лотка."
-
-msgid "This status comes from Magnolie Notes, not KDE Connect."
-msgstr "Цей стан надходить із Magnolie Notes, а не з KDE Connect."
 
 msgid ""
 "This system did not allow waking from suspend. The reminder will appear as "
@@ -8569,6 +8556,20 @@ msgstr[2] "… і ще %(count)s елементи, які також буде н
 
 msgid "＋ Add appointment"
 msgstr "＋ Додати зустріч"
+
+#~ msgid "Answer calls on the computer and talk"
+#~ msgstr "Приймати дзвінки й розмовляти на комп’ютері"
+
+#~ msgid "Notify me about incoming calls"
+#~ msgstr "Сповіщати про вхідні дзвінки"
+
+#~ msgid "The system dialer opens on the phone. Confirm the call there."
+#~ msgstr ""
+#~ "На телефоні відкривається системний номеронабирач. Підтвердіть дзвінок "
+#~ "там."
+
+#~ msgid "This status comes from Magnolie Notes, not KDE Connect."
+#~ msgstr "Цей стан надходить із Magnolie Notes, а не з KDE Connect."
 
 #~ msgid "This is my own phone"
 #~ msgstr "Це мій особистий телефон"

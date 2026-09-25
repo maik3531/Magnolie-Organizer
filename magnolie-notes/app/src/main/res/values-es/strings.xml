@@ -394,4 +394,6 @@
     <string name="device_identifiers_unavailable">Este identificador no está disponible.</string>
     <string name="telefon_rechner_hinzufuegen">Añadir ordenador</string>
     <string name="telefon_mehrere_rechner">Los ordenadores emparejados permanecen guardados. Seleccione el que desea usar ahora.</string>
+    <string name="telefon_anrufe_erlauben">Permitir llamadas</string>
+    <string name="telefon_anruf_berechtigungen">Activar los permisos de Android</string>
 </resources>

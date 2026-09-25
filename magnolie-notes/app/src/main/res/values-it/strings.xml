@@ -393,4 +393,6 @@
     <string name="device_identifiers_unavailable">Questo identificativo non è disponibile.</string>
     <string name="telefon_rechner_hinzufuegen">Aggiungi computer</string>
     <string name="telefon_mehrere_rechner">I computer associati restano salvati. Seleziona quello da usare ora.</string>
+    <string name="telefon_anrufe_erlauben">Consenti chiamate</string>
+    <string name="telefon_anruf_berechtigungen">Attiva le autorizzazioni Android</string>
 </resources>

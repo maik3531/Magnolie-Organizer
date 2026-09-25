@@ -894,9 +894,6 @@ msgstr "Başka bir telefon kurulum oturumu açık."
 msgid "Answer"
 msgstr "Yanıtla"
 
-msgid "Answer calls on the computer and talk"
-msgstr "Aramaları bilgisayarda yanıtla ve konuş"
-
 msgid "Answering the call"
 msgstr "Arama yanıtlanıyor"
 
@@ -4177,9 +4174,6 @@ msgstr ""
 "Bildirimler yalnızca görüntülenebilir; yanıtlama ve uzaktan işlemler "
 "kullanılamaz."
 
-msgid "Notify me about incoming calls"
-msgstr "Gelen aramalarda beni bilgilendir"
-
 msgid "Notify, then unlock (recommended)"
 msgstr "Bildir, ardından kilidi aç (önerilir)"
 
@@ -7052,9 +7046,6 @@ msgstr "Eşzamanlama isteği gönderilemedi."
 msgid "The synchronization resume journal is damaged."
 msgstr "Eşzamanlamayı sürdürme günlüğü hasarlı."
 
-msgid "The system dialer opens on the phone. Confirm the call there."
-msgstr "Telefonda sistem çevirici açılır. Aramayı orada onaylayın."
-
 msgid "The task is missing from the update."
 msgstr "Güncellemede görev eksik."
 
@@ -7358,9 +7349,6 @@ msgstr "Bu seçim, yedek Bluetooth veri bağlantısından bağımsızdır."
 msgid "This setting applies when you restore the window from the tray menu."
 msgstr ""
 "Bu ayar, pencereyi sistem tepsisi menüsünden geri yüklediğinizde uygulanır."
-
-msgid "This status comes from Magnolie Notes, not KDE Connect."
-msgstr "Bu durum KDE Connect'ten değil, Magnolie Notes'tan geliyor."
 
 msgid ""
 "This system did not allow waking from suspend. The reminder will appear as "
@@ -8494,6 +8482,18 @@ msgstr[1] "… ayrıca yazdırılacak %(count)s öğe daha."
 
 msgid "＋ Add appointment"
 msgstr "＋ Randevu ekle"
+
+#~ msgid "Answer calls on the computer and talk"
+#~ msgstr "Aramaları bilgisayarda yanıtla ve konuş"
+
+#~ msgid "Notify me about incoming calls"
+#~ msgstr "Gelen aramalarda beni bilgilendir"
+
+#~ msgid "The system dialer opens on the phone. Confirm the call there."
+#~ msgstr "Telefonda sistem çevirici açılır. Aramayı orada onaylayın."
+
+#~ msgid "This status comes from Magnolie Notes, not KDE Connect."
+#~ msgstr "Bu durum KDE Connect'ten değil, Magnolie Notes'tan geliyor."
 
 #~ msgid "This is my own phone"
 #~ msgstr "Bu benim kendi telefonum"

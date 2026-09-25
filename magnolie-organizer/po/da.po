@@ -885,9 +885,6 @@ msgstr "En anden opsætning af en telefon er allerede i gang."
 msgid "Answer"
 msgstr "Besvar"
 
-msgid "Answer calls on the computer and talk"
-msgstr "Besvar opkald på computeren og tal"
-
 msgid "Answering the call"
 msgstr "Besvarer opkaldet"
 
@@ -4174,9 +4171,6 @@ msgstr ""
 "Notifikationer kan kun vises. Det er ikke muligt at svare eller udføre "
 "fjernhandlinger."
 
-msgid "Notify me about incoming calls"
-msgstr "Giv mig besked om indgående opkald"
-
 msgid "Notify, then unlock (recommended)"
 msgstr "Giv besked, og lås derefter op (anbefales)"
 
@@ -7058,9 +7052,6 @@ msgstr "Synkroniseringsanmodningen kunne ikke sendes."
 msgid "The synchronization resume journal is damaged."
 msgstr "Journalen til genoptagelse af synkroniseringen er beskadiget."
 
-msgid "The system dialer opens on the phone. Confirm the call there."
-msgstr "Systemopkaldet åbner på telefonen. Bekræft opkaldet der."
-
 msgid "The task is missing from the update."
 msgstr "Opgaven mangler i opdateringen."
 
@@ -7366,9 +7357,6 @@ msgstr "Dette valg er uafhængigt af reservedataforbindelsen via Bluetooth."
 
 msgid "This setting applies when you restore the window from the tray menu."
 msgstr "Denne indstilling gælder, når du gendanner vinduet fra panelmenuen."
-
-msgid "This status comes from Magnolie Notes, not KDE Connect."
-msgstr "Denne status kommer fra Magnolie Notes, ikke KDE Connect."
 
 msgid ""
 "This system did not allow waking from suspend. The reminder will appear as "
@@ -8502,6 +8490,18 @@ msgstr[1] "… og %(count)s elementer mere, som også bliver udskrevet."
 
 msgid "＋ Add appointment"
 msgstr "＋ Tilføj aftale"
+
+#~ msgid "Answer calls on the computer and talk"
+#~ msgstr "Besvar opkald på computeren og tal"
+
+#~ msgid "Notify me about incoming calls"
+#~ msgstr "Giv mig besked om indgående opkald"
+
+#~ msgid "The system dialer opens on the phone. Confirm the call there."
+#~ msgstr "Systemopkaldet åbner på telefonen. Bekræft opkaldet der."
+
+#~ msgid "This status comes from Magnolie Notes, not KDE Connect."
+#~ msgstr "Denne status kommer fra Magnolie Notes, ikke KDE Connect."
 
 #~ msgid "This is my own phone"
 #~ msgstr "Dette er min egen telefon"

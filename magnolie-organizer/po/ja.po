@@ -852,9 +852,6 @@ msgstr "別の電話設定の操作が進行中です。"
 msgid "Answer"
 msgstr "応答"
 
-msgid "Answer calls on the computer and talk"
-msgstr "パソコンで着信に応答して通話"
-
 msgid "Answering the call"
 msgstr "着信に応答中"
 
@@ -4139,9 +4136,6 @@ msgid ""
 "available."
 msgstr "通知はインストール済みアプリでのみ利用できます。"
 
-msgid "Notify me about incoming calls"
-msgstr "着信を通知する"
-
 msgid "Notify, then unlock (recommended)"
 msgstr "通知後にロックを解除（推奨）"
 
@@ -6991,9 +6985,6 @@ msgstr "同期リクエストを送信できませんでした。"
 msgid "The synchronization resume journal is damaged."
 msgstr "同期再開ジャーナルが破損しています。"
 
-msgid "The system dialer opens on the phone. Confirm the call there."
-msgstr "電話機でシステム ダイヤラが開きます。そこで通話を確認します。"
-
 msgid "The task is missing from the update."
 msgstr "更新にタスクがありません。"
 
@@ -7298,9 +7289,6 @@ msgid "This setting applies when you restore the window from the tray menu."
 msgstr ""
 "この設定は、システムトレイメニューからウィンドウを復元するときに適用されま"
 "す。"
-
-msgid "This status comes from Magnolie Notes, not KDE Connect."
-msgstr "この状態は KDE Connect ではなく Magnolie Notes から取得されています。"
 
 msgid ""
 "This system did not allow waking from suspend. The reminder will appear as "
@@ -8419,6 +8407,19 @@ msgstr[0] "… ほか %(count)s 件も印刷されます。"
 
 msgid "＋ Add appointment"
 msgstr "＋ 予定を追加"
+
+#~ msgid "Answer calls on the computer and talk"
+#~ msgstr "パソコンで着信に応答して通話"
+
+#~ msgid "Notify me about incoming calls"
+#~ msgstr "着信を通知する"
+
+#~ msgid "The system dialer opens on the phone. Confirm the call there."
+#~ msgstr "電話機でシステム ダイヤラが開きます。そこで通話を確認します。"
+
+#~ msgid "This status comes from Magnolie Notes, not KDE Connect."
+#~ msgstr ""
+#~ "この状態は KDE Connect ではなく Magnolie Notes から取得されています。"
 
 #~ msgid "This is my own phone"
 #~ msgstr "これは自分の携帯電話です"

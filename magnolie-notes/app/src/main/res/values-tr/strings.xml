@@ -377,4 +377,6 @@
     <string name="device_identifiers_unavailable">Bu cihaz tanımlayıcısı kullanılamıyor.</string>
     <string name="telefon_rechner_hinzufuegen">Bilgisayar ekle</string>
     <string name="telefon_mehrere_rechner">Eşleştirilmiş bilgisayarlar kayıtlı kalır. Şimdi kullanmak istediğiniz bilgisayarı seçin.</string>
+    <string name="telefon_anrufe_erlauben">Aramalara izin ver</string>
+    <string name="telefon_anruf_berechtigungen">Android izinlerini etkinleştir</string>
 </resources>

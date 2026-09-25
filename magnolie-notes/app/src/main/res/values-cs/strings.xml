@@ -398,4 +398,6 @@
     <string name="device_identifiers_unavailable">Tento identifikátor není dostupný.</string>
     <string name="telefon_rechner_hinzufuegen">Přidat počítač</string>
     <string name="telefon_mehrere_rechner">Spárované počítače zůstanou uložené. Vyberte počítač, který chcete nyní používat.</string>
+    <string name="telefon_anrufe_erlauben">Povolit hovory</string>
+    <string name="telefon_anruf_berechtigungen">Povolit oprávnění Androidu</string>
 </resources>

@@ -664,9 +664,6 @@ msgstr "Другой телефон уже сопряжен. Сначала уд
 msgid "Answer"
 msgstr "Ответить"
 
-msgid "Answer calls on the computer and talk"
-msgstr "Принимать звонки и разговаривать на компьютере"
-
 msgid "App password"
 msgstr "Пароль приложения"
 
@@ -3448,9 +3445,6 @@ msgid ""
 "available."
 msgstr "Уведомления доступны только в установленном приложении."
 
-msgid "Notify me about incoming calls"
-msgstr "Уведомлять о входящих звонках"
-
 msgid "ODS"
 msgstr "ODS"
 
@@ -5693,10 +5687,6 @@ msgstr "Дата начала не может быть позже даты ок�
 msgid "The synchronization data is missing."
 msgstr "Данные синхронизации отсутствуют."
 
-msgid "The system dialer opens on the phone. Confirm the call there."
-msgstr ""
-"На телефоне открывается системный номеронабиратель. Подтвердите звонок там."
-
 msgid ""
 "The task will be sent to the selected branch. It will also remain here so "
 "you can keep track of it."
@@ -5925,9 +5915,6 @@ msgstr ""
 msgid "This setting applies when you restore the window from the tray menu."
 msgstr ""
 "Эта настройка действует при восстановлении окна из меню области уведомлений."
-
-msgid "This status comes from Magnolie Notes, not KDE Connect."
-msgstr "Это состояние поступает из Magnolie Notes, а не из KDE Connect."
 
 msgid ""
 "This system did not allow waking from suspend. The reminder will appear as "
@@ -6969,6 +6956,20 @@ msgstr[2] "… и ещё %(count)s записи, которые также бу�
 
 msgid "＋ Add appointment"
 msgstr "＋ Добавить встречу"
+
+#~ msgid "Answer calls on the computer and talk"
+#~ msgstr "Принимать звонки и разговаривать на компьютере"
+
+#~ msgid "Notify me about incoming calls"
+#~ msgstr "Уведомлять о входящих звонках"
+
+#~ msgid "The system dialer opens on the phone. Confirm the call there."
+#~ msgstr ""
+#~ "На телефоне открывается системный номеронабиратель. Подтвердите звонок "
+#~ "там."
+
+#~ msgid "This status comes from Magnolie Notes, not KDE Connect."
+#~ msgstr "Это состояние поступает из Magnolie Notes, а не из KDE Connect."
 
 #~ msgid "This is my own phone"
 #~ msgstr "Это мой личный телефон"

@@ -370,4 +370,6 @@
     <string name="device_identifiers_unavailable">Deze apparaatidentificatie is niet beschikbaar.</string>
     <string name="telefon_rechner_hinzufuegen">Computer toevoegen</string>
     <string name="telefon_mehrere_rechner">Gekoppelde computers blijven opgeslagen. Kies de computer die u nu wilt gebruiken.</string>
+    <string name="telefon_anrufe_erlauben">Oproepen toestaan</string>
+    <string name="telefon_anruf_berechtigungen">Android-machtigingen inschakelen</string>
 </resources>

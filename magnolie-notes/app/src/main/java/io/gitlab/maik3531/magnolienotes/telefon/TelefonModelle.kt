@@ -113,6 +113,8 @@ data class TelefonUiZustand(
     val bluetoothSelecting: Boolean = false,
     val bluetoothDevices: List<TelefonBluetoothZiel> = emptyList(),
     val dialRequestEnabled: Boolean = false,
+    val callsEnabled: Boolean = false,
+    val callPermissionsMissing: Boolean = false,
     val dialAvailable: Boolean = false,
     val notificationsEnabled: Boolean = false,
     val incomingCallsEnabled: Boolean = false,

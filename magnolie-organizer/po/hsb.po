@@ -973,9 +973,6 @@ msgstr "Druhe posedźenje za zarjadowanje telefona je hižo aktiwne."
 msgid "Answer"
 msgstr "Wotmołwić"
 
-msgid "Answer calls on the computer and talk"
-msgstr "Zawołanja na ličaku přiwzać a rěčeć"
-
 msgid "Answering the call"
 msgstr "Zawołanje so přiwza"
 
@@ -4271,9 +4268,6 @@ msgid ""
 "available."
 msgstr "Zdźělenki su jenož w instalowanym nałoženju k dispoziciji."
 
-msgid "Notify me about incoming calls"
-msgstr "Wo dochadźacych zawołanjach informować"
-
 msgid "Notify, then unlock (recommended)"
 msgstr "Zdźělić, potom wotključeć (doporučene)"
 
@@ -7199,10 +7193,6 @@ msgstr "Synchronizaciske naprašowanje njeda so pósłać."
 msgid "The synchronization resume journal is damaged."
 msgstr "Dźenik za pokročowanje synchronizacije je wobškodźeny."
 
-msgid "The system dialer opens on the phone. Confirm the call there."
-msgstr ""
-"Systemowe wólenske nałoženje so na telefonje wočini. Wobkrućće tam zawołanje."
-
 msgid "The task is missing from the update."
 msgstr "Nadawk w aktualizaciji faluje."
 
@@ -7509,9 +7499,6 @@ msgstr "Tutón wuběr je njewotwisny wot narunanskeje datoweje zwiski Bluetooth.
 msgid "This setting applies when you restore the window from the tray menu."
 msgstr ""
 "Tute nastajenje płaći, hdyž wokno z menija systemoweho pola wobnowjeće."
-
-msgid "This status comes from Magnolie Notes, not KDE Connect."
-msgstr "Tutón staw pochadźa z Magnolie Notes, nic z KDE Connect."
 
 msgid ""
 "This system did not allow waking from suspend. The reminder will appear as "
@@ -8662,6 +8649,20 @@ msgstr[3] "… a dale %(count)s zapiskaj, kotrejž so tež ćišćitej."
 
 msgid "＋ Add appointment"
 msgstr "＋ Termin přidać"
+
+#~ msgid "Answer calls on the computer and talk"
+#~ msgstr "Zawołanja na ličaku přiwzać a rěčeć"
+
+#~ msgid "Notify me about incoming calls"
+#~ msgstr "Wo dochadźacych zawołanjach informować"
+
+#~ msgid "The system dialer opens on the phone. Confirm the call there."
+#~ msgstr ""
+#~ "Systemowe wólenske nałoženje so na telefonje wočini. Wobkrućće tam "
+#~ "zawołanje."
+
+#~ msgid "This status comes from Magnolie Notes, not KDE Connect."
+#~ msgstr "Tutón staw pochadźa z Magnolie Notes, nic z KDE Connect."
 
 #~ msgid "This is my own phone"
 #~ msgstr "To je mój swójski telefon"
