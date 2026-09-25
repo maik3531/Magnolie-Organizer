@@ -2094,33 +2094,34 @@ class PhoneService:
                 context = self._call_audio_context()
                 if not context or context != self.call_audio.active_context:
                     route = self.call_audio.snapshot("inactive", "call_changed")
-            return dict(capability, route=route)
+            return dict(capability, route=route, authorization=self._call_audio_context(diagnostics=True))
 
-    def _call_audio_context(self):
+    def _call_audio_context(self, diagnostics=False):
         with self.lock:
-            if not self.enabled or self.stop_event.is_set() or not self.server:
-                return None
             peers = [peer for peer in self.store.peers if peer.get("state") == "paired"]
-            if len(peers) != 1 or self.store.binding_conflict():
-                return None
-            peer = peers[0]
-            peer_id = peer["device_id"]
+            peer = peers[0] if len(peers) == 1 else {}
+            peer_id = peer.get("device_id", "")
             call = self.incoming_calls.get(peer_id, {})
             observation = self.audio_observations.get(peer_id)
             local, remote = peer.get("local_grants", {}), peer.get("grants", {})
             capability = peer.get("capabilities", {}).get("items", {}).get("incoming_call_state", {})
-            if (not peer.get("personal_sync", {}).get("own_device")
-                    or peer.get("call_audio", {}).get("prefer_pc") is not True
-                    or not local.get("grants", {}).get("incoming_call_state")
-                    or not remote.get("grants", {}).get("incoming_call_state")
-                    or not capability.get("available") or 2 not in capability.get("versions", [])
-                    or call.get("state") != "offhook" or not call.get("offhook_ms")
-                    or not observation or observation[:2] != (call.get("call_ref"), call.get("revision"))
-                    or observation[2] is not self.connections.get(peer_id)
-                    or observation[3:] != (local.get("revision"), remote.get("revision"))):
-                return None
             address = self._call_audio_address(peer)
-            if not BLUETOOTH_ADDRESS.fullmatch(address):
+            checks = dict(service_ready=bool(self.enabled and not self.stop_event.is_set() and self.server),
+                single_phone=len(peers) == 1 and not self.store.binding_conflict(),
+                own_phone=bool(peer.get("personal_sync", {}).get("own_device")),
+                pc_preferred=peer.get("call_audio", {}).get("prefer_pc") is True,
+                local_grant=bool(local.get("grants", {}).get("incoming_call_state")),
+                remote_grant=bool(remote.get("grants", {}).get("incoming_call_state")),
+                call_capability=bool(capability.get("available") and 2 in capability.get("versions", [])),
+                offhook=call.get("state") == "offhook", offhook_timestamp=bool(call.get("offhook_ms")),
+                fresh_observation=bool(observation),
+                current_call=bool(observation and observation[:2] == (call.get("call_ref"), call.get("revision"))),
+                current_session=bool(observation and observation[2] is self.connections.get(peer_id)),
+                current_grants=bool(observation and observation[3:] == (local.get("revision"), remote.get("revision"))),
+                bluetooth_bound=bool(BLUETOOTH_ADDRESS.fullmatch(address)))
+            if diagnostics:
+                return checks  # Booleans only: no numbers, keys, call references or timestamps.
+            if not all(checks.values()):
                 return None
             return dict(device_id=peer_id, identity=peer["static_public"], session=id(observation[2]),
                         call_ref=call["call_ref"], revision=call["revision"], address=address,
