@@ -19812,7 +19812,8 @@ class Fenster(_FENSTER_BASIS):
 
         elif befehl == "telefon_anruf_audio_einstellung":
             threading.Thread(target=lambda: self._telefon_anruf_audio_einstellung(
-                nachricht.get("kennung") or "", nachricht.get("preferPc")), daemon=True).start()
+                nachricht.get("kennung") or "", nachricht.get("preferPc"),
+                nachricht.get("adresse"), nachricht.get("requestId")), daemon=True).start()
 
         elif befehl == "telefon_auflegen":
             threading.Thread(target=lambda: self._telefon_auflegen(
@@ -21415,7 +21416,7 @@ class Fenster(_FENSTER_BASIS):
         report = self._telefon.report() if self._telefon else {}
         peers = report.get("peers", [])
         peer = peers[0] if len(peers) == 1 and peers[0].get("own_device") else {}
-        address = peer.get("bluetooth_address", "")
+        address = peer.get("call_audio", {}).get("address", peer.get("bluetooth_address", ""))
         capability = AnrufBluetooth().probe(address)
         # A read-only setup probe must not replace an observed active route.
         capability["route"] = report.get("call_audio", {}).get("route", {})
@@ -21539,13 +21540,20 @@ class Fenster(_FENSTER_BASIS):
                 "error": fehler_deutsch(fehler, _("Answering the call")),
                  "occurred_ms": 0})
 
-    def _telefon_anruf_audio_einstellung(self, kennung, prefer_pc):
+    def _telefon_anruf_audio_einstellung(self, kennung, prefer_pc, address=None, request_id=None):
+        ok = False
         try:
-            if self._telefon:
-                self._telefon.set_call_audio(kennung, prefer_pc)
+            if not self._telefon:
+                raise RuntimeError("phone unavailable")
+            self._telefon.set_call_audio(kennung, prefer_pc, address)
+            self._telefon_fehler = ""
+            ok = True
         except Exception:
             self._telefon_fehler = _("The phone function is not permitted or available.")
         self._telefon_stand_melden()
+        if request_id:
+            self.antwort("App.telefonAnrufAudioGespeichert", {"requestId": request_id,
+                "kennung": kennung, "ok": ok, "fehler": self._telefon_fehler if not ok else ""})
 
     def _kde_sms_senden(self, nummer, text, land, client_ref, device_id=None):
         try:

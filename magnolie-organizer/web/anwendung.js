@@ -3556,6 +3556,8 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       planeSpeichern();
     }
     const audioKey = peer.device_id + "\u0000call_audio";
+    const audioSpeichern = typeof anrufAudioSpeicherAntworten !== "undefined" &&
+      [...anrufAudioSpeicherAntworten.values()].some(antwort => antwort.peerId === peer.device_id);
     if (!audioAendern && peer.call_audio && peer.call_audio.prefer_pc === false &&
         anrufFreigabenAusstehend.get(audioKey) !== true && optionen.preferPcAudio !== false) {
       // A saved opt-out also survives a crash before the main book was saved.
@@ -3564,9 +3566,9 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     }
     const audio = optionen.preferPcAudio !== false &&
       (!optionen.telefonId || optionen.telefonId === peer.device_id) &&
-      (!optionen.hfpAdresse || optionen.hfpAdresse === peer.bluetooth_address);
-    if (peer.call_audio && peer.call_audio.prefer_pc === audio) anrufFreigabenAusstehend.delete(audioKey);
-    else if (anrufFreigabenAusstehend.get(audioKey) !== audio && Bruecke.sende({
+      (!optionen.hfpAdresse || optionen.hfpAdresse === anrufAudioAdresse(peer));
+    if (!audioSpeichern && peer.call_audio && peer.call_audio.prefer_pc === audio) anrufFreigabenAusstehend.delete(audioKey);
+    else if (!audioSpeichern && anrufFreigabenAusstehend.get(audioKey) !== audio && Bruecke.sende({
       cmd: "telefon_anruf_audio_einstellung", kennung: peer.device_id, preferPc: audio }))
       anrufFreigabenAusstehend.set(audioKey, audio);
     const ausgehend = !!(aktiverAnruf && aktiverAnruf.device_id === peer.device_id &&
@@ -3586,6 +3588,30 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       if (Bruecke.sende({ cmd: "telefon_freigabe", kennung: peer.device_id, name: name, an: an }))
         anrufFreigabenAusstehend.set(key, an);
     }
+  }
+
+  function anrufAudioAdresse(peer) {
+    return peer?.call_audio?.address || peer?.bluetooth_address || "";
+  }
+
+  function speichereAnrufAudio(peer, adresse) {
+    const requestId = crypto.randomUUID();
+    return new Promise((resolve, reject) => {
+      const fertig = (antwort) => {
+        clearTimeout(timer); anrufAudioSpeicherAntworten.delete(requestId);
+        if (antwort && antwort.ok === true && antwort.kennung === peer.device_id) resolve();
+        else {
+          anrufFreigabenAusstehend.delete(peer.device_id + "\u0000call_audio");
+          reject(new Error(antwort?.fehler || _("The phone function is not permitted or available.")));
+        }
+      };
+      fertig.peerId = peer.device_id;
+      const timer = setTimeout(() => fertig(null), 15000);
+      anrufAudioSpeicherAntworten.set(requestId, fertig);
+      anrufFreigabenAusstehend.set(peer.device_id + "\u0000call_audio", true);
+      if (!Bruecke.sende({ cmd: "telefon_anruf_audio_einstellung", kennung: peer.device_id,
+        preferPc: true, adresse: adresse, requestId: requestId })) fertig(null);
+    });
   }
 
   function anrufAudioHinweis(capability, call) {
@@ -3621,8 +3647,11 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     const aktuell = DATEN.einstellungen.adressen.kommunikation[typ];
     const schleier = el("div", "eingabe-schleier kommunikation-belegung-schleier");
     const dialog = el("div", "eingabe-dialog kommunikation-belegung-dialog");
-    let audioTimer = null;
-    const schliessen = () => { clearInterval(audioTimer); beendeModal(schleier); schleier.remove(); };
+    let audioTimer = null, audioSpeichert = false;
+    const schliessen = () => {
+      if (audioSpeichert) return;
+      clearInterval(audioTimer); beendeModal(schleier); schleier.remove();
+    };
     const auswahl = el("fieldset", "kommunikation-radios");
     auswahl.append(el("legend", null, sms ? _("SMS assignment") : _("Call assignment")));
     const arten = sms ? [["kde", "KDE Connect"]] : [["magnolie", "Magnolie Notes"]];
@@ -3671,10 +3700,14 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
         pcAudio.checked = false;
         leiser.checked = true;
       }
-      const devices = audioCapability.devices || [];
+      const aktuellPeer = (telefonStand?.peers || []).find(peer => peer.device_id === audioPeer?.device_id);
+      const gebunden = anrufAudioAdresse(aktuellPeer);
+      const devices = [...(audioCapability.devices || [])];
+      if (gebunden && zustand === "ready" && !devices.some(device => device.address === gebunden))
+        devices.push({ address: gebunden, name: aktuellPeer.display_name, trusted: true });
       const stand = JSON.stringify(devices);
       if (stand !== audioGeraeteStand) {
-        const selected = audioGeraet.value;
+        const selected = audioGeraet.value || gebunden;
         audioGeraet.replaceChildren();
         audioGeraet.append(new Option(_("Select your phone"), ""));
         for (const device of devices) {
@@ -3685,7 +3718,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
         audioGeraet.value = selected;
         audioGeraeteStand = stand;
       }
-      audioGeraet.hidden = !pcAudio.checked || zustand !== "setup" || !devices.length;
+      audioGeraet.hidden = !pcAudio.checked || !devices.length;
       audioKoppeln.hidden = !pcAudio.checked || zustand !== "setup";
       audioHinweis.textContent = zustand === "setup" ? _("Pair your phone in the OS Bluetooth settings first.")
         : anrufAudioHinweis(audioCapability);
@@ -3703,10 +3736,12 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       if (leiser) { leiser.disabled = auswahl.querySelector("input:checked")?.value !== "magnolie"; if (leiser.disabled) leiser.checked = false; }
     };
     if (!sms) { auswahl.addEventListener("change", optionenAktualisieren); optionenAktualisieren(); }
-    const speichern = knopf(_("Save"), "hauptknopf", () => {
+    const speichern = knopf(_("Save"), "hauptknopf", async () => {
+      if (audioSpeichert) return;
       const art = auswahl.querySelector("input:checked").value;
       const ziel = programm.value.trim().slice(0, 500);
       if (art === "program" && !ziel) { fehler.textContent = _("Enter an application command."); return; }
+      let hfpAdresse = anrufAudioAdresse(audioPeer);
       if (!sms && art === "magnolie" && pcAudio.checked) {
         audioAktualisieren();
         if (pcAudio.checked && (!audioPeer || !audioPeer.own_device ||
@@ -3718,8 +3753,13 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
           const selected = (audioCapability.devices || []).find(device =>
             device.address === audioGeraet.value && device.trusted === true);
           if (!selected) { fehler.textContent = audioHinweis.textContent; return; }
-          Bruecke.sende({ cmd: "telefon_bluetooth_schalten", kennung: audioPeer.device_id,
-            an: !!audioPeer.bluetooth_enabled, adresse: selected.address });
+          hfpAdresse = selected.address;
+        }
+        if (pcAudio.checked) {
+          audioSpeichert = true; speichern.disabled = true;
+          try { await speichereAnrufAudio(audioPeer, hfpAdresse); }
+          catch (error) { fehler.textContent = error.message; return; }
+          finally { audioSpeichert = false; speichern.disabled = false; }
         }
       }
       DATEN.einstellungen.adressen.kommunikation[typ] = { art: art, programm: ziel };
@@ -3727,7 +3767,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
         eingehendBenachrichtigen: art === "magnolie",
         computerTelefonie: art === "magnolie", klingeltonLeiser: leiser.checked,
         preferPcAudio: pcAudio.checked,
-        hfpAdresse: pcAudio.disabled ? aktuell.hfpAdresse || "" : "" });
+        hfpAdresse: hfpAdresse || aktuell.hfpAdresse || "" });
       const telefonPeers = telefonStand && telefonStand.peers || [];
       if (!sms && art === "magnolie" && telefonPeers.length === 1)
         DATEN.einstellungen.adressen.kommunikation[typ].telefonId = telefonPeers[0].device_id;
@@ -3750,7 +3790,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       formZeile(_("Application command"), programm), hinweis);
     if (!sms) dialog.append(optionen,
       formZeile(_("Bluetooth device for call audio"), el("output", null,
-        audioPeer && audioPeer.bluetooth_address || _("Unavailable"))),
+        anrufAudioAdresse(audioPeer) || _("Unavailable"))),
       audioGeraet, audioKoppeln, audioHinweis,
       el("p", "einst-hinweis", _("This selection is independent of the Bluetooth data fallback.")),
       el("p", "einst-hinweis",
@@ -20253,6 +20293,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       directory: empfang.ordner });
   }
   const anrufFreigabenAusstehend = new Map();
+  const anrufAudioSpeicherAntworten = new Map();
   const kdeEmpfangAngebote = [];
   let kdeEmpfangFrageAktiv = false;
   let baumNachbarn = [];
@@ -26292,6 +26333,9 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
         String(nutzlast.title || "") : String(nutzlast.title || "");
       Bruecke.sende({ cmd: "telefon_meldung_anzeigen", app: app,
         titel: titel, text: String(nutzlast.text || "") });
+    },
+    telefonAnrufAudioGespeichert(nutzlast) {
+      anrufAudioSpeicherAntworten.get(nutzlast?.requestId)?.(nutzlast);
     },
     telefonAnrufAudio(nutzlast) {
       if (nutzlast && Object.prototype.hasOwnProperty.call(nutzlast, "setup_peer")) {

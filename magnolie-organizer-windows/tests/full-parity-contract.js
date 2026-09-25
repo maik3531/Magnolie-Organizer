@@ -64,7 +64,7 @@ for (const object of commits) assert.deepStrictEqual([...object.keys()].sort(), 
 assert.match(windowsDispatcher, /new TelefonCoordinator\(paths, HandleTelefonEventAsync/);
 assert.match(windowsDispatcher, /await form\.SendAsync\(function, message \?\? payload\)/);
 for (const name of fixture.callbacks) {
-  if (name === linuxAudioCallback) continue;
+  if (name === linuxAudioCallback || name === "telefonAnrufAudioGespeichert") continue;
   assert.match(windowsCallbacks, new RegExp(`(?:SendAsync|emit)\\("App\\.${name}"`),
     `Windows dispatcher misses App.${name}`);
   assert.match(windowsUi, new RegExp(`\\n    ${name}\\([^)]*\\) \\{`), `Windows UI misses App.${name}`);

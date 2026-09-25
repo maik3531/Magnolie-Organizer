@@ -9132,7 +9132,7 @@ function knopfMit(text, wurzel) {
   assert.strictEqual(kontaktT.daten().einstellungen.adressen.kommunikation.anruf.preferPcAudio,
     false, "Explizite Audio-Abwahl wird nicht gespeichert");
   assert.strictEqual(kontaktT.daten().einstellungen.adressen.kommunikation.anruf.hfpAdresse,
-    "", "Audio-Einstellung speichert eine fremde HFP-Auswahl statt der Telefonbindung");
+    "AA:BB:CC:DD:EE:FF", "Audio-Abwahl darf die gespeicherte Telefonbindung nicht vergessen");
   kontaktKarte.querySelector(".kontakt-anruf").dispatchEvent(
     new kontaktW.Event("contextmenu", { bubbles: true, cancelable: true }));
   const programmBelegung = kontaktD.querySelector(".kommunikation-belegung-dialog");

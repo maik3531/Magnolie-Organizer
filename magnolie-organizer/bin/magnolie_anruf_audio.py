@@ -344,7 +344,17 @@ class AnrufBluetooth:
                     available=state in ("available", "active"), active=state == "active",
                     local_role="111e", remote_role="111f", **values)
 
+    def validate_binding(self, address):
+        with self.lock:
+            if not isinstance(address, str) or not ADDRESS.fullmatch(address):
+                raise AudioUnavailable("bound_device_unavailable")
+            self.bluez.device(address, require_connected=False, allow_powered_off=True)
+
     def probe(self, address):
+        with self.lock:
+            return self._probe(address)
+
+    def _probe(self, address):
         try:
             if not ADDRESS.fullmatch(address):
                 objects = self.bluez.objects()

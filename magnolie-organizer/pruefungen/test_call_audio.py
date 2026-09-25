@@ -522,6 +522,47 @@ def test_background_owner_preference_uses_same_user_ipc(service, tmp_path):
         server.close()
 
 
+def test_hfp_selection_survives_ipc_store_reload_and_disabled_data_bluetooth(service, tmp_path):
+    service.store.set_bluetooth(PEER, False)
+    service.connection_transports[PEER] = "wifi"
+    grants = copy.deepcopy(service.store.peer(PEER)["local_grants"])
+    path = str(tmp_path / "binding/background.sock")
+    server = background.IPCServer(SimpleNamespace(), path, phone_backend=service).start()
+    try:
+        background.ipc_request("phone_set_call_audio", {
+            "peer_id": PEER, "prefer_pc": True, "address": ADDRESS}, path=path)
+        report = background.ipc_request("phone_report", {}, path=path)
+        assert report["peers"][0]["call_audio"]["address"] == ADDRESS
+        assert report["peers"][0]["bluetooth_enabled"] is False
+        assert report["peers"][0]["bluetooth_address"] == ""
+        service.store.peers = service.store._load_peers()
+        assert service.store.peer(PEER)["call_audio"] == {"prefer_pc": True, "address": ADDRESS}
+        service.set_call_audio(PEER, False)
+        service.set_call_audio(PEER, True)
+        assert service.store._load_peers()[0]["call_audio"]["address"] == ADDRESS
+        assert service.store.peer(PEER)["local_grants"] == grants
+        assert service.connection_transports[PEER] == "wifi"
+        event(service)
+        assert service._call_audio_context()["address"] == ADDRESS
+        assert service.call_audio.update(service._call_audio_context)["active"]
+    finally:
+        service.call_audio.restore()
+        server.close()
+
+
+def test_hfp_binding_rejects_unpaired_device_and_rolls_back_failed_save(service):
+    before = copy.deepcopy(service.store.peer(PEER))
+    with pytest.raises(audio.AudioUnavailable):
+        service.set_call_audio(PEER, True, "00:00:00:00:00:01")
+    assert service.store.peer(PEER) == before
+    def fail():
+        raise OSError("fixture write failure")
+    service.store.save_peers = fail
+    with pytest.raises(OSError):
+        service.set_call_audio(PEER, False, ADDRESS)
+    assert service.store.peer(PEER) == before
+
+
 def test_phone_owner_shutdown_joins_audio_and_closes_only_owned_resources(service):
     event(service)
     sock = SimpleNamespace(shutdown=lambda _: None, close=lambda: None)

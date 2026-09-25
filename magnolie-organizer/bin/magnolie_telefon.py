@@ -418,8 +418,12 @@ class PhoneStore:
                   "personal_sync"}
         if isinstance(peer, dict) and "call_audio" in peer:
             common.add("call_audio")
-            if (not isinstance(peer["call_audio"], dict) or set(peer["call_audio"]) != {"prefer_pc"}
-                    or not isinstance(peer["call_audio"]["prefer_pc"], bool)):
+            if (not isinstance(peer["call_audio"], dict)
+                    or set(peer["call_audio"]) not in ({"prefer_pc"}, {"prefer_pc", "address"})
+                    or not isinstance(peer["call_audio"]["prefer_pc"], bool)
+                    or "address" in peer["call_audio"] and (
+                        not isinstance(peer["call_audio"]["address"], str)
+                        or not BLUETOOTH_ADDRESS.fullmatch(peer["call_audio"]["address"]))):
                 raise RuntimeError("Telefon-Gegenstellenliste ist beschaedigt.")
         if isinstance(peer, dict) and "custom_sync" in peer:
             common.add("custom_sync")
@@ -2008,7 +2012,7 @@ class PhoneService:
                             "local_grants": peer.get("local_grants", {}),
                            "bluetooth_enabled": bluetooth["enabled"],
                             "bluetooth_address": bluetooth["address"],
-                            "call_audio": dict(peer.get("call_audio", {})),
+                             "call_audio": dict(peer.get("call_audio", {}), address=self._call_audio_address(peer)),
                             "custom_sync": peer.get("custom_sync", {}),
                             "own_device": personal["own_device"] and not binding_conflict,
                            "remote_own_device": personal["remote_own_device"],
@@ -2037,23 +2041,51 @@ class PhoneService:
             self.stop()
         self.callback("status", self.report())
 
-    def set_call_audio(self, peer_id, prefer_pc):
+    @staticmethod
+    def _call_audio_address(peer):
+        return peer.get("call_audio", {}).get("address", peer.get("bluetooth", {}).get("address", ""))
+
+    def set_call_audio(self, peer_id, prefer_pc, address=None):
         if not isinstance(prefer_pc, bool):
             raise ValueError("Invalid call audio preference")
         with self.lock:
             peer = self.store.sole_peer(peer_id)
             if not peer or peer.get("state") != "paired":
                 raise RuntimeError("Das Telefon ist nicht gekoppelt.")
+            identity = peer["static_public"]
+        if address is not None:
+            if not isinstance(address, str):
+                raise ValueError("Invalid call audio address")
+            address = address.strip().upper()
+            # Validate outside the service lock: audio cancellation takes the
+            # audio lock before consulting the current phone context.
+            self.call_audio.validate_binding(address)
+        with self.lock:
+            peer = self.store.sole_peer(peer_id)
+            if not peer or peer.get("state") != "paired" or peer["static_public"] != identity:
+                raise RuntimeError("Das Telefon ist nicht gekoppelt.")
             # A routing preference never grants call monitoring, answering or hanging up.
-            peer["call_audio"] = {"prefer_pc": prefer_pc}
-            self.store.save_peers()
+            previous = peer.get("call_audio")
+            settings = dict(previous or {}, prefer_pc=prefer_pc)
+            if address is not None:
+                settings["address"] = address
+            peer["call_audio"] = settings
+            try:
+                self.store.save_peers()
+            except Exception:
+                if previous is None:
+                    peer.pop("call_audio", None)
+                else:
+                    peer["call_audio"] = previous
+                raise
+            self.audio_capability_at = 0
         if not prefer_pc:
             self.call_audio.restore()
 
     def call_audio_status(self):
         with self.lock:
             peers = [peer for peer in self.store.peers if peer.get("state") == "paired"]
-            address = (peers[0].get("bluetooth", {}).get("address", "") if len(peers) == 1
+            address = (self._call_audio_address(peers[0]) if len(peers) == 1
                        and peers[0].get("personal_sync", {}).get("own_device") else "")
             capability = (self.audio_capability if address == self.audio_capability_address else
                           self.call_audio.snapshot("unavailable", "not_probed"))
@@ -2087,7 +2119,7 @@ class PhoneService:
                     or observation[2] is not self.connections.get(peer_id)
                     or observation[3:] != (local.get("revision"), remote.get("revision"))):
                 return None
-            address = peer.get("bluetooth", {}).get("address", "")
+            address = self._call_audio_address(peer)
             if not BLUETOOTH_ADDRESS.fullmatch(address):
                 return None
             return dict(device_id=peer_id, identity=peer["static_public"], session=id(observation[2]),
@@ -2101,7 +2133,7 @@ class PhoneService:
                 self.call_audio.update(self._call_audio_context)
                 with self.lock:
                     peers = [peer for peer in self.store.peers if peer.get("state") == "paired"]
-                    address = (peers[0].get("bluetooth", {}).get("address", "") if len(peers) == 1
+                    address = (self._call_audio_address(peers[0]) if len(peers) == 1
                                and peers[0].get("personal_sync", {}).get("own_device") else "")
                 if self.call_audio.state.get("active"):
                     self.audio_capability = self.call_audio.snapshot("available", "ready")

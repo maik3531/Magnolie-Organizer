@@ -1,8 +1,8 @@
 {
   "schema": "magnolie-linux-parity-v1",
   "sources": {
-    "web/anwendung.js": "4fab89b521c170b31e6fe8f097e9782f86bc596cb71bad91505510be144c06a0",
-    "bin/magnolie-organizer": "f45f0a60fda11e811ac03431d8d6adde631d3e47610add344ae5459658bc4d53"
+    "web/anwendung.js": "3c13dad4c4047ccf7c87b1e435679ea8dbb2300d6eec636748a42e13df950dce",
+    "bin/magnolie-organizer": "3ff2dd960b7c99f9783a7f1d8f5adcf13d899223a098df9b0f6b2f75d663b432"
   },
   "commands": [
     "ablage_holen",
@@ -157,6 +157,7 @@
     "syncFertig",
     "telefonAnnehmStatus",
     "telefonAnrufAudio",
+    "telefonAnrufAudioGespeichert",
     "telefonAuflegeStatus",
     "telefonGekoppelt",
     "telefonPairingCode",
@@ -385,5 +386,5 @@
       ]
     ]
   ],
-  "contractSha256": "ea1ebdb42ba7b971bdc3ad8159f42906a1bbc17af74fe82d378938d936e02dde"
+  "contractSha256": "1efb97329f8df869b975c6501323c82c675da8fb32ecfba6ebd41cdd2b566312"
 }

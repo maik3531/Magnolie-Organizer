@@ -8,6 +8,7 @@ const root = path.resolve(__dirname, '..');
 const frontends = [path.join(root, 'app/web/anwendung.js')];
 const linux = path.join(root, '../magnolie-organizer/web/anwendung.js');
 if (fs.existsSync(linux)) frontends.push(linux);
+(async () => {
 for (const file of frontends) {
   const source = fs.readFileSync(file, 'utf8');
   const migration = source.match(/const kommunikationsWeg = [\s\S]*?return ergebnis;\s*\};/)[0];
@@ -46,7 +47,7 @@ for (const file of frontends) {
       incoming_call_state: false, incoming_call_number: false, answer_call: false, end_call: false}}};
     const sent = [];
     const sync = new Function('DATEN', 'telefonStand', 'aktiverAnruf', 'anrufFreigabenAusstehend',
-      'Bruecke', 'planeSpeichern', syncSource + '; return synchronisiereAnrufFreigaben;')(
+      'Bruecke', 'planeSpeichern', source.match(/function anrufAudioAdresse\([\s\S]*?\n  \}/)[0] + '\n' + syncSource + '; return synchronisiereAnrufFreigaben;')(
         data, {peers: [peer]}, null, new Map(), {sende: message => sent.push(message) && true}, () => {});
     sync(peer);
     assert.equal(options.preferPcAudio, false);
@@ -102,9 +103,35 @@ for (const file of frontends) {
       assert.equal(select.value, '', 'A system bond is never silently assigned to a Notes peer');
       select.value = 'AA:BB:CC:DD:EE:FF';
       ui.button('Save').click();
-      assert.ok(sent.some(message => message.cmd === 'telefon_bluetooth_schalten' &&
-        message.adresse === select.value && message.an === false));
+      const save = sent.findLast(message => message.cmd === 'telefon_anruf_audio_einstellung' && message.requestId);
+      assert.equal(save.adresse, select.value);
+      assert.equal(save.preferPc, true);
+      assert.ok(!sent.some(message => message.cmd === 'telefon_bluetooth_schalten'));
+      assert.ok(ui.dialog.isConnected, 'Keep the dialog until the background service has saved the binding');
+      peer.call_audio = {prefer_pc: true, address: save.adresse};
+      const ready = {state: 'available', available: true, reason: 'connection_required'};
+      w.App.telefonStand({peers: [peer], call_audio: ready});
+      w.App.telefonAnrufAudioGespeichert({requestId: save.requestId, kennung: peer.device_id, ok: true});
+      await new Promise(resolve => w.setTimeout(resolve, 0));
       assert.equal(ui.dialog.isConnected, false);
+      assert.equal(w.callOptions().hfpAdresse, save.adresse);
+      assert.equal(w.callOptions().preferPcAudio, true);
+      w.openCallSettings('anruf');
+      const reopened = w.document.querySelector('.kommunikation-belegung-dialog');
+      assert.equal(reopened.querySelector('select').value, save.adresse);
+      assert.equal(reopened.querySelector('select').hidden, false);
+      [...reopened.querySelectorAll('button')].find(button => button.textContent === 'Cancel').click();
+
+      ui = show({state: 'setup_required', reason: 'binding_required', devices: [
+        {address: 'AA:BB:CC:DD:EE:01', name: 'Another fixture phone', trusted: true}]});
+      ui.dialog.querySelector('select').value = 'AA:BB:CC:DD:EE:01';
+      ui.button('Save').click();
+      const failed = sent.findLast(message => message.cmd === 'telefon_anruf_audio_einstellung' && message.requestId);
+      w.App.telefonAnrufAudioGespeichert({requestId: failed.requestId, kennung: peer.device_id, ok: false, fehler: 'Fixture write failed'});
+      await new Promise(resolve => w.setTimeout(resolve, 0));
+      assert.ok(ui.dialog.isConnected);
+      assert.match(ui.dialog.textContent, /Fixture write failed/);
+      assert.equal(w.callOptions().hfpAdresse, save.adresse);
     }
   } finally { w.close(); }
 }
@@ -116,3 +143,4 @@ assert.match(native, /\["approved_capability"\] = false/);
 assert.match(native, /\["state"\] = "unsupported"/);
 assert.doesNotMatch(native, /RequestAccessAsync|RegisterApp|RegisterForTransport|FromIdAsync/);
 console.log(`${frontends.length} desktop migrations, routing snapshots, and guarded Windows capability passed.`);
+})().catch(error => { console.error(error); process.exitCode = 1; });
