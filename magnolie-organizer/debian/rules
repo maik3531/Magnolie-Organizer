@@ -22,6 +22,7 @@ override_dh_auto_build:
 
 override_dh_auto_test:
 ifeq (,$(filter nocheck,$(DEB_BUILD_OPTIONS)))
+	python3 -m pytest -q pruefungen/test_background_upgrade.py
 	set -e; while read sprache; do \
 		python3 werkzeuge/katalog_pruefen.py po/magnolie-organizer.pot po/$$sprache.po; \
 	done < po/LINGUAS
