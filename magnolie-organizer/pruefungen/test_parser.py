@@ -4145,13 +4145,11 @@ kommunikation_msgids = {json.loads(zeile) for zeile in open(
     kommunikation_vertrag, encoding="utf-8") if zeile.strip()}
 sichtbare_kommunikation_de = {
     "Answer": "Annehmen",
-    "Answer calls on the computer and talk": "Anrufe am Computer annehmen und sprechen",
     "Answering the call": "Anruf wird angenommen",
     "Application command": "Programmbefehl",
     "Ending the call": "Anruf wird beendet",
     "Incoming call": "Eingehender Anruf",
     "Lower other sounds while ringing": "Andere Töne während des Klingelns leiser stellen",
-    "Notify me about incoming calls": "Über eingehende Anrufe benachrichtigen",
     "The command is started safely without a shell. Use {nummer} for the selected number.":
         "Der Befehl wird sicher ohne Shell gestartet. Verwenden Sie {nummer} für die ausgewählte Rufnummer.",
     "These options require the matching permissions in Magnolie Notes. Call audio is not sent over the Magnolie data connection.":
