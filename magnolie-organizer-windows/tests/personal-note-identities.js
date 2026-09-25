@@ -222,6 +222,8 @@ async function check(web) {
   console.log("PERSONAL NOTE IDENTITIES PASSED: " + web);
 }
 (async () => {
-  const locations = process.argv.includes("--windows-only") ? ["../app/web"] : ["../app/web", "../../magnolie-organizer/web"];
-  for (const p of locations) await check(path.resolve(__dirname, p));
+  const locations = [path.resolve(__dirname, "../app/web")];
+  const linux = process.env.MAGNOLIE_LINUX_SOURCE ? path.resolve(process.env.MAGNOLIE_LINUX_SOURCE, "web") : path.resolve(__dirname, "../../magnolie-organizer/web");
+  if (!process.argv.includes("--windows-only") && (process.env.MAGNOLIE_LINUX_SOURCE || fs.existsSync(linux))) locations.push(linux);
+  for (const p of locations) await check(p);
 })().catch(error => { console.error(error); process.exitCode = 1; });

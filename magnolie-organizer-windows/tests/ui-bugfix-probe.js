@@ -3,7 +3,7 @@
 const uiCheck = (value, message) => { if (!value) throw new Error(message); };
 const uiClose = () => document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
 const uiButton = (root, text) => [...root.querySelectorAll("button")].find(b => b.textContent === MagnolieI18n.gettext(text));
-const uiPeer = { device_id: "a".repeat(32), own_device: false, remote_own_device: false,
+const uiPeer = { device_id: "a".repeat(32), own_device: false, remote_own_device: false, state: "pair_commit_pending",
   local_grants: { grants: {} }, grants: { grants: {} }, custom_sync: { local: { enabled: false } },
   capabilities: { items: { personal_tasks_sync: { available: true, versions: [4] } } } };
 

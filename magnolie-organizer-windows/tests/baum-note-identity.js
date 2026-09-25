@@ -135,6 +135,8 @@ async function check(web) {
   } finally { w.close(); }
 }
 (async () => {
-  const paths = process.argv.includes("--windows-only") ? ["../app/web"] : ["../app/web", "../../magnolie-organizer/web"];
-  for (const p of paths) await check(path.resolve(__dirname, p));
+  const paths = [path.resolve(__dirname, "../app/web")];
+  const linux = process.env.MAGNOLIE_LINUX_SOURCE ? path.resolve(process.env.MAGNOLIE_LINUX_SOURCE, "web") : path.resolve(__dirname, "../../magnolie-organizer/web");
+  if (!process.argv.includes("--windows-only") && (process.env.MAGNOLIE_LINUX_SOURCE || fs.existsSync(linux))) paths.push(linux);
+  for (const p of paths) await check(p);
 })().catch(error => { console.error(error); process.exitCode = 1; });
