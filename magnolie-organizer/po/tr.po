@@ -2413,6 +2413,9 @@ msgstr "Arka plan hizmetini etkinleştir"
 msgid "Enable cycle calendar"
 msgstr "Döngü takvimini etkinleştir"
 
+msgid "Enable noise cancellation (e.g. laptop without a headset)"
+msgstr "Gürültü engellemeyi etkinleştir (ör. kulaklıksız dizüstü bilgisayar)"
+
 msgid "Enable password protection"
 msgstr "Parola korumasını etkinleştir"
 
@@ -3805,9 +3808,6 @@ msgstr "Yeni sayfa"
 
 msgid "New password"
 msgstr "Yeni parola"
-
-msgid "New phone changes are available"
-msgstr "Telefondan yeni değişiklikler var"
 
 msgid "New task"
 msgstr "Yeni görev"
@@ -5841,9 +5841,6 @@ msgstr "Oturum açarken otomatik başlat"
 
 msgid "Start Organizer"
 msgstr "Organizer'ı başlat"
-
-msgid "Start Organizer and synchronize."
-msgstr "Organizer'ı başlat ve eşitle."
 
 msgid "Start at login"
 msgstr "Oturum açıldığında başlat"
@@ -8482,6 +8479,12 @@ msgstr[1] "… ayrıca yazdırılacak %(count)s öğe daha."
 
 msgid "＋ Add appointment"
 msgstr "＋ Randevu ekle"
+
+#~ msgid "New phone changes are available"
+#~ msgstr "Telefondan yeni değişiklikler var"
+
+#~ msgid "Start Organizer and synchronize."
+#~ msgstr "Organizer'ı başlat ve eşitle."
 
 #~ msgid "Answer calls on the computer and talk"
 #~ msgstr "Aramaları bilgisayarda yanıtla ve konuş"

@@ -3594,7 +3594,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     return peer?.call_audio?.address || peer?.bluetooth_address || "";
   }
 
-  function speichereAnrufAudio(peer, adresse) {
+  function speichereAnrufAudio(peer, adresse, echoCancel) {
     const requestId = crypto.randomUUID();
     return new Promise((resolve, reject) => {
       const fertig = (antwort) => {
@@ -3610,7 +3610,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       anrufAudioSpeicherAntworten.set(requestId, fertig);
       anrufFreigabenAusstehend.set(peer.device_id + "\u0000call_audio", true);
       if (!Bruecke.sende({ cmd: "telefon_anruf_audio_einstellung", kennung: peer.device_id,
-        preferPc: true, adresse: adresse, requestId: requestId })) fertig(null);
+        preferPc: true, adresse: adresse, echoCancel: echoCancel, requestId: requestId })) fertig(null);
     });
   }
 
@@ -3684,6 +3684,9 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       pcAudio.checked = aktuell.preferPcAudio !== false;
       pcAudio.disabled = audioCapability.state === "unsupported";
     }
+    const echoAudio = sms ? null : option(
+      _("Enable noise cancellation (e.g. laptop without a headset)"), "echoCancel");
+    if (echoAudio) echoAudio.checked = audioPeer?.call_audio?.echo_cancel === true;
     const audioHinweis = el("p", "einst-hinweis", "");
     const audioGeraet = auswahlFeld([["", _("Select your phone")]], "");
     audioGeraet.setAttribute("aria-label", _("Select your phone"));
@@ -3719,12 +3722,14 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
         audioGeraeteStand = stand;
       }
       audioGeraet.hidden = !pcAudio.checked || !devices.length;
+      echoAudio.parentElement.hidden = !pcAudio.checked || !(audioGeraet.value || gebunden);
       audioKoppeln.hidden = !pcAudio.checked || zustand !== "setup";
       audioHinweis.textContent = zustand === "setup" ? _("Pair your phone in the OS Bluetooth settings first.")
         : anrufAudioHinweis(audioCapability);
       if (zustand === "unavailable") audioHinweis.textContent += " " + _("Lower other sounds while ringing");
     };
     if (pcAudio) {
+      audioGeraet.addEventListener("change", audioAktualisieren);
       pcAudio.addEventListener("change", () => {
         audioAktualisieren();
         if (pcAudio.checked) Bruecke.sende({ cmd: "telefon_anruf_audio_pruefen" });
@@ -3741,7 +3746,8 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       const art = auswahl.querySelector("input:checked").value;
       const ziel = programm.value.trim().slice(0, 500);
       if (art === "program" && !ziel) { fehler.textContent = _("Enter an application command."); return; }
-      let hfpAdresse = anrufAudioAdresse(audioPeer);
+      let hfpAdresse = audioGeraet.value || anrufAudioAdresse(
+        (telefonStand?.peers || []).find(peer => peer.device_id === audioPeer?.device_id)) || anrufAudioAdresse(audioPeer);
       if (!sms && art === "magnolie" && pcAudio.checked) {
         audioAktualisieren();
         if (pcAudio.checked && (!audioPeer || !audioPeer.own_device ||
@@ -3757,7 +3763,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
         }
         if (pcAudio.checked) {
           audioSpeichert = true; speichern.disabled = true;
-          try { await speichereAnrufAudio(audioPeer, hfpAdresse); }
+          try { await speichereAnrufAudio(audioPeer, hfpAdresse, echoAudio.checked); }
           catch (error) { fehler.textContent = error.message; return; }
           finally { audioSpeichert = false; speichern.disabled = false; }
         }
@@ -3767,6 +3773,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
         eingehendBenachrichtigen: art === "magnolie",
         computerTelefonie: art === "magnolie", klingeltonLeiser: leiser.checked,
         preferPcAudio: pcAudio.checked,
+        echoCancel: echoAudio.checked,
         hfpAdresse: hfpAdresse || aktuell.hfpAdresse || "" });
       const telefonPeers = telefonStand && telefonStand.peers || [];
       if (!sms && art === "magnolie" && telefonPeers.length === 1)
@@ -3781,6 +3788,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       auswahl.querySelector('[value="' + (sms ? "kde" : "magnolie") + '"]').checked = true;
       programm.value = "";
       if (leiser) leiser.checked = false;
+      if (echoAudio) echoAudio.checked = false;
       if (pcAudio) { pcAudio.checked = true; audioAktualisieren(); }
       optionenAktualisieren();
     });
@@ -6203,6 +6211,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
         ergebnis.eingehendBenachrichtigen = ergebnis.art === "magnolie";
         ergebnis.computerTelefonie = ergebnis.art === "magnolie";
         ergebnis.klingeltonLeiser = wert.klingeltonLeiser === true;
+        ergebnis.echoCancel = wert.echoCancel === true;
         const hfpAdresse = S(wert.hfpAdresse).toUpperCase();
         ergebnis.hfpAdresse = /^[0-9A-F]{2}(?::[0-9A-F]{2}){5}$/.test(hfpAdresse)
           ? hfpAdresse : "";

@@ -419,8 +419,10 @@ class PhoneStore:
         if isinstance(peer, dict) and "call_audio" in peer:
             common.add("call_audio")
             if (not isinstance(peer["call_audio"], dict)
-                    or set(peer["call_audio"]) not in ({"prefer_pc"}, {"prefer_pc", "address"})
+                    or "prefer_pc" not in peer["call_audio"]
+                    or set(peer["call_audio"]) - {"prefer_pc", "address", "echo_cancel"}
                     or not isinstance(peer["call_audio"]["prefer_pc"], bool)
+                    or "echo_cancel" in peer["call_audio"] and not isinstance(peer["call_audio"]["echo_cancel"], bool)
                     or "address" in peer["call_audio"] and (
                         not isinstance(peer["call_audio"]["address"], str)
                         or not BLUETOOTH_ADDRESS.fullmatch(peer["call_audio"]["address"]))):
@@ -2051,9 +2053,11 @@ class PhoneService:
             return any(self.connection_transports.get(peer.get("device_id")) == "bluetooth"
                 and peer.get("bluetooth", {}).get("address") == address for peer in self.store.peers)
 
-    def set_call_audio(self, peer_id, prefer_pc, address=None):
+    def set_call_audio(self, peer_id, prefer_pc, address=None, echo_cancel=None):
         if not isinstance(prefer_pc, bool):
             raise ValueError("Invalid call audio preference")
+        if echo_cancel is not None and not isinstance(echo_cancel, bool):
+            raise ValueError("Invalid echo cancellation preference")
         with self.lock:
             peer = self.store.sole_peer(peer_id)
             if not peer or peer.get("state") != "paired":
@@ -2075,6 +2079,8 @@ class PhoneService:
             settings = dict(previous or {}, prefer_pc=prefer_pc)
             if address is not None:
                 settings["address"] = address
+            if echo_cancel is not None:
+                settings["echo_cancel"] = echo_cancel
             peer["call_audio"] = settings
             try:
                 self.store.save_peers()
@@ -2131,6 +2137,7 @@ class PhoneService:
                 return None
             return dict(device_id=peer_id, identity=peer["static_public"], session=id(observation[2]),
                         call_ref=call["call_ref"], revision=call["revision"], address=address,
+                        echo_cancel=peer.get("call_audio", {}).get("echo_cancel") is True,
                         consent=(local.get("revision"), remote.get("revision"), self._generation))
 
     def _call_audio_loop(self):

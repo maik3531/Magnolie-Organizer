@@ -2370,6 +2370,9 @@ msgstr "バックグラウンドサービスを有効にする"
 msgid "Enable cycle calendar"
 msgstr "周期カレンダーを有効化"
 
+msgid "Enable noise cancellation (e.g. laptop without a headset)"
+msgstr "ノイズ抑制を有効にする（例：ヘッドセットなしのノートPC）"
+
 msgid "Enable password protection"
 msgstr "パスワード保護を有効化"
 
@@ -3761,9 +3764,6 @@ msgstr "新しいページ"
 
 msgid "New password"
 msgstr "新しいパスワード"
-
-msgid "New phone changes are available"
-msgstr "電話に新しい変更があります"
 
 msgid "New task"
 msgstr "新しいタスク"
@@ -5771,9 +5771,6 @@ msgstr "サインイン時に自動起動"
 
 msgid "Start Organizer"
 msgstr "Organizer を起動"
-
-msgid "Start Organizer and synchronize."
-msgstr "Organizer を起動して同期します。"
 
 msgid "Start at login"
 msgstr "ログイン時に起動"
@@ -8407,6 +8404,12 @@ msgstr[0] "… ほか %(count)s 件も印刷されます。"
 
 msgid "＋ Add appointment"
 msgstr "＋ 予定を追加"
+
+#~ msgid "New phone changes are available"
+#~ msgstr "電話に新しい変更があります"
+
+#~ msgid "Start Organizer and synchronize."
+#~ msgstr "Organizer を起動して同期します。"
 
 #~ msgid "Answer calls on the computer and talk"
 #~ msgstr "パソコンで着信に応答して通話"

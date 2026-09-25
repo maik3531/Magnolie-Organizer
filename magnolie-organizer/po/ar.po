@@ -2541,6 +2541,9 @@ msgstr "تمكين خدمة الخلفية"
 msgid "Enable cycle calendar"
 msgstr "تمكين تقويم الدورة"
 
+msgid "Enable noise cancellation (e.g. laptop without a headset)"
+msgstr "تفعيل تقليل الضوضاء (مثل حاسوب محمول دون سماعة رأس)"
+
 msgid "Enable password protection"
 msgstr "تمكين الحماية بكلمة مرور"
 
@@ -3914,9 +3917,6 @@ msgstr "صفحة جديدة"
 
 msgid "New password"
 msgstr "كلمة مرور جديدة"
-
-msgid "New phone changes are available"
-msgstr "تتوفر تغييرات جديدة من الهاتف"
 
 msgid "New task"
 msgstr "مهمة جديدة"
@@ -5970,9 +5970,6 @@ msgstr "البدء تلقائيًا عند تسجيل الدخول"
 
 msgid "Start Organizer"
 msgstr "تشغيل Organizer"
-
-msgid "Start Organizer and synchronize."
-msgstr "تشغيل Organizer والمزامنة."
 
 msgid "Start at login"
 msgstr "التشغيل عند تسجيل الدخول"
@@ -8619,6 +8616,12 @@ msgstr[5] "… وعناصر إضافية ستُطبع أيضًا؛ العدد: %
 
 msgid "＋ Add appointment"
 msgstr "＋ إضافة موعد"
+
+#~ msgid "New phone changes are available"
+#~ msgstr "تتوفر تغييرات جديدة من الهاتف"
+
+#~ msgid "Start Organizer and synchronize."
+#~ msgstr "تشغيل Organizer والمزامنة."
 
 #~ msgid "Answer calls on the computer and talk"
 #~ msgstr "الرد على المكالمات والتحدث عبر الكمبيوتر"

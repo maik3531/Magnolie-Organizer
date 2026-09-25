@@ -388,7 +388,7 @@ class CallEcho:
         if self.cookie is None:
             raise AudioUnavailable("echo_server_identity_unavailable")
         self.pending = True
-        self.pulse.command("load-module", "module-echo-cancel", "aec_method=webrtc", "rate=48000", "channels=1",
+        self.pulse.command("load-module", "module-echo-cancel", "aec_method=webrtc", "rate=48000", "channels=2",
             "source_master=" + self.masters[0], "sink_master=" + self.masters[1],
             "source_name=" + self.source_name, "sink_name=" + self.sink_name,
             'source_properties="priority.session=0 device.class=filter"',
@@ -423,14 +423,28 @@ class CallEcho:
                 raise AudioUnavailable("native_echo_stream_unavailable")
             item = matches[0]
             serial = item.get("properties", {}).get("object.serial")
-            originals = [node for node in self.pulse.data("sources" if field == "source" else "sinks")
-                         if node.get("index") == item.get(field)]
+            existing = any(move["kind"] == kind and move["index"] == item.get("index") and move["serial"] == serial
+                           for move in self.moves)
+            attached = item.get(field) == target["index"]
+            if attached and existing:
+                continue
+            if existing:
+                raise AudioUnavailable("native_audio_overridden")
+            nodes = self.pulse.data("sources" if field == "source" else "sinks")
+            # PipeWire can restore a recreated SCO stream straight onto our
+            # filter. Retain a restoration lease for that new stream identity.
+            originals = [node for node in nodes if
+                (node.get("name") == self.masters[0 if field == "source" else 1] if attached
+                 else node.get("index") == item.get(field))]
             if serial is None or type(item.get("index")) is not int or len(originals) != 1:
                 raise AudioUnavailable("native_echo_identity_unavailable")
             command = "move-source-output" if field == "source" else "move-sink-input"
             self.moves.append(dict(kind=kind, field=field, index=item["index"], serial=serial,
                 address=address, factory=factory, command=command, target=target["index"],
                 original=self.pulse.name(originals[0]), original_index=originals[0]["index"]))
+            if attached:
+                self.moves[-1]["moved"] = True
+                continue
             self.pulse.command(command, str(item["index"]), self.pulse.name(target))
             self.moves[-1]["moved"] = any(current.get("index") == item["index"]
                 and current.get("properties", {}).get("object.serial") == serial
@@ -573,7 +587,8 @@ class AnrufBluetooth:
                                            "no_authorized_call" if released else "cleanup_pending")
                 return dict(self.state)
             key = (context["device_id"], context["identity"], context["session"],
-                   context["call_ref"], context["revision"], context["address"], context["consent"])
+                   context["call_ref"], context["revision"], context["address"], context["consent"],
+                   context.get("echo_cancel", False))
             if self.retry_key == key and time.monotonic() < self.retry_at:
                 failure = dict(self.state)
                 self.restore()
@@ -587,6 +602,30 @@ class AnrufBluetooth:
                     raise AudioUnavailable("call_changed")
             self.bluez.guard = self.pulse.guard = current
             try:
+                if self.native_gateway_active and self.active_context == context:
+                    self._check(context, refresh)
+                    self.bluez.device(context["address"])
+                    # SCO streams may pause or be recreated between dial tone
+                    # and speech. Keep the call's Bluetooth lease throughout.
+                    local = None
+                    waiting_reason = "native_audio_waiting"
+                    repair_pending = False
+                    if context.get("echo_cancel"):
+                        if not self.echo.current():
+                            raise AudioUnavailable("echo_masters_changed")
+                        local = self.echo.endpoints()
+                        try:
+                            self.echo.route_native(context["address"])
+                        except AudioUnavailable as error:
+                            if str(error) not in ("native_echo_stream_unavailable", "native_echo_identity_unavailable", "native_audio_overridden"):
+                                raise
+                            waiting_reason = str(error)
+                            repair_pending = True
+                    active = not repair_pending and self.pulse.native_gateway(context["address"], local)
+                    self.state = self.snapshot("active" if active else "available",
+                        "native_duplex_route_observed" if active else waiting_reason,
+                        device_id=context["device_id"], call_ref=context["call_ref"], revision=context["revision"])
+                    return dict(self.state)
                 if self.modules_pending or self.profile_hold or self.connection_hold or self.power_hold or self.native_gateway_active or self.echo.pending:
                     if self.state["active"] and self._observed(context, refresh):
                         return dict(self.state)
@@ -635,11 +674,14 @@ class AnrufBluetooth:
                 except AudioUnavailable:
                     connect()
                     mode, legacy = self._wait(ready_route, context, refresh, timeout=6)
-                self.echo.start()
-                local = self._wait(self.echo.endpoints, context, refresh)
+                local = self.pulse.local_endpoints()
+                if context.get("echo_cancel"):
+                    self.echo.start()
+                    local = self._wait(self.echo.endpoints, context, refresh)
                 if mode == "native":
-                    self.echo.route_native(context["address"])
-                    self._wait(lambda: self.pulse.native_gateway(context["address"], self.echo.endpoints()), context, refresh)
+                    if context.get("echo_cancel"):
+                        self.echo.route_native(context["address"])
+                    self._wait(lambda: self.pulse.native_gateway(context["address"], local), context, refresh)
                     for move in getattr(self.echo, "moves", []):
                         move["moved"] = True
                     self.native_gateway_active = True
@@ -710,9 +752,9 @@ class AnrufBluetooth:
     def _observed(self, context, refresh):
         self._check(context, refresh)
         self.bluez.device(context["address"])
-        if not self.echo.current():
+        if context.get("echo_cancel") and not self.echo.current():
             return False
-        local = self.echo.endpoints()
+        local = self.echo.endpoints() if context.get("echo_cancel") else self.pulse.local_endpoints()
         if self.native_gateway_active:
             return self.pulse.native_gateway(context["address"], local)
         card, _ = self.pulse.card(context["address"])

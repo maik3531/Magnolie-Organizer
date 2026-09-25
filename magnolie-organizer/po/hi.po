@@ -2365,6 +2365,9 @@ msgstr "बैकग्राउंड सेवा सक्षम करें
 msgid "Enable cycle calendar"
 msgstr "चक्र कैलेंडर सक्षम करें"
 
+msgid "Enable noise cancellation (e.g. laptop without a headset)"
+msgstr "शोर कम करना चालू करें (जैसे बिना हेडसेट वाला लैपटॉप)"
+
 msgid "Enable password protection"
 msgstr "पासवर्ड सुरक्षा सक्षम करें"
 
@@ -3738,9 +3741,6 @@ msgstr "नया पृष्ठ"
 
 msgid "New password"
 msgstr "नया पासवर्ड"
-
-msgid "New phone changes are available"
-msgstr "फ़ोन से नए बदलाव उपलब्ध हैं"
 
 msgid "New task"
 msgstr "नया कार्य"
@@ -5740,9 +5740,6 @@ msgstr "साइन इन करते समय अपने-आप शुर
 
 msgid "Start Organizer"
 msgstr "Organizer शुरू करें"
-
-msgid "Start Organizer and synchronize."
-msgstr "Organizer शुरू करें और सिंक्रनाइज़ करें।"
 
 msgid "Start at login"
 msgstr "लॉगिन पर शुरू करें"
@@ -8333,6 +8330,12 @@ msgstr[1] "… और %(count)s अतिरिक्त आइटम, जो �
 
 msgid "＋ Add appointment"
 msgstr "＋ अपॉइंटमेंट जोड़ें"
+
+#~ msgid "New phone changes are available"
+#~ msgstr "फ़ोन से नए बदलाव उपलब्ध हैं"
+
+#~ msgid "Start Organizer and synchronize."
+#~ msgstr "Organizer शुरू करें और सिंक्रनाइज़ करें।"
 
 #~ msgid "Answer calls on the computer and talk"
 #~ msgstr "कंप्यूटर पर कॉल का उत्तर दें और बात करें"

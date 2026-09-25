@@ -2404,6 +2404,9 @@ msgstr "Aktivér baggrundstjeneste"
 msgid "Enable cycle calendar"
 msgstr "Aktivér cykluskalender"
 
+msgid "Enable noise cancellation (e.g. laptop without a headset)"
+msgstr "Aktivér støjreduktion (f.eks. bærbar computer uden headset)"
+
 msgid "Enable password protection"
 msgstr "Aktivér adgangskodebeskyttelse"
 
@@ -3799,9 +3802,6 @@ msgstr "Ny side"
 
 msgid "New password"
 msgstr "Ny adgangskode"
-
-msgid "New phone changes are available"
-msgstr "Nye ændringer fra telefonen er tilgængelige"
 
 msgid "New task"
 msgstr "Ny opgave"
@@ -5834,9 +5834,6 @@ msgstr "Start automatisk ved login"
 
 msgid "Start Organizer"
 msgstr "Start Organizer"
-
-msgid "Start Organizer and synchronize."
-msgstr "Start Organizer, og synkroniser."
 
 msgid "Start at login"
 msgstr "Start ved login"
@@ -8490,6 +8487,12 @@ msgstr[1] "… og %(count)s elementer mere, som også bliver udskrevet."
 
 msgid "＋ Add appointment"
 msgstr "＋ Tilføj aftale"
+
+#~ msgid "New phone changes are available"
+#~ msgstr "Nye ændringer fra telefonen er tilgængelige"
+
+#~ msgid "Start Organizer and synchronize."
+#~ msgstr "Start Organizer, og synkroniser."
 
 #~ msgid "Answer calls on the computer and talk"
 #~ msgstr "Besvar opkald på computeren og tal"

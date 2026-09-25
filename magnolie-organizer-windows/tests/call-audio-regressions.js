@@ -14,6 +14,8 @@ for (const file of frontends) {
   const migration = source.match(/const kommunikationsWeg = [\s\S]*?return ergebnis;\s*\};/)[0];
   const migrate = new Function('S', migration + '; return kommunikationsWeg;')((value) => String(value || ''));
   assert.equal(migrate({}, false).preferPcAudio, true);
+  assert.equal(migrate({}, false).echoCancel, false);
+  assert.equal(migrate({echoCancel: true}, false).echoCancel, true);
   assert.equal(migrate({computerTelefonie: false}, false).preferPcAudio, true);
   assert.equal(migrate({hfpAdresse: ''}, false).preferPcAudio, false);
   assert.equal(migrate({hfpAdresse: 'AA:BB:CC:DD:EE:FF'}, false).preferPcAudio, true);
@@ -100,15 +102,22 @@ for (const file of frontends) {
       ui = show({state: 'setup_required', reason: 'binding_required', devices: [
         {address: 'AA:BB:CC:DD:EE:FF', name: 'Fixture phone', trusted: true}]});
       const select = ui.dialog.querySelector('select');
+      const echo = [...ui.dialog.querySelectorAll('label')].find(label => label.textContent.includes('Enable noise cancellation')).querySelector('input');
       assert.equal(select.value, '', 'A system bond is never silently assigned to a Notes peer');
+      assert.equal(echo.parentElement.hidden, true);
+      assert.equal(echo.checked, false);
       select.value = 'AA:BB:CC:DD:EE:FF';
+      select.dispatchEvent(new w.Event('change'));
+      assert.equal(echo.parentElement.hidden, false);
+      echo.checked = true;
       ui.button('Save').click();
       const save = sent.findLast(message => message.cmd === 'telefon_anruf_audio_einstellung' && message.requestId);
       assert.equal(save.adresse, select.value);
       assert.equal(save.preferPc, true);
+      assert.equal(save.echoCancel, true);
       assert.ok(!sent.some(message => message.cmd === 'telefon_bluetooth_schalten'));
       assert.ok(ui.dialog.isConnected, 'Keep the dialog until the background service has saved the binding');
-      peer.call_audio = {prefer_pc: true, address: save.adresse};
+      peer.call_audio = {prefer_pc: true, address: save.adresse, echo_cancel: save.echoCancel};
       const ready = {state: 'available', available: true, reason: 'connection_required'};
       w.App.telefonStand({peers: [peer], call_audio: ready});
       w.App.telefonAnrufAudioGespeichert({requestId: save.requestId, kennung: peer.device_id, ok: true});
@@ -116,10 +125,12 @@ for (const file of frontends) {
       assert.equal(ui.dialog.isConnected, false);
       assert.equal(w.callOptions().hfpAdresse, save.adresse);
       assert.equal(w.callOptions().preferPcAudio, true);
+      assert.equal(w.callOptions().echoCancel, true);
       w.openCallSettings('anruf');
       const reopened = w.document.querySelector('.kommunikation-belegung-dialog');
       assert.equal(reopened.querySelector('select').value, save.adresse);
       assert.equal(reopened.querySelector('select').hidden, false);
+      assert.equal([...reopened.querySelectorAll('label')].find(label => label.textContent.includes('Enable noise cancellation')).querySelector('input').checked, true);
       [...reopened.querySelectorAll('button')].find(button => button.textContent === 'Cancel').click();
 
       ui = show({state: 'setup_required', reason: 'binding_required', devices: [

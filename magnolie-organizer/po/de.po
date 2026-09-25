@@ -2436,6 +2436,9 @@ msgstr "Hintergrunddienst aktivieren"
 msgid "Enable cycle calendar"
 msgstr "Regel-/Zykluskalender einschalten"
 
+msgid "Enable noise cancellation (e.g. laptop without a headset)"
+msgstr "Geräuschunterdrückung aktivieren (z. B. Laptop ohne Headset)"
+
 msgid "Enable password protection"
 msgstr "Kennwortschutz einschalten"
 
@@ -3841,9 +3844,6 @@ msgstr "Neue Seite"
 
 msgid "New password"
 msgstr "Neues Kennwort"
-
-msgid "New phone changes are available"
-msgstr "Neue Änderungen vom Telefon sind verfügbar"
 
 msgid "New task"
 msgstr "Neue Aufgabe"
@@ -5919,9 +5919,6 @@ msgstr "Beim Anmelden automatisch starten"
 
 msgid "Start Organizer"
 msgstr "Organizer starten"
-
-msgid "Start Organizer and synchronize."
-msgstr "Organizer starten und synchronisieren."
 
 msgid "Start at login"
 msgstr "Beim Anmelden starten"
@@ -8626,6 +8623,12 @@ msgstr[1] "… und %(count)s weitere, die ebenfalls gedruckt werden."
 
 msgid "＋ Add appointment"
 msgstr "＋ Termin hinzufügen"
+
+#~ msgid "New phone changes are available"
+#~ msgstr "Neue Änderungen vom Telefon sind verfügbar"
+
+#~ msgid "Start Organizer and synchronize."
+#~ msgstr "Organizer starten und synchronisieren."
 
 #~ msgid "Answer calls on the computer and talk"
 #~ msgstr "Anrufe am Computer annehmen und sprechen"

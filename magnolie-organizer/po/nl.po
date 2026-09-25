@@ -2433,6 +2433,9 @@ msgstr "Achtergrondservice inschakelen"
 msgid "Enable cycle calendar"
 msgstr "Cycluskalender inschakelen"
 
+msgid "Enable noise cancellation (e.g. laptop without a headset)"
+msgstr "Ruisonderdrukking inschakelen (bijv. laptop zonder headset)"
+
 msgid "Enable password protection"
 msgstr "Wachtwoordbeveiliging inschakelen"
 
@@ -3835,9 +3838,6 @@ msgstr "Nieuwe pagina"
 
 msgid "New password"
 msgstr "Nieuw wachtwoord"
-
-msgid "New phone changes are available"
-msgstr "Nieuwe wijzigingen van de telefoon zijn beschikbaar"
 
 msgid "New task"
 msgstr "Nieuwe taak"
@@ -5902,9 +5902,6 @@ msgstr "Automatisch starten bij aanmelden"
 
 msgid "Start Organizer"
 msgstr "Organizer starten"
-
-msgid "Start Organizer and synchronize."
-msgstr "Organizer starten en synchroniseren."
 
 msgid "Start at login"
 msgstr "Starten bij aanmelden"
@@ -8606,6 +8603,12 @@ msgstr[1] "… en %(count)s extra items die ook worden afgedrukt."
 
 msgid "＋ Add appointment"
 msgstr "＋ Afspraak toevoegen"
+
+#~ msgid "New phone changes are available"
+#~ msgstr "Nieuwe wijzigingen van de telefoon zijn beschikbaar"
+
+#~ msgid "Start Organizer and synchronize."
+#~ msgstr "Organizer starten en synchroniseren."
 
 #~ msgid "Answer calls on the computer and talk"
 #~ msgstr "Oproepen op de computer beantwoorden en praten"

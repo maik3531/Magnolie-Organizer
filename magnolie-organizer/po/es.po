@@ -2443,6 +2443,9 @@ msgstr "Activar el servicio en segundo plano"
 msgid "Enable cycle calendar"
 msgstr "Activar calendario del ciclo"
 
+msgid "Enable noise cancellation (e.g. laptop without a headset)"
+msgstr "Activar la reducción de ruido (p. ej., portátil sin auriculares)"
+
 msgid "Enable password protection"
 msgstr "Activar protección con contraseña"
 
@@ -3854,9 +3857,6 @@ msgstr "Nueva página"
 
 msgid "New password"
 msgstr "Nueva contraseña"
-
-msgid "New phone changes are available"
-msgstr "Hay nuevos cambios del teléfono disponibles"
 
 msgid "New task"
 msgstr "Nueva tarea"
@@ -5928,9 +5928,6 @@ msgstr "Iniciar automáticamente al iniciar sesión"
 
 msgid "Start Organizer"
 msgstr "Iniciar el Organizer"
-
-msgid "Start Organizer and synchronize."
-msgstr "Iniciar el Organizer y sincronizar."
 
 msgid "Start at login"
 msgstr "Iniciar al abrir sesión"
@@ -8651,6 +8648,12 @@ msgstr[1] "… y %(count)s elementos más que también se imprimirán."
 
 msgid "＋ Add appointment"
 msgstr "＋ Añadir cita"
+
+#~ msgid "New phone changes are available"
+#~ msgstr "Hay nuevos cambios del teléfono disponibles"
+
+#~ msgid "Start Organizer and synchronize."
+#~ msgstr "Iniciar el Organizer y sincronizar."
 
 #~ msgid "Answer calls on the computer and talk"
 #~ msgstr "Responder llamadas en el ordenador y hablar"

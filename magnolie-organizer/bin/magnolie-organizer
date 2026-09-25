@@ -19813,7 +19813,7 @@ class Fenster(_FENSTER_BASIS):
         elif befehl == "telefon_anruf_audio_einstellung":
             threading.Thread(target=lambda: self._telefon_anruf_audio_einstellung(
                 nachricht.get("kennung") or "", nachricht.get("preferPc"),
-                nachricht.get("adresse"), nachricht.get("requestId")), daemon=True).start()
+                nachricht.get("adresse"), nachricht.get("requestId"), nachricht.get("echoCancel")), daemon=True).start()
 
         elif befehl == "telefon_auflegen":
             threading.Thread(target=lambda: self._telefon_auflegen(
@@ -21540,12 +21540,12 @@ class Fenster(_FENSTER_BASIS):
                 "error": fehler_deutsch(fehler, _("Answering the call")),
                  "occurred_ms": 0})
 
-    def _telefon_anruf_audio_einstellung(self, kennung, prefer_pc, address=None, request_id=None):
+    def _telefon_anruf_audio_einstellung(self, kennung, prefer_pc, address=None, request_id=None, echo_cancel=None):
         ok = False
         try:
             if not self._telefon:
                 raise RuntimeError("phone unavailable")
-            self._telefon.set_call_audio(kennung, prefer_pc, address)
+            self._telefon.set_call_audio(kennung, prefer_pc, address, echo_cancel)
             self._telefon_fehler = ""
             ok = True
         except Exception:

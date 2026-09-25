@@ -2440,6 +2440,9 @@ msgstr "Povolit službu na pozadí"
 msgid "Enable cycle calendar"
 msgstr "Povolit kalendář cyklu"
 
+msgid "Enable noise cancellation (e.g. laptop without a headset)"
+msgstr "Zapnout potlačení hluku (např. notebook bez náhlavní soupravy)"
+
 msgid "Enable password protection"
 msgstr "Povolit ochranu heslem"
 
@@ -3828,9 +3831,6 @@ msgstr "Nová stránka"
 
 msgid "New password"
 msgstr "Nové heslo"
-
-msgid "New phone changes are available"
-msgstr "Jsou dostupné nové změny z telefonu"
 
 msgid "New task"
 msgstr "Nový úkol"
@@ -5865,9 +5865,6 @@ msgstr "Spouštět automaticky při přihlášení"
 
 msgid "Start Organizer"
 msgstr "Spustit Organizér"
-
-msgid "Start Organizer and synchronize."
-msgstr "Spustit Organizér a synchronizovat."
 
 msgid "Start at login"
 msgstr "Spouštět při přihlášení"
@@ -8514,6 +8511,12 @@ msgstr[2] "… a ještě %(count)s další položky, které se rovněž vytiskno
 
 msgid "＋ Add appointment"
 msgstr "＋ Přidat schůzku"
+
+#~ msgid "New phone changes are available"
+#~ msgstr "Jsou dostupné nové změny z telefonu"
+
+#~ msgid "Start Organizer and synchronize."
+#~ msgstr "Spustit Organizér a synchronizovat."
 
 #~ msgid "Answer calls on the computer and talk"
 #~ msgstr "Přijímat hovory na počítači a mluvit"

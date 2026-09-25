@@ -1,8 +1,8 @@
 {
   "schema": "magnolie-linux-parity-v1",
   "sources": {
-    "web/anwendung.js": "3c13dad4c4047ccf7c87b1e435679ea8dbb2300d6eec636748a42e13df950dce",
-    "bin/magnolie-organizer": "3ff2dd960b7c99f9783a7f1d8f5adcf13d899223a098df9b0f6b2f75d663b432"
+    "web/anwendung.js": "6f1b570077f78434f70a93ef4af2c83c6d65063bdb2a6d7c1ee77740fb96b0f2",
+    "bin/magnolie-organizer": "252d5a295e1e1349e2d46c2bcd62c188bcbf8060ce5365db148e34420ee7f1c4"
   },
   "commands": [
     "ablage_holen",

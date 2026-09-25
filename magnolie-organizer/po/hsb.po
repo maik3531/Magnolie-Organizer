@@ -2507,6 +2507,9 @@ msgstr "Pozadkowu słužbu zmóžnić"
 msgid "Enable cycle calendar"
 msgstr "Cykusowu protyku zmóžnić"
 
+msgid "Enable noise cancellation (e.g. laptop without a headset)"
+msgstr "Potłóčenje šumow zmóžnić (na př. laptop bjez headseta)"
+
 msgid "Enable password protection"
 msgstr "Škit z hesłom zmóžnić"
 
@@ -3898,9 +3901,6 @@ msgstr "Nowa strona"
 
 msgid "New password"
 msgstr "Nowe hesło"
-
-msgid "New phone changes are available"
-msgstr "Nowe změny z telefona su k dispoziciji"
 
 msgid "New task"
 msgstr "Nowy nadawk"
@@ -5971,9 +5971,6 @@ msgstr "Při přizjewjenju awtomatisce startować"
 
 msgid "Start Organizer"
 msgstr "Organizer startować"
-
-msgid "Start Organizer and synchronize."
-msgstr "Organizer startować a synchronizować."
 
 msgid "Start at login"
 msgstr "Při přizjewjenju startować"
@@ -8649,6 +8646,12 @@ msgstr[3] "… a dale %(count)s zapiskaj, kotrejž so tež ćišćitej."
 
 msgid "＋ Add appointment"
 msgstr "＋ Termin přidać"
+
+#~ msgid "New phone changes are available"
+#~ msgstr "Nowe změny z telefona su k dispoziciji"
+
+#~ msgid "Start Organizer and synchronize."
+#~ msgstr "Organizer startować a synchronizować."
 
 #~ msgid "Answer calls on the computer and talk"
 #~ msgstr "Zawołanja na ličaku přiwzać a rěčeć"

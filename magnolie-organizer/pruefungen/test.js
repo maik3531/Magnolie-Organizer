@@ -624,7 +624,7 @@ function knopfMit(text, wurzel) {
   assert.deepStrictEqual(smsNormalisiert.einstellungen.adressen.kommunikation,
     { sms: { art: "program", programm: "app {nummer}" },
       anruf: { art: "magnolie", programm: "ignoriert", eingehendBenachrichtigen: true,
-        computerTelefonie: true, klingeltonLeiser: false, preferPcAudio: true, hfpAdresse: "" } },
+        computerTelefonie: true, klingeltonLeiser: false, preferPcAudio: true, echoCancel: false, hfpAdresse: "" } },
   "Kommunikationsbelegung wird nicht streng nach SMS-/Anrufsemantik normalisiert");
   assert.strictEqual(smsNormalisiert.einstellungen.adressen.smsBenachrichtigungDauer, 60,
     "die SMS-Benachrichtigungsdauer fällt nicht auf 60 Sekunden zurück");
@@ -9114,7 +9114,8 @@ function knopfMit(text, wurzel) {
     (x) => x.textContent === "Voreinstellungen wiederherstellen");
   const anrufOptionen = Array.from(anrufBelegung.querySelectorAll(
     ".kommunikation-anruf-optionen input[type=checkbox]"));
-  assert.strictEqual(anrufOptionen.length, 2);
+  assert.strictEqual(anrufOptionen.length, 3);
+  assert.strictEqual(anrufOptionen[2].checked, false, "Geräuschunterdrückung muss ausdrücklich eingeschaltet werden");
   const pcAudio = anrufOptionen[1];
   assert.ok(pcAudio.checked && !pcAudio.disabled, "Eigenes Telefon bietet die unabhaengige Audio-Voreinstellung nicht an");
   anrufBelegung.querySelector('[value="program"]').click();

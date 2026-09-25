@@ -2449,6 +2449,9 @@ msgstr "Увімкнути фонову службу"
 msgid "Enable cycle calendar"
 msgstr "Увімкнути календар циклу"
 
+msgid "Enable noise cancellation (e.g. laptop without a headset)"
+msgstr "Увімкнути шумозаглушення (наприклад, на ноутбуці без гарнітури)"
+
 msgid "Enable password protection"
 msgstr "Увімкнути захист паролем"
 
@@ -3842,9 +3845,6 @@ msgstr "Нова сторінка"
 
 msgid "New password"
 msgstr "Новий пароль"
-
-msgid "New phone changes are available"
-msgstr "Доступні нові зміни з телефона"
 
 msgid "New task"
 msgstr "Нове завдання"
@@ -5894,9 +5894,6 @@ msgstr "Автоматично запускати під час входу"
 
 msgid "Start Organizer"
 msgstr "Запустити Organizer"
-
-msgid "Start Organizer and synchronize."
-msgstr "Запустити Organizer і синхронізувати."
 
 msgid "Start at login"
 msgstr "Запускати під час входу до системи"
@@ -8556,6 +8553,12 @@ msgstr[2] "… і ще %(count)s елементи, які також буде н
 
 msgid "＋ Add appointment"
 msgstr "＋ Додати зустріч"
+
+#~ msgid "New phone changes are available"
+#~ msgstr "Доступні нові зміни з телефона"
+
+#~ msgid "Start Organizer and synchronize."
+#~ msgstr "Запустити Organizer і синхронізувати."
 
 #~ msgid "Answer calls on the computer and talk"
 #~ msgstr "Приймати дзвінки й розмовляти на комп’ютері"

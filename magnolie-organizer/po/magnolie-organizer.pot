@@ -2280,6 +2280,9 @@ msgstr ""
 msgid "Enable cycle calendar"
 msgstr ""
 
+msgid "Enable noise cancellation (e.g. laptop without a headset)"
+msgstr ""
+
 msgid "Enable password protection"
 msgstr ""
 
@@ -3572,9 +3575,6 @@ msgid "New page"
 msgstr ""
 
 msgid "New password"
-msgstr ""
-
-msgid "New phone changes are available"
 msgstr ""
 
 msgid "New task"
@@ -5498,9 +5498,6 @@ msgid "Start Magnolie automatically when I sign in"
 msgstr ""
 
 msgid "Start Organizer"
-msgstr ""
-
-msgid "Start Organizer and synchronize."
 msgstr ""
 
 msgid "Start at login"

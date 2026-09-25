@@ -6013,6 +6013,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
         ergebnis.eingehendBenachrichtigen = ergebnis.art === "magnolie";
         ergebnis.computerTelefonie = ergebnis.art === "magnolie";
         ergebnis.klingeltonLeiser = wert.klingeltonLeiser === true;
+        ergebnis.echoCancel = wert.echoCancel === true;
         const hfpAdresse = S(wert.hfpAdresse).toUpperCase();
         ergebnis.hfpAdresse = /^[0-9A-F]{2}(?::[0-9A-F]{2}){5}$/.test(hfpAdresse) ? hfpAdresse : "";
         ergebnis.preferPcAudio = typeof wert.preferPcAudio === "boolean" ? wert.preferPcAudio :

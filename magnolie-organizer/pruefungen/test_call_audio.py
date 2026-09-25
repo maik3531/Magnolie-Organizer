@@ -172,7 +172,7 @@ def test_real_echo_filter_routes_both_directions_and_restores_only_owned_audio(n
             properties=dict(common, **{"factory.name": "api.bluez5.sco.sink", "object.serial": "serial702"}))]
     router = audio.AnrufBluetooth(bluez, audio.NativePulseAudio(pulse.run, lambda _: "fake-pactl"))
     context = dict(device_id=PEER, identity="key", session=1, call_ref=CALL, revision=2,
-                   address=ADDRESS, consent=(1, 1, 1))
+                   address=ADDRESS, consent=(1, 1, 1), echo_cancel=True)
     assert router.update(lambda: context.copy())["active"]
     assert router.echo.pending and len(router.echo.owned()) == 1
     echo_source, echo_sink = router.echo.endpoints()
@@ -187,6 +187,24 @@ def test_real_echo_filter_routes_both_directions_and_restores_only_owned_audio(n
         assert any("source=" + echo_source["name"] in command and "sink=phone_uplink" in command for command in loops)
         assert any("sink=" + echo_sink["name"] in command and "source=phone_downlink" in command for command in loops)
     assert router.update(lambda: context.copy())["active"]
+    if native:
+        connections = list(bluez.calls)
+        pulse.values["sink-inputs"][0]["corked"] = True
+        assert router.update(lambda: context.copy())["reason"] == "native_audio_waiting"
+        assert bluez.calls == connections and router.echo.pending
+        pulse.values["sink-inputs"][0]["corked"] = False
+        assert router.update(lambda: context.copy())["active"]
+        for kind, field, master in (("sink-inputs", "sink", 24), ("source-outputs", "source", 51)):
+            pulse.values[kind][0]["index"] += 10
+            pulse.values[kind][0]["properties"]["object.serial"] += "-recreated"
+            pulse.values[kind][0][field] = master
+        assert router.update(lambda: context.copy())["active"]
+        assert bluez.calls == connections and len(router.echo.owned()) == 1
+        for kind in ("sink-inputs", "source-outputs"):
+            pulse.values[kind][0]["index"] += 20
+            pulse.values[kind][0]["properties"]["object.serial"] += "-restored-target"
+        assert router.update(lambda: context.copy())["active"]
+        assert bluez.calls == connections
     assert router.update(lambda: None)["state"] == "inactive"
     assert not router.echo.pending and len(pulse.values["modules"]) == 1
     assert pulse.values["info"]["default_source_name"] == "pc_mic"
@@ -211,7 +229,7 @@ def test_echo_allocation_is_cleaned_after_cancel_or_lost_reply(failure):
     bluez, pulse = BlueZ(), EchoPulse()
     router = audio.AnrufBluetooth(bluez, audio.NativePulseAudio(pulse.run, lambda _: "fake-pactl"))
     context = dict(device_id=PEER, identity="key", session=1, call_ref=CALL, revision=2,
-                   address=ADDRESS, consent=(1, 1, 1))
+                   address=ADDRESS, consent=(1, 1, 1), echo_cancel=True)
     def changed(command):
         if command[:2] == ["load-module", "module-echo-cancel"]:
             if failure == "call_changed": context.clear()
@@ -750,6 +768,22 @@ def test_hfp_binding_rejects_unpaired_device_and_rolls_back_failed_save(service)
     with pytest.raises(OSError):
         service.set_call_audio(PEER, False, ADDRESS)
     assert service.store.peer(PEER) == before
+
+
+def test_optional_echo_preference_is_off_by_default_and_persists_through_ipc(service, tmp_path):
+    event(service)
+    assert service._call_audio_context()["echo_cancel"] is False
+    path = str(tmp_path / "echo/background.sock")
+    server = background.IPCServer(SimpleNamespace(), path, phone_backend=service).start()
+    try:
+        for enabled in (True, False):
+            background.ipc_request("phone_set_call_audio", dict(peer_id=PEER, prefer_pc=True,
+                address=ADDRESS, echo_cancel=enabled), path=path)
+            service.store.peers = service.store._load_peers()
+            assert service._call_audio_context()["echo_cancel"] is enabled
+            assert service.report()["peers"][0]["call_audio"]["echo_cancel"] is enabled
+    finally:
+        server.close()
 
 
 def test_phone_owner_shutdown_joins_audio_and_closes_only_owned_resources(service):

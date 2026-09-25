@@ -2284,6 +2284,9 @@ msgstr "启用后台服务"
 msgid "Enable cycle calendar"
 msgstr "启用周期日历"
 
+msgid "Enable noise cancellation (e.g. laptop without a headset)"
+msgstr "启用降噪（例如未使用耳麦的笔记本电脑）"
+
 msgid "Enable password protection"
 msgstr "启用密码保护"
 
@@ -3631,9 +3634,6 @@ msgstr "新建页面"
 
 msgid "New password"
 msgstr "新密码"
-
-msgid "New phone changes are available"
-msgstr "有新的手机更改可用"
 
 msgid "New task"
 msgstr "新建任务"
@@ -5580,9 +5580,6 @@ msgstr "登录时自动启动"
 
 msgid "Start Organizer"
 msgstr "启动 Organizer"
-
-msgid "Start Organizer and synchronize."
-msgstr "启动 Organizer 并同步。"
 
 msgid "Start at login"
 msgstr "登录时启动"
@@ -8097,6 +8094,12 @@ msgstr[0] "… 以及另外 %(count)s 项也将打印。"
 
 msgid "＋ Add appointment"
 msgstr "＋ 添加约会"
+
+#~ msgid "New phone changes are available"
+#~ msgstr "有新的手机更改可用"
+
+#~ msgid "Start Organizer and synchronize."
+#~ msgstr "启动 Organizer 并同步。"
 
 #~ msgid "Answer calls on the computer and talk"
 #~ msgstr "在电脑上接听并通话"

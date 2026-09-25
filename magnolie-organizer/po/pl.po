@@ -2461,6 +2461,9 @@ msgstr "Włącz usługę działającą w tle"
 msgid "Enable cycle calendar"
 msgstr "Włącz kalendarz cyklu"
 
+msgid "Enable noise cancellation (e.g. laptop without a headset)"
+msgstr "Włącz redukcję szumów (np. laptop bez zestawu słuchawkowego)"
+
 msgid "Enable password protection"
 msgstr "Włącz ochronę hasłem"
 
@@ -3855,9 +3858,6 @@ msgstr "Nowa strona"
 
 msgid "New password"
 msgstr "Nowe hasło"
-
-msgid "New phone changes are available"
-msgstr "Dostępne są nowe zmiany z telefonu"
 
 msgid "New task"
 msgstr "Nowe zadanie"
@@ -5913,9 +5913,6 @@ msgstr "Uruchamiaj automatycznie przy logowaniu"
 
 msgid "Start Organizer"
 msgstr "Uruchom Organizera"
-
-msgid "Start Organizer and synchronize."
-msgstr "Uruchom Organizera i zsynchronizuj."
 
 msgid "Start at login"
 msgstr "Uruchamiaj po zalogowaniu"
@@ -8595,6 +8592,12 @@ msgstr[2] "… i jeszcze %(count)s elementy, które również zostaną wydrukowa
 
 msgid "＋ Add appointment"
 msgstr "＋ Dodaj spotkanie"
+
+#~ msgid "New phone changes are available"
+#~ msgstr "Dostępne są nowe zmiany z telefonu"
+
+#~ msgid "Start Organizer and synchronize."
+#~ msgstr "Uruchom Organizera i zsynchronizuj."
 
 #~ msgid "Answer calls on the computer and talk"
 #~ msgstr "Odbieraj połączenia na komputerze i rozmawiaj"
