@@ -1039,24 +1039,26 @@ function knopfMit(text, wurzel) {
     { id: "wahr", geburtstag: "1980-04-05", geburtstagJahrUnbekannt: true },
     { id: "falsch", geburtstag: "1900-02-28", geburtstagJahrUnbekannt: false },
     { id: "fehlend-1604", geburtstag: "1604-12-30" },
+    { id: "falsch-1604", geburtstag: "1604-12-31", geburtstagJahrUnbekannt: false },
     { id: "fehlend-2000", geburtstag: "2000-01-02" }
   ], jahrestage: [
     { name: "Teil", datum: "--02-29" },
     { name: "Wahr", datum: "1980-04-05", jahrUnbekannt: true },
     { name: "Falsch", datum: "1900-04-03", jahrUnbekannt: false },
     { name: "Geburt 1604", datum: "1604-11-19", typ: "birthday" },
+    { name: "Historischer Jahrestag", datum: "1604-11-20", typ: "anniversary", jahrUnbekannt: false },
     { name: "Jahr 2000", datum: "2000-06-07" }
   ] });
   assert.deepStrictEqual(datumsMigration.kontakte.map((k) =>
     [k.geburtstag, k.geburtstagJahrUnbekannt]), [
     ["--02-29", true], ["--04-05", true], ["1900-02-28", false],
-    ["1604-12-30", false], ["2000-01-02", false]
-  ], "Kontaktmigration beachtet nicht exakt true, false und fehlende Altflags");
+    ["--12-30", true], ["--12-31", true], ["2000-01-02", false]
+  ], "Kontaktmigration muss das Platzhalterjahr 1604 auch ohne Providerkennung entfernen und andere bekannte Jahre erhalten");
   assert.deepStrictEqual(datumsMigration.jahrestage.filter((j) => !j.kontaktId).map((j) =>
     [j.datum, j.jahrUnbekannt]), [
     ["--02-29", true], ["--04-05", true], ["1900-04-03", false],
-    ["1604-11-19", false], ["2000-06-07", false]
-  ], "Jahrestagsmigration darf weder Jahreszahl noch Geburtstagstyp als Sentinel deuten");
+    ["--11-19", true], ["1604-11-20", false], ["2000-06-07", false]
+  ], "Geburtstage mit Platzhalterjahr werden jahrlos; echte historische Jahrestage behalten ihr Jahr");
   const providerJahrlos = T.normalisiere({ kontakte: [
     { id: "nadja", vorname: "Nadja", nachname: "Pflege", geburtstag: "1604-06-10" }
   ], jahrestage: [{ kontaktId: "nadja", name: "Nadja Pflege", datum: "1604-06-10",
@@ -5278,9 +5280,10 @@ function knopfMit(text, wurzel) {
   assert.strictEqual(T.daten().einstellungen.sync.kalenderUid, "google-arbeit",
     "nach Abwahl wird kein neuer Hauptkalender bestimmt");
   w.App.edsStatus({ verfuegbar: false, pakete: "EDS-PAKETE" });
-  assert.ok($("#sync-status").textContent.includes("sudo apt install EDS-PAKETE") &&
+  assert.ok($("#sync-status").textContent.includes(w.MagnolieI18n.gettext("Unavailable")) &&
+    !$("#sync-status").textContent.includes("apt install") &&
     $("#nextcloud-konto") && $("#nextcloud-briefkasten"),
-  "bei fehlendem EDS fehlt der Installationshinweis oder die direkte Nextcloud-Einrichtung");
+  "bei fehlendem EDS fehlen der neutrale Status oder die direkte Nextcloud-Einrichtung");
   assert.strictEqual(w.MagnolieI18n.gettext("Test connection"), "Verbindung testen",
     "deutscher Nextcloud-Verbindungstest ist nicht übersetzt");
   assert.strictEqual(w.MagnolieI18n.gettext("Testing…"), "Verbindung wird getestet…",
@@ -7306,7 +7309,14 @@ function knopfMit(text, wurzel) {
     pretendToBeVisual: true
   });
   baumDom.window.webkit = { messageHandlers: { bridge: {
-    postMessage: (text) => baumNachrichten.push(JSON.parse(text))
+    postMessage: (text) => {
+      const nachricht = JSON.parse(text);
+      baumNachrichten.push(nachricht);
+      if (nachricht.cmd === "speichern") baumDom.window.setTimeout(() =>
+        baumDom.window.App.gespeichert({ id: nachricht.id, ok: true }), 0);
+      if (nachricht.cmd === "mutations_snapshot") baumDom.window.setTimeout(() =>
+        baumDom.window.App.mutationsSnapshot({ token: nachricht.token, ok: true }), 0);
+    }
   } } };
   ladeAnwendung(baumDom.window);
   await tick();
@@ -7666,6 +7676,9 @@ function knopfMit(text, wurzel) {
   assert.ok(bw.OrganizerTest.daten().aufgaben.some((a) => a.titel === "Automatisch") &&
     bw.OrganizerTest.daten().notizen.some((n) => n.titel === "Auto-Notiz"),
   "vertraute bestätigte Partner werden für erste Aufgaben und Notizen automatisch angenommen");
+  await warteBis(() => baumNachrichten.slice(vorVertrauensSync).some(n =>
+    n.cmd === "baum_eingang_geleert" && n.ids.includes("sync-anfrage")),
+  "Sync-Annahme wurde nach dem dauerhaften Speichern nicht quittiert");
   const vertrauensSync = baumNachrichten.slice(vorVertrauensSync);
   assert.ok(vertrauensSync.some((n) => n.cmd === "baum_delegieren" &&
     n.aufgabe.id === "eigene-aufgabe") && !vertrauensSync.some((n) =>
@@ -7728,19 +7741,24 @@ function knopfMit(text, wurzel) {
   Array.from(bd.querySelectorAll(".baum-eingang button"))
     .find((b) => b.textContent === "Übernehmen").click();
   bd.querySelector("#dialog-ja").click();
-  await tick();
+  await warteBis(() => bd.querySelector(".baum-kontakt-konflikt"), "Kontaktkonflikt wurde nicht zur Prüfung vorgelegt");
   assert.strictEqual(JSON.stringify(bw.OrganizerTest.daten().kontakte[0]), kontaktVorKonflikt,
     "ein widersprechender Name darf weder den lokalen Kontakt noch seine Bindung verändern");
-  assert.strictEqual(bd.querySelector("#zettel").textContent, bw.MagnolieI18n.gettext("Conflict"));
+  Array.from(bd.querySelectorAll(".baum-kontakt-konflikt button"))
+    .find(b => b.textContent === bw.MagnolieI18n.gettext("Cancel")).click();
+  await tick();
   kontaktUpdate.eingang[0].inhalt.kontakt.vorname = "Anna";
   bw.App.baumStand(kontaktUpdate);
   Array.from(bd.querySelectorAll(".baum-eingang button"))
     .find((b) => b.textContent === "Übernehmen").click();
   bd.querySelector("#dialog-ja").click();
-  await tick();
-  const gemischt = bw.OrganizerTest.daten().kontakte[0];
+  await warteBis(() => bd.querySelector(".baum-kontakt-konflikt"), "Foto-/Feldkonflikt wurde nicht zur Prüfung vorgelegt");
+  bd.querySelector('[data-kontakt-entscheidung="merge"]').click();
+  await warteBis(() => baumNachrichten.some(n => n.cmd === "baum_eingang_geleert" && n.ids.includes("kontakt-update")),
+    "Kontaktentscheidung wurde nicht dauerhaft abgeschlossen");
+  let gemischt = bw.OrganizerTest.daten().kontakte[0];
   assert.ok(gemischt.vorname === "Anna" && gemischt.firma === "Neue Firma" &&
-    gemischt.notiz.includes("Lokal") && gemischt.notiz.includes("Fernnotiz") &&
+    gemischt.notiz === "Lokal" &&
     gemischt.telefone.some((e) => e.wert === "0203 999") &&
     gemischt.foto === "data:image/png;base64,iVBORw0KGgo=",
   "Kontaktupdates behalten ein abweichendes nichtleeres lokales Foto");
@@ -7756,9 +7774,11 @@ function knopfMit(text, wurzel) {
   Array.from(bd.querySelectorAll(".baum-eingang button"))
     .find((b) => b.textContent === "Übernehmen").click();
   bd.querySelector("#dialog-ja").click();
-  await tick();
+  await warteBis(() => baumNachrichten.some(n => n.cmd === "baum_eingang_geleert" && n.ids.includes("kontakt-update-wiederholt")),
+    "Wiederholter Kontaktstand wurde nicht quittiert");
   assert.strictEqual(bw.OrganizerTest.daten().kontakte.length, kontaktAnzahl,
     "freigabeId, Version und Quelle machen Kontaktupdates idempotent");
+  gemischt = bw.OrganizerTest.daten().kontakte.find(k => k.id === "sozial-1");
   assert.strictEqual(gemischt.vorname, "Anna",
     "ein wiederholter Kontaktstand wird nicht erneut angewendet");
   gemischt.foto = "";
@@ -7767,13 +7787,18 @@ function knopfMit(text, wurzel) {
     post: 0, postOffen: 0, eingang: [{ id: "kontakt-foto-ergaenzen", von: "b",
       art: "kontakt_sync", inhalt: { art: "kontakt_sync", fassung: 1,
         freigabeId: kontaktMetadaten.freigabeId, version: 3, quelle: "b",
-        geaendert: 1786500000001, kontakt: { vorname: "", nachname: "", firma: "",
+        geaendert: 1786500000001, kontakt: { vorname: "Anna", nachname: "Beispiel", firma: "",
           notiz: "", geburtstag: "", foto: "data:image/webp;base64,UklGRg==",
           telefone: [], emailEintraege: [], anschriften: [] } } }] });
   Array.from(bd.querySelectorAll(".baum-eingang button"))
     .find((b) => b.textContent === "Übernehmen").click();
   bd.querySelector("#dialog-ja").click();
-  await tick();
+  await warteBis(() => bd.querySelector(".baum-kontakt-konflikt") || baumNachrichten.some(n =>
+    n.cmd === "baum_eingang_geleert" && n.ids.includes("kontakt-foto-ergaenzen")), "Fotoergänzung blieb offen");
+  if (bd.querySelector(".baum-kontakt-konflikt")) bd.querySelector('[data-kontakt-entscheidung="merge"]').click();
+  await warteBis(() => baumNachrichten.some(n => n.cmd === "baum_eingang_geleert" && n.ids.includes("kontakt-foto-ergaenzen")),
+    "Fotoergänzung wurde nicht dauerhaft abgeschlossen");
+  gemischt = bw.OrganizerTest.daten().kontakte.find(k => k.id === "sozial-1");
   assert.strictEqual(gemischt.foto, "data:image/webp;base64,UklGRg==",
     "ein gebundenes Kontaktupdate ergänzt ein leeres lokales Foto bytegetreu");
   bw.App.baumStand({ moeglich: true, an: true, kennung: "a",
@@ -7781,13 +7806,18 @@ function knopfMit(text, wurzel) {
     post: 0, postOffen: 0, eingang: [{ id: "kontakt-foto-leer", von: "b",
       art: "kontakt_sync", inhalt: { art: "kontakt_sync", fassung: 1,
         freigabeId: kontaktMetadaten.freigabeId, version: 4, quelle: "b",
-        geaendert: 1786500000002, kontakt: { vorname: "", nachname: "", firma: "",
+        geaendert: 1786500000002, kontakt: { vorname: "Anna", nachname: "Beispiel", firma: "",
           notiz: "", geburtstag: "", foto: "", telefone: [],
           emailEintraege: [], anschriften: [] } } }] });
   Array.from(bd.querySelectorAll(".baum-eingang button"))
     .find((b) => b.textContent === "Übernehmen").click();
   bd.querySelector("#dialog-ja").click();
-  await tick();
+  await warteBis(() => bd.querySelector(".baum-kontakt-konflikt") || baumNachrichten.some(n =>
+    n.cmd === "baum_eingang_geleert" && n.ids.includes("kontakt-foto-leer")), "Foto-Gegenprobe blieb offen");
+  if (bd.querySelector(".baum-kontakt-konflikt")) bd.querySelector('[data-kontakt-entscheidung="merge"]').click();
+  await warteBis(() => baumNachrichten.some(n => n.cmd === "baum_eingang_geleert" && n.ids.includes("kontakt-foto-leer")),
+    "Foto-Gegenprobe wurde nicht dauerhaft abgeschlossen");
+  gemischt = bw.OrganizerTest.daten().kontakte.find(k => k.id === "sozial-1");
   assert.strictEqual(gemischt.foto, "data:image/webp;base64,UklGRg==",
     "ein leeres Remote-Foto löscht das lokale Foto nicht");
   const loeschKontakt = bw.OrganizerTest.normalisiere({ kontakte: [{ id: "loeschbar",
@@ -8571,6 +8601,8 @@ function knopfMit(text, wurzel) {
   grantDom.window.App.telefonStand({ peers: [grantPeer] });
   const grantBefehle = grantNachrichten.filter((nachricht) => nachricht.cmd === "telefon_freigabe");
   assert.deepStrictEqual(grantBefehle.map((nachricht) => [nachricht.kennung, nachricht.name, nachricht.an]), [
+    ["telefon-grants", "personal_notes_sync", true],
+    ["telefon-grants", "personal_tasks_sync", true],
     ["telefon-grants", "selected_notifications_readonly", true],
     ["telefon-grants", "incoming_call_state", true],
     ["telefon-grants", "incoming_call_number", true],
@@ -8580,7 +8612,7 @@ function knopfMit(text, wurzel) {
   assert.strictEqual(grantDom.window.OrganizerTest.daten().einstellungen.adressen.kommunikation.anruf.telefonId,
     "telefon-grants", "alte Anrufoptionen werden nicht sicher an das vorhandene Telefon gebunden");
   grantDom.window.App.telefonStand({ peers: [grantPeer] });
-  assert.strictEqual(grantNachrichten.filter((nachricht) => nachricht.cmd === "telefon_freigabe").length, 5,
+  assert.strictEqual(grantNachrichten.filter((nachricht) => nachricht.cmd === "telefon_freigabe").length, 7,
     "unveränderter Telefonstand erzeugt eine Freigabeschleife");
   grantDom.window.App.telefonStand({ peers: [Object.assign({}, grantPeer, {
     device_id: "anderes-telefon", local_grants: { grants: {
@@ -9130,7 +9162,7 @@ function knopfMit(text, wurzel) {
   const geraetW = geraetDom.window, geraetD = geraetW.document;
   geraetW.App.init({ daten: {}, neu: false, regional: { language: "de" } });
   const personalPeer = { device_id: "partner-intern-1", own_device: false,
-    remote_own_device: false, auto_wifi: false, transport: "wifi",
+    remote_own_device: false, auto_wifi: false, transport: "wifi", state: "online_wifi",
     local_grants: { grants: { personal_notes_sync: false, personal_tasks_sync: false } },
     grants: { grants: { personal_notes_sync: false, personal_tasks_sync: false } } };
   geraetW.App.telefonStand({ peers: [personalPeer] });
@@ -9207,6 +9239,10 @@ function knopfMit(text, wurzel) {
     .every((haken) => haken.checked), "Alle schaltet nicht alle Sync-Inhalte ein");
   assert.strictEqual(personalBereich.querySelector("[data-personal-custom-peer]").checked, false,
     "Alle darf die getrennte Custom-Freigabe nicht einschalten");
+  geraetW.App.telefonStand({ peers: [{ ...personalPeer, own_device: true,
+    remote_own_device: true, local_grants: { grants: { personal_notes_sync: true,
+      personal_tasks_sync: true, personal_deletions_sync: true } },
+    grants: { grants: { personal_notes_sync: true, personal_tasks_sync: false } } }] });
   const geraetFuss = geraetD.querySelector(".geraet-dialog-knoepfe");
   assert.ok(geraetFuss && geraetD.querySelector(".geraet-dialog-inhalt"),
     "Geräteinhalt und dauerhaft sichtbare Aktionsleiste sind nicht getrennt");
