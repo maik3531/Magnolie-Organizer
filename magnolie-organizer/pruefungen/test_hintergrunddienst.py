@@ -352,7 +352,13 @@ def test_gui_subscription_tracks_process_presence_and_window_visibility():
             assert server.gui_present() is False
             assert server.gui_connected() is False
         finally:
+            # stop() deliberately does not block the GUI. The fixture must
+            # still wait for its polling worker before removing its runtime dir.
+            proxy.stop()
             server.close()
+            if proxy._event_thread is not None:
+                proxy._event_thread.join(5)
+                assert not proxy._event_thread.is_alive()
 
 
 class ImmediateGLib:
