@@ -303,8 +303,13 @@ class TelefonWerk private constructor(private val context: Context, private val 
         modulesChanged()
     }
     fun setAnswerCallsEnabled(value: Boolean) { storage.setAnswerCallsEnabled(value); modulesChanged() }
+    @Synchronized fun initializePersonalDefaults(reconnectAfterChange: Boolean = true) {
+        if (safePeer()?.state != "paired" || storage.personalOwnDevice()) return
+        setPersonalSync(true, true, true, true, reconnectAfterChange = reconnectAfterChange)
+    }
+
     @Synchronized fun setPersonalSync(own: Boolean, notes: Boolean, tasks: Boolean, autoWifi: Boolean,
-                         deletions: Boolean = storage.personalDeletionsEnabled()) {
+                         deletions: Boolean = storage.personalDeletionsEnabled(), reconnectAfterChange: Boolean = true) {
         val peer = safePeer()
         if (!own) { identifierEpoch++; identifierPermissionTicket = null; identifierRequests.clear(); closeTransport() }
         if (!own) pauseCustom()
@@ -330,7 +335,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
                 put("format", JsonPrimitive(1)); put("own_device", JsonPrimitive(own))
             }, 86_400_000)
         }
-        modulesChanged()
+        modulesChanged(reconnectAfterChange)
     }
 
     @Synchronized fun personalSyncNow(trigger: String = "manual") {
@@ -465,17 +470,17 @@ class TelefonWerk private constructor(private val context: Context, private val 
         return "failed" to error
     }
 
-    private fun modulesChanged() {
+    private fun modulesChanged(reconnectAfterChange: Boolean = true) {
         refreshModules()
-        controlStateChanged()
+        controlStateChanged(reconnectAfterChange)
     }
 
-    @Synchronized private fun controlStateChanged() {
+    @Synchronized private fun controlStateChanged(reconnectAfterChange: Boolean = true) {
         safePeer()?.let { peer ->
             queue.removeKind(peer.device_id, "capabilities.update"); queue.removeKind(peer.device_id, "grants.update")
             val changed = peer.copy(capabilities_revision = peer.capabilities_revision + 1, grants_revision = peer.grants_revision + 1)
             storage.savePeer(changed); ensureControlMessages(changed)
-            activeTransport?.second?.let { runCatching { it.close() } } ?: reconnect()
+            if (reconnectAfterChange) activeTransport?.second?.let { runCatching { it.close() } } ?: reconnect()
         }
     }
 
@@ -818,6 +823,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
             val complete = peer.copy(state = "paired", last_contact_ms = System.currentTimeMillis(), pending_finish = "", pending_finish_expires_ms = 0)
             peerEffect(peer, pair.generation) {
                 storage.savePeer(complete)
+                initializePersonalDefaults(reconnectAfterChange = false)
                 if (complete.bluetooth_inbound) {
                     storage.setBluetoothEnabled(true)
                     bluetoothFirstSessionUntil = System.nanoTime() + 120_000_000_000L
@@ -838,6 +844,11 @@ class TelefonWerk private constructor(private val context: Context, private val 
             }
             if (safePeer() != null) { runCatching { ensureBluetoothListener() }; reconnect() }
         }
+    }
+
+    @Synchronized fun unpairComputer(expected: TelefonPeer?) {
+        val current = safePeer()
+        if (expected != null && current != null && current.device_id == expected.device_id && current.static_public == expected.static_public) unpair()
     }
 
     @Synchronized fun unpair() {
@@ -863,7 +874,8 @@ class TelefonWerk private constructor(private val context: Context, private val 
     }
 
     @Synchronized fun selectComputer(id: String?) {
-        val target = id?.let { wanted -> storage.peers().all().first { it.device_id == wanted } }
+        val target = id?.let { wanted -> storage.peers().all().firstOrNull { it.device_id == wanted } }
+        if (id != null && target == null) return
         val current = safePeer()
         if (current?.device_id == id && pending.get() == null) return
         pairingGeneration++; lifecycleGeneration++; identifierEpoch++
@@ -1008,9 +1020,14 @@ class TelefonWerk private constructor(private val context: Context, private val 
                     if (peer.state == "paired_unverified") {
                         peer = peer.copy(state = "paired", pending_finish = "", pending_finish_expires_ms = 0)
                         storage.savePeer(peer)
+                        initializePersonalDefaults(reconnectAfterChange = false)
                         if (transport == TelefonTransportArt.BLUETOOTH && peer.bluetooth_inbound) storage.setBluetoothEnabled(true)
                     }
                     peer = ensureControlMessages(peer)
+                    queue.removeKind(peer.device_id, "personal_sync.settings")
+                    queue.queue(peer.device_id, "personal_sync.settings", buildJsonObject {
+                        put("format", JsonPrimitive(1)); put("own_device", JsonPrimitive(peer.own_device && storage.personalOwnDevice()))
+                    }, 86_400_000)
                 }
                 val controls = sendDue(peer, channel, generation).toMutableSet()
                 while (controls.isNotEmpty()) {

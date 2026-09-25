@@ -543,11 +543,11 @@ internal sealed class TelefonStore
         {
             if (RestoreFenced) throw new InvalidOperationException("restore_unavailable");
             using var connection = OpenDatabase(); connection.Open(); using var transaction = connection.BeginTransaction();
-            if (kind == "personal_sync.custom_settings")
+            if (kind is "personal_sync.custom_settings" or "personal_sync.settings")
             {
                 using var replace = connection.CreateCommand(); replace.Transaction = transaction;
-                replace.CommandText = "DELETE FROM outbox WHERE peer_id=$peer AND kind='personal_sync.custom_settings'";
-                replace.Parameters.AddWithValue("$peer", peerId); replace.ExecuteNonQuery();
+                replace.CommandText = "DELETE FROM outbox WHERE peer_id=$peer AND kind=$kind";
+                replace.Parameters.AddWithValue("$peer", peerId); replace.Parameters.AddWithValue("$kind", kind); replace.ExecuteNonQuery();
             }
             using (var size = connection.CreateCommand())
             { size.Transaction = transaction; size.CommandText = "SELECT COALESCE(SUM(length(payload)),0) FROM outbox"; if ((long)(size.ExecuteScalar() ?? 0L) + payload.Length > OutboxLimitBytes) throw new InvalidOperationException("queue_full"); }

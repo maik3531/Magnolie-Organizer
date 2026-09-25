@@ -199,6 +199,15 @@ internal static class TelefonProtocolTests
             store.Cleanup(100_001);
             TestAssert.That(store.LoadPeers().Count == 0, "Abgelaufene ausstehende Paarung blieb sichtbar oder blockierend.");
             store.SavePending(peer, new byte[32], Enumerable.Repeat((byte)1, 32).ToArray(), Enumerable.Repeat((byte)2, 32).ToArray(), long.MaxValue);
+            var oldSettings = store.Enqueue(peerId, "personal_sync.settings", new JsonObject { ["format"] = 1, ["own_device"] = false }, 60_000, 9000);
+            var otherPeer = "ffffffff-ffff-4fff-8fff-ffffffffffff";
+            var otherSettings = store.Enqueue(otherPeer, "personal_sync.settings", new JsonObject { ["format"] = 1, ["own_device"] = false }, 60_000, 9000);
+            var latestSettings = store.Enqueue(peerId, "personal_sync.settings", new JsonObject { ["format"] = 1, ["own_device"] = true }, 60_000, 9001);
+            TestAssert.That(store.OutboxMessage(peerId, oldSettings) is null &&
+                store.OutboxMessage(peerId, latestSettings)?["body"]?["own_device"]?.GetValue<bool>() == true &&
+                store.OutboxMessage(otherPeer, otherSettings) is not null,
+                "Neue persönliche Einstellungen verdrängen nicht exakt die veralteten Einstellungen derselben Gegenstelle.");
+            store.CompleteOutbox(peerId, latestSettings); store.CompleteOutbox(otherPeer, otherSettings);
             var destructive = store.Enqueue(peerId, "end_call.command", new JsonObject { ["command_ref"] = "11111111-1111-4111-8111-111111111111", ["call_ref"] = "22222222-2222-4222-8222-222222222222", ["expected_revision"] = 1, ["expected_state"] = "offhook" }, 10_000, 10_000);
             var queued = store.Due(peerId, 10_000).Single(); store.MarkAttempt(destructive, queued.Attempts, 10_000);
             TestAssert.That(store.Due(peerId, 19_999).Count == 0, "Destruktiver Anrufauftrag wurde wiederholt.");

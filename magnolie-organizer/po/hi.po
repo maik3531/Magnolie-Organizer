@@ -7164,9 +7164,6 @@ msgid ""
 msgstr ""
 "आपके नोट ऐसे दिखते हैं: <b>बोल्ड</b>, <i>इटैलिक</i>, <u>रेखांकित</u> और <s>कटा हुआ</s>।"
 
-msgid "This is my own phone"
-msgstr "यह मेरा अपना फ़ोन है"
-
 msgid "This is not a Magnolienbaum message."
 msgstr "यह Magnolienbaum संदेश नहीं है।"
 
@@ -8348,6 +8345,9 @@ msgstr[1] "… और %(count)s अतिरिक्त आइटम, जो �
 
 msgid "＋ Add appointment"
 msgstr "＋ अपॉइंटमेंट जोड़ें"
+
+#~ msgid "This is my own phone"
+#~ msgstr "यह मेरा अपना फ़ोन है"
 
 #~ msgid ""
 #~ "Online account integration is not available on this system. Install it "

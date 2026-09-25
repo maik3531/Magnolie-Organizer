@@ -3111,6 +3111,9 @@ class PhoneService:
             self.store.queue(peer_id, kind, body, DAY_MS)
         with self.lock:
             custom = peer.get("custom_sync", {})
+            self.store.remove_kind(peer_id, "personal_sync.settings")
+            self.store.queue(peer_id, "personal_sync.settings", {
+                "format": 1, "own_device": bool(peer.get("personal_sync", {}).get("own_device"))}, DAY_MS)
             if self._custom_supported(peer) and custom.get("local"):
                 self.store.remove_kind(peer_id, "personal_sync.custom_settings")
                 self.store.queue(peer_id, "personal_sync.custom_settings", custom["local"], DAY_MS)

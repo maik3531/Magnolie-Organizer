@@ -896,7 +896,7 @@ private fun Hauptblatt(gewuenschteAufgabe: androidx.compose.runtime.MutableState
                         beiSuchen = { faden.launch(Dispatchers.IO) { runCatching { telefonWerk.discover() } } },
                         beiVerbinden = { desktop -> faden.launch(Dispatchers.IO) { runCatching { telefonWerk.beginPairing(desktop) } } },
                         beiCode = { matches -> faden.launch(Dispatchers.IO) { runCatching { telefonWerk.confirmPairing(matches) } } },
-                        beiEntkoppeln = telefonWerk::unpair,
+                        beiEntkoppeln = telefonWerk::unpairComputer,
                         beiRechner = telefonWerk::selectComputer,
                         beiBluetooth = { enabled ->
                             if (enabled && !bluetoothErlaubt() && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S)
@@ -961,8 +961,8 @@ private fun Hauptblatt(gewuenschteAufgabe: androidx.compose.runtime.MutableState
                                 }
                             }
                         },
-                        beiPersonalEigen = { telefonWerk.setPersonalSync(it, telefonZustand.personalNotesEnabled,
-                            telefonZustand.personalTasksEnabled, telefonZustand.personalAutoWifi, telefonZustand.personalDeletionsEnabled) },
+                        beiPersonalEigen = { if (it) telefonWerk.initializePersonalDefaults()
+                            else telefonWerk.setPersonalSync(false, false, false, false, false) },
                         beiPersonalNotizen = { telefonWerk.setPersonalSync(telefonZustand.personalOwnDevice, it,
                             telefonZustand.personalTasksEnabled, telefonZustand.personalAutoWifi, telefonZustand.personalDeletionsEnabled) },
                         beiPersonalAufgaben = { telefonWerk.setPersonalSync(telefonZustand.personalOwnDevice,

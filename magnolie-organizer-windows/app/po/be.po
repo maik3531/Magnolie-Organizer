@@ -5854,9 +5854,6 @@ msgstr ""
 "Так выглядаюць вашы нататкі: <b>тлусты</b>, <i>курсіўны</i>, <u>падкрэслены</"
 "u> і <s>закрэслены</s> тэкст."
 
-msgid "This is my own phone"
-msgstr "Гэта мой асабісты тэлефон"
-
 msgid ""
 "This is one occurrence of a recurring appointment. Changes apply to all "
 "occurrences in this series."
@@ -6953,6 +6950,9 @@ msgstr[2] "… і яшчэ %(count)s элементы, якія таксама �
 
 msgid "＋ Add appointment"
 msgstr "＋ Дадаць сустрэчу"
+
+#~ msgid "This is my own phone"
+#~ msgstr "Гэта мой асабісты тэлефон"
 
 #~ msgid ""
 #~ "Online account integration is not available on this system. Install it "

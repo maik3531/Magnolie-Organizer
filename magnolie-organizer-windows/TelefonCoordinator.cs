@@ -1003,6 +1003,8 @@ internal sealed class TelefonCoordinator : IDisposable
             }
             await connection.SendCapabilitiesAsync(capabilityRevision);
             await connection.SendGrantsAsync(grantRevision, store.LocalGrants());
+            await connection.SendMessageAsync("personal_sync.settings", new JsonObject {
+                ["format"] = 1, ["own_device"] = store.PersonalSettings(peer.Id).OwnDevice }, 86_400_000);
             if (store.CustomSupported(peer.Id) && store.CustomSettings(peer.Id)["local"] is JsonObject customSettings)
                 await connection.SendMessageAsync("personal_sync.custom_settings", customSettings, 86_400_000);
             await ReportStatusAsync();

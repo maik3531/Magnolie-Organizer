@@ -7292,9 +7292,6 @@ msgstr ""
 "Notlarınız şöyle görünür: <b>kalın</b>, <i>italik</i>, <u>altı çizili</u> ve "
 "<s>üstü çizili</s>."
 
-msgid "This is my own phone"
-msgstr "Bu benim kendi telefonum"
-
 msgid "This is not a Magnolienbaum message."
 msgstr "Bu bir Magnolienbaum iletisi değil."
 
@@ -8497,6 +8494,9 @@ msgstr[1] "… ayrıca yazdırılacak %(count)s öğe daha."
 
 msgid "＋ Add appointment"
 msgstr "＋ Randevu ekle"
+
+#~ msgid "This is my own phone"
+#~ msgstr "Bu benim kendi telefonum"
 
 #~ msgid ""
 #~ "Online account integration is not available on this system. Install it "

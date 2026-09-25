@@ -7410,9 +7410,6 @@ msgstr ""
 "هكذا تبدو ملاحظاتك: <b>عريض</b> و<i>مائل</i> و<u>تحته خط</u> و<s>يتوسطه خط</"
 "s>."
 
-msgid "This is my own phone"
-msgstr "هذا هاتفي الشخصي"
-
 msgid "This is not a Magnolienbaum message."
 msgstr "هذه ليست رسالة Magnolienbaum."
 
@@ -8634,6 +8631,9 @@ msgstr[5] "… وعناصر إضافية ستُطبع أيضًا؛ العدد: %
 
 msgid "＋ Add appointment"
 msgstr "＋ إضافة موعد"
+
+#~ msgid "This is my own phone"
+#~ msgstr "هذا هاتفي الشخصي"
 
 #~ msgid ""
 #~ "Online account integration is not available on this system. Install it "

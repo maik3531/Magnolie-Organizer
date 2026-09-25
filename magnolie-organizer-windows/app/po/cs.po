@@ -5825,9 +5825,6 @@ msgstr ""
 "Takto vypadají vaše poznámky: <b>tučně</b>, <i>kurzívou</i>, <u>podtrženě</"
 "u> a <s>přeškrtnutě</s>."
 
-msgid "This is my own phone"
-msgstr "Toto je můj vlastní telefon"
-
 msgid ""
 "This is one occurrence of a recurring appointment. Changes apply to all "
 "occurrences in this series."
@@ -6916,6 +6913,9 @@ msgstr[2] "… a ještě %(count)s další položky, které se rovněž vytiskno
 
 msgid "＋ Add appointment"
 msgstr "＋ Přidat schůzku"
+
+#~ msgid "This is my own phone"
+#~ msgstr "Toto je můj vlastní telefon"
 
 #~ msgid ""
 #~ "Online account integration is not available on this system. Install it "

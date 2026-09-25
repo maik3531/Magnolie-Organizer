@@ -7442,9 +7442,6 @@ msgstr ""
 "Tak waše notice wupadaja: <b>tučne</b>, <i>kursiwne</i>, <u>podšmórnjene</u> "
 "a <s>přešmórnjene</s>."
 
-msgid "This is my own phone"
-msgstr "To je mój swójski telefon"
-
 msgid "This is not a Magnolienbaum message."
 msgstr "To njeje powěsć Magnolienbaum."
 
@@ -8665,6 +8662,9 @@ msgstr[3] "… a dale %(count)s zapiskaj, kotrejž so tež ćišćitej."
 
 msgid "＋ Add appointment"
 msgstr "＋ Termin přidać"
+
+#~ msgid "This is my own phone"
+#~ msgstr "To je mój swójski telefon"
 
 #~ msgid ""
 #~ "Online account integration is not available on this system. Install it "

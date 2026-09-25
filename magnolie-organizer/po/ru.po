@@ -7389,9 +7389,6 @@ msgstr ""
 "Ваши заметки выглядят так: <b>жирный</b>, <i>курсив</i>, <u>подчёркнутый</u> "
 "и <s>зачёркнутый</s> текст."
 
-msgid "This is my own phone"
-msgstr "Это мой личный телефон"
-
 msgid "This is not a Magnolienbaum message."
 msgstr "Это не сообщение Magnolienbaum."
 
@@ -8609,6 +8606,9 @@ msgstr[2] "… и ещё %(count)s записи, которые также бу�
 
 msgid "＋ Add appointment"
 msgstr "＋ Добавить встречу"
+
+#~ msgid "This is my own phone"
+#~ msgstr "Это мой личный телефон"
 
 #~ msgid ""
 #~ "Online account integration is not available on this system. Install it "

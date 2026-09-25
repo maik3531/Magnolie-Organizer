@@ -5809,9 +5809,6 @@ msgstr ""
 "Sådan ser dine noter ud: <b>fed</b>, <i>kursiv</i>, <u>understreget</u> og "
 "<s>gennemstreget</s>."
 
-msgid "This is my own phone"
-msgstr "Dette er min egen telefon"
-
 msgid ""
 "This is one occurrence of a recurring appointment. Changes apply to all "
 "occurrences in this series."
@@ -6901,6 +6898,9 @@ msgstr[1] "… og %(count)s elementer mere, som også bliver udskrevet."
 
 msgid "＋ Add appointment"
 msgstr "＋ Tilføj aftale"
+
+#~ msgid "This is my own phone"
+#~ msgstr "Dette er min egen telefon"
 
 #~ msgid ""
 #~ "Online account integration is not available on this system. Install it "

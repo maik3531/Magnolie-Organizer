@@ -108,7 +108,7 @@ class Telefonhandlungen(
     val beiSuchen: () -> Unit,
     val beiVerbinden: (GefundenerDesktop) -> Unit,
     val beiCode: (Boolean) -> Unit,
-    val beiEntkoppeln: () -> Unit,
+    val beiEntkoppeln: (io.gitlab.maik3531.magnolienotes.telefon.TelefonPeer?) -> Unit,
     val beiRechner: (String?) -> Unit,
     val beiBluetooth: (Boolean) -> Unit,
     val beiBluetoothEinstellungen: () -> Unit,
@@ -154,13 +154,15 @@ fun BaumBlatt(
     var eingefuegt by remember { mutableStateOf("") }
     var loeschWarnung by remember { mutableStateOf<String?>(null) }
     var entfernenWarnung by remember { mutableStateOf<String?>(null) }
-    var telefonEntfernenWarnung by remember { mutableStateOf(false) }
-    val personalDecisions = remember { PersonalDeletionDecisions() }
-    var personalProposal by remember { mutableStateOf<PersonalDeletionProposal?>(null) }
-    var personalRemember by remember { mutableStateOf(false) }
-    var massDecision by remember { mutableStateOf<Pair<String, List<PersonalDeletionProposal>>?>(null) }
-    var changedDelete by remember { mutableStateOf<PersonalDeletionProposal?>(null) }
-    var customDelete by remember { mutableStateOf<Pair<String, Long>?>(null) }
+    val peerScope = telefon.peer?.let { it.device_id + ":" + it.static_public }
+    val activeProposals = bestand.personalSync.pending_proposals.filter { it.source_device == telefon.peer?.device_id }
+    var telefonEntfernenWarnung by remember(peerScope) { mutableStateOf(false) }
+    val personalDecisions = remember(peerScope) { PersonalDeletionDecisions() }
+    var personalProposal by remember(peerScope) { mutableStateOf<PersonalDeletionProposal?>(null) }
+    var personalRemember by remember(peerScope) { mutableStateOf(false) }
+    var massDecision by remember(peerScope) { mutableStateOf<Pair<String, List<PersonalDeletionProposal>>?>(null) }
+    var changedDelete by remember(peerScope) { mutableStateOf<PersonalDeletionProposal?>(null) }
+    var customDelete by remember(peerScope) { mutableStateOf<Pair<String, Long>?>(null) }
 
     customDelete?.let { (id, revision) ->
         AlertDialog(onDismissRequest = { customDelete = null },
@@ -351,17 +353,22 @@ fun BaumBlatt(
             Schalterzeile(stringResource(R.string.personal_sync_loeschungen), telefon.personalDeletionsEnabled,
                 telefonHandlungen.beiPersonalLoeschungen)
             Lederknopf(stringResource(R.string.personal_sync_jetzt), modifier = Modifier.fillMaxWidth(),
+                aktiv = telefon.personalOwnDevice && telefon.peer?.remote_own_device == true &&
+                    ((telefon.personalNotesEnabled && telefon.peer?.remote_personal_notes_sync_granted == true) ||
+                        (telefon.personalTasksEnabled && telefon.peer?.remote_personal_tasks_sync_granted == true) ||
+                        (customSupported && bestand.personalCustom.local?.get("enabled")?.jsonPrimitive?.booleanOrNull == true &&
+                            bestand.personalCustom.remote?.get("enabled")?.jsonPrimitive?.booleanOrNull == true)),
                 beiKlick = telefonHandlungen.beiPersonalJetzt)
             Text(telefon.personalSyncReport.ifBlank { stringResource(R.string.personal_sync_keine_loeschung) },
                 fontFamily = FontFamily.SansSerif, fontSize = 11.sp, lineHeight = 16.sp, color = Magnolie.braunHell)
-            if (bestand.personalSync.pending_proposals.isNotEmpty()) Row(
+            if (activeProposals.isNotEmpty()) Row(
                 horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Papierknopf(stringResource(R.string.personal_sync_alle_loeschen)) {
-                    requestMass("delete", bestand.personalSync.pending_proposals) }
+                    requestMass("delete", activeProposals) }
                 Papierknopf(stringResource(R.string.personal_sync_alle_wiederherstellen)) {
-                    requestMass("restore", bestand.personalSync.pending_proposals) }
+                    requestMass("restore", activeProposals) }
             }
-            bestand.personalSync.pending_proposals.forEach { proposal ->
+            activeProposals.forEach { proposal ->
                 Text("${lokalisierterText(TechnischeWerteLokalisierung.art(proposal.kind))}: ${proposal.label.ifBlank { proposal.id }}",
                     fontFamily = FontFamily.SansSerif, fontSize = 12.sp)
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -1054,7 +1061,7 @@ fun BaumBlatt(
         text = { Text(stringResource(R.string.telefon_entkoppeln_frage,
             telefon.peer?.display_name.orEmpty())) },
         confirmButton = { TextButton(onClick = {
-            telefonHandlungen.beiEntkoppeln(); telefonEntfernenWarnung = false
+            telefonHandlungen.beiEntkoppeln(telefon.peer); telefonEntfernenWarnung = false
         }) { Text(stringResource(R.string.telefon_entkoppeln), color = Magnolie.rot) } },
         dismissButton = { TextButton(onClick = { telefonEntfernenWarnung = false }) {
             Text(stringResource(R.string.abbrechen))

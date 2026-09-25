@@ -5710,9 +5710,6 @@ msgid ""
 msgstr ""
 "आपके नोट ऐसे दिखते हैं: <b>बोल्ड</b>, <i>इटैलिक</i>, <u>रेखांकित</u> और <s>कटा हुआ</s>।"
 
-msgid "This is my own phone"
-msgstr "यह मेरा अपना फ़ोन है"
-
 msgid ""
 "This is one occurrence of a recurring appointment. Changes apply to all "
 "occurrences in this series."
@@ -6783,6 +6780,9 @@ msgstr[1] "… और %(count)s अतिरिक्त आइटम, जो �
 
 msgid "＋ Add appointment"
 msgstr "＋ अपॉइंटमेंट जोड़ें"
+
+#~ msgid "This is my own phone"
+#~ msgstr "यह मेरा अपना फ़ोन है"
 
 #~ msgid ""
 #~ "Online account integration is not available on this system. Install it "

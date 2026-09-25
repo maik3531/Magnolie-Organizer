@@ -5878,9 +5878,6 @@ msgstr ""
 "É este o aspeto das suas notas: <b>negrito</b>, <i>itálico</i>, "
 "<u>sublinhado</u> e <s>rasurado</s>."
 
-msgid "This is my own phone"
-msgstr "Este é o meu próprio telefone"
-
 msgid ""
 "This is one occurrence of a recurring appointment. Changes apply to all "
 "occurrences in this series."
@@ -6977,6 +6974,9 @@ msgstr[1] "… e mais %(count)s entradas que também serão impressas."
 
 msgid "＋ Add appointment"
 msgstr "＋ Adicionar compromisso"
+
+#~ msgid "This is my own phone"
+#~ msgstr "Este é o meu próprio telefone"
 
 #~ msgid ""
 #~ "Online account integration is not available on this system. Install it "

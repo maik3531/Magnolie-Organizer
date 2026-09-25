@@ -7406,9 +7406,6 @@ msgstr ""
 "Zo zien uw notities eruit: <b>vet</b>, <i>cursief</i>, <u>onderstreept</u> "
 "en <s>doorgehaald</s>."
 
-msgid "This is my own phone"
-msgstr "Dit is mijn eigen telefoon"
-
 msgid "This is not a Magnolienbaum message."
 msgstr "Dit is geen Magnolienbaum-bericht."
 
@@ -8622,6 +8619,9 @@ msgstr[1] "… en %(count)s extra items die ook worden afgedrukt."
 
 msgid "＋ Add appointment"
 msgstr "＋ Afspraak toevoegen"
+
+#~ msgid "This is my own phone"
+#~ msgstr "Dit is mijn eigen telefoon"
 
 #~ msgid ""
 #~ "Online account integration is not available on this system. Install it "

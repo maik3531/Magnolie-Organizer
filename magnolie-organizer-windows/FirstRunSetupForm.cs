@@ -644,7 +644,7 @@ internal sealed class FirstRunSetupForm : Form
         void Show()
         {
             if (IsDisposed || setupCancellation.IsCancellationRequested) { completion.TrySetResult(null); return; }
-            using var dialog = new Form { Text = T("Phone connection"), ClientSize = new Size(580, 280),
+            using var dialog = new Form { Text = T("Phone connection"), ClientSize = new Size(580, 340),
                 StartPosition = FormStartPosition.CenterParent, BackColor = Paper, Font = Font };
             var body = new FlowLayoutPanel { Dock = DockStyle.Fill, AutoScroll = true, WrapContents = false,
                 FlowDirection = FlowDirection.TopDown, Padding = new Padding(20) };
@@ -654,15 +654,15 @@ internal sealed class FirstRunSetupForm : Form
             devices.SelectedIndex = prompt.Kind == "select" ? -1 : 0;
             body.Controls.Add(devices);
             if (prompt.Code.Length > 0) body.Controls.Add(Label(prompt.Code, bold: true));
-            var own = new CheckBox { AutoSize = true, Text = T("This is my own phone"), Visible = prompt.CanMarkOwn };
-            body.Controls.Add(own);
+            if (prompt.CanMarkOwn) body.Controls.Add(Label(T("Personal synchronization") + "\n" +
+                T("Synchronize notes and notebooks") + "\n" + T("Synchronize tasks") + "\n" + T("Automatically synchronize over Wi-Fi")));
             var accept = new Button { Text = T("Confirm"), AutoSize = true, DialogResult = DialogResult.OK };
             var cancel = new Button { Text = T("Cancel"), AutoSize = true, DialogResult = DialogResult.Cancel };
             body.Controls.Add(accept); body.Controls.Add(cancel); dialog.Controls.Add(body);
             dialog.CancelButton = cancel;
             var result = dialog.ShowDialog(this);
             completion.TrySetResult(result != DialogResult.OK || devices.SelectedItem is not SetupSource selected ? null :
-                prompt.Kind == "select" ? selected.Uid : own.Checked ? "accept-own" : "accept");
+                prompt.Kind == "select" ? selected.Uid : "accept");
         }
         if (InvokeRequired) BeginInvoke((Action)Show); else Show();
         return completion.Task;

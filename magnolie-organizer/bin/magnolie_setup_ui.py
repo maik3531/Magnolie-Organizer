@@ -906,12 +906,13 @@ def run_setup(Gtk, Gdk, translate, write_state, script_directory,
                 devices.set_active(0)
             area.pack_start(devices, False, False, 0)
             area.pack_start(Gtk.Label(label=request.get("code", "")), False, False, 0)
-            own = Gtk.CheckButton(label=tr("This is my own phone"))
             if request.get("canMarkOwn"):
-                area.pack_start(own, False, False, 0)
+                area.pack_start(Gtk.Label(label="\n".join((tr("Personal synchronization"),
+                    tr("Synchronize notes and notebooks"), tr("Synchronize tasks"),
+                    tr("Automatically synchronize over Wi-Fi"))), wrap=True), False, False, 0)
             prompt.show_all()
             if prompt.run() == Gtk.ResponseType.OK and devices.get_active_id():
-                answer[0] = devices.get_active_id() if request["kind"] == "select" else "accept-own" if own.get_active() else "accept"
+                answer[0] = devices.get_active_id() if request["kind"] == "select" else "accept"
             prompt.destroy()
             event.set()
             return False

@@ -6838,9 +6838,6 @@ msgid ""
 "and <s>struck through</s>."
 msgstr ""
 
-msgid "This is my own phone"
-msgstr ""
-
 msgid "This is not a Magnolienbaum message."
 msgstr ""
 

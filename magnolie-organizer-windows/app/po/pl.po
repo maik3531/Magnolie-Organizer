@@ -5882,9 +5882,6 @@ msgstr ""
 "Tak wyglądają notatki: <b>pogrubienie</b>, <i>kursywa</i>, <u>podkreślenie</"
 "u> i <s>przekreślenie</s>."
 
-msgid "This is my own phone"
-msgstr "To mój własny telefon"
-
 msgid ""
 "This is one occurrence of a recurring appointment. Changes apply to all "
 "occurrences in this series."
@@ -6982,6 +6979,9 @@ msgstr[2] "… i jeszcze %(count)s elementy, które również zostaną wydrukowa
 
 msgid "＋ Add appointment"
 msgstr "＋ Dodaj spotkanie"
+
+#~ msgid "This is my own phone"
+#~ msgstr "To mój własny telefon"
 
 #~ msgid ""
 #~ "Online account integration is not available on this system. Install it "

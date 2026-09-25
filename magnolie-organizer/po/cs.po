@@ -7318,9 +7318,6 @@ msgstr ""
 "Takto vypadají vaše poznámky: <b>tučně</b>, <i>kurzívou</i>, <u>podtrženě</"
 "u> a <s>přeškrtnutě</s>."
 
-msgid "This is my own phone"
-msgstr "Toto je můj vlastní telefon"
-
 msgid "This is not a Magnolienbaum message."
 msgstr "Toto není zpráva Magnolienbaum."
 
@@ -8529,6 +8526,9 @@ msgstr[2] "… a ještě %(count)s další položky, které se rovněž vytiskno
 
 msgid "＋ Add appointment"
 msgstr "＋ Přidat schůzku"
+
+#~ msgid "This is my own phone"
+#~ msgstr "Toto je můj vlastní telefon"
 
 #~ msgid ""
 #~ "Online account integration is not available on this system. Install it "

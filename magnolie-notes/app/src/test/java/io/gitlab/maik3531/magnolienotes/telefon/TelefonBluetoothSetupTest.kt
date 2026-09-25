@@ -154,7 +154,8 @@ class TelefonBluetoothSetupTest {
             val peer = storage.peers().peer!!
             assertEquals("paired", peer.state); assertEquals(pc, peer.bluetooth_address)
             assertTrue(peer.bluetooth_inbound); assertEquals("", peer.last_host)
-            assertTrue(storage.bluetoothEnabled()); assertFalse(storage.personalOwnDevice())
+            assertTrue(storage.bluetoothEnabled()); assertTrue(storage.personalOwnDevice())
+            assertTrue(storage.personalNotesEnabled()); assertTrue(storage.personalTasksEnabled()); assertTrue(storage.personalAutoWifi())
             assertFalse(storage.notificationsEnabled()); assertFalse(storage.dialRequestEnabled())
             if (mode == "legacy-binding") {
                 val adapter = android.bluetooth.BluetoothAdapter.getDefaultAdapter()
@@ -165,6 +166,16 @@ class TelefonBluetoothSetupTest {
                 work.assignBluetooth(pc)
             }
             if (mode == "wifi-present") TelefonWerk::class.java.getDeclaredField("wifiAvailable").apply { isAccessible = true }.setBoolean(work, false)
+            fun receivedSettings(): Int {
+                val database = TelefonDatenbank(context)
+                try {
+                    return database.readableDatabase.rawQuery("SELECT COUNT(*) FROM inbox WHERE peer_id=? AND kind='personal_sync.settings'",
+                        arrayOf(peer.device_id)).use { cursor -> check(cursor.moveToFirst()); cursor.getInt(0) }
+                } finally { database.close() }
+            }
+            waitFor { receivedSettings() > 0 }
+            val settingsBeforeReconnect = receivedSettings()
+            storage.savePeer(storage.peers().peer!!.copy(remote_own_device = true))
             command("RECONNECT")
             assertEquals("RECONNECTED", lines.poll(18, TimeUnit.SECONDS))
             waitFor { (work.state.value.peer?.last_contact_ms ?: 0) > peer.last_contact_ms }
@@ -172,6 +183,7 @@ class TelefonBluetoothSetupTest {
             assertEquals(peer.static_public, storage.peers().peer!!.static_public)
             assertEquals(pc, storage.peers().peer!!.bluetooth_address)
             assertTrue(storage.peers().peer!!.bluetooth_inbound)
+            waitFor { receivedSettings() > settingsBeforeReconnect && storage.peers().peer?.remote_own_device == false }
             if (previous != null) {
                 assertEquals(2, storage.peers().all().size)
                 assertEquals(previous.static_public, storage.peers().all().single { it.device_id == previous.device_id }.static_public)

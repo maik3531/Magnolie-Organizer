@@ -6970,9 +6970,6 @@ msgid ""
 msgstr ""
 "您的便笺会这样显示：<b>粗体</b>、<i>斜体</i>、<u>下划线</u>和<s>删除线</s>。"
 
-msgid "This is my own phone"
-msgstr "这是我本人的手机"
-
 msgid "This is not a Magnolienbaum message."
 msgstr "这不是 Magnolienbaum 消息。"
 
@@ -8112,6 +8109,9 @@ msgstr[0] "… 以及另外 %(count)s 项也将打印。"
 
 msgid "＋ Add appointment"
 msgstr "＋ 添加约会"
+
+#~ msgid "This is my own phone"
+#~ msgstr "这是我本人的手机"
 
 #~ msgid ""
 #~ "Online account integration is not available on this system. Install it "

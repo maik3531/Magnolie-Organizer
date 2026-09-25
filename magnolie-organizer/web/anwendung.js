@@ -1526,18 +1526,30 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     const peers = telefonStand?.peers || [];
     if (peers.length !== 1 || telefonStand.binding_conflict) return;
     const peer = peers[0];
+    if (!["offline", "online_wifi", "online_bluetooth"].includes(peer.state)) return;
     const senden = (name, vorhanden, nachricht) => {
       const key = peer.device_id + "\u0000" + (peer.fingerprint || "") + "\u0000" + name;
       if (vorhanden) { telefonStandardAnfragen.delete(key); return; }
       if ((telefonStandardAnfragen.get(key) || 0) > performance.now()) return;
       if (Bruecke.sende(nachricht)) telefonStandardAnfragen.set(key, performance.now() + 10000);
     };
+    if (!peer.own_device) {
+      for (const name of ["personal_notes_sync", "personal_tasks_sync", "selected_notifications_readonly"])
+        senden(name, peer.local_grants?.grants?.[name], { cmd: "telefon_freigabe",
+          kennung: peer.device_id, name: name, an: true });
+    }
     senden("own", peer.own_device, { cmd: "personal_sync_einstellungen",
-      kennung: peer.device_id, eigen: true, autoWlan: !!peer.auto_wifi });
-    senden("notifications", peer.local_grants?.grants?.selected_notifications_readonly,
-      { cmd: "telefon_freigabe", kennung: peer.device_id,
-        name: "selected_notifications_readonly", an: true });
+      kennung: peer.device_id, eigen: true, autoWlan: true });
   }
+  function personalSyncBereit(peer) {
+    if (!peer?.own_device || !peer.remote_own_device) return false;
+    const lokal = peer.local_grants?.grants || {}, fern = peer.grants?.grants || {};
+    return !!(["personal_notes_sync", "personal_tasks_sync"].some(name => lokal[name] && fern[name]) ||
+      peer.custom_sync?.local?.enabled && peer.custom_sync?.remote?.enabled &&
+      peer.capabilities?.items?.personal_tasks_sync?.available &&
+      peer.capabilities.items.personal_tasks_sync.versions?.includes(4));
+  }
+
   function zeichneGeraeteKennungen() {
     const dialog = $("#geraet-dialog");
     const peer = (telefonStand?.peers || []).find(p => p.device_id === offenesGeraet);
@@ -1708,6 +1720,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       const personalStand = el("p", "einst-hinweis");
       personalStand.dataset.personalSyncPeer = kennung;
       const zeigePersonalStand = (aktuell) => {
+        if (personalSyncKnopf) personalSyncKnopf.disabled = !personalSyncBereit(aktuell);
         const lokal = aktuell.local_grants && aktuell.local_grants.grants || {};
         const fern = aktuell.grants && aktuell.grants.grants || {};
         const bestaetigt = aktuell.remote_own_device &&
@@ -1722,12 +1735,16 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       const inhaltHaken = [];
       for (const [name, text] of [["personal_notes_sync", _("Synchronize notes and notebooks")],
         ["personal_tasks_sync", _("Synchronize tasks")],
-        ["personal_deletions_sync", _("Consider deletions during manual synchronization")]]) inhaltHaken.push(personalHak(text,
+        ["personal_deletions_sync", _("Consider deletions during manual synchronization")]]) {
+        const haken = personalHak(text,
         !!(peer.local_grants && peer.local_grants.grants && peer.local_grants.grants[name]),
         (an) => { peer.local_grants.grants[name] = an;
           zeigePersonalStand(peer);
           Bruecke.sende({ cmd: "telefon_freigabe", kennung: kennung, name: name, an: an });
-          Bruecke.sende({ cmd: "telefon_stand" }); }));
+          Bruecke.sende({ cmd: "telefon_stand" }); });
+        haken.dataset.personalGrantPeer = kennung; haken.dataset.personalGrantName = name;
+        inhaltHaken.push(haken);
+      }
       const inhaltWahl = el("div", "druck-wahlkopf personal-sync-wahl");
       const waehleInhalte = (an) => {
         for (const haken of inhaltHaken) if (haken.checked !== an) haken.click();
@@ -1752,14 +1769,17 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
         ? _("Both devices must opt in. Turning this off pauses reminders and updates from the custom tab but keeps copies. Linked text blocks are not shared.")
         : _("This device does not support synchronization of the custom tab."));
       customNote.dataset.personalCustomNote = kennung; personal.append(customNote);
-      personalHak(_("Automatically synchronize over Wi-Fi"), auto, (an) => {
+      const autoHaken = personalHak(_("Automatically synchronize over Wi-Fi"), auto, (an) => {
         auto = an; peer.auto_wifi = an;
         Bruecke.sende({ cmd: "personal_sync_einstellungen", kennung: kennung, eigen: eigen, autoWlan: an });
       });
+      autoHaken.dataset.personalAutoPeer = kennung;
       personalSyncKnopf = knopf(_("Synchronize now"), "hauptknopf", () => {
         const aktuell = (telefonStand && telefonStand.peers || []).find((p) => p.device_id === kennung);
         personalSyncSenden(aktuell || peer, "manual").catch((fehler) => zettel(String(fehler.message || fehler)));
       });
+      personalSyncKnopf.dataset.personalSyncAction = kennung;
+      personalSyncKnopf.disabled = !personalSyncBereit(peer);
       personal.append(personalStand);
     }
     if (personalSyncKnopf) knoepfe.append(personalSyncKnopf);
@@ -25762,6 +25782,13 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     telefonStand(nutzlast) {
       telefonStand = nutzlast || null;
       telefonStandardsAnwenden();
+      document.querySelectorAll("[data-personal-grant-peer], [data-personal-auto-peer]").forEach(input => {
+        const peer = (telefonStand?.peers || []).find(p => p.device_id === (input.dataset.personalGrantPeer || input.dataset.personalAutoPeer));
+        if (peer) input.checked = input.dataset.personalGrantName ? !!peer.local_grants?.grants?.[input.dataset.personalGrantName] : !!peer.auto_wifi;
+      });
+      document.querySelectorAll("[data-personal-sync-action]").forEach(button => {
+        button.disabled = !personalSyncBereit((telefonStand?.peers || []).find(peer => peer.device_id === button.dataset.personalSyncAction));
+      });
       zeichneGeraeteKennungen();
       pruefeSmsPlanung();
       const kdeEmpfang = DATEN.einstellungen.sync.kdeEmpfang;

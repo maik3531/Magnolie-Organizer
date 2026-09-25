@@ -7354,9 +7354,6 @@ msgstr ""
 "Так виглядають ваші нотатки: <b>жирний</b>, <i>курсив</i>, <u>підкреслений</"
 "u> і <s>закреслений</s> текст."
 
-msgid "This is my own phone"
-msgstr "Це мій особистий телефон"
-
 msgid "This is not a Magnolienbaum message."
 msgstr "Це не повідомлення Magnolienbaum."
 
@@ -8572,6 +8569,9 @@ msgstr[2] "… і ще %(count)s елементи, які також буде н
 
 msgid "＋ Add appointment"
 msgstr "＋ Додати зустріч"
+
+#~ msgid "This is my own phone"
+#~ msgstr "Це мій особистий телефон"
 
 #~ msgid ""
 #~ "Online account integration is not available on this system. Install it "

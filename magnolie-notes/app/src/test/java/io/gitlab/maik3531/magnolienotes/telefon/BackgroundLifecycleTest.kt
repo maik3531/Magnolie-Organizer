@@ -130,6 +130,11 @@ class BackgroundLifecycleTest {
         assertEquals(storage.peers(), reloaded.peers())
         work.selectComputer(office.device_id)
         assertTrue(storage.personalTasksEnabled()); assertFalse(storage.personalNotesEnabled()); assertFalse(storage.personalAutoWifi())
+        work.unpairComputer(home)
+        work.unpairComputer(office.copy(static_public = home.static_public))
+        work.selectComputer("no-longer-saved")
+        assertEquals(office.device_id, storage.peers().peer!!.device_id)
+        assertEquals(2, storage.peers().all().size)
         val notes = io.gitlab.maik3531.magnolienotes.daten.Ablage.hole(context)
         notes.sichereNotiz(io.gitlab.maik3531.magnolienotes.daten.Notiz("retained-note", text = "Keep this content"))
         for (computer in listOf(home, office)) notes.personalSyncStageProposals(UUID.randomUUID().toString(), computer.device_id,
@@ -167,6 +172,21 @@ class BackgroundLifecycleTest {
         assertFalse(recovered.personalNotesEnabled()); assertTrue(recovered.personalTasksEnabled())
         assertFalse(recovered.personalAutoWifi()); assertFalse(prefs.contains("pending_computer_selection"))
         assertEquals(2, recovered.peers().all().size)
+    }
+
+    @Test fun personalPairingDefaultsApplyOnceAndKeepLaterOptOuts() = fixture { storage, work, queue ->
+        val peer = TelefonPeer(UUID.randomUUID().toString(), "Computer", TelefonKrypto.b64(ByteArray(32)), state = "paired_unverified")
+        storage.savePeer(peer)
+        work.initializePersonalDefaults()
+        assertFalse(storage.personalOwnDevice()); assertFalse(storage.personalNotesEnabled())
+        storage.savePeer(peer.copy(state = "paired"))
+        work.initializePersonalDefaults()
+        assertTrue(storage.personalOwnDevice()); assertTrue(storage.personalNotesEnabled())
+        assertTrue(storage.personalTasksEnabled()); assertTrue(storage.personalAutoWifi())
+        assertTrue(queue.hasKind(peer.device_id, "personal_sync.settings"))
+        work.setPersonalSync(true, false, false, false)
+        work.initializePersonalDefaults()
+        assertFalse(storage.personalNotesEnabled()); assertFalse(storage.personalTasksEnabled()); assertFalse(storage.personalAutoWifi())
     }
 
     @Test fun interruptedDiscoveryAlwaysUnregisters() {

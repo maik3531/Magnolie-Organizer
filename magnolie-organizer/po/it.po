@@ -7446,9 +7446,6 @@ msgstr ""
 "Ecco come appaiono le tue note: <b>grassetto</b>, <i>corsivo</i>, "
 "<u>sottolineato</u> e <s>barrato</s>."
 
-msgid "This is my own phone"
-msgstr "Questo è il mio telefono personale"
-
 msgid "This is not a Magnolienbaum message."
 msgstr "Questo non è un messaggio Magnolienbaum."
 
@@ -8663,6 +8660,9 @@ msgstr[1] "… e %(count)s altri elementi che verranno anch’essi stampati."
 
 msgid "＋ Add appointment"
 msgstr "＋ Aggiungi appuntamento"
+
+#~ msgid "This is my own phone"
+#~ msgstr "Questo è il mio telefono personale"
 
 #~ msgid ""
 #~ "Online account integration is not available on this system. Install it "
