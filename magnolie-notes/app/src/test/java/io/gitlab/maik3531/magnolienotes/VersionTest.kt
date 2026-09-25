@@ -4,8 +4,8 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 
 class VersionTest {
-    @Test fun `Version ist 1 0 15`() {
-        assertEquals("1.0.15", BuildConfig.VERSION_NAME.removeSuffix("-plaintext-fixture"))
-        assertEquals(15, BuildConfig.VERSION_CODE)
+    @Test fun `Version ist 1 0 16`() {
+        assertEquals("1.0.16", BuildConfig.VERSION_NAME.removeSuffix("-plaintext-fixture"))
+        assertEquals(16, BuildConfig.VERSION_CODE)
     }
 }

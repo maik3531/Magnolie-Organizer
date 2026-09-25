@@ -2747,7 +2747,7 @@ function knopfMit(text, wurzel) {
     enNeu.querySelector(".ueber-neu-fassung")?.textContent === webFassung &&
     enNeu.querySelectorAll("ul > li").length === 3 &&
     neuInhalte.en.slice(1).every(text => enNeu.textContent.includes(text)) &&
-    neuInhalte.en.join(" ").includes("Magnolie Notes 1.0.15") &&
+    neuInhalte.en.join(" ").includes("Magnolie Notes 1.0.16") &&
     js.includes('const NEU_IN_DIESER_FASSUNG_FASSUNG = "' + webFassung + '";') &&
     js.includes("NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG"),
   "kompakte englische Versionshinweise fehlen oder sind nicht semantisch gegliedert");

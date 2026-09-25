@@ -173,9 +173,9 @@ const releaseNotes = Function(`"use strict"; return (${releaseNotesSource});`)()
 assert.strictEqual(Object.keys(releaseNotes).length, 20, "What's New does not cover every locale");
 assert.ok(Object.values(releaseNotes).every((items) => items.length === 4 && items.every(text => typeof text === "string" && text.length > 0)),
    "What's New locales do not contain the complete current bullet set");
-assert.ok(application.includes("Schedule SMS with one click; one Windows installer for Organizer and manual") &&
-  application.includes("More responsive Windows saves, reliable upgrade backups and improved Thunderbird import") &&
-  !application.includes("Faster native Wayland/AppImage graphics"),
+assert.ok(releaseNotes.en.includes("Simplified call settings and consistently sized checkboxes") &&
+  releaseNotes.en.includes("Corrections to note synchronization and deleted-item restoration") &&
+  !releaseNotes.en.some(text => /Linux|Debian|Wayland|AppImage/.test(text)),
 "Windows What's New content is stale or describes Linux-only changes");
 assert.match(fs.readFileSync(path.join(root, "LIESMICH.md"), "utf8"),
   /Oberfläche unter .+ ist\s+aus Magnolie Organizer 2\.0\.0 übernommen/,

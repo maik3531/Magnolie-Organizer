@@ -1,5 +1,25 @@
 # Changelog / Änderungen
 
+## 2.0.23 / Notes 1.0.16 — 2026-09-25
+
+### English
+
+- Adds Linux HFP preflight, persistent phone selection, automatic call connection and restoration of call-created Bluetooth connections. Optional WebRTC noise cancellation is off by default and appears after selecting the phone.
+- Preserves the Bluetooth connection across native audio pauses and stream recreation. The user confirmed two-way laptop audio without echo and the final connection teardown.
+- Restarts already running installed user background services during Debian upgrades, including reinstallation of the same version. Removes the redundant phone-sync changes notification.
+- Magnolie Notes 1.0.16 retains multiple paired computers, reconnects to known computers and combines the call controls with access to the required Android permissions.
+- Improves matching of identical personal notes, including identical attachments, and fixes restoration of deleted items with overlapping IDs but different record kinds. Existing synchronization proposals and contact-conflict reviews are preserved.
+- Planned SMS and Linux hands-free calling were accepted by the user. Remaining open issues are scheduled for the following development version. Automatic Windows HFP routing remains unavailable in the current Win32 package.
+
+### Deutsch
+
+- Ergänzt die Linux-HFP-Vorprüfung, eine dauerhaft gespeicherte Telefonwahl, automatischen Verbindungsaufbau beim Anruf und die Wiederherstellung zuvor getrennter Bluetooth-Verbindungen. Die optionale Geräuschunterdrückung mit WebRTC ist standardmäßig aus und erscheint nach der Telefonauswahl.
+- Erhält die Bluetooth-Verbindung bei nativen Audiopausen und neu angelegten Gesprächsströmen. Der Nutzer bestätigte beidseitigen Laptop-Ton ohne Echo und die anschließende Trennung.
+- Startet bereits laufende installierte Benutzer-Hintergrunddienste bei Debian-Updates neu, auch bei erneuter Installation derselben Version. Entfernt die überflüssige Meldung über neue Telefon-Sync-Änderungen.
+- Magnolie Notes 1.0.16 behält mehrere gekoppelte Rechner, verbindet sich wieder mit bekannten Rechnern und fasst die Anrufsteuerung mit dem Zugang zu den erforderlichen Android-Berechtigungen zusammen.
+- Verbessert die Zuordnung identischer persönlicher Notizen einschließlich gleicher Anhänge und korrigiert die Wiederherstellung gelöschter Einträge mit gleicher ID, aber unterschiedlicher Datensatzart. Bestehende Sync-Vorschläge und Kontakt-Konfliktprüfungen bleiben erhalten.
+- Geplante SMS und Linux-Freisprechen wurden vom Nutzer abgenommen. Die übrigen offenen Issues sind für die folgende Entwicklungsversion vorgemerkt. Automatisches Windows-HFP-Routing ist in der aktuellen Win32-Ausgabe weiterhin nicht verfügbar.
+
 ## 2.0.22 / Notes 1.0.15 — 2026-09-24
 
 ### English

@@ -1,5 +1,5 @@
 Name:           magnolie-organizer-kde
-Version:        2.0.22
+Version:        2.0.23
 Release:        1%{?dist}
 Summary:        KDE system-account bridge for Magnolie Organizer
 License:        GPL-3.0-or-later

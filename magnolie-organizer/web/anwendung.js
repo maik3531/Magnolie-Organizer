@@ -15,130 +15,130 @@
 (function () {
 
   /* Die Fassung erscheint auf der Seite „Über". */
-const FASSUNG = "2.0.22";
+const FASSUNG = "2.0.23";
 const S = (x) => (x === undefined || x === null) ? "" : String(x);
 
-const NEU_IN_DIESER_FASSUNG_FASSUNG = "2.0.22";
+const NEU_IN_DIESER_FASSUNG_FASSUNG = "2.0.23";
 const NEU_IN_DIESER_FASSUNG = {
   "de": [
     "Neu in dieser Version",
-    "SMS mit einem Klick planen; gemeinsamer Windows-Installer für Organizer und Handbuch",
-    "Flüssigeres Speichern unter Windows, zuverlässige Updatesicherung und verbesserter Thunderbird-Import",
-    "Magnolie Notes 1.0.15 — unverändert"
+    "Linux-Freisprechen mit automatischer Bluetooth-Verbindung, Zustandswiederherstellung und optionaler Geräuschunterdrückung",
+    "Magnolie Notes 1.0.16 behält mehrere gekoppelte Rechner und vereinfacht die Anrufsteuerung",
+    "Verbesserter Notizabgleich, weniger Telefonmeldungen und automatische Diensterneuerung bei Debian-Updates"
   ],
   "en": [
     "What's new in this version",
-    "Schedule SMS with one click; one Windows installer for Organizer and manual",
-    "More responsive Windows saves, reliable upgrade backups and improved Thunderbird import",
-    "Magnolie Notes 1.0.15 — unchanged"
+    "Linux hands-free calling with automatic Bluetooth connection, state restoration and optional noise cancellation",
+    "Magnolie Notes 1.0.16 keeps multiple paired computers and simplifies call controls",
+    "Improved note synchronization, quieter phone updates and automatic background-service renewal during Debian upgrades"
   ],
   "fr": [
     "Nouveautés de cette version",
-    "Programmer les SMS en un clic ; un seul installateur Windows pour l’organiseur et le manuel",
-    "Enregistrement Windows plus réactif, sauvegarde de mise à niveau fiable et import Thunderbird amélioré",
-    "Magnolie Notes 1.0.15 — inchangé"
+    "Appels mains libres sous Linux avec connexion Bluetooth automatique, restauration de l’état et réduction du bruit facultative",
+    "Magnolie Notes 1.0.16 conserve plusieurs ordinateurs associés et simplifie les commandes d’appel",
+    "Synchronisation des notes améliorée, moins de notifications du téléphone et renouvellement automatique du service lors des mises à jour Debian"
   ],
   "es": [
     "Novedades de esta versión",
-    "Programar SMS con un clic; un solo instalador de Windows para el organizador y el manual",
-    "Guardado más ágil en Windows, copia de actualización fiable e importación de Thunderbird mejorada",
-    "Magnolie Notes 1.0.15 — sin cambios"
+    "Llamadas manos libres en Linux con conexión Bluetooth automática, restauración del estado y reducción de ruido opcional",
+    "Magnolie Notes 1.0.16 conserva varios ordenadores vinculados y simplifica los controles de llamada",
+    "Mejor sincronización de notas, menos avisos del teléfono y renovación automática del servicio al actualizar Debian"
   ],
   "it": [
     "Novità di questa versione",
-    "Programmazione SMS con un clic; un unico installer Windows per Organizer e manuale",
-    "Salvataggi Windows più fluidi, backup di aggiornamento affidabile e importazione Thunderbird migliorata",
-    "Magnolie Notes 1.0.15 — invariato"
+    "Chiamate in vivavoce su Linux con connessione Bluetooth automatica, ripristino dello stato e riduzione del rumore facoltativa",
+    "Magnolie Notes 1.0.16 conserva più computer associati e semplifica i comandi delle chiamate",
+    "Sincronizzazione delle note migliorata, meno notifiche del telefono e rinnovo automatico del servizio durante gli aggiornamenti Debian"
   ],
   "nl": [
     "Nieuw in deze versie",
-    "SMS met één klik plannen; één Windows-installatieprogramma voor Organizer en handleiding",
-    "Vlotter opslaan in Windows, betrouwbare updateback-up en verbeterde Thunderbird-import",
-    "Magnolie Notes 1.0.15 — ongewijzigd"
+    "Handsfree bellen op Linux met automatische Bluetooth-verbinding, herstel van de vorige toestand en optionele ruisonderdrukking",
+    "Magnolie Notes 1.0.16 bewaart meerdere gekoppelde computers en vereenvoudigt de gespreksbediening",
+    "Verbeterde notitiesynchronisatie, minder telefoonmeldingen en automatische vernieuwing van de achtergronddienst bij Debian-updates"
   ],
   "pt": [
     "Novidades desta versão",
-    "Agendar SMS com um clique; um único instalador Windows para o organizador e o manual",
-    "Gravação mais fluida no Windows, cópia de atualização fiável e importação Thunderbird melhorada",
-    "Magnolie Notes 1.0.15 — sem alterações"
+    "Chamadas em mãos-livres no Linux com ligação Bluetooth automática, reposição do estado e redução de ruído opcional",
+    "O Magnolie Notes 1.0.16 mantém vários computadores emparelhados e simplifica os controlos de chamadas",
+    "Sincronização de notas melhorada, menos notificações do telefone e renovação automática do serviço durante atualizações Debian"
   ],
   "ru": [
     "Новое в этой версии",
-    "Планирование SMS одним нажатием; единый установщик Windows для органайзера и руководства",
-    "Более отзывчивое сохранение в Windows, надёжное резервирование при обновлении и улучшенный импорт Thunderbird",
-    "Magnolie Notes 1.0.15 — без изменений"
+    "Громкая связь в Linux с автоматическим подключением Bluetooth, восстановлением состояния и необязательным шумоподавлением",
+    "Magnolie Notes 1.0.16 сохраняет несколько сопряжённых компьютеров и упрощает управление вызовами",
+    "Улучшенная синхронизация заметок, меньше уведомлений телефона и автоматическое обновление фоновой службы при обновлениях Debian"
   ],
   "cs": [
     "Co je nového v této verzi",
-    "Plánování SMS jedním kliknutím; jeden instalátor Windows pro organizér a příručku",
-    "Plynulejší ukládání ve Windows, spolehlivé zálohování při aktualizaci a lepší import Thunderbird",
-    "Magnolie Notes 1.0.15 — beze změn"
+    "Handsfree hovory v Linuxu s automatickým připojením Bluetooth, obnovením stavu a volitelným potlačením hluku",
+    "Magnolie Notes 1.0.16 zachovává více spárovaných počítačů a zjednodušuje ovládání hovorů",
+    "Vylepšená synchronizace poznámek, méně oznámení telefonu a automatické obnovení služby při aktualizacích Debianu"
   ],
   "pl": [
     "Nowości w tej wersji",
-    "Planowanie SMS jednym kliknięciem; wspólny instalator Windows dla organizera i podręcznika",
-    "Sprawniejsze zapisywanie w Windows, niezawodne kopie przy aktualizacji i poprawiony import Thunderbird",
-    "Magnolie Notes 1.0.15 — bez zmian"
+    "Rozmowy głośnomówiące w Linuksie z automatycznym połączeniem Bluetooth, przywracaniem stanu i opcjonalną redukcją szumów",
+    "Magnolie Notes 1.0.16 zachowuje kilka sparowanych komputerów i upraszcza sterowanie połączeniami",
+    "Ulepszona synchronizacja notatek, mniej powiadomień z telefonu i automatyczne odnowienie usługi przy aktualizacjach Debiana"
   ],
   "hsb": [
     "Nowe w tutej wersiji",
-    "SMS z jednym kliknjenjom planować; zhromadny instalaciski program Windows za organizator a přiručku",
-    "Lěpše składowanje pod Windows, spušćomna aktualizaciska zawěsćenka a polěpšeny import Thunderbird",
-    "Magnolie Notes 1.0.15 — njezměnjeny"
+    "Swobodne telefonowanje w Linuxu z awtomatiskim Bluetooth-zwiskom, wobnowjenjom stawa a opcionalnym potłóčenjom šumow",
+    "Magnolie Notes 1.0.16 wobchowa wjac spřaženych ličakow a zjednorja wodźenje zawołanjow",
+    "Polěpšena synchronizacija noticow, mjenje telefonowych powěsćenkow a awtomatiske wobnowjenje słužby při aktualizacijach Debiana"
   ],
   "da": [
     "Nyt i denne version",
-    "Planlæg SMS med ét klik; ét Windows-installationsprogram til Organizer og vejledning",
-    "Mere flydende lagring i Windows, pålidelig sikkerhedskopi ved opdatering og forbedret Thunderbird-import",
-    "Magnolie Notes 1.0.15 — uændret"
+    "Håndfri opkald på Linux med automatisk Bluetooth-forbindelse, gendannelse af tilstand og valgfri støjreduktion",
+    "Magnolie Notes 1.0.16 bevarer flere parrede computere og forenkler opkaldsstyringen",
+    "Forbedret notesynkronisering, færre telefonbeskeder og automatisk fornyelse af baggrundstjenesten ved Debian-opdateringer"
   ],
   "nb": [
     "Nytt i denne versjonen",
-    "Planlegg SMS med ett klikk; ett Windows-installasjonsprogram for Organizer og håndbok",
-    "Smidigere lagring i Windows, pålitelig sikkerhetskopi ved oppdatering og forbedret Thunderbird-import",
-    "Magnolie Notes 1.0.15 — uendret"
+    "Håndfrie samtaler på Linux med automatisk Bluetooth-tilkobling, gjenoppretting av tilstand og valgfri støydemping",
+    "Magnolie Notes 1.0.16 beholder flere parede datamaskiner og forenkler samtalekontrollene",
+    "Bedre notatsynkronisering, færre telefonvarsler og automatisk fornyelse av bakgrunnstjenesten ved Debian-oppdateringer"
   ],
   "hi": [
     "इस संस्करण में नया",
-    "एक क्लिक में SMS शेड्यूल करें; Organizer और पुस्तिका के लिए एक ही Windows इंस्टॉलर",
-    "Windows में अधिक सुचारु सहेजना, भरोसेमंद अपडेट बैकअप और बेहतर Thunderbird आयात",
-    "Magnolie Notes 1.0.15 — अपरिवर्तित"
+    "Linux पर स्वचालित Bluetooth कनेक्शन, पिछली स्थिति की बहाली और वैकल्पिक शोर नियंत्रण के साथ हैंड्स-फ़्री कॉल",
+    "Magnolie Notes 1.0.16 कई युग्मित कंप्यूटर सहेजता है और कॉल नियंत्रण सरल बनाता है",
+    "बेहतर नोट सिंक्रनाइज़ेशन, फ़ोन की कम सूचनाएँ और Debian अपडेट के दौरान पृष्ठभूमि सेवा का स्वचालित नवीनीकरण"
   ],
   "zh-cn": [
     "此版本的新功能",
-    "一键安排短信；Organizer 与手册使用同一个 Windows 安装程序",
-    "改善 Windows 保存时的响应，修复更新备份并改进 Thunderbird 导入",
-    "Magnolie Notes 1.0.15 — 未更改"
+    "Linux 免提通话支持自动连接蓝牙、恢复原有状态和可选降噪",
+    "Magnolie Notes 1.0.16 保留多个已配对的电脑，并简化通话控制",
+    "改进笔记同步，减少手机通知，并在 Debian 更新时自动更新后台服务"
   ],
   "ja": [
     "このバージョンの新機能",
-    "ワンクリックで SMS を予約。Organizer とマニュアルは共通の Windows インストーラーを使用",
-    "Windows の保存時の応答性、更新時のバックアップ、Thunderbird の取り込みを改善",
-    "Magnolie Notes 1.0.15 — 変更なし"
+    "Linuxのハンズフリー通話でBluetoothの自動接続、元の状態の復元、任意のノイズ抑制に対応",
+    "Magnolie Notes 1.0.16は複数のペアリング済みパソコンを保持し、通話操作を簡素化",
+    "ノート同期を改善し、電話からの通知を削減。Debian更新時にバックグラウンドサービスを自動更新"
   ],
   "ar": [
     "ما الجديد في هذا الإصدار",
-    "جدولة SMS بنقرة واحدة؛ برنامج تثبيت Windows واحد للمنظّم والدليل",
-    "حفظ أكثر سلاسة في Windows ونسخ احتياطي موثوق عند التحديث وتحسين استيراد Thunderbird",
-    "Magnolie Notes 1.0.15 — دون تغيير"
+    "مكالمات دون استخدام اليدين على Linux مع اتصال Bluetooth تلقائي واستعادة الحالة وتقليل ضوضاء اختياري",
+    "يحتفظ Magnolie Notes 1.0.16 بعدة حواسيب مقترنة ويبسط عناصر التحكم في المكالمات",
+    "مزامنة ملاحظات محسنة وإشعارات هاتف أقل وتجديد تلقائي لخدمة الخلفية أثناء تحديثات Debian"
   ],
   "uk": [
     "Нове в цій версії",
-    "Планування SMS одним натисканням; спільний інсталятор Windows для органайзера й посібника",
-    "Плавніше збереження у Windows, надійне резервування під час оновлення та поліпшений імпорт Thunderbird",
-    "Magnolie Notes 1.0.15 — без змін"
+    "Гучний зв’язок у Linux з автоматичним підключенням Bluetooth, відновленням стану та необов’язковим шумозаглушенням",
+    "Magnolie Notes 1.0.16 зберігає кілька спарених комп’ютерів і спрощує керування викликами",
+    "Покращена синхронізація нотаток, менше сповіщень телефону та автоматичне оновлення фонової служби під час оновлень Debian"
   ],
   "be": [
     "Што новага ў гэтай версіі",
-    "Планаванне SMS адным націсканнем; агульны ўсталёўшчык Windows для арганайзера і дапаможніка",
-    "Больш плаўнае захаванне ў Windows, надзейнае рэзерваванне пры абнаўленні і палепшаны імпарт Thunderbird",
-    "Magnolie Notes 1.0.15 — без змен"
+    "Гучная сувязь у Linux з аўтаматычным падключэннем Bluetooth, аднаўленнем стану і неабавязковым шумападаўленнем",
+    "Magnolie Notes 1.0.16 захоўвае некалькі спалучаных камп’ютараў і спрашчае кіраванне выклікамі",
+    "Палепшаная сінхранізацыя нататак, менш апавяшчэнняў тэлефона і аўтаматычнае абнаўленне фонавай службы пры абнаўленнях Debian"
   ],
   "tr": [
     "Bu sürümdeki yenilikler",
-    "Tek tıkla SMS planlama; Organizer ve kılavuz için tek Windows yükleyicisi",
-    "Windows’ta daha akıcı kaydetme, güvenilir güncelleme yedeği ve geliştirilmiş Thunderbird içe aktarımı",
-    "Magnolie Notes 1.0.15 — değişmedi"
+    "Linux üzerinde otomatik Bluetooth bağlantısı, önceki duruma dönüş ve isteğe bağlı gürültü engelleme ile eller serbest arama",
+    "Magnolie Notes 1.0.16 birden fazla eşleştirilmiş bilgisayarı korur ve arama kontrollerini sadeleştirir",
+    "Geliştirilmiş not eşitleme, daha az telefon bildirimi ve Debian güncellemelerinde arka plan hizmetinin otomatik yenilenmesi"
   ]
 };
 if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {

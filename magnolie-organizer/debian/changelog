@@ -1,3 +1,13 @@
+magnolie-organizer (2.0.23) unstable; urgency=medium
+
+  * Verbindet das zugeordnete Bluetooth-Telefon automatisch zum Freisprechen
+    und stellt nach dem Anruf den vorherigen Verbindungszustand wieder her.
+  * Ergänzt optionale Geräuschunterdrückung und dauerhaft gespeicherte HFP-Auswahl.
+  * Erneuert laufende Benutzerdienste nach Paketaktualisierungen.
+  * Verbessert den Notizabgleich und entfernt überflüssige Telefon-Sync-Meldungen.
+
+ -- Maik Walter <maik3531@gmail.com>  Fri, 25 Sep 2026 18:04:00 +0200
+
 magnolie-organizer (2.0.22) unstable; urgency=medium
 
   * Plant unveränderte SMS-Texte mit einem Klick ohne zusätzliche Bestätigung.

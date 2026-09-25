@@ -15,130 +15,130 @@
 (function () {
 
   /* Die Fassung erscheint auf der Seite „Über". */
-const FASSUNG = "2.0.22";
+const FASSUNG = "2.0.23";
 const S = (x) => (x === undefined || x === null) ? "" : String(x);
-const NEU_IN_DIESER_FASSUNG_VERSION = "2.0.22";
+const NEU_IN_DIESER_FASSUNG_VERSION = "2.0.23";
 
 const NEU_IN_DIESER_FASSUNG = {
   "de": [
     "Neu in dieser Version",
-    "SMS mit einem Klick planen; gemeinsamer Windows-Installer für Organizer und Handbuch",
-    "Flüssigeres Speichern unter Windows, zuverlässige Updatesicherung und verbesserter Thunderbird-Import",
-    "Magnolie Notes 1.0.15 — unverändert"
+    "Vereinfachte Anrufeinstellungen und einheitlich große Checkboxen",
+    "Magnolie Notes 1.0.16 behält mehrere gekoppelte Rechner und vereinfacht die Anrufsteuerung",
+    "Korrekturen am Notizabgleich und beim Wiederherstellen gelöschter Einträge"
   ],
   "en": [
     "What's new in this version",
-    "Schedule SMS with one click; one Windows installer for Organizer and manual",
-    "More responsive Windows saves, reliable upgrade backups and improved Thunderbird import",
-    "Magnolie Notes 1.0.15 — unchanged"
+    "Simplified call settings and consistently sized checkboxes",
+    "Magnolie Notes 1.0.16 keeps multiple paired computers and simplifies call controls",
+    "Corrections to note synchronization and deleted-item restoration"
   ],
   "fr": [
     "Nouveautés de cette version",
-    "Programmer les SMS en un clic ; un seul installateur Windows pour l’organiseur et le manuel",
-    "Enregistrement Windows plus réactif, sauvegarde de mise à niveau fiable et import Thunderbird amélioré",
-    "Magnolie Notes 1.0.15 — inchangé"
+    "Paramètres d’appel simplifiés et cases à cocher de taille uniforme",
+    "Magnolie Notes 1.0.16 conserve plusieurs ordinateurs associés et simplifie les commandes d’appel",
+    "Corrections de la synchronisation des notes et de la restauration des éléments supprimés"
   ],
   "es": [
     "Novedades de esta versión",
-    "Programar SMS con un clic; un solo instalador de Windows para el organizador y el manual",
-    "Guardado más ágil en Windows, copia de actualización fiable e importación de Thunderbird mejorada",
-    "Magnolie Notes 1.0.15 — sin cambios"
+    "Ajustes de llamadas simplificados y casillas de tamaño uniforme",
+    "Magnolie Notes 1.0.16 conserva varios ordenadores vinculados y simplifica los controles de llamada",
+    "Correcciones en la sincronización de notas y la restauración de elementos eliminados"
   ],
   "it": [
     "Novità di questa versione",
-    "Programmazione SMS con un clic; un unico installer Windows per Organizer e manuale",
-    "Salvataggi Windows più fluidi, backup di aggiornamento affidabile e importazione Thunderbird migliorata",
-    "Magnolie Notes 1.0.15 — invariato"
+    "Impostazioni delle chiamate semplificate e caselle di dimensioni uniformi",
+    "Magnolie Notes 1.0.16 conserva più computer associati e semplifica i comandi delle chiamate",
+    "Correzioni alla sincronizzazione delle note e al ripristino degli elementi eliminati"
   ],
   "nl": [
     "Nieuw in deze versie",
-    "SMS met één klik plannen; één Windows-installatieprogramma voor Organizer en handleiding",
-    "Vlotter opslaan in Windows, betrouwbare updateback-up en verbeterde Thunderbird-import",
-    "Magnolie Notes 1.0.15 — ongewijzigd"
+    "Eenvoudigere gespreksinstellingen en selectievakjes met gelijke afmetingen",
+    "Magnolie Notes 1.0.16 bewaart meerdere gekoppelde computers en vereenvoudigt de gespreksbediening",
+    "Correcties voor notitiesynchronisatie en het herstellen van verwijderde items"
   ],
   "pt": [
     "Novidades desta versão",
-    "Agendar SMS com um clique; um único instalador Windows para o organizador e o manual",
-    "Gravação mais fluida no Windows, cópia de atualização fiável e importação Thunderbird melhorada",
-    "Magnolie Notes 1.0.15 — sem alterações"
+    "Definições de chamadas simplificadas e caixas de seleção de tamanho uniforme",
+    "O Magnolie Notes 1.0.16 mantém vários computadores emparelhados e simplifica os controlos de chamadas",
+    "Correções na sincronização de notas e na restauração de itens eliminados"
   ],
   "ru": [
     "Новое в этой версии",
-    "Планирование SMS одним нажатием; единый установщик Windows для органайзера и руководства",
-    "Более отзывчивое сохранение в Windows, надёжное резервирование при обновлении и улучшенный импорт Thunderbird",
-    "Magnolie Notes 1.0.15 — без изменений"
+    "Упрощённые настройки вызовов и флажки одинакового размера",
+    "Magnolie Notes 1.0.16 сохраняет несколько сопряжённых компьютеров и упрощает управление вызовами",
+    "Исправления синхронизации заметок и восстановления удалённых записей"
   ],
   "cs": [
     "Co je nového v této verzi",
-    "Plánování SMS jedním kliknutím; jeden instalátor Windows pro organizér a příručku",
-    "Plynulejší ukládání ve Windows, spolehlivé zálohování při aktualizaci a lepší import Thunderbird",
-    "Magnolie Notes 1.0.15 — beze změn"
+    "Zjednodušené nastavení hovorů a stejně velká zaškrtávací políčka",
+    "Magnolie Notes 1.0.16 zachovává více spárovaných počítačů a zjednodušuje ovládání hovorů",
+    "Opravy synchronizace poznámek a obnovování smazaných položek"
   ],
   "pl": [
     "Nowości w tej wersji",
-    "Planowanie SMS jednym kliknięciem; wspólny instalator Windows dla organizera i podręcznika",
-    "Sprawniejsze zapisywanie w Windows, niezawodne kopie przy aktualizacji i poprawiony import Thunderbird",
-    "Magnolie Notes 1.0.15 — bez zmian"
+    "Uproszczone ustawienia połączeń i pola wyboru o jednakowym rozmiarze",
+    "Magnolie Notes 1.0.16 zachowuje kilka sparowanych komputerów i upraszcza sterowanie połączeniami",
+    "Poprawki synchronizacji notatek i przywracania usuniętych wpisów"
   ],
   "hsb": [
     "Nowe w tutej wersiji",
-    "SMS z jednym kliknjenjom planować; zhromadny instalaciski program Windows za organizator a přiručku",
-    "Lěpše składowanje pod Windows, spušćomna aktualizaciska zawěsćenka a polěpšeny import Thunderbird",
-    "Magnolie Notes 1.0.15 — njezměnjeny"
+    "Zjednorjene nastajenja zawołanjow a kašćiki ze samsnej wulkosću",
+    "Magnolie Notes 1.0.16 wobchowa wjac spřaženych ličakow a zjednorja wodźenje zawołanjow",
+    "Porjedźenja synchronizacije noticow a wobnowjenja zhašanych zapiskow"
   ],
   "da": [
     "Nyt i denne version",
-    "Planlæg SMS med ét klik; ét Windows-installationsprogram til Organizer og vejledning",
-    "Mere flydende lagring i Windows, pålidelig sikkerhedskopi ved opdatering og forbedret Thunderbird-import",
-    "Magnolie Notes 1.0.15 — uændret"
+    "Enklere opkaldsindstillinger og afkrydsningsfelter med ens størrelse",
+    "Magnolie Notes 1.0.16 bevarer flere parrede computere og forenkler opkaldsstyringen",
+    "Rettelser til notesynkronisering og gendannelse af slettede poster"
   ],
   "nb": [
     "Nytt i denne versjonen",
-    "Planlegg SMS med ett klikk; ett Windows-installasjonsprogram for Organizer og håndbok",
-    "Smidigere lagring i Windows, pålitelig sikkerhetskopi ved oppdatering og forbedret Thunderbird-import",
-    "Magnolie Notes 1.0.15 — uendret"
+    "Enklere samtaleinnstillinger og avkrysningsbokser med lik størrelse",
+    "Magnolie Notes 1.0.16 beholder flere parede datamaskiner og forenkler samtalekontrollene",
+    "Rettelser i notatsynkronisering og gjenoppretting av slettede oppføringer"
   ],
   "hi": [
     "इस संस्करण में नया",
-    "एक क्लिक में SMS शेड्यूल करें; Organizer और पुस्तिका के लिए एक ही Windows इंस्टॉलर",
-    "Windows में अधिक सुचारु सहेजना, भरोसेमंद अपडेट बैकअप और बेहतर Thunderbird आयात",
-    "Magnolie Notes 1.0.15 — अपरिवर्तित"
+    "सरल कॉल सेटिंग और समान आकार के चेकबॉक्स",
+    "Magnolie Notes 1.0.16 कई युग्मित कंप्यूटर सहेजता है और कॉल नियंत्रण सरल बनाता है",
+    "नोट सिंक्रनाइज़ेशन और हटाई गई प्रविष्टियों की बहाली में सुधार"
   ],
   "zh-cn": [
     "此版本的新功能",
-    "一键安排短信；Organizer 与手册使用同一个 Windows 安装程序",
-    "改善 Windows 保存时的响应，修复更新备份并改进 Thunderbird 导入",
-    "Magnolie Notes 1.0.15 — 未更改"
+    "简化通话设置，并统一复选框大小",
+    "Magnolie Notes 1.0.16 保留多个已配对的电脑，并简化通话控制",
+    "修复笔记同步和已删除条目的恢复"
   ],
   "ja": [
     "このバージョンの新機能",
-    "ワンクリックで SMS を予約。Organizer とマニュアルは共通の Windows インストーラーを使用",
-    "Windows の保存時の応答性、更新時のバックアップ、Thunderbird の取り込みを改善",
-    "Magnolie Notes 1.0.15 — 変更なし"
+    "通話設定を簡素化し、チェックボックスの大きさを統一",
+    "Magnolie Notes 1.0.16は複数のペアリング済みパソコンを保持し、通話操作を簡素化",
+    "ノート同期と削除済み項目の復元を修正"
   ],
   "ar": [
     "ما الجديد في هذا الإصدار",
-    "جدولة SMS بنقرة واحدة؛ برنامج تثبيت Windows واحد للمنظّم والدليل",
-    "حفظ أكثر سلاسة في Windows ونسخ احتياطي موثوق عند التحديث وتحسين استيراد Thunderbird",
-    "Magnolie Notes 1.0.15 — دون تغيير"
+    "إعدادات مكالمات مبسطة ومربعات اختيار موحدة الحجم",
+    "يحتفظ Magnolie Notes 1.0.16 بعدة حواسيب مقترنة ويبسط عناصر التحكم في المكالمات",
+    "تصحيحات لمزامنة الملاحظات واستعادة العناصر المحذوفة"
   ],
   "uk": [
     "Нове в цій версії",
-    "Планування SMS одним натисканням; спільний інсталятор Windows для органайзера й посібника",
-    "Плавніше збереження у Windows, надійне резервування під час оновлення та поліпшений імпорт Thunderbird",
-    "Magnolie Notes 1.0.15 — без змін"
+    "Спрощені налаштування викликів і прапорці однакового розміру",
+    "Magnolie Notes 1.0.16 зберігає кілька спарених комп’ютерів і спрощує керування викликами",
+    "Виправлення синхронізації нотаток і відновлення видалених записів"
   ],
   "be": [
     "Што новага ў гэтай версіі",
-    "Планаванне SMS адным націсканнем; агульны ўсталёўшчык Windows для арганайзера і дапаможніка",
-    "Больш плаўнае захаванне ў Windows, надзейнае рэзерваванне пры абнаўленні і палепшаны імпарт Thunderbird",
-    "Magnolie Notes 1.0.15 — без змен"
+    "Спрошчаныя налады выклікаў і сцяжкі аднолькавага памеру",
+    "Magnolie Notes 1.0.16 захоўвае некалькі спалучаных камп’ютараў і спрашчае кіраванне выклікамі",
+    "Выпраўленні сінхранізацыі нататак і аднаўлення выдаленых запісаў"
   ],
   "tr": [
     "Bu sürümdeki yenilikler",
-    "Tek tıkla SMS planlama; Organizer ve kılavuz için tek Windows yükleyicisi",
-    "Windows’ta daha akıcı kaydetme, güvenilir güncelleme yedeği ve geliştirilmiş Thunderbird içe aktarımı",
-    "Magnolie Notes 1.0.15 — değişmedi"
+    "Sadeleştirilmiş arama ayarları ve eşit boyutlu onay kutuları",
+    "Magnolie Notes 1.0.16 birden fazla eşleştirilmiş bilgisayarı korur ve arama kontrollerini sadeleştirir",
+    "Not eşitleme ve silinen öğelerin geri yüklenmesi için düzeltmeler"
   ]
 };
 if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes version mismatch");
