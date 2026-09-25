@@ -145,7 +145,15 @@ object PersonalSync {
             ?: input.personalSync.note_ids.keys.firstOrNull { noteWireId(input.personalSync, it) == canonical } ?: canonical
     }
 
-    private fun noteContent(value: JsonObject) = JsonObject(value.filterKeys { it !in setOf("created_ms", "modified_ms") })
+    private fun noteContent(value: JsonObject): JsonObject {
+        val content = value.filterKeys { it !in setOf("created_ms", "modified_ms") }.toMutableMap()
+        val title = (value["title"] as? JsonPrimitive)?.content
+        if (title != null && (value["html"] as? JsonPrimitive)?.content == "" &&
+            (value["attachments"] as? JsonArray).orEmpty().isEmpty()) {
+            content["text"] = JsonPrimitive(NotizVorlagen.vergleichsText(title, (value["text"] as? JsonPrimitive)?.content.orEmpty()))
+        }
+        return JsonObject(content)
+    }
 
     fun canonical(value: kotlinx.serialization.json.JsonElement): ByteArray {
         val encoded = Charsets.UTF_8.newEncoder().onMalformedInput(java.nio.charset.CodingErrorAction.REPORT)
@@ -549,10 +557,9 @@ object PersonalSync {
                         val id = localId(remote.id)
                         val local = notes.firstOrNull { it.id == id }
                         val format = if ("attachments" in remote.value) 2 else 1
-                        fun content(value: JsonObject) = JsonObject(value.filterKeys { it !in setOf("created_ms", "modified_ms") })
-                        if (local != null && content(noteValue(local, format)) == content(remote.value)) {
+                        if (local != null && noteContent(noteValue(local, format)) == noteContent(remote.value)) {
                             // Keep wire hashes and clocks exact; only the conflict
-                            // decision ignores timestamps. Preserve local
+                            // decision ignores timestamps and legacy template paths. Preserve local
                             // attachments not represented by this wire value.
                             if (remoteWins) notes = notes.filterNot { it.id == id } +
                                 remoteNote(remote.copy(id = id), local, attachments, additive = true)

@@ -24,6 +24,47 @@ async function check(web) {
     neu: false, regional: { language: "en" } }); stand(); await tick(); messages.length = 0; };
   const receipts = () => messages.filter(m => m.cmd === "baum_eingang_geleert").flatMap(m => m.ids);
   try {
+    const welcome = datenPfad => {
+      w.App.init({daten: {}, neu: true, datenPfad, regional: {language: "en"}});
+      return JSON.parse(JSON.stringify(T.daten().notizen[0]));
+    };
+    const localWelcome = welcome("/home/fixture/.local/share/magnolie-organizer/daten.json");
+    const remoteWelcome = welcome("C:\\Users\\Fixture\\AppData\\Local\\Magnolie Organizer\\daten.json");
+    await reset([localWelcome]);
+    T.uebernehmeBaumAngebot(offer("a", "generated-welcome", 1, {
+      titel: remoteWelcome.titel, text: remoteWelcome.text, html: remoteWelcome.html || ""}));
+    await tick();
+    assert.equal(T.daten().notizen.length, 1,
+      "the same generated welcome page must not duplicate because of its device-local storage path");
+
+    const templateFile = ["../../contracts", "../contracts"].map(dir =>
+      path.resolve(__dirname, dir, "note-identity-templates.json")).find(file => fs.existsSync(file));
+    const templates = JSON.parse(fs.readFileSync(templateFile, "utf8")).templates;
+    for (const template of templates) {
+      const original = template.before + "/home/fixture/data.json" + template.after;
+      const variants = [
+        ["windows", template.title, template.before + "C:\\Users\\Fixture\\data.json" + template.after, "", 1],
+        ["no-path", template.title, template.text, "", 1],
+        ["crlf", template.title, original.replace(/\n/g, "\r\n"), "", 1],
+        ["edited", template.title, original + "User addition", "", 2],
+        ["title", template.title + " edited", original, "", 2],
+        ["formatting", template.title, original, "<b>Welcome</b>", 2],
+        ["relative-path", template.title, template.before + "relative/data.json" + template.after, "", 2],
+        ["multiline-path", template.title, template.before + "/home/fixture\nUser addition" + template.after, "", 2]
+      ];
+      for (const [name, titel, text, html, count] of variants) {
+        await reset([{id: "template-local", titel: template.title, text: original, html: ""}]);
+        T.uebernehmeBaumAngebot(offer("a", "template-" + name, 1, {titel, text, html}));
+        await tick();
+        assert.equal(T.daten().notizen.length, count, template.locale + "/" + name);
+      }
+    }
+    await reset([{id: "ordinary-path", titel: "My paths", text: "/home/fixture/data.json", html: ""}]);
+    T.uebernehmeBaumAngebot(offer("a", "ordinary-path", 1, {
+      titel: "My paths", text: "C:\\Users\\Fixture\\data.json", html: ""}));
+    await tick();
+    assert.equal(T.daten().notizen.length, 2, "paths in ordinary user notes must remain content");
+
     await reset([{ id: "local-note", titel: "Welcome", text: "Same content", html: "<p>Same content</p>", angelegt: 1 }]);
     assert.equal(T.uebernehmeBaumAngebot(offer("a", "share-a")), true); await tick();
     assert.equal(T.uebernehmeBaumAngebot(offer("b", "share-b", 9)), true); await tick();

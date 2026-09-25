@@ -16,6 +16,33 @@ function client(web, id, actor, date) {
   return { dom, w, t: w.OrganizerTest };
 }
 async function check(web) {
+  const templateFile = ["../../contracts", "../contracts"].map(dir =>
+    path.resolve(__dirname, dir, "note-identity-templates.json")).find(file => fs.existsSync(file));
+  const templates = JSON.parse(fs.readFileSync(templateFile, "utf8")).templates;
+  for (const format of [1, 2, 3]) {
+    const a = client(web, "z-local", "11111111-1111-4111-8111-111111111111", 1);
+    const b = client(web, "a-local", "22222222-2222-4222-8222-222222222222", 2);
+    const snapshot = c => c.t.personalSyncSnapshot(["notes"], format, peer);
+    const apply = (c, records) => c.t.personalSyncAnwenden(JSON.parse(JSON.stringify(records)), {}, format, peer, ["notes"]);
+    try {
+      for (const template of templates) {
+        for (const [c, id, actor, storage] of [
+          [a, "z-local", "11111111-1111-4111-8111-111111111111", "/home/fixture/data.json"],
+          [b, "a-local", "22222222-2222-4222-8222-222222222222", "C:\\Users\\Fixture\\data.json"]
+        ]) c.w.App.init({daten: {personalSync: {actor_id: actor}, notizen: [{id,
+          titel: template.title, text: template.before + storage + template.after, html: "", angelegt: 1}]}, neu: false});
+        const firstA = await snapshot(a), firstB = await snapshot(b);
+        assert.equal((await apply(a, firstB)).conflicts, 0, template.locale);
+        assert.equal((await apply(b, firstA)).conflicts, 0, template.locale);
+        for (const c of [a, b]) assert.equal(c.t.daten().notizen.length, 1, template.locale);
+        const nextA = (await snapshot(a)).find(r => r.kind === "note");
+        const nextB = (await snapshot(b)).find(r => r.kind === "note");
+        assert.equal(nextA.id, nextB.id); assert.equal(nextA.hash, nextB.hash);
+        await apply(a, firstB);
+        assert.equal(a.t.daten().notizen.length, 1, "welcome replay: " + template.locale);
+      }
+    } finally { a.w.close(); b.w.close(); }
+  }
   for (const variant of ["same", "same-format2", "attachment-id", "attachment-name", "attachment-content", "format1", "deleted-history", "occupied-parent"]) {
     const a = client(web, "z-local", "11111111-1111-4111-8111-111111111111", 1);
     const b = client(web, "a-local", "22222222-2222-4222-8222-222222222222", 2);
