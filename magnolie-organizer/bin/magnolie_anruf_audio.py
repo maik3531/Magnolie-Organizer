@@ -230,6 +230,22 @@ class NativePulseAudio:
             raise AudioUnavailable("audio_json_unavailable")
         return value
 
+    def modules(self):
+        values = self.data("modules")
+        if all(type(item.get("index")) is int for item in values):
+            return values
+        # pactl 16 omits module indices in JSON, including Pulse-compatible
+        # PipeWire modules. Correlate the bounded short listing by exact content.
+        result = []
+        for line in self.command("list", "short", "modules").splitlines():
+            fields = line.split("\t", 3)
+            if (len(fields) >= 3 and re.fullmatch(r"[0-9]{1,10}", fields[0])
+                    and fields[1] in ("module-loopback", "module-echo-cancel")
+                    and any(item.get("name") == fields[1] and item.get("argument", "") == fields[2]
+                            for item in values)):
+                result.append(dict(index=int(fields[0]), name=fields[1], argument=fields[2]))
+        return result
+
     @staticmethod
     def address(item):
         props = item.get("properties", {})
@@ -290,8 +306,8 @@ class NativePulseAudio:
             result.append(local[0])
         return result
 
-    def endpoints(self, address, card):
-        local = self.local_endpoints()
+    def endpoints(self, address, card, local=None):
+        local = local or self.local_endpoints()
         remote = []
         for kind in ("sources", "sinks"):
             matches = [item for item in self.data(kind) if self.address(item) == address
@@ -322,9 +338,9 @@ class NativePulseAudio:
                 return True
         return False
 
-    def native_gateway(self, address):
+    def native_gateway(self, address, local=None):
         """Observe PipeWire's native AG streams without creating duplicate loops."""
-        local_source, local_sink = self.local_endpoints()
+        local_source, local_sink = local or self.local_endpoints()
         for kind, field, endpoint, factory in (
                 ("sink-inputs", "sink", local_sink, "api.bluez5.sco.source"),
                 ("source-outputs", "source", local_source, "api.bluez5.sco.sink")):
@@ -339,13 +355,127 @@ class NativePulseAudio:
         return True
 
 
+class CallEcho:
+    """Call-owned WebRTC filter; move only this phone's identified SCO streams."""
+    def __init__(self, pulse, token):
+        self.pulse, self.token = pulse, token
+        self.source_name = "magnolie_call_source_" + token
+        self.sink_name = "magnolie_call_sink_" + token
+        self.pending = False
+        self.moves = []
+        self.adopted = False
+        self.masters = self.cookie = None
+
+    def owned(self):
+        expected = {"source_name=" + self.source_name, "sink_name=" + self.sink_name, "aec_method=webrtc"}
+        result = []
+        for item in self.pulse.modules():
+            if item.get("name") != "module-echo-cancel" or not isinstance(item.get("argument"), str):
+                continue
+            try:
+                arguments = set(shlex.split(item["argument"]))
+            except ValueError:
+                continue
+            if expected <= arguments:
+                result.append(item)
+        return result
+
+    def start(self):
+        self.adopted = False
+        source, sink = self.pulse.local_endpoints()
+        self.masters = (self.pulse.name(source), self.pulse.name(sink))
+        self.cookie = self.pulse.data("info").get("cookie")
+        if self.cookie is None:
+            raise AudioUnavailable("echo_server_identity_unavailable")
+        self.pending = True
+        self.pulse.command("load-module", "module-echo-cancel", "aec_method=webrtc", "rate=48000", "channels=1",
+            "source_master=" + self.masters[0], "sink_master=" + self.masters[1],
+            "source_name=" + self.source_name, "sink_name=" + self.sink_name,
+            'source_properties="priority.session=0 device.class=filter"',
+            'sink_properties="priority.session=0 device.class=filter"')
+
+    def endpoints(self):
+        result = []
+        for kind, name in (("sources", self.source_name), ("sinks", self.sink_name)):
+            matches = [item for item in self.pulse.data(kind) if item.get("name") == name]
+            if (len(matches) != 1 or type(matches[0].get("index")) is not int
+                    or matches[0].get("mute") is not False
+                    or kind == "sources" and self.pulse.is_monitor(matches[0])):
+                raise AudioUnavailable("echo_endpoints_unavailable")
+            result.append(matches[0])
+        if len(self.owned()) != 1:
+            raise AudioUnavailable("echo_module_unavailable")
+        return tuple(result)
+
+    def current(self):
+        return (self.pulse.data("info").get("cookie") == self.cookie
+                and tuple(self.pulse.name(item) for item in self.pulse.local_endpoints()) == self.masters)
+
+    def route_native(self, address):
+        source, sink = self.endpoints()
+        for kind, field, target, factory in (
+                ("source-outputs", "source", source, "api.bluez5.sco.sink"),
+                ("sink-inputs", "sink", sink, "api.bluez5.sco.source")):
+            matches = [item for item in self.pulse.data(kind) if self.pulse.address(item) == address
+                and item.get("properties", {}).get("api.bluez5.profile") in AG_NODE_PROFILES
+                and item.get("properties", {}).get("factory.name") == factory]
+            if len(matches) != 1:
+                raise AudioUnavailable("native_echo_stream_unavailable")
+            item = matches[0]
+            serial = item.get("properties", {}).get("object.serial")
+            originals = [node for node in self.pulse.data("sources" if field == "source" else "sinks")
+                         if node.get("index") == item.get(field)]
+            if serial is None or type(item.get("index")) is not int or len(originals) != 1:
+                raise AudioUnavailable("native_echo_identity_unavailable")
+            command = "move-source-output" if field == "source" else "move-sink-input"
+            self.moves.append(dict(kind=kind, field=field, index=item["index"], serial=serial,
+                address=address, factory=factory, command=command, target=target["index"],
+                original=self.pulse.name(originals[0]), original_index=originals[0]["index"]))
+            self.pulse.command(command, str(item["index"]), self.pulse.name(target))
+            self.moves[-1]["moved"] = any(current.get("index") == item["index"]
+                and current.get("properties", {}).get("object.serial") == serial
+                and current.get(field) == target["index"] for current in self.pulse.data(kind))
+
+    def stop(self):
+        while self.moves:
+            move = self.moves[-1]
+            if self.pulse.data("info").get("cookie") == self.cookie:
+                matches = [item for item in self.pulse.data(move["kind"])
+                    if item.get("index") == move["index"]
+                    and item.get("properties", {}).get("object.serial") == move["serial"]
+                    and item.get("properties", {}).get("factory.name") == move["factory"]
+                    and self.pulse.address(item) == move["address"]]
+                if len(matches) == 1 and matches[0].get(move["field"]) == move["target"]:
+                    self.pulse.command(move["command"], str(move["index"]), move["original"])
+                elif matches and (move.get("moved") or matches[0].get(move["field"]) != move["original_index"]):
+                    self.adopted = True
+            self.moves.pop()
+        if self.pending:
+            info = self.pulse.data("info")
+            if info.get("default_source_name") == self.source_name or info.get("default_sink_name") == self.sink_name:
+                return False
+            # A separately adopted filter remains available to its new user.
+            for endpoints, streams, field, name in (("sources", "source-outputs", "source", self.source_name),
+                                                  ("sinks", "sink-inputs", "sink", self.sink_name)):
+                indices = {item["index"] for item in self.pulse.data(endpoints) if item.get("name") == name}
+                if any(item.get(field) in indices for item in self.pulse.data(streams)):
+                    return False
+            for module in self.owned():
+                self.pulse.command("unload-module", str(module["index"]))
+            if self.owned():
+                return False
+            self.pending = False
+        return True
+
+
 class AnrufBluetooth:
     """One cancellable, resource-owned route; only the phone service may drive it."""
-    def __init__(self, bluez=None, pulse=None):
+    def __init__(self, bluez=None, pulse=None, echo=None):
         self.bluez = bluez or NativeBlueZAudio()
         self.pulse = pulse or NativePulseAudio()
         self.lock = threading.RLock()
         self.token = uuid.uuid4().hex
+        self.echo = echo or CallEcho(self.pulse, self.token)
         self.modules = {}
         self.modules_pending = False
         self.profile_hold = None
@@ -457,11 +587,11 @@ class AnrufBluetooth:
                     raise AudioUnavailable("call_changed")
             self.bluez.guard = self.pulse.guard = current
             try:
-                if self.modules_pending or self.profile_hold or self.connection_hold or self.power_hold or self.native_gateway_active:
+                if self.modules_pending or self.profile_hold or self.connection_hold or self.power_hold or self.native_gateway_active or self.echo.pending:
                     if self.state["active"] and self._observed(context, refresh):
                         return dict(self.state)
                     self.restore()
-                    if self.modules_pending or self.profile_hold or self.connection_hold or self.power_hold:
+                    if self.modules_pending or self.profile_hold or self.connection_hold or self.power_hold or self.echo.pending:
                         raise AudioUnavailable("cleanup_pending")
                     self.key = key
                 self._check(context, refresh, allow_powered_off=True)
@@ -505,7 +635,13 @@ class AnrufBluetooth:
                 except AudioUnavailable:
                     connect()
                     mode, legacy = self._wait(ready_route, context, refresh, timeout=6)
+                self.echo.start()
+                local = self._wait(self.echo.endpoints, context, refresh)
                 if mode == "native":
+                    self.echo.route_native(context["address"])
+                    self._wait(lambda: self.pulse.native_gateway(context["address"], self.echo.endpoints()), context, refresh)
+                    for move in getattr(self.echo, "moves", []):
+                        move["moved"] = True
                     self.native_gateway_active = True
                     self._check(context, refresh)
                     self.active_context = context
@@ -534,7 +670,7 @@ class AnrufBluetooth:
                 card, _ = self.pulse.card(context["address"])
                 if self.pulse.profile_name(card) != profile:
                     raise AudioUnavailable("profile_not_observed")
-                routes = self._wait(lambda: self.pulse.endpoints(context["address"], card), context, refresh)
+                routes = self._wait(lambda: self.pulse.endpoints(context["address"], card, local), context, refresh)
                 for source, sink in routes:
                     self._check(context, refresh)  # In particular immediately before opening the mic.
                     args = ["source=" + self.pulse.name(source), "sink=" + self.pulse.name(sink),
@@ -561,7 +697,7 @@ class AnrufBluetooth:
 
     def _owned_modules(self):
         found = {}
-        for item in self.pulse.data("modules"):
+        for item in self.pulse.modules():
             if item.get("name") != "module-loopback" or not isinstance(item.get("index"), int):
                 continue
             args = shlex.split(item.get("argument", ""))
@@ -574,12 +710,15 @@ class AnrufBluetooth:
     def _observed(self, context, refresh):
         self._check(context, refresh)
         self.bluez.device(context["address"])
+        if not self.echo.current():
+            return False
+        local = self.echo.endpoints()
         if self.native_gateway_active:
-            return self.pulse.native_gateway(context["address"])
+            return self.pulse.native_gateway(context["address"], local)
         card, _ = self.pulse.card(context["address"])
         if self.pulse.profile_name(card) not in AG_PROFILES:
             return False
-        routes = self.pulse.endpoints(context["address"], card)
+        routes = self.pulse.endpoints(context["address"], card, local)
         modules = self._owned_modules()
         if len(modules) != 2 or self.pulse.foreign_streams(context["address"], set(modules)):
             return False
@@ -599,7 +738,7 @@ class AnrufBluetooth:
 
     def restore(self):
         with self.lock:
-            pending = bool(self.modules_pending or self.profile_hold or self.connection_hold or self.power_hold)
+            pending = bool(self.modules_pending or self.profile_hold or self.connection_hold or self.power_hold or self.echo.pending)
             self.state = self.snapshot("unavailable" if pending else "inactive",
                                        "cleanup_pending" if pending else "released")
             self.active_context = None
@@ -614,6 +753,10 @@ class AnrufBluetooth:
                     if self._owned_modules():
                         return False
                     self.modules_pending = False
+                if not self.echo.stop():
+                    return False
+                if self.echo.adopted:
+                    self.connection_hold = None
                 if self.profile_hold:
                     address, name, old, selected, cookie, index = self.profile_hold
                     cards = [item for item in self.pulse.data("cards") if self.pulse.address(item) == address

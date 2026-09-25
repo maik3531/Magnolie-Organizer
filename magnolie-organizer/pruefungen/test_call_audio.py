@@ -125,10 +125,124 @@ class Pulse:
         return "0\n"  # Intentionally NOT the actual module index; exit status is not evidence.
 
 
+class EchoPulse(Pulse):
+    def run(self, command):
+        args = command[1:]
+        if args[:2] == ["load-module", "module-echo-cancel"]:
+            self.commands.append(args)
+            index = self.next_id
+            self.next_id += 7
+            self.values["modules"].append(dict(index=index, name=args[1], argument=" ".join(args[2:])))
+            options = dict(arg.split("=", 1) for arg in args[2:])
+            assert options["aec_method"] == "webrtc"
+            for kind, prefix, offset in (("sources", "source", 3000), ("sinks", "sink", 4000)):
+                self.values[kind].append(dict(index=index + offset, owner_module=index,
+                    name=options[prefix + "_name"], state="RUNNING", mute=False,
+                    monitor_of_sink=4294967295, properties={"device.class": "filter"}))
+            self.change(args)
+            return "0\n"
+        if args[0] in ("move-source-output", "move-sink-input"):
+            self.commands.append(args)
+            kind, endpoints, field = (("source-outputs", "sources", "source") if args[0] == "move-source-output"
+                                      else ("sink-inputs", "sinks", "sink"))
+            stream = next(item for item in self.values[kind] if str(item.get("index")) == args[1])
+            endpoint = next(item for item in self.values[endpoints] if item["name"] == args[2])
+            stream[field] = endpoint["index"]
+            self.change(args)
+            return ""
+        result = super().run(command)
+        if args[0] == "unload-module":
+            for kind in ("sources", "sinks"):
+                self.values[kind] = [item for item in self.values[kind] if str(item.get("owner_module")) != args[1]]
+        return result
+
+
+@pytest.mark.parametrize("native", [False, True])
+def test_real_echo_filter_routes_both_directions_and_restores_only_owned_audio(native):
+    bluez, pulse = BlueZ(), EchoPulse()
+    if native:
+        pulse.values["cards"] = []
+        pulse.values["sources"] = [pulse.values["sources"][1]]
+        pulse.values["sinks"] = [pulse.values["sinks"][1]]
+        common = {"api.bluez5.address": ADDRESS, "api.bluez5.profile": "headset-audio-gateway"}
+        pulse.values["sink-inputs"] = [dict(index=701, sink=24, corked=False, mute=False, owner_module=None,
+            properties=dict(common, **{"factory.name": "api.bluez5.sco.source", "object.serial": "serial701"})),
+            dict(index=900, sink=24, properties={"application.name": "unrelated playback"})]
+        pulse.values["source-outputs"] = [dict(index=702, source=51, corked=False, mute=False, owner_module=None,
+            properties=dict(common, **{"factory.name": "api.bluez5.sco.sink", "object.serial": "serial702"}))]
+    router = audio.AnrufBluetooth(bluez, audio.NativePulseAudio(pulse.run, lambda _: "fake-pactl"))
+    context = dict(device_id=PEER, identity="key", session=1, call_ref=CALL, revision=2,
+                   address=ADDRESS, consent=(1, 1, 1))
+    assert router.update(lambda: context.copy())["active"]
+    assert router.echo.pending and len(router.echo.owned()) == 1
+    echo_source, echo_sink = router.echo.endpoints()
+    loads = [command for command in pulse.commands if command[:2] == ["load-module", "module-echo-cancel"]]
+    assert len(loads) == 1 and "source_master=pc_mic" in loads[0] and "sink_master=pc_speaker" in loads[0]
+    if native:
+        assert pulse.values["sink-inputs"][0]["sink"] == echo_sink["index"]
+        assert pulse.values["source-outputs"][0]["source"] == echo_source["index"]
+        assert pulse.values["sink-inputs"][1]["sink"] == 24
+    else:
+        loops = [command for command in pulse.commands if command[:2] == ["load-module", "module-loopback"]]
+        assert any("source=" + echo_source["name"] in command and "sink=phone_uplink" in command for command in loops)
+        assert any("sink=" + echo_sink["name"] in command and "source=phone_downlink" in command for command in loops)
+    assert router.update(lambda: context.copy())["active"]
+    assert router.update(lambda: None)["state"] == "inactive"
+    assert not router.echo.pending and len(pulse.values["modules"]) == 1
+    assert pulse.values["info"]["default_source_name"] == "pc_mic"
+    assert pulse.values["info"]["default_sink_name"] == "pc_speaker"
+    if native:
+        assert pulse.values["sink-inputs"][0]["sink"] == 24 and pulse.values["sink-inputs"][1]["sink"] == 24
+        assert pulse.values["source-outputs"][0]["source"] == 51
+
+
+def test_module_identity_fallback_for_pactl_json_without_indices():
+    def run(arguments):
+        if arguments[1:] == ["--format=json", "list", "modules"]:
+            return json.dumps([{"name": "module-echo-cancel", "argument": "source_name=owned"}])
+        assert arguments[1:] == ["list", "short", "modules"]
+        return "536870913\tmodule-echo-cancel\tsource_name=owned\t\n8\tmodule-loopback\tforeign\t\n"
+    pulse = audio.NativePulseAudio(run, lambda _: "fake-pactl")
+    assert pulse.modules() == [dict(index=536870913, name="module-echo-cancel", argument="source_name=owned")]
+
+
+@pytest.mark.parametrize("failure", ["call_changed", "lost_reply"])
+def test_echo_allocation_is_cleaned_after_cancel_or_lost_reply(failure):
+    bluez, pulse = BlueZ(), EchoPulse()
+    router = audio.AnrufBluetooth(bluez, audio.NativePulseAudio(pulse.run, lambda _: "fake-pactl"))
+    context = dict(device_id=PEER, identity="key", session=1, call_ref=CALL, revision=2,
+                   address=ADDRESS, consent=(1, 1, 1))
+    def changed(command):
+        if command[:2] == ["load-module", "module-echo-cancel"]:
+            if failure == "call_changed": context.clear()
+            else: raise audio.AudioUnavailable("lost_reply")
+    pulse.change = changed
+    assert not router.update(lambda: context.copy() or None)["active"]
+    assert not router.echo.pending and len(pulse.values["modules"]) == 1
+    assert not any(command[:2] == ["load-module", "module-loopback"] for command in pulse.commands)
+
+
+def test_echo_filter_explicitly_adopted_as_default_is_not_removed():
+    pulse = EchoPulse()
+    echo = audio.CallEcho(audio.NativePulseAudio(pulse.run, lambda _: "fake-pactl"), "owned")
+    echo.start()
+    pulse.values["info"]["default_source_name"] = echo.source_name
+    assert not echo.stop() and echo.pending
+    assert len(echo.owned()) == 1
+    pulse.values["info"]["default_source_name"] = "pc_mic"
+    assert echo.stop() and not echo.pending
+
+
 @pytest.fixture
 def route():
     bluez, pulse = BlueZ(), Pulse()
-    router = audio.AnrufBluetooth(bluez, audio.NativePulseAudio(pulse.run, lambda _: "fake-pactl"))
+    native = audio.NativePulseAudio(pulse.run, lambda _: "fake-pactl")
+    # These lifecycle tests isolate Bluetooth ownership from the separately
+    # exercised echo filter and stream-move implementation below.
+    echo = SimpleNamespace(pending=False, adopted=False, start=lambda: None,
+        endpoints=native.local_endpoints, current=lambda: True,
+        route_native=lambda address: None, stop=lambda: True)
+    router = audio.AnrufBluetooth(bluez, native, echo=echo)
     context = dict(device_id=PEER, identity="public-key", session=17, call_ref=CALL,
                    revision=2, address=ADDRESS, consent=(3, 5, 1))
     return router, bluez, pulse, context
@@ -706,7 +820,8 @@ def test_native_source_and_packaging_boundaries():
     assert "--system-talk-name=org.bluez" in manifest["finish-args"]
     assert "--socket=system-bus" not in manifest["finish-args"]
     native = (BIN / "magnolie_anruf_audio.py").read_text()
-    assert "bluetoothctl" not in native and "set-default-" not in native and '"move-' not in native
+    assert "bluetoothctl" not in native and "set-default-" not in native
+    assert "set-source-mute" not in native and "set-sink-mute" not in native
     assert native.count('"Disconnect"') == 1
     assert "release_link, adapter_address" in native and "may_release()" in native
     assert '"DisconnectProfile", GLib.Variant("(s)", (AG,))' in native
