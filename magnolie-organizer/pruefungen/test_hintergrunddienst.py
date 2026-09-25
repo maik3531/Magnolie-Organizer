@@ -1096,7 +1096,7 @@ def test_actionless_phone_pairing_falls_back_to_visible_gui():
     assert len(published) == 1 and published[0][0] == "phone_event"
 
 
-def test_closed_gui_personal_sync_offer_defers_payload_until_action_click():
+def test_closed_gui_personal_sync_offer_is_silent_and_retains_pending_payload():
     phone = FakePhoneService()
     phone.personal_dispatched.add("commit-token")
     notifications = RecordedNotifications()
@@ -1109,8 +1109,4 @@ def test_closed_gui_personal_sync_offer_defers_payload_until_action_click():
     assert "commit-token" not in phone.personal_dispatched
     assert published == []
     assert notifications.opened == 0
-    title, body, actions, _on_close = notifications.items[-1]
-    assert "phone changes" in title.lower()
-    assert "synchronize" in body.lower()
-    actions[0][2]()
-    assert notifications.opened == 1
+    assert notifications.items == []

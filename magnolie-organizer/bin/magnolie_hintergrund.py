@@ -2143,9 +2143,6 @@ class PhoneDaemonEvents:
             if gui_present:
                 self._forward(event, payload)
                 return False
-            if permissions["phone_personal_sync_offers"]:
-                self.notifications.show(_("New phone changes are available"),
-                    _("Start Organizer and synchronize."), self._open_action())
         elif event == "pairing_code":
             attempt = str(payload.get("attempt_id") or "")
             code = _safe_text(payload.get("code"), 16)
