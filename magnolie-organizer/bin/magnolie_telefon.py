@@ -1968,6 +1968,7 @@ class PhoneService:
         self.incoming_call_channels = {}
         from magnolie_anruf_audio import AnrufBluetooth
         self.call_audio = call_audio or AnrufBluetooth()
+        self.call_audio.foreign_connection = self._audio_data_connection_in_use
         self.audio_thread = None
         self.audio_observations = {}
         self.audio_retired_calls = deque(maxlen=128)
@@ -2044,6 +2045,11 @@ class PhoneService:
     @staticmethod
     def _call_audio_address(peer):
         return peer.get("call_audio", {}).get("address", peer.get("bluetooth", {}).get("address", ""))
+
+    def _audio_data_connection_in_use(self, address):
+        with self.lock:
+            return any(self.connection_transports.get(peer.get("device_id")) == "bluetooth"
+                and peer.get("bluetooth", {}).get("address") == address for peer in self.store.peers)
 
     def set_call_audio(self, peer_id, prefer_pc, address=None):
         if not isinstance(prefer_pc, bool):

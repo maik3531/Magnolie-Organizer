@@ -38,6 +38,10 @@ class BlueZ(audio.NativeBlueZAudio):
 
     def objects(self): return copy.deepcopy(self.values)
 
+    def disconnect_device(self, path):
+        self.calls.append((path, "Disconnect"))
+        self.values[path]["org.bluez.Device1"]["Connected"] = False
+
     def watch_power(self, lease):
         self.watched = lease
         return "watch"
@@ -299,6 +303,24 @@ def test_radio_restore_failure_retains_ownership_for_retry(route):
     assert router.restore()
     assert not router.power_hold and bluez.watched is None
     assert bluez.values["/org/bluez/hci2"]["org.bluez.Adapter1"]["Powered"] is False
+
+
+@pytest.mark.parametrize("previously_connected, data_in_use, disconnect", [
+    (False, False, True), (False, True, False), (True, False, False)])
+def test_profile_release_restores_only_a_call_created_base_connection(route, previously_connected, data_in_use, disconnect):
+    router, bluez, pulse, context = route
+    bluez.values[PATH]["org.bluez.Device1"]["Connected"] = previously_connected
+    def release_only_profile(path):
+        bluez.calls.append((path, "DisconnectProfile", audio.AG))
+        # BlueZ can release HFP while retaining the underlying connected link.
+    bluez.disconnect_profile = release_only_profile
+    router.foreign_connection = lambda address: data_in_use
+    assert router.update(lambda: context.copy())["active"]
+    assert router.update(lambda: None)["state"] == "inactive"
+    assert ((PATH, "Disconnect") in bluez.calls) is disconnect
+    assert bluez.values[PATH]["org.bluez.Device1"]["Connected"] is (not disconnect)
+    assert bluez.values[PATH]["org.bluez.Device1"]["Paired"] is True
+    assert bluez.values["/org/bluez/hci2"]["org.bluez.Adapter1"]["Powered"] is True
 
 
 @pytest.mark.parametrize("already_connected", [False, True])
@@ -685,7 +707,8 @@ def test_native_source_and_packaging_boundaries():
     assert "--socket=system-bus" not in manifest["finish-args"]
     native = (BIN / "magnolie_anruf_audio.py").read_text()
     assert "bluetoothctl" not in native and "set-default-" not in native and '"move-' not in native
-    assert '"Disconnect"' not in native
+    assert native.count('"Disconnect"') == 1
+    assert "release_link, adapter_address" in native and "may_release()" in native
     assert '"DisconnectProfile", GLib.Variant("(s)", (AG,))' in native
     assert '"Pair"' not in native
     assert native.count('"Set"') == 1

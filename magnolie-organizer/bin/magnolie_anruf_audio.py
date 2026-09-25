@@ -174,11 +174,30 @@ class NativeBlueZAudio:
                     "org.bluez.Error.NotConnected", "org.freedesktop.DBus.Error.UnknownObject"):
                 raise
 
-    def release_profile(self, address, path, owner):
+    def disconnect_device(self, path):
+        from gi.repository import Gio
+        self.bus.call_sync(self.owner, path, "org.bluez.Device1", "Disconnect",
+            None, None, Gio.DBusCallFlags.NONE, 3000, None)
+
+    def release_profile(self, address, path, owner, release_link=False, adapter_address="", may_release=lambda: False):
         objects = self.objects()
         device = objects.get(path, {}).get("org.bluez.Device1", {})
         if self.owner == owner and str(device.get("Address", "")).upper() == address and device.get("Connected"):
             self.disconnect_profile(path)
+            if release_link:
+                objects = self.objects()
+                device = objects.get(path, {}).get("org.bluez.Device1", {})
+                adapter = objects.get(device.get("Adapter"), {}).get("org.bluez.Adapter1", {})
+                if (self.owner == owner and str(device.get("Address", "")).upper() == address
+                        and ADDRESS.fullmatch(adapter_address)
+                        and str(adapter.get("Address", "")).upper() == adapter_address
+                        and device.get("Connected") and may_release()):
+                    # DisconnectProfile can leave the call-created base link up.
+                    # Only retire a link absent before this call, never a bond.
+                    self.disconnect_device(path)
+                    objects = self.objects()
+                    if self.owner == owner and objects.get(path, {}).get("org.bluez.Device1", {}).get("Connected"):
+                        raise AudioUnavailable("device_disconnect_pending")
 
 
 class NativePulseAudio:
@@ -331,6 +350,7 @@ class AnrufBluetooth:
         self.modules_pending = False
         self.profile_hold = None
         self.connection_hold = None
+        self.foreign_connection = lambda address: False
         self.power_hold = None
         self.native_gateway_active = False
         self.key = None
@@ -464,7 +484,8 @@ class AnrufBluetooth:
                 # Keep enough identity to release it even after a lost RPC reply.
                 def connect():
                     previous = self.connection_hold
-                    hold = (context["address"], path, self.bluez.owner)
+                    hold = (context["address"], path, self.bluez.owner,
+                            not was_connected, self.bluez.last_adapter_address)
                     if not was_connected:
                         self.connection_hold = hold
                     created = self.bluez.connect_profile(path)
@@ -615,9 +636,10 @@ class AnrufBluetooth:
                                 return False
                     self.profile_hold = None
                 if self.connection_hold:
-                    address, path, owner = self.connection_hold
+                    address, path, owner, release_link, adapter_address = self.connection_hold
                     if not self.pulse.foreign_streams(address, set()):
-                        self.bluez.release_profile(address, path, owner)
+                        self.bluez.release_profile(address, path, owner, release_link, adapter_address,
+                            lambda: not self.foreign_connection(address) and not self.pulse.foreign_streams(address, set()))
                     self.connection_hold = None
                 if self.power_hold:
                     self.bluez.release_power(self.power_hold)
