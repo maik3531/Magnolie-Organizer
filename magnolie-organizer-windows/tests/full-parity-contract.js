@@ -51,7 +51,7 @@ assert.match(read("WindowsBluetoothRadio.cs"), /\["state"\] = "unsupported"/);
 assert.match(read("WindowsBluetoothRadio.cs"), /\["approved_capability"\] = false/);
 assert.doesNotMatch(read("WindowsBluetoothRadio.cs"), /RequestAccessAsync|RegisterApp|RegisterForTransport/);
 for (const command of fixture.commands) {
-  if (command === linuxAudioCommand) continue;
+  if ([linuxAudioCommand, "telefon_bluetooth_einstellungen", "telefon_anruf_audio_pruefen"].includes(command)) continue;
   const nativeCommand = commandAliases[command] || command;
   assert.ok(windowsCommands.has(nativeCommand), `Windows UI misses Linux contract command ${command}`);
   assert.match(windowsDispatcher, new RegExp(`case "${nativeCommand}"`), `Windows dispatcher misses ${command}`);

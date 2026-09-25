@@ -3575,6 +3575,10 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     if (pcAudio) {
       pcAudio.checked = aktuell.preferPcAudio !== false;
       pcAudio.disabled = audioCapability.available !== true;
+      if (pcAudio.checked && pcAudio.disabled) {
+        pcAudio.checked = false;
+        leiser.checked = true;
+      }
     }
     const heimatland = sms ? null : auswahlFeld(telefonLaenderOptionen(), telefonHeimatland());
     if (heimatland) heimatland.id = "anruf-heimatland";
@@ -3609,7 +3613,10 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       auswahl.querySelector('[value="' + (sms ? "kde" : "magnolie") + '"]').checked = true;
       programm.value = "";
       if (leiser) leiser.checked = false;
-      if (pcAudio && !pcAudio.disabled) pcAudio.checked = true;
+      if (pcAudio) {
+        pcAudio.checked = !pcAudio.disabled;
+        if (pcAudio.disabled) leiser.checked = true;
+      }
       optionenAktualisieren();
     });
     const knoepfe = el("div", "dialog-knoepfe");

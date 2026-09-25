@@ -2,6 +2,8 @@
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
+const { JSDOM } = require('jsdom');
+const { webcrypto } = require('node:crypto');
 const root = path.resolve(__dirname, '..');
 const frontends = [path.join(root, 'app/web/anwendung.js')];
 const linux = path.join(root, '../magnolie-organizer/web/anwendung.js');
@@ -57,6 +59,54 @@ for (const file of frontends) {
     sync(peer); // A pending explicit re-enable is not undone by an older status response.
     assert.equal(options.preferPcAudio, true);
   }
+  const web = path.dirname(file);
+  const dom = new JSDOM(fs.readFileSync(path.join(web, 'index.html'), 'utf8'), {
+    runScripts: 'outside-only', url: 'https://app.magnolie.invalid/index.html', pretendToBeVisual: true });
+  const w = dom.window;
+  try {
+    Object.defineProperty(w, 'crypto', { value: webcrypto }); w.TextEncoder = TextEncoder; w.TextDecoder = TextDecoder;
+    const sent = [];
+    w.__MAGNOLIE_BRUECKE__ = 'test'; w.webkit = { messageHandlers: { test: { postMessage(m) { sent.push(JSON.parse(m)); } } } };
+    w.eval(fs.readFileSync(path.join(web, 'i18n.js'), 'utf8')); w.MagnolieI18n.setLocale('en');
+    w.eval(source.replace('  function oeffneKommunikationsBelegung(typ) {',
+      '  window.openCallSettings = oeffneKommunikationsBelegung; window.callOptions = () => DATEN.einstellungen.adressen.kommunikation.anruf;\n  function oeffneKommunikationsBelegung(typ) {'));
+    w.document.dispatchEvent(new w.Event('DOMContentLoaded')); w.App.init({ daten: {}, neu: false });
+    const peer = { device_id: 'own-phone', fingerprint: 'pin', own_device: true, bluetooth_enabled: false,
+      local_grants: { grants: {} } };
+    const show = capability => {
+      Object.assign(w.callOptions(), {art: 'magnolie', preferPcAudio: true, klingeltonLeiser: false, telefonId: peer.device_id});
+      w.App.telefonStand({ peers: [peer], call_audio: capability });
+      w.openCallSettings('anruf');
+      const dialog = w.document.querySelector('.kommunikation-belegung-dialog');
+      const checkbox = text => [...dialog.querySelectorAll('label')].find(label => label.textContent.includes(text)).querySelector('input');
+      const button = text => [...dialog.querySelectorAll('button')].find(button => button.textContent === text);
+      return {dialog, pc: checkbox('Prefer PC speakers'), lower: checkbox('Lower other sounds'), button};
+    };
+    let ui = show({state: 'unsupported', available: false});
+    assert.equal(ui.pc.checked, false); assert.equal(ui.pc.disabled, true); assert.equal(ui.lower.checked, true);
+    ui.button('Restore defaults').click();
+    assert.equal(ui.pc.checked, false); assert.equal(ui.lower.checked, true);
+    ui.button('Save').click();
+    assert.equal(w.callOptions().preferPcAudio, false); assert.equal(w.callOptions().klingeltonLeiser, true);
+    if (file === linux) {
+      ui = show({state: 'setup_required', reason: 'pairing_required', devices: []});
+      assert.equal(ui.pc.disabled, false); assert.equal(ui.pc.checked, true); assert.equal(ui.lower.checked, false);
+      ui.button('Pair your phone in the OS Bluetooth settings first.').click();
+      assert.ok(sent.some(message => message.cmd === 'telefon_bluetooth_einstellungen'));
+      ui.button('Save').click();
+      assert.ok(ui.dialog.isConnected, 'An unpaired phone must not be accepted as a ready HFP route');
+      ui.button('Cancel').click();
+      ui = show({state: 'setup_required', reason: 'binding_required', devices: [
+        {address: 'AA:BB:CC:DD:EE:FF', name: 'Fixture phone', trusted: true}]});
+      const select = ui.dialog.querySelector('select');
+      assert.equal(select.value, '', 'A system bond is never silently assigned to a Notes peer');
+      select.value = 'AA:BB:CC:DD:EE:FF';
+      ui.button('Save').click();
+      assert.ok(sent.some(message => message.cmd === 'telefon_bluetooth_schalten' &&
+        message.adresse === select.value && message.an === false));
+      assert.equal(ui.dialog.isConnected, false);
+    }
+  } finally { w.close(); }
 }
 const native = fs.readFileSync(path.join(root, 'WindowsBluetoothRadio.cs'), 'utf8');
 assert.match(native, /IsApiContractPresent\("Windows.ApplicationModel.Calls.CallsPhoneContract", 6\)/);

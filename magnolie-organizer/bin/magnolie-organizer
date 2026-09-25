@@ -119,7 +119,7 @@ if any(argument in ("--hintergrunddienst", "--background-service")
     sys.exit(daemon_main(sys.argv[1:]))
 
 from magnolie_telefon import PhoneService, PORT as TELEFON_PORT, without_device_identifiers
-from magnolie_anruf_audio import AnrufBluetooth
+from magnolie_anruf_audio import AnrufBluetooth, open_bluetooth_settings
 from magnolie_phone_region import enrich_call as telefon_anreichern, match_key as telefon_schluessel
 from magnolie_asset import read_asset
 from magnolie_kdeconnect import DEVICE_ID, SmsSubmissionJournal, create_backend, local_device_name
@@ -19747,6 +19747,16 @@ class Fenster(_FENSTER_BASIS):
             threading.Thread(target=lambda: self._telefon_entfernen(
                 nachricht.get("kennung") or ""), daemon=True).start()
 
+        elif befehl == "telefon_anruf_audio_pruefen":
+            threading.Thread(target=self._telefon_anruf_audio_pruefen, daemon=True).start()
+
+        elif befehl == "telefon_bluetooth_einstellungen":
+            try:
+                open_bluetooth_settings()
+            except Exception:
+                self._telefon_fehler = _("Pair your phone in the OS Bluetooth settings first.")
+                self._telefon_stand_melden()
+
         elif befehl == "telefon_bluetooth_schalten":
             threading.Thread(target=lambda: self._telefon_bluetooth_schalten(
                 nachricht.get("kennung") or "", bool(nachricht.get("an")),
@@ -21400,6 +21410,18 @@ class Fenster(_FENSTER_BASIS):
         if self._telefon:
             self._telefon.remove(kennung)
         self._telefon_stand_melden()
+
+    def _telefon_anruf_audio_pruefen(self):
+        report = self._telefon.report() if self._telefon else {}
+        peers = report.get("peers", [])
+        peer = peers[0] if len(peers) == 1 and peers[0].get("own_device") else {}
+        address = peer.get("bluetooth_address", "")
+        capability = AnrufBluetooth().probe(address)
+        # A read-only setup probe must not replace an observed active route.
+        capability["route"] = report.get("call_audio", {}).get("route", {})
+        capability["setup_peer"] = peer.get("device_id", "")
+        capability["setup_fingerprint"] = peer.get("fingerprint", "")
+        self.antwort("App.telefonAnrufAudio", capability)
 
     def _telefon_bluetooth_schalten(self, kennung, an, adresse):
         try:

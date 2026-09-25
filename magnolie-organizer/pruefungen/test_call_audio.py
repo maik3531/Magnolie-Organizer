@@ -31,12 +31,25 @@ class BlueZ(audio.NativeBlueZAudio):
         self.calls = []
         self.change = lambda: None
         self.values = {
-            "/org/bluez/hci2": {"org.bluez.Adapter1": {"Powered": True, "UUIDs": [audio.HF]}},
+            "/org/bluez/hci2": {"org.bluez.Adapter1": {"Address": "11:22:33:44:55:66", "Powered": True, "UUIDs": [audio.HF]}},
             PATH: {"org.bluez.Device1": {"Address": ADDRESS, "Alias": "Not an identity",
                 "Adapter": "/org/bluez/hci2", "Paired": True, "Trusted": True,
                 "Connected": True, "UUIDs": [audio.AG]}}}
 
     def objects(self): return copy.deepcopy(self.values)
+
+    def watch_power(self, lease):
+        self.watched = lease
+        return "watch"
+
+    def unwatch_power(self, watch):
+        self.watched = None
+
+    def set_powered(self, path, powered):
+        if self.guard:
+            self.guard()
+        self.calls.append((path, "Powered", powered))
+        self.values[path]["org.bluez.Adapter1"]["Powered"] = powered
 
     def connect_profile(self, path):
         already_connected = self.values[path]["org.bluez.Device1"]["Connected"]
@@ -143,19 +156,54 @@ def test_native_full_sequence_correct_roles_owned_duplex_and_cleanup(route):
     assert pulse.values["info"]["default_sink_name"] == "pc_speaker"
 
 
-@pytest.mark.parametrize("failure", ["rfcomm", "a2dp", "wrong_local_role", "untrusted", "unpaired", "off", "wrong_address", "ambiguous_address"])
+@pytest.mark.parametrize("condition, state, reason", [
+    ("paired", "setup_required", "binding_required"),
+    ("off", "setup_required", "binding_required"),
+    ("no-phone", "setup_required", "pairing_required"),
+    ("no-adapter", "unavailable", "bluetooth_adapter_unavailable"),
+    ("no-hfp", "unavailable", "local_hfp_hf_unavailable"),
+])
+def test_preflight_distinguishes_pairing_from_unsupported_without_mutation(route, condition, state, reason):
+    router, bluez, pulse, context = route
+    if condition == "off":
+        bluez.values["/org/bluez/hci2"]["org.bluez.Adapter1"]["Powered"] = False
+    elif condition == "no-phone":
+        del bluez.values[PATH]
+    elif condition == "no-adapter":
+        bluez.values.clear()
+    elif condition == "no-hfp":
+        bluez.values["/org/bluez/hci2"]["org.bluez.Adapter1"]["UUIDs"] = []
+    result = router.probe("")
+    assert (result["state"], result["reason"]) == (state, reason)
+    if condition in ("paired", "off"):
+        assert [item["address"] for item in result["devices"]] == [ADDRESS]
+    assert not bluez.calls and not any(command[0] != "--format=json" for command in pulse.commands)
+
+
+def test_system_pairing_launcher_uses_supported_command_without_shell():
+    launched = []
+    audio.open_bluetooth_settings(lambda name: "/usr/bin/blueman-manager" if name == "blueman-manager" else None,
+                                  lambda args, **kwargs: launched.append((args, kwargs)))
+    assert launched[0][0] == ["/usr/bin/blueman-manager"]
+    assert "shell" not in launched[0][1]
+    with pytest.raises(audio.AudioUnavailable, match="bluetooth_settings_unavailable"):
+        audio.open_bluetooth_settings(lambda name: None)
+
+
+@pytest.mark.parametrize("failure", ["rfcomm", "a2dp", "wrong_local_role", "untrusted", "unpaired", "wrong_address", "ambiguous_address"])
 def test_bluez_requires_actual_bound_connected_peer_and_hf_role(route, failure):
     router, bluez, pulse, context = route
     device = bluez.values[PATH]["org.bluez.Device1"]
     if failure == "rfcomm": device["UUIDs"] = [phone.BLUETOOTH_UUID]
     elif failure == "a2dp": device["UUIDs"] = ["0000110a-0000-1000-8000-00805f9b34fb"]
     elif failure == "wrong_local_role": bluez.values["/org/bluez/hci2"]["org.bluez.Adapter1"]["UUIDs"] = [audio.AG]
-    elif failure == "off": bluez.values["/org/bluez/hci2"]["org.bluez.Adapter1"]["Powered"] = False
     elif failure == "untrusted": device["Trusted"] = False
     elif failure == "unpaired": device["Paired"] = False
     elif failure == "wrong_address": device["Address"] = "11:22:33:44:55:66"
     elif failure == "ambiguous_address": bluez.values[PATH + "_duplicate"] = copy.deepcopy(bluez.values[PATH])
     assert not router.probe(ADDRESS)["available"]
+    assert not any(command[0] != "--format=json" for command in pulse.commands)
+    pulse.commands.clear()
     assert not router.update(lambda: context.copy())["active"]
     assert not bluez.calls and not pulse.commands
 
@@ -170,6 +218,87 @@ def test_disconnected_trusted_phone_connects_on_call_and_disconnects_on_end(rout
     assert router.update(lambda: None)["state"] == "inactive"
     assert bluez.calls == [(PATH, "ConnectProfile", audio.AG), (PATH, "DisconnectProfile", audio.AG)]
     assert not router.connection_hold
+
+
+def test_radio_is_enabled_only_for_authorized_call_and_restored_after_profile(route):
+    router, bluez, pulse, context = route
+    bluez.values["/org/bluez/hci2"]["org.bluez.Adapter1"]["Powered"] = False
+    bluez.values[PATH]["org.bluez.Device1"]["Connected"] = False
+    assert router.probe(ADDRESS)["reason"] == "power_required"
+    assert not bluez.calls
+    assert not router.update(lambda: None)["active"]
+    assert not bluez.calls
+    assert router.update(lambda: context.copy())["active"]
+    assert router.power_hold
+    assert router.update(lambda: None)["state"] == "inactive"
+    assert bluez.calls == [("/org/bluez/hci2", "Powered", True), (PATH, "ConnectProfile", audio.AG),
+                           (PATH, "DisconnectProfile", audio.AG), ("/org/bluez/hci2", "Powered", False)]
+    assert not router.power_hold and bluez.watched is None
+
+
+@pytest.mark.parametrize("adopted", ["other-device", "discovery", "manual-power", "bluez-restart"])
+def test_radio_cleanup_preserves_external_use_and_replacement_bluez(route, adopted):
+    router, bluez, pulse, context = route
+    bluez.values["/org/bluez/hci2"]["org.bluez.Adapter1"]["Powered"] = False
+    bluez.values[PATH]["org.bluez.Device1"]["Connected"] = False
+    assert router.update(lambda: context.copy())["active"]
+    if adopted == "other-device":
+        bluez.values["other"] = {"org.bluez.Device1": {"Adapter": "/org/bluez/hci2", "Connected": True}}
+    elif adopted == "discovery":
+        bluez.values["/org/bluez/hci2"]["org.bluez.Adapter1"]["Discovering"] = True
+    elif adopted == "manual-power":
+        bluez.watched["changed"] = True
+    else:
+        bluez.owner = ":1.replacement"
+    assert router.restore()
+    assert ("/org/bluez/hci2", "Powered", False) not in bluez.calls
+    assert not router.power_hold and bluez.watched is None
+
+
+def test_call_ending_after_radio_enable_restores_without_opening_microphone(route):
+    router, bluez, pulse, context = route
+    bluez.values["/org/bluez/hci2"]["org.bluez.Adapter1"]["Powered"] = False
+    bluez.values[PATH]["org.bluez.Device1"]["Connected"] = False
+    original = bluez.set_powered
+    def power(path, enabled):
+        original(path, enabled)
+        if enabled:
+            context.clear()
+    bluez.set_powered = power
+    assert not router.update(lambda: context.copy() or None)["active"]
+    assert bluez.calls == [("/org/bluez/hci2", "Powered", True), ("/org/bluez/hci2", "Powered", False)]
+    assert not any(cmd[0] == "load-module" for cmd in pulse.commands)
+
+
+def test_denied_radio_activation_does_not_open_audio_and_drops_unused_lease(route):
+    router, bluez, pulse, context = route
+    adapter = bluez.values["/org/bluez/hci2"]["org.bluez.Adapter1"]
+    adapter["Powered"] = False
+    bluez.values[PATH]["org.bluez.Device1"]["Connected"] = False
+    def denied(path, powered):
+        raise PermissionError("denied")
+    bluez.set_powered = denied
+    assert not router.update(lambda: context.copy())["active"]
+    assert not adapter["Powered"] and not bluez.calls
+    assert not router.power_hold and bluez.watched is None
+    assert not any(command[0] == "load-module" for command in pulse.commands)
+
+
+def test_radio_restore_failure_retains_ownership_for_retry(route):
+    router, bluez, pulse, context = route
+    bluez.values["/org/bluez/hci2"]["org.bluez.Adapter1"]["Powered"] = False
+    bluez.values[PATH]["org.bluez.Device1"]["Connected"] = False
+    assert router.update(lambda: context.copy())["active"]
+    original = bluez.set_powered
+    def failed(path, powered):
+        raise audio.AudioUnavailable("temporary_failure")
+    bluez.set_powered = failed
+    assert not router.restore()
+    assert router.power_hold and bluez.watched
+    bluez.set_powered = original
+    assert router.restore()
+    assert not router.power_hold and bluez.watched is None
+    assert bluez.values["/org/bluez/hci2"]["org.bluez.Adapter1"]["Powered"] is False
 
 
 @pytest.mark.parametrize("already_connected", [False, True])
@@ -464,7 +593,9 @@ def test_native_source_and_packaging_boundaries():
     assert "bluetoothctl" not in native and "set-default-" not in native and '"move-' not in native
     assert '"Disconnect"' not in native
     assert '"DisconnectProfile", GLib.Variant("(s)", (AG,))' in native
-    assert '"Pair"' not in native and '"Set"' not in native
+    assert '"Pair"' not in native
+    assert native.count('"Set"') == 1
+    assert 'GLib.Variant("(ssv)", ("org.bluez.Adapter1", "Powered", GLib.Variant("b", powered)))' in native
 
 
 def test_new_manual_texts_and_reused_label_in_all_desktop_catalogs():

@@ -3621,7 +3621,8 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     const aktuell = DATEN.einstellungen.adressen.kommunikation[typ];
     const schleier = el("div", "eingabe-schleier kommunikation-belegung-schleier");
     const dialog = el("div", "eingabe-dialog kommunikation-belegung-dialog");
-    const schliessen = () => { beendeModal(schleier); schleier.remove(); };
+    let audioTimer = null;
+    const schliessen = () => { clearInterval(audioTimer); beendeModal(schleier); schleier.remove(); };
     const auswahl = el("fieldset", "kommunikation-radios");
     auswahl.append(el("legend", null, sms ? _("SMS assignment") : _("Call assignment")));
     const arten = sms ? [["kde", "KDE Connect"]] : [["magnolie", "Magnolie Notes"]];
@@ -3644,14 +3645,59 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       optionen.append(label); return input;
     };
     const leiser = sms ? null : option(_("Lower other sounds while ringing"), "klingeltonLeiser");
-    const audioPeer = (telefonStand && telefonStand.peers || []).find((peer) =>
-      peer.device_id === aktuell.telefonId);
-    const audioCapability = telefonStand && telefonStand.call_audio || {};
+    const audioPeers = telefonStand && telefonStand.peers || [];
+    const audioPeer = audioPeers.find((peer) => peer.device_id === aktuell.telefonId) ||
+      (!aktuell.telefonId && audioPeers.length === 1 ? audioPeers[0] : null);
+    let audioCapability = telefonStand && telefonStand.call_audio || {};
     const pcAudio = sms ? null : option(
       _("Prefer PC speakers and microphone for calls on my own Bluetooth phone"), "preferPcAudio");
     if (pcAudio) {
       pcAudio.checked = aktuell.preferPcAudio !== false;
-      pcAudio.disabled = audioCapability.state === "unsupported" || !audioPeer || !audioPeer.own_device;
+      pcAudio.disabled = audioCapability.state === "unsupported";
+    }
+    const audioHinweis = el("p", "einst-hinweis", "");
+    const audioGeraet = auswahlFeld([["", _("Select your phone")]], "");
+    audioGeraet.setAttribute("aria-label", _("Select your phone"));
+    const audioKoppeln = knopf(_("Pair your phone in the OS Bluetooth settings first."), "", () => {
+      Bruecke.sende({ cmd: "telefon_bluetooth_einstellungen" });
+    });
+    let audioGeraeteStand = "";
+    const audioAktualisieren = () => {
+      if (!pcAudio) return;
+      audioCapability = telefonStand && telefonStand.call_audio || {};
+      const zustand = anrufAudioVorpruefung(audioCapability);
+      pcAudio.disabled = zustand === "unavailable";
+      if (pcAudio.checked && pcAudio.disabled) {
+        pcAudio.checked = false;
+        leiser.checked = true;
+      }
+      const devices = audioCapability.devices || [];
+      const stand = JSON.stringify(devices);
+      if (stand !== audioGeraeteStand) {
+        const selected = audioGeraet.value;
+        audioGeraet.replaceChildren();
+        audioGeraet.append(new Option(_("Select your phone"), ""));
+        for (const device of devices) {
+          const option = new Option((device.name || device.address) + " · " + device.address, device.address);
+          option.disabled = device.trusted !== true;
+          audioGeraet.append(option);
+        }
+        audioGeraet.value = selected;
+        audioGeraeteStand = stand;
+      }
+      audioGeraet.hidden = !pcAudio.checked || zustand !== "setup" || !devices.length;
+      audioKoppeln.hidden = !pcAudio.checked || zustand !== "setup";
+      audioHinweis.textContent = zustand === "setup" ? _("Pair your phone in the OS Bluetooth settings first.")
+        : anrufAudioHinweis(audioCapability);
+      if (zustand === "unavailable") audioHinweis.textContent += " " + _("Lower other sounds while ringing");
+    };
+    if (pcAudio) {
+      pcAudio.addEventListener("change", () => {
+        audioAktualisieren();
+        if (pcAudio.checked) Bruecke.sende({ cmd: "telefon_anruf_audio_pruefen" });
+      });
+      audioAktualisieren();
+      Bruecke.sende({ cmd: "telefon_anruf_audio_pruefen" });
     }
     const optionenAktualisieren = () => {
       if (leiser) { leiser.disabled = auswahl.querySelector("input:checked")?.value !== "magnolie"; if (leiser.disabled) leiser.checked = false; }
@@ -3661,6 +3707,21 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       const art = auswahl.querySelector("input:checked").value;
       const ziel = programm.value.trim().slice(0, 500);
       if (art === "program" && !ziel) { fehler.textContent = _("Enter an application command."); return; }
+      if (!sms && art === "magnolie" && pcAudio.checked) {
+        audioAktualisieren();
+        if (pcAudio.checked && (!audioPeer || !audioPeer.own_device ||
+            !(telefonStand?.peers || []).some(peer => peer.device_id === audioPeer.device_id &&
+              peer.fingerprint === audioPeer.fingerprint && peer.own_device))) {
+          fehler.textContent = _("Select your phone"); return;
+        }
+        if (pcAudio.checked && anrufAudioVorpruefung(audioCapability) !== "ready") {
+          const selected = (audioCapability.devices || []).find(device =>
+            device.address === audioGeraet.value && device.trusted === true);
+          if (!selected) { fehler.textContent = audioHinweis.textContent; return; }
+          Bruecke.sende({ cmd: "telefon_bluetooth_schalten", kennung: audioPeer.device_id,
+            an: !!audioPeer.bluetooth_enabled, adresse: selected.address });
+        }
+      }
       DATEN.einstellungen.adressen.kommunikation[typ] = { art: art, programm: ziel };
       if (!sms) Object.assign(DATEN.einstellungen.adressen.kommunikation[typ], {
         eingehendBenachrichtigen: art === "magnolie",
@@ -3680,7 +3741,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       auswahl.querySelector('[value="' + (sms ? "kde" : "magnolie") + '"]').checked = true;
       programm.value = "";
       if (leiser) leiser.checked = false;
-      if (pcAudio && !pcAudio.disabled) pcAudio.checked = true;
+      if (pcAudio) { pcAudio.checked = true; audioAktualisieren(); }
       optionenAktualisieren();
     });
     const knoepfe = el("div", "dialog-knoepfe");
@@ -3690,13 +3751,25 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     if (!sms) dialog.append(optionen,
       formZeile(_("Bluetooth device for call audio"), el("output", null,
         audioPeer && audioPeer.bluetooth_address || _("Unavailable"))),
-      el("p", "einst-hinweis", anrufAudioHinweis(audioCapability)),
+      audioGeraet, audioKoppeln, audioHinweis,
       el("p", "einst-hinweis", _("This selection is independent of the Bluetooth data fallback.")),
       el("p", "einst-hinweis",
       _("These options require the matching permissions in Magnolie Notes. Call audio is not sent over the Magnolie data connection.")));
     dialog.append(fehler, knoepfe);
     schleier.append(dialog); document.body.append(schleier);
+    if (!sms) audioTimer = setInterval(() => {
+      if (!schleier.isConnected) { clearInterval(audioTimer); return; }
+      audioAktualisieren();
+    }, 1000);
     registriereModal(schleier, dialog, { anfang: auswahl.querySelector("input:checked"), schliessen: schliessen });
+  }
+
+  function anrufAudioVorpruefung(capability) {
+    capability = capability || {};
+    if (!capability.state || capability.reason === "not_probed") return "pending";
+    if (capability.available === true) return "ready";
+    if (capability.state === "setup_required") return "setup";
+    return "unavailable";
   }
 
   function setzeTelefonListe(kontakt, telefone, land = telefonHeimatland()) {
@@ -26221,6 +26294,13 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
         titel: titel, text: String(nutzlast.text || "") });
     },
     telefonAnrufAudio(nutzlast) {
+      if (nutzlast && Object.prototype.hasOwnProperty.call(nutzlast, "setup_peer")) {
+        const peers = telefonStand && telefonStand.peers || [];
+        const peer = peers.length === 1 && peers[0].own_device ? peers[0] : {};
+        if (nutzlast.setup_peer !== (peer.device_id || "") ||
+            nutzlast.setup_fingerprint !== (peer.fingerprint || "")) return;
+        nutzlast.route = telefonStand?.call_audio?.route || {};
+      }
       if (telefonStand) telefonStand.call_audio = nutzlast || {};
       const status = $("#anruf-audio-status");
       if (status) status.textContent = anrufAudioHinweis(nutzlast, aktiverAnruf);

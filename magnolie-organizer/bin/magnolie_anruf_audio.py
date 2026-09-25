@@ -27,6 +27,21 @@ class AudioUnavailable(Exception):
     pass
 
 
+def open_bluetooth_settings(finder=shutil.which, launch=subprocess.Popen):
+    commands = [("gnome-control-center", "bluetooth"), ("blueman-manager",),
+                ("systemsettings", "kcm_bluetooth")]
+    desktop = os.environ.get("XDG_CURRENT_DESKTOP", "").lower()
+    if "kde" in desktop:
+        commands.insert(0, commands.pop())
+    for command in commands:
+        executable = finder(command[0])
+        if executable:
+            launch([executable, *command[1:]], stdin=subprocess.DEVNULL,
+                   stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            return
+    raise AudioUnavailable("bluetooth_settings_unavailable")
+
+
 def bounded_command(arguments):
     """Bound time and bytes while reading, not just after communicate()."""
     with subprocess.Popen(arguments, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
@@ -71,7 +86,7 @@ class NativeBlueZAudio:
         return self.bus.call_sync(self.owner, "/", "org.freedesktop.DBus.ObjectManager",
             "GetManagedObjects", None, None, Gio.DBusCallFlags.NONE, 3000, None).unpack()[0]
 
-    def device(self, address, require_connected=True):
+    def device(self, address, require_connected=True, allow_powered_off=False):
         objects = self.objects()
         matches = [(path, interfaces["org.bluez.Device1"]) for path, interfaces in objects.items()
                    if str(interfaces.get("org.bluez.Device1", {}).get("Address", "")).upper() == address]
@@ -80,14 +95,59 @@ class NativeBlueZAudio:
         path, device = matches[0]
         adapter = objects.get(device.get("Adapter"), {}).get("org.bluez.Adapter1", {})
         if (not device.get("Paired") or not device.get("Trusted") or device.get("Blocked")
-                or require_connected and not device.get("Connected") or not adapter.get("Powered")):
+                or require_connected and not device.get("Connected")
+                or not allow_powered_off and not adapter.get("Powered")):
             raise AudioUnavailable("existing_connected_trusted_bond_required")
         if AG not in [str(value).lower() for value in device.get("UUIDs", [])]:
             raise AudioUnavailable("remote_hfp_ag_unavailable")
         if HF not in [str(value).lower() for value in adapter.get("UUIDs", [])]:
             raise AudioUnavailable("local_hfp_hf_unavailable")
         self.last_connected = bool(device.get("Connected"))
+        self.last_powered = bool(adapter.get("Powered"))
+        self.last_adapter = device.get("Adapter")
+        self.last_adapter_address = str(adapter.get("Address", "")).upper()
         return path
+
+    def watch_power(self, lease):
+        from gi.repository import Gio
+        def changed(_bus, _sender, _path, _interface, _signal, parameters):
+            interface, values, invalidated = parameters.unpack()
+            if interface != "org.bluez.Adapter1":
+                return
+            if (values.get("Powered") is False or "Powered" in invalidated or "Address" in invalidated
+                    or "Address" in values and str(values["Address"]).upper() != lease["address"]):
+                lease["changed"] = True
+        bus = self.bus
+        token = bus.signal_subscribe(lease["owner"], "org.freedesktop.DBus.Properties", "PropertiesChanged",
+            lease["path"], None, Gio.DBusSignalFlags.NONE, changed)
+        return bus, token
+
+    def unwatch_power(self, watch):
+        if watch is not None:
+            bus, token = watch
+            bus.signal_unsubscribe(token)
+
+    def set_powered(self, path, powered):
+        from gi.repository import Gio, GLib
+        if self.guard:
+            self.guard()
+        self.bus.call_sync(self.owner, path, "org.freedesktop.DBus.Properties", "Set",
+            GLib.Variant("(ssv)", ("org.bluez.Adapter1", "Powered", GLib.Variant("b", powered))),
+            None, Gio.DBusCallFlags.NONE, 3000, None)
+
+    def release_power(self, lease):
+        objects = self.objects()
+        adapter = objects.get(lease["path"], {}).get("org.bluez.Adapter1", {})
+        if (lease["changed"] or self.owner != lease["owner"] or
+                str(adapter.get("Address", "")).upper() != lease["address"] or
+                not adapter.get("Powered") or adapter.get("Discovering") or any(
+                    item.get("org.bluez.Device1", {}).get("Adapter") == lease["path"] and
+                    item.get("org.bluez.Device1", {}).get("Connected") for item in objects.values())):
+            return
+        self.set_powered(lease["path"], False)
+        objects = self.objects()
+        if self.owner == lease["owner"] and objects.get(lease["path"], {}).get("org.bluez.Adapter1", {}).get("Powered"):
+            raise AudioUnavailable("adapter_power_restore_pending")
 
     def connect_profile(self, path):
         from gi.repository import Gio, GLib
@@ -271,6 +331,7 @@ class AnrufBluetooth:
         self.modules_pending = False
         self.profile_hold = None
         self.connection_hold = None
+        self.power_hold = None
         self.native_gateway_active = False
         self.key = None
         self.active_context = None
@@ -286,28 +347,52 @@ class AnrufBluetooth:
     def probe(self, address):
         try:
             if not ADDRESS.fullmatch(address):
-                raise AudioUnavailable("bound_device_unavailable")
-            self.bluez.device(address, require_connected=False)
+                objects = self.bluez.objects()
+                adapters = {path for path, interfaces in objects.items()
+                            if HF in [str(value).lower() for value in
+                                      interfaces.get("org.bluez.Adapter1", {}).get("UUIDs", [])]}
+                if not any("org.bluez.Adapter1" in item for item in objects.values()):
+                    raise AudioUnavailable("bluetooth_adapter_unavailable")
+                if not adapters:
+                    raise AudioUnavailable("local_hfp_hf_unavailable")
+                self.pulse.local_endpoints()
+                devices = []
+                for interfaces in objects.values():
+                    device = interfaces.get("org.bluez.Device1", {})
+                    candidate = str(device.get("Address", "")).upper()
+                    if (device.get("Adapter") in adapters and device.get("Paired")
+                            and not device.get("Blocked") and ADDRESS.fullmatch(candidate)
+                            and AG in [str(value).lower() for value in device.get("UUIDs", [])]):
+                        devices.append(dict(address=candidate, name=str(device.get("Alias", ""))[:128],
+                                            trusted=bool(device.get("Trusted"))))
+                return self.snapshot("setup_required", "binding_required" if devices else "pairing_required",
+                                     devices=devices)
+            self.bluez.device(address, require_connected=False, allow_powered_off=True)
             self.pulse.local_endpoints()
+            if not self.bluez.last_powered:
+                return self.snapshot("available", "power_required")
             if not self.bluez.last_connected:
                 return self.snapshot("available", "connection_required")
             if not self.pulse.native_gateway(address):
                 self.pulse.card(address)
             return self.snapshot("available", "ready")
         except Exception as error:
+            if (ADDRESS.fullmatch(address) and isinstance(error, AudioUnavailable) and str(error) in
+                    ("bound_device_unavailable", "existing_connected_trusted_bond_required")):
+                return self.probe("")
             return self.snapshot("unavailable", str(error) if isinstance(error, AudioUnavailable) else "native_access_unavailable")
 
-    def _check(self, context, refresh):
+    def _check(self, context, refresh, allow_powered_off=False):
         if not context or refresh() != context:
             raise AudioUnavailable("call_changed")
-        self.bluez.device(context["address"], require_connected=False)
+        self.bluez.device(context["address"], require_connected=False, allow_powered_off=allow_powered_off)
         if refresh() != context:
             raise AudioUnavailable("call_changed")
 
-    def _wait(self, action, context, refresh, timeout=2):
+    def _wait(self, action, context, refresh, timeout=2, allow_powered_off=False):
         until = time.monotonic() + timeout
         while True:
-            self._check(context, refresh)
+            self._check(context, refresh, allow_powered_off=allow_powered_off)
             try:
                 result = action()
                 if result:
@@ -342,19 +427,29 @@ class AnrufBluetooth:
                     raise AudioUnavailable("call_changed")
             self.bluez.guard = self.pulse.guard = current
             try:
-                if self.modules_pending or self.profile_hold or self.connection_hold or self.native_gateway_active:
+                if self.modules_pending or self.profile_hold or self.connection_hold or self.power_hold or self.native_gateway_active:
                     if self.state["active"] and self._observed(context, refresh):
                         return dict(self.state)
                     self.restore()
-                    if self.modules_pending or self.profile_hold or self.connection_hold:
+                    if self.modules_pending or self.profile_hold or self.connection_hold or self.power_hold:
                         raise AudioUnavailable("cleanup_pending")
                     self.key = key
-                self._check(context, refresh)
-                path = self.bluez.device(context["address"], require_connected=False)
+                self._check(context, refresh, allow_powered_off=True)
+                path = self.bluez.device(context["address"], require_connected=False, allow_powered_off=True)
                 was_connected = self.bluez.last_connected
                 self.pulse.local_endpoints()
                 if self.pulse.foreign_streams(context["address"], set()):
                     raise AudioUnavailable("phone_audio_in_use")
+                if not self.bluez.last_powered:
+                    if not ADDRESS.fullmatch(self.bluez.last_adapter_address):
+                        raise AudioUnavailable("adapter_identity_unavailable")
+                    self.power_hold = dict(path=self.bluez.last_adapter, address=self.bluez.last_adapter_address,
+                        owner=self.bluez.owner, changed=False, watch=None)
+                    self.power_hold["watch"] = self.bluez.watch_power(self.power_hold)
+                    current()
+                    self.bluez.set_powered(self.power_hold["path"], True)
+                    self._wait(lambda: self.bluez.device(context["address"], require_connected=False),
+                        context, refresh, timeout=3, allow_powered_off=True)
                 # Own only the profile requested for this authorized conversation.
                 # Keep enough identity to release it even after a lost RPC reply.
                 def connect():
@@ -473,7 +568,7 @@ class AnrufBluetooth:
 
     def restore(self):
         with self.lock:
-            pending = bool(self.modules_pending or self.profile_hold or self.connection_hold)
+            pending = bool(self.modules_pending or self.profile_hold or self.connection_hold or self.power_hold)
             self.state = self.snapshot("unavailable" if pending else "inactive",
                                        "cleanup_pending" if pending else "released")
             self.active_context = None
@@ -498,6 +593,9 @@ class AnrufBluetooth:
                             # Someone else adopted the profile. It no longer belongs to us.
                             self.profile_hold = None
                             self.connection_hold = None
+                            if self.power_hold:
+                                self.bluez.unwatch_power(self.power_hold["watch"])
+                                self.power_hold = None
                             self.state = self.snapshot("inactive", "released")
                             return True
                         if old:
@@ -511,6 +609,10 @@ class AnrufBluetooth:
                     if not self.pulse.foreign_streams(address, set()):
                         self.bluez.release_profile(address, path, owner)
                     self.connection_hold = None
+                if self.power_hold:
+                    self.bluez.release_power(self.power_hold)
+                    self.bluez.unwatch_power(self.power_hold["watch"])
+                    self.power_hold = None
                 self.state = self.snapshot("inactive", "released")
                 return True
             except Exception:
