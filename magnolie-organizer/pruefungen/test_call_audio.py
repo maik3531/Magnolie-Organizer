@@ -137,7 +137,7 @@ class EchoPulse(Pulse):
             assert options["aec_method"] == "webrtc"
             for kind, prefix, offset in (("sources", "source", 3000), ("sinks", "sink", 4000)):
                 self.values[kind].append(dict(index=index + offset, owner_module=index,
-                    name=options[prefix + "_name"], state="RUNNING", mute=False,
+                    name=options[prefix + "_name"], state="IDLE", mute=False,
                     monitor_of_sink=4294967295, properties={"device.class": "filter"}))
             self.change(args)
             return "0\n"
@@ -148,9 +148,14 @@ class EchoPulse(Pulse):
             stream = next(item for item in self.values[kind] if str(item.get("index")) == args[1])
             endpoint = next(item for item in self.values[endpoints] if item["name"] == args[2])
             stream[field] = endpoint["index"]
+            endpoint["state"] = "RUNNING"
             self.change(args)
             return ""
         result = super().run(command)
+        if args[:2] == ["load-module", "module-loopback"]:
+            options = dict(arg.split("=", 1) for arg in args[2:])
+            for kind, name in (("sources", options["source"]), ("sinks", options["sink"])):
+                next(item for item in self.values[kind] if item["name"] == name)["state"] = "RUNNING"
         if args[0] == "unload-module":
             for kind in ("sources", "sinks"):
                 self.values[kind] = [item for item in self.values[kind] if str(item.get("owner_module")) != args[1]]

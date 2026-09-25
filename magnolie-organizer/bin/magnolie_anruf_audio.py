@@ -681,7 +681,8 @@ class AnrufBluetooth:
                 if mode == "native":
                     if context.get("echo_cancel"):
                         self.echo.route_native(context["address"])
-                    self._wait(lambda: self.pulse.native_gateway(context["address"], local), context, refresh)
+                    self._wait(lambda: self.pulse.native_gateway(context["address"],
+                        self.echo.endpoints() if context.get("echo_cancel") else None), context, refresh)
                     for move in getattr(self.echo, "moves", []):
                         move["moved"] = True
                     self.native_gateway_active = True
