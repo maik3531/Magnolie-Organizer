@@ -2808,6 +2808,7 @@ label.hak {
 }
 
 label.hak input { accent-color: var(--braun); }
+.kommunikation-anruf-optionen input[type="checkbox"] { flex: none; }
 
 /* ----------------------- Gestempelte Kürzel an Terminen ------------------- */
 
