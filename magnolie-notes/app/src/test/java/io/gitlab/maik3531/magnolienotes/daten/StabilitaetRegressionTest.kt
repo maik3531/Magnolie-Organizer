@@ -32,8 +32,8 @@ class StabilitaetRegressionTest {
         val note = Notiz("n", titel = "Private", baumFreigabe = Freigabe("share", listOf("a"), listOf("a")), baumVersion = 1)
         storage.setzeNotiz(note)
         val server = Server(werk(storage, context))
-        listOf("notiz", "notiz_sync").forEachIndexed { index, art ->
-            val body = Nutzlast.notizInhalt(note.copy(titel = "Forged", baumVersion = 2), art, "b")
+        listOf("notiz" to "Forged", "notiz_sync" to "Forged", "notiz" to "Private").forEachIndexed { index, (art, title) ->
+            val body = Nutzlast.notizInhalt(note.copy(titel = title, baumVersion = 2), art, "b")
             assertEquals(403, server.behandeln("/magnolie/v1/nachricht",
                 Baum1.baue(remote, own.kennung, own.oeffentlich, body, index + 1L), "192.0.2.1").first)
             assertEquals(note, Ablage.fuerTest(context) { key }.notiz("n"))
@@ -178,10 +178,7 @@ class StabilitaetRegressionTest {
     }
 
     private fun werk(storage: Ablage, context: Context): Baumwerk =
-        Baumwerk::class.java.getDeclaredConstructor(Ablage::class.java, Context::class.java).run {
-            isAccessible = true
-            newInstance(storage, context)
-        }
+        Baumwerk.fuerTest(storage, context)
 
     @Test fun `F01 code request cannot rewrite confirmed peer or its durable state`() = isolated { context ->
         val key = KeyGenerator.getInstance("AES").apply { init(256) }.generateKey()

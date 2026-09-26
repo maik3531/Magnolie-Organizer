@@ -797,7 +797,7 @@ def journal_inhalt_geaendert(vorher, nachher):
                      "personalSync", "baumKontaktBestand", "baumKontaktErfolgreich", "baumKontaktLoeschStaende"}
     metadaten = {"uid", "geaendert", "angelegt", "personalGeaendert", "sync", "syncQuellen",
                  "syncKalenderUid", "davHref", "davEtag", "baumKontakt", "baumFreigabe",
-                 "baumVersion", "baumQuelle", "baumGeaendert", "baumInhaltVersion", "importBindungen", "importHerkunfte",
+                 "baumVersion", "baumQuelle", "baumGeaendert", "baumInhaltVersion", "persoenlichVerknuepft", "importBindungen", "importHerkunfte",
                  "importKonflikt", "icsSequence", "icsAenderungszeitFehlt"}
 
     def inhalt(name, wert):

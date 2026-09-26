@@ -349,7 +349,7 @@ object PersonalSync {
         val entities = state.entities.toMutableMap()
         val projected = projections(input, modules, format)
         val projectedAttachments = if (format >= 2 && "notes" in modules) input.notizen
-            .filter { it.baumQuelle.isBlank() }.flatMap { note -> note.anhaenge.mapNotNull { attachment ->
+            .filter(::ownNote).flatMap { note -> note.anhaenge.mapNotNull { attachment ->
                 attachmentDescriptor(attachment)?.let { snapshot ->
                     "attachment\u0000${noteWireId(state, note.id)}\u0000${attachment.id}" to Triple(note, attachment, snapshot)
                 }
@@ -428,7 +428,7 @@ object PersonalSync {
         val result = linkedMapOf<String, JsonObject>()
         if ("notes" in modules) {
             input.notizbuecher.forEach { result["notebook\u0000${it.id}"] = notebookValue(it) }
-            input.notizen.filter { it.baumQuelle.isBlank() }.forEach { result["note\u0000${noteWireId(input.personalSync, it.id)}"] = noteValue(it, format) }
+            input.notizen.filter(::ownNote).forEach { result["note\u0000${noteWireId(input.personalSync, it.id)}"] = noteValue(it, format) }
         }
         if ("tasks" in modules) AufgabenHierarchie.normalisieren(input.aufgaben.filter {
             it.vonZweig.isBlank() && it.fremdId.isBlank() && it.delegiertAn.isBlank() && it.herkunft.isBlank()
@@ -438,8 +438,91 @@ object PersonalSync {
         return result
     }
 
-    fun apply(input: Bestand, records: List<PersonalSyncRecord>,
-              attachments: Map<String, Anhang> = emptyMap()): PersonalSyncResult {
+    fun ownNote(note: Notiz) = note.baumQuelle.isBlank() || note.persoenlichVerknuepft
+
+    /** Pure operation inside a real sync transaction; never run during profile load or preview. */
+    internal fun compactNotes(input: Bestand): Bestand {
+        if (input.personalSync.pending_decisions.isNotEmpty()) return input
+        var state = input.personalSync
+        val replacements = mutableMapOf<String, Notiz>()
+        val removed = mutableSetOf<String>()
+        val groups = input.notizen.filter { note -> validNoteId(note.id) &&
+            (noteValue(note, 2)["attachments"] as? JsonArray).orEmpty().size == note.anhaenge.size
+        }.groupBy { noteContent(noteValue(it, 2)) }
+        for (group in groups.values) {
+            if (group.size < 2 || group.map { it.id }.distinct().size != group.size ||
+                group.map { it.einfuhrSchluessel }.filter { it.isNotBlank() }.distinct().size > 1) continue
+            val wires = group.mapTo(mutableSetOf()) { noteWireId(state, it.id) }
+            if (wires.any { !validNoteId(it) } || input.notizen.any { it !in group && noteWireId(state, it.id) in wires }) continue
+            fun affected(key: String): Boolean {
+                val parts = key.split('\u0000')
+                return parts.size >= 2 && parts[0] in setOf("note", "attachment") && noteId(state, parts[1]) in wires
+            }
+            val metadata = state.entities.filterKeys(::affected)
+            val attachmentIds = group.first().anhaenge.map { it.id }.toSet()
+            if (metadata.any { (key, meta) -> meta.state == "deleted" || meta.conflict ||
+                    key.startsWith("attachment\u0000") && key.substringAfterLast('\u0000') !in attachmentIds } ||
+                state.restoration_requests.any(::affected) || state.pending_proposals.any {
+                    affected(it.kind + "\u0000" + (if (it.kind == "attachment") it.parent_id + "\u0000" else "") + it.id)
+                }) continue
+            val keeper = group.first()
+            val canonical = wires.minWithOrNull(::compareUtf8)!!
+            val nextMeta = linkedMapOf<String, PersonalSyncEntity>()
+            var safe = true
+            for ((key, meta) in metadata) {
+                val parts = key.split('\u0000')
+                val target = parts[0] + "\u0000" + canonical +
+                    (if (parts[0] == "attachment") "\u0000" + parts[2] else "")
+                val old = nextMeta[target]
+                val clock = runCatching {
+                    if (old == null) { validateClock(meta.clock); meta.clock } else merge(old.clock, meta.clock)
+                }.getOrNull()
+                if (clock == null || old != null && parts[0] == "attachment" && old.hash != meta.hash) { safe = false; break }
+                nextMeta[target] = (old ?: meta).copy(clock = clock, acknowledged_by_peer = false,
+                    parent_id = if (parts[0] == "attachment") canonical else meta.parent_id)
+            }
+            if (!safe) continue
+            val shared = group.filter { it.baumFreigabe != null }
+            val sources = linkedMapOf<Pair<String, String>, NotizQuelle>()
+            for (note in shared) {
+                val share = note.baumFreigabe!!
+                val known = share.quellen + share.partner.filter { partner ->
+                    share.quellen.none { it.partner == partner }
+                }.map { NotizQuelle(it, share.id, note.baumVersion, note.baumQuelle) }
+                for (source in known) {
+                    val key = source.partner to source.id
+                    val previous = sources[key]
+                    val current = previous == null || source.version > previous.version ||
+                        source.version == previous.version && source.quelle > previous.quelle
+                    val baseline = if (source.stand == note.baumInhaltVersion && (previous == null || previous.stand >= 0))
+                        keeper.baumInhaltVersion else -1L
+                    sources[key] = (if (current) source else previous!!).copy(stand = baseline)
+                }
+            }
+            val partners = shared.flatMap { it.baumFreigabe!!.partner }.distinct()
+            val share = shared.firstOrNull()?.baumFreigabe?.copy(partner = partners, quellen = sources.values.toList(),
+                anhangPartner = partners.filter { partner -> shared.filter { partner in it.baumFreigabe!!.partner }
+                    .all { partner in it.baumFreigabe!!.anhangPartner } })
+            replacements[keeper.id] = keeper.copy(baumFreigabe = share,
+                baumVersion = group.maxOf { it.baumVersion }, baumGeaendert = group.maxOf { it.baumGeaendert },
+                baumQuelle = keeper.baumQuelle.ifBlank { shared.firstOrNull()?.baumQuelle.orEmpty() },
+                persoenlichVerknuepft = group.any(::ownNote),
+                einfuhrSchluessel = keeper.einfuhrSchluessel.ifBlank { group.firstOrNull { it.einfuhrSchluessel.isNotBlank() }?.einfuhrSchluessel.orEmpty() })
+            state = state.copy(note_ids = state.note_ids + group.associate { it.id to canonical },
+                note_aliases = state.note_aliases + wires.filter { it != canonical }.associateWith { canonical },
+                entities = (state.entities - metadata.keys) + nextMeta)
+            removed += group.drop(1).map { it.id }
+        }
+        return if (removed.isEmpty()) input else input.copy(personalSync = state,
+            notizen = input.notizen.filterNot { it.id in removed }.map { replacements[it.id] ?: it })
+    }
+
+    fun apply(original: Bestand, records: List<PersonalSyncRecord>,
+              attachments: Map<String, Anhang> = emptyMap(),
+              mergeNotes: Boolean = records.any { it.kind in setOf("note", "notebook") }): PersonalSyncResult {
+        val compacted = if (mergeNotes) compactNotes(original) else original
+        val input = if (compacted == original) original else reconcile(compacted, setOf("notes"),
+            original.personalSync.format, original.personalSync.peer_device_id).first
         var notes = input.notizen
         var tasks = input.aufgaben
         var books = input.notizbuecher
@@ -455,7 +538,7 @@ object PersonalSync {
                 remote.id.toByteArray(Charsets.UTF_8).size <= 160 && '\u0000' !in remote.id)
             validateClock(remote.clock)
             require(hash(remote.value) == remote.hash && remote.modifiedMs == remote.value.longValue("modified_ms"))
-            if (remote.kind == "note" && notes.any { it.baumQuelle.isNotBlank() &&
+            if (remote.kind == "note" && notes.any { !ownNote(it) &&
                 (it.id == remote.id || noteWireId(identities, it.id) == noteId(identities, remote.id)) }) {
                 conflicts++; continue
             }
@@ -466,7 +549,7 @@ object PersonalSync {
                     val candidate = notes.filter { note ->
                         val meta = entities["note\u0000${noteWireId(identities, note.id)}"]
                         val wire = noteWireId(identities, note.id)
-                        validNoteId(wire) && note.baumFreigabe == null && note.baumQuelle.isBlank() &&
+                        validNoteId(wire) && (note.baumFreigabe == null || note.persoenlichVerknuepft) && ownNote(note) &&
                             note.anhaenge.size == (remote.value["attachments"] as? JsonArray).orEmpty().size &&
                             meta != null && meta.state == "live" && !meta.conflict && noteContent(noteValue(note, format)) == noteContent(remote.value) &&
                             entities.none { (key, value) -> key.startsWith("attachment\u0000$wire\u0000") && value.state == "deleted" } &&
@@ -498,7 +581,7 @@ object PersonalSync {
             }
             val key = "${remote.kind}\u0000${remote.id}"
             val localNoteId = if (remote.kind == "note") localId(remote.id) else remote.id
-            if (remote.kind == "note" && notes.any { it.id == localNoteId && it.baumQuelle.isNotBlank() } ||
+            if (remote.kind == "note" && notes.any { it.id == localNoteId && !ownNote(it) } ||
                 remote.kind == "task" && tasks.any { it.id == remote.id &&
                     (it.vonZweig.isNotBlank() || it.fremdId.isNotBlank() || it.delegiertAn.isNotBlank() || it.herkunft.isNotBlank()) }) {
                 conflicts++
@@ -576,7 +659,9 @@ object PersonalSync {
                         val id = localId(remote.id)
                         val local = notes.firstOrNull { it.id == id }
                         if (remoteWins) {
-                            if (local != null && notes.none { it.id == conflictId }) notes = notes + local.copy(id = conflictId)
+                            if (local != null && notes.none { it.id == conflictId }) notes = notes + local.copy(id = conflictId,
+                                baumFreigabe = null, baumQuelle = "", baumVersion = 0, baumGeaendert = 0,
+                                baumInhaltVersion = 0, persoenlichVerknuepft = false)
                             notes = notes.filterNot { it.id == id } + remoteNote(remote.copy(id = id), local, attachments, additive = false)
                         } else if (notes.none { it.id == conflictId }) notes = notes + remoteNote(remote.copy(id = conflictId), null, attachments, additive = false)
                     } else if (remote.kind == "task") {
@@ -602,9 +687,13 @@ object PersonalSync {
                 }
             }
         }
-        return PersonalSyncResult(input.copy(notizen = notes,
+        val result = input.copy(notizen = notes,
             aufgaben = AufgabenHierarchie.normalisieren(tasks), notizbuecher = books,
-            personalSync = identities.copy(entities = entities)), conflicts, received, omitted)
+            personalSync = identities.copy(entities = entities))
+        val compactedResult = if (mergeNotes) compactNotes(result) else result
+        val durable = if (compactedResult == result) result else reconcile(compactedResult, setOf("notes"),
+            result.personalSync.format, result.personalSync.peer_device_id).first
+        return PersonalSyncResult(durable, conflicts, received, omitted)
     }
 
     fun matchesCurrent(input: Bestand, proposal: PersonalDeletionProposal): Boolean {
@@ -612,14 +701,14 @@ object PersonalSync {
             proposal.kind == "attachment" && noteId(input.personalSync, proposal.parent_id) != proposal.parent_id) return false
         if (proposal.kind == "attachment") {
             val parent = noteLocalId(input, proposal.parent_id)
-            val note = input.notizen.firstOrNull { it.id == parent && it.baumQuelle.isBlank() }
+            val note = input.notizen.firstOrNull { it.id == parent && ownNote(it) }
             val attachment = note?.anhaenge?.firstOrNull { it.id == proposal.id } ?: return false
             return attachmentDescriptor(attachment)?.let { hash(it.descriptor) == proposal.prior_hash } == true
         }
         val local = if (proposal.kind == "note") noteLocalId(input, proposal.id) else proposal.id
         return (1..3).any { format ->
             val value = when (proposal.kind) {
-                "note" -> input.notizen.firstOrNull { it.id == local && it.baumQuelle.isBlank() }
+                "note" -> input.notizen.firstOrNull { it.id == local && ownNote(it) }
                     ?.let { noteValue(it, format) }
                 "notebook" -> input.notizbuecher.firstOrNull { it.id == proposal.id }?.let(::notebookValue)
                 "task" -> projections(input, setOf("tasks"), format)["task\u0000${proposal.id}"]
@@ -656,10 +745,10 @@ object PersonalSync {
                 art = descriptor.text("kind"))
         }
         val merged = if (!additive) declared else mergeAttachments(old?.anhaenge.orEmpty(), declared)
-        return (old ?: Notiz(record.id)).copy(
+        return io.gitlab.maik3531.magnolienotes.baum.NotizQuellen.lokaleAenderung(old, (old ?: Notiz(record.id)).copy(
             id = record.id, titel = record.value.text("title"), text = record.value.text("text"), html = record.value.text("html"),
             notizbuchId = record.value.text("notebook_id"), symbol = record.value.text("symbol"),
-            angelegt = record.value.longValue("created_ms"), geaendert = record.modifiedMs, anhaenge = merged)
+            angelegt = record.value.longValue("created_ms"), geaendert = record.modifiedMs, anhaenge = merged))
     }
 
     private fun mergeAttachments(local: List<Anhang>, remote: List<Anhang>): List<Anhang> {

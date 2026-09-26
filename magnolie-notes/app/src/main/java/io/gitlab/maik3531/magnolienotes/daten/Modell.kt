@@ -29,7 +29,10 @@ data class Notiz(
     val baumFreigabe: Freigabe? = null,
     val baumGeaendert: Long = 0L,
     val baumVersion: Long = 0L,
-    val baumQuelle: String = ""
+    val baumQuelle: String = "",
+    val baumInhaltVersion: Long = 0L,
+    /** An own copy was consolidated with this shared note; preserve its personal-sync scope. */
+    val persoenlichVerknuepft: Boolean = false
 ) {
     val vorschau: String
         get() {
@@ -56,7 +59,17 @@ data class Anhang(
 data class Freigabe(
     val id: String,
     val partner: List<String> = emptyList(),
-    val anhangPartner: List<String> = emptyList()
+    val anhangPartner: List<String> = emptyList(),
+    val quellen: List<NotizQuelle> = emptyList()
+)
+
+@Serializable
+data class NotizQuelle(
+    val partner: String,
+    val id: String,
+    val version: Long = 0L,
+    val quelle: String = "",
+    val stand: Long = -1L
 )
 
 @Serializable

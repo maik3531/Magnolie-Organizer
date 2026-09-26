@@ -16,6 +16,97 @@ function client(web, id, actor, date) {
   return { dom, w, t: w.OrganizerTest };
 }
 async function check(web) {
+  for (const variant of ["plain", "selected", "attachments", "foreign-only", "sources", "different-text", "different-format",
+    "different-file", "different-attachment-id", "pending-delete", "deleted-history", "pending-restore"]) {
+    const c = client(web, "z-local", "11111111-1111-4111-8111-111111111111", 1);
+    try {
+      const data = c.t.daten(), original = data.notizen[0];
+      if (["attachments", "different-file", "different-attachment-id"].includes(variant))
+        original.anhaenge = [{id: "file", name: "a.pdf", art: "pdf", daten: "data:application/pdf;base64,JVBERg=="}];
+      const duplicate = {...JSON.parse(JSON.stringify(original)), id: "a-duplicate", angelegt: 123};
+      data.notizen.push(duplicate);
+      if (variant === "selected") c.t.zustand().notizen.auswahlId = duplicate.id;
+      if (variant === "different-text") duplicate.text += " changed";
+      if (variant === "different-format") duplicate.html = "<b>Same content</b>";
+      if (variant === "different-file") duplicate.anhaenge[0].name = "different.pdf";
+      if (variant === "different-attachment-id") duplicate.anhaenge[0].id = "other-file";
+      if (["foreign-only", "sources"].includes(variant)) {
+        original.baumQuelle = "a"; duplicate.baumQuelle = "b";
+        original.baumInhaltVersion = 3; duplicate.baumInhaltVersion = 5;
+        original.baumFreigabe = {id: "share-a", partner: ["a"], anhangPartner: ["a"],
+          quellen: [{partner: "a", id: "share-a", version: 7, quelle: "a", stand: 3}]};
+        duplicate.baumFreigabe = {id: "share-b", partner: ["b"], anhangPartner: [],
+          quellen: [{partner: "b", id: "share-b", version: 12, quelle: "b", stand: 4}]};
+        if (variant === "sources") duplicate.baumQuelle = "";
+      }
+      await c.t.personalSyncSnapshot(["notes"], 3, peer);
+      if (variant === "pending-delete") data.personalSync.pending_proposals = [{kind: "note", id: "a-duplicate"}];
+      if (variant === "pending-restore") data.personalSync.restoration_requests = ["note\0a-duplicate"];
+      if (variant === "deleted-history") data.personalSync.entities["attachment\0a-duplicate\0old-file"] = {state: "deleted"};
+      await c.t.personalSyncAnwenden([], {}, 3, peer, ["notes"]);
+      const merges = ["plain", "selected", "attachments", "foreign-only", "sources"].includes(variant);
+      assert.equal(data.notizen.length, merges ? 1 : 2, variant);
+      if (merges) {
+        assert.equal(data.notizen[0].id, variant === "selected" ? "a-duplicate" : "z-local");
+        if (variant === "selected") assert.strictEqual(data.notizen[0], duplicate,
+          "an open editor's object and local ID must remain attached to the saved note");
+        assert.equal(data.personalSync.note_aliases["z-local"], "a-duplicate");
+        const first = JSON.stringify(data);
+        await c.t.personalSyncAnwenden([], {}, 3, peer, ["notes"]);
+        assert.equal(JSON.stringify(data), first, "compaction replay must be a no-op: " + variant);
+        if (variant === "attachments") {
+          assert.equal(data.notizen[0].anhaenge.length, 1);
+          assert.ok(data.personalSync.entities["attachment\0a-duplicate\0file"]);
+          assert.equal(data.personalSync.entities["attachment\0z-local\0file"], undefined);
+        }
+        if (["sources", "foreign-only"].includes(variant)) {
+          const sources = data.notizen[0].baumFreigabe.quellen;
+          assert.equal(sources.find(q => q.partner === "a").stand, 3);
+          assert.equal(sources.find(q => q.partner === "b").stand, -1, "a stale conflict baseline must stay stale");
+          c.w.App.init({daten: JSON.parse(JSON.stringify(data)), neu: false});
+          assert.equal(c.t.daten().notizen[0].baumFreigabe.quellen.find(q => q.partner === "b").stand, -1);
+          const records = await c.t.personalSyncSnapshot(["notes"], 3, peer);
+          assert.equal(records.filter(r => r.kind === "note").length, variant === "foreign-only" ? 0 : 1,
+            "compaction must preserve the personal/tree-only scope");
+        }
+      }
+    } finally { c.w.close(); }
+  }
+  {
+    const a = client(web, "z-local", "11111111-1111-4111-8111-111111111111", 1);
+    const b = client(web, "z-local", "22222222-2222-4222-8222-222222222222", 2);
+    const snapshot = c => c.t.personalSyncSnapshot(["notes"], 3, peer);
+    const apply = (c, records) => c.t.personalSyncAnwenden(JSON.parse(JSON.stringify(records)), {}, 3, peer, ["notes"]);
+    try {
+      await snapshot(a);
+      const original = a.t.daten().notizen[0];
+      const duplicate = {...JSON.parse(JSON.stringify(original)), id: "m-duplicate", angelegt: 123};
+      original.baumQuelle = "tree-peer";
+      original.baumFreigabe = {id: "tree-share", partner: ["tree-peer"], anhangPartner: [],
+        quellen: [{partner: "tree-peer", id: "tree-share", version: 7, quelle: "tree-peer", stand: 0}]};
+      a.t.daten().notizen.push(duplicate);
+      const oldRemote = await snapshot(b);
+      await snapshot(a);
+      assert.equal(a.t.daten().notizen.length, 2, "a preview snapshot must not remove notes");
+      await apply(a, oldRemote);
+      const compacted = await snapshot(a);
+      assert.equal(a.t.daten().notizen.length, 1, "existing shared and personal duplicates must coalesce");
+      assert.equal(a.t.daten().notizen[0].id, "z-local", "compaction must retain the first local UI identity");
+      assert.equal(a.t.daten().notizen[0].baumFreigabe.quellen[0].id, "tree-share");
+      assert.equal(compacted.filter(r => r.kind === "note").length, 1, "the pre-existing personal sync relationship must survive");
+      assert.ok(!Object.values(a.t.daten().personalSync.entities).some(m => m.state === "deleted"));
+      await apply(a, oldRemote); await apply(b, compacted);
+      a.w.App.init({daten: JSON.parse(JSON.stringify(a.t.daten())), neu: false});
+      assert.equal((await snapshot(a)).filter(r => r.kind === "note").length, 1);
+      b.t.daten().notizen[0].text = "Follow-up after compaction";
+      b.t.daten().notizen[0].html = "Follow-up after compaction";
+      await apply(a, await snapshot(b));
+      await apply(a, oldRemote);
+      assert.equal(a.t.daten().notizen.length, 1);
+      assert.equal(a.t.daten().notizen[0].text, "Follow-up after compaction");
+      assert.equal(a.t.daten().notizen[0].baumFreigabe.quellen[0].id, "tree-share");
+    } finally { a.w.close(); b.w.close(); }
+  }
   const templateFile = ["../../contracts", "../contracts"].map(dir =>
     path.resolve(__dirname, dir, "note-identity-templates.json")).find(file => fs.existsSync(file));
   const templates = JSON.parse(fs.readFileSync(templateFile, "utf8")).templates;
@@ -176,7 +267,7 @@ async function check(web) {
   const foreign = client(web, "personal", "11111111-1111-4111-8111-111111111111", 1);
   try {
     const T = foreign.t;
-    T.daten().notizen.push({ ...JSON.parse(JSON.stringify(T.daten().notizen[0])), id: "foreign" });
+    T.daten().notizen.push({ ...JSON.parse(JSON.stringify(T.daten().notizen[0])), id: "foreign", titel: "Foreign tree note" });
     const records = await T.personalSyncSnapshot(["notes"], 3, peer);
     const incoming = JSON.parse(JSON.stringify(records.find(r => r.id === "foreign")));
     T.daten().notizen.find(n => n.id === "foreign").baumQuelle = "tree-peer";

@@ -42,7 +42,8 @@ object Synchronisation {
                 ),
                 baumGeaendert = if (notiz.baumGeaendert > 0) notiz.baumGeaendert else jetzt,
                 baumVersion = if (notiz.baumVersion > 0) notiz.baumVersion else 1L,
-                baumQuelle = notiz.baumQuelle.ifBlank { eigeneKennung }
+                baumQuelle = notiz.baumQuelle.ifBlank { eigeneKennung },
+                persoenlichVerknuepft = notiz.persoenlichVerknuepft || notiz.baumQuelle.isBlank()
             ),
             if (istNeu) "notiz" else "notiz_sync"
         )

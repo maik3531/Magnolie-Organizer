@@ -36,7 +36,10 @@ import io.gitlab.maik3531.magnolienotes.journal.AndroidJournal
  */
 class Baumwerk private constructor(
     private val ablage: Ablage,
-    private val zusammenhang: Context
+    private val zusammenhang: Context,
+    private val notizSnapshotVorher: () -> Unit = {
+        AndroidJournal.hole(zusammenhang).appSnapshot("pre-sync-note")
+    }
 ) : Server.Handlung {
 
     private val server = Server(this)
@@ -307,7 +310,7 @@ class Baumwerk private constructor(
                 zusammenhang.checkSelfPermission(android.Manifest.permission.WRITE_CONTACTS) != android.content.pm.PackageManager.PERMISSION_GRANTED)
         ) return
         if (stueck.art == "kontakt_loeschen") kontaktLoeschungUebernehmen(stueck.von, inhalt)
-        else uebernehmen(stueck.von, stueck.vonName, inhalt)
+        else synchronized(Ablage.SCHREIBSPERRE) { uebernehmen(stueck.von, stueck.vonName, inhalt, manuell = true) }
         eingangEntfernen(stueckId)
     }
 
@@ -321,7 +324,8 @@ class Baumwerk private constructor(
         ablage.notizen().filter { kennung in it.baumFreigabe?.partner.orEmpty() }.forEach { note ->
             val share = note.baumFreigabe!!
             ablage.setzeNotiz(note.copy(baumFreigabe = share.copy(
-                partner = share.partner - kennung, anhangPartner = share.anhangPartner - kennung)))
+                partner = share.partner - kennung, anhangPartner = share.anhangPartner - kennung,
+                quellen = share.quellen.filterNot { it.partner == kennung })))
         }
         ablage.aufgaben().filter { kennung in it.standPartner || it.delegiertAn == kennung }.forEach {
             ablage.setzeAufgabe(it.copy(standPartner = it.standPartner - kennung,
@@ -352,6 +356,7 @@ class Baumwerk private constructor(
             ),
             baumGeaendert = System.currentTimeMillis(),
             baumVersion = notiz.baumVersion + 1,
+            persoenlichVerknuepft = notiz.persoenlichVerknuepft || notiz.baumQuelle.isBlank(),
             baumQuelle = eigen.kennung
         )
         ablage.setzeNotiz(erneuert)
@@ -360,11 +365,11 @@ class Baumwerk private constructor(
             val neuFuerDiesen = vorhandeneFreigabe == null ||
                 !vorhandeneFreigabe.partner.contains(kennung)
             val art = if (neuFuerDiesen) "notiz" else "notiz_sync"
-            einreihen(kennung, art, Nutzlast.notizInhalt(erneuert, art, eigen.kennung))
+            NotizQuellen.inhalte(erneuert, art, eigen.kennung, kennung).forEach { einreihen(kennung, art, it) }
         }
         // Wer die Notiz schon kennt, bekommt die Fortschreibung mit.
         for (kennung in freigabe.partner.filterNot { it in kennungen }) {
-            einreihen(kennung, "notiz_sync", Nutzlast.notizInhalt(erneuert, "notiz_sync", eigen.kennung))
+            NotizQuellen.inhalte(erneuert, "notiz_sync", eigen.kennung, kennung).forEach { einreihen(kennung, "notiz_sync", it) }
         }
         if (sofortSenden) postfachAbarbeiten()
         return erneuert
@@ -673,12 +678,12 @@ class Baumwerk private constructor(
         sofortSenden: Boolean = true
     ) {
         synchronized(Ablage.SCHREIBSPERRE) {
-        AndroidJournal.hole(zusammenhang).appSnapshot("pre-sync-full")
         val eigen = eigen() ?: throw BaumFehler("Die eigene Identität fehlt noch.")
         val partner = partner(kennung)
         if (partner?.bestaetigt != true || !partner.vertraut) {
             throw BaumFehler("Dieser Zweig ist nicht bestätigt und vertraut.")
         }
+        ablage.vereinigeNotizenFuerSync()
         val jetzt = System.currentTimeMillis()
         val plan = Synchronisation.planen(
             ablage.notizen(), ablage.aufgaben(), kennung, eigen.kennung, jetzt, mitAnfrage
@@ -686,11 +691,8 @@ class Baumwerk private constructor(
         for (vorbereitet in plan.notizen) {
             val vorher = ablage.notiz(vorbereitet.notiz.id)
             if (vorbereitet.notiz != vorher) ablage.setzeNotiz(vorbereitet.notiz)
-            einreihen(
-                kennung,
-                vorbereitet.art,
-                Nutzlast.notizInhalt(vorbereitet.notiz, vorbereitet.art, eigen.kennung)
-            )
+            NotizQuellen.inhalte(vorbereitet.notiz, vorbereitet.art, eigen.kennung, kennung)
+                .forEach { einreihen(kennung, vorbereitet.art, it) }
         }
         for (aufgabe in plan.aufgaben) {
             ablage.setzeAufgabe(aufgabe.copy(standPartner = (aufgabe.standPartner + kennung).distinct()))
@@ -1060,10 +1062,10 @@ class Baumwerk private constructor(
     }
 
     /** Übernimmt einen Inhalt tatsächlich – nach Vertrauen oder nach Annahme. */
-    private fun uebernehmen(vonKennung: String, vonName: String, inhalt: JsonObject) {
+    private fun uebernehmen(vonKennung: String, vonName: String, inhalt: JsonObject, manuell: Boolean = false) {
         when (text(inhalt, "art")) {
             "aufgabe" -> aufgabeUebernehmen(vonKennung, vonName, inhalt)
-            "notiz", "notiz_sync" -> notizUebernehmen(vonKennung, inhalt)
+            "notiz", "notiz_sync" -> notizUebernehmen(vonKennung, inhalt, manuell)
             "kontakt_sync" -> kontaktUebernehmen(vonKennung, inhalt)
             else -> Unit                       // Unbekanntes wird übergangen.
         }
@@ -1180,19 +1182,23 @@ class Baumwerk private constructor(
         )
     }
 
-    private fun notizUebernehmen(vonKennung: String, inhalt: JsonObject) {
+    private fun notizUebernehmen(vonKennung: String, inhalt: JsonObject, manuell: Boolean) {
         val gelesen = Nutzlast.lies(inhalt, vonKennung) ?: return
-        val vorhanden = ablage.notizen().firstOrNull {
-            it.baumFreigabe?.id == gelesen.freigabeId
-        }
-        if (vorhanden != null && vonKennung !in vorhanden.baumFreigabe!!.partner) {
-            throw BaumFehler("Die Nachricht kommt von einem anderen Zweig.")
-        }
-        AndroidJournal.hole(zusammenhang).appSnapshot("pre-sync-note")
+        val vereinigt = ablage.vereinigeNotizenFuerSync()
+        val angebot = Notiz("", titel = gelesen.titel, text = gelesen.text,
+            html = Nutzlast.saeubereHtml(gelesen.html), anhaenge = gelesen.anhaenge)
+        val gebunden = ablage.notizen().filter { NotizQuellen.quelle(it, vonKennung, gelesen.freigabeId) != null }
+        if (gebunden.size > 1) throw BaumFehler("Die Notizzuordnung ist mehrdeutig.")
+        if (gebunden.isEmpty() && ablage.notizen().any { note -> note.baumFreigabe?.let { share ->
+                share.id == gelesen.freigabeId || share.quellen.any { it.id == gelesen.freigabeId }
+            } == true }) throw BaumFehler("Die Nachricht kommt von einem anderen Zweig.")
+        val vorhanden = gebunden.singleOrNull() ?: if (gelesen.art == "notiz")
+            ablage.notizen().firstOrNull { NotizQuellen.gleicherInhalt(it, angebot) } else null
         if (vorhanden == null) {
             if (gelesen.art != "notiz") return   // Fortschreibung ohne Angebot: übergehen
             val jetzt = System.currentTimeMillis()
             val anhaenge = begrenzeAnhaenge(emptyList(), gelesen.anhaenge)
+            if (!vereinigt) notizSnapshotVorher()
             ablage.setzeNotiz(
                 Notiz(
                     id = UUID.randomUUID().toString(),
@@ -1205,7 +1211,9 @@ class Baumwerk private constructor(
                     anhaenge = anhaenge,
                     herkunft = zusammenhang.getString(R.string.herkunft_magnolienbaum),
                     einfuhrSchluessel = Ablage.einfuhrSchluessel(gelesen.titel, gelesen.text),
-                    baumFreigabe = Freigabe(gelesen.freigabeId, listOf(vonKennung), listOf(vonKennung)),
+                    baumFreigabe = Freigabe(gelesen.freigabeId, listOf(vonKennung), listOf(vonKennung),
+                        listOf(io.gitlab.maik3531.magnolienotes.daten.NotizQuelle(vonKennung, gelesen.freigabeId,
+                            gelesen.version, gelesen.quelle, 0))),
                     baumGeaendert = gelesen.geaendert,
                     baumVersion = gelesen.version,
                     baumQuelle = gelesen.quelle
@@ -1215,28 +1223,44 @@ class Baumwerk private constructor(
             return
         }
         // Höhere Fassung gewinnt; bei gleicher gewinnt die größere Quelle.
-        val neuer = gelesen.version > vorhanden.baumVersion ||
-            (gelesen.version == vorhanden.baumVersion && gelesen.quelle > vorhanden.baumQuelle)
-        if (!neuer) return
+        val quelle = NotizQuellen.quelle(vorhanden, vonKennung, gelesen.freigabeId)
+        val neuer = quelle == null || gelesen.version > quelle.version ||
+            (gelesen.version == quelle.version && gelesen.quelle > quelle.quelle)
         val freigabe = vorhanden.baumFreigabe ?: Freigabe(gelesen.freigabeId)
-        val darfAnhaenge = freigabe.anhangPartner.contains(vonKennung)
+        val darfAnhaenge = quelle == null || freigabe.anhangPartner.contains(vonKennung)
         val anhaenge = if (darfAnhaenge) begrenzeAnhaenge(vorhanden.anhaenge, gelesen.anhaenge)
             else vorhanden.anhaenge
+        val geaendert = !NotizQuellen.gleicherInhalt(vorhanden, angebot.copy(anhaenge = anhaenge))
+        if (!neuer && (geaendert || quelle?.stand == vorhanden.baumInhaltVersion)) return
+        if (!manuell && NotizQuellen.konflikt(vorhanden, vonKennung, gelesen.freigabeId, angebot.copy(anhaenge = anhaenge))) {
+            inEingang(vonKennung, partner(vonKennung)?.name.orEmpty(), gelesen.art, inhalt)
+            return
+        }
+        val inhaltVersion = vorhanden.baumInhaltVersion + if (geaendert) 1 else 0
+        if (geaendert && !vereinigt) notizSnapshotVorher()
         ablage.setzeNotiz(
             vorhanden.copy(
-                titel = gelesen.titel,
-                text = gelesen.text,
-                html = Nutzlast.saeubereHtml(gelesen.html),
+                titel = if (geaendert) gelesen.titel else vorhanden.titel,
+                text = if (geaendert) gelesen.text else vorhanden.text,
+                html = if (geaendert) angebot.html else vorhanden.html,
                 symbol = gelesen.symbol.ifBlank { vorhanden.symbol },
-                anhaenge = anhaenge,
-                geaendert = System.currentTimeMillis(),
-                baumFreigabe = freigabe,
+                anhaenge = if (geaendert) anhaenge else vorhanden.anhaenge,
+                geaendert = if (geaendert) System.currentTimeMillis() else vorhanden.geaendert,
+                baumInhaltVersion = inhaltVersion,
+                persoenlichVerknuepft = vorhanden.persoenlichVerknuepft || quelle == null && vorhanden.baumQuelle.isBlank(),
+                baumFreigabe = freigabe.copy(partner = (freigabe.partner + vonKennung).distinct(),
+                    anhangPartner = if (quelle == null) (freigabe.anhangPartner + vonKennung).distinct() else freigabe.anhangPartner,
+                    quellen = freigabe.quellen.filterNot {
+                    it.partner == vonKennung && it.id == gelesen.freigabeId
+                } + io.gitlab.maik3531.magnolienotes.daten.NotizQuelle(vonKennung, gelesen.freigabeId,
+                    if (neuer) gelesen.version else quelle!!.version,
+                    if (neuer) gelesen.quelle else quelle!!.quelle, inhaltVersion)),
                 baumGeaendert = gelesen.geaendert,
-                baumVersion = gelesen.version,
+                baumVersion = maxOf(vorhanden.baumVersion, gelesen.version),
                 baumQuelle = gelesen.quelle
             )
         )
-        melde(R.string.baum_meldung_notiz_aktualisiert)
+        if (geaendert || vereinigt) melde(R.string.baum_meldung_notiz_aktualisiert)
     }
 
     private fun begrenzeAnhaenge(bisherNotiz: List<io.gitlab.maik3531.magnolienotes.daten.Anhang>,
@@ -1323,6 +1347,9 @@ class Baumwerk private constructor(
 
         internal fun fuerTest(ablage: Ablage, zusammenhang: Context): Baumwerk =
             Baumwerk(ablage, zusammenhang.applicationContext)
+
+        internal fun fuerTest(ablage: Ablage, zusammenhang: Context, notizSnapshotVorher: () -> Unit): Baumwerk =
+            Baumwerk(ablage, zusammenhang.applicationContext, notizSnapshotVorher)
     }
 }
 

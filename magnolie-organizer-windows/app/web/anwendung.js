@@ -699,7 +699,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       const kandidaten = [...eigeneWerte].filter(([k, value]) => k.startsWith("note\u0000") &&
         ps.entities[k]?.state !== "deleted" && !ps.entities[k]?.conflict && personalSyncNotizInhalt(value) === inhalt)
         .map(([k]) => ({ wire: k.slice(5), notiz: DATEN.notizen.find(n => personalSyncNotizWireId(n.id) === k.slice(5)) }))
-        .filter(k => personalSyncNotizIdGueltig(k.wire) && k.notiz && !k.notiz.baumFreigabe &&
+        .filter(k => personalSyncNotizIdGueltig(k.wire) && k.notiz && (!k.notiz.baumFreigabe || k.notiz.persoenlichVerknuepft) &&
           (k.notiz.anhaenge || []).length === (record.value.attachments || []).length)
         .filter(k => !Object.entries(ps.entities).some(([key, meta]) => key.startsWith("attachment\u0000" + k.wire + "\u0000") &&
           meta.state === "deleted") &&
@@ -732,6 +732,89 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     return id === record.id ? record : { ...record, id };
   }
 
+  function personalSyncEigeneNotiz(notiz) {
+    return !String(notiz.baumQuelle || "") || notiz.persoenlichVerknuepft === true;
+  }
+
+  // Called inside the existing sync save boundary, never while loading/restoring a profile.
+  function vereinigeBestehendeNotizen() {
+    const ps = DATEN.personalSync, gruppen = new Map(), entfernt = new Set();
+    if ((ps.pending_decisions || []).length) return 0;
+    for (const n of DATEN.notizen) {
+      const inhalt = notizInhaltsKennung(n);
+      if (inhalt === null || !personalSyncNotizIdGueltig(n.id)) continue;
+      const key = personalSyncKanonisch([n.notizbuchId, n.symbol, inhalt,
+        (n.anhaenge || []).map(a => a.id)]);
+      if (!gruppen.has(key)) gruppen.set(key, []);
+      gruppen.get(key).push(n);
+    }
+    for (const gruppe of gruppen.values()) {
+      if (gruppe.length < 2 || new Set(gruppe.map(n => n.id)).size !== gruppe.length) continue;
+      const offen = gruppe.findIndex(n => n.id === zustand.notizen.auswahlId);
+      if (offen > 0) gruppe.unshift(gruppe.splice(offen, 1)[0]);
+      const wires = new Set(gruppe.map(n => personalSyncNotizWireId(n.id)));
+      if ([...wires].some(id => !personalSyncNotizIdGueltig(id)) || DATEN.notizen.some(n =>
+          !gruppe.includes(n) && wires.has(personalSyncNotizWireId(n.id)))) continue;
+      const betrifft = key => { const teile = key.split("\u0000");
+        return ["note", "attachment"].includes(teile[0]) && wires.has(personalSyncNotizId(teile[1])); };
+      const metadaten = Object.entries(ps.entities).filter(([key]) => betrifft(key));
+      const anhangIds = new Set((gruppe[0].anhaenge || []).map(a => a.id));
+      if (metadaten.some(([key, m]) => m.state === "deleted" || m.conflict ||
+          key.startsWith("attachment\u0000") && !anhangIds.has(key.split("\u0000")[2])) ||
+          (ps.restoration_requests || []).some(betrifft) ||
+          (ps.pending_proposals || []).some(p => betrifft(p.kind + "\u0000" +
+            (p.kind === "attachment" ? p.parent_id + "\u0000" : "") + p.id))) continue;
+      const bleibt = gruppe[0], canonical = [...wires].sort(personalSyncUtf8)[0], neuMeta = new Map();
+      let sicher = true;
+      for (const [key, meta] of metadaten) {
+        const teile = key.split("\u0000"), ziel = teile[0] + "\u0000" + canonical +
+          (teile[0] === "attachment" ? "\u0000" + teile[2] : "");
+        const vorher = neuMeta.get(ziel), clock = personalSyncVereinige(vorher?.clock || [], meta.clock || []);
+        if (clock.length > 16 || vorher && teile[0] === "attachment" && vorher.hash !== meta.hash) { sicher = false; break; }
+        neuMeta.set(ziel, { ...(vorher || meta), clock, acknowledged_by_peer: false,
+          ...(teile[0] === "attachment" ? {parent_id: canonical} : {}) });
+      }
+      if (!sicher) continue;
+      const freigaben = gruppe.filter(n => n.baumFreigabe), quellen = new Map();
+      const version = Number(bleibt.baumInhaltVersion) || 0;
+      for (const n of freigaben) {
+        const meta = n.baumFreigabe;
+        const bekannt = [...(meta.quellen || [])];
+        for (const partner of meta.partner || []) if (!bekannt.some(q => q.partner === partner))
+          bekannt.push({partner, id: meta.id, version: Number(n.baumVersion) || 0, quelle: n.baumQuelle || "", stand: -1});
+        for (const q of bekannt) {
+          const key = q.partner + "\u0000" + q.id, alt = quellen.get(key);
+          const stand = q.stand === (Number(n.baumInhaltVersion) || 0) ? version : -1;
+          const neuer = !alt || q.version > alt.version || q.version === alt.version && q.quelle > alt.quelle;
+          quellen.set(key, {...(neuer ? q : alt), stand: stand < 0 || alt?.stand < 0 ? -1 : version});
+        }
+      }
+      // The personal side already existed; a foreign tree-only note never gains it here.
+      bleibt.persoenlichVerknuepft = gruppe.some(personalSyncEigeneNotiz);
+      if (freigaben.length) {
+        const partner = [...new Set(freigaben.flatMap(n => n.baumFreigabe.partner || []))];
+        bleibt.baumFreigabe = {...freigaben[0].baumFreigabe, partner, quellen: [...quellen.values()],
+          anhangPartner: partner.filter(p => freigaben.filter(n => (n.baumFreigabe.partner || []).includes(p))
+            .every(n => (n.baumFreigabe.anhangPartner || []).includes(p)))};
+        bleibt.baumVersion = Math.max(...gruppe.map(n => Number(n.baumVersion) || 0));
+        bleibt.baumGeaendert = Math.max(...gruppe.map(n => Number(n.baumGeaendert) || 0));
+        bleibt.baumQuelle ||= freigaben[0].baumQuelle;
+      }
+      ps.note_ids = Object.assign(Object.create(null), ps.note_ids);
+      ps.note_aliases = Object.assign(Object.create(null), ps.note_aliases);
+      for (const n of gruppe) ps.note_ids[n.id] = canonical;
+      for (const wire of wires) if (wire !== canonical) ps.note_aliases[wire] = canonical;
+      for (const [key] of metadaten) delete ps.entities[key];
+      for (const [key, meta] of neuMeta) ps.entities[key] = meta;
+      for (const n of gruppe.slice(1)) {
+        entfernt.add(n);
+        if (zustand.notizen.auswahlId === n.id) zustand.notizen.auswahlId = bleibt.id;
+      }
+    }
+    if (entfernt.size) DATEN.notizen = DATEN.notizen.filter(n => !entfernt.has(n));
+    return entfernt.size;
+  }
+
   async function personalSyncSnapshot(module, format = 1, peerId = "") {
     sichereNotizSnapshot();
     const ps = DATEN.personalSync;
@@ -743,7 +826,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     }
     if (module.includes("notes")) {
       DATEN.notizbuecher.forEach((x) => kandidaten.push(["notebook", x]));
-      DATEN.notizen.filter((x) => !String(x.baumQuelle || "")).forEach((x) => kandidaten.push(["note", x]));
+      DATEN.notizen.filter(personalSyncEigeneNotiz).forEach((x) => kandidaten.push(["note", x]));
     }
     if (module.includes("tasks")) DATEN.aufgaben.filter((x) =>
       !x.vonZweig && !x.fremdId && !x.delegiertAn && !x.herkunft).forEach((x) => kandidaten.push(["task", x]));
@@ -754,7 +837,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     ]);
     const anhangVorhanden = new Set();
     if (format >= 2 && module.includes("notes")) for (const notiz of DATEN.notizen) {
-      if (String(notiz.baumQuelle || "")) continue;
+      if (!personalSyncEigeneNotiz(notiz)) continue;
       for (const anhang of (notiz.anhaenge || [])) anhangVorhanden.add(
         "attachment\u0000" + personalSyncNotizWireId(notiz.id) + "\u0000" + anhang.id);
     }
@@ -811,7 +894,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
         hash: meta.hash, modified_ms: meta.modified_ms, value: wert });
     }
     if (format >= 2 && module.includes("notes")) for (const notiz of DATEN.notizen) {
-      if (String(notiz.baumQuelle || "")) continue;
+      if (!personalSyncEigeneNotiz(notiz)) continue;
       for (const anhang of (notiz.anhaenge || [])) {
         const snapshot = await personalSyncAnhangSnapshot(anhang); if (!snapshot) continue;
         const parentId = personalSyncNotizWireId(notiz.id);
@@ -1061,11 +1144,13 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
           throw new Error(_("Personal synchronization failed."));
       }
     }
+    sichereNotizSnapshot();
+    if (modules.includes("notes")) vereinigeBestehendeNotizen();
     const eigeneRecords = await personalSyncSnapshot(modules, format, peerId);
     const eigeneWerte = new Map(eigeneRecords.map(record => [record.kind + "\u0000" + record.id, record.value]));
     let konflikte = 0, anlagen = 0;
     for (const eingang of records) {
-      if (eingang.kind === "note" && DATEN.notizen.some(n => String(n.baumQuelle || "") &&
+      if (eingang.kind === "note" && DATEN.notizen.some(n => !personalSyncEigeneNotiz(n) &&
           (n.id === eingang.id || personalSyncNotizWireId(n.id) === personalSyncNotizId(eingang.id)))) { konflikte++; continue; }
       const record = personalSyncNotizZuordnen(eingang, eigeneWerte);
       const key = record.kind + "\u0000" + record.id, lokal = DATEN.personalSync.entities[key];
@@ -1121,6 +1206,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
         modified_ms: remoteWins ? lokal.modified_ms : record.modified_ms, conflict: true };
       konflikte += 1;
     }
+    if (modules.includes("notes") && vereinigeBestehendeNotizen()) await personalSyncSnapshot(modules, format, peerId);
     return { conflicts: konflikte, attachments: anlagen };
   }
 
@@ -1262,7 +1348,9 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     if (trigger === "auto_wifi" && vorbereitet) personalSyncAutoHash.set(run,
       { hash: vorbereitet.hash, modules: vorbereitet.modules.slice(), format: format, peerId: peer.device_id });
     const request = { format: format, run_id: run, trigger: trigger, modules: modules };
-    const records = vorbereitet && vorbereitet.format === format ? vorbereitet.records : await personalSyncSnapshot(modules, format, peer.device_id);
+    sichereNotizSnapshot();
+    const bereinigt = modules.includes("notes") && vereinigeBestehendeNotizen();
+    const records = !bereinigt && vorbereitet && vorbereitet.format === format ? vorbereitet.records : await personalSyncSnapshot(modules, format, peer.device_id);
     await new Promise((resolve, reject) => nachDauerhaftemSpeichern(resolve, reject));
     {
       const chunks = personalSyncPakete(records, run, false, format);
@@ -5809,7 +5897,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
             ? n.baumFreigabe.anhangPartner.map(S).filter(Boolean) : [],
           quellen: (Array.isArray(n.baumFreigabe.quellen) ? n.baumFreigabe.quellen : [])
             .filter(q => q && S(q.partner) && S(q.id)).map(q => ({ partner: S(q.partner), id: S(q.id),
-              version: N(q.version), quelle: S(q.quelle), stand: N(q.stand) })) }
+              version: N(q.version), quelle: S(q.quelle), stand: Number(q.stand) < 0 ? -1 : N(q.stand) })) }
         : null;
       d.notizen.push({ id: S(n.id) || uid(), titel: S(n.titel), text: S(n.text),
         html: htmlStand.gekuerzt ? htmlRoh : sicheresHtml,
@@ -5820,7 +5908,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
         personalGeaendert: N(n.personalGeaendert) || notizAngelegt,
         baumFreigabe: freigabe && freigabe.id ? freigabe : null,
         baumGeaendert: N(n.baumGeaendert), baumInhaltVersion: N(n.baumInhaltVersion),
-        baumVersion: N(n.baumVersion), baumQuelle: S(n.baumQuelle) });
+        baumVersion: N(n.baumVersion), baumQuelle: S(n.baumQuelle), persoenlichVerknuepft: n.persoenlichVerknuepft === true });
     }
     const jahrestageNachIdentitaet = new Map();
     for (const j of Array.isArray(roh.jahrestage) ? roh.jahrestage : []) {
@@ -13764,7 +13852,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
   function baumNotizQuelle(notiz, partner, id) {
     const meta = notiz.baumFreigabe;
     return meta?.quellen?.find(q => q.partner === partner && q.id === id) ||
-      (meta?.id === id && (meta.partner || []).includes(partner)
+      (meta?.id === id && (meta.partner || []).includes(partner) && !(meta.quellen || []).some(q => q.partner === partner)
         ? { partner, id, version: Number(notiz.baumVersion) || 0, quelle: notiz.baumQuelle || "", stand: -1 } : null);
   }
 
@@ -13791,7 +13879,8 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
   function indexiereBaumNotiz(index, notiz, entfernen = false) {
     const inhalt = notizInhaltsKennung(notiz), meta = notiz.baumFreigabe;
     const keys = inhalt === null ? [] : ["inhalt:" + inhalt];
-    for (const partner of meta?.partner || []) keys.push("quelle:" + partner + "\u0000" + meta.id);
+    for (const partner of meta?.partner || []) if (!(meta.quellen || []).some(q => q.partner === partner))
+      keys.push("quelle:" + partner + "\u0000" + meta.id);
     for (const q of meta?.quellen || []) keys.push("quelle:" + q.partner + "\u0000" + q.id);
     for (const key of keys) {
       if (entfernen) { index.get(key)?.delete(notiz); continue; }
@@ -13807,10 +13896,14 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       anhaenge: saubereNotizAnhaenge(inhalt.anhaenge) };
     if (!id || htmlStand.gekuerzt || Array.isArray(inhalt.anhaenge) && werte.anhaenge.length !== inhalt.anhaenge.length)
       return { ok: false };
-    if (!index) { index = new Map(); DATEN.notizen.forEach(n => indexiereBaumNotiz(index, n)); }
+    if (!index) {
+      if (vereinigeBestehendeNotizen()) planeSpeichern();
+      index = new Map(); DATEN.notizen.forEach(n => indexiereBaumNotiz(index, n));
+    }
     const gebunden = [...(index.get("quelle:" + stueck.von + "\u0000" + id) || [])];
     if (gebunden.length > 1) return { ok: false, konflikt: true };
     let notiz = gebunden[0];
+    let bestandVorhanden = !!notiz;
     if (!notiz && automatisch && (inhalt.art || stueck.art) === "notiz_sync") return { ok: false };
     let geaendert = false;
     if (notiz) {
@@ -13842,6 +13935,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     } else {
       const gleich = index.get("inhalt:" + notizInhaltsKennung(werte));
       notiz = gleich?.values().next().value;
+      bestandVorhanden = !!notiz;
       if (notiz) indexiereBaumNotiz(index, notiz, true);
       else {
         notiz = { ...werte, id: uid(), notizbuchId: DATEN.notizbuecher[0].id,
@@ -13849,6 +13943,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
         DATEN.notizen.push(notiz); geaendert = true;
       }
     }
+    if (bestandVorhanden && personalSyncEigeneNotiz(notiz)) notiz.persoenlichVerknuepft = true;
     merkeBaumNotizQuelle(notiz, stueck, !automatisch || (inhalt.art || stueck.art) === "notiz");
     notiz.baumGeaendert = Number(inhalt.geaendert) || 0;
     indexiereBaumNotiz(index, notiz);
@@ -13857,6 +13952,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
 
   function markiereGemeinsameNotiz(notiz, inhaltGeaendert = true) {
     if (!notiz.baumFreigabe) return;
+    if (personalSyncEigeneNotiz(notiz)) notiz.persoenlichVerknuepft = true;
     notiz.baumGeaendert = Date.now();
     notiz.baumVersion = Number(notiz.baumVersion || 0) + 1;
     if (inhaltGeaendert) notiz.baumInhaltVersion = Number(notiz.baumInhaltVersion || 0) + 1;
@@ -13881,8 +13977,9 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
   function synchronisiereAllesMit(kennung, mitAnfrage) {
     const partner = baumPartnerListe().find((p2) => p2.kennung === kennung);
     if (!partner) return false;
+    sichereNotizSnapshot();
     const eigeneKennung = String((baumStand && baumStand.kennung) || "zweig");
-    let datenGeaendert = false;
+    let datenGeaendert = vereinigeBestehendeNotizen() > 0;
     for (const notiz of DATEN.notizen) {
       if (!notiz.baumFreigabe || !notiz.baumFreigabe.id) {
         notiz.baumFreigabe = { id: eigeneKennung + ":" + notiz.id,
@@ -13894,6 +13991,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
         datenGeaendert = true;
       }
       if (!notiz.baumQuelle) {
+        notiz.persoenlichVerknuepft = true;
         notiz.baumQuelle = eigeneKennung;
         datenGeaendert = true;
       }
@@ -20307,7 +20405,10 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     const ausstehend = baumPostSpeicherStand.ids;
     let notizIndex = null;
     const holeNotizIndex = () => {
-      if (!notizIndex) { notizIndex = new Map(); DATEN.notizen.forEach(n => indexiereBaumNotiz(notizIndex, n)); }
+      if (!notizIndex) {
+        if (vereinigeBestehendeNotizen()) notizAenderungen++;
+        notizIndex = new Map(); DATEN.notizen.forEach(n => indexiereBaumNotiz(notizIndex, n));
+      }
       return notizIndex;
     };
     const erledigteIds = [];

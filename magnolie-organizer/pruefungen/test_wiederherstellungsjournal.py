@@ -64,7 +64,7 @@ assert not m.journal_inhalt_geaendert(vorher, einstellungen)
 notiz_vorher = {"notizen": [{"id": "same", "titel": "Welcome", "text": "Content"}]}
 notiz_nachher = copy.deepcopy(notiz_vorher)
 notiz_nachher["notizen"][0].update(uid="other-source", angelegt=123, geaendert=456,
-                                  baumInhaltVersion=3,
+                                  baumInhaltVersion=3, persoenlichVerknuepft=True,
                                   baumFreigabe={"id": "share", "partner": ["peer"]})
 notiz_nachher["personalSync"] = {"revision": 2}
 assert not m.journal_inhalt_geaendert(notiz_vorher, notiz_nachher)

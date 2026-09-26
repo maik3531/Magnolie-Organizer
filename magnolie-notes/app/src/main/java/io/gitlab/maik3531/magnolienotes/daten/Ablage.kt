@@ -198,7 +198,10 @@ internal class WiederherstellungsPaarCommit(
 class Ablage private constructor(
     zusammenhang: Context,
     datenKey: () -> SecretKey,
-    nachCommitSchritt: (PaarCommitSchritt) -> Unit = {}
+    nachCommitSchritt: (PaarCommitSchritt) -> Unit = {},
+    private val vorNotizZusammenfuehrung: () -> Unit = {
+        io.gitlab.maik3531.magnolienotes.journal.AndroidJournal.hole(zusammenhang).appSnapshot("pre-sync-note")
+    }
 ) {
 
     private val ordner = zusammenhang.filesDir
@@ -305,14 +308,25 @@ class Ablage private constructor(
 
     fun notizen(): List<Notiz> = _bestand.value.notizen
 
-    fun notiz(id: String): Notiz? = _bestand.value.notizen.firstOrNull { it.id == id }
+    fun notiz(id: String): Notiz? {
+        val bestand = _bestand.value
+        bestand.notizen.firstOrNull { it.id == id }?.let { return it }
+        if (id !in bestand.personalSync.note_ids) return null
+        val local = PersonalSync.noteLocalId(bestand, PersonalSync.noteWireId(bestand.personalSync, id))
+        return bestand.notizen.firstOrNull { it.id == local }
+    }
 
     fun sichereNotiz(notiz: Notiz) = synchronized(sperre) {
         val jetzt = System.currentTimeMillis()
-        val fertig = notiz.copy(
-            angelegt = if (notiz.angelegt > 0) notiz.angelegt else jetzt,
+        val vorher = this.notiz(notiz.id)
+        val bearbeitet = if (vorher != null && vorher.id != notiz.id) vorher.copy(
+            titel = notiz.titel, text = notiz.text, html = notiz.html, notizbuchId = notiz.notizbuchId,
+            symbol = notiz.symbol, anhaenge = notiz.anhaenge) else notiz
+        val fertig = io.gitlab.maik3531.magnolienotes.baum.NotizQuellen.lokaleAenderung(
+            vorher, bearbeitet.copy(
+            angelegt = if (bearbeitet.angelegt > 0) bearbeitet.angelegt else jetzt,
             geaendert = jetzt
-        )
+        ))
         val liste = _bestand.value.notizen.toMutableList()
         val platz = liste.indexOfFirst { it.id == fertig.id }
         if (platz >= 0) liste[platz] = fertig else liste.add(fertig)
@@ -329,7 +343,7 @@ class Ablage private constructor(
     }
 
     fun loescheNotiz(id: String) = synchronized(sperre) {
-        schreibeBestand(PapierkorbLogik.loescheNotiz(_bestand.value, id))
+        schreibeBestand(PapierkorbLogik.loescheNotiz(_bestand.value, notiz(id)?.id ?: id))
     }
 
     /**
@@ -448,7 +462,7 @@ class Ablage private constructor(
     }
 
     fun loescheAnhang(notizId: String, anhangId: String) = synchronized(sperre) {
-        schreibeBestand(PapierkorbLogik.loescheAnhang(_bestand.value, notizId, anhangId))
+        schreibeBestand(PapierkorbLogik.loescheAnhang(_bestand.value, notiz(notizId)?.id ?: notizId, anhangId))
     }
 
     fun loescheNotizbuch(id: String): Boolean = synchronized(sperre) {
@@ -621,7 +635,7 @@ class Ablage private constructor(
         val (neu, records) = PersonalSync.reconcile(_bestand.value, modules, format)
         if (neu != _bestand.value) schreibeBestand(neu)
         val attachments = linkedMapOf<String, PersonalSync.AttachmentSnapshot>()
-        _bestand.value.notizen.filter { it.baumQuelle.isBlank() }.flatMap { it.anhaenge }.forEach { attachment ->
+        _bestand.value.notizen.filter(PersonalSync::ownNote).flatMap { it.anhaenge }.forEach { attachment ->
             PersonalSync.attachmentDescriptor(attachment)?.let { snapshot ->
                 attachments[(snapshot.descriptor["sha256"] as JsonPrimitive).content] = snapshot
             }
@@ -640,6 +654,7 @@ class Ablage private constructor(
         val modules = records.map { if (it.kind == "task") "tasks" else "notes" }.toSet()
         val local = PersonalSync.reconcile(_bestand.value, modules, 1).first
         val result = PersonalSync.apply(local, records)
+        sichereNotizZusammenfuehrung(result.bestand)
         schreibeBestand(result.bestand)
         result
     }
@@ -653,12 +668,26 @@ class Ablage private constructor(
         if (batchKey in _bestand.value.personalSync.applied_batches) return@synchronized null
         // Content, clocks, incoming changes and replay protection share one durable write.
         val local = PersonalSync.reconcile(_bestand.value, modules, format).first
-        val result = PersonalSync.apply(local, records, attachments)
+        val result = PersonalSync.apply(local, records, attachments, mergeNotes = "notes" in modules)
         val applied = (result.bestand.personalSync.applied_batches + batchKey).takeLast(500)
         val durable = result.copy(bestand = result.bestand.copy(
             personalSync = result.bestand.personalSync.copy(applied_batches = applied)))
+        sichereNotizZusammenfuehrung(durable.bestand)
         schreibeBestand(durable.bestand)
         durable
+    }
+
+    fun vereinigeNotizenFuerSync(): Boolean = synchronized(sperre) {
+        val neu = PersonalSync.compactNotes(_bestand.value)
+        if (neu == _bestand.value) return@synchronized false
+        sichereNotizZusammenfuehrung(neu)
+        schreibeBestand(neu)
+        true
+    }
+
+    private fun sichereNotizZusammenfuehrung(neu: Bestand) {
+        val ids = neu.notizen.mapTo(mutableSetOf()) { it.id }
+        if (_bestand.value.notizen.any { it.id !in ids }) vorNotizZusammenfuehrung()
     }
 
     private fun schreibeBestand(neu: Bestand) {
@@ -939,6 +968,10 @@ class Ablage private constructor(
             key: () -> SecretKey,
             nachCommitSchritt: (PaarCommitSchritt) -> Unit
         ): Ablage = Ablage(zusammenhang.applicationContext, key, nachCommitSchritt)
+
+        internal fun fuerTest(zusammenhang: Context, key: () -> SecretKey,
+            nachCommitSchritt: (PaarCommitSchritt) -> Unit, vorNotizZusammenfuehrung: () -> Unit): Ablage =
+            Ablage(zusammenhang.applicationContext, key, nachCommitSchritt, vorNotizZusammenfuehrung)
 
         internal fun singletonFuerTestZuruecksetzen() {
             synchronized(this) { einzig = null }

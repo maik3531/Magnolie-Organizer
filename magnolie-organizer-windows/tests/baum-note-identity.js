@@ -37,6 +37,17 @@ async function check(web) {
     assert.equal(T.daten().notizen.length, 1,
       "the same generated welcome page must not duplicate because of its device-local storage path");
 
+    await reset([{...localWelcome, baumQuelle: "a", baumFreigabe: {id: "old-share", partner: ["a"],
+      anhangPartner: [], quellen: [{partner: "a", id: "old-share", version: 1, quelle: "a", stand: 0}]}},
+      {...remoteWelcome, id: "old-own-copy"}]);
+    stand([offer("a", "old-share", 2, {art: "notiz_sync", titel: localWelcome.titel,
+      text: "New real content", html: "New real content"})]); await tick();
+    assert.equal(T.daten().notizen.length, 1, "old duplicates must coalesce before a source update changes one copy");
+    assert.equal(T.daten().notizen[0].text, "New real content");
+    assert.equal(messages.filter(m => m.cmd === "speichern").length, 1, "cleanup and incoming update must share one save");
+    assert.equal((await T.personalSyncSnapshot(["notes"], 3, "11111111-1111-4111-8111-111111111111"))
+      .filter(r => r.kind === "note").length, 1, "the original personal side survives tree receipt");
+
     const templateFile = ["../../contracts", "../contracts"].map(dir =>
       path.resolve(__dirname, dir, "note-identity-templates.json")).find(file => fs.existsSync(file));
     const templates = JSON.parse(fs.readFileSync(templateFile, "utf8")).templates;

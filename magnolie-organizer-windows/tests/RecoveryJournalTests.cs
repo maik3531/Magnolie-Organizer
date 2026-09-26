@@ -69,6 +69,7 @@ internal static class RecoveryJournalTests
             bookkeeping["notizen"]![0]!["angelegt"] = 123;
             bookkeeping["notizen"]![0]!["geaendert"] = 456;
             bookkeeping["notizen"]![0]!["baumInhaltVersion"] = 3;
+            bookkeeping["notizen"]![0]!["persoenlichVerknuepft"] = true;
             bookkeeping["notizen"]![0]!["baumFreigabe"] = JsonNode.Parse("{\"id\":\"shared\",\"partner\":[\"peer\"]}");
             bookkeeping["personalSync"] = JsonNode.Parse("{\"revision\":2}");
             TestAssert.That(!RecoveryJournal.HasRecoverableChanges(data, bookkeeping),
