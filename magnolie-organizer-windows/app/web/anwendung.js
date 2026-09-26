@@ -15042,6 +15042,13 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
 
     const knoepfe = el("div", "form-knoepfe");
     knoepfe.style.marginTop = "18px";
+    const syncKonflikte = Object.keys(k.syncKonflikte || {});
+    if (syncKonflikte.length) {
+      const pruefen = knopf(_("Conflict") + " (" + syncKonflikte.length + ")", "klein", () =>
+        oeffneSyncKontaktKonflikt(k.id, syncKonflikte[0]));
+      pruefen.dataset.syncKontaktKonflikt = k.id;
+      knoepfe.append(pruefen);
+    }
     const freigabe = baumFreigabeReihe("kontakt", () => {
       const kopie = JSON.parse(JSON.stringify(k));
       delete kopie.id;
@@ -20979,6 +20986,100 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     registriereModal(schleier, dialog, { anfang: zielWahl, schliessen: abbrechen });
   }
 
+  function oeffneSyncKontaktKonflikt(id, source) {
+    if (gesperrt || syncLaeuft || aktiverEditor || document.querySelector(".sync-kontakt-konflikt")) return;
+    const bestand = DATEN, ziel = DATEN.kontakte.find(k => k.id === id), konflikt = ziel?.syncKonflikte?.[source];
+    if (!konflikt?.kontakt || !konflikt.mapping?.id || !konflikt.mapping?.etag) return;
+    const revision = kanonischerEntwurf(ziel), karte = normalisiere({kontakte:[konflikt.kontakt]}).kontakte[0];
+    if (!karte) return;
+    const schleier = el("div", "eingabe-schleier sync-kontakt-konflikt"), dialog = el("section", "eingabe-dialog");
+    dialog.setAttribute("role", "dialog"); dialog.setAttribute("aria-modal", "true");
+    const felder = el("div"), fehler = el("p", "einst-warnung"), auswahl = {felder:{},listen:{},leeren:{}};
+    const zusatzWahl = {};
+    const titel = {vorname:_("First name"),nachname:_("Last name"),anzeigename:_("Name"),firma:_("Company"),
+      geburtstag:_("Birthday"),jubilaeum:_("Anniversary"),notiz:_("Note"),foto:_("Photo"),
+      telefone:_("Phone numbers"),emailEintraege:_("Email addresses"),anschriften:_("Address")};
+    const beschreibe = wert => typeof wert === "string" ? wert : wert.wert ||
+      [wert.strasse,wert.plz,wert.ort,wert.region,wert.land].filter(Boolean).join(", ");
+    for (const feld of BAUM_KONTAKT_FELDER) {
+      if (String(ziel[feld] || "") === String(karte[feld] || "")) continue;
+      if (["geburtstag","jubilaeum"].includes(feld) && !karte[feld]) continue;
+      const text = wert => feld === "foto" ? (wert ? _("Photo available") : _("No photo selected")) : String(wert || "—");
+      const wahl = auswahlFeld([["keep",_("Keep existing") + ": " + text(ziel[feld])],
+        ["incoming",_("Incoming") + ": " + text(karte[feld])]], ziel[feld] ? "keep" : "incoming");
+      wahl.dataset.kontaktFeld = feld; auswahl.felder[feld] = wahl.value;
+      wahl.addEventListener("change",()=>{auswahl.felder[feld]=wahl.value;});
+      felder.append(formZeile(titel[feld],wahl));
+      if (feld === "foto") for (const [name,foto] of [[_("Saved"),ziel.foto],[_("Incoming"),karte.foto]])
+        if (foto) {const bild=document.createElement("img");bild.src=foto;bild.alt=name;
+          bild.style.maxWidth="96px";bild.style.maxHeight="96px";felder.append(bild);}
+    }
+    for (const [feld,regel] of Object.entries(BAUM_KONTAKT_LISTEN)) {
+      const alt=regel.lesen(ziel), neu=regel.lesen(karte);auswahl.listen[feld]={};
+      if (alt.length && !neu.length) {
+        const wahl=auswahlFeld([["keep",_("Keep existing")],["incoming",_("Incoming")+": —"]],"keep");
+        wahl.dataset.kontaktListe=feld;
+        wahl.addEventListener("change",()=>{auswahl.leeren[feld]=wahl.value==="incoming";});
+        felder.append(formZeile(titel[feld],wahl));
+      }
+      neu.forEach((eintrag,index)=>{
+        if(alt.some(wert=>kanonischerEntwurf(wert)===kanonischerEntwurf(eintrag)))return;
+        const wahl=auswahlFeld([["keep",_("Keep existing")],["add",_("Add")],
+          ...alt.map((wert,i)=>["replace:"+i,_("Replace completely")+": "+beschreibe(wert)])],"add");
+        wahl.dataset.kontaktListe=feld;wahl.dataset.kontaktIndex=String(index);auswahl.listen[feld][index]="add";
+        wahl.addEventListener("change",()=>{auswahl.listen[feld][index]=wahl.value;});
+        felder.append(formZeile(titel[feld]+" · "+beschreibe(eintrag),wahl));
+      });
+    }
+    const zusatzTitel = {kontaktpersonen:_("Emergency contacts"),sozialeMedien:_("Social media"),vcardRoundtrip:_("vCard / iPhone / iCloud")};
+    for (const feld of ["kontaktpersonen", "sozialeMedien", "vcardRoundtrip"]) {
+      if (kanonischerEntwurf(ziel[feld] || []) === kanonischerEntwurf(karte[feld] || [])) continue;
+      const wahl = auswahlFeld([["keep",_("Keep existing")],["incoming",_("Incoming")]],
+        (ziel[feld] || []).length ? "keep" : "incoming");
+      zusatzWahl[feld] = wahl.value; wahl.dataset.syncKontaktZusatz = feld;
+      wahl.addEventListener("change",()=>{zusatzWahl[feld]=wahl.value;});
+      const details = document.createElement("details");
+      details.append(el("summary",null,_("Saved")+" / "+_("Incoming")));
+      for (const [name,werte] of [[_("Saved"),ziel[feld]], [_("Incoming"),karte[feld]]]) {
+        const text = (werte || []).map(wert => typeof wert === "string" && /^(?:[A-Za-z0-9-]+\.)?PHOTO[;:]/i.test(wert)
+          ? _("Photo available") : (typeof wert === "string" ? wert : JSON.stringify(wert))).join("\n");
+        details.append(el("strong",null,name),el("pre",null,text));
+      }
+      felder.append(formZeile(zusatzTitel[feld],wahl),details);
+    }
+    const schliessen=()=>{beendeModal(schleier);schleier.remove();};
+    const gueltig=()=>DATEN===bestand&&!gesperrt&&!syncLaeuft&&DATEN.kontakte.includes(ziel)&&kanonischerEntwurf(ziel)===revision;
+    const knoepfe=el("div","dialog-knoepfe");
+    for(const [modus,label] of [["keep",_("Keep existing")],["merge",_("Merge")],["replace",_("Replace completely")]]) {
+      const button=knopf(label,modus==="merge"?"hauptknopf":"",()=>{
+        try {
+          if(!gueltig())throw new Error(_("Conflict"));
+          const entwurf=baumKontaktEntwurf(ziel,karte,auswahl,modus);
+          if(modus==="replace")entwurf.vcardRoundtrip=kopie(karte.vcardRoundtrip||[]);
+          for (const feld of Object.keys(zusatzWahl)) if (modus === "replace" || modus === "merge" && zusatzWahl[feld] === "incoming")
+            entwurf[feld] = kopie(karte[feld] || []);
+          mitMutationsSnapshot("pre-contact-merge",()=>{
+            if(!gueltig()){fehler.textContent=_("Conflict");return;}
+            for(const feld of BAUM_KONTAKT_FELDER.concat(["geburtstagJahrUnbekannt","vcardRoundtrip"]))
+              if(entwurf[feld]!==undefined)ziel[feld]=kopie(entwurf[feld]);
+            for(const regel of Object.values(BAUM_KONTAKT_LISTEN))regel.setzen(ziel,regel.lesen(entwurf));
+            setzeKontaktpersonen(ziel,kontaktpersonenListe(entwurf));setzeSozialeMedien(ziel,sozialeMedienListe(entwurf));
+            ziel.syncQuellen ||= {};ziel.syncQuellen[source]=kopie(konflikt.mapping);
+            delete ziel.syncKonflikte[source];if(!Object.keys(ziel.syncKonflikte).length)delete ziel.syncKonflikte;
+            ziel.geaendert=Date.now();verknuepfeKontaktGeburtstag(ziel);verknuepfeKontaktJubilaeum(ziel);
+            schliessen();planeSpeichern();zeichneAlles();
+          },error=>{fehler.textContent=String(error.message||error);});
+        } catch(error){fehler.textContent=String(error.message||error);}
+      });
+      button.dataset.syncKontaktEntscheidung=modus;knoepfe.append(button);
+    }
+    knoepfe.append(knopf(_("Cancel"),"",schliessen));
+    dialog.append(el("h2",null,_("Conflict")+" · "+kontaktName(ziel)),
+      el("p",null,_("Contacts with different information were found. How would you like to proceed?")),felder,fehler,knoepfe);
+    schleier.append(dialog);document.body.append(schleier);
+    registriereModal(schleier,dialog,{anfang:knoepfe.querySelector("button"),schliessen});
+  }
+
   function uebernehmeBaumAngebot(stueck, fehler = {}, optionen = {}) {
     const inhalt = stueck.inhalt || {};
     const art = inhalt.art || stueck.art || "";
@@ -23388,6 +23489,12 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       starteDublettenAbgleich);
     dubKnopf.id = "adressen-dubletten";
     dublettenReihe.append(dubKnopf);
+    const offeneSyncKonflikte = DATEN.kontakte.flatMap(k => Object.keys(k.syncKonflikte || {}).map(source => ({kontakt:k,source})));
+    if (offeneSyncKonflikte.length) {
+      const review = knopf(_("Conflict") + " (" + offeneSyncKonflikte.length + ")", "", () =>
+        oeffneSyncKontaktKonflikt(offeneSyncKonflikte[0].kontakt.id, offeneSyncKonflikte[0].source));
+      review.id = "adressen-sync-konflikte"; dublettenReihe.append(review);
+    }
     ab.append(dublettenReihe);
     ab.append(el("p", "einst-hinweis",
       _("Finds contact cards with the same name, email address or phone number. " +
@@ -26916,6 +27023,8 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
         zettel(erfolgreich ? (nutzlast.bericht || _("Synchronization completed.")) :
           uebersetzt("Synchronization failed: %(error)s", { error: syncFehlertext }));
       }
+      const kontaktKonflikte = DATEN.kontakte.reduce((summe,k) => summe + Object.keys(k.syncKonflikte || {}).length, 0);
+      if (kontaktKonflikte) zettel(_("Conflict") + " · " + _("Address book") + " (" + kontaktKonflikte + ")");
       const kandidat = nutzlast.adressbuchBaselineKandidat;
       if (kandidat && kandidat.sourceUid) {
         nachDauerhaftemSpeichern(() => {
@@ -27047,6 +27156,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
 
   /* Kleine Hintertür für automatische Tests */
   window.OrganizerTest = {
+    oeffneSyncKontaktKonflikt: oeffneSyncKontaktKonflikt,
     starteSync: starteSync,
     daten: () => DATEN,
     zustand: () => zustand,

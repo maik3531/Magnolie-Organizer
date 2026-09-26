@@ -45,6 +45,11 @@ internal static class WindowsContactGraphTests
             }).GroupBy(value => value).Select(group => new { fields = group.Key, groups = group.Count() });
             using var profile = System.Text.Json.JsonDocument.Parse(data.ToJsonString());
             var cleanup = ContactCleanupPlan.Create(profile.RootElement)["groups"]!.AsArray().OfType<JsonObject>().ToArray();
+            var completeWithoutPhoto = named.Count(group => {
+                var projections = group.Select(ContactFields.ContentProjection).ToArray();
+                foreach (var projection in projections) projection.Remove("foto");
+                return projections.Any(value => projections.All(part => ContactFields.ContainsContent(value, part, homeCountry: "DE")));
+            });
             Console.WriteLine(System.Text.Json.JsonSerializer.Serialize(new
             {
                 contacts = cards.Length,
@@ -54,6 +59,7 @@ internal static class WindowsContactGraphTests
                 autoCleanupGroups = cleanup.Length,
                 autoCleanupRecords = cleanup.Sum(group => group["ids"]!.AsArray().Count - 1),
                 remoteCopiesToRemove = cleanup.Sum(group => group["deletions"]!.AsArray().Count),
+                completeInformationWithoutPhotoGroups = completeWithoutPhoto,
                 scalarConflictPatterns = conflicts,
                 differencePatterns = patterns
             }));
@@ -555,22 +561,25 @@ internal static class WindowsContactGraphTests
         var legacyMapping = ContactFields.Source(legacy[0]!.AsObject(), "cards")!;
         legacyMapping.Remove("inhaltFormat"); legacyMapping.Remove("inhaltSha256");
         result = await new ContactSyncEngine().SyncAsync("cards", legacy, [], 100, remote);
-        TestAssert.That(result.Contacts.Count == 2 && remote.Writes == 0 && result.Counts.Errors == 0 &&
-            result.Contacts.OfType<JsonObject>().Select(item => ContactFields.Text(item, "vorname")).Order().SequenceEqual(new[] { "LOCAL", "REMOTE" }),
+        TestAssert.That(result.Contacts.Count == 1 && remote.Writes == 0 && result.Counts.Errors == 0 && result.Counts.Conflicts == 1 &&
+            result.Contacts[0]!["vorname"]!.GetValue<string>() == "LOCAL" &&
+            result.Contacts[0]!["syncKonflikte"]!["cards"]!["kontakt"]!["vorname"]!.GetValue<string>() == "REMOTE",
             "A changed remote revision without a legacy baseline discarded uncertain local content.");
         result = await new ContactSyncEngine().SyncAsync("cards", Local(20, edited: true), [], 100, remote);
-        TestAssert.That(result.Contacts.Count == 2 && result.Counts.Errors == 0, "Concurrent contact versions were not preserved as a successful conflict result.");
+        TestAssert.That(result.Contacts.Count == 1 && result.Counts.Errors == 0 && result.Counts.Conflicts == 1,
+            "Concurrent contact versions must remain decisions on one existing person.");
         for (var followup = 0; followup < 2; followup++)
         {
             var file = Path.Combine(root, "contact-conflict.json");
             new AtomicStore().WriteRecoverableJson(file, new JsonObject { ["items"] = result.Contacts.DeepClone() }.ToJsonString());
             var saved = JsonNode.Parse(new AtomicStore().ReadRecoverableJson(file)!)!["items"]!.AsArray();
             result = await new ContactSyncEngine().SyncAsync("cards", saved, [], 300 + followup, remote);
-            TestAssert.That(result.Contacts.Count == 2 && result.Contacts.OfType<JsonObject>().Select(item => ContactFields.Text(item, "vorname")).Order().SequenceEqual(new[] { "LOCAL", "REMOTE" }) &&
-                result.Contacts.OfType<JsonObject>().Select(item => ContactFields.Source(item, "cards")!["id"]!.GetValue<string>()).Distinct().Count() == 2,
-                "Persisted contact conflict lost LOCAL or reused the remote mapping.");
+            TestAssert.That(result.Contacts.Count == 1 && result.Contacts[0]!["vorname"]!.GetValue<string>() == "LOCAL" &&
+                result.Contacts[0]!["syncKonflikte"]!["cards"]!["kontakt"]!["vorname"]!.GetValue<string>() == "REMOTE" &&
+                ContactFields.Source(result.Contacts[0]!.AsObject(), "cards")!["id"]!.GetValue<string>() == "remote",
+                "Persisted contact conflict lost a version or created another person.");
         }
-        TestAssert.That(remote.Writes == 1, "Unchanged contact follow-up caused another timestamp-driven upload.");
+        TestAssert.That(remote.Writes == 0, "Unresolved contact conflicts must not be exported as new people.");
     }
 
     private sealed class MutableContactRemote : IContactRemote

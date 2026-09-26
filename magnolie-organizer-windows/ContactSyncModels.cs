@@ -4,11 +4,12 @@ namespace MagnolieOrganizer.Windows;
 
 internal sealed record RemoteContact(string Id, string ETag, long Modified, JsonObject Data, bool Owned);
 
-internal sealed record ContactSyncCounts(int Imported, int Exported, int Updated, int Deleted, int Errors)
+internal sealed record ContactSyncCounts(int Imported, int Exported, int Updated, int Deleted, int Errors, int Conflicts = 0)
 {
     internal string Report(string name) =>
         $"{name}: {Imported} importiert, {Exported} exportiert, {Updated} aktualisiert, {Deleted} gelöscht" +
-        (Errors > 0 ? $", {Errors} Fehler." : ".");
+         (Errors > 0 ? $", {Errors} Fehler." : ".") +
+         (Conflicts > 0 ? $" {NativeLocalization.Gettext("Conflict")}: {Conflicts}." : "");
 }
 
 internal sealed record ContactSyncResult(JsonArray Contacts, JsonArray Tombstones, ContactSyncCounts Counts);
@@ -216,6 +217,11 @@ internal static class ContactFields
             ["fernInhaltSha256"] = ContentHash(remote.Data)
         };
         value["sync"] = true;
+        if (value["syncKonflikte"] is JsonObject pending)
+        {
+            pending.Remove(source);
+            if (pending.Count == 0) value.Remove("syncKonflikte");
+        }
     }
 }
 
@@ -261,7 +267,8 @@ internal static class ContactCleanupPlan
         {
             var cards = candidate.Cards;
             var desiredHash = ContactFields.ContentHash(candidate.Complete);
-            if (cards.Any(card => ContactFields.Text(card, "id").Length == 0 || card["importKonflikt"]?.GetValue<bool>() == true) ||
+            if (cards.Any(card => ContactFields.Text(card, "id").Length == 0 || card["importKonflikt"]?.GetValue<bool>() == true ||
+                    card["syncKonflikte"] is JsonObject { Count: > 0 }) ||
                 cards.Select(card => ContactFields.Text(card, "id")).Distinct(StringComparer.Ordinal).Count() != cards.Length) continue;
             var first = cards[0];
             var strong = new[] { "email", "telefon", "mobil" }.Any(field => ContactFields.Text(first, field).Length > 0) ||
@@ -483,7 +490,7 @@ internal sealed class ContactSyncEngine
             .Where(id => !string.IsNullOrWhiteSpace(id)).ToHashSet(StringComparer.Ordinal);
         var sameContent = remote.GroupBy(item => ContactFields.ContentHash(item.Data), StringComparer.Ordinal)
             .ToDictionary(group => group.Key, group => group.ToArray(), StringComparer.Ordinal);
-        var imported = 0; var exported = 0; var updated = 0; var deleted = 0; var errors = 0;
+        var imported = 0; var exported = 0; var updated = 0; var deleted = 0; var errors = 0; var conflicts = 0;
 
         foreach (var item in local.OfType<JsonObject>().ToArray())
         {
@@ -571,13 +578,15 @@ internal sealed class ContactSyncEngine
                 }
                 else if (conflictingChanges)
                 {
-                    var conflict = item.DeepClone().AsObject();
-                    conflict["id"] = Guid.NewGuid().ToString("N");
-                    conflict["uid"] = $"mag-{Guid.NewGuid():N}@magnolie-organizer";
-                    conflict.Remove("syncQuellen"); conflict["sync"] = false;
-                    local.Add(conflict);
-                    ContactFields.CopyRemoteFields(item, other.Data, source); item["geaendert"] = other.Modified;
-                    ContactFields.SetSource(item, source, other); updated++;
+                    // A competing version is a decision on the existing person,
+                    // not a new person that should be uploaded with a fresh UID.
+                    var pending = item["syncKonflikte"] as JsonObject ?? new JsonObject();
+                    var remoteMapping = new JsonObject();
+                    ContactFields.SetSource(remoteMapping, source, other, remoteBaseline: true);
+                    pending[source] = new JsonObject { ["kontakt"] = other.Data.DeepClone(),
+                        ["mapping"] = ContactFields.Source(remoteMapping, source)!.DeepClone() };
+                    item["syncKonflikte"] = pending;
+                    conflicts++;
                 }
                 else if (remoteChanged)
                 {
@@ -607,7 +616,7 @@ internal sealed class ContactSyncEngine
             }
         }
 
-        if (!additiveOnly && errors == 0)
+        if (!additiveOnly && errors == 0 && conflicts == 0)
             foreach (var tombstone in dead.OfType<JsonObject>().ToArray())
             {
                 var mapping = ContactFields.Source(tombstone, source);
@@ -654,6 +663,6 @@ internal sealed class ContactSyncEngine
             local.Add(item); imported++;
         }
 
-        return new ContactSyncResult(local, dead, new ContactSyncCounts(imported, exported, updated, deleted, errors));
+        return new ContactSyncResult(local, dead, new ContactSyncCounts(imported, exported, updated, deleted, errors, conflicts));
     }
 }
