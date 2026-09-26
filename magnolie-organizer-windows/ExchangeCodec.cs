@@ -287,6 +287,43 @@ internal static partial class ExchangeCodec
             report, RawOmitted: rawOmitted);
     }
 
+    internal static JsonArray UnrepresentedContactProperties(JsonObject contact)
+    {
+        var lines = (contact["vcardRoundtrip"] as JsonArray ?? []).Select(node => node?.GetValue<string>() ?? "").ToArray();
+        var counts = lines.GroupBy(VCardPropertyName).ToDictionary(group => group.Key, group => group.Count());
+        var result = new JsonArray();
+        foreach (var line in lines)
+        {
+            var name = VCardPropertyName(line);
+            var entries = ParseVCardProperties([line]);
+            var entry = Entries(entries, name).FirstOrDefault();
+            var represented = name == "PRODID";
+            if (entry is not null && counts[name] == 1 && PreservedParameters(entry).Count == 0)
+            {
+                if (name == "N" && entry.Types.Length == 0)
+                    represented = SplitEscaped(entry.Raw, ';').Skip(2).Select(NameComponent).All(string.IsNullOrEmpty);
+                else if (name == "ORG" && entry.Types.Length == 0)
+                    represented = SplitEscaped(entry.Raw, ';').Skip(1).Select(VCardText).All(string.IsNullOrEmpty);
+                else if (name == "FN" && entry.Types.Length == 0)
+                {
+                    var derived = string.Join(' ', new[] { ContactFields.Text(contact, "vorname"), ContactFields.Text(contact, "nachname") }.Where(value => value.Length > 0));
+                    represented = contact.ContainsKey("anzeigename") || entry.Value == derived ||
+                        derived.Length == 0 && entry.Value == ContactFields.Text(contact, "firma");
+                }
+                else if (name is "BDAY" or "ANNIVERSARY")
+                {
+                    var date = VCardDate(entry);
+                    if (name == "BDAY" && date.StartsWith("1604-", StringComparison.Ordinal)) date = "--" + date[5..];
+                    represented = (date.Length > 0 || entry.Value.Length == 0) &&
+                        date == ContactFields.Text(contact, name == "BDAY" ? "geburtstag" : "jubilaeum");
+                }
+                else if (name == "PHOTO") represented = Photo(entries) is { Length: > 0 } photo && photo == ContactFields.Text(contact, "foto");
+            }
+            if (!represented) result.Add(line);
+        }
+        return result;
+    }
+
     internal static ExchangeImportResult ParseVCard(string text)
     {
         using var culture = new CalendarRecurrence.WireCulture();

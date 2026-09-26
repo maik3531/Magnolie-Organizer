@@ -13,7 +13,7 @@ internal static class BridgeDispatcherContract
         ["bereit"] = S(), ["entsperren"] = S(T("kennwort")),
         ["kennwort_setzen"] = S(T("alt"), T("neu"), O("sicherungen", JsonValueKind.True, JsonValueKind.False), O("sicherungsordner", JsonValueKind.String)),
         ["kennwort_entfernen"] = S(T("alt"), O("sicherungsordner", JsonValueKind.String)),
-        ["speichern"] = S(N("id"), T("text")), ["contributor_pruefen"] = S(T("key")), ["beenden"] = S(), ["beenden_bereit"] = S(), ["beenden_abgebrochen"] = S(),
+        ["speichern"] = S(N("id"), T("text"), O("kontaktePruefen", JsonValueKind.True, JsonValueKind.False)), ["contributor_pruefen"] = S(T("key")), ["beenden"] = S(), ["beenden_bereit"] = S(), ["beenden_abgebrochen"] = S(),
         ["ablage_kopieren"] = S(T("text")), ["ablage_holen"] = S(), ["sicherung"] = S(T("pfad"), T("kennwort")), ["sicherung_waehlen"] = S(),
         ["sicherung_wiederherstellen"] = S(T("pfad"), T("kennwort"), O("sicherungsordner", JsonValueKind.String)), ["journal_liste"] = S(), ["journal_erzeugen"] = S(), ["journal_manuell"] = S(),
         ["cloud_sicherung_status"] = S(), ["cloud_sicherung_kennwort"] = S(T("kennwort")), ["cloud_sicherung_test"] = S(),

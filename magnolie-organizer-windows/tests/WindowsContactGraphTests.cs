@@ -8,6 +8,64 @@ namespace MagnolieOrganizer.Windows.Tests;
 
 internal static class WindowsContactGraphTests
 {
+    // Explicitly opt-in, aggregate-only audit; never creates a provider or writes a profile.
+    internal static async Task<int> AuditIdentityAsync(string path)
+    {
+        try
+        {
+            var data = JsonNode.Parse(await File.ReadAllTextAsync(path))!.AsObject();
+            var cards = data["kontakte"]!.AsArray().OfType<JsonObject>().ToArray();
+            var exact = cards.GroupBy(ContactFields.ContentHash).Where(group => group.Count() > 1).ToArray();
+            var named = cards.Where(card => ContactFields.Text(card, "vorname").Length + ContactFields.Text(card, "nachname").Length > 0)
+                .GroupBy(card => string.Join('\u001f', new[] { "vorname", "nachname", "firma" }
+                    .Select(field => ContactFields.Text(card, field).ToUpperInvariant())))
+                .Where(group => group.Count() > 1).ToArray();
+            var patterns = named.Select(group => new
+            {
+                count = group.Count(),
+                canonicalVersions = group.Select(ContactFields.ContentHash).Distinct().Count(),
+                differentFields = ContactFields.Names.Where(field => group.Select(card =>
+                    ContactFields.ContentHash(new JsonObject { [field] = card[field]?.DeepClone() })).Distinct().Count() > 1).ToArray()
+            }).GroupBy(value => string.Join(',', value.differentFields)).Select(group => new
+            {
+                fields = group.Key,
+                groups = group.Count(),
+                cards = group.Sum(value => value.count),
+                fullyEqual = group.Count(value => value.canonicalVersions == 1)
+            });
+            var conflicts = named.Select(group =>
+            {
+                var projections = group.Select(ContactFields.ContentProjection).ToArray();
+                var fields = ContactFields.Names.Where(field =>
+                {
+                    var values = projections.Select(card => card[field]).Where(value => value is JsonValue).ToArray();
+                    return values.Length > 1 && !values.Any(value => values.All(part => ContactFields.ContainsContent(value, part, field)));
+                }).ToArray();
+                return string.Join(',', fields);
+            }).GroupBy(value => value).Select(group => new { fields = group.Key, groups = group.Count() });
+            using var profile = System.Text.Json.JsonDocument.Parse(data.ToJsonString());
+            var cleanup = ContactCleanupPlan.Create(profile.RootElement)["groups"]!.AsArray().OfType<JsonObject>().ToArray();
+            Console.WriteLine(System.Text.Json.JsonSerializer.Serialize(new
+            {
+                contacts = cards.Length,
+                identicalContentGroups = exact.Length,
+                redundantIdenticalCards = exact.Sum(group => group.Count() - 1),
+                sameNameGroups = named.Length,
+                autoCleanupGroups = cleanup.Length,
+                autoCleanupRecords = cleanup.Sum(group => group["ids"]!.AsArray().Count - 1),
+                remoteCopiesToRemove = cleanup.Sum(group => group["deletions"]!.AsArray().Count),
+                scalarConflictPatterns = conflicts,
+                differencePatterns = patterns
+            }));
+            return 0;
+        }
+        catch (Exception error)
+        {
+            Console.WriteLine(System.Text.Json.JsonSerializer.Serialize(new { errorType = error.GetType().Name }));
+            return 1;
+        }
+    }
+
     private sealed class YearlessUnsupportedRemote(params RemoteContact[] contacts) : IContactRemote
     {
         public bool SupportsYearlessBirthdays => false;
@@ -78,8 +136,47 @@ internal static class WindowsContactGraphTests
         var again = await engine.SyncAsync(source, result.Contacts, [], 0, store);
         TestAssert.That(again.Contacts.Count == 1 && again.Counts == new ContactSyncCounts(0, 0, 0, 0, 0),
             "The confirmed source binding did not survive the next synchronization.");
+        var unboundCopy = local.DeepClone().AsObject(); unboundCopy["id"] = "unbound-copy"; unboundCopy["uid"] = "copy-uid";
+        var reserved = await engine.SyncAsync(source, new JsonArray(result.Contacts[0]!.DeepClone(), unboundCopy), [], 0, store);
+        TestAssert.That(reserved.Contacts.Count == 2 && reserved.Counts == new ContactSyncCounts(0, 0, 0, 0, 0),
+            "An equal local copy attempted to create another already-bound provider contact.");
+        var duplicateBinding = result.Contacts[0]!.DeepClone().AsObject(); duplicateBinding["id"] = "duplicate-binding";
+        var ambiguousBinding = await engine.SyncAsync(source, new JsonArray(result.Contacts[0]!.DeepClone(), duplicateBinding), [], 0, store);
+        TestAssert.That(ambiguousBinding.Contacts.Count == 2 && ambiguousBinding.Counts.Exported == 0 && ambiguousBinding.Counts.Imported == 0,
+            "An ambiguous local source binding created or imported another contact copy.");
         TestAssert.That(ContactFields.Source(local, source) is null && ContactFields.Text(remoteData, "uid") == "provider-person",
             "Source matching mutated the caller's input.");
+        var phoneLocal = local.DeepClone().AsObject();
+        phoneLocal["telefone"] = new JsonArray(new JsonObject { ["wert"] = "+49305550123",
+            ["label"] = "", ["typen"] = new JsonArray("HOME") });
+        var phoneRemote = phoneLocal.DeepClone().AsObject(); phoneRemote["uid"] = "provider-phone";
+        phoneRemote["telefone"]![0]!["vcardParameter"] = new JsonArray();
+        var phoneStore = new YearlessUnsupportedRemote(new RemoteContact("phone-card", "\"p1\"", 1, phoneRemote, true));
+        var phoneMatch = await engine.SyncAsync(source, new JsonArray(phoneLocal), [], 0, phoneStore);
+        TestAssert.That(phoneMatch.Contacts.Count == 1 && phoneMatch.Counts == new ContactSyncCounts(0, 0, 0, 0, 0),
+            "Empty nested vCard parameters duplicated an otherwise identical phone contact.");
+        var phoneAgain = await engine.SyncAsync(source, phoneMatch.Contacts, [], 0, phoneStore);
+        TestAssert.That(phoneAgain.Counts == new ContactSyncCounts(0, 0, 0, 0, 0),
+            "The normalized phone baseline caused a repeated write or conflict copy.");
+        var treePhone = phoneLocal.DeepClone().AsObject();
+        treePhone["telefone"]![0]!["typen"] = new JsonArray("CELL", "VOICE");
+        treePhone["telefone"]![0]!["label"] = "Mobil";
+        var accountPhone = treePhone.DeepClone().AsObject(); accountPhone["uid"] = "account-phone";
+        accountPhone["anzeigename"] = "Mia Muster";
+        accountPhone["telefone"]![0]!["label"] = "";
+        accountPhone["telefone"]![0]!["typen"] = new JsonArray("CELL", "VOICE", "PREF");
+        accountPhone["telefone"]![0]!["vcardParameter"] = new JsonArray();
+        accountPhone["vcardRoundtrip"] = new JsonArray("N:Muster;Mia;;;", "FN:Mia Muster");
+        var accountMatch = await engine.SyncAsync(source, new JsonArray(treePhone), [], 0,
+            new YearlessUnsupportedRemote(new RemoteContact("account-card", "\"a1\"", 1, accountPhone, true)));
+        TestAssert.That(accountMatch.Contacts.Count == 1 && accountMatch.Counts == new ContactSyncCounts(0, 0, 0, 0, 0),
+            "Derived display names, standard phone labels and redundant vCard lines duplicated the same contact.");
+        var customRemote = phoneRemote.DeepClone().AsObject();
+        customRemote["telefone"]![0]!["vcardParameter"] = new JsonArray("X-KEEP=meaningful");
+        var customMatch = await engine.SyncAsync(source, new JsonArray(phoneLocal.DeepClone()), [], 0,
+            new YearlessUnsupportedRemote(new RemoteContact("custom-card", "\"c1\"", 1, customRemote, true)));
+        TestAssert.That(ContactFields.Source(customMatch.Contacts[0]!.AsObject(), source) is null,
+            "Meaningful preserved vCard parameters were ignored during identity comparison.");
         var ambiguous = remote with { Id = "second-card", Data = remoteData.DeepClone().AsObject() };
         ambiguous.Data["uid"] = "second-provider-person";
         var undecided = await engine.SyncAsync(source, new JsonArray(local.DeepClone()), [], 0,
@@ -115,6 +212,133 @@ internal static class WindowsContactGraphTests
         Console.WriteLine($"  Identical cross-provider contacts: 1000 bound in {timer.ElapsedMilliseconds} ms, no source writes.");
     }
 
+    private static async Task TestContactCleanupPlan()
+    {
+        var source = "thunderbird-addressbook:managed:fixture:book";
+        var tree = new JsonObject { ["id"] = "tree", ["uid"] = "mag-tree@magnolie-organizer", ["vorname"] = "Mia", ["nachname"] = "Muster",
+            ["email"] = "mia@example.test", ["baumKontakt"] = new JsonObject { ["freigabeId"] = "share", ["version"] = 1L } };
+        var original = tree.DeepClone().AsObject(); original["id"] = "local-provider"; original["uid"] = "provider-original"; original.Remove("baumKontakt");
+        var redundant = new RemoteContact("redundant", "\"d1\"", 1, tree.DeepClone().AsObject(), true);
+        var provider = new RemoteContact("original", "\"o1\"", 1, original.DeepClone().AsObject(), true);
+        ContactFields.SetSource(tree, source, redundant); ContactFields.SetSource(original, source, provider);
+        var profile = new JsonObject { ["kontakte"] = new JsonArray(tree, original),
+            ["einstellungen"] = new JsonObject { ["sync"] = new JsonObject { ["adressbuchUid"] = source } } };
+        var before = profile.ToJsonString();
+        using var input = System.Text.Json.JsonDocument.Parse(before);
+        var plan = ContactCleanupPlan.Create(input.RootElement);
+        TestAssert.That(profile.ToJsonString() == before && plan["groups"]!.AsArray().Count == 1,
+            "Cleanup planning changed its input or missed the identical source copies.");
+        var group = plan["groups"]![0]!.AsObject();
+        TestAssert.That(group["keepId"]!.GetValue<string>() == "tree" && group["mapping"]!["id"]!.GetValue<string>() == "original",
+            "Cleanup must retain the local tree identity and the provider's original record.");
+        var local = tree.DeepClone().AsObject();
+        foreach (var pair in group["metadata"]!.AsObject()) local[pair.Key] = pair.Value?.DeepClone();
+        var deletion = group["deletions"]![0]!.AsObject();
+        var tombstone = new JsonObject { ["uid"] = "mag-cleanup-marker@magnolie-organizer", ["zeit"] = 1,
+            ["syncQuellen"] = new JsonObject { [source] = deletion["mapping"]!.DeepClone() },
+            ["kontaktDuplikat"] = new JsonObject { ["source"] = source, ["keeperId"] = deletion["keeperId"]!.DeepClone(),
+                ["contentHash"] = deletion["contentHash"]!.DeepClone(),
+                ["keeperHash"] = deletion["keeperHash"]!.DeepClone(), ["desiredHash"] = deletion["desiredHash"]!.DeepClone() } };
+        var saved = profile.DeepClone().AsObject();
+        saved["kontakte"] = new JsonArray(local.DeepClone());
+        saved["papierkorb"] = new JsonArray(new JsonObject { ["id"] = "trash", ["art"] = "duplicate", ["eintrag"] = original.DeepClone() });
+        saved["geloescht"] = new JsonObject { ["kontakte"] = new JsonArray(tombstone.DeepClone()) };
+        var snapshots = new ContactCleanupSnapshot();
+        snapshots.Planned(plan); snapshots.Snapshotted(profile); snapshots.Saved(saved.ToJsonString());
+        TestAssert.That(snapshots.Consume(saved.ToJsonString(), source) && !snapshots.Consume(saved.ToJsonString(), source),
+            "The cleanup snapshot was not reusable exactly once for its following synchronization.");
+        var unrelated = saved.DeepClone().AsObject(); unrelated["notizen"] = new JsonArray(new JsonObject { ["id"] = "new", ["text"] = "New independent edit" });
+        snapshots.Planned(plan); snapshots.Snapshotted(profile); snapshots.Saved(unrelated.ToJsonString());
+        TestAssert.That(!snapshots.Consume(unrelated.ToJsonString(), source), "An unrelated edit incorrectly reused a cleanup snapshot.");
+        var acknowledgedCleanup = saved.DeepClone().AsObject();
+        acknowledgedCleanup["geloescht"]!["kontakte"] = new JsonArray();
+        TestAssert.That(!RecoveryJournal.HasRecoverableChanges(saved, acknowledgedCleanup),
+            "Acknowledging technical duplicate-deletion markers created another content snapshot.");
+        var presentation = local.DeepClone().AsObject(); presentation["anzeigename"] = "Mia Muster";
+        presentation["vcardRoundtrip"] = new JsonArray("N:Muster;Mia;;;", "FN:Mia Muster");
+        var presentationOnly = saved.DeepClone().AsObject(); presentationOnly["kontakte"] = new JsonArray(presentation);
+        TestAssert.That(!RecoveryJournal.HasRecoverableChanges(saved, presentationOnly),
+            "A redundant provider display-name projection created another contact snapshot.");
+        presentationOnly["kontakte"]![0]!["notiz"] = "Actual content change";
+        TestAssert.That(RecoveryJournal.HasRecoverableChanges(saved, presentationOnly), "A real contact edit lost its recovery boundary.");
+        foreach (var variant in new[] { "success", "changed-duplicate", "changed-original", "missing-original", "already-removed" })
+        {
+            var remote = new CleanupContactRemote();
+            if (variant != "missing-original") remote.Items[provider.Id] = provider with { Data = provider.Data.DeepClone().AsObject() };
+            if (variant != "already-removed") remote.Items[redundant.Id] = redundant with { ETag = "\"current\"", Data = redundant.Data.DeepClone().AsObject() };
+            if (variant == "changed-duplicate") remote.Items[redundant.Id].Data["notiz"] = "Concurrent actual edit";
+            if (variant == "changed-original") remote.Items[provider.Id].Data["notiz"] = "Concurrent actual edit";
+            var engine = new ContactSyncEngine();
+            if (variant is "changed-duplicate" or "changed-original" or "missing-original")
+            {
+                await TestAssert.ThrowsAsync<InvalidOperationException>(async () =>
+                    await engine.SyncAsync(source, new JsonArray(local.DeepClone()), new JsonArray(tombstone.DeepClone()), 0, remote),
+                    "A changed or missing original must prevent duplicate deletion.");
+                TestAssert.That(remote.Writes == 0, "A failed cleanup proof still wrote to its source.");
+                continue;
+            }
+            var result = await engine.SyncAsync(source, new JsonArray(local.DeepClone()), new JsonArray(tombstone.DeepClone()), 0, remote);
+            TestAssert.That(result.Contacts.Count == 1 && result.Tombstones.Count == 0 && remote.Items.Count == 1 && remote.Items.ContainsKey("original"),
+                "Cleanup removed the original or left a deletion pending after confirmation.");
+            TestAssert.That(remote.Writes == (variant == "success" ? 1 : 0), "Cleanup created or updated a contact unnecessarily.");
+            var repeated = await engine.SyncAsync(source, result.Contacts, result.Tombstones, 0, remote);
+            TestAssert.That(repeated.Counts == new ContactSyncCounts(0, 0, 0, 0, 0), "Cleanup replay was not idempotent.");
+        }
+        var protectedRemote = new CleanupContactRemote();
+        protectedRemote.Items[provider.Id] = provider; protectedRemote.Items[redundant.Id] = redundant;
+        await TestAssert.ThrowsAsync<IOException>(async () => await new ContactSyncEngine().SyncAsync(source,
+            new JsonArray(local.DeepClone()), new JsonArray(tombstone.DeepClone()), 0, protectedRemote,
+            beforeMutation: () => Task.FromException(new IOException("Snapshot fixture failure"))),
+            "A failed recovery snapshot must stop before the first provider mutation.");
+        TestAssert.That(protectedRemote.Writes == 0, "A provider was written despite failed snapshot creation.");
+        var syncBefore = new JsonObject { ["syncEpoch"] = "epoch", ["kontakte"] = new JsonArray(local.DeepClone()),
+            ["termine"] = new JsonArray(), ["aufgaben"] = new JsonArray(), ["jahrestage"] = new JsonArray(),
+            ["geloescht"] = new JsonObject(), ["letzterSync"] = 1, ["letzteSyncs"] = new JsonObject(), ["syncMetadaten"] = new JsonObject() };
+        var syncResult = syncBefore.DeepClone().AsObject(); syncResult["kontakte"]![0]!["notiz"] = "Incoming actual edit";
+        syncResult["transactionId"] = "transaction";
+        var savedResult = syncResult.DeepClone().AsObject();
+        savedResult.Remove("transactionId");
+        savedResult["syncAbgleichNachweis"] = new JsonObject { ["transactionId"] = "transaction" };
+        var handoff = new SyncSnapshotHandoff(); handoff.Completed("transaction", syncResult, snapshotExists: true);
+        TestAssert.That(handoff.CoversSave(syncBefore, savedResult), "A completed sync did not reuse its pre-mutation snapshot.");
+        savedResult["notizen"] = new JsonArray(new JsonObject { ["id"] = "independent", ["text"] = "Local note edit" });
+        TestAssert.That(!handoff.CoversSave(syncBefore, savedResult), "Independent local edits incorrectly reused a sync snapshot.");
+        savedResult.Remove("notizen"); handoff.Saved();
+        TestAssert.That(!handoff.CoversSave(syncBefore, savedResult), "A consumed sync snapshot was reused by another save.");
+        profile["syncNachRestore"] = new JsonObject { ["additiv"] = true };
+        using var restored = System.Text.Json.JsonDocument.Parse(profile.ToJsonString());
+        TestAssert.That(ContactCleanupPlan.Create(restored.RootElement)["groups"]!.AsArray().Count == 0,
+            "Additive restoration was turned into a destructive cleanup.");
+        profile.Remove("syncNachRestore");
+        original["geburtstag"] = "--02-29"; original["geburtstagJahrUnbekannt"] = true;
+        using var enriched = System.Text.Json.JsonDocument.Parse(profile.ToJsonString());
+        var enrichedPlan = ContactCleanupPlan.Create(enriched.RootElement);
+        TestAssert.That(enrichedPlan["groups"]!.AsArray().Count == 1 &&
+            enrichedPlan["groups"]![0]!["contentFromId"]!.GetValue<string>() == "local-provider",
+            "A missing birthday prevented lossless enrichment from the more complete contact.");
+        tree["geburtstag"] = "1980-02-28";
+        using var conflicting = System.Text.Json.JsonDocument.Parse(profile.ToJsonString());
+        TestAssert.That(ContactCleanupPlan.Create(conflicting.RootElement)["groups"]!.AsArray().Count == 0,
+            "Contradictory actual birthdays were silently merged.");
+        TestAssert.That(ContactFields.ContainsContent(JsonValue.Create("1980-02-29"), JsonValue.Create("--02-29"), "geburtstag") &&
+            !ContactFields.ContainsContent(JsonValue.Create("1981-02-28"), JsonValue.Create("--02-29"), "geburtstag"),
+            "Birthday precision refinement lost or invented a date.");
+    }
+
+    private sealed class CleanupContactRemote : IContactRemote
+    {
+        internal readonly Dictionary<string, RemoteContact> Items = new();
+        internal int Writes;
+        public Task<IReadOnlyList<RemoteContact>> ReadAsync(CancellationToken token) => Task.FromResult<IReadOnlyList<RemoteContact>>(Items.Values.ToArray());
+        public Task<RemoteContact> CreateAsync(string uid, JsonObject contact, CancellationToken token) { Writes++; throw new InvalidOperationException("Unexpected create"); }
+        public Task<RemoteContact> UpdateAsync(RemoteContact remote, string uid, JsonObject contact, CancellationToken token) { Writes++; throw new InvalidOperationException("Unexpected update"); }
+        public Task DeleteAsync(RemoteContact remote, string uid, CancellationToken token)
+        {
+            TestAssert.That(remote.ETag == Items[remote.Id].ETag, "Cleanup used a stale deletion revision.");
+            Writes++; Items.Remove(remote.Id); return Task.CompletedTask;
+        }
+    }
+
     internal static async Task RunAsync()
     {
         var root = Path.Combine(Path.GetTempPath(), $"magnolie-contacts-{Guid.NewGuid():N}");
@@ -125,6 +349,7 @@ internal static class WindowsContactGraphTests
             await TestContactConflicts(root);
             await TestPlaceholderBirthday(root);
             await TestIdenticalContactBinding();
+            await TestContactCleanupPlan();
             TestNativeContactFields();
             var contact = new JsonObject { ["vorname"] = "Änne", ["nachname"] = "Beispiel", ["email"] = "a@example.test" };
             var stableOne = WindowsContactStore.StableImportUid("Anna.contact", "");

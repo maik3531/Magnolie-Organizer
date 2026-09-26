@@ -5907,6 +5907,18 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     return d.termine;
   }
 
+  function normalisiereKontaktVerweise(daten) {
+    const vorhanden = new Set(daten.kontakte.map(k => k.id)), aliase = new Map();
+    for (const kontakt of daten.kontakte) for (const id of Array.isArray(kontakt.kontaktAliase?.ids) ? kontakt.kontaktAliase.ids : []) {
+      if (typeof id !== "string" || !id || vorhanden.has(id)) continue;
+      if (aliase.has(id) && aliase.get(id) !== kontakt.id) aliase.set(id, null);
+      else aliase.set(id, kontakt.id);
+    }
+    if (!aliase.size) return;
+    for (const feld of ["termine", "aufgaben", "jahrestage", "smsVerlauf", "smsPlanung"])
+      for (const eintrag of daten[feld] || []) if (aliase.get(eintrag.kontaktId)) eintrag.kontaktId = aliase.get(eintrag.kontaktId);
+  }
+
   function normalisiere(roh) {
     const d = leereDaten();
     if (!roh || typeof roh !== "object") return d;
@@ -6125,6 +6137,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
         jahrestageNachIdentitaet.set(identitaet, gruppe);
       }
     }
+    normalisiereKontaktVerweise(d);
     const kontaktIds = new Set(d.kontakte.map((k) => k.id));
     const kontakteNachName = new Map();
     for (const k of d.kontakte) {
@@ -6699,7 +6712,8 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       for (const tot of Array.isArray(g[art]) ? g[art] : []) {
         if (tot && tot.uid) d.geloescht[art].push({ uid: S(tot.uid), zeit: N(tot.zeit),
           syncKalenderUid: ["termine", "aufgaben"].includes(art) ? S(tot.syncKalenderUid) : "",
-          syncQuellen: Q(tot.syncQuellen) });
+          syncQuellen: Q(tot.syncQuellen),
+          ...(tot.kontaktDuplikat && typeof tot.kontaktDuplikat === "object" ? { kontaktDuplikat: Q(tot.kontaktDuplikat) } : {}) });
       }
     }
     d.baumKontaktGeloescht = (Array.isArray(roh.baumKontaktGeloescht)
@@ -24936,6 +24950,9 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       setzeKontaktIndex(indexe.bindungen, bindung, kontakt);
     }
     if (kontakt.uid) setzeKontaktIndex(indexe.uids, kontakt.uid, kontakt);
+    indexe.uidAliase ||= new Map();
+    for (const alias of Array.isArray(kontakt.kontaktAliase?.uids) ? kontakt.kontaktAliase.uids : [])
+      if (typeof alias === "string" && alias) setzeKontaktIndex(indexe.uidAliase, alias, kontakt);
     for (const mail of emailListe(kontakt)) {
       setzeKontaktIndex(indexe.mails, kanonischerText(mail), kontakt);
     }
@@ -24953,6 +24970,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     if (k.uid) {
       const nachUid = indexe.uids.get(k.uid);
       if (nachUid) return nachUid;
+      if (!indexe.uids.has(k.uid) && indexe.uidAliase?.get(k.uid)) return indexe.uidAliase.get(k.uid);
       if (String(k.uid).startsWith("thunderbird:")) return null;
     }
     const vereinbar = (treffer) => treffer &&
@@ -27528,10 +27546,12 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
 
   /* Kleine Hintertür für automatische Tests */
   window.OrganizerTest = {
+    starteSync: starteSync,
     daten: () => DATEN,
     zustand: () => zustand,
     wechsel: wechsel,
     speichereJetzt: speichereJetzt,
+    nachDauerhaftemSpeichern: nachDauerhaftemSpeichern,
     sichereNotizSnapshot: sichereNotizSnapshot,
     planeSpeichern: planeSpeichern,
     notizlinienGrundlinie: notizlinienGrundlinie,

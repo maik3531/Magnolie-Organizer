@@ -56,26 +56,45 @@ internal sealed class RecoveryJournal
         foreach (var name in previous.Select(item => item.Key).Union(proposed.Select(item => item.Key)))
         {
             if (name is "einstellungen" or "letzterSync" or "letzteSyncs" or "syncStatus" or
-                "syncMetadaten" or "syncEpoch" or "syncNachRestore" or "syncAbgleichBasis" or
+                "syncMetadaten" or "syncEpoch" or "syncNachRestore" or "syncAbgleichBasis" or "syncAbgleichNachweis" or
                 "personalSync" or "baumKontaktBestand" or "baumKontaktErfolgreich" or "baumKontaktLoeschStaende") continue;
+            if (name == "geloescht" && previous[name] is JsonObject oldDeleted && proposed[name] is JsonObject newDeleted)
+            {
+                static JsonObject WithoutConfirmedCleanup(JsonObject value)
+                {
+                    var copy = value.DeepClone().AsObject();
+                    if (copy["kontakte"] is JsonArray contacts) copy["kontakte"] = new JsonArray(contacts.Where(item =>
+                        item is not JsonObject marker || marker["kontaktDuplikat"] is not JsonObject proof ||
+                        marker.Any(pair => pair.Key is not ("uid" or "zeit" or "syncQuellen" or "kontaktDuplikat")) ||
+                        ContactFields.Text(proof, "contentHash").Length != 64 || ContactFields.Text(proof, "keeperId").Length == 0)
+                        .Select(item => item?.DeepClone()).ToArray());
+                    return copy;
+                }
+                if (JsonNode.DeepEquals(WithoutConfirmedCleanup(oldDeleted), WithoutConfirmedCleanup(newDeleted))) continue;
+            }
             if (name is "kontakte" or "jahrestage" or "notizen" or "aufgaben" or "termine" &&
                 previous[name] is JsonArray before && proposed[name] is JsonArray after)
             {
-                if (before.Count != after.Count || !before.Zip(after).All(pair => SameContent(pair.First, pair.Second))) return true;
+                if (before.Count != after.Count || !before.Zip(after).All(pair => SameContent(pair.First, pair.Second, name == "kontakte"))) return true;
                 continue;
             }
             if (!JsonNode.DeepEquals(previous[name], proposed[name])) return true;
         }
         return false;
 
-        static bool SameContent(JsonNode? before, JsonNode? after)
+        static bool SameContent(JsonNode? before, JsonNode? after, bool contact)
         {
             if (before is not JsonObject left || after is not JsonObject right) return JsonNode.DeepEquals(before, after);
+            var sameContact = false;
+            if (contact)
+                try { sameContact = ContactFields.ContentHash(left) == ContactFields.ContentHash(right); }
+                catch (Exception error) when (error is JsonException or InvalidOperationException or ArgumentException) { }
             return left.Select(item => item.Key).Union(right.Select(item => item.Key)).All(field =>
+                sameContact && ContactFields.Names.Contains(field) ||
                 field is "uid" or "geaendert" or "angelegt" or "personalGeaendert" or "sync" or "syncQuellen" or
                     "syncKalenderUid" or "davHref" or "davEtag" or "baumKontakt" or "baumFreigabe" or
                     "baumVersion" or "baumQuelle" or "baumGeaendert" or "baumInhaltVersion" or "persoenlichVerknuepft" or "importBindungen" or "importHerkunfte" or
-                    "importKonflikt" or "icsSequence" or "icsAenderungszeitFehlt" || JsonNode.DeepEquals(left[field], right[field]));
+                    "importKonflikt" or "kontaktAliase" or "icsSequence" or "icsAenderungszeitFehlt" || JsonNode.DeepEquals(left[field], right[field]));
         }
     }
 

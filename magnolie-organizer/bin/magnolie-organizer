@@ -793,7 +793,7 @@ def _gesamtarchiv_kanonisch(wert):
 def journal_inhalt_geaendert(vorher, nachher):
     """Nur Inhaltsänderungen lösen einen automatischen Vorher-Stand aus."""
     betriebsfelder = {"einstellungen", "letzterSync", "letzteSyncs", "syncStatus",
-                     "syncMetadaten", "syncEpoch", "syncNachRestore", "syncAbgleichBasis",
+                     "syncMetadaten", "syncEpoch", "syncNachRestore", "syncAbgleichBasis", "syncAbgleichNachweis",
                      "personalSync", "baumKontaktBestand", "baumKontaktErfolgreich", "baumKontaktLoeschStaende"}
     metadaten = {"uid", "geaendert", "angelegt", "personalGeaendert", "sync", "syncQuellen",
                  "syncKalenderUid", "davHref", "davEtag", "baumKontakt", "baumFreigabe",

@@ -80,6 +80,7 @@ internal sealed class NextcloudDavClient : IDisposable
     private readonly NextcloudSyncJournal? journal;
     private readonly string transactionId;
     private Uri? lastPropFindUri;
+    internal Func<Task>? BeforeMutation { get; set; }
 
     internal NextcloudDavClient(NextcloudMailboxSettingsStore settingsStore, HttpClient? http = null,
         NextcloudSyncJournal? journal = null, string transactionId = "")
@@ -165,6 +166,7 @@ internal sealed class NextcloudDavClient : IDisposable
         EnsureAllowed(context, href);
         using var request = Request(HttpMethod.Delete, href, context);
         if (etag.Length > 0) request.Headers.TryAddWithoutValidation("If-Match", etag);
+        if (BeforeMutation is not null) await BeforeMutation().ConfigureAwait(false);
         using var response = await http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
         if (response.StatusCode == HttpStatusCode.PreconditionFailed)
             throw new InvalidOperationException("Das DAV-Objekt wurde gleichzeitig geändert.");
@@ -295,6 +297,7 @@ internal sealed class NextcloudDavClient : IDisposable
         using var request = Request(HttpMethod.Put, href, context);
         request.Headers.TryAddWithoutValidation(etag is null ? "If-None-Match" : "If-Match", etag ?? "*");
         request.Content = new StringContent(text, new UTF8Encoding(false), mediaType);
+        if (BeforeMutation is not null) await BeforeMutation().ConfigureAwait(false);
         using var response = await http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
         if (response.StatusCode == HttpStatusCode.PreconditionFailed)
         {

@@ -24,6 +24,11 @@ internal static class NativeLocalization
 
     internal static string Gettext(string message) => Gettext(message, Language);
 
+    internal static bool IsTranslation(string message, string value) =>
+        string.Equals(message, value, StringComparison.OrdinalIgnoreCase) ||
+        Catalogs.Value.Values.Any(catalog => catalog.TryGetValue(message, out var translated) &&
+            string.Equals(translated, value, StringComparison.OrdinalIgnoreCase));
+
     internal static string Gettext(string message, string language)
     {
         if (language == "en") return message;

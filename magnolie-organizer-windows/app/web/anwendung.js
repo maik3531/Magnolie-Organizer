@@ -4881,7 +4881,8 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       laufenderSpeicher = auftrag;
       const id = auftrag.id;
       speicherAntwortTimer = setTimeout(() => App.gespeichert({ id: id, ok: false }), 30000);
-      if (!Bruecke.sende({ cmd: "speichern", id: auftrag.id, text: auftrag.text })) {
+      if (!Bruecke.sende({ cmd: "speichern", id: auftrag.id, text: auftrag.text,
+          kontaktePruefen: !!kontaktSyncPruefungLauf })) {
         App.gespeichert({ id: auftrag.id, ok: false, fehler: "" });
       }
       return;
@@ -5720,6 +5721,18 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     return d.termine;
   }
 
+  function normalisiereKontaktVerweise(daten) {
+    const vorhanden = new Set(daten.kontakte.map(k => k.id)), aliase = new Map();
+    for (const kontakt of daten.kontakte) for (const id of Array.isArray(kontakt.kontaktAliase?.ids) ? kontakt.kontaktAliase.ids : []) {
+      if (typeof id !== "string" || !id || vorhanden.has(id)) continue;
+      if (aliase.has(id) && aliase.get(id) !== kontakt.id) aliase.set(id, null);
+      else aliase.set(id, kontakt.id);
+    }
+    if (!aliase.size) return;
+    for (const feld of ["termine", "aufgaben", "jahrestage", "smsVerlauf", "smsPlanung"])
+      for (const eintrag of daten[feld] || []) if (aliase.get(eintrag.kontaktId)) eintrag.kontaktId = aliase.get(eintrag.kontaktId);
+  }
+
   function normalisiere(roh) {
     const d = leereDaten();
     if (!roh || typeof roh !== "object") return d;
@@ -5937,6 +5950,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
         jahrestageNachIdentitaet.set(identitaet, gruppe);
       }
     }
+    normalisiereKontaktVerweise(d);
     const kontaktIds = new Set(d.kontakte.map((k) => k.id));
     const kontakteNachName = new Map();
     for (const k of d.kontakte) {
@@ -6482,7 +6496,8 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       for (const tot of Array.isArray(g[art]) ? g[art] : []) {
         if (tot && tot.uid) d.geloescht[art].push({ uid: S(tot.uid), zeit: N(tot.zeit),
           syncKalenderUid: ["termine", "aufgaben"].includes(art) ? S(tot.syncKalenderUid) : "",
-          syncQuellen: Q(tot.syncQuellen) });
+          syncQuellen: Q(tot.syncQuellen),
+          ...(tot.kontaktDuplikat && typeof tot.kontaktDuplikat === "object" ? { kontaktDuplikat: Q(tot.kontaktDuplikat) } : {}) });
       }
     }
     d.baumKontaktGeloescht = (Array.isArray(roh.baumKontaktGeloescht)
@@ -19032,6 +19047,9 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
   let internetKontoStartet = false;
   let edsAngefragt = false;
   let syncLaeuft = false;
+  let kontaktSyncPruefungMoeglich = false;
+  let kontaktSyncPruefungLauf = null;
+  let kontaktSyncPruefungStand = null;
   let updateLaeuft = false;
   let handbuchInstalliert = false;
   let handbuchVersion = "";
@@ -24340,9 +24358,64 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     return nutzlast;
   }
 
-  function starteSync(stumm) {
+  async function bereinigeKontaktSync(lauf) {
+    const gueltig = () => DATEN === lauf.bestand && !gesperrt && !aktiverEditor &&
+      DATEN.einstellungen.sync.adressbuchUid === lauf.source && telefonHeimatland() === lauf.land;
+    if (!gueltig()) return;
+    DATEN.syncStatus.letzterVersuch = Math.max(Date.now(), Number(DATEN.syncStatus.letzterVersuch || 0) + 1);
+    await new Promise((resolve, reject) => nachDauerhaftemSpeichern(resolve, reject));
+    if (!gueltig()) throw new Error(_("Conflict"));
+    const plan = kontaktSyncPruefungStand, stand = JSON.stringify(DATEN.kontakte);
+    const bytes = new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(stand)));
+    const hash = Array.from(bytes, byte => byte.toString(16).padStart(2, "0")).join("");
+    if (!gueltig() || plan?.format !== 1 || plan.source !== lauf.source || plan.homeCountry !== lauf.land || plan.fingerprint !== hash ||
+        JSON.stringify(DATEN.kontakte) !== stand || !Array.isArray(plan.groups)) throw new Error(_("Conflict"));
+    if (!plan.groups.length) return;
+    const benutzt = new Set();
+    for (const gruppe of plan.groups) {
+      if (!Array.isArray(gruppe.ids) || gruppe.ids.length < 2 || !gruppe.ids.includes(gruppe.keepId) ||
+          !gruppe.ids.includes(gruppe.contentFromId) || !Array.isArray(gruppe.contentFields) ||
+          !gruppe.metadata || !Array.isArray(gruppe.deletions)) throw new Error(_("Conflict"));
+      for (const id of gruppe.ids) {
+        if (benutzt.has(id) || !DATEN.kontakte.some(k => k.id === id)) throw new Error(_("Conflict"));
+        benutzt.add(id);
+      }
+    }
+    await new Promise((resolve, reject) => mitMutationsSnapshot("pre-contact-merge", () => {
+      if (!gueltig() || JSON.stringify(DATEN.kontakte) !== stand) { reject(new Error(_("Conflict"))); return; }
+      const aliase = new Map(), entfernt = new Set();
+      for (const gruppe of plan.groups) {
+        const bleibt = DATEN.kontakte.find(k => k.id === gruppe.keepId);
+        const vollstaendig = DATEN.kontakte.find(k => k.id === gruppe.contentFromId);
+        for (const id of gruppe.ids) if (id !== bleibt.id) {
+          const weg = DATEN.kontakte.find(k => k.id === id);
+          inDenPapierkorb("duplikat", weg, kontaktName(weg));
+          entfernt.add(id); aliase.set(id, bleibt.id);
+        }
+        if (vollstaendig !== bleibt) for (const feld of gruppe.contentFields) {
+          if (["__proto__", "prototype", "constructor", "id", "uid", "syncQuellen", "baumKontakt"].includes(feld)) continue;
+          if (vollstaendig[feld] === undefined) delete bleibt[feld]; else bleibt[feld] = kopie(vollstaendig[feld]);
+        }
+        for (const [feld, wert] of Object.entries(gruppe.metadata))
+          if (!["__proto__", "prototype", "constructor", "id", "uid"].includes(feld)) bleibt[feld] = kopie(wert);
+        for (const loeschung of gruppe.deletions) {
+          DATEN.geloescht.kontakte.push({ uid: syncUid(), zeit: Date.now(),
+            syncQuellen: { [lauf.source]: kopie(loeschung.mapping) },
+            kontaktDuplikat: { source: lauf.source, keeperId: loeschung.keeperId, contentHash: loeschung.contentHash,
+              keeperHash: loeschung.keeperHash, desiredHash: loeschung.desiredHash } });
+        }
+      }
+      DATEN.kontakte = DATEN.kontakte.filter(k => !entfernt.has(k.id));
+      for (const feld of ["termine", "aufgaben", "jahrestage", "smsVerlauf", "smsPlanung"])
+        for (const eintrag of DATEN[feld] || []) if (aliase.has(eintrag.kontaktId)) eintrag.kontaktId = aliase.get(eintrag.kontaktId);
+      if (offenerSmsChat && aliase.has(offenerSmsChat.kontaktId)) offenerSmsChat.kontaktId = aliase.get(offenerSmsChat.kontaktId);
+      planeSpeichern(); zeichneAlles(); resolve();
+    }, reject));
+  }
+
+  function starteSync(stumm, kontaktVorbereitet = false) {
     sichereNotizSnapshot();
-    if (!Bruecke.vorhanden || syncLaeuft) return;
+    if (!Bruecke.vorhanden || syncLaeuft || kontaktSyncPruefungLauf) return;
     const w = DATEN.einstellungen.sync;
     const kalenderUids = Array.from(new Set(
       (w.kalenderUids || []).filter((wert) => typeof wert === "string" && wert)));
@@ -24355,6 +24428,21 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     }
     const nextcloudMetadaten = DATEN.syncMetadaten.nextcloud ||
       (DATEN.syncMetadaten.nextcloud = {});
+    if (kontaktSyncPruefungMoeglich && !kontaktVorbereitet && w.adressbuchUid && !aktiverEditor &&
+        !nextcloudMetadaten.ausstehendeTransaktion && !DATEN.syncNachRestore?.additiv && !DATEN.syncNachRestore?.loeschungsfrei) {
+      const lauf = { bestand: DATEN, source: w.adressbuchUid, land: telefonHeimatland() };
+      kontaktSyncPruefungLauf = lauf; kontaktSyncPruefungStand = null;
+      const knopf = $("#sync-jetzt"), status = $("#sync-status");
+      if (knopf) { knopf.disabled = true; knopf.textContent = _("Synchronizing …"); }
+      if (status) status.textContent = _("Synchronizing …");
+      bereinigeKontaktSync(lauf).then(() => {
+        if (kontaktSyncPruefungLauf === lauf) kontaktSyncPruefungLauf = null;
+        if (DATEN === lauf.bestand && !gesperrt) starteSync(stumm, true);
+      }).catch(error => {
+        if (DATEN === lauf.bestand && !gesperrt) zettel(merkeSyncFehler(error.message));
+      }).finally(() => { if (kontaktSyncPruefungLauf === lauf) kontaktSyncPruefungLauf = null; });
+      return;
+    }
     let transactionId = String(nextcloudMetadaten.ausstehendeTransaktion || "");
     if (!/^[0-9a-f]{64}$/.test(transactionId)) {
       const bytes = new Uint8Array(32);
@@ -24434,6 +24522,9 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       setzeKontaktIndex(indexe.bindungen, bindung, kontakt);
     }
     if (kontakt.uid) setzeKontaktIndex(indexe.uids, kontakt.uid, kontakt);
+    indexe.uidAliase ||= new Map();
+    for (const alias of Array.isArray(kontakt.kontaktAliase?.uids) ? kontakt.kontaktAliase.uids : [])
+      if (typeof alias === "string" && alias) setzeKontaktIndex(indexe.uidAliase, alias, kontakt);
     for (const mail of emailListe(kontakt)) {
       setzeKontaktIndex(indexe.mails, kanonischerText(mail), kontakt);
     }
@@ -24451,6 +24542,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     if (k.uid) {
       const nachUid = indexe.uids.get(k.uid);
       if (nachUid) return nachUid;
+      if (!indexe.uids.has(k.uid) && indexe.uidAliase?.get(k.uid)) return indexe.uidAliase.get(k.uid);
       if (String(k.uid).startsWith("thunderbird:")) return null;
     }
     const vereinbar = (treffer) => treffer &&
@@ -25468,6 +25560,8 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       gesperrt = false;
       schliesseSperrbildschirm();
       kennwortAn = !!nutzlast.kennwort;
+      kontaktSyncPruefungMoeglich = nutzlast.kontaktSyncPruefung === true;
+      kontaktSyncPruefungLauf = null; kontaktSyncPruefungStand = null;
       unterWayland = !!nutzlast.wayland;
       const edsZeigerBereinigt = Array.isArray(nutzlast.daten && nutzlast.daten.kontakte) &&
         nutzlast.daten.kontakte.some(kontaktHatEdsZeigerwert);
@@ -26856,6 +26950,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       speicherAntwortTimer = null;
       laufenderSpeicher = null;
       if (ergebnis.ok === true) {
+        if (kontaktSyncPruefungLauf && ergebnis.kontaktPruefung) kontaktSyncPruefungStand = ergebnis.kontaktPruefung;
         if (ausstehendeAdressbuchBaseline && erledigt &&
           erledigt.text.includes('"adressbuecher"')) {
           ausstehendeAdressbuchBaseline = null;
@@ -26952,10 +27047,12 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
 
   /* Kleine Hintertür für automatische Tests */
   window.OrganizerTest = {
+    starteSync: starteSync,
     daten: () => DATEN,
     zustand: () => zustand,
     wechsel: wechsel,
     speichereJetzt: speichereJetzt,
+    nachDauerhaftemSpeichern: nachDauerhaftemSpeichern,
     sichereNotizSnapshot: sichereNotizSnapshot,
     planeSpeichern: planeSpeichern,
     notizlinienGrundlinie: notizlinienGrundlinie,

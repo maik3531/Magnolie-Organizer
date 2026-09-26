@@ -18,6 +18,8 @@ internal sealed partial class BridgeDispatcher : IDisposable
     private EncryptionService encryption = new();
     private readonly HttpClient http = DeadlineHttp.Create(TimeSpan.FromSeconds(15));
     private string currentPlainText = "{}";
+    private readonly ContactCleanupSnapshot contactCleanupSnapshot = new();
+    private readonly SyncSnapshotHandoff syncSnapshotHandoff = new();
     private string currentEnvelope = "";
     private bool currentPlainTextAvailable;
     private int failedUnlocks;
@@ -472,6 +474,7 @@ internal sealed partial class BridgeDispatcher : IDisposable
             datenPfad = paths.Data,
             wayland = false,
             trayVerfuegbar = true,
+            kontaktSyncPruefung = true,
             teamsVerfuegbar = NativeMethods.HasUriScheme("msteams"),
             trayEinstellungen = form.CurrentTraySettings,
             handbuchInstalliert = ManualInstalled(),
@@ -663,13 +666,17 @@ internal sealed partial class BridgeDispatcher : IDisposable
             using var document = JsonDocument.Parse(text);
             if (document.RootElement.ValueKind != JsonValueKind.Object)
                 throw new JsonException(T("The data is not a JSON object."));
+            JsonObject? contactPlan = null;
+            if (Boolean(message, "kontaktePruefen")) contactPlan = ContactCleanupPlan.Create(document.RootElement,
+                RegionalSettings.Read(paths.RegionalSettings)["homeCountry"]?.GetValue<string>() ?? "DE");
             // The persisted restore epoch fences requests queued before or sent after restore.
             var previousData = JsonNode.Parse(currentPlainText) as JsonObject;
+            var proposedData = JsonNode.Parse(text)!.AsObject();
+            var coveredBySync = previousData is not null && syncSnapshotHandoff.CoversSave(previousData, proposedData);
             var epoch = previousData?["syncEpoch"]?.GetValue<string>() ?? "";
             if (epoch.Length != 0 && Text(document.RootElement, "syncEpoch") != epoch)
                 throw new JsonException(T("The save request is invalid."));
-            if (previousData is not null && RecoveryJournal.HasRecoverableChanges(
-                    previousData, JsonNode.Parse(text)!.AsObject()))
+            if (!coveredBySync && previousData is not null && RecoveryJournal.HasRecoverableChanges(previousData, proposedData))
                 CreateSnapshot(SnapshotReason.PreChange);
 
             if (encryption.Session is not null)
@@ -681,9 +688,12 @@ internal sealed partial class BridgeDispatcher : IDisposable
             else store.WriteRecoverableJson(paths.Data, text);
             currentPlainText = text;
             currentPlainTextAvailable = true;
+            if (coveredBySync) syncSnapshotHandoff.Saved();
+            if (contactPlan is not null) contactCleanupSnapshot.Planned(contactPlan);
+            else contactCleanupSnapshot.Saved(text);
             RefreshReminderData(currentPlainText, encryption.Session is not null);
             UpdateReminderRuntime(currentPlainText);
-            await form.SendAsync("App.gespeichert", new { id, ok = true, fehler = "" });
+            await form.SendAsync("App.gespeichert", new { id, ok = true, fehler = "", kontaktPruefung = contactPlan });
             await RunCloudBackupAfterSaveAsync(document.RootElement.GetRawText(), force: false);
         }
         catch (Exception error)
@@ -1198,6 +1208,7 @@ internal sealed partial class BridgeDispatcher : IDisposable
                 _ => throw new InvalidDataException(T("The recovery snapshot reason is invalid."))
             };
             CreateSnapshot(reason);
+            if (reason == SnapshotReason.PreContactMerge) contactCleanupSnapshot.Snapshotted(JsonNode.Parse(currentPlainText)!.AsObject());
             await form.SendAsync("App.mutationsSnapshot", new { token, ok = true, fehler = "" });
         }
         catch (Exception error) { await form.SendAsync("App.mutationsSnapshot", new { token, ok = false, fehler = error.Message }); }

@@ -176,7 +176,8 @@ internal sealed partial class BridgeDispatcher
         {
             await MutationGate.Global.WaitAsync(operation.Token); locked = true;
             operation.Token.ThrowIfCancellationRequested();
-            CreateSnapshot(SnapshotReason.PreContact);
+            var requestedSource = message.TryGetProperty("wahl", out var snapshotChoice) ? PropertyText(snapshotChoice, "adressbuchUid") : "";
+            var snapshotPrepared = contactCleanupSnapshot.Consume(currentPlainText, requestedSource);
             MutationGate.Global.Release(); locked = false;
             var source = message.TryGetProperty("wahl", out var choice) ? PropertyText(choice, "adressbuchUid") : "";
             lock (serviceGate) { activeSync = operation; graphSync = source == "microsoft-graph"; }
@@ -189,6 +190,20 @@ internal sealed partial class BridgeDispatcher
                 ? originalEpochNode.GetString() ?? "" : "";
             var transactionId = Text(message, "transactionId");
             ValidateSynchronizationTransaction(transactionId);
+            async Task EnsureSnapshot()
+            {
+                operation.Token.ThrowIfCancellationRequested();
+                if (snapshotPrepared) return;
+                await MutationGate.Global.WaitAsync(operation.Token);
+                try
+                {
+                    if ((JsonNode.Parse(currentPlainText)?["syncEpoch"]?.GetValue<string>() ?? "") != originalEpoch)
+                        throw new InvalidOperationException(T("Synchronization failed."));
+                    if (!snapshotPrepared) { CreateSnapshot(SnapshotReason.PreContact); snapshotPrepared = true; }
+                }
+                finally { MutationGate.Global.Release(); }
+            }
+            var originalContent = SyncSnapshotHandoff.Content(JsonNode.Parse(data.GetRawText())!.AsObject());
             var syncJournal = SynchronizationJournal(transactionId);
             var phases = new List<string>();
             if (source.Length > 0) phases.Add("contacts:" + source);
@@ -202,6 +217,8 @@ internal sealed partial class BridgeDispatcher
             var resumedPhase = resumed?.Phase ?? "";
             if (resumed is { Phase: "complete" } completedRun)
             {
+                if (RecoveryJournal.HasRecoverableChanges(originalContent, SyncSnapshotHandoff.Content(completedRun.Payload))) await EnsureSnapshot();
+                syncSnapshotHandoff.Completed(transactionId, completedRun.Payload, snapshotPrepared);
                 await form.SendAsync("App.syncFertig", completedRun.Payload);
                 return;
             }
@@ -278,12 +295,14 @@ internal sealed partial class BridgeDispatcher
                     var addressBook = thunderbirdSources.SingleOrDefault(item => item.Uid == source) ??
                         throw new InvalidOperationException(T("Address book"));
                     var bridgeClient = ThunderbirdBridge.CreateClient(addressBook, syncJournal, transactionId);
+                    bridgeClient.BeforeMutation = EnsureSnapshot;
                     thunderbirdClients.Add(bridgeClient);
                     remote = new NextcloudCardDavRemote(bridgeClient, addressBook);
                 }
                 else
                 {
                     davClient = new NextcloudDavClient(NextcloudSettings, journal: syncJournal, transactionId: transactionId);
+                    davClient.BeforeMutation = EnsureSnapshot;
                     var sources = await davClient.ListSourcesAsync(operation.Token, calendars: false);
                     var addressBook = sources.AddressBooks.SingleOrDefault(item => item.Uid == source) ?? throw new InvalidOperationException(T("Address book"));
                     remote = new NextcloudCardDavRemote(davClient, addressBook);
@@ -295,7 +314,7 @@ internal sealed partial class BridgeDispatcher
                     (contactCursor <= 0 || !contacts.Concat(tombstones).OfType<JsonObject>()
                         .Any(item => ContactFields.Source(item, source) is not null));
                 result = await new ContactSyncEngine().SyncAsync(source, contacts, tombstones, contactCursor, remote,
-                    operation.Token, additiveOnly || firstContactRun);
+                    operation.Token, additiveOnly || firstContactRun, EnsureSnapshot);
                 if (result.Counts.Errors > 0)
                     throw new InvalidOperationException(T("The Nextcloud operation failed."));
                 SaveProgress("contacts:" + source);
@@ -306,6 +325,7 @@ internal sealed partial class BridgeDispatcher
                 if (calendarIds.Any(id => !ThunderbirdBridge.IsSource(id)))
                 {
                     davClient ??= new NextcloudDavClient(NextcloudSettings, journal: syncJournal, transactionId: transactionId);
+                    davClient.BeforeMutation = EnsureSnapshot;
                     davCalendars = (await davClient.ListSourcesAsync(operation.Token, addressBooks: false)).Calendars;
                 }
                 var selected = calendarIds.Select(id => davCalendars.Concat(thunderbirdSources).SingleOrDefault(item => item.Uid == id) ??
@@ -317,6 +337,7 @@ internal sealed partial class BridgeDispatcher
                     if (ThunderbirdBridge.IsSource(calendar.Uid))
                     {
                         calendarClient = ThunderbirdBridge.CreateClient(calendar, syncJournal, transactionId);
+                        calendarClient.BeforeMutation = EnsureSnapshot;
                         thunderbirdClients.Add(calendarClient);
                     }
                     var phase = "calendar:" + calendar.Uid;
@@ -404,7 +425,10 @@ internal sealed partial class BridgeDispatcher
                 syncNachRestore = (object?)null, bericht = source == "windows-contacts" && calendarIds.Count == 0
                     ? T("Windows Contacts folder") + ": " + T("Synchronization completed.")
                     : T("Synchronization completed.") };
-            syncJournal.Save(transactionId, "complete", JsonSerializer.SerializeToNode(completed)!.AsObject());
+            var completedNode = JsonSerializer.SerializeToNode(completed)!.AsObject();
+            if (RecoveryJournal.HasRecoverableChanges(originalContent, SyncSnapshotHandoff.Content(completedNode))) await EnsureSnapshot();
+            syncJournal.Save(transactionId, "complete", completedNode);
+            syncSnapshotHandoff.Completed(transactionId, completedNode, snapshotPrepared);
             await form.SendAsync("App.syncFertig", completed);
         }
         catch (Exception error)
