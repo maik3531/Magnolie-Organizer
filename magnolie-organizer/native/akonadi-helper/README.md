@@ -1,4 +1,12 @@
-# Magnolie Organizer KDE integration
+# Magnolie Organizer KDE integration add-on
+
+**This package requires the main `magnolie-organizer` package.** The main
+Organizer application is also used on KDE Plasma (including Kubuntu and
+Ubuntu-based TuxedoOS). This add-on supplies access to existing KDE/Akonadi
+calendars and address books; it does not contain a separate application interface.
+When installing downloaded DEBs, give APT both the main DEB and the KDE add-on
+DEB. APT rejects the add-on if its mandatory main-package dependency cannot be
+satisfied.
 
 Optional native bridge for KDE Plasma installations. It reads exactly one JSON
 object (maximum 16 MiB) from stdin and writes exactly one JSON object (maximum

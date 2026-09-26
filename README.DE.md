@@ -38,12 +38,34 @@ Speicherung und bewusst freigegebener Datenaustausch.
 | Android | [Magnolie Notes APK](https://github.com/maik3531/Magnolie-Organizer/releases/latest/download/Magnolie-Notes-1.0.16.apk) | Android 8.0 oder neuer |
 | Handbuch | [Debian-Paket](https://github.com/maik3531/Magnolie-Organizer/releases/latest/download/magnolie-handbuch_2.0.23_all.deb) | Optionale Komponente des Windows-Installers |
 
-Optionale KDE-Integration für das native Linux-Paket:
+### DEB-Hauptprogramm – auch für KDE Plasma
 
-| Distribution | KDE-Paket (amd64 / x86_64) |
+**`magnolie-organizer_2.0.23_all.deb` ist das vollständige Hauptprogramm.**
+Es wird auch unter KDE Plasma verwendet, beispielsweise auf Kubuntu oder
+Ubuntu-basiertem TuxedoOS; die Wahl zwischen GNOME, Cinnamon, Xfce und KDE
+erfordert kein anderes Hauptpaket.
+
+### Optionales KDE-Zusatzpaket – Hauptprogramm erforderlich
+
+**`magnolie-organizer-kde` ergänzt ausschließlich die Anbindung vorhandener
+KDE-/Akonadi-Kalender und -Adressbücher. Es enthält keine eigene
+Organizer-Oberfläche und ersetzt das Hauptprogramm nicht.**
+Das Zusatzpaket verlangt `magnolie-organizer` als harte Paketabhängigkeit.
+APT installiert ein verfügbares Hauptpaket mit; ohne erfüllbare Abhängigkeit
+wird die Installation abgewiesen. Bei einzeln heruntergeladenen DEBs beide
+Dateien gemeinsam installieren:
+
+```bash
+sudo apt install ./magnolie-organizer_2.0.23_all.deb ./magnolie-organizer-kde_2.0.23_amd64.deb
+```
+
+Für den Organizer auf KDE allein genügt das Hauptpaket. Das Zusatzpaket wird
+nur für den Zugriff auf die dort eingerichteten KDE-Kalender/-Adressbücher benötigt.
+
+| Distribution | KDE-Integrations-Zusatz (amd64 / x86_64; Hauptprogramm erforderlich) |
 |---|---|
-| Debian 13, Ubuntu / Kubuntu 24.04 und 26.04, Linux Mint 22 | [Ein KDE-DEB](https://github.com/maik3531/Magnolie-Organizer/releases/latest/download/magnolie-organizer-kde_2.0.23_amd64.deb) |
-| Fedora 42 | [KDE-RPM](https://github.com/maik3531/Magnolie-Organizer/releases/latest/download/magnolie-organizer-kde-2.0.23-1.fc42.x86_64.rpm) |
+| Debian 13, Ubuntu / Kubuntu 24.04 und 26.04, Linux Mint 22 | [KDE-Zusatz-DEB](https://github.com/maik3531/Magnolie-Organizer/releases/latest/download/magnolie-organizer-kde_2.0.23_amd64.deb) |
+| Fedora 42 | [KDE-Zusatz-RPM](https://github.com/maik3531/Magnolie-Organizer/releases/latest/download/magnolie-organizer-kde-2.0.23-1.fc42.x86_64.rpm) |
 
 Das optionale KDE-DEB wählt eines von drei internen nativen Backends anhand der
 bereits konfigurierten KDE-Pakete und ihrer vollständigen ABI-Abhängigkeiten.

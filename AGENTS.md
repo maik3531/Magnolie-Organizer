@@ -41,6 +41,23 @@ nicht in öffentlichen Release-Hinweisen. Der lokale Ablauf ist in
 5. Im Issue knapp festhalten, was umgesetzt wurde, was tatsächlich geprüft wurde
    und was noch fehlt. Eine Quellstandsicherung ist keine Veröffentlichung.
 
+## Befunde zuerst bestätigen
+
+Ein Nutzerbericht ist noch kein Nachweis für einen Programmfehler. Vor einem Fix
+Paketformat, Version, System, Einstellungen, Installationsvoraussetzungen und
+konkrete Schritte prüfen. Reproduzierten Programmfehler, Konfigurations- oder
+Bedienungsursache und weiterhin unbestätigten Befund im Issue auseinanderhalten.
+Nutzern keine Ursache unterstellen, die nicht überprüft wurde.
+
+## Native Startprüfung vor jeder Veröffentlichung
+
+Jedes installierbare Release-Paket in einer passenden vorhandenen VM bzw. nativ
+unter Windows installieren, starten und bedienen. Ansichtswechsel, längere
+Hänger sowie Start-, Dienst- und Absturzmeldungen prüfen. Jedes neue AppImage
+ausdrücklich auch unter Arch starten. Paketstand/Prüfsumme, Umgebung und Ergebnis
+im privaten Freigabenachweis erfassen. Fehlende oder fehlgeschlagene notwendige
+Startprüfungen blockieren die Veröffentlichung.
+
 Bestehende Benutzeränderungen erhalten. Nur beabsichtigte Quelldateien aufnehmen;
 keine persönlichen Daten, Zugangsdaten, Signierschlüssel, privaten Nachweise oder
 erzeugten Pakete committen. Interne Veröffentlichungsunterlagen bleiben privat.

@@ -13,10 +13,13 @@ Provides: magnolie-organizer-akonadi (= ${binary:Version})
 Breaks: magnolie-organizer-akonadi (<< ${binary:Version})
 Replaces: magnolie-organizer-akonadi (<< ${binary:Version})
 Suggests: akonadi-server, kdepim-runtime
-Description: KDE integration for Magnolie Organizer
+Description: KDE integration add-on for Magnolie Organizer (main application required)
  This optional helper lets Magnolie Organizer use calendars and address books
  already configured in KDE. It communicates through a bounded local
  protocol and never receives account credentials.
+ This is not a standalone Organizer application. The required
+ magnolie-organizer package supplies the complete interface on all supported
+ desktop environments, including KDE Plasma.
  Three dormant native backends retain separate, generated dependency manifests.
  Only a complete, already installed matching KDE stack can be used. Installing
  this package does not install or configure a KDE personal-information suite.
