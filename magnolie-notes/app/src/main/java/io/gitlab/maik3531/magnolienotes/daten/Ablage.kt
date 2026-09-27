@@ -524,7 +524,7 @@ class Ablage private constructor(
             "note" -> PapierkorbLogik.loescheNotiz(next, PersonalSync.noteLocalId(next, proposal.id), proposal.deleted_ms)
             "task" -> PapierkorbLogik.loescheAufgabe(next, proposal.id, proposal.deleted_ms)
             "attachment" -> PapierkorbLogik.loescheAnhang(next, PersonalSync.noteLocalId(next, proposal.parent_id), proposal.id, proposal.deleted_ms)
-            "notebook" -> PapierkorbLogik.loescheNotizbuch(next, proposal.id, proposal.deleted_ms)
+            "notebook" -> PapierkorbLogik.loescheNotizbuch(next, PersonalSync.noteLocalId(next, proposal.id, "notebook"), proposal.deleted_ms)
                 ?: return@synchronized "blocked"
             else -> return@synchronized "missing"
         }
@@ -534,7 +534,7 @@ class Ablage private constructor(
                 val trash = next.papierkorb.lastOrNull { item -> item.art == proposal.kind && when (item.art) {
                     "note" -> item.notiz?.id == PersonalSync.noteLocalId(next, proposal.id)
                     "task" -> item.aufgabe?.id == proposal.id
-                    "notebook" -> item.notizbuch?.id == proposal.id
+                    "notebook" -> item.notizbuch?.id == PersonalSync.noteLocalId(next, proposal.id, "notebook")
                     "attachment" -> item.anhang?.id == proposal.id && item.parent_id == PersonalSync.noteLocalId(next, proposal.parent_id)
                     else -> false } } ?: return@synchronized "restore_unavailable"
                 next = PapierkorbLogik.wiederherstellen(next, trash.id)

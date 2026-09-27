@@ -1659,7 +1659,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
                         val key = if (proposal.kind == "attachment") "attachment\u0000${proposal.parent_id}\u0000${proposal.id}" else "${proposal.kind}\u0000${proposal.id}"
                         current.personalSync.entities[key]?.hash != proposal.prior_hash }))
                     put("blocked", JsonPrimitive(pending.count { proposal -> proposal.kind == "notebook" &&
-                        current.notizen.any { it.notizbuchId == proposal.id } }))
+                        current.notizen.any { it.notizbuchId == PersonalSync.noteLocalId(current, proposal.id, "notebook") } }))
                     put("trash", buildJsonObject {
                         put("notes", JsonPrimitive(current.papierkorb.count { it.art == "note" }))
                         put("tasks", JsonPrimitive(current.papierkorb.count { it.art == "task" }))

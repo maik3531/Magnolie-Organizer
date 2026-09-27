@@ -12,6 +12,54 @@ class ExistingNoteDuplicatesTest {
     private val original = Notiz("z-local", titel = "Welcome", text = "Same content", html = "", angelegt = 1, geaendert = 1)
     private fun snapshot(input: Bestand) = PersonalSync.reconcile(input, setOf("notes"), 3, peer)
 
+    @Test fun `equivalent notebooks bind before note identity across formats and restart`() {
+        for (format in 1..3) {
+            fun state(id: String, book: String, owner: String) = PersonalSync.reconcile(Bestand(
+                notizbuecher = listOf(Notizbuch(book, "Shared name")),
+                notizen = listOf(original.copy(id = id, notizbuchId = book,
+                    html = if (owner == peer) "<p>Same content</p>" else "")),
+                personalSync = PersonalSyncState(actor_id = owner)), setOf("notes"), format, peer)
+            val left = state("z-note", "z-book", actor)
+            val right = state("a-note", "a-book", peer)
+            val merged = PersonalSync.apply(left.first, right.second)
+            assertEquals(0, merged.conflicts)
+            assertEquals("z-book", merged.bestand.notizbuecher.single().id)
+            assertEquals("z-note", merged.bestand.notizen.single().id)
+            assertEquals("z-book", merged.bestand.notizen.single().notizbuchId)
+            val loaded = Json.decodeFromString<Bestand>(Json.encodeToString(merged.bestand))
+            val outgoing = PersonalSync.reconcile(loaded, setOf("notes"), format, peer)
+            assertEquals("a-book", outgoing.second.single { it.kind == "notebook" }.id)
+            assertEquals("a-note", outgoing.second.single { it.kind == "note" }.id)
+            val returned = PersonalSync.apply(right.first, outgoing.second)
+            assertEquals(0, returned.conflicts)
+            assertEquals(1, returned.bestand.notizen.size)
+            assertEquals(1, returned.bestand.notizbuecher.size)
+            val proposal = PersonalDeletionProposal("run", "proposal", "notebook", "a-book",
+                clock = emptyList(), prior_hash = "", deleted_ms = 100)
+            assertEquals(PersonalDeletionPrompt.BLOCKED, PersonalDeletionDecisions().prompt(loaded, proposal))
+            val empty = PersonalSync.acknowledge(PersonalSync.reconcile(loaded.copy(notizen = emptyList()),
+                setOf("notes"), format, peer).first, peer)
+            val deleted = PersonalSync.reconcile(PapierkorbLogik.loescheNotizbuch(empty, "z-book", 200)!!,
+                setOf("notes"), format, peer).first
+            val deletion = PersonalSync.proposals(deleted, peer).single { it.kind == "notebook" }
+            assertEquals("a-book", deletion.id)
+            val restored = PersonalSync.applyDeletionDecisions(deleted, listOf(
+                AppliedPersonalDecision(deletion.proposal_id, "restore", deletion.clock)))
+            assertEquals("applied", restored.second)
+            assertEquals("z-book", restored.first.notizbuecher.single().id)
+        }
+    }
+
+    @Test fun `ambiguous notebook names are not assigned to an arbitrary local book`() {
+        val local = snapshot(Bestand(notizbuecher = listOf(Notizbuch("left", "Same"), Notizbuch("right", "Same")),
+            personalSync = PersonalSyncState(actor_id = actor))).first
+        val remote = snapshot(Bestand(notizbuecher = listOf(Notizbuch("remote", "Same")),
+            personalSync = PersonalSyncState(actor_id = peer)))
+        val result = PersonalSync.apply(local, remote.second).bestand
+        assertEquals(3, result.notizbuecher.size)
+        assertTrue(result.personalSync.notebook_aliases.isEmpty())
+    }
+
     @Test fun `existing own and shared copies keep local identity scope and future edits`() {
         val initial = snapshot(Bestand(notizen = listOf(original), personalSync = PersonalSyncState(actor_id = actor))).first
         val shared = original.copy(baumQuelle = "tree-peer", baumFreigabe = Freigabe("share", listOf("tree-peer"),

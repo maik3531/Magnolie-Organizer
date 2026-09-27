@@ -16,6 +16,38 @@ function client(web, id, actor, date) {
   return { dom, w, t: w.OrganizerTest };
 }
 async function check(web) {
+  for (const format of [1, 2, 3]) {
+    const a = client(web, "z-local", "11111111-1111-4111-8111-111111111111", 1);
+    const b = client(web, "a-local", "22222222-2222-4222-8222-222222222222", 2);
+    const snapshot = c => c.t.personalSyncSnapshot(["notes"], format, peer);
+    const apply = (c, records) => c.t.personalSyncAnwenden(JSON.parse(JSON.stringify(records)), {}, format, peer, ["notes"]);
+    try {
+      for (const [c, id] of [[a, "z-book"], [b, "a-book"]]) {
+        c.t.daten().notizbuecher[0].id = id;
+        c.t.daten().notizbuecher[0].name = "Shared notebook";
+        c.t.daten().notizen[0].notizbuchId = id;
+      }
+      b.t.daten().notizen[0].html = "<p>Same content</p>";
+      const oldA = await snapshot(a), oldB = await snapshot(b);
+      await apply(a, oldB); await apply(b, oldA);
+      for (let round = 0; round < 3; round++) {
+        for (const [c, localBook] of [[a, "z-book"], [b, "a-book"]]) {
+          assert.equal(c.t.daten().notizbuecher.length, 1, "equal notebooks must retain one local catalog entry");
+          assert.equal(c.t.daten().notizen.length, 1, "different notebook IDs must not duplicate equal notes");
+          assert.equal(c.t.daten().notizen[0].notizbuchId, localBook, "the local notebook placement must stay stable");
+          c.w.App.init({daten: JSON.parse(JSON.stringify(c.t.daten())), neu: false});
+        }
+        const left = await snapshot(a), right = await snapshot(b);
+        assert.equal((await apply(a, right)).conflicts, 0);
+        assert.equal((await apply(b, left)).conflicts, 0);
+      }
+      const left = await snapshot(a), right = await snapshot(b);
+      for (const kind of ["note", "notebook"]) {
+        assert.equal(left.find(r => r.kind === kind).id, right.find(r => r.kind === kind).id);
+        assert.equal(left.find(r => r.kind === kind).hash, right.find(r => r.kind === kind).hash);
+      }
+    } finally { a.w.close(); b.w.close(); }
+  }
   for (const variant of ["plain", "selected", "attachments", "foreign-only", "sources", "different-text", "different-format",
     "different-file", "different-attachment-id", "pending-delete", "deleted-history", "pending-restore"]) {
     const c = client(web, "z-local", "11111111-1111-4111-8111-111111111111", 1);

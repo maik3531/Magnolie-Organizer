@@ -87,7 +87,7 @@ object PapierkorbLogik {
                     anhaenge = it.anhaenge + item.anhang!!, geaendert = now) else it }) }
         }
         val key = if (item.art == "attachment") "attachment\u0000${PersonalSync.noteWireId(result.personalSync, item.parent_id)}\u0000$entityId"
-            else "${item.art}\u0000${if (item.art == "note") PersonalSync.noteWireId(result.personalSync, entityId) else entityId}"
+            else "${item.art}\u0000${if (item.art in setOf("note", "notebook")) PersonalSync.noteWireId(result.personalSync, entityId, item.art) else entityId}"
         val old = result.personalSync.entities[key]
         if (old != null && old.state == "deleted") {
             val actor = result.personalSync.actor_id.ifBlank { UUID.randomUUID().toString() }

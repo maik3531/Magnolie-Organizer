@@ -489,7 +489,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
 
   function personalSyncWert(art, objekt, modified) {
     if (art === "note") return { title: String(objekt.titel || ""), text: String(objekt.text || ""),
-      html: String(objekt.html || ""), notebook_id: String(objekt.notizbuchId || NOTIZ_STANDARD_BUCH),
+      html: String(objekt.html || ""), notebook_id: personalSyncNotizWireId(String(objekt.notizbuchId || NOTIZ_STANDARD_BUCH), "notebook"),
       symbol: String(objekt.symbol || "notiz"), created_ms: Number(objekt.angelegt || 0), modified_ms: modified };
     if (art === "task") return { title: String(objekt.titel || ""), note: String(objekt.notiz || ""),
       due: String(objekt.faellig || ""), priority: Number(objekt.prio || 2), completed: !!objekt.erledigt,
@@ -521,8 +521,8 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       new TextEncoder().encode(id).length <= 160;
   }
 
-  function personalSyncNotizId(id) {
-    const aliases = DATEN.personalSync.note_aliases || {}, gesehen = new Set();
+  function personalSyncNotizId(id, art = "note") {
+    const aliases = DATEN.personalSync[art + "_aliases"] || {}, gesehen = new Set();
     while (Object.prototype.hasOwnProperty.call(aliases, id)) {
       if (gesehen.has(id) || !personalSyncNotizIdGueltig(aliases[id]) || personalSyncUtf8(aliases[id], id) >= 0)
         throw new Error(_("Personal synchronization failed."));
@@ -531,16 +531,39 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     return id;
   }
 
-  function personalSyncNotizWireId(id) {
-    const ids = DATEN.personalSync.note_ids || {};
+  function personalSyncNotizWireId(id, art = "note") {
+    const ids = DATEN.personalSync[art + "_ids"] || {};
     if (Object.prototype.hasOwnProperty.call(ids, id) && !personalSyncNotizIdGueltig(ids[id])) throw new Error(_("Personal synchronization failed."));
-    return personalSyncNotizId(Object.prototype.hasOwnProperty.call(ids, id) ? ids[id] : id);
+    return personalSyncNotizId(Object.prototype.hasOwnProperty.call(ids, id) ? ids[id] : id, art);
   }
 
-  function personalSyncNotizLokalId(id) {
-    const canonical = personalSyncNotizId(id);
-    return DATEN.notizen.find(n => personalSyncNotizWireId(n.id) === canonical)?.id ||
-      Object.keys(DATEN.personalSync.note_ids || {}).find(local => personalSyncNotizWireId(local) === canonical) || canonical;
+  function personalSyncNotizLokalId(id, art = "note") {
+    const canonical = personalSyncNotizId(id, art), liste = art === "notebook" ? DATEN.notizbuecher : DATEN.notizen;
+    return liste.find(n => personalSyncNotizWireId(n.id, art) === canonical)?.id ||
+      Object.keys(DATEN.personalSync[art + "_ids"] || {}).find(local => personalSyncNotizWireId(local, art) === canonical) || canonical;
+  }
+
+  function personalSyncBuchZuordnen(record) {
+    const ps = DATEN.personalSync, id = personalSyncNotizId(record.id, "notebook");
+    if (!personalSyncNotizIdGueltig(id) || ps.entities["notebook\u0000" + id] || (ps.pending_decisions || []).length) return false;
+    const kandidaten = DATEN.notizbuecher.filter(b => b.name === record.value.name);
+    if (kandidaten.length !== 1) return false;
+    const buch = kandidaten[0], vorher = personalSyncNotizWireId(buch.id, "notebook");
+    const meta = ps.entities["notebook\u0000" + vorher];
+    const ids = new Set([vorher, id]);
+    if (!meta || meta.state === "deleted" || meta.conflict ||
+        (ps.pending_proposals || []).some(p => p.kind === "notebook" && ids.has(personalSyncNotizId(p.id, "notebook"))) ||
+        (ps.restoration_requests || []).some(k => k.startsWith("notebook\u0000") && ids.has(personalSyncNotizId(k.slice(9), "notebook")))) return false;
+    const canonical = [vorher, id].sort(personalSyncUtf8)[0];
+    ps.notebook_ids ||= Object.create(null); ps.notebook_aliases ||= Object.create(null);
+    ps.notebook_ids[buch.id] = canonical;
+    if (vorher !== canonical) {
+      ps.notebook_aliases[vorher] = canonical;
+      ps.entities["notebook\u0000" + canonical] = {...meta, acknowledged_by_peer: false};
+      delete ps.entities["notebook\u0000" + vorher];
+    }
+    if (id !== canonical) ps.notebook_aliases[id] = canonical;
+    return true;
   }
 
   // BEGIN GENERATED NOTE IDENTITY TEMPLATES
@@ -685,12 +708,22 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
   function personalSyncNotizInhalt(value) {
     const inhalt = Object.fromEntries(Object.entries(value)
       .filter(([feld]) => !["created_ms", "modified_ms"].includes(feld)));
+    if (typeof inhalt.notebook_id === "string") inhalt.notebook_id = personalSyncNotizId(inhalt.notebook_id, "notebook");
+    if (typeof inhalt.text === "string" && typeof inhalt.html === "string") {
+      const text = inhalt.text.replace(/\r\n?/g, "\n");
+      const escaped = text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+      if (["", escaped, escaped.replace(/\n/g, "<br>"), "<p>" + escaped + "</p>",
+          "<div>" + escaped + "</div>", "<span>" + escaped + "</span>"].includes(inhalt.html)) {
+        inhalt.text = text; inhalt.html = "";
+      }
+    }
     if (typeof inhalt.title === "string" && inhalt.html === "" && !(inhalt.attachments || []).length)
       inhalt.text = notizVorlagenText(inhalt.title, inhalt.text);
     return personalSyncKanonisch(inhalt);
   }
 
   function personalSyncNotizZuordnen(record, eigeneWerte) {
+    if (record.kind === "notebook") return {...record, id: personalSyncNotizId(record.id, "notebook")};
     if (record.kind !== "note") return record;
     const ps = DATEN.personalSync;
     let id = personalSyncNotizId(record.id), key = "note\u0000" + id;
@@ -830,10 +863,10 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     }
     if (module.includes("tasks")) DATEN.aufgaben.filter((x) =>
       !x.vonZweig && !x.fremdId && !x.delegiertAn && !x.herkunft).forEach((x) => kandidaten.push(["task", x]));
-    const projiziert = new Set(kandidaten.map(([art, objekt]) => art + "\u0000" + (art === "note" ? personalSyncNotizWireId(objekt.id) : objekt.id)));
+    const projiziert = new Set(kandidaten.map(([art, objekt]) => art + "\u0000" + (["note", "notebook"].includes(art) ? personalSyncNotizWireId(objekt.id, art) : objekt.id)));
     const vorhanden = new Set([
       ...DATEN.notizen.map(n => "note\u0000" + personalSyncNotizWireId(n.id)),
-      ...DATEN.aufgaben.map(t => "task\u0000" + t.id), ...DATEN.notizbuecher.map(b => "notebook\u0000" + b.id)
+      ...DATEN.aufgaben.map(t => "task\u0000" + t.id), ...DATEN.notizbuecher.map(b => "notebook\u0000" + personalSyncNotizWireId(b.id, "notebook"))
     ]);
     const anhangVorhanden = new Set();
     if (format >= 2 && module.includes("notes")) for (const notiz of DATEN.notizen) {
@@ -862,7 +895,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     }
     const records = [];
     for (const [art, objekt] of kandidaten) {
-      const id = art === "note" ? personalSyncNotizWireId(objekt.id) : objekt.id;
+      const id = ["note", "notebook"].includes(art) ? personalSyncNotizWireId(objekt.id, art) : objekt.id;
       const key = art + "\u0000" + id;
       let meta = ps.entities[key] || null;
       let wert = personalSyncWert(art, objekt, meta ? Number(meta.modified_ms || 0) : 0);
@@ -954,7 +987,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
   }
 
   function personalSyncEntscheidungAnwenden(vorschlag, entscheidung, konfliktErlaubt = false) {
-    if (vorschlag.kind === "note" && personalSyncNotizId(vorschlag.id) !== vorschlag.id ||
+    if (["note", "notebook"].includes(vorschlag.kind) && personalSyncNotizId(vorschlag.id, vorschlag.kind) !== vorschlag.id ||
         vorschlag.kind === "attachment" && personalSyncNotizId(vorschlag.parent_id) !== vorschlag.parent_id) return "conflict";
     const key = vorschlag.kind + "\u0000" + (vorschlag.kind === "attachment" ?
       vorschlag.parent_id + "\u0000" : "") + vorschlag.id;
@@ -963,13 +996,13 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       DATEN.aufgaben : DATEN.notizbuecher;
     const parent = vorschlag.kind === "attachment" && DATEN.notizen.find((x) => x.id === personalSyncNotizLokalId(vorschlag.parent_id));
     const lebend = vorschlag.kind === "attachment" ? parent && (parent.anhaenge || []).find((x) => x.id === vorschlag.id) :
-      liste.find((x) => x.id === (vorschlag.kind === "note" ? personalSyncNotizLokalId(vorschlag.id) : vorschlag.id));
+      liste.find((x) => x.id === (["note", "notebook"].includes(vorschlag.kind) ? personalSyncNotizLokalId(vorschlag.id, vorschlag.kind) : vorschlag.id));
     if (entscheidung === "delete" && (!meta || meta.state === "deleted" ||
         meta.hash !== vorschlag.prior_hash || personalSyncKanonisch(meta.clock || []) !==
         personalSyncKanonisch(vorschlag.clock || [])) && !konfliktErlaubt) return "conflict";
     if (entscheidung === "delete") {
       if (!lebend) return "conflict";
-      if (vorschlag.kind === "notebook" && DATEN.notizen.some((x) => x.notizbuchId === vorschlag.id)) return "blocked";
+      if (vorschlag.kind === "notebook" && DATEN.notizen.some((x) => x.notizbuchId === lebend.id)) return "blocked";
       inDenPapierkorb(vorschlag.kind, lebend, lebend.titel || lebend.name,
         vorschlag.kind === "attachment" ? parent.id : vorschlag.parent_id, {});
       if (vorschlag.kind === "attachment") parent.anhaenge = parent.anhaenge.filter((x) => x.id !== vorschlag.id);
@@ -1022,7 +1055,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       let stueck = null;
       if (entscheidung.decision === "restore") {
         const teile = fund[0].split("\u0000"), art = teile[0];
-        const id = art === "note" ? personalSyncNotizLokalId(teile[1]) : teile[teile.length - 1];
+        const id = ["note", "notebook"].includes(art) ? personalSyncNotizLokalId(teile[1], art) : teile[teile.length - 1];
         stueck = DATEN.papierkorb.slice().reverse().find((x) => x.art === art &&
           x.eintrag && x.eintrag.id === id && (art !== "attachment" || x.parent_id === personalSyncNotizLokalId(teile[1])));
         if (!stueck) return "restore_unavailable";
@@ -1093,7 +1126,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       const alt = DATEN.notizen.find((x) => x.id === id);
       const neu = Object.assign({}, alt || { anhaenge: [], baumFreigabe: null, baumGeaendert: 0,
         baumVersion: 0, baumQuelle: "", geaendert: isoHeute() }, { id: id, titel: v.title,
-        text: v.text, html: sicheresHtml, notizbuchId: v.notebook_id, symbol: v.symbol,
+        text: v.text, html: sicheresHtml, notizbuchId: personalSyncNotizLokalId(v.notebook_id, "notebook"), symbol: v.symbol,
         angelegt: v.created_ms, personalGeaendert: v.modified_ms });
       neu.anhaenge = (alt?.anhaenge || []).map(anhang => ({ ...anhang }));
       if (Array.isArray(v.attachments)) {
@@ -1127,6 +1160,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       neu.geaendert = Math.max(Date.now(), Number(alt && alt.geaendert) + 1 || 0, Number(v.modified_ms) || 0);
       if (alt) DATEN.aufgaben[DATEN.aufgaben.indexOf(alt)] = neu; else DATEN.aufgaben.push(neu);
     } else {
+      id = personalSyncNotizLokalId(id, "notebook");
       const alt = DATEN.notizbuecher.find((x) => x.id === id);
       if (alt) alt.name = v.name; else DATEN.notizbuecher.push({ id: id,
         gruppeId: DATEN.notizgruppen[0].id, name: v.name });
@@ -1146,7 +1180,11 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     }
     sichereNotizSnapshot();
     if (modules.includes("notes")) vereinigeBestehendeNotizen();
-    const eigeneRecords = await personalSyncSnapshot(modules, format, peerId);
+    let eigeneRecords = await personalSyncSnapshot(modules, format, peerId);
+    let buecherZugeordnet = false;
+    if (modules.includes("notes")) for (const record of records) if (record.kind === "notebook")
+      buecherZugeordnet = personalSyncBuchZuordnen(record) || buecherZugeordnet;
+    if (buecherZugeordnet) eigeneRecords = await personalSyncSnapshot(modules, format, peerId);
     const eigeneWerte = new Map(eigeneRecords.map(record => [record.kind + "\u0000" + record.id, record.value]));
     let konflikte = 0, anlagen = 0;
     for (const eingang of records) {
@@ -1184,7 +1222,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       const loser = remoteWins ? lokal.hash : record.hash, konfliktId = await personalSyncKonfliktId(record.kind, record.id, loser);
       if (remoteWins) {
         const liste = record.kind === "note" ? DATEN.notizen : record.kind === "task" ? DATEN.aufgaben : DATEN.notizbuecher;
-        const original = liste.find((x) => x.id === (record.kind === "note" ? personalSyncNotizLokalId(record.id) : record.id));
+        const original = liste.find((x) => x.id === (["note", "notebook"].includes(record.kind) ? personalSyncNotizLokalId(record.id, record.kind) : record.id));
         if (original && !liste.some((x) => x.id === konfliktId)) {
           const kopie = Object.assign({}, original,
             { id: konfliktId, uid: record.kind === "task" ? stabileAufgabenUid(konfliktId) : original.uid });
@@ -4606,7 +4644,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
   }
 
   function personalSyncNachWiederherstellung(art, id, parentId) {
-    if (art === "note") id = personalSyncNotizWireId(id);
+    if (["note", "notebook"].includes(art)) id = personalSyncNotizWireId(id, art);
     if (art === "attachment") parentId = personalSyncNotizWireId(parentId);
     const key = art + "\u0000" + (art === "attachment" ? parentId + "\u0000" : "") + id;
     const meta = DATEN.personalSync && DATEN.personalSync.entities[key];
@@ -6558,6 +6596,8 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       entities: ps.entities && typeof ps.entities === "object" ? kopie(ps.entities) : {},
       note_ids: Object.assign(Object.create(null), ps.note_ids && typeof ps.note_ids === "object" && !Array.isArray(ps.note_ids) ? kopie(ps.note_ids) : {}),
       note_aliases: Object.assign(Object.create(null), ps.note_aliases && typeof ps.note_aliases === "object" && !Array.isArray(ps.note_aliases) ? kopie(ps.note_aliases) : {}),
+      notebook_ids: Object.assign(Object.create(null), ps.notebook_ids && typeof ps.notebook_ids === "object" && !Array.isArray(ps.notebook_ids) ? kopie(ps.notebook_ids) : {}),
+      notebook_aliases: Object.assign(Object.create(null), ps.notebook_aliases && typeof ps.notebook_aliases === "object" && !Array.isArray(ps.notebook_aliases) ? kopie(ps.notebook_aliases) : {}),
       last_reports: Array.isArray(ps.last_reports) ? ps.last_reports.slice(-20) : [],
       applied_batches: Array.isArray(ps.applied_batches) ? ps.applied_batches.slice(-500) : [],
       last_auto_ms: Math.max(0, Math.floor(N(ps.last_auto_ms))),

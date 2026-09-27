@@ -26,7 +26,8 @@ class PersonalDeletionDecisions {
         rememberedDecision.takeIf { rememberedRun == runId && it.isNotBlank() }
 
     fun prompt(input: Bestand, proposal: PersonalDeletionProposal): PersonalDeletionPrompt {
-        if (proposal.kind == "notebook" && input.notizen.any { it.notizbuchId == proposal.id })
+        if (proposal.kind == "notebook" && input.notizen.any {
+                it.notizbuchId == PersonalSync.noteLocalId(input, proposal.id, "notebook") })
             return PersonalDeletionPrompt.BLOCKED
         val key = if (proposal.kind == "attachment")
             "attachment\u0000${proposal.parent_id}\u0000${proposal.id}" else "${proposal.kind}\u0000${proposal.id}"
