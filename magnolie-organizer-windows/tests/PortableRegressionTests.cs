@@ -1161,9 +1161,14 @@ try
         ["sync"] = true, ["syncQuellen"] = new JsonObject { ["probe"] = new JsonObject { ["id"] = "remote-1", ["etag"] = "a", ["geaendert"] = 100L } } });
     var fakeRemote = new MemoryContactRemote(new RemoteContact("remote-1", "b", 200L, new JsonObject { ["vorname"] = "Neu" }, false));
     var conflict = await new ContactSyncEngine().SyncAsync("probe", conflictLocal, new JsonArray(), 50, fakeRemote);
-    Check(ContactFields.Text(conflict.Contacts[0]!.AsObject(), "vorname") == "Neu" && conflict.Counts.Updated == 1 &&
-          ContactFields.Source(conflict.Contacts[0]!.AsObject(), "probe")?["etag"]?.GetValue<string>() == "b",
-        "Konfliktregel übernimmt die zuletzt geänderte Remote-Fassung samt ETag");
+    Check(conflict.Contacts.Count == 1 && ContactFields.Text(conflict.Contacts[0]!.AsObject(), "vorname") == "Alt" &&
+          ContactFields.Text(conflict.Contacts[0]!.AsObject(), "id") == "local" &&
+          ContactFields.Text(conflict.Contacts[0]!.AsObject(), "uid") == "uid-1" &&
+          conflict.Counts.Conflicts == 1 && conflict.Counts.Errors == 0 && conflict.Counts.Updated == 0 &&
+          ContactFields.Source(conflict.Contacts[0]!.AsObject(), "probe")?["etag"]?.GetValue<string>() == "a" &&
+          conflict.Contacts[0]?["syncKonflikte"]?["probe"]?["kontakt"]?["vorname"]?.GetValue<string>() == "Neu" &&
+          conflict.Contacts[0]?["syncKonflikte"]?["probe"]?["mapping"]?["etag"]?.GetValue<string>() == "b",
+        "Konkurrierende Kontaktänderungen bleiben an derselben Person zur Feldentscheidung erhalten");
     var uidRemote = new MemoryContactRemote(new RemoteContact("remote-uid", "a", 0,
         new JsonObject { ["uid"] = "provider-original-uid", ["vorname"] = "Remote" }, true));
     var uidImport = await new ContactSyncEngine().SyncAsync("probe", new JsonArray(), new JsonArray(), 0, uidRemote);
