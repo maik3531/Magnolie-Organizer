@@ -15,130 +15,170 @@
 (function () {
 
   /* Die Fassung erscheint auf der Seite „Über". */
-const FASSUNG = "2.0.23";
+const FASSUNG = "2.0.24";
 const S = (x) => (x === undefined || x === null) ? "" : String(x);
-const NEU_IN_DIESER_FASSUNG_VERSION = "2.0.23";
+const NEU_IN_DIESER_FASSUNG_VERSION = "2.0.24";
 
 const NEU_IN_DIESER_FASSUNG = {
   "de": [
     "Neu in dieser Version",
-    "Vereinfachte Anrufeinstellungen und einheitlich große Checkboxen",
-    "Magnolie Notes 1.0.16 behält mehrere gekoppelte Rechner und vereinfacht die Anrufsteuerung",
-    "Korrekturen am Notizabgleich und beim Wiederherstellen gelöschter Einträge"
+    "Gleiche Notizen werden geräteübergreifend zusammengeführt; Notizbuch- und Anhangszuordnungen bleiben erhalten. Mit Magnolie Notes 1.0.17",
+    "Zusammenhängende Baum-Abgleiche nutzen eine gemeinsame Vorher-Sicherung; lokale Änderungen bleiben separat geschützt",
+    "Die Wetteranzeige bevorzugt den angefragten Ort statt eines benachbarten Anbieterorts",
+    "Doppelte Kontaktkarten feldweise einschließlich Fotos prüfen; Verweise und Quellenbindungen bleiben erhalten",
+    "Vorhandene Google- und Microsoft-Kontonamen bearbeiten und ausgewählte Kontoverbindungen entfernen"
   ],
   "en": [
     "What's new in this version",
-    "Simplified call settings and consistently sized checkboxes",
-    "Magnolie Notes 1.0.16 keeps multiple paired computers and simplifies call controls",
-    "Corrections to note synchronization and deleted-item restoration"
+    "Matching notes are merged across devices while preserving notebook and attachment identities; includes Magnolie Notes 1.0.17",
+    "Continuous tree synchronization shares one recovery point; local edits retain separate protection",
+    "Weather shows the requested location rather than a nearby provider location",
+    "Review duplicate contact cards field by field, including photos, while preserving references and source bindings",
+    "Edit existing Google and Microsoft account names and remove selected account connections"
   ],
   "fr": [
     "Nouveautés de cette version",
-    "Paramètres d’appel simplifiés et cases à cocher de taille uniforme",
-    "Magnolie Notes 1.0.16 conserve plusieurs ordinateurs associés et simplifie les commandes d’appel",
-    "Corrections de la synchronisation des notes et de la restauration des éléments supprimés"
+    "Les notes identiques sont fusionnées entre appareils en conservant les identités des carnets et pièces jointes ; avec Magnolie Notes 1.0.17",
+    "Une synchronisation continue de l’arbre partage un point de restauration ; les modifications locales restent protégées séparément",
+    "La météo affiche le lieu demandé plutôt qu’un lieu voisin fourni par le service",
+    "Examiner les doublons de contacts champ par champ, photos comprises, en conservant références et liens aux sources",
+    "Modifier les noms des comptes Google et Microsoft existants et supprimer les connexions choisies"
   ],
   "es": [
     "Novedades de esta versión",
-    "Ajustes de llamadas simplificados y casillas de tamaño uniforme",
-    "Magnolie Notes 1.0.16 conserva varios ordenadores vinculados y simplifica los controles de llamada",
-    "Correcciones en la sincronización de notas y la restauración de elementos eliminados"
+    "Las notas iguales se combinan entre dispositivos conservando la identidad de cuadernos y adjuntos; incluye Magnolie Notes 1.0.17",
+    "Una sincronización continua del árbol comparte un punto de recuperación; los cambios locales mantienen su protección por separado",
+    "El tiempo muestra el lugar solicitado en vez de una localidad cercana del proveedor",
+    "Revisar los contactos duplicados campo por campo, incluidas las fotos, conservando referencias y vínculos con las fuentes",
+    "Editar los nombres de cuentas Google y Microsoft existentes y eliminar las conexiones seleccionadas"
   ],
   "it": [
     "Novità di questa versione",
-    "Impostazioni delle chiamate semplificate e caselle di dimensioni uniformi",
-    "Magnolie Notes 1.0.16 conserva più computer associati e semplifica i comandi delle chiamate",
-    "Correzioni alla sincronizzazione delle note e al ripristino degli elementi eliminati"
+    "Le note uguali vengono unite tra dispositivi conservando le identità di taccuini e allegati; include Magnolie Notes 1.0.17",
+    "Una sincronizzazione continua dell’albero usa un punto di ripristino comune; le modifiche locali restano protette separatamente",
+    "Il meteo mostra la località richiesta anziché una località vicina indicata dal servizio",
+    "Esaminare i contatti duplicati campo per campo, comprese le foto, conservando riferimenti e collegamenti alle fonti",
+    "Modificare i nomi degli account Google e Microsoft esistenti e rimuovere le connessioni selezionate"
   ],
   "nl": [
     "Nieuw in deze versie",
-    "Eenvoudigere gespreksinstellingen en selectievakjes met gelijke afmetingen",
-    "Magnolie Notes 1.0.16 bewaart meerdere gekoppelde computers en vereenvoudigt de gespreksbediening",
-    "Correcties voor notitiesynchronisatie en het herstellen van verwijderde items"
+    "Gelijke notities worden tussen apparaten samengevoegd met behoud van notitieboek- en bijlage-identiteiten; inclusief Magnolie Notes 1.0.17",
+    "Een doorlopende boomsynchronisatie deelt één herstelpunt; lokale wijzigingen blijven afzonderlijk beschermd",
+    "Het weer toont de gevraagde plaats in plaats van een nabijgelegen plaats van de aanbieder",
+    "Dubbele contactkaarten per veld beoordelen, inclusief foto’s, met behoud van verwijzingen en bronkoppelingen",
+    "Bestaande Google- en Microsoft-accountnamen bewerken en geselecteerde accountverbindingen verwijderen"
   ],
   "pt": [
     "Novidades desta versão",
-    "Definições de chamadas simplificadas e caixas de seleção de tamanho uniforme",
-    "O Magnolie Notes 1.0.16 mantém vários computadores emparelhados e simplifica os controlos de chamadas",
-    "Correções na sincronização de notas e na restauração de itens eliminados"
+    "As notas iguais são unidas entre dispositivos, preservando as identidades dos cadernos e anexos; inclui Magnolie Notes 1.0.17",
+    "Uma sincronização contínua da árvore partilha um ponto de recuperação; as alterações locais mantêm proteção separada",
+    "A meteorologia mostra o local pedido em vez de uma localidade próxima indicada pelo serviço",
+    "Rever contactos duplicados campo a campo, incluindo fotografias, preservando referências e ligações às fontes",
+    "Editar nomes de contas Google e Microsoft existentes e remover as ligações selecionadas"
   ],
   "ru": [
     "Новое в этой версии",
-    "Упрощённые настройки вызовов и флажки одинакового размера",
-    "Magnolie Notes 1.0.16 сохраняет несколько сопряжённых компьютеров и упрощает управление вызовами",
-    "Исправления синхронизации заметок и восстановления удалённых записей"
+    "Одинаковые заметки объединяются между устройствами с сохранением связей блокнотов и вложений; включает Magnolie Notes 1.0.17",
+    "Непрерывная синхронизация дерева использует общую точку восстановления; локальные изменения защищаются отдельно",
+    "Погода показывает запрошенный населённый пункт, а не соседний пункт из ответа службы",
+    "Проверка дубликатов контактов по отдельным полям, включая фотографии, с сохранением ссылок и привязок к источникам",
+    "Изменение имён существующих аккаунтов Google и Microsoft и удаление выбранных подключений"
   ],
   "cs": [
     "Co je nového v této verzi",
-    "Zjednodušené nastavení hovorů a stejně velká zaškrtávací políčka",
-    "Magnolie Notes 1.0.16 zachovává více spárovaných počítačů a zjednodušuje ovládání hovorů",
-    "Opravy synchronizace poznámek a obnovování smazaných položek"
+    "Shodné poznámky se slučují mezi zařízeními se zachováním identity zápisníků a příloh; obsahuje Magnolie Notes 1.0.17",
+    "Souvislá synchronizace stromu sdílí jeden bod obnovení; místní změny zůstávají chráněny samostatně",
+    "Počasí zobrazuje požadované místo místo sousední obce vrácené službou",
+    "Kontrola duplicitních kontaktů po jednotlivých polích včetně fotografií se zachováním odkazů a vazeb na zdroje",
+    "Úprava názvů existujících účtů Google a Microsoft a odstranění vybraných připojení"
   ],
   "pl": [
     "Nowości w tej wersji",
-    "Uproszczone ustawienia połączeń i pola wyboru o jednakowym rozmiarze",
-    "Magnolie Notes 1.0.16 zachowuje kilka sparowanych komputerów i upraszcza sterowanie połączeniami",
-    "Poprawki synchronizacji notatek i przywracania usuniętych wpisów"
+    "Identyczne notatki są scalane między urządzeniami z zachowaniem tożsamości notatników i załączników; zawiera Magnolie Notes 1.0.17",
+    "Ciągła synchronizacja drzewa korzysta ze wspólnego punktu odzyskiwania; zmiany lokalne są chronione osobno",
+    "Pogoda pokazuje żądaną miejscowość zamiast pobliskiej lokalizacji podanej przez usługę",
+    "Przeglądanie duplikatów kontaktów pole po polu, wraz ze zdjęciami, z zachowaniem odwołań i powiązań ze źródłami",
+    "Edytowanie nazw istniejących kont Google i Microsoft oraz usuwanie wybranych połączeń"
   ],
   "hsb": [
     "Nowe w tutej wersiji",
-    "Zjednorjene nastajenja zawołanjow a kašćiki ze samsnej wulkosću",
-    "Magnolie Notes 1.0.16 wobchowa wjac spřaženych ličakow a zjednorja wodźenje zawołanjow",
-    "Porjedźenja synchronizacije noticow a wobnowjenja zhašanych zapiskow"
+    "Jenake noticy so mjez gratami zjednoćeja; přirjadowanja notiznikow a přiwěškow so wobchowaja. Z Magnolie Notes 1.0.17",
+    "Suvisna synchronizacija štoma wužiwa zhromadny wobnowjenski dypk; lokalne změny wostanu zvlášć škitane",
+    "Wjedro pokazuje požadane městno město susodneho městna poskićowarja",
+    "Dwójne kontaktowe karty po polach inkluziwnje fotow přepruwować; wotkazy a zwiski k žórłam so wobchowaja",
+    "Mjena eksistowacych kontow Google a Microsoft wobdźěłać a wubrane kontowe zwiski wotstronić"
   ],
   "da": [
     "Nyt i denne version",
-    "Enklere opkaldsindstillinger og afkrydsningsfelter med ens størrelse",
-    "Magnolie Notes 1.0.16 bevarer flere parrede computere og forenkler opkaldsstyringen",
-    "Rettelser til notesynkronisering og gendannelse af slettede poster"
+    "Ens noter flettes mellem enheder med bevarede identiteter for notesbøger og vedhæftninger; omfatter Magnolie Notes 1.0.17",
+    "En sammenhængende træsynkronisering deler ét gendannelsespunkt; lokale ændringer beskyttes separat",
+    "Vejret viser det ønskede sted frem for et nærliggende sted fra udbyderen",
+    "Gennemgå dublerede kontaktkort felt for felt, inklusive fotos, med bevarede henvisninger og kildeforbindelser",
+    "Rediger navne på eksisterende Google- og Microsoft-konti, og fjern valgte kontoforbindelser"
   ],
   "nb": [
     "Nytt i denne versjonen",
-    "Enklere samtaleinnstillinger og avkrysningsbokser med lik størrelse",
-    "Magnolie Notes 1.0.16 beholder flere parede datamaskiner og forenkler samtalekontrollene",
-    "Rettelser i notatsynkronisering og gjenoppretting av slettede oppføringer"
+    "Like notater slås sammen mellom enheter med bevarte identiteter for notatbøker og vedlegg; inkluderer Magnolie Notes 1.0.17",
+    "En sammenhengende tresynkronisering deler ett gjenopprettingspunkt; lokale endringer beskyttes separat",
+    "Været viser det forespurte stedet fremfor et nærliggende sted fra leverandøren",
+    "Gå gjennom dupliserte kontaktkort felt for felt, inkludert bilder, med bevarte referanser og kildekoblinger",
+    "Rediger navn på eksisterende Google- og Microsoft-kontoer og fjern valgte kontotilkoblinger"
   ],
   "hi": [
     "इस संस्करण में नया",
-    "सरल कॉल सेटिंग और समान आकार के चेकबॉक्स",
-    "Magnolie Notes 1.0.16 कई युग्मित कंप्यूटर सहेजता है और कॉल नियंत्रण सरल बनाता है",
-    "नोट सिंक्रनाइज़ेशन और हटाई गई प्रविष्टियों की बहाली में सुधार"
+    "एक जैसी नोट्स को उपकरणों के बीच मिलाते समय नोटबुक और संलग्नकों की पहचान सुरक्षित रहती है; Magnolie Notes 1.0.17 शामिल है",
+    "लगातार चलने वाला ट्री सिंक्रनाइज़ेशन एक पुनर्प्राप्ति बिंदु साझा करता है; स्थानीय बदलाव अलग से सुरक्षित रहते हैं",
+    "मौसम सेवा के किसी नज़दीकी स्थान के बजाय अनुरोधित स्थान दिखाता है",
+    "फ़ोटो सहित दोहरे संपर्क कार्ड के हर फ़ील्ड की समीक्षा करें; संदर्भ और स्रोत संबंध सुरक्षित रहते हैं",
+    "मौजूदा Google और Microsoft खातों के नाम संपादित करें और चुने हुए खाता कनेक्शन हटाएँ"
   ],
   "zh-cn": [
     "此版本的新功能",
-    "简化通话设置，并统一复选框大小",
-    "Magnolie Notes 1.0.16 保留多个已配对的电脑，并简化通话控制",
-    "修复笔记同步和已删除条目的恢复"
+    "跨设备合并相同笔记，同时保留笔记本和附件的身份关联；包含 Magnolie Notes 1.0.17",
+    "连续的树同步共用一个恢复点，本地修改仍单独受到保护",
+    "天气显示请求的地点，而不是服务返回的邻近地点",
+    "逐字段审核重复联系人，包括照片，同时保留引用和来源关联",
+    "编辑现有 Google 和 Microsoft 账户名称，并移除选定的账户连接"
   ],
   "ja": [
     "このバージョンの新機能",
-    "通話設定を簡素化し、チェックボックスの大きさを統一",
-    "Magnolie Notes 1.0.16は複数のペアリング済みパソコンを保持し、通話操作を簡素化",
-    "ノート同期と削除済み項目の復元を修正"
+    "ノートブックと添付ファイルの識別情報を保ちながら、デバイス間の同一ノートを統合。Magnolie Notes 1.0.17を含みます",
+    "一連のツリー同期で復元ポイントを共有し、ローカルの変更は別途保護します",
+    "天気はサービスが返す近隣の地名ではなく、指定した場所を表示します",
+    "写真を含む重複連絡先を項目ごとに確認し、参照と同期元の関連付けを保持します",
+    "既存のGoogle・Microsoftアカウント名を編集し、選択したアカウント接続を削除できます"
   ],
   "ar": [
     "ما الجديد في هذا الإصدار",
-    "إعدادات مكالمات مبسطة ومربعات اختيار موحدة الحجم",
-    "يحتفظ Magnolie Notes 1.0.16 بعدة حواسيب مقترنة ويبسط عناصر التحكم في المكالمات",
-    "تصحيحات لمزامنة الملاحظات واستعادة العناصر المحذوفة"
+    "دمج الملاحظات المتطابقة بين الأجهزة مع الحفاظ على هويات دفاتر الملاحظات والمرفقات؛ يتضمن Magnolie Notes 1.0.17",
+    "تشارك مزامنة الشجرة المتصلة نقطة استعادة واحدة، وتظل التغييرات المحلية محمية بشكل منفصل",
+    "يعرض الطقس الموقع المطلوب بدلاً من موقع قريب تُرجعه الخدمة",
+    "مراجعة جهات الاتصال المكررة حقلاً بحقل، بما في ذلك الصور، مع الحفاظ على المراجع وروابط المصادر",
+    "تعديل أسماء حسابات Google وMicrosoft الحالية وإزالة اتصالات الحسابات المحددة"
   ],
   "uk": [
     "Нове в цій версії",
-    "Спрощені налаштування викликів і прапорці однакового розміру",
-    "Magnolie Notes 1.0.16 зберігає кілька спарених комп’ютерів і спрощує керування викликами",
-    "Виправлення синхронізації нотаток і відновлення видалених записів"
+    "Однакові нотатки об’єднуються між пристроями зі збереженням ідентичності блокнотів і вкладень; містить Magnolie Notes 1.0.17",
+    "Безперервна синхронізація дерева використовує спільну точку відновлення; локальні зміни захищаються окремо",
+    "Погода показує запитаний населений пункт замість сусіднього місця з відповіді служби",
+    "Перевірка дублікатів контактів за окремими полями, включно з фотографіями, зі збереженням посилань і зв’язків із джерелами",
+    "Редагування назв наявних облікових записів Google і Microsoft та видалення вибраних підключень"
   ],
   "be": [
     "Што новага ў гэтай версіі",
-    "Спрошчаныя налады выклікаў і сцяжкі аднолькавага памеру",
-    "Magnolie Notes 1.0.16 захоўвае некалькі спалучаных камп’ютараў і спрашчае кіраванне выклікамі",
-    "Выпраўленні сінхранізацыі нататак і аднаўлення выдаленых запісаў"
+    "Аднолькавыя нататкі аб’ядноўваюцца паміж прыладамі з захаваннем ідэнтычнасці нататнікаў і ўкладанняў; уключае Magnolie Notes 1.0.17",
+    "Бесперапынная сінхранізацыя дрэва выкарыстоўвае агульны пункт аднаўлення; лакальныя змены абараняюцца асобна",
+    "Надвор’е паказвае запытанае месца замест суседняга месца з адказу сэрвісу",
+    "Праверка дублікатаў кантактаў па асобных палях, уключаючы фатаграфіі, з захаваннем спасылак і сувязяў з крыніцамі",
+    "Рэдагаванне назваў існых уліковых запісаў Google і Microsoft і выдаленне выбраных падключэнняў"
   ],
   "tr": [
     "Bu sürümdeki yenilikler",
-    "Sadeleştirilmiş arama ayarları ve eşit boyutlu onay kutuları",
-    "Magnolie Notes 1.0.16 birden fazla eşleştirilmiş bilgisayarı korur ve arama kontrollerini sadeleştirir",
-    "Not eşitleme ve silinen öğelerin geri yüklenmesi için düzeltmeler"
+    "Aynı notlar, defter ve ek kimlikleri korunarak cihazlar arasında birleştirilir; Magnolie Notes 1.0.17 dahildir",
+    "Kesintisiz ağaç eşitlemesi ortak bir kurtarma noktası kullanır; yerel değişiklikler ayrıca korunur",
+    "Hava durumu, sağlayıcının yakın bir konumu yerine istenen konumu gösterir",
+    "Fotoğraflar dahil yinelenen kişileri alan alan inceleyin; başvurular ve kaynak bağlantıları korunur",
+    "Mevcut Google ve Microsoft hesap adlarını düzenleyin ve seçilen hesap bağlantılarını kaldırın"
   ]
 };
 if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes version mismatch");

@@ -2747,7 +2747,7 @@ function knopfMit(text, wurzel) {
     enNeu.querySelector(".ueber-neu-fassung")?.textContent === webFassung &&
     enNeu.querySelectorAll("ul > li").length === 3 &&
     neuInhalte.en.slice(1).every(text => enNeu.textContent.includes(text)) &&
-    neuInhalte.en.join(" ").includes("Magnolie Notes 1.0.16") &&
+    neuInhalte.en.join(" ").includes("Magnolie Notes 1.0.17") &&
     js.includes('const NEU_IN_DIESER_FASSUNG_FASSUNG = "' + webFassung + '";') &&
     js.includes("NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG"),
   "kompakte englische Versionshinweise fehlen oder sind nicht semantisch gegliedert");
@@ -7640,6 +7640,8 @@ function knopfMit(text, wurzel) {
         titel: "Bilderliste neu", text: "Ohne Bild", html: "<p>Ohne Bild</p>",
         version: 2, quelle: "b", anhaenge: [] } }]
   });
+  await warteBis(() => gemeinsameNotiz.titel === "Bilderliste neu",
+    "Notizfortschreibung wartet auf den vorherigen dauerhaften Speicherstand");
   assert.strictEqual(gemeinsameNotiz.titel, "Bilderliste neu",
     "spätere Änderungen einer gemerkten gemeinsamen Notiz kommen automatisch an");
   assert.strictEqual(gemeinsameNotiz.anhaenge.length, 0,
@@ -7673,6 +7675,9 @@ function knopfMit(text, wurzel) {
       { id: "unbekannt", von: "b", vonName: "Werkstatt", art: "spaeter",
         inhalt: { art: "spaeter" } }
     ] });
+  await warteBis(() => bw.OrganizerTest.daten().aufgaben.some(a => a.titel === "Automatisch") &&
+    bw.OrganizerTest.daten().notizen.some(n => n.titel === "Auto-Notiz"),
+    "Vertraute Angebote wurden nach dem dauerhaften Vorgängerstand nicht übernommen");
   assert.ok(bw.OrganizerTest.daten().aufgaben.some((a) => a.titel === "Automatisch") &&
     bw.OrganizerTest.daten().notizen.some((n) => n.titel === "Auto-Notiz"),
   "vertraute bestätigte Partner werden für erste Aufgaben und Notizen automatisch angenommen");

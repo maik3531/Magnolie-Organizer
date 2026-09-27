@@ -1,3 +1,11 @@
+magnolie-organizer (2.0.24) unstable; urgency=medium
+
+  * Vereinigt gleiche Notizen mit dauerhaften Notizbuch- und Anhangszuordnungen.
+  * Sichert zusammenhängende Baum-Abgleiche gemeinsam und lokale Änderungen separat.
+  * Zeigt beim Wetter vorrangig den tatsächlich angefragten Ort an.
+
+ -- Maik Walter <maik3531@gmail.com>  Sun, 27 Sep 2026 08:41:00 +0200
+
 magnolie-organizer (2.0.23) unstable; urgency=medium
 
   * Verbindet das zugeordnete Bluetooth-Telefon automatisch zum Freisprechen

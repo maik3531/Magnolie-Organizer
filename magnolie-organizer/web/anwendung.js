@@ -15,130 +15,130 @@
 (function () {
 
   /* Die Fassung erscheint auf der Seite „Über". */
-const FASSUNG = "2.0.23";
+const FASSUNG = "2.0.24";
 const S = (x) => (x === undefined || x === null) ? "" : String(x);
 
-const NEU_IN_DIESER_FASSUNG_FASSUNG = "2.0.23";
+const NEU_IN_DIESER_FASSUNG_FASSUNG = "2.0.24";
 const NEU_IN_DIESER_FASSUNG = {
   "de": [
     "Neu in dieser Version",
-    "Linux-Freisprechen mit automatischer Bluetooth-Verbindung, Zustandswiederherstellung und optionaler Geräuschunterdrückung",
-    "Magnolie Notes 1.0.16 behält mehrere gekoppelte Rechner und vereinfacht die Anrufsteuerung",
-    "Verbesserter Notizabgleich, weniger Telefonmeldungen und automatische Diensterneuerung bei Debian-Updates"
+    "Gleiche Notizen werden geräteübergreifend zusammengeführt; Notizbuch- und Anhangszuordnungen bleiben erhalten. Mit Magnolie Notes 1.0.17",
+    "Zusammenhängende Baum-Abgleiche nutzen eine gemeinsame Vorher-Sicherung; lokale Änderungen bleiben separat geschützt",
+    "Die Wetteranzeige bevorzugt den angefragten Ort statt eines benachbarten Anbieterorts"
   ],
   "en": [
     "What's new in this version",
-    "Linux hands-free calling with automatic Bluetooth connection, state restoration and optional noise cancellation",
-    "Magnolie Notes 1.0.16 keeps multiple paired computers and simplifies call controls",
-    "Improved note synchronization, quieter phone updates and automatic background-service renewal during Debian upgrades"
+    "Matching notes are merged across devices while preserving notebook and attachment identities; includes Magnolie Notes 1.0.17",
+    "Continuous tree synchronization shares one recovery point; local edits retain separate protection",
+    "Weather shows the requested location rather than a nearby provider location"
   ],
   "fr": [
     "Nouveautés de cette version",
-    "Appels mains libres sous Linux avec connexion Bluetooth automatique, restauration de l’état et réduction du bruit facultative",
-    "Magnolie Notes 1.0.16 conserve plusieurs ordinateurs associés et simplifie les commandes d’appel",
-    "Synchronisation des notes améliorée, moins de notifications du téléphone et renouvellement automatique du service lors des mises à jour Debian"
+    "Les notes identiques sont fusionnées entre appareils en conservant les identités des carnets et pièces jointes ; avec Magnolie Notes 1.0.17",
+    "Une synchronisation continue de l’arbre partage un point de restauration ; les modifications locales restent protégées séparément",
+    "La météo affiche le lieu demandé plutôt qu’un lieu voisin fourni par le service"
   ],
   "es": [
     "Novedades de esta versión",
-    "Llamadas manos libres en Linux con conexión Bluetooth automática, restauración del estado y reducción de ruido opcional",
-    "Magnolie Notes 1.0.16 conserva varios ordenadores vinculados y simplifica los controles de llamada",
-    "Mejor sincronización de notas, menos avisos del teléfono y renovación automática del servicio al actualizar Debian"
+    "Las notas iguales se combinan entre dispositivos conservando la identidad de cuadernos y adjuntos; incluye Magnolie Notes 1.0.17",
+    "Una sincronización continua del árbol comparte un punto de recuperación; los cambios locales mantienen su protección por separado",
+    "El tiempo muestra el lugar solicitado en vez de una localidad cercana del proveedor"
   ],
   "it": [
     "Novità di questa versione",
-    "Chiamate in vivavoce su Linux con connessione Bluetooth automatica, ripristino dello stato e riduzione del rumore facoltativa",
-    "Magnolie Notes 1.0.16 conserva più computer associati e semplifica i comandi delle chiamate",
-    "Sincronizzazione delle note migliorata, meno notifiche del telefono e rinnovo automatico del servizio durante gli aggiornamenti Debian"
+    "Le note uguali vengono unite tra dispositivi conservando le identità di taccuini e allegati; include Magnolie Notes 1.0.17",
+    "Una sincronizzazione continua dell’albero usa un punto di ripristino comune; le modifiche locali restano protette separatamente",
+    "Il meteo mostra la località richiesta anziché una località vicina indicata dal servizio"
   ],
   "nl": [
     "Nieuw in deze versie",
-    "Handsfree bellen op Linux met automatische Bluetooth-verbinding, herstel van de vorige toestand en optionele ruisonderdrukking",
-    "Magnolie Notes 1.0.16 bewaart meerdere gekoppelde computers en vereenvoudigt de gespreksbediening",
-    "Verbeterde notitiesynchronisatie, minder telefoonmeldingen en automatische vernieuwing van de achtergronddienst bij Debian-updates"
+    "Gelijke notities worden tussen apparaten samengevoegd met behoud van notitieboek- en bijlage-identiteiten; inclusief Magnolie Notes 1.0.17",
+    "Een doorlopende boomsynchronisatie deelt één herstelpunt; lokale wijzigingen blijven afzonderlijk beschermd",
+    "Het weer toont de gevraagde plaats in plaats van een nabijgelegen plaats van de aanbieder"
   ],
   "pt": [
     "Novidades desta versão",
-    "Chamadas em mãos-livres no Linux com ligação Bluetooth automática, reposição do estado e redução de ruído opcional",
-    "O Magnolie Notes 1.0.16 mantém vários computadores emparelhados e simplifica os controlos de chamadas",
-    "Sincronização de notas melhorada, menos notificações do telefone e renovação automática do serviço durante atualizações Debian"
+    "As notas iguais são unidas entre dispositivos, preservando as identidades dos cadernos e anexos; inclui Magnolie Notes 1.0.17",
+    "Uma sincronização contínua da árvore partilha um ponto de recuperação; as alterações locais mantêm proteção separada",
+    "A meteorologia mostra o local pedido em vez de uma localidade próxima indicada pelo serviço"
   ],
   "ru": [
     "Новое в этой версии",
-    "Громкая связь в Linux с автоматическим подключением Bluetooth, восстановлением состояния и необязательным шумоподавлением",
-    "Magnolie Notes 1.0.16 сохраняет несколько сопряжённых компьютеров и упрощает управление вызовами",
-    "Улучшенная синхронизация заметок, меньше уведомлений телефона и автоматическое обновление фоновой службы при обновлениях Debian"
+    "Одинаковые заметки объединяются между устройствами с сохранением связей блокнотов и вложений; включает Magnolie Notes 1.0.17",
+    "Непрерывная синхронизация дерева использует общую точку восстановления; локальные изменения защищаются отдельно",
+    "Погода показывает запрошенный населённый пункт, а не соседний пункт из ответа службы"
   ],
   "cs": [
     "Co je nového v této verzi",
-    "Handsfree hovory v Linuxu s automatickým připojením Bluetooth, obnovením stavu a volitelným potlačením hluku",
-    "Magnolie Notes 1.0.16 zachovává více spárovaných počítačů a zjednodušuje ovládání hovorů",
-    "Vylepšená synchronizace poznámek, méně oznámení telefonu a automatické obnovení služby při aktualizacích Debianu"
+    "Shodné poznámky se slučují mezi zařízeními se zachováním identity zápisníků a příloh; obsahuje Magnolie Notes 1.0.17",
+    "Souvislá synchronizace stromu sdílí jeden bod obnovení; místní změny zůstávají chráněny samostatně",
+    "Počasí zobrazuje požadované místo místo sousední obce vrácené službou"
   ],
   "pl": [
     "Nowości w tej wersji",
-    "Rozmowy głośnomówiące w Linuksie z automatycznym połączeniem Bluetooth, przywracaniem stanu i opcjonalną redukcją szumów",
-    "Magnolie Notes 1.0.16 zachowuje kilka sparowanych komputerów i upraszcza sterowanie połączeniami",
-    "Ulepszona synchronizacja notatek, mniej powiadomień z telefonu i automatyczne odnowienie usługi przy aktualizacjach Debiana"
+    "Identyczne notatki są scalane między urządzeniami z zachowaniem tożsamości notatników i załączników; zawiera Magnolie Notes 1.0.17",
+    "Ciągła synchronizacja drzewa korzysta ze wspólnego punktu odzyskiwania; zmiany lokalne są chronione osobno",
+    "Pogoda pokazuje żądaną miejscowość zamiast pobliskiej lokalizacji podanej przez usługę"
   ],
   "hsb": [
     "Nowe w tutej wersiji",
-    "Swobodne telefonowanje w Linuxu z awtomatiskim Bluetooth-zwiskom, wobnowjenjom stawa a opcionalnym potłóčenjom šumow",
-    "Magnolie Notes 1.0.16 wobchowa wjac spřaženych ličakow a zjednorja wodźenje zawołanjow",
-    "Polěpšena synchronizacija noticow, mjenje telefonowych powěsćenkow a awtomatiske wobnowjenje słužby při aktualizacijach Debiana"
+    "Jenake noticy so mjez gratami zjednoćeja; přirjadowanja notiznikow a přiwěškow so wobchowaja. Z Magnolie Notes 1.0.17",
+    "Suvisna synchronizacija štoma wužiwa zhromadny wobnowjenski dypk; lokalne změny wostanu zvlášć škitane",
+    "Wjedro pokazuje požadane městno město susodneho městna poskićowarja"
   ],
   "da": [
     "Nyt i denne version",
-    "Håndfri opkald på Linux med automatisk Bluetooth-forbindelse, gendannelse af tilstand og valgfri støjreduktion",
-    "Magnolie Notes 1.0.16 bevarer flere parrede computere og forenkler opkaldsstyringen",
-    "Forbedret notesynkronisering, færre telefonbeskeder og automatisk fornyelse af baggrundstjenesten ved Debian-opdateringer"
+    "Ens noter flettes mellem enheder med bevarede identiteter for notesbøger og vedhæftninger; omfatter Magnolie Notes 1.0.17",
+    "En sammenhængende træsynkronisering deler ét gendannelsespunkt; lokale ændringer beskyttes separat",
+    "Vejret viser det ønskede sted frem for et nærliggende sted fra udbyderen"
   ],
   "nb": [
     "Nytt i denne versjonen",
-    "Håndfrie samtaler på Linux med automatisk Bluetooth-tilkobling, gjenoppretting av tilstand og valgfri støydemping",
-    "Magnolie Notes 1.0.16 beholder flere parede datamaskiner og forenkler samtalekontrollene",
-    "Bedre notatsynkronisering, færre telefonvarsler og automatisk fornyelse av bakgrunnstjenesten ved Debian-oppdateringer"
+    "Like notater slås sammen mellom enheter med bevarte identiteter for notatbøker og vedlegg; inkluderer Magnolie Notes 1.0.17",
+    "En sammenhengende tresynkronisering deler ett gjenopprettingspunkt; lokale endringer beskyttes separat",
+    "Været viser det forespurte stedet fremfor et nærliggende sted fra leverandøren"
   ],
   "hi": [
     "इस संस्करण में नया",
-    "Linux पर स्वचालित Bluetooth कनेक्शन, पिछली स्थिति की बहाली और वैकल्पिक शोर नियंत्रण के साथ हैंड्स-फ़्री कॉल",
-    "Magnolie Notes 1.0.16 कई युग्मित कंप्यूटर सहेजता है और कॉल नियंत्रण सरल बनाता है",
-    "बेहतर नोट सिंक्रनाइज़ेशन, फ़ोन की कम सूचनाएँ और Debian अपडेट के दौरान पृष्ठभूमि सेवा का स्वचालित नवीनीकरण"
+    "एक जैसी नोट्स को उपकरणों के बीच मिलाते समय नोटबुक और संलग्नकों की पहचान सुरक्षित रहती है; Magnolie Notes 1.0.17 शामिल है",
+    "लगातार चलने वाला ट्री सिंक्रनाइज़ेशन एक पुनर्प्राप्ति बिंदु साझा करता है; स्थानीय बदलाव अलग से सुरक्षित रहते हैं",
+    "मौसम सेवा के किसी नज़दीकी स्थान के बजाय अनुरोधित स्थान दिखाता है"
   ],
   "zh-cn": [
     "此版本的新功能",
-    "Linux 免提通话支持自动连接蓝牙、恢复原有状态和可选降噪",
-    "Magnolie Notes 1.0.16 保留多个已配对的电脑，并简化通话控制",
-    "改进笔记同步，减少手机通知，并在 Debian 更新时自动更新后台服务"
+    "跨设备合并相同笔记，同时保留笔记本和附件的身份关联；包含 Magnolie Notes 1.0.17",
+    "连续的树同步共用一个恢复点，本地修改仍单独受到保护",
+    "天气显示请求的地点，而不是服务返回的邻近地点"
   ],
   "ja": [
     "このバージョンの新機能",
-    "Linuxのハンズフリー通話でBluetoothの自動接続、元の状態の復元、任意のノイズ抑制に対応",
-    "Magnolie Notes 1.0.16は複数のペアリング済みパソコンを保持し、通話操作を簡素化",
-    "ノート同期を改善し、電話からの通知を削減。Debian更新時にバックグラウンドサービスを自動更新"
+    "ノートブックと添付ファイルの識別情報を保ちながら、デバイス間の同一ノートを統合。Magnolie Notes 1.0.17を含みます",
+    "一連のツリー同期で復元ポイントを共有し、ローカルの変更は別途保護します",
+    "天気はサービスが返す近隣の地名ではなく、指定した場所を表示します"
   ],
   "ar": [
     "ما الجديد في هذا الإصدار",
-    "مكالمات دون استخدام اليدين على Linux مع اتصال Bluetooth تلقائي واستعادة الحالة وتقليل ضوضاء اختياري",
-    "يحتفظ Magnolie Notes 1.0.16 بعدة حواسيب مقترنة ويبسط عناصر التحكم في المكالمات",
-    "مزامنة ملاحظات محسنة وإشعارات هاتف أقل وتجديد تلقائي لخدمة الخلفية أثناء تحديثات Debian"
+    "دمج الملاحظات المتطابقة بين الأجهزة مع الحفاظ على هويات دفاتر الملاحظات والمرفقات؛ يتضمن Magnolie Notes 1.0.17",
+    "تشارك مزامنة الشجرة المتصلة نقطة استعادة واحدة، وتظل التغييرات المحلية محمية بشكل منفصل",
+    "يعرض الطقس الموقع المطلوب بدلاً من موقع قريب تُرجعه الخدمة"
   ],
   "uk": [
     "Нове в цій версії",
-    "Гучний зв’язок у Linux з автоматичним підключенням Bluetooth, відновленням стану та необов’язковим шумозаглушенням",
-    "Magnolie Notes 1.0.16 зберігає кілька спарених комп’ютерів і спрощує керування викликами",
-    "Покращена синхронізація нотаток, менше сповіщень телефону та автоматичне оновлення фонової служби під час оновлень Debian"
+    "Однакові нотатки об’єднуються між пристроями зі збереженням ідентичності блокнотів і вкладень; містить Magnolie Notes 1.0.17",
+    "Безперервна синхронізація дерева використовує спільну точку відновлення; локальні зміни захищаються окремо",
+    "Погода показує запитаний населений пункт замість сусіднього місця з відповіді служби"
   ],
   "be": [
     "Што новага ў гэтай версіі",
-    "Гучная сувязь у Linux з аўтаматычным падключэннем Bluetooth, аднаўленнем стану і неабавязковым шумападаўленнем",
-    "Magnolie Notes 1.0.16 захоўвае некалькі спалучаных камп’ютараў і спрашчае кіраванне выклікамі",
-    "Палепшаная сінхранізацыя нататак, менш апавяшчэнняў тэлефона і аўтаматычнае абнаўленне фонавай службы пры абнаўленнях Debian"
+    "Аднолькавыя нататкі аб’ядноўваюцца паміж прыладамі з захаваннем ідэнтычнасці нататнікаў і ўкладанняў; уключае Magnolie Notes 1.0.17",
+    "Бесперапынная сінхранізацыя дрэва выкарыстоўвае агульны пункт аднаўлення; лакальныя змены абараняюцца асобна",
+    "Надвор’е паказвае запытанае месца замест суседняга месца з адказу сэрвісу"
   ],
   "tr": [
     "Bu sürümdeki yenilikler",
-    "Linux üzerinde otomatik Bluetooth bağlantısı, önceki duruma dönüş ve isteğe bağlı gürültü engelleme ile eller serbest arama",
-    "Magnolie Notes 1.0.16 birden fazla eşleştirilmiş bilgisayarı korur ve arama kontrollerini sadeleştirir",
-    "Geliştirilmiş not eşitleme, daha az telefon bildirimi ve Debian güncellemelerinde arka plan hizmetinin otomatik yenilenmesi"
+    "Aynı notlar, defter ve ek kimlikleri korunarak cihazlar arasında birleştirilir; Magnolie Notes 1.0.17 dahildir",
+    "Kesintisiz ağaç eşitlemesi ortak bir kurtarma noktası kullanır; yerel değişiklikler ayrıca korunur",
+    "Hava durumu, sağlayıcının yakın bir konumu yerine istenen konumu gösterir"
   ]
 };
 if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
