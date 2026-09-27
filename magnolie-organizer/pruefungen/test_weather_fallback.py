@@ -3,6 +3,7 @@ from datetime import date
 import json
 from pathlib import Path
 import re
+from urllib.parse import urlsplit, unquote, parse_qs
 
 import pytest
 
@@ -30,6 +31,33 @@ def forecast():
                                   "hourly": [{"time": "1200", "weatherCode": "113"}]}]})
 
 
+@pytest.mark.parametrize("location", ["6900 Bregenz", "Bregenz", "02692 Doberschau", "Doberschau",
+    "01067 Dresden", "Dresden", "10115 Berlin", "Berlin", "01877 Großröhrsdorf", "Weißenberg"])
+@pytest.mark.parametrize("nearest", ["Weißenreute", ""])
+def test_requested_location_remains_label_and_language_is_separate(location, nearest):
+    payload = json.loads(forecast())
+    payload["nearest_area"] = [{"areaName": [{"value": nearest}]}]
+    calls = []
+    def fetch(url):
+        calls.append(url)
+        return json.dumps(payload, ensure_ascii=False)
+    result = weather_api()["wetter_abrufen"](location, fetch)
+    assert result["ort"] == location
+    parsed = urlsplit(calls[0])
+    assert unquote(parsed.path[1:]) == location
+    assert parse_qs(parsed.query) == {"format": ["j1"], "lang": ["de"]}
+    assert "?=lang" not in parsed.path and " AT" not in unquote(parsed.path)
+
+
+@pytest.mark.parametrize("nearest", ["Weißenreute", ""])
+def test_without_address_uses_provider_label_or_approximate_area(nearest):
+    payload = json.loads(forecast())
+    payload["nearest_area"] = [{"areaName": [{"value": nearest}]}]
+    result = weather_api()["wetter_abrufen"]("", lambda url: json.dumps(payload), lambda: {})
+    assert result["quelle"] == "ip"
+    assert result["ort"] == (nearest or "approximate area")
+
+
 @pytest.mark.parametrize("failures", [0, 1, 2])
 def test_https_then_http_then_alternative(failures):
     calls = []
@@ -45,6 +73,7 @@ def test_https_then_http_then_alternative(failures):
         return forecast()
     result = weather_api()["wetter_abrufen"]("10115 Berlin", fetch)
     assert result["ok"] and result["tage"][0]["code"] == 113
+    assert result["ort"] == "10115 Berlin"
     assert calls[0].startswith("https://wttr.in/")
     if failures:
         assert calls[1].startswith("http://wttr.in/")

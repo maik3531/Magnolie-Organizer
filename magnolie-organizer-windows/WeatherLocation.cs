@@ -3,6 +3,8 @@ namespace MagnolieOrganizer.Windows;
 internal sealed record WeatherLocation(string SearchLocation, string Source)
 {
     internal bool ShouldFetch => Source != "none";
+    internal string DisplayName(string? nearestArea) => SearchLocation.Length > 0
+        ? SearchLocation : (nearestArea ?? "").Trim();
 }
 
 internal static class WeatherLocationSelector

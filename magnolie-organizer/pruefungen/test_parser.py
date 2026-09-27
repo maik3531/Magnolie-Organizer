@@ -2035,7 +2035,7 @@ def _wetter_holer(url):
 
 
 wetter = m.wetter_abrufen("47051 Duisburg", _wetter_holer)
-pruefe(wetter["quelle"] == "adresse" and wetter["ort"] == "Duisburg",
+pruefe(wetter["quelle"] == "adresse" and wetter["ort"] == "47051 Duisburg",
        "Ort aus der eigenen Anschrift wird bevorzugt")
 pruefe(len(wetter["tage"]) == 3 and wetter["tage"][0]["beschreibung"] == "Sonnig" and
        wetter["tage"][1]["min"] == 15 and wetter["tage"][1]["max"] == 21,
@@ -2053,7 +2053,7 @@ wetter_aufrufe.clear()
 wetter_englisch = m.wetter_abrufen("47051 Duisburg", _wetter_holer)
 pruefe("lang=en" in wetter_aufrufe[-1] and
        wetter_englisch["tage"][0]["beschreibung"] == "Sunny" and
-       wetter_englisch["ort"] == "Duisburg" and
+       wetter_englisch["ort"] == "47051 Duisburg" and
        wetter_englisch["quelle"] == "adresse",
        "englischer Wetterabruf bewahrt Ort und fordert englische Providertexte an")
 try:

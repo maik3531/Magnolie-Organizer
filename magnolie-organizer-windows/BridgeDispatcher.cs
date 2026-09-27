@@ -1725,7 +1725,7 @@ internal sealed partial class BridgeDispatcher : IDisposable
                 place = FirstValue(areas.EnumerateArray().FirstOrDefault(), "areaName");
             await form.SendAsync("App.wetterErgebnis", new
             {
-                ok = true, ort = place.Length > 0 ? place : location,
+                ok = true, ort = weatherLocation.DisplayName(place),
                 quelle = weatherLocation.Source,
                 anbieter = root.TryGetProperty("provider", out var provider) ? provider.GetString() : "wttr.in",
                 tage = days, fehler = "", kennung = identifier

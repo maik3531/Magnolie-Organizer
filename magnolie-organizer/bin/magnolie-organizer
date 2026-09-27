@@ -14977,7 +14977,7 @@ def _wetter_auswerten(text, suchort, quelle, sprache):
     gebiete = roh.get("nearest_area") or []
     if isinstance(gebiete, list) and gebiete and isinstance(gebiete[0], dict):
         ort_name = erster_wert(gebiete[0].get("areaName"))
-    return {"ok": True, "ort": ort_name or suchort or _("approximate area"),
+    return {"ok": True, "ort": suchort or ort_name or _("approximate area"),
             "quelle": quelle, "tage": tage, "fehler": ""}
 
 

@@ -23,6 +23,22 @@ internal static class WeatherRequestsTests
     }
     internal static async Task RunAsync()
     {
+        foreach (var location in new[] { "6900 Bregenz", "Bregenz", "02692 Doberschau", "Doberschau", "01067 Dresden", "Dresden",
+            "10115 Berlin", "Berlin", "01877 Großröhrsdorf", "Weißenberg" })
+        {
+            using var handler = new Handler(0);
+            using var client = new HttpClient(handler);
+            await WeatherRequests.FetchAsync(client, location, "de");
+            var request = handler.Requests.Single();
+            TestAssert.That(Uri.UnescapeDataString(request.AbsolutePath.TrimStart('/')) == location &&
+                request.Query == "?format=j1&lang=de", "The location was altered or a country code was appended to the search path.");
+            var selected = WeatherLocationSelector.Select(location, false, () => null);
+            foreach (var nearest in new[] { "Weißenreute", "", "Different provider area" })
+                TestAssert.That(selected.DisplayName(nearest) == location, "The provider's nearest area replaced the requested location.");
+        }
+        var estimated = WeatherLocationSelector.Select("", true, () => null);
+        TestAssert.That(estimated.DisplayName("Weißenreute") == "Weißenreute" && estimated.DisplayName("") == "",
+            "Location-free weather no longer uses the optional provider area.");
         foreach (var failed in new[] { 0, 1, 2 })
         {
             using var handler = new Handler(failed);
