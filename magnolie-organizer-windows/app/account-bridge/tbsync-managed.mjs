@@ -31,6 +31,24 @@ browser.runtime.onMessageExternal.addListener((message, sender) => {
   if (sender.id !== caller || message?.protocol !== 1) return;
   if (message.op === "ping") return Promise.resolve({ protocol: 1, ready: isProviderConnected(provider) });
   if (message.op === "status") return status();
+  if (["rename", "remove", "edit"].includes(message.op)) return (async () => {
+    if (login.pending) throw new Error("busy");
+    const account = await accounts.get(message.accountId);
+    if (!account || account.provider !== provider) throw new Error("unknown account");
+    if (message.op === "rename") {
+      if (typeof message.name !== "string" || !message.name.trim() || message.name.length > 254 || /[\r\n]/.test(message.name)) throw new Error("name");
+      await accounts.update(account.accountId, { accountName: message.name.trim() });
+      ui.broadcast({ type: "accounts-changed" });
+    } else if (message.op === "remove") {
+      await ui.invokeRpc("deleteAccount", { accountId: account.accountId });
+    } else {
+      login = { pending: true, error: false };
+      ui.invokeRpc("editAccount", { accountId: account.accountId })
+        .catch(error => { login.error = error?.code !== "E:CANCELLED"; })
+        .finally(() => { login.pending = false; });
+    }
+    return { ok: true };
+  })();
   if (message.op !== "login") return;
   if (!login.pending) {
     login = { pending: true, error: false };

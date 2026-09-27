@@ -60,6 +60,30 @@ async function main() {
   assert.equal(requests.length, count, "invalid bridge input reached a provider");
   await api.request({ ...request, method: "DELETE", url: base + "a.vcf", headers: { "If-Match": '"v1"' } });
   assert.equal(requests.at(-1).headers["If-Match"], '"v1"');
+  const prefs=new Map();
+  const makeBook=email=>({dirType:102,URI:email,
+    getStringValue:key=>key==="carddav.username"?email:"https://www.googleapis.com/carddav/v1/principals/"+email});
+  const makeCalendar=email=>({type:"caldav",uri:{spec:"https://apidata.googleusercontent.com/caldav/v2/"+email},
+    getProperty:()=>email});
+  const books=[makeBook("one@example.invalid"),makeBook("two@example.invalid")];
+  const calendars=[makeCalendar("one@example.invalid"),makeCalendar("two@example.invalid"),makeCalendar("calendar-only@example.invalid")];
+  const ab=modules["MailServices.sys.mjs"].MailServices.ab;
+  ab.directories=books;ab.deleteAddressBook=uri=>books.splice(books.findIndex(b=>b.URI===uri),1);
+  const manager=modules["calUtils.sys.mjs"].cal.manager;
+  manager.getCalendars=()=>calendars;
+  manager.unregisterCalendar=calendar=>calendars.splice(calendars.indexOf(calendar),1);
+  context.Services.prefs={getBoolPref:()=>true,getStringPref:(key,fallback)=>prefs.get(key)||fallback,
+    setStringPref:(key,value)=>prefs.set(key,value),clearUserPref:key=>prefs.delete(key),savePrefFile(){}};
+  const manage={version:1,id,op:"manage-account",provider:"google",accountId:"one@example.invalid"};
+  await api.request({...manage,action:"rename",name:"Renamed Google"});
+  const renamed=await api.request({version:1,id,op:"status"});
+  assert.equal(renamed.google.details.find(a=>a.id===manage.accountId).name,"Renamed Google");
+  assert.ok(renamed.google.accounts.includes("calendar-only@example.invalid"),"calendar-only account must survive restart discovery");
+  await assert.rejects(api.request({...manage,accountId:"missing",action:"remove"}));
+  await api.request({...manage,action:"remove"});
+  assert.equal(books.length,1);assert.equal(books[0].URI,"two@example.invalid");
+  assert.equal(calendars.length,2);assert.ok(!calendars.some(c=>c.getProperty()===manage.accountId));
+  assert.ok(!(await api.request({version:1,id,op:"status"})).google.accounts.includes(manage.accountId));
   dom.window.close();
   console.log("Thunderbird bridge: source binding, complete snapshots, multiget, conditional writes and credential isolation passed.");
 }

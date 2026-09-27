@@ -20194,13 +20194,38 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       ? _("Account sign-in could not be started. Please try again.")
       : internetKontoAnmeldung ? _("Preparing account sign-in …") : "");
     liste.textContent = "";
-    for (const name of s.google?.accounts || []) liste.append(el("p", null, "Google · " + name));
+    const kontoZeile = (anbieter, id, name, text) => {
+      const zeile = el("div", "knopfreihe");
+      zeile.append(el("span", null, text));
+      const verwalten = async aktion => {
+        if (internetKontoAnmeldung || syncLaeuft || gesperrt) return;
+        const bestand = DATEN;
+        let neuerName = "";
+        if (aktion === "rename") {
+          neuerName = await magnolieEingabe({titel:_("Edit"),label:_("Name"),wert:name,
+            pruefen:wert=>!wert.trim() || wert.length>254 || /[\r\n]/.test(wert) ? _("Name") : ""});
+          if (neuerName === null) return;
+        }
+        if (aktion === "remove" && !await frage(_("Remove") + " · " + name + "?", _("Remove"))) return;
+        if (DATEN !== bestand || internetKontoAnmeldung || syncLaeuft || gesperrt) return;
+        internetKontoAnmeldung = true; internetKontoStartet = true; internetKontenZeigen();
+        Bruecke.sende({cmd:"internet_konto_verwalten",anbieter,konto:id,aktion,name:neuerName.trim()});
+      };
+      zeile.append(knopf(_("Edit") + " · " + _("Name"), "", () => verwalten("rename")),
+        knopf(anbieter === "google" ? _("Connect") : _("Settings"), "", () => verwalten("edit")),
+        knopf(_("Remove"), "", () => verwalten("remove")));
+      liste.append(zeile);
+    };
+    for (const email of s.google?.accounts || []) {
+      const name = s.google?.details?.find(k=>k.id===email)?.name || email;
+      kontoZeile("google",email,name,"Google · " + name + (name!==email ? " · " + email : ""));
+    }
     for (const konto of s.microsoft?.accounts || []) {
-      liste.append(el("p", konto.error ? "einst-warnung" : "sync-status",
-        "Microsoft · " + konto.name + " — " + (konto.enabled && !konto.error ? _("Connected") : _("Unavailable"))));
+      kontoZeile("microsoft",konto.id,konto.name,
+        "Microsoft · " + konto.name + " — " + (konto.enabled && !konto.error ? _("Connected") : _("Unavailable")));
     }
     $("#internet-konten")?.querySelectorAll("button").forEach(button => {
-      button.disabled = !Bruecke.vorhanden || internetKontoAnmeldung;
+      button.disabled = !Bruecke.vorhanden || internetKontoAnmeldung || syncLaeuft;
     });
   }
 
@@ -20214,7 +20239,6 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       if (!email.value.trim().includes("@")) { zettel(_("Enter your email address.")); email.focus(); return; }
       internetKontoAnmeldung = true;
       internetKontoStartet = true;
-      internetKontenStand = null;
       internetKontenZeigen();
       Bruecke.sende({ cmd: "internet_konto_anmelden", anbieter, email: email.value.trim() });
     };
@@ -25811,18 +25835,27 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       internetKontoStartet = false;
       if (!nutzlast?.ok) {
         internetKontoAnmeldung = false;
-        internetKontenStand = nutzlast || {};
+        internetKontenStand = {...internetKontenStand, fehler:nutzlast?.fehler || _("Unavailable")};
         internetKontenZeigen();
         zettel(nutzlast?.fehler || _("Account sign-in could not be started. Please try again."));
         return;
       }
       Bruecke.sende({ cmd: "internet_konten_status" });
     },
+    internetKontoVerwaltet(nutzlast) {
+      internetKontoStartet = false;
+      if (!nutzlast?.ok) {
+        internetKontoAnmeldung = false;
+        internetKontenZeigen();
+        zettel(nutzlast?.fehler || _("Unavailable"));
+      }
+    },
     internetKontenStatus(nutzlast) {
       if (internetKontoStartet) return;
       clearTimeout(internetKontoTimer);
       const vorher = internetKontoAnmeldung;
-      internetKontenStand = nutzlast || {};
+      internetKontenStand = nutzlast?.fehler
+        ? {...internetKontenStand, fehler:nutzlast.fehler} : nutzlast || {};
       internetKontoAnmeldung = !!(nutzlast?.google?.pending || nutzlast?.microsoft?.login?.pending);
       internetKontenZeigen();
       if (internetKontoAnmeldung) internetKontoTimer = setTimeout(() => Bruecke.sende({ cmd: "internet_konten_status" }), 1500);

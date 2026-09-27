@@ -78,9 +78,9 @@ internal sealed partial class BridgeDispatcher : IDisposable
                 "sync" or "personal_sync_senden" or "personal_sync_lauf_senden" or "handbuch_herunterladen" or "baum_internet_adresse" or
                 "telefon_oeffnen" or "telefon_verbinden" or "telefon_pairing_oeffnen" or "kde_pairing_start" or "kde_pairing_complete" or
                 "kde_paaren" or "kde_pairing_confirm" or "kde_paarung_bestaetigen" or "baum_briefkasten_speichern" or "graph_client_id_speichern" or
-                "internet_konto_anmelden" or "internet_konten_status")
+                "internet_konto_anmelden" or "internet_konten_status" or "internet_konto_verwalten")
             {
-                var owner = command is "sync" or "baum_briefkasten_speichern" or "graph_client_id_speichern" ? "sync" :
+                var owner = command is "sync" or "baum_briefkasten_speichern" or "graph_client_id_speichern" or "internet_konto_verwalten" ? "sync" :
                     command.StartsWith("personal_sync", StringComparison.Ordinal) || command.StartsWith("telefon", StringComparison.Ordinal) ? "phone" :
                     command.StartsWith("kde", StringComparison.Ordinal) ? "kde" : command.StartsWith("baum", StringComparison.Ordinal) ? "baum" :
                     command.StartsWith("update", StringComparison.Ordinal) || command == "handbuch_herunterladen" ? "update" : command;
@@ -173,6 +173,7 @@ internal sealed partial class BridgeDispatcher : IDisposable
                     case "eds_status": await ContactSourcesAsync(); break;
                     case "internet_konto_anmelden": await SignInInternetAccountAsync(message); break;
                     case "internet_konten_status": await InternetAccountStatusAsync(); break;
+                    case "internet_konto_verwalten": await ManageInternetAccountAsync(message); break;
                     case "thunderbird_einrichten":
                         try
                         {

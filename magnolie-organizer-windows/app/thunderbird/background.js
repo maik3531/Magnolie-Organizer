@@ -22,7 +22,16 @@ async function connect() {
       await trace("received");
       let response;
       try {
-        if (message.op === "login" && environment.managed) {
+        if (message.op === "manage-account" && environment.managed) {
+          if (!["rename", "remove", "edit"].includes(message.action)) throw new Error("action");
+          if (message.provider === "microsoft") {
+            response = await accountControl("tbsync@jobisoft.de", { protocol: 1, op: message.action,
+              accountId: message.accountId, name: message.name });
+            if (!response?.ok) throw new Error("Account change failed");
+          } else if (message.provider === "google") {
+            response = await browser.magnolie.request(message);
+          } else throw new Error("provider");
+        } else if (message.op === "login" && environment.managed) {
           const google = await browser.magnolie.request({ ...message, op: "status" });
           const microsoft = await accountControl("tbsync@jobisoft.de", { protocol: 1, op: "status" });
           if (google.google.pending || microsoft?.login?.pending) throw new Error("Sign-in is already running");

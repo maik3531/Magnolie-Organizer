@@ -36,9 +36,9 @@ internal static class ManagedInternetAccountsTests
         return Task.CompletedTask;
     }
 
-    internal static async Task<int> ProbeAsync(string runtime, string profile, string nativeExecutable)
+    internal static async Task<int> ProbeAsync(string runtime, string profile, string nativeExecutable, bool lifecycle = false)
     {
-        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(60));
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(lifecycle ? 180 : 60));
         System.Diagnostics.Process? process = null;
         try
         {
@@ -53,6 +53,34 @@ internal static class ManagedInternetAccountsTests
             TestAssert.That(string.Equals(process.MainModule!.FileName, Path.Combine(runtime, "thunderbird.exe"), StringComparison.OrdinalIgnoreCase),
                 "The probe used an installed mail client instead of the packaged helper.");
             Console.WriteLine("Managed account helper: bundled runtime, automatic isolated profile and add-on setup, dedicated native channel, Microsoft adapter ready.");
+            if (lifecycle)
+            {
+                TestAssert.That(Path.GetFileName(profile).StartsWith("accounts38-lifecycle-", StringComparison.Ordinal), "Fixture profile required.");
+                var google = status["google"]!["accounts"]!.AsArray();
+                var microsoft = status["microsoft"]!["accounts"]!.AsArray();
+                TestAssert.That(google.Count == 2 && google.All(x => x!.GetValue<string>().EndsWith("@example.invalid", StringComparison.Ordinal)) &&
+                    microsoft.Count == 2 && microsoft.All(x => x!["name"]!.GetValue<string>().StartsWith("Fixture38-", StringComparison.Ordinal)), "Synthetic fixture required.");
+                var googleId = google[0]!.GetValue<string>(); var microsoftId = microsoft[0]!["id"]!.GetValue<string>();
+                async Task Change(string provider, string id, string action, string name = "") =>
+                    _ = await ThunderbirdBridge.CallAsync(new JsonObject { ["op"] = "manage-account", ["provider"] = provider,
+                        ["accountId"] = id, ["action"] = action, ["name"] = name }, timeout.Token, managed: true);
+                await Change("google", googleId, "rename", "Fixture38-Google-renamed");
+                await Change("microsoft", microsoftId, "rename", "Fixture38-Microsoft-renamed");
+                await ManagedInternetAccounts.StopAsync();
+                await ManagedInternetAccounts.EnsureStartedAsync(timeout.Token, profile, runtime, nativeExecutable);
+                var restarted = await ThunderbirdBridge.CallAsync(new JsonObject { ["op"] = "status" }, timeout.Token, managed: true);
+                TestAssert.That(restarted["google"]!["details"]!.AsArray().Any(x => x!["name"]!.GetValue<string>() == "Fixture38-Google-renamed") &&
+                    restarted["microsoft"]!["accounts"]!.AsArray().Any(x => x!["name"]!.GetValue<string>() == "Fixture38-Microsoft-renamed"), "Renamed accounts did not survive restart.");
+                await Change("google", googleId, "remove"); await Change("microsoft", microsoftId, "remove");
+                await ManagedInternetAccounts.StopAsync();
+                await ManagedInternetAccounts.EnsureStartedAsync(timeout.Token, profile, runtime, nativeExecutable);
+                var final = await ThunderbirdBridge.CallAsync(new JsonObject { ["op"] = "status" }, timeout.Token, managed: true);
+                TestAssert.That(final["google"]!["accounts"]!.AsArray().Count == 1 &&
+                    final["google"]!["accounts"]![0]!.GetValue<string>() != googleId &&
+                    final["microsoft"]!["accounts"]!.AsArray().Count == 1 &&
+                    final["microsoft"]!["accounts"]![0]!["id"]!.GetValue<string>() != microsoftId, "Removal affected another account or did not persist.");
+                Console.WriteLine("Account lifecycle: renamed, restarted, selectively removed, restarted; both other accounts retained.");
+            }
             return 0;
         }
         finally

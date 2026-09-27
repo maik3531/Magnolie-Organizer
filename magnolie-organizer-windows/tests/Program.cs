@@ -13,6 +13,8 @@ if (args.FirstOrDefault() == "--contact-cleanup-fixture")
 }
 if (args.FirstOrDefault() == "--managed-account-host" && args.Length == 4)
     return await ManagedInternetAccountsTests.ProbeAsync(args[1], args[2], args[3]);
+if (args.FirstOrDefault() == "--managed-account-lifecycle" && args.Length == 4)
+    return await ManagedInternetAccountsTests.ProbeAsync(args[1], args[2], args[3], lifecycle: true);
 
 if (args.FirstOrDefault() == "--scoped-call-host") return await OutgoingDialTests.RunAsync(args.ElementAtOrDefault(1), args.ElementAtOrDefault(2));
 

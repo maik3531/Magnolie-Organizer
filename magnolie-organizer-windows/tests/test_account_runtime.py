@@ -45,7 +45,7 @@ def test_control_adapter_preserves_provider_authentication(tmp_path, monkeypatch
             assert archive.read("modules/eas/oauth.mjs") == oauth
             manifest = json.loads(archive.read("manifest.json"))
             assert "Magnolie integration" in manifest["name"]
-            assert manifest["version"] == "5.0.0.1"
+            assert manifest["version"] == ("5.0.0.2" if name == "tbsync" else "5.0.0.1")
             assert "MAGNOLIE-CHANGES.txt" in archive.namelist()
     tool.prepare_extensions(output, cache)
     for name, spec in specifications.items():

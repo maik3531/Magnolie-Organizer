@@ -51,6 +51,30 @@ internal sealed partial class BridgeDispatcher
         }
     }
 
+    private async Task ManageInternetAccountAsync(JsonElement message)
+    {
+        try
+        {
+            var provider = Text(message, "anbieter"); var action = Text(message, "aktion");
+            var account = Text(message, "konto"); var name = Text(message, "name");
+            if (provider is not ("google" or "microsoft") || action is not ("rename" or "remove" or "edit") ||
+                string.IsNullOrWhiteSpace(account) || account.Length > 254 ||
+                action == "rename" && (string.IsNullOrWhiteSpace(name) || name.Length > 254)) throw new InvalidDataException();
+            using var timeout = NetworkDeadline(TimeSpan.FromSeconds(60));
+            await ManagedInternetAccounts.EnsureStartedAsync(timeout.Token);
+            await ThunderbirdBridge.CallAsync(new JsonObject { ["op"] = "manage-account", ["provider"] = provider,
+                ["action"] = action, ["accountId"] = account, ["name"] = name }, timeout.Token, managed: true);
+            await form.SendAsync("App.internetKontoVerwaltet", new { ok = true });
+            await InternetAccountStatusAsync();
+            await ContactSourcesAsync();
+        }
+        catch (Exception error)
+        {
+            await ReportErrorAsync("internet_konto_verwalten", error.ToString());
+            await form.SendAsync("App.internetKontoVerwaltet", new { ok = false, fehler = T("Unavailable") });
+        }
+    }
+
     private async Task<IReadOnlyList<NextcloudDavSource>> SelectedThunderbirdSourcesAsync(string addressBook,
         IReadOnlyList<string> calendars, CancellationToken token)
     {

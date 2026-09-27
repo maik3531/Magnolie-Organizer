@@ -39,6 +39,7 @@ internal static class BridgeDispatcherContract
         ["thunderbird_einrichten"] = S(),
         ["internet_konto_anmelden"] = S(T("anbieter"), O("email", JsonValueKind.String)),
         ["internet_konten_status"] = S(),
+        ["internet_konto_verwalten"] = S(T("anbieter"), T("konto"), T("aktion"), O("name", JsonValueKind.String)),
         ["lo_benutzer"] = S(), ["tray_einstellungen"] = S(J("einstellungen")), ["tray_zaehler"] = S(N("anzahl")),
         ["rechtschreibung"] = S(B("an"), O("sprache", JsonValueKind.String)), ["vorschlaege"] = S(T("wort"), T("kennung"), O("sprache", JsonValueKind.String)), ["wort_merken"] = S(T("wort"), O("sprache", JsonValueKind.String)),
         ["baum_stand"] = S(), ["baum_ein"] = S(B("an"), T("name")), ["baum_suchen"] = S(), ["baum_paaren"] = S(T("adresse"), O("port", JsonValueKind.Number, JsonValueKind.String), O("fingerabdruck", JsonValueKind.String)),

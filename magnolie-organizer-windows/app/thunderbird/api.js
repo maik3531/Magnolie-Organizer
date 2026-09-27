@@ -13,6 +13,27 @@ const D = "DAV:", A = "urn:ietf:params:xml:ns:carddav";
 const limit = 16 * 1024 * 1024;
 const managed = () => Services.prefs.getBoolPref("extensions.magnolie.managed", false);
 let googleLogin = { pending: false, error: false };
+function googleAccounts() {
+  const result = new Map();
+  const account = email => {
+    if (!result.has(email)) result.set(email, { email, books: [], calendars: [] });
+    return result.get(email);
+  };
+  for (const book of MailServices.ab.directories) {
+    if (book.dirType === Ci.nsIAbManager.CARDDAV_DIRECTORY_TYPE &&
+        book.getStringValue("carddav.url", "").startsWith("https://www.googleapis.com/")) {
+      const email = book.getStringValue("carddav.username", "");
+      if (email) account(email).books.push(book);
+    }
+  }
+  for (const calendar of cal.manager.getCalendars()) {
+    if (calendar.type !== "caldav" || !calendar.uri?.spec.startsWith("https://apidata.googleusercontent.com/")) continue;
+    const email = calendar.getProperty("username");
+    if (email) account(String(email)).calendars.push(calendar);
+  }
+  return result;
+}
+const googleNamePref = email => "extensions.magnolie.googleName." + encodeURIComponent(email);
 async function signInGoogle(email) {
   const { CardDAVUtils } = ChromeUtils.importESModule("resource:///modules/CardDAVUtils.sys.mjs");
   const discoveredBooks = await CardDAVUtils.detectAddressBooks(email, "", "https://www.googleapis.com/.well-known/carddav", false, false);
@@ -172,13 +193,29 @@ var magnolie = class extends ExtensionCommon.ExtensionAPI {
         return {};
       }
       if (message.op === "status") {
-        const names = new Set();
-        for (const book of MailServices.ab.directories) {
-          if (book.dirType === Ci.nsIAbManager.CARDDAV_DIRECTORY_TYPE &&
-              book.getStringValue("carddav.url", "").startsWith("https://www.googleapis.com/"))
-            names.add(book.getStringValue("carddav.username", "Google"));
-        }
-        return { google: { ...googleLogin, accounts: Array.from(names) } };
+        const names = Array.from(googleAccounts().keys());
+        return { google: { ...googleLogin, accounts: names, details: names.map(email => ({ id: email,
+          name: Services.prefs.getStringPref(googleNamePref(email), email) })) } };
+      }
+      if (message.op === "manage-account" && managed()) {
+        if (message.provider !== "google" || googleLogin.pending) throw new Error("provider or busy");
+        const account = googleAccounts().get(message.accountId);
+        if (!account) throw new Error("unknown account");
+        if (message.action === "rename") {
+          if (typeof message.name !== "string" || !message.name.trim() || message.name.length > 254 || /[\r\n]/.test(message.name)) throw new Error("name");
+          Services.prefs.setStringPref(googleNamePref(account.email), message.name.trim());
+        } else if (message.action === "remove") {
+          // Unregister local resources; never delete the provider's collections.
+          for (const calendar of account.calendars) cal.manager.unregisterCalendar(calendar);
+          for (const book of account.books) MailServices.ab.deleteAddressBook(book.URI);
+          Services.prefs.clearUserPref(googleNamePref(account.email));
+        } else if (message.action === "edit") {
+          googleLogin = { pending: true, error: false };
+          signInGoogle(account.email).catch(() => { googleLogin.error = true; })
+            .finally(() => { googleLogin.pending = false; });
+        } else throw new Error("action");
+        Services.prefs.savePrefFile(null);
+        return { ok: true };
       }
       if (message.op === "shutdown" && managed()) {
         const { setTimeout } = ChromeUtils.importESModule("resource://gre/modules/Timer.sys.mjs");

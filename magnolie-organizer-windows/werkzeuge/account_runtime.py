@@ -79,7 +79,7 @@ def prepare_extensions(output, cache):
         manifest = json.loads(files["manifest.json"])
         if manifest["version"] != spec["version"] or manifest["browser_specific_settings"]["gecko"]["id"] != spec["id"]:
             raise ValueError("Unexpected account provider identity")
-        manifest["version"] += ".1"
+        manifest["version"] += ".2" if name == "tbsync" else ".1"
         manifest["name"] = ("TbSync Manager" if name == "tbsync" else "Exchange ActiveSync") + " (Magnolie integration)"
         manifest["browser_specific_settings"]["gecko"].pop("update_url", None)
         files["manifest.json"] = json.dumps(manifest, indent=2).encode()
