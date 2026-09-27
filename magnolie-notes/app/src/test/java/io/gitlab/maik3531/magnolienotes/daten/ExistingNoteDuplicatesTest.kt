@@ -3,6 +3,8 @@ package io.gitlab.maik3531.magnolienotes.daten
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.JsonObject
 import org.junit.Assert.*
 import org.junit.Test
 
@@ -10,7 +12,48 @@ class ExistingNoteDuplicatesTest {
     private val actor = "11111111-1111-4111-8111-111111111111"
     private val peer = "22222222-2222-4222-8222-222222222222"
     private val original = Notiz("z-local", titel = "Welcome", text = "Same content", html = "", angelegt = 1, geaendert = 1)
+    private val image by lazy {
+        val contract = Json.parseToJsonElement(checkNotNull(javaClass.classLoader?.getResource("personal-sync-contract.json")).readText()) as JsonObject
+        ((contract["format2"] as JsonObject)["data_url"] as JsonPrimitive).content
+    }
     private fun snapshot(input: Bestand) = PersonalSync.reconcile(input, setOf("notes"), 3, peer)
+
+    @Test fun `crossed and ambiguous attachment identities do not merge distinct slots`() {
+        val file = Anhang("one", "same.png", "image", image)
+        for (ambiguous in listOf(false, true)) {
+            val files = listOf(file, file.copy(id = "two", name = if (ambiguous) file.name else "other.png"))
+            val left = snapshot(Bestand(notizen = listOf(original.copy(anhaenge = files)),
+                personalSync = PersonalSyncState(actor_id = actor)))
+            val right = snapshot(Bestand(notizen = listOf(original.copy(id = "remote", anhaenge = listOf(
+                files[0].copy(id = "two"), files[1].copy(id = "one")))), personalSync = PersonalSyncState(actor_id = peer)))
+            val digest = (PersonalSync.attachmentDescriptor(file)!!.descriptor["sha256"] as JsonPrimitive).content
+            val result = PersonalSync.apply(left.first, right.second, mapOf(digest to file)).bestand
+            assertEquals(2, result.notizen.size)
+            assertEquals(files, result.notizen.first { it.id == "z-local" }.anhaenge)
+        }
+    }
+
+    @Test fun `existing copies with different attachment ids keep local files and canonical deletion identity`() {
+        val file = Anhang("z-file", "same.png", "image", image)
+        val input = PersonalSync.acknowledge(snapshot(Bestand(notizen = listOf(
+            original.copy(anhaenge = listOf(file)), original.copy(id = "a-copy", anhaenge = listOf(file.copy(id = "a-file")))),
+            personalSync = PersonalSyncState(actor_id = actor))).first, peer)
+        val result = PersonalSync.apply(input, emptyList(), mergeNotes = true).bestand
+        assertEquals("z-local", result.notizen.single().id)
+        assertEquals("z-file", result.notizen.single().anhaenge.single().id)
+        val loaded = Json.decodeFromString<Bestand>(Json.encodeToString(result))
+        val reconciled = snapshot(loaded).first
+        assertTrue(reconciled.personalSync.entities.values.none { it.state == "deleted" })
+        assertEquals("a-file", PersonalSync.attachmentId(reconciled.personalSync, "a-copy", "z-file"))
+        val acknowledged = PersonalSync.acknowledge(reconciled, peer)
+        val removed = snapshot(PapierkorbLogik.loescheAnhang(acknowledged, "z-local", "z-file", 200)).first
+        val proposal = PersonalSync.proposals(removed, peer).single { it.kind == "attachment" }
+        assertEquals("a-file", proposal.id)
+        val restored = PersonalSync.applyDeletionDecisions(removed, listOf(AppliedPersonalDecision(
+            proposal.proposal_id, "restore", proposal.clock)))
+        assertEquals("applied", restored.second)
+        assertEquals("z-file", restored.first.notizen.single().anhaenge.single().id)
+    }
 
     @Test fun `equivalent notebooks bind before note identity across formats and restart`() {
         for (format in 1..3) {

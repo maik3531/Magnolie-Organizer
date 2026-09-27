@@ -76,7 +76,7 @@ async function check(web) {
       if (variant === "pending-restore") data.personalSync.restoration_requests = ["note\0a-duplicate"];
       if (variant === "deleted-history") data.personalSync.entities["attachment\0a-duplicate\0old-file"] = {state: "deleted"};
       await c.t.personalSyncAnwenden([], {}, 3, peer, ["notes"]);
-      const merges = ["plain", "selected", "attachments", "foreign-only", "sources"].includes(variant);
+      const merges = ["plain", "selected", "attachments", "different-attachment-id", "foreign-only", "sources"].includes(variant);
       assert.equal(data.notizen.length, merges ? 1 : 2, variant);
       if (merges) {
         assert.equal(data.notizen[0].id, variant === "selected" ? "a-duplicate" : "z-local");
@@ -86,7 +86,7 @@ async function check(web) {
         const first = JSON.stringify(data);
         await c.t.personalSyncAnwenden([], {}, 3, peer, ["notes"]);
         assert.equal(JSON.stringify(data), first, "compaction replay must be a no-op: " + variant);
-        if (variant === "attachments") {
+        if (["attachments", "different-attachment-id"].includes(variant)) {
           assert.equal(data.notizen[0].anhaenge.length, 1);
           assert.ok(data.personalSync.entities["attachment\0a-duplicate\0file"]);
           assert.equal(data.personalSync.entities["attachment\0z-local\0file"], undefined);
@@ -166,7 +166,7 @@ async function check(web) {
       }
     } finally { a.w.close(); b.w.close(); }
   }
-  for (const variant of ["same", "same-format2", "attachment-id", "attachment-name", "attachment-content", "format1", "deleted-history", "occupied-parent"]) {
+  for (const variant of ["same", "same-format2", "attachment-id", "attachment-name", "attachment-content", "attachment-collision", "attachment-ambiguous", "format1", "deleted-history", "occupied-parent"]) {
     const a = client(web, "z-local", "11111111-1111-4111-8111-111111111111", 1);
     const b = client(web, "a-local", "22222222-2222-4222-8222-222222222222", 2);
     try {
@@ -176,6 +176,12 @@ async function check(web) {
       if (variant === "attachment-id") b.t.daten().notizen[0].anhaenge[0].id = "other-file";
       if (variant === "attachment-name") b.t.daten().notizen[0].anhaenge[0].name = "other.png";
       if (variant === "attachment-content") b.t.daten().notizen[0].anhaenge[0].daten = "data:image/png;base64,BAUG";
+      if (["attachment-collision","attachment-ambiguous"].includes(variant)) {
+        a.t.daten().notizen[0].anhaenge.push({...file,id:"second",name:variant==="attachment-collision"?"second.png":file.name});
+        b.t.daten().notizen[0].anhaenge=JSON.parse(JSON.stringify(a.t.daten().notizen[0].anhaenge));
+        b.t.daten().notizen[0].anhaenge[0].id="second";
+        b.t.daten().notizen[0].anhaenge[1].id="file";
+      }
       const snapshot = c => c.t.personalSyncSnapshot(["notes"], format, peer);
       const firstA = await snapshot(a), firstB = await snapshot(b);
       const meta = a.t.daten().personalSync.entities["attachment\0z-local\0file"];
@@ -188,7 +194,7 @@ async function check(web) {
         return c.t.personalSyncAnwenden(JSON.parse(JSON.stringify(records)), descriptor ? { [descriptor.sha256]: data } : {}, format, peer, ["notes"]);
       };
       await apply(a, firstB, b.t.daten().notizen[0].anhaenge[0].daten);
-      if (!["same", "same-format2"].includes(variant)) {
+      if (!["same", "same-format2", "attachment-id"].includes(variant)) {
         assert.equal(a.t.daten().notizen.length, 2, variant + " must prevent attachment identity merging");
         assert.equal(a.t.daten().notizen[0].anhaenge[0].daten, file.daten);
         continue;
@@ -202,6 +208,12 @@ async function check(web) {
       assert.equal(moved.acknowledged_by_peer, false);
       assert.equal(a.t.daten().personalSync.entities["attachment\0z-local\0file"], undefined);
       a.w.App.init({ daten: JSON.parse(JSON.stringify(a.t.daten())), neu: false });
+      if (variant === "attachment-id") for (let round=0;round<3;round++) {
+        const left=await snapshot(a),right=await snapshot(b);
+        assert.equal((await apply(a,right,file.daten)).conflicts,0);
+        assert.equal((await apply(b,left,file.daten)).conflicts,0);
+        assert.equal(a.t.daten().notizen.length,1);assert.equal(b.t.daten().notizen.length,1);
+      }
       const nextA = (await snapshot(a)).find(r => r.kind === "note"), nextB = (await snapshot(b)).find(r => r.kind === "note");
       assert.equal(nextA.hash, nextB.hash); assert.equal(nextA.id, nextB.id);
       assert.equal(a.t.daten().notizen[0].id, "z-local");
@@ -218,6 +230,16 @@ async function check(web) {
       assert.equal(trash.parent_id, "z-local"); assert.equal(a.t.ausDemPapierkorb(trash), true);
       assert.equal(a.t.daten().notizen[0].anhaenge[0].daten, file.daten);
       assert.equal(a.t.daten().personalSync.entities["attachment\0a-local\0file"].state, "live");
+      if (variant === "attachment-id") {
+        const metaB=b.t.daten().personalSync.entities["attachment\0a-local\0file"];
+        const decision={...proposal,clock:metaB.clock,prior_hash:metaB.hash};
+        assert.equal(b.t.personalSyncEntscheidungAnwenden({...decision,id:"other-file"},"delete",true),"conflict");
+        assert.equal(b.t.personalSyncEntscheidungAnwenden(decision,"delete"),"applied");
+        const archived=b.t.daten().papierkorb.find(p=>p.art==="attachment");
+        assert.equal(archived.eintrag.id,"other-file");assert.equal(b.t.ausDemPapierkorb(archived),true);
+        assert.equal(b.t.daten().notizen[0].anhaenge[0].id,"other-file");
+        assert.equal(b.t.daten().personalSync.entities["attachment\0a-local\0file"].state,"live");
+      }
     } finally { a.w.close(); b.w.close(); }
   }
   for (const format of [1, 2, 3]) {
@@ -285,8 +307,12 @@ async function check(web) {
   const b = client(web, "m-local", "22222222-2222-4222-8222-222222222222", 2);
   const c = client(web, "a-local", "44444444-4444-4444-8444-444444444444", 3);
   try {
+    const bytes="data:image/png;base64,AQID";
+    for (const [device,id] of [[a,"z-file"],[b,"m-file"],[c,"a-file"]])
+      device.t.daten().notizen[0].anhaenge=[{id,name:"same.png",art:"image",daten:bytes}];
     const snapshot = x => x.t.personalSyncSnapshot(["notes"], 3, peer);
-    const apply = (x, records) => x.t.personalSyncAnwenden(JSON.parse(JSON.stringify(records)), {}, 3, peer, ["notes"]);
+    const apply = (x, records) => x.t.personalSyncAnwenden(JSON.parse(JSON.stringify(records)),
+      Object.fromEntries(records.filter(r=>r.kind==="note").flatMap(r=>r.value.attachments.map(d=>[d.sha256,bytes]))), 3, peer, ["notes"]);
     const old = await snapshot(a);
     await apply(a, await snapshot(b)); await apply(a, await snapshot(c));
     const final = (await snapshot(a)).find(r => r.kind === "note");
@@ -294,6 +320,17 @@ async function check(web) {
     a.w.App.init({ daten: JSON.parse(JSON.stringify(a.t.daten())), neu: false });
     await apply(a, old); assert.equal(a.t.daten().notizen.length, 1);
     assert.equal((await snapshot(a)).find(r => r.kind === "note").id, "a-local");
+    for(let round=0;round<4;round++) for(const [left,right] of [[a,b],[b,c],[c,a]]) {
+      const l=await snapshot(left),r=await snapshot(right);
+      assert.equal((await apply(left,r)).conflicts,0);assert.equal((await apply(right,l)).conflicts,0);
+    }
+    const hashes=[];
+    for(const [device,id] of [[a,"z-file"],[b,"m-file"],[c,"a-file"]]) {
+      assert.equal(device.t.daten().notizen.length,1);assert.equal(device.t.daten().notizen[0].anhaenge[0].id,id);
+      const record=(await snapshot(device)).find(r=>r.kind==="note");
+      assert.equal(record.value.attachments[0].attachment_id,"a-file");hashes.push(record.hash);
+    }
+    assert.equal(new Set(hashes).size,1,"three devices must converge on one attachment wire identity and content hash");
   } finally { a.w.close(); b.w.close(); c.w.close(); }
 
   const foreign = client(web, "personal", "11111111-1111-4111-8111-111111111111", 1);

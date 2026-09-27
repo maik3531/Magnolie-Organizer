@@ -504,8 +504,9 @@ class Ablage private constructor(
         val proposal = _bestand.value.personalSync.pending_proposals.firstOrNull {
             it.proposal_id == proposalId } ?: return@synchronized "missing"
         if (proposal.source_device != peerId) return@synchronized "conflict"
-        if (proposal.kind == "note" && PersonalSync.noteId(_bestand.value.personalSync, proposal.id) != proposal.id ||
-            proposal.kind == "attachment" && PersonalSync.noteId(_bestand.value.personalSync, proposal.parent_id) != proposal.parent_id)
+        if (proposal.kind in setOf("note", "notebook") && PersonalSync.noteId(_bestand.value.personalSync, proposal.id, proposal.kind) != proposal.id ||
+            proposal.kind == "attachment" && (PersonalSync.noteId(_bestand.value.personalSync, proposal.parent_id) != proposal.parent_id ||
+                PersonalSync.attachmentId(_bestand.value.personalSync, proposal.parent_id, proposal.id) != proposal.id))
             return@synchronized "conflict"
         val reconciled = PersonalSync.reconcile(_bestand.value,
             setOf(if (proposal.kind == "task") "tasks" else "notes"),
@@ -523,7 +524,8 @@ class Ablage private constructor(
         if (decision == "delete") next = when (proposal.kind) {
             "note" -> PapierkorbLogik.loescheNotiz(next, PersonalSync.noteLocalId(next, proposal.id), proposal.deleted_ms)
             "task" -> PapierkorbLogik.loescheAufgabe(next, proposal.id, proposal.deleted_ms)
-            "attachment" -> PapierkorbLogik.loescheAnhang(next, PersonalSync.noteLocalId(next, proposal.parent_id), proposal.id, proposal.deleted_ms)
+            "attachment" -> PapierkorbLogik.loescheAnhang(next, PersonalSync.noteLocalId(next, proposal.parent_id),
+                PersonalSync.attachmentLocalId(next, proposal.parent_id, proposal.id), proposal.deleted_ms)
             "notebook" -> PapierkorbLogik.loescheNotizbuch(next, PersonalSync.noteLocalId(next, proposal.id, "notebook"), proposal.deleted_ms)
                 ?: return@synchronized "blocked"
             else -> return@synchronized "missing"
@@ -535,7 +537,7 @@ class Ablage private constructor(
                     "note" -> item.notiz?.id == PersonalSync.noteLocalId(next, proposal.id)
                     "task" -> item.aufgabe?.id == proposal.id
                     "notebook" -> item.notizbuch?.id == PersonalSync.noteLocalId(next, proposal.id, "notebook")
-                    "attachment" -> item.anhang?.id == proposal.id && item.parent_id == PersonalSync.noteLocalId(next, proposal.parent_id)
+                    "attachment" -> item.anhang?.id == PersonalSync.attachmentLocalId(next, proposal.parent_id, proposal.id) && item.parent_id == PersonalSync.noteLocalId(next, proposal.parent_id)
                     else -> false } } ?: return@synchronized "restore_unavailable"
                 next = PapierkorbLogik.wiederherstellen(next, trash.id)
                     ?: return@synchronized "restore_unavailable"

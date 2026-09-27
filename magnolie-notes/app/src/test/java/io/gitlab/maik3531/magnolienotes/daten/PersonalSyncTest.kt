@@ -35,7 +35,7 @@ class PersonalSyncTest {
             }
             val digest = (PersonalSync.attachmentDescriptor(remoteFile)!!.descriptor["sha256"] as JsonPrimitive).content
             val result = PersonalSync.apply(input, b.second, mapOf(digest to remoteFile))
-            if (format == 1 || variant != "same") {
+            if (format == 1 || variant !in setOf("same", "different-id")) {
                 assertEquals("$format/$variant", 2, result.bestand.notizen.size)
                 assertEquals(file, result.bestand.notizen.first { it.id == "z-local" }.anhaenge.single())
                 continue
@@ -62,6 +62,18 @@ class PersonalSyncTest {
             assertEquals("applied", restored.second)
             assertEquals(file, restored.first.notizen.single().anhaenge.single())
             assertEquals("live", restored.first.personalSync.entities.getValue("attachment\u0000a-local\u0000file").state)
+            if (variant == "different-id") {
+                assertEquals(remoteFile.id, reverse.bestand.notizen.single().anhaenge.single().id)
+                val acknowledgedOther = PersonalSync.acknowledge(other.first, peer)
+                val removedOther = PapierkorbLogik.loescheAnhang(acknowledgedOther, "a-local", remoteFile.id, 2000)
+                val deletedOther = PersonalSync.reconcile(removedOther, setOf("notes"), format, peer, 2000).first
+                val proposalOther = PersonalSync.proposals(deletedOther, peer).single { it.kind == "attachment" }
+                assertEquals("file", proposalOther.id)
+                val restoredOther = PersonalSync.applyDeletionDecisions(deletedOther, listOf(
+                    AppliedPersonalDecision(proposalOther.proposal_id, "restore", proposalOther.clock)))
+                assertEquals("applied", restoredOther.second)
+                assertEquals(remoteFile.id, restoredOther.first.notizen.single().anhaenge.single().id)
+            }
         }
     }
 

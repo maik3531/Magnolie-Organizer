@@ -498,7 +498,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     return { name: String(objekt.name || ""), modified_ms: 0 };
   }
 
-  async function personalSyncAnhangSnapshot(anhang) {
+  async function personalSyncAnhangSnapshot(anhang, parent = "") {
     const daten = String(anhang.daten || anhang.data || "");
     const treffer = /^data:(image\/(?:jpeg|png|webp|gif)|application\/pdf);base64,([A-Za-z0-9+/]*={0,2})$/.exec(daten);
     if (!treffer) return null;
@@ -511,7 +511,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     const id = String(anhang.id || ""), name = String(anhang.name || "");
     if (!id || new TextEncoder().encode(id).length > 160 || !name ||
         new TextEncoder().encode(name).length > 720 || /[\x00-\x1f\x7f/\\]/.test(name)) return null;
-    return { descriptor: { attachment_id: id, name: name,
+    return { descriptor: { attachment_id: parent ? personalSyncAnhangId(parent, id) : id, name: name,
       kind: treffer[1] === "application/pdf" ? "pdf" : "image", mime: treffer[1],
       size: roh.length, sha256: digest }, source: { sha256: digest, data: daten } };
   }
@@ -705,9 +705,76 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     return text;
   }
 
-  function personalSyncNotizInhalt(value) {
+  function personalSyncAnhangId(parent, value) {
+    const canonical = personalSyncNotizId(parent), seen = new Set(); let id = value;
+    for (;;) {
+      const targets = Object.entries(DATEN.personalSync.attachment_aliases || {}).filter(([key]) => {
+        const parts = key.split("\u0000");
+        return parts.length === 2 && parts[1] === id && personalSyncNotizId(parts[0]) === canonical;
+      }).map(([, target]) => target);
+      if (!targets.length) return id;
+      if (seen.has(id) || targets.some(target => !personalSyncNotizIdGueltig(target) || personalSyncUtf8(target, id) >= 0))
+        throw new Error(_("Personal synchronization failed."));
+      seen.add(id); id = targets.sort(personalSyncUtf8)[0];
+    }
+  }
+
+  function personalSyncAnhangLokalId(parent, id) {
+    const canonical = personalSyncAnhangId(parent, id), local = personalSyncNotizLokalId(parent);
+    return DATEN.notizen.find(n => n.id === local)?.anhaenge?.find(a => personalSyncAnhangId(parent, a.id) === canonical)?.id ||
+      DATEN.papierkorb.slice().reverse().find(p => p.art === "attachment" && p.parent_id === local &&
+        personalSyncAnhangId(parent, p.eintrag.id) === canonical)?.eintrag.id || canonical;
+  }
+
+  function personalSyncAnhangPaare(left, right) {
+    const index = value => {
+      const rows = value.attachments || [];
+      const map = new Map(rows.map(row => [personalSyncKanonisch(Object.fromEntries(Object.entries(row)
+        .filter(([key]) => key !== "attachment_id"))), row]));
+      return map.size === rows.length ? map : null;
+    };
+    const a = index(left), b = index(right);
+    if (!a || !b || a.size !== b.size || [...a.keys()].some(key => !b.has(key))) return null;
+    const owners = new Map();
+    for (const [key, descriptor] of [...a, ...b]) {
+      const id = descriptor.attachment_id;
+      if (owners.has(id) && owners.get(id) !== key) return null;
+      owners.set(id, key);
+    }
+    return [...a].map(([key, value]) => [value, b.get(key)]);
+  }
+
+  function personalSyncAnhaengeZuordnen(parent, left, right) {
+    if (personalSyncNotizInhalt(left, true) !== personalSyncNotizInhalt(right, true)) return;
+    const pairs = personalSyncAnhangPaare(left, right);
+    if (!pairs || pairs.every(([a, b]) => a.attachment_id === b.attachment_id)) return;
+    const ps = DATEN.personalSync, prefix = "attachment\u0000" + parent + "\u0000";
+    if ((ps.pending_decisions || []).length || Object.entries(ps.entities).some(([key, meta]) =>
+        (key === "note\u0000" + parent || key.startsWith(prefix)) && (meta.state === "deleted" || meta.conflict)) ||
+        (ps.pending_proposals || []).some(p => p.kind === "attachment" && p.parent_id === parent || p.kind === "note" && p.id === parent) ||
+        (ps.restoration_requests || []).some(key => key === "note\u0000" + parent || key.startsWith(prefix))) return;
+    ps.attachment_aliases ||= Object.create(null);
+    for (const pair of pairs) {
+      const ids = pair.map(a => personalSyncAnhangId(parent, a.attachment_id)), canonical = ids.slice().sort(personalSyncUtf8)[0];
+      for (const id of ids) if (id !== canonical) ps.attachment_aliases[parent + "\u0000" + id] = canonical;
+    }
+    for (const descriptor of pairs.flat()) {
+      const previous = descriptor.attachment_id, id = personalSyncAnhangId(parent, previous);
+      if (id === previous || !ps.entities[prefix + previous]) continue;
+      const old = ps.entities[prefix + previous], target = ps.entities[prefix + id];
+      ps.entities[prefix + id] = {...old, clock: target ? personalSyncVereinige(old.clock, target.clock) : old.clock,
+        hash: target?.hash || "", acknowledged_by_peer:false};
+      delete ps.entities[prefix + previous];
+    }
+  }
+
+  function personalSyncNotizInhalt(value, ignoreAttachmentIds = false, parent = "") {
     const inhalt = Object.fromEntries(Object.entries(value)
       .filter(([feld]) => !["created_ms", "modified_ms"].includes(feld)));
+    if (Array.isArray(inhalt.attachments)) inhalt.attachments = inhalt.attachments.map(a => {
+      if (ignoreAttachmentIds) return Object.fromEntries(Object.entries(a).filter(([key]) => key !== "attachment_id"));
+      return parent ? {...a, attachment_id:personalSyncAnhangId(parent, a.attachment_id)} : a;
+    }).sort((a,b) => personalSyncUtf8(personalSyncKanonisch(a), personalSyncKanonisch(b)));
     if (typeof inhalt.notebook_id === "string") inhalt.notebook_id = personalSyncNotizId(inhalt.notebook_id, "notebook");
     if (typeof inhalt.text === "string" && typeof inhalt.html === "string") {
       const text = inhalt.text.replace(/\r\n?/g, "\n");
@@ -728,9 +795,10 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     const ps = DATEN.personalSync;
     let id = personalSyncNotizId(record.id), key = "note\u0000" + id;
     if (!ps.entities[key] && !Object.keys(ps.entities).some(k => k.startsWith("attachment\u0000" + id + "\u0000"))) {
-      const inhalt = personalSyncNotizInhalt(record.value);
+      const inhalt = personalSyncNotizInhalt(record.value, true);
       const kandidaten = [...eigeneWerte].filter(([k, value]) => k.startsWith("note\u0000") &&
-        ps.entities[k]?.state !== "deleted" && !ps.entities[k]?.conflict && personalSyncNotizInhalt(value) === inhalt)
+        ps.entities[k]?.state !== "deleted" && !ps.entities[k]?.conflict && personalSyncNotizInhalt(value, true) === inhalt &&
+        personalSyncAnhangPaare(value, record.value) !== null)
         .map(([k]) => ({ wire: k.slice(5), notiz: DATEN.notizen.find(n => personalSyncNotizWireId(n.id) === k.slice(5)) }))
         .filter(k => personalSyncNotizIdGueltig(k.wire) && k.notiz && (!k.notiz.baumFreigabe || k.notiz.persoenlichVerknuepft) &&
           (k.notiz.anhaenge || []).length === (record.value.attachments || []).length)
@@ -776,13 +844,15 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     for (const n of DATEN.notizen) {
       const inhalt = notizInhaltsKennung(n);
       if (inhalt === null || !personalSyncNotizIdGueltig(n.id)) continue;
-      const key = personalSyncKanonisch([n.notizbuchId, n.symbol, inhalt,
-        (n.anhaenge || []).map(a => a.id)]);
+      const key = personalSyncKanonisch([n.notizbuchId, n.symbol, inhalt]);
       if (!gruppen.has(key)) gruppen.set(key, []);
       gruppen.get(key).push(n);
     }
     for (const gruppe of gruppen.values()) {
       if (gruppe.length < 2 || new Set(gruppe.map(n => n.id)).size !== gruppe.length) continue;
+      const anhangWert = n => ({attachments:(n.anhaenge || []).map(a => ({attachment_id:
+        personalSyncAnhangId(personalSyncNotizWireId(n.id), a.id), name:a.name, art:a.art, daten:a.daten}))});
+      if (gruppe.some(n => !personalSyncAnhangPaare(anhangWert(gruppe[0]), anhangWert(n)))) continue;
       const offen = gruppe.findIndex(n => n.id === zustand.notizen.auswahlId);
       if (offen > 0) gruppe.unshift(gruppe.splice(offen, 1)[0]);
       const wires = new Set(gruppe.map(n => personalSyncNotizWireId(n.id)));
@@ -791,7 +861,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       const betrifft = key => { const teile = key.split("\u0000");
         return ["note", "attachment"].includes(teile[0]) && wires.has(personalSyncNotizId(teile[1])); };
       const metadaten = Object.entries(ps.entities).filter(([key]) => betrifft(key));
-      const anhangIds = new Set((gruppe[0].anhaenge || []).map(a => a.id));
+      const anhangIds = new Set(gruppe.flatMap(n => (n.anhaenge || []).map(a => personalSyncAnhangId(personalSyncNotizWireId(n.id), a.id))));
       if (metadaten.some(([key, m]) => m.state === "deleted" || m.conflict ||
           key.startsWith("attachment\u0000") && !anhangIds.has(key.split("\u0000")[2])) ||
           (ps.restoration_requests || []).some(betrifft) ||
@@ -839,6 +909,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       for (const wire of wires) if (wire !== canonical) ps.note_aliases[wire] = canonical;
       for (const [key] of metadaten) delete ps.entities[key];
       for (const [key, meta] of neuMeta) ps.entities[key] = meta;
+      for (const n of gruppe.slice(1)) personalSyncAnhaengeZuordnen(canonical, anhangWert(bleibt), anhangWert(n));
       for (const n of gruppe.slice(1)) {
         entfernt.add(n);
         if (zustand.notizen.auswahlId === n.id) zustand.notizen.auswahlId = bleibt.id;
@@ -872,7 +943,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     if (format >= 2 && module.includes("notes")) for (const notiz of DATEN.notizen) {
       if (!personalSyncEigeneNotiz(notiz)) continue;
       for (const anhang of (notiz.anhaenge || [])) anhangVorhanden.add(
-        "attachment\u0000" + personalSyncNotizWireId(notiz.id) + "\u0000" + anhang.id);
+        "attachment\u0000" + personalSyncNotizWireId(notiz.id) + "\u0000" + personalSyncAnhangId(personalSyncNotizWireId(notiz.id), anhang.id));
     }
     const erlaubte = new Set(module.includes("notes") ? ["note", "notebook"] : []);
     if (module.includes("tasks")) erlaubte.add("task");
@@ -904,7 +975,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       if (format >= 2 && art === "note") {
         const anhaenge = [];
         for (const anhang of (Array.isArray(objekt.anhaenge) ? objekt.anhaenge : [])) {
-          const snapshot = await personalSyncAnhangSnapshot(anhang);
+          const snapshot = await personalSyncAnhangSnapshot(anhang, id);
           if (snapshot) anhaenge.push(snapshot);
         }
         wert.attachments = anhaenge.slice(0, 64).map((x) => x.descriptor);
@@ -929,9 +1000,9 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     if (format >= 2 && module.includes("notes")) for (const notiz of DATEN.notizen) {
       if (!personalSyncEigeneNotiz(notiz)) continue;
       for (const anhang of (notiz.anhaenge || [])) {
-        const snapshot = await personalSyncAnhangSnapshot(anhang); if (!snapshot) continue;
         const parentId = personalSyncNotizWireId(notiz.id);
-        const key = "attachment\u0000" + parentId + "\u0000" + anhang.id;
+        const snapshot = await personalSyncAnhangSnapshot(anhang, parentId); if (!snapshot) continue;
+        const key = "attachment\u0000" + parentId + "\u0000" + snapshot.descriptor.attachment_id;
         const hash = await personalSyncHash(snapshot.descriptor), alt = ps.entities[key];
         if (alt && alt.state === "deleted") continue;
         if (!alt || alt.hash !== hash) {
@@ -988,14 +1059,15 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
 
   function personalSyncEntscheidungAnwenden(vorschlag, entscheidung, konfliktErlaubt = false) {
     if (["note", "notebook"].includes(vorschlag.kind) && personalSyncNotizId(vorschlag.id, vorschlag.kind) !== vorschlag.id ||
-        vorschlag.kind === "attachment" && personalSyncNotizId(vorschlag.parent_id) !== vorschlag.parent_id) return "conflict";
+        vorschlag.kind === "attachment" && (personalSyncNotizId(vorschlag.parent_id) !== vorschlag.parent_id ||
+          personalSyncAnhangId(vorschlag.parent_id, vorschlag.id) !== vorschlag.id)) return "conflict";
     const key = vorschlag.kind + "\u0000" + (vorschlag.kind === "attachment" ?
       vorschlag.parent_id + "\u0000" : "") + vorschlag.id;
     const meta = DATEN.personalSync.entities[key];
     const liste = vorschlag.kind === "note" ? DATEN.notizen : vorschlag.kind === "task" ?
       DATEN.aufgaben : DATEN.notizbuecher;
     const parent = vorschlag.kind === "attachment" && DATEN.notizen.find((x) => x.id === personalSyncNotizLokalId(vorschlag.parent_id));
-    const lebend = vorschlag.kind === "attachment" ? parent && (parent.anhaenge || []).find((x) => x.id === vorschlag.id) :
+    const lebend = vorschlag.kind === "attachment" ? parent && (parent.anhaenge || []).find((x) => x.id === personalSyncAnhangLokalId(vorschlag.parent_id, vorschlag.id)) :
       liste.find((x) => x.id === (["note", "notebook"].includes(vorschlag.kind) ? personalSyncNotizLokalId(vorschlag.id, vorschlag.kind) : vorschlag.id));
     if (entscheidung === "delete" && (!meta || meta.state === "deleted" ||
         meta.hash !== vorschlag.prior_hash || personalSyncKanonisch(meta.clock || []) !==
@@ -1005,7 +1077,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       if (vorschlag.kind === "notebook" && DATEN.notizen.some((x) => x.notizbuchId === lebend.id)) return "blocked";
       inDenPapierkorb(vorschlag.kind, lebend, lebend.titel || lebend.name,
         vorschlag.kind === "attachment" ? parent.id : vorschlag.parent_id, {});
-      if (vorschlag.kind === "attachment") parent.anhaenge = parent.anhaenge.filter((x) => x.id !== vorschlag.id);
+      if (vorschlag.kind === "attachment") parent.anhaenge = parent.anhaenge.filter((x) => x.id !== lebend.id);
       else liste.splice(liste.indexOf(lebend), 1);
       DATEN.personalSync.entities[key] = { clock: vorschlag.clock, hash: "", modified_ms: 0,
         state: "deleted", peer_device_id: vorschlag.source_device, prior_hash: vorschlag.prior_hash,
@@ -1055,7 +1127,8 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       let stueck = null;
       if (entscheidung.decision === "restore") {
         const teile = fund[0].split("\u0000"), art = teile[0];
-        const id = ["note", "notebook"].includes(art) ? personalSyncNotizLokalId(teile[1], art) : teile[teile.length - 1];
+        const id = ["note", "notebook"].includes(art) ? personalSyncNotizLokalId(teile[1], art) :
+          art === "attachment" ? personalSyncAnhangLokalId(teile[1], teile[2]) : teile[teile.length - 1];
         stueck = DATEN.papierkorb.slice().reverse().find((x) => x.art === art &&
           x.eintrag && x.eintrag.id === id && (art !== "attachment" || x.parent_id === personalSyncNotizLokalId(teile[1])));
         if (!stueck) return "restore_unavailable";
@@ -1130,10 +1203,11 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
         angelegt: v.created_ms, personalGeaendert: v.modified_ms });
       neu.anhaenge = (alt?.anhaenge || []).map(anhang => ({ ...anhang }));
       if (Array.isArray(v.attachments)) {
-        const fern = v.attachments.map((x) => ({ id: x.attachment_id, name: x.name, art: x.kind,
+        const fern = v.attachments.map((x) => ({ id: personalSyncAnhangLokalId(personalSyncNotizWireId(id), x.attachment_id), name: x.name, art: x.kind,
           daten: attachmentData[x.sha256] })).filter((x) => typeof x.daten === "string");
         if (fern.length !== v.attachments.length) throw new Error(_("Personal synchronization failed."));
-        if (nurFern) neu.anhaenge = fern;
+        if (nurFern || neu.anhaenge.length === fern.length && fern.every(a => neu.anhaenge.some(b =>
+            b.id === a.id && b.name === a.name && b.art === a.art && b.daten === a.daten))) neu.anhaenge = fern;
         else for (const anhang of fern) {
           const gleich = neu.anhaenge.find((x) => x.id === anhang.id);
           if (!gleich) neu.anhaenge.push(anhang);
@@ -1191,6 +1265,8 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       if (eingang.kind === "note" && DATEN.notizen.some(n => !personalSyncEigeneNotiz(n) &&
           (n.id === eingang.id || personalSyncNotizWireId(n.id) === personalSyncNotizId(eingang.id)))) { konflikte++; continue; }
       const record = personalSyncNotizZuordnen(eingang, eigeneWerte);
+      if (record.kind === "note" && eigeneWerte.has("note\u0000" + record.id))
+        personalSyncAnhaengeZuordnen(record.id, eigeneWerte.get("note\u0000" + record.id), record.value);
       const key = record.kind + "\u0000" + record.id, lokal = DATEN.personalSync.entities[key];
       if (lokal && lokal.state === "deleted") continue;
       if (!lokal) { personalSyncSetze(record, record.id, true, attachmentData); DATEN.personalSync.entities[key] = {
@@ -1209,7 +1285,8 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
           modified_ms: record.modified_ms, conflict: false }; eigeneWerte.set(key, record.value); continue;
       }
       if (["note", "notebook"].includes(record.kind) && eigeneWerte.has(key)) {
-        if (personalSyncNotizInhalt(eigeneWerte.get(key)) === personalSyncNotizInhalt(record.value)) {
+        if (personalSyncNotizInhalt(eigeneWerte.get(key), false, record.kind === "note" ? record.id : "") ===
+            personalSyncNotizInhalt(record.value, false, record.kind === "note" ? record.id : "")) {
           const remoteWins = record.hash < lokal.hash;
           if (remoteWins) { personalSyncSetze(record, record.id, false, attachmentData); eigeneWerte.set(key, record.value); }
           DATEN.personalSync.entities[key] = { ...lokal, clock: personalSyncVereinige(lokal.clock, record.clock),
@@ -4645,7 +4722,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
 
   function personalSyncNachWiederherstellung(art, id, parentId) {
     if (["note", "notebook"].includes(art)) id = personalSyncNotizWireId(id, art);
-    if (art === "attachment") parentId = personalSyncNotizWireId(parentId);
+    if (art === "attachment") { parentId = personalSyncNotizWireId(parentId); id = personalSyncAnhangId(parentId, id); }
     const key = art + "\u0000" + (art === "attachment" ? parentId + "\u0000" : "") + id;
     const meta = DATEN.personalSync && DATEN.personalSync.entities[key];
     if (!meta || meta.state !== "deleted") return;
@@ -6598,6 +6675,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       note_aliases: Object.assign(Object.create(null), ps.note_aliases && typeof ps.note_aliases === "object" && !Array.isArray(ps.note_aliases) ? kopie(ps.note_aliases) : {}),
       notebook_ids: Object.assign(Object.create(null), ps.notebook_ids && typeof ps.notebook_ids === "object" && !Array.isArray(ps.notebook_ids) ? kopie(ps.notebook_ids) : {}),
       notebook_aliases: Object.assign(Object.create(null), ps.notebook_aliases && typeof ps.notebook_aliases === "object" && !Array.isArray(ps.notebook_aliases) ? kopie(ps.notebook_aliases) : {}),
+      attachment_aliases: Object.assign(Object.create(null), ps.attachment_aliases && typeof ps.attachment_aliases === "object" && !Array.isArray(ps.attachment_aliases) ? kopie(ps.attachment_aliases) : {}),
       last_reports: Array.isArray(ps.last_reports) ? ps.last_reports.slice(-20) : [],
       applied_batches: Array.isArray(ps.applied_batches) ? ps.applied_batches.slice(-500) : [],
       last_auto_ms: Math.max(0, Math.floor(N(ps.last_auto_ms))),
