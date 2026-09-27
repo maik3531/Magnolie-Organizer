@@ -4764,6 +4764,15 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     const liste = listen[stueck.art];
     if (!liste) return false;
     const eintrag = JSON.parse(JSON.stringify(stueck.eintrag));
+    if (stueck.art === "duplicate" && DATEN.kontakte.some(k =>
+        (k.kontaktAliase?.ids || []).includes(eintrag.id) ||
+        (k.kontaktAliase?.uids || []).includes(eintrag.uid))) {
+      // A merged identity and its remote bindings now belong to the survivor.
+      // Restore the archived fields as a separate local card, never as a second writer.
+      eintrag.id = uid(); eintrag.uid = syncUid(); eintrag.sync = false;
+      for (const feld of ["syncQuellen", "syncKonflikte", "baumKontakt", "kontaktAliase",
+          "importBindungen", "importHerkunfte"]) delete eintrag[feld];
+    }
     if (stueck.art === "task" && eintrag.elternUid &&
         !DATEN.aufgaben.some((x) => x.uid === eintrag.elternUid)) {
       eintrag.elternUid = "";

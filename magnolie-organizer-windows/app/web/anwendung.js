@@ -4576,6 +4576,15 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     const liste = listen[stueck.art];
     if (!liste) return false;
     const eintrag = JSON.parse(JSON.stringify(stueck.eintrag));
+    if (stueck.art === "duplicate" && DATEN.kontakte.some(k =>
+        (k.kontaktAliase?.ids || []).includes(eintrag.id) ||
+        (k.kontaktAliase?.uids || []).includes(eintrag.uid))) {
+      // A merged identity and its remote bindings now belong to the survivor.
+      // Restore the archived fields as a separate local card, never as a second writer.
+      eintrag.id = uid(); eintrag.uid = syncUid(); eintrag.sync = false;
+      for (const feld of ["syncQuellen", "syncKonflikte", "baumKontakt", "kontaktAliase",
+          "importBindungen", "importHerkunfte"]) delete eintrag[feld];
+    }
     if (stueck.art === "task" && eintrag.elternUid &&
         !DATEN.aufgaben.some((x) => x.uid === eintrag.elternUid)) {
       eintrag.elternUid = "";
@@ -20986,10 +20995,14 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     registriereModal(schleier, dialog, { anfang: zielWahl, schliessen: abbrechen });
   }
 
-  function oeffneSyncKontaktKonflikt(id, source) {
+  function oeffneSyncKontaktKonflikt(id, source, duplicateId = "") {
     if (gesperrt || syncLaeuft || aktiverEditor || document.querySelector(".sync-kontakt-konflikt")) return;
-    const bestand = DATEN, ziel = DATEN.kontakte.find(k => k.id === id), konflikt = ziel?.syncKonflikte?.[source];
-    if (!konflikt?.kontakt || !konflikt.mapping?.id || !konflikt.mapping?.etag) return;
+    const bestand = DATEN, ziel = DATEN.kontakte.find(k => k.id === id);
+    const duplikat = duplicateId ? DATEN.kontakte.find(k => k.id === duplicateId) : null;
+    if (duplicateId && (!duplikat || duplikat === ziel)) return;
+    const konflikt = duplikat ? {kontakt:duplikat} : ziel?.syncKonflikte?.[source];
+    if (!ziel || !konflikt?.kontakt || !duplikat && (!konflikt.mapping?.id || !konflikt.mapping?.etag)) return;
+    const duplikatRevision = duplikat ? kanonischerEntwurf(duplikat) : "";
     const revision = kanonischerEntwurf(ziel), karte = normalisiere({kontakte:[konflikt.kontakt]}).kontakte[0];
     if (!karte) return;
     const schleier = el("div", "eingabe-schleier sync-kontakt-konflikt"), dialog = el("section", "eingabe-dialog");
@@ -21048,12 +21061,23 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       felder.append(formZeile(zusatzTitel[feld],wahl),details);
     }
     const schliessen=()=>{beendeModal(schleier);schleier.remove();};
-    const gueltig=()=>DATEN===bestand&&!gesperrt&&!syncLaeuft&&DATEN.kontakte.includes(ziel)&&kanonischerEntwurf(ziel)===revision;
+    const gueltig=()=>DATEN===bestand&&!gesperrt&&!syncLaeuft&&DATEN.kontakte.includes(ziel)&&kanonischerEntwurf(ziel)===revision&&
+      (!duplikat || DATEN.kontakte.includes(duplikat) && kanonischerEntwurf(duplikat)===duplikatRevision);
     const knoepfe=el("div","dialog-knoepfe");
     for(const [modus,label] of [["keep",_("Keep existing")],["merge",_("Merge")],["replace",_("Replace completely")]]) {
       const button=knopf(label,modus==="merge"?"hauptknopf":"",()=>{
         try {
           if(!gueltig())throw new Error(_("Conflict"));
+          if (duplikat && (Object.keys(ziel.syncKonflikte || {}).length || Object.keys(duplikat.syncKonflikte || {}).length))
+            throw new Error(_("Conflict"));
+          if (duplikat && ziel.baumKontakt && duplikat.baumKontakt &&
+              ziel.baumKontakt.freigabeId !== duplikat.baumKontakt.freigabeId) throw new Error(_("Conflict"));
+          if (duplikat) for (const [quelle,bindung] of Object.entries(duplikat.syncQuellen || {})) {
+            const bisher=ziel.syncQuellen?.[quelle];
+            if (bisher?.id && bindung?.id && bisher.id!==bindung.id &&
+                (!/^(?:nextcloud|generic-dav|thunderbird)-addressbook:/.test(quelle) || !bisher.etag || !bindung.etag))
+              throw new Error(_("Conflict"));
+          }
           const entwurf=baumKontaktEntwurf(ziel,karte,auswahl,modus);
           if(modus==="replace")entwurf.vcardRoundtrip=kopie(karte.vcardRoundtrip||[]);
           for (const feld of Object.keys(zusatzWahl)) if (modus === "replace" || modus === "merge" && zusatzWahl[feld] === "incoming")
@@ -21064,17 +21088,51 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
               if(entwurf[feld]!==undefined)ziel[feld]=kopie(entwurf[feld]);
             for(const regel of Object.values(BAUM_KONTAKT_LISTEN))regel.setzen(ziel,regel.lesen(entwurf));
             setzeKontaktpersonen(ziel,kontaktpersonenListe(entwurf));setzeSozialeMedien(ziel,sozialeMedienListe(entwurf));
-            ziel.syncQuellen ||= {};ziel.syncQuellen[source]=kopie(konflikt.mapping);
-            delete ziel.syncKonflikte[source];if(!Object.keys(ziel.syncKonflikte).length)delete ziel.syncKonflikte;
+            ziel.syncQuellen ||= {};
+            if (duplikat) {
+              inDenPapierkorb("duplikat",duplikat,kontaktName(duplikat));
+              for (const [quelle,bindung] of Object.entries(duplikat.syncQuellen || {})) {
+                const bisher=ziel.syncQuellen[quelle];
+                if (!bisher?.id) {ziel.syncQuellen[quelle]=kopie(bindung);continue;}
+                if (!bindung?.id || bisher.id===bindung.id) continue;
+                const originalBevorzugen=String(ziel.uid||"").startsWith("mag-")&&!String(duplikat.uid||"").startsWith("mag-");
+                const entfernen=originalBevorzugen?bisher:bindung;
+                if(originalBevorzugen)ziel.syncQuellen[quelle]=kopie(bindung);
+                DATEN.geloescht.kontakte.push({uid:syncUid(),zeit:Date.now(),syncQuellen:{[quelle]:kopie(entfernen)}});
+              }
+              if(!ziel.baumKontakt && duplikat.baumKontakt)ziel.baumKontakt=kopie(duplikat.baumKontakt);
+              else if(ziel.baumKontakt && duplikat.baumKontakt){
+                ziel.baumKontakt.partner=[...new Set([...(ziel.baumKontakt.partner||[]),...(duplikat.baumKontakt.partner||[])])];
+                ziel.baumKontakt.staende=[...new Set([...(ziel.baumKontakt.staende||[]),...(duplikat.baumKontakt.staende||[])])];
+              }
+              ziel.importBindungen=[...new Set([...(ziel.importBindungen||[]),...(duplikat.importBindungen||[])].filter(wert=>typeof wert==="string"&&wert))];
+              ziel.importHerkunfte=[...new Set([...(ziel.importHerkunfte||[]),...(duplikat.importHerkunfte||[])])];
+              ziel.kontaktAliase={ids:[...new Set([...(ziel.kontaktAliase?.ids||[]),...(duplikat.kontaktAliase?.ids||[]),duplikat.id])],
+                uids:[...new Set([...(ziel.kontaktAliase?.uids||[]),...(duplikat.kontaktAliase?.uids||[]),duplikat.uid].filter(Boolean))]};
+              DATEN.kontakte=DATEN.kontakte.filter(k=>k!==duplikat);
+              normalisiereKontaktVerweise(DATEN);
+              if(offenerSmsChat?.kontaktId===duplikat.id)offenerSmsChat.kontaktId=ziel.id;
+            } else {
+              ziel.syncQuellen[source]=kopie(konflikt.mapping);
+              delete ziel.syncKonflikte[source];if(!Object.keys(ziel.syncKonflikte).length)delete ziel.syncKonflikte;
+            }
             ziel.geaendert=Date.now();verknuepfeKontaktGeburtstag(ziel);verknuepfeKontaktJubilaeum(ziel);
             schliessen();planeSpeichern();zeichneAlles();
+            if (duplikat) nachDauerhaftemSpeichern(() => {
+              if (DATEN !== bestand || gesperrt || aktiverEditor) return;
+              const gruppe = findeDubletten()[0];
+              if (gruppe) {
+                const behalten = gruppe.find(k => k.baumKontakt) || gruppe[0];
+                oeffneSyncKontaktKonflikt(behalten.id,source,gruppe.find(k => k !== behalten).id);
+              }
+            });
           },error=>{fehler.textContent=String(error.message||error);});
         } catch(error){fehler.textContent=String(error.message||error);}
       });
       button.dataset.syncKontaktEntscheidung=modus;knoepfe.append(button);
     }
     knoepfe.append(knopf(_("Cancel"),"",schliessen));
-    dialog.append(el("h2",null,_("Conflict")+" · "+kontaktName(ziel)),
+    dialog.append(el("h2",null,(duplikat?_("Merge duplicate contact cards"):_("Conflict"))+" · "+kontaktName(ziel)),
       el("p",null,_("Contacts with different information were found. How would you like to proceed?")),felder,fehler,knoepfe);
     schleier.append(dialog);document.body.append(schleier);
     registriereModal(schleier,dialog,{anfang:knoepfe.querySelector("button"),schliessen});
@@ -23302,6 +23360,12 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     const gruppen = findeDubletten();
     if (!gruppen.length) {
       zettel(_("No duplicate contact cards were found."));
+      return;
+    }
+    if (kontaktSyncPruefungMoeglich) {
+      const gruppe=gruppen[0], ziel=gruppe.find(k=>k.baumKontakt)||gruppe[0];
+      const anderer=gruppe.find(k=>k!==ziel);
+      oeffneSyncKontaktKonflikt(ziel.id,DATEN.einstellungen.sync.adressbuchUid||"",anderer.id);
       return;
     }
     const betroffen = gruppen.reduce((s, g) => s + g.length, 0);
