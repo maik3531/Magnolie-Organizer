@@ -6,10 +6,18 @@ from pathlib import Path
 import subprocess
 import sys
 import tempfile
+import re
+import xml.etree.ElementTree as ET
 
 
 ROOT = Path(__file__).resolve().parents[1]
 APP_ID = "io.gitlab.maik3531.MagnolieOrganizer"
+VERSION = re.search(r"\(([^)]+)\)", (ROOT / "debian/changelog").read_text().splitlines()[0])[1]
+def check_appstream(data):
+    release = ET.fromstring(data).find("releases/release")
+    assert release is not None and release.get("version") == VERSION, "AppStream exposes a stale version in software managers"
+
+check_appstream((ROOT / "magnolie-organizer.appdata.xml").read_bytes())
 manifest = json.loads((ROOT / "flatpak" / f"{APP_ID}.json").read_text(encoding="utf-8"))
 
 assert manifest["app-id"] == APP_ID
@@ -58,8 +66,11 @@ def bundle_commit(bundle):
             [*ostree, f"--repo={repo}", "refs"], text=True).splitlines()
         ref = f"app/{APP_ID}/x86_64/stable"
         assert ref in refs
-        return subprocess.check_output(
+        commit = subprocess.check_output(
             [*ostree, f"--repo={repo}", "rev-parse", ref], text=True).strip()
+        check_appstream(subprocess.check_output([*ostree, f"--repo={repo}", "cat", commit,
+            f"/files/share/metainfo/{APP_ID}.metainfo.xml"]))
+        return commit
 
 
 if len(sys.argv) > 1:
