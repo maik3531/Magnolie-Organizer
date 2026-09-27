@@ -790,6 +790,48 @@ def _gesamtarchiv_kanonisch(wert):
                       separators=(",", ":"), allow_nan=False).encode("utf-8")
 
 
+class BaumSyncSnapshot:
+    """Reuse a run's recovery point only across exactly acknowledged states."""
+    def __init__(self):
+        self.run = self.peer = self.after = self.ack = ""
+        self.snapshotted = False
+        self.expires = 0
+
+    @staticmethod
+    def fingerprint(data):
+        return hashlib.sha256(json.dumps(data, ensure_ascii=False, sort_keys=True,
+            separators=(",", ":"), allow_nan=False).encode("utf-8")).hexdigest()
+
+    @staticmethod
+    def valid(proof):
+        return (isinstance(proof, dict) and isinstance(proof.get("run"), str) and
+            re.fullmatch(r"[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}", proof["run"]) is not None and
+            isinstance(proof.get("peer"), str) and 0 < len(proof["peer"]) <= 256 and
+            not any(ord(c) < 32 or ord(c) == 127 for c in proof["peer"]) and
+            isinstance(proof.get("before", ""), str) and
+            (not proof.get("before") or re.fullmatch(r"[0-9a-fA-F]{64}", proof["before"]) is not None))
+
+    def covers(self, previous, proof, now):
+        return bool(self.valid(proof) and self.snapshotted and now < self.expires and
+            self.run == proof["run"] and self.peer == proof["peer"] and
+            self.after == self.fingerprint(previous) and self.ack == proof.get("before"))
+
+    def saved(self, previous, proposed, text, proof, changed, covered, now):
+        same = self.after == self.fingerprint(previous)
+        if self.valid(proof) and (not proof.get("before") or proof["before"] == self.ack):
+            if not covered:
+                self.expires = now + 600
+            self.run, self.peer = proof["run"], proof["peer"]
+            self.snapshotted = bool(changed or covered)
+            self.after = self.fingerprint(proposed)
+        elif proof is None and not changed and same and now < self.expires:
+            self.after = self.fingerprint(proposed)
+        else:
+            self.run = self.peer = self.after = ""
+            self.snapshotted = False
+        self.ack = hashlib.sha256(text.encode("utf-8")).hexdigest()
+
+
 def journal_inhalt_geaendert(vorher, nachher):
     """Nur Inhaltsänderungen lösen einen automatischen Vorher-Stand aus."""
     betriebsfelder = {"einstellungen", "letzterSync", "letzteSyncs", "syncStatus",
@@ -19333,7 +19375,7 @@ class Fenster(_FENSTER_BASIS):
                     "id": kennung, "ok": False,
                     "fehler": _("The save request is invalid.")})
                 return
-            self._speicher_auftraege.put((kennung, klartext))
+            self._speicher_auftraege.put((kennung, klartext, nachricht.get("baumSyncLauf")))
 
         elif befehl == "cloud_sicherung_status":
             self._cloud_sicherung_status()
@@ -20263,7 +20305,8 @@ class Fenster(_FENSTER_BASIS):
             if auftrag is None:
                 self._speicher_auftraege.task_done()
                 return
-            kennung, klartext = auftrag
+            kennung, klartext, *nachweise = auftrag
+            proof = nachweise[0] if nachweise else None
             self._speicher_laeuft = True
             warnung = ""
             try:
@@ -20279,8 +20322,13 @@ class Fenster(_FENSTER_BASIS):
                     epoch = (self._aktuelle_daten or {}).get("syncEpoch")
                     if epoch and daten.get("syncEpoch") != epoch:
                         raise ValueError(_("The save request is invalid."))
-                    if (isinstance(self._aktuelle_daten, dict) and
-                            journal_inhalt_geaendert(self._aktuelle_daten, daten)):
+                    lease = getattr(self, "_baum_sync_snapshot", None)
+                    if lease is None:
+                        lease = self._baum_sync_snapshot = BaumSyncSnapshot()
+                    previous = self._aktuelle_daten
+                    changed = isinstance(previous, dict) and journal_inhalt_geaendert(previous, daten)
+                    covered = lease.covers(previous, proof, time.monotonic())
+                    if changed and not covered:
                         self._journal_snapshot("pre-change")
                     gespeichert = self._vielleicht_verschluesseln(klartext)
                     try:
@@ -20297,6 +20345,7 @@ class Fenster(_FENSTER_BASIS):
                             raise
                         warnung = fehler_deutsch(fehler, _("Saving the data"))
                     self._aktuelle_daten = daten
+                    lease.saved(previous, daten, klartext, proof, changed, covered, time.monotonic())
                     if not warnung:
                         try:
                             if erinnerungsdaten_schreiben(kennwort=getattr(self, "_kennwort", ""),
@@ -20306,7 +20355,8 @@ class Fenster(_FENSTER_BASIS):
                         except Exception as fehler:
                             warnung = fehler_deutsch(fehler, _("Reminders"))
                 ergebnis = {"id": kennung, "ok": True, "committed": True,
-                            "repairPending": bool(warnung), "fehler": warnung}
+                            "repairPending": bool(warnung), "fehler": warnung,
+                            "standSha256": lease.ack}
             except Exception as fehler:
                 sys.stderr.write(_("Saving failed: %s") % fehler + "\n")
                 self._beenden_angefragt = False

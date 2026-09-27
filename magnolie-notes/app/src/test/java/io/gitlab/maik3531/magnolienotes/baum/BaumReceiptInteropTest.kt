@@ -55,6 +55,81 @@ class BaumReceiptInteropTest {
     @Test fun freshWindowsAndroidLegacyReceiptBothDirectionsAndFaults() = cross("windows")
     @Test fun freshLinuxAndroidLegacyReceiptBothDirectionsAndFaults() = cross("linux")
 
+    @Test fun threeBackendsExchangeEquivalentNotesAcrossNetworkAndRestart() {
+        assumeTrue("Explicit cross-platform fixture gate", System.getenv("MAGNOLIE_RECEIPT_INTEROP") == "1")
+        val root = kotlin.io.path.createTempDirectory("baum-three-notes-").toFile()
+        val androidDir = File(root, "android").apply { mkdirs() }
+        val context = object : ContextWrapper(ApplicationProvider.getApplicationContext<Context>()) {
+            override fun getApplicationContext(): Context = this
+            override fun getFilesDir(): File = androidDir
+        }
+        val key = SecretKeySpec(ByteArray(32) { 72 }, "AES")
+        val snapshots = AtomicInteger()
+        val before = { snapshots.incrementAndGet(); Unit }
+        fun load() = Ablage.fuerTest(context, { key }, {}, before)
+        var data = load()
+        val keys = Krypto.neuesSchluesselpaar()
+        val own = EigeneIdentitaet("android", "Owned Android", Krypto.b64(keys.second), Krypto.b64(keys.first), 8737)
+        data.setzeBaum(Baumzustand(kennung = own.kennung, name = own.name, geheim = own.geheim,
+            oeffentlich = own.oeffentlich, dienstAn = true))
+        lateinit var server: Server
+        lateinit var work: Baumwerk
+        fun serve() {
+            work = Baumwerk.fuerTest(data, context, before)
+            server = Server(work, 0); check(server.starten())
+        }
+        serve()
+        val hosts = listOf("linux", "windows").map { platform -> Host(platform, File(root, platform).apply { mkdirs() }) {
+            buildJsonObject { put("id", own.kennung); put("public", own.oeffentlich); put("port", server.port) }
+        } }
+        fun startHosts() {
+            hosts.forEach { it.start() }
+            data.aendereBaum { old -> old.copy(partner = hosts.map { host ->
+                val id = host.info.getValue("id").jsonPrimitive.content
+                (old.partner.firstOrNull { it.kennung == id } ?: Partner(id, "Owned " + host.platform,
+                    host.info.getValue("public").jsonPrimitive.content, bestaetigt = true, vertraut = true, protokoll = "baum-1"))
+                    .copy(adresse = "127.0.0.1", port = host.info.getValue("port").jsonPrimitive.int)
+            }) }
+        }
+        fun send(host: Host, index: Int, version: Int, run: String, text: String = "Content $index") {
+            val body = buildJsonObject {
+                put("freigabeId", host.platform + "-note-" + index)
+                put("quelle", host.info.getValue("id")); put("version", version); put("geaendert", version * 1000)
+                put("titel", "Network note $index"); put("text", text); put("html", ""); put("anhaenge", JsonArray(emptyList()))
+                put("syncLauf", run)
+            }
+            assertTrue(host.command("send", "kind" to JsonPrimitive("notiz"), "body" to body)
+                .getValue("outbox").jsonArray.isEmpty())
+        }
+        try {
+            startHosts()
+            for (round in 1..3) for (host in hosts) {
+                val run = UUID.randomUUID().toString()
+                for (index in 0..9) send(host, index, round, run)
+                assertEquals(10, data.notizen().size)
+            }
+            assertEquals(1, snapshots.get())
+            assertTrue(data.notizen().all { it.baumFreigabe!!.quellen.size == 2 })
+            val localIds = data.notizen().map { it.id }.toSet()
+            hosts.forEach { it.close() }; server.anhalten(); data = load(); serve(); startHosts()
+            for (host in hosts) {
+                val run = UUID.randomUUID().toString()
+                for (index in 0..9) send(host, index, 4, run)
+            }
+            assertEquals(localIds, data.notizen().map { it.id }.toSet())
+            assertEquals(1, snapshots.get())
+            val edited = data.notizen().first { it.titel == "Network note 0" }
+            data.sichereNotiz(edited.copy(text = "Local change"))
+            send(hosts.first(), 0, 5, UUID.randomUUID().toString(), "Competing remote change")
+            assertEquals("Local change", data.notiz(edited.id)!!.text)
+            val conflict = data.baum.value.eingang.single()
+            work.eingangAnnehmen(conflict.id)
+            assertEquals("Competing remote change", data.notiz(edited.id)!!.text)
+            assertEquals(2, snapshots.get())
+            assertEquals(10, data.notizen().size)
+        } finally { hosts.forEach { it.close() }; server.anhalten(); root.deleteRecursively() }
+    }
+
     private fun cross(platform: String) {
         assumeTrue("Explicit cross-platform fixture gate", System.getenv("MAGNOLIE_RECEIPT_INTEROP") == "1")
         for (mode in listOf("normal", "unsigned", "wrong-mac", "wrong-binding", "lost")) {

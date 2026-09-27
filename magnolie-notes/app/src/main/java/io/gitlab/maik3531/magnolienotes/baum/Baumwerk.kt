@@ -26,6 +26,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.jsonObject
 import java.util.UUID
 import io.gitlab.maik3531.magnolienotes.journal.AndroidJournal
@@ -38,11 +39,22 @@ class Baumwerk private constructor(
     private val ablage: Ablage,
     private val zusammenhang: Context,
     private val notizSnapshotVorher: () -> Unit = {
-        AndroidJournal.hole(zusammenhang).appSnapshot("pre-sync-note")
+        AndroidJournal.hole(zusammenhang).appSnapshot("pre-sync")
     }
 ) : Server.Handlung {
 
     private val server = Server(this)
+    private data class EmpfangSnapshot(val peer: String, val run: String,
+        val after: io.gitlab.maik3531.magnolienotes.daten.Bestand, val expires: Long, val gesichert: Boolean)
+    private class AktuellerSnapshot(var gesichert: Boolean)
+    private var empfangSnapshot: EmpfangSnapshot? = null
+    private val aktuellerSnapshot = ThreadLocal<AktuellerSnapshot>()
+    private fun sichereEmpfangSnapshot() {
+        val lauf = aktuellerSnapshot.get()
+        if (lauf?.gesichert == true) return
+        notizSnapshotVorher()
+        if (lauf != null) lauf.gesichert = true
+    }
     private val codeFenster = CodePaarungsFenster()
     private var bluetooth: BluetoothHorcher? = null
     @Volatile private var dienstLaeuft = false
@@ -688,15 +700,17 @@ class Baumwerk private constructor(
         val plan = Synchronisation.planen(
             ablage.notizen(), ablage.aufgaben(), kennung, eigen.kennung, jetzt, mitAnfrage
         )
+        val syncLauf = UUID.randomUUID().toString()
         for (vorbereitet in plan.notizen) {
             val vorher = ablage.notiz(vorbereitet.notiz.id)
             if (vorbereitet.notiz != vorher) ablage.setzeNotiz(vorbereitet.notiz)
             NotizQuellen.inhalte(vorbereitet.notiz, vorbereitet.art, eigen.kennung, kennung)
-                .forEach { einreihen(kennung, vorbereitet.art, it) }
+                .forEach { einreihen(kennung, vorbereitet.art, JsonObject(it + ("syncLauf" to JsonPrimitive(syncLauf)))) }
         }
         for (aufgabe in plan.aufgaben) {
             ablage.setzeAufgabe(aufgabe.copy(standPartner = (aufgabe.standPartner + kennung).distinct()))
-            einreihen(kennung, "aufgabe", Nutzlast.aufgabeInhalt(aufgabe, eigen.kennung))
+            einreihen(kennung, "aufgabe", JsonObject(Nutzlast.aufgabeInhalt(aufgabe, eigen.kennung) +
+                ("syncLauf" to JsonPrimitive(syncLauf))))
         }
         if (plan.syncAnfrage) einreihen(kennung, "sync_anfrage", JsonObject(emptyMap()))
         if (ablage.baum.value.additiveBaselineAusstehend) {
@@ -927,8 +941,7 @@ class Baumwerk private constructor(
                 }
             val (inhalt, counter) = Baum1.oeffne(eigen, von, peer.oeffentlich, umschlag, peer.zaehlerRein)
             val receipt = Baum1Quittung.erstellen(key, von, eigen.kennung, umschlag)
-            check(ablage.verarbeiteBaumNachricht(von, zaehler = counter, umschlagHash = hash,
-                receipt = Kanonisch.text(receipt)) { nachricht(von, inhalt); adresseGesehen(von, quelle) })
+            check(verarbeiteEmpfang(von, inhalt, counter, null, hash, Kanonisch.text(receipt)) { adresseGesehen(von, quelle) })
             receipt
         } finally { key.fill(0) }
     }
@@ -1052,13 +1065,35 @@ class Baumwerk private constructor(
         transportId: String?,
         umschlagHash: String?
     ): Boolean {
-        val verarbeitet = ablage.verarbeiteBaumNachricht(vonKennung, zaehler, transportId, umschlagHash) {
-            nachricht(vonKennung, inhalt)
-        }
+        val verarbeitet = verarbeiteEmpfang(vonKennung, inhalt, zaehler, transportId, umschlagHash)
         if (text(inhalt, "art") == "termin") {
             throw BaumFehler(zusammenhang.getString(R.string.baum_termin_nicht_unterstuetzt))
         }
         return verarbeitet
+    }
+
+    private fun verarbeiteEmpfang(vonKennung: String, inhalt: JsonObject, zaehler: Long?, transportId: String?,
+        umschlagHash: String?, receipt: String? = null, danach: () -> Unit = {}): Boolean = synchronized(Ablage.SCHREIBSPERRE) {
+        var neuerSnapshot: EmpfangSnapshot? = null
+        val verarbeitet = ablage.verarbeiteBaumNachricht(vonKennung, zaehler, transportId, umschlagHash, receipt) {
+            val run = text(inhalt, "syncLauf")
+            val gueltig = runCatching { UUID.fromString(run).toString() == run }.getOrDefault(false) &&
+                text(inhalt, "art") in setOf("notiz", "notiz_sync", "aufgabe")
+            val jetzt = System.nanoTime()
+            val vorher = empfangSnapshot
+            val gedeckt = gueltig && vorher?.peer == vonKennung && vorher.run == run &&
+                vorher.after == ablage.bestand.value && jetzt < vorher.expires && vorher.gesichert
+            val lauf = AktuellerSnapshot(gedeckt)
+            aktuellerSnapshot.set(lauf)
+            try {
+                nachricht(vonKennung, inhalt)
+                danach()
+                if (gueltig) neuerSnapshot = EmpfangSnapshot(vonKennung, run, ablage.bestand.value,
+                    if (gedeckt) vorher!!.expires else jetzt + 600_000_000_000L, lauf.gesichert)
+            } finally { aktuellerSnapshot.remove() }
+        }
+        if (verarbeitet) empfangSnapshot = neuerSnapshot
+        verarbeitet
     }
 
     /** Übernimmt einen Inhalt tatsächlich – nach Vertrauen oder nach Annahme. */
@@ -1137,7 +1172,6 @@ class Baumwerk private constructor(
     }
 
     private fun aufgabeUebernehmen(vonKennung: String, vonName: String, inhalt: JsonObject) {
-        AndroidJournal.hole(zusammenhang).appSnapshot("pre-sync-task")
         val gelesen = Nutzlast.liesAufgabe(inhalt, vonKennung) ?: return
         val vorhanden = ablage.aufgabeNachFremdId(gelesen.id, gelesen.herkunft)
         val jetzt = System.currentTimeMillis()
@@ -1153,7 +1187,10 @@ class Baumwerk private constructor(
             angelegt = vorhanden?.angelegt ?: jetzt,
             geaendert = if (gelesen.geaendert > 0) gelesen.geaendert else jetzt
         )
+        val geaendert = vorhanden == null || vorhanden.copy(geaendert = aufgabe.geaendert) != aufgabe
+        if (geaendert) sichereEmpfangSnapshot()
         ablage.setzeAufgabe(aufgabe)
+        if (!geaendert) return
         Erinnerung.stellen(zusammenhang, aufgabe)
         Erinnerung.neueAufgabeMelden(zusammenhang, aufgabe, vonName)
         melde(R.string.baum_meldung_aufgabe, vonName)
@@ -1185,6 +1222,7 @@ class Baumwerk private constructor(
     private fun notizUebernehmen(vonKennung: String, inhalt: JsonObject, manuell: Boolean) {
         val gelesen = Nutzlast.lies(inhalt, vonKennung) ?: return
         val vereinigt = ablage.vereinigeNotizenFuerSync()
+        if (vereinigt) aktuellerSnapshot.get()?.gesichert = true
         val angebot = Notiz("", titel = gelesen.titel, text = gelesen.text,
             html = Nutzlast.saeubereHtml(gelesen.html), anhaenge = gelesen.anhaenge)
         val gebunden = ablage.notizen().filter { NotizQuellen.quelle(it, vonKennung, gelesen.freigabeId) != null }
@@ -1198,7 +1236,7 @@ class Baumwerk private constructor(
             if (gelesen.art != "notiz") return   // Fortschreibung ohne Angebot: übergehen
             val jetzt = System.currentTimeMillis()
             val anhaenge = begrenzeAnhaenge(emptyList(), gelesen.anhaenge)
-            if (!vereinigt) notizSnapshotVorher()
+            if (!vereinigt) sichereEmpfangSnapshot()
             ablage.setzeNotiz(
                 Notiz(
                     id = UUID.randomUUID().toString(),
@@ -1237,7 +1275,7 @@ class Baumwerk private constructor(
             return
         }
         val inhaltVersion = vorhanden.baumInhaltVersion + if (geaendert) 1 else 0
-        if (geaendert && !vereinigt) notizSnapshotVorher()
+        if (geaendert && !vereinigt) sichereEmpfangSnapshot()
         ablage.setzeNotiz(
             vorhanden.copy(
                 titel = if (geaendert) gelesen.titel else vorhanden.titel,

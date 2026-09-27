@@ -1,6 +1,7 @@
 "use strict";
 const assert = require("node:assert/strict"), fs = require("node:fs"), path = require("node:path");
-const { webcrypto } = require("node:crypto"), { JSDOM } = require("jsdom");
+const { webcrypto, createHash } = require("node:crypto"), { JSDOM } = require("jsdom");
+const hash = text => createHash("sha256").update(text).digest("hex");
 const tick = () => new Promise(resolve => setTimeout(resolve, 1));
 async function check(web) {
   const dom = new JSDOM(fs.readFileSync(path.join(web, "index.html"), "utf8"), {
@@ -10,7 +11,7 @@ async function check(web) {
   w.__MAGNOLIE_BRUECKE__ = "test";
   w.webkit = { messageHandlers: { test: { postMessage(text) {
     const m = JSON.parse(text); messages.push(m);
-    if (m.cmd === "speichern" && autoSave) queueMicrotask(() => w.App.gespeichert({ id: m.id, ok: true }));
+    if (m.cmd === "speichern" && autoSave) queueMicrotask(() => w.App.gespeichert({ id: m.id, ok: true, standSha256:hash(m.text) }));
   } } } };
   w.eval(fs.readFileSync(path.join(web, "i18n.js"), "utf8")); w.MagnolieI18n.setLocale("en");
   w.eval(fs.readFileSync(path.join(web, "anwendung.js"), "utf8")); w.document.dispatchEvent(new w.Event("DOMContentLoaded"));
@@ -21,9 +22,37 @@ async function check(web) {
   const stand = (eingang = [], trusted = false) => w.App.baumStand({ an: true, moeglich: true, kennung: "local", name: "Local",
     partner: ["a", "b", "c"].map(kennung => ({ kennung, name: kennung, bestaetigt: true, vertraut: trusted })), eingang });
   const reset = async notes => { w.App.init({ daten: { notizen: notes, einstellungen: { sync: { erfolgsmeldungen: true } } },
-    neu: false, regional: { language: "en" } }); stand(); await tick(); messages.length = 0; };
+    neu: false, regional: { language: "en" } }); stand();
+    await new Promise((resolve,reject)=>T.nachDauerhaftemSpeichern(resolve,reject));await tick(); messages.length = 0; };
   const receipts = () => messages.filter(m => m.cmd === "baum_eingang_geleert").flatMap(m => m.ids);
   try {
+    await reset([{id:"seed",titel:"Local seed",text:"Before",html:"Before"}]);
+    const run="11111111-1111-4111-8111-111111111111";
+    const packet=index=>offer("a","run-"+index,1,{syncLauf:run,titel:"Incoming "+index,text:"Incoming "+index,html:"Incoming "+index});
+    stand([packet(1)],true);await tick();
+    const firstSave=messages.filter(m=>m.cmd==="speichern").at(-1);
+    assert.equal(firstSave.baumSyncLauf.run,run);
+    autoSave=false;
+    stand([packet(2)],true);await tick();
+    const pending=messages.filter(m=>m.cmd==="speichern").at(-1);
+    assert.equal(pending.baumSyncLauf.before,hash(firstSave.text));
+    stand([packet(3)],true);stand([packet(4)],true);
+    autoSave=true;w.App.gespeichert({id:pending.id,ok:true,standSha256:hash(pending.text)});await tick();
+    const queued=messages.filter(m=>m.cmd==="speichern").at(-1);
+    assert.notEqual(queued.id,pending.id);
+    assert.equal(queued.baumSyncLauf.before,hash(pending.text),"queued packets must chain through the actual acknowledged save");
+    T.daten().notizen.find(n=>n.id==="seed").text="Local intervening edit";
+    const saveCount=messages.filter(m=>m.cmd==="speichern").length;
+    stand([packet(5)],true);await tick();
+    const editSaves=messages.filter(m=>m.cmd==="speichern").slice(saveCount);
+    assert.equal(editSaves.length,2,"the local edit must become durable before accepting another network packet");
+    assert.equal(editSaves[0].baumSyncLauf,null);
+    assert.equal(editSaves[1].baumSyncLauf.before,hash(editSaves[0].text));
+    messages.length=0;
+    stand([{id:"request",von:"a",inhalt:{art:"sync_anfrage"}}],true);await tick();
+    const sent=messages.filter(m=>m.cmd==="baum_teilen"&&["notiz","notiz_sync"].includes(m.art));
+    assert.ok(sent.length>1);assert.equal(new Set(sent.map(m=>m.inhalt.syncLauf)).size,1);
+    assert.match(sent[0].inhalt.syncLauf,/^[0-9a-f-]{36}$/);
     const welcome = datenPfad => {
       w.App.init({daten: {}, neu: true, datenPfad, regional: {language: "en"}});
       return JSON.parse(JSON.stringify(T.daten().notizen[0]));

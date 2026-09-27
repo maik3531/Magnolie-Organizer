@@ -50,8 +50,8 @@ class Probe:
     def _journal_snapshot(self, reason):
         return self.m.journal_snapshot_erzeugen(self._aktuelle_daten, reason, basis=self.m.daten_verzeichnis())
     def antwort(self, name, payload): self.responses.append((name, payload))
-    def save(self, serial, data):
-        self._speicher_auftraege.put((serial, json.dumps(data)))
+    def save(self, serial, data, proof=None):
+        self._speicher_auftraege.put((serial, json.dumps(data), proof))
         self._speicher_auftraege.put(None)
         self.m.Fenster._speicher_lauf(self)
         return next(value for name, value in reversed(self.responses) if name == "App.gespeichert")
@@ -84,6 +84,39 @@ def test_native_failed_save_restore_late_old_save_and_restart(native, monkeypatc
     edited["notizen"][0]["text"] = "current edit"
     assert restarted.save(2, edited)["ok"]
     assert json.loads(Path(m.daten_datei()).read_text()) == edited
+
+
+def test_tree_run_retains_one_snapshot_across_packets_and_preserves_local_edit_boundary(native, monkeypatch):
+    m = native
+    initial = fixture_data("before whole run")
+    probe = Probe(m, initial)
+    m.speichere_text(json.dumps(initial))
+    run = "11111111-1111-4111-8111-111111111111"
+    ack = ""
+    for index in range(10):
+        data = copy.deepcopy(probe._aktuelle_daten)
+        data["notizen"].append({"id": "new-" + str(index), "text": "Incoming " + str(index)})
+        response = probe.save(index + 1, data, {"run": run, "peer": "a", "before": ack})
+        assert response["ok"]
+        ack = response["standSha256"]
+    assert len(m.journal_liste(basis=m.daten_verzeichnis())) == 1
+    local = copy.deepcopy(probe._aktuelle_daten)
+    local["notizen"][0]["text"] = "Local edit between packets"
+    ack = probe.save(11, local)["standSha256"]
+    later = copy.deepcopy(local)
+    later["aufgaben"].append({"id": "later-task", "titel": "Incoming task"})
+    assert probe.save(12, later, {"run": run, "peer": "a", "before": ack})["ok"]
+    snapshots = m.journal_liste(basis=m.daten_verzeichnis())
+    assert len(snapshots) == 3
+    saved_states = [m.journal_snapshot_lesen(s["snapshotId"], basis=m.daten_verzeichnis())[1]["daten"] for s in snapshots]
+    assert any(s["notizen"][0]["text"] == "Local edit between packets" for s in saved_states)
+    probe._baum_sync_snapshot.expires = -1
+    ack = probe._baum_sync_snapshot.ack
+    changed = copy.deepcopy(later)
+    changed["notizen"][0]["text"] = "After expiry"
+    monkeypatch.setattr(probe, "_journal_snapshot", lambda reason: (_ for _ in ()).throw(OSError("snapshot failed")))
+    assert not probe.save(13, changed, {"run": run, "peer": "a", "before": ack})["ok"]
+    assert json.loads(Path(m.daten_datei()).read_text()) == later
 
 
 def test_native_queued_save_checks_generation_at_execution(native):

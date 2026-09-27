@@ -87,7 +87,7 @@ try:
             if op == 'mode': mode = command['value']
             elif op == 'send':
                 post = module.baum_post_lesen(post_path)
-                module.baum_einreihen(post, peer['kennung'], 'stand', command['body'])
+                module.baum_einreihen(post, peer['kennung'], command.get('kind', 'stand'), command['body'])
                 assert module.baum_post_schreiben(post, post_path)
                 module.baum_post_wartung(state, post_path, hoechstens=10, zustand_sichern=save)
             elif op == 'vector':

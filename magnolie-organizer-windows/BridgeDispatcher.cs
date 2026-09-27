@@ -20,6 +20,7 @@ internal sealed partial class BridgeDispatcher : IDisposable
     private string currentPlainText = "{}";
     private readonly ContactCleanupSnapshot contactCleanupSnapshot = new();
     private readonly SyncSnapshotHandoff syncSnapshotHandoff = new();
+    private readonly BaumSyncSnapshot baumSyncSnapshot = new();
     private string currentEnvelope = "";
     private bool currentPlainTextAvailable;
     private int failedUnlocks;
@@ -674,10 +675,15 @@ internal sealed partial class BridgeDispatcher : IDisposable
             var previousData = JsonNode.Parse(currentPlainText) as JsonObject;
             var proposedData = JsonNode.Parse(text)!.AsObject();
             var coveredBySync = previousData is not null && syncSnapshotHandoff.CoversSave(previousData, proposedData);
+            var previousText = currentPlainText;
+            var treeProof = message.TryGetProperty("baumSyncLauf", out var proof) && proof.ValueKind == JsonValueKind.Object
+                ? JsonNode.Parse(proof.GetRawText())!.AsObject() : null;
+            var coveredByTree = previousData is not null && baumSyncSnapshot.Covers(previousText, treeProof);
+            var changed = previousData is not null && RecoveryJournal.HasRecoverableChanges(previousData, proposedData);
             var epoch = previousData?["syncEpoch"]?.GetValue<string>() ?? "";
             if (epoch.Length != 0 && Text(document.RootElement, "syncEpoch") != epoch)
                 throw new JsonException(T("The save request is invalid."));
-            if (!coveredBySync && previousData is not null && RecoveryJournal.HasRecoverableChanges(previousData, proposedData))
+            if (!coveredBySync && !coveredByTree && changed)
                 CreateSnapshot(SnapshotReason.PreChange);
 
             if (encryption.Session is not null)
@@ -689,12 +695,14 @@ internal sealed partial class BridgeDispatcher : IDisposable
             else store.WriteRecoverableJson(paths.Data, text);
             currentPlainText = text;
             currentPlainTextAvailable = true;
+            baumSyncSnapshot.Saved(previousText, text, treeProof, changed, coveredByTree);
             if (coveredBySync) syncSnapshotHandoff.Saved();
             if (contactPlan is not null) contactCleanupSnapshot.Planned(contactPlan);
             else contactCleanupSnapshot.Saved(text);
             RefreshReminderData(currentPlainText, encryption.Session is not null);
             UpdateReminderRuntime(currentPlainText);
-            await form.SendAsync("App.gespeichert", new { id, ok = true, fehler = "", kontaktPruefung = contactPlan });
+            await form.SendAsync("App.gespeichert", new { id, ok = true, fehler = "", kontaktPruefung = contactPlan,
+                standSha256 = BaumSyncSnapshot.Hash(text) });
             await RunCloudBackupAfterSaveAsync(document.RootElement.GetRawText(), force: false);
         }
         catch (Exception error)

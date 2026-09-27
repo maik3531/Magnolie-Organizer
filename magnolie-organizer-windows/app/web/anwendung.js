@@ -4926,6 +4926,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
   let contributorAktiv = false;
   let contributorPruefungLaeuft = false;
   let letzterSpeicherText = null;
+  let letzterSpeicherSha256 = "", baumSpeicherNachweis = null;
   let naechsteSpeicherId = 1;
   let naechsteAnhangDateiId = 1;
   let laufenderSpeicher = null;
@@ -5006,7 +5007,10 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       const id = auftrag.id;
       speicherAntwortTimer = setTimeout(() => App.gespeichert({ id: id, ok: false }), 30000);
       if (!Bruecke.sende({ cmd: "speichern", id: auftrag.id, text: auftrag.text,
-          kontaktePruefen: !!kontaktSyncPruefungLauf })) {
+          kontaktePruefen: !!kontaktSyncPruefungLauf,
+          baumSyncLauf: baumSpeicherNachweis?.text === auftrag.text ? {run:baumSpeicherNachweis.proof.run,
+            peer:baumSpeicherNachweis.proof.peer,
+            before:baumSpeicherNachweis.beforeText === letzterSpeicherText ? letzterSpeicherSha256 : ""} : null })) {
         App.gespeichert({ id: auftrag.id, ok: false, fehler: "" });
       }
       return;
@@ -5014,9 +5018,13 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     if (wartendeSpeicherAktionen.length) {
       const aktionen = wartendeSpeicherAktionen;
       wartendeSpeicherAktionen = [];
-      aktionen.forEach(({ aktion }) => {
-        try { aktion(); } catch (error) { zettel(String(error.message || error)); }
-      });
+      for (let index = 0; index < aktionen.length; index++) {
+        if (laufenderSpeicher || wartenderSpeicherText !== null || speicherTimer !== null) {
+          wartendeSpeicherAktionen.unshift(...aktionen.slice(index));
+          speichereJetzt(); return;
+        }
+        try { aktionen[index].aktion(); } catch (error) { zettel(String(error.message || error)); }
+      }
     }
     if (beendenGewuenscht && Bruecke.vorhanden && !laufenderSpeicher && wartenderSpeicherText === null) {
       Bruecke.sende({ cmd: "beenden_bereit" });
@@ -5042,6 +5050,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
   }
 
   function verwerfeSpeichernNachRestore() {
+    letzterSpeicherSha256 = ""; baumSpeicherNachweis = baumPostVorSpeichern = null;
     clearTimeout(speicherTimer); clearTimeout(speicherAntwortTimer); clearTimeout(notizSnapshotTimer);
     speicherTimer = speicherAntwortTimer = notizSnapshotTimer = null;
     ausstehenderNotizSnapshot = null;
@@ -13872,10 +13881,11 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
 
   /* Erfüllt eine Aufgabe die eingestellte Auswahl? */
   /* Schickt eine Aufgabe an einen anderen Zweig, wenn gewünscht. */
-  function schickeAnZweig(aufgabe, kennung) {
+  function schickeAnZweig(aufgabe, kennung, syncLauf = "") {
     if (!kennung || !Bruecke.vorhanden) return false;
     Bruecke.sende({ cmd: "baum_delegieren", kennung: kennung, aufgabe: {
       id: aufgabe.id, titel: aufgabe.titel, notiz: aufgabe.notiz,
+      ...(syncLauf ? {syncLauf} : {}),
       faellig: aufgabe.faellig, startZeit: aufgabe.startZeit,
       faelligZeit: aufgabe.faelligZeit, prio: aufgabe.prio,
       erinnern: !!aufgabe.erinnern,
@@ -14012,10 +14022,11 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     notiz.baumQuelle = quelle.quelle;
   }
 
-  function sendeBaumNotiz(notiz, art, partner) {
+  function sendeBaumNotiz(notiz, art, partner, syncLauf = "") {
     const ids = new Set((notiz.baumFreigabe?.quellen || []).filter(q => q.partner === partner).map(q => q.id));
     if (!ids.size) ids.add(notiz.baumFreigabe.id);
-    for (const id of ids) schickeBaumInhalt(art, { ...notizBaumInhalt(notiz, art), freigabeId: id }, [partner]);
+    for (const id of ids) schickeBaumInhalt(art, { ...notizBaumInhalt(notiz, art), freigabeId: id,
+      ...(syncLauf ? {syncLauf} : {}) }, [partner]);
   }
 
   function indexiereBaumNotiz(index, notiz, entfernen = false) {
@@ -14119,6 +14130,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
   function synchronisiereAllesMit(kennung, mitAnfrage) {
     const partner = baumPartnerListe().find((p2) => p2.kennung === kennung);
     if (!partner) return false;
+    const syncLauf = crypto.randomUUID();
     sichereNotizSnapshot();
     const eigeneKennung = String((baumStand && baumStand.kennung) || "zweig");
     let datenGeaendert = vereinigeBestehendeNotizen() > 0;
@@ -14143,19 +14155,19 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       }
       const schonFreigegeben = (notiz.baumFreigabe.partner || []).includes(kennung);
       if (schonFreigegeben) {
-        sendeBaumNotiz(notiz, "notiz_sync", kennung);
+        sendeBaumNotiz(notiz, "notiz_sync", kennung, syncLauf);
       } else {
         notiz.baumFreigabe.partner = Array.from(new Set(
           (notiz.baumFreigabe.partner || []).concat(kennung)));
         notiz.baumFreigabe.anhangPartner = Array.from(new Set(
           (notiz.baumFreigabe.anhangPartner || []).concat(kennung)));
-        sendeBaumNotiz(notiz, "notiz", kennung);
+        sendeBaumNotiz(notiz, "notiz", kennung, syncLauf);
         datenGeaendert = true;
       }
     }
     for (const aufgabe of DATEN.aufgaben) {
       if (aufgabe.fremdId || (aufgabe.herkunft && aufgabe.herkunft !== eigeneKennung)) continue;
-      schickeAnZweig(aufgabe, kennung);
+      schickeAnZweig(aufgabe, kennung, syncLauf);
     }
     if (mitAnfrage) schickeBaumInhalt("sync_anfrage", {}, [kennung]);
     if (datenGeaendert) planeSpeichern();
@@ -20568,15 +20580,31 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
   /* Verarbeitet technische Updates sowie Angebote ausdrücklich vertrauter
      Partner automatisch. Andere neue Angebote warten auf eine Bestätigung. */
   let baumPostSpeicherStand = null;
+  let baumPostVorSpeichern = null;
   function meldeBaumNotizKonflikt(stueck, ergebnis) {
     if (!ergebnis.konflikt || baumGemeldeteAngebote.has(stueck.id)) return;
     baumGemeldeteAngebote.add(stueck.id);
     zettel(_("Conflict") + ": " + String(stueck.inhalt?.titel || _("Untitled")));
   }
   function nimmBaumpostAn(eingang) {
-    if (!initialisiert || !antwortErhalten || gesperrt) return;
+    if (!initialisiert || !antwortErhalten || gesperrt || !eingang.length) return;
     sichereNotizSnapshot();
     const bestand = DATEN;
+    const vorherText = JSON.stringify(DATEN);
+    if (baumPostVorSpeichern?.daten === bestand || vorherText !== letzterSpeicherText &&
+        vorherText !== laufenderSpeicher?.text && vorherText !== baumSpeicherNachweis?.text) {
+      if (baumPostVorSpeichern?.daten === bestand) {
+        eingang.forEach(s => baumPostVorSpeichern.eingang.set(s.id, s)); return;
+      }
+      const wartend = {daten:bestand,eingang:new Map(eingang.map(s => [s.id,s]))};
+      baumPostVorSpeichern = wartend;
+      nachDauerhaftemSpeichern(() => {
+        if (baumPostVorSpeichern !== wartend) return;
+        baumPostVorSpeichern = null;
+        if (DATEN === bestand && !gesperrt) nimmBaumpostAn([...wartend.eingang.values()]);
+      }, () => { if (baumPostVorSpeichern === wartend) baumPostVorSpeichern = null; });
+      return;
+    }
     if (baumPostSpeicherStand?.daten !== bestand) baumPostSpeicherStand = { daten: bestand, ids: new Set() };
     const ausstehend = baumPostSpeicherStand.ids;
     let notizIndex = null;
@@ -20653,6 +20681,14 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       planeSpeichern(); zeichneAlles();
     }
     if (erledigteIds.length) {
+      const verarbeitet = eingang.filter(s => erledigteIds.includes(s.id));
+      const zuerst = verarbeitet[0], run = zuerst?.inhalt?.syncLauf;
+      const kette = baumSpeicherNachweis?.text === vorherText && vorherText !== letzterSpeicherText &&
+        vorherText !== laufenderSpeicher?.text && baumSpeicherNachweis.proof.run === run && baumSpeicherNachweis.proof.peer === zuerst?.von;
+      const beforeText = kette ? baumSpeicherNachweis.beforeText : vorherText;
+      baumSpeicherNachweis = typeof run === "string" && /^[0-9a-f-]{36}$/.test(run) && verarbeitet.every(s =>
+        s.von === zuerst.von && s.inhalt?.syncLauf === run && ["notiz", "notiz_sync", "aufgabe"].includes(s.inhalt?.art || s.art))
+        ? {text:JSON.stringify(DATEN), beforeText, proof:{run,peer:zuerst.von}} : null;
       const ids = [...new Set(erledigteIds)]; ids.forEach(id => ausstehend.add(id));
       const freigeben = () => ids.forEach(id => ausstehend.delete(id));
       nachDauerhaftemSpeichern(() => {
@@ -25842,6 +25878,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
 
   const App = {
     init(nutzlast) {
+      letzterSpeicherSha256 = ""; baumSpeicherNachweis = null;
       nutzlast = nutzlast || {};
       antwortErhalten = true;
       contributorAktiv = nutzlast.contributorAktiv === true;
@@ -27279,7 +27316,11 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
           erledigt.text.includes('"adressbuecher"')) {
           ausstehendeAdressbuchBaseline = null;
         }
-        if (erledigt) letzterSpeicherText = erledigt.text;
+        if (erledigt) {
+          letzterSpeicherText = erledigt.text;
+          letzterSpeicherSha256 = typeof ergebnis.standSha256 === "string" ? ergebnis.standSha256 : "";
+          if (baumSpeicherNachweis?.text === erledigt.text) baumSpeicherNachweis = null;
+        }
         const d = organizerDatumzeitTeile(new Date());
         setzeSpeicherStatus(uebersetzt("Saved ✓ %(time)s", {
           time: pad2(d.stunde) + ":" + pad2(d.minute)
