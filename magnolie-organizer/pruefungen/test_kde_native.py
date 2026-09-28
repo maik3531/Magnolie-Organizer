@@ -31,6 +31,7 @@ class Bus:
         self.ids = ['a' * 32]
         self.props = {'a' * 32: {'isPaired': True, 'isReachable': True, 'type': 'phone', 'name': 'Phone'}}
         self.sms = True
+        self.contacts = False
         self.calls = []
         self.running = True
         self.activatable = ['org.kde.kdeconnect']
@@ -54,8 +55,11 @@ class Bus:
         if method == 'GetAll':
             return Variant('(a{sv})', (self.props[path.rsplit('/', 1)[1]],))
         if method == 'hasPlugin':
-            assert args == ('kdeconnect_sms',)
-            return Variant('(b)', (self.sms,))
+            assert args in (('kdeconnect_sms',), ('kdeconnect_contacts',))
+            return Variant('(b)', (self.sms if args == ('kdeconnect_sms',) else self.contacts,))
+        if method == 'synchronizeRemoteWithLocal':
+            assert self.contacts and interface == 'org.kde.kdeconnect.device.contacts'
+            return Variant('()', ())
         assert method == 'sendSms', method
         if self.fail_send:
             raise TimeoutError('submission may have occurred')
@@ -328,7 +332,10 @@ def test_gui_owned_and_recovery_paths_use_the_same_native_selector(tmp_path):
 
 
 if __name__ == '__main__':
+    import os
+    import tempfile
     import threading
+    from test_kde_native_contacts import trust
     from gi.repository import Gio, GLib
     assert sys.argv[1:] == ['--private-dbus']
     bus = Gio.bus_get_sync(Gio.BusType.SESSION, None)
@@ -348,17 +355,26 @@ if __name__ == '__main__':
     <interface name="org.kde.kdeconnect.device.sms"><method name="sendSms">
       <arg type="av" direction="in"/><arg type="s" direction="in"/>
       <arg type="av" direction="in"/><arg type="x" direction="in"/>
-    </method></interface></node>'''
+    </method></interface>
+    <interface name="org.kde.kdeconnect.device.contacts"><method name="synchronizeRemoteWithLocal"/></interface>
+    </node>'''
     interfaces = Gio.DBusNodeInfo.new_for_xml(xml).interfaces
     paired = [True]
+    contacts = [True]
+    refreshed = []
     sent = []
     def method(connection, sender, path, interface, name, parameters, invocation):
         if name == 'devices':
             assert parameters.unpack() == (False, True)
             result = GLib.Variant('(as)', (['a' * 32, 'a' * 32, '../invalid'],))
         elif name == 'hasPlugin':
-            assert parameters.unpack() == ('kdeconnect_sms',)
-            result = GLib.Variant('(b)', (True,))
+            plugin = parameters.unpack()[0]
+            assert plugin in ('kdeconnect_sms', 'kdeconnect_contacts')
+            result = GLib.Variant('(b)', (plugin == 'kdeconnect_sms' or contacts[0],))
+        elif name == 'synchronizeRemoteWithLocal':
+            assert contacts[0] and paired[0]
+            refreshed.append(path)
+            result = GLib.Variant('()', ())
         else:
             assert name == 'sendSms' and parameters.get_type_string() == '(avsavx)'
             sent.append(parameters.unpack())
@@ -371,7 +387,8 @@ if __name__ == '__main__':
     path = '/modules/kdeconnect/devices/' + 'a' * 32
     registrations = [bus.register_object('/modules/kdeconnect', interfaces[0], method, None, None),
                      bus.register_object(path, interfaces[1], method, prop, None),
-                     bus.register_object(path + '/sms', interfaces[2], method, None, None)]
+                     bus.register_object(path + '/sms', interfaces[2], method, None, None),
+                     bus.register_object(path + '/contacts', interfaces[3], method, None, None)]
     loop = GLib.MainLoop()
     thread = threading.Thread(target=loop.run)
     thread.start()
@@ -380,12 +397,29 @@ if __name__ == '__main__':
         # Recent PyGObject uses a Unix socketpair for its signal wakeup pipe.
         assert family == kde.socket.AF_UNIX, 'network socket'
         return original_socket(family, *args, **kwargs)
+    temporary = tempfile.TemporaryDirectory(prefix='magnolie-native-kde-contacts-')
+    folder = Path(temporary.name)
+    config, data = folder / 'config', folder / 'data'
+    trusted = config / 'kdeconnect/trusted_devices'; trusted.parent.mkdir(parents=True)
+    fingerprint = trust(trusted, 'a' * 32)
+    cache = data / 'kpeoplevcard' / ('kdeconnect-' + 'a' * 32); cache.mkdir(parents=True)
+    card = 'BEGIN:VCARD\r\nVERSION:3.0\r\nFN:Synthetic\r\nTEL:+49123456789\r\nEND:VCARD\r\n'
+    (cache / '1.vcf').write_bytes(card.encode())
     try:
-        with patch.object(kde.socket, 'socket', side_effect=local_socket):
+        with patch.object(kde.socket, 'socket', side_effect=local_socket), patch.dict(os.environ,
+                {'XDG_CONFIG_HOME': str(config), 'XDG_DATA_HOME': str(data)}):
             backend = kde.create_backend('/must-not-create')
             assert backend.native and backend.start() and backend.status()['device_count'] == 1
             backend.send_sms('+49123456789', 'Synthetic')
             assert sent == [([('+49123456789',)], 'Synthetic', [], -1)], sent
+            assert backend.status()['contacts_available']
+            exported = backend.contact_uids()
+            assert exported['fingerprint'] == fingerprint and exported['contacts'][0]['uid'] == '1'
+            assert backend.contact_vcards(['1'])['contacts'][0]['vcard'] == card
+            assert refreshed == [path + '/contacts']
+            contacts[0] = False
+            assert not backend.status()['contacts_available'] and backend.status()['available']
+            with pytest.raises(kde.ProtocolError): backend.contact_uids()
             callback = backend.callback = Mock()
             for channel in ('clipboard', 'share'):
                 bus.emit_signal(None, path + '/' + channel, 'org.kde.kdeconnect.device.' + channel,
@@ -400,9 +434,10 @@ if __name__ == '__main__':
             assert len(sent) == 1
             callback.assert_not_called()
             backend.stop()
-        print('PRIVATE DBUS PASS: native wire signature, deduplication, trust revocation, no inbound application')
+        print('PRIVATE DBUS PASS: native SMS/contact wire, bounded cache, plugin/trust revocation, no unsolicited input')
     finally:
         loop.quit()
         thread.join(2)
         for registration in registrations:
             bus.unregister_object(registration)
+        temporary.cleanup()

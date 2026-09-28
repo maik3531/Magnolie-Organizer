@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
-"""Small, fail-closed KDE Connect protocol-v8 SMS client."""
+"""Bounded KDE Connect SMS and contact-source backends."""
 
 import ipaddress
+import configparser
 import json
 import os
 import re
@@ -181,7 +182,7 @@ def create_backend(directory, device_name=None, callback=None):
 
 
 class KDEConnectNativeBackend:
-    """Read-only native discovery and explicit SMS submission, no inbound channels."""
+    """Native discovery, contact-cache reads and explicit SMS; no receive grants."""
     native = True
 
     def __init__(self, bus, gio, glib, callback=None):
@@ -247,7 +248,13 @@ class KDEConnectNativeBackend:
             reason = 'native_service_unavailable'
         capable = [d for d in devices if d['sms_send']]
         selected = capable[0] if len(capable) == 1 else None
+        try:
+            contact_source = self._contact_source() if running else None
+        except Exception:
+            contact_source = None
         return {'backend': 'kdeconnect-native', 'native': True, 'service_running': running,
+            'contacts_available': contact_source is not None,
+            'contacts_device_id': contact_source[1] if contact_source else '',
             'available': selected is not None, 'reason': reason or ('no_device' if not capable else
                 'multiple_devices' if len(capable) > 1 else ''),
             'device_count': len(capable), 'devices': devices,
@@ -261,6 +268,140 @@ class KDEConnectNativeBackend:
                 'clipboard_receive': False, 'file_receive': False, 'sms_receive': False, 'sms_history': False, 'pairing': False},
             'capability_explanation': NATIVE_KDE_LIMIT,
             'receive': dict(self.configure_receive(), pending_count=0, proposals=[])}
+
+    @staticmethod
+    def _contact_read(path, maximum, directory=None):
+        """Bounded regular-file read; reject symlinks and in-place partial writes."""
+        fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK, dir_fd=directory)
+        with os.fdopen(fd, 'rb') as source:
+            before = os.fstat(source.fileno())
+            if not stat.S_ISREG(before.st_mode) or before.st_size > maximum:
+                raise ProtocolError('invalid_native_contact_file')
+            data = source.read(maximum + 1)
+            after = os.fstat(source.fileno())
+            if len(data) > maximum or (before.st_size, before.st_mtime_ns, before.st_ctime_ns) != (
+                    after.st_size, after.st_mtime_ns, after.st_ctime_ns):
+                raise ProtocolError('native_contact_file_changed')
+            return data
+
+    def _contact_fingerprint(self, device_id):
+        config = os.environ.get('XDG_CONFIG_HOME', '')
+        if not os.path.isabs(config):
+            config = os.path.expanduser('~/.config')
+        path = os.path.join(config, 'kdeconnect', 'trusted_devices')
+        parser = configparser.ConfigParser(interpolation=None)
+        parser.read_string(self._contact_read(path, 1024 * 1024).decode('utf-8-sig'))
+        value = parser.get(device_id, 'certificate', raw=True)
+        pem = json.loads(value) if value.startswith('"') else value.replace('\\n', '\n').replace('\\r', '\r')
+        if not isinstance(pem, str) or len(pem) > 32768:
+            raise ProtocolError('invalid_native_contact_certificate')
+        certificate = x509.load_pem_x509_certificate(pem.encode('ascii'))
+        names = certificate.subject.get_attributes_for_oid(NameOID.COMMON_NAME)
+        if len(names) != 1 or names[0].value != device_id:
+            raise ProtocolError('native_contact_identity_mismatch')
+        return certificate.fingerprint(hashes.SHA256()).hex()
+
+    def _contact_source(self, device_id=None):
+        if device_id is not None and (not isinstance(device_id, str) or not DEVICE_ID.fullmatch(device_id)):
+            raise ProtocolError('invalid_contact_device')
+        owner = self._owner()
+        devices = self._devices(owner)
+        candidates = []
+        deadline = time.monotonic() + 1.5
+        for device in devices:
+            if not device['reachable'] or device_id is not None and device['device_id'] != device_id:
+                continue
+            key = device['device_id']
+            if self._call(owner, '/modules/kdeconnect/devices/' + key, 'org.kde.kdeconnect.device',
+                          'hasPlugin', '(s)', ('kdeconnect_contacts',), '(b)', deadline=deadline)[0] is True:
+                candidates.append((owner, key, self._contact_fingerprint(key)))
+        if len(candidates) != 1 or self._owner(deadline=deadline) != owner:
+            raise ProtocolError('contacts_unavailable')
+        return candidates[0]
+
+    @staticmethod
+    def _contact_directory(device_id):
+        data = os.environ.get('XDG_DATA_HOME', '')
+        if not os.path.isabs(data):
+            data = os.path.expanduser('~/.local/share')
+        return os.open(os.path.join(data, 'kpeoplevcard', 'kdeconnect-' + device_id),
+                       os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
+
+    @staticmethod
+    def _contact_file_uid(uid):
+        KDEConnectSMSBackend._contact_uids([uid])
+        if uid in ('.', '..') or '/' in uid or '\\' in uid:
+            raise ProtocolError('invalid_contact_uid')
+        return uid
+
+    @staticmethod
+    def _contact_payload(peer, fingerprint, contacts):
+        result = {'device_id': peer, 'fingerprint': fingerprint, 'contacts': contacts}
+        if len(json.dumps(result).encode('utf-8')) > MAX_CONTACT_PACKET - 1024:
+            raise ProtocolError('contact_response_too_large')
+        return result
+
+    def contact_uids(self, device_id=None):
+        source = self._contact_source(device_id)
+        owner, peer, fingerprint = source
+        # The existing enabled plugin owns refresh and its cache. No plugin,
+        # permission, pairing, or network-owner configuration is changed here.
+        self._call(owner, '/modules/kdeconnect/devices/' + peer + '/contacts',
+                   'org.kde.kdeconnect.device.contacts', 'synchronizeRemoteWithLocal', reply='()')
+        directory = self._contact_directory(peer)
+        try:
+            values, seen = [], set()
+            with os.scandir(directory) as entries:
+                for entry in entries:
+                    if not entry.name.endswith(('.vcf', '.vcard')):
+                        continue
+                    uid = self._contact_file_uid(entry.name.rsplit('.', 1)[0])
+                    info = entry.stat(follow_symlinks=False)
+                    if not stat.S_ISREG(info.st_mode) or info.st_size > MAX_CONTACT_PACKET or uid in seen or len(values) >= 20000:
+                        raise ProtocolError('invalid_native_contact_cache')
+                    modified = max(0, info.st_mtime_ns // 1000000)
+                    if modified > 2**53 - 1:
+                        raise ProtocolError('invalid_contact_timestamp')
+                    seen.add(uid)
+                    values.append({'uid': uid, 'modified_ms': modified})
+        finally:
+            os.close(directory)
+        if self._contact_source(peer) != source:
+            raise ProtocolError('contact_source_changed')
+        return self._contact_payload(peer, fingerprint, sorted(values, key=lambda value: value['uid']))
+
+    def contact_vcards(self, uids, device_id=None):
+        requested = KDEConnectSMSBackend._contact_uids(uids)
+        if not 1 <= len(requested) <= 5:
+            raise ProtocolError('invalid_contact_batch')
+        for uid in requested:
+            self._contact_file_uid(uid)
+        source = self._contact_source(device_id)
+        _owner, peer, fingerprint = source
+        directory = self._contact_directory(peer)
+        try:
+            values = []
+            for uid in requested:
+                cards = []
+                for suffix in ('.vcf', '.vcard'):
+                    try:
+                        cards.append(self._contact_read(uid + suffix, MAX_CONTACT_PACKET, directory).decode('utf-8'))
+                    except FileNotFoundError:
+                        continue
+                if len(cards) > 1:
+                    raise ProtocolError('ambiguous_native_contact_cache')
+                if not cards:
+                    continue
+                if not cards[0].strip().upper().endswith('END:VCARD'):
+                    raise ProtocolError('incomplete_native_contact_cache')
+                values.append({'uid': uid, 'vcard': cards[0]})
+                if len(json.dumps(values).encode('utf-8')) > MAX_CONTACT_PACKET - 1024:
+                    raise ProtocolError('contact_batch_too_large')
+        finally:
+            os.close(directory)
+        if self._contact_source(peer) != source:
+            raise ProtocolError('contact_source_changed')
+        return self._contact_payload(peer, fingerprint, values)
 
     def discover(self, timeout=0.7):
         # Do not broadcast or activate native discovery as a background side effect.
