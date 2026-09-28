@@ -22,17 +22,27 @@ const web=path.resolve(__dirname,"../app/web"),tick=()=>new Promise(resolve=>set
     w.App.internetKontenStatus({bereit:false,fehler:"Temporary failure"});
     assert.equal(rows().length,2,"a failed status query must not make existing accounts disappear");
     w.App.internetKontenStatus(status);
-    [...rows()[0].querySelectorAll("button")].find(b=>b.textContent==="Edit · Name").click();await tick();
-    w.document.querySelector("#eingabe-feld").value="Renamed";
-    w.document.querySelector("#eingabe-schleier form").dispatchEvent(new w.Event("submit",{cancelable:true}));await tick();
-    let request=messages.filter(m=>m.cmd==="internet_konto_verwalten").at(-1);
-    assert.equal(request.konto,"first@example.invalid");assert.equal(request.aktion,"rename");assert.equal(request.name,"Renamed");
-    w.App.internetKontoVerwaltet({ok:true});w.App.internetKontenStatus(status);
-    [...rows()[1].querySelectorAll("button")].find(b=>b.textContent==="Remove").click();await tick();
+    for(const row of rows()) {
+      const buttons=row.querySelectorAll("button");
+      assert.equal(buttons.length,1,"existing accounts offer only the requested removal action");
+      assert.equal(buttons[0].textContent,"×");
+      assert.match(buttons[0].getAttribute("aria-label"),/^Remove · /);
+      assert.equal(buttons[0].title,buttons[0].getAttribute("aria-label"));
+    }
+    rows()[1].querySelector("button").click();await tick();
     const before=messages.length;
     w.document.querySelector("#dialog-nein").click();await tick();
     assert.ok(!messages.slice(before).some(m=>m.cmd==="internet_konto_verwalten"));
     assert.equal(w.OrganizerTest.daten().kontakte[0].id,"keep");
-    console.log("ACCOUNT MANAGEMENT UI PASSED: explicit identity, rename, cancelled removal, transient status failure and local data retention");
+    rows()[0].querySelector("button").click();await tick();
+    w.document.querySelector("#dialog-ja").click();await tick();
+    const request=messages.filter(m=>m.cmd==="internet_konto_verwalten").at(-1);
+    assert.equal(request.anbieter,"google");assert.equal(request.konto,"first@example.invalid");assert.equal(request.aktion,"remove");
+    assert.ok([...rows()].every(row=>row.querySelector("button").disabled));
+    w.App.internetKontoVerwaltet({ok:true});w.App.internetKontenStatus({bereit:true,google:{accounts:[]},microsoft:status.microsoft});
+    assert.equal(rows().length,1);assert.match(rows()[0].textContent,/Second/);
+    assert.equal(w.OrganizerTest.daten().kontakte[0].id,"keep");
+    assert.ok(messages.filter(m=>m.cmd==="internet_konto_verwalten").every(m=>m.aktion==="remove"));
+    console.log("ACCOUNT MANAGEMENT UI PASSED: removal-only accessible cross, explicit identity, cancellation, transient status and retained local data");
   }finally{w.close();}
 })().catch(error=>{console.error(error);process.exitCode=1;});

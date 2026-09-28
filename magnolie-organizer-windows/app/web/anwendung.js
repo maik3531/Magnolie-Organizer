@@ -20368,23 +20368,21 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     const kontoZeile = (anbieter, id, name, text) => {
       const zeile = el("div", "knopfreihe");
       zeile.append(el("span", null, text));
-      const verwalten = async aktion => {
+      const entfernen = async () => {
         if (internetKontoAnmeldung || syncLaeuft || gesperrt) return;
         const bestand = DATEN;
-        let neuerName = "";
-        if (aktion === "rename") {
-          neuerName = await magnolieEingabe({titel:_("Edit"),label:_("Name"),wert:name,
-            pruefen:wert=>!wert.trim() || wert.length>254 || /[\r\n]/.test(wert) ? _("Name") : ""});
-          if (neuerName === null) return;
-        }
-        if (aktion === "remove" && !await frage(_("Remove") + " · " + name + "?", _("Remove"))) return;
+        if (!await frage(_("Remove") + " · " + name + "?", _("Remove"))) return;
         if (DATEN !== bestand || internetKontoAnmeldung || syncLaeuft || gesperrt) return;
         internetKontoAnmeldung = true; internetKontoStartet = true; internetKontenZeigen();
-        Bruecke.sende({cmd:"internet_konto_verwalten",anbieter,konto:id,aktion,name:neuerName.trim()});
+        if (!Bruecke.sende({cmd:"internet_konto_verwalten",anbieter,konto:id,aktion:"remove"})) {
+          internetKontoAnmeldung = false; internetKontoStartet = false;
+          internetKontenZeigen(); status.textContent = _("Unavailable");
+        }
       };
-      zeile.append(knopf(_("Edit") + " · " + _("Name"), "", () => verwalten("rename")),
-        knopf(anbieter === "google" ? _("Connect") : _("Settings"), "", () => verwalten("edit")),
-        knopf(_("Remove"), "", () => verwalten("remove")));
+      const loeschen = knopf("×", "", entfernen);
+      loeschen.title = _("Remove") + " · " + text;
+      loeschen.setAttribute("aria-label", loeschen.title);
+      zeile.append(loeschen);
       liste.append(zeile);
     };
     for (const email of s.google?.accounts || []) {
