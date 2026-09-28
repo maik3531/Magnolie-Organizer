@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Text.Json.Nodes;
 
 namespace MagnolieOrganizer.Windows;
 
@@ -25,6 +26,11 @@ internal sealed class KdeConnectSms : IDisposable
 
     internal Task<KdeConnectStatus> DirectStatusAsync(CancellationToken cancellationToken = default) =>
         native.GetStatusAsync(cancellationToken);
+    internal IReadOnlyList<string> ContactDevices => native.ContactDevices;
+    internal Task<JsonObject> ContactIndexAsync(string deviceId, CancellationToken cancellationToken) =>
+        native.ContactIndexAsync(deviceId, cancellationToken);
+    internal Task<JsonObject> ContactVcardsAsync(JsonArray uids, string deviceId, CancellationToken cancellationToken) =>
+        native.ContactVcardsAsync(uids, deviceId, cancellationToken);
 
     internal async Task<object> StatusAsync()
     {

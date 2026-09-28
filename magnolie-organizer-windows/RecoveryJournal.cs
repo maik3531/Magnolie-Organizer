@@ -57,7 +57,7 @@ internal sealed class RecoveryJournal
         {
             if (name is "einstellungen" or "letzterSync" or "letzteSyncs" or "syncStatus" or
                 "syncMetadaten" or "syncEpoch" or "syncNachRestore" or "syncAbgleichBasis" or "syncAbgleichNachweis" or
-                "personalSync" or "baumKontaktBestand" or "baumKontaktErfolgreich" or "baumKontaktLoeschStaende") continue;
+                "personalSync" or "kontaktFotoCache" or "baumKontaktBestand" or "baumKontaktErfolgreich" or "baumKontaktLoeschStaende") continue;
             if (name == "geloescht" && previous[name] is JsonObject oldDeleted && proposed[name] is JsonObject newDeleted)
             {
                 static JsonObject WithoutConfirmedCleanup(JsonObject value)
@@ -94,7 +94,7 @@ internal sealed class RecoveryJournal
                 field is "uid" or "geaendert" or "angelegt" or "personalGeaendert" or "sync" or "syncQuellen" or
                     "syncKalenderUid" or "davHref" or "davEtag" or "baumKontakt" or "baumFreigabe" or
                     "baumVersion" or "baumQuelle" or "baumGeaendert" or "baumInhaltVersion" or "persoenlichVerknuepft" or "importBindungen" or "importHerkunfte" or
-                    "importKonflikt" or "kontaktAliase" or "icsSequence" or "icsAenderungszeitFehlt" || JsonNode.DeepEquals(left[field], right[field]));
+                    "importKonflikt" or "fotoQuelle" or "fotoManuell" or "kontaktAliase" or "icsSequence" or "icsAenderungszeitFehlt" || JsonNode.DeepEquals(left[field], right[field]));
         }
     }
 

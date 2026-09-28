@@ -1041,6 +1041,7 @@ class _ConnectionWorker:
         self.contacts_lock = threading.Lock()
         self.contacts_condition = threading.Condition()
         self.contacts_pending = None
+        self.contacts_blocked = False
         self.diagnostics = {"last_packet_type": "", "parse_valid": 0,
             "parse_skipped": 0, "last_receive_ms": 0, "bootstrap_state": "idle"}
         self.thread = threading.Thread(target=self._run, daemon=True,
@@ -1102,11 +1103,7 @@ class _ConnectionWorker:
                 limit = MAX_CONTACT_PACKET if self.backend._is_confirmed(self.identity["deviceId"]) else MAX_PACKET
                 packet = read_packet(self.connection, limit, self.read_buffer)
                 if packet.get("type") in (CONTACT_UIDS_RESPONSE, CONTACT_VCARDS_RESPONSE):
-                    with self.contacts_condition:
-                        pending_contact = self.contacts_pending
-                        if pending_contact and pending_contact["type"] == packet.get("type"):
-                            pending_contact["body"] = packet.get("body")
-                            self.contacts_condition.notify_all()
+                    self._contact_response(packet)
                     self._check_bootstrap_deadline()
                     continue
                 if packet.get("type") == "kdeconnect.pair":
@@ -1127,6 +1124,17 @@ class _ConnectionWorker:
                 self.contacts_condition.notify_all()
             self.backend._worker_died(self.identity["deviceId"], self)
 
+    def _contact_response(self, packet):
+        with self.contacts_condition:
+            pending = self.contacts_pending
+            if pending and pending["type"] == packet.get("type"):
+                if pending.get("abandoned"):
+                    self.contacts_pending = None
+                    self.contacts_blocked = False
+                else:
+                    pending["body"] = packet.get("body")
+                    self.contacts_condition.notify_all()
+
     def contact_request(self, kind, body, response_type, timeout=5):
         """One bounded, read-only contact request; the TLS loop stays responsive."""
         if (kind not in self.identity["incomingCapabilities"] or
@@ -1138,9 +1146,13 @@ class _ConnectionWorker:
             pending = {"type": response_type}
             deadline = time.monotonic() + timeout
             with self.contacts_condition:
+                if self.contacts_blocked:
+                    raise ProtocolError("Contact export is awaiting a late response")
                 self.contacts_pending = pending
+                sent = False
                 try:
                     self.send(network_packet(kind, body))
+                    sent = True
                     while "body" not in pending and not self.stopped.is_set():
                         remaining = deadline - time.monotonic()
                         if remaining <= 0:
@@ -1153,7 +1165,11 @@ class _ConnectionWorker:
                         raise ProtocolError("Invalid contact export response")
                     return result
                 finally:
-                    self.contacts_pending = None
+                    if sent and "body" not in pending and not self.stopped.is_set():
+                        pending["abandoned"] = True
+                        self.contacts_blocked = True
+                    else:
+                        self.contacts_pending = None
 
     def _check_bootstrap_deadline(self, now=None):
         if not self.bootstrap or not self.bootstrap_started:
@@ -2114,6 +2130,7 @@ class KDEConnectSMSBackend:
             return [entry for key, entry in self._connections.items()
                 if self._is_confirmed(key) and (device_id is None or key == device_id)
                 and not entry["worker"].stopped.is_set()
+                and not getattr(entry["worker"], "contacts_blocked", False)
                 and {CONTACT_UIDS_REQUEST, CONTACT_VCARDS_REQUEST} <= set(entry["identity"]["incomingCapabilities"])
                 and {CONTACT_UIDS_RESPONSE, CONTACT_VCARDS_RESPONSE} <= set(entry["identity"]["outgoingCapabilities"])]
 

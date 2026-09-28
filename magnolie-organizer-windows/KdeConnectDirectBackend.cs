@@ -364,6 +364,85 @@ internal sealed class KdeConnectDirectBackend : IDisposable, IAsyncDisposable
             await Task.Delay(50, cancellationToken).ConfigureAwait(false);
     }
 
+    private List<Connection> ContactConnections(string? deviceId = null)
+    {
+        var pins = store.LoadPeers().Where(peer => peer.Paired).ToDictionary(peer => peer.Id, peer => peer.CertificatePin, StringComparer.Ordinal);
+        return active.Values.Where(connection => !connection.Closed && !connection.ContactTimedOut &&
+            (deviceId is null || connection.Identity.DeviceId == deviceId) &&
+            connection.Identity.IncomingCapabilities.Contains(KdeConnectProtocol.ContactUidsRequest) &&
+            connection.Identity.IncomingCapabilities.Contains(KdeConnectProtocol.ContactVcardsRequest) &&
+            connection.Identity.OutgoingCapabilities.Contains(KdeConnectProtocol.ContactUidsResponse) &&
+            connection.Identity.OutgoingCapabilities.Contains(KdeConnectProtocol.ContactVcardsResponse)).Where(connection =>
+            {
+                try { return pins.TryGetValue(connection.Identity.DeviceId, out var pin) &&
+                    pin == KdeConnectProtocol.CertificatePin(connection.Certificate); }
+                catch (Exception error) when (error is CryptographicException or ObjectDisposedException) { return false; }
+            }).ToList();
+    }
+
+    internal IReadOnlyList<string> ContactDevices => ContactConnections().Select(connection => connection.Identity.DeviceId).ToArray();
+
+    internal async Task<JsonObject> ContactIndexAsync(string? deviceId = null, CancellationToken cancellationToken = default)
+    {
+        var result = await ContactRequestAsync(deviceId, KdeConnectProtocol.ContactUidsRequest, new JsonObject(),
+            KdeConnectProtocol.ContactUidsResponse, cancellationToken).ConfigureAwait(false);
+        result["contacts"] = KdeConnectProtocol.ParseContactIndex(result["body"]!.AsObject());
+        result.Remove("body");
+        return result;
+    }
+
+    internal async Task<JsonObject> ContactVcardsAsync(JsonArray uids, string? deviceId = null, CancellationToken cancellationToken = default)
+    {
+        var requested = KdeConnectProtocol.ContactUids(uids, 5);
+        if (requested.Length == 0) throw new InvalidDataException("invalid_contact_batch");
+        var result = await ContactRequestAsync(deviceId, KdeConnectProtocol.ContactVcardsRequest,
+            new JsonObject { ["uids"] = uids.DeepClone() }, KdeConnectProtocol.ContactVcardsResponse, cancellationToken).ConfigureAwait(false);
+        result["contacts"] = KdeConnectProtocol.ParseContactVcards(result["body"]!.AsObject(), requested);
+        result.Remove("body");
+        return result;
+    }
+
+    private async Task<JsonObject> ContactRequestAsync(string? deviceId, string type, JsonObject body, string responseType,
+        CancellationToken cancellationToken)
+    {
+        var connections = ContactConnections(deviceId);
+        if (connections.Count != 1) throw new InvalidOperationException("contacts_unavailable");
+        var connection = connections[0];
+        using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, lifetime.Token);
+        deadline.CancelAfter(TimeSpan.FromSeconds(5));
+        await connection.ContactRequests.WaitAsync(deadline.Token).ConfigureAwait(false);
+        var reply = new TaskCompletionSource<JsonObject>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var sent = false;
+        try
+        {
+            if (!ContactConnections(connection.Identity.DeviceId).Contains(connection))
+                throw new InvalidOperationException("contact_source_changed");
+            var fingerprint = KdeConnectProtocol.CertificatePin(connection.Certificate);
+            lock (connection.ContactGate)
+            { connection.ContactResponseType = responseType; connection.ContactReply = reply; }
+            sent = true;
+            await connection.WriteAsync(KdeConnectProtocol.Encode(type, body), deadline.Token).ConfigureAwait(false);
+            var response = await reply.Task.WaitAsync(deadline.Token).ConfigureAwait(false);
+            if (!ContactConnections(connection.Identity.DeviceId).Contains(connection))
+                throw new InvalidOperationException("contact_source_changed");
+            return new JsonObject { ["device_id"] = connection.Identity.DeviceId, ["fingerprint"] = fingerprint, ["body"] = response };
+        }
+        catch (OperationCanceledException)
+        {
+            // KDE contact packets have no request correlation ID. Do not let a late
+            // answer satisfy a subsequent request on the same connection.
+            lock (connection.ContactGate)
+                if (sent && !reply.Task.IsCompleted && ReferenceEquals(connection.ContactReply, reply)) connection.ContactTimedOut = true;
+            throw;
+        }
+        finally
+        {
+            lock (connection.ContactGate)
+                if (!connection.ContactTimedOut && ReferenceEquals(connection.ContactReply, reply)) connection.ContactReply = null;
+            connection.ContactRequests.Release();
+        }
+    }
+
     private List<Connection> UsableConnections()
     {
         var pins = store.LoadPeers().Where(peer => peer.Paired).ToDictionary(peer => peer.Id, peer => peer.CertificatePin, StringComparer.Ordinal);
@@ -772,9 +851,22 @@ internal sealed class KdeConnectDirectBackend : IDisposable, IAsyncDisposable
         {
             while (!cancellationToken.IsCancellationRequested && !connection.Closed)
             {
-                var packet = await KdeConnectProtocol.ReadAsync(connection.Stream, cancellationToken).ConfigureAwait(false);
+                var packet = await KdeConnectProtocol.ReadAsync(connection.Stream, cancellationToken,
+                    active.TryGetValue(connection.Identity.DeviceId, out var current) && ReferenceEquals(current, connection)).ConfigureAwait(false);
                 if (packet.Type == "kdeconnect.pair") await HandlePairPacketAsync(connection, packet, cancellationToken).ConfigureAwait(false);
                 else if (packet.Type == KdeConnectProtocol.SmsMessages && connection.State.SmsStarted) HandleSmsPacket(connection, packet);
+                else if (KdeConnectProtocol.IsContactResponse(packet.Type))
+                {
+                    lock (connection.ContactGate)
+                    {
+                        if (connection.ContactReply is { } reply && connection.ContactResponseType == packet.Type)
+                        {
+                            reply.TrySetResult(packet.Body);
+                            connection.ContactReply = null;
+                            connection.ContactTimedOut = false;
+                        }
+                    }
+                }
             }
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { }
@@ -1266,6 +1358,11 @@ internal sealed class KdeConnectDirectBackend : IDisposable, IAsyncDisposable
         internal IPAddress Address { get; } = address;
         internal int Port { get; } = port;
         internal SmsState State { get; } = new();
+        internal object ContactGate { get; } = new();
+        internal SemaphoreSlim ContactRequests { get; } = new(1, 1);
+        internal TaskCompletionSource<JsonObject>? ContactReply;
+        internal string ContactResponseType = "";
+        internal volatile bool ContactTimedOut;
         internal int Generation { get; set; }
         internal string Direction { get; set; } = "";
         internal bool Closed => Volatile.Read(ref closed) != 0;
@@ -1285,6 +1382,7 @@ internal sealed class KdeConnectDirectBackend : IDisposable, IAsyncDisposable
         public void Dispose()
         {
             if (Interlocked.Exchange(ref closed, 1) != 0) return;
+            lock (ContactGate) { ContactReply?.TrySetCanceled(); ContactReply = null; }
             Stream.Dispose(); client.Dispose(); Certificate.Dispose(); writes.Dispose();
         }
 

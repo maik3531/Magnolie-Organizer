@@ -836,11 +836,11 @@ def journal_inhalt_geaendert(vorher, nachher):
     """Nur Inhaltsänderungen lösen einen automatischen Vorher-Stand aus."""
     betriebsfelder = {"einstellungen", "letzterSync", "letzteSyncs", "syncStatus",
                      "syncMetadaten", "syncEpoch", "syncNachRestore", "syncAbgleichBasis", "syncAbgleichNachweis",
-                     "personalSync", "baumKontaktBestand", "baumKontaktErfolgreich", "baumKontaktLoeschStaende"}
+                     "personalSync", "kontaktFotoCache", "baumKontaktBestand", "baumKontaktErfolgreich", "baumKontaktLoeschStaende"}
     metadaten = {"uid", "geaendert", "angelegt", "personalGeaendert", "sync", "syncQuellen",
                  "syncKalenderUid", "davHref", "davEtag", "baumKontakt", "baumFreigabe",
                  "baumVersion", "baumQuelle", "baumGeaendert", "baumInhaltVersion", "persoenlichVerknuepft", "importBindungen", "importHerkunfte",
-                 "importKonflikt", "icsSequence", "icsAenderungszeitFehlt"}
+                 "importKonflikt", "fotoQuelle", "fotoManuell", "icsSequence", "icsAenderungszeitFehlt"}
 
     def inhalt(name, wert):
         if name in {"kontakte", "jahrestage", "notizen", "aufgaben", "termine"} and isinstance(wert, list):
@@ -19744,6 +19744,15 @@ class Fenster(_FENSTER_BASIS):
             threading.Thread(target=lambda: self._telefon_status_anfordern(
                  nachricht.get("kennung") or "", nachricht.get("requestId")), daemon=True).start()
 
+        elif befehl == "telefon_kontaktfotos":
+            request_id = nachricht.get("requestId")
+            if not isinstance(request_id, str) or not re.fullmatch(r"[0-9a-fA-F-]{36}", request_id):
+                return
+            if getattr(self, "_kontakt_fotos_laeuft", False):
+                self.antwort("App.kontaktFotos", {"ok": False, "requestId": request_id})
+                return
+            self._kontakt_fotos_laeuft = True
+            threading.Thread(target=self._kontakt_fotos_lesen, args=(nachricht,), daemon=True).start()
         elif befehl == "telefon_stand":
             threading.Thread(target=self._telefon_stand_melden, daemon=True).start()
 
@@ -21352,6 +21361,31 @@ class Fenster(_FENSTER_BASIS):
                 self.antwort(ziel, nutzlast)
                 return False
             GLib.idle_add(melden)
+
+    def _kontakt_fotos_lesen(self, nachricht):
+        request_id = nachricht.get("requestId", "")
+        try:
+            device_id = nachricht.get("device_id")
+            if not isinstance(device_id, str) or not 1 <= len(device_id) <= 200:
+                raise ValueError("invalid_contact_device")
+            backend = _kdeconnect_backend()
+            if "uids" in nachricht:
+                result = backend.contact_vcards(nachricht["uids"], device_id)
+                for item in result["contacts"]:
+                    contacts = vcf_lesen(item["vcard"])["kontakte"]
+                    if len(contacts) != 1:
+                        raise ValueError("invalid_contact_vcard")
+                    del item["vcard"]
+                    for field in ("foto", "telefone", "telefon", "mobil", "email", "emails", "emailEintraege"):
+                        item[field] = contacts[0].get(field)
+            else:
+                result = backend.contact_uids(device_id)
+            result.update(ok=True, requestId=request_id)
+            self.antwort("App.kontaktFotos", result)
+        except Exception:
+            self.antwort("App.kontaktFotos", {"ok": False, "requestId": request_id})
+        finally:
+            self._kontakt_fotos_laeuft = False
 
     def _kde_reconnect(self):
         try:

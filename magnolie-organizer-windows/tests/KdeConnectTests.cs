@@ -19,9 +19,11 @@ internal static class KdeConnectTests
         var decoded = KdeConnectProtocol.Decode(identityPacket);
         var identity = KdeConnectProtocol.ParseIdentity(decoded);
         TestAssert.That(decoded.Id == 42 && identity.DeviceId == "phone_1234" && identity.TcpPort == 1716 &&
-            identity.IncomingCapabilities.SequenceEqual(new[] { KdeConnectProtocol.SmsMessages }) &&
+            identity.IncomingCapabilities.SequenceEqual(new[] { KdeConnectProtocol.SmsMessages,
+                KdeConnectProtocol.ContactUidsResponse, KdeConnectProtocol.ContactVcardsResponse }) &&
             identity.OutgoingCapabilities.SequenceEqual(new[] { KdeConnectProtocol.SmsRequest,
-                KdeConnectProtocol.SmsRequestConversations, KdeConnectProtocol.SmsRequestConversation }),
+                KdeConnectProtocol.SmsRequestConversations, KdeConnectProtocol.SmsRequestConversation,
+                KdeConnectProtocol.ContactUidsRequest, KdeConnectProtocol.ContactVcardsRequest }),
             "Protocol-v8-Identität verlor Paketkopf oder Fähigkeiten.");
 
         using var fragmented = new FragmentedStream(identityPacket);
@@ -160,6 +162,7 @@ internal static class KdeConnectTests
         }
         finally { if (Directory.Exists(root)) Directory.Delete(root, true); }
 
+        await ContactLoopbackAsync();
         await IncomingPairingLoopbackAsync();
         await StagedConnectionSurvivesCandidateExpiryAsync();
         await HistoryBootstrapLoopbackAsync();
@@ -402,6 +405,90 @@ internal static class KdeConnectTests
                 status.NextReconnectSeconds is >= 0 and <= 60,
                 "Verlaufs-/Reconnect-/Generationsdiagnostik fehlt im Status.");
             await phone.WaitAsync(TimeSpan.FromSeconds(10));
+        }
+        finally { if (Directory.Exists(root)) Directory.Delete(root, true); }
+    }
+
+    private static async Task ContactLoopbackAsync()
+    {
+        const string phoneId = "phone_contacts";
+        var root = Path.Combine(Path.GetTempPath(), "magnolie-kde-contacts-" + Guid.NewGuid().ToString("N"));
+        try
+        {
+            var paths = new WindowsPaths(root); var protector = new TestProtector();
+            using var certificate = Certificate(phoneId);
+            var store = new KdeConnectIdentityStore(paths, protector);
+            using (var identity = store.LoadOrCreate().Certificate) { }
+            store.Pin(new KdeConnectPeer(phoneId, "Contact fixture", KdeConnectProtocol.CertificatePin(certificate), 1));
+            await using var backend = new KdeConnectDirectBackend(paths, protector, activeDiscovery: false);
+            var phone = await ConnectIncomingPhoneAsync(backend, phoneId, certificate, contacts: true);
+            using var client = phone.Client; using var stream = phone.Stream;
+            await WaitForDeviceAsync(backend, phoneId);
+            using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(15));
+            async Task<KdeConnectPacket> Request(string type)
+            {
+                while (true)
+                {
+                    var packet = await KdeConnectProtocol.ReadAsync(stream, timeout.Token);
+                    if (packet.Type == type) return packet;
+                }
+            }
+            TestAssert.That(backend.ContactDevices.SequenceEqual(new[] { phoneId }), "Contact capabilities were not discovered.");
+            var index = backend.ContactIndexAsync(phoneId, timeout.Token);
+            _ = await Request(KdeConnectProtocol.ContactUidsRequest);
+            await stream.WriteAsync(KdeConnectProtocol.Encode(KdeConnectProtocol.ContactUidsResponse,
+                new JsonObject { ["uids"] = new JsonArray("card"), ["card"] = 1234 }), timeout.Token);
+            var listing = await index;
+            TestAssert.That(listing["fingerprint"]!.GetValue<string>() == KdeConnectProtocol.CertificatePin(certificate) &&
+                listing["device_id"]!.GetValue<string>() == phoneId && listing["contacts"]![0]!["modified_ms"]!.GetValue<long>() == 1234,
+                "Contact index lost its pinned source or timestamp.");
+            var cards = backend.ContactVcardsAsync(new JsonArray("card"), phoneId, timeout.Token);
+            var cardRequest = await Request(KdeConnectProtocol.ContactVcardsRequest);
+            TestAssert.That(cardRequest.Body["uids"]![0]!.GetValue<string>() == "card", "Requested contact UID changed.");
+            var large = "BEGIN:VCARD\r\nVERSION:3.0\r\nFN:Fixture\r\nNOTE:" + new string('x', 600000) + "\r\nEND:VCARD";
+            var encoded = KdeConnectProtocol.Encode(KdeConnectProtocol.ContactVcardsResponse,
+                new JsonObject { ["uids"] = new JsonArray("card"), ["card"] = large });
+            TestAssert.Throws<InvalidDataException>(() => KdeConnectProtocol.Decode(encoded), "Unpaired decode accepted a large contact response.");
+            await stream.WriteAsync(encoded, timeout.Token);
+            TestAssert.That((await cards)["contacts"]![0]!["vcard"]!.GetValue<string>() == large,
+                "Bounded contact response above the SMS limit was lost.");
+
+            var invalid = backend.ContactVcardsAsync(new JsonArray("card"), phoneId, timeout.Token);
+            _ = await Request(KdeConnectProtocol.ContactVcardsRequest);
+            await stream.WriteAsync(KdeConnectProtocol.Encode(KdeConnectProtocol.ContactVcardsResponse,
+                new JsonObject { ["uids"] = new JsonArray("unexpected"), ["unexpected"] = "BEGIN:VCARD" }), timeout.Token);
+            await TestAssert.ThrowsAsync<InvalidDataException>(async () => { _ = await invalid; }, "Unrequested contact UID was accepted.");
+
+            using (var cancel = new CancellationTokenSource())
+            {
+                var stale = backend.ContactIndexAsync(phoneId, cancel.Token);
+                _ = await Request(KdeConnectProtocol.ContactUidsRequest);
+                cancel.Cancel();
+                await TestAssert.ThrowsAsync<OperationCanceledException>(async () => { _ = await stale; }, "Contact cancellation was ignored.");
+                TestAssert.That(backend.ContactDevices.Count == 0 && (await backend.GetStatusAsync()).Available,
+                    "Timed-out contact request remained reusable or disabled SMS.");
+                await TestAssert.ThrowsAsync<InvalidOperationException>(async () => { _ = await backend.ContactIndexAsync(phoneId); },
+                    "A new request could consume the late answer.");
+                await stream.WriteAsync(KdeConnectProtocol.Encode(KdeConnectProtocol.ContactUidsResponse,
+                    new JsonObject { ["uids"] = new JsonArray("old"), ["old"] = 1 }), timeout.Token);
+                while (backend.ContactDevices.Count == 0) await Task.Delay(10, timeout.Token);
+            }
+            var fresh = backend.ContactIndexAsync(phoneId, timeout.Token);
+            _ = await Request(KdeConnectProtocol.ContactUidsRequest);
+            await stream.WriteAsync(KdeConnectProtocol.Encode(KdeConnectProtocol.ContactUidsResponse,
+                new JsonObject { ["uids"] = new JsonArray("fresh"), ["fresh"] = 2000 }), timeout.Token);
+            TestAssert.That((await fresh)["contacts"]![0]!["uid"]!.GetValue<string>() == "fresh", "Late response crossed request boundaries.");
+            await TestAssert.ThrowsAsync<InvalidOperationException>(async () => { _ = await backend.ContactIndexAsync("other-phone"); },
+                "Contact request silently selected another device.");
+            foreach (var bad in new JsonArray[] { new("same", "same"), new("bad\nuid"), new(1) })
+                TestAssert.Throws<InvalidDataException>(() => KdeConnectProtocol.ContactUids(bad), "Invalid contact UIDs were accepted.");
+            TestAssert.Throws<InvalidDataException>(() => KdeConnectProtocol.ParseContactIndex(new JsonObject {
+                ["uids"] = new JsonArray("card"), ["card"] = true }), "Boolean contact timestamp was accepted.");
+            var disconnected = backend.ContactIndexAsync(phoneId, timeout.Token);
+            _ = await Request(KdeConnectProtocol.ContactUidsRequest);
+            stream.Dispose(); client.Dispose();
+            await TestAssert.ThrowsAsync<OperationCanceledException>(async () => { _ = await disconnected.WaitAsync(TimeSpan.FromSeconds(3)); },
+                "Disconnected source left its photo request pending or returned stale data.");
         }
         finally { if (Directory.Exists(root)) Directory.Delete(root, true); }
     }
@@ -739,7 +826,7 @@ internal static class KdeConnectTests
     }
 
     private static async Task<(TcpClient Client, SslStream Stream)> ConnectIncomingPhoneAsync(
-        KdeConnectDirectBackend backend, string phoneId, X509Certificate2 certificate)
+        KdeConnectDirectBackend backend, string phoneId, X509Certificate2 certificate, bool contacts = false)
     {
         var client = new TcpClient(AddressFamily.InterNetwork);
         await client.ConnectAsync(IPAddress.Loopback, backend.ListenerPort);
@@ -752,8 +839,15 @@ internal static class KdeConnectTests
             EnabledSslProtocols = SslProtocols.Tls12,
             CertificateRevocationCheckMode = X509RevocationMode.NoCheck });
         _ = await KdeConnectProtocol.ReadAsync(tls, CancellationToken.None);
-        await tls.WriteAsync(KdeConnectProtocol.Encode("kdeconnect.identity",
-            PhoneIdentity(phoneId, KdeConnectProtocol.FirstPort)));
+        var phoneIdentity = PhoneIdentity(phoneId, KdeConnectProtocol.FirstPort);
+        if (contacts)
+        {
+            phoneIdentity["incomingCapabilities"]!.AsArray().Add(KdeConnectProtocol.ContactUidsRequest);
+            phoneIdentity["incomingCapabilities"]!.AsArray().Add(KdeConnectProtocol.ContactVcardsRequest);
+            phoneIdentity["outgoingCapabilities"]!.AsArray().Add(KdeConnectProtocol.ContactUidsResponse);
+            phoneIdentity["outgoingCapabilities"]!.AsArray().Add(KdeConnectProtocol.ContactVcardsResponse);
+        }
+        await tls.WriteAsync(KdeConnectProtocol.Encode("kdeconnect.identity", phoneIdentity));
         return (client, tls);
     }
 

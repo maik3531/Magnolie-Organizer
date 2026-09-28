@@ -4361,6 +4361,137 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       String(text || "").trim().toLowerCase()] || "";
   }
 
+  let kontaktFotoLauf = null, kontaktFotoNaechsterAbruf = 0;
+  let kontaktFotoKontext = null, kontaktFotoTimer = null;
+  const kontaktFotoAnfragen = new Map();
+  const kontaktFotoMailSchluessel = wert => String(wert || "").normalize("NFC").trim().toLowerCase();
+
+  async function kontaktFotoHash(text) {
+    const bytes = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
+    return Array.from(new Uint8Array(bytes), b => b.toString(16).padStart(2, "0")).join("");
+  }
+
+  function kontaktFotoAbfragen(deviceId, uids) {
+    return new Promise((resolve, reject) => {
+      const requestId = anrufClientRef();
+      const timer = setTimeout(() => {
+        kontaktFotoAnfragen.delete(requestId); reject(new Error("contact_timeout"));
+      }, 12000);
+      kontaktFotoAnfragen.set(requestId, { resolve, reject, timer, deviceId });
+      if (!Bruecke.sende({ cmd: "telefon_kontaktfotos", requestId, device_id: deviceId, uids: uids })) {
+        clearTimeout(timer); kontaktFotoAnfragen.delete(requestId); reject(new Error("contact_unavailable"));
+      }
+    });
+  }
+
+  function planeKontaktFotoAbruf() {
+    const quelle = telefonStand?.kdeconnect;
+    if (!initialisiert || gesperrt || aktiverEditor || !DATEN.einstellungen.adressen.foto ||
+        !quelle?.contacts_available || !quelle.contacts_device_id ||
+        DATEN.syncMetadaten?.ersteSyncLoeschungsfrei || DATEN.syncNachRestore?.loeschungsfrei ||
+        DATEN.syncNachRestore?.additiv || !DATEN.kontakte.some(k => !k.fotoManuell && (!k.foto || k.fotoQuelle))) return;
+    if (kontaktFotoKontext?.daten !== DATEN || kontaktFotoKontext.deviceId !== quelle.contacts_device_id) {
+      kontaktFotoKontext = { daten: DATEN, deviceId: quelle.contacts_device_id };
+      kontaktFotoLauf = null; kontaktFotoNaechsterAbruf = 0;
+    }
+    if (kontaktFotoLauf || Date.now() < kontaktFotoNaechsterAbruf) return;
+    clearTimeout(kontaktFotoTimer);
+    const lauf = { daten: DATEN, epoch: DATEN.syncEpoch, deviceId: quelle.contacts_device_id };
+    kontaktFotoLauf = lauf;
+    const gueltig = () => kontaktFotoLauf === lauf && DATEN === lauf.daten && DATEN.syncEpoch === lauf.epoch &&
+      !gesperrt && !aktiverEditor && DATEN.einstellungen.adressen.foto &&
+      telefonStand?.kdeconnect?.contacts_available && telefonStand.kdeconnect.contacts_device_id === lauf.deviceId;
+    const zuordnungen = () => JSON.stringify(DATEN.kontakte.map(k => [k.id, kontaktTelefone(k),
+      emailListe(k).map(kontaktFotoMailSchluessel), k.fotoManuell === true]));
+    (async () => {
+      await new Promise((resolve, reject) => nachDauerhaftemSpeichern(resolve, reject));
+      if (!gueltig()) return;
+      const lokalStand = zuordnungen(), mappingHash = await kontaktFotoHash(lokalStand);
+      const index = await kontaktFotoAbfragen(lauf.deviceId);
+      if (!gueltig()) return;
+      if (index.contacts.length > 20000 || !/^[a-f0-9]{64}$/i.test(index.fingerprint || "")) throw new Error("invalid_contact_index");
+      const fingerprint = index.fingerprint.toLowerCase(), jetzt = Date.now();
+      const alt = DATEN.kontaktFotoCache;
+      const wiederverwenden = alt?.deviceId === lauf.deviceId && alt.fingerprint === fingerprint && alt.mappingHash === mappingHash;
+      const cache = new Map((wiederverwenden && Array.isArray(alt.entries) ? alt.entries.slice(0, 20000) : [])
+        .filter(e => e && typeof e.uid === "string").map(e => [e.uid, e]));
+      const vorhanden = new Set(), offen = [];
+      for (const eintrag of index.contacts) {
+        if (typeof eintrag.uid !== "string" || !eintrag.uid || eintrag.uid.length > 1024 || vorhanden.has(eintrag.uid) ||
+            !Number.isSafeInteger(eintrag.modified_ms) || eintrag.modified_ms < 0) throw new Error("invalid_contact_index");
+        vorhanden.add(eintrag.uid);
+        const stand = cache.get(eintrag.uid), alter = jetzt - Number(stand?.checkedAt || 0);
+        if (stand && stand.modified_ms === eintrag.modified_ms && alter >= 0 &&
+            (stand.photoAvailable && eintrag.modified_ms > 0 || alter < 3600000)) continue;
+        offen.push(eintrag);
+      }
+      for (const key of cache.keys()) if (!vorhanden.has(key)) cache.delete(key);
+      offen.sort((a, b) => (cache.get(a.uid)?.checkedAt || 0) - (cache.get(b.uid)?.checkedAt || 0));
+      const ende = Date.now() + 10 * 60 * 1000;
+      while (offen.length && gueltig() && Date.now() < ende) {
+        const stapel = offen.splice(0, 8), antworten = [];
+        for (const eintrag of stapel) {
+          if (!gueltig()) return;
+          const antwort = await kontaktFotoAbfragen(lauf.deviceId, [eintrag.uid]);
+          if (antwort.fingerprint?.toLowerCase() !== fingerprint || antwort.contacts.length > 1 || antwort.contacts.some(k => k.uid !== eintrag.uid))
+            throw new Error("contact_source_changed");
+          antworten.push({ eintrag, karte: antwort.contacts[0] });
+          await new Promise(resolve => setTimeout(resolve, 200));
+        }
+        if (!gueltig() || zuordnungen() !== lokalStand) return;
+        const indexe = { bindungen: new Map(), uids: new Map(), mails: new Map(), telefone: new Map() };
+        for (const kontakt of DATEN.kontakte) indexiereKontakt(indexe, kontakt);
+        indexe.mails.clear();
+        for (const kontakt of DATEN.kontakte) for (const mail of emailListe(kontakt))
+          setzeKontaktIndex(indexe.mails, kontaktFotoMailSchluessel(mail), kontakt);
+        const aenderungen = [];
+        for (const { eintrag, karte } of antworten) {
+          const foto = sauberesFoto(karte?.foto);
+          cache.set(eintrag.uid, { uid: eintrag.uid, modified_ms: eintrag.modified_ms, checkedAt: Date.now(), photoAvailable: !!foto });
+          if (!foto) continue;
+          const gebunden = DATEN.kontakte.filter(k => k.fotoQuelle?.deviceId === lauf.deviceId &&
+            k.fotoQuelle.fingerprint === fingerprint && k.fotoQuelle.uid === eintrag.uid);
+          const kandidaten = gebunden.length ? gebunden : [...new Set([
+            ...emailListe(karte).map(wert => indexe.mails.get(kontaktFotoMailSchluessel(wert))),
+            ...kontaktTelefone(karte).map(wert => indexe.telefone.get(wert))].filter(k => k !== undefined))];
+          if (kandidaten.length !== 1 || !kandidaten[0] || kandidaten[0].fotoManuell) continue;
+          const kontakt = kandidaten[0], bisher = kontakt.foto || "";
+          if (kontakt.fotoQuelle) {
+            const meta = kontakt.fotoQuelle;
+            if (meta.deviceId !== lauf.deviceId || meta.fingerprint !== fingerprint || meta.uid !== eintrag.uid ||
+                meta.hash !== await kontaktFotoHash(bisher)) continue;
+          } else if (bisher) continue;
+          const klein = await new Promise(resolve => kontaktFotoSkalieren(foto, resolve, true));
+          if (!klein) { cache.get(eintrag.uid).photoAvailable = false; continue; }
+          aenderungen.push({ kontakt, bisher, foto: klein, meta: { deviceId: lauf.deviceId, fingerprint,
+            uid: eintrag.uid, modified_ms: eintrag.modified_ms, hash: await kontaktFotoHash(klein) } });
+        }
+        if (!gueltig() || zuordnungen() !== lokalStand) return;
+        let geaendert = false;
+        for (const { kontakt, bisher, foto, meta } of aenderungen) {
+          if (kontakt.fotoManuell || kontakt.foto !== bisher || !DATEN.kontakte.includes(kontakt)) continue;
+          if (foto !== bisher) { kontakt.foto = foto; kontakt.geaendert = Date.now(); geaendert = true; }
+          kontakt.fotoQuelle = meta;
+        }
+        DATEN.kontaktFotoCache = { version: 1, deviceId: lauf.deviceId, fingerprint, mappingHash, entries: [...cache.values()] };
+        await new Promise((resolve, reject) => nachDauerhaftemSpeichern(resolve, reject));
+        if (geaendert && gueltig()) zeichneAlles();
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+      if (kontaktFotoLauf === lauf) kontaktFotoNaechsterAbruf = Date.now() + 10 * 60 * 1000;
+    })().catch(() => {
+      if (kontaktFotoLauf === lauf) kontaktFotoNaechsterAbruf = Date.now() + 60000;
+    }).finally(() => {
+      if (kontaktFotoLauf === lauf) {
+        kontaktFotoLauf = null;
+        kontaktFotoTimer = setTimeout(() => {
+          if (initialisiert && !gesperrt && DATEN.einstellungen.adressen.foto) Bruecke.sende({ cmd: "telefon_stand" });
+          planeKontaktFotoAbruf();
+        }, Math.max(60000, kontaktFotoNaechsterAbruf - Date.now()));
+      }
+    });
+  }
+
   function kontaktFotoLesen(datei, fertig) {
     if (!datei || !/^image\//.test(datei.type || "")) {
       fertig("", _("Please select an image file."));
@@ -4378,28 +4509,42 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
         fertig("", _("This image format cannot be used."));
         return;
       }
-      const bild = new Image();
-      bild.onerror = () => fertig(roh, "");
-      bild.onload = () => {
-        try {
-          const grenze = 480;
-          const faktor = Math.min(1, grenze / Math.max(bild.width, bild.height));
-          const flaeche = document.createElement("canvas");
-          flaeche.width = Math.max(1, Math.round(bild.width * faktor));
-          flaeche.height = Math.max(1, Math.round(bild.height * faktor));
-          const pinsel = flaeche.getContext("2d");
-          pinsel.fillStyle = "#fff";
-          pinsel.fillRect(0, 0, flaeche.width, flaeche.height);
-          pinsel.drawImage(bild, 0, 0, flaeche.width, flaeche.height);
-          const klein = sauberesFoto(flaeche.toDataURL("image/jpeg", 0.84));
-          fertig(klein || roh, "");
-        } catch (fehler) {
-          fertig(roh, "");
-        }
-      };
-      bild.src = roh;
+      kontaktFotoSkalieren(roh, wert => fertig(wert, ""));
     };
     leser.readAsDataURL(datei);
+  }
+
+  function kontaktFotoSkalieren(roh, fertig, nurVerkleinern = false) {
+    const bild = new Image();
+    let abgeschlossen = false, timer = null;
+    const melden = wert => {
+      if (abgeschlossen) return;
+      abgeschlossen = true; clearTimeout(timer);
+      bild.onload = bild.onerror = null; bild.src = "";
+      fertig(wert);
+    };
+    if (nurVerkleinern) timer = setTimeout(() => melden(""), 5000);
+    bild.onerror = () => melden(nurVerkleinern ? "" : roh);
+    bild.onload = () => {
+      if (abgeschlossen) return;
+      try {
+        const grenze = 480;
+        if (nurVerkleinern && bild.width <= grenze && bild.height <= grenze) { melden(roh); return; }
+        const faktor = Math.min(1, grenze / Math.max(bild.width, bild.height));
+        const flaeche = document.createElement("canvas");
+        flaeche.width = Math.max(1, Math.round(bild.width * faktor));
+        flaeche.height = Math.max(1, Math.round(bild.height * faktor));
+        const pinsel = flaeche.getContext("2d");
+        pinsel.fillStyle = "#fff";
+        pinsel.fillRect(0, 0, flaeche.width, flaeche.height);
+        pinsel.drawImage(bild, 0, 0, flaeche.width, flaeche.height);
+        const klein = sauberesFoto(flaeche.toDataURL("image/jpeg", 0.84));
+        melden(klein || (nurVerkleinern ? "" : roh));
+      } catch (fehler) {
+        melden(nurVerkleinern ? "" : roh);
+      }
+    };
+    bild.src = roh;
   }
 
   function uid() {
@@ -26374,8 +26519,17 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
         zeichneGeraeteStatus(nutzlast.status);
       }
     },
+    kontaktFotos(nutzlast) {
+      const anfrage = kontaktFotoAnfragen.get(nutzlast?.requestId);
+      if (!anfrage) return;
+      clearTimeout(anfrage.timer); kontaktFotoAnfragen.delete(nutzlast.requestId);
+      if (nutzlast.ok !== true || nutzlast.device_id !== anfrage.deviceId || !Array.isArray(nutzlast.contacts))
+        anfrage.reject(new Error("contact_response_failed"));
+      else anfrage.resolve(nutzlast);
+    },
     telefonStand(nutzlast) {
       telefonStand = nutzlast || null;
+      planeKontaktFotoAbruf();
       telefonStandardsAnwenden();
       document.querySelectorAll("[data-personal-grant-peer], [data-personal-auto-peer]").forEach(input => {
         const peer = (telefonStand?.peers || []).find(p => p.device_id === (input.dataset.personalGrantPeer || input.dataset.personalAutoPeer));

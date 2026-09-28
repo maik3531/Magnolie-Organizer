@@ -1,8 +1,8 @@
 {
   "schema": "magnolie-linux-parity-v1",
   "sources": {
-    "web/anwendung.js": "79c1e6f1ee85b05e3415ab82ba3debee8070091111bbf85d490ef01a3641c879",
-    "bin/magnolie-organizer": "41e7891f6932daf311c6f9b4daab70aedf25eaba76c28c77cdc9e93794c56427"
+    "web/anwendung.js": "86fa6f983ee168a8098e5528a75011f43f5534601841a99eec7ebf7da4566cc7",
+    "bin/magnolie-organizer": "22e76549f7ac14d237c02e3cf13654cc9a15575af3fad361ae69bde811558293"
   },
   "commands": [
     "ablage_holen",
@@ -94,6 +94,7 @@
     "telefon_ein",
     "telefon_entfernen",
     "telefon_freigabe",
+    "telefon_kontaktfotos",
     "telefon_meldung_anzeigen",
     "telefon_pairing_abbrechen",
     "telefon_pairing_bestaetigen",
@@ -141,6 +142,7 @@
     "kdePairingStatus",
     "kdeSmsStatus",
     "kennwortStand",
+    "kontaktFotos",
     "mutationsSnapshot",
     "notizAnhangDateiErgebnis",
     "personalCustomAck",
@@ -386,5 +388,5 @@
       ]
     ]
   ],
-  "contractSha256": "1efb97329f8df869b975c6501323c82c675da8fb32ecfba6ebd41cdd2b566312"
+  "contractSha256": "fbf0a541c3740ab6ecb25c4aa09aff65d15ecf8c8b81f25d4638ad24a5c4750a"
 }

@@ -79,9 +79,10 @@ internal sealed partial class BridgeDispatcher : IDisposable
                 "sync" or "personal_sync_senden" or "personal_sync_lauf_senden" or "handbuch_herunterladen" or "baum_internet_adresse" or
                 "telefon_oeffnen" or "telefon_verbinden" or "telefon_pairing_oeffnen" or "kde_pairing_start" or "kde_pairing_complete" or
                 "kde_paaren" or "kde_pairing_confirm" or "kde_paarung_bestaetigen" or "baum_briefkasten_speichern" or "graph_client_id_speichern" or
-                "internet_konto_anmelden" or "internet_konten_status" or "internet_konto_verwalten")
+                "internet_konto_anmelden" or "internet_konten_status" or "internet_konto_verwalten" or "telefon_kontaktfotos")
             {
-                var owner = command is "sync" or "baum_briefkasten_speichern" or "graph_client_id_speichern" or "internet_konto_verwalten" ? "sync" :
+                var owner = command == "telefon_kontaktfotos" ? "kontaktfotos" :
+                    command is "sync" or "baum_briefkasten_speichern" or "graph_client_id_speichern" or "internet_konto_verwalten" ? "sync" :
                     command.StartsWith("personal_sync", StringComparison.Ordinal) || command.StartsWith("telefon", StringComparison.Ordinal) ? "phone" :
                     command.StartsWith("kde", StringComparison.Ordinal) ? "kde" : command.StartsWith("baum", StringComparison.Ordinal) ? "baum" :
                     command.StartsWith("update", StringComparison.Ordinal) || command == "handbuch_herunterladen" ? "update" : command;
@@ -262,6 +263,7 @@ internal sealed partial class BridgeDispatcher : IDisposable
                     case "personal_sync_attachment_index": await IndexPersonalSyncAttachmentsAsync(message); break;
                     case "telefon_personal_sync_commit": await CommitPersonalSyncAsync(message); break;
                     case "kde_sms_senden": await SendKdeSmsAsync(message); break;
+                    case "telefon_kontaktfotos": await ReadContactPhotosAsync(message); break;
                     case "kde_pairing_start":
                     case "kde_pairing_complete":
                     case "kde_paaren": await EnsureFirewallAsync(); await StartKdePairingAsync(message); break;

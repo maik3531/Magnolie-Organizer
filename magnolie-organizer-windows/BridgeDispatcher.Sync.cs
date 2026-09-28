@@ -584,14 +584,52 @@ internal sealed partial class BridgeDispatcher
         catch (ObjectDisposedException) { }
     }
 
+    private async Task ReadContactPhotosAsync(JsonElement message)
+    {
+        var requestId = Text(message, "requestId");
+        if (!Guid.TryParse(requestId, out _) || Text(message, "device_id").Length is < 1 or > 200) return;
+        try
+        {
+            if (!currentPlainTextAvailable) throw new InvalidOperationException("locked");
+            using var deadline = NetworkDeadline(TimeSpan.FromSeconds(8));
+            JsonArray? uids = null;
+            if (message.TryGetProperty("uids", out var requested))
+            {
+                if (requested.GetArrayLength() is < 1 or > 5) throw new InvalidDataException("invalid_contact_batch");
+                uids = JsonNode.Parse(requested.GetRawText())!.AsArray();
+            }
+            var result = uids is not null
+                ? await kdeConnectSms.ContactVcardsAsync(uids, Text(message, "device_id"), deadline.Token)
+                : await kdeConnectSms.ContactIndexAsync(Text(message, "device_id"), deadline.Token);
+            if (uids is not null)
+            {
+                foreach (var item in result["contacts"]!.AsArray().OfType<JsonObject>())
+                {
+                    var parsed = ExchangeCodec.ParseVCard(item["vcard"]!.GetValue<string>());
+                    if (parsed.Kontakte.Count != 1) throw new InvalidDataException("invalid_contact_vcard");
+                    var contact = parsed.Kontakte[0]!.AsObject();
+                    item.Remove("vcard");
+                    foreach (var field in new[] { "foto", "telefone", "telefon", "mobil", "email", "emails", "emailEintraege" })
+                        item[field] = contact[field]?.DeepClone();
+                }
+            }
+            result["ok"] = true; result["requestId"] = requestId;
+            await form.SendAsync("App.kontaktFotos", result);
+        }
+        catch (Exception) { await form.SendAsync("App.kontaktFotos", new { ok = false, requestId }); }
+    }
+
     private async Task<object> KdeStatusForWebAsync()
     {
         KdeConnectStatus status;
         try { status = await kdeConnectSms.DirectStatusAsync(); }
         catch (Exception) { return new { available = false, device_count = 0, reason = "unavailable" }; }
+        var contactDevices = kdeConnectSms.ContactDevices;
         return new
         {
             available = status.Available,
+            contacts_available = contactDevices.Count == 1,
+            contacts_device_id = contactDevices.Count == 1 ? contactDevices[0] : "",
             device_count = status.DeviceCount,
             reason = status.Reason,
             listening = status.Listening,

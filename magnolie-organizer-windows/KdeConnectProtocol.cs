@@ -22,6 +22,11 @@ internal static class KdeConnectProtocol
     internal const int FirstPort = 1716;
     internal const int LastPort = 1764;
     internal const int MaxPacketBytes = 512 * 1024;
+    internal const int MaxContactPacketBytes = 4 * 1024 * 1024;
+    internal const string ContactUidsRequest = "kdeconnect.contacts.request_all_uids_timestamps";
+    internal const string ContactUidsResponse = "kdeconnect.contacts.response_uids_timestamps";
+    internal const string ContactVcardsRequest = "kdeconnect.contacts.request_vcards_by_uid";
+    internal const string ContactVcardsResponse = "kdeconnect.contacts.response_vcards";
     internal const int MaxSmsSegments = 10;
     internal const string SmsRequest = "kdeconnect.sms.request";
     internal const string SmsRequestConversations = "kdeconnect.sms.request_conversations";
@@ -39,13 +44,14 @@ internal static class KdeConnectProtocol
             ["type"] = type, ["body"] = body.DeepClone() };
         var bytes = Encoding.UTF8.GetBytes(packet.ToJsonString(new JsonSerializerOptions {
             WriteIndented = false }) + "\n");
-        if (bytes.Length > MaxPacketBytes) throw new InvalidDataException("Das KDE-Connect-Paket ist zu groß.");
+        if (bytes.Length > (IsContactResponse(type) ? MaxContactPacketBytes : MaxPacketBytes))
+            throw new InvalidDataException("Das KDE-Connect-Paket ist zu groß.");
         return bytes;
     }
 
-    internal static KdeConnectPacket Decode(ReadOnlySpan<byte> bytes)
+    internal static KdeConnectPacket Decode(ReadOnlySpan<byte> bytes, bool allowContactPackets = false)
     {
-        if (bytes.Length < 2 || bytes.Length > MaxPacketBytes || bytes[^1] != (byte)'\n' ||
+        if (bytes.Length < 2 || bytes.Length > (allowContactPackets ? MaxContactPacketBytes : MaxPacketBytes) || bytes[^1] != (byte)'\n' ||
             bytes[..^1].IndexOf((byte)'\n') >= 0 || bytes.IndexOf((byte)'\r') >= 0 || bytes.IndexOf((byte)'\0') >= 0)
             throw new InvalidDataException("Ungültiger KDE-Connect-Paketrahmen.");
         JsonObject root;
@@ -64,21 +70,65 @@ internal static class KdeConnectProtocol
         var body = root["body"] as JsonObject ?? throw new InvalidDataException("Der Paketinhalt fehlt.");
         if (id < 0 || type.Length is < 1 or > 200 || type.Any(char.IsControl))
             throw new InvalidDataException("Ungültiger KDE-Connect-Paketkopf.");
+        if (bytes.Length > MaxPacketBytes && !IsContactResponse(type))
+            throw new InvalidDataException("Das KDE-Connect-Paket ist zu groß.");
         return new KdeConnectPacket(id, type, body.DeepClone().AsObject());
     }
 
-    internal static async Task<KdeConnectPacket> ReadAsync(Stream stream, CancellationToken cancellationToken)
+    internal static async Task<KdeConnectPacket> ReadAsync(Stream stream, CancellationToken cancellationToken,
+        bool allowContactPackets = false)
     {
         var writer = new ArrayBufferWriter<byte>();
         var one = new byte[1];
-        while (writer.WrittenCount < MaxPacketBytes)
+        while (writer.WrittenCount < (allowContactPackets ? MaxContactPacketBytes : MaxPacketBytes))
         {
             var read = await stream.ReadAsync(one, cancellationToken).ConfigureAwait(false);
             if (read == 0) throw new EndOfStreamException("KDE Connect hat die Verbindung geschlossen.");
             writer.Write(one);
-            if (one[0] == (byte)'\n') return Decode(writer.WrittenSpan);
+            if (one[0] == (byte)'\n') return Decode(writer.WrittenSpan, allowContactPackets);
         }
         throw new InvalidDataException("Das KDE-Connect-Paket ist zu groß.");
+    }
+
+    internal static bool IsContactResponse(string type) => type is ContactUidsResponse or ContactVcardsResponse;
+
+    internal static string[] ContactUids(JsonNode? value, int maximum = 20000)
+    {
+        if (value is not JsonArray array || array.Count > maximum) throw new InvalidDataException("invalid_contact_uids");
+        var result = new List<string>();
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var item in array)
+        {
+            if (item is not JsonValue entry || !entry.TryGetValue<string>(out var uid) ||
+                uid.Length is < 1 or > 1024 || uid.Any(c => c < 32) || !seen.Add(uid))
+                throw new InvalidDataException("invalid_contact_uids");
+            result.Add(uid);
+        }
+        return result.ToArray();
+    }
+
+    internal static JsonArray ParseContactIndex(JsonObject body)
+    {
+        var result = new JsonArray();
+        foreach (var uid in ContactUids(body["uids"]))
+        {
+            if (body[uid] is not JsonValue value || !value.TryGetValue<long>(out var modified) ||
+                modified is < 0 or > 9007199254740991) throw new InvalidDataException("invalid_contact_timestamp");
+            result.Add(new JsonObject { ["uid"] = uid, ["modified_ms"] = modified });
+        }
+        return result;
+    }
+
+    internal static JsonArray ParseContactVcards(JsonObject body, IReadOnlyCollection<string> requested)
+    {
+        var result = new JsonArray();
+        foreach (var uid in ContactUids(body["uids"], 5))
+        {
+            if (!requested.Contains(uid) || body[uid] is not JsonValue value || !value.TryGetValue<string>(out var card) ||
+                Encoding.UTF8.GetByteCount(card) > MaxContactPacketBytes) throw new InvalidDataException("invalid_contact_vcard");
+            result.Add(new JsonObject { ["uid"] = uid, ["vcard"] = card });
+        }
+        return result;
     }
 
     internal static JsonObject IdentityBody(string id, string name, int tcpPort, string? targetDeviceId = null)
@@ -86,8 +136,9 @@ internal static class KdeConnectProtocol
         var body = new JsonObject {
             ["deviceId"] = id, ["deviceName"] = name, ["protocolVersion"] = Version,
             ["deviceType"] = "desktop", ["tcpPort"] = tcpPort,
-            ["incomingCapabilities"] = new JsonArray(SmsMessages),
-            ["outgoingCapabilities"] = new JsonArray(SmsRequest, SmsRequestConversations, SmsRequestConversation)
+            ["incomingCapabilities"] = new JsonArray(SmsMessages, ContactUidsResponse, ContactVcardsResponse),
+            ["outgoingCapabilities"] = new JsonArray(SmsRequest, SmsRequestConversations, SmsRequestConversation,
+                ContactUidsRequest, ContactVcardsRequest)
         };
         if (!string.IsNullOrEmpty(targetDeviceId))
         { body["targetDeviceId"] = targetDeviceId; body["targetProtocolVersion"] = Version; }

@@ -62,6 +62,13 @@ internal static class RecoveryJournalTests
             preferences["einstellungen"] = JsonNode.Parse("{\"ansicht\":\"month\",\"schrift\":{\"groesse\":\"large\"}}");
             preferences["letzterSync"] = 123;
             preferences["syncMetadaten"] = JsonNode.Parse("{\"nextcloud\":{\"ausstehendeTransaktion\":\"test\"}}");
+            var photoBefore = new JsonObject { ["kontakte"] = new JsonArray(new JsonObject { ["id"] = "one", ["foto"] = "original" }) };
+            var photoCache = photoBefore.DeepClone().AsObject();
+            photoCache["kontaktFotoCache"] = new JsonObject { ["entries"] = new JsonArray() };
+            photoCache["kontakte"]![0]!["fotoQuelle"] = new JsonObject { ["uid"] = "source", ["hash"] = new string('a', 64) };
+            TestAssert.That(!RecoveryJournal.HasRecoverableChanges(photoBefore, photoCache), "Photo cache bookkeeping created a recovery point.");
+            photoCache["kontakte"]![0]!["foto"] = "changed";
+            TestAssert.That(RecoveryJournal.HasRecoverableChanges(photoBefore, photoCache), "Actual photo change lost its recovery boundary.");
             TestAssert.That(!RecoveryJournal.HasRecoverableChanges(data, preferences),
                 "Einstellungen und Sync-Buchhaltung erzeugen unnötige Vorher-Stände.");
             var bookkeeping = data.DeepClone().AsObject();
