@@ -146,6 +146,8 @@ dom = new JSDOM(html, {
   pretendToBeVisual: true
 });
 const { window } = dom;
+window.TextEncoder = TextEncoder;
+window.TextDecoder = TextDecoder;
 window.__MAGNOLIE_BRUECKE__ = "windows_test_bridge";
 window.__MAGNOLIE_SPRACHE__ = "de";
 window.webkit = { messageHandlers: { windows_test_bridge: {

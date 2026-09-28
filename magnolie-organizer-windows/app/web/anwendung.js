@@ -27281,6 +27281,9 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       sichereNotizSnapshot();
       nutzlast = nutzlast || {};
       const erfolgreich = nutzlast.ok !== false;
+      const notizenBereinigen = erfolgreich && !aktiverEditor &&
+        !DATEN.syncNachRestore?.additiv && !DATEN.syncNachRestore?.loeschungsfrei &&
+        !DATEN.syncMetadaten?.ersteSyncLoeschungsfrei && !DATEN.syncMetadaten?.nextcloud?.ersteSyncLoeschungsfrei;
       const syncFehlertext = String(nutzlast.fehler || nutzlast.bericht || _("unknown error"))
         .replace(/\s+/g, " ").trim().slice(0, 2000);
       const ausstehend = String((((DATEN.syncMetadaten || {}).nextcloud || {})
@@ -27317,6 +27320,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
         delete DATEN.syncMetadaten.nextcloud.ausstehendeTransaktion;
       }
       delete DATEN.syncAbgleichBasis;
+      if (notizenBereinigen) vereinigeBestehendeNotizen();
       if (!editorIstGeaendert()) zeichneAlles();
       const status = $("#sync-status");
       if (status) status.textContent = zeitZeileLetzterSync();

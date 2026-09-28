@@ -198,6 +198,32 @@ async function run(web) {
     assert.equal(JSON.parse(b.saves().at(-1).text).notizen[0].text, "Latest pending text");
   }, { notizen: [{ id: "note", titel: "Note", text: "Old", html: "Old" }] });
 
+  await test("successful provider sync cleans existing equal notes without a new note delivery", async b => {
+    assert.equal(b.t.daten().notizen.length,2,"opening a profile must not silently rewrite its notes");
+    b.w.App.syncFertig({ok:true,termine:[],aufgaben:[],kontakte:[],jahrestage:[]});
+    assert.equal(b.t.daten().notizen.length,1,"a completed explicit sync must not leave old equal copies waiting for an unrelated future delivery");
+    const note=b.t.daten().notizen[0];
+    assert.ok(note.baumFreigabe.partner.includes("peer"));
+    assert.equal(note.persoenlichVerknuepft,true,"keep the pre-existing personal side of the merged note");
+    b.t.speichereJetzt();
+    assert.equal(JSON.parse(b.saves().at(-1).text).notizen.length,1);
+  },{notizen:[
+    {id:"own-copy",titel:"Same",text:"Same body",html:"",angelegt:"2026-01-01",geaendert:"2026-01-01"},
+    {id:"tree-copy",titel:"Same",text:"Same body",html:"<p>Same body</p>",angelegt:"2026-02-01",geaendert:"2026-02-01",baumQuelle:"peer",baumFreigabe:{id:"remote-note",partner:["peer"],anhangPartner:[]}}
+  ]});
+
+  await test("failed provider sync leaves existing note copies untouched",async b=>{
+    b.w.App.syncFertig({ok:false,fehler:"Fixture failure",termine:[],aufgaben:[],kontakte:[],jahrestage:[]});
+    assert.equal(b.t.daten().notizen.length,2);
+  },{notizen:[{id:"first",titel:"Same",text:"Body"},{id:"second",titel:"Same",text:"Body"}]});
+
+  await test("restore protection defers note cleanup through the additive sync",async b=>{
+    b.w.App.syncFertig({ok:true,syncMetadaten:{...plain(b.t.daten().syncMetadaten),ersteSyncLoeschungsfrei:false},termine:[],aufgaben:[],kontakte:[],jahrestage:[]});
+    assert.equal(b.t.daten().notizen.length,2,"the first protected post-restore run must retain the restored copies");
+    b.w.App.syncFertig({ok:true,termine:[],aufgaben:[],kontakte:[],jahrestage:[]});
+    assert.equal(b.t.daten().notizen.length,1,"a later ordinary successful synchronization may reconcile equal copies");
+  },{syncMetadaten:{ersteSyncLoeschungsfrei:true},notizen:[{id:"first",titel:"Same",text:"Body"},{id:"second",titel:"Same",text:"Body"}]});
+
   await test("two imported profiles retain their own task parents", async b => {
     for (const source of ["profile-a", "profile-b"]) b.t.mergeAufgaben([
       { uid: "parent", titel: "Parent", icsQuelleId: source, geaendert: 1 },
