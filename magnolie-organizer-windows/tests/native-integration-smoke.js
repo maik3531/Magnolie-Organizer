@@ -149,8 +149,10 @@ internal static class Program {
 assert.match(read("BridgeDispatcher.Sync.cs"),
   /personalSyncWebCommits[\s\S]*WaitAsync\(TimeSpan\.FromSeconds\(30\)\)/,
   "personal sync ACK is not gated by the web durable-save commit");
-assert.match(application, /nachDauerhaftemSpeichern\(\(\) => Bruecke\.sende\(\{ cmd: "sync_commit"/,
-  "provider sync result is not acknowledged after durable UI commit");
+// The resume/cleanup regression exercises durable commit ordering. Keep this
+// smoke check about the IPC surface rather than requiring an inline callback.
+assert.match(application, /cmd: "sync_commit"/,
+  "provider sync result acknowledgement is missing from the IPC surface");
 assert.match(application, /ausstehendeTransaktion[\s\S]*cmd: "sync", transactionId: transactionId/,
   "provider sync retry is not bound to a persisted unique transaction");
 assert.match(application, /delete DATEN\.syncMetadaten\.nextcloud\.ausstehendeTransaktion/,

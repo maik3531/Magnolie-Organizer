@@ -381,10 +381,12 @@ internal sealed partial class BridgeDispatcher
                         tasks as JsonArray ?? [], calendar.Uid, isDefaultCalendar);
                     var (calendarTaskTombstones, remainingTaskTombstones) = NextcloudDavSelection.SplitCalendarTombstones(
                         taskTombstones, calendar.Uid, isDefaultCalendar);
-                    using var calendarTimeout = CancellationTokenSource.CreateLinkedTokenSource(operation.Token); calendarTimeout.CancelAfter(TimeSpan.FromSeconds(12));
+                    // HTTP clients bound individual requests. A calendar can
+                    // legitimately need many such requests; it shares only the
+                    // cancellable overall run lifetime, not one request budget.
                     var calendarResult = await new NextcloudCalendarSync(calendarClient!).SyncAsync(calendar,
                         calendarTerms, calendarAnniversaries, calendarTombstones, calendarCursor,
-                        additiveOnly || firstCalendarRun, calendarTimeout.Token);
+                        additiveOnly || firstCalendarRun, operation.Token);
                     foreach (var item in calendarResult.Termine) remainingTerms.Add(item?.DeepClone());
                     foreach (var item in calendarResult.Jahrestage) remainingAnniversaries.Add(item?.DeepClone());
                     foreach (var item in calendarResult.Tombstones) remainingTombstones.Add(item?.DeepClone());
@@ -392,10 +394,9 @@ internal sealed partial class BridgeDispatcher
                     NextcloudTaskResult taskResult;
                     if (calendar.SupportsVTodo)
                     {
-                        using var taskTimeout = CancellationTokenSource.CreateLinkedTokenSource(operation.Token); taskTimeout.CancelAfter(TimeSpan.FromSeconds(12));
                         taskResult = await new NextcloudTaskSync(calendarClient!).SyncAsync(calendar,
                             calendarTasks, calendarTaskTombstones, taskCursor,
-                            additiveOnly || firstTaskRun, taskTimeout.Token);
+                            additiveOnly || firstTaskRun, operation.Token);
                     }
                     else
                     {

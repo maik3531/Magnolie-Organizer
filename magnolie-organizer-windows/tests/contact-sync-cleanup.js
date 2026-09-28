@@ -29,10 +29,15 @@ async function check(mode) {
       }
       queueMicrotask(() => w.App.gespeichert({id: message.id, ok: true, kontaktPruefung: plan}));
     }
-    if (message.cmd === "mutations_snapshot") queueMicrotask(() => {
+     if (message.cmd === "mutations_snapshot") queueMicrotask(() => {
       if (mode === "stale") w.OrganizerTest.daten().kontakte[0].notiz = "Concurrent edit";
       w.App.mutationsSnapshot({token: message.token, ok: mode !== "snapshot-error"});
-    });
+     });
+     if (mode.startsWith("resume") && message.cmd === "sync" && message.transactionId === "a".repeat(64)) {
+       queueMicrotask(() => mode === "resume-failed" ? w.App.syncFehler("Fixture calendar timeout") :
+         w.App.syncFertig({...JSON.parse(JSON.stringify(message.daten)),
+           transactionId:message.transactionId,ok:true,letzterSync:Date.now()}));
+     }
   }}}};
   try {
     w.eval(fs.readFileSync(path.join(web, "i18n.js"), "utf8")); w.MagnolieI18n.setLocale("en");
@@ -49,10 +54,16 @@ async function check(mode) {
       aufgaben: [{id: "task", titel: "Linked", kontaktId: "provider"}],
       einstellungen: {sync: {adressbuchUid: source, automatisch: false}}}});
     await tick(); messages.length = 0; writes.length = 0;
-    const T = w.OrganizerTest;
-    T.starteSync(true);
-    for (let i = 0; i < 150 && !messages.some(m => m.cmd === "sync") && !T.daten().syncStatus.letzterFehler; i++) await tick();
-    if (mode === "success") {
+     const T = w.OrganizerTest;
+     if(mode.startsWith("resume")) {
+       const data=T.daten();
+       data.syncMetadaten.nextcloud.ausstehendeTransaktion="a".repeat(64);
+       data.syncAbgleichBasis=JSON.parse(JSON.stringify({kontakte:data.kontakte,termine:data.termine,
+         aufgaben:data.aufgaben,jahrestage:data.jahrestage,geloescht:data.geloescht,syncEpoch:data.syncEpoch}));
+     }
+     T.starteSync(true);
+     for (let i = 0; i < 150 && messages.filter(m => m.cmd === "sync").length < (mode === "resume" ? 2 : 1) && !T.daten().syncStatus.letzterFehler; i++) await tick();
+     if (mode === "success" || mode === "resume") {
       assert.equal(T.daten().kontakte.length, 1);
       assert.equal(T.daten().kontakte[0].id, "tree");
       assert.equal(T.daten().kontakte[0].syncQuellen[source].id, "original", "the original provider record must survive");
@@ -62,19 +73,33 @@ async function check(mode) {
       assert.equal(tombstone.syncQuellen[source].id, "redundant");
       assert.notEqual(tombstone.uid, T.daten().kontakte[0].uid);
       assert.equal(tombstone.kontaktDuplikat.keeperId, "original");
-      const request = messages.find(m => m.cmd === "sync");
+       const request = messages.filter(m => m.cmd === "sync").at(-1);
       assert.ok(request, "native synchronization must resume after consolidation");
       assert.equal(request.daten.kontakte.length, 1);
       assert.equal(request.daten.geloescht.kontakte[0].kontaktDuplikat.keeperId, "original");
       assert.equal(messages.filter(m => m.cmd === "mutations_snapshot").length, 1);
-      assert.equal(writes[0].kontakte.length, 2, "the original contacts must be durable before the pre-change snapshot");
+       assert.equal(writes[0].kontakte.length, 2, "the original contacts must be durable before the pre-change snapshot");
+       if(mode === "resume") {
+         const first=messages.find(m=>m.cmd==="sync");
+         assert.equal(first.transactionId,"a".repeat(64),"pending provider writes must resume with their original identity");
+         assert.equal(first.daten.kontakte.length,2,"do not mutate the saved in-flight payload before its commit");
+         assert.notEqual(request.transactionId,first.transactionId);
+         const committed=messages.findIndex(m=>m.cmd==="sync_commit"&&m.transactionId===first.transactionId);
+         assert.ok(committed>=0&&committed<messages.lastIndexOf(request),"finish the pending transaction before the cleanup follow-up");
+       }
       assert.equal(writes.at(-1).kontakte.length, 1, "the consolidated state must be saved before sending sync");
       const archivedReference = JSON.parse(JSON.stringify(T.daten()));
       archivedReference.aufgaben[0].kontaktId = "provider";
       assert.equal(T.normalisiere(archivedReference).aufgaben[0].kontaktId, "tree", "old references must resolve after reload/restore");
       T.mergeKontakte([{...copy, id: "reimport", geaendert: Date.now()}]);
       assert.equal(T.daten().kontakte.length, 1, "a retired provider UID must not create another card on reimport");
-    } else {
+     } else if (mode === "resume-failed") {
+       assert.equal(T.daten().kontakte.length,2);
+       assert.equal(T.daten().syncMetadaten.nextcloud.ausstehendeTransaktion,"a".repeat(64),"a failed run must remain resumable");
+       assert.equal(messages.filter(m=>m.cmd==="sync").length,1);
+       assert.equal(messages.filter(m=>m.cmd==="mutations_snapshot").length,0,"do not clean up before the interrupted transaction is complete");
+       assert.equal(T.daten().geloescht.kontakte.length,0);
+     } else {
       assert.equal(T.daten().kontakte.length, 2, mode);
       assert.equal(T.daten().geloescht.kontakte.length, 0, mode);
       assert.equal(messages.filter(m => m.cmd === "sync").length, 0, "no provider operation after failed validation: " + mode);
@@ -82,6 +107,6 @@ async function check(mode) {
   } finally { w.close(); }
 }
 (async () => {
-  for (const mode of ["success", "bad-proof", "snapshot-error", "stale"]) await check(mode);
+   for (const mode of ["success", "resume", "resume-failed", "bad-proof", "snapshot-error", "stale"]) await check(mode);
   console.log("CONTACT SYNC CLEANUP PASSED: native planner, snapshot boundary, links, source identity, failed/stale guards");
 })().catch(error => {console.error(error); process.exitCode = 1;});

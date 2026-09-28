@@ -19236,6 +19236,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
   let kontaktSyncPruefungMoeglich = false;
   let kontaktSyncPruefungLauf = null;
   let kontaktSyncPruefungStand = null;
+  let kontaktSyncNachlauf = null;
   let updateLaeuft = false;
   let handbuchInstalliert = false;
   let handbuchVersion = "";
@@ -24817,6 +24818,11 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     }
     const nextcloudMetadaten = DATEN.syncMetadaten.nextcloud ||
       (DATEN.syncMetadaten.nextcloud = {});
+    if (kontaktSyncPruefungMoeglich && !kontaktVorbereitet && w.adressbuchUid &&
+        /^[0-9a-f]{64}$/.test(nextcloudMetadaten.ausstehendeTransaktion || "")) {
+      kontaktSyncNachlauf = { transactionId: nextcloudMetadaten.ausstehendeTransaktion,
+        source: w.adressbuchUid, epoch: DATEN.syncEpoch };
+    }
     if (kontaktSyncPruefungMoeglich && !kontaktVorbereitet && w.adressbuchUid && !aktiverEditor &&
         !nextcloudMetadaten.ausstehendeTransaktion && !DATEN.syncNachRestore?.additiv && !DATEN.syncNachRestore?.loeschungsfrei) {
       const lauf = { bestand: DATEN, source: w.adressbuchUid, land: telefonHeimatland() };
@@ -25951,7 +25957,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       schliesseSperrbildschirm();
       kennwortAn = !!nutzlast.kennwort;
       kontaktSyncPruefungMoeglich = nutzlast.kontaktSyncPruefung === true;
-      kontaktSyncPruefungLauf = null; kontaktSyncPruefungStand = null;
+      kontaktSyncPruefungLauf = null; kontaktSyncPruefungStand = null; kontaktSyncNachlauf = null;
       unterWayland = !!nutzlast.wayland;
       const edsZeigerBereinigt = Array.isArray(nutzlast.daten && nutzlast.daten.kontakte) &&
         nutzlast.daten.kontakte.some(kontaktHatEdsZeigerwert);
@@ -27286,6 +27292,11 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       }
       nutzlast = syncSammlungenAbgleichen(nutzlast);
       if (!nutzlast) return;
+      const kontaktNachholen = !!kontaktSyncNachlauf && erfolgreich && kontaktSyncNachlauf.transactionId === nutzlast.transactionId &&
+        kontaktSyncNachlauf.source === DATEN.einstellungen.sync.adressbuchUid &&
+        kontaktSyncNachlauf.epoch === DATEN.syncEpoch;
+      const kontaktQuelle = DATEN.einstellungen.sync.adressbuchUid, kontaktEpoch = DATEN.syncEpoch;
+      if (kontaktSyncNachlauf?.transactionId === nutzlast.transactionId) kontaktSyncNachlauf = null;
       syncEnde();
       terminIndexVeraltet = true;
       jahrestagIndexVeraltet = true;
@@ -27311,13 +27322,21 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       if (!editorIstGeaendert()) zeichneAlles();
       const status = $("#sync-status");
       if (status) status.textContent = zeitZeileLetzterSync();
-      if (!erfolgreich || DATEN.einstellungen.sync.erfolgsmeldungen) {
+      if (!erfolgreich || DATEN.einstellungen.sync.erfolgsmeldungen && !kontaktNachholen) {
         zettel(erfolgreich ? (nutzlast.bericht || _("Synchronization completed.")) :
           uebersetzt("Synchronization failed: %(error)s", { error: syncFehlertext }));
       }
       const kontaktKonflikte = DATEN.kontakte.reduce((summe,k) => summe + Object.keys(k.syncKonflikte || {}).length, 0);
       if (kontaktKonflikte) zettel(_("Conflict") + " · " + _("Address book") + " (" + kontaktKonflikte + ")");
       const kandidat = nutzlast.adressbuchBaselineKandidat;
+      const bestaetigeAbgleich = () => {
+        Bruecke.sende({ cmd: "sync_commit", transactionId: nutzlast.transactionId });
+        // Never rewrite an in-flight journal merely to make cleanup eligible.
+        // Commit the durable resumed result first, then enter the normal guarded
+        // cleanup path once, in the same user-requested synchronization action.
+        if (kontaktNachholen && !gesperrt && !aktiverEditor && DATEN.syncEpoch === kontaktEpoch &&
+            DATEN.einstellungen.sync.adressbuchUid === kontaktQuelle) starteSync(true);
+      };
       if (kandidat && kandidat.sourceUid) {
         nachDauerhaftemSpeichern(() => {
           ausstehendeAdressbuchBaseline = kandidat.sourceUid;
@@ -27331,11 +27350,10 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
           };
           speichereJetzt();
           if (erfolgreich && /^[0-9a-f]{64}$/.test(nutzlast.transactionId || ""))
-            nachDauerhaftemSpeichern(() => Bruecke.sende({ cmd: "sync_commit", transactionId: nutzlast.transactionId }));
+            nachDauerhaftemSpeichern(bestaetigeAbgleich);
         });
       } else if (erfolgreich && /^[0-9a-f]{64}$/.test(nutzlast.transactionId || "")) {
-        nachDauerhaftemSpeichern(() => Bruecke.sende({ cmd: "sync_commit",
-          transactionId: nutzlast.transactionId }));
+        nachDauerhaftemSpeichern(bestaetigeAbgleich);
       } else planeSpeichern();
     },
     syncFehler(text) {

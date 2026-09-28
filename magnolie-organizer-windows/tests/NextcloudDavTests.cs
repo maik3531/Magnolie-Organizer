@@ -160,6 +160,7 @@ internal static class NextcloudDavTests
             await TestNextcloudAnniversaries(settings, root);
             TestRoundtrips();
             TestDispatcherTaskStateAndBudget();
+            await TestProgressingRequestBudgets(settings);
             TestSyncJournal(root);
         }
         finally { try { Directory.Delete(root, true); } catch (Exception) { } }
@@ -960,15 +961,51 @@ internal static class NextcloudDavTests
             source.Contains("[\"aufgabenInitialisiert\"] = true", StringComparison.Ordinal) &&
             source.Contains("taskCursors[calendarId] = now", StringComparison.Ordinal),
             "Aufgaben besitzen keinen separat persistierten Initialisierungscursor.");
-        var taskTimeout = source.IndexOf("using var taskTimeout = CancellationTokenSource.CreateLinkedTokenSource(operation.Token); taskTimeout.CancelAfter(TimeSpan.FromSeconds(12));", StringComparison.Ordinal);
-        var taskCall = source.IndexOf("additiveOnly || firstTaskRun, taskTimeout.Token", StringComparison.Ordinal);
-        TestAssert.That(taskTimeout >= 0 && taskCall > taskTimeout && !source.Contains("additiveOnly || firstTaskRun, calendarTimeout.Token", StringComparison.Ordinal),
-            "Aufgabensync teilt weiterhin das 12-Sekunden-Budget des Terminsyncs.");
+        TestAssert.That(source.Contains("additiveOnly || firstCalendarRun, operation.Token", StringComparison.Ordinal) &&
+            source.Contains("additiveOnly || firstTaskRun, operation.Token", StringComparison.Ordinal) &&
+            !source.Contains("CancelAfter(TimeSpan.FromSeconds(12))", StringComparison.Ordinal),
+            "Ein fortschreitender Kalender-/Aufgabenlauf wird noch mit dem Zeitbudget einer einzelnen HTTP-Anfrage abgebrochen.");
         var catchPosition = source.IndexOf("catch (Exception error)", StringComparison.Ordinal);
         var disposePosition = source.IndexOf("davClient?.Dispose()", catchPosition, StringComparison.Ordinal);
         TestAssert.That(catchPosition >= 0 && disposePosition > catchPosition &&
                         !source.Contains("App.syncFehler\", error.Message", StringComparison.Ordinal),
             "Der DAV-Client bleibt auf Fehlerpfaden offen oder technische Syncfehler gelangen in die Oberfläche.");
+    }
+
+    private static async Task TestProgressingRequestBudgets(NextcloudMailboxSettingsStore settings)
+    {
+        using var handler = new ProgressingHandler();
+        using var http = DeadlineHttp.Create(TimeSpan.FromSeconds(1), handler);
+        using var client = new NextcloudDavClient(settings, http);
+        using var operation = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+        var source = new NextcloudDavSource("nextcloud-calendar:" + new string('f', 64), "Progress", "calendar",
+            new Uri("https://cloud.example/nc/calendars/progress/"), false);
+        var elapsed = System.Diagnostics.Stopwatch.StartNew();
+        for (var index = 0; index < 4; index++)
+        {
+            var uid = "progress-" + index;
+            await client.CreateAsync(source, uid, ".ics", "text/calendar",
+                "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\nUID:" + uid + "\r\nDTSTART:20260928T120000Z\r\nSUMMARY:Progress\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n", operation.Token);
+        }
+        TestAssert.That(handler.Requests == 4 && elapsed.Elapsed > TimeSpan.FromSeconds(1) && !operation.IsCancellationRequested,
+            "A progressing multi-object upload incorrectly consumed one shared request timeout.");
+        handler.Stall = true;
+        await TestAssert.ThrowsAsync<OperationCanceledException>(() => client.CreateAsync(source, "stalled", ".ics", "text/calendar",
+            "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\nUID:stalled\r\nDTSTART:20260928T120000Z\r\nSUMMARY:Stalled\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n", operation.Token),
+            "Removing the batch timeout left a stalled request without its own deadline.");
+        TestAssert.That(!operation.IsCancellationRequested, "The stalled request was only stopped by the whole-run deadline.");
+    }
+
+    private sealed class ProgressingHandler : HttpMessageHandler
+    {
+        internal int Requests { get; private set; }
+        internal bool Stall { get; set; }
+        protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken token)
+        {
+            Requests++;
+            await Task.Delay(Stall ? Timeout.InfiniteTimeSpan : TimeSpan.FromMilliseconds(300), token);
+            return new HttpResponseMessage(HttpStatusCode.Created) { Headers = { ETag = new System.Net.Http.Headers.EntityTagHeaderValue("\"progress\"") } };
+        }
     }
 
     private static string Collections(string type, string ns, string href, string name) => $"<d:multistatus xmlns:d=\"DAV:\" xmlns:x=\"{ns}\"><d:response><d:href>{href}</d:href><d:propstat><d:prop><d:displayname>{name}</d:displayname><d:resourcetype><d:collection/><x:{type}/></d:resourcetype></d:prop><d:status>HTTP/1.1 200 OK</d:status></d:propstat></d:response></d:multistatus>";
