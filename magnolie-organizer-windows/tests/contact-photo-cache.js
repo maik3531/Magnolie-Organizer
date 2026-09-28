@@ -5,7 +5,7 @@ const file = path.join(__dirname, "desktop-state-regressions.js");
 const harness = new Module(file, module); harness.filename = file; harness.paths = Module._nodeModulePaths(__dirname);
 const source = fs.readFileSync(file, "utf8").split("async function run(web)")[0].replace(
   'w.eval(fs.readFileSync(path.join(web, "anwendung.js"), "utf8"));',
-  'w.eval(fs.readFileSync(path.join(web, "anwendung.js"), "utf8").replace("speichereJetzt: speichereJetzt,", "fotoAktiv: () => !!kontaktFotoLauf, speichereJetzt: speichereJetzt,"));');
+  'w.eval(fs.readFileSync(path.join(web, "anwendung.js"), "utf8").replace("speichereJetzt: speichereJetzt,", "fotoAktiv: () => !!kontaktFotoLauf, fotoSyncBusy: value => { syncLaeuft = value; }, speichereJetzt: speichereJetzt,"));');
 harness._compile(source + "\nmodule.exports={boot,roots};", file);
 const plain = x => JSON.parse(JSON.stringify(x));
 const photo = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Wl6SpAAAAAASUVORK5CYII=";
@@ -21,6 +21,8 @@ async function run(web, data, remote, options = {}) {
     set src(value) { if (this.onload) this.onload(); }
   };
   const done = new Set(), timers = new Set(), requests = [];
+  let resumed = false;
+  if (options.beforeStart) options.beforeStart(b);
   b.w.App.telefonStand(status);
   const deadline = Date.now() + 10000;
   try {
@@ -45,6 +47,11 @@ async function run(web, data, remote, options = {}) {
       }
       for (const timer of b.timers) if (!timers.has(timer) && !timer.cancelled && [200, 1000].includes(timer.delay)) {
         timers.add(timer); timer.fn();
+      }
+      if (options.resumeBusy && !resumed && !b.t.fotoAktiv()) {
+        const timer = b.timers.find(t => t.delay === 60000 && !t.cancelled);
+        assert.ok(timer, "busy photo retrieval must schedule another attempt");
+        resumed = true; b.t.fotoSyncBusy(false); timer.fn();
       }
     } while (b.t.fotoAktiv());
     return { data: plain(b.t.daten()), requests, saves: b.saves().map(m => JSON.parse(m.text)) };
@@ -108,6 +115,17 @@ async function run(web, data, remote, options = {}) {
     const canonicalMailbox = await run(web, { kontakte: [{ id: "mail", email: "josé@example.org" }] },
       [{ uid: "accent", modified_ms: 1, foto: photo, email: "JOSE\u0301@EXAMPLE.ORG" }]);
     assert.equal(canonicalMailbox.data.kontakte[0].foto, photo, "equivalent Unicode and case still match");
+    const busy = await run(web, base, remote, { beforeStart: b => b.t.fotoSyncBusy(true) });
+    assert.equal(busy.requests.length, 0, "provider synchronization has priority over photo retrieval");
+    const resumed = await run(web, base, remote, { beforeStart: b => b.t.fotoSyncBusy(true), resumeBusy: true });
+    assert.equal(resumed.data.kontakte[0].foto, photo, "photo retrieval resumes when synchronization finishes");
+    const startedSync = await run(web, base, remote, { beforeReply: b => b.t.fotoSyncBusy(true) });
+    assert.equal(startedSync.data.kontakte[0].foto, "", "late photos must not invalidate an active synchronization plan");
+    const reviewing = await run(web, base, remote, { beforeReply: b => {
+      const dialog = b.w.document.createElement("div"); dialog.className = "baum-kontakt-konflikt";
+      b.w.document.body.append(dialog);
+    }});
+    assert.equal(reviewing.data.kontakte[0].foto, "", "photo updates must not invalidate a contact review draft");
     console.log("CONTACT PHOTO CACHE PASSED: " + web);
   }
 })().catch(error => { console.error(error); process.exitCode = 1; });

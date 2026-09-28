@@ -4238,10 +4238,16 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
 
   function planeKontaktFotoAbruf() {
     const quelle = telefonStand?.kdeconnect;
-    if (!initialisiert || gesperrt || aktiverEditor || !DATEN.einstellungen.adressen.foto ||
+    const beschaeftigt = () => aktiverEditor || syncLaeuft ||
+      (typeof kontaktSyncPruefungLauf !== "undefined" && kontaktSyncPruefungLauf) ||
+      document.querySelector(".baum-kontakt-konflikt, .sync-kontakt-konflikt, .kontakt-import-schleier, .kontakt-assistent-schleier");
+    if (!initialisiert || gesperrt || !DATEN.einstellungen.adressen.foto ||
         !quelle?.contacts_available || !quelle.contacts_device_id ||
         DATEN.syncMetadaten?.ersteSyncLoeschungsfrei || DATEN.syncNachRestore?.loeschungsfrei ||
         DATEN.syncNachRestore?.additiv || !DATEN.kontakte.some(k => !k.fotoManuell && (!k.foto || k.fotoQuelle))) return;
+    if (beschaeftigt()) {
+      clearTimeout(kontaktFotoTimer); kontaktFotoTimer = setTimeout(planeKontaktFotoAbruf, 60000); return;
+    }
     if (kontaktFotoKontext?.daten !== DATEN || kontaktFotoKontext.deviceId !== quelle.contacts_device_id) {
       kontaktFotoKontext = { daten: DATEN, deviceId: quelle.contacts_device_id };
       kontaktFotoLauf = null; kontaktFotoNaechsterAbruf = 0;
@@ -4251,7 +4257,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     const lauf = { daten: DATEN, epoch: DATEN.syncEpoch, deviceId: quelle.contacts_device_id };
     kontaktFotoLauf = lauf;
     const gueltig = () => kontaktFotoLauf === lauf && DATEN === lauf.daten && DATEN.syncEpoch === lauf.epoch &&
-      !gesperrt && !aktiverEditor && DATEN.einstellungen.adressen.foto &&
+      !gesperrt && !beschaeftigt() && DATEN.einstellungen.adressen.foto &&
       telefonStand?.kdeconnect?.contacts_available && telefonStand.kdeconnect.contacts_device_id === lauf.deviceId;
     const zuordnungen = () => JSON.stringify(DATEN.kontakte.map(k => [k.id, kontaktTelefone(k),
       emailListe(k).map(kontaktFotoMailSchluessel), k.fotoManuell === true]));
