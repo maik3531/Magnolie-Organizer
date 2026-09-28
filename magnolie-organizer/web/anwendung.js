@@ -3887,7 +3887,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
 
   function synchronisiereAnrufFreigaben(peer, audioAendern = false) {
     const optionen = DATEN.einstellungen.adressen.kommunikation.anruf || {};
-    if (!peer) return;
+    if (!peer || !["offline", "online_wifi", "online_bluetooth"].includes(peer.state)) return;
     const peers = telefonStand && telefonStand.peers || [];
     const magnolie = optionen.art === "magnolie";
     if (!optionen.telefonId && magnolie && peers.length === 1) {

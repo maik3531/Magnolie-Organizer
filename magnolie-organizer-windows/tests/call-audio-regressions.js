@@ -45,13 +45,24 @@ for (const file of frontends) {
     const syncSource = source.match(/function synchronisiereAnrufFreigaben\([\s\S]*?\n  \}/)[0];
     const options = {art: 'magnolie', telefonId: 'own-phone', preferPcAudio: true};
     const data = {einstellungen: {adressen: {kommunikation: {anruf: options}}}};
-    const peer = {device_id: 'own-phone', call_audio: {prefer_pc: false}, local_grants: {grants: {
+    const peer = {device_id: 'own-phone', state: 'online_wifi', call_audio: {prefer_pc: false}, local_grants: {grants: {
       incoming_call_state: false, incoming_call_number: false, answer_call: false, end_call: false}}};
     const sent = [];
     const sync = new Function('DATEN', 'telefonStand', 'aktiverAnruf', 'anrufFreigabenAusstehend',
       'Bruecke', 'planeSpeichern', source.match(/function anrufAudioAdresse\([\s\S]*?\n  \}/)[0] + '\n' + syncSource + '; return synchronisiereAnrufFreigaben;')(
         data, {peers: [peer]}, null, new Map(), {sende: message => sent.push(message) && true}, () => {});
+    options.telefonId = '';
+    const beforePairing = JSON.stringify(options);
+    for (const state of ['pair_commit_pending', 'unknown', undefined]) {
+      peer.state = state;
+      sync(peer);
+      sync(peer, true);
+      assert.deepEqual(sent, [], 'unconfirmed pairing must not configure call grants or audio');
+      assert.equal(JSON.stringify(options), beforePairing, 'unconfirmed pairing must not bind or change phone preferences');
+    }
+    peer.state = 'online_wifi';
     sync(peer);
+    assert.equal(options.telefonId, peer.device_id);
     assert.equal(options.preferPcAudio, false);
     assert.deepEqual(sent.map(m => [m.name, m.an]), [['incoming_call_state', true], ['incoming_call_number', true], ['answer_call', true], ['end_call', true]]);
     assert.equal(options.eingehendBenachrichtigen, true); assert.equal(options.computerTelefonie, true);
