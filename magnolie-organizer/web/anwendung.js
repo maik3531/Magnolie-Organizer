@@ -6120,6 +6120,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
         kontaktpersonStatus: S(k.kontaktpersonStatus),
         kontaktpersonen: kontaktpersonen,
         foto: sauberesFoto(S(k.foto)),
+        fotoManuell: k.fotoManuell === true,
         geburtstag: geburtstag,
         jubilaeum: jubilaeum,
         geburtstagJahrUnbekannt: gueltigesTeildatum(geburtstag),
@@ -15526,6 +15527,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     fFirma.id = "kontakt-firma";
     fNotiz.id = "kontakt-notiz";
     let fotoWert = k ? sauberesFoto(k.foto) : "";
+    let fotoManuell = !!(k && k.fotoManuell), fotoLeseFolge = 0;
     fNotiz.rows = 2;
 
     const telefonKasten = el("div", "kontakt-telefon-liste");
@@ -15721,6 +15723,8 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       let gewaehlterName = "";
       const fotoKnopf = knopf("", "klein", () => {
         if (fotoWert) {
+          fotoLeseFolge++;
+          fotoManuell = true;
           fotoWert = "";
           gewaehlterName = "";
           datei.value = "";
@@ -15741,7 +15745,10 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       };
       datei.addEventListener("change", () => {
         const bilddatei = datei.files && datei.files[0];
+        if (!bilddatei) return;
+        const leseFolge = ++fotoLeseFolge;
         kontaktFotoLesen(bilddatei, (wert, fehler) => {
+          if (leseFolge !== fotoLeseFolge || !fotoKasten.isConnected) return;
           if (fehler) {
             zettel(fehler);
             datei.value = "";
@@ -15749,6 +15756,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
             return;
           }
           fotoWert = wert;
+          fotoManuell = true;
           gewaehlterName = bilddatei ? bilddatei.name : "";
           frischen();
         });
@@ -16109,7 +16117,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
 
     const leseEntwurf = () => ({
       nachname: fNach.value.trim(), vorname: fVor.value.trim(), firma: fFirma.value.trim(),
-      notiz: fNotiz.value, foto: fotoWert,
+      notiz: fNotiz.value, foto: fotoWert, fotoManuell: fotoManuell,
       telefone: kopie(telefone), anschriften: kopie(anschriften),
       emailEintraege: kopie(emailEintraege), kontaktpersonen: kopie(kontaktpersonen),
       sozialeMedien: kopie(sozialeMedien), ereignisse: kopie(ereignisse),
@@ -16165,6 +16173,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
         notiz: fNotiz.value,
         kontaktpersonName: "", kontaktpersonTelefon: "", kontaktpersonStatus: "",
         foto: fotoWert,
+        fotoManuell: fotoManuell,
         geaendert: Date.now()
       };
       let ziel = k ? DATEN.kontakte.find(item => item.id === k.id) : null;
@@ -21587,7 +21596,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
           kontakt.baumKontakt.staende || []).concat(stand))).slice(-100),
         partner: Array.from(new Set((kontakt.baumKontakt &&
           kontakt.baumKontakt.partner || []).concat(stueck.von))) };
-      if (!kontakt.foto && fern.foto) kontakt.foto = String(fern.foto);
+      if (!kontakt.fotoManuell && !kontakt.foto && fern.foto) kontakt.foto = String(fern.foto);
       verknuepfeKontaktGeburtstag(kontakt);
       verknuepfeKontaktJubilaeum(kontakt);
     } else if (art === "kontakt_loeschen") {
@@ -25455,7 +25464,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
         const strukturierterName = Array.isArray(k.vcardRoundtrip) && k.vcardRoundtrip.some(zeile => /^(?:[^:;.]+\.)?N[;:]/i.test(zeile));
         const namensArt = (s) => String(s).match(/^(?:[^:;.]+\.)?(N|FN|ORG)[;:]/i)?.[1].toUpperCase() || "";
         const ersetzteNamen = new Set(neuereUidFassung ? (k.vcardRoundtrip || []).map(namensArt).filter(Boolean) : []);
-        if (foto && (!vorhanden.foto || neuereUidFassung)) {
+        if (foto && !vorhanden.fotoManuell && (!vorhanden.foto || neuereUidFassung)) {
           vorhanden.foto = foto;
           z.fotos++;
           geaendert = true;

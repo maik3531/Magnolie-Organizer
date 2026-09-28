@@ -179,6 +179,8 @@ internal static class ContactFields
     {
         foreach (var name in Names)
         {
+            if (name == "foto" && target["fotoManuell"] is JsonValue manualPhoto &&
+                manualPhoto.TryGetValue<bool>(out var manual) && manual) continue;
             if (provider is "windows-contacts" or "microsoft-graph")
             {
                 if (name is "foto" or "emailEintraege" or "kontaktpersonName" or "kontaktpersonTelefon" or

@@ -407,6 +407,18 @@ internal static class WindowsContactGraphTests
                 GraphApiClient.ToGraph(full)["birthday"]!.GetValue<string>() == "2000-02-29T00:00:00Z",
                 "Graph erhielt ein fingiertes Jahr für ein jahrloses Datum oder verlor das echte Jahr 2000.");
             var mergeTarget = yearless.DeepClone().AsObject();
+            foreach (var photo in new[] { "", "data:image/png;base64,AQID" })
+            {
+                var manualPhoto = new JsonObject { ["foto"] = photo, ["fotoManuell"] = true };
+                ContactFields.CopyRemoteFields(manualPhoto, new JsonObject { ["vorname"] = "Updated", ["foto"] = "data:image/png;base64,BAUG" });
+                TestAssert.That(manualPhoto["foto"]!.GetValue<string>() == photo &&
+                    manualPhoto["vorname"]!.GetValue<string>() == "Updated",
+                    "Remote updates replaced a manual photo/removal or blocked unrelated fields.");
+                manualPhoto["fotoManuell"] = false;
+                ContactFields.CopyRemoteFields(manualPhoto, new JsonObject { ["foto"] = "data:image/png;base64,BAUG" });
+                TestAssert.That(manualPhoto["foto"]!.GetValue<string>() == "data:image/png;base64,BAUG",
+                    "Automatic source photos stopped updating.");
+            }
             ContactFields.CopyRemoteFields(mergeTarget, new JsonObject { ["vorname"] = "Remote" });
             TestAssert.That(mergeTarget["geburtstag"]!.GetValue<string>() == "--02-29",
                 "Ein Provider ohne Geburtstagsfeld löschte das lokale jahrlose Datum.");

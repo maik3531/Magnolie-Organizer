@@ -1222,6 +1222,14 @@ pruefe(wieder is not None and wieder["titel"] == "Wiederbelebt",
 pruefe(all(t.get("sync") for t in neu), "alle verbliebenen tragen sync=True")
 
 foto_data = "data:image/png;base64,iVBORw0KGgo="
+for manuelles_foto in ("", foto_data):
+    manuell_lokal = [{"uid": "manuell", "nachname": "Bild", "foto": manuelles_foto,
+                      "fotoManuell": True, "geaendert": 100, "sync": True}]
+    manuell_fern = {"manuell": {"uid": "manuell", "nachname": "Bild neu",
+                               "foto": "data:image/png;base64,BAUG", "geaendert": 900}}
+    manuell_neu, *_ = m.sync_merge(manuell_lokal, manuell_fern, [], 0, m.KONTAKT_FELDER)
+    pruefe(manuell_neu[0]["foto"] == manuelles_foto and manuell_neu[0]["nachname"] == "Bild neu",
+           "manuelles Foto bzw. Entfernen bleibt bei neuerem Serverstand erhalten")
 foto_lokal = [{"uid": "foto", "nachname": "Bild", "foto": "",
                "geaendert": 900, "sync": True}]
 foto_fern = {"foto": {"uid": "foto", "nachname": "Bild", "foto": foto_data,

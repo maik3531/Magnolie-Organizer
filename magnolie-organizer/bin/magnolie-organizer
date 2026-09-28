@@ -6151,7 +6151,7 @@ def sync_merge(lokal, entfernt, tombstones, letzter_sync, felder, dav=None):
             if "foto" in felder:
                 lokal_foto = obj.get("foto") or ""
                 fern_foto = fern.get("foto") or ""
-                if fern_foto and not lokal_foto:
+                if fern_foto and not lokal_foto and obj.get("fotoManuell") is not True:
                     # Ein Foto kann von EDS später als die übrige vCard
                     # geliefert werden. Es darf dann nicht wegen eines
                     # neueren lokalen Zeitstempels wieder verschwinden.
@@ -6236,6 +6236,8 @@ def sync_merge(lokal, entfernt, tombstones, letzter_sync, felder, dav=None):
                                  lokal_zeit > letzter_sync else "remote")
             if entscheidung == "remote":
                 for f in felder:
+                    if f == "foto" and obj.get("fotoManuell") is True:
+                        continue
                     if f == "foto" and not fern.get(f) and obj.get(f):
                         continue
                     if (f in ("geburtstag", "geburtstagJahrUnbekannt") and

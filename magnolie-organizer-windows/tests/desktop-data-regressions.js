@@ -7,13 +7,49 @@ harness.filename = testPath;
 harness.paths = Module._nodeModulePaths(__dirname);
 const source = fs.readFileSync(testPath, "utf8").split("async function run(web)")[0]
   .replace('w.eval(fs.readFileSync(path.join(web, "anwendung.js"), "utf8"));',
-    'w.eval(fs.readFileSync(path.join(web, "anwendung.js"), "utf8").replace("speichereJetzt: speichereJetzt,", "starteSync: starteSync, speichereJetzt: speichereJetzt,"));');
+    'w.eval(fs.readFileSync(path.join(web, "anwendung.js"), "utf8").replace("speichereJetzt: speichereJetzt,", "kontaktFormular, testeFotoLesen: callback => { kontaktFotoLesen = callback; }, starteSync: starteSync, speichereJetzt: speichereJetzt,"));');
 harness._compile(source + "\nmodule.exports = { boot, roots };", testPath);
 const plain = value => JSON.parse(JSON.stringify(value));
 
 (async () => {
   let count = 0;
   for (const web of harness.exports.roots) {
+    for (const action of ["newer-selection", "remove"]) {
+      const b = await harness.exports.boot(web, { kontakte: [{ id: "photo", uid: "photo-source",
+        vorname: "Photo", nachname: "Fixture", foto: "data:image/png;base64,AQID" }] });
+      try {
+        const reads = [];
+        b.t.testeFotoLesen((file, done) => reads.push(done));
+        const form = b.t.kontaktFormular(b.t.daten().kontakte[0]);
+        b.w.document.body.append(form);
+        const picker = form.querySelector("#kontakt-foto-datei");
+        Object.defineProperty(picker, "files", { value: [{ name: "fixture.png" }] });
+        picker.dispatchEvent(new b.w.Event("change"));
+        if (action === "remove") form.querySelector("#kontakt-foto-knopf").click();
+        else {
+          picker.dispatchEvent(new b.w.Event("change"));
+          reads[1]("data:image/png;base64,BAUG");
+        }
+        reads[0]("data:image/png;base64,BwgJ");
+        form.querySelector(".kontakt-form-knoepfe button").click();
+        assert.equal(b.t.daten().kontakte[0].foto, action === "remove" ? "" : "data:image/png;base64,BAUG",
+          "late photo decoding must not reverse a newer selection or removal");
+        assert.equal(b.t.daten().kontakte[0].fotoManuell, true, "real photo controls persist manual priority");
+        count++;
+      } finally { b.close(); }
+    }
+    for (const manualPhoto of ["data:image/png;base64,AQID", ""]) {
+      const b = await harness.exports.boot(web, { kontakte: [{ id: "photo", uid: "photo-source",
+        vorname: "Photo", nachname: "Fixture", foto: manualPhoto, fotoManuell: true, geaendert: 1 }] });
+      try {
+        b.w.App.importErgebnis({ kontakte: [{ uid: "photo-source", vorname: "Photo", nachname: "Fixture",
+          foto: "data:image/png;base64,BAUG", geaendert: 200 }] });
+        assert.equal(b.t.daten().kontakte[0].foto, manualPhoto, "newer imports must respect a manual photo or explicit removal");
+        b.t.speichereJetzt();
+        assert.equal(JSON.parse(b.messages.filter(m => m.cmd === "speichern").at(-1).text).kontakte[0].fotoManuell, true);
+        count++;
+      } finally { b.close(); }
+    }
     for (const mutation of ["edit-add-delete", "import", "personal", "retry"]) {
       const b = await harness.exports.boot(web, {
         syncNachRestore: { additiv: true, loeschungsfrei: true },
