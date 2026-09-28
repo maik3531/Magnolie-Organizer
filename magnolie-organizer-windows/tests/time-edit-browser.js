@@ -31,12 +31,12 @@ const roots = [path.resolve(__dirname, "../app/web"),
       await page.addScriptTag({ content: source });
       await page.evaluate(() => App.init({ daten: {}, neu: false,
         regional: { language: "en", timeZone: "UTC" } }));
-      const field = page.locator('#custom-eintrag-schleier input[type="time"]');
+      const field = page.locator('#custom-eintrag-schleier .zeitfeld');
       const apply = page.locator(".custom-eintrag-aktionen .haupt");
-      const snapshot = () => field.evaluate(e => ({ value: e.value, bad: e.validity.badInput }));
+      const snapshot = () => field.evaluate(e => ({ value: e.value, bad: !e.validity.valid }));
       for (const type of ["appointments", "tasks"]) {
         for (const edit of [false, true]) {
-          for (const action of ["digits", "spinner-key", "keyboard-apply", "midnight", "partial", "empty", "focused-apply"]) {
+          for (const action of ["digits", "continuous", "leading-zero", "spinner-key", "keyboard-apply", "midnight", "partial", "empty", "focused-apply"]) {
             await page.evaluate(({ type, edit, action }) => {
               document.querySelector("#custom-eintrag-schleier")?.remove();
               const item = { id: "entry", title: "Time regression", time: "09:00",
@@ -44,13 +44,19 @@ const roots = [path.resolve(__dirname, "../app/web"),
               const module = { id: "time-module", type, title: "Time test", items: edit ? [item] : [] };
               OrganizerTest.daten().customOrganizer.modules = [module];
               OrganizerTest.oeffneCustomEintrag(module, edit ? item : null);
-              const input = document.querySelector('#custom-eintrag-schleier input[type="time"]');
-              // The minutes already exist; edit only the native hour segment below.
+              const input = document.querySelector('#custom-eintrag-schleier .zeitfeld');
+              // The minutes already exist; edit only the hour segment below.
               if (!edit && !["partial", "empty"].includes(action)) input.value = "09:00";
               if (["partial", "empty"].includes(action)) input.value = "";
             }, { type, edit, action });
-            if (action !== "empty") await field.focus();
+            if (action !== "empty") {
+              await field.focus();
+              await page.keyboard.press("Home");
+              await page.keyboard.press("ArrowLeft");
+            }
             if (action === "digits") await page.keyboard.type("10");
+            if (action === "continuous") await page.keyboard.type("2015");
+            if (action === "leading-zero") await page.keyboard.type("0905");
             if (["spinner-key", "keyboard-apply", "partial", "focused-apply"].includes(action)) await page.keyboard.press("ArrowUp");
             if (action === "midnight") await page.keyboard.type("00");
             if (action === "focused-apply") {
@@ -58,8 +64,8 @@ const roots = [path.resolve(__dirname, "../app/web"),
               await apply.evaluate(e => e.click());
             } else {
               const state = await snapshot();
-              if (action === "partial") assert.deepEqual(state, { value: "", bad: true });
-              else assert.deepEqual(state, { value: action === "empty" ? "" : action === "midnight" ? "00:00" : "10:00", bad: false });
+              if (action === "partial") assert.deepEqual(state, { value: "01", bad: true });
+              else assert.deepEqual(state, { value: action === "empty" ? "" : action === "midnight" ? "00:00" : action === "continuous" ? "20:15" : action === "leading-zero" ? "09:05" : "10:00", bad: false });
               // Both real activation paths leave the minute segment untouched.
               if (action === "keyboard-apply") { await apply.focus(); await page.keyboard.press("Enter"); }
               else await apply.click();
@@ -69,18 +75,18 @@ const roots = [path.resolve(__dirname, "../app/web"),
               assert.equal(await field.count(), 1, "partial input must keep the editor open");
               assert.equal(items.length, edit ? 1 : 0, "partial input must not add data");
               if (edit) assert.equal(items[0].time, "09:00", "partial input must not clear the saved time");
-              assert.deepEqual(await snapshot(), { value: "", bad: true }, "blur must not invent missing minutes");
+              assert.deepEqual(await snapshot(), { value: "01", bad: true }, "blur must not invent missing minutes");
             } else {
               assert.equal(await field.count(), 0, "valid Apply closes the editor");
-              assert.equal(items[0].time, action === "empty" ? "" : action === "midnight" ? "00:00" : "10:00");
+              assert.equal(items[0].time, action === "empty" ? "" : action === "midnight" ? "00:00" : action === "continuous" ? "20:15" : action === "leading-zero" ? "09:05" : "10:00");
             }
             cases++;
           }
         }
       }
       await context.close();
-      console.log(path.relative(path.resolve(__dirname, "../.."), web) + ": 28 time-edit cases passed");
+      console.log(path.relative(path.resolve(__dirname, "../.."), web) + ": 36 time-edit cases passed");
     }
-    console.log(`${cases} cases passed; Chromium ${browser.version()}. Native spinner keys tested; popup/mouse spinner and WebView2 not covered.`);
+    console.log(`${cases} cases passed; Chromium ${browser.version()}. Segmented keyboard editing tested; WebView2 not covered.`);
   } finally { await browser.close(); }
 })().catch(error => { console.error(error); process.exitCode = 1; });

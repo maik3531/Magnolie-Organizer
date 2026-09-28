@@ -2187,6 +2187,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     i.className = "feld";
     if (typ === "date") bindeDatumseingabe(i, wert || "", optionen || {});
     else i.value = wert || "";
+    if (typ === "time") bindeZeiteingabe(i);
     if (typ === "textarea" || typ === "text") pruefeSchreibung(i);
     return i;
   }
@@ -3343,6 +3344,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       const neu = [];
       for (const zeile of zeilen.children) {
         const werte = zeile._werte;
+        if (!pruefeZeitfelder(werte.uhrzeit)) return null;
         const zeit = new Date(datumswert(werte.datum) + "T" + werte.uhrzeit.value).getTime();
         const angepasst = smsTextAnpassen(werte.text.value);
         if (!Number.isFinite(zeit) || zeit <= Date.now() || !angepasst.text.trim() || angepasst.teile > 10) {
@@ -13189,6 +13191,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       }
       halteMindestabstand(feldZeit, feldEndZeit, ueberMehrereTage);
       const ohneZeit = hakGanztaegig.checked;
+      if (!ohneZeit && !pruefeZeitfelder(feldZeit, feldEndZeit)) return;
       const onlineKalender = letzterEdsStatus && (letzterEdsStatus.alleKalender ||
         letzterEdsStatus.kalender) || [];
       const onlineKalenderIds = new Set(onlineKalender.map((quelle) => String(quelle.uid || "")));
@@ -14899,6 +14902,8 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       const faellig = datumswert(feldFaellig);
       const startDatum = datumswert(feldStartDatum) || faellig;
       const nurStart = zeitModus === "window" && !faellig && !feldFensterEnde.value;
+      if (!pruefeZeitfelder(...(zeitModus === "window" ? [feldStartZeit, feldFensterEnde] :
+          zeitModus === "due" ? [feldFaelligZeit] : []))) return;
       if (zeitModus !== "none" && !nurStart && !gueltigesISO(faellig)) {
         feldFaellig.focus(); zettel(_("Please select a date.")); return;
       }
@@ -16126,6 +16131,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
         return false;
       }
       const saubereEmails = emailEintragListe({ emailEintraege: emailEintraege });
+      if (!pruefeZeitfelder(...kontaktTerminKasten.querySelectorAll(".zeitfeld"))) return false;
       const emails = saubereEmails.map((eintrag) => eintrag.wert);
       for (const termin of kontaktTermine) {
         if ((termin.titel.trim() && !gueltigesISO(termin.datum)) ||
@@ -17615,8 +17621,18 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     return feld;
   }
 
-  function bindeGesundheitsZeit(feld) {
+  function pruefeZeitfelder(...felder) {
+    const feld = felder.find((eintrag) => !eintrag.disabled && !eintrag.validity.valid);
+    if (!feld) return true;
+    feld.focus();
+    zettel(_("Enter both hours and minutes, or leave the time completely empty."));
+    return false;
+  }
+
+  function bindeZeiteingabe(feld, gesundheitsZeit = false) {
     feld.type = "text";
+    feld.classList.add("zeitfeld");
+    feld.pattern = "(?:[01]\\d|2[0-3]):[0-5]\\d";
     feld.inputMode = "numeric";
     feld.maxLength = 5;
     feld.placeholder = "";
@@ -17636,27 +17652,37 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     };
     const zeige = (werte) => {
       feld.value = werte[0] + (werte[1] || segment === 1 ? ":" + werte[1] : "");
-      feld.setCustomValidity(!feld.value || gueltig() ? "" : "HH:MM");
     };
     const melden = () => feld.dispatchEvent(new Event("input", { bubbles: true }));
     const verschieben = (index, richtung, schritt) => {
+      zuruecksetzen();
+      if (!gesundheitsZeit && !gueltig()) {
+        const werte = teile(), maximum = index === 0 ? 24 : 60;
+        werte[index] = pad2(((Number(werte[index]) || 0) + richtung * schritt + maximum) % maximum);
+        zeige(werte); melden(); waehleSegment(index);
+        return;
+      }
       const werte = gueltig() ? feld.value.split(":").map(Number)
         : aktuelleGesundheitsZeit().split(":").map(Number);
       const maximum = index === 0 ? 24 : 60;
       werte[index] = (werte[index] + richtung * schritt + maximum) % maximum;
       feld.value = pad2(werte[0]) + ":" + pad2(werte[1]);
-      feld.setCustomValidity("");
       melden();
       waehleSegment(index);
     };
     feld.addEventListener("input", () => {
-      const ziffern = feld.value.replace(/\D/g, "").slice(0, 4);
-      feld.value = ziffern.length > 2 ? ziffern.slice(0, 2) + ":" + ziffern.slice(2) : ziffern;
-      feld.setCustomValidity(!feld.value || gueltig() ? "" : "HH:MM");
+      if (!/^\d{0,2}:\d{0,2}$/.test(feld.value)) {
+        const ziffern = feld.value.replace(/\D/g, "").slice(0, 4);
+        feld.value = ziffern.length > 2 ? ziffern.slice(0, 2) + ":" + ziffern.slice(2) : ziffern;
+      }
     });
-    feld.addEventListener("focus", () => waehleSegment(segmentAmCursor()));
+    feld.addEventListener("focus", () => waehleSegment(0));
     feld.addEventListener("click", () => { waehleSegment(segmentAmCursor()); zuruecksetzen(); });
     feld.addEventListener("keydown", (ev) => {
+      if (feld.disabled || feld.readOnly || ev.ctrlKey || ev.metaKey || ev.altKey || ev.isComposing) return;
+      if (["ArrowLeft", "ArrowRight", ":"].includes(ev.key)) {
+        ev.preventDefault(); zuruecksetzen(); waehleSegment(ev.key === "ArrowLeft" ? 0 : 1); return;
+      }
       if (ev.key === "Tab") {
         const ziel = segment + (ev.shiftKey ? -1 : 1);
         if (ziel >= 0 && ziel <= 1) { ev.preventDefault(); waehleSegment(ziel); }
@@ -17670,6 +17696,8 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       }
       if (!/^\d$/.test(ev.key)) { zuruecksetzen(); return; }
       ev.preventDefault();
+      const alles = feld.value.length > 0 && feld.selectionStart === 0 && feld.selectionEnd === feld.value.length;
+      if (alles && (feld.value.includes(":") || segment !== 0)) { segment = 0; zuruecksetzen(); feld.value = ""; }
       const jetzt = Date.now();
       if (!folge || jetzt - letzterTastendruck > 3000) folge = "";
       letzterTastendruck = jetzt;
@@ -17677,19 +17705,25 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       loescher = setTimeout(zuruecksetzen, 3000);
       folge = (folge + ev.key).slice(-2);
       const werte = teile();
-      werte[segment] = folge;
+      werte[segment] = folge.padStart(2, "0");
       zeige(werte);
       melden();
       if (folge.length === 2 && segment === 0) { zuruecksetzen(); waehleSegment(1); }
       else waehleSegment(segment);
     });
     feld.addEventListener("wheel", (ev) => {
+      if (!gesundheitsZeit || feld.disabled || feld.readOnly) return;
       if (ev.deltaY === 0) return;
       ev.preventDefault();
       verschieben(segmentAmCursor(), ev.deltaY < 0 ? 1 : -1, ev.shiftKey ? 10 : 1);
     }, { passive: false });
-    feld.addEventListener("blur", zuruecksetzen);
-    feld.setCustomValidity(!feld.value || gueltig() ? "" : "HH:MM");
+    let letzterWert = feld.value;
+    feld.addEventListener("focus", () => { letzterWert = feld.value; });
+    feld.addEventListener("change", () => { letzterWert = feld.value; });
+    feld.addEventListener("blur", () => {
+      zuruecksetzen();
+      if (feld.value !== letzterWert) feld.dispatchEvent(new Event("change", { bubbles: true }));
+    });
     return feld;
   }
 
@@ -17834,7 +17868,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     feld.classList.add("gesundheit-zellenfeld");
     if (typ === "time") {
       feld.classList.add("gesundheit-zeit");
-      bindeGesundheitsZeit(feld);
+      bindeZeiteingabe(feld, true);
     }
     if (typ === "date") {
       feld.setAttribute("list", gesundheitDatumVorschlaege());
@@ -22948,6 +22982,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
         });
         weg.title = _("Delete shift");
         const speichern = () => {
+          if (!pruefeZeitfelder(von, bis)) return;
           schicht.name = name.value.trim().slice(0, 80);
           schicht.von = /^\d{2}:\d{2}$/.test(von.value) ? von.value : "";
           schicht.bis = /^\d{2}:\d{2}$/.test(bis.value) ? bis.value : "";

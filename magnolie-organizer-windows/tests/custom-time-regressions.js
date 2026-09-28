@@ -46,7 +46,7 @@ for (const web of roots) {
     const module = { id: "time", type, title: "Synthetic", items: edit ? [item] : [] };
     t.daten().customOrganizer.modules = [module];
     t.oeffneCustomEintrag(module, edit ? item : null);
-    return { module, item, field: d.querySelector('#custom-eintrag-schleier input[type="time"]'),
+    return { module, item, field: d.querySelector('#custom-eintrag-schleier .zeitfeld'),
       apply: d.querySelector(".custom-eintrag-aktionen .haupt") };
   };
   for (const type of ["appointments", "tasks"]) {
@@ -124,6 +124,22 @@ for (const web of roots) {
     d.body.append(f); f.focus();
     return f;
   };
+  // The field factory is shared by appointments, tasks, SMS and shift times.
+  for (const initial of ["", "09:30"]) {
+    const f = field(initial);
+    for (const key of "2015") f.dispatchEvent(new w.KeyboardEvent("keydown", { key, bubbles: true, cancelable: true }));
+    assert.equal(f.value, "20:15");
+    assert.equal(f.validity.valid, true);
+    f.setSelectionRange(3, 5); f.dispatchEvent(new w.Event("click"));
+    for (const key of "05") f.dispatchEvent(new w.KeyboardEvent("keydown", { key, bubbles: true, cancelable: true }));
+    assert.equal(f.value, "20:05", "editing minutes retains hours");
+    f.value = "2460"; f.dispatchEvent(new w.Event("input"));
+    assert.equal(f.validity.valid, false, "invalid hours and minutes cannot become a valid time");
+    f.value = "2015"; f.dispatchEvent(new w.Event("input"));
+    assert.equal(f.value, "20:15", "pasted digits are formatted too");
+    assert.equal(f.validity.valid, true);
+    f.remove(); cases++;
+  }
   for (const multiDay of [false, true]) {
     const start = field("09:30"), end = field("10:00");
     t.daten().einstellungen.schrift.radRichtung = "up-earlier";

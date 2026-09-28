@@ -8509,7 +8509,7 @@ function knopfMit(text, wurzel) {
     new kontaktW.Event("contextmenu", { bubbles: true, cancelable: true }));
   assert.ok(kontaktD.querySelector(".sms-planung-dialog"), "Explicit opt-in must allow scheduling");
   assert.ok(kontaktD.querySelector('.sms-planung-dialog .datumsfeld') &&
-    kontaktD.querySelector('.sms-planung-dialog input[type="time"]') &&
+    kontaktD.querySelector('.sms-planung-dialog .zeitfeld') &&
     kontaktD.querySelector(".sms-planung-dialog textarea"),
   "SMS-Planung verwendet nicht die Terminbedienung für Datum und Uhrzeit");
   kontaktD.querySelector(".sms-planung-schleier").remove();
