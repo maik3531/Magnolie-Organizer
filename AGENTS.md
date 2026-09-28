@@ -36,8 +36,13 @@ nicht in öffentlichen Release-Hinweisen. Der lokale Ablauf ist in
    bestandene Prüfungen nur bei geänderten Eingaben oder einem konkreten neuen
    Befund wiederholen.
 4. Den geprüften Stand mit Issue-Verweis committen und auf GitHub sichern.
-   `Refs #N` kennzeichnet Zwischenstände; `Closes #N` nur vollständig erfüllte
-   Abschlusskriterien. Keine unfertige Aufgabe als erledigt kennzeichnen.
+   `Refs #N` kennzeichnet Zwischenstände. Umgesetzte und passend geprüfte Issues
+   schließen, statt sie allein wegen ausstehender Rückmeldungen offen zu halten.
+   Bei teilweise abgearbeiteten Issues den erledigten Umfang dokumentieren,
+   den konkreten Rest in ein neues Issue übernehmen und beide gegenseitig
+   verlinken; anschließend das alte Issue schließen und im Nachfolge-Issue
+   weiterarbeiten. Den offenen Rest nicht als behoben darstellen. Wiederkehrende
+   Fehler durch Wiederöffnen oder einen verknüpften neuen Befund verfolgen.
 5. Im Issue knapp festhalten, was umgesetzt wurde, was tatsächlich geprüft wurde
    und was noch fehlt. Eine Quellstandsicherung ist keine Veröffentlichung.
 
