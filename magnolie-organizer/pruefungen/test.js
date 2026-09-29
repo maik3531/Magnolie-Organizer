@@ -2745,8 +2745,10 @@ function knopfMit(text, wurzel) {
     !neuQuellblock.includes("CLI aliases") &&
     enNeu.querySelector("h4")?.textContent === "What's new in this version" &&
     enNeu.querySelector(".ueber-neu-fassung")?.textContent === webFassung &&
-    enNeu.querySelectorAll("ul > li").length === 3 &&
+    enNeu.querySelectorAll("ul > li").length === 5 &&
     neuInhalte.en.slice(1).every(text => enNeu.textContent.includes(text)) &&
+    neuInhalte.en.includes("Enter times continuously: 2015 becomes 20:15") &&
+    neuInhalte.en.includes("New tasks use a selected calendar that supports tasks") &&
     neuInhalte.en.join(" ").includes("Magnolie Notes 1.0.17") &&
     js.includes('const NEU_IN_DIESER_FASSUNG_FASSUNG = "' + webFassung + '";') &&
     js.includes("NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG"),
