@@ -204,6 +204,33 @@ Aufruf beispielsweise
 Fallback ist wegen zusätzlicher Bildkopien nicht für den normalen Betrieb
 vorgesehen.
 
+### WebKit-Absturz unter TUXEDO OS untersuchen
+
+Für die native DEB-Version 2.0.24 unter TUXEDO OS/KDE Plasma wurde ein
+`WebKitWebProcess`-Abbruch mit `SIGABRT` im WebKit-/GBM-/DRI-/Gallium-Grafikpfad
+gemeldet. Laut Nutzer trat er bei einer Gegenprobe mit
+`WEBKIT_DISABLE_DMABUF_RENDERER=1` nicht mehr auf. Das grenzt den betroffenen
+Grafikpfad ein, ist aber keine Behebung der Ursache. Ziel der Untersuchung ist
+ein stabiler Betrieb mit dem normalen Grafikpfad. Der gezielte Gegenversuch
+deaktiviert den DMA-BUF-Renderer, nicht sämtliche Grafikbeschleunigung; er ist
+auch vom umfassenderen `MAGNOLIE_GRAPHICS_COMPAT=1`-Modus oben zu unterscheiden.
+
+Für die Ursachenanalyse werden der vollständige symbolisierte Backtrace des
+`WebKitWebProcess`, die Meldung unmittelbar vor `SIGABRT`, genaue GTK-/WebKitGTK-
+und Treiberversionen, GPU-Modell und die tatsächlich verwendete X11-/Wayland-
+Sitzung benötigt. Ein vollständiges Speicherabbild gehört nicht in ein
+öffentliches Issue, da es persönliche Inhalte enthalten kann. Details und Stand:
+[Issue #53](https://github.com/maik3531/Magnolie-Organizer/issues/53).
+
+Der Stack und diese Gegenprobe belegen keinen eigenständigen Mesa-Fehler.
+Zusätzliche Absturzmeldungen nach einer Neuanmeldung können ein separates
+Folgeproblem sein: Im gemeldeten Fall stellte Plasma zuvor gespeicherte
+`drkonqi-coredump-launcher` aus `~/.config/ksmserverrc` wieder her. Eine solche
+Sitzungsbereinigung muss sich auf die nachgewiesenen DrKonqi-Einträge begrenzen;
+die gesamte Sitzungsdatei oder andere Programme wie DiscoverNotifier zu entfernen
+ist keine Magnolie-Reparatur. Der bereits korrigierte Python-GI-Cairo-Fehler der
+Ersteinrichtung ist ebenfalls ein anderer Befund.
+
 ## Flatpak
 
 Das Flatpak verwendet die zusammengehörige GTK-/WebKit-Laufzeit von GNOME 49.
