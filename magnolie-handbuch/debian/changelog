@@ -1,4 +1,4 @@
-magnolie-handbuch (2.0.25) UNRELEASED; urgency=medium
+magnolie-handbuch (2.0.25) unstable; urgency=medium
 
   * Verhindert leere Linux-PDF-Seiten nach Auswahl des virtuellen Dateidruckers.
   * Prüft den tatsächlichen GTK-Dialogweg und aktualisiert Paketverweise.

@@ -1,5 +1,25 @@
 # Changelog / Änderungen
 
+## 2.0.25 / Notes 1.0.17 — 2026-09-29
+
+### English
+
+- Consolidates existing matching notes after successful synchronization while preserving editing and recovery protections.
+- Caches photos from supported KDE contact connections and protects manual photo choices. Background photo requests pause during editing and synchronization.
+- Supports continuous time entry such as `2015` → `20:15` and routes new tasks to a selected task-capable calendar.
+- Unifies account status displays, improves Windows synchronization resumption and subsequent protected contact cleanup, and retains existing source bindings.
+- Preserves PDF output settings in the native Linux handbook print dialog. Keeps a later tree opt-out effective against delayed activation and sends call permissions only after confirmed pairing.
+- Notes remains unchanged at 1.0.17. The hardware-specific TUXEDO graphics report and original Google calendar report remain under investigation (#53, #65).
+
+### Deutsch
+
+- Führt vorhandene inhaltsgleiche Notizen nach erfolgreichem Abgleich zusammen; Bearbeitungs- und Wiederherstellungsschutz bleiben erhalten.
+- Speichert Kontaktbilder unterstützter KDE-Verbindungen zwischen und schützt manuelle Bildauswahl. Während Bearbeitung und Synchronisation pausiert der Fotoabruf.
+- Ermöglicht fortlaufende Uhrzeiteingabe wie `2015` → `20:15` und verwendet für neue Aufgaben einen ausgewählten aufgabenfähigen Kalender.
+- Vereinheitlicht Kontenstatusanzeigen und verbessert die Windows-Sync-Wiederaufnahme mit anschließender geschützter Kontaktbereinigung. Bestehende Quellenbindungen bleiben erhalten.
+- Bewahrt das PDF-Ausgabeformat im nativen Linux-Handbuchdruckdialog. Ein späteres Ausschalten des Magnolienbaums bleibt wirksam; Anruffreigaben folgen erst nach bestätigter Kopplung.
+- Notes bleibt unverändert bei 1.0.17. Der hardwareabhängige TUXEDO-Grafikbericht und die ursprüngliche Google-Kalendermeldung werden weiter untersucht (#53, #65).
+
 ## 2.0.23 / Notes 1.0.16 — 2026-09-25
 
 ### English

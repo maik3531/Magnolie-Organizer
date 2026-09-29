@@ -1,9 +1,9 @@
-magnolie-organizer (2.0.25) UNRELEASED; urgency=medium
+magnolie-organizer (2.0.25) unstable; urgency=medium
 
-  * Bereitet den Prüfstand mit den seit 2.0.24 gesicherten Korrekturen vor.
+  * Veröffentlicht die seit 2.0.24 gesicherten und geprüften Korrekturen.
   * Verbessert Notizabgleich, Kontaktfoto-Cache und dauerhaften Foto-Vorrang.
   * Erhält ausgeschalteten Magnoliebaum und korrigiert die Aufgabenquellenwahl.
-  * Ergänzt fortlaufende Uhrzeiteingabe; native TUXEDO-Abnahme steht noch aus.
+  * Ergänzt fortlaufende Uhrzeiteingabe und native Paketprüfungen.
 
  -- Maik Walter <maik3531@gmail.com>  Tue, 29 Sep 2026 11:33:00 +0200
 
