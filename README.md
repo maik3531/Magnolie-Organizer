@@ -74,7 +74,26 @@ only needed to access calendars/address books configured in KDE.
 
 The optional KDE DEB selects one of three internal native backends from the
 existing, configured KDE packages and their complete ABI dependencies. It does not
-install KDE PIM. There is no transitional-package download. Users of the former
+install KDE PIM. There is no transitional-package download.
+
+**KDE add-on installed but unavailable?** A fresh TUXEDO installation may lack
+the Akonadi runtime even though Plasma is present. If you want to connect KDE
+calendars or address books, install the prerequisites from your configured
+distribution repositories:
+
+```bash
+sudo apt install akonadi-server kdepim-runtime
+/usr/libexec/magnolie-organizer/magnolie-akonadi-helper --check
+```
+
+The check does not start an Akonadi server or change accounts. Success reports
+`"ok": true` and `"activated": false`. The internal profile name follows the
+installed KDE libraries rather than the distribution name; `ubuntu26.04` can
+therefore be correct on TUXEDO with an Ubuntu 24.04 base. To synchronize, the
+desired calendars or address books must also be configured in KDE and selected
+in Organizer.
+
+Users of the former
 package explicitly install `magnolie-organizer-kde`; versioned package relations
 preserve upgrades from released 1.0.0. The suffixed 2.0.19 files were unreleased test
 candidates and sort above 2.0.19 in dpkg: replacing them requires an explicit tester

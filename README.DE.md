@@ -70,6 +70,24 @@ nur für den Zugriff auf die dort eingerichteten KDE-Kalender/-Adressbücher ben
 Das optionale KDE-DEB wählt eines von drei internen nativen Backends anhand der
 bereits konfigurierten KDE-Pakete und ihrer vollständigen ABI-Abhängigkeiten.
 Es installiert keine KDE-PIM-Suite. Es gibt keinen Übergangspaket-Download.
+
+**KDE-Erweiterung installiert, aber nicht verfügbar?** Auf einer frischen
+TUXEDO-Installation kann die Akonadi-Laufzeit fehlen, obwohl Plasma vorhanden ist.
+Wenn Sie KDE-Kalender oder -Adressbücher anbinden möchten, installieren Sie die
+Voraussetzungen aus den bereits eingerichteten Paketquellen:
+
+```bash
+sudo apt install akonadi-server kdepim-runtime
+/usr/libexec/magnolie-organizer/magnolie-akonadi-helper --check
+```
+
+Die Prüfung startet keinen Akonadi-Server und verändert keine Konten. Bei Erfolg
+meldet sie `"ok": true` und `"activated": false`. Der interne Profilname folgt den
+tatsächlich installierten KDE-Bibliotheken, nicht dem Distributionsnamen; auch
+auf TUXEDO mit Ubuntu-24.04-Basis kann deshalb `ubuntu26.04` korrekt sein.
+Für den anschließenden Abgleich müssen die gewünschten Kalender bzw. Adressbücher
+in KDE eingerichtet und im Organizer ausgewählt sein.
+
 Beim alten Paketnamen wird `magnolie-organizer-kde` ausdrücklich installiert;
 versionierte Paketbeziehungen erhalten das Upgrade von der freigegebenen 1.0.0.
 Die suffixierten 2.0.19-Dateien waren unveröffentlichte Testkandidaten und werden
