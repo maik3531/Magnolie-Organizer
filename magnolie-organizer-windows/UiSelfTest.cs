@@ -87,11 +87,18 @@ internal static class UiSelfTest
                         face.GetProperty("status").GetString() == "loaded");
                     Test(fontChecked && fontLoaded && serifChecked && serifLoaded,
                         "Die eingebettete DejaVu-Sans-Schrift wurde nicht geladen: " + fontDiagnostic);
-                    await coreWebView.ExecuteScriptAsync(
-                        "document.querySelector('#knopf-einstellungen')?.click(); " +
-                        "document.querySelector('#einst-tab-ueber')?.click();");
                     await TestImageAsync(coreWebView, ".kaffee-qr", 266, 266,
-                        "QR-Code unter Einstellungen > Über", "https://appassets.magnolie.invalid/kaffee-qr.png");
+                        "QR-Code unter Einstellungen > Über", "https://appassets.magnolie.invalid/kaffee-qr.png", """
+                        const settings = document.querySelector('#einstellungen-schleier');
+                        const settingsButton = document.querySelector('#knopf-einstellungen');
+                        if (settings?.classList.contains('verborgen')) settingsButton?.click();
+                        const about = document.querySelector('#einst-tab-ueber');
+                        if (!document.querySelector('.kaffee-qr')) about?.click();
+                        preparation = { readyState: document.readyState,
+                          appAvailable: !!window.App, settingsButton: !!settingsButton,
+                          settingsVisible: !!settings && !settings.classList.contains('verborgen'),
+                          aboutTab: !!about };
+                        """);
                     Console.WriteLine("WINDOWS-ORGANIZER-SETTINGS-ABOUT-QR-OK");
                     await coreWebView.ExecuteScriptAsync("document.querySelector('#einstellungen-zu')?.click();");
                     await coreWebView.ExecuteScriptAsync("window.OrganizerTest.wechsel('gesundheit')");
@@ -149,7 +156,7 @@ internal static class UiSelfTest
                         "Das dynamische Telefone-Untermenü fehlt.");
                     tray.Visible = false;
                     form.ShowReminder("UI-Selbsttest", "Native Benachrichtigungsprobe bei verborgenem Tray-Symbol.",
-                        "notification", "magnolie");
+                        "notification", "system");
                     Test(tray.BalloonTipTitle == "UI-Selbsttest", "Die native NotifyIcon-Benachrichtigung wurde nicht vorbereitet.");
                     Test(form.OwnedForms.Length == 0, "ShowReminder/Benachrichtigung erzeugte eine eigene Popup-Form.");
                     var manualPath = Path.Combine(AppContext.BaseDirectory, "handbuch", "index.html");
@@ -212,17 +219,21 @@ internal static class UiSelfTest
     }
 
     private static async Task TestImageAsync(Microsoft.Web.WebView2.Core.CoreWebView2 core,
-        string selector, int expectedWidth, int expectedHeight, string label, string expectedSource)
+        string selector, int expectedWidth, int expectedHeight, string label, string expectedSource,
+        string? prepareScript = null)
     {
         var diagnostic = "{}";
-        for (var attempt = 0; attempt < 100; attempt++)
+        var elapsed = System.Diagnostics.Stopwatch.StartNew();
+        while (elapsed.Elapsed < TimeSpan.FromSeconds(20))
         {
             var result = await core.ExecuteScriptAsync($$"""
                 (() => {
                   try {
+                    let preparation = null;
+                    {{prepareScript ?? ""}}
                     const image = document.querySelector({{JsonSerializer.Serialize(selector)}});
                     const csp = document.querySelector('meta[http-equiv="Content-Security-Policy"]')?.content || '';
-                    if (!image) return JSON.stringify({ error: 'Bildelement fehlt.', href: location.href, csp });
+                    if (!image) return JSON.stringify({ error: 'Bildelement fehlt.', preparation, href: location.href, csp });
                     image.scrollIntoView({ block: 'center', inline: 'nearest' });
                     const rect = image.getBoundingClientRect();
                     const visible = image.isConnected && rect.width > 0 && rect.height > 0 &&
@@ -231,10 +242,10 @@ internal static class UiSelfTest
                     return JSON.stringify({ complete: image.complete, width: image.naturalWidth,
                       height: image.naturalHeight, source: image.currentSrc, visible,
                       box: { x: rect.x, y: rect.y, width: rect.width, height: rect.height },
-                      href: location.href, csp });
+                      preparation, href: location.href, csp });
                   } catch (error) { return JSON.stringify({ error: String(error) }); }
                 })()
-                """);
+                """).WaitAsync(TimeSpan.FromSeconds(20) - elapsed.Elapsed);
             diagnostic = result.StartsWith('"')
                 ? JsonSerializer.Deserialize<string>(result) ?? "{}"
                 : result;
