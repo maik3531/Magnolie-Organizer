@@ -34,6 +34,7 @@ internal sealed class MagnolienbaumCoordinator : IDisposable
     private readonly List<TcpListener> listeners = [];
     private readonly Dictionary<string, IncomingFsSession> incomingFsSessions = new(StringComparer.Ordinal);
     private UdpClient? udp;
+    private Dictionary<string, JsonObject>? discoveryResults;
     private Task? maintenance;
     private readonly List<Task> networkTasks = [];
     private readonly List<Task> connectionTasks = [];
@@ -232,7 +233,7 @@ internal sealed class MagnolienbaumCoordinator : IDisposable
         }
         try
         {
-            udp = new UdpClient(new IPEndPoint(IPAddress.Any, port));
+            udp = new UdpClient(new IPEndPoint(IPAddress.Any, port)) { EnableBroadcast = true };
             networkTasks.Add(Task.Run(() => UdpLoopAsync(udp, cancellation.Token), CancellationToken.None));
         }
         catch (SocketException) { udp = null; }
@@ -313,30 +314,67 @@ internal sealed class MagnolienbaumCoordinator : IDisposable
         finally { lock (gate) quarantining = false; }
     }
 
-    internal async Task SearchAsync()
+    internal async Task SearchAsync(IEnumerable<IPEndPoint>? discoveryTargets = null)
     {
         var found = new Dictionary<string, JsonObject>();
-        using var search = new UdpClient(AddressFamily.InterNetwork) { EnableBroadcast = true };
-        search.Client.ReceiveTimeout = 400;
-        var call = "MAGNOLIENBAUM?"u8.ToArray();
-        var targets = new List<IPAddress> { IPAddress.Broadcast, IPAddress.Loopback };
-        targets.AddRange(Ipv4Broadcast.DirectedAddresses());
-        foreach (var target in targets.Distinct())
-            try { await search.SendAsync(call, new IPEndPoint(target, Number(state, "port", DefaultPort))); } catch (SocketException) { }
-        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(1.5));
-        while (!timeout.IsCancellationRequested)
+        UdpClient? temporary = null;
+        // Keep the existing responder as the sole reader of its socket. Hold
+        // the lifecycle lease so a concurrent start/stop cannot replace it.
+        await lifecycle.WaitAsync().ConfigureAwait(false);
+        try
         {
-            try
+            if (disposed) return;
+            var port = Number(state, "port", DefaultPort);
+            var shared = udp is not null;
+            var search = udp ?? (temporary = new UdpClient(new IPEndPoint(IPAddress.Any, port)) { EnableBroadcast = true });
+            lock (gate) discoveryResults = found;
+            var targets = discoveryTargets ?? new[] { IPAddress.Broadcast, IPAddress.Loopback }
+                .Concat(Ipv4Broadcast.DirectedAddresses()).Distinct().Select(address => new IPEndPoint(address, port));
+            foreach (var target in targets)
+                try { await search.SendAsync("MAGNOLIENBAUM?"u8.ToArray(), target).ConfigureAwait(false); }
+                catch (SocketException) { }
+                catch (ObjectDisposedException) when (disposed) { break; }
+            using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(1.5));
+            if (shared)
             {
-                var packet = await search.ReceiveAsync(timeout.Token);
-                var item = JsonNode.Parse(packet.Buffer) as JsonObject;
-                var id = item is null ? "" : String(item, "kennung");
-                if (String(item!, "magnolie") != "baum-1" || id.Length == 0 || id == String(state, "kennung")) continue;
-                item!["adresse"] = packet.RemoteEndPoint.Address.ToString(); item["fundart"] = "udp"; found[id] = item;
+                try { await Task.Delay(Timeout.Infinite, timeout.Token).ConfigureAwait(false); }
+                catch (OperationCanceledException) when (timeout.IsCancellationRequested) { }
             }
-            catch (OperationCanceledException) { break; } catch (Exception) { }
+            else
+            {
+                while (!timeout.IsCancellationRequested)
+                {
+                    try { RecordDiscovery(await search.ReceiveAsync(timeout.Token).ConfigureAwait(false)); }
+                    catch (OperationCanceledException) { break; }
+                    catch (SocketException) { break; }
+                }
+            }
+        }
+        finally
+        {
+            lock (gate) discoveryResults = null;
+            temporary?.Dispose();
+            lifecycle.Release();
         }
         await emit("App.baumGefunden", new { nachbarn = found.Values.Select(item => JsonNode.Parse(item.ToJsonString())).ToArray() });
+    }
+
+    private void RecordDiscovery(UdpReceiveResult packet)
+    {
+        if (packet.Buffer.Length > 2048) return;
+        try
+        {
+            if (JsonNode.Parse(packet.Buffer) is not JsonObject item ||
+                item["magnolie"] is not JsonValue envelope || !envelope.TryGetValue<string>(out var protocol) || protocol != "baum-1" ||
+                item["kennung"] is not JsonValue value || !value.TryGetValue<string>(out var id) || string.IsNullOrEmpty(id)) return;
+            lock (gate)
+            {
+                if (discoveryResults is null || discoveryResults.Count >= 256 || id == String(state, "kennung")) return;
+                item["adresse"] = packet.RemoteEndPoint.Address.ToString(); item["fundart"] = "udp";
+                discoveryResults[id] = item;
+            }
+        }
+        catch (JsonException) { }
     }
 
     internal async Task PairV1Async(string host, int port, string expectedFingerprint)
@@ -924,14 +962,23 @@ internal sealed class MagnolienbaumCoordinator : IDisposable
             try
             {
                 var packet = await socket.ReceiveAsync(cancellation).ConfigureAwait(false);
-                if (!packet.Buffer.AsSpan().SequenceEqual("MAGNOLIENBAUM?"u8)) continue;
+                if (!packet.Buffer.AsSpan().SequenceEqual("MAGNOLIENBAUM?"u8))
+                {
+                    RecordDiscovery(packet);
+                    continue;
+                }
                 JsonObject response;
-                lock (gate) response = new JsonObject { ["magnolie"] = "baum-1", ["name"] = String(state, "name"),
+                lock (gate)
+                {
+                    if (disposed || !Boolean(state, "an")) continue;
+                    response = new JsonObject { ["magnolie"] = "baum-1", ["name"] = String(state, "name"),
                     ["kennung"] = String(state, "kennung"), ["fingerabdruck"] = MagnolienbaumCrypto.Fingerprint(Convert.FromBase64String(String(state, "oeffentlich"))),
                     ["port"] = Number(state, "port", DefaultPort) };
+                }
                 await socket.SendAsync(Encoding.UTF8.GetBytes(response.ToJsonString()), packet.RemoteEndPoint, cancellation).ConfigureAwait(false);
             }
             catch (OperationCanceledException) { break; } catch (SocketException) when (cancellation.IsCancellationRequested) { break; }
+            catch (ObjectDisposedException) when (cancellation.IsCancellationRequested) { break; }
         }
     }
 

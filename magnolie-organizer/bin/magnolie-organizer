@@ -13873,6 +13873,8 @@ class BaumDienst(object):
         import threading
         self._sperre = sperre or threading.RLock()
         self._anfragen_sperre = threading.Lock()
+        self._suche_sperre = threading.Lock()
+        self._such_ergebnisse = None
         self._anfragen = {}
         self._fs_sitzungen = {}
 
@@ -14218,6 +14220,7 @@ class BaumDienst(object):
         try:
             buechse = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
             buechse.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            buechse.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
             buechse.settimeout(0.5)
             buechse.bind(("", self.port))
         except OSError:
@@ -14229,12 +14232,18 @@ class BaumDienst(object):
         def horchen():
             while getattr(self, "_ruf_laeuft", False):
                 try:
-                    roh, woher = buechse.recvfrom(512)
+                    roh, woher = buechse.recvfrom(2049)
                 except socket.timeout:
                     continue
                 except OSError:
                     break
                 if roh.strip() != BAUM_RUF:
+                    with self._sperre:
+                        if self._ruf is buechse and self._such_ergebnisse is not None:
+                            zustand = self.hole_zustand() or {}
+                            eintrag = _baum_ruf_eintrag(roh, woher, zustand.get("kennung") or "")
+                            if eintrag and len(self._such_ergebnisse) < 256:
+                                self._such_ergebnisse[eintrag["kennung"]] = eintrag
                     continue
                 with self._sperre:
                     zustand = self.hole_zustand()
@@ -14246,6 +14255,30 @@ class BaumDienst(object):
                     pass
 
         threading.Thread(target=horchen, daemon=True).start()
+
+    def rundruf_suchen(self, port, wartezeit, eigene_kennung):
+        """Teilt den freigegebenen UDP-Port mit dem laufenden Antwortdienst."""
+        import threading
+        with self._suche_sperre:
+            with self._sperre:
+                buechse = getattr(self, "_ruf", None)
+                if buechse is None or not getattr(self, "_ruf_laeuft", False):
+                    return None
+                ergebnisse = {}
+                self._such_ergebnisse = ergebnisse
+            try:
+                for ziel in baum_suchziele():
+                    try:
+                        buechse.sendto(BAUM_RUF, (ziel, int(port)))
+                    except OSError:
+                        pass
+                threading.Event().wait(max(0.0, float(wartezeit)))
+                with self._sperre:
+                    return [eintrag for kennung, eintrag in ergebnisse.items()
+                            if kennung != eigene_kennung]
+            finally:
+                with self._sperre:
+                    self._such_ergebnisse = None
 
     def anhalten(self):
         if self._bluetooth:
@@ -14701,24 +14734,34 @@ def baum_suchziele():
     return ["127.0.0.1", "255.255.255.255"]
 
 
-def baum_suchen(port=BAUM_PORT, wartezeit=1.5, eigene_kennung="",
-                mdns_suche=None):
-    """Sucht portabel per mDNS und zusätzlich per altem IPv4-Rundruf."""
+def _baum_ruf_eintrag(roh, woher, eigene_kennung):
+    if len(roh) > 2048:
+        return None
+    try:
+        antwort = json.loads(roh.decode("utf-8"))
+    except (UnicodeError, ValueError):
+        return None
+    if not isinstance(antwort, dict) or antwort.get("magnolie") != BAUM_HÜLLE:
+        return None
+    kennung = antwort.get("kennung")
+    if not isinstance(kennung, str) or not kennung or kennung == eigene_kennung:
+        return None
+    antwort["adresse"] = woher[0]
+    antwort["fundart"] = "udp"
+    return antwort
+
+
+def _baum_rundruf_suchen(port, wartezeit, eigene_kennung):
     import socket
-    import threading
     gefunden = {}
-    mdns_ergebnis = []
-    mdns_suche = mdns_suche or baum_mdns_suchen
-
-    def mdns_arbeit():
-        mdns_ergebnis.extend(mdns_suche(wartezeit, eigene_kennung))
-
-    faden = threading.Thread(target=mdns_arbeit, daemon=True)
-    faden.start()
+    buechse = None
     try:
         buechse = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         buechse.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
         buechse.settimeout(0.4)
+        # Broadcast replies to ephemeral ports are NEW inbound traffic under
+        # UFW. Use only the port already covered by the application rule.
+        buechse.bind(("", int(port)))
         for ziel in baum_suchziele():
             try:
                 buechse.sendto(BAUM_RUF, (ziel, int(port)))
@@ -14727,30 +14770,42 @@ def baum_suchen(port=BAUM_PORT, wartezeit=1.5, eigene_kennung="",
         ende = _zeitpunkt_plus(wartezeit)
         while datetime.now() < ende:
             try:
-                roh, woher = buechse.recvfrom(2048)
+                roh, woher = buechse.recvfrom(2049)
             except socket.timeout:
                 continue
             except OSError:
                 break
-            try:
-                antwort = json.loads(roh.decode("utf-8"))
-            except ValueError:
-                continue
-            if antwort.get("magnolie") != BAUM_HÜLLE:
-                continue
-            kennung = antwort.get("kennung")
-            if not kennung or kennung == eigene_kennung:
-                continue
-            antwort["adresse"] = woher[0]
-            antwort["fundart"] = "udp"
-            gefunden[kennung] = antwort
+            antwort = _baum_ruf_eintrag(roh, woher, eigene_kennung)
+            if antwort and len(gefunden) < 256:
+                gefunden[antwort["kennung"]] = antwort
     except OSError:
         pass
     finally:
         try:
-            buechse.close()
-        except (NameError, OSError):
+            if buechse is not None:
+                buechse.close()
+        except OSError:
             pass
+    return list(gefunden.values())
+
+
+def baum_suchen(port=BAUM_PORT, wartezeit=1.5, eigene_kennung="",
+                mdns_suche=None, rufdienst=None):
+    """Sucht per mDNS und mit Antworten auf dem freigegebenen UDP-Port."""
+    import threading
+    mdns_ergebnis = []
+    mdns_suche = mdns_suche or baum_mdns_suchen
+
+    def mdns_arbeit():
+        mdns_ergebnis.extend(mdns_suche(wartezeit, eigene_kennung))
+
+    faden = threading.Thread(target=mdns_arbeit, daemon=True)
+    faden.start()
+    rundruf = (rufdienst.rundruf_suchen(port, wartezeit, eigene_kennung)
+               if rufdienst is not None else None)
+    if rundruf is None:
+        rundruf = _baum_rundruf_suchen(port, wartezeit, eigene_kennung)
+    gefunden = {eintrag["kennung"]: eintrag for eintrag in rundruf}
     faden.join(timeout=max(0.0, float(wartezeit)) + 0.6)
     for antwort in mdns_ergebnis:
         kennung = antwort.get("kennung")
@@ -22314,8 +22369,9 @@ class Fenster(_FENSTER_BASIS):
 
     def _baum_suchen_arbeit(self):
         zustand = self._baum_zustand() or {}
-        gefunden = baum_suchen(int(zustand.get("port") or BAUM_PORT), 1.5,
-                               zustand.get("kennung") or "")
+        with self._baum_dienst_sperre:
+            gefunden = baum_suchen(int(zustand.get("port") or BAUM_PORT), 1.5,
+                                   zustand.get("kennung") or "", rufdienst=self._baumdienst)
         self.antwort("App.baumGefunden", {"nachbarn": gefunden})
 
     def _baum_paarungsdatei_erzeugen(self, adresse, port):

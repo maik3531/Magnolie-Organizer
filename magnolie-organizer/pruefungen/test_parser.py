@@ -5604,7 +5604,7 @@ try:
            "sobald die Gegenstelle wieder da ist, wird zugestellt")
 
     # Nachbarsuche
-    gefunden = m.baum_suchen(18842, 1.2, netz_a["kennung"])
+    gefunden = m.baum_suchen(18842, 1.2, netz_a["kennung"], rufdienst=dienst_a)
     pruefe(any(g["kennung"] == netz_b["kennung"] for g in gefunden),
            "die Gegenstelle antwortet auf den Rundruf: %r"
            % [g.get("name") for g in gefunden])
