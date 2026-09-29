@@ -12338,6 +12338,8 @@ def _baum_zustand_pruefen(zustand):
     zustand.setdefault("partner", [])
     zustand.setdefault("port", BAUM_PORT)
     zustand.setdefault("an", False)
+    if type(zustand["an"]) is not bool:
+        raise RuntimeError(_("The Magnolienbaum identity file is damaged."))
     for partner in zustand["partner"]:
         if not isinstance(partner, dict):
             raise RuntimeError(_("The Magnolienbaum identity file is damaged."))
@@ -18443,6 +18445,8 @@ class Fenster(_FENSTER_BASIS):
         self._baum_umschlag = None
         self._baumdienst = None
         self._baum_sperre = threading.RLock()
+        self._baum_dienst_sperre = threading.RLock()
+        self._baum_schalt_revision = 0
         self._baum_post_timer = None
         self._baum_post_laeuft = False
         self._baum_post_planung = False
@@ -19906,10 +19910,13 @@ class Fenster(_FENSTER_BASIS):
             _ANRUF_LAUTSTAERKE.restore(str(nachricht.get("callRef") or ""))
 
         elif befehl == "baum_ein":
+            if type(nachricht.get("an")) is not bool:
+                return
+            revision = self._baum_schalt_wunsch()
             threading.Thread(
-                target=lambda: self._baum_schalten(
-                    bool(nachricht.get("an")),
-                    nachricht.get("name") or ""), daemon=True).start()
+                target=self._baum_schalten,
+                args=(nachricht["an"], str(nachricht.get("name") or ""), revision),
+                daemon=True).start()
 
         elif befehl == "baum_suchen":
             threading.Thread(target=self._baum_suchen_arbeit,
@@ -21969,6 +21976,10 @@ class Fenster(_FENSTER_BASIS):
 
     def _baum_dienst_pflegen(self):
         """Startet oder beendet den Netzdienst je nach Einstellung."""
+        with self._baum_dienst_sperre:
+            return self._baum_dienst_pflegen_serialisiert()
+
+    def _baum_dienst_pflegen_serialisiert(self):
         if self._gesperrt:
             self._baum_post_pause()
             laeuft = getattr(self, "_baumdienst", None)
@@ -22244,27 +22255,60 @@ class Fenster(_FENSTER_BASIS):
     def _baum_stand_melden(self):
         self.antwort("App.baumStand", self._baum_bericht())
 
-    def _baum_schalten(self, an, name):
-        zustand = self._baum_zustand()
-        if not zustand:
+    def _baum_schalt_wunsch(self):
+        with self._baum_sperre:
+            self._baum_schalt_revision = getattr(self, "_baum_schalt_revision", 0) + 1
+            return self._baum_schalt_revision
+
+    def _baum_schalten(self, an, name, revision=None):
+        if revision is None:
+            revision = self._baum_schalt_wunsch()
+        try:
+            with self._baum_sperre:
+                if revision != self._baum_schalt_revision or self._gesperrt:
+                    return
+                zustand = self._baum_zustand()
+                if not zustand:
+                    self._baum_stand_melden()
+                    return
+                self._baum_fehler = ""
+            # Firewall setup may wait for user input. Never let an older
+            # completion overwrite a newer explicit opt-out.
+            ok, fehler = baum_firewall_einrichten() if an else (True, "")
+            with self._baum_sperre:
+                if (revision != self._baum_schalt_revision or self._gesperrt or
+                        self._baum is not zustand):
+                    return
+                if not ok:
+                    self._baum_fehler = fehler
+                    self._baum_stand_melden()
+                    return
+                kandidat = json.loads(json.dumps(zustand))
+                kandidat["an"] = bool(an)
+                if name:
+                    kandidat["name"] = name[:60]
+                name_geaendert = kandidat.get("name") != zustand.get("name")
+                try:
+                    self._baum_sichern(kandidat)
+                except OSError as fehler:
+                    # chmod/directory fsync may fail after the atomic rename.
+                    # Report the warning, but keep runtime and disk in agreement.
+                    if baum_lesen(kennwort=self._kennwort) != kandidat:
+                        raise
+                    self._baum_fehler = fehler_deutsch(fehler, _("Saving the data"))
+                zustand.clear()
+                zustand.update(kandidat)
+        except Exception as fehler:
+            with self._baum_sperre:
+                if revision != self._baum_schalt_revision:
+                    return
+                self._baum_fehler = fehler_deutsch(fehler, _("Saving the data"))
             self._baum_stand_melden()
             return
-        self._baum_fehler = ""
-        if an:
-            ok, fehler = baum_firewall_einrichten()
-            if not ok:
-                self._baum_fehler = fehler
-                self._baum_stand_melden()
-                return
-        name_geaendert = bool(name and name[:60] != zustand.get("name"))
-        with self._baum_sperre:
-            zustand["an"] = bool(an)
-            if name:
-                zustand["name"] = name[:60]
-            self._baum_sichern(zustand)
-        if name_geaendert and getattr(self, "_baumdienst", None):
-            self._baumdienst.anhalten()
-            self._baumdienst = None
+        with self._baum_dienst_sperre:
+            if name_geaendert and getattr(self, "_baumdienst", None):
+                self._baumdienst.anhalten()
+                self._baumdienst = None
         self._baum_dienst_pflegen()
         self._baum_stand_melden()
 
