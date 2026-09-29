@@ -58,6 +58,9 @@ internal sealed class RecoveryJournal
             if (name is "einstellungen" or "letzterSync" or "letzteSyncs" or "syncStatus" or
                 "syncMetadaten" or "syncEpoch" or "syncNachRestore" or "syncAbgleichBasis" or "syncAbgleichNachweis" or
                 "personalSync" or "kontaktFotoCache" or "baumKontaktBestand" or "baumKontaktErfolgreich" or "baumKontaktLoeschStaende") continue;
+            // Settings changes normally leave the content arrays identical.
+            // Avoid cloning/normalizing every large photo just to prove equality.
+            if (JsonNode.DeepEquals(previous[name], proposed[name])) continue;
             if (name == "geloescht" && previous[name] is JsonObject oldDeleted && proposed[name] is JsonObject newDeleted)
             {
                 static JsonObject WithoutConfirmedCleanup(JsonObject value)
@@ -84,6 +87,7 @@ internal sealed class RecoveryJournal
 
         static bool SameContent(JsonNode? before, JsonNode? after, bool contact)
         {
+            if (JsonNode.DeepEquals(before, after)) return true;
             if (before is not JsonObject left || after is not JsonObject right) return JsonNode.DeepEquals(before, after);
             var sameContact = false;
             if (contact)

@@ -66,6 +66,7 @@ runner.Add("Magnolienbaum Nextcloud / WebDAV / Authentisierung", NextcloudMailbo
 runner.Add("Nextcloud CalDAV / CardDAV / Discovery / ETag / Sicherheit", NextcloudDavTests.RunAsync);
 runner.Add("Thunderbird bridge / framing / provider identity", ThunderbirdBridgeTests.RunAsync);
 runner.Add("Managed internet accounts / isolated profiles", ManagedInternetAccountsTests.RunAsync);
+runner.Add("Recovery comparison / unchanged photo allocations", RecoveryComparisonAllocationTests.RunAsync);
 runner.Add("Magnolienbaum discovery / allowed UDP port / active listener", MagnolienbaumDiscoveryTests.RunAsync);
 runner.Add("Magnolienbaum Kontakte / Fotos / manuelle Löschvorschläge", ContractGroupTests.TreeContactsAsync);
 runner.Add("Telefonverbindung / Crypto / Pairingcode / Rahmen / Verträge", TelefonProtocolTests.RunAsync);
