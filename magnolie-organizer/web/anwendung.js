@@ -20904,7 +20904,9 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       "phone_personal_sync_offers", "phone_pairing_decisions"];
     const rechte = Object.assign({}, backgroundStand && backgroundStand.permissions || {},
       aenderungen && aenderungen.permissions || {});
-    const settings = { enabled: quelle.enabled === true, autostart: quelle.autostart === true,
+    for (const name of ["kde_pairing", "phone_monitor", "phone_pairing_decisions"]) rechte[name] = true;
+    rechte.magnolienbaum_change_offers = false;
+    const settings = { enabled: true, autostart: true,
       encryption_policy: "notify_then_unlock",
       permissions: Object.fromEntries(namen.map((name) => [name, rechte[name] === true])),
       kde_device_id: String(quelle.kde_device_id || ""),
@@ -23624,6 +23626,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
   }
 
   function baueHintergrunddienst(wurzel) {
+    if (!Bruecke.vorhanden) return;
     const spiegel = DATEN.einstellungen.sicherheit.hintergrund;
     const stand = backgroundStand || { enabled: spiegel.enabled, autostart: spiegel.autostart,
       encryption_policy: spiegel.encryptionPolicy, permissions: spiegel.permissions };
@@ -23632,68 +23635,26 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       _("Optional approved functions can continue while the Organizer window is closed."));
     ab.classList.add("hintergrunddienst-abschnitt");
 
-    if (!Bruecke.vorhanden) ab.append(el("p", "einst-hinweis",
-      _("The background service is available only in the installed application.")));
-    else if (!backgroundStand) ab.append(el("p", "sync-status", _("Checking background service …")));
-
-    const aktiv = document.createElement("input");
-    aktiv.type = "checkbox"; aktiv.id = "hintergrunddienst-an";
-    aktiv.checked = stand.enabled === true; aktiv.disabled = !Bruecke.vorhanden;
-    const aktivLabel = el("label", "hak");
-    aktivLabel.append(aktiv, document.createTextNode(" " + _("Enable background service")));
-    ab.append(aktivLabel);
-
-    const anmeldung = document.createElement("input");
-    anmeldung.type = "checkbox"; anmeldung.id = "hintergrunddienst-autostart";
-    anmeldung.checked = stand.autostart === true;
-    const anmeldungLabel = el("label", "hak hak-eingerueckt");
-    anmeldungLabel.append(anmeldung, document.createTextNode(" " + _("Start at login")));
-    ab.append(anmeldungLabel);
+    if (!backgroundStand) ab.append(el("p", "sync-status", _("Checking background service …")));
 
     const statusTeile = [];
-    const warnungsTeile = [];
     if (backgroundStand) {
       statusTeile.push(stand.running ? _("Service running") : _("Service stopped"));
-      if (typeof stand.native_notifications_supported === "boolean") {
-        (stand.native_notifications_supported ? statusTeile : warnungsTeile).push(
-          stand.native_notifications_supported
-            ? _("Native notifications available") : _("Native notifications unavailable"));
-      }
+      if (stand.native_notifications_supported === true) statusTeile.push(_("Native notifications available"));
       if (typeof stand.native_actions_supported === "boolean") {
-        (stand.native_actions_supported ? statusTeile : warnungsTeile).push(
+        statusTeile.push(
           stand.native_actions_supported
             ? _("Notification actions available")
             : _("Pairing, file and clipboard requests are confirmed in this window."));
       }
-      statusTeile.push(stand.keyring_available
-        ? _("System keyring available") : _("System keyring unavailable"));
     }
     if (statusTeile.length) ab.append(el("p", stand.running ? "baum-zustand gut" : "einst-hinweis",
       statusTeile.join(" · ")));
-    if (warnungsTeile.length) ab.append(el("p", "einst-warnung", warnungsTeile.join(" · ")));
     if (stand.error) ab.append(el("p", "einst-warnung", String(stand.error)));
     if (stand.receive_configuration_error) ab.append(el("p", "einst-warnung",
       _("KDE Connect receive settings could not be applied by the background service.")));
 
-    const policy = document.createElement("select");
-    policy.id = "hintergrunddienst-verschluesselung";
-    const policyWerte = [
-      ["notify_then_unlock", _("Notify, then unlock (recommended)")],
-      ["keyring", _("Use system keyring")],
-      ["pause_when_locked", _("Pause while data is locked")]
-    ];
-    for (const [wert, text] of policyWerte) {
-      const option = document.createElement("option");
-      option.value = wert; option.textContent = text;
-      if (wert !== "notify_then_unlock") option.disabled = true;
-      policy.append(option);
-    }
-    policy.value = stand.encryption_policy || "notify_then_unlock";
-    ab.append(formZeile(_("Encrypted data behavior"), policy),
-      el("p", "einst-hinweis hintergrund-policy-hinweis",
-        _("Only Notify, then unlock is currently available. Keyring access and pausing while locked are not yet enforced by the background service.")));
-    ab.append(el("p", "einst-hinweis",
-      _("System keyring and pause modes cannot be enabled yet.")));
+    ab.append(el("p", "einst-hinweis hintergrund-policy-hinweis", _("Notify, then unlock (recommended)")));
 
     const rechteGruppe = el("details", "einst-gruppe hintergrund-rechte-gruppe");
     rechteGruppe.id = "hintergrunddienst-rechte";
@@ -23728,42 +23689,18 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
         backgroundSettingsSpeichern({ permissions: rechte });
       });
     };
-    rechteZeile("kde_pairing", _("KDE Connect pairing decisions"));
-    rechteZeile("kde_incoming_files", _("Incoming KDE Connect files (always confirm)"));
-    rechteZeile("sms_phone_notifications", _("Monitor KDE Connect SMS and show notifications"));
-    rechteZeile("phone_monitor", _("Monitor the Magnolie Notes phone connection"));
+    const systemKde = typeof stand.native_kde_backend === "boolean"
+      ? stand.native_kde_backend : telefonStand?.kdeconnect?.native === true;
+    if (!systemKde) {
+      rechteZeile("kde_incoming_files", _("Incoming KDE Connect files (always confirm)"));
+      rechteZeile("sms_phone_notifications", _("Monitor KDE Connect SMS and show notifications"));
+    }
     rechteZeile("phone_sms_notifications", _("Show Magnolie Notes SMS notifications"));
     rechteZeile("phone_selected_notifications", _("Show selected app notifications"));
     rechteZeile("phone_call_notifications", _("Show incoming call notifications"));
-    rechteZeile("phone_pairing_decisions", _("Magnolie Notes phone pairing decisions"));
     rechteZeile("phone_personal_sync_offers", _("Offer Personal Sync phone changes"));
-    rechteZeile("magnolienbaum_change_offers", _("Magnolienbaum change offers"), true);
     ab.append(rechteGruppe);
 
-    const setzeAktiv = () => {
-      anmeldung.disabled = !Bruecke.vorhanden || !aktiv.checked;
-      policy.disabled = !Bruecke.vorhanden || !aktiv.checked;
-      for (const [feld, unavailable] of felder) {
-        feld.disabled = unavailable || !Bruecke.vorhanden || !aktiv.checked;
-      }
-      alleKnopf.disabled = !Bruecke.vorhanden || !aktiv.checked;
-      keineKnopf.disabled = !Bruecke.vorhanden || !aktiv.checked;
-    };
-    aktiv.addEventListener("change", () => {
-      setzeAktiv();
-      backgroundSettingsSpeichern({ enabled: aktiv.checked });
-    });
-    anmeldung.addEventListener("change", () =>
-      backgroundSettingsSpeichern({ autostart: anmeldung.checked }));
-    policy.addEventListener("change", () => {
-      if (policy.value !== "notify_then_unlock") {
-        policy.value = stand.encryption_policy || "notify_then_unlock";
-        zettel(_("System keyring and pause modes cannot be enabled yet."));
-        return;
-      }
-      backgroundSettingsSpeichern({ encryption_policy: policy.value });
-    });
-    setzeAktiv();
     wurzel.append(ab);
   }
 

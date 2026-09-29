@@ -3376,6 +3376,37 @@ msgstr ""
 
 #, no-javascript-format
 msgid ""
+"<p>After setup is completed or skipped, Linux prepares the supported "
+"background services and login startup automatically. Connected, "
+"authenticated phone transports with startup support are included "
+"automatically; no separate service switch is required.</p><p>On Linux, "
+"<b>Settings ▸ Security</b> shows service status and optional permissions for "
+"notifications and files. <b>None</b> clears these optional permissions, not "
+"the required transports. Pairing still requires confirmation; file and "
+"clipboard access is not granted automatically.</p><p>An installed, available "
+"system KDE Connect service is started without changing its plugins or "
+"permissions and without creating a competing KDE transport. System-managed "
+"pairing stays in KDE Connect; Magnolie can select already paired phones. "
+"Unsupported functions are not started.</p><p>An explicitly disabled "
+"Magnolienbaum or Notes phone connection remains off. Encrypted main data "
+"still requires unlocking. Windows uses Organizer/tray startup for the "
+"supported connected phone services, rather than a separate Linux-style "
+"daemon.</p>"
+msgstr ""
+"<p>सेटअप पूरा करने या छोड़ने के बाद Linux समर्थित पृष्ठभूमि सेवाएँ और लॉगिन पर उनका "
+"प्रारंभ अपने आप तैयार करता है। प्रारंभ समर्थन वाले जुड़े और प्रमाणित फ़ोन कनेक्शन स्वतः शामिल "
+"होते हैं; अलग सेवा स्विच की जरूरत नहीं है।</p><p>Linux में <b>सेटिंग्स ▸ सुरक्षा</b> स्थिति "
+"और सूचनाओं तथा फ़ाइलों की वैकल्पिक अनुमतियाँ दिखाता है। <b>कोई नहीं</b> इन अनुमतियों को "
+"हटाता है, जरूरी कनेक्शन को नहीं। युग्मन की पुष्टि अभी भी जरूरी है; फ़ाइल और क्लिपबोर्ड पहुँच "
+"स्वतः नहीं मिलती।</p><p>स्थापित और उपलब्ध सिस्टम KDE Connect सेवा उसके प्लगइन या "
+"अधिकार बदले बिना तथा प्रतिस्पर्धी KDE कनेक्शन बनाए बिना शुरू होती है। सिस्टम युग्मन KDE "
+"Connect में रहता है; Magnolie पहले से युग्मित फ़ोन चुन सकता है। असमर्थित कार्य शुरू नहीं "
+"होते।</p><p>स्पष्ट रूप से बंद Magnolienbaum या Notes फ़ोन कनेक्शन बंद ही रहता है। "
+"एन्क्रिप्टेड मुख्य डेटा को अभी भी अनलॉक करना होगा। Windows समर्थित जुड़े फ़ोन के लिए अलग "
+"Linux सेवा के बजाय Organizer का ट्रे स्टार्टअप उपयोग करता है।</p>"
+
+#, no-javascript-format
+msgid ""
 "<p>An <b>APK</b> is an Android installation file. The version-independent "
 "download is <i>Magnolie-Notes.apk</i>. Obtain it together with <i>Magnolie-"
 "Notes-latest-PRUEFSUMMEN.sha256</i> only from the official Magnolie release "
@@ -8696,6 +8727,10 @@ msgid "Back one spread"
 msgstr "पिछले दो पृष्ठ खोलें"
 
 #, no-javascript-format
+msgid "Background services"
+msgstr "पृष्ठभूमि सेवाएँ"
+
+#, no-javascript-format
 msgid "Backing up and restoring"
 msgstr "बैकअप और पुनर्स्थापना"
 
@@ -9082,10 +9117,6 @@ msgstr "सेटिंग्स खोलना और उनमें ने�
 #, python-format
 msgid "Option %s requires a language."
 msgstr "विकल्प %s के लिए भाषा आवश्यक है।"
-
-#, no-javascript-format
-msgid "Optional Linux background service"
-msgstr "Linux की वैकल्पिक बैकग्राउंड सेवा"
 
 #, no-javascript-format
 msgid "Organizer · User Guide"
@@ -9539,6 +9570,9 @@ msgstr "इस पुस्तक के प्रोग्रामर और �
 #, no-javascript-format
 msgid "Über dieses Projekt"
 msgstr "इस परियोजना के बारे में"
+
+#~ msgid "Optional Linux background service"
+#~ msgstr "Linux की वैकल्पिक बैकग्राउंड सेवा"
 
 #, no-javascript-format
 #~ msgid ""

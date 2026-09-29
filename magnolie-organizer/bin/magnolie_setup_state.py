@@ -234,7 +234,7 @@ class SetupPhoneServices:
         import shutil
         # Listing transports must not reserve a daemon pairing session.
         # The actual connection acquires the lease on demand.
-        return [{"transport": kind, "available": available, "canAutoStart": True,
+        return [{"transport": kind, "available": available, "canAutoStart": available,
                  "reason": "This phone transport is unavailable."}
                 for kind, available in (("wifi", importlib.util.find_spec("cryptography") is not None),
                     ("kdeconnect", importlib.util.find_spec("OpenSSL") is not None),

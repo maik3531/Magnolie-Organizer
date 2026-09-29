@@ -10,6 +10,7 @@ import tempfile
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_TESTS = [
     'test_background_reliability.py', 'test_baum_receipts.py',
+    'test_automatic_service_provisioning.py',
     'test_hintergrunddienst.py', 'test_phone_setup_sessions.py',
     'test_automatic_cloud_backup.py', 'test_journal_periodisch.py',
     'test_wiederherstellungsjournal.py', 'test_setup_services.py',

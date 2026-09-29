@@ -14,6 +14,7 @@ internal static class FirstRunSetupUiSelfTest
             ApplicationConfiguration.Initialize();
             VerifySkip(Path.Combine(root, "skip-native"));
             VerifyComplete(Path.Combine(root, "complete-native"));
+            VerifyAutomaticPhoneServices(Path.Combine(root, "automatic-phone-services"));
             VerifyHolidayLanguages(Path.Combine(root, "holidays-native"));
             Console.WriteLine("WINDOWS-FIRST-RUN-UI-OK");
             return 0;
@@ -150,6 +151,46 @@ internal static class FirstRunSetupUiSelfTest
         Test(RegionalSettings.Read(paths.RegionalSettings)["language"]?.GetValue<string>() == "de",
             "Die Sprachwahl wurde nicht im isolierten Profil gespeichert.");
         VerifyMarker(paths, "completed");
+    }
+
+    private sealed class AutomaticPhoneFixture : IFirstRunSetupPhoneServices
+    {
+        public IReadOnlyList<SetupPhoneCapability> Capabilities => [
+            new("wifi", true, true), new("bluetooth", true, false), new("kdeconnect", false, true)];
+        internal IReadOnlyList<string> Committed { get; private set; } = [];
+        public Task<SetupPhoneResult> ConnectAsync(string transport, Func<SetupPhonePrompt, Task<string?>> prompt, CancellationToken cancellationToken) =>
+            throw new InvalidOperationException("The fixture does not connect to devices.");
+        public Task<IReadOnlyList<string>> ConnectedAsync(CancellationToken cancellationToken) =>
+            Task.FromResult<IReadOnlyList<string>>(["wifi", "bluetooth", "kdeconnect"]);
+        public Task CommitStartupAsync(IReadOnlyList<string> transports, CancellationToken cancellationToken)
+        { Committed = transports.ToArray(); return Task.CompletedTask; }
+    }
+
+    private static void VerifyAutomaticPhoneServices(string root)
+    {
+        var paths = new WindowsPaths(root);
+        paths.EnsureDirectories();
+        var state = new FirstRunSetupState(paths);
+        state.Begin();
+        var phone = new AutomaticPhoneFixture();
+        using var form = new FirstRunSetupForm(paths, state, phoneServices: phone);
+        form.Show();
+        Application.DoEvents();
+        var connected = Field<Dictionary<string, SetupPhoneResult>>(form, "connectedPhones");
+        foreach (var capability in phone.Capabilities)
+            connected[capability.Transport] = new(capability.Transport, "fixture-" + capability.Transport, "Fixture phone", true);
+        SetField(form, "page", 5);
+        Field<Button>(form, "next").PerformClick();
+        Application.DoEvents();
+        Test(IntField(form, "page") == 6 && !Descendants(Field<Panel>(form, "pageHost")).OfType<CheckBox>()
+            .Any(box => box.Text.StartsWith(NativeLocalization.Gettext("Start required phone background services automatically"), StringComparison.Ordinal)),
+            "Die Kopplung verlangt noch einen zusätzlichen Dienst-Schalter.");
+        Field<Button>(form, "next").PerformClick();
+        Application.DoEvents();
+        Test(form.DialogResult == DialogResult.OK && form.Selections?.PhoneBackgroundServices.SequenceEqual(["wifi"]) == true &&
+            phone.Committed.SequenceEqual(["wifi"]) && form.Selections.Autostart && form.Selections.Tray,
+            "Unterstützte Dienste wurden nicht automatisch übernommen oder eine nicht unterstützte Variante wurde gestartet.");
+        Console.WriteLine("WINDOWS-FIRST-RUN-AUTO-SERVICES-OK");
     }
 
     private static void VerifyWindow(FirstRunSetupForm form)

@@ -3443,6 +3443,39 @@ msgstr ""
 
 #, no-javascript-format
 msgid ""
+"<p>After setup is completed or skipped, Linux prepares the supported "
+"background services and login startup automatically. Connected, "
+"authenticated phone transports with startup support are included "
+"automatically; no separate service switch is required.</p><p>On Linux, "
+"<b>Settings ▸ Security</b> shows service status and optional permissions for "
+"notifications and files. <b>None</b> clears these optional permissions, not "
+"the required transports. Pairing still requires confirmation; file and "
+"clipboard access is not granted automatically.</p><p>An installed, available "
+"system KDE Connect service is started without changing its plugins or "
+"permissions and without creating a competing KDE transport. System-managed "
+"pairing stays in KDE Connect; Magnolie can select already paired phones. "
+"Unsupported functions are not started.</p><p>An explicitly disabled "
+"Magnolienbaum or Notes phone connection remains off. Encrypted main data "
+"still requires unlocking. Windows uses Organizer/tray startup for the "
+"supported connected phone services, rather than a separate Linux-style "
+"daemon.</p>"
+msgstr ""
+"<p>初期設定を完了またはスキップすると、Linux は対応するバックグラウンドサービ"
+"スとログイン時の起動を自動で準備します。接続済みで認証された電話のうち、自動"
+"起動に対応する接続方式が自動的に含まれます。別のサービススイッチは不要です。"
+"</p><p>Linux の<b>設定 ▸ セキュリティ</b>には、サービスの状態と通知・ファイル"
+"用の任意の権限が表示されます。<b>なし</b>は任意の権限を解除し、必要な接続は無"
+"効にしません。ペアリングの確認は引き続き必要です。ファイルやクリップボードへ"
+"のアクセスは自動許可されません。</p><p>インストール済みで利用可能なシステム"
+"の KDE Connect サービスは、プラグインや権限を変更せず、競合する KDE 接続を作"
+"らずに起動します。システムのペアリングは KDE Connect で行い、Magnolie はペア"
+"リング済みの電話を選択できます。非対応の機能は起動しません。</p><p>明示的に無"
+"効にした Magnolienbaum や Notes の電話接続は無効のままです。暗号化された主要"
+"データには引き続きロック解除が必要です。Windows では、対応する接続済みの電話"
+"に Linux 型の独立サービスではなく Organizer のトレイ起動を使用します。</p>"
+
+#, no-javascript-format
+msgid ""
 "<p>An <b>APK</b> is an Android installation file. The version-independent "
 "download is <i>Magnolie-Notes.apk</i>. Obtain it together with <i>Magnolie-"
 "Notes-latest-PRUEFSUMMEN.sha256</i> only from the official Magnolie release "
@@ -8827,6 +8860,10 @@ msgid "Back one spread"
 msgstr "見開きを1つ戻る"
 
 #, no-javascript-format
+msgid "Background services"
+msgstr "バックグラウンドサービス"
+
+#, no-javascript-format
 msgid "Backing up and restoring"
 msgstr "バックアップと復元"
 
@@ -9215,10 +9252,6 @@ msgstr "設定を開いて移動する"
 #, python-format
 msgid "Option %s requires a language."
 msgstr "オプション %s には言語の指定が必要です。"
-
-#, no-javascript-format
-msgid "Optional Linux background service"
-msgstr "Linux の任意バックグラウンドサービス"
 
 #, no-javascript-format
 msgid "Organizer · User Guide"
@@ -9672,6 +9705,9 @@ msgstr "この本のプログラマー兼著者について"
 #, no-javascript-format
 msgid "Über dieses Projekt"
 msgstr "このプロジェクトについて"
+
+#~ msgid "Optional Linux background service"
+#~ msgstr "Linux の任意バックグラウンドサービス"
 
 #, no-javascript-format
 #~ msgid ""

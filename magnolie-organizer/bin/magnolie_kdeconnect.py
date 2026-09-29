@@ -154,7 +154,7 @@ NATIVE_KDE_UNAVAILABLE = "Native KDE Connect is unavailable. Magnolie will not t
 
 
 def create_backend(directory, device_name=None, callback=None):
-    """Prefer the session's native owner; never start it or change its plugins."""
+    """Select the session's native service without activating it or changing plugins."""
     try:
         from gi.repository import Gio, GLib
         bus = Gio.bus_get_sync(Gio.BusType.SESSION, None)
@@ -190,6 +190,7 @@ class KDEConnectNativeBackend:
         self.callback = callback
         self.pairing = None
         self.listening = False
+        self._activation_attempted = False
 
     def _call(self, owner, path, interface, method, signature=None, args=(), reply=None, deadline=None):
         if self.bus is None:
@@ -232,8 +233,25 @@ class KDEConnectNativeBackend:
         return devices
 
     def start(self):
-        # This adapter has no transport to bind. A dormant native service is not
-        # a failure of the independent Notes/background services.
+        # Explicit startup may activate the installed system service. Read-only
+        # status calls still use NO_AUTO_START, and we never bind a second KDE
+        # transport or change the system service's plugins/pairing permissions.
+        if not self._activation_attempted:
+            self._activation_attempted = True
+            try:
+                running = self._call('org.freedesktop.DBus', '/org/freedesktop/DBus',
+                    'org.freedesktop.DBus', 'NameHasOwner', '(s)', ('org.kde.kdeconnect',), '(b)')[0]
+                if not running:
+                    names = self._call('org.freedesktop.DBus', '/org/freedesktop/DBus',
+                        'org.freedesktop.DBus', 'ListActivatableNames', None, (), '(as)')[0]
+                    if 'org.kde.kdeconnect' in names:
+                        self._call('org.freedesktop.DBus', '/org/freedesktop/DBus',
+                            'org.freedesktop.DBus', 'StartServiceByName', '(su)',
+                            ('org.kde.kdeconnect', 0), '(u)')
+            except Exception:
+                # Missing/filtered system support must not stop independent Notes
+                # services. status() reports the actual native availability.
+                pass
         return True
 
     def stop(self):

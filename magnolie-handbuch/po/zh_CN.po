@@ -3151,6 +3151,36 @@ msgstr ""
 
 #, no-javascript-format
 msgid ""
+"<p>After setup is completed or skipped, Linux prepares the supported "
+"background services and login startup automatically. Connected, "
+"authenticated phone transports with startup support are included "
+"automatically; no separate service switch is required.</p><p>On Linux, "
+"<b>Settings ▸ Security</b> shows service status and optional permissions for "
+"notifications and files. <b>None</b> clears these optional permissions, not "
+"the required transports. Pairing still requires confirmation; file and "
+"clipboard access is not granted automatically.</p><p>An installed, available "
+"system KDE Connect service is started without changing its plugins or "
+"permissions and without creating a competing KDE transport. System-managed "
+"pairing stays in KDE Connect; Magnolie can select already paired phones. "
+"Unsupported functions are not started.</p><p>An explicitly disabled "
+"Magnolienbaum or Notes phone connection remains off. Encrypted main data "
+"still requires unlocking. Windows uses Organizer/tray startup for the "
+"supported connected phone services, rather than a separate Linux-style "
+"daemon.</p>"
+msgstr ""
+"<p>完成或跳过设置后，Linux 会自动准备受支持的后台服务及其登录启动。已连接、已"
+"认证且支持自动启动的手机连接方式会自动纳入，无需另行打开服务开关。</p><p>在 "
+"Linux 的<b>设置 ▸ 安全</b>中，可以查看服务状态以及通知、文件的可选权限。<b>无"
+"</b>会清除这些可选权限，不会停用必要的连接。配对仍须确认；文件和剪贴板访问不"
+"会自动获得授权。</p><p>已安装且可用的系统 KDE Connect 服务会启动，但不会更改"
+"插件或权限，也不会创建与之竞争的 KDE 连接。系统管理的配对仍由 KDE Connect 处"
+"理；Magnolie 可以选择已经配对的手机。不会启动不受支持的功能。</p><p>明确停用"
+"的 Magnolienbaum 或 Notes 手机连接会保持停用。加密的主数据仍须解锁。Windows "
+"使用 Organizer 的托盘启动来支持已连接的受支持手机，而不是单独的 Linux 式后台"
+"服务。</p>"
+
+#, no-javascript-format
+msgid ""
 "<p>An <b>APK</b> is an Android installation file. The version-independent "
 "download is <i>Magnolie-Notes.apk</i>. Obtain it together with <i>Magnolie-"
 "Notes-latest-PRUEFSUMMEN.sha256</i> only from the official Magnolie release "
@@ -8201,6 +8231,10 @@ msgid "Back one spread"
 msgstr "向后翻一个双页"
 
 #, no-javascript-format
+msgid "Background services"
+msgstr "后台服务"
+
+#, no-javascript-format
 msgid "Backing up and restoring"
 msgstr "备份与恢复"
 
@@ -8587,10 +8621,6 @@ msgstr "打开和浏览设置"
 #, python-format
 msgid "Option %s requires a language."
 msgstr "选项 %s 需要指定语言。"
-
-#, no-javascript-format
-msgid "Optional Linux background service"
-msgstr "Linux 可选后台服务"
 
 #, no-javascript-format
 msgid "Organizer · User Guide"
@@ -9044,6 +9074,9 @@ msgstr "关于本书的程序员和作者"
 #, no-javascript-format
 msgid "Über dieses Projekt"
 msgstr "关于本项目"
+
+#~ msgid "Optional Linux background service"
+#~ msgstr "Linux 可选后台服务"
 
 #, no-javascript-format
 #~ msgid ""

@@ -3731,6 +3731,41 @@ msgstr ""
 
 #, no-javascript-format
 msgid ""
+"<p>After setup is completed or skipped, Linux prepares the supported "
+"background services and login startup automatically. Connected, "
+"authenticated phone transports with startup support are included "
+"automatically; no separate service switch is required.</p><p>On Linux, "
+"<b>Settings ▸ Security</b> shows service status and optional permissions for "
+"notifications and files. <b>None</b> clears these optional permissions, not "
+"the required transports. Pairing still requires confirmation; file and "
+"clipboard access is not granted automatically.</p><p>An installed, available "
+"system KDE Connect service is started without changing its plugins or "
+"permissions and without creating a competing KDE transport. System-managed "
+"pairing stays in KDE Connect; Magnolie can select already paired phones. "
+"Unsupported functions are not started.</p><p>An explicitly disabled "
+"Magnolienbaum or Notes phone connection remains off. Encrypted main data "
+"still requires unlocking. Windows uses Organizer/tray startup for the "
+"supported connected phone services, rather than a separate Linux-style "
+"daemon.</p>"
+msgstr ""
+"<p>Kurulum tamamlandıktan veya atlandıktan sonra Linux, desteklenen arka "
+"plan hizmetlerini ve oturum açılışında başlatmayı otomatik hazırlar. "
+"Başlatma desteği olan bağlı ve doğrulanmış telefon bağlantıları ek bir "
+"hizmet anahtarı olmadan dahil edilir.</p><p>Linux'ta <b>Ayarlar ▸ Güvenlik</"
+"b>, durumu ve bildirimler ile dosyalar için isteğe bağlı izinleri gösterir. "
+"<b>Yok</b>, gerekli bağlantıları değil bu izinleri kaldırır. Eşleştirme "
+"yine onay gerektirir; dosya ve pano erişimi otomatik verilmez.</p><p>Kurulu "
+"ve kullanılabilir KDE Connect sistem hizmeti, eklentileri veya izinleri "
+"değiştirilmeden ve rakip bir KDE aktarımı oluşturmadan başlatılır. Sistem "
+"eşleştirmesi KDE Connect'te kalır; Magnolie önceden eşleştirilmiş "
+"telefonları seçebilir. Desteklenmeyen işlevler başlatılmaz.</p><p>Açıkça "
+"kapatılmış Magnolienbaum veya Notes telefon bağlantısı kapalı kalır. Şifreli "
+"ana verilerin kilidi yine açılmalıdır. Windows, desteklenen bağlı telefonlar "
+"için ayrı bir Linux hizmeti yerine Organizer'ın sistem tepsisi başlangıcını "
+"kullanır.</p>"
+
+#, no-javascript-format
+msgid ""
 "<p>An <b>APK</b> is an Android installation file. The version-independent "
 "download is <i>Magnolie-Notes.apk</i>. Obtain it together with <i>Magnolie-"
 "Notes-latest-PRUEFSUMMEN.sha256</i> only from the official Magnolie release "
@@ -9698,6 +9733,10 @@ msgid "Back one spread"
 msgstr "Bir çift sayfa geri"
 
 #, no-javascript-format
+msgid "Background services"
+msgstr "Arka plan hizmetleri"
+
+#, no-javascript-format
 msgid "Backing up and restoring"
 msgstr "Yedekleme ve geri yükleme"
 
@@ -10084,10 +10123,6 @@ msgstr "Ayarları açma ve ayarlarda gezinme"
 #, python-format
 msgid "Option %s requires a language."
 msgstr "%s seçeneği bir dil gerektirir."
-
-#, no-javascript-format
-msgid "Optional Linux background service"
-msgstr "İsteğe bağlı Linux arka plan hizmeti"
 
 #, no-javascript-format
 msgid "Organizer · User Guide"
@@ -10541,6 +10576,9 @@ msgstr "Bu kitabın programcısı ve yazarı hakkında"
 #, no-javascript-format
 msgid "Über dieses Projekt"
 msgstr "Bu proje hakkında"
+
+#~ msgid "Optional Linux background service"
+#~ msgstr "İsteğe bağlı Linux arka plan hizmeti"
 
 #, no-javascript-format
 #~ msgid ""

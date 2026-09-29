@@ -3662,6 +3662,41 @@ msgstr ""
 
 #, no-javascript-format
 msgid ""
+"<p>After setup is completed or skipped, Linux prepares the supported "
+"background services and login startup automatically. Connected, "
+"authenticated phone transports with startup support are included "
+"automatically; no separate service switch is required.</p><p>On Linux, "
+"<b>Settings ▸ Security</b> shows service status and optional permissions for "
+"notifications and files. <b>None</b> clears these optional permissions, not "
+"the required transports. Pairing still requires confirmation; file and "
+"clipboard access is not granted automatically.</p><p>An installed, available "
+"system KDE Connect service is started without changing its plugins or "
+"permissions and without creating a competing KDE transport. System-managed "
+"pairing stays in KDE Connect; Magnolie can select already paired phones. "
+"Unsupported functions are not started.</p><p>An explicitly disabled "
+"Magnolienbaum or Notes phone connection remains off. Encrypted main data "
+"still requires unlocking. Windows uses Organizer/tray startup for the "
+"supported connected phone services, rather than a separate Linux-style "
+"daemon.</p>"
+msgstr ""
+"<p>Po dokončení nebo přeskočení nastavení Linux automaticky připraví "
+"podporované služby na pozadí a jejich spuštění při přihlášení. Připojené a "
+"ověřené telefonní přenosy s podporou automatického spuštění jsou zahrnuty "
+"bez dalšího přepínače služby.</p><p>V Linuxu zobrazuje <b>Nastavení ▸ "
+"Zabezpečení</b> stav a volitelná oprávnění pro oznámení a soubory. <b>Žádné</"
+"b> odebere tato oprávnění, nikoli potřebná spojení. Párování stále vyžaduje "
+"potvrzení; přístup k souborům a schránce se nepovoluje automaticky.</"
+"p><p>Nainstalovaná dostupná systémová služba KDE Connect se spustí bez změn "
+"modulů či oprávnění a bez konkurenčního přenosu KDE. Systémové párování "
+"zůstává v KDE Connect; Magnolie může vybrat již spárované telefony. "
+"Nepodporované funkce se nespouštějí.</p><p>Výslovně vypnutý Magnolienbaum "
+"nebo telefonní spojení Notes zůstává vypnuté. Šifrovaná hlavní data nadále "
+"vyžadují odemčení. Windows používá pro podporované připojené telefony "
+"spuštění Organizeru v oznamovací oblasti, nikoli samostatnou linuxovou "
+"službu.</p>"
+
+#, no-javascript-format
+msgid ""
 "<p>An <b>APK</b> is an Android installation file. The version-independent "
 "download is <i>Magnolie-Notes.apk</i>. Obtain it together with <i>Magnolie-"
 "Notes-latest-PRUEFSUMMEN.sha256</i> only from the official Magnolie release "
@@ -9477,6 +9512,10 @@ msgid "Back one spread"
 msgstr "O jednu dvojstranu zpět"
 
 #, no-javascript-format
+msgid "Background services"
+msgstr "Služby na pozadí"
+
+#, no-javascript-format
 msgid "Backing up and restoring"
 msgstr "Zálohování a obnovení"
 
@@ -9864,10 +9903,6 @@ msgstr "Otevření Nastavení a pohyb v něm"
 #, python-format
 msgid "Option %s requires a language."
 msgstr "Volba %s vyžaduje jazyk."
-
-#, no-javascript-format
-msgid "Optional Linux background service"
-msgstr "Volitelná služba na pozadí pro Linux"
 
 #, no-javascript-format
 msgid "Organizer · User Guide"
@@ -10321,6 +10356,9 @@ msgstr "O programátorovi a autorovi této knihy"
 #, no-javascript-format
 msgid "Über dieses Projekt"
 msgstr "O tomto projektu"
+
+#~ msgid "Optional Linux background service"
+#~ msgstr "Volitelná služba na pozadí pro Linux"
 
 #, no-javascript-format
 #~ msgid ""

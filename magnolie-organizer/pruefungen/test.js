@@ -2211,6 +2211,7 @@ function knopfMit(text, wurzel) {
   enST.inDenPapierkorb("notiz", { id: "en-pk", titel: "Nicht übersetzen" },
     "Nicht übersetzen");
   enSW.App.backgroundSettings({ enabled: true, autostart: false, running: true,
+    native_kde_backend: false,
     encryption_policy: "notify_then_unlock", keyring_available: false,
     native_notifications_supported: true, native_actions_supported: false,
     permissions: { kde_pairing: true, kde_incoming_files: false,
@@ -2229,21 +2230,20 @@ function knopfMit(text, wurzel) {
   const hintergrundAbschnitt = enSicherheit.querySelector(".hintergrunddienst-abschnitt");
   const sicherheitsUeberschriften = Array.from(enSicherheit.querySelectorAll("h3"),
     (heading) => heading.textContent);
-  assert.ok(hintergrundAbschnitt && hintergrundAbschnitt.querySelector("#hintergrunddienst-an") &&
-    hintergrundAbschnitt.querySelector("#hintergrunddienst-autostart") &&
-    hintergrundAbschnitt.querySelectorAll("[data-permission]").length === 10 &&
+  assert.ok(hintergrundAbschnitt && !hintergrundAbschnitt.querySelector("#hintergrunddienst-an") &&
+    !hintergrundAbschnitt.querySelector("#hintergrunddienst-autostart") &&
+    hintergrundAbschnitt.querySelectorAll("[data-permission]").length === 6 &&
     hintergrundAbschnitt.textContent.includes("Service running") &&
     hintergrundAbschnitt.textContent.includes(
       "Pairing, file and clipboard requests are confirmed in this window.") &&
-    hintergrundAbschnitt.textContent.includes("Magnolienbaum change offers") &&
-    hintergrundAbschnitt.textContent.includes("(unavailable)"),
-  "Hintergrunddienst-Steuerung oder Laufzeitstatus fehlt unter Sicherheit");
-  assert.ok(hintergrundAbschnitt.querySelector(".einst-warnung").textContent.includes(
-    "Pairing, file and clipboard requests are confirmed in this window.") &&
-    !hintergrundAbschnitt.querySelector(".baum-zustand.gut").textContent.includes(
-      "Pairing, file and clipboard requests are confirmed in this window.") &&
-    !hintergrundAbschnitt.querySelector(".einst-warnung").textContent.includes("Start Organizer"),
-  "fehlende Benachrichtigungsaktionen erscheinen nicht als Warnung");
+    !hintergrundAbschnitt.textContent.includes("Magnolienbaum change offers") &&
+    !hintergrundAbschnitt.querySelector('[data-permission="phone_monitor"]') &&
+    !hintergrundAbschnitt.querySelector('[data-permission="phone_pairing_decisions"]'),
+  "automatische Dienste verlangen noch zusätzliche Schalter oder Freigaben");
+  assert.ok(!hintergrundAbschnitt.querySelector(".einst-warnung") &&
+    hintergrundAbschnitt.querySelector(".baum-zustand.gut").textContent.includes(
+      "Pairing, file and clipboard requests are confirmed in this window."),
+  "unterstützte Bestätigung im Fenster wird als Fehler dargestellt");
   assert.ok(sicherheitsUeberschriften.indexOf("Background service") <
     sicherheitsUeberschriften.indexOf("Backups"),
   "Hintergrunddienst steht nicht vor den Sicherungsabschnitten");
@@ -2255,15 +2255,17 @@ function knopfMit(text, wurzel) {
   "Hintergrundrechte sind nicht geschlossen oder besitzen keine Schnellwahl");
   const keyringOption = hintergrundAbschnitt.querySelector(
     '#hintergrunddienst-verschluesselung option[value="keyring"]');
-  assert.ok(keyringOption && keyringOption.disabled &&
-    hintergrundAbschnitt.textContent.includes("cannot be enabled"),
-  "nicht unterstützter Schlüsselbund bleibt auswählbar oder unerklärt");
-  const pairingPermission = hintergrundAbschnitt.querySelector('[data-permission="kde_pairing"]');
-  pairingPermission.checked = false;
-  pairingPermission.dispatchEvent(new enSW.Event("change", { bubbles: true }));
+  assert.ok(!keyringOption && hintergrundAbschnitt.textContent.includes("Notify, then unlock") &&
+    !hintergrundAbschnitt.querySelector('[data-permission="kde_pairing"]'),
+  "nicht unterstützte Betriebsarten oder zusätzliche Kopplungsfreigabe bleiben auswählbar");
+  const callPermission = hintergrundAbschnitt.querySelector('[data-permission="phone_call_notifications"]');
+  callPermission.checked = false;
+  callPermission.dispatchEvent(new enSW.Event("change", { bubbles: true }));
   const hintergrundSave = enSyncNachrichten.filter((nachricht) =>
     nachricht.cmd === "background_settings_set").at(-1);
-  assert.ok(hintergrundSave && hintergrundSave.settings.permissions.kde_pairing === false &&
+  assert.ok(hintergrundSave && hintergrundSave.settings.permissions.phone_call_notifications === false &&
+    hintergrundSave.settings.enabled === true && hintergrundSave.settings.autostart === true &&
+    hintergrundSave.settings.permissions.kde_pairing === true &&
     hintergrundSave.settings.encryption_policy === "notify_then_unlock" &&
     !Object.prototype.hasOwnProperty.call(hintergrundSave.settings, "running") &&
     !Object.prototype.hasOwnProperty.call(hintergrundSave.settings, "password"),
@@ -2273,8 +2275,9 @@ function knopfMit(text, wurzel) {
     nachricht.cmd === "background_settings_set").at(-1);
   assert.ok(Array.from(rechteGruppe.querySelectorAll("[data-permission]"),
     (feld) => !feld.checked).every(Boolean) &&
-    Object.values(schnellwahlSave.settings.permissions).every((wert) => wert === false),
-  "Schnellwahl Keine lässt ein Hintergrundrecht aktiv");
+    Object.entries(schnellwahlSave.settings.permissions).every(([name, wert]) =>
+      wert === ["kde_pairing", "phone_monitor", "phone_pairing_decisions"].includes(name)),
+  "Schnellwahl Keine muss Inhaltsfreigaben löschen, aber automatische Dienste erhalten");
   rechteGruppe.querySelector("#hintergrunddienst-rechte-alle").click();
   schnellwahlSave = enSyncNachrichten.filter((nachricht) =>
     nachricht.cmd === "background_settings_set").at(-1);

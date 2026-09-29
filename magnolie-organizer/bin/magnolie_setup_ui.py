@@ -300,7 +300,8 @@ def run_setup(Gtk, Gdk, translate, write_state, script_directory,
     alive = [True]
     busy = [False]
     phone_results = {}
-    phone_start_checks = {}
+    phone_start_labels = {}
+    phone_start_transports = set()
 
     def tr(message):
         return translator[0](message)
@@ -1161,10 +1162,10 @@ def run_setup(Gtk, Gdk, translate, write_state, script_directory,
     finish.pack_start(autostart, False, False, 4)
     finish.pack_start(weather, False, False, 4)
     for capability in phone_capabilities:
-        if capability.get("canAutoStart"):
-            widget = check("Start required phone background services automatically")
+        if capability.get("available") and capability.get("canAutoStart"):
+            widget = label(N_("Start required phone background services automatically"))
             widget.set_no_show_all(True)
-            phone_start_checks[capability["transport"]] = widget
+            phone_start_labels[capability["transport"]] = widget
             finish.pack_start(widget, False, False, 4)
     finish.pack_start(label(N_("Weather requests are sent to wttr.in. Your own address in Contacts is used first, followed by local LibreOffice user data. If neither contains a location and retrieval without one is allowed, wttr.in estimates the location from your internet connection's public IP address."), "setup-note"), False, False, 0)
 
@@ -1193,14 +1194,14 @@ def run_setup(Gtk, Gdk, translate, write_state, script_directory,
 
             def refresh_connected(live, error):
                 set_busy(False)
-                for transport, widget in phone_start_checks.items():
+                phone_start_transports.clear()
+                for transport, widget in phone_start_labels.items():
                     result = phone_results.get(transport)
                     enabled = not error and transport in (live or []) and result and result.get("authenticated") is True
                     widget.set_visible(bool(enabled))
-                    if not enabled:
-                        widget.set_active(False)
-                    else:
-                        widget.set_label(tr("Start required phone background services automatically") + ": " + result["name"])
+                    if enabled:
+                        phone_start_transports.add(transport)
+                        widget.set_text(tr("Start required phone background services automatically") + ": " + result["name"])
             background(phone_services.connected, refresh_connected)
 
     def refresh_text():
@@ -1271,8 +1272,8 @@ def run_setup(Gtk, Gdk, translate, write_state, script_directory,
                                     if widget.get_active() and account["kind"] == "addressbook"), ""),
             "oneTimeImports": [],
             "stagedImports": [{"source": key, "payload": value} for key, value in staged_imports.items()],
-            "phoneBackgroundServices": [transport for transport, widget in phone_start_checks.items()
-                                        if widget.get_visible() and widget.get_active()],
+            "phoneBackgroundServices": [transport for transport in phone_start_labels
+                                       if transport in phone_start_transports],
             "registers": [key for key, widget in register_checks.items()
                           if widget.get_active()],
             "customTabEnabled": custom_enabled.get_active(),

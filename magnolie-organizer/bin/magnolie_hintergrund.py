@@ -267,6 +267,49 @@ def write_settings(value, path=None, update_autostart=None, executable=None):
     return settings_status(clean)
 
 
+def automatic_services_supported(executable=None):
+    if os.name != "posix":
+        return False
+    program = service_executable(executable)
+    if not os.path.isfile(program) or not os.access(program, os.X_OK):
+        return False
+    try:
+        from gi.repository import GLib
+        return GLib is not None
+    except ImportError:
+        return False
+
+
+def ensure_automatic_services(executable=None, language=None):
+    """Provision transport ownership after setup, without enabling content features."""
+    if not services_allowed(classify_and_adopt()) or not automatic_services_supported(executable):
+        return False
+    path = settings_path()
+    raw = {}
+    if os.path.lexists(path):
+        with open(path, encoding="utf-8") as source:
+            raw = json.load(source)
+        if (not isinstance(raw, dict) or any(key in raw and not isinstance(raw[key], bool)
+                for key in ("enabled", "autostart", "kde_clipboard_enabled", "kde_file_enabled", "kde_choose_directory")) or
+                "permissions" in raw and (not isinstance(raw["permissions"], dict) or
+                    any(not isinstance(value, bool) for value in raw["permissions"].values()))):
+            raise ValueError("invalid background settings")
+    previous = normalize_settings(raw)
+    settings = normalize_settings(previous)
+    settings["enabled"] = settings["autostart"] = True
+    # These permit a listener and an explicit pairing decision, never automatic
+    # acceptance, message/file reception or activation of the Magnolienbaum.
+    for name in ("kde_pairing", "phone_monitor", "phone_pairing_decisions"):
+        settings["permissions"][name] = True
+    if daemon_available():
+        if settings != previous:
+            ipc_request("set_settings", {"settings": settings})
+        configure_autostart(settings, executable=executable)
+        return True
+    write_settings(settings, executable=executable)
+    return start_service(executable, language)
+
+
 def autostart_path():
     base = os.environ.get("XDG_CONFIG_HOME") or os.path.expanduser("~/.config")
     return os.path.join(base, "autostart", AUTOSTART_NAME)
@@ -2244,7 +2287,10 @@ def daemon_main(_arguments=None, backend_factory=create_backend,
         receive_error = ""
         if holder["backend"] is not None and clean["enabled"]:
             try:
-                holder["backend"].configure_receive(**receive_configuration(clean))
+                if getattr(holder["backend"], "native", False):
+                    holder["backend"].configure_receive()
+                else:
+                    holder["backend"].configure_receive(**receive_configuration(clean))
             except Exception:
                 receive_error = "receive_configuration_unavailable"
                 holder["backend"].configure_receive()
@@ -2268,6 +2314,7 @@ def daemon_main(_arguments=None, backend_factory=create_backend,
                 getattr(notifications, "actions_supported",
                         getattr(notifications, "supported", False))),
             receive_configuration_error=receive_error,
+            native_kde_backend=bool(getattr(holder["backend"], "native", False)),
             kde_transport_error=holder["kde_error"],
             background_storage=(diagnostics.storage_snapshot(data_directory())
                                 if diagnostics is not None else {}))

@@ -48,6 +48,11 @@ class Bus:
             return Variant('(b)', (self.running,))
         if method == 'ListActivatableNames':
             return Variant('(as)', (self.activatable,))
+        if method == 'StartServiceByName':
+            assert owner == 'org.freedesktop.DBus' and args == ('org.kde.kdeconnect', 0)
+            assert 'org.kde.kdeconnect' in self.activatable
+            self.running = True
+            return Variant('(u)', (1,))
         assert owner == self.owner
         if method == 'devices':
             assert args == (False, True)
@@ -97,6 +102,30 @@ def test_filtered_bus_and_occupied_udp_still_do_not_compete(tmp_path):
         selected = kde.create_backend(str(tmp_path))
         assert selected.start() is True
         assert selected.status()['reason'] == 'native_service_unavailable'
+
+
+def test_explicit_start_activates_only_registered_native_service():
+    backend, _ = native()
+    backend.bus.running = False
+    assert backend.status()['reason'] == 'native_service_unavailable'
+    assert not any(call[3] == 'StartServiceByName' for call in backend.bus.calls)
+    assert backend.start() and backend.status()['service_running']
+    backend.start()
+    assert sum(call[3] == 'StartServiceByName' for call in backend.bus.calls) == 1
+    assert not any(call[3] in ('requestPairing', 'setPluginEnabled') for call in backend.bus.calls)
+
+
+def test_denied_native_activation_keeps_other_services_available():
+    backend, _ = native()
+    backend.bus.running = False
+    call = backend.bus.call_sync
+    def denied(owner, path, interface, method, *args):
+        if method == 'StartServiceByName':
+            raise PermissionError('activation denied')
+        return call(owner, path, interface, method, *args)
+    backend.bus.call_sync = denied
+    assert backend.start()
+    assert backend.status()['reason'] == 'native_service_unavailable'
 
 
 def test_direct_remains_available_when_no_native_service_or_port_owner(tmp_path):

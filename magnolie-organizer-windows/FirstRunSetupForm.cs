@@ -52,7 +52,7 @@ internal sealed class FirstRunSetupForm : Form
     private readonly Func<OpenFileDialog, IWin32Window, DialogResult>? importDialog;
     private readonly IFirstRunSetupPhoneServices? phoneServices;
     private readonly Dictionary<string, SetupPhoneResult> connectedPhones = new(StringComparer.Ordinal);
-    private readonly Dictionary<string, CheckBox> phoneStartupChecks = new(StringComparer.Ordinal);
+    private readonly HashSet<string> phoneStartupTransports = new(StringComparer.Ordinal);
     private readonly CancellationTokenSource setupCancellation = new();
     private readonly Dictionary<string, JsonObject> stagedImports = new(StringComparer.Ordinal);
     private readonly List<string> calendarUids = [];
@@ -882,15 +882,12 @@ internal sealed class FirstRunSetupForm : Form
         weather.CheckedChanged += (_, _) => weatherEnabled = weather.Checked;
         panel.Controls.Add(autostart);
         panel.Controls.Add(weather);
-        var previousPhoneStartup = phoneStartupChecks.Where(item => item.Value.Checked).Select(item => item.Key).ToHashSet(StringComparer.Ordinal);
-        phoneStartupChecks.Clear();
+        phoneStartupTransports.Clear();
         foreach (var (transport, result) in connectedPhones)
         {
-            if (!result.Authenticated || phoneServices?.Capabilities.Any(c => c.Transport == transport && c.CanAutoStart) != true) continue;
-            var start = new CheckBox { AutoSize = true, Text = T("Start required phone background services automatically") + ": " + result.Name,
-                Tag = transport, Checked = previousPhoneStartup.Contains(transport), MaximumSize = new Size(640, 0), Margin = new Padding(3, 6, 3, 6) };
-            phoneStartupChecks[transport] = start;
-            panel.Controls.Add(start);
+            if (!result.Authenticated || phoneServices?.Capabilities.Any(c => c.Transport == transport && c.Available && c.CanAutoStart) != true) continue;
+            phoneStartupTransports.Add(transport);
+            panel.Controls.Add(Note(T("Start required phone background services automatically") + ": " + result.Name));
         }
         panel.Controls.Add(Note(T("Weather requests are sent to wttr.in. Your own address in Contacts is used first, followed by local LibreOffice user data. If neither contains a location and retrieval without one is allowed, wttr.in estimates the location from your internet connection's public IP address.")));
         return panel;
@@ -899,8 +896,8 @@ internal sealed class FirstRunSetupForm : Form
     private async Task FinishAsync(bool skipped)
     {
         if (setupBusy) return;
-        var phoneStartup = phoneStartupChecks.Where(item => item.Value.Checked && connectedPhones.ContainsKey(item.Key))
-            .Select(item => item.Key).ToList();
+        var phoneStartup = phoneStartupTransports.Where(transport => connectedPhones.TryGetValue(transport, out var result) &&
+            result.Authenticated && phoneServices?.Capabilities.Any(c => c.Transport == transport && c.Available && c.CanAutoStart) == true).ToList();
         var selections = new FirstRunSetupSelections
         {
             Language = language,

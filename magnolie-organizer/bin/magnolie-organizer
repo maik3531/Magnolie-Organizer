@@ -124,6 +124,7 @@ from magnolie_phone_region import enrich_call as telefon_anreichern, match_key a
 from magnolie_asset import read_asset
 from magnolie_kdeconnect import DEVICE_ID, SmsSubmissionJournal, create_backend, local_device_name
 from magnolie_hintergrund import (KDEConnectProxy, PhoneServiceProxy, daemon_available,
+    ensure_automatic_services as background_services_ensure,
     FileLease, AlreadyRunning,
     configure_autostart as background_autostart_configure,
     daemon_status as background_daemon_status,
@@ -24613,6 +24614,10 @@ def haupt():
         sys.exit(1)
 
     debug_notiz("startup.window-create", web="found")
+    try:
+        background_services_ensure(eigener_pfad(), _REGIONAL.get("language") or None)
+    except Exception as fehler:
+        debug_notiz("background.automatic-start-failed", error=fehler)
     fenster = Fenster(web_verzeichnis, setup_auswahl=setup_auswahl)
     fenster.set_application(anwendung)
     startup_token = os.environ.pop("XDG_ACTIVATION_TOKEN", "") or os.environ.get("DESKTOP_STARTUP_ID", "")

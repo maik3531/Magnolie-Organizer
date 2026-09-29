@@ -3385,6 +3385,38 @@ msgstr ""
 
 #, no-javascript-format
 msgid ""
+"<p>After setup is completed or skipped, Linux prepares the supported "
+"background services and login startup automatically. Connected, "
+"authenticated phone transports with startup support are included "
+"automatically; no separate service switch is required.</p><p>On Linux, "
+"<b>Settings ▸ Security</b> shows service status and optional permissions for "
+"notifications and files. <b>None</b> clears these optional permissions, not "
+"the required transports. Pairing still requires confirmation; file and "
+"clipboard access is not granted automatically.</p><p>An installed, available "
+"system KDE Connect service is started without changing its plugins or "
+"permissions and without creating a competing KDE transport. System-managed "
+"pairing stays in KDE Connect; Magnolie can select already paired phones. "
+"Unsupported functions are not started.</p><p>An explicitly disabled "
+"Magnolienbaum or Notes phone connection remains off. Encrypted main data "
+"still requires unlocking. Windows uses Organizer/tray startup for the "
+"supported connected phone services, rather than a separate Linux-style "
+"daemon.</p>"
+msgstr ""
+"<p>بعد إكمال الإعداد أو تخطيه، يجهّز Linux خدمات الخلفية المدعومة وبدءها عند "
+"تسجيل الدخول تلقائياً. تُضاف اتصالات الهاتف المتصلة والمصادق عليها التي تدعم "
+"بدء التشغيل دون مفتاح خدمة إضافي.</p><p>في Linux تعرض <b>الإعدادات ▸ الأمان</"
+"b> الحالة والأذونات الاختيارية للإشعارات والملفات. يزيل <b>لا شيء</b> هذه "
+"الأذونات، لا الاتصالات المطلوبة. يظل الاقتران بحاجة إلى تأكيد؛ ولا تُمنح "
+"صلاحية الملفات والحافظة تلقائياً.</p><p>تبدأ خدمة النظام KDE Connect المثبتة "
+"والمتاحة دون تغيير إضافاتها أو أذوناتها ودون إنشاء اتصال KDE منافس. يبقى "
+"الاقتران الذي يديره النظام في KDE Connect؛ ويمكن لـ Magnolie اختيار الهواتف "
+"المقترنة مسبقاً. لا تبدأ الوظائف غير المدعومة.</p><p>يبقى Magnolienbaum أو "
+"اتصال هاتف Notes المعطّل صراحةً معطّلاً. وتظل البيانات الرئيسية المشفرة بحاجة "
+"إلى فتح القفل. يستخدم Windows بدء Organizer في علبة النظام للهواتف المتصلة "
+"المدعومة، وليس خدمة Linux منفصلة.</p>"
+
+#, no-javascript-format
+msgid ""
 "<p>An <b>APK</b> is an Android installation file. The version-independent "
 "download is <i>Magnolie-Notes.apk</i>. Obtain it together with <i>Magnolie-"
 "Notes-latest-PRUEFSUMMEN.sha256</i> only from the official Magnolie release "
@@ -8817,6 +8849,10 @@ msgid "Back one spread"
 msgstr "الرجوع صفحتين متقابلتين"
 
 #, no-javascript-format
+msgid "Background services"
+msgstr "خدمات الخلفية"
+
+#, no-javascript-format
 msgid "Backing up and restoring"
 msgstr "النسخ الاحتياطي والاستعادة"
 
@@ -9203,10 +9239,6 @@ msgstr "فتح الإعدادات والتنقل فيها"
 #, python-format
 msgid "Option %s requires a language."
 msgstr "يتطلب الخيار %s تحديد لغة."
-
-#, no-javascript-format
-msgid "Optional Linux background service"
-msgstr "خدمة الخلفية الاختيارية على Linux"
 
 #, no-javascript-format
 msgid "Organizer · User Guide"
@@ -9660,6 +9692,9 @@ msgstr "عن مبرمج هذا الكتاب ومؤلفه"
 #, no-javascript-format
 msgid "Über dieses Projekt"
 msgstr "حول هذا المشروع"
+
+#~ msgid "Optional Linux background service"
+#~ msgstr "خدمة الخلفية الاختيارية على Linux"
 
 #, no-javascript-format
 #~ msgid ""

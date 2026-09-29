@@ -3741,6 +3741,41 @@ msgstr ""
 
 #, no-javascript-format
 msgid ""
+"<p>After setup is completed or skipped, Linux prepares the supported "
+"background services and login startup automatically. Connected, "
+"authenticated phone transports with startup support are included "
+"automatically; no separate service switch is required.</p><p>On Linux, "
+"<b>Settings ▸ Security</b> shows service status and optional permissions for "
+"notifications and files. <b>None</b> clears these optional permissions, not "
+"the required transports. Pairing still requires confirmation; file and "
+"clipboard access is not granted automatically.</p><p>An installed, available "
+"system KDE Connect service is started without changing its plugins or "
+"permissions and without creating a competing KDE transport. System-managed "
+"pairing stays in KDE Connect; Magnolie can select already paired phones. "
+"Unsupported functions are not started.</p><p>An explicitly disabled "
+"Magnolienbaum or Notes phone connection remains off. Encrypted main data "
+"still requires unlocking. Windows uses Organizer/tray startup for the "
+"supported connected phone services, rather than a separate Linux-style "
+"daemon.</p>"
+msgstr ""
+"<p>Po zakończeniu lub pominięciu konfiguracji Linux automatycznie "
+"przygotowuje obsługiwane usługi w tle i ich start przy logowaniu. Połączone, "
+"uwierzytelnione połączenia telefoniczne z obsługą autostartu są uwzględniane "
+"bez dodatkowego przełącznika usługi.</p><p>W Linuksie <b>Ustawienia ▸ "
+"Bezpieczeństwo</b> pokazują stan i opcjonalne uprawnienia do powiadomień "
+"oraz plików. <b>Brak</b> usuwa te uprawnienia, nie wymagane połączenia. "
+"Parowanie nadal wymaga potwierdzenia; dostęp do plików i schowka nie jest "
+"przyznawany automatycznie.</p><p>Zainstalowana, dostępna usługa systemowa "
+"KDE Connect uruchamia się bez zmiany modułów lub praw i bez konkurencyjnego "
+"transportu KDE. Parowanie systemowe pozostaje w KDE Connect; Magnolie może "
+"wybrać już sparowane telefony. Nieobsługiwane funkcje nie są uruchamiane.</"
+"p><p>Wyraźnie wyłączony Magnolienbaum lub połączenie telefonu Notes "
+"pozostaje wyłączone. Zaszyfrowane dane główne nadal wymagają odblokowania. "
+"Windows używa startu Organizeru w zasobniku dla obsługiwanych połączonych "
+"telefonów, a nie osobnej usługi linuksowej.</p>"
+
+#, no-javascript-format
+msgid ""
 "<p>An <b>APK</b> is an Android installation file. The version-independent "
 "download is <i>Magnolie-Notes.apk</i>. Obtain it together with <i>Magnolie-"
 "Notes-latest-PRUEFSUMMEN.sha256</i> only from the official Magnolie release "
@@ -9477,6 +9512,10 @@ msgid "Back one spread"
 msgstr "Cofnij o jedną rozkładówkę"
 
 #, no-javascript-format
+msgid "Background services"
+msgstr "Usługi w tle"
+
+#, no-javascript-format
 msgid "Backing up and restoring"
 msgstr "Tworzenie i przywracanie kopii zapasowych"
 
@@ -9864,10 +9903,6 @@ msgstr "Otwieranie Ustawień i poruszanie się po nich"
 #, python-format
 msgid "Option %s requires a language."
 msgstr "Opcja %s wymaga podania języka."
-
-#, no-javascript-format
-msgid "Optional Linux background service"
-msgstr "Opcjonalna usługa działająca w tle dla systemu Linux"
 
 #, no-javascript-format
 msgid "Organizer · User Guide"
@@ -10322,6 +10357,9 @@ msgstr "O programiście i autorze tej książki"
 #, no-javascript-format
 msgid "Über dieses Projekt"
 msgstr "O tym projekcie"
+
+#~ msgid "Optional Linux background service"
+#~ msgstr "Opcjonalna usługa działająca w tle dla systemu Linux"
 
 #, no-javascript-format
 #~ msgid ""
