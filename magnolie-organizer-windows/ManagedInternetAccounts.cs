@@ -72,6 +72,9 @@ internal static class ManagedInternetAccounts
             ["app.update.background.enabled"] = false, ["app.update.service.enabled"] = false,
             ["mail.provider.enabled"] = false, ["mail.provider.suppress_dialog_on_startup"] = true,
             ["mail.shell.checkDefaultClient"] = false, ["mailnews.start_page.enabled"] = false,
+            // Thunderbird also opens its integration dialog for Windows Search's
+            // first run, independently of the default-mail-client preference.
+            ["mail.winsearch.firstRunDone"] = true, ["mail.winsearch.enable"] = false,
             ["toolkit.telemetry.enabled"] = false,
             ["intl.locale.requested"] = language, ["intl.accept_languages"] = language,
             ["mail.accountmanager.accounts"] = "account1", ["mail.accountmanager.localfoldersserver"] = "server1",
