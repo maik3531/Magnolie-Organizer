@@ -355,6 +355,7 @@ internal sealed partial class BridgeDispatcher
                 var selected = calendarIds.Select(id => davCalendars.Concat(thunderbirdSources).SingleOrDefault(item => item.Uid == id) ??
                     throw new InvalidOperationException(T("No calendars found."))).ToArray();
                 foreach (var calendar in selected.Where(item => item.SupportsVTodo)) taskCalendars.Add(calendar.Uid);
+                var defaultTaskCalendar = NextcloudDavSelection.DefaultTaskCalendar(selected);
                 foreach (var calendar in selected)
                 {
                     var calendarClient = davClient;
@@ -378,9 +379,9 @@ internal sealed partial class BridgeDispatcher
                     var (calendarTombstones, remainingTombstones) = NextcloudDavSelection.SplitCalendarTombstones(
                         termTombstones, calendar.Uid, isDefaultCalendar);
                     var (calendarTasks, remainingTasks) = NextcloudDavSelection.SplitCalendarItems(
-                        tasks as JsonArray ?? [], calendar.Uid, isDefaultCalendar);
+                        tasks as JsonArray ?? [], calendar.Uid, calendar.Uid == defaultTaskCalendar);
                     var (calendarTaskTombstones, remainingTaskTombstones) = NextcloudDavSelection.SplitCalendarTombstones(
-                        taskTombstones, calendar.Uid, isDefaultCalendar);
+                        taskTombstones, calendar.Uid, calendar.Uid == defaultTaskCalendar);
                     // HTTP clients bound individual requests. A calendar can
                     // legitimately need many such requests; it shares only the
                     // cancellable overall run lifetime, not one request budget.

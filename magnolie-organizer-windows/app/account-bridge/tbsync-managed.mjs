@@ -24,7 +24,10 @@ async function status() {
         type: row.targetType, selected: row.selected === true,
         target: row.targetID || "", error: !!row.error, lastSync: row.lastSyncTime || 0 })) });
   }
-  return { protocol: 1, ready: isProviderConnected(provider), login: { ...login }, accounts: visible };
+  // EAS folders may exist in TbSync, but this control adapter does not expose
+  // their task data to Magnolie's CalDAV transport.
+  return { protocol: 1, ready: isProviderConnected(provider), login: { ...login },
+    tasks: { available: false, transport: "eas" }, accounts: visible };
 }
 
 browser.runtime.onMessageExternal.addListener((message, sender) => {

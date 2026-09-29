@@ -11,6 +11,9 @@ namespace MagnolieOrganizer.Windows;
 
 internal static class NextcloudDavSelection
 {
+    internal static string DefaultTaskCalendar(IReadOnlyList<NextcloudDavSource> calendars) =>
+        calendars.FirstOrDefault(calendar => calendar.SupportsVTodo)?.Uid ?? "";
+
     internal static bool IsCalendar(string value) => value.StartsWith("nextcloud-calendar:", StringComparison.Ordinal) ||
         value.StartsWith("generic-dav-calendar:", StringComparison.Ordinal) || value.StartsWith("thunderbird-calendar:", StringComparison.Ordinal);
     internal static bool IsAddressBook(string value) => value.StartsWith("nextcloud-addressbook:", StringComparison.Ordinal) ||

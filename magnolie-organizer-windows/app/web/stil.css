@@ -4614,6 +4614,19 @@ td {
 
 /* Knopfreihen im Einstellungsblatt etwas luftiger */
 .einst-abschnitt > .knopfreihe { margin-top: 10px; }
+#internet-konten-liste .internet-konto-zeile {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 2.5em;
+  align-items: center;
+  gap: 0.6em;
+  width: 100%;
+}
+.internet-konto-text { min-width: 0; overflow-wrap: anywhere; }
+#internet-konten-liste .internet-konto-zeile > button {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+}
 
 /* Der Vorschlagskopf soll nicht am Rand kleben */
 .vm-kopf { padding-top: 5px; }

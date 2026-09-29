@@ -14,11 +14,26 @@ const web=path.resolve(__dirname,"../app/web"),tick=()=>new Promise(resolve=>set
     w.eval(fs.readFileSync(path.join(web,"anwendung.js"),"utf8"));w.document.dispatchEvent(new w.Event("DOMContentLoaded"));
     w.App.init({neu:false,daten:{kontakte:[{id:"keep",vorname:"Local person"}]}});
     w.OrganizerTest.oeffneEinstellungen();w.document.querySelector("#einst-tab-sync").click();
-    const status={bereit:true,google:{accounts:["first@example.invalid"],details:[{id:"first@example.invalid",name:"First"}]},
-      microsoft:{accounts:[{id:"a2",name:"Second",enabled:true}]}};
+    const status={bereit:true,google:{tasks:{available:false,transport:"google-tasks"},accounts:["first@example.invalid"],details:[{id:"first@example.invalid",name:"First"}]},
+      microsoft:{tasks:{available:false,transport:"eas"},accounts:[{id:"a2",name:"Second",enabled:true}]}};
     w.App.internetKontenStatus(status);
     const rows=()=>w.document.querySelectorAll("#internet-konten-liste .knopfreihe");
     assert.equal(rows().length,2);
+    assert.ok([...rows()].every(row => row.querySelector(".internet-konto-text").textContent.endsWith(" — Connected")),
+      "Google and Microsoft must expose the same connected status");
+    w.App.internetKontenStatus({...status,google:{...status.google,details:[{id:"first@example.invalid",name:"First",enabled:true,error:true}]},
+      microsoft:{...status.microsoft,accounts:[{id:"a2",name:"Second",enabled:false}]}});
+    assert.ok([...rows()].every(row => row.querySelector(".internet-konto-text").textContent.endsWith(" — Unavailable")),
+      "failed or disabled accounts must not appear connected");
+    w.App.internetKontenStatus(status);
+    w.App.internetKontenStatus({...status,google:{...status.google,error:true},
+      microsoft:{...status.microsoft,login:{error:true}}});
+    assert.ok([...rows()].every(row=>row.querySelector(".internet-konto-text").textContent.endsWith(" — Connected")),
+      "an unrelated sign-in failure must not disconnect existing accounts in the UI");
+    w.App.internetKontenStatus(status);
+    const taskStatus=[...w.document.querySelectorAll(".internet-aufgaben-status")].map(p=>p.textContent);
+    assert.deepEqual(taskStatus,["Tasks · Google Tasks — Unavailable","Tasks · Microsoft / EAS — Unavailable"],
+      "successful account sign-in must not imply an implemented task adapter");
     w.App.internetKontenStatus({bereit:false,fehler:"Temporary failure"});
     assert.equal(rows().length,2,"a failed status query must not make existing accounts disappear");
     w.App.internetKontenStatus(status);

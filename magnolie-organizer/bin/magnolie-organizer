@@ -22974,19 +22974,22 @@ class Fenster(_FENSTER_BASIS):
 
             # Aufgaben liegen nach CalDAV-Konvention in derselben Sammlung wie
             # Termine, besitzen aber einen eigenen additiven Erstlauf-Cursor.
-            rest_aufgaben = [item for item in aufgaben if item.get("syncKalenderUid") and
-                             item.get("syncKalenderUid") not in ausgewaehlt]
-            rest_tote_aufgaben = [item for item in tote_aufgaben if item.get("syncKalenderUid") and
-                                  item.get("syncKalenderUid") not in ausgewaehlt]
-            for uid in kal_uids:
-                quelle = _nextcloud_quelle(dav, "calendar", uid)
+            aufgaben_quellen = [_nextcloud_quelle(dav, "calendar", uid) for uid in kal_uids]
+            aufgaben_standard = next((quelle["uid"] for quelle in aufgaben_quellen
+                                      if quelle.get("supportsVtodo", True)), "")
+            rest_aufgaben = [item for item in aufgaben if
+                             (item.get("syncKalenderUid") and item["syncKalenderUid"] not in ausgewaehlt) or
+                             (not item.get("syncKalenderUid") and not aufgaben_standard)]
+            rest_tote_aufgaben = [item for item in tote_aufgaben if
+                                  (item.get("syncKalenderUid") and item["syncKalenderUid"] not in ausgewaehlt) or
+                                  (not item.get("syncKalenderUid") and not aufgaben_standard)]
+            for quelle in aufgaben_quellen:
+                uid = quelle["uid"]
                 if not quelle.get("supportsVtodo", True):
                     rest_aufgaben.extend(item for item in aufgaben if
-                                         item.get("syncKalenderUid") == uid or
-                                         (not item.get("syncKalenderUid") and uid == standard))
+                                         item.get("syncKalenderUid") == uid)
                     rest_tote_aufgaben.extend(item for item in tote_aufgaben if
-                                              item.get("syncKalenderUid") == uid or
-                                              (not item.get("syncKalenderUid") and uid == standard))
+                                              item.get("syncKalenderUid") == uid)
                     continue
                 resources = dav.report(quelle["href"], "calendar")
                 fern, remote_meta, remote_data = {}, {}, {}
@@ -23008,11 +23011,11 @@ class Fenster(_FENSTER_BASIS):
                 lokal = []
                 for item in aufgaben:
                     besitzer = item.get("syncKalenderUid") or ""
-                    if besitzer == uid or (not besitzer and uid == standard):
+                    if besitzer == uid or (not besitzer and uid == aufgaben_standard):
                         item["syncKalenderUid"] = uid; lokal.append(item)
                 tombstones = [item for item in tote_aufgaben if
                               item.get("syncKalenderUid") == uid or
-                              (not item.get("syncKalenderUid") and uid == standard)]
+                              (not item.get("syncKalenderUid") and uid == aufgaben_standard)]
                 if erster:
                     lokal_nach_uid = {item.get("uid"): item for item in lokal if item.get("uid")}
                     for item in lokal:

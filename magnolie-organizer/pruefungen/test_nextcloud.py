@@ -955,7 +955,7 @@ def contact_vcf(uid="remote-contact", name="Example", rev="20260817T100000Z"):
             "END:VCARD\r\n" % (uid, name, name, rev))
 
 
-def run_sync(monkeypatch, dav, data, calendar=True, contacts=False):
+def run_sync(monkeypatch, dav, data, calendar=True, contacts=False, calendar_ids=None):
     monkeypatch.setattr(m, "NextcloudDav", lambda _client: dav)
     monkeypatch.setattr(m, "configured_client", lambda _store: object())
     monkeypatch.setattr(m, "nextcloud_speicher", lambda: object())
@@ -963,7 +963,7 @@ def run_sync(monkeypatch, dav, data, calendar=True, contacts=False):
     calendar_uid = dav.collections("calendar")[0]["uid"] if calendar else ""
     book_uid = dav.collections("addressbook")[0]["uid"] if contacts else ""
     m.Fenster._nextcloud_sync_ausfuehren(
-        probe, {"daten": data}, [calendar_uid] if calendar else [], book_uid)
+        probe, {"daten": data}, calendar_ids if calendar_ids is not None else [calendar_uid] if calendar else [], book_uid)
     return probe
 
 
@@ -986,6 +986,34 @@ def test_calendar_without_vtodo_support_leaves_local_tasks_untouched(monkeypatch
     assert {key: result.payload["aufgaben"][0][key] for key in ("id", "uid", "titel")} == {
         "id": "local-task", "uid": "task-1", "titel": "Local"}
     assert dav.puts == [] and dav.deletes == []
+
+
+@pytest.mark.parametrize("supported", [False, True])
+def test_tasks_choose_supported_calendar_without_reassigning_existing_bindings(monkeypatch, supported):
+    class MixedDav(SyncDav):
+        def collections(self, kind):
+            if kind != "calendar": return super().collections(kind)
+            return [dict(uid=nc.source_id(kind, "https://cloud.example/" + name + "/"),
+                         name=name, href="https://cloud.example/" + name + "/", art=kind,
+                         supportsVtodo=capable) for name, capable in [("events-only", False), ("tasks", supported)]]
+    dav = MixedDav({"calendar": [], "addressbook": []})
+    event_source, task_source = dav.collections("calendar")
+    data = empty_data()
+    data["aufgaben"] = [dict(id="new-task", uid="new-task", titel="New task", geaendert=2),
+                        dict(id="bound", uid="bound", titel="Bound task", syncKalenderUid=event_source["uid"])]
+    data["geloescht"]["aufgaben"] = []
+    data["syncMetadaten"]["nextcloud"]["kalender"][task_source["uid"]] = {"aufgabenInitialisiert": True}
+    data["letzteSyncs"]["aufgaben"] = {task_source["uid"]: 1}
+    result = run_sync(monkeypatch, dav, data, calendar_ids=[event_source["uid"], task_source["uid"]])
+    tasks = {item["id"]: item for item in result.payload["aufgaben"]}
+    assert tasks["new-task"].get("syncKalenderUid") == (task_source["uid"] if supported else None)
+    assert tasks["bound"]["syncKalenderUid"] == event_source["uid"]
+    uploads = [item for item in dav.puts if "BEGIN:VTODO" in item[1]]
+    assert len(tasks) == 2
+    if supported:
+        assert len(uploads) == 1 and uploads[0][0].startswith(task_source["href"])
+    else:
+        assert uploads == [] and dav.deletes == []
 
 
 def test_nextcloud_safe_first_calendar_sync_preserves_local_and_tombstone(monkeypatch):

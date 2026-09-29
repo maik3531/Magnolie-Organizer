@@ -2,7 +2,7 @@
   "schema": "magnolie-linux-parity-v1",
   "sources": {
     "web/anwendung.js": "1553b51f24b3ac1d67bece1e56f79c88536d73f1a863d2d04879bc59e520e632",
-    "bin/magnolie-organizer": "4a4b6e6731746e0bf4079115340dc24c0668687f89f0851566696ae06aee71bf"
+    "bin/magnolie-organizer": "6cc0db8f6ef7a62301eb2ff59d73185500193bf5475d390dff33081448be7271"
   },
   "commands": [
     "ablage_holen",

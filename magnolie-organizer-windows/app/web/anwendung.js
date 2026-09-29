@@ -20559,9 +20559,9 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       ? _("Account sign-in could not be started. Please try again.")
       : internetKontoAnmeldung ? _("Preparing account sign-in …") : "");
     liste.textContent = "";
-    const kontoZeile = (anbieter, id, name, text) => {
-      const zeile = el("div", "knopfreihe");
-      zeile.append(el("span", null, text));
+    const kontoZeile = (anbieter, id, name, text, verbunden) => {
+      const zeile = el("div", "knopfreihe internet-konto-zeile");
+      zeile.append(el("span", "internet-konto-text", text + " — " + (verbunden ? _("Connected") : _("Unavailable"))));
       const entfernen = async () => {
         if (internetKontoAnmeldung || syncLaeuft || gesperrt) return;
         const bestand = DATEN;
@@ -20581,12 +20581,20 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     };
     for (const email of s.google?.accounts || []) {
       const name = s.google?.details?.find(k=>k.id===email)?.name || email;
-      kontoZeile("google",email,name,"Google · " + name + (name!==email ? " · " + email : ""));
+      const details = s.google?.details?.find(k => k.id === email);
+      kontoZeile("google",email,name,"Google · " + name + (name!==email ? " · " + email : ""),
+        details?.enabled !== false && !details?.error);
     }
+    if (s.google?.accounts?.length && s.google.tasks?.available === false)
+      liste.append(el("p", "einst-hinweis internet-aufgaben-status",
+        _("Tasks") + " · Google Tasks — " + _("Unavailable")));
     for (const konto of s.microsoft?.accounts || []) {
       kontoZeile("microsoft",konto.id,konto.name,
-        "Microsoft · " + konto.name + " — " + (konto.enabled && !konto.error ? _("Connected") : _("Unavailable")));
+        "Microsoft · " + konto.name, konto.enabled && !konto.error);
     }
+    if (s.microsoft?.accounts?.length && s.microsoft.tasks?.available === false)
+      liste.append(el("p", "einst-hinweis internet-aufgaben-status",
+        _("Tasks") + " · Microsoft / EAS — " + _("Unavailable")));
     $("#internet-konten")?.querySelectorAll("button").forEach(button => {
       button.disabled = !Bruecke.vorhanden || internetKontoAnmeldung || syncLaeuft;
     });

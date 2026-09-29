@@ -193,9 +193,12 @@ var magnolie = class extends ExtensionCommon.ExtensionAPI {
         return {};
       }
       if (message.op === "status") {
-        const names = Array.from(googleAccounts().keys());
-        return { google: { ...googleLogin, accounts: names, details: names.map(email => ({ id: email,
-          name: Services.prefs.getStringPref(googleNamePref(email), email) })) } };
+        const accounts = googleAccounts();
+        const names = Array.from(accounts.keys());
+        return { google: { ...googleLogin, tasks: { available: false, transport: "google-tasks" }, accounts: names, details: names.map(email => ({ id: email,
+          name: Services.prefs.getStringPref(googleNamePref(email), email),
+          enabled: accounts.get(email).books.length > 0 || accounts.get(email).calendars.some(calendar =>
+            calendar.getProperty("disabled") !== true) })) } };
       }
       if (message.op === "manage-account" && managed()) {
         if (message.provider !== "google" || googleLogin.pending) throw new Error("provider or busy");

@@ -64,7 +64,7 @@ async function main() {
   const makeBook=email=>({dirType:102,URI:email,
     getStringValue:key=>key==="carddav.username"?email:"https://www.googleapis.com/carddav/v1/principals/"+email});
   const makeCalendar=email=>({type:"caldav",uri:{spec:"https://apidata.googleusercontent.com/caldav/v2/"+email},
-    getProperty:()=>email});
+    disabled:false,getProperty(key){return key==="disabled"?this.disabled:email;}});
   const books=[makeBook("one@example.invalid"),makeBook("two@example.invalid")];
   const calendars=[makeCalendar("one@example.invalid"),makeCalendar("two@example.invalid"),makeCalendar("calendar-only@example.invalid")];
   const ab=modules["MailServices.sys.mjs"].MailServices.ab;
@@ -79,6 +79,12 @@ async function main() {
   const renamed=await api.request({version:1,id,op:"status"});
   assert.equal(renamed.google.details.find(a=>a.id===manage.accountId).name,"Renamed Google");
   assert.ok(renamed.google.accounts.includes("calendar-only@example.invalid"),"calendar-only account must survive restart discovery");
+  assert.ok(renamed.google.details.every(account=>account.enabled===true));
+  assert.equal(renamed.google.tasks.available,false,"Google Tasks is not the CalDAV calendar bridge");
+  calendars[2].disabled=true;
+  const disabled=await api.request({version:1,id,op:"status"});
+  assert.equal(disabled.google.details.find(account=>account.id==="calendar-only@example.invalid").enabled,false);
+  calendars[2].disabled=false;
   await assert.rejects(api.request({...manage,accountId:"missing",action:"remove"}));
   await api.request({...manage,action:"remove"});
   assert.equal(books.length,1);assert.equal(books[0].URI,"two@example.invalid");

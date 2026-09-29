@@ -91,6 +91,28 @@ internal static class NextcloudDavTests
             partition.Remaining[0]?["id"]?.GetValue<string>() == "private",
             "Kalenderpartition vermischt Einträge verschiedener CalDAV-Kalender.");
         var secondCalendar = "nextcloud-calendar:" + new string('c', 64);
+        var mixedCalendars = new[] {
+            new NextcloudDavSource(calendar, "Events only", "calendar", new Uri("https://example.org/events/"), false),
+            new NextcloudDavSource(secondCalendar, "Tasks", "calendar", new Uri("https://example.org/tasks/"), true)
+        };
+        var taskDefault = NextcloudDavSelection.DefaultTaskCalendar(mixedCalendars);
+        TestAssert.That(taskDefault == secondCalendar, "An event-only calendar became the default task destination.");
+        var localTasks = new JsonArray(new JsonObject { ["id"] = "unbound" },
+            new JsonObject { ["id"] = "bound", ["syncKalenderUid"] = calendar });
+        var originalTasks = localTasks.ToJsonString();
+        var unsupportedTasks = NextcloudDavSelection.SplitCalendarItems(localTasks, calendar, calendar == taskDefault);
+        TestAssert.That(unsupportedTasks.Selected.Count == 1 && unsupportedTasks.Selected[0]!["id"]!.GetValue<string>() == "bound" &&
+            unsupportedTasks.Remaining[0]!["syncKalenderUid"] is null, "Unbound task was claimed by an unsupported source.");
+        var supportedTasks = NextcloudDavSelection.SplitCalendarItems(unsupportedTasks.Remaining, secondCalendar, secondCalendar == taskDefault);
+        TestAssert.That(supportedTasks.Selected.Count == 1 && supportedTasks.Selected[0]!["syncKalenderUid"]!.GetValue<string>() == secondCalendar &&
+            localTasks.ToJsonString() == originalTasks, "Task selection lost source ownership or mutated the input.");
+        TestAssert.That(NextcloudDavSelection.DefaultTaskCalendar([mixedCalendars[0]]) == "" &&
+            NextcloudDavSelection.DefaultTaskCalendar([]) == "", "Missing VTODO support invented a task destination.");
+        var unboundDeletion = new JsonArray(new JsonObject { ["uid"] = "deleted" });
+        var unsupportedDeletes = NextcloudDavSelection.SplitCalendarTombstones(unboundDeletion, calendar, calendar == taskDefault);
+        var supportedDeletes = NextcloudDavSelection.SplitCalendarTombstones(unsupportedDeletes.Remaining, secondCalendar, secondCalendar == taskDefault);
+        TestAssert.That(unsupportedDeletes.Selected.Count == 0 && supportedDeletes.Selected.Count == 1,
+            "Task deletions used the appointment default instead of the supported task source.");
         var tombstonePartition = NextcloudDavSelection.SplitCalendarTombstones(new JsonArray(new JsonObject
         {
             ["syncKalenderUid"] = calendar,
