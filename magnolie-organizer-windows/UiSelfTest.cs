@@ -179,7 +179,17 @@ internal static class UiSelfTest
                     Console.WriteLine("WINDOWS-HANDBOOK-PORTRAIT-OK");
                     Test(await form.OpenHandbookAsync(manualPath) && form.OwnedForms.Count(owned => owned is HandbookForm) == 1,
                         "Erneutes Öffnen erzeugte ein zweites Handbuchfenster.");
+                    form.ShowReminder("UI-Erinnerungsfenster-Lebenszyklus", "Synthetische Benachrichtigung ohne Ton.",
+                        "notification", "magnolie");
+                    var reminders = Application.OpenForms.Cast<Form>()
+                        .Where(window => window.Text == "UI-Erinnerungsfenster-Lebenszyklus").ToArray();
+                    Test(reminders.Length == 1 && !reminders[0].IsDisposed,
+                        "Das Magnolie-Erinnerungsfenster wurde nicht angelegt.");
                     form.Dispose();
+                    Application.DoEvents();
+                    Test(reminders.All(window => window.IsDisposed),
+                        "Ein Erinnerungsfenster überlebte das Ende seines Hauptfensters.");
+                    Console.WriteLine("WINDOWS-REMINDER-LIFETIME-OK");
                     Application.ExitThread();
                 }
                 catch (Exception error)

@@ -38,6 +38,7 @@ internal sealed class MainForm : Form
     private long incomingCallGeneration;
     private readonly object incomingCallGate = new();
     private Form? callAlert;
+    private readonly HashSet<Form> reminderWindows = [];
     private string shownCallAlert = "";
     private readonly WindowsCallNotifications callNotifications;
     private HandbookForm? handbookForm;
@@ -329,6 +330,7 @@ internal sealed class MainForm : Form
             close.Click += (_, _) => paper.Close();
             Action position = () =>
             {
+                if (IsDisposed || Disposing || shutdownStarted || paper.IsDisposed || paper.Disposing) return;
                 var work = Screen.FromControl(this).WorkingArea;
                 var size = new Size(Math.Min(paper.Width, Math.Max(120, work.Width - 56)),
                     Math.Min(paper.Height, Math.Max(120, work.Height - 88)));
@@ -347,12 +349,23 @@ internal sealed class MainForm : Form
             {
                 if (!paper.ContainsFocus && !paper.Bounds.Contains(Cursor.Position)) paper.Close();
             };
-            paper.FormClosed += (_, _) =>
+            paper.Disposed += (_, _) =>
             {
-                dismiss.Stop(); dismiss.Dispose(); paper.Dispose();
+                reminderWindows.Remove(paper);
+                dismiss.Stop(); dismiss.Dispose();
                 headingFont.Dispose(); bodyFont.Dispose();
             };
-            paper.Show(); dismiss.Start();
+            reminderWindows.Add(paper);
+            try
+            {
+                paper.Show();
+                if (!paper.IsDisposed) dismiss.Start();
+            }
+            catch
+            {
+                paper.Dispose();
+                throw;
+            }
             return;
         }
 
@@ -366,6 +379,16 @@ internal sealed class MainForm : Form
             if (!trayEnabled) trayIcon.Visible = false;
         };
         hideTimer.Start();
+    }
+
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing)
+        {
+            foreach (var reminder in reminderWindows.ToArray()) reminder.Dispose();
+            reminderWindows.Clear();
+        }
+        base.Dispose(disposing);
     }
 
     internal Task SendAsync(string function, object payload) => SendAsync(function, payload, null);
