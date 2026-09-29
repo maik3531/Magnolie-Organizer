@@ -9,6 +9,7 @@ import tempfile
 import importlib.machinery
 import importlib.util
 import io
+import shutil
 
 
 WURZEL = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
@@ -155,6 +156,7 @@ def cli_pruefen():
         assert "POT-Vorlage konnte nicht erzeugt werden: xgettext" in fehler[1]
     with open(quell_pot, "rb") as datei:
         assert datei.read() == pot_vorher
+    return handbuch
 
 
 def flach(wert):
@@ -163,7 +165,7 @@ def flach(wert):
 
 
 def haupt():
-    cli_pruefen()
+    handbuch = cli_pruefen()
     if "--cli-only" in sys.argv[1:]:
         print("CLI-PRÜFUNGEN BESTANDEN")
         return 0
@@ -173,7 +175,10 @@ def haupt():
         subprocess.run(
             [sys.executable, os.path.join(hier, "druck_pdf.py"), pdf],
             check=True,
+            env=dict(os.environ, MAGNOLIE_HANDBUCH_TEST_NATIVE=os.environ.get("MAGNOLIE_HANDBUCH_TEST_NATIVE", "1")),
         )
+        if os.environ.get("MAGNOLIE_HANDBUCH_TEST_PDF"):
+            shutil.copyfile(pdf, os.environ["MAGNOLIE_HANDBUCH_TEST_PDF"])
         info = subprocess.check_output(["pdfinfo", pdf], text=True)
         papier = re.search(r"^Page size:\s+([\d.]+) x ([\d.]+) pts", info, re.MULTILINE)
         if not papier or abs(float(papier[1]) - 842) > 2 or abs(float(papier[2]) - 595) > 2:
@@ -227,7 +232,7 @@ def haupt():
             "Personal Sync",
             "restore_unavailable",
             "Plattform- und Sicherheitsmatrix",
-            "magnolie-organizer-2.0.18-",
+            "magnolie-organizer-%s-" % handbuch.PROGRAMM_FASSUNG,
             "Die Locale beeinflusst den Diagnosetext",
             "Technische Datei- und Mengengrenzen",
             "keine Speicherobergrenze",

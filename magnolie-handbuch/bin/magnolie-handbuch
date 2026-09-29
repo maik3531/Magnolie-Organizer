@@ -113,10 +113,10 @@ try:
         gi.require_version("WebKit2", "4.1")
     except ValueError:
         gi.require_version("WebKit2", "4.0")
-    from gi.repository import Gtk, Gdk, Gio, GLib, WebKit2
+    from gi.repository import Gtk, Gdk, Gio, GLib, GObject, WebKit2
     GTK_OK = True
 except (ImportError, ValueError):
-    Gtk = Gdk = Gio = GLib = WebKit2 = None
+    Gtk = Gdk = Gio = GLib = GObject = WebKit2 = None
     GTK_OK = False
 
 _FENSTER_BASIS = Gtk.Window if GTK_OK else object
@@ -144,6 +144,51 @@ def js_zeichenkette(text):
     """Verpackt Text sicher für die Übergabe an die Seite."""
     import json
     return json.dumps(json.dumps(text, ensure_ascii=False))
+
+
+def druckdialog_starten(auftrag, fenster):
+    """Select settings in GTK, then render with WebKit's direct print API."""
+    if (os.path.exists("/.flatpak-info") or os.environ.get("SNAP") or
+            os.environ.get("GTK_USE_PORTAL") == "1"):
+        # Physical printers in a sandbox require WebKit's print portal path.
+        auftrag.run_dialog(fenster)
+        return
+    import ctypes
+    bibliothek = ctypes.CDLL("libgtk-3.so.0")
+    typ_funktion = bibliothek.gtk_print_unix_dialog_get_type
+    typ_funktion.argtypes = []
+    typ_funktion.restype = ctypes.c_size_t
+    typ_funktion()
+    # GtkPrintUnixDialog is a public GTK type, but is absent from Gtk's GIR.
+    # Register it through the public C API and use its GObject properties.
+    dialog = GObject.new(GObject.type_from_name("GtkPrintUnixDialog"),
+        title=FENSTER_TITEL, transient_for=fenster, modal=True)
+    try:
+        namen = {"GTK_PRINT_CAPABILITY_" + name for name in
+                 ("PAGE_SET", "COPIES", "COLLATE", "REVERSE", "SCALE",
+                  "GENERATE_PDF", "NUMBER_UP", "NUMBER_UP_LAYOUT")}
+        flags = type(dialog.get_property("manual-capabilities")).__flags_values__
+        dialog.set_property("manual-capabilities", sum(
+            wert for wert, flag in flags.items() if namen.intersection(flag.value_names)))
+        dialog.set_property("print-settings", auftrag.get_print_settings() or Gtk.PrintSettings())
+        dialog.set_property("page-setup", auftrag.get_page_setup())
+        dialog.set_property("embed-page-setup", True)
+        if dialog.run() != Gtk.ResponseType.OK:
+            return
+        drucker = dialog.get_property("selected-printer")
+        if drucker is None:
+            return
+        einstellungen = dialog.get_property("print-settings")
+        einstellungen.set_printer(drucker.get_property("name"))
+        # GTK can omit this key after selecting its virtual file printer.
+        # WebKit/Skia may then produce blank pages instead of the selected PDF.
+        if drucker.get_property("is-virtual") and not einstellungen.get(Gtk.PRINT_SETTINGS_OUTPUT_FILE_FORMAT):
+            einstellungen.set(Gtk.PRINT_SETTINGS_OUTPUT_FILE_FORMAT, "pdf")
+        auftrag.set_print_settings(einstellungen)
+        auftrag.set_page_setup(dialog.get_property("page-setup"))
+    finally:
+        dialog.destroy()
+    auftrag.print_()
 
 
 class Fenster(_FENSTER_BASIS):
@@ -326,24 +371,59 @@ class Fenster(_FENSTER_BASIS):
 
     def _drucken(self, html):
         """Druckt das Handbuch über den Druckdialog des Systems."""
+        import time
         if not isinstance(html, str) or not 1 <= len(html) <= 8_000_000:
             return
         try:
             ansicht = WebKit2.WebView()
             fertig = {"getan": False}
 
-            def bei_fertig(_a, ereignis):
-                if ereignis != WebKit2.LoadEvent.FINISHED or fertig["getan"]:
-                    return
-                fertig["getan"] = True
-                auftrag = WebKit2.PrintOperation.new(_a)
+            def druck_starten():
+                if self._druckansicht is not ansicht:
+                    return False
+                auftrag = WebKit2.PrintOperation.new(ansicht)
                 seite = Gtk.PageSetup()
                 seite.set_paper_size(Gtk.PaperSize.new("iso_a4"))
                 seite.set_orientation(Gtk.PageOrientation.LANDSCAPE)
                 for rand in ("top", "bottom", "left", "right"):
                     getattr(seite, "set_" + rand + "_margin")(0, Gtk.Unit.MM)
                 auftrag.set_page_setup(seite)
-                auftrag.run_dialog(self)
+                druckdialog_starten(auftrag, self)
+                return False
+
+            def layout_pruefen():
+                if self._druckansicht is not ansicht or time.monotonic() > fertig["frist"]:
+                    return False
+                skript = """(() => {
+                  const hoehe = document.body.getBoundingClientRect().height;
+                  return hoehe > 0 && (!document.fonts || document.fonts.status === 'loaded') &&
+                    Array.from(document.images).every(bild => bild.complete);
+                })()"""
+                if hasattr(ansicht, "evaluate_javascript"):
+                    ansicht.evaluate_javascript(skript, -1, None, None, None, bei_layout, None)
+                else:
+                    ansicht.run_javascript(skript, None, bei_layout, None)
+                return False
+
+            def bei_layout(_a, ergebnis, _daten):
+                try:
+                    wert = (_a.evaluate_javascript_finish(ergebnis) if hasattr(_a, "evaluate_javascript_finish")
+                            else _a.run_javascript_finish(ergebnis).get_js_value())
+                    if wert.to_boolean():
+                        # Finish the load/layout callback before opening GTK's modal chooser.
+                        GLib.idle_add(druck_starten)
+                    else:
+                        GLib.timeout_add(100, layout_pruefen)
+                except Exception:
+                    if self._druckansicht is ansicht:
+                        self._druckansicht = None
+
+            def bei_fertig(_a, ereignis):
+                if ereignis != WebKit2.LoadEvent.FINISHED or fertig["getan"]:
+                    return
+                fertig["getan"] = True
+                fertig["frist"] = time.monotonic() + 10
+                GLib.idle_add(layout_pruefen)
 
             ansicht.connect("load-changed", bei_fertig)
             ansicht.load_html(html, "magnolie-handbuch://app/")
