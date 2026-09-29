@@ -15,130 +15,170 @@
 (function () {
 
   /* Die Fassung erscheint auf der Seite „Über". */
-const FASSUNG = "2.0.24";
+const FASSUNG = "2.0.25";
 const S = (x) => (x === undefined || x === null) ? "" : String(x);
 
-const NEU_IN_DIESER_FASSUNG_FASSUNG = "2.0.24";
+const NEU_IN_DIESER_FASSUNG_FASSUNG = "2.0.25";
 const NEU_IN_DIESER_FASSUNG = {
   "de": [
     "Neu in dieser Version",
-    "Gleiche Notizen werden geräteübergreifend zusammengeführt; Notizbuch- und Anhangszuordnungen bleiben erhalten. Mit Magnolie Notes 1.0.17",
-    "Zusammenhängende Baum-Abgleiche nutzen eine gemeinsame Vorher-Sicherung; lokale Änderungen bleiben separat geschützt",
-    "Die Wetteranzeige bevorzugt den angefragten Ort statt eines benachbarten Anbieterorts"
+    "Gleiche vorhandene Notizen werden nach erfolgreichem Abgleich zusammengeführt",
+    "Kontaktbilder aus unterstützten KDE-Verbindungen werden zwischengespeichert; manuelle Bilder bleiben geschützt",
+    "Uhrzeiten fortlaufend eingeben: 2015 wird zu 20:15",
+    "Neue Aufgaben verwenden einen ausgewählten Kalender mit Aufgabenunterstützung",
+    "Magnolie Notes 1.0.17 — unverändert"
   ],
   "en": [
     "What's new in this version",
-    "Matching notes are merged across devices while preserving notebook and attachment identities; includes Magnolie Notes 1.0.17",
-    "Continuous tree synchronization shares one recovery point; local edits retain separate protection",
-    "Weather shows the requested location rather than a nearby provider location"
+    "Existing matching notes are merged after successful synchronization",
+    "Contact photos from supported KDE connections are cached; manual pictures stay protected",
+    "Enter times continuously: 2015 becomes 20:15",
+    "New tasks use a selected calendar that supports tasks",
+    "Magnolie Notes 1.0.17 — unchanged"
   ],
   "fr": [
     "Nouveautés de cette version",
-    "Les notes identiques sont fusionnées entre appareils en conservant les identités des carnets et pièces jointes ; avec Magnolie Notes 1.0.17",
-    "Une synchronisation continue de l’arbre partage un point de restauration ; les modifications locales restent protégées séparément",
-    "La météo affiche le lieu demandé plutôt qu’un lieu voisin fourni par le service"
+    "Les notes existantes identiques sont fusionnées après une synchronisation réussie",
+    "Les photos des contacts des connexions KDE prises en charge sont mises en cache ; les images choisies manuellement restent protégées",
+    "Saisissez les heures sans interruption : 2015 devient 20:15",
+    "Les nouvelles tâches utilisent un calendrier sélectionné prenant en charge les tâches",
+    "Magnolie Notes 1.0.17 — inchangé"
   ],
   "es": [
     "Novedades de esta versión",
-    "Las notas iguales se combinan entre dispositivos conservando la identidad de cuadernos y adjuntos; incluye Magnolie Notes 1.0.17",
-    "Una sincronización continua del árbol comparte un punto de recuperación; los cambios locales mantienen su protección por separado",
-    "El tiempo muestra el lugar solicitado en vez de una localidad cercana del proveedor"
+    "Las notas existentes iguales se combinan después de una sincronización correcta",
+    "Las fotos de contactos de conexiones KDE compatibles se guardan en caché; las imágenes elegidas manualmente quedan protegidas",
+    "Introduzca la hora seguida: 2015 se convierte en 20:15",
+    "Las tareas nuevas utilizan un calendario seleccionado compatible con tareas",
+    "Magnolie Notes 1.0.17 — sin cambios"
   ],
   "it": [
     "Novità di questa versione",
-    "Le note uguali vengono unite tra dispositivi conservando le identità di taccuini e allegati; include Magnolie Notes 1.0.17",
-    "Una sincronizzazione continua dell’albero usa un punto di ripristino comune; le modifiche locali restano protette separatamente",
-    "Il meteo mostra la località richiesta anziché una località vicina indicata dal servizio"
+    "Le note esistenti uguali vengono unite dopo una sincronizzazione riuscita",
+    "Le foto dei contatti delle connessioni KDE supportate vengono memorizzate nella cache; le immagini scelte manualmente restano protette",
+    "Inserisci l’ora senza interruzioni: 2015 diventa 20:15",
+    "Le nuove attività utilizzano un calendario selezionato che supporta le attività",
+    "Magnolie Notes 1.0.17 — invariato"
   ],
   "nl": [
     "Nieuw in deze versie",
-    "Gelijke notities worden tussen apparaten samengevoegd met behoud van notitieboek- en bijlage-identiteiten; inclusief Magnolie Notes 1.0.17",
-    "Een doorlopende boomsynchronisatie deelt één herstelpunt; lokale wijzigingen blijven afzonderlijk beschermd",
-    "Het weer toont de gevraagde plaats in plaats van een nabijgelegen plaats van de aanbieder"
+    "Bestaande gelijke notities worden na geslaagde synchronisatie samengevoegd",
+    "Contactfoto’s uit ondersteunde KDE-verbindingen worden gecachet; handmatig gekozen afbeeldingen blijven beschermd",
+    "Voer tijden achter elkaar in: 2015 wordt 20:15",
+    "Nieuwe taken gebruiken een geselecteerde agenda die taken ondersteunt",
+    "Magnolie Notes 1.0.17 — ongewijzigd"
   ],
   "pt": [
     "Novidades desta versão",
-    "As notas iguais são unidas entre dispositivos, preservando as identidades dos cadernos e anexos; inclui Magnolie Notes 1.0.17",
-    "Uma sincronização contínua da árvore partilha um ponto de recuperação; as alterações locais mantêm proteção separada",
-    "A meteorologia mostra o local pedido em vez de uma localidade próxima indicada pelo serviço"
+    "Notas existentes iguais são combinadas após uma sincronização bem-sucedida",
+    "Fotos de contactos de ligações KDE compatíveis são guardadas em cache; imagens escolhidas manualmente permanecem protegidas",
+    "Introduza a hora seguida: 2015 torna-se 20:15",
+    "Novas tarefas usam um calendário selecionado que suporta tarefas",
+    "Magnolie Notes 1.0.17 — sem alterações"
   ],
   "ru": [
     "Новое в этой версии",
-    "Одинаковые заметки объединяются между устройствами с сохранением связей блокнотов и вложений; включает Magnolie Notes 1.0.17",
-    "Непрерывная синхронизация дерева использует общую точку восстановления; локальные изменения защищаются отдельно",
-    "Погода показывает запрошенный населённый пункт, а не соседний пункт из ответа службы"
+    "Существующие одинаковые заметки объединяются после успешной синхронизации",
+    "Фотографии контактов из поддерживаемых подключений KDE сохраняются в кэше; выбранные вручную изображения защищены",
+    "Вводите время подряд: 2015 превращается в 20:15",
+    "Новые задачи используют выбранный календарь с поддержкой задач",
+    "Magnolie Notes 1.0.17 — без изменений"
   ],
   "cs": [
     "Co je nového v této verzi",
-    "Shodné poznámky se slučují mezi zařízeními se zachováním identity zápisníků a příloh; obsahuje Magnolie Notes 1.0.17",
-    "Souvislá synchronizace stromu sdílí jeden bod obnovení; místní změny zůstávají chráněny samostatně",
-    "Počasí zobrazuje požadované místo místo sousední obce vrácené službou"
+    "Existující shodné poznámky se sloučí po úspěšné synchronizaci",
+    "Fotografie kontaktů z podporovaných připojení KDE se ukládají do mezipaměti; ručně zvolené obrázky zůstávají chráněné",
+    "Čas zadávejte souvisle: 2015 se změní na 20:15",
+    "Nové úkoly používají vybraný kalendář podporující úkoly",
+    "Magnolie Notes 1.0.17 — beze změn"
   ],
   "pl": [
     "Nowości w tej wersji",
-    "Identyczne notatki są scalane między urządzeniami z zachowaniem tożsamości notatników i załączników; zawiera Magnolie Notes 1.0.17",
-    "Ciągła synchronizacja drzewa korzysta ze wspólnego punktu odzyskiwania; zmiany lokalne są chronione osobno",
-    "Pogoda pokazuje żądaną miejscowość zamiast pobliskiej lokalizacji podanej przez usługę"
+    "Istniejące jednakowe notatki są łączone po udanej synchronizacji",
+    "Zdjęcia kontaktów z obsługiwanych połączeń KDE są buforowane; obrazy wybrane ręcznie pozostają chronione",
+    "Wpisuj godzinę ciągiem: 2015 zmienia się w 20:15",
+    "Nowe zadania korzystają z wybranego kalendarza obsługującego zadania",
+    "Magnolie Notes 1.0.17 — bez zmian"
   ],
   "hsb": [
     "Nowe w tutej wersiji",
-    "Jenake noticy so mjez gratami zjednoćeja; přirjadowanja notiznikow a přiwěškow so wobchowaja. Z Magnolie Notes 1.0.17",
-    "Suvisna synchronizacija štoma wužiwa zhromadny wobnowjenski dypk; lokalne změny wostanu zvlášć škitane",
-    "Wjedro pokazuje požadane městno město susodneho městna poskićowarja"
+    "Eksistowace samsne noticy so po wuspěšnej synchronizaciji zjednoća",
+    "Kontaktowe fota z podpěrowanych KDE-zwiskow so w pufrowaku składuja; manuelnje wubrane wobrazy wostanu škitane",
+    "Zapodajće čas bjez přestawki: 2015 so na 20:15 změni",
+    "Nowe nadawki wužiwaja wubranu protyku, kotraž nadawki podpěruje",
+    "Magnolie Notes 1.0.17 — njezměnjeny"
   ],
   "da": [
     "Nyt i denne version",
-    "Ens noter flettes mellem enheder med bevarede identiteter for notesbøger og vedhæftninger; omfatter Magnolie Notes 1.0.17",
-    "En sammenhængende træsynkronisering deler ét gendannelsespunkt; lokale ændringer beskyttes separat",
-    "Vejret viser det ønskede sted frem for et nærliggende sted fra udbyderen"
+    "Eksisterende ens noter sammenflettes efter vellykket synkronisering",
+    "Kontaktfotos fra understøttede KDE-forbindelser gemmes i cache; manuelt valgte billeder forbliver beskyttede",
+    "Indtast klokkeslæt fortløbende: 2015 bliver til 20:15",
+    "Nye opgaver bruger en valgt kalender med opgaveunderstøttelse",
+    "Magnolie Notes 1.0.17 — uændret"
   ],
   "nb": [
     "Nytt i denne versjonen",
-    "Like notater slås sammen mellom enheter med bevarte identiteter for notatbøker og vedlegg; inkluderer Magnolie Notes 1.0.17",
-    "En sammenhengende tresynkronisering deler ett gjenopprettingspunkt; lokale endringer beskyttes separat",
-    "Været viser det forespurte stedet fremfor et nærliggende sted fra leverandøren"
+    "Eksisterende like notater slås sammen etter vellykket synkronisering",
+    "Kontaktbilder fra støttede KDE-forbindelser mellomlagres; manuelt valgte bilder forblir beskyttet",
+    "Skriv klokkeslett fortløpende: 2015 blir til 20:15",
+    "Nye oppgaver bruker en valgt kalender som støtter oppgaver",
+    "Magnolie Notes 1.0.17 — uendret"
   ],
   "hi": [
     "इस संस्करण में नया",
-    "एक जैसी नोट्स को उपकरणों के बीच मिलाते समय नोटबुक और संलग्नकों की पहचान सुरक्षित रहती है; Magnolie Notes 1.0.17 शामिल है",
-    "लगातार चलने वाला ट्री सिंक्रनाइज़ेशन एक पुनर्प्राप्ति बिंदु साझा करता है; स्थानीय बदलाव अलग से सुरक्षित रहते हैं",
-    "मौसम सेवा के किसी नज़दीकी स्थान के बजाय अनुरोधित स्थान दिखाता है"
+    "सफल सिंक्रनाइज़ेशन के बाद मौजूदा समान नोट एक साथ मिलाए जाते हैं",
+    "समर्थित KDE कनेक्शन से संपर्क फ़ोटो कैश में रखे जाते हैं; स्वयं चुनी गई तस्वीरें सुरक्षित रहती हैं",
+    "समय लगातार लिखें: 2015 से 20:15 बनता है",
+    "नए कार्य चुने हुए ऐसे कैलेंडर का उपयोग करते हैं जो कार्यों का समर्थन करता है",
+    "Magnolie Notes 1.0.17 — अपरिवर्तित"
   ],
   "zh-cn": [
     "此版本的新功能",
-    "跨设备合并相同笔记，同时保留笔记本和附件的身份关联；包含 Magnolie Notes 1.0.17",
-    "连续的树同步共用一个恢复点，本地修改仍单独受到保护",
-    "天气显示请求的地点，而不是服务返回的邻近地点"
+    "成功同步后合并已有的相同笔记",
+    "缓存受支持的 KDE 连接中的联系人照片，并保护手动选择的图片",
+    "连续输入时间：2015 会变为 20:15",
+    "新任务使用已选中且支持任务的日历",
+    "Magnolie Notes 1.0.17 — 未更改"
   ],
   "ja": [
     "このバージョンの新機能",
-    "ノートブックと添付ファイルの識別情報を保ちながら、デバイス間の同一ノートを統合。Magnolie Notes 1.0.17を含みます",
-    "一連のツリー同期で復元ポイントを共有し、ローカルの変更は別途保護します",
-    "天気はサービスが返す近隣の地名ではなく、指定した場所を表示します"
+    "同期が成功すると、既存の同じ内容のノートを統合します",
+    "対応する KDE 接続の連絡先写真をキャッシュし、手動で選んだ画像を保護します",
+    "時刻を続けて入力できます：2015 は 20:15 になります",
+    "新しいタスクには、選択済みのタスク対応カレンダーを使用します",
+    "Magnolie Notes 1.0.17 — 変更なし"
   ],
   "ar": [
     "ما الجديد في هذا الإصدار",
-    "دمج الملاحظات المتطابقة بين الأجهزة مع الحفاظ على هويات دفاتر الملاحظات والمرفقات؛ يتضمن Magnolie Notes 1.0.17",
-    "تشارك مزامنة الشجرة المتصلة نقطة استعادة واحدة، وتظل التغييرات المحلية محمية بشكل منفصل",
-    "يعرض الطقس الموقع المطلوب بدلاً من موقع قريب تُرجعه الخدمة"
+    "تُدمج الملاحظات الموجودة المتطابقة بعد نجاح المزامنة",
+    "تُحفظ صور جهات الاتصال من اتصالات KDE المدعومة مؤقتًا مع حماية الصور المختارة يدويًا",
+    "أدخل الوقت متصلًا: يتحول 2015 إلى 20:15",
+    "تستخدم المهام الجديدة تقويمًا محددًا يدعم المهام",
+    "Magnolie Notes 1.0.17 — دون تغيير"
   ],
   "uk": [
     "Нове в цій версії",
-    "Однакові нотатки об’єднуються між пристроями зі збереженням ідентичності блокнотів і вкладень; містить Magnolie Notes 1.0.17",
-    "Безперервна синхронізація дерева використовує спільну точку відновлення; локальні зміни захищаються окремо",
-    "Погода показує запитаний населений пункт замість сусіднього місця з відповіді служби"
+    "Наявні однакові нотатки об’єднуються після успішної синхронізації",
+    "Фотографії контактів із підтримуваних з’єднань KDE кешуються; вибрані вручну зображення залишаються захищеними",
+    "Вводьте час послідовно: 2015 перетворюється на 20:15",
+    "Нові завдання використовують вибраний календар із підтримкою завдань",
+    "Magnolie Notes 1.0.17 — без змін"
   ],
   "be": [
     "Што новага ў гэтай версіі",
-    "Аднолькавыя нататкі аб’ядноўваюцца паміж прыладамі з захаваннем ідэнтычнасці нататнікаў і ўкладанняў; уключае Magnolie Notes 1.0.17",
-    "Бесперапынная сінхранізацыя дрэва выкарыстоўвае агульны пункт аднаўлення; лакальныя змены абараняюцца асобна",
-    "Надвор’е паказвае запытанае месца замест суседняга месца з адказу сэрвісу"
+    "Наяўныя аднолькавыя нататкі аб’ядноўваюцца пасля паспяховай сінхранізацыі",
+    "Фатаграфіі кантактаў з падтрымліваемых злучэнняў KDE захоўваюцца ў кэшы; выбраныя ўручную выявы застаюцца абароненымі",
+    "Уводзьце час паслядоўна: 2015 ператвараецца ў 20:15",
+    "Новыя задачы выкарыстоўваюць выбраны каляндар з падтрымкай задач",
+    "Magnolie Notes 1.0.17 — без змен"
   ],
   "tr": [
     "Bu sürümdeki yenilikler",
-    "Aynı notlar, defter ve ek kimlikleri korunarak cihazlar arasında birleştirilir; Magnolie Notes 1.0.17 dahildir",
-    "Kesintisiz ağaç eşitlemesi ortak bir kurtarma noktası kullanır; yerel değişiklikler ayrıca korunur",
-    "Hava durumu, sağlayıcının yakın bir konumu yerine istenen konumu gösterir"
+    "Başarılı eşitlemeden sonra mevcut aynı notlar birleştirilir",
+    "Desteklenen KDE bağlantılarındaki kişi fotoğrafları önbelleğe alınır; elle seçilen resimler korunur",
+    "Saati kesintisiz girin: 2015, 20:15 olur",
+    "Yeni görevler, görevleri destekleyen seçili bir takvimi kullanır",
+    "Magnolie Notes 1.0.17 — değişmedi"
   ]
 };
 if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {

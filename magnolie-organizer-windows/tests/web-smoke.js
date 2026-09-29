@@ -175,8 +175,9 @@ const releaseNotes = Function(`"use strict"; return (${releaseNotesSource});`)()
 assert.strictEqual(Object.keys(releaseNotes).length, 20, "What's New does not cover every locale");
 assert.ok(Object.values(releaseNotes).every((items) => items.length === 6 && items.every(text => typeof text === "string" && text.length > 0)),
    "What's New locales do not contain the complete current bullet set");
-assert.ok(releaseNotes.en.includes("Weather shows the requested location rather than a nearby provider location") &&
-  releaseNotes.en.includes("Edit existing Google and Microsoft account names and remove selected account connections") &&
+assert.ok(releaseNotes.en.includes("Contact photos from supported KDE connections are cached; manual pictures stay protected") &&
+  releaseNotes.en.includes("Enter times continuously: 2015 becomes 20:15") &&
+  releaseNotes.en.includes("New tasks use a selected calendar that supports tasks") &&
   !releaseNotes.en.some(text => /Linux|Debian|Wayland|AppImage/.test(text)),
 "Windows What's New content is stale or describes Linux-only changes");
 assert.match(fs.readFileSync(path.join(root, "LIESMICH.md"), "utf8"),
