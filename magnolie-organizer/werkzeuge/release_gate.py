@@ -26,8 +26,8 @@ import xml.etree.ElementTree as ET
 from release_sources import SECRET, digest, file_stamp, inventory, inventory_digest, source_identity
 
 PUBLIC_KEY = "8eJWsygSF9wsF22cuf+sChUUV5RtXEZt38Ngcugn/1Y="
-BOOTSTRAP_VERSION = "2.0.23"
-BOOTSTRAP_SHA256 = "3538ae4b73ee121cd9b262d671c2d2dda4ee51a851e56c4355470eb6b3d3d85e"
+BOOTSTRAP_VERSION = "2.0.24"
+BOOTSTRAP_SHA256 = "9e7a0818169075d295f1a977c6876f5f161804f3e5a293a19f1f26a24415c224"
 LINUX = "magnolie-organizer"
 WINDOWS = "magnolie-organizer-windows"
 ACCEPTANCE = "I explicitly approve publication of this exact candidate after testing it on Linux and Windows."
