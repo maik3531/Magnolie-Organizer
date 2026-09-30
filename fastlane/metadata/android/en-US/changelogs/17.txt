@@ -1,0 +1,1 @@
+F-Droid build preparation for Magnolie Notes 1.0.17. The public release build can run without a private signing key. Local signature-copy verification against the existing release was successful. Notes, tasks, backups and paired desktop sharing retain their existing functionality.

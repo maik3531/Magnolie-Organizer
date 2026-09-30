@@ -1,5 +1,8 @@
 # Magnolie Notes – Notizen für Android
 
+Der öffentliche Releasebau für F-Droid benötigt keinen privaten Signierschlüssel:
+[`F-DROID.md`](F-DROID.md) beschreibt Bauparameter, Voraussetzungen und Signaturen.
+
 ## Entwicklungsstand 1.0.14
 
 Die App-Version ist jetzt **1.0.14**, der Android-Versionscode **14**. Der

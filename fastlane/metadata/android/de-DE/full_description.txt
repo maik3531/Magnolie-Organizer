@@ -1,0 +1,11 @@
+Magnolie Notes ist ein lokales Notizbuch mit Aufgabenliste für Android. Notizen lassen sich in Notizbüchern ordnen, mit Bildern oder PDF-Dateien ergänzen und aus anderen Apps übernehmen.
+
+Funktionen:
+* Notizen mit Erstellungs- und Änderungsdatum, Notizbüchern und Anhängen.
+* Aufgaben mit Fälligkeit, Dringlichkeit und optionalen Erinnerungen.
+* Übernahme geteilter Texte und unterstützter Notizexporte.
+* Lokal verschlüsselte Speicherung und selbst verwaltete Sicherungen.
+* Optionaler verschlüsselter Austausch mit gekoppelten Magnolie-Organizer-Installationen unter Linux und Windows.
+* Zwanzig Oberflächensprachen.
+
+Das Notizbuch benötigt weder ein Konto noch einen Cloud-Dienst. Netzwerk- und Telefonfunktionen sind optional und erfordern die jeweilige Kopplung oder Android-Berechtigung. Magnolie Organizer ist eine separate, freie Desktop-Anwendung.

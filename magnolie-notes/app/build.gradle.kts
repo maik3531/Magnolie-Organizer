@@ -16,13 +16,16 @@ plugins {
 /*
  * Freigabeschluessel. Angelegt wird er einmalig mit keytool; die Zugangsdaten
  * gehoeren in app/schluessel.properties und niemals in die Versionsverwaltung.
- * Ohne diesen Schluessel wird jeder Release-Build absichtlich abgewiesen.
+ * Der offizielle signierte Bau verwendet diesen Schluessel. F-Droid baut mit
+ * -PmagnolieFdroid=true eine unsignierte Release-APK und signiert sie separat.
  */
+val fdroidBau = providers.gradleProperty("magnolieFdroid")
+    .map { it.toBooleanStrict() }.getOrElse(false)
 val schluesselDatei = providers.environmentVariable("MAGNOLIE_SCHLUESSEL_PROPERTIES")
     .map { file(it) }
     .getOrElse(rootProject.file("app/schluessel.properties"))
 val schluessel = Properties().apply {
-    if (schluesselDatei.isFile) schluesselDatei.inputStream().use { strom -> load(strom) }
+    if (!fdroidBau && schluesselDatei.isFile) schluesselDatei.inputStream().use { strom -> load(strom) }
 }
 val erforderlicheSchluesselwerte = listOf("storeFile", "storePassword", "keyAlias", "keyPassword")
 val schluesselVollstaendig = erforderlicheSchluesselwerte.all {
@@ -33,7 +36,7 @@ val produktionsSchluesselDatei = providers.environmentVariable("MAGNOLIE_KEYSTOR
     .orNull ?: schluessel.getProperty("storeFile")
         ?.takeIf { it.isNotBlank() }
         ?.let(rootProject::file)
-val eigenerSchluessel = schluesselDatei.isFile && schluesselVollstaendig &&
+val eigenerSchluessel = !fdroidBau && schluesselDatei.isFile && schluesselVollstaendig &&
     produktionsSchluesselDatei?.isFile == true
 
 /*
@@ -127,6 +130,10 @@ android {
 val pruefeReleaseSigningKonfiguration = tasks.register("pruefeReleaseSigningKonfiguration") {
     doLast {
         val signingConfig = android.buildTypes.getByName("release").signingConfig
+        if (fdroidBau) {
+            check(signingConfig == null) { "Der F-Droid-Bau muss ohne eingebundenen Signierschluessel erfolgen." }
+            return@doLast
+        }
         check(schluesselDatei.isFile && schluesselVollstaendig &&
             produktionsSchluesselDatei?.isFile == true) {
             "Release-Signing erfordert vollstaendige Properties und einen vorhandenen Produktionskeystore."

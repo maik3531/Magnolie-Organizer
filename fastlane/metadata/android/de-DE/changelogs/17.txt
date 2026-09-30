@@ -1,0 +1,1 @@
+F-Droid-Bauvorbereitung für Magnolie Notes 1.0.17. Der öffentliche Releasebau benötigt keinen privaten Signierschlüssel. Die lokale Signaturübernahme-Gegenprobe gegen die bestehende Veröffentlichung war erfolgreich. Notizen, Aufgaben, Sicherungen und der Austausch mit gekoppelten Rechnern behalten ihre bisherigen Funktionen.
