@@ -3213,22 +3213,12 @@ msgstr "KDE Connect"
 msgid "KDE Connect device"
 msgstr "Zařízení KDE Connect"
 
-msgid "KDE Connect for SMS"
-msgstr "KDE Connect pro SMS"
-
 msgid "KDE Connect for SMS is available only in the installed application."
 msgstr "KDE Connect pro SMS je k dispozici pouze v nainstalované aplikaci."
 
 msgid "KDE Connect is unavailable; other background services remain active."
 msgstr ""
 "KDE Connect není dostupný; ostatní služby na pozadí zůstávají spuštěné."
-
-msgid ""
-"KDE Connect is used only for SMS. It does not connect or synchronize the "
-"Magnolienbaum."
-msgstr ""
-"KDE Connect se používá pouze pro SMS. Nepřipojuje ani nesynchronizuje "
-"Magnolienbaum."
 
 msgid "KDE Connect pairing"
 msgstr "Párování KDE Connect"
@@ -8487,6 +8477,16 @@ msgstr[2] "… a ještě %(count)s další položky, které se rovněž vytiskno
 
 msgid "＋ Add appointment"
 msgstr "＋ Přidat schůzku"
+
+#~ msgid "KDE Connect for SMS"
+#~ msgstr "KDE Connect pro SMS"
+
+#~ msgid ""
+#~ "KDE Connect is used only for SMS. It does not connect or synchronize the "
+#~ "Magnolienbaum."
+#~ msgstr ""
+#~ "KDE Connect se používá pouze pro SMS. Nepřipojuje ani nesynchronizuje "
+#~ "Magnolienbaum."
 
 #~ msgid "Enable background service"
 #~ msgstr "Povolit službu na pozadí"

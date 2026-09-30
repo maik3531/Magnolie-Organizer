@@ -3188,9 +3188,6 @@ msgstr "KDE Connect"
 msgid "KDE Connect device"
 msgstr "KDE Connect cihazı"
 
-msgid "KDE Connect for SMS"
-msgstr "SMS için KDE Connect"
-
 msgid "KDE Connect for SMS is available only in the installed application."
 msgstr "SMS için KDE Connect yalnızca yüklü uygulamada mevcuttur."
 
@@ -3198,13 +3195,6 @@ msgid "KDE Connect is unavailable; other background services remain active."
 msgstr ""
 "KDE Connect kullanılamıyor; diğer arka plan hizmetleri çalışmaya devam "
 "ediyor."
-
-msgid ""
-"KDE Connect is used only for SMS. It does not connect or synchronize the "
-"Magnolienbaum."
-msgstr ""
-"KDE Connect yalnızca SMS için kullanılır. Magnolienbaum'ye bağlanmıyor veya "
-"senkronize edilmiyor."
 
 msgid "KDE Connect pairing"
 msgstr "KDE Connect eşleştirmesi"
@@ -8455,6 +8445,16 @@ msgstr[1] "… ayrıca yazdırılacak %(count)s öğe daha."
 
 msgid "＋ Add appointment"
 msgstr "＋ Randevu ekle"
+
+#~ msgid "KDE Connect for SMS"
+#~ msgstr "SMS için KDE Connect"
+
+#~ msgid ""
+#~ "KDE Connect is used only for SMS. It does not connect or synchronize the "
+#~ "Magnolienbaum."
+#~ msgstr ""
+#~ "KDE Connect yalnızca SMS için kullanılır. Magnolienbaum'ye bağlanmıyor "
+#~ "veya senkronize edilmiyor."
 
 #~ msgid "Enable background service"
 #~ msgstr "Arka plan hizmetini etkinleştir"

@@ -2515,16 +2515,8 @@ msgstr "果汁"
 msgid "Jura"
 msgstr "汝拉州"
 
-msgid "KDE Connect for SMS"
-msgstr "KDE Connect 为 SMS"
-
 msgid "KDE Connect for SMS is available only in the installed application."
 msgstr "SMS 的 KDE Connect 仅在已安装的应用程序中可用。"
-
-msgid ""
-"KDE Connect is used only for SMS. It does not connect or synchronize the "
-"Magnolienbaum."
-msgstr "KDE Connect 仅用于 SMS。它不连接或同步Magnolienbaum。"
 
 msgid "KDE Connect pairing failed."
 msgstr "KDE Connect 配对失败。"
@@ -6616,6 +6608,14 @@ msgstr[0] "… 以及另外 %(count)s 项也将打印。"
 
 msgid "＋ Add appointment"
 msgstr "＋ 添加约会"
+
+#~ msgid "KDE Connect for SMS"
+#~ msgstr "KDE Connect 为 SMS"
+
+#~ msgid ""
+#~ "KDE Connect is used only for SMS. It does not connect or synchronize the "
+#~ "Magnolienbaum."
+#~ msgstr "KDE Connect 仅用于 SMS。它不连接或同步Magnolienbaum。"
 
 #~ msgid "Answer calls on the computer and talk"
 #~ msgstr "在电脑上接听并通话"

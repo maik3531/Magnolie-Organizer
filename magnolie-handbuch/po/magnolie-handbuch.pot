@@ -1067,6 +1067,20 @@ msgstr ""
 
 #, no-javascript-format
 msgid ""
+"<h3>Phone contacts (KDE Connect)</h3><p>Pair the phone in KDE Connect and "
+"allow contact access there. Open <b>Settings ▸ Synchronization ▸ Phone "
+"contacts (KDE Connect)</b> and choose <b>Import preview</b>. No Google or "
+"Microsoft account and no photo retrieval are required.</p><p>Review new "
+"contacts, the existing target and differing fields. Ambiguous matches wait "
+"for your choice. Apply saves in Organizer after a recovery snapshot; Cancel "
+"changes nothing. Repeating does not create duplicate contacts. Local changes "
+"and manually selected or removed photos are retained. Missing contacts never "
+"cause deletion. Nothing is written back to the phone. System KDE uses its "
+"synchronized contact cache.</p>"
+msgstr ""
+
+#, no-javascript-format
+msgid ""
 "<h3>Samsung and Play Protect, step by step</h3><p>The release APK is signed "
 "with the Magnolie production certificate, but it is distributed outside "
 "Google Play. It therefore has no Google Play Store or Play Protect developer "

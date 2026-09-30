@@ -2994,18 +2994,10 @@ msgstr ""
 msgid "KDE Connect device"
 msgstr ""
 
-msgid "KDE Connect for SMS"
-msgstr ""
-
 msgid "KDE Connect for SMS is available only in the installed application."
 msgstr ""
 
 msgid "KDE Connect is unavailable; other background services remain active."
-msgstr ""
-
-msgid ""
-"KDE Connect is used only for SMS. It does not connect or synchronize the "
-"Magnolienbaum."
 msgstr ""
 
 msgid "KDE Connect pairing"

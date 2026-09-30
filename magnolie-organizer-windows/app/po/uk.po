@@ -2661,18 +2661,8 @@ msgstr "Сік"
 msgid "Jura"
 msgstr "Юра"
 
-msgid "KDE Connect for SMS"
-msgstr "KDE Connect для SMS"
-
 msgid "KDE Connect for SMS is available only in the installed application."
 msgstr "KDE Connect для SMS доступний лише у встановленому додатку."
-
-msgid ""
-"KDE Connect is used only for SMS. It does not connect or synchronize the "
-"Magnolienbaum."
-msgstr ""
-"KDE Connect використовується лише для SMS. Він не підключає та не "
-"синхронізує Magnolienbaum."
 
 msgid "KDE Connect pairing failed."
 msgstr "Не вдалося створити пару KDE Connect."
@@ -6978,6 +6968,16 @@ msgstr[2] "… і ще %(count)s елементи, які також буде н
 
 msgid "＋ Add appointment"
 msgstr "＋ Додати зустріч"
+
+#~ msgid "KDE Connect for SMS"
+#~ msgstr "KDE Connect для SMS"
+
+#~ msgid ""
+#~ "KDE Connect is used only for SMS. It does not connect or synchronize the "
+#~ "Magnolienbaum."
+#~ msgstr ""
+#~ "KDE Connect використовується лише для SMS. Він не підключає та не "
+#~ "синхронізує Magnolienbaum."
 
 #~ msgid "Answer calls on the computer and talk"
 #~ msgstr "Приймати дзвінки й розмовляти на комп’ютері"

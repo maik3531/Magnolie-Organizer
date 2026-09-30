@@ -2594,19 +2594,10 @@ msgstr "ジュース"
 msgid "Jura"
 msgstr "ジュラ州"
 
-msgid "KDE Connect for SMS"
-msgstr "KDE Connect SMS用"
-
 msgid "KDE Connect for SMS is available only in the installed application."
 msgstr ""
 "KDE Connect 用 SMS は、インストールされているアプリケーションでのみ使用できま"
 "す。"
-
-msgid ""
-"KDE Connect is used only for SMS. It does not connect or synchronize the "
-"Magnolienbaum."
-msgstr ""
-"KDE ConnectはSMSのみに使用されます。 Magnolienbaum の接続や同期は行いません。"
 
 msgid "KDE Connect pairing failed."
 msgstr "KDE Connect のペアリングに失敗しました。"
@@ -6840,6 +6831,16 @@ msgstr[0] "… ほか %(count)s 件も印刷されます。"
 
 msgid "＋ Add appointment"
 msgstr "＋ 予定を追加"
+
+#~ msgid "KDE Connect for SMS"
+#~ msgstr "KDE Connect SMS用"
+
+#~ msgid ""
+#~ "KDE Connect is used only for SMS. It does not connect or synchronize the "
+#~ "Magnolienbaum."
+#~ msgstr ""
+#~ "KDE ConnectはSMSのみに使用されます。 Magnolienbaum の接続や同期は行いませ"
+#~ "ん。"
 
 #~ msgid "Answer calls on the computer and talk"
 #~ msgstr "パソコンで着信に応答して通話"

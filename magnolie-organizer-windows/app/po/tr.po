@@ -2635,18 +2635,8 @@ msgstr "Meyve suyu"
 msgid "Jura"
 msgstr "Jura"
 
-msgid "KDE Connect for SMS"
-msgstr "SMS için KDE Connect"
-
 msgid "KDE Connect for SMS is available only in the installed application."
 msgstr "SMS için KDE Connect yalnızca yüklü uygulamada mevcuttur."
-
-msgid ""
-"KDE Connect is used only for SMS. It does not connect or synchronize the "
-"Magnolienbaum."
-msgstr ""
-"KDE Connect yalnızca SMS için kullanılır. Magnolienbaum'ye bağlanmıyor veya "
-"senkronize edilmiyor."
 
 msgid "KDE Connect pairing failed."
 msgstr "KDE Connect eşleştirmesi başarısız oldu."
@@ -6922,6 +6912,16 @@ msgstr[1] "… ayrıca yazdırılacak %(count)s öğe daha."
 
 msgid "＋ Add appointment"
 msgstr "＋ Randevu ekle"
+
+#~ msgid "KDE Connect for SMS"
+#~ msgstr "SMS için KDE Connect"
+
+#~ msgid ""
+#~ "KDE Connect is used only for SMS. It does not connect or synchronize the "
+#~ "Magnolienbaum."
+#~ msgstr ""
+#~ "KDE Connect yalnızca SMS için kullanılır. Magnolienbaum'ye bağlanmıyor "
+#~ "veya senkronize edilmiyor."
 
 #~ msgid "Answer calls on the computer and talk"
 #~ msgstr "Aramaları bilgisayarda yanıtla ve konuş"

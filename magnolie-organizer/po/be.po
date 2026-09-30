@@ -3227,21 +3227,11 @@ msgstr "KDE Connect"
 msgid "KDE Connect device"
 msgstr "Прылада KDE Connect"
 
-msgid "KDE Connect for SMS"
-msgstr "KDE Connect для SMS"
-
 msgid "KDE Connect for SMS is available only in the installed application."
 msgstr "KDE Connect для SMS даступны толькі ва ўсталяваным дадатку."
 
 msgid "KDE Connect is unavailable; other background services remain active."
 msgstr "KDE Connect недаступны; іншыя фонавыя службы працягваюць працаваць."
-
-msgid ""
-"KDE Connect is used only for SMS. It does not connect or synchronize the "
-"Magnolienbaum."
-msgstr ""
-"KDE Connect выкарыстоўваецца толькі для SMS. Ён не падключае і не "
-"сінхранізуе Magnolienbaum."
 
 msgid "KDE Connect pairing"
 msgstr "Спалучэнне KDE Connect"
@@ -8523,6 +8513,16 @@ msgstr[2] "… і яшчэ %(count)s элементы, якія таксама �
 
 msgid "＋ Add appointment"
 msgstr "＋ Дадаць сустрэчу"
+
+#~ msgid "KDE Connect for SMS"
+#~ msgstr "KDE Connect для SMS"
+
+#~ msgid ""
+#~ "KDE Connect is used only for SMS. It does not connect or synchronize the "
+#~ "Magnolienbaum."
+#~ msgstr ""
+#~ "KDE Connect выкарыстоўваецца толькі для SMS. Ён не падключае і не "
+#~ "сінхранізуе Magnolienbaum."
 
 #~ msgid "Enable background service"
 #~ msgstr "Уключыць фонавую службу"

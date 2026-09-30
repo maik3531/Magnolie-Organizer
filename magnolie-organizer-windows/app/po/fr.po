@@ -2692,19 +2692,9 @@ msgstr "Jus"
 msgid "Jura"
 msgstr "Jura"
 
-msgid "KDE Connect for SMS"
-msgstr "KDE Connect pour SMS"
-
 msgid "KDE Connect for SMS is available only in the installed application."
 msgstr ""
 "KDE Connect pour SMS est disponible uniquement dans l'application installée."
-
-msgid ""
-"KDE Connect is used only for SMS. It does not connect or synchronize the "
-"Magnolienbaum."
-msgstr ""
-"KDE Connect est utilisé uniquement pour SMS. Il ne connecte ni ne "
-"synchronise le Magnolienbaum."
 
 msgid "KDE Connect pairing failed."
 msgstr "L'appairage du KDE Connect a échoué."
@@ -7101,6 +7091,16 @@ msgstr[1] "… et %(count)s autres éléments qui seront également imprimés."
 
 msgid "＋ Add appointment"
 msgstr "＋ Ajouter un rendez-vous"
+
+#~ msgid "KDE Connect for SMS"
+#~ msgstr "KDE Connect pour SMS"
+
+#~ msgid ""
+#~ "KDE Connect is used only for SMS. It does not connect or synchronize the "
+#~ "Magnolienbaum."
+#~ msgstr ""
+#~ "KDE Connect est utilisé uniquement pour SMS. Il ne connecte ni ne "
+#~ "synchronise le Magnolienbaum."
 
 #~ msgid "Answer calls on the computer and talk"
 #~ msgstr "Répondre aux appels sur l’ordinateur et parler"

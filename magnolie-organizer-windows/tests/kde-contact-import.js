@@ -22,7 +22,7 @@ async function preview(web, data, mode = "apply") {
     b.t.daten().einstellungen.adressen.foto = false;
     b.w.App.telefonStand({ peers: [], kdeconnect: { contacts_available: true, contacts_device_id: device } });
     const before = plain(b.t.daten().kontakte), done = new Set();
-    let clicked = false, completed = false;
+    let clicked = false, completed = false, indexRequests = 0;
     b.t.kdeStart().then(() => { completed = true; });
     const deadline = Date.now() + 6000;
     while (Date.now() < deadline) {
@@ -33,22 +33,49 @@ async function preview(web, data, mode = "apply") {
         if (message.cmd === "speichern") b.w.App.gespeichert({ id: message.id, ok: true });
         if (message.cmd === "mutations_snapshot") b.w.App.mutationsSnapshot({ token: message.token, ok: mode !== "snapshot-error" });
         if (message.cmd !== "telefon_kontakte") continue;
+        if (!message.uids) indexRequests++;
+        if (message.uids && mode === "locked") {
+          b.w.App.init({ gesperrt: true });
+          assert.equal(b.w.document.querySelector(".kontakt-import-dialog"), null, "locking removes the sensitive preview");
+          b.w.App.telefonKontakte({ ok: true, requestId: message.requestId, device_id: device, fingerprint, contacts: [remote] });
+          assert.equal(b.t.daten().kontakte.length, 0, "late reply cannot cross the lock boundary");
+          return plain(b.t.daten());
+        }
+        if (message.uids && mode === "timeout") {
+          const timer = b.timers.find(timer => timer.delay === 12000 && !timer.cancelled);
+          assert.ok(timer); timer.fn(); timer.cancelled = true;
+        }
         b.w.App.telefonKontakte({ ok: true, requestId: message.requestId, device_id: device,
-          fingerprint: message.uids && mode === "source-changed" ? "b".repeat(64) : fingerprint,
-          contacts: message.uids ? mode === "incomplete" ? [] : [remote] : [{ uid, modified_ms: 1 }] });
+          native_cache: mode === "native-cache-refresh",
+          fingerprint: message.uids && mode === "source-changed" || !message.uids && indexRequests > 1 && mode === "repaired" ? "b".repeat(64) : fingerprint,
+          contacts: message.uids ? mode === "incomplete" ? [] : [remote] :
+            [{ uid, modified_ms: indexRequests > 1 && ["index-changed", "native-cache-refresh"].includes(mode) ? 2 : 1 }] });
       }
       const dialog = b.w.document.querySelector(".kontakt-import-dialog");
       if (completed && !clicked) {
         assert.ok(dialog, JSON.stringify(b.t.kdeZustand()));
         assert.deepEqual(plain(b.t.daten().kontakte), before, "retrieval and preview never mutate contacts");
-        if (["incomplete", "source-changed"].includes(mode)) {
+        if (["incomplete", "source-changed", "timeout"].includes(mode)) {
           assert.equal(dialog.querySelector(".hauptknopf").disabled, true); return before;
         }
         assert.ok(dialog.querySelector("details"), dialog.textContent);
         clicked = true;
+        if (mode === "device-changed") {
+          b.w.App.telefonStand({ peers: [], kdeconnect: { contacts_available: true, contacts_device_id: "other-phone" } });
+          assert.equal(b.w.document.querySelector(".kontakt-import-dialog"), null);
+          assert.deepEqual(plain(b.t.daten().kontakte), before);
+          return plain(b.t.daten());
+        }
+        if (mode === "local-edit") b.t.daten().kontakte.push({ id: "local-edit", vorname: "Local edit" });
         if (mode === "cancel") {
           [...dialog.querySelectorAll("button")].find(button => button.textContent === "Cancel").click();
         } else dialog.querySelector(".hauptknopf").click();
+      }
+      if (clicked && ["repaired", "index-changed", "local-edit"].includes(mode) && dialog?.querySelector(".einst-hinweis").textContent === "Conflict") {
+        assert.equal(b.messages.some(m => m.cmd === "mutations_snapshot"), false, "changed source/local data prevents import before snapshot");
+        if (mode === "local-edit") assert.equal(b.t.daten().kontakte[0].id, "local-edit");
+        else assert.deepEqual(plain(b.t.daten().kontakte), before);
+        return plain(b.t.daten());
       }
       if (clicked && mode === "snapshot-error" && b.messages.some(m => m.cmd === "mutations_snapshot" && done.has(m))) {
         assert.deepEqual(plain(b.t.daten().kontakte), before, "failed snapshot prevents mutation");
@@ -82,11 +109,12 @@ async function preview(web, data, mode = "apply") {
     ] });
     try {
       const original = plain(b.t.daten().kontakte);
-      const first = card({ vorname: "Remote", email: "one@example.org", firma: "Company", notiz: "New note" });
+      const first = card({ vorname: "Remote", anzeigename: "Remote", email: "one@example.org", firma: "Company", notiz: "New note" });
       const plan = b.t.kdePlan(first, b.t.daten().kontakte);
       assert.equal(plan.modus, "merge"); assert.equal(plan.zielId, "one");
       const merged = b.t.kdeEntwurf(plan, b.t.daten().kontakte[0]);
       assert.equal(merged.vorname, "Local", "conflicting local scalar stays until explicitly chosen");
+      assert.notEqual(merged.anzeigename, "Remote", "incoming FN may not override the retained derived local name");
       assert.equal(merged.firma, "Company"); assert.equal(merged.notiz, "New note");
       assert.equal(merged.uid, "local-identity"); assert.equal(merged.foto, ""); assert.equal(merged.fotoManuell, true);
       assert.deepEqual(plain(b.t.daten().kontakte), original, "preview may not mutate contacts");
@@ -112,7 +140,8 @@ async function preview(web, data, mode = "apply") {
     const repeated = await preview(web, imported);
     assert.equal(repeated.kontakte[0].id, imported.kontakte[0].id);
     assert.equal(repeated.kontakte[0].vorname, "Local edit", "unchanged phone version does not overwrite local edits");
-    for (const mode of ["cancel", "incomplete", "source-changed", "snapshot-error"]) await preview(web, {}, mode);
+    for (const mode of ["cancel", "incomplete", "source-changed", "snapshot-error", "timeout", "locked", "device-changed", "repaired", "index-changed", "local-edit", "native-cache-refresh"])
+      await preview(web, {}, mode);
     console.log("OK KDE-Abruf, Vorschau, Snapshot, Speicherung, Wiederholung und Fehlerfälle:", web);
   }
 })().catch(error => { console.error(error); process.exitCode = 1; });

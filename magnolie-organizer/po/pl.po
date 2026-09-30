@@ -3237,21 +3237,11 @@ msgstr "KDE Connect"
 msgid "KDE Connect device"
 msgstr "Urządzenie KDE Connect"
 
-msgid "KDE Connect for SMS"
-msgstr "KDE Connect dla SMS"
-
 msgid "KDE Connect for SMS is available only in the installed application."
 msgstr "KDE Connect dla SMS jest dostępny tylko w zainstalowanej aplikacji."
 
 msgid "KDE Connect is unavailable; other background services remain active."
 msgstr "KDE Connect jest niedostępny; pozostałe usługi w tle nadal działają."
-
-msgid ""
-"KDE Connect is used only for SMS. It does not connect or synchronize the "
-"Magnolienbaum."
-msgstr ""
-"KDE Connect jest używany tylko dla SMS. Nie łączy ani nie synchronizuje "
-"Magnolienbaum."
 
 msgid "KDE Connect pairing"
 msgstr "Parowanie KDE Connect"
@@ -8566,6 +8556,16 @@ msgstr[2] "… i jeszcze %(count)s elementy, które również zostaną wydrukowa
 
 msgid "＋ Add appointment"
 msgstr "＋ Dodaj spotkanie"
+
+#~ msgid "KDE Connect for SMS"
+#~ msgstr "KDE Connect dla SMS"
+
+#~ msgid ""
+#~ "KDE Connect is used only for SMS. It does not connect or synchronize the "
+#~ "Magnolienbaum."
+#~ msgstr ""
+#~ "KDE Connect jest używany tylko dla SMS. Nie łączy ani nie synchronizuje "
+#~ "Magnolienbaum."
 
 #~ msgid "Enable background service"
 #~ msgstr "Włącz usługę działającą w tle"

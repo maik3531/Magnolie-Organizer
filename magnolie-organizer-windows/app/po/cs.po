@@ -2653,18 +2653,8 @@ msgstr "Džus"
 msgid "Jura"
 msgstr "Jura"
 
-msgid "KDE Connect for SMS"
-msgstr "KDE Connect pro SMS"
-
 msgid "KDE Connect for SMS is available only in the installed application."
 msgstr "KDE Connect pro SMS je k dispozici pouze v nainstalované aplikaci."
-
-msgid ""
-"KDE Connect is used only for SMS. It does not connect or synchronize the "
-"Magnolienbaum."
-msgstr ""
-"KDE Connect se používá pouze pro SMS. Nepřipojuje ani nesynchronizuje "
-"Magnolienbaum."
 
 msgid "KDE Connect pairing failed."
 msgstr "Párování KDE Connect se nezdařilo."
@@ -6942,6 +6932,16 @@ msgstr[2] "… a ještě %(count)s další položky, které se rovněž vytiskno
 
 msgid "＋ Add appointment"
 msgstr "＋ Přidat schůzku"
+
+#~ msgid "KDE Connect for SMS"
+#~ msgstr "KDE Connect pro SMS"
+
+#~ msgid ""
+#~ "KDE Connect is used only for SMS. It does not connect or synchronize the "
+#~ "Magnolienbaum."
+#~ msgstr ""
+#~ "KDE Connect se používá pouze pro SMS. Nepřipojuje ani nesynchronizuje "
+#~ "Magnolienbaum."
 
 #~ msgid "Answer calls on the computer and talk"
 #~ msgstr "Přijímat hovory na počítači a mluvit"

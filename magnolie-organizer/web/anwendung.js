@@ -20968,17 +20968,29 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     });
   }
 
-  function kdeKontaktPlan(karte, kontakte) {
+  function kdeKontaktIndex(kontakte) {
+    const index = { bindungen: new Map(), mails: new Map(), telefone: new Map() };
+    for (const kontakt of kontakte) {
+      for (const [ziel, werte] of [[index.bindungen, kontakt.importBindungen || []],
+        [index.mails, emailListe(kontakt).map(kontaktFotoMailSchluessel)], [index.telefone, kontaktTelefone(kontakt)]]) {
+        for (const wert of werte) {
+          if (!wert) continue;
+          if (!ziel.has(wert)) ziel.set(wert, new Set());
+          ziel.get(wert).add(kontakt);
+        }
+      }
+    }
+    return index;
+  }
+
+  function kdeKontaktPlan(karte, kontakte, index = kdeKontaktIndex(kontakte)) {
     const bindung = karte.bindung;
     if (!/^urn:magnolie:import:kde:[0-9a-f]{64}$/.test(bindung || "") ||
         !karte.kontakt || typeof karte.kontakt !== "object") throw new Error(_("The offered entry is incomplete."));
     const eingang = karte.kontakt;
-    const mails = new Set(emailListe(eingang).map(kontaktFotoMailSchluessel));
-    const telefone = new Set(kontaktTelefone(eingang));
-    const gebunden = kontakte.filter(k => (k.importBindungen || []).includes(bindung));
-    const kandidaten = kontakte.filter(k => gebunden.includes(k) ||
-      emailListe(k).some(m => mails.has(kontaktFotoMailSchluessel(m))) ||
-      kontaktTelefone(k).some(t => telefone.has(t)));
+    const kandidaten = [...new Set([...(index.bindungen.get(bindung) || []),
+      ...emailListe(eingang).flatMap(mail => [...(index.mails.get(kontaktFotoMailSchluessel(mail)) || [])]),
+      ...kontaktTelefone(eingang).flatMap(telefon => [...(index.telefone.get(telefon) || [])])])];
     return { karte, kandidaten, zielId: kandidaten.length === 1 ? kandidaten[0].id : "",
       modus: kandidaten.length > 1 ? "skip" : kandidaten.length ? "merge" : "new", auswahl: {} };
   }
@@ -20990,14 +21002,21 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       vcardRoundtrip: _("Additional information"), vcardParameter: _("Additional information") };
   }
 
+  function kdeKontaktWert(kontakt, feld) {
+    if (feld === "anzeigename" && !kontakt?.anzeigename)
+      return [kontakt?.vorname, kontakt?.nachname].filter(Boolean).join(" ");
+    return kontakt?.[feld];
+  }
+
   function kdeKontaktEntwurf(plan, ziel) {
     const eingang = plan.karte.kontakt, entwurf = kopie(ziel || {});
     for (const feld of Object.keys(kdeKontaktFelder()).filter(f => f !== "kontakte")) {
       const wert = eingang[feld];
       if (plan.auswahl[feld] === "keep") continue;
       if (wert === undefined || wert === "" || kanonischerEntwurf(wert) === "[]" || kanonischerEntwurf(wert) === "{}") continue;
-      if (!ziel || !entwurf[feld] || kanonischerEntwurf(entwurf[feld]) === "[]" ||
-          kanonischerEntwurf(entwurf[feld]) === "{}" || plan.auswahl[feld] === "incoming") entwurf[feld] = kopie(wert);
+      const bisher = kdeKontaktWert(entwurf, feld);
+      if (!ziel || !bisher || kanonischerEntwurf(bisher) === "[]" ||
+          kanonischerEntwurf(bisher) === "{}" || plan.auswahl[feld] === "incoming") entwurf[feld] = kopie(wert);
     }
     for (const [feld, regel] of Object.entries({ ...BAUM_KONTAKT_LISTEN,
       kontaktpersonen: { lesen: kontaktpersonenListe, setzen: setzeKontaktpersonen } })) {
@@ -21035,15 +21054,16 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     const dialog = el("section", "eingabe-dialog kontakt-import-dialog");
     dialog.setAttribute("role", "dialog"); dialog.setAttribute("aria-modal", "true");
     const status = el("p", "einst-hinweis", _("Please wait …")), liste = el("div");
-    const schliessen = () => {
+    const schliessen = (fotoFortsetzen = true) => {
       if (lauf.beendet) return;
       lauf.beendet = true; beendeModal(schleier); schleier.remove();
       if (kdeKontaktLauf === lauf) kdeKontaktLauf = null;
       for (const [id, anfrage] of kdeKontaktAnfragen) {
         clearTimeout(anfrage.timer); kdeKontaktAnfragen.delete(id); anfrage.reject(new Error(_("Cancel")));
       }
-      planeKontaktFotoAbruf();
+      if (fotoFortsetzen) planeKontaktFotoAbruf();
     };
+    lauf.abbrechen = () => schliessen(false);
     const abbrechen = knopf(_("Cancel"), "", schliessen);
     const anwenden = knopf(_("Apply"), "hauptknopf", () => {}); anwenden.disabled = true;
     const knoepfe = el("div", "dialog-knoepfe"); knoepfe.append(anwenden, abbrechen);
@@ -21058,6 +21078,10 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       if (!gueltig() || !/^[a-f0-9]{64}$/i.test(index.fingerprint || "") || index.contacts.length > 20000)
         throw new Error(_("The offered entry is incomplete."));
       const fingerprint = index.fingerprint.toLowerCase(), ids = index.contacts.map(k => k.uid);
+      // System-KDE timestamps describe cache writes, not necessarily contact edits.
+      const indexStand = antwort => kanonischerEntwurf(antwort.contacts.map(k => [k.uid, index.native_cache === true ? 0 : k.modified_ms])
+        .sort((a, b) => a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0));
+      const urspruenglicherIndex = indexStand(index);
       if (new Set(ids).size !== ids.length || ids.some(id => typeof id !== "string" || !id || id.length > 1024))
         throw new Error(_("The offered entry is incomplete."));
       const karten = []; let umfang = 0;
@@ -21077,8 +21101,10 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
         status.textContent = _("Please wait …") + " " + karten.length + " / " + ids.length;
       }
       if (!gueltig() || kanonischerEntwurf(DATEN.kontakte) !== vorher) throw new Error(_("Conflict"));
-      const plaene = karten.map(k => kdeKontaktPlan(k, DATEN.kontakte));
-      const beschreibe = wert => typeof wert === "string" ? wert : JSON.stringify(wert ?? "");
+      const kontaktIndex = kdeKontaktIndex(DATEN.kontakte);
+      const plaene = karten.map(k => kdeKontaktPlan(k, DATEN.kontakte, kontaktIndex));
+      const beschreibe = wert => Array.isArray(wert) ? wert.map(beschreibe).join(" · ") :
+        typeof wert === "string" ? wert : wert?.wert ? [wert.label, wert.wert].filter(Boolean).join(": ") : JSON.stringify(wert ?? "");
       let seite = 0;
       function zeichnen() {
         liste.textContent = "";
@@ -21094,7 +21120,17 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
             plan.zielId = plan.modus === "merge" ? wahl.value : "";
             felder.textContent = "";
             const ziel = DATEN.kontakte.find(k => k.id === plan.zielId), incoming = plan.karte.kontakt;
-            if (!ziel) { felder.append(el("pre", null, beschreibe(incoming))); return; }
+            if (!ziel) {
+              const vorschau = el("div", "kontakt-karte"); vorschau.style.overflowWrap = "anywhere";
+              const zeige = (titel, wert) => {
+                if (wert === undefined || wert === "" || kanonischerEntwurf(wert) === "[]" || kanonischerEntwurf(wert) === "{}") return;
+                vorschau.append(el("div", "k-label", titel), el("div", "k-wert", beschreibe(wert)));
+              };
+              for (const [feld, titel] of Object.entries(kdeKontaktFelder()).filter(([f]) => f !== "kontakte")) zeige(titel, incoming[feld]);
+              zeige(_("Phone numbers"), telefonListe(incoming)); zeige(_("Email addresses"), emailEintragListe(incoming));
+              zeige(_("Address"), anschriftListe(incoming)); zeige(_("Emergency contacts"), kontaktpersonenListe(incoming));
+              felder.append(vorschau); return;
+            }
             if (ziel.kdeImportStaende?.[plan.karte.bindung] === plan.karte.hash) {
               felder.append(el("p", null, _("no changes"))); return;
             }
@@ -21104,13 +21140,13 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
               const werte = [["keep", _("Keep existing") + ": " + beschreibe(alt)],
                 ["incoming", _("Incoming") + ": " + beschreibe(neu)]];
               if (mehrwertig) werte.push(["add", _("Add") + ": " + beschreibe(neu)]);
-              const auswahl = auswahlFeld(werte, plan.auswahl[feld] || (mehrwertig ? "add" : alt && beschreibe(alt) !== "{}" && beschreibe(alt) !== "[]" ? "keep" : "incoming"));
+              const auswahl = auswahlFeld(werte, plan.auswahl[feld] || (mehrwertig ? "add" : alt && kanonischerEntwurf(alt) !== "{}" && kanonischerEntwurf(alt) !== "[]" ? "keep" : "incoming"));
               plan.auswahl[feld] = auswahl.value;
               auswahl.addEventListener("change", () => { plan.auswahl[feld] = auswahl.value; });
               felder.append(formZeile(titel, auswahl));
             };
             for (const [feld, titel] of Object.entries(kdeKontaktFelder()).filter(([f]) => f !== "kontakte"))
-              anzeigen(feld, titel, ziel[feld], incoming[feld], false);
+              anzeigen(feld, titel, kdeKontaktWert(ziel, feld), incoming[feld], false);
             for (const [feld, regel] of Object.entries({ ...BAUM_KONTAKT_LISTEN,
               kontaktpersonen: { lesen: kontaktpersonenListe } }))
               anzeigen(feld, { telefone: _("Phone numbers"), emailEintraege: _("Email addresses"),
@@ -21125,8 +21161,14 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
         navigation.append(zurueck, weiter); liste.append(navigation);
       }
       zeichnen(); anwenden.disabled = !plaene.length;
-      anwenden.onclick = () => {
+      anwenden.onclick = async () => {
         if (!gueltig() || kanonischerEntwurf(DATEN.kontakte) !== vorher) { status.textContent = _("Conflict"); anwenden.disabled = true; return; }
+        anwenden.disabled = true;
+        try {
+          const aktuell = await kdeKontaktAbfragen(lauf.deviceId);
+          if (!gueltig() || aktuell.fingerprint?.toLowerCase() !== fingerprint || indexStand(aktuell) !== urspruenglicherIndex ||
+              kanonischerEntwurf(DATEN.kontakte) !== vorher) throw new Error(_("Conflict"));
+        } catch (error) { if (!lauf.beendet) status.textContent = error.message; return; }
         const entwürfe = DATEN.kontakte.slice();
         try {
           for (const plan of plaene) {
@@ -21138,7 +21180,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
             const entwurf = kdeKontaktEntwurf(plan, ziel);
             if (ziel) entwürfe[entwürfe.indexOf(ziel)] = entwurf; else entwürfe.push(entwurf);
           }
-        } catch (error) { status.textContent = error.message; return; }
+        } catch (error) { status.textContent = error.message; anwenden.disabled = false; return; }
         if (entwürfe.length === DATEN.kontakte.length && entwürfe.every((kontakt, index) => kontakt === DATEN.kontakte[index])) {
           schliessen(); return;
         }
@@ -22671,8 +22713,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
   function baueTelefonverbindung(wurzel) {
     const ab = abschnitt(_("Magnolie Notes phone connection"),
       _("A separate encrypted connection for dial requests, device status and selected notifications."));
-    const kdeAb = abschnitt(_("KDE Connect for SMS"),
-      _("KDE Connect is used only for SMS. It does not connect or synchronize the Magnolienbaum."));
+    const kdeAb = abschnitt("KDE Connect");
     ab.classList.add("telefon-karte");
     kdeAb.classList.add("telefon-kde-karte");
     if (!Bruecke.vorhanden) {
@@ -22791,6 +22832,10 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
 
     const kde = telefonStand.kdeconnect || {};
     const kdeBlock = el("div", "telefon-kdeconnect");
+    const kontakteVerweis = knopf(_("Phone contacts (KDE Connect)"), "", () => {
+      einstSeite = "sync"; baueEinstellungen(); $("#kde-kontakte-abrufen")?.focus();
+    });
+    kontakteVerweis.id = "kde-telefonkontakte-verweis"; kdeBlock.append(kontakteVerweis);
     kdeBlock.append(el("p", "einst-hinweis", _("The KDE Connect support is built into the Organizer. Only the KDE Connect app on Android is required; no additional KDE Connect desktop program is needed.")));
     kdeBlock.append(el("p", "einst-hinweis", _("Magnolie Notes phones and KDE Connect phones are separate: the Android model name belongs to Magnolie Notes; the KDE peer name comes from KDE Connect.")));
     const neuerKdePeer = kde.unpaired_candidate_count === 1 && kde.unpaired_candidate_id;
@@ -26532,6 +26577,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       }
     },
     init(nutzlast) {
+      kdeKontaktLauf?.abbrechen?.();
       letzterSpeicherSha256 = ""; baumSpeicherNachweis = null;
       const startPhase = performance.now();
       nutzlast = nutzlast || {};
@@ -26742,6 +26788,8 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     },
     telefonStand(nutzlast) {
       telefonStand = nutzlast || null;
+      if (kdeKontaktLauf && (!telefonStand?.kdeconnect?.contacts_available ||
+          telefonStand.kdeconnect.contacts_device_id !== kdeKontaktLauf.deviceId)) kdeKontaktLauf.abbrechen();
       planeKontaktFotoAbruf();
       telefonStandardsAnwenden();
       document.querySelectorAll("[data-personal-grant-peer], [data-personal-auto-peer]").forEach(input => {
