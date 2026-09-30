@@ -1504,6 +1504,9 @@ msgstr "बनाएँ"
 msgid "Create a backup copy of the data"
 msgstr "डेटा की बैकअप प्रति बनाएँ"
 
+msgid "Create a drawing sheet in the custom tab first."
+msgstr "पहले कस्टम टैब में एक चित्रांकन पृष्ठ बनाएँ।"
+
 msgid "Create a new appointment immediately"
 msgstr "तुरंत नया अपॉइंटमेंट बनाएँ"
 
@@ -1839,6 +1842,12 @@ msgstr "डाउनलोड"
 msgid "Drag the attachment area up or down"
 msgstr "संलग्नक क्षेत्र को ऊपर या नीचे खींचें"
 
+msgid "Drawing sheet"
+msgstr "चित्रांकन पृष्ठ"
+
+msgid "Drawing tool"
+msgstr "चित्रांकन उपकरण"
+
 msgid "Drops"
 msgstr "बूँदें"
 
@@ -1955,6 +1964,11 @@ msgstr "इस ब्लॉक के लिए रिमाइंडर सक�
 msgid "Enable shift planner"
 msgstr "शिफ़्ट प्लानर सक्षम करें"
 
+msgid ""
+"Enable tablet input here, then open the drawing tablet in KDE Connect on the "
+"phone."
+msgstr "यहाँ टैबलेट इनपुट चालू करें, फिर फ़ोन पर KDE Connect में चित्रांकन टैबलेट खोलें।"
+
 msgid "Enable this SMS plan"
 msgstr "यह SMS योजना चालू करें"
 
@@ -2040,6 +2054,9 @@ msgstr "आयात के लिए तैयार प्रविष्ट�
 msgid "Entry"
 msgstr "प्रविष्टि"
 
+msgid "Eraser"
+msgstr "रबड़"
+
 msgid "Errands"
 msgstr "काम-काज"
 
@@ -2075,6 +2092,9 @@ msgstr "निर्यात करें"
 
 msgid "Export Magnolie complete archive"
 msgstr "मैग्नोली संपूर्ण संग्रह निर्यात करें"
+
+msgid "Export PNG"
+msgstr "PNG निर्यात करें"
 
 msgid "Export archive"
 msgstr "पुरालेख निर्यात करें"
@@ -2424,6 +2444,13 @@ msgstr ""
 "तब उम्र नहीं दिखाई जाएगी।\n"
 "वर्षगाँठें कैलेंडर और प्लानर में ✱ के साथ दिखाई देती हैं।"
 
+msgid ""
+"If your system KDE Connect supports tablet input, it can be used here like a "
+"normal pen."
+msgstr ""
+"यदि आपके सिस्टम का KDE Connect टैबलेट इनपुट का समर्थन करता है, तो उसे यहाँ सामान्य पेन "
+"की तरह उपयोग किया जा सकता है।"
+
 msgid "Image"
 msgstr "चित्र"
 
@@ -2659,6 +2686,9 @@ msgstr "लाइसेंस"
 
 msgid "Liechtenstein"
 msgstr "लिकटेंस्टीन"
+
+msgid "Line width"
+msgstr "रेखा की चौड़ाई"
 
 msgid "Lined paper (lines on the writing sheet)"
 msgstr "लाइन वाला काग़ज़ (लेखन शीट पर रेखाएँ)"
@@ -5205,6 +5235,9 @@ msgstr "गंतव्य नहीं खोला जा सका."
 msgid "The download address is not permitted for this platform."
 msgstr "इस प्लेटफ़ॉर्म के लिए डाउनलोड पते की अनुमति नहीं है।"
 
+msgid "The drawing limit has been reached."
+msgstr "चित्रांकन की सीमा पूरी हो गई है।"
+
 msgid "The end date cannot be before the start date."
 msgstr "समाप्ति तारीख आरंभ तारीख से पहले नहीं हो सकती।"
 
@@ -5702,6 +5735,9 @@ msgstr "यह डिवाइस पहचानकर्ता उपलब्
 msgid "This dial request has already been queued."
 msgstr "यह डायल अनुरोध पहले ही कतारबद्ध किया जा चुका है."
 
+msgid "This drawing cannot be edited in this version."
+msgstr "इस संस्करण में इस चित्र को संपादित नहीं किया जा सकता।"
+
 msgid "This end-call request has already been queued."
 msgstr "यह एंड-कॉल अनुरोध पहले ही कतारबद्ध किया जा चुका है।"
 
@@ -5975,6 +6011,9 @@ msgstr "चालू रहने का समय"
 
 msgid "Uri"
 msgstr "URI"
+
+msgid "Use KDE Connect drawing tablet"
+msgstr "KDE Connect चित्रांकन टैबलेट का उपयोग करें"
 
 msgid "Use LibreOffice address"
 msgstr "LibreOffice का पता डेटा उपयोग करें"

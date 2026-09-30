@@ -21,7 +21,9 @@ const consent = JSON.parse(fs.readFileSync(path.join(root, 'contracts/personal-c
             textItemId: 'private-text', remind: true, wiederholung: { art: 'monthly' } }] },
         { id: 'module-2', type: 'tasks', title: 'Tasks', reminders: false, items: [
           { id: 'x'.repeat(160), title: 'Finished', due: '2028-02-01', done: true, remind: false }] },
-        { id: 'module-text', type: 'notes', items: [{ id: 'private-text', text: 'DO NOT TRANSMIT', html: '<b>PRIVATE</b>' }] }
+        { id: 'module-text', type: 'notes', items: [{ id: 'private-text', text: 'DO NOT TRANSMIT', html: '<b>PRIVATE</b>' }] },
+        { id: 'private-drawing', type: 'drawing', items: [],
+          get drawing() { throw new Error('Local drawing content reached the synchronization serializer'); } }
       ] } };
     const ctx = vm.createContext({ TextEncoder, crypto: webcrypto, DATEN: data, gesperrt: false, initialisiert: true,
       antwortErhalten: true, _: x => x, leseWiederholung: x => x || { art: 'none' },

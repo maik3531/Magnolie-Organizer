@@ -42,6 +42,9 @@ internal sealed class KdeConnectDirectBackend : IDisposable, IAsyncDisposable
     private readonly ConcurrentDictionary<string, byte> repairReported = new(StringComparer.Ordinal);
     private readonly ConcurrentDictionary<Task, byte> backgroundTasks = new();
     private readonly object activeGate = new();
+    private readonly object digitizerGate = new();
+    private Connection? digitizerOwner;
+    private string digitizerToken = "";
     private readonly SemaphoreSlim candidateSignal = new(0, 1);
     private readonly SemaphoreSlim incomingSlots = new(8, 8);
     private readonly SemaphoreSlim outgoingSlots = new(8, 8);
@@ -107,6 +110,7 @@ internal sealed class KdeConnectDirectBackend : IDisposable, IAsyncDisposable
     internal event Action<KdeConnectSmsReceived>? SmsReceived;
     internal event Action<KdeConnectSendResult>? SendCompleted;
     internal event Action<KdeConnectPairingEvent>? PairingChanged;
+    internal event Action<KdeDigitizerFrame>? DigitizerReceived;
 
     internal int ListenerPort { get; }
     internal int DiscoveryPort => (udp?.Client.LocalEndPoint as IPEndPoint)?.Port ?? 0;
@@ -381,6 +385,66 @@ internal sealed class KdeConnectDirectBackend : IDisposable, IAsyncDisposable
     }
 
     internal IReadOnlyList<string> ContactDevices => ContactConnections().Select(connection => connection.Identity.DeviceId).ToArray();
+
+    private List<Connection> DigitizerConnections()
+    {
+        var pins = store.LoadPeers().Where(peer => peer.Paired).ToDictionary(peer => peer.Id, peer => peer.CertificatePin, StringComparer.Ordinal);
+        return active.Values.Where(connection => !connection.Closed &&
+            connection.Identity.OutgoingCapabilities.Contains(KdeDigitizerState.SessionPacket) &&
+            connection.Identity.OutgoingCapabilities.Contains(KdeDigitizerState.EventPacket)).Where(connection =>
+            {
+                try { return pins.TryGetValue(connection.Identity.DeviceId, out var pin) && pin == KdeConnectProtocol.CertificatePin(connection.Certificate); }
+                catch (Exception error) when (error is CryptographicException or ObjectDisposedException) { return false; }
+            }).ToList();
+    }
+
+    internal IReadOnlyList<string> DigitizerDevices => DigitizerConnections().Select(connection => connection.Identity.DeviceId).ToArray();
+
+    internal void SetDigitizerTarget(string deviceId, string token, bool enabled)
+    {
+        if (!Guid.TryParse(token, out _)) throw new InvalidDataException("invalid_digitizer_target");
+        var connection = enabled ? DigitizerConnections().SingleOrDefault(value => value.Identity.DeviceId == deviceId) : null;
+        if (enabled && connection is null) throw new InvalidOperationException("digitizer_unavailable");
+        lock (digitizerGate)
+        {
+            if (!enabled && token != digitizerToken) return;
+            digitizerOwner = connection; digitizerToken = enabled ? token : "";
+        }
+    }
+
+    internal void StopDigitizer()
+    {
+        lock (digitizerGate) { digitizerOwner = null; digitizerToken = ""; }
+    }
+
+    private void HandleDigitizerPacket(Connection connection, KdeConnectPacket packet)
+    {
+        if (!active.TryGetValue(connection.Identity.DeviceId, out var current) || !ReferenceEquals(current, connection) ||
+            connection.Closed || !connection.Identity.OutgoingCapabilities.Contains(packet.Type)) return;
+        JsonObject sample;
+        try { sample = connection.Digitizer.Accept(packet.Type, packet.Body); }
+        catch (InvalidDataException)
+        {
+            EndDigitizerConnection(connection); return;
+        }
+        KdeDigitizerFrame? frame = null;
+        lock (digitizerGate)
+            if (ReferenceEquals(digitizerOwner, connection)) frame = new(connection.Identity.DeviceId, digitizerToken, sample);
+        if (frame is not null) SafeInvoke(DigitizerReceived, frame);
+    }
+
+    private void EndDigitizerConnection(Connection connection)
+    {
+        KdeDigitizerFrame? frame = null;
+        lock (digitizerGate)
+            if (ReferenceEquals(digitizerOwner, connection))
+            {
+                frame = new(connection.Identity.DeviceId, digitizerToken,
+                    new JsonObject { ["active"] = false, ["touching"] = false }, true);
+                digitizerOwner = null; digitizerToken = "";
+            }
+        if (frame is not null) SafeInvoke(DigitizerReceived, frame);
+    }
 
     internal async Task<JsonObject> ContactIndexAsync(string? deviceId = null, CancellationToken cancellationToken = default)
     {
@@ -854,6 +918,7 @@ internal sealed class KdeConnectDirectBackend : IDisposable, IAsyncDisposable
                 var packet = await KdeConnectProtocol.ReadAsync(connection.Stream, cancellationToken,
                     active.TryGetValue(connection.Identity.DeviceId, out var current) && ReferenceEquals(current, connection)).ConfigureAwait(false);
                 if (packet.Type == "kdeconnect.pair") await HandlePairPacketAsync(connection, packet, cancellationToken).ConfigureAwait(false);
+                else if (packet.Type is KdeDigitizerState.SessionPacket or KdeDigitizerState.EventPacket) HandleDigitizerPacket(connection, packet);
                 else if (packet.Type == KdeConnectProtocol.SmsMessages && connection.State.SmsStarted) HandleSmsPacket(connection, packet);
                 else if (KdeConnectProtocol.IsContactResponse(packet.Type))
                 {
@@ -874,6 +939,7 @@ internal sealed class KdeConnectDirectBackend : IDisposable, IAsyncDisposable
             $"generation={connection.Generation} direction={connection.Direction}", error); }
         finally
         {
+            EndDigitizerConnection(connection);
             if (RemoveActive(connection)) { DebugLog("active.closed", $"device={connection.Identity.DeviceId} generation={connection.Generation}");
                 connection.Dispose(); ScheduleReconnect(false); EmitStatus(); }
             else if (RemoveStaged(connection))
@@ -1358,6 +1424,7 @@ internal sealed class KdeConnectDirectBackend : IDisposable, IAsyncDisposable
         internal IPAddress Address { get; } = address;
         internal int Port { get; } = port;
         internal SmsState State { get; } = new();
+        internal KdeDigitizerState Digitizer { get; } = new();
         internal object ContactGate { get; } = new();
         internal SemaphoreSlim ContactRequests { get; } = new(1, 1);
         internal TaskCompletionSource<JsonObject>? ContactReply;

@@ -50,7 +50,8 @@ internal sealed partial class BridgeDispatcher
                 try
                 {
                     created.StatusChanged += HandleKdeStatusChanged; created.SmsReceived += HandleKdeSmsReceived;
-                    created.PairingChanged += HandleKdePairingChanged; kdeInstance = created; return created;
+                    created.PairingChanged += HandleKdePairingChanged; created.DigitizerReceived += HandleKdeDigitizer;
+                    kdeInstance = created; return created;
                 }
                 catch { created.Dispose(); throw; }
             }

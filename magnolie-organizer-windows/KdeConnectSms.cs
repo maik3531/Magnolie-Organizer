@@ -27,6 +27,11 @@ internal sealed class KdeConnectSms : IDisposable
     internal Task<KdeConnectStatus> DirectStatusAsync(CancellationToken cancellationToken = default) =>
         native.GetStatusAsync(cancellationToken);
     internal IReadOnlyList<string> ContactDevices => native.ContactDevices;
+    internal IReadOnlyList<string> DigitizerDevices => native.DigitizerDevices;
+    internal event Action<KdeDigitizerFrame>? DigitizerReceived
+    { add => native.DigitizerReceived += value; remove => native.DigitizerReceived -= value; }
+    internal void SetDigitizerTarget(string deviceId, string token, bool enabled) => native.SetDigitizerTarget(deviceId, token, enabled);
+    internal void StopDigitizer() => native.StopDigitizer();
     internal Task<JsonObject> ContactIndexAsync(string deviceId, CancellationToken cancellationToken) =>
         native.ContactIndexAsync(deviceId, cancellationToken);
     internal Task<JsonObject> ContactVcardsAsync(JsonArray uids, string deviceId, CancellationToken cancellationToken) =>

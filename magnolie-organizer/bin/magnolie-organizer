@@ -19852,6 +19852,13 @@ class Fenster(_FENSTER_BASIS):
             threading.Thread(target=lambda: self._telefon_status_anfordern(
                  nachricht.get("kennung") or "", nachricht.get("requestId")), daemon=True).start()
 
+        elif befehl == "kde_zeichnen":
+            self._zeichen_revision = getattr(self, '_zeichen_revision', 0) + 1
+            if not hasattr(self, '_zeichen_sperre'):
+                self._zeichen_sperre = threading.Lock()
+            threading.Thread(target=self._zeichen_eingabe_setzen,
+                             args=(nachricht, self._zeichen_revision), daemon=True).start()
+
         elif befehl in ("telefon_kontaktfotos", "telefon_kontakte"):
             request_id = nachricht.get("requestId")
             if not isinstance(request_id, str) or not re.fullmatch(r"[0-9a-fA-F-]{36}", request_id):
@@ -21454,6 +21461,15 @@ class Fenster(_FENSTER_BASIS):
             empfang.get("zwischenablageAutomatisch") is True, directory)
 
     def _kde_ereignis(self, art, nutzlast):
+        if art == 'digitizer':
+            def zeichnen():
+                if self._organizer_vertraut():
+                    payload = nutzlast if not self._gesperrt and self.get_visible() else dict(
+                        token=nutzlast.get('token'), device_id=nutzlast.get('device_id'), stopped=True, events=[])
+                    self.antwort("App.zeichenEingabe", payload)
+                return False
+            GLib.idle_add(zeichnen)
+            return
         if art == "clipboard_apply":
             def kopieren():
                 self._ablage_setzen(str(nutzlast.get("text") or ""))
@@ -21475,6 +21491,27 @@ class Fenster(_FENSTER_BASIS):
                 self.antwort(ziel, nutzlast)
                 return False
             GLib.idle_add(melden)
+
+    def _zeichen_eingabe_setzen(self, nachricht, revision):
+        token = nachricht.get('token')
+        try:
+            enabled, device_id = nachricht.get('enabled'), nachricht.get('device_id')
+            if (type(enabled) is not bool or not isinstance(token, str) or
+                    not re.fullmatch(r'[0-9a-fA-F-]{36}', token) or not isinstance(device_id, str) or
+                    len(device_id) > 200 or enabled and self._gesperrt):
+                raise ValueError('invalid_digitizer_target')
+            with self._zeichen_sperre:
+                if revision != self._zeichen_revision:
+                    return
+                backend = _kdeconnect_backend()
+                result = backend.set_digitizer_target(device_id, token, enabled,
+                    permitted=lambda: not self._gesperrt and revision == self._zeichen_revision)
+                if revision != self._zeichen_revision:
+                    backend.set_digitizer_target(device_id, token, False)
+                    return
+            self.antwort("App.zeichenEingabeStand", dict(ok=True, token=token, enabled=result.get('enabled') is True))
+        except Exception:
+            self.antwort("App.zeichenEingabeStand", dict(ok=False, token=token, enabled=False))
 
     def _kontakt_fotos_lesen(self, nachricht):
         request_id = nachricht.get("requestId", "")

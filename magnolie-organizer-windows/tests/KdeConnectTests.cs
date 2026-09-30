@@ -20,7 +20,8 @@ internal static class KdeConnectTests
         var identity = KdeConnectProtocol.ParseIdentity(decoded);
         TestAssert.That(decoded.Id == 42 && identity.DeviceId == "phone_1234" && identity.TcpPort == 1716 &&
             identity.IncomingCapabilities.SequenceEqual(new[] { KdeConnectProtocol.SmsMessages,
-                KdeConnectProtocol.ContactUidsResponse, KdeConnectProtocol.ContactVcardsResponse }) &&
+                KdeConnectProtocol.ContactUidsResponse, KdeConnectProtocol.ContactVcardsResponse,
+                KdeDigitizerState.SessionPacket, KdeDigitizerState.EventPacket }) &&
             identity.OutgoingCapabilities.SequenceEqual(new[] { KdeConnectProtocol.SmsRequest,
                 KdeConnectProtocol.SmsRequestConversations, KdeConnectProtocol.SmsRequestConversation,
                 KdeConnectProtocol.ContactUidsRequest, KdeConnectProtocol.ContactVcardsRequest }),
@@ -163,6 +164,7 @@ internal static class KdeConnectTests
         finally { if (Directory.Exists(root)) Directory.Delete(root, true); }
 
         await ContactLoopbackAsync();
+        await DigitizerLoopbackAsync();
         await IncomingPairingLoopbackAsync();
         await StagedConnectionSurvivesCandidateExpiryAsync();
         await HistoryBootstrapLoopbackAsync();
@@ -407,6 +409,55 @@ internal static class KdeConnectTests
             await phone.WaitAsync(TimeSpan.FromSeconds(10));
         }
         finally { if (Directory.Exists(root)) Directory.Delete(root, true); }
+    }
+
+    private static async Task DigitizerLoopbackAsync()
+    {
+        const string phoneId = "phone_digitizer";
+        var root = Path.Combine(Path.GetTempPath(), "magnolie-digitizer-" + Guid.NewGuid().ToString("N"));
+        try
+        {
+            var paths = new WindowsPaths(root); var protector = new TestProtector();
+            using var certificate = Certificate(phoneId);
+            var store = new KdeConnectIdentityStore(paths, protector);
+            using (var identity = store.LoadOrCreate().Certificate) { }
+            store.Pin(new KdeConnectPeer(phoneId, "Digitizer fixture", KdeConnectProtocol.CertificatePin(certificate), 1));
+            await using var backend = new KdeConnectDirectBackend(paths, protector, activeDiscovery: false);
+            var phone = await ConnectIncomingPhoneAsync(backend, phoneId, certificate, digitizer: true);
+            using var client = phone.Client; using var stream = phone.Stream;
+            await WaitForDeviceAsync(backend, phoneId);
+            TestAssert.That(backend.DigitizerDevices.SequenceEqual(new[] { phoneId }), "Digitizer capability missing.");
+            var token = Guid.NewGuid().ToString();
+            TestAssert.Throws<InvalidOperationException>(() => backend.SetDigitizerTarget("other", token, true), "Another device was silently selected.");
+            var first = new TaskCompletionSource<KdeDigitizerFrame>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var second = new TaskCompletionSource<KdeDigitizerFrame>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var stopped = new TaskCompletionSource<KdeDigitizerFrame>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var nextToken = Guid.NewGuid().ToString();
+            backend.DigitizerReceived += frame =>
+            {
+                if (frame.Stopped) stopped.TrySetResult(frame);
+                else if (frame.Sample["touching"]?.GetValue<bool>() == true)
+                {
+                    if (frame.Token == token) first.TrySetResult(frame);
+                    if (frame.Token == nextToken) second.TrySetResult(frame);
+                }
+            };
+            backend.SetDigitizerTarget(phoneId, token, true);
+            await stream.WriteAsync(KdeConnectProtocol.Encode(KdeDigitizerState.SessionPacket,
+                JsonNode.Parse("""{"action":"start","width":1000,"height":500,"resolutionX":10,"resolutionY":10}""")!.AsObject()));
+            await stream.WriteAsync(KdeConnectProtocol.Encode(KdeDigitizerState.EventPacket,
+                JsonNode.Parse("""{"active":true,"touching":true,"x":500,"y":100,"pressure":0.4,"tool":"Pen"}""")!.AsObject()));
+            var drawn = await first.Task.WaitAsync(TimeSpan.FromSeconds(5));
+            TestAssert.That(drawn.DeviceId == phoneId && drawn.Sample["x"]!.GetValue<double>() == 0.5, "Bound digitizer sample changed source or coordinates.");
+            backend.SetDigitizerTarget(phoneId, nextToken, true);
+            backend.SetDigitizerTarget(phoneId, token, false);
+            await stream.WriteAsync(KdeConnectProtocol.Encode(KdeDigitizerState.EventPacket, new JsonObject { ["x"] = 750 }));
+            TestAssert.That((await second.Task.WaitAsync(TimeSpan.FromSeconds(5))).Sample["x"]!.GetValue<double>() == 0.75,
+                "Late stop disabled the new drawing target.");
+            client.Dispose();
+            TestAssert.That((await stopped.Task.WaitAsync(TimeSpan.FromSeconds(5))).Token == nextToken, "Disconnect did not stop the current target.");
+        }
+        finally { Directory.Delete(root, true); }
     }
 
     private static async Task ContactLoopbackAsync()
@@ -826,7 +877,7 @@ internal static class KdeConnectTests
     }
 
     private static async Task<(TcpClient Client, SslStream Stream)> ConnectIncomingPhoneAsync(
-        KdeConnectDirectBackend backend, string phoneId, X509Certificate2 certificate, bool contacts = false)
+        KdeConnectDirectBackend backend, string phoneId, X509Certificate2 certificate, bool contacts = false, bool digitizer = false)
     {
         var client = new TcpClient(AddressFamily.InterNetwork);
         await client.ConnectAsync(IPAddress.Loopback, backend.ListenerPort);
@@ -846,6 +897,12 @@ internal static class KdeConnectTests
             phoneIdentity["incomingCapabilities"]!.AsArray().Add(KdeConnectProtocol.ContactVcardsRequest);
             phoneIdentity["outgoingCapabilities"]!.AsArray().Add(KdeConnectProtocol.ContactUidsResponse);
             phoneIdentity["outgoingCapabilities"]!.AsArray().Add(KdeConnectProtocol.ContactVcardsResponse);
+        }
+        if (digitizer)
+        {
+            phoneIdentity["deviceType"] = "tablet";
+            phoneIdentity["outgoingCapabilities"]!.AsArray().Add(KdeDigitizerState.SessionPacket);
+            phoneIdentity["outgoingCapabilities"]!.AsArray().Add(KdeDigitizerState.EventPacket);
         }
         await tls.WriteAsync(KdeConnectProtocol.Encode("kdeconnect.identity", phoneIdentity));
         return (client, tls);

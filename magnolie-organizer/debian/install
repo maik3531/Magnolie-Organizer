@@ -4,6 +4,7 @@ bin/magnolie_anruf_audio.py            usr/bin
 bin/magnolie_personal_sync.py          usr/bin
 bin/magnolie_personal_sync.py          usr/lib/magnolie-organizer
 bin/magnolie_kdeconnect.py             usr/bin
+bin/magnolie_digitizer.py              usr/bin
 bin/magnolie_hintergrund.py            usr/bin
 bin/magnolie_nextcloud.py              usr/bin
 bin/magnolie_cloud_backup.py           usr/bin
@@ -19,6 +20,7 @@ web/index.html                        usr/share/magnolie-organizer/web
 web/stil.css                          usr/share/magnolie-organizer/web
 web/kaffee-qr.mga                     usr/share/magnolie-organizer/web
 web/anwendung.js                      usr/share/magnolie-organizer/web
+web/zeichenblatt.js                    usr/share/magnolie-organizer/web
 web/phone-metadata-LICENSE.txt        usr/share/magnolie-organizer/web
 web/phone-metadata-NOTICE.txt         usr/share/magnolie-organizer/web
 web/i18n.js                           usr/share/magnolie-organizer/web

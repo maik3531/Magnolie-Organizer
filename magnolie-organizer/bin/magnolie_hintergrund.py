@@ -770,6 +770,7 @@ def _request_shape(operation, arguments):
         "gui_readiness": {"subscriber", "ready"},
         "send_sms": {"destination", "message", "device_id"},
         "contact_uids": {"device_id"}, "contact_vcards": {"uids", "device_id"},
+        "set_digitizer_target": {"device_id", "token", "enabled", "subscriber"},
         "begin_pairing": {"device_id", "replace_stored"},
         "complete_pairing": {"device_id"}, "confirm_pairing": {"code_matches"},
         "configure_receive": {"clipboard_enabled", "file_enabled", "device_id",
@@ -841,7 +842,7 @@ def _request_shape(operation, arguments):
                 or not 0 <= timeout <= 25):
             raise IPCError("invalid event poll")
     if operation in ("gui_subscribe", "gui_unsubscribe", "gui_visibility",
-                      "gui_readiness") or operation == "poll_events" \
+                      "gui_readiness", "set_digitizer_target") or operation == "poll_events" \
             and "subscriber" in arguments:
         subscriber = arguments.get("subscriber")
         if not isinstance(subscriber, str) or not re.fullmatch(r"[a-f0-9]{32}", subscriber):
@@ -850,6 +851,11 @@ def _request_shape(operation, arguments):
         raise IPCError("invalid GUI visibility")
     if operation == "gui_readiness" and not isinstance(arguments.get("ready"), bool):
         raise IPCError("invalid GUI readiness")
+    if operation == "set_digitizer_target":
+        if (type(arguments.get('enabled')) is not bool or not isinstance(arguments.get('token'), str) or
+                not re.fullmatch(r'[0-9a-fA-F-]{36}', arguments['token']) or
+                not isinstance(arguments.get('device_id'), str) or len(arguments['device_id']) > 200):
+            raise IPCError('invalid digitizer target')
     if operation == "accept_receive" and (not isinstance(arguments.get("directory", ""), str)
             or len(arguments.get("directory", "").encode("utf-8")) > 4096):
         raise IPCError("invalid receive destination")
@@ -1125,6 +1131,18 @@ class IPCServer:
                     with self._event_condition:
                         self._gui_subscribers.pop(arguments["subscriber"], None)
                     result = {"subscribed": False}
+                elif operation == "set_digitizer_target":
+                    subscriber = arguments['subscriber']
+                    def permitted(subscriber=subscriber):
+                        with self._event_condition:
+                            lease = self._gui_subscribers.get(subscriber, (0, False, False))
+                            return lease[0] > time.monotonic() and lease[1] and lease[2]
+                    if arguments['enabled'] and not permitted():
+                        raise IPCError('digitizer requires a visible ready GUI')
+                    if self.backend is None or not hasattr(self.backend, 'set_digitizer_target'):
+                        raise IPCError('digitizer unavailable')
+                    result = self.backend.set_digitizer_target(arguments['device_id'], arguments['token'],
+                                                               arguments['enabled'], permitted=permitted)
                 elif operation.startswith("phone_"):
                     if operation in ("phone_open_pairing", "phone_cancel_pairing", "phone_confirm_pairing", "phone_remove", "phone_set_enabled", "phone_set_bluetooth"):
                         with self._mutation_lock:
@@ -1419,6 +1437,10 @@ class KDEConnectProxy:
 
     def contact_vcards(self, uids, device_id=None):
         return ipc_request("contact_vcards", {"uids": uids, "device_id": device_id}, self.path, timeout=8)
+
+    def set_digitizer_target(self, device_id, token, enabled, permitted=None):
+        return self._call('set_digitizer_target', device_id=device_id, token=token,
+                          enabled=enabled, subscriber=self._subscriber)
 
     def begin_pairing(self, device_id=None, replace_stored=False):
         return self._call("begin_pairing", device_id=device_id,

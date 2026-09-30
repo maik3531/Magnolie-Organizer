@@ -136,7 +136,8 @@ internal static class KdeConnectProtocol
         var body = new JsonObject {
             ["deviceId"] = id, ["deviceName"] = name, ["protocolVersion"] = Version,
             ["deviceType"] = "desktop", ["tcpPort"] = tcpPort,
-            ["incomingCapabilities"] = new JsonArray(SmsMessages, ContactUidsResponse, ContactVcardsResponse),
+            ["incomingCapabilities"] = new JsonArray(SmsMessages, ContactUidsResponse, ContactVcardsResponse,
+                KdeDigitizerState.SessionPacket, KdeDigitizerState.EventPacket),
             ["outgoingCapabilities"] = new JsonArray(SmsRequest, SmsRequestConversations, SmsRequestConversation,
                 ContactUidsRequest, ContactVcardsRequest)
         };

@@ -264,6 +264,7 @@ internal sealed partial class BridgeDispatcher : IDisposable
                     case "kde_sms_senden": await SendKdeSmsAsync(message); break;
                     case "telefon_kontaktfotos": await ReadContactPhotosAsync(message); break;
                     case "telefon_kontakte": await ReadContactPhotosAsync(message, fullContacts: true); break;
+                    case "kde_zeichnen": await ConfigureDrawingInputAsync(message); break;
                     case "kde_pairing_start":
                     case "kde_pairing_complete":
                     case "kde_paaren": await EnsureFirewallAsync(); await StartKdePairingAsync(message); break;

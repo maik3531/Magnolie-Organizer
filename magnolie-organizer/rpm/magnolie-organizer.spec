@@ -139,6 +139,7 @@ install -Dpm 0755 bin/%{name} %{buildroot}%{_bindir}/%{name}
 install -Dpm 0644 bin/magnolie_telefon.py %{buildroot}%{_bindir}/magnolie_telefon.py
 install -Dpm 0644 bin/magnolie_anruf_audio.py %{buildroot}%{_bindir}/magnolie_anruf_audio.py
 install -Dpm 0644 bin/magnolie_kdeconnect.py %{buildroot}%{_bindir}/magnolie_kdeconnect.py
+install -Dpm 0644 bin/magnolie_digitizer.py %{buildroot}%{_bindir}/magnolie_digitizer.py
 install -Dpm 0644 bin/magnolie_hintergrund.py %{buildroot}%{_bindir}/magnolie_hintergrund.py
 install -Dpm 0644 bin/magnolie_personal_sync.py %{buildroot}%{_bindir}/magnolie_personal_sync.py
 install -Dpm 0644 bin/magnolie_nextcloud.py %{buildroot}%{_bindir}/magnolie_nextcloud.py
@@ -155,7 +156,7 @@ install -d %{buildroot}%{_datadir}/%{name}/web/i18n
 printf '{"version":"%{version}"}\n' > %{buildroot}%{_datadir}/%{name}/version.json
 install -d %{buildroot}%{_datadir}/%{name}/web/schriften
 install -pm 0644 web/schriften/Z003-MediumItalic.otf web/schriften/Z003-LIZENZ.txt %{buildroot}%{_datadir}/%{name}/web/schriften/
-install -pm 0644 web/index.html web/stil.css web/anwendung.js \
+install -pm 0644 web/index.html web/stil.css web/anwendung.js web/zeichenblatt.js \
     web/i18n.js web/i18n-start.js web/i18n-markers.js \
     web/i18n-en.js web/phone-metadata-LICENSE.txt web/phone-metadata-NOTICE.txt \
     %{buildroot}%{_datadir}/%{name}/web/
@@ -249,6 +250,7 @@ done
 %{_bindir}/magnolie_telefon.py
 %{_bindir}/magnolie_anruf_audio.py
 %{_bindir}/magnolie_kdeconnect.py
+%{_bindir}/magnolie_digitizer.py
 %{_bindir}/magnolie_hintergrund.py
 %{_bindir}/magnolie_personal_sync.py
 %{_bindir}/magnolie_nextcloud.py

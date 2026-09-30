@@ -229,6 +229,51 @@ def test_private_ipc_enforces_one_owner_and_gui_proxy_uses_owner():
             server.close()
 
 
+def test_digitizer_ipc_requires_the_owning_visible_unlocked_gui_lease():
+    from magnolie_digitizer import DigitizerRelay
+    import uuid
+    received = []
+    class DrawingBackend(FakeBackend):
+        def __init__(self):
+            super().__init__()
+            self.owner = object()
+            self.relay = DigitizerRelay(lambda kind, payload: received.append(payload))
+
+        def set_digitizer_target(self, device_id, token, enabled, permitted=None):
+            if enabled:
+                self.relay.arm(self.owner, device_id, token, permitted)
+            else:
+                self.relay.disarm(token=token)
+            return {'enabled': enabled}
+
+    with tempfile.TemporaryDirectory() as root:
+        path = os.path.join(root, 'runtime', 'drawing.sock')
+        backend = DrawingBackend()
+        server = background.IPCServer(backend, path).start()
+        subscriber, other = 'a' * 32, 'b' * 32
+        request = dict(subscriber=subscriber, device_id='tablet', token=str(uuid.uuid4()), enabled=True)
+        def call(operation, arguments):
+            return background.ipc_request(operation, arguments, path)
+        try:
+            with pytest.raises(background.IPCError):
+                call('set_digitizer_target', request)
+            call('gui_subscribe', {'subscriber': subscriber})
+            call('gui_readiness', {'subscriber': subscriber, 'ready': True})
+            with pytest.raises(background.IPCError):
+                call('set_digitizer_target', request)
+            call('gui_visibility', {'subscriber': subscriber, 'visible': True})
+            assert call('set_digitizer_target', request)['enabled'] is True
+            call('gui_subscribe', {'subscriber': other})
+            call('gui_readiness', {'subscriber': other, 'ready': True})
+            call('gui_visibility', {'subscriber': other, 'visible': True})
+            call('gui_readiness', {'subscriber': subscriber, 'ready': False})
+            assert wait_until(lambda: backend.relay.owner is None)
+            assert received[-1]['stopped'] is True
+            assert received[-1]['token'] == request['token']
+        finally:
+            backend.relay.disarm(); server.close()
+
+
 def test_idle_ipc_client_is_timed_out_without_holding_a_handler():
     with tempfile.TemporaryDirectory() as root, mock.patch.object(
             background, "IPC_READ_TIMEOUT", 0.05):

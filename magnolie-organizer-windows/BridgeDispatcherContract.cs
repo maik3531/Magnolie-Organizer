@@ -54,6 +54,7 @@ internal static class BridgeDispatcherContract
         ["telefon_stand"] = S(), ["telefon_verbindung_stand"] = S(),
         ["telefon_kontaktfotos"] = S(T("requestId"), T("device_id"), O("uids", JsonValueKind.Array)),
         ["telefon_kontakte"] = S(T("requestId"), T("device_id"), O("uids", JsonValueKind.Array)),
+        ["kde_zeichnen"] = S(T("token"), T("device_id"), B("enabled")),
         ["telefon_ein"] = S(B("an")), ["telefon_verbindung_ein"] = S(B("an")),
         ["telefon_pairing_oeffnen"] = S(), ["telefon_verbinden"] = S(), ["telefon_pairing_abbrechen"] = S(),
         ["telefon_pairing_bestaetigen"] = S(B("ja"), O("attemptId", JsonValueKind.String), O("kennung", JsonValueKind.String)),

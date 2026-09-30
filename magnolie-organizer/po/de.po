@@ -1947,6 +1947,11 @@ msgstr "Anlegen"
 msgid "Create a backup copy of the data"
 msgstr "Sicherungskopie der Daten anlegen"
 
+msgid "Create a drawing sheet in the custom tab first."
+msgstr ""
+"Legen Sie zuerst ein Zeichenblatt in der benutzerdefinierten Registerkarte "
+"an."
+
 msgid "Create a gettext POT template"
 msgstr "Eine Gettext-POT-Vorlage erzeugen"
 
@@ -2350,6 +2355,12 @@ msgstr "Downloads"
 msgid "Drag the attachment area up or down"
 msgstr "Anhangsbereich nach oben oder unten ziehen"
 
+msgid "Drawing sheet"
+msgstr "Zeichenblatt"
+
+msgid "Drawing tool"
+msgstr "Zeichenwerkzeug"
+
 msgid "Drops"
 msgstr "Tropfen"
 
@@ -2470,6 +2481,13 @@ msgstr "Erinnerungen für diesen Block aktivieren"
 msgid "Enable shift planner"
 msgstr "Schichtdienst-Planer einschalten"
 
+msgid ""
+"Enable tablet input here, then open the drawing tablet in KDE Connect on the "
+"phone."
+msgstr ""
+"Aktivieren Sie hier die Tablett-Eingabe und öffnen Sie dann das "
+"Zeichentablett in KDE Connect auf dem Telefon."
+
 msgid "Enable this SMS plan"
 msgstr "Diesen SMS-Plan aktivieren"
 
@@ -2586,6 +2604,9 @@ msgstr "Einträge zum Importieren bereit"
 msgid "Entry"
 msgstr "Eintrag"
 
+msgid "Eraser"
+msgstr "Radierer"
+
 msgid "Errands"
 msgstr "Besorgungen"
 
@@ -2644,6 +2665,9 @@ msgstr ""
 
 msgid "Export"
 msgstr "Weitergeben"
+
+msgid "Export PNG"
+msgstr "PNG exportieren"
 
 msgid "Export failed."
 msgstr "Export fehlgeschlagen."
@@ -3012,6 +3036,13 @@ msgstr ""
 "Dann wird kein Alter angezeigt.\n"
 "Jahrestage erscheinen mit ✱ im Kalender und im Planer."
 
+msgid ""
+"If your system KDE Connect supports tablet input, it can be used here like a "
+"normal pen."
+msgstr ""
+"Wenn Ihr systemeigenes KDE Connect Tablett-Eingaben unterstützt, können Sie "
+"diese hier wie einen normalen Stift verwenden."
+
 msgid "Image"
 msgstr "Bild"
 
@@ -3324,6 +3355,9 @@ msgstr "Lizenz"
 
 msgid "Liechtenstein"
 msgstr "Liechtenstein"
+
+msgid "Line width"
+msgstr "Strichbreite"
 
 msgid "Lined paper (lines on the writing sheet)"
 msgstr "Liniertes Papier (Linien im Schreibblatt)"
@@ -6578,6 +6612,9 @@ msgstr ""
 "Das Verzeichnis mit der Oberfläche (/usr/share/magnolie-organizer/web) wurde "
 "nicht gefunden."
 
+msgid "The drawing limit has been reached."
+msgstr "Die Zeichengrenze ist erreicht."
+
 msgid "The encrypted Magnolienbaum identity is damaged."
 msgstr "Die verschlüsselte Magnolienbaum-Identität ist beschädigt."
 
@@ -7368,6 +7405,9 @@ msgstr "Diese Gerätekennung ist nicht verfügbar."
 msgid "This dial request has already been queued."
 msgstr "Diese Wählanfrage steht bereits in der Warteschlange."
 
+msgid "This drawing cannot be edited in this version."
+msgstr "Dieses Zeichenblatt kann mit dieser Version nicht bearbeitet werden."
+
 msgid "This end-call request has already been queued."
 msgstr ""
 "Diese Anfrage zum Beenden des Anrufs steht bereits in der Warteschlange."
@@ -7710,6 +7750,9 @@ msgstr "Uri"
 
 msgid "Usage:"
 msgstr "Aufruf:"
+
+msgid "Use KDE Connect drawing tablet"
+msgstr "KDE-Connect-Zeichentablett verwenden"
 
 msgid "Use a specific application or command"
 msgstr "Bestimmtes Programm/Befehl verwenden"

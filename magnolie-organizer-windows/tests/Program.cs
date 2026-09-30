@@ -77,6 +77,7 @@ runner.Add("Telefon setup startup lifecycle / Finish / Skip / rollback", PhoneSt
 runner.Add("Bluetooth-Funkschalter / Gesprächsdauer / Zustandsrückgabe", BluetoothRadioTests.RunAsync);
 runner.Add("KDE Connect / Codec / P-256-Ablage / Pinning / Integration", KdeConnectTests.RunAsync);
 runner.Add("KDE contact import / projection / source binding", KdeContactImportTests.RunAsync);
+runner.Add("KDE digitizer / delta state / pressure / reset", KdeDigitizerTests.RunAsync);
 runner.Add("WebView2 / Handbuch-Start / Navigationssicherheit", WebViewStartupSourceTests.RunAsync);
 runner.Add("WebView2 / geschützte Assets / URI / Header", ProtectedAssetPolicyTests.RunAsync);
 runner.Add("Shell-Öffnen / URI-Positivliste / lokale Pfade", ShellLauncherTests.RunAsync);

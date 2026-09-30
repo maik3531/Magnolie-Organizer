@@ -24,6 +24,7 @@ async function boot(web, data = {}, initialize = true) {
   w.__MAGNOLIE_BRUECKE__ = "regression";
   w.webkit = { messageHandlers: { regression: { postMessage: text => messages.push(JSON.parse(text)) } } };
   w.eval(fs.readFileSync(path.join(web, "i18n.js"), "utf8"));
+  w.eval(fs.readFileSync(path.join(web, "zeichenblatt.js"), "utf8"));
   w.eval(fs.readFileSync(path.join(web, "anwendung.js"), "utf8"));
   await tick();
   if (initialize) w.App.init({ daten: data, neu: false, regional: { language: "en", timeZone: "UTC" } });

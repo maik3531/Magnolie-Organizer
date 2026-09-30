@@ -16,6 +16,7 @@ import tempfile
 import threading
 import time
 import unicodedata
+from magnolie_digitizer import DigitizerState, DigitizerRelay, SESSION_PACKET as DIGITIZER_SESSION, EVENT_PACKET as DIGITIZER_EVENT
 import uuid
 from collections import deque
 from contextlib import closing
@@ -1201,6 +1202,7 @@ class _ConnectionWorker:
         self.contacts_condition = threading.Condition()
         self.contacts_pending = None
         self.contacts_blocked = False
+        self.digitizer = DigitizerState()
         self.diagnostics = {"last_packet_type": "", "parse_valid": 0,
             "parse_skipped": 0, "last_receive_ms": 0, "bootstrap_state": "idle"}
         self.thread = threading.Thread(target=self._run, daemon=True,
@@ -1268,6 +1270,9 @@ class _ConnectionWorker:
                 if packet.get("type") == "kdeconnect.pair":
                     self.backend._pair_packet(self, packet)
                     continue
+                if packet.get("type") in (DIGITIZER_SESSION, DIGITIZER_EVENT):
+                    self.backend._digitizer_packet(self, packet)
+                    continue
                 if packet.get("type") in (CLIPBOARD_TYPE, CLIPBOARD_CONNECT_TYPE,
                                            SHARE_TYPE):
                     self.backend._handle_receive_packet(self, packet)
@@ -1279,6 +1284,7 @@ class _ConnectionWorker:
             pass
         finally:
             self.stopped.set()
+            self.backend._digitizer_relay.disarm(owner=self)
             with self.contacts_condition:
                 self.contacts_condition.notify_all()
             self.backend._worker_died(self.identity["deviceId"], self)
@@ -1457,6 +1463,7 @@ class KDEConnectSMSBackend:
         self.store = IdentityStore(directory, device_name)
         self.socket_factory = socket_factory or socket.socket
         self.callback = callback or (lambda _event, _payload: None)
+        self._digitizer_relay = DigitizerRelay(self._emit)
         self.tcp_ports = tuple(tcp_ports or range(MIN_TCP_PORT, MAX_TCP_PORT + 1))
         self.udp_port = int(udp_port)
         self.backoff = tuple(backoff or RECONNECT_BACKOFF)
@@ -2293,6 +2300,52 @@ class KDEConnectSMSBackend:
                 and {CONTACT_UIDS_REQUEST, CONTACT_VCARDS_REQUEST} <= set(entry["identity"]["incomingCapabilities"])
                 and {CONTACT_UIDS_RESPONSE, CONTACT_VCARDS_RESPONSE} <= set(entry["identity"]["outgoingCapabilities"])]
 
+    def _digitizer_connections(self, device_id=None):
+        with self._connection_lock:
+            return [entry for key, entry in self._connections.items()
+                    if self._is_confirmed(key) and (device_id is None or key == device_id)
+                    and not entry["worker"].stopped.is_set()
+                    and {DIGITIZER_SESSION, DIGITIZER_EVENT} <= set(entry["identity"]["outgoingCapabilities"])]
+
+    def set_digitizer_target(self, device_id, token, enabled, permitted=None):
+        if type(enabled) is not bool:
+            raise ProtocolError('invalid_digitizer_target')
+        if not enabled:
+            self._digitizer_relay.disarm(token=token)
+            return {'enabled': False}
+        if permitted is None or not permitted():
+            raise ProtocolError('digitizer_foreground_required')
+        connections = self._digitizer_connections(device_id)
+        if len(connections) != 1:
+            raise ProtocolError('digitizer_unavailable')
+        entry = connections[0]
+        from cryptography import x509
+        from cryptography.hazmat.primitives import hashes
+        certificate = entry.get('certificate')
+        stored = x509.load_pem_x509_certificate(self.store.peers[device_id]['certificate'].encode('ascii'))
+        if certificate is None or certificate.fingerprint(hashes.SHA256()) != stored.fingerprint(hashes.SHA256()):
+            raise ProtocolError('digitizer_source_changed')
+        worker = entry['worker']
+        def still_permitted():
+            return permitted() and not worker.stopped.is_set() and any(
+                current is entry for current in self._digitizer_connections(device_id))
+        self._digitizer_relay.arm(worker, device_id, token, still_permitted)
+        return {'enabled': True}
+
+    def _digitizer_packet(self, worker, packet):
+        peer = worker.identity['deviceId']
+        with self._connection_lock:
+            entry = self._connections.get(peer)
+            if (not entry or entry['worker'] is not worker or not self._is_confirmed(peer) or
+                    packet.get('type') not in worker.identity['outgoingCapabilities']):
+                return
+        try:
+            sample = worker.digitizer.accept(packet.get('type'), packet.get('body'))
+        except ValueError:
+            self._digitizer_relay.disarm(owner=worker)
+            return
+        self._digitizer_relay.push(worker, sample)
+
     def _contact_query(self, device_id, kind, body, response):
         connections = self._contact_connections(device_id)
         if len(connections) != 1:
@@ -2468,7 +2521,7 @@ class KDEConnectSMSBackend:
         return result
 
     def identity_packet(self, target=None, tcp_port=None):
-        incoming = [SMS_MESSAGES_TYPE, CONTACT_UIDS_RESPONSE, CONTACT_VCARDS_RESPONSE]
+        incoming = [SMS_MESSAGES_TYPE, CONTACT_UIDS_RESPONSE, CONTACT_VCARDS_RESPONSE, DIGITIZER_SESSION, DIGITIZER_EVENT]
         with self._state_lock:
             if self._receive_settings["clipboard_enabled"]:
                 incoming.extend((CLIPBOARD_TYPE, CLIPBOARD_CONNECT_TYPE))
@@ -2658,6 +2711,9 @@ class KDEConnectSMSBackend:
             contacts = self._contact_connections()
             result["contacts_available"] = len(contacts) == 1
             result["contacts_device_id"] = contacts[0]["identity"]["deviceId"] if len(contacts) == 1 else ""
+            digitizers = self._digitizer_connections()
+            result["digitizer_available"] = len(digitizers) == 1
+            result["digitizer_device_id"] = digitizers[0]["identity"]["deviceId"] if len(digitizers) == 1 else ""
             if capable:
                 capabilities = capable[0]["identity"]["incomingCapabilities"]
                 result["history_available"] = (SMS_REQUEST_CONVERSATIONS_TYPE in capabilities

@@ -1602,6 +1602,9 @@ msgstr "Wutworić"
 msgid "Create a backup copy of the data"
 msgstr "Zawěsćensku kopiju datow wutworić"
 
+msgid "Create a drawing sheet in the custom tab first."
+msgstr "Załožće najprjedy rysowanske łopjeno w swójskej rajtarkowej karće."
+
 msgid "Create a new appointment immediately"
 msgstr "Hnydom nowy termin wutworić"
 
@@ -1956,6 +1959,12 @@ msgstr "Sćehnjenja"
 msgid "Drag the attachment area up or down"
 msgstr "Wobłuk přiwěškow horje abo dele ćahnyć"
 
+msgid "Drawing sheet"
+msgstr "Rysowanske łopjeno"
+
+msgid "Drawing tool"
+msgstr "Rysowanski nastroj"
+
 msgid "Drops"
 msgstr "Kapki"
 
@@ -2072,6 +2081,13 @@ msgstr "Dopomnjenki za tutón blok zmóžnić"
 msgid "Enable shift planner"
 msgstr "Planowak směnow zmóžnić"
 
+msgid ""
+"Enable tablet input here, then open the drawing tablet in KDE Connect on the "
+"phone."
+msgstr ""
+"Zmóžńće tu tabletowe zapodaće a wočińće potom rysowanski tablet w KDE "
+"Connect na telefonje."
+
 msgid "Enable this SMS plan"
 msgstr "Tutón SMS-plan aktiwizować"
 
@@ -2161,6 +2177,9 @@ msgstr "Zapiski přihotowane za import"
 msgid "Entry"
 msgstr "Zapisk"
 
+msgid "Eraser"
+msgstr "Guma"
+
 msgid "Errands"
 msgstr "Wobstaranja"
 
@@ -2197,6 +2216,9 @@ msgstr "Eksportować"
 
 msgid "Export Magnolie complete archive"
 msgstr "Dospołny archiw Magnolie eksportować"
+
+msgid "Export PNG"
+msgstr "PNG eksportować"
 
 msgid "Export archive"
 msgstr "Archiw eksportować"
@@ -2551,6 +2573,13 @@ msgstr ""
 "Staroba so potom njepokazuje.\n"
 "Róčnicy so z ✱ w protyce a planowaku pokazuja."
 
+msgid ""
+"If your system KDE Connect supports tablet input, it can be used here like a "
+"normal pen."
+msgstr ""
+"Jeli systemowy KDE Connect tabletowe zapodaće podpěruje, móžeće jo tu kaž "
+"normalne pjero wužiwać."
+
 msgid "Image"
 msgstr "Wobraz"
 
@@ -2789,6 +2818,9 @@ msgstr "Licenca"
 
 msgid "Liechtenstein"
 msgstr "Liechtenstein"
+
+msgid "Line width"
+msgstr "Šěrokosć linije"
 
 msgid "Lined paper (lines on the writing sheet)"
 msgstr "Linijowany papjer (linije na pisanskim łopjenje)"
@@ -5397,6 +5429,9 @@ msgstr "Cil njehodźeše so wočinić."
 msgid "The download address is not permitted for this platform."
 msgstr "Sćehnjenska adresa za tutu platformu dowolena njeje."
 
+msgid "The drawing limit has been reached."
+msgstr "Rysowanska hranica je docpěta."
+
 msgid "The end date cannot be before the start date."
 msgstr "Kónčny datum njemóže před startowym datumom być."
 
@@ -5905,6 +5940,9 @@ msgstr "Tutón identifikator k dispoziciji njeje."
 msgid "This dial request has already been queued."
 msgstr "Tute wólenske naprašowanje je hižo w čakanskej lince."
 
+msgid "This drawing cannot be edited in this version."
+msgstr "Tute rysowanje njeda so w tutej wersiji wobdźěłać."
+
 msgid "This end-call request has already been queued."
 msgstr "Tute naprašowanje za zakónčenje zawołanja je hižo w čakanskej lince."
 
@@ -6186,6 +6224,9 @@ msgstr "Čas běženja"
 
 msgid "Uri"
 msgstr "URI"
+
+msgid "Use KDE Connect drawing tablet"
+msgstr "Rysowanski tablet KDE Connect wužiwać"
 
 msgid "Use LibreOffice address"
 msgstr "Adresowe daty LibreOffice wužiwać"

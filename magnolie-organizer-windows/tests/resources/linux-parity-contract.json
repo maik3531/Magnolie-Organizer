@@ -1,8 +1,8 @@
 {
   "schema": "magnolie-linux-parity-v1",
   "sources": {
-    "web/anwendung.js": "81929c24b2c63bcafeb29b3c73c4bf7ec3e987b1b4657e7ac425c19ee1cd99db",
-    "bin/magnolie-organizer": "75ae42510470d77ace09a4904ef1f1e53751da6f1d638b57310bb03884e0a5ab"
+    "web/anwendung.js": "5b6ca9d0788b1102476f53e9a93ae70ff7a630e0e6e7b66fd71fe3c42da32353",
+    "bin/magnolie-organizer": "f7332812224cba795cf9ac41a7a35ed3a616dc12e689aa9a07d263738d0b5b2f"
   },
   "commands": [
     "ablage_holen",
@@ -60,6 +60,7 @@
     "kde_pairing_start",
     "kde_reconnect",
     "kde_sms_senden",
+    "kde_zeichnen",
     "kennwort_entfernen",
     "kennwort_setzen",
     "lo_benutzer",
@@ -173,7 +174,9 @@
     "updateErgebnis",
     "vorschlaege",
     "wetterErgebnis",
-    "wortGemerkt"
+    "wortGemerkt",
+    "zeichenEingabe",
+    "zeichenEingabeStand"
   ],
   "payloadSchemas": {
     "personal_sync_senden": [
@@ -390,5 +393,5 @@
       ]
     ]
   ],
-  "contractSha256": "54a4b7257fa2c2c36df39d9c3388e5727d8a08f755ffc4280e670d824cc457c5"
+  "contractSha256": "fe0f0bb0caecb34dda3a2beac02526621e069c774fac50a8cd1b6b81aba9db27"
 }

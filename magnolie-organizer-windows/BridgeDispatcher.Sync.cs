@@ -634,11 +634,14 @@ internal sealed partial class BridgeDispatcher
         try { status = await kdeConnectSms.DirectStatusAsync(); }
         catch (Exception) { return new { available = false, device_count = 0, reason = "unavailable" }; }
         var contactDevices = kdeConnectSms.ContactDevices;
+        var digitizerDevices = kdeConnectSms.DigitizerDevices;
         return new
         {
             available = status.Available,
             contacts_available = contactDevices.Count == 1,
             contacts_device_id = contactDevices.Count == 1 ? contactDevices[0] : "",
+            digitizer_available = digitizerDevices.Count == 1,
+            digitizer_device_id = digitizerDevices.Count == 1 ? digitizerDevices[0] : "",
             device_count = status.DeviceCount,
             reason = status.Reason,
             listening = status.Listening,

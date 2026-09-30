@@ -1809,6 +1809,9 @@ msgstr ""
 msgid "Create a backup copy of the data"
 msgstr ""
 
+msgid "Create a drawing sheet in the custom tab first."
+msgstr ""
+
 msgid "Create a gettext POT template"
 msgstr ""
 
@@ -2192,6 +2195,12 @@ msgstr ""
 msgid "Drag the attachment area up or down"
 msgstr ""
 
+msgid "Drawing sheet"
+msgstr ""
+
+msgid "Drawing tool"
+msgstr ""
+
 msgid "Drops"
 msgstr ""
 
@@ -2309,6 +2318,11 @@ msgstr ""
 msgid "Enable shift planner"
 msgstr ""
 
+msgid ""
+"Enable tablet input here, then open the drawing tablet in KDE Connect on the "
+"phone."
+msgstr ""
+
 msgid "Enable this SMS plan"
 msgstr ""
 
@@ -2412,6 +2426,9 @@ msgstr ""
 msgid "Entry"
 msgstr ""
 
+msgid "Eraser"
+msgstr ""
+
 msgid "Errands"
 msgstr ""
 
@@ -2462,6 +2479,9 @@ msgid "Exactly one online paired Magnolie Notes phone must allow dialing."
 msgstr ""
 
 msgid "Export"
+msgstr ""
+
+msgid "Export PNG"
 msgstr ""
 
 msgid "Export failed."
@@ -2800,6 +2820,11 @@ msgid ""
 "Anniversaries appear with ✱ in the calendar and planner."
 msgstr ""
 
+msgid ""
+"If your system KDE Connect supports tablet input, it can be used here like a "
+"normal pen."
+msgstr ""
+
 msgid "Image"
 msgstr ""
 
@@ -3093,6 +3118,9 @@ msgid "License"
 msgstr ""
 
 msgid "Liechtenstein"
+msgstr ""
+
+msgid "Line width"
 msgstr ""
 
 msgid "Lined paper (lines on the writing sheet)"
@@ -6085,6 +6113,9 @@ msgid ""
 "was not found."
 msgstr ""
 
+msgid "The drawing limit has been reached."
+msgstr ""
+
 msgid "The encrypted Magnolienbaum identity is damaged."
 msgstr ""
 
@@ -6776,6 +6807,9 @@ msgstr ""
 msgid "This dial request has already been queued."
 msgstr ""
 
+msgid "This drawing cannot be edited in this version."
+msgstr ""
+
 msgid "This end-call request has already been queued."
 msgstr ""
 
@@ -7092,6 +7126,9 @@ msgid "Uri"
 msgstr ""
 
 msgid "Usage:"
+msgstr ""
+
+msgid "Use KDE Connect drawing tablet"
 msgstr ""
 
 msgid "Use a specific application or command"

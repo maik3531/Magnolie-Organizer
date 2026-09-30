@@ -1415,7 +1415,8 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
         throw error;
       }
       const leadMinutes = DATEN.einstellungen.erinnerung.vorlauf;
-      const sourceModules = JSON.parse(JSON.stringify(DATEN.customOrganizer.modules || []));
+      const sourceModules = JSON.parse(JSON.stringify((DATEN.customOrganizer.modules || [])
+        .filter(module => ["tasks", "appointments"].includes(module.type))));
       for (const module of sourceModules) {
         if (!["tasks", "appointments"].includes(module.type)) continue;
         for (const item of module.items || []) {
@@ -4851,7 +4852,8 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
   function ausDemPapierkorb(stueck) {
     if (stueck.art === "custom") {
       const modul = kopie(stueck.eintrag);
-      const bestand = DATEN.customOrganizer.modules.find((wert) => wert.id === modul.id);
+      let bestand = DATEN.customOrganizer.modules.find((wert) => wert.id === modul.id);
+      if (modul.type === "drawing" && bestand) { modul.id = "custom-module-" + uid(); bestand = null; }
       const ids = new Set((modul.items || []).map((item) => item.id));
       if (bestand && bestand.items.some((item) => ids.has(item.id))) return false;
       if (bestand) bestand.items.push(...modul.items);
@@ -5845,6 +5847,9 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
 
   const CUSTOM_MAX_MODULES = 4;
   const CUSTOM_MAX_ITEMS = 500;
+  const aktiveZeichenblaetter = new Map();
+  let aktivesZeichenziel = null;
+  let zeichenblattAuswahlSchliessen = null;
 
   function normalisiereCustomOrganizer(roh) {
     const quelle = roh && typeof roh === "object" ? roh : {};
@@ -5858,7 +5863,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       ids.add(id);
       return id;
     };
-    const typen = { appointments: true, notes: true, tasks: true };
+    const typen = { appointments: true, notes: true, tasks: true, drawing: true };
     const modules = [];
     const quelleModule = (Array.isArray(quelle.modules) ? quelle.modules : []).slice();
     for (const [index, block] of (Array.isArray(quelle.blocks) ? quelle.blocks : []).entries()) {
@@ -5874,7 +5879,11 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
         order: Math.max(0, Math.min(40, Math.floor(Number(modul.order) || 0))),
         reminders: modul.reminders === true, modified_ms: Math.max(0,
           Math.floor(Number(modul.modified_ms) || 0)) };
-      if (basis.type === "notes") {
+      if (basis.type === "drawing") {
+        basis.reminders = false; basis.items = [];
+        basis.drawing = Object.prototype.hasOwnProperty.call(modul, "drawing") ? kopie(modul.drawing) :
+          { version: 1, width: 1200, height: 800, strokes: [] };
+      } else if (basis.type === "notes") {
         if (["on", "off"].includes(modul.lines)) basis.lines = modul.lines;
         basis.items = [];
         const roheItems = Array.isArray(modul.items) ? modul.items :
@@ -5914,7 +5923,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
           basis.items.push(eintrag);
         }
       }
-      const vorhanden = modules.find((wert) => wert.type === basis.type &&
+      const vorhanden = modules.find((wert) => basis.type !== "drawing" && wert.type === basis.type &&
         (basis.type !== "notes" || wert.page === basis.page));
       if (vorhanden) {
         vorhanden.items = (vorhanden.items || []).concat(basis.items || []);
@@ -9392,13 +9401,14 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
           karte.append(el("div", "dk-name", block.title || customText("Untitled")),
             el("div", "dk-zeile", customModulTitel(block.type)),
             el("div", "dk-notiz", customBlockText(block)));
+          if (block.type === "drawing") zeichneZeichenblatt(block, karte, true);
           return karte;
         },
         html: (block) => '<div class="karte"><div class="name">' +
           sicher(block.title || customText("Untitled")) + "</div><div>" +
           sicher(customModulTitel(block.type)) +
           '</div><div class="notiz">' + sicher(customBlockText(block)).replace(/\n/g, "<br>") +
-          "</div></div>",
+          "</div>" + (block.type === "drawing" ? zeichenblattDruckbild(block) : "") + "</div>",
         vorgewaehlt: liste.map((block) => block.id),
         entfernen: (eintraege) => {
           const ids = new Set(eintraege.map((block) => block.id));
@@ -11229,6 +11239,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
   function zeichneAlles() {
     sichereNotizSnapshot();
     if (aktiverEditor && aktiverEditor.element && editorIstGeaendert()) return;
+    beendeZeicheneingabe();
     beendeGesundheitReserve();
     const vorher = document.activeElement && document.activeElement.dataset
       ? document.activeElement.dataset.fokus || "" : "";
@@ -11288,6 +11299,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
   }
 
   function customModulTitel(type) {
+    if (type === "drawing") return _("Drawing sheet");
     return type === "appointments" ? _("Appointments") :
       type === "tasks" ? _("Tasks") : _("Text block");
   }
@@ -11505,10 +11517,105 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       schliessen: schliessen });
   }
 
+  function beendeTabletEingabe() {
+    const ziel = aktivesZeichenziel; aktivesZeichenziel = null;
+    if (!ziel) return;
+    ziel.schalter.checked = false; ziel.editor.remote({ active: false, touching: false });
+    Bruecke.sende({ cmd: "kde_zeichnen", enabled: false, device_id: ziel.deviceId, token: ziel.token });
+  }
+
+  function beendeZeicheneingabe() {
+    beendeTabletEingabe();
+    for (const { canvas, editor } of aktiveZeichenblaetter.values()) {
+      editor.destroy(); canvas.width = canvas.width;
+    }
+    aktiveZeichenblaetter.clear();
+  }
+
+  function zeichenblattDruckbild(modul) {
+    if (!window.MagnolieZeichnen?.valid(modul.drawing))
+      return el("p", null, _("This drawing cannot be edited in this version.")).outerHTML;
+    const canvas = document.createElement("canvas");
+    window.MagnolieZeichnen.render(canvas, modul.drawing);
+    const bild = document.createElement("img"); bild.style.maxWidth = "100%";
+    bild.alt = modul.title || _("Drawing sheet"); bild.src = canvas.toDataURL("image/png");
+    return bild.outerHTML;
+  }
+
+  function zeichneZeichenblatt(modul, ziel, vorschau = false) {
+    const canvas = document.createElement("canvas");
+    canvas.className = "custom-zeichenblatt"; canvas.tabIndex = 0;
+    canvas.setAttribute("aria-label", modul.title || _("Drawing sheet"));
+    canvas.style.width = "100%"; canvas.style.height = "auto"; canvas.style.display = "block";
+    canvas.style.background = "#fffdf7"; canvas.style.border = "1px solid #ab9468";
+    if (!window.MagnolieZeichnen?.valid(modul.drawing)) {
+      ziel.append(el("p", "einst-warnung", _("This drawing cannot be edited in this version."))); return;
+    }
+    if (vorschau) {
+      window.MagnolieZeichnen.render(canvas, modul.drawing);
+      const bild = document.createElement("img"); bild.src = canvas.toDataURL("image/png");
+      bild.alt = modul.title || _("Drawing sheet"); bild.style.width = "100%";
+      ziel.append(bild); return;
+    }
+    const werkzeuge = el("div", "knopfreihe"), status = el("p", "einst-hinweis");
+    let zurueck, wieder;
+    const editor = window.MagnolieZeichnen.attach(canvas, modul.drawing, () => {
+      if (gesperrt || !DATEN.customOrganizer.modules.includes(modul)) return;
+      customModulGeaendert(modul);
+      if (zurueck) zurueck.disabled = !editor.canUndo();
+      if (wieder) wieder.disabled = !editor.canRedo();
+    }, () => { status.textContent = _("The drawing limit has been reached."); });
+    aktiveZeichenblaetter.set(modul.id, { canvas, editor, modul });
+    const werkzeug = auswahlFeld([["pen", _("Pen")], ["eraser", _("Eraser")]], "pen");
+    werkzeug.setAttribute("aria-label", _("Drawing tool"));
+    werkzeug.addEventListener("change", () => editor.setTool(werkzeug.value));
+    const farbe = eingabe("color", "#1d2433"); farbe.setAttribute("aria-label", _("Color"));
+    farbe.addEventListener("input", () => editor.setColor(farbe.value));
+    const breite = eingabe("range", "4"); breite.min = "1"; breite.max = "40"; breite.step = "1";
+    breite.setAttribute("aria-label", _("Line width")); breite.addEventListener("input", () => editor.setWidth(Number(breite.value)));
+    zurueck = knopf(_("Undo"), "klein", () => editor.undo()); zurueck.disabled = !editor.canUndo();
+    wieder = knopf(_("Redo"), "klein", () => editor.redo()); wieder.disabled = !editor.canRedo();
+    const exportieren = knopf(_("Export PNG"), "klein", () => {
+      const daten = editor.exportPng(), name = (modul.title || "Magnolie") + ".png";
+      if (Bruecke.vorhanden) Bruecke.sende({ cmd: "notiz_anhang_datei", id: naechsteAnhangDateiId++, aktion: "speichern", name, daten });
+      else { const link = document.createElement("a"); link.href = daten; link.download = name; link.click(); }
+    });
+    werkzeuge.append(werkzeug, farbe, breite, zurueck, wieder,
+      knopf(_("Clear"), "klein", () => editor.clear()), exportieren);
+    const tablet = document.createElement("input"); tablet.type = "checkbox";
+    tablet.dataset.kdeZeichenInput = "true";
+    const quelle = telefonStand?.kdeconnect;
+    tablet.disabled = !Bruecke.vorhanden || !quelle?.digitizer_available || !quelle.digitizer_device_id;
+    const tabletZeile = el("label", "hak");
+    tabletZeile.append(tablet, document.createTextNode(" " + _("Use KDE Connect drawing tablet")));
+    tablet.addEventListener("change", () => {
+      const an = tablet.checked; beendeTabletEingabe();
+      if (!an) return;
+      const aktuell = telefonStand?.kdeconnect;
+      if (gesperrt || !aktuell?.digitizer_available || !aktuell.digitizer_device_id) { tablet.checked = false; return; }
+      const token = anrufClientRef(); tablet.checked = true;
+      aktivesZeichenziel = { token, deviceId: aktuell.digitizer_device_id, modul, canvas, editor, schalter: tablet };
+      if (!Bruecke.sende({ cmd: "kde_zeichnen", enabled: true, device_id: aktuell.digitizer_device_id, token })) beendeTabletEingabe();
+      canvas.focus();
+    });
+    if (quelle?.native) status.textContent = _("If your system KDE Connect supports tablet input, it can be used here like a normal pen.");
+    else status.textContent = _("Enable tablet input here, then open the drawing tablet in KDE Connect on the phone.");
+    canvas.addEventListener("keydown", event => {
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "z") {
+        event.preventDefault(); if (event.shiftKey) editor.redo(); else editor.undo();
+      }
+    });
+    ziel.append(werkzeuge, tabletZeile, canvas, status);
+  }
+
   function zeichneCustomModul(modul, ziel, begriffe = [], vorschau = false) {
     const sektion = el("section", "custom-modul custom-modul-" + modul.type);
     const kopf = el("div", "custom-modul-kopf");
     kopf.append(el("h2", null, modul.title || customModulTitel(modul.type)));
+    if (modul.type === "drawing") {
+      if (begriffe.length && !suchPasst(suchText([modul.title, customModulTitel(modul.type)]), begriffe)) return;
+      sektion.append(kopf); zeichneZeichenblatt(modul, sektion, vorschau); ziel.append(sektion); return;
+    }
     if (vorschau) {
       const liste = el("div", "custom-modul-liste");
       if (modul.type === "notes") {
@@ -11682,7 +11789,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     for (const modul of modules) zeichneCustomModul(modul, ziele[modul.page], begriffe);
     customSeitenLayout(ziele);
     if (!modules.length) ziele.left.append(el("p", "leer-hinweis",
-      _("Customize") + ": " + [_("Appointments"), _("Text block"), _("Tasks")].join(" · ")));
+      _("Customize") + ": " + [_("Appointments"), _("Text block"), _("Tasks"), _("Drawing sheet")].join(" · ")));
   }
 
   function customSeitenLayout(ziele) {
@@ -11712,7 +11819,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     kopf.append(titel, zu);
     const werkzeuge = el("div", "custom-designer-werkzeuge");
     const typ = auswahlFeld([["appointments", _("Appointments")], ["notes", _("Text block")],
-      ["tasks", _("Tasks")]], "appointments");
+      ["tasks", _("Tasks")], ["drawing", _("Drawing sheet")]], "appointments");
     const liste = el("div", "custom-designer-liste");
     const ziele = {};
     for (const [seite, label] of [["left", "Left page"], ["right", "Right page"]]) {
@@ -11749,7 +11856,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
             customModulGeaendert(modul);
           });
           karte.append(formZeile(_("Lined paper (lines on the writing sheet)"), linien));
-        } else {
+        } else if (modul.type !== "drawing") {
           const erinnern = document.createElement("input"); erinnern.type = "checkbox"; erinnern.checked = !!modul.reminders;
           erinnern.addEventListener("change", () => { modul.reminders = erinnern.checked; customModulGeaendert(modul); });
           const zeile = el("label", "hak"); zeile.append(erinnern,
@@ -11766,7 +11873,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     werkzeuge.append(formZeile(_("Module"), typ), knopf(_("Add"), "knopf", () => {
       const modules = DATEN.customOrganizer.modules || (DATEN.customOrganizer.modules = []);
       if (modules.length >= CUSTOM_MAX_MODULES ||
-          (typ.value !== "notes" && modules.some((modul) => modul.type === typ.value))) return;
+          (!["notes", "drawing"].includes(typ.value) && modules.some((modul) => modul.type === typ.value))) return;
       const seiten = (typ.value === "notes" ? ["left", "right"] : ["right", "left"]).filter((seite) =>
         modules.filter((modul) => modul.page === seite).length < 2 &&
         (typ.value !== "notes" || !modules.some((modul) => modul.type === "notes" && modul.page === seite)));
@@ -11776,6 +11883,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
         page: seite, order: 1 + Math.max(-1, ...modules.filter((wert) => wert.page === seite).map((wert) => wert.order)),
         reminders: false, modified_ms: Date.now() };
       modul.items = [];
+      if (modul.type === "drawing") modul.drawing = window.MagnolieZeichnen.create();
       modules.push(modul);
       planeSpeichern(); zeichnen();
     }));
@@ -16247,6 +16355,40 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     return buch;
   }
 
+  function fuegeZeichenblattInNotiz(notiz) {
+    if (zeichenblattAuswahlSchliessen) return;
+    const bestand = DATEN;
+    const zeichnungen = DATEN.customOrganizer.modules.filter(modul => modul.type === "drawing" && window.MagnolieZeichnen?.valid(modul.drawing));
+    if (!zeichnungen.length) { zettel(_("Create a drawing sheet in the custom tab first.")); return; }
+    const schleier = el("div", "eingabe-schleier"), dialog = el("section", "eingabe-dialog");
+    dialog.setAttribute("role", "dialog"); dialog.setAttribute("aria-modal", "true");
+    const auswahl = auswahlFeld(zeichnungen.map((modul, index) => [modul.id, modul.title || _("Drawing sheet") + " " + (index + 1)]), zeichnungen[0].id);
+    auswahl.setAttribute("aria-label", _("Drawing sheet"));
+    const vorschau = el("div"), status = el("p", "einst-warnung");
+    const zeichnen = () => { vorschau.replaceChildren(); const modul = zeichnungen.find(wert => wert.id === auswahl.value); if (modul) zeichneZeichenblatt(modul, vorschau, true); };
+    auswahl.addEventListener("change", zeichnen); zeichnen();
+    const schliessen = () => { beendeModal(schleier); schleier.remove(); zeichenblattAuswahlSchliessen = null; };
+    zeichenblattAuswahlSchliessen = schliessen;
+    const einfuegen = knopf(_("Embed"), "hauptknopf", () => {
+      if (gesperrt || DATEN !== bestand || !DATEN.notizen.includes(notiz)) { schliessen(); return; }
+      const modul = DATEN.customOrganizer.modules.find(wert => wert.id === auswahl.value);
+      if (!modul || !window.MagnolieZeichnen.valid(modul.drawing)) { status.textContent = _("This drawing cannot be edited in this version."); return; }
+      const canvas = document.createElement("canvas"); window.MagnolieZeichnen.render(canvas, modul.drawing);
+      const daten = canvas.toDataURL("image/png");
+      if (daten.length > 8 * 1024 * 1024 * 4 / 3) { status.textContent = _("The file is larger than 8 megabytes."); return; }
+      const anhang = { id: uid(), art: "image", name: (modul.title || _("Drawing sheet")) + ".png", daten };
+      const anhaenge = (notiz.anhaenge || []).concat([anhang]);
+      if (saubereNotizAnhaenge(anhaenge).length !== anhaenge.length) { status.textContent = _("The message is too large."); return; }
+      notiz.anhaenge = anhaenge; notiz.geaendert = isoHeute(); notiz.personalGeaendert = Date.now();
+      markiereGemeinsameNotiz(notiz); planeSpeichern(); synchronisiereFreigegebeneNotiz(notiz);
+      schliessen(); zeichneAlles();
+    });
+    const knoepfe = el("div", "dialog-knoepfe"); knoepfe.append(einfuegen, knopf(_("Cancel"), "", schliessen));
+    dialog.append(el("h2", null, _("Drawing sheet")), auswahl, vorschau, status, knoepfe);
+    schleier.append(dialog); document.body.append(schleier);
+    registriereModal(schleier, dialog, { anfang: auswahl, schliessen });
+  }
+
   function notizAnhangLesen(datei, art, fertig) {
     if (!datei || (art !== "image" && art !== "pdf")) {
       fertig(null, art === "pdf" ? _("Please select a PDF file.")
@@ -16970,7 +17112,8 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       });
     };
     einfuegen.append(knopf(_("Image"), "notiz-zusatz-knopf", () => waehleAnhang("image")),
-      knopf("PDF", "notiz-zusatz-knopf", () => waehleAnhang("pdf")));
+      knopf("PDF", "notiz-zusatz-knopf", () => waehleAnhang("pdf")),
+      knopf(_("Drawing sheet"), "notiz-zusatz-knopf", () => fuegeZeichenblattInNotiz(notiz)));
     const notizFreigabe = baumFreigabeReihe("notiz",
       () => notizBaumInhalt(notiz, "notiz"),
       notiz.baumFreigabe ? _("Extend sharing") : _("Share together"),
@@ -26393,6 +26536,8 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
   const App = {
     init(nutzlast) {
       kdeKontaktLauf?.abbrechen?.();
+      zeichenblattAuswahlSchliessen?.();
+      beendeZeicheneingabe();
       letzterSpeicherSha256 = ""; baumSpeicherNachweis = null;
       nutzlast = nutzlast || {};
       antwortErhalten = true;
@@ -26574,6 +26719,22 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
         zeichneGeraeteStatus(nutzlast.status);
       }
     },
+    zeichenEingabeStand(nutzlast) {
+      if (!aktivesZeichenziel || nutzlast?.token !== aktivesZeichenziel.token) return;
+      if (!nutzlast.ok || !nutzlast.enabled) { beendeTabletEingabe(); zettel(_("The phone is no longer connected.")); }
+    },
+    zeichenEingabe(nutzlast) {
+      const ziel = aktivesZeichenziel;
+      if (!ziel || nutzlast?.token !== ziel.token || nutzlast.device_id !== ziel.deviceId) return;
+      if (gesperrt || document.hidden || !document.hasFocus() || !ziel.canvas.isConnected || !DATEN.customOrganizer.modules.includes(ziel.modul) || nutzlast.stopped) {
+        beendeTabletEingabe(); return;
+      }
+      if (!Array.isArray(nutzlast.events) || nutzlast.events.length > 128) { beendeTabletEingabe(); return; }
+      if ([...document.querySelectorAll('[aria-modal="true"]')].some(element => element.getClientRects().length)) {
+        ziel.editor.remote({ active: false, touching: false }); return;
+      }
+      for (const sample of nutzlast.events) ziel.editor.remote(sample);
+    },
     telefonKontakte(nutzlast) {
       const anfrage = kdeKontaktAnfragen.get(nutzlast?.requestId);
       if (!anfrage) return;
@@ -26592,6 +26753,11 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     },
     telefonStand(nutzlast) {
       telefonStand = nutzlast || null;
+      document.querySelectorAll('[data-kde-zeichen-input]').forEach(node => {
+        node.disabled = !Bruecke.vorhanden || !telefonStand?.kdeconnect?.digitizer_available || !telefonStand.kdeconnect.digitizer_device_id;
+      });
+      if (aktivesZeichenziel && (!telefonStand?.kdeconnect?.digitizer_available ||
+          telefonStand.kdeconnect.digitizer_device_id !== aktivesZeichenziel.deviceId)) beendeTabletEingabe();
       if (kdeKontaktLauf && (!telefonStand?.kdeconnect?.contacts_available ||
           telefonStand.kdeconnect.contacts_device_id !== kdeKontaktLauf.deviceId)) kdeKontaktLauf.abbrechen();
       planeKontaktFotoAbruf();
